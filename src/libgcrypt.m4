@@ -20,7 +20,6 @@ AC_DEFUN(AM_PATH_LIBGCRYPT,
                            [prefix where LIBGCRYPT is installed (optional)]),
      libgcrypt_config_prefix="$withval", libgcrypt_config_prefix="")
   if test x$libgcrypt_config_prefix != x ; then
-     libgcrypt_config_args="$libgcrypt_config_args --prefix=$libgcrypt_config_prefix"
      if test x${LIBGCRYPT_CONFIG+set} != xset ; then
         LIBGCRYPT_CONFIG=$libgcrypt_config_prefix/bin/libgcrypt-config
      fi

@@ -1,3 +1,8 @@
+2003-11-11  Moritz Schulte  <mo@g10code.com>
+
+	* libgcrypt.m4: Do not set prefix when calling libgcrypt-config.
+	Thanks to Nikos Mavroyanopoulos.
+
 2003-11-08  Moritz Schulte  <mo@g10code.com>
 
 	* cipher.h (small_prime_numbers): Removed declaration.
