@@ -513,7 +513,9 @@ gcry_cipher_open( int algo, int mode, unsigned int flags )
     }
 
     /* check flags */
-    if( (flags & ~(GCRY_CIPHER_SECURE|GCRY_CIPHER_ENABLE_SYNC)) ) {
+    if( (flags & ~(GCRY_CIPHER_SECURE|
+		   GCRY_CIPHER_ENABLE_SYNC|
+		   GCRY_CIPHER_CBC_CTS)) ) {
 	set_lasterr( GCRYERR_INV_CIPHER_ALGO );
 	return NULL;
     }
@@ -642,12 +644,18 @@ do_ecb_decrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nblo
 }
 
 static void
-do_cbc_encrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nblocks )
+do_cbc_encrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nbytes )
 {
     unsigned int n;
     byte *ivp;
     int i;
     size_t blocksize = c->blocksize;
+    unsigned nblocks = nbytes / blocksize;
+
+    if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) {
+      if ((nbytes % blocksize) == 0)
+	nblocks--;
+    }
 
     for(n=0; n < nblocks; n++ ) {
 	/* fixme: the xor should works on words and not on
@@ -660,15 +668,44 @@ do_cbc_encrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nblo
 	inbuf  += c->blocksize;
 	outbuf += c->blocksize;
     }
+
+    if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize)
+      {
+	int restbytes;
+
+	if ((nbytes % blocksize) == 0)
+	  restbytes = blocksize;
+	else
+	  restbytes = nbytes % blocksize;
+
+	memcpy(outbuf, outbuf - c->blocksize, restbytes);
+	outbuf -= c->blocksize;
+
+	for(ivp=c->iv,i=0; i < restbytes; i++ )
+	    outbuf[i] = inbuf[i] ^ *ivp++;
+	for(; i < blocksize; i++ )
+	    outbuf[i] = 0 ^ *ivp++;
+
+	(*c->encrypt)( &c->context.c, outbuf, outbuf );
+	memcpy(c->iv, outbuf, blocksize );
+      }
 }
 
 static void
-do_cbc_decrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nblocks )
+do_cbc_decrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nbytes )
 {
     unsigned int n;
     byte *ivp;
     int i;
     size_t blocksize = c->blocksize;
+    unsigned nblocks = nbytes / blocksize;
+
+    if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) {
+      nblocks--;
+      if ((nbytes % blocksize) == 0)
+	nblocks--;
+      memcpy(c->lastiv, c->iv, blocksize );
+    }
 
     for(n=0; n < nblocks; n++ ) {
 	/* because outbuf and inbuf might be the same, we have
@@ -681,6 +718,30 @@ do_cbc_decrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nblo
 	memcpy(c->iv, c->lastiv, blocksize );
 	inbuf  += c->blocksize;
 	outbuf += c->blocksize;
+    }
+
+    if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) {
+	int restbytes;
+
+	if ((nbytes % blocksize) == 0)
+	  restbytes = blocksize;
+	else
+	  restbytes = nbytes % blocksize;
+
+	memcpy(c->lastiv, c->iv, blocksize ); /* save Cn-2 */
+	memcpy(c->iv, inbuf + blocksize, restbytes ); /* save Cn */
+
+	(*c->decrypt)( &c->context.c, outbuf, (char*)/*argggg*/inbuf );
+	for(ivp=c->iv,i=0; i < restbytes; i++ )
+	    outbuf[i] ^= *ivp++;
+
+	memcpy(outbuf + blocksize, outbuf, restbytes);
+	for(i=restbytes; i < blocksize; i++)
+	  c->iv[i] = outbuf[i];
+	(*c->decrypt)( &c->context.c, outbuf, c->iv );
+	for(ivp=c->lastiv,i=0; i < blocksize; i++ )
+	    outbuf[i] ^= *ivp++;
+	/* c->lastiv is now really lastlastiv, does this matter? */
     }
 }
 
@@ -810,8 +871,9 @@ cipher_encrypt( GCRY_CIPHER_HD c, byte *outbuf,
             rc = GCRYERR_INV_ARG;
 	break;
       case GCRY_CIPHER_MODE_CBC:
-	if (!(nbytes%c->blocksize))
-            do_cbc_encrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+	if (!(nbytes%c->blocksize) || (nbytes > c->blocksize && 
+				       (c->flags & GCRY_CIPHER_CBC_CTS)))
+            do_cbc_encrypt(c, outbuf, inbuf, nbytes );
         else 
             rc = GCRYERR_INV_ARG;
 	break;
@@ -855,10 +917,12 @@ gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 	if ( outsize < inlen )
 	    return set_lasterr ( GCRYERR_TOO_SHORT );
         if ( ( h->mode == GCRY_CIPHER_MODE_ECB ||
-               h->mode == GCRY_CIPHER_MODE_CBC ) &&
-             (inlen % h->blocksize) != 0 )
-            return set_lasterr( GCRYERR_INV_ARG );
-        
+               (h->mode == GCRY_CIPHER_MODE_CBC && 
+		!((h->flags & GCRY_CIPHER_CBC_CTS) &&
+		  (inlen > h->blocksize)))) &&
+	     (inlen % h->blocksize) != 0 )
+	  return set_lasterr( GCRYERR_INV_ARG );
+
 	rc = cipher_encrypt ( h, out, in, inlen );
     }
 
@@ -886,8 +950,9 @@ cipher_decrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf,
             rc = GCRYERR_INV_ARG;
 	break;
       case GCRY_CIPHER_MODE_CBC:
-	if (!(nbytes%c->blocksize))
-            do_cbc_decrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+	if (!(nbytes%c->blocksize) || (nbytes > c->blocksize && 
+				       (c->flags & GCRY_CIPHER_CBC_CTS)))
+            do_cbc_decrypt(c, outbuf, inbuf, nbytes );
         else 
             rc = GCRYERR_INV_ARG;
 	break;
@@ -927,8 +992,10 @@ gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 	if( outsize < inlen )
 	    return set_lasterr( GCRYERR_TOO_SHORT );
         if ( ( h->mode == GCRY_CIPHER_MODE_ECB ||
-               h->mode == GCRY_CIPHER_MODE_CBC )
-             && ( inlen % h->blocksize ) != 0 )
+               (h->mode == GCRY_CIPHER_MODE_CBC && 
+		!((h->flags & GCRY_CIPHER_CBC_CTS) &&
+		  (inlen > h->blocksize)))) &&
+	     (inlen % h->blocksize) != 0 )
             return set_lasterr( GCRYERR_INV_ARG );
 
 	rc = cipher_decrypt( h, out, in, inlen );
@@ -968,6 +1035,12 @@ gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, void *buffer, size_t buflen)
       break;
     case GCRYCTL_CFB_SYNC:
       cipher_sync( h );
+      break;
+    case GCRYCTL_SET_CBC_CTS:
+      if (buflen)
+	h->flags |= GCRY_CIPHER_CBC_CTS;
+      else
+	h->flags &= ~GCRY_CIPHER_CBC_CTS;
       break;
 
     case GCRYCTL_DISABLE_ALGO:

@@ -1,3 +1,17 @@
+2002-11-10  Simon Josefsson  <jas@extundo.com>
+
+	* cipher.c (gcry_cipher_open): Don't reject CTS flag.
+	(do_cbc_encrypt, do_cbc_decrypt, cipher_encrypt) 
+	(gcry_cipher_encrypt, cipher_decrypt)
+	(gcry_cipher_decrypt): Support CTS flag.
+	(gcry_cipher_ctl): Toggle CTS flag.
+
+2002-11-10  Werner Koch  <wk@gnupg.org>
+
+	* md4.c: New. By by Simon Josefsson.
+	* Makefile.am (EXTRA_PROGRAMS): Add md4.c. 
+	* md.c (oid_table,gcry_md_get_algo_dlen): MD4 support. 
+
 2002-10-14  Werner Koch  <wk@gnupg.org>
 
 	* arcfour.c (do_encrypt_stream): Don't use increment op when

@@ -49,6 +49,8 @@ static struct {
   { "1.2.840.113549.2.5",   GCRY_MD_MD5 },
   /* GNU.digestAlgorithm TIGER */
   { "1.3.6.1.4.1.11591.12.2", GCRY_MD_TIGER },
+  /* iso.member-body.us.rsadsi.digestAlgorithm.md4 */
+  { "1.2.840.113549.2.4", GCRY_MD_MD4 },
   {NULL}
 };
 
@@ -819,6 +821,7 @@ gcry_md_get_algo_dlen( int algo )
     /* we do some very quick checks here */
     switch( algo )
     {
+      case GCRY_MD_MD4:
       case GCRY_MD_MD5: return 16;
       case GCRY_MD_SHA1:
       case GCRY_MD_RMD160: return 20;
