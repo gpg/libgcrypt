@@ -194,7 +194,7 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
     }
 
     if( length ) {
-	fprintf( stderr,
+	log_info (
 	 _("Please wait, entropy is being gathered. Do some work if it would\n"
 	   "keep you from getting bored, because it will improve the quality\n"
 	   "of the entropy.\n") );

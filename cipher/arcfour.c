@@ -56,20 +56,22 @@ static void
 do_encrypt_stream( ARCFOUR_context *ctx,
                 byte *outbuf, const byte *inbuf, unsigned int length )
 {
-    int t;  
-    int i = ctx->idx_i;
-    int j = ctx->idx_j;
-    byte *sbox = ctx->sbox;
+  register int i = ctx->idx_i;
+  register int j = ctx->idx_j;
+  register byte *sbox = ctx->sbox;
+  register int t;  
 
-    while ( length-- ) {
-        i = (i+1) % 256;
-        j = (j + sbox[i]) % 256;
-        t = sbox[i]; sbox[i] = sbox[j]; sbox[j] = t;
-        *outbuf++ = *inbuf++ ^ sbox[(sbox[i] + sbox[j]) % 256];
+  while ( length-- )
+    {
+      i = ++i & 255; /* and seems to faster than mod */
+      j += sbox[i];
+      j &= 255;
+      t = sbox[i]; sbox[i] = sbox[j]; sbox[j] = t;
+      *outbuf++ = *inbuf++ ^ sbox[(sbox[i] + sbox[j]) & 255];
     }
-
-    ctx->idx_i = i;
-    ctx->idx_j = j;
+  
+  ctx->idx_i = i;
+  ctx->idx_j = j;
 }
 
 static void
@@ -94,7 +96,7 @@ do_arcfour_setkey( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
 	initialized = 1;
 	selftest_failed = selftest();
 	if( selftest_failed )
-	    fprintf(stderr,"ARCFOUR selftest failed (%s)\n", selftest_failed );
+	    log_error ("ARCFOUR selftest failed (%s)\n", selftest_failed );
     }
     if( selftest_failed )
 	return GCRYERR_SELFTEST;

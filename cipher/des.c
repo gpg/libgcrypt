@@ -1097,7 +1097,7 @@ _gcry_des_get_info( int algo, size_t *keylen,
 	const char *s = selftest();
 	did_selftest = 1;
 	if( s ) {
-	    fprintf(stderr,"%s\n", s );
+	    log_error ("%s\n", s );
 	    selftest_failed = s;
 	    return NULL;
 	}

@@ -591,7 +591,7 @@ do_cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
 	initialized = 1;
 	selftest_failed = selftest();
 	if( selftest_failed )
-	    fprintf(stderr,"CAST5 selftest failed (%s).\n", selftest_failed );
+	    log_error ("CAST5 selftest failed (%s).\n", selftest_failed );
     }
     if( selftest_failed )
 	return GCRYERR_SELFTEST;

@@ -120,18 +120,17 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 	tv.tv_sec = 3;
 	tv.tv_usec = 0;
 	if( !(rc=select(fd+1, &rfds, NULL, NULL, &tv)) ) {
-	    #warning FIXME: Replace fprintf by a callback
-	    if( !warn )
-		fprintf(stderr,
-_("\n"
-"Not enough random bytes available.  Please do some other work to give\n"
-"the OS a chance to collect more entropy! (Need %d more bytes)\n"),
-                        (int)length );
-	    warn = 1;
+          if( !warn )
+            {
+              log_info (_("not enough random bytes available (need %d bytes)\n"),
+                        (int)length);
+              log_info (_("please do some other work to give the OS a chance to collect more entropy\n"));
+            }
+              warn = 1;
 	    continue;
 	}
 	else if( rc == -1 ) {
-	    fprintf(stderr, "select() error: %s\n", strerror(errno));
+	    log_error ("select() error: %s\n", strerror(errno));
 	    continue;
 	}
 

@@ -174,33 +174,30 @@ _gcry_rmd160_init( RMD160_CONTEXT *hd )
 static void
 transform( RMD160_CONTEXT *hd, byte *data )
 {
-    u32 a,b,c,d,e,aa,bb,cc,dd,ee,t;
-  #ifdef BIG_ENDIAN_HOST
-    u32 x[16];
-    { int i;
-      byte *p2, *p1;
-      for(i=0, p1=data, p2=(byte*)x; i < 16; i++, p2 += 4 ) {
-	p2[3] = *p1++;
-	p2[2] = *p1++;
-	p2[1] = *p1++;
-	p2[0] = *p1++;
-      }
-    }
-  #else
-   #if 0
-    u32 *x =(u32*)data;
-   #else
-    /* this version is better because it is always aligned;
-     * The performance penalty on a 586-100 is about 6% which
-     * is acceptable - because the data is more local it might
-     * also be possible that this is faster on some machines.
-     * This function (when compiled with -02 on gcc 2.7.2)
-     * executes on a 586-100 (39.73 bogomips) at about 1900kb/sec;
-     * [measured with a 4MB data and "gpgm --print-md rmd160"] */
-    u32 x[16];
-    memcpy( x, data, 64 );
-   #endif
-  #endif
+  register u32 a,b,c,d,e;
+  u32 aa,bb,cc,dd,ee,t;
+#ifdef BIG_ENDIAN_HOST
+  u32 x[16];
+  { int i;
+  byte *p2, *p1;
+  for(i=0, p1=data, p2=(byte*)x; i < 16; i++, p2 += 4 ) {
+    p2[3] = *p1++;
+    p2[2] = *p1++;
+    p2[1] = *p1++;
+    p2[0] = *p1++;
+  }
+  }
+#else
+  /* this version is better because it is always aligned;
+   * The performance penalty on a 586-100 is about 6% which
+   * is acceptable - because the data is more local it might
+   * also be possible that this is faster on some machines.
+   * This function (when compiled with -02 on gcc 2.7.2)
+   * executes on a 586-100 (39.73 bogomips) at about 1900kb/sec;
+   * [measured with a 4MB data and "gpgm --print-md rmd160"] */
+  u32 x[16];
+  memcpy( x, data, 64 );
+#endif
 
 
 #define K0  0x00000000

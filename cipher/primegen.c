@@ -305,9 +305,9 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 	    log_mpidump( "factor pi: ", factors[i] );
 	log_debug("bit sizes: prime=%u, q=%u", mpi_get_nbits(prime), mpi_get_nbits(q) );
 	if( mode == 1 )
-	    fprintf(stderr, ", q0=%u", mpi_get_nbits(q_factor) );
+	    log_debug (", q0=%u", mpi_get_nbits(q_factor) );
 	for(i=0; i < n; i++ )
-	    fprintf(stderr, ", p%d=%u", i, mpi_get_nbits(factors[i]) );
+	    log_debug (", p%d=%u", i, mpi_get_nbits(factors[i]) );
 	progress('\n');
     }
 

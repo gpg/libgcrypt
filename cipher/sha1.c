@@ -79,7 +79,7 @@ sha1_init( SHA1_CONTEXT *hd )
 static void
 transform( SHA1_CONTEXT *hd, byte *data )
 {
-    u32 a,b,c,d,e,tm;
+    register u32 a,b,c,d,e,tm;
     u32 x[16];
 
     /* get values from the chaining vars */

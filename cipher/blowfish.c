@@ -520,7 +520,7 @@ do_bf_setkey( BLOWFISH_context *c, byte *key, unsigned keylen )
 	initialized = 1;
 	selftest_failed = selftest();
 	if( selftest_failed )
-	    fprintf(stderr,"%s\n", selftest_failed );
+	    log_error ("%s\n", selftest_failed );
     }
     if( selftest_failed )
 	return GCRYERR_SELFTEST;

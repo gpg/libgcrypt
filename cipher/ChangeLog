@@ -1,3 +1,28 @@
+2002-09-17  Werner Koch  <wk@gnupg.org>
+
+	* random.c: Replaced mutex.h by the new ath.h.  Changed all calls.
+
+2002-09-16  Werner Koch  <wk@gnupg.org>
+
+	* arcfour.c (do_encrypt_stream): Use register modifier and modulo.
+	According to Nikos Mavroyanopoulos this increases perfromace on
+	i386 system noticable.  And I always tought gcc is clever enough.
+	* md5.c (transform): Use register modifier.
+	* rmd160.c (transform): Ditto.
+	* sha1.c (transform): Ditto.  We hope that there are 6 free registers.
+	* random.c (gcry_randomize): Rewrote to avoid malloc calls.
+
+	* rndlinux.c (gather_random): Replaced remaining fprintfs by log_*.
+	* arcfour.c (do_arcfour_setkey): Ditto.
+	* twofish.c (do_twofish_setkey): Ditto.
+	* rndegd.c (gather_random): Ditto.
+	* rijndael.c (do_setkey): Ditto.
+	* random.c (_gcry_random_dump_stats): Ditto. 
+	* primegen.c (_gcry_generate_elg_prime): Ditto.
+	* des.c (_gcry_des_get_info): Ditto.
+	* cast5.c (do_cast_setkey): Ditto.
+	* blowfish.c (do_bf_setkey): Ditto.
+
 2002-08-26  Werner Koch  <wk@gnupg.org>
 
 	* des.c (weak_keys): Fixed one entry in the table and compared

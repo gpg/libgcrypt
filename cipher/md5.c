@@ -93,13 +93,13 @@ static void
 transform( MD5_CONTEXT *ctx, byte *data )
 {
     u32 correct_words[16];
-    u32 A = ctx->A;
-    u32 B = ctx->B;
-    u32 C = ctx->C;
-    u32 D = ctx->D;
+    register u32 A = ctx->A;
+    register u32 B = ctx->B;
+    register u32 C = ctx->C;
+    register u32 D = ctx->D;
     u32 *cwp = correct_words;
 
-  #ifdef BIG_ENDIAN_HOST
+#ifdef BIG_ENDIAN_HOST
     { int i;
       byte *p2, *p1;
       for(i=0, p1=data, p2=(byte*)correct_words; i < 16; i++, p2 += 4 ) {
@@ -109,9 +109,9 @@ transform( MD5_CONTEXT *ctx, byte *data )
 	p2[0] = *p1++;
       }
     }
-  #else
+#else
     memcpy( correct_words, data, 64 );
-  #endif
+#endif
 
 
 #define OP(a, b, c, d, s, T)					    \

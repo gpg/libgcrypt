@@ -1736,7 +1736,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
         initialized = 1;
         selftest_failed = selftest ();
         if( selftest_failed )
-            fprintf(stderr, "%s\n", selftest_failed );
+            log_error ("%s\n", selftest_failed );
     }
     if( selftest_failed )
         return GCRYERR_SELFTEST;

@@ -55,7 +55,7 @@
 #include "rand-internal.h"
 #include "dynload.h"
 #include "cipher.h" /* only used for the rmd160_hash_buffer() prototype */
-#include "mutex.h"
+#include "ath.h"
 
 #ifndef RAND_MAX   /* for SunOS */
   #define RAND_MAX 32767
@@ -105,8 +105,8 @@ static int secure_alloc;
 static int quick_test;
 static int faked_rng;
 
-DEFINE_LOCAL_MUTEX(pool_lock)
-static int pool_is_locked; /* only for assertion */
+static ath_mutex_t pool_lock = ATH_MUTEX_INITIALIZER;
+static int pool_is_locked; /* only used for assertion */
 
 static byte *get_random_bytes( size_t nbytes, int level, int secure );
 static void read_pool( byte *buffer, size_t length, int level );
@@ -138,7 +138,7 @@ initialize(void)
 {
   int err;
 
-  err = mutex_init (pool_lock);
+  err = ath_mutex_init (&pool_lock);
   if (err)
     log_fatal ("failed to create the pool lock: %s\n", strerror (err) );
     
@@ -168,7 +168,7 @@ burn_stack (int bytes)
 void
 _gcry_random_dump_stats()
 {
-    fprintf(stderr,
+    log_info (
 	    "random usage: poolsize=%d mixed=%lu polls=%lu/%lu added=%lu/%lu\n"
 	    "              outmix=%lu getlvl1=%lu/%lu getlvl2=%lu/%lu\n",
 	POOLSIZE, rndstats.mixrnd, rndstats.slowpolls, rndstats.fastpolls,
@@ -199,25 +199,6 @@ _gcry_quick_random_gen( int onoff )
     return faked_rng? 1 : last;
 }
 
-
-/****************
- * Fill the buffer with LENGTH bytes of cryptographically strong
- * random bytes. level 0 is not very strong, 1 is strong enough
- * for most usage, 2 is good for key generation stuff but may be very slow.
- */
-void
-gcry_randomize( byte *buffer, size_t length, enum gcry_random_level level )
-{
-  char *p;
-
-  if (!is_initialized)
-    initialize ();
-  p = get_random_bytes( length, level, 1 );
-  memcpy( buffer, p, length );
-  gcry_free(p);
-}
-
-
 int
 _gcry_random_is_faked()
 {
@@ -241,7 +222,7 @@ get_random_bytes( size_t nbytes, int level, int secure )
 	level = 1;
     MASK_LEVEL(level);
 
-    err = mutex_lock (pool_lock);
+    err = ath_mutex_lock (&pool_lock);
     if (err)
       log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
     pool_is_locked = 1;
@@ -264,7 +245,7 @@ get_random_bytes( size_t nbytes, int level, int secure )
     }
 
     pool_is_locked = 0;
-    err = mutex_unlock (pool_lock);
+    err = ath_mutex_unlock (&pool_lock);
     if (err)
       log_fatal ("failed to release the pool lock: %s\n", strerror (err));
     return buf;
@@ -285,6 +266,55 @@ gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level )
     initialize();
   return get_random_bytes( nbytes, level, 1 );
 }
+
+
+/* Fill the buffer with LENGTH bytes of cryptographically strong
+   random bytes. level 0 is not very strong, 1 is strong enough for
+   most usage, 2 is good for key generation stuff but may be very
+   slow.  */
+void
+gcry_randomize (byte *buffer, size_t length, enum gcry_random_level level)
+{
+  byte *p;
+  int err;
+
+  if (!is_initialized)
+    initialize ();
+
+  if( quick_test && level > 1 )
+    level = 1;
+  MASK_LEVEL(level);
+
+  err = ath_mutex_lock (&pool_lock);
+  if (err)
+    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
+  pool_is_locked = 1;
+  if (level == 1)
+    {
+      rndstats.getbytes1 += length;
+      rndstats.ngetbytes1++;
+    }
+  else if (level >= 2)
+    {
+      rndstats.getbytes2 += length;
+      rndstats.ngetbytes2++;
+    }
+
+  for (p = buffer; length > 0;)
+    {
+      size_t n = length > POOLSIZE? POOLSIZE : length;
+      read_pool (p, n, level);
+      length -= n;
+      p += n;
+    }
+
+  pool_is_locked = 0;
+  err = ath_mutex_unlock (&pool_lock);
+  if (err)
+    log_fatal ("failed to release the pool lock: %s\n", strerror (err));
+}
+
+
 
 
 /*
@@ -483,7 +513,7 @@ _gcry_update_random_seed_file()
       return;
     }
 
-  err = mutex_lock (pool_lock);
+  err = ath_mutex_lock (&pool_lock);
   if (err)
     log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
   pool_is_locked = 1;
@@ -518,7 +548,7 @@ _gcry_update_random_seed_file()
     }
 
   pool_is_locked = 0;
-  err = mutex_unlock (pool_lock);
+  err = ath_mutex_unlock (&pool_lock);
   if (err)
     log_fatal ("failed to release the pool lock: %s\n", strerror (err));
 }
@@ -745,18 +775,18 @@ _gcry_fast_random_poll()
   /* We have to make sure that the intialization is done because this
      gatherer might be called before any other functions and it is not
      sufficient to initialize it within do_fast_random_pool becuase we
-     want to use the mutex here. FIXME: Weh should initialie the mutex
-     using a global constructore independent from the initialization
+     want to use the mutex here. FIXME: Whe should initialize the mutex
+     using a global constructor independent from the initialization
      of the pool. */
   if (!is_initialized)
     initialize ();
-  err = mutex_lock (pool_lock);
+  err = ath_mutex_lock (&pool_lock);
   if (err)
     log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
   pool_is_locked = 1;
   do_fast_random_poll ();
   pool_is_locked = 0;
-  err = mutex_unlock (pool_lock);
+  err = ath_mutex_unlock (&pool_lock);
   if (err)
     log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
 
