@@ -88,7 +88,7 @@ Guyomarch, Simon Josefsson, Werner Koch <wk@gnupg.org>, Moritz Schulte.
 
 %%source-prerequisites:
 
-%%version: 1.3.0-cvs released 2004-04-16
+%%version: 1.2.0 released 2004-04-16
 
 %%announce-list: <gnupg-announce@gnupg.org>  
 		 <gnupg-announce-request@gnupg.org>
