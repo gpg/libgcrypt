@@ -1,3 +1,16 @@
+2003-10-31  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt.vers (_gcry_generate_elg_prime): Removed this symbol;
+	gnutls does not need it anymore.
+
+	* secmem.c (mb_get_new): s/pool/block/ due to global pool.
+
+	* misc.c (gcry_set_log_handler): s/logf/f/ to avoid shadowing
+	warning against a builtin.
+
+	* ath-pth-compat.c: cast pth_connect to get rid of the const
+	prototype.
+
 2003-10-27  Werner Koch  <wk@gnupg.org>
 
 	* ath.h (ATH_MUTEX_INITIALIZER): Removed spurious semicolon.

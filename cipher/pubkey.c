@@ -684,29 +684,30 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
 		       gcry_mpi_t *elements)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  int i, index;
+  int i, idx;
   const char *name;
   gcry_sexp_t list;
 
-  for (name = element_names, index = 0; *name && (! err); name++, index++)
+  for (name = element_names, idx = 0; *name && (! err); name++, idx++)
     {
       list = gcry_sexp_find_token (key_sexp, name, 1);
       if (! list)
 	err = GPG_ERR_NO_OBJ;
       else
 	{
-	  elements[index] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_USG);
+	  elements[idx] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_USG);
 	  gcry_sexp_release (list);
-	  if (! elements[index])
+	  if (! elements[idx])
 	    err = GPG_ERR_INV_OBJ;
 	}
     }
 
   if (err)
-    for (i = 0; i < index; i++)
-      if (elements[i])
-	gcry_free (elements[i]);
-
+    {
+      for (i = 0; i < idx; i++)
+        if (elements[i])
+          gcry_free (elements[i]);
+    }
   return err;
 }
 
@@ -1398,8 +1399,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
        */
 
       {
-	int i;
-	void **arg_list = malloc (sizeof (void *) * nelem);
+	void **arg_list = malloc (nelem * sizeof *arg_list);
 	if (arg_list)
 	  {
 	    for (i = 0; i < nelem; i++)
@@ -1621,8 +1621,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
       strcpy (p, "))");
 
       {
-	int i;
-	void **arg_list = malloc (sizeof (void *) * nelem);
+	void **arg_list = malloc (nelem * sizeof *arg_list);
 	if (arg_list)
 	  {
 	    for (i = 0; i < nelem; i++)
@@ -1950,8 +1949,8 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 	mpis[nelem++] = NULL;
 
       {
-	int elem_n = strlen (pub_elems) + strlen (sec_elems), i;
-	void **arg_list = malloc (sizeof (void *) * nelem_cp);
+	int elem_n = strlen (pub_elems) + strlen (sec_elems);
+	void **arg_list = malloc (nelem_cp * sizeof *arg_list);
 	if (arg_list)
 	  {
 	    for (i = 0; i < elem_n; i++)

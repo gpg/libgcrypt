@@ -34,10 +34,10 @@
 
 
 /****************
- * RES = BASE ^ EXP mod MOD
+ * RES = BASE ^ EXPO mod MOD
  */
 void
-gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t exp, gcry_mpi_t mod)
+gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
 {
     mpi_ptr_t  rp, ep, mp, bp;
     mpi_size_t esize, msize, bsize, rsize;
@@ -53,19 +53,19 @@ gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t exp, gcry_mpi_t mod)
     mpi_size_t tsize=0;   /* to avoid compiler warning */
 			  /* fixme: we should check that the warning is void*/
 
-    esize = exp->nlimbs;
+    esize = expo->nlimbs;
     msize = mod->nlimbs;
     size = 2 * msize;
-    esign = exp->sign;
+    esign = expo->sign;
     msign = mod->sign;
 
-    esec = mpi_is_secure(exp);
+    esec = mpi_is_secure(expo);
     msec = mpi_is_secure(mod);
     bsec = mpi_is_secure(base);
     rsec = mpi_is_secure(res);
 
     rp = res->d;
-    ep = exp->d;
+    ep = expo->d;
 
     if( !msize )
 	msize = 1 / msize;	    /* provoke a signal */
@@ -127,7 +127,7 @@ gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t exp, gcry_mpi_t mod)
 	    rp = res->d;
 	}
     }
-    else { /* Make BASE, EXP and MOD not overlap with RES.  */
+    else { /* Make BASE, EXPO and MOD not overlap with RES.  */
 	if( rp == bp ) {
 	    /* RES and BASE are identical.  Allocate temp. space for BASE.  */
 	    assert( !bp_marker );
@@ -135,7 +135,7 @@ gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t exp, gcry_mpi_t mod)
 	    MPN_COPY(bp, rp, bsize);
 	}
 	if( rp == ep ) {
-	    /* RES and EXP are identical.  Allocate temp. space for EXP.  */
+	    /* RES and EXPO are identical.  Allocate temp. space for EXPO.  */
 	    ep = ep_marker = mpi_alloc_limb_space( esize, esec );
 	    MPN_COPY(ep, rp, esize);
 	}
@@ -165,7 +165,7 @@ gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t exp, gcry_mpi_t mod)
 	i = esize - 1;
 	e = ep[i];
 	count_leading_zeros (c, e);
-	e = (e << c) << 1;     /* shift the exp bits to the left, lose msb */
+	e = (e << c) << 1;     /* shift the expo bits to the left, lose msb */
 	c = BITS_PER_MPI_LIMB - 1 - c;
 
 	/* Main loop.

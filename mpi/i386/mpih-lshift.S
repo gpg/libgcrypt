@@ -59,7 +59,7 @@ C_SYMBOL_NAME(_gcry_mpih_lshift:)
 	decl	%edx
 	jz	Lend
 	pushl	%eax			/* push carry limb onto stack */
-	testb	$1,%edx
+	testb	$1,%dl
 	jnz	L1			/* enter loop in the middle */
 	movl	%ebx,%eax
 

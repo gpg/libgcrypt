@@ -1,3 +1,18 @@
+2003-10-31  Werner Koch  <wk@gnupg.org>
+
+	* dsa.c (verify): s/exp/ex/ due to shadowing of a builtin.
+	* elgamal.c (verify): Ditto.
+
+	* ac.c (gcry_ac_data_get_index): s/index/idx/
+	(gcry_ac_data_copy_internal): Remove the cast in _gcry_malloc.
+	(gcry_ac_data_add): Must use gcry_realloc instead of realloc.
+	* pubkey.c (sexp_elements_extract): s/index/idx/ as tribute to the
+	forehackers.
+	(gcry_pk_encrypt): Removed shadowed definition of I. Reordered
+	arguments to malloc for clarity.
+	(gcry_pk_sign, gcry_pk_genkey): Ditto.
+	* primegen.c (prime_generate_internal): s/random/randomlevel/.
+
 2003-10-27  Moritz Schulte  <mo@g10code.com>
 
 	* pubkey.c (gcry_pk_encrypt): Don't forget to deallocate pkey.

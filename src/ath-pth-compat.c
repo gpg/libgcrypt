@@ -106,7 +106,8 @@ static struct ath_ops ath_pth_ops =
     pth_select,
     pth_waitpid,
     pth_accept,
-    pth_connect,
+    /* Pth uses const struct sockaddr, so we cast it for now. */
+    (int (*)(int s, struct sockaddr *addr, socklen_t length))pth_connect,
     NULL,	/* FIXME: When GNU PTh has sendmsg.  */
     NULL	/* FIXME: When GNU PTh has recvmsg.  */
   };

@@ -188,7 +188,7 @@ check_cbc_mac_cipher (void)
 }
 
 static void
-check_aes128_cbc_cts_cipher ()
+check_aes128_cbc_cts_cipher (void)
 {
   char key[128 / 8] = "chicken teriyaki";
   char plaintext[] =
@@ -640,7 +640,7 @@ check_one_md (int algo, char *data, int len, char *expect)
 }
 
 static void
-check_digests ()
+check_digests (void)
 {
   static struct algos
   {

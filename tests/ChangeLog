@@ -1,3 +1,9 @@
+2003-10-31  Werner Koch  <wk@gnupg.org>
+
+	* basic.c (check_aes128_cbc_cts_cipher): Make it a prototype
+
+	* ac.c (check_run): Comment unused variable.
+
 2003-10-10  Werner Koch  <wk@gnupg.org>
 
 	* prime.c (check_primes): Generate a generator and avoid printing

@@ -1,3 +1,8 @@
+2003-10-31  Werner Koch  <wk@gnupg.org>
+
+	* autogen.sh: Allow to override the tool name.  Do not run
+	libtoolize. Update required version numbers.
+
 2003-07-30  Werner Koch  <wk@gnupg.org>
 
 	* config.guess, config.sub: Updated from ftp.gnu.org/gnu/config/

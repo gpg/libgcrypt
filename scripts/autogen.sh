@@ -20,10 +20,16 @@
 
 PGM=LIBGCRYPT
 
-autoconf_vers=2.53
-automake_vers=1.6
-aclocal_vers=1.5
+autoconf_vers=2.57
+automake_vers=1.7
+aclocal_vers=1.7
 libtool_vers=1.4
+
+ACLOCAL=${ACLOCAL:-aclocal}
+AUTOCONF=${AUTOCONF:-autoconf}
+AUTOMAKE=${AUTOMAKE:-automake}
+AUTOHEADER=${AUTOHEADER:-autoheader}
+LIBTOOL=${LIBTOOL:-libtool}
 
 DIE=no
 if test "$1" = "--build-w32"; then
@@ -78,8 +84,8 @@ fi
 
 
 
-if (autoconf --version) < /dev/null > /dev/null 2>&1 ; then
-    if (autoconf --version | awk 'NR==1 { if( $3 >= '$autoconf_vers') \
+if ($AUTOCONF --version) < /dev/null > /dev/null 2>&1 ; then
+    if ($AUTOCONF --version | awk 'NR==1 { if( $3 >= '$autoconf_vers') \
 			       exit 1; exit 0; }');
     then
        echo "**Error**: "\`autoconf\'" is too old."
@@ -93,16 +99,16 @@ else
     DIE="yes"
 fi
 
-if (automake --version) < /dev/null > /dev/null 2>&1 ; then
-  if (automake --version | awk 'NR==1 { if( $4 >= '$automake_vers') \
+if ($AUTOMAKE --version) < /dev/null > /dev/null 2>&1 ; then
+  if ($AUTOMAKE --version | awk 'NR==1 { if( $4 >= '$automake_vers') \
 			     exit 1; exit 0; }');
      then
      echo "**Error**: "\`automake\'" is too old."
      echo '           (version ' $automake_vers ' or newer is required)'
      DIE="yes"
   fi
-  if (aclocal --version) < /dev/null > /dev/null 2>&1; then
-    if (aclocal --version | awk 'NR==1 { if( $4 >= '$aclocal_vers' ) \
+  if ($ACLOCAL --version) < /dev/null > /dev/null 2>&1; then
+    if ($ACLOCAL --version | awk 'NR==1 { if( $4 >= '$aclocal_vers' ) \
 						exit 1; exit 0; }' );
     then
       echo "**Error**: "\`aclocal\'" is too old."
@@ -134,8 +140,8 @@ fi
 #fi
 
 
-if (libtool --version) < /dev/null > /dev/null 2>&1 ; then
-    if (libtool --version | awk 'NR==1 { if( $4 >= '$libtool_vers') \
+if ($LIBTOOL --version) < /dev/null > /dev/null 2>&1 ; then
+    if ($LIBTOOL --version | awk 'NR==1 { if( $4 >= '$libtool_vers') \
 			       exit 1; exit 0; }');
     then
        echo "**Error**: "\`libtool\'" is too old."
@@ -156,8 +162,8 @@ fi
 
 #echo "Running gettextize...  Ignore non-fatal messages."
 #echo "no" | gettextize --force
-echo "Running libtoolize...  Ignore non-fatal messages."
-echo "no" | libtoolize
+#echo "Running libtoolize...  Ignore non-fatal messages."
+#echo "no" | libtoolize
 
 run()
 {
@@ -165,9 +171,9 @@ run()
     $@
 }
 
-run aclocal
-run autoheader
-run automake --gnu -a
-run autoconf
+run $ACLOCAL
+run $AUTOHEADER
+run $AUTOMAKE --gnu
+run $AUTOCONF
 
 echo "You can now run \"./configure --enable-maintainer-mode\" and then \"make\"."

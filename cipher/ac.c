@@ -148,8 +148,8 @@ gcry_ac_data_add (gcry_ac_data_t data,
   gcry_ac_mpi_t *ac_mpis = NULL;
 
   /* Allocate.  */
-  ac_mpis = realloc (data->data,
-		     sizeof (gcry_ac_mpi_t) * (data->data_n + 1));
+  ac_mpis = gcry_realloc (data->data,
+                          sizeof (gcry_ac_mpi_t) * (data->data_n + 1));
   if (! ac_mpis)
     err = gpg_err_code_from_errno (errno);
 
@@ -171,11 +171,13 @@ static gcry_err_code_t
 gcry_ac_data_copy_internal (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_ac_data_t data_new = NULL;
+  gcry_ac_data_t data_new;
+  void *p = NULL;
   int i = 0;
 
   /* Allocate data set.  */
-  err = _gcry_malloc (sizeof (struct gcry_ac_data), 0, (void **) &data_new);
+  err = _gcry_malloc (sizeof (struct gcry_ac_data), 0, &p);
+  data_new = p;
   if (! err)
     data_new->data_n = data->data_n;
 
@@ -639,17 +641,17 @@ gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
    returned MPI value will be released in case gcry_ac_data_set is
    used to associate the label NAME with a different MPI value.  */
 gcry_error_t
-gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
+gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int idx,
 			const char **name, gcry_mpi_t *mpi)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
-  if (index < data->data_n)
+  if (idx < data->data_n)
     {
       if (name)
-	*name = data->data[index].name;
+	*name = data->data[idx].name;
       if (mpi)
-	*mpi = data->data[index].mpi;
+	*mpi = data->data[idx].mpi;
     }
   else
     err = GPG_ERR_NO_DATA;

@@ -176,11 +176,11 @@ mb_merge (memblock_t *mb)
 
 /* Return a new block, which can hold SIZE bytes.  */
 static memblock_t *
-mb_get_new (memblock_t *pool, size_t size)
+mb_get_new (memblock_t *block, size_t size)
 {
   memblock_t *mb, *mb_split;
   
-  for (mb = pool; BLOCK_VALID (mb); mb = mb_get_next (mb))
+  for (mb = block; BLOCK_VALID (mb); mb = mb_get_next (mb))
     if (! (mb->flags & MB_FLAG_ACTIVE) && mb->size >= size)
       {
 	/* Found a free block.  */

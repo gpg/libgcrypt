@@ -17,11 +17,9 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
-# WARNING: _gcry_generate_elg_prime is only a temporary solution for
-# GNUTLS and should not be used by any otehr program.  A new interface
-# for prime generation will be available RSN (wk 2003-01-02)
+
 {
-  global: gcry*; _gcry_generate_elg_prime;
+  global: gcry*;
   local: *;
 };
 

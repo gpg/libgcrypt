@@ -1,3 +1,11 @@
+2003-10-31  Werner Koch  <wk@gnupg.org>
+
+	Release 1.1.44.
+	
+	* acinclude.m4 (AC_CHECK_PTH): Added.
+	* configure.ac: Use it here instead of the generic lib test.
+	Bumbed LT vesion to C9/A2/R0.
+
 2003-10-27  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac: Give a hint on where libgpg-error is available.

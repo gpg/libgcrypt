@@ -86,10 +86,10 @@ _gcry_fatal_error (int rc, const char *text)
 }
 
 void
-gcry_set_log_handler( void (*logf)(void*,int, const char*, va_list ),
+gcry_set_log_handler( void (*f)(void*,int, const char*, va_list ),
 							    void *opaque )
 {
-    log_handler = logf;
+    log_handler = f;
     log_handler_value = opaque;
 }
 

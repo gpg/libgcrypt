@@ -188,7 +188,7 @@ prime_generate_internal (int mode,
 			 gcry_mpi_t *prime_generated, unsigned int pbits,
 			 unsigned int qbits, gcry_mpi_t g,
 			 gcry_mpi_t **ret_factors,
-			 gcry_random_level_t random, unsigned int flags,
+			 gcry_random_level_t randomlevel, unsigned int flags,
                          int all_factors)
 {
   gcry_err_code_t err = 0;
@@ -250,10 +250,10 @@ prime_generate_internal (int mode,
       prime = gcry_mpi_new (pbits);
 
       /* Generate first prime factor.  */
-      q = gen_prime (qbits, is_secret, random, NULL, NULL);
+      q = gen_prime (qbits, is_secret, randomlevel, NULL, NULL);
 
       if (mode == 1)
-	q_factor = gen_prime (req_qbits, is_secret, random, NULL, NULL);
+	q_factor = gen_prime (req_qbits, is_secret, randomlevel, NULL, NULL);
 
       /* Allocate an array to hold the factors + 2 for later
 	 usage.  */
@@ -300,7 +300,8 @@ prime_generate_internal (int mode,
 		for(i = 0; i < n; i++)
 		  {
 		    perms[i] = 1;
-		    pool[i] = gen_prime (fbits, is_secret, random, NULL, NULL);
+		    pool[i] = gen_prime (fbits, is_secret,
+                                         randomlevel, NULL, NULL);
 		    factors[i] = pool[i];
 		  }
 	      }

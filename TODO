@@ -1,4 +1,4 @@
-* Remove  _gcry_generate_elg_prime from .vers for 1.2
+What's left to do                                 -*- outline -*-
 
 * Add more tests.  Even basic is very minimal.
 

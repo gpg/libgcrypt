@@ -26,17 +26,17 @@ AC_PREREQ(2.52)
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.1.44-cvs, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.1.44, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=8
-LIBGCRYPT_LT_AGE=1
+LIBGCRYPT_LT_CURRENT=9
+LIBGCRYPT_LT_AGE=2
 LIBGCRYPT_LT_REVISION=0
 
-NEED_GPG_ERROR_VERSION=0.4
+NEED_GPG_ERROR_VERSION=0.5
 
 
 PACKAGE=$PACKAGE_NAME
@@ -490,7 +490,7 @@ GNUPG_CHECK_MLOCK
 have_pth=no
 have_pthread=no
 
-AC_CHECK_LIB(pth,pth_version,have_pth=yes)
+AC_CHECK_PTH(1.2.0,,,no,have_pth=yes)
 if test "$have_pth" = yes; then
   LIBGCRYPT_CONFIG_LIBS_PTH="$LIBGCRYPT_CONFIG_LIBS_PTH -lpth"
   LIBGCRYPT_THREAD_MODULES="$LIBGCRYPT_THREAD_MODULES pth"
