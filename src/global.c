@@ -225,6 +225,7 @@ gcry_strerror( int ec )
       X(INV_CIPHER_ALGO,N_("invalid cipher algorithm"))
       X(INV_MD_ALGO,	N_("invalid hash algorithm"))
       X(WRONG_PK_ALGO,	N_("unusable public key algorithm"))
+      X(CONFLICT,	N_("conflict"))
       default:
 	sprintf( buf, "ec=%d", ec );
 	s = buf;

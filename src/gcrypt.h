@@ -89,6 +89,7 @@ enum {
     GCRYERR_TOO_LARGE = 67,  /* object is too large */
     GCRYERR_NO_OBJ = 68,     /* Missing item in an object */
     GCRYERR_NOT_IMPL = 69,   /* Not implemented */
+    GCRYERR_CONFLICT = 70,
 };
 
 const char *gcry_check_version( const char *req_version );
@@ -358,7 +359,8 @@ enum gcry_md_algos {
 };
 
 enum gcry_md_flags {
-    GCRY_MD_FLAG_SECURE = 1
+    GCRY_MD_FLAG_SECURE = 1,
+    GCRY_MD_FLAG_HMAC	= 2
 };
 
 
@@ -389,6 +391,9 @@ int gcry_md_info( GCRY_MD_HD h, int what, void *buffer, size_t *nbytes);
 int gcry_md_algo_info( int algo, int what, void *buffer, size_t *nbytes);
 const char *gcry_md_algo_name( int algo );
 int gcry_md_map_name( const char* name );
+
+
+#define gcry_md_setkey(h,k,l)  gcry_md_ctl( (h), GCRYCTL_SET_KEY, (k), (l) )
 
 #define gcry_md_putc(h,c)  \
 	    do {					\

@@ -1,3 +1,8 @@
+2000-03-21 09:18:48  Werner Koch  (wk@habibti.gnupg.de)
+
+	* gcrypt.h (gcry_md_setkey): New.
+	(GCRY_MD_FLAG_HMAC): New.
+
 Mon Jan 31 16:37:34 CET 2000  Werner Koch  <wk@gnupg.de>
 
 	* Makefile.am: Add g10lib.h
