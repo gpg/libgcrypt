@@ -1,3 +1,8 @@
+2002-07-25  Werner Koch  <wk@gnupg.org>
+
+	* rndunix.c (_gcry_rndunix_constructor): Prefixed with _gcry_.
+	Noted by Stephan Austermuehle.
+
 2002-07-08  Timo Schulz  <ts@winpt.org>
 
 	* rndw32.c: Replaced the m_ memory functions with the real 
