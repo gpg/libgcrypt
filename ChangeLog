@@ -1,3 +1,7 @@
+2003-10-24  Moritz Schulte  <mo@g10code.com>
+
+	* configure.ac: Check for socklen_t.
+
 2003-10-11  Moritz Schulte  <mo@g10code.com>
 
 	* acinclude.m4: Update AM_PATH_GPG_ERROR macro.
