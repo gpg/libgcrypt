@@ -263,13 +263,22 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
         if (! init_finished)
 	  {
             global_init ();
-            _gcry_random_initialize ();
+            /* Do only a basic ranom initialization, i.e. inti the
+               mutexes. */
+            _gcry_random_initialize (0);
             init_finished = 1;
 	  }
         break;
 
     case GCRYCTL_SET_THREAD_CBS:
       err = ath_install (va_arg (arg_ptr, void *), any_init_done);
+      break;
+
+    case GCRYCTL_FAST_POLL:
+      /* We need to do make sure that the random pool is really
+         initialized so that the poll fucntion is not a NOP. */
+      _gcry_random_initialize (1);
+      _gcry_fast_random_poll (); 
       break;
 
     default:

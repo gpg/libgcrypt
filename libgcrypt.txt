@@ -35,9 +35,9 @@ random numbers and a lot of supporting functions.
 
 %%license-verified-on: 2001-04-23
 
-%%maintainer: Werner Koch <libgcrypt@g10code.com>
+%%maintainer: Moritz Schulte <libgcrypt 'at' g10code.com>
 
-%%updated: 2002-12-23
+%%updated: 2004-04-15
 
 %%keywords: encryption, public key, digital signature, hash, libgcrypt
 
@@ -54,13 +54,13 @@ random numbers and a lot of supporting functions.
 %%doc: Programmer reference in Texinfo, Postscript, HTML included
 
 %%developers:  Matthew Skala, Michael Roth, Niklas Hernaeus, Remi
-Guyomarch, Simon Josefsson, Werner Koch <wk@gnupg.org>.
+Guyomarch, Simon Josefsson, Werner Koch, Moritz Schulte.
 
 %%contributors: 
 
 %%sponsors: 
 
-%%source-tarball: ftp://ftp.gnupg.org/gcrypt/alpha/libgcrypt/libgcrypt-1.1.11.tar.gz
+%%source-tarball: ftp://ftp.gnupg.org/gcrypt/libgcrypt/
 
 %%source-info:
 
@@ -88,7 +88,7 @@ Guyomarch, Simon Josefsson, Werner Koch <wk@gnupg.org>.
 
 %%source-prerequisites:
 
-%%version: 1.1.11 released 2002-12-21
+%%version: 1.2.0 released 2004-04-15
 
 %%announce-list: <gnupg-announce@gnupg.org>  
 		 <gnupg-announce-request@gnupg.org>

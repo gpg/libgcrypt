@@ -600,7 +600,9 @@ fi
 
 AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)
 
-GNUPG_CHECK_GNUMAKE
+# We don't check for GNU make anymore - automake should not have the
+# old flaws anymore.
+#GNUPG_CHECK_GNUMAKE
 
 AC_ARG_ENABLE(gcc-warnings,
 	      AC_HELP_STRING([--enable-gcc-warnings],

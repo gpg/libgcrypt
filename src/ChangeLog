@@ -1,3 +1,11 @@
+2004-05-07  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: Added GCRYCTL_FAST_POLL.
+	(gcry_fast_random_poll): New.
+	* global.c (gcry_control) <INITIALIZATION_FINISHED>: Do only basic
+	random subsystem init.
+	(gcry_control) <FAST_POLL>: New.
+
 2004-04-22  Marcus Brinkmann  <marcus@g10code.de>
 
 	* libgcrypt.m4: Quote first argument to AC_DEFUN.

@@ -1,3 +1,12 @@
+2004-05-07  Werner Koch  <wk@gnupg.org>
+
+	* random.c (initialize): Factored out some code to ..
+	(initialize_basics): .. new function.
+	(_gcry_random_initialize): Just call initialize_basics unless the
+	new arg FULL is set to TRUE.
+	(_gcry_fast_random_poll): Don't do anything unless the random
+	system has been really initialized.
+
 2004-05-07  Moritz Schulte  <moritz@g10code.de>
 
 	* ac.c (gcry_ac_open): Do not dereference NULL pointer.  Reported

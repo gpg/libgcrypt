@@ -22,7 +22,7 @@
 
 #include "types.h"
 
-void _gcry_random_initialize (void);
+void _gcry_random_initialize (int full);
 void _gcry_register_random_progress (void (*cb)(void *,const char*,int,int,int),
                                      void *cb_data );
 void _gcry_random_dump_stats(void);

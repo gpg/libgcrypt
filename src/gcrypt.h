@@ -46,7 +46,7 @@ extern "C" {
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.2.0"
+#define GCRYPT_VERSION "1.3.0-cvs"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -325,7 +325,8 @@ enum gcry_ctl_cmds
     GCRYCTL_ENABLE_QUICK_RANDOM = 44,
     GCRYCTL_SET_RANDOM_SEED_FILE = 45,
     GCRYCTL_UPDATE_RANDOM_SEED_FILE = 46,
-    GCRYCTL_SET_THREAD_CBS = 47
+    GCRYCTL_SET_THREAD_CBS = 47,
+    GCRYCTL_FAST_POLL = 48
   };
 
 /* Perform various operations defined by CMD. */
@@ -1319,6 +1320,12 @@ void gcry_randomize (unsigned char *buffer, size_t length,
 gcry_error_t gcry_random_add_bytes (const void *buffer, size_t length,
                                    int quality);
 
+/* If random numbers are used in an application, this macro should be
+   called from time to time so that new stuff gets added to the
+   internal pool of the RNG.  */
+#define gcry_fast_random_poll()  gcry_control (GCRYCTL_FAST_POLL, NULL)
+
+
 /* Return NBYTES of allocated random using a random numbers of quality
    LEVEL. */
 void *gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
@@ -1339,6 +1346,7 @@ void gcry_mpi_randomize (gcry_mpi_t w,
 
 /* Create an unpredicable nonce of LENGTH bytes in BUFFER. */
 void gcry_create_nonce (unsigned char *buffer, size_t length);
+
 
 
 
