@@ -167,7 +167,7 @@ run()
 
 run aclocal
 run autoheader
-run automake --gnu
+run automake --gnu -a
 run autoconf
 
 echo "You can now run \"./configure --enable-maintainer-mode\" and then \"make\"."
