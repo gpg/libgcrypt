@@ -1,3 +1,8 @@
+2002-11-23  Werner Koch  <wk@gnupg.org>
+
+	* basic.c (check_digests): Add another test for MD4.  By Simon
+	Josefsson.
+
 2002-11-10  Simon Josefsson  <jas@extundo.com>
 
 	* basic.c (check_aes128_cbc_cts_cipher): New function.
