@@ -1,3 +1,7 @@
+2003-03-04  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Cipher Functions): Added gcry_cipher_reset.
+
 2003-01-23  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi (gcry_pk_decrypt): Described use of FLAGS

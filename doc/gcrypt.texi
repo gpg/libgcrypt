@@ -439,6 +439,13 @@ requirement of the selected algorithm and mode.  Note, that this is
 implemented as a macro.
 @end deftypefun
 
+@deftypefun int gcry_cipher_reset (GCRY_CIPHER_HD @var{h})
+
+Set the given handle's context back to the state it had after the last
+call to gcry_cipher_setkey and clear the initialization vector.
+
+Note, that gcry_cipher_reset is implemented as a macro.
+@end deftypefun
 
 The actual encryption and decryption is done by using one of the
 following functions.  They may be used as often as required to process
