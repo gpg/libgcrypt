@@ -69,7 +69,7 @@ static struct {
   { "rsa"        ,      PUBKEY_ALGO_RSA       , "ne",   "", "dpqu", "n" },
   { "elg"        ,      PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
   { "openpgp-dsa",      PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
-  { "openpgp-rsa",      PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
+  { "openpgp-rsa",      PUBKEY_ALGO_RSA       , "ne",   "", "dpqu"  "n"},
   { "openpgp-elg",      PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x"    },
   { "openpgp-elg-sig",  PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
   { "oid.1.2.840.113549.1.1.1",
