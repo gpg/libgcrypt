@@ -1,6 +1,14 @@
+2002-04-16  Werner Koch  <wk@gnupg.org>
+
+	* version.sgml.in, cipher-ref.sgml, digest-ref.sgml, misc-ref.sgml
+	* pubkey-ref.sgml, reference.sgml: Removed.
+	* gcrypt.texi: New. Based on the old sgml version.
+	* gpl.texi, fdl.texi: New.
+	* Makefile.am: Adjusted for use with texinfo.
+
 2000-12-21  Werner Koch  <wk@gnupg.org>
 
-	Renamed the gcryptref(.sgml files and removed the GnuPG stuff.
+	Renamed the gcryptref.sgml files and removed the GnuPG stuff.
 
 Tue Oct 26 14:10:21 CEST 1999  Werner Koch  <wk@gnupg.de>
 
