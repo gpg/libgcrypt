@@ -858,7 +858,6 @@ Makefile
 mpi/Makefile
 cipher/Makefile
 doc/Makefile
-doc/version.sgml
 src/Makefile
 src/libgcrypt-config
 tests/Makefile

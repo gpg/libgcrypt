@@ -1,3 +1,7 @@
+2003-06-16  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac (AC_CONFIG_FILES): Removed doc/version.sgml.
+
 2003-06-11  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Remove --enable-libgpg-error flag.
