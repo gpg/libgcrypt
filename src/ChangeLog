@@ -1,3 +1,9 @@
+2003-03-30  Simon Josefsson  <jas@extundo.com>
+
+	* gcrypt.h (enum gcry_control_cmds): Add GCRY_SET_CTR.
+	(enum gcry_cipher_modes): Add GCRY_CIPHER_MODE_CTR.
+	(gcry_cipher_setctr): New macro to set counter.
+
 2003-03-19  Moritz Schulte  <moritz@g10code.com>
 
 	* cipher.h (PUBKEY_FLAG_NO_BLINDING): New symbol.

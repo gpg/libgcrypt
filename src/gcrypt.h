@@ -175,6 +175,7 @@ enum gcry_control_cmds
     GCRYCTL_FINALIZE,
     GCRYCTL_START_DUMP,
     GCRYCTL_STOP_DUMP,
+    GCRYCTL_SET_CTR
   };
 
 /* Codes for use with gcry_cipher_info and gcry_md_info.  */
@@ -538,7 +539,8 @@ enum gcry_cipher_modes
     GCRY_CIPHER_MODE_CFB    = 2,  /* Cipher feedback. */
     GCRY_CIPHER_MODE_CBC    = 3,  /* Cipher block chaining. */
     GCRY_CIPHER_MODE_STREAM = 4,  /* Used with stream ciphers. */
-    GCRY_CIPHER_MODE_OFB    = 5   /* Outer feedback. */
+    GCRY_CIPHER_MODE_OFB    = 5,  /* Outer feedback. */
+    GCRY_CIPHER_MODE_CTR    = 6   /* Counter. */
   };
 
 /* Flags used with the open function. */ 
@@ -615,6 +617,11 @@ int gcry_cipher_decrypt (GcryCipherHd h,
 /* Enable or disable CTS in future calls to gcry_encrypt(). CBC mode only. */
 #define gcry_cipher_cts(h,on)  gcry_cipher_ctl( (h), GCRYCTL_SET_CBC_CTS, \
 								   NULL, on )
+
+/* Set counter for CTR mode.  (K,L) must denote a buffer of block size
+   length, or (NULL,0) to set the CTR to the all-zero block. */
+#define gcry_cipher_setctr(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_CTR, \
+						    (char*)(k), (l) )
 
 /* Retrieved the key length used with algorithm A. */
 #define gcry_cipher_get_algo_keylen(a) \
