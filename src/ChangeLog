@@ -1,3 +1,8 @@
+2003-11-08  Moritz Schulte  <mo@g10code.com>
+
+	* cipher.h (small_prime_numbers): Removed declaration.
+	(PUBKEY_FLAG_NO_BLINDING): Put braces around shift.
+
 2003-11-04  Werner Koch  <wk@gnupg.org>
 
 	* cipher.h (_gcry_sha1_has_buffer): New.
