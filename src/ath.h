@@ -24,6 +24,12 @@
 
 #include <sys/types.h>
 
+#ifdef HAVE_DOSISH_SYSTEM
+# include <windows.h> /* for fd_set */
+# include <process.h> /* for pid_t */
+  typedef unsigned int ssize_t;
+#endif
+
 /* Define ATH_EXT_SYM_PREFIX if you want to give all external symbols
    a prefix.  */
 #define ATH_EXT_SYM_PREFIX _gcry_

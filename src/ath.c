@@ -24,9 +24,15 @@
 #endif
 
 #include <unistd.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#ifndef HAVE_DOSISH_SYSTEM
+# ifdef HAVE_SYS_SELECT_H
+#  include <sys/select.h>
+# else
+#  include <sys/time.h>
+# endif
+# include <sys/types.h>
+# include <sys/wait.h>
+#endif /*HAVE_DOSISH_SYSTEM*/
 
 #include "ath.h"
 
@@ -136,18 +142,26 @@ ssize_t
 ath_select (int nfd, fd_set *rset, fd_set *wset, fd_set *eset,
 	    struct timeval *timeout)
 {
+#ifdef HAVE_DOSISH_SYSTEM
+  return 0;
+#else
   if (ath_ops && ath_ops->select)
     return ath_ops->select (nfd, rset, wset, eset, timeout);
   else
     return select (nfd, rset, wset, eset, timeout);
+#endif
 }
 
  
 ssize_t
 ath_waitpid (pid_t pid, int *status, int options)
 {
+#ifdef HAVE_DOSISH_SYSTEM
+  return 0;
+#else
   if (ath_ops && ath_ops->waitpid)
     return ath_ops->waitpid (pid, status, options);
   else
     return waitpid (pid, status, options);
+#endif
 }
