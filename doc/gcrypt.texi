@@ -415,7 +415,7 @@ callbacks with the @code{GCRYCTL_SET_THREAD_CBS} command
 @strong{before} any other function in the library.
 
 This is easy enough if you are indeed writing an application using
-libgcrypt.  It is rather problematic if you are writing a library
+Libgcrypt.  It is rather problematic if you are writing a library
 instead.  Here are some tips what to do if you are writing a library:
 
 If your library requires a certain thread package, just initialize
@@ -443,7 +443,7 @@ us if you require it.
 @item
 The function @code{gcry_check_version} must be called before any other
 function in the library, except the @code{GCRYCTL_SET_THREAD_CBS}
-command (called via the @code{gcry_control} function0, because it
+command (called via the @code{gcry_control} function), because it
 initializes the thread support subsystem in @acronym{Libgcrypt}.  To
 achieve this in multi-threaded programs, you must synchronize the
 memory with respect to other threads that also want to use
@@ -458,10 +458,39 @@ Synchronization''.  For other thread packages, more relaxed or more
 strict rules may apply.}.
 
 @item
+
 As with the function @code{gpg_strerror}, @code{gcry_strerror} is not
 thread safe.  You have to use @code{gpg_strerror_r} instead.
 @end itemize
 
+
+@acronym{Libgcrypt} contains convenient macros, which define the
+necessary thread callbacks for PThread and for GNU Pth:
+
+@table @code
+@item GCRY_THREAD_OPTION_PTH_IMPL
+
+This macro defines the following (static) symbols: gcry_pth_init,
+gcry_pth_mutex_init, gcry_pth_mutex_destroy, gcry_pth_mutex_lock,
+gcry_pth_mutex_unlock, gcry_pth_read, gcry_pth_write, gcry_pth_select,
+gcry_pth_waitpid, gcry_pth_accept, gcry_pth_connect, gcry_threads_pth.
+
+After including this macro, gcry_control() shall be used with a
+command of GCRYCTL_SET_THREAD_CBS in order to register the thread
+callback structure named ``gcry_threads_pth''.
+
+@item GCRY_THREAD_OPTION_PTHREAD_IMPL
+
+This maco defines the following (static) symbols:
+gcry_pthread_mutex_init, gcry_pthread_mutex_destroy, gcry_mutex_lock,
+gcry_mutex_unlock, gcry_threads_pthread.
+
+After including this macro, gcry_control() shall be used with a
+command of GCRYCTL_SET_THREAD_CBS in order to register the thread
+callback structure named ``gcry_threads_pthread''.
+@end table
+
+Note that these macros need to be terminated with a semicolon.
 
 @c **********************************************************
 @c *******************  General  ****************************

@@ -1,3 +1,8 @@
+2004-08-18  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Multi Threading): Document
+	GCRY_THREAD_OPTION_PTH_IMPL, GCRY_THREAD_OPTION_PTHREAD_IMPL.
+
 2004-05-07  Moritz Schulte  <moritz@g10code.de>
 
 	* gcrypt.texi: Merged several fixes reported by Umberto Salsi.
