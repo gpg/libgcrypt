@@ -193,15 +193,18 @@ gcry_control( enum gcry_global_control_cmds cmd, ... )
 	break;
 
       case GCRYCTL_DISABLE_SECMEM_WARN:
-	_gcry_secmem_set_flags( (_gcry_secmem_get_flags() | 1) );
+	_gcry_secmem_set_flags ((_gcry_secmem_get_flags ()
+				 | GCRY_SECMEM_FLAG_NO_WARNING));
 	break;
 
       case GCRYCTL_SUSPEND_SECMEM_WARN:
-	_gcry_secmem_set_flags( (_gcry_secmem_get_flags() | 2) );
+	_gcry_secmem_set_flags ((_gcry_secmem_get_flags ()
+				 | GCRY_SECMEM_FLAG_SUSPEND_WARNING));
 	break;
 
       case GCRYCTL_RESUME_SECMEM_WARN:
-	_gcry_secmem_set_flags( (_gcry_secmem_get_flags() & ~2) );
+	_gcry_secmem_set_flags ((_gcry_secmem_get_flags ()
+				 & ~GCRY_SECMEM_FLAG_SUSPEND_WARNING));
 	break;
 
       case GCRYCTL_USE_SECURE_RNDPOOL:

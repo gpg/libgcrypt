@@ -193,7 +193,7 @@ _gcry_log_fatal( const char *fmt, ... )
     va_start( arg_ptr, fmt ) ;
     _gcry_logv( GCRY_LOG_FATAL, fmt, arg_ptr );
     va_end(arg_ptr);
-    abort(); /* never called, bugs it makes the compiler happy */
+    abort(); /* never called, but it makes the compiler happy */
 }
 
 void
@@ -204,7 +204,7 @@ _gcry_log_bug( const char *fmt, ... )
     va_start( arg_ptr, fmt ) ;
     _gcry_logv( GCRY_LOG_BUG, fmt, arg_ptr );
     va_end(arg_ptr);
-    abort(); /* never called, bugs it makes the compiler happy */
+    abort(); /* never called, but it makes the compiler happy */
 }
 
 void

@@ -29,7 +29,10 @@ void _gcry_secmem_free (void *a);
 void _gcry_secmem_dump_stats (void);
 void _gcry_secmem_set_flags (unsigned flags);
 unsigned _gcry_secmem_get_flags(void) GCC_ATTR_PURE;
-
 int _gcry_private_is_secure (const void *p) GCC_ATTR_PURE;
+
+/* Flags for _gcry_secmem_{set,get}_flags.  */
+#define GCRY_SECMEM_FLAG_NO_WARNING      0x00000001
+#define GCRY_SECMEM_FLAG_SUSPEND_WARNING 0x00000002
 
 #endif /* G10_SECMEM_H */

@@ -1,3 +1,14 @@
+2003-03-06  Moritz Schulte  <mo@g10code.com>
+
+	* secmem.h (GCRY_SECMEM_FLAG_NO_WARNING,
+	GCRY_SECMEM_FLAG_SUSPEND_WARNING): New symbols.
+
+	* global.c (gcry_control): Use
+	GCRY_SECMEM_FLAG_{NO,SUSPEND}_WARNING, instead of hard-coded
+	values.
+	* secmem.c (_gcry_secmem_set_flags): Likewise.
+	* secmem.c (_gcry_secmem_get_flags): Likewise.
+	
 2003-03-03  Moritz Schulte  <moritz@g10code.com>
 
 	* misc.c: Removed old FIXME, since there is already a function to

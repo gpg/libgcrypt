@@ -227,8 +227,8 @@ _gcry_secmem_set_flags( unsigned flags )
 {
     int was_susp = suspend_warning;
 
-    no_warning = flags & 1;
-    suspend_warning = flags & 2;
+    no_warning = flags & GCRY_SECMEM_FLAG_NO_WARNING;
+    suspend_warning = flags & GCRY_SECMEM_FLAG_SUSPEND_WARNING;
 
     /* and now issue the warning if it is not longer suspended */
     if( was_susp && !suspend_warning && show_warning ) {
@@ -242,8 +242,8 @@ _gcry_secmem_get_flags(void)
 {
     unsigned flags;
 
-    flags  = no_warning      ? 1:0;
-    flags |= suspend_warning ? 2:0;
+    flags  = no_warning ? GCRY_SECMEM_FLAG_NO_WARNING : 0;
+    flags |= suspend_warning ? GCRY_SECMEM_FLAG_SUSPEND_WARNING : 0;
     return flags;
 }
 
