@@ -1,5 +1,8 @@
 2003-10-27  Moritz Schulte  <mo@g10code.com>
 
+	* sexp.c (sexp_sscan): Cleaned up, deallocate scanned sexp on
+	error.
+
 	* module.c (MODULE_ID_MIN): New symbol, use it.
 
 2003-10-27  Werner Koch  <wk@gnupg.org>
