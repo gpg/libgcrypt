@@ -1,3 +1,9 @@
+2004-09-17  Moritz Schulte  <moritz@g10code.com>
+
+	* serpent.c: Use "u32_t" instead of "unsigned long", do not
+	declare S-Box variables as "register".  Fixes failure on
+	OpenBSD/sparc64, reported by Nikolay Sturm.
+
 2004-09-16  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (pubkey_table): Added an alias entry for GCRY_PK_ELG_E;
