@@ -1,3 +1,47 @@
+2003-07-07  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h: Declare: gcry_cipher_list, gcry_pk_list, gcry_md_list.
+	
+2003-07-05  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h: Declare: gcry_cipher_register, gcry_cipher_unregister,
+	gcry_md_register, gcry_md_unregister, gcry_pk_register,
+	gcry_pk_unregister.
+	(gcry_cipher_spec): Removed member: algorithm.
+	(gcry_pk_spec): Likewise.
+	(gcry_md_spec): Likewise.
+	Adjusted declarations: gcry_cipher_register, gcry_pk_register,
+	gcry_md_register.
+
+	* module.c: Replaced all occurences of `id' with `mod_id', since
+	`id' is a keyword in obj-c.
+
+	* gcrypt.h (gcry_cipher_spec): Renamed member `id' to `algorithm'.
+	(gcry_pk_spec): Likewise.
+	(gcry_md_spec): Likewise.
+
+	* cipher.h: Removed types: gcry_pubkey_generate_t,
+	gcry_pubkey_check_secret_key_t, gcry_pubkey_encrypt_t,
+	gcry_pubkey_decrypt_t, gcry_pubkey_sign_t, gcry_pubkey_verify_t,
+	gcry_pubkey_get_nbits_t, gcry_pk_spec_t, gcry_digest_init_t,
+	gcry_digest_write_t, gcry_digest_final_t, gcry_digest_read_t,
+	gcry_digest_spec_t, gcry_cipher_setkey_t, gcry_cipher_encrypt_t,
+	gcry_cipher_decrypt_t, gcry_cipher_stencrypt_t,
+	gcry_cipher_stdecrypt_t, gcry_cipher_spec_t.
+
+	* gcrypt.h: New types: gcry_pk_generate_t,
+	gcry_pk_check_secret_key_t, gcry_pk_encrypt_t, gcry_pk_decrypt_t,
+	gcry_pk_sign_t, gcry_pk_verify_t, gcry_pk_get_nbits_t,
+	gcry_pk_spec_t, gcry_md_init_t, gcry_md_write_t, gcry_md_final_t,
+	gcry_md_read_t, gcry_md_spec_t, gcry_cipher_setkey_t,
+	gcry_cipher_encrypt_t, gcry_cipher_decrypt_t,
+	gcry_cipher_stencrypt_t, gcry_cipher_stdecrypt_t,
+	gcry_cipher_spec_t, gcry_module_t.
+
+2003-07-04  Moritz Schulte  <moritz@g10code.com>
+
+	* module.c (_gcry_module_list): New function.
+
 2003-07-02  Moritz Schulte  <moritz@g10code.com>
 
 	* module.c (_gcry_module_lookup): Fixed typo.

@@ -27,20 +27,20 @@
    that should be inserted into the module chain starting at
    MODULES.  */
 static gpg_err_code_t
-_gcry_module_id_new (gcry_module_t *modules, unsigned int *id_new)
+_gcry_module_id_new (gcry_module_t modules, unsigned int *id_new)
 {
   /* FIXME, what should be the ID of the first module registered by
      the user?  */
-  unsigned int id_min = 600, id_max = (unsigned int) -1, id;
+  unsigned int id_min = 600, id_max = (unsigned int) -1, mod_id;
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_module_t *module;
+  gcry_module_t module;
 
   /* Search for unused ID.  */
-  for (id = id_min; id < id_max; id++)
+  for (mod_id = id_min; mod_id < id_max; mod_id++)
     {
       /* Search for a module with the current ID.  */
       for (module = modules; module; module = module->next)
-	if (id == module->id)
+	if (mod_id == module->mod_id)
 	  break;
 
       if (! module)
@@ -48,9 +48,9 @@ _gcry_module_id_new (gcry_module_t *modules, unsigned int *id_new)
 	break;
     }
 
-  if (id < id_max)
+  if (mod_id < id_max)
     /* Done.  */
-    *id_new = id;
+    *id_new = mod_id;
   else
     /* No free ID found.  */
     err = GPG_ERR_INTERNAL;
@@ -58,21 +58,21 @@ _gcry_module_id_new (gcry_module_t *modules, unsigned int *id_new)
   return err;
 }
 
-/* Public function.  Add a module specification to the list ENTRIES.
-   The new module has it's use-counter set to one.  */
+/* Add a module specification to the list ENTRIES.  The new module has
+   it's use-counter set to one.  */
 gpg_err_code_t
-_gcry_module_add (gcry_module_t **entries, unsigned int id,
-		  void *spec, gcry_module_t **module)
+_gcry_module_add (gcry_module_t *entries, unsigned int mod_id,
+		  void *spec, gcry_module_t *module)
 {
   gpg_err_code_t err = 0;
-  gcry_module_t *entry;
+  gcry_module_t entry;
 
-  if (! id)
-    err = _gcry_module_id_new (*entries, &id);
+  if (! mod_id)
+    err = _gcry_module_id_new (*entries, &mod_id);
 
   if (! err)
     {
-      entry = gcry_malloc (sizeof (gcry_module_t));
+      entry = gcry_malloc (sizeof (struct gcry_module));
       if (! entry)
 	err = gpg_err_code_from_errno (errno);
     }
@@ -83,7 +83,7 @@ _gcry_module_add (gcry_module_t **entries, unsigned int id,
       entry->flags = 0;
       entry->counter = 1;
       entry->spec = spec;
-      entry->id = id;
+      entry->mod_id = mod_id;
 
       /* Link it into the list.  */
       entry->next = *entries;
@@ -102,7 +102,7 @@ _gcry_module_add (gcry_module_t **entries, unsigned int id,
 /* Internal function.  Unlink CIPHER_ENTRY from the list of registered
    ciphers and destroy it.  */
 static void
-_gcry_module_drop (gcry_module_t *entry)
+_gcry_module_drop (gcry_module_t entry)
 {
   *entry->prevp = entry->next;
   if (entry->next)
@@ -111,16 +111,15 @@ _gcry_module_drop (gcry_module_t *entry)
   gcry_free (entry);
 }
 
-/* Public function.  Lookup a module specification by it's ID.  After a
-   successfull lookup, the module has it's resource counter
-   incremented.  */
-gcry_module_t *
-_gcry_module_lookup_id (gcry_module_t *entries, unsigned int id)
+/* Lookup a module specification by it's ID.  After a successfull
+   lookup, the module has it's resource counter incremented.  */
+gcry_module_t 
+_gcry_module_lookup_id (gcry_module_t entries, unsigned int mod_id)
 {
-  gcry_module_t *entry;
+  gcry_module_t entry;
 
   for (entry = entries; entry; entry = entry->next)
-    if (entry->id == id)
+    if (entry->mod_id == mod_id)
       {
 	entry->counter++;
 	break;
@@ -129,15 +128,15 @@ _gcry_module_lookup_id (gcry_module_t *entries, unsigned int id)
   return entry;
 }
 
-/* Public function.  Lookup a module specification.  After a
-   successfull lookup, the module has it's resource counter
-   incremented.  FUNC is a function provided by the caller, which is
-   responsible for identifying the wanted module.  */
-gcry_module_t *
-_gcry_module_lookup (gcry_module_t *entries, void *data,
+/* Lookup a module specification.  After a successfull lookup, the
+   module has it's resource counter incremented.  FUNC is a function
+   provided by the caller, which is responsible for identifying the
+   wanted module.  */
+gcry_module_t 
+_gcry_module_lookup (gcry_module_t entries, void *data,
 		     gcry_module_lookup_t func)
 {
-  gcry_module_t *entry;
+  gcry_module_t entry;
 
   for (entry = entries; entry; entry = entry->next)
     if ((*func) (entry->spec, data))
@@ -149,18 +148,50 @@ _gcry_module_lookup (gcry_module_t *entries, void *data,
   return entry;
 }
 
-/* Public function.  Release a module.  In case the use-counter
-   reaches zero, destroy the module.  */
+/* Release a module.  In case the use-counter reaches zero, destroy
+   the module.  */
 void
-_gcry_module_release (gcry_module_t *module)
+_gcry_module_release (gcry_module_t module)
 {
   if (! --module->counter)
     _gcry_module_drop (module);
 }
 
-/* Public function.  Add a reference to a module.  */
+/* Add a reference to a module.  */
 void
-_gcry_module_use (gcry_module_t *module)
+_gcry_module_use (gcry_module_t module)
 {
   ++module->counter;
+}
+
+/* If LIST is zero, write the number of modules identified by MODULES
+   to LIST_LENGTH and return.  If LIST is non-zero, the first
+   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
+   according size.  In case there are less cipher modules than
+   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
+gpg_err_code_t
+_gcry_module_list (gcry_module_t modules,
+		   int *list, int *list_length)
+{
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_module_t module;
+  int length, i;
+
+  for (module = modules, length = 0; module; module = module->next, length++);
+
+  if (list)
+    {
+      if (length > *list_length)
+	length = *list_length;
+
+      for (module = modules, i = 0; i < length; module = module->next, i++)
+	list[i] = module->mod_id;
+
+      if (length < *list_length)
+	*list_length = length;
+    }
+  else
+    *list_length = length;
+
+  return err;
 }
