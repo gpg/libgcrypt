@@ -2911,6 +2911,24 @@ Disable any blinding, which might be supported by the chosen
 algorithm; blinding is the default.
 @end table
 
+There exist two kinds of cryptographic functions available through the
+ac interface: primitives, and high-level functions.
+
+Primitives deal with MPIs (data sets) directly; what they provide is
+direct access to the cryptographic operations provided by an algorithm
+implementation.
+
+High-level functions deal with octet strings, according to a specified
+``scheme''.  Schemes make use of ``encoding methods'', which are
+responsible for converting the provided octet strings into MPIs, which
+are then forwared to the cryptographic primitives.  Since schemes are
+to be used for a special purpose in order to achieve a particular
+security goal, there exist ``encryption schemes'' and ``signature
+schemes''.  Encoding methods can be used seperately or implicitely
+through schemes.
+
+What follows is a description of the cryptographic primitives.
+
 @deftypefun gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t @var{handle}, unsigned int @var{flags}, gcry_ac_key_t @var{key}, gcry_mpi_t @var{data_plain}, gcry_ac_data_t **@var{data_encrypted})
 Encrypts the plain text MPI value @var{data_plain} with the key public
 @var{key} under the control of the flags @var{flags} and stores the
@@ -2935,6 +2953,104 @@ Verifies that the signature contained in the data set
 @var{data_signature} is indeed the result of signing the data
 contained in @var{data} with the secret key belonging to the public
 key @var{key}.
+@end deftypefun
+
+What follows is a description of the high-level functions.
+
+The type ``gcry_ac_em_t'' is used for specifying encoding methods; the
+following methods are supported:
+
+@table @code
+@item GCRY_AC_EME_PKCS_V1_5
+PKCS-V1_5 Encoding Method for Encryption.  Options must be provided
+through a pointer to a correctly initialized object of type
+gcry_ac_eme_pkcs_v1_5_t.
+
+@item GCRY_AC_EMSA_PKCS_V1_5
+PKCS-V1_5 Encoding Method for Signatures with Appendix.  Options must
+be provided through a pointer to a correctly initialized object of
+type gcry_ac_emsa_pkcs_v1_5_t.
+@end table
+
+Option structure types:
+
+@table @code
+@item gcry_ac_eme_pkcs_v1_5_t
+@table @code
+@item gcry_ac_key_t key
+@item gcry_ac_handle_t handle
+@end table
+@item gcry_ac_emsa_pkcs_v1_5_t
+@table @code
+@item gcry_md_algo_t md
+@item size_t em_n
+@end table
+@end table
+
+Encoding methods can be used directly through the following functions:
+
+@deftypefun gcry_error_t gcry_ac_data_encode (gcry_ac_em_t @var{method}, unsigned int @var{flags}, void *@var{options}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char **@var{em}, size_t *@var{em_n})
+Encodes the message contained in @var{m} of size @var{m_n} according
+to @var{method}, @var{flags} and @var{options}.  The newly created
+encoded message is stored in @var{em} and @var{em_n}.
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_ac_data_decode (gcry_ac_em_t @var{method}, unsigned int @var{flags}, void *@var{options}, unsigned char *@var{em}, size_t @var{em_n}, unsigned char **@var{m}, size_t *@var{m_n})
+Decodes the message contained in @var{em} of size @var{em_n} according
+to @var{method}, @var{flags} and @var{options}.  The newly created
+decoded message is stored in @var{m} and @var{m_n}.
+@end deftypefun
+
+The type ``gcry_ac_scheme_t'' is used for specifying schemes; the
+following schemes are supported:
+
+@table @code
+@item GCRY_AC_ES_PKCS_V1_5
+PKCS-V1_5 Encryption Scheme.  No options can be provided.
+@item GCRY_AC_SSA_PKCS_V1_5
+PKCS-V1_5 Signature Scheme (with Appendix).  Options can be provided
+through a pointer to a correctly initialized object of type
+gcry_ac_ssa_pkcs_v1_5_t.
+@end table
+
+Option structure types:
+
+@table @code
+@item gcry_ac_ssa_pkcs_v1_5_t
+@table @code
+@item gcry_md_algo_t md
+@end table
+@end table
+
+The functions implementing schemes:
+
+@deftypefun gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_public}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char **@var{c}, size_t *@var{c_n})
+Encrypts the plain text contained in @var{m} of size @var{m_n} through
+@var{handle} and @var{key_public} according to @var{scheme},
+@var{flags} and @var{opts}.  The encrypted message is stored in
+@var{c} and @var{c_n}.
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_secret}, unsigned char *@var{c}, size_t @var{c_n}, unsigned char **@var{m}, size_t *@var{m_n})
+Decrypts the cipher text contained in @var{c} of size @var{c_n}
+through @var{handle} and @var{key_secret} according to @var{scheme},
+@var{flags} and @var{opts}.  The decrypted message is stored in
+@var{m} and @var{m_n}.
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_secret}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char **@var{s}, size_t *@var{s_n})
+Signs the message contained in @var{m} of size @var{m_n} through
+@var{handle} and @var{key_secret} according to @var{scheme},
+@var{flags} and @var{opts}.  The signature is stored in @var{s} and
+@var{s_n}.
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_public}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char *@var{s}, size_t @var{s_n})
+Verifies that the signature contained in @var{s} and @var{s_n} is
+indeed the result of signing the message contained in @var{m} of size
+@var{m_n} through @var{handle} and the secret key belonging to
+@var{key_public} according to @var{scheme}, @var{flags} and
+@var{opts}.
 @end deftypefun
 
 @node Handle-independent functions
