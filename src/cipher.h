@@ -67,5 +67,20 @@ void _gcry_rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length )
 /*-- smallprime.c --*/
 extern ushort small_prime_numbers[];
 
+/*-- dsa.c --*/
+void _gcry_register_pk_dsa_progress (void (*cb)(void *,const char *,
+                                                int,int,int),
+                                     void *cb_data );
+/*-- elgamal.c --*/
+void _gcry_register_pk_elg_progress (void (*cb)(void *,const char *,
+                                                int,int,int),
+                                     void *cb_data );
+/*-- primegen.c --*/
+void _gcry_register_primegen_progress (void (*cb)(void *,const char *,
+                                                int,int,int),
+                                       void *cb_data );
+
+
 
 #endif /*G10_CIPHER_H*/
+

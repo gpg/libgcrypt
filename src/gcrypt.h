@@ -180,7 +180,7 @@ enum gcry_sexp_format {
     GCRYSEXP_FMT_ADVANCED  = 3
 };
 
-/* Create an new S-expression object from BUFFER of size LENGTH aand
+/* Create an new S-expression object from BUFFER of size LENGTH and
    return it in RETSEXP.  With AUTODETECT set to 0 the data in BUFFER
    is expected to be in canonized format */
 int gcry_sexp_new (GcrySexp *retsexp, const void *buffer, size_t length,

@@ -116,7 +116,7 @@ _gcry_private_realloc( void *a, size_t n )
 {
     if( use_m_guard ) {
 	unsigned char *p = a;
-	void *b;
+	char *b;
 	size_t len;
 
         if (!a)

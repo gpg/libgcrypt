@@ -1,3 +1,11 @@
+2002-07-25  Werner Koch  <wk@gnupg.org>
+
+	* cipher.h: Added prototypes for progress functions.
+	* global.c: Include cipher.h for those prototypes.
+
+	* stdmem.c (_gcry_private_realloc): Replaced void* by char * for
+	pointer arithmetic reasons.  Noted by Stephan Austermuehle.
+
 2002-06-24  Werner Koch  <wk@gnupg.org>
 
 	* missing-string.c: Include ctype.h.

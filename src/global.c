@@ -27,7 +27,7 @@
 #include <assert.h>
 
 #include "g10lib.h"
-#include "../cipher/random.h"
+#include "cipher.h"
 #include "stdmem.h" /* our own memory allocator */
 #include "secmem.h" /* our own secmem allocator */
 
@@ -551,5 +551,3 @@ gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
   _gcry_register_pk_elg_progress (cb, cb_data);
   _gcry_register_primegen_progress (cb, cb_data);
 }
-
-
