@@ -1,3 +1,6 @@
+
+  * gcry_{cipher,md}_map_name are now able to map stringified object IDs.
+
 Noteworthy changes in version 1.1.4 (2001-08-03)
 ------------------------------------------------
 
