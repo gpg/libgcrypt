@@ -63,7 +63,8 @@ do_encrypt_stream( ARCFOUR_context *ctx,
 
   while ( length-- )
     {
-      i = ++i & 255; /* and seems to faster than mod */
+      i++;
+      i = i & 255; /* and seems to be faster than mod */
       j += sbox[i];
       j &= 255;
       t = sbox[i]; sbox[i] = sbox[j]; sbox[j] = t;

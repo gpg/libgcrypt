@@ -1,13 +1,21 @@
+2002-10-14  Werner Koch  <wk@gnupg.org>
+
+	* arcfour.c (do_encrypt_stream): Don't use increment op when
+	assigning to the same variable.
+
 2002-10-10  Timo Schulz  <ts@winpt.org>
 
 	* pubkey.c (gcry_pk_genkey): Check boundaries.
 	
-2002-10-10  Timo Schulz  <ts@winpt.org>
-
 	* md.c (gcry_md_open): Check that algo is available and only
-	valid flags values are used.
+	valid flag values are used.
 	(gcry_md_get_algo): Add error handling.
 	
+2002-09-26  Werner Koch  <wk@gnupg.org>
+
+	* md.c: Include an OID for TIGER.
+	* tiger.c (tiger_get_info): Use a regular OID.
+
 2002-09-17  Werner Koch  <wk@gnupg.org>
 
 	* random.c: Replaced mutex.h by the new ath.h.  Changed all calls.
