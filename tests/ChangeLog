@@ -1,3 +1,8 @@
+2004-08-23  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (TESTS): Added: pkbench.
+	* pkbench.c: New file.
+
 2004-02-25  Werner Koch  <wk@gnupg.org>
 
 	* Makefile.am (TEST): Add benchmark.
