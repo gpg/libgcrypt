@@ -132,14 +132,24 @@ dump_sexp( NODE node )
 }
 
 
+void
+gcry_sexp_dump( GCRY_SEXP a )
+{
+    do_dump_list( a, 0 );
+}
+
+
 /****************
  * Create a new SEXP element (data)
+ * If length is 0 it is assumed that buffer is a C string.
  */
 GCRY_SEXP
 gcry_sexp_new_data( const char *buffer, size_t length )
 {
     NODE list, node;
 
+    if( !length )
+	length = strlen(buffer);
     node = m_alloc_clear( sizeof *node + length );
     node->type = ntDATA;
     node->u.data.len = length;
@@ -151,20 +161,60 @@ gcry_sexp_new_data( const char *buffer, size_t length )
 }
 
 /****************
+ * Create a new SEXP element (mpi)
+ */
+GCRY_SEXP
+gcry_sexp_new_mpi( GCRY_MPI mpi )
+{
+    NODE list, node;
+
+    node = m_alloc_clear( sizeof *node );
+    node->type = ntMPI;
+    node->u.mpi = gcry_mpi_copy( mpi );
+    list = m_alloc_clear( sizeof *list );
+    list->type = ntLIST;
+    list->u.list = node;
+    return list;
+}
+
+
+/****************
+ * Create a pair of a name and some arbitrary data.
+ */
+GCRY_SEXP
+gcry_sexp_new_name_data( const char *name, const char *buffer, size_t length )
+{
+    return gcry_sexp_cons( gcry_sexp_new_data( name, 0 ),
+			   gcry_sexp_new_data( buffer, length ) );
+}
+
+/****************
+ * Create a pair of a name and a MPI
+ */
+GCRY_SEXP
+gcry_sexp_new_name_mpi( const char *name, GCRY_MPI mpi )
+{
+    return gcry_sexp_cons( gcry_sexp_new_data( name, 0 ),
+			   gcry_sexp_new_mpi( mpi ) );
+}
+
+
+/****************
  * Release resource of the given SEXP object.
  */
 void
 gcry_sexp_release( GCRY_SEXP sexp )
 {
+    /* FIXME! */
 }
 
 
 
 
 /****************
- * Make a pair from lists a and b, don't use a or b alter on.
+ * Make a pair from lists a and b, don't use a or b later on.
  * Special behaviour:  If one is a single element list we put the
- * element straingt into the new pair.
+ * element straight into the new pair.
  */
 GCRY_SEXP
 gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b )
@@ -202,9 +252,10 @@ gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b )
     return head;
 }
 
+
 /****************
  * Make a list from all items, the end of list is indicated by a NULL
- * don´ use the passed lists lateron, they are void.
+ * don't use the passed lists later on, they are void.
  */
 GCRY_SEXP
 gcry_sexp_vlist( GCRY_SEXP a, ... )
@@ -245,6 +296,43 @@ gcry_sexp_vlist( GCRY_SEXP a, ... )
 
     va_end( arg_ptr );
     return head;
+}
+
+
+/****************
+ * Append n to the list a
+ * Don't use n later on.
+ * Returns: a new ist (which maybe a)
+ */
+GCRY_SEXP
+gcry_sexp_append( GCRY_SEXP a, GCRY_SEXP n )
+{
+
+    GCRY_SEXP node;
+
+    if( a->type != ntLIST ) {
+	fputs("sexp_append: a is not a list\n", stderr );
+	return a;
+    }
+
+    if( n->type != ntLIST ) {
+	fputs("sexp_append: n is not a list\n", stderr );
+	return a;
+    }
+
+    for( node = a; node->next; node = node->next )
+	;
+
+    node->next = n;
+    return a;
+}
+
+GCRY_SEXP
+gcry_sexp_prepend( GCRY_SEXP a, GCRY_SEXP n )
+{
+
+    fputs("sexp_prepend: not impl.\n", stderr );
+    return a;
 }
 
 
@@ -346,10 +434,33 @@ gcry_sexp_car( GCRY_SEXP list )
 const char *
 gcry_sexp_car_data( GCRY_SEXP list, size_t *datalen )
 {
+    if( list && list->type == ntLIST && !list->next )
+	list = list->u.list;
     if( list && list->type == ntDATA ) {
 	*datalen = list->u.data.len;
 	return list->u.data.d;
     }
+
+    return NULL;
+}
+
+/****************
+ * Get a MPI from the car
+ */
+GCRY_MPI
+gcry_sexp_car_mpi( GCRY_SEXP list, int mpifmt )
+{
+    if( list && list->type == ntLIST && !list->next )
+	list = list->u.list;
+    if( mpifmt && list->type == ntDATA ) {
+	MPI a;
+	size_t n = list->u.data.len;
+	if( gcry_mpi_scan( &a, mpifmt, list->u.data.d, &n ) )
+	    return NULL;
+	return a;
+    }
+    else if( list->type == ntMPI )
+	return gcry_mpi_copy( list->u.mpi );
 
     return NULL;
 }
@@ -386,14 +497,14 @@ gcry_sexp_cdr_data( GCRY_SEXP list, size_t *datalen )
  * Actually this funtion returns only the second item of the list
  * and ignores any further arguments.
  */
-MPI
+GCRY_MPI
 gcry_sexp_cdr_mpi( GCRY_SEXP list, int mpifmt )
 {
     NODE node = list;
 
     if( !node || !(node = node->next) || node == ntLIST )
 	return NULL;
-    if( node->type == ntDATA ) {
+    if( mpifmt && node->type == ntDATA ) {
 	MPI a;
 	size_t n = node->u.data.len;
 	if( gcry_mpi_scan( &a, mpifmt, node->u.data.d, &n ) )
@@ -406,22 +517,6 @@ gcry_sexp_cdr_mpi( GCRY_SEXP list, int mpifmt )
 	return NULL;
 }
 
-
-/****************
- * Check wether the car is equal to data
- */
-#if 0 /* not tested */
-int
-gcry_sexp_eqp_car( GCRY_SEXP list, const char *data, size_t datalen )
-{
-    if( list && list->type == ntDATA
-	&& list->u.data.len == datalen
-	&& !memcmp( list->u.data.d, list, listlen ) )
-	return 1;
-
-    return 0;
-}
-#endif
 
 /****************
  * Scan the provided buffer and return the S expression in our internal
@@ -632,7 +727,7 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
 	    /* fixme: handle rescanning:
 	     * we can do this by saving our current state
 	     * and start over at p+1 -- Hmmm. At this point here
-	     * we are in a well defined state, so we don´ need to save
+	     * we are in a well defined state, so we don't need to save
 	     * it.  Great.
 	     */
 	    *erroff = p - buffer;
@@ -667,6 +762,9 @@ gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer, size_t maxlength )
 
 
 
+
+
+#if 0
 /***********************************************************/
 
 const char *
@@ -675,6 +773,88 @@ strusage( int level )
     return default_strusage(level);
 }
 
+
+static int
+sexp_to_pk( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
+{
+    GCRY_SEXP list, l2;
+    const char *name;
+    const char *s;
+    size_t n;
+    int i, idx;
+    int algo;
+    const char *elems1, *elems2;
+    GCRY_MPI *array;
+    static struct { const char* name; int algo;
+		    const char* common_elements;
+		    const char* public_elements;
+		    const char* secret_elements;
+		  } algos[] = {
+	{  "dsa"            , PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
+	{  "rsa"            , PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
+	{  "openpgp-dsa"    , PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
+	{  "openpgp-rsa"    , PUBKEY_ALGO_RSA       , "pqgy", "", "x"    },
+	{  "openpgp-elg"    , PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x"    },
+	{  "openpgp-elg-sig", PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
+	{  NULL }};
+
+    /* check that the first element is valid */
+    list = gcry_sexp_find_token( sexp, want_private? "private-key"
+						    :"public-key", 0 );
+    if( !list )
+	return -1; /* Does not contain a public- or private-key object */
+    list = gcry_sexp_cdr( list );
+    if( !list )
+	return -2; /* no cdr for the key object */
+    name = gcry_sexp_car_data( list, &n );
+    if( !name )
+	return -3; /* invalid structure of object */
+    fprintf(stderr, "algorithm name: `%.*s'\n", (int)n, name );
+    for(i=0; (s=algos[i].name); i++ ) {
+	if( strlen(s) == n && !memcmp( s, name, n ) )
+	    break;
+    }
+    if( !s )
+	return -4; /* unknown algorithm */
+    algo = algos[i].algo;
+    elems1 = algos[i].common_elements;
+    elems2 = want_private? algos[i].secret_elements : algos[i].public_elements;
+    array = m_lib_alloc_clear( (strlen(elems1)+strlen(elems2)+1) * sizeof *array );
+    idx = 0;
+    for(s=elems1; *s; s++, idx++ ) {
+	l2 = gcry_sexp_find_token( list, s, 1 );
+	if( !l2 ) {
+	    m_lib_free( array );
+	    return -5; /* required parameter not found */
+	}
+	array[idx] = gcry_sexp_cdr_mpi( l2, GCRYMPI_FMT_USG );
+	if( !array[idx] ) {
+	    m_lib_free( array );
+	    return -6; /* required parameter is invalid */
+	}
+    }
+    for(s=elems2; *s; s++, idx++ ) {
+	l2 = gcry_sexp_find_token( list, s, 1 );
+	if( !l2 ) {
+	    m_lib_free( array );
+	    return -5; /* required parameter not found */
+	}
+	/* FIXME: put the MPI in secure memory when needed */
+	array[idx] = gcry_sexp_cdr_mpi( l2, GCRYMPI_FMT_USG );
+	if( !array[idx] ) {
+	    m_lib_free( array );
+	    return -6; /* required parameter is invalid */
+	}
+    }
+
+    *retarray = array;
+    *retalgo = algo;
+
+    return 0;
+}
+
+
+
 int
 main(int argc, char **argv)
 {
@@ -682,7 +862,7 @@ main(int argc, char **argv)
     size_t erroff;
     int rc, n;
     FILE *fp;
-    GCRY_SEXP s_pk, s_dsa, s_p, s_q, s_g, sexp;
+    GCRY_SEXP s_pk, s_dsa, s_p, s_q, s_g, s_y, sexp;
 
   #if 0
     fp = stdin;
@@ -692,15 +872,22 @@ main(int argc, char **argv)
 	fprintf(stderr, "parse error %d at offset %u\n", rc, erroff );
 	exit(1);
     }
+    fputs("We have this S-Exp:\n",stderr);
+    dump_sexp( sexp );
   #else
     s_pk = SEXP_NEW( "public-key", 10 );
     fputs("pk:\n",stderr);dump_sexp( s_pk );
     s_dsa = SEXP_NEW( "dsa", 3 );
     s_p = SEXP_CONS( SEXP_NEW( "p", 1 ), SEXP_NEW( "PPPPPP", 6 ) );
     fputs("p:\n",stderr);dump_sexp( s_p );
-    s_q = SEXP_CONS( SEXP_NEW( "q", 1 ), SEXP_NEW( "QQQ", 3 ) );
-    s_g = SEXP_CONS( SEXP_NEW( "g", 1 ), SEXP_NEW( "GGGGGG", 6 ) );
+    s_y = SEXP_CONS( SEXP_NEW( "y", 1 ), SEXP_NEW( "YYYYYYYY", 8 ) );
+    fputs("y:\n",stderr);dump_sexp( s_y );
+    s_q = gcry_sexp_new_name_data( "q", "QQQ", 3 );
+    fputs("q:\n",stderr);dump_sexp( s_q );
+    s_g = gcry_sexp_new_name_mpi( "g" , gcry_mpi_set_ui(NULL, 42) );
+    fputs("g:\n",stderr);dump_sexp( s_g );
     sexp = SEXP_CONS( s_pk, gcry_sexp_vlist( s_dsa,
+					     s_y,
 					     s_p,
 					     s_q,
 					     s_g,
@@ -725,9 +912,26 @@ main(int argc, char **argv)
 	    dump_sexp( s1 );
 	  }
 
+	#if 1
+	{  int i,rc, algo;
+	   GCRY_MPI *array;
+
+	   rc = sexp_to_pk( s1, 0, &array, &algo);
+	   if( rc )
+	      fprintf(stderr, "sexp_to_pk failed: rc=%d\n", rc );
+	   else {
+	       for(i=0; array[i]; i++ ) {
+		   fprintf(stderr, "MPI[%d]: ", i);
+		   dump_mpi( array[i] );
+		   fprintf(stderr, "\n");
+	       }
+	    }
+	}
+	#endif
+
 
 	if( argc > 2 ) /* get the MPI out of the list */
-	#if 1
+	#if 0
 	  {
 	    GCRY_SEXP s2;
 	    const char *p;
@@ -758,17 +962,45 @@ main(int argc, char **argv)
 
 
 	  }
-	#elif 0
+	#elif 1
 	  {
 	    GCRY_SEXP s2;
 	    MPI a;
+	    const char *p;
+	    size_t n;
+
+	    fprintf(stderr,"*********************************\n");
+	    p = gcry_sexp_car_data( s1, &n );
+	    if( !p ) {
+		fputs("no CAR\n", stderr );
+		exit(1);
+	    }
+	    fprintf(stderr, "CAR=`%.*s'\n", (int)n, p );
+	    s2 = gcry_sexp_cdr( s1 );
+	    if( !s2 ) {
+		fputs("no CDR\n", stderr );
+		exit(1);
+
+	    }
+	    p = gcry_sexp_car_data( s2, &n );
+	    if( !p ) {
+		fputs("no data at CAR\n", stderr );
+		exit(1);
+	    }
+	    fprintf(stderr, "CAR=`%.*s'\n", (int)n, p );
 
 	    s2 = gcry_sexp_find_token( s1, argv[2], strlen(argv[2]) );
-	    if( !s1 )
+	    if( !s2 )
 	    {
 	       fprintf(stderr, "didn't found `%s'\n", argv[2] );
 	       exit(1);
 	    }
+	    p = gcry_sexp_car_data( s2, &n );
+	    if( !p ) {
+		fputs("no CAR\n", stderr );
+		exit(1);
+	    }
+	    fprintf(stderr, "CAR=`%.*s'\n", (int)n, p );
 
 	    a = gcry_sexp_cdr_mpi( s2, GCRYMPI_FMT_USG );
 	    if( a ) {
@@ -806,4 +1038,4 @@ main(int argc, char **argv)
       }
     return 0;
 }
-
+#endif

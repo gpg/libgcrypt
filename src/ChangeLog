@@ -1,3 +1,8 @@
+Sat Nov 13 17:44:23 CET 1999  Werner Koch  <wk@gnupg.de>
+
+	* gloabl.c (gcry_control): Add cases for dumping random
+	and secmem stats.
+
 Tue Oct 26 14:10:21 CEST 1999  Werner Koch  <wk@gnupg.de>
 
 	* pkapi.c: Removed.
