@@ -1,3 +1,8 @@
+2003-06-09  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am: Removed rules serpent, since that is not commited
+	yet.
+
 2003-06-08  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (gcry_pk_encrypt): Improve calculation for size of the

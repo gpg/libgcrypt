@@ -44,9 +44,6 @@ endif
 if USE_TWOFISH
   tmp_twofish = twofish.c
 endif
-if USE_SERPENT
-  tmp_serpent = serpent.c
-endif
 
 ciphers = \
 $(tmp_arcfour) \
@@ -54,8 +51,7 @@ $(tmp_blowfish) \
 $(tmp_cast5) \
 $(tmp_des) \
 $(tmp_aes) \
-$(tmp_twofish) \
-$(tmp_serpent)
+$(tmp_twofish)
 
 if USE_DSA
   tmp_dsa = dsa.c
