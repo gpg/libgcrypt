@@ -1,5 +1,11 @@
 2002-12-19  Werner Koch  <wk@gnupg.org>
 
+	* global.c (global_init): The meat was never run due to a faulty
+	check. Thanks to Nikos for pointing this out.
+	
+	* global.c (gcry_control): Return 1 and not -1 for the
+	initialization tests.
+
 	* libgcrypt.vers: New.
 	* Makefile.am: Use this instead of the build symbol file.
 

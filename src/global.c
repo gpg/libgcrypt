@@ -51,14 +51,14 @@ static void *outofcore_handler_value = NULL;
 static int no_secure_memory = 0;
 static int any_init_done;
 
-/* This is out handmade constructore.  It gets called by any function
+/* This is our handmade constructor.  It gets called by any function
    likely to be called at startup.  The suggested way for an
    application to make sure that this has been called is by using
    gcry_check_version. */
 static void
 global_init (void)
 {
-  if (!any_init_done)
+  if (any_init_done)
     return;
   any_init_done = 1;
   ath_init ();
@@ -227,11 +227,11 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 
       case GCRYCTL_ANY_INITIALIZATION_P:
         va_end(arg_ptr);
-        return any_init_done? -1 : 0;
+        return any_init_done? 1 : 0;
 
       case GCRYCTL_INITIALIZATION_FINISHED_P:
         va_end(arg_ptr);
-        return init_finished? -1 : 0;
+        return init_finished? 1 : 0;
 
       case GCRYCTL_INITIALIZATION_FINISHED:
         /* This is a hook which should be used by an application after
