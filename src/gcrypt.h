@@ -45,8 +45,10 @@ enum {
     GCRYERR_INV_ALGO = 4,   /* invalid algorithm */
     GCRYERR_INV_ARG = 5,    /* invalid argument */
     GCRYERR_INTERNAL = 6,   /* internal error */
-    GCRYERR_TOO_SHORT = 7,  /* provided buffer too short */
-    GCRYERR_EOF = 8,	    /* (-1) is remapped to this value */
+    GCRYERR_EOF = 7,	    /* (-1) is remapped to this value */
+    GCRYERR_TOO_SHORT = 8,  /* provided buffer too short */
+    GCRYERR_TOO_LARGE = 9,  /* object is too large */
+    GCRYERR_INV_OBJ = 10,   /* an object is not valid */
 };
 
 
@@ -84,6 +86,12 @@ enum gcry_mpi_opcode {
     GCRYMPI_CMP_UI = 10
 };
 
+enum gcry_mpi_format {
+    GCRYMPI_FMT_STD = 0,    /* As used by OpenPGP */
+    GCRYMPI_FMT_SSH = 1,    /* As used by SSH */
+    GCRYMPI_FMT_HEX = 2,    /* hex format */
+};
+
 struct gcry_mpi;
 
 int gcry_mpi_api( enum gcry_mpi_opcode opcode, int n_args, ... );
@@ -91,6 +99,10 @@ struct gcry_mpi *gcry_mpi_new( enum gcry_mpi_opcode opcode,
 			       unsigned int size,
 			       struct gcry_mpi *val
 			      );
+int gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
+					const char *buffer, size_t *nbytes );
+int gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
+		    struct gcry_mpi *a );
 
 #ifndef GCRYPT_NO_MPI_MACROS
 #define mpi_new( nbits )  gcry_mpi_new( GCRYMPI_NEW, (nbits), NULL )
@@ -225,7 +237,7 @@ GCRY_MD_HD gcry_md_copy( GCRY_MD_HD hd );
 int gcry_md_ctl( GCRY_MD_HD hd, int cmd, byte *buffer, size_t buflen);
 void gcry_md_write( GCRY_MD_HD hd, byte *inbuf, size_t inlen);
 byte *gcry_md_read( GCRY_MD_HD hd, int algo );
-int gcry_md_get( GCYR_MD_HD hd, int algo, byte *buffer, int buflen );
+int gcry_md_get( GCRY_MD_HD hd, int algo, byte *buffer, int buflen );
 
 
 #define gcry_md_final( a )  gcry_md_ctl( (a), GCRYCTL_FINALIZE, NULL, 0 )

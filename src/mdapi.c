@@ -28,32 +28,32 @@
 #include "g10lib.h"
 
 
-GCRY_MD_HD 
+GCRY_MD_HD
 gcry_md_open( int algo, unsigned flags )
 {
 }
 
-void 
+void
 gcry_md_close( GCRY_MD_HD hd )
 {
 }
 
-void 
+void
 gcry_md_enable( GCRY_MD_HD hd, int algo )
 {
 }
 
-GCRY_MD_HD 
+GCRY_MD_HD
 gcry_md_copy( GCRY_MD_HD hd )
 {
 }
 
-int 
+int
 gcry_md_ctl( GCRY_MD_HD hd, int cmd, byte *buffer, size_t buflen)
 {
 }
 
-void 
+void
 gcry_md_write( GCRY_MD_HD hd, byte *inbuf, size_t inlen)
 {
 }
@@ -64,8 +64,8 @@ gcry_md_read( GCRY_MD_HD hd, int algo )
 }
 
 
-int 
-gcry_md_get( GCYR_MD_HD hd, int algo, byte *buffer, int buflen )
+int
+gcry_md_get( GCRY_MD_HD hd, int algo, byte *buffer, int buflen )
 {
 }
 

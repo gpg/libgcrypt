@@ -111,7 +111,7 @@ int gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen)
 	cipher_setkey( h->hd, buffer, buflen );
 	break;
       case GCRYCTL_SET_IV:
-	cipher_setiv( h->hd, buffer );
+	cipher_setiv( h->hd, buffer, buflen );
 	break;
       case GCRYCTL_CFB_SYNC:
 	cipher_sync( h->hd );
