@@ -1,3 +1,7 @@
+2004-12-20  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h (GCRY_THREAD_OPTION_PTH_IMPL): Tweaks for W32.
+
 2004-12-06  Werner Koch  <wk@g10code.com>
 
 	* g10lib.h (stpcpy, strcasecmp): Prefix them with _gcry_ and add

@@ -21,14 +21,14 @@ dnl Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 dnl GNUPG_MSG_PRINT(STRING)
 dnl print a message
 dnl
-define(GNUPG_MSG_PRINT,
+define([GNUPG_MSG_PRINT],
   [ echo $ac_n "$1"" $ac_c" 1>&AS_MESSAGE_FD([])
   ])
 
 dnl GNUPG_CHECK_TYPEDEF(TYPE, HAVE_NAME)
 dnl Check whether a typedef exists and create a #define $2 if it exists
 dnl
-AC_DEFUN(GNUPG_CHECK_TYPEDEF,
+AC_DEFUN([GNUPG_CHECK_TYPEDEF],
   [ AC_MSG_CHECKING(for $1 typedef)
     AC_CACHE_VAL(gnupg_cv_typedef_$1,
     [AC_TRY_COMPILE([#define _GNU_SOURCE 1
@@ -50,7 +50,7 @@ dnl (this is easier than to have a .in file just for one substitution)
 dnl We must use a temp file in the current directory because make distcheck 
 dnl install all sourcefiles RO.
 dnl
-AC_DEFUN(GNUPG_FIX_HDR_VERSION,
+AC_DEFUN([GNUPG_FIX_HDR_VERSION],
   [ sed "s/^#define $2 \".*/#define $2 \"$VERSION\"/" $srcdir/$1 > fixhdr.tmp
     if cmp -s $srcdir/$1 fixhdr.tmp 2>/dev/null; then
         rm -f fixhdr.tmp
@@ -72,7 +72,7 @@ AC_DEFUN(GNUPG_FIX_HDR_VERSION,
 
 dnl GNUPG_CHECK_GNUMAKE
 dnl
-AC_DEFUN(GNUPG_CHECK_GNUMAKE,
+AC_DEFUN([GNUPG_CHECK_GNUMAKE],
   [
     if ${MAKE-make} --version 2>/dev/null | grep '^GNU ' >/dev/null 2>&1; then
         :
@@ -93,7 +93,7 @@ AC_DEFUN(GNUPG_CHECK_GNUMAKE,
 # Does the compiler prefix global symbols with an underscore?
 #
 # Taken from GnuPG 1.2 and modified to use the libtool macros.
-AC_DEFUN(GNUPG_SYS_SYMBOL_UNDERSCORE,
+AC_DEFUN([GNUPG_SYS_SYMBOL_UNDERSCORE],
 [tmp_do_check="no"
 case "${target}" in
     i386-emx-os2 | i[3456]86-pc-os2*emx | i386-pc-msdosdjgpp)
@@ -158,7 +158,7 @@ fi
 ######################################################################
 dnl GNUPG_CHECK_MLOCK
 dnl
-define(GNUPG_CHECK_MLOCK,
+define([GNUPG_CHECK_MLOCK],
   [ AC_CHECK_FUNCS(mlock)
     if test "$ac_cv_func_mlock" = "no"; then
         AC_CHECK_HEADERS(sys/mman.h)
@@ -244,7 +244,7 @@ define(GNUPG_CHECK_MLOCK,
   ])
 
 # GNUPG_SYS_LIBTOOL_CYGWIN32 - find tools needed on cygwin32
-AC_DEFUN(GNUPG_SYS_LIBTOOL_CYGWIN32,
+AC_DEFUN([GNUPG_SYS_LIBTOOL_CYGWIN32],
 [AC_CHECK_TOOL(DLLTOOL, dlltool, false)
 AC_CHECK_TOOL(AS, as, false)
 ])
@@ -252,7 +252,7 @@ AC_CHECK_TOOL(AS, as, false)
 dnl LIST_MEMBER()
 dnl Check wether an element ist contained in a list.  Set `found' to
 dnl `1' if the element is found in the list, to `0' otherwise.
-AC_DEFUN(LIST_MEMBER,
+AC_DEFUN([LIST_MEMBER],
 [
 name=$1
 list=$2
@@ -269,7 +269,7 @@ dnl AM_PATH_GPG_ERROR([MINIMUM-VERSION,
 dnl                   [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]]])
 dnl Test for libgpg-error and define GPG_ERROR_CFLAGS and GPG_ERROR_LIBS
 dnl
-AC_DEFUN(AM_PATH_GPG_ERROR,
+AC_DEFUN([AM_PATH_GPG_ERROR],
 [ AC_ARG_WITH(gpg-error-prefix,
             AC_HELP_STRING([--with-gpg-error-prefix=PFX],
                            [prefix where GPG Error is installed (optional)]),
@@ -363,7 +363,7 @@ dnl ##  AC_CHECK_PTH(1.2.0,yes,yes,yes,CFLAGS="$CFLAGS -DHAVE_PTH")
 dnl ##
 dnl
 dnl #   auxilliary macros
-AC_DEFUN(_AC_PTH_ERROR, [dnl
+AC_DEFUN([_AC_PTH_ERROR], [dnl
 AC_MSG_RESULT([*FAILED*])
 dnl define(_ac_pth_line,dnl
 dnl "+------------------------------------------------------------------------+")
@@ -375,13 +375,13 @@ dnl echo " _ac_pth_line" 1>&2
 dnl undefine(_ac_pth_line)
 exit 1
 ])
-AC_DEFUN(_AC_PTH_VERBOSE, [dnl
+AC_DEFUN([_AC_PTH_VERBOSE], [dnl
 if test ".$verbose" = .yes; then
     AC_MSG_RESULT([  $1])
 fi
 ])
 dnl #   the user macro
-AC_DEFUN(AC_CHECK_PTH, [dnl
+AC_DEFUN([AC_CHECK_PTH], [dnl
 dnl
 dnl #   prerequisites
 AC_REQUIRE([AC_PROG_CC])dnl
