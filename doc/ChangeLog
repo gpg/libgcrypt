@@ -1,3 +1,7 @@
+2005-02-08  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi: Fixed direntry.
+
 2005-02-03  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi: Fixed several typos; thanks to Michele Baldessari.

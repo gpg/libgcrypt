@@ -25,7 +25,7 @@ section entitled ``Copying''.
 
 @dircategory GNU Libraries
 @direntry
-* libgcrypt: (gcrypt) Cryptographic function library.
+* libgcrypt: (gcrypt).  Cryptographic function library.
 @end direntry
 
 
