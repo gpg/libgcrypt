@@ -1,3 +1,15 @@
+2002-11-10  Simon Josefsson  <jas@extundo.com>
+
+	* basic.c (check_aes128_cbc_cts_cipher): New function.
+	(check_one_cipher): Add flags parameter.
+	(check_ciphers): Support flags parameter.
+	(main): Check CTS.
+
+2002-11-10  Werner Koch  <wk@gnupg.org>
+
+	* basic.c (check_one_md): New.  By Simon Josefsson.
+	(check_digests): New tests for MD4.  By Simon.
+
 2002-08-26  Werner Koch  <wk@gnupg.org>
 
 	* basic.c (check_ciphers): Check simple DES.
