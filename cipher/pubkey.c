@@ -37,6 +37,8 @@
 
 #define TABLE_SIZE 10
 
+
+
 struct pubkey_table_s {
     const char *name;
     int algo;
@@ -48,8 +50,8 @@ struct pubkey_table_s {
     int (*generate)(int algo, unsigned int nbits, unsigned long use_e,
                     MPI *skey, MPI **retfactors );
     int (*check_secret_key)( int algo, MPI *skey );
-    int (*encrypt)( int algo, MPI *resarr, MPI data, MPI *pkey );
-    int (*decrypt)( int algo, MPI *result, MPI *data, MPI *skey );
+    int (*encrypt)( int algo, MPI *resarr, MPI data, MPI *pkey, int flags);
+    int (*decrypt)( int algo, MPI *result, MPI *data, MPI *skey, int flags);
     int (*sign)( int algo, MPI *resarr, MPI data, MPI *skey );
     int (*verify)( int algo, MPI hash, MPI *data, MPI *pkey,
 		   int (*cmp)(void *, MPI), void *opaquev );
@@ -106,7 +108,7 @@ static struct {
 };
 
 
-static int pubkey_decrypt( int algo, MPI *result, MPI *data, MPI *skey );
+static int pubkey_decrypt( int algo, MPI *result, MPI *data, MPI *skey, int flags);
 static int pubkey_sign( int algo, MPI *resarr, MPI hash, MPI *skey );
 static int pubkey_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 		      int (*cmp)(void *, MPI), void *opaque );
@@ -121,11 +123,11 @@ dummy_check_secret_key( int algo, MPI *skey )
 { log_bug("no check_secret_key() for %d\n", algo ); return GCRYERR_INV_PK_ALGO; }
 
 static int
-dummy_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
+dummy_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey, int flags)
 { log_bug("no encrypt() for %d\n", algo ); return GCRYERR_INV_PK_ALGO; }
 
 static int
-dummy_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
+dummy_decrypt( int algo, MPI *result, MPI *data, MPI *skey, int flags)
 { log_bug("no decrypt() for %d\n", algo ); return GCRYERR_INV_PK_ALGO; }
 
 static int
@@ -526,7 +528,8 @@ pubkey_check_secret_key( int algo, MPI *skey )
  * algorithm allows this - check with pubkey_get_nenc() )
  */
 static int
-pubkey_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
+pubkey_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey,
+		int flags )
 {
     int i, rc;
 
@@ -540,7 +543,7 @@ pubkey_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
     do {
 	for(i=0; pubkey_table[i].name; i++ )
 	    if( pubkey_table[i].algo == algo ) {
-		rc = (*pubkey_table[i].encrypt)( algo, resarr, data, pkey );
+		rc = (*pubkey_table[i].encrypt)( algo, resarr, data, pkey, flags);
 		goto ready;
 	    }
     } while( load_pubkey_modules() );
@@ -563,7 +566,8 @@ pubkey_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
  * newly allocated mpi or NULL in case of an error.
  */
 static int
-pubkey_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
+pubkey_decrypt( int algo, MPI *result, MPI *data, MPI *skey,
+		int flags)
 {
     int i, rc;
 
@@ -579,7 +583,7 @@ pubkey_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
     do {
 	for(i=0; pubkey_table[i].name; i++ )
 	    if( pubkey_table[i].algo == algo ) {
-		rc = (*pubkey_table[i].decrypt)( algo, result, data, skey );
+		rc = (*pubkey_table[i].decrypt)( algo, result, data, skey, flags );
 		goto ready;
 	    }
     } while( load_pubkey_modules() );
@@ -867,7 +871,8 @@ sexp_to_sig( GCRY_SEXP sexp, MPI **retarray, int *retalgo)
  */
 static int
 sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo,
-             int *ret_modern, int *ret_want_pkcs1)
+             int *ret_modern, int *ret_want_pkcs1,
+	     int *flags)
 {
     GCRY_SEXP list, l2;
     const char *name;
@@ -875,6 +880,7 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo,
     size_t n;
     int i, idx;
     int algo;
+    int parsed_flags = 0;
     const char *elems;
     GCRY_MPI *array;
 
@@ -909,6 +915,8 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo,
             ; /* just a dummy because it is the default */
           else if ( n == 5 && !memcmp (s, "pkcs1", 5))
             *ret_want_pkcs1 = 1;
+	  else if ( n == 11 && !memcmp (s, "no-blinding", 11))
+	    parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
           else
             {
               gcry_sexp_release (l2);
@@ -972,6 +980,8 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo,
     *retarray = array;
     *retalgo = algo;
 
+    *flags = parsed_flags;
+
     return 0;
 }
 
@@ -997,7 +1007,7 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo,
 */
 static int 
 sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
-                  int for_encryption)
+                  int for_encryption, int *flags)
 {
   int rc = 0;
   GcrySexp ldata, lhash, lvalue;
@@ -1005,7 +1015,11 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
   size_t n;
   const char *s;
   int is_raw = 0, is_pkcs1 = 0, unknown_flag=0; 
+  int parsed_flags = 0, dummy_flags;
 
+  if (! flags)
+    flags = &dummy_flags;
+  
   *ret_mpi = NULL;
   ldata = gcry_sexp_find_token (input, "data", 0);
   if (!ldata)
@@ -1028,6 +1042,8 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
               is_raw = 1;
             else if ( n == 5 && !memcmp (s, "pkcs1", 5))
               is_pkcs1 = 1;
+	    else if (n == 11 && ! memcmp (s, "no-blinding", 11))
+	      parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
             else
               unknown_flag = 1;
           }
@@ -1206,6 +1222,10 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
   gcry_sexp_release (ldata);
   gcry_sexp_release (lhash);
   gcry_sexp_release (lvalue);
+
+  if (! rc)
+    *flags = parsed_flags;
+
   return rc;
 }
 
@@ -1237,8 +1257,8 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
 {
     MPI *pkey, data, *ciph;
     const char *key_algo_name, *algo_name, *algo_elems;
-    int i, rc, algo;
-
+    int i, rc, algo, flags;
+    
     *r_ciph = NULL;
     /* get the key */
     rc = sexp_to_key( s_pkey, 0, &pkey, &algo, &i);
@@ -1267,7 +1287,8 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
     algo_elems = enc_info_table[i].elements;
 
     /* get the stuff we want to encrypt */
-    rc = sexp_data_to_mpi (s_data, gcry_pk_get_nbits (s_pkey), &data, 1);
+    rc = sexp_data_to_mpi (s_data, gcry_pk_get_nbits (s_pkey), &data, 1,
+			   &flags);
     if (rc) {
 	release_mpi_array( pkey );
         gcry_free (pkey);
@@ -1276,7 +1297,7 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
 
     /* Now we can encrypt data to ciph */
     ciph = gcry_xcalloc( (strlen(algo_elems)+1) , sizeof *ciph );
-    rc = pubkey_encrypt( algo, ciph, data, pkey );
+    rc = pubkey_encrypt( algo, ciph, data, pkey, flags );
     release_mpi_array( pkey );
     gcry_free (pkey); pkey = NULL;
     mpi_free( data );
@@ -1289,14 +1310,20 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
     /* We did it.  Now build the return list */
     {
 	char *string, *p;
-	size_t nelem, needed= strlen(algo_name) + 20;
+	size_t nelem, needed= strlen(algo_name) + 30;
+
+	/* FIXME, this calculation needs to be cleaned up.
+	   -moritz  */
 
 	/* count elements, so that we can allocate enough space */
 	for(nelem=0; algo_elems[nelem]; nelem++ )
 	    needed += 10; /* 6 + a safety margin */
 	/* build the string */
 	string = p = gcry_xmalloc ( needed );
-	p = stpcpy ( p, "(enc-val(" );
+	p = stpcpy ( p, "(enc-val(flags " );
+	if (flags & PUBKEY_FLAG_NO_BLINDING)
+	  p = stpcpy (p, "no-blinding");
+	p = stpcpy (p, ")(");
 	p = stpcpy ( p, algo_name );
 	for(i=0; algo_elems[i]; i++ ) {
 	    *p++ = '(';
@@ -1366,14 +1393,15 @@ int
 gcry_pk_decrypt( GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey )
 {
     MPI *skey, *data, plain;
-    int rc, algo, dataalgo, modern, want_pkcs1;
-
+    int rc, algo, dataalgo, modern, want_pkcs1, flags;
+    
     *r_plain = NULL;
     rc = sexp_to_key( s_skey, 1, &skey, &algo, NULL );
     if( rc ) {
 	return rc;
     }
-    rc = sexp_to_enc( s_data, &data, &dataalgo, &modern, &want_pkcs1 );
+    rc = sexp_to_enc( s_data, &data, &dataalgo, &modern, &want_pkcs1,
+		      &flags );
     if( rc ) {
 	release_mpi_array( skey );
         gcry_free (skey);
@@ -1387,7 +1415,7 @@ gcry_pk_decrypt( GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey )
 	return GCRYERR_CONFLICT; /* key algo does not match data algo */
     }
 
-    rc = pubkey_decrypt( algo, &plain, data, skey );
+    rc = pubkey_decrypt( algo, &plain, data, skey, flags );
     if( rc ) {
 	release_mpi_array( skey );
         gcry_free (skey);
@@ -1473,7 +1501,7 @@ gcry_pk_sign( GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey )
 
     /* get the stuff we want to sign */
     /* Note that pk_get_nbits does also work on a private key */
-    rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_skey), &hash, 0);
+    rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_skey), &hash, 0, NULL);
     if (rc) {
 	release_mpi_array( skey );
         gcry_free (skey);
@@ -1571,7 +1599,7 @@ gcry_pk_verify( GCRY_SEXP s_sig, GCRY_SEXP s_hash, GCRY_SEXP s_pkey )
 	return GCRYERR_CONFLICT; /* algo does not match */
     }
 
-    rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_pkey), &hash, 0);
+    rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_pkey), &hash, 0, 0);
     if (rc) {
 	release_mpi_array( pkey );
         gcry_free (pkey);

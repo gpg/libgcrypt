@@ -432,7 +432,8 @@ _gcry_rsa_check_secret_key( int algo, MPI *skey )
 
 
 int
-_gcry_rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
+_gcry_rsa_encrypt (int algo, MPI *resarr, MPI data, MPI *pkey,
+		   int flags)
 {
     RSA_public_key pk;
 
@@ -446,22 +447,123 @@ _gcry_rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
     return 0;
 }
 
+/* Perform RSA blinding.  */
+GcryMPI
+_gcry_rsa_blind (MPI x, MPI r, MPI e, MPI n)
+{
+  /* A helper.  */
+  GcryMPI a;
+
+  /* Result.  */
+  GcryMPI y;
+
+  a = gcry_mpi_snew (gcry_mpi_get_nbits (n));
+  y = gcry_mpi_snew (gcry_mpi_get_nbits (n));
+  
+  /* Now we calculate: y = (x * r^e) mod n, where r is the random
+     number, e is the public exponent, x is the non-blinded data and n
+     is the RSA modulus.  */
+  gcry_mpi_powm (a, r, e, n);
+  gcry_mpi_mulm (y, a, x, n);
+
+  gcry_mpi_release (a);
+
+  return y;
+}
+
+/* Undo RSA blinding.  */
+GcryMPI
+_gcry_rsa_unblind (MPI x, MPI ri, MPI n)
+{
+  GcryMPI y;
+
+  y = gcry_mpi_snew (gcry_mpi_get_nbits (n));
+
+  /* Here we calculate: y = (x * r^-1) mod n, where x is the blinded
+     decrypted data, ri is the modular multiplicative inverse of r and
+     n is the RSA modulus.  */
+
+  gcry_mpi_mulm (y, ri, x, n);
+
+  return y;
+}
+
 int
-_gcry_rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
+_gcry_rsa_decrypt (int algo, MPI *result, MPI *data, MPI *skey,
+		   int flags)
 {
     RSA_secret_key sk;
+    GcryMPI r = MPI_NULL;	/* Random number needed for
+				   blinding.  */
+    GcryMPI ri = MPI_NULL;	/* Modular multiplicative inverse of
+				   r.  */
+    GcryMPI x = MPI_NULL;	/* Data to decrypt.  */
+    GcryMPI y;			/* Result.  */
 
-    if( algo != 1 && algo != 2 )
+    if (algo != 1 && algo != 2)
 	return GCRYERR_INV_PK_ALGO;
 
+    /* Extract private key.  */
     sk.n = skey[0];
     sk.e = skey[1];
     sk.d = skey[2];
     sk.p = skey[3];
     sk.q = skey[4];
     sk.u = skey[5];
-    *result = mpi_alloc_secure( mpi_get_nlimbs( sk.n ) );
-    secret( *result, data[0], &sk );
+
+    y = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
+
+    if (! (flags & PUBKEY_FLAG_NO_BLINDING))
+      {
+	/* Initialize blinding.  */
+
+	/* First, we need a random number r between 0 and n - 1, which
+	   is relatively prime to n (i.e. it is neither p nor q).  */
+	r = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
+	ri = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
+
+	gcry_mpi_randomize (r, gcry_mpi_get_nbits (sk.n),
+			    GCRY_STRONG_RANDOM);
+	gcry_mpi_mod (r, r, sk.n);
+
+	/* Actually it should be okay to skip the check for equality
+	   with either p or q here.  */
+
+	/* Calculate inverse of r.  */
+	if (! gcry_mpi_invm (ri, r, sk.n))
+	  BUG ();
+      }
+
+    if (! (flags & PUBKEY_FLAG_NO_BLINDING))
+      /* Do blinding.  */
+      x = _gcry_rsa_blind (data[0], r, sk.e, sk.n);
+    else
+      /* Skip blinding.  */
+      x = data[0];
+
+    /* Do the encryption.  */
+    secret (y, x, &sk);
+
+    if (! (flags & PUBKEY_FLAG_NO_BLINDING))
+      {
+	/* Undo blinding.  */
+	GcryMPI a = gcry_mpi_copy (y);
+
+	gcry_mpi_release (y);
+	y = _gcry_rsa_unblind (a, ri, sk.n);
+      }
+
+    if (! (flags & PUBKEY_FLAG_NO_BLINDING))
+      {
+	/* Deallocate resources needed for blinding.  */
+	gcry_mpi_release (x);
+	gcry_mpi_release (r);
+	gcry_mpi_release (ri);
+      }
+
+    /* Copy out result.  */
+    *result = y;
+
     return 0;
 }
 

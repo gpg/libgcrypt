@@ -24,8 +24,8 @@
 int _gcry_rsa_generate( int algo, unsigned int nbits, unsigned long use_e,
                         MPI *skey, MPI **retfactors );
 int _gcry_rsa_check_secret_key( int algo, MPI *skey );
-int _gcry_rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey );
-int _gcry_rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey );
+int _gcry_rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey, int flags);
+int _gcry_rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey, int flags);
 int _gcry_rsa_sign( int algo, MPI *resarr, MPI data, MPI *skey );
 int _gcry_rsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 		    int (*cmp)(void *, MPI), void *opaquev );

@@ -1,3 +1,41 @@
+2003-03-26  Moritz Schulte  <moritz@g10code.com>
+
+	* dynload.c (_gcry_enum_gnupgext_pubkeys): Adjust `encrypt' and
+	`decrypt' function arguments.
+	(_gcry_enum_gnupgext_pubkeys): Likewise.
+	* dynload.h: Likewise.
+	
+	* pubkey.c (dummy_decrypt): Add argument: int flags.
+	(dummy_encrypt): Likewise.
+
+	* elgamal.c (_gcry_elg_encrypt): Add argument: int flags.
+	(_gcry_elg_decrypt): Likewise.
+
+	* rsa.c (_gcry_rsa_encrypt): Add argument: int flags.
+	(_gcry_rsa_decrypt): Likewise.
+
+	* pubkey.c: Add `flags' argument to members `encrypt' and
+	`decrypt' of struct `pubkey_table_s'.
+
+	* rsa.h: Add `flags' argument to function declarations.
+	* elgamal.h: Likewise.
+
+	* pubkey.c (sexp_data_to_mpi): New variable: int parsed_flags.
+	(sexp_data_to_mpi): Set `parsed_flags'.
+	(sexp_data_to_mpi): New argument: int *flags.
+	(gcry_pk_encrypt): New variable: int flags.
+	(gcry_pk_encrypt): Pass `flags' to pubkey_encrypt.
+	(pubkey_encrypt): New variable: int flags.
+	(pubkey_encrypt): Pass `flags' to pubkey encrypt function.
+	(pubkey_decrypt): Likewise.
+	(pubkey_decrypt): Pass `flags' to pubkey encrypt function.
+	(gcry_pk_encrypt): Include `flags' s-exp in return list.
+	(sexp_to_enc): New argument: int *flags.
+	(gcry_pk_decrypt): New variable: int flags.
+	(gcry_pk_decrypt): Pass `flags' to pubkey_decrypt.
+	(sexp_to_enc): New variable: int parsed_flags.
+	(sexp_to_enc): Set `parsed_flags'.
+
 2003-03-22  Simon Josefsson  <jas@extundo.com>
 
 	* cipher.c (gcry_cipher_open, do_cbc_encrypt)
