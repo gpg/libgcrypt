@@ -1334,7 +1334,7 @@ _gcry_ac_data_encrypt (gcry_ac_handle_t handle,
   return err;
 }
 
-/* Encrypts the plain text MPI value DATA_PLAIN with the key public
+/* Encrypts the plain text MPI value DATA_PLAIN with the public key
    KEY under the control of the flags FLAGS and stores the resulting
    data set into DATA_ENCRYPTED.  */
 gcry_error_t
@@ -1791,6 +1791,109 @@ em_randomize_nonzero (unsigned char *buffer, size_t buffer_n,
   while (zeros);
 }
 
+/* Encode a message according to the Encoding Method for Encryption
+   `PKCS-V1_5' (EME-PKCS-V1_5).  */
+static gcry_err_code_t
+eme_pkcs_v1_5_encode (unsigned int flags, void *opts,
+		      unsigned char *m, size_t m_n,
+		      unsigned char **em, size_t *em_n)
+{
+  gcry_ac_eme_pkcs_v1_5_t *options = (gcry_ac_eme_pkcs_v1_5_t *) opts;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  unsigned char *buffer = NULL;
+  unsigned char *ps = NULL;
+  unsigned int ps_n = 0;
+  unsigned int k = 0;
+
+  /* Figure out key length in bytes.  */
+  err = _gcry_ac_key_get_nbits (options->handle, options->key, &k);
+  if (! err)
+    {
+      k /= 8;
+      if (m_n > k - 11)
+	/* Key is too short for message.  */
+	err = GPG_ERR_TOO_SHORT;
+    }
+
+  if (! err)
+    {
+      /* Allocate buffer.  */
+      buffer = gcry_malloc (k);
+      if (! buffer)
+	err = gpg_err_code_from_errno (ENOMEM);
+    }
+
+  if (! err)
+    {
+      /* Generate an octet string PS of length k - mLen - 3 consisting
+	 of pseudorandomly generated nonzero octets.  The length of PS
+	 will be at least eight octets.  */
+      ps_n = k - m_n - 3;
+      ps = buffer + 2;
+      em_randomize_nonzero (ps, ps_n, GCRY_STRONG_RANDOM);
+    }
+
+  if (! err)
+    {
+      /* Concatenate PS, the message M, and other padding to form an
+	 encoded message EM of length k octets as:
+
+	 EM = 0x00 || 0x02 || PS || 0x00 || M.  */
+
+      buffer[0] = 0x00;
+      buffer[1] = 0x02;
+      buffer[ps_n + 2] = 0x00;
+      memcpy (buffer + ps_n + 3, m, m_n);
+    }
+
+  if (! err)
+    {
+      *em = buffer;
+      *em_n = k;
+    }
+
+  return err;
+}
+
+/* Decode a message according to the Encoding Method for Encryption
+   `PKCS-V1_5' (EME-PKCS-V1_5).  */
+static gcry_err_code_t
+eme_pkcs_v1_5_decode (unsigned int flags, void *opts,
+		      unsigned char *em, size_t em_n,
+		      unsigned char **m, size_t *m_n)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  unsigned char *buffer = NULL;
+  unsigned int i = 0;
+
+  if (! ((em_n >= 12) && (em[0] == 0x00) && (em[1] == 0x02)))
+    err = GPG_ERR_TOO_SHORT;
+  else
+    {
+      for (i = 2; (i < em_n) && em[i]; i++);
+      i++;
+
+      if ((i == em_n) || ((i - 2) < 8))
+	err = GPG_ERR_INTERNAL;	/* FIXME.  */
+    }
+
+  if (! err)
+    {
+      buffer = gcry_malloc (em_n - i);
+      if (! buffer)
+	err = gpg_err_code_from_errno (ENOMEM);
+    }
+
+  if (! err)
+    {
+      memcpy (buffer, em + i, em_n - i);
+      *m = buffer;
+      *m_n = em_n - i;
+    }
+
+  return err;
+}
+
 /* Encode a message according to the Encoding Method for Signatures
    with Appendix `PKCS-V1_5' (EMSA-PKCS-V1_5).  */
 static gcry_err_code_t
@@ -1920,115 +2023,6 @@ emsa_pkcs_v1_5_encode (unsigned int flags, void *opts,
   return err;
 }
 
-/* Encode a message according to the Encoding Method for Encryption
-   `PKCS-V1_5' (EME-PKCS-V1_5).  */
-static gcry_err_code_t
-eme_pkcs_v1_5_encode (unsigned int flags, void *opts,
-		      unsigned char *m, size_t m_n,
-		      unsigned char **em, size_t *em_n)
-{
-  gcry_ac_eme_pkcs_v1_5_t *options = (gcry_ac_eme_pkcs_v1_5_t *) opts;
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  unsigned char *buffer = NULL;
-  unsigned char *ps = NULL;
-  unsigned int ps_n = 0;
-  unsigned int k = 0;
-
-  /* FIXME, confusion of bits and bytes.  */
-
-  err = _gcry_ac_key_get_nbits (options->handle, options->key, &k);
-  if (! err)
-    {
-      k /= 8;
-      if (m_n > k - 11)
-	/* Key is too short for message.  */
-	err = GPG_ERR_TOO_SHORT;
-    }
-
-  if (! err)
-    {
-      /* Allocate buffer.  */
-      buffer = gcry_malloc (k);
-      if (! buffer)
-	err = gpg_err_code_from_errno (ENOMEM);
-    }
-
-  if (! err)
-    {
-      /* Generate an octet string PS of length k - mLen - 3 consisting
-	 of pseudorandomly generated nonzero octets.  The length of PS
-	 will be at least eight octets.  */
-      ps_n = k - m_n - 3;
-      ps = buffer + 2;
-      em_randomize_nonzero (ps, ps_n, GCRY_STRONG_RANDOM);
-      {
-	unsigned int a;
-	for (a = 0; a < ps_n; a++)
-	  assert (ps[a]);
-      }
-    }
-
-  if (! err)
-    {
-      /* Concatenate PS, the message M, and other padding to form an
-	 encoded message EM of length k octets as:
-
-	 EM = 0x00 || 0x02 || PS || 0x00 || M.  */
-
-      buffer[0] = 0x00;
-      buffer[1] = 0x02;
-      buffer[ps_n + 2] = 0x00;
-      memcpy (buffer + ps_n + 3, m, m_n);
-    }
-
-  if (! err)
-    {
-      *em = buffer;
-      *em_n = k;
-    }
-
-  return err;
-}
-
-/* Decode a message according to the Encoding Method for Encryption
-   `PKCS-V1_5' (EME-PKCS-V1_5).  */
-static gcry_err_code_t
-eme_pkcs_v1_5_decode (unsigned int flags, void *opts,
-		      unsigned char *em, size_t em_n,
-		      unsigned char **m, size_t *m_n)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  unsigned char *buffer = NULL;
-  unsigned int i = 0;
-
-  if (! ((em_n >= 12) && (em[0] == 0x00) && (em[1] == 0x02)))
-    err = GPG_ERR_TOO_SHORT;
-  else
-    {
-      for (i = 2; (i < em_n) && em[i]; i++);
-      i++;
-
-      if ((i == em_n) || ((i - 2) < 8))
-	err = GPG_ERR_INTERNAL;	/* FIXME.  */
-    }
-
-  if (! err)
-    {
-      buffer = gcry_malloc (em_n - i);
-      if (! buffer)
-	err = gpg_err_code_from_errno (ENOMEM);
-    }
-
-  if (! err)
-    {
-      memcpy (buffer, em + i, em_n - i);
-      *m = buffer;
-      *m_n = em_n - i;
-    }
-
-  return err;
-}
-
 /* `Actions' for data_dencode().  */
 typedef enum dencode_action
   {
@@ -2105,8 +2099,7 @@ gcry_ac_data_encode (gcry_ac_em_t method,
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
-  err = data_dencode (method, DATA_ENCODE, flags, options,
-		      m, m_n, em, em_n);
+  err = data_dencode (method, DATA_ENCODE, flags, options, m, m_n, em, em_n);
 
   return gcry_error (err);
 }
@@ -2122,8 +2115,7 @@ gcry_ac_data_decode (gcry_ac_em_t method,
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
-  err = data_dencode (method, DATA_DECODE, flags, options,
-		      em, em_n, m, m_n);
+  err = data_dencode (method, DATA_DECODE, flags, options, em, em_n, m, m_n);
 
   return gcry_error (err);
 }
@@ -2244,6 +2236,21 @@ gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n)
  * with Appendix (SSA).
  */
 
+/* Schemes consist of two things: encoding methods and cryptographic
+   primitives.
+
+   Since encoding methods are accessible through a common API with
+   method-specific options passed as an anonymous struct, schemes have
+   to provide functions that construct this method-specific structure;
+   this is what the functions of type `gcry_ac_dencode_prepare_t' are
+   there for.
+
+   Besides the actual encoding of an octet string into an encoded
+   octet string, the conversion of an MPI to an octet string might be
+   method-dependent as well.  For instance for EME-PKCS-V1_5, the
+   decrypted MPI value has to be converted into an octet string that
+   has the same length as the provided key.  This is implemented by
+   the functions of type `gcry_ac_dencode_to_os_t'.  */
 
 typedef gcry_err_code_t (*gcry_ac_dencode_prepare_t) (gcry_ac_handle_t handle, gcry_ac_key_t key,
 						      void *opts, void *opts_em);
@@ -2253,6 +2260,7 @@ typedef gcry_err_code_t (*gcry_ac_dencode_to_os_t) (gcry_ac_handle_t handle,
 						    gcry_mpi_t mpi,
 						    unsigned char **os, size_t *os_n);
 
+/* The `dencode_prepare' function for ES-PKCS-V1_5.  */
 static gcry_err_code_t
 ac_es_dencode_prepare_pkcs_v1_5 (gcry_ac_handle_t handle, gcry_ac_key_t key,
 				 void *opts, void *opts_em)
@@ -2266,6 +2274,7 @@ ac_es_dencode_prepare_pkcs_v1_5 (gcry_ac_handle_t handle, gcry_ac_key_t key,
   return err;
 }
 
+/* The `dencode_to_os' function for ES-PKCS-V1_5.  */
 static gcry_err_code_t
 ac_es_dencode_to_os_pkcs_v1_5 (gcry_ac_handle_t handle, gcry_ac_key_t key, void *opts,
 			       gcry_mpi_t mpi, unsigned char **os, size_t *os_n)
@@ -2295,6 +2304,7 @@ ac_es_dencode_to_os_pkcs_v1_5 (gcry_ac_handle_t handle, gcry_ac_key_t key, void 
   return err;
 }
 
+/* The `dencode_prepare' function for SSA-PKCS-V1_5.  */
 static gcry_err_code_t
 ac_ssa_dencode_prepare_pkcs_v1_5 (gcry_ac_handle_t handle, gcry_ac_key_t key,
 				  void *opts, void *opts_em)
@@ -2315,6 +2325,8 @@ ac_ssa_dencode_prepare_pkcs_v1_5 (gcry_ac_handle_t handle, gcry_ac_key_t key,
   return err;
 }
 
+/* Type holding the information about each supported
+   Encryption/Signature Scheme.  */
 typedef struct ac_scheme
 {
   gcry_ac_scheme_t scheme;
@@ -2324,6 +2336,7 @@ typedef struct ac_scheme
   size_t options_em_n;
 } ac_scheme_t;
 
+/* List of supported Schemes.  */
 static ac_scheme_t ac_schemes[] =
   {
     { GCRY_AC_ES_PKCS_V1_5, GCRY_AC_EME_PKCS_V1_5,
@@ -2334,6 +2347,7 @@ static ac_scheme_t ac_schemes[] =
       sizeof (gcry_ac_emsa_pkcs_v1_5_t) }
   };
 
+/* Lookup a scheme by it's ID.  */
 static gcry_err_code_t
 ac_scheme_get (gcry_ac_scheme_t scheme, ac_scheme_t *ac_scheme)
 {
@@ -2351,6 +2365,8 @@ ac_scheme_get (gcry_ac_scheme_t scheme, ac_scheme_t *ac_scheme)
   return err;
 }
 
+/* Prepares the encoding/decoding by creating an according option
+   structure.  */
 static gcry_err_code_t
 ac_dencode_prepare (gcry_ac_handle_t handle, gcry_ac_key_t key, void *opts,
 		    ac_scheme_t scheme, void **opts_em)
@@ -2377,6 +2393,8 @@ ac_dencode_prepare (gcry_ac_handle_t handle, gcry_ac_key_t key, void *opts,
   return err;
 }
 
+/* Converts an MPI into an octet string according to the specified
+   scheme.  */
 static gcry_err_code_t
 ac_es_dencode_to_os (gcry_ac_handle_t handle, gcry_ac_key_t key, void *opts,
 		     ac_scheme_t scheme, gcry_mpi_t mpi, unsigned char **os, size_t *os_n)
@@ -2388,13 +2406,15 @@ ac_es_dencode_to_os (gcry_ac_handle_t handle, gcry_ac_key_t key, void *opts,
   return err;
 }
 
+/* Types of `data sets' that are known to ac_data_set_to_mpi.  */
 typedef enum ac_scheme_data_type
   {
     DATA_TYPE_ENCRYPTED,
     DATA_TYPE_SIGNED,
   }
 ac_scheme_data_type_t;
-    
+
+/* Extracts the MPI from a data set.  */
 static gcry_err_code_t
 ac_data_set_to_mpi (gcry_ac_handle_t handle, ac_scheme_data_type_t type,
 		    gcry_ac_data_t data, gcry_mpi_t *mpi)
@@ -2437,6 +2457,7 @@ ac_data_set_to_mpi (gcry_ac_handle_t handle, ac_scheme_data_type_t type,
   return err;
 }
 
+/* Creates a new data set containing the provided MPI.  */
 static gcry_err_code_t
 ac_mpi_to_data_set (gcry_ac_handle_t handle, ac_scheme_data_type_t type,
 		    gcry_ac_data_t *data, gcry_mpi_t mpi)
@@ -2483,6 +2504,12 @@ ac_mpi_to_data_set (gcry_ac_handle_t handle, ac_scheme_data_type_t type,
   return err;
 }
 
+/* Encrypts the plain text message contained in M, which is of size
+   M_N, with the public key KEY_PUBLIC according to the Encryption
+   Scheme SCHEME_ID.  HANDLE is used for accessing the low-level
+   cryptographic primitives.  If OPTS is not NULL, it has to be an
+   anonymous structure specific to the chosen scheme (gcry_ac_es_*_t).
+   The encrypted message will be stored in C and C_N.  */
 gcry_error_t
 gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id,
 			     unsigned int flags, void *opts,
@@ -2539,6 +2566,12 @@ gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id
   return gcry_error (err);
 }
 
+/* Decryptes the cipher message contained in C, which is of size C_N,
+   with the secret key KEY_SECRET according to the Encryption Scheme
+   SCHEME_ID.  Handle is used for accessing the low-level
+   cryptographic primitives.  If OPTS is not NULL, it has to be an
+   anonymous structure specific to the chosen scheme (gcry_ac_es_*_t).
+   The decrypted message will be stored in M and M_N.  */
 gcry_error_t
 gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id,
 			     unsigned int flags, void *opts,
@@ -2595,6 +2628,12 @@ gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id
   return gcry_error (err);
 }
 
+/* Signs the message contained in M, which is of size M_N, with the
+   secret key KEY_SECRET according to the Signature Scheme SCHEME_ID.
+   Handle is used for accessing the low-level cryptographic
+   primitives.  If OPTS is not NULL, it has to be an anonymous
+   structure specific to the chosen scheme (gcry_ac_ssa_*_t).  The
+   signed message will be stored in S and S_N.  */
 gcry_error_t
 gcry_ac_data_sign_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id,
 			  unsigned int flags, void *opts, gcry_ac_key_t key_secret,
@@ -2646,6 +2685,12 @@ gcry_ac_data_sign_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id,
   return gcry_error (err);
 }
 
+/* Verifies that the signature contained in S, which is of length S_N,
+   is indeed the result of signing the message contained in M, which
+   is of size M_N, with the secret key belonging to the public key
+   KEY_PUBLIC.  If OPTS is not NULL, it has to be an anonymous
+   structure (gcry_ac_ssa_*_t) specific to the Signature Scheme, whose
+   ID is contained in SCHEME_ID.  */
 gcry_error_t
 gcry_ac_data_verify_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id,
 			    unsigned int flags, void *opts, gcry_ac_key_t key_public,

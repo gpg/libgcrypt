@@ -1,3 +1,7 @@
+2003-10-19  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c: Document code.
+
 2003-10-17  Moritz Schulte  <mo@g10code.com>
 
 	* ac.c (_gcry_ac_key_get_nbits): New function, derived from
