@@ -2088,11 +2088,13 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
 
   /* Check that the first element is valid. */
   list = gcry_sexp_find_token (key, "public-key", 0);
-  if (! list)
+  if (!list)
     list = gcry_sexp_find_token (key, "private-key", 0);
-  if (! list)
+  if (!list)
     list = gcry_sexp_find_token (key, "protected-private-key", 0);
-  if (! list)
+  if (!list)
+    list = gcry_sexp_find_token (key, "shadowed-private-key", 0);
+  if (!list)
     return NULL; /* No public- or private-key object. */
 
   l2 = gcry_sexp_cadr (list);
