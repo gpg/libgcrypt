@@ -1,5 +1,5 @@
 /* gcrypt.h -  GNU cryptographic library interface
- * Copyright (C) 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998,1999,2000,2001,2002,2003,2004 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -828,8 +828,10 @@ typedef enum gcry_ac_key_type
   }
 gcry_ac_key_type_t;
 
-/* Flags for data. */
-#define GCRY_AC_FLAG_DATA_NO_BLINDING 1 << 0
+/* AC data.  */
+#define GCRY_AC_FLAG_DEALLOC     (1 << 0)
+#define GCRY_AC_FLAG_COPY        (1 << 1)
+#define GCRY_AC_FLAG_NO_BLINDING (1 << 2)
 
 /* This type represents a `data set'.  */
 typedef struct gcry_ac_data *gcry_ac_data_t;
@@ -860,12 +862,6 @@ gcry_error_t gcry_ac_data_new (gcry_ac_data_t *data);
 /* Destroy the data set DATA.  */
 void gcry_ac_data_destroy (gcry_ac_data_t data);
 
-/* Add the value MPI to DATA with the label NAME.  If there is already
-   a value with that label, replace it, otherwise add it.  */
-gcry_error_t gcry_ac_data_set (gcry_ac_data_t data,
-			      const char *name,
-			      gcry_mpi_t mpi);
-
 /* Create a copy of the data set DATA and store it in DATA_CP.  */
 gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *data_cp,
 			       gcry_ac_data_t data);
@@ -874,56 +870,63 @@ gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *data_cp,
    DATA.  */
 unsigned int gcry_ac_data_length (gcry_ac_data_t data);
 
-/* Store the value labelled with NAME found in DATA in MPI or NULL if
-   a value with that label was not found.  */
-gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
-				   gcry_mpi_t *mpi);
-
-/* Return the MPI value with index IDX contained in the data set
-   DATA.  */
-gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int idx,
-				    const char **name, gcry_mpi_t *mpi);
-
 /* Destroy any values contained in the data set DATA.  */
 void gcry_ac_data_clear (gcry_ac_data_t data);
 
+/* Add the value MPI to DATA with the label NAME.  If FLAGS contains
+   GCRY_AC_FLAG_DATA_COPY, the data set will contain copies of NAME
+   and MPI.  If FLAGS contains GCRY_AC_FLAG_DATA_DEALLOC or
+   GCRY_AC_FLAG_DATA_COPY, the values contained in the data set will
+   be deallocated when they are to be removed from the data set.  */
+gcry_error_t gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
+			       const char *name, gcry_mpi_t mpi);
+
+/* Store the value labelled with NAME found in DATA in MPI.  If FLAGS
+   contains GCRY_AC_FLAG_COPY, store a copy of the MPI value contained
+   in the data set.  MPI may be NULL.  */
+gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
+				    const char *name, gcry_mpi_t *mpi);
+
+/* Stores in NAME and MPI the named MPI value contained in the data
+   set DATA with the index IDX.  If FLAGS contains GCRY_AC_FLAG_COPY,
+   store copies of the values contained in the data set. NAME or MPI
+   may be NULL.  */
+gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags, unsigned int idx,
+				     const char **name, gcry_mpi_t *mpi);
+
 /* Create a new ac handle.  */
-gcry_error_t gcry_ac_open (gcry_ac_handle_t *handle,
-			  gcry_ac_id_t algorithm,
-			  unsigned int flags);
+gcry_error_t gcry_ac_open (gcry_ac_handle_t *handle, gcry_ac_id_t algorithm, unsigned int flags);
 
 /* Destroy an ac handle.  */
 void gcry_ac_close (gcry_ac_handle_t handle);
 
 /* Initialize a key from a given data set.  */
-gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key,
-			      gcry_ac_handle_t handle,
-			      gcry_ac_key_type_t type,
-			      gcry_ac_data_t data);
+gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key, gcry_ac_handle_t handle,
+			       gcry_ac_key_type_t type, gcry_ac_data_t data);
 
-/* Generate a new key pair.  */
-gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
-				       gcry_ac_key_pair_t *key_pair,
-				       unsigned int nbits,
-				       void *spec);
+/* Generates a new key pair via the handle HANDLE of NBITS bits and
+   stores it in KEY_PAIR.  In case non-standard settings are wanted, a
+   pointer to a structure of type gcry_ac_key_spec_<algorithm>_t,
+   matching the selected algorithm, can be given as KEY_SPEC.
+   MISC_DATA is not used yet.  */
+gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle, unsigned int nbits, void *spec,
+					gcry_ac_key_pair_t *key_pair, gcry_mpi_t **misc_data);
 
-/* Returns a specified key from a key pair.  */
-gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
-					gcry_ac_key_type_t which);
+/* Returns the key of type WHICH out of the key pair KEY_PAIR.  */
+gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair, gcry_ac_key_type_t which);
 
 /* Returns the data set contained in the key KEY.  */
 gcry_ac_data_t gcry_ac_key_data_get (gcry_ac_key_t key);
 
-/* Verify that the key KEY is sane.  */
-gcry_error_t gcry_ac_key_test (gcry_ac_key_t key);
+/* Verifies that the key KEY is sane via HANDLE.  */
+gcry_error_t gcry_ac_key_test (gcry_ac_handle_t handle, gcry_ac_key_t key);
 
-/* Return the number of bits of the key KEY in NBITS.  */
-gcry_error_t gcry_ac_key_get_nbits (gcry_ac_key_t key,
-				   unsigned int *nbits);
+/* Stores the number of bits of the key KEY in NBITS via HANDLE.  */
+gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t handle, gcry_ac_key_t key, unsigned int *nbits);
 
-/* Write the 20 byte long key grip of the key KEY to KEY_GRIP.  */
-gcry_error_t gcry_ac_key_get_grip (gcry_ac_key_t key,
-				  unsigned char *key_grip);
+/* Writes the 20 byte long key grip of the key KEY to KEY_GRIP via
+   HANDLE.  */
+gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t handle, gcry_ac_key_t key, unsigned char *key_grip);
 
 /* Destroy a key.  */
 void gcry_ac_key_destroy (gcry_ac_key_t key);
@@ -935,34 +938,34 @@ void gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair);
    the control of the flags FLAGS and store the resulting data set
    into DATA_ENCRYPTED.  */
 gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t handle,
-				  unsigned int flags,
-				  gcry_ac_key_t key,
-				  gcry_mpi_t data_plain,
-				  gcry_ac_data_t *data_encrypted);
+				   unsigned int flags,
+				   gcry_ac_key_t key,
+				   gcry_mpi_t data_plain,
+				   gcry_ac_data_t *data_encrypted);
 
 /* Decrypt the decrypted data contained in the data set DATA_ENCRYPTED
    with the key KEY under the control of the flags FLAGS and store the
    resulting plain text MPI value in DATA_PLAIN.  */
 gcry_error_t gcry_ac_data_decrypt (gcry_ac_handle_t handle,
-				  unsigned int flags,
-				  gcry_ac_key_t key,
-				  gcry_mpi_t *data_plain,
-				  gcry_ac_data_t data_encrypted);
+				   unsigned int flags,
+				   gcry_ac_key_t key,
+				   gcry_mpi_t *data_plain,
+				   gcry_ac_data_t data_encrypted);
 
 /* Sign the data contained in DATA with the key KEY and store the
    resulting signature in the data set DATA_SIGNATURE.  */
 gcry_error_t gcry_ac_data_sign (gcry_ac_handle_t handle,
-			       gcry_ac_key_t key,
-			       gcry_mpi_t data,
-			       gcry_ac_data_t *data_signature);
+				gcry_ac_key_t key,
+				gcry_mpi_t data,
+				gcry_ac_data_t *data_signature);
 
 /* Verify that the signature contained in the data set DATA_SIGNATURE
    is indeed the result of signing the data contained in DATA with the
    secret key belonging to the public key KEY.  */
 gcry_error_t gcry_ac_data_verify (gcry_ac_handle_t handle,
-				 gcry_ac_key_t key,
-				 gcry_mpi_t data,
-				 gcry_ac_data_t data_signature);
+				  gcry_ac_key_t key,
+				  gcry_mpi_t data,
+				  gcry_ac_data_t data_signature);
 
 /* Store the textual representation of the algorithm whose id is given
    in ALGORITHM in NAME.  */
@@ -1339,6 +1342,12 @@ void  gcry_free (void *a);
 
 /* Return true if A is allocated in "secure" memory. */
 int gcry_is_secure (const void *a) _GCRY_GCC_ATTR_PURE;
+
+/* Create and return a copy of the null-terminated string STRING.  If
+   it is contained in secure memory, the copy will be contained in
+   secure memory as well.  In an out-of-memory condition, NULL is
+   returned.  */
+char *gcry_strdup (const char *string);
 
 /* Include support for Libgcrypt modules.  */
 #include <gcrypt-module.h>

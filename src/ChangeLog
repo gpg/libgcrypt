@@ -1,3 +1,20 @@
+2004-01-12  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.h: Adjusted declarations of: gcry_ac_data_set,
+	gcry_ac_data_get_name, gcry_ac_data_get_index,
+	gcry_ac_key_pair_generate, gcry_ac_key_test,
+	gcry_ac_key_get_nbits, gcry_ac_key_get_grip.
+
+	* gcrypt.h (GCRY_AC_FLAG_DATA_NO_BLINDING): Removed symbol.
+	(GCRY_AC_FLAG_DEALLOC, GCRY_AC_FLAG_COPY) 
+	(GCRY_AC_FLAG_NO_BLINDING): New symbols.
+
+	* global.c (gcry_strdup): Removed function.
+	* string.c: New file.
+	* Makefile.am (libgcrypt_real_la_SOURCES): Added: string.c.
+	* string.c (gcry_strdup): New function.
+	* gcrypt.h (gcry_strdup): Declare.
+
 2003-12-19  Werner Koch  <wk@gnupg.org>
 
 	* g10lib.h (wipememory, wipememory2): New; taken from gnupg.
