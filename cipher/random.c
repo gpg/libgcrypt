@@ -760,6 +760,10 @@ read_pool (byte *buffer, size_t length, int level)
 
   /* Always do a fast random poll (we have to use the unlocked version). */
   do_fast_random_poll();
+  
+  /* Mix the pid in so that we for sure won't deliver the same random
+     after a fork. */
+  add_randomness (&my_pid, sizeof (my_pid), 0);
 
   /* Mix the pool (if add_randomness() didn't it). */
   if (!just_mixed)
@@ -777,7 +781,7 @@ read_pool (byte *buffer, size_t length, int level)
   mix_pool(rndpool); rndstats.mixrnd++;
   mix_pool(keypool); rndstats.mixkey++;
 
-  /* Read the required data.  We use a readpoiter to read from a
+  /* Read the required data.  We use a readpointer to read from a
      different position each time */
   while (length--)
     {
@@ -802,7 +806,12 @@ read_pool (byte *buffer, size_t length, int level)
      faults, though.
    */
   if ( getpid () != my_pid )
-    goto retry;
+    {
+      pid_t x = getpid();
+      add_randomness (&x, sizeof(x), 0);
+      just_mixed = 0; /* Make sure it will get mixed. */
+      goto retry;
+    }
 }
 
 

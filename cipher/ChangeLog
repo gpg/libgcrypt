@@ -1,7 +1,20 @@
+2004-07-16  Werner Koch  <wk@gnupg.org>
+
+	* rijndael.c (do_encrypt): Fix alignment problem.  Bugs found by
+	Matthias Urlichs.
+	(do_decrypt): Ditto.
+	(keySched, keySched2): Use 2 macros along with unions in the key
+	schedule context.
+
 2004-07-14  Moritz Schulte  <moritz@g10code.com>
 
 	* rsa.c (_gcry_rsa_decrypt): Don't forget to free "a".  Thanks to
 	Nikos Mavroyanopoulos.
+
+2004-05-09  Werner Koch  <wk@gnupg.org>
+
+	* random.c (read_pool): Mix the PID in to better protect after a
+	fork.
 
 2004-07-04  Moritz Schulte  <moritz@g10code.com>
 

@@ -48,12 +48,24 @@
 
 static const char *selftest(void);
 
-typedef struct {
-    int   ROUNDS;                   /* key-length-dependent number of rounds */
-    int decryption_prepared;
-    byte  keySched[MAXROUNDS+1][4][4];	/* key schedule		*/
-    byte  keySched2[MAXROUNDS+1][4][4];	/* key schedule		*/
+typedef struct 
+{
+  int   ROUNDS;                   /* key-length-dependent number of rounds */
+  int decryption_prepared;
+  union 
+  {
+    PROPERLY_ALIGNED_TYPE dummy;
+    byte keyschedule[MAXROUNDS+1][4][4];
+  } u1;
+  union
+  {
+    PROPERLY_ALIGNED_TYPE dummy;
+    byte keyschedule[MAXROUNDS+1][4][4];	
+  } u2;
 } RIJNDAEL_context;
+
+#define keySched  u1.keyschedule
+#define keySched2 u2.keyschedule
 
 
 static const byte S[256] = {
@@ -1881,90 +1893,108 @@ prepare_decryption( RIJNDAEL_context *ctx )
 
 /* Encrypt one block.  A and B may be the same. */
 static void
-do_encrypt (const RIJNDAEL_context *ctx, byte *b, const byte *a)
+do_encrypt (const RIJNDAEL_context *ctx, byte *bx, const byte *ax)
 {
   /* FIXME: Ugly code, replace by straighter implementaion and use
      optimized assembler for common CPUs. */
 
   int r;
-  union {
+  union
+  {
     u32  tempu32[4];  /* Force correct alignment. */
     byte temp[4][4];
   } u;
   int ROUNDS = ctx->ROUNDS;
 #define rk (ctx->keySched)
 
-  *((u32*)u.temp[0]) = *((u32*)(a   )) ^ *((u32*)rk[0][0]);
-  *((u32*)u.temp[1]) = *((u32*)(a+ 4)) ^ *((u32*)rk[0][1]);
-  *((u32*)u.temp[2]) = *((u32*)(a+ 8)) ^ *((u32*)rk[0][2]);
-  *((u32*)u.temp[3]) = *((u32*)(a+12)) ^ *((u32*)rk[0][3]);
-  *((u32*)(b    )) = (*((u32*)T1[u.temp[0][0]])
+  /* BX and AX are not necessary correctly aligned.  Thus we need to
+     copy them here. */
+  union
+  {
+    u32  dummy[4]; 
+    byte a[16];
+  } a;
+  union
+  {
+    u32  dummy[4]; 
+    byte b[16];
+  } b;
+
+  memcpy (a.a, ax, 16);
+
+  *((u32*)u.temp[0]) = *((u32*)(a.a   )) ^ *((u32*)rk[0][0]);
+  *((u32*)u.temp[1]) = *((u32*)(a.a+ 4)) ^ *((u32*)rk[0][1]);
+  *((u32*)u.temp[2]) = *((u32*)(a.a+ 8)) ^ *((u32*)rk[0][2]);
+  *((u32*)u.temp[3]) = *((u32*)(a.a+12)) ^ *((u32*)rk[0][3]);
+  *((u32*)(b.b    )) = (*((u32*)T1[u.temp[0][0]])
                       ^ *((u32*)T2[u.temp[1][1]])
                       ^ *((u32*)T3[u.temp[2][2]]) 
                       ^ *((u32*)T4[u.temp[3][3]]));
-  *((u32*)(b + 4)) = (*((u32*)T1[u.temp[1][0]])
+  *((u32*)(b.b + 4)) = (*((u32*)T1[u.temp[1][0]])
                       ^ *((u32*)T2[u.temp[2][1]])
                       ^ *((u32*)T3[u.temp[3][2]]) 
                       ^ *((u32*)T4[u.temp[0][3]]));
-  *((u32*)(b + 8)) = (*((u32*)T1[u.temp[2][0]])
+  *((u32*)(b.b + 8)) = (*((u32*)T1[u.temp[2][0]])
                       ^ *((u32*)T2[u.temp[3][1]])
                       ^ *((u32*)T3[u.temp[0][2]]) 
                       ^ *((u32*)T4[u.temp[1][3]]));
-  *((u32*)(b +12)) = (*((u32*)T1[u.temp[3][0]])
+  *((u32*)(b.b +12)) = (*((u32*)T1[u.temp[3][0]])
                       ^ *((u32*)T2[u.temp[0][1]])
                       ^ *((u32*)T3[u.temp[1][2]]) 
                       ^ *((u32*)T4[u.temp[2][3]]));
 
   for (r = 1; r < ROUNDS-1; r++)
     {
-      *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[r][0]);
-      *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[r][1]);
-      *((u32*)u.temp[2]) = *((u32*)(b+ 8)) ^ *((u32*)rk[r][2]);
-      *((u32*)u.temp[3]) = *((u32*)(b+12)) ^ *((u32*)rk[r][3]);
+      *((u32*)u.temp[0]) = *((u32*)(b.b   )) ^ *((u32*)rk[r][0]);
+      *((u32*)u.temp[1]) = *((u32*)(b.b+ 4)) ^ *((u32*)rk[r][1]);
+      *((u32*)u.temp[2]) = *((u32*)(b.b+ 8)) ^ *((u32*)rk[r][2]);
+      *((u32*)u.temp[3]) = *((u32*)(b.b+12)) ^ *((u32*)rk[r][3]);
 
-      *((u32*)(b    )) = (*((u32*)T1[u.temp[0][0]])
+      *((u32*)(b.b    )) = (*((u32*)T1[u.temp[0][0]])
                           ^ *((u32*)T2[u.temp[1][1]])
                           ^ *((u32*)T3[u.temp[2][2]]) 
                           ^ *((u32*)T4[u.temp[3][3]]));
-      *((u32*)(b + 4)) = (*((u32*)T1[u.temp[1][0]])
+      *((u32*)(b.b + 4)) = (*((u32*)T1[u.temp[1][0]])
                           ^ *((u32*)T2[u.temp[2][1]])
                           ^ *((u32*)T3[u.temp[3][2]]) 
                           ^ *((u32*)T4[u.temp[0][3]]));
-      *((u32*)(b + 8)) = (*((u32*)T1[u.temp[2][0]])
+      *((u32*)(b.b + 8)) = (*((u32*)T1[u.temp[2][0]])
                           ^ *((u32*)T2[u.temp[3][1]])
                           ^ *((u32*)T3[u.temp[0][2]]) 
                           ^ *((u32*)T4[u.temp[1][3]]));
-      *((u32*)(b +12)) = (*((u32*)T1[u.temp[3][0]])
+      *((u32*)(b.b +12)) = (*((u32*)T1[u.temp[3][0]])
                           ^ *((u32*)T2[u.temp[0][1]])
                           ^ *((u32*)T3[u.temp[1][2]]) 
                           ^ *((u32*)T4[u.temp[2][3]]));
     }
 
   /* Last round is special. */   
-  *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[ROUNDS-1][0]);
-  *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[ROUNDS-1][1]);
-  *((u32*)u.temp[2]) = *((u32*)(b+ 8)) ^ *((u32*)rk[ROUNDS-1][2]);
-  *((u32*)u.temp[3]) = *((u32*)(b+12)) ^ *((u32*)rk[ROUNDS-1][3]);
-  b[ 0] = T1[u.temp[0][0]][1];
-  b[ 1] = T1[u.temp[1][1]][1];
-  b[ 2] = T1[u.temp[2][2]][1];
-  b[ 3] = T1[u.temp[3][3]][1];
-  b[ 4] = T1[u.temp[1][0]][1];
-  b[ 5] = T1[u.temp[2][1]][1];
-  b[ 6] = T1[u.temp[3][2]][1];
-  b[ 7] = T1[u.temp[0][3]][1];
-  b[ 8] = T1[u.temp[2][0]][1];
-  b[ 9] = T1[u.temp[3][1]][1];
-  b[10] = T1[u.temp[0][2]][1];
-  b[11] = T1[u.temp[1][3]][1];
-  b[12] = T1[u.temp[3][0]][1];
-  b[13] = T1[u.temp[0][1]][1];
-  b[14] = T1[u.temp[1][2]][1];
-  b[15] = T1[u.temp[2][3]][1];
-  *((u32*)(b   )) ^= *((u32*)rk[ROUNDS][0]);
-  *((u32*)(b+ 4)) ^= *((u32*)rk[ROUNDS][1]);
-  *((u32*)(b+ 8)) ^= *((u32*)rk[ROUNDS][2]);
-  *((u32*)(b+12)) ^= *((u32*)rk[ROUNDS][3]);
+  *((u32*)u.temp[0]) = *((u32*)(b.b   )) ^ *((u32*)rk[ROUNDS-1][0]);
+  *((u32*)u.temp[1]) = *((u32*)(b.b+ 4)) ^ *((u32*)rk[ROUNDS-1][1]);
+  *((u32*)u.temp[2]) = *((u32*)(b.b+ 8)) ^ *((u32*)rk[ROUNDS-1][2]);
+  *((u32*)u.temp[3]) = *((u32*)(b.b+12)) ^ *((u32*)rk[ROUNDS-1][3]);
+  b.b[ 0] = T1[u.temp[0][0]][1];
+  b.b[ 1] = T1[u.temp[1][1]][1];
+  b.b[ 2] = T1[u.temp[2][2]][1];
+  b.b[ 3] = T1[u.temp[3][3]][1];
+  b.b[ 4] = T1[u.temp[1][0]][1];
+  b.b[ 5] = T1[u.temp[2][1]][1];
+  b.b[ 6] = T1[u.temp[3][2]][1];
+  b.b[ 7] = T1[u.temp[0][3]][1];
+  b.b[ 8] = T1[u.temp[2][0]][1];
+  b.b[ 9] = T1[u.temp[3][1]][1];
+  b.b[10] = T1[u.temp[0][2]][1];
+  b.b[11] = T1[u.temp[1][3]][1];
+  b.b[12] = T1[u.temp[3][0]][1];
+  b.b[13] = T1[u.temp[0][1]][1];
+  b.b[14] = T1[u.temp[1][2]][1];
+  b.b[15] = T1[u.temp[2][3]][1];
+  *((u32*)(b.b   )) ^= *((u32*)rk[ROUNDS][0]);
+  *((u32*)(b.b+ 4)) ^= *((u32*)rk[ROUNDS][1]);
+  *((u32*)(b.b+ 8)) ^= *((u32*)rk[ROUNDS][2]);
+  *((u32*)(b.b+12)) ^= *((u32*)rk[ROUNDS][3]);
+
+  memcpy (bx, b.b, 16);
 #undef rk
 }
 
@@ -1974,14 +2004,14 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
   RIJNDAEL_context *ctx = context;
 
   do_encrypt (ctx, b, a);
-  _gcry_burn_stack (16 + 2*sizeof(int));
+  _gcry_burn_stack (48 + 2*sizeof(int));
 }
 
 
 
 /* Decrypt one block.  a and b may be the same. */
 static void
-do_decrypt (RIJNDAEL_context *ctx, byte *b, const byte *a)
+do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
 {
 #define rk  (ctx->keySched2)
   int ROUNDS = ctx->ROUNDS; 
@@ -1991,6 +2021,21 @@ do_decrypt (RIJNDAEL_context *ctx, byte *b, const byte *a)
     byte temp[4][4];
   } u;
 
+  /* BX and AX are not necessary correctly aligned.  Thus we need to
+     copy them here. */
+  union
+  {
+    u32  dummy[4]; 
+    byte a[16];
+  } a;
+  union
+  {
+    u32  dummy[4]; 
+    byte b[16];
+  } b;
+
+  memcpy (a.a, ax, 16);
+
   if ( !ctx->decryption_prepared )
     {
       prepare_decryption ( ctx );
@@ -1998,77 +2043,79 @@ do_decrypt (RIJNDAEL_context *ctx, byte *b, const byte *a)
       ctx->decryption_prepared = 1;
     }
     
-  *((u32*)u.temp[0]) = *((u32*)(a   )) ^ *((u32*)rk[ROUNDS][0]);
-  *((u32*)u.temp[1]) = *((u32*)(a+ 4)) ^ *((u32*)rk[ROUNDS][1]);
-  *((u32*)u.temp[2]) = *((u32*)(a+ 8)) ^ *((u32*)rk[ROUNDS][2]);
-  *((u32*)u.temp[3]) = *((u32*)(a+12)) ^ *((u32*)rk[ROUNDS][3]);
+  *((u32*)u.temp[0]) = *((u32*)(a.a   )) ^ *((u32*)rk[ROUNDS][0]);
+  *((u32*)u.temp[1]) = *((u32*)(a.a+ 4)) ^ *((u32*)rk[ROUNDS][1]);
+  *((u32*)u.temp[2]) = *((u32*)(a.a+ 8)) ^ *((u32*)rk[ROUNDS][2]);
+  *((u32*)u.temp[3]) = *((u32*)(a.a+12)) ^ *((u32*)rk[ROUNDS][3]);
   
-  *((u32*)(b   )) = (*((u32*)T5[u.temp[0][0]])
+  *((u32*)(b.b   )) = (*((u32*)T5[u.temp[0][0]])
                      ^ *((u32*)T6[u.temp[3][1]])
                      ^ *((u32*)T7[u.temp[2][2]]) 
                      ^ *((u32*)T8[u.temp[1][3]]));
-  *((u32*)(b+ 4)) = (*((u32*)T5[u.temp[1][0]])
+  *((u32*)(b.b+ 4)) = (*((u32*)T5[u.temp[1][0]])
                      ^ *((u32*)T6[u.temp[0][1]])
                      ^ *((u32*)T7[u.temp[3][2]]) 
                      ^ *((u32*)T8[u.temp[2][3]]));
-  *((u32*)(b+ 8)) = (*((u32*)T5[u.temp[2][0]])
+  *((u32*)(b.b+ 8)) = (*((u32*)T5[u.temp[2][0]])
                      ^ *((u32*)T6[u.temp[1][1]])
                      ^ *((u32*)T7[u.temp[0][2]]) 
                      ^ *((u32*)T8[u.temp[3][3]]));
-  *((u32*)(b+12)) = (*((u32*)T5[u.temp[3][0]])
+  *((u32*)(b.b+12)) = (*((u32*)T5[u.temp[3][0]])
                      ^ *((u32*)T6[u.temp[2][1]])
                      ^ *((u32*)T7[u.temp[1][2]]) 
                      ^ *((u32*)T8[u.temp[0][3]]));
 
   for (r = ROUNDS-1; r > 1; r--)
     {
-      *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[r][0]);
-      *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[r][1]);
-      *((u32*)u.temp[2]) = *((u32*)(b+ 8)) ^ *((u32*)rk[r][2]);
-      *((u32*)u.temp[3]) = *((u32*)(b+12)) ^ *((u32*)rk[r][3]);
-      *((u32*)(b   )) = (*((u32*)T5[u.temp[0][0]])
+      *((u32*)u.temp[0]) = *((u32*)(b.b   )) ^ *((u32*)rk[r][0]);
+      *((u32*)u.temp[1]) = *((u32*)(b.b+ 4)) ^ *((u32*)rk[r][1]);
+      *((u32*)u.temp[2]) = *((u32*)(b.b+ 8)) ^ *((u32*)rk[r][2]);
+      *((u32*)u.temp[3]) = *((u32*)(b.b+12)) ^ *((u32*)rk[r][3]);
+      *((u32*)(b.b   )) = (*((u32*)T5[u.temp[0][0]])
                          ^ *((u32*)T6[u.temp[3][1]])
                          ^ *((u32*)T7[u.temp[2][2]]) 
                          ^ *((u32*)T8[u.temp[1][3]]));
-      *((u32*)(b+ 4)) = (*((u32*)T5[u.temp[1][0]])
+      *((u32*)(b.b+ 4)) = (*((u32*)T5[u.temp[1][0]])
                          ^ *((u32*)T6[u.temp[0][1]])
                          ^ *((u32*)T7[u.temp[3][2]]) 
                          ^ *((u32*)T8[u.temp[2][3]]));
-      *((u32*)(b+ 8)) = (*((u32*)T5[u.temp[2][0]])
+      *((u32*)(b.b+ 8)) = (*((u32*)T5[u.temp[2][0]])
                          ^ *((u32*)T6[u.temp[1][1]])
                          ^ *((u32*)T7[u.temp[0][2]]) 
                          ^ *((u32*)T8[u.temp[3][3]]));
-      *((u32*)(b+12)) = (*((u32*)T5[u.temp[3][0]])
+      *((u32*)(b.b+12)) = (*((u32*)T5[u.temp[3][0]])
                          ^ *((u32*)T6[u.temp[2][1]])
                          ^ *((u32*)T7[u.temp[1][2]]) 
                          ^ *((u32*)T8[u.temp[0][3]]));
     }
 
   /* Last round is special. */   
-  *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[1][0]);
-  *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[1][1]);
-  *((u32*)u.temp[2]) = *((u32*)(b+ 8)) ^ *((u32*)rk[1][2]);
-  *((u32*)u.temp[3]) = *((u32*)(b+12)) ^ *((u32*)rk[1][3]);
-  b[ 0] = S5[u.temp[0][0]];
-  b[ 1] = S5[u.temp[3][1]];
-  b[ 2] = S5[u.temp[2][2]];
-  b[ 3] = S5[u.temp[1][3]];
-  b[ 4] = S5[u.temp[1][0]];
-  b[ 5] = S5[u.temp[0][1]];
-  b[ 6] = S5[u.temp[3][2]];
-  b[ 7] = S5[u.temp[2][3]];
-  b[ 8] = S5[u.temp[2][0]];
-  b[ 9] = S5[u.temp[1][1]];
-  b[10] = S5[u.temp[0][2]];
-  b[11] = S5[u.temp[3][3]];
-  b[12] = S5[u.temp[3][0]];
-  b[13] = S5[u.temp[2][1]];
-  b[14] = S5[u.temp[1][2]];
-  b[15] = S5[u.temp[0][3]];
-  *((u32*)(b   )) ^= *((u32*)rk[0][0]);
-  *((u32*)(b+ 4)) ^= *((u32*)rk[0][1]);
-  *((u32*)(b+ 8)) ^= *((u32*)rk[0][2]);
-  *((u32*)(b+12)) ^= *((u32*)rk[0][3]);
+  *((u32*)u.temp[0]) = *((u32*)(b.b   )) ^ *((u32*)rk[1][0]);
+  *((u32*)u.temp[1]) = *((u32*)(b.b+ 4)) ^ *((u32*)rk[1][1]);
+  *((u32*)u.temp[2]) = *((u32*)(b.b+ 8)) ^ *((u32*)rk[1][2]);
+  *((u32*)u.temp[3]) = *((u32*)(b.b+12)) ^ *((u32*)rk[1][3]);
+  b.b[ 0] = S5[u.temp[0][0]];
+  b.b[ 1] = S5[u.temp[3][1]];
+  b.b[ 2] = S5[u.temp[2][2]];
+  b.b[ 3] = S5[u.temp[1][3]];
+  b.b[ 4] = S5[u.temp[1][0]];
+  b.b[ 5] = S5[u.temp[0][1]];
+  b.b[ 6] = S5[u.temp[3][2]];
+  b.b[ 7] = S5[u.temp[2][3]];
+  b.b[ 8] = S5[u.temp[2][0]];
+  b.b[ 9] = S5[u.temp[1][1]];
+  b.b[10] = S5[u.temp[0][2]];
+  b.b[11] = S5[u.temp[3][3]];
+  b.b[12] = S5[u.temp[3][0]];
+  b.b[13] = S5[u.temp[2][1]];
+  b.b[14] = S5[u.temp[1][2]];
+  b.b[15] = S5[u.temp[0][3]];
+  *((u32*)(b.b   )) ^= *((u32*)rk[0][0]);
+  *((u32*)(b.b+ 4)) ^= *((u32*)rk[0][1]);
+  *((u32*)(b.b+ 8)) ^= *((u32*)rk[0][2]);
+  *((u32*)(b.b+12)) ^= *((u32*)rk[0][3]);
+
+  memcpy (bx, b.b, 16);
 #undef rk
 }
 
@@ -2078,7 +2125,7 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
   RIJNDAEL_context *ctx = context;
 
   do_decrypt (ctx, b, a);
-  _gcry_burn_stack (16+2*sizeof(int));
+  _gcry_burn_stack (48+2*sizeof(int));
 }
 
 
