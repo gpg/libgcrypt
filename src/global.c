@@ -377,28 +377,57 @@ gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
     outofcore_handler_value = value;
 }
 
-
-
-void *
-gcry_malloc( size_t n )
+gcry_err_code_t
+_gcry_malloc (size_t n, unsigned int flags, void **mem)
 {
-    if( alloc_func )
-	return alloc_func( n ) ;
-    return _gcry_private_malloc( n );
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  void *m = NULL;
+
+  if (flags & GCRY_ALLOC_FLAG_SECURE)
+    {
+      if (alloc_secure_func)
+	m = (*alloc_secure_func) (n);
+      else
+	m = _gcry_private_malloc_secure (n);
+    }
+  else
+    {
+      if (alloc_func)
+	m = (*alloc_func) (n);
+      else
+	m = _gcry_private_malloc (n);
+    }
+
+  if (! m)
+    err = gpg_err_code_from_errno (ENOMEM);
+  else
+    *mem = m;
+
+  return err;
+}
+  
+void *
+gcry_malloc (size_t n)
+{
+  void *mem = NULL;
+
+  _gcry_malloc (n, 0, &mem);
+
+  return mem;
 }
 
 void *
-gcry_malloc_secure( size_t n )
+gcry_malloc_secure (size_t n)
 {
-  if (no_secure_memory)
-    return gcry_malloc (n);
-  if (alloc_secure_func)
-    return alloc_secure_func (n) ;
-  return _gcry_private_malloc_secure (n);
+  void *mem = NULL;
+
+  _gcry_malloc (n, GCRY_ALLOC_FLAG_SECURE, &mem);
+
+  return mem;
 }
 
 int
-gcry_is_secure( const void *a )
+gcry_is_secure (const void *a)
 {
   if (no_secure_memory)
     return 0;

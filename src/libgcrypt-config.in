@@ -1,5 +1,5 @@
 #!/bin/sh
-#    Copyright (C) 1999, 2002 Free Software Foundation, Inc.
+#    Copyright (C) 1999, 2002, 2003 Free Software Foundation, Inc.
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -188,7 +188,7 @@ if test "$echo_version" = "yes"; then
 fi
 
 if test "$echo_algorithms" = "yes"; then
-    echo "Symmetric cipher algorithms: $ciphers"
-    echo "Public-key cipher algorithms: $pubkey_ciphers"
+    echo "Symmetric cipher algorithms: $symmetric_ciphers"
+    echo "Public-key cipher algorithms: $asymmetric_ciphers"
     echo "Message digest algorithms: $digests"
 fi

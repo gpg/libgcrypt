@@ -229,4 +229,10 @@ gcry_err_code_t _gcry_pk_init (void);
 gcry_err_code_t _gcry_pk_module_lookup (int id, gcry_module_t *module);
 void _gcry_pk_module_release (gcry_module_t module);
 
+/* Memory management.  */
+
+gcry_err_code_t _gcry_malloc (size_t n, unsigned int flags, void **mem);
+
+#define GCRY_ALLOC_FLAG_SECURE (1 << 0)
+
 #endif /* G10LIB_H */
