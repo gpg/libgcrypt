@@ -1,3 +1,7 @@
+2002-04-18  Werner Koch  <wk@gnupg.org>
+
+	* mpicoder.c (gcry_mpi_scan): Don't use normalize on a NULL MPI.
+
 2002-03-20  Werner Koch  <wk@gnupg.org>
 
 	* mpicoder.c (mpi_read_from_buffer): Bail out on a zero length

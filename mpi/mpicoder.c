@@ -386,7 +386,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	a = mpi_read_from_buffer( (char*)buffer, &len, 0 );
 	if( nbytes )
 	    *nbytes = len;
-	if( ret_mpi ) {
+	if( ret_mpi && a ) {
 	    mpi_normalize ( a );
 	    *ret_mpi = a;
 	}
