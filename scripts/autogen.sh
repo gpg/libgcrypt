@@ -54,15 +54,15 @@ else
 fi
 
 
-if (gettext --version </dev/null 2>/dev/null | awk 'NR==1 { split($4,A,"\."); \
-    X=10000*A[1]+100*A[2]+A[3]; echo X; if( X >= 1035 ) exit 1; exit 0}')
-    then
-    echo "**Error**: You must have "\`gettext\'" installed to compile $PGM."
-    echo '           (version 0.10.35 or newer is required; get'
-    echo '            ftp://alpha.gnu.org/gnu/gettext-0.10.35.tar.gz'
-    echo '            or install the latest Debian package)'
-    DIE="yes"
-fi
+#if (gettext --version </dev/null 2>/dev/null | awk 'NR==1 { split($4,A,"\."); \
+#    X=10000*A[1]+100*A[2]+A[3]; echo X; if( X >= 1035 ) exit 1; exit 0}')
+#    then
+#    echo "**Error**: You must have "\`gettext\'" installed to compile $PGM."
+#    echo '           (version 0.10.35 or newer is required; get'
+#    echo '            ftp://alpha.gnu.org/gnu/gettext-0.10.35.tar.gz'
+#    echo '            or install the latest Debian package)'
+#    DIE="yes"
+#fi
 
 
 if (libtool --version) < /dev/null > /dev/null 2>&1 ; then
@@ -85,8 +85,8 @@ if test "$DIE" = "yes"; then
     exit 1
 fi
 
-echo "Running gettextize...  Ignore non-fatal messages."
-echo "no" | gettextize --force
+#echo "Running gettextize...  Ignore non-fatal messages."
+#echo "no" | gettextize --force
 echo "Running libtoolize...  Ignore non-fatal messages."
 echo "no" | libtoolize
 
@@ -101,4 +101,5 @@ echo "Running autoconf..."
 autoconf
 
 echo "You can now run \"./configure\" and then \"make\"."
+
 

@@ -4,14 +4,14 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 exec_prefix_set=no
 
-gcrypt_libs="@GCRYPT_LIBS@"
-gcrypt_cflags="@GCRYPT_CFLAGS@"
+libgcrypt_libs="@LIBGCRYPT_LIBS@"
+libgcrypt_cflags="@LIBGCRYPT_CFLAGS@"
 
 
 usage()
 {
 	cat <<EOF
-Usage: gcrypt-config [OPTIONS]
+Usage: libgcrypt-config [OPTIONS]
 Options:
 	[--prefix[=DIR]]
 	[--exec-prefix[=DIR]]
@@ -77,17 +77,17 @@ fi
 if test "$echo_cflags" = "yes"; then
     if test "@includedir@" != "/usr/include" ; then
       includes="-I@includedir@"
-      for i in $gcrypt_cflags ; do
+      for i in $libgcrypt_cflags ; do
 	if test "$i" = "-I@includedir@" ; then
 	  includes=""
 	fi
       done
     fi
-    echo $includes $gcrypt_cflags
+    echo $includes $libgcrypt_cflags
 fi
 
 if test "$echo_libs" = "yes"; then
-    echo ${gcrypt_libs}
+    echo ${libgcrypt_libs}
 fi
 
 

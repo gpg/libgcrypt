@@ -14,19 +14,19 @@
 
 
 # It seems that we need gcrypt.m4 here too
-EXTRA_DIST = gcrypt-config.in  gcrypt.m4
+EXTRA_DIST = libgcrypt-config.in  libgcrypt.m4
 
-INCLUDES =  -I$(top_srcdir)/intl
+#INCLUDES =  -I$(top_srcdir)/intl
 
 OMIT_DEPENDENCIES = types.h
 
 
 lib_LTLIBRARIES = libgcrypt.la
 
-bin_SCRIPTS = gcrypt-config
+bin_SCRIPTS = libgcrypt-config
 
 m4datadir = $(datadir)/aclocal
-m4data_DATA = gcrypt.m4
+m4data_DATA = libgcrypt.m4
 
 noinst_PROGRAMS = testapi
 testapi_SOURCES = testapi.c
