@@ -1,5 +1,7 @@
 2003-07-02  Moritz Schulte  <moritz@g10code.com>
 
+	* module.c (_gcry_module_lookup): Fixed typo.
+
 	* gcrypt.h: Added all definitions and declarations necessary for
 	the new ac interface.
 

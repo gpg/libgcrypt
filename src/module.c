@@ -135,7 +135,7 @@ _gcry_module_lookup_id (gcry_module_t *entries, unsigned int id)
    responsible for identifying the wanted module.  */
 gcry_module_t *
 _gcry_module_lookup (gcry_module_t *entries, void *data,
-		     gcry_module_tLookup func)
+		     gcry_module_lookup_t func)
 {
   gcry_module_t *entry;
 
