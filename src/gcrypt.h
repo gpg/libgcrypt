@@ -698,7 +698,10 @@ enum gcry_md_algos
     GCRY_MD_SHA256  = 8,
     GCRY_MD_SHA384  = 9,
     GCRY_MD_SHA512  = 10,
-    GCRY_MD_MD4     = 301
+    GCRY_MD_MD4     = 301,
+    GCRY_MD_CRC32		= 302,
+    GCRY_MD_CRC32_RFC1510	= 303,
+    GCRY_MD_CRC24_RFC2440	= 304
   };
 
 /* Flags used with the open function. */

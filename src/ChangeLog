@@ -1,3 +1,8 @@
+2003-01-20  Simon Josefsson  <jas@extundo.com>
+
+	* gcrypt.h (gcry_md_algos): Add GCRY_MD_CRC32,
+	GCRY_MD_CRC32_RFC1510, GCRY_MD_CRC24_RFC2440.
+
 2003-01-16  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (gcry_md_write): Changed type of 2nd argument to void*.
