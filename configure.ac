@@ -28,7 +28,7 @@ AC_PREREQ(2.52)
 #    AGE, set REVISION to 0.
 # 3. Interfaces removed (BAD, breaks upward compatibility): Increment
 #    CURRENT, set AGE and REVISION to 0.
-AC_INIT(libgcrypt,1.1.4)
+AC_INIT(libgcrypt,1.1.4a)
 LIBGCRYPT_LT_CURRENT=2
 LIBGCRYPT_LT_AGE=1
 LIBGCRYPT_LT_REVISION=1
@@ -160,12 +160,6 @@ dnl
 case "${target}" in
     *-*-mingw32*)
         # special stuff for Windoze NT
-        # Do we need to set cross_compiling here or is it sufficient
-        # to rely on AC_PROG_CC which is called later?
-        cross_compiling=yes
-        CC="${target}-gcc"
-        CPP="${target}-gcc -E"
-        RANLIB="${target}-ranlib"
         disallowed_modules="rndunix rndlinux rndegd"
         ;;
     *)
