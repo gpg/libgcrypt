@@ -1200,7 +1200,7 @@ unsigned char *, unsigned int n)
 
 Register a new cipher module whose specification can be found in
 @var{cipher}.  On success, a new algorithm ID is stored in
-@var{algorithm_id} and a pointer representhing this module is stored
+@var{algorithm_id} and a pointer representing this module is stored
 in @var{module}.
 @end deftypefun
 
@@ -1503,7 +1503,7 @@ routines.  The programming model follows an open/process/close
 paradigm and is in that similar to other building blocks provided by
 @acronym{Libgcrypt}.
 
-For convenience reasons, a few cyclic redudancy check value operations
+For convenience reasons, a few cyclic redundancy check value operations
 are also supported.
 
 @menu
@@ -1612,7 +1612,7 @@ context.  See below for an explanation of this type.
 The function responsible for `finalizing' a message digest context.
 See below for an explanation of this type.
 @item gcry_md_read_t read
-The function reponsible for reading out a message digest result.  See
+The function responsible for reading out a message digest result.  See
 below for an explanation of this type.
 @item size_t contextsize
 The size of the algorithm-specific `context', that should be
@@ -1654,7 +1654,7 @@ Type for the `read' function, defined as: unsigned char
 
 Register a new digest module whose specification can be found in
 @var{digest}.  On success, a new algorithm ID is stored in
-@var{algorithm_id} and a pointer representhing this module is stored
+@var{algorithm_id} and a pointer representing this module is stored
 in @var{module}.
 @end deftypefun
 
@@ -2095,7 +2095,7 @@ can be used to register a module.  It contains the following members:
 The primary name of this algorithm.
 @item char **aliases
 A list of strings that are `aliases' for the algorithm.  The list
-musdt be terminanted with a NULL element.
+must be terminated with a NULL element.
 @item const char *elements_pkey
 String containing the one-letter names of the MPI values contained in
 a public key.
@@ -2113,7 +2113,7 @@ String containing the one-letter names of the MPI values that are to
 be included in the `key grip'.
 @item int use
 The bitwise-OR of the following flags, depending on the abilities of
-the algortihm:
+the algorithm:
 @table @code
 @item GCRY_PK_USAGE_SIGN
 The algorithm supports signing and verifying of data.
@@ -2133,13 +2133,13 @@ description of this type.
 The function responsible for decrypting data.  See below for a
 description of this type.
 @item gcry_pk_sign_t sign
-The function reponsible for signing data.  See below for a description
+The function responsible for signing data.  See below for a description
 of this type.
 @item gcry_pk_verify_t verify
 The function responsible for verifying that the provided signature
 matches the provided data.  See below for a description of this type.
 @item gcry_pk_get_nbits_t get_nbits
-The function reponsible for returning the number of bits of a provided
+The function responsible for returning the number of bits of a provided
 key.  See below for a description of this type.
 @end table
 @end deftp
@@ -2188,7 +2188,7 @@ Type for the `get_nbits' function, defined as: unsigned
 
 Register a new public key module whose specification can be found in
 @var{pubkey}.  On success, a new algorithm ID is stored in
-@var{algorithm_id} and a pointer representhing this module is stored
+@var{algorithm_id} and a pointer representing this module is stored
 in @var{module}.
 @end deftypefun
 
@@ -3670,7 +3670,7 @@ Like @code{gcry_calloc}, but uses secure memory.
 This function tries to resize the memory area pointed to by @var{p} to
 @var{n} bytes.  On success it returns a pointer to the new memory
 area, in an out-of-core condition, it returns NULL.  Depending on
-wether the memory pointed to by @var{p} is secure memory or not,
+whether the memory pointed to by @var{p} is secure memory or not,
 gcry_realloc tries to use secure memory as well.
 @end deftypefun
 
@@ -3699,13 +3699,13 @@ Release the memory area pointed to by @var{p}.
 @bye
 
   /* Version check should be the very first gcry call because it
-     makes sure that constructor functrions are run. */
+     makes sure that constructor functions are run. */
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
   /* Many applications don't require secure memory, so they should
      disable it right away.  There won't be a problem unless one makes
-     use of a feature which requires secure memoery - in that case the
-     process would abort becuase the secmem is not initialized. */
+     use of a feature which requires secure memory - in that case the
+     process would abort because the secmem is not initialized. */
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
 
   /* .. add whatever initialization you want, but better don't make calls
