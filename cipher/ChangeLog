@@ -1,3 +1,32 @@
+2003-01-17  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c (gcry_cipher_encrypt): Reworked so that the output will
+	never contain the plaintext even if the caller did not checked the
+	return value.
+
+	* md.c (gcry_md_get_algo): Changed error code to GCRYERR_GENERAL
+	because we don't have an invalid md algo but no algorithm enabled.
+
+	* pubkey.c (gcry_pk_genkey): Changed error code for bounds check
+	of table parameters to GCRYERR_INTERNAL.
+
+	* md.c (gcry_md_open): Partly reverted Timo's change from
+	2002-10-10 by removing the check for the algorithm.  An algorithm
+	of 0 is allowed and anyway we should not double check it or check
+	it using a different function.  Also fixed the flags check.
+
+	* pubkey.c (gcry_pk_encrypt): Make sure that R_CIPH points to NULL
+	on error.
+	(gcry_pk_decrypt): Ditto for R_PLAIN.
+	(gcry_pk_sign): Ditto for R_SIG.
+	(gcry_pk_genkey): Ditto for R_KEY.
+
+2003-01-16  Werner Koch  <wk@gnupg.org>
+
+	* md.c (gcry_md_write): Changed 2nd argument type to void*.
+	(gcry_md_hash_buffer): Changed type of boths buffers to void*.
+	(gcry_md_setkey): Changed 2nd argument type to void*.
+
 2003-01-15  Werner Koch  <wk@gnupg.org>
 
 	* pubkey.c (sexp_data_to_mpi): New.  This handles pkcs1 padding.
@@ -1197,7 +1226,7 @@ Mon Feb 16 10:08:47 1998  Werner Koch  (wk@isil.d.shuttle.de)
 	(digest_algo_to_string): New.
 
 
- Copyright 1998,1999,2000,2001 Free Software Foundation, Inc.
+ Copyright 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

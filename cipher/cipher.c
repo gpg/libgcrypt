@@ -1,5 +1,5 @@
 /* cipher.c  -	cipher dispatcher
- * Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -904,31 +904,40 @@ cipher_encrypt( GCRY_CIPHER_HD c, byte *outbuf,
  * been requested,
  */
 int
-gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
-				       const byte  *in, size_t inlen )
+gcry_cipher_encrypt (GcryCipherHd h, byte *out, size_t outsize,
+                     const byte  *in, size_t inlen )
 {
-    int rc;
+  int rc;
 
-    if ( !in ) {
-	/* caller requested in-place encryption */
-	/* actullay cipher_encrypt() does not need to know about it, but
-	 * we may chnage this to get better performace */
-	rc = cipher_encrypt ( h, out, out, outsize );
+  if (!in)
+    {
+      /* caller requested in-place encryption */
+      /* actullay cipher_encrypt() does not need to know about it, but
+       * we may change this to get better performace */
+      rc = cipher_encrypt ( h, out, out, outsize );
     }
-    else {
-	if ( outsize < inlen )
-	    return set_lasterr ( GCRYERR_TOO_SHORT );
-        if ( ( h->mode == GCRY_CIPHER_MODE_ECB ||
-               (h->mode == GCRY_CIPHER_MODE_CBC && 
-		!((h->flags & GCRY_CIPHER_CBC_CTS) &&
-		  (inlen > h->blocksize)))) &&
-	     (inlen % h->blocksize) != 0 )
-	  return set_lasterr( GCRYERR_INV_ARG );
-
-	rc = cipher_encrypt ( h, out, in, inlen );
+  else
+    {
+      if ( outsize < inlen )
+        rc = GCRYERR_TOO_SHORT;
+      else if ((h->mode == GCRY_CIPHER_MODE_ECB
+                || (h->mode == GCRY_CIPHER_MODE_CBC
+                    && !((h->flags & GCRY_CIPHER_CBC_CTS)
+                         && (inlen > h->blocksize))
+                    )
+                )  
+               && (inlen % h->blocksize))
+        rc = GCRYERR_INV_ARG;
+      else
+        rc = cipher_encrypt (h, out, in, inlen);
     }
 
-    return rc? set_lasterr (rc):0;
+  if (rc && out)
+    memset (out, 0x42, outsize); /* Failsafe: Make sure that the
+                                    plaintext will never make it into
+                                    OUT. */
+
+  return rc? set_lasterr (rc):0;
 }
 
 

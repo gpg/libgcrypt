@@ -1232,6 +1232,7 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
     const char *key_algo_name, *algo_name, *algo_elems;
     int i, rc, algo;
 
+    *r_ciph = NULL;
     /* get the key */
     rc = sexp_to_key( s_pkey, 0, &pkey, &algo, &i);
     if( rc ) 
@@ -1356,6 +1357,7 @@ gcry_pk_decrypt( GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey )
     MPI *skey, *data, plain;
     int rc, algo, dataalgo, want_pkcs1;
 
+    *r_plain = NULL;
     rc = sexp_to_key( s_skey, 1, &skey, &algo, NULL );
     if( rc ) {
 	return rc;
@@ -1429,6 +1431,7 @@ gcry_pk_sign( GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey )
     int i, algo, rc;
     const char *key_algo_name, *algo_name, *algo_elems;
 
+    *r_sig = NULL;
     rc = sexp_to_key( s_skey, 1, &skey, &algo, &i);
     if( rc )
 	return rc;
@@ -1645,6 +1648,7 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
     GCRY_MPI skey[10], *factors;
     unsigned int nbits;
 
+    *r_key = NULL;
     list = gcry_sexp_find_token( s_parms, "genkey", 0 );
     if( !list )
 	return GCRYERR_INV_OBJ; /* Does not contain genkey data */
@@ -1673,14 +1677,14 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
     s = algo_info_table[i].common_elements;
     s2 = algo_info_table[i].public_elements;
     if( strlen( s ) + strlen( s2 ) > DIM( pub_elems ) )
-        return GCRYERR_TOO_SHORT; /* check bound failed */
+        return GCRYERR_INTERNAL; /* check bound failed */
     strcpy( pub_elems, s );
     strcat( pub_elems, s2 );
 
     s = algo_info_table[i].common_elements;
     s2 = algo_info_table[i].secret_elements;
     if( strlen( s ) + strlen( s2 ) > DIM( sec_elems ) )
-        return GCRYERR_TOO_SHORT; /* check bound failed */
+        return GCRYERR_INTERNAL; /* check bound failed */
     strcpy( sec_elems, s );
     strcat( sec_elems, s2 );
 
@@ -1948,7 +1952,7 @@ gcry_pk_ctl( int cmd, void *buffer, size_t buflen)
  *
  * On error the value -1 is returned and the error reason may be
  * retrieved by gcry_errno().
- * Note:  Because this function is in most caes used to return an
+ * Note:  Because this function is in most cases used to return an
  * integer value, we can make it easier for the caller to just look at
  * the return value.  The caller will in all cases consult the value
  * and thereby detecting whether a error occured or not (i.e. while checking
@@ -1991,5 +1995,6 @@ gcry_pk_algo_info( int algo, int what, void *buffer, size_t *nbytes)
     }
     return 0;
 }
+
 
 
