@@ -253,7 +253,9 @@ GNUPG_CHECK_PIC
 #    try_dynload=no
 #fi
 
-
+# For now we hardcode the use of version scripts.  It would be better
+# to write a text for this or even implement this within libtool
+have_ld_version_script=no
 case "${target}" in
     *-*-mingw32*)
         PRINTABLE_OS_NAME="MingW32"
@@ -267,10 +269,12 @@ case "${target}" in
         ;;
     *-linux*)
         PRINTABLE_OS_NAME="GNU/Linux"
+        have_ld_version_script=yes
         ;;
 dnl let that after linux to avoid gnu-linux problems
     *-gnu*)
         PRINTABLE_OS_NAME="GNU/Hurd"
+        have_ld_version_script=yes
         ;;
     *)
         PRINTABLE_OS_NAME=`uname -s || echo "Unknown"`
@@ -278,6 +282,8 @@ dnl let that after linux to avoid gnu-linux problems
 esac
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
                    [A human readable text with the name of the OS])
+AM_CONDITIONAL(HAVE_LD_VERSION_SCRIPT, test "$have_ld_version_script" = "yes")
+
 
 dnl  Fixme: Are these the best flags for OpenBSD????
 case "${target}" in
@@ -395,6 +401,9 @@ if test "$have_pth" = yes; then
   AC_DEFINE(HAVE_PTH, ,[Define if we have Pth.])
 fi
 AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
+if test "$have_pthread" != yes; then
+  AC_CHECK_LIB(c,pthread_create,have_pthread=yes)
+fi
 if test "$have_pthread" = yes; then
   AC_DEFINE(HAVE_PTHREAD, ,[Define if we have pthread.])
 fi

@@ -1,6 +1,13 @@
 Noteworthy changes in version 1.1.11 (unreleased)
 -------------------------------------------------
 
+ * Don't export internal symbols anymore (only on GNU systems)
+
+ * New algorithm: MD4
+
+ * Smaller bugs fixes and a few new OIDs.
+
+
 Noteworthy changes in version 1.1.10 (2002-09-20)
 -------------------------------------------------
 

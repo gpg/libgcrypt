@@ -1,3 +1,8 @@
+2002-12-19  Werner Koch  <wk@gnupg.org>
+
+	* configure.ac (have_pthread): Check for pthreads in libc.
+	(have_ld_version_script): New.
+
 2002-11-10  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac (MODULES_IN_CIPHER): Add md4.c.  By Simon Josefsson.

@@ -11,3 +11,7 @@
 * Allow operation using RSA keys consisting of the OpenSSL list of
   parameters and allow for a third form where the private Exponent
   is not given (saves space).
+
+* Add a warning to the manual, to check that libgcrypt actually has
+  been compiled with thread support wehen used by a trhersded
+  application.
