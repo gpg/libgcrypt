@@ -1,3 +1,9 @@
+2003-12-19  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.91.
+	
+	* configure.ac: Bumbed LT version to C10/A3/R1.
+
 2003-12-08  Werner Koch  <wk@gnupg.org>
 
 	* Makefile.am (dist-hook): Don't distribute stuff from the now
