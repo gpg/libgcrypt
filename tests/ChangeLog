@@ -1,3 +1,7 @@
+2004-08-24  Moritz Schulte  <moritz@g10code.com>
+
+	* pkbench.c (context_init): Improve generation of test data.
+
 2004-08-23  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am (TESTS): Added: pkbench.

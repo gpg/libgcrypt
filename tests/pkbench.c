@@ -203,10 +203,11 @@ context_init (context_t context, gcry_sexp_t key_secret, gcry_sexp_t key_public)
   key_size = gcry_pk_get_nbits (key_secret);
   assert (key_size);
 
-  data = gcry_mpi_new (key_size - 100);
+  data = gcry_mpi_new (key_size);
   assert (data);
 
-  gcry_mpi_randomize (data, key_size - 100, GCRY_STRONG_RANDOM);
+  gcry_mpi_randomize (data, key_size, GCRY_STRONG_RANDOM);
+  gcry_mpi_clear_bit (data, key_size - 1);
   err = gcry_sexp_build (&data_sexp, NULL,
 			 "(data (flags raw) (value %m))",
 			 data);
