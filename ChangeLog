@@ -1,6 +1,7 @@
 2003-04-27  Moritz Schulte  <moritz@g10code.com>
 
 	* README: Documented new configure switches.
+	Mention the --enable-maintainer-switch.
 
 	* configure.ac: Merged some code from GnuPG's configure.ac for
 	disabling sha512/tiger in case no 64 data types are available.

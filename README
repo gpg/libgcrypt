@@ -32,7 +32,11 @@
 
     If you are using the CVS version, make sure that you have the
     latest automake (I am using Debian Sid) and run ./autogen.sh to
-    create configure.
+    create configure.  You also need to enable maintainer mode at
+    configure time with the `--enable-maintainer-mode' switch; without
+    this switch, the documentation can not be build, since the file
+    `version.texi', which is needed for building the documentation, will
+    only be generated, if maintainer mode is enabled.
 
 
     Mailing List
