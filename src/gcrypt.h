@@ -46,7 +46,7 @@ extern "C" {
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.1.94-cvs"
+#define GCRYPT_VERSION "1.1.94"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
