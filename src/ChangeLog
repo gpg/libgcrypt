@@ -1,5 +1,7 @@
 2002-09-17  Werner Koch  <wk@gnupg.org>
 
+	* benchmark.c: New.
+
 	* global.c (global_init): New.  Use it instead of the setting
 	any_init_done.  Initialize the ATH system.
 	(gcry_check_version): Hook global_init in.  This is the suggested

@@ -18,7 +18,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -141,18 +143,148 @@ md_bench ( const char *algoname )
   putchar ('\n');
 }
 
+static void
+cipher_bench ( const char *algoname )
+{
+  static int header_printed;
+  int algo = gcry_cipher_map_name (algoname);
+  GcryCipherHd hd;
+  int err, i;
+  int keylen, blklen;
+  char key[128];
+  char outbuf[1000], buf[1000];
+  size_t buflen;
+  static struct { int mode; const char *name; int blocked; } modes[] = {
+    { GCRY_CIPHER_MODE_ECB, "ECB", 1 },
+    { GCRY_CIPHER_MODE_CBC, "CBC", 1 },
+    { GCRY_CIPHER_MODE_CFB, "CFB", 0 },
+    { GCRY_CIPHER_MODE_STREAM, "STREAM", 0 },
+    {0}
+  };
+  int modeidx;
+
+  if (!header_printed)
+    {
+      printf ("%-10s", "Algo");
+      for (modeidx=0; modes[modeidx].mode; modeidx++)
+        printf (" %-15s", modes[modeidx].name );
+      putchar ('\n');
+      printf ( "----------");
+      for (modeidx=0; modes[modeidx].mode; modeidx++)
+        printf (" ---------------" );
+      putchar ('\n');
+      header_printed = 1;
+    }
+
+  if (!algo)
+    {
+      fprintf (stderr, PGM ": invalid cipher algorithm `%s'\n", algoname);
+      exit (1);
+    }
+
+  keylen = gcry_cipher_get_algo_keylen (algo);
+  if ( keylen > sizeof key )
+    {
+        fprintf (stderr, PGM ": algo %d, keylength problem (%d)\n",
+                 algo, keylen );
+        exit (1);
+    }
+  for (i=0; i < keylen; i++)
+    key[i] = i + (clock () & 0xff);
+
+  blklen = gcry_cipher_get_algo_blklen (algo);
+
+  printf ("%-10s", gcry_cipher_algo_name (algo));
+  fflush (stdout);
+
+  for (modeidx=0; modes[modeidx].mode; modeidx++)
+    {
+      if ((blklen > 1 && modes[modeidx].mode == GCRY_CIPHER_MODE_STREAM)
+          | (blklen == 1 && modes[modeidx].mode != GCRY_CIPHER_MODE_STREAM))
+        {
+          printf ("                " );
+          continue;
+        }
+
+      for (i=0; i < sizeof buf; i++)
+        buf[i] = i;
+
+      hd = gcry_cipher_open (algo, modes[modeidx].mode, 0);
+      if (!hd)
+        {
+          fprintf (stderr, PGM ": error opening cipher `%s'\n", algoname);
+          exit (1);
+        }
+      
+      if (gcry_cipher_setkey (hd, key, keylen))
+        { 
+          fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
+                   gcry_strerror (-1) );
+          gcry_cipher_close (hd);
+          exit (1);
+        }
+
+      buflen = sizeof buf;
+      if (modes[modeidx].blocked)
+        buflen = (buflen / blklen) * blklen;
+
+      start_timer ();
+      for (i=err=0; !err && i < 1000; i++)
+        err = gcry_cipher_encrypt ( hd, outbuf, buflen, buf, buflen);
+      stop_timer ();
+      printf (" %s", elapsed_time ());
+      fflush (stdout);
+      gcry_cipher_close (hd);
+      if (err)
+        { 
+          fprintf (stderr, "gcry_cipher_encrypt failed: %s\n",
+                   gcry_strerror (err) );
+          exit (1);
+        }
+
+      hd = gcry_cipher_open (algo, modes[modeidx].mode, 0);
+      if (!hd)
+        {
+          fprintf (stderr, PGM ": error opening cipher `%s'/n", algoname);
+          exit (1);
+        }
+      
+      if (gcry_cipher_setkey (hd, key, keylen))
+        { 
+          fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
+                   gcry_strerror (-1) );
+          gcry_cipher_close (hd);
+          exit (1);
+        }
+
+      start_timer ();
+      for (i=err=0; !err && i < 1000; i++)
+        err = gcry_cipher_decrypt ( hd, outbuf, buflen,  buf, buflen);
+      stop_timer ();
+      printf (" %s", elapsed_time ());
+      fflush (stdout);
+      gcry_cipher_close (hd);
+      if (err)
+        { 
+          fprintf (stderr, "gcry_cipher_decrypt failed: %s\n",
+                   gcry_strerror (err) );
+          exit (1);
+        }
+    }
+
+  putchar ('\n');
+}
+
 int
 main( int argc, char **argv )
 {
   if (argc < 2 )
     {
-      fprintf (stderr, "usage: benchmark md [algonames]\n");
+      fprintf (stderr, "usage: benchmark md|cipher|random [algonames]\n");
       return 1;
     }
   argc--; argv++;
   
-  gcry_control (GCRYCTL_DISABLE_INTERNAL_LOCKING);
-
   if ( !strcmp (*argv, "random"))
     {
       random_bench ();
@@ -162,6 +294,11 @@ main( int argc, char **argv )
       for (argc--, argv++; argc; argc--, argv++)
         md_bench ( *argv );
     }
+  else if ( !strcmp (*argv, "cipher"))
+    {
+      for (argc--, argv++; argc; argc--, argv++)
+        cipher_bench ( *argv );
+    }
   else
     {
       fprintf (stderr, PGM ": bad arguments\n");
@@ -170,4 +307,5 @@ main( int argc, char **argv )
   
   return 0;
 }
+
 
