@@ -150,9 +150,10 @@ Public Key cryptography (I)
 
 Public Key cryptography (II)
 * Available asymmetric algorithms:: List of algorithms supported by the library.
-* Working with sets of data::       How to work with sets of data.
+* Working with data sets::          How to work with data sets.
 * Working with handles::            How to use handles.
 * Working with keys::               How to work with keys.
+* Encoding methods::                How to encode/decode messages.
 * Using cryptographic functions::   How to perform cryptographic operations.
 * Handle-independent functions::    General functions independent of handles.
 
@@ -2650,9 +2651,10 @@ building blocks of the library.
 
 @menu
 * Available asymmetric algorithms:: List of algorithms supported by the library.
-* Working with sets of data::       How to work with sets of data.
+* Working with data sets::          How to work with data sets.
 * Working with handles::            How to use handles.
 * Working with keys::               How to work with keys.
+* Encoding methods::                How to encode/decode messages.
 * Using cryptographic functions::   How to perform cryptographic operations.
 * Handle-independent functions::    General functions independent of handles.
 @end menu
@@ -2680,8 +2682,8 @@ ElGamal, encryption only.
 @end table
 @end deftp
 
-@node Working with sets of data
-@section Working with sets of data
+@node Working with data sets
+@section Working with data sets
 
 In the context of this interface the term `data set' refers to a list
 of `named MPI values' that is used by functions performing
@@ -2878,8 +2880,75 @@ Writes the 20 byte long key grip of the key @var{key} to
 @var{key_grip}.
 @end deftypefun
 
+@node Encoding methods
+@section Encoding methods
+
+Encoding methods specify how to encode or decode a `message'.
+Combining an encoding method with the cryptographic primitives does
+increase the security, since the encoding stage makes sure that the
+message has the properties needed for the highest degree of security.
+Padding is one of the techniques used by encoding methods.
+
+@deftypefun gcry_error_t gcry_ac_data_encode (gcry_ac_em_t @var{method}, unsigned int @var{flags}, void *@var{options}, unsigned char *@var{m}, size @var{m_n}, unsigned char **@var{em}, size_t *@var{em_n}
+Encodes a message according to the encoding method @var{method}.
+@var{options} must be a pointer to a method-specific structure
+(gcry_ac_em*_t).
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_ac_data_decode (gcry_ac_em_t @var{method}, unsigned int @var{flags}, void *@var{options}, unsigned char *@var{em}, size @var{em_n}, unsigned char **@var{m}, size_t *@var{m_n}
+Decodes a message according to the encoding method @var{method}.
+@var{options} must be a pointer to a method-specific structure
+(gcry_ac_em*_t).
+@end deftypefun
+
+The following encoding methods are supported.  The symbolic names are
+of type @code{gcry_ac_em_t}.
+
+@table @code
+@item GCRY_AC_EME_PKCS_V1_5
+The following structure has to be used for passing necessary
+information to the implementation of the encoding method:
+@deftp {Data type} gcry_ac_eme_pkcs_v1_5_t
+@table @code
+@item gcry_ac_key_t key
+This member has to be set to a key, whose size is used for encoding
+the message.
+@item gcry_ac_handle_t handle
+This member has to be set to a handle that is used for figuring out
+the key size.
+@end table
+@end deftp
+@item GCRY_AC_EMSA_PKCS_V1_5
+The following structure has to be used for passing necessary information to the implementation of the encoding method:
+@deftp {Data type} gcry_ac_emsa_pkcs_v1_5_t
+@table @code
+@item gcry_md_algo_t md
+This member has to be set to the ID of the hashing algorithm that
+should be used for encoding the message.
+@item size_t em_n
+This member has to be set to the length the encoded message is
+expected to have.
+@end table
+@end deftp
+@end table
+
+Example code:
+@example
+@{
+  gcry_ac_emsa_pkcs_v1_5_t opts @{ GCRY_MD_SHA1, 128 @};
+  gcry_error_t err = GPG_ERR_NO_ERROR;
+  unsigned char *em = NULL;
+  size_t em_n = 0;
+
+  err = gcry_ac_data_encode (GCRY_AC_EMSA_PKCS_V1_5, 0, (void *) &opts,
+                             "foobar", 6, &em, &em_n);
+@}
+@end example
+
 @node Using cryptographic functions
 @section Using cryptographic functions
+
+Primitive functions:
 
 @deftypefun gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t @var{handle}, unsigned int @var{flags}, gcry_ac_key_t @var{key}, gcry_mpi_t @var{data_plain}, gcry_ac_data_t **@var{data_encrypted})
 Encrypts the plain text MPI value @var{data_plain} with the key public
@@ -2906,6 +2975,71 @@ Verifies that the signature contained in the data set
 contained in @var{data} with the secret key belonging to the public
 key @var{key}.
 @end deftypefun
+
+Scheme-based functions:
+
+@deftypefun gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, gcry_ac_key_t @var{key_public}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char **@var{c}, size_t *@var{c_n})
+Encrypts the plain text message contained in @var{m}, which is of size
+@var{m_n}, with the public key @var{key_public} according to the
+Encryption Scheme @var{scheme_id}.  @var{handle} is used for accessing
+the low-level cryptographic primitives.  If @var{opts} is not NULL, it
+has to be an anonymous structure specific to the chosen scheme
+(gcry_ac_es_*_t).  The encrypted message will be stored in @var{c} and
+@var{c_n}.
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, gcry_ac_key_t @var{key_secret}, unsigned char *@var{c}, size_t @var{c_n}, unsigned char **@var{m}, size_t *@var{m_n})
+Decrypts the cipher message contained in @var{c}, which is of size
+@var{c_n}, with the secret key @var{key_secret} according to the
+Encryption Scheme @var{scheme_id}.  @var{handle} is used for accessing
+the low-level cryptographic primitives.  If @var{opts} is not NULL, it
+has to be an anonymous structure specific to the chosen scheme
+(gcry_ac_es_*_t).  The decrypted message will be stored in @var{m} and
+@var{m_n}.
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_secret}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char **@var{s}, size_t *@var{s_n})
+Signs the message contained in @var{m}, which is of size @var{m_n},
+with the secret key @var{key_secret} according to the Signature Scheme
+@var{scheme_id}.  @var{handle} is used for accessing the low-level
+cryptographic primitives.  If @var{opts} is not NULL, it has to be an
+anonymous structure specific to the chosen scheme (gcry_ac_ssa_*_t).
+The signed message will be stored in @var{s} and @var{s_n}.
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_public}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char *@var{s}, size_t *@var{s_n})
+
+Verifies that the signature contained in @var{s}, which is of length
+@var{s_n}, is indeed the result of signing the message contained in
+@var{m}, which is of size @var{m_n}, with the secret key belonging to
+the public key @var{key_public}.  If @var{opts} is not NULL, it has to
+be an anonymous structure (gcry_ac_ssa_*_t) specific to the Signature
+Scheme, whose ID is contained in @var{scheme_id}.
+@end deftypefun
+
+The following encryption schemes are supported.  The symbolic names
+are of type @code{gcry_ac_scheme_t}.
+
+@table @code
+@item GCRY_AC_ES_PKCS_V1_5
+There is no structure specific to this encryption scheme.
+@end table
+
+The following schemes for signatures with appendix are supported.  The
+symbolic names are of type @code{gcry_ac_scheme_t}.
+
+@table @code
+@item GCRY_AC_SSA_PKCS_V1_5
+The following structure has to be used for passing necessary
+information to the implementation of the encoding method:
+@deftp {Data type} gcry_ac_ssa_pkcs_v1_5_t
+@table @code
+@item gcry_md_algo_t md
+This member has to be set to the ID of the hasing algorithm that
+should be used for encoding the message.
+@end table
+@end deftp
+@end table
 
 @node Handle-independent functions
 @section Handle-independent functions

@@ -1,3 +1,8 @@
+2003-10-19  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.texi: Document encoding method and encryption/signature
+	schemes.
+
 2003-08-30  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi (Working with hash algorithms): Clarified that HMAC
