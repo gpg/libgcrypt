@@ -1,3 +1,13 @@
+2002-05-17  Werner Koch  <wk@gnupg.org>
+
+	* rndegd.c (rndegd_constructor): Fixed name of register function
+	and prefixed the function name with _gcry_.
+	* rndw32.c (rndw32_constructor): Ditto.
+	* tiger.c (tiger_constructor): Ditto.
+
+	* Makefile.am: Removed all dynamic loading stuff.
+	* dynload.c: Ditto. Now only used for the constructor system.
+
 2002-05-15  Werner Koch  <wk@gnupg.org>
 
 	* random.c (gcry_random_bytes,gcry_random_bytes_secure)

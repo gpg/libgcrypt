@@ -40,15 +40,6 @@ EXTRA_sha1_SOURCES = sha1.c
 EXTRA_tiger_SOURCES = tiger.c
 
 
-if ENABLE_GNUPG_EXTENSIONS
-pkglib_PROGRAMS  = @DYNAMIC_CIPHER_MODS@
-else
-pkglib_PROGRAMS  =
-endif
-
-
-DYNLINK_MOD_CFLAGS = -DIS_MODULE @DYNLINK_MOD_CFLAGS@
-
 libcipher_la_LDFLAGS =
 libcipher_la_SOURCES = cipher.c  \
 		 pubkey.c	\
@@ -82,50 +73,15 @@ BUILT_SOURCES = construct.c
 DISTCLEANFILES = construct.c
 
 libcipher_la_DEPENDENCIES = @STATIC_CIPHER_OBJS@
-libcipher_la_LIBADD =	  @STATIC_CIPHER_OBJS@
+libcipher_la_LIBADD =	    @STATIC_CIPHER_OBJS@
 
-
-# We could to something like 
-#   tiger_SOURCES = tiger.c
-#   tiger_CFLAGS = $(DYNLINK_MOD_CFLAGS)
-# but I have not yet figured out on how to suppress the link step.
-# this is probably a libtool thing.
-
-#if BUILD_MODULE_TIGER
-tiger$(EXEEXT): $(srcdir)/tiger.c
-	`echo $(COMPILE) $(DYNLINK_MOD_CFLAGS) -o tiger $(srcdir)/tiger.c | \
-	    sed -e 's/-O[2-9s]*/-O/g' `
-#endif
-
+# We need to lower the optimization for this module.
 tiger.o: $(srcdir)/tiger.c
 	`echo $(COMPILE) -c $(srcdir)/tiger.c | sed -e 's/-O[2-9s]*/-O1/g' `
 
-#twofish: $(srcdir)/twofish.c
-#	 `echo $(COMPILE) $(DYNLINK_MOD_CFLAGS) -o twofish $(srcdir)/twofish.c | \
-#	     sed -e 's/-O[0-9s]*/  /g' `
+tiger.lo: $(srcdir)/tiger.c
+	`echo $(LTCOMPILE) -c $(srcdir)/tiger.c | sed -e 's/-O[2-9s]*/-O1/g' `
 
-#if BUILD_MODULE_TWOFISH
-twofish$(EXEEXT): $(srcdir)/twofish.c
-	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o twofish $(srcdir)/twofish.c
-#endif
-
-#twofish.o: $(srcdir)/twofish.c
-#	 `echo $(COMPILE) -c $(srcdir)/twofish.c | sed -e 's/-O[0-9s]*/  /g' `
-
-#if BUILD_MODULE_RNDUNIX
-rndunix$(EXEEXT): $(srcdir)/rndunix.c
-	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o rndunix $(srcdir)/rndunix.c
-#endif
-
-#if BUILD_MODULE_RNDLINUX
-rndlinux$(EXEEXT): $(srcdir)/rndlinux.c
-	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o rndlinux $(srcdir)/rndlinux.c
-#endif
-
-#if BUILD_MODULE_RNDEGD
-rndegd$(EXEEXT): $(srcdir)/rndegd.c
-	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o rndegd $(srcdir)/rndegd.c
-#endif
 
 
 

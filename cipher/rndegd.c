@@ -62,7 +62,7 @@ my_make_filename( const char *first_part, ... )
 			   && (home = getenv("HOME")) && *home )
 	n += strlen(home);
 
-    name = m_alloc(n);
+    name = gcry_malloc(n);
     p = home ? stpcpy(stpcpy(name,home), first_part+1)
 	     : stpcpy(name, first_part);
     va_start( arg_ptr, first_part ) ;
@@ -145,7 +145,9 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 	}
     }
     if( fd == -1 ) {
+#if __GNUC__ >= 2
 	#warning Fixme: make the filename configurable
+#endif
 	char *name = my_make_filename( "~/.gnupg-test", "entropy", NULL );
 	struct sockaddr_un addr;
 	int addr_len;
@@ -259,10 +261,20 @@ gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
 
 #ifndef IS_MODULE
 void
-rndegd_constructor(void)
+_gcry_rndegd_constructor(void)
 {
-    register_internal_cipher_extension( gnupgext_version,
-					gnupgext_enum_func );
+  _gcry_register_internal_cipher_extension (gnupgext_version,
+                                            gnupgext_enum_func);
 }
 #endif
+
+
+
+
+
+
+
+
+
+
 

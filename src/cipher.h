@@ -60,9 +60,6 @@
 #define is_ELGAMAL(a) ((a)==PUBKEY_ALGO_ELGAMAL || (a)==PUBKEY_ALGO_ELGAMAL_E)
 
 
-/*-- dynload.c --*/
-void _gcry_register_cipher_extension( const char *mainpgm, const char *fname );
-
 /*-- rmd160.c --*/
 void _gcry_rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length );
 

@@ -177,7 +177,7 @@ load_and_init_winseed( void )
     /*log_info("fast buffer size=%u\n", n2);*/
 
     entropy_buffer_size =  n1 > n2? n1: n2;
-    entropy_buffer = m_alloc( entropy_buffer_size );
+    entropy_buffer = gcry_xmalloc( entropy_buffer_size );
     /*log_info("using a buffer of size=%u\n", entropy_buffer_size );*/
 
     return;
@@ -676,7 +676,7 @@ slow_gatherer_windowsNT( void (*add)(const void*, size_t, int), int requester )
      * worst-case estimate which is usually nowhere near the actual amount
      * required.  For example it may report that 128K of memory is required,
      * but only return 64K of data */
-    {	pPerfData =  m_alloc (cbPerfData);
+    {	pPerfData =  gcry_xmalloc (cbPerfData);
 	for (;;) {
 	    dwSize = cbPerfData;
 	    if ( debug_me )
@@ -942,10 +942,10 @@ gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
 
 #ifndef IS_MODULE
 void
-rndw32_constructor(void)
+_gcry_rndw32_constructor(void)
 {
-    register_internal_cipher_extension( gnupgext_version,
-					gnupgext_enum_func );
+  _gcry_register_internal_cipher_extension( gnupgext_version,
+                                            gnupgext_enum_func );
 }
 #endif
 

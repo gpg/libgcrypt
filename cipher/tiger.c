@@ -949,10 +949,10 @@ gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
 
 #ifndef IS_MODULE
 void
-tiger_constructor(void)
+_gcry_tiger_constructor(void)
 {
-    register_internal_cipher_extension( gnupgext_version,
-					gnupgext_enum_func );
+  _gcry_register_internal_cipher_extension( gnupgext_version,
+                                            gnupgext_enum_func );
 }
 #endif
 

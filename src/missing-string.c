@@ -114,7 +114,7 @@ strcasecmp( const char *a, const char *b )
 #ifdef __MINGW32__
 /* 
  * Like vsprintf but provides a pointer to malloc'd storage, which
- * must be freed by the caller (m_free).  Taken from libiberty as
+ * must be freed by the caller (gcry_free).  Taken from libiberty as
  * found in gcc-2.95.2 and a little bit modernized.
  * FIXME: Write a new CRT for W32.
  */
@@ -198,7 +198,7 @@ vasprintf ( char **result, const char *format, va_list args)
 	    }
 	}
     }
-  *result = m_alloc (total_width);
+  *result = gcry_malloc (total_width);
   if (*result != NULL)
     return vsprintf (*result, format, args);
   else
