@@ -1,3 +1,45 @@
+2002-05-02  Werner Koch  <wk@gnupg.org>
+
+	* random.c (_gcry_fast_random_poll): Initialize the module so the
+	mutex can be used.
+
+	* primegen.c (small_prime_numbers): Moved table from smallprime.c
+	* smallprime.c: Fiel removed.
+
+	* des.c (leftkey_swap, rightkey_swap, working_memcmp): Made static.
+
+	* cipher.c (gcry_cipher_map_name): Map "RIJNDAEL" to "AES".
+	* rijndael.c (rijndael_get_info): We do only support a 128 bit
+	blocksize so it makes sense to change the algorithm strings to
+	AES.
+
+	* tiger.c (tiger_final): Removed superfluous token pasting operators.
+	* md5.c (md5_final): Ditto.
+
+2002-04-30  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c: Fixed list of copyright years.
+
+2002-03-18  Werner Koch  <wk@gnupg.org>
+
+	* random.c (initialize): Initialize the new pool lock mutex.
+	(_gcry_fast_random_poll): Add locking and moved main
+	code out to...
+	(do_fast_random_poll): new function.
+	(read_pool): Use the new function here.
+	(get_random_bytes): Add locking.
+	(_gcry_update_random_seed_file): Ditto.
+
+2002-03-11  Werner Koch  <wk@gnupg.org>
+
+	* md.c: Add rsaSignatureWithripemd160 to OID table.
+
+2002-02-20  Werner Koch  <wk@gnupg.org>
+
+	* sha1.c: Removed a left over comment note.  The code has been
+	rewritten from scratch in 1998.  Thanks to Niels Möller for
+	reporting this misleading comment.
+
 2002-02-18  Werner Koch  <wk@gnupg.org>
 
 	* rndunix.c (rndunix_constructor): Use the the new prefixed

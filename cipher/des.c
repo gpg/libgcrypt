@@ -126,7 +126,7 @@
  * According to the SunOS man page, memcmp returns indeterminate sign
  * depending on whether characters are signed or not.
  */
-int
+static int
 working_memcmp( const char *a, const char *b, size_t n )
 {
     for( ; n; n--, a++, b++ )
@@ -304,7 +304,7 @@ static u32 sbox8[64] =
  * These two tables are part of the 'permuted choice 1' function.
  * In this implementation several speed improvements are done.
  */
-u32 leftkey_swap[16] =
+static u32 leftkey_swap[16] =
 {
   0x00000000, 0x00000001, 0x00000100, 0x00000101,
   0x00010000, 0x00010001, 0x00010100, 0x00010101,
@@ -312,7 +312,7 @@ u32 leftkey_swap[16] =
   0x01010000, 0x01010001, 0x01010100, 0x01010101
 };
 
-u32 rightkey_swap[16] =
+static u32 rightkey_swap[16] =
 {
   0x00000000, 0x01000000, 0x00010000, 0x01010000,
   0x00000100, 0x01000100, 0x00010100, 0x01010100,

@@ -74,7 +74,6 @@ libcipher_la_SOURCES = cipher.c  \
 		 dsa.h		\
 		 dsa.c		\
 		 rsa.c rsa.h    \
-		 smallprime.c	\
 		 construct.c
 
 # configure creates the constructor file

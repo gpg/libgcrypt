@@ -43,6 +43,9 @@ static struct {
   { "1.2.840.10040.4.3",     GCRY_MD_SHA1 },
   /* from NIST's OIW  (sha1) */
   { "1.3.14.3.2.26",         GCRY_MD_SHA1 },
+  /* rsaSignatureWithripemd160 */
+  { "1.3.36.3.3.1.2",       GCRY_MD_RMD160 },
+
   {NULL}
 };
 
@@ -129,7 +132,7 @@ new_list_item( int algo,
 
 
 /****************
- * Try to load the modules with the requeste algorithm
+ * Try to load the modules with the requested algorithm
  * and return true if new modules are available
  * If req_alog is -1 try to load all digest algorithms.
  */

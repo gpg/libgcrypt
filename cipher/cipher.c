@@ -1,5 +1,5 @@
 /* cipher.c  -	cipher dispatcher
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -328,25 +328,38 @@ search_oid (const char *string)
 int
 gcry_cipher_map_name( const char *string )
 {
-    int i;
-    const char *s;
-
-    if (!string)
-      return 0;
-
-    /* If the string starts with a digit (optionally prefixed with
-       either "OID." or "oid."), we first look into our table of ASN.1
-       object identifiers to figure out the algorithm */
-    i = search_oid (string);
-    if (i != -1)
-      return oid_table[i].algo;
-
-    do {
-	for(i=0; (s=cipher_table[i].name); i++ )
-	    if( !stricmp( s, string ) )
-		return cipher_table[i].algo;
-    } while( load_cipher_modules() );
+  int i;
+  const char *s;
+  
+  if (!string)
     return 0;
+
+  /* kludge to alias RIJNDAEL to AES */
+  if ( *string == 'R' || *string == 'r')
+    {
+      if (!strcasecmp (string, "RIJNDAEL"))
+        string = "AES";
+      else if (!strcasecmp (string, "RIJNDAEL192"))
+        string = "AES192";
+      else if (!strcasecmp (string, "RIJNDAEL256"))
+        string = "AES256";
+    }
+
+  /* If the string starts with a digit (optionally prefixed with
+     either "OID." or "oid."), we first look into our table of ASN.1
+     object identifiers to figure out the algorithm */
+  i = search_oid (string);
+  if (i != -1)
+    return oid_table[i].algo;
+  
+  do 
+    {
+      for (i=0; (s=cipher_table[i].name); i++ )
+        if ( !stricmp( s, string ) )
+          return cipher_table[i].algo;
+    } 
+  while ( load_cipher_modules() );
+  return 0;
 }
 
 int
@@ -991,7 +1004,7 @@ gcry_cipher_info( GCRY_CIPHER_HD h, int cmd, void *buffer, size_t *nbytes)
  *
  * On error the value -1 is returned and the error reason may be
  * retrieved by gcry_errno().
- * Note:  Because this function is in most caes used to return an
+ * Note:  Because this function is in most cases used to return an
  * integer value, we can make it easier for the caller to just look at
  * the return value.  The caller will in all cases consult the value
  * and thereby detecting whether a error occured or not (i.e. while checking

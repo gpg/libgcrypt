@@ -1,5 +1,5 @@
 /* md5.c - MD5 Message-Digest Algorithm
- * Copyright (C) 1995, 1996, 1998, 1999, 2001 Free Software Foundation, Inc.
+ * Copyright (C) 1995,1996,1998,1999,2001,2002 Free Software Foundation, Inc.
  *
  * according to the definition of MD5 in RFC 1321 from April 1992.
  * NOTE: This is *not* the same file as the one from glibc.
@@ -19,7 +19,7 @@
  * Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 /* Written by Ulrich Drepper <drepper@gnu.ai.mit.edu>, 1995.  */
-/* heavily modified for GnuPG by <werner.koch@guug.de> */
+/* heavily modified for GnuPG by Werner Koch <wk@gnupg.org> */
 
 /* Test values:
  * ""                  D4 1D 8C D9 8F 00 B2 04  E9 80 09 98 EC F8 42 7E
@@ -310,12 +310,9 @@ md5_final( MD5_CONTEXT *hd )
 
     p = hd->buf;
   #ifdef BIG_ENDIAN_HOST
-    #define X(a) do { *p++ = hd->##a	  ; *p++ = hd->##a >> 8;      \
-		      *p++ = hd->##a >> 16; *p++ = hd->##a >> 24; } while(0)
+    #define X(a) do { *p++ = hd->a      ; *p++ = hd->a >> 8;      \
+		      *p++ = hd->a >> 16; *p++ = hd->a >> 24; } while(0)
   #else /* little endian */
-    /*#define X(a) do { *(u32*)p = hd->##a ; p += 4; } while(0)*/
-    /* Unixware's cpp doesn't like the above construct so we do it his way:
-     * (reported by Allan Clark) */
     #define X(a) do { *(u32*)p = (*hd).a ; p += 4; } while(0)
   #endif
     X(A);
@@ -418,7 +415,5 @@ _gcry_md5_constructor(void)
     _gcry_register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );
 }
 #endif
-
-
 
 /* end of file */

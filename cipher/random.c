@@ -56,7 +56,7 @@
 #include "rand-internal.h"
 #include "dynload.h"
 #include "cipher.h" /* only used for the rmd160_hash_buffer() prototype */
-
+#include "mutex.h"
 
 #ifndef RAND_MAX   /* for SunOS */
   #define RAND_MAX 32767
@@ -106,11 +106,14 @@ static int secure_alloc;
 static int quick_test;
 static int faked_rng;
 
+static mutex_t pool_lock;
+static int pool_is_locked; /* only for assertion */
 
 static byte *get_random_bytes( size_t nbytes, int level, int secure );
 static void read_pool( byte *buffer, size_t length, int level );
 static void add_randomness( const void *buffer, size_t length, int source );
 static void random_poll(void);
+static void do_fast_random_poll (void);
 static void read_random_source( int requester, size_t length, int level);
 static int gather_faked( void (*add)(const void*, size_t, int), int requester,
 						    size_t length, int level );
@@ -128,18 +131,27 @@ static struct {
     ulong naddbytes;
 } rndstats;
 
+
+/* Note, we assume that this function is used before any concurrent
+   access happens */
 static void
 initialize(void)
 {
-    /* The data buffer is allocated somewhat larger, so that
-     * we can use this extra space (which is allocated in secure memory)
-     * as a temporary hash buffer */
-    rndpool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
-			   : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
-    keypool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
-			   : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
-    is_initialized = 1;
-    _gcry_cipher_modules_constructor();
+  int err;
+
+  err = mutex_init (pool_lock);
+  if (err)
+    log_fatal ("failed to create the pool lock: %s\n", strerror (err) );
+    
+  /* The data buffer is allocated somewhat larger, so that we can use
+    this extra space (which is allocated in secure memory) as a
+    temporary hash buffer */
+  rndpool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
+                         : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
+  keypool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
+                         : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
+  is_initialized = 1;
+  _gcry_cipher_modules_constructor ();
 }
 
 static void
@@ -178,6 +190,9 @@ _gcry_quick_random_gen( int onoff )
 {
     int last;
 
+    /* No need to lock it here because we are only initializing.  A
+       prerequisite of the entire code is that it has already been
+       initialized before any possible concurrent access */
     read_random_source(0,0,0); /* init */
     last = quick_test;
     if( onoff != -1 )
@@ -217,10 +232,16 @@ static byte *
 get_random_bytes( size_t nbytes, int level, int secure )
 {
     byte *buf, *p;
+    int err;
 
     if( quick_test && level > 1 )
 	level = 1;
     MASK_LEVEL(level);
+
+    err = mutex_lock (pool_lock);
+    if (err)
+      log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
+    pool_is_locked = 1;
     if( level == 1 ) {
 	rndstats.getbytes1 += nbytes;
 	rndstats.ngetbytes1++;
@@ -238,6 +259,11 @@ get_random_bytes( size_t nbytes, int level, int secure )
 	nbytes -= n;
 	p += n;
     }
+
+    pool_is_locked = 0;
+    err = mutex_unlock (pool_lock);
+    if (err)
+      log_fatal ("failed to release the pool lock: %s\n", strerror (err));
     return buf;
 }
 
@@ -295,10 +321,11 @@ mix_pool(byte *pool)
     int i, n;
     RMD160_CONTEXT md;
 
+    assert (pool_is_locked);
     _gcry_rmd160_init( &md );
- #if DIGESTLEN != 20
-    #error must have a digest length of 20 for ripe-md-160
- #endif
+#if DIGESTLEN != 20
+#  error must have a digest length of 20 for ripe-md-160
+#endif
     /* loop over the pool */
     pend = pool + POOLSIZE;
     memcpy(hashbuf, pend - DIGESTLEN, DIGESTLEN );
@@ -362,6 +389,7 @@ read_seed_file()
     unsigned char buffer[POOLSIZE];
     int n;
 
+    assert (pool_is_locked);
     if( !seed_file_name )
 	return 0;
 
@@ -436,43 +464,56 @@ read_seed_file()
 void
 _gcry_update_random_seed_file()
 {
-    ulong *sp, *dp;
-    int fd, i;
-
-    if( !seed_file_name || !is_initialized || !pool_filled )
-	return;
-    if( !allow_seed_file_update ) {
-	log_info(_("note: random_seed file not updated\n"));
-	return;
+  ulong *sp, *dp;
+  int fd, i;
+  int err;
+  
+  if ( !seed_file_name || !is_initialized || !pool_filled )
+    return;
+  if ( !allow_seed_file_update )
+    {
+      log_info(_("note: random_seed file not updated\n"));
+      return;
     }
 
+  err = mutex_lock (pool_lock);
+  if (err)
+    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
+  pool_is_locked = 1;
 
     /* copy the entropy pool to a scratch pool and mix both of them */
-    for(i=0,dp=(ulong*)keypool, sp=(ulong*)rndpool;
-				    i < POOLWORDS; i++, dp++, sp++ ) {
-	*dp = *sp + ADD_VALUE;
+  for (i=0,dp=(ulong*)keypool, sp=(ulong*)rndpool;
+       i < POOLWORDS; i++, dp++, sp++ ) 
+    {
+      *dp = *sp + ADD_VALUE;
     }
-    mix_pool(rndpool); rndstats.mixrnd++;
-    mix_pool(keypool); rndstats.mixkey++;
+  mix_pool(rndpool); rndstats.mixrnd++;
+  mix_pool(keypool); rndstats.mixkey++;
 
-  #ifdef HAVE_DOSISH_SYSTEM
-    fd = open( seed_file_name, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
-							S_IRUSR|S_IWUSR );
-  #else
-    fd = open( seed_file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR );
-  #endif
-    if( fd == -1 ) {
-	log_info(_("can't create `%s': %s\n"), seed_file_name, strerror(errno) );
-	return;
+#ifdef HAVE_DOSISH_SYSTEM
+  fd = open (seed_file_name, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
+             S_IRUSR|S_IWUSR );
+#else
+  fd = open (seed_file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR );
+#endif
+
+  if (fd == -1 )
+    log_info (_("can't create `%s': %s\n"), seed_file_name, strerror(errno) );
+  else 
+    {
+      do {
+	i = write (fd, keypool, POOLSIZE );
+      } while( i == -1 && errno == EINTR );
+    if (i != POOLSIZE) 
+      log_info(_("can't write `%s': %s\n"), seed_file_name, strerror(errno) );
+    if (close(fd))
+      log_info(_("can't close `%s': %s\n"), seed_file_name, strerror(errno) );
     }
-    do {
-	i = write( fd, keypool, POOLSIZE );
-    } while( i == -1 && errno == EINTR );
-    if( i != POOLSIZE ) {
-	log_info(_("can't write `%s': %s\n"), seed_file_name, strerror(errno) );
-    }
-    if( close(fd) )
-	log_info(_("can't close `%s': %s\n"), seed_file_name, strerror(errno) );
+
+  pool_is_locked = 0;
+  err = mutex_unlock (pool_lock);
+  if (err)
+    log_fatal ("failed to release the pool lock: %s\n", strerror (err));
 }
 
 
@@ -482,6 +523,7 @@ read_pool( byte *buffer, size_t length, int level )
     int i;
     ulong *sp, *dp;
 
+    assert (pool_is_locked);
     if( length > POOLSIZE ) {
 	log_bug("too many random bits requested\n");
     }
@@ -491,7 +533,7 @@ read_pool( byte *buffer, size_t length, int level )
 	    pool_filled = 1;
     }
 
-    /* For level 2 quality (key generation) we alwas make
+    /* For level 2 quality (key generation) we always make
      * sure that the pool has been seeded enough initially */
     if( level == 2 && !did_initial_extra_seeding ) {
 	size_t needed;
@@ -524,8 +566,8 @@ read_pool( byte *buffer, size_t length, int level )
     while( !pool_filled )
 	random_poll();
 
-    /* do always a fast random poll */
-    fast_random_poll();
+    /* always do a fast random poll - we have to use the unlocked version*/
+    do_fast_random_poll();
 
     if( !level ) { /* no need for cryptographic strong random */
 	/* create a new pool */
@@ -582,6 +624,7 @@ add_randomness( const void *buffer, size_t length, int source )
 {
     const byte *p = buffer;
 
+    assert (pool_is_locked);
     if( !is_initialized )
 	initialize();
     rndstats.addbytes += length;
@@ -608,12 +651,14 @@ random_poll()
 }
 
 
-void
-_gcry_fast_random_poll()
+
+static void
+do_fast_random_poll ()
 {
     static void (*fnc)( void (*)(const void*, size_t, int), int) = NULL;
     static int initialized = 0;
 
+    assert (pool_is_locked);
     rndstats.fastpolls++;
     if( !initialized ) {
 	if( !is_initialized )
@@ -685,6 +730,32 @@ _gcry_fast_random_poll()
 }
 
 
+void
+_gcry_fast_random_poll()
+{
+  int err;
+
+  /* We have to make sure that the intialization is done because this
+     gatherer might be called before any other functions and it is not
+     sufficient to initialize it within do_fast_random_pool becuase we
+     want to use the mutex here. FIXME: Weh should initialie the mutex
+     using a global constructore independent from the initialization
+     of the pool. */
+  if (!is_initialized)
+    initialize ();
+  err = mutex_lock (pool_lock);
+  if (err)
+    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
+  pool_is_locked = 1;
+  do_fast_random_poll ();
+  pool_is_locked = 0;
+  err = mutex_unlock (pool_lock);
+  if (err)
+    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
+
+}
+
+
 
 static void
 read_random_source( int requester, size_t length, int level )
@@ -720,31 +791,28 @@ gather_faked( void (*add)(const void*, size_t, int), int requester,
 	/* we can't use tty_printf here - do we need this function at
 	  all - does it really make sense or canit be viewed as a potential
 	  security problem ? wk 17.11.99 */
-#if __GNUC__ >= 2
-#     warning Extended warning disabled
-#endif
-      #if 0
+#if 0
 	tty_printf(_("The random number generator is only a kludge to let\n"
 		   "it run - it is in no way a strong RNG!\n\n"
 		   "DON'T USE ANY DATA GENERATED BY THIS PROGRAM!!\n\n"));
-      #endif
+#endif
 	initialized=1;
-      #ifdef HAVE_RAND
+#ifdef HAVE_RAND
 	srand( time(NULL)*getpid());
-      #else
+#else
 	srandom( time(NULL)*getpid());
-      #endif
+#endif
     }
 
     p = buffer = gcry_xmalloc( length );
     n = length;
-  #ifdef HAVE_RAND
+#ifdef HAVE_RAND
     while( n-- )
 	*p++ = ((unsigned)(1 + (int) (256.0*rand()/(RAND_MAX+1.0)))-1);
-  #else
+#else
     while( n-- )
 	*p++ = ((unsigned)(1 + (int) (256.0*random()/(RAND_MAX+1.0)))-1);
-  #endif
+#endif
     add_randomness( buffer, length, requester );
     gcry_free(buffer);
     return 0; /* okay */
