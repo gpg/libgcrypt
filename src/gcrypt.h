@@ -838,6 +838,8 @@ enum gcry_md_algos
     GCRY_MD_CRC24_RFC2440	= 304
   };
 
+typedef int gcry_md_algo_t;
+
 /* Flags used with the open function.  */
 enum gcry_md_flags
   {
@@ -872,13 +874,13 @@ typedef struct gcry_md_handle *GcryMDHd _GCRY_GCC_ATTR_DEPRECATED;
    given as an bitwise OR of the gcry_md_flags values.  ALGO may be
    given as 0 if the algorithms to be used are later set using
    gcry_md_enable.  */
-gcry_error_t gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags);
+gcry_error_t gcry_md_open (gcry_md_hd_t *h, gcry_md_algo_t algo, unsigned int flags);
 
 /* Release the message digest object HD.  */
 void gcry_md_close (gcry_md_hd_t hd);
 
 /* Add the message digest algorithm ALGO to the digest object HD.  */
-gcry_error_t gcry_md_enable (gcry_md_hd_t hd, int algo);
+gcry_error_t gcry_md_enable (gcry_md_hd_t hd, gcry_md_algo_t algo);
 
 /* Create a new digest object as an exact copy of the object HD.  */
 gcry_error_t gcry_md_copy (gcry_md_hd_t *bhd, gcry_md_hd_t ahd);
@@ -888,7 +890,7 @@ void gcry_md_reset (gcry_md_hd_t hd);
 
 /* Perform various operations on the digets object HD. */
 gcry_error_t gcry_md_ctl (gcry_md_hd_t hd, int cmd, unsigned char *buffer,
-			 size_t buflen);
+			  size_t buflen);
 
 /* Pass LENGTH bytes of data in BUFFER to the digest object HD so that
    it can update the digest values.  This is the actual hash
@@ -897,14 +899,14 @@ void gcry_md_write (gcry_md_hd_t hd, const void *buffer, size_t length);
 
 /* Read out the final digest from HD return the digest value for
    algorithm ALGO. */
-unsigned char *gcry_md_read (gcry_md_hd_t hd, int algo);
+unsigned char *gcry_md_read (gcry_md_hd_t hd, gcry_md_algo_t algo);
 
 /* Convenience function to calculate the hash from the data in BUFFER
    of size LENGTH using the algorithm ALGO avoiding the creating of a
    hash object.  The hash is returned in the caller provided buffer
    DIGEST which must be large enough to hold the digest of the given
    algorithm. */
-void gcry_md_hash_buffer (int algo, void *digest,
+void gcry_md_hash_buffer (gcry_md_algo_t algo, void *digest,
 			  const void *buffer, size_t length);
 
 /* Retrieve the algorithm used with HD.  This does not work reliable
@@ -913,27 +915,27 @@ int gcry_md_get_algo (gcry_md_hd_t hd);
 
 /* Retrieve the length in bytes of the digest yielded by algorithm
    ALGO. */
-unsigned int gcry_md_get_algo_dlen (int algo);
+unsigned int gcry_md_get_algo_dlen (gcry_md_algo_t algo);
 
 /* Return true if the the algorithm ALGO is enabled in the digest
    object A. */
-int gcry_md_is_enabled (gcry_md_hd_t a, int algo);
+int gcry_md_is_enabled (gcry_md_hd_t a, gcry_md_algo_t algo);
 
 /* Return true if the digest object A is allocated in "secure" memory. */
 int gcry_md_is_secure (gcry_md_hd_t a);
 
 /* Retrieve various information about the object H.  */
 gcry_error_t gcry_md_info (gcry_md_hd_t h, int what, void *buffer,
-			  size_t *nbytes);
+			   size_t *nbytes);
 
 /* Retrieve various information about the algorithm ALGO.  */
-gcry_error_t gcry_md_algo_info (int algo, int what, void *buffer,
-			       size_t *nbytes);
+gcry_error_t gcry_md_algo_info (gcry_md_algo_t algo, int what, void *buffer,
+				size_t *nbytes);
 
 /* Map the digest algorithm id ALGO to a string representation of the
    algorithm name.  For unknown algorithms this functions returns an
    empty string. */
-const char *gcry_md_algo_name (int algo) _GCRY_GCC_ATTR_PURE;
+const char *gcry_md_algo_name (gcry_md_algo_t algo) _GCRY_GCC_ATTR_PURE;
 
 /* Map the algorithm NAME to a digest algorithm Id.  Return 0 if
    the algorithm name is not known. */
@@ -947,7 +949,7 @@ gcry_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
    version of the gcry_md_write function. */
 #define gcry_md_putc(h,c)  \
 	    do {					  \
-                gcry_md_hd_t h__ = (h);                       \
+                gcry_md_hd_t h__ = (h);                   \
 		if( (h__)->bufpos == (h__)->bufsize )	  \
 		    gcry_md_write( (h__), NULL, 0 );	  \
 		(h__)->buf[(h__)->bufpos++] = (c) & 0xff; \
@@ -960,7 +962,7 @@ gcry_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
 
 /* Return 0 if the algorithm A is available for use. */
 #define gcry_md_test_algo(a) \
-	    gcry_md_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
+	    gcry_md_algo_info((a), GCRYCTL_TEST_ALGO, NULL, NULL)
 
 /* Return an DER encoded ASN.1 OID for the algorithm A in buffer B. N
    must point to size_t variable with the available size of buffer B.
@@ -973,11 +975,11 @@ gcry_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
    dbgmd-<n>.<string> while hashing.  B is a string used as the suffix
    for the filename. */
 #define gcry_md_start_debug(a,b) \
-	    gcry_md_ctl( (a), GCRYCTL_START_DUMP, (b), 0 )
+	    gcry_md_ctl((a), GCRYCTL_START_DUMP, (b), 0)
 
 /* Disable the debugging of A. */
 #define gcry_md_stop_debug(a,b) \
-	    gcry_md_ctl( (a), GCRYCTL_STOP_DUMP, (b), 0 )
+	    gcry_md_ctl((a), GCRYCTL_STOP_DUMP, (b), 0)
 
 /* Get a list consisting of the IDs of the loaded message digest
    modules.  If LIST is zero, write the number of loaded message
@@ -1010,6 +1012,7 @@ typedef enum gcry_ac_key_type
   }
 gcry_ac_key_type_t;
 
+/* Encoding methods.  */
 typedef enum gcry_ac_em
   {
     GCRY_AC_EME_PKCS_V1_5,
@@ -1017,6 +1020,7 @@ typedef enum gcry_ac_em
   }
 gcry_ac_em_t;
 
+/* Encryption and Signature schemes.  */
 typedef enum gcry_ac_scheme
   {
     GCRY_AC_ES_PKCS_V1_5,
@@ -1050,6 +1054,29 @@ typedef struct gcry_ac_key_spec_rsa
   unsigned long int e; 		/* E to use.  */
 } gcry_ac_key_spec_rsa_t;
 
+/* Structure used for passing data to the implementation of the
+   `EME-PKCS-V1_5' encoding method.  */
+typedef struct gcry_ac_eme_pkcs_v1_5
+{
+  gcry_ac_key_t key;
+  gcry_ac_handle_t handle;
+} gcry_ac_eme_pkcs_v1_5_t;
+
+/* Structure used for passing data to the implementation of the
+   `EMSA-PKCS-V1_5' encoding method.  */
+typedef struct gcry_ac_emsa_pkcs_v1_5
+{
+  gcry_md_algo_t md;
+  size_t em_n;
+} gcry_ac_emsa_pkcs_v1_5_t;
+
+/* Structure used for passing data to the implementation of the
+   `SSA-PKCS-V1_5' signature scheme.  */
+typedef struct gcry_ac_ssa_pkcs_v1_5
+{
+  gcry_md_algo_t md;
+} gcry_ac_ssa_pkcs_v1_5_t;
+
 /* Returns a new, empty data set in DATA.  */
 gcry_error_t gcry_ac_data_new (gcry_ac_data_t *data);
 
@@ -1078,24 +1105,24 @@ gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
 /* Return the MPI value with index IDX contained in the data set
    DATA.  */
 gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int idx,
-				    const char **name, gcry_mpi_t *mpi);
+				     const char **name, gcry_mpi_t *mpi);
 
 /* Destroy any values contained in the data set DATA.  */
 void gcry_ac_data_clear (gcry_ac_data_t data);
 
 /* Create a new ac handle.  */
 gcry_error_t gcry_ac_open (gcry_ac_handle_t *handle,
-			  gcry_ac_id_t algorithm,
-			  unsigned int flags);
+			   gcry_ac_id_t algorithm,
+			   unsigned int flags);
 
 /* Destroy an ac handle.  */
 void gcry_ac_close (gcry_ac_handle_t handle);
 
 /* Initialize a key from a given data set.  */
 gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key,
-			      gcry_ac_handle_t handle,
-			      gcry_ac_key_type_t type,
-			      gcry_ac_data_t data);
+			       gcry_ac_handle_t handle,
+			       gcry_ac_key_type_t type,
+			       gcry_ac_data_t data);
 
 /* Generate a new key pair.  */
 gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
@@ -1138,24 +1165,17 @@ void gcry_ac_key_destroy (gcry_ac_key_t key);
 /* Destroy a key pair.  */
 void gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair);
 
-
-typedef struct gcry_ac_eme_pkcs_v1_5
-{
-  gcry_ac_handle_t handle;
-  gcry_ac_key_t key;
-} gcry_ac_eme_pkcs_v1_5_t;
-
-typedef struct gcry_ac_emsa_pkcs_v1_5
-{
-  enum gcry_md_algos md;
-  size_t em_n;
-} gcry_ac_emsa_pkcs_v1_5_t;
-
+/* Encodes a message according to the encoding method METHOD.  OPTIONS
+   must be a pointer to a method-specific structure
+   (gcry_ac_em*_t).  */
 gcry_error_t gcry_ac_data_encode (gcry_ac_em_t method,
 				  unsigned int flags, void *options,
 				  unsigned char *m, size_t m_n,
 				  unsigned char **em, size_t *em_n);
 
+/* Decodes a message according to the encoding method METHOD.  OPTIONS
+   must be a pointer to a method-specific structure
+   (gcry_ac_em*_t).  */
 gcry_error_t gcry_ac_data_decode (gcry_ac_em_t method,
 				  unsigned int flags, void *options,
 				  unsigned char *em, size_t em_n,
@@ -1179,6 +1199,12 @@ gcry_error_t gcry_ac_data_decrypt (gcry_ac_handle_t handle,
 				  gcry_mpi_t *data_plain,
 				  gcry_ac_data_t data_encrypted);
 
+/* Encrypts the plain text message contained in M, which is of size
+   M_N, with the public key KEY_PUBLIC according to the Encryption
+   Scheme SCHEME_ID.  HANDLE is used for accessing the low-level
+   cryptographic primitives.  If OPTS is not NULL, it has to be an
+   anonymous structure specific to the chosen scheme (gcry_ac_es_*_t).
+   The encrypted message will be stored in C and C_N.  */
 gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
 					  gcry_ac_scheme_t scheme,
 					  unsigned int flags, void *opts,
@@ -1186,6 +1212,12 @@ gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
 					  unsigned char *m, size_t m_n,
 					  unsigned char **c, size_t *c_n);
 
+/* Decrypts the cipher message contained in C, which is of size C_N,
+   with the secret key KEY_SECRET according to the Encryption Scheme
+   SCHEME_ID.  HANDLE is used for accessing the low-level
+   cryptographic primitives.  If OPTS is not NULL, it has to be an
+   anonymous structure specific to the chosen scheme (gcry_ac_es_*_t).
+   The decrypted message will be stored in M and M_N.  */
 gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
 					  gcry_ac_scheme_t scheme,
 					  unsigned int flags, void *opts,
@@ -1193,43 +1225,54 @@ gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
 					  unsigned char *c, size_t c_n,
 					  unsigned char **m, size_t *m_n);
 
-gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme,
-				       unsigned int flags, void *opts, gcry_ac_key_t key_secret,
-				       unsigned char *m, size_t m_n, unsigned char **s, size_t *s_n);
-
-gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme,
-					 unsigned int flags, void *opts, gcry_ac_key_t key_public,
-					 unsigned char *m, size_t m_n, unsigned char *s, size_t s_n);
-
-typedef struct gcry_ac_ssa_pkcs_v1_5
-{
-  enum gcry_md_algos md;
-} gcry_ac_ssa_pkcs_v1_5_t;
-
 /* Sign the data contained in DATA with the key KEY and store the
    resulting signature in the data set DATA_SIGNATURE.  */
 gcry_error_t gcry_ac_data_sign (gcry_ac_handle_t handle,
-			       gcry_ac_key_t key,
-			       gcry_mpi_t data,
-			       gcry_ac_data_t *data_signature);
+				gcry_ac_key_t key,
+				gcry_mpi_t data,
+				gcry_ac_data_t *data_signature);
 
 /* Verify that the signature contained in the data set DATA_SIGNATURE
    is indeed the result of signing the data contained in DATA with the
    secret key belonging to the public key KEY.  */
 gcry_error_t gcry_ac_data_verify (gcry_ac_handle_t handle,
-				 gcry_ac_key_t key,
-				 gcry_mpi_t data,
-				 gcry_ac_data_t data_signature);
+				  gcry_ac_key_t key,
+				  gcry_mpi_t data,
+				  gcry_ac_data_t data_signature);
+
+/* Signs the message contained in M, which is of size M_N, with the
+   secret key KEY_SECRET according to the Signature Scheme SCHEME_ID.
+   Handle is used for accessing the low-level cryptographic
+   primitives.  If OPTS is not NULL, it has to be an anonymous
+   structure specific to the chosen scheme (gcry_ac_ssa_*_t).  The
+   signed message will be stored in S and S_N.  */
+gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme,
+				       unsigned int flags, void *opts,
+				       gcry_ac_key_t key_secret,
+				       unsigned char *m, size_t m_n,
+				       unsigned char **s, size_t *s_n);
+
+/* Verifies that the signature contained in S, which is of length S_N,
+   is indeed the result of signing the message contained in M, which
+   is of size M_N, with the secret key belonging to the public key
+   KEY_PUBLIC.  If OPTS is not NULL, it has to be an anonymous
+   structure (gcry_ac_ssa_*_t) specific to the Signature Scheme, whose
+   ID is contained in SCHEME_ID.  */
+gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme,
+					 unsigned int flags, void *opts,
+					 gcry_ac_key_t key_public,
+					 unsigned char *m, size_t m_n,
+					 unsigned char *s, size_t s_n);
 
 /* Store the textual representation of the algorithm whose id is given
    in ALGORITHM in NAME.  */
 gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm,
-				const char **name);
+				 const char **name);
 
 /* Store the numeric ID of the algorithm whose textual representation
    is contained in NAME in ALGORITHM.  */
 gcry_error_t gcry_ac_name_to_id (const char *name,
-				gcry_ac_id_t *algorithm);
+				 gcry_ac_id_t *algorithm);
 
 /* Get a list consisting of the IDs of the loaded pubkey modules.  If
    LIST is zero, write the number of loaded pubkey modules to
@@ -1261,7 +1304,7 @@ gcry_random_level_t;
 /* Fill BUFFER with LENGTH bytes of random, using random numbers of
    quality LEVEL. */
 void gcry_randomize (unsigned char *buffer, size_t length,
-		     enum gcry_random_level level);
+		     gcry_random_level_t level);
 
 /* Add the external random from BUFFER with LENGTH bytes into the
    pool. QUALITY should either be -1 for unknown or in the range of 0
@@ -1271,20 +1314,20 @@ gcry_error_t gcry_random_add_bytes (const void *buffer, size_t length,
 
 /* Return NBYTES of allocated random using a random numbers of quality
    LEVEL. */
-void *gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
-                         _GCRY_GCC_ATTR_MALLOC;
+void *gcry_random_bytes (size_t nbytes, gcry_random_level_t level)
+     _GCRY_GCC_ATTR_MALLOC;
 
 /* Return NBYTES of allocated random using a random numbers of quality
    LEVEL.  The random numbers are created returned in "secure"
    memory. */
-void *gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
-                                _GCRY_GCC_ATTR_MALLOC;
+void *gcry_random_bytes_secure (size_t nbytes, gcry_random_level_t level)
+     _GCRY_GCC_ATTR_MALLOC;
 
 
 /* Set the big inetger W to a random value of NBITS using a random
    generator with quality LEVEL. */
 void gcry_mpi_randomize (gcry_mpi_t w,
-                         unsigned int nbits, enum gcry_random_level level);
+                         unsigned int nbits, gcry_random_level_t level);
 
 /* Prime interface.  */
 

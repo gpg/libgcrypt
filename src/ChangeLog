@@ -1,3 +1,26 @@
+2003-10-19  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.h: New type: gcry_md_algo_t, use it.
+
+2003-10-17  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.h (gcry_ac_eme_pkcs_v1_5_t, gcry_ac_emsa_pkcs_v1_5_t):
+	New types.
+	(gcry_ac_data_encode, gcry_ac_data_decode,
+	gcry_ac_data_encrypt_scheme, gcry_ac_data_decrypt_scheme,
+	gcry_ac_data_sign_scheme, gcry_ac_data_verify_scheme): New
+	declarations.
+	(gcry_ac_ssa_pkcs_v1_5_t): New type.
+
+2003-10-12  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.h: Declare: gcry_mpi_get_ui.
+	* mpi.h: Declare: _gcry_mpi_get_ui.
+
+2003-10-04  Moritz Schulte  <mo@g10code.com>
+
+	* g10lib.h: Declare: _gcry_md_asn_oid.
+
 2003-09-18  Moritz Schulte  <mo@g10code.com>
 
 	* global.c (gcry_set_progress_handler): Call
