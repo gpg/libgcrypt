@@ -1,3 +1,11 @@
+2003-07-28  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (include_HEADERS): Added: gcrypt-module.h.
+
+	* gcrypt.h: Include <gcrypt-module.h>.
+
+	* gcrypt-module.h: New file.
+
 2003-07-27  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (gcry_mpi_scan, gcry_mpi_print): API change.
