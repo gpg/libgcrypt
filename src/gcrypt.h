@@ -879,7 +879,7 @@ unsigned int gcry_ac_data_length (gcry_ac_data_t data);
 gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
 				   gcry_mpi_t *mpi);
 
-/* Return the MPI value with index INDEX contained in the data set
+/* Return the MPI value with index IDX contained in the data set
    DATA.  */
 gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int idx,
 				    const char **name, gcry_mpi_t *mpi);
