@@ -278,62 +278,64 @@ do_verify (gcry_mpi_t input, gcry_mpi_t a, gcry_mpi_t b,
   if (! (1
 	 && (mpi_cmp_ui (a, 0) > 0)
 	 && (mpi_cmp (a, key_public->p) < 0)))
-    return 0;
-
-  t1 = mpi_alloc (mpi_get_nlimbs (a));
-  t2 = mpi_alloc (mpi_get_nlimbs (a));
-
+    err = GPG_ERR_BAD_SIGNATURE;
+  else
+    {
+      t1 = mpi_alloc (mpi_get_nlimbs (a));
+      t2 = mpi_alloc (mpi_get_nlimbs (a));
+      
 #if 0
 
-  /* t1 = (y^a mod p) * (a^b mod p) mod p */
-  gcry_mpi_powm (t1, key_public->y, a, key_public->p);
-  gcry_mpi_powm (t2, a, b, key_public->p);
-  mpi_mulm (t1, t1, t2, key_public->p);
+      /* t1 = (y^a mod p) * (a^b mod p) mod p */
+      gcry_mpi_powm (t1, key_public->y, a, key_public->p);
+      gcry_mpi_powm (t2, a, b, key_public->p);
+      mpi_mulm (t1, t1, t2, key_public->p);
 
-  /* t2 = g ^ input mod p */
-  gcry_mpi_powm (t2, key_public->g, input, key_public->p);
-
-  if (mpi_cmp (t1, t2))
-    err = GPG_ERR_BAD_SIGNATURE;
+      /* t2 = g ^ input mod p */
+      gcry_mpi_powm (t2, key_public->g, input, key_public->p);
+      
+      if (mpi_cmp (t1, t2))
+	err = GPG_ERR_BAD_SIGNATURE;
 
 #elif 0
 
-  /* t1 = (y^a mod p) * (a^b mod p) mod p */
-  base[0] = key_public->y;
-  exp[0] = a;
-  base[1] = a;
-  exp[1] = b;
-  base[2] = NULL;
-  exp[2] = NULL;
-  mpi_mulpowm (t1, base, exp, key_public->p);
+      /* t1 = (y^a mod p) * (a^b mod p) mod p */
+      base[0] = key_public->y;
+      exp[0] = a;
+      base[1] = a;
+      exp[1] = b;
+      base[2] = NULL;
+      exp[2] = NULL;
+      mpi_mulpowm (t1, base, exp, key_public->p);
 
-  /* t2 = g ^ input mod p */
-  gcry_mpi_powm (t2, key_public->g, input, key_public->p);
-
-  if (mpi_cmp (t1, t2))
-    err = GPG_ERR_BAD_SIGNATURE;
+      /* t2 = g ^ input mod p */
+      gcry_mpi_powm (t2, key_public->g, input, key_public->p);
+      
+      if (mpi_cmp (t1, t2))
+	err = GPG_ERR_BAD_SIGNATURE;
 
 #else
 
-  /* t1 = g ^ - input * y ^ a * a ^ b  mod p */
-  mpi_invm (t2, key_public->g, key_public->p);
-  base[0] = t2;
-  exp[0] = input;
-  base[1] = key_public->y;
-  exp[1] = a;
-  base[2] = a;
-  exp[2] = b;
-  base[3] = NULL;
-  exp[3] = NULL;
-  mpi_mulpowm (t1, base, exp, key_public->p);
-
-  if (mpi_cmp_ui (t1, 1))
-    err = GPG_ERR_BAD_SIGNATURE;
+      /* t1 = g ^ - input * y ^ a * a ^ b  mod p */
+      mpi_invm (t2, key_public->g, key_public->p);
+      base[0] = t2;
+      exp[0] = input;
+      base[1] = key_public->y;
+      exp[1] = a;
+      base[2] = a;
+      exp[2] = b;
+      base[3] = NULL;
+      exp[3] = NULL;
+      mpi_mulpowm (t1, base, exp, key_public->p);
+      
+      if (mpi_cmp_ui (t1, 1))
+	err = GPG_ERR_BAD_SIGNATURE;
 
 #endif
 
-  mpi_free (t1);
-  mpi_free (t2);
+      mpi_free (t1);
+      mpi_free (t2);
+    }
 
   return err;
 }

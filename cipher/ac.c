@@ -2042,7 +2042,7 @@ data_dencode (gcry_ac_em_t method, dencode_action_t action,
 	      unsigned char *buffer_in, size_t buffer_in_n,
 	      unsigned char **buffer_out, size_t *buffer_out_n)
 {
-  gcry_err_code_t err = GPG_ERR_INTERNAL; /* FIXME; UNKNOWN_ENCODING_METHOD.  */
+  gcry_err_code_t err = GPG_ERR_NO_ENCODING_METHOD;
   struct
   {
     gcry_ac_em_t method;
@@ -2068,8 +2068,6 @@ data_dencode (gcry_ac_em_t method, dencode_action_t action,
 		err = (*methods[i].encode) (flags, options,
 					    buffer_in, buffer_in_n,
 					    buffer_out, buffer_out_n);
-	      else
-		err = GPG_ERR_INTERNAL;	/* FIXME.  */
 	      break;
 	      
 	    case DATA_DECODE:
@@ -2077,8 +2075,6 @@ data_dencode (gcry_ac_em_t method, dencode_action_t action,
 		err = (*methods[i].decode) (flags, options,
 					    buffer_in, buffer_in_n,
 					    buffer_out, buffer_out_n);
-	      else
-		err = GPG_ERR_INTERNAL; /* FIXME.  */
 	      break;
 	    }
 	  break;
@@ -2348,21 +2344,17 @@ static ac_scheme_t ac_schemes[] =
   };
 
 /* Lookup a scheme by it's ID.  */
-static gcry_err_code_t
-ac_scheme_get (gcry_ac_scheme_t scheme, ac_scheme_t *ac_scheme)
+static ac_scheme_t *
+ac_scheme_get (gcry_ac_scheme_t scheme)
 {
-  gcry_err_code_t err = GPG_ERR_INTERNAL; /* FIXME: UNKNOWN_SCHEME.  */
+  ac_scheme_t *ac_scheme = NULL;
   unsigned int i = 0;
 
-  for (i = 0; i < (sizeof (ac_schemes) / sizeof (*ac_schemes)); i++)
+  for (i = 0; (i < DIM (ac_schemes)) && (! ac_scheme); i++)
     if (scheme == ac_schemes[i].scheme)
-      {
-	err = GPG_ERR_NO_ERROR;
-	*ac_scheme = ac_schemes[i];
-	break;
-      }
+      ac_scheme = ac_schemes + i;
   
-  return err;
+  return ac_scheme;
 }
 
 /* Prepares the encoding/decoding by creating an according option
@@ -2526,13 +2518,15 @@ gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id
   unsigned char *buffer = NULL;
   size_t buffer_n = 0;
   void *opts_em = NULL;
-  ac_scheme_t scheme;
+  ac_scheme_t *scheme;
 
-  err = ac_scheme_get (scheme_id, &scheme);
+  scheme = ac_scheme_get (scheme_id);
+  if (! scheme)
+    err = GPG_ERR_NO_ENCRYPTION_SCHEME;
   if (! err)
-    err = ac_dencode_prepare (handle, key_public, opts, scheme, &opts_em);
+    err = ac_dencode_prepare (handle, key_public, opts, *scheme, &opts_em);
   if (! err)
-    err = data_dencode (scheme.scheme_encoding, DATA_ENCODE, 0, opts_em, m, m_n, &em, &em_n);
+    err = data_dencode (scheme->scheme_encoding, DATA_ENCODE, 0, opts_em, m, m_n, &em, &em_n);
   if (! err)
     {
       mpi_plain = gcry_mpi_snew (0);
@@ -2588,9 +2582,11 @@ gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id
   unsigned char *buffer = NULL;
   size_t buffer_n = 0;
   void *opts_em = NULL;
-  ac_scheme_t scheme;
+  ac_scheme_t *scheme;
 
-  err = ac_scheme_get (scheme_id, &scheme);
+  scheme = ac_scheme_get (scheme_id);
+  if (! scheme)
+    err = GPG_ERR_NO_ENCRYPTION_SCHEME;
   if (! err)
     {
       mpi_encrypted = gcry_mpi_snew (0);
@@ -2601,11 +2597,11 @@ gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id
   if (! err)
     err = _gcry_ac_data_decrypt (handle, 0, key_secret, &mpi_decrypted, data_encrypted);
   if (! err)
-    ac_es_dencode_to_os (handle, key_secret, opts, scheme, mpi_decrypted, &em, &em_n);
+    ac_es_dencode_to_os (handle, key_secret, opts, *scheme, mpi_decrypted, &em, &em_n);
   if (! err)
-    err = ac_dencode_prepare (handle, key_secret, opts, scheme, &opts_em);
+    err = ac_dencode_prepare (handle, key_secret, opts, *scheme, &opts_em);
   if (! err)
-    err = data_dencode (scheme.scheme_encoding, DATA_DECODE, 0,
+    err = data_dencode (scheme->scheme_encoding, DATA_DECODE, 0,
 			opts_em, em, em_n, &buffer, &buffer_n);
 
   if (opts_em)
@@ -2648,13 +2644,15 @@ gcry_ac_data_sign_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id,
   unsigned char *buffer = NULL;
   size_t buffer_n = 0;
   gcry_mpi_t mpi_signed = NULL;
-  ac_scheme_t scheme;
+  ac_scheme_t *scheme;
 
-  err = ac_scheme_get (scheme_id, &scheme);
+  scheme = ac_scheme_get (scheme_id);
+  if (! scheme)
+    err = GPG_ERR_NO_SIGNATURE_SCHEME;
   if (! err)
-    err = ac_dencode_prepare (handle, key_secret, opts, scheme, &opts_em);
+    err = ac_dencode_prepare (handle, key_secret, opts, *scheme, &opts_em);
   if (! err)
-    err = data_dencode (scheme.scheme_encoding, DATA_ENCODE, 0, opts_em, m, m_n, &em, &em_n);
+    err = data_dencode (scheme->scheme_encoding, DATA_ENCODE, 0, opts_em, m, m_n, &em, &em_n);
   if (! err)
     {
       mpi = gcry_mpi_new (0);
@@ -2703,11 +2701,13 @@ gcry_ac_data_verify_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id,
   void *opts_em = NULL;
   gcry_mpi_t mpi_signature = NULL;
   gcry_mpi_t mpi_data = NULL;
-  ac_scheme_t scheme;
+  ac_scheme_t *scheme;
 
-  err = ac_scheme_get (scheme_id, &scheme);
+  scheme = ac_scheme_get (scheme_id);
+  if (! scheme)
+    err = GPG_ERR_NO_SIGNATURE_SCHEME;
   if (! err)
-    err = ac_dencode_prepare (handle, key_public, opts, scheme, &opts_em);
+    err = ac_dencode_prepare (handle, key_public, opts, *scheme, &opts_em);
   if (! err)
     {
       mpi_signature = gcry_mpi_new (0);
@@ -2716,7 +2716,7 @@ gcry_ac_data_verify_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme_id,
   if (! err)
     err = ac_mpi_to_data_set (handle, DATA_TYPE_SIGNED, &data_signed, mpi_signature);
   if (! err)
-    err = data_dencode (scheme.scheme_encoding, DATA_ENCODE, 0,
+    err = data_dencode (scheme->scheme_encoding, DATA_ENCODE, 0,
 			opts_em, m, m_n, &em, &em_n);
   if (! err)
     {

@@ -1,5 +1,13 @@
 2003-10-28  Moritz Schulte  <mo@g10code.com>
 
+	* ac.c (ac_scheme_get): Return a pointer to the scheme structure,
+	instead of an error code.
+	(gcry_ac_data_encrypt_scheme): Adjust to ac_scheme_get.
+	(gcry_ac_data_decrypt_scheme): Likewise.
+	(gcry_ac_data_sign_scheme): Likewise.
+	(gcry_ac_data_verify_scheme): Likewise.
+	Use new error codes.
+
 	* rsa.c: Use GCRY_AC_FLAG_DATA_NO_BLINDING instead of
 	PUBKEY_FLAG_NO_BLINDING.
 
