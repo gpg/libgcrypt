@@ -725,6 +725,6 @@ cipher/Makefile
 doc/Makefile
 doc/version.sgml
 src/Makefile
-src/gcrypt-config
+src/libgcrypt-config
 ])
 
