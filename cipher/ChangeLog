@@ -1,3 +1,7 @@
+2004-09-11  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (pubkey_table): Added an alias entry for GCRY_PK_ELG_E.
+
 2004-08-23  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c: Do not include <assert.h>.
