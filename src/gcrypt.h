@@ -157,7 +157,8 @@ enum gcry_ctl_cmds
     GCRYCTL_DISABLE_SECMEM      = 37,
     GCRYCTL_INITIALIZATION_FINISHED = 38,
     GCRYCTL_INITIALIZATION_FINISHED_P = 39,
-    GCRYCTL_ANY_INITIALIZATION_P = 40
+    GCRYCTL_ANY_INITIALIZATION_P = 40,
+    GCRYCTL_SET_CBC_CTS = 41
   };
 
 /* Perform various operations defined by CMD. */
@@ -507,7 +508,8 @@ enum gcry_cipher_modes
 enum gcry_cipher_flags
   {
     GCRY_CIPHER_SECURE	    = 1,  /* Allocate in secure memory. */
-    GCRY_CIPHER_ENABLE_SYNC = 2   /* Enable CFB sync mode. */
+    GCRY_CIPHER_ENABLE_SYNC = 2,  /* Enable CFB sync mode. */
+    GCRY_CIPHER_CBC_CTS = 4       /* Enable CBC cipher text stealing (CTS). */
   };
 
 
@@ -568,6 +570,10 @@ int gcry_cipher_decrypt (GcryCipherHd h,
    cipher handle H. */
 #define gcry_cipher_sync(h)  gcry_cipher_ctl( (h), GCRYCTL_CFB_SYNC, \
 								   NULL, 0 )
+
+/* Enable or disable CTS in future calls to gcry_encrypt(). CBC mode only. */
+#define gcry_cipher_cts(h,on)  gcry_cipher_ctl( (h), GCRYCTL_SET_CBC_CTS, \
+								   NULL, on )
 
 /* Retrieved the key length used with algorithm A. */
 #define gcry_cipher_get_algo_keylen(a) \
@@ -675,7 +681,8 @@ enum gcry_md_algos
     GCRY_MD_HAVAL   = 7,   /* HAVAL, 5 pass, 160 bit. */
     GCRY_MD_SHA256  = 8,
     GCRY_MD_SHA384  = 9,
-    GCRY_MD_SHA512  = 10
+    GCRY_MD_SHA512  = 10,
+    GCRY_MD_MD4     = 301
   };
 
 /* Flags used with the open function. */
