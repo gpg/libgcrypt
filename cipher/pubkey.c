@@ -1418,6 +1418,12 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
       gcry_free (string);
     }
 
+  if (pkey)
+    {
+      release_mpi_array (pkey);
+      gcry_free (pkey);
+    }
+
   if (ciph)
     {
       release_mpi_array (ciph);

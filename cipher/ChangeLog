@@ -1,3 +1,7 @@
+2003-10-27  Moritz Schulte  <mo@g10code.com>
+
+	* pubkey.c (gcry_pk_encrypt): Don't forget to deallocate pkey.
+
 2003-10-27  Werner Koch  <wk@gnupg.org>
 
 	Prefixed all (pubkey,digest,cipher}_spec_* globale varaibles with
