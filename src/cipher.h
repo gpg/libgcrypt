@@ -42,10 +42,6 @@ void _gcry_register_pk_elg_progress (gcry_handler_progress_t cb, void *cb_data);
 void _gcry_register_primegen_progress (gcry_handler_progress_t cb, void *cb_data);
 
 
-/*-- pubkey.c --*/
-const char * _gcry_pk_aliased_algo_name (int algorithm);
-
-
 /* Declarations for the cipher specifications.  */
 extern gcry_cipher_spec_t cipher_spec_blowfish;
 extern gcry_cipher_spec_t cipher_spec_des;
@@ -75,8 +71,8 @@ extern gcry_md_spec_t digest_spec_sha384;
 extern gcry_md_spec_t digest_spec_tiger;
 
 /* Declarations for the pubkey cipher specifications.  */
-extern gcry_pk_spec_t pubkey_spec_rsa;
-extern gcry_pk_spec_t pubkey_spec_elg;
-extern gcry_pk_spec_t pubkey_spec_dsa;
+extern gcry_ac_spec_t ac_spec_rsa;
+extern gcry_ac_spec_t ac_spec_elg;
+extern gcry_ac_spec_t ac_spec_dsa;
 
 #endif /*G10_CIPHER_H*/
