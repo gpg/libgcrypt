@@ -1,3 +1,11 @@
+2002-12-19  Werner Koch  <wk@gnupg.org>
+
+	* random.c (_gcry_random_initialize): New.
+
+2002-12-16  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c: Added a Tetetrust specific OID for 3DES.
+
 2002-12-12  Werner Koch  <wk@gnupg.org>
 
 	* md.c: Added another oddball OIW OID (sha-1WithRSAEncryption).

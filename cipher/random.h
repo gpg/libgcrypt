@@ -25,6 +25,7 @@
 /*-- random.c --*/
 #define fast_random_poll() _gcry_fast_random_poll ()
 
+void _gcry_random_initialize (void);
 void _gcry_random_dump_stats(void);
 void _gcry_secure_random_alloc(void);
 int  _gcry_quick_random_gen( int onoff );

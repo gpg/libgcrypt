@@ -61,6 +61,8 @@ static struct {
   { "2.16.840.1.101.3.4.1.43", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_OFB },
   { "2.16.840.1.101.3.4.1.44", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CFB },
 
+  /* Teletrust specific OID for 3DES. */
+  { "1.3.36.3.1.3.2.1",        GCRY_CIPHER_3DES,   GCRY_CIPHER_MODE_CBC },
 
   {NULL}
 };

@@ -153,6 +153,18 @@ initialize(void)
   _gcry_cipher_modules_constructor ();
 }
 
+/* Initialize this random subsystem.  This function memrely calls the
+   initialzies and does not do anything more.  Doing this is not
+   really required but when running in a threaded environment we might
+   get a race condition otherwise. */
+void
+_gcry_random_initialize ()
+{
+  if (!is_initialized)
+    initialize ();
+}
+
+
 static void
 burn_stack (int bytes)
 {
