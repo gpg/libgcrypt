@@ -1,6 +1,8 @@
 Noteworthy changes in version 1.1.42 (unreleased)
 -------------------------------------------------
 
+ * New function gcry_mpi_dump to help in debugging. 
+
  * Added alternative interface for asymmetric cryptography.
 
  * Removed `libgcrypt errno' concept, resulting in some more API
@@ -31,6 +33,9 @@ Noteworthy changes in version 1.1.42 (unreleased)
 
  * Interface changes relative to the 1.1.12 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gcry_mpi_scan           CHANGED: New argument to separate in/out args.
+gcry_mpi_print          CHANGED: Ditto.
+gcry_mpi_dump           NEW
 gcry_cipher_list	NEW
 gcry_md_list		NEW
 gcry_pk_list		NEW

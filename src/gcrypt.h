@@ -378,26 +378,36 @@ int gcry_mpi_cmp (const gcry_mpi_t u, const gcry_mpi_t v);
 int gcry_mpi_cmp_ui (const gcry_mpi_t u, unsigned long v);
 
 /* Convert the external representation of an integer stored in BUFFER
-   with a size of (*NBYTES) in a newly create MPI returned in RET_MPI.
-   For certain formats a length is not required and may be passed as
-   NULL.  After a successful operation NBYTES received the number of
-   bytes actually scanned. */
+   with a length of BUFLEN into a newly create MPI returned in
+   RET_MPI.  If NSCANNED is not NULL, it will receive the number of
+   bytes actually scanned after a successful operation. */
 gcry_error_t gcry_mpi_scan (gcry_mpi_t *ret_mpi, enum gcry_mpi_format format,
-                   const char *buffer, size_t *nbytes);
+                            const char *buffer, size_t buflen, 
+                            size_t *nscanned);
 
 /* Convert the big integer A into the external representation
    described by FORMAT and store it in the provided BUFFER which has
-   the size (*NBYTES).  NBYTES receives the actual length of the
-   external representation. */
+   been allocated by the user with a size of BUFLEN bytes.  NWRITTEN
+   receives the actual length of the external representation unless it
+   has been passed as NULL. */
 gcry_error_t gcry_mpi_print (enum gcry_mpi_format format,
-			    char *buffer, size_t *nbytes, const gcry_mpi_t a);
+                             char *buffer, size_t buflen, size_t *nwritten,
+                             const gcry_mpi_t a);
 
-/* Convert the big integer A int the external representation desribed
+/* Convert the big integer A int the external representation described
    by FORMAT and store it in a newly allocated buffer which address
-   will be put into BUFFER.  NBYTES receives the actual lengths of the
+   will be put into BUFFER.  NWRITTEN receives the actual lengths of the
    external representation. */
 gcry_error_t gcry_mpi_aprint (enum gcry_mpi_format format,
-			     void **buffer, size_t *nbytes, const gcry_mpi_t a);
+                              void **buffer, size_t *nwritten,
+                              const gcry_mpi_t a);
+
+/* Dump the value of A in a format suitable for debugging to
+   Libgcrypt's logging stream.  Note that one leading space but no
+   trailing space or linefeed will be printed.  It is okay to pass
+   NULL for A. */
+void gcry_mpi_dump (const gcry_mpi_t a);
+
 
 /* W = U + V.  */
 void gcry_mpi_add (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v);

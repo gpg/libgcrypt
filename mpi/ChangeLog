@@ -1,3 +1,13 @@
+2003-07-27  Werner Koch  <wk@gnupg.org>
+
+	* mpicoder.c (gcry_mpi_scan): New argument BUFLEN to replace the
+	use of the intial value of NBYTES.
+	(gcry_mpi_print): Likewise.
+	(gcry_mpi_dump): New.
+	(_gcry_log_mpidump): Make use of gcry_mpi_dump.
+	(mpi_print): Removed.
+	(gcry_mpi_scan): Allocated mpi in secure memory when required.
+
 2003-07-14  Moritz Schulte  <moritz@g10code.com>
 
 	* mpicoder.c: Used gcry_err* wrappers for libgpg-error symbols.

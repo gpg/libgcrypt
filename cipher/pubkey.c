@@ -1173,7 +1173,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
           assert (n == nframe);
 
 	  /* FIXME, error checking?  */
-          gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, &nframe);
+          gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, n, &nframe);
         }
 
       gcry_free(frame);
@@ -1255,7 +1255,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
               assert (n == nframe);
       
               /* convert it into an MPI, FIXME: error checking?  */
-              gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, &nframe);
+              gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, n, &nframe);
             }
           
           gcry_free (frame);

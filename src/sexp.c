@@ -1,5 +1,5 @@
 /* sexp.c  -  S-Expression handling
- *	Copyright (C) 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -602,7 +602,7 @@ gcry_sexp_nth_mpi( gcry_sexp_t list, int number, int mpifmt )
 	memcpy ( &n, ++p, sizeof n );
 	p += sizeof n;
 	nbytes = n;
-	if( !gcry_mpi_scan( &a, mpifmt, p, &nbytes ) )
+	if( !gcry_mpi_scan( &a, mpifmt, p, n, &nbytes ) )
 	    return a;
     }
 
@@ -1042,7 +1042,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 
 	ARG_NEXT (m, gcry_mpi_t);
 
-	if ( gcry_mpi_print( GCRYMPI_FMT_STD, NULL, &nm, m ) )
+	if ( gcry_mpi_print( GCRYMPI_FMT_STD, NULL, 0, &nm, m ) )
 	  BUG ();
 
 	MAKE_SPACE (nm);
@@ -1063,7 +1063,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 
 	*c.pos++ = ST_DATA;
 	STORE_LEN (c.pos, nm);
-	if ( gcry_mpi_print( GCRYMPI_FMT_STD, c.pos, &nm, m ) )
+	if ( gcry_mpi_print( GCRYMPI_FMT_STD, c.pos, nm, &nm, m ) )
 	  BUG ();
 	c.pos += nm;
       }

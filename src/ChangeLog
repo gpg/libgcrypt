@@ -1,3 +1,8 @@
+2003-07-27  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (gcry_mpi_scan, gcry_mpi_print): API change.
+	(gcry_mpi_dump): New.
+
 2003-07-21  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.h: Declared: gcry_ac_key_data_get.
