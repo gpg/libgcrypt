@@ -79,7 +79,7 @@
 
     Configure options 
     -----------------
-    Here is a list of configure options which are sometime useful 
+    Here is a list of configure options which are sometimes useful 
     for installation.
 
      --enable-m-guard
@@ -104,10 +104,14 @@
                      Note, that you should never ever use an
                      undocumented symbol or one which is prefixed with
                      an underscore.
-                    
 
-                   
-
-
-
-
+     --enable-ciphers=list
+     --enable-pubkey-ciphers=list
+     --enable-digests=list
+                     If not otherwise specified, all algorithms
+                     included in the libgcrypt source tree are built.
+		     An exception are algorithms, which depend on
+		     features not provided by the system, like 64bit
+		     data types.  With these switches it is possible
+                     to select exactly those algorithm modules, which
+		     should be built.
