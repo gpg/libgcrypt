@@ -1,9 +1,13 @@
+2002-01-11  Werner Koch  <wk@gnupg.org>
+
+	* tsexp.c (canon_len): Fixed tests.
+
 2001-12-18  Werner Koch  <wk@gnupg.org>
 
 	* tsexp.c: New.
 
 	
- Copyright 2001 Free Software Foundation, Inc.
+ Copyright 2001, 2002 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

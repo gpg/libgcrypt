@@ -1,5 +1,5 @@
 /* tsexp.c  -  S-expression regression tests
- *	Copyright (C) 2001 Free Software Foundation, Inc.
+ *	Copyright (C) 2001, 2002 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -168,13 +168,13 @@ canon_len (void)
     int errcode;    /* ... with this error code */
     unsigned char *text; 
   } values[] = {
-    { 13, 13, 0,  0, "10:abcdefghi" },
-    { 14, 13, 0,  0, "10:abcdefghix" },
-    { 12,  0, 2, -2, "10:abcdefghi" },
-    { 13,  0, 0, -7, "010:abcdefghi" },
-    {  1,  0, 1, -2, "1:"},
-    {  2,  0, 1, -2, "1:"},
-    {  3,  3, 0,  0, "1:x"},
+    { 14, 13, 0,  0, "(9:abcdefghi) " },
+    { 16, 15, 0,  0, "(10:abcdefghix)" },
+    { 14,  0,14, -2, "(10:abcdefghi)" },
+    { 15,  0, 1, -7, "(010:abcdefghi)" },
+    {  2,  0, 0, -4, "1:"},
+    {  4,  0, 4, -2, "(1:)"},
+    {  5,  5, 0,  0, "(1:x)"},
     {  2,  2, 0,  0, "()"},
     {  4,  2, 0,  0, "()()"},
     {  4,  4, 0,  0, "(())"},
