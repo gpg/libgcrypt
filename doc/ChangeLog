@@ -3,6 +3,8 @@
 	* gcrypt.texi (Working with keys): Mention that gcry_pk_testkey
 	and gcry_ac_key_test only verify private keys.
 	(Working with keys): Fix typo.
+	(General public-key related Functions): Fixed some sentences,
+	thanks to Neil Spring.
 
 2003-07-27  Werner Koch  <wk@gnupg.org>
 

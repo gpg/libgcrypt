@@ -2603,11 +2603,9 @@ If this parameter is not used, @acronym{Libgcrypt} uses for historic reasons
 @c end table of parameters
 
 @noindent
-The key pair is returned in a format depending on the
-algorithm. Both, private and secret, keys are returned and my be accompanied
-by some miscellaneous information.  The format resembles closely the one
-of the public respectively the private key.  Frankly, they are put into
-one container, so that they can easily be extracted.
+The key pair is returned in a format depending on the algorithm.  Both
+private and public keys are returned in one container and may be
+accompanied by some miscellaneous information.
 
 @noindent
 As an example, here is what the ElGamal key generation returns:
