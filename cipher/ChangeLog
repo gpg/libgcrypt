@@ -1,3 +1,8 @@
+2003-03-12  Moritz Schulte  <moritz@g10code.com>
+
+	* primegen.c: Initialize `no_of_small_prime_numbers' statically.
+	(gen_prime): Remove calculation of `no_of_small_prime_numbers'.
+
 2003-03-03  Moritz Schulte  <moritz@g10code.com>
 
 	* md.c (gcry_md_ctl): Rewritten to use same style like the other

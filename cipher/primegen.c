@@ -32,7 +32,6 @@
 #include "mpi.h"
 #include "cipher.h"
 
-static int no_of_small_prime_numbers;
 static MPI gen_prime( unsigned	nbits, int mode, int randomlevel );
 static int check_prime( MPI prime, MPI val_2 );
 static int is_prime( MPI n, int steps, int *count );
@@ -125,7 +124,7 @@ static ushort small_prime_numbers[] = {
     4957, 4967, 4969, 4973, 4987, 4993, 4999,
     0
 };
-
+static int no_of_small_prime_numbers = DIM (small_prime_numbers) - 1;
 
 void
 _gcry_register_primegen_progress ( void (*cb)(void *,const char*,int,int,int), void *cb_data )
@@ -390,10 +389,6 @@ gen_prime( unsigned  nbits, int secret, int randomlevel )
     if( 0 && DBG_CIPHER )
 	log_debug("generate a prime of %u bits ", nbits );
 
-    if( !no_of_small_prime_numbers ) {
-	for(i=0; small_prime_numbers[i]; i++ )
-	    no_of_small_prime_numbers++;
-    }
     mods = gcry_xmalloc( no_of_small_prime_numbers * sizeof *mods );
     /* make nbits fit into MPI implementation */
     val_2  = mpi_alloc_set_ui( 2 );
