@@ -625,9 +625,19 @@ _gcry_elg_get_nbits( int algo, MPI *pkey )
     return mpi_get_nbits( pkey[0] );
 }
 
+static char *elg_names[] =
+  {
+    "elg",
+    "openpgp-elg",
+    "openpgp-elg-sig",
+    NULL,
+  };
+
+
 GcryPubkeySpec pubkey_spec_elg =
   {
-    "ELG", GCRY_PK_ELG, 3, 4, 2, 2,
+    "ELG", elg_names, GCRY_PK_ELG,
+    "pgy", "pgyx", "ab", "rs", "pgy",
     GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR,
     _gcry_elg_generate,
     _gcry_elg_check_secret_key,

@@ -616,10 +616,18 @@ _gcry_rsa_get_nbits( int algo, MPI *pkey )
     return mpi_get_nbits( pkey[0] );
 }
 
+static char *rsa_names[] =
+  {
+    "rsa",
+    "openpgp-rsa",
+    "oid.1.2.840.113549.1.1.1",
+    NULL,
+  };
 
 GcryPubkeySpec pubkey_spec_rsa =
   {
-    "RSA", GCRY_PK_RSA, 2, 6, 1, 1,
+    "RSA", rsa_names, GCRY_PK_RSA,
+    "ne", "nedpqu", "a", "s", "n",
     GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR,
     _gcry_rsa_generate,
     _gcry_rsa_check_secret_key,

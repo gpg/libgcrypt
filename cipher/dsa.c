@@ -448,9 +448,17 @@ _gcry_dsa_get_nbits( int algo, MPI *pkey )
     return mpi_get_nbits( pkey[0] );
 }
 
+static char *dsa_names[] =
+  {
+    "dsa",
+    "openpgp-dsa",
+    NULL,
+  };
+
 GcryPubkeySpec pubkey_spec_dsa =
   {
-    "DSA", GCRY_PK_DSA, 4, 5, 0, 2,
+    "DSA", dsa_names, GCRY_PK_DSA,
+    "pqgy", "pqgyx", "", "rs", "pqgy",
     GCRY_PK_USAGE_SIGN,
     _gcry_dsa_generate,
     _gcry_dsa_check_secret_key,
