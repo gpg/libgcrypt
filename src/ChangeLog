@@ -1,3 +1,18 @@
+2003-06-11  Moritz Schulte  <moritz@g10code.com>
+
+	* global.c (global_init): Call: _gcry_cipher_init, _gcry_md_init,
+	_gcry_pk_init.
+
+	* g10lib.h: Declare: _gcry_cipher_init, _gcry_md_init,
+	_gcry_pk_init.
+	
+	* global.c (gcry_strerror): Remove compatibility code.
+
+	* Makefile.am: Remove support libgpg-error special handling.
+	(AM_CPPFLAGS): Add @GPG_ERROR_CFLAGS@
+
+	* gcrypt.h: Likewise.
+
 2003-06-13  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (gcry_md_get_algo): Reverted to old API.  This is a
