@@ -38,12 +38,6 @@ extern "C" {
 #define GCRYPT_VERSION "1.1.7-cvs"
 
 
-#ifndef HAVE_BYTE_TYPEDEF
-# undef byte	   /* maybe there is a macro with this name */
-  typedef unsigned char byte;
-# define HAVE_BYTE_TYPEDEF
-#endif
-
 #ifdef _GCRYPT_IN_LIBGCRYPT
 # ifndef GCRYPT_NO_MPI_MACROS
 #   define GCRYPT_NO_MPI_MACROS 1
@@ -378,10 +372,10 @@ const char *gcry_cipher_algo_name( int algo );
 int gcry_cipher_map_name( const char* name );
 int gcry_cipher_mode_from_oid (const char *string);
 
-int gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
-				      const byte *in, size_t inlen );
-int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
-				      const byte *in, size_t inlen );
+int gcry_cipher_encrypt( GCRY_CIPHER_HD h, unsigned char *out, size_t outsize,
+				      const unsigned char *in, size_t inlen );
+int gcry_cipher_decrypt( GCRY_CIPHER_HD h, unsigned char *out, size_t outsize,
+				      const unsigned char *in, size_t inlen );
 
 
 /* some handy macros */
@@ -408,8 +402,8 @@ int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 
 enum gcry_pk_algos {
     GCRY_PK_RSA = 1,
-    GCRY_PK_RSA_E = 2,	    /* use only for OpenPGP */
-    GCRY_PK_RSA_S = 3,	    /* use only for OpenPGP */
+    GCRY_PK_RSA_E = 2,	    /* deprecated */
+    GCRY_PK_RSA_S = 3,	    /* deprecated */
     GCRY_PK_ELG_E = 16,     /* use only for OpenPGP */
     GCRY_PK_DSA   = 17,
     GCRY_PK_ELG   = 20
@@ -459,7 +453,7 @@ struct gcry_md_handle {
     struct gcry_md_context *ctx;
     int  bufpos;
     int  bufsize;
-    byte buf[1];
+    unsigned char buf[1];
 };
 typedef struct gcry_md_handle *GCRY_MD_HD;
 typedef struct gcry_md_handle *GcryMDHd;
@@ -470,14 +464,14 @@ void gcry_md_close( GCRY_MD_HD hd );
 int gcry_md_enable( GCRY_MD_HD hd, int algo );
 GCRY_MD_HD gcry_md_copy( GCRY_MD_HD hd );
 void gcry_md_reset( GCRY_MD_HD hd );
-int gcry_md_ctl( GCRY_MD_HD hd, int cmd, byte *buffer, size_t buflen);
-void gcry_md_write( GCRY_MD_HD hd, const byte *buffer, size_t length);
-byte *gcry_md_read( GCRY_MD_HD hd, int algo );
+int gcry_md_ctl( GCRY_MD_HD hd, int cmd, unsigned char *buffer, size_t buflen);
+void gcry_md_write( GCRY_MD_HD hd, const unsigned char *buffer, size_t length);
+unsigned char *gcry_md_read( GCRY_MD_HD hd, int algo );
 void gcry_md_hash_buffer( int algo, char *digest,
 			  const char *buffer, size_t length);
 int gcry_md_get_algo( GCRY_MD_HD hd );
 unsigned int gcry_md_get_algo_dlen( int algo );
-/*??int gcry_md_get( GCRY_MD_HD hd, int algo, byte *buffer, int buflen );*/
+/*??int gcry_md_get( GCRY_MD_HD hd, int algo, unsigned char *buffer, int buflen );*/
 int gcry_md_info( GCRY_MD_HD h, int what, void *buffer, size_t *nbytes);
 int gcry_md_algo_info( int algo, int what, void *buffer, size_t *nbytes);
 const char *gcry_md_algo_name( int algo );
@@ -509,10 +503,10 @@ int gcry_md_setkey( GCRY_MD_HD hd, const char *key, size_t keylen );
 /*********************************************
  *******  random generating functions  *******
  *********************************************/
-void gcry_randomize( byte *buffer, size_t length,
-		     enum gcry_random_level level );
-void *gcry_random_bytes( size_t nbytes, enum gcry_random_level level );
-void *gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level );
+void gcry_randomize (unsigned char *buffer, size_t length,
+		     enum gcry_random_level level);
+void *gcry_random_bytes (size_t nbytes, enum gcry_random_level level);
+void *gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level);
 
 /*****************************************
  *******  miscellaneous stuff	**********
@@ -529,7 +523,8 @@ enum gcry_log_levels {
 };
 
 
-/* Provide custom functions for special tasks of libgcrypt.
+/* 
+   Provide custom functions for special tasks of libgcrypt.
  */
 void gcry_set_allocation_handler( void *(*new_alloc_func)(size_t n),
 				  void *(*new_alloc_secure_func)(size_t n),
@@ -544,10 +539,13 @@ void gcry_set_gettext_handler( const char *(*f)(const char*) );
 void gcry_set_log_handler( void (*f)(void*,int, const char*, va_list ),
 							     void *opaque );
 
+void gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
+                                void *cb_data);
 
-/* Access to the memory function of libgcrypt.
- * Especially the gcry_free() should be used for memory
- * allocated by gcry_ functions.
+
+/*
+   Access to the memory function of libgcrypt.  Especially the
+   gcry_free() should be used for memory allocated by gcry_ functions. 
  */
 void *gcry_malloc( size_t n );
 void *gcry_calloc( size_t n, size_t m );

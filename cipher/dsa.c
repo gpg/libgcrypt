@@ -57,7 +57,8 @@ static void (*progress_cb) ( void *, int );
 static void *progress_cb_data;
 
 void
-_gcry_register_pk_dsa_progress ( void (*cb)( void *, int), void *cb_data )
+_gcry_register_pk_dsa_progress ( void (*cb)( void *,const char *, int,int,int),
+                                 void *cb_data )
 {
     progress_cb = cb;
     progress_cb_data = cb_data;
@@ -67,10 +68,8 @@ _gcry_register_pk_dsa_progress ( void (*cb)( void *, int), void *cb_data )
 static void
 progress( int c )
 {
-    if ( progress_cb )
-	progress_cb ( progress_cb_data, c );
-    else
-	fputc( c, stderr );
+  if (progress_cb)
+    progress_cb ( progress_cb_data, "pk_dsa", c, 0, 0);
 }
 
 

@@ -128,7 +128,7 @@ static ushort small_prime_numbers[] = {
 
 
 void
-_gcry_register_primegen_progress ( void (*cb)( void *, int), void *cb_data )
+_gcry_register_primegen_progress ( void (*cb)(void *,const char*,int,int,int), void *cb_data )
 {
     progress_cb = cb;
     progress_cb_data = cb_data;
@@ -138,10 +138,8 @@ _gcry_register_primegen_progress ( void (*cb)( void *, int), void *cb_data )
 static void
 progress( int c )
 {
-    if ( progress_cb )
-	progress_cb ( progress_cb_data, c );
-    else
-	fputc( c, stderr );
+  if ( progress_cb )
+    progress_cb ( progress_cb_data, "primegen", c, 0, 0 );
 }
 
 

@@ -1,3 +1,10 @@
+2002-05-21  Werner Koch  <wk@gnupg.org>
+
+	* primegen.c, elgamal.c, dsa.c (progress): Do not print anything
+	by default.  Pass an extra identifying string to the callback and
+	reserved 2 argumenst for current and total counters.  Changed the
+	register function prototype.
+
 2002-05-17  Werner Koch  <wk@gnupg.org>
 
 	* rndegd.c (rndegd_constructor): Fixed name of register function

@@ -529,3 +529,27 @@ _gcry_no_internal_locking (void)
   return no_internal_locking;
 }
 
+
+/* It is often useful to get some feedback of long running operations.
+   This function may be used to register a handler for this. 
+   The callback function CB is used as:
+
+   void cb (void *opaque, const char *what, int printchar,
+           int current, int total);
+
+   Where WHAT is a string identifying the the type of the progress
+   output, PRINTCHAR the character usually printed, CURRENT the amount
+   of progress currently done and TOTAL the expected amount of
+   progress.  A value of 0 for TOTAL indicates that there is no
+   estimation available.
+*/
+void
+gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
+                           void *cb_data)
+{
+  _gcry_register_pk_dsa_progress (cb, cb_data);
+  _gcry_register_pk_elg_progress (cb, cb_data);
+  _gcry_register_pk_primegen_progress (cb, cb_data);
+}
+
+
