@@ -368,6 +368,7 @@ gcry_mpi_randomize( gcry_mpi_t w,
 {
     char *p = mpi_is_secure(w) ? gcry_random_bytes( (nbits+7)/8, level )
 			       : gcry_random_bytes_secure( (nbits+7)/8, level );
+#warning use gcry_create_nonce if the random level is WEAK
     _gcry_mpi_set_buffer( w, p, (nbits+7)/8, 0 );
     gcry_free(p);
 }
