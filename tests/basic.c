@@ -72,6 +72,13 @@ die (const char *format, ...)
 
 #define MAX_DATA_LEN 100
 
+void
+progress_handler (void *cb_data, const char *what, int printchar,
+		  int current, int total)
+{
+  putchar (printchar);
+}
+
 static void
 check_cbc_mac_cipher (void)
 {
@@ -850,7 +857,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 }
 
 static void
-check_pubkey_grip (int n, test_spec_pubkey_t spec,
+check_pubkey_grip (int n, const unsigned char *grip,
 		   gcry_sexp_t skey, gcry_sexp_t pkey)
 {
   unsigned char sgrip[20], pgrip[20];
@@ -861,8 +868,18 @@ check_pubkey_grip (int n, test_spec_pubkey_t spec,
     die ("[%i] get keygrip for public RSA key failed\n", n);
   if (memcmp (sgrip, pgrip, 20))
     fail ("[%i] keygrips don't match\n", n);
-  if (memcmp (sgrip, spec.key.grip, 20))
+  if (memcmp (sgrip, grip, 20))
     fail ("wrong keygrip for RSA key\n");
+}
+
+static void
+do_check_one_pubkey (int n, gcry_sexp_t skey, gcry_sexp_t pkey,
+		     const unsigned char *grip, int flags)
+{
+ if (flags & FLAG_SIGN)
+    check_pubkey_sign (n, skey, pkey);
+ if (grip && (flags & FLAG_GRIP))
+   check_pubkey_grip (n, grip, skey, pkey);
 }
 
 static void
@@ -879,13 +896,47 @@ check_one_pubkey (int n, test_spec_pubkey_t spec)
   if (err)
     die ("converting sample key failed: %s\n", gpg_strerror (err));
 
-  if (spec.flags & FLAG_SIGN)
-    check_pubkey_sign (n, skey, pkey);
-  if (spec.flags & FLAG_GRIP)
-    check_pubkey_grip (n, spec, skey, pkey);
-
+  do_check_one_pubkey (n, skey, pkey, spec.key.grip, spec.flags);
+ 
   gcry_sexp_release (skey);
   gcry_sexp_release (pkey);
+}
+
+static void
+get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+{
+  gcry_sexp_t key_spec, key, pub_key, sec_key;
+  int rc;
+  
+  rc = gcry_sexp_new (&key_spec,
+		      "(genkey (rsa (nbits 4:1024)))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, key_spec);
+  gcry_sexp_release (key_spec);
+  if (rc)
+    die ("error generating RSA key: %s\n", gpg_strerror (rc));
+    
+  pub_key = gcry_sexp_find_token (key, "public-key", 0);
+  if (! pub_key)
+    die ("public part missing in key\n");
+
+  sec_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (! sec_key)
+    die ("private part missing in key\n");
+
+  gcry_sexp_release (key);
+  *pkey = pub_key;
+  *skey = sec_key;
+}
+
+static void
+check_one_pubkey_new (int n)
+{
+  gcry_sexp_t skey, pkey;
+
+  get_keys_new (&pkey, &skey);
+  do_check_one_pubkey (n, skey, pkey, NULL, FLAG_SIGN | FLAG_CRYPT);
 }
 
 /* Run all tests for the public key fucntions. */
@@ -1002,6 +1053,8 @@ check_pubkey (void)
   for (i = 0; i < sizeof (pubkeys) / sizeof (*pubkeys); i++)
     if (pubkeys[i].id)
       check_one_pubkey (i, pubkeys[i]);
+
+  check_one_pubkey_new (i);
 }
 
 int
@@ -1016,6 +1069,9 @@ main (int argc, char **argv)
 
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
+
+  gcry_set_progress_handler (progress_handler, NULL);
+  
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)

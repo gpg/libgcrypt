@@ -1,3 +1,11 @@
+2003-06-15  Moritz Schulte  <moritz@g10code.com>
+
+	* basic.c (get_keys_new): New function.
+	(do_check_one_pubkey): New function ...
+	(check_one_pubkey): ... use it.
+	(progress_handler): New function.
+	(main): Use gcry_set_progress_handler.
+
 2003-06-14  Moritz Schulte  <moritz@g10code.com>
 
 	* basic.c: Replaced calls to gcry_strerror with calls to
