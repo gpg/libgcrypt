@@ -35,11 +35,6 @@ void _gcry_update_random_seed_file (void);
 byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
 
-/*-- rndw32.c --*/
-#ifdef USE_STATIC_RNDW32
-void rndw32_set_dll_name( const char *name );
-#endif
-
 #endif /*G10_RANDOM_H*/
 
 

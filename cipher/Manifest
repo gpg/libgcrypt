@@ -1,19 +1,72 @@
-# Manifest - checksums
+# Manifest - checksums of the cipher directory
 # Copyright 2003 Free Software Foundation, Inc.
 #
-# This file is free software; as a special exception the author gives
-# unlimited permission to copy and/or distribute it, with or without
-# modifications, as long as this notice is preserved.
+# This file is part of Libgcrypt.
 #
-# This file is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
-# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# Libgcrypt is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser general Public License as
+# published by the Free Software Foundation; either version 2.1 of
+# the License, or (at your option) any later version.
+#
+# Libgcrypt is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
 # Checksums for all source files in this directory. Format is
 # filename, blanks, base-64 part of an OpenPGP detached signature
 # without the header lines.  Blank lines and lines beginning with a
-# hash mark are ignored.  Tools to manipulate this file are currently
-# under development.
+# hash mark are ignored.  A tool to process this file is available by
+# cvs -d :pserver:anoncvs@cvs.gnupg.org:/cvs/wk co misc-scripts/manifest-tool
+#
+# The special entry "$names$" holds a signature over all sorted
+# filenames excluding itself.
 
-random.c iQCVAwUAP6jMrkOmKjpR34vuAQJkHwP/dtQR7fux2UePwXBA96lqHsU5Y27qKlymSukbrafZWlwSV/TRQnCWKUf/gSYzFCoWI1uB9/bqVkKUlt2g7IYbF5VO19TOjR+rwGbDARrgczRt4WxU2RHfc6mK7VPvxA3CwUThPc7SJ+rv3A68uZhNKSmm+YZTwaL5nnqk6bzSNdg==rzCG
 
+# Algorithm API
+cipher.c 
+pubkey.c
+ac.c
+md.c
+primegen.c
+
+# Algorithm implementations
+arcfour.c
+blowfish.c
+cast5.c
+crc.c iQCVAwUAP7ouejEAnp832S/7AQIgwQQApg5Nm63tH5DQkbN+zPzMO9Ygoj3ukxfFTyTBPYSXYKMiTjEbESegaU40uN8jnz2vprcIQWcgZfzO4+opEJMcI35aPwzEk0vKOp0S/PrBLUY2rJfnDVkX5XgJFZa2Q7LLe826UEBzTVYW924utiCCe8oOaOEWVNpg1mqdknu3M9o==kz5D
+des.c
+dsa.c
+elgamal.c
+md4.c
+md5.c
+rijndael.c
+rmd160.c
+rsa.c
+serpent.c
+sha1.c
+sha256.c
+sha512.c
+tiger.c
+twofish.c
+
+# Random number related
+random.c iQCVAwUAP7nsITEAnp832S/7AQK4SAQAtvfUgrtGOQ2PlxGMla0qJLPHjJacMwgq0ecusiI79elPdDsFfCCk6dK1Ug2kFbNm22nCGHNcUquqbX7noi7ZVQnmPBQXzyLNZd7GmrawRZfdlRerTUDBpSnR8V8ui/5+YYp627E7kKGC0hPSgqXFql6oBMIfno0LZwFJTjIevRY==L419
+random.h iQCVAwUAP7ovKDEAnp832S/7AQJ3bQQAjnPebnyTC7sphAv2I7uIz+yPgw1ZfbVhLv+OiWDlO9ish+fRyyMpy+HELBOgZjJdgRegqhlZC6qyns5arM/VglYi+PzvdLO3hIqHE/YFfpIFPz8wBrcmlqrYyd3CsGqcYsfjocXNttCBLeSWmoJ09ltKQH8yzJf3oAgN6X1yuc4==eNoU
+rand-internal.h iQCVAwUAP7ouvDEAnp832S/7AQLYnAQAhdI7ERoJVCkV8GiV7MjaUxv1WIL7iZ+jIOvVhv4fNyhCGCGoEtTjkyput/lj7Nsh3FXEqRhypGGrCLf47x/gua5n+BwffogxVyUDqiOyyGhNTPpe3fQcNBvbPCtco8yMK4GJO5G3BqzlPyN+BMeogLymyV6Sm1mvh5LZDyAFbfQ==tZSE
+rndlinux.c
+rndegd.c
+rndunix.c
+rndw32.c
+
+# Helper
+bithelp.h iQCVAwUAP7ouPTEAnp832S/7AQKXggQAqjcgvihIF3WclOgw1JV2rbARw4ISIDRMFqdaNCqBRx6BwEz3UGsEIlz6+iR1sS/reqN61WvtjLb+D0+tujAkGrgQJhFLG85WtG2tB5UVoI3am1fpkwiRm+bR4rv0rGk0BYk81bC7+l4KrK9o5lVp4lCsrorlUKsd48lNmBHyAXM==mDDN
+rmd.h iQCVAwUAP7oumjEAnp832S/7AQJiJQP/V4bJwjZaYndJzV+KRnIDbl1koHuw+ZK5heMYVu8Qk4ylqv//BGyeRa3jZCcfPHI35q6HilCs2VBm8hiBMjHSqY/VPn2ZQ0yg/lt6qEvl7YjsLmyMICvjG+ncszHoq9pRvnF3vTnM18sPIioXLk8fskuM0XOCNBs0ARBAQjY9UGI==olUN
+
+# Configuration
+Makefile.am iQCVAwUAP7otvTEAnp832S/7AQJSRAQA22xFVzkSrsO7aoWxgJaJwDyHD6FC41au6+NGc1EpY/phUGtzmV/lvGuTz/VVe0hKP9UmUmIs8vVUf6UlrR26ePFwsk5ziForI4b8F18nIZQmt2TJNMIEN6N8rRPMmZCFEnWyT2z3+2kNrDUjanqY7mcKkT7ywB7qwwFeQ7egr3k==3zw5
+$names$ iQCVAwUAP7oq4DEAnp832S/7AQLJ9gQAwNn8FjvvH+7cKIfvgki+wS81lOe+tXdRBKgPwHteQy8N/VrusLtasqB6JmAX4RDL/3Y0IsX9lkuZS2S1XPB+JnjT6F2zt+jVmGgY6nDLMZUlZI++5Mz0s5qDiAGUC0vIA7dvICWNjDjFVEsKjcMlWRw16plTF2fe/yUjwsCGG1s==G7kF
