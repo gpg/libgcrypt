@@ -27,6 +27,7 @@
 #include <sys/times.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 
 typedef struct context
 {
