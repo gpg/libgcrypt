@@ -91,39 +91,34 @@ static gcry_err_code_t
 dummy_generate (int algorithm, unsigned int nbits, unsigned long dummy,
                 gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
-  log_bug ("no generate() for %d\n", algorithm);
-  return GPG_ERR_PUBKEY_ALGO;
+  return GPG_ERR_NOT_IMPLEMENTED;
 }
 
 static gcry_err_code_t
 dummy_check_secret_key (int algorithm, gcry_mpi_t *skey)
 {
-  log_bug ("no check_secret_key() for %d\n", algorithm);
-  return GPG_ERR_PUBKEY_ALGO;
+  return GPG_ERR_NOT_IMPLEMENTED;
 }
 
 static gcry_err_code_t
 dummy_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
                gcry_mpi_t *pkey, int flags)
 {
-  log_bug ("no encrypt() for %d\n", algorithm);
-  return GPG_ERR_PUBKEY_ALGO;
+  return GPG_ERR_NOT_IMPLEMENTED;
 }
 
 static gcry_err_code_t
 dummy_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data,
                gcry_mpi_t *skey, int flags)
 {
-  log_bug ("no decrypt() for %d\n", algorithm);
-  return GPG_ERR_PUBKEY_ALGO;
+  return GPG_ERR_NOT_IMPLEMENTED;
 }
 
 static gcry_err_code_t
 dummy_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
             gcry_mpi_t *skey)
 {
-  log_bug ("no sign() for %d\n", algorithm);
-  return GPG_ERR_PUBKEY_ALGO;
+  return GPG_ERR_NOT_IMPLEMENTED;
 }
 
 static gcry_err_code_t
@@ -131,14 +126,12 @@ dummy_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
               gcry_mpi_t *pkey,
 	      int (*cmp) (void *, gcry_mpi_t), void *opaquev)
 {
-  log_bug ("no verify() for %d\n", algorithm);
-  return GPG_ERR_PUBKEY_ALGO;
+  return GPG_ERR_NOT_IMPLEMENTED;
 }
 
 static unsigned
 dummy_get_nbits (int algorithm, gcry_mpi_t *pkey)
 {
-  log_bug ("no get_nbits() for %d\n", algorithm);
   return 0;
 }
 

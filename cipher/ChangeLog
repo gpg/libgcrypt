@@ -1,3 +1,11 @@
+2004-08-23  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (dummy_generate, dummy_check_secret_key)
+	(dummy_encrypt, dummy_decrypt, dummy_sign, dummy_verify): Return
+	err code GPG_ERR_NOT_IMPLEMENTED instead of aborting through
+	log_bug().
+	(dummy_get_nbits): Return 0 instead of aborting though log_bug().
+
 2004-08-19  Werner Koch  <wk@g10code.de>
 
 	* pubkey.c (sexp_data_to_mpi): Changed the zero random byte
