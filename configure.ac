@@ -27,15 +27,15 @@ min_automake_version="1.9.3"
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.2.1-cvs, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.2.1, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=12
-LIBGCRYPT_LT_AGE=1
-LIBGCRYPT_LT_REVISION=1
+LIBGCRYPT_LT_CURRENT=13
+LIBGCRYPT_LT_AGE=2
+LIBGCRYPT_LT_REVISION=0
 
 # If the API is changed in an incompatible way: increment the next counter.
 LIBGCRYPT_CONFIG_API_VERSION=1

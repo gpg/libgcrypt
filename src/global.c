@@ -274,6 +274,13 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
       err = ath_install (va_arg (arg_ptr, void *), any_init_done);
       break;
 
+    case GCRYCTL_FAST_POLL:
+      /* We need to do make sure that the random pool is really
+         initialized so that the poll fucntion is not a NOP. */
+      _gcry_random_initialize (1);
+      _gcry_fast_random_poll (); 
+      break;
+
     default:
       err = GPG_ERR_INV_OP;
     }
