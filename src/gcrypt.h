@@ -1,5 +1,6 @@
 /* gcrypt.h -  GNU cryptographic library interface
- * Copyright (C) 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004
+ *               2004  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -26,6 +27,10 @@
 
 #include <gpg-error.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+
 /* This is required for error code compatibility. */
 #define _GCRY_ERR_SOURCE_DEFAULT GPG_ERR_SOURCE_GCRYPT
 
@@ -36,7 +41,7 @@ extern "C" {
 #endif
 #endif
 
-/* The version of this header should match the one of the library It
+/* The version of this header should match the one of the library. It
    should not be used by a program because gcry_check_version() should
    return the same version.  The purpose of this macro is to let
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
@@ -53,7 +58,7 @@ extern "C" {
 #endif
 
 /* We want to use gcc attributes when possible.  Warning: Don't use
-   these macros in your progranms: As indicated by the leading
+   these macros in your programs: As indicated by the leading
    underscore they are subject to change without notice. */
 #ifdef __GNUC__
 
@@ -73,7 +78,7 @@ extern "C" {
 #define _GCRY_GCC_ATTR_MALLOC  __attribute__ ((__malloc__))
 #endif
 
-#endif
+#endif /*__GNUC__*/
 
 #ifndef _GCRY_GCC_ATTR_DEPRECATED
 #define _GCRY_GCC_ATTR_DEPRECATED
@@ -91,7 +96,7 @@ typedef gpg_error_t gcry_error_t;
 typedef gpg_err_code_t gcry_err_code_t;
 typedef gpg_err_source_t gcry_err_source_t;
 
-static __inline__ gcry_error_t
+static GPG_ERR_INLINE gcry_error_t
 gcry_err_make (gcry_err_source_t source, gcry_err_code_t code)
 {
   return gpg_err_make (source, code);
@@ -103,20 +108,20 @@ gcry_err_make (gcry_err_source_t source, gcry_err_code_t code)
 #define GCRY_ERR_SOURCE_DEFAULT  GPG_ERR_SOURCE_USER_1
 #endif
 
-static __inline__ gcry_error_t
+static GPG_ERR_INLINE gcry_error_t
 gcry_error (gcry_err_code_t code)
 {
   return gcry_err_make (GCRY_ERR_SOURCE_DEFAULT, code);
 }
 
-static __inline__ gcry_err_code_t
+static GPG_ERR_INLINE gcry_err_code_t
 gcry_err_code (gcry_error_t err)
 {
   return gpg_err_code (err);
 }
 
 
-static __inline__ gcry_err_source_t
+static GPG_ERR_INLINE gcry_err_source_t
 gcry_err_source (gcry_error_t err)
 {
   return gpg_err_source (err);
@@ -124,7 +129,7 @@ gcry_err_source (gcry_error_t err)
 
 /* Return a pointer to a string containing a description of the error
    code in the error value ERR.  */
-const char * gcry_strerror (gcry_error_t err);
+const char *gcry_strerror (gcry_error_t err);
 
 /* Return a pointer to a string containing a description of the error
    source in the error value ERR.  */
@@ -146,6 +151,119 @@ gcry_error_t gcry_err_make_from_errno (gcry_err_source_t source, int err);
 /* Return an error value with the system error ERR.  */
 gcry_err_code_t gcry_error_from_errno (int err);
 
+
+enum gcry_thread_option
+  {
+    GCRY_THREAD_OPTION_DEFAULT = 0,
+    GCRY_THREAD_OPTION_USER = 1,
+    GCRY_THREAD_OPTION_PTH = 2,
+    GCRY_THREAD_OPTION_PTHREAD = 3
+  };
+
+/* Wrapper for struct ath_ops.  */
+struct gcry_thread_cbs
+{
+  enum gcry_thread_option option;
+  int (*init) (void);
+  int (*mutex_init) (void **priv);
+  int (*mutex_destroy) (void **priv);
+  int (*mutex_lock) (void **priv);
+  int (*mutex_unlock) (void **priv);
+  ssize_t (*read) (int fd, void *buf, size_t nbytes);
+  ssize_t (*write) (int fd, const void *buf, size_t nbytes);
+  ssize_t (*select) (int nfd, fd_set *rset, fd_set *wset, fd_set *eset,
+		     struct timeval *timeout);
+  ssize_t (*waitpid) (pid_t pid, int *status, int options);
+  int (*accept) (int s, struct sockaddr *addr, socklen_t *length_ptr);
+  int (*connect) (int s, struct sockaddr *addr, socklen_t length);
+  int (*sendmsg) (int s, const struct msghdr *msg, int flags);
+  int (*recvmsg) (int s, struct msghdr *msg, int flags);
+};
+
+#define GCRY_THREAD_OPTION_PTH_IMPL					      \
+static int gcry_pth_init (void)						      \
+{ return (pth_init () == FALSE) ? errno : 0; }				      \
+static int gcry_pth_mutex_init (void **priv)				      \
+{									      \
+  int err = 0;								      \
+  pth_mutex_t *lock = malloc (sizeof (pth_mutex_t));			      \
+									      \
+  if (!lock)								      \
+    err = ENOMEM;							      \
+  if (!err)								      \
+    {									      \
+      err = pth_mutex_init (lock);					      \
+      if (err == FALSE)							      \
+	err = errno;							      \
+      else								      \
+	err = 0;							      \
+      if (err)								      \
+	free (lock);							      \
+      else								      \
+	*priv = lock;							      \
+    }									      \
+  return err;								      \
+}									      \
+static int gcry_pth_mutex_destroy (void **lock)				      \
+  { /* GNU Pth has no destructor function.  */ free (*lock); return 0; }      \
+static int gcry_pth_mutex_lock (void **lock)				      \
+  { return ((pth_mutex_acquire (*lock, 0, NULL)) == FALSE)		      \
+      ? errno : 0; }							      \
+static int gcry_pth_mutex_unlock (void **lock)				      \
+  { return ((pth_mutex_release (*lock)) == FALSE)			      \
+      ? errno : 0; }							      \
+static ssize_t gcry_pth_read (int fd, void *buf, size_t nbytes)		      \
+  { return pth_read (fd, buf, nbytes); }				      \
+static ssize_t gcry_pth_write (int fd, const void *buf, size_t nbytes)	      \
+  { return pth_write (fd, buf, nbytes); }				      \
+static ssize_t gcry_pth_select (int nfd, fd_set *rset, fd_set *wset,	      \
+				fd_set *eset, struct timeval *timeout)	      \
+  { return pth_select (nfd, rset, wset, eset, timeout); }		      \
+static ssize_t gcry_pth_waitpid (pid_t pid, int *status, int options)	      \
+  { return pth_waitpid (pid, status, options); }			      \
+static int gcry_pth_accept (int s, struct sockaddr *addr,		      \
+			    socklen_t *length_ptr)			      \
+  { return pth_accept (s, addr, length_ptr); }				      \
+static int gcry_pth_connect (int s, struct sockaddr *addr, socklen_t length)  \
+  { return pth_connect (s, addr, length); }				      \
+									      \
+/* FIXME: GNU Pth is missing pth_sendmsg and pth_recvmsg.  */		      \
+static struct gcry_thread_cbs gcry_threads_pth = { GCRY_THREAD_OPTION_PTH,    \
+  gcry_pth_init, gcry_pth_mutex_init, gcry_pth_mutex_destroy,		      \
+  gcry_pth_mutex_lock, gcry_pth_mutex_unlock, gcry_pth_read, gcry_pth_write,  \
+  gcry_pth_select, gcry_pth_waitpid, gcry_pth_accept, gcry_pth_connect }
+
+#define GCRY_THREAD_OPTION_PTHREAD_IMPL					      \
+static int gcry_pthread_mutex_init (void **priv)			      \
+{									      \
+  int err = 0;								      \
+  pthread_mutex_t *lock = malloc (sizeof (pthread_mutex_t));		      \
+									      \
+  if (!lock)								      \
+    err = ENOMEM;							      \
+  if (!err)								      \
+    {									      \
+      err = pthread_mutex_init (lock, NULL);				      \
+      if (err)								      \
+	free (lock);							      \
+      else								      \
+	*priv = lock;							      \
+    }									      \
+  return err;								      \
+}									      \
+static int gcry_pthread_mutex_destroy (void **lock)			      \
+  { int err = pthread_mutex_destroy (*lock);  free (*lock); return err; }     \
+static int gcry_pthread_mutex_lock (void **lock)			      \
+  { return pthread_mutex_lock (*lock); }				      \
+static int gcry_pthread_mutex_unlock (void **lock)			      \
+  { return pthread_mutex_unlock (*lock); }				      \
+									      \
+static struct gcry_thread_cbs gcry_threads_pthread =			      \
+{ GCRY_THREAD_OPTION_PTHREAD, NULL,					      \
+  gcry_pthread_mutex_init, gcry_pthread_mutex_destroy,			      \
+  gcry_pthread_mutex_lock, gcry_pthread_mutex_unlock }
+
+
 /* The data object used to hold a multi precision integer.  */
 struct gcry_mpi;
 typedef struct gcry_mpi *gcry_mpi_t;
@@ -190,11 +308,11 @@ enum gcry_ctl_cmds
     GCRYCTL_TERM_SECMEM       = 25,
     GCRYCTL_DISABLE_SECMEM_WARN = 27,
     GCRYCTL_SUSPEND_SECMEM_WARN = 28,
-    GCRYCTL_RESUME_SECMEM_WARN	= 29,
-    GCRYCTL_DROP_PRIVS		= 30,
-    GCRYCTL_ENABLE_M_GUARD	= 31,
-    GCRYCTL_START_DUMP		= 32,
-    GCRYCTL_STOP_DUMP		= 33,
+    GCRYCTL_RESUME_SECMEM_WARN  = 29,
+    GCRYCTL_DROP_PRIVS          = 30,
+    GCRYCTL_ENABLE_M_GUARD      = 31,
+    GCRYCTL_START_DUMP          = 32,
+    GCRYCTL_STOP_DUMP           = 33,
     GCRYCTL_GET_ALGO_USAGE      = 34,
     GCRYCTL_IS_ALGO_ENABLED     = 35,
     GCRYCTL_DISABLE_INTERNAL_LOCKING = 36,
@@ -207,7 +325,9 @@ enum gcry_ctl_cmds
     GCRYCTL_SET_CTR = 43,
     GCRYCTL_ENABLE_QUICK_RANDOM = 44,
     GCRYCTL_SET_RANDOM_SEED_FILE = 45,
-    GCRYCTL_UPDATE_RANDOM_SEED_FILE = 46
+    GCRYCTL_UPDATE_RANDOM_SEED_FILE = 46,
+    GCRYCTL_SET_THREAD_CBS = 47,
+    GCRYCTL_FAST_POLL = 48
   };
 
 /* Perform various operations defined by CMD. */
@@ -228,7 +348,7 @@ typedef struct gcry_sexp *GcrySexp _GCRY_GCC_ATTR_DEPRECATED;
 enum gcry_sexp_format
   {
     GCRYSEXP_FMT_DEFAULT   = 0,
-    GCRYSEXP_FMT_CANON	   = 1,
+    GCRYSEXP_FMT_CANON     = 1,
     GCRYSEXP_FMT_BASE64    = 2,
     GCRYSEXP_FMT_ADVANCED  = 3
   };
@@ -236,28 +356,30 @@ enum gcry_sexp_format
 /* Create an new S-expression object from BUFFER of size LENGTH and
    return it in RETSEXP.  With AUTODETECT set to 0 the data in BUFFER
    is expected to be in canonized format.  */
-gcry_error_t gcry_sexp_new (gcry_sexp_t *retsexp, const void *buffer, size_t length,
-			   int autodetect);
+gcry_error_t gcry_sexp_new (gcry_sexp_t *retsexp,
+                            const void *buffer, size_t length,
+                            int autodetect);
 
  /* Same as gcry_sexp_new but allows to pass a FREEFNC which has the
-   effect to transfer ownership of BUFFER to the created object.  */
-gcry_error_t gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
-			      int autodetect, void (*freefnc) (void *));
+    effect to transfer ownership of BUFFER to the created object.  */
+gcry_error_t gcry_sexp_create (gcry_sexp_t *retsexp,
+                               void *buffer, size_t length,
+                               int autodetect, void (*freefnc) (void *));
 
 /* Scan BUFFER and return a new S-expression object in RETSEXP.  This
    function expects a printf like string in BUFFER.  */
 gcry_error_t gcry_sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
-			     const char *buffer, size_t length);
+                              const char *buffer, size_t length);
 
 /* Same as gcry_sexp_sscan but expects a string in FORMAT and can thus
    only be used for certain encodings.  */
 gcry_error_t gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff,
-			     const char *format, ...);
+                              const char *format, ...);
 
 /* Like gcry_sexp_build, but uses an array instead of variable
    function arguments.  */
 gcry_error_t gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
-				   const char *format, void **arg_list);
+                                   const char *format, void **arg_list);
 
 /* Release the S-expression object SEXP */
 void gcry_sexp_release (gcry_sexp_t sexp);
@@ -288,7 +410,7 @@ gcry_sexp_t gcry_sexp_prepend (const gcry_sexp_t a, const gcry_sexp_t n);
    newly allocated S-expression consisting of the found sublist or
    `NULL' when not found.  */
 gcry_sexp_t gcry_sexp_find_token (gcry_sexp_t list,
-				const char *tok, size_t toklen);
+                                const char *tok, size_t toklen);
 /* Return the length of the LIST.  For a valid S-expression this
    should be at least 1.  */
 int gcry_sexp_length (const gcry_sexp_t list);
@@ -320,7 +442,7 @@ gcry_sexp_t gcry_sexp_cadr (const gcry_sexp_t list);
    *Note:* The returned pointer is valid as long as LIST is not
    modified or released.  */
 const char *gcry_sexp_nth_data (const gcry_sexp_t list, int number,
-				size_t *datalen);
+                                size_t *datalen);
 
 /* This function is used to get and convert data from a LIST. This
    data is assumed to be an MPI stored in the format described by
@@ -333,9 +455,9 @@ gcry_mpi_t gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt);
 
 
 /*******************************************
- *					   *
- *  multi precision integer functions	   *
- *					   *
+ *                                         *
+ *  multi precision integer functions      *
+ *                                         *
  *******************************************/
 
 /* Different formats of external big integer representation. */
@@ -465,7 +587,8 @@ void gcry_mpi_mod (gcry_mpi_t r, gcry_mpi_t dividend, gcry_mpi_t divisor);
 
 /* W = B ^ E mod M. */
 void gcry_mpi_powm (gcry_mpi_t w,
-                    const gcry_mpi_t b, const gcry_mpi_t e, const gcry_mpi_t m);
+                    const gcry_mpi_t b, const gcry_mpi_t e,
+                    const gcry_mpi_t m);
 
 /* Set G to the greatest common divisor of A and B.  
    Return true if the G is 1. */
@@ -522,7 +645,7 @@ int gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 /* Unless the GCRYPT_NO_MPI_MACROS is used, provide a couple of
    convenience macors for the big integer functions. */
 #ifndef GCRYPT_NO_MPI_MACROS
-#define mpi_new(n)	    gcry_mpi_new( (n) )
+#define mpi_new(n)          gcry_mpi_new( (n) )
 #define mpi_secure_new( n ) gcry_mpi_snew( (n) )
 #define mpi_release(a)      \
   do \
@@ -532,9 +655,10 @@ int gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
     } \
   while (0)
 
-#define mpi_copy( a )	    gcry_mpi_copy( (a) )
-#define mpi_set( w, u)	    gcry_mpi_set( (w), (u) )
+#define mpi_copy( a )       gcry_mpi_copy( (a) )
+#define mpi_set( w, u)      gcry_mpi_set( (w), (u) )
 #define mpi_set_ui( w, u)   gcry_mpi_set_ui( (w), (u) )
+#define mpi_get_ui( w, u)   gcry_mpi_get_ui( (w), (u) )
 #define mpi_cmp( u, v )     gcry_mpi_cmp( (u), (v) )
 #define mpi_cmp_ui( u, v )  gcry_mpi_cmp_ui( (u), (v) )
 
@@ -586,26 +710,27 @@ typedef struct gcry_cipher_handle *GcryCipherHd _GCRY_GCC_ATTR_DEPRECATED;
    More IDs may be registered at runtime. */
 enum gcry_cipher_algos
   {
-    GCRY_CIPHER_NONE	    = 0,
-    GCRY_CIPHER_IDEA	    = 1,
-    GCRY_CIPHER_3DES	    = 2,
-    GCRY_CIPHER_CAST5	    = 3,
+    GCRY_CIPHER_NONE        = 0,
+    GCRY_CIPHER_IDEA        = 1,
+    GCRY_CIPHER_3DES        = 2,
+    GCRY_CIPHER_CAST5       = 3,
     GCRY_CIPHER_BLOWFISH    = 4,
     GCRY_CIPHER_SAFER_SK128 = 5,
-    GCRY_CIPHER_DES_SK	    = 6,
+    GCRY_CIPHER_DES_SK      = 6,
     GCRY_CIPHER_AES         = 7,
     GCRY_CIPHER_AES192      = 8,
     GCRY_CIPHER_AES256      = 9,
     GCRY_CIPHER_TWOFISH     = 10,
 
-    /* other cipher numbers are above 300 for OpenPGP reasons. */
-    GCRY_CIPHER_ARCFOUR     = 301,  /* fully compatible with RSA's RC4 (tm). */
+    /* Other cipher numbers are above 300 for OpenPGP reasons. */
+    GCRY_CIPHER_ARCFOUR     = 301,  /* Fully compatible with RSA's RC4 (tm). */
     GCRY_CIPHER_DES         = 302,  /* Yes, this is single key 56 bit DES. */
     GCRY_CIPHER_TWOFISH128  = 303,
     GCRY_CIPHER_SERPENT128  = 304,
     GCRY_CIPHER_SERPENT192  = 305,
     GCRY_CIPHER_SERPENT256  = 306,
-    
+    GCRY_CIPHER_RFC2268_40  = 307,  /* Ron's Cipher 2 (40 bit). */
+    GCRY_CIPHER_RFC2268_128 = 308   /* Ron's Cipher 2 (128 bit). */
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */
@@ -631,32 +756,32 @@ enum gcry_cipher_modes
 /* Flags used with the open function. */ 
 enum gcry_cipher_flags
   {
-    GCRY_CIPHER_SECURE	    = 1,  /* Allocate in secure memory. */
+    GCRY_CIPHER_SECURE      = 1,  /* Allocate in secure memory. */
     GCRY_CIPHER_ENABLE_SYNC = 2,  /* Enable CFB sync mode. */
-    GCRY_CIPHER_CBC_CTS	    = 4,  /* Enable CBC cipher text stealing (CTS). */
-    GCRY_CIPHER_CBC_MAC	    = 8   /* Enable CBC message auth. code (MAC). */
+    GCRY_CIPHER_CBC_CTS     = 4,  /* Enable CBC cipher text stealing (CTS). */
+    GCRY_CIPHER_CBC_MAC     = 8   /* Enable CBC message auth. code (MAC). */
   };
 
 
 /* Create a handle for algorithm ALGO to be used in MODE.  FLAGS may
    be given as an bitwise OR of the gcry_cipher_flags values. */
 gcry_error_t gcry_cipher_open (gcry_cipher_hd_t *handle,
-			      int algo, int mode, unsigned int flags);
+                              int algo, int mode, unsigned int flags);
 
 /* Close the cioher handle H and release all resource. */
 void gcry_cipher_close (gcry_cipher_hd_t h);
 
 /* Perform various operations on the cipher object H. */
 gcry_error_t gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer,
-			     size_t buflen);
+                             size_t buflen);
 
 /* Retrieve various information about the cipher object H. */
 gcry_error_t gcry_cipher_info (gcry_cipher_hd_t h, int what, void *buffer,
-			      size_t *nbytes);
+                              size_t *nbytes);
 
 /* Retrieve various information about the cipher algorithm ALGO. */
 gcry_error_t gcry_cipher_algo_info (int algo, int what, void *buffer,
-				   size_t *nbytes);
+                                   size_t *nbytes);
 
 /* Map the cipher algorithm id ALGO to a string representation of that
    algorithm name.  For unknown algorithms this functions returns an
@@ -677,23 +802,23 @@ int gcry_cipher_mode_from_oid (const char *string) _GCRY_GCC_ATTR_PURE;
    most algorithms it is possible to pass NULL for in and 0 for INLEN
    and do a in-place decryption of the data provided in OUT.  */
 gcry_error_t gcry_cipher_encrypt (gcry_cipher_hd_t h,
-				 unsigned char *out, size_t outsize,
-				 const unsigned char *in, size_t inlen);
+                                 unsigned char *out, size_t outsize,
+                                 const unsigned char *in, size_t inlen);
 
 /* The counterpart to gcry_cipher_encrypt.  */
 gcry_error_t gcry_cipher_decrypt (gcry_cipher_hd_t h,
-				 unsigned char *out, size_t outsize,
-				 const unsigned char *in, size_t inlen);
+                                 unsigned char *out, size_t outsize,
+                                 const unsigned char *in, size_t inlen);
 
 /* Set key K of length L for the cipher handle H.  (We have to cast
    away a const char* here - this catch-all ctl function was probably
    not the best choice) */
 #define gcry_cipher_setkey(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_KEY, \
-							 (char*)(k), (l) )
+                                                         (char*)(k), (l) )
 
 /* Set initialization vector K of length L for the cipher handle H. */
 #define gcry_cipher_setiv(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_IV, \
-							 (char*)(k), (l) )
+                                                         (char*)(k), (l) )
 
 /* Reset the handle to the state after open.  */
 #define gcry_cipher_reset(h)  gcry_cipher_ctl ((h), GCRYCTL_RESET, NULL, 0)
@@ -701,16 +826,16 @@ gcry_error_t gcry_cipher_decrypt (gcry_cipher_hd_t h,
 /* Perform the the OpenPGP sync operation if this is enabled for the
    cipher handle H. */
 #define gcry_cipher_sync(h)  gcry_cipher_ctl( (h), GCRYCTL_CFB_SYNC, \
-								   NULL, 0 )
+                                                                   NULL, 0 )
 
 /* Enable or disable CTS in future calls to gcry_encrypt(). CBC mode only. */
 #define gcry_cipher_cts(h,on)  gcry_cipher_ctl( (h), GCRYCTL_SET_CBC_CTS, \
-								   NULL, on )
+                                                                   NULL, on )
 
 /* Set counter for CTR mode.  (K,L) must denote a buffer of block size
    length, or (NULL,0) to set the CTR to the all-zero block. */
 #define gcry_cipher_setctr(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_CTR, \
-						    (char*)(k), (l) )
+                                                    (char*)(k), (l) )
 
 /* Retrieved the key length used with algorithm A. */
 size_t gcry_cipher_get_algo_keylen (int algo);
@@ -720,7 +845,7 @@ size_t gcry_cipher_get_algo_blklen (int algo);
 
 /* Return 0 if the algorithm A is available for use. */
 #define gcry_cipher_test_algo(a) \
-	    gcry_cipher_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
+            gcry_cipher_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
 /* Get a list consisting of the IDs of the loaded cipher modules.  If
    LIST is zero, write the number of loaded cipher modules to
@@ -728,7 +853,7 @@ size_t gcry_cipher_get_algo_blklen (int algo);
    *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
    according size.  In case there are less cipher modules than
    *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
-gcry_error_t gcry_cipher_list (int **list, int *list_length);
+gcry_error_t gcry_cipher_list (int *list, int *list_length);
 
 
 /************************************
@@ -741,8 +866,8 @@ gcry_error_t gcry_cipher_list (int **list, int *list_length);
 enum gcry_pk_algos 
   {
     GCRY_PK_RSA = 1,
-    GCRY_PK_RSA_E = 2,	    /* deprecated */
-    GCRY_PK_RSA_S = 3,	    /* deprecated */
+    GCRY_PK_RSA_E = 2,      /* deprecated */
+    GCRY_PK_RSA_S = 3,      /* deprecated */
     GCRY_PK_ELG_E = 16,     /* use only for OpenPGP */
     GCRY_PK_DSA   = 17,
     GCRY_PK_ELG   = 20
@@ -754,20 +879,24 @@ enum gcry_pk_algos
 
 /* Encrypt the DATA using the public key PKEY and store the result as
    a newly created S-expression at RESULT. */
-gcry_error_t gcry_pk_encrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t pkey);
+gcry_error_t gcry_pk_encrypt (gcry_sexp_t *result,
+                              gcry_sexp_t data, gcry_sexp_t pkey);
 
 /* Decrypt the DATA using the private key SKEY and store the result as
    a newly created S-expression at RESULT. */
-gcry_error_t gcry_pk_decrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey);
+gcry_error_t gcry_pk_decrypt (gcry_sexp_t *result,
+                              gcry_sexp_t data, gcry_sexp_t skey);
 
 /* Sign the DATA using the private key SKEY and store the result as
    a newly created S-expression at RESULT. */
-gcry_error_t gcry_pk_sign (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey);
+gcry_error_t gcry_pk_sign (gcry_sexp_t *result,
+                           gcry_sexp_t data, gcry_sexp_t skey);
 
 /* Check the signature SIGVAL on DATA using the public key PKEY. */
-gcry_error_t gcry_pk_verify (gcry_sexp_t sigval, gcry_sexp_t data, gcry_sexp_t pkey);
+gcry_error_t gcry_pk_verify (gcry_sexp_t sigval,
+                             gcry_sexp_t data, gcry_sexp_t pkey);
 
-/* Check that KEY (either private or public) is sane. */
+/* Check that private KEY is sane. */
 gcry_error_t gcry_pk_testkey (gcry_sexp_t key);
 
 /* Generate a new key pair according to the parameters given in
@@ -779,7 +908,8 @@ gcry_error_t gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms);
 gcry_error_t gcry_pk_ctl (int cmd, void *buffer, size_t buflen);
 
 /* Retrieve information about the public key algorithm ALGO. */
-gcry_error_t gcry_pk_algo_info (int algo, int what, void *buffer, size_t *nbytes);
+gcry_error_t gcry_pk_algo_info (int algo, int what,
+                                void *buffer, size_t *nbytes);
 
 /* Map the public key algorithm id ALGO to a string representation of the
    algorithm name.  For unknown algorithms this functions returns an
@@ -800,7 +930,7 @@ unsigned char *gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array);
 
 /* Return 0 if the public key algorithm A is available for use. */
 #define gcry_pk_test_algo(a) \
-	    gcry_pk_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
+            gcry_pk_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
 /* Get a list consisting of the IDs of the loaded pubkey modules.  If
    LIST is zero, write the number of loaded pubkey modules to
@@ -810,8 +940,6 @@ unsigned char *gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array);
    *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
 gcry_error_t gcry_pk_list (int *list, int *list_length);
 
-
-
 /************************************
  *                                  *
  *   cryptograhic hash functions    *
@@ -820,7 +948,7 @@ gcry_error_t gcry_pk_list (int *list, int *list_length);
 
 /* Algorithm IDs for the hash functions we know about. Not all of them
    are implemnted. */
-enum gcry_md_algos
+typedef enum gcry_md_algos
   {
     GCRY_MD_NONE    = 0,  
     GCRY_MD_MD5     = 1,
@@ -833,20 +961,19 @@ enum gcry_md_algos
     GCRY_MD_SHA384  = 9,
     GCRY_MD_SHA512  = 10,
     GCRY_MD_MD4     = 301,
-    GCRY_MD_CRC32		= 302,
-    GCRY_MD_CRC32_RFC1510	= 303,
-    GCRY_MD_CRC24_RFC2440	= 304
-  };
-
-typedef int gcry_md_algo_t;
+    GCRY_MD_CRC32               = 302,
+    GCRY_MD_CRC32_RFC1510       = 303,
+    GCRY_MD_CRC24_RFC2440       = 304
+  }
+gcry_md_algo_t;
 
 /* Flags used with the open function.  */
 enum gcry_md_flags
   {
     GCRY_MD_FLAG_SECURE = 1,  /* Allocate all buffers in "secure"
-				 memory.  */
-    GCRY_MD_FLAG_HMAC	= 2   /* Make an HMAC out of this
-				 algorithm.  */
+                                 memory.  */
+    GCRY_MD_FLAG_HMAC   = 2   /* Make an HMAC out of this
+                                 algorithm.  */
   };
 
 /* Forward declaration.  */
@@ -874,13 +1001,13 @@ typedef struct gcry_md_handle *GcryMDHd _GCRY_GCC_ATTR_DEPRECATED;
    given as an bitwise OR of the gcry_md_flags values.  ALGO may be
    given as 0 if the algorithms to be used are later set using
    gcry_md_enable.  */
-gcry_error_t gcry_md_open (gcry_md_hd_t *h, gcry_md_algo_t algo, unsigned int flags);
+gcry_error_t gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags);
 
 /* Release the message digest object HD.  */
 void gcry_md_close (gcry_md_hd_t hd);
 
 /* Add the message digest algorithm ALGO to the digest object HD.  */
-gcry_error_t gcry_md_enable (gcry_md_hd_t hd, gcry_md_algo_t algo);
+gcry_error_t gcry_md_enable (gcry_md_hd_t hd, int algo);
 
 /* Create a new digest object as an exact copy of the object HD.  */
 gcry_error_t gcry_md_copy (gcry_md_hd_t *bhd, gcry_md_hd_t ahd);
@@ -890,7 +1017,7 @@ void gcry_md_reset (gcry_md_hd_t hd);
 
 /* Perform various operations on the digets object HD. */
 gcry_error_t gcry_md_ctl (gcry_md_hd_t hd, int cmd, unsigned char *buffer,
-			  size_t buflen);
+                         size_t buflen);
 
 /* Pass LENGTH bytes of data in BUFFER to the digest object HD so that
    it can update the digest values.  This is the actual hash
@@ -899,15 +1026,15 @@ void gcry_md_write (gcry_md_hd_t hd, const void *buffer, size_t length);
 
 /* Read out the final digest from HD return the digest value for
    algorithm ALGO. */
-unsigned char *gcry_md_read (gcry_md_hd_t hd, gcry_md_algo_t algo);
+unsigned char *gcry_md_read (gcry_md_hd_t hd, int algo);
 
 /* Convenience function to calculate the hash from the data in BUFFER
    of size LENGTH using the algorithm ALGO avoiding the creating of a
    hash object.  The hash is returned in the caller provided buffer
    DIGEST which must be large enough to hold the digest of the given
    algorithm. */
-void gcry_md_hash_buffer (gcry_md_algo_t algo, void *digest,
-			  const void *buffer, size_t length);
+void gcry_md_hash_buffer (int algo, void *digest,
+                          const void *buffer, size_t length);
 
 /* Retrieve the algorithm used with HD.  This does not work reliable
    if more than one algorithm is enabled in HD. */
@@ -915,27 +1042,27 @@ int gcry_md_get_algo (gcry_md_hd_t hd);
 
 /* Retrieve the length in bytes of the digest yielded by algorithm
    ALGO. */
-unsigned int gcry_md_get_algo_dlen (gcry_md_algo_t algo);
+unsigned int gcry_md_get_algo_dlen (int algo);
 
 /* Return true if the the algorithm ALGO is enabled in the digest
    object A. */
-int gcry_md_is_enabled (gcry_md_hd_t a, gcry_md_algo_t algo);
+int gcry_md_is_enabled (gcry_md_hd_t a, int algo);
 
 /* Return true if the digest object A is allocated in "secure" memory. */
 int gcry_md_is_secure (gcry_md_hd_t a);
 
 /* Retrieve various information about the object H.  */
 gcry_error_t gcry_md_info (gcry_md_hd_t h, int what, void *buffer,
-			   size_t *nbytes);
+                          size_t *nbytes);
 
 /* Retrieve various information about the algorithm ALGO.  */
-gcry_error_t gcry_md_algo_info (gcry_md_algo_t algo, int what, void *buffer,
-				size_t *nbytes);
+gcry_error_t gcry_md_algo_info (int algo, int what, void *buffer,
+                               size_t *nbytes);
 
 /* Map the digest algorithm id ALGO to a string representation of the
    algorithm name.  For unknown algorithms this functions returns an
    empty string. */
-const char *gcry_md_algo_name (gcry_md_algo_t algo) _GCRY_GCC_ATTR_PURE;
+const char *gcry_md_algo_name (int algo) _GCRY_GCC_ATTR_PURE;
 
 /* Map the algorithm NAME to a digest algorithm Id.  Return 0 if
    the algorithm name is not known. */
@@ -948,21 +1075,21 @@ gcry_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
 /* Update the hash(s) of H with the character C.  This is a buffered
    version of the gcry_md_write function. */
 #define gcry_md_putc(h,c)  \
-	    do {					  \
+            do {                                          \
                 gcry_md_hd_t h__ = (h);                   \
-		if( (h__)->bufpos == (h__)->bufsize )	  \
-		    gcry_md_write( (h__), NULL, 0 );	  \
-		(h__)->buf[(h__)->bufpos++] = (c) & 0xff; \
-	    } while(0)
+                if( (h__)->bufpos == (h__)->bufsize )     \
+                    gcry_md_write( (h__), NULL, 0 );      \
+                (h__)->buf[(h__)->bufpos++] = (c) & 0xff; \
+            } while(0)
 
 /* Finalize the digest calculation.  This is not really needed because
    gcry_md_read() does this implicitly. */
 #define gcry_md_final(a) \
-	    gcry_md_ctl ((a), GCRYCTL_FINALIZE, NULL, 0)
+            gcry_md_ctl ((a), GCRYCTL_FINALIZE, NULL, 0)
 
 /* Return 0 if the algorithm A is available for use. */
 #define gcry_md_test_algo(a) \
-	    gcry_md_algo_info((a), GCRYCTL_TEST_ALGO, NULL, NULL)
+            gcry_md_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
 /* Return an DER encoded ASN.1 OID for the algorithm A in buffer B. N
    must point to size_t variable with the available size of buffer B.
@@ -975,11 +1102,11 @@ gcry_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
    dbgmd-<n>.<string> while hashing.  B is a string used as the suffix
    for the filename. */
 #define gcry_md_start_debug(a,b) \
-	    gcry_md_ctl((a), GCRYCTL_START_DUMP, (b), 0)
+            gcry_md_ctl( (a), GCRYCTL_START_DUMP, (b), 0 )
 
 /* Disable the debugging of A. */
 #define gcry_md_stop_debug(a,b) \
-	    gcry_md_ctl((a), GCRYCTL_STOP_DUMP, (b), 0)
+            gcry_md_ctl( (a), GCRYCTL_STOP_DUMP, (b), 0 )
 
 /* Get a list consisting of the IDs of the loaded message digest
    modules.  If LIST is zero, write the number of loaded message
@@ -988,7 +1115,7 @@ gcry_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
    of according size.  In case there are less message digest modules
    than *LIST_LENGTH, *LIST_LENGTH is updated to the correct
    number.  */
-gcry_error_t gcry_md_list (int **list, int *list_length);
+gcry_error_t gcry_md_list (int *list, int *list_length);
 
 
 
@@ -1000,7 +1127,7 @@ typedef enum gcry_ac_id
     GCRY_AC_RSA = 1,
     GCRY_AC_DSA = 17,
     GCRY_AC_ELG = 20,
-    GCRY_AC_ELG_E = 16,
+    GCRY_AC_ELG_E = 16
   }
 gcry_ac_id_t;
 
@@ -1008,7 +1135,7 @@ gcry_ac_id_t;
 typedef enum gcry_ac_key_type
   {
     GCRY_AC_KEY_SECRET,
-    GCRY_AC_KEY_PUBLIC,
+    GCRY_AC_KEY_PUBLIC
   }
 gcry_ac_key_type_t;
 
@@ -1054,7 +1181,7 @@ typedef struct gcry_ac_handle *gcry_ac_handle_t;
    algorithm-specific way.  */
 typedef struct gcry_ac_key_spec_rsa
 {
-  unsigned long int e; 		/* E to use.  */
+  unsigned long e;                 /* E to use.  */
 } gcry_ac_key_spec_rsa_t;
 
 /* Structure used for passing data to the implementation of the
@@ -1088,7 +1215,7 @@ void gcry_ac_data_destroy (gcry_ac_data_t data);
 
 /* Create a copy of the data set DATA and store it in DATA_CP.  */
 gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *data_cp,
-				gcry_ac_data_t data);
+                               gcry_ac_data_t data);
 
 /* Return the number of named MPI values inside of the data set
    DATA.  */
@@ -1103,52 +1230,67 @@ void gcry_ac_data_clear (gcry_ac_data_t data);
    GCRY_AC_FLAG_DATA_COPY, the values contained in the data set will
    be deallocated when they are to be removed from the data set.  */
 gcry_error_t gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
-			       const char *name, gcry_mpi_t mpi);
+                               const char *name, gcry_mpi_t mpi);
 
-/* Store the value labelled with NAME found in DATA in MPI or NULL if
-   a value with that label was not found.  */
+/* Store the value labelled with NAME found in DATA in MPI.  If FLAGS
+   contains GCRY_AC_FLAG_COPY, store a copy of the MPI value contained
+   in the data set.  MPI may be NULL.  */
 gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
-				    const char *name, gcry_mpi_t *mpi);
+                                    const char *name, gcry_mpi_t *mpi);
 
-/* Return the MPI value with index IDX contained in the data set
-   DATA.  */
-gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags, unsigned int idx,
-				     const char **name, gcry_mpi_t *mpi);
+/* Stores in NAME and MPI the named MPI value contained in the data
+   set DATA with the index IDX.  If FLAGS contains GCRY_AC_FLAG_COPY,
+   store copies of the values contained in the data set. NAME or MPI
+   may be NULL.  */
+gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
+                                     unsigned int idx,
+                                     const char **name, gcry_mpi_t *mpi);
+
+gcry_error_t gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
+				   const char **identifiers);
+
+gcry_error_t gcry_ac_data_from_sexp (gcry_ac_data_t *data, gcry_sexp_t sexp,
+				     const char **identifiers);
 
 /* Create a new ac handle.  */
 gcry_error_t gcry_ac_open (gcry_ac_handle_t *handle,
-			   gcry_ac_id_t algorithm,
-			   unsigned int flags);
+                           gcry_ac_id_t algorithm, unsigned int flags);
 
 /* Destroy an ac handle.  */
 void gcry_ac_close (gcry_ac_handle_t handle);
 
 /* Initialize a key from a given data set.  */
-gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key,
-			       gcry_ac_handle_t handle,
-			       gcry_ac_key_type_t type,
-			       gcry_ac_data_t data);
+gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key, gcry_ac_handle_t handle,
+                               gcry_ac_key_type_t type, gcry_ac_data_t data);
 
-/* Generate a new key pair.  */
-gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle, unsigned int nbits, void *spec,
-					gcry_ac_key_pair_t *key_pair, gcry_mpi_t **misc_data);
+/* Generates a new key pair via the handle HANDLE of NBITS bits and
+   stores it in KEY_PAIR.  In case non-standard settings are wanted, a
+   pointer to a structure of type gcry_ac_key_spec_<algorithm>_t,
+   matching the selected algorithm, can be given as KEY_SPEC.
+   MISC_DATA is not used yet.  */
+gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
+                                        unsigned int nbits, void *spec,
+                                        gcry_ac_key_pair_t *key_pair,
+                                        gcry_mpi_t **misc_data);
 
-/* Returns a specified key from a key pair.  */
-gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair, gcry_ac_key_type_t which);
+/* Returns the key of type WHICH out of the key pair KEY_PAIR.  */
+gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
+                                        gcry_ac_key_type_t which);
 
 /* Returns the data set contained in the key KEY.  */
 gcry_ac_data_t gcry_ac_key_data_get (gcry_ac_key_t key);
 
-/* Verify that the key KEY is sane.  */
+/* Verifies that the key KEY is sane via HANDLE.  */
 gcry_error_t gcry_ac_key_test (gcry_ac_handle_t handle, gcry_ac_key_t key);
 
-/* Return the number of bits of the key KEY in NBITS.  */
-gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t handle, gcry_ac_key_t key,
-				    unsigned int *nbits);
+/* Stores the number of bits of the key KEY in NBITS via HANDLE.  */
+gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
+                                    gcry_ac_key_t key, unsigned int *nbits);
 
-/* Write the 20 byte long key grip of the key KEY to KEY_GRIP.  */
+/* Writes the 20 byte long key grip of the key KEY to KEY_GRIP via
+   HANDLE.  */
 gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t handle, gcry_ac_key_t key,
-				   unsigned char *key_grip);
+                                   unsigned char *key_grip);
 
 /* Destroy a key.  */
 void gcry_ac_key_destroy (gcry_ac_key_t key);
@@ -1176,19 +1318,19 @@ gcry_error_t gcry_ac_data_decode (gcry_ac_em_t method,
    the control of the flags FLAGS and store the resulting data set
    into DATA_ENCRYPTED.  */
 gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t handle,
-				   unsigned int flags,
-				   gcry_ac_key_t key,
-				   gcry_mpi_t data_plain,
-				   gcry_ac_data_t *data_encrypted);
+                                   unsigned int flags,
+                                   gcry_ac_key_t key,
+                                   gcry_mpi_t data_plain,
+                                   gcry_ac_data_t *data_encrypted);
 
 /* Decrypt the decrypted data contained in the data set DATA_ENCRYPTED
    with the key KEY under the control of the flags FLAGS and store the
    resulting plain text MPI value in DATA_PLAIN.  */
 gcry_error_t gcry_ac_data_decrypt (gcry_ac_handle_t handle,
-				   unsigned int flags,
-				   gcry_ac_key_t key,
-				   gcry_mpi_t *data_plain,
-				   gcry_ac_data_t data_encrypted);
+                                   unsigned int flags,
+                                   gcry_ac_key_t key,
+                                   gcry_mpi_t *data_plain,
+                                   gcry_ac_data_t data_encrypted);
 
 /* Encrypts the plain text message contained in M, which is of size
    M_N, with the public key KEY_PUBLIC according to the Encryption
@@ -1219,17 +1361,17 @@ gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
 /* Sign the data contained in DATA with the key KEY and store the
    resulting signature in the data set DATA_SIGNATURE.  */
 gcry_error_t gcry_ac_data_sign (gcry_ac_handle_t handle,
-				gcry_ac_key_t key,
-				gcry_mpi_t data,
-				gcry_ac_data_t *data_signature);
+                                gcry_ac_key_t key,
+                                gcry_mpi_t data,
+                                gcry_ac_data_t *data_signature);
 
 /* Verify that the signature contained in the data set DATA_SIGNATURE
    is indeed the result of signing the data contained in DATA with the
    secret key belonging to the public key KEY.  */
 gcry_error_t gcry_ac_data_verify (gcry_ac_handle_t handle,
-				  gcry_ac_key_t key,
-				  gcry_mpi_t data,
-				  gcry_ac_data_t data_signature);
+                                  gcry_ac_key_t key,
+                                  gcry_mpi_t data,
+                                  gcry_ac_data_t data_signature);
 
 /* Signs the message contained in M, which is of size M_N, with the
    secret key KEY_SECRET according to the Signature Scheme SCHEME_ID.
@@ -1258,22 +1400,23 @@ gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle, gcry_ac_scheme
 /* Store the textual representation of the algorithm whose id is given
    in ALGORITHM in NAME.  */
 gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm,
-				 const char **name);
+                                const char **name);
 
 /* Store the numeric ID of the algorithm whose textual representation
    is contained in NAME in ALGORITHM.  */
 gcry_error_t gcry_ac_name_to_id (const char *name,
-				 gcry_ac_id_t *algorithm);
+                                gcry_ac_id_t *algorithm);
 
-/* Get a list consisting of the IDs of the loaded pubkey modules.  If
-   LIST is zero, write the number of loaded pubkey modules to
+/* Get a list consisting of the IDs of the loaded ac modules.  If LIST
+   is zero, write the number of loaded message digest modules to
    LIST_LENGTH and return.  If LIST is non-zero, the first
    *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
-   according size.  In case there are less pubkey modules than
+   according size.  In case there are less message digest modules than
    *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
-gcry_error_t gcry_ac_list (int **list, int *list_length);
+gcry_error_t gcry_ac_list (int *list, int *list_length);
 
 
+
 /************************************
  *                                  *
  *   random generating functions    *
@@ -1281,9 +1424,9 @@ gcry_error_t gcry_ac_list (int **list, int *list_length);
  ************************************/
 
 /* The possible values for the random quality.  The rule of thumb is
-   to use WEAK for random number which don't need to be
-   cryptographically strong, STRONG for session keys and VERY_STRONG
-   for key material. */
+   to use STRONG for session keys and VERY_STRONG for key material.
+   WEAK is currently an alias for STRONG and should not be used
+   anymore - use gcry_create_nonce instead. */
 typedef enum gcry_random_level
   {
     GCRY_WEAK_RANDOM = 0,
@@ -1295,35 +1438,55 @@ gcry_random_level_t;
 /* Fill BUFFER with LENGTH bytes of random, using random numbers of
    quality LEVEL. */
 void gcry_randomize (unsigned char *buffer, size_t length,
-		     gcry_random_level_t level);
+                     enum gcry_random_level level);
 
 /* Add the external random from BUFFER with LENGTH bytes into the
    pool. QUALITY should either be -1 for unknown or in the range of 0
    to 100 */
 gcry_error_t gcry_random_add_bytes (const void *buffer, size_t length,
-				   int quality);
+                                   int quality);
+
+/* If random numbers are used in an application, this macro should be
+   called from time to time so that new stuff gets added to the
+   internal pool of the RNG.  */
+#define gcry_fast_random_poll()  gcry_control (GCRYCTL_FAST_POLL, NULL)
+
 
 /* Return NBYTES of allocated random using a random numbers of quality
    LEVEL. */
-void *gcry_random_bytes (size_t nbytes, gcry_random_level_t level)
-     _GCRY_GCC_ATTR_MALLOC;
+void *gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
+                         _GCRY_GCC_ATTR_MALLOC;
 
 /* Return NBYTES of allocated random using a random numbers of quality
    LEVEL.  The random numbers are created returned in "secure"
    memory. */
-void *gcry_random_bytes_secure (size_t nbytes, gcry_random_level_t level)
-     _GCRY_GCC_ATTR_MALLOC;
+void *gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
+                                _GCRY_GCC_ATTR_MALLOC;
 
 
-/* Set the big inetger W to a random value of NBITS using a random
+/* Set the big integer W to a random value of NBITS using a random
    generator with quality LEVEL. */
 void gcry_mpi_randomize (gcry_mpi_t w,
-                         unsigned int nbits, gcry_random_level_t level);
+                         unsigned int nbits, enum gcry_random_level level);
+
+
+/* Create an unpredicable nonce of LENGTH bytes in BUFFER. */
+void gcry_create_nonce (unsigned char *buffer, size_t length);
+
+
+
 
 /* Prime interface.  */
 
+/* Mode values passed to a gcry_prime_check_func_t. */
+#define GCRY_PRIME_CHECK_AT_FINISH      0
+#define GCRY_PRIME_CHECK_AT_GOT_PRIME   1
+#define GCRY_PRIME_CHECK_AT_MAYBE_PRIME 2
+
+/* The function should return 1 if the operation shall continue, 0 to
+   reject the prime candidate. */
 typedef int (*gcry_prime_check_func_t) (void *arg, int mode,
-					gcry_mpi_t candidate);
+                                        gcry_mpi_t candidate);
 
 /* Flags for gcry_prime_generate():  */
 
@@ -1341,13 +1504,26 @@ typedef int (*gcry_prime_check_func_t) (void *arg, int mode,
    factors and store it in FACTORS.  FLAGS might be used to influence
    the prime number generation process.  */
 gcry_error_t gcry_prime_generate (gcry_mpi_t *prime,
-				  unsigned int prime_bits,
-				  unsigned int factor_bits,
-				  gcry_mpi_t **factors,
-				  gcry_prime_check_func_t cb_func,
-				  void *cb_arg,
-				  gcry_random_level_t random_level,
-				  unsigned int flags);
+                                  unsigned int prime_bits,
+                                  unsigned int factor_bits,
+                                  gcry_mpi_t **factors,
+                                  gcry_prime_check_func_t cb_func,
+                                  void *cb_arg,
+                                  gcry_random_level_t random_level,
+                                  unsigned int flags);
+
+/* Find a generator for PRIME where the factorization of (prime-1) is
+   in the NULL terminated array FACTORS. Return the generator as a
+   newly allocated MPI in R_G.  If START_G is not NULL, use this as
+   teh start for the search. */
+gcry_error_t gcry_prime_group_generator (gcry_mpi_t *r_g,
+                                         gcry_mpi_t prime, gcry_mpi_t *factors,
+                                         gcry_mpi_t start_g);
+
+
+/* Convenience function to release the FACTORS array. */
+void gcry_prime_release_factors (gcry_mpi_t *factors);
+
 
 /* Check wether the number X is prime.  */
 gcry_error_t gcry_prime_check (gcry_mpi_t x, unsigned int flags);
@@ -1402,11 +1578,12 @@ void gcry_set_progress_handler (gcry_handler_progress_t cb, void *cb_data);
 
 
 /* Register a custom memory allocation functions. */
-void gcry_set_allocation_handler (gcry_handler_alloc_t func_alloc,
-				  gcry_handler_alloc_t func_alloc_secure,
-				  gcry_handler_secure_check_t func_secure_check,
-				  gcry_handler_realloc_t func_realloc,
-				  gcry_handler_free_t func_free);
+void gcry_set_allocation_handler (
+                             gcry_handler_alloc_t func_alloc,
+                             gcry_handler_alloc_t func_alloc_secure,
+                             gcry_handler_secure_check_t func_secure_check,
+                             gcry_handler_realloc_t func_realloc,
+                             gcry_handler_free_t func_free);
 
 /* Register a function used instead of the internal out of memory
    handler. */
