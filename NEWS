@@ -29,27 +29,94 @@ Noteworthy changes in version 1.1.42 (unreleased)
 
  * RSA blinding is now supported and is used automatically for RSA
    decryption.  It can be explicitely disabled by using the `no-blinding'
-   symbol in the `flags' s-exp.
+   symbol in the `flags' S-Expression or by using the
+   GCRY_AC_FLAG_DATA_NO_BLINDING flag when using the ac interface.
 
  * Interface changes relative to the 1.1.12 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gcry_mpi_scan           CHANGED: New argument to separate in/out args.
-gcry_mpi_print          CHANGED: Ditto.
-gcry_mpi_dump           NEW
-gcry_cipher_list	NEW
-gcry_md_list		NEW
-gcry_pk_list		NEW
-gcry_pk_decrypt         ENHANCED: Allows flag to return complete S-expression.
-gcry_cipher_reset	NEW
-gcry_md_open            CHANGED
-gcry_md_copy            CHANGED
-gcry_md_is_enabled      NEW
-gcry_md_is_secure       REPLACED macro by a function.
-gcry_cipher_get_algo_keylen  REPLACED macro by a function.
-gcry_cipher_get_algo_blklen  REPLACED macro by a function.
-gcry_pk_algo_info       CHANGED: values are now returned via pointers.
-
-  ... fixme add other changes ...
+GCRY_MPI			DEPRECATED; Use: gcry_mpi_t
+GcryMPI				DEPRECATED; Use: gcry_mpi_t
+GCRY_SEXP			DEPRECATED; Use: gcry_sexp_t
+GcrySexp			DEPRECATED; Use: gcry_sexp_t
+GCRY_CIPHER_HD			DEPRECATED; Use: gcry_cipher_hd_t
+GcryCipherHd			DEPRECATED; Use: gcry_cipher_hd_t
+GCRY_MD_HD			DEPRECATED; Use: gcry_md_hd_t
+GcryMDHd			DEPRECATED; Use: gcry_md_hd_t
+gcry_error_t			NEW
+gcry_err_code_t			NEW
+gcry_err_source_t		NEW
+gcry_err_make			NEW
+gcry_error			NEW
+gcry_err_code			NEW
+gcry_err_source			NEW
+gcry_err_code_from_errno	NEW
+gcry_err_code_to_errno		NEW
+gcry_err_make_from_errno	NEW
+gcry_error_from_errno		NEW
+gcry_strsource			NEW
+GCRYERR_{some error code}	REMOVED; Use GPG_ERR_* from libgpg-error instead.
+gcry_errno                      REMOVED
+gcry_sexp_canon_len		CHANGED
+gcry_sexp_build_array		NEW
+gcry_mpi_scan			CHANGED: New argument to separate in/out args.
+gcry_mpi_print			CHANGED: Ditto.
+gcry_mpi_dump			NEW
+gcry_cipher_open		CHANGED
+gcry_cipher_reset		NEW
+gcry_cipher_register		NEW
+gcry_cipher_unregister		NEW
+gcry_cipher_list		NEW
+gcry_cipher_algo_keylen		REPLACED macro with function.
+gcry_cipher_algo_blklen		REPLACED macro with function.
+gcry_pk_register		NEW
+gcry_pk_unregister		NEW
+gcry_pk_list			NEW
+gcry_pk_decrypt			ENHANCED: Allows flag to return complete S-expression.
+gcry_md_open			CHANGED
+gcry_md_copy			CHANGED
+gcry_md_is_enabled		NEW
+gcry_md_is_secure		NEW
+gcry_md_register		NEW
+gcry_md_unregister		NEW
+gcry_md_list			NEW
+gcry_ac_data_t			NEW
+gcry_ac_key_t			NEW
+gcry_ac_key_pair_t		NEW
+gcry_ac_handle_t		NEW
+gcry_ac_key_spec_rsa_t		NEW
+gcry_ac_data_new		NEW
+gcry_ac_data_destroy		NEW
+gcry_ac_data_set		NEW
+gcry_ac_data_copy		NEW
+gcry_ac_data_length		NEW
+gcry_ac_data_get_name		NEW
+gcry_ac_data_get_index		NEW
+gcry_ac_data_clear		NEW
+gcry_ac_open			NEW
+gcry_ac_close			NEW
+gcry_ac_key_init		NEW
+gcry_ac_key_pair_generate	NEW
+gcry_ac_key_pair_extract	NEW
+gcry_ac_key_data_get		NEW
+gcry_ac_key_test		NEW
+gcry_ac_key_get_nbits		NEW
+gcry_ac_key_get_grip		NEW
+gcry_ac_key_destroy		NEW
+gcry_ac_key_pair_destroy	NEW
+gcry_ac_data_encrypt		NEW
+gcry_ac_data_decrypt		NEW
+gcry_ac_data_sign		NEW
+gcry_ac_data_verify		NEW
+gcry_ac_id_to_name		NEW
+gcry_ac_name_to_id		NEW
+gcry_handler_progress_t		NEW
+gcry_handler_alloc_t		NEW
+gcry_handler_secure_check_t	NEW
+gcry_handle_realloc_t		NEW
+gcry_handler_free_t		NEW
+gcry_handler_no_mem_t		NEW
+gcry_handler_error_t		NEW
+gcry_handler_log_t		NEW
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Noteworthy changes in version 1.1.12 (2003-01-20)
