@@ -850,10 +850,14 @@ enum gcry_random_level
     GCRY_VERY_STRONG_RANDOM = 2
   };
 
+
 /* Fill BUFFER with LENGTH bytes of random, using random numbers of
    quality LEVEL. */
 void gcry_randomize (unsigned char *buffer, size_t length,
 		     enum gcry_random_level level);
+
+/* Add the external random from BUFFER with LENGTH bytes into the pool. */
+void gcry_random_add_bytes (const void * buffer, size_t length);
 
 /* Return NBYTES of allocated random using a random numbers of quality
    LEVEL. */

@@ -263,6 +263,16 @@ get_random_bytes( size_t nbytes, int level, int secure )
     return buf;
 }
 
+
+void
+gcry_random_add_bytes( const void * buf, size_t buflen )
+{
+    if( !buf || !buflen )
+        return; /* do nothing */
+    add_randomness( buf, buflen, 1 );
+}   
+    
+
 void *
 gcry_random_bytes( size_t nbytes, enum gcry_random_level level )
 {

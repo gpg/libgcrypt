@@ -1,3 +1,8 @@
+2003-01-21  Timo Schulz  <twoaday@freakmail.de>
+
+	* random.c (gcry_random_add_bytes): New. Function to add external
+	random to the pool.
+	
 2003-01-20  Simon Josefsson  <jas@extundo.com>
 
 	* crc.c: New.
