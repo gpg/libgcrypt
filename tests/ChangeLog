@@ -6,7 +6,6 @@
 	* test.c, test.h, test-glue.h: New files.
 	* benchmark.c: Rewritten.
 	* standalone.c: New file.
-	* cipher.c: New file.
 	* ac.c, ac-schemes.c, basic.c, encoding.c, keygen.c, prime.c,
 	pubkey.c, register.c, testapi.c, tsexp.c: Modified for new test
 	suite.

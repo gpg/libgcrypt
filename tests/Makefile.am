@@ -24,7 +24,7 @@ LDADD = ../src/libgcrypt.la
 AM_CFLAGS = -Wall @GPG_ERROR_CFLAGS@
 
 TEST_PROGS = \
-	cipher ac tsexp keygen pubkey basic prime \
+	ac tsexp keygen pubkey basic prime \
 	register testapi ac-schemes encoding
 
 TESTS = $(TEST_PROGS)
@@ -39,7 +39,7 @@ lib_LTLIBRARIES = libtest-suite.la libtest-standalone.la
 install-libLTLIBRARIES:
 
 libtest_suite_la_SOURCES = test.c \
-	cipher.c ac.c tsexp.c keygen.c pubkey.c basic.c prime.c \
+	ac.c tsexp.c keygen.c pubkey.c basic.c prime.c \
 	register.c testapi.c ac-schemes.c encoding.c
 
 libtest_suite_la_CFLAGS = $(AM_CFLAGS)
@@ -48,9 +48,6 @@ libtest_standalone_la_SOURCES = standalone.c
 libtest_standalone_la_CFLAGS = $(AM_CFLAGS)
 
 standalone_libraries = libtest-standalone.la libtest-suite.la $(LDADD) -ldl
-
-cipher_SOURCES =
-cipher_LDADD = $(standalone_libraries)
 
 ac_SOURCES =
 ac_LDADD = $(standalone_libraries)
