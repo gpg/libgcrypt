@@ -28,11 +28,28 @@ bin_SCRIPTS = libgcrypt-config
 m4datadir = $(datadir)/aclocal
 m4data_DATA = libgcrypt.m4
 
-noinst_PROGRAMS = testapi
+noinst_PROGRAMS = testapi benchmark
 testapi_SOURCES = testapi.c
 testapi_LDADD = libgcrypt.la
 
+benchmark_SOURCES = benchmark.c
+benchmark_LDADD = libgcrypt.la
+
 include_HEADERS = gcrypt.h
+
+
+if HAVE_PTHREAD
+ath_components_pthread = ath-pthread.c
+else
+ath_components_pthread =
+endif
+if HAVE_PTH
+ath_components_pth = ath-pth.c
+else
+ath_components_pth =
+endif
+ath_components = ath.h ath.c ${ath_components_pthread} ${ath_components_pth}
+
 
 libgcrypt_la_LDFLAGS = -version-info \
       @LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@ 
@@ -50,8 +67,8 @@ libgcrypt_la_SOURCES =	 g10lib.h \
 			 secmem.c \
 			 secmem.h \
 		         mpi.h \
-			 mutex.h \
-			 missing-string.c 
+			 missing-string.c \
+			 ${ath_components} 
 
 libgcrypt_la_DEPENDENCIES = libgcrypt.sym \
 			    ../cipher/libcipher.la ../mpi/libmpi.la

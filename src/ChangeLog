@@ -1,3 +1,20 @@
+2002-09-17  Werner Koch  <wk@gnupg.org>
+
+	* global.c (global_init): New.  Use it instead of the setting
+	any_init_done.  Initialize the ATH system.
+	(gcry_check_version): Hook global_init in.  This is the suggested
+	way to initialize the library.
+	(_gcry_no_internal_locking): Removed.  We simply call a ath_deinit
+	and leave it to ATH to disbale the locking.
+
+	* ath.c, ath.h, ath-pth.c, ath-pthread.c: New. Taken from GPGME.
+	* mutex.h: Removed.
+	* Makefile.am (ath_components): New.
+
+2002-09-16  Werner Koch  <wk@gnupg.org>
+
+	* secmem.c (_gcry_secmem_dump_stats): Replaced fprintf by log_*.
+
 2002-08-23  Werner Koch  <wk@gnupg.org>
 
 	* missing-string.c: Removed unneeded strlwr.

@@ -424,8 +424,7 @@ _gcry_secmem_dump_stats()
 {
     if( disable_secmem )
 	return;
-    fprintf(stderr,
-		"secmem usage: %u/%u bytes in %u/%u blocks of pool %lu/%lu\n",
+    log_info ("secmem usage: %u/%u bytes in %u/%u blocks of pool %lu/%lu\n",
 		cur_alloced, max_alloced, cur_blocks, max_blocks,
 		(ulong)poollen, (ulong)poolsize );
 }

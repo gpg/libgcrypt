@@ -30,7 +30,7 @@
 #include "cipher.h"
 #include "stdmem.h" /* our own memory allocator */
 #include "secmem.h" /* our own secmem allocator */
-
+#include "ath.h"
 
 /****************
  * flag bits: 0 : general cipher debug
@@ -46,9 +46,22 @@ static void *(*realloc_func)(void *p, size_t n) = NULL;
 static void (*free_func)(void*) = NULL;
 static int (*outofcore_handler)( void*, size_t, unsigned int ) = NULL;
 static void *outofcore_handler_value = NULL;
-static int no_internal_locking = 0;
 static int no_secure_memory = 0;
-static int any_init_done = 0;
+static int any_init_done;
+
+/* This is out handmade constructore.  It gets called by any function
+   likely to be called at startup.  The suggested way for an
+   application to make sure that this has been called is by using
+   gcry_check_version. */
+static void
+global_init (void)
+{
+  if (!any_init_done)
+    return;
+  any_init_done = 1;
+  ath_init ();
+}
+
 
 static const char*
 parse_version_number( const char *s, int *number )
@@ -97,6 +110,7 @@ gcry_check_version( const char *req_version )
     int rq_major, rq_minor, rq_micro;
     const char *my_plvl, *rq_plvl;
 
+    global_init ();
     if ( !req_version )
 	return ver;
 
@@ -153,22 +167,22 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	break;
 
       case GCRYCTL_DROP_PRIVS:
-        any_init_done = 1;
+        global_init ();
 	_gcry_secmem_init( 0 );
 	break;
 
       case GCRYCTL_DISABLE_SECMEM:
-        any_init_done = 1;
+        global_init ();
         no_secure_memory = 1;
         break;    
 
       case GCRYCTL_INIT_SECMEM:
-        any_init_done = 1;
+        global_init ();
 	_gcry_secmem_init( va_arg( arg_ptr, unsigned int ) );
 	break;
 
       case GCRYCTL_TERM_SECMEM:
-        any_init_done = 1;
+        global_init ();
 	_gcry_secmem_term();
 	break;
 
@@ -185,7 +199,7 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	break;
 
       case GCRYCTL_USE_SECURE_RNDPOOL:
-        any_init_done = 1;
+        global_init ();
 	_gcry_secure_random_alloc(); /* put random number into secure memory */
 	break;
 
@@ -202,8 +216,11 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	break;
 
       case GCRYCTL_DISABLE_INTERNAL_LOCKING:
-        any_init_done = 1;
-        no_internal_locking = 1;
+        global_init ();
+        /* We wase some bytes by doing it this way.  OTOH this
+           function is not anymore required becuase it is done
+           automagically. */
+        ath_deinit ();
         break;
 
       case GCRYCTL_ANY_INITIALIZATION_P:
@@ -221,8 +238,7 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
            way to be really sure that all initialization for
            thread-safety has been done. */
         if (!init_finished) {
-            any_init_done = 1;
-            /* fixme: we should initialize the various mutexs here */
+            global_init ();
             init_finished = 1;
         }
         break;
@@ -322,7 +338,7 @@ gcry_set_allocation_handler( void *(*new_alloc_func)(size_t n),
 			     void *(*new_realloc_func)(void *p, size_t n),
 			     void (*new_free_func)(void*) )
 {
-    any_init_done = 1;
+    global_init ();
 
     alloc_func	      = new_alloc_func;
     alloc_secure_func = new_alloc_secure_func;
@@ -351,7 +367,7 @@ void
 gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
 							void *value )
 {
-    any_init_done = 1;
+    global_init ();
 
     outofcore_handler = f;
     outofcore_handler_value = value;
@@ -523,11 +539,6 @@ _gcry_get_debug_flag( unsigned int mask )
     return debug_flags & mask;
 }
 
-int 
-_gcry_no_internal_locking (void)
-{
-  return no_internal_locking;
-}
 
 
 /* It is often useful to get some feedback of long running operations.
