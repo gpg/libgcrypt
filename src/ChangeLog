@@ -1,3 +1,7 @@
+2003-09-29  Moritz Schulte  <mo@g10code.com>
+
+	* libgcrypt-config.in: Fix --algorithms option.
+
 2003-10-23  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (gcry_err_code): Use GPG_ERR_INLINE instyead of
@@ -23,6 +27,13 @@
 	* sexp.c (sexp_sscan): Check that parenthesis are matching.
 
 2003-09-28  Moritz Schulte  <mo@g10code.com>
+
+	* g10lib.h: Declare: _gcry_malloc.
+	(GCRY_ALLOC_FLAG_SECURE): New symbol.
+
+	* global.c (_gcry_malloc): New function...
+	(gcry_malloc): ... use it.
+	(gcry_malloc_secure): Likewise.
 
 	* ath.c: Change License to LGPL.
 	* ath-pthread-compat.c: Likewise.
