@@ -1290,7 +1290,9 @@ The function accepts public or secret keys in @var{key}.
 
 @deftypefun int gcry_pk_testkey (GcrySexp @var{key})
 
-Return 0 if @var{key} (either private or public) is sane. 
+Return 0 if @var{key} (either private or public) is sane.  NOTE: at
+the moment only the checking of secret keys is supported.
+
 @end deftypefun
 
 

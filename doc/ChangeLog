@@ -1,3 +1,8 @@
+2003-05-17  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Public Key Functions): Mention that only the
+	checking of secret keys is supported currently.
+
 2003-03-30  Simon Josefsson  <jas@extundo.com>
 
 	* gcrypt.texi: Add CTR.
