@@ -2943,8 +2943,8 @@ The constants for the random quality levels are of this type.
 
 @table @code
 @item GCRY_WEAK_RANDOM
-Use this level for random numbers that do not need to be
-`cryptographically strong'.
+This should not anymore be used.  It has recently been changed to an
+alias of GCRY_STRONG_RANDOM.  Use @code{gcry_create_nonce} instead.
 @item GCRY_STRONG_RANDOM
 Use this level for e.g. session keys and similar purposes.
 @item GCRY_VERY_STRONG_RANDOM
@@ -2973,6 +2973,18 @@ using a random quality as defined by @var{level}.  This function
 differs from @code{gcry_random_bytes} in that the returned buffer is
 allocated in a ``secure'' area of the memory.
 @end deftypefun
+
+@deftypefun void gcry_create_nonce (unsigned char *@var{buffer}, size_t @var{length})
+
+Fill @var{buffer} with @var{length} unpredictable bytes.  This is
+commonly called a nonce and may also be used for initialization
+vectors and padding.  This is an extra function nearly independed of
+the other random function for 3 reasons: It better protects the regular
+random generator's internal state, provides better performance and
+does not drain the precious entropy pool.
+
+@end deftypefun
+
 
 
 @c **********************************************************
