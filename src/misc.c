@@ -71,20 +71,19 @@ write2stderr( const char *s )
  * set his own handler becuase this function simply calls abort().
  */
 void
-_gcry_fatal_error(int rc, const char *text )
+_gcry_fatal_error (int rc, const char *text)
 {
-    if( !text ) /* get a default text */
-	text = gcry_strerror(rc);
+  if (! text) /* get a default text */
+    text = gpg_strerror (rc);
 
-    if( fatal_error_handler )
-	fatal_error_handler( fatal_error_handler_value, rc, text );
+  if (fatal_error_handler)
+    fatal_error_handler (fatal_error_handler_value, rc, text);
 
-    write2stderr("\nFatal error: ");
-    write2stderr(text);
-    write2stderr("\n");
-    abort();
+  write2stderr("\nFatal error: ");
+  write2stderr(text);
+  write2stderr("\n");
+  abort ();
 }
-
 
 void
 gcry_set_log_handler( void (*logf)(void*,int, const char*, va_list ),

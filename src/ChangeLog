@@ -1,3 +1,12 @@
+2003-06-15  Moritz Schulte  <moritz@g10code.com>
+
+	* global.c (gcry_control): Fixed typo.
+
+	* misc.c (_gcry_fatal_error): Use gpg_strerror instead of
+	gcry_strerror.
+
+	* types.h (STRLIST): Removed type since it is not used.
+
 2003-06-11  Moritz Schulte  <moritz@g10code.com>
 
 	* global.c (global_init): Call: _gcry_cipher_init, _gcry_md_init,

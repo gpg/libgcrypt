@@ -158,6 +158,7 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
   va_start (arg_ptr, cmd);
   switch (cmd)
     {
+#if 0
     case GCRYCTL_NO_MEM_IS_FATAL:
       break;
     case GCRYCTL_SET_FATAL_FNC:
