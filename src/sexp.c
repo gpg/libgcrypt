@@ -1,5 +1,5 @@
 /* sexp.c  -  S-Expression handling
- *	Copyright (C) 1999, 2000, 2001 Free Software Foundation, Inc.
+ *	Copyright (C) 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -1140,7 +1140,10 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
   if (!buffer)
     return 0;
   if (*buffer != '(')
-    return -4; /* not a canonical S-expression */
+    {
+      *errcode = -4; /* not a canonical S-expression */
+      return 0;
+    }
 
   for (p=buffer; ; p++, count++ )
     {
