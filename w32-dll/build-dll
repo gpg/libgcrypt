@@ -1,43 +1,45 @@
 #!/bin/sh
-
+# Run this to generate the libgcrypt DLL
 #
-# build-dll - Build the libgcrypt.dll file
+# Copyright (C) 2001 Free Software Foundation, Inc.
 #
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
+AS=`mingw32 --get-path as`
 OBJS=
 
 for i in $(ls ../cipher/*.o); do
-	#o=`basename $i`
-	o=$i
-	OBJS="$OBJS $o"
+	OBJS="$OBJS $i"
 done
 for i in $(ls ../mpi/*.o); do
-	o=$i
-	OBJS="$OBJS $o"
+	OBJS="$OBJS $i"
 done
 for i in $(ls ../src/*.o); do
-	o=$i
-	OBJS="$OBJS $o"
+	OBJS="$OBJS $i"
 done
 for i in $(ls ../jnlib/*.o); do
-	o=$i
-	OBJS="$OBJS $o"
+	OBJS="$OBJS $i"
 done
-
 
 echo 'running dlltool the first time' >&2
 mingw32 dlltool --nodelete  \
-	--as i386--mingw32-as \
+	--as $AS \
 	--def libgcrypt.def \
 	--output-exp libgcrypt.exp \
 	--output-lib libgcrypt.imp \
 	--dllname libgcrypt.dll $OBJS
 echo 'doing dummy link to create the base file' >&2
-mingw32 gcc -v -mdll -Wl,--base-file -Wl,libgcrypt.base \
-   -o libgcrypt.dll libgcrypt.exp $OBJS
+mingw32 gcc -mdll -Wl,--base-file -Wl,libgcrypt.base \
+   			-o libgcrypt.dll libgcrypt.exp $OBJS
 echo 'running dlltool the second time' >&2
 mingw32 dlltool --nodelete \
-		--as i386--mingw32-as \
+		--as $AS \
 		--def libgcrypt.def \
 		--output-exp libgcrypt.exp \
         --output-lib libgcrypt.imp \
@@ -45,9 +47,14 @@ mingw32 dlltool --nodelete \
 		--dllname libgcrypt.dll $OBJS
 
 echo 'doing final link' >&2
-mingw32 gcc -v -mdll -o libgcrypt.dll libgcrypt.exp $OBJS
+mingw32 gcc -mdll -o libgcrypt.dll libgcrypt.exp $OBJS
 mingw32 strip libgcrypt.dll
+
+mingw32 dlltool --def libgcrypt.def \
+			--as $AS \
+			--dllname libgcrypt.dll \
+			--output-lib libgcrypt.lib
 
 echo 'clean up'
 rm -f dh.o dh.s dt.o dt.s
-rm -f libgcrypt.base libgcrypt.exp
+rm -f libgcrypt.base libgcrypt.exp libgcrypt.imp tlibgcrypt.exp
