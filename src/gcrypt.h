@@ -164,6 +164,7 @@ enum gcry_cipher_modes {
     GCRY_CIPHER_MODE_NONE   = 0,
     GCRY_CIPHER_MODE_ECB    = 1,
     GCRY_CIPHER_MODE_CFB    = 2,
+    GCRY_CIPHER_MODE_CBC    = 3,
 };
 
 enum gcry_cipher_flags {
@@ -180,7 +181,7 @@ unsigned gcry_cipher_get_keylen( int algo );
 unsigned gcry_cipher_get_blocksize( int algo );
 #endif
 
-GCRY_CIPHER_HD gcry_cipher_open( int algo, int mode, unsigned flags );
+int gcry_cipher_open( GCRY_CIPHER_HD *rhd, int algo, int mode, unsigned flags);
 void gcry_cipher_close( GCRY_CIPHER_HD h );
 int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen);
 
@@ -211,7 +212,7 @@ int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
  *********************************************/
 
 struct gcry_md_context;
-typedef struct gcry_md_context *GCRY_MD_HD;
+typedef struct gcry_md_context *GCRY_MD_HD; /* same as the old MD_HANDLE */
 
 enum gcry_md_algos {
     GCRY_MD_NONE    = 0,
@@ -226,17 +227,16 @@ enum gcry_md_flags {
 };
 
 
-GCRY_MD_HD gcry_md_open( int algo, unsigned flags );
+int gcry_md_open( GCRY_MD_HD *ret_hd, int algo, unsigned flags );
 void gcry_md_close( GCRY_MD_HD hd );
-void gcry_md_enable( GCRY_MD_HD hd, int algo );
+int gcry_md_enable( GCRY_MD_HD hd, int algo );
 GCRY_MD_HD gcry_md_copy( GCRY_MD_HD hd );
 int gcry_md_ctl( GCRY_MD_HD hd, int cmd, byte *buffer, size_t buflen);
-void gcry_md_write( GCRY_MD_HD hd, byte *inbuf, size_t inlen);
+void gcry_md_write( GCRY_MD_HD hd, const byte *buffer, size_t length);
 byte *gcry_md_read( GCRY_MD_HD hd, int algo );
+int gcry_md_algo( GCRY_MD_HD hd );
+size_t gcry_md_dlen( int algo );
 int gcry_md_get( GCRY_MD_HD hd, int algo, byte *buffer, int buflen );
-
-
-#define gcry_md_final( a )  gcry_md_ctl( (a), GCRYCTL_FINALIZE, NULL, 0 )
 
 
 /*****************************************

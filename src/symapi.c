@@ -31,6 +31,13 @@
 #define G10_MPI_H  /* fake mpi.h header */
 #include "cipher.h"
 
+/* FIXME: We should really have the m_lib functions to allow
+ *	  overriding of the default malloc functions
+ * For now use this kludge: */
+#define m_lib_alloc	   m_alloc
+#define m_lib_alloc_clear  m_alloc_clear
+#define m_lib_free	   m_free
+
 
 #define CONTEXT_MAGIC 0x12569afe
 
@@ -42,21 +49,18 @@ struct gcry_cipher_context {
 };
 
 
-GCRY_CIPHER_HD
-gcry_cipher_open( int algo, int mode, unsigned flags )
+int
+gcry_cipher_open( GCRY_CIPHER_HD *ret_hd, int algo, int mode, unsigned flags )
 {
     GCRY_CIPHER_HD h;
 
     /* check whether the algo is available */
-    if( check_cipher_algo( algo ) ) {
-	set_lasterr( GCRYERR_INV_ALGO );
-	return NULL;
-    }
+    if( check_cipher_algo( algo ) )
+	return set_lasterr( GCRYERR_INV_ALGO );
+
     /* check flags */
-    if( (flags & ~(GCRY_CIPHER_SECURE|GCRY_CIPHER_ENABLE_SYNC)) ) {
-	set_lasterr( GCRYERR_INV_ARG );
-	return NULL;
-    }
+    if( (flags & ~(GCRY_CIPHER_SECURE|GCRY_CIPHER_ENABLE_SYNC)) )
+	return set_lasterr( GCRYERR_INV_ARG );
 
     /* map mode to internal mode */
     switch( mode ) {
@@ -66,27 +70,25 @@ gcry_cipher_open( int algo, int mode, unsigned flags )
 	mode = (flags & GCRY_CIPHER_ENABLE_SYNC) ? CIPHER_MODE_PHILS_CFB
 						 : CIPHER_MODE_CFB;
 	break;
+      case GCRY_CIPHER_MODE_CBC: mode = CIPHER_MODE_CBC; break;
       default:
-	set_lasterr( GCRYERR_INV_ALGO );
-	return NULL;
+	return set_lasterr( GCRYERR_INV_ALGO );
     }
 
     /* allocate the handle */
     h = m_lib_alloc_clear( sizeof *h );
-    if( !h ) {
-	set_lasterr( GCRYERR_NOMEM );
-	return NULL;
-    }
+    if( !h )
+	return set_lasterr( GCRYERR_NOMEM );
     h->magic = CONTEXT_MAGIC;
     h->mode = mode;
     h->hd = cipher_open( algo, mode, (flags & GCRY_CIPHER_SECURE) );
     if( !h ) {
 	m_lib_free( h );
-	set_lasterr( GCRYERR_INTERNAL );
-	return NULL;
+	return set_lasterr( GCRYERR_INTERNAL );
     }
 
-    return h;
+    *ret_hd = h;
+    return 0;
 }
 
 
@@ -128,6 +130,9 @@ gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 {
     if( outsize < inlen )
 	return set_lasterr( GCRYERR_TOO_SHORT );
+    /* fixme: check that the inlength is a multipe of the blocksize
+     * if a blockoriented mode is used, or modify cipher_encrypt to
+     * return an error in this case */
     cipher_encrypt( h->hd, out, in, inlen );
     return 0;
 }
