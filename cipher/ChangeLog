@@ -1,3 +1,9 @@
+2003-03-30  Moritz Schulte  <moritz@g10code.com>
+
+	* rsa.c (_gcry_rsa_blind): New function.
+	(_gcry_rsa_unblind): New function.
+	(_gcry_rsa_decrypt): Use _gcry_rsa_blind and _gcry_rsa_decrypt.
+
 2003-03-26  Moritz Schulte  <moritz@g10code.com>
 
 	* dynload.c (_gcry_enum_gnupgext_pubkeys): Adjust `encrypt' and
