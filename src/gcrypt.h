@@ -880,7 +880,7 @@ gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
 
 /* Return the MPI value with index INDEX contained in the data set
    DATA.  */
-gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
+gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int idx,
 				    const char **name, gcry_mpi_t *mpi);
 
 /* Destroy any values contained in the data set DATA.  */

@@ -2,8 +2,9 @@
 
 	* global.c (gcry_control): Add GCRYCTL_SET_RANDOM_SEED_FILE and
 	GCRYCTL_UPDATE_RANDOM_SEED_FILE.
-	* gcrypt.h: Ditto.
-	
+	* gcrypt.h: Ditto.  Renamed index to idx, so avoid warning
+	related to the old index function.
+
 2003-07-28  Moritz Schulte  <moritz@g10code.com>
 
 	* global.c (gcry_err_code_from_errno, gcry_err_code_to_errno)
