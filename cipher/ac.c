@@ -15,8 +15,8 @@
   
    You should have received a copy of the GNU Lesser General Public
    License along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
- */
+   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+   02111-1307, USA.  */
 
 #include <config.h>
 #include <assert.h>
@@ -27,7 +27,6 @@
 #include <stddef.h>
 
 #include "g10lib.h"
-#include "ac.h"
 #include "cipher.h"
 #include "ath.h"
 
@@ -196,7 +195,7 @@ _gcry_ac_progress (const char *identifier, int c)
 /* Convert a data set into a newly created structure.  */
 static gcry_err_code_t
 anon_struct_from_data_set (gcry_ac_data_t data, size_t size,
-			   unsigned int elems, ac_struct_spec_t *spec,
+			   unsigned int elems, gcry_ac_struct_spec_t *spec,
 			   void **structure)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
@@ -252,7 +251,7 @@ anon_struct_create (size_t size, void **structure)
 /* Convert a structure into a newly created data set.  */
 static gcry_err_code_t
 anon_struct_to_data_set (gcry_ac_data_t *data, unsigned int elems,
-			 ac_struct_spec_t *spec,
+			 gcry_ac_struct_spec_t *spec,
 			 void *structure)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
@@ -853,13 +852,15 @@ gcry_ac_key_init (gcry_ac_key_t *key,
 /* Generates a new key pair via the handle HANDLE of NBITS bits and
    stores it in KEY_PAIR.  In case non-standard settings are wanted, a
    pointer to a structure of type gcry_ac_key_spec_<algorithm>_t,
-   matching the selected algorithm, can be given as KEY_SPEC.  */
-gcry_error_t
-gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
-			   unsigned int nbits,
-			   void *key_spec,
-			   gcry_ac_key_pair_t *key_pair,
-			   gcry_mpi_t **misc_data)
+   matching the selected algorithm, can be given as KEY_SPEC.  If
+   MISC_DATA is non-zero, return an algorithm-dependent list of MPI
+   values that were created during the generation process.  */
+static gcry_err_code_t
+key_pair_generate (gcry_ac_handle_t handle,
+		   unsigned int nbits,
+		   void *key_spec,
+		   gcry_ac_key_pair_t *key_pair,
+		   gcry_mpi_t **misc_data)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_ac_key_pair_t key_pair_new = NULL;
@@ -970,8 +971,45 @@ gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
 	}
     }
 
+  return err;
+}
+
+/* Generates a new key pair via the handle HANDLE of NBITS bits and
+   stores it in KEY_PAIR.  In case non-standard settings are wanted, a
+   pointer to a structure of type gcry_ac_key_spec_<algorithm>_t,
+   matching the selected algorithm, can be given as KEY_SPEC.  */
+gcry_error_t
+gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
+			   unsigned int nbits,
+			   void *key_spec,
+			   gcry_ac_key_pair_t *key_pair)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  err = key_pair_generate (handle, nbits, key_spec, key_pair, NULL);
+
   return gcry_error (err);
 }
+
+/* Generates a new key pair via the handle HANDLE of NBITS bits and
+   stores it in KEY_PAIR.  In case non-standard settings are wanted, a
+   pointer to a structure of type gcry_ac_key_spec_<algorithm>_t,
+   matching the selected algorithm, can be given as KEY_SPEC.  If
+   MISC_DATA is non-zero, return an algorithm-dependent list of MPI
+   values that were created during the generation process.  */
+gcry_err_code_t
+gcry_ac_key_pair_generate_ext (gcry_ac_handle_t handle,
+			       unsigned int nbits,
+			       void *key_spec,
+			       gcry_ac_key_pair_t *key_pair,
+			       gcry_mpi_t **misc_data)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  err = key_pair_generate (handle, nbits, key_spec, key_pair, misc_data);
+
+  return gcry_error (err);
+}  
 
 /* Returns the key of type WHICH out of the key pair KEY_PAIR.  */
 gcry_ac_key_t
@@ -1059,7 +1097,7 @@ gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   void *key_struct_public = NULL;
   void *key_struct_secret = NULL;
-  ac_struct_spec_t *spec = NULL;
+  gcry_ac_struct_spec_t *spec = NULL;
   unsigned int nbits_new = 0;
   unsigned int elems = 0;
   size_t size = 0;
@@ -1553,7 +1591,7 @@ _gcry_ac_algorithm_disable (gcry_ac_handle_t handle)
 }
 
 static void
-elements_amount_get (ac_struct_spec_t *spec, unsigned int *amount)
+elements_amount_get (gcry_ac_struct_spec_t *spec, unsigned int *amount)
 {
   unsigned int i = 0;
 
