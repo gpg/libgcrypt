@@ -1,7 +1,10 @@
+2003-07-05  Moritz Schulte  <moritz@g10code.com>
+
+	* register.c (check_run): Adjusted for new gcry_cipher_register API.
+
 2003-07-02  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am (TESTS): Added: ac.
-
 	* ac.c: New file.
 
 2003-06-18  Werner Koch  <wk@gnupg.org>

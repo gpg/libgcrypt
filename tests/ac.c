@@ -83,6 +83,8 @@ check_run (void)
   err = gcry_ac_data_verify (handle, key_pub, x, data);
   assert (! err);
 
+  gcry_ac_data_destroy (data);
+
   err = gcry_ac_data_sign (handle, key_sec, x, &data);
   assert (! err);
   {
