@@ -1,3 +1,14 @@
+2003-06-09  Moritz Schulte  <moritz@g10code.com>
+
+	* NEWS: Mention API changes and libgpg-error.
+
+2003-05-25  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac (USE_LIBGPG_ERROR): Implementation of the
+	--enable-libgpg-error switch.
+	Define USE_LIBGPG_ERROR in LIBGCRYPT_CONFIG_FLAGS, in case
+	libgpg-error is used.
+
 2003-05-22  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac (AC_CHECK_HEADERS): Removed unused headers:

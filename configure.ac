@@ -74,6 +74,10 @@ AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 
 AC_PROG_AWK
 
+dnl Used by libgcrypt-config
+LIBGCRYPT_CONFIG_LIBS="-lgcrypt"
+LIBGCRYPT_CONFIG_CFLAGS=""
+
 dnl Definitions for symmetric ciphers.
 available_ciphers="arcfour blowfish cast5 des aes twofish serpent"
 enabled_ciphers=""
@@ -111,6 +115,26 @@ dnl If not specified otherwise, all algorithms will be included.
 default_ciphers="$available_ciphers"
 default_pubkey_ciphers="$available_pubkey_ciphers"
 default_digests="$available_digests"
+
+dnl Support for the --enable-libgpg-error switch.
+AC_MSG_CHECKING([wether to use libgpg-error])
+AC_ARG_ENABLE(libgpg-error,
+	      AC_HELP_STRING([--enable-libgpg-error]
+			     [use libgpg-error, this is the default]),
+              [use_libgpg_error=$enableval],
+	      [])
+if test "x$use_libgpg_error" = "x"; then
+   use_libgpg_error=yes
+fi
+if test "x$use_libgpg_error" != "xyes"; then
+   use_libgpg_error=no
+fi
+AM_CONDITIONAL(USE_LIBGPG_ERROR, test "$use_libgpg_error" = "yes")
+AC_MSG_RESULT($use_libgpg_error)
+if test "$use_libgpg_error" = "yes"; then
+   LIBGCRYPT_CONFIG_CFLAGS="$LIBGCRYPT_CONFIG_CFLAGS -DUSE_LIBGPG_ERROR"
+   CFLAGS="$CFLAGS -DUSE_LIBGPG_ERROR"
+fi
 
 dnl Support for the --enable-ciphers switch.
 AC_ARG_ENABLE(ciphers,
@@ -805,8 +829,6 @@ dnl (this is easier than to have a *.in file just for one substitution)
 dnl
 GNUPG_FIX_HDR_VERSION([src/gcrypt.h], GCRYPT_VERSION)
 
-LIBGCRYPT_CONFIG_LIBS="-lgcrypt"
-LIBGCRYPT_CONFIG_CFLAGS=""
 AC_SUBST(LIBGCRYPT_CONFIG_LIBS)
 AC_SUBST(LIBGCRYPT_CONFIG_CFLAGS)
 

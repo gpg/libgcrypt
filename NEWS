@@ -1,6 +1,13 @@
 Noteworthy changes in version 1.1.13 (unreleased)
 -------------------------------------------------
 
+ * Removed `libgcrypt errno' concept, resulting in some more API
+   changes.
+
+ * Renamed all libgcrypt specific types.
+
+ * Use libgpg-error for error handling.
+
  * CRC-32, CRC-32 a'la RFC 1510, CRC-24 a'la RFC 2440 is now
    supported.
 
