@@ -55,6 +55,10 @@ typedef struct serpent_context
   serpent_subkeys_t keys;	/* Generated subkeys.  */
 } serpent_context_t;
 
+/* A prototype.  */
+static const char *serpent_test (void);
+
+      
 #define byte_swap_32(x) \
   (0 \
    | (((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) \
@@ -687,8 +691,6 @@ serpent_setkey (void *ctx,
   if (! serpent_init_done)
     {
       /* Execute a self-test the first time, Serpent is used.  */
-      static const char *serpent_test (void);
-      
       serpent_test_ret = serpent_test ();
       if (serpent_test_ret)
 	log_error ("Serpent test failure: %s\n", serpent_test_ret);

@@ -1,3 +1,8 @@
+2004-12-09  Werner Koch  <wk@g10code.com>
+
+	* serpent.c (serpent_setkey): Moved prototype of serpent_test to
+	outer scope.
+
 2004-09-11  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (pubkey_table): Added an alias entry for GCRY_PK_ELG_E.
