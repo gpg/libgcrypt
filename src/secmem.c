@@ -382,7 +382,9 @@ _gcry_secmem_free( void *a )
 int
 _gcry_private_is_secure( const void *p )
 {
-    return p >= pool && p < (void*)((char*)pool+poolsize);
+  if (!pool_okay)
+    return 0;
+  return p >= pool && p < (void*)((char*)pool+poolsize);
 }
 
 

@@ -132,7 +132,10 @@ enum gcry_ctl_cmds {
     GCRYCTL_START_DUMP		= 32,
     GCRYCTL_STOP_DUMP		= 33,
     GCRYCTL_GET_ALGO_USAGE      = 34,
-    GCRYCTL_IS_ALGO_ENABLED     = 35
+    GCRYCTL_IS_ALGO_ENABLED     = 35,
+    GCRYCTL_DISABLE_INTERNAL_LOCKING = 36,
+    GCRYCTL_DISABLE_SECMEM      = 37,
+    GCRYCTL_INITIALIZATION_FINISHED = 38
 };
 
 int gcry_control( enum gcry_ctl_cmds, ... );
@@ -309,18 +312,19 @@ enum gcry_cipher_algos {
     GCRY_CIPHER_BLOWFISH    = 4,
     GCRY_CIPHER_SAFER_SK128 = 5,
     GCRY_CIPHER_DES_SK	    = 6,
-    GCRY_CIPHER_RIJNDAEL    = 7,
-    GCRY_CIPHER_RIJNDAEL192 = 8,
-    GCRY_CIPHER_RIJNDAEL256 = 9,
+    GCRY_CIPHER_AES         = 7,
+    GCRY_CIPHER_AES192      = 8,
+    GCRY_CIPHER_AES256      = 9,
     GCRY_CIPHER_TWOFISH     = 10,
     /* other cipher numbers are above 300 for OpenPGP reasons. */
     GCRY_CIPHER_ARCFOUR     = 301
 };
 
-#define GCRY_CIPHER_AES    GCRY_CIPHER_RIJNDAEL
-#define GCRY_CIPHER_AES128 GCRY_CIPHER_RIJNDAEL
-#define GCRY_CIPHER_AES192 GCRY_CIPHER_RIJNDAEL192
-#define GCRY_CIPHER_AES256 GCRY_CIPHER_RIJNDAEL256
+#define GCRY_CIPHER_AES128      GCRY_CIPHER_AES    
+#define GCRY_CIPHER_RIJNDAEL    GCRY_CIPHER_AES    
+#define GCRY_CIPHER_RIJNDAEL128 GCRY_CIPHER_AES128 
+#define GCRY_CIPHER_RIJNDAEL192 GCRY_CIPHER_AES192 
+#define GCRY_CIPHER_RIJNDAEL256 GCRY_CIPHER_AES256 
 
 enum gcry_cipher_modes {
     GCRY_CIPHER_MODE_NONE   = 0,
@@ -337,7 +341,7 @@ enum gcry_cipher_flags {
 };
 
 
-GCRY_CIPHER_HD gcry_cipher_open( int algo, int mode, unsigned flags);
+GCRY_CIPHER_HD gcry_cipher_open( int algo, int mode, unsigned int flags);
 void gcry_cipher_close( GCRY_CIPHER_HD h );
 int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, void *buffer, size_t buflen);
 int gcry_cipher_info( GCRY_CIPHER_HD h, int what, void *buffer, size_t *nbytes);
@@ -521,6 +525,7 @@ void *gcry_calloc( size_t n, size_t m );
 void *gcry_malloc_secure( size_t n );
 void *gcry_calloc_secure( size_t n, size_t m );
 void *gcry_realloc( void *a, size_t n );
+char *gcry_strdup( const char *string );
 void *gcry_xmalloc( size_t n );
 void *gcry_xcalloc( size_t n, size_t m );
 void *gcry_xmalloc_secure( size_t n );

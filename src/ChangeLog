@@ -1,3 +1,37 @@
+2002-05-02  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (GCRYCTL_DISABLE_INTERNAL_LOCKING): New.
+	* global.c (gcry_control): Implement it.
+	(_gcry_no_internal_locking): New.
+	* mutex.h: Prefixed all fucntions with _gcry_.  Bypass all
+	functions when desired.
+
+	* gcrypt.h (GCRYCTL_DISABLE_SECMEM): New.
+	* global.c (gcry_control,gcry_malloc_secure,gcry_is_secure):
+	Implement it here.
+	* secmem.c (_gcry_private_is_secure): Return false if the pool is
+	not initialized.
+
+	* gcrypt.h (GCRYCTL_INITIALIZATION_FINISHED): New.
+
+	* gcrypt.h (gcry_cipher_algos): Replaced RINDAEL by AES and change
+	the macros to expand from rijdael to aes.
+
+	* stdmem.c (_gcry_private_malloc): Return NULL for 0 byte allocation.
+	(_gcry_private_malloc_secure): Ditto.
+
+	* g10lib.h:  Copied the JNLIB_GCC macros from ../jnlib/mischelp.h
+	and removed the inclusion of that file.
+
+2002-04-15  Werner Koch  <wk@gnupg.org>
+
+	* global.c (gcry_strdup): New.
+
+2002-03-18  Werner Koch  <wk@gnupg.org>
+
+	* mutex.h: New file with a portable thread mutex implementation
+	written by Marcus Brinkmann.  Taken from GPGME.
+
 2002-02-18  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (gcry_sexp_sscan): Don't initialize the dummy

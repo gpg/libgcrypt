@@ -31,6 +31,7 @@
 #include "stdmem.h" /* our own memory allocator */
 #include "secmem.h" /* our own secmem allocator */
 
+
 /****************
  * flag bits: 0 : general cipher debug
  *	      1 : general MPI debug
@@ -45,6 +46,8 @@ static void *(*realloc_func)(void *p, size_t n) = NULL;
 static void (*free_func)(void*) = NULL;
 static int (*outofcore_handler)( void*, size_t, unsigned int ) = NULL;
 static void *outofcore_handler_value = NULL;
+static int no_internal_locking = 0;
+static int no_secure_memory = 0;
 
 static const char*
 parse_version_number( const char *s, int *number )
@@ -151,6 +154,10 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	_gcry_secmem_init( 0 );
 	break;
 
+      case GCRYCTL_DISABLE_SECMEM:
+        no_secure_memory = 1;
+        break;    
+
       case GCRYCTL_INIT_SECMEM:
 	_gcry_secmem_init( va_arg( arg_ptr, unsigned int ) );
 	break;
@@ -186,6 +193,19 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
       case GCRYCTL_CLEAR_DEBUG_FLAGS:
 	debug_flags &= ~va_arg( arg_ptr, unsigned int );
 	break;
+
+      case GCRYCTL_DISABLE_INTERNAL_LOCKING:
+        no_internal_locking = 1;
+        break;
+
+      case GCRYCTL_INITIALIZATION_FINISHED:
+        /* This is a hook which should be used by an application after
+           all intialization has been done and right before any
+           threads are started.  It is not really needed but the only
+           way to be really sure that all initialization for
+           thread-safety has been done. */
+        /* fixme: we should initialize the various mutexs here */
+        break;
 
       default:
 	va_end(arg_ptr);
@@ -261,8 +281,7 @@ _gcry_set_lasterr( int ec )
 
 
 /****************
- * NOTE: All 5 functions should be set.
- */
+ * NOTE: All 5 functions should be set.  */
 void
 gcry_set_allocation_handler( void *(*new_alloc_func)(size_t n),
 			     void *(*new_alloc_secure_func)(size_t n),
@@ -314,17 +333,21 @@ gcry_malloc( size_t n )
 void *
 gcry_malloc_secure( size_t n )
 {
-    if( alloc_secure_func )
-	return alloc_secure_func( n ) ;
-    return _gcry_private_malloc_secure( n );
+  if (no_secure_memory)
+    return gcry_malloc (n);
+  if (alloc_secure_func)
+    return alloc_secure_func (n) ;
+  return _gcry_private_malloc_secure (n);
 }
 
 int
 gcry_is_secure( const void *a )
 {
-    if( is_secure_func )
-	return is_secure_func( a ) ;
-    return _gcry_private_is_secure( a );
+  if (no_secure_memory)
+    return 0;
+  if (is_secure_func)
+    return is_secure_func (a) ;
+  return _gcry_private_is_secure (a);
 }
 
 void
@@ -376,6 +399,15 @@ gcry_calloc_secure( size_t n, size_t m )
     void *p = gcry_malloc_secure( n*m );
     if( p )
 	memset( p, 0, n*m );
+    return p;
+}
+
+
+char *
+gcry_strdup( const char *string )
+{
+    void *p = gcry_malloc( strlen(string)+1 );
+    strcpy( p, string );
     return p;
 }
 
@@ -454,4 +486,9 @@ _gcry_get_debug_flag( unsigned int mask )
     return debug_flags & mask;
 }
 
+int 
+_gcry_no_internal_locking (void)
+{
+  return no_internal_locking;
+}
 

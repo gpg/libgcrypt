@@ -1,5 +1,5 @@
 /* g10lib.h -  internal defintions for libgcrypt
- *	Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
  *
  * This header is to be used inside of libgcrypt in place of gcrypt.h.
  * This way we can better distinguish between internal and external
@@ -35,7 +35,18 @@
 
 #include <gcrypt.h>
 #include "types.h"
-#include "../jnlib/mischelp.h"
+
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 5 )
+# define JNLIB_GCC_M_FUNCTION 1
+# define JNLIB_GCC_A_NR 	     __attribute__ ((noreturn))
+# define JNLIB_GCC_A_PRINTF( f, a )  __attribute__ ((format (printf,f,a)))
+# define JNLIB_GCC_A_NR_PRINTF( f, a ) \
+			    __attribute__ ((noreturn, format (printf,f,a)))
+#else
+# define JNLIB_GCC_A_NR
+# define JNLIB_GCC_A_PRINTF( f, a )
+# define JNLIB_GCC_A_NR_PRINTF( f, a )
+#endif
 
 #ifdef G10_I18N_H
   #error i18n should not be included here

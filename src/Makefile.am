@@ -49,7 +49,8 @@ libgcrypt_la_SOURCES =	 g10lib.h \
 			 stdmem.h \
 			 secmem.c \
 			 secmem.h \
-		         mpi.h
+		         mpi.h \
+			 mutex.h 
 
 libgcrypt_la_DEPENDENCIES = libgcrypt.sym \
 			    ../cipher/libcipher.la ../mpi/libmpi.la

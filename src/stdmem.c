@@ -1,5 +1,5 @@
 /* stdmem.c  -	private memory allocator
- *	Copyright (C) 1998, 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2000, 2002 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -59,6 +59,9 @@ _gcry_private_enable_m_guard(void)
 void *
 _gcry_private_malloc( size_t n)
 {
+    if(!n) 
+      return NULL; /* allocating 0 bytes is undefined - better return
+                      an error */
     if( use_m_guard ) {
 	char *p;
 
@@ -83,6 +86,9 @@ _gcry_private_malloc( size_t n)
 void *
 _gcry_private_malloc_secure( size_t n)
 {
+    if(!n) 
+      return NULL; /* allocating 0 bytes is undefined - better return
+                      an error */
     if( use_m_guard ) {
 	char *p;
 
