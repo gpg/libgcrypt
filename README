@@ -51,9 +51,9 @@
     Lesser General Public License (LGPL); see the file COPYING.LIB for
     the actual terms.  However some parts are distributed under the
     GNU General Public License (GPL) so if you configure Libgcrypt to
-    include these modules or use these modules as dynamically loaded
-    plug-ins, you have to comply with the conditions of the GPL as
-    found in the file COPYING.  The modules under the GPL are:
+    include these modules, you have to comply with the conditions of
+    the GPL as found in the file COPYING.  The modules under the GPL
+    are:
 
       rndunix - Entropy gatherer for Unices without a /dev/random
       rndw32  - Entropy gatherer for MS Windows
@@ -67,9 +67,14 @@
     similar to Libcrypt.  We decided that to foster the use of
     cryptography in Free Software an LGPLed library would make more
     sense because it avoids problems due to license incompatibilities
-    between some Free Software licenses and the GPL.  Please note that
-    it general the use of the LGPL is not suggested, see
-    http://www.gnu.org/philosophy/why-not-lgpl.html
+    between some Free Software licenses and the GPL. 
+
+    Please note that in many cases it is better for a library to be
+    licensed under the GPL, so that it provides an advantage for free
+    software projects.  The Lesser GPL is so named because it does
+    less to protect the freedom of the users of the code that it
+    covers.  See http://www.gnu.org/philosophy/why-not-lgpl.html for
+    more explanation.
 
 
 

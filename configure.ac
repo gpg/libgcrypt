@@ -85,7 +85,7 @@ dnl         and check against this list
 
 AC_MSG_CHECKING([which static random module to use])
 AC_ARG_ENABLE(static-rnd,
-    [  --enable-static-rnd=[egd|unix|linux|none]  ],
+    [  --enable-static-rnd=[egd|unix|linux]  ],
 [use_static_rnd=$enableval], [use_static_rnd=default] )
 
 if test "$use_static_rnd" = no; then
@@ -93,7 +93,7 @@ if test "$use_static_rnd" = no; then
 fi
 
 case "$use_static_rnd" in
-    egd | linux | unix | none | default )
+    egd | linux | unix | default )
       AC_MSG_RESULT($use_static_rnd)
       ;;
     * )
@@ -124,12 +124,6 @@ AC_MSG_RESULT($try_dev_random)
 dnl
 dnl  Check other options
 dnl
-
-AC_MSG_CHECKING([whether use of extensions is requested])
-AC_ARG_ENABLE(dynload,
-[  --disable-dynload       disable use of extensions],
-    try_dynload=$enableval, try_dynload=yes)
-AC_MSG_RESULT($try_dynload)
 
 AC_MSG_CHECKING([whether assembler modules are requested])
 AC_ARG_ENABLE(asm,
@@ -253,10 +247,10 @@ esac
 AC_SUBST(MPI_OPT_FLAGS)
 GNUPG_SYS_SYMBOL_UNDERSCORE
 GNUPG_CHECK_PIC
-GNUPG_CHECK_EXPORTDYNAMIC
-if test "$NO_PIC" = yes; then
-    try_dynload=no
-fi
+#GNUPG_CHECK_EXPORTDYNAMIC
+#if test "$NO_PIC" = yes; then
+#    try_dynload=no
+#fi
 
 
 case "${target}" in
@@ -289,24 +283,24 @@ case "${target}" in
     *-openbsd* | *-netbsd*)
         NAME_OF_DEV_RANDOM="/dev/srandom"
         NAME_OF_DEV_URANDOM="/dev/urandom"
-        DYNLINK_MOD_CFLAGS="-shared -rdynamic $CFLAGS_PIC -Wl,-Bshareable -Wl,-x"
+#       DYNLINK_MOD_CFLAGS="-shared -rdynamic $CFLAGS_PIC -Wl,-Bshareable -Wl,-x"
         ;;
 
     *-solaris* | *-irix* | *-dec-osf* )
         NAME_OF_DEV_RANDOM="/dev/random"
         NAME_OF_DEV_URANDOM="/dev/random"
-        DYNLINK_MOD_CFLAGS="-shared $CFLAGS_PIC"
+#       DYNLINK_MOD_CFLAGS="-shared $CFLAGS_PIC"
         ;;
 
     *)
         NAME_OF_DEV_RANDOM="/dev/random"
         NAME_OF_DEV_URANDOM="/dev/urandom"
         # -shared is a gcc-ism.  Find pic flags from GNUPG_CHECK_PIC.
-        if test -n "$GCC" ; then
-           DYNLINK_MOD_CFLAGS="-shared $CFLAGS_PIC"                            
-        else
-           DYNLINK_MOD_CFLAGS="$CFLAGS_PIC"
-        fi
+#        if test -n "$GCC" ; then
+#           DYNLINK_MOD_CFLAGS="-shared $CFLAGS_PIC"                            
+#        else
+#           DYNLINK_MOD_CFLAGS="$CFLAGS_PIC"
+#        fi
         ;;
 esac
 AC_DEFINE_UNQUOTED(NAME_OF_DEV_RANDOM, "$NAME_OF_DEV_RANDOM",
@@ -338,56 +332,6 @@ if test x$ac_try_nsl = x1; then
         LIBS="$LIBS -lnsl"
     fi
 fi
-
-
-if test "$try_dynload" = yes ; then
-  AC_CHECK_LIB(dl,dlopen)
-  if test "$ac_cv_lib_dl_dlopen" = "yes"; then
-    AC_DEFINE(USE_DYNAMIC_LINKING,1,
-              [define to enable the use of extensions])
-    AC_DEFINE(HAVE_DL_DLOPEN,1,
-              [Defined when the dlopen function family is available])
-    DYNLINK_LDFLAGS="$CFLAGS_EXPORTDYNAMIC"
-    use_gnupg_extensions=yes
-  else
-    AC_CHECK_FUNCS(dlopen)
-    if test "$ac_cv_func_dlopen" = "yes"; then
-      AC_DEFINE(USE_DYNAMIC_LINKING)
-      AC_DEFINE(HAVE_DL_DLOPEN)
-      DYNLINK_LDFLAGS="$CFLAGS_EXPORTDYNAMIC"
-      use_gnupg_extensions=yes
-    else
-      AC_CHECK_LIB(dld,shl_load)
-      if test "$ac_cv_lib_dld_shl_load" = "yes"; then
-        AC_DEFINE(USE_DYNAMIC_LINKING)
-        AC_DEFINE(HAVE_DL_SHL_LOAD,1,
-                  [Defined if the shl_load function family is available])
-        DYNLINK_LDFLAGS="$CFLAGS_EXPORTDYNAMIC"
-        use_gnupg_extensions=yes
-dnl -----------------
-dnl  DLD is not ready for use. So I better disable this test
-dnl
-dnl    AC_CHECK_LIB(dld,dld_link)
-dnl    if test "$ac_cv_lib_dld_dld_link" = "yes"; then
-dnl      AC_DEFINE(USE_DYNAMIC_LINKING)
-dnl      AC_DEFINE(HAVE_DLD_DLD_LINK)
-dnl      DYNLINK_LDFLAGS="$CFLAGS_EXPORTDYNAMIC"
-dnl      use_gnupg_extensions=yes
-dnl ---------------
-      fi
-    fi
-  fi
-else
-  AC_MSG_CHECKING(for dynamic loading)
-  DYNLINK_LDFLAGS=
-  DYNLINK_MOD_CFLAGS=
-  use_gnupg_extensions=no
-  AC_MSG_RESULT(has been disabled)
-fi
-
-AM_CONDITIONAL(ENABLE_GNUPG_EXTENSIONS, test "$use_gnupg_extensions" = yes )
-AC_SUBST(DYNLINK_LDFLAGS)
-AC_SUBST(DYNLINK_MOD_CFLAGS)
 
 
 dnl Checks for header files.
@@ -555,27 +499,6 @@ else
 fi
 
 
-if test "$print_egd_notice" = "yes"; then
-    AC_MSG_WARN([[
-***
-*** The performance of the UNIX random gatherer module is not very good
-*** and it does not keep the entropy pool over multiple invocations of
-*** GnuPG.  The suggested way to overcome this problem is to use the
-***
-***               Entropy Gathering Daemon (EGD)
-***
-*** which provides a entropy source for the whole system.  It is written
-*** in Perl and available at the GnuPG FTP servers.  For more information
-*** consult the GnuPG webpages:
-***
-***           http://www.gnupg.org/download.html#egd
-***
-*** You may want to run ./configure with --enable-static-rnd=none to be
-*** able to load the EGD client code dynamically; this way you can choose
-*** between RNDUNIX and RNDEGD without recompilation.
-***]])
-fi
-
 dnl
 dnl Parse the modules list and build the list
 dnl of static and dymically linked modules
@@ -584,8 +507,6 @@ dnl (We always need a static rmd160)
 static_modules="$static_modules rmd160 $static_random_module"
 STATIC_CIPHER_NAMES=""
 STATIC_CIPHER_OBJS=""
-DYNAMIC_CIPHER_MODS=""
-GNUPG_MSG_PRINT([dynamically linked cipher modules:])
 for name in $MODULES_IN_CIPHER; do
     x="yes"
     for i in $disallowed_modules; do
@@ -601,38 +522,13 @@ for name in $MODULES_IN_CIPHER; do
         if test $x = yes; then
             STATIC_CIPHER_NAMES="$STATIC_CIPHER_NAMES $name"
             STATIC_CIPHER_OBJS="$STATIC_CIPHER_OBJS $name.lo"
-        else
-            DYNAMIC_CIPHER_MODS="$DYNAMIC_CIPHER_MODS $name"
-            GNUPG_MSG_PRINT([$name])
         fi
 
-dnl        dnl Very ugly way to do this, but I don't knwo how to
-dnl        dnl cope with AC_SUBST otherwise
-dnl        case "$name" in
-dnl          tiger)
-dnl            AM_CONDITIONAL(BUILD_MODULE_TIGER,   [test $x = no])
-dnl            ;;                                   
-dnl          twofish)                               
-dnl            AM_CONDITIONAL(BUILD_MODULE_TWOFISH, [test $x = no])
-dnl            ;;                                   
-dnl          rndunix)                               
-dnl            AM_CONDITIONAL(BUILD_MODULE_RNDUNIX, [test $x = no])
-dnl            ;;                                   
-dnl          rndlinux)                              
-dnl            AM_CONDITIONAL(BUILD_MODULE_RNDLINUX,[test $x = no])
-dnl            ;;                                   
-dnl          rndegd)                                
-dnl            AM_CONDITIONAL(BUILD_MODULE_RNDEGD,  [test $x = no])
-dnl            ;;
-dnl          *)
-dnl            ;;
-dnl        esac
     fi
 done
 AC_MSG_RESULT()
 AC_SUBST(STATIC_CIPHER_OBJS)
 AC_SUBST(STATIC_CIPHER_NAMES)
-AC_SUBST(DYNAMIC_CIPHER_MODS)
 
 
 dnl
@@ -644,10 +540,8 @@ cat <<G10EOF >cipher/construct.c
 /* automatically generated by configure - do not edit */
 
 G10EOF
-GNUPG_MSG_PRINT([statically linked cipher modules:])
 for name in $STATIC_CIPHER_NAMES; do
     echo "void _gcry_${name}_constructor(void);" >>cipher/construct.c
-    GNUPG_MSG_PRINT([$name])
 done
 AC_MSG_RESULT()
 cat <<G10EOF >>cipher/construct.c
@@ -673,7 +567,6 @@ dnl
 dnl Figure how to link the cipher modules
 dnl
 AC_SUBST(STATIC_CIPHER_OBJS)
-AC_SUBST(DYNAMIC_CIPHER_MODS)
 
 #
 # setup assembler stuff
@@ -814,6 +707,26 @@ AC_OUTPUT
 
 # Give some feedback
 echo
+
+if test "$print_egd_notice" = "yes"; then
+cat <<G10EOF
+  
+   The performance of the UNIX random gatherer module is not very good
+   and it does not keep the entropy pool over multiple invocations of
+   GnuPG.  The suggested way to overcome this problem is to use the
+  
+                 Entropy Gathering Daemon (EGD)
+  
+   which provides a entropy source for the whole system.  It is written
+   in Perl and available at the GnuPG FTP servers.  To enable EGD you 
+   should rerun configure with the option "--enable-static-rnd=egd".
+   For more information consult the GnuPG webpages:
+  
+             http://www.gnupg.org/download.html#egd
+
+G10EOF
+fi
+
 warn=""
 for file in "$static_random_module"; do
   case "$file" in rndunix | rndw32) warn="$warn $file";; esac
@@ -824,3 +737,4 @@ if test -n "$warn"; then
   echo "included.  These parts are licensed under the GPL and thus the"
   echo "use of this library has to comply with the conditions of the GPL"
 fi
+
