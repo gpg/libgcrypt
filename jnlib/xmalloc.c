@@ -1,14 +1,14 @@
 /* xmalloc.c -	standard malloc wrappers
- *	Copyright (C) 1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1999, 2000, 2001 Free Software Foundation, Inc.
  *
- * This file is part of Libgcrypt.
+ * This file is part of GnuPG.
  *
- * Libgcrypt is free software; you can redistribute it and/or modify
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * Libgcrypt is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -20,6 +20,7 @@
 
 #include <config.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
 #include "libjnlib-config.h"
@@ -65,6 +66,23 @@ xstrdup( const char *string )
 {
     void *p = xmalloc( strlen(string)+1 );
     strcpy( p, string );
+    return p;
+}
+
+
+char *
+xstrcat2( const char *a, const char *b )
+{
+    size_t n1;
+    char *p;
+
+    if( !b )
+	return xstrdup( a );
+
+    n1 = strlen(a);
+    p = xmalloc( n1 + strlen(b) + 1 );
+    memcpy(p, a, n1 );
+    strcpy(p+n1, b );
     return p;
 }
 

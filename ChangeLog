@@ -1,3 +1,9 @@
+2002-01-24  Werner Koch  <wk@gnupg.org>
+
+	* jnlib/: Replaced by a fresh copy from GnuPG (actually the NewPG
+	development branch).  Adjusted Makefile.am and jnlib-config.h
+	accordingly.
+
 2001-12-18  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.5.

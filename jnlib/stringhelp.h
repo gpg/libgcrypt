@@ -1,14 +1,14 @@
 /* stringhelp.h
- *	Copyright (C) 1998,1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1998,1999,2000,2001 Free Software Foundation, Inc.
  *
- * This file is part of Libgcrypt.
+ * This file is part of GnuPG.
  *
- * Libgcrypt is free software; you can redistribute it and/or modify
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * Libgcrypt is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -21,6 +21,7 @@
 #ifndef LIBJNLIB_STRINGHELP_H
 #define LIBJNLIB_STRINGHELP_H
 
+#include "types.h"
 
 const char *memistr( const char *buf, size_t buflen, const char *sub );
 char *mem2str( char *, const void *, size_t);
@@ -29,6 +30,20 @@ char *trim_trailing_spaces( char *string );
 unsigned int trim_trailing_chars( unsigned char *line, unsigned len,
 					      const char *trimchars);
 unsigned int trim_trailing_ws( unsigned char *line, unsigned len );
+
+
+char *make_basename(const char *filepath);
+char *make_dirname(const char *filepath);
+char *make_filename( const char *first_part, ... );
+int compare_filenames( const char *a, const char *b );
+
+const char *ascii_memistr( const char *buf, size_t buflen, const char *sub );
+int ascii_isupper (int c);
+int ascii_islower (int c);
+int ascii_toupper (int c);
+int ascii_tolower (int c);
+int ascii_strcasecmp( const char *a, const char *b );
+int ascii_memcasecmp( const char *a, const char *b, size_t n );
 
 
 #ifndef HAVE_MEMICMP
@@ -49,7 +64,6 @@ char *strlwr(char *a);
 #ifndef HAVE_STRICMP
   #define stricmp(a,b)	 strcasecmp( (a), (b) )
 #endif
-
 
 #ifndef STR
   #define STR(v) #v

@@ -1,14 +1,14 @@
 /* xmalloc.h
- *	Copyright (C) 1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1999, 2000, 2001 Free Software Foundation, Inc.
  *
- * This file is part of Libgcrypt.
+ * This file is part of GnuPG.
  *
- * Libgcrypt is free software; you can redistribute it and/or modify
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * Libgcrypt is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -25,6 +25,7 @@ void *xmalloc( size_t n );
 void *xrealloc( void *a, size_t n );
 void *xcalloc( size_t n, size_t m );
 char *xstrdup( const char *string );
+char *xstrcat2( const char *a, const char *b );
 
 
 #endif /*LIBJNLIB_XMALLOC_H*/

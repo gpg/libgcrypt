@@ -1,14 +1,14 @@
 /* argparse.h
- *	Copyright (C) 1998,1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1998,1999,2000,2001 Free Software Foundation, Inc.
  *
- * This file is part of Libgcrypt.
+ * This file is part of GnuPG.
  *
- * Libgcrypt is free software; you can redistribute it and/or modify
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * Libgcrypt is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -21,6 +21,9 @@
 #ifndef LIBJNLIB_ARGPARSE_H
 #define LIBJNLIB_ARGPARSE_H
 
+#include <stdio.h>
+#include "types.h"
+
 typedef struct {
      int  *argc;	    /* pointer to argc (value subject to change) */
      char ***argv;	    /* pointer to argv (value subject to change) */
@@ -32,7 +35,7 @@ typedef struct {
      union {
 	 int   ret_int;
 	 long  ret_long;
-	 ulong ret_ulong;
+	 unsigned long ret_ulong;
 	 char *ret_str;
      } r;		    /* Return values */
      struct {

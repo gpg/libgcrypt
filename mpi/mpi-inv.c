@@ -77,8 +77,8 @@ _gcry_mpi_invm( MPI x, MPI a, MPI n )
     mpi_free(u);
     mpi_free(v);
   #elif 0
-    /* Extended Euclid's algorithm (See TAOPC Vol II, 4.5.2, Alg X)
-     * modified according to Michael Penk's solution for Exercice 35 */
+    /* Extended Euclid's algorithm (See TAOCP Vol II, 4.5.2, Alg X)
+     * modified according to Michael Penk's solution for Exercise 35 */
 
     /* FIXME: we can simplify this in most cases (see Knuth) */
     MPI u, v, u1, u2, u3, v1, v2, v3, t1, t2, t3;
@@ -158,8 +158,8 @@ _gcry_mpi_invm( MPI x, MPI a, MPI n )
     mpi_free(t2);
     mpi_free(t3);
   #else
-    /* Extended Euclid's algorithm (See TAOPC Vol II, 4.5.2, Alg X)
-     * modified according to Michael Penk's solution for Exercice 35
+    /* Extended Euclid's algorithm (See TAOCP Vol II, 4.5.2, Alg X)
+     * modified according to Michael Penk's solution for Exercise 35
      * with further enhancement */
     MPI u, v, u1, u2=NULL, u3, v1, v2=NULL, v3, t1, t2=NULL, t3;
     unsigned k;

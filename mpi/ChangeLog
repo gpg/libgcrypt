@@ -1,3 +1,7 @@
+2002-01-14  Werner Koch  <wk@gnupg.org>
+
+	* mpi-inv.c (_gcry_mpi_invm): Typo fixes, noted by Carlo Perassi.
+
 2001-11-01  Werner Koch  <wk@gnupg.org>
 
 	* mpicoder.c (gcry_mpi_scan): Allow to pass a nbytes as NULL or

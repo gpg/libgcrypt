@@ -1,14 +1,14 @@
 /* dotlock.c - dotfile locking
- *	Copyright (C) 1998, 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1998,2000,2001 Free Software Foundation, Inc.
  *
- * This file is part of Libgcrypt.
+ * This file is part of GnuPG.
  *
- * Libgcrypt is free software; you can redistribute it and/or modify
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * Libgcrypt is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -42,21 +42,13 @@ struct dotlock_handle {
     char *tname;    /* name of lockfile template */
     char *lockname; /* name of the real lockfile */
     int locked;     /* lock status */
-    int disable;    /* locking */
 };
 
 
 static DOTLOCK all_lockfiles;
-static int never_lock;
 
 static int read_lockfile( const char *name );
 static void remove_lockfiles(void);
-
-void
-disable_dotlock(void)
-{
-    never_lock = 1;
-}
 
 /****************
  * Create a lockfile with the given name and return an object of
@@ -96,16 +88,6 @@ create_dotlock( const char *file_to_lock )
 	return NULL;
 
     h = jnlib_xcalloc( 1, sizeof *h );
-    if( never_lock ) {
-	h->disable = 1;
-      #ifdef _REENTRANT
-	/* fixme: aquire mutex on all_lockfiles */
-      #endif
-	h->next = all_lockfiles;
-	all_lockfiles = h;
-	return h;
-    }
-
 #ifndef HAVE_DOSISH_SYSTEM
     sprintf( pidstr, "%10d\n", (int)getpid() );
     /* fixme: add the hostname to the second line (FQDN or IP addr?) */
@@ -209,10 +191,6 @@ make_dotlock( DOTLOCK h, long timeout )
     const char *maybe_dead="";
     int backoff=0;
 
-    if( h->disable ) {
-	return 0;
-    }
-
     if( h->locked ) {
 	log_debug("oops, `%s' is already locked\n", h->lockname );
 	return 0;
@@ -280,10 +258,6 @@ release_dotlock( DOTLOCK h )
     return 0;
 #else
     int pid;
-
-    if( h->disable ) {
-	return 0;
-    }
 
     if( !h->locked ) {
 	log_debug("oops, `%s' is not locked\n", h->lockname );
@@ -359,13 +333,11 @@ remove_lockfiles()
 
     while( h ) {
 	h2 = h->next;
-	if( !h->disable ) {
-	    if( h->locked )
-		unlink( h->lockname );
-	    unlink(h->tname);
-	    jnlib_free(h->tname);
-	    jnlib_free(h->lockname);
-	}
+	if( h->locked )
+	    unlink( h->lockname );
+	unlink(h->tname);
+	jnlib_free(h->tname);
+	jnlib_free(h->lockname);
 	jnlib_free(h);
 	h = h2;
     }
