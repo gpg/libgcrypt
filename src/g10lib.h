@@ -212,7 +212,7 @@ gpg_err_code_t _gcry_module_add (gcry_module_t **entries,
 				 void *spec,
 				 gcry_module_t **module);
 
-typedef int (*gcry_module_tLookup) (void *spec, void *data);
+typedef int (*gcry_module_lookup_t) (void *spec, void *data);
 
 /* Public function.  Lookup a module specification by it's ID.  After a
    successfull lookup, the module has it's resource counter
@@ -222,7 +222,7 @@ gcry_module_t *_gcry_module_lookup_id (gcry_module_t *entries,
 
 /* Internal function.  Lookup a module specification.  */
 gcry_module_t *_gcry_module_lookup (gcry_module_t *entries, void *data,
-				 gcry_module_tLookup func);
+				    gcry_module_lookup_t func);
 
 /* Public function.  Release a module.  In case the use-counter
    reaches zero, destroy the module.  */
@@ -234,5 +234,8 @@ void _gcry_module_use (gcry_module_t *module);
 gpg_err_code_t _gcry_cipher_init (void);
 gpg_err_code_t _gcry_md_init (void);
 gpg_err_code_t _gcry_pk_init (void);
+
+gpg_err_code_t _gcry_pk_module_lookup (int id, gcry_module_t **module);
+void _gcry_pk_module_release (gcry_module_t *module);
 
 #endif /* G10LIB_H */
