@@ -612,8 +612,12 @@ void
 gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
                            void *cb_data)
 {
+#if USE_DSA
   _gcry_register_pk_dsa_progress (cb, cb_data);
+#endif
+#if USE_ELGAMAL
   _gcry_register_pk_elg_progress (cb, cb_data);
+#endif
   _gcry_register_primegen_progress (cb, cb_data);
   _gcry_register_random_progress (cb, cb_data);
 }

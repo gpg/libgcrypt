@@ -12,6 +12,10 @@
 PGM=libgcrypt-config
 libs="@LIBGCRYPT_CONFIG_LIBS@"
 cflags="@LIBGCRYPT_CONFIG_CFLAGS@"
+ciphers="@LIBGCRYPT_CIPHERS@"
+pubkey_ciphers="@LIBGCRYPT_PUBKEY_CIPHERS@"
+digests="@LIBGCRYPT_DIGESTS@"
+
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 includes=""
@@ -20,6 +24,7 @@ exec_prefix_set=no
 echo_libs=no
 echo_cflags=no
 echo_prefix=no
+echo_algorithms=no
 echo_exec_prefix=no
 
 
@@ -33,6 +38,7 @@ Options:
 	[--version]
 	[--libs]
 	[--cflags]
+	[--algorithms]
 EOF
 	exit $1
 }
@@ -74,6 +80,9 @@ while test $# -gt 0; do
     --libs)
       echo_libs=yes
       ;;
+    --algorithms)
+      echo_algorithms=yes
+      ;;
     *)
       usage 1 1>&2
       ;;
@@ -111,4 +120,10 @@ if test "$echo_libs" = "yes"; then
       done
     fi
     echo $libdirs $libs
+fi
+
+if test "$echo_algorithms" = "yes"; then
+    echo "Symmetric cipher algorithms: $ciphers"
+    echo "Public-key cipher algorithms: $pubkey_ciphers"
+    echo "Message digest algorithms: $digests"
 fi

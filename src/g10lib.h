@@ -203,4 +203,35 @@ void _gcry_burn_stack (int bytes);
                       || (*(a) >= 'A' && *(a) <= 'F')  \
                       || (*(a) >= 'a' && *(a) <= 'f'))
 
+/* Management for ciphers/digests/pubkey-ciphers.  */
+
+/* Structure for each registered `module'.  */
+struct gcry_module
+{
+  struct gcry_module *next;     /* List pointers.      */
+  struct gcry_module **prevp;
+  void *spec;			/* The acctual specs.  */
+  int flags;			/* Associated flags.   */
+  int counter;			/* Use counter.        */
+};
+
+/* Flags for the `flags' member of GcryModule.  */
+#define FLAG_MODULE_DISABLED 1 << 0
+
+int _gcry_module_add (GcryModule **entries, void *spec,
+		      GcryModule **module);
+
+typedef int (*GcryModuleLookup) (void *spec, void *data);
+
+/* Internal function.  Lookup a module specification.  */
+GcryModule *_gcry_module_lookup (GcryModule *entries, void *data,
+				 GcryModuleLookup func);
+
+/* Public function.  Release a module.  In case the use-counter
+   reaches zero, destroy the module.  */
+void _gcry_module_release (GcryModule *entry);
+
+/* Public function.  Add a reference to a module.  */
+void _gcry_module_use (GcryModule *module);
+
 #endif /* G10LIB_H */

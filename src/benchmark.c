@@ -100,7 +100,7 @@ md_bench ( const char *algoname )
 
   if (!algo)
     {
-      fprintf (stderr, PGM ": invalid hash algorithm `%s'/n", algoname);
+      fprintf (stderr, PGM ": invalid hash algorithm `%s'\n", algoname);
       exit (1);
     }
   

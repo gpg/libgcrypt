@@ -1,3 +1,53 @@
+2003-04-16  Moritz Schulte  <moritz@g10code.com>
+
+	* module.c (_gcry_module_use): New function.
+	* g10lib.h (_gcry_module_use): Declare function.
+
+	* libgcrypt-config.in: Support for --algorithms switch, which
+	prints the algorithms included in the built libgcrypt.
+
+	* global.c (gcry_set_progress_handler): Register progress
+	functions depending on the enabled algorithms.
+
+2003-04-07  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (libgcrypt_la_SOURCES): Added module.c
+
+	* module.c: New file.
+	(_gcry_module_add): New function.
+	(_gcry_module_drop): New function.
+	(_gcry_module_lookup): New function.
+	(_gcry_module_release): New function.
+
+	* g10lib.h (GcryModule): New types.
+	(FLAG_MODULE_DISABLED): New symbol.
+	Added declarations for _gcry_module_add, _gcry_module_release and
+	_gcry_module_lookup.
+
+	* gcrypt.h: New types: GcryPubkeySpec, GcryDigestSpec,
+	GcryCipherSpec.
+	Added declarations for: gcry_cipher_register,
+	gcry_cipher_unregister, gcry_digest_register,
+	gcry_digest_unregister, gcry_pubkey_register and
+	gcry_pubkey_unregister.
+
+	* cipher.h: Removed symbols: CIPHER_ALGO_NONE, CIPHER_ALGO_IDEA,
+	CIPHER_ALGO_3DES, CIPHER_ALGO_CAST5, CIPHER_ALGO_BLOWFISH,
+	CIPHER_ALGO_SAFER_SK128, CIPHER_ALGO_DES_SK, CIPHER_ALGO_TWOFISH,
+	CIPHER_ALGO_TWOFISH_OLD, CIPHER_ALGO_DUMMY, PUBKEY_USAGE_SIG,
+	PUBKEY_USAGE_ENC, DIGEST_ALGO_MD5, DIGEST_ALGO_SHA1,
+	DIGEST_ALGO_RMD160, DIGEST_ALGO_TIGER, PUBKEY_ALGO_RSA,
+	PUBKEY_ALGO_RSA_E, PUBKEY_ALGO_RSA_S, PUBKEY_ALGO_DSA,
+	PUBKEY_ALGO_ELGAMAL, PUBKEY_ALGO_ELGAMAL_E.
+
+2003-04-02  Moritz Schulte  <moritz@g10code.com>
+
+	* benchmark.c (md_bench): Fix error message.
+
+2003-03-31  Moritz Schulte  <moritz@g10code.com>
+
+	* benchmark.c (cipher_bench): Added CTR mode.
+
 2003-03-30  Simon Josefsson  <jas@extundo.com>
 
 	* gcrypt.h (enum gcry_control_cmds): Add GCRY_SET_CTR.

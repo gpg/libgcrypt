@@ -77,6 +77,7 @@ libgcrypt_la_SOURCES =	 g10lib.h \
 			 secmem.h \
 		         mpi.h \
 			 missing-string.c \
+			 module.c \
 			 ${ath_components}
 
 libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
