@@ -1,3 +1,8 @@
+2004-11-09  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h: Removed 3 trailing commas from enums.  Noted by Heiko
+	Stamer.
+
 2004-09-21  Werner Koch  <wk@g10code.de>
 
 	* sexp.c (sexp_sscan): Removed C++ style comments.  Noted by Yoann
