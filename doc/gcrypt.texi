@@ -490,7 +490,9 @@ command of GCRYCTL_SET_THREAD_CBS in order to register the thread
 callback structure named ``gcry_threads_pthread''.
 @end table
 
-Note that these macros need to be terminated with a semicolon.
+Note that these macros need to be terminated with a semicolon.  Keep
+in mind that these are convenient macros for C programmers; C++
+programmers might have to wrap these macros in an ``extern C'' body.
 
 @c **********************************************************
 @c *******************  General  ****************************
