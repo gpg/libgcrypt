@@ -679,7 +679,7 @@ static gcry_err_code_t
 serpent_setkey (void *ctx,
 		const byte_t *key, unsigned int key_length)
 {
-  serpent_context_t *context = (serpent_context_t *) ctx;
+  serpent_context_t *context = ctx;
   static const char *serpent_test_ret;
   static int serpent_init_done;
   gcry_err_code_t ret = GPG_ERR_NO_ERROR;
@@ -842,7 +842,7 @@ serpent_decrypt_internal (serpent_context_t *context,
 static void
 serpent_encrypt (void *ctx, byte_t *buffer_out, const byte_t *buffer_in)
 {
-  serpent_context_t *context = (serpent_context_t *) ctx;
+  serpent_context_t *context = ctx;
 
   serpent_encrypt_internal (context,
 			    (const u32_t *) buffer_in, (u32_t *) buffer_out);
@@ -852,7 +852,7 @@ serpent_encrypt (void *ctx, byte_t *buffer_out, const byte_t *buffer_in)
 static void
 serpent_decrypt (void *ctx, byte *buffer_out, const byte *buffer_in)
 {
-  serpent_context_t *context = (serpent_context_t *) ctx;
+  serpent_context_t *context = ctx;
 
   serpent_decrypt_internal (context,
 			    (const u32_t *) buffer_in,
@@ -913,7 +913,8 @@ serpent_test (void)
 
   for (i = 0; test_data[i].key_length; i++)
     {
-      serpent_setkey_internal (&context, test_data[i].key, test_data[i].key_length);
+      serpent_setkey_internal (&context, test_data[i].key,
+                               test_data[i].key_length);
       serpent_encrypt_internal (&context,
 				(const u32_t *) test_data[i].text_plain,
 				(u32_t *) scratch);

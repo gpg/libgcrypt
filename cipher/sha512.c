@@ -66,7 +66,7 @@ typedef struct
 static void
 sha512_init (void *context)
 {
-  SHA512_CONTEXT *hd = (SHA512_CONTEXT *) context;
+  SHA512_CONTEXT *hd = context;
 
   hd->h0 = U64_C(0x6a09e667f3bcc908);
   hd->h1 = U64_C(0xbb67ae8584caa73b);
@@ -84,7 +84,7 @@ sha512_init (void *context)
 static void
 sha384_init (void *context)
 {
-  SHA512_CONTEXT *hd = (SHA512_CONTEXT *) context;
+  SHA512_CONTEXT *hd = context;
 
   hd->h0 = U64_C(0xcbbb9d5dc1059ed8);
   hd->h1 = U64_C(0x629a292a367cd507);
@@ -210,7 +210,8 @@ transform (SHA512_CONTEXT *hd, byte *data)
       b = a;
       a = t1 + t2;
 
-      /* printf("t=%d a=%016llX b=%016llX c=%016llX d=%016llX e=%016llX f=%016llX g=%016llX h=%016llX\n",t,a,b,c,d,e,f,g,h); */
+      /* printf("t=%d a=%016llX b=%016llX c=%016llX d=%016llX "
+          "e=%016llX f=%016llX g=%016llX h=%016llX\n",t,a,b,c,d,e,f,g,h); */
     }
 
   /* update chaining vars */
@@ -231,7 +232,7 @@ transform (SHA512_CONTEXT *hd, byte *data)
 static void
 sha512_write (void *context, byte *inbuf, size_t inlen)
 {
-  SHA512_CONTEXT *hd = (SHA512_CONTEXT *) context;
+  SHA512_CONTEXT *hd = context;
 
   if (hd->count == 128)
     {				/* flush the buffer */
@@ -276,7 +277,7 @@ sha512_write (void *context, byte *inbuf, size_t inlen)
 static void
 sha512_final (void *context)
 {
-  SHA512_CONTEXT *hd = (SHA512_CONTEXT *) context;
+  SHA512_CONTEXT *hd = context;
   u64 t, msb, lsb;
   byte *p;
 

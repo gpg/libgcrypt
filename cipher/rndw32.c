@@ -508,7 +508,7 @@ _gcry_rndw32_gather_random( void (*add)(const void*, size_t, int),
     if( !level )
 	return 0;
     /* We don't differentiate between level 1 and 2 here because
-     * there is no nternal entropy pool as a scary resource.  It may
+     * there is no internal entropy pool as a scary resource.  It may
      * all work slower, but because our entropy source will never
      * block but deliver some not easy to measure entropy, we assume level 2
      */

@@ -54,7 +54,7 @@ typedef struct {
 static void
 sha256_init (void *context)
 {
-  SHA256_CONTEXT *hd = (SHA256_CONTEXT *) context;
+  SHA256_CONTEXT *hd = context;
 
   hd->h0 = 0x6a09e667;
   hd->h1 = 0xbb67ae85;
@@ -176,7 +176,8 @@ transform (SHA256_CONTEXT *hd, byte *data)
 static void
 sha256_write (void *context, byte *inbuf, size_t inlen)
 {
-  SHA256_CONTEXT *hd = (SHA256_CONTEXT *) context;
+  SHA256_CONTEXT *hd = context;
+
   if (hd->count == 64)
     { /* flush the buffer */
       transform (hd, hd->buf);
@@ -217,7 +218,7 @@ sha256_write (void *context, byte *inbuf, size_t inlen)
 static void
 sha256_final(void *context)
 {
-  SHA256_CONTEXT *hd = (SHA256_CONTEXT *) context;
+  SHA256_CONTEXT *hd = context;
   u32 t, msb, lsb;
   byte *p;
   
@@ -284,7 +285,8 @@ sha256_final(void *context)
 static byte *
 sha256_read (void *context)
 {
-  SHA256_CONTEXT *hd = (SHA256_CONTEXT *) context;
+  SHA256_CONTEXT *hd = context;
+
   return hd->buf;
 }
 

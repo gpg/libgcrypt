@@ -62,26 +62,26 @@ static void secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey);
 static void
 test_keys( RSA_secret_key *sk, unsigned nbits )
 {
-    RSA_public_key pk;
-    gcry_mpi_t test = gcry_mpi_new ( nbits );
-    gcry_mpi_t out1 = gcry_mpi_new ( nbits );
-    gcry_mpi_t out2 = gcry_mpi_new ( nbits );
+  RSA_public_key pk;
+  gcry_mpi_t test = gcry_mpi_new ( nbits );
+  gcry_mpi_t out1 = gcry_mpi_new ( nbits );
+  gcry_mpi_t out2 = gcry_mpi_new ( nbits );
 
-    pk.n = sk->n;
-    pk.e = sk->e;
-    gcry_mpi_randomize( test, nbits, GCRY_WEAK_RANDOM );
+  pk.n = sk->n;
+  pk.e = sk->e;
+  gcry_mpi_randomize( test, nbits, GCRY_WEAK_RANDOM );
 
-    public( out1, test, &pk );
-    secret( out2, out1, sk );
-    if( mpi_cmp( test, out2 ) )
-	log_fatal("RSA operation: public, secret failed\n");
-    secret( out1, test, sk );
-    public( out2, out1, &pk );
-    if( mpi_cmp( test, out2 ) )
-	log_fatal("RSA operation: secret, public failed\n");
-    gcry_mpi_release ( test );
-    gcry_mpi_release ( out1 );
-    gcry_mpi_release ( out2 );
+  public( out1, test, &pk );
+  secret( out2, out1, sk );
+  if( mpi_cmp( test, out2 ) )
+    log_fatal("RSA operation: public, secret failed\n");
+  secret( out1, test, sk );
+  public( out2, out1, &pk );
+  if( mpi_cmp( test, out2 ) )
+    log_fatal("RSA operation: secret, public failed\n");
+  gcry_mpi_release ( test );
+  gcry_mpi_release ( out1 );
+  gcry_mpi_release ( out2 );
 }
 
 
@@ -113,45 +113,46 @@ check_exponent (void *arg, gcry_mpi_t a)
 static void
 generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
 {
-    gcry_mpi_t p, q; /* the two primes */
-    gcry_mpi_t d;    /* the private key */
-    gcry_mpi_t u;
-    gcry_mpi_t t1, t2;
-    gcry_mpi_t n;    /* the public key */
-    gcry_mpi_t e;    /* the exponent */
-    gcry_mpi_t phi;  /* helper: (p-1)(q-1) */
-    gcry_mpi_t g;
-    gcry_mpi_t f;
+  gcry_mpi_t p, q; /* the two primes */
+  gcry_mpi_t d;    /* the private key */
+  gcry_mpi_t u;
+  gcry_mpi_t t1, t2;
+  gcry_mpi_t n;    /* the public key */
+  gcry_mpi_t e;    /* the exponent */
+  gcry_mpi_t phi;  /* helper: (p-1)(q-1) */
+  gcry_mpi_t g;
+  gcry_mpi_t f;
 
-    /* make sure that nbits is even so that we generate p, q of equal size */
-    if ( (nbits&1) )
-      nbits++; 
+  /* make sure that nbits is even so that we generate p, q of equal size */
+  if ( (nbits&1) )
+    nbits++; 
 
-    if (use_e == 1)   /* Alias for a secure value. */
-      use_e = 65537;  /* as demanded by Spinx. */
+  if (use_e == 1)   /* Alias for a secure value. */
+    use_e = 65537;  /* as demanded by Spinx. */
 
-    /* Public exponent:
-       In general we use 41 as this is quite fast and more secure than the
-       commonly used 17.  Benchmarking the RSA verify function
-       with a 1024 bit key yields (2001-11-08): 
-         e=17    0.54 ms
-         e=41    0.75 ms
-         e=257   0.95 ms
-         e=65537 1.80 ms
-    */
-    e = mpi_alloc( (32+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );
-    if (!use_e)
-      mpi_set_ui (e, 41);     /* This is a reasonable secure and fast value */
-    else 
-      {
-        use_e |= 1; /* make sure this is odd */
-        mpi_set_ui (e, use_e); 
-      }
+  /* Public exponent:
+     In general we use 41 as this is quite fast and more secure than the
+     commonly used 17.  Benchmarking the RSA verify function
+     with a 1024 bit key yields (2001-11-08): 
+     e=17    0.54 ms
+     e=41    0.75 ms
+     e=257   0.95 ms
+     e=65537 1.80 ms
+  */
+  e = mpi_alloc( (32+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );
+  if (!use_e)
+    mpi_set_ui (e, 41);     /* This is a reasonable secure and fast value */
+  else 
+    {
+      use_e |= 1; /* make sure this is odd */
+      mpi_set_ui (e, use_e); 
+    }
     
-    n = gcry_mpi_new (nbits);
+  n = gcry_mpi_new (nbits);
 
-    p = q = NULL;
-    do {
+  p = q = NULL;
+  do
+    {
       /* select two (very secret) primes */
       if (p)
         gcry_mpi_release (p);
@@ -172,62 +173,64 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
         mpi_swap(p,q);
       /* calculate the modulus */
       mpi_mul( n, p, q );
-    } while ( mpi_get_nbits(n) != nbits );
+    }
+  while ( mpi_get_nbits(n) != nbits );
 
-    /* calculate Euler totient: phi = (p-1)(q-1) */
-    t1 = mpi_alloc_secure( mpi_get_nlimbs(p) );
-    t2 = mpi_alloc_secure( mpi_get_nlimbs(p) );
-    phi = gcry_mpi_snew ( nbits );
-    g	= gcry_mpi_snew ( nbits );
-    f	= gcry_mpi_snew ( nbits );
-    mpi_sub_ui( t1, p, 1 );
-    mpi_sub_ui( t2, q, 1 );
-    mpi_mul( phi, t1, t2 );
-    gcry_mpi_gcd(g, t1, t2);
-    mpi_fdiv_q(f, phi, g);
+  /* calculate Euler totient: phi = (p-1)(q-1) */
+  t1 = mpi_alloc_secure( mpi_get_nlimbs(p) );
+  t2 = mpi_alloc_secure( mpi_get_nlimbs(p) );
+  phi = gcry_mpi_snew ( nbits );
+  g	= gcry_mpi_snew ( nbits );
+  f	= gcry_mpi_snew ( nbits );
+  mpi_sub_ui( t1, p, 1 );
+  mpi_sub_ui( t2, q, 1 );
+  mpi_mul( phi, t1, t2 );
+  gcry_mpi_gcd(g, t1, t2);
+  mpi_fdiv_q(f, phi, g);
 
-    while (!gcry_mpi_gcd(t1, e, phi)) /* (while gcd is not 1) */
-      {
-        if (use_e)
-          BUG (); /* The prime generator already made sure that we
-                     never can get to here. */
-        mpi_add_ui (e, e, 2);
-      }
-
-    /* calculate the secret key d = e^1 mod phi */
-    d = gcry_mpi_snew ( nbits );
-    mpi_invm(d, e, f );
-    /* calculate the inverse of p and q (used for chinese remainder theorem)*/
-    u = gcry_mpi_snew ( nbits );
-    mpi_invm(u, p, q );
-
-    if( DBG_CIPHER ) {
-        log_mpidump("  p= ", p );
-	log_mpidump("  q= ", q );
-	log_mpidump("phi= ", phi );
-	log_mpidump("  g= ", g );
-	log_mpidump("  f= ", f );
-	log_mpidump("  n= ", n );
-	log_mpidump("  e= ", e );
-	log_mpidump("  d= ", d );
-	log_mpidump("  u= ", u );
+  while (!gcry_mpi_gcd(t1, e, phi)) /* (while gcd is not 1) */
+    {
+      if (use_e)
+        BUG (); /* The prime generator already made sure that we
+                   never can get to here. */
+      mpi_add_ui (e, e, 2);
     }
 
-    gcry_mpi_release (t1);
-    gcry_mpi_release (t2);
-    gcry_mpi_release (phi);
-    gcry_mpi_release (f);
-    gcry_mpi_release (g);
+  /* calculate the secret key d = e^1 mod phi */
+  d = gcry_mpi_snew ( nbits );
+  mpi_invm(d, e, f );
+  /* calculate the inverse of p and q (used for chinese remainder theorem)*/
+  u = gcry_mpi_snew ( nbits );
+  mpi_invm(u, p, q );
 
-    sk->n = n;
-    sk->e = e;
-    sk->p = p;
-    sk->q = q;
-    sk->d = d;
-    sk->u = u;
+  if( DBG_CIPHER )
+    {
+      log_mpidump("  p= ", p );
+      log_mpidump("  q= ", q );
+      log_mpidump("phi= ", phi );
+      log_mpidump("  g= ", g );
+      log_mpidump("  f= ", f );
+      log_mpidump("  n= ", n );
+      log_mpidump("  e= ", e );
+      log_mpidump("  d= ", d );
+      log_mpidump("  u= ", u );
+    }
 
-    /* now we can test our keys (this should never fail!) */
-    test_keys( sk, nbits - 64 );
+  gcry_mpi_release (t1);
+  gcry_mpi_release (t2);
+  gcry_mpi_release (phi);
+  gcry_mpi_release (f);
+  gcry_mpi_release (g);
+
+  sk->n = n;
+  sk->e = e;
+  sk->p = p;
+  sk->q = q;
+  sk->d = d;
+  sk->u = u;
+
+  /* now we can test our keys (this should never fail!) */
+  test_keys( sk, nbits - 64 );
 }
 
 
@@ -238,13 +241,13 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
 static int
 check_secret_key( RSA_secret_key *sk )
 {
-    int rc;
-    gcry_mpi_t temp = mpi_alloc( mpi_get_nlimbs(sk->p)*2 );
-
-    mpi_mul(temp, sk->p, sk->q );
-    rc = mpi_cmp( temp, sk->n );
-    mpi_free(temp);
-    return !rc;
+  int rc;
+  gcry_mpi_t temp = mpi_alloc( mpi_get_nlimbs(sk->p)*2 );
+  
+  mpi_mul(temp, sk->p, sk->q );
+  rc = mpi_cmp( temp, sk->n );
+  mpi_free(temp);
+  return !rc;
 }
 
 
@@ -259,14 +262,15 @@ check_secret_key( RSA_secret_key *sk )
 static void
 public(gcry_mpi_t output, gcry_mpi_t input, RSA_public_key *pkey )
 {
-    if( output == input ) { /* powm doesn't like output and input the same */
-	gcry_mpi_t x = mpi_alloc( mpi_get_nlimbs(input)*2 );
-	mpi_powm( x, input, pkey->e, pkey->n );
-	mpi_set(output, x);
-	mpi_free(x);
+  if( output == input )  /* powm doesn't like output and input the same */
+    {
+      gcry_mpi_t x = mpi_alloc( mpi_get_nlimbs(input)*2 );
+      mpi_powm( x, input, pkey->e, pkey->n );
+      mpi_set(output, x);
+      mpi_free(x);
     }
-    else
-	mpi_powm( output, input, pkey->e, pkey->n );
+  else
+    mpi_powm( output, input, pkey->e, pkey->n );
 }
 
 #if 0
@@ -351,38 +355,81 @@ stronger_key_check ( RSA_secret_key *skey )
 static void
 secret(gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
 {
-#if 0
-    mpi_powm( output, input, skey->d, skey->n );
-#else
-    gcry_mpi_t m1   = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
-    gcry_mpi_t m2   = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
-    gcry_mpi_t h    = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
-
-    /* m1 = c ^ (d mod (p-1)) mod p */
-    mpi_sub_ui( h, skey->p, 1  );
-    mpi_fdiv_r( h, skey->d, h );   
-    mpi_powm( m1, input, h, skey->p );
-    /* m2 = c ^ (d mod (q-1)) mod q */
-    mpi_sub_ui( h, skey->q, 1  );
-    mpi_fdiv_r( h, skey->d, h );
-    mpi_powm( m2, input, h, skey->q );
-    /* h = u * ( m2 - m1 ) mod q */
-    mpi_sub( h, m2, m1 );
-    if ( mpi_is_neg( h ) ) 
+  if (!skey->p && !skey->q && !skey->u)
+    {
+      mpi_powm (output, input, skey->d, skey->n);
+    }
+  else
+    {
+      gcry_mpi_t m1 = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
+      gcry_mpi_t m2 = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
+      gcry_mpi_t h  = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
+      
+      /* m1 = c ^ (d mod (p-1)) mod p */
+      mpi_sub_ui( h, skey->p, 1  );
+      mpi_fdiv_r( h, skey->d, h );   
+      mpi_powm( m1, input, h, skey->p );
+      /* m2 = c ^ (d mod (q-1)) mod q */
+      mpi_sub_ui( h, skey->q, 1  );
+      mpi_fdiv_r( h, skey->d, h );
+      mpi_powm( m2, input, h, skey->q );
+      /* h = u * ( m2 - m1 ) mod q */
+      mpi_sub( h, m2, m1 );
+      if ( mpi_is_neg( h ) ) 
         mpi_add ( h, h, skey->q );
-    mpi_mulm( h, skey->u, h, skey->q ); 
-    /* m = m2 + h * p */
-    mpi_mul ( h, h, skey->p );
-    mpi_add ( output, m1, h );
-    /* ready */
+      mpi_mulm( h, skey->u, h, skey->q ); 
+      /* m = m2 + h * p */
+      mpi_mul ( h, h, skey->p );
+      mpi_add ( output, m1, h );
     
-    mpi_free ( h );
-    mpi_free ( m1 );
-    mpi_free ( m2 );
-#endif
+      mpi_free ( h );
+      mpi_free ( m1 );
+      mpi_free ( m2 );
+    }
 }
 
 
+
+/* Perform RSA blinding.  */
+static gcry_mpi_t
+rsa_blind (gcry_mpi_t x, gcry_mpi_t r, gcry_mpi_t e, gcry_mpi_t n)
+{
+  /* A helper.  */
+  gcry_mpi_t a;
+
+  /* Result.  */
+  gcry_mpi_t y;
+
+  a = gcry_mpi_snew (gcry_mpi_get_nbits (n));
+  y = gcry_mpi_snew (gcry_mpi_get_nbits (n));
+  
+  /* Now we calculate: y = (x * r^e) mod n, where r is the random
+     number, e is the public exponent, x is the non-blinded data and n
+     is the RSA modulus.  */
+  gcry_mpi_powm (a, r, e, n);
+  gcry_mpi_mulm (y, a, x, n);
+
+  gcry_mpi_release (a);
+
+  return y;
+}
+
+/* Undo RSA blinding.  */
+static gcry_mpi_t
+rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
+{
+  gcry_mpi_t y;
+
+  y = gcry_mpi_snew (gcry_mpi_get_nbits (n));
+
+  /* Here we calculate: y = (x * r^-1) mod n, where x is the blinded
+     decrypted data, ri is the modular multiplicative inverse of r and
+     n is the RSA modulus.  */
+
+  gcry_mpi_mulm (y, ri, x, n);
+
+  return y;
+}
 
 /*********************************************
  **************  interface  ******************
@@ -430,63 +477,22 @@ _gcry_rsa_check_secret_key( int algo, gcry_mpi_t *skey )
 
 
 gcry_err_code_t
-_gcry_rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey,
-		   int flags)
+_gcry_rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data,
+                   gcry_mpi_t *pkey, int flags)
 {
   RSA_public_key pk;
-
+  
   pk.n = pkey[0];
   pk.e = pkey[1];
   resarr[0] = mpi_alloc (mpi_get_nlimbs (pk.n));
   public (resarr[0], data, &pk);
-
+  
   return GPG_ERR_NO_ERROR;
 }
 
-/* Perform RSA blinding.  */
-static gcry_mpi_t
-_gcry_rsa_blind (gcry_mpi_t x, gcry_mpi_t r, gcry_mpi_t e, gcry_mpi_t n)
-{
-  /* A helper.  */
-  gcry_mpi_t a;
-
-  /* Result.  */
-  gcry_mpi_t y;
-
-  a = gcry_mpi_snew (gcry_mpi_get_nbits (n));
-  y = gcry_mpi_snew (gcry_mpi_get_nbits (n));
-  
-  /* Now we calculate: y = (x * r^e) mod n, where r is the random
-     number, e is the public exponent, x is the non-blinded data and n
-     is the RSA modulus.  */
-  gcry_mpi_powm (a, r, e, n);
-  gcry_mpi_mulm (y, a, x, n);
-
-  gcry_mpi_release (a);
-
-  return y;
-}
-
-/* Undo RSA blinding.  */
-static gcry_mpi_t
-_gcry_rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
-{
-  gcry_mpi_t y;
-
-  y = gcry_mpi_snew (gcry_mpi_get_nbits (n));
-
-  /* Here we calculate: y = (x * r^-1) mod n, where x is the blinded
-     decrypted data, ri is the modular multiplicative inverse of r and
-     n is the RSA modulus.  */
-
-  gcry_mpi_mulm (y, ri, x, n);
-
-  return y;
-}
-
 gcry_err_code_t
-_gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey,
-		   int flags)
+_gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
+                   gcry_mpi_t *skey, int flags)
 {
   RSA_secret_key sk;
   gcry_mpi_t r = MPI_NULL;	/* Random number needed for blinding.  */
@@ -527,10 +533,8 @@ _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *s
     }
 
   if (! (flags & PUBKEY_FLAG_NO_BLINDING))
-    /* Do blinding.  */
-    x = _gcry_rsa_blind (data[0], r, sk.e, sk.n);
+    x = rsa_blind (data[0], r, sk.e, sk.n);
   else
-    /* Skip blinding.  */
     x = data[0];
 
   /* Do the encryption.  */
@@ -542,7 +546,7 @@ _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *s
       gcry_mpi_t a = gcry_mpi_copy (y);
       
       gcry_mpi_release (y);
-      y = _gcry_rsa_unblind (a, ri, sk.n);
+      y = rsa_unblind (a, ri, sk.n);
     }
 
   if (! (flags & PUBKEY_FLAG_NO_BLINDING))

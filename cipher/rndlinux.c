@@ -28,18 +28,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef HAVE_GETTIMEOFDAY
-#include <sys/times.h>
+# include <sys/times.h>
 #endif
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#if 0
-#ifdef HAVE_LINUX_RANDOM_H
-#include <sys/ioctl.h>
-#include <asm/types.h>
-#include <linux/random.h>
-#endif
-#endif
 #include "types.h"
 #include "g10lib.h"
 #include "rand-internal.h"
@@ -49,38 +42,30 @@ int _gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
                                   int requester,
                                   size_t length, int level );
 
-#if 0
-#ifdef HAVE_DEV_RANDOM_IOCTL
-static ulong
-get_entropy_count( int fd )
-{
-    ulong count;
-
-    if( ioctl( fd, RNDGETENTCNT, &count ) == -1 )
-	log_fatal("ioctl(RNDGETENTCNT) failed: %s\n", strerror(errno) );
-    return count;
-}
-#endif
-#endif
-
-/****************
- * Used to open the /dev/random devices (Linux, xBSD, Solaris (if it exists), ...)
+/*
+ * Used to open the /dev/random devices (Linux, xBSD, Solaris (if it exists)).
  */
 static int
 open_device( const char *name, int minor )
 {
-    int fd;
-    struct stat sb;
+  int fd;
 
-    fd = open( name, O_RDONLY );
-    if( fd == -1 )
-	log_fatal("can't open %s: %s\n", name, strerror(errno) );
-    if( fstat( fd, &sb ) )
-	log_fatal("stat() off %s failed: %s\n", name, strerror(errno) );
-    /* Don't check device type for better portability */
-    /*  if( (!S_ISCHR(sb.st_mode)) && (!S_ISFIFO(sb.st_mode)) )
-	  log_fatal("invalid random device!\n" ); */
-    return fd;
+  fd = open( name, O_RDONLY );
+  if( fd == -1 )
+    log_fatal ("can't open %s: %s\n", name, strerror(errno) );
+
+  /* We used to do the follwing check, however it turned out that this
+     is not portable since more OSes provide a random device which is
+     sometimes implemented as anoteher device type. 
+     
+     struct stat sb;
+
+     if( fstat( fd, &sb ) )
+        log_fatal("stat() off %s failed: %s\n", name, strerror(errno) );
+     if( (!S_ISCHR(sb.st_mode)) && (!S_ISFIFO(sb.st_mode)) )
+        log_fatal("invalid random device!\n" );
+  */
+  return fd;
 }
 
 
@@ -89,39 +74,38 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
                               int requester,
                               size_t length, int level )
 {
-    static int fd_urandom = -1;
-    static int fd_random = -1;
-    int fd;
-    int n;
-    int warn=0;
-    byte buffer[768];
+  static int fd_urandom = -1;
+  static int fd_random = -1;
+  int fd;
+  int n;
+  int warn=0;
+  byte buffer[768];
 
-    if( level >= 2 ) {
-	if( fd_random == -1 )
-	    fd_random = open_device( NAME_OF_DEV_RANDOM, 8 );
-	fd = fd_random;
+  if( level >= 2 )
+    {
+      if( fd_random == -1 )
+        fd_random = open_device( NAME_OF_DEV_RANDOM, 8 );
+      fd = fd_random;
     }
-    else {
-	if( fd_urandom == -1 )
-	    fd_urandom = open_device( NAME_OF_DEV_URANDOM, 9 );
-	fd = fd_urandom;
+  else
+    {
+      if( fd_urandom == -1 )
+        fd_urandom = open_device( NAME_OF_DEV_URANDOM, 9 );
+      fd = fd_urandom;
     }
 
-#if 0
-#ifdef HAVE_DEV_RANDOM_IOCTL
-    log_info("entropy count of %d is %lu\n", fd, get_entropy_count(fd) );
-#endif
-#endif
-    while( length ) {
-	fd_set rfds;
-	struct timeval tv;
-	int rc;
-
-	FD_ZERO(&rfds);
-	FD_SET(fd, &rfds);
-	tv.tv_sec = 3;
-	tv.tv_usec = 0;
-	if( !(rc=select(fd+1, &rfds, NULL, NULL, &tv)) ) {
+  while (length)
+    {
+      fd_set rfds;
+      struct timeval tv;
+      int rc;
+      
+      FD_ZERO(&rfds);
+      FD_SET(fd, &rfds);
+      tv.tv_sec = 3;
+      tv.tv_usec = 0;
+      if( !(rc=select(fd+1, &rfds, NULL, NULL, &tv)) )
+        {
           if( !warn )
             {
               _gcry_random_progress ("need_entropy", 'X', 0, (int)length);
@@ -129,25 +113,29 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
 	    }
 	  continue;
 	}
-	else if( rc == -1 ) {
+	else if( rc == -1 )
+          {
 	    log_error ("select() error: %s\n", strerror(errno));
 	    continue;
-	}
+          }
 
-	do {
+	do 
+          {
 	    int nbytes = length < sizeof(buffer)? length : sizeof(buffer);
 	    n = read(fd, buffer, nbytes );
-	    if( n >= 0 && n > nbytes ) {
+	    if( n >= 0 && n > nbytes ) 
+              {
 		log_error("bogus read from random device (n=%d)\n", n );
 		n = nbytes;
-	    }
-	} while( n == -1 && errno == EINTR );
+              }
+          } 
+        while( n == -1 && errno == EINTR );
 	if( n == -1 )
-	    log_fatal("read error on random device: %s\n", strerror(errno));
+          log_fatal("read error on random device: %s\n", strerror(errno));
 	(*add)( buffer, n, requester );
 	length -= n;
     }
-    memset(buffer, 0, sizeof(buffer) );
+  memset(buffer, 0, sizeof(buffer) );
 
-    return 0; /* success */
+  return 0; /* success */
 }

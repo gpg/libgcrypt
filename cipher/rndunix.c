@@ -508,11 +508,13 @@ slow_poll(FILE *dbgfp, int dbgall, size_t *nbytes )
 	    dataSources[i].pipeFD = fileno(dataSources[i].pipe);
 	    if (dataSources[i].pipeFD > maxFD)
 		maxFD = dataSources[i].pipeFD;
-	  #ifdef O_NONBLOCK /* Ohhh what a hack (used for Atari) */
+
+#ifdef O_NONBLOCK /* Ohhh what a hack (used for Atari) */
 	    fcntl(dataSources[i].pipeFD, F_SETFL, O_NONBLOCK);
-	  #else
-	    #warning O_NONBLOCK is missing
-	  #endif
+#else
+#error O_NONBLOCK is missing
+#endif
+
 	    FD_SET(dataSources[i].pipeFD, &fds);
 	    dataSources[i].length = 0;
 
@@ -659,15 +661,15 @@ start_gatherer( int pipefd )
     {	int nmax, n1, n2, i;
 #ifdef _SC_OPEN_MAX
 	if( (nmax=sysconf( _SC_OPEN_MAX )) < 0 ) {
-	  #ifdef _POSIX_OPEN_MAX
+#ifdef _POSIX_OPEN_MAX
 	    nmax = _POSIX_OPEN_MAX;
-	  #else
-	    nmax = 20; /* assume a reasonable value */
-	  #endif
-	}
 #else
-	nmax = 20; /* assume a reasonable value */
+	    nmax = 20; /* assume a reasonable value */
 #endif
+	}
+#else /*!_SC_OPEN_MAX*/
+	nmax = 20; /* assume a reasonable value */
+#endif /*!_SC_OPEN_MAX*/
 	n1 = fileno( stderr );
 	n2 = dbgfp? fileno( dbgfp ) : -1;
 	for(i=0; i < nmax; i++ ) {
@@ -676,7 +678,6 @@ start_gatherer( int pipefd )
 	}
 	errno = 0;
     }
-
 
 
     /* Set up the buffer */
@@ -837,7 +838,7 @@ _gcry_rndunix_gather_random (void (*add)(const void*, size_t, int),
 	    n = length;
 	(*add)( msg.data, n, requester );
 
-	/* this is the trick how e cope with the goodness */
+	/* this is the trick how we cope with the goodness */
 	subtract = (ulong)n * goodness / 100;
 	/* subtract at least 1 byte to avoid infinite loops */
 	length -= subtract ? subtract : 1;

@@ -1,3 +1,27 @@
+2003-12-11  Werner Koch  <wk@gnupg.org>
+
+	* rndunix.c (slow_poll): Don't use #warning but #error.
+
+	* rndegd.c: Changed indentation.
+	(my_make_filename): Removd the var_arg cruft becuase we
+	don't need it here.  Changed caller.  
+
+	* rndlinux.c: Changed indentation.
+	(open_device): Remove the superfluous stat call and clarify
+	comment.
+
+	* rsa.c: Changed indentation.
+	(secret): Use the standard algorithm if p, q and u are not
+	available.
+	(rsa_blind, rsa_unblind): Renamed from _gcry_rsa_blind,
+	_gcry_rsa_unblind and moved more to the top.
+
+	* md4.c: Changed indentation.  Removed unnecessary casts.
+	* md5.c, rmd160.c, sha1.c, tiger.c: Ditto.
+	* rijndael.c, twofish.c: Ditto.
+	* serpent.c: Removed unnecessary casts.
+	* sha256.c, sha512.c: Ditto.
+
 2003-12-09  Werner Koch  <wk@gnupg.org>
 
 	* dsa.c: Unified indentation style.
