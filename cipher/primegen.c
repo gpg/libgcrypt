@@ -1,5 +1,5 @@
 /* primegen.c - prime number generator
- * Copyright (C) 1998, 2000, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -32,7 +32,8 @@
 #include "mpi.h"
 #include "cipher.h"
 
-static MPI gen_prime( unsigned	nbits, int mode, int randomlevel );
+static MPI gen_prime (unsigned int nbits, int secret, int randomlevel, 
+                      int (*extra_check)(void *, MPI), void *extra_check_arg);
 static int check_prime( MPI prime, MPI val_2 );
 static int is_prime( MPI n, int steps, int *count );
 static void m_out_of_n( char *array, int m, int n );
@@ -146,21 +147,25 @@ progress( int c )
  * Generate a prime number (stored in secure memory)
  */
 MPI
-_gcry_generate_secret_prime( unsigned  nbits )
+_gcry_generate_secret_prime (unsigned int nbits,
+                             int (*extra_check)(void*, MPI),
+                             void *extra_check_arg)
 {
     MPI prime;
 
-    prime = gen_prime( nbits, 1, 2 );
+    prime = gen_prime( nbits, 1, 2, extra_check, extra_check_arg);
     progress('\n');
     return prime;
 }
 
 MPI
-_gcry_generate_public_prime( unsigned  nbits )
+_gcry_generate_public_prime( unsigned int nbits,
+                             int (*extra_check)(void*, MPI),
+                             void *extra_check_arg)
 {
     MPI prime;
 
-    prime = gen_prime( nbits, 0, 2 );
+    prime = gen_prime( nbits, 0, 2, extra_check, extra_check_arg );
     progress('\n');
     return prime;
 }
@@ -213,8 +218,8 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 	log_debug("gen prime: pbits=%u qbits=%u fbits=%u/%u n=%d\n",
 		    pbits, req_qbits, qbits, fbits, n  );
     prime = gcry_mpi_new ( pbits  );
-    q = gen_prime( qbits, 0, 0 );
-    q_factor = mode==1? gen_prime( req_qbits, 0, 0 ) : NULL;
+    q = gen_prime( qbits, 0, 0, NULL, NULL );
+    q_factor = mode==1? gen_prime( req_qbits, 0, 0, NULL, NULL ) : NULL;
 
     /* allocate an array to hold the factors + 2 for later usage */
     factors = gcry_xcalloc( n+2, sizeof *factors );
@@ -241,7 +246,7 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 	    perms = gcry_xcalloc( 1, m );
 	    for(i=0; i < n; i++ ) {
 		perms[i] = 1;
-		pool[i] = gen_prime( fbits, 0, 1 );
+		pool[i] = gen_prime( fbits, 0, 1, NULL, NULL );
 		factors[i] = pool[i];
 	    }
 	}
@@ -250,7 +255,7 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 	    for(i=j=0; i < m && j < n ; i++ )
 		if( perms[i] ) {
 		    if( !pool[i] )
-			pool[i] = gen_prime( fbits, 0, 1 );
+			pool[i] = gen_prime( fbits, 0, 1, NULL, NULL );
 		    factors[j++] = pool[i];
 		}
 	    if( i == n ) {
@@ -274,7 +279,7 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 		qbits++;
 		progress('>');
                 mpi_free (q);
-		q = gen_prime( qbits, 0, 0 );
+		q = gen_prime( qbits, 0, 0, NULL, NULL );
 		goto next_try;
 	    }
 	}
@@ -286,7 +291,7 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 		qbits--;
 		progress('<');
                 mpi_free (q);
-		q = gen_prime( qbits, 0, 0 );
+		q = gen_prime( qbits, 0, 0, NULL, NULL );
 		goto next_try;
 	    }
 	}
@@ -378,88 +383,103 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 
 
 static MPI
-gen_prime( unsigned  nbits, int secret, int randomlevel )
+gen_prime (unsigned int nbits, int secret, int randomlevel, 
+           int (*extra_check)(void *, MPI), void *extra_check_arg)
 {
-    MPI prime, ptest, pminus1, val_2, val_3, result;
-    int i;
-    unsigned x, step;
-    unsigned count1, count2;
-    int *mods;
+  MPI prime, ptest, pminus1, val_2, val_3, result;
+  int i;
+  unsigned x, step;
+  unsigned count1, count2;
+  int *mods;
+  
+  if( 0 && DBG_CIPHER )
+    log_debug("generate a prime of %u bits ", nbits );
 
-    if( 0 && DBG_CIPHER )
-	log_debug("generate a prime of %u bits ", nbits );
-
-    mods = gcry_xmalloc( no_of_small_prime_numbers * sizeof *mods );
-    /* make nbits fit into MPI implementation */
-    val_2  = mpi_alloc_set_ui( 2 );
-    val_3 = mpi_alloc_set_ui( 3);
-    prime  = secret? gcry_mpi_snew ( nbits ): gcry_mpi_new ( nbits );
-    result = mpi_alloc_like( prime );
-    pminus1= mpi_alloc_like( prime );
-    ptest  = mpi_alloc_like( prime );
-    count1 = count2 = 0;
-    for(;;) {  /* try forvever */
-	int dotcount=0;
-
-	/* generate a random number */
-	gcry_mpi_randomize( prime, nbits, randomlevel );
-
-	/* Set high order bit to 1, set low order bit to 0.  If we are
-           generating a secret prime we are most probably doing that
-           for RSA, to make sure that the modulus does have the
-           requested keysize we set the 2 high order bits */
-	mpi_set_highbit (prime, nbits-1);
-        if (secret)
-          mpi_set_bit (prime, nbits-2);
-	mpi_set_bit(prime, 0);
-
-	/* calculate all remainders */
-	for(i=0; (x = small_prime_numbers[i]); i++ )
-	    mods[i] = mpi_fdiv_r_ui(NULL, prime, x);
-
-	/* now try some primes starting with prime */
-	for(step=0; step < 20000; step += 2 ) {
-	    /* check against all the small primes we have in mods */
-	    count1++;
-	    for(i=0; (x = small_prime_numbers[i]); i++ ) {
-		while( mods[i] + step >= x )
-		    mods[i] -= x;
-		if( !(mods[i] + step) )
-		    break;
+  mods = gcry_xmalloc( no_of_small_prime_numbers * sizeof *mods );
+  /* make nbits fit into MPI implementation */
+  val_2  = mpi_alloc_set_ui( 2 );
+  val_3 = mpi_alloc_set_ui( 3);
+  prime  = secret? gcry_mpi_snew ( nbits ): gcry_mpi_new ( nbits );
+  result = mpi_alloc_like( prime );
+  pminus1= mpi_alloc_like( prime );
+  ptest  = mpi_alloc_like( prime );
+  count1 = count2 = 0;
+  for (;;)
+    {  /* try forvever */
+      int dotcount=0;
+      
+      /* generate a random number */
+      gcry_mpi_randomize( prime, nbits, randomlevel );
+      
+      /* Set high order bit to 1, set low order bit to 0.  If we are
+         generating a secret prime we are most probably doing that
+         for RSA, to make sure that the modulus does have the
+         requested keysize we set the 2 high order bits */
+      mpi_set_highbit (prime, nbits-1);
+      if (secret)
+        mpi_set_bit (prime, nbits-2);
+      mpi_set_bit(prime, 0);
+      
+      /* calculate all remainders */
+      for (i=0; (x = small_prime_numbers[i]); i++ )
+        mods[i] = mpi_fdiv_r_ui(NULL, prime, x);
+      
+      /* now try some primes starting with prime */
+      for(step=0; step < 20000; step += 2 ) 
+        {
+          /* check against all the small primes we have in mods */
+          count1++;
+          for (i=0; (x = small_prime_numbers[i]); i++ ) 
+            {
+              while ( mods[i] + step >= x )
+                mods[i] -= x;
+              if ( !(mods[i] + step) )
+                break;
 	    }
-	    if( x )
-		continue;   /* found a multiple of an already known prime */
+          if ( x )
+            continue;   /* found a multiple of an already known prime */
 
-	    mpi_add_ui( ptest, prime, step );
+          mpi_add_ui( ptest, prime, step );
 
-	    /* do a faster Fermat test */
-	    count2++;
-	    mpi_sub_ui( pminus1, ptest, 1);
-	    gcry_mpi_powm( result, val_2, pminus1, ptest );
-	    if( !mpi_cmp_ui( result, 1 ) ) { /* not composite */
-		/* perform stronger tests */
-		if( is_prime(ptest, 5, &count2 ) ) {
-		    if( !mpi_test_bit( ptest, nbits-1-secret ) ) {
+          /* do a faster Fermat test */
+          count2++;
+          mpi_sub_ui( pminus1, ptest, 1);
+          gcry_mpi_powm( result, val_2, pminus1, ptest );
+          if ( !mpi_cmp_ui( result, 1 ) )
+            { /* not composite, perform stronger tests */
+		if (is_prime(ptest, 5, &count2 ))
+                  {
+		    if (!mpi_test_bit( ptest, nbits-1-secret ))
+                      {
 			progress('\n');
 			log_debug("overflow in prime generation\n");
-			break; /* step loop, continue with a new prime */
-		    }
+			break; /* stop loop, continue with a new prime */
+                      }
 
-		    mpi_free(val_2);
-		    mpi_free(val_3);
-		    mpi_free(result);
-		    mpi_free(pminus1);
-		    mpi_free(prime);
-		    gcry_free(mods);
-		    return ptest;
-		}
+                    if (extra_check && extra_check (ptest, extra_check_arg))
+                      { /* The extra check told us that this prime is
+                           not of the caller's taste. */
+                        progress ('/');
+                      }
+                    else
+                      { /* got it */
+                        mpi_free(val_2);
+                        mpi_free(val_3);
+                        mpi_free(result);
+                        mpi_free(pminus1);
+                        mpi_free(prime);
+                        gcry_free(mods);
+                        return ptest; 
+                      }
+                  }
 	    }
-	    if( ++dotcount == 10 ) {
-		progress('.');
-		dotcount = 0;
+          if (++dotcount == 10 )
+            {
+              progress('.');
+              dotcount = 0;
 	    }
 	}
-	progress(':'); /* restart with a new random value */
+      progress(':'); /* restart with a new random value */
     }
 }
 

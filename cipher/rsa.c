@@ -83,6 +83,24 @@ test_keys( RSA_secret_key *sk, unsigned nbits )
     gcry_mpi_release ( out2 );
 }
 
+
+/* Callback used by the prime generation to test whether the exponent
+   is suitable. Returns 0 if the test has been passed. */
+static int
+check_exponent (void *arg, MPI a)
+{
+  MPI e = arg;
+  MPI tmp;
+  int result;
+  
+  mpi_sub_ui (a, a, 1);
+  tmp = _gcry_mpi_alloc_like (a);
+  result = !gcry_mpi_gcd(tmp, e, a); /* GCD is not 1. */
+  gcry_mpi_release (tmp);
+  mpi_add_ui (a, a, 1);
+  return result;
+}
+
 /****************
  * Generate a key pair with a key of size NBITS.  
  * USE_E = 0 let Libcgrypt decide what exponent to use.
@@ -108,6 +126,27 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
     if ( (nbits&1) )
       nbits++; 
 
+    if (use_e == 1)   /* Alias for a secure value. */
+      use_e = 65537;  /* as demanded by Spinx. */
+
+    /* Public exponent:
+       In general we use 41 as this is quite fast and more secure than the
+       commonly used 17.  Benchmarking the RSA verify function
+       with a 1024 bit key yields (2001-11-08): 
+         e=17    0.54 ms
+         e=41    0.75 ms
+         e=257   0.95 ms
+         e=65537 1.80 ms
+    */
+    e = mpi_alloc( (32+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );
+    if (!use_e)
+      mpi_set_ui (e, 41);     /* This is a reasonable secure and fast value */
+    else 
+      {
+        use_e |= 1; /* make sure this is odd */
+        mpi_set_ui (e, use_e); 
+      }
+    
     n = gcry_mpi_new (nbits);
 
     p = q = NULL;
@@ -117,8 +156,17 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
         gcry_mpi_release (p);
       if (q)
         gcry_mpi_release (q);
-      p = _gcry_generate_secret_prime (nbits/2);
-      q = _gcry_generate_secret_prime (nbits/2);
+      if (use_e)
+        { /* Do an extra test to ensure that the given exponent is
+             suitable. */
+          p = _gcry_generate_secret_prime (nbits/2, check_exponent, e);
+          q = _gcry_generate_secret_prime (nbits/2, check_exponent, e);
+        }
+      else
+        { /* We check the exponent later. */
+          p = _gcry_generate_secret_prime (nbits/2, NULL, NULL);
+          q = _gcry_generate_secret_prime (nbits/2, NULL, NULL);
+        }
       if (mpi_cmp (p, q) > 0 ) /* p shall be smaller than q (for calc of u)*/
         mpi_swap(p,q);
       /* calculate the modulus */
@@ -137,25 +185,13 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
     gcry_mpi_gcd(g, t1, t2);
     mpi_fdiv_q(f, phi, g);
 
-    /* find an public exponent.
-       We use 41 as this is quite fast and more secure than the
-       commonly used 17.  Benchmarking the RSA verify function
-       with a 1024 bit key yields (2001-11-08): 
-         e=17    0.54 ms
-         e=41    0.75 ms
-         e=257   0.95 ms
-         e=65537 1.80 ms
-    */
-    e = mpi_alloc( (32+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );
-    if (!use_e)
-      use_e = 41;     /* This is a reasonable secure and fast value */
-    else if (use_e == 1)
-      use_e = 65537;  /* A secure value as demanded by Spinx. */
-
-    use_e |= 1; /* make sure this is odd */
-    mpi_set_ui (e, use_e); 
     while (!gcry_mpi_gcd(t1, e, phi)) /* (while gcd is not 1) */
-      mpi_add_ui (e, e, 2);
+      {
+        if (use_e)
+          BUG (); /* The prime generator already made sure that we
+                     never can get to here. */
+        mpi_add_ui (e, e, 2);
+      }
 
     /* calculate the secret key d = e^1 mod phi */
     d = gcry_mpi_snew ( nbits );

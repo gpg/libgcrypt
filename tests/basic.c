@@ -592,10 +592,9 @@ main (int argc, char **argv)
   else if (argc > 1 && !strcmp (argv[1], "--debug"))
     verbose = debug = 1;
 
-  /*gcry_control (GCRYCTL_DISABLE_INTERNAL_LOCKING,0);*/
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
+  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);

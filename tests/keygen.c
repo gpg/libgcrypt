@@ -77,7 +77,7 @@ check_generated_rsa_key (GcrySexp key, unsigned long expected_e)
 {
   GcrySexp skey, pkey, list;
 
- pkey = gcry_sexp_find_token (key, "public-key", 0);
+  pkey = gcry_sexp_find_token (key, "public-key", 0);
   if (!pkey)
     fail ("public part missing in return value\n");
   else
@@ -87,7 +87,12 @@ check_generated_rsa_key (GcrySexp key, unsigned long expected_e)
       list = gcry_sexp_find_token (pkey, "e", 0);
       if (!list || !(e=gcry_sexp_nth_mpi (list, 1, 0)) )
         fail ("public exponent not found\n");
-      else if (gcry_mpi_cmp_ui (e, expected_e)) 
+      else if (!expected_e)
+        {
+          if (verbose)
+            print_mpi ("e", e);
+        }
+      else if ( gcry_mpi_cmp_ui (e, expected_e)) 
         {
           print_mpi ("e", e);
           fail ("public exponent is not %lu\n", expected_e);
@@ -152,7 +157,7 @@ check_rsa_keys (void)
   gcry_sexp_release (key);
 
   if (verbose)
-    fprintf (stderr, "creating 512 bit RSA key with default e=41\n");
+    fprintf (stderr, "creating 512 bit RSA key with default e\n");
   rc = gcry_sexp_new (&keyparm, 
                       "(genkey\n"
                       " (rsa\n"
@@ -166,7 +171,7 @@ check_rsa_keys (void)
   if (rc)
     die ("error generating RSA key: %s\n", gcry_strerror (rc));
 
-  check_generated_rsa_key (key, 41);
+  check_generated_rsa_key (key, 0); /* We don't expect a constant exponent. */
   gcry_sexp_release (key);
 
 }
@@ -184,9 +189,9 @@ main (int argc, char **argv)
   else if (argc > 1 && !strcmp (argv[1], "--debug"))
     verbose = debug = 1;
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
+  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
@@ -196,3 +201,4 @@ main (int argc, char **argv)
   
   return error_count? 1:0;
 }
+

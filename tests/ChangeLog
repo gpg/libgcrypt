@@ -1,3 +1,9 @@
+2003-03-19  Werner Koch  <wk@gnupg.org>
+
+	* keygen.c (check_rsa_keys): Don't expect an exponent when asking
+	for e=0.
+	(check_generated_rsa_key): Just print exponent if EXPECTED_E is 0.
+
 2003-03-02  Moritz Schulte  <moritz@g10code.com>
 
 	* basic.c (check_one_cipher): Use gcry_cipher_reset() instead of
