@@ -233,11 +233,14 @@ lock_pool (void *p, size_t n)
   if (err)
     {
       if (errno != EPERM
-#ifdef EAGAIN			/* OpenBSD returns this */
+#ifdef EAGAIN	/* OpenBSD returns this */
 	  && errno != EAGAIN
 #endif
-#ifdef ENOSYS			/* Some SCOs return this (function not implemented) */
+#ifdef ENOSYS	/* Some SCOs return this (function not implemented) */
 	  && errno != ENOSYS
+#endif
+#ifdef ENOMEM  /* Linux might return this. */
+            && errno != ENOMEM
 #endif
 	  )
 	log_error ("can't lock memory: %s\n", strerror (err));
@@ -251,6 +254,10 @@ lock_pool (void *p, size_t n)
   uid = getuid ();
 
 #ifdef HAVE_BROKEN_MLOCK
+  /* Under HP/UX mlock segfaults if called by non-root.  Note, we have
+     noch checked whether mlock does really work under AIX where we
+     also detected a broken nlock.  Note further, that using plock ()
+     is not a good idea under AIX. */ 
   if (uid)
     {
       errno = EPERM;
@@ -262,11 +269,11 @@ lock_pool (void *p, size_t n)
       if (err && errno)
 	err = errno;
     }
-#else
+#else /* !HAVE_BROKEN_MLOCK */
   err = mlock (p, n);
   if (err && errno)
     err = errno;
-#endif
+#endif /* !HAVE_BROKEN_MLOCK */
 
   if (uid && ! geteuid ())
     {
@@ -279,11 +286,14 @@ lock_pool (void *p, size_t n)
   if (err)
     {
       if (errno != EPERM
-#ifdef EAGAIN			/* OpenBSD returns this */
+#ifdef EAGAIN	/* OpenBSD returns this. */
 	  && errno != EAGAIN
 #endif
-#ifdef ENOSYS			/* Some SCOs return this (function not implemented) */
+#ifdef ENOSYS	/* Some SCOs return this (function not implemented). */
 	  && errno != ENOSYS
+#endif
+#ifdef ENOMEM  /* Linux might return this. */
+            && errno != ENOMEM
 #endif
 	  )
 	log_error ("can't lock memory: %s\n", strerror (err));
@@ -296,6 +306,15 @@ lock_pool (void *p, size_t n)
    * wipes out the memory on a free().
    * Therefore it is sufficient to suppress the warning
    */
+#elif defined (HAVE_DOSISH_SYSTEM) || defined (__CYGWIN__)
+    /* It does not make sense to print such a warning, given the fact that 
+     * this whole Windows !@#$% and their user base are inherently insecure
+     */
+#elif defined (__riscos__)
+    /* no virtual memory on RISC OS, so no pages are swapped to disc,
+     * besides we don't have mmap, so we don't use it! ;-)
+     * But don't complain, as explained above.
+     */
 #else
   log_info ("Please note that you don't have secure memory on this system\n");
 #endif
