@@ -1,4 +1,4 @@
-Noteworthy changes in version (current cvs)
+Noteworthy changes in version 1.1.7 (2002-05-21)
 ------------------------------------------------
 
 * Libgcrypt is now distributed under the terms of the GNU Lesser
@@ -8,8 +8,9 @@ Noteworthy changes in version (current cvs)
 
 * Libgcrypt should now be thread safe after the initialization.
   gcry_control (GCRYCRL_INITIALIZATION_FINISHED,NULL,0) should have
-  be called before creating additional threads.
+  been called before creating additional threads.
 
+ * Interface changes relative to the 1.1.6 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 GCRYCTL_DISABLE_INTERNAL_LOCKING  NEW
 GCRYCTL_DISABLE_SECMEM            NEW
@@ -19,6 +20,7 @@ GCRYCTL_ANY_INITIALIZATION_P      NEW
 gcry_strdup                       NEW
 gcry_sexp_create                  NEW
 gcry_sexp_new                     NEW
+gcry_set_progress_handler         NEW
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Noteworthy changes in version 1.1.6 (2002-02-07)
