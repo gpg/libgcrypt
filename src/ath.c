@@ -40,6 +40,13 @@
 #define MUTEX_DESTROYED	((ath_mutex_t) 2)
 
 
+void
+ath_init (void)
+{
+  /* Nothing to do.  */
+}
+
+
 int
 ath_mutex_init (ath_mutex_t *lock)
 {

@@ -67,7 +67,7 @@ libgcrypt_real_la_LIBADD = \
 AM_CFLAGS = @GPG_ERROR_CFLAGS@
 
 # The standard version.
-libgcrypt_la_SOURCES = ath.h
+libgcrypt_la_SOURCES = ath.h ath.c
 libgcrypt_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
   @LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_la_DEPENDENCIES = libgcrypt-real.la \

@@ -1,5 +1,8 @@
 2004-03-01  Marcus Brinkmann  <marcus@g10code.de>
 
+	* Makefile.am (libgcrypt_la_SOURCES): Add ath.c.
+	* ath.c (ath_init): Add missing function.
+
 	* Makefile.am (ath_pth_src): Removed.
 	(ath_pthread_src): Removed.
 	(libgcrypt_la_SOURCES): Remove ath-compat, $(ath_pth_src) and
