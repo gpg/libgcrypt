@@ -82,7 +82,7 @@ LIBGCRYPT_CONFIG_LIBS="-lgcrypt"
 LIBGCRYPT_CONFIG_CFLAGS=""
 
 # Definitions for symmetric ciphers.
-available_ciphers="arcfour blowfish cast5 des aes twofish serpent"
+available_ciphers="arcfour blowfish cast5 des aes twofish"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
