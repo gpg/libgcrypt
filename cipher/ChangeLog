@@ -1,7 +1,8 @@
 2003-07-07  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c (gcry_ac_data_set): Only release old MPI value if it is
-	different from the new value.
+	different from the new value.  Bug reported by Simon Josefsson
+	<jas@extundo.com>.
 
 	* pubkey.c (gcry_pk_list): New function.
 	* md.c (gcry_md_list): New function.
