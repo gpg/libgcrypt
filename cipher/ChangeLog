@@ -1,3 +1,12 @@
+2003-08-19  Moritz Schulte  <mo@g10code.com>
+
+	* cipher.c: Add support for Serpent
+	* serpent.c: New file.
+
+2003-08-10  Moritz Schulte  <moritz@g10code.com>
+
+	* rsa.c (_gcry_rsa_blind, _gcry_rsa_unblind): Declare static.
+
 2003-08-09  Timo Schulz  <twoaday@freakmail.de>
 
 	* random.c (getfnc_gather_random): Don't check NAME_OF_DEV_RANDOM

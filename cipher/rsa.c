@@ -444,7 +444,7 @@ _gcry_rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pk
 }
 
 /* Perform RSA blinding.  */
-gcry_mpi_t
+static gcry_mpi_t
 _gcry_rsa_blind (gcry_mpi_t x, gcry_mpi_t r, gcry_mpi_t e, gcry_mpi_t n)
 {
   /* A helper.  */
@@ -468,7 +468,7 @@ _gcry_rsa_blind (gcry_mpi_t x, gcry_mpi_t r, gcry_mpi_t e, gcry_mpi_t n)
 }
 
 /* Undo RSA blinding.  */
-gcry_mpi_t
+static gcry_mpi_t
 _gcry_rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
 {
   gcry_mpi_t y;

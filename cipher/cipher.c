@@ -64,6 +64,11 @@ static struct cipher_table_entry
     { &cipher_spec_twofish,    GCRY_CIPHER_TWOFISH },
     { &cipher_spec_twofish128, GCRY_CIPHER_TWOFISH128 },
 #endif
+#if USE_SERPENT
+    { &cipher_spec_serpent128, GCRY_CIPHER_SERPENT128 },
+    { &cipher_spec_serpent192, GCRY_CIPHER_SERPENT192 },
+    { &cipher_spec_serpent256, GCRY_CIPHER_SERPENT256 },
+#endif
     { NULL                    },
   };
 
