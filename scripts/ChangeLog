@@ -1,3 +1,8 @@
+2003-12-08  Werner Koch  <wk@gnupg.org>
+
+	* autogen.sh, config.sub, install-sh, mkinstalldirs, config.guess,
+	* missing: Removed
+
 2003-10-31  Werner Koch  <wk@gnupg.org>
 
 	* autogen.sh: Allow to override the tool name.  Do not run
