@@ -1285,7 +1285,9 @@ This flag enables the CFB sync mode, which is a special feature of
 See @code{gcry_cipher_sync}.
 @item GCRY_CIPHER_CBC_CTS
 Enable cipher text stealing (CTS) for the CBC mode.  Cannot be used
-simultaneous as GCRY_CIPHER_CBC_MAC
+simultaneous as GCRY_CIPHER_CBC_MAC.  CTS mode makes it possible to
+transform data of almost arbitrary size (only limitation is that it
+must be greater than the algorithm's block size).
 @item GCRY_CIPHER_CBC_MAC
 Compute CBC-MAC keyed checksums.  This is the same as CBC mode, but
 only output the last block.  Cannot be used simultaneous as
