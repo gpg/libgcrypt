@@ -167,6 +167,7 @@ size_t	    gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer,
 						size_t maxlength );
 GCRY_SEXP   gcry_sexp_find_token( GCRY_SEXP list,
 				  const char *tok, size_t toklen );
+GCRY_SEXP   gcry_sexp_enum( GCRY_SEXP list, void **context, int mode );
 GCRY_SEXP   gcry_sexp_car( GCRY_SEXP list );
 GCRY_SEXP   gcry_sexp_cdr( GCRY_SEXP list );
 const char *gcry_sexp_car_data( GCRY_SEXP list, size_t *datalen );

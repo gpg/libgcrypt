@@ -433,9 +433,9 @@ gcry_sexp_find_token( GCRY_SEXP list, const char *tok, size_t toklen )
  * the address of a void pointer initialized to NULL.  Then don't touch this
  * variable anymore but pass it verbatim to the function; you will get
  * all lists back in turn. End of lists is indicated by a returned NIL in
- * whic case you should not continue to use this function
+ * which case you should not continue to use this function
  * (it would wrap around).  If you decide to cancel the operation before
- * the final NIL you vae to release the context by calling the function
+ * the final NIL you have to release the context by calling the function
  * with a the context but a LIST set to NULL.
  * Note that this function returns only lists and not single objects.
  */
@@ -595,6 +595,10 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
     int quoted_esc=0;
     int datalen=0;
     int first;
+    size_t dummy_erroff;
+
+    if( !erroff )
+	erroff = &dummy_erroff;
 
     tail = head = NULL;
     first = 0;
