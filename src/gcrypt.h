@@ -35,7 +35,7 @@ extern "C" {
  * header matches the installed library.
  * Note: Do not edit the next line as configure may fix the string here.
  */
-#define GCRYPT_VERSION "1.1.0a"
+#define GCRYPT_VERSION "1.1.0b"
 
 
 #ifndef HAVE_BYTE_TYPEDEF
@@ -152,11 +152,6 @@ enum gcry_sexp_format {
 };
 
 
-GCRY_SEXP gcry_sexp_new_data( const char *buffer, size_t length );
-GCRY_SEXP gcry_sexp_new_mpi( GCRY_MPI mpi );
-GCRY_SEXP gcry_sexp_new_name_data( const char *name,
-				   const char *buffer, size_t length );
-GCRY_SEXP gcry_sexp_new_name_mpi( const char *name, GCRY_MPI mpi );
 void	  gcry_sexp_release( GCRY_SEXP sexp );
 void	  gcry_sexp_dump( GCRY_SEXP a );
 GCRY_SEXP gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b );
@@ -164,9 +159,11 @@ GCRY_SEXP gcry_sexp_alist( GCRY_SEXP *array );
 GCRY_SEXP gcry_sexp_vlist( GCRY_SEXP a, ... );
 GCRY_SEXP gcry_sexp_append( GCRY_SEXP a, GCRY_SEXP n );
 GCRY_SEXP gcry_sexp_prepend( GCRY_SEXP a, GCRY_SEXP n );
-int	  gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
-			       size_t length, size_t *erroff );
-size_t	    gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer,
+int	  gcry_sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff,
+			   const char *buffer, size_t length );
+int	  gcry_sexp_build( GCRY_SEXP *retsexp, size_t *erroff,
+			   const char *format, ... );
+size_t	  gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer,
 						size_t maxlength );
 GCRY_SEXP   gcry_sexp_find_token( GCRY_SEXP list,
 				  const char *tok, size_t toklen );
@@ -197,7 +194,7 @@ enum gcry_mpi_format {
     GCRYMPI_FMT_NONE= 0,
     GCRYMPI_FMT_STD = 1,    /* twos complement stored without length */
     GCRYMPI_FMT_PGP = 2,    /* As used by OpenPGP */
-    GCRYMPI_FMT_SSH = 3,    /* As used by SSH (same as 0 but with length)*/
+    GCRYMPI_FMT_SSH = 3,    /* As used by SSH (same as 1 but with length)*/
     GCRYMPI_FMT_HEX = 4,    /* hex format */
     GCRYMPI_FMT_USG = 5,    /* like STD but this is an unsigned one */
 };

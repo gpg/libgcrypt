@@ -1,3 +1,12 @@
+Tue Jul 25 17:44:15 CEST 2000  Werner Koch  <wk@openit.de>
+
+  * sexp.c: Major rewrite.
+  (gcry_sexp_sscan): Reordered arguments.  Moved functionality to ..
+  (sexp_sscan): .. this.
+  (gcry_sexp_build): New.
+  (gcry_sexp_new_name_mpi, gcry_sexp_new_name_data, gcry_sexp_new_data,
+   gcry_sexp_new_mpi): Removed.
+
 Fri Jul 14 19:38:23 CEST 2000  Werner Koch  <wk@>
 
   * gcrypt.h (gcry_md_start_debug, gcry_md_stop_debug): New.
