@@ -1,3 +1,7 @@
+2003-11-27  Moritz Schulte  <mo@g10code.com>
+
+	* configure.ac (AC_CHECK_HEADERS): Check for getopt.h.
+
 2003-09-04  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.43.
