@@ -1,6 +1,6 @@
 /* mpi-internal.h  -  Internal to the Multi Precision Integers
- *	Copyright (C) 1998 Free Software Foundation, Inc.
- *	Copyright (C) 1994, 1996, 2000, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1994, 1996, 1998, 2000, 2002,
+ *               2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -169,17 +169,9 @@ typedef int mpi_size_t;        /* (must be a signed type) */
 
 
 /*-- mpiutil.c --*/
-#ifdef M_DEBUG
-#define mpi_alloc_limb_space(n,f)  _gcry_mpi_debug_alloc_limb_space((n),(f), M_DBGINFO( __LINE__ ) )
-#define mpi_free_limb_space(n)  _gcry_mpi_debug_free_limb_space((n),  M_DBGINFO( __LINE__ ) )
-  mpi_ptr_t _gcry_mpi_debug_alloc_limb_space( unsigned nlimbs, int sec, const char *info  );
-  void _gcry_mpi_debug_free_limb_space( mpi_ptr_t a, const char *info );
-#else
 #define mpi_alloc_limb_space(n,f)  _gcry_mpi_alloc_limb_space((n),(f))
-#define mpi_free_limb_space(n)     _gcry_mpi_free_limb_space((n))
-  mpi_ptr_t _gcry_mpi_alloc_limb_space( unsigned nlimbs, int sec );
-  void _gcry_mpi_free_limb_space( mpi_ptr_t a );
-#endif
+mpi_ptr_t _gcry_mpi_alloc_limb_space( unsigned nlimbs, int sec );
+void _gcry_mpi_free_limb_space( mpi_ptr_t a, unsigned int nlimbs );
 void _gcry_mpi_assign_limb_space( gcry_mpi_t a, mpi_ptr_t ap, unsigned nlimbs );
 
 /*-- mpi-bit.c --*/
@@ -211,8 +203,10 @@ int _gcry_mpih_cmp( mpi_ptr_t op1_ptr, mpi_ptr_t op2_ptr, mpi_size_t size );
 struct karatsuba_ctx {
     struct karatsuba_ctx *next;
     mpi_ptr_t tspace;
+    unsigned int tspace_nlimbs;
     mpi_size_t tspace_size;
     mpi_ptr_t tp;
+    unsigned int tp_nlimbs;
     mpi_size_t tp_size;
 };
 

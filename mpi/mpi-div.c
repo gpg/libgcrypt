@@ -1,5 +1,6 @@
 /* mpi-div.c  -  MPI functions
- * Copyright (C) 1994, 1996, 1998, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1994, 1996, 1998, 2001, 2002,
+ *               2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -137,6 +138,7 @@ _gcry_mpi_tdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t d
     unsigned normalization_steps;
     mpi_limb_t q_limb;
     mpi_ptr_t marker[5];
+    unsigned int marker_nlimbs[5];
     int markidx=0;
 
     /* Ensure space is enough for quotient and remainder.
@@ -194,6 +196,7 @@ _gcry_mpi_tdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t d
 	/* Make sure QP and NP point to different objects.  Otherwise the
 	 * numerator would be gradually overwritten by the quotient limbs.  */
 	if(qp == np) { /* Copy NP object to temporary space.  */
+            marker_nlimbs[markidx] = nsize;
 	    np = marker[markidx++] = mpi_alloc_limb_space(nsize,
 							  mpi_is_secure(quot));
 	    MPN_COPY(np, qp, nsize);
@@ -215,6 +218,7 @@ _gcry_mpi_tdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t d
 	/* Shift up the denominator setting the most significant bit of
 	 * the most significant word.  Use temporary storage not to clobber
 	 * the original contents of the denominator.  */
+        marker_nlimbs[markidx] = dsize;
 	tp = marker[markidx++] = mpi_alloc_limb_space(dsize,mpi_is_secure(den));
 	_gcry_mpih_lshift( tp, dp, dsize, normalization_steps );
 	dp = tp;
@@ -236,7 +240,9 @@ _gcry_mpi_tdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t d
 	if( dp == rp || (quot && (dp == qp))) {
 	    mpi_ptr_t tp;
 
-	    tp = marker[markidx++] = mpi_alloc_limb_space(dsize, mpi_is_secure(den));
+            marker_nlimbs[markidx] = dsize;
+	    tp = marker[markidx++] = mpi_alloc_limb_space(dsize,
+                                                          mpi_is_secure(den));
 	    MPN_COPY( tp, dp, dsize );
 	    dp = tp;
 	}
@@ -272,7 +278,10 @@ _gcry_mpi_tdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t d
     rem->nlimbs = rsize;
     rem->sign	= sign_remainder;
     while( markidx )
-	mpi_free_limb_space(marker[--markidx]);
+      {
+        markidx--;
+	_gcry_mpi_free_limb_space (marker[markidx], marker_nlimbs[markidx]);
+      }
 }
 
 void

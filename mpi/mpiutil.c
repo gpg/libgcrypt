@@ -73,7 +73,7 @@ _gcry_mpi_alloc_secure( unsigned nlimbs )
 
 
 mpi_ptr_t
-_gcry_mpi_alloc_limb_space( unsigned nlimbs, int secure )
+_gcry_mpi_alloc_limb_space( unsigned int nlimbs, int secure )
 {
     size_t len = nlimbs * sizeof(mpi_limb_t);
     mpi_ptr_t p = NULL;
@@ -85,20 +85,29 @@ _gcry_mpi_alloc_limb_space( unsigned nlimbs, int secure )
 }
 
 void
-_gcry_mpi_free_limb_space( mpi_ptr_t a )
+_gcry_mpi_free_limb_space( mpi_ptr_t a, unsigned int nlimbs)
 {
-    if( !a )
-	return;
-    gcry_free(a);
+  if (a)
+    {
+      size_t len = nlimbs * sizeof(mpi_limb_t);
+      
+      /* If we have information on the number of allocated limbs, we
+         better wipe that space out.  This is a failsafe feature if
+         secure memory has been disabled or was not properly
+         implemented in user provided allocation functions. */
+      if (len)
+        wipememory (a, len);
+      gcry_free(a);
+    }
 }
 
 
 void
-_gcry_mpi_assign_limb_space( gcry_mpi_t a, mpi_ptr_t ap, unsigned nlimbs )
+_gcry_mpi_assign_limb_space( gcry_mpi_t a, mpi_ptr_t ap, unsigned int nlimbs )
 {
-    mpi_free_limb_space(a->d);
-    a->d = ap;
-    a->alloced = nlimbs;
+  _gcry_mpi_free_limb_space (a->d, a->alloced);
+  a->d = ap;
+  a->alloced = nlimbs;
 }
 
 
@@ -138,57 +147,57 @@ _gcry_mpi_clear( gcry_mpi_t a )
 void
 _gcry_mpi_free( gcry_mpi_t a )
 {
-    if( !a )
-	return;
-    if( a->flags & 4 )
-	gcry_free( a->d );
-    else {
-	mpi_free_limb_space(a->d);
+  if (!a )
+    return;
+  if ((a->flags & 4))
+    gcry_free( a->d );
+  else
+    {
+      _gcry_mpi_free_limb_space(a->d, a->alloced);
     }
-    if( a->flags & ~7 )
-	log_bug("invalid flag value in mpi\n");
-    gcry_free(a);
+  if ((a->flags & ~7))
+    log_bug("invalid flag value in mpi\n");
+  gcry_free(a);
 }
 
 static void
 mpi_set_secure( gcry_mpi_t a )
 {
-    mpi_ptr_t ap, bp;
+  mpi_ptr_t ap, bp;
 
-    if( (a->flags & 1) )
-	return;
-    a->flags |= 1;
-    ap = a->d;
-    if( !a->nlimbs ) {
-	assert(!ap);
-	return;
+  if ( (a->flags & 1) )
+    return;
+  a->flags |= 1;
+  ap = a->d;
+  if (!a->nlimbs)
+    {
+      assert(!ap);
+      return;
     }
-    bp = mpi_alloc_limb_space( a->nlimbs, 1 );
-    MPN_COPY( bp, ap, a->nlimbs );
-    a->d = bp;
-    mpi_free_limb_space(ap);
+  bp = mpi_alloc_limb_space (a->nlimbs, 1);
+  MPN_COPY( bp, ap, a->nlimbs );
+  a->d = bp;
+  _gcry_mpi_free_limb_space (ap, a->alloced);
 }
 
 
 gcry_mpi_t
 gcry_mpi_set_opaque( gcry_mpi_t a, void *p, unsigned int nbits )
 {
-    if( !a ) {
-	a = mpi_alloc(0);
-    }
+  if (!a) 
+    a = mpi_alloc(0);
+    
+  if( a->flags & 4 )
+    gcry_free( a->d );
+  else 
+    _gcry_mpi_free_limb_space (a->d, a->alloced);
 
-    if( a->flags & 4 )
-	gcry_free( a->d );
-    else {
-	mpi_free_limb_space(a->d);
-    }
-
-    a->d = p;
-    a->alloced = 0;
-    a->nlimbs = 0;
-    a->sign  = nbits;
-    a->flags = 4;
-    return a;
+  a->d = p;
+  a->alloced = 0;
+  a->nlimbs = 0;
+  a->sign  = nbits;
+  a->flags = 4;
+  return a;
 }
 
 

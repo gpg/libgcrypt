@@ -122,7 +122,7 @@ gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
     int usign, vsign, usecure, vsecure, sign_product;
     int assign_wp=0;
     mpi_ptr_t tmp_limb=NULL;
-
+    unsigned int tmp_limb_nlimbs = 0;
 
     if( u->nlimbs < v->nlimbs ) { /* Swap U and V. */
 	usize = v->nlimbs;
@@ -170,6 +170,7 @@ gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
     else { /* Make U and V not overlap with W.	*/
 	if( wp == up ) {
 	    /* W and U are identical.  Allocate temporary space for U.	*/
+            tmp_limb_nlimbs = usize;
 	    up = tmp_limb = mpi_alloc_limb_space( usize, usecure  );
 	    /* Is V identical too?  Keep it identical with U.  */
 	    if( wp == vp )
@@ -179,6 +180,7 @@ gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 	}
 	else if( wp == vp ) {
 	    /* W and V are identical.  Allocate temporary space for V.	*/
+            tmp_limb_nlimbs = vsize;
 	    vp = tmp_limb = mpi_alloc_limb_space( vsize, vsecure );
 	    /* Copy to the temporary space.  */
 	    MPN_COPY( vp, wp, vsize );
@@ -197,7 +199,7 @@ gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
             /* copy the temp wp from secure memory back to normal memory */
 	    mpi_ptr_t tmp_wp = mpi_alloc_limb_space (wsize, 0);
 	    MPN_COPY (tmp_wp, wp, wsize);
-            mpi_free_limb_space (wp);
+            _gcry_mpi_free_limb_space (wp, 0);
             wp = tmp_wp;
         }
 	_gcry_mpi_assign_limb_space( w, wp, wsize );
@@ -205,7 +207,7 @@ gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
     w->nlimbs = wsize;
     w->sign = sign_product;
     if( tmp_limb )
-	mpi_free_limb_space( tmp_limb );
+	_gcry_mpi_free_limb_space (tmp_limb, tmp_limb_nlimbs);
 }
 
 

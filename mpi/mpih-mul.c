@@ -356,7 +356,7 @@ _gcry_mpih_mul_n( mpi_ptr_t prodp,
 	    secure = gcry_is_secure( up );
 	    tspace = mpi_alloc_limb_space( 2 * size, secure );
 	    _gcry_mpih_sqr_n( prodp, up, size, tspace );
-	    mpi_free_limb_space( tspace );
+	    _gcry_mpi_free_limb_space (tspace, 2 * size );
 	}
     }
     else {
@@ -367,7 +367,7 @@ _gcry_mpih_mul_n( mpi_ptr_t prodp,
 	    secure = gcry_is_secure( up ) || gcry_is_secure( vp );
 	    tspace = mpi_alloc_limb_space( 2 * size, secure );
 	    mul_n (prodp, up, vp, size, tspace);
-	    mpi_free_limb_space( tspace );
+	    _gcry_mpi_free_limb_space (tspace, 2 * size );
 	}
     }
 }
@@ -384,9 +384,11 @@ _gcry_mpih_mul_karatsuba_case( mpi_ptr_t prodp,
 
     if( !ctx->tspace || ctx->tspace_size < vsize ) {
 	if( ctx->tspace )
-	    mpi_free_limb_space( ctx->tspace );
+	    _gcry_mpi_free_limb_space( ctx->tspace, ctx->tspace_nlimbs );
+        ctx->tspace_nlimbs = 2 * vsize;
 	ctx->tspace = mpi_alloc_limb_space( 2 * vsize,
-				       gcry_is_secure( up ) || gcry_is_secure( vp ) );
+				            (gcry_is_secure( up )
+                                            || gcry_is_secure( vp )) );
 	ctx->tspace_size = vsize;
     }
 
@@ -398,7 +400,8 @@ _gcry_mpih_mul_karatsuba_case( mpi_ptr_t prodp,
     if( usize >= vsize ) {
 	if( !ctx->tp || ctx->tp_size < vsize ) {
 	    if( ctx->tp )
-		mpi_free_limb_space( ctx->tp );
+		_gcry_mpi_free_limb_space( ctx->tp, ctx->tp_nlimbs );
+            ctx->tp_nlimbs = 2 * vsize;
 	    ctx->tp = mpi_alloc_limb_space( 2 * vsize, gcry_is_secure( up )
 						      || gcry_is_secure( vp ) );
 	    ctx->tp_size = vsize;
@@ -440,15 +443,15 @@ _gcry_mpih_release_karatsuba_ctx( struct karatsuba_ctx *ctx )
     struct karatsuba_ctx *ctx2;
 
     if( ctx->tp )
-	mpi_free_limb_space( ctx->tp );
+	_gcry_mpi_free_limb_space( ctx->tp, ctx->tp_nlimbs );
     if( ctx->tspace )
-	mpi_free_limb_space( ctx->tspace );
+	_gcry_mpi_free_limb_space( ctx->tspace, ctx->tspace_nlimbs );
     for( ctx=ctx->next; ctx; ctx = ctx2 ) {
 	ctx2 = ctx->next;
 	if( ctx->tp )
-	    mpi_free_limb_space( ctx->tp );
+            _gcry_mpi_free_limb_space( ctx->tp, ctx->tp_nlimbs );
 	if( ctx->tspace )
-	    mpi_free_limb_space( ctx->tspace );
+	    _gcry_mpi_free_limb_space( ctx->tspace, ctx->tspace_nlimbs );
 	gcry_free( ctx );
     }
 }

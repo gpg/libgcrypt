@@ -1,5 +1,15 @@
 2003-12-19  Werner Koch  <wk@gnupg.org>
 
+	* mpi-internal.h [M_DEBUG]: Removed this unused code.
+	(struct karatsuba_ctx): Added TSPACE_NLIMBS and	TP_NLIMBS.
+	* mpiutil.c (_gcry_mpi_free_limb_space): Add arg NLIMBS and wipe
+	out the memory.  Changed all callers.
+	* mpih-mul.c (_gcry_mpih_mul_karatsuba_case): Keep track of
+	allocated limbs.
+	* mpi-div.c (_gcry_mpi_tdiv_qr): Keep track of allocated limbs.
+	* mpi-mul.c (gcry_mpi_mul): Ditto.
+	* mpi-pow.c (gcry_mpi_powm): Ditto.
+
 	* Manifest: Empty new file.  Also add Manifest files to all CPU
 	specific directories.
 	* Makefile.am: Added.
