@@ -958,8 +958,7 @@ enum gcry_log_levels
 
 typedef void (*gcry_handler_progress_t) (void *, const char *, int, int, int);
 typedef void *(*gcry_handler_alloc_t) (size_t n);
-typedef void *(*gcry_handler_alloc_secure_t) (size_t n);
-typedef void *(*gcry_handler_secure_check_t) (void  *);
+typedef void *(*gcry_handler_secure_check_t) (void *);
 typedef void *(*gcry_handler_realloc_t) (void *p, size_t n);
 typedef void *(*gcry_handler_free_t) (void *);
 typedef void (*gcry_handler_no_mem_t) (void *, size_t, unsigned int);
@@ -970,7 +969,6 @@ typedef void (*gcry_handler_log_t) (void *, int, const char *, va_list);
    is used to register a handler for retrieving these information. */
 void gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
                                 void *cb_data);
-
 
 
 /* Register a custom memory allocation functions. */
@@ -1017,16 +1015,6 @@ void  gcry_free (void *a);
 
 /* Return true if A is allocated in "secure" memory. */
 int gcry_is_secure (const void *a) _GCRY_GCC_ATTR_PURE;
-
-#if 0
-/* FIXME.  */
-#ifndef GCRYPT_NO_MPI_MACROS
-#ifndef DID_MPI_TYPEDEF
-    typedef struct gcry_mpi *MPI;
-#define DID_MPI_TYPEDEF
-#endif
-#endif /* GCRYPT_NO_MPI_MACROS */
-#endif
 
 #if 0 /* keep Emacsens's auto-indent happy */
 {

@@ -84,7 +84,7 @@ test_genkey ( int argc, char **argv )
     rc = gcry_sexp_build ( &s_parms, NULL, "(genkey(dsa(nbits %d)))", nbits );
     rc = gcry_pk_genkey( &s_key, s_parms );
     if ( rc ) {
-	fprintf ( stderr, "genkey failed: %s\n", gcry_strerror (rc) );
+	fprintf ( stderr, "genkey failed: %s\n", gpg_strerror (rc) );
 	return;
     }
     gcry_sexp_release( s_parms );

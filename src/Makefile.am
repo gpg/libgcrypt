@@ -60,26 +60,26 @@ else
 libgcrypt_version_script_cmd = 
 endif
 
-
 libgcrypt_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
       @LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@ 
 
-libgcrypt_la_SOURCES =	 g10lib.h \
-		         types.h \
-			 cipher.h \
-			 misc.c  \
-			 global.c \
-			 sexp.c \
-			 stdmem.c \
-			 stdmem.h \
-			 secmem.c \
-			 secmem.h \
-		         mpi.h \
-			 missing-string.c \
-			 module.c \
-			 ${ath_components}
+libgcrypt_la_SOURCES = \
+g10lib.h \
+types.h \
+cipher.h \
+misc.c  \
+global.c \
+sexp.c \
+stdmem.c \
+stdmem.h \
+secmem.c \
+secmem.h \
+mpi.h \
+missing-string.c \
+module.c \
+${ath_components}
 
-AM_CPPFLAGS = @GPG_ERROR_CFLAGS@
+AM_CFLAGS = @GPG_ERROR_CFLAGS@
 libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
                          $(srcdir)/libgcrypt.vers
 

@@ -596,7 +596,7 @@ gcry_sexp_nth_mpi( gcry_sexp_t list, int number, int mpifmt )
     }
 
     if ( *p == ST_DATA ) {
-	MPI a;
+	gcry_mpi_t a;
 	size_t nbytes;
 
 	memcpy ( &n, ++p, sizeof n );

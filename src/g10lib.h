@@ -116,9 +116,11 @@ int _gcry_log_verbosity( int level );
 
 /*-- cipher/pubkey.c --*/
 
+#if 0
 #ifndef DID_MPI_TYPEDEF
  typedef struct gcry_mpi * MPI;
 #define DID_MPI_TYPEDEF
+#endif
 #endif
 
 #ifndef mpi_powm
@@ -126,14 +128,14 @@ int _gcry_log_verbosity( int level );
 #endif
 
 /*-- primegen.c --*/
-MPI _gcry_generate_secret_prime (unsigned int nbits,
-                                 int (*extra_check)(void*, MPI),
+gcry_mpi_t _gcry_generate_secret_prime (unsigned int nbits,
+                                 int (*extra_check)(void*, gcry_mpi_t),
                                  void *extra_check_arg);
-MPI _gcry_generate_public_prime (unsigned int nbits,
-                                 int (*extra_check)(void*, MPI),
+gcry_mpi_t _gcry_generate_public_prime (unsigned int nbits,
+                                 int (*extra_check)(void*, gcry_mpi_t),
                                  void *extra_check_arg);
-MPI _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
-					   MPI g, MPI **factors );
+gcry_mpi_t _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
+					   gcry_mpi_t g, gcry_mpi_t **factors );
 
 
 

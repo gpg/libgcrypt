@@ -1,4 +1,18 @@
+2003-06-17  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (AM_CFLAGS): Added: @GPG_ERROR_CFLAGS@.
+
+2003-06-16  Moritz Schulte  <moritz@g10code.com>
+
+	* g10lib.h: Replace last occurences of old type names with newer
+	names (i.e. replace MPI with gcry_mpi_t).
+	* mpi.h: Likewise.
+	* sexp.c: Likewise.
+
 2003-06-15  Moritz Schulte  <moritz@g10code.com>
+
+	* testapi.c (test_genkey): Use gpg_strerror instead of
+	gcry_strerror.
 
 	* global.c (gcry_control): Fixed typo.
 

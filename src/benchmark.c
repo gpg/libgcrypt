@@ -245,7 +245,7 @@ cipher_bench ( const char *algoname )
         buflen = (buflen / blklen) * blklen;
 
       start_timer ();
-      for (i=err=0; !err && i < 10; i++)
+      for (i=err=0; !err && i < 1000; i++)
         err = gcry_cipher_encrypt ( hd, outbuf, buflen, buf, buflen);
       stop_timer ();
       printf (" %s", elapsed_time ());
@@ -254,7 +254,7 @@ cipher_bench ( const char *algoname )
       if (err)
         { 
           fprintf (stderr, "gcry_cipher_encrypt failed: %s\n",
-                   gcry_strerror (err) );
+                   gpg_strerror (err) );
           exit (1);
         }
 
@@ -275,7 +275,7 @@ cipher_bench ( const char *algoname )
         }
 
       start_timer ();
-      for (i=err=0; !err && i < 10; i++)
+      for (i=err=0; !err && i < 1000; i++)
         err = gcry_cipher_decrypt ( hd, outbuf, buflen,  buf, buflen);
       stop_timer ();
       printf (" %s", elapsed_time ());
@@ -284,7 +284,7 @@ cipher_bench ( const char *algoname )
       if (err)
         { 
           fprintf (stderr, "gcry_cipher_decrypt failed: %s\n",
-                   gcry_strerror (err) );
+                   gpg_strerror (err) );
           exit (1);
         }
     }
