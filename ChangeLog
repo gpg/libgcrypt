@@ -1,3 +1,9 @@
+2001-05-28  Werner Koch  <wk@gnupg.org>
+
+	* acinclude.m4 (GPH_PROG_DOCBOOK): Removed.
+	(GPH_PROG_DB2ANY): New. Taken from GPH.
+	* configure.in: Use it here.
+
 2000-12-19  Werner Koch  <wk@gnupg.org>
 
 	Major change:

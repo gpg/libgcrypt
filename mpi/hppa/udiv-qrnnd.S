@@ -1,17 +1,16 @@
 /* HP-PA  __udiv_qrnnd division support, used from longlong.h.
  *	  This version runs fast on pre-PA7000 CPUs.
  *
- *	Copyright (C) 1993, 1994 Free Software Foundation, Inc.
- *	Copyright (c) 1997 by Werner Koch (dd9jn)
+ *      Copyright (C) 1993, 1994, 1998, 2001 Free Software Foundation, Inc.
  *
- * This file is part of G10.
+ * This file is part of GnuPG.
  *
- * G10 is free software; you can redistribute it and/or modify
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * G10 is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -44,7 +43,7 @@
 
 	.code
 	.export 	__udiv_qrnnd
-__udiv_qrnnd
+	.label		__udiv_qrnnd
 	.proc
 	.callinfo	frame=0,no_calls
 	.entry
@@ -122,7 +121,7 @@ __udiv_qrnnd
 	bv		0(%r2)
 	 addc		%r28,%r28,%r28
 
-L$largedivisor
+	.label	L$largedivisor
 	extru		%r24,31,1,%r19		; r19 = n0 & 1
 	bb,<		%r23,31,L$odd
 	 extru		%r23,30,31,%r22 	; r22 = d >> 1
@@ -201,7 +200,8 @@ L$largedivisor
 	bv		0(%r2)
 	 addc		%r24,%r24,%r28
 
-L$odd	addib,sv,n	1,%r22,L$FF..		; r22 = (d / 2 + 1)
+	.label	L$odd
+	addib,sv,n	1,%r22,L$FF..		; r22 = (d / 2 + 1)
 	shd		%r25,%r24,1,%r24	; r24 = new n0
 	extru		%r25,30,31,%r25 	; r25 = new n1
 	sub		%r0,%r22,%r21
@@ -286,7 +286,8 @@ L$odd	addib,sv,n	1,%r22,L$FF..		; r22 = (d / 2 + 1)
 
 ; This is just a special case of the code above.
 ; We come here when d == 0xFFFFFFFF
-L$FF..	add,uv		%r25,%r24,%r24
+	.label	L$FF..
+	add,uv		%r25,%r24,%r24
 	sub,<<		%r24,%r23,%r0
 	ldo		1(%r24),%r24
 	stws		%r24,0(0,%r26)

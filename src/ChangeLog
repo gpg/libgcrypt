@@ -1,3 +1,9 @@
+2001-05-28  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt.m4: Check GCRYPT_VERSION macro and not LIBGCRYPT_VERSION.
+
+	* mpi.h: Removed mpi_fromstr prototype.
+
 2001-01-11  Werner Koch  <wk@gnupg.org>
 
 	* Makefile.am (libgcrypt_la_SOURCES): Add mpi.h

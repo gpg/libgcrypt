@@ -1,18 +1,16 @@
 /* mpihelp_udiv_w_sdiv -- implement udiv_qrnnd on machines with only signed
  *			  division.
- *
+ * Copyright (C) 1992, 1994, 1996, 1998 Free Software Foundation, Inc.
  * Contributed by Peter L. Montgomery.
  *
- * Copyright (C) 1992, 1994, 1996, 1998 Free Software Foundation, Inc.
+ * This file is part of GnuPG.
  *
- * This file is part of Libgcrypt.
- *
- * Libgcrypt is free software; you can redistribute it and/or modify
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * Libgcrypt is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.

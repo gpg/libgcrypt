@@ -1,16 +1,17 @@
 /* hppa1.1   addmul_1 -- Multiply a limb vector with a limb and add
  *			 the result to a second limb vector.
- *	Copyright (C) 1992, 1993, 1994 Free Software Foundation, Inc.
- *	Copyright (C) 1998 Free Software Foundation, Inc.
  *
- * This file is part of GNUPG.
+ *      Copyright (C) 1992, 1993, 1994, 1998,
+ *                    2001 Free Software Foundation, Inc.
  *
- * GNUPG is free software; you can redistribute it and/or modify
+ * This file is part of GnuPG.
+ *
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * GNUPG is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -48,7 +49,7 @@
 
 	.code
 	.export 	mpihelp_addmul_1
-mpihelp_addmul_1
+	.label		mpihelp_addmul_1
 	.proc
 	.callinfo	frame=64,no_calls
 	.entry
@@ -71,7 +72,8 @@ mpihelp_addmul_1
 	 ldw		-12(%r30),%r1
 
 ; Main loop
-L$loop	ldws		0(%r26),%r29
+	.label	L$loop
+	ldws		0(%r26),%r29
 	fldws,ma	4(%r25),%fr5
 	add		%r29,%r19,%r19
 	stws,ma 	%r19,4(%r26)
@@ -83,7 +85,8 @@ L$loop	ldws		0(%r26),%r29
 	addib,<>	-1,%r24,L$loop
 	 ldw		-12(%r30),%r1
 
-L$end	ldw		0(%r26),%r29
+	.label	L$end
+	ldw		0(%r26),%r29
 	add		%r29,%r19,%r19
 	stws,ma 	%r19,4(%r26)
 	addc		%r28,%r1,%r19
@@ -96,7 +99,7 @@ L$end	ldw		0(%r26),%r29
 	bv		0(%r2)
 	 ldo		-64(%r30),%r30
 
-L$just_one_limb
+	.label L$just_one_limb
 	xmpyu		%fr4,%fr5,%fr6
 	ldw		0(%r26),%r29
 	fstds		%fr6,-16(%r30)

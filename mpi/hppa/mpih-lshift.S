@@ -1,15 +1,16 @@
 /* hppa   lshift
-*
- * Copyright (C) 1992, 1994, 1998 Free Software Foundation, Inc.
  *
- * This file is part of GNUPG.
+ *      Copyright (C) 1992, 1994, 1998
+ *                    2001 Free Software Foundation, Inc.
  *
- * GNUPG is free software; you can redistribute it and/or modify
+ * This file is part of GnuPG.
+ *
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * GNUPG is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -31,7 +32,7 @@
 
 	.code
 	.export 	mpihelp_lshift
-mpihelp_lshift
+	.label		mpihelp_lshift
 	.proc
 	.callinfo	frame=64,no_calls
 	.entry
@@ -47,7 +48,8 @@ mpihelp_lshift
 	addib,= 	-1,%r24,L$0002
 	vshd		%r22,%r29,%r20
 
-L$loop	ldws,mb 	-4(0,%r25),%r22
+	.label	L$loop
+	ldws,mb 	-4(0,%r25),%r22
 	stws,mb 	%r20,-4(0,%r26)
 	addib,= 	-1,%r24,L$0003
 	vshd		%r29,%r22,%r20
@@ -56,12 +58,15 @@ L$loop	ldws,mb 	-4(0,%r25),%r22
 	addib,<>	-1,%r24,L$loop
 	vshd		%r22,%r29,%r20
 
-L$0002	stws,mb 	%r20,-4(0,%r26)
+	.label	L$0002
+	stws,mb 	%r20,-4(0,%r26)
 	vshd		%r29,%r0,%r20
 	bv		0(%r2)
 	stw		%r20,-4(0,%r26)
-L$0003	stws,mb 	%r20,-4(0,%r26)
-L$0004	vshd		%r22,%r0,%r20
+	.label	L$0003
+	stws,mb 	%r20,-4(0,%r26)
+	.label	L$0004
+	vshd		%r22,%r0,%r20
 	bv		0(%r2)
 	stw		%r20,-4(0,%r26)
 

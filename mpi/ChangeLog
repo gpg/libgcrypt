@@ -1,3 +1,14 @@
+2001-05-28  Werner Koch  <wk@gnupg.org>
+
+	* mpicoder.c (mpi_fromstr): Made static and assume that all input
+	is in hexformat.
+
+	Updated all CPU specific code with the one from GnuPG-1.0.5.  This
+	is just a change of text formatting and the use of .label
+	instead of labels for hppa and pa7100.
+
+	* longlong.h: Fixes for ARM by Phil Blundell.
+
 2001-03-29  Werner Koch  <wk@gnupg.org>
 
 	* mpi-mul.c (mpi_mul): Make sure that secret temporary results are

@@ -1,3 +1,7 @@
+2001-05-28  Werner Koch  <wk@gnupg.org>
+
+	* rndegd.c (gather_random): Removed the use of tty_printf.
+
 2001-03-29  Werner Koch  <wk@gnupg.org>
 
 	* md5.c (md5_final): Fixed calculation of hashed length.  Thanks

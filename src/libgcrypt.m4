@@ -70,9 +70,9 @@ main ()
       printf("*** to point to the correct copy of libgcrypt-config, and remove the file config.cache\n");
       printf("*** before re-running configure\n");
     }
-    else if ( strcmp(gcry_check_version(NULL), LIBGCRYPT_VERSION ) )
+    else if ( strcmp(gcry_check_version(NULL), GCRYPT_VERSION ) )
     {
-      printf("\n*** LIBGCRYPT header file (version %s) does not match\n", LIBGCRYPT_VERSION);
+      printf("\n*** LIBGCRYPT header file (version %s) does not match\n", GCRYPT_VERSION);
       printf("*** library (version %s)\n", gcry_check_version(NULL) );
     }
     else

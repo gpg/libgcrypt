@@ -107,7 +107,6 @@ void mpi_m_check( MPI a );
 void mpi_swap( MPI a, MPI b);
 
 /*-- mpicoder.c --*/
-int mpi_fromstr(MPI val, const char *str);
 void g10_log_mpidump( const char *text, MPI a );
 u32 mpi_get_keyid( MPI a, u32 *keyid );
 byte *mpi_get_buffer( MPI a, unsigned *nbytes, int *sign );

@@ -1,17 +1,17 @@
 /* HP-PA  __udiv_qrnnd division support, used from longlong.h.
  *	  This version runs fast on PA 7000 and later.
  *
- *	Copyright (C) 1993, 1994 Free Software Foundation, Inc.
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *      Copyright (C) 1993, 1994, 1998, 
+ *                    2001 Free Software Foundation, Inc.
  *
- * This file is part of GNUPG.
+ * This file is part of GnuPG.
  *
- * GNUPG is free software; you can redistribute it and/or modify
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * GNUPG is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -39,10 +39,11 @@
  */
 
 	.code
-L$0000	.word		0x43f00000
+	.label L$0000
+	.word		0x43f00000
 	.word		0x0
 	.export 	__udiv_qrnnd
-__udiv_qrnnd
+	.label		__udiv_qrnnd
 	.proc
 	.callinfo	frame=64,no_calls
 	.entry
@@ -58,7 +59,7 @@ __udiv_qrnnd
 	fcnvxf,dbl,dbl	%fr5,%fr5
 	fldds		0(0,%r19),%fr4
 	fadd,dbl	%fr4,%fr5,%fr5
-L$1
+	.label	L$1
 	fcpy,sgl	%fr0,%fr6L
 	fldws		-12(0,%r30),%fr6R
 	fcnvxf,dbl,dbl	%fr6,%fr4
@@ -79,7 +80,8 @@ L$1
 
 	add		%r22,%r23,%r22
 	ldo		-1(%r28),%r28
-L$2	bv		0(%r2)
+	.label	L$2
+	bv		0(%r2)
 	stws		%r22,0(0,%r26)
 
 	.exit

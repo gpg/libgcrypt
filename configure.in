@@ -165,7 +165,7 @@ AC_PROG_CPP
 AC_ISC_POSIX
 AC_PROG_INSTALL
 AC_PROG_AWK
-GPH_PROG_DOCBOOK
+GPH_PROG_DB2ANY
 
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
@@ -679,7 +679,7 @@ AC_SUBST(LIBGCRYPT_LIBS)
 AC_SUBST(LIBGCRYPT_CFLAGS)
 
 AC_OUTPUT_COMMANDS([
-chmod +x scripts/db2html
+chmod +x scripts/db2any
 chmod +x src/libgcrypt-config
 cat >gcrypt-defs.tmp <<G10EOF
 /* Generated automatically by configure */
@@ -718,7 +718,6 @@ DATADIRNAME=$DATADIRNAME
 
 AC_OUTPUT([
 Makefile
-scripts/db2html
 jnlib/Makefile
 mpi/Makefile
 cipher/Makefile

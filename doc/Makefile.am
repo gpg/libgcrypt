@@ -1,41 +1,31 @@
 ## Process this file with automake to create Makefile.in
 
-BUILT_SOURCES = version.sgml reference.html reference.ps
+sgml_source = reference.sgml \
+              cipher-ref.sgml digest-ref.sgml misc-ref.sgml pubkey-ref.sgml 
 
+EXTRA_DIST = $(sgml_source) version.sgml.in \
+             reference.dvi reference.html reference.ps reference.texi
 
-#EXTRA_DIST = version.sgml.in $(BUILT_SOURCES)
+pkgdata_DATA = reference.dvi reference.ps reference.html reference.texi
 
-# pkgdata_DATA = reference.html reference.ps
-
-
+BUILT_SOURCES = version.sgml \
+             reference.dvi reference.html reference.ps reference.texi
 CLEANFILES = reference.aux reference.log reference.tex reference.dvi
 
+reference.sgml : version.sgml
 
-# reference.sgml : version.sgml
 
-
-if HAVE_DB2MAN
-%.1 : %.sgml
-	$(DB2MAN) $<  >$@
-endif
-
-if HAVE_DB2TEX
 %.ps : %.dvi
 	dvips -o $@ $<
 
-%.tex : %.sgml
-	$(DB2TEX) -V generate-book-toc $< > $@
+# we might want something like this: -V generate-book-toc  
+# or use a custom stylesheet.
+%.dvi : %.sgml
+	$(DB2ANY) --mode dvi $<
 
-%.dvi : %.tex
-	$(JADETEX) $<
-endif
-
-if HAVE_DB2HTML
 %.html : %.sgml
-	$(DB2HTML) --nosplit $<
-endif
+	$(DB2ANY) --mode html $<
 
-
-
-
+%.texi : %.sgml
+	$(DB2ANY) --mode texinfo $<
 

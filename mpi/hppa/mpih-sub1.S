@@ -1,16 +1,17 @@
 /* hppa   sub_n -- Sub two limb vectors of the same length > 0 and store
  *		   sum in a third limb vector.
- *	Copyright (C) 1992, 1994 Free Software Foundation, Inc.
- *	Copyright (C) 1998 Free Software Foundation, Inc.
  *
- * This file is part of GNUPG.
+ *      Copyright (C) 1992, 1994, 1998, 
+ *                    2001 Free Software Foundation, Inc.
  *
- * GNUPG is free software; you can redistribute it and/or modify
+ * This file is part of GnuPG.
+ *
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * GNUPG is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -48,7 +49,7 @@
 
 	.code
 	.export 	mpihelp_sub_n
-mpihelp_sub_n
+	.label		mpihelp_sub_n
 	.proc
 	.callinfo	frame=0,no_calls
 	.entry
@@ -59,13 +60,15 @@ mpihelp_sub_n
 	addib,= 	-1,%r23,L$end	; check for (SIZE == 1)
 	 sub		%r20,%r19,%r28	; subtract first limbs ignoring cy
 
-L$loop	ldws,ma 	4(0,%r25),%r20
+	.label	L$loop
+	ldws,ma 	4(0,%r25),%r20
 	ldws,ma 	4(0,%r24),%r19
 	stws,ma 	%r28,4(0,%r26)
 	addib,<>	-1,%r23,L$loop
 	 subb		%r20,%r19,%r28
 
-L$end	stws		%r28,0(0,%r26)
+	.label	L$end
+	stws		%r28,0(0,%r26)
 	addc		%r0,%r0,%r28
 	bv		0(%r2)
 	 subi		1,%r28,%r28

@@ -32,9 +32,6 @@
 #include <sys/un.h>
 #include "types.h"
 #include "g10lib.h"
-#ifndef IS_MODULE
-#include "ttyio.h"
-#endif
 #include "dynload.h"
 #include "cipher.h"
 
@@ -195,11 +192,7 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
     }
 
     if( length ) {
-      #ifdef IS_MODULE
 	fprintf( stderr,
-      #else
-	tty_printf(
-      #endif
 	 _("Please wait, entropy is being gathered. Do some work if it would\n"
 	   "keep you from getting bored, because it will improve the quality\n"
 	   "of the entropy.\n") );

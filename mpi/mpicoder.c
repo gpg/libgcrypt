@@ -75,12 +75,12 @@ mpi_read_from_buffer(byte *buffer, unsigned *ret_nread, int secure)
 
 
 /****************
- * Make an mpi from a character string.
+ * Make an mpi from a hex character string.
  */
-int
+static int
 mpi_fromstr(MPI val, const char *str)
 {
-    int hexmode=0, sign=0, prepend_zero=0, i, j, c, c1, c2;
+    int sign=0, prepend_zero=0, i, j, c, c1, c2;
     unsigned nbits, nbytes, nlimbs;
     mpi_limb_t a;
 
@@ -88,11 +88,11 @@ mpi_fromstr(MPI val, const char *str)
 	sign = 1;
 	str++;
     }
-    if( *str == '0' && str[1] == 'x' )
-	hexmode = 1;
-    else
-	return 1; /* other bases are not yet supported */
-    str += 2;
+
+    /* skip optional hex prefix */
+    if ( *str == '0' && str[1] == 'x' ) {
+        str += 2;
+    }
 
     nbits = strlen(str)*4;
     if( nbits % 8 )

@@ -1,0 +1,489 @@
+#!/bin/sh
+# db2any - Docbook to html/ps/info rendering
+#
+#	Copyright (C) 2000, 2001 Free Software Foundation, Inc
+#
+# This is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+#
+# Note: This requires a Posix shell
+#
+# $Id$
+
+pgm="db2any"
+version="0.7.3"
+
+usage () {
+    echo 'usage: db2any [--help] [options] filename' >&2
+    exit 1
+}
+
+show_banner () {
+	cat <<EOF
+$pgm $version
+Copyright (C) 2001 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+EOF
+}
+
+show_help () {
+    show_banner
+    cat <<EOF
+usage: db2any [options] docbookfile
+
+Options:
+    --mode    select the mode (one of: ${all_modes})
+    --help
+    --nosplit
+    --copyfiles
+    --systemcheck
+    --verbose
+    --draft
+    --manvolume n
+    --usestyle	file
+    --ignore-xref      [not yet implemented]
+
+EOF
+    exit 0
+}
+
+# a list of all possible stylesheet locations
+stylesheet_dirs='
+/usr/local/lib/dsssl/stylesheets/docbook
+/usr/local/share/dsssl/stylesheets/docbook
+/usr/local/lib/sgml/stylesheet/dsssl/docbook/nwalsh
+/usr/local/share/sgml/stylesheet/dsssl/docbook/nwalsh
+/usr/lib/dsssl/stylesheets/docbook
+/usr/share/dsssl/stylesheets/docbook
+/usr/lib/sgml/stylesheet/dsssl/docbook/nwalsh
+/usr/share/sgml/stylesheet/dsssl/docbook/nwalsh
+/usr/lib/sgml/stylesheets/nwalsh-modular
+/usr/share/sgml/stylesheets/nwalsh-modular
+'
+
+all_modes="check tex html man texinfo"
+input=
+verbose=no
+draft=no
+nosplit=no
+copyfiles=no
+systemcheck_only=no
+mode=none
+manvolume="man"
+usestyle=""
+expected_args=1
+ignore_xref=no
+while test "`echo $1 | head -c1`" = "-"; do
+    case $1 in
+      --version)
+	echo "$pgm $version"
+	exit 0
+	;;
+      --help|-h|-help)
+	show_help
+	exit 0
+	;;
+      --nosplit)
+	nosplit=yes
+	;;
+      --copyfiles)
+	copyfiles=yes
+	;;
+      --systemcheck)
+	systemcheck_only=yes
+	expected_args=0
+	;;
+      --mode)
+	shift
+	if [ $# = 0 ]; then
+	   echo "$pgm: missing argument for --mode" >&2
+	   exit 1
+	fi
+	mode="$1"
+	;;
+      --manvolume)
+	shift
+	if [ $# = 0 ]; then
+	   echo "$pgm: missing argument for --manvolume" >&2
+	   exit 1
+	fi
+	manvolume="$1"
+	;;
+      --usestyle)
+	shift
+	if [ $# = 0 ]; then
+	   echo "$pgm: missing argument for --usestyle" >&2
+	   exit 1
+	fi
+	usestyle="$1"
+	;;
+      --verbose)
+	verbose=yes
+	;;
+      --draft)
+	draft=yes
+	;;
+      --ignore-xref)
+        ignore_xref=yes
+        ;;
+      --)
+	shift
+	break
+	;;
+      *)
+	echo "$pgm: invalid option $1" >&2
+	exit 1
+	;;
+    esac
+    shift
+done
+
+if [ $# = $expected_args ]; then
+    if [ $# = 1 ]; then
+       input="$1"
+    fi
+else
+   usage
+fi
+
+# check the mode
+case "$mode" in
+    html|HTML)
+	mode=html
+	;;
+    tex|TEX|TeX|dvi)
+	mode=dvi
+	;;
+    man|MAN)
+	mode=man
+	;;
+    texi|TEXI|texinfo|TEXINFO)
+	mode=texinfo
+	;;
+    check)
+	;;
+    none)
+	if [ $systemcheck_only != yes ]; then
+	    echo "$pgm: no mode specified; use one of: ${all_modes}" >&2
+	    exit 1
+	fi
+	;;
+    *)
+	echo "$pgm: invalid mode $mode" >&2
+	echo "$pgm: valid modes are: ${all_modes}"  >&2
+	exit 1
+	;;
+esac
+
+if [ -n $usestyle ]; then
+   if [ ! -f $usestyle ]; then
+      echo "$pgm: cannot access local stylesteet" >&2
+      exit 1
+   fi
+fi
+
+#######################################
+#   Options are all parsed here       #
+#######################################
+
+# check whether the given program is availbale in the path
+check_prog () {
+    tmp="$1"
+    save_ifs="$IFS"; IFS=":"
+    for i in $PATH; do
+        test -z "$i" && i=.
+        if test -f $i/$tmp; then
+             IFS="$save_ifs"
+             return 0
+        fi
+    done
+    IFS="$save_ifs"
+    return 1
+}
+
+
+# Figure out all what we need to know about the system we are
+# running on and where the Docbook tools are installed.
+# Tell about it when running in verbose mode.
+do_systemcheck () {
+    # look for Jade
+    jade_version=`jade -v </dev/null 2>&1 | \
+		   sed -n 's/.*:I:.*Jade version "\([0-9.]*\)"/\1/p'`
+    if [ -z "$jade_version" ]; then
+	echo "$pgm: error: jade not found" >&2
+	exit 1
+    fi
+    [ $verbose = yes ] && echo "$pgm: Jade version $jade_version found" >&2
+
+    # look for JadeTeX
+    if ! jadetex -v 2>/dev/null | grep -q '^TeX' ; then
+	echo "$pgm: error: jadetex not found" >&2
+	exit 1
+    fi
+
+    # look for the docbook-to-man script. Fixme: we should check that it
+    # it is a recent version.
+    if ! docbook-to-man 2>&1 | grep -q '^usage' ; then
+	echo "$pgm: error: docbook-to-man not found" >&2
+	exit 1
+    fi
+    [ $verbose = yes ] && echo "$pgm: docbook-to-man found" >&2
+
+    # look for the docbook-to-texi scripts.
+    if ! check_prog docbook2texi ;  then
+	echo "$pgm: error: docbook2texi not found" >&2
+	exit 1
+    fi
+    [ $verbose = yes ] && echo "$pgm: docbook2texi found" >&2
+    if ! sgml2xml -v /dev/null 2>&1 | grep 'SP version' >/dev/null 2>&1 ; then
+	echo "$pgm: error: sgml2xml not found" >&2
+	exit 1
+    fi
+    [ $verbose = yes ] && echo "$pgm: sgml2xml found" >&2
+
+    # figure out where our stylesheets are
+    tex_stylesheet=none
+    for d in ${stylesheet_dirs}; do
+	file=${d}/print/docbook.dsl
+	if [ -f $file ]; then
+	    tex_stylesheet=$file
+	    break
+	fi
+    done
+    [ $verbose = yes ] && echo "$pgm: TeX stylesheet: ${tex_stylesheet}" >&2
+    html_stylesheet=none
+    for d in ${stylesheet_dirs}; do
+	file=${d}/html/docbook.dsl
+	if [ -f $file ]; then
+	    html_stylesheet=$file
+	    break
+	fi
+    done
+    [ $verbose = yes ] && echo "$pgm: HTML stylesheet: ${html_stylesheet}" >&2
+    if [ $tex_stylesheet = none -o $html_stylesheet = none ]; then
+	echo "$pgm: error: stylesheets not found" >&2
+	exit 1
+    fi
+
+}
+
+
+# Render the docbook as HTML
+render_html () {
+    output="`basename $input| sed 's/\.sgml$//'`.html"
+
+    if [ -n "$usestyle" ]; then
+	tmpstyle="`pwd`/`basename $usestyle`-html.tmp"
+	if [ ! -f $tmpstyle -o $usestyle -nt $tmpstyle ]; then
+	    sed "s%@DOCBOOK_DSL@%$html_stylesheet%" $usestyle > $tmpstyle
+	fi
+    else
+	tmpstyle="$tex_stylesheet"
+    fi
+
+
+    # --nosplts creates just one HTML file
+    if test $nosplit = yes; then
+	echo "running jade on '$input' ..." >&2
+	jade -D . -d $tmpstyle -t sgml -i html -V nochunks $input > $output
+	echo "$output created"
+	return 0
+    fi
+
+    # Make sure that we have a html subdir
+    if test -d html ; then
+	:
+    else
+	if mkdir html; then
+	    echo "'html' directory created" >&2
+	else
+	    echo "failed to create 'html' directory" >&2
+	    exit 1
+	fi
+    fi
+
+    outputdir="html/`basename $input| sed 's/\.sgml$//'`"
+
+    if test -d $outputdir ; then
+	:
+    else
+	if mkdir $outputdir; then
+	    echo "'$outputdir' created" >&2
+	else
+	    echo "failed to create '$outputdir'" >&2
+	    exit 1
+	fi
+    fi
+    echo "creating html pages in '$outputdir' ..." >&2
+    if test "$input" = "`basename $input`"; then
+	inp="../../$input"
+    else
+	inp="$input"
+    fi
+
+    [ $verbose = yes ] && echo "running jade on '$inp' ..." >&2
+    (cd $outputdir && jade -D . -t sgml -i html -d $tmpstyle $inp )
+    [ $verbose = yes ] && echo "html version in '$outputdir' created" >&2
+
+    # break out all filerefs and copy them to the outputdirectory
+    # fixme: handling of path components is wrong
+    if test $copyfiles = yes; then
+	echo "looking for filerefs ..." >&2
+	for file in `nsgmls -i html $input \
+			| awk '/^AFILEREF[ \t]+CDATA/ {print $3}'`; do
+	    d=$outputdir/`basename $file`
+	    if cat $file > $outputdir/`basename $file` ; then
+		echo "  $file -> $d" >&2
+	    fi
+	done
+    fi
+
+    mainfile=`ls $outputdir/${doctype}* | head -1`
+
+    # create a html index file for it, so that we can more easy
+    # find the rendred pages
+    cat > $output <<EOF
+<html><title>$output</title>
+<body>
+
+<a href="$mainfile">$mainfile</a>
+
+</body>
+</html>
+EOF
+
+    [ $verbose = yes ] && echo "$output created with link to '$mainfile'" >&2
+}
+
+
+# This function expects the source file in $texfile and
+# the name of the logfle in $logfile
+run_jadetex () {
+    [ -f $logfile ] && rm $logfile
+    jadetex $texfile
+    if ! tail $logfile | grep -q '^Output written on'; then
+	echo "JadeTeX failed" >&2
+	exit 1
+    fi
+}
+
+# Render the docbook to DVI
+render_dvi () {
+    output="`basename $input| sed 's/\.sgml$//'`.dvi"
+    texfile="`basename $input| sed 's/\.sgml$//'`.tex"
+    logfile="`basename $input| sed 's/\.sgml$//'`.log"
+    auxfile="`basename $input| sed 's/\.sgml$//'`.aux"
+
+    if [ -n "$usestyle" ]; then
+	tmpstyle="`basename $usestyle`-tex.tmp"
+	if [ ! -f $tmpstyle -o $usestyle -nt $tmpstyle ]; then
+	    sed "s%@DOCBOOK_DSL@%$tex_stylesheet%" $usestyle > $tmpstyle
+	fi
+    else
+	tmpstyle="$tex_stylesheet"
+    fi
+    [ $verbose = yes ] && echo "running jade on '$input' ..." >&2
+    jade -D . -t tex -i tex -d $tmpstyle -o $texfile $input
+    if ! tail $texfile | grep -q '\\endFOT{}'; then
+	echo "Jade failed" >&2
+	exit 1
+    fi
+
+    # Better delete the aux file first
+    [ -f $auxfile ] && rm $auxfile
+    # The first run won't get the references right, so we have to
+    # run it 2 or 3 times.  JadeTex doesn't indicate whether a third
+    # run is required, so we do it always.
+    run_jadetex
+    if [ $draft = no ]; then
+	if tail -100 $logfile \
+	   | grep -q '^LaTeX Warning: There were undefined references'; then
+	   echo 'running JadeTeX a second and third 2time' >&2
+	   run_jadetex
+	   run_jadetex
+	fi
+    fi
+
+    [ $verbose = yes ] && echo "$output created as '$output'" >&2
+}
+
+# Render the docbook to troff
+render_man () {
+    output="`basename $input| sed 's/\.sgml$//'`.$manvolume"
+
+    [ $verbose = yes ] && echo "running docbook-to-man on '$input' ..." >&2
+    docbook-to-man $input > $output
+    [ $verbose = yes ] && echo "man page '$output' created" >&2
+}
+
+# Render the docbook to texinfo
+render_texinfo () {
+    output="`basename $input| sed 's/\.sgml$/.texi/'`"
+    tmpxml="`basename $input| sed 's/\.sgml$/.xml/'`"
+
+    [ $verbose = yes ] && echo "running sgml2xml on '$input' ..." >&2
+    sgml2xml -x lower $input > $tmpxml
+    [ $verbose = yes ] && echo "running docbook2texi on '$tmpxml' ..." >&2
+    docbook2texi $tmpxml | sed 's,--,---,' >$output
+    rm $tmpxml 
+    [ $verbose = yes ] && echo "texinfo '$output' created" >&2
+
+}
+
+#######################################
+#	 main function		      #
+#######################################
+
+do_systemcheck
+[ $systemcheck_only = yes ] && exit 0
+
+if [ ! -f "$input" ]; then
+    input="$input.sgml"
+    if [ ! -f "$input" ]; then
+	echo "$pgm: '$input': no such file" >&2
+	exit 1
+    fi
+fi
+
+# grep the document type
+doctype=`grep -i '\<doctype' $input|awk 'NR==1 {print $2}'| tr '[A-Z]' '[a-z]'`
+if test -z "$doctype"; then
+    echo "$pgm: error: no DOCTYPE declaration found" >&2
+    exit 1
+fi
+[ $verbose = yes ] &&  echo "$input: DOCTYPE is '$doctype'" >&2
+
+case $mode in
+    check)
+	nsgmls -vs $input
+	exit $?
+	;;
+    html)
+	render_html
+	;;
+    dvi)
+	render_dvi
+	;;
+    man)
+	render_man
+	;;
+    texinfo)
+	render_texinfo
+	;;
+esac
+
+
+exit 0

@@ -1,15 +1,17 @@
 /* MIPS3 submul_1 -- Multiply a limb vector with a single limb and
  *		     subtract the product from a second limb vector.
- * Copyright (C) 1992, 1994, 1995, 1998 Free Software Foundation, Inc.
  *
- * This file is part of GNUPG.
+ *      Copyright (C) 1992, 1994, 1995, 1998, 2000
+ *                    2001 Free Software Foundation, Inc.
  *
- * GNUPG is free software; you can redistribute it and/or modify
+ * This file is part of GnuPG.
+ *
+ * GnuPG is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
- * GNUPG is distributed in the hope that it will be useful,
+ * GnuPG is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
@@ -36,10 +38,10 @@ mpihelp_submul_1:
 	.set	noreorder
 	.set	nomacro
 
- # warm up phase 0
+/* # warm up phase 0 */
 	ld	$8,0($5)
 
- # warm up phase 1
+/* # warm up phase 1 */
 	daddiu	$5,$5,8
 	dmultu	$8,$7
 
@@ -68,7 +70,7 @@ Loop:	ld	$10,0($4)
 	bne	$6,$0,Loop
 	 daddu	$2,$9,$2	# add high product limb and carry from addition
 
- # cool down phase 1
+/* # cool down phase 1 */
 $LC1:	ld	$10,0($4)
 	mflo	$3
 	mfhi	$9
@@ -82,7 +84,7 @@ $LC1:	ld	$10,0($4)
 	daddiu	$4,$4,8
 	daddu	$2,$9,$2	# add high product limb and carry from addition
 
- # cool down phase 0
+/* # cool down phase 0 */
 $LC0:	ld	$10,0($4)
 	mflo	$3
 	mfhi	$9

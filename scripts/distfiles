@@ -7,5 +7,5 @@ autogen.sh
 ChangeLog
 ltconfig
 ltmain.sh
-db2html.in
+db2any
 
