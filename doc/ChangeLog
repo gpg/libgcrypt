@@ -1,3 +1,16 @@
+2003-06-14  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Hash Functions): Adjusteded description of
+	gcry_md_copy.
+	
+2003-06-12  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Public Key Functions): Fix example S-Exp, i.e.:
+	added the number of following digits as prefix to the number of
+	bits.
+	(Public Key Functions): Document the general usage of `flags',
+	including the no-blinding flag.
+
 2003-06-11  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi (Hash Functions): Document possible values of HD.

@@ -78,6 +78,8 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @menu
 * Introduction::                How to use this manual.
 * Preparation::                 What you should do before using the library.
+* General Functions::           General library functions.
+* Handler Functions::           Working with handler functions.
 * Cipher Functions::            All about ciphers.
 * Hash Functions::              How to use cryptographic hash functions.
 * Public Key Functions::        How to use asymmetric encryption.
@@ -155,8 +157,8 @@ subject to the terms of the GNU General Public License
 list of these parts.
 
 @item It encapsulates the low level cryptography
-`Libgcrypt' a high level interface to cryptographic building blocks
-using an extendable and flexible API.
+`Libgcrypt' provides a high level interface to cryptographic building
+blocks using an extendable and flexible API.
 
 @end table
 
@@ -278,6 +280,29 @@ specifying both options to @command{libgcrypt-config}:
 gcc -o foo foo.c `libgcrypt-config --cflags --libs`
 @end example
 
+@c **********************************************************
+@c *******************  General  ****************************
+@c **********************************************************
+@node General Functions
+@chapter General Functions
+
+@deftypefun gpg_error_t gcry_control (enum gcry_ctl_cmds @var{cmd}, ...)
+
+This function can be used to influence the general behaviour of
+Libgcrypt in several ways.  Depending on @var{cmd}, more arguments can
+or have to be provided.
+
+FIXME.
+@end deftypefun
+
+@c **********************************************************
+@c *******************  General  ****************************
+@c **********************************************************
+@node Handler Functions
+@chapter Handler Functions
+
+Libgcrypt makes it possible to install so called `handler functions',
+which get called by Libgcrypt in case of certain events.
 
 @c **********************************************************
 @c *******************  Ciphers  ****************************
@@ -776,12 +801,12 @@ might not even be possible if the data is received from a pipe), a
 snapshot of the current hash context can be taken and turned into a new
 context:
 
-@deftypefun gpg_error_t gcry_md_copy (gcry_md_hd_t *@var{h2}, gcry_md_hd_t @var{h})
+@deftypefun gpg_error_t gcry_md_copy (gcry_md_hd_t *@var{handle_dst}, gcry_md_hd_t @var{handle_src})
 
 Create a new digest object as an exact copy of the object described by
-handle @var{h} and store it in @var{h2}.  The context is not reset and
-you can continue to hash data using this context and independently
-using the original context.
+handle @var{handle_src} and store it in @var{handle_dst}.  The context
+is not reset and you can continue to hash data using this context and
+independently using the original context.
 @end deftypefun
 
 
@@ -970,11 +995,11 @@ does implicitly stop debugging.
 @node Public Key Functions
 @chapter Public Key Functions
 
-Public key encryption, also known as asymmetric encryption, is am easy
-way for key management and to provide digital signatures.  Libgcrypt
-supports the RSA (Rivest-Shamir-Adleman) algorithms as well as DSA
-(Digital Signature Algorithm) and ElGamal.  The versatile interface
-allows to add more algorithms in the future.
+Public key cryptography, also known as asymmetric cryptography, is an
+easy way for key management and to provide digital signatures.
+Libgcrypt supports the RSA (Rivest-Shamir-Adleman) algorithms as well
+as DSA (Digital Signature Algorithm) and ElGamal.  The versatile
+interface allows to add more algorithms in the future.
 
 The API is based on data structures called S-expressions (see XXXX)
 and does not work with contexts as most of the other building blocks
@@ -1002,7 +1027,7 @@ indicate parameters whereas lowercase words are literals.
 @end example
 
 @noindent
-This specifies an DSA private key with the following parameters:
+This specifies a DSA private key with the following parameters:
 
 @table @var
 @item p-mpi
@@ -1063,6 +1088,22 @@ specified and may also support other parameters for performance
 reasons. 
 
 @noindent
+
+Some functions operating on S-expressions support `flags', that
+influence the operation.  These flags have to be listed in a
+sub-S-expression named `flags'; the following flags are known:
+
+@table @var
+@item pkcs1
+Use PKCS#1 block type 2 padding.
+@item no-blinding
+Do not use a technique called `blinding', which is used by default in
+order to prevent leaking of secret information.  Blinding is only
+implemented by RSA, but it might be implemented by other algorithms in
+the future as well, when necessary.
+@end table
+
+@noindent
 Now that we know the key basics, we can carry on and explain how to
 encrypt and decrypt data.  In almost all cases the data is a random
 session key which is in turn used for the actual encryption of the real
@@ -1070,11 +1111,12 @@ data.  There are 2 functions to do this:
 
 @deftypefun gpg_error_t gcry_pk_encrypt (@w{gcry_sexp_t *@var{r_ciph},} @w{gcry_sexp_t @var{data},} @w{gcry_sexp_t @var{pkey}})
 
-Obviously a public key must be provided for encryption.  It is expected
-as an appropriate S-expression (see above) in @var{pkey}.  The data to
-be encrypted can either be in the simple old format, which is a very
-simple S-expression consisting only of one MPI, or it may be a more
-complex S-expression which also allows to specify padding rules.
+Obviously a public key must be provided for encryption.  It is
+expected as an appropriate S-expression (see above) in @var{pkey}.
+The data to be encrypted can either be in the simple old format, which
+is a very simple S-expression consisting only of one MPI, or it may be
+a more complex S-expression which also allows to specify flags for
+operation, like e.g. padding rules.
 
 @noindent
 If you don't want to let Libgcrypt handle the padding, you must pass an
@@ -1404,7 +1446,7 @@ Here is an example for @var{parms} for creating a 1024 bit RSA key:
 @example
 (genkey
   (rsa
-    (nbits 1024)))
+    (nbits 4:1024)))
 @end example
 
 @noindent
