@@ -1,3 +1,10 @@
+2004-08-23  Moritz Schulte  <moritz@g10code.com>
+
+	* global.c: Do not include <assert.h>. 
+	* sexp.c: Likewise.
+	* module.c: Likewise.
+	* misc.c: Likewise.
+
 2004-08-18  Moritz Schulte  <moritz@g10code.com>
 
 	* secmem.c (_gcry_secmem_init): Try to lock pool into core not

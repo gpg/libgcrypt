@@ -26,7 +26,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <assert.h>
 
 #define GCRYPT_NO_MPI_MACROS 1
 #include "g10lib.h"
