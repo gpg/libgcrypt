@@ -19,7 +19,7 @@ AC_CANONICAL_SYSTEM
 #    AGE, set REVISION to 0.
 # 3. Interfaces removed (BAD, breaks upward compatibility): Increment
 #    CURRENT, set AGE and REVISION to 0.
-AM_INIT_AUTOMAKE(gcrypt,1.1.2a)
+AM_INIT_AUTOMAKE(libgcrypt,1.1.2a)
 LIBGCRYPT_LT_CURRENT=1
 LIBGCRYPT_LT_AGE=0
 LIBGCRYPT_LT_REVISION=0
@@ -182,7 +182,6 @@ case "${target}" in
         AC_DEFINE(USE_ONLY_8DOT3)
         AC_DEFINE(HAVE_DRIVE_LETTERS)
         AC_DEFINE(HAVE_DOSISH_SYSTEM)
-        AC_DEFINE(USE_SIMPLE_GETTEXT)
         try_gettext="no"
         ;;
     i?86-emx-os2 | i?86-*-os2*emx )
@@ -674,10 +673,10 @@ dnl (this is easier than to have a *.in file just for one substitution)
 dnl
 GNUPG_FIX_HDR_VERSION(src/gcrypt.h, GCRYPT_VERSION)
 
-GCRYPT_LIBS="-L${libdir} -lgcrypt"
-GCRYPT_CFLAGS=""
-AC_SUBST(GCRYPT_LIBS)
-AC_SUBST(GCRYPT_CFLAGS)
+LIBGCRYPT_LIBS="-L${libdir} -lgcrypt"
+LIBGCRYPT_CFLAGS=""
+AC_SUBST(LIBGCRYPT_LIBS)
+AC_SUBST(LIBGCRYPT_CFLAGS)
 
 AC_OUTPUT_COMMANDS([
 chmod +x scripts/db2html
@@ -721,7 +720,6 @@ AC_OUTPUT([
 Makefile
 scripts/db2html
 jnlib/Makefile
-util/Makefile
 mpi/Makefile
 cipher/Makefile
 doc/Makefile
