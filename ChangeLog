@@ -1,3 +1,8 @@
+2003-06-11  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Remove --enable-libgpg-error flag.
+	Ue AC_PATH_GPG_ERROR.
+
 2003-06-09  Moritz Schulte  <moritz@g10code.com>
 
 	* NEWS: Mention API changes and libgpg-error.

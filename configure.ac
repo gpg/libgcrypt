@@ -116,26 +116,6 @@ default_ciphers="$available_ciphers"
 default_pubkey_ciphers="$available_pubkey_ciphers"
 default_digests="$available_digests"
 
-dnl Support for the --enable-libgpg-error switch.
-AC_MSG_CHECKING([wether to use libgpg-error])
-AC_ARG_ENABLE(libgpg-error,
-	      AC_HELP_STRING([--enable-libgpg-error]
-			     [use libgpg-error, this is the default]),
-              [use_libgpg_error=$enableval],
-	      [])
-if test "x$use_libgpg_error" = "x"; then
-   use_libgpg_error=yes
-fi
-if test "x$use_libgpg_error" != "xyes"; then
-   use_libgpg_error=no
-fi
-AM_CONDITIONAL(USE_LIBGPG_ERROR, test "$use_libgpg_error" = "yes")
-AC_MSG_RESULT($use_libgpg_error)
-if test "$use_libgpg_error" = "yes"; then
-   LIBGCRYPT_CONFIG_CFLAGS="$LIBGCRYPT_CONFIG_CFLAGS -DUSE_LIBGPG_ERROR"
-   CFLAGS="$CFLAGS -DUSE_LIBGPG_ERROR"
-fi
-
 dnl Support for the --enable-ciphers switch.
 AC_ARG_ENABLE(ciphers,
 	      AC_HELP_STRING([--enable-ciphers=ciphers],
@@ -155,6 +135,10 @@ for cipher in $enabled_ciphers; do
     fi
 done
 AC_MSG_RESULT([$enabled_ciphers])
+
+AM_PATH_GPG_ERROR(0.1)
+AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
+          [The default error source for libgcrypt.])
 
 dnl Support for the --enable-pubkey-ciphers switch.
 AC_ARG_ENABLE(pubkey-ciphers,
