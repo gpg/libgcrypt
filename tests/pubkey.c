@@ -23,8 +23,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #include "../src/gcrypt.h"
+
+#define TEST_NAME pubkey
+#include "test-glue.h"
 
 /* Sample RSA keys, taken from basic.c.  */
 
@@ -250,3 +252,5 @@ main (int argc, char **argv)
   
   return 0;
 }
+
+#include "test-glue.h"

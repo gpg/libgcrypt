@@ -26,6 +26,9 @@
 
 #include "../src/gcrypt.h"
 
+#define TEST_NAME encoding
+#include "test-glue.h"
+
 static int verbose;
 
 static void
@@ -75,14 +78,13 @@ encoding_check_eme_pkcs_v1_5 (unsigned char *m, size_t m_n)
 
   for (i = 0; (i < (sizeof (key_mpis) / sizeof (*key_mpis))) && (! err); i++)
     {
-      key_mpis[i].mpi = gcry_mpi_new (0);
       err = gcry_mpi_scan (&key_mpis[i].mpi, GCRYMPI_FMT_USG,
 			   key_mpis[i].mpi_string,
 			   strlen (key_mpis[i].mpi_string), NULL);
     }
 
   for (i = 0; (i < (sizeof (key_mpis) / sizeof (*key_mpis))) && (! err); i++)
-    err = gcry_ac_data_set (key_data, key_mpis[i].name, key_mpis[i].mpi);
+    err = gcry_ac_data_set (key_data, 0, key_mpis[i].name, key_mpis[i].mpi);
   if (! err)
     err = gcry_ac_key_init (&key_public, NULL, GCRY_AC_KEY_PUBLIC, key_data);
 
@@ -185,3 +187,5 @@ main (int argc, char **argv)
     
   return err ? EXIT_FAILURE : EXIT_SUCCESS;
 }
+
+#include "test-glue.h"

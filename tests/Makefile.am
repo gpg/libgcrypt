@@ -18,12 +18,66 @@
 
 ## Process this file with automake to produce Makefile.in
 
-TESTS = ac-schemes encoding prime register ac basic tsexp keygen pubkey
-
 INCLUDES = -I$(top_srcdir)/src
 LDADD = ../src/libgcrypt.la
 
-EXTRA_PROGRAMS = benchmark testapi
-check_PROGRAMS = $(TESTS)
+AM_CFLAGS = -Wall @GPG_ERROR_CFLAGS@
 
-AM_CFLAGS = @GPG_ERROR_CFLAGS@
+TEST_PROGS = \
+	cipher ac tsexp keygen pubkey basic prime \
+	register testapi ac-schemes encoding
+
+TESTS = $(TEST_PROGS)
+EXTRA_PROGRAMS = benchmark $(TEST_PROGS)
+
+benchmark_SOURCES = benchmark.c
+benchmark_LDADD = -ltest-suite $(LDADD) -ldl
+
+lib_LTLIBRARIES = libtest-suite.la libtest-standalone.la
+
+# This is a hack: prevent installation of shared libraries.
+install-libLTLIBRARIES:
+
+libtest_suite_la_SOURCES = test.c \
+	cipher.c ac.c tsexp.c keygen.c pubkey.c basic.c prime.c \
+	register.c testapi.c ac-schemes.c encoding.c
+
+libtest_suite_la_CFLAGS = $(AM_CFLAGS)
+
+libtest_standalone_la_SOURCES = standalone.c
+libtest_standalone_la_CFLAGS = $(AM_CFLAGS)
+
+standalone_libraries = libtest-standalone.la libtest-suite.la $(LDADD) -ldl
+
+cipher_SOURCES =
+cipher_LDADD = $(standalone_libraries)
+
+ac_SOURCES =
+ac_LDADD = $(standalone_libraries)
+
+tsexp_SOURCES =
+tsexp_LDADD = $(standalone_libraries)
+
+keygen_SOURCES =
+keygen_LDADD = $(standalone_libraries)
+
+pubkey_SOURCES =
+pubkey_LDADD = $(standalone_libraries)
+
+basic_SOURCES =
+basic_LDADD = $(standalone_libraries)
+
+prime_SOURCES =
+prime_LDADD = $(standalone_libraries)
+
+register_SOURCES =
+register_LDADD = $(standalone_libraries)
+
+testapi_SOURCES =
+testapi_LDADD = $(standalone_libraries)
+
+ac_schemes_SOURCES =
+ac_schemes_LDADD = $(standalone_libraries)
+
+encoding_SOURCES =
+encoding_LDADD = $(standalone_libraries)

@@ -26,6 +26,9 @@
 
 #include "../src/gcrypt.h"
 
+#define TEST_NAME register
+#include "test-glue.h"
+
 static int verbose;
 
 static void
@@ -39,7 +42,7 @@ die (const char *format, ...)
   exit (1);
 }
 
-gcry_err_code_t
+static gcry_err_code_t
 foo_setkey (void *c, const unsigned char *key, unsigned keylen)
 {
   return 0;
@@ -47,7 +50,7 @@ foo_setkey (void *c, const unsigned char *key, unsigned keylen)
 
 #define FOO_BLOCKSIZE 16
 
-void
+static void
 foo_encrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
 {
   int i;
@@ -56,7 +59,7 @@ foo_encrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
     outbuf[i] = inbuf[i] ^ 0x42;
 }
 
-void
+static void
 foo_decrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
 {
   int i;
@@ -72,27 +75,28 @@ gcry_cipher_spec_t cipher_spec_foo =
     NULL, NULL,
   };
 
-int
+static int
 check_list (int algorithm)
 {
   gcry_error_t err = GPG_ERR_NO_ERROR;
-  int *list, list_length;
-  int i, ret = 0;
+  int *list = NULL, list_length = 0;
+  int i = 0, ret = 0;
 
-  err = gcry_cipher_list (NULL, &list_length);
-  assert (! err);
-  list = malloc (sizeof (int) * list_length);
-  assert (list);
-  err = gcry_cipher_list (list, &list_length);
+  err = gcry_cipher_list (&list, &list_length);
   
-  for (i = 0; i < list_length && (! ret); i++)
-    if (list[i] == algorithm)
-      ret = 1;
+  if (! err)
+    {
+      for (i = 0; i < list_length && (! ret); i++)
+	if (list[i] == algorithm)
+	  ret = 1;
 
+      free (list);
+    }
+  
   return ret;
 }
 
-void
+static void
 check_run (void)
 {
   int err, algorithm;
@@ -134,7 +138,7 @@ check_run (void)
   assert (! ret);
 }
 
-int
+static int
 main (int argc, char **argv)
 {
   int debug = 0;
@@ -157,3 +161,5 @@ main (int argc, char **argv)
   
   return 0;
 }
+
+#include "test-glue.h"

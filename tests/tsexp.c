@@ -24,6 +24,9 @@
 #include <stdarg.h>
 #include "../src/gcrypt.h"
 
+#define TEST_NAME tsexp
+#include "test-glue.h"
+
 #define PGMNAME "tsexp"
 
 static int verbose;
@@ -284,8 +287,4 @@ main (int argc, char **argv)
   return error_count? 1:0;
 }
 
-
-
-
-
-
+#include "test-glue.h"

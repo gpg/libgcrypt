@@ -1,4 +1,4 @@
-/* benchmark.c - Benchmark wrapper for Libgcrypt tests.
+/* standalone.c - Standalone wrapper for Libgcrypt tests.
    Copyright (C) 2003 Free Software Foundation, Inc.
 
    This file is part of Libgcrypt.
@@ -25,7 +25,7 @@ main (int argc, char **argv)
 {
   gcry_error_t err = GPG_ERR_NO_ERROR;
 
-  test_run (argc, argv, TEST_MODE_BENCHMARK);
+  err = test_run (argc, argv, TEST_MODE_STANDALONE);
 
   return err ? EXIT_FAILURE : EXIT_SUCCESS;
 }

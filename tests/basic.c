@@ -25,6 +25,9 @@
 
 #include "../src/gcrypt.h"
 
+#define TEST_NAME basic
+#include "test-glue.h"
+
 typedef struct test_spec_pubkey_key
 {
   const char *secret;
@@ -1090,3 +1093,5 @@ main (int argc, char **argv)
 
   return error_count ? 1 : 0;
 }
+
+#include "test-glue.h"

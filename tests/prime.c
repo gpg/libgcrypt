@@ -23,6 +23,9 @@
 
 #include "../src/gcrypt.h"
 
+#define TEST_NAME prime
+#include "test-glue.h"
+
 static int verbose, debug;
 
 static void
@@ -101,3 +104,5 @@ main (int argc, char **argv)
 
   return 0;
 }
+
+#include "test-glue.h"

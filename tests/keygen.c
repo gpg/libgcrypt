@@ -24,7 +24,8 @@
 #include <stdarg.h>
 #include "../src/gcrypt.h"
 
-
+#define TEST_NAME keygen
+#include "test-glue.h"
 
 static int verbose;
 static int error_count;
@@ -201,3 +202,4 @@ main (int argc, char **argv)
   return error_count? 1:0;
 }
 
+#include "test-glue.h"

@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <gcrypt.h>
 
+#define TEST_NAME testapi
+#include "test-glue.h"
 
 #define BUG() do {fprintf ( stderr, "Ooops at %s:%d\n", __FILE__ , __LINE__ );\
 		  exit(2);} while(0)
@@ -44,12 +46,15 @@ test_sexp ( int argc, char **argv )
     size_t n;
     char *buf;
 
-    if ( gcry_mpi_scan( &key[0], GCRYMPI_FMT_HEX, elg_testkey1.p, NULL ) )
-	BUG();
-    if ( gcry_mpi_scan( &key[1], GCRYMPI_FMT_HEX, elg_testkey1.g, NULL ) )
-	BUG();
-    if ( gcry_mpi_scan( &key[2], GCRYMPI_FMT_HEX, elg_testkey1.y, NULL ) )
-	BUG();
+    if (gcry_mpi_scan (&key[0], GCRYMPI_FMT_HEX,
+		       elg_testkey1.p, strlen (elg_testkey1.p), NULL))
+      BUG ();
+    if (gcry_mpi_scan (&key[1], GCRYMPI_FMT_HEX,
+		       elg_testkey1.g, strlen (elg_testkey1.g), NULL))
+      BUG ();
+    if (gcry_mpi_scan (&key[2], GCRYMPI_FMT_HEX,
+		       elg_testkey1.y, strlen (elg_testkey1.y), NULL))
+      BUG ();
 
     /* get nbits from a key */
     rc = gcry_sexp_build ( &sexp, NULL,
@@ -110,3 +115,5 @@ main( int argc, char **argv )
 
     return 0;
 }
+
+#include "test-glue.h"

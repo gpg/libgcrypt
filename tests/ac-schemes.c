@@ -27,6 +27,9 @@
 
 #include "../src/gcrypt.h"
 
+#define TEST_NAME ac_schemes
+#include "test-glue.h"
+
 static unsigned int verbose;
 
 static void
@@ -248,13 +251,13 @@ key_init (key_spec_t *key_specs, gcry_ac_key_type_t type, gcry_ac_key_t *key)
       if (((type == GCRY_AC_KEY_PUBLIC) && (key_specs[i].flags & KEY_TYPE_PUBLIC))
 	  || ((type == GCRY_AC_KEY_SECRET) && (key_specs[i].flags & KEY_TYPE_SECRET)))
 	{
-	  mpi = gcry_mpi_new (0);
 	  err = gcry_mpi_scan (&mpi, GCRYMPI_FMT_HEX, key_specs[i].mpi_string, 0, NULL);
-
 	  if (! err)
-	    gcry_ac_data_set (key_data, key_specs[i].name, mpi);
-	  if (mpi)
-	    gcry_mpi_release (mpi);
+	    {
+	      gcry_ac_data_set (key_data, GCRY_AC_FLAG_COPY | GCRY_AC_FLAG_DEALLOC,
+				key_specs[i].name, mpi);
+	      gcry_mpi_release (mpi);
+	    }
 	}
     }
   if (! err)
@@ -269,7 +272,7 @@ key_init (key_spec_t *key_specs, gcry_ac_key_type_t type, gcry_ac_key_t *key)
   return err;
 }
 
-void
+static void
 check_run (void)
 {
   gcry_ac_handle_t handle = NULL;
@@ -312,3 +315,5 @@ main (int argc, char **argv)
   
   return 0;
 }
+
+#include "test-glue.h"
