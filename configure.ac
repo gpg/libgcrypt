@@ -26,7 +26,7 @@ AC_PREREQ(2.52)
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.1.43, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.1.44-cvs, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
