@@ -158,6 +158,7 @@ cipher_bench ( const char *algoname )
     { GCRY_CIPHER_MODE_ECB, "ECB", 1 },
     { GCRY_CIPHER_MODE_CBC, "CBC", 1 },
     { GCRY_CIPHER_MODE_CFB, "CFB", 0 },
+    { GCRY_CIPHER_MODE_CTR, "CTR", 0 },
     { GCRY_CIPHER_MODE_STREAM, "STREAM", 0 },
     {0}
   };
