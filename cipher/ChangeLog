@@ -1,3 +1,7 @@
+2004-12-09  Werner Koch  <wk@g10code.com>
+
+	* serpent.c (serpent_test): Moved prototype out of a fucntion.
+
 2004-09-17  Moritz Schulte  <moritz@g10code.com>
 
 	* serpent.c: Use "u32_t" instead of "unsigned long", do not
