@@ -152,6 +152,6 @@ automake --gnu;
 echo "Running autoconf..."
 autoconf
 
-echo "You can now run \"./configure\" and then \"make\"."
+echo "You can now run \"./configure --enable-maintainer-mode\" and then \"make\"."
 
 
