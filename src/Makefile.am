@@ -100,9 +100,7 @@ libgcrypt_pthread_la_LIBADD = libgcrypt-real.la @LTLIBOBJS@ \
 	-lpthread @GPG_ERROR_LIBS@
 
 # The pth version.
-libgcrypt_pth_la_CPPFLAGS = $(AM_CPPFLAGS) @PTH_CPPFLAGS@
-libgcrypt_pth_la_LDFLAGS = @PTH_LDFLAGS@ \
-	$(libgcrypt_version_script_cmd) -version-info \
+libgcrypt_pth_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_pth_la_DEPENDENCIES = libgcrypt-real.la \
 	@LTLIBOBJS@ $(srcdir)/libgcrypt.vers

@@ -1,3 +1,7 @@
+2003-08-28  Werner Koch  <wk@gnupg.org>
+
+	* Makefile.am (libgcrypt_pth_la_LDFLAGS): Removed PTH_CFLAGS cruft.
+
 2003-08-27  Moritz Schulte  <mo@g10code.com>
 
 	* global.c (gcry_control): Remove call to ath_deinit.

@@ -33,6 +33,8 @@ there won't be another need for such a major change.
   these gcry_control operations:
      GCRYCTL_SUSPEND_SECMEM_WARN
      GCRYCTL_DISABLE_INTERNAL_LOCKING
+     GCRYCTL_ANY_INITIALIZATION_P
+     GCRYCTL_INITIALIZATION_FINISHED_P
 
 
 * Handles
