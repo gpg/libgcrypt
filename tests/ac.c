@@ -63,13 +63,12 @@ check_one (gcry_mpi_t x)
   gcry_ac_data_t data, data2;
   gcry_ac_key_spec_rsa_t rsa_spec;
 
-  rsa_spec.e = gcry_mpi_new (0);
-  gcry_mpi_set_ui (rsa_spec.e, 1);
+  rsa_spec.e = 1;
 
   err = gcry_ac_open (&handle, GCRY_AC_RSA, 0);
   assert (! err);
 
-  err = gcry_ac_key_pair_generate (handle, &key_pair, 1024, (void *) &rsa_spec);
+  err = gcry_ac_key_pair_generate (handle, 1024, (void *) &rsa_spec, &key_pair);
   assert (! err);
 
   key_sec = gcry_ac_key_pair_extract (key_pair, GCRY_AC_KEY_SECRET);
