@@ -91,7 +91,7 @@ typedef gpg_error_t gcry_error_t;
 typedef gpg_err_code_t gcry_err_code_t;
 typedef gpg_err_source_t gcry_err_source_t;
 
-static __inline__ gcry_error_t
+static GPG_ERR_INLINE gcry_error_t
 gcry_err_make (gcry_err_source_t source, gcry_err_code_t code)
 {
   return gpg_err_make (source, code);
@@ -103,20 +103,20 @@ gcry_err_make (gcry_err_source_t source, gcry_err_code_t code)
 #define GCRY_ERR_SOURCE_DEFAULT  GPG_ERR_SOURCE_USER_1
 #endif
 
-static __inline__ gcry_error_t
+static GPG_ERR_INLINE gcry_error_t
 gcry_error (gcry_err_code_t code)
 {
   return gcry_err_make (GCRY_ERR_SOURCE_DEFAULT, code);
 }
 
-static __inline__ gcry_err_code_t
+static GPG_ERR_INLINE gcry_err_code_t
 gcry_err_code (gcry_error_t err)
 {
   return gpg_err_code (err);
 }
 
 
-static __inline__ gcry_err_source_t
+static GPG_ERR_INLINE gcry_err_source_t
 gcry_err_source (gcry_error_t err)
 {
   return gpg_err_source (err);
