@@ -67,25 +67,45 @@ foo_decrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
 
 gcry_cipher_spec_t cipher_spec_foo =
   {
-    "FOO", 0, 16, 0, 0,
+    "FOO", 16, 0, 0,
     foo_setkey, foo_encrypt, foo_decrypt,
     NULL, NULL,
   };
 
+int
+check_list (int algorithm)
+{
+  gpg_error_t err = GPG_ERR_NO_ERROR;
+  int *list, list_length;
+  int i, ret = 0;
+
+  err = gcry_cipher_list (NULL, &list_length);
+  assert (! err);
+  list = malloc (sizeof (int) * list_length);
+  assert (list);
+  err = gcry_cipher_list (list, &list_length);
+  
+  for (i = 0; i < list_length && (! ret); i++)
+    if (list[i] == algorithm)
+      ret = 1;
+
+  return ret;
+}
+
 void
 check_run (void)
 {
-  int err, id;
+  int err, algorithm;
   gcry_cipher_hd_t h;
   char plain[16] = "Heil Discordia!";
   char encrypted[16], decrypted[16];
-  gcry_module_t *module;
+  gcry_module_t module;
+  int ret;
 
-  err = gcry_cipher_register (&cipher_spec_foo, &module);
+  err = gcry_cipher_register (&cipher_spec_foo, &algorithm, &module);
   assert (! err);
-  id = cipher_spec_foo.id;
 
-  err = gcry_cipher_open (&h, id, GCRY_CIPHER_MODE_CBC, 0);
+  err = gcry_cipher_open (&h, algorithm, GCRY_CIPHER_MODE_CBC, 0);
   assert (! err);
 
   err = gcry_cipher_encrypt (h,
@@ -103,9 +123,15 @@ check_run (void)
   assert (! err);
   assert (! memcmp ((void *) plain, (void *) decrypted, sizeof (plain)));
 
+  ret = check_list (algorithm);
+  assert (ret);
+
   gcry_cipher_close (h);
 
   gcry_cipher_unregister (module);
+
+  ret = check_list (algorithm);
+  assert (! ret);
 }
 
 int

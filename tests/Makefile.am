@@ -21,7 +21,7 @@
 
 # TESTS_ENVIRONMENT =  
 
-TESTS = ac basic tsexp keygen pubkey
+TESTS = register ac basic tsexp keygen pubkey
 
 EXTRA_DIST = 
 

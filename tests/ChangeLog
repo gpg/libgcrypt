@@ -1,3 +1,7 @@
+2003-07-07  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (TESTS): Added: register.
+
 2003-07-05  Moritz Schulte  <moritz@g10code.com>
 
 	* register.c (check_run): Adjusted for new gcry_cipher_register API.
