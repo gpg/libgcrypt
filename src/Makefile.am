@@ -18,6 +18,9 @@ EXTRA_DIST = gcrypt-config.in  gcrypt.m4
 
 INCLUDES =  -I$(top_srcdir)/include -I$(top_srcdir)/intl
 
+OMIT_DEPENDENCIES = types.h
+
+
 lib_LTLIBRARIES = libgcrypt.la
 
 bin_SCRIPTS = gcrypt-config
@@ -36,7 +39,6 @@ libgcrypt_la_LDFLAGS = -version-info \
 #     -export-symbols libgcrypt.sym
 
 libgcrypt_la_SOURCES =	 g10lib.h \
-			 mpi.h \
 			 cipher.h \
 			 misc.c  \
 			 global.c \
