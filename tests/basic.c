@@ -122,20 +122,20 @@ check_cbc_mac_cipher (void)
 	  return;
 	}
 
-      err = gcry_cipher_get_algo_blklen (tv[i].algo, &blklen);
-      if (err)
+      blklen = gcry_cipher_get_algo_blklen(tv[i].algo);
+      if (!blklen)
 	{
-	  fail ("cbc-mac algo %d, gcry_cipher_get_algo_blklen failed: %s\n",
-		tv[i].algo, gpg_strerror (err));
+	  fail ("cbc-mac algo %d, gcry_cipher_get_algo_blklen failed\n",
+		 tv[i].algo);
 	  gcry_cipher_close (hd);
 	  return;
 	}
 
-      err = gcry_cipher_get_algo_keylen (tv[i].algo, &keylen);
-      if (err)
+      keylen = gcry_cipher_get_algo_keylen (tv[i].algo);
+      if (!keylen)
 	{
-	  fail ("cbc-mac algo %d, gcry_cipher_get_algo_keylen failed: %s\n",
-		tv[i].algo, gpg_strerror (err));
+	  fail ("cbc-mac algo %d, gcry_cipher_get_algo_keylen failed\n",
+		tv[i].algo);
 	  return;
 	}
 
@@ -381,11 +381,10 @@ check_ctr_cipher (void)
 	  return;
 	}
 
-      err = gcry_cipher_get_algo_keylen (tv[i].algo, &keylen);
-      if (err)
+      keylen = gcry_cipher_get_algo_keylen(tv[i].algo);
+      if (!keylen)
 	{
-	  fail ("aes-ctr, gcry_cipher_get_algo_keylen failed: %s\n",
-		gpg_strerror (err));
+	  fail ("aes-ctr, gcry_cipher_get_algo_keylen failed\n");
 	  return;
 	}
 
@@ -401,11 +400,10 @@ check_ctr_cipher (void)
 	  return;
 	}
 
-      err = gcry_cipher_get_algo_blklen (tv[i].algo, &blklen);
-      if (err)
+      blklen = gcry_cipher_get_algo_blklen(tv[i].algo);
+      if (!blklen)
 	{
-	  fail ("aes-ctr, gcry_cipher_get_algo_blklen failed: %s\n",
-		gpg_strerror (err));
+	  fail ("aes-ctr, gcry_cipher_get_algo_blklen failed\n");
 	  return;
 	}
 
@@ -469,11 +467,11 @@ check_one_cipher (int algo, int mode, int flags)
   memcpy (plain, "foobar42FOOBAR17", 16);
   gpg_error_t err = 0;
 
-  err = gcry_cipher_get_algo_keylen (algo, &keylen);
-  if (err)
+  keylen = gcry_cipher_get_algo_keylen (algo);
+  if (!keylen)
     {
-      fail ("algo %d, mode %d, gcry_cipher_get_algo_keylen failed: %s\n",
-	    algo, mode, gpg_strerror (err));
+      fail ("algo %d, mode %d, gcry_cipher_get_algo_keylen failed\n",
+	    algo, mode);
       return;
     }
 

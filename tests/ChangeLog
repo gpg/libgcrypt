@@ -1,3 +1,11 @@
+2003-06-18  Werner Koch  <wk@gnupg.org>
+
+	* basic.c (check_cbc_mac_cipher): Adjusted for new API of get_blklen
+	and get_keylen.
+	(check_ctr_cipher): Ditto.
+	(check_one_cipher): Ditto.
+	(check_one_md): Adjusted for new API of gcry_md_copy.
+
 2003-06-18  Moritz Schulte  <moritz@g10code.com>
 
 	* register.c: Replace old type GcryModule with newer one:

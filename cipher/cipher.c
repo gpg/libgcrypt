@@ -1248,6 +1248,29 @@ gcry_cipher_algo_info (int algo, int what, void *buffer, size_t *nbytes)
   return gpg_error (err);
 }
 
+
+size_t
+gcry_cipher_get_algo_keylen (int algo) 
+{
+  size_t n;
+
+  if (gcry_cipher_algo_info( algo, GCRYCTL_GET_KEYLEN, NULL, &n))
+    n = 0;
+  return n;
+}
+
+
+size_t
+gcry_cipher_get_algo_blklen (int algo) 
+{
+  size_t n;
+
+  if (gcry_cipher_algo_info( algo, GCRYCTL_GET_BLKLEN, NULL, &n))
+    n = 0;
+  return n;
+}
+
+
 gpg_err_code_t
 _gcry_cipher_init (void)
 {

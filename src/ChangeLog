@@ -1,3 +1,11 @@
+2003-06-18  Werner Koch  <wk@gnupg.org>
+
+	* benchmark.c (cipher_bench): Adjusted for new API of get_blklen
+	and get_keylen.
+
+	* gcrypt.h (gcry_cipher_get_algo_blklen)
+	(gcry_cipher_get_algo_keylen): Replaced macro by funcion.
+
 2003-06-18  Moritz Schulte  <moritz@g10code.com>
 
 	* cipher.h: Renamed types GcryDigestSpec, GcryCipherSpec and
@@ -82,7 +90,7 @@
 	* gcrypt.h (gcry_md_get_algo): Reverted to old API.  This is a
 	convenience function anyway and error checking is not approriate.
 	(gcry_md_is_enabled): New.
-	(gcry_md_is_secure): Replaed macro by function and reverted to old
+	(gcry_md_is_secure): Replaced macro by function and reverted to old
 	API.
 
 2003-06-11  Werner Koch  <wk@gnupg.org>

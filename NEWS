@@ -35,6 +35,9 @@ gcry_md_open            CHANGED
 gcry_md_copy            CHANGED
 gcry_md_is_enabled      NEW
 gcry_md_is_secure       REPLACED macro by a function.
+gcry_cipher_get_algo_keylen  REPLACED macro by a function.
+gcry_cipher_get_algo_blklen  REPLACED macro by a function.
+
   ... fixme add other changes ...
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

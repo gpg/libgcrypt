@@ -641,12 +641,10 @@ gpg_error_t gcry_cipher_decrypt (gcry_cipher_hd_t h,
 						    (char*)(k), (l) )
 
 /* Retrieved the key length used with algorithm A. */
-#define gcry_cipher_get_algo_keylen(a, b) \
-	    gcry_cipher_algo_info( (a), GCRYCTL_GET_KEYLEN, NULL, b)
+size_t gcry_cipher_get_algo_keylen (int algo);
 
 /* Retrieve the block length used with algorithm A. */
-#define gcry_cipher_get_algo_blklen(a, b) \
-	    gcry_cipher_algo_info( (a), GCRYCTL_GET_BLKLEN, NULL, b)
+size_t gcry_cipher_get_algo_blklen (int algo);
 
 /* Return 0 if the algorithm A is available for use. */
 #define gcry_cipher_test_algo(a) \

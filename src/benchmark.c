@@ -185,11 +185,11 @@ cipher_bench ( const char *algoname )
       exit (1);
     }
 
-  err = gcry_cipher_get_algo_keylen (algo, &keylen);
-  if (err)
+  keylen = gcry_cipher_get_algo_keylen (algo);
+  if (!keylen)
     {
-      fprintf (stderr, PGM ": failed to get key length for algorithm `%s': %s\n",
-	       algoname, gpg_strerror (err));
+      fprintf (stderr, PGM ": failed to get key length for algorithm `%s'\n",
+	       algoname);
       exit (1);
     }
   if ( keylen > sizeof key )
@@ -201,11 +201,11 @@ cipher_bench ( const char *algoname )
   for (i=0; i < keylen; i++)
     key[i] = i + (clock () & 0xff);
 
-  err = gcry_cipher_get_algo_blklen (algo, &blklen);
-  if (err)
+  blklen = gcry_cipher_get_algo_blklen (algo);
+  if (!blklen)
     {
-      fprintf (stderr, PGM ": failed to get block length for algorithm `%s': %s\n",
-	       algoname, gpg_strerror (err));
+      fprintf (stderr, PGM ": failed to get block length for algorithm `%s'\n",
+	       algoname);
       exit (1);
     }
 
