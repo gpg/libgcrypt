@@ -1,3 +1,7 @@
+2003-01-15  Werner Koch  <wk@gnupg.org>
+
+	* longlong.h: Removed some spaces between backslashes and newlines.
+
 2002-09-20  Werner Koch  <wk@gnupg.org>
 
 	* mpi-mul.c (gcry_mpi_mul_2exp): New. This was declared in

@@ -19,10 +19,10 @@
 
 # 1.5 leads to a combinatorial explosion due to all the conditionals
 # I was not able to build it with 64Megs - 1.6 fixes this.
-AUTOMAKE_OPTIONS = 1.6
+# not anymore required: AUTOMAKE_OPTIONS = 1.6
 
 INCLUDES =  -I$(top_srcdir)/src
-CFLAGS = @CFLAGS@ @MPI_OPT_FLAGS@
+AM_CFLAGS = @MPI_OPT_FLAGS@
 ASFLAGS = @MPI_SFLAGS@
 
 # We don't have .S sources listed, so automake does not autocreate these
