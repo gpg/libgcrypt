@@ -207,7 +207,7 @@ typedef struct gcry_md_context *GCRY_MD_HD;
 
 enum gcry_md_algos {
     GCRY_MD_NONE    = 0,
-    GCRY_MD_MD5	    = 1,
+    GCRY_MD_MD5     = 1,
     GCRY_MD_SHA1    = 2,
     GCRY_MD_RMD160  = 3,
     GCRY_MD_TIGER   = 6
@@ -273,13 +273,12 @@ void g10_log_mpidump( const char *text, MPI a );
 #define CIPHER_ALGO_BLOWFISH	 4  /* blowfish 128 bit key */
 #define CIPHER_ALGO_SAFER_SK128  5
 #define CIPHER_ALGO_DES_SK	 6
-#define CIPHER_ALGO_BLOWFISH160 42  /* blowfish 160 bit key (not in OpenPGP)*/
 #define CIPHER_ALGO_DUMMY      110  /* no encryption at all */
 
 #define PUBKEY_ALGO_RSA        1
 #define PUBKEY_ALGO_RSA_E      2     /* RSA encrypt only */
 #define PUBKEY_ALGO_RSA_S      3     /* RSA sign only */
-#define PUBKEY_ALGO_ELGAMAL_E 16     /* encrypt only ElGamal (but not vor v3)*/
+#define PUBKEY_ALGO_ELGAMAL_E 16     /* encrypt only ElGamal (but not for v3)*/
 #define PUBKEY_ALGO_DSA       17
 #define PUBKEY_ALGO_ELGAMAL   20     /* sign and encrypt elgamal */
 
