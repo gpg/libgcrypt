@@ -1,5 +1,7 @@
 2003-09-04  Werner Koch  <wk@gnupg.org>
 
+	Released 1.1.43.
+
 	* configure.ac: Require libgpg-error 0.4 due to the prime interface.
 
 2003-08-29  Werner Koch  <wk@gnupg.org>
