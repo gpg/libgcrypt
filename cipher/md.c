@@ -128,9 +128,12 @@ gcry_md_lookup_func_oid (void *spec, void *data)
   gcry_md_oid_spec_t *oid_specs = digest->oids;
   int ret = 0, i;
 
-  for (i = 0; oid_specs[i].oidstring && (! ret); i++)
-    if (! stricmp (oid, oid_specs[i].oidstring))
-      ret = 1;
+  if (oid_specs)
+    {
+      for (i = 0; oid_specs[i].oidstring && (! ret); i++)
+        if (! stricmp (oid, oid_specs[i].oidstring))
+          ret = 1;
+    }
 
   return ret;
 }
