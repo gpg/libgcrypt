@@ -14,10 +14,10 @@ close(FD);
 open(FD, ">libgcrypt.def") || die "$!";
 print FD "EXPORTS\n";
 foreach $in (@filebuf) {
-	if ($in !~ m/\#define/ && $in !~ m/\\/ && $in !~ m/\t/) {
+	if ($in !~ m/\#define/ && $in !~ m/\\/ && $in !~ m/^\t/) {
 		if ($in =~ m/gcry_/ && $' =~ m/\( /) {
-		print FD "\tgcry_$`\t\@$i\n";
-		$i++;
+			print FD "\tgcry_$`\t\@$i\n";
+			$i++;
 		}
 	}
 }
