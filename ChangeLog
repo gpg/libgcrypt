@@ -1,3 +1,9 @@
+2003-03-24  Moritz Schulte  <moritz@g10code.com>
+
+	* NEWS: Mention new CBC_MAC flag.
+
+	* AUTHORS (Maintainer): Update entry for Simon Josefsson.
+
 2003-03-04  Moritz Schulte  <moritz@g10code.com>
 
 	* TODO: Remove item about resetting handles, since

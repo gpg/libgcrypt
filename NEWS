@@ -11,6 +11,9 @@ Noteworthy changes in version 1.1.13 (unreleased)
  * The random module won't print the "not enough random bytes
    available" anymore.  A new progress status is issued instead.
 
+ * CBC-MAC for block ciphers is now supported, by using a
+   GCRY_CIPHER_CBC_MAC cipher flag.
+
  * Interface changes relative to the 1.1.12 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 gcry_pk_decrypt         ENHANCED: Allows flag to return complete S-expression.
