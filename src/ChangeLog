@@ -1,5 +1,11 @@
 2003-08-27  Moritz Schulte  <mo@g10code.com>
 
+	* global.c (gcry_control): Remove call to ath_deinit.
+
+	* Makefile.am (libgcrypt_real_la_DEPENDENCIES): Fixed.
+	(libgcrypt_real_la_LIBADD): Fixed.
+	Removed unecessary variables.
+
 	* libgcrypt-config.in: Adjusted script for new thread handling.
 
 	* Makefile.am: New version, based on GPGMEs Makefile.am.

@@ -37,7 +37,8 @@ else
 endif
 
 noinst_LTLIBRARIES = libgcrypt-real.la
-lib_LTLIBRARIES = libgcrypt.la $(ltlib_libgcrypt_pthread) $(ltlib_libgcrypt_pth)
+lib_LTLIBRARIES = libgcrypt.la \
+	$(ltlib_libgcrypt_pthread) $(ltlib_libgcrypt_pth)
 
 if HAVE_LD_VERSION_SCRIPT
   libgcrypt_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt.vers
@@ -54,8 +55,14 @@ stdmem.c stdmem.h \
 secmem.c secmem.h \
 mpi.h \
 missing-string.c \
-module.c \
-${ath_components}
+module.c
+
+libgcrypt_real_la_DEPENDENCIES = \
+	../cipher/libcipher.la ../mpi/libmpi.la \
+	$(srcdir)/libgcrypt.vers
+
+libgcrypt_real_la_LIBADD = \
+	../cipher/libcipher.la ../mpi/libmpi.la @GPG_ERROR_LIBS@
 
 # Include backwards-compatible ath-approaches in the main library.
 if HAVE_PTH
@@ -78,18 +85,18 @@ AM_CFLAGS = @GPG_ERROR_CFLAGS@
 
 # The standard version.
 libgcrypt_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
-	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
-libgcrypt_la_DEPENDENCIES = libgcrypt-real.la $(assuan_libobjs) \
+  @LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
+libgcrypt_la_DEPENDENCIES = libgcrypt-real.la \
 	@LTLIBOBJS@ $(srcdir)/libgcrypt.vers
-libgcrypt_la_LIBADD = libgcrypt-real.la $(assuan_libobjs) @LTLIBOBJS@ \
+libgcrypt_la_LIBADD = libgcrypt-real.la @LTLIBOBJS@ \
 	@GPG_ERROR_LIBS@
 
 # The pthread version.
 libgcrypt_pthread_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
-libgcrypt_pthread_la_DEPENDENCIES = libgcrypt-real.la $(assuan_libobjs) \
+libgcrypt_pthread_la_DEPENDENCIES = libgcrypt-real.la \
 	@LTLIBOBJS@ $(srcdir)/libgcrypt.vers
-libgcrypt_pthread_la_LIBADD = libgcrypt-real.la $(assuan_libobjs) @LTLIBOBJS@ \
+libgcrypt_pthread_la_LIBADD = libgcrypt-real.la @LTLIBOBJS@ \
 	-lpthread @GPG_ERROR_LIBS@
 
 # The pth version.
@@ -97,7 +104,7 @@ libgcrypt_pth_la_CPPFLAGS = $(AM_CPPFLAGS) @PTH_CPPFLAGS@
 libgcrypt_pth_la_LDFLAGS = @PTH_LDFLAGS@ \
 	$(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
-libgcrypt_pth_la_DEPENDENCIES = libgcrypt-real.la $(assuan_libobjs) \
+libgcrypt_pth_la_DEPENDENCIES = libgcrypt-real.la \
 	@LTLIBOBJS@ $(srcdir)/libgcrypt.vers
-libgcrypt_pth_la_LIBADD = libgcrypt-real.la $(assuan_libobjs) @LTLIBOBJS@ \
+libgcrypt_pth_la_LIBADD = libgcrypt-real.la @LTLIBOBJS@ \
 	@PTH_LIBS@ @GPG_ERROR_LIBS@

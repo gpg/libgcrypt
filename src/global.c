@@ -248,9 +248,6 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
 
     case GCRYCTL_DISABLE_INTERNAL_LOCKING:
       global_init ();
-      /* We waste some bytes by doing it this way.  OTOH this function
-	 is not anymore required becuase it is done automagically. */
-      ath_deinit ();
       break;
 
     case GCRYCTL_ANY_INITIALIZATION_P:
