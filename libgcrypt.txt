@@ -54,13 +54,13 @@ random numbers and a lot of supporting functions.
 %%doc: Programmer reference in Texinfo, Postscript, HTML included
 
 %%developers:  Matthew Skala, Michael Roth, Niklas Hernaeus, Remi
-Guyomarch, Simon Josefsson, Werner Koch <wk@gnupg.org>.
+Guyomarch, Simon Josefsson, Werner Koch <wk@gnupg.org>, Moritz Schulte.
 
 %%contributors: 
 
 %%sponsors: 
 
-%%source-tarball: ftp://ftp.gnupg.org/gcrypt/alpha/libgcrypt/libgcrypt-1.1.11.tar.gz
+%%source-tarball: ftp://ftp.gnupg.org/gcrypt/libgcrypt/
 
 %%source-info:
 
@@ -88,7 +88,7 @@ Guyomarch, Simon Josefsson, Werner Koch <wk@gnupg.org>.
 
 %%source-prerequisites:
 
-%%version: 1.1.11 released 2002-12-21
+%%version: 1.3.0-cvs released 2004-04-16
 
 %%announce-list: <gnupg-announce@gnupg.org>  
 		 <gnupg-announce-request@gnupg.org>
