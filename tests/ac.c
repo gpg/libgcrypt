@@ -45,7 +45,7 @@ check_run (void)
   gcry_ac_handle_t handle;
   gcry_ac_key_pair_t key_pair;
   gcry_ac_key_t key_sec, key_pub;
-  gpg_error_t err = 0;
+  gcry_error_t err = 0;
   unsigned int a = 0x4223;
   gcry_mpi_t x, x2;
   gcry_ac_data_t data, data2;
@@ -106,7 +106,7 @@ check_run (void)
     assert (! err);
 
     err = gcry_ac_data_verify (handle, key_pub, x, data);
-    assert (gpg_err_code (err) == GPG_ERR_BAD_SIGNATURE);
+    assert (gcry_err_code (err) == GPG_ERR_BAD_SIGNATURE);
   }
 
   gcry_ac_close (handle);

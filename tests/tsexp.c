@@ -165,7 +165,7 @@ canon_len (void)
     size_t textlen; /* length of the buffer */
     size_t expected;/* expected length or 0 on error and then ... */
     size_t erroff;  /* ... and at this offset */
-    gpg_error_t errcode;    /* ... with this error code */
+    gcry_error_t errcode;    /* ... with this error code */
     unsigned char *text; 
   } values[] = {
     { 14, 13, 0, GPG_ERR_NO_ERROR, "(9:abcdefghi) " },
@@ -186,7 +186,7 @@ canon_len (void)
     { 0 },
   };
   int idx;
-  gpg_error_t errcode;
+  gcry_error_t errcode;
   size_t n, erroff;
 
   info ("checking canoncial length test function\n");
@@ -202,7 +202,7 @@ canon_len (void)
           if (values[idx].erroff != erroff)
             fail ("canonical length test %d - wrong error offset %u\n",
                   idx, (unsigned int)erroff);
-          if (gpg_err_code (errcode) != values[idx].errcode)
+          if (gcry_err_code (errcode) != values[idx].errcode)
             fail ("canonical length test %d - wrong error code %d\n",
                   idx, errcode);
         }
@@ -216,7 +216,7 @@ canon_len (void)
 static void
 back_and_forth_one (int testno, const char *buffer, size_t length)
 {
-  gpg_error_t rc;
+  gcry_error_t rc;
   gcry_sexp_t se, se1;
   size_t n, n1;
   char *p1;

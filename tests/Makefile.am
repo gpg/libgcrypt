@@ -18,15 +18,12 @@
 
 ## Process this file with automake to produce Makefile.in
 
-
-# TESTS_ENVIRONMENT =  
-
 TESTS = register ac basic tsexp keygen pubkey
-
-EXTRA_DIST = 
 
 INCLUDES = -I$(top_srcdir)/src
 LDADD = ../src/libgcrypt.la
 
-noinst_PROGRAMS = $(TESTS) 
+EXTRA_PROGRAMS = benchmark testapi
+check_PROGRAMS = $(TESTS)
+
 AM_CFLAGS = @GPG_ERROR_CFLAGS@

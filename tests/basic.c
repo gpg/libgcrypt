@@ -108,7 +108,7 @@ check_cbc_mac_cipher (void)
   gcry_cipher_hd_t hd;
   char out[MAX_DATA_LEN];
   int i, blklen, keylen;
-  gpg_error_t err = 0;
+  gcry_error_t err = 0;
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
@@ -225,7 +225,7 @@ check_aes128_cbc_cts_cipher ()
   gcry_cipher_hd_t hd;
   char out[MAX_DATA_LEN];
   int i;
-  gpg_error_t err = 0;
+  gcry_error_t err = 0;
 
   err = gcry_cipher_open (&hd,
 			  GCRY_CIPHER_AES,
@@ -368,7 +368,7 @@ check_ctr_cipher (void)
   gcry_cipher_hd_t hde, hdd;
   char out[MAX_DATA_LEN];
   int i, j, keylen, blklen;
-  gpg_error_t err = 0;
+  gcry_error_t err = 0;
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
@@ -463,7 +463,7 @@ check_one_cipher (int algo, int mode, int flags)
   gcry_cipher_hd_t hd;
   char key[32], plain[16], in[16], out[16];
   int keylen;
-  gpg_error_t err = 0;
+  gcry_error_t err = 0;
 
   memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF", 32);
   memcpy (plain, "foobar42FOOBAR17", 16);
@@ -537,6 +537,7 @@ check_ciphers (void)
     GCRY_CIPHER_AES192,
     GCRY_CIPHER_AES256,
     GCRY_CIPHER_TWOFISH,
+    GCRY_CIPHER_TWOFISH128,
     GCRY_CIPHER_DES,
     0
   };
@@ -580,7 +581,7 @@ check_one_md (int algo, char *data, int len, char *expect)
   char *p;
   int mdlen;
   int i;
-  gpg_error_t err = 0;
+  gcry_error_t err = 0;
 
   err = gcry_md_open (&hd, algo, 0);
   if (err)
@@ -774,13 +775,13 @@ static void
 verify_one_signature (gcry_sexp_t pkey, gcry_sexp_t hash,
 		      gcry_sexp_t badhash, gcry_sexp_t sig)
 {
-  gpg_error_t rc;
+  gcry_error_t rc;
 
   rc = gcry_pk_verify (sig, hash, pkey);
   if (rc)
     fail ("gcry_pk_verify failed: %s\n", gpg_strerror (rc));
   rc = gcry_pk_verify (sig, badhash, pkey);
-  if (gpg_err_code (rc) != GPG_ERR_BAD_SIGNATURE)
+  if (gcry_err_code (rc) != GPG_ERR_BAD_SIGNATURE)
     fail ("gcry_pk_verify failed to detect a bad signature: %s\n",
 	  gpg_strerror (rc));
 }
@@ -791,7 +792,7 @@ verify_one_signature (gcry_sexp_t pkey, gcry_sexp_t hash,
 static void
 check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 {
-  gpg_error_t rc;
+  gcry_error_t rc;
   gcry_sexp_t sig, badhash, hash;
   int dataidx;
   static const char baddata[] =
@@ -840,7 +841,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 	die ("converting data failed: %s\n", gpg_strerror (rc));
 
       rc = gcry_pk_sign (&sig, hash, skey);
-      if (gpg_err_code (rc) != datas[dataidx].expected_rc)
+      if (gcry_err_code (rc) != datas[dataidx].expected_rc)
 	fail ("gcry_pk_sign failed: %s\n", gpg_strerror (rc));
 
       if (!rc)
@@ -884,7 +885,7 @@ do_check_one_pubkey (int n, gcry_sexp_t skey, gcry_sexp_t pkey,
 static void
 check_one_pubkey (int n, test_spec_pubkey_t spec)
 {
-  gpg_error_t err = GPG_ERR_NO_ERROR;
+  gcry_error_t err = GPG_ERR_NO_ERROR;
   gcry_sexp_t skey, pkey;
 
   err = gcry_sexp_sscan (&skey, NULL, spec.key.secret,

@@ -39,7 +39,7 @@ die (const char *format, ...)
   exit (1);
 }
 
-gpg_err_code_t
+gcry_err_code_t
 foo_setkey (void *c, const unsigned char *key, unsigned keylen)
 {
   return 0;
@@ -67,7 +67,7 @@ foo_decrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
 
 gcry_cipher_spec_t cipher_spec_foo =
   {
-    "FOO", 16, 0, 0,
+    "FOO", NULL, 16, 0, 0,
     foo_setkey, foo_encrypt, foo_decrypt,
     NULL, NULL,
   };
@@ -75,7 +75,7 @@ gcry_cipher_spec_t cipher_spec_foo =
 int
 check_list (int algorithm)
 {
-  gpg_error_t err = GPG_ERR_NO_ERROR;
+  gcry_error_t err = GPG_ERR_NO_ERROR;
   int *list, list_length;
   int i, ret = 0;
 

@@ -1,3 +1,20 @@
+2003-07-14  Moritz Schulte  <moritz@g10code.com>
+
+	* register.c: Adjust cipher specification structure.
+
+	* benchmark.c: New file.
+	* testapi.c: New file.
+
+	* Makefile.am (EXTRA_PROGRAMS): Set to: benchmark testapi.
+	(check_PROGRAMS): Set to: $(TESTS).
+
+2003-07-12  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c, basic.c, keygen.c, register.c, sexp.c, tsexp.c: Used
+	gcry_err* wrappers for libgpg symbols.
+
+	* basic.c (check_ciphers): Added: GCRY_CIPHER_TWOFISH128.
+
 2003-07-08  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am (LIBS): Remove: -lpthread.

@@ -57,7 +57,7 @@ print_mpi (const char *text, gcry_mpi_t a)
 {
   char *buf;
   void *bufaddr = &buf;
-  gpg_error_t rc;
+  gcry_error_t rc;
 
   rc = gcry_mpi_aprint (GCRYMPI_FMT_HEX, bufaddr, NULL, a);
   if (rc)
