@@ -1,4 +1,4 @@
-/* mpiapi.a  -	MPI function interface
+/* symapi.c  -	symmetric cipher function interface
  *	Copyright (C) 1998 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
@@ -25,41 +25,53 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#define GCRYPT_NO_MPI_MACROS 1
 #include "g10lib.h"
-#include "mpi.h"
+#include "cipher.h"
 
 
+#define CONTEXT_MAGIC = 0x12569afe;
 
-int
-gcry_mpi_api( enum gcry_mpi_opcode opcode, int n_args, ... )
+struct gcry_cipher_context {
+    u32 magic;
+    unsigned flags;
+    CIPHER_HD *hd;
+};
+
+
+GCRY_CIPHER_HD
+gcry_cipher_open( int algo, int mode, unsigned flags )
 {
-    switch( opcode ) {
-      case GCRYMPI_NOOP:
-	return 0;
+    GCRY_CIPHER_HD hd;
 
-      default:
-	return GCRYERR_INV_OP;
+    hd = m_lib_alloc_clear( sizeof *hd );
+    if( !hd ) {
+	set_lasterr( GCRYERR_NOMEM );
+	return NULL;
     }
+
+    /* check whether the algo is available */
+
+    /* setup a context */
+
+    /* return the handle */
 }
 
 
-struct gcry_mpi *
-gcry_mpi_new( enum gcry_mpi_opcode opcode,
-	      unsigned int nbits, struct gcry_mpi *val)
+void
+gcry_cipher_close( GCRY_CIPHER_HD h )
 {
-    switch( opcode ) {
-      case GCRYMPI_NEW:
-	return mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
-
-      case GCRYMPI_SNEW:
-	return mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1)
-				 / BITS_PER_MPI_LIMB );
-      case GCRYMPI_COPY:
-	return mpi_copy( val );
-
-      default:
-	return NULL;
+    if( !h )
+	return;
+    if( h->magic != CONTEXT_MAGIC )  {
+	fatal_invalid_arg("gcry_cipher_close: already closed/invalid handle");
+	return;
     }
+    cipher_close( h->hd );
+    h->magic = 0;
+    m_lib_free(h);
+}
+
+int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen)
+{
 }
 

@@ -1,4 +1,4 @@
-/* mpiapi.a  -	MPI function interface
+/* global.c  -	global control functions
  *	Copyright (C) 1998 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
@@ -25,41 +25,19 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#define GCRYPT_NO_MPI_MACROS 1
 #include "g10lib.h"
-#include "mpi.h"
 
 
 
 int
-gcry_mpi_api( enum gcry_mpi_opcode opcode, int n_args, ... )
+gcry_control( enum gcry_ctl_cmds cmd, ... )
 {
-    switch( opcode ) {
-      case GCRYMPI_NOOP:
-	return 0;
-
-      default:
-	return GCRYERR_INV_OP;
+    switch( cmd ) {
+      case GCRYCTL_NO_MEM_IS_FATAL:
+	break;
+      case GCRYCTL_SET_FATAL_FNC:
+	break;
     }
 }
 
-
-struct gcry_mpi *
-gcry_mpi_new( enum gcry_mpi_opcode opcode,
-	      unsigned int nbits, struct gcry_mpi *val)
-{
-    switch( opcode ) {
-      case GCRYMPI_NEW:
-	return mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
-
-      case GCRYMPI_SNEW:
-	return mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1)
-				 / BITS_PER_MPI_LIMB );
-      case GCRYMPI_COPY:
-	return mpi_copy( val );
-
-      default:
-	return NULL;
-    }
-}
 

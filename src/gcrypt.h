@@ -27,18 +27,28 @@ extern "C" {
 
 /*******************************************
  *					   *
- *  error handling			   *
+ *  error handling etc. 		   *
  *					   *
  *******************************************/
 
 enum {
-    GCRYERR_SUCCESS = 0,
-    GCRYERR_INV_OP = 1,     /* inavlid operation code */
-    GCRYERR_GENERAL = 2
+    GCRYERR_SUCCESS = 0,    /* "no error" */
+    GCRYERR_GENERAL = 1
+    GCRYERR_INV_OP = 2,     /* inavlid operation code or ctl command */
+    GCRYERR_NOMEM = 3,
 };
 
 
 const char *gcry_strerror( int ec );
+
+enum gcry_ctl_cmds {
+    GCRYCTL_SET_KEY  = 1,
+    GCRYCTL_SET_IV   = 2,
+    GCRYCTL_CFB_SYNC = 3,
+};
+
+int gcry_control( enum gcry_ctl_cmds, ... );
+
 
 /*******************************************
  *					   *
@@ -118,15 +128,27 @@ void g10m_set_buffer( MPI a, const char *buffer, unsigned nbytes, int sign );
 struct gcry_cipher_context;
 typedef struct gcry_cipher_context *GCRY_CIPHER_HD;
 
-enum {
-    GCRY_CIPHER_NONE	    = 0
-    GCRY_CIPHER_IDEA	    = 1
-    GCRY_CIPHER_3DES	    = 2
-    GCRY_CIPHER_CAST5	    = 3
-    GCRY_CIPHER_BLOWFISH    = 4
-    GCRY_CIPHER_SAFER_SK128 = 5
+enum gcry_cipher_algos {
+    GCRY_CIPHER_NONE	    = 0,
+    GCRY_CIPHER_IDEA	    = 1,
+    GCRY_CIPHER_3DES	    = 2,
+    GCRY_CIPHER_CAST5	    = 3,
+    GCRY_CIPHER_BLOWFISH    = 4,
+    GCRY_CIPHER_SAFER_SK128 = 5,
     GCRY_CIPHER_DES_SK	    = 6
 };
+
+enum gcry_cipher_modes {
+    GCRY_CIPHER_MODE_NONE   = 0,
+    GCRY_CIPHER_MODE_ECB    = 1,
+    GCRY_CIPHER_MODE_CFB    = 2,
+};
+
+enum gcry_cipher_flags {
+    GCRY_CIPHER_SECURE	    = 1,  /* allocate in secure memory */
+    GCRY_CIPHER_ENABLE_SYNC = 2,  /* enable CFB sync mode */
+};
+
 
 int gcry_string_to_cipher_algo( const char *string );
 const char * gcry_cipher_algo_to_string( int algo );
@@ -136,17 +158,21 @@ unsigned gcry_cipher_get_blocksize( int algo );
 
 GCRY_CIPHER_HD gcry_cipher_open( algo, int mode, int secure );
 void gcry_cipher_close( GCRY_CIPHER_HD h );
-int  gcry_cipher_setkey( GCRY_CIPHER_HD h, byte *key, unsigned keylen );
-void gcry_cipher_setiv( GCRY_CIPHER_HD h, const byte *iv );
+int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen);
 
-/* fixme: don't assume sizeof(in) == sizeof(out) */
-void gcry_cipher_encrypt( GCRY_CIPHER_HD h,
-			  byte *out, byte *in, unsigned nbytes );
+int gcry_cipher_encrypt( GCRY_CIPHER_HD h,
+			  byte *out, size_t outsize, byte *in, size_t inlen );
 void gcry_cipher_decrypt( GCRY_CIPHER_HD h,
 			  byte *out, byte *in, unsigned nbytes );
 
-/* fixme: replace sync with a more general call */
-void gcry_cipher_sync( GCRY_CIPHER_HD h );
+
+/* some handy macros */
+#define gcry_cipher_setkey(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_KEY, \
+								  (k), (l) )
+#define gcry_cipher_setiv(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_IV, \
+								  (k), (l) )
+#define gcry_cipher_sync(h)  gcry_cipher_ctl( (h), GCRYCTL_CFB_SYNC, \
+								   NULL, 0 )
 
 
 /*********************************************
