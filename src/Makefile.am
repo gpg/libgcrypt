@@ -13,9 +13,9 @@
 # Rember to change this just before a release.
 
 
-LIBGRYPT_LT_CURRENT  = 1 
-LIBGRYPT_LT_REVISION = 0
-LIBGRYPT_LT_AGE      = 0
+LIBGCRYPT_LT_CURRENT  = 1 
+LIBGCRYPT_LT_REVISION = 0
+LIBGCRYPT_LT_AGE      = 0
 
 
 

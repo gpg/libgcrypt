@@ -259,6 +259,9 @@ enum gcry_cipher_algos {
     GCRY_CIPHER_BLOWFISH    = 4,
     GCRY_CIPHER_SAFER_SK128 = 5,
     GCRY_CIPHER_DES_SK	    = 6,
+    GCRY_CIPHER_RIJNDAEL    = 7,
+    GCRY_CIPHER_RIJNDAEL192 = 8,
+    GCRY_CIPHER_RIJNDAEL256 = 9,
     GCRY_CIPHER_TWOFISH     = 10,
 };
 
@@ -386,9 +389,7 @@ int gcry_md_info( GCRY_MD_HD h, int what, void *buffer, size_t *nbytes);
 int gcry_md_algo_info( int algo, int what, void *buffer, size_t *nbytes);
 const char *gcry_md_algo_name( int algo );
 int gcry_md_map_name( const char* name );
-
-
-#define gcry_md_setkey(h,k,l)  gcry_md_ctl( (h), GCRYCTL_SET_KEY, (k), (l) )
+int gcry_md_setkey( GCRY_MD_HD hd, const char *key, size_t keylen );
 
 #define gcry_md_putc(h,c)  \
 	    do {					\

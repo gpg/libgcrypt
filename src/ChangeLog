@@ -1,3 +1,7 @@
+Wed Oct  4 13:16:18 CEST 2000  Werner Koch  <wk@openit.de>
+
+        * gcrypt.h (gcry_md_setkey): Replaced macro by function prototype.
+
 Mon Sep 18 16:35:45 CEST 2000  Werner Koch  <wk@openit.de>
 
         * gcrypt.h (GCRYCTL_GET_ALGO_USAGE): New.

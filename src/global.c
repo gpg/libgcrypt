@@ -81,8 +81,8 @@ parse_version_string( const char *s, int *major, int *minor, int *micro )
 /****************
  * Check that the the version of the library is at minimum the requested one
  * and return the version string; return NULL if the condition is not
- * satisfied.  If a NULL is passed to thsi function, no check is done,
- * but the version string is simpley returned.
+ * satisfied.  If a NULL is passed to this function, no check is done,
+ * but the version string is simply returned.
  */
 const char *
 gcry_check_version( const char *req_version )
