@@ -220,7 +220,7 @@ _gcry_log_debug( const char *fmt, ... )
 void
 _gcry_log_printf (const char *fmt, ...)
 {
-  va_list arg_ptr = 0;
+  va_list arg_ptr;
   
   if (fmt) 
     {
