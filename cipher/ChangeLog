@@ -1,3 +1,8 @@
+2002-05-15  Werner Koch  <wk@gnupg.org>
+
+	* random.c (gcry_random_bytes,gcry_random_bytes_secure)
+	(gcry_randomize): Make sure we are initialized.
+
 2002-05-14  Werner Koch  <wk@gnupg.org>
 
 	Changed license of most files to the LGPL.

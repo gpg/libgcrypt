@@ -105,7 +105,7 @@ static int secure_alloc;
 static int quick_test;
 static int faked_rng;
 
-static mutex_t pool_lock;
+DEFINE_LOCAL_MUTEX(pool_lock)
 static int pool_is_locked; /* only for assertion */
 
 static byte *get_random_bytes( size_t nbytes, int level, int secure );
@@ -208,9 +208,13 @@ _gcry_quick_random_gen( int onoff )
 void
 gcry_randomize( byte *buffer, size_t length, enum gcry_random_level level )
 {
-    char *p = get_random_bytes( length, level, 1 );
-    memcpy( buffer, p, length );
-    gcry_free(p);
+  char *p;
+
+  if (!is_initialized)
+    initialize ();
+  p = get_random_bytes( length, level, 1 );
+  memcpy( buffer, p, length );
+  gcry_free(p);
 }
 
 
@@ -269,13 +273,17 @@ get_random_bytes( size_t nbytes, int level, int secure )
 void *
 gcry_random_bytes( size_t nbytes, enum gcry_random_level level )
 {
-    return get_random_bytes( nbytes, level, 0 );
+  if (!is_initialized)
+    initialize();
+  return get_random_bytes( nbytes, level, 0 );
 }
 
 void *
 gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level )
 {
-    return get_random_bytes( nbytes, level, 1 );
+  if (!is_initialized)
+    initialize();
+  return get_random_bytes( nbytes, level, 1 );
 }
 
 
