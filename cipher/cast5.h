@@ -27,22 +27,11 @@
 typedef struct {
     u32  Km[16];
     byte Kr[16];
-    byte iv[CAST5_BLOCKSIZE];
-    byte eniv[CAST5_BLOCKSIZE];
-    int  count;
 } CAST5_context;
 
 void cast5_setkey( CAST5_context *c, byte *key, unsigned keylen );
-void cast5_setiv( CAST5_context *c, byte *iv );
-void cast5_encode( CAST5_context *c, byte *outbuf, byte *inbuf,
-						    unsigned nblocks );
-void cast5_decode( CAST5_context *c, byte *outbuf, byte *inbuf,
-						    unsigned nblocks );
-void cast5_encode_cfb( CAST5_context *c, byte *outbuf,
-					 byte *inbuf, unsigned nbytes);
-void cast5_decode_cfb( CAST5_context *c, byte *outbuf,
-					 byte *inbuf, unsigned nbytes);
-void cast5_sync_cfb( CAST5_context *c );
+void cast5_encrypt_block( CAST5_context *bc, byte *outbuf, byte *inbuf );
+void cast5_decrypt_block( CAST5_context *bc, byte *outbuf, byte *inbuf );
 
 
 #endif /*G10_CAST5_H*/
