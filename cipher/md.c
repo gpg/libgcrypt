@@ -942,29 +942,9 @@ md_digest_length (int id)
  * This function will return 0 in case of errors.
  */
 unsigned int
-gcry_md_get_algo_dlen( int algo )
+gcry_md_get_algo_dlen (int id)
 {
-  /* we cheat a little bit */
-  switch( algo )
-    {
-    case GCRY_MD_MD4:
-    case GCRY_MD_MD5: return 16;
-    case GCRY_MD_SHA1:
-    case GCRY_MD_RMD160: return 20;
-    case GCRY_MD_SHA256: return 32;
-    case GCRY_MD_SHA384: return 48;
-    case GCRY_MD_SHA512: return 64;
-    case GCRY_MD_CRC32:
-    case GCRY_MD_CRC32_RFC1510: return 4;
-    case GCRY_MD_CRC24_RFC2440: return 3;
-    default: 
-      {
-        int len = md_digest_length( algo );
-        if( !len )
-          set_lasterr( GCRYERR_INV_MD_ALGO );
-        return 0;
-      }
-    }
+  return md_digest_length (id);
 }
 
 
