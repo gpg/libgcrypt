@@ -1,3 +1,5 @@
+* Run w32-dll/build-def when we introduce a new fucntion.
+
 * switching from encrypt to decrypt requires a close and open.
   Wouldn't it be better if we have a reset function or integrate that
   with setkey?

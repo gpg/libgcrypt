@@ -1,3 +1,7 @@
+2002-11-10  Werner Koch  <wk@gnupg.org>
+
+	* configure.ac (MODULES_IN_CIPHER): Add md4.c.  By Simon Josefsson.
+
 2002-09-20  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.10.
