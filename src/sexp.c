@@ -1111,9 +1111,13 @@ int
 gcry_sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff,
 			    const char *buffer, size_t length )
 {
-    va_list dummy_arg_ptr = 0;
+  /* We don't need the va_list because it is controlled by the
+     following flag, however we have to pass it but can't initialize
+     it as there is no portable way to do so.  volatile is needed to
+     suppress the compiler warning */
+  volatile va_list dummy_arg_ptr;
 
-    return sexp_sscan( retsexp, erroff, buffer, length, dummy_arg_ptr, 0 );
+  return sexp_sscan( retsexp, erroff, buffer, length, dummy_arg_ptr, 0 );
 }
 
 

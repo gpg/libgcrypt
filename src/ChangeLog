@@ -1,3 +1,8 @@
+2002-02-18  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c (gcry_sexp_sscan): Don't initialize the dummy
+	variable.  Suggested by Jordi Mallach.
+
 2002-01-31  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (suitable_encoding,convert_to_hex,convert_to_string)
