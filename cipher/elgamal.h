@@ -20,7 +20,8 @@
 #ifndef G10_ELGAMAL_H
 #define G10_ELGAMAL_H
 
-int _gcry_elg_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors );
+int _gcry_elg_generate( int algo, unsigned int nbits, unsigned long dummy,
+                        MPI *skey, MPI **retfactors );
 int _gcry_elg_check_secret_key( int algo, MPI *skey );
 int _gcry_elg_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey );
 int _gcry_elg_decrypt( int algo, MPI *result, MPI *data, MPI *skey );

@@ -498,7 +498,8 @@ verify(MPI a, MPI b, MPI input, ELG_public_key *pkey )
  *********************************************/
 
 int
-_gcry_elg_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
+_gcry_elg_generate( int algo, unsigned nbits, unsigned long dummy,
+                    MPI *skey, MPI **retfactors )
 {
     ELG_secret_key sk;
 

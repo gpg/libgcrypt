@@ -45,7 +45,8 @@ struct pubkey_table_s {
     int nenc;
     int nsig;
     int use;
-    int (*generate)( int algo, unsigned nbits, MPI *skey, MPI **retfactors );
+    int (*generate)(int algo, unsigned int nbits, unsigned long use_e,
+                    MPI *skey, MPI **retfactors );
     int (*check_secret_key)( int algo, MPI *skey );
     int (*encrypt)( int algo, MPI *resarr, MPI data, MPI *pkey );
     int (*decrypt)( int algo, MPI *result, MPI *data, MPI *skey );
@@ -111,7 +112,8 @@ static int pubkey_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 		      int (*cmp)(void *, MPI), void *opaque );
 
 static int
-dummy_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
+dummy_generate( int algo, unsigned int nbits, unsigned long dummy,
+                MPI *skey, MPI **retfactors )
 { log_bug("no generate() for %d\n", algo ); return GCRYERR_INV_PK_ALGO; }
 
 static int
@@ -488,14 +490,15 @@ pubkey_get_nenc( int algo )
 
 
 static int
-pubkey_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
+pubkey_generate( int algo, unsigned int nbits, unsigned long use_e,
+                 MPI *skey, MPI **retfactors )
 {
     int i;
 
     do {
 	for(i=0; pubkey_table[i].name; i++ )
 	    if( pubkey_table[i].algo == algo )
-		return (*pubkey_table[i].generate)( algo, nbits,
+                return (*pubkey_table[i].generate)( algo, nbits, use_e,
 						    skey, retfactors );
     } while( load_pubkey_modules() );
     return GCRYERR_INV_PK_ALGO;
@@ -860,9 +863,11 @@ sexp_to_sig( GCRY_SEXP sexp, MPI **retarray, int *retalgo)
  *		...
  *		(<param_namen> <mpi>)
  *	      ))
+ * RET_MODERN is set to true when at least an empty flags list has been found.
  */
 static int
-sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo, int *ret_want_pkcs1)
+sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo,
+             int *ret_modern, int *ret_want_pkcs1)
 {
     GCRY_SEXP list, l2;
     const char *name;
@@ -874,6 +879,7 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo, int *ret_want_pkcs1)
     GCRY_MPI *array;
 
     *ret_want_pkcs1 = 0;
+    *ret_modern = 0;
     /* check that the first element is valid */
     list = gcry_sexp_find_token( sexp, "enc-val" , 0 );
     if( !list )
@@ -893,6 +899,7 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo, int *ret_want_pkcs1)
       /* There is a flags element - process it */
       const char *s;
 
+      *ret_modern = 1;
       for (i=gcry_sexp_length (l2)-1; i > 0; i--)
         {
           s = gcry_sexp_nth_data (l2, i, &n);
@@ -1335,34 +1342,38 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
 /****************
  * Do a PK decrypt operation
  *
- * Caller has to provide a secret key as the SEXP skey and data in a format
- * as created by gcry_pk_encrypt.  Currently the function returns
- * simply a MPI.  Later versions of this functions may return a more
- * complex data structure.
- *
+ * Caller has to provide a secret key as the SEXP skey and data in a
+ * format as created by gcry_pk_encrypt.  For historic reasons the
+ * function returns simply an MPI as an S-expression part; this is
+ * deprecated and the new method should be used which returns a real
+ * S-expressionl this is selected by adding at least an empt flags
+ * list to S_DATA.
+ * 
  * Returns: 0 or an errorcode.
  *
  * s_data = (enc-val
+ *            [(flags)]
  *	      (<algo>
  *		(<param_name1> <mpi>)
  *		...
  *		(<param_namen> <mpi>)
  *	      ))
  * s_skey = <key-as-defined-in-sexp_to_key>
- * r_plain= (<mpi>)   FIXME: Return a more structered value
- */
+ * r_plain= Either an incomplete S-expression without the parentheses
+ *          or if the flags list is used (even if empty) a real S-expression:
+ *          (value PLAIN).  */
 int
 gcry_pk_decrypt( GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey )
 {
     MPI *skey, *data, plain;
-    int rc, algo, dataalgo, want_pkcs1;
+    int rc, algo, dataalgo, modern, want_pkcs1;
 
     *r_plain = NULL;
     rc = sexp_to_key( s_skey, 1, &skey, &algo, NULL );
     if( rc ) {
 	return rc;
     }
-    rc = sexp_to_enc( s_data, &data, &dataalgo, &want_pkcs1 );
+    rc = sexp_to_enc( s_data, &data, &dataalgo, &modern, &want_pkcs1 );
     if( rc ) {
 	release_mpi_array( skey );
         gcry_free (skey);
@@ -1373,7 +1384,7 @@ gcry_pk_decrypt( GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey )
         gcry_free (skey);
 	release_mpi_array( data );
         gcry_free (data);
-	return -1; /* fixme: add real errornumber - algo does not match */
+	return GCRYERR_CONFLICT; /* key algo does not match data algo */
     }
 
     rc = pubkey_decrypt( algo, &plain, data, skey );
@@ -1382,11 +1393,18 @@ gcry_pk_decrypt( GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey )
         gcry_free (skey);
 	release_mpi_array( data );
         gcry_free (data);
-	return -1; /* fixme: add real errornumber - decryption failed */
+	return GCRYERR_GENERAL; /* decryption failed */
     }
 
-    if ( gcry_sexp_build( r_plain, NULL, "%m", plain ) )
+    if (!modern) {
+      if ( gcry_sexp_build( r_plain, NULL, "%m", plain ) )
 	BUG ();
+    }
+    else {
+      if ( gcry_sexp_build( r_plain, NULL, "(value %m)", plain ) )
+	BUG ();
+    }
+      
 
     mpi_free( plain );
     release_mpi_array( data );
@@ -1550,7 +1568,7 @@ gcry_pk_verify( GCRY_SEXP s_sig, GCRY_SEXP s_hash, GCRY_SEXP s_pkey )
         gcry_free (pkey);
 	release_mpi_array( sig );
         gcry_free (sig);
-	return -1; /* fixme: add real errornumber - algo does not match */
+	return GCRYERR_CONFLICT; /* algo does not match */
     }
 
     rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_pkey), &hash, 0);
@@ -1559,7 +1577,7 @@ gcry_pk_verify( GCRY_SEXP s_sig, GCRY_SEXP s_hash, GCRY_SEXP s_pkey )
         gcry_free (pkey);
 	release_mpi_array( sig );
         gcry_free (sig);
-	return -1; /* fixme: get a real errorcode for this */
+	return rc; 
     }
 
     rc = pubkey_verify( algo, hash, sig, pkey, NULL, NULL );
@@ -1647,6 +1665,7 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
     char sec_elems[20], pub_elems[20];
     GCRY_MPI skey[10], *factors;
     unsigned int nbits;
+    unsigned long use_e;
 
     *r_key = NULL;
     list = gcry_sexp_find_token( s_parms, "genkey", 0 );
@@ -1688,6 +1707,27 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
     strcpy( sec_elems, s );
     strcat( sec_elems, s2 );
 
+    l2 = gcry_sexp_find_token (list, "rsa-use-e", 0);
+    if (l2)
+      {
+        char buf[50];
+
+        name = gcry_sexp_nth_data (l2, 1, &n);
+        if (!name || n >= DIM (buf)-1 )
+           {
+             gcry_sexp_release (l2);
+             gcry_sexp_release (list);
+             return GCRYERR_INV_OBJ; /* no value or value too large */
+           }
+        
+        memcpy (buf, name, n);
+	buf[n] = 0;
+	use_e = strtoul (buf, NULL, 0);
+        gcry_sexp_release (l2);
+      }
+    else
+      use_e = 65537; /* not given, use the value generated by old versions. */
+
     l2 = gcry_sexp_find_token( list, "nbits", 0 );
     gcry_sexp_release ( list );
     list = l2;
@@ -1707,7 +1747,7 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
     }
     gcry_sexp_release ( list );
 
-    rc = pubkey_generate( algo, nbits, skey, &factors );
+    rc = pubkey_generate( algo, nbits, use_e, skey, &factors );
     if( rc ) {
 	return rc;
     }

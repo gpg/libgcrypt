@@ -356,7 +356,8 @@ verify(MPI r, MPI s, MPI hash, DSA_public_key *pkey )
  *********************************************/
 
 int
-_gcry_dsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
+_gcry_dsa_generate( int algo, unsigned nbits, unsigned long dummy,
+                    MPI *skey, MPI **retfactors )
 {
     DSA_secret_key sk;
 

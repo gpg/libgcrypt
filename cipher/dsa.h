@@ -20,7 +20,8 @@
 #ifndef G10_DSA_H
 #define G10_DSA_H
 
-int _gcry_dsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors );
+int _gcry_dsa_generate( int algo, unsigned int nbits, unsigned long dummy,
+                        MPI *skey, MPI **retfactors );
 int _gcry_dsa_check_secret_key( int algo, MPI *skey );
 int _gcry_dsa_sign( int algo, MPI *resarr, MPI data, MPI *skey );
 int _gcry_dsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,

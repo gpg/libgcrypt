@@ -1,3 +1,20 @@
+2003-01-23  Werner Koch  <wk@gnupg.org>
+
+	* rsa.c (generate): New arg USE_E to request a specific public
+	exponent.
+	(_gcry_rsa_generate): Ditto.
+	* elgamal.c (_gcry_elg_generate): Must add an dummy argument
+	instead of USE_E.
+	* dsa.c (_gcry_dsa_generate): Ditto.
+	* pubkey.c (dummy_generate): Ditto.
+	(pubkey_generate): Add USE_E arg and pass it down.
+	(gcry_pk_genkey): Detect "rsa-use-e" parameter and pass it to generate.
+
+	* pubkey.c (sexp_to_enc): New arg RET_MODERN.
+	(gcry_pk_decrypt): Make use of it to return a real S-expression.
+	Return better error codes.
+	(gcry_pk_verify): Return better error codes.
+
 2003-01-21  Werner Koch  <wk@gnupg.org>
 
 	* random.c (gcry_random_add_bytes): Add QUALITY argument, let

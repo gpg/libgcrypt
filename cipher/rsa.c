@@ -1,6 +1,6 @@
 /* rsa.c  -  RSA function
  *	Copyright (C) 1997, 1998, 1999 by Werner Koch (dd9jn)
- *	Copyright (C) 2000, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -51,7 +51,8 @@ typedef struct {
 
 
 static void test_keys( RSA_secret_key *sk, unsigned nbits );
-static void generate( RSA_secret_key *sk, unsigned nbits );
+static void generate (RSA_secret_key *sk,
+                      unsigned int nbits, unsigned long use_e );
 static int  check_secret_key( RSA_secret_key *sk );
 static void public(MPI output, MPI input, RSA_public_key *skey );
 static void secret(MPI output, MPI input, RSA_secret_key *skey );
@@ -83,11 +84,15 @@ test_keys( RSA_secret_key *sk, unsigned nbits )
 }
 
 /****************
- * Generate a key pair with a key of size NBITS
+ * Generate a key pair with a key of size NBITS.  
+ * USE_E = 0 let Libcgrypt decide what exponent to use.
+ *       = 1 request the use of a "secure" exponent; this is required by some 
+ *           specification to be 65537.
+ *       > 2 Try starting at this value until a working exponent is found.
  * Returns: 2 structures filled with all needed values
  */
 static void
-generate( RSA_secret_key *sk, unsigned nbits )
+generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
 {
     MPI p, q; /* the two primes */
     MPI d;    /* the private key */
@@ -140,20 +145,17 @@ generate( RSA_secret_key *sk, unsigned nbits )
          e=41    0.75 ms
          e=257   0.95 ms
          e=65537 1.80 ms
-
-       Note: Due to Sphinx requirements we temorrary change the
-       exponent until we can rework the interface to provide more
-       parameters than just the modulus length.  */
+    */
     e = mpi_alloc( (32+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );
-    mpi_set_ui (e, 65537); 
-    if( !gcry_mpi_gcd(t1, e, phi) ) { /* actually never triggered ;-) */
-      mpi_set_ui( e, 257); 
-      if( !gcry_mpi_gcd(t1, e, phi) ) {
-        mpi_set_ui( e, 41); 
-        while( !gcry_mpi_gcd(t1, e, phi) ) /* (while gcd is not 1) */
-          mpi_add_ui( e, e, 2);
-      }
-    }
+    if (!use_e)
+      use_e = 41;     /* This is a reasonable secure and fast value */
+    else if (use_e == 1)
+      use_e = 65537;  /* A secure value as demanded by Spinx. */
+
+    use_e |= 1; /* make sure this is odd */
+    mpi_set_ui (e, use_e); 
+    while (!gcry_mpi_gcd(t1, e, phi)) /* (while gcd is not 1) */
+      mpi_add_ui (e, e, 2);
 
     /* calculate the secret key d = e^1 mod phi */
     d = gcry_mpi_snew ( nbits );
@@ -350,14 +352,15 @@ secret(MPI output, MPI input, RSA_secret_key *skey )
  *********************************************/
 
 int
-_gcry_rsa_generate (int algo, unsigned int nbits, MPI *skey, MPI **retfactors)
+_gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
+                    MPI *skey, MPI **retfactors)
 {
     RSA_secret_key sk;
 
     if( !is_RSA(algo) )
 	return GCRYERR_INV_PK_ALGO;
 
-    generate( &sk, nbits );
+    generate( &sk, nbits, use_e );
     skey[0] = sk.n;
     skey[1] = sk.e;
     skey[2] = sk.d;

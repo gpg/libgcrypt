@@ -21,7 +21,8 @@
 #ifndef G10_RSA_H
 #define G10_RSA_H
 
-int _gcry_rsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors );
+int _gcry_rsa_generate( int algo, unsigned int nbits, unsigned long use_e,
+                        MPI *skey, MPI **retfactors );
 int _gcry_rsa_check_secret_key( int algo, MPI *skey );
 int _gcry_rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey );
 int _gcry_rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey );
