@@ -32,29 +32,29 @@
 
 typedef struct
 {
-  MPI p;	    /* prime */
-  MPI g;	    /* group generator */
-  MPI y;	    /* g^x mod p */
+  gcry_mpi_t p;	    /* prime */
+  gcry_mpi_t g;	    /* group generator */
+  gcry_mpi_t y;	    /* g^x mod p */
 } ELG_public_key;
 
 
 typedef struct
 {
-  MPI p;	    /* prime */
-  MPI g;	    /* group generator */
-  MPI y;	    /* g^x mod p */
-  MPI x;	    /* secret exponent */
+  gcry_mpi_t p;	    /* prime */
+  gcry_mpi_t g;	    /* group generator */
+  gcry_mpi_t y;	    /* g^x mod p */
+  gcry_mpi_t x;	    /* secret exponent */
 } ELG_secret_key;
 
 
 static void test_keys (ELG_secret_key *sk, unsigned nbits);
-static MPI gen_k (MPI p);
-static void generate (ELG_secret_key *sk, unsigned nbits, MPI **factors);
+static gcry_mpi_t gen_k (gcry_mpi_t p);
+static void generate (ELG_secret_key *sk, unsigned nbits, gcry_mpi_t **factors);
 static int  check_secret_key (ELG_secret_key *sk);
-static void do_encrypt (MPI a, MPI b, MPI input, ELG_public_key *pkey);
-static void decrypt (MPI output, MPI a, MPI b, ELG_secret_key *skey);
-static void sign (MPI a, MPI b, MPI input, ELG_secret_key *skey);
-static int  verify (MPI a, MPI b, MPI input, ELG_public_key *pkey);
+static void do_encrypt (gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey);
+static void decrypt (gcry_mpi_t output, gcry_mpi_t a, gcry_mpi_t b, ELG_secret_key *skey);
+static void sign (gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_secret_key *skey);
+static int  verify (gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey);
 
 
 static void (*progress_cb) (void *, const char *, int, int, int);
@@ -121,10 +121,10 @@ static void
 test_keys( ELG_secret_key *sk, unsigned nbits )
 {
     ELG_public_key pk;
-    MPI test = gcry_mpi_new ( 0 );
-    MPI out1_a = gcry_mpi_new ( nbits );
-    MPI out1_b = gcry_mpi_new ( nbits );
-    MPI out2 = gcry_mpi_new ( nbits );
+    gcry_mpi_t test = gcry_mpi_new ( 0 );
+    gcry_mpi_t out1_a = gcry_mpi_new ( nbits );
+    gcry_mpi_t out1_b = gcry_mpi_new ( nbits );
+    gcry_mpi_t out2 = gcry_mpi_new ( nbits );
 
     pk.p = sk->p;
     pk.g = sk->g;
@@ -152,12 +152,12 @@ test_keys( ELG_secret_key *sk, unsigned nbits )
  * generate a random secret exponent k from prime p, so
  * that k is relatively prime to p-1
  */
-static MPI
-gen_k( MPI p )
+static gcry_mpi_t
+gen_k( gcry_mpi_t p )
 {
-    MPI k = mpi_alloc_secure( 0 );
-    MPI temp = mpi_alloc( mpi_get_nlimbs(p) );
-    MPI p_1 = mpi_copy(p);
+    gcry_mpi_t k = mpi_alloc_secure( 0 );
+    gcry_mpi_t temp = mpi_alloc( mpi_get_nlimbs(p) );
+    gcry_mpi_t p_1 = mpi_copy(p);
     unsigned int orig_nbits = mpi_get_nbits(p);
     unsigned int nbits, nbytes;
     char *rndbuf = NULL;
@@ -229,14 +229,14 @@ gen_k( MPI p )
  *	    and an array with n-1 factors of (p-1)
  */
 static void
-generate(  ELG_secret_key *sk, unsigned int nbits, MPI **ret_factors )
+generate(  ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t **ret_factors )
 {
-    MPI p;    /* the prime */
-    MPI p_min1;
-    MPI g;
-    MPI x;    /* the secret exponent */
-    MPI y;
-    MPI temp;
+    gcry_mpi_t p;    /* the prime */
+    gcry_mpi_t p_min1;
+    gcry_mpi_t g;
+    gcry_mpi_t x;    /* the secret exponent */
+    gcry_mpi_t y;
+    gcry_mpi_t temp;
     unsigned int qbits;
     unsigned int xbits;
     byte *rndbuf;
@@ -327,7 +327,7 @@ static int
 check_secret_key( ELG_secret_key *sk )
 {
     int rc;
-    MPI y = mpi_alloc( mpi_get_nlimbs(sk->y) );
+    gcry_mpi_t y = mpi_alloc( mpi_get_nlimbs(sk->y) );
 
     gcry_mpi_powm( y, sk->g, sk->x, sk->p );
     rc = !mpi_cmp( y, sk->y );
@@ -337,9 +337,9 @@ check_secret_key( ELG_secret_key *sk )
 
 
 static void
-do_encrypt(MPI a, MPI b, MPI input, ELG_public_key *pkey )
+do_encrypt(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
 {
-    MPI k;
+    gcry_mpi_t k;
 
     /* Note: maybe we should change the interface, so that it
      * is possible to check that input is < p and return an
@@ -372,9 +372,9 @@ do_encrypt(MPI a, MPI b, MPI input, ELG_public_key *pkey )
 
 
 static void
-decrypt(MPI output, MPI a, MPI b, ELG_secret_key *skey )
+decrypt(gcry_mpi_t output, gcry_mpi_t a, gcry_mpi_t b, ELG_secret_key *skey )
 {
-    MPI t1 = mpi_alloc_secure( mpi_get_nlimbs( skey->p ) );
+    gcry_mpi_t t1 = mpi_alloc_secure( mpi_get_nlimbs( skey->p ) );
 
     /* output = b/(a^x) mod p */
     gcry_mpi_powm( t1, a, skey->x, skey->p );
@@ -398,12 +398,12 @@ decrypt(MPI output, MPI a, MPI b, ELG_secret_key *skey )
  */
 
 static void
-sign(MPI a, MPI b, MPI input, ELG_secret_key *skey )
+sign(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_secret_key *skey )
 {
-    MPI k;
-    MPI t   = mpi_alloc( mpi_get_nlimbs(a) );
-    MPI inv = mpi_alloc( mpi_get_nlimbs(a) );
-    MPI p_1 = mpi_copy(skey->p);
+    gcry_mpi_t k;
+    gcry_mpi_t t   = mpi_alloc( mpi_get_nlimbs(a) );
+    gcry_mpi_t inv = mpi_alloc( mpi_get_nlimbs(a) );
+    gcry_mpi_t p_1 = mpi_copy(skey->p);
 
    /*
     * b = (t * inv) mod (p-1)
@@ -442,13 +442,13 @@ sign(MPI a, MPI b, MPI input, ELG_secret_key *skey )
  * Returns true if the signature composed of A and B is valid.
  */
 static int
-verify(MPI a, MPI b, MPI input, ELG_public_key *pkey )
+verify(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
 {
     int rc;
-    MPI t1;
-    MPI t2;
-    MPI base[4];
-    MPI exp[4];
+    gcry_mpi_t t1;
+    gcry_mpi_t t2;
+    gcry_mpi_t base[4];
+    gcry_mpi_t exp[4];
 
     if( !(mpi_cmp_ui( a, 0 ) > 0 && mpi_cmp( a, pkey->p ) < 0) )
 	return 0; /* assertion	0 < a < p  failed */
@@ -500,7 +500,7 @@ verify(MPI a, MPI b, MPI input, ELG_public_key *pkey )
 
 gpg_err_code_t
 _gcry_elg_generate (int algo, unsigned nbits, unsigned long dummy,
-                    MPI *skey, MPI **retfactors)
+                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   ELG_secret_key sk;
 
@@ -515,7 +515,7 @@ _gcry_elg_generate (int algo, unsigned nbits, unsigned long dummy,
 
 
 gpg_err_code_t
-_gcry_elg_check_secret_key (int algo, MPI *skey)
+_gcry_elg_check_secret_key (int algo, gcry_mpi_t *skey)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
@@ -538,7 +538,7 @@ _gcry_elg_check_secret_key (int algo, MPI *skey)
 
 
 gpg_err_code_t
-_gcry_elg_encrypt (int algo, MPI *resarr, MPI data, MPI *pkey, int flags)
+_gcry_elg_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_public_key pk;
@@ -559,7 +559,7 @@ _gcry_elg_encrypt (int algo, MPI *resarr, MPI data, MPI *pkey, int flags)
 
 
 gpg_err_code_t
-_gcry_elg_decrypt (int algo, MPI *result, MPI *data, MPI *skey, int flags)
+_gcry_elg_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
@@ -581,7 +581,7 @@ _gcry_elg_decrypt (int algo, MPI *result, MPI *data, MPI *skey, int flags)
 
 
 gpg_err_code_t
-_gcry_elg_sign (int algo, MPI *resarr, MPI data, MPI *skey)
+_gcry_elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
@@ -604,8 +604,8 @@ _gcry_elg_sign (int algo, MPI *resarr, MPI data, MPI *skey)
 }
 
 gpg_err_code_t
-_gcry_elg_verify (int algo, MPI hash, MPI *data, MPI *pkey,
-		  int (*cmp) (void *, MPI), void *opaquev)
+_gcry_elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+		  int (*cmp) (void *, gcry_mpi_t), void *opaquev)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_public_key pk;
@@ -627,7 +627,7 @@ _gcry_elg_verify (int algo, MPI hash, MPI *data, MPI *pkey,
 
 
 unsigned int
-_gcry_elg_get_nbits (int algo, MPI *pkey)
+_gcry_elg_get_nbits (int algo, gcry_mpi_t *pkey)
 {
   return mpi_get_nbits (pkey[0]);
 }

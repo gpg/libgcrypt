@@ -523,10 +523,10 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
   int secure = (flags & GCRY_CIPHER_SECURE);
   GcryCipherSpec *cipher = NULL;
   GcryModule *module = NULL;
+  gcry_cipher_hd_t h = NULL;
   gpg_err_code_t err = 0;
-  gcry_cipher_hd_t h;
 
-  fast_random_poll();
+  _gcry_fast_random_poll();
   
   REGISTER_DEFAULT_CIPHERS;
 

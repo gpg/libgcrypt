@@ -98,7 +98,7 @@ transform( MD4_CONTEXT *ctx, byte *data )
     register u32 C = ctx->C;
     register u32 D = ctx->D;
 
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
     { int i;
       byte *p2, *p1;
       for(i=0, p1=data, p2=(byte*)in; i < 16; i++, p2 += 4 ) {
@@ -278,7 +278,7 @@ md4_final( void *context )
     _gcry_burn_stack (80+6*sizeof(void*));
 
     p = hd->buf;
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
 #define X(a) do { *p++ = hd->a      ; *p++ = hd->a >> 8;      \
 		      *p++ = hd->a >> 16; *p++ = hd->a >> 24; } while(0)
 #else /* little endian */

@@ -30,10 +30,10 @@
 #include "cipher.h"
 #include "ath.h"
 
-static gpg_err_code_t pubkey_decrypt (int algo, MPI *result, MPI *data, MPI *skey, int flags);
-static gpg_err_code_t pubkey_sign (int algo, MPI *resarr, MPI hash, MPI *skey);
-static gpg_err_code_t pubkey_verify (int algo, MPI hash, MPI *data, MPI *pkey,
-				     int (*cmp) (void *, MPI), void *opaque);
+static gpg_err_code_t pubkey_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags);
+static gpg_err_code_t pubkey_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t hash, gcry_mpi_t *skey);
+static gpg_err_code_t pubkey_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+				     int (*cmp) (void *, gcry_mpi_t), void *opaque);
 
 /* This is the list of the default public-key ciphers included in
    libgcrypt.  */
@@ -83,50 +83,50 @@ static int default_pubkeys_registered;
 
 static gpg_err_code_t
 dummy_generate (int id, unsigned int nbits, unsigned long dummy,
-                MPI *skey, MPI **retfactors)
+                gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   log_bug ("no generate() for %d\n", id);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_check_secret_key (int id, MPI *skey)
+dummy_check_secret_key (int id, gcry_mpi_t *skey)
 {
   log_bug ("no check_secret_key() for %d\n", id);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_encrypt (int id, MPI *resarr, MPI data, MPI *pkey, int flags)
+dummy_encrypt (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
 {
   log_bug ("no encrypt() for %d\n", id);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_decrypt (int id, MPI *result, MPI *data, MPI *skey, int flags)
+dummy_decrypt (int id, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
 {
   log_bug ("no decrypt() for %d\n", id);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_sign (int id, MPI *resarr, MPI data, MPI *skey)
+dummy_sign (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   log_bug ("no sign() for %d\n", id);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_verify (int id, MPI hash, MPI *data, MPI *pkey,
-	      int (*cmp) (void *, MPI), void *opaquev)
+dummy_verify (int id, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+	      int (*cmp) (void *, gcry_mpi_t), void *opaquev)
 {
   log_bug ("no verify() for %d\n", id);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static unsigned
-dummy_get_nbits (int id, MPI *pkey)
+dummy_get_nbits (int id, gcry_mpi_t *pkey)
 {
   log_bug ("no get_nbits() for %d\n", id);
   return 0;
@@ -264,7 +264,7 @@ gcry_pubkey_unregister (GcryModule *module)
 }
 
 static void
-release_mpi_array (MPI *array)
+release_mpi_array (gcry_mpi_t *array)
 {
   for (; *array; array++)
     {
@@ -468,7 +468,7 @@ pubkey_get_nenc (int id)
 
 static gpg_err_code_t
 pubkey_generate (int id, unsigned int nbits, unsigned long use_e,
-                 MPI *skey, MPI **retfactors)
+                 gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   gpg_err_code_t err = GPG_ERR_PUBKEY_ALGO;
   GcryModule *pubkey;
@@ -489,7 +489,7 @@ pubkey_generate (int id, unsigned int nbits, unsigned long use_e,
 }
 
 static gpg_err_code_t
-pubkey_check_secret_key (int id, MPI *skey)
+pubkey_check_secret_key (int id, gcry_mpi_t *skey)
 {
   gpg_err_code_t err = GPG_ERR_PUBKEY_ALGO;
   GcryModule *pubkey;
@@ -510,13 +510,13 @@ pubkey_check_secret_key (int id, MPI *skey)
 
 
 /****************
- * This is the interface to the public key encryption.
- * Encrypt DATA with PKEY and put it into RESARR which
- * should be an array of MPIs of size PUBKEY_MAX_NENC (or less if the
- * algorithm allows this - check with pubkey_get_nenc() )
+ * This is the interface to the public key encryption.  Encrypt DATA
+ * with PKEY and put it into RESARR which should be an array of MPIs
+ * of size PUBKEY_MAX_NENC (or less if the algorithm allows this -
+ * check with pubkey_get_nenc() )
  */
 static gpg_err_code_t
-pubkey_encrypt (int id, MPI *resarr, MPI data, MPI *pkey,
+pubkey_encrypt (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey,
 		int flags)
 {
   GcryPubkeySpec *pubkey;
@@ -563,7 +563,7 @@ pubkey_encrypt (int id, MPI *resarr, MPI data, MPI *pkey,
  * newly allocated mpi or NULL in case of an error.
  */
 static gpg_err_code_t
-pubkey_decrypt (int id, MPI *result, MPI *data, MPI *skey,
+pubkey_decrypt (int id, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey,
 		int flags)
 {
   GcryPubkeySpec *pubkey;
@@ -610,7 +610,7 @@ pubkey_decrypt (int id, MPI *result, MPI *data, MPI *skey,
  * algorithm allows this - check with pubkey_get_nsig() )
  */
 static gpg_err_code_t
-pubkey_sign (int id, MPI *resarr, MPI data, MPI *skey)
+pubkey_sign (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   GcryPubkeySpec *pubkey;
   GcryModule *module;
@@ -652,8 +652,8 @@ pubkey_sign (int id, MPI *resarr, MPI data, MPI *skey)
  * Return 0 if the signature is good
  */
 static gpg_err_code_t
-pubkey_verify (int id, MPI hash, MPI *data, MPI *pkey,
-	       int (*cmp)(void *, MPI), void *opaquev)
+pubkey_verify (int id, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+	       int (*cmp)(void *, gcry_mpi_t), void *opaquev)
 {
   GcryPubkeySpec *pubkey;
   GcryModule *module;
@@ -753,7 +753,7 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
  * The <mpi> are expected to be in GCRYMPI_FMT_USG
  */
 static gpg_err_code_t
-sexp_to_key (gcry_sexp_t sexp, int want_private, MPI **retarray,
+sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
              GcryModule **retalgo)
 {
     gcry_sexp_t list, l2;
@@ -830,7 +830,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, MPI **retarray,
 }
 
 static gpg_err_code_t
-sexp_to_sig (gcry_sexp_t sexp, MPI **retarray,
+sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
 	     GcryModule **retalgo)
 {
     gcry_sexp_t list, l2;
@@ -922,7 +922,7 @@ sexp_to_sig (gcry_sexp_t sexp, MPI **retarray,
  * RET_MODERN is set to true when at least an empty flags list has been found.
  */
 static gpg_err_code_t
-sexp_to_enc (gcry_sexp_t sexp, MPI **retarray, GcryModule **retalgo,
+sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, GcryModule **retalgo,
              int *ret_modern, int *ret_want_pkcs1, int *flags)
 {
   gcry_sexp_t list = NULL, l2 = NULL;
@@ -1326,7 +1326,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
 gpg_error_t
 gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 {
-  MPI *pkey = NULL, data = NULL, *ciph = NULL;
+  gcry_mpi_t *pkey = NULL, data = NULL, *ciph = NULL;
   const char *algo_name, *algo_elems;
   int flags;
   gpg_err_code_t rc;
@@ -1450,7 +1450,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 gpg_error_t
 gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 {
-  MPI *skey = NULL, *data = NULL, plain = NULL;
+  gcry_mpi_t *skey = NULL, *data = NULL, plain = NULL;
   int modern, want_pkcs1, flags;
   gpg_err_code_t rc;
   GcryModule *module_enc = NULL, *module_key = NULL;
@@ -1548,7 +1548,7 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 gpg_error_t
 gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 {
-  MPI *skey = NULL, hash = NULL, *result = NULL;
+  gcry_mpi_t *skey = NULL, hash = NULL, *result = NULL;
   GcryPubkeySpec *pubkey = NULL;
   GcryModule *module = NULL;
   const char *key_algo_name, *algo_name, *algo_elems;
@@ -1650,7 +1650,7 @@ gpg_error_t
 gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 {
   GcryModule *module_key = NULL, *module_sig = NULL;
-  MPI *pkey = NULL, hash = NULL, *sig = NULL;
+  gcry_mpi_t *pkey = NULL, hash = NULL, *sig = NULL;
   gpg_err_code_t rc;
 
   REGISTER_DEFAULT_PUBKEYS;
@@ -1710,7 +1710,7 @@ gpg_error_t
 gcry_pk_testkey (gcry_sexp_t s_key)
 {
   GcryModule *module = NULL;
-  MPI *key = NULL;
+  gcry_mpi_t *key = NULL;
   gpg_err_code_t rc;
   
   REGISTER_DEFAULT_PUBKEYS;
@@ -1990,7 +1990,7 @@ gcry_pk_get_nbits (gcry_sexp_t key)
 {
   GcryModule *module = NULL;
   GcryPubkeySpec *pubkey;
-  MPI *keyarr = NULL;
+  gcry_mpi_t *keyarr = NULL;
   unsigned int nbits = 0;
   gpg_err_code_t rc;
 

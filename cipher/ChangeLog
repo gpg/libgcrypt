@@ -5,6 +5,7 @@
 	(libcipher_la_DEPENDENCIES): Set to $(GCRYPT_MODULES).
 	(libcipher_la_LIBADD): Likewise.
 	(AM_CFLAGS): Added: @GPG_ERROR_CFLAGS@.
+	(EXTRA_libcipher_la_SOURCES): Added all conditional sources.
 
 	* md.c (md_open): Use _gcry_fast_random_poll instead of
 	fast_random_poll.

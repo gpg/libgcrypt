@@ -163,7 +163,7 @@ transform (SHA512_CONTEXT *hd, byte *data)
   g = hd->h6;
   h = hd->h7;
 
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
   memcpy (w, data, 128);
 #else
   {
@@ -332,7 +332,7 @@ sha512_final (void *context)
   _gcry_burn_stack (768);
 
   p = hd->buf;
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
 #define X(a) do { *(u64*)p = hd->h##a ; p += 8; } while (0)
 #else /* little endian */
 #define X(a) do { *p++ = hd->h##a >> 56; *p++ = hd->h##a >> 48;	      \

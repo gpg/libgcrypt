@@ -35,19 +35,19 @@
 
 typedef struct
 {
-  MPI n;	    /* modulus */
-  MPI e;	    /* exponent */
+  gcry_mpi_t n;	    /* modulus */
+  gcry_mpi_t e;	    /* exponent */
 } RSA_public_key;
 
 
 typedef struct
 {
-  MPI n;	    /* public modulus */
-  MPI e;	    /* public exponent */
-  MPI d;	    /* exponent */
-  MPI p;	    /* prime  p. */
-  MPI q;	    /* prime  q. */
-  MPI u;	    /* inverse of p mod q. */
+  gcry_mpi_t n;	    /* public modulus */
+  gcry_mpi_t e;	    /* public exponent */
+  gcry_mpi_t d;	    /* exponent */
+  gcry_mpi_t p;	    /* prime  p. */
+  gcry_mpi_t q;	    /* prime  q. */
+  gcry_mpi_t u;	    /* inverse of p mod q. */
 } RSA_secret_key;
 
 
@@ -55,17 +55,17 @@ static void test_keys (RSA_secret_key *sk, unsigned nbits);
 static void generate (RSA_secret_key *sk,
                       unsigned int nbits, unsigned long use_e);
 static int  check_secret_key (RSA_secret_key *sk);
-static void public (MPI output, MPI input, RSA_public_key *skey);
-static void secret (MPI output, MPI input, RSA_secret_key *skey);
+static void public (gcry_mpi_t output, gcry_mpi_t input, RSA_public_key *skey);
+static void secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey);
 
 
 static void
 test_keys( RSA_secret_key *sk, unsigned nbits )
 {
     RSA_public_key pk;
-    MPI test = gcry_mpi_new ( nbits );
-    MPI out1 = gcry_mpi_new ( nbits );
-    MPI out2 = gcry_mpi_new ( nbits );
+    gcry_mpi_t test = gcry_mpi_new ( nbits );
+    gcry_mpi_t out1 = gcry_mpi_new ( nbits );
+    gcry_mpi_t out2 = gcry_mpi_new ( nbits );
 
     pk.n = sk->n;
     pk.e = sk->e;
@@ -88,10 +88,10 @@ test_keys( RSA_secret_key *sk, unsigned nbits )
 /* Callback used by the prime generation to test whether the exponent
    is suitable. Returns 0 if the test has been passed. */
 static int
-check_exponent (void *arg, MPI a)
+check_exponent (void *arg, gcry_mpi_t a)
 {
-  MPI e = arg;
-  MPI tmp;
+  gcry_mpi_t e = arg;
+  gcry_mpi_t tmp;
   int result;
   
   mpi_sub_ui (a, a, 1);
@@ -113,15 +113,15 @@ check_exponent (void *arg, MPI a)
 static void
 generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
 {
-    MPI p, q; /* the two primes */
-    MPI d;    /* the private key */
-    MPI u;
-    MPI t1, t2;
-    MPI n;    /* the public key */
-    MPI e;    /* the exponent */
-    MPI phi;  /* helper: (p-1)(q-1) */
-    MPI g;
-    MPI f;
+    gcry_mpi_t p, q; /* the two primes */
+    gcry_mpi_t d;    /* the private key */
+    gcry_mpi_t u;
+    gcry_mpi_t t1, t2;
+    gcry_mpi_t n;    /* the public key */
+    gcry_mpi_t e;    /* the exponent */
+    gcry_mpi_t phi;  /* helper: (p-1)(q-1) */
+    gcry_mpi_t g;
+    gcry_mpi_t f;
 
     /* make sure that nbits is even so that we generate p, q of equal size */
     if ( (nbits&1) )
@@ -239,7 +239,7 @@ static int
 check_secret_key( RSA_secret_key *sk )
 {
     int rc;
-    MPI temp = mpi_alloc( mpi_get_nlimbs(sk->p)*2 );
+    gcry_mpi_t temp = mpi_alloc( mpi_get_nlimbs(sk->p)*2 );
 
     mpi_mul(temp, sk->p, sk->q );
     rc = mpi_cmp( temp, sk->n );
@@ -257,10 +257,10 @@ check_secret_key( RSA_secret_key *sk )
  * Where c is OUTPUT, m is INPUT and e,n are elements of PKEY.
  */
 static void
-public(MPI output, MPI input, RSA_public_key *pkey )
+public(gcry_mpi_t output, gcry_mpi_t input, RSA_public_key *pkey )
 {
     if( output == input ) { /* powm doesn't like output and input the same */
-	MPI x = mpi_alloc( mpi_get_nlimbs(input)*2 );
+	gcry_mpi_t x = mpi_alloc( mpi_get_nlimbs(input)*2 );
 	mpi_powm( x, input, pkey->e, pkey->n );
 	mpi_set(output, x);
 	mpi_free(x);
@@ -273,10 +273,10 @@ public(MPI output, MPI input, RSA_public_key *pkey )
 static void
 stronger_key_check ( RSA_secret_key *skey )
 {
-  MPI t = mpi_alloc_secure ( 0 );
-  MPI t1 = mpi_alloc_secure ( 0 );
-  MPI t2 = mpi_alloc_secure ( 0 );
-  MPI phi = mpi_alloc_secure ( 0 );
+  gcry_mpi_t t = mpi_alloc_secure ( 0 );
+  gcry_mpi_t t1 = mpi_alloc_secure ( 0 );
+  gcry_mpi_t t2 = mpi_alloc_secure ( 0 );
+  gcry_mpi_t phi = mpi_alloc_secure ( 0 );
 
   /* check that n == p * q */
   mpi_mul( t, skey->p, skey->q);
@@ -349,14 +349,14 @@ stronger_key_check ( RSA_secret_key *skey )
  * Where m is OUTPUT, c is INPUT and d,n,p,q,u are elements of SKEY.
  */
 static void
-secret(MPI output, MPI input, RSA_secret_key *skey )
+secret(gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
 {
 #if 0
     mpi_powm( output, input, skey->d, skey->n );
 #else
-    MPI m1   = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
-    MPI m2   = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
-    MPI h    = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
+    gcry_mpi_t m1   = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
+    gcry_mpi_t m2   = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
+    gcry_mpi_t h    = mpi_alloc_secure( mpi_get_nlimbs(skey->n)+1 );
 
     /* m1 = c ^ (d mod (p-1)) mod p */
     mpi_sub_ui( h, skey->p, 1  );
@@ -390,7 +390,7 @@ secret(MPI output, MPI input, RSA_secret_key *skey )
 
 gpg_err_code_t
 _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
-                    MPI *skey, MPI **retfactors)
+                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   RSA_secret_key sk;
 
@@ -410,7 +410,7 @@ _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
 
 
 gpg_err_code_t
-_gcry_rsa_check_secret_key( int algo, MPI *skey )
+_gcry_rsa_check_secret_key( int algo, gcry_mpi_t *skey )
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   RSA_secret_key sk;
@@ -430,7 +430,7 @@ _gcry_rsa_check_secret_key( int algo, MPI *skey )
 
 
 gpg_err_code_t
-_gcry_rsa_encrypt (int algo, MPI *resarr, MPI data, MPI *pkey,
+_gcry_rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey,
 		   int flags)
 {
   RSA_public_key pk;
@@ -445,7 +445,7 @@ _gcry_rsa_encrypt (int algo, MPI *resarr, MPI data, MPI *pkey,
 
 /* Perform RSA blinding.  */
 gcry_mpi_t
-_gcry_rsa_blind (MPI x, MPI r, MPI e, MPI n)
+_gcry_rsa_blind (gcry_mpi_t x, gcry_mpi_t r, gcry_mpi_t e, gcry_mpi_t n)
 {
   /* A helper.  */
   gcry_mpi_t a;
@@ -469,7 +469,7 @@ _gcry_rsa_blind (MPI x, MPI r, MPI e, MPI n)
 
 /* Undo RSA blinding.  */
 gcry_mpi_t
-_gcry_rsa_unblind (MPI x, MPI ri, MPI n)
+_gcry_rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
 {
   gcry_mpi_t y;
 
@@ -485,7 +485,7 @@ _gcry_rsa_unblind (MPI x, MPI ri, MPI n)
 }
 
 gpg_err_code_t
-_gcry_rsa_decrypt (int algo, MPI *result, MPI *data, MPI *skey,
+_gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey,
 		   int flags)
 {
   RSA_secret_key sk;
@@ -560,7 +560,7 @@ _gcry_rsa_decrypt (int algo, MPI *result, MPI *data, MPI *skey,
 }
 
 gpg_err_code_t
-_gcry_rsa_sign (int algo, MPI *resarr, MPI data, MPI *skey)
+_gcry_rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   RSA_secret_key sk;
   
@@ -577,12 +577,12 @@ _gcry_rsa_sign (int algo, MPI *resarr, MPI data, MPI *skey)
 }
 
 gpg_err_code_t
-_gcry_rsa_verify (int algo, MPI hash, MPI *data, MPI *pkey,
-		  int (*cmp) (void *opaque, MPI tmp),
+_gcry_rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+		  int (*cmp) (void *opaque, gcry_mpi_t tmp),
 		  void *opaquev)
 {
   RSA_public_key pk;
-  MPI result;
+  gcry_mpi_t result;
   gpg_err_code_t rc;
 
   pk.n = pkey[0];
@@ -598,7 +598,7 @@ _gcry_rsa_verify (int algo, MPI hash, MPI *data, MPI *pkey,
 
 
 unsigned int
-_gcry_rsa_get_nbits (int algo, MPI *pkey)
+_gcry_rsa_get_nbits (int algo, gcry_mpi_t *pkey)
 {
   return mpi_get_nbits (pkey[0]);
 }

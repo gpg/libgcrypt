@@ -37,6 +37,27 @@ random.c random.h \
 rand-internal.h \
 rmd.h
 
+EXTRA_libcipher_la_SOURCES = \
+arcfour.c \
+blowfish.c \
+cast5.c \
+crc.c \
+des.c \
+dsa.c \
+elgamal.c \
+md4.c \
+md5.c \
+rijndael.c \
+rmd160.c \
+rndegd.c \
+endunix.c \
+rndnw32.c \
+rsa.c \
+sha256.c \
+sha512.c \
+tiger.c \
+twofish.c
+
 # We need to lower the optimization for this module.
 tiger.o: $(srcdir)/tiger.c
 	`echo $(COMPILE) -c $(srcdir)/tiger.c | sed -e 's/-O[2-9s]*/-O1/g' `

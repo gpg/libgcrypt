@@ -164,7 +164,7 @@ transform( RMD160_CONTEXT *hd, byte *data )
 {
   register u32 a,b,c,d,e;
   u32 aa,bb,cc,dd,ee,t;
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
   u32 x[16];
   { int i;
   byte *p2, *p1;
@@ -501,7 +501,7 @@ rmd160_final( void *context )
     _gcry_burn_stack (108+5*sizeof(void*));
 
     p = hd->buf;
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
 #define X(a) do { *p++ = hd->h##a	   ; *p++ = hd->h##a >> 8;	\
 		      *p++ = hd->h##a >> 16; *p++ = hd->h##a >> 24; } while(0)
 #else /* little endian */

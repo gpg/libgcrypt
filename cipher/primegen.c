@@ -32,10 +32,10 @@
 #include "mpi.h"
 #include "cipher.h"
 
-static MPI gen_prime (unsigned int nbits, int secret, int randomlevel, 
-                      int (*extra_check)(void *, MPI), void *extra_check_arg);
-static int check_prime( MPI prime, MPI val_2 );
-static int is_prime( MPI n, int steps, int *count );
+static gcry_mpi_t gen_prime (unsigned int nbits, int secret, int randomlevel, 
+                      int (*extra_check)(void *, gcry_mpi_t), void *extra_check_arg);
+static int check_prime( gcry_mpi_t prime, gcry_mpi_t val_2 );
+static int is_prime( gcry_mpi_t n, int steps, int *count );
 static void m_out_of_n( char *array, int m, int n );
 
 static void (*progress_cb) (void *,const char*,int,int, int );
@@ -146,24 +146,24 @@ progress( int c )
 /****************
  * Generate a prime number (stored in secure memory)
  */
-MPI
+gcry_mpi_t
 _gcry_generate_secret_prime (unsigned int nbits,
-                             int (*extra_check)(void*, MPI),
+                             int (*extra_check)(void*, gcry_mpi_t),
                              void *extra_check_arg)
 {
-    MPI prime;
+    gcry_mpi_t prime;
 
     prime = gen_prime( nbits, 1, 2, extra_check, extra_check_arg);
     progress('\n');
     return prime;
 }
 
-MPI
+gcry_mpi_t
 _gcry_generate_public_prime( unsigned int nbits,
-                             int (*extra_check)(void*, MPI),
+                             int (*extra_check)(void*, gcry_mpi_t),
                              void *extra_check_arg)
 {
-    MPI prime;
+    gcry_mpi_t prime;
 
     prime = gen_prime( nbits, 0, 2, extra_check, extra_check_arg );
     progress('\n');
@@ -180,24 +180,24 @@ _gcry_generate_public_prime( unsigned int nbits,
  * mode 0: Standard
  *	1: Make sure that at least one factor is of size qbits.
  */
-MPI
+gcry_mpi_t
 _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
-		    MPI g, MPI **ret_factors )
+		    gcry_mpi_t g, gcry_mpi_t **ret_factors )
 {
     int n;  /* number of factors */
     int m;  /* number of primes in pool */
     unsigned fbits; /* length of prime factors */
-    MPI *factors; /* current factors */
-    MPI *pool;	/* pool of primes */
-    MPI q;	/* first prime factor (variable)*/
-    MPI prime;	/* prime test value */
-    MPI q_factor; /* used for mode 1 */
+    gcry_mpi_t *factors; /* current factors */
+    gcry_mpi_t *pool;	/* pool of primes */
+    gcry_mpi_t q;	/* first prime factor (variable)*/
+    gcry_mpi_t prime;	/* prime test value */
+    gcry_mpi_t q_factor; /* used for mode 1 */
     byte *perms = NULL;
     int i, j;
     int count1, count2;
     unsigned nprime;
     unsigned req_qbits = qbits; /* the requested q bits size */
-    MPI val_2  = mpi_alloc_set_ui( 2 );
+    gcry_mpi_t val_2  = mpi_alloc_set_ui( 2 );
 
     /* find number of needed prime factors */
     for(n=1; (pbits - qbits - 1) / n  >= qbits; n++ )
@@ -330,9 +330,9 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
     }
 
     if( g ) { /* create a generator (start with 3)*/
-	MPI tmp   = mpi_alloc( mpi_get_nlimbs(prime) );
-	MPI b	  = mpi_alloc( mpi_get_nlimbs(prime) );
-	MPI pmin1 = mpi_alloc( mpi_get_nlimbs(prime) );
+	gcry_mpi_t tmp   = mpi_alloc( mpi_get_nlimbs(prime) );
+	gcry_mpi_t b	  = mpi_alloc( mpi_get_nlimbs(prime) );
+	gcry_mpi_t pmin1 = mpi_alloc( mpi_get_nlimbs(prime) );
 
 	if( mode == 1 )
 	    BUG(); /* not yet implemented */
@@ -382,11 +382,11 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 
 
 
-static MPI
+static gcry_mpi_t
 gen_prime (unsigned int nbits, int secret, int randomlevel, 
-           int (*extra_check)(void *, MPI), void *extra_check_arg)
+           int (*extra_check)(void *, gcry_mpi_t), void *extra_check_arg)
 {
-  MPI prime, ptest, pminus1, val_2, val_3, result;
+  gcry_mpi_t prime, ptest, pminus1, val_2, val_3, result;
   int i;
   unsigned x, step;
   unsigned count1, count2;
@@ -396,7 +396,7 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
     log_debug("generate a prime of %u bits ", nbits );
 
   mods = gcry_xmalloc( no_of_small_prime_numbers * sizeof *mods );
-  /* make nbits fit into MPI implementation */
+  /* make nbits fit into gcry_mpi_t implementation */
   val_2  = mpi_alloc_set_ui( 2 );
   val_3 = mpi_alloc_set_ui( 3);
   prime  = secret? gcry_mpi_snew ( nbits ): gcry_mpi_new ( nbits );
@@ -487,7 +487,7 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
  * Returns: true if this may be a prime
  */
 static int
-check_prime( MPI prime, MPI val_2 )
+check_prime( gcry_mpi_t prime, gcry_mpi_t val_2 )
 {
     int i;
     unsigned x;
@@ -501,8 +501,8 @@ check_prime( MPI prime, MPI val_2 )
 
     /* a quick fermat test */
     {
-	MPI result = mpi_alloc_like( prime );
-	MPI pminus1 = mpi_alloc_like( prime );
+	gcry_mpi_t result = mpi_alloc_like( prime );
+	gcry_mpi_t pminus1 = mpi_alloc_like( prime );
 	mpi_sub_ui( pminus1, prime, 1);
 	gcry_mpi_powm( result, val_2, pminus1, prime );
 	mpi_free( pminus1 );
@@ -526,14 +526,14 @@ check_prime( MPI prime, MPI val_2 )
  * Return true if n is probably a prime
  */
 static int
-is_prime( MPI n, int steps, int *count )
+is_prime( gcry_mpi_t n, int steps, int *count )
 {
-    MPI x = mpi_alloc( mpi_get_nlimbs( n ) );
-    MPI y = mpi_alloc( mpi_get_nlimbs( n ) );
-    MPI z = mpi_alloc( mpi_get_nlimbs( n ) );
-    MPI nminus1 = mpi_alloc( mpi_get_nlimbs( n ) );
-    MPI a2 = mpi_alloc_set_ui( 2 );
-    MPI q;
+    gcry_mpi_t x = mpi_alloc( mpi_get_nlimbs( n ) );
+    gcry_mpi_t y = mpi_alloc( mpi_get_nlimbs( n ) );
+    gcry_mpi_t z = mpi_alloc( mpi_get_nlimbs( n ) );
+    gcry_mpi_t nminus1 = mpi_alloc( mpi_get_nlimbs( n ) );
+    gcry_mpi_t a2 = mpi_alloc_set_ui( 2 );
+    gcry_mpi_t q;
     unsigned i, j, k;
     int rc = 0;
     unsigned nbits = mpi_get_nbits( n );

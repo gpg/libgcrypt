@@ -22,9 +22,6 @@
 
 #include "types.h"
 
-/*-- random.c --*/
-#define fast_random_poll() _gcry_fast_random_poll ()
-
 void _gcry_random_initialize (void);
 void _gcry_register_random_progress (void (*cb)(void *,const char*,int,int,int),
                                      void *cb_data );

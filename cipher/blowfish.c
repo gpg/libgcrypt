@@ -248,7 +248,7 @@ function_F( BLOWFISH_context *bc, u32 x )
 {
     u16 a, b, c, d;
 
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
     a = ((byte*)&x)[0];
     b = ((byte*)&x)[1];
     c = ((byte*)&x)[2];
@@ -264,7 +264,7 @@ function_F( BLOWFISH_context *bc, u32 x )
 }
 #endif
 
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
 #define F(x) ((( s0[((byte*)&x)[0]] + s1[((byte*)&x)[1]])	 \
 		   ^ s2[((byte*)&x)[2]]) + s3[((byte*)&x)[3]] )
 #else
@@ -517,7 +517,7 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
     }
 
     for(i=j=0; i < BLOWFISH_ROUNDS+2; i++ ) {
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
 	((byte*)&data)[0] = key[j];
 	((byte*)&data)[1] = key[(j+1)%keylen];
 	((byte*)&data)[2] = key[(j+2)%keylen];

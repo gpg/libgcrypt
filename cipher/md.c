@@ -86,7 +86,7 @@ static struct
 #if USE_SHA256
     { &digest_spec_sha256, 0 },
 #endif
-#if USE_SHA256
+#if USE_SHA512
     { &digest_spec_sha512, 0 },
     { &digest_spec_sha384, 0 },
 #endif
@@ -441,7 +441,7 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
   if (! err)
     {
       /* FIXME: should we really do that? */
-      fast_random_poll ();
+      _gcry_fast_random_poll ();
 
       if (algo)
 	{

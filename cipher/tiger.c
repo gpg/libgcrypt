@@ -670,7 +670,7 @@ transform( TIGER_CONTEXT *hd, byte *data )
 {
     u64 a,b,c,aa,bb,cc;
     u64 x[8];
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
 #define MKWORD(d,n) \
 		(  ((u64)(d)[8*(n)+7]) << 56 | ((u64)(d)[8*(n)+6]) << 48  \
 		 | ((u64)(d)[8*(n)+5]) << 40 | ((u64)(d)[8*(n)+4]) << 32  \
@@ -800,7 +800,7 @@ tiger_final( void *context )
     _gcry_burn_stack (21*8+11*sizeof(void*));
 
     p = hd->buf;
-#ifdef BIG_ENDIAN_HOST
+#ifdef WORDS_BIGENDIAN
 #define X(a) do { *(u64*)p = hd->a ; p += 8; } while(0)
 #else /* little endian */
 #define X(a) do { *p++ = hd->a >> 56; *p++ = hd->a >> 48; \

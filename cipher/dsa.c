@@ -30,29 +30,29 @@
 
 typedef struct
 {
-  MPI p;	    /* prime */
-  MPI q;	    /* group order */
-  MPI g;	    /* group generator */
-  MPI y;	    /* g^x mod p */
+  gcry_mpi_t p;	    /* prime */
+  gcry_mpi_t q;	    /* group order */
+  gcry_mpi_t g;	    /* group generator */
+  gcry_mpi_t y;	    /* g^x mod p */
 } DSA_public_key;
 
 
 typedef struct
 {
-  MPI p;	    /* prime */
-  MPI q;	    /* group order */
-  MPI g;	    /* group generator */
-  MPI y;	    /* g^x mod p */
-  MPI x;	    /* secret exponent */
+  gcry_mpi_t p;	    /* prime */
+  gcry_mpi_t q;	    /* group order */
+  gcry_mpi_t g;	    /* group generator */
+  gcry_mpi_t y;	    /* g^x mod p */
+  gcry_mpi_t x;	    /* secret exponent */
 } DSA_secret_key;
 
 
-static MPI gen_k (MPI q);
+static gcry_mpi_t gen_k (gcry_mpi_t q);
 static void test_keys (DSA_secret_key *sk, unsigned qbits);
 static int check_secret_key (DSA_secret_key *sk);
-static void generate (DSA_secret_key *sk, unsigned nbits, MPI **ret_factors);
-static void sign (MPI r, MPI s, MPI input, DSA_secret_key *skey);
-static int verify (MPI r, MPI s, MPI input, DSA_public_key *pkey);
+static void generate (DSA_secret_key *sk, unsigned nbits, gcry_mpi_t **ret_factors);
+static void sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey);
+static int verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_public_key *pkey);
 
 static void (*progress_cb) (void *,const char *, int, int, int );
 static void *progress_cb_data;
@@ -78,10 +78,10 @@ progress (int c)
 /****************
  * Generate a random secret exponent k less than q
  */
-static MPI
-gen_k( MPI q )
+static gcry_mpi_t
+gen_k( gcry_mpi_t q )
 {
-    MPI k = mpi_alloc_secure( mpi_get_nlimbs(q) );
+    gcry_mpi_t k = mpi_alloc_secure( mpi_get_nlimbs(q) );
     unsigned int nbits = mpi_get_nbits(q);
     unsigned int nbytes = (nbits+7)/8;
     char *rndbuf = NULL;
@@ -137,9 +137,9 @@ static void
 test_keys( DSA_secret_key *sk, unsigned qbits )
 {
     DSA_public_key pk;
-    MPI test = gcry_mpi_new ( qbits  );
-    MPI out1_a = gcry_mpi_new ( qbits );
-    MPI out1_b = gcry_mpi_new ( qbits );
+    gcry_mpi_t test = gcry_mpi_new ( qbits  );
+    gcry_mpi_t out1_a = gcry_mpi_new ( qbits );
+    gcry_mpi_t out1_b = gcry_mpi_new ( qbits );
 
     pk.p = sk->p;
     pk.q = sk->q;
@@ -164,14 +164,14 @@ test_keys( DSA_secret_key *sk, unsigned qbits )
  *	    and an array with the n-1 factors of (p-1)
  */
 static void
-generate( DSA_secret_key *sk, unsigned nbits, MPI **ret_factors )
+generate( DSA_secret_key *sk, unsigned nbits, gcry_mpi_t **ret_factors )
 {
-    MPI p;    /* the prime */
-    MPI q;    /* the 160 bit prime factor */
-    MPI g;    /* the generator */
-    MPI y;    /* g^x mod p */
-    MPI x;    /* the secret exponent */
-    MPI h, e;  /* helper */
+    gcry_mpi_t p;    /* the prime */
+    gcry_mpi_t q;    /* the 160 bit prime factor */
+    gcry_mpi_t g;    /* the generator */
+    gcry_mpi_t y;    /* g^x mod p */
+    gcry_mpi_t x;    /* the secret exponent */
+    gcry_mpi_t h, e;  /* helper */
     unsigned qbits;
     byte *rndbuf;
 
@@ -260,7 +260,7 @@ static int
 check_secret_key( DSA_secret_key *sk )
 {
     int rc;
-    MPI y = mpi_alloc( mpi_get_nlimbs(sk->y) );
+    gcry_mpi_t y = mpi_alloc( mpi_get_nlimbs(sk->y) );
 
     gcry_mpi_powm( y, sk->g, sk->x, sk->p );
     rc = !mpi_cmp( y, sk->y );
@@ -275,11 +275,11 @@ check_secret_key( DSA_secret_key *sk )
  */
 
 static void
-sign(MPI r, MPI s, MPI hash, DSA_secret_key *skey )
+sign(gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_secret_key *skey )
 {
-    MPI k;
-    MPI kinv;
-    MPI tmp;
+    gcry_mpi_t k;
+    gcry_mpi_t kinv;
+    gcry_mpi_t tmp;
 
     /* select a random k with 0 < k < q */
     k = gen_k( skey->q );
@@ -308,12 +308,12 @@ sign(MPI r, MPI s, MPI hash, DSA_secret_key *skey )
  * Returns true if the signature composed from R and S is valid.
  */
 static int
-verify(MPI r, MPI s, MPI hash, DSA_public_key *pkey )
+verify(gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_public_key *pkey )
 {
     int rc;
-    MPI w, u1, u2, v;
-    MPI base[3];
-    MPI exp[3];
+    gcry_mpi_t w, u1, u2, v;
+    gcry_mpi_t base[3];
+    gcry_mpi_t exp[3];
 
 
     if( !(mpi_cmp_ui( r, 0 ) > 0 && mpi_cmp( r, pkey->q ) < 0) )
@@ -358,7 +358,7 @@ verify(MPI r, MPI s, MPI hash, DSA_public_key *pkey )
 
 gpg_err_code_t
 _gcry_dsa_generate (int algo, unsigned nbits, unsigned long dummy,
-                    MPI *skey, MPI **retfactors)
+                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   DSA_secret_key sk;
 
@@ -374,7 +374,7 @@ _gcry_dsa_generate (int algo, unsigned nbits, unsigned long dummy,
 
 
 gpg_err_code_t
-_gcry_dsa_check_secret_key (int algo, MPI *skey)
+_gcry_dsa_check_secret_key (int algo, gcry_mpi_t *skey)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_secret_key sk;
@@ -397,7 +397,7 @@ _gcry_dsa_check_secret_key (int algo, MPI *skey)
 
 
 gpg_err_code_t
-_gcry_dsa_sign (int algo, MPI *resarr, MPI data, MPI *skey)
+_gcry_dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_secret_key sk;
@@ -421,8 +421,8 @@ _gcry_dsa_sign (int algo, MPI *resarr, MPI data, MPI *skey)
 }
 
 gpg_err_code_t
-_gcry_dsa_verify (int algo, MPI hash, MPI *data, MPI *pkey,
-		  int (*cmp) (void *, MPI), void *opaquev)
+_gcry_dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+		  int (*cmp) (void *, gcry_mpi_t), void *opaquev)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_public_key pk;
@@ -444,7 +444,7 @@ _gcry_dsa_verify (int algo, MPI hash, MPI *data, MPI *pkey,
 
 
 unsigned int
-_gcry_dsa_get_nbits (int algo, MPI *pkey)
+_gcry_dsa_get_nbits (int algo, gcry_mpi_t *pkey)
 {
   return mpi_get_nbits (pkey[0]);
 }
