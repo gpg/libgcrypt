@@ -1,3 +1,7 @@
+2003-12-04  Werner Koch  <wk@gnupg.org>
+
+	* Makefile.am (gcrypt_TEXINFOS): Removed fdl.texi.
+
 2003-12-03  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi: Changed license from FDL to GPL because this is a

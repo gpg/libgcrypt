@@ -20,5 +20,5 @@
 DISTCLEANFILES = gcrypt.cps
 
 info_TEXINFOS = gcrypt.texi
-gcrypt_TEXINFOS = lgpl.texi gpl.texi fdl.texi
+gcrypt_TEXINFOS = lgpl.texi gpl.texi
 
