@@ -75,3 +75,39 @@
     less to protect the freedom of the users of the code that it
     covers.  See http://www.gnu.org/philosophy/why-not-lgpl.html for
     more explanation.
+
+
+    Configure options 
+    -----------------
+    Here is a list of configure options which are sometime useful 
+    for installation.
+
+     --enable-m-guard
+                     Enable the integrated malloc checking code. Please
+                     note that this feature does not work on all CPUs
+                     (e.g. SunOS 5.7 on UltraSparc-2) and might give
+                     you a bus error.
+
+     --disable-asm
+                     Do not use assembler modules.  It is not possible 
+                     to use this on some CPU types.
+                    
+     --enable-ld-version-script
+                     Libgcrypt tries to build a library where internal
+                     symbols are not exported.  This requires support
+                     from ld and is currently enabled for a few OSes.
+                     If you know that your ld supports the so called
+                     ELF version scripts, you can use this option to
+                     force its use.  OTOH, if you get error message
+                     from the linker, you probably want to use this
+                     option to disable the use of version scripts.
+                     Note, that you should never ever use an
+                     undocumented symbol or one which is prefixed with
+                     an underscore.
+                    
+
+                   
+
+
+
+

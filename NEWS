@@ -1,6 +1,9 @@
 Noteworthy changes in version 1.1.13 (unreleased)
 -------------------------------------------------
 
+ * CRC-32, CRC-32 a'la RFC 1510, CRC-24 a'la RFC 2440 is now
+   supported.
+
  * SHA-256 is now supported.
 
 Noteworthy changes in version 1.1.12 (2003-01-20)

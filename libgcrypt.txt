@@ -23,7 +23,7 @@ of this license is included in the file <a href="COPYING.DOC">COPYING.DOC</a>.
 based on the code from GnuPG.  It provides functions for all
 cryptograhic building blocks: symmetric ciphers
 (AES,DES,Blowfish,CAST5,Twofish,Arcfour), hash algorithms (MD4, MD5,
-RIPE-MD160, SHA-1, TIGER-192), MACs (HMAC for all hash algorithms),
+RIPE-MD160, SHA-1, SHA-256, TIGER-192), MACs (HMAC for all hash algorithms),
 public key algorithms (RSA, ElGamal, DSA), large integer functions,
 random numbers and a lot of supporting functions.
 
