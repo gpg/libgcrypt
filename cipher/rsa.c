@@ -547,6 +547,8 @@ _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
       
       gcry_mpi_release (y);
       y = rsa_unblind (a, ri, sk.n);
+
+      gcry_mpi_release (a);
     }
 
   if (! (flags & PUBKEY_FLAG_NO_BLINDING))
