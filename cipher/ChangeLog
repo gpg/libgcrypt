@@ -1,3 +1,9 @@
+2002-08-26  Werner Koch  <wk@gnupg.org>
+
+	* des.c (weak_keys): Fixed one entry in the table and compared
+	all entries against the literature.
+	(selftest): Checksum the weak key table.
+
 2002-08-21  Werner Koch  <wk@gnupg.org>
 
 	* pubkey.c: Enable keygrip calculation for "openpgp-rsa".
