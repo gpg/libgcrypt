@@ -1,3 +1,7 @@
+2004-01-12  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c (check_one): Adjust to new ac API.
+
 2003-11-22  Werner Koch  <wk@gnupg.org>
 
 	* pubkey.c (check_keys_crypt): Fixed my last patch.

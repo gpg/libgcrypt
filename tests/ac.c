@@ -69,7 +69,7 @@ check_one (gcry_mpi_t x)
   err = gcry_ac_open (&handle, GCRY_AC_RSA, 0);
   assert (! err);
 
-  err = gcry_ac_key_pair_generate (handle, &key_pair, 1024, (void *) &rsa_spec);
+  err = gcry_ac_key_pair_generate (handle, 1024, &rsa_spec, &key_pair, NULL);
   assert (! err);
 
   key_sec = gcry_ac_key_pair_extract (key_pair, GCRY_AC_KEY_SECRET);
@@ -78,12 +78,10 @@ check_one (gcry_mpi_t x)
   key_pub = gcry_ac_key_pair_extract (key_pair, GCRY_AC_KEY_PUBLIC);
   key_copy (handle, GCRY_AC_KEY_PUBLIC, &key_pub_cp, key_pub);
 
-  err = gcry_ac_data_encrypt (handle, GCRY_AC_FLAG_DATA_NO_BLINDING,
-			      key_pub_cp, x, &data);
+  err = gcry_ac_data_encrypt (handle, GCRY_AC_FLAG_NO_BLINDING, key_pub_cp, x, &data);
   assert (! err);
 
-  err = gcry_ac_data_decrypt (handle, GCRY_AC_FLAG_DATA_NO_BLINDING,
-			      key_sec_cp, &x2, data);
+  err = gcry_ac_data_decrypt (handle, GCRY_AC_FLAG_NO_BLINDING, key_sec_cp, &x2, data);
   assert (! err);
 
   assert (! gcry_mpi_cmp (x, x2));
@@ -110,13 +108,10 @@ check_one (gcry_mpi_t x)
     const char *label;
     gcry_mpi_t y;
 
-    err = gcry_ac_data_get_index (data, 0, &label, &y);
+    err = gcry_ac_data_get_index (data, 0, 0, &label, &y);
     assert (! err);
     gcry_mpi_add_ui (y, y, 1);
     
-    err = gcry_ac_data_set (data, label, y);
-    assert (! err);
-
     err = gcry_ac_data_verify (handle, key_pub, x, data);
     assert (gcry_err_code (err) == GPG_ERR_BAD_SIGNATURE);
   }
