@@ -550,7 +550,9 @@ check_ciphers (void)
   for (i = 0; algos[i]; i++)
     {
       if (verbose)
-	fprintf (stderr, "checking `%s'\n", gcry_cipher_algo_name (algos[i]));
+	fprintf (stderr, "checking `%s' [%i]\n",
+		 gcry_cipher_algo_name (algos[i]),
+		 gcry_cipher_map_name (gcry_cipher_algo_name (algos[i])));
 
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_ECB, 0);
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CFB, 0);

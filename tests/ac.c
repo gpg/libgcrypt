@@ -40,14 +40,13 @@ die (const char *format, ...)
 }
 
 void
-check_run (void)
+check_one (gcry_mpi_t x)
 {
   gcry_ac_handle_t handle;
   gcry_ac_key_pair_t key_pair;
   gcry_ac_key_t key_sec, key_pub;
   gcry_error_t err = 0;
-  unsigned int a = 0x4223;
-  gcry_mpi_t x, x2;
+  gcry_mpi_t x2;
   gcry_ac_data_t data, data2;
   gcry_ac_key_spec_rsa_t rsa_spec;
 
@@ -56,9 +55,6 @@ check_run (void)
 
   err = gcry_ac_open (&handle, GCRY_AC_RSA, 0);
   assert (! err);
-
-  x = gcry_mpi_new (0);
-  gcry_mpi_set_ui (x, a);
 
   err = gcry_ac_key_pair_generate (handle, &key_pair, 1024, (void *) &rsa_spec);
   assert (! err);
@@ -110,6 +106,19 @@ check_run (void)
   }
 
   gcry_ac_close (handle);
+}
+
+void
+check_run (void)
+{
+  const char *s = "All Hail Discordia.";
+  unsigned int a = 0x4223;
+  gcry_mpi_t x;
+
+  x = gcry_mpi_new (0);
+  gcry_mpi_set_ui (x, a);
+  check_one (x);
+  gcry_mpi_release (x);
 }
 
 int

@@ -1,3 +1,15 @@
+2003-07-22  Moritz Schulte  <moritz@g10code.com>
+
+	* basic.c (check_ciphers): Use gcry_cipher_map_name.
+
+2003-07-18  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c (check_run): Renamed to ...
+	(check_one): ... this, changed calling interface.
+	(check_run): New function.
+
+	* register.c: Adjust gcry_cipher_spec_t structure.
+
 2003-07-14  Moritz Schulte  <moritz@g10code.com>
 
 	* register.c: Adjust cipher specification structure.

@@ -67,7 +67,7 @@ foo_decrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
 
 gcry_cipher_spec_t cipher_spec_foo =
   {
-    "FOO", NULL, 16, 0, 0,
+    "FOO", NULL, NULL, 16, 0, 0,
     foo_setkey, foo_encrypt, foo_decrypt,
     NULL, NULL,
   };
