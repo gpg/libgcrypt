@@ -9,6 +9,12 @@
 	* acinclude.m4 (GNUPG_SYS_SYMBOL_UNDERSCORE): Re-implemented.
 	* configure.ac: Use it here.
 
+2003-08-27  Moritz Schulte  <mo@g10code.com>
+
+	* configure.ac: Substitute: LIBGCRYPT_CONFIG_LIBS_PTHREAD,
+	LIBGCRYPT_CONFIG_CFLAGS_PTHREAD, LIBGCRYPT_CONFIG_LIBS_PTH,
+	LIBGCRYPT_CONFIG_CFLAGS_PTH, LIBGCRYPT_THREAD_MODULES.
+
 2003-08-07  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Fail, if libgpg-error could not be found.
