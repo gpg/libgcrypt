@@ -489,6 +489,7 @@ prime_generate_internal (int mode,
 
   mpi_free (val_2);
   mpi_free (q);
+  mpi_free (q_factor);
 
   if (! err)
     {
@@ -504,6 +505,7 @@ prime_generate_internal (int mode,
 	    mpi_free (factors_new[i]);
 	  gcry_free (factors_new);
 	}
+      mpi_free (prime);
     }
 
   return err;

@@ -1,3 +1,9 @@
+2004-01-25  Moritz Schulte  <mo@g10code.com>
+
+	* primegen.c (prime_generate_internal): Do not forget to free
+	`q_factor'; fixed by Brieuc Jeunhomme.
+	(prime_generate_internal): Do not forget to free `prime'.
+
 2004-01-14  Moritz Schulte  <mo@g10code.com>
 
 	* ac.c (gcry_ac_data_set): New argument: flags; slightly
