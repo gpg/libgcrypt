@@ -7,6 +7,11 @@
 
 	* mpiutil.c (_gcry_mpi_get_ui, gcry_mpi_get_ui): New functions.
 
+2005-01-05  Werner Koch  <wk@g10code.com>
+
+	* hppa1.1/udiv-qrnnd.S: Reverted change of 2004-03-02 but kept the
+	.align directive.
+
 2004-12-16  Werner Koch  <wk@g10code.com>
 
 	* config.links (mpi_optional_modules): Move entry for powerpc64

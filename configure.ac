@@ -20,8 +20,8 @@
 #
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
-AC_PREREQ(2.57)
-min_automake_version="1.7.6"
+AC_PREREQ(2.59)
+min_automake_version="1.9.3"
 
 # Version number: Remember to change it immediately *after* a release
 # but remove a "-cvs" prefix right *before* a release and append it
@@ -40,7 +40,7 @@ LIBGCRYPT_LT_REVISION=1
 # If the API is changed in an incompatible way: increment the next counter.
 LIBGCRYPT_CONFIG_API_VERSION=1
 
-NEED_GPG_ERROR_VERSION=0.5
+NEED_GPG_ERROR_VERSION=1.0
 
 
 PACKAGE=$PACKAGE_NAME

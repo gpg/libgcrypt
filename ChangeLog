@@ -1,3 +1,15 @@
+2005-01-04  Werner Koch  <wk@g10code.com>
+
+	Updated to automake 1.9.
+	
+	* acinclude.m4: Updated for use with automake 1.9. 
+
+	* configure.ac: Require libgpg-error 1.0; not really needed but
+	that is the first stable version.
+
+	* Makefile.am (ACLOCAL_AMFLAGS): New for -I m4.
+	(AUTOMAKE_OPTIONS): New to create a bzip archive.
+
 2005-02-03  Moritz Schulte  <moritz@g10code.com>
 
 	* THANKS: Updated.
