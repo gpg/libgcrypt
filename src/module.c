@@ -23,6 +23,8 @@
 #include <errno.h>
 #include "g10lib.h"
 
+#define MODULE_ID_MIN 600
+
 /* Internal function.  Generate a new, unique module ID for a module
    that should be inserted into the module chain starting at
    MODULES.  */
@@ -31,7 +33,7 @@ _gcry_module_id_new (gcry_module_t modules, unsigned int *id_new)
 {
   /* FIXME, what should be the ID of the first module registered by
      the user?  */
-  unsigned int id_min = 600, id_max = (unsigned int) -1, mod_id;
+  unsigned int id_min = MODULE_ID_MIN, id_max = (unsigned int) -1, mod_id;
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_module_t module;
 
