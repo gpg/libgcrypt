@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <assert.h>
 
 #include "g10lib.h"
 #include "cipher.h"
@@ -51,7 +52,7 @@ static struct number_string
 static const char *ac_key_identifiers[] =
   {
     "private-key",
-    "public-key",
+    "public-key"
   };
 
 /* These specifications are needed for key-pair generation; the caller
@@ -87,7 +88,8 @@ struct gcry_ac_handle
 /* A named MPI value.  */
 typedef struct gcry_ac_mpi
 {
-  const char *name;		/* Name of MPI value. */
+  const char *name_provided;	/* Provided name of MPI value. */
+  char *name;			/* Self-maintained copy of name.  */
   gcry_mpi_t mpi;		/* MPI value.         */
   unsigned int flags;		/* Flags.             */
 } gcry_ac_mpi_t;
@@ -119,7 +121,7 @@ struct gcry_ac_key_pair
  * Functions for working with data sets.
  */
 
-/* Creates a new, empty data set and stores it in DATA.  */
+/* Creates a new, empty data set and store it in DATA.  */
 gcry_err_code_t
 _gcry_ac_data_new (gcry_ac_data_t *data)
 {
@@ -132,7 +134,7 @@ _gcry_ac_data_new (gcry_ac_data_t *data)
       err = gpg_err_code_from_errno (errno);
       goto out;
     }
-  
+
   data_new->data = NULL;
   data_new->data_n = 0;
   *data = data_new;
@@ -153,6 +155,7 @@ gcry_ac_data_new (gcry_ac_data_t *data)
   return gcry_error (err);
 }
 
+/* Destroys all the entries in DATA, but not DATA itself.  */
 static void
 ac_data_values_destroy (gcry_ac_data_t data)
 {
@@ -162,8 +165,8 @@ ac_data_values_destroy (gcry_ac_data_t data)
     {
       if (data->data[i].flags & GCRY_AC_FLAG_DEALLOC)
 	{
-	  gcry_free ((char *) data->data[i].name);
 	  gcry_mpi_release (data->data[i].mpi);
+	  gcry_free (data->data[i].name);
 	}
     }
 }
@@ -186,6 +189,9 @@ gcry_ac_data_destroy (gcry_ac_data_t data)
   return _gcry_ac_data_destroy (data);
 }
 
+/* This function creates a copy of the array of named MPIs DATA_MPIS,
+   which is of length DATA_MPIS_N; the copy is stored in
+   DATA_MPIS_CP.  */
 static gcry_err_code_t
 ac_data_mpi_copy (gcry_ac_mpi_t *data_mpis, unsigned int data_mpis_n,
 		  gcry_ac_mpi_t **data_mpis_cp)
@@ -194,11 +200,7 @@ ac_data_mpi_copy (gcry_ac_mpi_t *data_mpis, unsigned int data_mpis_n,
   gcry_err_code_t err;
   unsigned int i;
   gcry_mpi_t mpi;
-  const char *label;
-
-  data_mpis_new = NULL;
-  label = NULL;
-  mpi = NULL;
+  char *label;
 
   data_mpis_new = gcry_malloc (sizeof (*data_mpis_new) * data_mpis_n);
   if (! data_mpis_new)
@@ -208,37 +210,30 @@ ac_data_mpi_copy (gcry_ac_mpi_t *data_mpis, unsigned int data_mpis_n,
     }
   memset (data_mpis_new, 0, sizeof (*data_mpis_new) * data_mpis_n);
 
+  err = 0;
   for (i = 0; i < data_mpis_n; i++)
     {
-      if (data_mpis[i].flags & GCRY_AC_FLAG_DEALLOC)
-	{
-	  /* FIXME: semantics of FLAG_COPY?? */
-	  /* Copy values.  */
+      /* Copy values.  */
 
-	  label = strdup (data_mpis[i].name);
-	  mpi = gcry_mpi_copy (data_mpis[i].mpi);
-	  if (! (label && mpi))
-	    {
-	      err = gcry_err_code_from_errno (errno);
-	      if (label)
-		free ((void *) label);
-	      if (mpi)
-		gcry_mpi_release (mpi);
-	      goto out;
-	    }
-	}
+      if (data_mpis[i].name)
+	label = gcry_strdup (data_mpis[i].name);
       else
+	label = gcry_strdup (data_mpis[i].name_provided);
+      mpi = gcry_mpi_copy (data_mpis[i].mpi);
+      if (! (label && mpi))
 	{
-	  /* Reference existing values.  */
-
-	  label = data_mpis[i].name;
-	  mpi = data_mpis[i].mpi;
+	  err = gcry_err_code_from_errno (errno);
+	  gcry_mpi_release (mpi);
+	  gcry_free (label);
+	  break;
 	}
 
-      data_mpis_new[i].flags = data_mpis[i].flags;
+      data_mpis_new[i].flags = GCRY_AC_FLAG_DEALLOC;
       data_mpis_new[i].name = label;
       data_mpis_new[i].mpi = mpi;
     }
+  if (err)
+    goto out;
 
   *data_mpis_cp = data_mpis_new;
   err = 0;
@@ -250,11 +245,10 @@ ac_data_mpi_copy (gcry_ac_mpi_t *data_mpis, unsigned int data_mpis_n,
       if (data_mpis_new)
 	{
 	  for (i = 0; i < data_mpis_n; i++)
-	    if (data_mpis_new[i].flags & GCRY_AC_FLAG_COPY)
-	      {
-		gcry_free ((void *) data_mpis_new[i].name);
-		gcry_mpi_release (data_mpis_new[i].mpi);
-	      }
+	    {
+	      gcry_mpi_release (data_mpis_new[i].mpi);
+	      gcry_free (data_mpis_new[i].name);
+	    }
 	  gcry_free (data_mpis_new);
 	}
     }
@@ -323,13 +317,13 @@ gcry_err_code_t
 _gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
 		   const char *name, gcry_mpi_t mpi)
 {
-  const char *name_final;
-  gcry_mpi_t mpi_final;
+  gcry_mpi_t mpi_cp;
+  char *name_cp;
   gcry_err_code_t err;
   unsigned int i;
 
-  mpi_final = NULL;
-  name_final = NULL;
+  name_cp = NULL;
+  mpi_cp = NULL;
 
   if (flags & ~(GCRY_AC_FLAG_DEALLOC | GCRY_AC_FLAG_COPY))
     {
@@ -341,35 +335,28 @@ _gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
     {
       /* Create copies.  */
 
-      name_final = strdup (name);
-      mpi_final = gcry_mpi_copy (mpi);
-      if (! (name_final && mpi_final))
+      name_cp = gcry_strdup (name);
+      mpi_cp = gcry_mpi_copy (mpi);
+      if (! (name_cp && mpi_cp))
 	{
-	  err = gpg_err_code_from_errno (ENOMEM);
-	  if (name_final)
-	    free ((void *) name_final);
-	  if (mpi_final)
-	    gcry_mpi_release (mpi_final);
+	  err = gpg_err_code_from_errno (errno);
 	  goto out;
 	}
-    }
-  else
-    {
-      name_final = name;
-      mpi_final = mpi;
     }
 
   /* Search for existing entry.  */
   for (i = 0; i < data->data_n; i++)
-    if (! strcmp (name, data->data[i].name))
+    if (! strcmp (name,
+		  data->data[i].name
+		  ? data->data[i].name : data->data[i].name_provided))
       break;
   if (i < data->data_n)
     {
-      /* An entry for NAME does already exist, deallocate values.  */
+      /* An entry for NAME does already exist.  */
       if (data->data[i].flags & GCRY_AC_FLAG_DEALLOC)
 	{
-	  gcry_free ((char *) data->data[i].name);
 	  gcry_mpi_release (data->data[i].mpi);
+	  gcry_free (data->data[i].name);
 	}
     }
   else
@@ -385,14 +372,15 @@ _gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
 	  err = gpg_err_code_from_errno (errno);
 	  goto out;
 	}
-      
+
       if (data->data != ac_mpis)
 	data->data = ac_mpis;
       data->data_n++;
     }
 
-  data->data[i].name = name_final;
-  data->data[i].mpi = mpi_final;
+  data->data[i].name_provided = name_cp ? NULL : name;
+  data->data[i].name = name_cp;
+  data->data[i].mpi = mpi_cp ? mpi_cp : mpi;
   data->data[i].flags = flags;
   err = 0;
 
@@ -400,10 +388,8 @@ _gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
 
   if (err)
     {
-      if (name_final != name)
-	gcry_free ((void *) name_final);
-      if (mpi_final != mpi)
-	gcry_mpi_release (mpi);
+      gcry_mpi_release (mpi_cp);
+      gcry_free (name_cp);
     }
 
   return err;
@@ -435,7 +421,9 @@ _gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
     }
 
   for (i = 0; i < data->data_n; i++)
-    if (! strcmp (data->data[i].name, name))
+    if (! strcmp (name,
+		  data->data[i].name ?
+		  data->data[i].name : data->data[i].name_provided))
       break;
   if (i == data->data_n)
     {
@@ -479,9 +467,12 @@ _gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
 			 unsigned int idx,
 			 const char **name, gcry_mpi_t *mpi)
 {
-  const char *name_return;
-  gcry_mpi_t mpi_return;
+  gcry_mpi_t mpi_cp;
+  char *name_cp;
   gcry_err_code_t err;
+
+  name_cp = NULL;
+  mpi_cp = NULL;
 
   if (flags & ~(GCRY_AC_FLAG_COPY))
     {
@@ -495,15 +486,16 @@ _gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
       goto out;
     }
 
-  name_return = NULL;
-  mpi_return = NULL;
   if (flags & GCRY_AC_FLAG_COPY)
     {
       /* Return copies to the user.  */
       if (name)
 	{
-	  name_return = strdup (data->data[idx].name);
-	  if (! name_return)
+	  if (data->data[idx].name_provided)
+	    name_cp = gcry_strdup (data->data[idx].name_provided);
+	  else
+	    name_cp = gcry_strdup (data->data[idx].name);
+	  if (! name_cp)
 	    {
 	      err = gpg_err_code_from_errno (errno);
 	      goto out;
@@ -511,35 +503,29 @@ _gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
 	}
       if (mpi)
 	{
-	  mpi_return = gcry_mpi_copy (data->data[idx].mpi);
-	  if (! mpi_return)
+	  mpi_cp = gcry_mpi_copy (data->data[idx].mpi);
+	  if (! mpi_cp)
 	    {
 	      err = gpg_err_code_from_errno (errno);
 	      goto out;
 	    }
-	}	    
-    }
-  else
-    {
-      name_return = data->data[idx].name;
-      mpi_return = data->data[idx].mpi;
+	}
     }
 
   if (name)
-    *name = name_return;
+    *name = name_cp ? name_cp : (data->data[idx].name
+				 ? data->data[idx].name
+				 : data->data[idx].name_provided);
   if (mpi)
-    *mpi = mpi_return;
+    *mpi = mpi_cp ? mpi_cp : data->data[idx].mpi;
   err = 0;
 
  out:
 
   if (err)
     {
-      if (flags & GCRY_AC_FLAG_COPY)
-	{
-	  free ((void *) name_return);
-	  gcry_mpi_release (mpi_return);
-	}
+      gcry_mpi_release (mpi_cp);
+      gcry_free (name_cp);
     }
 
   return err;
@@ -691,7 +677,7 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
   string = NULL;
   mpi = NULL;
   err = 0;
-  
+
   /* Process S-expression/identifiers.  */
 
   i = 0;
@@ -724,7 +710,7 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
   if (err)
     goto out;
 
-  sexp_n = gcry_sexp_length (sexp);
+  sexp_n = gcry_sexp_length (sexp_cur);
   if (sexp_n < 1)
     {
       err = GPG_ERR_INV_SEXP;
@@ -765,6 +751,7 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
       mpi = NULL;
 
       gcry_sexp_release (sexp_tmp);
+      sexp_tmp = NULL;
     }
   if (err)
     goto out;
@@ -808,6 +795,296 @@ void
 gcry_ac_data_clear (gcry_ac_data_t data)
 {
   return _gcry_ac_data_clear (data);
+}
+
+
+
+/*
+ * Implementation of `ac io' objects.
+ */
+
+/* Initialize AC_IO according to MODE, TYPE and the variable list of
+   arguments AP.  The list of variable arguments to specify depends on
+   the given TYPE.  */
+static void
+_gcry_ac_io_init_va (gcry_ac_io_t *ac_io,
+		     gcry_ac_io_mode_t mode, gcry_ac_io_type_t type, va_list ap)
+{
+  memset (ac_io, 0, sizeof (*ac_io));
+
+  switch (mode)
+    {
+    case GCRY_AC_IO_READABLE:
+      switch (type)
+	{
+	case GCRY_AC_IO_STRING:
+	  ac_io->readable.string.data = va_arg (ap, unsigned char *);
+	  ac_io->readable.string.data_n = va_arg (ap, size_t);
+	  break;
+
+	case GCRY_AC_IO_CALLBACK:
+	  ac_io->readable.callback.cb = va_arg (ap, gcry_ac_data_read_cb_t);
+	  ac_io->readable.callback.opaque = va_arg (ap, void *);
+	  break;
+
+	default:
+	  /* FIXME? */
+	  break;
+	}
+      break;
+    case GCRY_AC_IO_WRITABLE:
+      switch (type)
+	{
+	case GCRY_AC_IO_STRING:
+	  ac_io->writable.string.data = va_arg (ap, unsigned char **);
+	  ac_io->writable.string.data_n = va_arg (ap, size_t *);
+	  break;
+
+	case GCRY_AC_IO_CALLBACK:
+	  ac_io->writable.callback.cb = va_arg (ap, gcry_ac_data_write_cb_t);
+	  ac_io->writable.callback.opaque = va_arg (ap, void *);
+	  break;
+
+	default:
+	  /* FIXME? */
+	  break;
+	}
+      break;
+    default:
+      /* FIXME? */
+      break;
+    }
+
+  ac_io->mode = mode;
+  ac_io->type = type;
+}
+
+void
+gcry_ac_io_init_va (gcry_ac_io_t *ac_io,
+		    gcry_ac_io_mode_t mode, gcry_ac_io_type_t type, va_list ap)
+{
+  _gcry_ac_io_init_va (ac_io, mode, type, ap);
+}
+
+/* Initialize AC_IO according to MODE, TYPE and the variable list of
+   arguments.  The list of variable arguments to specify depends on
+   the given TYPE. */
+static void
+_gcry_ac_io_init (gcry_ac_io_t *ac_io,
+		  gcry_ac_io_mode_t mode, gcry_ac_io_type_t type, ...)
+{
+  va_list ap;
+
+  va_start (ap, type);
+  _gcry_ac_io_init_va (ac_io, mode, type, ap);
+  va_end (ap);
+}
+
+
+void
+gcry_ac_io_init (gcry_ac_io_t *ac_io,
+		 gcry_ac_io_mode_t mode, gcry_ac_io_type_t type, ...)
+{
+  va_list ap;
+
+  va_start (ap, type);
+  _gcry_ac_io_init_va (ac_io, mode, type, ap);
+  va_end (ap);
+}
+
+/* Write to the IO object AC_IO BUFFER_N bytes from BUFFER.  Return
+   zero on success or error code.  */
+static gcry_error_t
+_gcry_ac_io_write (gcry_ac_io_t *ac_io, unsigned char *buffer, size_t buffer_n)
+{
+  gcry_error_t err;
+
+  assert (ac_io->mode == GCRY_AC_IO_WRITABLE);
+
+  switch (ac_io->type)
+    {
+    case GCRY_AC_IO_STRING:
+      {
+	unsigned char *p;
+
+	if (*ac_io->writable.string.data)
+	  {
+	    p = gcry_realloc (*ac_io->writable.string.data,
+			      *ac_io->writable.string.data_n + buffer_n);
+	    if (! p)
+	      err = gpg_error_from_errno (errno);
+	    else
+	      {
+		if (p != *ac_io->writable.string.data)
+		  *ac_io->writable.string.data = p;
+		memcpy (p + *ac_io->writable.string.data_n, buffer, buffer_n);
+		*ac_io->writable.string.data_n += buffer_n;
+		err = 0;
+	      }
+	  }
+	else
+	  {
+	    if (gcry_is_secure (buffer))
+	      p = gcry_malloc_secure (buffer_n);
+	    else
+	      p = gcry_malloc (buffer_n);
+	    if (! p)
+	      err = gpg_error_from_errno (errno);
+	    else
+	      {
+		memcpy (p, buffer, buffer_n);
+		*ac_io->writable.string.data = p;
+		*ac_io->writable.string.data_n = buffer_n;
+		err = 0;
+	      }
+	  }
+      }
+      break;
+
+    case GCRY_AC_IO_CALLBACK:
+      err = (*ac_io->writable.callback.cb) (ac_io->writable.callback.opaque,
+					    buffer, buffer_n);
+      break;
+    }
+
+  return err;
+}
+
+/* Read *BUFFER_N bytes from the IO object AC_IO into BUFFER; NREAD
+   bytes have already been read from the object; on success, store the
+   amount of bytes read in *BUFFER_N; zero bytes read means EOF.
+   Return zero on success or error code.  */
+static gcry_error_t
+_gcry_ac_io_read (gcry_ac_io_t *ac_io,
+		  unsigned int nread, unsigned char *buffer, size_t *buffer_n)
+{
+  gcry_error_t err;
+  
+  assert (ac_io->mode == GCRY_AC_IO_READABLE);
+
+  switch (ac_io->type)
+    {
+    case GCRY_AC_IO_STRING:
+      {
+	size_t bytes_available;
+	size_t bytes_to_read;
+	size_t bytes_wanted;
+
+	bytes_available = ac_io->readable.string.data_n - nread;
+	bytes_wanted = *buffer_n;
+
+	if (bytes_wanted > bytes_available)
+	  bytes_to_read = bytes_available;
+	else
+	  bytes_to_read = bytes_wanted;
+
+	memcpy (buffer, ac_io->readable.string.data + nread, bytes_to_read);
+	*buffer_n = bytes_to_read;
+	err = 0;
+	break;
+      }
+
+    case GCRY_AC_IO_CALLBACK:
+      {
+	err = (*ac_io->readable.callback.cb) (ac_io->readable.callback.opaque,
+					      buffer, buffer_n);
+	break;
+      }
+    }
+
+  return err;
+}
+
+/* Read all data available from the IO object AC_IO into newly
+   allocated memory, storing an appropriate pointer in *BUFFER and the
+   amount of bytes read in *BUFFER_N.  Return zero on success or error
+   code.  */
+static gcry_error_t
+_gcry_ac_io_read_all (gcry_ac_io_t *ac_io, unsigned char **buffer, size_t *buffer_n)
+{
+  unsigned char *buffer_new;
+  size_t buffer_new_n;
+  unsigned char *p;
+  unsigned char buf[BUFSIZ];
+  size_t buf_n;
+  gcry_error_t err;
+
+  buffer_new = NULL;
+  buffer_new_n = 0;
+  err = 0;
+
+  while (1)
+    {
+      buf_n = sizeof (buf);
+      err = _gcry_ac_io_read (ac_io, buffer_new_n, buf, &buf_n);
+      if (err)
+	break;
+
+      if (buf_n)
+	{
+	  p = gcry_realloc (buffer_new, buffer_new_n + buf_n);
+	  if (! p)
+	    {
+	      err = gpg_error_from_errno (errno);
+	      break;
+	    }
+	  
+	  if (p != buffer_new)
+	    buffer_new = p;
+
+	  memcpy (buffer_new + buffer_new_n, buf, buf_n);
+	  buffer_new_n += buf_n;
+	}
+      else
+	break;
+    }
+  if (err)
+    goto out;
+
+  *buffer_n = buffer_new_n;
+  *buffer = buffer_new;
+
+ out:
+
+  if (err)
+    gcry_free (buffer_new);
+
+  return err;
+}
+
+/* Read data chunks from the IO object AC_IO until EOF, feeding them
+   to the callback function CB.  Return zero on success or error
+   code.  */
+static gcry_error_t
+_gcry_ac_io_process (gcry_ac_io_t *ac_io,
+		     gcry_ac_data_write_cb_t cb, void *opaque)
+{
+  unsigned char buffer[BUFSIZ];
+  unsigned int nread;
+  size_t buffer_n;
+  gcry_error_t err;
+
+  nread = 0;
+  err = 0;
+
+  while (1)
+    {
+      buffer_n = sizeof (buffer);
+      err = _gcry_ac_io_read (ac_io, nread, buffer, &buffer_n);
+      if (err)
+	break;
+      if (buffer_n)
+	{
+	  err = (*cb) (opaque, buffer, buffer_n);
+	  if (err)
+	    break;
+	  nread += buffer_n;
+	}
+      else
+	break;
+    }
+
+  return err;
 }
 
 
@@ -908,15 +1185,14 @@ ac_data_extract (const char *identifier, const char *algorithm,
       strncpy (value_name, data_raw, data_raw_n);
       value_name[data_raw_n] = 0;
 
-      err = _gcry_ac_data_set (data_new, GCRY_AC_FLAG_COPY, value_name, value_mpi);
+      err = _gcry_ac_data_set (data_new, GCRY_AC_FLAG_DEALLOC, value_name, value_mpi);
       if (err)
 	break;
 
-      gcry_free (value_name);
-      value_name = NULL;
-      gcry_mpi_release (value_mpi);
       gcry_sexp_release (value_sexp);
       value_sexp = NULL;
+      value_name = NULL;
+      value_mpi = NULL;
     }
   if (err)
     goto out;
@@ -974,8 +1250,11 @@ ac_data_construct (const char *identifier, int include_flags,
   /* Fill list with MPIs.  */
   for (i = 0; i < data_length; i++)
     {
-      arg_list[(i * 2) + 0] = (void *) &data->data[i].name;
-      arg_list[(i * 2) + 1] = (void *) &data->data[i].mpi;
+      /* FIXME!! */
+      arg_list[(i * 2) + 0] = (data->data[i].name
+			       ? (void **) &data->data[i].name
+			       : (void **) &data->data[i].name_provided);
+      arg_list[(i * 2) + 1] = &data->data[i].mpi;
     }
 
   /* Calculate size of format string.  */
@@ -1053,7 +1332,6 @@ ac_data_construct (const char *identifier, int include_flags,
  * Wrapper macros.
  */
 
-#define gcryerro
 
 
 
@@ -1945,54 +2223,6 @@ gcry_ac_data_verify (gcry_ac_handle_t handle,
 
 
 
-/* 
- * General functions.
- */
-
-/* Stores the textual representation of the algorithm whose id is
-   given in ALGORITHM in NAME.  */
-gcry_error_t
-gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
-{
-  gcry_err_code_t err;
-  const char *n;
-
-  n = gcry_pk_algo_name (algorithm);
-  if (! *n)
-    {
-      err = GPG_ERR_PUBKEY_ALGO;
-      goto out;
-    }
-
-  *name = n;
-  err = 0;
-
- out:
-
-  return gcry_error (err);
-}
-
-/* Stores the numeric ID of the algorithm whose textual representation
-   is contained in NAME in ALGORITHM.  */
-gcry_error_t
-gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
-{
-  gcry_err_code_t err;
-  int algo;
-
-  algo = gcry_pk_map_name (name);
-  if (! algo)
-    {
-      err = GPG_ERR_PUBKEY_ALGO;
-      goto out;
-    }
-
-  *algorithm = algo;
-
- out:
-
-  return gcry_error (err);
-}
 
 /*
  * Implementation of encoding methods (em).
@@ -2002,10 +2232,8 @@ gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
    message.  */
 typedef gcry_err_code_t (*gcry_ac_em_dencode_t) (unsigned int flags,
 						 void *options,
-						 unsigned char *in,
-						 size_t in_n,
-						 unsigned char **out,
-						 size_t *out_n);
+						 gcry_ac_io_t *ac_io_read,
+						 gcry_ac_io_t *ac_io_write);
 
 /* Fill the buffer BUFFER which is BUFFER_N bytes long with non-zero
    random bytes of random level LEVEL.  */
@@ -2059,17 +2287,25 @@ em_randomize_nonzero (unsigned char *buffer, size_t buffer_n,
    `PKCS-V1_5' (EME-PKCS-V1_5).  */
 static gcry_err_code_t
 eme_pkcs_v1_5_encode (unsigned int flags, void *opts,
-		      unsigned char *m, size_t m_n,
-		      unsigned char **em, size_t *em_n)
+		      gcry_ac_io_t *ac_io_read,
+		      gcry_ac_io_t *ac_io_write)
 {
   gcry_ac_eme_pkcs_v1_5_t *options;
   gcry_err_code_t err;
   unsigned char *buffer;
   unsigned char *ps;
+  unsigned char *m;
+  size_t m_n;
   unsigned int ps_n;
   unsigned int k;
 
   options = opts;
+  buffer = NULL;
+  m = NULL;
+
+  err = _gcry_ac_io_read_all (ac_io_read, &m, &m_n);
+  if (err)
+    goto out;
 
   /* Figure out key length in bytes.  */
   err = _gcry_ac_key_get_nbits (options->handle, options->key, &k);
@@ -2112,10 +2348,13 @@ eme_pkcs_v1_5_encode (unsigned int flags, void *opts,
   buffer[0] = 0x02;
   buffer[ps_n + 1] = 0x00;
   memcpy (buffer + ps_n + 2, m, m_n);
-  *em = buffer;
-  *em_n = k - 1;
+
+  err = _gcry_ac_io_write (ac_io_write, buffer, k - 1);
 
  out:
+
+  gcry_free (buffer);
+  gcry_free (m);
 
   return err;
 }
@@ -2124,16 +2363,24 @@ eme_pkcs_v1_5_encode (unsigned int flags, void *opts,
    `PKCS-V1_5' (EME-PKCS-V1_5).  */
 static gcry_err_code_t
 eme_pkcs_v1_5_decode (unsigned int flags, void *opts,
-		      unsigned char *em, size_t em_n,
-		      unsigned char **m, size_t *m_n)
+		      gcry_ac_io_t *ac_io_read,
+		      gcry_ac_io_t *ac_io_write)
 {
   gcry_ac_eme_pkcs_v1_5_t *options;
   unsigned char *buffer;
+  unsigned char *em;
+  size_t em_n;
   gcry_err_code_t err;
   unsigned int i;
   unsigned int k;
 
   options = opts;
+  buffer = NULL;
+  em = NULL;
+
+  err = _gcry_ac_io_read_all (ac_io_read, &em, &em_n);
+  if (err)
+    goto out;
 
   err = _gcry_ac_key_get_nbits (options->handle, options->key, &k);
   if (err)
@@ -2165,21 +2412,35 @@ eme_pkcs_v1_5_decode (unsigned int flags, void *opts,
     }
 
   memcpy (buffer, em + i, em_n - i);
-  *m = buffer;
-  *m_n = em_n - i;
-  err = 0;
+  err = _gcry_ac_io_write (ac_io_write, buffer, em_n - i);
 
  out:
 
+  gcry_free (buffer);
+  gcry_free (em);
+
   return err;
 }
+
+static gcry_error_t
+emsa_pkcs_v1_5_encode_data_cb (void *opaque,
+			       unsigned char *buffer, size_t buffer_n)
+{
+  gcry_md_hd_t md_handle;
+
+  md_handle = opaque;
+  gcry_md_write (md_handle, buffer, buffer_n);
+
+  return 0;
+}
+
 
 /* Encode a message according to the Encoding Method for Signatures
    with Appendix `PKCS-V1_5' (EMSA-PKCS-V1_5).  */
 static gcry_err_code_t
 emsa_pkcs_v1_5_encode (unsigned int flags, void *opts,
-		       unsigned char *m, size_t m_n,
-		       unsigned char **em, size_t *em_n)
+		       gcry_ac_io_t *ac_io_read,
+		       gcry_ac_io_t *ac_io_write)
 {
   gcry_ac_emsa_pkcs_v1_5_t *options;
   gcry_err_code_t err;
@@ -2197,6 +2458,7 @@ emsa_pkcs_v1_5_encode (unsigned int flags, void *opts,
   unsigned int i;
   
   options = opts;
+  buffer = NULL;
   md = NULL;
   ps = NULL;
   t = NULL;
@@ -2213,9 +2475,9 @@ emsa_pkcs_v1_5_encode (unsigned int flags, void *opts,
 
   h_n = gcry_md_get_algo_dlen (options->md);
 
-  /* Apply the hash function to the message M to produce a hash
-     value H.  */
-  gcry_md_write (md, m, m_n);
+  err = _gcry_ac_io_process (ac_io_read, emsa_pkcs_v1_5_encode_data_cb, md);
+  if (err)
+    goto out;
 
   h = gcry_md_read (md, 0);
 
@@ -2287,13 +2549,13 @@ emsa_pkcs_v1_5_encode (unsigned int flags, void *opts,
   for (i = 0; i < t_n; i++)
     buffer[3 + ps_n + i] = t[i];
 
-  *em = buffer;
-  *em_n = buffer_n;
+  err = _gcry_ac_io_write (ac_io_write, buffer, buffer_n);
 
  out:
 
   gcry_md_close (md);
 
+  gcry_free (buffer);
   gcry_free (ps);
   gcry_free (t);
 
@@ -2316,8 +2578,8 @@ dencode_action_t;
 static gcry_err_code_t
 ac_data_dencode (gcry_ac_em_t method, dencode_action_t action,
 		 unsigned int flags, void *options,
-		 unsigned char *buffer_in, size_t buffer_in_n,
-		 unsigned char **buffer_out, size_t *buffer_out_n)
+		 gcry_ac_io_t *ac_io_read,
+		 gcry_ac_io_t *ac_io_write)
 {
   struct
   {
@@ -2352,17 +2614,13 @@ ac_data_dencode (gcry_ac_em_t method, dencode_action_t action,
     case DATA_ENCODE:
       if (methods[i].encode)
 	/* FIXME? */
-	err = (*methods[i].encode) (flags, options,
-				    buffer_in, buffer_in_n,
-				    buffer_out, buffer_out_n);
+	err = (*methods[i].encode) (flags, options, ac_io_read, ac_io_write);
       break;
 
     case DATA_DECODE:
       if (methods[i].decode)
 	/* FIXME? */
-	err = (*methods[i].decode) (flags, options,
-				    buffer_in, buffer_in_n,
-				    buffer_out, buffer_out_n);
+	err = (*methods[i].decode) (flags, options, ac_io_read, ac_io_write);
       break;
 
     default:
@@ -2381,11 +2639,11 @@ ac_data_dencode (gcry_ac_em_t method, dencode_action_t action,
 gcry_err_code_t
 _gcry_ac_data_encode (gcry_ac_em_t method,
 		      unsigned int flags, void *options,
-		      unsigned char *m, size_t m_n,
-		      unsigned char **em, size_t *em_n)
+		      gcry_ac_io_t *ac_io_read,
+		      gcry_ac_io_t *ac_io_write)
 {
   return ac_data_dencode (method, DATA_ENCODE, flags, options,
-			  m, m_n, em, em_n);
+			  ac_io_read, ac_io_write);
 }
 
 /* Dencode a message according to the encoding method METHOD.  OPTIONS
@@ -2394,22 +2652,23 @@ _gcry_ac_data_encode (gcry_ac_em_t method,
 gcry_err_code_t
 _gcry_ac_data_decode (gcry_ac_em_t method,
 		      unsigned int flags, void *options,
-		      unsigned char *m, size_t m_n,
-		      unsigned char **em, size_t *em_n)
+		      gcry_ac_io_t *ac_io_read,
+		      gcry_ac_io_t *ac_io_write)
 {
   return ac_data_dencode (method, DATA_DECODE, flags, options,
-			  m, m_n, em, em_n);
+			  ac_io_read, ac_io_write);
 }
 
 gcry_error_t
 gcry_ac_data_encode (gcry_ac_em_t method,
 		     unsigned int flags, void *options,
-		     unsigned char *m, size_t m_n,
-		     unsigned char **em, size_t *em_n)
+		     gcry_ac_io_t *ac_io_read,
+		     gcry_ac_io_t *ac_io_write)
 {
   gcry_err_code_t err;
 
-  err = _gcry_ac_data_encode (method, flags, options, m, m_n, em, em_n);
+  err = _gcry_ac_data_encode (method, flags, options,
+			      ac_io_read, ac_io_write);
 
   return gcry_error (err);
 }
@@ -2417,13 +2676,14 @@ gcry_ac_data_encode (gcry_ac_em_t method,
 gcry_error_t
 gcry_ac_data_decode (gcry_ac_em_t method,
 		     unsigned int flags, void *options,
-		     unsigned char *em, size_t em_n,
-		     unsigned char **m, size_t *m_n)
+		     gcry_ac_io_t *ac_io_read,
+		     gcry_ac_io_t *ac_io_write)
 {
   gcry_err_code_t err;
 
-  err = _gcry_ac_data_decode (method, flags, options, em, em_n, m, m_n);
-
+  err = _gcry_ac_data_decode (method, flags, options,
+			      ac_io_read, ac_io_write);
+  
   return gcry_error (err);
 }
 
@@ -2720,10 +2980,11 @@ _gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
 			      gcry_ac_scheme_t scheme_id,
 			      unsigned int flags, void *opts,
 			      gcry_ac_key_t key,
-			      unsigned char *m, size_t m_n,
-			      unsigned char **c, size_t *c_n)
+			      gcry_ac_io_t *io_message,
+			      gcry_ac_io_t *io_cipher)
 {
   gcry_err_code_t err;
+  gcry_ac_io_t io_em;
   unsigned char *em;
   size_t em_n;
   gcry_mpi_t mpi_plain;
@@ -2738,6 +2999,7 @@ _gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
   mpi_encrypted = NULL;
   mpi_plain = NULL;
   opts_em = NULL;
+  buffer = NULL;
   em = NULL;
 
   scheme = ac_scheme_get (scheme_id);
@@ -2757,8 +3019,11 @@ _gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
   if (err)
     goto out;
 
-  err = _gcry_ac_data_encode (scheme->scheme_encoding,
-			      0, opts_em, m, m_n, &em, &em_n);
+  _gcry_ac_io_init (&io_em, GCRY_AC_IO_WRITABLE,
+		    GCRY_AC_IO_STRING, &em, &em_n);
+
+  err = _gcry_ac_data_encode (scheme->scheme_encoding, 0, opts_em,
+			      io_message, &io_em);
   if (err)
     goto out;
 
@@ -2777,8 +3042,7 @@ _gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
   if (err)
     goto out;
 
-  *c = buffer;
-  *c_n = buffer_n;
+  err = _gcry_ac_io_write (io_cipher, buffer, buffer_n);
 
  out:
 
@@ -2786,6 +3050,7 @@ _gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
   gcry_mpi_release (mpi_encrypted);
   gcry_mpi_release (mpi_plain);
   gcry_free (opts_em);
+  gcry_free (buffer);
   gcry_free (em);
 
   return err;
@@ -2796,13 +3061,13 @@ gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
 			     gcry_ac_scheme_t scheme_id,
 			     unsigned int flags, void *opts,
 			     gcry_ac_key_t key,
-			     unsigned char *m, size_t m_n,
-			     unsigned char **c, size_t *c_n)
+			     gcry_ac_io_t *io_message,
+			     gcry_ac_io_t *io_cipher)
 {
   gcry_err_code_t err;
 
   err = _gcry_ac_data_encrypt_scheme (handle, scheme_id, flags, opts, key,
-				      m, m_n, c, c_n);
+				      io_message, io_cipher);
 
   return gcry_error (err);
 }
@@ -2818,21 +3083,22 @@ _gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
 			      gcry_ac_scheme_t scheme_id,
 			      unsigned int flags, void *opts,
 			      gcry_ac_key_t key,
-			      unsigned char *c, size_t c_n,
-			      unsigned char **m, size_t *m_n)
+			      gcry_ac_io_t *io_cipher,
+			      gcry_ac_io_t *io_message)
 {
+  gcry_ac_io_t io_em;
   gcry_err_code_t err;
   gcry_ac_data_t data_encrypted;
   unsigned char *em;
   size_t em_n;
   gcry_mpi_t mpi_encrypted;
   gcry_mpi_t mpi_decrypted;
-  unsigned char *buffer;
-  size_t buffer_n;
   void *opts_em;
   ac_scheme_t *scheme;
   char *elements_enc;
   size_t elements_enc_n;
+  unsigned char *c;
+  size_t c_n;
 
   data_encrypted = NULL;
   mpi_encrypted = NULL;
@@ -2840,6 +3106,7 @@ _gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
   elements_enc = NULL;
   opts_em = NULL;
   em = NULL;
+  c = NULL;
 
   scheme = ac_scheme_get (scheme_id);
   if (! scheme)
@@ -2853,6 +3120,10 @@ _gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
       err = GPG_ERR_WRONG_KEY_USAGE;
       goto out;
     }
+
+  err = _gcry_ac_io_read_all (io_cipher, &c, &c_n);
+  if (err)
+    goto out;
 
   mpi_encrypted = gcry_mpi_snew (0);
   gcry_ac_os_to_mpi (mpi_encrypted, c, c_n);
@@ -2890,13 +3161,13 @@ _gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
   if (err)
     goto out;
 
-  err = _gcry_ac_data_decode (scheme->scheme_encoding,
-			      0, opts_em, em, em_n, &buffer, &buffer_n);
+  _gcry_ac_io_init (&io_em, GCRY_AC_IO_READABLE,
+		    GCRY_AC_IO_STRING, em, em_n);
+
+  err = _gcry_ac_data_decode (scheme->scheme_encoding, 0, opts_em,
+			      &io_em, io_message);
   if (err)
     goto out;
-
-  *m = buffer;
-  *m_n = buffer_n;
 
  out:
   
@@ -2906,6 +3177,7 @@ _gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
   free (elements_enc);
   gcry_free (opts_em);
   gcry_free (em);
+  gcry_free (c);
 
   return err;
 }
@@ -2915,13 +3187,13 @@ gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
 			     gcry_ac_scheme_t scheme_id,
 			     unsigned int flags, void *opts,
 			     gcry_ac_key_t key,
-			     unsigned char *c, size_t c_n,
-			     unsigned char **m, size_t *m_n)
+			     gcry_ac_io_t *io_cipher,
+			     gcry_ac_io_t *io_message)
 {
   gcry_err_code_t err;
 
   err = _gcry_ac_data_decrypt_scheme (handle, scheme_id, flags, opts, key,
-				      c, c_n, m, m_n);
+				      io_cipher, io_message);
 
   return gcry_error (err);
 }  
@@ -2937,9 +3209,10 @@ _gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
 			   gcry_ac_scheme_t scheme_id,
 			   unsigned int flags, void *opts,
 			   gcry_ac_key_t key,
-			   unsigned char *m, size_t m_n,
-			   unsigned char **s, size_t *s_n)
+			   gcry_ac_io_t *io_message,
+			   gcry_ac_io_t *io_signature)
 {
+  gcry_ac_io_t io_em;
   gcry_err_code_t err;
   gcry_ac_data_t data_signed;
   unsigned char *em;
@@ -2975,7 +3248,11 @@ _gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
   if (err)
     goto out;
 
-  err = _gcry_ac_data_encode (scheme->scheme_encoding, 0, opts_em, m, m_n, &em, &em_n);
+  _gcry_ac_io_init (&io_em, GCRY_AC_IO_WRITABLE,
+		    GCRY_AC_IO_STRING, &em, &em_n);
+
+  err = _gcry_ac_data_encode (scheme->scheme_encoding, 0, opts_em,
+			      io_message, &io_em);
   if (err)
     goto out;
 
@@ -2994,8 +3271,7 @@ _gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
   if (err)
     goto out;
 
-  *s = buffer;
-  *s_n = buffer_n;
+  err = _gcry_ac_io_write (io_signature, buffer, buffer_n);
 
  out:
 
@@ -3003,6 +3279,7 @@ _gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
   gcry_mpi_release (mpi_signed);
   gcry_mpi_release (mpi);
   gcry_free (opts_em);
+  gcry_free (buffer);
   gcry_free (em);
 
   return err;
@@ -3014,13 +3291,13 @@ gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
 			  unsigned int flags,
 			  void *opts,
 			  gcry_ac_key_t key,
-			  unsigned char *m, size_t m_n,
-			  unsigned char **s, size_t *s_n)
+			  gcry_ac_io_t *io_message,
+			  gcry_ac_io_t *io_signature)
 {
   gcry_err_code_t err;
 
   err = _gcry_ac_data_sign_scheme (handle, scheme_id, flags, opts, key,
-				   m, m_n, s, s_n);
+				   io_message, io_signature);
 
   return gcry_error (err);
 }
@@ -3036,9 +3313,10 @@ _gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
 			     gcry_ac_scheme_t scheme_id,
 			     unsigned int flags, void *opts,
 			     gcry_ac_key_t key,
-			     unsigned char *m, size_t m_n,
-			     unsigned char *s, size_t s_n)
+			     gcry_ac_io_t *io_message,
+			     gcry_ac_io_t *io_signature)
 {
+  gcry_ac_io_t io_em;
   gcry_err_code_t err;
   gcry_ac_data_t data_signed;
   unsigned char *em;
@@ -3049,12 +3327,16 @@ _gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
   ac_scheme_t *scheme;
   char *elements_sig;
   size_t elements_sig_n;
+  unsigned char *s;
+  size_t s_n;
 
   mpi_signature = NULL;
   elements_sig = NULL;
+  data_signed = NULL;
   mpi_data = NULL;
   opts_em = NULL;
   em = NULL;
+  s = NULL;
 
   if (key->type != GCRY_AC_KEY_PUBLIC)
     {
@@ -3073,13 +3355,20 @@ _gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
   if (err)
     goto out;
 
-  err = _gcry_ac_data_encode (scheme->scheme_encoding,
-			      0, opts_em, m, m_n, &em, &em_n);
+  _gcry_ac_io_init (&io_em, GCRY_AC_IO_WRITABLE,
+		    GCRY_AC_IO_STRING, &em, &em_n);
+
+  err = _gcry_ac_data_encode (scheme->scheme_encoding, 0, opts_em,
+			      io_message, &io_em);
   if (err)
     goto out;
 
   mpi_data = gcry_mpi_new (0);
   _gcry_ac_os_to_mpi (mpi_data, em, em_n);
+
+  err = _gcry_ac_io_read_all (io_signature, &s, &s_n);
+  if (err)
+    goto out;
 
   mpi_signature = gcry_mpi_new (0);
   _gcry_ac_os_to_mpi (mpi_signature, s, s_n);
@@ -3107,7 +3396,7 @@ _gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
 
   gcry_mpi_release (mpi_signature);
   mpi_signature = NULL;
-
+  
   err = _gcry_ac_data_verify (handle, key, mpi_data, data_signed);
 
  out:
@@ -3118,6 +3407,7 @@ _gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
   free (elements_sig);
   gcry_free (opts_em);
   gcry_free (em);
+  gcry_free (s);
 
   return err;
 }
@@ -3127,13 +3417,65 @@ gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
 			    gcry_ac_scheme_t scheme_id,
 			    unsigned int flags, void *opts,
 			    gcry_ac_key_t key,
-			    unsigned char *m, size_t m_n,
-			    unsigned char *s, size_t s_n)
+			    gcry_ac_io_t *io_message,
+			    gcry_ac_io_t *io_signature)
 {
   gcry_err_code_t err;
 
   err = _gcry_ac_data_verify_scheme (handle, scheme_id, flags, opts, key,
-				     m, m_n, s, s_n);
+				     io_message, io_signature);
+
+  return gcry_error (err);
+}
+
+
+
+/* 
+ * General functions.
+ */
+
+/* Stores the textual representation of the algorithm whose id is
+   given in ALGORITHM in NAME.  */
+gcry_error_t
+gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
+{
+  gcry_err_code_t err;
+  const char *n;
+
+  n = gcry_pk_algo_name (algorithm);
+  if (! *n)
+    {
+      err = GPG_ERR_PUBKEY_ALGO;
+      goto out;
+    }
+
+  *name = n;
+  err = 0;
+
+ out:
+
+  return gcry_error (err);
+}
+
+/* Stores the numeric ID of the algorithm whose textual representation
+   is contained in NAME in ALGORITHM.  */
+gcry_error_t
+gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
+{
+  gcry_err_code_t err;
+  int algo;
+
+  algo = gcry_pk_map_name (name);
+  if (! algo)
+    {
+      err = GPG_ERR_PUBKEY_ALGO;
+      goto out;
+    }
+
+  *algorithm = algo;
+  err = 0;
+
+ out:
 
   return gcry_error (err);
 }

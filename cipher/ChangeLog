@@ -1,3 +1,45 @@
+2005-03-30  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c (_gcry_ac_data_from_sexp): Use length of SEXP_CUR, not
+	length of SEXP; do not forget to set SEXP_TMP to NULL after it has
+	been released.
+
+	(struct gcry_ac_mpi): New member: name_provided.
+	(_gcry_ac_data_set): Rename variable `name_final' to `name_cp';
+	remove const qualifier; change code to not cast away const
+	qualifiers; use name_provided member as well.
+	(_gcry_ac_data_set, _gcry_ac_data_get_name): Use name_provided
+	member of named mpi structure.
+
+	(gcry_ac_name_to_id): Do not forget to initialize err.
+	(_gcry_ac_data_get_index): Do not forget to initialize mpi_return;
+	use gcry_free() instead of free(); remove unnecessary cast; rename
+	mpi_return and name_return to mpi_cp and name_cp; adjust code.
+	(ac_data_mpi_copy): Do not cast away const qualifier.
+	(ac_data_values_destroy): Likewise.
+	(ac_data_construct): Likewise.
+
+	(ac_data_mpi_copy): Initialize flags to GCRY_AC_FLAG_DEALLOC.
+	(ac_data_extract): Use GCRY_AC_FLAG_DEALLOC instead of
+	GCRY_AC_FLAG_COPY.
+
+	(_gcry_ac_io_init_va, _gcry_ac_io_init, gcry_ac_io_init)
+	(gcry_ac_io_init_va, _gcry_ac_io_write, _gcry_ac_io_read)
+	(_gcry_ac_io_read_all, _gcry_ac_io_process): New functions.
+	(gry_ac_em_dencode_t): Use gcry_ac_io_t in prototype instead of
+	memroy strings directly; adjust encode/decode functions to use io
+	objects.
+	(emsa_pkcs_v1_5_encode_data_cb): New function ...
+	(emsa_pkcs_v1_5_encode): ... use it here.
+	(ac_data_dencode): Use io objects.
+	(_gcry_ac_data_encode, _gcry_ac_data_decode, gcry_ac_data_encode)
+	(gcry_ac_data_decode): Likewise.
+	(_gcry_ac_data_encrypt_scheme, gcry_ac_data_encrypt_scheme)
+	(_gcry_ac_data_decrypt_scheme, gcry_ac_data_decrypt_scheme)
+	(_gcry_ac_data_sign_scheme, gcry_ac_data_sign_scheme)
+	(_gcry_ac_data_verify_scheme, gcry_ac_data_verify_scheme):
+	Likewise.
+
 2005-03-23  Werner Koch  <wk@g10code.com>
 
 	* rndw32.c (_gcry_rndw32_gather_random_fast): While adding data
