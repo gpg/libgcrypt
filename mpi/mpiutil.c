@@ -75,16 +75,13 @@ _gcry_mpi_alloc_secure( unsigned nlimbs )
 mpi_ptr_t
 _gcry_mpi_alloc_limb_space( unsigned int nlimbs, int secure )
 {
-    size_t len = nlimbs * sizeof(mpi_limb_t);
-    mpi_ptr_t p = NULL;
+    mpi_ptr_t p;
+    size_t len;
 
-    if (!nlimbs)
-      {
-        p = secure? gcry_xmalloc_secure( 1 ) : gcry_xmalloc( 1 );
-        *p = 0;
-      }
-    else
-      p = secure? gcry_xmalloc_secure( len ) : gcry_xmalloc( len );
+    len = (nlimbs ? nlimbs : 1) * sizeof (mpi_limb_t);
+    p = secure ? gcry_xmalloc_secure (len) : gcry_xmalloc (len);
+    if (! nlimbs)
+      *p = 0;
 
     return p;
 }
@@ -305,6 +302,34 @@ _gcry_mpi_set_ui( gcry_mpi_t w, unsigned long u)
     w->flags = 0;
 }
 
+gcry_err_code_t
+_gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  unsigned long x = 0;
+
+  if (w->nlimbs > 1)
+    err = GPG_ERR_TOO_LARGE;
+  else if (w->nlimbs == 1)
+    x = w->d[0];
+  else
+    x = 0;
+
+  if (! err)
+    *u = x;
+  
+  return err;
+}
+
+gcry_error_t
+gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  err = _gcry_mpi_get_ui (w, u);
+  
+  return gcry_error (err);
+}
 
 gcry_mpi_t
 _gcry_mpi_alloc_set_ui( unsigned long u)
