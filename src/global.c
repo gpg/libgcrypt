@@ -70,7 +70,7 @@ global_init (void)
   if (! err)
     _gcry_md_init ();
   if (! err)
-    _gcry_pk_init ();
+    _gcry_ac_init ();
 
   if (err)
     /* FIXME?  */
@@ -600,15 +600,9 @@ _gcry_get_debug_flag( unsigned int mask )
             Only used in debugging mode.
 */
 void
-gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
-                           void *cb_data)
+gcry_set_progress_handler (gcry_handler_progress_t cb, void *cb_data)
 {
-#if USE_DSA
-  _gcry_register_pk_dsa_progress (cb, cb_data);
-#endif
-#if USE_ELGAMAL
-  _gcry_register_pk_elg_progress (cb, cb_data);
-#endif
+  _gcry_ac_progress_register (cb, cb_data);
   _gcry_register_primegen_progress (cb, cb_data);
   _gcry_register_random_progress (cb, cb_data);
 }
