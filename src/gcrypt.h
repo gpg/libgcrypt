@@ -169,6 +169,7 @@ enum gcry_control_cmds
     GCRYCTL_RESET,
     GCRYCTL_CFB_SYNC,
     GCRYCTL_SET_CBC_CTS,
+    GCRYCTL_SET_CBC_MAC,
     GCRYCTL_ENABLE_ALGO,	/* Not implemented.  */
     GCRYCTL_DISABLE_ALGO,
     GCRYCTL_FINALIZE,
@@ -545,7 +546,8 @@ enum gcry_cipher_flags
   {
     GCRY_CIPHER_SECURE	    = 1,  /* Allocate in secure memory. */
     GCRY_CIPHER_ENABLE_SYNC = 2,  /* Enable CFB sync mode. */
-    GCRY_CIPHER_CBC_CTS = 4       /* Enable CBC cipher text stealing (CTS). */
+    GCRY_CIPHER_CBC_CTS	    = 4,  /* Enable CBC cipher text stealing (CTS). */
+    GCRY_CIPHER_CBC_MAC	    = 8   /* Enable CBC message auth. code (MAC). */
   };
 
 
