@@ -1,5 +1,5 @@
 /* serpent.c - Implementation of the Serpent encryption algorithm.
- *	Copyright (C) 2003 Free Software Foundation, Inc.
+ *	Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -35,19 +35,15 @@
 /* Magic number, used during generating of the subkeys.  */
 #define PHI 0x9E3779B9
 
-/* Internal types.  */
-typedef byte byte_t;
-typedef u32 u32_t;
-
 /* Serpent works on 128 bit blocks.  */
-typedef u32_t serpent_block_t[4];
+typedef u32 serpent_block_t[4];
 
 /* Serpent key, provided by the user.  If the original key is shorter
    than 256 bits, it is padded.  */
-typedef u32_t serpent_key_t[8];
+typedef u32 serpent_key_t[8];
 
 /* The key schedule consists of 33 128 bit subkeys.  */
-typedef u32_t serpent_subkeys_t[ROUNDS + 1][4];
+typedef u32 serpent_subkeys_t[ROUNDS + 1][4];
 
 /* A Serpent context.  */
 typedef struct serpent_context
@@ -55,10 +51,11 @@ typedef struct serpent_context
   serpent_subkeys_t keys;	/* Generated subkeys.  */
 } serpent_context_t;
 
+
 /* A prototype.  */
 static const char *serpent_test (void);
-
       
+
 #define byte_swap_32(x) \
   (0 \
    | (((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) \
@@ -82,8 +79,8 @@ static const char *serpent_test (void);
 
 #define SBOX0(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t05, t06, t07, t08, t09; \
-    u32_t t11, t12, t13, t14, t15, t17, t01; \
+    u32 t02, t03, t05, t06, t07, t08, t09; \
+    u32 t11, t12, t13, t14, t15, t17, t01; \
     t01 = b   ^ c  ; \
     t02 = a   | d  ; \
     t03 = a   ^ b  ; \
@@ -106,8 +103,8 @@ static const char *serpent_test (void);
 
 #define SBOX0_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t06, t08, t09, t10; \
-    u32_t t12, t13, t14, t15, t17, t18, t01; \
+    u32 t02, t03, t04, t05, t06, t08, t09, t10; \
+    u32 t12, t13, t14, t15, t17, t18, t01; \
     t01 = c   ^ d  ; \
     t02 = a   | b  ; \
     t03 = b   | c  ; \
@@ -131,8 +128,8 @@ static const char *serpent_test (void);
 
 #define SBOX1(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t06, t07, t08; \
-    u32_t t10, t11, t12, t13, t16, t17, t01; \
+    u32 t02, t03, t04, t05, t06, t07, t08; \
+    u32 t10, t11, t12, t13, t16, t17, t01; \
     t01 = a   | d  ; \
     t02 = c   ^ d  ; \
     t03 =     ~ b  ; \
@@ -155,8 +152,8 @@ static const char *serpent_test (void);
 
 #define SBOX1_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t06, t07, t08; \
-    u32_t t09, t10, t11, t14, t15, t17, t01; \
+    u32 t02, t03, t04, t05, t06, t07, t08; \
+    u32 t09, t10, t11, t14, t15, t17, t01; \
     t01 = a   ^ b  ; \
     t02 = b   | d  ; \
     t03 = a   & c  ; \
@@ -179,8 +176,8 @@ static const char *serpent_test (void);
 
 #define SBOX2(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t05, t06, t07, t08; \
-    u32_t t09, t10, t12, t13, t14, t01; \
+    u32 t02, t03, t05, t06, t07, t08; \
+    u32 t09, t10, t12, t13, t14, t01; \
     t01 = a   | c  ; \
     t02 = a   ^ b  ; \
     t03 = d   ^ t01; \
@@ -201,8 +198,8 @@ static const char *serpent_test (void);
 
 #define SBOX2_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t06, t07, t08, t09; \
-    u32_t t10, t11, t12, t15, t16, t17, t01; \
+    u32 t02, t03, t04, t06, t07, t08, t09; \
+    u32 t10, t11, t12, t15, t16, t17, t01; \
     t01 = a   ^ d  ; \
     t02 = c   ^ d  ; \
     t03 = a   & c  ; \
@@ -225,8 +222,8 @@ static const char *serpent_test (void);
 
 #define SBOX3(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t06, t07, t08; \
-    u32_t t09, t10, t11, t13, t14, t15, t01; \
+    u32 t02, t03, t04, t05, t06, t07, t08; \
+    u32 t09, t10, t11, t13, t14, t15, t01; \
     t01 = a   ^ c  ; \
     t02 = a   | d  ; \
     t03 = a   & d  ; \
@@ -249,8 +246,8 @@ static const char *serpent_test (void);
 
 #define SBOX3_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t06, t07, t09; \
-    u32_t t11, t12, t13, t14, t16, t01; \
+    u32 t02, t03, t04, t05, t06, t07, t09; \
+    u32 t11, t12, t13, t14, t16, t01; \
     t01 = c   | d  ; \
     t02 = a   | d  ; \
     t03 = c   ^ t02; \
@@ -272,8 +269,8 @@ static const char *serpent_test (void);
 
 #define SBOX4(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t06, t08, t09; \
-    u32_t t10, t11, t12, t13, t14, t15, t16, t01; \
+    u32 t02, t03, t04, t05, t06, t08, t09; \
+    u32 t10, t11, t12, t13, t14, t15, t16, t01; \
     t01 = a   | b  ; \
     t02 = b   | c  ; \
     t03 = a   ^ t02; \
@@ -297,8 +294,8 @@ static const char *serpent_test (void);
 
 #define SBOX4_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t06, t07, t09; \
-    u32_t t10, t11, t12, t13, t15, t01; \
+    u32 t02, t03, t04, t05, t06, t07, t09; \
+    u32 t10, t11, t12, t13, t15, t01; \
     t01 = b   | d  ; \
     t02 = c   | d  ; \
     t03 = a   & t01; \
@@ -320,8 +317,8 @@ static const char *serpent_test (void);
 
 #define SBOX5(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t07, t08, t09; \
-    u32_t t10, t11, t12, t13, t14, t01; \
+    u32 t02, t03, t04, t05, t07, t08, t09; \
+    u32 t10, t11, t12, t13, t14, t01; \
     t01 = b   ^ d  ; \
     t02 = b   | d  ; \
     t03 = a   & t01; \
@@ -343,8 +340,8 @@ static const char *serpent_test (void);
 
 #define SBOX5_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t07, t08, t09; \
-    u32_t t10, t12, t13, t15, t16, t01; \
+    u32 t02, t03, t04, t05, t07, t08, t09; \
+    u32 t10, t12, t13, t15, t16, t01; \
     t01 = a   & d  ; \
     t02 = c   ^ t01; \
     t03 = a   ^ d  ; \
@@ -366,8 +363,8 @@ static const char *serpent_test (void);
 
 #define SBOX6(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t07, t08, t09, t10; \
-    u32_t t11, t12, t13, t15, t17, t18, t01; \
+    u32 t02, t03, t04, t05, t07, t08, t09, t10; \
+    u32 t11, t12, t13, t15, t17, t18, t01; \
     t01 = a   & d  ; \
     t02 = b   ^ c  ; \
     t03 = a   ^ d  ; \
@@ -391,8 +388,8 @@ static const char *serpent_test (void);
 
 #define SBOX6_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t06, t07, t08, t09; \
-    u32_t t12, t13, t14, t15, t16, t17, t01; \
+    u32 t02, t03, t04, t05, t06, t07, t08, t09; \
+    u32 t12, t13, t14, t15, t16, t17, t01; \
     t01 = a   ^ c  ; \
     t02 =     ~ c  ; \
     t03 = b   & t01; \
@@ -416,8 +413,8 @@ static const char *serpent_test (void);
 
 #define SBOX7(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t05, t06, t08, t09, t10; \
-    u32_t t11, t13, t14, t15, t16, t17, t01; \
+    u32 t02, t03, t04, t05, t06, t08, t09, t10; \
+    u32 t11, t13, t14, t15, t16, t17, t01; \
     t01 = a   & c  ; \
     t02 =     ~ d  ; \
     t03 = a   & t02; \
@@ -441,8 +438,8 @@ static const char *serpent_test (void);
 
 #define SBOX7_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    u32_t t02, t03, t04, t06, t07, t08, t09; \
-    u32_t t10, t11, t13, t14, t15, t16, t01; \
+    u32 t02, t03, t04, t06, t07, t08, t09; \
+    u32 t10, t11, t13, t14, t15, t16, t01; \
     t01 = a   & b  ; \
     t02 = a   | b  ; \
     t03 = c   | t01; \
@@ -582,7 +579,7 @@ static const char *serpent_test (void);
 /* Convert the user provided key KEY of KEY_LENGTH bytes into the
    internally used format.  */
 static void
-serpent_key_prepare (const byte_t *key, unsigned int key_length,
+serpent_key_prepare (const byte *key, unsigned int key_length,
 		     serpent_key_t key_prepared)
 {
   int i;
@@ -591,9 +588,9 @@ serpent_key_prepare (const byte_t *key, unsigned int key_length,
   for (i = 0; i < key_length / 4; i++)
     {
 #ifdef WORDS_BIGENDIAN
-      key_prepared[i] = byte_swap_32 (((u32_t *) key)[i]);
+      key_prepared[i] = byte_swap_32 (((u32 *) key)[i]);
 #else
-      key_prepared[i] = ((u32_t *) key)[i];
+      key_prepared[i] = ((u32 *) key)[i];
 #endif
     }
 
@@ -612,9 +609,9 @@ serpent_key_prepare (const byte_t *key, unsigned int key_length,
 static void
 serpent_subkeys_generate (serpent_key_t key, serpent_subkeys_t subkeys)
 {
-  u32_t w_real[140];		/* The `prekey'.  */
-  u32_t k[132];
-  u32_t *w = &w_real[8];
+  u32 w_real[140];		/* The `prekey'.  */
+  u32 k[132];
+  u32 *w = &w_real[8];
   int i, j;
 
   /* Initialize with key values.  */
@@ -669,19 +666,19 @@ serpent_subkeys_generate (serpent_key_t key, serpent_subkeys_t subkeys)
 /* Initialize CONTEXT with the key KEY of KEY_LENGTH bits.  */
 static void
 serpent_setkey_internal (serpent_context_t *context,
-			 const byte_t *key, unsigned int key_length)
+			 const byte *key, unsigned int key_length)
 {
   serpent_key_t key_prepared;
 
   serpent_key_prepare (key, key_length, key_prepared);
   serpent_subkeys_generate (key_prepared, context->keys);
-  _gcry_burn_stack (272 * sizeof (u32_t));
+  _gcry_burn_stack (272 * sizeof (u32));
 }
 
 /* Initialize CTX with the key KEY of KEY_LENGTH bytes.  */
 static gcry_err_code_t
 serpent_setkey (void *ctx,
-		const byte_t *key, unsigned int key_length)
+		const byte *key, unsigned int key_length)
 {
   serpent_context_t *context = ctx;
   static const char *serpent_test_ret;
@@ -842,12 +839,12 @@ serpent_decrypt_internal (serpent_context_t *context,
 }
 
 static void
-serpent_encrypt (void *ctx, byte_t *buffer_out, const byte_t *buffer_in)
+serpent_encrypt (void *ctx, byte *buffer_out, const byte *buffer_in)
 {
   serpent_context_t *context = ctx;
 
   serpent_encrypt_internal (context,
-			    (const u32_t *) buffer_in, (u32_t *) buffer_out);
+			    (const u32 *) buffer_in, (u32 *) buffer_out);
   _gcry_burn_stack (2 * sizeof (serpent_block_t));
 }
 
@@ -857,8 +854,8 @@ serpent_decrypt (void *ctx, byte *buffer_out, const byte *buffer_in)
   serpent_context_t *context = ctx;
 
   serpent_decrypt_internal (context,
-			    (const u32_t *) buffer_in,
-			    (u32_t *) buffer_out);
+			    (const u32 *) buffer_in,
+			    (u32 *) buffer_out);
   _gcry_burn_stack (2 * sizeof (serpent_block_t));
 }
 
@@ -918,8 +915,8 @@ serpent_test (void)
       serpent_setkey_internal (&context, test_data[i].key,
                                test_data[i].key_length);
       serpent_encrypt_internal (&context,
-				(const u32_t *) test_data[i].text_plain,
-				(u32_t *) scratch);
+				(const u32 *) test_data[i].text_plain,
+				(u32 *) scratch);
 
       if (memcmp (scratch, test_data[i].text_cipher, sizeof (serpent_block_t)))
 	switch (test_data[i].key_length)
@@ -933,8 +930,8 @@ serpent_test (void)
 	  }
 
     serpent_decrypt_internal (&context,
-			      (const u32_t *) test_data[i].text_cipher,
-			      (u32_t *) scratch);
+			      (const u32 *) test_data[i].text_cipher,
+			      (u32 *) scratch);
     if (memcmp (scratch, test_data[i].text_plain, sizeof (serpent_block_t)))
       switch (test_data[i].key_length)
 	{

@@ -1,3 +1,11 @@
+2005-02-13  Moritz Schulte  <moritz@g10code.com>
+
+	* serpent.c: Updated from 1.2 branch:
+
+	s/u32_t/u32/ and s/byte_t/byte/.  Too match what we have always
+	used and are using in all other files too
+	(serpent_test): Moved prototype out of a fucntion.
+
 2005-02-07  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c: Major parts rewritten.
