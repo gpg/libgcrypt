@@ -1,5 +1,6 @@
 /* global.c  -	global control functions
- * Copyright (C) 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
+ *               2004  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -24,7 +25,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <assert.h>
 #include <limits.h>
 #include <errno.h>
 
@@ -63,14 +63,14 @@ global_init (void)
   if (any_init_done)
     return;
   any_init_done = 1;
-  ath_init ();
 
+  err = ath_init ();
   if (! err)
     _gcry_cipher_init ();
   if (! err)
     _gcry_md_init ();
   if (! err)
-    _gcry_ac_init ();
+    _gcry_pk_init ();
 
   if (err)
     /* FIXME?  */
@@ -159,13 +159,6 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
   va_start (arg_ptr, cmd);
   switch (cmd)
     {
-#if 0
-    case GCRYCTL_NO_MEM_IS_FATAL:
-      break;
-    case GCRYCTL_SET_FATAL_FNC:
-      break;
-#endif
-
     case GCRYCTL_ENABLE_M_GUARD:
       _gcry_private_enable_m_guard ();
       break;
@@ -269,10 +262,23 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
         if (! init_finished)
 	  {
             global_init ();
-            _gcry_random_initialize ();
+            /* Do only a basic ranom initialization, i.e. inti the
+               mutexes. */
+            _gcry_random_initialize (0);
             init_finished = 1;
 	  }
         break;
+
+    case GCRYCTL_SET_THREAD_CBS:
+      err = ath_install (va_arg (arg_ptr, void *), any_init_done);
+      break;
+
+    case GCRYCTL_FAST_POLL:
+      /* We need to do make sure that the random pool is really
+         initialized so that the poll fucntion is not a NOP. */
+      _gcry_random_initialize (1);
+      _gcry_fast_random_poll (); 
+      break;
 
     default:
       err = GPG_ERR_INV_OP;
@@ -377,28 +383,57 @@ gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
     outofcore_handler_value = value;
 }
 
-
-
-void *
-gcry_malloc( size_t n )
+gcry_err_code_t
+_gcry_malloc (size_t n, unsigned int flags, void **mem)
 {
-    if( alloc_func )
-	return alloc_func( n ) ;
-    return _gcry_private_malloc( n );
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  void *m = NULL;
+
+  if ((flags & GCRY_ALLOC_FLAG_SECURE) && !no_secure_memory)
+    {
+      if (alloc_secure_func)
+	m = (*alloc_secure_func) (n);
+      else
+	m = _gcry_private_malloc_secure (n);
+    }
+  else
+    {
+      if (alloc_func)
+	m = (*alloc_func) (n);
+      else
+	m = _gcry_private_malloc (n);
+    }
+
+  if (! m)
+    err = gpg_err_code_from_errno (ENOMEM);
+  else
+    *mem = m;
+
+  return err;
+}
+  
+void *
+gcry_malloc (size_t n)
+{
+  void *mem = NULL;
+
+  _gcry_malloc (n, 0, &mem);
+
+  return mem;
 }
 
 void *
-gcry_malloc_secure( size_t n )
+gcry_malloc_secure (size_t n)
 {
-  if (no_secure_memory)
-    return gcry_malloc (n);
-  if (alloc_secure_func)
-    return alloc_secure_func (n) ;
-  return _gcry_private_malloc_secure (n);
+  void *mem = NULL;
+
+  _gcry_malloc (n, GCRY_ALLOC_FLAG_SECURE, &mem);
+
+  return mem;
 }
 
 int
-gcry_is_secure( const void *a )
+gcry_is_secure (const void *a)
 {
   if (no_secure_memory)
     return 0;
@@ -430,13 +465,13 @@ gcry_realloc (void *a, size_t n)
 void
 gcry_free( void *p )
 {
-    if( !p )
-	return;
+  if( !p )
+    return;
 
-    if( free_func )
-	free_func( p );
-    else
-	_gcry_private_free( p );
+  if (free_func)
+    free_func (p);
+  else
+    _gcry_private_free (p);
 }
 
 void *
@@ -445,7 +480,8 @@ gcry_calloc (size_t n, size_t m)
   size_t bytes;
   void *p;
 
-  bytes = n * m; /* size_t is unsigned so the behavior on overflow is defined. */
+  bytes = n * m; /* size_t is unsigned so the behavior on overflow is
+                    defined. */
   if (m && bytes / m != n) 
     {
       errno = ENOMEM;
@@ -464,7 +500,8 @@ gcry_calloc_secure (size_t n, size_t m)
   size_t bytes;
   void *p;
 
-  bytes = n * m; /* size_t is unsigned so the behavior on overflow is defined. */
+  bytes = n * m; /* size_t is unsigned so the behavior on overflow is
+                    defined. */
   if (m && bytes / m != n) 
     {
       errno = ENOMEM;
@@ -478,12 +515,27 @@ gcry_calloc_secure (size_t n, size_t m)
 }
 
 
+/* Create and return a copy of the null-terminated string STRING.  If
+   it is contained in secure memory, the copy will be contained in
+   secure memory as well.  In an out-of-memory condition, NULL is
+   returned.  */
 char *
-gcry_strdup( const char *string )
+gcry_strdup (const char *string)
 {
-    void *p = gcry_malloc( strlen(string)+1 );
-    strcpy( p, string );
-    return p;
+  char *string_cp = NULL;
+  size_t string_n = 0;
+
+  string_n = strlen (string);
+
+  if (gcry_is_secure (string))
+    string_cp = gcry_malloc_secure (string_n + 1);
+  else
+    string_cp = gcry_malloc (string_n + 1);
+  
+  if (string_cp)
+    strcpy (string_cp, string);
+
+  return string_cp;
 }
 
 
@@ -547,11 +599,25 @@ gcry_xcalloc_secure( size_t n, size_t m )
 }
 
 char *
-gcry_xstrdup( const char *string )
+gcry_xstrdup (const char *string)
 {
-    void *p = gcry_xmalloc( strlen(string)+1 );
-    strcpy( p, string );
-    return p;
+  char *p;
+
+  while ( !(p = gcry_strdup (string)) ) 
+    {
+      size_t n = strlen (string);
+      int is_sec = !!gcry_is_secure (string);
+
+      if (!outofcore_handler
+          || !outofcore_handler (outofcore_handler_value, n, is_sec) ) 
+        {
+          _gcry_fatal_error (gpg_err_code_from_errno (errno),
+                             is_sec? _("out of core in secure memory"):NULL);
+	}
+    }
+
+  strcpy( p, string );
+  return p;
 }
 
 
@@ -600,9 +666,15 @@ _gcry_get_debug_flag( unsigned int mask )
             Only used in debugging mode.
 */
 void
-gcry_set_progress_handler (gcry_handler_progress_t cb, void *cb_data)
+gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
+                           void *cb_data)
 {
-  _gcry_ac_progress_register (cb, cb_data);
+#if USE_DSA
+  _gcry_register_pk_dsa_progress (cb, cb_data);
+#endif
+#if USE_ELGAMAL
+  _gcry_register_pk_elg_progress (cb, cb_data);
+#endif
   _gcry_register_primegen_progress (cb, cb_data);
   _gcry_register_random_progress (cb, cb_data);
 }

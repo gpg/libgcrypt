@@ -1,5 +1,6 @@
 /* secmem.c  -	memory allocation from a secure heap
- * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002,
+ *               2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -176,11 +177,11 @@ mb_merge (memblock_t *mb)
 
 /* Return a new block, which can hold SIZE bytes.  */
 static memblock_t *
-mb_get_new (memblock_t *pool, size_t size)
+mb_get_new (memblock_t *block, size_t size)
 {
   memblock_t *mb, *mb_split;
   
-  for (mb = pool; BLOCK_VALID (mb); mb = mb_get_next (mb))
+  for (mb = block; BLOCK_VALID (mb); mb = mb_get_next (mb))
     if (! (mb->flags & MB_FLAG_ACTIVE) && mb->size >= size)
       {
 	/* Found a free block.  */
@@ -233,11 +234,14 @@ lock_pool (void *p, size_t n)
   if (err)
     {
       if (errno != EPERM
-#ifdef EAGAIN			/* OpenBSD returns this */
+#ifdef EAGAIN	/* OpenBSD returns this */
 	  && errno != EAGAIN
 #endif
-#ifdef ENOSYS			/* Some SCOs return this (function not implemented) */
+#ifdef ENOSYS	/* Some SCOs return this (function not implemented) */
 	  && errno != ENOSYS
+#endif
+#ifdef ENOMEM  /* Linux might return this. */
+            && errno != ENOMEM
 #endif
 	  )
 	log_error ("can't lock memory: %s\n", strerror (err));
@@ -251,6 +255,10 @@ lock_pool (void *p, size_t n)
   uid = getuid ();
 
 #ifdef HAVE_BROKEN_MLOCK
+  /* Under HP/UX mlock segfaults if called by non-root.  Note, we have
+     noch checked whether mlock does really work under AIX where we
+     also detected a broken nlock.  Note further, that using plock ()
+     is not a good idea under AIX. */ 
   if (uid)
     {
       errno = EPERM;
@@ -262,11 +270,11 @@ lock_pool (void *p, size_t n)
       if (err && errno)
 	err = errno;
     }
-#else
+#else /* !HAVE_BROKEN_MLOCK */
   err = mlock (p, n);
   if (err && errno)
     err = errno;
-#endif
+#endif /* !HAVE_BROKEN_MLOCK */
 
   if (uid && ! geteuid ())
     {
@@ -279,11 +287,14 @@ lock_pool (void *p, size_t n)
   if (err)
     {
       if (errno != EPERM
-#ifdef EAGAIN			/* OpenBSD returns this */
+#ifdef EAGAIN	/* OpenBSD returns this. */
 	  && errno != EAGAIN
 #endif
-#ifdef ENOSYS			/* Some SCOs return this (function not implemented) */
+#ifdef ENOSYS	/* Some SCOs return this (function not implemented). */
 	  && errno != ENOSYS
+#endif
+#ifdef ENOMEM  /* Linux might return this. */
+            && errno != ENOMEM
 #endif
 	  )
 	log_error ("can't lock memory: %s\n", strerror (err));
@@ -296,6 +307,15 @@ lock_pool (void *p, size_t n)
    * wipes out the memory on a free().
    * Therefore it is sufficient to suppress the warning
    */
+#elif defined (HAVE_DOSISH_SYSTEM) || defined (__CYGWIN__)
+    /* It does not make sense to print such a warning, given the fact that 
+     * this whole Windows !@#$% and their user base are inherently insecure
+     */
+#elif defined (__riscos__)
+    /* no virtual memory on RISC OS, so no pages are swapped to disc,
+     * besides we don't have mmap, so we don't use it! ;-)
+     * But don't complain, as explained above.
+     */
 #else
   log_info ("Please note that you don't have secure memory on this system\n");
 #endif
@@ -433,13 +453,10 @@ _gcry_secmem_init (size_t n)
     {
       if (n < DEFAULT_POOL_SIZE)
 	n = DEFAULT_POOL_SIZE;
-      if (! pool_okay)
+      if (!pool_okay)
 	{
 	  init_pool (n);
-	  if (! geteuid ())
-	    lock_pool (pool, n);
-	  else
-	    log_info ("Secure memory is not locked into core\n");
+	  lock_pool (pool, n);
 	}
       else
 	log_error ("Oops, secure memory pool already initialized\n");
@@ -457,8 +474,7 @@ _gcry_secmem_malloc_internal (size_t size)
   if (!pool_okay)
     {
       log_info (_
-		("operation is not possible without initialized secure memory\n"));
-      log_info (_("(you may have used the wrong program for this task)\n"));
+	("operation is not possible without initialized secure memory\n"));
       exit (2);
     }
   if (show_warning && !suspend_warning)
@@ -467,7 +483,7 @@ _gcry_secmem_malloc_internal (size_t size)
       print_warn ();
     }
 
-  /* blocks are always a multiple of 32 */
+  /* Blocks are always a multiple of 32. */
   size = ((size + 31) / 32) * 32;
 
   mb = mb_get_new ((memblock_t *) pool, size);
@@ -542,13 +558,19 @@ _gcry_secmem_realloc (void *p, size_t newsize)
   mb = (memblock_t *) ((char *) p - ((size_t) &((memblock_t *) 0)->aligned.c));
   size = mb->size;
   if (newsize < size)
-    return p;			/* it is easier not to shrink the memory */
-  a = _gcry_secmem_malloc_internal (newsize);
-  if (a)
     {
-      memcpy (a, p, size);
-      memset ((char *) a + size, 0, newsize - size);
-      _gcry_secmem_free_internal (p);
+      /* It is easier to not shrink the memory.  */
+      a = p;
+    }
+  else
+    {
+      a = _gcry_secmem_malloc_internal (newsize);
+      if (a)
+	{
+	  memcpy (a, p, size);
+	  memset ((char *) a + size, 0, newsize - size);
+	  _gcry_secmem_free_internal (p);
+	}
     }
 
   SECMEM_UNLOCK;
@@ -586,10 +608,10 @@ _gcry_secmem_term ()
   if (!pool_okay)
     return;
 
-  memset (pool, 0xff, pool_size);
-  memset (pool, 0xaa, pool_size);
-  memset (pool, 0x55, pool_size);
-  memset (pool, 0x00, pool_size);
+  wipememory2 (pool, 0xff, pool_size);
+  wipememory2 (pool, 0xaa, pool_size);
+  wipememory2 (pool, 0x55, pool_size);
+  wipememory2 (pool, 0x00, pool_size);
 #if HAVE_MMAP
   if (pool_is_mmapped)
     munmap (pool, pool_size);
@@ -607,8 +629,8 @@ _gcry_secmem_dump_stats ()
   SECMEM_LOCK;
 
  if (pool_okay)
-    log_info ("secmem usage: %u/%u bytes in %u blocks\n",
-	      cur_alloced, pool_size, cur_blocks);
+    log_info ("secmem usage: %u/%lu bytes in %u blocks\n",
+	      cur_alloced, (unsigned long)pool_size, cur_blocks);
   SECMEM_UNLOCK;
 #else
   memblock_t *mb;

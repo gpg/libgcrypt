@@ -1,20 +1,20 @@
 /* ath.c - Thread-safeness library.
-   Copyright (C) 2002, 2003 g10 Code GmbH
+   Copyright (C) 2002, 2003, 2004 g10 Code GmbH
 
    This file is part of Libgcrypt.
  
    Libgcrypt is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published
-   by the Free Software Foundation; either version 2 of the License,
-   or (at your option) any later version.
+   it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation; either version 2.1 of
+   the License, or (at your option) any later version.
  
    Libgcrypt is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
  
-   You should have received a copy of the GNU General Public License
-   along with Libgcrypt; if not, write to the Free Software
+   You should have received a copy of the GNU Lesser General Public
+   License along with Libgcrypt; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.  */
 
@@ -31,18 +31,109 @@
 #endif
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 #include "ath.h"
 
+
+/* The interface table.  */
+static struct ath_ops ops;
 
+/* True if we should use the external callbacks.  */
+static int ops_set;
+
+
+/* For the dummy interface.  */
 #define MUTEX_UNLOCKED	((ath_mutex_t) 0)
 #define MUTEX_LOCKED	((ath_mutex_t) 1)
 #define MUTEX_DESTROYED	((ath_mutex_t) 2)
 
 
+
+/* The lock we take while checking for lazy lock initialization.  */
+static ath_mutex_t check_init_lock = ATH_MUTEX_INITIALIZER;
+
+int
+ath_init (void)
+{
+  int err = 0;
+
+  if (ops_set)
+    {
+      if (ops.init)
+	err = (*ops.init) ();
+      if (err)
+	return err;
+      err = (*ops.mutex_init) (&check_init_lock);
+    }
+  return err;
+}
+
+
+/* Initialize the locking library.  Returns 0 if the operation was
+   successful, EINVAL if the operation table was invalid and EBUSY if
+   we already were initialized.  */
+gpg_err_code_t
+ath_install (struct ath_ops *ath_ops, int check_only)
+{
+  if (check_only)
+    {
+      enum ath_thread_option option = ATH_THREAD_OPTION_DEFAULT;
+      
+      /* Check if the requested thread option is compatible to the
+	 thread option we are already committed to.  */
+      if (ath_ops)
+	option = ath_ops->option;
+
+      if (!ops_set && option)
+	return GPG_ERR_NOT_SUPPORTED;
+
+      if (ops.option == ATH_THREAD_OPTION_USER
+	  || option == ATH_THREAD_OPTION_USER
+	  || ops.option != option)
+	return GPG_ERR_NOT_SUPPORTED;
+
+      return 0;
+    }
+    
+  if (ath_ops)
+    {
+      /* It is convenient to not require DESTROY.  */
+      if (!ath_ops->mutex_init || !ath_ops->mutex_lock
+	  || !ath_ops->mutex_unlock)
+	return GPG_ERR_INV_ARG;
+
+      ops = *ath_ops;
+      ops_set = 1;
+    }
+  else
+    ops_set = 0;
+
+  return 0;
+}
+
+
+static int
+mutex_init (ath_mutex_t *lock, int just_check)
+{
+  int err = 0;
+
+  if (just_check)
+    (*ops.mutex_lock) (&check_init_lock);
+  if (*lock == ATH_MUTEX_INITIALIZER || !just_check)
+    err = (*ops.mutex_init) (lock);
+  if (just_check)
+    (*ops.mutex_unlock) (&check_init_lock);
+  return err;
+}
+
+
 int
 ath_mutex_init (ath_mutex_t *lock)
 {
+  if (ops_set)
+    return mutex_init (lock, 0);
+
 #ifndef NDEBUG
   *lock = MUTEX_UNLOCKED;
 #endif
@@ -53,6 +144,19 @@ ath_mutex_init (ath_mutex_t *lock)
 int
 ath_mutex_destroy (ath_mutex_t *lock)
 {
+  if (ops_set)
+    {
+      int err = mutex_init (lock, 1);
+
+      if (err)
+	return err;
+
+      if (ops.mutex_destroy)
+	return (*ops.mutex_destroy) (lock);
+      else
+	return 0;
+    }
+
 #ifndef NDEBUG
   assert (*lock == MUTEX_UNLOCKED);
 
@@ -65,6 +169,14 @@ ath_mutex_destroy (ath_mutex_t *lock)
 int
 ath_mutex_lock (ath_mutex_t *lock)
 {
+  if (ops_set)
+    {
+      int ret = mutex_init (lock, 1);
+      if (ret)
+	return ret;
+      return (*ops.mutex_lock) (lock);
+    }
+
 #ifndef NDEBUG
   assert (*lock == MUTEX_UNLOCKED);
 
@@ -77,6 +189,14 @@ ath_mutex_lock (ath_mutex_t *lock)
 int
 ath_mutex_unlock (ath_mutex_t *lock)
 {
+  if (ops_set)
+    {
+      int ret = mutex_init (lock, 1);
+      if (ret)
+	return ret;
+      return (*ops.mutex_unlock) (lock);
+    }
+
 #ifndef NDEBUG
   assert (*lock == MUTEX_LOCKED);
 
@@ -89,14 +209,20 @@ ath_mutex_unlock (ath_mutex_t *lock)
 ssize_t
 ath_read (int fd, void *buf, size_t nbytes)
 {
-  return read (fd, buf, nbytes);
+  if (ops_set && ops.read)
+    return (*ops.read) (fd, buf, nbytes);
+  else
+    return read (fd, buf, nbytes);
 }
 
 
 ssize_t
 ath_write (int fd, const void *buf, size_t nbytes)
 {
-  return write (fd, buf, nbytes);
+  if (ops_set && ops.write)
+    return (*ops.write) (fd, buf, nbytes);
+  else
+    return write (fd, buf, nbytes);
 }
 
 
@@ -104,40 +230,58 @@ ssize_t
 ath_select (int nfd, fd_set *rset, fd_set *wset, fd_set *eset,
 	    struct timeval *timeout)
 {
-  return select (nfd, rset, wset, eset, timeout);
+  if (ops_set && ops.select)
+    return (*ops.select) (nfd, rset, wset, eset, timeout);
+  else
+    return select (nfd, rset, wset, eset, timeout);
 }
 
  
 ssize_t
 ath_waitpid (pid_t pid, int *status, int options)
 {
-  return waitpid (pid, status, options);
+  if (ops_set && ops.waitpid)
+    return (*ops.waitpid) (pid, status, options);
+  else
+    return waitpid (pid, status, options);
 }
 
 
 int
 ath_accept (int s, struct sockaddr *addr, socklen_t *length_ptr)
 {
-  return accept (s, addr, length_ptr);
+  if (ops_set && ops.accept)
+    return (*ops.accept) (s, addr, length_ptr);
+  else
+    return accept (s, addr, length_ptr);
 }
 
 
 int
 ath_connect (int s, struct sockaddr *addr, socklen_t length)
 {
-  return connect (s, addr, length);
+  if (ops_set && ops.connect)
+    return (*ops.connect) (s, addr, length);
+  else
+    return connect (s, addr, length);
 }
 
 
 int
 ath_sendmsg (int s, const struct msghdr *msg, int flags)
 {
-  return sendmsg (s, msg, flags);
+  if (ops_set && ops.sendmsg)
+    return (*ops.sendmsg) (s, msg, flags);
+  else
+    return sendmsg (s, msg, flags);
 }
 
 
 int
 ath_recvmsg (int s, struct msghdr *msg, int flags)
 {
-  return recvmsg (s, msg, flags);
+  if (ops_set && ops.recvmsg)
+    return (*ops.recvmsg) (s, msg, flags);
+  else
+    return recvmsg (s, msg, flags);
 }

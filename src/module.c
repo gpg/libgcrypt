@@ -18,10 +18,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
-#include <assert.h>
 #include <config.h>
 #include <errno.h>
 #include "g10lib.h"
+
+#define MODULE_ID_MIN 600
 
 /* Internal function.  Generate a new, unique module ID for a module
    that should be inserted into the module chain starting at
@@ -31,7 +32,7 @@ _gcry_module_id_new (gcry_module_t modules, unsigned int *id_new)
 {
   /* FIXME, what should be the ID of the first module registered by
      the user?  */
-  unsigned int id_min = 600, id_max = (unsigned int) -1, mod_id;
+  unsigned int id_min = MODULE_ID_MIN, id_max = (unsigned int) -1, mod_id;
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_module_t module;
 
@@ -171,36 +172,28 @@ _gcry_module_use (gcry_module_t module)
    according size.  In case there are less cipher modules than
    *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
 gcry_err_code_t
-_gcry_module_list (gcry_module_t modules, int **list, int *list_length)
+_gcry_module_list (gcry_module_t modules,
+		   int *list, int *list_length)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_module_t module = NULL;
-  unsigned int modules_n = 0;
-  int *list_new = NULL;
-  unsigned int i = 0;
+  gcry_module_t module;
+  int length, i;
 
-  for (module = modules; module; module = module->next)
-    modules_n++;
+  for (module = modules, length = 0; module; module = module->next, length++);
 
-  if (modules_n && list)
+  if (list)
     {
-      list_new = gcry_malloc (sizeof (*list_new) * modules_n);
-      if (! list_new)
-	err = gpg_err_code_from_errno (ENOMEM);
-      else
-	{
-	  for (module = modules, i = 0; i < modules_n; module = module->next, i++)
-	    list_new[i] = module->mod_id;
-	}
-    }
+      if (length > *list_length)
+	length = *list_length;
 
-  if (! err)
-    {
-      if (list)
-	*list = list_new;
-      if (list_length)
-	*list_length = modules_n;
+      for (module = modules, i = 0; i < length; module = module->next, i++)
+	list[i] = module->mod_id;
+
+      if (length < *list_length)
+	*list_length = length;
     }
+  else
+    *list_length = length;
 
   return err;
 }

@@ -26,43 +26,55 @@
 
 #include "../cipher/random.h"
 
+#define PUBKEY_FLAG_NO_BLINDING (1 << 0)
+
 /*-- rmd160.c --*/
 void _gcry_rmd160_hash_buffer (char *outbuf, const char *buffer, size_t length);
+/*-- sha1.c --*/
+void _gcry_sha1_hash_buffer (char *outbuf, const char *buffer, size_t length);
 
+/*-- dsa.c --*/
+void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data);
+/*-- elgamal.c --*/
+void _gcry_register_pk_elg_progress (gcry_handler_progress_t cb, void *cb_data);
 /*-- primegen.c --*/
 void _gcry_register_primegen_progress (gcry_handler_progress_t cb, void *cb_data);
 
+/*-- pubkey.c --*/
+const char * _gcry_pk_aliased_algo_name (int algorithm);
+
 /* Declarations for the cipher specifications.  */
-extern gcry_cipher_spec_t cipher_spec_blowfish;
-extern gcry_cipher_spec_t cipher_spec_des;
-extern gcry_cipher_spec_t cipher_spec_tripledes;
-extern gcry_cipher_spec_t cipher_spec_arcfour;
-extern gcry_cipher_spec_t cipher_spec_cast5;
-extern gcry_cipher_spec_t cipher_spec_aes;
-extern gcry_cipher_spec_t cipher_spec_aes192;
-extern gcry_cipher_spec_t cipher_spec_aes256;
-extern gcry_cipher_spec_t cipher_spec_twofish;
-extern gcry_cipher_spec_t cipher_spec_twofish128;
-extern gcry_cipher_spec_t cipher_spec_serpent128;
-extern gcry_cipher_spec_t cipher_spec_serpent192;
-extern gcry_cipher_spec_t cipher_spec_serpent256;
+extern gcry_cipher_spec_t _gcry_cipher_spec_blowfish;
+extern gcry_cipher_spec_t _gcry_cipher_spec_des;
+extern gcry_cipher_spec_t _gcry_cipher_spec_tripledes;
+extern gcry_cipher_spec_t _gcry_cipher_spec_arcfour;
+extern gcry_cipher_spec_t _gcry_cipher_spec_cast5;
+extern gcry_cipher_spec_t _gcry_cipher_spec_aes;
+extern gcry_cipher_spec_t _gcry_cipher_spec_aes192;
+extern gcry_cipher_spec_t _gcry_cipher_spec_aes256;
+extern gcry_cipher_spec_t _gcry_cipher_spec_twofish;
+extern gcry_cipher_spec_t _gcry_cipher_spec_twofish128;
+extern gcry_cipher_spec_t _gcry_cipher_spec_serpent128;
+extern gcry_cipher_spec_t _gcry_cipher_spec_serpent192;
+extern gcry_cipher_spec_t _gcry_cipher_spec_serpent256;
+extern gcry_cipher_spec_t _gcry_cipher_spec_rfc2268_40;
 
 /* Declarations for the digest specifications.  */
-extern gcry_md_spec_t digest_spec_crc32;
-extern gcry_md_spec_t digest_spec_crc32_rfc1510;
-extern gcry_md_spec_t digest_spec_crc24_rfc2440;
-extern gcry_md_spec_t digest_spec_md4;
-extern gcry_md_spec_t digest_spec_md5;
-extern gcry_md_spec_t digest_spec_rmd160;
-extern gcry_md_spec_t digest_spec_sha1;
-extern gcry_md_spec_t digest_spec_sha256;
-extern gcry_md_spec_t digest_spec_sha512;
-extern gcry_md_spec_t digest_spec_sha384;
-extern gcry_md_spec_t digest_spec_tiger;
+extern gcry_md_spec_t _gcry_digest_spec_crc32;
+extern gcry_md_spec_t _gcry_digest_spec_crc32_rfc1510;
+extern gcry_md_spec_t _gcry_digest_spec_crc24_rfc2440;
+extern gcry_md_spec_t _gcry_digest_spec_md4;
+extern gcry_md_spec_t _gcry_digest_spec_md5;
+extern gcry_md_spec_t _gcry_digest_spec_rmd160;
+extern gcry_md_spec_t _gcry_digest_spec_sha1;
+extern gcry_md_spec_t _gcry_digest_spec_sha256;
+extern gcry_md_spec_t _gcry_digest_spec_sha512;
+extern gcry_md_spec_t _gcry_digest_spec_sha384;
+extern gcry_md_spec_t _gcry_digest_spec_tiger;
 
 /* Declarations for the pubkey cipher specifications.  */
-extern gcry_ac_spec_t ac_spec_rsa;
-extern gcry_ac_spec_t ac_spec_elg;
-extern gcry_ac_spec_t ac_spec_dsa;
+extern gcry_pk_spec_t _gcry_pubkey_spec_rsa;
+extern gcry_pk_spec_t _gcry_pubkey_spec_elg;
+extern gcry_pk_spec_t _gcry_pubkey_spec_dsa;
 
 #endif /*G10_CIPHER_H*/

@@ -1,5 +1,5 @@
 #!/bin/sh
-#    Copyright (C) 1999, 2002 Free Software Foundation, Inc.
+# Copyright (C) 1999, 2002, 2003, 2004 Free Software Foundation, Inc.
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -12,35 +12,32 @@
 # General.
 prefix="@prefix@"
 exec_prefix="@exec_prefix@"
-thread_module=""
 version="@VERSION@"
+includedir="@includedir@"
+libdir="@libdir@"
 gpg_error_libs="@GPG_ERROR_LIBS@"
 gpg_error_cflags="@GPG_ERROR_CFLAGS@"
 
-# LIBS values.
+# libgcrypt values.
 libs="@LIBGCRYPT_CONFIG_LIBS@"
-libs_pthread="@LIBGCRYPT_CONFIG_LIBS_PTHREAD@"
-libs_pth="@LIBGCRYPT_CONFIG_LIBS_PTH@"
-
-# CFLAGS values.
 cflags="@LIBGCRYPT_CONFIG_CFLAGS@"
-cflags_pthread="@LIBGCRYPT_CONFIG_CFLAGS_PTHREAD@"
-cflags_pth="@LIBGCRYPT_CONFIG_CFLAGS_PTH@"
+
+# API info
+api_version="@LIBGCRYPT_CONFIG_API_VERSION@"
 
 # Misc information.
 symmetric_ciphers="@LIBGCRYPT_CIPHERS@"
 asymmetric_ciphers="@LIBGCRYPT_PUBKEY_CIPHERS@"
 digests="@LIBGCRYPT_DIGESTS@"
-thread_modules="@LIBGCRYPT_THREAD_MODULES@"
 
 # State variables.
-exec_prefix_set=no
 echo_libs=no
 echo_cflags=no
 echo_prefix=no
 echo_algorithms=no
 echo_exec_prefix=no
 echo_version=no
+echo_api_version=no
 
 # Prints usage information.
 usage()
@@ -48,10 +45,10 @@ usage()
     cat <<EOF
 Usage: $0 [OPTIONS]
 Options:
-	[--thread={${thread_modules}}]
-	[--prefix[=DIR]]
-	[--exec-prefix[=DIR]]
+	[--prefix]
+	[--exec-prefix]
 	[--version]
+        [--api-version]
 	[--libs]
 	[--cflags]
 	[--algorithms]
@@ -77,34 +74,27 @@ while test $# -gt 0; do
 
     case $1 in
 	--thread=*)
-	    for thread_mod in $thread_modules; do
-		if test "$thread_mod" = "$optarg"; then
-		    thread_module="$optarg";
-		fi
-	    done
-	    if test "x$thread_module" = "x"; then
-		usage 1 1>&2
-	    fi
+	    echo "$0: --thread option obsolete: use the thread callback interface" 1>&2
+	    # exit 1  <-- enable this for 1.2.0.
 	    ;;
-	--prefix=*)
-	    prefix=$optarg
-	    if test $exec_prefix_set = no ; then
-		exec_prefix=$optarg
-	    fi
-	    ;;
+        --prefix=*)
+            # For compatibility reasons with old M4 macros, we ignore
+            # setting of prefix.
+            ;;
 	--prefix)
 	    echo_prefix=yes
 	    ;;
-	--exec-prefix=*)
-	    exec_prefix=$optarg
-	    exec_prefix_set=yes
-	    ;;
+        --exec-prefix=*)
+            ;;
 	--exec-prefix)
 	    echo_exec_prefix=yes
 	    ;;
 	--version)
 	    echo_version=yes
 	    ;;
+        --api-version)
+            echo_api_version=yes
+            ;;
 	--cflags)
 	    echo_cflags=yes
 	    ;;
@@ -122,11 +112,11 @@ while test $# -gt 0; do
 done
 
 if test "$echo_prefix" = "yes"; then
-    echo $prefix
+    echo "$prefix"
 fi
 
 if test "$echo_exec_prefix" = "yes"; then
-    echo $exec_prefix
+    echo "$exec_prefix"
 fi
 
 if test "$echo_cflags" = "yes"; then
@@ -134,26 +124,13 @@ if test "$echo_cflags" = "yes"; then
     cflags_final="$cflags"
 
     # Set up `includes'.
-    if test "@includedir@" != "/usr/include" ; then
-	includes="-I@includedir@"
-	for i in $cflags ; do
-	    if test "$i" = "-I@includedir@" ; then
-		includes=""
-	    fi
-	done
+    if test "x$includedir" != "x/usr/include" -a "x$includedir" != "x/include"; then
+	includes="-I$includedir"
     fi
-
     # Set up `cflags_final'.
-    case "$thread_module" in
-	pthread)
-	    cflags_final=$cflags_pthread
-	    ;;
-	pth)
-	    cflags_final=$cflags_pth
-	    ;;
-    esac
+    cflags_final="$cflags_final $gpg_error_cflags"
 
-    echo "$includes" "$cflags_final"
+    echo "$includes $cflags_final"
 fi
 
 if test "$echo_libs" = "yes"; then
@@ -161,34 +138,26 @@ if test "$echo_libs" = "yes"; then
     libs_final="$libs"
 
     # Set up `libdirs'.
-    if test "@libdir@" != "/usr/lib" ; then
-	libdirs="-L@libdir@"
-	for i in $libs ; do
-	    if test "$i" = "-L@libdir@" ; then
-		libdirs=""
-	    fi
-	done
+    if test "x$libdir" != "x/usr/lib" -a "x$libdir" != "x/lib"; then
+	libdirs="-L$libdir"
     fi
 
     # Set up `libs_final'.
-    case "$thread_module" in
-	pthread)
-	    libs_final=$libs_pthread
-	    ;;
-	pth)
-	    libs_final=$libs_pth
-	    ;;
-    esac
+    libs_final="$libs_final $gpg_error_libs"
 
-    echo $libdirs $libs_final
+    echo "$libdirs $libs_final"
 fi
 
 if test "$echo_version" = "yes"; then
-    echo $version
+    echo "$version"
+fi
+
+if test "$echo_api_version" = "yes"; then
+    echo "$api_version"
 fi
 
 if test "$echo_algorithms" = "yes"; then
-    echo "Symmetric cipher algorithms: $ciphers"
-    echo "Public-key cipher algorithms: $pubkey_ciphers"
+    echo "Symmetric cipher algorithms: $symmetric_ciphers"
+    echo "Public-key cipher algorithms: $asymmetric_ciphers"
     echo "Message digest algorithms: $digests"
 fi
