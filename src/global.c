@@ -145,12 +145,12 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 
     va_start( arg_ptr, cmd ) ;
     switch( cmd ) {
-     #if 0
+#if 0
       case GCRYCTL_NO_MEM_IS_FATAL:
 	break;
       case GCRYCTL_SET_FATAL_FNC:
 	break;
-     #endif
+#endif
 
       case GCRYCTL_ENABLE_M_GUARD:
 	_gcry_private_enable_m_guard();
@@ -235,12 +235,13 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 
       case GCRYCTL_INITIALIZATION_FINISHED:
         /* This is a hook which should be used by an application after
-           all intialization has been done and right before any
+           all initialization has been done and right before any
            threads are started.  It is not really needed but the only
            way to be really sure that all initialization for
            thread-safety has been done. */
         if (!init_finished) {
             global_init ();
+            _gcry_random_initialize ();
             init_finished = 1;
         }
         break;

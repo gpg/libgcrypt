@@ -1,3 +1,9 @@
+2002-12-19  Werner Koch  <wk@gnupg.org>
+
+	* global.c (gcry_control) <initialization>: Call the random module
+	initializer to make sure that the pool lock flag has been
+	initialized.
+
 2002-12-09  Werner Koch  <wk@gnupg.org>
 
 	* global.c (gcry_calloc,gcry_calloc_secure): Check for overflow.
