@@ -18,12 +18,12 @@
 
 ## Process this file with automake to produce Makefile.in
 
-TESTS = prime register ac basic tsexp keygen pubkey
+TESTS = prime register ac basic tsexp keygen pubkey benchmark
 
 INCLUDES = -I$(top_srcdir)/src
 LDADD = ../src/libgcrypt.la
 
-EXTRA_PROGRAMS = benchmark testapi
+EXTRA_PROGRAMS = testapi
 noinst_PROGRAMS = $(TESTS)
 
 AM_CFLAGS = @GPG_ERROR_CFLAGS@

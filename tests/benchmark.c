@@ -1,5 +1,5 @@
 /* benchmark.c - for libgcrypt
- *	Copyright (C) 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 2002, 2004 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -93,12 +93,21 @@ random_bench (void)
 static void
 md_bench ( const char *algoname )
 {
-  int algo = gcry_md_map_name (algoname);
+  int algo;
   gcry_md_hd_t hd;
   int i;
   char buf[1000];
   gcry_error_t err = GPG_ERR_NO_ERROR;
 
+  if (!algoname)
+    {
+      for (i=1; i < 400; i++)
+        if ( !gcry_md_test_algo (i) )
+          md_bench (gcry_md_algo_name (i));
+      return;
+    }
+
+  algo = gcry_md_map_name (algoname);
   if (!algo)
     {
       fprintf (stderr, PGM ": invalid hash algorithm `%s'\n", algoname);
@@ -108,14 +117,14 @@ md_bench ( const char *algoname )
   err = gcry_md_open (&hd, algo, 0);
   if (err)
     {
-      fprintf (stderr, PGM ": error opeing hash algorithm `%s'/n", algoname);
+      fprintf (stderr, PGM ": error opening hash algorithm `%s'\n", algoname);
       exit (1);
     }
 
   for (i=0; i < sizeof buf; i++)
     buf[i] = i;
 
-  printf ("%-10s", gcry_md_algo_name (algo));
+  printf ("%-12s", gcry_md_algo_name (algo));
 
   start_timer ();
   for (i=0; i < 1000; i++)
@@ -148,7 +157,7 @@ static void
 cipher_bench ( const char *algoname )
 {
   static int header_printed;
-  int algo = gcry_cipher_map_name (algoname);
+  int algo;
   gcry_cipher_hd_t hd;
   int i;
   int keylen, blklen;
@@ -166,19 +175,30 @@ cipher_bench ( const char *algoname )
   int modeidx;
   gcry_error_t err = GPG_ERR_NO_ERROR;
 
+
+  if (!algoname)
+    {
+      for (i=1; i < 400; i++)
+        if ( !gcry_cipher_test_algo (i) )
+          cipher_bench (gcry_cipher_algo_name (i));
+      return;
+    }
+
+
   if (!header_printed)
     {
-      printf ("%-10s", "Algo");
+      printf ("%-10s", "");
       for (modeidx=0; modes[modeidx].mode; modeidx++)
         printf (" %-15s", modes[modeidx].name );
       putchar ('\n');
-      printf ( "----------");
+      printf ("%-10s", "");
       for (modeidx=0; modes[modeidx].mode; modeidx++)
         printf (" ---------------" );
       putchar ('\n');
       header_printed = 1;
     }
 
+  algo = gcry_cipher_map_name (algoname);
   if (!algo)
     {
       fprintf (stderr, PGM ": invalid cipher algorithm `%s'\n", algoname);
@@ -359,26 +379,40 @@ mpi_bench (void)
 int
 main( int argc, char **argv )
 {
-  if (argc < 2 )
+  if (argc)
+    { argc--; argv++; }
+
+  if ( !argc )
     {
-      fprintf (stderr, "usage: benchmark md|cipher|random|mpi [algonames]\n");
-      return 1;
+      md_bench (NULL);
+      putchar ('\n');
+      cipher_bench (NULL);
+      putchar ('\n');
+      mpi_bench ();
+      putchar ('\n');
+      random_bench ();
     }
-  argc--; argv++;
-  
-  if ( !strcmp (*argv, "random"))
+  else if ( !strcmp (*argv, "--help"))
+     fputs ("usage: benchmark [md|cipher|random|mpi [algonames]]\n", stdout);
+  else if ( !strcmp (*argv, "random"))
     {
       random_bench ();
     }
   else if ( !strcmp (*argv, "md"))
     {
-      for (argc--, argv++; argc; argc--, argv++)
-        md_bench ( *argv );
+      if (argc == 1)
+        md_bench (NULL);
+      else
+        for (argc--, argv++; argc; argc--, argv++)
+          md_bench ( *argv );
     }
   else if ( !strcmp (*argv, "cipher"))
     {
-      for (argc--, argv++; argc; argc--, argv++)
-        cipher_bench ( *argv );
+      if (argc == 1)
+        cipher_bench (NULL);
+      else
+        for (argc--, argv++; argc; argc--, argv++)
+          cipher_bench ( *argv );
     }
   else if ( !strcmp (*argv, "mpi"))
     {

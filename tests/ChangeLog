@@ -1,3 +1,11 @@
+2004-02-25  Werner Koch  <wk@gnupg.org>
+
+	* Makefile.am (TEST): Add benchmark.
+
+	* benchmark.c (md_bench, cipher_bench): Allow NULL arg to to run
+	tests for all algorithms.
+	(main): Run all tests by default.
+
 2004-02-03  Werner Koch  <wk@gnupg.org>
 
 	* tsexp.c (basic): New pass to check secure memory switching.
