@@ -271,6 +271,53 @@ back_and_forth (void)
 }
 
 
+static void
+check_sscan (void)
+{
+  static struct {
+    const char *text;
+    gcry_error_t expected_err;  
+  } values[] = {
+    /* Bug reported by Olivier L'Heureux 2003-10-07 */
+    { "(7:sig-val(3:dsa"
+      "(1:r20:\x7e\xff\xd5\xba\xc9\xc9\xa4\x9b\xd4\x26\x8b\x64"
+      "\x06\x7a\xcf\x42\x7b\x6c\x51\xfb)"
+      "(1:s21:\x01\x8c\x6c\x6f\x37\x1a\x8d\xfd\x5a\xb3\x2a\x3d"
+      "\xc5\xae\x23\xed\x32\x62\x30\x62\x3e)))",
+      GPG_ERR_NO_ERROR },
+    { "(7:sig-val(3:dsa"
+      "(1:r20:\x7e\xff\xd5\xba\xc9\xc9\xa4\x9b\xd4\x26\x8b\x64"
+      "\x06\x7a\xcf\x42\x7b\x6c\x51\xfb)"
+      "(1:s21:\x01\x8c\x6c\x6f\x37\x1a\x8d\xfd\x5a\xb3\x2a\x3d"
+      "\xc5\xae\x23\xed\x32\x62\x30\x62\x3e))",
+      GPG_ERR_SEXP_UNMATCHED_PAREN },
+    { "(7:sig-val(3:dsa"
+      "(1:r20:\x7e\xff\xd5\xba\xc9\xc9\xa4\x9b\xd4\x26\x8b\x64"
+      "\x06\x7a\xcf\x42\x7b\x6c\x51\xfb)"
+      "(1:s21:\x01\x8c\x6c\x6f\x37\x1a\x8d\xfd\x5a\xb3\x2a\x3d"
+      "\xc5\xae\x23\xed\x32\x62\x30\x62\x3e))))",
+      GPG_ERR_SEXP_UNMATCHED_PAREN },
+    { NULL, 0 }
+  };
+  int idx;
+  gcry_error_t err;
+  gcry_sexp_t s;
+
+  info ("checking gcry_sexp_sscan\n");
+  for (idx=0; values[idx].text; idx++)
+    {
+      err = gcry_sexp_sscan (&s, NULL,
+                             values[idx].text,
+                             strlen (values[idx].text));
+      if (gpg_err_code (err) != values[idx].expected_err)
+        fail ("gcry_sexp_sscan test %d failed: %s\n", idx, gpg_strerror (err));
+      gcry_sexp_release (s);
+    }
+}
+
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -280,6 +327,7 @@ main (int argc, char **argv)
   basic ();
   canon_len ();
   back_and_forth ();
+  check_sscan ();
   
   return error_count? 1:0;
 }

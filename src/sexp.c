@@ -857,6 +857,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
   size_t dummy_erroff;
   struct make_space_ctx c;
   int arg_counter = 0;
+  int level = 0;
 
   if (! erroff)
     erroff = &dummy_erroff;
@@ -874,8 +875,9 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
     }                                                    \
   while (0)
 
-  /* FIXME: replace all the returns by a jump to the leave label
-   * and invent better error codes. Make sure that everything is cleaned up*/
+  /* FIXME: replace all the returns by a jump to the leave label and
+   * invent better error codes. FIXME: Make sure that everything is
+   * cleaned up. */
 #define MAKE_SPACE(n)  do { make_space ( &c, (n) ); } while (0)
 #define STORE_LEN(p,n) do {						   \
 			    DATALEN ashort = (n);			   \
@@ -1109,6 +1111,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       }
       MAKE_SPACE (0);
       *c.pos++ = ST_OPEN;
+      level++;
     }
     else if( *p == ')' ) { /* walk up */
       if( disphint ) {
@@ -1118,6 +1121,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       }
       MAKE_SPACE (0);
       *c.pos++ = ST_CLOSE;
+      level--;
     }
     else if( *p == '\"' ) {
       quoted = p;
@@ -1181,6 +1185,9 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
   }
   MAKE_SPACE (0);
   *c.pos++ = ST_STOP;
+
+  if (level)
+    return gcry_error (GPG_ERR_SEXP_UNMATCHED_PAREN);
 
   *retsexp = normalize ( c.sexp );
   return gcry_error (GPG_ERR_NO_ERROR);
