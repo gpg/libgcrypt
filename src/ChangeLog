@@ -4,6 +4,8 @@
 	(convert_to_token): New.
 	(gcry_sexp_sprint): Better formatting of advanced encoding, does
 	now insert LFs and escapes all unprintable characters.
+	(unquote_string): New.
+	(sexp_sscan): Implemented the missing conversion of quoted strings.
 
 2002-01-26  Werner Koch  <wk@gnupg.org>
 

@@ -45,6 +45,7 @@ struct gcry_sexp {
 #define ST_CLOSE 4
 
 #define digitp(p)   (*(p) >= '0' && *(p) <= '9')
+#define octdigitp(p) (*(p) >= '0' && *(p) <= '7')
 #define alphap(a)    (   (*(a) >= 'A' && *(a) <= 'Z')  \
                       || (*(a) >= 'a' && *(a) <= 'z'))
 #define hexdigitp(a) (digitp (a)                     \
@@ -52,6 +53,9 @@ struct gcry_sexp {
                       || (*(a) >= 'a' && *(a) <= 'f'))
 /* the atoi macros assume that the buffer has only valid digits */
 #define atoi_1(p)   (*(p) - '0' )
+#define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): \
+                     *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
+#define xtoi_2(p)   ((xtoi_1(p) * 16) + xtoi_1((p)+1))
 
 #define TOKEN_SPECIALS  "-./_:*+="
 
@@ -674,6 +678,77 @@ make_space ( struct make_space_ctx *c, size_t n )
 }
 
 
+/* Unquote STRING of LENGTH and store it into BUF.  The surrounding
+   quotes are must already be removed from STRING.  We assume that the
+   quoted string is syntacillay correct.  */
+static size_t
+unquote_string (const unsigned char *string, size_t length, unsigned char *buf)
+{
+  int esc = 0;
+  const unsigned char *s = string;
+  unsigned char *d = buf;
+  size_t n = length;
+
+  for (; n; n--, s++)
+    {
+      if (esc)
+        {
+          switch (*s)
+            {
+            case 'b':  *d++ = '\b'; break;
+            case 't':  *d++ = '\t'; break;
+            case 'v':  *d++ = '\v'; break;
+            case 'n':  *d++ = '\n'; break;
+            case 'f':  *d++ = '\f'; break;
+            case 'r':  *d++ = '\r'; break;
+            case '"':  *d++ = '\"'; break;
+            case '\'': *d++ = '\''; break;
+            case '\\': *d++ = '\\'; break;
+
+            case '\r':  /* ignore CR[,LF] */
+              if (n>1 && s[1] == '\n')
+                {
+                  s++; n--;
+                }
+              esc = 0;
+              break;
+              
+            case '\n':  /* ignore LF[,CR] */
+              if (n>1 && s[1] == '\r')
+                {
+                  s++; n--;
+                }
+              break;
+
+            case 'x': /* hex value */
+              if (n>2 && hexdigitp (s+1) && hexdigitp (s+2))
+                {
+                  s++; n--;
+                  *d++ = xtoi_2 (s);
+                  s++; n--;
+                }
+              break;
+
+            default:
+              if (n>2 && octdigitp (s) && octdigitp (s+1) && octdigitp (s+2))
+                {
+                  *d++ = (atoi_1 (s)*64) + (atoi_1 (s+1)*8) + atoi_1 (s+2);
+                  s += 2;
+                  n -= 2;
+                }
+              break;
+	    }
+          esc = 0;
+        }
+      else if( *s == '\\' )
+        esc = 1;
+      else
+        *d++ = *s;
+    } 
+
+  return d - buf;
+}
+
 /****************
  * Scan the provided buffer and return the S expression in our internal
  * format.  Returns a newly allocated expression.  If erroff is not NULL and
@@ -793,7 +868,19 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 	    else if( *p == '\\' )
 		quoted_esc = 1;
 	    else if( *p == '\"' ) {
-		/* fixme: add item */
+                /* keep it easy - we know that the unquoted string will
+                   never be larger */
+                char *save;
+                size_t len;
+                
+                quoted++; /* skip leading quote */
+		MAKE_SPACE (p - quoted);
+                *c.pos++ = ST_DATA;
+                save = c.pos;
+                STORE_LEN (c.pos, 0); /* will be fixed up later */
+                len = unquote_string (quoted, p - quoted, c.pos);
+                c.pos += len;
+                STORE_LEN (save, len);
 		quoted = NULL;
 	    }
 	}
