@@ -1,86 +1,70 @@
 \input texinfo                  @c -*- Texinfo -*-
-@c Copyright (C) 2000, 2002, 2003 Free Software Foundation, Inc.
-@c 
-@c This file is part of the Libgcrypt.
-@c
-@c Permission is granted to copy, distribute and/or modify this document
-@c under the terms of the GNU Free Documentation License, Version 1.1 or
-@c any later version published by the Free Software Foundation; with no
-@c Invariant Sections, with no the Front-Cover texts, and with no
-@c Back-Cover Texts. 
-@c A copy of the license is included in the file 'fdl.texi'.
-@c
+@c %**start of header
 @setfilename gcrypt.info
-@settitle The `Libgcrypt' Reference Manual
+@include version.texi
+@settitle The Libgcrypt Reference Manual
+@c Unify some of the indices.
+@syncodeindex tp fn
+@syncodeindex pg fn
+@c %**end of header
+@copying
+This manual is for Libgcrypt
+(version @value{VERSION}, @value{UPDATED}),
+which is GNU's library of cryptographic building blocks.
+
+Copyright @copyright{} 2000, 2002, 2003, 2004 Free Software Foundation, Inc.
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version. The text of the license can be found in the
+section entitled ``Copying''.
+@end quotation
+@end copying
 
 @dircategory GNU Libraries
 @direntry
 * libgcrypt: (gcrypt) Cryptographic function library.
 @end direntry
 
-@include version.texi
 
-@c Unify some of the indices.
-@syncodeindex tp fn
-@syncodeindex pg fn
 
-@ifinfo
-This file documents the `Libgcrypt' library.
-
-This is Edition @value{EDITION}, last updated @value{UPDATED}, of
-@cite{The `Libgcrypt' Reference Manual}, for Version
-@value{VERSION}.
-
-Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
-
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.1 or
-any later version published by the Free Software Foundation; with no
-Invariant Sections, with no the Front-Cover texts, and with no
-Back-Cover Texts.  A copy of the license is included in the section
-entitled ``GNU Free Documentation License''.
-@end ifinfo
-
-@c @iftex
-@c @shorttitlepage The `Libgcrypt' Reference Manual
-@c @end iftex
+@c
+@c Titlepage
+@c
+@setchapternewpage odd
 @titlepage
-@center @titlefont{The `Libgcrypt'}
-@sp 1
-@center @titlefont{Reference Manual}
-@sp 6
-@center Edition @value{EDITION}
-@sp 1
-@center last updated @value{UPDATED}
-@sp 1
-@center for version @value{VERSION}
+@title The Libgcrypt Reference Manual
+@subtitle Version @value{VERSION}
+@subtitle @value{UPDATED}
+@author Werner Koch (@email{wk@@gnupg.org})
+@author Moritz Schulte (@email{mo@@g10code.com})
+
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
-
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.1 or
-any later version published by the Free Software Foundation; with no
-Invariant Sections, with no the Front-Cover texts, and with no
-Back-Cover Texts.  A copy of the license is included in the section
-entitled ``GNU Free Documentation License''.
+@insertcopying
 @end titlepage
+
+
+@summarycontents
+@contents
 @page
+
 
 @ifnottex
 @node Top
-@top Main Menu
-This is Edition @value{EDITION}, last updated @value{UPDATED}, of
-@cite{The `Libgcrypt' Reference Manual}, for Version
-@value{VERSION} of the @acronym{Libgcrypt} library.
+@top The Libgcrypt Library
+@insertcopying
 @end ifnottex
+
 
 @menu
 * Introduction::                 What is @acronym{Libgcrypt}.
 * Preparation::                  What you should do before using the library.
 * Generalities::                 General library functions and data types.
 * Handler Functions::            Working with handler functions.
-* Symmetric cryptography::       How to use symmetric crytography.
+* Symmetric cryptography::       How to use symmetric cryptography.
 * Hashing::                      How to use hashing.
 * Public Key cryptography (I)::  How to use public key cryptography.
 * Public Key cryptography (II):: How to use public key cryptography, alternatively.
@@ -92,11 +76,9 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 Appendices
 
 * Library Copying::             The GNU Lesser General Public License
-                                says how you can copy and share `@acronym{Libgcrypt}'.
+                                says how you can copy and share `Libgcrypt'.
 * Copying::                     The GNU General Public License says how you
-                                can copy and share some parts of `@acronym{Libgcrypt}'.
-* Free Documentation License::  This manual is under the GNU Free
-                                Documentation License.
+                                can copy and share some parts of `Libgcrypt'.
 
 Indices
 
@@ -114,12 +96,12 @@ Introduction
 Preparation
 * Header::                              What header file you need to include.
 * Building sources::                    How to build sources using the library.
-* Building sources using Automake::     How to build sources with the help auf Automake.
+* Building sources using Automake::     How to build sources with the help of Automake.
 * Initializing the library::            How to initialize the library.
 * Multi Threading::                     How @acronym{Libgcrypt} can be used in a MT environment.
 
 Generalities
-* Controlling the library::     Controlling @acronym{Libgcrypt}'s behaviour.
+* Controlling the library::     Controlling @acronym{Libgcrypt}'s behavior.
 * Modules::                     Description of extension modules.
 * Error Handling::              Error codes and such.
 
@@ -150,10 +132,9 @@ Public Key cryptography (I)
 
 Public Key cryptography (II)
 * Available asymmetric algorithms:: List of algorithms supported by the library.
-* Working with data sets::          How to work with data sets.
+* Working with sets of data::       How to work with sets of data.
 * Working with handles::            How to use handles.
 * Working with keys::               How to work with keys.
-* Encoding methods::                How to encode/decode messages.
 * Using cryptographic functions::   How to perform cryptographic operations.
 * Handle-independent functions::    General functions independent of handles.
 
@@ -172,7 +153,7 @@ MPI library
 * Calculations::                Performing MPI calculations.
 * Comparisons::                 How to compare MPI values.
 * Bit manipulations::           How to access single bits of MPI values.
-* Misc::                        Misc, fixme.
+* Miscellaneous::               Miscellaneous MPI functions.
 
 Utilities
 * Memory allocation::           Functions related with memory allocation.
@@ -180,6 +161,8 @@ Utilities
 @end detailmenu
 
 @end menu
+
+
 
 @c **********************************************************
 @c *******************  Introduction  ***********************
@@ -201,6 +184,7 @@ This manual documents the `@acronym{Libgcrypt}' library application programming
 interface (API).  All functions and data types provided by the library
 are explained.
 
+@noindent
 The reader is assumed to possess basic knowledge about applied
 cryptography.
 
@@ -217,7 +201,6 @@ of the interface which are unclear.
 @node Features
 @section Features
 
-@noindent
 `Libgcrypt' might have a couple of advantages over other libraries doing
 a similar job.
 
@@ -236,7 +219,6 @@ blocks using an extendable and flexible API.
 
 @end table
 
-
 @node Overview
 @section Overview
 
@@ -246,11 +228,8 @@ sense to be thread-safe.  An exception for thread-safety are some
 cryptographic functions that modify a certain context stored in
 handles.  If the user really intents to use such functions from
 different threads on the same handle, he has to take care of the
-serialisation of such functions himself.  If not described otherwise,
+serialization of such functions himself.  If not described otherwise,
 every function is thread-safe.
-
-The library automagically detects whether an applications uses no
-threading, pthreads or GNU Pth.
 
 @acronym{Libgcrypt} depends on the library `libgpg-error', which
 contains common error handling related code for GnuPG components.
@@ -261,18 +240,18 @@ contains common error handling related code for GnuPG components.
 @node Preparation
 @chapter Preparation
 
-To use `@acronym{Libgcrypt}', you have to perform some changes to your sources and
-the build system.  The necessary changes are small and explained in the
-following sections.  At the end of this chapter, it is described how the
-library is initialized, and how the requirements of the library are
-verified.
+To use `@acronym{Libgcrypt}', you have to perform some changes to your
+sources and the build system.  The necessary changes are small and
+explained in the following sections.  At the end of this chapter, it
+is described how the library is initialized, and how the requirements
+of the library are verified.
 
 @menu
-* Header::                              What header file you need to include.
-* Building sources::                    How to build sources using the library.
-* Building sources using Automake::     How to build sources with the help auf Automake.
-* Initializing the library::            How to initialize the library.
-* Multi Threading::                     How @acronym{Libgcrypt} can be used in a MT environment.
+* Header::                      What header file you need to include.
+* Building sources::            How to build sources using the library.
+* Building sources using Automake::  How to build sources with the help of Automake.
+* Initializing the library::    How to initialize the library.
+* Multi Threading::             How @acronym{Libgcrypt} can be used in a MT environment.
 @end menu
 
 
@@ -401,63 +380,94 @@ make use of the other functions of @acronym{Libgcrypt}.
 @node Multi Threading
 @section Multi Threading
 
-As mentioned earlier, the `@acronym{Libgcrypt}' library is fully thread-safe;
-the library automagically detects whether an applications uses no
-threading, pthreads or GNU Pth.
+As mentioned earlier, the `@acronym{Libgcrypt}' library is 
+thread-safe if you adhere to the following requirements:
 
-If you link your program dynamically to @acronym{Libgcrypt} and your
-supported thread library, @acronym{Libgcrypt} will automatically
-detect the presence of this library and activate its use.  You must
-link to the thread library before linking to @acronym{Libgcrypt}.  If
-you link to both pthread and GNU Pth, @acronym{Libgcrypt} will use the
-pthread support.  This feature requires weak symbol support.
+@itemize @bullet
+@item
+If your application is multi-threaded, you must set the thread support
+callbacks with the @code{GCRYCTL_SET_THREAD_CBS} command
+@strong{before} any other function in the library.
 
-If you link your program statically to @acronym{Libgcrypt}, or your
-system does not support weak symbols, there is currently no easy way
-to make sure that @acronym{Libgcrypt} detects the presence of the
-thread library.  This will be solved in a future version.
+This is easy enough if you are indeed writing an application using
+Libgcrypt.  It is rather problematic if you are writing a library
+instead.  Here are some tips what to do if you are writing a library:
 
+If your library requires a certain thread package, just initialize
+Libgcrypt to use this thread package.  If your library supports multiple
+thread packages, but needs to be configured, you will have to
+implement a way to determine which thread package the application
+wants to use with your library anyway.  Then configure Libgcrypt to use
+this thread package.
+
+If your library is fully reentrant without any special support by a
+thread package, then you are lucky indeed.  Unfortunately, this does
+not relieve you from doing either of the two above, or use a third
+option.  The third option is to let the application initialize Libgcrypt
+for you.  Then you are not using Libgcrypt transparently, though.
+
+As if this was not difficult enough, a conflict may arise if two
+libraries try to initialize Libgcrypt independently of each others, and
+both such libraries are then linked into the same application.  To
+make it a bit simpler for you, this will probably work, but only if
+both libraries have the same requirement for the thread package.  This
+is currently only supported for the non-threaded case, GNU Pth and
+pthread.  Support for more thread packages is easy to add, so contact
+us if you require it.
+
+@item
 The function @code{gcry_check_version} must be called before any other
-function in the library, because it initializes the thread support
-subsystem in @acronym{Libgcrypt}.  To achieve this in all generality,
-it is necessary to synchronize the call to this function with all
-other calls to functions in the library, using the synchronization
-mechanisms available in your thread library.  Otherwise, specific
-compiler or CPU memory cache optimizations could lead to the situation
-where a thread is started and uses @acronym{Libgcrypt} before the
-effects of the initialization are visible for this thread.  It doesn't
-even suffice to call @code{gcry_check_version} before creating this
-other thread@footnote{In SMP systems the new thread could be started
-on another CPU before the effects of the initialization are seen by
-that CPU's memory cache.  Not doing proper synchronization here leads
-to the same problems the double-checked locking idiom has.  You might
-find that if you don't do proper synchronization, it still works in
-most configurations.  Don't let this fool you.  Someday it might lead
-to subtle bugs when someone tries it on a DEC Alpha or an SMP
-machine.}.
+function in the library, except the @code{GCRYCTL_SET_THREAD_CBS}
+command (called via the @code{gcry_control} function), because it
+initializes the thread support subsystem in @acronym{Libgcrypt}.  To
+achieve this in multi-threaded programs, you must synchronize the
+memory with respect to other threads that also want to use
+@acronym{Libgcrypt}.  For this, it is sufficient to call
+@code{gcry_check_version} before creating the other threads using
+@acronym{Libgcrypt}@footnote{At least this is true for POSIX threads,
+as @code{pthread_create} is a function that synchronizes memory with
+respects to other threads.  There are many functions which have this
+property, a complete list can be found in POSIX, IEEE Std 1003.1-2003,
+Base Definitions, Issue 6, in the definition of the term ``Memory
+Synchronization''.  For other thread packages, more relaxed or more
+strict rules may apply.}.
 
-For example, if you are using POSIX threads, each thread that wants to
-call functions in @acronym{Libgcrypt} could call the following
-function before any function in the library:
+@item
 
-@example
-#include <pthread.h>
+As with the function @code{gpg_strerror}, @code{gcry_strerror} is not
+thread safe.  You have to use @code{gpg_strerror_r} instead.
+@end itemize
 
-void
-initialize_gcrypt (void)
-@{
-  static int gcrypt_init;
-  static pthread_mutext_t gcrypt_init_lock = PTHREAD_MUTEX_INITIALIZER;
 
-  pthread_mutex_lock (&gcrypt_init_lock);
-  if (! gcrypt_init)
-    @{
-      gcry_check_version ();
-      gcrypt_init = 1;
-    @}
-  pthread_mutex_unlock (&gcrypt_init_lock);
-@}
-@end example
+@acronym{Libgcrypt} contains convenient macros, which define the
+necessary thread callbacks for PThread and for GNU Pth:
+
+@table @code
+@item GCRY_THREAD_OPTION_PTH_IMPL
+
+This macro defines the following (static) symbols: gcry_pth_init,
+gcry_pth_mutex_init, gcry_pth_mutex_destroy, gcry_pth_mutex_lock,
+gcry_pth_mutex_unlock, gcry_pth_read, gcry_pth_write, gcry_pth_select,
+gcry_pth_waitpid, gcry_pth_accept, gcry_pth_connect, gcry_threads_pth.
+
+After including this macro, gcry_control() shall be used with a
+command of GCRYCTL_SET_THREAD_CBS in order to register the thread
+callback structure named ``gcry_threads_pth''.
+
+@item GCRY_THREAD_OPTION_PTHREAD_IMPL
+
+This macro defines the following (static) symbols:
+gcry_pthread_mutex_init, gcry_pthread_mutex_destroy, gcry_mutex_lock,
+gcry_mutex_unlock, gcry_threads_pthread.
+
+After including this macro, gcry_control() shall be used with a
+command of GCRYCTL_SET_THREAD_CBS in order to register the thread
+callback structure named ``gcry_threads_pthread''.
+@end table
+
+Note that these macros need to be terminated with a semicolon.  Keep
+in mind that these are convenient macros for C programmers; C++
+programmers might have to wrap these macros in an ``extern C'' body.
 
 @c **********************************************************
 @c *******************  General  ****************************
@@ -466,7 +476,7 @@ initialize_gcrypt (void)
 @chapter Generalities
 
 @menu
-* Controlling the library::     Controlling @acronym{Libgcrypt}'s behaviour.
+* Controlling the library::     Controlling @acronym{Libgcrypt}'s behavior.
 * Modules::                     Description of extension modules.
 * Error Handling::              Error codes and such.
 @end menu
@@ -476,9 +486,9 @@ initialize_gcrypt (void)
 
 @deftypefun gcry_error_t gcry_control (enum gcry_ctl_cmds @var{cmd}, ...)
 
-This function can be used to influence the general behaviour of
-@acronym{Libgcrypt} in several ways.  Depending on @var{cmd}, more arguments can
-or have to be provided.
+This function can be used to influence the general behavior of
+@acronym{Libgcrypt} in several ways.  Depending on @var{cmd}, more
+arguments can or have to be provided.
 
 @end deftypefun
 
@@ -497,7 +507,7 @@ Functions registering modules provided by the user take a `module
 specification structure' as input and return a value of
 @code{gcry_module_t} and an ID that is unique in the modules'
 category.  This ID can be used to reference the newly registered
-module.  After registering a module successfuly, the new functionality
+module.  After registering a module successfully, the new functionality
 should be able to be used through the normal functions provided by
 @acronym{Libgcrypt} until it is unregistered again.
 
@@ -545,15 +555,15 @@ operation.
 Some error values do not indicate a system error or an error in the
 operation, but the result of an operation that failed properly.
 
-GnuPG components, including libgcrypt, use an extra library named
+GnuPG components, including Libgcrypt, use an extra library named
 libgpg-error to provide a common error handling scheme.  For more
 information on libgpg-error, see the according manual.
 
 @menu
-* Error Values::                  The error value and what it means.
-* Error Sources::                 A list of important error sources.
-* Error Codes::                   A list of important error codes.
-* Error Strings::                 How to get a descriptive string from a value.
+* Error Values::                The error value and what it means.
+* Error Sources::               A list of important error sources.
+* Error Codes::                 A list of important error codes.
+* Error Strings::               How to get a descriptive string from a value.
 @end menu
 
 
@@ -596,27 +606,27 @@ However, it is guaranteed that only 0 is used to indicate success
 the error value are set to 0, too.
 
 Note that in @acronym{Libgcrypt}, the error source is used purely for
-diagnostical purposes.  Only the error code should be checked to test
+diagnostic purposes.  Only the error code should be checked to test
 for a certain outcome of a function.  The manual only documents the
 error code part of an error value.  The error source is left
 unspecified and might be anything.
 @end deftp
 
-@deftypefun {static __inline__ gcry_err_code_t} gcry_err_code (@w{gcry_error_t @var{err}})
+@deftypefun {gcry_err_code_t} gcry_err_code (@w{gcry_error_t @var{err}})
 The static inline function @code{gcry_err_code} returns the
 @code{gcry_err_code_t} component of the error value @var{err}.  This
 function must be used to extract the error code from an error value in
 order to compare it with the @code{GPG_ERR_*} error code macros.
 @end deftypefun
 
-@deftypefun {static __inline__ gcry_err_source_t} gcry_err_source (@w{gcry_error_t @var{err}})
+@deftypefun {gcry_err_source_t} gcry_err_source (@w{gcry_error_t @var{err}})
 The static inline function @code{gcry_err_source} returns the
 @code{gcry_err_source_t} component of the error value @var{err}.  This
 function must be used to extract the error source from an error value in
 order to compare it with the @code{GPG_ERR_SOURCE_*} error source macros.
 @end deftypefun
 
-@deftypefun {static __inline__ gcry_error_t} gcry_err_make (@w{gcry_err_source_t @var{source}}, @w{gcry_err_code_t @var{code}})
+@deftypefun {gcry_error_t} gcry_err_make (@w{gcry_err_source_t @var{source}}, @w{gcry_err_code_t @var{code}})
 The static inline function @code{gcry_err_make} returns the error
 value consisting of the error source @var{source} and the error code
 @var{code}.
@@ -625,7 +635,7 @@ This function can be used in callback functions to construct an error
 value to return it to the library.
 @end deftypefun
 
-@deftypefun {static __inline__ gcry_error_t} gcry_error (@w{gcry_err_code_t @var{code}})
+@deftypefun {gcry_error_t} gcry_error (@w{gcry_err_code_t @var{code}})
 The static inline function @code{gcry_error} returns the error value
 consisting of the default error source and the error code @var{code}.
 
@@ -642,7 +652,7 @@ The @code{libgpg-error} library provides error codes for all system
 error numbers it knows about.  If @var{err} is an unknown error
 number, the error code @code{GPG_ERR_UNKNOWN_ERRNO} is used.  The
 following functions can be used to construct error values from system
-errnor numbers.
+errno numbers.
 
 @deftypefun {gcry_error_t} gcry_err_make_from_errno (@w{gcry_err_source_t @var{source}}, @w{int @var{err}})
 The function @code{gcry_err_make_from_errno} is like
@@ -960,7 +970,7 @@ Memory allocation functions are of the following types:
 This type is defined as: @code{void *(*gcry_handler_alloc_t) (size_t n)}.
 @end deftp
 @deftp {Data type} gcry_handler_secure_check_t
-This type is defined as: @code{void *(*gcry_handler_secure_check_t) (void *)}.
+This type is defined as: @code{int *(*gcry_handler_secure_check_t) (const void *)}.
 @end deftp
 @deftp {Data type} gcry_handler_realloc_t
 This type is defined as: @code{void *(*gcry_handler_realloc_t) (void *p, size_t n)}.
@@ -1028,11 +1038,11 @@ an open/process/close paradigm and is in that similar to other
 building blocks provided by @acronym{Libgcrypt}.
 
 @menu
-* Available ciphers::            List of ciphers supported by the library.
-* Cipher modules::               How to work with cipher modules.
-* Available cipher modes::       List of cipher modes supported by the library.
+* Available ciphers::           List of ciphers supported by the library.
+* Cipher modules::              How to work with cipher modules.
+* Available cipher modes::      List of cipher modes supported by the library.
 * Working with cipher handles::  How to perform operations related to cipher handles.
-* General cipher functions::     General cipher functions independent of cipher handles.
+* General cipher functions::    General cipher functions independent of cipher handles.
 @end menu
 
 @node Available ciphers
@@ -1243,8 +1253,7 @@ Counter mode.
 To use a cipher algorithm, you must first allocate an according
 handle.  This is to be done using the open function:
 
-@deftypefun gcry_error_t gcry_cipher_open (gcry_cipher_hd_t *@var{hd},
-int @var{algo}, int @var{mode}, unsigned int @var{flags})
+@deftypefun gcry_error_t gcry_cipher_open (gcry_cipher_hd_t *@var{hd}, int @var{algo}, int @var{mode}, unsigned int @var{flags})
 
 This function creates the context handle required for most of the
 other cipher functions and returns a handle to it in `hd'.  In case of
@@ -1438,13 +1447,13 @@ Here is a list of supported codes for @var{what}:
 @table @code
 @item GCRYCTL_GET_KEYLEN:
 Return the length of the key. If the algorithm supports multiple key
-length, the maximum supported value is returned.  The length is returned
-as number of octets (bytes) and not as number of bits.  @var{buffer} and
-@var{nbytes} must be zero.
+lengths, the maximum supported value is returned.  The length is
+returned as number of octets (bytes) and not as number of bits in
+@var{nbytes}; @var{buffer} must be zero.
 
 @item GCRYCTL_GET_BLKLEN:
-Return the block length of the algorithm counted in octets.
-@var{buffer} and @var{nbytes} must be zero.
+Return the block length of the algorithm.  The length is returned as a
+number of octets in @var{nbytes}; @var{buffer} must be zero.
 
 @item GCRYCTL_TEST_ALGO:
 Returns @code{0} when the specified algorithm is available for use.
@@ -1498,9 +1507,9 @@ For convenience reasons, a few cyclic redudancy check value operations
 are also supported.
 
 @menu
-* Available hash algorithms::           List of hash algorithms supported by the library.
-* Hash algorithm modules::              How to work with hash algorithm modules.
-* Working with hash algorithms::        List of functions related to hashing.
+* Available hash algorithms::   List of hash algorithms supported by the library.
+* Hash algorithm modules::      How to work with hash algorithm modules.
+* Working with hash algorithms::  List of functions related to hashing.
 @end menu
 
 @node Available hash algorithms
@@ -1719,8 +1728,7 @@ detected and ignored.
 If the flag @code{GCRY_MD_FLAG_HMAC} was used, the key for the MAC must
 be set using the function:
 
-@deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key},
-size_t @var{keylen})
+@deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
 
 For use with the HMAC feature, set the MAC key to the value of @var{key}
 of length @var{keylen}.
@@ -1957,10 +1965,10 @@ public key cryptography, this chapter explains the one based on
 S-expressions.
 
 @menu
-* Used S-expressions::                    Introduction into the used S-expression.
-* Available algorithms::                  Algorithms supported by the library.
-* Public key modules::                    How to work with public key modules.
-* Cryptographic Functions::               Functions for performing the cryptographic actions.
+* Available algorithms::        Algorithms supported by the library.
+* Used S-expressions::          Introduction into the used S-expression.
+* Public key modules::          How to work with public key modules.
+* Cryptographic Functions::     Functions for performing the cryptographic actions.
 * General public-key related Functions::  General functions, not implementing any cryptography.
 @end menu
 
@@ -1982,14 +1990,13 @@ do.
 The following information are stored in S-expressions:
 
 @table @asis
-@item Keys
+@item keys
 
 @item plain text data
 
 @item encrypted data
 
 @item signatures
-...
 
 @end table
 
@@ -2476,6 +2483,7 @@ The function accepts public or secret keys in @var{key}.
 @deftypefun gcry_error_t gcry_pk_testkey (gcry_sexp_t @var{key})
 
 Return zero if the private key @var{key} is `sane', an error code otherwise.
+Note, that it is not possible to chek the `saneness' of a public key.
 
 @end deftypefun
 
@@ -2650,13 +2658,12 @@ former chapter, this one follows an open/use/close paradigm like other
 building blocks of the library.
 
 @menu
-* Available asymmetric algorithms:: List of algorithms supported by the library.
-* Working with data sets::          How to work with data sets.
-* Working with handles::            How to use handles.
-* Working with keys::               How to work with keys.
-* Encoding methods::                How to encode/decode messages.
-* Using cryptographic functions::   How to perform cryptographic operations.
-* Handle-independent functions::    General functions independent of handles.
+* Available asymmetric algorithms::  List of algorithms supported by the library.
+* Working with sets of data::   How to work with sets of data.
+* Working with handles::        How to use handles.
+* Working with keys::           How to work with keys.
+* Using cryptographic functions::  How to perform cryptographic operations.
+* Handle-independent functions::  General functions independent of handles.
 @end menu
 
 @node Available asymmetric algorithms
@@ -2682,8 +2689,8 @@ ElGamal, encryption only.
 @end table
 @end deftp
 
-@node Working with data sets
-@section Working with data sets
+@node Working with sets of data
+@section Working with sets of data
 
 In the context of this interface the term `data set' refers to a list
 of `named MPI values' that is used by functions performing
@@ -2694,12 +2701,25 @@ consist of a variable amount of numbers.  Furthermore some functions
 return data sets to the caller that are to be provided to other
 functions.
 
-This section documents the data types and functions that are relevant
-for working with such data sets.
+This section documents the data types, symbols and functions that are
+relevant for working with such data sets.
 
 @deftp {Data type} gcry_ac_data_t
 A data set, that is simply a list of named MPI values.
 @end deftp
+
+The following flags are supported:
+
+@table @code
+@item GCRY_AC_FLAG_DEALLOC
+Used for storing data in a data set.  If given, the data will be
+released by the library.
+
+@item GCRY_AC_FLAG_COPY
+Used for storing/retrieving data in/from a data set.  If given, the
+library will create copies of the provided/contained data, which will
+then be given to the user/associated with the data set.
+@end table
 
 @deftypefun gcry_error_t gcry_ac_data_new (gcry_ac_data_t *@var{data})
 Creates a new, empty data set and stores it in @var{data}.
@@ -2709,11 +2729,13 @@ Creates a new, empty data set and stores it in @var{data}.
 Destroys the data set @var{data}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_set (gcry_ac_data_t @var{data},
-char *@var{name}, gcry_mpi_t @var{mpi})
-Adds the value @var{mpi} to the data set @var{data} with the label
-@var{name}.  If there is already a value with that label, it is replaced,
-otherwise a new value is added.
+@deftypefun gcry_error_t gcry_ac_data_set (gcry_ac_data_t @var{data}, unsigned int @var{flags}, char *@var{name}, gcry_mpi_t @var{mpi})
+Add the value @var{mpi} to @var{data} with the label @var{name}.  If
+@var{flags} contains GCRY_AC_FLAG_DATA_COPY, the data set will contain
+copies of @var{name} and @var{mpi}.  If @var{flags} contains
+GCRY_AC_FLAG_DATA_DEALLOC or GCRY_AC_FLAG_DATA_COPY, the values
+contained in the data set will be deallocated when they are to be
+removed from the data set.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *@var{data_cp}, gcry_ac_data_t @var{data})
@@ -2725,22 +2747,17 @@ Returns the number of named MPI values inside of the data set
 @var{data}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t @var{data},
-char *@var{name}, gcry_mpi_t *@var{mpi})
-
-Stores the value labelled with @var{name} found in data set @var{data}
-in @var{mpi}.  The returned MPI value will be released in case
-gcry_ac_data_set is used to associate the label @var{name} with a
-different MPI value.
+@deftypefun gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t @var{data}, unsigned int @var{flags}, char *@var{name}, gcry_mpi_t *@var{mpi})
+Store the value labelled with @var{name} found in @var{data} in
+@var{mpi}.  If @var{flags} contains GCRY_AC_FLAG_COPY, store a copy of
+the @var{mpi} value contained in the data set.  @var{mpi} may be NULL.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t @var{data}, unsigned int @var{index}, const char **@var{name}, gcry_mpi_t *@var{mpi})
-
-Stores in @var{name} and @var{mpi} the named MPI value contained in
-the data set @var{data} with the index @var{index}.  @var{name} or
-@var{mpi} may be @code{NULL}.  The returned MPI value will be released
-in case gcry_ac_data_set is used to associate the label @var{name}
-with a different MPI value.
+@deftypefun gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t @var{data}, unsigned int flags, unsigned int @var{index}, const char **@var{name}, gcry_mpi_t *@var{mpi})
+Stores in @var{name} and @var{mpi} the named @var{mpi} value contained
+in the data set @var{data} with the index @var{idx}.  If @var{flags}
+contains GCRY_AC_FLAG_COPY, store copies of the values contained in
+the data set. @var{name} or @var{mpi} may be NULL.
 @end deftypefun
 
 @deftypefun void gcry_ac_data_clear (gcry_ac_data_t @var{data})
@@ -2753,8 +2770,7 @@ Destroys any values contained in the data set @var{data}.
 In order to use an algorithm, an according handle must be created.
 This is done using the following function:
 
-@deftypefun gcry_error_t gcry_ac_open (gcry_ac_handle_t *@var{handle},
-int @var{algorithm}, int @var{flags})
+@deftypefun gcry_error_t gcry_ac_open (gcry_ac_handle_t *@var{handle}, int @var{algorithm}, int @var{flags})
 
 Creates a new handle for the algorithm @var{algorithm} and stores it
 in @var{handle}.  @var{flags} is not used yet.
@@ -2773,7 +2789,7 @@ Destroys the handle @var{handle}.
 @node Working with keys
 @section Working with keys
 
-@deftp {Data type} gcry_ac_key_id_t
+@deftp {Data type} gcry_ac_key_type_t
 Defined constants:
 
 @table @code
@@ -2802,16 +2818,16 @@ Creates a new key of type @var{type}, consisting of the MPI values
 contained in the data set @var{data} and stores it in @var{key}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t @var{handle}, gcry_ac_key_pair_t *@var{key_pair}, unsigned int @var{nbits}, void *@var{key_spec})
+@deftypefun gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t @var{handle}, unsigned int @var{nbits}, void *@var{key_spec}, gcry_ac_key_pair_t *@var{key_pair}, gcry_mpi_t **@var{misc_data})
 
 Generates a new key pair via the handle @var{handle} of @var{NBITS}
 bits and stores it in @var{key_pair}.
 
 In case non-standard settings are wanted, a pointer to a structure of
 type @code{gcry_ac_key_spec_<algorithm>_t}, matching the selected
-algorithm, can be given as KEY_SPEC.  Such a structure does only exist
-for RSA.  A descriptions of the members of the supported structures
-follows.
+algorithm, can be given as @var{key_spec}.  @var{misc_data} is not
+used yet.  Such a structure does only exist for RSA.  A descriptions
+of the members of the supported structures follows.
 
 @table @code
 @item gcry_ac_key_spec_rsa_t
@@ -2823,10 +2839,14 @@ has the following meanings:
 @item = 0
 Let @acronym{Libgcrypt} device what exponent should be used.
 @item = 1
-Request the use of a ``secure'' exponent; this is required by sosme
+Request the use of a ``secure'' exponent; this is required by some
 specification to be 65537.
 @item > 2
-Try starting at this value until a working exponent is found.
+Try starting at this value until a working exponent is found.  Note,
+that the current implementation leaks some information about the
+private key because the incrementation used is not randomized.  Thus,
+this function will be changed in the future to return a random
+exponent of the given size.
 @end table
 @end table
 @end table
@@ -2867,88 +2887,29 @@ Destroys the key pair @var{key_pair}.
 Returns the data set contained in the key @var{key}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_test (gcry_ac_key_t @var{key})
-Verifies that the private key @var{key} is sane.
+@deftypefun gcry_error_t gcry_ac_key_test (gcry_ac_handle_t @var{handle}, gcry_ac_key_t @var{key})
+Verifies that the private key @var{key} is sane via @var{handle}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_get_nbits (gcry_ac_key_t @var{key}, unsigned int *@var{nbits})
-Stores the number of bits of the key @var{key} in @var{nbits}.
+@deftypefun gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t @var{handle}, gcry_ac_key_t @var{key}, unsigned int *@var{nbits})
+Stores the number of bits of the key @var{key} in @var{nbits} via @var{handle}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_get_grip (gcry_ac_key_t @var{key}, unsigned char *@var{key_grip})
+@deftypefun gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t @var{handle}, gcry_ac_key_t @var{key}, unsigned char *@var{key_grip})
 Writes the 20 byte long key grip of the key @var{key} to
-@var{key_grip}.
+@var{key_grip} via @var{handle}.
 @end deftypefun
-
-@node Encoding methods
-@section Encoding methods
-
-Encoding methods specify how to encode or decode a `message'.
-Combining an encoding method with the cryptographic primitives does
-increase the security, since the encoding stage makes sure that the
-message has the properties needed for the highest degree of security.
-Padding is one of the techniques used by encoding methods.
-
-@deftypefun gcry_error_t gcry_ac_data_encode (gcry_ac_em_t @var{method}, unsigned int @var{flags}, void *@var{options}, unsigned char *@var{m}, size @var{m_n}, unsigned char **@var{em}, size_t *@var{em_n}
-Encodes a message according to the encoding method @var{method}.
-@var{options} must be a pointer to a method-specific structure
-(gcry_ac_em*_t).
-@end deftypefun
-
-@deftypefun gcry_error_t gcry_ac_data_decode (gcry_ac_em_t @var{method}, unsigned int @var{flags}, void *@var{options}, unsigned char *@var{em}, size @var{em_n}, unsigned char **@var{m}, size_t *@var{m_n}
-Decodes a message according to the encoding method @var{method}.
-@var{options} must be a pointer to a method-specific structure
-(gcry_ac_em*_t).
-@end deftypefun
-
-The following encoding methods are supported.  The symbolic names are
-of type @code{gcry_ac_em_t}.
-
-@table @code
-@item GCRY_AC_EME_PKCS_V1_5
-The following structure has to be used for passing necessary
-information to the implementation of the encoding method:
-@deftp {Data type} gcry_ac_eme_pkcs_v1_5_t
-@table @code
-@item gcry_ac_key_t key
-This member has to be set to a key, whose size is used for encoding
-the message.
-@item gcry_ac_handle_t handle
-This member has to be set to a handle that is used for figuring out
-the key size.
-@end table
-@end deftp
-@item GCRY_AC_EMSA_PKCS_V1_5
-The following structure has to be used for passing necessary information to the implementation of the encoding method:
-@deftp {Data type} gcry_ac_emsa_pkcs_v1_5_t
-@table @code
-@item gcry_md_algo_t md
-This member has to be set to the ID of the hashing algorithm that
-should be used for encoding the message.
-@item size_t em_n
-This member has to be set to the length the encoded message is
-expected to have.
-@end table
-@end deftp
-@end table
-
-Example code:
-@example
-@{
-  gcry_ac_emsa_pkcs_v1_5_t opts @{ GCRY_MD_SHA1, 128 @};
-  gcry_error_t err = GPG_ERR_NO_ERROR;
-  unsigned char *em = NULL;
-  size_t em_n = 0;
-
-  err = gcry_ac_data_encode (GCRY_AC_EMSA_PKCS_V1_5, 0, (void *) &opts,
-                             "foobar", 6, &em, &em_n);
-@}
-@end example
 
 @node Using cryptographic functions
 @section Using cryptographic functions
 
-Primitive functions:
+The following flags might be relevant:
+
+@table @code
+@item GCRY_AC_FLAG_NO_BLINDING
+Disable any blinding, which might be supported by the chosen
+algorithm; blinding is the default.
+@end table
 
 @deftypefun gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t @var{handle}, unsigned int @var{flags}, gcry_ac_key_t @var{key}, gcry_mpi_t @var{data_plain}, gcry_ac_data_t **@var{data_encrypted})
 Encrypts the plain text MPI value @var{data_plain} with the key public
@@ -2975,71 +2936,6 @@ Verifies that the signature contained in the data set
 contained in @var{data} with the secret key belonging to the public
 key @var{key}.
 @end deftypefun
-
-Scheme-based functions:
-
-@deftypefun gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, gcry_ac_key_t @var{key_public}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char **@var{c}, size_t *@var{c_n})
-Encrypts the plain text message contained in @var{m}, which is of size
-@var{m_n}, with the public key @var{key_public} according to the
-Encryption Scheme @var{scheme_id}.  @var{handle} is used for accessing
-the low-level cryptographic primitives.  If @var{opts} is not NULL, it
-has to be an anonymous structure specific to the chosen scheme
-(gcry_ac_es_*_t).  The encrypted message will be stored in @var{c} and
-@var{c_n}.
-@end deftypefun
-
-@deftypefun gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, gcry_ac_key_t @var{key_secret}, unsigned char *@var{c}, size_t @var{c_n}, unsigned char **@var{m}, size_t *@var{m_n})
-Decrypts the cipher message contained in @var{c}, which is of size
-@var{c_n}, with the secret key @var{key_secret} according to the
-Encryption Scheme @var{scheme_id}.  @var{handle} is used for accessing
-the low-level cryptographic primitives.  If @var{opts} is not NULL, it
-has to be an anonymous structure specific to the chosen scheme
-(gcry_ac_es_*_t).  The decrypted message will be stored in @var{m} and
-@var{m_n}.
-@end deftypefun
-
-@deftypefun gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_secret}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char **@var{s}, size_t *@var{s_n})
-Signs the message contained in @var{m}, which is of size @var{m_n},
-with the secret key @var{key_secret} according to the Signature Scheme
-@var{scheme_id}.  @var{handle} is used for accessing the low-level
-cryptographic primitives.  If @var{opts} is not NULL, it has to be an
-anonymous structure specific to the chosen scheme (gcry_ac_ssa_*_t).
-The signed message will be stored in @var{s} and @var{s_n}.
-@end deftypefun
-
-@deftypefun gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_public}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char *@var{s}, size_t *@var{s_n})
-
-Verifies that the signature contained in @var{s}, which is of length
-@var{s_n}, is indeed the result of signing the message contained in
-@var{m}, which is of size @var{m_n}, with the secret key belonging to
-the public key @var{key_public}.  If @var{opts} is not NULL, it has to
-be an anonymous structure (gcry_ac_ssa_*_t) specific to the Signature
-Scheme, whose ID is contained in @var{scheme_id}.
-@end deftypefun
-
-The following encryption schemes are supported.  The symbolic names
-are of type @code{gcry_ac_scheme_t}.
-
-@table @code
-@item GCRY_AC_ES_PKCS_V1_5
-There is no structure specific to this encryption scheme.
-@end table
-
-The following schemes for signatures with appendix are supported.  The
-symbolic names are of type @code{gcry_ac_scheme_t}.
-
-@table @code
-@item GCRY_AC_SSA_PKCS_V1_5
-The following structure has to be used for passing necessary
-information to the implementation of the encoding method:
-@deftp {Data type} gcry_ac_ssa_pkcs_v1_5_t
-@table @code
-@item gcry_md_algo_t md
-This member has to be set to the ID of the hasing algorithm that
-should be used for encoding the message.
-@end table
-@end deftp
-@end table
 
 @node Handle-independent functions
 @section Handle-independent functions
@@ -3076,8 +2972,8 @@ The constants for the random quality levels are of this type.
 
 @table @code
 @item GCRY_WEAK_RANDOM
-Use this level for random numbers that do not need to be
-`cryptographically strong'.
+This should not anymore be used.  It has recently been changed to an
+alias of GCRY_STRONG_RANDOM.  Use @code{gcry_create_nonce} instead.
 @item GCRY_STRONG_RANDOM
 Use this level for e.g. session keys and similar purposes.
 @item GCRY_VERY_STRONG_RANDOM
@@ -3107,6 +3003,18 @@ differs from @code{gcry_random_bytes} in that the returned buffer is
 allocated in a ``secure'' area of the memory.
 @end deftypefun
 
+@deftypefun void gcry_create_nonce (unsigned char *@var{buffer}, size_t @var{length})
+
+Fill @var{buffer} with @var{length} unpredictable bytes.  This is
+commonly called a nonce and may also be used for initialization
+vectors and padding.  This is an extra function nearly independent of
+the other random function for 3 reasons: It better protects the
+regular random generator's internal state, provides better performance
+and does not drain the precious entropy pool.
+
+@end deftypefun
+
+
 
 @c **********************************************************
 @c *******************  S-Expressions ***********************
@@ -3122,8 +3030,8 @@ to parse and construct them.  For detailed information, see
 @uref{http://theory.lcs.mit.edu/~rivest/sexp.html}}.
 
 @menu
-* Data types for S-expressions::   Data types related with S-expressions.
-* Working with S-expressions::     How to work with S-expressions.
+* Data types for S-expressions::  Data types related with S-expressions.
+* Working with S-expressions::  How to work with S-expressions.
 @end menu
 
 @node Data types for S-expressions
@@ -3197,6 +3105,11 @@ string is inserted into the resulting S-expression.
 @item %d
 The next argument is expected to be of type @code{int} and its 
 value ist inserted into the resulting S-expression.
+@item %b
+The next argument is expected to be of type @code{int} directly
+followed by an argument of type @code{char *}.  This represents a
+buffer of given length to be inserted into the resulting regular
+expression.
 @end table
 
 @noindent
@@ -3358,7 +3271,7 @@ can't be converted to an MPI, @code{NULL} is returned.
 * Calculations::                Performing MPI calculations.
 * Comparisons::                 How to compare MPI values.
 * Bit manipulations::           How to access single bits of MPI values.
-* Misc::                        Misc, fixme.
+* Miscellaneous::               Miscellaneous MPI functions.
 @end menu
 
 Public key cryptography is based on mathematics with large numbers.  To
@@ -3489,9 +3402,9 @@ format (MSB first).
 @deftypefun int gcry_mpi_print (@w{enum gcry_mpi_format @var{format}}, @w{unsigned char *@var{buffer}}, @w{size_t @var{buflen}}, @w{size_t *@var{nwritten}}, @w{const gcry_mpi_t @var{a}})
 
 Convert the MPI @var{a} into an external representation described by
-@var{format} (see above) and store it in the provided @var{buffer} which
+@var{format} (see above) and store it in the provided @var{buffer}
 which has a usable length of at least the @var{buflen} bytes. If
-@var{nwritten} is not NULL, it wilol receive the number of bytes
+@var{nwritten} is not NULL, it will receive the number of bytes
 actually stored in @var{buffer} after a successful operation.
 @end deftypefun
 
@@ -3533,7 +3446,7 @@ Basic arithmetic operations:
 
 @deftypefun void gcry_mpi_addm (@w{gcry_mpi_t @var{w}}, @w{gcry_mpi_t @var{u}}, @w{gcry_mpi_t @var{v}}, @w{gcry_mpi_t @var{m}})
 
-@math{var{w} = @var{u} + @var{v} \bmod @var{m}}.
+@math{@var{w} = @var{u} + @var{v} \bmod @var{m}}.
 @end deftypefun
 
 @deftypefun void gcry_mpi_sub (@w{gcry_mpi_t @var{w}}, @w{gcry_mpi_t @var{u}}, @w{gcry_mpi_t @var{v}})
@@ -3669,19 +3582,15 @@ Shift the value of @var{a} by @var{n} bits to the right and store the
 result in @var{x}.
 @end deftypefun
 
-@node Misc
-@section Misc
-
-@noindent
-The remaining MPI functions take care of very special properties of the
-implementation:
+@node Miscellaneous
+@section Miscellanous
 
 @deftypefun gcry_mpi_t gcry_mpi_set_opaque (@w{gcry_mpi_t @var{a}}, @w{void *@var{p}}, @w{unsigned int @var{nbits}})
 
 Store @var{nbits} of the value @var{p} points to in @var{a} and mark
 @var{a} as an opaque value (i.e. an value that can't be used for any
 math calculation and is only used to store an arbitrary bit pattern in
-@var{a}.
+@var{a}).
 
 WARNING: Never use an opaque MPI for actual math operations.  The only
 valid functions are gcry_mpi_get_opaque and gcry_mpi_release.  Use
@@ -3713,6 +3622,14 @@ currently useless as no flags are allowed.
 @deftypefun int gcry_mpi_get_flag (@w{gcry_mpi_t @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
 
 Return true when the @var{flag} is set for @var{a}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_randomize (@w{gcry_mpi_t @var{w}}, @w{unsigned int @var{nbits}}, @w{enum gcry_random_level @var{level}})
+
+Set the big integer @var{w} to a random value of @var{nbits}, using
+random data quality of level @var{level}.  In case @var{nbits} is not
+a multiple of a byte, @var{nbits} is rounded up to the next byte
+boundary.
 @end deftypefun
 
 @node Utilities
@@ -3769,8 +3686,6 @@ Release the memory area pointed to by @var{p}.
 
 @include gpl.texi
 
-@include fdl.texi
-
 @node Concept Index
 @unnumbered Concept Index
 
@@ -3781,8 +3696,6 @@ Release the memory area pointed to by @var{p}.
 
 @printindex fn
 
-@summarycontents
-@contents
 @bye
 
   /* Version check should be the very first gcry call because it
@@ -3837,4 +3750,7 @@ initialization using:
 
 
 @c  LocalWords:  int HD
+
+
+
 
