@@ -4,11 +4,10 @@
 @c This file is part of the Libgcrypt.
 @c
 @c Permission is granted to copy, distribute and/or modify this document
-@c under the terms of the GNU Free Documentation License, Version 1.1 or
-@c any later version published by the Free Software Foundation; with no
-@c Invariant Sections, with no the Front-Cover texts, and with no
-@c Back-Cover Texts. 
-@c A copy of the license is included in the file 'fdl.texi'.
+@c under the terms of the GNU General Public License as published by the
+@c Free Software Foundation; either version 2 of the License, or (at your
+@c option) any later version. A copy of the license is included in the 
+@c file 'gpl.texi'.
 @c
 @setfilename gcrypt.info
 @settitle The `Libgcrypt' Reference Manual
@@ -34,11 +33,10 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.1 or
-any later version published by the Free Software Foundation; with no
-Invariant Sections, with no the Front-Cover texts, and with no
-Back-Cover Texts.  A copy of the license is included in the section
-entitled ``GNU Free Documentation License''.
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version. The text of the license can be found in the
+section entitled ``Copying''.
 @end ifinfo
 
 @c @iftex
@@ -59,12 +57,13 @@ entitled ``GNU Free Documentation License''.
 Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.1 or
-any later version published by the Free Software Foundation; with no
-Invariant Sections, with no the Front-Cover texts, and with no
-Back-Cover Texts.  A copy of the license is included in the section
-entitled ``GNU Free Documentation License''.
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version. The text of the license can be found in the
+section entitled ``Copying''.
 @end titlepage
+@summarycontents
+@contents
 @page
 
 @ifnottex
@@ -73,6 +72,15 @@ entitled ``GNU Free Documentation License''.
 This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @cite{The `Libgcrypt' Reference Manual}, for Version
 @value{VERSION} of the @acronym{Libgcrypt} library.
+
+Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version. The text of the license can be found in the
+section entitled ``Copying''.
+
 @end ifnottex
 
 @menu
@@ -92,11 +100,9 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 Appendices
 
 * Library Copying::             The GNU Lesser General Public License
-                                says how you can copy and share `@acronym{Libgcrypt}'.
+                                says how you can copy and share `Libgcrypt'.
 * Copying::                     The GNU General Public License says how you
-                                can copy and share some parts of `@acronym{Libgcrypt}'.
-* Free Documentation License::  This manual is under the GNU Free
-                                Documentation License.
+                                can copy and share some parts of `Libgcrypt'.
 
 Indices
 
@@ -171,7 +177,7 @@ MPI library
 * Calculations::                Performing MPI calculations.
 * Comparisons::                 How to compare MPI values.
 * Bit manipulations::           How to access single bits of MPI values.
-* Misc::                        Misc, fixme.
+* Misc::                        Miscellaneous MPI functions.
 
 Utilities
 * Memory allocation::           Functions related with memory allocation.
@@ -179,6 +185,8 @@ Utilities
 @end detailmenu
 
 @end menu
+
+
 
 @c **********************************************************
 @c *******************  Introduction  ***********************
@@ -267,11 +275,11 @@ library is initialized, and how the requirements of the library are
 verified.
 
 @menu
-* Header::                              What header file you need to include.
-* Building sources::                    How to build sources using the library.
-* Building sources using Automake::     How to build sources with the help auf Automake.
-* Initializing the library::            How to initialize the library.
-* Multi Threading::                     How @acronym{Libgcrypt} can be used in a MT environment.
+* Header::                      What header file you need to include.
+* Building sources::            How to build sources using the library.
+* Building sources using Automake::  How to build sources with the help auf Automake.
+* Initializing the library::    How to initialize the library.
+* Multi Threading::             How @acronym{Libgcrypt} can be used in a MT environment.
 @end menu
 
 
@@ -400,63 +408,48 @@ make use of the other functions of @acronym{Libgcrypt}.
 @node Multi Threading
 @section Multi Threading
 
-As mentioned earlier, the `@acronym{Libgcrypt}' library is fully thread-safe;
-the library automagically detects whether an applications uses no
-threading, pthreads or GNU Pth.
+As mentioned earlier, the `@acronym{Libgcrypt}' library is 
+thread-safe if you adhere to the following requirements:
 
-If you link your program dynamically to @acronym{Libgcrypt} and your
-supported thread library, @acronym{Libgcrypt} will automatically
-detect the presence of this library and activate its use.  You must
-link to the thread library before linking to @acronym{Libgcrypt}.  If
-you link to both pthread and GNU Pth, @acronym{Libgcrypt} will use the
-pthread support.  This feature requires weak symbol support.
+@itemize @bullet
+@item
+@acronym{Libgcrypt} supports the thread libraries pthread and GNU Pth.
+The support for this has to be enabled at compile time.
+@acronym{Libgcrypt} will automatically detect the location in which the
+thread libraries are installed and activate the support for them at
+build time.
 
-If you link your program statically to @acronym{Libgcrypt}, or your
-system does not support weak symbols, there is currently no easy way
-to make sure that @acronym{Libgcrypt} detects the presence of the
-thread library.  This will be solved in a future version.
+Support for other thread libraries is very easy to add.  Please
+contact us if you have the need.
 
+@item
+If you want to use @acronym{Libgcrypt} with threads, you must link to
+the right version of the library.  The name of the right library is
+@code{libgcrypt-} followed by the name of the thread package you use.
+For example, if you use GNU Pth, the right name is
+@code{libgcrypt-pth}.  Use the Automake macros or
+@command{libgcrypt-config} program for simplicity.
+
+@item
 The function @code{gcry_check_version} must be called before any other
 function in the library, because it initializes the thread support
-subsystem in @acronym{Libgcrypt}.  To achieve this in all generality,
-it is necessary to synchronize the call to this function with all
-other calls to functions in the library, using the synchronization
-mechanisms available in your thread library.  Otherwise, specific
-compiler or CPU memory cache optimizations could lead to the situation
-where a thread is started and uses @acronym{Libgcrypt} before the
-effects of the initialization are visible for this thread.  It doesn't
-even suffice to call @code{gcry_check_version} before creating this
-other thread@footnote{In SMP systems the new thread could be started
-on another CPU before the effects of the initialization are seen by
-that CPU's memory cache.  Not doing proper synchronization here leads
-to the same problems the double-checked locking idiom has.  You might
-find that if you don't do proper synchronization, it still works in
-most configurations.  Don't let this fool you.  Someday it might lead
-to subtle bugs when someone tries it on a DEC Alpha or an SMP
-machine.}.
+subsystem in @acronym{Libgcrypt}.  To achieve this in
+multi-threaded programs, you must synchronize the memory with respect
+to other threads that also want to use @acronym{Libgcrypt}.  For this, it
+is sufficient to call @code{gcry_check_version} before creating the
+other threads using @acronym{Libgcrypt}@footnote{At least this is true for
+POSIX threads, as @code{pthread_create} is a function that
+synchronizes memory with respects to other threads.  There are many
+functions which have this property, a complete list can be found in
+POSIX, IEEE Std 1003.1-2003, Base Definitions, Issue 6, in the
+definition of the term ``Memory Synchronization''.  For other thread
+packages other, more relaxed or more strict rules may apply.}.
 
-For example, if you are using POSIX threads, each thread that wants to
-call functions in @acronym{Libgcrypt} could call the following
-function before any function in the library:
+@item
+As with the function @code{gpg_strerror}, @code{gcry_strerror} is not
+thread safe.  You have to use @code{gpg_strerror_r} instead.
+@end itemize
 
-@example
-#include <pthread.h>
-
-void
-initialize_gcrypt (void)
-@{
-  static int gcrypt_init;
-  static pthread_mutext_t gcrypt_init_lock = PTHREAD_MUTEX_INITIALIZER;
-
-  pthread_mutex_lock (&gcrypt_init_lock);
-  if (! gcrypt_init)
-    @{
-      gcry_check_version ();
-      gcrypt_init = 1;
-    @}
-  pthread_mutex_unlock (&gcrypt_init_lock);
-@}
-@end example
 
 @c **********************************************************
 @c *******************  General  ****************************
@@ -549,10 +542,10 @@ libgpg-error to provide a common error handling scheme.  For more
 information on libgpg-error, see the according manual.
 
 @menu
-* Error Values::                  The error value and what it means.
-* Error Sources::                 A list of important error sources.
-* Error Codes::                   A list of important error codes.
-* Error Strings::                 How to get a descriptive string from a value.
+* Error Values::                The error value and what it means.
+* Error Sources::               A list of important error sources.
+* Error Codes::                 A list of important error codes.
+* Error Strings::               How to get a descriptive string from a value.
 @end menu
 
 
@@ -601,21 +594,21 @@ error code part of an error value.  The error source is left
 unspecified and might be anything.
 @end deftp
 
-@deftypefun {static __inline__ gcry_err_code_t} gcry_err_code (@w{gcry_error_t @var{err}})
+@deftypefun {gcry_err_code_t} gcry_err_code (@w{gcry_error_t @var{err}})
 The static inline function @code{gcry_err_code} returns the
 @code{gcry_err_code_t} component of the error value @var{err}.  This
 function must be used to extract the error code from an error value in
 order to compare it with the @code{GPG_ERR_*} error code macros.
 @end deftypefun
 
-@deftypefun {static __inline__ gcry_err_source_t} gcry_err_source (@w{gcry_error_t @var{err}})
+@deftypefun {gcry_err_source_t} gcry_err_source (@w{gcry_error_t @var{err}})
 The static inline function @code{gcry_err_source} returns the
 @code{gcry_err_source_t} component of the error value @var{err}.  This
 function must be used to extract the error source from an error value in
 order to compare it with the @code{GPG_ERR_SOURCE_*} error source macros.
 @end deftypefun
 
-@deftypefun {static __inline__ gcry_error_t} gcry_err_make (@w{gcry_err_source_t @var{source}}, @w{gcry_err_code_t @var{code}})
+@deftypefun {gcry_error_t} gcry_err_make (@w{gcry_err_source_t @var{source}}, @w{gcry_err_code_t @var{code}})
 The static inline function @code{gcry_err_make} returns the error
 value consisting of the error source @var{source} and the error code
 @var{code}.
@@ -624,7 +617,7 @@ This function can be used in callback functions to construct an error
 value to return it to the library.
 @end deftypefun
 
-@deftypefun {static __inline__ gcry_error_t} gcry_error (@w{gcry_err_code_t @var{code}})
+@deftypefun {gcry_error_t} gcry_error (@w{gcry_err_code_t @var{code}})
 The static inline function @code{gcry_error} returns the error value
 consisting of the default error source and the error code @var{code}.
 
@@ -1027,11 +1020,11 @@ an open/process/close paradigm and is in that similar to other
 building blocks provided by @acronym{Libgcrypt}.
 
 @menu
-* Available ciphers::            List of ciphers supported by the library.
-* Cipher modules::               How to work with cipher modules.
-* Available cipher modes::       List of cipher modes supported by the library.
+* Available ciphers::           List of ciphers supported by the library.
+* Cipher modules::              How to work with cipher modules.
+* Available cipher modes::      List of cipher modes supported by the library.
 * Working with cipher handles::  How to perform operations related to cipher handles.
-* General cipher functions::     General cipher functions independent of cipher handles.
+* General cipher functions::    General cipher functions independent of cipher handles.
 @end menu
 
 @node Available ciphers
@@ -1497,9 +1490,9 @@ For convenience reasons, a few cyclic redudancy check value operations
 are also supported.
 
 @menu
-* Available hash algorithms::           List of hash algorithms supported by the library.
-* Hash algorithm modules::              How to work with hash algorithm modules.
-* Working with hash algorithms::        List of functions related to hashing.
+* Available hash algorithms::   List of hash algorithms supported by the library.
+* Hash algorithm modules::      How to work with hash algorithm modules.
+* Working with hash algorithms::  List of functions related to hashing.
 @end menu
 
 @node Available hash algorithms
@@ -1956,10 +1949,10 @@ public key cryptography, this chapter explains the one based on
 S-expressions.
 
 @menu
-* Used S-expressions::                    Introduction into the used S-expression.
-* Available algorithms::                  Algorithms supported by the library.
-* Public key modules::                    How to work with public key modules.
-* Cryptographic Functions::               Functions for performing the cryptographic actions.
+* Available algorithms::        Algorithms supported by the library.
+* Used S-expressions::          Introduction into the used S-expression.
+* Public key modules::          How to work with public key modules.
+* Cryptographic Functions::     Functions for performing the cryptographic actions.
 * General public-key related Functions::  General functions, not implementing any cryptography.
 @end menu
 
@@ -1981,14 +1974,13 @@ do.
 The following information are stored in S-expressions:
 
 @table @asis
-@item Keys
+@item keys
 
 @item plain text data
 
 @item encrypted data
 
 @item signatures
-...
 
 @end table
 
@@ -2650,12 +2642,12 @@ former chapter, this one follows an open/use/close paradigm like other
 building blocks of the library.
 
 @menu
-* Available asymmetric algorithms:: List of algorithms supported by the library.
-* Working with sets of data::       How to work with sets of data.
-* Working with handles::            How to use handles.
-* Working with keys::               How to work with keys.
-* Using cryptographic functions::   How to perform cryptographic operations.
-* Handle-independent functions::    General functions independent of handles.
+* Available asymmetric algorithms::  List of algorithms supported by the library.
+* Working with sets of data::   How to work with sets of data.
+* Working with handles::        How to use handles.
+* Working with keys::           How to work with keys.
+* Using cryptographic functions::  How to perform cryptographic operations.
+* Handle-independent functions::  General functions independent of handles.
 @end menu
 
 @node Available asymmetric algorithms
@@ -2822,10 +2814,14 @@ has the following meanings:
 @item = 0
 Let @acronym{Libgcrypt} device what exponent should be used.
 @item = 1
-Request the use of a ``secure'' exponent; this is required by sosme
+Request the use of a ``secure'' exponent; this is required by some
 specification to be 65537.
 @item > 2
-Try starting at this value until a working exponent is found.
+Try starting at this value until a working exponent is found.  Note,
+that the current implementation leaks some information about the
+private key because the incrementation used is not randomized.  Thus,
+this function will be changed in the future to return a random
+exponent of the given size.
 @end table
 @end table
 @end table
@@ -3001,8 +2997,8 @@ to parse and construct them.  For detailed information, see
 @uref{http://theory.lcs.mit.edu/~rivest/sexp.html}}.
 
 @menu
-* Data types for S-expressions::   Data types related with S-expressions.
-* Working with S-expressions::     How to work with S-expressions.
+* Data types for S-expressions::  Data types related with S-expressions.
+* Working with S-expressions::  How to work with S-expressions.
 @end menu
 
 @node Data types for S-expressions
@@ -3653,8 +3649,6 @@ Release the memory area pointed to by @var{p}.
 
 @include gpl.texi
 
-@include fdl.texi
-
 @node Concept Index
 @unnumbered Concept Index
 
@@ -3665,8 +3659,6 @@ Release the memory area pointed to by @var{p}.
 
 @printindex fn
 
-@summarycontents
-@contents
 @bye
 
   /* Version check should be the very first gcry call because it

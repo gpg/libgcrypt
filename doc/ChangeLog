@@ -1,3 +1,13 @@
+2003-12-03  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.texi: Changed license from FDL to GPL because this is a
+	reference manual only useful along with actual code.
+	* fdl.texi: Removed.
+
+	* gcrypt.texi: Minor cleanups
+	(Working with keys): Clarified generation of RSA's E parameter.
+	(Multi Threading): Clarified.
+	
 2003-11-11  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi (Working with S-expressions): Added "%b".
