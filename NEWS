@@ -6,6 +6,13 @@ Noteworthy changes in version 1.1.13 (unreleased)
 
  * SHA-256 is now supported.
 
+ * The public RSA exponent can now be specified in key generation. 
+
+ * Interface changes relative to the 1.1.12 release:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gcry_pk_decrypt         ENHANCED: Allows flag to return complete S-expression.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Noteworthy changes in version 1.1.12 (2003-01-20)
 -------------------------------------------------
 

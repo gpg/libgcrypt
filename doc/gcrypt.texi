@@ -1096,14 +1096,32 @@ ElGamal encryption operation.
 Obviously a private key must be provided for decryption.  It is expected
 as an appropriate S-expression (see above) in @var{skey}.  The data to
 be decrypted must match the format of the result as returned by
-@code{gcry_pk_encrypt}.  Note that this function does not know of any
-padding and the caller must do any un-padding on his own.
+@code{gcry_pk_encrypt}, but should be enlarged with a @code{flags}
+element:
+
+@example
+(enc-val
+  (flags)
+  (elg
+    (a @var{a-mpi})
+    (b @var{b-mpi})))
+@end example
+
+@noindent
+Note, that this function currently does not know of any padding
+methods and the caller must do any un-padding on his own.
 
 @noindent
 The function returns 0 on success or an error code.  The variable at the
 address of @var{r_plain} will be set to NULL on error or receive the
-decrypted value on success.  The format of @var{r_plain} is currently a
-simple S-expression with just one MPI.
+decrypted value on success.  The format of @var{r_plain} is a
+simple S-expression part (i.e. not a valid one) with just one MPI if
+there was no @code{flags} element in @var{data}; if at least an empty
+@code{flags} is passed in @var{data}, the format is:
+
+@example
+(value @var{plaintext})
+@end example
 @end deftypefun
 @c end gcry_pk_decrypt
 
@@ -1342,7 +1360,35 @@ Here is an example for @var{parms} for creating a 1024 bit RSA key:
 @noindent
 To create an ElGamal key, substitute "elg" for "rsa" and to create a DSA
 key use "elg".  Valid ranges for the key length depend on the
-algorithms; all commonly used key lengths are supported.  
+algorithms; all commonly used key lengths are supported.  Currently
+supported parameters are:
+
+@table @code
+@item nbits
+This is always required to specify the length of the key.  The argument
+is a string with a number in C-notation.
+
+@item rsa-use-e
+This is only used with RSA to give a hint for the public exponent. The
+value will be used as a base to test for a usable exponent. Some values
+are special:
+
+@table @samp
+@item 0
+Use a secure and fast value.  This is currently the number 41.
+@item 1
+Use a secure value as required by some specification.  This is currently
+the number 65537.
+@item 2
+Reserved
+@end table
+
+@noindent
+If this parameter is not used, Libgcrypt uses for historic reasons
+65537.
+
+@end table
+@c end table of parameters
 
 @noindent
 The key pair is returned in a format depending on the

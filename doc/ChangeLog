@@ -1,3 +1,7 @@
+2003-01-23  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.texi (gcry_pk_decrypt): Described use of FLAGS
+
 2003-01-20  Simon Josefsson  <jas@extundo.com>
 
 	* gcrypt.texi (Hash Functions): Add CRC.
@@ -65,7 +69,7 @@ Wed Feb 10 17:15:39 CET 1999  Werner Koch  <wk@isil.d.shuttle.de>
 	* FAQ: Ditto.
 	* DETAILS: Ditto.
 
- Copyright 1999, 2000, 2002 Free Software Foundation, Inc.
+ Copyright 1999, 2000, 2002, 2003 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without
