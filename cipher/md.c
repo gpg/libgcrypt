@@ -31,6 +31,24 @@
 #include "rmd.h"
 
 
+static struct {
+  const char *oidstring;
+  int algo;
+} oid_table[] = {
+  /* iso.member-body.us.rsadsi.pkcs.pkcs-1.5 (sha1WithRSAEncryption) */
+  { "1.2.840.113549.1.1.5",  GCRY_MD_SHA1 },
+  /* iso.member-body.us.rsadsi.pkcs.pkcs-1.4 (md5WithRSAEncryption) */
+  { "1.2.840.113549.1.1.4",  GCRY_MD_MD5 },
+  /* iso.member-body.us.x9-57.x9cm.3 (dsaWithSha1)*/
+  { "1.2.840.10040.4.3",     GCRY_MD_SHA1 },
+  /* from NIST's OIW  (sha1) */
+  { "1.3.14.3.2.26",         GCRY_MD_SHA1 },
+  {NULL}
+};
+
+
+
+
 struct md_digest_list_s;
 
 /* this structure is put right after the GCRY_MD_HD buffer, so that
@@ -82,7 +100,11 @@ struct md_digest_list_s {
 
 static struct md_digest_list_s *digest_list;
 
+#define digitp(p)   (*(p) >= 0 && *(p) <= '9')
 
+
+
+
 static struct md_digest_list_s *
 new_list_item( int algo,
 	       const char *(*get_info)( int, size_t*,byte**, int*, int*,
@@ -179,6 +201,21 @@ int
 gcry_md_map_name( const char *string )
 {
     struct md_digest_list_s *r;
+    
+    if (!string)
+      return 0;
+
+    /* If the string starts with a digit, we first look into our table
+       of ASN.1 object identifiers to figure out the algorithm */
+    if (digitp (string))
+      {
+        int i;
+        for (i=0; oid_table[i].oidstring; i++)
+          {
+            if (!strcmp (string, oid_table[i].oidstring))
+              return oid_table[i].algo;
+          }
+      }
 
     do {
 	for(r = digest_list; r; r = r->next )
