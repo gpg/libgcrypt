@@ -1,4 +1,4 @@
-/* rmd.h - RIPE-MD hash functions
+/* random.h - random functions
  *	Copyright (C) 1998 Free Software Foundation, Inc.
  *
  * This file is part of GNUPG.
@@ -17,23 +17,23 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
-#ifndef G10_RMD_H
-#define G10_RMD_H
+#ifndef G10_RANDOM_H
+#define G10_RANDOM_H
 
 #include "types.h"
 
-typedef struct {
-    u32  h0,h1,h2,h3,h4;
-    u32  nblocks;
-    byte buf[64];
-    int  count;
-} RMD160_CONTEXT;
+/*-- random.c --*/
+void secure_random_alloc(void);
+int  quick_random_gen( int onoff );
+void randomize_buffer( byte *buffer, size_t length, int level );
+byte get_random_byte( int level );
+void add_randomness( const void *buffer, size_t length, int source );
 
 
-void rmd160_init( RMD160_CONTEXT *c );
-void rmd160_write( RMD160_CONTEXT *hd, byte *inbuf, size_t inlen);
-void rmd160_final(RMD160_CONTEXT *hd);
-void rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer );
-#define rmd160_read(h) ( (h)->buf )
+/*-- the next two functions are implemented by all the system
+     specific source files rand_xxxx.s --*/
+void random_poll(void);
+void fast_random_poll(void);
 
-#endif /*G10_RMD_H*/
+
+#endif /*G10_RANDOM_H*/
