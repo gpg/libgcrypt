@@ -1,3 +1,8 @@
+2003-09-04  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (_GCRY_ERR_SOURCE_DEFAULT): Removed cruft.
+	(gcry_prime_check_func_t): Renamed arg for clarity.
+
 2003-09-02  Moritz Schulte  <mo@g10code.com>
 
 	* gcrypt.h (GCRY_PRIME_FLAG_SPECIAL_FACTOR): New symbol.

@@ -31,7 +31,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#if 0 /* keep Emacsens's auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 }
 #endif
 #endif
@@ -1201,7 +1201,7 @@ void gcry_mpi_randomize (gcry_mpi_t w,
 
 /* Prime interface.  */
 
-typedef int (*gcry_prime_check_func_t) (void *arg, int reserved,
+typedef int (*gcry_prime_check_func_t) (void *arg, int mode,
 					gcry_mpi_t candidate);
 
 /* Flags for gcry_prime_generate():  */
@@ -1324,7 +1324,7 @@ int gcry_is_secure (const void *a) _GCRY_GCC_ATTR_PURE;
 /* Include support for Libgcrypt modules.  */
 #include <gcrypt-module.h>
 
-#if 0 /* keep Emacsens's auto-indent happy */
+#if 0 /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus

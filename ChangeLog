@@ -1,3 +1,7 @@
+2003-09-04  Werner Koch  <wk@gnupg.org>
+
+	* configure.ac: Require libgpg-error 0.4 due to the prime interface.
+
 2003-08-29  Werner Koch  <wk@gnupg.org>
 
 	* acinclude.m4 (GNUPG_SYS_SYMBOL_UNDERSCORE): Re-implemented.

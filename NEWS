@@ -1,6 +1,14 @@
 Noteworthy changes in version 1.1.43 (unreleased)
 -------------------------------------------------
 
+ * Bug fixes and internal code cleanups
+
+ * Support for the Serpent cipher algorithm.
+
+ * Interface changes relative to the 1.1.42 release:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gcry_prime_generate             NEW
+gcry_prime_check                NEW
 
 
 Noteworthy changes in version 1.1.42 (2003-07-31)
