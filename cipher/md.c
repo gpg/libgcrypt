@@ -615,22 +615,26 @@ int
 gcry_md_ctl( GCRY_MD_HD hd, int cmd, byte *buffer, size_t buflen)
 {
     int rc = 0;
-    if( cmd == GCRYCTL_FINALIZE )
-	md_final( hd );
-    else if( cmd == GCRYCTL_SET_KEY ) {
-        rc = gcry_md_setkey ( hd, buffer, buflen );
-    }
-    else if( cmd == GCRYCTL_START_DUMP ) {
-	md_start_debug( hd, buffer );
-    }
-    else if( cmd == GCRYCTL_STOP_DUMP ) {
+    
+    switch (cmd)
+      {
+      case GCRYCTL_FINALIZE:
+	md_final (hd);
+	break;
+      case GCRYCTL_SET_KEY:
+	rc = gcry_md_setkey (hd, buffer, buflen);
+	break;
+      case GCRYCTL_START_DUMP:
+	md_start_debug (hd, buffer);
+	break;
+      case GCRYCTL_STOP_DUMP:
 	md_stop_debug( hd );
-    }
-    else
+	break;
+      default:
 	rc = GCRYERR_INV_OP;
+      }
     return set_lasterr( rc );
 }
-
 
 int
 gcry_md_setkey( GCRY_MD_HD hd, const void *key, size_t keylen )
