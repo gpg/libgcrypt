@@ -85,7 +85,7 @@ default_pubkey_ciphers="$available_pubkey_ciphers"
 enabled_pubkey_ciphers=""
 
 dnl Definitions for message digests.
-available_digests="crc md4 md5 rmd160 sha1 sha256 tiger"
+available_digests="crc md4 md5 rmd160 sha1 sha256 sha512 tiger"
 default_digests=$available_digests
 enabled_digests=""
 
@@ -196,6 +196,9 @@ AC_DEFINE_UNQUOTED(USE_SHA1, $found, [Defined if this module should be included]
 LIST_MEMBER(sha256, $enabled_digests)
 AM_CONDITIONAL(USE_SHA256, test "$found" = "1")
 AC_DEFINE_UNQUOTED(USE_SHA256, $found, [Defined if this module should be included])
+LIST_MEMBER(sha512, $enabled_digests)
+AM_CONDITIONAL(USE_SHA512, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_SHA512, $found, [Defined if this module should be included])
 LIST_MEMBER(tiger, $enabled_digests)
 AM_CONDITIONAL(USE_TIGER, test "$found" = "1")
 AC_DEFINE_UNQUOTED(USE_TIGER, $found, [Defined if this module should be included])

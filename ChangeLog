@@ -1,5 +1,9 @@
 2003-04-17  Moritz Schulte  <moritz@g10code.com>
 
+	* configure.ac: Include support for sha512.
+
+2003-04-17  Moritz Schulte  <moritz@g10code.com>
+
 	* AUTHORS: Updated.
 
 2003-04-16  Moritz Schulte  <moritz@g10code.com>
