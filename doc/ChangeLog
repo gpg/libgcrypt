@@ -1,3 +1,12 @@
+2003-07-07  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi: Documented module system.
+
+2003-07-05  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Working with cipher handles): Small fix by Simon
+	Josefsson <jas@extundo.com>.
+
 2003-07-02  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi: Documented ac interface.

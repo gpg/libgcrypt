@@ -78,7 +78,7 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @menu
 * Introduction::                 What is @acronym{Libgcrypt}.
 * Preparation::                  What you should do before using the library.
-* General Functions::            General library functions.
+* Generalities::                 General library functions and data types.
 * Handler Functions::            Working with handler functions.
 * Symmetric cryptography::       How to use symmetric crytography.
 * Hashing::                      How to use hashing.
@@ -119,8 +119,9 @@ Preparation
 * Initializing the library::            How to initialize the library.
 * Multi Threading::                     How @acronym{Libgcrypt} can be used in a MT environment.
 
-General Functions
+Generalities
 * Controlling the library::     Controlling @acronym{Libgcrypt}'s behaviour.
+* Modules::                     Description of extension modules.
 
 Handler Functions
 * Progress handler::            Using a progress handler function.
@@ -130,17 +131,20 @@ Handler Functions
 
 Symmetric cryptography
 * Available ciphers::           List of ciphers supported by the library.
+* Cipher modules::              How to work with cipher modules.
 * Available cipher modes::      List of cipher modes supported by the library.
 * Working with cipher handles:: How to perform operations related to cipher handles.
 * General cipher functions::    General cipher functions independent of cipher handles.
 
 Hashing
 * Available hash algorithms::           List of hash algorithms supported by the library.
+* Hash algorithm modules::              How to work with hash algorithm modules.
 * Working with hash algorithms::        List of functions related to hashing.
 
 Public Key cryptography (I)
 * Used S-expressions::                    Introduction into the used S-expression.
 * Available algorithms::                  Algorithms supported by the library.
+* Public key modules::                    How to work with public key modules.
 * Cryptographic Functions::               Functions for performing the cryptographic actions.
 * General public-key related Functions::  General functions, not implementing any cryptography.
 
@@ -453,11 +457,12 @@ initialize_gcrypt (void)
 @c **********************************************************
 @c *******************  General  ****************************
 @c **********************************************************
-@node General Functions
-@chapter General Functions
+@node Generalities
+@chapter Generalities
 
 @menu
 * Controlling the library::     Controlling @acronym{Libgcrypt}'s behaviour.
+* Modules::                     Description of extension modules.
 @end menu
 
 @node Controlling the library
@@ -470,6 +475,25 @@ This function can be used to influence the general behaviour of
 or have to be provided.
 
 @end deftypefun
+
+@node Modules
+@section Modules
+
+@acronym{Libgcrypt} supports the use of `extension modules', which
+implement algorithms in addition to those already built into the
+library directly.
+
+@deftp {Data type} gcry_module_t
+This data type represents a `module'.
+@end deftp
+
+Functions registering modules provided by the user take a `module
+specification structure' as input and return a value of
+@code{gcry_module_t} and an ID that is unique in the modules'
+category.  This ID can be used to reference the newly registered
+module.  After registering a module successfuly, the new functionality
+should be able to be used through the normal functions provided by
+@acronym{Libgcrypt} until it is unregistered again.
 
 @c **********************************************************
 @c *******************  General  ****************************
@@ -635,6 +659,7 @@ building blocks provided by @acronym{Libgcrypt}.
 
 @menu
 * Available ciphers::            List of ciphers supported by the library.
+* Cipher modules::               How to work with cipher modules.
 * Available cipher modes::       List of cipher modes supported by the library.
 * Working with cipher handles::  How to perform operations related to cipher handles.
 * General cipher functions::     General cipher functions independent of cipher handles.
@@ -699,13 +724,50 @@ which can be broken in reasonable time using a brute force approach.
 
 @end table
 
+@node Cipher modules
+@section Cipher modules
+
+@acronym{Libgcrypt} makes it possible to load additional `cipher
+modules'; these cipher can be used just like the cipher algorithms
+that are built into the library directly.  For an introduction into
+extension modules, see @xref{Modules}.
+
+@deftp {Data type} gcry_cipher_spec_t
+This is the `module specification structure' needed for registering
+cipher modules.  It has to be filled in by the user before it is used
+to register a module.
+@end deftp
+
+@deftypefun gpg_error_t gcry_cipher_register (gcry_cipher_spec_t *@var{cipher}, unsigned int *algorithm_id, gcry_module_t *@var{module})
+
+Register a new cipher module whose specification can be found in
+@var{cipher}.  On success, a new algorithm ID is stored in
+@var{algorithm_id} and a pointer representhing this module is stored
+in @var{module}.
+@end deftypefun
+
+@deftypefun void gcry_cipher_unregister (gcry_module_t @var{module})
+Unregister the cipher identified by @var{module}, which must have been
+registered with gcry_cipher_register.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_cipher_list (int *@var{list}, int *@var{list_length})
+Get a list consisting of the IDs of the loaded cipher modules.  If
+@var{list} is zero, write the number of loaded cipher modules to
+@var{list_length} and return.  If @var{list} is non-zero, the first
+*@var{list_length} algorithm IDs are stored in @var{list}, which must
+be of according size.  In case there are less cipher modules than
+*@var{list_length}, *@var{list_length} is updated to the correct
+number.
+@end deftypefun
+
 @node Available cipher modes
 @section Available cipher modes
 
 @table @code
 @item GCRY_CIPHER_MODE_NONE
-No mode specified, may be set later using other functions.  The value of
-this constant is always 0.
+No mode specified, may be set later using other functions.  The value
+of this constant is always 0.
 
 @item GCRY_CIPHER_MODE_ECB
 Electronic Codebook mode.  
@@ -772,7 +834,6 @@ Compute CBC-MAC keyed checksums.  This is the same as CBC mode, but
 only output the last block.  Cannot be used simultaneous as
 GCRY_CIPHER_CBC_CTS.
 @end table
-@item
 @end deftypefun 
 
 Use the following function to release an existing handle:
@@ -990,6 +1051,7 @@ are also supported.
 
 @menu
 * Available hash algorithms::           List of hash algorithms supported by the library.
+* Hash algorithm modules::              How to work with hash algorithm modules.
 * Working with hash algorithms::        List of functions related to hashing.
 @end menu
 
@@ -1053,6 +1115,43 @@ output of 3 bytes.
 
 @end table
 @c end table of hash algorithms
+
+@node Hash algorithm modules
+@section Hash algorithm modules
+
+@acronym{Libgcrypt} makes it possible to load additional `message
+digest modules'; these cipher can be used just like the message digest
+algorithms that are built into the library directly.  For an
+introduction into extension modules, see @xref{Modules}.
+
+@deftp {Data type} gcry_md_spec_t
+This is the `module specification structure' needed for registering
+message digest modules.  It has to be filled in by the user before it
+is used to register a module.
+@end deftp
+
+@deftypefun gpg_error_t gcry_md_register (gcry_md_spec_t *@var{digest}, unsigned int *algorithm_id, gcry_module_t *@var{module})
+
+Register a new digest module whose specification can be found in
+@var{digest}.  On success, a new algorithm ID is stored in
+@var{algorithm_id} and a pointer representhing this module is stored
+in @var{module}.
+@end deftypefun
+
+@deftypefun void gcry_md_unregister (gcry_module_t @var{module})
+Unregister the digest identified by @var{module}, which must have been
+registered with gcry_md_register.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_md_list (int *@var{list}, int *@var{list_length})
+Get a list consisting of the IDs of the loaded message digest modules.
+If @var{list} is zero, write the number of loaded message digest
+modules to @var{list_length} and return.  If @var{list} is non-zero,
+the first *@var{list_length} algorithm IDs are stored in @var{list},
+which must be of according size.  In case there are less message
+digests modules than *@var{list_length}, *@var{list_length} is updated
+to the correct number.
+@end deftypefun
 
 @node Working with hash algorithms
 @section Working with hash algorithms
@@ -1347,6 +1446,7 @@ S-expressions.
 @menu
 * Used S-expressions::                    Introduction into the used S-expression.
 * Available algorithms::                  Algorithms supported by the library.
+* Public key modules::                    How to work with public key modules.
 * Cryptographic Functions::               Functions for performing the cryptographic actions.
 * General public-key related Functions::  General functions, not implementing any cryptography.
 @end menu
@@ -1457,6 +1557,42 @@ RSA secret prime @math{q} with @math{q > p}.
 multiplicative inverse @math{u = p^{-1} \bmod q}.
 @end table
 
+@node Public key modules
+@section Public key modules
+
+@acronym{Libgcrypt} makes it possible to load additional `public key
+modules'; these public key algorithms can be used just like the
+algorithms that are built into the library directly.  For an
+introduction into extension modules, see @xref{Modules}.
+
+@deftp {Data type} gcry_pk_spec_t
+This is the `module specification structure' needed for registering
+public key modules.  It has to be filled in by the user before it is
+used to register a module.
+@end deftp
+
+@deftypefun gpg_error_t gcry_pk_register (gcry_pk_spec_t *@var{pubkey}, unsigned int *algorithm_id, gcry_module_t *@var{module})
+
+Register a new public key module whose specification can be found in
+@var{pubkey}.  On success, a new algorithm ID is stored in
+@var{algorithm_id} and a pointer representhing this module is stored
+in @var{module}.
+@end deftypefun
+
+@deftypefun void gcry_pk_unregister (gcry_module_t @var{module})
+Unregister the public key module identified by @var{module}, which
+must have been registered with gcry_pk_register.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_pk_list (int *@var{list}, int *@var{list_length})
+Get a list consisting of the IDs of the loaded pubkey modules.  If
+@var{list} is zero, write the number of loaded pubkey modules to
+@var{list_length} and return.  If @var{list} is non-zero, the first
+*@var{list_length} algorithm IDs are stored in @var{list}, which must
+be of according size.  In case there are less pubkey modules than
+*@var{list_length}, *@var{list_length} is updated to the correct
+number.
+@end deftypefun
 
 @node Cryptographic Functions
 @section Cryptographic Functions
@@ -1983,14 +2119,18 @@ Returns the number of named MPI values inside of the data set
 char *@var{name}, gcry_mpi_t *@var{mpi})
 
 Stores the value labelled with @var{name} found in data set @var{data}
-in @var{mpi}.
+in @var{mpi}.  The returned MPI value will be released in case
+gcry_ac_data_set is used to associate the label @var{name} with a
+different MPI value.
 @end deftypefun
 
 @deftypefun gpg_error_t gcry_ac_data_get_index (gcry_ac_data_t @var{data}, unsigned int @var{index}, const char **@var{name}, gcry_mpi_t *@var{mpi})
 
 Stores in @var{name} and @var{mpi} the named MPI value contained in
 the data set @var{data} with the index @var{index}.  @var{name} or
-@var{mpi} may be @code{NULL}.
+@var{mpi} may be @code{NULL}.  The returned MPI value will be released
+in case gcry_ac_data_set is used to associate the label @var{name}
+with a different MPI value.
 @end deftypefun
 
 @deftypefun void gcry_ac_data_clear (gcry_ac_data_t @var{data})
