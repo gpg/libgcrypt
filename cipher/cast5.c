@@ -413,7 +413,6 @@ encrypt_block (void *context , byte *outbuf, const byte *inbuf)
   _gcry_burn_stack (20+4*sizeof(void*));
 }
 
-
 
 static void
 do_decrypt_block (CAST5_context *c, byte *outbuf, const byte *inbuf )
@@ -463,7 +462,7 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
   do_decrypt_block (c, outbuf, inbuf);
   _gcry_burn_stack (20+4*sizeof(void*));
 }
-
+
 
 static const char*
 selftest(void)
@@ -511,7 +510,6 @@ selftest(void)
     return NULL;
 }
 
-
 
 static void
 key_schedule( u32 *x, u32 *z, u32 *k )
@@ -566,42 +564,43 @@ do_cast_setkey( CAST5_context *c, const byte *key, unsigned keylen )
 {
   static int initialized;
   static const char* selftest_failed;
-    int i;
-    u32 x[4];
-    u32 z[4];
-    u32 k[16];
+  int i;
+  u32 x[4];
+  u32 z[4];
+  u32 k[16];
 
-    if( !initialized ) {
-	initialized = 1;
-	selftest_failed = selftest();
-	if( selftest_failed )
-	    log_error ("CAST5 selftest failed (%s).\n", selftest_failed );
+  if( !initialized ) 
+    {
+      initialized = 1;
+      selftest_failed = selftest();
+      if( selftest_failed )
+        log_error ("CAST5 selftest failed (%s).\n", selftest_failed );
     }
-    if( selftest_failed )
-      	return GPG_ERR_SELFTEST_FAILED;
+  if( selftest_failed )
+    return GPG_ERR_SELFTEST_FAILED;
 
-    if( keylen != 16 )
-	return GPG_ERR_INV_KEYLEN;
+  if( keylen != 16 )
+    return GPG_ERR_INV_KEYLEN;
 
-    x[0] = key[0]  << 24 | key[1]  << 16 | key[2]  << 8 | key[3];
-    x[1] = key[4]  << 24 | key[5]  << 16 | key[6]  << 8 | key[7];
-    x[2] = key[8]  << 24 | key[9]  << 16 | key[10] << 8 | key[11];
-    x[3] = key[12] << 24 | key[13] << 16 | key[14] << 8 | key[15];
+  x[0] = key[0]  << 24 | key[1]  << 16 | key[2]  << 8 | key[3];
+  x[1] = key[4]  << 24 | key[5]  << 16 | key[6]  << 8 | key[7];
+  x[2] = key[8]  << 24 | key[9]  << 16 | key[10] << 8 | key[11];
+  x[3] = key[12] << 24 | key[13] << 16 | key[14] << 8 | key[15];
 
-    key_schedule( x, z, k );
-    for(i=0; i < 16; i++ )
-	c->Km[i] = k[i];
-    key_schedule( x, z, k );
-    for(i=0; i < 16; i++ )
-	c->Kr[i] = k[i] & 0x1f;
+  key_schedule( x, z, k );
+  for(i=0; i < 16; i++ )
+    c->Km[i] = k[i];
+  key_schedule( x, z, k );
+  for(i=0; i < 16; i++ )
+    c->Kr[i] = k[i] & 0x1f;
 
-    memset(&x,0, sizeof x);
-    memset(&z,0, sizeof z);
-    memset(&k,0, sizeof k);
+  memset(&x,0, sizeof x);
+  memset(&z,0, sizeof z);
+  memset(&k,0, sizeof k);
 
 #undef xi
 #undef zi
-    return GPG_ERR_NO_ERROR;
+  return GPG_ERR_NO_ERROR;
 }
 
 static gcry_err_code_t
@@ -612,7 +611,7 @@ cast_setkey (void *context, const byte *key, unsigned keylen )
   _gcry_burn_stack (96+7*sizeof(void*));
   return rc;
 }
-
+
 
 gcry_cipher_spec_t _gcry_cipher_spec_cast5 =
   {

@@ -273,133 +273,136 @@ function_F( BLOWFISH_context *bc, u32 x )
 #endif
 #define R(l,r,i)  do { l ^= p[i]; r ^= F(l); } while(0)
 
+
 static void
-do_encrypt(  BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
+do_encrypt ( BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
 {
 #if BLOWFISH_ROUNDS == 16
-    u32 xl, xr, *s0, *s1, *s2, *s3, *p;
+  u32 xl, xr, *s0, *s1, *s2, *s3, *p;
 
-    xl = *ret_xl;
-    xr = *ret_xr;
-    p = bc->p;
-    s0 = bc->s0;
-    s1 = bc->s1;
-    s2 = bc->s2;
-    s3 = bc->s3;
+  xl = *ret_xl;
+  xr = *ret_xr;
+  p = bc->p;
+  s0 = bc->s0;
+  s1 = bc->s1;
+  s2 = bc->s2;
+  s3 = bc->s3;
 
-    R( xl, xr,	0);
-    R( xr, xl,	1);
-    R( xl, xr,	2);
-    R( xr, xl,	3);
-    R( xl, xr,	4);
-    R( xr, xl,	5);
-    R( xl, xr,	6);
-    R( xr, xl,	7);
-    R( xl, xr,	8);
-    R( xr, xl,	9);
-    R( xl, xr, 10);
-    R( xr, xl, 11);
-    R( xl, xr, 12);
-    R( xr, xl, 13);
-    R( xl, xr, 14);
-    R( xr, xl, 15);
+  R( xl, xr,	0);
+  R( xr, xl,	1);
+  R( xl, xr,	2);
+  R( xr, xl,	3);
+  R( xl, xr,	4);
+  R( xr, xl,	5);
+  R( xl, xr,	6);
+  R( xr, xl,	7);
+  R( xl, xr,	8);
+  R( xr, xl,	9);
+  R( xl, xr, 10);
+  R( xr, xl, 11);
+  R( xl, xr, 12);
+  R( xr, xl, 13);
+  R( xl, xr, 14);
+  R( xr, xl, 15);
 
-    xl ^= p[BLOWFISH_ROUNDS];
-    xr ^= p[BLOWFISH_ROUNDS+1];
+  xl ^= p[BLOWFISH_ROUNDS];
+  xr ^= p[BLOWFISH_ROUNDS+1];
 
-    *ret_xl = xr;
-    *ret_xr = xl;
+  *ret_xl = xr;
+  *ret_xr = xl;
 
 #else
-    u32 xl, xr, temp, *p;
-    int i;
+  u32 xl, xr, temp, *p;
+  int i;
 
-    xl = *ret_xl;
-    xr = *ret_xr;
-    p = bc->p;
+  xl = *ret_xl;
+  xr = *ret_xr;
+  p = bc->p;
 
-    for(i=0; i < BLOWFISH_ROUNDS; i++ ) {
-	xl ^= p[i];
-	xr ^= function_F(bc, xl);
-	temp = xl;
-	xl = xr;
-	xr = temp;
+  for(i=0; i < BLOWFISH_ROUNDS; i++ )
+    {
+      xl ^= p[i];
+      xr ^= function_F(bc, xl);
+      temp = xl;
+      xl = xr;
+      xr = temp;
     }
-    temp = xl;
-    xl = xr;
-    xr = temp;
+  temp = xl;
+  xl = xr;
+  xr = temp;
 
-    xr ^= p[BLOWFISH_ROUNDS];
-    xl ^= p[BLOWFISH_ROUNDS+1];
+  xr ^= p[BLOWFISH_ROUNDS];
+  xl ^= p[BLOWFISH_ROUNDS+1];
 
-    *ret_xl = xl;
-    *ret_xr = xr;
+  *ret_xl = xl;
+  *ret_xr = xr;
 #endif
 }
 
 
 static void
-decrypt(  BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
+decrypt ( BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
 {
 #if BLOWFISH_ROUNDS == 16
-    u32 xl, xr, *s0, *s1, *s2, *s3, *p;
+  u32 xl, xr, *s0, *s1, *s2, *s3, *p;
 
-    xl = *ret_xl;
-    xr = *ret_xr;
-    p = bc->p;
-    s0 = bc->s0;
-    s1 = bc->s1;
-    s2 = bc->s2;
-    s3 = bc->s3;
+  xl = *ret_xl;
+  xr = *ret_xr;
+  p = bc->p;
+  s0 = bc->s0;
+  s1 = bc->s1;
+  s2 = bc->s2;
+  s3 = bc->s3;
 
-    R( xl, xr, 17);
-    R( xr, xl, 16);
-    R( xl, xr, 15);
-    R( xr, xl, 14);
-    R( xl, xr, 13);
-    R( xr, xl, 12);
-    R( xl, xr, 11);
-    R( xr, xl, 10);
-    R( xl, xr,	9);
-    R( xr, xl,	8);
-    R( xl, xr,	7);
-    R( xr, xl,	6);
-    R( xl, xr,	5);
-    R( xr, xl,	4);
-    R( xl, xr,	3);
-    R( xr, xl,	2);
+  R( xl, xr, 17);
+  R( xr, xl, 16);
+  R( xl, xr, 15);
+  R( xr, xl, 14);
+  R( xl, xr, 13);
+  R( xr, xl, 12);
+  R( xl, xr, 11);
+  R( xr, xl, 10);
+  R( xl, xr,	9);
+  R( xr, xl,	8);
+  R( xl, xr,	7);
+  R( xr, xl,	6);
+  R( xl, xr,	5);
+  R( xr, xl,	4);
+  R( xl, xr,	3);
+  R( xr, xl,	2);
 
-    xl ^= p[1];
-    xr ^= p[0];
+  xl ^= p[1];
+  xr ^= p[0];
 
-    *ret_xl = xr;
-    *ret_xr = xl;
+  *ret_xl = xr;
+  *ret_xr = xl;
 
 #else
-    u32 xl, xr, temp, *p;
-    int i;
+  u32 xl, xr, temp, *p;
+  int i;
 
-    xl = *ret_xl;
-    xr = *ret_xr;
-    p = bc->p;
+  xl = *ret_xl;
+  xr = *ret_xr;
+  p = bc->p;
 
-    for(i=BLOWFISH_ROUNDS+1; i > 1; i-- ) {
-	xl ^= p[i];
-	xr ^= function_F(bc, xl);
-	temp = xl;
-	xl = xr;
-	xr = temp;
+  for (i=BLOWFISH_ROUNDS+1; i > 1; i-- )
+    {
+      xl ^= p[i];
+      xr ^= function_F(bc, xl);
+      temp = xl;
+      xl = xr;
+      xr = temp;
     }
 
-    temp = xl;
-    xl = xr;
-    xr = temp;
+  temp = xl;
+  xl = xr;
+  xr = temp;
 
-    xr ^= p[1];
-    xl ^= p[0];
+  xr ^= p[1];
+  xl ^= p[0];
 
-    *ret_xl = xl;
-    *ret_xr = xr;
+  *ret_xl = xl;
+  *ret_xr = xr;
 #endif
 }
 
@@ -409,19 +412,19 @@ decrypt(  BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
 static void
 do_encrypt_block ( BLOWFISH_context *bc, byte *outbuf, const byte *inbuf )
 {
-    u32 d1, d2;
+  u32 d1, d2;
 
-    d1 = inbuf[0] << 24 | inbuf[1] << 16 | inbuf[2] << 8 | inbuf[3];
-    d2 = inbuf[4] << 24 | inbuf[5] << 16 | inbuf[6] << 8 | inbuf[7];
-    do_encrypt( bc, &d1, &d2 );
-    outbuf[0] = (d1 >> 24) & 0xff;
-    outbuf[1] = (d1 >> 16) & 0xff;
-    outbuf[2] = (d1 >>	8) & 0xff;
-    outbuf[3] =  d1	   & 0xff;
-    outbuf[4] = (d2 >> 24) & 0xff;
-    outbuf[5] = (d2 >> 16) & 0xff;
-    outbuf[6] = (d2 >>	8) & 0xff;
-    outbuf[7] =  d2	   & 0xff;
+  d1 = inbuf[0] << 24 | inbuf[1] << 16 | inbuf[2] << 8 | inbuf[3];
+  d2 = inbuf[4] << 24 | inbuf[5] << 16 | inbuf[6] << 8 | inbuf[7];
+  do_encrypt( bc, &d1, &d2 );
+  outbuf[0] = (d1 >> 24) & 0xff;
+  outbuf[1] = (d1 >> 16) & 0xff;
+  outbuf[2] = (d1 >>	8) & 0xff;
+  outbuf[3] =  d1	   & 0xff;
+  outbuf[4] = (d2 >> 24) & 0xff;
+  outbuf[5] = (d2 >> 16) & 0xff;
+  outbuf[6] = (d2 >>	8) & 0xff;
+  outbuf[7] =  d2	   & 0xff;
 }
 
 static void
@@ -436,19 +439,19 @@ encrypt_block (void *context, byte *outbuf, const byte *inbuf)
 static void
 do_decrypt_block (BLOWFISH_context *bc, byte *outbuf, const byte *inbuf)
 {
-    u32 d1, d2;
+  u32 d1, d2;
 
-    d1 = inbuf[0] << 24 | inbuf[1] << 16 | inbuf[2] << 8 | inbuf[3];
-    d2 = inbuf[4] << 24 | inbuf[5] << 16 | inbuf[6] << 8 | inbuf[7];
-    decrypt( bc, &d1, &d2 );
-    outbuf[0] = (d1 >> 24) & 0xff;
-    outbuf[1] = (d1 >> 16) & 0xff;
-    outbuf[2] = (d1 >>	8) & 0xff;
-    outbuf[3] =  d1	   & 0xff;
-    outbuf[4] = (d2 >> 24) & 0xff;
-    outbuf[5] = (d2 >> 16) & 0xff;
-    outbuf[6] = (d2 >>	8) & 0xff;
-    outbuf[7] =  d2	   & 0xff;
+  d1 = inbuf[0] << 24 | inbuf[1] << 16 | inbuf[2] << 8 | inbuf[3];
+  d2 = inbuf[4] << 24 | inbuf[5] << 16 | inbuf[6] << 8 | inbuf[7];
+  decrypt( bc, &d1, &d2 );
+  outbuf[0] = (d1 >> 24) & 0xff;
+  outbuf[1] = (d1 >> 16) & 0xff;
+  outbuf[2] = (d1 >>	8) & 0xff;
+  outbuf[3] =  d1	   & 0xff;
+  outbuf[4] = (d2 >> 24) & 0xff;
+  outbuf[5] = (d2 >> 16) & 0xff;
+  outbuf[6] = (d2 >>	8) & 0xff;
+  outbuf[7] =  d2	   & 0xff;
 }
 
 static void
@@ -463,29 +466,29 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 static const char*
 selftest(void)
 {
-    BLOWFISH_context c;
-    byte plain[] = "BLOWFISH";
-    byte buffer[8];
-    byte plain3[] = { 0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10 };
-    byte key3[] = { 0x41, 0x79, 0x6E, 0xA0, 0x52, 0x61, 0x6E, 0xE4 };
-    byte cipher3[] = { 0xE1, 0x13, 0xF4, 0x10, 0x2C, 0xFC, 0xCE, 0x43 };
+  BLOWFISH_context c;
+  byte plain[] = "BLOWFISH";
+  byte buffer[8];
+  byte plain3[] = { 0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10 };
+  byte key3[] = { 0x41, 0x79, 0x6E, 0xA0, 0x52, 0x61, 0x6E, 0xE4 };
+  byte cipher3[] = { 0xE1, 0x13, 0xF4, 0x10, 0x2C, 0xFC, 0xCE, 0x43 };
 
-    bf_setkey( (void *) &c, "abcdefghijklmnopqrstuvwxyz", 26 );
-    encrypt_block( (void *) &c, buffer, plain );
-    if( memcmp( buffer, "\x32\x4E\xD0\xFE\xF4\x13\xA2\x03", 8 ) )
-	return "Blowfish selftest failed (1).";
-    decrypt_block( (void *) &c, buffer, buffer );
-    if( memcmp( buffer, plain, 8 ) )
-	return "Blowfish selftest failed (2).";
+  bf_setkey( (void *) &c, "abcdefghijklmnopqrstuvwxyz", 26 );
+  encrypt_block( (void *) &c, buffer, plain );
+  if( memcmp( buffer, "\x32\x4E\xD0\xFE\xF4\x13\xA2\x03", 8 ) )
+    return "Blowfish selftest failed (1).";
+  decrypt_block( (void *) &c, buffer, buffer );
+  if( memcmp( buffer, plain, 8 ) )
+    return "Blowfish selftest failed (2).";
 
-    bf_setkey( (void *) &c, key3, 8 );
-    encrypt_block( (void *) &c, buffer, plain3 );
-    if( memcmp( buffer, cipher3, 8 ) )
-	return "Blowfish selftest failed (3).";
-    decrypt_block( (void *) &c, buffer, buffer );
-    if( memcmp( buffer, plain3, 8 ) )
-	return "Blowfish selftest failed (4).";
-    return NULL;
+  bf_setkey( (void *) &c, key3, 8 );
+  encrypt_block( (void *) &c, buffer, plain3 );
+  if( memcmp( buffer, cipher3, 8 ) )
+    return "Blowfish selftest failed (3).";
+  decrypt_block( (void *) &c, buffer, buffer );
+  if( memcmp( buffer, plain3, 8 ) )
+    return "Blowfish selftest failed (4).";
+  return NULL;
 }
 
 
@@ -493,84 +496,94 @@ selftest(void)
 static gcry_err_code_t
 do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
 {
-    int i, j;
-    u32 data, datal, datar;
-    static int initialized;
-    static const char *selftest_failed;
+  int i, j;
+  u32 data, datal, datar;
+  static int initialized;
+  static const char *selftest_failed;
 
-    if( !initialized ) {
-	initialized = 1;
-	selftest_failed = selftest();
-	if( selftest_failed )
-	    log_error ("%s\n", selftest_failed );
+  if( !initialized ) 
+    {
+      initialized = 1;
+      selftest_failed = selftest();
+      if( selftest_failed )
+        log_error ("%s\n", selftest_failed );
     }
-    if( selftest_failed )
-      return GPG_ERR_SELFTEST_FAILED;
+  if( selftest_failed )
+    return GPG_ERR_SELFTEST_FAILED;
 
-    for(i=0; i < BLOWFISH_ROUNDS+2; i++ )
-	c->p[i] = ps[i];
-    for(i=0; i < 256; i++ ) {
-	c->s0[i] = ks0[i];
-	c->s1[i] = ks1[i];
-	c->s2[i] = ks2[i];
-	c->s3[i] = ks3[i];
+  for(i=0; i < BLOWFISH_ROUNDS+2; i++ )
+    c->p[i] = ps[i];
+  for(i=0; i < 256; i++ ) 
+    {
+      c->s0[i] = ks0[i];
+      c->s1[i] = ks1[i];
+      c->s2[i] = ks2[i];
+      c->s3[i] = ks3[i];
     }
 
-    for(i=j=0; i < BLOWFISH_ROUNDS+2; i++ ) {
+  for(i=j=0; i < BLOWFISH_ROUNDS+2; i++ ) 
+    {
 #ifdef WORDS_BIGENDIAN
-	((byte*)&data)[0] = key[j];
-	((byte*)&data)[1] = key[(j+1)%keylen];
-	((byte*)&data)[2] = key[(j+2)%keylen];
-	((byte*)&data)[3] = key[(j+3)%keylen];
+      ((byte*)&data)[0] = key[j];
+      ((byte*)&data)[1] = key[(j+1)%keylen];
+      ((byte*)&data)[2] = key[(j+2)%keylen];
+      ((byte*)&data)[3] = key[(j+3)%keylen];
 #else
-	((byte*)&data)[3] = key[j];
-	((byte*)&data)[2] = key[(j+1)%keylen];
-	((byte*)&data)[1] = key[(j+2)%keylen];
-	((byte*)&data)[0] = key[(j+3)%keylen];
+      ((byte*)&data)[3] = key[j];
+      ((byte*)&data)[2] = key[(j+1)%keylen];
+      ((byte*)&data)[1] = key[(j+2)%keylen];
+      ((byte*)&data)[0] = key[(j+3)%keylen];
 #endif
-	c->p[i] ^= data;
-	j = (j+4) % keylen;
+      c->p[i] ^= data;
+      j = (j+4) % keylen;
     }
 
-    datal = datar = 0;
-    for(i=0; i < BLOWFISH_ROUNDS+2; i += 2 ) {
-	do_encrypt( c, &datal, &datar );
-	c->p[i]   = datal;
-	c->p[i+1] = datar;
+  datal = datar = 0;
+  for(i=0; i < BLOWFISH_ROUNDS+2; i += 2 )
+    {
+      do_encrypt( c, &datal, &datar );
+      c->p[i]   = datal;
+      c->p[i+1] = datar;
     }
-    for(i=0; i < 256; i += 2 )	{
-	do_encrypt( c, &datal, &datar );
-	c->s0[i]   = datal;
-	c->s0[i+1] = datar;
+  for(i=0; i < 256; i += 2 )	
+    {
+      do_encrypt( c, &datal, &datar );
+      c->s0[i]   = datal;
+      c->s0[i+1] = datar;
     }
-    for(i=0; i < 256; i += 2 )	{
-	do_encrypt( c, &datal, &datar );
-	c->s1[i]   = datal;
-	c->s1[i+1] = datar;
+  for(i=0; i < 256; i += 2 )
+    {
+      do_encrypt( c, &datal, &datar );
+      c->s1[i]   = datal;
+      c->s1[i+1] = datar;
     }
-    for(i=0; i < 256; i += 2 )	{
-	do_encrypt( c, &datal, &datar );
-	c->s2[i]   = datal;
-	c->s2[i+1] = datar;
+  for(i=0; i < 256; i += 2 )
+    {
+      do_encrypt( c, &datal, &datar );
+      c->s2[i]   = datal;
+      c->s2[i+1] = datar;
     }
-    for(i=0; i < 256; i += 2 )	{
-	do_encrypt( c, &datal, &datar );
-	c->s3[i]   = datal;
-	c->s3[i+1] = datar;
-    }
-
-
-    /* Check for weak key.  A weak key is a key in which a value in */
-    /* the P-array (here c) occurs more than once per table.	    */
-    for(i=0; i < 255; i++ ) {
-	for( j=i+1; j < 256; j++) {
-	    if( (c->s0[i] == c->s0[j]) || (c->s1[i] == c->s1[j]) ||
-		(c->s2[i] == c->s2[j]) || (c->s3[i] == c->s3[j]) )
-		return GPG_ERR_WEAK_KEY;
-	}
+  for(i=0; i < 256; i += 2 )
+    {
+      do_encrypt( c, &datal, &datar );
+      c->s3[i]   = datal;
+      c->s3[i+1] = datar;
     }
 
-    return GPG_ERR_NO_ERROR;
+
+  /* Check for weak key.  A weak key is a key in which a value in
+     the P-array (here c) occurs more than once per table.  */
+  for(i=0; i < 255; i++ )
+    {
+      for( j=i+1; j < 256; j++)
+        {
+          if( (c->s0[i] == c->s0[j]) || (c->s1[i] == c->s1[j]) ||
+              (c->s2[i] == c->s2[j]) || (c->s3[i] == c->s3[j]) )
+            return GPG_ERR_WEAK_KEY;
+        }
+    }
+
+  return GPG_ERR_NO_ERROR;
 }
 
 
@@ -583,7 +596,6 @@ bf_setkey (void *context, const byte *key, unsigned keylen)
   return rc;
 }
 
-
 
 gcry_cipher_spec_t _gcry_cipher_spec_blowfish =
   {

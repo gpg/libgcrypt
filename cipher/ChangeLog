@@ -1,5 +1,11 @@
 2003-12-09  Werner Koch  <wk@gnupg.org>
 
+	* dsa.c: Unified indentation style.
+	* elgamal.c: Ditto. 
+	* des.c (des_key_schedule): Code beautifications.
+	* blowfish.c: Changed indentation style.
+	* cast5.c (do_cast_setkey): Ditto.
+
 	* pubkey.c (gcry_pk_encrypt): Replaced the chain of if(!err) tests
 	by straightforward gotos. Other cleanups.
 	(gcry_pk_decrypt): Ditto.
