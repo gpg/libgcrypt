@@ -506,7 +506,10 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
   int *mods;
   
   if( 0 && DBG_CIPHER )
-    log_debug("generate a prime of %u bits ", nbits );
+    log_debug ("generate a prime of %u bits ", nbits );
+
+  if (!nbits)
+    log_fatal ("trying to generate a prime of zero bits\n");
 
   mods = gcry_xmalloc( no_of_small_prime_numbers * sizeof *mods );
   /* make nbits fit into gcry_mpi_t implementation */
