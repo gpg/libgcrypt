@@ -1,3 +1,13 @@
+2003-06-09  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Version Check): Changed description of
+	gcry_check_version; the user now *must* call the function to
+	initialize the library.
+
+2003-06-08  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi: Change for libgpg-error.
+
 2003-05-22  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi (Public Key Functions): Fixed typo.
