@@ -796,6 +796,220 @@ gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags, unsigned int in
   return gcry_error (_gcry_ac_data_get_index (data, flags, index, name, mpi));
 }
 
+gcry_error_t
+gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
+		      const char **identifiers)
+{
+  gcry_sexp_t sexp_new;
+  gcry_err_code_t err;
+  char *sexp_buffer;
+  size_t sexp_buffer_n;
+  size_t identifiers_n;
+  const char *label;
+  gcry_mpi_t mpi;
+  void **arg_list;
+  gcry_mpi_t *mpi_list;
+  size_t data_n;
+  unsigned int i;
+
+  sexp_buffer = NULL;
+  sexp_buffer_n = 3;
+  mpi_list = NULL;
+  arg_list = NULL;
+  err = 0;
+
+  /* Calculate size of S-expression representation.  */
+
+  i = 0;
+  if (identifiers)
+    while (identifiers[i])
+      {
+	sexp_buffer_n += 1 + strlen (identifiers[i]) + 1;
+	i++;
+      }
+  identifiers_n = i;
+  
+  data_n = ac_data_length (data);
+  for (i = 0; i < data_n; i++)
+    {
+      err = gcry_ac_data_get_index (data, 0, i, &label, NULL);
+      if (err)
+	break;
+      sexp_buffer_n += 1 + strlen (label) + 4;
+    }
+  if (err)
+    goto out;
+
+  /* Allocate buffer.  */
+
+  sexp_buffer = gcry_malloc (sexp_buffer_n);
+  if (! sexp_buffer)
+    {
+      err = ENOMEM;
+      goto out;
+    }
+
+  /* Fill buffer.  */
+
+  *sexp_buffer = 0;
+  sexp_buffer_n = 0;
+  for (i = 0; i < identifiers_n; i++)
+    sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, "(%s",
+			      identifiers[i]);
+
+  sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, "(");
+  arg_list = gcry_malloc (sizeof (*arg_list) * (data_n + 1));
+  if (! arg_list)
+    {
+      err = gcry_err_code_from_errno (errno);
+      goto out;
+    }
+
+  for (i = 0; i < data_n; i++)
+    {
+      err = gcry_ac_data_get_index (data, 0, i, &label, &mpi);
+      if (err)
+	break;
+      
+      sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n,
+				"(%s %%m)", label);
+
+      arg_list[i] = &data->data[i].mpi;
+    }
+
+  sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, ")");
+  for (i = 0; i < identifiers_n; i++)
+    sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, ")");
+
+  err = gcry_sexp_build_array (&sexp_new, NULL, sexp_buffer, arg_list);
+  if (err)
+    goto out;
+
+  *sexp = sexp_new;
+
+ out:
+
+  gcry_free (arg_list);
+  gcry_free (mpi_list);
+  
+  if (err)
+    gcry_free (sexp_buffer);
+
+  return gcry_error (err);
+}
+
+gcry_error_t
+gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
+			const char **identifiers)
+{
+  gcry_ac_data_t data_set_new;
+  gcry_err_code_t err;
+  gcry_sexp_t sexp_cur;
+  gcry_sexp_t sexp_tmp;
+  gcry_mpi_t mpi;
+  char *string;
+  const char *data;
+  size_t data_n;
+  size_t sexp_n;
+  unsigned int i;
+
+  sexp_cur = sexp;
+  sexp_tmp = NULL;
+  string = NULL;
+  mpi = NULL;
+  err = 0;
+  
+  /* Process S-expression/identifiers.  */
+
+  i = 0;
+  if (identifiers)
+    while (identifiers[i])
+      {
+	data = gcry_sexp_nth_data (sexp_cur, 0, &data_n);
+	if ((! data) || strncmp (data, identifiers[i], data_n))
+	  {
+	    err = GPG_ERR_INV_SEXP;
+	    break;
+	  }
+	sexp_tmp = gcry_sexp_nth (sexp_cur, 1);
+	if (! sexp_tmp)
+	  {
+	    err = GPG_ERR_INTERNAL; /* FIXME? */
+	    break;
+	  }
+	if (sexp_cur != sexp)
+	  gcry_sexp_release (sexp_cur);
+	sexp_cur = sexp_tmp;
+	i++;
+      }
+  if (err)
+    goto out;
+
+  /* Create data set from S-expression data.  */
+  
+  err = gcry_ac_data_new (&data_set_new);
+  if (err)
+    goto out;
+
+  sexp_n = gcry_sexp_length (sexp);
+  if (sexp_n < 1)
+    {
+      err = GPG_ERR_INV_SEXP;
+      goto out;
+    }
+
+  for (i = 0; i < sexp_n; i++)
+    {
+      sexp_tmp = gcry_sexp_nth (sexp_cur, i);
+      if (! sexp_tmp)
+	{
+	  err = GPG_ERR_INV_SEXP;
+	  break;
+	}
+
+      data = gcry_sexp_nth_data (sexp_tmp, 0, &data_n);
+      string = gcry_malloc (data_n + 1);
+      if (! string)
+	{
+	  err = gcry_err_code_from_errno (ENOMEM);
+	  break;
+	}
+      memcpy (string, data, data_n);
+      string[data_n] = 0;
+
+      mpi = gcry_sexp_nth_mpi (sexp_tmp, 1, 0);
+      if (! mpi)
+	{
+	  err = GPG_ERR_INV_SEXP; /* FIXME? */
+	  break;
+	}
+
+      err = gcry_ac_data_set (data_set_new, GCRY_AC_FLAG_DEALLOC, string, mpi);
+      if (err)
+	break;
+
+      string = NULL;
+      mpi = NULL;
+
+      gcry_sexp_release (sexp_tmp);
+    }
+  if (err)
+    goto out;
+
+  *data_set = data_set_new;
+
+ out:
+
+  gcry_free (string);
+  gcry_mpi_release (mpi);
+  gcry_sexp_release (sexp_tmp);
+  
+  if (err)
+    gcry_ac_data_destroy (data_set_new);
+
+  return err;
+}
+
 /* Destroys any values contained in the data set DATA.  */
 static void
 ac_data_clear (gcry_ac_data_t data)
