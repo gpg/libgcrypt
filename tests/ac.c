@@ -40,11 +40,24 @@ die (const char *format, ...)
 }
 
 void
+key_copy (gcry_ac_handle_t handle,
+	  gcry_ac_key_type_t type,
+	  gcry_ac_key_t *key_cp, gcry_ac_key_t key)
+{
+  gcry_error_t err = 0;
+
+  err = gcry_ac_key_init (key_cp, handle, type,
+			  gcry_ac_key_data_get (key));
+
+  assert (! err);
+}
+
+void
 check_one (gcry_mpi_t x)
 {
   gcry_ac_handle_t handle;
   gcry_ac_key_pair_t key_pair;
-  gcry_ac_key_t key_sec, key_pub;
+  gcry_ac_key_t key_sec, key_sec_cp, key_pub, key_pub_cp;
   gcry_error_t err = 0;
   gcry_mpi_t x2;
   gcry_ac_data_t data, data2;
@@ -60,14 +73,17 @@ check_one (gcry_mpi_t x)
   assert (! err);
 
   key_sec = gcry_ac_key_pair_extract (key_pair, GCRY_AC_KEY_SECRET);
+  key_copy (handle, GCRY_AC_KEY_SECRET, &key_sec_cp, key_sec);
+
   key_pub = gcry_ac_key_pair_extract (key_pair, GCRY_AC_KEY_PUBLIC);
+  key_copy (handle, GCRY_AC_KEY_PUBLIC, &key_pub_cp, key_pub);
 
   err = gcry_ac_data_encrypt (handle, GCRY_AC_FLAG_DATA_NO_BLINDING,
-			      key_pub, x, &data);
+			      key_pub_cp, x, &data);
   assert (! err);
 
   err = gcry_ac_data_decrypt (handle, GCRY_AC_FLAG_DATA_NO_BLINDING,
-			      key_sec, &x2, data);
+			      key_sec_cp, &x2, data);
   assert (! err);
 
   assert (! gcry_mpi_cmp (x, x2));
