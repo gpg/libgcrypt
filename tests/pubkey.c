@@ -75,34 +75,20 @@ die (const char *format, ...)
   exit (1);
 }
 
-void
-check_run (void)
+static void
+check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
+		  gcry_sexp_t plain0)
 {
-  GcrySexp skey, pkey, plain0, plain1, cipher, l;
-  GcryMPI x0, x1;
+  gcry_sexp_t plain1, cipher, l;
+  gcry_mpi_t x0, x1;
   int rc;
 
-  /* Construct s-exp's for keys.  */
-  rc = gcry_sexp_sscan (&skey, NULL, sample_private_key_1,
-                        strlen (sample_private_key_1));
-  if (!rc)
-    rc = gcry_sexp_sscan (&pkey, NULL, sample_public_key_1,
-                          strlen (sample_public_key_1));
-  if (rc)
-    die ("converting sample keys failed: %s\n", gcry_strerror (rc));
-
-  /* Create random data.  */
-  x0 = gcry_mpi_new (RANDOM_DATA_NBITS);
-  gcry_mpi_randomize (x0, RANDOM_DATA_NBITS, GCRY_WEAK_RANDOM);
-  rc = gcry_sexp_build (&plain0, NULL, "(data (flags raw) (value %m))",
-			x0);
-  if (rc)
-    die ("converting data for encryption failed: %s\n",
-	 gcry_strerror (rc));
+  /* Extract data from plaintext.  */
+  l = gcry_sexp_find_token (plain0, "value", 0);
+  x0 = gcry_sexp_nth_mpi (l, 1, GCRYMPI_FMT_USG);
 
   /* Encrypt data.  */
   rc = gcry_pk_encrypt (&cipher, plain0, pkey);
-  gcry_sexp_release (plain0);
   if (rc)
     die ("encryption failed: %s\n", gcry_strerror (rc));
 
@@ -121,6 +107,103 @@ check_run (void)
   /* Compare.  */
   if (gcry_mpi_cmp (x0, x1))
     die ("data corrupted\n");
+}
+
+static void
+check_keys (gcry_sexp_t pkey, gcry_sexp_t skey)
+{
+  gcry_sexp_t plain;
+  gcry_mpi_t x;
+  int rc;
+  
+  /* Create plain text.  */
+  x = gcry_mpi_new (RANDOM_DATA_NBITS);
+  gcry_mpi_randomize (x, RANDOM_DATA_NBITS, GCRY_WEAK_RANDOM);
+  
+  rc = gcry_sexp_build (&plain, NULL, "(data (flags raw) (value %m))", x);
+  if (rc)
+    die ("converting data for encryption failed: %s\n",
+	 gcry_strerror (rc));
+
+  check_keys_crypt (pkey, skey, plain);
+  gcry_sexp_release (plain);
+  gcry_mpi_release (x);
+
+  /* Create plain text.  */
+  x = gcry_mpi_new (RANDOM_DATA_NBITS);
+  gcry_mpi_randomize (x, RANDOM_DATA_NBITS, GCRY_WEAK_RANDOM);
+  
+  rc = gcry_sexp_build (&plain, NULL, "(data (flags raw no-blinding) (value %m))", x);
+  if (rc)
+    die ("converting data for encryption failed: %s\n",
+	 gcry_strerror (rc));
+
+  check_keys_crypt (pkey, skey, plain);
+  gcry_sexp_release (plain);
+}
+
+static void
+get_keys_sample (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+{
+  gcry_sexp_t pub_key, sec_key;
+  int rc;
+
+  rc = gcry_sexp_sscan (&pub_key, NULL, sample_public_key_1,
+			strlen (sample_public_key_1));
+  if (! rc)
+    rc = gcry_sexp_sscan (&sec_key, NULL, sample_private_key_1,
+			  strlen (sample_private_key_1));
+  if (rc)
+    die ("converting sample keys failed: %s\n", gcry_strerror (rc));
+
+  *pkey = pub_key;
+  *skey = sec_key;
+}
+
+static void
+get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+{
+  gcry_sexp_t key_spec, key, pub_key, sec_key;
+  int rc;
+  
+  rc = gcry_sexp_new (&key_spec,
+		      "(genkey (rsa (nbits 4:1024)))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gcry_strerror (rc));
+  rc = gcry_pk_genkey (&key, key_spec);
+  gcry_sexp_release (key_spec);
+  if (rc)
+    die ("error generating RSA key: %s\n", gcry_strerror (rc));
+    
+  pub_key = gcry_sexp_find_token (key, "public-key", 0);
+  if (! pub_key)
+    die ("public part missing in key\n");
+
+  sec_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (! sec_key)
+    die ("private part missing in key\n");
+
+  gcry_sexp_release (key);
+  *pkey = pub_key;
+  *skey = sec_key;
+}
+
+static void
+check_run (void)
+{
+  gcry_sexp_t pkey, skey;
+
+  /* Check sample keys.  */
+  get_keys_sample (&pkey, &skey);
+  check_keys (pkey, skey);
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+  
+  /* Check newly generated keys.  */
+  get_keys_new (&pkey, &skey);
+  check_keys (pkey, skey);
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
 }
 
 int

@@ -53,11 +53,11 @@ die ( const char *format, ... )
 
 
 static void
-print_mpi (const char *text, GcryMPI a)
+print_mpi (const char *text, gcry_mpi_t a)
 {
   char *buf;
   void *bufaddr = &buf;
-  int rc;
+  gpg_error_t rc;
 
   rc = gcry_mpi_aprint (GCRYMPI_FMT_HEX, bufaddr, NULL, a);
   if (rc)
@@ -71,18 +71,17 @@ print_mpi (const char *text, GcryMPI a)
 }
 
 
-
 static void
-check_generated_rsa_key (GcrySexp key, unsigned long expected_e)
+check_generated_rsa_key (gcry_sexp_t key, unsigned long expected_e)
 {
-  GcrySexp skey, pkey, list;
+  gcry_sexp_t skey, pkey, list;
 
   pkey = gcry_sexp_find_token (key, "public-key", 0);
   if (!pkey)
     fail ("public part missing in return value\n");
   else
     {
-      GcryMPI e = NULL;
+      gcry_mpi_t e = NULL;
 
       list = gcry_sexp_find_token (pkey, "e", 0);
       if (!list || !(e=gcry_sexp_nth_mpi (list, 1, 0)) )
@@ -118,7 +117,7 @@ check_generated_rsa_key (GcrySexp key, unsigned long expected_e)
 static void
 check_rsa_keys (void)
 {
-  GcrySexp keyparm, key;
+  gcry_sexp_t keyparm, key;
   int rc;
 
   if (verbose)

@@ -76,7 +76,7 @@ void
 check_run (void)
 {
   int err, id;
-  GcryCipherHd h;
+  gcry_cipher_hd_t h;
   char plain[16] = "Heil Discordia!";
   char encrypted[16], decrypted[16];
   GcryModule *module;

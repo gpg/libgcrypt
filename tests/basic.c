@@ -110,47 +110,71 @@ check_cbc_mac_cipher (void)
       "This is a sample plaintext for CBC MAC of sixtyfour bytes.......", 0,
       "\xfa\x4b\xdf\x9d\xfa\xab\x01\x70" }
   };
-  GCRY_CIPHER_HD hd;
+  gcry_cipher_hd_t hd;
   char out[MAX_DATA_LEN];
-  int i;
+  int i, blklen, keylen;
+  gpg_error_t err = 0;
 
   for (i = 0; i < sizeof(tv) / sizeof(tv[0]); i++)
     {
-      hd = gcry_cipher_open (tv[i].algo,
-			     GCRY_CIPHER_MODE_CBC,
-			     GCRY_CIPHER_CBC_MAC);
+      err = gcry_cipher_open (&hd,
+			      tv[i].algo,
+			      GCRY_CIPHER_MODE_CBC,
+			      GCRY_CIPHER_CBC_MAC);
       if (!hd) {
 	fail ("cbc-mac algo %d, grcy_open_cipher failed: %s\n",
-	      tv[i].algo, gcry_strerror (-1) );
+	      tv[i].algo, gpg_strerror (err));
 	return;
       }
 
-      if (gcry_cipher_setkey (hd, tv[i].key,
-			      gcry_cipher_get_algo_keylen (tv[i].algo))) {
-	fail ("cbc-mac algo %d, gcry_cipher_setkey failed: %s\n",
-	      tv[i].algo, gcry_strerror (-1) );
-	gcry_cipher_close (hd);
-	return;
-      }
+      err = gcry_cipher_get_algo_blklen(tv[i].algo, &blklen);
+      if (err)
+	{
+	  fail ("cbc-mac algo %d, gcry_cipher_get_algo_blklen failed: %s\n",
+		 tv[i].algo, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return;
+	}
 
-      if (gcry_cipher_setiv (hd, NULL, 0)) {
-	fail ("cbc-mac algo %d, gcry_cipher_setiv failed: %s\n",
-	      tv[i].algo, gcry_strerror (-1) );
-	gcry_cipher_close (hd);
-	return;
-      }
+      err = gcry_cipher_get_algo_keylen (tv[i].algo, &keylen);
+      if (err)
+	{
+	  fail ("cbc-mac algo %d, gcry_cipher_get_algo_keylen failed: %s\n",
+		tv[i].algo, gpg_strerror (err));
+	  return;
+	}
 
-      if ( gcry_cipher_encrypt (hd,
-				out, gcry_cipher_get_algo_blklen(tv[i].algo),
-				tv[i].plaintext,
-				tv[i].plaintextlen ?
-				tv[i].plaintextlen :
-				strlen(tv[i].plaintext))) {
-	fail ("cbc-mac algo %d, gcry_cipher_encrypt failed: %s\n",
-	      tv[i].algo, gcry_strerror (-1) );
-	gcry_cipher_close (hd);
-	return;
-      }
+      err = gcry_cipher_setkey (hd, tv[i].key, keylen);
+      if (err)
+	{
+	  fail ("cbc-mac algo %d, gcry_cipher_setkey failed: %s\n",
+		tv[i].algo, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return;
+	}
+
+      err = gcry_cipher_setiv (hd, NULL, 0);
+      if (err)
+	{
+	  fail ("cbc-mac algo %d, gcry_cipher_setiv failed: %s\n",
+		tv[i].algo, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return;
+	}
+
+      err = gcry_cipher_encrypt (hd,
+				 out, blklen,
+				 tv[i].plaintext,
+				 tv[i].plaintextlen ?
+				 tv[i].plaintextlen :
+				 strlen(tv[i].plaintext));
+      if (err)
+	{
+	  fail ("cbc-mac algo %d, gcry_cipher_encrypt failed: %s\n",
+		tv[i].algo, gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return;
+	}
 
 #if 0
       { int j;
@@ -160,7 +184,7 @@ check_cbc_mac_cipher (void)
       }
 #endif
 
-      if ( memcmp (tv[i].mac, out, gcry_cipher_get_algo_blklen(tv[i].algo)) )
+      if (memcmp (tv[i].mac, out, blklen))
 	fail ("cbc-mac algo %d, encrypt mismatch entry %d\n", tv[i].algo, i);
 
       gcry_cipher_close (hd);
@@ -193,61 +217,73 @@ check_aes128_cbc_cts_cipher ()
       "\x48\x07\xef\xe8\x36\xee\x89\xa5\x26\x73\x0d\xbc\x2f\x7b\xc8\x40"
       "\x9d\xad\x8b\xbb\x96\xc4\xcd\xc0\x3b\xc1\x03\xe1\xa1\x94\xbb\xd8", 64 }
   };
-  GCRY_CIPHER_HD hd;
+  gcry_cipher_hd_t hd;
   char out[MAX_DATA_LEN];
   int i;
+  gpg_error_t err = 0;
 
-  hd = gcry_cipher_open (GCRY_CIPHER_AES, 
-			 GCRY_CIPHER_MODE_CBC, 
-			 GCRY_CIPHER_CBC_CTS);
-  if (!hd) {
-    fail ("aes-cbc-cts, grcy_open_cipher failed: %s\n", gcry_strerror (-1) );
-    return;
-  }
+  err = gcry_cipher_open (&hd,
+			  GCRY_CIPHER_AES, 
+			  GCRY_CIPHER_MODE_CBC, 
+			  GCRY_CIPHER_CBC_CTS);
+  if (err)
+    {
+      fail ("aes-cbc-cts, grcy_open_cipher failed: %s\n", gpg_strerror (err));     
+      return;
+    }
 
-  if (gcry_cipher_setkey (hd, key, 128/8)) { 
-    fail ("aes-cbc-cts, gcry_cipher_setkey failed: %s\n", gcry_strerror (-1) );
-    gcry_cipher_close (hd);
-    return;
-  }
+  err = gcry_cipher_setkey (hd, key, 128/8);
+  if (err)
+    { 
+      fail ("aes-cbc-cts, gcry_cipher_setkey failed: %s\n", gpg_strerror (err));
+      gcry_cipher_close (hd);
+      return;
+    }
 
   for (i = 0; i < sizeof(tv) / sizeof(tv[0]); i++)
     {
-      if (gcry_cipher_setiv (hd, NULL, 0)) { 
-        fail ("aes-cbc-cts, gcry_cipher_setiv failed: %s\n",
-	      gcry_strerror (-1) );
-        gcry_cipher_close (hd);
-        return;
-      }
+      err = gcry_cipher_setiv (hd, NULL, 0);
+      if (err)
+	{
+	  fail ("aes-cbc-cts, gcry_cipher_setiv failed: %s\n", gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return;
+	}
 
-      if ( gcry_cipher_encrypt (hd, out, MAX_DATA_LEN, 
-				plaintext, tv[i].inlen)) { 
-	fail ("aes-cbc-cts, gcry_cipher_encrypt failed: %s\n",
-	      gcry_strerror (-1) );
-	gcry_cipher_close (hd);
-	return;
-      }
+      err = gcry_cipher_encrypt (hd, out, MAX_DATA_LEN, 
+				 plaintext, tv[i].inlen);
+      if (err)
+	{ 
+	  fail ("aes-cbc-cts, gcry_cipher_encrypt failed: %s\n",
+		gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return;
+	}
 
-      if ( memcmp (tv[i].out, out, tv[i].inlen) )
+      if (memcmp (tv[i].out, out, tv[i].inlen))
         fail ("aes-cbc-cts, encrypt mismatch entry %d\n", i);
 
-      if (gcry_cipher_setiv (hd, NULL, 0)) { 
-        fail ("aes-cbc-cts, gcry_cipher_setiv failed: %s\n",
-	      gcry_strerror (-1) );
-        gcry_cipher_close (hd);
-        return;
-      }
-      if ( gcry_cipher_decrypt (hd, out, tv[i].inlen, NULL, 0)) { 
-	fail ("aes-cbc-cts, gcry_cipher_decrypt failed: %s\n",
-	      gcry_strerror (-1) );
-	gcry_cipher_close (hd);
-	return;
-      }
+      err = gcry_cipher_setiv (hd, NULL, 0);
+      if (err)
+	{ 
+	  fail ("aes-cbc-cts, gcry_cipher_setiv failed: %s\n",
+		gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return;
+	}
+      err = gcry_cipher_decrypt (hd, out, tv[i].inlen, NULL, 0);
+      if (err)
+	{ 
+	  fail ("aes-cbc-cts, gcry_cipher_decrypt failed: %s\n",
+		gpg_strerror (err));
+	  gcry_cipher_close (hd);
+	  return;
+	}
 
-      if ( memcmp (plaintext, out, tv[i].inlen) )
+      if (memcmp (plaintext, out, tv[i].inlen))
         fail ("aes-cbc-cts, decrypt mismatch entry %d\n", i);
     }
-
+  
   gcry_cipher_close (hd);
 }
 
@@ -319,40 +355,58 @@ check_ctr_cipher (void)
        {}}
     }
   };
-  GCRY_CIPHER_HD hde, hdd;
+  gcry_cipher_hd_t hde, hdd;
   char out[MAX_DATA_LEN];
-  int i,j;
+  int i, j, keylen, blklen;
+  gpg_error_t err = 0;
 
   for (i = 0; i < sizeof(tv) / sizeof(tv[0]); i++)
     {
-      hde = gcry_cipher_open (tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
-      hdd = gcry_cipher_open (tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
-      if (!hde || !hdd)
+      err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
+      if (! err)
+	err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
+      if (err)
 	{
 	  fail ("aes-ctr, grcy_open_cipher failed: %s\n",
-		gcry_strerror (-1));
+		gpg_strerror (err));
 	  return;
 	}
 
-      if (gcry_cipher_setkey (hde, tv[i].key,
-			      gcry_cipher_get_algo_keylen(tv[i].algo)) ||
-	  gcry_cipher_setkey (hdd, tv[i].key,
-			      gcry_cipher_get_algo_keylen(tv[i].algo)))
+      err = gcry_cipher_get_algo_keylen(tv[i].algo, &keylen);
+      if (err)
+	{
+	  fail ("aes-ctr, gcry_cipher_get_algo_keylen failed: %s\n",
+		gpg_strerror (err));
+	  return;
+	}
+
+      err = gcry_cipher_setkey (hde, tv[i].key, keylen);
+      if (! err)
+	err = gcry_cipher_setkey (hdd, tv[i].key, keylen);
+      if (err)
 	{
 	  fail ("aes-ctr, gcry_cipher_setkey failed: %s\n",
-		gcry_strerror (-1));
+		gpg_strerror (err));
 	  gcry_cipher_close (hde);
 	  gcry_cipher_close (hdd);
 	  return;
 	}
 
-      if (gcry_cipher_setctr (hde, tv[i].ctr,
-			      gcry_cipher_get_algo_blklen(tv[i].algo)) ||
-	  gcry_cipher_setctr (hdd, tv[i].ctr,
-			      gcry_cipher_get_algo_blklen(tv[i].algo)))
+      err = gcry_cipher_get_algo_blklen(tv[i].algo, &blklen);
+      if (err)
+	{
+	  fail ("aes-ctr, gcry_cipher_get_algo_blklen failed: %s\n",
+		gpg_strerror (err));
+	  return;
+	}
+
+      err = gcry_cipher_setctr (hde, tv[i].ctr, blklen);
+      if (! err)
+	err = gcry_cipher_setctr (hdd, tv[i].ctr, blklen);
+      if (err)
 	{
 	  fail ("aes-ctr, gcry_cipher_setctr failed: %s\n",
-		gcry_strerror (-1));
+		gpg_strerror (err));
 	  gcry_cipher_close (hde);
 	  gcry_cipher_close (hdd);
 	  return;
@@ -360,14 +414,15 @@ check_ctr_cipher (void)
 
       for (j = 0; tv[i].data[j].inlen; j++)
 	{
-	  if (gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
-				   tv[i].data[j].plaintext,
-				   tv[i].data[j].inlen == -1 ?
-				   strlen(tv[i].data[j].plaintext) :
-				   tv[i].data[j].inlen))
+	  err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+				     tv[i].data[j].plaintext,
+				     tv[i].data[j].inlen == -1 ?
+				     strlen(tv[i].data[j].plaintext) :
+				     tv[i].data[j].inlen);
+	  if (err)
 	    {
 	      fail ("aes-ctr, gcry_cipher_encrypt (%d, %d) failed: %s\n",
-		    i, j, gcry_strerror (-1));
+		    i, j, gpg_strerror (err));
 	      gcry_cipher_close (hde);
 	      gcry_cipher_close (hdd);
 	      return;
@@ -376,10 +431,11 @@ check_ctr_cipher (void)
 	  if (memcmp (tv[i].data[j].out, out, tv[i].data[j].inlen))
 	    fail ("aes-ctr, encrypt mismatch entry %d:%d\n", i, j);
 
-	  if (gcry_cipher_decrypt (hdd, out, tv[i].data[j].inlen, NULL, 0))
+	  err = gcry_cipher_decrypt (hdd, out, tv[i].data[j].inlen, NULL, 0);
+	  if (err)
 	    {
 	      fail ("aes-ctr, gcry_cipher_decrypt (%d, %d) failed: %s\n",
-		    i, j, gcry_strerror (-1));
+		    i, j, gpg_strerror (err));
 	      gcry_cipher_close (hde);
 	      gcry_cipher_close (hdd);
 	      return;
@@ -397,55 +453,69 @@ check_ctr_cipher (void)
 static void
 check_one_cipher (int algo, int mode, int flags)
 {
-    GCRY_CIPHER_HD hd;
-    char key[32], plain[16], in[16], out[16];
-    int keylen;
+  gcry_cipher_hd_t hd;
+  char key[32], plain[16], in[16], out[16];
+  int keylen;
+  memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF", 32);
+  memcpy (plain, "foobar42FOOBAR17", 16);
+  gpg_error_t err = 0;
 
-    memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF", 32);
-    memcpy (plain, "foobar42FOOBAR17", 16);
-
-    keylen = gcry_cipher_get_algo_keylen (algo);
-    if (keylen < 40/8 || keylen > 32 ) {
-        fail ("algo %d, mode %d, keylength problem (%d)\n",
-              algo, mode, keylen );
-        return;
+  err = gcry_cipher_get_algo_keylen (algo, &keylen);
+  if (err)
+    {
+      fail ("algo %d, mode %d, gcry_cipher_get_algo_keylen failed: %s\n",
+	    algo, mode, gpg_strerror (err));
+      return;
     }
 
-    hd = gcry_cipher_open (algo, mode, flags);
-    if (!hd) {
-        fail ("algo %d, mode %d, grcy_open_cipher failed: %s\n",
-              algo, mode, gcry_strerror (-1) );
-        return;
+  if (keylen < 40/8 || keylen > 32)
+    {
+      fail ("algo %d, mode %d, keylength problem (%d)\n",
+	    algo, mode, keylen);
+      return;
+    }
+  
+  err = gcry_cipher_open (&hd, algo, mode, flags);
+  if (err)
+    {
+      fail ("algo %d, mode %d, grcy_open_cipher failed: %s\n",
+	    algo, mode, gpg_strerror (err));
+      return;
     }
 
+  err = gcry_cipher_setkey (hd, key, keylen);
+  if (err)
+    { 
+      fail ("algo %d, mode %d, gcry_cipher_setkey failed: %s\n",
+	    algo, mode, gpg_strerror (err));
+      gcry_cipher_close (hd);
+      return;
+    }
     
-    if (gcry_cipher_setkey (hd, key, keylen)) { 
-        fail ("algo %d, mode %d, gcry_cipher_setkey failed: %s\n",
-              algo, mode, gcry_strerror (-1) );
-        gcry_cipher_close (hd);
-        return;
+  err = gcry_cipher_encrypt (hd, out, 16, plain, 16);
+  if (err)
+    { 
+      fail ("algo %d, mode %d, gcry_cipher_encrypt failed: %s\n",
+	    algo, mode, gpg_strerror (err));
+      gcry_cipher_close (hd);
+      return;
     }
+
+  gcry_cipher_reset (hd);
+  
+  err = gcry_cipher_decrypt (hd, in, 16, out, 16);
+  if (err)
+    { 
+      fail ("algo %d, mode %d, gcry_cipher_decrypt failed: %s\n",
+	    algo, mode, gpg_strerror (err));
+      gcry_cipher_close (hd);
+      return;
+    }
+
+  gcry_cipher_close (hd);
     
-    if ( gcry_cipher_encrypt (hd, out, 16, plain, 16)) { 
-        fail ("algo %d, mode %d, gcry_cipher_encrypt failed: %s\n",
-              algo, mode, gcry_strerror (-1) );
-        gcry_cipher_close (hd);
-        return;
-    }
-
-    gcry_cipher_reset (hd);
-
-    if ( gcry_cipher_decrypt (hd, in, 16, out, 16)) { 
-        fail ("algo %d, mode %d, gcry_cipher_decrypt failed: %s\n",
-              algo, mode, gcry_strerror (-1) );
-        gcry_cipher_close (hd);
-        return;
-    }
-
-    gcry_cipher_close (hd);
-
-    if ( memcmp (plain, in, 16) )
-        fail ("algo %d, mode %d, encrypt-decrypt mismatch\n", algo, mode);
+  if (memcmp (plain, in, 16))
+    fail ("algo %d, mode %d, encrypt-decrypt mismatch\n", algo, mode);
 }
 
 
@@ -498,55 +568,58 @@ check_ciphers (void)
 static void
 check_one_md (int algo, char *data, int len, char *expect)
 {
-    GCRY_MD_HD hd, hd2;
-    char *p;
-    int mdlen;
-    int i;
+  gcry_md_hd_t hd, hd2;
+  char *p;
+  int mdlen;
+  int i;
+  gpg_error_t err = 0;
 
-    hd = gcry_md_open (algo, 0);
-    if (!hd) {
-        fail ("algo %d, grcy_md_open failed: %s\n",
-              algo, gcry_strerror (-1) );
-        return;
+  err = gcry_md_open (&hd, algo, 0);
+  if (err)
+    {
+      fail ("algo %d, grcy_md_open failed: %s\n",
+	    algo, gpg_strerror (err));
+      return;
     }
 
-    mdlen = gcry_md_get_algo_dlen(algo);
-    if (mdlen < 1 || mdlen > 500) {
-        fail ("algo %d, grcy_md_get_algo_dlen failed: %d\n", algo, mdlen);
-        return;
+  mdlen = gcry_md_get_algo_dlen (algo);
+  if (mdlen < 1 || mdlen > 500)
+    {
+      fail ("algo %d, grcy_md_get_algo_dlen failed: %d\n", algo, mdlen);
+      return;
     }
 
-    if (*data == '!' && !data[1])
-      { /* hash one million times a "a" */
-        char aaa[1000];
-        
-        memset (aaa, 'a', 1000);
-        for (i=0; i < 1000; i++)
-          gcry_md_write (hd, aaa, 1000);
-      }
-    else
-      gcry_md_write (hd, data, len);
+  if (*data == '!' && !data[1])
+    { /* hash one million times a "a" */
+      char aaa[1000];
+      
+      memset (aaa, 'a', 1000);
+      for (i=0; i < 1000; i++)
+	gcry_md_write (hd, aaa, 1000);
+    }
+  else
+    gcry_md_write (hd, data, len);
+  
+  err = gcry_md_copy (hd, &hd2);
+  if (err)
+    {
+      fail ("algo %d, gcry_md_copy failed: %s\n",
+	    algo, gpg_strerror (err));
+    }
 
-    hd2 = gcry_md_copy (hd);
-    if (! hd2)
-      {
-	fail ("algo %d, gcry_md_copy failed: %s\n",
-	      algo, gcry_strerror (-1));
-      }
-    
     gcry_md_close (hd);
 
     p = gcry_md_read (hd2, algo);
 
-    if ( memcmp (p, expect, mdlen) )
+    if (memcmp (p, expect, mdlen))
       {
-	printf("computed: ");
+	printf ("computed: ");
 	for (i=0; i < mdlen; i++)
-	  printf("%02x ", p[i] & 0xFF);
+	  printf ("%02x ", p[i] & 0xFF);
 	printf("\nexpected: ");
 	for (i=0; i < mdlen; i++)
-	  printf("%02x ", expect[i] & 0xFF);
-	printf("\n");
+	  printf ("%02x ", expect[i] & 0xFF);
+	printf ("\n");
 
 	fail ("algo %d, digest mismatch\n", algo);
       }
@@ -701,16 +774,16 @@ check_digests ()
    public key used for the verification. BADHASH is a hasvalue which
    should; result in a bad signature status. */
 static void
-verify_one_signature (GcrySexp pkey, GcrySexp hash,
-                      GcrySexp badhash, GcrySexp sig)
+verify_one_signature (gcry_sexp_t pkey, gcry_sexp_t hash,
+                      gcry_sexp_t badhash, gcry_sexp_t sig)
 {
-  int rc;
+  gpg_error_t rc;
 
   rc = gcry_pk_verify (sig, hash, pkey);
   if (rc)
     fail ("gcry_pk_verify failed: %s\n", gcry_strerror (rc));
   rc = gcry_pk_verify (sig, badhash, pkey);
-  if (rc != GCRYERR_BAD_SIGNATURE)
+  if (gpg_err_code (rc) != GPG_ERR_BAD_SIGNATURE)
     fail ("gcry_pk_verify failed to detect a bad signature: %s\n",
           gcry_strerror (rc));
 }
@@ -719,10 +792,10 @@ verify_one_signature (GcrySexp pkey, GcrySexp hash,
 /* Test the public key sign function using the private ket SKEY. PKEY
    is used for verification. */
 static void
-check_pubkey_sign (GcrySexp skey, GcrySexp pkey)
+check_pubkey_sign (gcry_sexp_t skey, gcry_sexp_t pkey)
 {
-  int rc;
-  GcrySexp sig, badhash, hash;
+  gpg_error_t rc;
+  gcry_sexp_t sig, badhash, hash;
   int dataidx;
   static const char baddata[] =
     "(data\n (flags pkcs1)\n"
@@ -733,11 +806,11 @@ check_pubkey_sign (GcrySexp skey, GcrySexp pkey)
       0 },
     { "(data\n (flags )\n"
       " (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
-      GCRYERR_CONFLICT },
+      GPG_ERR_CONFLICT },
 
     { "(data\n (flags pkcs1)\n"
       " (hash foo #11223344556677889900AABBCCDDEEFF10203040#))\n",
-      GCRYERR_INV_MD_ALGO },
+      GPG_ERR_DIGEST_ALGO },
 
     { "(data\n (flags )\n"
       " (value #11223344556677889900AA#))\n",
@@ -749,11 +822,11 @@ check_pubkey_sign (GcrySexp skey, GcrySexp pkey)
 
     { "(data\n (flags pkcs1)\n"
       " (value #11223344556677889900AA#))\n",
-      GCRYERR_CONFLICT },
+      GPG_ERR_CONFLICT },
 
     { "(data\n (flags raw foo)\n"
       " (value #11223344556677889900AA#))\n",
-      GCRYERR_INV_FLAG },
+      GPG_ERR_INV_FLAG },
     
     { NULL }
   };
@@ -773,7 +846,7 @@ check_pubkey_sign (GcrySexp skey, GcrySexp pkey)
         die ("converting data failed: %s\n", gcry_strerror (rc));
   
       rc = gcry_pk_sign (&sig, hash, skey);
-      if (rc != datas[dataidx].expected_rc)
+      if (gpg_err_code (rc) != datas[dataidx].expected_rc)
         fail ("gcry_pk_sign failed: %s\n", gcry_strerror (rc));
       
       if (!rc)
@@ -790,8 +863,8 @@ check_pubkey_sign (GcrySexp skey, GcrySexp pkey)
 static void
 check_pubkey (void)
 {
-  int rc;
-  GcrySexp skey, pkey;
+  gpg_error_t rc;
+  gcry_sexp_t skey, pkey;
   unsigned char grip1[20], grip2[20];
   
   rc = gcry_sexp_sscan (&skey, NULL, sample_private_key_1,

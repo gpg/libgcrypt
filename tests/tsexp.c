@@ -1,5 +1,5 @@
 /* tsexp.c  -  S-expression regression tests
- *	Copyright (C) 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -59,7 +59,7 @@ fail ( const char *format, ... )
 static void
 basic (void)
 {
-  GCRY_SEXP sexp;
+  gcry_sexp_t sexp;
   int idx;
   const char *string;
   static struct {
@@ -90,8 +90,8 @@ basic (void)
     {
       const char *token = values[idx].token;
       const char *parm = values[idx].parm;
-      GCRY_SEXP s1, s2;
-      GCRY_MPI a;
+      gcry_sexp_t s1, s2;
+      gcry_mpi_t a;
       const char *p;
       size_t n;
 
@@ -165,28 +165,28 @@ canon_len (void)
     size_t textlen; /* length of the buffer */
     size_t expected;/* expected length or 0 on error and then ... */
     size_t erroff;  /* ... and at this offset */
-    int errcode;    /* ... with this error code */
+    gpg_error_t errcode;    /* ... with this error code */
     unsigned char *text; 
   } values[] = {
-    { 14, 13, 0,  0, "(9:abcdefghi) " },
-    { 16, 15, 0,  0, "(10:abcdefghix)" },
-    { 14,  0,14, -2, "(10:abcdefghi)" },
-    { 15,  0, 1, -7, "(010:abcdefghi)" },
-    {  2,  0, 0, -4, "1:"},
-    {  4,  0, 4, -2, "(1:)"},
-    {  5,  5, 0,  0, "(1:x)"},
-    {  2,  2, 0,  0, "()"},
-    {  4,  2, 0,  0, "()()"},
-    {  4,  4, 0,  0, "(())"},
-    {  3,  0, 3, -2, "(()"},
-    {  3,  0, 1, -5, "( )"},
-    {  9,  9, 0,  0, "(3:abc())"},
-    { 10,  0, 6, -5, "(3:abc ())"},
+    { 14, 13, 0, GPG_ERR_NO_ERROR, "(9:abcdefghi) " },
+    { 16, 15, 0, GPG_ERR_NO_ERROR, "(10:abcdefghix)" },
+    { 14,  0,14, GPG_ERR_SEXP_STRING_TOO_LONG, "(10:abcdefghi)" },
+    { 15,  0, 1, GPG_ERR_SEXP_ZERO_PREFIX, "(010:abcdefghi)" },
+    {  2,  0, 0, GPG_ERR_SEXP_NOT_CANONICAL, "1:"},
+    {  4,  0, 4, GPG_ERR_SEXP_STRING_TOO_LONG, "(1:)"},
+    {  5,  5, 0, GPG_ERR_NO_ERROR, "(1:x)"},
+    {  2,  2, 0, GPG_ERR_NO_ERROR, "()"},
+    {  4,  2, 0, GPG_ERR_NO_ERROR, "()()"},
+    {  4,  4, 0, GPG_ERR_NO_ERROR, "(())"},
+    {  3,  0, 3, GPG_ERR_SEXP_STRING_TOO_LONG, "(()"},
+    {  3,  0, 1, GPG_ERR_SEXP_BAD_CHARACTER, "( )"},
+    {  9,  9, 0, GPG_ERR_NO_ERROR, "(3:abc())"},
+    { 10,  0, 6, GPG_ERR_SEXP_BAD_CHARACTER, "(3:abc ())"},
     /* fixme: we need much more cases */
     { 0 },
   };
   int idx;
-  int errcode;
+  gpg_error_t errcode;
   size_t n, erroff;
 
   info ("checking canoncial length test function\n");
@@ -202,7 +202,7 @@ canon_len (void)
           if (values[idx].erroff != erroff)
             fail ("canonical length test %d - wrong error offset %u\n",
                   idx, (unsigned int)erroff);
-          if (values[idx].errcode != errcode)
+          if (gpg_err_code (errcode) != values[idx].errcode)
             fail ("canonical length test %d - wrong error code %d\n",
                   idx, errcode);
         }
@@ -216,8 +216,8 @@ canon_len (void)
 static void
 back_and_forth_one (int testno, const char *buffer, size_t length)
 {
-  int rc;
-  GcrySexp se, se1;
+  gpg_error_t rc;
+  gcry_sexp_t se, se1;
   size_t n, n1;
   char *p1;
 
