@@ -25,6 +25,8 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <assert.h>
+#include <limits.h>
+#include <errno.h>
 
 #include "g10lib.h"
 #include "cipher.h"
@@ -438,21 +440,41 @@ gcry_free( void *p )
 }
 
 void *
-gcry_calloc( size_t n, size_t m )
+gcry_calloc (size_t n, size_t m)
 {
-    void *p = gcry_malloc( n*m );
-    if( p )
-	memset( p, 0, n*m );
-    return p;
+  size_t bytes;
+  void *p;
+
+  bytes = n * m; /* size_t is unsigned so the behavior on overflow is defined. */
+  if (m && bytes / m != n) 
+    {
+      errno = ENOMEM;
+      return NULL;
+    }
+
+  p = gcry_malloc (bytes);
+  if (p)
+    memset (p, 0, bytes);
+  return p;
 }
 
 void *
-gcry_calloc_secure( size_t n, size_t m )
+gcry_calloc_secure (size_t n, size_t m)
 {
-    void *p = gcry_malloc_secure( n*m );
-    if( p )
-	memset( p, 0, n*m );
-    return p;
+  size_t bytes;
+  void *p;
+
+  bytes = n * m; /* size_t is unsigned so the behavior on overflow is defined. */
+  if (m && bytes / m != n) 
+    {
+      errno = ENOMEM;
+      return NULL;
+    }
+  
+  p = gcry_malloc_secure (bytes);
+  if (p)
+    memset (p, 0, bytes);
+  return p;
 }
 
 

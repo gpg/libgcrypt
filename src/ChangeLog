@@ -1,3 +1,8 @@
+2002-12-09  Werner Koch  <wk@gnupg.org>
+
+	* global.c (gcry_calloc,gcry_calloc_secure): Check for overflow.
+	Noted by Florian Weimer. 
+
 2002-11-10  Simon Josefsson  <jas@extundo.com>
 
 	* gcrypt.h (gcry_ctl_cmds): New GCRYCTL_SET_CBC_CTS control flag.
