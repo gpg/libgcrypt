@@ -25,369 +25,508 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <stddef.h>
+
 #if defined(HAVE_MLOCK) || defined(HAVE_MMAP)
-  #include <sys/mman.h>
-  #include <sys/types.h>
-  #include <fcntl.h>
-  #ifdef USE_CAPABILITIES
-    #include <sys/capability.h>
-  #endif
+# include <sys/mman.h>
+# include <sys/types.h>
+# include <fcntl.h>
+# ifdef USE_CAPABILITIES
+#  include <sys/capability.h>
+# endif
 #endif
 
 #include "g10lib.h"
 #include "secmem.h"
 
-#if defined(MAP_ANON) && !defined(MAP_ANONYMOUS)
-  #define MAP_ANONYMOUS MAP_ANON
+#if defined (MAP_ANON) && ! defined (MAP_ANONYMOUS)
+# define MAP_ANONYMOUS MAP_ANON
 #endif
 
-#define DEFAULT_POOLSIZE 16384
-#define DEFAULT_PAGESIZE 4096
+#define DEFAULT_POOL_SIZE 16384
+#define DEFAULT_PAGE_SIZE 4096
 
-typedef struct memblock_struct MEMBLOCK;
-struct memblock_struct {
-    unsigned size;
-    union {
-	MEMBLOCK *next;
-	PROPERLY_ALIGNED_TYPE aligned;
-    } u;
-};
+typedef struct memblock
+{
+  unsigned size;		/* Size of the memory available to the
+				   user.  */
+  int flags;			/* See below.  */
+  PROPERLY_ALIGNED_TYPE aligned;
+} memblock_t;
 
+/* This flag specifies that the memory block is in use.  */
+#define MB_FLAG_ACTIVE 1 << 0
 
+/* The pool of secure memory.  */
+static void *pool;
 
-static void  *pool;
-static volatile int pool_okay; /* may be checked in an atexit function */
+/* Size of POOL in bytes.  */
+static size_t pool_size;
+
+/* True, if the memory pool is ready for use.  May be checked in an
+   atexit function.  */
+static volatile int pool_okay;
+
+/* True, if the memory pool is mmapped.  */
 static volatile int pool_is_mmapped;
-static size_t poolsize; /* allocated length */
-static size_t poollen;	/* used length */
-static MEMBLOCK *unused_blocks;
-static unsigned max_alloced;
-static unsigned cur_alloced;
-static unsigned max_blocks;
-static unsigned cur_blocks;
+
+/* FIXME?  */
 static int disable_secmem;
 static int show_warning;
 static int no_warning;
 static int suspend_warning;
 
+/* Stats.  */
+static unsigned int cur_alloced, cur_blocks;
 
+/* The size of the memblock structure; this does not include the
+   memory that is available to the user.  */
+#define BLOCK_HEAD_SIZE \
+  offsetof (memblock_t, aligned)
+
+/* Convert an address into the according memory block structure.  */
+#define ADDR_TO_BLOCK(addr) \
+  (memblock_t *) ((char *) addr - BLOCK_HEAD_SIZE)
+
+/* Check wether MB is a valid block.  */
+#define BLOCK_VALID(mb) \
+  (((char *) mb - (char *) pool) < pool_size)
+
+/* Update the stats.  */
 static void
-print_warn(void)
+stats_update (size_t add, size_t sub)
 {
-    if( !no_warning )
-	log_info(_("Warning: using insecure memory!\n"));
+  if (add)
+    {
+      cur_alloced += add;
+      cur_blocks++;
+    }
+  if (sub)
+    {
+      cur_alloced -= sub;
+      cur_blocks--;
+    }
 }
 
-
-static void
-lock_pool( void *p, size_t n )
+/* Return the block following MB or NULL, if MB is the last block.  */
+static memblock_t *
+mb_get_next (memblock_t *mb)
 {
-  #if defined(USE_CAPABILITIES) && defined(HAVE_MLOCK)
-    int err;
+  memblock_t *mb_next;
 
-    cap_set_proc( cap_from_text("cap_ipc_lock+ep") );
-    err = mlock( p, n );
-    if( err && errno )
-	err = errno;
-    cap_set_proc( cap_from_text("cap_ipc_lock+p") );
+  mb_next = (memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE + mb->size);
+  
+  if (! BLOCK_VALID (mb_next))
+    mb_next = NULL;
 
-    if( err ) {
-	if( errno != EPERM
-	  #ifdef EAGAIN  /* OpenBSD returns this */
-	    && errno != EAGAIN
-	  #endif
-	  #ifdef ENOSYS  /* Some SCOs return this (function not implemented) */
-	    && errno != ENOSYS
-	  #endif
-	  )
-	    log_error("can't lock memory: %s\n", strerror(err));
-	show_warning = 1;
-    }
-
-  #elif defined(HAVE_MLOCK)
-    uid_t uid;
-    int err;
-
-    uid = getuid();
-
-  #ifdef HAVE_BROKEN_MLOCK
-    if( uid ) {
-	errno = EPERM;
-	err = errno;
-    }
-    else {
-	err = mlock( p, n );
-	if( err && errno )
-	    err = errno;
-    }
-  #else
-    err = mlock( p, n );
-    if( err && errno )
-	err = errno;
-  #endif
-
-    if( uid && !geteuid() ) {
-	/* check that we really dropped the privs.
-	 * Note: setuid(0) should always fail */
-	if( setuid( uid ) || getuid() != geteuid() || !setuid(0) )
-	    log_fatal("failed to reset uid: %s\n", strerror(errno));
-    }
-
-    if( err ) {
-	if( errno != EPERM
-	  #ifdef EAGAIN  /* OpenBSD returns this */
-	    && errno != EAGAIN
-	  #endif
-	  #ifdef ENOSYS  /* Some SCOs return this (function not implemented) */
-	    && errno != ENOSYS
-	  #endif
-	  )
-	    log_error("can't lock memory: %s\n", strerror(err));
-	show_warning = 1;
-    }
-
-  #elif defined ( __QNX__ )
-    /* QNX does not page at all, so the whole secure memory stuff does
-     * not make much sense.  However it is still of use because it
-     * wipes out the memory on a free().
-     * Therefore it is sufficient to suppress the warning
-     */
-  #else
-    log_info("Please note that you don't have secure memory on this system\n");
-  #endif
+  return mb_next;
 }
 
-
-static void
-init_pool( size_t n)
+/* Return the block preceeding MB or NULL, if MB is the first
+   block.  */
+static memblock_t *
+mb_get_prev (memblock_t *mb)
 {
-    size_t pgsize;
+  memblock_t *mb_prev, *mb_next;
 
-    poolsize = n;
-
-    if( disable_secmem )
-	log_bug("secure memory is disabled");
-
-  #ifdef HAVE_GETPAGESIZE
-    pgsize = getpagesize();
-  #else
-    pgsize = DEFAULT_PAGESIZE;
-  #endif
-
-  #if HAVE_MMAP
-    poolsize = (poolsize + pgsize -1 ) & ~(pgsize-1);
-    #ifdef MAP_ANONYMOUS
-       pool = mmap( 0, poolsize, PROT_READ|PROT_WRITE,
-				 MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    #else /* map /dev/zero instead */
-    {	int fd;
-
-	fd = open("/dev/zero", O_RDWR);
-	if( fd == -1 ) {
-	    log_error("can't open /dev/zero: %s\n", strerror(errno) );
-	    pool = (void*)-1;
-	}
-	else {
-	    pool = mmap( 0, poolsize, PROT_READ|PROT_WRITE,
-				      MAP_PRIVATE, fd, 0);
+  if (mb == pool)
+    mb_prev = NULL;
+  else
+    {
+      mb_prev = (memblock_t *) pool;
+      while (1)
+	{
+	  mb_next = mb_get_next (mb_prev);
+	  if (mb_next == mb)
+	    break;
+	  else
+	    mb_prev = mb_next;
 	}
     }
-    #endif
-    if( pool == (void*)-1 )
-	log_info("can't mmap pool of %u bytes: %s - using malloc\n",
-			    (unsigned)poolsize, strerror(errno));
-    else {
-	pool_is_mmapped = 1;
+
+  return mb_prev;
+}
+
+/* If the preceeding block of MB and/or the following block of MB
+   exist and are not active, merge them to form a bigger block.  */
+static void
+mb_merge (memblock_t *mb)
+{
+  memblock_t *mb_prev, *mb_next;
+
+  mb_prev = mb_get_prev (mb);
+  mb_next = mb_get_next (mb);
+
+  if (mb_prev && (! (mb_prev->flags & MB_FLAG_ACTIVE)))
+    {
+      mb_prev->size += BLOCK_HEAD_SIZE + mb->size;
+      mb = mb_prev;
+    }
+  if (mb_next && (! (mb_next->flags & MB_FLAG_ACTIVE)))
+    mb->size += BLOCK_HEAD_SIZE + mb_next->size;
+}
+
+/* Return a new block, which can hold SIZE bytes.  */
+static memblock_t *
+mb_get_new (memblock_t *pool, size_t size)
+{
+  memblock_t *mb, *mb_split;
+  
+  for (mb = pool; BLOCK_VALID (mb); mb = mb_get_next (mb))
+    if (! (mb->flags & MB_FLAG_ACTIVE) && mb->size >= size)
+      {
+	/* Found a free block.  */
+	mb->flags |= MB_FLAG_ACTIVE;
+
+	if (mb->size - size > BLOCK_HEAD_SIZE)
+	  {
+	    /* Split block.  */
+	  
+	    mb_split = (memblock_t *) (((char *) mb) + BLOCK_HEAD_SIZE + size);
+	    mb_split->size = mb->size - size - BLOCK_HEAD_SIZE;
+	    mb_split->flags = 0;
+
+	    mb->size = size;
+
+	    mb_merge (mb_split);
+
+	  }
+
+	break;
+      }
+
+  if (! BLOCK_VALID (mb))
+    mb = NULL;
+
+  return mb;
+}
+
+/* Print a warning message.  */
+static void
+print_warn (void)
+{
+  if (!no_warning)
+    log_info (_("Warning: using insecure memory!\n"));
+}
+
+/* Lock the memory pages into core and drop privileges.  */
+static void
+lock_pool (void *p, size_t n)
+{
+#if defined(USE_CAPABILITIES) && defined(HAVE_MLOCK)
+  int err;
+
+  cap_set_proc (cap_from_text ("cap_ipc_lock+ep"));
+  err = mlock (p, n);
+  if (err && errno)
+    err = errno;
+  cap_set_proc (cap_from_text ("cap_ipc_lock+p"));
+
+  if (err)
+    {
+      if (errno != EPERM
+#ifdef EAGAIN			/* OpenBSD returns this */
+	  && errno != EAGAIN
+#endif
+#ifdef ENOSYS			/* Some SCOs return this (function not implemented) */
+	  && errno != ENOSYS
+#endif
+	  )
+	log_error ("can't lock memory: %s\n", strerror (err));
+      show_warning = 1;
+    }
+
+#elif defined(HAVE_MLOCK)
+  uid_t uid;
+  int err;
+
+  uid = getuid ();
+
+#ifdef HAVE_BROKEN_MLOCK
+  if (uid)
+    {
+      errno = EPERM;
+      err = errno;
+    }
+  else
+    {
+      err = mlock (p, n);
+      if (err && errno)
+	err = errno;
+    }
+#else
+  err = mlock (p, n);
+  if (err && errno)
+    err = errno;
+#endif
+
+  if (uid && ! geteuid ())
+    {
+      /* check that we really dropped the privs.
+       * Note: setuid(0) should always fail */
+      if (setuid (uid) || getuid () != geteuid () || !setuid (0))
+	log_fatal ("failed to reset uid: %s\n", strerror (errno));
+    }
+
+  if (err)
+    {
+      if (errno != EPERM
+#ifdef EAGAIN			/* OpenBSD returns this */
+	  && errno != EAGAIN
+#endif
+#ifdef ENOSYS			/* Some SCOs return this (function not implemented) */
+	  && errno != ENOSYS
+#endif
+	  )
+	log_error ("can't lock memory: %s\n", strerror (err));
+      show_warning = 1;
+    }
+
+#elif defined ( __QNX__ )
+  /* QNX does not page at all, so the whole secure memory stuff does
+   * not make much sense.  However it is still of use because it
+   * wipes out the memory on a free().
+   * Therefore it is sufficient to suppress the warning
+   */
+#else
+  log_info ("Please note that you don't have secure memory on this system\n");
+#endif
+}
+
+/* Initialize POOL.  */
+static void
+init_pool (size_t n)
+{
+  size_t pgsize;
+  memblock_t *mb;
+
+  pool_size = n;
+
+  if (disable_secmem)
+    log_bug ("secure memory is disabled");
+
+#ifdef HAVE_GETPAGESIZE
+  pgsize = getpagesize ();
+#else
+  pgsize = DEFAULT_PAGE_SIZE;
+#endif
+
+#if HAVE_MMAP
+  pool_size = (pool_size + pgsize - 1) & ~(pgsize - 1);
+#ifdef MAP_ANONYMOUS
+  pool = mmap (0, pool_size, PROT_READ | PROT_WRITE,
+	       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#else /* map /dev/zero instead */
+  {
+    int fd;
+
+    fd = open ("/dev/zero", O_RDWR);
+    if (fd == -1)
+      {
+	log_error ("can't open /dev/zero: %s\n", strerror (errno));
+	pool = (void *) -1;
+      }
+    else
+      {
+	pool = mmap (0, pool_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+      }
+  }
+#endif
+  if (pool == (void *) -1)
+    log_info ("can't mmap pool of %u bytes: %s - using malloc\n",
+	      (unsigned) pool_size, strerror (errno));
+  else
+    {
+      pool_is_mmapped = 1;
+      pool_okay = 1;
+    }
+
+#endif
+  if (!pool_okay)
+    {
+      pool = malloc (pool_size);
+      if (!pool)
+	log_fatal ("can't allocate memory pool of %u bytes\n",
+		   (unsigned) pool_size);
+      else
 	pool_okay = 1;
     }
 
-  #endif
-    if( !pool_okay ) {
-	pool = malloc( poolsize );
-	if( !pool )
-	    log_fatal("can't allocate memory pool of %u bytes\n",
-						       (unsigned)poolsize);
-	else
-	    pool_okay = 1;
-    }
-    lock_pool( pool, poolsize );
-    poollen = 0;
+  /* Initialize first memory block.  */
+  mb = (memblock_t *) pool;
+  mb->size = pool_size;
+  mb->flags = 0;
 }
-
 
 /* concatenate unused blocks */
 static void
-compress_pool(void)
+compress_pool (void)
 {
-    /* fixme: we really should do this */
+  /* fixme: we really should do this */
 }
 
 void
-_gcry_secmem_set_flags( unsigned flags )
+_gcry_secmem_set_flags (unsigned flags)
 {
-    int was_susp = suspend_warning;
+  int was_susp = suspend_warning;
 
-    no_warning = flags & GCRY_SECMEM_FLAG_NO_WARNING;
-    suspend_warning = flags & GCRY_SECMEM_FLAG_SUSPEND_WARNING;
+  no_warning = flags & GCRY_SECMEM_FLAG_NO_WARNING;
+  suspend_warning = flags & GCRY_SECMEM_FLAG_SUSPEND_WARNING;
 
-    /* and now issue the warning if it is not longer suspended */
-    if( was_susp && !suspend_warning && show_warning ) {
-	show_warning = 0;
-	print_warn();
+  /* and now issue the warning if it is not longer suspended */
+  if (was_susp && !suspend_warning && show_warning)
+    {
+      show_warning = 0;
+      print_warn ();
     }
 }
 
 unsigned
-_gcry_secmem_get_flags(void)
+_gcry_secmem_get_flags (void)
 {
-    unsigned flags;
+  unsigned flags;
 
-    flags  = no_warning ? GCRY_SECMEM_FLAG_NO_WARNING : 0;
-    flags |= suspend_warning ? GCRY_SECMEM_FLAG_SUSPEND_WARNING : 0;
-    return flags;
+  flags = no_warning ? GCRY_SECMEM_FLAG_NO_WARNING : 0;
+  flags |= suspend_warning ? GCRY_SECMEM_FLAG_SUSPEND_WARNING : 0;
+  return flags;
 }
 
+/* Initialize the secure memory system.  If running with the necessary
+   privileges, the secure memory pool will be locked into the core in
+   order to prevent page-outs of the data.  Furthermore allocated
+   secure memory will be wiped out when released.  */
 void
-_gcry_secmem_init( size_t n )
+_gcry_secmem_init (size_t n)
 {
-    if( !n ) {
-      #ifdef USE_CAPABILITIES
-	/* drop all capabilities */
-	cap_set_proc( cap_from_text("all-eip") );
+  if (!n)
+    {
+#ifdef USE_CAPABILITIES
+      /* drop all capabilities */
+      cap_set_proc (cap_from_text ("all-eip"));
 
-      #elif !defined(HAVE_DOSISH_SYSTEM)
-	uid_t uid;
+#elif !defined(HAVE_DOSISH_SYSTEM)
+      uid_t uid;
 
-	disable_secmem=1;
-	uid = getuid();
-	if( uid != geteuid() ) {
-	    if( setuid( uid ) || getuid() != geteuid()	|| !setuid(0) )
-		log_fatal("failed to drop setuid\n" );
+      disable_secmem = 1;
+      uid = getuid ();
+      if (uid != geteuid ())
+	{
+	  if (setuid (uid) || getuid () != geteuid () || !setuid (0))
+	    log_fatal ("failed to drop setuid\n");
 	}
-      #endif
+#endif
     }
-    else {
-	if( n < DEFAULT_POOLSIZE )
-	    n = DEFAULT_POOLSIZE;
-	if( !pool_okay )
-	    init_pool(n);
-	else
-	    log_error("Oops, secure memory pool already initialized\n");
+  else
+    {
+      if (n < DEFAULT_POOL_SIZE)
+	n = DEFAULT_POOL_SIZE;
+      if (! pool_okay)
+	{
+	  init_pool (n);
+	  if (! geteuid ())
+	    lock_pool (pool, n);
+	  else
+	    log_info ("Secure memory is not locked into core\n");
+	}
+      else
+	log_error ("Oops, secure memory pool already initialized\n");
     }
 }
 
 
 void *
-_gcry_secmem_malloc( size_t size )
+_gcry_secmem_malloc (size_t size)
 {
-    MEMBLOCK *mb, *mb2;
-    int compressed=0;
+  int compressed = 0;
+  memblock_t *mb;
 
-    if( !pool_okay ) {
-	log_info(
-	 _("operation is not possible without initialized secure memory\n"));
-	log_info(_("(you may have used the wrong program for this task)\n"));
-	exit(2);
+  if (!pool_okay)
+    {
+      log_info (_
+		("operation is not possible without initialized secure memory\n"));
+      log_info (_("(you may have used the wrong program for this task)\n"));
+      exit (2);
     }
-    if( show_warning && !suspend_warning ) {
-	show_warning = 0;
-	print_warn();
+  if (show_warning && !suspend_warning)
+    {
+      show_warning = 0;
+      print_warn ();
     }
 
-    /* blocks are always a multiple of 32 */
-    size += sizeof(MEMBLOCK);
-    size = ((size + 31) / 32) * 32;
+  /* blocks are always a multiple of 32 */
+  size = ((size + 31) / 32) * 32;
 
-  retry:
-    /* try to get it from the used blocks */
-    for(mb = unused_blocks,mb2=NULL; mb; mb2=mb, mb = mb->u.next )
-	if( mb->size >= size ) {
-	    if( mb2 )
-		mb2->u.next = mb->u.next;
-	    else
-		unused_blocks = mb->u.next;
-	    goto leave;
-	}
-    /* allocate a new block */
-    if( (poollen + size <= poolsize) ) {
-	mb = (void*)((char*)pool + poollen);
-	poollen += size;
-	mb->size = size;
-    }
-    else if( !compressed ) {
-	compressed=1;
-	compress_pool();
-	goto retry;
-    }
-    else
-	return NULL;
+  mb = mb_get_new ((memblock_t *) pool, size);
+  if (mb)
+    stats_update (size, 0);
 
-  leave:
-    cur_alloced += mb->size;
-    cur_blocks++;
-    if( cur_alloced > max_alloced )
-	max_alloced = cur_alloced;
-    if( cur_blocks > max_blocks )
-	max_blocks = cur_blocks;
-
-    return &mb->u.aligned.c;
+  return mb ? &mb->aligned.c : NULL;
 }
 
-
-void *
-_gcry_secmem_realloc( void *p, size_t newsize )
-{
-    MEMBLOCK *mb;
-    size_t size;
-    void *a;
-
-    mb = (MEMBLOCK*)((char*)p - ((size_t) &((MEMBLOCK*)0)->u.aligned.c));
-    size = mb->size;
-    if( newsize < size )
-	return p; /* it is easier not to shrink the memory */
-    a = _gcry_secmem_malloc( newsize );
-    if ( a ) { 
-        memcpy(a, p, size);
-        memset((char*)a+size, 0, newsize-size);
-        _gcry_secmem_free(p);
-    }
-    return a;
-}
-
-
+/* Wipe out and release memory.  */
 void
-_gcry_secmem_free( void *a )
+_gcry_secmem_free (void *a)
 {
-    MEMBLOCK *mb;
-    size_t size;
+  memblock_t *mb;
+  int size;
 
-    if( !a )
-	return;
+  if (!a)
+    return;
 
-    mb = (MEMBLOCK*)((char*)a - ((size_t) &((MEMBLOCK*)0)->u.aligned.c));
-    size = mb->size;
-    /* This does not make much sense: probably this memory is held in the
-     * cache. We do it anyway: */
-    memset(mb, 0xff, size );
-    memset(mb, 0xaa, size );
-    memset(mb, 0x55, size );
-    memset(mb, 0x00, size );
-    mb->size = size;
-    mb->u.next = unused_blocks;
-    unused_blocks = mb;
-    cur_blocks--;
-    cur_alloced -= size;
+  mb = ADDR_TO_BLOCK (a);
+  size = mb->size;
+
+  /* This does not make much sense: probably this memory is held in the
+   * cache. We do it anyway: */
+#define MB_WIPE_OUT(byte) \
+  memset ((memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE), (byte), size);
+
+  MB_WIPE_OUT (0xff);
+  MB_WIPE_OUT (0xaa);
+  MB_WIPE_OUT (0x55);
+  MB_WIPE_OUT (0x00);
+
+  stats_update (0, size);
+
+  mb->flags &= ~MB_FLAG_ACTIVE;
+
+  /* Update stats.  */
+
+  mb_merge (mb);
 }
 
+/* Realloc memory.  */
+void *
+_gcry_secmem_realloc (void *p, size_t newsize)
+{
+  memblock_t *mb;
+  size_t size;
+  void *a;
+
+  mb = (memblock_t *) ((char *) p - ((size_t) & ((memblock_t *) 0)->aligned.c));
+  size = mb->size;
+  if (newsize < size)
+    return p;			/* it is easier not to shrink the memory */
+  a = _gcry_secmem_malloc (newsize);
+  if (a)
+    {
+      memcpy (a, p, size);
+      memset ((char *) a + size, 0, newsize - size);
+      _gcry_secmem_free (p);
+    }
+  return a;
+}
 
 int
-_gcry_private_is_secure( const void *p )
+_gcry_private_is_secure (const void *p)
 {
-  if (!pool_okay)
-    return 0;
-  return p >= pool && p < (void*)((char*)pool+poolsize);
-}
+  int ret = 0;
 
+  if (pool_okay && BLOCK_VALID (ADDR_TO_BLOCK (p)))
+    ret = 1;
+
+  return ret;
+}
 
 
 /****************
@@ -399,34 +538,43 @@ _gcry_private_is_secure( const void *p )
  *	     there is no chance to get the secure memory cleaned.
  */
 void
-_gcry_secmem_term()
+_gcry_secmem_term ()
 {
-    if( !pool_okay )
-	return;
+  if (!pool_okay)
+    return;
 
-    memset( pool, 0xff, poolsize);
-    memset( pool, 0xaa, poolsize);
-    memset( pool, 0x55, poolsize);
-    memset( pool, 0x00, poolsize);
-  #if HAVE_MMAP
-    if( pool_is_mmapped )
-	munmap( pool, poolsize );
-  #endif
-    pool = NULL;
-    pool_okay = 0;
-    poolsize=0;
-    poollen=0;
-    unused_blocks=NULL;
+  memset (pool, 0xff, pool_size);
+  memset (pool, 0xaa, pool_size);
+  memset (pool, 0x55, pool_size);
+  memset (pool, 0x00, pool_size);
+#if HAVE_MMAP
+  if (pool_is_mmapped)
+    munmap (pool, pool_size);
+#endif
+  pool = NULL;
+  pool_okay = 0;
+  pool_size = 0;
 }
 
 
 void
-_gcry_secmem_dump_stats()
+_gcry_secmem_dump_stats ()
 {
-    if( disable_secmem )
-	return;
-    log_info ("secmem usage: %u/%u bytes in %u/%u blocks of pool %lu/%lu\n",
-		cur_alloced, max_alloced, cur_blocks, max_blocks,
-		(ulong)poollen, (ulong)poolsize );
-}
+  memblock_t *mb;
+  int i;
 
+#if 1
+  if (pool_okay)
+    log_info ("secmem usage: %u/%u bytes in %u blocks\n",
+	      cur_alloced, pool_size, cur_blocks);
+#else
+
+  for (i = 0, mb = (memblock_t *) pool;
+       BLOCK_VALID (mb);
+       mb = mb_get_next (mb), i++)
+    log_info ("SECMEM: [%s] block: %i; size: %i\n",
+	      (mb->flags & MB_FLAG_ACTIVE) ? "used" : "free",
+	      i,
+	      mb->size);
+#endif
+}
