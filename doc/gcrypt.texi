@@ -1389,7 +1389,7 @@ Here is an example for @var{parms} for creating a 1024 bit RSA key:
 
 @noindent
 To create an ElGamal key, substitute "elg" for "rsa" and to create a DSA
-key use "elg".  Valid ranges for the key length depend on the
+key use "dsa".  Valid ranges for the key length depend on the
 algorithms; all commonly used key lengths are supported.  Currently
 supported parameters are:
 
