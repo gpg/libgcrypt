@@ -8,7 +8,7 @@ dnl Must reset CDPATH so that bash's cd does not print to stdout
 CDPATH=
 
 AC_PREREQ(2.13)
-AC_INIT(g10/gpg.c)
+AC_INIT(src/gcrypt.h)
 AC_CONFIG_AUX_DIR(scripts)
 AM_CONFIG_HEADER(config.h)
 AC_CANONICAL_SYSTEM
@@ -19,7 +19,7 @@ AC_CANONICAL_SYSTEM
 #    AGE, set REVISION to 0.
 # 3. Interfaces removed (BAD, breaks upward compatibility): Increment
 #    CURRENT, set AGE and REVISION to 0.
-AM_INIT_AUTOMAKE(gnupg,1.1.2)
+AM_INIT_AUTOMAKE(gcrypt,1.1.2a)
 LIBGCRYPT_LT_CURRENT=1
 LIBGCRYPT_LT_AGE=0
 LIBGCRYPT_LT_REVISION=0
@@ -31,7 +31,7 @@ AC_SUBST(LIBGCRYPT_LT_REVISION)
 
 
 
-ALL_LINGUAS="da de eo es_ES fr id it ja nl pl pt_BR pt_PT ru sv"
+# ALL_LINGUAS="da de eo es_ES fr id it ja nl pl pt_BR pt_PT ru sv"
 static_modules="sha1 md5 rmd160"
 static_random_module=""
 
@@ -117,24 +117,6 @@ if test "$use_m_guard" = yes ; then
     AC_DEFINE(M_GUARD)
 fi
 
-
-AC_MSG_CHECKING([whether included zlib is requested])
-AC_ARG_WITH(included-zlib,
-    [  --with-included-zlib    use the zlib code included here],
-[g10_force_zlib=yes], [g10_force_zlib=no] )
-AC_MSG_RESULT($g10_force_zlib)
-
-dnl
-dnl Check wether we want to compile libgcrypt
-dnl
-AC_MSG_CHECKING([whether compilation of libgcrypt is requested])
-AC_ARG_ENABLE(libgcrypt,
-    [  --enable-libgcrypt      compile the libgcrypt [default=yes]],
-[compile_libgcrypt="$enableval"],[compile_libgcrypt=no])
-AC_MSG_RESULT($compile_libgcrypt)
-AM_CONDITIONAL(COMPILE_LIBGCRYPT, test x$compile_libgcrypt = xyes)
-
-
 dnl
 dnl Check whether we want to use Linux capabilities
 dnl
@@ -143,8 +125,6 @@ AC_ARG_WITH(capabilities,
     [  --with-capabilities     use linux capabilities [default=no]],
 [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
-
-
 
 
 
@@ -186,13 +166,7 @@ AC_ISC_POSIX
 AC_PROG_INSTALL
 AC_PROG_AWK
 GPH_PROG_DOCBOOK
-GNUPG_CHECK_FAQPROG
 
-
-dnl
-dnl Build shared libraries only when compilation of libgcrypt
-dnl has been requested
-dnl
 AM_DISABLE_STATIC
 AM_PROG_LIBTOOL
 
@@ -200,7 +174,7 @@ AM_PROG_LIBTOOL
 MPI_OPT_FLAGS=""
 
 
-try_gettext=yes
+try_gettext=no
 case "${target}" in
     *-*-mingw32*)
         # special stuff for Windoze NT
@@ -323,25 +297,10 @@ AC_SUBST(MPI_OPT_FLAGS)
 
 dnl Checks for libraries.
 
-if test "$try_gettext" = yes; then
-AM_GNU_GETTEXT
-else
 USE_NLS=no
 USE_INCLUDED_LIBINTL=no
 AC_SUBST(USE_NLS)
 AC_SUBST(USE_INCLUDED_LIBINTL)
-fi
-
-dnl Where is the GTK+ toolkit
-if test "$cross_compiling" = yes ; then
-  CFLAGS="$CFLAGS -I/home/wk/work/gtk+w32/include/gtk+/gdk/win32 \
- -I/home/wk/work/gtk+w32/include -I/home/wk/work/gtk+w32/include/gtk+"
-  LIBS="$LIBS     -L/home/wk/work/gtk+w32/lib -lgtk -lgdk -lglib"
-  compile_agent=no
-else
-  AM_PATH_GTK(1.2.1, compile_agent=yes,compile_agent=no)
-fi
-AM_CONDITIONAL(COMPILE_AGENT, test x$compile_agent = xyes)
 
 
 dnl Solaris needs -lsocket and -lnsl. Unisys system includes
@@ -684,30 +643,6 @@ AC_SUBST(MPI_EXTRA_ASM_OBJS)
 MPI_SFLAGS="$ac_cv_mpi_sflags"
 AC_SUBST(MPI_SFLAGS)
 
-dnl Do we have zlib? Must do it here because Solaris failed
-dnl when compiling a conftest (due to the "-lz" from LIBS).
-use_local_zlib=yes
-if test "$g10_force_zlib" = "yes"; then
-  :
-else
-  AC_CHECK_HEADERS(zlib.h)
-  if test "$ac_cv_header_zlib_h" = yes ; then
-      AC_CHECK_LIB(z,deflateInit2_,use_local_zlib=no,:)
-  fi
-fi
-
-if test "$use_local_zlib" = yes ; then
-    AM_CONDITIONAL(ENABLE_LOCAL_ZLIB, true)
-    GNUPG_LINK_FILES(zlib/zlib.h, zlib.h )
-    GNUPG_LINK_FILES(zlib/zconf.h, zconf.h )
-    ZLIBS="../zlib/libzlib.a"
-else
-    AM_CONDITIONAL(ENABLE_LOCAL_ZLIB, false)
-    ZLIBS=
-    LIBS="-lz $LIBS"
-fi
-AC_SUBST(ZLIBS)
-
 
 # Allow users to append something to the version string without
 # flagging it as development version.  The user version part is
@@ -718,10 +653,6 @@ changequote([,])dnl
 if echo "$VERSION" | sed 's/-.*//' | grep "$tmp_pat" >/dev/null ; then
     AC_DEFINE(IS_DEVELOPMENT_VERSION)
 fi
-
-dnl Temp workarounds 
-GNUPG_LINK_FILES(gcrypt/gcrypt.h, gcrypt.h )
-GNUPG_LINK_FILES(include/types.h, types.h )
 
 AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)
 
@@ -738,10 +669,10 @@ if test "$GCC" = yes; then
 fi
 
 dnl
-dnl Make the version number in gcrypt/gcrypt.h the same as the one here.
+dnl Make the version number in src/gcrypt.h the same as the one here.
 dnl (this is easier than to have a *.in file just for one substitution)
 dnl
-GNUPG_FIX_HDR_VERSION(gcrypt/gcrypt.h, GCRYPT_VERSION)
+GNUPG_FIX_HDR_VERSION(src/gcrypt.h, GCRYPT_VERSION)
 
 GCRYPT_LIBS="-L${libdir} -lgcrypt"
 GCRYPT_CFLAGS=""
@@ -750,8 +681,8 @@ AC_SUBST(GCRYPT_CFLAGS)
 
 AC_OUTPUT_COMMANDS([
 chmod +x scripts/db2html
-chmod +x gcrypt/gcrypt-config
-cat >gnupg-defs.tmp <<G10EOF
+chmod +x src/gcrypt-config
+cat >gcrypt-defs.tmp <<G10EOF
 /* Generated automatically by configure */
 #ifdef HAVE_DRIVE_LETTERS
   #define GNUPG_LOCALEDIR "c:/lib/gnupg/locale"
@@ -769,13 +700,13 @@ cat >gnupg-defs.tmp <<G10EOF
   #endif
 #endif
 G10EOF
-if cmp -s gnupg-defs.h gnupg-defs.tmp 2>/dev/null; then
-    echo "gnupg-defs.h is unchanged"
-    rm -f gnupg-defs.tmp
+if cmp -s gcrypt-defs.h gcrypt-defs.tmp 2>/dev/null; then
+    echo "gcrypt-defs.h is unchanged"
+    rm -f gcrypt-defs.tmp
 else
-    rm -f gnupg-defs.h
-    mv gnupg-defs.tmp gnupg-defs.h
-    echo "gnupg-defs.h created"
+    rm -f gcrypt-defs.h
+    mv gcrypt-defs.tmp gcrypt-defs.h
+    echo "gcrypt-defs.h created"
 fi
 ],[
 prefix=$prefix
@@ -789,21 +720,13 @@ DATADIRNAME=$DATADIRNAME
 AC_OUTPUT([
 Makefile
 scripts/db2html
-intl/Makefile
-po/Makefile.in
 jnlib/Makefile
 util/Makefile
 mpi/Makefile
 cipher/Makefile
-g10/Makefile
-agent/Makefile
 doc/Makefile
 doc/version.sgml
-tools/Makefile
-zlib/Makefile
-checks/Makefile
-gcrypt/Makefile
-gcrypt/gcrypt-config
+src/Makefile
+src/gcrypt-config
 ])
 
-dnl *-*wedit:notab*-*  Please keep this as the last line.

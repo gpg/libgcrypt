@@ -1,19 +1,9 @@
-		    GnuPG - The GNU Privacy Guard
+		    gcrypt the GNU crypto library
 		   -------------------------------
 			    Version 1.1
 
-	WARNING:  This is the current development branch
-		  of GnuPG.  THIS SHOULD NOT BE USED IN
-		  A PRODUCTION ENVIRONMENT.  It will
-		  change quite often and may have serious
-		  problems.  Use the GnuPG from the stable
-		  Branch 1.0.x	for real work.	The next
-		  stable release will be 1.2
+	WARNING:  This is work in PROGRESS!
 
-This version has been released due to the included libgcrypt which is 
-used by GNUTLS and might be of use for other software too.
-
-GPG itself does not work and will not be installed.
 
 
 

@@ -17,8 +17,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
-#ifndef GNUPG_CONFIG_H
-#define GNUPG_CONFIG_H
+#ifndef GCRYPT_CONFIG_H
+#define GCRYPT_CONFIG_H
 
 /* need this, because some autoconf tests rely on this (e.g. stpcpy)
  * and it should be used for new programs
@@ -111,6 +111,6 @@
 
 @BOTTOM@
 
-#include "gnupg-defs.h"
+#include "gcrypt-defs.h"
 
-#endif /*GNUPG_CONFIG_H*/
+#endif /*GCRYPT_CONFIG_H*/
