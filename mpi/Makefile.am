@@ -182,6 +182,6 @@ libmpi_la_DEPENDENCIES = @MPI_MOD_LIST_LO@
 	 mv -f _$*.o $@
 
 .S.lo:
-	 $(CPP) $(INCLUDES) $(DEFS) `test -f '$<' || echo '$(srcdir)/'`$< | grep -v '^#' > __$*.s
+	 $(CPP) $(INCLUDES) $(DEFS) -DPIC `test -f '$<' || echo '$(srcdir)/'`$< | grep -v '^#' > __$*.s
 	 $(CCASCOMPILE) -c __$*.s
 	 mv -f __$*.o $@
