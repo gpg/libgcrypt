@@ -30,9 +30,9 @@
 
 #include "types.h"
 #include <gcrypt.h>
-#include "util.h"
+/*#include "util.h"
 #include "i18n.h"
-
+*/
 #define jnlib_xmalloc(a)    gcry_xmalloc( (a) )
 #define jnlib_xcalloc(a,b)  gcry_xcalloc( (a), (b) )
 #define jnlib_xrealloc(a,n) gcry_xrealloc( (a), (n) )
@@ -47,3 +47,5 @@
 
 
 #endif /*LIBJNUTIL_CONFIG_H*/
+
+

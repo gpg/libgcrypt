@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES =  -I$(top_srcdir)/gcrypt 
+INCLUDES =  -I$(top_srcdir)/src
 CFLAGS = @CFLAGS@ @MPI_OPT_FLAGS@
 ASFLAGS = @MPI_SFLAGS@
 
@@ -64,5 +64,3 @@ libmpi_la_LIBADD = $(common_asm_objects) @MPI_EXTRA_ASM_OBJS@
 #   $(CPP) $(INCLUDES) $(DEFS) $< | grep -v '^#' > _$*.s
 #   $(COMPILE) -c _$*.s
 #   mv -f _$*.o $*.o
-
-

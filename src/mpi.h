@@ -35,6 +35,7 @@
 #include "memory.h"
 #include "../mpi/mpi-asm-defs.h"
 
+#ifndef BITS_PER_MPI_LIMB
 #if BYTES_PER_MPI_LIMB == SIZEOF_UNSIGNED_INT
   typedef unsigned int mpi_limb_t;
   typedef   signed int mpi_limb_signed_t;
@@ -51,6 +52,7 @@
   #error BYTES_PER_MPI_LIMB does not match any C type
 #endif
 #define BITS_PER_MPI_LIMB    (8*BYTES_PER_MPI_LIMB)
+#endif /*BITS_PER_MPI_LIMB*/
 
 #define DBG_MPI     g10_get_debug_flag( 2 );
 

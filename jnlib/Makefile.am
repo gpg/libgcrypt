@@ -3,7 +3,7 @@
 # Those 2 files are in the CVS but currently not used.
 EXTRA_DIST = README xmalloc.c xmalloc.h logging.c logging.h
 
-INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/intl
+INCLUDES = -I$(top_srcdir)/src -I$(top_srcdir)/intl
 
 noinst_LTLIBRARIES = libjnlib.la
 

@@ -5,7 +5,7 @@ BUILT_SOURCES = version.sgml gcryptref.html gcryptref.ps
 
 #EXTRA_DIST = DETAILS gpg.sgml gpg.1 FAQ HACKING OpenPGP \
 #	     version.sgml.in $(BUILT_SOURCES)
-EXTRA_DIST = DETAILS HACKING OpenPGP FAQ
+#EXTRA_DIST = 
 
 #man_MANS = gpg.1
 

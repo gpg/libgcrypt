@@ -1,5 +1,7 @@
 2000-12-19  Werner Koch  <wk@gnupg.org>
 
+	* mpi-internal.h: Put limb_t definition in an ifdef.
+
  	Major change:
 	Removed all GnuPG stuff and renamed this piece of software
 	to gcrypt. 
