@@ -381,6 +381,9 @@ Stream mode, only to be used with stream cipher algorithms.
 @item GCRY_CIPHER_MODE_OFB
 Outer Feedback mode.
 
+@item  GCRY_CIPHER_MODE_CTR
+Counter mode.
+
 @end table
 @c end cipher modes constants
 
@@ -431,9 +434,10 @@ Note, this is currently implemented as a
 macro but may be changed to a function in the future.
 @end deftypefun
 
-Most crypto modes requires an initialization vector (IV), which usually
-is a non-secret random string acting as a kind of salt value.  To set
-this IV, use the function:
+Most crypto modes requires an initialization vector (IV), which
+usually is a non-secret random string acting as a kind of salt value.
+The CTR mode requires a counter, which is also similar to a salt
+value.  To set the IV or CTR, use these functions:
 
 @deftypefun int gcry_cipher_setiv (GCRY_CIPHER_HD @var{h}, void *@var{k}, size_t @var{l})
 
@@ -442,6 +446,16 @@ vector is passed as the buffer @var{K} of length @var{l} and copied to
 internal data structures.  The function checks that the IV matches the
 requirement of the selected algorithm and mode.  Note, that this is
 implemented as a macro.
+@end deftypefun
+
+@deftypefun int gcry_cipher_setctr (GCRY_CIPHER_HD @var{h}, void *@var{c}, size_t @var{l})
+
+Set the counter vector used for encryption or decryption. The counter
+is passed as the buffer @var{c} of length @var{l} and copied to
+internal data structures.  The function checks that the counter
+matches the requirement of the selected algorithm (i.e., it must be
+the same size as the block size).  Note, that this is implemented as a
+macro.
 @end deftypefun
 
 @deftypefun int gcry_cipher_reset (GCRY_CIPHER_HD @var{h})

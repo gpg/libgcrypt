@@ -1,3 +1,7 @@
+2003-03-30  Simon Josefsson  <jas@extundo.com>
+
+	* gcrypt.texi: Add CTR.
+
 2003-03-22  Simon Josefsson  <jas@extundo.com>
 
 	* gcrypt.texi: Add CBC-MAC.
