@@ -21,30 +21,41 @@ dnl (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)dnl
 
 AC_PREREQ(2.52)
-#############################################
-# Version numbers (Rember to change them just before a release)
-# 1. No interfaces changed, only implementations (good): Increment REVISION.
-# 2. Interfaces added, none removed (good): Increment CURRENT, increment
-#    AGE, set REVISION to 0.
-# 3. Interfaces removed (BAD, breaks upward compatibility): Increment
-#    CURRENT, set AGE and REVISION to 0.
-AC_INIT(libgcrypt,1.1.4a)
+# Version numbers (Remember to change them just before a release)
+#   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
+#   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
+#   (No interfaces changed:                   REVISION++)
+AC_INIT(libgcrypt,1.1.4b-cvs)
 LIBGCRYPT_LT_CURRENT=2
 LIBGCRYPT_LT_AGE=1
 LIBGCRYPT_LT_REVISION=1
-##############################################
+#-----------------------
+
+PACKAGE=$PACKAGE_NAME
+VERSION=$PACKAGE_VERSION
+
 AC_CONFIG_SRCDIR([src/gcrypt.h])
 AC_CONFIG_AUX_DIR(scripts)
+AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 AM_CONFIG_HEADER(config.h)
-AC_CANONICAL_TARGET([])
+
+AH_TOP([
+/* need this, because some autoconf tests rely on this (e.g. stpcpy)
+ * and it should be used for new programs  */
+#define _GNU_SOURCE  1
+])
+
+AH_BOTTOM([
+#include "gcrypt-defs.h"
+#define _GCRYPT_IN_LIBGCRYPT 1
+])
+
+
 
 
 AC_SUBST(LIBGCRYPT_LT_CURRENT)
 AC_SUBST(LIBGCRYPT_LT_AGE)
 AC_SUBST(LIBGCRYPT_LT_REVISION)
-
-PACKAGE="$PACKAGE_NAME"
-VERSION="$PACKAGE_VERSION"
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
@@ -138,17 +149,6 @@ AC_ARG_WITH(capabilities,
 [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
 
-AH_TOP([
-/* need this, because some autoconf tests rely on this (e.g. stpcpy)
- * and it should be used for new programs  */
-#define _GNU_SOURCE  1
-])
-
-AH_BOTTOM([
-#include "gcrypt-defs.h"
-#define _GCRYPT_IN_LIBGCRYPT 1
-])
-
 
 AM_MAINTAINER_MODE
 
@@ -167,7 +167,6 @@ case "${target}" in
        ;;
 esac
 
-AC_ARG_PROGRAM
 AC_PROG_MAKE_SET
 AM_SANITY_CHECK
 missing_dir=`cd $ac_aux_dir && pwd`

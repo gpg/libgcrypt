@@ -35,7 +35,7 @@ extern "C" {
  * header matches the installed library.
  * Note: Do not edit the next line as configure may fix the string here.
  */
-#define GCRYPT_VERSION "1.1.4"
+#define GCRYPT_VERSION "1.1.4b-cvs"
 
 
 #ifndef HAVE_BYTE_TYPEDEF
@@ -90,7 +90,7 @@ enum {
     GCRYERR_NO_OBJ = 68,     /* Missing item in an object */
     GCRYERR_NOT_IMPL = 69,   /* Not implemented */
     GCRYERR_CONFLICT = 70,
-    GCRYERR_INV_CIPHER_MODE = 71, 
+    GCRYERR_INV_CIPHER_MODE = 71
 };
 
 const char *gcry_check_version( const char *req_version );
@@ -150,7 +150,7 @@ enum gcry_sexp_format {
     GCRYSEXP_FMT_DEFAULT   = 0,
     GCRYSEXP_FMT_CANON	   = 1,
     GCRYSEXP_FMT_BASE64    = 2,
-    GCRYSEXP_FMT_ADVANCED  = 3,
+    GCRYSEXP_FMT_ADVANCED  = 3
 };
 
 
@@ -191,13 +191,13 @@ enum gcry_mpi_format {
     GCRYMPI_FMT_PGP = 2,    /* As used by OpenPGP */
     GCRYMPI_FMT_SSH = 3,    /* As used by SSH (same as 1 but with length)*/
     GCRYMPI_FMT_HEX = 4,    /* hex format */
-    GCRYMPI_FMT_USG = 5,    /* like STD but this is an unsigned one */
+    GCRYMPI_FMT_USG = 5     /* like STD but this is an unsigned one */
 };
 
 
 enum gcry_mpi_flag {
     GCRYMPI_FLAG_SECURE = 1,
-    GCRYMPI_FLAG_OPAQUE = 2,
+    GCRYMPI_FLAG_OPAQUE = 2
 };
 
 
@@ -324,7 +324,7 @@ enum gcry_cipher_modes {
 
 enum gcry_cipher_flags {
     GCRY_CIPHER_SECURE	    = 1,  /* allocate in secure memory */
-    GCRY_CIPHER_ENABLE_SYNC = 2,  /* enable CFB sync mode */
+    GCRY_CIPHER_ENABLE_SYNC = 2   /* enable CFB sync mode */
 };
 
 
@@ -370,7 +370,7 @@ enum gcry_pk_algos {
     GCRY_PK_RSA_S = 3,	    /* use only for OpenPGP */
     GCRY_PK_ELG_E = 16,     /* use only for OpenPGP */
     GCRY_PK_DSA   = 17,
-    GCRY_PK_ELG   = 20,
+    GCRY_PK_ELG   = 20
 };
 
 /* Flags describing usage capabilites/request of a PK algorithm */
@@ -482,7 +482,7 @@ enum gcry_log_levels {
     GCRY_LOG_ERROR  = 30,
     GCRY_LOG_FATAL  = 40,
     GCRY_LOG_BUG    = 50,
-    GCRY_LOG_DEBUG  = 100,
+    GCRY_LOG_DEBUG  = 100
 };
 
 

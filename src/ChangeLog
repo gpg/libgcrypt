@@ -1,3 +1,7 @@
+2001-10-02  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: Removed a couple of trailing commas.
+
 2001-08-28  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (sexp_sscan): Add an argument to enable the

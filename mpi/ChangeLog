@@ -1,3 +1,11 @@
+2001-11-01  Werner Koch  <wk@gnupg.org>
+
+	* mpicoder.c (gcry_mpi_scan): Allow to pass a nbytes as NULL or
+	with value 0 for format GCRY_FMT_SSH, so that the length is not
+	used for any checks, only the length stored in the bufer is used.
+	This is a nice format becuase we can just pass a buffer around and
+	don't need to care about its length.
+
 2001-08-03  Werner Koch  <wk@gnupg.org>
 
 	* config.links: Changed the way the list of files to be

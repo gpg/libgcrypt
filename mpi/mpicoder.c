@@ -333,7 +333,8 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
     struct gcry_mpi *a = NULL;
     unsigned int len;
 
-    len = nbytes? *nbytes : strlen(buffer);
+    
+    len = nbytes? *nbytes : (format == GCRYMPI_FMT_SSH? 0 : strlen(buffer));
 
     /* TODO: add a way to allocate the MPI in secure memory
      * Hmmm: maybe it is better to retrieve this information from
@@ -389,15 +390,17 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	const byte *s = buffer;
 	size_t n;
 
-	if( len < 4 )
+	if( len && len < 4 )
 	    return GCRYERR_TOO_SHORT;
 	n = s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3];
-	s += 4; len -= 4;
-	if( n > len )
+	s += 4; 
+        if (len)
+          len -= 4;
+	if( len && n > len )
 	    return GCRYERR_TOO_LARGE; /* or should it be too_short */
 
 	a = mpi_alloc( (n+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB );
-	if( len ) { /* not zero */
+	if( n ) { /* not zero */
 	    a->sign = *s & 0x80;
 	    if( a->sign ) {
 		/* FIXME: we have to convert from 2compl to magnitude format */
@@ -436,7 +439,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 }
 
 /****************
- * Write a using format into buffer which has a length of *NBYTES.
+ * Write A using FORMAT into buffer which has a length of *NBYTES.
  * Returns the number of bytes actually written in nbytes.
  * Buffer maybe NULL to query the required length of the buffer
  */

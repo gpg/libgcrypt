@@ -672,7 +672,7 @@ make_space ( struct make_space_ctx *c, size_t n )
  *  allowed character.
  * FIXME: We should find a way to store the secure-MPIS not in the string
  * but as reference to somewhere - this can help us to save huge amounts
- * of secure memory.  The problem is, taht if only one element is secure, all
+ * of secure memory.  The problem is, that if only one element is secure, all
  * other elements are automagicaly copied to secure meory too, so the most
  * common operation gcry_sexp_cdr_mpi() will always return a secure MPI
  * regardless whether it is needed or not.

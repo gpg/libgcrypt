@@ -11,7 +11,7 @@ DISTCLEANFILES = mpih-add1.S mpih-mul1.S mpih-mul2.S mpih-mul3.S  \
 # CLEANFILES = _*.s
 CLEANFILES = *.s
 
-OMIT_DEPENDENCIES = types.h gcrypt.h
+#OMIT_DEPENDENCIES = types.h gcrypt.h
 
 noinst_LTLIBRARIES = libmpi.la
 

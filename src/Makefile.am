@@ -18,7 +18,7 @@ EXTRA_DIST = libgcrypt-config.in  libgcrypt.m4
 
 #INCLUDES =  -I$(top_srcdir)/intl
 
-OMIT_DEPENDENCIES = types.h
+#OMIT_DEPENDENCIES = types.h
 
 
 lib_LTLIBRARIES = libgcrypt.la
