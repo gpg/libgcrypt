@@ -1,4 +1,121 @@
-2003-09-17  Moritz Schulte  <mo@g10code.com>
+2003-09-18  Moritz Schulte  <mo@g10code.com>
+
+	* elgamal.c (ELG_public_key, ELG_secret_key): Removed types.
+	(key_public, key_secret, data_encrypted, data_signed): New types.
+	(GCRY_AC_ALGORITHM, GCRY_AC_ALIASES): Define symbols.
+	(GCRY_AC_SPEC_KEY_PUBLIC, GCRY_AC_SPEC_KEY_SECRET,
+	GCRY_AC_SPEC_DATA_SIGNED): Use macros.
+	(test_keys): Renamed to ...
+	(keys_test): ... this, changed interface, changed callers.
+	(check_secret_key): Renamed to ...
+	(key_secret_check): ... this, changed interface.
+	(_gcry_elg_generate, gcry_elg_check_secret_key, _gcry_elg_encrypt,
+	_gcry_elg_decrypt, _gcry_elg_sign, _gcry_elg_verify,
+	_gcry_elg_get_nbits): Removed functions.
+	(encrypt, verify, sign, get_nbits, get_grip): New functions.
+	(decrypt): Renamed to ...
+	(do_decrypt): ... this, changed interface, changed callers.
+	(sign): Renamed to ...
+	(do_sign): ... this, changed interface, changed callers.
+	(do_verify): Changed interface, changed callers.
+	(_gcry_register_pk_elg_progress): Removed function.
+	(progress): Removed function, new macro of the same name.
+	(GCRY_AC_INTERFACE_ENCRYPTION, GCRY_AC_INTERFACE_SIGNING): Defined
+	symbols.
+	Include "gcrypt-ac-glue.h".
+
+	* dsa.c (DSA_public_key, RSA_secret_key): Removed types.
+	(GCRY_AC_ALGORITHM, GCRY_AC_ALIASES): Define symbols.
+	(key_public, key_secret, data_signed): New types.
+	(GCRY_AC_SPEC_KEY_PUBLIC, GCRY_AC_SPEC_KEY_SECRET,
+	GCRY_AC_SPEC_DATA_SIGNED): Use macros.
+	(test_keys): Renamed to ...
+	(keys_test): ... this, changed interface, changed callers.
+	(check_secret_key): Renamed to ...
+	(key_secret_check): ... this, changed interface.
+	(_gcry_dsa_generate, gcry_dsa_check_secret_key, _gcry_dsa_sign,
+	_gcry_dsa_verify, _gcry_dsa_get_nbits): Removed functions.
+	(_gcry_register_pk_dsa_progress): Removed function.
+	(progress): Removed function, new macro of the same name.
+
+	(sign): Renamed to ...
+	(do_sign): ... this, changed interface, changed callers.
+	(verify): Renamed to ...
+	(do_verify): ... this, changed interface, changed callers.
+	(verify, sign, get_nbits, get_grip): New functions.
+	(generate): Changed interface.
+	(GCRY_AC_INTERFACE_SIGNING): Define symbol.
+	Include "gcrypt-ac-glue.h".
+
+	* rsa.c (RSA_public_key, RSA_secret_key): Removed types.
+	(GCRY_AC_ALGORITHM, GCRY_AC_ALIASES): Define symbols.
+	(key_public, key_secret, data_encrypted, data_signed): New types.
+	(GCRY_AC_SPEC_KEY_PUBLIC, GCRY_AC_SPEC_KEY_SECRET,
+	GCRY_AC_SPEC_DATA_ENCRYPTED, GCRY_AC_SPEC_DATA_SIGNED): Use
+	macros.
+	(test_keys): Renamed to ...
+	(keys_test): ... this, changed interface, changed callers.
+	(check_secret_key): Renamed to ...
+	(key_secret_check): ... this, changed interface.
+	(_gcry_rsa_generate, gcry_rsa_check_secret_key, _gcry_rsa_encrypt,
+	_gcry_rsa_decrypt, _gcry_rsa_sign, _gcry_rsa_verify,
+	_gcry_rsa_get_nbits): Removed functions.
+	(_gcry_rsa_blind, _gcry_rsa_unblind): Renamed to ...
+	(blind, unblind): ... this, change callers.
+	(get_nbits, get_grip): New functions.
+	(generate): Changed interface.
+	(GCRY_AC_INTERFACE_ENCRYPTION, GCRY_AC_INTERFACE_SIGNING): Define
+	symbols.
+	Include "gcrypt-ac-glue.h".
+	(_gcry_rsa_sign, _gcry_rsa_verify, _gcry_rsa_encrypt,
+	_gcry_rsa_decrypt): Renamed to ...
+	(sign, verify, encrypt, decrypt): ... this, changed interfaces.
+
+	* gcrypt-ac-glue.h: New file.
+
+	* pubkey.c (pk_sexp_type_t, pk_key_type_t): New enumeration list
+	types.
+	(PK_SEXP_FLAG_RAW, PK_SEXP_FLAG_PKCS1_V1_5,
+	PK_SEXP_FLAG_NO_BLINDING, PK_FLAG_MODERN): New symbols.
+	(pk_sexp_types, pk_sexp_flags): New variable.
+	(_pk_wrap, gcry_ac_data_get_index, gcry_ac_name_to_id)
+	(gcry_ac_open, gcry_ac_data_new, gcry_ac_data_set)
+	(gcry_ac_key_init, gcry_ac_id_to_name, gcry_sexp_build_array)
+	(gcry_sexp_build, gcry_ac_key_get_nbits, gcry_ac_data_encrypt)
+	(gcry_ac_data_decrypt, gcry_ac_data_sign, gcry_ac_data_verify)
+	(gcry_ac_key_test, gcry_ac_key_pair_generate)
+	(gcry_ac_key_get_nbits, gcry_ac_key_get_grip, gcry_ac_list): New
+	macros.
+	(pubkey_table, pubkeys_registered, pubkeys_registered_lock,
+	default_pubkeys_registered): Removed.
+	(REGISTER_DEFAULT_PUBKEYS): Likewise.
+	(dummy_generate, dummy_check_secret_key, dummy_encrypt,
+	dummy_decrypt, dummy_sign, dummy_verify, dummy_get_nbits,
+	gcry_pk_register_default, gcry_pk_lookup_func_name,
+	gcry_pk_lookup_name, gcry_pk_register, gcry_pk_unregister,
+	release_mpi_array): Removed functions.
+	(sexp_nth_number, sexp_extract_flags, sexp_extract_std)
+	(sexp_extract_key, sexp_construct_std, sexp_mpi_arg_list_create)
+	(sexp_construct_factors, sexp_construct_genkey): New functions.
+	(_gcry_pk_aliased_algo_name, disable_pubkey_algo,
+	check_pubkey_algo): Removed functions.
+	(pubkey_get_npkey, pubkey_get_nskey, pubkey_get_nsig,
+	pubkey_get_nenc, pubkey_generate, pubkey_check_secret_key,
+	pubkey_encrypt, pubkey_decrypt, pubkey_sign, pubkey_verify):
+	Likewise.
+	(sexp_elements_extract, sexp_to_key, sexp_to_sig, sexp_to_enc):
+	Removed functions.
+	(_gcry_pk_init, _gcry_pk_module_lookup, _gcry_pk_module_release):
+	Removed functions.
+	(sexp_data_to_mpi): Renamed to ...
+	(sexp_extract_data): ... this, changed callers.
+	(gcry_pk_map_name, gcry_pk_algo_name): Modified to act as a
+	wrapper for the ac interface.
+	(gcry_pk_encrypt, gcry_pk_decrypt): Likewise.
+	(gcry_pk_sign, gcry_pk_verify): Likewise.
+	(gcry_pk_testkey, gcry_pk_genkey, gcry_pk_get_nbits)
+	(gcry_pk_get_keygrip): Likewise.
+	(gcry_pk_ctl, gcry_pk_algo_info, gcry_pk_list): Likewise.
 
 	* ac.c: Include "cipher.h" and "ath.h".
 	(ac_flags, ac_key_identifiers, gcry_ac_key_generate_specs):
@@ -36,6 +153,9 @@
 	(_gcry_ac_algorithm_enable, _gcry_ac_algorithm_disable): Likewise.
 	(elements_amount_get, _gcry_ac_elements_amount_get): Likewise.
 	(_gcry_ac_info_get): Likewise.
+	(key_pair_generate): New function.
+	(gcry_ac_key_pair_generate_ext): Likewise.
+	(gcry_ac_key_pair_generate): Use key_pair_generate.
 
 2003-09-04  Werner Koch  <wk@gnupg.org>
 

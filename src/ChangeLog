@@ -1,3 +1,51 @@
+2003-09-18  Moritz Schulte  <mo@g10code.com>
+
+	* global.c (gcry_set_progress_handler): Call
+	_gcry_ac_progress_register, instead of
+	_gcry_register_pk_dsa_progress and _gcry_register_pk_elg_progress.
+	Use function type in prototype.	
+	(global_init): Call _gcry_ac_init instead of _gcry_pk_init.
+
+	* gcrypt-module.h: Include <stddef.h>.
+
+	* gcrypt.h (gcry_ac_key_test, gcry_ac_key_get_nbits,
+	gcry_ac_key_get_grip): Enhance prototypes with a `handle'
+	argument.
+	(gcry_ac_list): Declare function.
+	(gcry_ac_key_spec_rsa): Change type of member `e' to `unsigned
+	long int'.
+
+	* cipher.h: Removed declaration: _gcry_pk_aliased_algo_name.
+	(pubkey_spec_rsa, pubkey_spec_elg, pubkey_spec_dsa): Removed.
+	(ac_spec_rsa, ac_spec_elg, ac_spec_dsa): New.
+
+	* g10lib.h: Declare: _gcry_ac_key_get_grip_std.
+	(GCRY_AC_KEY_GRIP_FLAG_SEXP): New symbol.
+
+	* gcrypt-module.h (gcry_pk_generate_t, gcry_pk_check_secret_key_t,
+	gcry_pk_encrypt_t, gcry_pk_decrypt_t, gcry_pk_sign_t,
+	gcry_pk_verify_t, gcry_pk_get_nbits_t, gcry_pk_spec_t): Removed
+	types.  Removed declarations for: gcry_pk_register,
+	gcry_pk_unregister.  New declerations for: gcry_ac_register,
+	gcry_ac_unregister.
+	(gcry_ac_struct_spec_t, gcry_ac_generate_t,
+	gcry_ac_key_secret_check_t, gcry_ac_encrypt_t, gcry_ac_decrypt_t,
+	gcry_ac_sign_t, gcry_ac_verify_t, gcry_ac_get_nbits_t,
+	gcry_ac_get_grip_t, gcry_ac_spec_t): New types.
+	(_GCRY_AC_SPEC, GCRY_AC_SPEC_KEY_PUBLIC, GCRY_AC_SPEC_KEY_SECRET)
+	(GCRY_AC_SPEC_DATA_ENCRYPTED, GCRY_AC_SPEC_DATA_SIGNED)
+	(_GCRY_AC_ELEM, GCRY_AC_ELEM_KEY_PUBLIC, GCRY_AC_ELEM_KEY_SECRET)
+	(GCRY_AC_ELEM_DATA_ENCRYPTED, GCRY_AC_ELEM_DATA_SIGNED): New
+	macros.
+
+	* g10lib.h: Declare _gcry_ac_init instead of _gcry_pk_init.
+	Removed declarations for: _gcry_pk_module_lookup,
+	_gcry_pk_module_release.
+	Added declerations: _gcry_ac_algorithm_enable,
+	_gcry_ac_algorithm_disable, _gcry_ac_info_get,
+	_gcry_ac_elements_amount_get, _gcry_ac_arg_list_from_data,
+	_gcry_ac_progress_register, _gcry_ac_progress.
+
 2003-09-04  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (_GCRY_ERR_SOURCE_DEFAULT): Removed cruft.
