@@ -1,3 +1,8 @@
+2002-01-01  Timo Schulz <ts@winpt.org>
+
+    * stdmem.c (_gcry_private_realloc): if pointer is NULL now
+    realloc behaves like malloc.
+
 2001-12-20  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (gcry_sexp_canon_len): Describe the error codes and

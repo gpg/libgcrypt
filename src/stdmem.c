@@ -113,6 +113,9 @@ _gcry_private_realloc( void *a, size_t n )
 	void *b;
 	size_t len;
 
+    if (!a)
+        return _gcry_private_malloc(n);
+        
 	_gcry_private_check_heap(p);
 	len  = p[-4];
 	len |= p[-3] << 8;
