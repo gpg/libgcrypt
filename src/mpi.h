@@ -82,10 +82,7 @@ struct gcry_mpi {
   MPI  mpi_copy( MPI a );
 #endif
 #define mpi_is_opaque(a) ((a) && ((a)->flags&4))
-MPI mpi_set_opaque( MPI a, void *p, unsigned int len );
-void *mpi_get_opaque( MPI a, unsigned int *len );
 #define mpi_is_secure(a) ((a) && ((a)->flags&1))
-void mpi_set_secure( MPI a );
 void mpi_clear( MPI a );
 MPI  mpi_alloc_like( MPI a );
 void mpi_set( MPI w, MPI u);
