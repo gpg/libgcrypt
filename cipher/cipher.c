@@ -842,9 +842,11 @@ gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
     else {
 	if ( outsize < inlen )
 	    return set_lasterr ( GCRYERR_TOO_SHORT );
-	/* fixme: check that the inlength is a multipe of the blocksize
-	 * if a blockoriented mode is used, or modify cipher_encrypt to
-	 * return an error in this case */
+        if ( ( h->mode == GCRY_CIPHER_MODE_ECB ||
+               h->mode == GCRY_CIPHER_MODE_CBC ) &&
+             (inlen % h->blocksize) != 0 )
+            return set_lasterr( GCRYERR_INV_ARG );
+        
 	rc = cipher_encrypt ( h, out, in, inlen );
     }
 
@@ -912,9 +914,11 @@ gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
     else {
 	if( outsize < inlen )
 	    return set_lasterr( GCRYERR_TOO_SHORT );
-	/* fixme: check that the inlength is a multipe of the blocksize
-	 * if a blockoriented mode is used, or modify cipher_encrypt to
-	 * return an error in this case */
+        if ( ( h->mode == GCRY_CIPHER_MODE_ECB ||
+               h->mode == GCRY_CIPHER_MODE_CBC )
+             && ( inlen % h->blocksize ) != 0 )
+            return set_lasterr( GCRYERR_INV_ARG );
+
 	rc = cipher_decrypt( h, out, in, inlen );
     }
     return rc? set_lasterr (rc):0;
