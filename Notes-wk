@@ -1,0 +1,8 @@
+Various private notes
+
+[Von Joachim Ziegler]
+PS: Mir fällt gerade ein: ich hatte noch einen Trick: der Grundschritt beim 
+modularen Potenzieren besteht aus Quadrieren und Dividieren. Und das 
+Quadrieren als Spezialfall kann man noch schneller machen als das 
+Multiplizieren, weil sich die Karatsuba-Formel noch mal vereinfachen lässt...
+(und der Trick ist, glaube ich, nicht in GMP drin)
