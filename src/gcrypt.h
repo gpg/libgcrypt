@@ -29,6 +29,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 /* This is required for error code compatibility. */
 #define _GCRY_ERR_SOURCE_DEFAULT GPG_ERR_SOURCE_GCRYPT
