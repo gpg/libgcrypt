@@ -347,7 +347,7 @@ main( int argc, char **argv )
 {
   if (argc < 2 )
     {
-      fprintf (stderr, "usage: benchmark md|cipher|random [algonames]\n");
+      fprintf (stderr, "usage: benchmark md|cipher|random|mpi [algonames]\n");
       return 1;
     }
   argc--; argv++;

@@ -20,7 +20,7 @@
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)dnl
 
-AC_PREREQ(2.53)
+AC_PREREQ(2.52)
 # Version numbers (Remember to change them just before a release)
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
@@ -719,6 +719,7 @@ doc/version.sgml
 src/Makefile
 src/libgcrypt-config
 tests/Makefile
+w32-dll/Makefile
 ])
 AC_OUTPUT
 

@@ -1,3 +1,7 @@
+2002-09-18  Timo Schulz  <ts@winpt.org>
+
+	* configure.ac: Added makefile for the W32 DLL.
+	
 2002-09-17  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac: Check for Pth and Pthreads.
