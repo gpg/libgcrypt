@@ -50,7 +50,7 @@ typedef struct {
     byte Kr[16];
 } CAST5_context;
 
-static gpg_err_code_t cast_setkey (void *c, const byte *key, unsigned keylen);
+static gcry_err_code_t cast_setkey (void *c, const byte *key, unsigned keylen);
 static void encrypt_block (void *c, byte *outbuf, const byte *inbuf);
 static void decrypt_block (void *c, byte *outbuf, const byte *inbuf);
 
@@ -561,7 +561,7 @@ key_schedule( u32 *x, u32 *z, u32 *k )
 }
 
 
-static gpg_err_code_t
+static gcry_err_code_t
 do_cast_setkey( CAST5_context *c, const byte *key, unsigned keylen )
 {
   static int initialized;
@@ -604,11 +604,11 @@ do_cast_setkey( CAST5_context *c, const byte *key, unsigned keylen )
     return GPG_ERR_NO_ERROR;
 }
 
-static gpg_err_code_t
+static gcry_err_code_t
 cast_setkey (void *context, const byte *key, unsigned keylen )
 {
   CAST5_context *c = (CAST5_context *) context;
-  gpg_err_code_t rc = do_cast_setkey (c, key, keylen);
+  gcry_err_code_t rc = do_cast_setkey (c, key, keylen);
   _gcry_burn_stack (96+7*sizeof(void*));
   return rc;
 }
@@ -616,6 +616,6 @@ cast_setkey (void *context, const byte *key, unsigned keylen )
 
 gcry_cipher_spec_t cipher_spec_cast5 =
   {
-    "CAST5", CAST5_BLOCKSIZE, 128, sizeof (CAST5_context),
+    "CAST5", NULL, CAST5_BLOCKSIZE, 128, sizeof (CAST5_context),
     cast_setkey, encrypt_block, decrypt_block,
   };

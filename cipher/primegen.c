@@ -456,7 +456,7 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
 			break; /* stop loop, continue with a new prime */
                       }
 
-                    if (extra_check && extra_check (ptest, extra_check_arg))
+                    if (extra_check && extra_check (extra_check_arg, ptest))
                       { /* The extra check told us that this prime is
                            not of the caller's taste. */
                         progress ('/');

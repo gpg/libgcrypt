@@ -49,7 +49,7 @@ typedef struct {
     u32 p[BLOWFISH_ROUNDS+2];
 } BLOWFISH_context;
 
-static gpg_err_code_t bf_setkey (void *c, const byte *key, unsigned keylen);
+static gcry_err_code_t bf_setkey (void *c, const byte *key, unsigned keylen);
 static void encrypt_block (void *bc, byte *outbuf, const byte *inbuf);
 static void decrypt_block (void *bc, byte *outbuf, const byte *inbuf);
 
@@ -490,7 +490,7 @@ selftest(void)
 
 
 
-static gpg_err_code_t
+static gcry_err_code_t
 do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
 {
     int i, j;
@@ -574,11 +574,11 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
 }
 
 
-static gpg_err_code_t
+static gcry_err_code_t
 bf_setkey (void *context, const byte *key, unsigned keylen)
 {
   BLOWFISH_context *c = (BLOWFISH_context *) context;
-  gpg_err_code_t rc = do_bf_setkey (c, key, keylen);
+  gcry_err_code_t rc = do_bf_setkey (c, key, keylen);
   _gcry_burn_stack (64);
   return rc;
 }
@@ -587,7 +587,7 @@ bf_setkey (void *context, const byte *key, unsigned keylen)
 
 gcry_cipher_spec_t cipher_spec_blowfish =
   {
-    "BLOWFISH", BLOWFISH_BLOCKSIZE, 128,
+    "BLOWFISH", NULL, BLOWFISH_BLOCKSIZE, 128,
     sizeof (BLOWFISH_context),
     bf_setkey, encrypt_block, decrypt_block,
   };

@@ -139,11 +139,11 @@ gcry_ac_data_search (gcry_ac_data_t data,
 }
 
 /* Add MPI to DATA, with the label being NAME.  */
-static gpg_err_code_t
+static gcry_err_code_t
 gcry_ac_data_add (gcry_ac_data_t data,
 		  const char *name, gcry_mpi_t mpi)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_ac_mpi_t *ac_mpis = NULL;
 
   /* Allocate.  */
@@ -166,10 +166,10 @@ gcry_ac_data_add (gcry_ac_data_t data,
 }
 
 /* Create a copy of the data set DATA and store it in DATA_CP.  */
-static gpg_err_code_t
+static gcry_err_code_t
 gcry_ac_data_copy_internal (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_ac_data_t data_new = NULL;
   int i = 0;
 
@@ -254,11 +254,11 @@ gcry_ac_data_copy_internal (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 
   IDENTIFIER is one of `private-key', `public-key', `enc-val',
   `sig-val'; ALGORITHM is the name of the algorithm used.  */
-static gpg_err_code_t
+static gcry_err_code_t
 gcry_ac_data_extract (const char *identifier, const char *algorithm,
 		      gcry_sexp_t data_sexp, gcry_ac_data_t *data)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_sexp_t data_element_sexp = NULL;
   gcry_sexp_t inner_data_sexp = NULL;
   size_t inner_data_n;
@@ -406,12 +406,12 @@ gcry_ac_data_extract (const char *identifier, const char *algorithm,
 
      (IDENTIFIER (flags [...])
                  (ALGORITHM <list of named MPI values>))  */
-static gpg_err_code_t
+static gcry_err_code_t
 gcry_ac_data_construct (const char *identifier, unsigned int flags,
 			const char *algorithm, gcry_ac_data_t data,
 			gcry_sexp_t *data_sexp)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   void **arg_list = NULL;
 
   gcry_sexp_t data_sexp_new = NULL;
@@ -506,10 +506,10 @@ gcry_ac_data_construct (const char *identifier, unsigned int flags,
  */
 
 /* Creates a new, empty data set and stores it in DATA.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_data_new (gcry_ac_data_t *data)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_ac_data_t data_new = NULL;
 
   data_new = gcry_malloc (sizeof (struct gcry_ac_data));
@@ -523,7 +523,7 @@ gcry_ac_data_new (gcry_ac_data_t *data)
       *data = data_new;
     }
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Destroys the data set DATA.  */
@@ -544,11 +544,11 @@ gcry_ac_data_destroy (gcry_ac_data_t data)
 /* Adds the value MPI to the data set DATA with the label NAME.  If
    there is already a value with that label, it is replaced, otherwise
    a new value is added. */
-gpg_error_t
+gcry_error_t
 gcry_ac_data_set (gcry_ac_data_t data,
 		  const char *name, gcry_mpi_t mpi)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_ac_mpi_t *ac_mpi;
 
   gcry_ac_data_search (data, name, &ac_mpi);
@@ -586,18 +586,18 @@ gcry_ac_data_set (gcry_ac_data_t data,
 	}
     }
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Create a copy of the data set DATA and store it in DATA_CP.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_data_copy (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
   err = gcry_ac_data_copy_internal (data_cp, data);
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Returns the number of named MPI values inside of the data set
@@ -612,11 +612,11 @@ gcry_ac_data_length (gcry_ac_data_t data)
    MPI.  The returned MPI value will be released in case
    gcry_ac_data_set is used to associate the label NAME with a
    different MPI value.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
 		       gcry_mpi_t *mpi)
 {
-  gpg_err_code_t err = GPG_ERR_NO_DATA;
+  gcry_err_code_t err = GPG_ERR_NO_DATA;
   gcry_mpi_t mpi_found = NULL;
   int i;
   
@@ -630,18 +630,18 @@ gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
   if (! err)
     *mpi = mpi_found;
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Stores in NAME and MPI the named MPI value contained in the data
    set DATA with the index INDEX.  NAME or MPI may be NULL.  The
    returned MPI value will be released in case gcry_ac_data_set is
    used to associate the label NAME with a different MPI value.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
 			const char **name, gcry_mpi_t *mpi)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
   if (index < data->data_n)
     {
@@ -653,7 +653,7 @@ gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
   else
     err = GPG_ERR_NO_DATA;
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Destroys any values contained in the data set DATA.  */
@@ -673,11 +673,11 @@ gcry_ac_data_clear (gcry_ac_data_t data)
 
 /* Creates a new handle for the algorithm ALGORITHM and store it in
    HANDLE.  FLAGS is not used yet.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_open (gcry_ac_handle_t *handle,
 	      gcry_ac_id_t algorithm, unsigned int flags)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_module_t module = NULL;
   gcry_ac_handle_t handle_new;
   const char *algorithm_name;
@@ -715,7 +715,7 @@ gcry_ac_open (gcry_ac_handle_t *handle,
 	_gcry_pk_module_release (module);
     }
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Destroys the handle HANDLE.  */
@@ -735,13 +735,13 @@ gcry_ac_close (gcry_ac_handle_t handle)
 
 /* Creates a new key of type TYPE, consisting of the MPI values
    contained in the data set DATA and stores it in KEY.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_key_init (gcry_ac_key_t *key,
 		  gcry_ac_handle_t handle,
 		  gcry_ac_key_type_t type,
 		  gcry_ac_data_t data)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_ac_data_t data_new = NULL;
   gcry_sexp_t data_sexp = NULL;
   gcry_ac_key_t key_new = NULL;
@@ -777,20 +777,20 @@ gcry_ac_key_init (gcry_ac_key_t *key,
 	gcry_sexp_release (data_sexp);
     }
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Generates a new key pair via the handle HANDLE of NBITS bits and
    stores it in KEY_PAIR.  In case non-standard settings are wanted, a
    pointer to a structure of type gcry_ac_key_spec_<algorithm>_t,
    matching the selected algorithm, can be given as KEY_SPEC.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
 			   gcry_ac_key_pair_t *key_pair,
 			   unsigned int nbits,
 			   void *key_spec)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
   gcry_ac_key_pair_t key_pair_new = NULL;
 
@@ -898,12 +898,12 @@ gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
 
   if (! err)
     /* Construct final request S-expression.  */
-    err = gpg_err_code (gcry_sexp_build_array (&genkey_sexp_request, NULL,
+    err = gcry_err_code (gcry_sexp_build_array (&genkey_sexp_request, NULL,
 					       genkey_format, arg_list));
 
   if (! err)
     /* Perform genkey operation.  */
-    err = gpg_err_code (gcry_pk_genkey (&genkey_sexp_reply,
+    err = gcry_err_code (gcry_pk_genkey (&genkey_sexp_reply,
 					genkey_sexp_request));
 
   /* Split keys.  */
@@ -962,7 +962,7 @@ gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
 	gcry_sexp_release (genkey_sexp_reply);
     }
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Returns the key of type WHICH out of the key pair KEY_PAIR.  */
@@ -1014,21 +1014,21 @@ gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
 }
 
 /* Verifies that the key KEY is sane.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_key_test (gcry_ac_key_t key)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
-  err = gpg_err_code (gcry_pk_testkey (key->data_sexp));
+  err = gcry_err_code (gcry_pk_testkey (key->data_sexp));
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Stores the number of bits of the key KEY in NBITS.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_key_get_nbits (gcry_ac_key_t key, unsigned int *nbits)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   unsigned int n;
 
   n = gcry_pk_get_nbits (key->data_sexp);
@@ -1037,21 +1037,21 @@ gcry_ac_key_get_nbits (gcry_ac_key_t key, unsigned int *nbits)
   else
     err = GPG_ERR_PUBKEY_ALGO;
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Writes the 20 byte long key grip of the key KEY to KEY_GRIP.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_key_get_grip (gcry_ac_key_t key, unsigned char *key_grip)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   unsigned char *ret;
 
   ret = gcry_pk_get_keygrip (key->data_sexp, key_grip);
   if (! ret)
     err = GPG_ERR_INTERNAL; 	/* FIXME.  */
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 
@@ -1063,14 +1063,14 @@ gcry_ac_key_get_grip (gcry_ac_key_t key, unsigned char *key_grip)
 /* Encrypts the plain text MPI value DATA_PLAIN with the key public
    KEY under the control of the flags FLAGS and stores the resulting
    data set into DATA_ENCRYPTED.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_data_encrypt (gcry_ac_handle_t handle,
 		      unsigned int flags,
 		      gcry_ac_key_t key,
 		      gcry_mpi_t data_plain,
 		      gcry_ac_data_t *data_encrypted)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_sexp_t sexp_request = NULL;
   gcry_sexp_t sexp_reply = NULL;
   char *request_format = NULL;
@@ -1135,21 +1135,21 @@ gcry_ac_data_encrypt (gcry_ac_handle_t handle,
     /* Copy out.  */
     *data_encrypted = data;
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Decrypts the encrypted data contained in the data set
    DATA_ENCRYPTED with the secret key KEY under the control of the
    flags FLAGS and stores the resulting plain text MPI value in
    DATA_PLAIN.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_data_decrypt (gcry_ac_handle_t handle,
 		      unsigned int flags,
 		      gcry_ac_key_t key,
 		      gcry_mpi_t *data_plain,
 		      gcry_ac_data_t data_encrypted)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_mpi_t data_decrypted = NULL;
   gcry_sexp_t sexp_request = NULL;
   gcry_sexp_t sexp_reply = NULL;
@@ -1197,19 +1197,19 @@ gcry_ac_data_decrypt (gcry_ac_handle_t handle,
   else
     *data_plain = data_decrypted;
 
-  return gpg_error (err);
+  return gcry_error (err);
 
 }
 
 /* Signs the data contained in DATA with the secret key KEY and stores
    the resulting signature data set in DATA_SIGNATURE.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_data_sign (gcry_ac_handle_t handle,
 		   gcry_ac_key_t key,
 		   gcry_mpi_t data,
 		   gcry_ac_data_t *data_signature)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_sexp_t sexp_request = NULL;
   gcry_sexp_t sexp_reply = NULL;
   gcry_ac_data_t ac_data;
@@ -1240,19 +1240,19 @@ gcry_ac_data_sign (gcry_ac_handle_t handle,
   if (! err)
     *data_signature = ac_data;
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Verifies that the signature contained in the data set
    DATA_SIGNATURE is indeed the result of signing the data contained
    in DATA with the secret key belonging to the public key KEY.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_data_verify (gcry_ac_handle_t handle,
 		     gcry_ac_key_t key,
 		     gcry_mpi_t data,
 		     gcry_ac_data_t data_signature)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_sexp_t sexp_request = NULL;
   gcry_sexp_t sexp_data = NULL;
 
@@ -1280,7 +1280,7 @@ gcry_ac_data_verify (gcry_ac_handle_t handle,
   if (sexp_data)
     gcry_sexp_release (sexp_data);
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 
@@ -1291,10 +1291,10 @@ gcry_ac_data_verify (gcry_ac_handle_t handle,
 
 /* Stores the textual representation of the algorithm whose id is
    given in ALGORITHM in NAME.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   const char *n;
 
   n = gcry_pk_algo_name (algorithm);
@@ -1303,15 +1303,15 @@ gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
   else
     err = GPG_ERR_PUBKEY_ALGO;
 
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
 /* Stores the numeric ID of the algorithm whose textual representation
    is contained in NAME in ALGORITHM.  */
-gpg_error_t
+gcry_error_t
 gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   int algo;
 
   algo = gcry_pk_map_name (name);
@@ -1320,5 +1320,5 @@ gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
   else
     err = GPG_ERR_PUBKEY_ALGO;
     
-  return gpg_error (err);
+  return gcry_error (err);
 }

@@ -1710,7 +1710,7 @@ static const u32 rcon[30] = {
 
 /* Perform the key setup.
  */  
-static gpg_err_code_t
+static gcry_err_code_t
 do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 {
     static int initialized = 0;
@@ -1810,7 +1810,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     return 0;
 }
 
-static gpg_err_code_t
+static gcry_err_code_t
 rijndael_setkey (void *context, const byte *key, const unsigned keylen)
 {
   RIJNDAEL_context *ctx = (RIJNDAEL_context *) context;
@@ -2131,20 +2131,38 @@ selftest (void)
 
 
 
+static const char *rijndael_names[] =
+  {
+    "RIJNDAEL",
+    NULL,
+  };
+
 gcry_cipher_spec_t cipher_spec_aes =
   {
-    "AES", 16, 128, sizeof (RIJNDAEL_context),
+    "AES", rijndael_names, 16, 128, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
+  };
+
+static const char *rijndael192_names[] =
+  {
+    "RIJNDAEL192",
+    NULL,
   };
 
 gcry_cipher_spec_t cipher_spec_aes192 =
   {
-    "AES192", 16, 192, sizeof (RIJNDAEL_context),
+    "AES192", rijndael192_names, 16, 192, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
+  };
+
+static const char *rijndael256_names[] =
+  {
+    "RIJNDAEL256",
+    NULL,
   };
 
 gcry_cipher_spec_t cipher_spec_aes256 =
   {
-    "AES256", 16, 256, sizeof (RIJNDAEL_context),
+    "AES256", rijndael256_names, 16, 256, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
   };

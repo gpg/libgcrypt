@@ -281,10 +281,10 @@ get_random_bytes( size_t nbytes, int level, int secure )
 
    Note, that this fucntion currently does nothing.
 */
-gpg_error_t
+gcry_error_t
 gcry_random_add_bytes (const void * buf, size_t buflen, int quality)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
   if (!buf || quality < -1 || quality > 100)
     err = GPG_ERR_INV_ARG;

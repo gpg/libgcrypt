@@ -1,3 +1,37 @@
+2003-07-14  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.c (gcry_cipher_lookup_func_name): Also check the cipher
+	name aliases, not just the primary name.
+	(gcry_cipher_map_name): Remove kludge for aliasing Rijndael to
+	AES.
+
+	* arcfour.c, blowfish.c, cast5.c, des.c, twofish.c: Adjust cipher
+	specification structures.
+
+	* rijndael.c (rijndael_names, rijndael192_names,
+	rijndael256_names): New variables, use them in the cipher
+	specifications.
+
+	* rmd160test.c: Removed file.
+
+	* ac.c, arcfour.c, blowfish.c, cast5.c, cipher.c, des.c, dsa.c,
+	elgamal.c, md.c, pubkey.c, random.c, rijndael.c, rsa.c, twofish.c:
+	Used gcry_err* wrappers for libgpg symbols.
+
+	* primegen.c (gen_prime): Correct the order arguments to
+	extra_check.
+
+2003-07-12  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c: Replaced all public occurences of gpg_error_t with
+	gcry_error_t.
+	* cipher.c: Likewise.
+	* md.c: Likewise.
+	* pubkey.c: Likewise.
+	* random.c: Likewise.
+
+	* cipher.c: Added support for TWOFISH128.
+
 2003-07-08  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c (gcry_ac_data_copy_internal): New function, based on

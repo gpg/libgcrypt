@@ -388,7 +388,7 @@ secret(gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
  **************  interface  ******************
  *********************************************/
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
                     gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
@@ -409,10 +409,10 @@ _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
 }
 
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_rsa_check_secret_key( int algo, gcry_mpi_t *skey )
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   RSA_secret_key sk;
 
   sk.n = skey[0];
@@ -429,7 +429,7 @@ _gcry_rsa_check_secret_key( int algo, gcry_mpi_t *skey )
 }
 
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey,
 		   int flags)
 {
@@ -484,7 +484,7 @@ _gcry_rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
   return y;
 }
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey,
 		   int flags)
 {
@@ -559,7 +559,7 @@ _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *s
   return GPG_ERR_NO_ERROR;
 }
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   RSA_secret_key sk;
@@ -576,14 +576,14 @@ _gcry_rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
   return GPG_ERR_NO_ERROR;
 }
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 		  int (*cmp) (void *opaque, gcry_mpi_t tmp),
 		  void *opaquev)
 {
   RSA_public_key pk;
   gcry_mpi_t result;
-  gpg_err_code_t rc;
+  gcry_err_code_t rc;
 
   pk.n = pkey[0];
   pk.e = pkey[1];

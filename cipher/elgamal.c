@@ -498,7 +498,7 @@ verify(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
  **************  interface  ******************
  *********************************************/
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_elg_generate (int algo, unsigned nbits, unsigned long dummy,
                     gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
@@ -514,10 +514,10 @@ _gcry_elg_generate (int algo, unsigned nbits, unsigned long dummy,
 }
 
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_elg_check_secret_key (int algo, gcry_mpi_t *skey)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
 
   if ((! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
@@ -537,10 +537,10 @@ _gcry_elg_check_secret_key (int algo, gcry_mpi_t *skey)
 }
 
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_elg_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_public_key pk;
 
   if ((! data) || (! pkey[0]) || (! pkey[1]) || (! pkey[2]))
@@ -558,10 +558,10 @@ _gcry_elg_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pk
 }
 
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_elg_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
 
   if ((! data[0]) || (! data[1])
@@ -580,10 +580,10 @@ _gcry_elg_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *s
 }
 
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
 
   if ((! data)
@@ -603,11 +603,11 @@ _gcry_elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
   return err;
 }
 
-gpg_err_code_t
+gcry_err_code_t
 _gcry_elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 		  int (*cmp) (void *, gcry_mpi_t), void *opaquev)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_public_key pk;
 
   if ((! data[0]) || (! data[1]) || (! hash)
