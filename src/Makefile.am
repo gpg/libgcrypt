@@ -5,17 +5,20 @@ INCLUDES =  -I$(top_srcdir)/include -I$(top_srcdir)/intl
 
 lib_LTLIBRARIES = libgcrypt.la
 
-#noinst_PROGRAMS = sexp
+noinst_PROGRAMS = testapi
 #sexp_SOURCES = sexp.c mpiapi.c
 #sexp_LDADD =  ../cipher/libcipher.la ../mpi/libmpi.la	../util/libutil.la ./libgcrypt.la @INTLLIBS@
-
+testapi_SOURCES = testapi.c
+testapi_LDADD = libgcrypt.la
 
 libgcrypt_la_LDFLAGS = -version-info 0:0:0 -export-symbols libgcrypt.sym
 libgcrypt_la_SOURCES =	 gcrypt.h \
 			 misc.c  \
 			 global.c \
 			 sexp.c \
-			 mpiapi.c
+			 mpiapi.c \
+			 memory.c \
+			 secmem.c
 
 libgcrypt_la_DEPENDENCIES = libgcrypt.sym
 libgcrypt_la_LIBADD = ../cipher/libcipher.la  \

@@ -179,9 +179,23 @@ g10_is_secure( const void *a )
     return g10_private_is_secure( a );
 }
 
+void
+g10_check_heap( const void *a )
+{
+    /* FIXME: implement this*/
+  #if 0
+    if( some_handler )
+	some_handler(a)
+    else
+	g10_private_check_heap(a)
+  #endif
+}
+
 void *
 g10_realloc( void *a, size_t n )
 {
+    /* FIXME: Make sure that the realloced memory is cleared out */
+
     if( realloc_func )
 	return realloc_func( a, n ) ;
     return g10_private_realloc( a, n );

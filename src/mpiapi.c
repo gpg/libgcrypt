@@ -1,5 +1,5 @@
 /* mpiapi.a  -	MPI function interface
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998,1999 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
@@ -92,7 +92,8 @@ void
 gcry_mpi_randomize( GCRY_MPI w,
 		    unsigned int nbits, enum gcry_random_level level )
 {
-    char *p = get_random_bits( nbits, level, mpi_is_secure(w) );
+    char *p = mpi_is_secure(w) ? gcry_random_bytes( (nbits+7)/8, level )
+			       : gcry_random_bytes_secure( (nbits+7)/8, level );
     mpi_set_buffer( w, p, (nbits+7)/8, 0 );
     m_free(p);
 }
@@ -198,7 +199,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 }
 
 /****************
- * Write a in format into buffer which has a length of *NBYTES.
+ * Write a using format into buffer which has a length of *NBYTES.
  * Return the number of bytes actually written in nbytes.
  * TODO: Move this stuff to mpicoder.c or replace mpicoder.c
  */

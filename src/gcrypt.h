@@ -20,6 +20,9 @@
 
 #ifndef _GCRYPT_H
 #define _GCRYPT_H
+
+#include <stdarg.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -355,14 +358,28 @@ int gcry_md_map_name( const char* name );
 #define gcry_md_test_algo(a) \
 	    gcry_md_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
-/*****************************************
- *******  miscellaneous stuff	**********
- *****************************************/
-
+/*********************************************
+ *******  random generating functions  *******
+ *********************************************/
 void gcry_randomize( byte *buffer, size_t length,
 		     enum gcry_random_level level );
 void *gcry_random_bytes( size_t nbytes, enum gcry_random_level level );
 void *gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level );
+
+/*****************************************
+ *******  miscellaneous stuff	**********
+ *****************************************/
+
+enum gcry_log_levels {
+    GCRY_LOG_CONT   = 0,    /* continue the last log line */
+    GCRY_LOG_INFO   = 10,
+    GCRY_LOG_WARN   = 20,
+    GCRY_LOG_ERROR  = 30,
+    GCRY_LOG_FATAL  = 40,
+    GCRY_LOG_BUG    = 50,
+    GCRY_LOG_DEBUG  = 100,
+};
+
 
 /* Provide custom functions for special tasks of libgcrypt.
  */
@@ -376,6 +393,8 @@ void gcry_set_outofcore_handler( int (*h)( void*, size_t, unsigned int ),
 void gcry_set_fatalerror_handler( void (*fnc)(void*,int, const char*),
 								void *opaque );
 void gcry_set_gettext_handler( const char *(*f)(const char*) );
+void gcry_set_log_handler( void (*f)(void*,int, const char*, va_list ),
+							     void *opaque );
 
 
 /* Access to the memory function of libgcrypt.

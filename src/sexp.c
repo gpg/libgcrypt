@@ -37,7 +37,6 @@
 
 #define GCRYPT_NO_MPI_MACROS 1
 #include "g10lib.h"
-#include "util.h"
 #include "memory.h"
 
 
@@ -95,6 +94,30 @@ dump_mpi( GCRY_MPI a )
 	fputs( buffer, stderr );
 }
 
+static void
+dump_string( FILE *fp, const byte *p, size_t n, int delim )
+{
+    for( ; n; n--, p++ )
+	if( iscntrl( *p ) || *p == delim ) {
+	    putc('\\', fp);
+	    if( *p == '\n' )
+		putc('n', fp);
+	    else if( *p == '\r' )
+		putc('r', fp);
+	    else if( *p == '\f' )
+		putc('f', fp);
+	    else if( *p == '\v' )
+		putc('v', fp);
+	    else if( *p == '\b' )
+		putc('b', fp);
+	    else if( !*p )
+		putc('0', fp);
+	    else
+		fprintf(fp, "x%02x", *p );
+	}
+	else
+	    putc(*p, fp);
+}
 
 static void
 do_dump_list( NODE node, int indent )
@@ -112,7 +135,7 @@ do_dump_list( NODE node, int indent )
 	    if( !node->u.data.len )
 		fputs("EMPTY", stderr );
 	    else
-		print_string(stderr, node->u.data.d, node->u.data.len, ')');
+		dump_string(stderr, node->u.data.d, node->u.data.len, ')');
 	    putc(' ', stderr);
 	    break;
 	  case ntMPI:
