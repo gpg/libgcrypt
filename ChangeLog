@@ -2,7 +2,7 @@
 
 	* configure.ac: Give a hint on where libgpg-error is available.
 	Reformatted long lines.  Don't include gcrypt-defs.h.
-	
+	(--enable-gcc-warnings): New option.
 
 2003-10-24  Moritz Schulte  <mo@g10code.com>
 

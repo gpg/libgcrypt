@@ -53,7 +53,7 @@ extern "C" {
 #endif
 
 /* We want to use gcc attributes when possible.  Warning: Don't use
-   these macros in your progranms: As indicated by the leading
+   these macros in your programs: As indicated by the leading
    underscore they are subject to change without notice. */
 #ifdef __GNUC__
 

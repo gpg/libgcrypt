@@ -21,8 +21,15 @@
 #ifndef ATH_H
 #define ATH_H
 
+#ifdef _WIN32
+#warning We need to replace these hacks by cleaner code.
+typedef int ssize_t;
+typedef int pid_t;
+#include <windows.h>
+#else
 #include <sys/types.h>
 #include <sys/socket.h>
+#endif
 
 
 /* Define _ATH_EXT_SYM_PREFIX if you want to give all external symbols
@@ -49,7 +56,7 @@
 
 
 typedef void *ath_mutex_t;
-#define ATH_MUTEX_INITIALIZER 0;
+#define ATH_MUTEX_INITIALIZER 0
 
 /* Functions for mutual exclusion.  */
 int ath_mutex_init (ath_mutex_t *mutex);
@@ -66,8 +73,10 @@ ssize_t ath_select (int nfd, fd_set *rset, fd_set *wset, fd_set *eset,
 ssize_t ath_waitpid (pid_t pid, int *status, int options);
 int ath_accept (int s, struct sockaddr *addr, socklen_t *length_ptr);
 int ath_connect (int s, struct sockaddr *addr, socklen_t length);
+#ifndef _WIN32
 int ath_sendmsg (int s, const struct msghdr *msg, int flags);
 int ath_recvmsg (int s, struct msghdr *msg, int flags);
+#endif
 
 #define _ATH_COMPAT
 #ifdef _ATH_COMPAT
@@ -84,8 +93,10 @@ struct ath_ops
   ssize_t (*waitpid) (pid_t pid, int *status, int options);
   int (*accept) (int s, struct sockaddr *addr, socklen_t *length_ptr);
   int (*connect) (int s, struct sockaddr *addr, socklen_t length);
+#ifndef WIN32
   int (*sendmsg) (int s, const struct msghdr *msg, int flags);
   int (*recvmsg) (int s, struct msghdr *msg, int flags);
+#endif
 };
 
 /* Initialize the any-thread package.  */

@@ -624,9 +624,21 @@ AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)
 
 GNUPG_CHECK_GNUMAKE
 
+AC_ARG_ENABLE(gcc-warnings,
+	      AC_HELP_STRING([--enable-gcc-warnings],
+			     [enable more verbose gcc warnings]),
+	      [more_gcc_warnings="$enableval"],
+	      [more_gcc_warnings="no"])
+
 if test "$GCC" = yes; then
-    if test "$MAINTAINER_MODE" = "yes"; then
+    if test "$USE_MAINTAINER_MODE" = "yes" ||
+       test "$more_gcc_warnings" = "yes"; then
         CFLAGS="$CFLAGS -Wall -Wcast-align -Wshadow -Wstrict-prototypes"
+        if test "$more_gcc_warnings" = "yes"; then
+            CFLAGS="$CFLAGS -W -Wpointer-arith -Wbad-function-cast"
+            CFLAGS="$CFLAGS -Wwrite-strings -Wunreachable-code"
+            CFLAGS="$CFLAGS -Wno-sign-compare"
+        fi
     else
         CFLAGS="$CFLAGS -Wall"
     fi

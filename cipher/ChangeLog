@@ -6,7 +6,7 @@
 
 	* random.c (gcry_random_add_bytes): Return if buflen is zero to
 	avoid gcc warning about unsed parameter.
-	(MASK_LEVEL): Simplified; does not work for signed and unsigned
+	(MASK_LEVEL): Simplified; does now work for signed and unsigned
 	w/o warnings.
 
 	* md.c (md_start_debug): Removed the const from SUFFIX, because
