@@ -1,3 +1,18 @@
+2003-06-13  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (gcry_md_get_algo): Reverted to old API.  This is a
+	convenience function anyway and error checking is not approriate.
+	(gcry_md_is_enabled): New.
+	(gcry_md_is_secure): Replaed macro by function and reverted to old
+	API.
+
+2003-06-11  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (GCRYERR): Define _GCRY_ERR_SOURCE_DEFAULT instead of
+	GPG_ERR_SOURCE_DEFAULT, so that libgpg-error still works despite
+	the use of the old gcrypt error codes.
+	(gcry_md_copy): Swapped arguments.
+	
 2003-06-09  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am: Support for libgpg-error.

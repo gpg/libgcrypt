@@ -1,3 +1,7 @@
+2003-06-11  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.texi (Hash Functions): Document possible values of HD.
+
 2003-06-09  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi (Version Check): Changed description of

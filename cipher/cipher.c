@@ -512,10 +512,9 @@ cipher_get_blocksize (int id)
 
 
 /****************
- * Open a cipher handle for use with algorithm ALGO, in mode MODE
- * and return the handle.  Return NULL and set the internal error variable
- * if something goes wrong.
- */
+ * Open a cipher handle for use with algorithm ALGO, in mode MODE and
+ * return the handle.  Put NULL into HANDLER and return and error code
+ * if something goes wrong.  */
 
 gpg_error_t
 gcry_cipher_open (gcry_cipher_hd_t *handle,
@@ -627,8 +626,8 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 	  ath_mutex_unlock (&ciphers_registered_lock);
 	}
     }
-  else
-    *handle = h;
+
+  *handle = err ? NULL : h;
 
   return gpg_error (err);
 }

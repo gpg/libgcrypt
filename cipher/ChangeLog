@@ -1,5 +1,23 @@
+2003-06-13  Werner Koch  <wk@gnupg.org>
+
+	* md.c (gcry_md_get_algo): Reverted to old API.  This is a
+	convenience function anyway and error checking is not approriate.
+	(gcry_md_is_secure): New.
+	(gcry_md_is_enabled): New.
+
+2003-06-12  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c (gcry_cipher_open): Make sure HANDLE is set to NULL on
+	error.
+
 2003-06-11  Werner Koch  <wk@gnupg.org>
 
+	* md.c (gcry_md_open): Make sure H receives either NULL or an
+	valid handle.
+	(gcry_md_copy): Swapped arguments so that it is more in lione with
+	md_open and most other API fucntions like memcpy (destination
+	comes first).  Make sure HANDLE is set to NULL on error.
+	
 	* rijndael.c (do_encrypt): Hack to force correct alignment.  It
 	seems not to be	not sufficient, though.  We should rework this
 	fucntions and remove all these ugly casts.  Let the compiler

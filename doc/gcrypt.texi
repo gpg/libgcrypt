@@ -635,13 +635,13 @@ are also supported.
 To use most of these function it is necessary to create a context;  this
 is done using:
 
-@deftypefun gpg_error_t gcry_md_open (gcry_md_hd_t *hd, int @var{algo},
-unsigned int @var{flags})
+@deftypefun gpg_error_t gcry_md_open (gcry_md_hd_t *@var{hd}, int @var{algo}, unsigned int @var{flags})
 
 Create a message digest object for algorithm @var{algo}.  @var{flags}
-may be given as an bitwise OR of constants described below.
-@var{algo} may be given as @code{0} if the algorithms to use are later
-set using @code{gcry_md_enable}.
+may be given as an bitwise OR of constants described below.  @var{algo}
+may be given as @code{0} if the algorithms to use are later set using
+@code{gcry_md_enable}. @var{hd} is guaranteed to either receive a valid
+handle or NULL.
 
 The following algorithms are supported:
 
@@ -720,6 +720,9 @@ If you want CBC message authenentication codes based on a cipher, see
 @end table
 @c begin table of hash flags
 
+You may use the function @code{gcry_md_is_enabled} to later check
+whether an algorithm has been enabled.
+
 @end deftypefun
 @c end function gcry_md_open
 
@@ -773,7 +776,7 @@ might not even be possible if the data is received from a pipe), a
 snapshot of the current hash context can be taken and turned into a new
 context:
 
-@deftypefun gpg_error_t gcry_md_copy (gcry_md_hd_t @var{h}, gcry_md_hd_t *@var{h2})
+@deftypefun gpg_error_t gcry_md_copy (gcry_md_hd_t *@var{h2}, gcry_md_hd_t @var{h})
 
 Create a new digest object as an exact copy of the object described by
 handle @var{h} and store it in @var{h2}.  The context is not reset and
@@ -913,7 +916,7 @@ In some situations it might be hard to remember the algorithm used for
 the ongoing hashing. The following function might be used to get that
 information:
 
-@deftypefun gpg_error_t gcry_md_get_algo (gcry_md_hd_t @var{h}, int *@var{algo})
+@deftypefun int gcry_md_get_algo (gcry_md_hd_t @var{h})
 
 Retrieve the algorithm used with the handle @var{h}. Note, that this
 does not work reliable if more than one algorithm is enabled in @var{h}.
@@ -923,9 +926,17 @@ The following macro might also be useful:
 
 @deftypefun int gcry_md_is_secure (gcry_md_hd_t @var{h})
 
-This macro return true when the digest object @var{h} is allocated in "secure
-memory"; i.e. @var{h} was created with the @code{GCRY_MD_FLAG_SECURE}.
+This function returns true when the digest object @var{h} is allocated
+in "secure memory"; i.e. @var{h} was created with the
+@code{GCRY_MD_FLAG_SECURE}.
 @end deftypefun
+
+@deftypefun int gcry_md_is_enabled (gcry_md_hd_t @var{h}, int @var{algo})
+
+This function returns true when the agorithm @var{algo} has been enabled
+for the digest object @var{h}.
+@end deftypefun
+
 
 
 Tracking bugs related to hashing is often a cumbersome task which

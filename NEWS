@@ -31,6 +31,11 @@ Noteworthy changes in version 1.1.13 (unreleased)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 gcry_pk_decrypt         ENHANCED: Allows flag to return complete S-expression.
 gcry_cipher_reset	NEW
+gcry_md_open            CHANGED
+gcry_md_copy            CHANGED
+gcry_md_is_enabled      NEW
+gcry_md_is_secure       REPLACED macro by a function.
+  ... fixme add other changes ...
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Noteworthy changes in version 1.1.12 (2003-01-20)

@@ -460,7 +460,8 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
 /* Create a message digest object for algorithm ALGO.  FLAGS may be
    given as an bitwise OR of the gcry_md_flags values.  ALGO may be
    given as 0 if the algorithms to be used are later set using
-   gcry_md_enable. */
+   gcry_md_enable. H is guaranteed to be a valid handle or NULL on
+   error.  */
 gpg_error_t
 gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 {
@@ -473,9 +474,9 @@ gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
     {
       err = md_open (&hd, algo, (flags & GCRY_MD_FLAG_SECURE),
 		     (flags & GCRY_MD_FLAG_HMAC));
-      if (! err)
-	*h = hd;
     }
+
+  *h = err? NULL : hd;
   return gpg_error (err);
 }
 
@@ -635,9 +636,11 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 }
 
 gpg_error_t
-gcry_md_copy (gcry_md_hd_t hd, gcry_md_hd_t *handle)
+gcry_md_copy (gcry_md_hd_t *handle, gcry_md_hd_t hd)
 {
   gpg_err_code_t err = md_copy (hd, handle);
+  if (err)
+    *handle = NULL;
   return gpg_error (err);
 }
 
@@ -966,16 +969,10 @@ md_get_algo (gcry_md_hd_t a)
   return r ? r->digest->id : 0;
 }
 
-gpg_error_t
-gcry_md_get_algo (gcry_md_hd_t hd, int *id)
+int
+gcry_md_get_algo (gcry_md_hd_t hd)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
-  int algo = md_get_algo (hd);
-  if (! algo)
-    err = GPG_ERR_GENERAL;	/* FIXME?  */
-  else
-    *id = algo;
-  return gpg_error (err);
+  return md_get_algo (hd);
 }
 
 
@@ -1189,3 +1186,27 @@ gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
 
   return gpg_error (err);
 }
+
+
+int
+gcry_md_is_secure (gcry_md_hd_t a) 
+{
+  size_t value;
+
+  if (gcry_md_info (a, GCRYCTL_IS_SECURE, NULL, &value))
+    value = 1; /* It seems to be better to assume secure memory on
+                  error. */
+  return value;
+}
+
+
+int
+gcry_md_is_enabled (gcry_md_hd_t a, int algo) 
+{
+  size_t value;
+
+  if (gcry_md_info (a, GCRYCTL_IS_ALGO_ENABLED, &algo, &value))
+    value = 0;
+  return value;
+}
+

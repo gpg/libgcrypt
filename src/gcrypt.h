@@ -24,7 +24,8 @@
 #include <stdarg.h>
 #include <string.h>
 
-#define GPG_ERR_SOURCE_DEFAULT GPG_ERR_SOURCE_GCRYPT
+/* This is required for error code compatibility. */
+#define _GCRY_ERR_SOURCE_DEFAULT GPG_ERR_SOURCE_GCRYPT
 
 /* Support for libgpg-error.  */
 #ifdef USE_LIBGPG_ERROR
@@ -558,81 +559,81 @@ typedef struct gcry_mpi *GcryMPI _GCRY_GCC_ATTR_DEPRECATED;
 /* This is here for API compatibility.  */
 enum
   {
-    GCRYERR_SUCCESS = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SUCCESS = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_NO_ERROR & 0xFFFF),
-    GCRYERR_GENERAL = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_GENERAL = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_GENERAL & 0xFFFF),
-    GCRYERR_INV_PK_ALGO = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INV_PK_ALGO = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_PUBKEY_ALGO & 0xFFFF),
-    GCRYERR_INV_MD_ALGO = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INV_MD_ALGO = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_DIGEST_ALGO & 0xFFFF),
-    GCRYERR_BAD_PUBLIC_KEY = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_BAD_PUBLIC_KEY = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_BAD_PUBKEY & 0xFFFF),
-    GCRYERR_BAD_SECRET_KEY = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_BAD_SECRET_KEY = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_BAD_SECKEY & 0xFFFF),
-    GCRYERR_BAD_SIGNATURE = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_BAD_SIGNATURE = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_BAD_SIGNATURE & 0xFFFF),
-    GCRYERR_INV_CIPHER_ALGO = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INV_CIPHER_ALGO = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_CIPHER_ALGO & 0xFFFF),
-    GCRYERR_BAD_MPI = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_BAD_MPI = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_BAD_MPI & 0xFFFF),
-    GCRYERR_WRONG_PK_ALGO = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_WRONG_PK_ALGO = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_WRONG_PUBKEY_ALGO & 0xFFFF),
-    GCRYERR_WEAK_KEY = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_WEAK_KEY = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_WEAK_KEY & 0xFFFF),
-    GCRYERR_INV_KEYLEN = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INV_KEYLEN = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_INV_KEYLEN & 0xFFFF),
-    GCRYERR_INV_ARG = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INV_ARG = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_INV_ARG & 0xFFFF),
-    GCRYERR_SELFTEST = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SELFTEST = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SELFTEST_FAILED & 0xFFFF),
-    GCRYERR_INV_OP = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INV_OP = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_INV_OP & 0xFFFF),
 
-    GCRYERR_INTERNAL = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INTERNAL = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_INTERNAL & 0xFFFF),
 
-    GCRYERR_INV_OBJ = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INV_OBJ = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_INV_OBJ & 0xFFFF),
-    GCRYERR_TOO_SHORT = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_TOO_SHORT = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_TOO_SHORT & 0xFFFF),
-    GCRYERR_TOO_LARGE = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_TOO_LARGE = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_TOO_LARGE & 0xFFFF),
-    GCRYERR_NO_OBJ = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_NO_OBJ = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_NO_OBJ & 0xFFFF),
-    GCRYERR_NOT_IMPL = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_NOT_IMPL = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_NOT_IMPLEMENTED & 0xFFFF),
-    GCRYERR_CONFLICT = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_CONFLICT = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_CONFLICT & 0xFFFF),
-    GCRYERR_INV_CIPHER_MODE = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INV_CIPHER_MODE = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_INV_CIPHER_MODE & 0xFFFF),
-    GCRYERR_INV_FLAG = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_INV_FLAG = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_INV_FLAG & 0xFFFF),
-    GCRYERR_SEXP_INV_LEN_SPEC = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_INV_LEN_SPEC = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_INV_LEN_SPEC & 0xFFFF),
-    GCRYERR_SEXP_STRING_TOO_LONG = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_STRING_TOO_LONG = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_STRING_TOO_LONG & 0xFFFF),
-    GCRYERR_SEXP_UNMATCHED_PAREN = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_UNMATCHED_PAREN = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_UNMATCHED_PAREN & 0xFFFF),
-    GCRYERR_SEXP_NOT_CANONICAL = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_NOT_CANONICAL = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_NOT_CANONICAL & 0xFFFF),
-    GCRYERR_SEXP_BAD_CHARACTER = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_BAD_CHARACTER = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_BAD_CHARACTER & 0xFFFF),
-    GCRYERR_SEXP_BAD_QUOTATION = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_BAD_QUOTATION = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_BAD_QUOTATION & 0xFFFF),
-    GCRYERR_SEXP_ZERO_PREFIX = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_ZERO_PREFIX = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_ZERO_PREFIX & 0xFFFF),
-    GCRYERR_SEXP_NESTED_DH = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_NESTED_DH = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_NESTED_DH & 0xFFFF),
-    GCRYERR_SEXP_UNMATCHED_DH = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_UNMATCHED_DH = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_UNMATCHED_DH & 0xFFFF),
-    GCRYERR_SEXP_UNEXPECTED_PUNC = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_UNEXPECTED_PUNC = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_UNEXPECTED_PUNC & 0xFFFF),
-    GCRYERR_SEXP_BAD_HEX_CHAR = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_BAD_HEX_CHAR = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_BAD_HEX_CHAR & 0xFFFF),
-    GCRYERR_SEXP_ODD_HEX_NUMBERS = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_ODD_HEX_NUMBERS = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_ODD_HEX_NUMBERS & 0xFFFF),
-    GCRYERR_SEXP_BAD_OCT_CHAR = ((GPG_ERR_SOURCE_DEFAULT & 0xFF) << 24)
+    GCRYERR_SEXP_BAD_OCT_CHAR = ((_GCRY_ERR_SOURCE_DEFAULT & 0xFF) << 24)
                           | (GPG_ERR_SEXP_BAD_OCT_CHAR & 0xFFFF),
 
   };
@@ -1330,7 +1331,7 @@ void gcry_md_close (gcry_md_hd_t hd);
 gpg_error_t gcry_md_enable( gcry_md_hd_t hd, int algo );
 
 /* Create a new digest object as an exact copy of the object HD. */
-gpg_error_t gcry_md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *bhd);
+gpg_error_t gcry_md_copy (gcry_md_hd_t *bhd, gcry_md_hd_t ahd);
 
 /* Reset the digest object HD to its initial state. */
 void gcry_md_reset (gcry_md_hd_t hd);
@@ -1358,11 +1359,18 @@ void gcry_md_hash_buffer (int algo, void *digest,
 
 /* Retrieve the algorithm used with HD.  This does not work reliable
    if more than one algorithm is enabled in HD. */
-gpg_error_t gcry_md_get_algo (gcry_md_hd_t hd, int *algo);
+int gcry_md_get_algo (gcry_md_hd_t hd);
 
 /* Retrieve the length in bytes of the digest yielded by algorithm
    ALGO. */
 unsigned int gcry_md_get_algo_dlen (int algo);
+
+/* Return true if the the algorithm ALGO is enabled in the digest
+   object A. */
+int gcry_md_is_enabled (gcry_md_hd_t a, int algo);
+
+/* Return true if the digest object A is allocated in "secure" memory. */
+int gcry_md_is_secure (gcry_md_hd_t a);
 
 /* Retrieve various information about the object H.  */
 gpg_error_t gcry_md_info (gcry_md_hd_t h, int what, void *buffer,
@@ -1399,10 +1407,6 @@ gpg_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
    gcry_md_read() does this implicitly. */
 #define gcry_md_final(a) \
 	    gcry_md_ctl ((a), GCRYCTL_FINALIZE, NULL, 0)
-
-/* Return true when the digest object is allocated in "secure" memory. */
-#define gcry_md_is_secure(a, b) \
-	    gcry_md_info ((a), GCRYCTL_IS_SECURE, NULL, (b))
 
 /* Return 0 if the algorithm A is available for use. */
 #define gcry_md_test_algo(a) \
