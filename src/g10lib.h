@@ -252,4 +252,10 @@ gcry_err_code_t _gcry_ac_key_get_grip_std (unsigned char *key_grip,
 					   unsigned int flags, ...);
 
 
+gcry_err_code_t _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags);
+
+
+void _gcry_md_info_get (gcry_md_hd_t handle,
+			unsigned char **md_asn, size_t *md_asn_n, size_t *dlen);
+
 #endif /* G10LIB_H */

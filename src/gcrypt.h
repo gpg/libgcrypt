@@ -378,6 +378,8 @@ gcry_mpi_t gcry_mpi_set (gcry_mpi_t w, const gcry_mpi_t u);
 /* Store the unsigned integer value U in W. */
 gcry_mpi_t gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u);
 
+gcry_error_t gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u);
+
 /* Swap the values of A and B. */
 void gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b);
 
@@ -808,191 +810,6 @@ unsigned char *gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array);
    *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
 gcry_error_t gcry_pk_list (int *list, int *list_length);
 
-/* Alternative interface for asymetric cryptography.  */
-
-/* The algorithm IDs. */
-typedef enum gcry_ac_id
-  {
-    GCRY_AC_RSA = 1,
-    GCRY_AC_DSA = 17,
-    GCRY_AC_ELG = 20,
-    GCRY_AC_ELG_E = 16,
-  }
-gcry_ac_id_t;
-
-/* Key types.  */
-typedef enum gcry_ac_key_type
-  {
-    GCRY_AC_KEY_SECRET,
-    GCRY_AC_KEY_PUBLIC,
-  }
-gcry_ac_key_type_t;
-
-/* Flags for data. */
-#define GCRY_AC_FLAG_DATA_NO_BLINDING 1 << 0
-
-/* This type represents a `data set'.  */
-typedef struct gcry_ac_data *gcry_ac_data_t;
-
-/* This type represents a single `key', either a secret one or a
-   public one.  */
-typedef struct gcry_ac_key *gcry_ac_key_t;
-
-/* This type represents a `key pair' containing a secret and a public
-   key.  */
-typedef struct gcry_ac_key_pair *gcry_ac_key_pair_t;
-
-/* This type represents a `handle' that is needed by functions
-   performing cryptographic operations.  */
-typedef struct gcry_ac_handle *gcry_ac_handle_t;
-
-/* The caller of gcry_ac_key_pair_generate can provide one of these
-   structures in order to influence the key generation process in an
-   algorithm-specific way.  */
-typedef struct gcry_ac_key_spec_rsa
-{
-  unsigned long int e; 		/* E to use.  */
-} gcry_ac_key_spec_rsa_t;
-
-/* Returns a new, empty data set in DATA.  */
-gcry_error_t gcry_ac_data_new (gcry_ac_data_t *data);
-
-/* Destroy the data set DATA.  */
-void gcry_ac_data_destroy (gcry_ac_data_t data);
-
-/* Add the value MPI to DATA with the label NAME.  If there is already
-   a value with that label, replace it, otherwise add it.  */
-gcry_error_t gcry_ac_data_set (gcry_ac_data_t data,
-			      const char *name,
-			      gcry_mpi_t mpi);
-
-/* Create a copy of the data set DATA and store it in DATA_CP.  */
-gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *data_cp,
-			       gcry_ac_data_t data);
-
-/* Return the number of named MPI values inside of the data set
-   DATA.  */
-unsigned int gcry_ac_data_length (gcry_ac_data_t data);
-
-/* Store the value labelled with NAME found in DATA in MPI or NULL if
-   a value with that label was not found.  */
-gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
-				   gcry_mpi_t *mpi);
-
-/* Return the MPI value with index IDX contained in the data set
-   DATA.  */
-gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int idx,
-				    const char **name, gcry_mpi_t *mpi);
-
-/* Destroy any values contained in the data set DATA.  */
-void gcry_ac_data_clear (gcry_ac_data_t data);
-
-/* Create a new ac handle.  */
-gcry_error_t gcry_ac_open (gcry_ac_handle_t *handle,
-			  gcry_ac_id_t algorithm,
-			  unsigned int flags);
-
-/* Destroy an ac handle.  */
-void gcry_ac_close (gcry_ac_handle_t handle);
-
-/* Initialize a key from a given data set.  */
-gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key,
-			      gcry_ac_handle_t handle,
-			      gcry_ac_key_type_t type,
-			      gcry_ac_data_t data);
-
-/* Generate a new key pair.  */
-gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
-					unsigned int nbits,
-					void *spec,
-					gcry_ac_key_pair_t *key_pair);
-
-/* Generate a new key pair, while returning certain MPI values that
-   were created during the generation process.  */
-gcry_error_t gcry_ac_key_pair_generate_ext (gcry_ac_handle_t handle,
-					    unsigned int nbits,
-					    void *spec,
-					    gcry_ac_key_pair_t *key_pair,
-					    gcry_mpi_t **misc_data);
-
-/* Returns a specified key from a key pair.  */
-gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
-					gcry_ac_key_type_t which);
-
-/* Returns the data set contained in the key KEY.  */
-gcry_ac_data_t gcry_ac_key_data_get (gcry_ac_key_t key);
-
-/* Verify that the key KEY is sane.  */
-gcry_error_t gcry_ac_key_test (gcry_ac_handle_t handle,
-			       gcry_ac_key_t key);
-
-/* Return the number of bits of the key KEY in NBITS.  */
-gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
-				    gcry_ac_key_t key,
-				    unsigned int *nbits);
-
-/* Write the 20 byte long key grip of the key KEY to KEY_GRIP.  */
-gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t handle,
-				   gcry_ac_key_t key,
-				   unsigned char *key_grip);
-
-/* Destroy a key.  */
-void gcry_ac_key_destroy (gcry_ac_key_t key);
-
-/* Destroy a key pair.  */
-void gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair);
-
-/* Encrypt the plain text MPI value DATA_PLAIN with the key KEY under
-   the control of the flags FLAGS and store the resulting data set
-   into DATA_ENCRYPTED.  */
-gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t handle,
-				  unsigned int flags,
-				  gcry_ac_key_t key,
-				  gcry_mpi_t data_plain,
-				  gcry_ac_data_t *data_encrypted);
-
-/* Decrypt the decrypted data contained in the data set DATA_ENCRYPTED
-   with the key KEY under the control of the flags FLAGS and store the
-   resulting plain text MPI value in DATA_PLAIN.  */
-gcry_error_t gcry_ac_data_decrypt (gcry_ac_handle_t handle,
-				  unsigned int flags,
-				  gcry_ac_key_t key,
-				  gcry_mpi_t *data_plain,
-				  gcry_ac_data_t data_encrypted);
-
-/* Sign the data contained in DATA with the key KEY and store the
-   resulting signature in the data set DATA_SIGNATURE.  */
-gcry_error_t gcry_ac_data_sign (gcry_ac_handle_t handle,
-			       gcry_ac_key_t key,
-			       gcry_mpi_t data,
-			       gcry_ac_data_t *data_signature);
-
-/* Verify that the signature contained in the data set DATA_SIGNATURE
-   is indeed the result of signing the data contained in DATA with the
-   secret key belonging to the public key KEY.  */
-gcry_error_t gcry_ac_data_verify (gcry_ac_handle_t handle,
-				 gcry_ac_key_t key,
-				 gcry_mpi_t data,
-				 gcry_ac_data_t data_signature);
-
-/* Store the textual representation of the algorithm whose id is given
-   in ALGORITHM in NAME.  */
-gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm,
-				const char **name);
-
-/* Store the numeric ID of the algorithm whose textual representation
-   is contained in NAME in ALGORITHM.  */
-gcry_error_t gcry_ac_name_to_id (const char *name,
-				gcry_ac_id_t *algorithm);
-
-/* Get a list consisting of the IDs of the loaded pubkey modules.  If
-   LIST is zero, write the number of loaded pubkey modules to
-   LIST_LENGTH and return.  If LIST is non-zero, the first
-   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
-   according size.  In case there are less pubkey modules than
-   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
-gcry_error_t gcry_ac_list (int *list, int *list_length);
-
 
 
 /************************************
@@ -1170,6 +987,257 @@ gcry_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
    than *LIST_LENGTH, *LIST_LENGTH is updated to the correct
    number.  */
 gcry_error_t gcry_md_list (int *list, int *list_length);
+
+
+
+/* Alternative interface for asymetric cryptography.  */
+
+/* The algorithm IDs. */
+typedef enum gcry_ac_id
+  {
+    GCRY_AC_RSA = 1,
+    GCRY_AC_DSA = 17,
+    GCRY_AC_ELG = 20,
+    GCRY_AC_ELG_E = 16,
+  }
+gcry_ac_id_t;
+
+/* Key types.  */
+typedef enum gcry_ac_key_type
+  {
+    GCRY_AC_KEY_SECRET,
+    GCRY_AC_KEY_PUBLIC,
+  }
+gcry_ac_key_type_t;
+
+typedef enum gcry_ac_em
+  {
+    GCRY_AC_EME_PKCS_V1_5,
+    GCRY_AC_EMSA_PKCS_V1_5,
+  }
+gcry_ac_em_t;
+
+typedef enum gcry_ac_scheme
+  {
+    GCRY_AC_ES_PKCS_V1_5,
+    GCRY_AC_SSA_PKCS_V1_5,
+  }
+gcry_ac_scheme_t;
+
+/* Flags for data. */
+#define GCRY_AC_FLAG_DATA_NO_BLINDING (1 << 0)
+
+/* This type represents a `data set'.  */
+typedef struct gcry_ac_data *gcry_ac_data_t;
+
+/* This type represents a single `key', either a secret one or a
+   public one.  */
+typedef struct gcry_ac_key *gcry_ac_key_t;
+
+/* This type represents a `key pair' containing a secret and a public
+   key.  */
+typedef struct gcry_ac_key_pair *gcry_ac_key_pair_t;
+
+/* This type represents a `handle' that is needed by functions
+   performing cryptographic operations.  */
+typedef struct gcry_ac_handle *gcry_ac_handle_t;
+
+/* The caller of gcry_ac_key_pair_generate can provide one of these
+   structures in order to influence the key generation process in an
+   algorithm-specific way.  */
+typedef struct gcry_ac_key_spec_rsa
+{
+  unsigned long int e; 		/* E to use.  */
+} gcry_ac_key_spec_rsa_t;
+
+/* Returns a new, empty data set in DATA.  */
+gcry_error_t gcry_ac_data_new (gcry_ac_data_t *data);
+
+/* Destroy the data set DATA.  */
+void gcry_ac_data_destroy (gcry_ac_data_t data);
+
+/* Add the value MPI to DATA with the label NAME.  If there is already
+   a value with that label, replace it, otherwise add it.  */
+gcry_error_t gcry_ac_data_set (gcry_ac_data_t data,
+			      const char *name,
+			      gcry_mpi_t mpi);
+
+/* Create a copy of the data set DATA and store it in DATA_CP.  */
+gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *data_cp,
+			       gcry_ac_data_t data);
+
+/* Return the number of named MPI values inside of the data set
+   DATA.  */
+unsigned int gcry_ac_data_length (gcry_ac_data_t data);
+
+/* Store the value labelled with NAME found in DATA in MPI or NULL if
+   a value with that label was not found.  */
+gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
+				    gcry_mpi_t *mpi);
+
+/* Return the MPI value with index IDX contained in the data set
+   DATA.  */
+gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int idx,
+				    const char **name, gcry_mpi_t *mpi);
+
+/* Destroy any values contained in the data set DATA.  */
+void gcry_ac_data_clear (gcry_ac_data_t data);
+
+/* Create a new ac handle.  */
+gcry_error_t gcry_ac_open (gcry_ac_handle_t *handle,
+			  gcry_ac_id_t algorithm,
+			  unsigned int flags);
+
+/* Destroy an ac handle.  */
+void gcry_ac_close (gcry_ac_handle_t handle);
+
+/* Initialize a key from a given data set.  */
+gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key,
+			      gcry_ac_handle_t handle,
+			      gcry_ac_key_type_t type,
+			      gcry_ac_data_t data);
+
+/* Generate a new key pair.  */
+gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
+					unsigned int nbits,
+					void *spec,
+					gcry_ac_key_pair_t *key_pair);
+
+/* Generate a new key pair, while returning certain MPI values that
+   were created during the generation process.  */
+gcry_error_t gcry_ac_key_pair_generate_ext (gcry_ac_handle_t handle,
+					    unsigned int nbits,
+					    void *spec,
+					    gcry_ac_key_pair_t *key_pair,
+					    gcry_mpi_t **misc_data);
+
+/* Returns a specified key from a key pair.  */
+gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
+					gcry_ac_key_type_t which);
+
+/* Returns the data set contained in the key KEY.  */
+gcry_ac_data_t gcry_ac_key_data_get (gcry_ac_key_t key);
+
+/* Verify that the key KEY is sane.  */
+gcry_error_t gcry_ac_key_test (gcry_ac_handle_t handle,
+			       gcry_ac_key_t key);
+
+/* Return the number of bits of the key KEY in NBITS.  */
+gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
+				    gcry_ac_key_t key,
+				    unsigned int *nbits);
+
+/* Write the 20 byte long key grip of the key KEY to KEY_GRIP.  */
+gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t handle,
+				   gcry_ac_key_t key,
+				   unsigned char *key_grip);
+
+/* Destroy a key.  */
+void gcry_ac_key_destroy (gcry_ac_key_t key);
+
+/* Destroy a key pair.  */
+void gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair);
+
+
+typedef struct gcry_ac_eme_pkcs_v1_5
+{
+  gcry_ac_handle_t handle;
+  gcry_ac_key_t key;
+} gcry_ac_eme_pkcs_v1_5_t;
+
+typedef struct gcry_ac_emsa_pkcs_v1_5
+{
+  enum gcry_md_algos md;
+  size_t em_n;
+} gcry_ac_emsa_pkcs_v1_5_t;
+
+gcry_error_t gcry_ac_data_encode (gcry_ac_em_t method,
+				  unsigned int flags, void *options,
+				  unsigned char *m, size_t m_n,
+				  unsigned char **em, size_t *em_n);
+
+gcry_error_t gcry_ac_data_decode (gcry_ac_em_t method,
+				  unsigned int flags, void *options,
+				  unsigned char *em, size_t em_n,
+				  unsigned char **m, size_t *m_n);
+
+/* Encrypt the plain text MPI value DATA_PLAIN with the key KEY under
+   the control of the flags FLAGS and store the resulting data set
+   into DATA_ENCRYPTED.  */
+gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t handle,
+				  unsigned int flags,
+				  gcry_ac_key_t key,
+				  gcry_mpi_t data_plain,
+				  gcry_ac_data_t *data_encrypted);
+
+/* Decrypt the decrypted data contained in the data set DATA_ENCRYPTED
+   with the key KEY under the control of the flags FLAGS and store the
+   resulting plain text MPI value in DATA_PLAIN.  */
+gcry_error_t gcry_ac_data_decrypt (gcry_ac_handle_t handle,
+				  unsigned int flags,
+				  gcry_ac_key_t key,
+				  gcry_mpi_t *data_plain,
+				  gcry_ac_data_t data_encrypted);
+
+gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
+					  gcry_ac_scheme_t scheme,
+					  unsigned int flags, void *opts,
+					  gcry_ac_key_t key_public,
+					  unsigned char *m, size_t m_n,
+					  unsigned char **c, size_t *c_n);
+
+gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
+					  gcry_ac_scheme_t scheme,
+					  unsigned int flags, void *opts,
+					  gcry_ac_key_t key_secret,
+					  unsigned char *c, size_t c_n,
+					  unsigned char **m, size_t *m_n);
+
+gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme,
+				       unsigned int flags, void *opts, gcry_ac_key_t key_secret,
+				       unsigned char *m, size_t m_n, unsigned char **s, size_t *s_n);
+
+gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle, gcry_ac_scheme_t scheme,
+					 unsigned int flags, void *opts, gcry_ac_key_t key_public,
+					 unsigned char *m, size_t m_n, unsigned char *s, size_t s_n);
+
+typedef struct gcry_ac_ssa_pkcs_v1_5
+{
+  enum gcry_md_algos md;
+} gcry_ac_ssa_pkcs_v1_5_t;
+
+/* Sign the data contained in DATA with the key KEY and store the
+   resulting signature in the data set DATA_SIGNATURE.  */
+gcry_error_t gcry_ac_data_sign (gcry_ac_handle_t handle,
+			       gcry_ac_key_t key,
+			       gcry_mpi_t data,
+			       gcry_ac_data_t *data_signature);
+
+/* Verify that the signature contained in the data set DATA_SIGNATURE
+   is indeed the result of signing the data contained in DATA with the
+   secret key belonging to the public key KEY.  */
+gcry_error_t gcry_ac_data_verify (gcry_ac_handle_t handle,
+				 gcry_ac_key_t key,
+				 gcry_mpi_t data,
+				 gcry_ac_data_t data_signature);
+
+/* Store the textual representation of the algorithm whose id is given
+   in ALGORITHM in NAME.  */
+gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm,
+				const char **name);
+
+/* Store the numeric ID of the algorithm whose textual representation
+   is contained in NAME in ALGORITHM.  */
+gcry_error_t gcry_ac_name_to_id (const char *name,
+				gcry_ac_id_t *algorithm);
+
+/* Get a list consisting of the IDs of the loaded pubkey modules.  If
+   LIST is zero, write the number of loaded pubkey modules to
+   LIST_LENGTH and return.  If LIST is non-zero, the first
+   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
+   according size.  In case there are less pubkey modules than
+   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
+gcry_error_t gcry_ac_list (int *list, int *list_length);
 
 
 /************************************
