@@ -647,7 +647,6 @@ check_digests ()
       "\xb7\x04\xce" },
     { GCRY_MD_CRC24_RFC2440, "foo",
       "\x4f\xc2\x55" },
-#if 0
     { GCRY_MD_TIGER, "",
       "\x24\xF0\x13\x0C\x63\xAC\x93\x32\x16\x16\x6E\x76"
       "\xB1\xBB\x92\x5F\xF3\x73\xDE\x2D\x49\x58\x4E\x7A" },
@@ -663,7 +662,9 @@ check_digests ()
       "\x10\xE6\xDF\x9E\xB5\x86\x44\x50\x34\xA5\xA3\x86" },
     { GCRY_MD_TIGER, "ABCDEFGHIJKLMNOPQRSTUVWXYZ=abcdef"
       "ghijklmnopqrstuvwxyz+0123456789",
-      "467DB80863EBCE488DF1CD1261655DE957896565975F9197" },
+      "\x46\x7D\xB8\x08\x63\xEB\xCE\x48\x8D\xF1\xCD\x12"
+      "\x61\x65\x5D\xE9\x57\x89\x65\x65\x97\x5F\x91\x97" },
+#if 0
     { GCRY_MD_TIGER, "Tiger - A Fast New Hash Function, "
       "by Ross Anderson and Eli Biham",
       "0C410A042968868A1671DA5A3FD29A725EC1E457D3CDB303" },

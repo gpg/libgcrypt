@@ -1,3 +1,10 @@
+2003-04-27  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c: Changed the sample private key to contain the
+	identifier `openpgp-rsa' instead of `rsa'.
+
+	* basic.c (check_digests): Enabled/fixed some tests for TIGER.
+
 2003-04-17  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am (TESTS): Removed `register' for now.

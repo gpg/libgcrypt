@@ -30,7 +30,7 @@
 
 static const char sample_private_key_1[] =
 "(private-key\n"
-" (rsa\n"
+" (openpgp-rsa\n"
 "  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
       "2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
       "ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
