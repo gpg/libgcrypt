@@ -1,3 +1,9 @@
+2005-03-23  Werner Koch  <wk@g10code.com>
+
+	* rndw32.c (_gcry_rndw32_gather_random_fast): While adding data
+	use the size of the object and not the one of its address.  Bug
+	reported by Sascha Kiefer.
+
 2005-03-19  Moritz Schulte  <moritz@g10code.com>
 
 	* cipher.c (do_cbc_encrypt): Be careful to not overwrite data,
@@ -2837,7 +2843,7 @@ Mon Feb 16 10:08:47 1998  Werner Koch  (wk@isil.d.shuttle.de)
 	(digest_algo_to_string): New.
 
 
- Copyright 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
+ Copyright 1998,1999,2000,2001,2002,2003,2005 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

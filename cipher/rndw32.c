@@ -635,13 +635,14 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t, int),
 	(*add) ( &kernelTime, sizeof (kernelTime), requester );
 	(*add) ( &userTime, sizeof (userTime), requester );
 
-	/* Get the minimum and maximum working set size for the current process */
+	/* Get the minimum and maximum working set size for the
+           current process */
 	GetProcessWorkingSetSize (handle, &minimumWorkingSetSize,
 					  &maximumWorkingSetSize);
 	(*add) ( &minimumWorkingSetSize,
-				   sizeof (&minimumWorkingSetSize), requester );
+				   sizeof (minimumWorkingSetSize), requester );
 	(*add) ( &maximumWorkingSetSize,
-				   sizeof (&maximumWorkingSetSize), requester );
+				   sizeof (maximumWorkingSetSize), requester );
     }
 
 
@@ -669,7 +670,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t, int),
 	if (QueryPerformanceCounter (&performanceCount)) {
 	    if ( debug_me )
 		log_debug ("rndw32#gather_random_fast: perf data\n");
-	    (*add) (&performanceCount, sizeof (&performanceCount), requester);
+	    (*add) (&performanceCount, sizeof (performanceCount), requester);
 	}
 	else { /* Millisecond accuracy at best... */
 	    DWORD aword = GetTickCount ();
