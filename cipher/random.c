@@ -55,6 +55,7 @@
 #include "random.h"
 #include "rand-internal.h"
 #include "dynload.h"
+#include "cipher.h" /* only used for the rmd160_hash_buffer() prototype */
 
 
 #ifndef RAND_MAX   /* for SunOS */
@@ -97,6 +98,9 @@ static int just_mixed;
 static int did_initial_extra_seeding;
 static char *seed_file_name;
 static int allow_seed_file_update;
+
+static unsigned char failsafe_digest[DIGESTLEN];
+static int failsafe_digest_valid;
 
 static int secure_alloc;
 static int quick_test;
@@ -250,8 +254,38 @@ gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level )
 }
 
 
-/****************
- * Mix the pool
+/*
+   Mix the pool:
+
+   |........blocks*20byte........|20byte|..44byte..|
+   <..44byte..>           <20byte> 
+        |                    |
+        |                    +------+
+        +---------------------------|----------+
+                                    v          v
+   |........blocks*20byte........|20byte|..44byte..|
+                                 <.....64bytes.....>   
+                                         |
+      +----------------------------------+
+     Hash
+      v
+   |.............................|20byte|..44byte..|
+   <20byte><20byte><..44byte..>
+      |                |
+      |                +---------------------+
+      +-----------------------------+        |
+                                    v        v
+   |.............................|20byte|..44byte..|
+                                 <.....64byte......>
+                                        |
+              +-------------------------+
+             Hash
+              v
+   |.............................|20byte|..44byte..|
+   <20byte><20byte><..44byte..>
+
+   and so on until we did this for all blocks. 
+
  */
 static void
 mix_pool(byte *pool)
@@ -271,6 +305,11 @@ mix_pool(byte *pool)
     memcpy(hashbuf+DIGESTLEN, pool, BLOCKLEN-DIGESTLEN);
     _gcry_rmd160_mixblock( &md, hashbuf);
     memcpy(pool, hashbuf, 20 );
+    if (failsafe_digest_valid && (char *)pool == rndpool)
+      {
+        for (i=0; i < 20; i++)
+          pool[i] ^= failsafe_digest[i];
+      }
 
     p = pool;
     for( n=1; n < POOLBLOCKS; n++ ) {
@@ -291,7 +330,16 @@ mix_pool(byte *pool)
 	_gcry_rmd160_mixblock( &md, hashbuf);
 	memcpy(p, hashbuf, 20 );
     }
-    burn_stack (200); /* for the rmd160_mixblock() */
+    /* Hmmm: our hash implementation does only leave small parts (64
+       bytes) of the pool on the stack, so I thnik it ios okay not to
+       require secure memory here.  Before we use this pool, it gets
+       copied to the help buffer anyway. */
+    if ( (char*)pool == rndpool)
+      {
+        _gcry_rmd160_hash_buffer (failsafe_digest, pool, POOLSIZE);
+        failsafe_digest_valid = 1;
+      }
+    burn_stack (384); /* for the rmd160_mixblock(), rmd160_hash_buffer */
 }
 
 void
@@ -539,7 +587,7 @@ add_randomness( const void *buffer, size_t length, int source )
     rndstats.addbytes += length;
     rndstats.naddbytes++;
     while( length-- ) {
-	rndpool[pool_writepos++] = *p++;
+	rndpool[pool_writepos++] ^= *p++;
 	if( pool_writepos >= POOLSIZE ) {
 	    if( source > 1 )
 		pool_filled = 1;
