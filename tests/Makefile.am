@@ -25,8 +25,6 @@ TESTS = register ac basic tsexp keygen pubkey
 
 EXTRA_DIST = 
 
-LIBS = -lpthread
-
 INCLUDES = -I$(top_srcdir)/src
 LDADD = ../src/libgcrypt.la
 

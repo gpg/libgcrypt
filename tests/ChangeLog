@@ -1,5 +1,7 @@
 2003-07-08  Moritz Schulte  <moritz@g10code.com>
 
+	* Makefile.am (LIBS): Remove: -lpthread.
+
 	* basic.c (check_one_cipher): Fix variable initialization.  Thanks
 	to Simon Joseffson <jas@extundo.com>.
 
