@@ -1,3 +1,37 @@
+2004-08-09  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (gcry_pk_sign): Fixed memory leak; fix provided by
+	Modestas Vainius.
+
+2004-07-16  Werner Koch  <wk@gnupg.org>
+
+	* rijndael.c (do_encrypt): Fix alignment problem.  Bugs found by
+	Matthias Urlichs.
+	(do_decrypt): Ditto.
+	(keySched, keySched2): Use 2 macros along with unions in the key
+	schedule context.
+
+2004-07-14  Moritz Schulte  <moritz@g10code.com>
+
+	* rsa.c (_gcry_rsa_decrypt): Don't forget to free "a".  Thanks to
+	Nikos Mavroyanopoulos.
+
+2004-05-09  Werner Koch  <wk@gnupg.org>
+
+	* random.c (read_pool): Mix the PID in to better protect after a
+	fork.
+
+2004-07-04  Moritz Schulte  <moritz@g10code.com>
+
+	* serpent.c: Use "u32_t" instead of "unsigned long", do not
+	declare S-Box variables as "register".  Fixes failure on
+	OpenBSD/sparc64, reported by Nikolay Sturm.
+
+2004-05-07  Moritz Schulte  <moritz@g10code.de>
+
+	* ac.c (gcry_ac_open): Do not dereference NULL pointer.  Reported
+	by Umberto Salsi.
+
 2004-02-20  Werner Koch  <wk@gnupg.org>
 
 	* primegen.c (check_prime): New args CB_FUNC and CB_ARG; call them

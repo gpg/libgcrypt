@@ -1665,7 +1665,10 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
     mpi_free (hash);
 
   if (result)
-    gcry_free (result);
+    {
+      release_mpi_array (result);
+      gcry_free (result);
+    }
 
   return gcry_error (rc);
 }
