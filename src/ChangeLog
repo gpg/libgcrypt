@@ -1,3 +1,8 @@
+2003-11-14  Werner Koch  <wk@gnupg.org>
+
+	* global.c (gcry_strdup): Don't copy the string after a malloc
+	error.
+
 2003-11-11  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (sexp_sscan): Implemented "%b" format specifier.

@@ -494,7 +494,8 @@ gcry_calloc_secure (size_t n, size_t m)
   size_t bytes;
   void *p;
 
-  bytes = n * m; /* size_t is unsigned so the behavior on overflow is defined. */
+  bytes = n * m; /* size_t is unsigned so the behavior on overflow is
+                    defined. */
   if (m && bytes / m != n) 
     {
       errno = ENOMEM;
@@ -512,7 +513,8 @@ char *
 gcry_strdup( const char *string )
 {
     void *p = gcry_malloc( strlen(string)+1 );
-    strcpy( p, string );
+    if (p)
+      strcpy (p, string);
     return p;
 }
 
