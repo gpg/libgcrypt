@@ -688,8 +688,7 @@ gcry_ac_open (gcry_ac_handle_t *handle,
   if (! *algorithm_name)
     err = GPG_ERR_PUBKEY_ALGO;
 
-  if (! err)
-    /* Acquire reference to the pubkey module.  */
+  if (! err)  /* Acquire reference to the pubkey module.  */
     err = _gcry_pk_module_lookup (algorithm, &module);
   
   if (! err)

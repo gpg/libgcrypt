@@ -4,7 +4,16 @@
 
 2003-10-27  Werner Koch  <wk@gnupg.org>
 
-	Prefixed all (pubkey,digest,cipher}_spec_* globale varaibles with
+	* random.c (gcry_random_add_bytes): Return if buflen is zero to
+	avoid gcc warning about unsed parameter.
+	(MASK_LEVEL): Simplified; does not work for signed and unsigned
+	w/o warnings.
+
+	* md.c (md_start_debug): Removed the const from SUFFIX, because
+	this function is called from the control fucntion which does not
+	require const.
+
+	Prefixed all (pubkey,digest,cipher}_spec_* globale variables with
 	_gcry_.
 
 	* ac.c (ac_key_identifiers): Made static.

@@ -52,7 +52,7 @@ static struct pubkey_table_entry
 #if USE_DSA
     { &_gcry_pubkey_spec_dsa, GCRY_PK_DSA },
 #endif
-    { NULL },
+    { NULL, 0 },
   };
 
 /* List of registered ciphers.  */

@@ -86,7 +86,7 @@
 
 
 static int is_initialized;
-#define MASK_LEVEL(a) do {if( a > 2 ) a = 2; else if( a < 0 ) a = 0; } while(0)
+#define MASK_LEVEL(a) do { (a) &= 3; } while(0)
 static char *rndpool;	/* allocated size is POOLSIZE+BLOCKLEN */
 static char *keypool;	/* allocated size is POOLSIZE+BLOCKLEN */
 static size_t pool_readpos;
@@ -288,10 +288,9 @@ gcry_random_add_bytes (const void * buf, size_t buflen, int quality)
 
   if (!buf || quality < -1 || quality > 100)
     err = GPG_ERR_INV_ARG;
-  /* FIXME */
-#if 0
   if (!buflen)
     return 0; /* Shortcut this dummy case. */
+#if 0
   /* Before we actuall enbale this code, we need to lock the pool,
      have a look at the quality and find a way to add them without
      disturbing the real entropy (we have estimated). */
@@ -469,7 +468,7 @@ _gcry_set_random_seed_file( const char *name )
  * and return true if this was successful
  */
 static int
-read_seed_file()
+read_seed_file (void)
 {
     int fd;
     struct stat sb;
@@ -520,7 +519,7 @@ read_seed_file()
     } while( n == -1 && errno == EINTR );
     if( n != POOLSIZE ) {
 	log_fatal(_("can't read `%s': %s\n"), seed_file_name,strerror(errno) );
-	close(fd);
+	close(fd);/*NOTREACHED*/
 	return 0;
     }
 
@@ -775,7 +774,7 @@ getfnc_gather_random (void))(void (*)(const void*, size_t, int), int,
 
   log_fatal (_("no entropy gathering module detected\n"));
 
-  return NULL;
+  return NULL; /*NOTREACHED*/
 }
 
 static void (*
