@@ -281,7 +281,7 @@ keys_test (key_secret_t *key_secret, key_public_t *key_public,
   gcry_mpi_randomize (test, qbits, GCRY_WEAK_RANDOM);
 
   do_sign (out1_a, out1_b, test, key_secret);
-  if (! do_verify (out1_a, out1_b, test, key_public))
+  if (do_verify (out1_a, out1_b, test, key_public))
     log_fatal ("DSA:: sign, verify failed\n");
 
   gcry_mpi_release (test);

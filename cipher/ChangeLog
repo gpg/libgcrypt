@@ -1,3 +1,132 @@
+2003-11-23  Moritz Schulte  <mo@g10code.com>
+
+	* md.c (gcry_md_list): Adjust interface, call
+	REGISTER_DEFAULT_DIGESTS.
+
+	* ac.c (gcry_ac_list, _gcry_ac_list, ac_list): Adjust interface.
+	(ac_list): Call AC_INIT.
+
+	* cipher.c (gcry_cipher_list): Adjust interface, call
+	REGISTER_DEFAULT_CIPHERS.
+
+2003-11-02  Moritz Schulte  <mo@g10code.com>
+
+	* rsa.c (decrypt): Use GCRY_AC_FLAG_NO_BLINDING instead of
+	GCRY_AC_FLAG_DATA_NO_BLINDING.
+
+	* primegen.c (prime_generate_internal): Initialize prime.
+
+2003-11-01  Moritz Schulte  <mo@g10code.com>
+
+	* pubkey.c (sexp_extract_std): Adjust to new ac interface.
+	(gcry_pk_genkey): Use _gcry_ac_key_pair_generate instead of
+	_gcry_ac_key_pair_generate_ext.
+
+	* ac.c (gcry_ac_key_pair_generate_ext): Removed function.
+	(gcry_ac_key_pair_generate): New argument: misc_data.
+	(gcry_ac_key_pair_extract): Renamed to ...
+	(ac_key_pair_extract): ... this.
+	(_gcry_ac_key_pair_extract, gcry_ac_key_pair_extract): New functions.
+	(ac_data_clear): Release values, if necessary.
+
+	* pubkey.c: Removed wrapper macros, used internal ac functions
+	instead of the public ones.
+
+	* ac.c (gcry_ac_open): Renamed to ...
+	(ac_open): ... this, declared static.
+	(_gcry_ac_open, gcry_ac_open): New function.
+	(gcry_ac_close): Renamed to ...
+	(ac_close): ... this, declared static.
+	(_gcry_ac_close, gcry_ac_close): New function.
+	(gcry_ac_key_init): Renamed to ...
+	(ac_key_init): ... this, declared static.
+	(key_pair_generate): Renamed to ...
+	(ac_key_pair_generate): ... this.
+	(gcry_ac_id_to_name): Renamed to ...
+	(ac_id_to_name): ... this, declared static, changed return type.
+	(_gcry_ac_id_to_name, gcry_ac_id_to_name): New functions.
+	(gcry_ac_name_to_id): Renamed to ...
+	(ac_name_to_id): ... this, declared static, changed return type.
+	(_gcry_ac_name_to_id, ac_name_to_id): New functions.
+	(gcry_ac_list): Renamed to ...
+	(ac_list): ... this, declared static, changed return type.
+	(_gcry_ac_elements_amount_get): Rewritten.
+	(_gcry_ac_data_encode): New function.
+	(gcry_ac_data_encode): Rewritten.
+	(_gcry_ac_mpi_to_os): Renamed to ...
+	(ac_mpi_to_os): ... this, declared static.
+	(_gcry_ac_mpi_to_os): New function.
+	(_gcry_ac_mpi_to_os_alloc): Don't declare static.
+	(_gcry_ac_os_to_mpi): Renamed to ...
+	(ac_os_to_mpi): ... this, declared static.
+	(_gcry_ac_os_to_mpi): New function.
+	(gcry_ac_data_encrypt_scheme): Renamed to ...
+	(ac_data_encrypt_scheme): ... this, declared static, changed return type.
+	(_gcry_ac_data_encrypt_scheme, gcry_ac_data_encrypt_scheme): New functions.
+	(gcry_ac_data_decrypt_scheme): Renamed to ...
+	(ac_data_decrypt_scheme): ... this, declared static, changed return type.
+	(_gcry_ac_data_decrypt_scheme, gcry_ac_data_decrypt_scheme): New functions.
+	(gcry_ac_data_sign_scheme): Renamed to ...
+	(ac_data_sign_scheme): ... this, declared static, changed return type.
+	(_gcry_ac_data_sign_scheme, gcry_ac_data_sign_scheme): New functions.
+	(gcry_ac_data_verify_scheme): Renamed to ...
+	(ac_data_verify_scheme): ... this, declared static, changed return type.
+	(_gcry_ac_data_verify_scheme, gcry_ac_data_verify_scheme): New functions.
+	(AC_MOD_SPEC): New macro, use it.
+	(anon_struct_from_data_set): Renamed to ...
+	(ac_anon_struct_from_data_set): ... this.
+	(anon_struct_create): Renamed to ...
+	(ac_anon_struct_create): ... this.
+	(anon_struct_to_data_set): Renamed to ...
+	(ac_anon_struct_to_data_set): ... this.
+	(anon_struct_destroy): Renamed to ...
+	(ac_anon_struct_destroy): ... this.
+
+2003-10-31  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c (gcry_ac_key_generate_specs): Removed.
+
+2003-10-29  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c (data_set): Slightly rewritten.
+	(_gcry_ac_data_destroy): Renamed to ...
+	(data_destroy): ... this.
+	(gcry_ac_data_copy_internal): Renamed to ...
+	(data_copy): ... this, slightly changed.
+	(_gcry_ac_data_get_name): Renamed to ...
+	(data_get_name): ... this, declared static, new argument: flags.
+	(anon_struct_destroy): New function.
+	(key_pair_generate): Use anon_struct_destroy.
+	(gcry_ac_key_destroy): Rename to ...
+	(key_destroy): this, data_destroy, declare static.
+	(gcry_ac_key_pair_destroy): Use key_destroy, rename to ...
+	(key_pair_destroy): ... this, declare static.
+	(gcry_ac_key_data_get): Rename to ...
+	(_gcry_ac_key_data_get): ... this.
+	(gcry_ac_key_data_get): New function.
+	(gcry_ac_key_test): Rename to ...
+	(key_test): ... this, declare static, change return type.
+	(_gcry_ac_key_test, gcry_ac_key_test): New functions.
+	(_gcry_ac_key_get_nbits): Rename to ...
+	(key_get_nbits): ... this, declare static.
+	(_gcry_ac_key_get_nbits): New function.
+	(_gcry_ac_key_get_grip_std): Rename to ...
+	(gcry_ac_key_get_grip): Rename to ... 
+	(key_get_grip): ... this, declare static, change return type.
+	(_gcry_ac_key_get_grip, gcry_ac_key_get_grip): New functions.
+	(_gcry_ac_data_encrypt): Rename to ...
+	(data_encrypt): ... this, declare static.
+	(_gcry_ac_data_encrypt): New function.
+	(_gcry_ac_data_decrypt): Rename to ...
+	(data_decrypt): ... this, delcare static.
+	(_gcry_ac_data_decrypt): New function.
+	(_gcry_ac_data_sign): Rename to ...
+	(data_sign): ...this, declare static.
+	(_gcry_ac_data_sign): New function.
+	(_gcry_ac_data_verify): Rename to ...
+	(data_verify): ... this, declare static.
+	(_gcry_ac_data_verify): New function.
+
 2003-10-28  Moritz Schulte  <mo@g10code.com>
 
 	* ac.c (ac_scheme_get): Return a pointer to the scheme structure,
@@ -7,6 +136,17 @@
 	(gcry_ac_data_sign_scheme): Likewise.
 	(gcry_ac_data_verify_scheme): Likewise.
 	Use new error codes.
+	(anon_struct_from_data_set): Do not deallocate mpis on error that
+	are no copies.
+	(gcry_ac_data_get_name): Return a copy of the mpi to the user.
+	(_gcry_ac_data_set): Do not create copies of name and mpi.
+	(gcry_ac_data_set): Create copies of name and mpi.
+	(_gcry_ac_data_new): Renamed to ...
+	(data_new): ... this, changed callers.
+	(_gcry_ac_data_set): Renamed to ...
+	(data_set): ... this, changed callers, new argument: flags.
+	(data_search): Removed.
+	(gcry_ac_data_add): Removed.
 
 	* rsa.c: Use GCRY_AC_FLAG_DATA_NO_BLINDING instead of
 	PUBKEY_FLAG_NO_BLINDING.
