@@ -2,13 +2,13 @@
 # Run this to generate all the initial makefiles, etc.
 
 PGM=GnuPG
-DIE=no
 
 autoconf_vers=2.52
 automake_vers=1.4
 aclocal_vers=1.4
 libtool_vers=1.3
 
+DIE=no
 if test "$1" = "--build-w32"; then
     tsdir=$(cd `dirname $0`; cd ..; pwd)
     shift
