@@ -1013,6 +1013,13 @@ gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
   gcry_free (key_pair);
 }
 
+/* Returns the data set contained in the key KEY.  */
+gcry_ac_data_t
+gcry_ac_key_data_get (gcry_ac_key_t key)
+{
+  return  key->data;
+}
+
 /* Verifies that the key KEY is sane.  */
 gcry_error_t
 gcry_ac_key_test (gcry_ac_key_t key)

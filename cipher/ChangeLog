@@ -1,3 +1,65 @@
+2003-07-21  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (gcry_pk_lookup_func_name): Use new member name
+	`aliases' instead of `sexp_names'.
+
+	* ac.c (gcry_ac_key_data_get): New function.
+
+	* cipher.c (gcry_cipher_lookup_func_name): Fix return value.
+
+2003-07-20  Moritz Schulte  <moritz@g10code.com>
+
+	* blowfish.c: Adjusted for new gcry_cipher_spec_t structure.
+	* cast5.c: Likewise.
+	* twofish.c: Likewise.
+	* arcfour.c: Likewise.
+	* rijndael.c (rijndael_oids, rijndael192_oids, rijndael256_oids):
+	New variables, adjust for new gcry_cipher_spec_t structure.
+	* des.c (oids_tripledes): New variable, adjust for new
+	gcry_cipher_spec_t structure.
+
+	* md.c (oid_table): Removed.
+
+	* tiger.c (oid_spec_tiger): New variable.
+	(digest_spec_tiger): Adjusted for new gry_md_spec_t structure.
+
+	* sha512.c (oid_spec_sha512): New variable.
+	(digest_spec_sha512): Adjusted for new gry_md_spec_t structure.
+
+	* sha512.c (oid_spec_sha384): New variable.
+	(digest_spec_sha384): Adjusted for new gry_md_spec_t structure.
+
+	* sha256.c (oid_spec_sha256): New variable.
+	(digest_spec_sha256): Adjusted for new gry_md_spec_t structure.
+
+	* sha1.c (oid_spec_sha1): New variable.
+	(digest_spec_sha1): Adjusted for new gry_md_spec_t structure.
+
+	* rmd160.c (oid_spec_rmd160): New variable.
+	(digest_spec_rnd160): Adjusted for new gry_md_spec_t structure.
+
+	* md5.c (oid_spec_md5): New variable.
+	(digest_spec_md5): Adjusted for new gry_md_spec_t structure.
+
+	* md4.c (oid_spec_md4): New variable.
+	(digest_spec_md4): Adjusted for new gry_md_spec_t structure.
+
+	* crc.c (digest_spec_crc32, digest_spec_crc32_rfc1510,
+	digest_spec_crc32_rfc2440): Adjusted for new gry_md_spec_t
+	structure.
+
+2003-07-19  Moritz Schulte  <moritz@g10code.com>
+
+	* md.c (gcry_md_lookup_func_oid): New function.
+	(search_oid): New function, copied from cipher.c.
+	(gcry_md_map_name): Adjust for new search_oid_interface.
+
+	* cipher.c (oid_table): Removed table.
+	(gcry_cipher_lookup_func_oid): New function.
+	(search_oid): Rewritten to use the module functions.
+	(gcry_cipher_map_name): Adjust for new search_oid interface.
+	(gcry_cipher_mode_from_oid): Likewise.
+
 2003-07-18  Werner Koch  <wk@gnupg.org>
 
 	* md.c (gcry_md_hash_buffer): Convert ERR to gpg_error_t in

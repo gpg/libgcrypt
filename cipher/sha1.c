@@ -319,9 +319,22 @@ static byte asn[15] = /* Object ID is 1.3.14.3.2.26 */
   { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03,
     0x02, 0x1a, 0x05, 0x00, 0x04, 0x14 };
 
+static gcry_md_oid_spec_t oid_spec_sha1[] =
+  {
+    /* iso.member-body.us.rsadsi.pkcs.pkcs-1.5 (sha1WithRSAEncryption) */
+    { "1.2.840.113549.1.1.5" },
+    /* iso.member-body.us.x9-57.x9cm.3 (dsaWithSha1)*/
+    { "1.2.840.10040.4.3" },
+    /* from NIST's OIW  (sha1) */
+    { "1.3.14.3.2.26" },
+    /* from NIST OIW (sha-1WithRSAEncryption) */
+    { "1.3.14.3.2.29" },
+    { NULL },
+  };
+
 gcry_md_spec_t digest_spec_sha1 =
   {
-    "SHA1", asn, DIM (asn), 20,
+    "SHA1", asn, DIM (asn), oid_spec_sha1, 20,
     sha1_init, sha1_write, sha1_final, sha1_read,
     sizeof (SHA1_CONTEXT)
   };

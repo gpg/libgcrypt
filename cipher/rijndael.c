@@ -2137,9 +2137,18 @@ static const char *rijndael_names[] =
     NULL,
   };
 
+static gcry_cipher_oid_spec_t rijndael_oids[] =
+  {
+    { "2.16.840.1.101.3.4.1.1", GCRY_CIPHER_MODE_ECB },
+    { "2.16.840.1.101.3.4.1.2", GCRY_CIPHER_MODE_CBC },
+    { "2.16.840.1.101.3.4.1.3", GCRY_CIPHER_MODE_OFB },
+    { "2.16.840.1.101.3.4.1.4", GCRY_CIPHER_MODE_CFB },
+    { NULL }
+  };
+
 gcry_cipher_spec_t cipher_spec_aes =
   {
-    "AES", rijndael_names, 16, 128, sizeof (RIJNDAEL_context),
+    "AES", rijndael_names, rijndael_oids, 16, 128, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
   };
 
@@ -2149,9 +2158,18 @@ static const char *rijndael192_names[] =
     NULL,
   };
 
+static gcry_cipher_oid_spec_t rijndael192_oids[] =
+  {
+    { "2.16.840.1.101.3.4.1.21", GCRY_CIPHER_MODE_ECB },
+    { "2.16.840.1.101.3.4.1.22", GCRY_CIPHER_MODE_CBC },
+    { "2.16.840.1.101.3.4.1.23", GCRY_CIPHER_MODE_OFB },
+    { "2.16.840.1.101.3.4.1.24", GCRY_CIPHER_MODE_CFB },
+    { NULL }
+  };
+
 gcry_cipher_spec_t cipher_spec_aes192 =
   {
-    "AES192", rijndael192_names, 16, 192, sizeof (RIJNDAEL_context),
+    "AES192", rijndael192_names, rijndael192_oids, 16, 192, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
   };
 
@@ -2161,8 +2179,17 @@ static const char *rijndael256_names[] =
     NULL,
   };
 
+static gcry_cipher_oid_spec_t rijndael256_oids[] =
+  {
+    { "2.16.840.1.101.3.4.1.41", GCRY_CIPHER_MODE_ECB },
+    { "2.16.840.1.101.3.4.1.42", GCRY_CIPHER_MODE_CBC },
+    { "2.16.840.1.101.3.4.1.43", GCRY_CIPHER_MODE_OFB },
+    { "2.16.840.1.101.3.4.1.44", GCRY_CIPHER_MODE_CFB },
+    { NULL }
+  };
+
 gcry_cipher_spec_t cipher_spec_aes256 =
   {
-    "AES256", rijndael256_names, 16, 256, sizeof (RIJNDAEL_context),
+    "AES256", rijndael256_names, rijndael256_oids, 16, 256, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
   };

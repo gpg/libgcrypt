@@ -31,35 +31,6 @@
 
 #include "rmd.h"
 
-static struct {
-  const char *oidstring;
-  int algo;
-} oid_table[] = {
-  /* iso.member-body.us.rsadsi.pkcs.pkcs-1.5 (sha1WithRSAEncryption) */
-  { "1.2.840.113549.1.1.5",  GCRY_MD_SHA1 },
-  /* iso.member-body.us.rsadsi.pkcs.pkcs-1.4 (md5WithRSAEncryption) */
-  { "1.2.840.113549.1.1.4",  GCRY_MD_MD5 },
-  /* iso.member-body.us.x9-57.x9cm.3 (dsaWithSha1)*/
-  { "1.2.840.10040.4.3",     GCRY_MD_SHA1 },
-  /* from NIST's OIW  (sha1) */
-  { "1.3.14.3.2.26",         GCRY_MD_SHA1 },
-  /* rsaSignatureWithripemd160 */
-  { "1.3.36.3.3.1.2",       GCRY_MD_RMD160 },
-  /* RSADSI digestAlgorithm MD5 */
-  { "1.2.840.113549.2.5",   GCRY_MD_MD5 },
-  /* GNU.digestAlgorithm TIGER */
-  { "1.3.6.1.4.1.11591.12.2", GCRY_MD_TIGER },
-  /* iso.member-body.us.rsadsi.digestAlgorithm.md4 */
-  { "1.2.840.113549.2.4", GCRY_MD_MD4 },
-  /* from NIST OIW (sha-1WithRSAEncryption) */
-  { "1.3.14.3.2.29", GCRY_MD_SHA1 },
-  /* According to the OpenPGG draft rfc2440-bis06 */
-  { "2.16.840.1.101.3.4.2.1", GCRY_MD_SHA256 }, 
-  { "2.16.840.1.101.3.4.2.2", GCRY_MD_SHA384 }, 
-  { "2.16.840.1.101.3.4.2.3", GCRY_MD_SHA512 }, 
-  {NULL}
-};
-
 static struct digest_table_entry
 {
   gcry_md_spec_t *digest;
@@ -148,6 +119,22 @@ gcry_md_lookup_func_name (void *spec, void *data)
   return (! stricmp (digest->name, name));
 }
 
+/* Internal callback function.  Used via _gcry_module_lookup.  */
+static int
+gcry_md_lookup_func_oid (void *spec, void *data)
+{
+  gcry_md_spec_t *digest = (gcry_md_spec_t *) spec;
+  char *oid = (char *) data;
+  gcry_md_oid_spec_t *oid_specs = digest->oids;
+  int ret = 0, i;
+
+  for (i = 0; oid_specs[i].oidstring && (! ret); i++)
+    if (! stricmp (oid, oid_specs[i].oidstring))
+      ret = 1;
+
+  return ret;
+}
+
 /* Internal function.  Lookup a digest entry by it's name.  */
 static gcry_module_t 
 gcry_md_lookup_name (const char *name)
@@ -156,6 +143,18 @@ gcry_md_lookup_name (const char *name)
 
   digest = _gcry_module_lookup (digests_registered, (void *) name,
 				gcry_md_lookup_func_name);
+
+  return digest;
+}
+
+/* Internal function.  Lookup a cipher entry by it's oid.  */
+static gcry_module_t
+gcry_md_lookup_oid (const char *oid)
+{
+  gcry_module_t digest;
+
+  digest = _gcry_module_lookup (digests_registered, (void *) oid,
+				gcry_md_lookup_func_oid);
 
   return digest;
 }
@@ -233,6 +232,37 @@ static const byte *md_asn_oid( int algo, size_t *asnlen, size_t *mdlen );
 static void md_start_debug( gcry_md_hd_t a, const char *suffix );
 static void md_stop_debug( gcry_md_hd_t a );
 
+static int 
+search_oid (const char *oid, int *algorithm, gcry_md_oid_spec_t *oid_spec)
+{
+  gcry_module_t module;
+  int ret = 0;
+
+  if (oid && ((! strncmp (oid, "oid.", 4))
+	      || (! strncmp (oid, "OID.", 4))))
+    oid += 4;
+
+  module = gcry_md_lookup_oid (oid);
+  if (module)
+    {
+      gcry_md_spec_t *digest = module->spec;
+      int i;
+
+      for (i = 0; digest->oids[i].oidstring && (! ret); i++)
+	if (! stricmp (oid, digest->oids[i].oidstring))
+	  {
+	    if (algorithm)
+	      *algorithm = module->mod_id;
+	    if (oid_spec)
+	      *oid_spec = digest->oids[i];
+	    ret = 1;
+	  }
+      _gcry_module_release (module);
+    }
+
+  return ret;
+}
+
 /****************
  * Map a string to the digest algo
  */
@@ -240,37 +270,29 @@ int
 gcry_md_map_name (const char *string)
 {
   gcry_module_t digest;
-  int algorithm = 0;
+  int ret, algorithm = 0;
 
-  if (!string)
+  if (! string)
     return 0;
+
+  REGISTER_DEFAULT_DIGESTS;
 
   /* If the string starts with a digit (optionally prefixed with
      either "OID." or "oid."), we first look into our table of ASN.1
      object identifiers to figure out the algorithm */
-  if (digitp (string)
-      || !strncmp (string, "oid.", 4) 
-      || !strncmp (string, "OID.", 4) )
-    {
-      int i;
-      const char *s =  digitp(string)? string : (string+4);
-
-      for (i=0; oid_table[i].oidstring; i++)
-	{
-	  if (!strcmp (s, oid_table[i].oidstring))
-	    return oid_table[i].algo;
-	}
-    }
-
-
-  REGISTER_DEFAULT_DIGESTS;
 
   ath_mutex_lock (&digests_registered_lock);
-  digest = gcry_md_lookup_name (string);
-  if (digest)
+
+  ret = search_oid (string, &algorithm, NULL);
+  if (! ret)
     {
-      algorithm = digest->mod_id;
-      _gcry_module_release (digest);
+      /* Not found, search for an acording diget name.  */
+      digest = gcry_md_lookup_name (string);
+      if (digest)
+	{
+	  algorithm = digest->mod_id;
+	  _gcry_module_release (digest);
+	}
     }
   ath_mutex_unlock (&digests_registered_lock);
 
@@ -1035,8 +1057,10 @@ gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 
     case GCRYCTL_GET_ASNOID:
       {
+	const char unsigned *asn;
 	size_t asnlen;
-	const char *asn = md_asn_oid (algo, &asnlen, NULL);
+
+	asn = md_asn_oid (algo, &asnlen, NULL);
 	if (buffer && (*nbytes >= asnlen))
 	  {
 	    memcpy (buffer, asn, asnlen);

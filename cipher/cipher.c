@@ -34,35 +34,6 @@
 #define CTX_MAGIC_NORMAL 0x24091964
 #define CTX_MAGIC_SECURE 0x46919042
 
-static struct
-{
-  const char *oidstring;
-  int algo;
-  int mode;
-} oid_table[] =
-  {
-    { "1.2.840.113549.3.7",      GCRY_CIPHER_3DES,   GCRY_CIPHER_MODE_CBC },
-
-    /* OIDs from NIST. See http://csrc.nist.gov.csor/ */
-    { "2.16.840.1.101.3.4.1.1",  GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_ECB },
-    { "2.16.840.1.101.3.4.1.2",  GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC },
-    { "2.16.840.1.101.3.4.1.3",  GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_OFB },
-    { "2.16.840.1.101.3.4.1.4",  GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CFB },
-    { "2.16.840.1.101.3.4.1.21", GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_ECB },
-    { "2.16.840.1.101.3.4.1.22", GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_CBC },
-    { "2.16.840.1.101.3.4.1.23", GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_OFB },
-    { "2.16.840.1.101.3.4.1.24", GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_CFB },
-    { "2.16.840.1.101.3.4.1.41", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_ECB },
-    { "2.16.840.1.101.3.4.1.42", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CBC },
-    { "2.16.840.1.101.3.4.1.43", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_OFB },
-    { "2.16.840.1.101.3.4.1.44", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CFB },
-
-    /* Teletrust specific OID for 3DES. */
-    { "1.3.36.3.1.3.2.1",        GCRY_CIPHER_3DES,   GCRY_CIPHER_MODE_CBC },
-
-    { NULL }
-  };
-
 /* This is the list of the default ciphers, which are included in
    libgcrypt.  */
 static struct cipher_table_entry
@@ -212,11 +183,28 @@ gcry_cipher_lookup_func_name (void *spec, void *data)
   gcry_cipher_spec_t *cipher = (gcry_cipher_spec_t *) spec;
   char *name = (char *) data;
   const char **aliases = cipher->aliases;
-  int ret = stricmp (name, cipher->name), i;
+  int i, ret = ! stricmp (name, cipher->name);
 
-  if (ret && aliases)
-    for (i = 0; aliases[i] && ret; i++)
-      ret = stricmp (name, aliases[i]);
+  if (aliases)
+    for (i = 0; aliases[i] && (! ret); i++)
+      ret = ! stricmp (name, aliases[i]);
+
+  return ret;
+}
+
+/* Internal callback function.  Used via _gcry_module_lookup.  */
+static int
+gcry_cipher_lookup_func_oid (void *spec, void *data)
+{
+  gcry_cipher_spec_t *cipher = (gcry_cipher_spec_t *) spec;
+  char *oid = (char *) data;
+  gcry_cipher_oid_spec_t *oid_specs = cipher->oids;
+  int ret = 0, i;
+
+  if (oid_specs)
+    for (i = 0; oid_specs[i].oid && (! ret); i++)
+      if (! stricmp (oid, oid_specs[i].oid))
+	ret = 1;
 
   return ret;
 }
@@ -229,6 +217,18 @@ gcry_cipher_lookup_name (const char *name)
 
   cipher = _gcry_module_lookup (ciphers_registered, (void *) name,
 				gcry_cipher_lookup_func_name);
+
+  return cipher;
+}
+
+/* Internal function.  Lookup a cipher entry by it's oid.  */
+static gcry_module_t
+gcry_cipher_lookup_oid (const char *oid)
+{
+  gcry_module_t cipher;
+
+  cipher = _gcry_module_lookup (ciphers_registered, (void *) oid,
+				gcry_cipher_lookup_func_oid);
 
   return cipher;
 }
@@ -271,24 +271,34 @@ gcry_cipher_unregister (gcry_module_t module)
 /* locate the OID in the oid table and return the index or -1 when not
    found */
 static int 
-search_oid (const char *string)
+search_oid (const char *oid, int *algorithm, gcry_cipher_oid_spec_t *oid_spec)
 {
-  const char *s;
-  int i;
+  gcry_module_t module;
+  int ret = 0;
 
-  if (string && (digitp (string)
-                 || !strncmp (string, "oid.", 4) 
-                 || !strncmp (string, "OID.", 4) ))
+  if (oid && ((! strncmp (oid, "oid.", 4))
+	      || (! strncmp (oid, "OID.", 4))))
+    oid += 4;
+
+  module = gcry_cipher_lookup_oid (oid);
+  if (module)
     {
-      s =  digitp(string)? string : (string+4);
+      gcry_cipher_spec_t *cipher = module->spec;
+      int i;
 
-      for (i=0; oid_table[i].oidstring; i++)
-        {
-          if (!strcmp (s, oid_table[i].oidstring))
-            return i;
-        }
+      for (i = 0; cipher->oids[i].oid && (! ret); i++)
+	if (! stricmp (oid, cipher->oids[i].oid))
+	  {
+	    if (algorithm)
+	      *algorithm = module->mod_id;
+	    if (oid_spec)
+	      *oid_spec = cipher->oids[i];
+	    ret = 1;
+	  }
+      _gcry_module_release (module);
     }
-  return -1;
+
+  return ret;
 }
 
 /****************
@@ -297,30 +307,33 @@ search_oid (const char *string)
  *	    0 if the name is not known.
  */
 int
-gcry_cipher_map_name( const char *string )
+gcry_cipher_map_name (const char *string)
 {
   gcry_module_t cipher;
-  int i, algorithm = 0;
-  
-  if (!string)
+  int ret, algorithm = 0;
+
+  if (! string)
     return 0;
+
+  REGISTER_DEFAULT_CIPHERS;
 
   /* If the string starts with a digit (optionally prefixed with
      either "OID." or "oid."), we first look into our table of ASN.1
      object identifiers to figure out the algorithm */
-  i = search_oid (string);
-  if (i != -1)
-    return oid_table[i].algo;
-
-  REGISTER_DEFAULT_CIPHERS;
 
   ath_mutex_lock (&ciphers_registered_lock);
-  cipher = gcry_cipher_lookup_name (string);
-  if (cipher)
+
+  ret = search_oid (string, &algorithm, NULL);
+  if (! ret)
     {
-      algorithm = cipher->mod_id;
-      _gcry_module_release (cipher);
+      cipher = gcry_cipher_lookup_name (string);
+      if (cipher)
+	{
+	  algorithm = cipher->mod_id;
+	  _gcry_module_release (cipher);
+	}
     }
+
   ath_mutex_unlock (&ciphers_registered_lock);
   
   return algorithm;
@@ -329,10 +342,16 @@ gcry_cipher_map_name( const char *string )
 int
 gcry_cipher_mode_from_oid (const char *string)
 {
-  int i;
+  gcry_cipher_oid_spec_t oid_spec;
+  int ret = 0, mode = 0;
 
-  i = search_oid (string);
-  return i == -1? 0 : oid_table[i].mode;
+  ath_mutex_lock (&ciphers_registered_lock);
+  ret = search_oid (string, NULL, &oid_spec);
+  if (ret)
+    mode = oid_spec.mode;
+  ath_mutex_unlock (&ciphers_registered_lock);
+
+  return mode;
 }
 
 

@@ -324,14 +324,22 @@ md5_read( void *context )
   return hd->buf;
 }
 
-    static byte asn[18] = /* Object ID is 1.2.840.113549.2.5 */
-		    { 0x30, 0x20, 0x30, 0x0c, 0x06, 0x08, 0x2a, 0x86,0x48,
-		      0x86, 0xf7, 0x0d, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
+static byte asn[18] = /* Object ID is 1.2.840.113549.2.5 */
+  { 0x30, 0x20, 0x30, 0x0c, 0x06, 0x08, 0x2a, 0x86,0x48,
+    0x86, 0xf7, 0x0d, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
 
+static gcry_md_oid_spec_t oid_spec_md5[] =
+  {
+    /* iso.member-body.us.rsadsi.pkcs.pkcs-1.4 (md5WithRSAEncryption) */
+    { "1.2.840.113549.1.1.4" },
+    /* RSADSI digestAlgorithm MD5 */
+    { "1.2.840.113549.2.5" },
+    { NULL },
+  };
 
 gcry_md_spec_t digest_spec_md5 =
   {
-    "MD5", asn, DIM (asn), 16,
+    "MD5", asn, DIM (asn), oid_spec_md5, 16,
     md5_init, md5_write, md5_final, md5_read,
     sizeof (MD5_CONTEXT)
   };
