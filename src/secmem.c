@@ -456,10 +456,7 @@ _gcry_secmem_init (size_t n)
       if (! pool_okay)
 	{
 	  init_pool (n);
-	  if (! geteuid ())
-	    lock_pool (pool, n);
-	  else if (!no_warning)
-	    log_info ("Secure memory is not locked into core\n");
+	  lock_pool (pool, n);
 	}
       else
 	log_error ("Oops, secure memory pool already initialized\n");
