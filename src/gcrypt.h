@@ -90,6 +90,7 @@ enum {
     GCRYERR_NO_OBJ = 68,     /* Missing item in an object */
     GCRYERR_NOT_IMPL = 69,   /* Not implemented */
     GCRYERR_CONFLICT = 70,
+    GCRYERR_INV_CIPHER_MODE = 71, 
 };
 
 const char *gcry_check_version( const char *req_version );
@@ -263,6 +264,8 @@ enum gcry_cipher_algos {
     GCRY_CIPHER_RIJNDAEL192 = 8,
     GCRY_CIPHER_RIJNDAEL256 = 9,
     GCRY_CIPHER_TWOFISH     = 10,
+    /* other cipher numbers are above 300 for OpenPGP reasons. */
+    GCRY_CIPHER_ARCFOUR     = 301
 };
 
 enum gcry_cipher_modes {
@@ -270,6 +273,7 @@ enum gcry_cipher_modes {
     GCRY_CIPHER_MODE_ECB    = 1,
     GCRY_CIPHER_MODE_CFB    = 2,
     GCRY_CIPHER_MODE_CBC    = 3,
+    GCRY_CIPHER_MODE_STREAM = 4 /* native stream mode of some the algorithms */
 };
 
 enum gcry_cipher_flags {

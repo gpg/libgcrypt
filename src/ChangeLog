@@ -1,3 +1,9 @@
+2000-10-09  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: New cipher mode, new algo Arcfour and new error code
+	GCRYERR_INV_CIPHER_MODE.
+	* global.c (gcry_strerror): New errorcode.
+
 Wed Oct  4 13:16:18 CEST 2000  Werner Koch  <wk@openit.de>
 
         * gcrypt.h (gcry_md_setkey): Replaced macro by function prototype.
