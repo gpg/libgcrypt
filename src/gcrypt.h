@@ -35,7 +35,7 @@ extern "C" {
  * header matches the installed library.
  * Note: Do not edit the next line as configure may fix the string here.
  */
-#define GCRYPT_VERSION "1.1.1"
+#define GCRYPT_VERSION "1.1.1a"
 
 
 #ifndef HAVE_BYTE_TYPEDEF
@@ -130,6 +130,7 @@ enum gcry_ctl_cmds {
     GCRYCTL_ENABLE_M_GUARD	= 31,
     GCRYCTL_START_DUMP		= 32,
     GCRYCTL_STOP_DUMP		= 33,
+    GCRYCTL_GET_ALGO_USAGE      = 34
 };
 
 int gcry_control( enum gcry_ctl_cmds, ... );
@@ -289,10 +290,12 @@ int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 
 
 /* some handy macros */
+/* We have to cast a way a const char* here - this catch-all ctl function
+ * was probably not the best choice */
 #define gcry_cipher_setkey(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_KEY, \
-								  (k), (l) )
+							 (char*)(k), (l) )
 #define gcry_cipher_setiv(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_IV, \
-								  (k), (l) )
+							 (char*)(k), (l) )
 #define gcry_cipher_sync(h)  gcry_cipher_ctl( (h), GCRYCTL_CFB_SYNC, \
 								   NULL, 0 )
 

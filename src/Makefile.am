@@ -1,5 +1,24 @@
 ## Process this file with automake to produce Makefile.in
 
+# Libtool -version-info for libggcrypta.  See (libtool)Versioning
+#
+# 1. No interfaces changed, only implementations (good): Increment REVISION.
+#
+# 2. Interfaces added, none removed (good): Increment CURRENT, increment
+#    AGE, set REVISION to 0.
+#
+# 3. Interfaces removed (BAD, breaks upward compatibility): Increment
+#    CURRENT, set AGE and REVISION to 0.
+#
+# Rember to change this just before a release.
+
+
+LIBGRYPT_LT_CURRENT  = 1 
+LIBGRYPT_LT_REVISION = 0
+LIBGRYPT_LT_AGE      = 0
+
+
+
 # It seems that we need gcrypt.m4 here too
 EXTRA_DIST = gcrypt-config.in  gcrypt.m4
 
@@ -18,8 +37,10 @@ testapi_LDADD = libgcrypt.la
 
 include_HEADERS = gcrypt.h
 
-# libgcrypt_la_LDFLAGS = -version-info 0:0:0 -export-symbols libgcrypt.sym
-libgcrypt_la_LDFLAGS = -version-info 0:0:0
+libgcrypt_la_LDFLAGS = -version-info \
+      $(LIBGCRYPT_LT_CURRENT):$(LIBGCRYPT_LT_REVISION):$(LIBGCRYPT_LT_AGE) 
+#     -export-symbols libgcrypt.sym
+
 libgcrypt_la_SOURCES =	 g10lib.h \
 			 mpi.h \
 			 cipher.h \

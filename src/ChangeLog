@@ -1,3 +1,10 @@
+Mon Sep 18 16:35:45 CEST 2000  Werner Koch  <wk@openit.de>
+
+        * gcrypt.h (GCRYCTL_GET_ALGO_USAGE): New.
+
+        * secmem.c (secmem_realloc): check for failed secmem_malloc.  By
+        Matt Kraai.
+
 Mon Jul 31 10:04:47 CEST 2000  Werner Koch  <wk@openit.de>
 
   * sexp.c: Removed the datalen fields from list tags.
