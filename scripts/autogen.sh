@@ -21,9 +21,9 @@
 PGM=LIBGCRYPT
 
 autoconf_vers=2.53
-automake_vers=1.5
+automake_vers=1.6
 aclocal_vers=1.5
-libtool_vers=1.4.2
+libtool_vers=1.4
 
 DIE=no
 if test "$1" = "--build-w32"; then
