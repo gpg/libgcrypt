@@ -18,3 +18,5 @@
 * Make use of the forthcoming visibility attribute.
 
 * Add attributes to the MPI functions.
+
+* Write tests for the progress function

@@ -8,6 +8,9 @@ Noteworthy changes in version 1.1.13 (unreleased)
 
  * The public RSA exponent can now be specified in key generation. 
 
+ * The random module won't print the "not enough random bytes
+   available" anymore.  A new progress status is issued instead.
+
  * Interface changes relative to the 1.1.12 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 gcry_pk_decrypt         ENHANCED: Allows flag to return complete S-expression.
