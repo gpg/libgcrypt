@@ -24,27 +24,60 @@
 #include <string.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include "g10lib.h"
+
+static void (*fatal_error_handler)(void*,int, const char*) = NULL;
+static void *fatal_error_handler_value = 0;
+
+static const char *(*user_gettext_handler)( const char * ) = NULL;
+
+void
+gcry_set_gettext_handler( const char *(*f)(const char*) )
+{
+    user_gettext_handler = f;
+}
 
 
 const char *
 g10_gettext( const char *key )
 {
-    /* switch the domain to gnupg and restore later */
+    if( user_gettext_handler )
+	return user_gettext_handler( key );
+    /* FIXME: switch the domain to gnupg and restore later */
     return key;
 }
 
+void
+gcry_set_fatalerror_handler( void (*fnc)(void*,int, const char*), void *value)
+{
+    fatal_error_handler_value = value;
+    fatal_error_handler = fnc;
+}
 
+static void
+write2stderr( const char *s )
+{
+    write( 2, s, strlen(s) );
+}
 
 /****************
- * This function is here as a default fatal error
- * handler.  The caller might want to use his own.
+ * This function is called for fatal errors.  A caller might want to
+ * set his own handler becuase this function simply calls abort().
  */
-int
-fatal_invalid_arg(const char *text)
+void
+g10_fatal_error(int rc, const char *text )
 {
-    /*log_error("Fatal error: %s\n", text );*/
-    return GCRYERR_INV_ARG;
+    if( !text ) /* get a default text */
+	text = gcry_strerror(rc);
+
+    if( fatal_error_handler )
+	fatal_error_handler( fatal_error_handler_value, rc, text );
+
+    write2stderr("\nFatal error: ");
+    write2stderr(text);
+    write2stderr("\n");
+    abort();
 }
 

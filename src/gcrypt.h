@@ -364,6 +364,38 @@ void gcry_randomize( byte *buffer, size_t length,
 void *gcry_random_bytes( size_t nbytes, enum gcry_random_level level );
 void *gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level );
 
+/* Provide custom functions for special tasks of libgcrypt.
+ */
+void gcry_set_allocation_handler( void *(*new_alloc_func)(size_t n),
+				  void *(*new_alloc_secure_func)(size_t n),
+				  int (*new_is_secure_func)(const void*),
+				  void *(*new_realloc_func)(void *p, size_t n),
+				  void (*new_free_func)(void*) );
+void gcry_set_outofcore_handler( int (*h)( void*, size_t, unsigned int ),
+								void *opaque );
+void gcry_set_fatalerror_handler( void (*fnc)(void*,int, const char*),
+								void *opaque );
+void gcry_set_gettext_handler( const char *(*f)(const char*) );
+
+
+/* Access to the memory function of libgcrypt.
+ * Especially the gcry_free() should be used for memory
+ * allocated by gcry_ functions.
+ */
+void *gcry_malloc( size_t n );
+void *gcry_calloc( size_t n, size_t m );
+void *gcry_malloc_secure( size_t n );
+void *gcry_calloc_secure( size_t n, size_t m );
+void *gcry_realloc( void *a, size_t n );
+void *gcry_xmalloc( size_t n );
+void *gcry_xcalloc( size_t n, size_t m );
+void *gcry_xmalloc_secure( size_t n );
+void *gcry_xcalloc_secure( size_t n, size_t m );
+void *gcry_xrealloc( void *a, size_t n );
+char *gcry_xstrdup( const char * a);
+void  gcry_free( void *p );
+
+
 
 #ifndef GCRYPT_NO_MPI_MACROS
   typedef struct gcry_mpi *MPI;

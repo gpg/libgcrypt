@@ -26,9 +26,17 @@
 #include <assert.h>
 
 #include "g10lib.h"
+#include "memory.h" /* for the m_* functions */
 
 static int last_ec; /* fixme: make thread safe */
 
+static void *(*alloc_func)(size_t n) = NULL;
+static void *(*alloc_secure_func)(size_t n) = NULL;
+static int   (*is_secure_func)(const void*) = NULL;
+static void *(*realloc_func)(void *p, size_t n) = NULL;
+static void (*free_func)(void*) = NULL;
+static int (*outofcore_handler)( void*, size_t, unsigned int ) = NULL;
+static void *outofcore_handler_value = NULL;
 
 int
 gcry_control( enum gcry_ctl_cmds cmd, ... )
@@ -73,7 +81,7 @@ gcry_strerror( int ec )
       X(SUCCESS,	N_("no error"))
       X(GENERAL,	N_("general error"))
       X(INV_OP, 	N_("invalid operation code or ctl command"))
-      X(NOMEM,		N_("out of core"))
+      X(NO_MEM, 	N_("out of core"))
       X(INV_ARG,	N_("invalid argument"))
       X(INTERNAL,	N_("internal error"))
       X(EOF,		N_("EOF"))
@@ -102,23 +110,93 @@ set_lasterr( int ec )
     return ec;
 }
 
+
+
+/****************
+ * NOTE: All 5 functions should be set.
+ */
 void
-g10_free( void *p )
+gcry_set_allocation_handler( void *(*new_alloc_func)(size_t n),
+			     void *(*new_alloc_secure_func)(size_t n),
+			     int (*new_is_secure_func)(const void*),
+			     void *(*new_realloc_func)(void *p, size_t n),
+			     void (*new_free_func)(void*) )
 {
-    if( p )
-	m_free(p);
+    alloc_func	      = new_alloc_func;
+    alloc_secure_func = new_alloc_secure_func;
+    is_secure_func    = new_is_secure_func;
+    realloc_func      = new_realloc_func;
+    free_func	      = new_free_func;
 }
+
+
+
+/****************
+ * Set an optional handler which is called in case the xmalloc functions
+ * ran out of memory.  This handler may do one of these things:
+ *   o free some memory and return true, so that the xmalloc function
+ *     tries again.
+ *   o Do whatever tit like and return false, so that the xmalloc functions
+ *     use the default fatal error handler.
+ *   o Terminate the program and don't return.
+ *
+ * The handler function is called with 3 argiments:  The opaque value set with
+ * this function, the requested memory size, and a flag with these bits
+ * currently defined:
+ *	bit 0 set = secure memory has been requested.
+ */
+void
+gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
+							void *value )
+{
+    outofcore_handler = f;
+    outofcore_handler_value = value;
+}
+
+
 
 void *
 g10_malloc( size_t n )
 {
-    return m_alloc( n );
+    if( alloc_func )
+	return alloc_func( n ) ;
+    return g10_private_malloc( n );
 }
 
 void *
 g10_malloc_secure( size_t n )
 {
-    return m_alloc_secure( n );
+    if( alloc_secure_func )
+	return alloc_secure_func( n ) ;
+    return g10_private_malloc_secure( n );
+}
+
+int
+g10_is_secure( const void *a )
+{
+    if( is_secure_func )
+	return is_secure_func( a ) ;
+    return g10_private_is_secure( a );
+}
+
+void *
+g10_realloc( void *a, size_t n )
+{
+    if( realloc_func )
+	return realloc_func( a, n ) ;
+    return g10_private_realloc( a, n );
+}
+
+void
+g10_free( void *p )
+{
+    if( !p )
+	return;
+
+    if( free_func )
+	free_func( p );
+    else
+	g10_private_free( p );
 }
 
 void *
@@ -143,10 +221,27 @@ g10_calloc_secure( size_t n, size_t m )
 void *
 g10_xmalloc( size_t n )
 {
-    void *p = g10_malloc( n );
-    if( !n ) {
-	fprintf(stderr,"OUT OF CORE\n");
-	exit(4);
+    void *p;
+
+    while ( !(p = g10_malloc( n )) ) {
+	if( !outofcore_handler
+	    || !outofcore_handler( outofcore_handler_value, n, 0 ) ) {
+	    g10_fatal_error(GCRYERR_NO_MEM, NULL );
+	}
+    }
+    return p;
+}
+
+void *
+g10_xrealloc( void *a, size_t n )
+{
+    void *p;
+
+    while ( !(p = g10_realloc( a, n )) ) {
+	if( !outofcore_handler
+	    || !outofcore_handler( outofcore_handler_value, n, 2 ) ) {
+	    g10_fatal_error(GCRYERR_NO_MEM, NULL );
+	}
     }
     return p;
 }
@@ -154,10 +249,14 @@ g10_xmalloc( size_t n )
 void *
 g10_xmalloc_secure( size_t n )
 {
-    void *p = g10_malloc_secure( n );
-    if( !n ) {
-	fprintf(stderr,"OUT OF CORE in secure memory\n");
-	exit(4);
+    void *p;
+
+    while ( !(p = g10_malloc_secure( n )) ) {
+	if( !outofcore_handler
+	    || !outofcore_handler( outofcore_handler_value, n, 1 ) ) {
+	    g10_fatal_error(GCRYERR_NO_MEM,
+			     _("out of core in secure memory"));
+	}
     }
     return p;
 }
@@ -165,22 +264,16 @@ g10_xmalloc_secure( size_t n )
 void *
 g10_xcalloc( size_t n, size_t m )
 {
-    void *p = g10_calloc( n, m );
-    if( !n ) {
-	fprintf(stderr,"OUT OF CORE\n");
-	exit(4);
-    }
+    void *p = g10_xmalloc( n*m );
+    memset( p, 0, n*m );
     return p;
 }
 
 void *
 g10_xcalloc_secure( size_t n, size_t m )
 {
-    void *p = g10_calloc_secure( n, m );
-    if( !n ) {
-	fprintf(stderr,"OUT OF CORE in secure memory\n");
-	exit(4);
-    }
+    void *p = g10_xmalloc_secure( n* m );
+    memset( p, 0, n*m );
     return p;
 }
 
