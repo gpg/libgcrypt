@@ -1,3 +1,7 @@
+2002-09-18  Werner Koch  <wk@gnupg.org>
+
+	* ath.h: Prefix ath_deinit.
+
 2002-09-17  Werner Koch  <wk@gnupg.org>
 
 	* benchmark.c: New.

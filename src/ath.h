@@ -33,6 +33,7 @@
 #define ATH_PREFIX2(x,y) ATH_PREFIX1(x,y)
 #define ATH_PREFIX(x) ATH_PREFIX2(ATH_EXT_SYM_PREFIX,x)
 #define ath_init ATH_PREFIX(ath_init)
+#define ath_deinit ATH_PREFIX(ath_deinit)
 #define ath_mutex_init ATH_PREFIX(ath_mutex_init)
 #define ath_mutex_destroy ATH_PREFIX(ath_mutex_destroy)
 #define ath_mutex_lock ATH_PREFIX(ath_mutex_lock)
