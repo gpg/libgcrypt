@@ -601,7 +601,7 @@ check_one_md (int algo, char *data, int len, char *expect)
   else
     gcry_md_write (hd, data, len);
 
-  err = gcry_md_copy (hd, &hd2);
+  err = gcry_md_copy (&hd2, hd);
   if (err)
     {
       fail ("algo %d, gcry_md_copy failed: %s\n", algo, gpg_strerror (err));
@@ -772,11 +772,11 @@ verify_one_signature (gcry_sexp_t pkey, gcry_sexp_t hash,
 
   rc = gcry_pk_verify (sig, hash, pkey);
   if (rc)
-    fail ("gcry_pk_verify failed: %s\n", gcry_strerror (rc));
+    fail ("gcry_pk_verify failed: %s\n", gpg_strerror (rc));
   rc = gcry_pk_verify (sig, badhash, pkey);
   if (gpg_err_code (rc) != GPG_ERR_BAD_SIGNATURE)
     fail ("gcry_pk_verify failed to detect a bad signature: %s\n",
-	  gcry_strerror (rc));
+	  gpg_strerror (rc));
 }
 
 
@@ -821,7 +821,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 
   rc = gcry_sexp_sscan (&badhash, NULL, baddata, strlen (baddata));
   if (rc)
-    die ("converting data failed: %s\n", gcry_strerror (rc));
+    die ("converting data failed: %s\n", gpg_strerror (rc));
 
   for (dataidx = 0; datas[dataidx].data; dataidx++)
     {
@@ -831,11 +831,11 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
       rc = gcry_sexp_sscan (&hash, NULL, datas[dataidx].data,
 			    strlen (datas[dataidx].data));
       if (rc)
-	die ("converting data failed: %s\n", gcry_strerror (rc));
+	die ("converting data failed: %s\n", gpg_strerror (rc));
 
       rc = gcry_pk_sign (&sig, hash, skey);
       if (gpg_err_code (rc) != datas[dataidx].expected_rc)
-	fail ("gcry_pk_sign failed: %s\n", gcry_strerror (rc));
+	fail ("gcry_pk_sign failed: %s\n", gpg_strerror (rc));
 
       if (!rc)
 	verify_one_signature (pkey, hash, badhash, sig);

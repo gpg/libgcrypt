@@ -224,7 +224,7 @@ back_and_forth_one (int testno, const char *buffer, size_t length)
   rc = gcry_sexp_new (&se, buffer, length, 1);
   if (rc)
     {
-      fail ("baf %d: gcry_sexp_new failed: %s\n", testno, gcry_strerror (rc));
+      fail ("baf %d: gcry_sexp_new failed: %s\n", testno, gpg_strerror (rc));
       return;
     }
   n1 = gcry_sexp_sprint (se, GCRYSEXP_FMT_CANON, NULL, 0);
@@ -244,7 +244,7 @@ back_and_forth_one (int testno, const char *buffer, size_t length)
   if (rc)
     {
       fail ("baf %d: gcry_sexp_create failed: %s\n",
-            testno, gcry_strerror (rc));
+            testno, gpg_strerror (rc));
       return;
     }
   gcry_sexp_release (se1);
