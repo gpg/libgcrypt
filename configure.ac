@@ -26,7 +26,7 @@ AC_PREREQ(2.52)
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.1.13-cvs, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.1.42-cvs, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
@@ -335,6 +335,15 @@ AC_ARG_WITH(egd-socket,
 AC_DEFINE_UNQUOTED(EGD_SOCKET_NAME, "$egd_socket_name",
                    [Define if you don't want the default EGD socket name.
                     For details see cipher/rndegd.c])
+
+# Implementation of --disable-asm.
+AC_MSG_CHECKING([whether assembler modules are requested])
+AC_ARG_ENABLE([asm],
+              AC_HELP_STRING([--disable-asm],
+	                     [Disable assembler modules]),
+              [try_asm_modules=$enableval],
+              [try_asm_modules=yes])
+AC_MSG_RESULT($try_asm_modules)
 
 # Implementation of the --enable-m-guard switch.
 AC_MSG_CHECKING([whether memory guard is requested])
