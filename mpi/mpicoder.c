@@ -34,7 +34,7 @@ static MPI
 mpi_read_from_buffer(byte *buffer, unsigned *ret_nread, int secure)
 {
     int i, j;
-    unsigned nbits, nbytes, nlimbs, nread=0;
+    unsigned int nbits, nbytes, nlimbs, nread=0;
     mpi_limb_t a;
     MPI val = MPI_NULL;
 
@@ -43,6 +43,10 @@ mpi_read_from_buffer(byte *buffer, unsigned *ret_nread, int secure)
     nbits = buffer[0] << 8 | buffer[1];
     if( nbits > MAX_EXTERN_MPI_BITS ) {
 	log_error("mpi too large (%u bits)\n", nbits);
+	goto leave;
+    }
+    else if( !nbits ) {
+	log_error("an mpi of size 0 is not allowed\n");
 	goto leave;
     }
     buffer += 2;
