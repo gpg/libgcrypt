@@ -1,3 +1,13 @@
+2001-12-10  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c (gcry_pk_encrypt): Find the signature algorithm by name
+	and not by number.
+	
+	* pubkey.c (gcry_pk_encrypt,gcry_pk_decrypt,gcry_pk_sign)
+	(gcry_pk_verify,gcry_pk_testkey, gcry_pk_genkey)
+	(gcry_pk_get_nbits): Release the arrays.  Noted by Nikos
+	Mavroyanopoulos.
+
 2001-12-06  Werner Koch  <wk@gnupg.org>
 
 	* cipher.c (gcry_cipher_map_name): Look also for OIDs prefixed

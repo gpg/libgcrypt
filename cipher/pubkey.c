@@ -937,22 +937,31 @@ int
 gcry_pk_encrypt( GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey )
 {
     MPI *pkey, data, *ciph;
-    const char *algo_name, *algo_elems;
+    const char *key_algo_name, *algo_name, *algo_elems;
     int i, rc, algo;
 
     /* get the key */
-    rc = sexp_to_key( s_pkey, 0, &pkey, &algo, NULL );
-    if( rc ) {
+    rc = sexp_to_key( s_pkey, 0, &pkey, &algo, &i);
+    if( rc ) 
 	return rc;
-    }
+    key_algo_name = algo_info_table[i].name;
+    assert (key_algo_name);
 
     /* get the name and the required size of the return value */
     for(i=0; (algo_name = enc_info_table[i].name); i++ ) {
 	if( enc_info_table[i].algo == algo )
 	    break;
     }
+    /* get the name and the required size of the result array.  We
+       compare using the algorithm name and not the algo number - this way
+       we get the correct name for the return value */
+    for(i=0; (algo_name = enc_info_table[i].name); i++ ) {
+	if( !strcmp (algo_name, key_algo_name) )
+	    break;
+    }
     if( !algo_name ) {
 	release_mpi_array( pkey );
+        gcry_free (pkey);
 	return GCRYERR_INV_PK_ALGO;
     }
     algo_elems = enc_info_table[i].elements;
@@ -961,6 +970,7 @@ gcry_pk_encrypt( GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey )
     data = gcry_sexp_nth_mpi( s_data, 0, 0 );
     if( !data ) {
 	release_mpi_array( pkey );
+        gcry_free (pkey);
 	return GCRYERR_INV_OBJ;
     }
 
@@ -968,6 +978,7 @@ gcry_pk_encrypt( GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey )
     ciph = gcry_xcalloc( (strlen(algo_elems)+1) , sizeof *ciph );
     rc = pubkey_encrypt( algo, ciph, data, pkey );
     release_mpi_array( pkey );
+    gcry_free (pkey); pkey = NULL;
     mpi_free( data );
     if( rc ) {
 	release_mpi_array( ciph );
@@ -1060,18 +1071,23 @@ gcry_pk_decrypt( GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey )
     rc = sexp_to_enc( s_data, &data, &dataalgo );
     if( rc ) {
 	release_mpi_array( skey );
+        gcry_free (skey);
 	return rc;
     }
     if( algo != dataalgo ) {
 	release_mpi_array( skey );
+        gcry_free (skey);
 	release_mpi_array( data );
+        gcry_free (data);
 	return -1; /* fixme: add real errornumber - algo does not match */
     }
 
     rc = pubkey_decrypt( algo, &plain, data, skey );
     if( rc ) {
 	release_mpi_array( skey );
+        gcry_free (skey);
 	release_mpi_array( data );
+        gcry_free (data);
 	return -1; /* fixme: add real errornumber - decryption failed */
     }
 
@@ -1080,7 +1096,9 @@ gcry_pk_decrypt( GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey )
 
     mpi_free( plain );
     release_mpi_array( data );
+    gcry_free (data);
     release_mpi_array( skey );
+    gcry_free (skey);
     return 0;
 }
 
@@ -1132,6 +1150,7 @@ gcry_pk_sign( GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey )
     }
     if( !algo_name ) {
 	release_mpi_array( skey );
+        gcry_free (skey);
 	return -4; /* oops: unknown algorithm */
     }
     assert (sig_info_table[i].algo == algo);
@@ -1141,11 +1160,13 @@ gcry_pk_sign( GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey )
     hash = gcry_sexp_nth_mpi( s_hash, 0, 0 );
     if( !hash ) {
 	release_mpi_array( skey );
+        gcry_free (skey);
 	return -1; /* fixme: get a real errorcode for this */
     }
     result = gcry_xcalloc( (strlen(algo_elems)+1) , sizeof *result );
     rc = pubkey_sign( algo, result, hash, skey );
     release_mpi_array( skey );
+    gcry_free (skey); skey = NULL;
     mpi_free( hash );
     if( rc ) {
 	gcry_free( result );
@@ -1223,24 +1244,31 @@ gcry_pk_verify( GCRY_SEXP s_sig, GCRY_SEXP s_hash, GCRY_SEXP s_pkey )
     rc = sexp_to_sig( s_sig, &sig, &sigalgo );
     if( rc ) {
 	release_mpi_array( pkey );
+        gcry_free (pkey);
 	return rc;
     }
     if( algo != sigalgo ) {
 	release_mpi_array( pkey );
+        gcry_free (pkey);
 	release_mpi_array( sig );
+        gcry_free (sig);
 	return -1; /* fixme: add real errornumber - algo does not match */
     }
 
     hash = gcry_sexp_nth_mpi( s_hash, 0, 0 );
     if( !hash ) {
 	release_mpi_array( pkey );
+        gcry_free (pkey);
 	release_mpi_array( sig );
+        gcry_free (sig);
 	return -1; /* fixme: get a real errorcode for this */
     }
 
     rc = pubkey_verify( algo, hash, sig, pkey, NULL, NULL );
     release_mpi_array( pkey );
+    gcry_free (pkey);
     release_mpi_array( sig );
+    gcry_free (sig);
     mpi_free(hash);
 
     return rc;
@@ -1269,6 +1297,7 @@ gcry_pk_testkey( GCRY_SEXP s_key )
 
     rc = pubkey_check_secret_key( algo, key );
     release_mpi_array( key );
+    gcry_free (key);
     return rc;
 }
 
@@ -1445,7 +1474,9 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
 	gcry_free ( string );
     }
     release_mpi_array ( skey );
+    gcry_free (skey);
     release_mpi_array ( factors );
+    gcry_free (factors);
 
     return 0;
 }
@@ -1480,6 +1511,7 @@ gcry_pk_get_nbits( GCRY_SEXP key )
 	nbits = mpi_get_nbits( keyarr[0] );
   leave:
     release_mpi_array( keyarr );
+    gcry_free (keyarr);
     return nbits;
 }
 
