@@ -55,9 +55,9 @@ static const char sample_public_key_1[] =
 "  (e #010001#)\n"
 " )\n"
 ")\n";
-
-
-
+static const unsigned char sample_grip_key_1[] =
+"\x32\x10\x0c\x27\x17\x3e\xf6\xe9\xc4\xe9"
+"\xa2\x5d\x3d\x69\xf8\x6d\x37\xa4\xf9\x39";
 
 
 static int verbose;
@@ -496,6 +496,7 @@ check_pubkey (void)
 {
   int rc;
   GcrySexp skey, pkey;
+  unsigned char grip1[20], grip2[20];
   
   rc = gcry_sexp_sscan (&skey, NULL, sample_private_key_1,
                         strlen (sample_private_key_1));
@@ -504,6 +505,21 @@ check_pubkey (void)
                           strlen (sample_public_key_1));
   if (rc)
     die ("converting sample key failed: %s\n", gcry_strerror (rc));
+
+  if (!gcry_pk_get_keygrip (pkey, grip1))
+    die ("get keygrip for public RSA key failed\n");
+  if (!gcry_pk_get_keygrip (skey, grip2))
+    die ("get keygrip for private RSA key failed\n");
+  if (memcmp (grip1, grip2, 20))
+    fail ("keygrips for RSA key don't match\n");
+  if (memcmp (grip1, sample_grip_key_1, 20))
+    fail ("wrong keygrip for RSA key\n");
+
+  /* FIXME: we need DSA and ElGamal example keys. */
+
+/*    for (rc=0; rc < 20; rc++) */
+/*      printf ("\\x%02x", grip1[rc]); */
+/*    putchar ('\n'); */
 
   check_pubkey_sign (skey, pkey);
 
@@ -537,5 +553,3 @@ main (int argc, char **argv)
   
   return error_count? 1:0;
 }
-
-

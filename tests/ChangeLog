@@ -1,3 +1,7 @@
+2003-01-20  Werner Koch  <wk@gnupg.org>
+
+	* basic.c (check_pubkey): Check the keygrip for the sample key.
+
 2003-01-15  Werner Koch  <wk@gnupg.org>
 
 	* basic.c (verify_one_signature,check_pubkey_sign)
