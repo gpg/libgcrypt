@@ -122,17 +122,10 @@ rndlinux_gather_random( void (*add)(const void*, size_t, int), int requester,
 	if( !(rc=select(fd+1, &rfds, NULL, NULL, &tv)) ) {
           if( !warn )
             {
-#ifndef IS_MODULE
               _gcry_random_progress ("need_entropy", 'X', 0, (int)length);
-#else
-              log_info (_("not enough random bytes available (need %d bytes)\n"),
-                        (int)length);
-
-              log_info (_("please do some other work to give the OS a chance to collect more entropy\n"));
-#endif
-            }
-              warn = 1;
-	    continue;
+	      warn = 1;
+	    }
+	  continue;
 	}
 	else if( rc == -1 ) {
 	    log_error ("select() error: %s\n", strerror(errno));

@@ -62,15 +62,6 @@
  * easier to maintain and */
 /*#define USE_ENTROPY_DLL*/
 
-
-
-#ifdef IS_MODULE
-#define _(a) (a)
-#else
-/*#include "i18n.h"*/
-#endif
-
-
 static int debug_me;
 
 #ifdef USE_ENTROPY_DLL
