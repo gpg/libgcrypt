@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# Libtool -version-info for libggcrypta.  See (libtool)Versioning
+# Libtool -version-info for libgcrypta.  See (libtool)Versioning
 #
 # 1. No interfaces changed, only implementations (good): Increment REVISION.
 #
@@ -11,12 +11,6 @@
 #    CURRENT, set AGE and REVISION to 0.
 #
 # Rember to change this just before a release.
-
-
-LIBGCRYPT_LT_CURRENT  = 1 
-LIBGCRYPT_LT_REVISION = 0
-LIBGCRYPT_LT_AGE      = 0
-
 
 
 # It seems that we need gcrypt.m4 here too
@@ -38,7 +32,7 @@ testapi_LDADD = libgcrypt.la
 include_HEADERS = gcrypt.h
 
 libgcrypt_la_LDFLAGS = -version-info \
-      $(LIBGCRYPT_LT_CURRENT):$(LIBGCRYPT_LT_REVISION):$(LIBGCRYPT_LT_AGE) 
+      @LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@ 
 #     -export-symbols libgcrypt.sym
 
 libgcrypt_la_SOURCES =	 g10lib.h \
