@@ -1,3 +1,10 @@
+2002-08-23  Werner Koch  <wk@gnupg.org>
+
+	* missing-string.c: Removed unneeded strlwr.
+
+	* libgcrypt.m4: Made much more simple.
+	* libgcrypt-config.in: Made --prefix work for --libs.
+
 2002-08-14  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h: Add GCRY_CIPGER_DES.  Included string.h for size_t.

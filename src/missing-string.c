@@ -87,17 +87,16 @@ strsep (char **stringp, const char *delim)
 }
 #endif /*HAVE_STRSEP*/
 
-
-#ifndef HAVE_STRLWR
-char *
-strlwr(char *s)
-{
-    char *p;
-    for(p=s; *p; p++ )
-	*p = tolower(*p);
-    return s;
-}
-#endif
+/*  #ifndef HAVE_STRLWR */
+/*  char * */
+/*  strlwr(char *s) */
+/*  { */
+/*      char *p; */
+/*      for(p=s; *p; p++ ) */
+/*  	*p = tolower(*p); */
+/*      return s; */
+/*  } */
+/*  #endif */
 
 #ifndef HAVE_STRCASECMP
 int
