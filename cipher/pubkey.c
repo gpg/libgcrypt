@@ -2349,3 +2349,64 @@ gcry_pk_list (int *list, int *list_length)
 
   return err;
 }
+
+gcry_err_code_t
+_gcry_pk_get_elements (int algo, char **enc, char **sig)
+{
+  gcry_module_t pubkey;
+  gcry_pk_spec_t *spec;
+  gcry_err_code_t err;
+  char *enc_cp;
+  char *sig_cp;
+
+  REGISTER_DEFAULT_PUBKEYS;
+
+  enc_cp = NULL;
+  sig_cp = NULL;
+  spec = NULL;
+
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algo);
+  if (! pubkey)
+    {
+      err = GPG_ERR_INTERNAL;
+      goto out;
+    }
+  spec = pubkey->spec;
+
+  if (enc)
+    {
+      enc_cp = strdup (spec->elements_enc);
+      if (! enc_cp)
+	{
+	  err = gpg_err_code_from_errno (errno);
+	  goto out;
+	}
+    }
+  
+  if (sig)
+    {
+      sig_cp = strdup (spec->elements_sig);
+      if (! sig_cp)
+	{
+	  err = gpg_err_code_from_errno (errno);
+	  goto out;
+	}
+    }
+
+  if (enc)
+    *enc = enc_cp;
+  if (sig)
+    *sig = sig_cp;
+  err = 0;
+
+ out:
+
+  _gcry_module_release (pubkey);
+  if (err)
+    {
+      free (enc_cp);
+      free (sig_cp);
+    }
+
+  return err;
+}

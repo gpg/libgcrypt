@@ -1,3 +1,8 @@
+2005-02-07  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c: Major parts rewritten.
+	* pubkey.c (_gcry_pk_get_elements): New function.
+
 2004-12-09  Werner Koch  <wk@g10code.com>
 
 	* serpent.c (serpent_setkey): Moved prototype of serpent_test to
