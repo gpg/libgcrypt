@@ -1,3 +1,8 @@
+2004-09-21  Werner Koch  <wk@g10code.de>
+
+	* sexp.c (sexp_sscan): Removed C++ style comments.  Noted by Yoann
+	Vandoorselaere.
+
 2004-08-23  Moritz Schulte  <moritz@g10code.com>
 
 	* global.c: Do not include <assert.h>. 
@@ -9,6 +14,14 @@
 
 	* secmem.c (_gcry_secmem_init): Try to lock pool into core not
 	only when running with root privileges.
+
+2004-08-16  Werner Koch  <wk@g10code.de>
+
+	* secmem.h (_gcry_secmem_set_flags,_gcry_secmem_get_flags):
+	Removed __pure__.
+	(GCRY_SECMEM_FLAG_NO_WARNING): Put macro value into parens.
+
+	* secmem.c (_gcry_secmem_init): Defer printing of the warning.
 
 2004-08-10  Moritz Schulte  <moritz@g10code.com>
 

@@ -28,11 +28,11 @@ void *_gcry_secmem_realloc (void *a, size_t newsize);
 void _gcry_secmem_free (void *a);
 void _gcry_secmem_dump_stats (void);
 void _gcry_secmem_set_flags (unsigned flags);
-unsigned _gcry_secmem_get_flags(void) GCC_ATTR_PURE;
-int _gcry_private_is_secure (const void *p) GCC_ATTR_PURE;
+unsigned _gcry_secmem_get_flags(void);
+int _gcry_private_is_secure (const void *p);
 
 /* Flags for _gcry_secmem_{set,get}_flags.  */
-#define GCRY_SECMEM_FLAG_NO_WARNING      1 << 0
-#define GCRY_SECMEM_FLAG_SUSPEND_WARNING 1 << 1
+#define GCRY_SECMEM_FLAG_NO_WARNING      (1 << 0)
+#define GCRY_SECMEM_FLAG_SUSPEND_WARNING (1 << 1)
 
 #endif /* G10_SECMEM_H */

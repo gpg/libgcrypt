@@ -453,7 +453,7 @@ _gcry_secmem_init (size_t n)
     {
       if (n < DEFAULT_POOL_SIZE)
 	n = DEFAULT_POOL_SIZE;
-      if (! pool_okay)
+      if (!pool_okay)
 	{
 	  init_pool (n);
 	  lock_pool (pool, n);
