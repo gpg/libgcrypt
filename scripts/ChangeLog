@@ -1,3 +1,8 @@
+2003-03-06  Moritz Schulte  <mo@g10code.com>
+
+	* autogen.sh (run): New function.
+	Let automake run with -a for adding missing files automatically
+
 2002-11-12  Werner Koch  <wk@gnupg.org>
 
 	* config.sub, config.guess: Updated from ftp.gnu.org/gnu/config

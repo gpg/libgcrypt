@@ -1,6 +1,6 @@
 #!/bin/sh
 # Run this to generate all the initial makefiles, etc.
-# Copyright (C) 2002 Free Software Foundation, Inc.
+# Copyright (C) 2002, 2003 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -159,14 +159,15 @@ fi
 echo "Running libtoolize...  Ignore non-fatal messages."
 echo "no" | libtoolize
 
+run()
+{
+    echo "Running $@..."
+    $@
+}
 
-echo "Running aclocal..."
-aclocal
-echo "Running autoheader..."
-autoheader
-echo "Running automake --gnu ..."
-automake --gnu;
-echo "Running autoconf..."
-autoconf
+run aclocal
+run autoheader
+run automake --gnu -a
+run autoconf
 
 echo "You can now run \"./configure --enable-maintainer-mode\" and then \"make\"."
