@@ -27,6 +27,7 @@
 
 #include "g10lib.h"
 
+static int last_ec; /* fixme: make thread safe */
 
 
 int
@@ -38,6 +39,38 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
       case GCRYCTL_SET_FATAL_FNC:
 	break;
     }
+    return GCRYERR_INV_OP;
+}
+
+int
+gcry_errno()
+{
+    return ec;
+}
+
+const char*
+gcry_strerror( int ec )
+{
+    const char *s;
+    static char buf[20];
+
+    if( ec == -1 )
+	ec = gcry_errno();
+    switch( ec ) {
+      default:
+	sprintf( buf, "ec=%d", ec );
+	s = buf;
+    }
+    return s;
+}
+
+
+int
+set_lasterr( int ec )
+{
+    if( ec )
+	last_ec = ec == -1 ? GCRYERR_EOF : ec;
+    return ec;
 }
 
 

@@ -1,4 +1,4 @@
-/* gcrypt.h -  GNU digital encryption libray interface
+/* gcrypt.h -  GNU digital encryption library interface
  *	Copyright (C) 1998 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
@@ -33,12 +33,18 @@ extern "C" {
 
 enum {
     GCRYERR_SUCCESS = 0,    /* "no error" */
-    GCRYERR_GENERAL = 1
-    GCRYERR_INV_OP = 2,     /* inavlid operation code or ctl command */
-    GCRYERR_NOMEM = 3,
+    GCRYERR_GENERAL = 1     /* catch all the other errors code */
+    GCRYERR_INV_OP = 2,     /* invalid operation code or ctl command */
+    GCRYERR_NOMEM = 3,	    /* out of core */
+    GCRYERR_INV_ALGO = 4,   /* invalid algorithm */
+    GCRYERR_INV_ARG = 5,    /* invalid argument */
+    GCRYERR_INTERNAL = 6,   /* internal error */
+    GCRYERR_TOO_SHORT = 7,  /* provided buffer too short */
+    GCRYERR_EOF = 8,	    /* (-1) is remapped to this value */
 };
 
 
+int gcry_errno(void);
 const char *gcry_strerror( int ec );
 
 enum gcry_ctl_cmds {
@@ -150,20 +156,22 @@ enum gcry_cipher_flags {
 };
 
 
+#if 0 /* not yet done */
 int gcry_string_to_cipher_algo( const char *string );
 const char * gcry_cipher_algo_to_string( int algo );
 int gcry_check_cipher_algo( int algo );
 unsigned gcry_cipher_get_keylen( int algo );
 unsigned gcry_cipher_get_blocksize( int algo );
+#endif
 
 GCRY_CIPHER_HD gcry_cipher_open( algo, int mode, int secure );
 void gcry_cipher_close( GCRY_CIPHER_HD h );
 int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen);
 
-int gcry_cipher_encrypt( GCRY_CIPHER_HD h,
-			  byte *out, size_t outsize, byte *in, size_t inlen );
-void gcry_cipher_decrypt( GCRY_CIPHER_HD h,
-			  byte *out, byte *in, unsigned nbytes );
+int gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
+					    byte *in, size_t inlen );
+int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
+					    byte *in, size_t inlen );
 
 
 /* some handy macros */

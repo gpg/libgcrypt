@@ -18,6 +18,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
+/* fixme: merge this function with ../cipher/cipher.c */
+
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,19 +43,48 @@ struct gcry_cipher_context {
 GCRY_CIPHER_HD
 gcry_cipher_open( int algo, int mode, unsigned flags )
 {
-    GCRY_CIPHER_HD hd;
+    GCRY_CIPHER_HD h;
 
-    hd = m_lib_alloc_clear( sizeof *hd );
-    if( !hd ) {
-	set_lasterr( GCRYERR_NOMEM );
+    /* check whether the algo is available */
+    if( check_cipher_algo( algo ) ) {
+	set_lasterr( GCRYERR_INV_ALGO );
+	return NULL;
+    }
+    /* check flags */
+    if( (flags & ~(GCRY_CIPHER_SECURE|GCRY_CIPHER_ENABLE_SYNC)) ) {
+	set_lasterr( GCRYERR_INV_ARG );
 	return NULL;
     }
 
-    /* check whether the algo is available */
+    /* map mode to internal mode */
+    switch( mode ) {
+      case GCRY_CIPHER_MODE_NONE: mode = CIPHER_MODE_DUMMY; break;
+      case GCRY_CIPHER_MODE_ECB: mode = CIPHER_MODE_ECB; break;
+      case GCRY_CIPHER_MODE_CFB:
+	mode = (flags & GCRY_CIPHER_ENABLE_SYNC) ? CIPHER_MODE_PHILS_CFB
+						 : CIPHER_MODE_CFB;
+	break;
+      default:
+	set_lasterr( GCRYERR_INV_ALGO );
+	return NULL;
+    }
 
-    /* setup a context */
+    /* allocate the handle */
+    h = m_lib_alloc_clear( sizeof *h );
+    if( !h ) {
+	set_lasterr( GCRYERR_NOMEM );
+	return NULL;
+    }
+    h->magic = CONTEXT_MAGIC;
+    h->mode = mode;
+    h->hd = cipher_open( algo, mode, (flags & GCRY_CIPHER_SECURE) );
+    if( !h ) {
+	m_lib_free( h );
+	set_lasterr( GCRYERR_INTERNAL );
+	return NULL;
+    }
 
-    /* return the handle */
+    return h;
 }
 
 
@@ -71,7 +102,41 @@ gcry_cipher_close( GCRY_CIPHER_HD h )
     m_lib_free(h);
 }
 
-int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen)
+int gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen)
 {
+    switch( cmd ) {
+      case GCRYCTL_SET_KEY:
+	cipher_setkey( h->hd, buffer, buflen );
+	break;
+      case GCRYCTL_SET_IV:
+	cipher_setiv( h->hd, buffer );
+	break;
+      case GCRYCTL_CFB_SYNC:
+	cipher_sync( h->hd );
+      default:
+	return set_lasterr( GCRYERR_INV_OP );
+    }
+    return 0;
+}
+
+
+int
+gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
+				       byte  *in, size_t inlen )
+{
+    if( outsize < inlen )
+	return set_lasterr( GCRYERR_TOO_SHORT );
+    cipher_encrypt( h->hd, out, in, inlen );
+    return 0;
+}
+
+int
+gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
+				       byte  *in, size_t inlen )
+{
+    if( outsize < inlen )
+	return set_lasterr( GCRYERR_TOO_SHORT );
+    cipher_decrypt( h->hd, out, in, inlen );
+    return 0;
 }
 

@@ -36,3 +36,15 @@ g10_gettext( const char *key )
 }
 
 
+
+/****************
+ * This function is here as a default fatal error
+ * handler.  The caller might want to use his own.
+ */
+int
+fatal_invalid_arg(const char *text);
+{
+    log_error("Fatal error: %s\n", text );
+    return G10ERR_INV_ARG;
+}
+

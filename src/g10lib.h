@@ -34,8 +34,11 @@
 #define _(a)  g10_gettext(a)
 #define N_(a) (a)
 
-/*-- misc.c --*/
+/*-- global.c --*/
 int set_lasterr( int ec );
+
+/*-- misc.c --*/
+const char *g10_gettext( const char *key );
 int fatal_invalid_arg(const char *text);
 
 
