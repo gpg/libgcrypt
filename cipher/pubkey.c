@@ -65,13 +65,13 @@ static struct {
   const char* secret_elements;
   const char* grip_elements;
 } algo_info_table[] = {
-  { "dsa"        ,      PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
+  { "dsa"        ,      PUBKEY_ALGO_DSA       , "pqgy", "", "x",    "pqgy" },
   { "rsa"        ,      PUBKEY_ALGO_RSA       , "ne",   "", "dpqu", "n" },
-  { "elg"        ,      PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
-  { "openpgp-dsa",      PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
+  { "elg"        ,      PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x",    "pgy"  },
+  { "openpgp-dsa",      PUBKEY_ALGO_DSA       , "pqgy", "", "x",    "pqgy" },
   { "openpgp-rsa",      PUBKEY_ALGO_RSA       , "ne",   "", "dpqu"  "n"},
-  { "openpgp-elg",      PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x"    },
-  { "openpgp-elg-sig",  PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
+  { "openpgp-elg",      PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x",    "pgy" },
+  { "openpgp-elg-sig",  PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x",    "pgy" },
   { "oid.1.2.840.113549.1.1.1",
                         PUBKEY_ALGO_RSA       , "ne",   "", "dpqu", "n" },
   { NULL }
@@ -1829,10 +1829,8 @@ gcry_pk_get_nbits( GCRY_SEXP key )
 
    ARRAY must either be 20 bytes long or NULL; in the latter case a
    newly allocated array of that size is returned, otherwise ARRAY or
-   NULL is retruned to indicate an error which is most likely an
+   NULL is returned to indicate an error which is most likely an
    unknown algorithm.  The function accepts public or secret keys. */
-/* Please note that keygrip is still experimental and should not be
-   used without contacting the author */
 unsigned char *
 gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
 {
@@ -1840,6 +1838,7 @@ gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
   const char *s, *name;
   size_t n;
   int i, idx;
+  int is_rsa;
   const char *elems;
   GCRY_MD_HD md = NULL;
 
@@ -1869,6 +1868,7 @@ gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
   if(!s)
     goto fail; /* unknown algorithm */
 
+  is_rsa = algo_info_table[i].algo == PUBKEY_ALGO_RSA;
   elems = algo_info_table[i].grip_elements;
   if (!elems)
     goto fail; /* no grip parameter */
@@ -1890,11 +1890,21 @@ gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
       gcry_sexp_release (l2);
       if (!data)
         goto fail;
-      /* fixme: pkcs-15 says that for RSA only the modulus should be
-         hashed - however, it is not clear wether this is meant to has
-         the raw bytes assuming this is an unsigned integer or whether
-         the DER required 0 should be prefixed */
+      if (!is_rsa)
+        {
+          char buf[30];
+
+          sprintf (buf, "(1:%c%u:", *s, (unsigned int)datalen);
+          gcry_md_write (md, buf, strlen (buf));
+        }
+      /* pkcs-15 says that for RSA only the modulus should be hashed -
+         however, it is not clear wether this is meant to has the raw
+         bytes assuming this is an unsigned integer or whether the DER
+         required 0 should be prefixed. We hash th raw bytes.  For
+         non-RSA we hash S-expressions. */
       gcry_md_write (md, data, datalen);
+      if (!is_rsa)
+        gcry_md_write (md, ")", 1);
     }
   
   if (!array)
