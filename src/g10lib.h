@@ -72,7 +72,7 @@
 
 /*-- gcrypt/global.c --*/
 #define set_lasterr(a) _gcry_set_lasterr ((a))
-int _gcry_set_lasterr( int ec );
+int _gcry_set_lasterr (int err);
 
 void  _gcry_check_heap( const void *a );
 
@@ -151,12 +151,6 @@ MPI _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 /* replacements of missing functions (missing-string.c)*/
 #ifndef HAVE_STPCPY
 char *stpcpy (char *a, const char *b);
-#endif
-#ifndef HAVE_STRSEP
-char *strsep (char **stringp, const char *delim);
-#endif
-#ifndef HAVE_STRLWR
-char *strlwr (char *a);
 #endif
 #ifndef HAVE_STRCASECMP
 int strcasecmp (const char *a, const char *b) GCC_ATTR_PURE;
