@@ -73,6 +73,8 @@ extern GcryDigestSpec digest_spec_md5;
 extern GcryDigestSpec digest_spec_rmd160;
 extern GcryDigestSpec digest_spec_sha1;
 extern GcryDigestSpec digest_spec_sha256;
+extern GcryDigestSpec digest_spec_sha512;
+extern GcryDigestSpec digest_spec_sha384;
 extern GcryDigestSpec digest_spec_tiger;
 
 /* Declarations for the pubkey cipher specifications.  */
