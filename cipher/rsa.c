@@ -202,20 +202,22 @@ public(MPI output, MPI input, RSA_public_key *pkey )
 static void
 stronger_key_check ( RSA_secret_key *skey )
 {
-    MPI t = mpi_alloc_secure ( 0 );
-    MPI t1 = mpi_alloc_secure ( 0 );
-    MPI t2 = mpi_alloc_secure ( 0 );
-    MPI phi = mpi_alloc_secure ( 0 );
+  MPI t = mpi_alloc_secure ( 0 );
+  MPI t1 = mpi_alloc_secure ( 0 );
+  MPI t2 = mpi_alloc_secure ( 0 );
+  MPI phi = mpi_alloc_secure ( 0 );
 
-    /* check that n == p * q */
-    mpi_mul( t, skey->p, skey->q);
-    if (mpi_cmp( t, skey->n) )
-        log_info ( "RSA Oops: n != p * q\n" );
+  /* check that n == p * q */
+  mpi_mul( t, skey->p, skey->q);
+  if (mpi_cmp( t, skey->n) )
+    log_info ( "RSA Oops: n != p * q\n" );
 
-    /* check that p is less than q */
-    if( mpi_cmp( skey->p, skey->q ) > 0 )
-	log_info ("RSA Oops: p >= q\n");
-
+  /* check that p is less than q */
+  if( mpi_cmp( skey->p, skey->q ) > 0 )
+    {
+      log_info ("RSA Oops: p >= q - fixed\n");
+      _gcry_mpi_swap ( skey->p, skey->q);
+    }
 
     /* check that e divides neither p-1 nor q-1 */
     mpi_sub_ui(t, skey->p, 1 );
@@ -231,17 +233,25 @@ stronger_key_check ( RSA_secret_key *skey )
     mpi_sub_ui( t1, skey->p, 1 );
     mpi_sub_ui( t2, skey->q, 1 );
     mpi_mul( phi, t1, t2 );
-    mpi_gcd(t, t1, t2);
+    gcry_mpi_gcd(t, t1, t2);
     mpi_fdiv_q(t, phi, t);
     mpi_invm(t, skey->e, t );
     if ( mpi_cmp(t, skey->d ) )
-        log_info ( "RSA Oops: d is wrong\n");
+      {
+        log_info ( "RSA Oops: d is wrong - fixed\n");
+        mpi_set (skey->d, t);
+        _gcry_log_mpidump ("  fixed d", skey->d);
+      }
 
-    /* check for crrectness of u */
+    /* check for correctness of u */
     mpi_invm(t, skey->p, skey->q );
     if ( mpi_cmp(t, skey->u ) )
-        log_info ( "RSA Oops: u is wrong\n");
-   
+      {
+        log_info ( "RSA Oops: u is wrong - fixed\n");
+        mpi_set (skey->u, t);
+        _gcry_log_mpidump ("  fixed u", skey->u);
+      }
+
     log_info ( "RSA secret key check finished\n");
 
     mpi_free (t);
@@ -459,10 +469,3 @@ _gcry_rsa_get_info( int algo,
       default:*usage = 0; return NULL;
     }
 }
-
-
-
-
-
-
-

@@ -67,7 +67,7 @@ static struct { const char* name; int algo;
   { "rsa"            ,          PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
   { "elg"            ,          PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
   { "openpgp-dsa"    ,          PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
-  { "openpgp-rsa"    ,          PUBKEY_ALGO_RSA       , "pqgy", "", "x"    },
+  { "openpgp-rsa"    ,          PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
   { "openpgp-elg"    ,          PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x"    },
   { "openpgp-elg-sig",          PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
   { "oid.1.2.840.113549.1.1.1", PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },

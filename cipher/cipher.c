@@ -38,6 +38,17 @@
 #define CTX_MAGIC_NORMAL 0x24091964
 #define CTX_MAGIC_SECURE 0x46919042
 
+#define digitp(p)   (*(p) >= 0 && *(p) <= '9')
+
+static struct {
+  const char *oidstring;
+  int algo;
+} oid_table[] = {
+  { "1.2.840.113549.3.7",  GCRY_CIPHER_3DES /* des-EDE3-CBC*/},
+  {NULL}
+};
+
+
 struct cipher_table_s {
     const char *name;
     int algo;
@@ -281,6 +292,26 @@ gcry_cipher_map_name( const char *string )
     int i;
     const char *s;
 
+    if (!string)
+      return 0;
+
+    /* If the string starts with a digit (optionally prefixed with
+       either "OID." or "oid."), we first look into our table of ASN.1
+       object identifiers to figure out the algorithm */
+    if (digitp (string)
+        || !strncmp (string, "oid.", 4) 
+        || !strncmp (string, "OID.", 4) )
+      {
+        int i;
+        const char *s =  digitp(string)? string : (string+4);
+
+        for (i=0; oid_table[i].oidstring; i++)
+          {
+            if (!strcmp (s, oid_table[i].oidstring))
+              return oid_table[i].algo;
+          }
+      }
+
     do {
 	for(i=0; (s=cipher_table[i].name); i++ )
 	    if( !stricmp( s, string ) )
@@ -288,6 +319,7 @@ gcry_cipher_map_name( const char *string )
     } while( load_cipher_modules() );
     return 0;
 }
+
 
 /****************
  * Map a cipher algo to a string
