@@ -1,3 +1,7 @@
+2004-01-25  Moritz Schulte  <mo@g10code.com>
+
+	* ath.h: Include <config.h>.
+
 2004-01-12  Moritz Schulte  <mo@g10code.com>
 
 	* gcrypt.h: Adjusted declarations of: gcry_ac_data_set,

@@ -31,6 +31,8 @@ typedef int pid_t;
 #include <sys/socket.h>
 #endif
 
+#include <config.h>
+
 
 /* Define _ATH_EXT_SYM_PREFIX if you want to give all external symbols
    a prefix.  */
