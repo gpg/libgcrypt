@@ -2104,10 +2104,13 @@ Destroys the data set @var{data}.
 
 @deftypefun gpg_error_t gcry_ac_data_set (gcry_ac_data_t @var{data},
 char *@var{name}, gcry_mpi_t @var{mpi})
-
 Adds the value @var{mpi} to the data set @var{data} with the label
 @var{name}.  If there is already a value with that label, it is replaced,
 otherwise a new value is added.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_data_copy (gcry_ac_data_t *@var{data_cp}, gcry_ac_data_t @var{data})
+Create a copy of the data set @var{data} and store it in @var{data_cp}.
 @end deftypefun
 
 @deftypefun unsigned int gcry_ac_data_length (gcry_ac_data_t @var{data})
