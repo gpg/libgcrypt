@@ -973,7 +973,6 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		      *erroff = p - buffer;
 		      /* Invalid octal value.  */
 		      err = GPG_ERR_SEXP_BAD_QUOTATION;
-		      //return gcry_error (GPG_ERR_SEXP_BAD_QUOTATION);
 		    }
 		  p += 2;
 		  n -= 2;
@@ -986,7 +985,6 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		      *erroff = p - buffer;
 		      /* Invalid hex value.  */
 		      err = GPG_ERR_SEXP_BAD_QUOTATION;
-		      //return gcry_error (GPG_ERR_SEXP_BAD_QUOTATION);
 		    }
 		  p += 2;
 		  n -= 2;
