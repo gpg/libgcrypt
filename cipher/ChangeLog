@@ -1,3 +1,17 @@
+2003-03-31  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.c (do_ctr_decrypt): Made do_ctr_encrypt act as a wrapper
+	for do_ctr_encrypt, since these functions are identical.
+
+2003-03-30  Simon Josefsson  <jas@extundo.com>
+
+	* cipher.c (struct gcry_cipher_handle): Add counter field.
+	(gcry_cipher_open): Add CTR.
+	(cipher_reset): Clear counter field.
+	(do_ctr_encrypt, do_ctr_decrypt): New functions.
+	(cipher_encrypt, cipher_decrypt): Call CTR functions.
+	(gcry_cipher_ctl): Add SET_CTR to set counter.
+
 2003-03-30  Moritz Schulte  <moritz@g10code.com>
 
 	* rsa.c (_gcry_rsa_blind): New function.

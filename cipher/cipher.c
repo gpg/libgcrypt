@@ -92,6 +92,7 @@ struct gcry_cipher_handle {
     byte iv[MAX_BLOCKSIZE];	/* (this should be ulong aligned) */
     byte lastiv[MAX_BLOCKSIZE];
     int  unused;  /* in IV */
+    byte ctr[MAX_BLOCKSIZE];    /* for Counter (CTR) mode */
     int  (*setkey)( void *c, byte *key, unsigned keylen );
     void (*encrypt)( void *c, byte *outbuf, byte *inbuf );
     void (*decrypt)( void *c, byte *outbuf, byte *inbuf );
@@ -538,6 +539,7 @@ gcry_cipher_open( int algo, int mode, unsigned int flags )
       case GCRY_CIPHER_MODE_ECB:
       case GCRY_CIPHER_MODE_CBC:
       case GCRY_CIPHER_MODE_CFB:
+      case GCRY_CIPHER_MODE_CTR:
         if ( cipher_table[idx].encrypt == dummy_encrypt_block
              || cipher_table[idx].decrypt == dummy_decrypt_block ) {
             set_lasterr( GCRYERR_INV_CIPHER_MODE );
@@ -642,6 +644,7 @@ cipher_reset (GCRY_CIPHER_HD c)
 	  cipher_table[c->algo_index].contextsize);
   memset (c->iv, 0, c->blocksize);
   memset (c->lastiv, 0, c->blocksize);
+  memset (c->ctr, 0, c->blocksize);
 }
 
 
@@ -877,6 +880,37 @@ do_cfb_decrypt( GCRY_CIPHER_HD c,
 }
 
 
+static void
+do_ctr_encrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nbytes )
+{
+  unsigned int n;
+  byte tmp[MAX_BLOCKSIZE];
+  int i;
+
+  for(n=0; n < nbytes; n++)
+    {
+      if ((n % c->blocksize) == 0)
+	{
+	  (*c->encrypt) (&c->context.c, tmp, c->ctr);
+
+	  for (i = c->blocksize; i > 0; i--)
+	    {
+	      c->ctr[i-1]++;
+	      if (c->ctr[i-1] != 0)
+		break;
+	    }
+	}
+
+      /* XOR input with encrypted counter and store in output */
+      outbuf[n] = inbuf[n] ^ tmp[n % c->blocksize];
+    }
+}
+
+static void
+do_ctr_decrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nbytes )
+{
+  return do_ctr_encrypt (c, outbuf, inbuf, nbytes);
+}
 
 
 /****************
@@ -906,6 +940,9 @@ cipher_encrypt( GCRY_CIPHER_HD c, byte *outbuf,
 	break;
       case GCRY_CIPHER_MODE_CFB:
 	do_cfb_encrypt(c, outbuf, inbuf, nbytes );
+	break;
+      case GCRY_CIPHER_MODE_CTR:
+	do_ctr_encrypt(c, outbuf, inbuf, nbytes );
 	break;
       case GCRY_CIPHER_MODE_STREAM:
         (*c->stencrypt)( &c->context.c,
@@ -994,6 +1031,9 @@ cipher_decrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf,
 	break;
       case GCRY_CIPHER_MODE_CFB:
 	do_cfb_decrypt(c, outbuf, inbuf, nbytes );
+	break;
+      case GCRY_CIPHER_MODE_CTR:
+	do_ctr_decrypt(c, outbuf, inbuf, nbytes );
 	break;
       case GCRY_CIPHER_MODE_STREAM:
         (*c->stdecrypt)( &c->context.c,
@@ -1100,6 +1140,14 @@ gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, void *buffer, size_t buflen)
       if( h || !buffer || buflen != sizeof(int) )
         return set_lasterr( GCRYERR_INV_CIPHER_ALGO );
       disable_cipher_algo( *(int*)buffer );
+      break;
+    case GCRYCTL_SET_CTR:
+      if (buffer && buflen == h->blocksize)
+	memcpy (h->ctr, buffer, h->blocksize);
+      else if (buffer == NULL || buflen == 0)
+	memset (h->ctr, 0, h->blocksize);
+      else
+	rc = GCRYERR_INV_ARG;
       break;
 
     default:
