@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+
+#
+# build-def - Build the needed .def file for the libgcrypt DLL
+#
+
+$gcrypt_h="../src/gcrypt.h";
+$i = 1;
+
+open(FD, $gcrypt_h) || die "$gcrypt_h: $!";
+@filebuf = <FD>;
+close(FD);
+
+open(FD, ">libgcrypt.def") || die "$!";
+print FD "EXPORTS\n";
+foreach $in (@filebuf) {
+	if ($in !~ m/\#define/ && $in !~ m/\\/ && $in !~ m/\t/) {
+		if ($in =~ m/gcry_/ && $' =~ m/\( /) {
+		print FD "\tgcry_$`\t\@$i\n";
+		$i++;
+		}
+	}
+}
+close(FD);

@@ -1,0 +1,53 @@
+#!/bin/sh
+
+#
+# build-dll - Build the libgcrypt.dll file
+#
+
+OBJS=
+
+for i in $(ls ../cipher/*.o); do
+	#o=`basename $i`
+	o=$i
+	OBJS="$OBJS $o"
+done
+for i in $(ls ../mpi/*.o); do
+	o=$i
+	OBJS="$OBJS $o"
+done
+for i in $(ls ../src/*.o); do
+	o=$i
+	OBJS="$OBJS $o"
+done
+for i in $(ls ../jnlib/*.o); do
+	o=$i
+	OBJS="$OBJS $o"
+done
+
+
+echo 'running dlltool the first time' >&2
+mingw32 dlltool --nodelete  \
+	--as i386--mingw32-as \
+	--def libgcrypt.def \
+	--output-exp libgcrypt.exp \
+	--output-lib libgcrypt.imp \
+	--dllname libgcrypt.dll $OBJS
+echo 'doing dummy link to create the base file' >&2
+mingw32 gcc -v -mdll -Wl,--base-file -Wl,libgcrypt.base \
+   -o libgcrypt.dll libgcrypt.exp $OBJS
+echo 'running dlltool the second time' >&2
+mingw32 dlltool --nodelete \
+		--as i386--mingw32-as \
+		--def libgcrypt.def \
+		--output-exp libgcrypt.exp \
+        --output-lib libgcrypt.imp \
+		--base-file libgcrypt.base \
+		--dllname libgcrypt.dll $OBJS
+
+echo 'doing final link' >&2
+mingw32 gcc -v -mdll -o libgcrypt.dll libgcrypt.exp $OBJS
+mingw32 strip libgcrypt.dll
+
+echo 'clean up'
+rm -f dh.o dh.s dt.o dt.s
+rm -f libgcrypt.base libgcrypt.exp
