@@ -52,6 +52,56 @@ void _gcry_register_primegen_progress (void (*cb)(void *,const char *,
                                                 int,int,int),
                                        void *cb_data );
 
+typedef struct gcry_pubkey_spec
+{
+  const char *name;
+  int id;
+  int npkey;
+  int nskey;
+  int nenc;
+  int nsig;
+  int use;
+  int (*generate) (int algo, unsigned int nbits, unsigned long use_e,
+		   GcryMPI *skey, GcryMPI **retfactors);
+  int (*check_secret_key) (int algo, GcryMPI *skey);
+  int (*encrypt) (int algo, GcryMPI *resarr, GcryMPI data, GcryMPI *pkey, int flags);
+  int (*decrypt) (int algo, GcryMPI *result, GcryMPI *data, GcryMPI *skey, int flags);
+  int (*sign) (int algo, GcryMPI *resarr, GcryMPI data, GcryMPI *skey);
+  int (*verify) (int algo, GcryMPI hash, GcryMPI *data, GcryMPI *pkey,
+		 int (*cmp)(void *, GcryMPI), void *opaquev);
+  unsigned (*get_nbits) (int algo, GcryMPI *pkey);
+} GcryPubkeySpec;
+
+typedef struct gcry_digest_spec
+{
+  const char *name;
+  int id;
+  unsigned char *asnoid;
+  int asnlen;
+  int mdlen;
+  void (*init) (void *c);
+  void (*write) (void *c, unsigned char *buf, size_t nbytes);
+  void (*final) (void *c);
+  unsigned char *(*read) (void *c);
+  size_t contextsize; /* allocate this amount of context */
+} GcryDigestSpec;
+
+typedef struct gcry_cipher_spec
+{
+  const char *name;
+  int id;
+  size_t blocksize;
+  size_t keylen;
+  size_t contextsize;
+  int  (*setkey) (void *c, const unsigned char *key, unsigned keylen);
+  void (*encrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf);
+  void (*decrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf);
+  void (*stencrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf,
+		     unsigned int n);
+  void (*stdecrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf,
+		     unsigned int n);
+} GcryCipherSpec;
+
 /* Declarations for the cipher specifications.  */
 extern GcryCipherSpec cipher_spec_blowfish;
 extern GcryCipherSpec cipher_spec_des;
@@ -81,6 +131,7 @@ extern GcryDigestSpec digest_spec_tiger;
 extern GcryPubkeySpec pubkey_spec_rsa;
 extern GcryPubkeySpec pubkey_spec_elg;
 extern GcryPubkeySpec pubkey_spec_dsa;
+
 
 #endif /*G10_CIPHER_H*/
 

@@ -215,6 +215,8 @@ struct gcry_module
   int counter;			/* Use counter.        */
 };
 
+typedef struct gcry_module GcryModule;
+
 /* Flags for the `flags' member of GcryModule.  */
 #define FLAG_MODULE_DISABLED 1 << 0
 

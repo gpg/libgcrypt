@@ -503,9 +503,6 @@ struct gcry_cipher_handle;
 typedef struct gcry_cipher_handle *GCRY_CIPHER_HD;
 typedef struct gcry_cipher_handle *GcryCipherHd;
 
-/* Forward declaration.  */
-typedef struct gcry_module GcryModule;
-
 /* All symmetric encryption algorithms are identified by their IDs.
    More IDs may be registered at runtime. */
 enum gcry_cipher_algos
@@ -992,85 +989,6 @@ int gcry_is_secure (const void *a) _GCRY_GCC_ATTR_PURE;
 #   define DID_MPI_TYPEDEF
 # endif
 #endif /* GCRYPT_NO_MPI_MACROS */
-
-typedef struct gcry_pubkey_spec
-{
-  const char *name;
-  int id;
-  int npkey;
-  int nskey;
-  int nenc;
-  int nsig;
-  int use;
-  int (*generate) (int algo, unsigned int nbits, unsigned long use_e,
-		   GcryMPI *skey, GcryMPI **retfactors);
-  int (*check_secret_key) (int algo, GcryMPI *skey);
-  int (*encrypt) (int algo, GcryMPI *resarr, GcryMPI data, GcryMPI *pkey, int flags);
-  int (*decrypt) (int algo, GcryMPI *result, GcryMPI *data, GcryMPI *skey, int flags);
-  int (*sign) (int algo, GcryMPI *resarr, GcryMPI data, GcryMPI *skey);
-  int (*verify) (int algo, GcryMPI hash, GcryMPI *data, GcryMPI *pkey,
-		 int (*cmp)(void *, GcryMPI), void *opaquev);
-  unsigned (*get_nbits) (int algo, GcryMPI *pkey);
-} GcryPubkeySpec;
-
-typedef struct gcry_digest_spec
-{
-  const char *name;
-  int id;
-  unsigned char *asnoid;
-  int asnlen;
-  int mdlen;
-  void (*init) (void *c);
-  void (*write) (void *c, unsigned char *buf, size_t nbytes);
-  void (*final) (void *c);
-  unsigned char *(*read) (void *c);
-  size_t contextsize; /* allocate this amount of context */
-} GcryDigestSpec;
-
-typedef struct gcry_cipher_spec
-{
-  const char *name;
-  int id;
-  size_t blocksize;
-  size_t keylen;
-  size_t contextsize;
-  int  (*setkey) (void *c, const unsigned char *key, unsigned keylen);
-  void (*encrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf);
-  void (*decrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf);
-  void (*stencrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf,
-		     unsigned int n);
-  void (*stdecrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf,
-		     unsigned int n);
-} GcryCipherSpec;
-
-
-/* Public function.  Register a provided CIPHER.  Returns zero on
-   success, in which case the chosen cipher ID has been stored in
-   CIPHER, or an error code.  */
-int gcry_cipher_register (GcryCipherSpec *cipher, GcryModule **module);
-
-/* Public function.  Unregister the cipher identified by ID, which must have been
-   registered with gcry_cipher_register.  */
-void gcry_cipher_unregister (GcryModule *module);
-
-/* Public function.  Register a provided CIPHER.  Returns zero on
-   success, in which case the chosen cipher ID has been stored in
-   CIPHER, or an error code.  */
-int gcry_digest_register (GcryDigestSpec *digest, GcryModule **module);
-
-/* Public function.  Unregister the digest identified by ID, which must have been
-   registered with gcry_digest_register.  */
-void gcry_digest_unregister (GcryModule *module);
-
-/* Public function.  Register a provided PUBKEY.  Returns zero on
-   success, in which case the chosen pubkey ID has been stored in
-   PUBKEY, or an error code.  */
-int gcry_pubkey_register (GcryPubkeySpec *pubkey, GcryModule **module);
-
-/* Public function.  Unregister the pubkey identified by ID, which must have been
-   registered with gcry_pubkey_register.  */
-void gcry_pubkey_unregister (GcryModule *module);
-
 
 #ifdef __cplusplus
 }

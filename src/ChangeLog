@@ -1,5 +1,19 @@
 2003-04-17  Moritz Schulte  <moritz@g10code.com>
 
+	* g10lib.h (GcryModule): New typedef.
+
+	* gcrypt.h (gcry_cipher_register, gcry_cipher_unregister,
+	gcry_digest_register, gcry_digest_unregister,
+	gcry_pubkey_register, gcry_pubkey_unregister): Function
+	declarations removed - for now.
+	
+	* gcrypt.h (GcryModule): Declaration removed.
+	* gcrypt.h (GcryPubkeySpec, GcryDigestSpec, GcryCipherSpec):
+	Types Moved... 
+	* cipher.h: ... here.
+
+2003-04-17  Moritz Schulte  <moritz@g10code.com>
+
 	* cipher.h: Declare digest_spec_sha512 and digest_spec_384.
 
 2003-04-16  Moritz Schulte  <moritz@g10code.com>
