@@ -28,7 +28,7 @@
 
 2002-11-10  Werner Koch  <wk@gnupg.org>
 
-	* md4.c: New. By by Simon Josefsson.
+	* md4.c: New. By Simon Josefsson.
 	* Makefile.am (EXTRA_PROGRAMS): Add md4.c. 
 	* md.c (oid_table,gcry_md_get_algo_dlen): MD4 support. 
 
