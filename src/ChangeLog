@@ -1,5 +1,0 @@
-Tue Dec  8 13:15:16 CET 1998  Werner Koch  <wk@isil.d.shuttle.de>
-
-	* gcrypt.h: New
-	* mpiapi.c: New
-
