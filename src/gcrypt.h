@@ -165,16 +165,16 @@ int	  gcry_sexp_build( GCRY_SEXP *retsexp, size_t *erroff,
 			   const char *format, ... );
 size_t	  gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer,
 						size_t maxlength );
-int	    gcry_sexp_length( const GCRY_SEXP list );
 GCRY_SEXP   gcry_sexp_find_token( GCRY_SEXP list,
 				  const char *tok, size_t toklen );
+int	    gcry_sexp_length( const GCRY_SEXP list );
+GCRY_SEXP   gcry_sexp_nth( const GCRY_SEXP list, int number );
 GCRY_SEXP   gcry_sexp_car( const GCRY_SEXP list );
-GCRY_SEXP   gcry_sexp_cadr( const GCRY_SEXP list );
 GCRY_SEXP   gcry_sexp_cdr( const GCRY_SEXP list );
-const char *gcry_sexp_car_data( const GCRY_SEXP list, size_t *datalen );
-const char *gcry_sexp_cdr_data( const GCRY_SEXP list, size_t *datalen );
-GCRY_MPI    gcry_sexp_car_mpi( const GCRY_SEXP list, int mpifmt );
-GCRY_MPI    gcry_sexp_cdr_mpi( const GCRY_SEXP list, int mpifmt );
+GCRY_SEXP   gcry_sexp_cadr( const GCRY_SEXP list );
+const char *gcry_sexp_nth_data( const GCRY_SEXP list, int number,
+						      size_t *datalen );
+GCRY_MPI    gcry_sexp_nth_mpi( GCRY_SEXP list, int number, int mpifmt );
 
 
 /*******************************************

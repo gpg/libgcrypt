@@ -1,3 +1,10 @@
+Mon Jul 31 10:04:47 CEST 2000  Werner Koch  <wk@openit.de>
+
+  * sexp.c: Removed the datalen fields from list tags.
+  (gcry_sexp_car_data,gcry_sexp_cdr_data,gcry_sexp_car_mpi,
+   gcry_sexp_cdr_mpi): Removed.
+  (gcry_sexp_nth,gcry_sexp_nth_data,gcry_sexp_nth_mpi): New.
+
 Fri Jul 28 18:19:11 CEST 2000  Werner Koch  <wk@openit.de>
 
   * sexp.c (sexp_sscan): Fixed reallocation to secure memory.

@@ -25,6 +25,8 @@ test_sexp ( int argc, char **argv )
     int rc, nbits;
     GCRY_SEXP sexp;
     GCRY_MPI key[3];
+    size_t n;
+    char *buf;
 
     if ( gcry_mpi_scan( &key[0], GCRYMPI_FMT_HEX, elg_testkey1.p, NULL ) )
 	BUG();
@@ -47,6 +49,11 @@ test_sexp ( int argc, char **argv )
     }
     nbits = gcry_pk_get_nbits( sexp );
     printf ( "elg_testkey1 - nbits=%d\n", nbits );
+    n = gcry_sexp_sprint ( sexp, 0, NULL, 0 );
+    buf = gcry_xmalloc ( n );
+    n = gcry_sexp_sprint ( sexp, 0, buf, n );
+    printf ( "sprint length=%u\n", (unsigned int)n );
+    gcry_free ( buf );
     gcry_sexp_release( sexp );
 }
 
@@ -57,6 +64,7 @@ test_genkey ( int argc, char **argv )
     int rc, nbits = 1024;
     GCRY_SEXP s_parms, s_key;
 
+    gcry_control( GCRYCTL_INIT_SECMEM, 16384, 0 );
     rc = gcry_sexp_build ( &s_parms, NULL, "(genkey(dsa(nbits %d)))", nbits );
     rc = gcry_pk_genkey( &s_key, s_parms );
     if ( rc ) {
