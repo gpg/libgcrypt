@@ -149,11 +149,12 @@ _gcry_module_lookup (gcry_module_t entries, void *data,
 }
 
 /* Release a module.  In case the use-counter reaches zero, destroy
-   the module.  */
+   the module.  Passing MODULE as NULL is a dummy operation (similar
+   to free()). */
 void
 _gcry_module_release (gcry_module_t module)
 {
-  if (! --module->counter)
+  if (module && ! --module->counter)
     _gcry_module_drop (module);
 }
 
