@@ -6,4 +6,7 @@
 	* build-dll: Only generate the DLL if HAVE_DOSISH_SYSTEM was
 	defined.
 	
+2002-09-20  Timo Schulz  <ts@winpt.org>
+
+	* build-dll: Include ASM object files.
 	
