@@ -35,11 +35,15 @@
 int
 gcry_pk_encrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP pkey )
 {
+	/* ... */
+    return 0;
 }
 
 int
 gcry_pk_decrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey )
 {
+	/* ... */
+    return 0;
 }
 
 int
@@ -50,12 +54,14 @@ gcry_pk_sign( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey )
     s = gcry_sexp_find_token( skey, "private-key", 0 );
     if( !s )
 	return -1; /* no private key */
-    ...
-
+	/* ... */
+    return 0;
 }
 
 int
 gcry_pk_verify( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP pkey )
 {
+	/* ... */
+    return 0;
 }
 
