@@ -1,3 +1,11 @@
+2003-06-18  Moritz Schulte  <moritz@g10code.com>
+
+	* register.c: Replace old type GcryModule with newer one:
+	gcry_module_t.
+	Adjusted for new API.
+
+	* Makefile.am (AM_CFLAGS): Added: @GPG_ERROR_CFLAGS@.
+
 2003-06-15  Moritz Schulte  <moritz@g10code.com>
 
 	* basic.c (get_keys_new): New function.

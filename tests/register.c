@@ -39,7 +39,7 @@ die (const char *format, ...)
   exit (1);
 }
 
-int
+gpg_err_code_t
 foo_setkey (void *c, const unsigned char *key, unsigned keylen)
 {
   return 0;
@@ -65,7 +65,7 @@ foo_decrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
     outbuf[i] = inbuf[i] ^ 0x42;
 }
 
-GcryCipherSpec cipher_spec_foo =
+gcry_cipher_spec_t cipher_spec_foo =
   {
     "FOO", 0, 16, 0, 0,
     foo_setkey, foo_encrypt, foo_decrypt,
@@ -79,15 +79,14 @@ check_run (void)
   gcry_cipher_hd_t h;
   char plain[16] = "Heil Discordia!";
   char encrypted[16], decrypted[16];
-  GcryModule *module;
+  gcry_module_t *module;
 
-  err = gcry_cipher_register (&cipher_spec_foo,
-			      &module);
+  err = gcry_cipher_register (&cipher_spec_foo, &module);
   assert (! err);
   id = cipher_spec_foo.id;
 
-  h = gcry_cipher_open (id, GCRY_CIPHER_MODE_CBC, 0);
-  assert (h);
+  err = gcry_cipher_open (&h, id, GCRY_CIPHER_MODE_CBC, 0);
+  assert (! err);
 
   err = gcry_cipher_encrypt (h,
 			     (unsigned char *) encrypted, sizeof (encrypted),
