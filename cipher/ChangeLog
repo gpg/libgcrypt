@@ -1,3 +1,8 @@
+2004-07-14  Moritz Schulte  <moritz@g10code.com>
+
+	* rsa.c (_gcry_rsa_decrypt): Don't forget to free "a".  Thanks to
+	Nikos Mavroyanopoulos.
+
 2004-07-04  Moritz Schulte  <moritz@g10code.com>
 
 	* serpent.c: Use "u32_t" instead of "unsigned long", do not
