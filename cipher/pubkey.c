@@ -58,19 +58,22 @@ struct pubkey_table_s {
 static struct pubkey_table_s pubkey_table[TABLE_SIZE];
 static int disabled_algos[TABLE_SIZE];
 
-static struct { const char* name; int algo;
-		const char* common_elements;
-		const char* public_elements;
-		const char* secret_elements;
+static struct {
+  const char* name; int algo;
+  const char* common_elements;
+  const char* public_elements;
+  const char* secret_elements;
+  const char* grip_elements;
 } algo_info_table[] = {
-  { "dsa"            ,          PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
-  { "rsa"            ,          PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
-  { "elg"            ,          PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
-  { "openpgp-dsa"    ,          PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
-  { "openpgp-rsa"    ,          PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
-  { "openpgp-elg"    ,          PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x"    },
-  { "openpgp-elg-sig",          PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
-  { "oid.1.2.840.113549.1.1.1", PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
+  { "dsa"        ,      PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
+  { "rsa"        ,      PUBKEY_ALGO_RSA       , "ne",   "", "dpqu", "n" },
+  { "elg"        ,      PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
+  { "openpgp-dsa",      PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
+  { "openpgp-rsa",      PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
+  { "openpgp-elg",      PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x"    },
+  { "openpgp-elg-sig",  PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
+  { "oid.1.2.840.113549.1.1.1",
+                        PUBKEY_ALGO_RSA       , "ne",   "", "dpqu", "n" },
   { NULL }
 };
 
@@ -1513,6 +1516,95 @@ gcry_pk_get_nbits( GCRY_SEXP key )
     release_mpi_array( keyarr );
     gcry_free (keyarr);
     return nbits;
+}
+
+/* Return the so called KEYGRIP which is the SHA-1 hash of the public
+   key parameters expressed in a way depended on the algorithm.
+   This value is known in pkcs#15 as the subjectKeyHash.
+
+   ARRAY must either be 20 bytes long or NULL; in the later case a
+   newly allocated array of that size is return, other wiese the array
+   or NULL to indicate an error which is most likely an unknow
+   algorithm.  The function accept public or secret keys. */
+/* Please note that keygrip is still experimental and should not be
+   used without contacting the author */
+unsigned char *
+gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
+{
+  GCRY_SEXP list=NULL, l2;
+  const char *s, *name;
+  size_t n;
+  int i, idx;
+  const char *elems;
+  GCRY_MD_HD md = NULL;
+
+  /* check that the first element is valid */
+  list = gcry_sexp_find_token (key, "public-key", 0);
+  if (!list)
+    list = gcry_sexp_find_token (key, "private-key", 0);
+  if (!list)
+    return NULL; /* no public- or private-key object */
+
+  l2 = gcry_sexp_cadr (list);
+  gcry_sexp_release (list);
+  list = l2;
+
+  name = gcry_sexp_nth_data( list, 0, &n );
+  if (!name)
+    goto fail; /* invalid structure of object */
+
+  for (i=0; (s=algo_info_table[i].name); i++ ) 
+    {
+      if (strlen(s) == n && !memcmp (s, name, n))
+        break;
+    }
+  
+  if(!s)
+    goto fail; /* unknown algorithm */
+
+  elems = algo_info_table[i].grip_elements;
+  if (!elems)
+    goto fail; /* no grip parameter */
+    
+  md = gcry_md_open (GCRY_MD_SHA1, 0);
+  if (!md)
+    goto fail;
+
+  idx = 0;
+  for (s=elems; *s; s++, idx++)
+    {
+      const char *data;
+      size_t datalen;
+
+      l2 = gcry_sexp_find_token (list, s, 1);
+      if (!l2)
+        goto fail;
+      data = gcry_sexp_nth_data (l2, 1, &datalen);
+      gcry_sexp_release (l2);
+      if (!data)
+        goto fail;
+      /* fixme: pkcs-15 says that for RSA only the modulus should be
+         hashed - however, it is not clear wether this is meant to has
+         the raw bytes assuming this is an unsigned integer or whether
+         the DER required 0 should be prefixed */
+      gcry_md_write (md, data, datalen);
+    }
+  
+  if (!array)
+    {
+      array = gcry_malloc (20);
+      if (!array)
+        goto fail;
+    }
+  memcpy (array, gcry_md_read (md, GCRY_MD_SHA1), 20);
+  gcry_md_close (md);
+  gcry_sexp_release (list);
+  return array;
+
+ fail:
+  gcry_md_close (md);
+  gcry_sexp_release (list);
+  return NULL;
 }
 
 

@@ -237,6 +237,11 @@ void     gcry_mpi_powm( GCRY_MPI w,
 int      gcry_mpi_gcd( GCRY_MPI g, GCRY_MPI a, GCRY_MPI b );
 
 unsigned int gcry_mpi_get_nbits( GCRY_MPI a );
+
+/* Please note that keygrip is still experimental and should not be
+   used without contacting the author */
+unsigned char *gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array);
+
 int      gcry_mpi_test_bit( GCRY_MPI a, unsigned int n );
 void     gcry_mpi_set_bit( GCRY_MPI a, unsigned int n );
 void     gcry_mpi_clear_bit( GCRY_MPI a, unsigned int n );

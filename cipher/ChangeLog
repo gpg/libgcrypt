@@ -1,3 +1,7 @@
+2001-12-17  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c (gcry_pk_get_keygrip): New - experimental.
+
 2001-12-11  Werner Koch  <wk@gnupg.org>
 
 	* cipher.c: Added OIDs for AES.
