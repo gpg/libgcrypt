@@ -64,26 +64,10 @@ libgcrypt_real_la_DEPENDENCIES = \
 libgcrypt_real_la_LIBADD = \
 	../cipher/libcipher.la ../mpi/libmpi.la @GPG_ERROR_LIBS@
 
-# Include backwards-compatible ath-approaches in the main library.
-if HAVE_PTH
-  ath_pth_src = ath-pth-compat.c
-else
-  ath_pth_src =
-endif
-if HAVE_PTHREAD
-  ath_pthread_src = ath-pthread-compat.c
-else
-  ath_pthread_src =
-endif
-libgcrypt_la_SOURCES = ath.h ath-compat.c $(ath_pth_src) $(ath_pthread_src)
-
-# These are the new ath-approaches.
-libgcrypt_pthread_la_SOURCES = ath.h ath-pthread.c
-libgcrypt_pth_la_SOURCES = ath.h ath-pth.c
-
 AM_CFLAGS = @GPG_ERROR_CFLAGS@
 
 # The standard version.
+libgcrypt_la_SOURCES = ath.h
 libgcrypt_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
   @LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_la_DEPENDENCIES = libgcrypt-real.la \
@@ -92,6 +76,7 @@ libgcrypt_la_LIBADD = libgcrypt-real.la @LTLIBOBJS@ \
 	@GPG_ERROR_LIBS@
 
 # The pthread version.
+libgcrypt_pthread_la_SOURCES = ath.h ath-pthread.c
 libgcrypt_pthread_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_pthread_la_DEPENDENCIES = libgcrypt-real.la \
@@ -100,6 +85,7 @@ libgcrypt_pthread_la_LIBADD = libgcrypt-real.la @LTLIBOBJS@ \
 	-lpthread @GPG_ERROR_LIBS@
 
 # The pth version.
+libgcrypt_pth_la_SOURCES = ath.h ath-pth.c
 libgcrypt_pth_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_pth_la_DEPENDENCIES = libgcrypt-real.la \

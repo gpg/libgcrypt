@@ -1,6 +1,9 @@
 Noteworthy changes in version 1.1.93
 -------------------------------------------------
 
+ * The automatic thread library detection has finally been removed.
+   From now on, only linking explicitely to libgcrypt, libgcrypt-pth
+   or libgcrypt-pthread is supported.
 
 Noteworthy changes in version 1.1.92 (2004-02-20)
 -------------------------------------------------

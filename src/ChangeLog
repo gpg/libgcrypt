@@ -1,3 +1,12 @@
+2004-03-01  Marcus Brinkmann  <marcus@g10code.de>
+
+	* Makefile.am (ath_pth_src): Removed.
+	(ath_pthread_src): Removed.
+	(libgcrypt_la_SOURCES): Remove ath-compat, $(ath_pth_src) and
+	$(ath_pthread_src).
+	* ath-compat.c, ath-pth-compat.c, ath-pthread-compat.c: Files
+	removed.
+	
 2004-02-20  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (GCRY_PRIME_CHECK_AT_GOT_PRIME)
