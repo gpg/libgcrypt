@@ -614,8 +614,8 @@ _gcry_secmem_dump_stats ()
   SECMEM_LOCK;
 
  if (pool_okay)
-    log_info ("secmem usage: %u/%u bytes in %u blocks\n",
-	      cur_alloced, pool_size, cur_blocks);
+    log_info ("secmem usage: %u/%lu bytes in %u blocks\n",
+	      cur_alloced, (unsigned long)pool_size, cur_blocks);
   SECMEM_UNLOCK;
 #else
   memblock_t *mb;

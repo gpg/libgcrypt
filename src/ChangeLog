@@ -1,3 +1,8 @@
+2003-10-21  Werner Koch  <wk@gnupg.org>
+
+	* secmem.c (_gcry_secmem_dump_stats): Fixed format sepcifier for a
+	size_t.  Reported by Stephane Corthesy.
+
 2003-10-10  Werner Koch  <wk@gnupg.org>
 
 	* global.c (_gcry_malloc): Handle the no_secure_memory option.
