@@ -268,6 +268,46 @@ gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b )
 
 
 /****************
+ * Make a list from all items in the array the end of the array is marked
+ * with a NULL. 								      y a NULL
+ * Don't use the passed lists later on, they are void.
+ */
+GCRY_SEXP
+gcry_sexp_alist( GCRY_SEXP *array )
+{
+    NODE head, tail = NULL, node;
+    va_list arg_ptr ;
+    int i;
+
+    if( !*array )
+	return NULL;
+
+    head = g10_xcalloc( 1, sizeof *node );
+    head->type = ntLIST;
+
+    for( i=0; (node = array[i]); i++ ) {
+	if( node->type != ntLIST ) {
+	    fputs("sexp_alist: an arg is not a list\n", stderr );
+	    return NULL;  /* fixme: we should release already allocated nodes */
+	}
+	if( !node->u.list->next ) { /* node has only one item */
+	    NODE tmp = node;
+	    node = node->u.list;
+	    /* fixme: release tmp here */
+	}
+	if( !tail )  {
+	    head->u.list = node;
+	}
+	else
+	    tail->next = node;
+	node->up = head;
+	tail = node;
+    }
+
+    return head;
+}
+
+/****************
  * Make a list from all items, the end of list is indicated by a NULL
  * don't use the passed lists later on, they are void.
  */
@@ -296,7 +336,7 @@ gcry_sexp_vlist( GCRY_SEXP a, ... )
     while( (node = va_arg( arg_ptr, NODE )) ) {
 	if( node->type != ntLIST ) {
 	    fputs("sexp_vlist: an arg is not a list\n", stderr );
-	    return NULL;  /* fixme: we should release alread allocated nodes */
+	    return NULL;  /* fixme: we should release already allocated nodes */
 	}
 	if( !node->u.list->next ) { /* node has only one item */
 	    NODE tmp = node;
@@ -321,7 +361,6 @@ gcry_sexp_vlist( GCRY_SEXP a, ... )
 GCRY_SEXP
 gcry_sexp_append( GCRY_SEXP a, GCRY_SEXP n )
 {
-
     GCRY_SEXP node;
 
     if( a->type != ntLIST ) {

@@ -87,7 +87,8 @@ enum {
     GCRYERR_INV_OBJ = 65,    /* an object is not valid */
     GCRYERR_TOO_SHORT = 66,  /* provided buffer too short */
     GCRYERR_TOO_LARGE = 67,  /* object is too large */
-    GCRYERR_NO_OBJ = 68,     /* Missign item in an object */
+    GCRYERR_NO_OBJ = 68,     /* Missing item in an object */
+    GCRYERR_NOT_IMPL = 69,   /* Not implemented */
 };
 
 const char *gcry_check_version( const char *req_version );
@@ -156,6 +157,7 @@ GCRY_SEXP gcry_sexp_new_name_mpi( const char *name, GCRY_MPI mpi );
 void	  gcry_sexp_release( GCRY_SEXP sexp );
 void	  gcry_sexp_dump( GCRY_SEXP a );
 GCRY_SEXP gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b );
+GCRY_SEXP gcry_sexp_alist( GCRY_SEXP *array );
 GCRY_SEXP gcry_sexp_vlist( GCRY_SEXP a, ... );
 GCRY_SEXP gcry_sexp_append( GCRY_SEXP a, GCRY_SEXP n );
 GCRY_SEXP gcry_sexp_prepend( GCRY_SEXP a, GCRY_SEXP n );
@@ -329,6 +331,8 @@ int gcry_pk_encrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP pkey );
 int gcry_pk_decrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
 int gcry_pk_sign(    GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
 int gcry_pk_verify(  GCRY_SEXP sigval, GCRY_SEXP data, GCRY_SEXP pkey );
+int gcry_pk_testkey( GCRY_SEXP key );
+int gcry_pk_genkey(  GCRY_SEXP *r_key, GCRY_SEXP s_parms );
 
 int gcry_pk_ctl( int cmd, void *buffer, size_t buflen);
 int gcry_pk_algo_info( int algo, int what, void *buffer, size_t *nbytes);

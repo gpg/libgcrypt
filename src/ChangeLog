@@ -1,3 +1,7 @@
+Mon Jan 24 22:24:38 CET 2000  Werner Koch  <wk@gnupg.de>
+
+	* sexp.c (gcry_sexp_alist): New.
+
 Mon Jan 24 13:04:28 CET 2000  Werner Koch  <wk@gnupg.de>
 
 	* secmem.c: Moved from ../util to here.
