@@ -218,6 +218,7 @@ void	*gcry_mpi_get_opaque( GCRY_MPI a, unsigned int *nbits );
 void gcry_mpi_set_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
 void gcry_mpi_clear_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
 int  gcry_mpi_get_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
+unsigned int gcry_mpi_get_nbits( GCRY_MPI a );
 
 
 #ifndef GCRYPT_NO_MPI_MACROS

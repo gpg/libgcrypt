@@ -95,7 +95,6 @@ void mpi_m_check( MPI a );
 void mpi_swap( MPI a, MPI b);
 
 /*-- mpicoder.c --*/
-MPI mpi_read_from_buffer(byte *buffer, unsigned *ret_nread, int secure);
 int mpi_fromstr(MPI val, const char *str);
 int mpi_print( FILE *fp, MPI a, int mode );
 void g10_log_mpidump( const char *text, MPI a );
