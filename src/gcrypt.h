@@ -37,7 +37,7 @@ extern "C" {
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.1.11"
+#define GCRYPT_VERSION "1.1.12-cvs"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -99,12 +99,13 @@ enum
     GCRYERR_INTERNAL = 63,        /* internal error */
     GCRYERR_EOF = 64,	          /* (-1) is remapped to this value */
     GCRYERR_INV_OBJ = 65,         /* an object is not valid */
-    GCRYERR_TOO_SHORT = 66,       /* provided buffer too short */
+    GCRYERR_TOO_SHORT = 66,       /* provided buffer/object too short */
     GCRYERR_TOO_LARGE = 67,       /* object is too large */
     GCRYERR_NO_OBJ = 68,          /* Missing item in an object */
     GCRYERR_NOT_IMPL = 69,        /* Not implemented */
     GCRYERR_CONFLICT = 70,        /* conflicting use of functions/values */
     GCRYERR_INV_CIPHER_MODE = 71, /* invalid/unsupported cipher mode */ 
+    GCRYERR_INV_FLAG = 72,        /* invalid flag */
 
     /* error codes pertaining to S-expressions */
     GCRYERR_SEXP_INV_LEN_SPEC    = 201,

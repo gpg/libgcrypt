@@ -1,11 +1,19 @@
 %%comments:
-Copyright (C) 2001 Free Software Foundation, Inc.
-
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.1 or
-any later version published by the Free Software Foundation; with no
-Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
-Texts. A copy of the license is included in the file COPYING.
+<p>
+The copyright licensing notice below applies to this text.  The software
+described in this text has its own copyright notice and license, which can
+usually be found in the distribution itself.
+</p>
+<p>
+Copyright &copy; 2000, 2001, 2002 Free Software Foundation, Inc.
+</p>
+<p>
+Permission is granted to copy, distribute, and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or any
+later version published by the Free Software Foundation; with no Invariant
+Sections, with no Front-Cover Texts, and with no Back-Cover Texts.  A copy
+of this license is included in the file <a href="COPYING.DOC">COPYING.DOC</a>.
+</p>
 
 %%name: Libgcrypt
 
@@ -14,51 +22,59 @@ Texts. A copy of the license is included in the file COPYING.
 %%full-description: This is a general purpose cryptographic library
 based on the code from GnuPG.  It provides functions for all
 cryptograhic building blocks: symmetric ciphers
-(AES,DES,Blowfish,CAST5,Twofish,Arcfour), hash algorithms (MD5,
+(AES,DES,Blowfish,CAST5,Twofish,Arcfour), hash algorithms (MD4, MD5,
 RIPE-MD160, SHA-1, TIGER-192), MACs (HMAC for all hash algorithms),
 public key algorithms (RSA, ElGamal, DSA), large integer functions,
 random numbers and a lot of supporting functions.
 
-%%category: security, libraries
+%%category: sec, libs
 
 %%license: LGPL
-%%license verified by: 
-%%license verified on: 
 
-%%maintainer: g10 Code GmbH <wk@g10code.com>
+%%license-verified-by: Janet Casey <jcasey@gnu.org>
 
-%%updated: 2001-06-01
+%%license-verified-on: 2001-04-23
 
-%%keywords: encryption, public key, digital signature, hash
+%%maintainer: Werner Koch <libgcrypt@g10code.com>
 
-%%interface:
+%%updated: 2002-12-23
+
+%%keywords: encryption, public key, digital signature, hash, libgcrypt
+
+%%interface: Command line
 
 %%programs: 
 
-%%GNU: (I am not sure - it is a spring-off from GnuPG)
+%%GNU: yes
 
 %%web-page: http://www.gnupg.org
 
-%%support: paid extension/consulting from http://www.g10code.com
+%%support: Paid extension/consulting from http://www.g10code.com
 
-%%doc: English programmer reference in Texinfo, Postscript, HTML included
+%%doc: Programmer reference in Texinfo, Postscript, HTML included
 
 %%developers:  Matthew Skala, Michael Roth, Niklas Hernaeus, Remi
-Guyomarch, Werner Koch <wk@gnupg.org>.
+Guyomarch, Simon Josefsson, Werner Koch <wk@gnupg.org>.
 
 %%contributors: 
 
 %%sponsors: 
 
-%%source: ftp://ftp.gnupg.org/gcrypt/alpha/libgcrypt/
+%%source-tarball: ftp://ftp.gnupg.org/gcrypt/alpha/libgcrypt/libgcrypt-1.1.11.tar.gz
+
+%%source-info:
+
+%%source-template:
 
 %%debian:
 
-%%redhat:
+%%rpm: 
 
 %%repository:  See http://www.gnupg.org/cvs-access.html
 
-%%related: 
+%%related:   
+
+%%related-outside-directory: 
 
 %%source-language: C
 
@@ -72,9 +88,10 @@ Guyomarch, Werner Koch <wk@gnupg.org>.
 
 %%source-prerequisites:
 
-%%version: 1.1.3 alpha released on 2001-05-31
+%%version: 1.1.11 released 2002-12-21
 
-%%announce-list: announce@gnupg.org  announce-request@gnupg.org
+%%announce-list: <gnupg-announce@gnupg.org>  
+		 <gnupg-announce-request@gnupg.org>
 
 %%announce-news:
 
@@ -82,7 +99,12 @@ Guyomarch, Werner Koch <wk@gnupg.org>.
 
 %%help-news:
 
-%%dev-list: gcrypt-devel@gnupg.org  gcrypt-devel-request@gnupg.org
+%%help-irc-channel:
+
+%%dev-irc-channel:
+
+%%dev-list: <gcrypt-devel@gnupg.org>  
+	    <gcrypt-devel-request@gnupg.org>
 
 %%dev-news:
 
@@ -90,4 +112,7 @@ Guyomarch, Werner Koch <wk@gnupg.org>.
 
 %%bug-database: 
 
-%%entry written by: Werner Koch <wk@gnupg.org>
+%%entry-written-by: Werner Koch <wk@gnupg.org>
+
+%%entry-added: 2001-06-01
+

@@ -1,6 +1,11 @@
 Noteworthy changes in version 1.1.12 (unreleased)
 -------------------------------------------------
 
+ * gcry_pk_sign, gcry_pk_verify and gcry_pk_encrypt can now handle an
+   optional pkcs1 flags parameter in the S-expression.  A similar flag
+   may be passed to gcry_pk_decrypt byt it is only syntactically
+   implemented.
+
 
 Noteworthy changes in version 1.1.11 (2002-12-21)
 -------------------------------------------------

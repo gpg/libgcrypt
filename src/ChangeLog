@@ -1,3 +1,11 @@
+2003-01-15  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c (gcry_sexp_length): Fixed.  This was seriously broken.
+
+2003-01-14  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (GCRYERR_INV_FLAG), global.c (gcry_strerror): New.
+
 2003-01-02  Werner Koch  <wk@gnupg.org>
 
 	* libgcrypt.vers: Temporary export _gcry_generate_elg_prime for

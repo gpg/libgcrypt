@@ -383,7 +383,7 @@ gcry_sexp_find_token( const GCRY_SEXP list, const char *tok, size_t toklen )
 }
 
 /****************
- * return the length of the given list
+ * Return the length of the given list
  */
 int
 gcry_sexp_length( const GCRY_SEXP list )
@@ -401,14 +401,13 @@ gcry_sexp_length( const GCRY_SEXP list )
     while ( (type=*p) != ST_STOP ) {
 	p++;
 	if ( type == ST_DATA ) {
-	    memcpy ( &n, ++p, sizeof n );
+	    memcpy ( &n, p, sizeof n );
 	    p += sizeof n + n;
-	    p--;
-	    if ( !level )
+	    if ( level == 1 )
 		length++;
 	}
 	else if ( type == ST_OPEN ) {
-	    if ( !level )
+	    if ( level == 1 )
 		length++;
 	    level++;
 	}

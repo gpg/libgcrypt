@@ -298,6 +298,7 @@ gcry_strerror( int ec )
       X(NOT_IMPL,       N_("not implemented"))
       X(CONFLICT,	N_("conflict"))
       X(INV_CIPHER_MODE,N_("invalid cipher mode"))
+        X(INV_FLAG,     N_("invalid flag"))
 
         X(SEXP_INV_LEN_SPEC   ,N_("invalid length specification")) 
         X(SEXP_STRING_TOO_LONG,N_("string too long")) 
