@@ -1,3 +1,17 @@
+2005-02-13  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h: Declare new functions: gcry_ac_data_encrypt_scheme,
+	gcry_ac_data_decrypt_scheme, gcry_ac_data_sign_scheme,
+	gcry_ac_data_verify_scheme, gcry_ac_data_encode,
+	gcry_ac_data_decode, gcry_ac_data_to_sexp, gcry_ac_data_from_sexp.
+	New types: gcry_ac_emsa_pkcs_v1_5_t, gcry_ac_ssa_pkcs_v1_5_t,
+	gcry_md_algo_t.
+	New enumeration lists: gcry_ac_scheme_t, gcry_ac_em_t.
+	* libgcrypt.vers: Added new ac functions.
+	* g10lib.h: Declare function: _gcry_pk_get_elements.
+	* mpi.h (mpi_get_ui): New macro.
+	Declare function: _gcry_mpi_get_ui.
+
 2004-11-09  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h: Removed 3 trailing commas from enums.  Noted by Heiko

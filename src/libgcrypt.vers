@@ -53,18 +53,20 @@ GCRYPT_1.2 {
     gcry_pk_get_keygrip; gcry_pk_get_nbits; gcry_pk_list;
     gcry_pk_map_name; gcry_pk_register; gcry_pk_sign;
     gcry_pk_testkey; gcry_pk_unregister; gcry_pk_verify;
-    
-    gcry_ac_close; gcry_ac_data_clear; gcry_ac_data_copy;
-    gcry_ac_data_decrypt; gcry_ac_data_destroy; gcry_ac_data_encrypt;
-    gcry_ac_data_get_index; gcry_ac_data_get_name; gcry_ac_data_length;
-    gcry_ac_data_new; gcry_ac_data_set; gcry_ac_data_sign; 
-    gcry_ac_data_verify; gcry_ac_flags; gcry_ac_id_to_name;
-    gcry_ac_key_data_get; gcry_ac_key_destroy;
-    gcry_ac_key_generate_specs; gcry_ac_key_get_grip;
-    gcry_ac_key_get_nbits; gcry_ac_key_init; gcry_ac_key_pair_destroy;
-    gcry_ac_key_pair_extract; gcry_ac_key_pair_generate;
-    gcry_ac_key_test; gcry_ac_name_to_id; gcry_ac_open;
-    
+
+    gcry_ac_data_new; gcry_ac_data_destroy; gcry_ac_data_copy;
+    gcry_ac_data_length; gcry_ac_data_clear; gcry_ac_data_set;
+    gcry_ac_data_get_name; gcry_ac_data_get_index; gcry_ac_open;
+    gcry_ac_close; gcry_ac_key_init; gcry_ac_key_pair_generate;
+    gcry_ac_key_pair_extract; gcry_ac_key_data_get; gcry_ac_key_test;
+    gcry_ac_key_get_nbits; gcry_ac_key_get_grip; gcry_ac_key_destroy;
+    gcry_ac_key_pair_destroy; gcry_ac_data_encrypt; gcry_ac_data_decrypt;
+    gcry_ac_data_sign; gcry_ac_data_verify; gcry_ac_id_to_name;
+    gcry_ac_name_to_id; gcry_ac_list; gcry_ac_data_encode;
+    gcry_ac_data_decode; gcry_ac_mpi_to_os; gcry_ac_mpi_to_os_alloc;
+    gcry_ac_os_to_mpi; gcry_ac_data_encrypt_scheme; gcry_ac_data_decrypt_scheme;
+    gcry_ac_data_sign_scheme; gcry_ac_data_verify_scheme;
+
     gcry_prime_check; gcry_prime_generate; 
     gcry_prime_group_generator; gcry_prime_release_factors;
     
