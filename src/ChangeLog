@@ -1,3 +1,20 @@
+2003-05-13  Moritz Schulte  <moritz@g10code.com>
+
+	* secmem.c (stats_update): New function.
+	(BLOCK_HEAD_SIZE): New symbol.
+	(MB_FLAG_ACTIVE): New symbol.
+	(ADDR_TO_BLOCK, BLOCK_VALID): New macros.
+	(mb_get_next): New function.
+	(mb_get_prev): New function.
+	(mb_merge): New function.
+	(mb_get_new): New function.
+	(unused_blocks): Removed variable.
+	(init_pool): Initialize new memory pool.
+	(_gcry_secmem_malloc): Use new heap management code.
+	(_gcry_secmem_free): Likewise.
+	(_gcry_secmem_realloc): Likewise.
+	Renamed type MEMBLOCK to memblock_t.
+
 2003-04-27  Moritz Schulte  <moritz@g10code.com>
 
 	* cipher.h (gcry_pubkey_spec): New member: sexp_names.
