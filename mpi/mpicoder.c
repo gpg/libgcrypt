@@ -188,7 +188,9 @@ mpi_print( FILE *fp, MPI a, int mode )
     return n;
 }
 
+#if __GNUC__ >= 2
 #warning We should move this function to elsewhere
+#endif
 void
 _gcry_log_mpidump( const char *text, MPI a )
 {
@@ -339,7 +341,9 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
     /* TODO: add a way to allocate the MPI in secure memory
      * Hmmm: maybe it is better to retrieve this information from
      * the provided buffer. */
-     #warning secure memory is not used here.
+#if __GNUC__ >= 2
+#warning secure memory is not used here.
+#endif
     if( format == GCRYMPI_FMT_STD ) {
 	const byte *s = buffer;
 
