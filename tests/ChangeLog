@@ -1,3 +1,7 @@
+2003-01-23  Werner Koch  <wk@gnupg.org>
+
+	* keygen.c: New. 
+
 2003-01-20  Simon Josefsson  <jas@extundo.com>
 
 	* basic.c (check_digests): Add CRC.
@@ -60,7 +64,7 @@
 	* tsexp.c: New.
 
 	
- Copyright 2001, 2002 Free Software Foundation, Inc.
+ Copyright 2001, 2002, 2003 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without
@@ -69,5 +73,3 @@
  This file is distributed in the hope that it will be useful, but
  WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-	
-

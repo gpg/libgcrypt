@@ -21,7 +21,7 @@
 
 # TESTS_ENVIRONMENT =  
 
-TESTS = basic tsexp
+TESTS = basic tsexp keygen
 
 EXTRA_DIST = 
 
