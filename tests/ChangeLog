@@ -1,3 +1,11 @@
+2003-11-04  Werner Koch  <wk@gnupg.org>
+
+	* Makefile.am (noinst_PROGRAMS): Use this so that test programs
+	get always build.
+
+	* keygen.c (check_nonce): New.
+	(main): Add a basic check for the nocen function.
+
 2003-10-31  Werner Koch  <wk@gnupg.org>
 
 	* basic.c (check_aes128_cbc_cts_cipher): Make it a prototype

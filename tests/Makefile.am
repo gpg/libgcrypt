@@ -24,6 +24,6 @@ INCLUDES = -I$(top_srcdir)/src
 LDADD = ../src/libgcrypt.la
 
 EXTRA_PROGRAMS = benchmark testapi
-check_PROGRAMS = $(TESTS)
+noinst_PROGRAMS = $(TESTS)
 
 AM_CFLAGS = @GPG_ERROR_CFLAGS@

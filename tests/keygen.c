@@ -176,7 +176,43 @@ check_rsa_keys (void)
 }
 
 
+static void
+check_nonce (void)
+{
+  char a[32], b[32];
+  int i,j;
+  int oops=0;
 
+  if (verbose)
+    fprintf (stderr, "checking gcry_create_nonce\n");
+
+  gcry_create_nonce (a, sizeof a);
+  for (i=0; i < 10; i++)
+    {
+      gcry_create_nonce (b, sizeof b);
+      if (!memcmp (a, b, sizeof a))
+        die ("identical nounce found\n");
+    }
+  for (i=0; i < 10; i++)
+    {
+      gcry_create_nonce (a, sizeof a);
+      if (!memcmp (a, b, sizeof a))
+        die ("identical nounce found\n");
+    }
+
+ again:
+  for (i=1,j=0; i < sizeof a; i++)
+    if (a[0] == a[i])
+      j++;
+  if (j+1 == sizeof (a))
+    {
+      if (oops)
+        die ("impossible nonce found\n");
+      oops++;
+      gcry_create_nonce (a, sizeof a);
+      goto again;
+    }
+}
 
 int
 main (int argc, char **argv)
@@ -196,7 +232,9 @@ main (int argc, char **argv)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
   /* No valuable keys are create, so we can speed up our RNG. */
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+
   check_rsa_keys ();
+  check_nonce ();
   
   return error_count? 1:0;
 }
