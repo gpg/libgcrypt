@@ -58,6 +58,7 @@ libgcrypt_la_LIBADD = ../cipher/libcipher.la  \
 
 
 BUILT_SOURCES = libgcrypt.sym
+DISTCLEANFILES = libgcrypt.sym
 
 # libtool's --export-symbols-regex does not work in 1.3.2
 # so we do it ourself

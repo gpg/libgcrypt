@@ -1,6 +1,8 @@
 2001-12-18  Werner Koch  <wk@gnupg.org>
 
-	* sexp.c: Removed the commented test code becuase we now have a
+	* Makefile.am (DISTCLEANFILES): Include libgcrypt.sym
+
+	* sexp.c: Removed the commented test code because we now have a
 	text in ../tests/
 
 2001-12-17  Werner Koch  <wk@gnupg.org>
