@@ -22,14 +22,14 @@ AC_REVISION($Revision$)dnl
 
 AC_PREREQ(2.52)
 # Version number: Remember to change it immediately *after* a release.
-AC_INIT(libgcrypt,1.1.11)
+AC_INIT(libgcrypt, 1.1.11, bug-libgcrypt@gnupg.org)
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=5
-LIBGCRYPT_LT_AGE=4
-LIBGCRYPT_LT_REVISION=2
+LIBGCRYPT_LT_CURRENT=6
+LIBGCRYPT_LT_AGE=5
+LIBGCRYPT_LT_REVISION=0
 #-----------------------
 
 PACKAGE=$PACKAGE_NAME

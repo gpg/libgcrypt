@@ -15,3 +15,10 @@
 * Add a warning to the manual, to check that libgcrypt actually has
   been compiled with thread support wehen used by a trhersded
   application.
+
+* write an autoconf test to check whether the linker supports a
+  version script.
+
+* Make use of the forthcoming visibility attribute.
+
+* Add attributes to the MPI functions.

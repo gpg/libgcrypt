@@ -1,11 +1,18 @@
-Noteworthy changes in version 1.1.11 (unreleased)
+Noteworthy changes in version 1.1.11 (2002-12-21)
 -------------------------------------------------
 
- * Don't export internal symbols anymore (only on GNU systems)
+ * Don't export internal symbols anymore (currently only for GNU systems)
 
  * New algorithm: MD4
 
+ * Implemented ciphertext stealing.
+
  * Smaller bugs fixes and a few new OIDs.
+
+ * Interface changes relative to the 1.1.8 release:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gcry_cipher_cts                   NEW
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 Noteworthy changes in version 1.1.10 (2002-09-20)

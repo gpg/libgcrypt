@@ -1,3 +1,10 @@
+2002-12-21  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.11.
+	
+	* configure.ac (LIBGCRYPT_LT_CURRENT: Bumbed to 6/5/0 due to a new
+	interface
+
 2002-12-19  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac (have_pthread): Check for pthreads in libc.

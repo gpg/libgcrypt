@@ -1,4 +1,7 @@
-Maintainer: wk@g10code.com
+Library: Libgcrypt
+Maintainer: Werner Koch <wk@g10code.com>
+Bug reports: <bug-libgcrypt@gnupg.org>
+Security related bug reports: <security@gnupg.org>
 
 Libgcrypt used to be part of GnuPG but has been take out into its own
 package on 2000-12-21.
@@ -40,17 +43,15 @@ g10/free-packet.c, g10/mdfilter.c, g10/plaintext.c, util/iobuf.c)
 rguyom@mail.dotcom.fr
 
 ANY     g10 Code GmbH           2001-06-07
-Code marked with ChangeLog entries of Werner Koch or Marcus Brinkmann.
+Code marked with ChangeLog entries of g10 Code employees.
 
 LIBGCRYPT Timo Schulz           2001-08-31
 Assigns past and future changes.
 twoaday@freakmail.de
 
 LIBGCRYPT Simon Josefsson       2002-10-25
-Assigns past and future changes to FSF.
+Assigns past and future changes to FSF (cipher/md4.c, CTS flag)
 simon@josefsson.org
-
-
 
 
 
@@ -59,8 +60,8 @@ simon@josefsson.org
 More credits
 ============
 The ATH implementation (src/ath*) has been taken from GPGME and
-relicensed to the GPL by the copyrighr holder of GPGME (g10 Code
-GmbH) it is now considered to be a part of Libgcrypt.
+relicensed to the LGPL by the copyright holder of GPGME (g10 Code
+GmbH); it is now considered to be a part of Libgcrypt.
 
 Most of the stuff in mpi has been taken from the GMP library by
 Torbjorn Granlund <tege@noisy.tmg.se>.
