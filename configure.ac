@@ -21,14 +21,15 @@
 AC_REVISION($Revision$)dnl
 
 AC_PREREQ(2.52)
-# Version numbers (Remember to change them just before a release)
+# Version number: Remember to change it immediately *after* a release.
+AC_INIT(libgcrypt,1.1.10)
+# LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-AC_INIT(libgcrypt,1.1.9-cvs)
 LIBGCRYPT_LT_CURRENT=5
 LIBGCRYPT_LT_AGE=4
-LIBGCRYPT_LT_REVISION=1
+LIBGCRYPT_LT_REVISION=2
 #-----------------------
 
 PACKAGE=$PACKAGE_NAME
@@ -336,7 +337,7 @@ fi
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(unistd.h langinfo.h termio.h)
+AC_CHECK_HEADERS(unistd.h langinfo.h termio.h sys/select.h)
 
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -454,25 +455,25 @@ else
     AC_MSG_RESULT(has been disabled)
 fi
 
-dnl
-dnl and whether this device supports ioctl
-dnl (Note, that we should do a real test here)
-dnl
-if test "$ac_cv_have_dev_random" = yes ; then
-    AC_CHECK_HEADERS(linux/random.h)
-    AC_CACHE_CHECK(for random device ioctl, ac_cv_have_dev_random_ioctl,
-      [ if test "$ac_cv_header_linux_random_h" = yes ; then
-          ac_cv_have_dev_random_ioctl=yes;
-        else
-          ac_cv_have_dev_random_ioctl=no;
-        fi
-      ])
-    if test "$ac_cv_have_dev_random_ioctl" = yes; then
-        AC_DEFINE(HAVE_DEV_RANDOM_IOCTL,1,
-                  [defined if the random device supports some IOCTLs])
-    fi
-fi
-
+#dnl
+#dnl and whether this device supports ioctl
+#dnl (Note, that we should do a real test here)
+#dnl
+#if test "$ac_cv_have_dev_random" = yes ; then
+#    AC_CHECK_HEADERS(linux/random.h)
+#    AC_CACHE_CHECK(for random device ioctl, ac_cv_have_dev_random_ioctl,
+#      [ if test "$ac_cv_header_linux_random_h" = yes ; then
+#          ac_cv_have_dev_random_ioctl=yes;
+#        else
+#          ac_cv_have_dev_random_ioctl=no;
+#        fi
+#      ])
+#    if test "$ac_cv_have_dev_random_ioctl" = yes; then
+#        AC_DEFINE(HAVE_DEV_RANDOM_IOCTL,1,
+#                  [defined if the random device supports some IOCTLs])
+#    fi
+#fi
+#
 
 dnl
 dnl Figure out the default linkage mode for cipher modules

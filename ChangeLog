@@ -1,3 +1,12 @@
+2002-09-20  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.10.
+
+	* configure.ac (HAVE_DEV_RANDOM_IOCTL): Don't check for it; it is
+	not used.
+	(AS_CHECK_HEADERS): Check for sys/select.h.
+	* Makefile.am (DIST_SUBDIRS): New to include the w32-dll directory
+
 2002-09-18  Timo Schulz  <ts@winpt.org>
 
 	* configure.ac: Added makefile for the W32 DLL.
