@@ -1,3 +1,12 @@
+2003-09-02  Moritz Schulte  <mo@g10code.com>
+
+	* primegen.c (gcry_prime_check, gcry_prime_generate): New
+	functions.
+	(prime_generate_internal): New function, based on
+	_gcry_generate_elg_prime.
+	(_gcry_generate_elg_prime): Rewritten as a wrapper for
+	prime_generate_internal.
+
 2003-08-28  Werner Koch  <wk@gnupg.org>
 
 	* pubkey.c (gcry_pk_encrypt): Don't include the flags list in the
