@@ -1,3 +1,79 @@
+2003-10-17  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c (_gcry_ac_key_get_nbits): New function, derived from
+	gcry_ac_key_get_nbits ...
+	(gcry_ac_key_get_nbits): Use it.
+	(gcry_ac_em_dencode_t): New type.
+	(em_randomize_nonzero): New function.
+	(emsa_pkcs_v1_5_encode, eme_pkcs_v1_5_encode)
+	(eme_pkcs_v1_5_decode): New functions.
+	(dencode_action_t): New type.
+	(data_dencode, gcry_ac_data_encode, gcry_ac_data_decode): New
+	function.
+	(_gcry_ac_mpi_to_os, _gcry_ac_mpi_to_os_alloc)
+	(gcry_ac_mpi_to_os_alloc, _gcry_ac_os_to_mpi, gcry_ac_os_to_mpi):
+	New functions.
+	(gcry_ac_dencode_prepare_t, gcry_ac_dencode_to_os_t): New types.
+	(ac_es_dencode_prepare_pkcs_v1_5, ac_es_dencode_to_os_pkcs_v1_5)
+	(ac_ssa_dencode_prepare_pkcs_v1_5): New functions.
+	(ac_scheme_t): New type.
+	(ac_schemes): New variable.
+	(ac_scheme_get): New function.
+	(ac_dencode_prepare, ac_es_dencode_to_os): New functions.
+	(ac_scheme_data_type_t): New type.
+	(ac_data_set_to_mpi, ac_mpi_to_data_set)
+	(gcry_ac_data_encrypt_scheme, gcry_ac_data_decrypt_scheme): New
+	functions.
+	(gcry_ac_data_sign_scheme, gcry_ac_data_verify_scheme): New functions.
+
+2003-10-12  Moritz Schulte  <mo@g10code.com>
+
+	* elgamal.c (do_verify): Fix error condition.
+
+	* ac.c (_gcry_ac_data_set): New function, derived from
+	gcry_ac_data_set ...
+	(gcry_ac_data_set): ... use it.
+	(_gcry_ac_data_destroy): New function, derived from
+	gcry_ac_data_destroy ...
+	(gcry_ac_data_destroy): ... use it.
+	(gcry_ac_data_new_internal): Renamed to _gcry_ac_data_new, changed
+	callers.
+	(_gcry_ac_data_sign): New function, derived from gcry_ac_data_sign
+	...
+	(gcry_ac_data_sign): ... use it.
+
+2003-10-06  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c (_gcry_ac_mpi_to_os, gcry_ac_mpi_to_os)
+	(_gcry_ac_os_to_mpi, gcry_ac_os_to_mpi): New functions.
+	(_gcry_ac_data_encrypt): New function, derived from
+	gcry_ac_data_encrypt ...
+	(gcry_ac_data_encrypt): ... use it.
+	(_gcry_ac_data_decrypt): New function, derived from
+	gcry_ac_data_decrypt ...
+	(gcry_ac_data_decrypt): ... use it.
+	(gcry_ac_data_encrypt_scheme): New function.
+
+2003-10-05  Moritz Schulte  <mo@g10code.com>
+
+	* md.c (_gcry_md_open): New function, derived from gcry_md_open...
+	(gcry_md_open): ... use it.
+
+2003-10-04  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c (gcry_ac_id_to_name): Provide the caller with the algorithm
+	name in newly allocated memory.
+
+	* md.c (_gcry_md_asn_oid): New function.
+
+2003-09-30  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c (struct gcry_ac_key_generate_spec): Change type of
+	`algorithm' to `gcry_ac_id_t'.
+	(struct gcry_ac_handle): Likewise.
+	(pubkey_table_entry): Change type of `algorithm_id' to
+	`gcry_ac_id_t'.
+
 2003-09-18  Moritz Schulte  <mo@g10code.com>
 
 	* elgamal.c (ELG_public_key, ELG_secret_key): Removed types.
