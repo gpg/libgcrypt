@@ -1,3 +1,7 @@
+2003-07-18  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.texi (Misc): Add a warning on the use of opaque values.
+
 2003-07-14  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi (Overview): Mention the non-thread-safe-nature of

@@ -3245,6 +3245,11 @@ Store @var{nbits} of the value @var{p} points to in @var{a} and mark
 @var{a} as an opaque value (i.e. an value that can't be used for any
 math calculation and is only used to store an arbitrary bit pattern in
 @var{a}.
+
+WARNING: Never use an opaque MPI for actual math operations.  The only
+valid fucntions are gcry_mpi_get_opaque and gcry_mpi_release.  Use
+gcry_mpi_scan to convert a string of arbitrary bytes into an MPI.
+
 @end deftypefun
 
 @deftypefun {void *} gcry_mpi_get_opaque (@w{gcry_mpi_t @var{a}}, @w{unsigned int *@var{nbits}})
