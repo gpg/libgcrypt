@@ -48,6 +48,7 @@ static int (*outofcore_handler)( void*, size_t, unsigned int ) = NULL;
 static void *outofcore_handler_value = NULL;
 static int no_internal_locking = 0;
 static int no_secure_memory = 0;
+static int any_init_done = 0;
 
 static const char*
 parse_version_number( const char *s, int *number )
@@ -123,6 +124,7 @@ gcry_check_version( const char *req_version )
 int
 gcry_control( enum gcry_ctl_cmds cmd, ... )
 {
+    static int init_finished = 0;
     va_list arg_ptr ;
 
     va_start( arg_ptr, cmd ) ;
@@ -151,18 +153,22 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	break;
 
       case GCRYCTL_DROP_PRIVS:
+        any_init_done = 1;
 	_gcry_secmem_init( 0 );
 	break;
 
       case GCRYCTL_DISABLE_SECMEM:
+        any_init_done = 1;
         no_secure_memory = 1;
         break;    
 
       case GCRYCTL_INIT_SECMEM:
+        any_init_done = 1;
 	_gcry_secmem_init( va_arg( arg_ptr, unsigned int ) );
 	break;
 
       case GCRYCTL_TERM_SECMEM:
+        any_init_done = 1;
 	_gcry_secmem_term();
 	break;
 
@@ -179,6 +185,7 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	break;
 
       case GCRYCTL_USE_SECURE_RNDPOOL:
+        any_init_done = 1;
 	_gcry_secure_random_alloc(); /* put random number into secure memory */
 	break;
 
@@ -195,8 +202,17 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	break;
 
       case GCRYCTL_DISABLE_INTERNAL_LOCKING:
+        any_init_done = 1;
         no_internal_locking = 1;
         break;
+
+      case GCRYCTL_ANY_INITIALIZATION_P:
+        va_end(arg_ptr);
+        return any_init_done? -1 : 0;
+
+      case GCRYCTL_INITIALIZATION_FINISHED_P:
+        va_end(arg_ptr);
+        return init_finished? -1 : 0;
 
       case GCRYCTL_INITIALIZATION_FINISHED:
         /* This is a hook which should be used by an application after
@@ -204,7 +220,11 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
            threads are started.  It is not really needed but the only
            way to be really sure that all initialization for
            thread-safety has been done. */
-        /* fixme: we should initialize the various mutexs here */
+        if (!init_finished) {
+            any_init_done = 1;
+            /* fixme: we should initialize the various mutexs here */
+            init_finished = 1;
+        }
         break;
 
       default:
@@ -289,6 +309,8 @@ gcry_set_allocation_handler( void *(*new_alloc_func)(size_t n),
 			     void *(*new_realloc_func)(void *p, size_t n),
 			     void (*new_free_func)(void*) )
 {
+    any_init_done = 1;
+
     alloc_func	      = new_alloc_func;
     alloc_secure_func = new_alloc_secure_func;
     is_secure_func    = new_is_secure_func;
@@ -316,6 +338,8 @@ void
 gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
 							void *value )
 {
+    any_init_done = 1;
+
     outofcore_handler = f;
     outofcore_handler_value = value;
 }

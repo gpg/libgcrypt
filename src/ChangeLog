@@ -1,3 +1,10 @@
+2002-05-07  Werner Koch  <wk@gnupg.org>
+
+	* global.c (gcry_control): Add commands
+	GCRYCTL_ANY_INITIALIZATION_P and GCRYCTL_INITIALIZATION_FINISHED_P
+	so that other libraries are able to check for required
+	initializations.
+
 2002-05-02  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (GCRYCTL_DISABLE_INTERNAL_LOCKING): New.
