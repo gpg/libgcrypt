@@ -1002,7 +1002,7 @@ twofish_get_info (int algo, size_t *keylen,
     return NULL;
 }
 
-
+#ifdef IS_MODULE
 const char * const gnupgext_version = "TWOFISH ($Revision$)";
 
 static struct {
@@ -1061,4 +1061,4 @@ gnupgext_enum_func ( int what, int *sequence, int *class, int *vers )
     *sequence = i;
     return ret;
 }
-
+#endif /*IS_MODULE*/

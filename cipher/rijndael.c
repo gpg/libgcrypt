@@ -2121,9 +2121,7 @@ rijndael_get_info (int algo, size_t *keylen,
 }
 
 
-#ifndef IS_MODULE
-static
-#endif
+#ifdef IS_MODULE
 const char * const gnupgext_version = "RIJNDAEL ($Revision$)";
 
 static struct {
@@ -2155,9 +2153,6 @@ static struct {
  *		  version = interface version of the function/pointer
  *			    (currently this is 1 for all functions)
  */
-#ifndef IS_MODULE
-static
-#endif
 void *
 gnupgext_enum_func ( int what, int *sequence, int *class, int *vers )
 {
@@ -2186,7 +2181,7 @@ gnupgext_enum_func ( int what, int *sequence, int *class, int *vers )
     *sequence = i;
     return ret;
 }
-
+#endif
 
 
 

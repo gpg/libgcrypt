@@ -1,3 +1,11 @@
+2001-03-29  Werner Koch  <wk@gnupg.org>
+
+	* mpi-mul.c (mpi_mul): Make sure that secret temporary results are
+	not stored in w.  Suggested by Florian Weimer.
+
+	* config.links: Use i386 code for i386.  According to tests by
+	Kevin Ryde the i586 code runs slow on i386 CPUs.  Ditto for i786.
+
 2001-01-11  Werner Koch  <wk@gnupg.org>
 
 	* Makefile.am: Removed mpi.h.

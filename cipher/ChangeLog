@@ -1,3 +1,29 @@
+2001-03-29  Werner Koch  <wk@gnupg.org>
+
+	* md5.c (md5_final): Fixed calculation of hashed length.  Thanks
+	to disastry@saiknes.lv for pointing out that it was horrible wrong
+	for more than 512MB of input.
+	* sha1.c (sha1_final): Ditto.
+	* rmd160.c (rmd160_final): Ditto.
+	* tiger.c (tiger_final): Ditto.
+
+	* blowfish.c (encrypt,do_encrypt): Changed name to do_encrypt to
+	avoid name clashes with an encrypt function in stdlib.h of
+	Dynix/PIX.  Thanks to Gene Carter.
+	* elgamal.c (encrypt,do_encrypt): Ditto.
+
+	* twofish.c (gnupgext_enum_func): Use only when when compiled as a
+	module.
+	* rijndael.c (gnupgext_enum_func): Ditto.
+
+	* tiger.c (tiger_get_info): Return "TIGER192" and not just
+	"TIGER".  By Edwin Woudt.
+	
+	* random.c: Always include time.h - standard requirement.  Thanks
+	to James Troup.
+
+	* rndw32.c: Fixes to the macros.
+
 2001-01-11  Werner Koch  <wk@gnupg.org>
 
 	* cipher.c (cipher_encrypt,gcry_cipher_encrypt): Use blocksize and

@@ -37,14 +37,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
 #ifdef	HAVE_GETHRTIME
   #include <sys/times.h>
 #endif
 #ifdef HAVE_GETTIMEOFDAY
   #include <sys/times.h>
-#endif
-#ifdef HAVE_CLOCK_GETTIME
-  #include <time.h>
 #endif
 #ifdef HAVE_GETRUSAGE
   #include <sys/resource.h>
