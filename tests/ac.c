@@ -48,7 +48,7 @@ check_run (void)
   gpg_error_t err = 0;
   unsigned int a = 0x4223;
   gcry_mpi_t x, x2;
-  gcry_ac_data_t data;
+  gcry_ac_data_t data, data2;
   gcry_ac_key_spec_rsa_t rsa_spec;
 
   rsa_spec.e = gcry_mpi_new (0);
@@ -80,6 +80,13 @@ check_run (void)
 
   err = gcry_ac_data_sign (handle, key_sec, x, &data);
   assert (! err);
+  err = gcry_ac_data_copy (&data2, data);
+  assert (! err);
+  gcry_ac_data_destroy (data);
+  err = gcry_ac_data_copy (&data, data2);
+  assert (! err);
+  gcry_ac_data_destroy (data2);
+
   err = gcry_ac_data_verify (handle, key_pub, x, data);
   assert (! err);
 
