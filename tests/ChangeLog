@@ -1,5 +1,8 @@
 2003-11-28  Moritz Schulte  <mo@g10code.com>
 
+	* test.c (test_arguments_sanitize): New function, use it.  Plus
+	other small changes.
+
 	* test.c, test.h, test-glue.h: New files.
 	* benchmark.c: Rewritten.
 	* standalone.c: New file.

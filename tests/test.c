@@ -250,44 +250,39 @@ Report bugs to %s.\n", program_name,
 }
 
 static char *
-test_path_component_extract_last (const char *path)
+test_path_component_extract_last (char *path)
 {
   char *component_last = NULL;
-  char *component_last_cp = NULL;
   char *component_second_last = NULL;
   char *delimiter = NULL;
-  char *path_cp = NULL;
 
-  path_cp = strdup (path);
-  if (path_cp)
+  component_last = path;
+  do
     {
-      component_last = path_cp;
-
-      do
+      delimiter = strchr (component_last, '/');
+      if (delimiter)
 	{
-	  delimiter = strchr (component_last, '/');
-	  if (delimiter)
+	  component_second_last = component_last;
+	  component_last = delimiter + 1;
+	  while (*component_last == '/')
+	    component_last++;
+	  if (! *component_last)
 	    {
-	      component_second_last = component_last;
-	      component_last = delimiter;
-	      *component_last++ = 0;
-	      while (*component_last == '/')
-		component_last++;
-	      if (! *component_last)
-		{
-		  component_last = component_second_last;
-		  delimiter = NULL;
-		}
+	      component_last = component_second_last;
+	      delimiter = NULL;
 	    }
 	}
-      while (delimiter);
-  
-      component_last_cp = strdup (component_last);
-      test_assert (component_last_cp);
-      free (path_cp);
     }
+  while (delimiter);
+  
+  return component_last;
+}
 
-  return component_last_cp;
+static void
+test_show_unknown_option (void)
+{
+  fprintf (stderr, "Try `%s --help' for more information.\n", program_name);
+  exit (EXIT_FAILURE);
 }
 
 static void
@@ -297,7 +292,7 @@ test_arguments_parse_default (int argc, char **argv, test_mode_t mode,
   unsigned int flag_verbose = 0;
   char **identifiers = NULL;
   size_t identifiers_n = 0;
-  char *test_name = NULL;
+  const char *test_name = NULL;
   test_t *test = NULL;
 
 #ifdef HAVE_GETOPT_H
@@ -330,6 +325,10 @@ test_arguments_parse_default (int argc, char **argv, test_mode_t mode,
 	case 'h':
 	  test_show_help (mode);
 	  break;
+
+	case '?':
+	  test_show_unknown_option ();
+	  break;
 	}
     }
   while (c != -1);
@@ -340,16 +339,17 @@ test_arguments_parse_default (int argc, char **argv, test_mode_t mode,
   switch (mode)
     {
     case TEST_MODE_STANDALONE:
-      test_name = test_path_component_extract_last (argv[0]);
+      test_name = program_name;
       break;
 
     case TEST_MODE_BENCHMARK:
       if (optind < argc)
 	test_name = argv[optind++];
+      else
+	test_show_help (mode);
       break;
     }
 
-  test_assert (test_name);
   test = test_lookup (test_name);
   test_assert (test);
 
@@ -392,9 +392,6 @@ test_arguments_parse_default (int argc, char **argv, test_mode_t mode,
 
   if (identifiers != argv + optind)
     free (identifiers);
-  
-  if (mode == TEST_MODE_STANDALONE)
-    free (test_name);
 }
 
 static void
@@ -443,20 +440,40 @@ test_init (void)
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 }
 
+static void
+test_arguments_sanitize (int argc, char **argv, char ***argv_sanitized)
+{
+  char **argv_new = NULL;
+  unsigned int i = 0;
+
+  argv_new = gcry_malloc (argc * sizeof (*argv_new));
+  test_assert (argv_new);
+
+  argv_new[0] = test_path_component_extract_last (argv[0]);
+  for (i = 1; i < argc; i++)
+    argv_new[i] = argv[i];
+
+  *argv_sanitized = argv_new;
+}
+
 gcry_error_t
 test_run (int argc, char **argv, test_mode_t mode)
 {
   gcry_error_t err = GPG_ERR_NO_ERROR;
+  char **argv_sanitized = NULL;
   test_mode_run_t run = NULL;
 
-  program_name = argv[0];
+  test_arguments_sanitize (argc, argv, &argv_sanitized);
+  program_name = argv_sanitized[0];
 
   test_init ();
   
   run = test_mode_run_get (mode);
   test_assert (run);
 
-  (*run) (argc, argv, mode);
-  
+  (*run) (argc, argv_sanitized, mode);
+
+  free (argv_sanitized);
+
   return err;
 }
