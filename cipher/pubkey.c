@@ -926,50 +926,55 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
 
   if (! err)
     {
-      /* Extract the name of the algorithm.  */
+      /* Extract identifier of sublist.  */
       name = gcry_sexp_nth_data (l2, 0, &n);
       if (! name)
 	err = GPG_ERR_INV_OBJ; /* invalid structure of object */
     }
 
-  if ((! err) && (n == 5) && (! memcmp (name, "flags", 5)))
+  if (! err)
     {
-      /* There is a flags element - process it */
-      const char *s;
-      int i;
+      if ((n == 5) && (! memcmp (name, "flags", 5)))
+	{
+	  /* There is a flags element - process it */
+	  const char *s;
+	  int i;
 
-      *ret_modern = 1;
-      for (i = gcry_sexp_length (l2) - 1; i > 0 && (! err); i--)
-        {
-          s = gcry_sexp_nth_data (l2, i, &n);
-          if (! s)
-            ; /* not a data element - ignore */
-          else if (n == 3 && ! memcmp (s, "raw", 3))
-            ; /* just a dummy because it is the default */
-          else if (n == 5 && ! memcmp (s, "pkcs1", 5))
-            *ret_want_pkcs1 = 1;
-	  else if (n == 11 && ! memcmp (s, "no-blinding", 11))
-	    parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
-          else
-	    err = GPG_ERR_INV_FLAG;
+	  *ret_modern = 1;
+	  for (i = gcry_sexp_length (l2) - 1; i > 0 && (! err); i--)
+	    {
+	      s = gcry_sexp_nth_data (l2, i, &n);
+	      if (! s)
+		; /* not a data element - ignore */
+	      else if (n == 3 && ! memcmp (s, "raw", 3))
+		; /* just a dummy because it is the default */
+	      else if (n == 5 && ! memcmp (s, "pkcs1", 5))
+		*ret_want_pkcs1 = 1;
+	      else if (n == 11 && ! memcmp (s, "no-blinding", 11))
+		parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
+	      else
+		err = GPG_ERR_INV_FLAG;
+	    }
+      
+	  if (! err)
+	    {
+	      /* Get the next which has the actual data */
+	      gcry_sexp_release (l2);
+	      l2 = gcry_sexp_nth (list, 2);
+	      if (! l2)
+		err = GPG_ERR_NO_OBJ; /* no cdr for the data object */
+	    }
+      
+	  if (! err)
+	    {
+	      /* Extract sublist identifier.  */
+	      name = gcry_sexp_nth_data (l2, 0, &n);
+	      if (! name)
+		err = GPG_ERR_INV_OBJ; /* invalid structure of object */
+	    }
 	}
-    }
 
-  if (! err)
-    {
-      /* Get the next which has the actual data */
-      gcry_sexp_release (l2);
-      l2 = gcry_sexp_nth (list, 2);
-      if (! l2)
-	err = GPG_ERR_NO_OBJ; /* no cdr for the data object */
-    }
-
-  if (! err)
-    {
-      name = gcry_sexp_nth_data (l2, 0, &n);
-      if (! name)
-	err = GPG_ERR_INV_OBJ; /* invalid structure of object */
-      else
+      if (! err)
 	{
 	  gcry_sexp_release (list);
 	  list = l2;

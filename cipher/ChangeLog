@@ -1,3 +1,8 @@
+2003-08-08  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (sexp_to_enc): Fixed extraction of S-Expression: do not
+	fail if no `flags' sub S-Expression is found.
+
 2003-07-27  Werner Koch  <wk@gnupg.org>
 
 	* md.c (gcry_md_lookup_func_oid): Allow for empty OID lists.
