@@ -71,6 +71,17 @@ enum gcry_random_level {
     GCRY_VERY_STRONG_RANDOM = 2
 };
 
+
+struct gcry_sexp;
+typedef struct gcry_sexp *GCRY_SEXP;
+
+enum gcry_sexp_format {
+    GCRY_SEXP_FMT_DEFAULT   = 0,
+    GCRY_SEXP_FMT_CANON     = 1,
+    GCRY_SEXP_FMT_BASE64    = 2,
+    GCRY_SEXP_FMT_ADVANCED  = 3,
+};
+
 /*******************************************
  *					   *
  *  multi precision integer functions	   *
@@ -117,30 +128,6 @@ void gcry_mpi_powm( GCRY_MPI w,
 #define mpi_cmp_ui( u, v )  gcry_mpi_cmp_ui( (u), (v) )
 
 #define mpi_powm(w,b,e,m)   gcry_mpi_powm( (w), (b), (e), (m) )
-
-#if 0
-#define mpi_swap( a, b )    gcry_mpi_api( (a), (b) )
-void g10m_add(MPI w, MPI u, MPI v);
-void g10m_add_ui(MPI w, MPI u, unsigned long v );
-void g10m_sub( MPI w, MPI u, MPI v);
-void g10m_sub_ui(MPI w, MPI u, unsigned long v );
-
-void g10m_mul_ui(MPI w, MPI u, unsigned long v );
-void g10m_mul_2exp( MPI w, MPI u, unsigned long cnt);
-void g10m_mul( MPI w, MPI u, MPI v);
-void g10m_mulm( MPI w, MPI u, MPI v, MPI m);
-
-void g10m_fdiv_q( MPI quot, MPI dividend, MPI divisor );
-
-int  g10m_gcd( MPI g, MPI a, MPI b );
-int  g10m_invm( MPI x, MPI u, MPI v );
-
-unsigned g10m_get_nbits( MPI a );
-unsigned g10m_get_size( MPI a );
-
-void g10m_set_buffer( MPI a, const char *buffer, unsigned nbytes, int sign );
-#endif
-
 #endif /* GCRYPT_NO_MPI_MACROS */
 
 /********************************************

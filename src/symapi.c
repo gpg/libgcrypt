@@ -75,6 +75,8 @@ gcry_cipher_open( GCRY_CIPHER_HD *ret_hd, int algo, int mode, unsigned flags )
 	return set_lasterr( GCRYERR_INV_ALGO );
     }
 
+ /*    FIXME: issue a warning when CIPHER_MODE_NONE is used */
+
     /* allocate the handle */
     h = m_lib_alloc_clear( sizeof *h );
     if( !h )

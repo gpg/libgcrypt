@@ -149,6 +149,18 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	    mpi_free(a);
 	return 0;
     }
+    else if( format == GCRYMPI_FMT_HEX ) {
+	if( nbytes )
+	    return GCRYERR_INV_ARG; /* can only handle C strings for now */
+	a = mpi_alloc(0);
+	if( mpi_fromstr( a, buffer ) )
+	    return GCRYERR_INV_OBJ;
+	if( ret_mpi )
+	    *ret_mpi = a;
+	else
+	    mpi_free(a);
+	return 0;
+    }
     else
 	return GCRYERR_INV_ARG;
 }
@@ -226,17 +238,16 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	int extra = 0;
 	unsigned int n=0;
 
-	if( a->sign )
-	    return GCRYERR_INTERNAL; /* can't handle it yet */
-
 	tmp = mpi_get_buffer( a, &n, NULL );
 	if( !n || (*tmp & 0x80) )
 	    extra=1;
 
-	if( 2*n+2+1 > len ) {
+	if( 2*n+3+1 > len ) {
 	    m_free(tmp);
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	}
+	if( a->sign )
+	    *s++ = '-';
 	if( extra ) {
 	    *s++ = '0';
 	    *s++ = '0';
