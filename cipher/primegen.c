@@ -200,7 +200,7 @@ prime_generate_internal (int mode,
   unsigned int n = 0;		/* Number of factors.  */
   unsigned int m = 0;		/* Number of primes in pool.  */
   gcry_mpi_t q = NULL;		/* First prime factor.  */
-  gcry_mpi_t prime;		/* Prime candidate.  */
+  gcry_mpi_t prime = NULL;	/* Prime candidate.  */
   unsigned int nprime = 0;	/* Bits of PRIME.  */
   unsigned int req_qbits = qbits; /* The original QBITS value.  */
   gcry_mpi_t val_2  = mpi_alloc_set_ui (2); /* For check_prime().  */

@@ -1241,9 +1241,11 @@ gcry_md_is_enabled (gcry_md_hd_t a, int algo)
    than *LIST_LENGTH, *LIST_LENGTH is updated to the correct
    number.  */
 gcry_error_t
-gcry_md_list (int *list, int *list_length)
+gcry_md_list (int **list, int *list_length)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  REGISTER_DEFAULT_DIGESTS;
 
   ath_mutex_lock (&digests_registered_lock);
   err = _gcry_module_list (digests_registered, list, list_length);

@@ -1310,9 +1310,11 @@ _gcry_cipher_init (void)
    according size.  In case there are less cipher modules than
    *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
 gcry_error_t
-gcry_cipher_list (int *list, int *list_length)
+gcry_cipher_list (int **list, int *list_length)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  REGISTER_DEFAULT_CIPHERS;
 
   ath_mutex_lock (&ciphers_registered_lock);
   err = _gcry_module_list (ciphers_registered, list, list_length);
