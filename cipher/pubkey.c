@@ -53,6 +53,7 @@ static struct pubkey_table_entry
 #endif
 #if USE_ELGAMAL
     { &_gcry_pubkey_spec_elg, GCRY_PK_ELG },
+    { &_gcry_pubkey_spec_elg, GCRY_PK_ELG_E },
 #endif
 #if USE_DSA
     { &_gcry_pubkey_spec_dsa, GCRY_PK_DSA },
