@@ -1,5 +1,5 @@
 #!/bin/sh
-#    Copyright (C) 1999, 2002, 2003 Free Software Foundation, Inc.
+# Copyright (C) 1999, 2002, 2003, 2004 Free Software Foundation, Inc.
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -27,6 +27,9 @@ cflags="@LIBGCRYPT_CONFIG_CFLAGS@"
 cflags_pthread="@LIBGCRYPT_CONFIG_CFLAGS_PTHREAD@"
 cflags_pth="@LIBGCRYPT_CONFIG_CFLAGS_PTH@"
 
+# SONAME info
+soname_number="@LIBGCRYPT_CONFIG_SONAME_NUMBER@"
+
 # Misc information.
 symmetric_ciphers="@LIBGCRYPT_CIPHERS@"
 asymmetric_ciphers="@LIBGCRYPT_PUBKEY_CIPHERS@"
@@ -40,6 +43,7 @@ echo_prefix=no
 echo_algorithms=no
 echo_exec_prefix=no
 echo_version=no
+echo_soname_number=no
 
 # Prints usage information.
 usage()
@@ -51,6 +55,7 @@ Options:
 	[--prefix]
 	[--exec-prefix]
 	[--version]
+        [--soname-number]
 	[--libs]
 	[--cflags]
 	[--algorithms]
@@ -100,6 +105,9 @@ while test $# -gt 0; do
 	--version)
 	    echo_version=yes
 	    ;;
+        --soname-number)
+            echo_soname_number=yes
+            ;;
 	--cflags)
 	    echo_cflags=yes
 	    ;;
@@ -182,6 +190,10 @@ fi
 
 if test "$echo_version" = "yes"; then
     echo "$version"
+fi
+
+if test "$echo_soname_number" = "yes"; then
+    echo "$soname_number"
 fi
 
 if test "$echo_algorithms" = "yes"; then

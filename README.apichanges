@@ -29,7 +29,7 @@ there won't be another need for such a major change.
 * Initialization
 
   For proper initialization of the library, you must call
-  gcry_check_version() before calling any other function except for a
+  gcry_check_version() before calling any other function except for
   these gcry_control operations:
      GCRYCTL_SUSPEND_SECMEM_WARN
      GCRYCTL_DISABLE_INTERNAL_LOCKING
