@@ -1,3 +1,7 @@
+2002-09-20  Werner Koch  <wk@gnupg.org>
+
+	* Makefile.am (DISTCLEANFILES): Include mpi-asm-defs.h
+
 2002-09-18  Werner Koch  <wk@gnupg.org>
 
 	* Makefile.am (.S.lo): Pass -DPIC. i386, PPC and Sparc code
