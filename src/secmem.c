@@ -563,7 +563,6 @@ _gcry_secmem_realloc (void *p, size_t newsize)
   size = mb->size;
   if (newsize < size)
     {
-      SECMEM_UNLOCK;
       /* It is easier to not shrink the memory.  */
       a = p;
     }
