@@ -25,10 +25,10 @@ AC_PREREQ(2.53)
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-AC_INIT(libgcrypt,1.1.8)
+AC_INIT(libgcrypt,1.1.9)
 LIBGCRYPT_LT_CURRENT=5
 LIBGCRYPT_LT_AGE=4
-LIBGCRYPT_LT_REVISION=0
+LIBGCRYPT_LT_REVISION=1
 #-----------------------
 
 PACKAGE=$PACKAGE_NAME
@@ -651,10 +651,10 @@ dnl (this is easier than to have a *.in file just for one substitution)
 dnl
 GNUPG_FIX_HDR_VERSION([src/gcrypt.h], GCRYPT_VERSION)
 
-LIBGCRYPT_LIBS="-L${libdir} -lgcrypt"
-LIBGCRYPT_CFLAGS=""
-AC_SUBST(LIBGCRYPT_LIBS)
-AC_SUBST(LIBGCRYPT_CFLAGS)
+LIBGCRYPT_CONFIG_LIBS="-lgcrypt"
+LIBGCRYPT_CONFIG_CFLAGS=""
+AC_SUBST(LIBGCRYPT_CONFIG_LIBS)
+AC_SUBST(LIBGCRYPT_CONFIG_CFLAGS)
 
 AC_CONFIG_COMMANDS([gcrypt-defs],[[
 chmod +x src/libgcrypt-config

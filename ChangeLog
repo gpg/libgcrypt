@@ -1,3 +1,12 @@
+2002-08-23  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.9.
+	
+	* configure.ac (LIBGCRYPT_CONFIG_CFLAGS): Renamed from
+	LIBGCRYPT_CFLAGS and removed the libpath because it is set by the
+	config script.
+	(LIBGCRYPT_LT_REVISION): Set LT version to 5/4/1.
+
 2002-06-25  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.8.
