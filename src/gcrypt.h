@@ -816,6 +816,7 @@ typedef enum gcry_ac_id
     GCRY_AC_RSA = 1,
     GCRY_AC_DSA = 17,
     GCRY_AC_ELG = 20,
+    GCRY_AC_ELG_E = 16,
   }
 gcry_ac_id_t;
 
@@ -1001,12 +1002,14 @@ enum gcry_md_algos
     GCRY_MD_CRC24_RFC2440	= 304
   };
 
-/* Flags used with the open function. */
-
-/* Allocate all buffers in "secure" memory.  */
-#define GCRY_MD_FLAG_SECURE 1 << 0
-/* Make an HMAC out of this algorithm.  */
-#define GCRY_MD_FLAG_HMAC   1 << 1
+/* Flags used with the open function.  */
+enum gcry_md_flags
+  {
+    GCRY_MD_FLAG_SECURE = 1,  /* Allocate all buffers in "secure"
+				 memory.  */
+    GCRY_MD_FLAG_HMAC	= 2   /* Make an HMAC out of this
+				 algorithm.  */
+  };
 
 /* Forward declaration.  */
 struct gcry_md_context;

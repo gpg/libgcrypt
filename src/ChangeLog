@@ -1,3 +1,9 @@
+2003-07-30  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h (enum gcry_ac_id): Added: GCRY_AC_ELG_E.
+	Reverted change: use gcry_md_flags enumeration list instead of
+	defines.
+
 2003-07-29  Werner Koch  <wk@gnupg.org>
 
 	* global.c (gcry_control): Add GCRYCTL_SET_RANDOM_SEED_FILE and
