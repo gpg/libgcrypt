@@ -64,7 +64,7 @@ static void
 dump_string( FILE *fp, const byte *p, size_t n, int delim )
 {
     for( ; n; n--, p++ )
-	if( iscntrl( *p ) || *p == delim ) {
+	if( (*p & 0x80) || iscntrl( *p ) || *p == delim ) {
 	    putc('\\', fp);
 	    if( *p == '\n' )
 		putc('n', fp);
@@ -87,7 +87,7 @@ dump_string( FILE *fp, const byte *p, size_t n, int delim )
 
 
 void
-gcry_sexp_dump( GCRY_SEXP a )
+gcry_sexp_dump( const GCRY_SEXP a )
 {
     const byte *p;
     DATALEN n;
@@ -95,7 +95,7 @@ gcry_sexp_dump( GCRY_SEXP a )
     int type;
 
     if ( !a ) {
-	fputs ( "[NULL]\n", stderr );
+	fputs ( "[nil]\n", stderr );
 	return;
     }
 
@@ -133,7 +133,30 @@ gcry_sexp_dump( GCRY_SEXP a )
     }
 }
 
+/****************
+ * Pass list thru expcept when it is an empty list in taht case
+ * return NULL and release the passed list.
+ */
+static GCRY_SEXP
+normalize ( GCRY_SEXP list )
+{
+    char *p;
+    if ( !list )
+	return NULL;
+    p = list->d;
+    if ( *p == ST_STOP ) {
+	/* this is "" */
+	gcry_sexp_release ( list );
+	return NULL;
+    }
+    if( *p == ST_OPEN && p[1+sizeof(DATALEN)] == ST_CLOSE ) {
+	/* this is "()" */
+	gcry_sexp_release ( list );
+	return NULL;
+    }
 
+    return list;
+}
 
 /****************
  * Release resource of the given SEXP object.
@@ -145,30 +168,13 @@ gcry_sexp_release( GCRY_SEXP sexp )
 }
 
 
-static GCRY_SEXP
-new_empty_list ( void )
-{
-    GCRY_SEXP newlist;
-    byte *p;
-    DATALEN n;
-
-    newlist = g10_xmalloc ( sizeof *newlist + 3 + sizeof(DATALEN) - 1 );
-    p = newlist->d;
-    *p++ = ST_OPEN;
-    n = 1; /* the close is the only element */
-    memcpy ( p, &n, sizeof n ); p += sizeof n;
-    *p++ = ST_CLOSE;
-    *p++ = ST_STOP;
-    return newlist;
-}
-
 /****************
  * Make a pair from lists a and b, don't use a or b later on.
  * Special behaviour:  If one is a single element list we put the
  * element straight into the new pair.
  */
 GCRY_SEXP
-gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b )
+gcry_sexp_cons( const GCRY_SEXP a, const GCRY_SEXP b )
 {
     /* NYI: Implementation should be quite easy with our new data representation */
     BUG ();
@@ -181,7 +187,7 @@ gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b )
  * with a NULL. 								      y a NULL
  */
 GCRY_SEXP
-gcry_sexp_alist( GCRY_SEXP *array )
+gcry_sexp_alist( const GCRY_SEXP *array )
 {
     /* NYI: Implementaion should be quite easy with our new data representation */
     BUG ();
@@ -192,7 +198,7 @@ gcry_sexp_alist( GCRY_SEXP *array )
  * Make a list from all items, the end of list is indicated by a NULL
  */
 GCRY_SEXP
-gcry_sexp_vlist( GCRY_SEXP a, ... )
+gcry_sexp_vlist( const GCRY_SEXP a, ... )
 {
     /* NYI: Implementaion should be quite easy with our new data representation */
     BUG ();
@@ -205,7 +211,7 @@ gcry_sexp_vlist( GCRY_SEXP a, ... )
  * Returns: a new ist (which maybe a)
  */
 GCRY_SEXP
-gcry_sexp_append( GCRY_SEXP a, GCRY_SEXP n )
+gcry_sexp_append( const GCRY_SEXP a, const GCRY_SEXP n )
 {
     /* NYI: Implementaion should be quite easy with our new data representation */
     BUG ();
@@ -213,7 +219,7 @@ gcry_sexp_append( GCRY_SEXP a, GCRY_SEXP n )
 }
 
 GCRY_SEXP
-gcry_sexp_prepend( GCRY_SEXP a, GCRY_SEXP n )
+gcry_sexp_prepend( const GCRY_SEXP a, const GCRY_SEXP n )
 {
     /* NYI: Implementaion should be quite easy with our new data representation */
     BUG ();
@@ -227,16 +233,20 @@ gcry_sexp_prepend( GCRY_SEXP a, GCRY_SEXP n )
  * Returns: A new list with this sublist or NULL if not found.
  */
 GCRY_SEXP
-gcry_sexp_find_token( GCRY_SEXP list, const char *tok, size_t toklen )
+gcry_sexp_find_token( const GCRY_SEXP list, const char *tok, size_t toklen )
 {
-    byte *p = list->d;
+    const byte *p;
     DATALEN n;
     int type;
 
+    if ( !list )
+	return NULL;
+
     if( !toklen )
 	toklen = strlen(tok);
+    p = list->d;
     while ( (type=*p) != ST_STOP ) {
-	byte *head = p;
+	const byte *head = p;
 	DATALEN headlen;
 
 	p++;
@@ -249,7 +259,7 @@ gcry_sexp_find_token( GCRY_SEXP list, const char *tok, size_t toklen )
 	headlen = n + 1 + sizeof(DATALEN);
 	if ( type == ST_OPEN ) {
 	    int type2 = *p;
-	    byte *pp = p+1;
+	    const byte *pp = p+1;
 	    DATALEN nn;
 
 	    memcpy ( &nn, pp, sizeof nn );
@@ -260,7 +270,7 @@ gcry_sexp_find_token( GCRY_SEXP list, const char *tok, size_t toklen )
 		    memcpy ( sexp->d, head, headlen );
 		    sexp->d[headlen] = ST_CLOSE;
 		    sexp->d[headlen+1] = ST_STOP;
-		    return sexp;
+		    return normalize ( sexp );
 		}
 	    }
 	    p = pp + nn;
@@ -272,51 +282,33 @@ gcry_sexp_find_token( GCRY_SEXP list, const char *tok, size_t toklen )
     return NULL;
 }
 
-
 /****************
- * Enumerate all objects in the list.  Ther first time you call this, pass
- * the address of a void pointer initialized to NULL.  Then don't touch this
- * variable anymore but pass it verbatim to the function; you will get
- * all lists back in turn. End of lists is indicated by a returned NIL in
- * which case you should not continue to use this function
- * (it would wrap around).  If you decide to cancel the operation before
- * the final NIL you have to release the context by calling the function
- * with a the context but a LIST set to NULL.
- * Note that this function returns only lists and not single objects.
+ * return the length of the given list
  */
-GCRY_SEXP
-gcry_sexp_enum( GCRY_SEXP list, void **context, int mode )
+int
+gcry_sexp_length( const GCRY_SEXP list )
 {
-    return NULL;
-    #warning gcry_sexp_enum is not implemented
-  #if 0
-    NODE node;
+    const byte *p;
+    DATALEN n;
+    int type;
+    int length = 0;
 
-    if( mode )
-	return NULL; /* mode is reserved and must be 0 */
-    if( !list ) {
-	/* we are lucky that we can hold all information in the pointer
-	 * value ;-) - so there is no need to release any memory */
-	*context = NULL;
-	return NULL;
-    }
-    if( !*context )  /* start enumeration */
-	node = list;
-    else {
-	node = *context;
-	node = node->next;
-    }
+    if ( !list )
+	return 0;
 
-    for( ; node; node = node->next ) {
-	*context = node; /* store our context */
-	if( node->type == ntLIST )
-	    return node->u.list;
-	return node;
+    p = list->d;
+    while ( (type=*p) != ST_STOP ) {
+	p++;
+	if ( type == ST_CLOSE )
+	    n = 0;
+	else {
+	    memcpy ( &n, p, sizeof n );
+	    p += sizeof n;
+	}
+	p += n;
+	length++;
     }
-
-    /* release resources and return nil */
-    return gcry_sexp_enum( NULL, context, mode );
-  #endif
+    return length;
 }
 
 
@@ -325,7 +317,7 @@ gcry_sexp_enum( GCRY_SEXP list, void **context, int mode )
  * Extract the CAR of the given list
  */
 GCRY_SEXP
-gcry_sexp_car( GCRY_SEXP list )
+gcry_sexp_car( const GCRY_SEXP list )
 {
     const byte *p;
     DATALEN n;
@@ -333,7 +325,7 @@ gcry_sexp_car( GCRY_SEXP list )
     byte *d;
 
     if ( !list || list->d[0] != ST_OPEN )
-	return new_empty_list ();
+	return NULL;
     p = list->d;
     memcpy ( &n, ++p, sizeof n ); p += sizeof n;
 
@@ -343,7 +335,7 @@ gcry_sexp_car( GCRY_SEXP list )
     if ( *p == ST_OPEN )
 	*d++ = ST_CLOSE;
     *d++ = ST_STOP;
-    return newlist;
+    return normalize (newlist);
 }
 
 /****************
@@ -351,10 +343,16 @@ gcry_sexp_car( GCRY_SEXP list )
  * is not modified.
  */
 const char *
-gcry_sexp_car_data( GCRY_SEXP list, size_t *datalen )
+gcry_sexp_car_data( const GCRY_SEXP list, size_t *datalen )
 {
-    byte *p = list->d;
+    const byte *p;
     DATALEN n;
+
+    if ( !list ) {
+	*datalen = 0;
+	return NULL;
+    }
+    p = list->d;
 
     if ( *p == ST_OPEN ) {
 	p += 1 + sizeof n;
@@ -366,6 +364,7 @@ gcry_sexp_car_data( GCRY_SEXP list, size_t *datalen )
 	return p + sizeof n;
     }
 
+    *datalen = 0;
     return NULL;
 }
 
@@ -375,12 +374,15 @@ gcry_sexp_car_data( GCRY_SEXP list, size_t *datalen )
 GCRY_MPI
 gcry_sexp_car_mpi( GCRY_SEXP list, int mpifmt )
 {
-    byte *p = list->d;
+    const byte *p;
     DATALEN n;
 
+    if ( !list )
+	return NULL;
     if ( !mpifmt )
 	mpifmt = GCRYMPI_FMT_STD;
 
+    p = list->d;
     if ( *p == ST_OPEN ) {
 	p += 1 + sizeof n;
     }
@@ -399,11 +401,23 @@ gcry_sexp_car_mpi( GCRY_SEXP list, int mpifmt )
     return NULL;
 }
 
+GCRY_SEXP
+gcry_sexp_cadr ( const GCRY_SEXP list )
+{
+    GCRY_SEXP a, b;
+
+    a = gcry_sexp_cdr ( list );
+    b = gcry_sexp_car ( a );
+    gcry_sexp_release ( a );
+    return b;
+}
+
+
 /****************
  * Get the CDR
  */
 GCRY_SEXP
-gcry_sexp_cdr( GCRY_SEXP list )
+gcry_sexp_cdr( const GCRY_SEXP list )
 {
     const byte *head, *p;
     DATALEN n;
@@ -411,14 +425,14 @@ gcry_sexp_cdr( GCRY_SEXP list )
     byte *d;
 
     if ( !list || list->d[0] != ST_OPEN )
-	return new_empty_list ();
+	return NULL;
     p = list->d;
 
     p++;
     p += sizeof n; /* don't care about the length of the list */
 
     if ( *p == ST_CLOSE )
-	return new_empty_list (); /* cdr of an empty list is an empty list */
+	return NULL; /* cdr of an empty list is an empty list */
 
     /* skip over the first element of the list */
     if ( *p == ST_STOP )
@@ -446,7 +460,7 @@ gcry_sexp_cdr( GCRY_SEXP list )
     memcpy ( d, head, n ); d += n;
     *d++ = ST_CLOSE;
     *d++ = ST_STOP;
-    return newlist;
+    return normalize (newlist);
 }
 
 /****************
@@ -455,9 +469,15 @@ gcry_sexp_cdr( GCRY_SEXP list )
 const char *
 gcry_sexp_cdr_data( GCRY_SEXP list, size_t *datalen )
 {
-    byte *p = list->d;
+    const byte *p;
     DATALEN n;
 
+    if ( !list ) {
+	*datalen = 0;
+	return NULL;
+    }
+
+    p = list->d;
     if ( *p == ST_OPEN ) {
 	memcpy ( &n, ++p, sizeof n );
 	p += sizeof n;
@@ -476,6 +496,7 @@ gcry_sexp_cdr_data( GCRY_SEXP list, size_t *datalen )
 	    return p;
 	}
     }
+    *datalen = 0;
     return NULL;
 }
 
@@ -489,12 +510,16 @@ gcry_sexp_cdr_data( GCRY_SEXP list, size_t *datalen )
 GCRY_MPI
 gcry_sexp_cdr_mpi( GCRY_SEXP list, int mpifmt )
 {
-    byte *p = list->d;
+    const byte *p;
     DATALEN n;
+
+    if ( !list )
+	return NULL;
 
     if ( !mpifmt )
 	mpifmt = GCRYMPI_FMT_STD;
 
+    p = list->d;
     if ( *p == ST_OPEN ) {
 	memcpy ( &n, ++p, sizeof n );
 	p += sizeof n;
@@ -547,6 +572,34 @@ hextobyte( const byte *s )
     return c;
 }
 
+struct make_space_ctx {
+    GCRY_SEXP sexp;
+    size_t allocated;
+    byte *pos;
+    byte **fixups;
+    int  max_fixups;
+    int  n_fixups;
+};
+
+static void
+make_space ( struct make_space_ctx *c, size_t n )
+{
+    size_t used = c->pos - c->sexp->d;
+
+    if ( used + n +sizeof(DATALEN) + 1 >= c->allocated ) {
+	GCRY_SEXP newsexp;
+	byte *newhead;
+	int i;
+
+	c->allocated += 2*(n+sizeof(DATALEN)+1);
+	newsexp = g10_xrealloc ( c->sexp, sizeof *newsexp + c->allocated - 1 );
+	newhead = newsexp->d;
+	c->pos = newhead + used;
+	for ( i=0; i < c->n_fixups; i++ )
+	    c->fixups[i] = newhead + (c->fixups[i] - c->sexp->d );
+	c->sexp = newsexp;
+    }
+}
 
 
 /****************
@@ -588,75 +641,42 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
     int hexcount=0;
     int quoted_esc=0;
     int datalen=0;
-    int first;
     size_t dummy_erroff;
-    byte *head, *pos, *tail;
-    size_t allocated;
-    byte **fixups = NULL;
-    int  max_fixups = 0;
-    int  n_fixups = 0;
+
+    struct make_space_ctx c;
 
     if( !erroff )
 	erroff = &dummy_erroff;
 
     /* FIXME: replace all the returns by a jump to the leave label
      * and invent better error codes. Make sure that everything is cleaned up*/
-
-  #define MAKE_SPACE(n) do {if ( pos + (n)+sizeof(DATALEN)+1 >= tail ) {    \
-				GCRY_SEXP newsexp;			    \
-				byte *newhead;				    \
-				int i;					    \
-				allocated += 2*((n)+sizeof(DATALEN)+1);     \
-				newsexp = g10_xrealloc ( *retsexp,	    \
-					sizeof *newsexp + allocated - 1 );  \
-				newhead = newsexp->d;			    \
-				pos = newhead + ( pos - head ); 	    \
-				for ( i=0; i < n_fixups; i++ )		    \
-				    fixups[i] = newhead+(fixups[i]-head);   \
-				head = newhead; 			    \
-				*retsexp = newsexp;			    \
-				tail = head + allocated;		    \
-			    }						    \
-			} while (0)
+  #define MAKE_SPACE(n)  do { make_space ( &c, (n) ); } while (0)
   #define STORE_LEN(p,n) do {						   \
 			    DATALEN ashort = (n);			   \
 			    memcpy ( (p), &ashort, sizeof(ashort) );	   \
 			    (p) += sizeof (ashort);			   \
 			} while (0)
 
-  #define PUSH_FIXUP(p) do {						   \
-			    if ( !fixups ) {				   \
-				max_fixups = 3; 			   \
-				fixups = g10_xcalloc( max_fixups,	   \
-						      sizeof *fixups );    \
-				n_fixups = 0;				   \
-			    }						   \
-			    if ( n_fixups >= max_fixups ) {		   \
-				max_fixups += 10;			   \
-				fixups = g10_xrealloc(fixups, max_fixups); \
-			    }						   \
-			    fixups[n_fixups++] = p;			   \
-			} while (0)
-
     /* We assume that the internal representation takes less memory
      * than the provided one.  However, we add space for one extra datalen
      * so that the code which does the ST_CLOSE can use MAKE_SPACE */
-    allocated = length + sizeof(DATALEN);
-    *retsexp = g10_xmalloc ( sizeof **retsexp + allocated - 1 );
-    head = pos = (*retsexp)->d;
-    tail = head + allocated - 1;
+    c.allocated = length + sizeof(DATALEN);
+    c.sexp = g10_xmalloc ( sizeof *c.sexp + c.allocated - 1 );
+    c.pos = c.sexp->d;
+    c.fixups = NULL;
+    c.max_fixups = 0;
+    c.n_fixups = 0;
 
-    first = 0;
     for(p=buffer,n=length; n; p++, n-- ) {
 	if( tokenp && !hexfmt ) {
 	    if( strchr( tokenchars, *p ) )
 		continue;
 	    datalen = p - tokenp;
 	    MAKE_SPACE ( datalen );
-	    *pos++ = ST_DATA;
-	    STORE_LEN ( pos, datalen );
-	    memcpy ( pos, tokenp, datalen );
-	    pos += datalen;
+	    *c.pos++ = ST_DATA;
+	    STORE_LEN ( c.pos, datalen );
+	    memcpy ( c.pos, tokenp, datalen );
+	    c.pos += datalen;
 	    tokenp = NULL;
 	}
 	if( quoted ) {
@@ -719,12 +739,12 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 
 		datalen = hexcount/2;
 		MAKE_SPACE (datalen);
-		*pos++ = ST_DATA;
-		STORE_LEN (pos, datalen);
+		*c.pos++ = ST_DATA;
+		STORE_LEN (c.pos, datalen);
 		for( hexfmt++; hexfmt < p; hexfmt++ ) {
 		    if( isspace( *hexfmt ) )
 			continue;
-		    *pos++ = hextobyte( hexfmt );
+		    *c.pos++ = hextobyte( hexfmt );
 		    hexfmt++;
 		}
 		hexfmt = NULL;
@@ -742,10 +762,6 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 	    if( isdigit(*p) )
 		;
 	    else if( *p == ':' ) {
-		if( !head ) {
-		    *erroff = 0;
-		    return -4;	 /* not a list */
-		}
 		datalen = atoi( digptr ); /* fixme: check for overflow */
 		digptr = NULL;
 		if( datalen > n-1 ) {
@@ -754,10 +770,10 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 		}
 		/* make a new list entry */
 		MAKE_SPACE (datalen);
-		*pos++ = ST_DATA;
-		STORE_LEN (pos, datalen);
-		memcpy (pos, p+1, datalen );
-		pos += datalen;
+		*c.pos++ = ST_DATA;
+		STORE_LEN (c.pos, datalen);
+		memcpy (c.pos, p+1, datalen );
+		c.pos += datalen;
 		n -= datalen;
 		p += datalen;
 	    }
@@ -788,44 +804,36 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 		if ( gcry_mpi_print( GCRYMPI_FMT_STD, NULL, &nm, m ) )
 		    BUG ();
 
-		if ( !g10_is_secure ( head )
+		MAKE_SPACE (nm);
+		if ( !g10_is_secure ( c.sexp->d )
 		     &&  gcry_mpi_get_flag ( m, GCRYMPI_FLAG_SECURE ) ) {
-		    /* we have to switch to secure allocation and while we
-		     * are already at it we check wether we have to increase
-		     * the size */
+		    /* we have to switch to secure allocation */
 		    GCRY_SEXP newsexp;
 		    byte *newhead;
 
-		    if ( pos + nm+sizeof(DATALEN)+1 >= tail ) {
-			allocated += nm+sizeof(DATALEN)+1;
-		    }
-
-		    newsexp = g10_xrealloc ( *retsexp,
-					     sizeof *newsexp + allocated - 1 );
+		    newsexp = g10_xmalloc_secure ( sizeof *newsexp
+						   + c.allocated - 1 );
 		    newhead = newsexp->d;
-		    memcpy ( newhead, head, (pos - head) );
-		    pos = newhead + ( pos - head );
-		    g10_free ( head );
-		    head = newhead;
-		    *retsexp = newsexp;
-		    tail = head + allocated;
+		    memcpy ( newhead, c.sexp->d, (c.pos - c.sexp->d) );
+		    c.pos = newhead + ( c.pos - c.sexp->d );
+		    g10_free ( c.sexp );
+		    c.sexp = newsexp;
 		}
 
-		MAKE_SPACE (nm);
-		*pos++ = ST_DATA;
-		STORE_LEN (pos, nm);
-		if ( gcry_mpi_print( GCRYMPI_FMT_STD, pos, &nm, m ) )
+		*c.pos++ = ST_DATA;
+		STORE_LEN (c.pos, nm);
+		if ( gcry_mpi_print( GCRYMPI_FMT_STD, c.pos, &nm, m ) )
 		    BUG ();
-		pos += nm;
+		c.pos += nm;
 	    }
 	    else if ( *p == 's' ) { /* insert an string */
 		const char *astr = va_arg (arg_ptr, const char *);
 		size_t alen = strlen ( astr );
 
 		MAKE_SPACE (alen);
-		*pos++ = ST_DATA;
-		STORE_LEN (pos, alen);
-		memcpy ( pos, astr, alen );
+		*c.pos++ = ST_DATA;
+		STORE_LEN (c.pos, alen);
+		memcpy ( c.pos, astr, alen );
 	    }
 	    else if ( *p == 'd' ) { /* insert an integer as string */
 		int aint = va_arg (arg_ptr, int);
@@ -835,10 +843,10 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 		sprintf ( buf, "%d", aint );
 		alen = strlen ( buf );
 		MAKE_SPACE (alen);
-		*pos++ = ST_DATA;
-		STORE_LEN (pos, alen);
-		memcpy ( pos, buf, alen );
-		pos += alen;
+		*c.pos++ = ST_DATA;
+		STORE_LEN (c.pos, alen);
+		memcpy ( c.pos, buf, alen );
+		c.pos += alen;
 	    }
 	    else {
 		*erroff = p - buffer;
@@ -852,10 +860,21 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 		return -9; /* open display hint */
 	    }
 	    MAKE_SPACE (0);
-	    *pos++ = ST_OPEN;
-	    PUSH_FIXUP ( pos );
-	    STORE_LEN ( pos, 0 ); /* reserve */
-	    first = 1;
+	    *c.pos++ = ST_OPEN;
+
+	    if ( !c.fixups ) {
+		c.max_fixups = 10;
+		c.fixups = g10_xcalloc( c.max_fixups, sizeof *c.fixups );
+		c.n_fixups = 0;
+	    }
+	    else if ( c.n_fixups >= c.max_fixups ) {
+		c.max_fixups += 10;
+		c.fixups = g10_xrealloc( c.fixups,
+					 c.max_fixups * sizeof *c.fixups );
+	    }
+	    c.fixups[c.n_fixups++] = c.pos;
+
+	    STORE_LEN ( c.pos, 0 ); /* reserve */
 	}
 	else if( *p == ')' ) { /* walk up */
 	    byte *fixup;
@@ -864,14 +883,14 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 		*erroff = p - buffer;
 		return -9; /* open display hint */
 	    }
-	    if( !n_fixups ) {
+	    if( !c.n_fixups ) {
 		*erroff = 0;
 		return -4;   /* no open list */
 	    }
 	    MAKE_SPACE (0);
-	    fixup = fixups[--n_fixups];
-	    *pos++ = ST_CLOSE;
-	    STORE_LEN ( fixup, pos - fixup - sizeof(DATALEN) );
+	    fixup = c.fixups[--c.n_fixups];
+	    *c.pos++ = ST_CLOSE;
+	    STORE_LEN ( fixup, c.pos - fixup - sizeof(DATALEN) );
 	}
 	else if( *p == '\"' ) {
 	    quoted = p;
@@ -932,14 +951,13 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 
     }
     MAKE_SPACE (0);
-    *pos++ = ST_STOP;
+    *c.pos++ = ST_STOP;
 
-  leave:
-    g10_free ( fixups );
+    g10_free ( c.fixups );
+    *retsexp = normalize ( c.sexp );
     return 0;
   #undef MAKE_SPACE
   #undef STORE_LEN
-  #undef PUISH_FIXUP
 }
 
 int
@@ -986,88 +1004,6 @@ strusage( int level )
 {
     return "?";
 }
-
-
-#if 0
-static int
-sexp_to_pk( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
-{
-    GCRY_SEXP list, l2;
-    const char *name;
-    const char *s;
-    size_t n;
-    int i, idx;
-    int algo;
-    const char *elems1, *elems2;
-    GCRY_MPI *array;
-    static struct { const char* name; int algo;
-		    const char* common_elements;
-		    const char* public_elements;
-		    const char* secret_elements;
-		  } algos[] = {
-	{  "dsa"            , PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
-	{  "rsa"            , PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
-	{  "openpgp-dsa"    , PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
-	{  "openpgp-rsa"    , PUBKEY_ALGO_RSA       , "pqgy", "", "x"    },
-	{  "openpgp-elg"    , PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x"    },
-	{  "openpgp-elg-sig", PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
-	{  NULL }};
-
-    /* check that the first element is valid */
-    list = gcry_sexp_find_token( sexp, want_private? "private-key"
-						    :"public-key", 0 );
-    if( !list )
-	return -1; /* Does not contain a public- or private-key object */
-    list = gcry_sexp_cdr( list );
-    if( !list )
-	return -2; /* no cdr for the key object */
-    name = gcry_sexp_car_data( list, &n );
-    if( !name )
-	return -3; /* invalid structure of object */
-    fprintf(stderr, "algorithm name: `%.*s'\n", (int)n, name );
-    for(i=0; (s=algos[i].name); i++ ) {
-	if( strlen(s) == n && !memcmp( s, name, n ) )
-	    break;
-    }
-    if( !s )
-	return -4; /* unknown algorithm */
-    algo = algos[i].algo;
-    elems1 = algos[i].common_elements;
-    elems2 = want_private? algos[i].secret_elements : algos[i].public_elements;
-    array = g10_xcalloc( (strlen(elems1)+strlen(elems2)+1) , sizeof *array );
-    idx = 0;
-    for(s=elems1; *s; s++, idx++ ) {
-	l2 = gcry_sexp_find_token( list, s, 1 );
-	if( !l2 ) {
-	    g10_free( array );
-	    return -5; /* required parameter not found */
-	}
-	array[idx] = gcry_sexp_cdr_mpi( l2, GCRYMPI_FMT_USG );
-	if( !array[idx] ) {
-	    g10_free( array );
-	    return -6; /* required parameter is invalid */
-	}
-    }
-    for(s=elems2; *s; s++, idx++ ) {
-	l2 = gcry_sexp_find_token( list, s, 1 );
-	if( !l2 ) {
-	    g10_free( array );
-	    return -5; /* required parameter not found */
-	}
-	/* FIXME: put the MPI in secure memory when needed */
-	array[idx] = gcry_sexp_cdr_mpi( l2, GCRYMPI_FMT_USG );
-	if( !array[idx] ) {
-	    g10_free( array );
-	    return -6; /* required parameter is invalid */
-	}
-    }
-
-    *retarray = array;
-    *retalgo = algo;
-
-    return 0;
-}
-#endif
 
 
 int

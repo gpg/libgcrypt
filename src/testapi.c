@@ -37,10 +37,6 @@ test_sexp ( int argc, char **argv )
     rc = gcry_sexp_build ( &sexp, NULL,
 			   "(public-key(elg(p%m)(g%m)(y%m)))",
 				  key[0], key[1], key[2] );
-    if (rc) {
-	fprintf (stderr, "gcry_sexp_build failed: rc=%d\n", rc );
-	return;
-    }
     fputs ( "DUMP of PK:\n", stderr );
     gcry_sexp_dump ( sexp );
     {  GCRY_SEXP x;
@@ -55,6 +51,23 @@ test_sexp ( int argc, char **argv )
 }
 
 
+void
+test_genkey ( int argc, char **argv )
+{
+    int rc, nbits = 1024;
+    GCRY_SEXP s_parms, s_key;
+
+    rc = gcry_sexp_build ( &s_parms, NULL, "(genkey(dsa(nbits %d)))", nbits );
+    rc = gcry_pk_genkey( &s_key, s_parms );
+    if ( rc ) {
+	fprintf ( stderr, "genkey failed: %s\n", gcry_strerror (rc) );
+	return;
+    }
+    gcry_sexp_release( s_parms );
+    gcry_sexp_dump ( s_key );
+    gcry_sexp_release( s_key );
+}
+
 int
 main( int argc, char **argv )
 {
@@ -64,6 +77,8 @@ main( int argc, char **argv )
 	printf("%s\n", gcry_check_version ( argc > 2 ? argv[2] : NULL ) );
     else if ( !strcmp ( argv[1], "sexp" ) )
 	test_sexp ( argc-2, argv+2 );
+    else if ( !strcmp ( argv[1], "genkey" ) )
+	test_genkey ( argc-2, argv+2 );
     else {
 	fprintf (stderr, "usage: testapi mode-string [mode-args]\n");
 	return 1;

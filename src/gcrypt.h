@@ -153,36 +153,29 @@ enum gcry_sexp_format {
 
 
 void	  gcry_sexp_release( GCRY_SEXP sexp );
-void	  gcry_sexp_dump( GCRY_SEXP a );
-GCRY_SEXP gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b );
-GCRY_SEXP gcry_sexp_alist( GCRY_SEXP *array );
-GCRY_SEXP gcry_sexp_vlist( GCRY_SEXP a, ... );
-GCRY_SEXP gcry_sexp_append( GCRY_SEXP a, GCRY_SEXP n );
-GCRY_SEXP gcry_sexp_prepend( GCRY_SEXP a, GCRY_SEXP n );
+void	  gcry_sexp_dump( const GCRY_SEXP a );
+GCRY_SEXP gcry_sexp_cons( const GCRY_SEXP a, const GCRY_SEXP b );
+GCRY_SEXP gcry_sexp_alist( const GCRY_SEXP *array );
+GCRY_SEXP gcry_sexp_vlist( const GCRY_SEXP a, ... );
+GCRY_SEXP gcry_sexp_append( const GCRY_SEXP a, const GCRY_SEXP n );
+GCRY_SEXP gcry_sexp_prepend( const GCRY_SEXP a, const GCRY_SEXP n );
 int	  gcry_sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff,
 			   const char *buffer, size_t length );
 int	  gcry_sexp_build( GCRY_SEXP *retsexp, size_t *erroff,
 			   const char *format, ... );
 size_t	  gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer,
 						size_t maxlength );
+int	    gcry_sexp_length( const GCRY_SEXP list );
 GCRY_SEXP   gcry_sexp_find_token( GCRY_SEXP list,
 				  const char *tok, size_t toklen );
-GCRY_SEXP   gcry_sexp_enum( GCRY_SEXP list, void **context, int mode );
-GCRY_SEXP   gcry_sexp_car( GCRY_SEXP list );
-GCRY_SEXP   gcry_sexp_cdr( GCRY_SEXP list );
-const char *gcry_sexp_car_data( GCRY_SEXP list, size_t *datalen );
-const char *gcry_sexp_cdr_data( GCRY_SEXP list, size_t *datalen );
-GCRY_MPI    gcry_sexp_car_mpi( GCRY_SEXP list, int mpifmt );
-GCRY_MPI    gcry_sexp_cdr_mpi( GCRY_SEXP list, int mpifmt );
+GCRY_SEXP   gcry_sexp_car( const GCRY_SEXP list );
+GCRY_SEXP   gcry_sexp_cadr( const GCRY_SEXP list );
+GCRY_SEXP   gcry_sexp_cdr( const GCRY_SEXP list );
+const char *gcry_sexp_car_data( const GCRY_SEXP list, size_t *datalen );
+const char *gcry_sexp_cdr_data( const GCRY_SEXP list, size_t *datalen );
+GCRY_MPI    gcry_sexp_car_mpi( const GCRY_SEXP list, int mpifmt );
+GCRY_MPI    gcry_sexp_cdr_mpi( const GCRY_SEXP list, int mpifmt );
 
-
-
-#ifndef GCRYPT_NO_SEXP_MACROS
-#define SEXP		GCRY_SEXP
-#define SEXP_NEW(a,b)	gcry_sexp_new_data( (a), (b) )
-#define SEXP_RELEASE(a) do { gcry_sexp_release( (a) ); (a)=NULL; } while(0)
-#define SEXP_CONS(a,b)	gcry_sexp_cons((a),(b))
-#endif /*GCRYPT_NO_SEXP_MACROS*/
 
 /*******************************************
  *					   *

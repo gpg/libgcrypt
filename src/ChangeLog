@@ -1,3 +1,12 @@
+Fri Jul 28 18:19:11 CEST 2000  Werner Koch  <wk@openit.de>
+
+  * sexp.c (sexp_sscan): Fixed reallocation to secure memory.
+  (new_empty_list): Removed
+  (gcry_sexp_length): New.
+  (gcry_sexp_enum): Removed.
+  (normalize): New. Reworked the whole thing to use NULL for an empty list.
+  (make_space): New instead of the macro.
+
 Tue Jul 25 17:44:15 CEST 2000  Werner Koch  <wk@openit.de>
 
   * sexp.c: Major rewrite.
