@@ -169,20 +169,22 @@ libmpi_la_SOURCES = longlong.h	   \
 	      mpicoder.c     \
 	      mpih-div.c     \
 	      mpih-mul.c     \
-	      mpiutil.c 
+	      mpiutil.c
 
 libmpi_la_LIBADD = @MPI_MOD_LIST_LO@
 libmpi_la_DEPENDENCIES = @MPI_MOD_LIST_LO@
 
-# we need our own rules here to preprocess the .S files
-# libtool has now working support for assembiles. It does for example not
-# work when building only a static library.
-.S.o:
-	 $(CPP) $(INCLUDES) $(DEFS) `test -f '$<' || echo '$(srcdir)/'`$< | grep -v '^#' > _$*.s
-	 $(CCASCOMPILE) -c _$*.s
-	 mv -f _$*.o $@
 
+# Because we are circumventing automake with regards to assembler
+# files, we have to define our own rules.
+
+SUFFIXES = .S .o .obj .lo
+
+.S.o:
+	$(CCASCOMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+ 
+.S.obj:
+	$(CCASCOMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
+ 
 .S.lo:
-	 $(CPP) $(INCLUDES) $(DEFS) -DPIC `test -f '$<' || echo '$(srcdir)/'`$< | grep -v '^#' > __$*.s
-	 $(CCASCOMPILE) -c __$*.s
-	 mv -f __$*.o $@
+	$(LTCCASCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<

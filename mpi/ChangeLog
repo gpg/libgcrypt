@@ -1,3 +1,8 @@
+2003-08-19  Marcus Brinkmann  <marcus@g10code.de>
+
+	* Makefile.am (SUFFIXES): New variable.
+	(.S.o, .S.lo, .S.obj): Rewritten.
+
 2003-07-30  Moritz Schulte  <moritz@g10code.com>
 
 	* longlong.h (__clz_tab): Renamed to _gcry_clz_tab.
