@@ -1,5 +1,5 @@
 /* mpi-div.c  -  MPI functions
- * Copyright (C) 1994, 1996, 1998, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1994, 1996, 1998, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -33,10 +33,10 @@
 
 
 void
-_gcry_mpi_fdiv_r( MPI rem, MPI dividend, MPI divisor )
+_gcry_mpi_fdiv_r( gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor )
 {
     int divisor_sign = divisor->sign;
-    MPI temp_divisor = NULL;
+    gcry_mpi_t temp_divisor = NULL;
 
     /* We need the original value of the divisor after the remainder has been
      * preliminary calculated.	We have to copy it to temporary space if it's
@@ -64,7 +64,7 @@ _gcry_mpi_fdiv_r( MPI rem, MPI dividend, MPI divisor )
  */
 
 ulong
-_gcry_mpi_fdiv_r_ui( MPI rem, MPI dividend, ulong divisor )
+_gcry_mpi_fdiv_r_ui( gcry_mpi_t rem, gcry_mpi_t dividend, ulong divisor )
 {
     mpi_limb_t rlimb;
 
@@ -81,18 +81,18 @@ _gcry_mpi_fdiv_r_ui( MPI rem, MPI dividend, ulong divisor )
 
 
 void
-_gcry_mpi_fdiv_q( MPI quot, MPI dividend, MPI divisor )
+_gcry_mpi_fdiv_q( gcry_mpi_t quot, gcry_mpi_t dividend, gcry_mpi_t divisor )
 {
-    MPI tmp = mpi_alloc( mpi_get_nlimbs(quot) );
+    gcry_mpi_t tmp = mpi_alloc( mpi_get_nlimbs(quot) );
     _gcry_mpi_fdiv_qr( quot, tmp, dividend, divisor);
     mpi_free(tmp);
 }
 
 void
-_gcry_mpi_fdiv_qr( MPI quot, MPI rem, MPI dividend, MPI divisor )
+_gcry_mpi_fdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor )
 {
     int divisor_sign = divisor->sign;
-    MPI temp_divisor = NULL;
+    gcry_mpi_t temp_divisor = NULL;
 
     if( quot == divisor || rem == divisor ) {
 	temp_divisor = mpi_copy( divisor );
@@ -119,13 +119,13 @@ _gcry_mpi_fdiv_qr( MPI quot, MPI rem, MPI dividend, MPI divisor )
  */
 
 void
-_gcry_mpi_tdiv_r( MPI rem, MPI num, MPI den)
+_gcry_mpi_tdiv_r( gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t den)
 {
     _gcry_mpi_tdiv_qr(NULL, rem, num, den );
 }
 
 void
-_gcry_mpi_tdiv_qr( MPI quot, MPI rem, MPI num, MPI den)
+_gcry_mpi_tdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t den)
 {
     mpi_ptr_t np, dp;
     mpi_ptr_t qp, rp;
@@ -276,7 +276,7 @@ _gcry_mpi_tdiv_qr( MPI quot, MPI rem, MPI num, MPI den)
 }
 
 void
-_gcry_mpi_tdiv_q_2exp( MPI w, MPI u, unsigned int count )
+_gcry_mpi_tdiv_q_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned int count )
 {
     mpi_size_t usize, wsize;
     mpi_size_t limb_cnt;
@@ -312,20 +312,20 @@ _gcry_mpi_tdiv_q_2exp( MPI w, MPI u, unsigned int count )
  * (note: divisor must fit into a limb)
  */
 int
-_gcry_mpi_divisible_ui(MPI dividend, ulong divisor )
+_gcry_mpi_divisible_ui(gcry_mpi_t dividend, ulong divisor )
 {
     return !_gcry_mpih_mod_1( dividend->d, dividend->nlimbs, divisor );
 }
 
 
 void
-gcry_mpi_div (MPI quot, MPI rem, MPI dividend, MPI divisor, int round)
+gcry_mpi_div (gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor, int round)
 {
   if (!round)
     {
       if (!rem)
         {
-          MPI tmp = mpi_alloc (mpi_get_nlimbs(quot));
+          gcry_mpi_t tmp = mpi_alloc (mpi_get_nlimbs(quot));
           _gcry_mpi_tdiv_qr (quot, tmp, dividend, divisor);
           mpi_free (tmp);
         }
@@ -347,7 +347,7 @@ gcry_mpi_div (MPI quot, MPI rem, MPI dividend, MPI divisor, int round)
 
 
 void
-gcry_mpi_mod (MPI rem, MPI dividend, MPI divisor)
+gcry_mpi_mod (gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor)
 {
   _gcry_mpi_fdiv_r (rem, dividend, divisor);
   rem->sign = 0;

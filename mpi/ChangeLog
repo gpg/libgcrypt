@@ -1,3 +1,20 @@
+2003-06-16  Moritz Schulte  <moritz@g10code.com>
+
+	* mpi-add.c: Replace last occurences of old type names with newer
+	names (i.e. replace MPI with gcry_mpi_t).
+	* mpi-bit.c: Likewise.
+	* mpi-cmp.c: Likewise.
+	* mpi-div.c: Likewise.
+	* mpi-gcd.c: Likewise.
+	* mpi-internal.h: Likewise.
+	* mpi-inv.c: Likewise.
+	* mpi-mpow.c: Likewise.
+	* mpi-mul.c: Likewise.
+	* mpi-pow.c: Likewise.
+	* mpi-scan.c: Likewise.
+	* mpicoder.c: Likewise.
+	* mpiutil.c: Likewise.
+
 2003-06-09  Moritz Schulte  <moritz@g10code.com>
 
 	* mpicoder.c (gcry_mpi_scan): Adjust for libgpg-error.

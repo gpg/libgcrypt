@@ -53,7 +53,7 @@ __clz_tab[] =
  * this is for some reasons not good, so this function removes them.
  */
 void
-_gcry_mpi_normalize( MPI a )
+_gcry_mpi_normalize( gcry_mpi_t a )
 {
     if( mpi_is_opaque(a) )
 	return;
@@ -68,7 +68,7 @@ _gcry_mpi_normalize( MPI a )
  * Return the number of bits in A.
  */
 unsigned int
-gcry_mpi_get_nbits( MPI a )
+gcry_mpi_get_nbits( gcry_mpi_t a )
 {
     unsigned n;
 
@@ -95,7 +95,7 @@ gcry_mpi_get_nbits( MPI a )
  * Test whether bit N is set.
  */
 int
-gcry_mpi_test_bit( MPI a, unsigned int n )
+gcry_mpi_test_bit( gcry_mpi_t a, unsigned int n )
 {
     unsigned int limbno, bitno;
     mpi_limb_t limb;
@@ -114,7 +114,7 @@ gcry_mpi_test_bit( MPI a, unsigned int n )
  * Set bit N of A.
  */
 void
-gcry_mpi_set_bit( MPI a, unsigned int n )
+gcry_mpi_set_bit( gcry_mpi_t a, unsigned int n )
 {
     unsigned int limbno, bitno;
 
@@ -133,7 +133,7 @@ gcry_mpi_set_bit( MPI a, unsigned int n )
  * Set bit N of A. and clear all bits above
  */
 void
-gcry_mpi_set_highbit( MPI a, unsigned int n )
+gcry_mpi_set_highbit( gcry_mpi_t a, unsigned int n )
 {
     unsigned int limbno, bitno;
 
@@ -155,7 +155,7 @@ gcry_mpi_set_highbit( MPI a, unsigned int n )
  * clear bit N of A and all bits above
  */
 void
-gcry_mpi_clear_highbit( MPI a, unsigned int n )
+gcry_mpi_clear_highbit( gcry_mpi_t a, unsigned int n )
 {
     unsigned int limbno, bitno;
 
@@ -174,7 +174,7 @@ gcry_mpi_clear_highbit( MPI a, unsigned int n )
  * Clear bit N of A.
  */
 void
-gcry_mpi_clear_bit( MPI a, unsigned int n )
+gcry_mpi_clear_bit( gcry_mpi_t a, unsigned int n )
 {
     unsigned int limbno, bitno;
 
@@ -192,7 +192,7 @@ gcry_mpi_clear_bit( MPI a, unsigned int n )
  * FIXME: should use alloc_limb if X and A are same.
  */
 void
-gcry_mpi_rshift( MPI x, MPI a, unsigned n )
+gcry_mpi_rshift( gcry_mpi_t x, gcry_mpi_t a, unsigned n )
 {
     mpi_ptr_t xp;
     mpi_size_t xsize;
@@ -215,7 +215,7 @@ gcry_mpi_rshift( MPI x, MPI a, unsigned n )
  * This is used only within the MPI library
  */
 void
-_gcry_mpi_lshift_limbs( MPI a, unsigned int count )
+_gcry_mpi_lshift_limbs( gcry_mpi_t a, unsigned int count )
 {
     mpi_ptr_t ap = a->d;
     int n = a->nlimbs;
@@ -239,7 +239,7 @@ _gcry_mpi_lshift_limbs( MPI a, unsigned int count )
  * This is used only within the MPI library
  */
 void
-_gcry_mpi_rshift_limbs( MPI a, unsigned int count )
+_gcry_mpi_rshift_limbs( gcry_mpi_t a, unsigned int count )
 {
     mpi_ptr_t ap = a->d;
     mpi_size_t n = a->nlimbs;

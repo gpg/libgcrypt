@@ -1,5 +1,5 @@
 /* mpi-mul.c  -  MPI functions
- * Copyright (C) 1994, 1996, 1998, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1994, 1996, 1998, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -31,7 +31,7 @@
 
 
 void
-gcry_mpi_mul_ui( MPI prod, MPI mult, unsigned long small_mult )
+gcry_mpi_mul_ui( gcry_mpi_t prod, gcry_mpi_t mult, unsigned long small_mult )
 {
     mpi_size_t size, prod_size;
     mpi_ptr_t  prod_ptr;
@@ -61,7 +61,7 @@ gcry_mpi_mul_ui( MPI prod, MPI mult, unsigned long small_mult )
 
 
 void
-_gcry_mpi_mul_2exp( MPI w, MPI u, unsigned long cnt)
+_gcry_mpi_mul_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt)
 {
     mpi_size_t usize, wsize, limb_cnt;
     mpi_ptr_t wp;
@@ -107,14 +107,14 @@ _gcry_mpi_mul_2exp( MPI w, MPI u, unsigned long cnt)
 
 
 void
-gcry_mpi_mul_2exp( MPI w, MPI u, unsigned long cnt)
+gcry_mpi_mul_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt)
 {
   _gcry_mpi_mul_2exp (w, u, cnt);
 }
 
 
 void
-gcry_mpi_mul( MPI w, MPI u, MPI v)
+gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 {
     mpi_size_t usize, vsize, wsize;
     mpi_ptr_t up, vp, wp;
@@ -210,7 +210,7 @@ gcry_mpi_mul( MPI w, MPI u, MPI v)
 
 
 void
-gcry_mpi_mulm( MPI w, MPI u, MPI v, MPI m)
+gcry_mpi_mulm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
 {
     gcry_mpi_mul(w, u, v);
     _gcry_mpi_fdiv_r( w, w, m );

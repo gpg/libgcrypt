@@ -1,5 +1,5 @@
 /* mpi-gcd.c  -  MPI functions
- *	Copyright (C) 1998, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -28,9 +28,9 @@
  * Return: true if this 1, false in all other cases
  */
 int
-gcry_mpi_gcd( MPI g, MPI xa, MPI xb )
+gcry_mpi_gcd( gcry_mpi_t g, gcry_mpi_t xa, gcry_mpi_t xb )
 {
-    MPI a, b;
+    gcry_mpi_t a, b;
 
     a = mpi_copy(xa);
     b = mpi_copy(xb);

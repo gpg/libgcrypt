@@ -22,7 +22,6 @@
 # not anymore required: AUTOMAKE_OPTIONS = 1.6
 
 INCLUDES =  -I$(top_srcdir)/src
-AM_CFLAGS = @MPI_OPT_FLAGS@
 ASFLAGS = @MPI_SFLAGS@
 
 # We don't have .S sources listed, so automake does not autocreate these
@@ -151,6 +150,7 @@ CLEANFILES = _*.s __*.s
 
 noinst_LTLIBRARIES = libmpi.la
 
+AM_CFLAGS = @GPG_ERROR_CFLAGS@
 libmpi_la_LDFLAGS =
 libmpi_la_SOURCES = longlong.h	   \
 	      mpi-add.c      \

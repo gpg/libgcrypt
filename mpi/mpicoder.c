@@ -30,13 +30,13 @@
 #define MAX_EXTERN_MPI_BITS 16384
 
 
-static MPI
+static gcry_mpi_t
 mpi_read_from_buffer(byte *buffer, unsigned *ret_nread, int secure)
 {
     int i, j;
     unsigned int nbits, nbytes, nlimbs, nread=0;
     mpi_limb_t a;
-    MPI val = MPI_NULL;
+    gcry_mpi_t val = MPI_NULL;
 
     if( *ret_nread < 2 )
 	goto leave;
@@ -82,7 +82,7 @@ mpi_read_from_buffer(byte *buffer, unsigned *ret_nread, int secure)
  * Make an mpi from a hex character string.
  */
 static int
-mpi_fromstr(MPI val, const char *str)
+mpi_fromstr(gcry_mpi_t val, const char *str)
 {
     int sign=0, prepend_zero=0, i, j, c, c1, c2;
     unsigned nbits, nbytes, nlimbs;
@@ -159,7 +159,7 @@ mpi_fromstr(MPI val, const char *str)
  * FIXME: Replace this by the more generic gcry_mpi_print()
  */
 static int
-mpi_print( FILE *fp, MPI a, int mode )
+mpi_print( FILE *fp, gcry_mpi_t a, int mode )
 {
     int i, n=0;
 
@@ -196,7 +196,7 @@ mpi_print( FILE *fp, MPI a, int mode )
 #warning We should move this function to elsewhere
 #endif
 void
-_gcry_log_mpidump( const char *text, MPI a )
+_gcry_log_mpidump( const char *text, gcry_mpi_t a )
 {
     FILE *fp = stderr; /* used to be log_stream() */
 
@@ -216,7 +216,7 @@ _gcry_log_mpidump( const char *text, MPI a )
  * be set to the sign of the A.
  */
 static byte *
-do_get_buffer( MPI a, unsigned *nbytes, int *sign, int force_secure )
+do_get_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign, int force_secure )
 {
     byte *p, *buffer;
     mpi_limb_t alimb;
@@ -262,13 +262,13 @@ do_get_buffer( MPI a, unsigned *nbytes, int *sign, int force_secure )
 
 
 byte *
-_gcry_mpi_get_buffer( MPI a, unsigned *nbytes, int *sign )
+_gcry_mpi_get_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign )
 {
     return do_get_buffer( a, nbytes, sign, 0 );
 }
 
 byte *
-_gcry_mpi_get_secure_buffer( MPI a, unsigned *nbytes, int *sign )
+_gcry_mpi_get_secure_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign )
 {
     return do_get_buffer( a, nbytes, sign, 1 );
 }
@@ -277,7 +277,7 @@ _gcry_mpi_get_secure_buffer( MPI a, unsigned *nbytes, int *sign )
  * Use BUFFER to update MPI.
  */
 void
-_gcry_mpi_set_buffer( MPI a, const byte *buffer, unsigned nbytes, int sign )
+_gcry_mpi_set_buffer( gcry_mpi_t a, const byte *buffer, unsigned nbytes, int sign )
 {
     const byte *p;
     mpi_limb_t alimb;

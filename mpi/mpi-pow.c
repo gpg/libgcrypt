@@ -1,5 +1,5 @@
 /* mpi-pow.c  -  MPI functions
- * Copyright (C) 1994, 1996, 1998, 2000, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1994, 1996, 1998, 2000, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -37,7 +37,7 @@
  * RES = BASE ^ EXP mod MOD
  */
 void
-gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
+gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t exp, gcry_mpi_t mod)
 {
     mpi_ptr_t  rp, ep, mp, bp;
     mpi_size_t esize, msize, bsize, rsize;

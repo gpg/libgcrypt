@@ -1,5 +1,5 @@
 /* mpi-mpow.c  -  MPI functions
- *	Copyright (C) 1998, 1999, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -35,16 +35,16 @@
 
 
 #ifdef USE_BARRETT
-static void barrett_mulm( MPI w, MPI u, MPI v, MPI m, MPI y, int k, MPI r1, MPI r2 );
-static MPI init_barrett( MPI m, int *k, MPI *r1, MPI *r2 );
-static int calc_barrett( MPI r, MPI x, MPI m, MPI y, int k, MPI r1, MPI r2  );
+static void barrett_mulm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m, gcry_mpi_t y, int k, gcry_mpi_t r1, gcry_mpi_t r2 );
+static gcry_mpi_t init_barrett( gcry_mpi_t m, int *k, gcry_mpi_t *r1, gcry_mpi_t *r2 );
+static int calc_barrett( gcry_mpi_t r, gcry_mpi_t x, gcry_mpi_t m, gcry_mpi_t y, int k, gcry_mpi_t r1, gcry_mpi_t r2  );
 #else
 #define barrett_mulm( w, u, v, m, y, k, r1, r2 ) gcry_mpi_mulm( (w), (u), (v), (m) )
 #endif
 
 
 static int
-build_index( MPI *exparray, int k, int i, int t )
+build_index( gcry_mpi_t *exparray, int k, int i, int t )
 {
     int j, bitno;
     int idx = 0;
@@ -63,15 +63,15 @@ build_index( MPI *exparray, int k, int i, int t )
  * RES = (BASE[0] ^ EXP[0]) *  (BASE[1] ^ EXP[1]) * ... * mod M
  */
 void
-_gcry_mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI m)
+_gcry_mpi_mulpowm( gcry_mpi_t res, gcry_mpi_t *basearray, gcry_mpi_t *exparray, gcry_mpi_t m)
 {
     int k;	/* number of elements */
     int t;	/* bit size of largest exponent */
     int i, j, idx;
-    MPI *G;	/* table with precomputed values of size 2^k */
-    MPI tmp;
+    gcry_mpi_t *G;	/* table with precomputed values of size 2^k */
+    gcry_mpi_t tmp;
 #ifdef USE_BARRETT
-    MPI barrett_y, barrett_r1, barrett_r2;
+    gcry_mpi_t barrett_y, barrett_r1, barrett_r2;
     int barrett_k;
 #endif
 
@@ -137,7 +137,7 @@ _gcry_mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI m)
 
 #ifdef USE_BARRETT
 static void
-barrett_mulm( MPI w, MPI u, MPI v, MPI m, MPI y, int k, MPI r1, MPI r2	)
+barrett_mulm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m, gcry_mpi_t y, int k, gcry_mpi_t r1, gcry_mpi_t r2	)
 {
     mpi_mul(w, u, v);
     if( calc_barrett( w, w, m, y, k, r1, r2 ) )
@@ -147,10 +147,10 @@ barrett_mulm( MPI w, MPI u, MPI v, MPI m, MPI y, int k, MPI r1, MPI r2	)
 /****************
  * Barrett precalculation: y = floor(b^(2k) / m)
  */
-static MPI
-init_barrett( MPI m, int *k, MPI *r1, MPI *r2 )
+static gcry_mpi_t
+init_barrett( gcry_mpi_t m, int *k, gcry_mpi_t *r1, gcry_mpi_t *r2 )
 {
-    MPI tmp;
+    gcry_mpi_t tmp;
 
     mpi_normalize( m );
     *k = mpi_get_nlimbs( m );
@@ -173,7 +173,7 @@ init_barrett( MPI m, int *k, MPI *r1, MPI *r2 )
  *	    true = can't perform barret reduction
  */
 static int
-calc_barrett( MPI r, MPI x, MPI m, MPI y, int k, MPI r1, MPI r2 )
+calc_barrett( gcry_mpi_t r, gcry_mpi_t x, gcry_mpi_t m, gcry_mpi_t y, int k, gcry_mpi_t r1, gcry_mpi_t r2 )
 {
     int xx = k > 3 ? k-3:0;
 
@@ -205,7 +205,7 @@ calc_barrett( MPI r, MPI x, MPI m, MPI y, int k, MPI r1, MPI r2 )
     mpi_sub( r, r1, r2 );
 
     if( mpi_is_neg( r ) ) {
-	MPI tmp;
+	gcry_mpi_t tmp;
 
 	tmp = mpi_alloc( k + 2 );
 	mpi_set_ui( tmp, 1 );

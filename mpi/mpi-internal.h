@@ -1,6 +1,6 @@
 /* mpi-internal.h  -  Internal to the Multi Precision Integers
  *	Copyright (C) 1998 Free Software Foundation, Inc.
- *	Copyright (C) 1994, 1996, 2000, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1994, 1996, 2000, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -180,11 +180,11 @@ typedef int mpi_size_t;        /* (must be a signed type) */
   mpi_ptr_t _gcry_mpi_alloc_limb_space( unsigned nlimbs, int sec );
   void _gcry_mpi_free_limb_space( mpi_ptr_t a );
 #endif
-void _gcry_mpi_assign_limb_space( MPI a, mpi_ptr_t ap, unsigned nlimbs );
+void _gcry_mpi_assign_limb_space( gcry_mpi_t a, mpi_ptr_t ap, unsigned nlimbs );
 
 /*-- mpi-bit.c --*/
-void _gcry_mpi_rshift_limbs( MPI a, unsigned int count );
-void _gcry_mpi_lshift_limbs( MPI a, unsigned int count );
+void _gcry_mpi_rshift_limbs( gcry_mpi_t a, unsigned int count );
+void _gcry_mpi_lshift_limbs( gcry_mpi_t a, unsigned int count );
 
 
 /*-- mpih-add.c --*/
