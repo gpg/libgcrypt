@@ -366,11 +366,22 @@ void
 gcry_mpi_randomize( gcry_mpi_t w,
 		    unsigned int nbits, enum gcry_random_level level )
 {
-    char *p = mpi_is_secure(w) ? gcry_random_bytes( (nbits+7)/8, level )
-			       : gcry_random_bytes_secure( (nbits+7)/8, level );
-#warning use gcry_create_nonce if the random level is WEAK
-    _gcry_mpi_set_buffer( w, p, (nbits+7)/8, 0 );
-    gcry_free(p);
+  char *p;
+  size_t nbytes = (nbits+7)/8;
+  
+  if (level == GCRY_WEAK_RANDOM)
+    {
+      p = mpi_is_secure(w) ? gcry_xmalloc (nbytes)
+                           : gcry_xmalloc_secure (nbytes);
+      gcry_create_nonce (p, nbytes);
+    }
+  else
+    {
+      p = mpi_is_secure(w) ? gcry_random_bytes (nbytes, level)
+                           : gcry_random_bytes_secure (nbytes, level);
+    }
+  _gcry_mpi_set_buffer( w, p, nbytes, 0 );
+  gcry_free (p);
 }
 
 
