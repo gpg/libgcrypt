@@ -244,7 +244,7 @@ sexp_extract_std (gcry_sexp_t sexp, pk_sexp_type_t type, gcry_ac_data_t *data,
       strncpy (name_terminated, identifier, identifier_length);
       name_terminated[identifier_length] = 0;
 
-      err = _gcry_ac_name_to_id (name_terminated, &algorithm_id);
+      err = gcry_ac_name_to_id (name_terminated, &algorithm_id);
 
       free (name_terminated);
     }
@@ -266,13 +266,13 @@ sexp_extract_std (gcry_sexp_t sexp, pk_sexp_type_t type, gcry_ac_data_t *data,
       else
 	{
 	  /* Create new handle.  */
-	  err = _gcry_ac_open (&handle_new, algorithm_id, 0);
+	  err = gcry_ac_open (&handle_new, algorithm_id, 0);
 	}
     }
   
   if (! err)
     /* Allocate data set for MPIs.  */
-    err = _gcry_ac_data_new (&data_new);
+    err = gcry_ac_data_new (&data_new);
 
   if (! err)
     {
@@ -336,7 +336,7 @@ sexp_extract_std (gcry_sexp_t sexp, pk_sexp_type_t type, gcry_ac_data_t *data,
 		  strncpy (name, identifier, identifier_length);
 		  name[identifier_length] = 0;
 
-		  err = _gcry_ac_data_set (data_new, GCRY_AC_FLAG_DEALLOC, name, mpi);
+		  err = gcry_ac_data_set (data_new, GCRY_AC_FLAG_DEALLOC, name, mpi);
 		  if (err)
 		    gcry_free (name);
 		}
@@ -369,9 +369,9 @@ sexp_extract_std (gcry_sexp_t sexp, pk_sexp_type_t type, gcry_ac_data_t *data,
     {
       /* Deallocate resources.  */
       if (handle_new)
-	_gcry_ac_close (handle_new);
+	gcry_ac_close (handle_new);
       if (data_new)
-	_gcry_ac_data_destroy (data_new);
+	gcry_ac_data_destroy (data_new);
     }
 
   return err;
@@ -404,7 +404,7 @@ sexp_extract_key (gcry_sexp_t sexp, pk_key_type_t which, gcry_ac_key_t *key,
     }
   
   if (! err)
-    err = _gcry_ac_key_init (&key_new, handle_new, key_type, data);
+    err = gcry_ac_key_init (&key_new, handle_new, key_type, data);
 
   if (! err)
     {
@@ -414,11 +414,11 @@ sexp_extract_key (gcry_sexp_t sexp, pk_key_type_t which, gcry_ac_key_t *key,
   else
     {
       if (handle_new)
-	_gcry_ac_close (handle_new);
+	gcry_ac_close (handle_new);
       if (key_new)
-	_gcry_ac_key_destroy (key_new);
+	gcry_ac_key_destroy (key_new);
       else if (data)
-	_gcry_ac_data_destroy (data);
+	gcry_ac_data_destroy (data);
     }
 
   return err;
@@ -471,7 +471,7 @@ sexp_extract_data (gcry_sexp_t data_sexp, gcry_ac_handle_t handle,
 
       unsigned int nbits = 0;
 
-      err = _gcry_ac_key_get_nbits (handle, key, &nbits);
+      err = gcry_ac_key_get_nbits (handle, key, &nbits);
       if (! err)
 	{
 	  flags_sexp = gcry_sexp_find_token (data_sexp_inner, "flags", 0);
@@ -736,12 +736,12 @@ sexp_construct_std (gcry_sexp_t *sexp, pk_sexp_type_t type,
 
   /* Figure out algorithm name.  */
   _gcry_ac_info_get (handle, &algorithm_id, NULL);
-  err = _gcry_ac_id_to_name (algorithm_id, &algorithm_name);
+  err = gcry_ac_id_to_name (algorithm_id, &algorithm_name);
 
   if (! err)
     {
       /* Calc.  */
-      elements_n = _gcry_ac_data_length (data);
+      elements_n = gcry_ac_data_length (data);
       size = 5 + strlen (pk_sexp_types[type].identifier) + (elements_n * 5);
       size += strlen (algorithm_name);
       
@@ -762,7 +762,7 @@ sexp_construct_std (gcry_sexp_t *sexp, pk_sexp_type_t type,
 
       for (i = 0; i < elements_n && (! err); i++)
 	{
-	  err = _gcry_ac_data_get_index (data, 0, i, &name, NULL);
+	  err = gcry_ac_data_get_index (data, 0, i, &name, NULL);
 	  if (! err)
 	    p += sprintf (p, "(%s%%m)", name);
 	}
@@ -801,10 +801,15 @@ sexp_mpi_arg_list_create (gcry_mpi_t *mpis, void ***arg_list)
   /* Count.  */
   for (i = 0; mpis[i]; i++);
 
-  /* Allocate.  */
-  arg_list_new = gcry_malloc (sizeof (void *) * i);
-  if (! arg_list_new)
-    err = GPG_ERR_INTERNAL;	/* FIXME.  */
+  if (i)
+    {
+      /* Allocate.  */
+      arg_list_new = gcry_malloc (sizeof (void *) * i);
+      if (! arg_list_new)
+	err = GPG_ERR_INTERNAL;	/* FIXME.  */
+    }
+  else
+    arg_list_new = NULL;
 
   if (! err)
     /* Fill.  */
@@ -887,9 +892,9 @@ sexp_construct_genkey (gcry_sexp_t *genkey_sexp,
   char *format_string = NULL;
   size_t size = 0;
 
-  key_public = _gcry_ac_key_data_get (_gcry_ac_key_pair_extract (key_pair,
+  key_public = gcry_ac_key_data_get (gcry_ac_key_pair_extract (key_pair,
 							       GCRY_AC_KEY_PUBLIC));
-  key_secret = _gcry_ac_key_data_get (_gcry_ac_key_pair_extract (key_pair,
+  key_secret = gcry_ac_key_data_get (gcry_ac_key_pair_extract (key_pair,
 							       GCRY_AC_KEY_SECRET));
 
   err = sexp_construct_std (&key_public_sexp, PK_SEXP_TYPE_KEY_PUBLIC,
@@ -960,7 +965,7 @@ gcry_pk_map_name (const char *string)
 {
   gcry_ac_id_t algorithm_id = 0;
 
-  _gcry_ac_name_to_id (string, &algorithm_id);
+  gcry_ac_name_to_id (string, &algorithm_id);
 
   return algorithm_id;
 }
@@ -972,7 +977,7 @@ gcry_pk_algo_name (int algorithm)
 {
   const char *algorithm_name = NULL;
 
-  _gcry_ac_id_to_name (algorithm, &algorithm_name);
+  gcry_ac_id_to_name (algorithm, &algorithm_name);
 
   return algorithm_name;
 }
@@ -1024,7 +1029,7 @@ gcry_pk_encrypt (gcry_sexp_t *data_encrypted_sexp,
 
   if (! err)
     /* Encrypt.  */
-    err = _gcry_ac_data_encrypt (handle, 0, key_public, data_plain,
+    err = gcry_ac_data_encrypt (handle, 0, key_public, data_plain,
 				&data_encrypted);
 
   if (! err)
@@ -1035,13 +1040,13 @@ gcry_pk_encrypt (gcry_sexp_t *data_encrypted_sexp,
   /* Deallocate resources.  */
   
   if (handle)
-    _gcry_ac_close (handle);
+    gcry_ac_close (handle);
   if (key_public)
-    _gcry_ac_key_destroy (key_public);
+    gcry_ac_key_destroy (key_public);
   if (data_plain)
     gcry_mpi_release (data_plain);
   if (data_encrypted)
-    _gcry_ac_data_destroy (data_encrypted);
+    gcry_ac_data_destroy (data_encrypted);
 
   if (! err)
     *data_encrypted_sexp = data_encrypted_sexp_new;
@@ -1115,7 +1120,7 @@ gcry_pk_decrypt (gcry_sexp_t *data_decrypted_sexp,
 
   if (! err)
     /* Decrypt.  */
-    err = _gcry_ac_data_decrypt (handle, ac_flags, key_secret,
+    err = gcry_ac_data_decrypt (handle, ac_flags, key_secret,
 				&data_decrypted, data_encrypted);
 
   if (! err)
@@ -1132,13 +1137,13 @@ gcry_pk_decrypt (gcry_sexp_t *data_decrypted_sexp,
   /* Deallocate resources.  */
   
   if (handle)
-    _gcry_ac_close (handle);
+    gcry_ac_close (handle);
   if (key_secret)
-    _gcry_ac_key_destroy (key_secret);
+    gcry_ac_key_destroy (key_secret);
   if (data_decrypted)
     gcry_mpi_release (data_decrypted);
   if (data_encrypted)
-    _gcry_ac_data_destroy (data_encrypted);
+    gcry_ac_data_destroy (data_encrypted);
 
   if (! err)
     *data_decrypted_sexp = data_decrypted_sexp_new;
@@ -1201,7 +1206,7 @@ gcry_pk_sign (gcry_sexp_t *data_signed_sexp,
 
   if (! err)
     /* Sign data.  */
-    err = _gcry_ac_data_sign (handle, key_secret, data, &data_signed);
+    err = gcry_ac_data_sign (handle, key_secret, data, &data_signed);
 
   if (! err)
     /* Build the return list.  */
@@ -1211,11 +1216,11 @@ gcry_pk_sign (gcry_sexp_t *data_signed_sexp,
   /* Deallocate resources.  */
 
   if (handle)
-    _gcry_ac_close (handle);
+    gcry_ac_close (handle);
   if (key_secret)
-    _gcry_ac_key_destroy (key_secret);
+    gcry_ac_key_destroy (key_secret);
   if (data_signed)
-    _gcry_ac_data_destroy (data_signed);
+    gcry_ac_data_destroy (data_signed);
   if (data)
     gcry_mpi_release (data);
 
@@ -1262,17 +1267,17 @@ gcry_pk_verify (gcry_sexp_t data_signed_sexp,
 
   if (! err)
     /* Verify signature.  */
-    err = _gcry_ac_data_verify (handle, key_public, data, data_signed);
+    err = gcry_ac_data_verify (handle, key_public, data, data_signed);
 
   /* Deallocate resources.  */
   if (handle)
-    _gcry_ac_close (handle);
+    gcry_ac_close (handle);
   if (key_public)
-    _gcry_ac_key_destroy (key_public);
+    gcry_ac_key_destroy (key_public);
   if (data)
     gcry_mpi_release (data);
   if (data_signed)
-    _gcry_ac_data_destroy (data_signed);
+    gcry_ac_data_destroy (data_signed);
 
   return gcry_error (err);
 }
@@ -1291,13 +1296,13 @@ gcry_pk_testkey (gcry_sexp_t key_secret_sexp)
 
   if (! err)
     /* Check.  */
-    err = _gcry_ac_key_test (handle, key_secret);
+    err = gcry_ac_key_test (handle, key_secret);
 
   /* Deallocate resources.  */
   if (handle)
-    _gcry_ac_close (handle);
+    gcry_ac_close (handle);
   if (key_secret)
-    _gcry_ac_key_destroy (key_secret);
+    gcry_ac_key_destroy (key_secret);
 
   return gcry_error (err);
 }
@@ -1399,13 +1404,13 @@ gcry_pk_genkey (gcry_sexp_t *key_pair_sexp, gcry_sexp_t key_spec)
       strncpy (name_terminated, identifier, identifier_length);
       name_terminated[identifier_length] = 0;
 
-      err = _gcry_ac_name_to_id (name_terminated, &algorithm_id);
+      err = gcry_ac_name_to_id (name_terminated, &algorithm_id);
 
       free (name_terminated);
     }
 
   if (! err)
-    err = _gcry_ac_open (&handle, algorithm_id, 0);
+    err = gcry_ac_open (&handle, algorithm_id, 0);
 
   if (! err)
     {
@@ -1438,7 +1443,7 @@ gcry_pk_genkey (gcry_sexp_t *key_pair_sexp, gcry_sexp_t key_spec)
 
   if (! err)
     /* Generate key pair.  */
-    err = _gcry_ac_key_pair_generate (handle, (unsigned int) nbits, spec,
+    err = gcry_ac_key_pair_generate (handle, (unsigned int) nbits, spec,
 				      &key_pair, &misc_data);
 
   if (! err)
@@ -1448,9 +1453,9 @@ gcry_pk_genkey (gcry_sexp_t *key_pair_sexp, gcry_sexp_t key_spec)
 
   /* Deallocate resources.  */
   if (handle)
-    _gcry_ac_close (handle);
+    gcry_ac_close (handle);
   if (key_pair)
-    _gcry_ac_key_pair_destroy (key_pair);
+    gcry_ac_key_pair_destroy (key_pair);
   if (misc_data)
     gcry_free (misc_data);
 
@@ -1477,12 +1482,12 @@ gcry_pk_get_nbits (gcry_sexp_t key_sexp)
   /* Extract key.  */
   err = sexp_extract_key (key_sexp, PK_KEY_TYPE_ANY, &key, &handle);
   if (! err)
-    err = _gcry_ac_key_get_nbits (handle, key, &nbits);
+    err = gcry_ac_key_get_nbits (handle, key, &nbits);
 
   if (handle)
-    _gcry_ac_close (handle);
+    gcry_ac_close (handle);
   if (key)
-    _gcry_ac_key_destroy (key);
+    gcry_ac_key_destroy (key);
 
   return nbits;
 }
@@ -1503,12 +1508,12 @@ gcry_pk_get_keygrip (gcry_sexp_t key_sexp, unsigned char *key_grip)
 
   err = sexp_extract_key (key_sexp, PK_KEY_TYPE_ANY, &key, &handle);
   if (! err)
-    err = _gcry_ac_key_get_grip (handle, key, key_grip);
+    err = gcry_ac_key_get_grip (handle, key, key_grip);
 
   if (handle)
-    _gcry_ac_close (handle);
+    gcry_ac_close (handle);
   if (key)
-    _gcry_ac_key_destroy (key);
+    gcry_ac_key_destroy (key);
 
   return err ? NULL : key_grip;
 }
@@ -1528,11 +1533,11 @@ gcry_pk_ctl (int cmd, void *buffer, size_t buflen)
 	err = GPG_ERR_CIPHER_ALGO;
       else
 	{
-	  err = _gcry_ac_open (&handle, *((int *) buffer), 0);
+	  err = gcry_ac_open (&handle, *((int *) buffer), 0);
 	  if (! err)
 	    {
 	      _gcry_ac_algorithm_disable (handle);
-	      _gcry_ac_close (handle);
+	      gcry_ac_close (handle);
 	    }
 	}
 
@@ -1571,7 +1576,7 @@ gcry_pk_algo_info (int algorithm, int what, void *buffer, size_t *number)
   gcry_ac_handle_t handle = NULL;
   size_t number_new = 0;
 
-  err = _gcry_ac_open (&handle, algorithm, 0);
+  err = gcry_ac_open (&handle, algorithm, 0);
 
   if (! err)
     switch (what)
@@ -1643,12 +1648,18 @@ gcry_pk_algo_info (int algorithm, int what, void *buffer, size_t *number)
       }
   
   if (handle)
-    _gcry_ac_close (handle);
+    gcry_ac_close (handle);
 
   if (number_new)
     *number = number_new;
 
   return gcry_error (err);
+}
+
+gcry_err_code_t
+_gcry_pk_init (void)
+{
+  _gcry_ac_init ();
 }
 
 /* Get a list consisting of the IDs of the loaded pubkey modules.  If
@@ -1662,7 +1673,7 @@ gcry_pk_list (int *list, int *list_length)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
-  err = _gcry_ac_list (list, list_length);
+  err = gcry_ac_list (list, list_length);
 
   return gcry_error (err);
 }
