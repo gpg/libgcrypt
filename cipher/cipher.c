@@ -701,18 +701,24 @@ do_cfb_decrypt( GCRY_CIPHER_HD c,
  * inbuf and outbuf may overlap or be the same.
  * Depending on the mode some contraints apply to NBYTES.
  */
-static void
+static int
 cipher_encrypt( GCRY_CIPHER_HD c, byte *outbuf,
 				  const byte *inbuf, unsigned int nbytes )
 {
+    int rc = 0;
+
     switch( c->mode ) {
       case GCRY_CIPHER_MODE_ECB:
-	assert(!(nbytes%c->blocksize));
-	do_ecb_encrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+	if (!(nbytes%c->blocksize))
+            do_ecb_encrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+        else 
+            rc = GCRYERR_INV_ARG;
 	break;
       case GCRY_CIPHER_MODE_CBC:
-	assert(!(nbytes%c->blocksize));  
-	do_cbc_encrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+	if (!(nbytes%c->blocksize))
+            do_cbc_encrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+        else 
+            rc = GCRYERR_INV_ARG;
 	break;
       case GCRY_CIPHER_MODE_CFB:
 	do_cfb_encrypt(c, outbuf, inbuf, nbytes );
@@ -725,8 +731,12 @@ cipher_encrypt( GCRY_CIPHER_HD c, byte *outbuf,
 	if( inbuf != outbuf )
 	    memmove( outbuf, inbuf, nbytes );
 	break;
-      default: log_fatal("cipher_encrypt: invalid mode %d\n", c->mode );
+      default:
+        log_fatal("cipher_encrypt: invalid mode %d\n", c->mode );
+        rc = GCRYERR_INV_CIPHER_MODE;
+        break;
     }
+    return rc;
 }
 
 
@@ -738,21 +748,24 @@ int
 gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 				       const byte  *in, size_t inlen )
 {
-    if( !in ) {
+    int rc;
+
+    if ( !in ) {
 	/* caller requested in-place encryption */
 	/* actullay cipher_encrypt() does not need to know about it, but
 	 * we may chnage this to get better performace */
-	cipher_encrypt( h, out, out, outsize );
+	rc = cipher_encrypt ( h, out, out, outsize );
     }
     else {
-	if( outsize < inlen )
-	    return set_lasterr( GCRYERR_TOO_SHORT );
+	if ( outsize < inlen )
+	    return set_lasterr ( GCRYERR_TOO_SHORT );
 	/* fixme: check that the inlength is a multipe of the blocksize
 	 * if a blockoriented mode is used, or modify cipher_encrypt to
 	 * return an error in this case */
-	cipher_encrypt( h, out, in, inlen );
+	rc = cipher_encrypt ( h, out, in, inlen );
     }
-    return 0;
+
+    return rc? set_lasterr (rc):0;
 }
 
 
@@ -762,18 +775,24 @@ gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
  * inbuf and outbuf may overlap or be the same.
  * Depending on the mode some some contraints apply to NBYTES.
  */
-static void
+static int
 cipher_decrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf,
 							unsigned nbytes )
 {
+    int rc = 0;
+
     switch( c->mode ) {
       case GCRY_CIPHER_MODE_ECB:
-	assert(!(nbytes%c->blocksize));
-	do_ecb_decrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+	if (!(nbytes%c->blocksize))
+            do_ecb_decrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+        else 
+            rc = GCRYERR_INV_ARG;
 	break;
       case GCRY_CIPHER_MODE_CBC:
-	assert(!(nbytes%c->blocksize));
-	do_cbc_decrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+	if (!(nbytes%c->blocksize))
+            do_cbc_decrypt(c, outbuf, inbuf, nbytes/c->blocksize );
+        else 
+            rc = GCRYERR_INV_ARG;
 	break;
       case GCRY_CIPHER_MODE_CFB:
 	do_cfb_decrypt(c, outbuf, inbuf, nbytes );
@@ -786,8 +805,12 @@ cipher_decrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf,
 	if( inbuf != outbuf )
 	    memmove( outbuf, inbuf, nbytes );
 	break;
-      default: log_fatal("cipher_decrypt: invalid mode %d\n", c->mode );
+      default:
+        log_fatal ("cipher_decrypt: invalid mode %d\n", c->mode );
+        rc = GCRYERR_INV_CIPHER_MODE;
+        break;
     }
+    return rc;
 }
 
 
@@ -795,11 +818,13 @@ int
 gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 				 const byte  *in, size_t inlen )
 {
+    int rc;
+
     if( !in ) {
 	/* caller requested in-place encryption */
 	/* actullay cipher_encrypt() does not need to know about it, but
 	 * we may chnage this to get better performace */
-	cipher_decrypt( h, out, out, outsize );
+	rc = cipher_decrypt( h, out, out, outsize );
     }
     else {
 	if( outsize < inlen )
@@ -807,9 +832,9 @@ gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 	/* fixme: check that the inlength is a multipe of the blocksize
 	 * if a blockoriented mode is used, or modify cipher_encrypt to
 	 * return an error in this case */
-	cipher_decrypt( h, out, in, inlen );
+	rc = cipher_decrypt( h, out, in, inlen );
     }
-    return 0;
+    return rc? set_lasterr (rc):0;
 }
 
 
@@ -832,9 +857,11 @@ cipher_sync( GCRY_CIPHER_HD c )
 int
 gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, void *buffer, size_t buflen)
 {
+    int rc = 0;
+
     switch( cmd ) {
       case GCRYCTL_SET_KEY:
-	cipher_setkey( h, buffer, buflen );
+	rc = cipher_setkey( h, buffer, buflen );
 	break;
       case GCRYCTL_SET_IV:
 	cipher_setiv( h, buffer, buflen );
@@ -853,9 +880,9 @@ gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, void *buffer, size_t buflen)
 	break;
 
       default:
-	return set_lasterr( GCRYERR_INV_OP );
+	rc = GCRYERR_INV_OP;
     }
-    return 0;
+    return set_lasterr (rc);
 }
 
 

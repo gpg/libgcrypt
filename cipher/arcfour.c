@@ -41,7 +41,19 @@ typedef struct {
 
 
 static void
-encrypt_stream( ARCFOUR_context *ctx,
+burn_stack (int bytes)
+{
+    char buf[64];
+    
+    memset (buf, 0, sizeof buf);
+    bytes -= sizeof buf;
+    if (bytes > 0)
+        burn_stack (bytes);
+}
+
+
+static void
+do_encrypt_stream( ARCFOUR_context *ctx,
                 byte *outbuf, const byte *inbuf, unsigned int length )
 {
     int t;  
@@ -60,9 +72,18 @@ encrypt_stream( ARCFOUR_context *ctx,
     ctx->idx_j = j;
 }
 
+static void
+encrypt_stream( ARCFOUR_context *ctx,
+                byte *outbuf, const byte *inbuf, unsigned int length )
+{
+
+    do_encrypt_stream (ctx, outbuf, inbuf, length );
+    burn_stack (64);
+}
+
 
 static int
-arcfour_setkey( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
+do_arcfour_setkey( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
 {
     static int initialized;
     static const char* selftest_failed;
@@ -96,6 +117,14 @@ arcfour_setkey( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
     memset( karr, 0, 256 );
 
     return 0;
+}
+
+static int
+arcfour_setkey ( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
+{
+    int rc = do_arcfour_setkey (ctx, key, keylen );
+    burn_stack (300);
+    return rc;
 }
 
 

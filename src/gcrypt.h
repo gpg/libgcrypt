@@ -1,5 +1,5 @@
 /* gcrypt.h -  GNU digital encryption library interface
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -224,7 +224,7 @@ void     gcry_mpi_add(GCRY_MPI w, GCRY_MPI u, GCRY_MPI v);
 void     gcry_mpi_add_ui(GCRY_MPI w, GCRY_MPI u, unsigned long v );
 void     gcry_mpi_addm(GCRY_MPI w, GCRY_MPI u, GCRY_MPI v, GCRY_MPI m);
 void     gcry_mpi_sub( GCRY_MPI w, GCRY_MPI u, GCRY_MPI v);
-void     gcry_mpi_sub_ui(GCRY_MPI w, GCRY_MPI u, ulong v );
+void     gcry_mpi_sub_ui(GCRY_MPI w, GCRY_MPI u, unsigned long v );
 void     gcry_mpi_subm( GCRY_MPI w, GCRY_MPI u, GCRY_MPI v, GCRY_MPI m);
 void     gcry_mpi_mul_ui(GCRY_MPI w, GCRY_MPI u, unsigned long v );
 void     gcry_mpi_mul_2exp( GCRY_MPI w, GCRY_MPI u, unsigned long cnt);

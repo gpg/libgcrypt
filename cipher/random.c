@@ -1,5 +1,5 @@
 /* random.c  -	random number generator
- *	Copyright (C) 1998, 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -136,6 +136,17 @@ initialize(void)
 			   : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
     is_initialized = 1;
     _gcry_cipher_modules_constructor();
+}
+
+static void
+burn_stack (int bytes)
+{
+    char buf[128];
+    
+    memset (buf, 0, sizeof buf);
+    bytes -= sizeof buf;
+    if (bytes > 0)
+        burn_stack (bytes);
 }
 
 
@@ -280,6 +291,7 @@ mix_pool(byte *pool)
 	_gcry_rmd160_mixblock( &md, hashbuf);
 	memcpy(p, hashbuf, 20 );
     }
+    burn_stack (200); /* for the rmd160_mixblock() */
 }
 
 void
@@ -601,11 +613,14 @@ _gcry_fast_random_poll()
 	#warning There is no RUSAGE_SELF on this system
       #endif
     #else
-    {	struct rusage buf;
+    {	
+        struct rusage buf;
         /* QNX/Neutrino does return ENOSYS - so we just ignore it and
-         * add whatever is in buf */
-        if( getrusage( RUSAGE_SELF, &buf ) && errno != ENOSYS )
-	    BUG();
+         * add whatever is in buf.  In a chroot environment it might not
+         * work at all (i.e. because /proc/ is not accessible), so we better 
+         * ugnore all error codes and hope for the best
+         */
+        getrusage (RUSAGE_SELF, &buf );
 	add_randomness( &buf, sizeof buf, 1 );
 	memset( &buf, 0, sizeof buf );
     }

@@ -60,6 +60,16 @@ md5_init( MD5_CONTEXT *ctx )
     ctx->count = 0;
 }
 
+static void
+burn_stack (int bytes)
+{
+    char buf[128];
+    
+    memset (buf, 0, sizeof buf);
+    bytes -= sizeof buf;
+    if (bytes > 0)
+        burn_stack (bytes);
+}
 
 
 
@@ -217,6 +227,7 @@ md5_write( MD5_CONTEXT *hd, byte *inbuf, size_t inlen)
 {
     if( hd->count == 64 ) { /* flush the buffer */
 	transform( hd, hd->buf );
+        burn_stack (80+6*sizeof(void*));
 	hd->count = 0;
 	hd->nblocks++;
     }
@@ -229,6 +240,7 @@ md5_write( MD5_CONTEXT *hd, byte *inbuf, size_t inlen)
 	if( !inlen )
 	    return;
     }
+    burn_stack (80+6*sizeof(void*));
 
     while( inlen >= 64 ) {
 	transform( hd, inbuf );
@@ -294,6 +306,7 @@ md5_final( MD5_CONTEXT *hd )
     hd->buf[62] = msb >> 16;
     hd->buf[63] = msb >> 24;
     transform( hd, hd->buf );
+    burn_stack (80+6*sizeof(void*));
 
     p = hd->buf;
   #ifdef BIG_ENDIAN_HOST

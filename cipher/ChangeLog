@@ -1,4 +1,42 @@
+2001-08-03  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c (cipher_encrypt, cipher_decrypt): Prepare to return
+	errors. We have to change the interface to all ciphers to make
+	this really work but we should do so to prepare for hardware
+	encryption modules.
+	(gcry_cipher_encrypt, gcry_cipher_decrypt): Return the error and
+	set lasterr. 
+	(gcry_cipher_ctl): Make sure that errors from setkey are returned.
+
 2001-08-02  Werner Koch  <wk@gnupg.org>
+
+	* rndlinux.c (gather_random): casted a size_t arg to int so that
+	the format string is correct.  Casting is okay here and avoids
+	translation changes. 
+
+	* random.c (fast_random_poll): Do not check the return code of
+	getrusage.
+
+	* rndunix.c: Add a signal.h header to avoid warnings on Solaris 7
+	and 8.
+
+	* tiger.c (print_abc,print_data): Removed.
+
+	* rijndael.c, des.c, blowfish.c, twofish.c, cast5.c, arcfour.c
+	(burn_stack): New.  Add wrappers for most functions to be able to
+	call burn_stack after the function invocation. This methods seems
+	to be the most portable way to zeroise the stack used. It does
+	only work on stack frame based machines but it is highly portable
+	and has no side effects.  Just setting the automatic variables at
+	the end of a function to zero does not work well because the
+	compiler will optimize them away - marking them as volatile would
+	be bad for performance.
+	* md5.c, sha1.c, rmd160.c, tiger.c (burn_stack): Likewise.
+	* random.c (burn_stack): New.
+	(mix_pool): Use it here to burn the stack of the mixblock function.
+
+	* primegen.c (_gcry_generate_elg_prime): Freed q at 3 places.
+	Thanks to Tommi Komulainen.
 
 	* arcfour.c (arcfour_setkey): Check the minimim keylength against
 	bytes and not bits.

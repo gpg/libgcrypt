@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = jnlib mpi cipher src doc
+SUBDIRS = jnlib mpi cipher src doc tests
 EXTRA_DIST = README-alpha BUGS
 DISTCLEANFILES = gcrypt-defs.h 
 

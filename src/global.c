@@ -211,23 +211,36 @@ gcry_strerror( int ec )
 	ec = gcry_errno();
   #define X(n,a) case GCRYERR_##n : s = a; break;
     switch( ec ) {
-      X(SUCCESS,	N_("no error"))
-      X(GENERAL,	N_("general error"))
+      X(SUCCESS,        N_("no error"))
+      X(GENERAL,        N_("general error"))
+
+      X(INV_PK_ALGO,	N_("invalid public key algorithm"))
+      X(INV_MD_ALGO,	N_("invalid hash algorithm"))
+      X(BAD_PUBLIC_KEY ,N_("bad public key"))
+      X(BAD_SECRET_KEY ,N_("bad secret key"))
+      X(BAD_SIGNATURE , N_("bad signature"))
+
+      X(INV_CIPHER_ALGO,N_("invalid cipher algorithm"))
+      X(BAD_MPI,        N_("bad big integer"))
+      X(WRONG_PK_ALGO,	N_("unusable public key algorithm"))
+      X(WEAK_KEY,	N_("weak encryption key"))
+      X(INV_KEYLEN,     N_("invalid key length"))
+      X(INV_ARG,	N_("invalid argument"))
+      X(SELFTEST,       N_("selftest failed"))
+
       X(INV_OP, 	N_("invalid operation code or ctl command"))
       X(NO_MEM, 	N_("out of core"))
-      X(INV_ARG,	N_("invalid argument"))
       X(INTERNAL,	N_("internal error"))
       X(EOF,		N_("EOF"))
+      X(INV_OBJ,	N_("an object is not valid"))
       X(TOO_SHORT,	N_("provided buffer too short"))
       X(TOO_LARGE,	N_("object is too large"))
-      X(INV_OBJ,	N_("an object is not valid"))
-      X(WEAK_KEY,	N_("weak encryption key"))
-      X(INV_PK_ALGO,	N_("invalid public key algorithm"))
-      X(INV_CIPHER_ALGO,N_("invalid cipher algorithm"))
-      X(INV_MD_ALGO,	N_("invalid hash algorithm"))
-      X(WRONG_PK_ALGO,	N_("unusable public key algorithm"))
+      X(NO_OBJ,         N_("no object"))
+      X(NOT_IMPL,       N_("not implemented"))
       X(CONFLICT,	N_("conflict"))
       X(INV_CIPHER_MODE,N_("invalid cipher mode"))
+
+
       default:
 	sprintf( buf, "ec=%d", ec );
 	s = buf;

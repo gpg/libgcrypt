@@ -1,5 +1,5 @@
 /* cast5.c  -  CAST5 cipher (RFC2144)
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -358,7 +358,19 @@ rol(int n, u32 x)
     (((s1[I >> 24] + s2[(I>>16)&0xff]) ^ s3[(I>>8)&0xff]) - s4[I&0xff]) )
 
 static void
-encrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
+burn_stack (int bytes)
+{
+    char buf[64];
+    
+    memset (buf, 0, sizeof buf);
+    bytes -= sizeof buf;
+    if (bytes > 0)
+        burn_stack (bytes);
+}
+
+
+static void
+do_encrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
 {
     u32 l, r, t;
     u32 I;   /* used by the Fx macros */
@@ -412,7 +424,16 @@ encrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
 }
 
 static void
-decrypt_block(	CAST5_context *c, byte *outbuf, byte *inbuf )
+encrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
+{
+    do_encrypt_block (c, outbuf, inbuf);
+    burn_stack (20+4*sizeof(void*));
+}
+
+
+
+static void
+do_decrypt_block (CAST5_context *c, byte *outbuf, byte *inbuf )
 {
     u32 l, r, t;
     u32 I;
@@ -452,7 +473,13 @@ decrypt_block(	CAST5_context *c, byte *outbuf, byte *inbuf )
     outbuf[7] =  l	  & 0xff;
 }
 
-
+static void
+decrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
+{
+    do_decrypt_block (c, outbuf, inbuf);
+    burn_stack (20+4*sizeof(void*));
+}
+
 
 static const char*
 selftest(void)
@@ -500,6 +527,7 @@ selftest(void)
     return NULL;
 }
 
+
 
 static void
 key_schedule( u32 *x, u32 *z, u32 *k )
@@ -550,7 +578,7 @@ key_schedule( u32 *x, u32 *z, u32 *k )
 
 
 static int
-cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
+do_cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
 {
   static int initialized;
   static const char* selftest_failed;
@@ -592,6 +620,14 @@ cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
     return 0;
 }
 
+static int
+cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
+{
+    int rc = do_cast_setkey (c, key, keylen);
+    burn_stack (96+7*sizeof(void*));
+    return rc;
+}
+
 
 /****************
  * Return some information about the algorithm.  We need algo here to

@@ -1,3 +1,11 @@
+2001-08-03  Werner Koch  <wk@gnupg.org>
+
+	* tests/: New.
+	* Makefile.am: Included tests directory
+	
+	* configure.in (DYNLINK_MOD_CFLAGS): Use -shared with dec-osf.
+	Reported by Chris Adams.  Merged some cases.
+
 2001-05-31  Werner Koch  <wk@gnupg.org>
 
 	Release 1.1.3.

@@ -1,5 +1,5 @@
 /* tiger.c  -  The TIGER hash function
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -590,44 +590,16 @@ static u64 sbox4[256] = {
 
 
 static void
-print_abc( const char *text, u64 a, u64 b, u64 c )
+burn_stack (int bytes)
 {
-/*printf("%s: %08X%08X %08X%08X %08X%08X\n",
-	 text,
-	 (u32)(a>>32),
-	 (u32)(a),
-	 (u32)(b>>32),
-	 (u32)(b),
-	 (u32)(c>>32),
-	 (u32)(c) );*/
+    char buf[256];
+    
+    memset (buf, 0, sizeof buf);
+    bytes -= sizeof buf;
+    if (bytes > 0)
+        burn_stack (bytes);
 }
 
-static void
-print_data( const char *text, u64 a, u64 b, u64 c,
-			      u64 d, u64 e, u64 f,
-			      u64 g, u64 h )
-{
-/*printf("%s: %08X%08X %08X%08X %08X%08X %08X%08X\n"
-	 "%s  %08X%08X %08X%08X %08X%08X %08X%08X\n",
-	 text,
-	 (u32)(a>>32),
-	 (u32)(a),
-	 (u32)(b>>32),
-	 (u32)(b),
-	 (u32)(c>>32),
-	 (u32)(c),
-	 (u32)(d>>32),
-	 (u32)(d),
-	 text,
-	 (u32)(e>>32),
-	 (u32)(e),
-	 (u32)(f>>32),
-	 (u32)(f),
-	 (u32)(g>>32),
-	 (u32)(g),
-	 (u32)(h>>32),
-	 (u32)(h) );*/
-}
 
 
 static void
@@ -736,17 +708,11 @@ transform( TIGER_CONTEXT *hd, byte *data )
     b = bb = hd->b;
     c = cc = hd->c;
 
-    print_data(" key0", x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7] );
-    print_abc(" init", a, b, c );
     pass( &a, &b, &c, x, 5);
-    print_abc("pass1", a, b, c );
     key_schedule( x );
     pass( &c, &a, &b, x, 7);
-    print_abc("pass2", a, b, c );
     key_schedule( x );
     pass( &b, &c, &a, x, 9);
-    print_abc("pass3", a, b, c );
-
 
     /* feedforward */
     a ^= aa;
@@ -768,6 +734,7 @@ tiger_write( TIGER_CONTEXT *hd, byte *inbuf, size_t inlen)
 {
     if( hd->count == 64 ) { /* flush the buffer */
 	transform( hd, hd->buf );
+        burn_stack (21*8+11*sizeof(void*));
 	hd->count = 0;
 	hd->nblocks++;
     }
@@ -788,6 +755,7 @@ tiger_write( TIGER_CONTEXT *hd, byte *inbuf, size_t inlen)
 	inlen -= 64;
 	inbuf += 64;
     }
+    burn_stack (21*8+11*sizeof(void*));
     for( ; inlen && hd->count < 64; inlen-- )
 	hd->buf[hd->count++] = *inbuf++;
 }
@@ -841,6 +809,7 @@ tiger_final( TIGER_CONTEXT *hd )
     hd->buf[62] = msb >> 16;
     hd->buf[63] = msb >> 24;
     transform( hd, hd->buf );
+    burn_stack (21*8+11*sizeof(void*));
 
     p = hd->buf;
   #ifdef BIG_ENDIAN_HOST

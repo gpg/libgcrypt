@@ -258,21 +258,14 @@ esac
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME")
 
 dnl  Fixme: Are these the best flags for OpenBSD????
-dnl (I have removed the -lc from * ...CFLAGS for test purposes.)
 case "${target}" in
-    *-openbsd*)
+    *-openbsd* | *-netbsd*)
         NAME_OF_DEV_RANDOM="/dev/srandom"
         NAME_OF_DEV_URANDOM="/dev/urandom"
         DYNLINK_MOD_CFLAGS="-shared -rdynamic $CFLAGS_PIC -Wl,-Bshareable -Wl,-x"
         ;;
 
-    *-netbsd*)
-        NAME_OF_DEV_RANDOM="/dev/random"
-        NAME_OF_DEV_URANDOM="/dev/urandom"
-        DYNLINK_MOD_CFLAGS="-shared -rdynamic $CFLAGS_PIC -Wl,-Bshareable -Wl,-x"
-        ;;
-
-    *-solaris*)
+    *-solaris* | *-irix* | *-dec-osf* )
         NAME_OF_DEV_RANDOM="/dev/random"
         NAME_OF_DEV_URANDOM="/dev/random"
         DYNLINK_MOD_CFLAGS="-shared $CFLAGS_PIC"
@@ -725,5 +718,6 @@ doc/Makefile
 doc/version.sgml
 src/Makefile
 src/libgcrypt-config
+tests/Makefile
 ])
 
