@@ -1,0 +1,3 @@
+This directory will contain sources for libgcrypt.
+Because it is still under development, no source
+is provided and compilation is disabled.

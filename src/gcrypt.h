@@ -82,6 +82,23 @@ enum gcry_sexp_format {
     GCRY_SEXP_FMT_ADVANCED  = 3,
 };
 
+
+GCRY_SEXP gcry_sexp_new( const char *buffer, size_t length );
+void gcry_sexp_release( GCRY_SEXP sexp );
+GCRY_SEXP gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b );
+GCRY_SEXP gcry_sexp_vlist( GCRY_SEXP a, ... );
+int  gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
+			       size_t length, size_t *erroff );
+size_t gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer,
+						size_t maxlength );
+
+#ifndef GCRYPT_NO_SEXP_MACROS
+#define SEXP		GCRY_SEXP
+#define SEXP_NEW(a,b)	gcry_sexp_new( (a), (b) )
+#define SEXP_RELEASE(a) do { gcry_sexp_release( (a) ); (a)=NULL; } while(0)
+#define SEXP_CONS(a,b)	gcry_sexp_cons((a),(b))
+#endif /*GCRYPT_NO_SEXP_MACROS*/
+
 /*******************************************
  *					   *
  *  multi precision integer functions	   *
@@ -191,7 +208,10 @@ int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
  *******  asymmetric cipher functions  *******
  *********************************************/
 
-
+int gcry_pk_encrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP pkey );
+int gcry_pk_decrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
+int gcry_pk_sign(    GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
+int gcry_pk_verify(  GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP pkey );
 
 
 /*********************************************

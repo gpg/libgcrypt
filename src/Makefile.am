@@ -3,13 +3,17 @@
 EXTRA_DIST = README
 INCLUDES =  -I$(top_srcdir)/include -I$(top_srcdir)/intl
 
+noinst_PROGRAMS = sexp
+sexp_SOURCES = sexp.c mpiapi.c
+sexp_LDADD =  ../cipher/libcipher.la ../mpi/libmpi.la  ../util/libutil.la @INTLLIBS@
+
+
 lib_LTLIBRARIES = libgcrypt.la
 
 libgcrypt_la_LDFLAGS = -version-info 0:0:0 -export-symbols libgcrypt.sym
 libgcrypt_la_SOURCES =	 gcrypt.h \
 			 g10lib.h \
 			 misc.c  \
-			 sexp.c   \
 			 global.c \
 			 mpiapi.c \
 			 symapi.c \
