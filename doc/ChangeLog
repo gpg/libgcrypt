@@ -1,3 +1,9 @@
+2003-01-19  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.texi: Most functions are now documented.  Still need to
+	fine tune the menu structure, document some utility functions,
+	mark up indices and references and add examples.
+
 2002-08-14  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi: Typo fixes.

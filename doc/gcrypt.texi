@@ -1,7 +1,7 @@
 \input texinfo                  @c -*- Texinfo -*-
-@c Copyright (C) 2000, 2002 Free Software Foundation, Inc.
+@c Copyright (C) 2000, 2002, 2003 Free Software Foundation, Inc.
 @c 
-@c This file is part of the libgcrypt.
+@c This file is part of the Libgcrypt.
 @c
 @c Permission is granted to copy, distribute and/or modify this document
 @c under the terms of the GNU Free Documentation License, Version 1.1 or
@@ -31,7 +31,7 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @cite{The `Libgcrypt' Reference Manual}, for Version
 @value{VERSION}.
 
-Copyright @copyright{} 2000, 2002 Free Software Foundation, Inc.
+Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.1 or
@@ -41,9 +41,9 @@ Back-Cover Texts.  A copy of the license is included in the section
 entitled ``GNU Free Documentation License''.
 @end ifinfo
 
-@iftex
-@shorttitlepage The `Libgcrypt' Reference Manual
-@end iftex
+@c @iftex
+@c @shorttitlepage The `Libgcrypt' Reference Manual
+@c @end iftex
 @titlepage
 @center @titlefont{The `Libgcrypt'}
 @sp 1
@@ -56,7 +56,7 @@ entitled ``GNU Free Documentation License''.
 @center for version @value{VERSION}
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright{} 2000, 2002 Free Software Foundation, Inc.
+Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
 
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.1 or
@@ -82,6 +82,8 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 * Hash Functions::              How to use cryptographic hash functions.
 * Public Key Functions::        How to use asymmetric encryption.
 * Random Numbers::              How to create random.
+* S-expressions::               How to manage S-expressions.
+* MPI Functions::               How to work with big integers.
 * Utilities::                   Helper functions.
 * Error Handling::              Error codes and such.
 
@@ -138,6 +140,7 @@ of the interface which are unclear.
 @node Features
 @section Features
 
+@noindent
 `Libgcrypt' might have a couple of advantages over other libraries doing
 a similar job.
 
@@ -160,9 +163,11 @@ using an extendable and flexible API.
 @node Overview
 @section Overview
 
-Blurb
-
-The `Libgcrypt' library is thread-safe.  Well, we hope so ;-)
+@noindent
+The `Libgcrypt' library is thread-safe.  Well, we hope so ;-).  Frankly,
+@code{gcry_errno} is not yet thread-safe.  Most others are believed to
+be.  Libgcrypt automagically detects whether an applications uses no
+threading, pthreads or GNU Pth.
 
 
 @c **********************************************************
@@ -217,8 +222,8 @@ a string in @var{req_version} and return the actual version string of
 the library; return NULL if the condition is not met.  If @code{NULL} is
 passed to this function no check is done and only the version string is
 returned.  It is a pretty good idea to run this function as soon as
-possible, because it may also intializes some subsystems.  In a
-multithreaded environment if should be called before any more threads
+possible, because it may also initializes some subsystems.  In a
+multi-threaded environment if should be called before any more threads
 are created.
 @end deftypefun
 
@@ -253,7 +258,7 @@ the path to the library files has to be added to the library search path
 (via the @option{-L} option).  For this, the option @option{--libs} to
 @command{libgcrypt-config} can be used.  For convenience, this option
 also outputs all other options that are required to link the program
-with the `Libgcrypt' libararies (in particular, the @samp{-lgcrypt}
+with the `Libgcrypt' libraries (in particular, the @samp{-lgcrypt}
 option).  The example shows how to link @file{foo.o} with the `Libgcrypt'
 library to a program @command{foo}.
 
@@ -276,65 +281,293 @@ gcc -o foo foo.c `libgcrypt-config --cflags --libs`
 @node Cipher Functions
 @chapter Cipher Functions
 
+The cipher functions are used for symmetrical encryption,
+i.e. encryption using a shared key.  The programming model follows an
+open/process/close paradigm and in that similar to the other building
+blocks provided by Libgcrypt.
 
-@deftypefun GCRY_CIPHER_HD gcry_cipher_open (int @var{algo}, int @var{mode}, unsigned int @var{flags})
+To use a cipher algorithm, you must first allocate an handle for
+this.  This can is to be done using the open function:
 
-This function creates the context required for most of the othercipher
-functions.  In case of an error @code{NULL} is returned.
-@end deftypefun
+@deftypefun GcryCipherHd gcry_cipher_open (int @var{algo}, int @var{mode}, unsigned int @var{flags})
 
-@deftypefun void gcry_cipher_close (GCRY_CIPHER_HD @var{h})
+This function creates the context required for most of the other cipher
+functions and returns a handle to it.  In case of an error @code{NULL}
+is returned.  You must tell this function which algorithm and what mode
+you want to use.  The function @code{gcry_cipher_map_name} may be used to
+get the a value for the @var{algo} from a textual name or one of the
+predefined constants can be used:
+
+@c begin cipher algorithm constants
+@table @code
+@item GCRY_CIPHER_NONE
+This is not a real algorithm but used by some functions as error return.
+The value always evaluates to false.
+
+@item GCRY_CIPHER_IDEA
+This is the IDEA algorithm.  The constant is provided but there is
+currently no implementation for it because the algorithm is patented.
+
+@item GCRY_CIPHER_3DES
+Triple-DES with 3 Keys as EDE.  The key size of this algorithm is 168 but
+you have to pass 192 bits because the most significant bits of each byte
+are ignored.
+
+@item GCRY_CIPHER_CAST5
+CAST128-5 block cipher algorithm.  The key size is 128 bits.
+	
+@item GCRY_CIPHER_BLOWFISH
+The blowfish algorithm. The current implementation allows only for a key
+size of 128 bits.
+
+@item GCRY_CIPHER_SAFER_SK128
+Reserved and not currently implemented.
+
+@item GCRY_CIPHER_DES_SK	  
+Reserved and not currently implemented.
+ 
+@item  GCRY_CIPHER_AES        
+@itemx GCRY_CIPHER_AES128
+@itemx GCRY_CIPHER_RIJNDAEL
+@itemx GCRY_CIPHER_RIJNDAEL128
+AES (Rijndael) with a 128 bit key.
+
+@item  GCRY_CIPHER_AES192     
+@itemx GCRY_CIPHER_RIJNDAEL128
+AES (Rijndael) with a 192 bit key.
+
+@item  GCRY_CIPHER_AES256 
+@itemx GCRY_CIPHER_RIJNDAEL256
+AES (Rijndael) with a 256 bit key.
+    
+@item  GCRY_CIPHER_TWOFISH
+The Twofish algorithm with a 256 bit key.
+    
+@item  GCRY_CIPHER_ARCFOUR   
+An algorithm which is 100% compatible with RSA Inc.'s RC4 algorithm.
+Note that this is a stream cipher and must be used very carefully to
+avoid a couple of weaknesses. 
+
+@item  GCRY_CIPHER_DES       
+Standard DES with a 56 bit key. You need to pass 64 bit but the high
+bits of each byte are ignored.  Note, that this is a weak algorithm
+which is can be broken in reasonable time using a brute force approach.
+
+@end table
+@c end cipher algorithm constants
+
+@c begin cipher modes constants
+The second argument is @var{mode} which describes the mode the algorithm
+is to be used in.  Note, that some modes don't work together with
+all algorithms. The following modes are available:
+
+@table @code
+@item GCRY_CIPHER_MODE_NONE
+No mode specified, may be set later using other functions.  The value of
+this constant is always 0.
+
+@item GCRY_CIPHER_MODE_ECB
+Electronic Codebook mode.  
+
+@item GCRY_CIPHER_MODE_CFB
+Cipher Feedback mode.
+
+@item  GCRY_CIPHER_MODE_CBC
+Cipher Block Chaining mode.
+
+@item GCRY_CIPHER_MODE_STREAM
+Stream mode, only to be used with stream cipher algorithms.
+
+@item GCRY_CIPHER_MODE_OFB
+Outer Feedback mode.
+
+@end table
+@c end cipher modes constants
+
+The third argument @var{flags} can either be passed as @code{0} or as
+the bit-wise OR of the following constants.
+
+@table @code
+@item GCRY_CIPHER_SECURE
+Make sure that all operations are allocated in secure memory.  This is
+useful, when the key material is highly confidential.
+@item GCRY_CIPHER_ENABLE_SYNC
+This flag enables the CFB sync mode, which is a special feature of
+Libgcrypt's CFB mode implementation to allow for OpenPGP's CFB variant. 
+See @code{gcry_cipher_sync}.
+@item GCRY_CIPHER_CBC_CTS
+Enable cipher text stealing for the CBS mode.
+@end table
+
+@end deftypefun 
+@c end gcry_cipher_open
+
+To release the context allocated with this function,
+@code{gcry_cipher_close} should be used:
+
+@deftypefun void gcry_cipher_close (GcryCipherHd @var{h})
 
 This function releases the context created by @code{gcry_cipher_open}.
 @end deftypefun
 
+Now that a context has been allocated, the key to be used for decryption
+or encryption must be set.  This is done with the following function:
+
+@deftypefun int gcry_cipher_setkey (GcryCipherHd @var{h}, void *@var{k}, size_t @var{l})
+
+Set the key @var{k} used for encryption or decryption in the context
+denoted by the handle @var{h}.  The length @var{l} of the key @var{k}
+must match the required length of the algorithm set for this context or
+be in the allowed range for algorithms with variable key size.  The
+function checks this and returns an error if there is a problem.  A
+caller should always check for an error.
+
+Note, this is currently implemented as a
+macro but may be changed to a function in the future.
+@end deftypefun
+
+Most crypto modes requires an initialization vector (IV), which usually
+is a non-secret random string acting as a kind of salt value.  To set
+this IV, use the function:
+
+@deftypefun int gcry_cipher_setiv (GCRY_CIPHER_HD @var{h}, void *@var{k}, size_t @var{l})
+
+Set the initialization vector used for encryption or decryption. The
+vector is passed as the buffer @var{K} of length @var{l} and copied to
+internal data structures.  The function checks that the IV matches the
+requirement of the selected algorithm and mode.  Note, that this is
+implemented as a macro.
+@end deftypefun
+
+
+The actual encryption and decryption is done by using one of the
+following functions.  They may be used as often as required to process
+all the data.
+
+@deftypefun int gcry_cipher_encrypt (GCRY_CIPHER_HD @var{h}, unsigned char *{out}, size_t @var{outsize}, const unsigned char *@var{in}, size_t @var{inlen})
+
+@code{gcry_cipher_encrypt} is used to encrypt the data.  This function
+can either work in place or with two buffers.  It uses the cipher
+context already setup and described by the handle @var{h}.  There are 2
+ways to use the function: If @var{in} is passed as @code{NULL} and
+@var{inlen} is @code{0}, in-place encryption of the data in @var{out} or
+length @var{outsize} takes place.  With @var{in} being not @code{NULL},
+@var{inlen} bytes are encrypted to the buffer @var{out} which must have
+at least a size of @var{inlen}.  @var{outlen} must be set to the
+allocated size of @var{out}, so that the function can check that there
+is sufficient space. Note, that overlapping buffers are not allowed.
+
+Depending on the selected algorithms and encryption mode, the length of
+the buffers must be a multiple of the block size.
+
+The function returns @code{0} on success or an error code.
+@end deftypefun
+
+
+@deftypefun int gcry_cipher_decrypt (GCRY_CIPHER_HD @var{h}, unsigned char *{out}, size_t @var{outsize}, const unsigned char *@var{in}, size_t @var{inlen})
+
+@code{gcry_cipher_decrypt} is used to decrypt the data.  This function
+can either work in place or with two buffers.  It uses the cipher
+context already setup and described by the handle @var{h}.  There are 2
+ways to use the function: If @var{in} is passed as @code{NULL} and
+@var{inlen} is @code{0}, in-place decryption of the data in @var{out} or
+length @var{outsize} takes place.  With @var{in} being not @code{NULL},
+@var{inlen} bytes are decrypted to the buffer @var{out} which must have
+at least a size of @var{inlen}.  @var{outlen} must be set to the
+allocated size of @var{out}, so that the function can check that there
+is sufficient space. Note, that overlapping buffers are not allowed.
+
+Depending on the selected algorithms and encryption mode, the length of
+the buffers must be a multiple of the block size.
+
+The function returns @code{0} on success or an error code.
+@end deftypefun
+
+
+OpenPGP (as defined in RFC-2440) requires a special sync operation in
+some places, the following function is used for this:
+
+@deftypefun int gcry_cipher_sync (GCRY_CIPHER_HD @var{h})
+
+Perform the OpenPGP sync operation on context @var{h}. Note, that this
+is a no-op unless the context was created with the flag
+@code{GCRY_CIPHER_ENABLE_SYNC}
+@end deftypefun
+
+Some of the described functions are implemented as macros utilizing a
+catch-all control function.  This control function is rarely used
+directly but there is nothing which would inhibit it:
 
 @deftypefun int gcry_cipher_ctl (GCRY_CIPHER_HD @var{h}, int @var{cmd}, void *@var{buffer}, size_t @var{buflen})
 
 @code{gcry_cipher_ctl} controls various aspects of the cipher module and
-specific cipher contexts.  Usually some more specialzed functions are
-used for this purpose.
-@end deftypefun
-
-@deftypefun int gcry_cipher_setkey (GCRY_CIPHER_HD @var{h}, void *@var{k}, size_t @var{l})
-
-Set the key used for encryption or decryption.  Note, that this is
-implemented as a macro.
-@end deftypefun
-
-@deftypefun int gcry_cipher_setiv (GCRY_CIPHER_HD @var{h}, void *@var{k}, size_t @var{l})
-
-Set the initialization vector used for encryption or decryption.  Note,
-that this is implemented as a macro.
-@end deftypefun
-
-@deftypefun int gcry_cipher_sync (GCRY_CIPHER_HD @var{h})
-
-Peform the a ``sync'' operation which is only used with certain modes.
+specific cipher contexts.  Usually some more specialized functions or
+macros are used for this purpose.  The semantics of the function and its
+parameters depends on the the command @var{cmd} and the passed context
+handle @var{h}.  Please see the comments in the source code
+(@code{src/global.c}) for details.
 @end deftypefun
 
 
 @c ***********************************************
 @c ***********  cipher info   ********************
 @c ***********************************************
+
+To work with the algorithms, several functions are available to map
+algorithm names to the internal identifiers, as well as ways to retrieve
+information about an algorithm or the current cipher context.
+
 @deftypefun int gcry_cipher_info (GCRY_CIPHER_HD @var{h}, int @var{what}, void *@var{buffer}, size_t *@var{nbytes})
 
 @code{gcry_cipher_info} is used to retrieve various
 information about a cipher context or the cipher module in general.
+
 Currently no information is available.
 @end deftypefun
 
+
 @deftypefun int gcry_cipher_algo_info (int @var{algo}, int @var{what}, void *@var{buffer}, size_t *@var{nbytes})
 
-fixme
+This function is used to retrieve information on a specific algorithm.
+You pass the cipher algorithm ID as @var{algo} and the type of
+information requested as @var{what}. The result is either returned as
+the return code of the function or copied to the provided @var{buffer}
+whose allocated length must be available in an integer variable with the
+address passed in @var{nbytes}.  This variable will also receive the
+actual used length of the buffer. 
+
+The function returns @code{-1} on error;  @code{gcry_errno} may be used
+to get the actual error code.
+
+Here is a list of supported codes for @var{what}:
+
+@c begin constants for gcry_cipher_algo_info
+@table @code
+@item GCRYCTL_GET_KEYLEN:
+Return the length of the key. If the algorithm supports multiple key
+length, the maximum supported value is returned.  The length is returned
+as number of octets (bytes) and not as number of bits.  @var{buffer} and
+@var{nbytes} must be zero.
+
+@item GCRYCTL_GET_BLKLEN:
+Return the block length of the algorithm counted in octets.
+@var{buffer} and @var{nbytes} must be zero.
+
+@item GCRYCTL_TEST_ALGO:
+Returns @code{0} when the specified algorithm is available for use.
+@var{buffer} and @var{nbytes} must be zero.
+ 
+@end table  
+@c end constants for gcry_cipher_algo_info
 
 @end deftypefun
+@c end gcry_cipher_algo_info
 
 @deftypefun const char *gcry_cipher_algo_name (int @var{algo})
 
 @code{gcry_cipher_algo_name} returns a string with the name of the
-cipher algorithm @var{algo}.  If the algorithm s not known or an other
-error occured, an empty string is return.  This function will never
+cipher algorithm @var{algo}.  If the algorithm is not known or another
+error occurred, an empty string is returned.  This function will never
 return @code{NULL}.
 @end deftypefun
 
@@ -354,23 +587,6 @@ identifier.  The object identifier is expected to be in the
 with it.
 @end deftypefun
 
-@c ******************************************
-@c *******  cipher en/decrypt  **************
-@c ******************************************
-
-@deftypefun int gcry_cipher_encrypt (GCRY_CIPHER_HD @var{h}, unsigned char *{out}, size_t @var{outsize}, const unsigned char *@var{in}, size_t @var{inlen})
-
-@code{gcry_cipher_encrypt} is used to encrypt the data.
-This function can either work in place or with two buffers.
-Overlapping buffers are not allowed.
-@end deftypefun
-
-@deftypefun int gcry_cipher_decrypt (GCRY_CIPHER_HD @var{h}, unsigned char *{out}, size_t @var{outsize}, const unsigned char *@var{in}, size_t @var{inlen})
-
-@code{gcry_cipher_encrypt} is used to decrypt the data.
-This function can either work in place or with two buffers.
-Overlapping buffers are not allowed.
-@end deftypefun
 
 @c **********************************************************
 @c *******************  Hash Functions  *********************
@@ -378,470 +594,314 @@ Overlapping buffers are not allowed.
 @node Hash Functions
 @chapter Hash Functions
 
-How to use cryptographic hash functions.
+How to use cryptographic hash functions.  Libgcrypt provides an easy and
+consistent to use interface to hash functions.  Hashing is buffered and
+several hash algorithms can be updated at once.  It is possible to
+calculate a MAC using the same routines.
+
+For convenience reasons, we plan to integrate simple CRC algorithms too
+
+To use most of these function it is necessary to create a context;  this
+is done using:
+
+@deftypefun GcryMDHd gcry_md_open (int @var{algo}, unsigned int @var{flags})
+
+Create a message digest object for algorithm @var{algo}.  @var{flags}
+may be given as an bitwise OR of constants described below.  @var{algo}
+may be given as @code{0} if the algorithms to use are later set using
+@code{gcry_md_enable}.
+
+The following algorithms are supported:
+
+@c begin table of hash algorithms
+@table @code
+@item GCRY_MD_NONE
+This is not a real algorithm but used by some functions as an error
+return value.  This constant is guaranteed to have the value @code{0}.
+
+@item GCRY_MD_SHA1
+This is the SHA-1 algorithm which yields a message digest of 20 bytes.
+
+@item GCRY_MD_RMD160
+This is the 160 bit version of the RIPE message digest (RIPE-MD-160).
+Like SHA-1 it also yields a digest of 20 bytes.
+
+@item GCRY_MD_MD5
+This is the well known MD5 algorithm, which yields a message digest of
+16 bytes. 
+
+@item GCRY_MD_MD4
+This is the MD4 algorithm, which yields a message digest of 16 bytes.
+
+@item GCRY_MD_MD2
+This is an reserved identifier for MD-2; there is no implementation yet.
+
+@item GCRY_MD_TIGER
+This is the TIGER/192 algorithm which yields a message digest of 24 bytes.
+
+@item GCRY_MD_HAVAL
+This is an reserved for the HAVAL algorithm with 5 passes and 160
+bit. It yields a message digest of 20 bytes.  Note that there is no
+implementation yet available.
+
+@item GCRY_MD_SHA256
+This is reserved for SHA-2 with 256 bits. It yields a message digest of
+32 bytes.  Note that there is no implementation yet available.
+
+@item GCRY_MD_SHA384
+This is reserved for SHA-2 with 384 bits. It yields a message digest of
+48 bytes.  Note that there is no implementation yet available.
+
+@item GCRY_MD_SHA512
+This is reserved for SHA-2 with 512 bits. It yields a message digest of
+64 bytes.  Note that there is no implementation yet available.
+
+@end table
+@c end table of hash algorithms
+
+The flags allowed for @var{mode} are:
+
+@c begin table of hash flags
+@table @code
+@item GCRY_MD_FLAG_SECURE
+Allocate all buffers and the resulting digest in "secure memory".  Use
+this is the hashed data is highly confidential.
+
+@item GCRY_MD_FLAG_HMAC
+Turn the algorithm into a HMAC message authentication algorithm.  Note
+that the function @code{gcry_md_setkey} must be used set the MAC key.
+
+@end table
+@c begin table of hash flags
+
+@end deftypefun
+@c end function gcry_md_open
+
+If you want to calculate several hash algorithms at the same time, you
+have to use the following function right after the @code{gcry_md_open}:
+
+@deftypefun int gcry_md_enable (GcryMDHd @var{h}, int @var{algo})
+
+Add the message digest algorithm @var{algo} to the digest object
+described by handle @var{h}.  Duplicated enabling of algorithms is
+detected and ignored.
+@end deftypefun
+
+If the flag @code{GCRY_MD_FLAG_HMAC} was used, the key for the MAC must
+be set using the function:
+
+@deftypefun int gcry_md_setkey (GcryMDHd @var{h}, const void *@var{key},
+size_t @var{keylen})
+
+For use with the HMAC feature, set the MAC key to the value of @var{key}
+of length @var{keylen}.
+@end deftypefun
 
 
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_open</refname>
-@c     <refname>gcry_md_enable</refname>
-@c     <refname>gcry_md_close</refname>
-@c     <refpurpose>create and destroy a message digest context</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>GCRY_MD_HD <function>gcry_md_open</function></funcdef>
-@c         <paramdef>int <parameter>algo</parameter></paramdef>
-@c         <paramdef>unsigned int <parameter>flags</parameter></paramdef>
-@c       </funcprototype>
-@c       <funcprototype>
-@c         <funcdef>void <function>gcry_md_enable</function></funcdef>
-@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-@c         <paramdef>int <parameter>algo</parameter></paramdef>
-@c       </funcprototype>
-@c       <funcprototype>
-@c         <funcdef>void <function>gcry_md_close</function></funcdef>
-@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_open</secondary>
-@c              </indexterm>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_enable</secondary>
-@c              </indexterm>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_close</secondary>
-@c              </indexterm>
-@c   <function>gcry_md_open</function> creates the context required for
-@c   the message digest functions.  The hash algorithm may optionally be
-@c   specified. It is possible to use these functions as MAC functons; therefore
-@c   the flag <literal/GCRY_MD_FLAG_HMAC/ must be given along with the
-@c   hash functions.  Other MAC algorithms than  HMAC are currently not
-@c   supported.  The key for the MAC must be set using
-@c   the <function>gcry_md_setkey</> function.
-@c   <function>gcry_md_close</function> releases all resources associated
-@c   with the context.
-@c   <function>gcry_md_enable</function> may be used to enable hash
-@c   algorithms.  This function may be used multiple times to create
-@c   a hash context for multiple algorithms.  Adding an already enabled algorithm
-@c   has no effect.  A algorithm must be enabled prios to calculate hash
-@c   algorithms.
-@c   </para>
-@c </refentry>
-@c 
-@c <!--**********************************************
-@c ***********  md_copy *****************************
-@c ***********************************************-->
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_copy</refname>
-@c     <refpurpose>create and copy of a message digest context</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>GCRY_MD_HD <function>gcry_md_copy</function></funcdef>
-@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_copy</secondary>
-@c              </indexterm>
-@c   <function>gcry_md_copy</function> creates an excat copy of the given context.
-@c   This is useful to calculate hashes with a common initial part of the
-@c   plaintext.
-@c   </para>
-@c </refentry>
-@c 
-@c <!--**********************************************
-@c ***********  md_reset  ***************************
-@c ***********************************************-->
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_reset</refname>
-@c     <refpurpose>reset a message digest context</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>void <function>gcry_md_reset</function></funcdef>
-@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_reset</secondary>
-@c              </indexterm>
-@c   <function>gcry_md_reset</function> is used to reuse a message context
-@c   without the overhead of an open and close operation.
-@c   </para>
-@c </refentry>
-@c 
-@c 
-@c <!--**********************************************
-@c ***********  md_ctl  *****************************
-@c ***********************************************-->
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_ctl</refname>
-@c     <refname>gcry_md_final</refname>
-@c     <refname>gcry_md_setkey</refname>
-@c     <refpurpose>perform special operations on a digest context</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>int <function>gcry_md_ctl</function></funcdef>
-@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-@c         <paramdef>int <parameter>cmd</parameter></paramdef>
-@c         <paramdef>unsigned char * <parameter>buffer</parameter></paramdef>
-@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_ctl</secondary>
-@c              </indexterm>
-@c   <function>gcry_md_ctl</function> is a multi-purpose function
-@c   to control the behaviour of all gcry_md functions or one instance
-@c   of it.
-@c   </para>
-@c   <para>
-@c   Currently defined values for <parameter>cmd</> are:
-@c   </para>
-@c   <para>
-@c     <literal>GCRYCTL_FINALIZE</> and the convenience macro
-@c     <function>gcry_md_final(a)</>
-@c   </para>
-@c   <para>
-@c     <literal>GCRYCTL_SET_KEY</> and the convenience macro
-@c     <function>gcry_md_setkey(a)</>.  This is used to turn these
-@c     hash functions into MAC functions.	The key may be any string
-@c     of the speicified length.  The type of the MAC is determined
-@c     by special flags set with the open function.
-@c     NEW:  There is now a function to do this
-@c   </para>
-@c </refentry>
-@c 
-@c <!--**********************************************
-@c ***********  md_write, putc  *********************
-@c ***********************************************-->
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_write</refname>
-@c     <refname>gcry_md_putc</refname>
-@c     <refpurpose>calculate the message digest of a buffer</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>int <function>gcry_md_write</function></funcdef>
-@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-@c         <paramdef>unsigned char * <parameter>buffer</parameter></paramdef>
-@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
-@c       </funcprototype>
-@c       <funcprototype>
-@c         <funcdef>int <function>gcry_md_putc</function></funcdef>
-@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-@c         <paramdef>int <parameter>c</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_write</secondary></indexterm>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_putc</secondary></indexterm>
-@c   <function>gcry_md_write</function> is used to actually calulate the message
-@c   digest of a buffer.  This function updates the internal state of the message
-@c   digest.
-@c   </para>
-@c   <para>
-@c   <function>gcry_md_putc</function> is a macro which is used to update
-@c   the message digest by one byte.  this is the preferred way to calculate
-@c   a digest if only a few bytes at a time are available.
-@c   </para>
-@c </refentry>
-@c 
-@c <!--**********************************************
-@c ***********  md_read *****************************
-@c ***********************************************-->
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_read</refname>
-@c     <refpurpose>read out the message digest</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>unsigned char * <function>gcry_md_read</function></funcdef>
-@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-@c         <paramdef>int <parameter>algo</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_read</secondary>
-@c              </indexterm>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_putc</secondary>
-@c              </indexterm>
-@c   <function>gcry_md_read</function> returns the message digest after finalizing
-@c   the calculation.  This function may be used as often as required but it
-@c   will alwas return the same value for one handle.  The returned message
-@c   digest is allocated within the message context and therefore valid until
-@c   the conext is released.  <parameter>algo</> may be given as 0 to return the
-@c   only enbaled message digest or it may specify one of the enabled algorithms.
-@c   The function will return NULL if the algorithm has not been enabled.
-@c   </para>
-@c </refentry>
-@c 
-@c 
-@c <!--**********************************************
-@c ***********  md_info  ****************************
-@c ***********************************************-->
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_info</refname>
-@c     <refpurpose>get information about a handle</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>int <function>gcry_md_info</function></funcdef>
-@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-@c         <paramdef>int	     <parameter>what</parameter></paramdef>
-@c         <paramdef>void * <parameter>buffer</parameter></paramdef>
-@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_info</secondary>
-@c              </indexterm>
-@c   <function>gcry_md_info</function> returns some information about the
-@c   handle or an global parameter.
-@c   </para>
-@c   <para>
-@c   The only defined value for <parameter>what</> is
-@c   <literal>GCRYCTL_IS_SECURE</literal> to return whether the handle
-@c   has been allocated in secure memory.	Buffer and buflen are not needed
-@c   in this cases.  The convenience macro <function>gcry_md_is_secure(a)</>
-@c   may be also used for this purpose.
-@c   </para>
-@c </refentry>
-@c 
-@c 
-@c <!--**********************************************
-@c ***********  md_algo_info  ***********************
-@c ***********************************************-->
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_algo_info</refname>
-@c     <refname>gcry_md_test_algo</refname>
-@c     <refname>gcry_md_get_algo_dlen</refname>
-@c     <refpurpose>get information about an algorithm</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>int <function>gcry_md_algo_info</function></funcdef>
-@c         <paramdef>int	     <parameter>algo</parameter></paramdef>
-@c         <paramdef>int	     <parameter>what</parameter></paramdef>
-@c         <paramdef>void * <parameter>buffer</parameter></paramdef>
-@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
-@c       </funcprototype>
-@c       <funcprototype>
-@c         <funcdef>unsigned int <function>gcry_md_get_algo_dlen</function></funcdef>
-@c         <paramdef>int <parameter>algo</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_algo_info</secondary>
-@c              </indexterm>
-@c   <function>gcry_md_algo_info</function> returns some information about an
-@c   algorithm.  On error the value -1 is return and a more detailed error
-@c   description is available with <function>gcry_errno</>.
-@c   </para>
-@c   <para>
-@c   The defined values for <parameter>what</> are
-@c   <literal>GCRYCTL_TEST_ALGO</literal> to return whether the algorithm
-@c   is supported. Buffer and buflen are not needed
-@c   in this cases.  The convenience macro <function>gcry_md_test_algo(a)</>
-@c   may be used for this purpose.
-@c   </para>
-@c   <para>
-@c   <literal>GCRYCTL_GET_ASNOID</literal> to return whether the ASN.1
-@c   object identifier.  IF buffer is specified as NULL, only the required
-@c   length for the buffer is returned.
-@c   </para>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_get_algo_dlen</secondary>
-@c              </indexterm>
-@c   <function>gcry_md_get_algo_dlen</function> returns the length of the
-@c   digest for a given algorithm in bytes.
-@c   </para>
-@c </refentry>
-@c 
-@c 
-@c <!--**********************************************
-@c ***********  md_algo_name, map_name  *************
-@c ***********************************************-->
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_algo_name</refname>
-@c     <refname>gcry_md_map_name</refname>
-@c     <refpurpose>map algorithm to string</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>const char * <function>gcry_md_algo_name</function></funcdef>
-@c         <paramdef>int	     <parameter>algo</parameter></paramdef>
-@c       </funcprototype>
-@c       <funcprototype>
-@c         <funcdef>int <function>gcry_md_map_name</function></funcdef>
-@c         <paramdef>const char*<parameter>name</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_algo_name</secondary>
-@c              </indexterm>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_map_name</secondary>
-@c              </indexterm>
-@c   These both functions are used to map a string with the algorithm name to
-@c   the internal algorithm identifier value and vice versa.
-@c   </para>
-@c   <para>
-@c   <function>gcry_md_algo_name</> never returns NULL even in cases where the
-@c   algorithm string is not available.  Instead a string consisting of a
-@c   single question mark is returned.  Do not use this function to test
-@c   for the existence of an algorithm.
-@c   </para>
-@c   <para>
-@c   <function>gcry_md_map_name</> returns 0 if the algorithm is not known
-@c   to &libgcrypt;.
-@c   </para>
-@c </refentry>
-@c 
-@c 
-@c 
-@c <!--**********************************************
-@c ***********  md_hash_buffer  *********************
-@c ***********************************************-->
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_md_hash_buffer</refname>
-@c     <refpurpose>fast message calculation</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>int <function>gcry_md_hash_buffer</function></funcdef>
-@c         <paramdef>int  <parameter>algo</parameter></paramdef>
-@c         <paramdef>char * <parameter>digest</parameter></paramdef>
-@c         <paramdef>const char * <parameter>buffer</parameter></paramdef>
-@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>hash functions</primary>
-@c              <secondary>gcry_md_hash_buffer</secondary>
-@c              </indexterm>
-@c   <function>gcry_md_hash_buffer</function> is a shortcut function
-@c   to calculate a message digest of a buffer.  This function does not require
-@c   a context and immediatley returns the message digest.
-@c   <parameter>digest</> must be string large enough to hold the digest
-@c   given by algo.  This length may be obtained by using the function
-@c   <function>gcry_md_get_algo_dlen</> but in most cases it will be a statically
-@c   allocated buffer.
-@c   </para>
-@c </refentry>
-@c 
-@c 
+After you are done with the hash calculation, you should release the
+resources by using:
+
+@deftypefun void gcry_md_close (GcryMDHd @var{h})
+
+Release all resources of hash context @var{h}.  @var{h} should not be
+used after a call to this function.  A @code{NULL} passed as @var{h} is
+ignored.
+
+@end deftypefun
+
+Often you have to do several hash operations using the same algorithm.
+To avoid the overhead of creating and releasing context, a reset function
+is provided:
+
+@deftypefun void gcry_md_reset (GcryMDHd @var{h})
+
+Reset the current context to its initial state.  This is effectively
+identical to a close followed by an open and enabling all currently
+active algorithms.
+@end deftypefun
+
+
+Often it is necessary to start hashing some data and than continue to
+hash different data.  To avoid hashing the same data several times (which
+might not even be possible if the data is received from a pipe), a
+snapshot of the current hash context can be taken and turned into a new
+context:
+
+@deftypefun GcryMDHd gcry_md_copy (GcryMDHd @var{h})
+
+Create a new digest object as an exact copy of the object described by
+handle @var{h}.  The context is not reset and you can continue to hash
+data using this context and independently using the original context.
+@end deftypefun
+
+
+Now that we have prepared everything to calculate hashes, its time to
+see how it is actually done.  There are 2  ways for this, one to
+update the hash with a block of memory and one macro to update the hash
+by just one character.  Both may be used intermixed.
+
+@deftypefun void gcry_md_write (GcryMDHd @var{h}, const void *@var{buffer}, size_t @var{length})
+
+Pass @var{length} bytes of the data in @var{buffer} to the digest object
+with handle @var{h} to update the digest values. This
+function should be used for large blocks of data.
+@end deftypefun
+
+@deftypefun void gcry_md_putc (GcryMDHd @var{h}, int @var{c})
+
+Pass the byte in @var{c} to the digest object with handle @var{h} to
+update the digest value.  This is an efficient function, implemented as
+a macro to buffer the data before an actual update. 
+@end deftypefun
+
+The semantics of the hash functions don't allow to read out intermediate
+message digests because the calculation must be finalized fist.  This
+finalization may for example include the number of bytes hashed in the
+message digest.  
+
+@deftypefun void gcry_md_final (GcryMDHd @var{h})
+
+Finalize the message digest calculation.  This is not really needed
+because @code{gcry_md_read} does this implicitly.  After this has been
+done no further updates (by means of @code{gcry_md_write} or
+@code{gcry_md_putc} are allowed.  Only the first call to this function
+has an effect. It is implemented as a macro.
+@end deftypefun
+
+The way to read out the calculated message digest is by using the
+function:
+
+@deftypefun unsigned char *gcry_md_read (GcryMDHd @var{h}, int @var{algo})
+
+@code{gcry_md_read} returns the message digest after finalizing the
+calculation.  This function may be used as often as required but it will
+always return the same value for one handle.  The returned message digest
+is allocated within the message context and therefore valid until the
+handle is released or reseted (using @code{gcry_md_close} or
+@code{gcry_md_reset}.  @var{algo} may be given as 0 to return the only
+enabled message digest or it may specify one of the enabled algorithms.
+The function does return @code{NULL} if the requested algorithm has not
+been enabled.
+@end deftypefun
+
+Because it is often necessary to get the message digest of one block of
+memory, a fast convenience function is available for this task: 
+
+@deftypefun void gcry_md_hash_buffer (int @var{algo}, void *@var{digest}, const cvoid *@var{buffer}, size_t @var{length});
+
+@code{gcry_md_hash_buffer} is a shortcut function to calculate a message
+digest of a buffer.  This function does not require a context and
+immediately returns the message digest of the @var{length} bytes at
+@var{buffer}.  @var{digest} must be allocated by the caller, large
+enough to hold the message digest yielded by the the specified algorithm
+@var{algo}.  This required size may be obtained by using the function
+@code{gcry_md_get_algo_dlen}.
+
+Note, that this function will abort the process if an unavailable
+algorithm is used.
+@end deftypefun
+
+@c ***********************************
+@c ***** MD info functions ***********
+@c ***********************************
+
+Hash algorithms are identified by internal algorithm numbers (see
+@code{gcry_md_open} for a list.  However, in most applications they are
+used by names, so 2 functions are available to map between string
+representations and hash algorithm identifiers.
+
+@deftypefun const char *gcry_md_algo_name (int @var{algo})
+
+Map the digest algorithm id @var{algo} to a string representation of the
+algorithm name.  For unknown algorithms this functions returns an
+empty string.  This function should not be used to test for the
+availability of an algorithm.
+@end deftypefun
+
+@deftypefun int gcry_md_map_name (const char *@var{name})
+
+Map the algorithm with @var{name} to a digest algorithm identifier.
+Returns 0 if the algorithm name is not known.  Names representing
+@acronym{ASN.1} object identifiers are recognized if the @acronym{IETF}
+dotted format is used and the OID is prefixed with either "@code{oid.}"
+or "@code{OID.}".  For a list of supported OIDs, see the source code at
+@file{cipher/md.c}. This function should not be used to test for the
+availability of an algorithm.
+@end deftypefun
+
+@deftypefun int gcry_md_get_asnoid (int @var{algo}, void *@var{buffer}, size_t *@var{length})
+
+Return an DER encoded ASN.1 OID for the algorithm @var{algo} in the user
+allocated @var{buffer}. @var{length} must point to variable with the
+available size of @var{buffer} and receives after return the actual size
+of the returned OID.  The return value may be @code{GCRYERR_TOO_SHORT}
+if the provided buffer is to short to receive the OID; it is possible to
+call the function with @code{NULL} for @var{buffer} to have it only
+return the required size.  The function returns 0 on success. 
+@end deftypefun
+
+
+To test whether an algorithm is actually available for use, the
+following macro should be used:
+
+@deftypefun int gcry_md_test_algo (int @var{algo}) 
+
+The macro returns 0 if the algorithm @var{algo} is available for use.
+@end deftypefun
+
+If the length of a message digest is not known, it can be retrieved
+using the following function:
+
+@deftypefun unsigned int gcry_md_get_algo_dlen (int @var{algo})
+
+Retrieve the length in bytes of the digest yielded by algorithm
+@var{algo}.  This is often used prior to @code{gcry_md_read} to allocate
+sufficient memory for the digest.
+@end deftypefun
+
+
+In some situations it might be hard to remember the algorithm used for
+the ongoing hashing. The following function might be used to get that
+information:
+
+@deftypefun int gcry_md_get_algo (GcryMDHd @var{h})
+
+Retrieve the algorithm used with the handle @var{h}. Note, that this
+does not work reliable if more than one algorithm is enabled in @var{h}.
+@end deftypefun
+
+The following macro might also be useful:
+
+@deftypefun int gcry_md_is_secure (GcryMDHd @var{h})
+
+This macro return true when the digest object @var{h} is allocated in "secure
+memory"; i.e. @var{h} was created with the @code{GCRY_MD_FLAG_SECURE}.
+@end deftypefun
+
+
+Tracking bugs related to hashing is often a cumbersome task which
+requires to add a lot of printf statements into the code.  Libgcrypt
+provides an easy way to avoid this.  The actual data hashed can be
+written to files on request.  The following 2 macros should be used to
+implement such a debugging facility:
+
+@deftypefun void gcry_md_start_debug (GcryMDHd @var{h}, const char *@var{suffix})
+
+Enable debugging for the digest object with handle @var{h}.  This
+creates create files named @file{dbgmd-<n>.<string>} while doing the
+actual hashing.  @var{suffix} is the string part in the filename.  The
+number is a counter incremented for each new hashing.  The data in the
+file is the raw data as passed to @code{gcry_md_write} or
+@code{gcry_md_putc}.
+@end deftypefun
+
+
+@deftypefun void gcry_md_stop_debug (GcryMDHd @var{h}, int @var{reserved})
+
+Stop debugging on handle @var{h}.  @var{reserved} should be specified as
+0.  This function is usually not required because @code{gcry_md_close}
+does implicitly stop debugging.
+@end deftypefun
 
 
 @c **********************************************************
@@ -850,76 +910,465 @@ How to use cryptographic hash functions.
 @node Public Key Functions
 @chapter Public Key Functions
 
-How to use asymmetric encryption.
+Public key encryption, also known as asymmetric encryption, is am easy
+way for key management and to provide digital signatures.  Libgcrypt
+supports the RSA (Rivest-Shamir-Adleman) algorithms as well as DSA
+(Digital Signature Algorithm) and ElGamal.  The versatile interface
+allows to add more algorithms in the future.
 
-@c <refentry>
-@c   <refnamediv>
-@c     <refname>gcry_pk_encrypt</refname>
-@c     <refpurpose>do a public key encryption</refpurpose>
-@c   </refnamediv>
-@c 
-@c   <refsynopsisdiv>
-@c     <funcsynopsis>
-@c       <funcsynopsisinfo>
-@c       #include &lt;gcrypt.h&gt;
-@c       </funcsynopsisinfo>
-@c       <funcprototype>
-@c         <funcdef>int <function>gcry_pk_encrypt</function></funcdef>
-@c         <paramdef>GCRY_SEXP *<parameter>result</parameter></paramdef>
-@c         <paramdef>GCRY_SEXP  <parameter>data</parameter></paramdef>
-@c         <paramdef>GCRY_SEXP  <parameter>pkey</parameter></paramdef>
-@c       </funcprototype>
-@c     </funcsynopsis>
-@c   </refsynopsisdiv>
-@c 
-@c 
-@c   <refsect1><title>Description</title>
-@c   <para>
-@c   <indexterm><primary>public key functions</primary>
-@c              <secondary>gcry_pk_encrypt</secondary>
-@c              </indexterm>
-@c   <function>gcry_pk_encrypt</function> performs public key encryption
-@c   operations.  The caller has to provide a public key as the &sexp;
-@c   <parameter>pkey</> and <parameter>data</> as a &sexp;
-@c   with just one MPI in it.  The function returns a &sexp; which may
-@c   be passed tp to pk_decrypt.
-@c   Later versions of this functions may take more complex input data.
-@c 
-@c   Returns: 0 or an errorcode.
-@c   </para>
-@c   <literallayout>
-@c   s_data = (<replaceable/mpi/)
-@c   s_pkey = <replaceable/key-as-defined-in-sexp_to_key/
-@c   r_ciph = (enc-val
-@c              (<replaceable/algo/
-@c                (<replaceable/param_name1/ <replaceable/mpi/)
-@c                ...
-@c                (<replaceable/param_namen/ <replaceable/mpi/)
-@c              ))
-@c   </literallayout>
-@c </refentry>
-@c 
-@c 
-@c <!--
-@c int gcry_pk_decrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
-@c 
-@c 
-@c 
-@c int gcry_pk_sign(    GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
-@c int gcry_pk_verify(  GCRY_SEXP sigval, GCRY_SEXP data, GCRY_SEXP pkey );
-@c int gcry_pk_testkey( GCRY_SEXP key );
-@c int gcry_pk_genkey(  GCRY_SEXP *r_key, GCRY_SEXP s_parms );
-@c 
-@c int gcry_pk_ctl( int cmd, void *buffer, size_t buflen);
-@c int gcry_pk_algo_info( int algo, int what, void *buffer, size_t *nbytes);
-@c #define gcry_pk_test_algo(a) \
-@c             gcry_pk_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
-@c 
-@c const char *gcry_pk_algo_name( int algo );
-@c int gcry_pk_map_name( const char* name );
-@c unsigned int gcry_pk_get_nbits( GCRY_SEXP key );
-@c     -->
-@c 
+The API is based on data structures called S-expressions (see XXXX)
+and does not work with contexts as most of the other building blocks
+Libgcrypt provides.
+
+@noindent
+To describe how Libgcrypt expect keys, we use some examples. Note that
+words in
+@ifnottex
+uppercase
+@end ifnottex
+@iftex
+italics
+@end iftex
+indicate parameters whereas lowercase words are literals.
+
+@example
+(private-key
+  (dsa
+    (p @var{p-mpi})
+    (q @var{q-mpi})
+    (g @var{g-mpi})
+    (y @var{y-mpi})
+    (x @var{x-mpi})))
+@end example
+
+@noindent
+This specifies an DSA private key with the following parameters:
+
+@table @var
+@item p-mpi
+DSA prime @math{p}.
+@item q-mpi
+DSA group order @math{q} (which is a prime divisor of @math{p-1}).
+@item g-mpi
+DSA group generator @math{g}.
+@item y-mpi
+DSA public key value @math{y = g^x \bmod p}.
+@item x-mpi
+DSA secret exponent x.
+@end table
+
+All the MPI values are  expected to be in @code{GCRYMPI_FMT_USG} format.
+The public key is similar with "private-key" replaced by "public-key"
+and no @var{x-mpi}.
+
+An easy way to create such an S-expressions is by using
+@code{gcry_sexp_build} which allows to pass a string with printf-like
+escapes to insert MPI values.
+
+@noindent
+Here is an example for an RSA key:
+
+@example
+(private-key
+  (rsa
+    (n @var{n-mpi})
+    (e @var{e-mpi})
+    (d @var{d-mpi})
+    (p @var{p-mpi})
+    (q @var{q-mpi})
+    (u @var{u-mpi})
+@end example
+
+@noindent
+with
+
+@table @var
+@item n-mpi
+RSA public modulus @math{n}.
+@item e-mpi
+RSA public exponent @math{e}.
+@item d-mpi
+RSA secret exponent @math{d = e^{-1} \bmod (p-1)(q-1)}.
+@item p-mpi
+RSA secret prime @math{p}.
+@item q-mpi
+RSA secret prime @math{q} with @math{q > p}.
+@item u-mpi
+multiplicative inverse @math{u = p^{-1} \bmod q}.
+@end table
+
+@noindent
+Note, that we will in future allow to use keys without p,q and u
+specified and may also support other parameters for performance
+reasons. 
+
+@noindent
+Now that we know the key basics, we can carry on and explain how to
+encrypt and decrypt data.  In almost all cases the data is a random
+session key which is in turn used for the actual encryption of the real
+data.  There are 2 functions to do this:
+
+@deftypefun int gcry_pk_encrypt (@w{GcrySexp *@var{r_ciph},} @w{GcrySexp @var{data},} @w{GcrySexp @var{pkey}})
+
+Obviously a public key must be provided for encryption.  It is expected
+as an appropriate S-expression (see above) in @var{pkey}.  The data to
+be encrypted can either be in the simple old format, which is a very
+simple S-expression consisting only of one MPI, or it may be a more
+complex S-expression which also allows to specify padding rules.
+
+@noindent
+If you don't want to let Libgcrypt handle the padding, you must pass an
+appropriate MPI using the this expression for @var{data}:
+
+@example 
+(data
+  (flags raw)
+  (value @var{mpi}))
+@end example
+
+@noindent
+This has the same semantics as the old style MPI only way.  @var{MPI} is
+the actual data, already padded appropriate for your protocol.  Most
+systems however use PKCS#1 padding and so you can use this S-expression
+for @var{data}:
+
+@example 
+(data
+  (flags pkcs1)
+  (value @var{block}))
+@end example
+
+@noindent
+Here, the "flags" list has the "pkcs1" flag which let the function know
+that it should provide PKCS#1 block type 2 padding.  The actual data to
+be encrypted is passed as a string of octets in @var{block}.  The
+function checks that this data actually can be used with the given key,
+does the padding and encrypts it.
+
+If the function could successfully perform the encryption, the return
+value will be 0 and a a new S-expression with the encrypted result is
+allocated and assign to the variable at the address of @var{r_ciph}.
+The caller is responsible to release this value using
+@code{gcry_sexp_release}.  In case of an error, an error code is
+returned and @var{r_ciph} will be set to @code{NULL}.
+
+@noindent
+The returned S-expression has this format when used with RSA:
+
+@example
+(enc-val
+  (rsa
+    (a @var{a-mpi})))
+@end example
+
+@noindent
+Where @var{a-mpi} is an MPI with the result of the RSA operation.  When
+using the ElGamal algorithm, the return value will have this format:
+
+@example
+(enc-val
+  (elg
+    (a @var{a-mpi})
+    (b @var{b-mpi})))
+@end example
+
+@noindent
+Where @var{a-mpi} and @var{b-mpi} are MPIs with the result of the
+ElGamal encryption operation.
+@end deftypefun
+@c end gcry_pk_encrypt
+
+@deftypefun int gcry_pk_decrypt (@w{GcrySexp *@var{r_plain},} @w{GcrySexp @var{data},} @w{GcrySexp @var{skey}})
+
+Obviously a private key must be provided for decryption.  It is expected
+as an appropriate S-expression (see above) in @var{skey}.  The data to
+be decrypted must match the format of the result as returned by
+@code{gcry_pk_encrypt}.  Note that this function does not know of any
+padding and the caller must do any un-padding on his own.
+
+@noindent
+The function returns 0 on success or an error code.  The variable at the
+address of @var{r_plain} will be set to NULL on error or receive the
+decrypted value on success.  The format of @var{r_plain} is currently a
+simple S-expression with just one MPI.
+@end deftypefun
+@c end gcry_pk_decrypt
+
+
+Another operation commonly performed using public keys are digital
+signature.  In some sense they are even more important than the
+encryption because digital signature are an important instrument for key
+management.  Libgcrypt support digital signatures using 2 functions,
+similar to the encryption functions:
+
+@deftypefun int gcry_pk_sign (@w{GcrySexp *@var{r_sig},} @w{GcrySexp @var{data},} @w{GcrySexp @var{skey}})
+
+This function creates a digital signature for @var{data} using the
+private key @var{skey} and place it into the variable at the address of
+@var{r_sig}.  @var{data} may either be the simple old style S-expression
+with just one MPI or a modern and more versatile S-expression which
+allows to let Libgcrypt handle padding:
+
+@example 
+(data
+  (flags pkcs1)
+  (hash @var{hash-algo} @var{block}))
+@end example
+
+@noindent
+This example requests to sign the data in @var{block} after applying
+PKCS#1 block type 1 style padding.  @var{hash-algo} is a string with the
+hash algorithm to be encoded into the signature, this may be any hash
+algorithm name as supported by Libgcrypt.  Most likely, this will be
+"sha1", "rmd160" or "md5".  It is obvious that the length of @var{block}
+must match the size of that message digests; the function checks that
+this and other constraints are valid.
+
+@noindent
+If PKCS#1 padding is not required (because the caller does already
+provide a padded value), either the old format or better the following
+format should be used:
+
+@example
+(data
+  (flags raw)
+  (value @var{mpi}))
+@end example
+
+@noindent
+Here, the data to be signed is directly given as an @var{MPI}.
+
+@noindent
+The signature is returned as a newly allocated S-expression in
+@var{r_sig} using this format for RSA:
+
+@example
+(sig-val
+  (rsa
+    (s @var{s-mpi})))
+@end example
+
+Where @var{s-mpi} is the result of the RSA sign operation.  For DSA the
+S-expression returned is:
+
+@example
+(sig-val
+  (dsa
+    (r @var{r-mpi})
+    (s @var{s-mpi})))
+@end example
+
+Where @var{r-mpi} and @var{s-mpi} are the result of the DSA sign
+operation.  For ElGamal signing (which is slow, yields large numbers
+and probably is not as secure as the other algorithms), the same format is
+used with "elg" replacing "dsa".
+@end deftypefun
+@c end gcry_pk_sign
+
+@noindent
+The operation most commonly used is definitely the verification of a
+signature.  Libgcrypt provides this function:
+
+@deftypefun int gcry_pk_verify (@w{GcrySexp @var{sig}}, @w{GcrySexp @var{data}}, @w{GcrySexp @var{pkey}})
+
+This is used to check whether the signature @var{sig} matches the
+@var{data}.  The public key @var{pkey} must be provided to perform this
+verification.  This function is similar in its parameters to
+@code{gcry_pk_sign} with the exceptions that the public key is used
+instead of the private key and that no signature is created but a
+signature, in a format as created by @code{gcry_pk_sign}, is passed to
+the function in @var{sig}.
+
+@noindent
+The result is 0 for success (i.e. the data matches the signature), or an
+error code where the most relevant code is @code{GCRYERR_BAD_SIGNATURE}
+to indicate that the signature does not match the provided data.
+
+@end deftypefun
+@c end gcry_pk_verify
+
+
+@noindent
+A couple of utility functions are available to retrieve the length of
+the key, map algorithm identifiers and perform sanity checks:
+
+@deftypefun {const char *} gcry_pk_algo_name (int @var{algo})
+
+Map the public key algorithm id @var{algo} to a string representation of
+the algorithm name.  For unknown algorithms this functions returns an
+empty string.
+@end deftypefun
+
+@deftypefun int gcry_pk_map_name (const char *@var{name})
+
+Map the algorithm @var{name} to a public key algorithm Id.  Returns 0 if
+the algorithm name is not known.
+@end deftypefun
+
+@deftypefun int gcry_pk_test_algo (int @var{algo})
+
+Return 0 if the public key algorithm @var{algo} is available for use.
+@end deftypefun
+
+
+@deftypefun {unsigned int} gcry_pk_get_nbits (GcrySexp @var{key})
+
+Return what is commonly referred as the key length for the given
+public or private in @var{key}.
+@end deftypefun
+
+@deftypefun {unsigned char *} gcry_pk_get_keygrip (@w{GcrySexp @var{key}}, @w{unsigned char *@var{array}})
+
+Return the so called "keygrip" which is the SHA-1 hash of the public key
+parameters expressed in a way depended on the algorithm.  @var{array}
+must either provide space for 20 bytes or @code{NULL;}. In the latter
+case a newly allocated array of that size is returned.  On success a
+pointer to the newly allocated space or to @var{array} is returned.
+@code{NULL} is returned to indicate an error which is most likely an unknown
+algorithm or one where a "keygrip" has not yet been defined.
+The function accepts public or secret keys in @var{key}.
+@end deftypefun
+
+@deftypefun int gcry_pk_testkey (GcrySexp @var{key})
+
+Return 0 if @var{key} (either private or public) is sane. 
+@end deftypefun
+
+
+@deftypefun int gcry_pk_algo_info (@w{int @var{algo}}, @w{int @var{what}}, @w{void *@var{buffer}}, @w{size_t *@var{nbytes}})
+
+Depending on the value of @var{what} return various information about
+the public key algorithm with the id @var{algo}.  Note, that the
+function returns @code{-1} on error and the actual error code must be
+retrieved using the function @code{gcry_errno}.  The currently defined
+values for @var{what} are:
+
+@table @code
+@item GCRYCTL_TEST_ALGO:
+Return 0 when the specified algorithm is available for use.
+@var{buffer} must be @code{NULL}, @var{nbytes} may be passed as
+@code{NULL} or point to a variable with the required usage of the
+algorithm. This may be 0 for "don't care" or the bit-wise OR of these
+flags:
+
+@table @code
+@item GCRY_PK_USAGE_SIGN 
+Algorithm is usable for signing.
+@item GCRY_PK_USAGE_ENCR 
+Algorithm is usable for encryption.
+@end table
+
+@item GCRYCTL_GET_ALGO_USAGE:
+Return the usage flags for the given algorithm.  An invalid algorithm
+return 0.  Disabled algorithms are ignored here because we
+want to know whether the algorithm is at all capable of a certain usage.
+
+@item GCRYCTL_GET_ALGO_NPKEY
+Return the number of elements the public key for algorithm @var{algo}
+consist of.  Return 0 for an unknown algorithm.
+
+@item GCRYCTL_GET_ALGO_NSKEY
+Return the number of elements the private key for algorithm @var{algo}
+consist of.  Note that this value is always larger than that of the
+public key.  Return 0 for an unknown algorithm.
+
+@item GCRYCTL_GET_ALGO_NSIGN
+Return the number of elements a signature created with the algorithm
+@var{algo} consists of.  Return 0 for an unknown algorithm or for an
+algorithm not capable of creating signatures.
+
+@item GCRYCTL_GET_ALGO_NENC
+Return the number of elements a encrypted message created with the algorithm
+@var{algo} consists of.  Return 0 for an unknown algorithm or for an
+algorithm not capable of encryption.
+@end table
+
+@noindent
+Please note that parameters not required should be passed as @code{NULL}.
+@end deftypefun
+@c end gcry_pk_algo_info
+
+
+@deftypefun int gcry_pk_ctl (@w{int @var{cmd}}, @w{void *@var{buffer}}, @w{size_t @var{buflen}})
+
+This is a general purpose function to perform certain control
+operations.  @var{cmd} controls what is to be done. The return value is
+0 for success or an error code.  Currently supported values for
+@var{cmd} are:
+
+@table @code
+@item GCRYCTL_DISABLE_ALGO
+Disable the algorithm given as an algorithm id in @var{buffer}.
+@var{buffer} must point to an @code{int} variable with the algorithm id
+and @var{buflen} must have the value @code{sizeof (int)}.
+
+@end table
+@end deftypefun
+@c end gcry_pk_ctl
+
+@noindent
+Libgcrypt also provides a function to generate public key pairs:
+
+@deftypefun int gcry_pk_genkey (@w{GcrySexp *@var{r_key}}, @w{GcrySexp @var{parms}})
+
+This function create a new public key pair using information given in
+the S-expression @var{parms} and stores the private and the public key
+in one new S-expression at the address given by @var{r_key}.  In case of
+an error, @var{r_key} is set to @code{NULL}.  The return code is 0 for
+success or an error code otherwise.
+
+@noindent
+Here is an example for @var{parms} for creating a 1024 bit RSA key:
+
+@example
+(genkey
+  (rsa
+    (nbits 1024)))
+@end example
+
+@noindent
+To create an ElGamal key, substitute "elg" for "rsa" and to create a DSA
+key use "elg".  Valid ranges for the key length depend on the
+algorithms; all commonly used key lengths are supported.  
+
+@noindent
+The key pair is returned in a format depending on the
+algorithm. Both, private and secret, keys are returned and my be accompanied
+by some miscellaneous information.  The format resembles closely the one
+of the public respectively the private key.  Frankly, they are put into
+one container, so that they can easily be extracted.
+
+@noindent
+As an example, here is what the ElGamal key generation returns:
+
+@example
+(key-data
+  (public-key
+    (elg
+      (p @var{p-mpi})
+      (g @var{g-mpi})
+      (y @var{y-mpi})))
+  (private-key
+    (elg
+      (p @var{p-mpi})
+      (g @var{g-mpi})
+      (y @var{y-mpi})
+      (x @var{x-mpi})))
+  (misc-key-info
+    (pm1-factors @var{n1 n2 ... nn})))
+@end example
+
+@noindent
+As you can see, some of the information is duplicated, but this provides
+an easy way to extract either the public or the private key.  Note that
+the order of the elements is not defined, e.g. the private key may be
+stored before the public key. @var{n1 n2 ... nn} is a list of prime
+numbers used to composite @var{p-mpi}; this is in general not a very
+useful information.
+@end deftypefun
+@c end gcry_pk_genkey
+
+
 
 @c **********************************************************
 @c *******************  Random  *****************************
@@ -934,19 +1383,580 @@ Fill @var{buffer} with @var{length} random bytes using a random quality
 as defined by @var{level}.
 @end deftypefun
 
-@deftypefun void *gcry_random_bytes (size_t @var{nbytes}, enum gcry_random_level @var{level})
+@deftypefun void * gcry_random_bytes (size_t @var{nbytes}, enum gcry_random_level @var{level})
 
 Allocate a memory block consisting of @var{nbytes} fresh random bytes
 using a random quality as defined by @var{level}.
 @end deftypefun
 
-@deftypefun void *gcry_random_bytes_secure (size_t @var{nbytes}, enum gcry_random_level @var{level})
+@deftypefun void * gcry_random_bytes_secure (size_t @var{nbytes}, enum gcry_random_level @var{level})
 
 Allocate a memory block consisting of @var{nbytes} fresh random bytes
 using a random quality as defined by @var{level}.  This function
 differs from @code{gcry_random_bytes} in that the returned buffer is
-allcated in a ``secure'' area of the memory.
+allocated in a ``secure'' area of the memory.
 @end deftypefun
+
+
+@c **********************************************************
+@c *******************  S-Expressions ***********************
+@c **********************************************************
+@node S-expressions
+@chapter S-expressions
+
+S-expressions are used by the public key functions to pass complex data
+structures around.  These LISP like objects are used by some
+cryptographic protocols (cf. RFC-2692) and Libgcrypt provides functions
+to parse and construct them.  For detailed information, see
+@cite{Ron Rivest, code and description of S-expressions,
+@uref{http://theory.lcs.mit.edu/~rivest/sexp.html}}.
+
+@deftp {Data type} GcrySexp
+The @code{GcrySexp} type describes an object with the Libgcrypt internal
+representation of an S-expression.
+@end deftp
+
+@noindent
+There are several functions to create an Libgcrypt S-expression object
+from its external representation or from a string template.  There is
+also a function to convert the internal representation back into one of
+the external formats:
+
+
+@deftypefun int gcry_sexp_new (@w{GcrySexp *@var{r_sexp}}, @w{const void *@var{buffer}}, @w{size_t @var{length}}, @w{int @var{autodetect}})
+
+This is the generic function to create an new S-expression object from
+its external representation in @var{buffer} of @var{length} bytes.  On
+success the result is stored at the address given by @var{r_sexp}. 
+With @var{autodetect} set to 0, the data in @var{buffer} is expected to
+be in canonized format, with @var{autodetect} set to 1 the parses any of
+the defined external formats.  If @var{buffer} does not hold a valid
+S-expression an error code is returned and @var{r_sexp} set to
+@code{NULL}.
+Note, that the caller is responsible for releasing the newly allocated
+S-expression using @code{gcry_sexp_release}.
+@end deftypefun
+
+@deftypefun int gcry_sexp_create (@w{GcrySexp *@var{r_sexp}}, @w{void *@var{buffer}}, @w{size_t @var{length}}, @w{int @var{autodetect}}, @w{void (*@var{freefnc})(void*)})
+
+This function is identical to @code{gcry_sexp_new} but has an extra
+argument @var{freefnc}, which, when not set to @code{NULL}, is expected
+to be a function to release the @var{buffer}; most likely the standard
+@code{free} function is used for this argument.  This has the effect of
+transferring the ownership of @var{buffer} to the created object in
+@var{r_sexp}.  The advantage of using this function is that Libgcrypt
+might decide to directly use the provided buffer and thus avoid extra
+copying.
+@end deftypefun
+
+@deftypefun int gcry_sexp_sscan (@w{GcrySexp *@var{r_sexp}}, @w{size_t *@var{erroff}}, @w{const char *@var{buffer}}, @w{size_t @var{length}})
+
+This is another variant of the above functions.  It behaves nearly
+identical but provides an @var{erroff} argument which will receive the
+offset into the buffer where the parsing stopped on error.
+@end deftypefun
+
+@deftypefun int gcry_sexp_build (@w{GcrySexp *@var{r_sexp}}, @w{size_t *@var{erroff}}, @w{const char *@var{format}, ...})
+
+This function creates an internal S-expression from the string template
+@var{format} and stores it at the address of @var{r_sexp}. If there is a
+parsing error, the function returns an appropriate error code and stores
+the offset into @var{format} where the parsing stopped in @var{erroff}.
+The function supports a couple of printf-like formatting characters and
+expects arguments for some of these escape sequences right after
+@var{format}.  The following format characters are defined:
+
+@table @samp
+@item %m
+The next argument is expected to be of type @code{GcryMPI} and a copy of
+its value is inserted into the resulting S-expression.
+@item %s
+The next argument is expected to be of type @code{char *} and that
+string is inserted into the resulting S-expression.
+@item %d
+The next argument is expected to be of type @code{int} and its 
+value ist inserted into the resulting S-expression.
+@end table
+
+@noindent
+No other format characters are defined and would return an error.  Note,
+that the format character @samp{%%} does not exists, because a percent
+sign is not a valid character in an S-expression.
+@end deftypefun
+
+@deftypefun void gcry_sexp_release (@w{GcrySexp @var{sexp}})
+
+Release the S-expression object @var{sexp}.
+@end deftypefun
+
+
+@noindent
+The next 2 functions are used to convert the internal representation
+back into a regular external S-expression format and to show the
+structure for debugging.
+
+@deftypefun size_t gcry_sexp_sprint (@w{GcrySexp @var{sexp}}, @w{int @var{mode}}, @w{char *@var{buffer}}, @w{size_t @var{maxlength}})
+
+Copies the S-expression object @var{sexp} into @var{buffer} using the
+format specified in @var{mode}.  @var{maxlength} must be set to the
+allocated length of @var{buffer}.  The function returns the actual
+length of valid bytes put into @var{buffer} or 0 if the provided buffer
+is too short.  Passing @code{NULL} for @var{buffer} returns the required
+length for @var{buffer}.  For convenience reasons an extra byte with
+value 0 is appended to the buffer.
+
+@noindent
+The following formats are supported:
+
+@table @code
+@item GCRYSEXP_FMT_DEFAULT
+Returns a convenient external S-expression representation.
+
+@item GCRYSEXP_FMT_CANON
+Return the S-expression in canonical format.
+
+@item GCRYSEXP_FMT_BASE64
+Not currently supported.
+
+@item GCRYSEXP_FMT_ADVANCED
+Returns the S-expression in advanced format.
+@end table
+@end deftypefun
+
+@deftypefun void gcry_sexp_dump (@w{GcrySexp @var{sexp}})
+
+Dumps @var{sexp} in a format suitable for debugging to Libgcrypt's
+logging stream.
+@end deftypefun
+
+@noindent
+Often canonical encoding is used in the external representation.  The
+following function can be used to check for valid encoding and to learn
+the length of the S-expression"
+
+@deftypefun size_t gcry_sexp_canon_len (@w{const unsigned char *@var{buffer}}, @w{size_t @var{length}}, @w{size_t *@var{erroff}}, @w{int *@var{errcode}})
+
+Scan the canonical encoded @var{buffer} with implicit length values and
+return the actual length this S-expression uses.  For a valid S-expression
+it should never return 0.  If @var{length} is not 0, the maximum
+length to scan is given; this can be used for syntax checks of
+data passed from outside.  @var{errcode} and @var{erroff} may both be
+passed as @code{NULL}.
+
+@noindent
+@strong{Warning:} For historical reasons the error codes returned in
+@var{errcode} are negative numbers and don't match the regular error
+codes.  To convert to regular error codes, use the simple formula
+@code{rc = 200 - errcode}.
+@end deftypefun
+
+
+@noindent
+There are a couple of functions to parse S-expressions and retrieve
+elements:
+
+@deftypefun GcrySexp gcry_sexp_find_token (@w{const GcrySexp @var{list}}, @w{const char *@var{token}}, @w{size_t @var{toklen}})
+
+Scan the S-expression for a sublist with a type (the car of the list)
+matching the string @var{token}.  If @var{toklen} is not 0, the token is
+assumed to be raw memory of this length.  The function returns a newly
+allocated S-expression consisting of the found sublist or @code{NULL}
+when not found.
+@end deftypefun
+
+
+@deftypefun int gcry_sexp_length (@w{const GcrySexp @var{list}})
+
+Return the length of the @var{list}.  For a valid S-expression this
+should be at least 1.
+@end deftypefun
+
+
+@deftypefun GcrySexp gcry_sexp_nth (@w{const GcrySexp @var{list}}, @w{int @var{number}})
+
+Create and return a new S-expression from the element with index @var{number} in
+@var{list}.  Note that the first element has the index 0.  If there is
+no such element, @code{NULL} is returned.
+@end deftypefun
+
+@deftypefun GcrySexp gcry_sexp_car (@w{const GcrySexp @var{list}})
+
+Create and return a new S-expression from the first element in
+@var{list}; this called the "type" and should always exist and be a
+string. @code{NULL} is returned in case of a problem.
+@end deftypefun
+
+@deftypefun GcrySexp gcry_sexp_cdr (@w{const GcrySexp @var{list}})
+
+Create and return a new list form all elements except for the first one.
+Note, that this function may return an invalid S-expression because it
+is not guaranteed, that the type exists and is a string.  However, for
+parsing a complex S-expression it might be useful for intermediate
+lists.  Returns @code{NULL} on error.
+@end deftypefun
+
+
+@deftypefun {const char *} gcry_sexp_nth_data (@w{const GcrySexp @var{list}}, @w{int @var{number}}, @w{size_t *@var{datalen}})
+
+This function is used to get data from a @var{list}.  A pointer to the
+actual data with index @var{number} is returned and the length of this
+data will be stored to @var{datalen}.  If there is no data at the given
+index or the index represents another list, @code{NULL} is returned.
+@strong{Note:} The returned pointer is valid as long as @var{list} is
+not modified or released.
+
+@noindent
+Here is an example on how to extract and print the surname (Meier) from
+the S-expression @samp{(Name Otto Meier (address Burgplatz 3))}:
+
+@example
+size_t len;
+const char *name;
+
+name = gcry_sexp_nth_data (list, 2, &len);
+printf ("my name is %.*s\n", (int)len, name);
+@end example
+@end deftypefun
+
+@deftypefun GcryMPI gcry_sexp_nth_mpi (@w{GcrySexp @var{list}}, @w{int @var{number}}, @w{int @var{mpifmt}})
+
+This function is used to get and convert data from a @var{list}. This
+data is assumed to be an MPI stored in the format described by
+@var{mpifmt} and returned as a standard Libgcrypt MPI.  The caller must
+release this returned value using @code{gcry_mpi_release}.  If there is
+no data at the given index, the index represents a list or the value
+can't be converted to an MPI, @code{NULL} is returned.
+@end deftypefun
+
+
+@c **********************************************************
+@c *******************  MPIs ******** ***********************
+@c **********************************************************
+@node MPI Functions
+@chapter MPI Functions
+
+Public key cryptography is based on mathematics with large numbers.  To
+implement the public key functions, a library for handling these large
+numbers is required.  Because of the general usefulness of such a
+library, its interface is exposed by Libgcrypt.  The implementation is
+based on an old release of GNU Multi-Precision Library (GMP) but in the
+meantime heavily modified and stripped down to what is required for
+cryptography. For a lot of CPUs, high performance assembler
+implementations of some very low level functions are used to gain much
+better performance than with the standard C implementation.
+
+@noindent
+In the context of Libgcrypt and in most other applications, these large
+numbers are called MPIs (multi-precision-integers).
+
+@deftp {Data type} GcryMPI
+The @code{GcryMPI} type represents an object to hold an MPI.
+@end deftp
+
+@noindent
+To work with MPIs, storage must be allocated and released for the
+numbers.  This can be done with one of these functions:
+
+
+@deftypefun GcryMPI gcry_mpi_new (@w{unsigned int @var{nbits}})
+
+Allocate a new MPI object, initialize it to 0 and initially allocate
+enough memory for a number of at least @var{nbits}.  This pre-allocation is
+only a small performance issue and not actually necessary because
+Libgcrypt automatically re-allocates the required memory.
+@end deftypefun
+
+@deftypefun GcryMPI gcry_mpi_snew (@w{unsigned int @var{nbits}})
+
+This is identical to @code{gcry_mpi_new} but allocates the MPI in the so
+called "secure memory" which in turn will take care that all derived
+values will also be stored in this "secure memory".  Use this for highly
+confidential data like private key parameters.
+@end deftypefun
+
+@deftypefun GcryMPI gcry_mpi_copy (@w{const GcryMPI @var{a}})
+
+Create a new MPI as the exact copy of @var{a}.
+@end deftypefun
+
+
+@deftypefun void gcry_mpi_release (@w{GcryMPI @var{a}})
+
+Release the MPI @var{a} and free all associated resources.  Passing
+@code{NULL} is allowed and ignored.  When a MPI stored in the "secure
+memory" is released, that memory gets wiped out immediately.
+@end deftypefun
+
+@noindent
+The simplest operations are used to assign a new value to an MPI:
+
+@deftypefun GcryMPI gcry_mpi_set (@w{GcryMPI @var{w}}, @w{const GcryMPI @var{u}})
+
+Assign the value of @var{u} to @var{w} and return @var{w}.  If
+@code{NULL} is passed for @var{w}, a new MPI is allocated, set to the
+value of @var{u} and returned.
+@end deftypefun
+
+@deftypefun GcryMPI gcry_mpi_set_ui (@w{GcryMPI @var{w}}, @w{unsigned long @var{u}})
+
+Assign the value of @var{u} to @var{w} and return @var{w}.  If
+@code{NULL} is passed for @var{w}, a new MPI is allocated, set to the
+value of @var{u} and returned.  This function takes an @code{unsigned
+int} as type for @var{u} and thus it is only possible to set @var{w} to
+small values (usually up to the word size of the CPU).
+@end deftypefun
+
+@deftypefun void gcry_mpi_swap (@w{GcryMPI @var{a}}, @w{GcryMPI @var{b}})
+
+Swap the values of @var{a} and @var{b}.
+@end deftypefun
+
+@noindent
+The following functions are used to convert between an external
+representation of an MPI and the internal one of Libgcrypt.
+
+@deftypefun int gcry_mpi_scan (@w{GcryMPI *@var{r_mpi}}, @w{enum gcry_mpi_format @var{format}}, @w{const char *@var{buffer}}, @w{size_t *@var{nbytes}})
+
+Convert the external representation of an integer stored in @var{buffer}
+with a length stored at the address of @var{nbytes} into a newly created
+MPI returned which will be stored at the address of @var{r_mpi}.  For
+certain formats the length argument is not required and may be passed as
+@code{NULL}.  After a successful operation the variable @var{nbytes}
+points to, receives the number of bytes actually scanned. @var{format}
+describes the format of the MPI as stored in @var{buffer}:
+
+@table @code
+@item GCRYMPI_FMT_STD
+2-complement stored without a length header.
+
+@item GCRYMPI_FMT_PGP
+As used by OpenPGP (only defined as unsigned). This is basically
+@code{GCRYMPI_FMT_STD} with a 2 byte big endian length header.
+
+@item GCRYMPI_FMT_SSH
+As used in the Secure Shell protocol.  This is @code{GCRYMPI_FMT_STD}
+with a 4 byte big endian header.
+
+@item GCRYMPI_FMT_HEX
+Stored as a C style string with each byte of the MPI encoded as 2 hex
+digits.
+
+@item GCRYMPI_FMT_USG
+Simple unsigned integer.
+@end table
+
+@noindent
+Note, that all of the above formats store the integer in big-endian
+format (MSB first).
+@end deftypefun
+
+
+@deftypefun int gcry_mpi_print (@w{enum gcry_mpi_format @var{format}}, @w{char *@var{buffer}}, @w{size_t *@var{nbytes}}, @w{const GcryMPI @var{a}})
+
+Convert the MPI @var{a} into an external representation described by
+@var{format} (see above) and store it in the provided @var{buffer} which
+which has a usable length of at least the number of bytes stored in the
+variable @var{nbytes} points to; this variable will receive the actual
+number of bytes stored after a successful operation.
+@end deftypefun
+
+@deftypefun int gcry_mpi_aprint (@w{enum gcry_mpi_format @var{format}}, @w{void **@var{buffer}}, @w{size_t *@var{nbytes}}, @w{const GcryMPI @var{a}})
+
+Convert the MPI @var{a} into an external representation described by
+@var{format} (see above) and store it in a newly allocated buffer which
+address will be stored in the variable @var{buffer} points to.  The
+number of bytes stored in this buffer will be stored in the variable
+@var{nbytes} points to, unless @var{nbytes} is @code{NULL}.
+@end deftypefun
+
+@noindent
+Basic arithmetic operations:
+
+@deftypefun void gcry_mpi_add (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{GcryMPI @var{v}})
+
+@math{@var{w} = @var{u} + @var{v}}.
+@end deftypefun
+
+
+@deftypefun void gcry_mpi_add_ui (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{unsigned long @var{v}})
+
+@math{@var{w} = @var{u} + @var{v}}.  Note, that @var{v} is an unsigned integer.
+@end deftypefun
+
+
+@deftypefun void gcry_mpi_addm (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{GcryMPI @var{v}}, @w{GcryMPI @var{m}})
+
+@math{var{w} = @var{u} + @var{v} \bmod @var{m}}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_sub (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{GcryMPI @var{v}})
+
+@math{@var{w} = @var{u} - @var{v}}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_sub_ui (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{unsigned long @var{v}})
+
+@math{@var{w} = @var{u} - @var{v}}.  @var{v} is an unsigned integer.
+@end deftypefun
+
+@deftypefun void gcry_mpi_subm (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{GcryMPI @var{v}}, @w{GcryMPI @var{m}})
+
+@math{@var{w} = @var{u} - @var{v} \bmod @var{m}}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_mul (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{GcryMPI @var{v}})
+
+@math{@var{w} = @var{u} * @var{v}}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_mul_ui (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{unsigned long @var{v}})
+
+@math{@var{w} = @var{u} * @var{v}}.  @var{v} is an unsigned integer.
+@end deftypefun
+
+@deftypefun void gcry_mpi_mulm (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{GcryMPI @var{v}}, @w{GcryMPI @var{m}})
+
+@math{@var{w} = @var{u} * @var{v} \bmod @var{m}}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_mul_2exp (@w{GcryMPI @var{w}}, @w{GcryMPI @var{u}}, @w{unsigned long @var{e}})
+
+@c FIXME: I am in need for a real TeX{info} guru:
+@c I don't know why TeX can grok @var{e} here.
+@math{@var{w} = @var{u} * 2^e}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_div (@w{GcryMPI @var{q}}, @w{GcryMPI @var{r}}, @w{GcryMPI @var{dividend}}, @w{GcryMPI @var{divisor}}, @w{int @var{round}})
+
+@math{@var{q} = @var{dividend} / @var{divisor}}, @math{@var{r} =
+@var{dividend} \bmod @var{divisor}}.  @var{q} and @var{r} may be passed
+as @code{NULL}.  @var{round} should be negative or 0.
+@end deftypefun
+
+@deftypefun void gcry_mpi_mod (@w{GcryMPI @var{r}}, @w{GcryMPI @var{dividend}}, @w{GcryMPI @var{divisor}})
+
+@math{@var{r} = @var{dividend} \bmod @var{divisor}}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_powm (@w{GcryMPI @var{w}}, @w{const GcryMPI @var{b}}, @w{const GcryMPI @var{e}}, @w{const GcryMPI @var{m}})
+
+@c I don't know why TeX can grok @var{e} here.
+@math{@var{w} = @var{b}^e \bmod @var{m}}.
+@end deftypefun
+
+@deftypefun int gcry_mpi_gcd (@w{GcryMPI @var{g}}, @w{GcryMPI @var{a}}, @w{GcryMPI @var{b}})
+
+Set @var{g} to the greatest common divisor of @var{a} and @var{b}.  
+Return true if the @var{g} is 1.
+@end deftypefun
+
+@deftypefun int gcry_mpi_invm (@w{GcryMPI @var{x}}, @w{GcryMPI @var{a}}, @w{GcryMPI @var{m}})
+
+Set @var{x} to the multiplicative inverse of @math{@var{a} \bmod @var{m}}.
+Return true if the inverse exists.
+@end deftypefun
+
+
+
+@noindent
+The next 2 functions are used to compare MPIs:
+
+
+@deftypefun int gcry_mpi_cmp (@w{const GcryMPI @var{u}}, @w{const GcryMPI @var{v}})
+
+Compare the big integer number @var{u} and @var{v} returning 0 for
+equality, a positive value for @var{u} > @var{v} and a negative for
+@var{u} < @var{v}.
+@end deftypefun
+
+@deftypefun int gcry_mpi_cmp_ui (@w{const GcryMPI @var{u}}, @w{unsigned long @var{v}})
+
+Compare the big integer number @var{u} with the unsigned integer @var{v}
+returning 0 for equality, a positive value for @var{u} > @var{v} and a
+negative for @var{u} < @var{v}.
+@end deftypefun
+
+
+@noindent
+There are a couple of functions to get information on arbitrary bits
+in an MPI and to set or clear them:
+
+
+@deftypefun {unsigned int} gcry_mpi_get_nbits (@w{GcryMPI @var{a}})
+
+Return the number of bits required to represent @var{a}.
+@end deftypefun
+
+@deftypefun int gcry_mpi_test_bit (@w{GcryMPI @var{a}}, @w{unsigned int @var{n}})
+
+Return true if bit number @var{n} (counting from 0) is set in @var{a}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_set_bit (@w{GcryMPI @var{a}}, @w{unsigned int @var{n}})
+
+Set bit number @var{n} in @var{a}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_clear_bit (@w{GcryMPI @var{a}}, @w{unsigned int @var{n}})
+
+Clear bit number @var{n} in @var{a}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_set_highbit (@w{GcryMPI @var{a}}, @w{unsigned int @var{n}})
+
+Set bit number @var{n} in @var{a} and clear all bits greater than @var{n}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_clear_highbit (@w{GcryMPI @var{a}}, @w{unsigned int @var{n}})
+
+Clear bit number @var{n} in @var{a} and all bits greater than @var{n}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_rshift (@w{GcryMPI @var{x}}, @w{GcryMPI @var{a}}, @w{unsigned int @var{n}})
+
+Shift the value of @var{a} by @var{n} bits to the right and store the
+result in @var{x}.
+@end deftypefun
+
+
+@noindent
+The remaining MPI functions take care of very special properties of the
+implementation:
+
+@deftypefun GcryMPI gcry_mpi_set_opaque (@w{GcryMPI @var{a}}, @w{void *@var{p}}, @w{unsigned int @var{nbits}})
+
+Store @var{nbits} of the value @var{p} points to in @var{a} and mark
+@var{a} as an opaque value (i.e. an value that can't be used for any
+math calculation and is only used to store an arbitrary bit pattern in
+@var{a}.
+@end deftypefun
+
+@deftypefun {void *} gcry_mpi_get_opaque (@w{GcryMPI @var{a}}, @w{unsigned int *@var{nbits}})
+
+Return a pointer to an opaque value stored in @var{a} and return its
+size in @var{nbits}.  Note, that the returned pointer is still owned by
+@var{a} and that the function should never be used for an non-opaque
+MPI.
+@end deftypefun
+
+@deftypefun void gcry_mpi_set_flag (@w{GcryMPI @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
+
+Set the @var{flag} for the MPI @var{a}.  Currently only the flag
+@code{GCRYMPI_FLAG_SECURE} is allowed to convert @var{a} into an MPI
+stored in "secure memory".
+@end deftypefun
+
+@deftypefun void gcry_mpi_clear_flag (@w{GcryMPI @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
+
+Clear @var{flag} for the big integer @var{a}.  Note, that this function is
+currently useless as no flags are allowed.
+@end deftypefun
+
+@deftypefun int gcry_mpi_get_flag (@w{GcryMPI @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
+
+Return true when the @var{flag} is set for @var{a}.
+@end deftypefun
+
 
 
 
@@ -1040,7 +2050,7 @@ Helper functions.
 @c   <refsect1><title>Description</title>
 @c   <para>
 @c   <indexterm><primary>gcry_set_fatalerror_handler</primary></indexterm>
-@c   At certain places the &libgcrypt; may need to call a fatal error fucntion
+@c   At certain places the &libgcrypt; may need to call a fatal error function
 @c   which does terminate the process.  To allow an application to do
 @c   some emergency cleanup, it may register a fatal error handler with
 @c   the library.  This handler is assumed to terminate the application;
@@ -1190,11 +2200,11 @@ Helper functions.
 @node Error Handling
 @chapter Error Handling
 
-Most functions in `Libgcrypt' are returning an error if they fail.  For
+Most functions in Libgcrypt are returning an error if they fail.  For
 this reason, the application should always catch the error condition and
 take appropriate measures, for example by releasing the resources and
 passing the error up to the caller, or by displaying a descriptive
-message to the user and cancelling the operation.
+message to the user and canceling the operation.
 
 Some error values do not indicate a system error or an error in the
 operation, but the result of an operation that failed properly.
@@ -1217,12 +2227,128 @@ This value indicates the end of a list, buffer or file and is defined to have
 the value @code{-1}.
 
 @item GCRYERR_SUCCESS
-This value indicates success.  The value of this error is @code{0}.
+This value indicates success.  The value of this error code is
+guaranteed to be @code{0}.
 
 @item GCRYERR_GENERAL
 This value means that something went wrong, but either there is not
 enough information about the problem to return a more useful error
-value, or there is no seperate error value for this type of problem.
+value, or there is no separate error value for this type of problem.
+
+@item GCRYERR_INV_PK_ALGO
+Invalid public key algorithm.
+
+@item GCRYERR_INV_MD_ALGO
+Invalid message digest algorithm.
+
+@item GCRYERR_BAD_PUBLIC_KEY 
+Bad public key.
+
+@item GCRYERR_BAD_SECRET_KEY
+Bad secret key.
+
+@item GCRYERR_BAD_SIGNATURE
+Bad signature.
+
+@item GCRYERR_INV_CIPHER_ALGO
+Invalid cipher algorithm.
+
+@item GCRYERR_BAD_MPI
+Problem with an MPI's value.
+
+@item GCRYERR_WRONG_PK_ALGO
+Wrong public key algorithm.
+
+@item GCRYERR_WEAK_KEY
+Weak encryption key detected.
+
+@item GCRYERR_INV_KEYLEN
+Invalid length of a key.
+
+@item GCRYERR_INV_ARG
+Invalid argument.
+
+@item GCRYERR_SELFTEST
+A self test failed.
+
+@item GCRYERR_INV_OP
+Invalid operation code or control command.
+
+@item GCRYERR_NO_MEM
+Out of core; not enough memory available to perform operation.
+
+@item GCRYERR_INTERNAL
+Internal error.  This is most likely a bug in Libgcrypt or due to an
+incomplete build or installation.
+
+@item GCRYERR_EOF = 64
+End-of-file condition. Note, that some functions usually return
+@code{-1} to indicate this; Libgcrypt error function maps this to this
+value.
+
+@item GCRYERR_INV_OBJ
+An object is not valid.
+
+@item GCRYERR_TOO_SHORT
+Provided buffer or object too short.
+
+@item GCRYERR_TOO_LARGE
+Object is too large.
+
+@item GCRYERR_NO_OBJ
+Missing item in an object.
+
+@item GCRYERR_NOT_IMPL
+Not implemented.
+
+@item GCRYERR_CONFLICT
+Conflicting use of function or values.
+
+@item GCRYERR_INV_CIPHER_MODE
+Invalid or unsupported cipher mode.
+
+@item GCRYERR_INV_FLAG
+Invalid flag.
+
+@item GCRYERR_SEXP_INV_LEN_SPEC
+The S-expression has an invalid length specification.
+
+@item GCRYERR_SEXP_STRING_TOO_LONG
+The encoded length of an S-expression is longer than the entire object.
+
+@item GCRYERR_SEXP_UNMATCHED_PAREN
+There are unmatched parenthesis in the S-expression.
+
+@item GCRYERR_SEXP_NOT_CANONICAL
+Not a canonical encoded S-expression.
+
+@item GCRYERR_SEXP_BAD_CHARACTER
+Bad character detected in an S-expression. 
+
+@item GCRYERR_SEXP_BAD_QUOTATION
+Bad quotation in an S-expression.  Might also indicate an invalid hex or
+octal value.
+
+@item GCRYERR_SEXP_ZERO_PREFIX
+The length field of an S-expression element is prefixed with a 0.
+
+@item GCRYERR_SEXP_NESTED_DH
+Nested display hints found in an S-expression.
+
+@item GCRYERR_SEXP_UNMATCHED_DH
+Unmatched display hint found in an S-expression.
+
+@item GCRYERR_SEXP_UNEXPECTED_PUNC
+Unexpected reserved punctuation found in an S-expression.
+
+@item GCRYERR_SEXP_BAD_HEX_CHAR
+A bad hexadecimal character was found in an S-expression
+
+@item GCRYERR_SEXP_ODD_HEX_NUMBERS
+An odd number of hexadecimal characters was found in an S-expression.
+
+@item GCRYERR_SEXP_BAD_OCT_CHAR
+A bad octal character was found in an S-expression.
 
 @end table
 
@@ -1231,6 +2357,7 @@ value, or there is no seperate error value for this type of problem.
 @section Error strings
 
 @deftypefun {const char *} gcry_strerror (@w{int @var{err}})
+
 The function @code{gcry_strerror} returns a pointer to a statically
 allocated string containing a description of the error with the error
 value @var{err}.  This string can be used to output a diagnostic
@@ -1263,4 +2390,6 @@ message to the user.
 @summarycontents
 @contents
 @bye
+
+@c  LocalWords:  int HD
 
