@@ -220,4 +220,8 @@ void _gcry_module_release (GcryModule *entry);
 /* Public function.  Add a reference to a module.  */
 void _gcry_module_use (GcryModule *module);
 
+gpg_err_code_t _gcry_cipher_init (void);
+gpg_err_code_t _gcry_md_init (void);
+gpg_err_code_t _gcry_pk_init (void);
+
 #endif /* G10LIB_H */
