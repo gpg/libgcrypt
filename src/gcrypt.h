@@ -24,6 +24,9 @@
 extern "C" {
 #endif
 
+#ifndef GCRYPT_NO_MPI_MACROS
+#define GCRYPT_NO_MPI_MACROS
+#endif
 
 #ifndef HAVE_BYTE_TYPEDEF
   #undef byte	    /* maybe there is a macro with this name */
@@ -49,6 +52,7 @@ enum {
     GCRYERR_TOO_SHORT = 8,  /* provided buffer too short */
     GCRYERR_TOO_LARGE = 9,  /* object is too large */
     GCRYERR_INV_OBJ = 10,   /* an object is not valid */
+    GCRYERR_WEAK_KEY = 11,  /* weak encryption key */
 };
 
 
@@ -64,6 +68,10 @@ enum gcry_ctl_cmds {
     GCRYCTL_GET_KEYLEN = 6,
     GCRYCTL_GET_BLKLEN = 7,
     GCRYCTL_TEST_ALGO = 8,
+    GCRYCTL_IS_SECURE = 9,
+    GCRYCTL_GET_ASNOID = 10,
+    GCRYCTL_ENABLE_ALGO = 11,
+    GCRYCTL_DISABLE_ALGO = 12,
 };
 
 int gcry_control( enum gcry_ctl_cmds, ... );
@@ -116,6 +124,7 @@ enum gcry_mpi_format {
     GCRYMPI_FMT_USG = 4,    /* like STD but this is an unsigned one */
 };
 
+
 struct gcry_mpi;
 typedef struct gcry_mpi *GCRY_MPI;
 
@@ -156,8 +165,8 @@ void gcry_mpi_powm( GCRY_MPI w,
  *******  symmetric cipher functions  *******
  ********************************************/
 
-struct gcry_cipher_context;
-typedef struct gcry_cipher_context *GCRY_CIPHER_HD;
+struct gcry_cipher_handle;
+typedef struct gcry_cipher_handle *GCRY_CIPHER_HD;
 
 enum gcry_cipher_algos {
     GCRY_CIPHER_NONE	    = 0,
@@ -182,17 +191,13 @@ enum gcry_cipher_flags {
 };
 
 
-#if 0 /* not yet done */
-int gcry_string_to_cipher_algo( const char *string );
-int gcry_check_cipher_algo( int algo );
-#endif
-
-GCRY_CIPHER_HD r gcry_cipher_open( int algo, int mode, unsigned flags);
+GCRY_CIPHER_HD gcry_cipher_open( int algo, int mode, unsigned flags);
 void gcry_cipher_close( GCRY_CIPHER_HD h );
-int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen);
+int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, void *buffer, size_t buflen);
 int gcry_cipher_info( GCRY_CIPHER_HD h, int what, void *buffer, size_t *nbytes);
 int gcry_cipher_algo_info( int algo, int what, void *buffer, size_t *nbytes);
 const char *gcry_cipher_algo_name( int algo );
+int gcry_cipher_map_name( const char* name );
 
 int gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 				      const byte *in, size_t inlen );
@@ -209,11 +214,11 @@ int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 								   NULL, 0 )
 
 #define gcry_cipher_get_algo_keylen(a) \
-	    gcry_cipher_algo_info( (a), GCRYCTL_GET_KEYLEN, NULL, NULL );
+	    gcry_cipher_algo_info( (a), GCRYCTL_GET_KEYLEN, NULL, NULL )
 #define gcry_cipher_get_algo_blklen(a) \
-	    gcry_cipher_algo_info( (a), GCRYCTL_GET_BLKLEN, NULL, NULL );
+	    gcry_cipher_algo_info( (a), GCRYCTL_GET_BLKLEN, NULL, NULL )
 #define gcry_cipher_test_algo(a) \
-	    gcry_cipher_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL );
+	    gcry_cipher_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
 
 /*********************************************
@@ -225,13 +230,17 @@ int gcry_pk_decrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
 int gcry_pk_sign(    GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
 int gcry_pk_verify(  GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP pkey );
 
+int gcry_pk_algo_info( int algo, int what, void *buffer, size_t *nbytes);
+const char *gcry_pk_algo_name( int algo );
+int gcry_pk_map_name( const char* name );
+
+
+#define gcry_pk_test_algo(a) \
+	    gcry_pk_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
 /*********************************************
  *******  cryptograhic hash functions  *******
  *********************************************/
-
-struct gcry_md_context;
-typedef struct gcry_md_context *GCRY_MD_HD; /* same as the old MD_HANDLE */
 
 enum gcry_md_algos {
     GCRY_MD_NONE    = 0,
@@ -246,17 +255,47 @@ enum gcry_md_flags {
 };
 
 
+struct gcry_md_context;
+struct gcry_md_handle {
+    struct gcry_md_context *ctx;
+    int  bufpos;
+    int  bufsize;
+    byte buf[1];
+};
+typedef struct gcry_md_handle *GCRY_MD_HD;
+
+
 GCRY_MD_HD gcry_md_open( int algo, unsigned flags );
 void gcry_md_close( GCRY_MD_HD hd );
 int gcry_md_enable( GCRY_MD_HD hd, int algo );
 GCRY_MD_HD gcry_md_copy( GCRY_MD_HD hd );
+void gcry_md_reset( GCRY_MD_HD hd );
 int gcry_md_ctl( GCRY_MD_HD hd, int cmd, byte *buffer, size_t buflen);
 void gcry_md_write( GCRY_MD_HD hd, const byte *buffer, size_t length);
 byte *gcry_md_read( GCRY_MD_HD hd, int algo );
 int gcry_md_get_algo( GCRY_MD_HD hd );
-int gcry_md_get_dlen( int algo );
+unsigned int gcry_md_get_algo_dlen( int algo );
 /*??int gcry_md_get( GCRY_MD_HD hd, int algo, byte *buffer, int buflen );*/
+int gcry_md_info( GCRY_MD_HD h, int what, void *buffer, size_t *nbytes);
+int gcry_md_algo_info( int algo, int what, void *buffer, size_t *nbytes);
+const char *gcry_md_algo_name( int algo );
+int gcry_md_map_name( const char* name );
 
+#define gcry_md_putc(h,c)  \
+	    do {					\
+		if( (h)->bufpos == (h)->bufsize )	\
+		    gcry_md_write( (h), NULL, 0 );	\
+		(h)->buf[(h)->bufpos++] = (c) & 0xff;	\
+	    } while(0)
+
+#define gcry_md_final(a) \
+	    gcry_md_ctl( (a), GCRYCTL_FINALIZE, NULL, 0 )
+
+#define gcry_md_is_secure(a) \
+	    gcry_md_info( (a), GCRYCTL_IS_SECURE, NULL, NULL )
+
+#define gcry_md_test_algo(a) \
+	    gcry_md_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
 /*****************************************
  *******  miscellaneous functions  *******
@@ -342,10 +381,55 @@ void g10_log_mpidump( const char *text, MPI a );
 
 typedef struct gcry_mpi *MPI;
 
-
 #endif /* GCRYPT_NO_MPI_MACROS */
 
 #ifdef __cplusplus
 }
 #endif
+
+
+/*****************************************
+ ******** Stuff to be changed ************
+ *****************************************/
+
+/*-- cipher/pubkey.c --*/
+#define PUBKEY_MAX_NPKEY  4
+#define PUBKEY_MAX_NSKEY  6
+#define PUBKEY_MAX_NSIG   2
+#define PUBKEY_MAX_NENC   2
+
+#ifndef DID_MPI_TYPEDEF
+ typedef struct gcry_mpi * MPI;
+ #define DID_MPI_TYPEDEF
+#endif
+
+int string_to_pubkey_algo( const char *string );
+const char * pubkey_algo_to_string( int algo );
+void disable_pubkey_algo( int algo );
+int check_pubkey_algo( int algo );
+int check_pubkey_algo2( int algo, unsigned use );
+int pubkey_get_npkey( int algo );
+int pubkey_get_nskey( int algo );
+int pubkey_get_nsig( int algo );
+int pubkey_get_nenc( int algo );
+unsigned pubkey_nbits( int algo, MPI *pkey );
+int pubkey_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors );
+int pubkey_check_secret_key( int algo, MPI *skey );
+int pubkey_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey );
+int pubkey_decrypt( int algo, MPI *result, MPI *data, MPI *skey );
+int pubkey_sign( int algo, MPI *resarr, MPI hash, MPI *skey );
+int pubkey_verify( int algo, MPI hash, MPI *data, MPI *pkey,
+		      int (*cmp)(void *, MPI), void *opaque );
+
+
+
+
+/*-- primegen.c --*/
+MPI generate_secret_prime( unsigned nbits );
+MPI generate_public_prime( unsigned nbits );
+MPI generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
+					   MPI g, MPI **factors );
+
+
+
 #endif /* _GCRYPT_H */

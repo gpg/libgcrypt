@@ -1,5 +1,14 @@
-Wed Jul  7 13:08:40 CEST 1999  Werner Koch  <wk@isil.d.shuttle.de>
+Tue Oct 26 14:10:21 CEST 1999  Werner Koch  <wk@gnupg.de>
 
+	* pkapi.c: Removed.
+
+	* symapi.c: Removed.
+
+	* g10lib.h:  Moved to ../include.
+
+	* mdapi.c: Removed.
+
+Wed Jul  7 13:08:40 CEST 1999  Werner Koch  <wk@isil.d.shuttle.de>
 
 	* sexp.c: New.
 
