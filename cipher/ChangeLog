@@ -1,3 +1,8 @@
+2004-08-09  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (gcry_pk_sign): Fixed memory leak; fix provided by
+	Modestas Vainius.
+
 2004-07-16  Werner Koch  <wk@gnupg.org>
 
 	* rijndael.c (do_encrypt): Fix alignment problem.  Bugs found by
