@@ -17,18 +17,136 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
+# 1.5 leads to a combinatorial explosion due to all the conditionals
+# I was not able to build it with 64Megs - 1.6 fixes this.
+AUTOMAKE_OPTIONS = 1.6
+
 INCLUDES =  -I$(top_srcdir)/src
 CFLAGS = @CFLAGS@ @MPI_OPT_FLAGS@
 ASFLAGS = @MPI_SFLAGS@
+
+# We don't have .S sources listed, so automake does not autocreate these
+CCASCOMPILE = $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
+LTCCASCOMPILE = $(LIBTOOL) --mode=compile $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
+
 
 EXTRA_DIST = config.links
 DISTCLEANFILES = mpih-add1.S mpih-mul1.S mpih-mul2.S mpih-mul3.S  \
 		 mpih-lshift.S mpih-rshift.S mpih-sub1.S asm-syntax.h sysdep.h
 # Note: we only use .S files so we should delete all left over .s
-# CLEANFILES = _*.s
-CLEANFILES = *.s
+CLEANFILES = _*.s
 
-#OMIT_DEPENDENCIES = types.h gcrypt.h
+# Beware: The following list is not a comment but grepped by
+#         config.links to get the list of symlinked modules
+#         Optional modules are marked with a 0 in the second column.
+#BEGIN_ASM_LIST
+# mpih-add1    C
+# mpih-sub1    C
+# mpih-mul1    C
+# mpih-mul2    C
+# mpih-mul3    C
+# mpih-lshift  C
+# mpih-rshift  C
+# udiv         O
+# udiv-qrnnd   O
+#END_ASM_LIST
+
+# Note: This function has not yet been implemented.  There is only a dummy in
+# generic/
+# udiv-w-sdiv  O
+
+# And we need to have conditionals for all modules because
+# we don't know whether they are .c or .S.  Very ugly; I know.
+# Remember to define them all in configure.ac
+# if MPI_MOD_ASM_MPIH_ADD1
+# mpih_add1 = mpih-add1.S
+# else
+# if MPI_MOD_C_MPIH_ADD1
+# mpih_add1 = mpih-add1.c
+# else
+# mpih_add1 = 
+# endif
+# endif
+# 
+# if MPI_MOD_ASM_MPIH_SUB1
+# mpih_sub1 = mpih-sub1.S
+# else
+# if MPI_MOD_C_MPIH_SUB1
+# mpih_sub1 = mpih-sub1.c
+# else
+# mpih_sub1 = 
+# endif
+# endif
+# 
+# if MPI_MOD_ASM_MPIH_MUL1
+# mpih_mul1 = mpih-mul1.S
+# else
+# if MPI_MOD_C_MPIH_MUL1
+# mpih_mul1 = mpih-mul1.c
+# else
+# mpih_mul1 = 
+# endif
+# endif
+# 
+# if MPI_MOD_ASM_MPIH_MUL2
+# mpih_mul2 = mpih-mul2.S
+# else
+# if MPI_MOD_C_MPIH_MUL2
+# mpih_mul2 = mpih-mul2.c
+# else
+# mpih_mul2 = 
+# endif
+# endif
+# 
+# if MPI_MOD_ASM_MPIH_MUL3
+# mpih_mul3 = mpih-mul3.S
+# else
+# if MPI_MOD_C_MPIH_MUL3
+# mpih_mul3 = mpih-mul3.c
+# else
+# mpih_mul3 = 
+# endif
+# endif
+# 
+# if MPI_MOD_ASM_MPIH_LSHIFT
+# mpih_lshift = mpih-lshift.S
+# else
+# if MPI_MOD_C_MPIH_LSHIFT
+# mpih_lshift = mpih-lshift.c
+# else
+# mpih_lshift = 
+# endif
+# endif
+# 
+# if MPI_MOD_ASM_MPIH_RSHIFT
+# mpih_rshift = mpih-rshift.S
+# else
+# if MPI_MOD_C_MPIH_RSHIFT
+# mpih_rshift = mpih-rshift.c
+# else
+# mpih_rshift = 
+# endif
+# endif
+# 
+# if MPI_MOD_ASM_UDIV
+# udiv = udiv.S
+# else
+# if MPI_MOD_C_UDIV
+# udiv = udiv.c
+# else
+# udiv = 
+# endif
+# endif
+# 
+# if MPI_MOD_ASM_UDIV_QRNND
+# udiv_qrnnd = udiv-qrnnd.S
+# else
+# if MPI_MOD_C_UDIV_QRNND
+# udiv_qrnnd = udiv-qrnnd.c
+# else
+# udiv_qrnnd = 
+# endif
+# endif
 
 noinst_LTLIBRARIES = libmpi.la
 
@@ -50,46 +168,18 @@ libmpi_la_SOURCES = longlong.h	   \
 	      mpicoder.c     \
 	      mpih-div.c     \
 	      mpih-mul.c     \
-	      mpiutil.c      
+	      mpiutil.c 
 
-EXTRA_libmpi_la_SOURCES = \
-         mpih-mul1.S    \
-         mpih-mul2.S    \
-	 mpih-mul3.S    \
-	 mpih-add1.S    \
-	 mpih-sub1.S    \
-	 mpih-lshift.S  \
-	 mpih-rshift.S  \
-         udiv-qrnnd.S   \
-         udiv-w-sdiv.c  \
-         udiv.S  
+libmpi_la_LIBADD = @MPI_MOD_LIST_LO@
+libmpi_la_DEPENDENCIES = @MPI_MOD_LIST_LO@
 
+# we need our own rules here to preprocess the .S files
+.S.o:
+	 $(CPP) $(INCLUDES) $(DEFS) `test -f '$<' || echo '$(srcdir)/'`$< | grep -v '^#' > _$*.s
+	 $(CCASCOMPILE) -c _$*.s
+	 mv -f _$*.o $@
 
-# Note this objects are actually links, the sourcefiles are
-# distributed by special code in dist-hook
-common_asm_objects = \
-         mpih-mul1.lo    \
-         mpih-mul2.lo    \
-	 mpih-mul3.lo    \
-	 mpih-add1.lo    \
-	 mpih-sub1.lo    \
-	 mpih-lshift.lo  \
-	 mpih-rshift.lo
-
-libmpi_la_DEPENDENCIES = $(common_asm_objects) @MPI_EXTRA_ASM_OBJS@
-libmpi_la_LIBADD = $(common_asm_objects) @MPI_EXTRA_ASM_OBJS@
-
-# cancel the default rules used by libtool which do not really
-# work and add one to cpp .S files
-#.S.o:
-#
-#.S.lo:
-
-.S.s:
-	 $(CPP) $(INCLUDES) $(DEFS) $< | grep -v '^#' >$*.s
-
-# Hmmm, we should use this, so that OSes which do not distinguish
-# filename case still work.  We have to see how libtool can handle this
-#   $(CPP) $(INCLUDES) $(DEFS) $< | grep -v '^#' > _$*.s
-#   $(COMPILE) -c _$*.s
-#   mv -f _$*.o $*.o
+.S.lo:
+	 $(CPP) $(INCLUDES) $(DEFS) `test -f '$<' || echo '$(srcdir)/'`$< | grep -v '^#' > _$*.s
+	 $(LTCCASCOMPILE) -c _$*.s
+	 mv -f _$*.lo $@

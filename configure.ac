@@ -1,26 +1,26 @@
-dnl Configure.ac script for Libgcrypt
-dnl Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
-dnl
-dnl This file is part of Libgcrypt.
-dnl
-dnl Libgcrypt is free software; you can redistribute it and/or modify
-dnl it under the terms of the GNU Lesser general Public License as
-dnl published by the Free Software Foundation; either version 2.1 of
-dnl the License, or (at your option) any later version.
-dnl
-dnl Libgcrypt is distributed in the hope that it will be useful,
-dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
-dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-dnl GNU Lesser General Public License for more details.
-dnl
-dnl You should have received a copy of the GNU Lesser General Public
-dnl License along with this program; if not, write to the Free Software
-dnl Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
-dnl
-dnl (Process this file with autoconf to produce a configure script.)
+# Configure.ac script for Libgcrypt
+# Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+#
+# This file is part of Libgcrypt.
+#
+# Libgcrypt is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser general Public License as
+# published by the Free Software Foundation; either version 2.1 of
+# the License, or (at your option) any later version.
+#
+# Libgcrypt is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+#
+# (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)dnl
 
-AC_PREREQ(2.52)
+AC_PREREQ(2.53)
 # Version numbers (Remember to change them just before a release)
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
@@ -676,7 +676,7 @@ AC_MSG_CHECKING(for mpi assembler functions)
 if test -f $srcdir/mpi/config.links ; then
     . $srcdir/mpi/config.links
     AC_CONFIG_LINKS("$mpi_ln_list")
-    ac_cv_mpi_extra_asm_modules="$mpi_extra_modules"
+    ac_cv_mpi_mod_list="$mpi_mod_list"
     ac_cv_mpi_sflags="$mpi_sflags"
     ac_cv_mpi_config_done="yes"
     AC_MSG_RESULT(done)
@@ -684,17 +684,43 @@ else
     AC_MSG_RESULT(failed)
     AC_MSG_ERROR([mpi/config.links missing!])
 fi
-MPI_EXTRA_ASM_OBJS=""
-show_extraasm=""
-if test "$ac_cv_mpi_extra_asm_modules" != ""; then
-for i in $ac_cv_mpi_extra_asm_modules; do
-    show_extraasm="$show_extraasm $i"
-    MPI_EXTRA_ASM_OBJS="$MPI_EXTRA_ASM_OBJS $i.lo"
-done
+MPI_MOD_LIST_LO=""
+MPI_MOD_LIST_O=""
+if test "$ac_cv_mpi_mod_list" != ""; then
+  for i in $ac_cv_mpi_mod_list; do
+      MPI_MOD_LIST_LO="$MPI_MOD_LIST_LO $i.lo"
+      MPI_MOD_LIST_O="$MPI_MOD_LIST_O $i.o"
+  done
 fi
-AC_SUBST(MPI_EXTRA_ASM_OBJS)
+AC_SUBST(MPI_MOD_LIST_LO)
+AC_SUBST(MPI_MOD_LIST_O)
 MPI_SFLAGS="$ac_cv_mpi_sflags"
 AC_SUBST(MPI_SFLAGS)
+
+# [not used anymore]
+## Set the condtionals for the assembler modules
+## Fixme: We should put this into acinclude and write a script
+##        which can be run to update this list and the mpi/Makefile
+#AM_CONDITIONAL(MPI_MOD_ASM_MPIH_ADD1, test "$mpi_mod_asm_mpih_add1" = yes )
+#AM_CONDITIONAL(MPI_MOD_ASM_MPIH_SUB1, test "$mpi_mod_asm_mpih_sub1" = yes )
+#AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL1, test "$mpi_mod_asm_mpih_mul1" = yes )
+#AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL2, test "$mpi_mod_asm_mpih_mul2" = yes )
+#AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL3, test "$mpi_mod_asm_mpih_mul3" = yes )
+#AM_CONDITIONAL(MPI_MOD_ASM_MPIH_LSHIFT, test "$mpi_mod_asm_mpih_lshift" = yes )
+#AM_CONDITIONAL(MPI_MOD_ASM_MPIH_RSHIFT, test "$mpi_mod_asm_mpih_rshift" = yes )
+#AM_CONDITIONAL(MPI_MOD_ASM_UDIV, test "$mpi_mod_asm_udiv" = yes )
+#AM_CONDITIONAL(MPI_MOD_ASM_UDIV_QRNND, test "$mpi_mod_asm_udiv_qrnnd" = yes )
+## And the corresponding conditionals for C
+#AM_CONDITIONAL(MPI_MOD_C_MPIH_ADD1, test "$mpi_mod_c_mpih_add1" = yes )
+#AM_CONDITIONAL(MPI_MOD_C_MPIH_SUB1, test "$mpi_mod_c_mpih_sub1" = yes )
+#AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL1, test "$mpi_mod_c_mpih_mul1" = yes )
+#AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL2, test "$mpi_mod_c_mpih_mul2" = yes )
+#AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL3, test "$mpi_mod_c_mpih_mul3" = yes )
+#AM_CONDITIONAL(MPI_MOD_C_MPIH_LSHIFT, test "$mpi_mod_c_mpih_lshift" = yes )
+#AM_CONDITIONAL(MPI_MOD_C_MPIH_RSHIFT, test "$mpi_mod_c_mpih_rshift" = yes )
+#AM_CONDITIONAL(MPI_MOD_C_UDIV, test "$mpi_mod_c_udiv" = yes )
+#AM_CONDITIONAL(MPI_MOD_C_UDIV_QRNND, test "$mpi_mod_c_udiv_qrnnd" = yes )
+#
 
 
 # Allow users to append something to the version string without
@@ -792,5 +818,3 @@ if test -n "$warn"; then
   echo "included.  These parts are licensed under the GPL and thus the"
   echo "use of this library has to comply with the conditions of the GPL"
 fi
-
-

@@ -1,3 +1,8 @@
+2002-05-15  Werner Koch  <wk@gnupg.org>
+
+	* config.links: Chnage the way the mpi modules are determined.
+	* Makefile.am: Revamped to better handle modules
+
 2002-05-14  Werner Koch  <wk@gnupg.org>
 
 	Changed license of all files to the LGPL.

@@ -1,3 +1,7 @@
+2002-05-15  Werner Koch  <wk@gnupg.org>
+
+	* configure.ac: Adjusted for new MPI module stuff.
+
 2002-05-14  Werner Koch  <wk@gnupg.org>
 
 	Changed license to the LGPL.

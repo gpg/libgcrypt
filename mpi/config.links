@@ -22,10 +22,18 @@
 # Note: this is called from the above directory.
 
 
-mpi_extra_modules=
 mpi_sflags=
+mpi_extra_modules=
 
 test -d ./mpi || mkdir ./mpi
+
+# We grep the list of modules from the Makefile so that
+# we don't need to maintain them here.
+mpi_standard_modules=`$AWK '/^#BEGIN_ASM_LIST/,/^#END_ASM_LIST/ {
+                 if( $3 != "O" ) print $2 }'  $srcdir/mpi/Makefile.am`
+mpi_optional_modules=`$AWK '/^#BEGIN_ASM_LIST/,/^#END_ASM_LIST/ {
+                 if( $3 == "O" ) print $2 }' $srcdir/mpi/Makefile.am`
+
 
 echo '/* created by config.links - do not edit */' >./mpi/asm-syntax.h
 
@@ -269,25 +277,38 @@ EOF
 fi
 
 
-# fixme: grep these modules from Makefile.in
-mpi_ln_modules="${mpi_extra_modules} mpih-add1 mpih-mul1 mpih-mul2 mpih-mul3 \
-		 mpih-lshift mpih-rshift mpih-sub1"
-
-mpi_ln_objects=
-mpi_ln_list=
+# Figure the required modules out
+mpi_required_modules=$mpi_standard_modules
+if test $mpi_extra_modules != ""; then
+  for fn in $mpi_extra_modules; do
+      for i in $mpi_optional_modules; do 
+          if test "$fn" = "$i" ; then
+             mpi_required_modules="$mpi_required_modules $fn"
+          fi
+      done
+  done
+fi
 
 # try to get file to link from the assembler subdirectory and
 # if this fails get it from the generic subdirectory.
+mpi_ln_list=
+mpi_mod_list=
 path="$path generic"
-for fn in $mpi_ln_modules ; do
-    mpi_ln_objects="$mpi_ln_objects $fn.o"
+for fn in $mpi_required_modules ; do
+    fnu=`echo $fn | sed 's/-/_/g'`
+    eval mpi_mod_c_${fnu}=no
+    eval mpi_mod_asm_${fnu}=no
     for dir in $path ; do
 	rm -f $srcdir/mpi/$fn.[Sc]
 	if test -f $srcdir/mpi/$dir/$fn.S ; then
             mpi_ln_list="$mpi_ln_list mpi/$fn.S:mpi/$dir/$fn.S"
+            eval mpi_mod_asm_${fnu}=yes
+            mpi_mod_list="$mpi_mod_list $fn"
 	    break;
 	elif test -f $srcdir/mpi/$dir/$fn.c ; then
             mpi_ln_list="$mpi_ln_list mpi/$fn.c:mpi/$dir/$fn.c"
+            eval mpi_mod_c_${fnu}=yes
+            mpi_mod_list="$mpi_mod_list $fn"
 	    break;
 	fi
     done
@@ -302,3 +323,4 @@ for dir in $path ; do
         break;
     fi
 done
+
