@@ -1,3 +1,7 @@
+2004-04-22  Marcus Brinkmann  <marcus@g10code.de>
+
+	* libgcrypt.m4: Quote first argument to AC_DEFUN.
+
 2004-04-15  Werner Koch  <wk@gnupg.org>
 
 	* secmem.c (_gcry_secmem_malloc_internal): Removed old extra info
