@@ -1,3 +1,7 @@
+2005-02-25  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (gcry_pk_get_keygrip): Allow for shadowed-private-key.
+
 2005-02-13  Moritz Schulte  <moritz@g10code.com>
 
 	* serpent.c: Updated from 1.2 branch:

@@ -2086,6 +2086,8 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   if (! list)
     list = gcry_sexp_find_token (key, "protected-private-key", 0);
   if (! list)
+    list = gcry_sexp_find_token (key, "shadowed-private-key", 0);
+  if (! list)
     return NULL; /* No public- or private-key object. */
 
   l2 = gcry_sexp_cadr (list);
