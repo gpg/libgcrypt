@@ -14,6 +14,10 @@ Noteworthy changes in version 1.1.13 (unreleased)
  * CBC-MAC for block ciphers is now supported, by using a
    GCRY_CIPHER_CBC_MAC cipher flag.
 
+ * RSA blinding is now supported and is used automatically for RSA
+   decryption.  It can be explicitely disabled by using the `no-blinding'
+   symbol in the `flags' s-exp.
+
  * Interface changes relative to the 1.1.12 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 gcry_pk_decrypt         ENHANCED: Allows flag to return complete S-expression.
