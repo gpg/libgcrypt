@@ -730,7 +730,7 @@ gcry_ac_open (gcry_ac_handle_t *handle,
 
   /* Get name.  */
   algorithm_name = _gcry_pk_aliased_algo_name (algorithm);
-  if (! *algorithm_name)
+  if (! algorithm_name)
     err = GPG_ERR_PUBKEY_ALGO;
 
   if (! err)  /* Acquire reference to the pubkey module.  */
