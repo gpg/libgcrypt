@@ -1,3 +1,7 @@
+2003-07-14  Moritz Schulte  <moritz@g10code.com>
+
+	* mpicoder.c: Used gcry_err* wrappers for libgpg-error symbols.
+
 2003-06-16  Moritz Schulte  <moritz@g10code.com>
 
 	* mpi-add.c: Replace last occurences of old type names with newer

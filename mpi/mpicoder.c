@@ -334,7 +334,7 @@ _gcry_mpi_set_buffer( gcry_mpi_t a, const byte *buffer, unsigned nbytes, int sig
 
 
 
-gpg_error_t
+gcry_error_t
 gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 		const char *buffer, size_t *nbytes )
 {
@@ -359,7 +359,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	    if( a->sign ) {
 		/* FIXME: we have to convert from 2compl to magnitude format */
 		mpi_free(a);
-		return gpg_error (GPG_ERR_INTERNAL);
+		return gcry_error (GPG_ERR_INTERNAL);
 	    }
 	    else
 		_gcry_mpi_set_buffer( a, s, len, 0 );
@@ -370,7 +370,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	}
 	else
 	    mpi_free(a);
-	return gpg_error (GPG_ERR_NO_ERROR);
+	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else if( format == GCRYMPI_FMT_USG ) {
 	a = mpi_alloc( (len+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB );
@@ -382,7 +382,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	}
 	else
 	    mpi_free(a);
-	return gpg_error (GPG_ERR_NO_ERROR);
+	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else if( format == GCRYMPI_FMT_PGP ) {
 	a = mpi_read_from_buffer( (char*)buffer, &len, 0 );
@@ -394,20 +394,20 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	}
 	else
 	    mpi_free(a);
-	return gpg_error (a ? GPG_ERR_NO_ERROR : GPG_ERR_INV_OBJ);
+	return gcry_error (a ? GPG_ERR_NO_ERROR : GPG_ERR_INV_OBJ);
     }
     else if( format == GCRYMPI_FMT_SSH ) {
 	const byte *s = buffer;
 	size_t n;
 
 	if( len && len < 4 )
-	    return gpg_error (GPG_ERR_TOO_SHORT);
+	    return gcry_error (GPG_ERR_TOO_SHORT);
 	n = s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3];
 	s += 4; 
         if (len)
           len -= 4;
 	if( len && n > len )
-	    return gpg_error (GPG_ERR_TOO_LARGE); /* or should it be too_short */
+	    return gcry_error (GPG_ERR_TOO_LARGE); /* or should it be too_short */
 
 	a = mpi_alloc( (n+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB );
 	if( n ) { /* not zero */
@@ -415,7 +415,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	    if( a->sign ) {
 		/* FIXME: we have to convert from 2compl to magnitude format */
 		mpi_free(a);
-		return gpg_error (GPG_ERR_INTERNAL);
+		return gcry_error (GPG_ERR_INTERNAL);
 	    }
 	    else
 		_gcry_mpi_set_buffer( a, s, n, 0 );
@@ -428,24 +428,24 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	}
 	else
 	    mpi_free(a);
-	return gpg_error (GPG_ERR_NO_ERROR);
+	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else if( format == GCRYMPI_FMT_HEX ) {
 	if( nbytes )
-	    return gpg_error (GPG_ERR_INV_ARG); /* can only handle C strings for now */
+	    return gcry_error (GPG_ERR_INV_ARG); /* can only handle C strings for now */
 	a = mpi_alloc(0);
 	if( mpi_fromstr( a, buffer ) )
-	    return gpg_error (GPG_ERR_INV_OBJ);
+	    return gcry_error (GPG_ERR_INV_OBJ);
 	if( ret_mpi ) {
 	    mpi_normalize ( a );
 	    *ret_mpi = a;
 	}
 	else
 	    mpi_free(a);
-	return gpg_error (GPG_ERR_NO_ERROR);
+	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else
-	return gpg_error (GPG_ERR_INV_ARG);
+	return gcry_error (GPG_ERR_INV_ARG);
 }
 
 /****************
@@ -453,7 +453,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
  * Returns the number of bytes actually written in nbytes.
  * Buffer maybe NULL to query the required length of the buffer
  */
-gpg_error_t
+gcry_error_t
 gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 		 struct gcry_mpi *a )
 {
@@ -461,7 +461,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
     size_t len;
 
     if( !nbytes )
-	return gpg_error (GPG_ERR_INV_ARG);
+	return gcry_error (GPG_ERR_INV_ARG);
 
     len = *nbytes;
     *nbytes = 0;
@@ -471,7 +471,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	unsigned int n;
 
 	if( a->sign )
-	    return gpg_error (GPG_ERR_INTERNAL); /* can't handle it yet */
+	    return gcry_error (GPG_ERR_INTERNAL); /* can't handle it yet */
 
 	tmp = _gcry_mpi_get_buffer( a, &n, NULL );
 	if( n && (*tmp & 0x80) ) {
@@ -481,7 +481,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 
 	if (buffer && n > len) {
 	    gcry_free(tmp);
-	    return gpg_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
+	    return gcry_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
 	}
 	if( buffer ) {
 	    byte *s = buffer;
@@ -492,7 +492,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	}
 	gcry_free(tmp);
 	*nbytes = n;
-	return gpg_error (GPG_ERR_NO_ERROR);
+	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else if( format == GCRYMPI_FMT_USG ) {
 	unsigned int n = (nbits + 7)/8;
@@ -501,7 +501,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	/* FIXME: for performance reasons we should put this into
 	 * mpi_aprint becuase we can then use the buffer directly */
 	if (buffer && n > len)
-	    return gpg_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
+	    return gcry_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
 	if( buffer ) {
 	    char *tmp;
 	    tmp = _gcry_mpi_get_buffer( a, &n, NULL );
@@ -509,16 +509,16 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	    gcry_free(tmp);
 	}
 	*nbytes = n;
-	return gpg_error (GPG_ERR_NO_ERROR);
+	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else if( format == GCRYMPI_FMT_PGP ) {
 	unsigned int n = (nbits + 7)/8;
 
 	if( a->sign )
-	    return gpg_error (GPG_ERR_INV_ARG); /* pgp format can only handle unsigned */
+	    return gcry_error (GPG_ERR_INV_ARG); /* pgp format can only handle unsigned */
 
 	if (buffer && n+2 > len)
-	    return gpg_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
+	    return gcry_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
 	if( buffer ) {
 	    char *tmp;
 	    byte *s = buffer;
@@ -530,7 +530,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	    gcry_free(tmp);
 	}
 	*nbytes = n+2;
-	return gpg_error (GPG_ERR_NO_ERROR);
+	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else if( format == GCRYMPI_FMT_SSH ) {
 	char *tmp;
@@ -538,7 +538,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	unsigned int n;
 
 	if( a->sign )
-	    return gpg_error (GPG_ERR_INTERNAL); /* can't handle it yet */
+	    return gcry_error (GPG_ERR_INTERNAL); /* can't handle it yet */
 
 	tmp = _gcry_mpi_get_buffer( a, &n, NULL );
 	if( n && (*tmp & 0x80) ) {
@@ -548,7 +548,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 
 	if (buffer && n+4 > len) {
 	    gcry_free(tmp);
-	    return gpg_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
+	    return gcry_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
 	}
 	if( buffer ) {
 	    byte *s = buffer;
@@ -563,7 +563,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	}
 	gcry_free(tmp);
 	*nbytes = 4+n;
-	return gpg_error (GPG_ERR_NO_ERROR);
+	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else if( format == GCRYMPI_FMT_HEX ) {
 	byte *tmp;
@@ -577,7 +577,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 
 	if(buffer && 2*n + extra + !!a->sign + 1 > len) {
 	    gcry_free(tmp);
-	    return gpg_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
+	    return gcry_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
 	}
 	if( buffer ) {
 	    byte *s = buffer;
@@ -601,10 +601,10 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	    *nbytes = 2*n + extra + !!a->sign + 1;
 	}
 	gcry_free(tmp);
-	return gpg_error (GPG_ERR_NO_ERROR);
+	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else
-	return gpg_error (GPG_ERR_INV_ARG);
+	return gcry_error (GPG_ERR_INV_ARG);
 }
 
 /****************
@@ -612,12 +612,12 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
  * The caller has to supply the address of a pointer. nbytes may be
  * NULL.
  */
-gpg_error_t
+gcry_error_t
 gcry_mpi_aprint( enum gcry_mpi_format format, void **buffer, size_t *nbytes,
 		 struct gcry_mpi *a )
 {
     size_t n;
-    gpg_error_t rc;
+    gcry_error_t rc;
 
     *buffer = NULL;
     rc = gcry_mpi_print( format, NULL, &n, a );
