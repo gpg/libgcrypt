@@ -100,6 +100,7 @@ static int default_ciphers_registered;
 struct gcry_cipher_handle
 {
   int magic;
+  size_t actual_handle_size;     /* Allocated size of this handle. */
   gcry_cipher_spec_t *cipher;
   gcry_module_t module;
   int mode;
@@ -609,9 +610,9 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 
   if (! err)
     {
-      size_t size = sizeof (*h)
-	+ 2 * cipher->contextsize
-	- sizeof (PROPERLY_ALIGNED_TYPE);
+      size_t size = (sizeof (*h)
+                     + 2 * cipher->contextsize
+                     - sizeof (PROPERLY_ALIGNED_TYPE));
 
       if (secure)
 	h = gcry_calloc_secure (1, size);
@@ -623,6 +624,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
       else
 	{
 	  h->magic = secure ? CTX_MAGIC_SECURE : CTX_MAGIC_NORMAL;
+          h->actual_handle_size = size;
 	  h->cipher = cipher;
 	  h->module = module;
 	  h->mode = mode;
@@ -668,6 +670,14 @@ gcry_cipher_close (gcry_cipher_hd_t h)
   ath_mutex_lock (&ciphers_registered_lock);
   _gcry_module_release (h->module);
   ath_mutex_unlock (&ciphers_registered_lock);
+
+  /* We always want to wipe out the memory even when the context has
+     been allocated in secure memory.  The user might have disabled
+     secure memory or is using his own implementation which does not
+     do the wiping.  To accomplish this we need to keep track of the
+     actual size of this structure because we have now way to known
+     how large the allocated are was when using a standard malloc. */
+  wipememory (h, h->actual_handle_size);
 
   gcry_free (h);
 }

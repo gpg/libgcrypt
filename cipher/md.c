@@ -77,6 +77,32 @@ static ath_mutex_t digests_registered_lock = ATH_MUTEX_INITIALIZER;
    registered.  */
 static int default_digests_registered;
 
+typedef struct gcry_md_list
+{
+  gcry_md_spec_t *digest;
+  gcry_module_t module;
+  struct gcry_md_list *next;
+  size_t actual_struct_size;     /* Allocated size of this structure. */
+  PROPERLY_ALIGNED_TYPE context;
+} GcryDigestEntry;
+
+/* this structure is put right after the gcry_md_hd_t buffer, so that
+ * only one memory block is needed. */
+struct gcry_md_context
+{
+  int  magic;
+  size_t actual_handle_size;     /* Allocated size of this handle. */
+  int  secure;
+  FILE  *debug;
+  int finalized;
+  GcryDigestEntry *list;
+  byte *macpads;
+};
+
+
+#define CTX_MAGIC_NORMAL 0x11071961
+#define CTX_MAGIC_SECURE 0x16917011
+
 /* Convenient macro for registering the default digests.  */
 #define REGISTER_DEFAULT_DIGESTS                   \
   do                                               \
@@ -90,6 +116,26 @@ static int default_digests_registered;
       ath_mutex_unlock (&digests_registered_lock); \
     }                                              \
   while (0)
+
+
+static const char * digest_algo_to_string( int algo );
+static gcry_err_code_t check_digest_algo (int algo);
+static gcry_err_code_t md_open (gcry_md_hd_t *h, int algo,
+                                int secure, int hmac);
+static gcry_err_code_t md_enable (gcry_md_hd_t hd, int algo);
+static gcry_err_code_t md_copy (gcry_md_hd_t a, gcry_md_hd_t *b);
+static void md_close (gcry_md_hd_t a);
+static void md_write (gcry_md_hd_t a, byte *inbuf, size_t inlen);
+static void md_final(gcry_md_hd_t a);
+static byte *md_read( gcry_md_hd_t a, int algo );
+static int md_get_algo( gcry_md_hd_t a );
+static int md_digest_length( int algo );
+static const byte *md_asn_oid( int algo, size_t *asnlen, size_t *mdlen );
+static void md_start_debug( gcry_md_hd_t a, char *suffix );
+static void md_stop_debug( gcry_md_hd_t a );
+
+
+
 
 /* Internal function.  Register all the ciphers included in
    CIPHER_TABLE.  Returns zero on success or an error code.  */
@@ -197,43 +243,6 @@ gcry_md_unregister (gcry_module_t module)
   ath_mutex_unlock (&digests_registered_lock);
 }
 
-typedef struct gcry_md_list
-{
-  gcry_md_spec_t *digest;
-  gcry_module_t module;
-  struct gcry_md_list *next;
-  PROPERLY_ALIGNED_TYPE context;
-} GcryDigestEntry;
-
-/* this structure is put right after the gcry_md_hd_t buffer, so that
- * only one memory block is needed. */
-struct gcry_md_context
-{
-  int  magic;
-  int  secure;
-  FILE  *debug;
-  int finalized;
-  GcryDigestEntry *list;
-  byte *macpads;
-};
-
-#define CTX_MAGIC_NORMAL 0x11071961
-#define CTX_MAGIC_SECURE 0x16917011
-
-static const char * digest_algo_to_string( int algo );
-static gcry_err_code_t check_digest_algo (int algo);
-static gcry_err_code_t md_open (gcry_md_hd_t *h, int algo, int secure, int hmac);
-static gcry_err_code_t md_enable (gcry_md_hd_t hd, int algo);
-static gcry_err_code_t md_copy (gcry_md_hd_t a, gcry_md_hd_t *b);
-static void md_close (gcry_md_hd_t a);
-static void md_write (gcry_md_hd_t a, byte *inbuf, size_t inlen);
-static void md_final(gcry_md_hd_t a);
-static byte *md_read( gcry_md_hd_t a, int algo );
-static int md_get_algo( gcry_md_hd_t a );
-static int md_digest_length( int algo );
-static const byte *md_asn_oid( int algo, size_t *asnlen, size_t *mdlen );
-static void md_start_debug( gcry_md_hd_t a, char *suffix );
-static void md_stop_debug( gcry_md_hd_t a );
 
 static int 
 search_oid (const char *oid, int *algorithm, gcry_md_oid_spec_t *oid_spec)
@@ -387,7 +396,7 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
    *	  !			      ^
    *	  !---------------------------!
    *
-   * We have to make sture that private is well aligned.
+   * We have to make sure that private is well aligned.
    */
   n = sizeof (struct gcry_md_handle) + bufsize;
   n = ((n + sizeof (PROPERLY_ALIGNED_TYPE) - 1)
@@ -412,6 +421,7 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
       /* Initialize the private data. */
       memset (hd->ctx, 0, sizeof *hd->ctx);
       ctx->magic = secure ? CTX_MAGIC_SECURE : CTX_MAGIC_NORMAL;
+      ctx->actual_handle_size = n + sizeof (struct gcry_md_context);
       ctx->secure = secure;
 
       if (hmac)
@@ -514,6 +524,7 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 	  entry->digest = digest;
 	  entry->module = module;
 	  entry->next = h->list;
+          entry->actual_struct_size = size;
 	  h->list = entry;
 
 	  /* And init this instance. */
@@ -665,9 +676,17 @@ md_close (gcry_md_hd_t a)
       ath_mutex_lock (&digests_registered_lock);
       _gcry_module_release (r->module);
       ath_mutex_unlock (&digests_registered_lock);
+      wipememory (r, r->actual_struct_size);
       gcry_free (r);
     }
-  gcry_free(a->ctx->macpads);
+
+  if (a->ctx->macpads)
+    {
+      wipememory (a->ctx->macpads, 128);
+      gcry_free(a->ctx->macpads);
+    }
+
+  wipememory (a, a->ctx->actual_handle_size);
   gcry_free(a);
 }
 

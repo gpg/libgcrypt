@@ -28,3 +28,8 @@ What's left to do                                 -*- outline -*-
 
 * HMAC won't work with sha-512 due to the different block size.  OTOH,
   I can imagine no cryptographic reason to use it.
+
+* cipher/pubkey.c and pubkey implementaions.
+  Don't rely on the secure memory based wiping fucntion but add an
+  extra wiping.
+  

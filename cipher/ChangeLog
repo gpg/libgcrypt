@@ -1,5 +1,17 @@
 2003-12-19  Werner Koch  <wk@gnupg.org>
 
+	* md.c: Moved a couple of functions down below the data structure
+	definitions.
+	(struct gcry_md_context): New field ACTUAL_HANDLE_SIZE.
+	(md_open): Set it here.
+	(strcut gcry_md_list): New field ACTUAL_STRUCT_SIZE.
+	(md_enable): Set it here.
+	(md_close): Wipe the context memory.
+	secure memory.
+	* cipher.c (struct gcry_cipher_handle): New field ACTUAL_HANDLE_SIZE.
+	(gcry_cipher_open): Set it here.
+	(gcry_cipher_close): Use it to always wipe out the handle data.
+
 	* ac.c (gcry_ac_open): Make sure HANDLE gets initialized even when
 	the function is not successful.
 	(gcry_ac_close): Allow a NULL handle.
