@@ -1,5 +1,8 @@
 2003-10-28  Moritz Schulte  <mo@g10code.com>
 
+	* Makefile.am (TESTS): Added: encoding.
+	* encoding.c: New file.
+
 	* prime.c (check_primes): Be non-verbose by default.
 	* ac.c (check_run): Removed unused variable.
 
