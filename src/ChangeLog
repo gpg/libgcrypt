@@ -1,3 +1,14 @@
+2003-09-02  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.h (GCRY_PRIME_FLAG_SPECIAL_FACTOR): New symbol.
+
+2003-09-01  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.h (gcry_random_level_t): New type.
+	(gcry_prime_check_func_t): Likewise.
+	(GCRY_PRIME_FLAG_SECRET): New symbol.
+	(gcry_prime_generate, gcry_prime_check): Declare functions.
+
 2003-08-28  Werner Koch  <wk@gnupg.org>
 
 	* Makefile.am (libgcrypt_pth_la_LDFLAGS): Removed PTH_CFLAGS cruft.

@@ -1163,13 +1163,13 @@ gcry_error_t gcry_md_list (int *list, int *list_length);
    to use WEAK for random number which don't need to be
    cryptographically strong, STRONG for session keys and VERY_STRONG
    for key material. */
-enum gcry_random_level
+typedef enum gcry_random_level
   {
     GCRY_WEAK_RANDOM = 0,
     GCRY_STRONG_RANDOM = 1,
     GCRY_VERY_STRONG_RANDOM = 2
-  };
-
+  }
+gcry_random_level_t;
 
 /* Fill BUFFER with LENGTH bytes of random, using random numbers of
    quality LEVEL. */
@@ -1198,6 +1198,38 @@ void *gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
    generator with quality LEVEL. */
 void gcry_mpi_randomize (gcry_mpi_t w,
                          unsigned int nbits, enum gcry_random_level level);
+
+/* Prime interface.  */
+
+typedef int (*gcry_prime_check_func_t) (void *arg, int reserved,
+					gcry_mpi_t candidate);
+
+/* Flags for gcry_prime_generate():  */
+
+/* Allocate prime numbers and factors in secure memory.  */
+#define GCRY_PRIME_FLAG_SECRET         (1 << 0)
+
+/* Make sure that at least one prime factor is of size
+   `FACTOR_BITS'.  */
+#define GCRY_PRIME_FLAG_SPECIAL_FACTOR (1 << 1)
+
+/* Generate a new prime number of PRIME_BITS bits and store it in
+   PRIME.  If FACTOR_BITS is non-zero, one of the prime factors of
+   (prime - 1) / 2 must be FACTOR_BITS bits long.  If FACTORS is
+   non-zero, allocate a new, NULL-terminated array holding the prime
+   factors and store it in FACTORS.  FLAGS might be used to influence
+   the prime number generation process.  */
+gcry_error_t gcry_prime_generate (gcry_mpi_t *prime,
+				  unsigned int prime_bits,
+				  unsigned int factor_bits,
+				  gcry_mpi_t **factors,
+				  gcry_prime_check_func_t cb_func,
+				  void *cb_arg,
+				  gcry_random_level_t random_level,
+				  unsigned int flags);
+
+/* Check wether the number X is prime.  */
+gcry_error_t gcry_prime_check (gcry_mpi_t x, unsigned int flags);
 
 
 
