@@ -1,3 +1,10 @@
+2005-02-22  Werner Koch  <wk@g10code.com>
+
+	* global.c (_gcry_malloc): Make sure ERRNO is set if we return
+	NULL.  Remove unneeded initialization of M to allow the compiler
+	to catch errors.
+	(gcry_realloc): Make sure ERRNO is set if we return NULL>
+
 2005-02-13  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.h: Declare new functions: gcry_ac_data_encrypt_scheme,
@@ -1393,7 +1400,7 @@ Tue Dec  8 13:15:16 CET 1998  Werner Koch  <wk@isil.d.shuttle.de>
 
 	
  Copyright (C) 1998,1999,2000,2001,2002,2003
-	       2004 Free Software Foundation, Inc.
+	       2004, 2005 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

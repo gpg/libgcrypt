@@ -1,6 +1,6 @@
 /* global.c  -	global control functions
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
- *               2004  Free Software Foundation, Inc.
+ *               2004, 2005  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -386,8 +386,8 @@ gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
 gcry_err_code_t
 _gcry_malloc (size_t n, unsigned int flags, void **mem)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  void *m = NULL;
+  gcry_err_code_t err = 0;
+  void *m;
 
   if ((flags & GCRY_ALLOC_FLAG_SECURE) && !no_secure_memory)
     {
@@ -404,8 +404,14 @@ _gcry_malloc (size_t n, unsigned int flags, void **mem)
 	m = _gcry_private_malloc (n);
     }
 
-  if (! m)
-    err = gpg_err_code_from_errno (ENOMEM);
+  if (!m)
+    {
+      /* Make sure that ERRNO has been set in case a user supplied
+         memory handler didn't it correctly. */
+      if (!errno)
+        errno = ENOMEM;
+      err = gpg_err_code_from_errno (errno);
+    }
   else
     *mem = m;
 
@@ -457,9 +463,15 @@ _gcry_check_heap( const void *a )
 void *
 gcry_realloc (void *a, size_t n)
 {
+  void *p;
+
   if (realloc_func)
-    return realloc_func (a, n);
-  return _gcry_private_realloc (a, n);
+    p = realloc_func (a, n);
+  else
+    p =  _gcry_private_realloc (a, n);
+  if (!p && !errno)
+    errno = ENOMEM;
+  return p;
 }
 
 void

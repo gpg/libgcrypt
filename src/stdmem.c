@@ -108,8 +108,8 @@ _gcry_private_malloc_secure( size_t n)
 
 
 /****************
- * realloc and clear the old space
- * Return NULL if there is not enoug memory.
+ * Realloc and clear the old space
+ * Return NULL if there is not enough memory.
  */
 void *
 _gcry_private_realloc( void *a, size_t n )
