@@ -1066,7 +1066,7 @@ do_des_decrypt( void *context, byte *outbuf, const byte *inbuf )
   _gcry_burn_stack (32);
 }
 
-gcry_cipher_spec_t cipher_spec_des =
+gcry_cipher_spec_t _gcry_cipher_spec_des =
   {
     "DES", NULL, NULL, 8, 64, sizeof (struct _des_ctx),
     do_des_setkey, do_des_encrypt, do_des_decrypt
@@ -1080,7 +1080,7 @@ static gcry_cipher_oid_spec_t oids_tripledes[] =
     { NULL }
   };
 
-gcry_cipher_spec_t cipher_spec_tripledes =
+gcry_cipher_spec_t _gcry_cipher_spec_tripledes =
   {
     "3DES", NULL, oids_tripledes, 8, 192, sizeof (struct _tripledes_ctx),
     do_tripledes_setkey, do_tripledes_encrypt, do_tripledes_decrypt

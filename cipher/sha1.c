@@ -332,7 +332,7 @@ static gcry_md_oid_spec_t oid_spec_sha1[] =
     { NULL },
   };
 
-gcry_md_spec_t digest_spec_sha1 =
+gcry_md_spec_t _gcry_digest_spec_sha1 =
   {
     "SHA1", asn, DIM (asn), oid_spec_sha1, 20,
     sha1_init, sha1_write, sha1_final, sha1_read,

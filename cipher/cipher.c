@@ -43,31 +43,31 @@ static struct cipher_table_entry
 } cipher_table[] =
   {
 #if USE_BLOWFISH
-    { &cipher_spec_blowfish,   GCRY_CIPHER_BLOWFISH },
+    { &_gcry_cipher_spec_blowfish,   GCRY_CIPHER_BLOWFISH },
 #endif
 #if USE_DES
-    { &cipher_spec_des,        GCRY_CIPHER_DES },
-    { &cipher_spec_tripledes,  GCRY_CIPHER_3DES },
+    { &_gcry_cipher_spec_des,        GCRY_CIPHER_DES },
+    { &_gcry_cipher_spec_tripledes,  GCRY_CIPHER_3DES },
 #endif
 #if USE_ARCFOUR
-    { &cipher_spec_arcfour,    GCRY_CIPHER_ARCFOUR },
+    { &_gcry_cipher_spec_arcfour,    GCRY_CIPHER_ARCFOUR },
 #endif
 #if USE_CAST5
-    { &cipher_spec_cast5,      GCRY_CIPHER_CAST5 },
+    { &_gcry_cipher_spec_cast5,      GCRY_CIPHER_CAST5 },
 #endif
 #if USE_AES
-    { &cipher_spec_aes,        GCRY_CIPHER_AES },
-    { &cipher_spec_aes192,     GCRY_CIPHER_AES192 },
-    { &cipher_spec_aes256,     GCRY_CIPHER_AES256 },
+    { &_gcry_cipher_spec_aes,        GCRY_CIPHER_AES },
+    { &_gcry_cipher_spec_aes192,     GCRY_CIPHER_AES192 },
+    { &_gcry_cipher_spec_aes256,     GCRY_CIPHER_AES256 },
 #endif
 #if USE_TWOFISH
-    { &cipher_spec_twofish,    GCRY_CIPHER_TWOFISH },
-    { &cipher_spec_twofish128, GCRY_CIPHER_TWOFISH128 },
+    { &_gcry_cipher_spec_twofish,    GCRY_CIPHER_TWOFISH },
+    { &_gcry_cipher_spec_twofish128, GCRY_CIPHER_TWOFISH128 },
 #endif
 #if USE_SERPENT
-    { &cipher_spec_serpent128, GCRY_CIPHER_SERPENT128 },
-    { &cipher_spec_serpent192, GCRY_CIPHER_SERPENT192 },
-    { &cipher_spec_serpent256, GCRY_CIPHER_SERPENT256 },
+    { &_gcry_cipher_spec_serpent128, GCRY_CIPHER_SERPENT128 },
+    { &_gcry_cipher_spec_serpent192, GCRY_CIPHER_SERPENT192 },
+    { &_gcry_cipher_spec_serpent256, GCRY_CIPHER_SERPENT256 },
 #endif
     { NULL                    },
   };
@@ -772,7 +772,7 @@ do_cbc_decrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf, unsigned nb
 	 * to save the original ciphertext block.  We use lastiv
 	 * for this here because it is not used otherwise */
 	memcpy(c->lastiv, inbuf, blocksize );
-	(*c->cipher->decrypt)( &c->context.c, outbuf, (char*)/*argggg*/inbuf );
+	(*c->cipher->decrypt)( &c->context.c, outbuf, inbuf );
 	for(ivp=c->iv,i=0; i < blocksize; i++ )
 	    outbuf[i] ^= *ivp++;
 	memcpy(c->iv, c->lastiv, blocksize );
@@ -791,7 +791,7 @@ do_cbc_decrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf, unsigned nb
 	memcpy(c->lastiv, c->iv, blocksize ); /* save Cn-2 */
 	memcpy(c->iv, inbuf + blocksize, restbytes ); /* save Cn */
 
-	(*c->cipher->decrypt)( &c->context.c, outbuf, (char*)/*argggg*/inbuf );
+	(*c->cipher->decrypt)( &c->context.c, outbuf, inbuf );
 	for(ivp=c->iv,i=0; i < restbytes; i++ )
 	    outbuf[i] ^= *ivp++;
 
@@ -939,7 +939,7 @@ do_ctr_encrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf, unsigned nb
 static void
 do_ctr_decrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf, unsigned nbytes )
 {
-  return do_ctr_encrypt (c, outbuf, inbuf, nbytes);
+  do_ctr_encrypt (c, outbuf, inbuf, nbytes);
 }
 
 

@@ -765,7 +765,7 @@ gcry_error_t gcry_pk_sign (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t sk
 /* Check the signature SIGVAL on DATA using the public key PKEY. */
 gcry_error_t gcry_pk_verify (gcry_sexp_t sigval, gcry_sexp_t data, gcry_sexp_t pkey);
 
-/* Check that KEY (either private or public) is sane. */
+/* Check that private KEY is sane. */
 gcry_error_t gcry_pk_testkey (gcry_sexp_t key);
 
 /* Generate a new key pair according to the parameters given in

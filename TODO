@@ -1,6 +1,6 @@
-* Run w32-dll/build-def when we introduce a new fucntion.
+* Remove  _gcry_generate_elg_prime from .vers for 1.2
 
-* add more tests.  Even basic is very minimal.
+* Add more tests.  Even basic is very minimal.
 
 * udiv-qrnbd.o should get build as *.lo [HPUX]
 

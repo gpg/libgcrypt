@@ -337,7 +337,7 @@ static gcry_md_oid_spec_t oid_spec_md5[] =
     { NULL },
   };
 
-gcry_md_spec_t digest_spec_md5 =
+gcry_md_spec_t _gcry_digest_spec_md5 =
   {
     "MD5", asn, DIM (asn), oid_spec_md5, 16,
     md5_init, md5_write, md5_final, md5_read,

@@ -100,6 +100,7 @@
 
 #include "types.h"  /* for byte and u32 typedefs */
 #include "g10lib.h"
+#include "rand-internal.h"
 
 #ifndef EAGAIN
 #define EAGAIN	EWOULDBLOCK
@@ -320,7 +321,7 @@ typedef struct {
 } GATHER_MSG;
 
 #ifndef HAVE_WAITPID
-pid_t
+static pid_t
 waitpid(pid_t pid, int *statptr, int options)
 {
 #ifdef HAVE_WAIT4
@@ -358,7 +359,6 @@ waitpid(pid_t pid, int *statptr, int options)
 static FILE *
 my_popen(struct RI *entry)
 {
-
     int pipedes[2];
     FILE *stream;
 
@@ -768,8 +768,9 @@ read_a_msg( int fd, GATHER_MSG *msg )
  * to the pool.  So this is just a dummy for this gatherer.
  */
 int
-rndunix_gather_random( void (*add)(const void*, size_t, int), int requester,
-		       size_t length, int level )
+_gcry_rndunix_gather_random (void (*add)(const void*, size_t, int),
+                             int requester,
+                             size_t length, int level )
 {
     static pid_t gatherer_pid = 0;
     static int pipedes[2];

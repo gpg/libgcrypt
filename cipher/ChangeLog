@@ -1,3 +1,32 @@
+2003-10-27  Werner Koch  <wk@gnupg.org>
+
+	Prefixed all (pubkey,digest,cipher}_spec_* globale varaibles with
+	_gcry_.
+
+	* ac.c (ac_key_identifiers): Made static.
+
+	* random.c (getfnc_gather_random,getfnc_fast_random_poll): Move
+	prototypes to ..
+	* rand-internal.h: .. here 
+	* random.c (getfnc_gather_random): Include rndw32 gatherer.
+	* rndunix.c, rndw32.c, rndegd.c: Include them here.
+	* rndlinux.c (_gcry_rndlinux_gather_random): Prepend the _gcry_
+	prefix.  Changed all callers.
+	* rndegd.c (_gcry_rndegd_gather_random): Likewise.
+	(_gcry_rndegd_connect_socket): Likewise.
+	* rndunix.c (_gcry_rndunix_gather_random): Likewise.
+	(waitpid): Made static.
+	* rndw32.c: Removed the old and unused winseed.dll cruft.
+	(_gcry_rndw32_gather_random_fast): Renamed from
+	gather_random_fast.
+	(_gcry_rndw32_gather_random): Renamed from gather_random.  Note,
+	that the changes 2003-04-08 somehow got lost.
+
+	* sha512.c (sha512_init, sha384_init): Made static.
+
+	* cipher.c (do_ctr_decrypt): Removed "return" from this void
+	function.
+
 2003-10-24  Moritz Schulte  <mo@g10code.com>
 
 	* serpent.c: Fix an issue on big-endian systems.

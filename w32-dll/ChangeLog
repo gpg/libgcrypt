@@ -1,3 +1,8 @@
+2003-10-27  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt.def: Manually wrote this file.
+	* build-def: This file should not be used anymore.
+
 2002-09-18  Timo Schulz  <ts@winpt.org>
 
 	* build-def: Now there are no duplicates in the libgcrypt.def

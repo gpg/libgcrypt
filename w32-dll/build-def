@@ -11,6 +11,9 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
+DO NOT USE 
+
+
 $gcrypt_h = "../src/gcrypt.h";
 $i = 1;
 $header_passed = 0;
@@ -19,7 +22,7 @@ open( FD, $gcrypt_h ) || die "$gcrypt_h: $!";
 @filebuf = <FD>;
 close( FD );
 
-open( FD, ">libgcrypt.def" ) || die "$!";
+open( FD, ">libgcrypt.deffoooo" ) || die "$!";
 print FD "EXPORTS\n";
 foreach $in( @filebuf ) {
     if( $in =~ m/GCRYPT_VERSION/ ) {

@@ -310,7 +310,7 @@ static gcry_md_oid_spec_t oid_spec_md4[] =
     { NULL },
   };
 
-gcry_md_spec_t digest_spec_md4 =
+gcry_md_spec_t _gcry_digest_spec_md4 =
   {
     "MD4", asn, DIM (asn), oid_spec_md4,16,
     md4_init, md4_write, md4_final, md4_read,

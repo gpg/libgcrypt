@@ -44,13 +44,13 @@ static struct pubkey_table_entry
 } pubkey_table[] =
   {
 #if USE_RSA
-    { &pubkey_spec_rsa, GCRY_PK_RSA },
+    { &_gcry_pubkey_spec_rsa, GCRY_PK_RSA },
 #endif
 #if USE_ELGAMAL
-    { &pubkey_spec_elg, GCRY_PK_ELG },
+    { &_gcry_pubkey_spec_elg, GCRY_PK_ELG },
 #endif
 #if USE_DSA
-    { &pubkey_spec_dsa, GCRY_PK_DSA },
+    { &_gcry_pubkey_spec_dsa, GCRY_PK_DSA },
 #endif
     { NULL },
   };

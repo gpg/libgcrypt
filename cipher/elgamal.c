@@ -641,7 +641,7 @@ static char *elg_names[] =
   };
 
 
-gcry_pk_spec_t pubkey_spec_elg =
+gcry_pk_spec_t _gcry_pubkey_spec_elg =
   {
     "ELG", elg_names,
     "pgy", "pgyx", "ab", "rs", "pgy",

@@ -24,4 +24,18 @@ void _gcry_random_progress (const char *what, int printchar,
                             int current, int total);
 
 
+int _gcry_rndlinux_gather_random (void (*add) (const void *, size_t, int),
+                                  int requester, size_t length, int level);
+int _gcry_rndunix_gather_random (void (*add) (const void *, size_t, int),
+                                 int requester, size_t length, int level);
+int _gcry_rndegd_gather_random (void (*add) (const void *, size_t, int),
+                                int requester, size_t length, int level);
+int _gcry_rndegd_connect_socket (int nofail);
+int _gcry_rndw32_gather_random (void (*add) (const void *, size_t, int),
+                                int requester, size_t length, int level);
+int _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t, int),
+                                     int requester );
+
+
+
 #endif /*G10_RAND_INTERNAL_H*/

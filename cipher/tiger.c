@@ -833,7 +833,7 @@ static gcry_md_oid_spec_t oid_spec_tiger[] =
     { NULL }
   };
 
-gcry_md_spec_t digest_spec_tiger =
+gcry_md_spec_t _gcry_digest_spec_tiger =
   {
     "TIGER192", asn, DIM (asn), oid_spec_tiger, 24,
     tiger_init, tiger_write, tiger_final, tiger_read,

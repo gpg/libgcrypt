@@ -741,16 +741,6 @@ static int (*
 getfnc_gather_random (void))(void (*)(const void*, size_t, int), int,
 			     size_t, int)
 {
-  int rndlinux_gather_random (void (*add) (const void *, size_t, int),
-			      int requester, size_t length, int level);
-  int rndunix_gather_random (void (*add) (const void *, size_t, int),
-			     int requester, size_t length, int level);
-  int rndegd_gather_random (void (*add) (const void *, size_t, int),
-			    int requester, size_t length, int level);
-  int rndegd_connect_socket (int nofail);
-  int rndw32_gather_random (void (*add) (const void *, size_t, int),
-			    int requester, size_t length, int level);
-
   static int (*fnc)(void (*)(const void*, size_t, int), int, size_t, int);
   
   if (fnc)
@@ -760,21 +750,26 @@ getfnc_gather_random (void))(void (*)(const void*, size_t, int), int,
   if ( !access (NAME_OF_DEV_RANDOM, R_OK)
        && !access (NAME_OF_DEV_URANDOM, R_OK))
     {
-      fnc = rndlinux_gather_random;
+      fnc = _gcry_rndlinux_gather_random;
       return fnc;
     }
 #endif
 
 #if USE_RNDEGD
-  if ( rndegd_connect_socket (1) != -1 )
+  if ( _gcry_rndegd_connect_socket (1) != -1 )
     {
-      fnc = rndegd_gather_random;
+      fnc = _gcry_rndegd_gather_random;
       return fnc;
     }
 #endif
 
 #if USE_RNDUNIX
-  fnc = rndunix_gather_random;
+  fnc = _gcry_rndunix_gather_random;
+  return fnc;
+#endif
+
+#if USE_RNDW32
+  fnc = _gcry_rndw32_gather_random;
   return fnc;
 #endif
 
@@ -787,9 +782,7 @@ static void (*
 getfnc_fast_random_poll (void))( void (*)(const void*, size_t, int), int)
 {
 #if USE_RNDW32
-  int rndw32_gather_random_fast (void (*add) (const void *, size_t, int),
-				 int requester);
-  return rndw32_gather_random_fast;
+  return _gcry_rndw32_gather_random_fast;
 #endif
   return NULL;
 }

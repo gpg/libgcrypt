@@ -33,6 +33,7 @@
 #include "types.h"
 #include "g10lib.h"
 #include "cipher.h"
+#include "rand-internal.h"
 
 #ifndef offsetof
 #define offsetof(type, member) ((size_t) &((type *)0)->member)
@@ -117,7 +118,7 @@ do_read( int fd, void *buf, size_t nbytes )
    error.  With NOFAIL set to true, silently fail and return the
    error, otherwise print an error message and die. */
 int
-rndegd_connect_socket (int nofail)
+_gcry_rndegd_connect_socket (int nofail)
 {
   int fd;
   const char *bname = NULL;
@@ -175,8 +176,9 @@ rndegd_connect_socket (int nofail)
  * to the pool.  So this is just a dummy for EGD.
  */
 int
-rndegd_gather_random( void (*add)(const void*, size_t, int), int requester,
-		      size_t length, int level )
+_gcry_rndegd_gather_random (void (*add)(const void*, size_t, int),
+                            int requester,
+                            size_t length, int level )
 {
     int fd = egd_socket;
     int n;
@@ -191,7 +193,7 @@ rndegd_gather_random( void (*add)(const void*, size_t, int), int requester,
 
   restart:
     if (fd == -1 || do_restart)
-      fd = rndegd_connect_socket (0);
+      fd = _gcry_rndegd_connect_socket (0);
 
     do_restart = 0;
 

@@ -49,7 +49,7 @@ struct number_string
 
 /* The positions in this list correspond to the values contained in
    the gcry_ac_key_type_t enumeration list.  */
-const char *ac_key_identifiers[] =
+static const char *ac_key_identifiers[] =
   {
     "private-key",
     "public-key",

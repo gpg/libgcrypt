@@ -300,7 +300,7 @@ static gcry_md_oid_spec_t oid_spec_sha256[] =
     { NULL },
   };
 
-gcry_md_spec_t digest_spec_sha256 =
+gcry_md_spec_t _gcry_digest_spec_sha256 =
   {
     "SHA256", asn, DIM (asn), oid_spec_sha256, 32,
     sha256_init, sha256_write, sha256_final, sha256_read,

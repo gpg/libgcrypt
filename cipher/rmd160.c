@@ -550,7 +550,7 @@ static gcry_md_oid_spec_t oid_spec_rmd160[] =
     { NULL },
   };
 
-gcry_md_spec_t digest_spec_rmd160 =
+gcry_md_spec_t _gcry_digest_spec_rmd160 =
   {
     "RIPEMD160", asn, DIM (asn), oid_spec_rmd160, 20,
     _gcry_rmd160_init, rmd160_write, rmd160_final, rmd160_read,

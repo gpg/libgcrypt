@@ -38,31 +38,31 @@ static struct digest_table_entry
 } digest_table[] =
   {
 #if USE_CRC    
-    { &digest_spec_crc32, GCRY_MD_CRC32 },
-    { &digest_spec_crc32_rfc1510, GCRY_MD_CRC32_RFC1510 },
-    { &digest_spec_crc24_rfc2440, GCRY_MD_CRC24_RFC2440 },
+    { &_gcry_digest_spec_crc32, GCRY_MD_CRC32 },
+    { &_gcry_digest_spec_crc32_rfc1510, GCRY_MD_CRC32_RFC1510 },
+    { &_gcry_digest_spec_crc24_rfc2440, GCRY_MD_CRC24_RFC2440 },
 #endif
 #if USE_MD4
-    { &digest_spec_md4, GCRY_MD_MD4 },
+    { &_gcry_digest_spec_md4, GCRY_MD_MD4 },
 #endif
 #if USE_MD5
-    { &digest_spec_md5, GCRY_MD_MD5 },
+    { &_gcry_digest_spec_md5, GCRY_MD_MD5 },
 #endif
 #if USE_RMD160
-    { &digest_spec_rmd160, GCRY_MD_RMD160 },
+    { &_gcry_digest_spec_rmd160, GCRY_MD_RMD160 },
 #endif
 #if USE_SHA1
-    { &digest_spec_sha1, GCRY_MD_SHA1 },
+    { &_gcry_digest_spec_sha1, GCRY_MD_SHA1 },
 #endif
 #if USE_SHA256
-    { &digest_spec_sha256, GCRY_MD_SHA256 },
+    { &_gcry_digest_spec_sha256, GCRY_MD_SHA256 },
 #endif
 #if USE_SHA512
-    { &digest_spec_sha512, GCRY_MD_SHA512 },
-    { &digest_spec_sha384, GCRY_MD_SHA384 },
+    { &_gcry_digest_spec_sha512, GCRY_MD_SHA512 },
+    { &_gcry_digest_spec_sha384, GCRY_MD_SHA384 },
 #endif
 #if USE_TIGER
-    { &digest_spec_tiger, GCRY_MD_TIGER },
+    { &_gcry_digest_spec_tiger, GCRY_MD_TIGER },
 #endif
     { NULL },
   };

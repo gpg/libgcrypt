@@ -2475,6 +2475,7 @@ The function accepts public or secret keys in @var{key}.
 @deftypefun gcry_error_t gcry_pk_testkey (gcry_sexp_t @var{key})
 
 Return zero if the private key @var{key} is `sane', an error code otherwise.
+Note, that it is not possible to chek the `saneness' of a public key.
 
 @end deftypefun
 

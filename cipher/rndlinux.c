@@ -45,8 +45,9 @@
 #include "rand-internal.h"
 
 static int open_device( const char *name, int minor );
-int rndlinux_gather_random( void (*add)(const void*, size_t, int), int requester,
-			    size_t length, int level );
+int _gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
+                                  int requester,
+                                  size_t length, int level );
 
 #if 0
 #ifdef HAVE_DEV_RANDOM_IOCTL
@@ -84,8 +85,9 @@ open_device( const char *name, int minor )
 
 
 int
-rndlinux_gather_random( void (*add)(const void*, size_t, int), int requester,
-			size_t length, int level )
+_gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
+                              int requester,
+                              size_t length, int level )
 {
     static int fd_urandom = -1;
     static int fd_random = -1;

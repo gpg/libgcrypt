@@ -2146,7 +2146,7 @@ static gcry_cipher_oid_spec_t rijndael_oids[] =
     { NULL }
   };
 
-gcry_cipher_spec_t cipher_spec_aes =
+gcry_cipher_spec_t _gcry_cipher_spec_aes =
   {
     "AES", rijndael_names, rijndael_oids, 16, 128, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
@@ -2167,7 +2167,7 @@ static gcry_cipher_oid_spec_t rijndael192_oids[] =
     { NULL }
   };
 
-gcry_cipher_spec_t cipher_spec_aes192 =
+gcry_cipher_spec_t _gcry_cipher_spec_aes192 =
   {
     "AES192", rijndael192_names, rijndael192_oids, 16, 192, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
@@ -2188,7 +2188,7 @@ static gcry_cipher_oid_spec_t rijndael256_oids[] =
     { NULL }
   };
 
-gcry_cipher_spec_t cipher_spec_aes256 =
+gcry_cipher_spec_t _gcry_cipher_spec_aes256 =
   {
     "AES256", rijndael256_names, rijndael256_oids, 16, 256, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,

@@ -611,7 +611,7 @@ static char *rsa_names[] =
     NULL,
   };
 
-gcry_pk_spec_t pubkey_spec_rsa =
+gcry_pk_spec_t _gcry_pubkey_spec_rsa =
   {
     "RSA", rsa_names,
     "ne", "nedpqu", "a", "s", "n",

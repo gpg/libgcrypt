@@ -1,3 +1,9 @@
+2003-10-27  Werner Koch  <wk@gnupg.org>
+
+	* configure.ac: Give a hint on where libgpg-error is available.
+	Reformatted long lines.  Don't include gcrypt-defs.h.
+	
+
 2003-10-24  Moritz Schulte  <mo@g10code.com>
 
 	* configure.ac: Check for socklen_t.
