@@ -1,6 +1,10 @@
 		    libgcrypt - The GNU crypto library
 		   ------------------------------------
-  			    Version 1.1.43
+  			    Version 1.1.90
+
+    THIS IS A PRE-RELEASE FOR THE FIRST STABLE VERSION 1.2.0, TO BE
+    RELEASED RSN.
+
 
     Copyright 2000, 2002, 2003 Free Software Foundation, Inc.
 
@@ -12,8 +16,6 @@
     WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
     implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-
-    THIS IS A DEVELOPMENT VERSION, THE FIRST STABLE VERSION WILL BE 1.2.0.
 
 
     Overview

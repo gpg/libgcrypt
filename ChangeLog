@@ -1,3 +1,15 @@
+2003-11-14  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.90.
+	
+	* configure.ac: Bumbed LT version to C10/A3/R0.
+	
+	* configure.ac (have_ld_version_script): Set the default in
+	a separate test.
+	(PRINTABLE_OS_NAME): Don't handle the Hurd extra, this leads to
+	conflicts with BSD based GNU systems.  The Hurd has now a working
+	uname.
+
 2003-11-04  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac (USE_SHA1): Make sure it is always included.

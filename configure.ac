@@ -26,14 +26,14 @@ AC_PREREQ(2.52)
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.1.90-cvs, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.1.90, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=9
-LIBGCRYPT_LT_AGE=2
+LIBGCRYPT_LT_CURRENT=10
+LIBGCRYPT_LT_AGE=3
 LIBGCRYPT_LT_REVISION=0
 
 NEED_GPG_ERROR_VERSION=0.5
@@ -163,9 +163,7 @@ case "${target}" in
       ;;
 esac
 
-# For now we hardcode the use of version scripts.  It would be better
-# to write a text for this or even implement this within libtool
-have_ld_version_script=no
+# A printable OS Name is sometime useful.
 case "${target}" in
     *-*-mingw32*)
         PRINTABLE_OS_NAME="MingW32"
@@ -181,19 +179,13 @@ case "${target}" in
 
     *-linux*)
         PRINTABLE_OS_NAME="GNU/Linux"
-        have_ld_version_script=yes
-        ;;
-
-# let that after linux to avoid gnu-linux problems
-    *-gnu*)
-        PRINTABLE_OS_NAME="GNU/Hurd"
-        have_ld_version_script=yes
         ;;
 
     *)
         PRINTABLE_OS_NAME=`uname -s || echo "Unknown"`
         ;;
 esac
+
 
 case "${target}" in
     *-openbsd* | *-netbsd*)
@@ -397,6 +389,18 @@ AM_PROG_LIBTOOL
 
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
                    [A human readable text with the name of the OS])
+
+# For some systems we know that we have ld_version scripts.  
+# Use it then as default.
+have_ld_version_script=no
+case "${host}" in
+    *-*-linux*)
+	have_ld_version_script=yes
+        ;;
+    *-*-gnu*)
+	have_ld_version_script=yes
+        ;;
+esac
 AC_ARG_ENABLE([ld-version-script],
               AC_HELP_STRING([--enable-ld-version-script],
                              [enable/disable use of linker version script.
