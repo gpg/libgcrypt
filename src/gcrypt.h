@@ -42,7 +42,7 @@ extern "C" {
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.1.43-cvs"
+#define GCRYPT_VERSION "1.1.44-cvs"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -851,7 +851,7 @@ typedef struct gcry_ac_handle *gcry_ac_handle_t;
    algorithm-specific way.  */
 typedef struct gcry_ac_key_spec_rsa
 {
-  gcry_mpi_t e;			/* E to use.  */
+  unsigned long int e; 		/* E to use.  */
 } gcry_ac_key_spec_rsa_t;
 
 /* Returns a new, empty data set in DATA.  */
@@ -903,9 +903,17 @@ gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key,
 
 /* Generate a new key pair.  */
 gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
-				       gcry_ac_key_pair_t *key_pair,
-				       unsigned int nbits,
-				       void *spec);
+					unsigned int nbits,
+					void *spec,
+					gcry_ac_key_pair_t *key_pair);
+
+/* Generate a new key pair, while returning certain MPI values that
+   were created during the generation process.  */
+gcry_error_t gcry_ac_key_pair_generate_ext (gcry_ac_handle_t handle,
+					    unsigned int nbits,
+					    void *spec,
+					    gcry_ac_key_pair_t *key_pair,
+					    gcry_mpi_t **misc_data);
 
 /* Returns a specified key from a key pair.  */
 gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
@@ -915,15 +923,18 @@ gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
 gcry_ac_data_t gcry_ac_key_data_get (gcry_ac_key_t key);
 
 /* Verify that the key KEY is sane.  */
-gcry_error_t gcry_ac_key_test (gcry_ac_key_t key);
+gcry_error_t gcry_ac_key_test (gcry_ac_handle_t handle,
+			       gcry_ac_key_t key);
 
 /* Return the number of bits of the key KEY in NBITS.  */
-gcry_error_t gcry_ac_key_get_nbits (gcry_ac_key_t key,
-				   unsigned int *nbits);
+gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
+				    gcry_ac_key_t key,
+				    unsigned int *nbits);
 
 /* Write the 20 byte long key grip of the key KEY to KEY_GRIP.  */
-gcry_error_t gcry_ac_key_get_grip (gcry_ac_key_t key,
-				  unsigned char *key_grip);
+gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t handle,
+				   gcry_ac_key_t key,
+				   unsigned char *key_grip);
 
 /* Destroy a key.  */
 void gcry_ac_key_destroy (gcry_ac_key_t key);
@@ -973,6 +984,14 @@ gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm,
    is contained in NAME in ALGORITHM.  */
 gcry_error_t gcry_ac_name_to_id (const char *name,
 				gcry_ac_id_t *algorithm);
+
+/* Get a list consisting of the IDs of the loaded pubkey modules.  If
+   LIST is zero, write the number of loaded pubkey modules to
+   LIST_LENGTH and return.  If LIST is non-zero, the first
+   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
+   according size.  In case there are less pubkey modules than
+   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
+gcry_error_t gcry_ac_list (int *list, int *list_length);
 
 
 
