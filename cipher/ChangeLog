@@ -1,3 +1,18 @@
+2003-03-03  Moritz Schulte  <moritz@g10code.com>
+
+	* md.c (gcry_md_ctl): Rewritten to use same style like the other
+	functions dispatchers.
+
+2003-03-02  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.c (struct gcry_cipher_handle): New member: algo_index.
+	(gcry_cipher_open): Allocate memory for two cipher contexts.
+	Initialize algo_index.
+	(cipher_setkey): Duplicate context into reserved memory.
+	(cipher_reset): New function, which resets the context and clear
+	the IV.
+	(gcry_cipher_ctl): Call cipher_reset.
+
 2003-02-23  Moritz Schulte  <moritz@g10code.com>
 
 	* cipher.c: Remove (bogus) `digitp' macro definition.
