@@ -1,5 +1,9 @@
 2003-12-19  Werner Koch  <wk@gnupg.org>
 
+	* Manifest: Empty new file.  Also add Manifest files to all CPU
+	specific directories.
+	* Makefile.am: Added.
+
 	* mpiutil.c (gcry_mpi_randomize): Use gcry_create_nonce if WEAK
 	random has been requested.
 

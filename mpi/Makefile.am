@@ -29,7 +29,7 @@ CCASCOMPILE = $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
 LTCCASCOMPILE = $(LIBTOOL) --mode=compile $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
 
 
-EXTRA_DIST = config.links
+EXTRA_DIST = Manifest config.links
 DISTCLEANFILES = mpi-asm-defs.h \
                  mpih-add1.S mpih-mul1.S mpih-mul2.S mpih-mul3.S  \
 		 mpih-lshift.S mpih-rshift.S mpih-sub1.S asm-syntax.h sysdep.h
@@ -182,9 +182,9 @@ SUFFIXES = .S .o .obj .lo
 
 .S.o:
 	$(CCASCOMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
- 
+
 .S.obj:
 	$(CCASCOMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
- 
+
 .S.lo:
 	$(LTCCASCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
