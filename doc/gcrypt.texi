@@ -599,7 +599,8 @@ consistent to use interface to hash functions.  Hashing is buffered and
 several hash algorithms can be updated at once.  It is possible to
 calculate a MAC using the same routines.
 
-For convenience reasons, we plan to integrate simple CRC algorithms too
+For convenience reasons, a few cyclic redudance check value operations
+are also supported.
 
 To use most of these function it is necessary to create a context;  this
 is done using:
@@ -655,6 +656,18 @@ This is reserved for SHA-2 with 384 bits. It yields a message digest of
 @item GCRY_MD_SHA512
 This is reserved for SHA-2 with 512 bits. It yields a message digest of
 64 bytes.  Note that there is no implementation yet available.
+
+@item GCRY_MD_CRC32
+This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It
+yields an output of 4 bytes.
+
+@item GCRY_MD_CRC32_RFC1510
+This is the above cyclic redundancy check function, as modified by RFC
+1510.  It yields an output of 4 bytes.
+
+@item GCRY_MD_CRC24_RFC2440
+This is the OpenPGP cyclic redundancy check function.  It yields an
+output of 3 bytes.
 
 @end table
 @c end table of hash algorithms

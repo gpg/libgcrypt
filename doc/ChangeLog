@@ -1,3 +1,7 @@
+2003-01-20  Simon Josefsson  <jas@extundo.com>
+
+	* gcrypt.texi (Hash Functions): Add CRC.
+
 2003-01-19  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi: Most functions are now documented.  Still need to
