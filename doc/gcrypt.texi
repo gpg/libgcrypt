@@ -2333,11 +2333,11 @@ there was no @code{flags} element in @var{data}; if at least an empty
 @c end gcry_pk_decrypt
 
 
-Another operation commonly performed using public keys are digital
-signature.  In some sense they are even more important than the
-encryption because digital signature are an important instrument for key
-management.  @acronym{Libgcrypt} support digital signatures using 2 functions,
-similar to the encryption functions:
+Another operation commonly performed using public key cryptography is
+signing data.  In some sense this is even more important than
+encryption because digital signatures are an important instrument for
+key management.  @acronym{Libgcrypt} supports digital signatures using
+2 functions, similar to the encryption functions:
 
 @deftypefun gcry_error_t gcry_pk_sign (@w{gcry_sexp_t *@var{r_sig},} @w{gcry_sexp_t @var{data},} @w{gcry_sexp_t @var{skey}})
 
@@ -2348,7 +2348,7 @@ with just one MPI or a modern and more versatile S-expression which
 allows to let @acronym{Libgcrypt} handle padding:
 
 @example 
-(data
+ (data
   (flags pkcs1)
   (hash @var{hash-algo} @var{block}))
 @end example
@@ -2673,6 +2673,8 @@ Riven-Shamir-Adleman
 Digital Signature Algorithm
 @item GCRY_AC_ELG
 ElGamal
+@item GCRY_AC_ELG_E
+ElGamal, encryption only.
 @end table
 @end deftp
 
