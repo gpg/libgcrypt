@@ -1,3 +1,33 @@
+2003-06-17  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (GCRYPT_MODULES): Set to @GCRYPT_CIPHERS@,
+	@GCRYPT_PUBKEY_CIPHERS@, @GCRYPT_DIGESTS@ and @GCRYPT_RANDOM@.
+	(libcipher_la_DEPENDENCIES): Set to $(GCRYPT_MODULES).
+	(libcipher_la_LIBADD): Likewise.
+	(AM_CFLAGS): Added: @GPG_ERROR_CFLAGS@.
+
+	* md.c (md_open): Use _gcry_fast_random_poll instead of
+	fast_random_poll.
+	* cipher.c (gcry_cipher_open): Likewise.
+
+	* random.h (fast_random_poll): Removed macro.
+
+	* blowfish.c, md4.c, md5.c, rmd160.c, sha1.c, sha256.c, sha512.c,
+	tiger.c: Use Autoconf's WORDS_BIGENDIAN instead of our own
+	BIG_ENDIAN_HOST.
+
+2003-06-16  Moritz Schulte  <moritz@g10code.com>
+
+	* random.c (getfnc_gather_random): Do not special-case
+	USE_ALL_RANDOM_MODULES, make it the default.
+
+	* dsa.c: Replace last occurences of old type names with newer
+	names (i.e. replace MPI with gcry_mpi_t).
+	* elgamal.c: Likewise.
+	* primegen.c: Likewise.
+	* pubkey.c: Likewise.
+	* rsa.c: Likewise.
+
 2003-06-14  Moritz Schulte  <moritz@g10code.com>
 
 	* des.c (des_setkey): Add selftest check.
