@@ -25,7 +25,7 @@ TESTS = basic tsexp
 
 EXTRA_DIST = 
 
-INCLUDES = 
+INCLUDES = -I$(top_srcdir)/src
 LDADD = ../src/libgcrypt.la
 
 noinst_PROGRAMS = $(TESTS) 

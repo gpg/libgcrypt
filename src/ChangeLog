@@ -1,5 +1,7 @@
 2001-12-18  Werner Koch  <wk@gnupg.org>
 
+	* sexp.c (gcry_sexp_canon_len): Fixed the test on NULL buffer.
+
 	* Makefile.am (DISTCLEANFILES): Include libgcrypt.sym
 
 	* sexp.c: Removed the commented test code because we now have a

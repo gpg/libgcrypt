@@ -1124,7 +1124,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 
   *errcode = 0;
   *erroff = 0;
-  if (buffer)
+  if (!buffer)
     return 0;
 
   for (p=buffer; ; p++, count++ )
@@ -1232,5 +1232,4 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 	}
     }
 }
-
 
