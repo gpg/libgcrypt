@@ -224,9 +224,32 @@ gcry_err_code_t _gcry_module_list (gcry_module_t modules,
 
 gcry_err_code_t _gcry_cipher_init (void);
 gcry_err_code_t _gcry_md_init (void);
-gcry_err_code_t _gcry_pk_init (void);
+gcry_err_code_t _gcry_ac_init (void);
 
-gcry_err_code_t _gcry_pk_module_lookup (int id, gcry_module_t *module);
-void _gcry_pk_module_release (gcry_module_t module);
+gcry_error_t _gcry_ac_algorithm_enable (gcry_ac_handle_t handle);
+gcry_error_t _gcry_ac_algorithm_disable (gcry_ac_handle_t handle);
+
+void _gcry_ac_info_get (gcry_ac_handle_t handle,
+			gcry_ac_id_t *algorithm_id, unsigned int *algorithm_use_flags);
+
+void _gcry_ac_elements_amount_get (gcry_ac_handle_t handle,
+				   unsigned int *elements_key_secret,
+				   unsigned int *elements_key_public,
+				   unsigned int *elements_encryption,
+				   unsigned int *elements_signature);
+
+gcry_err_code_t _gcry_ac_arg_list_from_data (gcry_ac_data_t data,
+					     void ***arg_list);
+
+void _gcry_ac_progress_register (gcry_handler_progress_t cb,
+				 void *cb_data);
+
+void _gcry_ac_progress (const char *identifier, int c);
+
+#define GCRY_AC_KEY_GRIP_FLAG_SEXP (1 << 0)
+
+gcry_err_code_t _gcry_ac_key_get_grip_std (unsigned char *key_grip,
+					   unsigned int flags, ...);
+
 
 #endif /* G10LIB_H */
