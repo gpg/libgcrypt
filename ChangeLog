@@ -1,3 +1,27 @@
+2003-04-16  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Implement command line switches: --enable-ciphers,
+	--enable-pubkey-ciphers and --enable-digests.
+	Set Automake conditionals and config.h symbols depending on the
+	selected ciphers, pubkey-ciphers, digests and random-modules.
+
+	* acinclude.m4 (LIST_MEMBER): New macro.
+
+	* configure.ac: Simplified, removed code for parsing
+	EXTRA_PROGRAMS from Makefile.am.
+
+2003-04-08  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Merged random-module selection code from GnuPG's
+	configure.ac.
+
+2003-04-07  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Removed code for generating contruct.c.
+	Remove digest modules from the static_modules list, only handle
+	random module selection.
+	
+
 2003-03-24  Moritz Schulte  <moritz@g10code.com>
 
 	* NEWS: Mention new CBC_MAC flag.
