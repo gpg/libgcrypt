@@ -87,7 +87,9 @@ dump_mpi( GCRY_MPI a )
     char buffer[1000];
     size_t n = 1000;
 
-    if( gcry_mpi_print( GCRYMPI_FMT_HEX, buffer, &n, a ) )
+    if( !a )
+	fputs("[no MPI]", stderr );
+    else if( gcry_mpi_print( GCRYMPI_FMT_HEX, buffer, &n, a ) )
 	fputs("[MPI too large to print]", stderr );
     else
 	fputs( buffer, stderr );
@@ -134,7 +136,7 @@ dump_sexp( NODE node )
  * Create a new SEXP element (data)
  */
 GCRY_SEXP
-gcry_sexp_new( const char *buffer, size_t length )
+gcry_sexp_new_data( const char *buffer, size_t length )
 {
     NODE node;
 
@@ -200,6 +202,7 @@ gcry_sexp_vlist( GCRY_SEXP a, ... )
 }
 
 
+
 /****************
  * Locate data in a list. Data must be the first item in the list.
  * Returns: The sublist with that Data (don't modify it!)
@@ -208,6 +211,9 @@ GCRY_SEXP
 gcry_sexp_find_token( GCRY_SEXP list, const char *tok, size_t toklen )
 {
     NODE node;
+
+    if( !toklen )
+	toklen = strlen(tok);
 
     for( node=list ; node; node = node->next )
       {
@@ -236,7 +242,7 @@ gcry_sexp_find_token( GCRY_SEXP list, const char *tok, size_t toklen )
 
 
 /****************
- * Enumerate all objects in the list.  Ther firts time you call this, pass
+ * Enumerate all objects in the list.  Ther first time you call this, pass
  * the address of a void pointer initialized to NULL.  Then don't touch this
  * variable anymore but pass it verbatim to the function; you will get
  * all lists back in turn. End of lists is indicated by a returned NIL in
@@ -247,10 +253,12 @@ gcry_sexp_find_token( GCRY_SEXP list, const char *tok, size_t toklen )
  * Note that this function returns only lists and not single objects.
  */
 GCRY_SEXP
-gcry_sexp_enum_lists( GCRY_SEXP list, void **context )
+gcry_sexp_enum( GCRY_SEXP list, void **context, int mode )
 {
     NODE node;
 
+    if( mode )
+	return NULL; /* mode is reserved and must be 0 */
     if( !list ) {
 	/* we are lucky that we can hold all information in the pointer
 	 * value ;-) - so there is no need to release any memory */
@@ -259,33 +267,95 @@ gcry_sexp_enum_lists( GCRY_SEXP list, void **context )
     }
     if( !*context )  /* start enumeration */
 	node = list;
-    else
+    else {
 	node = *context;
-
+	node = node->next;
+    }
 
     for( ; node; node = node->next ) {
-	if( node->type == ntLIST ) {
-	    node = node->u.list;
-	    *context = node; /* store our context */
-	    return node;
-	}
+	*context = node; /* store our context */
+	if( node->type == ntLIST )
+	    return node->u.list;
+	return node;
     }
 
     /* release resources and return nil */
-    return gcry_sexp_enum_lists( NULL, context );
+    return gcry_sexp_enum( NULL, context, mode );
+}
+
+
+
+/****************
+ * Get data from the car
+ */
+const char *
+gcry_sexp_car_data( GCRY_SEXP list, size_t *datalen )
+{
+    if( list && list->type == ntDATA ) {
+	*datalen = list->u.data.len;
+	return list->u.data.d;
+    }
+
+    return NULL;
+}
+
+/****************
+ * Get data from the cdr assuming this is a pair
+ */
+const char *
+gcry_sexp_cdr_data( GCRY_SEXP list, size_t *datalen )
+{
+    if( list && (list = list->next) && list->type == ntDATA ) {
+	*datalen = list->u.data.len;
+	return list->u.data.d;
+    }
+
+    return NULL;
 }
 
 
 /****************
  * cdr the mpi from the list or NULL if there is no MPI.
  * This function tries to convert plain data to an MPI.
+ * Actually this funtion returns only the second item of the list
+ * and ignores any further arguments.
  */
 MPI
-gcry_sexp_cdr_mpi( GCRY_SEXP list )
+gcry_sexp_cdr_mpi( GCRY_SEXP list, int mpifmt )
 {
+    NODE node = list;
 
+    if( !node || !(node = node->next) || node == ntLIST )
+	return NULL;
+    if( node->type == ntDATA ) {
+	MPI a;
+	size_t n = node->u.data.len;
+	if( gcry_mpi_scan( &a, mpifmt, node->u.data.d, &n ) )
+	    return NULL;
+	return a;
+    }
+    else if( node->type == ntMPI )
+	return gcry_mpi_copy( node->u.mpi );
+    else
+	return NULL;
 }
 
+
+/****************
+ * Check wether the car is equal to data
+ */
+#if 0 /* not tested */
+int
+gcry_sexp_eqp_car( GCRY_SEXP list, const char *data, size_t datalen )
+{
+    if( list && list->type == ntDATA
+	&& list->u.data.len == datalen
+	&& !memcmp( list->u.data.d, list, listlen ) )
+	return 1;
+
+    return 0;
+}
+#endif
 
 /****************
  * Scan the provided buffer and return the S expression in our internal
@@ -512,7 +582,7 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
 	}
 
     }
-    dump_sexp( head );
+    *retsexp = head;
     return 0;
 }
 
@@ -548,18 +618,15 @@ main(int argc, char **argv)
     FILE *fp;
     GCRY_SEXP s_pk, s_dsa, s_p, s_q, s_g, sexp;
 
-  #if 0
-    if( argc > 1 ) {
-	fp = fopen( argv[1], "r" );
-	if( !fp )
-	    exit(1);
-	n = fread(buffer, 1, 5000, fp );
-	fprintf(stderr,"read %d bytes\n", n );
-	rc = gcry_sexp_sscan( NULL, buffer, n, &erroff );
-	fprintf(stderr, "read: rc=%d  erroff=%u\n", rc, erroff );
+  #if 1
+    fp = stdin;
+    n = fread(buffer, 1, 5000, fp );
+    rc = gcry_sexp_sscan( &sexp, buffer, n, &erroff );
+    if( rc ) {
+	fprintf(stderr, "parse error %d at offset %u\n", rc, erroff );
+	exit(1);
     }
-  #endif
-
+  #else
     s_pk = SEXP_NEW( "public-key", 10 );
     fputs("pk:\n",stderr);dump_sexp( s_pk );
     s_dsa = SEXP_NEW( "dsa", 3 );
@@ -572,7 +639,9 @@ main(int argc, char **argv)
 					     s_q,
 					     s_g,
 					     NULL ));
-    fputs("all:\n",stderr);dump_sexp( sexp );
+    fputs("Here is what we have:\n",stderr);
+    dump_sexp( sexp );
+  #endif
 
     /* now find something */
     if( argc > 1 )
@@ -589,6 +658,54 @@ main(int argc, char **argv)
 	    fprintf(stderr, "found `%s':\n", argv[1] );
 	    dump_sexp( s1 );
 	  }
+
+
+	if( argc > 2 ) /* get the MPI out of the list */
+	#if 0
+	  {
+	    GCRY_SEXP s2;
+	    MPI a;
+
+	    s2 = gcry_sexp_find_token( s1, argv[2], strlen(argv[2]) );
+	    if( !s1 )
+	    {
+	       fprintf(stderr, "didn't found `%s'\n", argv[2] );
+	       exit(1);
+	    }
+
+	    a = gcry_sexp_cdr_mpi( s2, GCRYMPI_FMT_USG );
+	    if( a ) {
+		fprintf(stderr, "MPI: ");
+		dump_mpi( a );
+		fprintf(stderr, "\n");
+	    }
+	    else
+		fprintf(stderr, "cannot cdr a mpi\n" );
+	  }
+	 #else
+	  {    /* print all MPIs */
+	    void *ctx = NULL;
+	    GCRY_SEXP s2;
+	    MPI a;
+
+	    while( (s2 = gcry_sexp_enum( s1, &ctx, 0 )) )
+	      {
+		const char *car_d;
+		size_t car_n;
+
+		car_d = gcry_sexp_car_data( s2, &car_n );
+		if( car_d ) {
+		   fprintf(stderr, "CAR: %.*s=", (int)car_n, car_d );
+		   a = gcry_sexp_cdr_mpi( s2, GCRYMPI_FMT_USG );
+		   dump_mpi( a );
+		   fprintf(stderr, "\n");
+
+		}
+		else
+		    fprintf(stderr, "no CAR\n");
+	      }
+	  }
+	 #endif
       }
     return 0;
 }

@@ -108,8 +108,40 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 
     len = nbytes? *nbytes : strlen(buffer);
 
-    /* TODO: add formats to allocate the MPI in secure memory */
+    /* TODO: add a way to allocate the MPI in secure memory
+     * Hmmm: maybe it is better to retrieve this information from
+     * the provided buffer. */
     if( format == GCRYMPI_FMT_STD ) {
+	const byte *s = buffer;
+
+	a = mpi_alloc( (len+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB );
+	if( len ) { /* not zero */
+	    a->sign = *s & 0x80;
+	    if( a->sign ) {
+		/* FIXME: we have to convert from 2compl to magnitude format */
+		mpi_free(a);
+		return GCRYERR_INTERNAL;
+	    }
+	    else
+		mpi_set_buffer( a, s, len, 0 );
+	}
+	if( ret_mpi )
+	    *ret_mpi = a;
+	else
+	    mpi_free(a);
+	return 0;
+    }
+    else if( format == GCRYMPI_FMT_USG ) {
+	a = mpi_alloc( (len+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB );
+	if( len )  /* not zero */
+	    mpi_set_buffer( a, buffer, len, 0 );
+	if( ret_mpi )
+	    *ret_mpi = a;
+	else
+	    mpi_free(a);
+	return 0;
+    }
+    else if( format == GCRYMPI_FMT_PGP ) {
 	a = mpi_read_from_buffer( (char*)buffer, &len, 0 );
 	if( nbytes )
 	    *nbytes = len;
@@ -182,6 +214,33 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 
     len = *nbytes;
     if( format == GCRYMPI_FMT_STD ) {
+	byte *s = buffer;
+	char *tmp;
+	int extra = 0;
+	unsigned int n;
+
+	if( a->sign )
+	    return GCRYERR_INTERNAL; /* can't handle it yet */
+
+	tmp = mpi_get_buffer( a, &n, NULL );
+	if( n && (*tmp & 0x80) ) {
+	    n++;
+	    extra=1;
+	}
+
+	if( n > len ) {
+	    m_free(tmp);
+	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
+	}
+	if( extra )
+	    *s++ = 0;
+
+	memcpy( s, tmp, n-extra );
+	m_free(tmp);
+	*nbytes = n;
+	return 0;
+    }
+    else if( format == GCRYMPI_FMT_PGP ) {
 	unsigned int n = (nbits + 7)/8;
 	byte *s = buffer;
 	char *tmp;

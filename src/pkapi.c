@@ -29,3 +29,33 @@
 
 
 
+
+
+
+int
+gcry_pk_encrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP pkey )
+{
+}
+
+int
+gcry_pk_decrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey )
+{
+}
+
+int
+gcry_pk_sign( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey )
+{
+    GCRY_SEXP s;
+    /* get the secret key */
+    s = gcry_sexp_find_token( skey, "private-key", 0 );
+    if( !s )
+	return -1; /* no private key */
+    ...
+
+}
+
+int
+gcry_pk_verify( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP pkey )
+{
+}
+

@@ -76,10 +76,10 @@ struct gcry_sexp;
 typedef struct gcry_sexp *GCRY_SEXP;
 
 enum gcry_sexp_format {
-    GCRY_SEXP_FMT_DEFAULT   = 0,
-    GCRY_SEXP_FMT_CANON     = 1,
-    GCRY_SEXP_FMT_BASE64    = 2,
-    GCRY_SEXP_FMT_ADVANCED  = 3,
+    GCRYSEXP_FMT_DEFAULT   = 0,
+    GCRYSEXP_FMT_CANON	   = 1,
+    GCRYSEXP_FMT_BASE64    = 2,
+    GCRYSEXP_FMT_ADVANCED  = 3,
 };
 
 
@@ -106,9 +106,11 @@ size_t gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer,
  *******************************************/
 
 enum gcry_mpi_format {
-    GCRYMPI_FMT_STD = 0,    /* As used by OpenPGP */
-    GCRYMPI_FMT_SSH = 1,    /* As used by SSH */
-    GCRYMPI_FMT_HEX = 2,    /* hex format */
+    GCRYMPI_FMT_STD = 0,    /* twos complement stored without length */
+    GCRYMPI_FMT_PGP = 1,    /* As used by OpenPGP */
+    GCRYMPI_FMT_SSH = 2,    /* As used by SSH (same as 0 but with length)*/
+    GCRYMPI_FMT_HEX = 3,    /* hex format */
+    GCRYMPI_FMT_USG = 4,    /* like STD but this is an unsigned one */
 };
 
 struct gcry_mpi;
