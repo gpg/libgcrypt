@@ -1,3 +1,42 @@
+2003-09-17  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c: Include "cipher.h" and "ath.h".
+	(ac_flags, ac_key_identifiers, gcry_ac_key_generate_specs):
+	Removed.
+	(algorithm_table, algorithms, algorithms_lock, ac_init_lock): New
+	variables.
+	(AC_MODULE_CALL, ALGORITHMS_LOCK, ALGORITHMS_UNLOCK, AC_INIT_LOCK,
+	AC_INIT_UNLOCK, AC_INIT): New macros.
+	(progress_cb, progress_cb_data): New variables.
+	(_gcry_ac_progress_register, _gcry_ac_progress): New functions.
+	(anon_struct_from_data_set, anon_struct_create): Likewise.
+	(anon_struct_to_data_set): Likewise.
+	(gcry_ac_lookup_func_name, gcry_ac_lookup_name): Likewise.
+	(gcry_ac_register, gcry_ac_unregister): Likewise.
+	(gcry_ac_register_algorithms): Likewise.
+	(ac_init, _gcry_ac_init): Likewise.
+	(gcry_ac_data_extract, gcry_ac_data_construct): Removed.
+	(gcry_ac_data_new_internal): New function ...
+	(gcry_ac_data_new): ... use it.
+	(_gcry_ac_data_get_name): New function ...
+	(gcry_ac_data_get_name): ... use it.
+	(_gcry_ac_arg_list_from_data): New function.
+	(_gcry_ac_data_get_index): New function ...
+	(gcry_ac_data_get_index): ... use it.
+	(_gcry_ac_key_get_grip_std): New function.
+	(gcry_ac_open, gcry_ac_close): Modified to be a native,
+	non-wrapper, interface.
+	(gcry_ac_key_init, gcry_ac_key_pair_generate): Likewise.
+	(gcry_ac_key_destroy, gcry_ac_key_test): Likewise.
+	(gcry_ac_key_get_nbits, gcry_ac_key_get_grip): Likewise.
+	(gcry_ac_data_encrypt, gcry_ac_data_decrypt): Likewise.
+	(gcry_ac_data_sign, gcry_ac_data_verify): Likewise.
+	(gcry_ac_id_to_name, gcry_ac_name_to_id): Likewise.
+	(gcry_ac_list): New functions.
+	(_gcry_ac_algorithm_enable, _gcry_ac_algorithm_disable): Likewise.
+	(elements_amount_get, _gcry_ac_elements_amount_get): Likewise.
+	(_gcry_ac_info_get): Likewise.
+
 2003-09-04  Werner Koch  <wk@gnupg.org>
 
 	* pubkey.c (_gcry_pk_aliased_algo_name): New.

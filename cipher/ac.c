@@ -27,32 +27,11 @@
 #include <stddef.h>
 
 #include "g10lib.h"
+#include "ac.h"
+#include "cipher.h"
+#include "ath.h"
 
 
-
-/* At the moment the ac interface is a wrapper around the pk
-   interface, but this might change somewhen in the future, depending
-   on how much people prefer the ac interface.  */
-
-/* Mapping of flag numbers to the according strings as it is expected
-   for S-expressions.  */
-struct number_string
-{
-  int number;
-  const char *string;
-} gcry_ac_flags[] =
-  {
-    { GCRY_AC_FLAG_DATA_NO_BLINDING, "no-blinding" },
-    { 0, NULL },
-  };
-
-/* The positions in this list correspond to the values contained in
-   the gcry_ac_key_type_t enumeration list.  */
-const char *ac_key_identifiers[] =
-  {
-    "private-key",
-    "public-key",
-  };
 
 /* These specifications are needed for key-pair generation; the caller
    is allowed to pass additional, algorithm-specific `specs' to
@@ -87,8 +66,8 @@ struct gcry_ac_handle
 /* A named MPI value.  */
 typedef struct gcry_ac_mpi
 {
-  const char *name;
-  gcry_mpi_t mpi;
+  const char *name;		/* Name ov MPI value. */
+  gcry_mpi_t mpi;		/* MPI value.         */
 } gcry_ac_mpi_t;
 
 /* A data set, that is simply a list of named MPI values.  */
@@ -98,20 +77,318 @@ struct gcry_ac_data
   unsigned int data_n;		/* Number of values in DATA.  */
 };
 
-/* The key in `native' ac form and as an S-expression. */
+/* A single key.  */
 struct gcry_ac_key
 {
   gcry_ac_data_t data;		/* Data in native ac structure.  */
-  gcry_sexp_t data_sexp;	/* Data as an S-expression.      */
   gcry_ac_key_type_t type;	/* Type of the key.              */
 };
 
-/* Two keys.  */
+/* A key pair.  */
 struct gcry_ac_key_pair
 {
-  gcry_ac_key_t public;
-  gcry_ac_key_t secret;
+  gcry_ac_key_t public;		/* Public key.  */
+  gcry_ac_key_t secret;		/* Secret key.  */
 };
+
+
+
+/* Call the function FUNCTION contained in the module MODULE and store
+   the return code in ERR.  In case the module does not implement the
+   specified function, an error code is returned directly.  */
+#define AC_MODULE_CALL(err, module, function, ...)                               \
+  {                                                                              \
+    gcry_ac_##function##_t func = ((gcry_ac_spec_t *) (module)->spec)->function; \
+    if (func)                                                                    \
+      err = (*func) (__VA_ARGS__);                                               \
+    else                                                                         \
+      {                                                                          \
+        log_bug ("ac: no implementation of `%s' for algorithm: %i\n",            \
+                 #function, module->mod_id);                                     \
+        err = GPG_ERR_PUBKEY_ALGO;                                               \
+      }                                                                          \
+  }
+
+
+
+/* This is the list of the asymmetric algorithms included in the
+   library.  */
+static struct pubkey_table_entry
+{
+  gcry_ac_spec_t *algorithm;	/* Algorithm specification.  */
+  unsigned int algorithm_id;	/* Algorithm ID.             */
+} algorithm_table[] =
+  {
+#if USE_RSA
+    { &ac_spec_rsa, GCRY_AC_RSA },
+#endif
+#if USE_ELGAMAL
+    { &ac_spec_elg, GCRY_AC_ELG },
+#endif
+#if USE_DSA
+    { &ac_spec_dsa, GCRY_AC_DSA },
+#endif
+    { NULL },
+  };
+
+/* List of registered algorithm modules.  */
+static gcry_module_t algorithms;
+
+/* Lock protecting accesses to ALGORITHMS.  */
+static ath_mutex_t algorithms_lock;
+
+/* Locking macros.  */
+#define ALGORITHMS_LOCK   ath_mutex_lock   (&algorithms_lock)
+#define ALGORITHMS_UNLOCK ath_mutex_unlock (&algorithms_lock)
+
+/* If non-zero, initialization of the ac subsystem is done.  */
+static int ac_initialized;
+
+/* Lock, protecting the initialization of the ac subsystem.  */
+static ath_mutex_t ac_init_lock;
+
+/* Locking macros.  */
+#define AC_INIT_LOCK   ath_mutex_lock   (&ac_init_lock)
+#define AC_INIT_UNLOCK ath_mutex_unlock (&ac_init_lock)
+
+/* Convenient macro for initializing the ac subsystem.  */
+#define AC_INIT               \
+  do                          \
+    {                         \
+      AC_INIT_LOCK;           \
+      if (! ac_initialized)   \
+        {                     \
+          ac_init ();         \
+          ac_initialized = 1; \
+        }                     \
+      AC_INIT_UNLOCK;         \
+    }                         \
+  while (0)
+
+
+
+/*
+ * Progress callback support.
+ */
+
+static gcry_handler_progress_t progress_cb;
+static void *progress_cb_data;
+
+void
+_gcry_ac_progress_register (gcry_handler_progress_t cb,
+			    void *cb_data)
+{
+  progress_cb = cb;
+  progress_cb_data = cb_data;
+}
+
+void
+_gcry_ac_progress (const char *identifier, int c)
+{
+  if (progress_cb)
+    progress_cb (progress_cb_data, identifier, c, 0, 0);
+}
+
+/*
+ * Conversion between anonymous structures and data sets.
+ */
+
+/* Convert a data set into a newly created structure.  */
+static gcry_err_code_t
+anon_struct_from_data_set (gcry_ac_data_t data, size_t size,
+			   unsigned int elems, ac_struct_spec_t *spec,
+			   void **structure)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  void *structure_new = NULL;
+  unsigned int i = 0;
+
+  structure_new = gcry_malloc (size);
+  if (! structure_new)
+    err = GPG_ERR_INTERNAL;	/* FIXME!  */
+
+  if (! err)
+    for (i = 0; i < elems && (! err); i++)
+      err = gcry_ac_data_get_name (data, spec[i].name,
+				   (gcry_mpi_t *) (((char *) structure_new)
+						   + spec[i].offset));
+
+  if (! err)
+    *structure = structure_new;
+  else
+    {
+      if (structure_new)
+	{
+	  if (i)
+	    for (i--; i >= 0; i--)
+	      gcry_mpi_release (*((gcry_mpi_t *) (((char *) structure_new)
+						  + spec[i].offset)));
+	  gcry_free (structure_new);
+	}
+    }
+
+  return err;
+}
+
+/* Create a new anonymous structure.  */
+static gcry_err_code_t
+anon_struct_create (size_t size, void **structure)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  void *structure_new = NULL;
+
+  structure_new = gcry_malloc (size);
+  if (! structure_new)
+    err = GPG_ERR_INTERNAL;	/* FIXME!  */
+  else
+    memset (structure_new, 0, size);
+
+  if (! err)
+    *structure = structure_new;
+  
+  return err;
+}
+
+/* Convert a structure into a newly created data set.  */
+static gcry_err_code_t
+anon_struct_to_data_set (gcry_ac_data_t *data, unsigned int elems,
+			 ac_struct_spec_t *spec,
+			 void *structure)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_ac_data_t data_new = NULL;
+  unsigned int i = 0;
+
+  err = gcry_ac_data_new (&data_new);
+
+  if (! err)
+    for (i = 0; (i < elems) && (! err); i++)
+      err = gcry_ac_data_set (data_new, spec[i].name,
+			      *((gcry_mpi_t *) (((char *) structure)
+						+ spec[i].offset)));
+
+  if (! err)
+    *data = data_new;
+  else
+    {
+      if (data_new)
+	gcry_ac_data_destroy (data_new);
+    }
+
+  return err;
+}
+
+/* 
+ * Module related functions.
+ */
+
+/* Internal callback function.  Used via _gcry_module_lookup.  */
+static int
+gcry_ac_lookup_func_name (void *spec, void *data)
+{
+  gcry_ac_spec_t *algorithm = (gcry_ac_spec_t *) spec;
+  char *name = (char *) data;
+  char **aliases = algorithm->aliases;
+  int ret = stricmp (name, algorithm->name);
+
+  while (ret && *aliases)
+    ret = stricmp (name, *aliases++);
+
+  return ! ret;
+}
+
+/* Internal function.  Lookup a pubkey entry by it's name.  */
+static gcry_module_t 
+gcry_ac_lookup_name (const char *name)
+{
+  gcry_module_t algorithm;
+
+  algorithm = _gcry_module_lookup (algorithms, (void *) name,
+				   gcry_ac_lookup_func_name);
+
+  return algorithm;
+}
+
+/* Register a new algorithm module whose specification can be found in
+   ALGORITHM.  On success, a new algorithm ID is stored in
+   ALGORITHM_ID and a pointer representhing this module is stored in
+   MODULE.  */
+gcry_error_t
+gcry_ac_register (gcry_ac_spec_t *algorithm,
+		  unsigned int *algorithm_id,
+		  gcry_module_t *module)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_module_t mod;
+
+  ALGORITHMS_LOCK;
+  err = _gcry_module_add (&algorithms, 0,
+			  (void *) algorithm, &mod);
+  ALGORITHMS_UNLOCK;
+
+  if (! err)
+    {
+      *module = mod;
+      *algorithm_id = mod->mod_id;
+    }
+
+  return err;
+}
+
+/* Unregister the algorithm identified by MODULE, which must have been
+   registered with gcry_ac_register.  */
+void
+gcry_ac_unregister (gcry_module_t module)
+{
+  ALGORITHMS_LOCK;
+  _gcry_module_release (module);
+  ALGORITHMS_UNLOCK;
+}
+
+/* Internal function.  Register all the pubkeys included in
+   PUBKEY_TABLE.  Returns zero on success or an error code.  */
+static void
+gcry_ac_register_algorithms (void)
+{
+  gcry_err_code_t err = 0;
+  int i;
+
+  ALGORITHMS_LOCK;
+
+  for (i = 0; (! err) && algorithm_table[i].algorithm; i++)
+    err = _gcry_module_add (&algorithms,
+			    algorithm_table[i].algorithm_id,
+			    (void *) algorithm_table[i].algorithm, NULL);
+
+  ALGORITHMS_UNLOCK;
+
+  if (err)
+    BUG ();
+}
+
+
+
+/* 
+ * Initialization.
+ */
+
+/* Initialize the ac subsystem.  */
+static void
+ac_init (void)
+{
+  gcry_ac_register_algorithms ();
+}
+
+/* Initialize the ac subsystem.  */
+gcry_err_code_t
+_gcry_ac_init (void)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  AC_INIT;
+
+  return err;
+}
 
 
 
@@ -128,7 +405,7 @@ gcry_ac_data_search (gcry_ac_data_t data,
 		     gcry_ac_mpi_t **ac_mpi)
 {
   gcry_ac_mpi_t *ac_mpi_found = NULL;
-  int i;
+  unsigned int i = 0;
 
   /* Search.  */
   for (i = 0; i < data->data_n; i++)
@@ -241,278 +518,12 @@ gcry_ac_data_copy_internal (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 
 
 /* 
- * Functions for converting data between the native ac and the
- * S-expression structure.
- */
-
-/* Extract the S-Expression DATA_SEXP into DATA under the control of
-   TYPE and NAME.  This function assumes that S-Expressions are of the
-   following structure:
-
-     (IDENTIFIER <data to be ignored>
-                 (ALGORITHM <list of named MPI values>))
-
-  IDENTIFIER is one of `private-key', `public-key', `enc-val',
-  `sig-val'; ALGORITHM is the name of the algorithm used.  */
-static gcry_err_code_t
-gcry_ac_data_extract (const char *identifier, const char *algorithm,
-		      gcry_sexp_t data_sexp, gcry_ac_data_t *data)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_sexp_t data_element_sexp = NULL;
-  gcry_sexp_t inner_data_sexp = NULL;
-  size_t inner_data_n;
-
-  const char *name;
-  size_t name_n;
-
-  gcry_mpi_t data_elem_mpi = NULL;
-  char *data_elem_name = NULL;
-
-  gcry_ac_data_t data_new = NULL;
-
-  int i = 0;
-
-  /* Verify that the S-expression contains the correct identifier.  */
-  name = gcry_sexp_nth_data (data_sexp, 0, &name_n);
-  if (! name)
-    err = GPG_ERR_INTERNAL;
-  else if (strncmp (identifier, name, name_n))
-    err = GPG_ERR_INTERNAL;
-
-  if (! err)
-    {
-      /* Extract inner S-expression.  */
-      inner_data_sexp = gcry_sexp_find_token (data_sexp, algorithm, 0);
-      if (! inner_data_sexp)
-	err = GPG_ERR_INTERNAL;
-      else
-	/* Count data elements, this includes the name of the
-	   algorithm.  */
-	inner_data_n = gcry_sexp_length (inner_data_sexp);
-    }
-
-  if (! err)
-    {
-      /* Allocate new data set.  */
-      data_new = gcry_malloc (sizeof (struct gcry_ac_data));
-      if (! data_new)
-	err = gpg_err_code_from_errno (errno);
-      else
-	{
-	  data_new->data = gcry_malloc (sizeof (gcry_ac_mpi_t) * (inner_data_n - 1));
-	  if (! data_new->data)
-	    err = gpg_err_code_from_errno (errno);
-	}
-    }
-
-  if (! err)
-    {
-      /* Iterate through list of data elements and add them to the
-	 data set.  */
-
-      for (i = 1; i < inner_data_n; i++)
-	{
-	  data_new->data[i - 1].name = NULL;
-	  data_new->data[i - 1].mpi = NULL;
-
-	  /* Get the S-expression of the named MPI, that contains the
-	     name and the MPI value.  */
-	  data_element_sexp = gcry_sexp_nth (inner_data_sexp, i);
-	  if (! data_element_sexp)
-	    err = GPG_ERR_INTERNAL;
-
-	  if (! err)
-	    {
-	      /* Extract the name.  */
-	      name = gcry_sexp_nth_data (data_element_sexp, 0, &name_n);
-	      if (! name)
-		err = GPG_ERR_INTERNAL;
-	    }
-
-	  if (! err)
-	    {
-	      /* Extract the MPI value.  */
-	      data_elem_mpi = gcry_sexp_nth_mpi (data_element_sexp, 1,
-						 GCRYMPI_FMT_USG);
-	      if (! data_elem_mpi)
-		err = GPG_ERR_INTERNAL;
-	    }
-
-	  if (! err)
-	    {
-	      /* Duplicate the name.  */
-	      data_elem_name = gcry_malloc (name_n + 1);
-	      if (! data_elem_name)
-		
-		err = gpg_err_code_from_errno (errno);
-	      else
-		{
-		  strncpy (data_elem_name, name, name_n);
-		  data_elem_name[name_n] = 0;
-		}
-	    }
-
-	  /* Done.  */
-
-	  if (data_element_sexp)
-	    gcry_sexp_release (data_element_sexp);
-
-	  if (! err)
-	    {
-	      data_new->data[i - 1].name = data_elem_name;
-	      data_new->data[i - 1].mpi = data_elem_mpi;
-	    }
-	  else
-	    break;
-	}
-    }
-
-  if (! err)
-    {
-      /* Copy out.  */
-      data_new->data_n = inner_data_n - 1;
-      *data = data_new;
-    }
-  else
-    {
-      /* Deallocate resources.  */
-
-      if (data_new)
-	{
-	  if (data_new->data)
-	    {
-	      int j;
-	     
-	      for (j = 0; j < i - 1; j++)
-		{
-		  if (data_new->data[j].name)
-		    gcry_free ((void *) data_new->data[j].name);
-		  if (data_new->data[j].mpi)
-		    gcry_mpi_release (data_new->data[j].mpi);
-		}
-
-	      gcry_free (data_new->data);
-	    }
-	  gcry_free (data_new);
-	}
-    }
-
-  return err;
-}
-
-/* Construct an S-expression from the DATA and store it in
-   DATA_SEXP. The S-expression will be of the following structure:
-
-     (IDENTIFIER [(flags [...])]
-                 (ALGORITHM <list of named MPI values>))  */
-static gcry_err_code_t
-gcry_ac_data_construct (const char *identifier, int include_flags,
-			unsigned int flags, const char *algorithm,
-			gcry_ac_data_t data, gcry_sexp_t *data_sexp)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  void **arg_list = NULL;
-
-  gcry_sexp_t data_sexp_new = NULL;
-
-  size_t data_format_n = 0;
-  char *data_format = NULL;
-
-  int i;
-
-  /* We build a list of arguments to pass to
-     gcry_sexp_build_array().  */
-  arg_list = gcry_malloc (sizeof (void *) * data->data_n);
-  if (! arg_list)
-    err = gpg_err_code_from_errno (errno);
-  else
-    /* Fill list with MPIs.  */
-    for (i = 0; i < data->data_n; i++)
-      arg_list[i] = (void *) &data->data[i].mpi;
-
-  if (! err)
-    {
-      /* Calculate size of format string.  */
-
-      data_format_n = 5 + (include_flags ? 7 : 0) + strlen (identifier) + strlen (algorithm);
-      for (i = 0; i < data->data_n; i++)
-	/* Per-element sizes.  */
-	data_format_n += 4 + strlen (data->data[i].name);
-
-      if (include_flags)
-	/* Add flags.  */
-	for (i = 0; gcry_ac_flags[i].number; i++)
-	  if (flags & gcry_ac_flags[i].number)
-	    data_format_n += strlen (gcry_ac_flags[i].string) + 1;
-
-      /* Done.  */
-      data_format = gcry_malloc (data_format_n);
-      if (! data_format)
-	err = gpg_err_code_from_errno (errno);
-    }
-
-  if (! err)
-    {
-      /* Construct the format string.  */
-
-      *data_format = 0;
-      strcat (data_format, "(");
-      strcat (data_format, identifier);
-      if (include_flags)
-	{
-	  strcat (data_format, "(flags");
-	  for (i = 0; gcry_ac_flags[i].number; i++)
-	    if (flags & gcry_ac_flags[i].number)
-	      {
-		strcat (data_format, " ");
-		strcat (data_format, gcry_ac_flags[i].string);
-	      }
-	  strcat (data_format, ")");
-	}
-      strcat (data_format, "(");
-      strcat (data_format, algorithm);
-      for (i = 0; i < data->data_n; i++)
-	{
-	  strcat (data_format, "(");
-	  strcat (data_format, data->data[i].name);
-	  strcat (data_format, "%m)");
-	}
-      strcat (data_format, "))");
-
-      /* Create final S-expression.  */
-      err = gcry_sexp_build_array (&data_sexp_new, NULL,
-				   data_format, arg_list);
-    }
-
-  if (err)
-    {
-      /* Deallocate resources.  */
-
-      if (arg_list)
-	gcry_free (arg_list);
-      if (data_format)
-	gcry_free (data_format);
-      if (data_sexp_new)
-	gcry_sexp_release (data_sexp_new);
-    }
-
-  else
-    /* Copy-out.  */
-    *data_sexp = data_sexp_new;
-
-  return err;
-}
-
-
-
-/* 
  * Functions for working with data sets.
  */
 
 /* Creates a new, empty data set and stores it in DATA.  */
-gcry_error_t
-gcry_ac_data_new (gcry_ac_data_t *data)
+static gcry_err_code_t
+gcry_ac_data_new_internal (gcry_ac_data_t *data)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_ac_data_t data_new = NULL;
@@ -527,6 +538,17 @@ gcry_ac_data_new (gcry_ac_data_t *data)
       data_new->data_n = 0;
       *data = data_new;
     }
+
+  return err;
+}
+
+/* Creates a new, empty data set and stores it in DATA.  */
+gcry_error_t
+gcry_ac_data_new (gcry_ac_data_t *data)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  err = gcry_ac_data_new_internal (data);
 
   return gcry_error (err);
 }
@@ -613,13 +635,9 @@ gcry_ac_data_length (gcry_ac_data_t data)
   return data->data_n;
 }
 
-/* Stores the value labelled with NAME found in the data set DATA in
-   MPI.  The returned MPI value will be released in case
-   gcry_ac_data_set is used to associate the label NAME with a
-   different MPI value.  */
-gcry_error_t
-gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
-		       gcry_mpi_t *mpi)
+gcry_err_code_t
+_gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
+			gcry_mpi_t *mpi)
 {
   gcry_err_code_t err = GPG_ERR_NO_DATA;
   gcry_mpi_t mpi_found = NULL;
@@ -635,16 +653,56 @@ gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
   if (! err)
     *mpi = mpi_found;
 
+  return err;
+}
+
+/* Stores the value labelled with NAME found in the data set DATA in
+   MPI.  The returned MPI value will be released in case
+   gcry_ac_data_set is used to associate the label NAME with a
+   different MPI value.  */
+gcry_error_t
+gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
+		       gcry_mpi_t *mpi)
+{
+  gcry_err_code_t err = GPG_ERR_NO_DATA;
+
+  err = _gcry_ac_data_get_name (data, name, mpi);
+
   return gcry_error (err);
 }
 
-/* Stores in NAME and MPI the named MPI value contained in the data
-   set DATA with the index INDEX.  NAME or MPI may be NULL.  The
-   returned MPI value will be released in case gcry_ac_data_set is
-   used to associate the label NAME with a different MPI value.  */
-gcry_error_t
-gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
-			const char **name, gcry_mpi_t *mpi)
+gcry_err_code_t
+_gcry_ac_arg_list_from_data (gcry_ac_data_t data, void ***arg_list)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  void **arg_list_new = NULL;
+  unsigned int i = 0;
+
+  if (data->data_n)
+    {
+      arg_list_new = gcry_malloc (sizeof (void *) * data->data_n);
+      if (! arg_list_new)
+	err = GPG_ERR_INTERNAL;	/* FIXME!  */
+
+      if (! err)
+	for (i = 0; i < data->data_n && (! err); i++)
+	  arg_list_new[i] = &data->data[i].mpi;
+    }
+
+  if (! err)
+    *arg_list = arg_list_new;
+  else
+    {
+      if (arg_list_new)
+	gcry_free (arg_list_new);
+    }
+
+  return err;
+}
+
+gcry_err_code_t
+_gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
+			 const char **name, gcry_mpi_t *mpi)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
@@ -657,6 +715,21 @@ gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
     }
   else
     err = GPG_ERR_NO_DATA;
+
+  return err;
+}
+
+/* Stores in NAME and MPI the named MPI value contained in the data
+   set DATA with the index INDEX.  NAME or MPI may be NULL.  The
+   returned MPI value will be released in case gcry_ac_data_set is
+   used to associate the label NAME with a different MPI value.  */
+gcry_error_t
+gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
+			const char **name, gcry_mpi_t *mpi)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  err = _gcry_ac_data_get_index (data, index, name, mpi);
 
   return gcry_error (err);
 }
@@ -683,19 +756,17 @@ gcry_ac_open (gcry_ac_handle_t *handle,
 	      gcry_ac_id_t algorithm, unsigned int flags)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_ac_handle_t handle_new = NULL;
   gcry_module_t module = NULL;
-  gcry_ac_handle_t handle_new;
-  const char *algorithm_name;
 
-  /* Get name.  */
-  algorithm_name = _gcry_pk_aliased_algo_name (algorithm);
-  if (! *algorithm_name)
+  AC_INIT;
+
+  ALGORITHMS_LOCK;
+
+  module = _gcry_module_lookup_id (algorithms, algorithm);
+  if ((! module) || (module->flags & FLAG_MODULE_DISABLED))
     err = GPG_ERR_PUBKEY_ALGO;
 
-  if (! err)
-    /* Acquire reference to the pubkey module.  */
-    err = _gcry_pk_module_lookup (algorithm, &module);
-  
   if (! err)
     {
       /* Allocate.  */
@@ -708,7 +779,6 @@ gcry_ac_open (gcry_ac_handle_t *handle,
     {
       /* Done.  */
       handle_new->algorithm = algorithm;
-      handle_new->algorithm_name = algorithm_name;
       handle_new->flags = flags;
       handle_new->module = module;
       *handle = handle_new;
@@ -717,8 +787,10 @@ gcry_ac_open (gcry_ac_handle_t *handle,
     {
       /* Deallocate resources.  */
       if (module)
-	_gcry_pk_module_release (module);
+	_gcry_module_release (module);
     }
+
+  ALGORITHMS_UNLOCK;
 
   return gcry_error (err);
 }
@@ -728,7 +800,9 @@ void
 gcry_ac_close (gcry_ac_handle_t handle)
 {
   /* Release reference to pubkey module.  */
-  _gcry_pk_module_release (handle->module);
+  ALGORITHMS_LOCK;
+  _gcry_module_release (handle->module);
+  ALGORITHMS_UNLOCK;
   gcry_free (handle);
 }
 
@@ -748,7 +822,6 @@ gcry_ac_key_init (gcry_ac_key_t *key,
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_ac_data_t data_new = NULL;
-  gcry_sexp_t data_sexp = NULL;
   gcry_ac_key_t key_new = NULL;
 
   /* Allocate.  */
@@ -757,18 +830,12 @@ gcry_ac_key_init (gcry_ac_key_t *key,
     err = gpg_err_code_from_errno (errno);
 
   if (! err)
-    /* Create S-expression from data set.  */
-    err = gcry_ac_data_construct (ac_key_identifiers[type], 0, 0,
-				  handle->algorithm_name, data, &data_sexp);
-
-  if (! err)
     /* Copy data set.  */
     err = gcry_ac_data_copy_internal (&data_new, data);
 
   if (! err)
     {
       /* Done.  */
-      key_new->data_sexp = data_sexp;
       key_new->data = data_new;
       key_new->type = type;
       *key = key_new;
@@ -778,8 +845,6 @@ gcry_ac_key_init (gcry_ac_key_t *key,
       /* Deallocate resources.  */
       if (key_new)
 	gcry_free (key_new);
-      if (data_sexp)
-	gcry_sexp_release (data_sexp);
     }
 
   return gcry_error (err);
@@ -791,180 +856,118 @@ gcry_ac_key_init (gcry_ac_key_t *key,
    matching the selected algorithm, can be given as KEY_SPEC.  */
 gcry_error_t
 gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
-			   gcry_ac_key_pair_t *key_pair,
 			   unsigned int nbits,
-			   void *key_spec)
+			   void *key_spec,
+			   gcry_ac_key_pair_t *key_pair,
+			   gcry_mpi_t **misc_data)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-
   gcry_ac_key_pair_t key_pair_new = NULL;
-
-  gcry_sexp_t genkey_sexp_request = NULL;
-  gcry_sexp_t genkey_sexp_reply = NULL;
-
-  char *genkey_format = NULL;
-  size_t genkey_format_n = 0;
-
-  void **arg_list = NULL;
-  size_t arg_list_n = 0;
-
+  gcry_ac_data_t key_data_secret = NULL;
+  gcry_ac_data_t key_data_public = NULL;
+  gcry_mpi_t *misc_data_new = NULL;
+  void *key_secret = NULL;
+  void *key_public = NULL;
   unsigned int i = 0;
 
-  /* Allocate key pair.  */
-  key_pair_new = gcry_malloc (sizeof (struct gcry_ac_key_pair));
-  if (! key_pair_new)
-    err = gpg_err_code_from_errno (errno);
+  err = anon_struct_create ((((gcry_ac_spec_t *)
+			      handle->module->spec)->size_key_public),
+			    &key_public);
+  if (! err)
+    err = anon_struct_create ((((gcry_ac_spec_t *)
+				handle->module->spec)->size_key_secret),
+			      &key_secret);
+
+  /* Generate keys.  */
+  if (! err)
+    AC_MODULE_CALL (err, handle->module, generate,
+		    nbits, key_spec, key_secret, key_public, &misc_data_new);
+
+  /* Convert anonymous structures into data sets.  */
+  if (! err)
+    err = anon_struct_to_data_set (&key_data_secret,
+				   (((gcry_ac_spec_t *)
+				     handle->module->spec)->elems_key_secret),
+				   (((gcry_ac_spec_t *)
+				     handle->module->spec)->spec_key_secret),
+				   key_secret);
+  if (! err)
+    err = anon_struct_to_data_set (&key_data_public,
+				   (((gcry_ac_spec_t *)
+				     handle->module->spec)->elems_key_public),
+				   (((gcry_ac_spec_t *)
+				     handle->module->spec)->spec_key_public),
+				   key_public);
+
+  if (! err)
+    {
+      /* Allocate key pair.  */
+      key_pair_new = gcry_malloc (sizeof (struct gcry_ac_key_pair));
+      if (! key_pair_new)
+	err = gpg_err_code_from_errno (errno);
+    }
 
   if (! err)
     {
       /* Allocate keys.  */
       key_pair_new->secret = gcry_malloc (sizeof (struct gcry_ac_key));
       key_pair_new->public = gcry_malloc (sizeof (struct gcry_ac_key));
-
+      
       if (! (key_pair_new->secret || key_pair_new->public))
- 	err = gpg_err_code_from_errno (errno);
+	err = gpg_err_code_from_errno (errno);
       else
 	{
 	  key_pair_new->secret->type = GCRY_AC_KEY_SECRET;
 	  key_pair_new->public->type = GCRY_AC_KEY_PUBLIC;
-	  key_pair_new->secret->data_sexp = NULL;
-	  key_pair_new->public->data_sexp = NULL;
-	  key_pair_new->secret->data = NULL;
-	  key_pair_new->public->data = NULL;
+	  key_pair_new->secret->data = key_data_secret;
+	  key_pair_new->public->data = key_data_public;
 	}
     }
-
-  if (! err)
-    {
-      /* Calculate size of the format string, that is used for
-	 creating the request S-expression.  */
-      genkey_format_n = 23;
-
-      /* Respect any relevant algorithm specific commands.  */
-      if (key_spec)
-	for (i = 0; gcry_ac_key_generate_specs[i].algorithm; i++)
-	  if (handle->algorithm == gcry_ac_key_generate_specs[i].algorithm)
-	    genkey_format_n += 6;
-
-      /* Create format string.  */
-      genkey_format = gcry_malloc (genkey_format_n);
-      if (! genkey_format)
-	err = gpg_err_code_from_errno (errno);
-      else
-	{
-	  /* Fill format string.  */
-	  *genkey_format = 0;
-	  strcat (genkey_format, "(genkey(%s(nbits%d)");
-	  if (key_spec)
-	    for (i = 0; gcry_ac_key_generate_specs[i].algorithm; i++)
-	      if (handle->algorithm == gcry_ac_key_generate_specs[i].algorithm)
-		strcat (genkey_format, "(%s%m)");
-	  strcat (genkey_format, "))");
-	}
-    }
-
-  if (! err)
-    {
-      /* Build list of argument pointers, the algorithm name and the
-	 nbits are needed always.  */
-      arg_list_n = 2;
-
-      /* Now the algorithm specific arguments.  */
-      if (key_spec)
-	for (i = 0; gcry_ac_key_generate_specs[i].algorithm; i++)
-	  if (handle->algorithm == gcry_ac_key_generate_specs[i].algorithm)
-	    arg_list_n += 2;
-
-      /* Allocate list.  */
-      arg_list = gcry_malloc (sizeof (void *) * arg_list_n);
-      if (! arg_list)
-	err = gpg_err_code_from_errno (errno);
-      else
-	{
-	  /* Fill argument list. */
-	  
-	  int j;
-
-	  arg_list[0] = (void *) &handle->algorithm_name;
-	  arg_list[1] = (void *) &nbits;
-
-	  if (key_spec)
-	    for (j = 2, i = 0; gcry_ac_key_generate_specs[i].algorithm; i++)
-	      if (handle->algorithm == gcry_ac_key_generate_specs[i].algorithm)
-		{
-		  /* Add name of this specification flag and the
-		     according member of the spec strucuture.  */
-		  arg_list[j++] = (void *) (&gcry_ac_key_generate_specs[i].name);
-		  arg_list[j++] = (void *) (((char *) key_spec)
-					    + gcry_ac_key_generate_specs[i].offset);
-		}
-	}
-    }
-
-  if (! err)
-    /* Construct final request S-expression.  */
-    err = gcry_err_code (gcry_sexp_build_array (&genkey_sexp_request, NULL,
-					       genkey_format, arg_list));
-
-  if (! err)
-    /* Perform genkey operation.  */
-    err = gcry_err_code (gcry_pk_genkey (&genkey_sexp_reply,
-					genkey_sexp_request));
-
-  /* Split keys.  */
-  if (! err)
-    {
-      key_pair_new->secret->data_sexp = gcry_sexp_find_token (genkey_sexp_reply,
-							      "private-key", 0);
-      if (! key_pair_new->secret->data_sexp)
-	err = GPG_ERR_INTERNAL;
-    }
-  if (! err)
-    {
-      key_pair_new->public->data_sexp = gcry_sexp_find_token (genkey_sexp_reply,
-							      "public-key", 0);
-      if (! key_pair_new->public->data_sexp)
-	err = GPG_ERR_INTERNAL;
-    }
-
-  /* Extract key material.  */
-  if (! err)
-    err = gcry_ac_data_extract ("private-key", handle->algorithm_name,
-				key_pair_new->secret->data_sexp,
-				&key_pair_new->secret->data);
-  if (! err)
-    err = gcry_ac_data_extract ("public-key", handle->algorithm_name,
-				key_pair_new->public->data_sexp,
-				&key_pair_new->public->data);
 
   /* Done.  */
 
+  if (key_secret)
+    gcry_free (key_secret);
+  if (key_public)
+    gcry_free (key_public);
+
   if (! err)
-    *key_pair = key_pair_new;
+    {
+      *key_pair = key_pair_new;
+      if (misc_data)
+	*misc_data = misc_data_new;
+      else if (misc_data_new)
+	{
+	  for (i = 0; misc_data_new[i]; i++)
+	    gcry_mpi_release (misc_data_new[i]);
+	  gcry_free (misc_data_new);
+	}
+    }
   else
     {
       /* Deallocate resources.  */
 
+      if (key_data_public)
+	gcry_ac_data_destroy (key_data_public);
+      if (key_data_secret)
+	gcry_ac_data_destroy (key_data_secret);
+      if (misc_data_new)
+	gcry_free (misc_data_new);
+
       if (key_pair_new)
 	{
 	  if (key_pair_new->secret)
-	    gcry_ac_key_destroy (key_pair_new->secret);
+	    {
+	      key_pair_new->secret->data = NULL;
+	      gcry_ac_key_destroy (key_pair_new->secret);
+	    }
 	  if (key_pair_new->public)
-	    gcry_ac_key_destroy (key_pair_new->public);
-
+	    {
+	      key_pair_new->public->data = NULL;
+	      gcry_ac_key_destroy (key_pair_new->public);
+	    }
 	  gcry_free (key_pair_new);
 	}
-
-      if (arg_list)
-	gcry_free (arg_list);
-
-      if (genkey_format)
-	gcry_free (genkey_format);
-
-      if (genkey_sexp_request)
-	gcry_sexp_release (genkey_sexp_request);
-      if (genkey_sexp_reply)
-	gcry_sexp_release (genkey_sexp_reply);
     }
 
   return gcry_error (err);
@@ -995,8 +998,8 @@ gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
 void
 gcry_ac_key_destroy (gcry_ac_key_t key)
 {
-  int i;
-
+  unsigned int i;
+  
   if (key->data)
     {
       for (i = 0; i < key->data->data_n; i++)
@@ -1004,8 +1007,6 @@ gcry_ac_key_destroy (gcry_ac_key_t key)
 	  gcry_mpi_release (key->data->data[i].mpi);
       gcry_free (key->data);
     }
-  if (key->data_sexp)
-    gcry_sexp_release (key->data_sexp);
   gcry_free (key);
 }
 
@@ -1022,46 +1023,172 @@ gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
 gcry_ac_data_t
 gcry_ac_key_data_get (gcry_ac_key_t key)
 {
-  return  key->data;
+  return key->data;
 }
 
 /* Verifies that the key KEY is sane.  */
 gcry_error_t
-gcry_ac_key_test (gcry_ac_key_t key)
+gcry_ac_key_test (gcry_ac_handle_t handle,
+		  gcry_ac_key_t key)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  void *key_structure = NULL;
 
-  err = gcry_err_code (gcry_pk_testkey (key->data_sexp));
+  err = anon_struct_from_data_set (key->data,
+				   (((gcry_ac_spec_t *)
+				     handle->module->spec)->size_key_secret),
+				   (((gcry_ac_spec_t *)
+				     handle->module->spec)->elems_key_secret),
+				   (((gcry_ac_spec_t *)
+				     handle->module->spec)->spec_key_secret),
+				   &key_structure);
+  if (! err)
+    AC_MODULE_CALL (err, handle->module, key_secret_check, key_structure);
+
+  if (key_structure)
+    gcry_free (key_structure);
 
   return gcry_error (err);
 }
 
 /* Stores the number of bits of the key KEY in NBITS.  */
 gcry_error_t
-gcry_ac_key_get_nbits (gcry_ac_key_t key, unsigned int *nbits)
+gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
+		       gcry_ac_key_t key, unsigned int *nbits)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  unsigned int n;
+  void *key_struct_public = NULL;
+  void *key_struct_secret = NULL;
+  ac_struct_spec_t *spec = NULL;
+  unsigned int nbits_new = 0;
+  unsigned int elems = 0;
+  size_t size = 0;
 
-  n = gcry_pk_get_nbits (key->data_sexp);
-  if (n)
-    *nbits = n;
-  else
-    err = GPG_ERR_PUBKEY_ALGO;
+  switch (key->type)
+    {
+    case GCRY_AC_KEY_PUBLIC:
+      spec = (((gcry_ac_spec_t *) handle->module->spec)->spec_key_public);
+      size = (((gcry_ac_spec_t *) handle->module->spec)->size_key_public);
+      elems = (((gcry_ac_spec_t *) handle->module->spec)->elems_key_public);
+      break;
+
+    case GCRY_AC_KEY_SECRET:
+      spec = (((gcry_ac_spec_t *) handle->module->spec)->spec_key_secret);
+      size = (((gcry_ac_spec_t *) handle->module->spec)->size_key_secret);
+      elems = (((gcry_ac_spec_t *) handle->module->spec)->elems_key_secret);
+      break;
+
+    default:
+      err = GPG_ERR_INTERNAL;	/* FIXME?  */
+    }
+
+  if (! err)
+    {
+      if (key->type == GCRY_AC_KEY_PUBLIC)
+	err = anon_struct_from_data_set (key->data, size, elems, spec,
+					 &key_struct_public);
+      else
+	err = anon_struct_from_data_set (key->data, size, elems, spec,
+					 &key_struct_secret);
+    }
+  
+  if (! err)
+    AC_MODULE_CALL (err, handle->module, get_nbits,
+		    key_struct_public, key_struct_secret, &nbits_new);
+
+  if (key_struct_public)
+    gcry_free (key_struct_public);
+  if (key_struct_secret)
+    gcry_free (key_struct_secret);
+  
+  if (! err)
+    *nbits = nbits_new;
 
   return gcry_error (err);
 }
 
-/* Writes the 20 byte long key grip of the key KEY to KEY_GRIP.  */
-gcry_error_t
-gcry_ac_key_get_grip (gcry_ac_key_t key, unsigned char *key_grip)
+gcry_err_code_t
+_gcry_ac_key_get_grip_std (unsigned char *key_grip, unsigned int flags, ...)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  unsigned char *ret;
+  unsigned char *mpi_buffer = NULL;
+  size_t mpi_buffer_size = 0;
+  gcry_md_hd_t md_handle = NULL;
+  const char *name = NULL;
+  gcry_mpi_t mpi = NULL;
+  va_list ap;
 
-  ret = gcry_pk_get_keygrip (key->data_sexp, key_grip);
-  if (! ret)
-    err = GPG_ERR_INTERNAL; 	/* FIXME.  */
+  /* Create handle for hashing.  */
+  err = gcry_err_code (gcry_md_open (&md_handle, GCRY_MD_SHA1, 0));
+
+  if (! err)
+    {
+      va_start (ap, flags);
+      
+      /* Iterate over provided data and write it to message digest
+	 handle.  */
+      do
+	{
+	  name = va_arg (ap, const char *);
+	  if (name)
+	    {
+	      mpi = va_arg (ap, gcry_mpi_t);
+
+	      err = gcry_mpi_aprint (GCRYMPI_FMT_USG,
+				     &mpi_buffer, &mpi_buffer_size, mpi);
+	      if (! err)
+		{
+		  if (flags & GCRY_AC_KEY_GRIP_FLAG_SEXP)
+		    {
+		      /* FIXME, this is not so nice.  */
+		      char buf[30];
+		      
+		      sprintf (buf, "(1:%c%u:", *name, (unsigned int) mpi_buffer_size);
+		      gcry_md_write (md_handle, buf, strlen (buf));
+		    }
+		  gcry_md_write (md_handle, mpi_buffer, mpi_buffer_size);
+		  if (flags & GCRY_AC_KEY_GRIP_FLAG_SEXP)
+		    gcry_md_write (md_handle, ")", 1);
+		}
+	    }
+	}
+      while (name);
+    }
+
+  if (! err)
+    memcpy (key_grip, gcry_md_read (md_handle, GCRY_MD_SHA1), 20);
+
+  if (md_handle)
+    gcry_md_close (md_handle);
+
+  return err;
+}
+
+/* Writes the 20 byte long key grip of the key KEY to KEY_GRIP.  */
+gcry_error_t
+gcry_ac_key_get_grip (gcry_ac_handle_t handle,
+		      gcry_ac_key_t key, unsigned char *key_grip)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  void *key_structure = NULL;
+
+  if (key->type != GCRY_AC_KEY_PUBLIC)
+    err = GPG_ERR_INTERNAL;	/* FIXME!!  */
+  
+  if (! err)
+    err = anon_struct_from_data_set (key->data,
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->size_key_public),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->elems_key_public),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->spec_key_public),
+				     &key_structure);
+  if (! err)
+    AC_MODULE_CALL (err, handle->module, get_grip, key_structure, key_grip);
+
+  if (key_structure)
+    gcry_free (key_structure);
 
   return gcry_error (err);
 }
@@ -1083,69 +1210,58 @@ gcry_ac_data_encrypt (gcry_ac_handle_t handle,
 		      gcry_ac_data_t *data_encrypted)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_sexp_t sexp_request = NULL;
-  gcry_sexp_t sexp_reply = NULL;
-  char *request_format = NULL;
-  size_t request_format_n = 0;
-  gcry_ac_data_t data;
-  
-  int i;
+  gcry_ac_data_t data_encrypted_new = NULL;
+  void *data_encrypted_struct = NULL;
+  void *key_struct = NULL;
 
   if (key->type != GCRY_AC_KEY_PUBLIC)
     err = GPG_ERR_WRONG_KEY_USAGE;
 
   if (! err)
-    {
-      /* Calculate request format string.  */
-
-      request_format_n += 23;
-      for (i = 0; gcry_ac_flags[i].number; i++)
-	if (flags & gcry_ac_flags[i].number)
-	  request_format_n += strlen (gcry_ac_flags[i].string) + 1;
-
-      /* Allocate request format string.  */
-      request_format = gcry_malloc (request_format_n);
-      if (! request_format)
-	err = gpg_err_code_from_errno (errno);
-    }
+    /* Convert key.  */
+    err = anon_struct_from_data_set (key->data,
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->size_key_public),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->elems_key_public),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->spec_key_public),
+				     &key_struct);
 
   if (! err)
-    {
-      /* Fill format string.  */
-      *request_format = 0;
-      strcat (request_format, "(data(flags");
-      for (i = 0; gcry_ac_flags[i].number; i++)
-	if (flags & gcry_ac_flags[i].number)
-	  {
-	    strcat (request_format, " ");
-	    strcat (request_format, gcry_ac_flags[i].string);
-	  }
-      strcat (request_format, ")(value%m))");
-
-      /* Create S-expression.  */
-      err = gcry_sexp_build (&sexp_request, NULL,
-			     request_format, data_plain);
-    }
+    /* Create anonymous struct.  */
+    err = anon_struct_create ((((gcry_ac_spec_t *)
+				handle->module->spec)->size_data_encrypted),
+			      &data_encrypted_struct);
 
   if (! err)
     /* Encrypt.  */
-    err = gcry_pk_encrypt (&sexp_reply, sexp_request, key->data_sexp);
+    AC_MODULE_CALL (err, handle->module, encrypt,
+		    data_plain, key_struct, data_encrypted_struct, flags);
 
+  /* Convert encrypted data into data set.  */
   if (! err)
-    /* Extract data.  */
-    err = gcry_ac_data_extract ("enc-val", handle->algorithm_name,
-				sexp_reply, &data);
+    err = anon_struct_to_data_set (&data_encrypted_new,
+				   ((gcry_ac_spec_t *)
+				    handle->module->spec)->elems_data_encrypted,
+				   ((gcry_ac_spec_t *)
+				    handle->module->spec)->spec_data_encrypted,
+				   data_encrypted_struct);
 
   /* Deallocate resources.  */
 
-  if (sexp_request)
-    gcry_sexp_release (sexp_request);
-  if (sexp_reply)
-    gcry_sexp_release (sexp_reply);
+  if (key_struct)
+    gcry_free (key_struct);
+  if (data_encrypted_struct)
+    gcry_free (data_encrypted_struct);
 
   if (! err)
-    /* Copy out.  */
-    *data_encrypted = data;
+    *data_encrypted = data_encrypted_new;
+  else
+    {
+      if (data_encrypted_new)
+	gcry_ac_data_destroy (data_encrypted_new);
+    }
 
   return gcry_error (err);
 }
@@ -1158,59 +1274,62 @@ gcry_error_t
 gcry_ac_data_decrypt (gcry_ac_handle_t handle,
 		      unsigned int flags,
 		      gcry_ac_key_t key,
-		      gcry_mpi_t *data_plain,
+		      gcry_mpi_t *data_decrypted,
 		      gcry_ac_data_t data_encrypted)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_mpi_t data_decrypted = NULL;
-  gcry_sexp_t sexp_request = NULL;
-  gcry_sexp_t sexp_reply = NULL;
+  gcry_mpi_t data_decrypted_new = NULL;
+  void *data_encrypted_struct = NULL;
+  void *key_struct = NULL;
 
   if (key->type != GCRY_AC_KEY_SECRET)
     err = GPG_ERR_WRONG_KEY_USAGE;
 
   if (! err)
-    /* Create S-expression from data.  */
-    err = gcry_ac_data_construct ("enc-val", 1, flags, handle->algorithm_name,
-				  data_encrypted, &sexp_request);
+    /* Convert key.  */
+    err = anon_struct_from_data_set (key->data,
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->size_key_secret),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->elems_key_secret),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->spec_key_secret),
+				     &key_struct);
+
+  if (! err)
+    /* Convert data.  */
+    err = anon_struct_from_data_set (data_encrypted,
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->size_data_encrypted),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->elems_data_encrypted),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->spec_data_encrypted),
+				     &data_encrypted_struct);
 
   if (! err)
     /* Decrypt.  */
-    err = gcry_pk_decrypt (&sexp_reply, sexp_request, key->data_sexp);
+    AC_MODULE_CALL (err, handle->module, decrypt,
+		    data_encrypted_struct, key_struct, &data_decrypted_new,
+		    flags);
 
-  if (! err)
-    {
-      /* Extract plain text. */
-
-      gcry_sexp_t l;
-
-      l = gcry_sexp_find_token (sexp_reply, "value", 0);
-      if (! l)
-	err = GPG_ERR_GENERAL;
-      else
-	{
-	  data_decrypted = gcry_sexp_nth_mpi (l, 1, GCRYMPI_FMT_USG);
-	  if (! data_decrypted)
-	    err = GPG_ERR_GENERAL;
-	  gcry_sexp_release (l);
-	}
-    }
+  /* Deallocate resources.  */
+  if (key_struct)
+    gcry_free (key_struct);
+  if (data_encrypted_struct)
+    gcry_free (data_encrypted_struct);
 
   /* Done.  */
 
-  if (err)
-    {
-      /* Deallocate resources.  */
-      if (sexp_request)
-	gcry_sexp_release (sexp_request);
-      if (sexp_reply)
-	gcry_sexp_release (sexp_reply);
-    }
+  if (! err)
+    *data_decrypted = data_decrypted_new;
   else
-    *data_plain = data_decrypted;
+    {
+      if (data_decrypted_new)
+	gcry_mpi_release (data_decrypted_new);
+    }
 
   return gcry_error (err);
-
 }
 
 /* Signs the data contained in DATA with the secret key KEY and stores
@@ -1219,38 +1338,60 @@ gcry_error_t
 gcry_ac_data_sign (gcry_ac_handle_t handle,
 		   gcry_ac_key_t key,
 		   gcry_mpi_t data,
-		   gcry_ac_data_t *data_signature)
+		   gcry_ac_data_t *data_signed)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_sexp_t sexp_request = NULL;
-  gcry_sexp_t sexp_reply = NULL;
-  gcry_ac_data_t ac_data;
+  gcry_ac_data_t data_signed_new = NULL;
+  void *data_signed_struct = NULL;
+  void *key_struct = NULL;
 
   if (key->type != GCRY_AC_KEY_SECRET)
     err = GPG_ERR_WRONG_KEY_USAGE;
 
   if (! err)
-    /* Create S-expression holding the data.  */
-    err = gcry_sexp_build (&sexp_request, NULL,
-			   "(data(flags)(value%m))", data);
+    /* Convert key.  */
+    err = anon_struct_from_data_set (key->data,
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->size_key_secret),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->elems_key_secret),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->spec_key_secret),
+				     &key_struct);
+
+  if (! err)
+    /* Create anonymous struct.  */
+    err = anon_struct_create ((((gcry_ac_spec_t *)
+				handle->module->spec)->size_data_signed),
+			      &data_signed_struct);
+
   if (! err)
     /* Sign.  */
-    err = gcry_pk_sign (&sexp_reply, sexp_request, key->data_sexp);
+    AC_MODULE_CALL (err, handle->module, sign,
+		    data, key_struct, data_signed_struct);
 
+  /* Convert signed data into data set.  */
   if (! err)
-    /* Extract data.  */
-    err = gcry_ac_data_extract ("sig-val", handle->algorithm_name,
-				sexp_reply, &ac_data);
+    err = anon_struct_to_data_set (&data_signed_new,
+				   ((gcry_ac_spec_t *)
+				    handle->module->spec)->elems_data_signed,
+				   ((gcry_ac_spec_t *)
+				    handle->module->spec)->spec_data_signed,
+				   data_signed_struct);
 
-  /* Done.  */
-
-  if (sexp_request)
-    gcry_sexp_release (sexp_request);
-  if (sexp_reply)
-    gcry_sexp_release (sexp_reply);
-
+  /* Deallocate resources.  */
+  if (key_struct)
+    gcry_free (key_struct);
+  if (data_signed_struct)
+    gcry_free (data_signed_struct);
+  
   if (! err)
-    *data_signature = ac_data;
+    *data_signed = data_signed_new;
+  else
+    {
+      if (data_signed_new)
+	gcry_ac_data_destroy (data_signed_new);
+    }
 
   return gcry_error (err);
 }
@@ -1262,35 +1403,47 @@ gcry_error_t
 gcry_ac_data_verify (gcry_ac_handle_t handle,
 		     gcry_ac_key_t key,
 		     gcry_mpi_t data,
-		     gcry_ac_data_t data_signature)
+		     gcry_ac_data_t data_signed)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_sexp_t sexp_request = NULL;
-  gcry_sexp_t sexp_data = NULL;
+  void *data_signed_struct = NULL;
+  void *key_struct = NULL;
 
   if (key->type != GCRY_AC_KEY_PUBLIC)
     err = GPG_ERR_WRONG_KEY_USAGE;
 
   if (! err)
-    /* Construct S-expression holding the signature data.  */
-    err = gcry_ac_data_construct ("sig-val", 1, 0, handle->algorithm_name,
-				  data_signature, &sexp_request);
-
+    /* Convert key.  */
+    err = anon_struct_from_data_set (key->data,
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->size_key_public),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->elems_key_public),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->spec_key_public),
+				     &key_struct);
+  
   if (! err)
-    /* Construct S-expression holding the data.  */
-    err = gcry_sexp_build (&sexp_data, NULL,
-			   "(data(flags)(value%m))", data);
+    /* Convert signed data.  */
+    err = anon_struct_from_data_set (data_signed,
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->size_data_signed),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->elems_data_signed),
+				     (((gcry_ac_spec_t *)
+				       handle->module->spec)->spec_data_signed),
+				     &data_signed_struct);
 
   if (! err)
     /* Verify signature.  */
-    err = gcry_pk_verify (sexp_request, sexp_data, key->data_sexp);
+    AC_MODULE_CALL (err, handle->module, verify,
+		    data, key_struct, data_signed_struct);
 
-  /* Done.  */
-
-  if (sexp_request)
-    gcry_sexp_release (sexp_request);
-  if (sexp_data)
-    gcry_sexp_release (sexp_data);
+  /* Deallocate resources.  */
+  if (key_struct)
+    gcry_free (key_struct);
+  if (data_signed_struct)
+    gcry_free (data_signed_struct);
 
   return gcry_error (err);
 }
@@ -1304,16 +1457,27 @@ gcry_ac_data_verify (gcry_ac_handle_t handle,
 /* Stores the textual representation of the algorithm whose id is
    given in ALGORITHM in NAME.  */
 gcry_error_t
-gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
+gcry_ac_id_to_name (gcry_ac_id_t algorithm_id, const char **algorithm_name)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  const char *n;
+  gcry_module_t module = NULL;
+  const char *name = NULL;
 
-  n = gcry_pk_algo_name (algorithm);
-  if (*n)
-    *name = n;
+  AC_INIT;
+
+  ALGORITHMS_LOCK;
+  module = _gcry_module_lookup_id (algorithms, algorithm_id);
+  if (module)
+    {
+      name = ((gcry_ac_spec_t *) module->spec)->name;
+      _gcry_module_release (module);
+    }
   else
     err = GPG_ERR_PUBKEY_ALGO;
+  ALGORITHMS_UNLOCK;
+
+  if (! err)
+    *algorithm_name = name;
 
   return gcry_error (err);
 }
@@ -1321,16 +1485,119 @@ gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
 /* Stores the numeric ID of the algorithm whose textual representation
    is contained in NAME in ALGORITHM.  */
 gcry_error_t
-gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
+gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm_id)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  int algo;
+  gcry_module_t module = NULL;
+  int mod_id = 0;
 
-  algo = gcry_pk_map_name (name);
-  if (algo)
-    *algorithm = algo;
+  AC_INIT;
+
+  ALGORITHMS_LOCK;
+  module = gcry_ac_lookup_name (name);
+  if (module)
+    {
+      mod_id = module->mod_id;
+      _gcry_module_release (module);
+    }
   else
     err = GPG_ERR_PUBKEY_ALGO;
-    
+  ALGORITHMS_UNLOCK;
+
+  if (! err)
+    *algorithm_id = mod_id;
+
   return gcry_error (err);
+}
+
+/* Get a list consisting of the IDs of the loaded algorithm modules.
+   If LIST is zero, write the number of loaded pubkey modules to
+   LIST_LENGTH and return.  If LIST is non-zero, the first
+   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
+   according size.  In case there are less pubkey modules than
+   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
+gcry_error_t
+gcry_ac_list (int *list, int *list_length)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  ALGORITHMS_LOCK;
+  err = _gcry_module_list (algorithms, list, list_length);
+  ALGORITHMS_UNLOCK;
+
+  return err;
+}
+
+gcry_error_t
+_gcry_ac_algorithm_enable (gcry_ac_handle_t handle)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  ALGORITHMS_LOCK;
+  handle->module->flags &= ~FLAG_MODULE_DISABLED;
+  ALGORITHMS_UNLOCK;
+
+  return gpg_error (err);
+}
+
+gcry_error_t
+_gcry_ac_algorithm_disable (gcry_ac_handle_t handle)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  ALGORITHMS_LOCK;
+  handle->module->flags |= FLAG_MODULE_DISABLED;
+  ALGORITHMS_UNLOCK;
+
+  return gpg_error (err);
+}
+
+static void
+elements_amount_get (ac_struct_spec_t *spec, unsigned int *amount)
+{
+  unsigned int i = 0;
+
+  for (i = 1; spec[i].name; i++);
+  *amount = i;
+}
+ 
+void
+_gcry_ac_elements_amount_get (gcry_ac_handle_t handle,
+			      unsigned int *elements_key_secret,
+			      unsigned int *elements_key_public,
+			      unsigned int *elements_data_encrypted,
+			      unsigned int *elements_data_signed)
+{
+  if (elements_key_secret)
+    elements_amount_get (((gcry_ac_spec_t *)
+			  handle->module->spec)->spec_key_secret,
+			 elements_key_secret);
+  if (elements_key_public)
+    elements_amount_get (((gcry_ac_spec_t *)
+			  handle->module->spec)->spec_key_public,
+			 elements_key_public);
+  if (elements_data_encrypted)
+    elements_amount_get (((gcry_ac_spec_t *)
+			  handle->module->spec)->spec_data_encrypted,
+			 elements_data_encrypted);
+  if (elements_data_signed)
+    elements_amount_get (((gcry_ac_spec_t *)
+			  handle->module->spec)->spec_data_signed,
+			 elements_data_signed);
+}
+
+void
+_gcry_ac_info_get (gcry_ac_handle_t handle,
+		   gcry_ac_id_t *algorithm_id, unsigned int *algorithm_use_flags)
+{
+  if (algorithm_id)
+    *algorithm_id = handle->algorithm;
+  if (algorithm_use_flags)
+    *algorithm_use_flags = (0
+			    | (((gcry_ac_spec_t *)
+				handle->module->spec)->sign
+			       ? GCRY_PK_USAGE_SIGN : 0)
+			    | (((gcry_ac_spec_t *)
+				handle->module->spec)->encrypt
+			       ? GCRY_PK_USAGE_ENCR : 0));
 }
