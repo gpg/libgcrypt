@@ -17,6 +17,15 @@
 	* primegen.c (gen_prime): Assert that NBITS is never zero, it
 	would cause a segv.
 
+2003-09-28  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c: Include "cipher.h".
+
+2003-09-27  Moritz Schulte  <mo@g10code.com>
+
+	* rndegd.c (do_read): Return nread instead of nbytes; thanks to
+	Michael Caerwyn.
+
 2003-09-04  Werner Koch  <wk@gnupg.org>
 
 	* pubkey.c (_gcry_pk_aliased_algo_name): New.

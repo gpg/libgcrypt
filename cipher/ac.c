@@ -27,6 +27,7 @@
 #include <stddef.h>
 
 #include "g10lib.h"
+#include "cipher.h"
 
 
 
@@ -174,19 +175,14 @@ gcry_ac_data_copy_internal (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
   int i = 0;
 
   /* Allocate data set.  */
-  data_new = gcry_malloc (sizeof (struct gcry_ac_data));
-  if (! data_new)
-    err = gpg_err_code_from_errno (errno);
-  else
+  err = _gcry_malloc (sizeof (struct gcry_ac_data), 0, (void **) &data_new);
+  if (! err)
     data_new->data_n = data->data_n;
 
   if (! err)
-    {
-      /* Allocate space for named MPIs.  */
-      data_new->data = gcry_malloc (sizeof (gcry_ac_mpi_t) * data->data_n);
-      if (! data_new->data)
-	err = gpg_err_code_from_errno (errno);
-    }
+    /* Allocate space for named MPIs.  */
+    err = _gcry_malloc (sizeof (gcry_ac_mpi_t) * data->data_n, 0,
+			(void **) &data_new->data);
 
   if (! err)
     {
