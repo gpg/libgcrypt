@@ -34,7 +34,7 @@ EXTRA_DIST = config.links
 DISTCLEANFILES = mpih-add1.S mpih-mul1.S mpih-mul2.S mpih-mul3.S  \
 		 mpih-lshift.S mpih-rshift.S mpih-sub1.S asm-syntax.h sysdep.h
 # Note: we only use .S files so we should delete all left over .s
-CLEANFILES = _*.s
+CLEANFILES = _*.s __*.s
 
 # Beware: The following list is not a comment but grepped by
 #         config.links to get the list of symlinked modules
@@ -174,12 +174,14 @@ libmpi_la_LIBADD = @MPI_MOD_LIST_LO@
 libmpi_la_DEPENDENCIES = @MPI_MOD_LIST_LO@
 
 # we need our own rules here to preprocess the .S files
+# libtool has now working support for assembiles. It does for example not
+# work when building only a static library.
 .S.o:
 	 $(CPP) $(INCLUDES) $(DEFS) `test -f '$<' || echo '$(srcdir)/'`$< | grep -v '^#' > _$*.s
 	 $(CCASCOMPILE) -c _$*.s
 	 mv -f _$*.o $@
 
 .S.lo:
-	 $(CPP) $(INCLUDES) $(DEFS) `test -f '$<' || echo '$(srcdir)/'`$< | grep -v '^#' > _$*.s
-	 $(LTCCASCOMPILE) -c _$*.s
-	 mv -f _$*.lo $@
+	 $(CPP) $(INCLUDES) $(DEFS) `test -f '$<' || echo '$(srcdir)/'`$< | grep -v '^#' > __$*.s
+	 $(CCASCOMPILE) -c __$*.s
+	 mv -f __$*.o $@
