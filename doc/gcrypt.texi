@@ -88,7 +88,7 @@ section entitled ``Copying''.
 * Preparation::                  What you should do before using the library.
 * Generalities::                 General library functions and data types.
 * Handler Functions::            Working with handler functions.
-* Symmetric cryptography::       How to use symmetric crytography.
+* Symmetric cryptography::       How to use symmetric cryptography.
 * Hashing::                      How to use hashing.
 * Public Key cryptography (I)::  How to use public key cryptography.
 * Public Key cryptography (II):: How to use public key cryptography, alternatively.
@@ -120,12 +120,12 @@ Introduction
 Preparation
 * Header::                              What header file you need to include.
 * Building sources::                    How to build sources using the library.
-* Building sources using Automake::     How to build sources with the help auf Automake.
+* Building sources using Automake::     How to build sources with the help of Automake.
 * Initializing the library::            How to initialize the library.
 * Multi Threading::                     How @acronym{Libgcrypt} can be used in a MT environment.
 
 Generalities
-* Controlling the library::     Controlling @acronym{Libgcrypt}'s behaviour.
+* Controlling the library::     Controlling @acronym{Libgcrypt}'s behavior.
 * Modules::                     Description of extension modules.
 * Error Handling::              Error codes and such.
 
@@ -253,7 +253,7 @@ sense to be thread-safe.  An exception for thread-safety are some
 cryptographic functions that modify a certain context stored in
 handles.  If the user really intents to use such functions from
 different threads on the same handle, he has to take care of the
-serialisation of such functions himself.  If not described otherwise,
+serialization of such functions himself.  If not described otherwise,
 every function is thread-safe.
 
 @acronym{Libgcrypt} depends on the library `libgpg-error', which
@@ -274,7 +274,7 @@ of the library are verified.
 @menu
 * Header::                      What header file you need to include.
 * Building sources::            How to build sources using the library.
-* Building sources using Automake::  How to build sources with the help auf Automake.
+* Building sources using Automake::  How to build sources with the help of Automake.
 * Initializing the library::    How to initialize the library.
 * Multi Threading::             How @acronym{Libgcrypt} can be used in a MT environment.
 @end menu
@@ -419,20 +419,20 @@ Libgcrypt.  It is rather problematic if you are writing a library
 instead.  Here are some tips what to do if you are writing a library:
 
 If your library requires a certain thread package, just initialize
-gcrypt to use this thread package.  If your library supports multiple
+Libgcrypt to use this thread package.  If your library supports multiple
 thread packages, but needs to be configured, you will have to
 implement a way to determine which thread package the application
-wants to use with your library anyway.  Then configure gcrypt to use
+wants to use with your library anyway.  Then configure Libgcrypt to use
 this thread package.
 
 If your library is fully reentrant without any special support by a
 thread package, then you are lucky indeed.  Unfortunately, this does
 not relieve you from doing either of the two above, or use a third
-option.  The third option is to let the application initialize gcrypt
-for you.  Then you are not using gcrypt transparently, though.
+option.  The third option is to let the application initialize Libgcrypt
+for you.  Then you are not using Libgcrypt transparently, though.
 
 As if this was not difficult enough, a conflict may arise if two
-libraries try to initialize gcrypt independently of each others, and
+libraries try to initialize Libgcrypt independently of each others, and
 both such libraries are then linked into the same application.  To
 make it a bit simpler for you, this will probably work, but only if
 both libraries have the same requirement for the thread package.  This
@@ -481,7 +481,7 @@ callback structure named ``gcry_threads_pth''.
 
 @item GCRY_THREAD_OPTION_PTHREAD_IMPL
 
-This maco defines the following (static) symbols:
+This macro defines the following (static) symbols:
 gcry_pthread_mutex_init, gcry_pthread_mutex_destroy, gcry_mutex_lock,
 gcry_mutex_unlock, gcry_threads_pthread.
 
@@ -501,7 +501,7 @@ programmers might have to wrap these macros in an ``extern C'' body.
 @chapter Generalities
 
 @menu
-* Controlling the library::     Controlling @acronym{Libgcrypt}'s behaviour.
+* Controlling the library::     Controlling @acronym{Libgcrypt}'s behavior.
 * Modules::                     Description of extension modules.
 * Error Handling::              Error codes and such.
 @end menu
@@ -511,7 +511,7 @@ programmers might have to wrap these macros in an ``extern C'' body.
 
 @deftypefun gcry_error_t gcry_control (enum gcry_ctl_cmds @var{cmd}, ...)
 
-This function can be used to influence the general behaviour of
+This function can be used to influence the general behavior of
 @acronym{Libgcrypt} in several ways.  Depending on @var{cmd}, more
 arguments can or have to be provided.
 
@@ -532,7 +532,7 @@ Functions registering modules provided by the user take a `module
 specification structure' as input and return a value of
 @code{gcry_module_t} and an ID that is unique in the modules'
 category.  This ID can be used to reference the newly registered
-module.  After registering a module successfuly, the new functionality
+module.  After registering a module successfully, the new functionality
 should be able to be used through the normal functions provided by
 @acronym{Libgcrypt} until it is unregistered again.
 
@@ -580,7 +580,7 @@ operation.
 Some error values do not indicate a system error or an error in the
 operation, but the result of an operation that failed properly.
 
-GnuPG components, including libgcrypt, use an extra library named
+GnuPG components, including Libgcrypt, use an extra library named
 libgpg-error to provide a common error handling scheme.  For more
 information on libgpg-error, see the according manual.
 
@@ -631,7 +631,7 @@ However, it is guaranteed that only 0 is used to indicate success
 the error value are set to 0, too.
 
 Note that in @acronym{Libgcrypt}, the error source is used purely for
-diagnostical purposes.  Only the error code should be checked to test
+diagnostic purposes.  Only the error code should be checked to test
 for a certain outcome of a function.  The manual only documents the
 error code part of an error value.  The error source is left
 unspecified and might be anything.
@@ -677,7 +677,7 @@ The @code{libgpg-error} library provides error codes for all system
 error numbers it knows about.  If @var{err} is an unknown error
 number, the error code @code{GPG_ERR_UNKNOWN_ERRNO} is used.  The
 following functions can be used to construct error values from system
-errnor numbers.
+errno numbers.
 
 @deftypefun {gcry_error_t} gcry_err_make_from_errno (@w{gcry_err_source_t @var{source}}, @w{int @var{err}})
 The function @code{gcry_err_make_from_errno} is like
