@@ -101,6 +101,7 @@ static struct
 #if USE_DSA
     { &pubkey_spec_dsa },
 #endif
+    { NULL },
   };
 
 /* List of registered ciphers.  */
