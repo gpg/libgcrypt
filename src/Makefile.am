@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-## EXTRA_DIST =
+EXTRA_DIST = gcrypt-config.in
 INCLUDES =  -I$(top_srcdir)/include -I$(top_srcdir)/intl
 
 lib_LTLIBRARIES = libgcrypt.la
@@ -39,4 +39,6 @@ BUILT_SOURCES = libgcrypt.sym
 libgcrypt.sym: $(libgcrypt_la_OBJECTS)
 	    $(NM) $(libgcrypt_la_OBJECTS) \
 	      | $(AWK) '$$2=="T" && $$3 ~ /^gcry_/ {print $$3}' >libgcrypt.sym
+
+
 

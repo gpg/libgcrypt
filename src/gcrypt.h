@@ -27,6 +27,16 @@
 extern "C" {
 #endif
 
+/*
+ * The version of this header should match the one of the library
+ * It should not be used by a program because gcry_check_version()
+ * should reurn the same version.  The purpose of this macro is to
+ * let autoconf (using the AM_PATH_GCRYPT macro) check that this
+ * header matches the installed library.
+ * Note: Do not edit the next line as configure may fix the string here.
+ */
+#define GCRYPT_VERSION "1.1.0a"
+
 
 #ifndef HAVE_BYTE_TYPEDEF
 # undef byte	   /* maybe there is a macro with this name */

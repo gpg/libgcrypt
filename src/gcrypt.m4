@@ -1,8 +1,9 @@
 dnl Autoconf macros for libgcrypt
+dnl $id$
 
 # Configure paths for GCRYPT
 # Shamelessly stolen from the one of XDELTA by Owen Taylor
-# Werner Koch   99-12-08
+# Werner Koch   99-12-09
 
 dnl AM_PATH_GCRYPT([MINIMUM-VERSION, [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]]])
 dnl Test for gcrypt, and define GCRYPT_CFLAGS and GCRYPT_LIBS
@@ -34,12 +35,7 @@ AC_ARG_ENABLE(gcrypttest,
   else
     GCRYPT_CFLAGS=`$GCRYPT_CONFIG $gcrypt_config_args --cflags`
     GCRYPT_LIBS=`$GCRYPT_CONFIG $gcrypt_config_args --libs`
-    gcrypt_config_major_version=`$GCRYPT_CONFIG $gcrypt_config_args --version | \
-           sed 's/.* \([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
-    gcrypt_config_minor_version=`$GCRYPT_CONFIG $gcrypt_config_args --version | \
-           sed 's/.* \([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\2/'`
-    gcrypt_config_micro_version=`$GCRYPT_CONFIG $gcrypt_config_args --version | \
-           sed 's/.* \([[0-9]]*\)\.\([[0-9]]*\)\.\([[0-9]]*\).*/\3/'`
+    gcrypt_config_version=`$GCRYPT_CONFIG $gcrypt_config_args --version`
     if test "x$enable_gcrypttest" = "xyes" ; then
       ac_save_CFLAGS="$CFLAGS"
       ac_save_LIBS="$LIBS"
@@ -51,44 +47,20 @@ dnl checks the results of gcrypt-config to some extent
 dnl
       rm -f conf.gcrypttest
       AC_TRY_RUN([
-#include <gcrypt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gcrypt.h>
 
 int
 main ()
 {
-    int major, minor, micro;
-    unsigned int major_gcrypt, minor_gcrypt, micro_gcrypt, patlvl_gcrypt;
-    char *tmp_version;
-    char ver_string[20];
-
     system ("touch conf.gcrypttest");
 
-    /* HP/UX 9 (%@#!) writes to sscanf strings */
-    tmp_version = strdup("$min_gcrypt_version");
-    if( !tmp_version )
-        exit(1);
-    if (sscanf(tmp_version, "%d.%d.%d", &major, &minor, &micro) != 3) {
-       printf("%s, bad version string\n", "$min_gcrypt_version");
-       exit(1);
-    }
-
-    sprintf( ver_string, "%lX", gcrypt_version() );
-    if ( sscanf(ver_string, "%1x%2x%1x%2x",
-                     &major_gcrypt, &minor_gcrypt, &patlvl_gcrypt, &micro_gcrypt) != 4) {
-       printf("%s, gcrypt returned bad version string\n", ver_string );
-       exit(1);
-    }
-
-    if ((major_gcrypt != $gcrypt_config_major_version) ||
-        (minor_gcrypt != $gcrypt_config_minor_version) ||
-        (micro_gcrypt != $gcrypt_config_micro_version))
+    if( strcmp( gcry_check_version(NULL), "$gcrypt_config_version" ) )
     {
-      printf("\n*** 'gcrypt-config --version' returned %d.%d.%d, but GCRYPT (%u.%u.%u)\n",
-             $gcrypt_config_major_version, $gcrypt_config_minor_version, $gcrypt_config_micro_version,
-             major_gcrypt, minor_gcrypt, micro_gcrypt);
+      printf("\n*** 'gcrypt-config --version' returned %s, but GCRYPT (%s)\n",
+             "$gcrypt_config_version", gcry_check_version(NULL) );
       printf("*** was found! If gcrypt-config was correct, then it is best\n");
       printf("*** to remove the old version of GCRYPT. You may also be able to fix the error\n");
       printf("*** by modifying your LD_LIBRARY_PATH enviroment variable, or by editing\n");
@@ -98,27 +70,25 @@ main ()
       printf("*** to point to the correct copy of gcrypt-config, and remove the file config.cache\n");
       printf("*** before re-running configure\n");
     }
-    else if ( gcrypt_version() != GCRYPT_VERSION )
+    else if ( strcmp(gcry_check_version(NULL), GCRYPT_VERSION ) )
     {
-      printf("*** GCRYPT header file (version %lx) does not match\n", GCRYPT_VERSION);
-      printf("*** library (version %lx)\n", gcrypt_version() );
+      printf("\n*** GCRYPT header file (version %s) does not match\n", GCRYPT_VERSION);
+      printf("*** library (version %s)\n", gcry_check_version(NULL) );
     }
     else
     {
-      if ((major_gcrypt > major) ||
-         ((major_gcrypt == major) && (minor_gcrypt > minor)) ||
-         ((major_gcrypt == major) && (minor_gcrypt == minor) && (micro_gcrypt >= micro)))
+      if ( gcry_check_version( "$min_gcrypt_version" ) )
       {
         return 0;
       }
      else
       {
-        printf("\n*** An old version of GCRYPT (%u.%u.%u) was found.\n",
-               major_gcrypt, minor_gcrypt, micro_gcrypt);
-        printf("*** You need a version of GCRYPT newer than %d.%d.%d. The latest version of\n",
-               major, minor, micro);
+        printf("no\n*** An old version of GCRYPT (%s) was found.\n",
+                gcry_check_version(NULL) );
+        printf("*** You need a version of GCRYPT newer than %s. The latest version of\n",
+               "$min_gcrypt_version" );
         printf("*** GCRYPT is always available from ftp://ftp.gnupg.org/pub/gcrypt/gnupg.\n");
-        printf("*** (It comes along with GnuPG).\n");
+        printf("*** (It is distributed along with GnuPG).\n");
         printf("*** \n");
         printf("*** If you have already installed a sufficiently new version, this error\n");
         printf("*** probably means that the wrong copy of the gcrypt-config shell script is\n");
@@ -140,7 +110,11 @@ main ()
      AC_MSG_RESULT(yes)
      ifelse([$2], , :, [$2])
   else
-     AC_MSG_RESULT(no)
+     if test -f conf.gcrypttest ; then
+        :
+     else
+        AC_MSG_RESULT(no)
+     fi
      if test "$GCRYPT_CONFIG" = "no" ; then
        echo "*** The gcrypt-config script installed by GCRYPT could not be found"
        echo "*** If GCRYPT was installed in PREFIX, make sure PREFIX/bin is in"
@@ -154,9 +128,11 @@ main ()
           CFLAGS="$CFLAGS $GCRYPT_CFLAGS"
           LIBS="$LIBS $GCRYPT_LIBS"
           AC_TRY_LINK([
-#include <gcrypt.h>
 #include <stdio.h>
-],      [ return !!gcrypt_version(); ],
+#include <stdlib.h>
+#include <string.h>
+#include <gcrypt.h>
+],      [ return !!gcry_check_version(NULL); ],
         [ echo "*** The test program compiled, but did not run. This usually means"
           echo "*** that the run-time linker is not finding GCRYPT or finding the wrong"
           echo "*** version of GCRYPT. If it is not finding GCRYPT, you'll need to set your"
