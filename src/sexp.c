@@ -44,6 +44,14 @@ struct gcry_sexp {
 #define ST_OPEN  3
 #define ST_CLOSE 4
 
+#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
+#define hexdigitp(a) (digitp (a)                     \
+                      || (*(a) >= 'A' && *(a) <= 'F')  \
+                      || (*(a) >= 'a' && *(a) <= 'f'))
+/* the atoi macros assume that the buffer has only valid digits */
+#define atoi_1(p)   (*(p) - '0' )
+
+
 #if 0
 static void
 dump_mpi( GCRY_MPI a )
@@ -996,15 +1004,6 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 }
 
 int
-gcry_sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff,
-			    const char *buffer, size_t length )
-{
-    va_list dummy_arg_ptr = 0;
-
-    return sexp_sscan( retsexp, erroff, buffer, length, dummy_arg_ptr, 0 );
-}
-
-int
 gcry_sexp_build( GCRY_SEXP *retsexp, size_t *erroff, const char *format, ... )
 {
     int rc;
@@ -1015,6 +1014,15 @@ gcry_sexp_build( GCRY_SEXP *retsexp, size_t *erroff, const char *format, ... )
     va_end(arg_ptr);
 
     return rc;
+}
+
+int
+gcry_sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff,
+			    const char *buffer, size_t length )
+{
+    va_list dummy_arg_ptr = 0;
+
+    return sexp_sscan( retsexp, erroff, buffer, length, dummy_arg_ptr, 0 );
 }
 
 /****************
@@ -1091,198 +1099,135 @@ gcry_sexp_sprint( const GCRY_SEXP list, int mode,
 
 
 
-
-#if 0
-/***********************************************************/
-
-const char *
-strusage( int level )
+/* Scan a cannocial encoded buffer with implicit length values and
+   return the actual length this S-expression uses.  For a valid S-Exp
+   it should never return 0.  If LENGTH is not zero, the maximum
+   length to scan is given - this can be used for syntax checks of
+   data passed from outside. erroce and erroff may both be passed as
+   NULL */
+size_t
+gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
+                     size_t *erroff, int *errcode)
 {
-    return "?";
-}
+  const unsigned char *p;
+  const char *disphint=NULL;
+  unsigned int datalen = 0;
+  size_t dummy_erroff;
+  int    dummy_errcode;
+  size_t count = 0;
+  int level = 0;
 
+  if (!erroff)
+    erroff = &dummy_erroff;
+  if (!errcode)
+    errcode = &dummy_errcode;
 
-int
-main(int argc, char **argv)
-{
-    char buffer[5000];
-    size_t erroff;
-    int rc, n;
-    FILE *fp;
-    GCRY_SEXP s_pk, s_dsa, s_p, s_q, s_g, s_y, sexp;
-
-  #if 1
-    fp = stdin;
-    n = fread(buffer, 1, 5000, fp );
-    rc = gcry_sexp_sscan( &sexp, buffer, n, &erroff );
-    if( rc ) {
-	fprintf(stderr, "parse error %d at offset %u\n", rc, erroff );
-	exit(1);
-    }
-    fputs("We have this S-Exp:\n",stderr);
-    dump_sexp( sexp );
-  #else
-    s_pk = SEXP_NEW( "public-key", 10 );
-    fputs("pk:\n",stderr);dump_sexp( s_pk );
-    s_dsa = SEXP_NEW( "dsa", 3 );
-    s_p = SEXP_CONS( SEXP_NEW( "p", 1 ), SEXP_NEW( "PPPPPP", 6 ) );
-    fputs("p:\n",stderr);dump_sexp( s_p );
-    s_y = SEXP_CONS( SEXP_NEW( "y", 1 ), SEXP_NEW( "YYYYYYYY", 8 ) );
-    fputs("y:\n",stderr);dump_sexp( s_y );
-    s_q = gcry_sexp_new_name_data( "q", "QQQ", 3 );
-    fputs("q:\n",stderr);dump_sexp( s_q );
-    s_g = gcry_sexp_new_name_mpi( "g" , gcry_mpi_set_ui(NULL, 42) );
-    fputs("g:\n",stderr);dump_sexp( s_g );
-    sexp = SEXP_CONS( s_pk, gcry_sexp_vlist( s_dsa,
-					     s_y,
-					     s_p,
-					     s_q,
-					     s_g,
-					     NULL ));
-    fputs("Here is what we have:\n",stderr);
-    dump_sexp( sexp );
-  #endif
-
-    /* now find something */
-    if( argc > 1 )
-      {
-	GCRY_SEXP s1;
-
-	s1 = gcry_sexp_find_token( sexp, argv[1], strlen(argv[1]) );
-	if( !s1 )
-	  {
-	    fprintf(stderr, "didn't found `%s'\n", argv[1] );
-	  }
-	else
-	  {
-	    fprintf(stderr, "found `%s':\n", argv[1] );
-	    dump_sexp( s1 );
-	  }
-
-	#if 0
-	{  int i,rc, algo;
-	   GCRY_MPI *array;
-
-	   rc = sexp_to_pk( s1, 0, &array, &algo);
-	   if( rc )
-	      fprintf(stderr, "sexp_to_pk failed: rc=%d\n", rc );
-	   else {
-	       for(i=0; array[i]; i++ ) {
-		   fprintf(stderr, "MPI[%d]: ", i);
-		   dump_mpi( array[i] );
-		   fprintf(stderr, "\n");
-	       }
+  *errcode = 0;
+  *erroff = 0;
+  for (p=buffer; ; p++, count++ )
+    {
+      if (length && count >= length)
+        {
+          *erroff = count;
+          *errcode = -2; /* string too long */
+          return 0;
+        }
+      
+      if (datalen)
+        {
+          if (*p == ':')
+            {
+              if (length && (count+datalen) >= length)
+                {
+                  *erroff = count;
+                  *errcode = -2; /* string too long */
+                  return 0;
+                }
+              count += datalen;
+              p += datalen;
+              datalen = 0;
+              if (!level)
+                return count+1; /* expression is not a list - return now */
+	    }
+          else if (digitp(p))
+            datalen = datalen*10 + atoi_1(p);
+          else 
+            {
+              *erroff = count;
+              *errcode = -1;
+              return 0;
 	    }
 	}
-	#endif
-
-
-	if( argc > 2 ) /* get the MPI out of the list */
-	#if 0
-	  {
-	    GCRY_SEXP s2;
-	    const char *p;
-	    size_t n;
-
-	    p = gcry_sexp_car_data( s1, &n );
-	    if( !p ) {
-		fputs("no CAR\n", stderr );
-		exit(1);
+      else if (*p == '(')
+        {
+          if (disphint)
+            {
+              *erroff = count;
+              *errcode = -9; /* open display hint */
+              return 0;
 	    }
-	    fprintf(stderr, "CAR=`%.*s'\n", (int)n, p );
-
-	    p = gcry_sexp_cdr_data( s1, &n );
-	    if( !p ) {
-		s2 = gcry_sexp_cdr( s1 );
-		if( !s2 ) {
-		    fputs("no CDR at all\n", stderr );
-		    exit(1);
-		}
-		p = gcry_sexp_car_data( s2, &n );
+          level++;
+	}
+      else if (*p == ')')
+        { /* walk up */
+          if (!level)
+            {
+              *erroff = count;
+              *errcode = -3; /* unmatched parenthesis */
+              return 0;
 	    }
-	    if( !p ) {
-		fputs("no CDR data\n", stderr );
-		exit(1);
+          if (disphint)
+            {
+              *erroff = count;
+              *errcode = -9; /* open display hint */
+              return 0;
 	    }
-	    fprintf(stderr, "CDR=`%.*s'\n", (int)n, p );
-
-
-
-	  }
-	#elif 1
-	  {
-	    GCRY_SEXP s2;
-	    MPI a;
-	    const char *p;
-	    size_t n;
-
-	    fprintf(stderr,"*********************************\n");
-	    p = gcry_sexp_car_data( s1, &n );
-	    if( !p ) {
-		fputs("no CAR\n", stderr );
-		exit(1);
+          if (!--level)
+            return ++count; /* ready */
+	}
+      else if (*p == '[')
+        {
+          if (disphint) 
+            {
+              *erroff = count;
+              *errcode = -8; /* nested display hints */
+              return 0;
+            }
+          disphint = p;
+	}
+      else if (*p == ']')
+        {
+          if( !disphint ) 
+            {
+              *erroff = count;
+              *errcode = -9; /* unmatched display hint close */
+              return 0;
 	    }
-	    fprintf(stderr, "CAR=`%.*s'\n", (int)n, p );
-	    s2 = gcry_sexp_cdr( s1 );
-	    if( !s2 ) {
-		fputs("no CDR\n", stderr );
-		exit(1);
-
+          disphint = NULL;
+	}
+      else if (digitp (p) )
+        {
+          if (*p == '0')
+            { 
+              *erroff = count;
+              *errcode = -7; /* a length may not begin with zero */
+              return 0;
 	    }
-	    p = gcry_sexp_car_data( s2, &n );
-	    if( !p ) {
-		fputs("no data at CAR\n", stderr );
-		exit(1);
-	    }
-	    fprintf(stderr, "CAR=`%.*s'\n", (int)n, p );
-
-	    s2 = gcry_sexp_find_token( s1, argv[2], strlen(argv[2]) );
-	    if( !s2 )
-	    {
-	       fprintf(stderr, "didn't found `%s'\n", argv[2] );
-	       exit(1);
-	    }
-	    p = gcry_sexp_car_data( s2, &n );
-	    if( !p ) {
-		fputs("no CAR\n", stderr );
-		exit(1);
-	    }
-	    fprintf(stderr, "CAR=`%.*s'\n", (int)n, p );
-
-	    a = gcry_sexp_cdr_mpi( s2, GCRYMPI_FMT_USG );
-	    if( a ) {
-		fprintf(stderr, "MPI: ");
-		dump_mpi( a );
-		fprintf(stderr, "\n");
-	    }
-	    else
-		fprintf(stderr, "cannot cdr a mpi\n" );
-	  }
-	 #else
-	  {    /* print all MPIs */
-	    void *ctx = NULL;
-	    GCRY_SEXP s2;
-	    MPI a;
-
-	    while( (s2 = gcry_sexp_enum( s1, &ctx, 0 )) )
-	      {
-		const char *car_d;
-		size_t car_n;
-
-		car_d = gcry_sexp_car_data( s2, &car_n );
-		if( car_d ) {
-		   fprintf(stderr, "CAR: %.*s=", (int)car_n, car_d );
-		   a = gcry_sexp_cdr_mpi( s2, GCRYMPI_FMT_USG );
-		   dump_mpi( a );
-		   fprintf(stderr, "\n");
-
-		}
-		else
-		    fprintf(stderr, "no CAR\n");
-	      }
-	  }
-	 #endif
-      }
-    return 0;
+          datalen = atoi_1 (p);
+	}
+      else if (*p == '&' || *p == '\\')
+        {
+          *erroff = count;
+          *errcode = -10; /* unexpected reserved punctuation */
+          return 0;
+	}
+      else
+        { 
+          *erroff = count;
+          *errcode = -5; /* bad character */
+          return 0;
+	}
+    }
 }
-#endif
+
+

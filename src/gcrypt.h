@@ -154,7 +154,6 @@ enum gcry_sexp_format {
     GCRYSEXP_FMT_ADVANCED  = 3
 };
 
-
 void	  gcry_sexp_release( GCRY_SEXP sexp );
 void	  gcry_sexp_dump( const GCRY_SEXP a );
 GCRY_SEXP gcry_sexp_cons( const GCRY_SEXP a, const GCRY_SEXP b );
@@ -178,6 +177,9 @@ GCRY_SEXP   gcry_sexp_cadr( const GCRY_SEXP list );
 const char *gcry_sexp_nth_data( const GCRY_SEXP list, int number,
 						      size_t *datalen );
 GCRY_MPI    gcry_sexp_nth_mpi( GCRY_SEXP list, int number, int mpifmt );
+
+size_t gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
+                            size_t *erroff, int *errcode);
 
 
 /*******************************************
