@@ -275,14 +275,13 @@ AC_DEFUN(AM_PATH_GPG_ERROR,
                            [prefix where GPG Error is installed (optional)]),
      gpg_error_config_prefix="$withval", gpg_error_config_prefix="")
   if test x$gpg_error_config_prefix != x ; then
-     gpg_error_config_args="$gpg_error_config_args --prefix=$gpg_error_config_prefix"
      if test x${GPG_ERROR_CONFIG+set} != xset ; then
         GPG_ERROR_CONFIG=$gpg_error_config_prefix/bin/gpg-error-config
      fi
   fi
 
   AC_PATH_PROG(GPG_ERROR_CONFIG, gpg-error-config, no)
-  min_gpg_error_version=ifelse([$1], ,0.0.0,$1)
+  min_gpg_error_version=ifelse([$1], ,0.0,$1)
   AC_MSG_CHECKING(for GPG Error - version >= $min_gpg_error_version)
   ok=no
   if test "$GPG_ERROR_CONFIG" != "no" ; then
