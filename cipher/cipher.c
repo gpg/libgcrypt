@@ -516,7 +516,9 @@ gcry_cipher_open( int algo, int mode, unsigned int flags )
     /* check flags */
     if( (flags & ~(GCRY_CIPHER_SECURE|
 		   GCRY_CIPHER_ENABLE_SYNC|
-		   GCRY_CIPHER_CBC_CTS)) ) {
+		   GCRY_CIPHER_CBC_CTS|
+		   GCRY_CIPHER_CBC_MAC)) ||
+	(flags & GCRY_CIPHER_CBC_CTS & GCRY_CIPHER_CBC_MAC)) {
 	set_lasterr( GCRYERR_INV_CIPHER_ALGO );
 	return NULL;
     }
@@ -690,7 +692,8 @@ do_cbc_encrypt( GCRY_CIPHER_HD c, byte *outbuf, const byte *inbuf, unsigned nbyt
 	(*c->encrypt)( &c->context.c, outbuf, outbuf );
 	memcpy(c->iv, outbuf, blocksize );
 	inbuf  += c->blocksize;
-	outbuf += c->blocksize;
+	if (!(c->flags & GCRY_CIPHER_CBC_MAC))
+	  outbuf += c->blocksize;
     }
 
     if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize)
@@ -940,7 +943,7 @@ gcry_cipher_encrypt (GcryCipherHd h, byte *out, size_t outsize,
     }
   else
     {
-      if ( outsize < inlen )
+      if ( outsize < ((h->flags & GCRY_CIPHER_CBC_MAC) ? h->blocksize : inlen))
         rc = GCRYERR_TOO_SHORT;
       else if ((h->mode == GCRY_CIPHER_MODE_ECB
                 || (h->mode == GCRY_CIPHER_MODE_CBC
@@ -1074,11 +1077,22 @@ gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, void *buffer, size_t buflen)
       break;
     case GCRYCTL_SET_CBC_CTS:
       if (buflen)
-	h->flags |= GCRY_CIPHER_CBC_CTS;
+	if (h->flags & GCRY_CIPHER_CBC_MAC)
+	  rc = GCRYERR_INV_FLAG;
+	else
+	  h->flags |= GCRY_CIPHER_CBC_CTS;
       else
 	h->flags &= ~GCRY_CIPHER_CBC_CTS;
       break;
-
+    case GCRYCTL_SET_CBC_MAC:
+      if (buflen)
+	if (h->flags & GCRY_CIPHER_CBC_CTS)
+	  rc = GCRYERR_INV_FLAG;
+	else
+	  h->flags |= GCRY_CIPHER_CBC_MAC;
+      else
+	h->flags &= ~GCRY_CIPHER_CBC_MAC;
+      break;
     case GCRYCTL_DISABLE_ALGO:
       /* this one expects a NULL handle and buffer pointing to an
        * integer with the algo number.

@@ -1,3 +1,9 @@
+2003-03-22  Simon Josefsson  <jas@extundo.com>
+
+	* cipher.c (gcry_cipher_open, do_cbc_encrypt)
+	(gcry_cipher_encrypt): Support GCRY_CIPHER_CBC_MAC.
+	(gcry_cipher_ctl): Support GCRYCTL_SET_CBC_MAC.
+
 2003-03-19  Werner Koch  <wk@gnupg.org>
 
 	* primegen.c (gen_prime): New args EXTRA_CHECK and EXTRA_CHECK_ARG
