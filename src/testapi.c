@@ -10,12 +10,7 @@
 int
 main( int argc, char **argv )
 {
-    GCRY_MD_HD md;
-
-
-    md = gcry_md_open( GCRY_MD_RMD160, 0 );
-
-
+    printf("%s\n", gcry_check_version ( argc > 1 ? argv[1] : NULL ) );
 
 
     return 0;

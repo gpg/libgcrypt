@@ -23,11 +23,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include <assert.h>
 
 #include "g10lib.h"
 #include "memory.h" /* for the m_* functions */
 
+/****************
+ * flag bits: 0 : general cipher debug
+ *	      1 : general MPI debug
+ */
+static unsigned int debug_flags;
 static int last_ec; /* fixme: make thread safe */
 
 static void *(*alloc_func)(size_t n) = NULL;
@@ -38,9 +44,83 @@ static void (*free_func)(void*) = NULL;
 static int (*outofcore_handler)( void*, size_t, unsigned int ) = NULL;
 static void *outofcore_handler_value = NULL;
 
+static const char*
+parse_version_number( const char *s, int *number )
+{
+    int val = 0;
+
+    if( *s == '0' && isdigit(s[1]) )
+	return NULL; /* leading zeros are not allowed */
+    for ( ; isdigit(*s); s++ ) {
+	val *= 10;
+	val += *s - '0';
+    }
+    *number = val;
+    return val < 0? NULL : s;
+}
+
+
+static const char *
+parse_version_string( const char *s, int *major, int *minor, int *micro )
+{
+    s = parse_version_number( s, major );
+    if( !s || *s != '.' )
+	return NULL;
+    s++;
+    s = parse_version_number( s, minor );
+    if( !s || *s != '.' )
+	return NULL;
+    s++;
+    s = parse_version_number( s, micro );
+    if( !s )
+	return NULL;
+    return s; /* patchlevel */
+}
+
+/****************
+ * Check that the the version of the library is at minimum the requested one
+ * and return the version string; return NULL if the condition is not
+ * satisfied.  If a NULL is passed to thsi function, no check is done,
+ * but the version string is simpley returned.
+ */
+const char *
+gcry_check_version( const char *req_version )
+{
+    const char *ver = VERSION;
+    int my_major, my_minor, my_micro;
+    int rq_major, rq_minor, rq_micro;
+    const char *my_plvl, *rq_plvl;
+
+    if ( !req_version )
+	return ver;
+
+    my_plvl = parse_version_string( ver, &my_major, &my_minor, &my_micro );
+    if ( !my_plvl )
+	return NULL;  /* very strange our own version is bogus */
+    rq_plvl = parse_version_string( req_version, &rq_major, &rq_minor,
+								&rq_micro );
+    if ( !rq_plvl )
+	return NULL;  /* req version string is invalid */
+
+    if ( my_major > rq_major
+	|| (my_major == rq_major && my_minor > rq_minor)
+	|| (my_major == rq_major && my_minor == rq_minor
+				 && my_micro > rq_micro)
+	|| (my_major == rq_major && my_minor == rq_minor
+				 && my_micro == rq_micro
+				 && strcmp( my_plvl, rq_plvl ) >= 0) ) {
+	return ver;
+    }
+    return NULL;
+}
+
+
 int
 gcry_control( enum gcry_ctl_cmds cmd, ... )
 {
+    va_list arg_ptr ;
+
+    va_start( arg_ptr, cmd ) ;
     switch( cmd ) {
      #if 0
       case GCRYCTL_NO_MEM_IS_FATAL:
@@ -56,9 +136,27 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	secmem_dump_stats();
 	break;
 
+      case GCRYCTL_USE_SECURE_RNDPOOL:
+	secure_random_alloc(); /* put random number into secure memory */
+	break;
+
+      case GCRYCTL_SET_VERBOSITY:
+	g10_set_log_verbosity( va_arg( arg_ptr, int ) );
+	break;
+
+      case GCRYCTL_SET_DEBUG_FLAGS:
+	debug_flags |= va_arg( arg_ptr, unsigned int );
+	break;
+
+      case GCRYCTL_CLEAR_DEBUG_FLAGS:
+	debug_flags &= ~va_arg( arg_ptr, unsigned int );
+	break;
+
       default:
+	va_end(arg_ptr);
 	return GCRYERR_INV_OP;
     }
+    va_end(arg_ptr);
     return 0;
 }
 
@@ -290,4 +388,20 @@ g10_xcalloc_secure( size_t n, size_t m )
     memset( p, 0, n*m );
     return p;
 }
+
+char *
+g10_xstrdup( const char *string )
+{
+    void *p = g10_xmalloc( strlen(string)+1 );
+    strcpy( p, string );
+    return p;
+}
+
+
+int
+g10_get_debug_flag( unsigned int mask )
+{
+    return debug_flags & mask;
+}
+
 

@@ -27,14 +27,17 @@
 extern "C" {
 #endif
 
-#ifndef GCRYPT_NO_MPI_MACROS
-#define GCRYPT_NO_MPI_MACROS
-#endif
 
 #ifndef HAVE_BYTE_TYPEDEF
-  #undef byte	    /* maybe there is a macro with this name */
+# undef byte	   /* maybe there is a macro with this name */
   typedef unsigned char byte;
-  #define HAVE_BYTE_TYPEDEF
+# define HAVE_BYTE_TYPEDEF
+#endif
+
+#ifdef _GCRYPT_IN_LIBGCRYPT
+# ifndef GCRYPT_NO_MPI_MACROS
+#   define GCRYPT_NO_MPI_MACROS 1
+# endif
 #endif
 
 struct gcry_mpi;
@@ -77,6 +80,7 @@ enum {
     GCRYERR_NO_OBJ = 68,     /* Missign item in an object */
 };
 
+const char *gcry_check_version( const char *req_version );
 
 int gcry_errno(void);
 const char *gcry_strerror( int ec );
@@ -96,10 +100,14 @@ enum gcry_ctl_cmds {
     GCRYCTL_DISABLE_ALGO = 12,
     GCRYCTL_DUMP_RANDOM_STATS = 13,
     GCRYCTL_DUMP_SECMEM_STATS = 14,
-    GCRYCTL_GET_ALGO_NPKEY = 15,
-    GCRYCTL_GET_ALGO_NSKEY = 16,
-    GCRYCTL_GET_ALGO_NSIGN = 17,
-    GCRYCTL_GET_ALGO_NENCR = 18,
+    GCRYCTL_GET_ALGO_NPKEY    = 15,
+    GCRYCTL_GET_ALGO_NSKEY    = 16,
+    GCRYCTL_GET_ALGO_NSIGN    = 17,
+    GCRYCTL_GET_ALGO_NENCR    = 18,
+    GCRYCTL_SET_VERBOSITY     = 19,
+    GCRYCTL_SET_DEBUG_FLAGS   = 20,
+    GCRYCTL_CLEAR_DEBUG_FLAGS = 21,
+    GCRYCTL_USE_SECURE_RNDPOOL= 22,
 };
 
 int gcry_control( enum gcry_ctl_cmds, ... );
@@ -171,6 +179,12 @@ enum gcry_mpi_format {
 };
 
 
+enum gcry_mpi_flag {
+    GCRYMPI_FLAG_SECURE = 1,
+    GCRYMPI_FLAG_OPAQUE = 2,
+};
+
+
 
 GCRY_MPI gcry_mpi_new( unsigned int nbits );
 GCRY_MPI gcry_mpi_snew( unsigned int nbits );
@@ -189,6 +203,11 @@ int	 gcry_mpi_print( enum gcry_mpi_format format,
 
 void gcry_mpi_powm( GCRY_MPI w,
 		    const GCRY_MPI b, const GCRY_MPI e, const GCRY_MPI m );
+GCRY_MPI gcry_mpi_set_opaque( GCRY_MPI a, void *p, unsigned int nbits );
+void	*gcry_mpi_get_opaque( GCRY_MPI a, unsigned int *nbits );
+void gcry_mpi_set_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
+void gcry_mpi_clear_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
+int  gcry_mpi_get_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
 
 
 #ifndef GCRYPT_NO_MPI_MACROS
@@ -203,6 +222,8 @@ void gcry_mpi_powm( GCRY_MPI w,
 #define mpi_cmp_ui( u, v )  gcry_mpi_cmp_ui( (u), (v) )
 
 #define mpi_powm(w,b,e,m)   gcry_mpi_powm( (w), (b), (e), (m) )
+#define mpi_set_opaque(a,b,c) gcry_mpi_set_opaque( (a), (b), (c) )
+#define mpi_get_opaque(a,b)   gcry_mpi_get_opaque( (a), (b) )
 #endif /* GCRYPT_NO_MPI_MACROS */
 
 /********************************************
@@ -415,9 +436,11 @@ char *gcry_xstrdup( const char * a);
 void  gcry_free( void *p );
 
 
-
 #ifndef GCRYPT_NO_MPI_MACROS
-  typedef struct gcry_mpi *MPI;
+# ifndef DID_MPI_TYPEDEF
+    typedef struct gcry_mpi *MPI;
+#   define DID_MPI_TYPEDEF
+# endif
 #endif /* GCRYPT_NO_MPI_MACROS */
 
 #ifdef __cplusplus

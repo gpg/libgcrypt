@@ -1,5 +1,5 @@
-/* misc.c  -  symmetric cipher function interface
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+/* misc.c
+ *	Copyright (C) 1999 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
@@ -27,6 +27,8 @@
 #include <unistd.h>
 
 #include "g10lib.h"
+
+static int verbosity_level = 0; /* fixme: add a function to set it */
 
 static void (*fatal_error_handler)(void*,int, const char*) = NULL;
 static void *fatal_error_handler_value = 0;
@@ -92,6 +94,17 @@ gcry_set_log_handler( void (*logf)(void*,int, const char*, va_list ),
     log_handler_value = opaque;
 }
 
+void
+g10_set_log_verbosity( int level )
+{
+    verbosity_level = level;
+}
+
+int
+g10_log_verbosity( int level )
+{
+    return verbosity_level >= level;
+}
 
 /****************
  * This is our log function which prints all log messages to stderr or
@@ -139,7 +152,7 @@ g10_bug( const char *file, int line, const char *func )
 {
     g10_log( GCRY_LOG_BUG,
 	     ("... this is a bug (%s:%d:%s)\n"), file, line, func );
-    abort(); /* never called, bugs it makes the compiler happy */
+    abort(); /* never called, but it makes the compiler happy */
 }
 #else
 void
@@ -147,7 +160,7 @@ g10_bug( const char *file, int line )
 {
     g10_log( GCRY_LOG_BUG,
 	     _("you found a bug ... (%s:%d)\n"), file, line);
-    abort(); /* never called, bugs it makes the compiler happy */
+    abort(); /* never called, but it makes the compiler happy */
 }
 #endif
 

@@ -1,3 +1,23 @@
+Wed Dec  8 21:58:32 CET 1999  Werner Koch  <wk@gnupg.de>
+
+	* gcrypt.m4: New.
+	* gcrypt-config: New.
+
+	* mpi.h (mpi_get_nbit_info): Removed
+	(mpi_set_nbit_info): Removed.
+	(struct gcry_mpi): Removed the nbits field.
+
+	* misc.c (g10_log_verbosity): New.
+
+	* global.c (g10_xstrdup): New.
+
+	* mpiapi.c: Removed.
+
+	* mpi.h: Moved from ../include to here.  Removed some obsolete
+	prototypes and the iobuf.h header.
+	* cipher.h: Moved from ../include to here. Removed the mpi.h header.
+	* g10lib.h: Moved from ../include to here.
+
 Fri Nov 19 17:15:20 CET 1999  Werner Koch  <wk@gnupg.de>
 
 	* sexp.c (dump_string): New.  Taken from gnupg/util/miscutil.c.
