@@ -36,6 +36,7 @@
 # endif
 #endif
 
+#include "ath.h"
 #include "g10lib.h"
 #include "secmem.h"
 
@@ -78,6 +79,13 @@ static int suspend_warning;
 
 /* Stats.  */
 static unsigned int cur_alloced, cur_blocks;
+
+/* Lock protecting accesses to the memory pool.  */
+static ath_mutex_t secmem_lock;
+
+/* Convenient macros.  */
+#define SECMEM_LOCK   ath_mutex_lock   (&secmem_lock)
+#define SECMEM_UNLOCK ath_mutex_unlock (&secmem_lock)
 
 /* The size of the memblock structure; this does not include the
    memory that is available to the user.  */
@@ -368,8 +376,11 @@ compress_pool (void)
 void
 _gcry_secmem_set_flags (unsigned flags)
 {
-  int was_susp = suspend_warning;
+  int was_susp;
 
+  SECMEM_LOCK;
+
+  was_susp = suspend_warning;
   no_warning = flags & GCRY_SECMEM_FLAG_NO_WARNING;
   suspend_warning = flags & GCRY_SECMEM_FLAG_SUSPEND_WARNING;
 
@@ -379,6 +390,8 @@ _gcry_secmem_set_flags (unsigned flags)
       show_warning = 0;
       print_warn ();
     }
+
+  SECMEM_UNLOCK;
 }
 
 unsigned
@@ -386,8 +399,13 @@ _gcry_secmem_get_flags (void)
 {
   unsigned flags;
 
+  SECMEM_LOCK;
+
   flags = no_warning ? GCRY_SECMEM_FLAG_NO_WARNING : 0;
   flags |= suspend_warning ? GCRY_SECMEM_FLAG_SUSPEND_WARNING : 0;
+
+  SECMEM_UNLOCK;
+
   return flags;
 }
 
@@ -398,6 +416,8 @@ _gcry_secmem_get_flags (void)
 void
 _gcry_secmem_init (size_t n)
 {
+  SECMEM_LOCK;
+
   if (!n)
     {
 #ifdef USE_CAPABILITIES
@@ -431,13 +451,14 @@ _gcry_secmem_init (size_t n)
       else
 	log_error ("Oops, secure memory pool already initialized\n");
     }
+
+  SECMEM_UNLOCK;
 }
 
 
-void *
-_gcry_secmem_malloc (size_t size)
+static void *
+_gcry_secmem_malloc_internal (size_t size)
 {
-  int compressed = 0;
   memblock_t *mb;
 
   if (!pool_okay)
@@ -463,9 +484,20 @@ _gcry_secmem_malloc (size_t size)
   return mb ? &mb->aligned.c : NULL;
 }
 
-/* Wipe out and release memory.  */
-void
-_gcry_secmem_free (void *a)
+void *
+_gcry_secmem_malloc (size_t size)
+{
+  void *p;
+
+  SECMEM_LOCK;
+  p = _gcry_secmem_malloc_internal (size);
+  SECMEM_UNLOCK;
+  
+  return p;
+}
+
+static void
+_gcry_secmem_free_internal (void *a)
 {
   memblock_t *mb;
   int size;
@@ -495,6 +527,15 @@ _gcry_secmem_free (void *a)
   mb_merge (mb);
 }
 
+/* Wipe out and release memory.  */
+void
+_gcry_secmem_free (void *a)
+{
+  SECMEM_LOCK;
+  _gcry_secmem_free_internal (a);
+  SECMEM_UNLOCK;
+}
+
 /* Realloc memory.  */
 void *
 _gcry_secmem_realloc (void *p, size_t newsize)
@@ -503,17 +544,22 @@ _gcry_secmem_realloc (void *p, size_t newsize)
   size_t size;
   void *a;
 
+  SECMEM_LOCK;
+
   mb = (memblock_t *) ((char *) p - ((size_t) & ((memblock_t *) 0)->aligned.c));
   size = mb->size;
   if (newsize < size)
     return p;			/* it is easier not to shrink the memory */
-  a = _gcry_secmem_malloc (newsize);
+  a = _gcry_secmem_malloc_internal (newsize);
   if (a)
     {
       memcpy (a, p, size);
       memset ((char *) a + size, 0, newsize - size);
-      _gcry_secmem_free (p);
+      _gcry_secmem_free_internal (p);
     }
+
+  SECMEM_UNLOCK;
+
   return a;
 }
 
@@ -522,8 +568,12 @@ _gcry_private_is_secure (const void *p)
 {
   int ret = 0;
 
+  SECMEM_LOCK;
+
   if (pool_okay && BLOCK_VALID (ADDR_TO_BLOCK (p)))
     ret = 1;
+
+  SECMEM_UNLOCK;
 
   return ret;
 }
@@ -563,6 +613,8 @@ _gcry_secmem_dump_stats ()
   memblock_t *mb;
   int i;
 
+  SECMEM_LOCK;
+
 #if 1
   if (pool_okay)
     log_info ("secmem usage: %u/%u bytes in %u blocks\n",
@@ -577,4 +629,6 @@ _gcry_secmem_dump_stats ()
 	      i,
 	      mb->size);
 #endif
+
+  SECMEM_UNLOCK;
 }
