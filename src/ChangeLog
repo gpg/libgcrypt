@@ -1,5 +1,13 @@
 2003-09-28  Moritz Schulte  <mo@g10code.com>
 
+	* ath.c: Change License to LGPL.
+	* ath-pthread-compat.c: Likewise.
+	* ath-pthread.c: Likewise.
+	* ath-pth-compat.c: Likewise.
+	* ath-pth.c: Likewise.
+	* ath.h: Likewise.
+	* ath-compat.c: Likewise.
+
 	* secmem.c (_gcry_secmem_realloc): Do not forget to release secmem
 	lock.  Thanks to low halo for triggering this bug.
 
