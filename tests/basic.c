@@ -252,6 +252,149 @@ check_aes128_cbc_cts_cipher ()
 }
 
 static void
+check_ctr_cipher (void)
+{
+  struct tv {
+    int algo;
+    char key[MAX_DATA_LEN];
+    char ctr[MAX_DATA_LEN];
+    struct data {
+      char plaintext[MAX_DATA_LEN];
+      int inlen;
+      char out[MAX_DATA_LEN];
+    }  data[MAX_DATA_LEN];
+  } tv[] = {
+    /* http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf */
+    { GCRY_CIPHER_AES,
+      "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
+      "\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+      {{ "\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a",
+	 16,
+	 "\x87\x4d\x61\x91\xb6\x20\xe3\x26\x1b\xef\x68\x64\x99\x0d\xb6\xce" },
+       { "\xae\x2d\x8a\x57\x1e\x03\xac\x9c\x9e\xb7\x6f\xac\x45\xaf\x8e\x51",
+	 16,
+	 "\x98\x06\xf6\x6b\x79\x70\xfd\xff\x86\x17\x18\x7b\xb9\xff\xfd\xff" },
+       { "\x30\xc8\x1c\x46\xa3\x5c\xe4\x11\xe5\xfb\xc1\x19\x1a\x0a\x52\xef",
+	 16,
+	 "\x5a\xe4\xdf\x3e\xdb\xd5\xd3\x5e\x5b\x4f\x09\x02\x0d\xb0\x3e\xab" },
+       { "\xf6\x9f\x24\x45\xdf\x4f\x9b\x17\xad\x2b\x41\x7b\xe6\x6c\x37\x10",
+	 16,
+	 "\x1e\x03\x1d\xda\x2f\xbe\x03\xd1\x79\x21\x70\xa0\xf3\x00\x9c\xee" },
+       {}}
+    },
+    { GCRY_CIPHER_AES192,
+      "\x8e\x73\xb0\xf7\xda\x0e\x64\x52\xc8\x10\xf3\x2b"
+      "\x80\x90\x79\xe5\x62\xf8\xea\xd2\x52\x2c\x6b\x7b",
+      "\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+      {{ "\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a",
+	 16,
+	 "\x1a\xbc\x93\x24\x17\x52\x1c\xa2\x4f\x2b\x04\x59\xfe\x7e\x6e\x0b" },
+       { "\xae\x2d\x8a\x57\x1e\x03\xac\x9c\x9e\xb7\x6f\xac\x45\xaf\x8e\x51",
+	 16,
+	 "\x09\x03\x39\xec\x0a\xa6\xfa\xef\xd5\xcc\xc2\xc6\xf4\xce\x8e\x94" },
+       { "\x30\xc8\x1c\x46\xa3\x5c\xe4\x11\xe5\xfb\xc1\x19\x1a\x0a\x52\xef",
+	 16,
+	 "\x1e\x36\xb2\x6b\xd1\xeb\xc6\x70\xd1\xbd\x1d\x66\x56\x20\xab\xf7" },
+       { "\xf6\x9f\x24\x45\xdf\x4f\x9b\x17\xad\x2b\x41\x7b\xe6\x6c\x37\x10",
+	 16,
+	 "\x4f\x78\xa7\xf6\xd2\x98\x09\x58\x5a\x97\xda\xec\x58\xc6\xb0\x50" },
+       {}}
+    },
+    { GCRY_CIPHER_AES256,
+      "\x60\x3d\xeb\x10\x15\xca\x71\xbe\x2b\x73\xae\xf0\x85\x7d\x77\x81"
+      "\x1f\x35\x2c\x07\x3b\x61\x08\xd7\x2d\x98\x10\xa3\x09\x14\xdf\xf4",
+      "\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+      {{ "\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a",
+	 16,
+	 "\x60\x1e\xc3\x13\x77\x57\x89\xa5\xb7\xa7\xf5\x04\xbb\xf3\xd2\x28" },
+       { "\xae\x2d\x8a\x57\x1e\x03\xac\x9c\x9e\xb7\x6f\xac\x45\xaf\x8e\x51",
+	 16,
+	 "\xf4\x43\xe3\xca\x4d\x62\xb5\x9a\xca\x84\xe9\x90\xca\xca\xf5\xc5" },
+       { "\x30\xc8\x1c\x46\xa3\x5c\xe4\x11\xe5\xfb\xc1\x19\x1a\x0a\x52\xef",
+	 16,
+	 "\x2b\x09\x30\xda\xa2\x3d\xe9\x4c\xe8\x70\x17\xba\x2d\x84\x98\x8d" },
+       { "\xf6\x9f\x24\x45\xdf\x4f\x9b\x17\xad\x2b\x41\x7b\xe6\x6c\x37\x10",
+	 16,
+	 "\xdf\xc9\xc5\x8d\xb6\x7a\xad\xa6\x13\xc2\xdd\x08\x45\x79\x41\xa6" },
+       {}}
+    }
+  };
+  GCRY_CIPHER_HD hde, hdd;
+  char out[MAX_DATA_LEN];
+  int i,j;
+
+  for (i = 0; i < sizeof(tv) / sizeof(tv[0]); i++)
+    {
+      hde = gcry_cipher_open (tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
+      hdd = gcry_cipher_open (tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
+      if (!hde || !hdd)
+	{
+	  fail ("aes-ctr, grcy_open_cipher failed: %s\n",
+		gcry_strerror (-1));
+	  return;
+	}
+
+      if (gcry_cipher_setkey (hde, tv[i].key,
+			      gcry_cipher_get_algo_keylen(tv[i].algo)) ||
+	  gcry_cipher_setkey (hdd, tv[i].key,
+			      gcry_cipher_get_algo_keylen(tv[i].algo)))
+	{
+	  fail ("aes-ctr, gcry_cipher_setkey failed: %s\n",
+		gcry_strerror (-1));
+	  gcry_cipher_close (hde);
+	  gcry_cipher_close (hdd);
+	  return;
+	}
+
+      if (gcry_cipher_setctr (hde, tv[i].ctr,
+			      gcry_cipher_get_algo_blklen(tv[i].algo)) ||
+	  gcry_cipher_setctr (hdd, tv[i].ctr,
+			      gcry_cipher_get_algo_blklen(tv[i].algo)))
+	{
+	  fail ("aes-ctr, gcry_cipher_setctr failed: %s\n",
+		gcry_strerror (-1));
+	  gcry_cipher_close (hde);
+	  gcry_cipher_close (hdd);
+	  return;
+	}
+
+      for (j = 0; tv[i].data[j].inlen; j++)
+	{
+	  if (gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+				   tv[i].data[j].plaintext,
+				   tv[i].data[j].inlen == -1 ?
+				   strlen(tv[i].data[j].plaintext) :
+				   tv[i].data[j].inlen))
+	    {
+	      fail ("aes-ctr, gcry_cipher_encrypt (%d, %d) failed: %s\n",
+		    i, j, gcry_strerror (-1));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  if (memcmp (tv[i].data[j].out, out, tv[i].data[j].inlen))
+	    fail ("aes-ctr, encrypt mismatch entry %d:%d\n", i, j);
+
+	  if (gcry_cipher_decrypt (hdd, out, tv[i].data[j].inlen, NULL, 0))
+	    {
+	      fail ("aes-ctr, gcry_cipher_decrypt (%d, %d) failed: %s\n",
+		    i, j, gcry_strerror (-1));
+	      gcry_cipher_close (hde);
+	      gcry_cipher_close (hdd);
+	      return;
+	    }
+
+	  if (memcmp (tv[i].data[j].plaintext, out, tv[i].data[j].inlen))
+	    fail ("aes-ctr, decrypt mismatch entry %d:%d\n", i, j);
+	}
+
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+    }
+}
+
+static void
 check_one_cipher (int algo, int mode, int flags)
 {
     GCRY_CIPHER_HD hd;
@@ -335,6 +478,7 @@ check_ciphers (void)
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CFB, 0);
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CBC, 0);
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_CBC_CTS);
+      check_one_cipher (algos[i], GCRY_CIPHER_MODE_CTR, 0);
     }
 
   for (i=0; algos2[i]; i++ ) 
@@ -681,6 +825,7 @@ main (int argc, char **argv)
   check_ciphers ();
   check_aes128_cbc_cts_cipher ();
   check_cbc_mac_cipher ();
+  check_ctr_cipher ();
   check_digests ();
   check_pubkey ();
   
