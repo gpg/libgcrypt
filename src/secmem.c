@@ -1,5 +1,6 @@
 /* secmem.c  -	memory allocation from a secure heap
- * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002,
+ *               2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -457,7 +458,7 @@ _gcry_secmem_init (size_t n)
 	  init_pool (n);
 	  if (! geteuid ())
 	    lock_pool (pool, n);
-	  else
+	  else if (!no_warning)
 	    log_info ("Secure memory is not locked into core\n");
 	}
       else

@@ -1,3 +1,14 @@
+2004-02-03  Werner Koch  <wk@gnupg.org>
+
+	* secmem.c (_gcry_secmem_init): Do not print the "not locked into
+	core warning" if the NO_WARNING flag has been set.
+
+	* sexp.c (sexp_sscan): Allocate result in secure memory if BUFFER
+	is in secure memory. Switch to secure memory for the a secure %b
+	format item. Extra paranoid wipe on error.
+	(gcry_sexp_release): Added paranoid wiping for securely allocated
+	S-expressions.
+
 2004-01-25  Moritz Schulte  <mo@g10code.com>
 
 	* ath.h: Include <config.h>.

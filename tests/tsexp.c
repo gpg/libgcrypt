@@ -62,6 +62,8 @@ basic (void)
   int pass;
   gcry_sexp_t sexp;
   int idx;
+  char *secure_buffer;
+  size_t secure_buffer_len;
   const char *string;
   static struct {
     const char *token;
@@ -77,6 +79,10 @@ basic (void)
   };
 
   info ("doing some pretty pointless tests\n"); 
+
+  secure_buffer_len = 99;
+  secure_buffer = gcry_xmalloc_secure (secure_buffer_len);
+  memset (secure_buffer, 'G', secure_buffer_len);
 
   for (pass=0;;pass++)
     {
@@ -105,6 +111,21 @@ basic (void)
               fail (" scanning `%s' failed\n", string);
               return;
             }
+          break;
+
+        case 2:
+          string = ("(public-key (dsa (p #41424344#) (y silly_y_value) "
+                    "(q %b) (g %m)))");
+      
+          if ( gcry_sexp_build (&sexp, NULL, string, 
+                                secure_buffer_len, secure_buffer,
+                                gcry_mpi_set_ui (NULL, 17)) )
+            {
+              fail (" scanning `%s' failed\n", string);
+              return;
+            }
+          if (!gcry_is_secure (sexp))
+            fail ("gcry_sexp_build did not switch to secure memory\n");
           break;
           
         default:
@@ -186,6 +207,7 @@ basic (void)
       gcry_sexp_release (sexp);
       sexp = NULL;
     }
+  gcry_free (secure_buffer);
 }
 
 
@@ -354,6 +376,9 @@ main (int argc, char **argv)
 {
   if (argc > 1 && !strcmp (argv[1], "-v"))
     verbose = 1;
+
+  gcry_control (GCRYCTL_DISABLE_SECMEM_WARN);
+  gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
 
   basic ();
   canon_len ();

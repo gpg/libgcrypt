@@ -1,5 +1,6 @@
 /* sexp.c  -  S-Expression handling
- * Copyright (C) 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1999, 2000, 2001, 2002, 2003,
+ *               2004 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -245,7 +246,39 @@ gcry_sexp_new (gcry_sexp_t *retsexp, const void *buffer, size_t length,
 void
 gcry_sexp_release( gcry_sexp_t sexp )
 {
-    gcry_free ( sexp );
+  if (sexp)
+    {
+      if (gcry_is_secure (sexp))
+        {
+          /* Extra paranoid wiping. */
+          const byte *p = sexp->d;
+          int type;
+
+          while ( (type = *p) != ST_STOP )
+            {
+              p++;
+              switch ( type )
+                {
+                case ST_OPEN:
+                  break;
+                case ST_CLOSE:
+                  break;
+                case ST_DATA: 
+                  {
+                    DATALEN n;
+                    memcpy ( &n, p, sizeof n );
+                    p += sizeof n;
+                    p += n;
+                  }
+                  break;
+                default:
+                  break;
+                }
+            }
+          wipememory (sexp->d, p - sexp->d);
+        }
+      gcry_free ( sexp );
+    }
 }
 
 
@@ -257,22 +290,24 @@ gcry_sexp_release( gcry_sexp_t sexp )
 gcry_sexp_t
 gcry_sexp_cons( const gcry_sexp_t a, const gcry_sexp_t b )
 {
-    /* NYI: Implementation should be quite easy with our new data representation */
-    BUG ();
-    return NULL;
+  /* NYI: Implementation should be quite easy with our new data
+     representation */
+  BUG ();
+  return NULL;
 }
 
 
 /****************
  * Make a list from all items in the array the end of the array is marked
- * with a NULL. 								      y a NULL
+ * with a NULL.
  */
 gcry_sexp_t
 gcry_sexp_alist( const gcry_sexp_t *array )
 {
-    /* NYI: Implementaion should be quite easy with our new data representation */
-    BUG ();
-    return NULL;
+  /* NYI: Implementation should be quite easy with our new data
+     representation. */
+  BUG ();
+  return NULL;
 }
 
 /****************
@@ -281,9 +316,10 @@ gcry_sexp_alist( const gcry_sexp_t *array )
 gcry_sexp_t
 gcry_sexp_vlist( const gcry_sexp_t a, ... )
 {
-    /* NYI: Implementaion should be quite easy with our new data representation */
-    BUG ();
-    return NULL;
+  /* NYI: Implementation should be quite easy with our new data
+     representation. */
+  BUG ();
+  return NULL;
 }
 
 
@@ -294,17 +330,19 @@ gcry_sexp_vlist( const gcry_sexp_t a, ... )
 gcry_sexp_t
 gcry_sexp_append( const gcry_sexp_t a, const gcry_sexp_t n )
 {
-    /* NYI: Implementaion should be quite easy with our new data representation */
-    BUG ();
-    return NULL;
+  /* NYI: Implementation should be quite easy with our new data
+     representation. */
+  BUG ();
+  return NULL;
 }
 
 gcry_sexp_t
 gcry_sexp_prepend( const gcry_sexp_t a, const gcry_sexp_t n )
 {
-    /* NYI: Implementaion should be quite easy with our new data representation */
-    BUG ();
-    return NULL;
+  /* NYI: Implementation should be quite easy with our new data
+     representation. */
+  BUG ();
+  return NULL;
 }
 
 
@@ -831,7 +869,7 @@ unquote_string (const unsigned char *string, size_t length, unsigned char *buf)
  * FIXME: We should find a way to store the secure-MPIs not in the string
  * but as reference to somewhere - this can help us to save huge amounts
  * of secure memory.  The problem is, that if only one element is secure, all
- * other elements are automagicaly copied to secure meory too, so the most
+ * other elements are automagicaly copied to secure memory too, so the most
  * common operation gcry_sexp_cdr_mpi() will always return a secure MPI
  * regardless whether it is needed or not.
  */
@@ -841,10 +879,10 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    va_list arg_ptr, void **arg_list)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  static const char tokenchars[] = "\
-abcdefghijklmnopqrstuvwxyz\
-ABCDEFGHIJKLMNOPQRSTUVWXYZ\
-0123456789-./_:*+=";
+  static const char tokenchars[] =
+    "abcdefghijklmnopqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "0123456789-./_:*+=";
   const char *p;
   size_t n;
   const char *digptr = NULL;
@@ -891,7 +929,10 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
    * than the provided one.  However, we add space for one extra datalen
    * so that the code which does the ST_CLOSE can use MAKE_SPACE */
   c.allocated = length + sizeof(DATALEN);
-  c.sexp = gcry_xmalloc (sizeof *c.sexp + c.allocated - 1);
+  if (buffer && length && gcry_is_secure (buffer))
+    c.sexp = gcry_xmalloc_secure (sizeof *c.sexp + c.allocated - 1);
+  else
+    c.sexp = gcry_xmalloc (sizeof *c.sexp + c.allocated - 1);
   c.pos = c.sexp->d;
 
   for (p = buffer, n = length; n; p++, n--)
@@ -982,8 +1023,8 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 	    quoted_esc = 1;
 	  else if (*p == '\"')
 	    {
-	      /* keep it easy - we know that the unquoted string will
-		 never be larger */
+	      /* Keep it easy - we know that the unquoted string will
+		 never be larger. */
 	      char *save;
 	      size_t len;
 	      
@@ -1141,6 +1182,23 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 	      ARG_NEXT (astr, const char *);
 	      
 	      MAKE_SPACE (alen);
+	      if (alen
+                  && !gcry_is_secure (c.sexp->d)
+		  && gcry_is_secure (astr))
+              {
+		  /* We have to switch to secure allocation.  */
+		  gcry_sexp_t newsexp;
+		  byte *newhead;
+
+		  newsexp = gcry_xmalloc_secure (sizeof *newsexp
+ 						 + c.allocated - 1);
+		  newhead = newsexp->d;
+		  memcpy (newhead, c.sexp->d, (c.pos - c.sexp->d));
+		  c.pos = newhead + (c.pos - c.sexp->d);
+		  gcry_free (c.sexp);
+		  c.sexp = newsexp;
+		}
+
 	      *c.pos++ = ST_DATA;
 	      STORE_LEN (c.pos, alen);
 	      memcpy (c.pos, astr, alen);
@@ -1275,7 +1333,12 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
     {
       /* Error -> deallocate.  */
       if (c.sexp)
-	gcry_free (c.sexp);
+        {
+          /* Extra paranoid wipe on error. */
+          if (gcry_is_secure (c.sexp))
+            wipememory (c.sexp, sizeof (struct gcry_sexp) + c.allocated - 1);
+          gcry_free (c.sexp);
+        }
       /* This might be expected by existing code...  */
       *retsexp = NULL;
     }
