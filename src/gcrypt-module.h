@@ -31,6 +31,8 @@ extern "C" {
 #endif
 #endif
 
+#include <stddef.h>
+
 /* This type represents a `module'.  */
 typedef struct gcry_module *gcry_module_t;
 
@@ -98,78 +100,106 @@ void gcry_cipher_unregister (gcry_module_t module);
 
 /* ********************** */
 
+#define _GCRY_AC_SPEC(identifier) \
+  static gcry_ac_struct_spec_t spec_##identifier[]
+
+#define GCRY_AC_SPEC_KEY_PUBLIC     _GCRY_AC_SPEC (key_public)
+#define GCRY_AC_SPEC_KEY_SECRET     _GCRY_AC_SPEC (key_secret)
+#define GCRY_AC_SPEC_DATA_ENCRYPTED _GCRY_AC_SPEC (data_encrypted)
+#define GCRY_AC_SPEC_DATA_SIGNED    _GCRY_AC_SPEC (data_signed)
+
+#define _GCRY_AC_ELEM(elem, type) { #elem, offsetof (type, elem) }
+
+#define GCRY_AC_ELEM_KEY_PUBLIC(elem)     _GCRY_AC_ELEM (elem, key_public_t)
+#define GCRY_AC_ELEM_KEY_SECRET(elem)     _GCRY_AC_ELEM (elem, key_secret_t)
+#define GCRY_AC_ELEM_DATA_ENCRYPTED(elem) _GCRY_AC_ELEM (elem, data_encrypted_t)
+#define GCRY_AC_ELEM_DATA_SIGNED(elem)    _GCRY_AC_ELEM (elem, data_signed_t)
+
+typedef struct gcry_ac_struct_spec
+{
+  const char *name;
+  size_t offset;
+} gcry_ac_struct_spec_t;
+
 /* Type for the pk_generate function.  */
-typedef gcry_err_code_t (*gcry_pk_generate_t) (int algo,
-					       unsigned int nbits,
-					       unsigned long use_e,
-					       gcry_mpi_t *skey,
-					       gcry_mpi_t **retfactors);
+typedef gcry_err_code_t (*gcry_ac_generate_t) (unsigned int nbits,
+					       void *generate_spec,
+					       void *key_secret,
+					       void *key_public,
+					       gcry_mpi_t **misc_data);
 
 /* Type for the pk_check_secret_key function.  */
-typedef gcry_err_code_t (*gcry_pk_check_secret_key_t) (int algo,
-						       gcry_mpi_t *skey);
+typedef gcry_err_code_t (*gcry_ac_key_secret_check_t) (void *key_secret);
 
 /* Type for the pk_encrypt function.  */
-typedef gcry_err_code_t (*gcry_pk_encrypt_t) (int algo,
-					      gcry_mpi_t *resarr,
-					      gcry_mpi_t data,
-					      gcry_mpi_t *pkey,
-					      int flags);
+typedef gcry_err_code_t (*gcry_ac_encrypt_t) (gcry_mpi_t data,
+					      void *key_public,
+					      void *data_encrypted,
+					      unsigned int flags);
 
 /* Type for the pk_decrypt function.  */
-typedef gcry_err_code_t (*gcry_pk_decrypt_t) (int algo,
-					      gcry_mpi_t *result,
-					      gcry_mpi_t *data,
-					      gcry_mpi_t *skey,
-					      int flags);
+typedef gcry_err_code_t (*gcry_ac_decrypt_t) (void *data_encrypted,
+					      void *key_secret,
+					      gcry_mpi_t *data_decrypted,
+					      unsigned int flags);
 
 /* Type for the pk_sign function.  */
-typedef gcry_err_code_t (*gcry_pk_sign_t) (int algo,
-					   gcry_mpi_t *resarr,
-					   gcry_mpi_t data,
-					   gcry_mpi_t *skey);
+typedef gcry_err_code_t (*gcry_ac_sign_t) (gcry_mpi_t data,
+					   void *key_secret,
+					   void *data_signed);
 
 /* Type for the pk_verify function.  */
-typedef gcry_err_code_t (*gcry_pk_verify_t) (int algo,
-					     gcry_mpi_t hash,
-					     gcry_mpi_t *data,
-					     gcry_mpi_t *pkey,
-					     int (*cmp) (void *, gcry_mpi_t),
-					     void *opaquev);
+typedef gcry_err_code_t (*gcry_ac_verify_t) (gcry_mpi_t data,
+					     void *key_public,
+					     void *data_signed);
 
 /* Type for the pk_get_nbits function.  */
-typedef unsigned (*gcry_pk_get_nbits_t) (int algo, gcry_mpi_t *pkey);
+typedef gcry_err_code_t (*gcry_ac_get_nbits_t) (void *key_public,
+						void *key_secret,
+						unsigned int *key_nbits);
+
+/* Type for the pk_get_grip function.  */
+typedef gcry_err_code_t (*gcry_ac_get_grip_t) (void *key_public,
+					       unsigned char *key_grip);
 
 /* Module specification structure for message digests.  */
-typedef struct gcry_pk_spec
+typedef struct gcry_ac_spec
 {
   const char *name;
   char **aliases;
-  const char *elements_pkey;
-  const char *elements_skey;
-  const char *elements_enc;
-  const char *elements_sig;
-  const char *elements_grip;
-  int use;
-  gcry_pk_generate_t generate;
-  gcry_pk_check_secret_key_t check_secret_key;
-  gcry_pk_encrypt_t encrypt;
-  gcry_pk_decrypt_t decrypt;
-  gcry_pk_sign_t sign;
-  gcry_pk_verify_t verify;
-  gcry_pk_get_nbits_t get_nbits;
-} gcry_pk_spec_t;
+  size_t size_key_public;
+  size_t size_key_secret;
+  size_t size_data_encrypted;
+  size_t size_data_signed;
+  unsigned int elems_key_public;
+  unsigned int elems_key_secret;
+  unsigned int elems_data_encrypted;
+  unsigned int elems_data_signed;
+  gcry_ac_struct_spec_t *spec_key_public;
+  gcry_ac_struct_spec_t *spec_key_secret;
+  gcry_ac_struct_spec_t *spec_data_encrypted;
+  gcry_ac_struct_spec_t *spec_data_signed;
+  gcry_ac_generate_t generate;
+  gcry_ac_key_secret_check_t key_secret_check;
+  gcry_ac_encrypt_t encrypt;
+  gcry_ac_decrypt_t decrypt;
+  gcry_ac_sign_t sign;
+  gcry_ac_verify_t verify;
+  gcry_ac_get_nbits_t get_nbits;
+  gcry_ac_get_grip_t get_grip;
+} gcry_ac_spec_t;
 
-/* Register a new pubkey module whose specification can be found in
-   PUBKEY.  On success, a new algorithm ID is stored in ALGORITHM_ID
-   and a pointer representhing this module is stored in MODULE.  */
-gcry_error_t gcry_pk_register (gcry_pk_spec_t *pubkey,
+/* Register a new algorithm module whose specification can be found in
+   ALGORITHM.  On success, a new algorithm ID is stored in
+   ALGORITHM_ID and a pointer representhing this module is stored in
+   MODULE.  */
+gcry_error_t gcry_ac_register (gcry_ac_spec_t *algorithm,
 			       unsigned int *algorithm_id,
 			       gcry_module_t *module);
 
-/* Unregister the pubkey identified by ID, which must have been
-   registered with gcry_pk_register.  */
-void gcry_pk_unregister (gcry_module_t module);
+/* Unregister the algorithm identified by MODULE, which must have been
+   registered with gcry_ac_register.  */
+void gcry_ac_unregister (gcry_module_t module);
 
 /* ********************** */
 
