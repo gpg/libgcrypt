@@ -1,3 +1,14 @@
+2004-01-25  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.texi (General cipher functions): Fixed descriptions of
+	the arguments for GCRYCTL_GET_KEYLEN, GCRYCTL_GET_BLKLEN; reported
+	by Randy.
+
+2004-01-14  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.texi (Public Key cryptography II): Adjusted to new
+	gcry_ac_* API; document flags.
+
 2003-12-04  Werner Koch  <wk@gnupg.org>
 
 	* Makefile.am (gcrypt_TEXINFOS): Removed fdl.texi.

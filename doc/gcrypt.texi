@@ -1430,13 +1430,13 @@ Here is a list of supported codes for @var{what}:
 @table @code
 @item GCRYCTL_GET_KEYLEN:
 Return the length of the key. If the algorithm supports multiple key
-length, the maximum supported value is returned.  The length is returned
-as number of octets (bytes) and not as number of bits.  @var{buffer} and
-@var{nbytes} must be zero.
+lengths, the maximum supported value is returned.  The length is
+returned as number of octets (bytes) and not as number of bits in
+@var{nbytes}; @var{buffer} must be zero.
 
 @item GCRYCTL_GET_BLKLEN:
-Return the block length of the algorithm counted in octets.
-@var{buffer} and @var{nbytes} must be zero.
+Return the block length of the algorithm.  The length is returned as a
+number of octets in @var{nbytes}; @var{buffer} must be zero.
 
 @item GCRYCTL_TEST_ALGO:
 Returns @code{0} when the specified algorithm is available for use.
@@ -2685,12 +2685,25 @@ consist of a variable amount of numbers.  Furthermore some functions
 return data sets to the caller that are to be provided to other
 functions.
 
-This section documents the data types and functions that are relevant
-for working with such data sets.
+This section documents the data types, symbols and functions that are
+relevant for working with such data sets.
 
 @deftp {Data type} gcry_ac_data_t
 A data set, that is simply a list of named MPI values.
 @end deftp
+
+The following flags are supported:
+
+@table @code
+@item GCRY_AC_FLAG_DEALLOC
+Used for storing data in a data set.  If given, the data will be
+released by the library.
+
+@item GCRY_AC_FLAG_COPY
+Used for storing/retrieving data in/from a data set.  If given, the
+library will create copies of the provided/contained data, which will
+then be given to the user/associated with the data set.
+@end table
 
 @deftypefun gcry_error_t gcry_ac_data_new (gcry_ac_data_t *@var{data})
 Creates a new, empty data set and stores it in @var{data}.
@@ -2701,10 +2714,13 @@ Destroys the data set @var{data}.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_ac_data_set (gcry_ac_data_t @var{data},
-char *@var{name}, gcry_mpi_t @var{mpi})
-Adds the value @var{mpi} to the data set @var{data} with the label
-@var{name}.  If there is already a value with that label, it is replaced,
-otherwise a new value is added.
+unsigned int @var{flags}, char *@var{name}, gcry_mpi_t @var{mpi})
+Add the value @var{mpi} to @var{data} with the label @var{name}.  If
+@var{flags} contains GCRY_AC_FLAG_DATA_COPY, the data set will contain
+copies of @var{name} and @var{mpi}.  If @var{flags} contains
+GCRY_AC_FLAG_DATA_DEALLOC or GCRY_AC_FLAG_DATA_COPY, the values
+contained in the data set will be deallocated when they are to be
+removed from the data set.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *@var{data_cp}, gcry_ac_data_t @var{data})
@@ -2717,21 +2733,19 @@ Returns the number of named MPI values inside of the data set
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t @var{data},
-char *@var{name}, gcry_mpi_t *@var{mpi})
-
-Stores the value labelled with @var{name} found in data set @var{data}
-in @var{mpi}.  The returned MPI value will be released in case
-gcry_ac_data_set is used to associate the label @var{name} with a
-different MPI value.
+unsigned int @var{flags}, char *@var{name}, gcry_mpi_t *@var{mpi})
+Store the value labelled with @var{name} found in @var{data} in
+@var{mpi}.  If @var{flags} contains GCRY_AC_FLAG_COPY, store a copy of
+the @var{mpi} value contained in the data set.  @var{mpi} may be NULL.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t @var{data}, unsigned int @var{index}, const char **@var{name}, gcry_mpi_t *@var{mpi})
-
-Stores in @var{name} and @var{mpi} the named MPI value contained in
-the data set @var{data} with the index @var{index}.  @var{name} or
-@var{mpi} may be @code{NULL}.  The returned MPI value will be released
-in case gcry_ac_data_set is used to associate the label @var{name}
-with a different MPI value.
+@deftypefun gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t @var{data},
+unsigned int flags, unsigned int @var{index},
+const char **@var{name}, gcry_mpi_t *@var{mpi})
+Stores in @var{name} and @var{mpi} the named @var{mpi} value contained
+in the data set @var{data} with the index @var{idx}.  If @var{flags}
+contains GCRY_AC_FLAG_COPY, store copies of the values contained in
+the data set. @var{name} or @var{mpi} may be NULL.
 @end deftypefun
 
 @deftypefun void gcry_ac_data_clear (gcry_ac_data_t @var{data})
@@ -2793,16 +2807,18 @@ Creates a new key of type @var{type}, consisting of the MPI values
 contained in the data set @var{data} and stores it in @var{key}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t @var{handle}, gcry_ac_key_pair_t *@var{key_pair}, unsigned int @var{nbits}, void *@var{key_spec})
+@deftypefun gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t @var{handle},
+unsigned int @var{nbits}, void *@var{key_spec}, gcry_ac_key_pair_t *@var{key_pair},
+gcry_mpi_t **@var{misc_data})
 
 Generates a new key pair via the handle @var{handle} of @var{NBITS}
 bits and stores it in @var{key_pair}.
 
 In case non-standard settings are wanted, a pointer to a structure of
 type @code{gcry_ac_key_spec_<algorithm>_t}, matching the selected
-algorithm, can be given as KEY_SPEC.  Such a structure does only exist
-for RSA.  A descriptions of the members of the supported structures
-follows.
+algorithm, can be given as @var{key_spec}.  @var{misc_data} is not
+used yet.  Such a structure does only exist for RSA.  A descriptions
+of the members of the supported structures follows.
 
 @table @code
 @item gcry_ac_key_spec_rsa_t
@@ -2862,21 +2878,31 @@ Destroys the key pair @var{key_pair}.
 Returns the data set contained in the key @var{key}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_test (gcry_ac_key_t @var{key})
-Verifies that the private key @var{key} is sane.
+@deftypefun gcry_error_t gcry_ac_key_test (gcry_ac_handle_t @var{handle}, gcry_ac_key_t @var{key})
+Verifies that the private key @var{key} is sane via @var{handle}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_get_nbits (gcry_ac_key_t @var{key}, unsigned int *@var{nbits})
-Stores the number of bits of the key @var{key} in @var{nbits}.
+@deftypefun gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t @var{handle},
+gcry_ac_key_t @var{key}, unsigned int *@var{nbits})
+Stores the number of bits of the key @var{key} in @var{nbits} via @var{handle}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_get_grip (gcry_ac_key_t @var{key}, unsigned char *@var{key_grip})
+@deftypefun gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t @var{handle},
+gcry_ac_key_t @var{key}, unsigned char *@var{key_grip})
 Writes the 20 byte long key grip of the key @var{key} to
-@var{key_grip}.
+@var{key_grip} via @var{handle}.
 @end deftypefun
 
 @node Using cryptographic functions
 @section Using cryptographic functions
+
+The following flags might be relevant:
+
+@table @code
+@item GCRY_AC_FLAG_NO_BLINDING
+Disable any blinding, which might be supported by the chosen
+algorithm; blinding is the default.
+@end table
 
 @deftypefun gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t @var{handle}, unsigned int @var{flags}, gcry_ac_key_t @var{key}, gcry_mpi_t @var{data_plain}, gcry_ac_data_t **@var{data_encrypted})
 Encrypts the plain text MPI value @var{data_plain} with the key public
@@ -2974,10 +3000,10 @@ allocated in a ``secure'' area of the memory.
 
 Fill @var{buffer} with @var{length} unpredictable bytes.  This is
 commonly called a nonce and may also be used for initialization
-vectors and padding.  This is an extra function nearly independed of
-the other random function for 3 reasons: It better protects the regular
-random generator's internal state, provides better performance and
-does not drain the precious entropy pool.
+vectors and padding.  This is an extra function nearly independent of
+the other random function for 3 reasons: It better protects the
+regular random generator's internal state, provides better performance
+and does not drain the precious entropy pool.
 
 @end deftypefun
 
