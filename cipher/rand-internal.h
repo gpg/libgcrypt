@@ -27,4 +27,8 @@ void rndos2_constructor(void);
 void rndatari_constructor(void);
 void rndmvs_constructor(void);
 
+void _gcry_random_progress (const char *what, int printchar,
+                            int current, int total);
+
+
 #endif /*G10_RAND_INTERNAL_H*/

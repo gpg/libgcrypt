@@ -130,6 +130,9 @@ static struct {
     ulong naddbytes;
 } rndstats;
 
+static void (*progress_cb) (void *,const char*,int,int, int );
+static void *progress_cb_data;
+
 
 /* Note, we assume that this function is used before any concurrent
    access happens */
@@ -152,6 +155,27 @@ initialize(void)
   is_initialized = 1;
   _gcry_cipher_modules_constructor ();
 }
+
+
+/* Used to register a progress callback. */
+void
+_gcry_register_random_progress (void (*cb)(void *,const char*,int,int,int),
+                                void *cb_data )
+{
+  progress_cb = cb;
+  progress_cb_data = cb_data;
+}
+
+
+/* This progress function is currently used by the random modules to give hint
+   on how much more entropy is required. */
+void
+_gcry_random_progress (const char *what, int printchar, int current, int total)
+{
+  if (progress_cb)
+    progress_cb (progress_cb_data, what, printchar, current, total);
+}
+
 
 /* Initialize this random subsystem.  This function memrely calls the
    initialzies and does not do anything more.  Doing this is not

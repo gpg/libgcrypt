@@ -1,3 +1,10 @@
+2003-01-24  Werner Koch  <wk@gnupg.org>
+
+	* random.c (_gcry_register_random_progress): New.
+	(_gcry_random_progress): New.
+
+	* rndlinux.c (gather_random): Call the random progress function. 
+
 2003-01-23  Werner Koch  <wk@gnupg.org>
 
 	* rsa.c (generate): New arg USE_E to request a specific public
