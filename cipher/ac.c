@@ -1,5 +1,5 @@
 /* ac.c - Alternative interface for asymmetric cryptography.
-   Copyright (C) 2003 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004 Free Software Foundation, Inc.
  
    This file is part of Libgcrypt.
   
@@ -43,7 +43,7 @@ struct number_string
   const char *string;
 } gcry_ac_flags[] =
   {
-    { GCRY_AC_FLAG_DATA_NO_BLINDING, "no-blinding" },
+    { GCRY_AC_FLAG_NO_BLINDING, "no-blinding" },
     { 0, NULL },
   };
 
@@ -88,8 +88,9 @@ struct gcry_ac_handle
 /* A named MPI value.  */
 typedef struct gcry_ac_mpi
 {
-  const char *name;
-  gcry_mpi_t mpi;
+  const char *name;		/* Name of MPI value. */
+  gcry_mpi_t mpi;		/* MPI value.         */
+  unsigned int flags;		/* Flags.             */
 } gcry_ac_mpi_t;
 
 /* A data set, that is simply a list of named MPI values.  */
@@ -119,52 +120,6 @@ struct gcry_ac_key_pair
 /*
  * Primitive functions for the manipulation of `data sets'.
  */
-
-/* Return in AC_MPI a pointer to the named MPI contained in DATA that
-   is labelled with NAME or NULL in case there is no MPI with the that
-   name.  */
-static void
-gcry_ac_data_search (gcry_ac_data_t data,
-		     const char *name,
-		     gcry_ac_mpi_t **ac_mpi)
-{
-  gcry_ac_mpi_t *ac_mpi_found = NULL;
-  int i;
-
-  /* Search.  */
-  for (i = 0; i < data->data_n; i++)
-    if (! strcmp (name, data->data[i].name))
-      ac_mpi_found = &data->data[i];
-
-  *ac_mpi = ac_mpi_found;
-}
-
-/* Add MPI to DATA, with the label being NAME.  */
-static gcry_err_code_t
-gcry_ac_data_add (gcry_ac_data_t data,
-		  const char *name, gcry_mpi_t mpi)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_ac_mpi_t *ac_mpis = NULL;
-
-  /* Allocate.  */
-  ac_mpis = gcry_realloc (data->data,
-                          sizeof (gcry_ac_mpi_t) * (data->data_n + 1));
-  if (! ac_mpis)
-    err = gpg_err_code_from_errno (errno);
-
-  if (! err)
-    {
-      /* Fill. */
-      if (ac_mpis != data->data)
-	data->data = ac_mpis;
-      data->data[data->data_n].name = name;
-      data->data[data->data_n].mpi = mpi;
-      data->data_n++;
-    }
-
-  return err;
-}
 
 /* Create a copy of the data set DATA and store it in DATA_CP.  */
 static gcry_err_code_t
@@ -553,49 +508,79 @@ gcry_ac_data_destroy (gcry_ac_data_t data)
   gcry_free (data);
 }
 
-/* Adds the value MPI to the data set DATA with the label NAME.  If
-   there is already a value with that label, it is replaced, otherwise
-   a new value is added. */
+/* Add the value MPI to DATA with the label NAME.  If FLAGS contains
+   GCRY_AC_FLAG_DATA_COPY, the data set will contain copies of NAME
+   and MPI.  If FLAGS contains GCRY_AC_FLAG_DATA_DEALLOC or
+   GCRY_AC_FLAG_DATA_COPY, the values contained in the data set will
+   be deallocated when they are to be removed from the data set.  */
 gcry_error_t
-gcry_ac_data_set (gcry_ac_data_t data,
+gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
 		  const char *name, gcry_mpi_t mpi)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_ac_mpi_t *ac_mpi;
+  gcry_ac_mpi_t *ac_mpi = NULL;
+  gcry_mpi_t mpi_add = NULL;
+  char *name_add = NULL;
+  unsigned int i = 0;
 
-  gcry_ac_data_search (data, name, &ac_mpi);
-  if (ac_mpi)
-    {
-      /* An entry for NAME does already exist, replace it.  */
-      if (ac_mpi->mpi != mpi)
-	{
-	  gcry_mpi_release (ac_mpi->mpi);
-	  ac_mpi->mpi = mpi;
-	}
-    }
+  if (flags & ~(GCRY_AC_FLAG_DEALLOC | GCRY_AC_FLAG_COPY))
+    err = GPG_ERR_INV_ARG;
   else
     {
-      /* Create a new entry.  */
-
-      gcry_mpi_t mpi_cp = NULL;
-      char *name_cp = NULL;
-
-      name_cp = strdup (name);
-      if (name_cp)
-	mpi_cp = gcry_mpi_copy (mpi);
-      if (! (name_cp && mpi_cp))
-	err = gpg_err_code_from_errno (errno);
-
-      if (! err)
-	err = gcry_ac_data_add (data, name_cp, mpi_cp);
-
-      if (err)
+      if (flags & GCRY_AC_FLAG_COPY)
 	{
-	  if (name_cp)
-	    gcry_free (name_cp);
-	  if (mpi_cp)
-	    gcry_mpi_release (mpi_cp);
+	  /* Create copies.  */
+
+	  name_add = strdup (name);
+	  if (! name_add)
+	    err = GPG_ERR_ENOMEM;
+	  if (! err)
+	    {
+	      mpi_add = gcry_mpi_copy (mpi);
+	      if (! mpi_add)
+		err = GPG_ERR_ENOMEM;
+	    }
 	}
+      else
+	{
+	  name_add = (char *) name;
+	  mpi_add = mpi;
+	}
+      
+      /* Search for existing entry.  */
+      for (i = 0; (i < data->data_n) && (! ac_mpi); i++)
+	if (! strcmp (name, data->data[i].name))
+	  ac_mpi = data->data + i;
+      
+      if (ac_mpi)
+	{
+	  /* An entry for NAME does already exist.  */
+	  if (ac_mpi->flags & GCRY_AC_FLAG_DEALLOC)
+	    {
+	      /* Deallocate old values.  */
+	      gcry_free ((char *) ac_mpi->name);
+	      gcry_mpi_release (ac_mpi->mpi);
+	    }
+	}
+      else
+	{
+	  /* Create a new entry.  */
+	  
+	  gcry_ac_mpi_t *ac_mpis = NULL;
+	  
+	  ac_mpis = realloc (data->data, sizeof (*data->data) * (data->data_n + 1));
+	  if (! ac_mpis)
+	    err = gpg_err_code_from_errno (errno);
+	  
+	  if (data->data != ac_mpis)
+	    data->data = ac_mpis;
+	  ac_mpi = data->data + data->data_n;
+	  data->data_n++;
+	}
+      
+      ac_mpi->flags = flags;
+      ac_mpi->name = name_add;
+      ac_mpi->mpi = mpi_add;
     }
 
   return gcry_error (err);
@@ -620,50 +605,97 @@ gcry_ac_data_length (gcry_ac_data_t data)
   return data->data_n;
 }
 
-/* Stores the value labelled with NAME found in the data set DATA in
-   MPI.  The returned MPI value will be released in case
-   gcry_ac_data_set is used to associate the label NAME with a
-   different MPI value.  */
+/* Store the value labelled with NAME found in DATA in MPI.  If FLAGS
+   contains GCRY_AC_FLAG_COPY, store a copy of the MPI value contained
+   in the data set.  MPI may be NULL.  */
 gcry_error_t
-gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
-		       gcry_mpi_t *mpi)
+gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
+		       const char *name, gcry_mpi_t *mpi)
 {
   gcry_err_code_t err = GPG_ERR_NO_DATA;
   gcry_mpi_t mpi_found = NULL;
-  int i;
-  
-  for (i = 0; i < data->data_n && (! mpi_found); i++)
-    if (! strcmp (data->data[i].name, name))
-      {
-	mpi_found = data->data[i].mpi;
-	err = GPG_ERR_NO_ERROR;
-      }
+  unsigned int i = 0;
+
+  if (flags & ~(GCRY_AC_FLAG_COPY))
+    err = GPG_ERR_INV_ARG;
+  else
+    {
+      for (i = 0; i < data->data_n && (! mpi_found); i++)
+	if (! strcmp (data->data[i].name, name))
+	  {
+	    if (flags & GCRY_AC_FLAG_COPY)
+	      {
+		mpi_found = gcry_mpi_copy (data->data[i].mpi);
+		if (! mpi_found)
+		  err = GPG_ERR_ENOMEM;
+	      }
+	    else
+	      mpi_found = data->data[i].mpi;
+	    
+	    if (mpi_found)
+	      err = GPG_ERR_NO_ERROR;
+	  }
+    }
 
   if (! err)
-    *mpi = mpi_found;
+    if (mpi)
+      *mpi = mpi_found;
 
   return gcry_error (err);
 }
 
 /* Stores in NAME and MPI the named MPI value contained in the data
-   set DATA with the index INDEX.  NAME or MPI may be NULL.  The
-   returned MPI value will be released in case gcry_ac_data_set is
-   used to associate the label NAME with a different MPI value.  */
+   set DATA with the index IDX.  If FLAGS contains GCRY_AC_FLAG_COPY,
+   store copies of the values contained in the data set. NAME or MPI
+   may be NULL.  */
 gcry_error_t
-gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int idx,
+gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags, unsigned int idx,
 			const char **name, gcry_mpi_t *mpi)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_mpi_t mpi_return = NULL;
+  char *name_return = NULL;
 
-  if (idx < data->data_n)
+  if (flags & ~(GCRY_AC_FLAG_COPY))
+    err = GPG_ERR_INV_ARG;
+  else
+    {
+      if (idx < data->data_n)
+	{
+	  if (flags & GCRY_AC_FLAG_COPY)
+	    {
+	      /* Return copies to the user.  */
+	      if (name)
+		name_return = strdup (data->data[idx].name);
+	      if (mpi)
+		mpi_return = gcry_mpi_copy (data->data[idx].mpi);
+	      
+	      if (! (name_return && mpi_return))
+		{
+		  if (name_return)
+		    free (name_return);
+		  if (mpi_return)
+		    gcry_mpi_release (mpi_return);
+		  err = GPG_ERR_ENOMEM;
+		}
+	    }
+	  else
+	    {
+	      name_return = (char *) data->data[idx].name;
+	      mpi_return = data->data[idx].mpi;
+	    }
+	}
+      else
+	err = GPG_ERR_NO_DATA;
+    }
+
+  if (! err)
     {
       if (name)
-	*name = data->data[idx].name;
+	*name = name_return;
       if (mpi)
-	*mpi = data->data[idx].mpi;
+	*mpi = mpi_return;
     }
-  else
-    err = GPG_ERR_NO_DATA;
 
   return gcry_error (err);
 }
@@ -803,12 +835,11 @@ gcry_ac_key_init (gcry_ac_key_t *key,
 /* Generates a new key pair via the handle HANDLE of NBITS bits and
    stores it in KEY_PAIR.  In case non-standard settings are wanted, a
    pointer to a structure of type gcry_ac_key_spec_<algorithm>_t,
-   matching the selected algorithm, can be given as KEY_SPEC.  */
+   matching the selected algorithm, can be given as KEY_SPEC.
+   MISC_DATA is not used yet.  */
 gcry_error_t
-gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
-			   gcry_ac_key_pair_t *key_pair,
-			   unsigned int nbits,
-			   void *key_spec)
+gcry_ac_key_pair_generate (gcry_ac_handle_t handle, unsigned int nbits, void *key_spec,
+			   gcry_ac_key_pair_t *key_pair, gcry_mpi_t **misc_data)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
@@ -1047,9 +1078,9 @@ gcry_ac_key_data_get (gcry_ac_key_t key)
   return  key->data;
 }
 
-/* Verifies that the key KEY is sane.  */
+/* Verifies that the key KEY is sane via HANDLE.  */
 gcry_error_t
-gcry_ac_key_test (gcry_ac_key_t key)
+gcry_ac_key_test (gcry_ac_handle_t handle, gcry_ac_key_t key)
 {
   gcry_err_code_t err;
 
@@ -1058,9 +1089,9 @@ gcry_ac_key_test (gcry_ac_key_t key)
   return gcry_error (err);
 }
 
-/* Stores the number of bits of the key KEY in NBITS.  */
+/* Stores the number of bits of the key KEY in NBITS via HANDLE.  */
 gcry_error_t
-gcry_ac_key_get_nbits (gcry_ac_key_t key, unsigned int *nbits)
+gcry_ac_key_get_nbits (gcry_ac_handle_t handle, gcry_ac_key_t key, unsigned int *nbits)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   unsigned int n;
@@ -1074,9 +1105,10 @@ gcry_ac_key_get_nbits (gcry_ac_key_t key, unsigned int *nbits)
   return gcry_error (err);
 }
 
-/* Writes the 20 byte long key grip of the key KEY to KEY_GRIP.  */
+/* Writes the 20 byte long key grip of the key KEY to KEY_GRIP via
+   HANDLE.  */
 gcry_error_t
-gcry_ac_key_get_grip (gcry_ac_key_t key, unsigned char *key_grip)
+gcry_ac_key_get_grip (gcry_ac_handle_t handle, gcry_ac_key_t key, unsigned char *key_grip)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   unsigned char *ret;

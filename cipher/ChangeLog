@@ -1,3 +1,17 @@
+2004-01-14  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c (gcry_ac_data_set): New argument: flags; slightly
+	rewritten.
+	(gcry_ac_data_get_name, gcry_ac_data_get_index): Likewise.
+	(gcry_ac_key_pair_generate): New argument: misc_data; modified
+	order of arguments.
+	(gcry_ac_key_test): New argument: handle.
+	(gcry_ac_key_get_nbits, gcry_ac_key_get_grip): Likewise.
+	Use GCRY_AC_FLAG_NO_BLINDING instead of
+	GCRY_AC_DATA_FLAG_NO_BLINDING.
+	(gcry_ac_mpi): New member: flags.
+	(gcry_ac_data_search, gcry_ac_data_add): Removed functions.
+
 2003-12-22  Werner Koch  <wk@gnupg.org>
 
 	* primegen.c (is_prime): Release A2.
