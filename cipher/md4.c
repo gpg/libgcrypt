@@ -96,23 +96,21 @@ burn_stack (int bytes)
 
 
 /****************
- * transform n*64 bytes
+ * transform 64 bytes
  */
 static void
-/*transform( MD4_CONTEXT *ctx, const void *buffer, size_t len )*/
 transform( MD4_CONTEXT *ctx, byte *data )
 {
-    u32 correct_words[16];
+    u32 in[16];
     register u32 A = ctx->A;
     register u32 B = ctx->B;
     register u32 C = ctx->C;
     register u32 D = ctx->D;
-    u32 *cwp = correct_words;
 
 #ifdef BIG_ENDIAN_HOST
     { int i;
       byte *p2, *p1;
-      for(i=0, p1=data, p2=(byte*)correct_words; i < 16; i++, p2 += 4 ) {
+      for(i=0, p1=data, p2=(byte*)in; i < 16; i++, p2 += 4 ) {
 	p2[3] = *p1++;
 	p2[2] = *p1++;
 	p2[1] = *p1++;
@@ -120,11 +118,11 @@ transform( MD4_CONTEXT *ctx, byte *data )
       }
     }
 #else
-    memcpy( correct_words, data, 64 );
+    memcpy (in, data, 64);
 #endif
 
     /* Round 1.  */
-#define function(a,b,c,d,k,s) a=rol(a+F(b,c,d)+data[k],s);
+#define function(a,b,c,d,k,s) a=rol(a+F(b,c,d)+in[k],s);
           function(A,B,C,D, 0, 3);
           function(D,A,B,C, 1, 7);
           function(C,D,A,B, 2,11);
@@ -145,7 +143,7 @@ transform( MD4_CONTEXT *ctx, byte *data )
 #undef function
 
     /* Round 2.  */
-#define function(a,b,c,d,k,s) a=rol(a+G(b,c,d)+data[k]+0x5a827999,s);
+#define function(a,b,c,d,k,s) a=rol(a+G(b,c,d)+in[k]+0x5a827999,s);
 
           function(A,B,C,D, 0, 3);
           function(D,A,B,C, 4, 5);
@@ -167,7 +165,7 @@ transform( MD4_CONTEXT *ctx, byte *data )
 #undef function
 
     /* Round 3.  */
-#define function(a,b,c,d,k,s) a=rol(a+H(b,c,d)+data[k]+0x6ed9eba1,s);
+#define function(a,b,c,d,k,s) a=rol(a+H(b,c,d)+in[k]+0x6ed9eba1,s);
 
           function(A,B,C,D, 0, 3);
           function(D,A,B,C, 8, 9);
@@ -354,7 +352,7 @@ static struct {
     void (*func)(void);
 } func_table[] = {
     { 10, 1, 0, (void(*)(void))md4_get_info },
-    { 11, 1, 1 },
+    { 11, 1, 301 },
 };
 
 

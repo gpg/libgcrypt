@@ -145,7 +145,7 @@ static int
 load_digest_module( int req_algo )
 {
     static int initialized = 0;
-    static u32 checked_algos[256/32];
+    static u32 checked_algos[512/32];
     static int checked_all = 0;
     struct md_digest_list_s *r;
     void *context = NULL;
@@ -161,7 +161,7 @@ load_digest_module( int req_algo )
 	initialized = 1;
     }
     algo = req_algo;
-    if( algo > 255 || !algo )
+    if( algo > 511 || !algo )
 	return 0; /* algorithm number too high (does not fit into out bitmap)*/
     if( checked_all )
 	return 0; /* already called with -1 */

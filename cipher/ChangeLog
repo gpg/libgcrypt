@@ -1,3 +1,11 @@
+2002-11-23  Werner Koch  <wk@gnupg.org>
+
+	* md.c (load_digest_module): Enlarged checked_algos bitmap.
+	* md4.c (func_table):  Fixed entry for md4. 
+	Both by Simon Josephson.
+	(transform): Copy data to get the alignment straight. Tested only
+	on i386.
+
 2002-11-10  Simon Josefsson  <jas@extundo.com>
 
 	* cipher.c (gcry_cipher_open): Don't reject CTS flag.
