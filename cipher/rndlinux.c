@@ -22,7 +22,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/types.h>

@@ -1,5 +1,17 @@
 2004-08-23  Moritz Schulte  <moritz@g10code.com>
 
+	* ac.c: Do not include <assert.h>.
+	* rndegd.c: Likewise.
+	* sha1.c: Likewise.
+	* rndunix.c: Likewise.
+	* rndlinux.c: Likewise.
+	* rmd160.c: Likewise.
+	* md5.c: Likewise.
+	* md4.c: Likewise.
+	* cipher.c: Likewise.
+	* crc.c: Likewise.
+	* blowfish.c: Likewise.
+
 	* pubkey.c (dummy_generate, dummy_check_secret_key)
 	(dummy_encrypt, dummy_decrypt, dummy_sign, dummy_verify): Return
 	err code GPG_ERR_NOT_IMPLEMENTED instead of aborting through

@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+
 #include "g10lib.h"
 #include "memory.h"
 #include "bithelp.h"
