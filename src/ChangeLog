@@ -1,3 +1,10 @@
+2003-01-16  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (gcry_md_write): Changed type of 2nd argument to void*.
+	(gcry_md_hash_buffer): Changed type of both buffers to void*.
+	(gcry_md_setkey): Changed type of 2nd argument to void*.
+	(gcry_md_get_asnoid): New.
+
 2003-01-15  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (gcry_sexp_length): Fixed.  This was seriously broken.

@@ -37,7 +37,7 @@ extern "C" {
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.1.12-cvs"
+#define GCRYPT_VERSION "1.1.12"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -725,7 +725,7 @@ typedef struct gcry_md_handle *GcryMDHd;
 
 /* Create a message digest object for algorithm ALGO.  FLAGS may be
    given as an bitwise OR of the gcry_md_flags values.  ALGO may be
-   given as 0 if the algorithms to used are later set using
+   given as 0 if the algorithms to be used are later set using
    gcry_md_enable. */
 GcryMDHd gcry_md_open (int algo, unsigned int flags);
 
@@ -747,7 +747,7 @@ int gcry_md_ctl (GcryMDHd hd, int cmd, unsigned char *buffer, size_t buflen);
 /* Pass LENGTH bytes of data in BUFFER to the digest object HD so that
    it can update the digest values.  This is the actual hash
    function. */
-void gcry_md_write (GcryMDHd hd, const unsigned char *buffer, size_t length);
+void gcry_md_write (GcryMDHd hd, const void *buffer, size_t length);
 
 /* Read out the final digest from HD return the digest value for
    algorithm ALGO. */
@@ -755,13 +755,13 @@ unsigned char *gcry_md_read (GcryMDHd hd, int algo);
 
 /* Convenience function to calculate the hash from the data in BUFFER
    of size LENGTH using the algorithm ALGO avoiding the creating of a
-   hash object.  The hash is returned in the caller provied buffer
+   hash object.  The hash is returned in the caller provided buffer
    DIGEST which must be large enough to hold the digest of the given
    algorithm. */
-void gcry_md_hash_buffer (int algo, char *digest,
-			  const char *buffer, size_t length);
+void gcry_md_hash_buffer (int algo, void *digest,
+			  const void *buffer, size_t length);
 
-/* Retrieve the algorithm used with HD.  This does not work relaibale
+/* Retrieve the algorithm used with HD.  This does not work reliable
    if more than one algorithm is enabled in HD. */
 int gcry_md_get_algo (GcryMDHd hd);
 
@@ -769,10 +769,10 @@ int gcry_md_get_algo (GcryMDHd hd);
    ALGO. */
 unsigned int gcry_md_get_algo_dlen (int algo);
 
-/* Retrieve various information about the obhject H. */
+/* Retrieve various information about the object H. */
 int gcry_md_info (GcryMDHd h, int what, void *buffer, size_t *nbytes);
 
-/* Retrieve valrious information about the algorithm ALGO. */
+/* Retrieve various information about the algorithm ALGO. */
 int gcry_md_algo_info( int algo, int what, void *buffer, size_t *nbytes);
 
 /* Map the digest algorithm id ALGO to a string representation of the
@@ -786,7 +786,7 @@ int gcry_md_map_name (const char* name) _GCRY_GCC_ATTR_PURE;
 
 /* For use with the HMAC feature, the set MAC key to the KEY of
    KEYLEN. */
-int gcry_md_setkey (GcryMDHd hd, const char *key, size_t keylen);
+int gcry_md_setkey (GcryMDHd hd, const void *key, size_t keylen);
 
 /* Update the hash(s) of H with the character C.  This is a buffered
    version of the gcry_md_write function. */
@@ -810,6 +810,13 @@ int gcry_md_setkey (GcryMDHd hd, const char *key, size_t keylen);
 /* Return 0 if the algorithm A is available for use. */
 #define gcry_md_test_algo(a) \
 	    gcry_md_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
+
+/* Return an DER encoded ASN.1 OID for the algorithm A in buffer B. N
+   must point to size_t variable with the available size of buffer B.
+   After return it will receive the actual size of the returned
+   OID. */
+#define gcry_md_get_asnoid(a,b,n) \
+            gcry_md_algo_info((a), GCRYCTL_GET_ASNOID, (b), (n))
 
 /* Enable debugging for digets object A; i.e. create files named
    dbgmd-<n>.<string> while hashing.  B is a string used as the suffix
