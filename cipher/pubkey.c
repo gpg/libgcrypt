@@ -37,25 +37,26 @@ static gpg_err_code_t pubkey_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data
 
 /* This is the list of the default public-key ciphers included in
    libgcrypt.  */
-static struct
+static struct pubkey_table_entry
 {
-  gcry_pubkey_spec_t *pubkey;
+  gcry_pk_spec_t *pubkey;
+  unsigned int algorithm;
 } pubkey_table[] =
   {
 #if USE_RSA
-    { &pubkey_spec_rsa },
+    { &pubkey_spec_rsa, GCRY_PK_RSA },
 #endif
 #if USE_ELGAMAL
-    { &pubkey_spec_elg },
+    { &pubkey_spec_elg, GCRY_PK_ELG },
 #endif
 #if USE_DSA
-    { &pubkey_spec_dsa },
+    { &pubkey_spec_dsa, GCRY_PK_DSA },
 #endif
     { NULL },
   };
 
 /* List of registered ciphers.  */
-static gcry_module_t *pubkeys_registered;
+static gcry_module_t pubkeys_registered;
 
 /* This is the lock protecting PUBKEYS_REGISTERED.  */
 static ath_mutex_t pubkeys_registered_lock;
@@ -71,7 +72,7 @@ static int default_pubkeys_registered;
       ath_mutex_lock (&pubkeys_registered_lock);   \
       if (! default_pubkeys_registered)            \
         {                                          \
-          gcry_pubkey_register_default ();         \
+          gcry_pk_register_default ();         \
           default_pubkeys_registered = 1;          \
         }                                          \
       ath_mutex_unlock (&pubkeys_registered_lock); \
@@ -82,60 +83,60 @@ static int default_pubkeys_registered;
    refuses to provide it's own functions.  */
 
 static gpg_err_code_t
-dummy_generate (int id, unsigned int nbits, unsigned long dummy,
+dummy_generate (int algorithm, unsigned int nbits, unsigned long dummy,
                 gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
-  log_bug ("no generate() for %d\n", id);
+  log_bug ("no generate() for %d\n", algorithm);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_check_secret_key (int id, gcry_mpi_t *skey)
+dummy_check_secret_key (int algorithm, gcry_mpi_t *skey)
 {
-  log_bug ("no check_secret_key() for %d\n", id);
+  log_bug ("no check_secret_key() for %d\n", algorithm);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_encrypt (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
+dummy_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
 {
-  log_bug ("no encrypt() for %d\n", id);
+  log_bug ("no encrypt() for %d\n", algorithm);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_decrypt (int id, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
+dummy_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
 {
-  log_bug ("no decrypt() for %d\n", id);
+  log_bug ("no decrypt() for %d\n", algorithm);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_sign (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
+dummy_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
-  log_bug ("no sign() for %d\n", id);
+  log_bug ("no sign() for %d\n", algorithm);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static gpg_err_code_t
-dummy_verify (int id, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+dummy_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 	      int (*cmp) (void *, gcry_mpi_t), void *opaquev)
 {
-  log_bug ("no verify() for %d\n", id);
+  log_bug ("no verify() for %d\n", algorithm);
   return GPG_ERR_PUBKEY_ALGO;
 }
 
 static unsigned
-dummy_get_nbits (int id, gcry_mpi_t *pkey)
+dummy_get_nbits (int algorithm, gcry_mpi_t *pkey)
 {
-  log_bug ("no get_nbits() for %d\n", id);
+  log_bug ("no get_nbits() for %d\n", algorithm);
   return 0;
 }
 
 /* Internal function.  Register all the pubkeys included in
    PUBKEY_TABLE.  Returns zero on success or an error code.  */
 static void
-gcry_pubkey_register_default (void)
+gcry_pk_register_default (void)
 {
   gpg_err_code_t err = 0;
   int i;
@@ -155,7 +156,7 @@ gcry_pubkey_register_default (void)
       pubkey_use_dummy (get_nbits);
 
       err = _gcry_module_add (&pubkeys_registered,
-			      pubkey_table[i].pubkey->id,
+			      pubkey_table[i].algorithm,
 			      (void *) pubkey_table[i].pubkey, NULL);
     }
 
@@ -165,9 +166,9 @@ gcry_pubkey_register_default (void)
 
 /* Internal callback function.  Used via _gcry_module_lookup.  */
 static int
-gcry_pubkey_lookup_func_name (void *spec, void *data)
+gcry_pk_lookup_func_name (void *spec, void *data)
 {
-  gcry_pubkey_spec_t *pubkey = (gcry_pubkey_spec_t *) spec;
+  gcry_pk_spec_t *pubkey = (gcry_pk_spec_t *) spec;
   char *name = (char *) data;
   char **sexp_names = pubkey->sexp_names;
   int ret = stricmp (name, pubkey->name);
@@ -179,25 +180,27 @@ gcry_pubkey_lookup_func_name (void *spec, void *data)
 }
 
 /* Internal function.  Lookup a pubkey entry by it's name.  */
-static gcry_module_t *
-gcry_pubkey_lookup_name (const char *name)
+static gcry_module_t 
+gcry_pk_lookup_name (const char *name)
 {
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
 
   pubkey = _gcry_module_lookup (pubkeys_registered, (void *) name,
-				gcry_pubkey_lookup_func_name);
+				gcry_pk_lookup_func_name);
 
   return pubkey;
 }
 
-/* Public function.  Register a provided PUBKEY.  Returns zero on
-   success, in which case the chosen pubkey ID has been stored in
-   PUBKEY, or an error code.  */
+/* Register a new pubkey module whose specification can be found in
+   PUBKEY.  On success, a new algorithm ID is stored in ALGORITHM_ID
+   and a pointer representhing this module is stored in MODULE.  */
 gpg_error_t
-gcry_pubkey_register (gcry_pubkey_spec_t *pubkey, gcry_module_t **module)
+gcry_pk_register (gcry_pk_spec_t *pubkey,
+		  unsigned int *algorithm_id,
+		  gcry_module_t *module)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_module_t *mod;
+  gcry_module_t mod;
 
   ath_mutex_lock (&pubkeys_registered_lock);
   err = _gcry_module_add (&pubkeys_registered, 0,
@@ -207,16 +210,16 @@ gcry_pubkey_register (gcry_pubkey_spec_t *pubkey, gcry_module_t **module)
   if (! err)
     {
       *module = mod;
-      pubkey->id = mod->id;
+      *algorithm_id = mod->mod_id;
     }
 
   return err;
 }
 
-/* Public function.  Unregister the pubkey identified by ID, which
-   must have been registered with gcry_pubkey_register.  */
+/* Unregister the pubkey identified by ID, which must have been
+   registered with gcry_pk_register.  */
 void
-gcry_pubkey_unregister (gcry_module_t *module)
+gcry_pk_unregister (gcry_module_t module)
 {
   ath_mutex_lock (&pubkeys_registered_lock);
   _gcry_module_release (module);
@@ -239,21 +242,21 @@ release_mpi_array (gcry_mpi_t *array)
 int
 gcry_pk_map_name (const char *string)
 {
-  gcry_module_t *pubkey;
-  int id = 0;
+  gcry_module_t pubkey;
+  int algorithm = 0;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = gcry_pubkey_lookup_name (string);
+  pubkey = gcry_pk_lookup_name (string);
   if (pubkey)
     {
-      id = ((gcry_pubkey_spec_t *) pubkey->spec)->id;
+      algorithm = pubkey->mod_id;
       _gcry_module_release (pubkey);
     }
   ath_mutex_unlock (&pubkeys_registered_lock);
 
-  return id;
+  return algorithm;
 }
 
 
@@ -261,18 +264,18 @@ gcry_pk_map_name (const char *string)
  * Map a pubkey algo to a string
  */
 const char *
-gcry_pk_algo_name (int id)
+gcry_pk_algo_name (int algorithm)
 {
   const char *name = NULL;
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
-      name = ((gcry_pubkey_spec_t *) pubkey->spec)->name;
+      name = ((gcry_pk_spec_t *) pubkey->spec)->name;
       _gcry_module_release (pubkey);
     }
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -282,12 +285,12 @@ gcry_pk_algo_name (int id)
 
 
 static void
-disable_pubkey_algo (int id)
+disable_pubkey_algo (int algorithm)
 {
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
       if (! (pubkey-> flags & FLAG_MODULE_DISABLED))
@@ -302,19 +305,19 @@ disable_pubkey_algo (int id)
  * a use of 0 means: don't care
  */
 static gpg_err_code_t
-check_pubkey_algo (int id, unsigned use)
+check_pubkey_algo (int algorithm, unsigned use)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_pubkey_spec_t *pubkey;
-  gcry_module_t *module;
+  gcry_pk_spec_t *pubkey;
+  gcry_module_t module;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  module = _gcry_module_lookup_id (pubkeys_registered, id);
+  module = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (module)
     {
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
+      pubkey = (gcry_pk_spec_t *) module->spec;
 
       if (((use & GCRY_PK_USAGE_SIGN)
 	   && (! (pubkey->use & GCRY_PK_USAGE_SIGN)))
@@ -337,18 +340,18 @@ check_pubkey_algo (int id, unsigned use)
  * Return the number of public key material numbers
  */
 static int
-pubkey_get_npkey (int id)
+pubkey_get_npkey (int algorithm)
 {
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
   int npkey = 0;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
-      npkey = strlen (((gcry_pubkey_spec_t *) pubkey->spec)->elements_pkey);
+      npkey = strlen (((gcry_pk_spec_t *) pubkey->spec)->elements_pkey);
       _gcry_module_release (pubkey);
     }
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -360,18 +363,18 @@ pubkey_get_npkey (int id)
  * Return the number of secret key material numbers
  */
 static int
-pubkey_get_nskey (int id)
+pubkey_get_nskey (int algorithm)
 {
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
   int nskey = 0;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
-      nskey = strlen (((gcry_pubkey_spec_t *) pubkey->spec)->elements_skey);
+      nskey = strlen (((gcry_pk_spec_t *) pubkey->spec)->elements_skey);
       _gcry_module_release (pubkey);
     }
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -383,18 +386,18 @@ pubkey_get_nskey (int id)
  * Return the number of signature material numbers
  */
 static int
-pubkey_get_nsig (int id)
+pubkey_get_nsig (int algorithm)
 {
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
   int nsig = 0;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
-      nsig = strlen (((gcry_pubkey_spec_t *) pubkey->spec)->elements_sig);
+      nsig = strlen (((gcry_pk_spec_t *) pubkey->spec)->elements_sig);
       _gcry_module_release (pubkey);
     }
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -406,18 +409,18 @@ pubkey_get_nsig (int id)
  * Return the number of encryption material numbers
  */
 static int
-pubkey_get_nenc (int id)
+pubkey_get_nenc (int algorithm)
 {
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
   int nenc = 0;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
-      nenc = strlen (((gcry_pubkey_spec_t *) pubkey->spec)->elements_enc);
+      nenc = strlen (((gcry_pk_spec_t *) pubkey->spec)->elements_enc);
       _gcry_module_release (pubkey);
     }
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -427,19 +430,19 @@ pubkey_get_nenc (int id)
 
 
 static gpg_err_code_t
-pubkey_generate (int id, unsigned int nbits, unsigned long use_e,
+pubkey_generate (int algorithm, unsigned int nbits, unsigned long use_e,
                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   gpg_err_code_t err = GPG_ERR_PUBKEY_ALGO;
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
-      err = (*((gcry_pubkey_spec_t *) pubkey->spec)->generate) (id, nbits, use_e, skey,
+      err = (*((gcry_pk_spec_t *) pubkey->spec)->generate) (algorithm, nbits, use_e, skey,
 							    retfactors);
       _gcry_module_release (pubkey);
     }
@@ -449,18 +452,18 @@ pubkey_generate (int id, unsigned int nbits, unsigned long use_e,
 }
 
 static gpg_err_code_t
-pubkey_check_secret_key (int id, gcry_mpi_t *skey)
+pubkey_check_secret_key (int algorithm, gcry_mpi_t *skey)
 {
   gpg_err_code_t err = GPG_ERR_PUBKEY_ALGO;
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
-      err = (*((gcry_pubkey_spec_t *) pubkey->spec)->check_secret_key) (id, skey);
+      err = (*((gcry_pk_spec_t *) pubkey->spec)->check_secret_key) (algorithm, skey);
       _gcry_module_release (pubkey);
     }
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -476,28 +479,28 @@ pubkey_check_secret_key (int id, gcry_mpi_t *skey)
  * check with pubkey_get_nenc() )
  */
 static gpg_err_code_t
-pubkey_encrypt (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey,
+pubkey_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey,
 		int flags)
 {
-  gcry_pubkey_spec_t *pubkey;
-  gcry_module_t *module;
+  gcry_pk_spec_t *pubkey;
+  gcry_module_t module;
   gpg_err_code_t rc;
   int i;
 
   if (DBG_CIPHER)
     {
-      log_debug ("pubkey_encrypt: algo=%d\n", id);
-      for(i = 0; i < pubkey_get_npkey (id); i++)
+      log_debug ("pubkey_encrypt: algo=%d\n", algorithm);
+      for(i = 0; i < pubkey_get_npkey (algorithm); i++)
 	log_mpidump ("  pkey:", pkey[i]);
       log_mpidump ("  data:", data);
     }
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  module = _gcry_module_lookup_id (pubkeys_registered, id);
+  module = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (module)
     {
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
-      rc = (*pubkey->encrypt) (id, resarr, data, pkey, flags);
+      pubkey = (gcry_pk_spec_t *) module->spec;
+      rc = (*pubkey->encrypt) (algorithm, resarr, data, pkey, flags);
       _gcry_module_release (module);
       goto ready;
     }
@@ -508,7 +511,7 @@ pubkey_encrypt (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey,
 
   if (!rc && DBG_CIPHER)
     {
-      for(i = 0; i < pubkey_get_nenc (id); i++)
+      for(i = 0; i < pubkey_get_nenc (algorithm); i++)
 	log_mpidump("  encr:", resarr[i] );
     }
   return rc;
@@ -523,30 +526,30 @@ pubkey_encrypt (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey,
  * newly allocated mpi or NULL in case of an error.
  */
 static gpg_err_code_t
-pubkey_decrypt (int id, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey,
+pubkey_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey,
 		int flags)
 {
-  gcry_pubkey_spec_t *pubkey;
-  gcry_module_t *module;
+  gcry_pk_spec_t *pubkey;
+  gcry_module_t module;
   gpg_err_code_t rc;
   int i;
 
   *result = NULL; /* so the caller can always do a mpi_free */
   if (DBG_CIPHER)
     {
-      log_debug ("pubkey_decrypt: algo=%d\n", id);
-      for(i = 0; i < pubkey_get_nskey (id); i++)
+      log_debug ("pubkey_decrypt: algo=%d\n", algorithm);
+      for(i = 0; i < pubkey_get_nskey (algorithm); i++)
 	log_mpidump ("  skey:", skey[i]);
-      for(i = 0; i < pubkey_get_nenc (id); i++)
+      for(i = 0; i < pubkey_get_nenc (algorithm); i++)
 	log_mpidump ("  data:", data[i]);
     }
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  module = _gcry_module_lookup_id (pubkeys_registered, id);
+  module = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (module)
     {
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
-      rc = (*pubkey->decrypt) (id, result, data, skey, flags);
+      pubkey = (gcry_pk_spec_t *) module->spec;
+      rc = (*pubkey->decrypt) (algorithm, result, data, skey, flags);
       _gcry_module_release (module);
       goto ready;
     }
@@ -570,27 +573,27 @@ pubkey_decrypt (int id, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey,
  * algorithm allows this - check with pubkey_get_nsig() )
  */
 static gpg_err_code_t
-pubkey_sign (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
+pubkey_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
-  gcry_pubkey_spec_t *pubkey;
-  gcry_module_t *module;
+  gcry_pk_spec_t *pubkey;
+  gcry_module_t module;
   gpg_err_code_t rc;
   int i;
 
   if (DBG_CIPHER)
     {
-      log_debug ("pubkey_sign: algo=%d\n", id);
-      for(i = 0; i < pubkey_get_nskey (id); i++)
+      log_debug ("pubkey_sign: algo=%d\n", algorithm);
+      for(i = 0; i < pubkey_get_nskey (algorithm); i++)
 	log_mpidump ("  skey:", skey[i]);
       log_mpidump("  data:", data );
     }
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  module = _gcry_module_lookup_id (pubkeys_registered, id);
+  module = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (module)
     {
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
-      rc = (*pubkey->sign) (id, resarr, data, skey);
+      pubkey = (gcry_pk_spec_t *) module->spec;
+      rc = (*pubkey->sign) (algorithm, resarr, data, skey);
       _gcry_module_release (module);
       goto ready;
     }
@@ -601,7 +604,7 @@ pubkey_sign (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
   ath_mutex_unlock (&pubkeys_registered_lock);
 
   if (! rc && DBG_CIPHER)
-    for (i = 0; i < pubkey_get_nsig (id); i++)
+    for (i = 0; i < pubkey_get_nsig (algorithm); i++)
       log_mpidump ("   sig:", resarr[i]);
 
   return rc;
@@ -612,30 +615,30 @@ pubkey_sign (int id, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
  * Return 0 if the signature is good
  */
 static gpg_err_code_t
-pubkey_verify (int id, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 	       int (*cmp)(void *, gcry_mpi_t), void *opaquev)
 {
-  gcry_pubkey_spec_t *pubkey;
-  gcry_module_t *module;
+  gcry_pk_spec_t *pubkey;
+  gcry_module_t module;
   gpg_err_code_t rc;
   int i;
 
   if (DBG_CIPHER)
     {
-      log_debug ("pubkey_verify: algo=%d\n", id);
-      for (i = 0; i < pubkey_get_npkey (id); i++)
+      log_debug ("pubkey_verify: algo=%d\n", algorithm);
+      for (i = 0; i < pubkey_get_npkey (algorithm); i++)
 	log_mpidump ("  pkey:", pkey[i]);
-      for (i = 0; i < pubkey_get_nsig (id); i++)
+      for (i = 0; i < pubkey_get_nsig (algorithm); i++)
 	log_mpidump ("   sig:", data[i]);
       log_mpidump ("  hash:", hash);
     }
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  module = _gcry_module_lookup_id (pubkeys_registered, id);
+  module = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (module)
     {
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
-      rc = (*pubkey->verify) (id, hash, data, pkey, cmp, opaquev);
+      pubkey = (gcry_pk_spec_t *) module->spec;
+      rc = (*pubkey->verify) (algorithm, hash, data, pkey, cmp, opaquev);
       _gcry_module_release (module);
       goto ready;
     }
@@ -714,17 +717,16 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
  */
 static gpg_err_code_t
 sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
-             gcry_module_t **retalgo)
+             gcry_module_t *retalgo)
 {
     gcry_sexp_t list, l2;
     const char *name;
     size_t n;
-    int algo;
     const char *elems;
     gcry_mpi_t *array;
     gpg_err_code_t err = GPG_ERR_NO_ERROR;
-    gcry_module_t *module;
-    gcry_pubkey_spec_t *pubkey;
+    gcry_module_t module;
+    gcry_pk_spec_t *pubkey;
 
     /* check that the first element is valid */
     list = gcry_sexp_find_token( sexp, want_private? "private-key"
@@ -746,7 +748,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
       name_terminated[n] = 0;
 
       ath_mutex_lock (&pubkeys_registered_lock);
-      module = gcry_pubkey_lookup_name (name_terminated);
+      module = gcry_pk_lookup_name (name_terminated);
       ath_mutex_unlock (&pubkeys_registered_lock);
 
       free (name_terminated);
@@ -758,9 +760,8 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
 	return GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
       }
     else
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
+      pubkey = (gcry_pk_spec_t *) module->spec;
 
-    algo = pubkey->id;
     elems = want_private ? pubkey->elements_skey : pubkey->elements_pkey;
     array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
     if (! array)
@@ -791,17 +792,16 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
 
 static gpg_err_code_t
 sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
-	     gcry_module_t **retalgo)
+	     gcry_module_t *retalgo)
 {
     gcry_sexp_t list, l2;
     const char *name;
     size_t n;
-    int algo;
     const char *elems;
     gcry_mpi_t *array;
     gpg_err_code_t err = GPG_ERR_NO_ERROR;
-    gcry_module_t *module;
-    gcry_pubkey_spec_t *pubkey;
+    gcry_module_t module;
+    gcry_pk_spec_t *pubkey;
 
     /* check that the first element is valid */
     list = gcry_sexp_find_token( sexp, "sig-val" , 0 );
@@ -838,7 +838,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
       name_terminated[n] = 0;
       
       ath_mutex_lock (&pubkeys_registered_lock);
-      module = gcry_pubkey_lookup_name (name_terminated);
+      module = gcry_pk_lookup_name (name_terminated);
       ath_mutex_unlock (&pubkeys_registered_lock);
 
       free (name_terminated);
@@ -851,9 +851,8 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
 	return GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
       }
     else
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
+      pubkey = (gcry_pk_spec_t *) module->spec;
 
-    algo = pubkey->id;
     elems = pubkey->elements_sig;
     array = gcry_calloc (strlen (elems) + 1 , sizeof (*array));
     if (! array)
@@ -897,12 +896,12 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
  * RET_MODERN is set to true when at least an empty flags list has been found.
  */
 static gpg_err_code_t
-sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t **retalgo,
+sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
              int *ret_modern, int *ret_want_pkcs1, int *flags)
 {
   gcry_sexp_t list = NULL, l2 = NULL;
-  gcry_pubkey_spec_t *pubkey = NULL;
-  gcry_module_t *module = NULL;
+  gcry_pk_spec_t *pubkey = NULL;
+  gcry_module_t module = NULL;
   const char *name;
   size_t n;
   int parsed_flags = 0;
@@ -985,7 +984,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t **retalgo,
       name_terminated[n] = 0;
 
       ath_mutex_lock (&pubkeys_registered_lock);
-      module = gcry_pubkey_lookup_name (name_terminated);
+      module = gcry_pk_lookup_name (name_terminated);
       ath_mutex_unlock (&pubkeys_registered_lock);
 
       free (name_terminated);
@@ -993,7 +992,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t **retalgo,
       if (! module)
 	err = GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
       else
-	pubkey = (gcry_pubkey_spec_t *) module->spec;
+	pubkey = (gcry_pk_spec_t *) module->spec;
     }
 
   if (! err)
@@ -1305,8 +1304,8 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   const char *algo_name, *algo_elems;
   int flags;
   gpg_err_code_t rc;
-  gcry_pubkey_spec_t *pubkey = NULL;
-  gcry_module_t *module = NULL;
+  gcry_pk_spec_t *pubkey = NULL;
+  gcry_module_t module = NULL;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -1316,7 +1315,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   if (! rc)
     {
       assert (module);
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
+      pubkey = (gcry_pk_spec_t *) module->spec;
       algo_name = pubkey->name;
       algo_elems = pubkey->elements_enc;
       
@@ -1329,7 +1328,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     {
       /* Now we can encrypt data to ciph */
       ciph = gcry_xcalloc (strlen (algo_elems) + 1, sizeof (*ciph));
-      rc = pubkey_encrypt (pubkey->id, ciph, data, pkey, flags);
+      rc = pubkey_encrypt (module->mod_id, ciph, data, pkey, flags);
       mpi_free (data);
     }
 
@@ -1428,8 +1427,8 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   gcry_mpi_t *skey = NULL, *data = NULL, plain = NULL;
   int modern, want_pkcs1, flags;
   gpg_err_code_t rc;
-  gcry_module_t *module_enc = NULL, *module_key = NULL;
-  gcry_pubkey_spec_t *pubkey = NULL;
+  gcry_module_t module_enc = NULL, module_key = NULL;
+  gcry_pk_spec_t *pubkey = NULL;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -1441,15 +1440,14 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 
   if (! rc)
     {
-      if (((gcry_pubkey_spec_t *) module_key->spec)->id
-	  != ((gcry_pubkey_spec_t *) module_enc->spec)->id)
+      if (module_key->mod_id != module_enc->mod_id)
 	rc = GPG_ERR_CONFLICT; /* key algo does not match data algo */
       else
-	pubkey = (gcry_pubkey_spec_t *) module_key->spec;
+	pubkey = (gcry_pk_spec_t *) module_key->spec;
     }
 
   if (! rc)
-    rc = pubkey_decrypt (pubkey->id, &plain, data, skey, flags);
+    rc = pubkey_decrypt (module_key->mod_id, &plain, data, skey, flags);
 
   if (! rc)
     {
@@ -1524,8 +1522,8 @@ gpg_error_t
 gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 {
   gcry_mpi_t *skey = NULL, hash = NULL, *result = NULL;
-  gcry_pubkey_spec_t *pubkey = NULL;
-  gcry_module_t *module = NULL;
+  gcry_pk_spec_t *pubkey = NULL;
+  gcry_module_t module = NULL;
   const char *key_algo_name, *algo_name, *algo_elems;
   int i;
   gpg_err_code_t rc;
@@ -1539,7 +1537,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   if (! rc)
     {
       assert (module);
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
+      pubkey = (gcry_pk_spec_t *) module->spec;
       algo_name = key_algo_name = pubkey->name;
 
       algo_elems = pubkey->elements_sig;
@@ -1552,7 +1550,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   if (! rc)
     {
       result = gcry_xcalloc (strlen (algo_elems) + 1, sizeof (*result));
-      rc = pubkey_sign (pubkey->id, result, hash, skey);
+      rc = pubkey_sign (module->mod_id, result, hash, skey);
     }
 
   if (! rc)
@@ -1624,7 +1622,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 gpg_error_t
 gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 {
-  gcry_module_t *module_key = NULL, *module_sig = NULL;
+  gcry_module_t module_key = NULL, module_sig = NULL;
   gcry_mpi_t *pkey = NULL, hash = NULL, *sig = NULL;
   gpg_err_code_t rc;
 
@@ -1635,16 +1633,14 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
     rc = sexp_to_sig (s_sig, &sig, &module_sig);
 
   if ((! rc)
-      && (((gcry_pubkey_spec_t *) module_key->spec)->id
-	  != ((gcry_pubkey_spec_t *) module_sig->spec)->id))
+      && (module_key->mod_id != module_sig->mod_id))
     rc = GPG_ERR_CONFLICT;
 
   if (! rc)
     rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_pkey), &hash, 0, 0);
 
   if (! rc)
-    rc = pubkey_verify (((gcry_pubkey_spec_t *) module_key->spec)->id,
-			hash, sig, pkey, NULL, NULL);
+    rc = pubkey_verify (module_key->mod_id, hash, sig, pkey, NULL, NULL);
 
   if (pkey)
     {
@@ -1684,7 +1680,7 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 gpg_error_t
 gcry_pk_testkey (gcry_sexp_t s_key)
 {
-  gcry_module_t *module = NULL;
+  gcry_module_t module = NULL;
   gcry_mpi_t *key = NULL;
   gpg_err_code_t rc;
   
@@ -1694,7 +1690,7 @@ gcry_pk_testkey (gcry_sexp_t s_key)
   rc = sexp_to_key (s_key, 1, &key, &module);
   if (! rc)
     {
-      rc = pubkey_check_secret_key (((gcry_pubkey_spec_t *) module->spec)->id, key);
+      rc = pubkey_check_secret_key (module->mod_id, key);
       release_mpi_array (key);
       gcry_free (key);
     }
@@ -1739,8 +1735,8 @@ gcry_pk_testkey (gcry_sexp_t s_key)
 gpg_error_t
 gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 {
-  gcry_pubkey_spec_t *pubkey = NULL;
-  gcry_module_t *module = NULL;
+  gcry_pk_spec_t *pubkey = NULL;
+  gcry_module_t module = NULL;
   gcry_sexp_t list = NULL, l2 = NULL;
   const char *name;
   size_t n;
@@ -1784,7 +1780,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       name_terminated[n] = 0;
 
       ath_mutex_lock (&pubkeys_registered_lock);
-      module = gcry_pubkey_lookup_name (name_terminated);
+      module = gcry_pk_lookup_name (name_terminated);
       ath_mutex_unlock (&pubkeys_registered_lock);
 
       free (name_terminated);
@@ -1793,8 +1789,8 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 	rc = GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
       else
 	{
-	  pubkey = (gcry_pubkey_spec_t *) module->spec;
-	  algo = pubkey->id;
+	  pubkey = (gcry_pk_spec_t *) module->spec;
+	  algo = module->mod_id;
 	  algo_name = pubkey->name;
 	  pub_elems = pubkey->elements_pkey;
 	  sec_elems = pubkey->elements_skey;
@@ -1849,7 +1845,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     }
 
   if (! rc)
-    rc = pubkey_generate (pubkey->id, nbits, use_e, skey, &factors);
+    rc = pubkey_generate (module->mod_id, nbits, use_e, skey, &factors);
 
   if (! rc)
     {
@@ -1963,8 +1959,8 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 unsigned int
 gcry_pk_get_nbits (gcry_sexp_t key)
 {
-  gcry_module_t *module = NULL;
-  gcry_pubkey_spec_t *pubkey;
+  gcry_module_t module = NULL;
+  gcry_pk_spec_t *pubkey;
   gcry_mpi_t *keyarr = NULL;
   unsigned int nbits = 0;
   gpg_err_code_t rc;
@@ -1978,8 +1974,8 @@ gcry_pk_get_nbits (gcry_sexp_t key)
     return 0;
   else
     {
-      pubkey = (gcry_pubkey_spec_t *) module->spec;
-      nbits = (*pubkey->get_nbits) (pubkey->id, keyarr);
+      pubkey = (gcry_pk_spec_t *) module->spec;
+      nbits = (*pubkey->get_nbits) (module->mod_id, keyarr);
 
       ath_mutex_lock (&pubkeys_registered_lock);
       _gcry_module_release (module);
@@ -2004,8 +2000,8 @@ unsigned char *
 gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
 {
   gcry_sexp_t list = NULL, l2 = NULL;
-  gcry_pubkey_spec_t *pubkey = NULL;
-  gcry_module_t *module = NULL;
+  gcry_pk_spec_t *pubkey = NULL;
+  gcry_module_t module = NULL;
   const char *s, *name;
   size_t n;
   int idx;
@@ -2040,7 +2036,7 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
     name_terminated[n] = 0;
 
     ath_mutex_lock (&pubkeys_registered_lock);
-    module = gcry_pubkey_lookup_name (name_terminated);
+    module = gcry_pk_lookup_name (name_terminated);
     ath_mutex_unlock (&pubkeys_registered_lock);
 
     free (name_terminated);
@@ -2049,11 +2045,11 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   if (! module)
     goto fail; /* unknown algorithm */
   else
-    pubkey = (gcry_pubkey_spec_t *) module->spec;
+    pubkey = (gcry_pk_spec_t *) module->spec;
 
   /* FIXME, special handling should be implemented by the algorithms,
      not by the libgcrypt core.  */
-  is_rsa = pubkey->id == GCRY_PK_RSA;
+  is_rsa = module->mod_id == GCRY_PK_RSA;
   elems = pubkey->elements_grip;
   if (! elems)
     goto fail; /* no grip parameter */
@@ -2159,7 +2155,7 @@ gcry_pk_ctl (int cmd, void *buffer, size_t buflen)
  * the block size)
  */
 gpg_error_t
-gcry_pk_algo_info (int id, int what, void *buffer, size_t *nbytes)
+gcry_pk_algo_info (int algorithm, int what, void *buffer, size_t *nbytes)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
 
@@ -2170,23 +2166,23 @@ gcry_pk_algo_info (int id, int what, void *buffer, size_t *nbytes)
 	int use = nbytes ? *nbytes : 0;
 	if (buffer)
 	  err = GPG_ERR_INV_ARG;
-	else if (check_pubkey_algo (id, use))
+	else if (check_pubkey_algo (algorithm, use))
 	  err = GPG_ERR_PUBKEY_ALGO;
 	break;
       }
 
     case GCRYCTL_GET_ALGO_USAGE:
       {
-	gcry_module_t *pubkey;
+	gcry_module_t pubkey;
 	int use = 0;
 
 	REGISTER_DEFAULT_PUBKEYS;
 
 	ath_mutex_lock (&pubkeys_registered_lock);
-	pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+	pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
 	if (pubkey)
 	  {
-	    use = ((gcry_pubkey_spec_t *) pubkey->spec)->use;
+	    use = ((gcry_pk_spec_t *) pubkey->spec)->use;
 	    _gcry_module_release (pubkey);
 	  }
 	ath_mutex_unlock (&pubkeys_registered_lock);
@@ -2198,28 +2194,28 @@ gcry_pk_algo_info (int id, int what, void *buffer, size_t *nbytes)
     case GCRYCTL_GET_ALGO_NPKEY:
       {
 	/* FIXME?  */
-	int npkey = pubkey_get_npkey (id);
+	int npkey = pubkey_get_npkey (algorithm);
 	*nbytes = npkey;
 	break;
       }
     case GCRYCTL_GET_ALGO_NSKEY:
       {
 	/* FIXME?  */
-	int nskey = pubkey_get_nskey (id);
+	int nskey = pubkey_get_nskey (algorithm);
 	*nbytes = nskey;
 	break;
       }
     case GCRYCTL_GET_ALGO_NSIGN:
       {
 	/* FIXME?  */
-	int nsign = pubkey_get_nsig (id);
+	int nsign = pubkey_get_nsig (algorithm);
 	*nbytes = nsign;
 	break;
       }
     case GCRYCTL_GET_ALGO_NENCR:
       {
 	/* FIXME?  */
-	int nencr = pubkey_get_nenc (id);
+	int nencr = pubkey_get_nenc (algorithm);
 	*nbytes = nencr;
 	break;
       }
@@ -2242,15 +2238,15 @@ _gcry_pk_init (void)
 }
 
 gpg_err_code_t
-_gcry_pk_module_lookup (int id, gcry_module_t **module)
+_gcry_pk_module_lookup (int algorithm, gcry_module_t *module)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_module_t *pubkey;
+  gcry_module_t pubkey;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     *module = pubkey;
   else
@@ -2261,9 +2257,27 @@ _gcry_pk_module_lookup (int id, gcry_module_t **module)
 }
 
 void
-_gcry_pk_module_release (gcry_module_t *module)
+_gcry_pk_module_release (gcry_module_t module)
 {
   ath_mutex_lock (&pubkeys_registered_lock);
   _gcry_module_release (module);
   ath_mutex_unlock (&pubkeys_registered_lock);
+}
+
+/* Get a list consisting of the IDs of the loaded pubkey modules.  If
+   LIST is zero, write the number of loaded pubkey modules to
+   LIST_LENGTH and return.  If LIST is non-zero, the first
+   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
+   according size.  In case there are less pubkey modules than
+   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
+gpg_error_t
+gcry_pk_list (int *list, int *list_length)
+{
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+
+  ath_mutex_lock (&pubkeys_registered_lock);
+  err = _gcry_module_list (pubkeys_registered, list, list_length);
+  ath_mutex_unlock (&pubkeys_registered_lock);
+
+  return err;
 }

@@ -2133,18 +2133,18 @@ selftest (void)
 
 gcry_cipher_spec_t cipher_spec_aes =
   {
-    "AES", GCRY_CIPHER_AES, 16, 128, sizeof (RIJNDAEL_context),
+    "AES", 16, 128, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
   };
 
 gcry_cipher_spec_t cipher_spec_aes192 =
   {
-    "AES192", GCRY_CIPHER_AES192, 16, 192, sizeof (RIJNDAEL_context),
+    "AES192", 16, 192, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
   };
 
 gcry_cipher_spec_t cipher_spec_aes256 =
   {
-    "AES256", GCRY_CIPHER_AES256, 16, 256, sizeof (RIJNDAEL_context),
+    "AES256", 16, 256, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
   };

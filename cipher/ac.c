@@ -80,7 +80,7 @@ struct gcry_ac_handle
 				   handle.  */
   const char *algorithm_name;	/* Name of the algorithm.  */
   unsigned int flags;		/* Flags, not used yet.  */
-  gcry_module_t *module;	/* Reference to the algorithm
+  gcry_module_t module;	        /* Reference to the algorithm
 				   module.  */
 };
 
@@ -472,7 +472,7 @@ gcry_ac_data_construct (const char *identifier, unsigned int flags,
  * Functions for working with data sets.
  */
 
-/* Returns a new, empty data set in DATA.  */
+/* Creates a new, empty data set and stores it in DATA.  */
 gpg_error_t
 gcry_ac_data_new (gcry_ac_data_t *data)
 {
@@ -493,7 +493,7 @@ gcry_ac_data_new (gcry_ac_data_t *data)
   return gpg_error (err);
 }
 
-/* Destroy the data set DATA.  */
+/* Destroys the data set DATA.  */
 void
 gcry_ac_data_destroy (gcry_ac_data_t data)
 {
@@ -508,8 +508,9 @@ gcry_ac_data_destroy (gcry_ac_data_t data)
   gcry_free (data);
 }
 
-/* Add the value MPI to DATA with the label NAME.  If there is already
-   a value with that label, replace it, otherwise add it.  */
+/* Adds the value MPI to the data set DATA with the label NAME.  If
+   there is already a value with that label, it is replaced, otherwise
+   a new value is added. */
 gpg_error_t
 gcry_ac_data_set (gcry_ac_data_t data,
 		  const char *name, gcry_mpi_t mpi)
@@ -521,8 +522,11 @@ gcry_ac_data_set (gcry_ac_data_t data,
   if (ac_mpi)
     {
       /* An entry for NAME does already exist, replace it.  */
-      gcry_mpi_release (ac_mpi->mpi);
-      ac_mpi->mpi = mpi;
+      if (ac_mpi->mpi != mpi)
+	{
+	  gcry_mpi_release (ac_mpi->mpi);
+	  ac_mpi->mpi = mpi;
+	}
     }
   else
     {
@@ -552,7 +556,7 @@ gcry_ac_data_set (gcry_ac_data_t data,
   return gpg_error (err);
 }
 
-/* Return the number of named MPI values inside of the data set
+/* Returns the number of named MPI values inside of the data set
    DATA.  */
 unsigned int
 gcry_ac_data_length (gcry_ac_data_t data)
@@ -560,8 +564,10 @@ gcry_ac_data_length (gcry_ac_data_t data)
   return data->data_n;
 }
 
-/* Store the value labelled with NAME found in DATA in MPI or NULL if
-   a value with that label was not found.  */
+/* Stores the value labelled with NAME found in the data set DATA in
+   MPI.  The returned MPI value will be released in case
+   gcry_ac_data_set is used to associate the label NAME with a
+   different MPI value.  */
 gpg_error_t
 gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
 		       gcry_mpi_t *mpi)
@@ -583,8 +589,10 @@ gcry_ac_data_get_name (gcry_ac_data_t data, const char *name,
   return gpg_error (err);
 }
 
-/* Return the MPI value with index INDEX contained in the data set
-   DATA.  */
+/* Stores in NAME and MPI the named MPI value contained in the data
+   set DATA with the index INDEX.  NAME or MPI may be NULL.  The
+   returned MPI value will be released in case gcry_ac_data_set is
+   used to associate the label NAME with a different MPI value.  */
 gpg_error_t
 gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
 			const char **name, gcry_mpi_t *mpi)
@@ -604,7 +612,7 @@ gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int index,
   return gpg_error (err);
 }
 
-/* Destroy any values contained in the data set DATA.  */
+/* Destroys any values contained in the data set DATA.  */
 void
 gcry_ac_data_clear (gcry_ac_data_t data)
 {
@@ -619,13 +627,14 @@ gcry_ac_data_clear (gcry_ac_data_t data)
  * Handle management.
  */
 
-/* Create a new ac handle.  */
+/* Creates a new handle for the algorithm ALGORITHM and store it in
+   HANDLE.  FLAGS is not used yet.  */
 gpg_error_t
 gcry_ac_open (gcry_ac_handle_t *handle,
 	      gcry_ac_id_t algorithm, unsigned int flags)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_module_t *module = NULL;
+  gcry_module_t module = NULL;
   gcry_ac_handle_t handle_new;
   const char *algorithm_name;
 
@@ -665,7 +674,7 @@ gcry_ac_open (gcry_ac_handle_t *handle,
   return gpg_error (err);
 }
 
-/* Destroy an ac handle.  */
+/* Destroys the handle HANDLE.  */
 void
 gcry_ac_close (gcry_ac_handle_t handle)
 {
@@ -680,7 +689,8 @@ gcry_ac_close (gcry_ac_handle_t handle)
  * Key management.
  */
 
-/* Initialize a key from a given data set.  */
+/* Creates a new key of type TYPE, consisting of the MPI values
+   contained in the data set DATA and stores it in KEY.  */
 gpg_error_t
 gcry_ac_key_init (gcry_ac_key_t *key,
 		  gcry_ac_handle_t handle,
@@ -726,7 +736,10 @@ gcry_ac_key_init (gcry_ac_key_t *key,
   return gpg_error (err);
 }
 
-/* Generate a new key pair.  */
+/* Generates a new key pair via the handle HANDLE of NBITS bits and
+   stores it in KEY_PAIR.  In case non-standard settings are wanted, a
+   pointer to a structure of type gcry_ac_key_spec_<algorithm>_t,
+   matching the selected algorithm, can be given as KEY_SPEC.  */
 gpg_error_t
 gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
 			   gcry_ac_key_pair_t *key_pair,
@@ -776,13 +789,13 @@ gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
     {
       /* Calculate size of the format string, that is used for
 	 creating the request S-expression.  */
-      genkey_format_n = 22;
+      genkey_format_n = 23;
 
       /* Respect any relevant algorithm specific commands.  */
       if (key_spec)
 	for (i = 0; gcry_ac_key_generate_specs[i].algorithm; i++)
 	  if (handle->algorithm == gcry_ac_key_generate_specs[i].algorithm)
-	    genkey_format_n += 4;
+	    genkey_format_n += 6;
 
       /* Create format string.  */
       genkey_format = gcry_malloc (genkey_format_n);
@@ -908,7 +921,7 @@ gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
   return gpg_error (err);
 }
 
-/* Returns a specified key from a key pair.  */
+/* Returns the key of type WHICH out of the key pair KEY_PAIR.  */
 gcry_ac_key_t
 gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
 			  gcry_ac_key_type_t witch)
@@ -929,7 +942,7 @@ gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
   return key;
 }
 
-/* Destroy a key.  */
+/* Destroys the key KEY.  */
 void
 gcry_ac_key_destroy (gcry_ac_key_t key)
 {
@@ -947,7 +960,7 @@ gcry_ac_key_destroy (gcry_ac_key_t key)
   gcry_free (key);
 }
 
-/* Destroy a key pair.  */
+/* Destroys the key pair KEY_PAIR.  */
 void
 gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
 {
@@ -956,7 +969,7 @@ gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
   gcry_free (key_pair);
 }
 
-/* Verify that the key KEY is sane.  */
+/* Verifies that the key KEY is sane.  */
 gpg_error_t
 gcry_ac_key_test (gcry_ac_key_t key)
 {
@@ -967,7 +980,7 @@ gcry_ac_key_test (gcry_ac_key_t key)
   return gpg_error (err);
 }
 
-/* Return the number of bits of the key KEY in NBITS.  */
+/* Stores the number of bits of the key KEY in NBITS.  */
 gpg_error_t
 gcry_ac_key_get_nbits (gcry_ac_key_t key, unsigned int *nbits)
 {
@@ -983,7 +996,7 @@ gcry_ac_key_get_nbits (gcry_ac_key_t key, unsigned int *nbits)
   return gpg_error (err);
 }
 
-/* Write the 20 byte long key grip of the key KEY to KEY_GRIP.  */
+/* Writes the 20 byte long key grip of the key KEY to KEY_GRIP.  */
 gpg_error_t
 gcry_ac_key_get_grip (gcry_ac_key_t key, unsigned char *key_grip)
 {
@@ -1003,9 +1016,9 @@ gcry_ac_key_get_grip (gcry_ac_key_t key, unsigned char *key_grip)
  * Functions performing cryptographic operations.
  */
 
-/* Encrypt the plain text MPI value DATA_PLAIN with the key KEY under
-   the control of the flags FLAGS and store the resulting data set
-   into DATA_ENCRYPTED.  */
+/* Encrypts the plain text MPI value DATA_PLAIN with the key public
+   KEY under the control of the flags FLAGS and stores the resulting
+   data set into DATA_ENCRYPTED.  */
 gpg_error_t
 gcry_ac_data_encrypt (gcry_ac_handle_t handle,
 		      unsigned int flags,
@@ -1081,9 +1094,10 @@ gcry_ac_data_encrypt (gcry_ac_handle_t handle,
   return gpg_error (err);
 }
 
-/* Decrypt the decrypted data contained in the data set DATA_ENCRYPTED
-   with the key KEY under the control of the flags FLAGS and store the
-   resulting plain text MPI value in DATA_PLAIN.  */
+/* Decrypts the encrypted data contained in the data set
+   DATA_ENCRYPTED with the secret key KEY under the control of the
+   flags FLAGS and stores the resulting plain text MPI value in
+   DATA_PLAIN.  */
 gpg_error_t
 gcry_ac_data_decrypt (gcry_ac_handle_t handle,
 		      unsigned int flags,
@@ -1143,8 +1157,8 @@ gcry_ac_data_decrypt (gcry_ac_handle_t handle,
 
 }
 
-/* Sign the data contained in DATA with the key KEY and store the
-   resulting signature in the data set DATA_SIGNATURE.  */
+/* Signs the data contained in DATA with the secret key KEY and stores
+   the resulting signature data set in DATA_SIGNATURE.  */
 gpg_error_t
 gcry_ac_data_sign (gcry_ac_handle_t handle,
 		   gcry_ac_key_t key,
@@ -1185,9 +1199,9 @@ gcry_ac_data_sign (gcry_ac_handle_t handle,
   return gpg_error (err);
 }
 
-/* Verify that the signature contained in the data set DATA_SIGNATURE
-   is indeed the result of signing the data contained in DATA with the
-   secret key belonging to the public key KEY.  */
+/* Verifies that the signature contained in the data set
+   DATA_SIGNATURE is indeed the result of signing the data contained
+   in DATA with the secret key belonging to the public key KEY.  */
 gpg_error_t
 gcry_ac_data_verify (gcry_ac_handle_t handle,
 		     gcry_ac_key_t key,
@@ -1231,8 +1245,8 @@ gcry_ac_data_verify (gcry_ac_handle_t handle,
  * General functions.
  */
 
-/* Store the textual representation of the algorithm whose id is given
-   in ALGORITHM in NAME.  */
+/* Stores the textual representation of the algorithm whose id is
+   given in ALGORITHM in NAME.  */
 gpg_error_t
 gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
 {
@@ -1248,7 +1262,7 @@ gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
   return gpg_error (err);
 }
 
-/* Store the numeric ID of the algorithm whose textual representation
+/* Stores the numeric ID of the algorithm whose textual representation
    is contained in NAME in ALGORITHM.  */
 gpg_error_t
 gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)

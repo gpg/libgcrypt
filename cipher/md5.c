@@ -329,9 +329,9 @@ md5_read( void *context )
 		      0x86, 0xf7, 0x0d, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
 
 
-gcry_digest_spec_t digest_spec_md5 =
+gcry_md_spec_t digest_spec_md5 =
   {
-    "MD5", GCRY_MD_MD5, asn, DIM (asn), 16,
+    "MD5", asn, DIM (asn), 16,
     md5_init, md5_write, md5_final, md5_read,
     sizeof (MD5_CONTEXT)
   };

@@ -293,9 +293,9 @@ static byte asn[19] = /* Object ID is  2.16.840.1.101.3.4.2.1 */
     0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05,
     0x00, 0x04, 0x20 };
 
-gcry_digest_spec_t digest_spec_sha256 =
+gcry_md_spec_t digest_spec_sha256 =
   {
-    "SHA256", GCRY_MD_SHA256, asn, DIM (asn), 32,
+    "SHA256", asn, DIM (asn), 32,
     sha256_init, sha256_write, sha256_final, sha256_read,
     sizeof (SHA256_CONTEXT)
   };

@@ -587,7 +587,7 @@ bf_setkey (void *context, const byte *key, unsigned keylen)
 
 gcry_cipher_spec_t cipher_spec_blowfish =
   {
-    "BLOWFISH", GCRY_CIPHER_BLOWFISH, BLOWFISH_BLOCKSIZE, 128,
+    "BLOWFISH", BLOWFISH_BLOCKSIZE, 128,
     sizeof (BLOWFISH_context),
     bf_setkey, encrypt_block, decrypt_block,
   };

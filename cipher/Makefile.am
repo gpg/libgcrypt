@@ -49,10 +49,12 @@ md4.c \
 md5.c \
 rijndael.c \
 rmd160.c \
+rndlinux.c \
 rndegd.c \
-endunix.c \
-rndnw32.c \
+rndunix.c \
+rndw32.c \
 rsa.c \
+sha1.c \
 sha256.c \
 sha512.c \
 tiger.c \

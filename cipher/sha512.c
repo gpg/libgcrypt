@@ -367,8 +367,8 @@ static byte sha512_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.3 */
   0x00, 0x04, 0x40
 };
 
-gcry_digest_spec_t digest_spec_sha512 = {
-  "SHA512", GCRY_MD_SHA512, sha512_asn, DIM (sha512_asn), 64,
+gcry_md_spec_t digest_spec_sha512 = {
+  "SHA512", sha512_asn, DIM (sha512_asn), 64,
   sha512_init, sha512_write, sha512_final, sha512_read,
   sizeof (SHA512_CONTEXT),
 };
@@ -380,8 +380,8 @@ static byte sha384_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.2 */
   0x00, 0x04, 0x30
 };
 
-gcry_digest_spec_t digest_spec_sha384 = {
-  "SHA384", GCRY_MD_SHA384, sha384_asn, DIM (sha384_asn), 48,
+gcry_md_spec_t digest_spec_sha384 = {
+  "SHA384", sha384_asn, DIM (sha384_asn), 48,
   sha384_init, sha512_write, sha512_final, sha512_read,
   sizeof (SHA512_CONTEXT),
 };

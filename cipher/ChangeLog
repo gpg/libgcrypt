@@ -1,3 +1,134 @@
+2003-07-07  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c (gcry_ac_data_set): Only release old MPI value if it is
+	different from the new value.
+
+	* pubkey.c (gcry_pk_list): New function.
+	* md.c (gcry_md_list): New function.
+
+	* ac.c (gcry_ac_key_pair_generate): Fix calculation of format
+	string size.
+
+2003-07-05  Moritz Schulte  <moritz@g10code.com>
+
+	* md.c: Named struct of digest_table `digest_table_entry'.
+	(digest_table_entry): New member: algorithm; filled in.
+	(digest_table_entry): Removed unused member: flags.
+	(gcry_md_register): New argument: algorithm_id, filled in.
+	(gcry_md_register_default): Used algorithm ID from module
+	structure.
+	(gcry_md_map_name): Likewise.
+	(md_enable): Likewise.
+	(md_read): Likewise.
+	(gcry_md_info): Likewise.
+
+	* pubkey.c: Named truct for pubkey_table `pubkey_table_entry'.
+	(pubkey_table_entry): New member: algorithm; filled in.
+	(gcry_pk_register_default): Used algorithm ID from pubkey_table.
+	(gcry_pk_register): New argument: algorithm_id, filled in.
+	(gcry_pk_map_name): Used algorithm ID from module structure.
+	(gcry_pk_decrypt): Likewise.
+	(gcry_pk_encrypt): Likewise.
+	(gcry_pk_verify): Likewise.
+	(gcry_pk_sign): Likewise.
+	(gcry_pk_testkey): Likewise.
+	(gcry_pk_genkey): Likewise.
+	(gcry_pk_get_nbits): Likewise.
+	(sexp_to_key): Removed unused variable: algo.
+	(sexp_to_sig): Likewise.
+
+	* cipher.c: Named struct for cipher_table `cipher_table_entry'.
+	(cipher_table_entry): New member: algorithm; filled in.
+	(gcry_cipher_register_default): Used algorithm ID from
+	cipher_table.
+	(gcry_cipher_register): New argument: algorithm_id, filled in.
+	(gcry_cipher_map_name): Used algorithm ID from module structure.
+
+	* arcfour.c (cipher_spec_arcfour): Removed algorithm ID.
+	* blowfish.c (cipher_spec_blowfish): Likewise.
+	* cast5.c (cipher_spec_cast5): Likewise.
+	* crc.c (digest_spec_crc32): Likewise.
+	* crc.c (digest_spec_crc32_rfc1510): Likewise.
+	* crc.c (digest_spec_crc32_rfc2440): Likewise.
+	* des.c (cipher_spec_des): Likewise.
+	* des.c (cipher_spec_tripledes): Likewise.
+	* dsa.c (pubkey_spec_dsa): Likewise.
+	* elgamal.c (pubkey_spec_elg): Likewise.
+	* md4.c (digest_spec_md4): Likewise.
+	* md5.c (digest_spec_md5): Likewise.
+	* aes.c (cipher_spec_aes): Likewise.
+	* aes.c (cipher_spec_aes192): Likewise.
+	* aes.c (cipher_spec_aes256): Likewise.
+	* rsa.c (pubkey_spec_rsa): Likewise.
+	* sha1.c (digest_spec_sha1): Likewise.
+	* sha256.c (digest_spec_sha256): Likewise.
+	* sha512.c (digest_spec_sha512): Likewise.
+	* tiger.c (digest_spec_tiger): Likewise.
+	* twofish.c (cipher_spec_twofish): Likewise.
+	* twofish.c (cipher_spec_twofish128): Likewise.
+
+	* Makefile.am (EXTRA_libcipher_la_SOURCES): Fix list of source
+	files; reported by Simon Josefsson <jas@extundo.com>.
+
+	* pubkey.c: Replaced all occurences of `id' with `algorithm',
+	since `id' is a keyword in obj-c.
+	* md.c: Likewise.
+	* cipher.c: Likewise.
+
+	* crc.c, md4.c, md5.c, rmd160.c, sha1.c, sha256.c, tiger.c:
+	Replaced all occurences of gcry_digest_spec_t with gcry_md_spec_t.
+
+	* dsa.c, rsa.c, elgamal.c: Replaced all occurencens of
+	gcry_pubkey_spec_t with gcry_pk_spec_t.
+
+	* md.c: Replaced all occurences of gcry_digest_spec_t with
+	gcry_md_spec_t.
+	(gcry_digest_register_default): Renamed to ...
+	(gcry_md_register_default): ... this; adjusted callers.
+	(gcry_digest_lookup_func_name): Renamed to ...
+	(gcry_md_lookup_func_name): ... this; adjusted callers.
+	(gcry_digest_lookup_name): Renamed to ...
+	(gcry_md_lookup_name): ... this; adjusted callers.
+	(gcry_digest_register): Renamed to ...
+	(gcry_md_register): ... this.
+	(gcry_digest_unregister): Renamed to ...
+	(gcry_md_unregister): ... this.
+
+	* pubkey.c (gcry_pubkey_register): Renamed to ...
+	(gcry_pk_register): ... this.
+	(gcry_pubkey_unregister): Renamed to ...
+	(gcry_pk_unregister): ... this.
+	Replaced all occurences of gcry_pubkey_spec_t with gcry_pk_spec_t.
+	(gcry_pubkey_register_default): Renamed to ...
+	(gcry_pk_register_default): ... this; adjusted callers.
+	(gcry_pubkey_lookup_func_name): Renamed to ...
+	(gcry_pk_lookup_func_name): ... this; adjusted callers.
+	(gcry_pubkey_lookup_name): Renamed to ...
+	(gcry_pk_lookup_name): ... this; adjusted callers.
+
+	* md.c (gcry_md_hash_buffer): Fix error checking.  Thanks to Simon
+	Josefsson <jas@extunde.com>.
+
+2003-07-04  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.c (gcry_cipher_list): New function.
+
+2003-07-01  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (sexp_to_sig): Accept a `flags' S-expression to be more
+	consistent with sexp_to_enc.
+
+2003-06-30  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (libcipher_la_SOURCES): Added: ac.c.
+
+	* pubkey.c (_gcry_pk_module_lookup): New function.
+	(_gcry_pk_module_release): New function.
+
+2003-06-29  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c: New file.
+
 2003-06-18  Werner Koch  <wk@gnupg.org>
 
 	* cipher.c (gcry_cipher_get_algo_keylen): New.

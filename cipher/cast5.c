@@ -616,6 +616,6 @@ cast_setkey (void *context, const byte *key, unsigned keylen )
 
 gcry_cipher_spec_t cipher_spec_cast5 =
   {
-    "CAST5", GCRY_CIPHER_CAST5, CAST5_BLOCKSIZE, 128, sizeof (CAST5_context),
+    "CAST5", CAST5_BLOCKSIZE, 128, sizeof (CAST5_context),
     cast_setkey, encrypt_block, decrypt_block,
   };

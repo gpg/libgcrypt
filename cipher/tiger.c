@@ -827,9 +827,9 @@ static byte asn[19] = /* Object ID is 1.3.6.1.4.1.11591.12.2 */
     0x05, 0x00, 0x04, 0x18 };
 
 
-gcry_digest_spec_t digest_spec_tiger =
+gcry_md_spec_t digest_spec_tiger =
   {
-    "TIGER192", GCRY_MD_TIGER, asn, DIM (asn), 24,
+    "TIGER192", asn, DIM (asn), 24,
     tiger_init, tiger_write, tiger_final, tiger_read,
     sizeof (TIGER_CONTEXT)
   };

@@ -65,38 +65,39 @@ static struct
 
 /* This is the list of the default ciphers, which are included in
    libgcrypt.  */
-static struct
+static struct cipher_table_entry
 {
   gcry_cipher_spec_t *cipher;
+  unsigned int algorithm;
 } cipher_table[] =
   {
 #if USE_BLOWFISH
-    { &cipher_spec_blowfish,  },
+    { &cipher_spec_blowfish,   GCRY_CIPHER_BLOWFISH },
 #endif
 #if USE_DES
-    { &cipher_spec_des        },
-    { &cipher_spec_tripledes  },
+    { &cipher_spec_des,        GCRY_CIPHER_DES },
+    { &cipher_spec_tripledes,  GCRY_CIPHER_3DES },
 #endif
 #if USE_ARCFOUR
-    { &cipher_spec_arcfour    },
+    { &cipher_spec_arcfour,    GCRY_CIPHER_ARCFOUR },
 #endif
 #if USE_CAST5
-    { &cipher_spec_cast5      },
+    { &cipher_spec_cast5,      GCRY_CIPHER_CAST5 },
 #endif
 #if USE_AES
-    { &cipher_spec_aes        },
-    { &cipher_spec_aes192     },
-    { &cipher_spec_aes256     },
+    { &cipher_spec_aes,        GCRY_CIPHER_AES },
+    { &cipher_spec_aes192,     GCRY_CIPHER_AES192 },
+    { &cipher_spec_aes256,     GCRY_CIPHER_AES256 },
 #endif
 #if USE_TWOFISH
-    { &cipher_spec_twofish    },
-    { &cipher_spec_twofish128 },
+    { &cipher_spec_twofish,    GCRY_CIPHER_TWOFISH },
+    //    { &cipher_spec_twofish128, GCRY_CIPHER_TWOFISH128 },
 #endif
     { NULL                    },
   };
 
 /* List of registered ciphers.  */
-static gcry_module_t *ciphers_registered;
+static gcry_module_t ciphers_registered;
 
 /* This is the lock protecting CIPHERS_REGISTERED.  */
 static ath_mutex_t ciphers_registered_lock = ATH_MUTEX_INITIALIZER;
@@ -181,7 +182,7 @@ gcry_cipher_register_default (void)
 	cipher_table[i].cipher->stdecrypt = dummy_decrypt_stream;
 
       err = _gcry_module_add (&ciphers_registered,
-			      cipher_table[i].cipher->id,
+			      cipher_table[i].algorithm,
 			      (void *) cipher_table[i].cipher,
 			      NULL);
     }
@@ -201,10 +202,10 @@ gcry_cipher_lookup_func_name (void *spec, void *data)
 }
 
 /* Internal function.  Lookup a cipher entry by it's name.  */
-static gcry_module_t *
+static gcry_module_t
 gcry_cipher_lookup_name (const char *name)
 {
-  gcry_module_t *cipher;
+  gcry_module_t cipher;
 
   cipher = _gcry_module_lookup (ciphers_registered, (void *) name,
 				gcry_cipher_lookup_func_name);
@@ -212,15 +213,16 @@ gcry_cipher_lookup_name (const char *name)
   return cipher;
 }
 
-/* Public function.  Register a provided CIPHER.  Returns zero on
-   success, in which case the chosen cipher ID has been stored in
-   CIPHER, or an error code.  */
+/* Register a new cipher module whose specification can be found in
+   CIPHER.  On success, a new algorithm ID is stored in ALGORITHM_ID
+   and a pointer representhing this module is stored in MODULE.  */
 gpg_error_t
 gcry_cipher_register (gcry_cipher_spec_t *cipher,
-		      gcry_module_t **module)
+		      unsigned int *algorithm_id,
+		      gcry_module_t *module)
 {
   gpg_err_code_t err = 0;
-  gcry_module_t *mod;
+  gcry_module_t mod;
 
   ath_mutex_lock (&ciphers_registered_lock);
   err = _gcry_module_add (&ciphers_registered, 0,
@@ -230,16 +232,16 @@ gcry_cipher_register (gcry_cipher_spec_t *cipher,
   if (! err)
     {
       *module = mod;
-      cipher->id = mod->id;
+      *algorithm_id = mod->mod_id;
     }
 
   return gpg_error (err);
 }
 
-/* Public function.  Unregister the cipher identified by MODULE, which
-   must have been registered with gcry_cipher_register.  */
+/* Unregister the cipher identified by MODULE, which must have been
+   registered with gcry_cipher_register.  */
 void
-gcry_cipher_unregister (gcry_module_t *module)
+gcry_cipher_unregister (gcry_module_t module)
 {
   ath_mutex_lock (&ciphers_registered_lock);
   _gcry_module_release (module);
@@ -251,7 +253,7 @@ struct gcry_cipher_handle
 {
   int magic;
   gcry_cipher_spec_t *cipher;
-  gcry_module_t *module;
+  gcry_module_t module;
   int  mode;
   unsigned int flags;
   byte iv[MAX_BLOCKSIZE];	/* (this should be ulong aligned) */
@@ -292,8 +294,8 @@ search_oid (const char *string)
 int
 gcry_cipher_map_name( const char *string )
 {
-  gcry_module_t *cipher;
-  int i, id = 0;
+  gcry_module_t cipher;
+  int i, algorithm = 0;
   
   if (!string)
     return 0;
@@ -322,12 +324,12 @@ gcry_cipher_map_name( const char *string )
   cipher = gcry_cipher_lookup_name (string);
   if (cipher)
     {
-      id = ((gcry_cipher_spec_t *) cipher->spec)->id;
+      algorithm = cipher->mod_id;
       _gcry_module_release (cipher);
     }
   ath_mutex_unlock (&ciphers_registered_lock);
   
-  return id;
+  return algorithm;
 }
 
 int
@@ -344,15 +346,15 @@ gcry_cipher_mode_from_oid (const char *string)
  * Map a cipher algo to a string
  */
 static const char *
-cipher_algo_to_string (int id)
+cipher_algo_to_string (int algorithm)
 {
-  gcry_module_t *cipher;
+  gcry_module_t cipher;
   const char *name = NULL;
 
   REGISTER_DEFAULT_CIPHERS;
 
   ath_mutex_lock (&ciphers_registered_lock);
-  cipher = _gcry_module_lookup_id (ciphers_registered, id);
+  cipher = _gcry_module_lookup_id (ciphers_registered, algorithm);
   if (cipher)
     {
       name = ((gcry_cipher_spec_t *) cipher->spec)->name;
@@ -368,22 +370,22 @@ cipher_algo_to_string (int id)
  * string when there is no algo.  It will never return NULL.
  */
 const char *
-gcry_cipher_algo_name (int id)
+gcry_cipher_algo_name (int algorithm)
 {
-  const char *s = cipher_algo_to_string (id);
+  const char *s = cipher_algo_to_string (algorithm);
   return s ? s : "";
 }
 
 
 static void
-disable_cipher_algo (int id)
+disable_cipher_algo (int algorithm)
 {
-  gcry_module_t *cipher;
+  gcry_module_t cipher;
 
   REGISTER_DEFAULT_CIPHERS;
 
   ath_mutex_lock (&ciphers_registered_lock);
-  cipher = _gcry_module_lookup_id (ciphers_registered, id);
+  cipher = _gcry_module_lookup_id (ciphers_registered, algorithm);
   if (cipher)
     {
       if (! (cipher->flags & FLAG_MODULE_DISABLED))
@@ -399,15 +401,15 @@ disable_cipher_algo (int id)
  */
 
 static gpg_err_code_t
-check_cipher_algo (int id)
+check_cipher_algo (int algorithm)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_module_t *cipher;
+  gcry_module_t cipher;
 
   REGISTER_DEFAULT_CIPHERS;
 
   ath_mutex_lock (&ciphers_registered_lock);
-  cipher = _gcry_module_lookup_id (ciphers_registered, id);
+  cipher = _gcry_module_lookup_id (ciphers_registered, algorithm);
   if (cipher)
     {
       if (cipher->flags & FLAG_MODULE_DISABLED)
@@ -422,48 +424,48 @@ check_cipher_algo (int id)
 }
 
 static unsigned
-cipher_get_keylen (int id)
+cipher_get_keylen (int algorithm)
 {
-  gcry_module_t *cipher;
+  gcry_module_t cipher;
   unsigned len = 0;
 
   REGISTER_DEFAULT_CIPHERS;
 
   ath_mutex_lock (&ciphers_registered_lock);
-  cipher = _gcry_module_lookup_id (ciphers_registered, id);
+  cipher = _gcry_module_lookup_id (ciphers_registered, algorithm);
   if (cipher)
     {
       len = ((gcry_cipher_spec_t *) cipher->spec)->keylen;
       if (! len)
-	log_bug ("cipher %d w/o key length\n", id);
+	log_bug ("cipher %d w/o key length\n", algorithm);
       _gcry_module_release (cipher);
     }
   else
-    log_bug ("cipher %d not found\n", id);
+    log_bug ("cipher %d not found\n", algorithm);
   ath_mutex_unlock (&ciphers_registered_lock);
 
   return len;
 }
 
 static unsigned
-cipher_get_blocksize (int id)
+cipher_get_blocksize (int algorithm)
 {
-  gcry_module_t *cipher;
+  gcry_module_t cipher;
   unsigned len = 0;
 
   REGISTER_DEFAULT_CIPHERS;
 
   ath_mutex_lock (&ciphers_registered_lock);
-  cipher = _gcry_module_lookup_id (ciphers_registered, id);
+  cipher = _gcry_module_lookup_id (ciphers_registered, algorithm);
   if (cipher)
     {
       len = ((gcry_cipher_spec_t *) cipher->spec)->blocksize;
       if (! len)
-	  log_bug ("cipher %d w/o blocksize\n", id);
+	  log_bug ("cipher %d w/o blocksize\n", algorithm);
       _gcry_module_release (cipher);
     }
   else
-    log_bug ("cipher %d not found\n", id);
+    log_bug ("cipher %d not found\n", algorithm);
   ath_mutex_unlock (&ciphers_registered_lock);
 
   return len;
@@ -477,11 +479,11 @@ cipher_get_blocksize (int id)
 
 gpg_error_t
 gcry_cipher_open (gcry_cipher_hd_t *handle,
-		  int algo, int mode, unsigned int flags )
+		  int algo, int mode, unsigned int flags)
 {
   int secure = (flags & GCRY_CIPHER_SECURE);
   gcry_cipher_spec_t *cipher = NULL;
-  gcry_module_t *module = NULL;
+  gcry_module_t module = NULL;
   gcry_cipher_hd_t h = NULL;
   gpg_err_code_t err = 0;
 
@@ -1277,6 +1279,24 @@ _gcry_cipher_init (void)
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
 
   REGISTER_DEFAULT_CIPHERS;
+
+  return err;
+}
+
+/* Get a list consisting of the IDs of the loaded cipher modules.  If
+   LIST is zero, write the number of loaded cipher modules to
+   LIST_LENGTH and return.  If LIST is non-zero, the first
+   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
+   according size.  In case there are less cipher modules than
+   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
+gpg_error_t
+gcry_cipher_list (int *list, int *list_length)
+{
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+
+  ath_mutex_lock (&ciphers_registered_lock);
+  err = _gcry_module_list (ciphers_registered, list, list_length);
+  ath_mutex_unlock (&ciphers_registered_lock);
 
   return err;
 }

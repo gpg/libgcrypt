@@ -1,4 +1,4 @@
-/* elgamal.c  -  ElGamal Public Key encryption
+/* Elgamal.c  -  ElGamal Public Key encryption
  * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
@@ -641,9 +641,9 @@ static char *elg_names[] =
   };
 
 
-gcry_pubkey_spec_t pubkey_spec_elg =
+gcry_pk_spec_t pubkey_spec_elg =
   {
-    "ELG", elg_names, GCRY_PK_ELG,
+    "ELG", elg_names,
     "pgy", "pgyx", "ab", "rs", "pgy",
     GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR,
     _gcry_elg_generate,

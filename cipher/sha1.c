@@ -319,9 +319,9 @@ static byte asn[15] = /* Object ID is 1.3.14.3.2.26 */
   { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03,
     0x02, 0x1a, 0x05, 0x00, 0x04, 0x14 };
 
-gcry_digest_spec_t digest_spec_sha1 =
+gcry_md_spec_t digest_spec_sha1 =
   {
-    "SHA1", GCRY_MD_SHA1, asn, DIM (asn), 20,
+    "SHA1", asn, DIM (asn), 20,
     sha1_init, sha1_write, sha1_final, sha1_read,
     sizeof (SHA1_CONTEXT)
   };

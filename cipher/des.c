@@ -1068,12 +1068,12 @@ do_des_decrypt( void *context, byte *outbuf, const byte *inbuf )
 
 gcry_cipher_spec_t cipher_spec_des =
   {
-    "DES", GCRY_CIPHER_DES, 8, 64, sizeof (struct _des_ctx),
+    "DES", 8, 64, sizeof (struct _des_ctx),
     do_des_setkey, do_des_encrypt, do_des_decrypt
   };
 
 gcry_cipher_spec_t cipher_spec_tripledes =
   {
-    "3DES", GCRY_CIPHER_3DES, 8, 192, sizeof (struct _tripledes_ctx),
+    "3DES", 8, 192, sizeof (struct _tripledes_ctx),
     do_tripledes_setkey, do_tripledes_encrypt, do_tripledes_decrypt
   };

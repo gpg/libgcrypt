@@ -1021,12 +1021,12 @@ main()
 
 gcry_cipher_spec_t cipher_spec_twofish =
   {
-    "TWOFISH", GCRY_CIPHER_TWOFISH, 16, 256, sizeof (TWOFISH_context),
+    "TWOFISH", 16, 256, sizeof (TWOFISH_context),
     twofish_setkey, twofish_encrypt, twofish_decrypt,
   };
 
 gcry_cipher_spec_t cipher_spec_twofish128 =
   {
-    "TWOFISH128", GCRY_CIPHER_TWOFISH, 16, 128, sizeof (TWOFISH_context),
+    "TWOFISH128", 16, 128, sizeof (TWOFISH_context),
     twofish_setkey, twofish_encrypt, twofish_decrypt,
   };
