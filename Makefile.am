@@ -18,9 +18,6 @@ dist-hook:
 	    done ; \
 	done
 	@set -e; \
-	sed -e 's/@pkg_version@/$(VERSION)/g' \
-	    $(top_srcdir)/scripts/gnupg.spec.in \
-	    > $(distdir)/scripts/gnupg.spec ; \
 	echo "$(VERSION)" > $(distdir)/VERSION
 
 

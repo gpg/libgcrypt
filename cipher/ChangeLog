@@ -1,3 +1,8 @@
+2001-01-11  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c (cipher_encrypt,gcry_cipher_encrypt): Use blocksize and
+	not 8.
+
 2000-12-19  Werner Koch  <wk@gnupg.org>
 
  	Major change:
