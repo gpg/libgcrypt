@@ -1,5 +1,5 @@
 /* basic.c  -  basic regression tests
- *	Copyright (C) 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -86,6 +86,86 @@ die ( const char *format, ... )
 }
 
 #define MAX_DATA_LEN 100
+
+static void
+check_cbc_mac_cipher (void)
+{
+  struct tv {
+    int algo;
+    char key[MAX_DATA_LEN];
+    char plaintext[MAX_DATA_LEN];
+    size_t plaintextlen;
+    char mac[MAX_DATA_LEN];
+  } tv[] = {
+    { GCRY_CIPHER_AES,
+      "chicken teriyaki",
+      "This is a sample plaintext for CBC MAC of sixtyfour bytes.......", 0,
+      "\x23\x8f\x6d\xc7\x53\x6a\x62\x97\x11\xc4\xa5\x16\x43\xea\xb0\xb6" },
+    { GCRY_CIPHER_3DES,
+      "abcdefghABCDEFGH01234567",
+      "This is a sample plaintext for CBC MAC of sixtyfour bytes.......", 0,
+      "\x5c\x11\xf0\x01\x47\xbd\x3d\x3a" },
+    { GCRY_CIPHER_DES,
+      "abcdefgh",
+      "This is a sample plaintext for CBC MAC of sixtyfour bytes.......", 0,
+      "\xfa\x4b\xdf\x9d\xfa\xab\x01\x70" }
+  };
+  GCRY_CIPHER_HD hd;
+  char out[MAX_DATA_LEN];
+  int i;
+
+  for (i = 0; i < sizeof(tv) / sizeof(tv[0]); i++)
+    {
+      hd = gcry_cipher_open (tv[i].algo,
+			     GCRY_CIPHER_MODE_CBC,
+			     GCRY_CIPHER_CBC_MAC);
+      if (!hd) {
+	fail ("cbc-mac algo %d, grcy_open_cipher failed: %s\n",
+	      tv[i].algo, gcry_strerror (-1) );
+	return;
+      }
+
+      if (gcry_cipher_setkey (hd, tv[i].key,
+			      gcry_cipher_get_algo_keylen (tv[i].algo))) {
+	fail ("cbc-mac algo %d, gcry_cipher_setkey failed: %s\n",
+	      tv[i].algo, gcry_strerror (-1) );
+	gcry_cipher_close (hd);
+	return;
+      }
+
+      if (gcry_cipher_setiv (hd, NULL, 0)) {
+	fail ("cbc-mac algo %d, gcry_cipher_setiv failed: %s\n",
+	      tv[i].algo, gcry_strerror (-1) );
+	gcry_cipher_close (hd);
+	return;
+      }
+
+      if ( gcry_cipher_encrypt (hd,
+				out, gcry_cipher_get_algo_blklen(tv[i].algo),
+				tv[i].plaintext,
+				tv[i].plaintextlen ?
+				tv[i].plaintextlen :
+				strlen(tv[i].plaintext))) {
+	fail ("cbc-mac algo %d, gcry_cipher_encrypt failed: %s\n",
+	      tv[i].algo, gcry_strerror (-1) );
+	gcry_cipher_close (hd);
+	return;
+      }
+
+#if 0
+      { int j;
+	for (j=0; j < gcry_cipher_get_algo_blklen(tv[i].algo); j++)
+	  printf("\\x%02x", out[j] & 0xFF);
+	printf("\n");
+      }
+#endif
+
+      if ( memcmp (tv[i].mac, out, gcry_cipher_get_algo_blklen(tv[i].algo)) )
+	fail ("cbc-mac algo %d, encrypt mismatch entry %d\n", tv[i].algo, i);
+
+      gcry_cipher_close (hd);
+    }
+}
 
 static void
 check_aes128_cbc_cts_cipher ()
@@ -600,6 +680,7 @@ main (int argc, char **argv)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
   check_ciphers ();
   check_aes128_cbc_cts_cipher ();
+  check_cbc_mac_cipher ();
   check_digests ();
   check_pubkey ();
   

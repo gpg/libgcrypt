@@ -1,3 +1,8 @@
+2003-03-22  Simon Josefsson  <jas@extundo.com>
+
+	* basic.c (check_cbc_mac_cipher): New.
+	(main): Use it.
+
 2003-03-19  Werner Koch  <wk@gnupg.org>
 
 	* keygen.c (check_rsa_keys): Don't expect an exponent when asking
