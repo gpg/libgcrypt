@@ -1,3 +1,21 @@
+2003-02-28  Moritz Schulte  <moritz@g10code.com>
+
+	* secmem.c (DEFAULT_PAGESIZE): New symbol.
+	(init_pool): Use DEFAULT_PAGESIZE.
+
+2003-02-23  Moritz Schulte  <moritz@g10code.com>
+
+	* secmem.h: Fix typo in declaration of _gcry_secmem_term.
+
+	* sexp.c: Move macro definitions of `digitp', `octdigit', `alphap'
+	and `hexdigit' ...
+	* g10lib.h: ... here.
+
+	* misc.c (_gcry_burn_stack): New function (former name:
+	burn_stack).
+
+	* g10lib.h (burn_stack): Declare _gcry_burn_stack().
+
 2003-01-24  Werner Koch  <wk@gnupg.org>
 
 	* global.c (gcry_set_progress_handler): Register a random progress

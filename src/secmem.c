@@ -1,5 +1,5 @@
 /* secmem.c  -	memory allocation from a secure heap
- * Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -42,6 +42,7 @@
 #endif
 
 #define DEFAULT_POOLSIZE 16384
+#define DEFAULT_PAGESIZE 4096
 
 typedef struct memblock_struct MEMBLOCK;
 struct memblock_struct {
@@ -170,7 +171,7 @@ init_pool( size_t n)
   #ifdef HAVE_GETPAGESIZE
     pgsize = getpagesize();
   #else
-    pgsize = 4096;
+    pgsize = DEFAULT_PAGESIZE;
   #endif
 
   #if HAVE_MMAP

@@ -1,5 +1,5 @@
 /* g10lib.h -  internal defintions for libgcrypt
- * Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This header is to be used inside of libgcrypt in place of gcrypt.h.
  * This way we can better distinguish between internal and external
@@ -185,5 +185,18 @@ int strcasecmp (const char *a, const char *b) GCC_ATTR_PURE;
 #define DIM(v) (sizeof(v)/sizeof((v)[0]))
 #define DIMof(type,member)   DIM(((type *)0)->member)
 
+/* Stack burning.  */
+
+void _gcry_burn_stack (int bytes);
+
+/* Digit predicates.  */
+
+#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
+#define octdigitp(p) (*(p) >= '0' && *(p) <= '7')
+#define alphap(a)    (   (*(a) >= 'A' && *(a) <= 'Z')  \
+                      || (*(a) >= 'a' && *(a) <= 'z'))
+#define hexdigitp(a) (digitp (a)                     \
+                      || (*(a) >= 'A' && *(a) <= 'F')  \
+                      || (*(a) >= 'a' && *(a) <= 'f'))
 
 #endif /* G10LIB_H */

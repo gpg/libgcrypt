@@ -1,5 +1,5 @@
 /* misc.c
- *	Copyright (C) 1999, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1999, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -228,4 +228,15 @@ _gcry_log_printf (const char *fmt, ...)
       _gcry_logv (GCRY_LOG_CONT, fmt, arg_ptr);
       va_end(arg_ptr);
     }
+}
+
+void
+_gcry_burn_stack (int bytes)
+{
+    char buf[64];
+    
+    memset (buf, 0, sizeof buf);
+    bytes -= sizeof buf;
+    if (bytes > 0)
+        _gcry_burn_stack (bytes);
 }

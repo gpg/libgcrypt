@@ -1,5 +1,5 @@
 /* secmem.h -  internal definitions for secmem
- *	Copyright (C) 2000, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -22,7 +22,7 @@
 #define G10_SECMEM_H 1
 
 void _gcry_secmem_init (size_t npool);
-void _gcry_secmem_ter (void);
+void _gcry_secmem_term (void);
 void *_gcry_secmem_malloc (size_t size) GCC_ATTR_MALLOC;
 void *_gcry_secmem_realloc (void *a, size_t newsize);
 void _gcry_secmem_free (void *a);
