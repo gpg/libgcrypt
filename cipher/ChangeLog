@@ -1,3 +1,9 @@
+2001-08-02  Werner Koch  <wk@gnupg.org>
+
+	* arcfour.c (arcfour_setkey): Check the minimim keylength against
+	bytes and not bits.
+	(selftest): Must reset the key before decryption. 
+
 2001-05-31  Werner Koch  <wk@gnupg.org>
 
 	* sha1.c (sha1_init): Made static.

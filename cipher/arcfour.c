@@ -78,8 +78,8 @@ arcfour_setkey( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
     if( selftest_failed )
 	return GCRYERR_SELFTEST;
 
-    if( keylen < 40 )
-	return GCRYERR_INV_KEYLEN;
+    if( keylen < 40/8 ) /* we want at least 40 bits */
+        return GCRYERR_INV_KEYLEN; 
 
     ctx->idx_i = ctx->idx_j = 0;
     for (i=0; i < 256; i++ )
@@ -118,6 +118,7 @@ selftest(void)
     encrypt_stream( &ctx, scratch, plaintext_1, sizeof(plaintext_1));
     if (memcmp (scratch, ciphertext_1, sizeof (ciphertext_1)))
         return "Arcfour encryption test 1 failed.";
+    arcfour_setkey( &ctx, key_1, sizeof(key_1));
     encrypt_stream(&ctx, scratch, scratch, sizeof(plaintext_1)); /* decrypt */
     if ( memcmp (scratch, plaintext_1, sizeof (plaintext_1)))
         return "Arcfour decryption test 1 failed.";
@@ -159,7 +160,3 @@ _gcry_arcfour_get_info( int algo, size_t *keylen, size_t *blocksize,
 	return "ARCFOUR";
     return NULL;
 }
-
-
-
-
