@@ -807,17 +807,31 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
     list = gcry_sexp_find_token( sexp, "sig-val" , 0 );
     if( !list )
 	return GPG_ERR_INV_OBJ; /* Does not contain a signature value object */
-    l2 = gcry_sexp_cadr( list );
-    gcry_sexp_release ( list );
-    list = l2;
-    if( !list )
+    l2 = gcry_sexp_nth (list, 1);
+    if(! l2)
+      {
+	gcry_sexp_release (list);
 	return GPG_ERR_NO_OBJ; /* no cadr for the sig object */
-    name = gcry_sexp_nth_data( list, 0, &n );
+      }
+    name = gcry_sexp_nth_data( l2, 0, &n );
     if( !name ) {
-	gcry_sexp_release ( list );
+      	gcry_sexp_release ( list );
+      	gcry_sexp_release ( l2 );
 	return GPG_ERR_INV_OBJ; /* invalid structure of object */
     }
-
+    else if (n == 5 && (! memcmp (name, "flags", 5))) {
+      /* Skip flags, since they are not used but just here for the
+	 sake of consisten S-expressions.  */
+      gcry_sexp_release (l2);
+      l2 = gcry_sexp_nth (list, 2);
+      if (! l2)
+	{
+	  gcry_sexp_release (list);
+	  return GPG_ERR_INV_OBJ;
+	}
+      name = gcry_sexp_nth_data (l2, 0, &n);
+    }
+      
     {
       char *name_terminated = gcry_xmalloc (n + 1);
       strncpy (name_terminated, name, n);
@@ -832,6 +846,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
 
     if (! module)
       {
+	gcry_sexp_release (l2);
 	gcry_sexp_release (list);
 	return GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
       }
@@ -847,8 +862,8 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
     if (! err)
       err = sexp_elements_extract (list, elems, array);
 
-    if (list)
-      gcry_sexp_release (list);
+    gcry_sexp_release (l2);
+    gcry_sexp_release (list);
 
     if (err)
       {
@@ -2224,4 +2239,31 @@ _gcry_pk_init (void)
   REGISTER_DEFAULT_PUBKEYS;
 
   return err;
+}
+
+gpg_err_code_t
+_gcry_pk_module_lookup (int id, gcry_module_t **module)
+{
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_module_t *pubkey;
+
+  REGISTER_DEFAULT_PUBKEYS;
+
+  ath_mutex_lock (&pubkeys_registered_lock);
+  pubkey = _gcry_module_lookup_id (pubkeys_registered, id);
+  if (pubkey)
+    *module = pubkey;
+  else
+    err = GPG_ERR_PUBKEY_ALGO;
+  ath_mutex_unlock (&pubkeys_registered_lock);
+
+  return err;
+}
+
+void
+_gcry_pk_module_release (gcry_module_t *module)
+{
+  ath_mutex_lock (&pubkeys_registered_lock);
+  _gcry_module_release (module);
+  ath_mutex_unlock (&pubkeys_registered_lock);
 }

@@ -30,7 +30,7 @@ libcipher_la_LIBADD = $(GCRYPT_MODULES)
 AM_CFLAGS = @GPG_ERROR_CFLAGS@
 
 libcipher_la_SOURCES = \
-cipher.c pubkey.c md.c \
+cipher.c pubkey.c ac.c md.c \
 bithelp.h  \
 primegen.c  \
 random.c random.h \
