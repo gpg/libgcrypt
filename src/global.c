@@ -383,7 +383,7 @@ _gcry_malloc (size_t n, unsigned int flags, void **mem)
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   void *m = NULL;
 
-  if (flags & GCRY_ALLOC_FLAG_SECURE)
+  if ((flags & GCRY_ALLOC_FLAG_SECURE) && !no_secure_memory)
     {
       if (alloc_secure_func)
 	m = (*alloc_secure_func) (n);
@@ -474,7 +474,8 @@ gcry_calloc (size_t n, size_t m)
   size_t bytes;
   void *p;
 
-  bytes = n * m; /* size_t is unsigned so the behavior on overflow is defined. */
+  bytes = n * m; /* size_t is unsigned so the behavior on overflow is
+                    defined. */
   if (m && bytes / m != n) 
     {
       errno = ENOMEM;

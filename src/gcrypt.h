@@ -1228,6 +1228,19 @@ gcry_error_t gcry_prime_generate (gcry_mpi_t *prime,
 				  gcry_random_level_t random_level,
 				  unsigned int flags);
 
+/* Find a generator for PRIME where the factorization of (prime-1) is
+   in the NULL terminated array FACTORS. Return the generator as a
+   newly allocated MPI in R_G.  If START_G is not NULL, use this as
+   teh start for the search. */
+gcry_error_t gcry_prime_group_generator (gcry_mpi_t *r_g,
+                                         gcry_mpi_t prime, gcry_mpi_t *factors,
+                                         gcry_mpi_t start_g);
+
+
+/* Convenience function to release the FACTORS array. */
+void gcry_prime_release_factors (gcry_mpi_t *factors);
+
+
 /* Check wether the number X is prime.  */
 gcry_error_t gcry_prime_check (gcry_mpi_t x, unsigned int flags);
 

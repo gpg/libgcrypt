@@ -177,7 +177,8 @@ _gcry_generate_public_prime( unsigned int nbits,
  * We do not need to use the strongest RNG because we gain no extra
  * security from it - The prime number is public and we could also
  * offer the factors for those who are willing to check that it is
- * indeed a strong prime.
+ * indeed a strong prime.  With ALL_FACTORS set to true all afcors of
+ * prime-1 are returned in FACTORS.
  *
  * mode 0: Standard
  *	1: Make sure that at least one factor is of size qbits.
@@ -187,9 +188,10 @@ prime_generate_internal (int mode,
 			 gcry_mpi_t *prime_generated, unsigned int pbits,
 			 unsigned int qbits, gcry_mpi_t g,
 			 gcry_mpi_t **ret_factors,
-			 gcry_random_level_t random, unsigned int flags)
+			 gcry_random_level_t random, unsigned int flags,
+                         int all_factors)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = 0;
   gcry_mpi_t *factors_new = NULL; /* Factors to return to the
 				     caller.  */
   gcry_mpi_t *factors = NULL;	/* Current factors.  */
@@ -200,17 +202,29 @@ prime_generate_internal (int mode,
   unsigned int n = 0;		/* Number of factors.  */
   unsigned int m = 0;		/* Number of primes in pool.  */
   gcry_mpi_t q = NULL;		/* First prime factor.  */
-  gcry_mpi_t prime;		/* Prime candidate.  */
+  gcry_mpi_t prime = NULL;	/* Prime candidate.  */
   unsigned int nprime = 0;	/* Bits of PRIME.  */
-  unsigned int req_qbits = qbits; /* The original QBITS value.  */
-  gcry_mpi_t val_2  = mpi_alloc_set_ui (2); /* For check_prime().  */
-  unsigned int is_secret = flags & GCRY_PRIME_FLAG_SECRET;
+  unsigned int req_qbits;       /* The original QBITS value.  */
+  gcry_mpi_t val_2;             /* For check_prime().  */
+  unsigned int is_secret = (flags & GCRY_PRIME_FLAG_SECRET);
   unsigned int count1 = 0, count2 = 0;
   unsigned int i = 0, j = 0;
-  
+
+  if (pbits < 48)
+    return GPG_ERR_INV_ARG;
+
+  /* If QBITS is not given, assume a reasonable value. */
+  if (!qbits)
+    qbits = pbits / 3;
+
+  req_qbits = qbits;
+
   /* Find number of needed prime factors.  */
-  for (n = 1; (pbits - qbits - 1) / n  >= qbits; n++);
+  for (n = 1; (pbits - qbits - 1) / n  >= qbits; n++)
+    ;
   n--;
+
+  val_2 = mpi_alloc_set_ui (2);
 
   if ((! n) || ((mode == 1) && (n < 2)))
     err = GPG_ERR_INV_ARG;
@@ -381,9 +395,19 @@ prime_generate_internal (int mode,
     if (ret_factors)
       {
 	/* Caller wants the factors.  */
-	factors_new = gcry_calloc (n + 2, sizeof (*factors_new));
+	factors_new = gcry_calloc (n + 4, sizeof (*factors_new));
 	if (! factors_new)
 	  err = GPG_ERR_INTERNAL;	/* FIXME.  */
+        else if (all_factors)
+          {
+	    i = 0;
+            (factors_new)[i++] = gcry_mpi_set_ui (NULL, 2);
+            (factors_new)[i++] = mpi_copy (q);
+	    if (mode == 1)
+              (factors_new)[i++] = mpi_copy (q_factor);
+            for(j=0; j < n; j++)
+              (factors_new)[i++] = mpi_copy (factors[j]);
+          }
 	else
 	  {
 	    i = 0;
@@ -490,7 +514,7 @@ _gcry_generate_elg_prime (int mode, unsigned pbits, unsigned qbits,
   gcry_mpi_t prime = NULL;
   
   err = prime_generate_internal (mode, &prime, pbits, qbits, g,
-				 ret_factors, GCRY_WEAK_RANDOM, 0);
+				 ret_factors, GCRY_WEAK_RANDOM, 0, 0);
 
   return prime;
 }
@@ -508,8 +532,8 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
   if( 0 && DBG_CIPHER )
     log_debug ("generate a prime of %u bits ", nbits );
 
-  if (!nbits)
-    log_fatal ("trying to generate a prime of zero bits\n");
+  if (nbits < 16)
+    log_fatal ("can't generate a prime with less than %d bits\n", 16);
 
   mods = gcry_xmalloc( no_of_small_prime_numbers * sizeof *mods );
   /* make nbits fit into gcry_mpi_t implementation */
@@ -815,8 +839,9 @@ gcry_prime_generate (gcry_mpi_t *prime, unsigned int prime_bits,
 
   /* Generate.  */
   err = prime_generate_internal (mode, &prime_generated, prime_bits,
-				 factor_bits, NULL, &factors_generated,
-				 random_level, flags);
+				 factor_bits, NULL,
+                                 factors? &factors_generated : NULL,
+				 random_level, flags, 1);
 
   if (! err)
     if (cb_func)
@@ -829,18 +854,21 @@ gcry_prime_generate (gcry_mpi_t *prime, unsigned int prime_bits,
 	    unsigned int i;
 
 	    mpi_free (prime_generated);
-	    for (i = 0; factors_generated[i]; i++)
-	      mpi_free (factors_generated[i]);
-	    gcry_free (factors_generated);
+            if (factors)
+              {
+                for (i = 0; factors_generated[i]; i++)
+                  mpi_free (factors_generated[i]);
+                gcry_free (factors_generated);
+              }
 	    err = GPG_ERR_INTERNAL; /* FIXME.  */
 	  }
       }
 
   if (! err)
     {
-      /* Done.  */
+      if (factors)
+        *factors = factors_generated;
       *prime = prime_generated;
-      *factors = factors_generated;
     }
 
   return gcry_error (err);
@@ -859,4 +887,90 @@ gcry_prime_check (gcry_mpi_t x, unsigned int flags)
   mpi_free (test_value);
 
   return gcry_error (err);
+}
+
+/* Find a generator for PRIME where the factorization of (prime-1) is
+   in the NULL terminated array FACTORS. Return the generator as a
+   newly allocated MPI in R_G.  If START_G is not NULL, use this as s
+   atart for the search. Returns 0 on success.*/
+gcry_error_t
+gcry_prime_group_generator (gcry_mpi_t *r_g,
+                            gcry_mpi_t prime, gcry_mpi_t *factors,
+                            gcry_mpi_t start_g)
+{
+  gcry_mpi_t tmp = gcry_mpi_new (0);
+  gcry_mpi_t b = gcry_mpi_new (0);
+  gcry_mpi_t pmin1 = gcry_mpi_new (0);
+  gcry_mpi_t g = start_g? gcry_mpi_copy (start_g) : gcry_mpi_set_ui (NULL, 3);
+  int first = 1;
+  int i, n;
+
+  if (!factors || !r_g || !prime)
+    return gpg_error (GPG_ERR_INV_ARG);
+
+  for (n=0; factors[n]; n++)
+    ;
+  if (n < 2)
+    return gpg_error (GPG_ERR_INV_ARG);
+
+#if 1 /* Extra sanity check - usually disabled. */  
+  {
+    mpi_set (tmp, factors[0]);
+    for(i = 1; i < n; i++)
+        mpi_mul (tmp, tmp, factors[i]);
+    mpi_add_ui (tmp, tmp, 1);
+    if (mpi_cmp (prime, tmp))
+      return gpg_error (GPG_ERR_INV_ARG);
+  }
+#endif /* Extra sanity check. */
+  
+  gcry_mpi_sub_ui (pmin1, prime, 1);      
+  do         
+    {
+      if (first)
+        first = 0;
+      else
+        gcry_mpi_add_ui (g, g, 1);
+      
+      if (DBG_CIPHER)
+        {
+          log_debug ("checking g:");
+          gcry_mpi_dump (g);
+          log_debug ("\n");
+        }
+      else
+        progress('^');
+      
+      for (i = 0; i < n; i++)
+        {
+          mpi_fdiv_q (tmp, pmin1, factors[i]);
+          gcry_mpi_powm (b, g, tmp, prime);
+          if (! mpi_cmp_ui (b, 1))
+            break;
+        }
+      if (DBG_CIPHER)
+        progress('\n');
+    }
+  while (i < n);
+  
+  gcry_mpi_release (tmp);
+  gcry_mpi_release (b); 
+  gcry_mpi_release (pmin1); 
+  *r_g = g; 
+
+  return 0; 
+}
+
+/* Convenience function to release the factors array. */
+void
+gcry_prime_release_factors (gcry_mpi_t *factors)
+{
+  if (factors)
+    {
+      int i;
+      
+      for (i=0; factors[i]; i++)
+        mpi_free (factors[i]);
+      gcry_free (factors);
+    }
 }

@@ -23,7 +23,7 @@
 
 #include "../src/gcrypt.h"
 
-static int verbose, debug;
+static int verbose;
 
 static void
 die (const char *format, ...)
@@ -42,6 +42,7 @@ check_primes (void)
   gcry_error_t err = GPG_ERR_NO_ERROR;
   gcry_mpi_t *factors = NULL;
   gcry_mpi_t prime = NULL;
+  gcry_mpi_t g;
   unsigned int i = 0;
   struct prime_spec
   {
@@ -51,6 +52,7 @@ check_primes (void)
   } prime_specs[] =
     {
       { 1024, 100, GCRY_PRIME_FLAG_SPECIAL_FACTOR },
+      { 128, 0, 0 },
       { 0 },
     };
 
@@ -64,11 +66,29 @@ check_primes (void)
 				 GCRY_WEAK_RANDOM,
 				 prime_specs[i].flags);
       assert (! err);
-      printf ("%i: ", i);
-      gcry_mpi_dump (prime);
-      putchar ('\n');
+      if (verbose)
+        {
+          fprintf (stderr, "test %d: p = ", i);
+          gcry_mpi_dump (prime);
+          putc ('\n', stderr);
+        }
+
       err = gcry_prime_check (prime, 0);
       assert (! err);
+
+      err = gcry_prime_group_generator (&g, prime, factors, NULL);
+      assert (!err);
+      gcry_prime_release_factors (factors); factors = NULL;
+      
+      if (verbose)
+        {
+          fprintf (stderr, "     %d: g = ", i);
+          gcry_mpi_dump (g);
+          putc ('\n', stderr);
+        }
+      gcry_mpi_release (g);
+
+
       gcry_mpi_add_ui (prime, prime, 1);
       err = gcry_prime_check (prime, 0);
       assert (err);
@@ -85,10 +105,10 @@ main (int argc, char **argv)
   else if ((argc > 1) && (! strcmp (argv[1], "--debug")))
     verbose = debug = 1;
 
+  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (! gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);

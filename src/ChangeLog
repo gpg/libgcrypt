@@ -1,3 +1,10 @@
+2003-10-10  Werner Koch  <wk@gnupg.org>
+
+	* global.c (_gcry_malloc): Handle the no_secure_memory option.
+
+	* gcrypt.h (gcry_prime_group_generator): New.
+	(gcry_prime_release_factors): New.
+
 2003-10-07  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (sexp_sscan): Check that parenthesis are matching.
