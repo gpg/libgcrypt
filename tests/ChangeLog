@@ -1,3 +1,8 @@
+2003-01-20  Simon Josefsson  <jas@extundo.com>
+
+	* basic.c (check_digests): Add CRC.
+	(check_one_md): Print computed and expected values on error.
+
 2003-01-20  Werner Koch  <wk@gnupg.org>
 
 	* basic.c (check_one_md): Kludge to check a one million "a".

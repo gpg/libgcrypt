@@ -319,7 +319,17 @@ check_one_md (int algo, char *data, int len, char *expect)
     p = gcry_md_read (hd, algo);
 
     if ( memcmp (p, expect, mdlen) )
-        fail ("algo %d, digest mismatch\n", algo);
+      {
+	printf("computed: ");
+	for (i=0; i < mdlen; i++)
+	  printf("%02x ", p[i] & 0xFF);
+	printf("\nexpected: ");
+	for (i=0; i < mdlen; i++)
+	  printf("%02x ", expect[i] & 0xFF);
+	printf("\n");
+
+	fail ("algo %d, digest mismatch\n", algo);
+      }
 
     gcry_md_close (hd);
 }
@@ -376,6 +386,38 @@ check_digests ()
     { GCRY_MD_RMD160, "message digest",
       "\x5d\x06\x89\xef\x49\xd2\xfa\xe5\x72\xb8"
       "\x81\xb1\x23\xa8\x5f\xfa\x21\x59\x5f\x36" },
+    { GCRY_MD_CRC32, "",
+      "\x00\x00\x00\x00" },
+    { GCRY_MD_CRC32, "foo",
+      "\x8c\x73\x65\x21" },
+    { GCRY_MD_CRC32_RFC1510, "",
+      "\x00\x00\x00\x00" },
+    { GCRY_MD_CRC32_RFC1510, "foo",
+      "\x73\x32\xbc\x33" }, 
+    { GCRY_MD_CRC32_RFC1510, "test0123456789",
+      "\xb8\x3e\x88\xd6" },
+    { GCRY_MD_CRC32_RFC1510, "MASSACHVSETTS INSTITVTE OF TECHNOLOGY",
+      "\xe3\x41\x80\xf7" },
+#if 0
+    { GCRY_MD_CRC32_RFC1510, "\x80\x00",
+      "\x3b\x83\x98\x4b" },
+    { GCRY_MD_CRC32_RFC1510, "\x00\x08",
+      "\x0e\xdb\x88\x32" },
+    { GCRY_MD_CRC32_RFC1510, "\x00\x80",
+      "\xed\xb8\x83\x20" },
+#endif
+    { GCRY_MD_CRC32_RFC1510, "\x80",
+      "\xed\xb8\x83\x20" },
+#if 0
+    { GCRY_MD_CRC32_RFC1510, "\x80\x00\x00\x00",
+      "\xed\x59\xb6\x3b" },
+    { GCRY_MD_CRC32_RFC1510, "\x00\x00\x00\x01",
+      "\x77\x07\x30\x96" },
+#endif
+    { GCRY_MD_CRC24_RFC2440, "",
+      "\xb7\x04\xce" },
+    { GCRY_MD_CRC24_RFC2440, "foo",
+      "\x4f\xc2\x55" },
 #if 0
     { GCRY_MD_TIGER, "",
       "\x24\xF0\x13\x0C\x63\xAC\x93\x32\x16\x16\x6E\x76"
