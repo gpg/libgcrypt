@@ -21,7 +21,6 @@
 # this should set $mpi_ln_list.
 # Note: this is called from the above directory.
 
-
 mpi_sflags=
 mpi_extra_modules=
 

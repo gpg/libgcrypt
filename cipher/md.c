@@ -895,25 +895,26 @@ gcry_md_get (gcry_md_hd_t hd, int algo, byte *buffer, int buflen)
 
 
 /****************
- * Shortcut function to hash a buffer with a given algo. The only supported
- * algorithm is RIPE-MD. The supplied digest buffer must be large enough
- * to store the resulting hash.  No error is returned, the function will
- * abort on an invalid algo.  DISABLED_ALGOS are ignored here.
- */
+ * Shortcut function to hash a buffer with a given algo. The only
+ * guarnteed supported algorithm is RIPE-MD. The supplied digest
+ * buffer must be large enough to store the resulting hash.  No error
+ * is returned, the function will abort on an invalid algo.
+ * DISABLED_ALGOS are ignored here.  */
 void
-gcry_md_hash_buffer (int algo, void *digest, const void *buffer, size_t length)
+gcry_md_hash_buffer (int algo, void *digest,
+                     const void *buffer, size_t length)
 {
   if (algo == GCRY_MD_RMD160)
     _gcry_rmd160_hash_buffer (digest, buffer, length);
   else
     {
-      /* for the others we do not have a fast function, so we use the
+      /* For the others we do not have a fast function, so we use the
 	 normal functions to do it */
       gcry_md_hd_t h;
-      gcry_err_code_t err = md_open (&h, algo, 0, 0);
+      gpg_err_code_t err = md_open (&h, algo, 0, 0);
       if (err)
-	/* FIXME?  */
-	BUG(); /* algo not available */
+	log_bug ("gcry_md_open failed for algo %d: %s",
+                 algo, gpg_strerror (gcry_error(err)));
       md_write (h, (byte *) buffer, length);
       md_final (h);
       memcpy (digest, md_read (h, algo), md_digest_length (algo));
@@ -1177,10 +1178,22 @@ gcry_md_is_enabled (gcry_md_hd_t a, int algo)
 {
   size_t value;
 
+  value = sizeof algo;
   if (gcry_md_info (a, GCRYCTL_IS_ALGO_ENABLED, &algo, &value))
     value = 0;
   return value;
 }
+<<<<<<< md.c
+
+
+
+
+
+
+
+
+
+=======
 
 /* Get a list consisting of the IDs of the loaded message digest
    modules.  If LIST is zero, write the number of loaded message
@@ -1200,3 +1213,4 @@ gcry_md_list (int *list, int *list_length)
 
   return err;
 }
+>>>>>>> 1.73

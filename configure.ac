@@ -212,6 +212,9 @@ case "${target}" in
         ;;
 esac
 
+
+AC_C_BIGENDIAN
+
 AC_CHECK_SIZEOF(unsigned short, 2)
 AC_CHECK_SIZEOF(unsigned int, 4)
 AC_CHECK_SIZEOF(unsigned long, 4)
@@ -438,7 +441,6 @@ AC_C_INLINE
 AC_TYPE_SIZE_T
 AC_TYPE_SIGNAL
 AC_DECL_SYS_SIGLIST
-AC_C_BIGENDIAN
 
 GNUPG_CHECK_TYPEDEF(byte, HAVE_BYTE_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(ushort, HAVE_USHORT_TYPEDEF)
@@ -785,3 +787,5 @@ fi
 # Give some feedback
 echo   "                Configured for: $PRINTABLE_OS_NAME ($target)"
 echo
+
+

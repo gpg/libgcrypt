@@ -42,6 +42,7 @@ gcry_md_is_enabled      NEW
 gcry_md_is_secure       REPLACED macro by a function.
 gcry_cipher_get_algo_keylen  REPLACED macro by a function.
 gcry_cipher_get_algo_blklen  REPLACED macro by a function.
+gcry_pk_algo_info       CHANGED: values are now returned via pointers.
 
   ... fixme add other changes ...
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
