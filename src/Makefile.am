@@ -2,16 +2,17 @@
 
 INCLUDES =  -I$(top_srcdir)/include -I$(top_srcdir)/intl
 
-LIBRARIES = libgcrypt.a
+lib_LTLIBRARIES = libgcrypt.la
 
-SOURCES =   gcrypt.h \
-	    g10lib.h \
-	    misc.c  \
-	    global.c \
-	    mpiapi.c \
-	    symapi.c \
-	    mdapi.c \
-	    pkapi.c \
+libgcrypt_la_LDFLAGS = -version-info 0:0:0
+libgcrypt_la_SOURCES =	 gcrypt.h \
+			 g10lib.h \
+			 misc.c  \
+			 global.c \
+			 mpiapi.c \
+			 symapi.c \
+			 mdapi.c \
+			 pkapi.c
 
 
 

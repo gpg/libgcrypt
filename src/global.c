@@ -33,19 +33,21 @@ static int last_ec; /* fixme: make thread safe */
 int
 gcry_control( enum gcry_ctl_cmds cmd, ... )
 {
+  #if 0
     switch( cmd ) {
       case GCRYCTL_NO_MEM_IS_FATAL:
 	break;
       case GCRYCTL_SET_FATAL_FNC:
 	break;
     }
+  #endif
     return GCRYERR_INV_OP;
 }
 
 int
 gcry_errno()
 {
-    return ec;
+    return last_ec;
 }
 
 const char*

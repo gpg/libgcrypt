@@ -28,15 +28,17 @@
 #include <assert.h>
 
 #include "g10lib.h"
+#define G10_MPI_H  /* fake mpi.h header */
 #include "cipher.h"
 
 
-#define CONTEXT_MAGIC = 0x12569afe;
+#define CONTEXT_MAGIC 0x12569afe
 
 struct gcry_cipher_context {
     u32 magic;
+    int mode;
     unsigned flags;
-    CIPHER_HD *hd;
+    CIPHER_HANDLE hd;
 };
 
 

@@ -25,6 +25,12 @@ extern "C" {
 #endif
 
 
+#ifndef HAVE_BYTE_TYPEDEF
+  #undef byte	    /* maybe there is a macro with this name */
+  typedef unsigned char byte;
+  #define HAVE_BYTE_TYPEDEF
+#endif
+
 /*******************************************
  *					   *
  *  error handling etc. 		   *
@@ -33,7 +39,7 @@ extern "C" {
 
 enum {
     GCRYERR_SUCCESS = 0,    /* "no error" */
-    GCRYERR_GENERAL = 1     /* catch all the other errors code */
+    GCRYERR_GENERAL = 1,    /* catch all the other errors code */
     GCRYERR_INV_OP = 2,     /* invalid operation code or ctl command */
     GCRYERR_NOMEM = 3,	    /* out of core */
     GCRYERR_INV_ALGO = 4,   /* invalid algorithm */
@@ -87,7 +93,7 @@ struct gcry_mpi *gcry_mpi_new( enum gcry_mpi_opcode opcode,
 #ifndef GCRYPT_NO_MPI_MACROS
 #define mpi_new( nbits )  gcry_mpi_new( GCRYMPI_NEW, (nbits), NULL )
 #define mpi_secure_new( nbits )  gcry_mpi_new( GCRYMPI_SNEW, (nbits), NULL )
-#define mpi_release( a )     do {   gcry_mpi_api( GCRYMPI_RELEASE, 1, (a) );
+#define mpi_release( a )     do {   gcry_mpi_api( GCRYMPI_RELEASE, 1, (a) ); \
 				    (a) = NULL; } while(0)
 #define mpi_resize( a, n )  gcry_mpi_api( GCRYMPI_RESIZE, 2, (a), (n) )
 #define mpi_copy( a )	    gcry_mpi_new( GCRYMPI_COPY, 0, (a) )
@@ -101,7 +107,7 @@ struct gcry_mpi *gcry_mpi_new( enum gcry_mpi_opcode opcode,
 /* int	mpi_cmp_ui( MPI u, unsigned long v ); */
 #define mpi_cmp_ui( u, v )  gcry_mpi_api( GCRYMPI_CMP_UI, 2, (u), (v) )
 
-
+#if 0
 void g10m_add(MPI w, MPI u, MPI v);
 void g10m_add_ui(MPI w, MPI u, unsigned long v );
 void g10m_sub( MPI w, MPI u, MPI v);
@@ -123,7 +129,7 @@ unsigned g10m_get_nbits( MPI a );
 unsigned g10m_get_size( MPI a );
 
 void g10m_set_buffer( MPI a, const char *buffer, unsigned nbytes, int sign );
-
+#endif
 
 #endif /* GCRYPT_NO_MPI_MACROS */
 
@@ -164,7 +170,7 @@ unsigned gcry_cipher_get_keylen( int algo );
 unsigned gcry_cipher_get_blocksize( int algo );
 #endif
 
-GCRY_CIPHER_HD gcry_cipher_open( algo, int mode, int secure );
+GCRY_CIPHER_HD gcry_cipher_open( int algo, int mode, unsigned flags );
 void gcry_cipher_close( GCRY_CIPHER_HD h );
 int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen);
 
