@@ -1,3 +1,8 @@
+2002-02-18  Werner Koch  <wk@gnupg.org>
+
+	* rndunix.c (rndunix_constructor): Use the the new prefixed
+	function name.  Reported by Jordi Mallach.
+
 2002-02-10  Werner Koch  <wk@gnupg.org>
 
 	* random.c (mix_pool): Carry an extra failsafe_digest buffer

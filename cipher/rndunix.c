@@ -909,8 +909,8 @@ gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
 void
 rndunix_constructor(void)
 {
-    register_internal_cipher_extension( gnupgext_version,
-					gnupgext_enum_func );
+  _gcry_register_internal_cipher_extension (gnupgext_version,
+                                            gnupgext_enum_func);
 }
 #endif
 
