@@ -27,8 +27,8 @@ cflags="@LIBGCRYPT_CONFIG_CFLAGS@"
 cflags_pthread="@LIBGCRYPT_CONFIG_CFLAGS_PTHREAD@"
 cflags_pth="@LIBGCRYPT_CONFIG_CFLAGS_PTH@"
 
-# SONAME info
-soname_number="@LIBGCRYPT_CONFIG_SONAME_NUMBER@"
+# API info
+api_version="@LIBGCRYPT_CONFIG_API_VERSION@"
 
 # Misc information.
 symmetric_ciphers="@LIBGCRYPT_CIPHERS@"
@@ -43,7 +43,7 @@ echo_prefix=no
 echo_algorithms=no
 echo_exec_prefix=no
 echo_version=no
-echo_soname_number=no
+echo_api_version=no
 
 # Prints usage information.
 usage()
@@ -55,7 +55,7 @@ Options:
 	[--prefix]
 	[--exec-prefix]
 	[--version]
-        [--soname-number]
+        [--api-version]
 	[--libs]
 	[--cflags]
 	[--algorithms]
@@ -105,8 +105,8 @@ while test $# -gt 0; do
 	--version)
 	    echo_version=yes
 	    ;;
-        --soname-number)
-            echo_soname_number=yes
+        --api-version)
+            echo_api_version=yes
             ;;
 	--cflags)
 	    echo_cflags=yes
@@ -192,8 +192,8 @@ if test "$echo_version" = "yes"; then
     echo "$version"
 fi
 
-if test "$echo_soname_number" = "yes"; then
-    echo "$soname_number"
+if test "$echo_api_version" = "yes"; then
+    echo "$api_version"
 fi
 
 if test "$echo_algorithms" = "yes"; then

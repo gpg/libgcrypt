@@ -12,13 +12,13 @@ dnl implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 dnl AM_PATH_LIBGCRYPT([MINIMUM-VERSION,
 dnl                   [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]]])
-dnl Test for liblibgcrypt and define LIBGCRYPT_CFLAGS and LIBGCRYPT_LIBS
-dnl MINIMUN-VERSION is a string with the version number optionalliy suffixed
-dnl with the SONAME number to also check the ABI compatibility. Example:
-dnl a MINIMUN-VERSION of 1.2.5:11 won't pass the test unless the installed 
-dnl version of libgcrypt is at least 1.2.5 *and* the ABI number is 11.  Using
-dnl this features allows to prevent build agains newer versions of libgcrypt
-dnl with a changed ABI.
+dnl Test for libgcrypt and define LIBGCRYPT_CFLAGS and LIBGCRYPT_LIBS.
+dnl MINIMUN-VERSION is a string with the version number optionalliy prefixed
+dnl with the API version to also check the API compatibility. Example:
+dnl a MINIMUN-VERSION of 1:1.2.5 won't pass the test unless the installed 
+dnl version of libgcrypt is at least 1.2.5 *and* the API number is 1.  Using
+dnl this features allows to prevent build against newer versions of libgcrypt
+dnl with a changed API.
 dnl
 AC_DEFUN(AM_PATH_LIBGCRYPT,
 [ AC_ARG_WITH(libgcrypt-prefix,
@@ -32,12 +32,12 @@ AC_DEFUN(AM_PATH_LIBGCRYPT,
   fi
 
   AC_PATH_PROG(LIBGCRYPT_CONFIG, libgcrypt-config, no)
-  tmp=ifelse([$1], ,1.2.0,$1)
+  tmp=ifelse([$1], ,1:1.2.0,$1)
   if echo "$tmp" | grep ':' >/dev/null 2>/dev/null ; then
-     req_libgcrypt_soname_no=`echo "$tmp" | sed 's/[[^:]]*:\([[0-9]]*\).*/\1/'`
-     min_libgcrypt_version=`echo "$tmp" | sed 's/\(.*\):.*/\1/'`
+     req_libgcrypt_api=`echo "$tmp"     | sed 's/\(.*\):\(.*\)/\1/'`
+     min_libgcrypt_version=`echo "$tmp" | sed 's/\(.*\):\(.*\)/\2/'`
   else
-     req_libgcrypt_soname_no=0
+     req_libgcrypt_api=0
      min_libgcrypt_version="$tmp"
   fi
 
@@ -80,16 +80,16 @@ AC_DEFUN(AM_PATH_LIBGCRYPT,
   fi
   if test $ok = yes; then
      # If we have a recent libgcrypt, we should also check that the
-     # ABI is compatible; i.e. that the SONAME number matches.
-     if test "$req_libgcrypt_soname_no" -gt 0 ; then
-        tmp=`$LIBGCRYPT_CONFIG --soname-number 2>/dev/null || echo 0`
+     # API is compatible
+     if test "$req_libgcrypt_api" -gt 0 ; then
+        tmp=`$LIBGCRYPT_CONFIG --api-version 2>/dev/null || echo 0`
         if test "$tmp" -gt 0 ; then
-           AC_MSG_CHECKING(for LIBGCRYPT ABI $req_libgcrypt_soname_no)
-           if test "$req_libgcrypt_soname_no" -eq "$tmp" ; then
-              AC_MSG_RESULT(yes)
+           AC_MSG_CHECKING([LIBGCRYPT API version])
+           if test "$req_libgcrypt_api" -eq "$tmp" ; then
+             AC_MSG_RESULT(okay)
            else
-              ok=no
-              AC_MSG_RESULT([no (have $tmp)])
+             ok=no
+             AC_MSG_RESULT([does not match (want=$req_libgcrypt_api got=$tmp)])
            fi
         fi
      fi

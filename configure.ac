@@ -27,7 +27,7 @@ min_automake_version="1.7.6"
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.1.93-cvs, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.1.93, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
@@ -35,7 +35,10 @@ AC_INIT(libgcrypt, 1.1.93-cvs, bug-libgcrypt@gnupg.org)
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=11
 LIBGCRYPT_LT_AGE=0
-LIBGCRYPT_LT_REVISION=0
+LIBGCRYPT_LT_REVISION=1
+
+# If the API is changed in an incompatible way: increment the next counter.
+LIBGCRYPT_CONFIG_API_VERSION=1
 
 NEED_GPG_ERROR_VERSION=0.5
 
@@ -80,7 +83,6 @@ AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 ##########################
 
 # Used by libgcrypt-config
-LIBGCRYPT_CONFIG_SONAME_NUMBER=`expr $LIBGCRYPT_LT_CURRENT - $LIBGCRYPT_LT_AGE`
 LIBGCRYPT_CONFIG_LIBS="-lgcrypt"
 LIBGCRYPT_CONFIG_CFLAGS=""
 LIBGCRYPT_CONFIG_LIBS_PTHREAD="-lgcrypt-pthread"
@@ -655,7 +657,7 @@ fi
 #
 GNUPG_FIX_HDR_VERSION([src/gcrypt.h], GCRYPT_VERSION)
 
-AC_SUBST(LIBGCRYPT_CONFIG_SONAME_NUMBER)
+AC_SUBST(LIBGCRYPT_CONFIG_API_VERSION)
 AC_SUBST(LIBGCRYPT_CONFIG_LIBS)
 AC_SUBST(LIBGCRYPT_CONFIG_CFLAGS)
 AC_SUBST(LIBGCRYPT_CONFIG_LIBS_PTHREAD)

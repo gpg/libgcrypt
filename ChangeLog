@@ -1,3 +1,10 @@
+2004-03-06  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.93.
+
+	* configure.ac (LIBGCRYPT_CONFIG_SONAME_NUMBER): Replaced by 
+	LIBGCRYPT_CONPIG_API_VERSION.  Set it to 1.  Set LT to C11/A0/R1.
+
 2004-03-05  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac (LIBGCRYPT_CONFIG_SONAME_NUMBER): New.
