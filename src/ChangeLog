@@ -1,111 +1,292 @@
-2003-11-28  Moritz Schulte  <mo@g10code.com>
+2004-11-09  Werner Koch  <wk@g10code.com>
 
-	* module.c (_gcry_module_list): Rewritten, changed interface.
+	* gcrypt.h: Removed 3 trailing commas from enums.  Noted by Heiko
+	Stamer.
 
-	* g10lib.h: Adjust declaration for: _gcry_ac_list.
+2004-09-21  Werner Koch  <wk@g10code.de>
 
-	* gcrypt.h: Adjust declarations for: gcry_ac_list,
-	gcry_cipher_list, gcry_md_list.
+	* sexp.c (sexp_sscan): Removed C++ style comments.  Noted by Yoann
+	Vandoorselaere.
 
-2003-11-01  Moritz Schulte  <mo@g10code.com>
+2004-08-23  Moritz Schulte  <moritz@g10code.com>
 
-	* g10lib.h: New declarations for: _gcry_ac_data_new,
-	_gcry_ac_data_destroy, _gcry_ac_data_length, _gcry_ac_dat_set,
-	_gcry_ac_get_name, _gcry_ac_get_index, _gcry_ac_data_clear,
-	_gcry_ac_open,_gcry_ac_close, _gcry_ac_key_init,
-	_gcry_ac_key_pair_generate, _gcry_ac_key_pair_extract,
-	_gcry_ac_key_destroy, _gcry_ac_key_pair_destroy,
-	_gcry_ac_data_get, _gcry_ac_key_test, _gcry_ac_get_nbits,
-	_gcry_ac_get_grip, _gcry_ac_data_encrypt, _gcry_ac_data_decrypt,
-	_gcry_ac_data_sign, _gcry_ac_data_verify, _gcry_ac_id_to_name,
-	_gcry_ac_name_to_id, _gcry_ac_list, _gcry_ac_data_encode,
-	_gcry_ac_data_decode, _gcry_ac_mpi_to_os,
-	_gcry_ac_mpi_to_os_alloc, _gcry_ac_os_to_mpi,
-	_gcry_ac_data_encrypt_scheme, _gcry_ac_data_decrypt_scheme,
-	_gcry_ac_data_sign_scheme, _gcry_ac_verify_scheme.
+	* global.c: Do not include <assert.h>. 
+	* sexp.c: Likewise.
+	* module.c: Likewise.
+	* misc.c: Likewise.
 
-	* gcrypt.h (gcry_ac_key_pair_generate_ext): Removed declaration.
+2004-08-18  Moritz Schulte  <moritz@g10code.com>
 
-2003-10-28  Moritz Schulte  <mo@g10code.com>
+	* secmem.c (_gcry_secmem_init): Try to lock pool into core not
+	only when running with root privileges.
 
-	* gcrypt-module.h (AC_STRUCT_SPEC_SECURE): New symbol.
-	(gcry_ac_struct_spec): New memmber: flags.
-	(_GCRY_AC_ELEM): Add argument: flags.
+2004-08-16  Werner Koch  <wk@g10code.de>
 
-	* cipher.h: Removed declarations: _gcry_register_pk_dsa_progress,
-	_gcry_register_pk_elg_progress, small_prime_numbers.
-	(PUBKEY_FLAG_NO_BLINDING): Removed symbol.
+	* secmem.h (_gcry_secmem_set_flags,_gcry_secmem_get_flags):
+	Removed __pure__.
+	(GCRY_SECMEM_FLAG_NO_WARNING): Put macro value into parens.
 
-2003-10-19  Moritz Schulte  <mo@g10code.com>
+	* secmem.c (_gcry_secmem_init): Defer printing of the warning.
 
-	* gcrypt.h: New type: gcry_md_algo_t, use it.
+2004-08-10  Moritz Schulte  <moritz@g10code.com>
 
-2003-10-17  Moritz Schulte  <mo@g10code.com>
+	* gcrypt.h: Include <sys/time.h>, thanks to Simon Josefsson.
 
-	* gcrypt.h (gcry_ac_eme_pkcs_v1_5_t, gcry_ac_emsa_pkcs_v1_5_t):
-	New types.
-	(gcry_ac_data_encode, gcry_ac_data_decode,
-	gcry_ac_data_encrypt_scheme, gcry_ac_data_decrypt_scheme,
-	gcry_ac_data_sign_scheme, gcry_ac_data_verify_scheme): New
-	declarations.
-	(gcry_ac_ssa_pkcs_v1_5_t): New type.
+2004-05-07  Werner Koch  <wk@gnupg.org>
 
-2003-10-12  Moritz Schulte  <mo@g10code.com>
+	* gcrypt.h: Added GCRYCTL_FAST_POLL.
+	(gcry_fast_random_poll): New.
+	* global.c (gcry_control) <INITIALIZATION_FINISHED>: Do only basic
+	random subsystem init.
+	(gcry_control) <FAST_POLL>: New.
 
-	* gcrypt.h: Declare: gcry_mpi_get_ui.
-	* mpi.h: Declare: _gcry_mpi_get_ui.
+2004-04-22  Marcus Brinkmann  <marcus@g10code.de>
 
-2003-10-04  Moritz Schulte  <mo@g10code.com>
+	* libgcrypt.m4: Quote first argument to AC_DEFUN.
 
-	* g10lib.h: Declare: _gcry_md_asn_oid.
+2004-04-15  Werner Koch  <wk@gnupg.org>
 
-2003-09-18  Moritz Schulte  <mo@g10code.com>
+	* secmem.c (_gcry_secmem_malloc_internal): Removed old extra info
+	error output.
+	(_gcry_secmem_term): Use wipememory2 here.
 
-	* global.c (gcry_set_progress_handler): Call
-	_gcry_ac_progress_register, instead of
-	_gcry_register_pk_dsa_progress and _gcry_register_pk_elg_progress.
-	Use function type in prototype.	
-	(global_init): Call _gcry_ac_init instead of _gcry_pk_init.
+	* misc.c (_gcry_burn_stack): Use wipememory to avoid optimizations.
 
-	* gcrypt-module.h: Include <stddef.h>.
+	* string.c: Removed.  Was never used.
+	* global.c (gcry_strdup): Replaced by the version from string.c
+	(gcry_xstrdup): Rewritten.
+	* gcrypt.h: Removed duplicate prototype for gcry_strdup.
 
-	* gcrypt.h (gcry_ac_key_test, gcry_ac_key_get_nbits,
-	gcry_ac_key_get_grip): Enhance prototypes with a `handle'
-	argument.
-	(gcry_ac_list): Declare function.
-	(gcry_ac_key_spec_rsa): Change type of member `e' to `unsigned
-	long int'.
+2004-03-29  Werner Koch  <wk@gnupg.org>
 
-	* cipher.h: Removed declaration: _gcry_pk_aliased_algo_name.
-	(pubkey_spec_rsa, pubkey_spec_elg, pubkey_spec_dsa): Removed.
-	(ac_spec_rsa, ac_spec_elg, ac_spec_dsa): New.
+	* secmem.c (_gcry_secmem_realloc): Fixed double unlock; bug
+	manifested itself due to the more rigorous checking in the changed
+	ath.h
 
-	* g10lib.h: Declare: _gcry_ac_key_get_grip_std.
-	(GCRY_AC_KEY_GRIP_FLAG_SEXP): New symbol.
+	* libgcrypt-config.in (Options): Ignore the obsolete --threads
+	option for now.
 
-	* gcrypt-module.h (gcry_pk_generate_t, gcry_pk_check_secret_key_t,
-	gcry_pk_encrypt_t, gcry_pk_decrypt_t, gcry_pk_sign_t,
-	gcry_pk_verify_t, gcry_pk_get_nbits_t, gcry_pk_spec_t): Removed
-	types.  Removed declarations for: gcry_pk_register,
-	gcry_pk_unregister.  New declerations for: gcry_ac_register,
-	gcry_ac_unregister.
-	(gcry_ac_struct_spec_t, gcry_ac_generate_t,
-	gcry_ac_key_secret_check_t, gcry_ac_encrypt_t, gcry_ac_decrypt_t,
-	gcry_ac_sign_t, gcry_ac_verify_t, gcry_ac_get_nbits_t,
-	gcry_ac_get_grip_t, gcry_ac_spec_t): New types.
-	(_GCRY_AC_SPEC, GCRY_AC_SPEC_KEY_PUBLIC, GCRY_AC_SPEC_KEY_SECRET)
-	(GCRY_AC_SPEC_DATA_ENCRYPTED, GCRY_AC_SPEC_DATA_SIGNED)
-	(_GCRY_AC_ELEM, GCRY_AC_ELEM_KEY_PUBLIC, GCRY_AC_ELEM_KEY_SECRET)
-	(GCRY_AC_ELEM_DATA_ENCRYPTED, GCRY_AC_ELEM_DATA_SIGNED): New
-	macros.
+2004-03-17  Marcus Brinkmann  <marcus@g10code.de>
 
-	* g10lib.h: Declare _gcry_ac_init instead of _gcry_pk_init.
-	Removed declarations for: _gcry_pk_module_lookup,
-	_gcry_pk_module_release.
-	Added declerations: _gcry_ac_algorithm_enable,
-	_gcry_ac_algorithm_disable, _gcry_ac_info_get,
-	_gcry_ac_elements_amount_get, _gcry_ac_arg_list_from_data,
-	_gcry_ac_progress_register, _gcry_ac_progress.
+	* libgcrypt-config.in (includedir, libdir): Quote'em.  Use
+	$gpg_error_cflags and $gpg_error_libs.  Fix construction of
+	$includes.
+
+2004-03-14  Marcus Brinkmann  <marcus@g10code.de>
+
+	* libgcrypt-config.in (includedir, libdir): New variables.  For
+	--cflags, don't test $cflags.  Also check against /include for the
+	GNU/Hurd.  Don't overwrite but extend $cflags_final.  Likewise for
+	--libs.
+
+2004-03-10  Marcus Brinkmann  <marcus@g10code.de>
+
+	* Makefile.am (ltlib_libgcrypt_pthread, ltlib_libgcrypt_pth): Removed.
+	(lib_LTLIBRARIES): Remove those variables from here.
+	(libgcrypt_pthread_la_SOURCES, libgcrypt_pthread_la_LDFLAGS,
+	(libgcrypt_pthread_la_DEPENDENCIES, libgcrypt_pthread_la_LIBADD,
+	(libgcrypt_pth_la_SOURCES, libgcrypt_pth_la_LDFLAGS,
+	(libgcrypt_pth_la_DEPENDENCIES, libgcrypt_pth_la_LIBADD,
+	(noinst_LTLIBRARIES): Removed.
+	(libgcrypt_real_la_SOURCES): Merge with ...
+	(libgcrypt_la_SOURCES): ... likewise.
+	(libgcrypt_real_la_DEPENDENCIES): Merge with ...
+	(libgcrypt_la_DEPENDENCIES): ... this.
+	(libgcrypt_real_la_LIBADD): Merge with ...
+	(libgcrypt_la_LIBADD): ... this.
+	* libgcrypt-config.in (libs_pthread, libs_pth, cflags_pth) 
+	(cflags_pthread, thread_module, thread_modules): Removed.
+	(Options): Remove --thread option from help output.  If the option
+	is specified, output an error and exit.
+	For --cflags and --libs option, remove pth and pthread from output.
+	* gcrypt.h: Include <sys/types.h> and <sys/socket.h>.
+	(enum gcry_ctl_cmds): Add GCRYCTL_SET_THREAD_CBS.
+	(gcry_thread_cbs): New struct.
+	* global.c (gcry_control): Implement GCRYCTL_SET_THREAD_CBS.
+	(global_init): Don't call ath_init here.
+	* ath.h: Rewritten.
+	* ath.c: Rewritten.
+
+2004-03-06  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt-config.in: s/--soname-number/--api-version/
+	* libgcrypt.m4: Changed test for API version.
+
+2004-03-05  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt.m4: Optionally check the SONAME number.
+
+	* libgcrypt-config.in: Add option --soname-number
+
+2004-03-01  Marcus Brinkmann  <marcus@g10code.de>
+
+	* Makefile.am (libgcrypt_la_SOURCES): Add ath.c.
+	* ath.c (ath_init): Add missing function.
+
+	* Makefile.am (ath_pth_src): Removed.
+	(ath_pthread_src): Removed.
+	(libgcrypt_la_SOURCES): Remove ath-compat, $(ath_pth_src) and
+	$(ath_pthread_src).
+	* ath-compat.c, ath-pth-compat.c, ath-pthread-compat.c: Files
+	removed.
+	
+2004-02-20  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (GCRY_PRIME_CHECK_AT_GOT_PRIME)
+	(GCRY_PRIME_CHECK_AT_FINISH),
+	(GCRY_PRIME_CHECK_AT_MAYBE_PRIME): New.
+
+2004-02-18  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt-config.in: Ignore setting of --prefix.
+
+2004-02-13  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: Added GCRY_CIPHER_RFC2268_128, alsthough not yet
+	supported.
+
+2004-02-06  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: Added GCRY_CIPHER_RFC2268_40.
+
+2004-02-03  Werner Koch  <wk@gnupg.org>
+
+	* secmem.c (_gcry_secmem_init): Do not print the "not locked into
+	core warning" if the NO_WARNING flag has been set.
+
+	* sexp.c (sexp_sscan): Allocate result in secure memory if BUFFER
+	is in secure memory. Switch to secure memory for the a secure %b
+	format item. Extra paranoid wipe on error.
+	(gcry_sexp_release): Added paranoid wiping for securely allocated
+	S-expressions.
+
+2004-01-25  Moritz Schulte  <mo@g10code.com>
+
+	* ath.h: Include <config.h>.
+
+2004-01-12  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt.h: Adjusted declarations of: gcry_ac_data_set,
+	gcry_ac_data_get_name, gcry_ac_data_get_index,
+	gcry_ac_key_pair_generate, gcry_ac_key_test,
+	gcry_ac_key_get_nbits, gcry_ac_key_get_grip.
+
+	* gcrypt.h (GCRY_AC_FLAG_DATA_NO_BLINDING): Removed symbol.
+	(GCRY_AC_FLAG_DEALLOC, GCRY_AC_FLAG_COPY) 
+	(GCRY_AC_FLAG_NO_BLINDING): New symbols.
+
+	* global.c (gcry_strdup): Removed function.
+	* string.c: New file.
+	* Makefile.am (libgcrypt_real_la_SOURCES): Added: string.c.
+	* string.c (gcry_strdup): New function.
+	* gcrypt.h (gcry_strdup): Declare.
+
+2003-12-19  Werner Koch  <wk@gnupg.org>
+
+	* g10lib.h (wipememory, wipememory2): New; taken from gnupg.
+
+2003-11-14  Werner Koch  <wk@gnupg.org>
+
+	* global.c (gcry_strdup): Don't copy the string after a malloc
+	error.
+
+2003-11-11  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c (sexp_sscan): Implemented "%b" format specifier.
+
+2003-11-11  Moritz Schulte  <mo@g10code.com>
+
+	* libgcrypt.m4: Do not set prefix when calling libgcrypt-config.
+	Thanks to Nikos Mavroyanopoulos.
+
+2003-11-08  Moritz Schulte  <mo@g10code.com>
+
+	* cipher.h (small_prime_numbers): Removed declaration.
+	(PUBKEY_FLAG_NO_BLINDING): Put braces around shift.
+
+2003-11-04  Werner Koch  <wk@gnupg.org>
+
+	* cipher.h (_gcry_sha1_has_buffer): New.
+
+	* gcrypt.h (gcry_create_nonce): New.
+
+2003-10-31  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt.vers (_gcry_generate_elg_prime): Removed this symbol;
+	gnutls does not need it anymore.
+
+	* secmem.c (mb_get_new): s/pool/block/ due to global pool.
+
+	* misc.c (gcry_set_log_handler): s/logf/f/ to avoid shadowing
+	warning against a builtin.
+
+	* ath-pth-compat.c: cast pth_connect to get rid of the const
+	prototype.
+
+2003-10-27  Werner Koch  <wk@gnupg.org>
+
+	* ath.h (ATH_MUTEX_INITIALIZER): Removed spurious semicolon.
+
+2003-10-27  Moritz Schulte  <mo@g10code.com>
+
+	* libgcrypt-config.in: Include libs/cflags of libgpg-error.
+
+	* sexp.c (sexp_sscan): Cleaned up, deallocate scanned sexp on
+	error.
+
+	* module.c (MODULE_ID_MIN): New symbol, use it.
+
+2003-10-27  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (gcry_pk_testkey): Doc fix.
+
+2003-09-29  Moritz Schulte  <mo@g10code.com>
+
+	* libgcrypt-config.in: Fix --algorithms option.
+
+2003-10-23  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (gcry_err_code): Use GPG_ERR_INLINE instead of
+	__inline__.
+
+	* secmem.c (lock_pool): Don't print the warning for certain
+	systems, handle ENOMEM.
+
+2003-10-21  Werner Koch  <wk@gnupg.org>
+
+	* secmem.c (_gcry_secmem_dump_stats): Fixed format sepcifier for a
+	size_t.  Reported by Stephane Corthesy.
+
+2003-10-10  Werner Koch  <wk@gnupg.org>
+
+	* global.c (_gcry_malloc): Handle the no_secure_memory option.
+
+	* gcrypt.h (gcry_prime_group_generator): New.
+	(gcry_prime_release_factors): New.
+
+2003-10-07  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c (sexp_sscan): Check that parenthesis are matching.
+
+2003-09-28  Moritz Schulte  <mo@g10code.com>
+
+	* g10lib.h: Declare: _gcry_malloc.
+	(GCRY_ALLOC_FLAG_SECURE): New symbol.
+
+	* global.c (_gcry_malloc): New function...
+	(gcry_malloc): ... use it.
+	(gcry_malloc_secure): Likewise.
+
+	* ath.c: Change License to LGPL.
+	* ath-pthread-compat.c: Likewise.
+	* ath-pthread.c: Likewise.
+	* ath-pth-compat.c: Likewise.
+	* ath-pth.c: Likewise.
+	* ath.h: Likewise.
+	* ath-compat.c: Likewise.
+
+	* secmem.c (_gcry_secmem_realloc): Do not forget to release secmem
+	lock.  Thanks to low halo for triggering this bug.
 
 2003-09-04  Werner Koch  <wk@gnupg.org>
 
@@ -1197,7 +1378,8 @@ Tue Dec  8 13:15:16 CET 1998  Werner Koch  <wk@isil.d.shuttle.de>
 	* mpiapi.c: New
 
 	
- Copyright 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
+ Copyright (C) 1998,1999,2000,2001,2002,2003
+	       2004 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without
