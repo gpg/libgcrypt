@@ -792,23 +792,29 @@ do_cbc_encrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 
     if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize)
       {
+	/* We have to be careful here, since outbuf might be equal to
+	   inbuf.  */
+
 	int restbytes;
+	byte b;
 
 	if ((nbytes % blocksize) == 0)
 	  restbytes = blocksize;
 	else
 	  restbytes = nbytes % blocksize;
 
-	memcpy(outbuf, outbuf - c->cipher->blocksize, restbytes);
-	outbuf -= c->cipher->blocksize;
+	outbuf -= blocksize;
+	for (ivp = c->iv, i = 0; i < restbytes; i++)
+	  {
+	    b = inbuf[i];
+	    outbuf[blocksize + i] = outbuf[i];
+	    outbuf[i] = b ^ *ivp++;
+	  }
+	for (; i < blocksize; i++)
+	  outbuf[i] = 0 ^ *ivp++;
 
-	for(ivp=c->iv,i=0; i < restbytes; i++ )
-	    outbuf[i] = inbuf[i] ^ *ivp++;
-	for(; i < blocksize; i++ )
-	    outbuf[i] = 0 ^ *ivp++;
-
-	c->cipher->encrypt ( &c->context.c, outbuf, outbuf );
-	memcpy(c->iv, outbuf, blocksize );
+	c->cipher->encrypt (&c->context.c, outbuf, outbuf);
+	memcpy (c->iv, outbuf, blocksize);
       }
 }
 
