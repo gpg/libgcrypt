@@ -1,5 +1,5 @@
 /* secmem.c  -	memory allocation from a secure heap
- *	Copyright (C) 1998,1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2000 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
@@ -56,7 +56,7 @@ struct memblock_struct {
 
 static void  *pool;
 static volatile int pool_okay; /* may be checked in an atexit function */
-static int   pool_is_mmapped;
+static volatile int pool_is_mmapped;
 static size_t poolsize; /* allocated length */
 static size_t poollen;	/* used length */
 static MEMBLOCK *unused_blocks;
@@ -126,7 +126,9 @@ lock_pool( void *p, size_t n )
   #endif
 
     if( uid && !geteuid() ) {
-	if( setuid( uid ) || getuid() != geteuid()  )
+	/* check that we really dropped the privs.
+	 * Note: setuid(0) should always fail */
+	if( setuid( uid ) || getuid() != geteuid() || !setuid(0) )
 	    log_fatal("failed to reset uid: %s\n", strerror(errno));
     }
 
@@ -143,6 +145,12 @@ lock_pool( void *p, size_t n )
 	show_warning = 1;
     }
 
+  #elif defined ( __QNX__ )
+    /* QNX does not page at all, so the whole secure memory stuff does
+     * not make much sense.  However it is still of use because it
+     * wipes out the memory on a free().
+     * Therefore it is sufficient to suppress the warning
+     */
   #else
     log_info("Please note that you don't have secure memory on this system\n");
   #endif
@@ -252,7 +260,7 @@ secmem_init( size_t n )
 	disable_secmem=1;
 	uid = getuid();
 	if( uid != geteuid() ) {
-	    if( setuid( uid ) || getuid() != geteuid() )
+	    if( setuid( uid ) || getuid() != geteuid()	|| !setuid(0) )
 		log_fatal("failed to drop setuid\n" );
 	}
       #endif

@@ -128,6 +128,8 @@ enum gcry_ctl_cmds {
     GCRYCTL_RESUME_SECMEM_WARN	= 29,
     GCRYCTL_DROP_PRIVS		= 30,
     GCRYCTL_ENABLE_M_GUARD	= 31,
+    GCRYCTL_START_DUMP		= 32,
+    GCRYCTL_STOP_DUMP		= 33,
 };
 
 int gcry_control( enum gcry_ctl_cmds, ... );
@@ -410,6 +412,12 @@ int gcry_md_map_name( const char* name );
 
 #define gcry_md_test_algo(a) \
 	    gcry_md_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
+
+#define gcry_md_start_debug(a,b) \
+	    gcry_md_ctl( (a), GCRYCTL_START_DUMP, (b), 0 )
+#define gcry_md_stop_debug(a,b) \
+	    gcry_md_ctl( (a), GCRYCTL_STOP_DUMP, (b), 0 )
+
 
 /*********************************************
  *******  random generating functions  *******

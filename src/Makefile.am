@@ -12,9 +12,9 @@ bin_SCRIPTS = gcrypt-config
 m4datadir = $(datadir)/aclocal
 m4data_DATA = gcrypt.m4
 
-noinst_PROGRAMS = testapi
-#sexp_SOURCES = sexp.c mpiapi.c
-#sexp_LDADD =  ../cipher/libcipher.la ../mpi/libmpi.la	../util/libutil.la ./libgcrypt.la @INTLLIBS@
+noinst_PROGRAMS = testapi sexp
+sexp_SOURCES = sexp.c
+sexp_LDADD =  libgcrypt.la
 testapi_SOURCES = testapi.c
 testapi_LDADD = libgcrypt.la
 

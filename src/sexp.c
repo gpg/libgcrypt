@@ -1,5 +1,5 @@
 /* sexp.c  -  S-Expression handling
- *	Copyright (C) 1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1999, 2000 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
  *
@@ -571,6 +571,34 @@ gcry_sexp_cdr_mpi( GCRY_SEXP list, int mpifmt )
 }
 
 
+
+
+
+static int
+hextobyte( const byte *s )
+{
+    int c=0;
+
+    if( *s >= '0' && *s <= '9' )
+	c = 16 * (*s - '0');
+    else if( *s >= 'A' && *s <= 'F' )
+	c = 16 * (10 + *s - 'A');
+    else if( *s >= 'a' && *s <= 'f' ) {
+	c = 16 * (10 + *s - 'a');
+    }
+    s++;
+    if( *s >= '0' && *s <= '9' )
+	c += *s - '0';
+    else if( *s >= 'A' && *s <= 'F' )
+	c += 10 + *s - 'A';
+    else if( *s >= 'a' && *s <= 'f' ) {
+	c += 10 + *s - 'a';
+    }
+    return c;
+}
+
+
+
 /****************
  * Scan the provided buffer and return the S expression in our internal
  * format.  Returns a newly allocated expression.  If erroff is not NULL and
@@ -592,6 +620,7 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
     const char *hexfmt=NULL;
     const char *base64=NULL;
     const char *disphint=NULL;
+    int hexcount=0;
     int quoted_esc=0;
     int datalen=0;
     int first;
@@ -603,7 +632,7 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
     tail = head = NULL;
     first = 0;
     for(p=buffer,n=length; n; p++, n-- ) {
-	if( tokenp ) {
+	if( tokenp && !hexfmt ) {
 	    if( strchr( tokenchars, *p ) )
 		continue;
 	}
@@ -657,8 +686,46 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
 	    }
 	}
 	else if( hexfmt ) {
-	    if( *p == '#' )
-	       hexfmt = NULL;
+	    if( isxdigit( *p ) )
+		hexcount++;
+	    else if( *p == '#' ) {
+		int i;
+
+		if( (hexcount & 1) ) {
+		    *erroff = p - buffer;
+		    return -12;  /* odd number of hex digits */
+		}
+
+		/* make a new list entry */
+		datalen = hexcount/2;
+		node = g10_xcalloc( 1, sizeof *node + datalen );
+		if( first ) { /* stuff it into the first node */
+		    first = 0;
+		    node->up = tail;
+		    tail->u.list = node;
+		}
+		else {
+		    node->up = tail->up;
+		    tail->next = node;
+		}
+		tail = node;
+		/* and fill in the value (we store the value in the node)*/
+		node->type = ntDATA;
+		node->u.data.len = datalen;
+		for(i=0, hexfmt++; hexfmt < p; hexfmt++ ) {
+		    if( isspace( *hexfmt ) )
+			continue;
+		    node->u.data.d[i++] = hextobyte( hexfmt );
+		    hexfmt++;
+		}
+		assert( hexfmt == p );
+		assert( i == datalen );
+		hexfmt = NULL;
+	    }
+	    else if( !isspace( *p ) ) {
+		*erroff = p - buffer;
+		return -11;  /* invalid hex character */
+	    }
 	}
 	else if( base64 ) {
 	    if( *p == '|' )
@@ -706,6 +773,7 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
 	    else if( *p == '#' ) {
 		digptr = NULL; /* we ignore the optional length */
 		hexfmt = p;
+		hexcount = 0;
 	    }
 	    else if( *p == '|' ) {
 		digptr = NULL; /* we ignore the optional length */
@@ -751,8 +819,10 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
 	    quoted = p;
 	    quoted_esc = 0;
 	}
-	else if( *p == '#' )
+	else if( *p == '#' ) {
 	    hexfmt = p;
+	    hexcount = 0;
+	}
 	else if( *p == '|' )
 	    base64 = p;
 	else if( *p == '[' ) {
@@ -821,16 +891,17 @@ gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer, size_t maxlength )
 
 
 
-#if 0
+#if 1
 /***********************************************************/
 
 const char *
 strusage( int level )
 {
-    return default_strusage(level);
+    return "?";
 }
 
 
+#if 0
 static int
 sexp_to_pk( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
 {
@@ -909,7 +980,7 @@ sexp_to_pk( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
 
     return 0;
 }
-
+#endif
 
 
 int
@@ -921,7 +992,7 @@ main(int argc, char **argv)
     FILE *fp;
     GCRY_SEXP s_pk, s_dsa, s_p, s_q, s_g, s_y, sexp;
 
-  #if 0
+  #if 1
     fp = stdin;
     n = fread(buffer, 1, 5000, fp );
     rc = gcry_sexp_sscan( &sexp, buffer, n, &erroff );
@@ -969,7 +1040,7 @@ main(int argc, char **argv)
 	    dump_sexp( s1 );
 	  }
 
-	#if 1
+	#if 0
 	{  int i,rc, algo;
 	   GCRY_MPI *array;
 

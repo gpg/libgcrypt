@@ -1,3 +1,15 @@
+Fri Jul 14 19:38:23 CEST 2000  Werner Koch  <wk@>
+
+  * gcrypt.h (gcry_md_start_debug, gcry_md_stop_debug): New.
+  (gcry_ctl_cmds): New control values
+
+  * sexp.c (gcry_sexp_sscan): Add hex format parsing.
+
+  * secmem.c (lock_pool): Check for ENOSYS return my mlock() on old SCOs.
+  (pool_is_mmapped): Made volatile.
+  (lock_pool): No more warning for QNX. By Sam Roberts.
+  (lock_pool,secmem_init): Additional check for dropped privs.
+
 2000-03-21 09:18:48  Werner Koch  (wk@habibti.gnupg.de)
 
 	* gcrypt.h (gcry_md_setkey): New.

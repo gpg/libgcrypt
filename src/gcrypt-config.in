@@ -1,12 +1,12 @@
 #!/bin/sh
 
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+exec_prefix_set=no
 
 gcrypt_libs="@GCRYPT_LIBS@"
 gcrypt_cflags="@GCRYPT_CFLAGS@"
 
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-exec_prefix_set=no
 
 usage()
 {
