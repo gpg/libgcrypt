@@ -68,7 +68,7 @@
 #ifdef IS_MODULE
   #define _(a) (a)
 #else
-  #include "i18n.h"
+/*#include "i18n.h"*/
 #endif
 
 
@@ -235,8 +235,8 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 	    set_internal_seed_size( slow_seeder, n1 );
 	    if( n1 > entropy_buffer_size ) {
 		entropy_buffer_size =  n1;
-		entropy_buffer = m_realloc( entropy_buffer,
-					    entropy_buffer_size );
+		entropy_buffer = gcry_realloc( entropy_buffer,
+                                               entropy_buffer_size );
 	    }
 	    continue;
 	}
@@ -693,14 +693,14 @@ slow_gatherer_windowsNT( void (*add)(const void*, size_t, int), int requester )
 	    }
 	    else if (status == ERROR_MORE_DATA) {
 		cbPerfData += PERFORMANCE_BUFFER_STEP;
-		pPerfData = m_realloc (pPerfData, cbPerfData);
+		pPerfData = gcry_realloc (pPerfData, cbPerfData);
 	    }
 	    else {
 		log_debug ( "rndw32: get performance data problem\n");
 		break;
 	    }
 	}
-	m_free (pPerfData);
+	gcry_free (pPerfData);
     }
     /* Although this isn't documented in the Win32 API docs, it's necessary
        to explicitly close the HKEY_PERFORMANCE_DATA key after use (it's
@@ -739,7 +739,7 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
                         || (is_windowsNT && osvi.dwMajorVersion >= 5));
 
 	if ( platform == VER_PLATFORM_WIN32s ) {
-	    g10_log_fatal("can't run on a W32s platform\n" );
+	    log_fatal("can't run on a W32s platform\n" );
 	}
 	is_initialized = 1;
 	if ( debug_me )

@@ -1,3 +1,8 @@
+2002-07-08  Timo Schulz  <ts@winpt.org>
+
+	* rndw32.c: Replaced the m_ memory functions with the real 
+	gcry_ functions. Renamed all g10_ prefixed functions to log_.
+	
 2002-06-12  Werner Koch  <wk@gnupg.org>
 
 	* rsa.c (generate): Use e = 65537 for now.
