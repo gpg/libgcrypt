@@ -167,10 +167,11 @@ gcry_ac_data_add (gcry_ac_data_t data,
 
 /* Create a copy of the data set DATA and store it in DATA_CP.  */
 static gpg_err_code_t
-gcry_ac_data_copy (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
+gcry_ac_data_copy_internal (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 {
   gpg_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_ac_data_t data_new = NULL;
+  int i = 0;
 
   /* Allocate data set.  */
   data_new = gcry_malloc (sizeof (struct gcry_ac_data));
@@ -181,7 +182,7 @@ gcry_ac_data_copy (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 
   if (! err)
     {
-      /* Allocate named MPIs.  */
+      /* Allocate space for named MPIs.  */
       data_new->data = gcry_malloc (sizeof (gcry_ac_mpi_t) * data->data_n);
       if (! data_new->data)
 	err = gpg_err_code_from_errno (errno);
@@ -189,21 +190,53 @@ gcry_ac_data_copy (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 
   if (! err)
     {
-      /* Copy.  */
-      memcpy ((void *) data_new->data, (void *) data->data,
-	      sizeof (gcry_ac_mpi_t) * data->data_n);
-      *data_cp = data_new;
+      /* Copy named MPIs.  */
+      
+      for (i = 0; i < data_new->data_n && (! err); i++)
+	{
+	  data_new->data[i].name = NULL;
+	  data_new->data[i].mpi = NULL;
+
+	  /* Name.  */
+	  data_new->data[i].name = strdup (data->data[i].name);
+	  if (! data_new->data[i].name)
+	    err = gpg_err_code_from_errno (errno);
+
+	  if (! err)
+	    {
+	      /* MPI.  */
+	      data_new->data[i].mpi = gcry_mpi_copy (data->data[i].mpi);
+	      if (! data_new->data[i].mpi)
+		err = gpg_err_code_from_errno (errno);
+	    }
+	}
     }
+
+  if (! err)
+    /* Copy out.  */
+    *data_cp = data_new;
   else
     {
       /* Deallocate resources.  */
       if (data_new)
-	gcry_free (data_new);
+	{
+	  if (data_new->data)
+	    {
+	      for (; i >= 0; i--)
+		{
+		  if (data_new->data[i].name)
+		    free ((void *) data_new->data[i].name);
+		  if (data_new->data[i].mpi)
+		    gcry_mpi_release (data_new->data[i].mpi);
+		}
+	      gcry_free (data_new->data);
+	    }
+	  gcry_free (data_new);
+	}
     }
 
   return err;
 }
-
 
 
 
@@ -556,6 +589,17 @@ gcry_ac_data_set (gcry_ac_data_t data,
   return gpg_error (err);
 }
 
+/* Create a copy of the data set DATA and store it in DATA_CP.  */
+gpg_error_t
+gcry_ac_data_copy (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
+{
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+
+  err = gcry_ac_data_copy_internal (data_cp, data);
+
+  return gpg_error (err);
+}
+
 /* Returns the number of named MPI values inside of the data set
    DATA.  */
 unsigned int
@@ -714,7 +758,7 @@ gcry_ac_key_init (gcry_ac_key_t *key,
 
   if (! err)
     /* Copy data set.  */
-    err = gcry_ac_data_copy (&data_new, data);
+    err = gcry_ac_data_copy_internal (&data_new, data);
 
   if (! err)
     {

@@ -1,3 +1,10 @@
+2003-07-08  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c (gcry_ac_data_copy_internal): New function, based on
+	gcry_ac_data_copy.
+	(gcry_ac_data_copy): Made public, use gcry_ac_data_copy_internal.
+	(gcry_ac_key_init): Use gcry_ac_data_copy_internal.
+
 2003-07-07  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c (gcry_ac_data_set): Only release old MPI value if it is
