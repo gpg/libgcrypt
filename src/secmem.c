@@ -34,10 +34,8 @@
   #endif
 #endif
 
-#include "types.h"
+#include "g10lib.h"
 #include "secmem.h"
-#include "util.h"
-#include "i18n.h"
 
 #if defined(MAP_ANON) && !defined(MAP_ANONYMOUS)
   #define MAP_ANONYMOUS MAP_ANON

@@ -1,6 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = gcrypt-config.in
+# It seems that we need gcrypt.m4 here too
+EXTRA_DIST = gcrypt-config.in  gcrypt.m4
+
 INCLUDES =  -I$(top_srcdir)/include -I$(top_srcdir)/intl
 
 lib_LTLIBRARIES = libgcrypt.la
@@ -19,7 +21,8 @@ testapi_LDADD = libgcrypt.la
 include_HEADERS = gcrypt.h
 
 libgcrypt_la_LDFLAGS = -version-info 0:0:0 -export-symbols libgcrypt.sym
-libgcrypt_la_SOURCES =	 mpi.h \
+libgcrypt_la_SOURCES =	 g10lib.h \
+			 mpi.h \
 			 cipher.h \
 			 misc.c  \
 			 global.c \
@@ -32,8 +35,8 @@ libgcrypt_la_SOURCES =	 mpi.h \
 
 libgcrypt_la_DEPENDENCIES = libgcrypt.sym
 libgcrypt_la_LIBADD = ../cipher/libcipher.la  \
-		      ../mpi/libmpi.la \
-		      ../jnlib/libjnlib.la
+		      ../mpi/libmpi.la
+
 
 BUILT_SOURCES = libgcrypt.sym
 
