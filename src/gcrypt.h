@@ -1,5 +1,6 @@
 /* gcrypt.h -  GNU cryptographic library interface
- * Copyright (C) 1998,1999,2000,2001,2002,2003,2004 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003,
+ *               2004  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -596,14 +597,15 @@ enum gcry_cipher_algos
     GCRY_CIPHER_AES256      = 9,
     GCRY_CIPHER_TWOFISH     = 10,
 
-    /* other cipher numbers are above 300 for OpenPGP reasons. */
-    GCRY_CIPHER_ARCFOUR     = 301,  /* fully compatible with RSA's RC4 (tm). */
+    /* Other cipher numbers are above 300 for OpenPGP reasons. */
+    GCRY_CIPHER_ARCFOUR     = 301,  /* Fully compatible with RSA's RC4 (tm). */
     GCRY_CIPHER_DES         = 302,  /* Yes, this is single key 56 bit DES. */
     GCRY_CIPHER_TWOFISH128  = 303,
     GCRY_CIPHER_SERPENT128  = 304,
     GCRY_CIPHER_SERPENT192  = 305,
     GCRY_CIPHER_SERPENT256  = 306,
-    
+    GCRY_CIPHER_RFC2268_40  = 307,  /* Ron's Cipher 2 (40 bit). */
+    GCRY_CIPHER_RFC2268_128 = 308,  /* Ron's Cipher 2 (128 bit). */
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */

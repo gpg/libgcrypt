@@ -1,6 +1,6 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002
-#               2003 Free Software Foundation, Inc.
+#               2003, 2004 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -88,7 +88,7 @@ LIBGCRYPT_CONFIG_LIBS_PTH="-lgcrypt-pth"
 LIBGCRYPT_CONFIG_CFLAGS_PTH=""
 
 # Definitions for symmetric ciphers.
-available_ciphers="arcfour blowfish cast5 des aes twofish serpent"
+available_ciphers="arcfour blowfish cast5 des aes twofish serpent rfc2268"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
@@ -712,6 +712,11 @@ AC_DEFINE_UNQUOTED(USE_TWOFISH, $found,
 LIST_MEMBER(serpent, $enabled_ciphers)
 test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS serpent.lo"
 AC_DEFINE_UNQUOTED(USE_SERPENT, $found,
+                                 [Defined if this module should be included])
+
+LIST_MEMBER(rfc2268, $enabled_ciphers)
+test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS rfc2268.lo"
+AC_DEFINE_UNQUOTED(USE_RFC2268, $found,
                                  [Defined if this module should be included])
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)

@@ -1,3 +1,12 @@
+2004-02-13  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: Added GCRY_CIPHER_RFC2268_128, alsthough not yet
+	supported.
+
+2004-02-06  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: Added GCRY_CIPHER_RFC2268_40.
+
 2004-02-03  Werner Koch  <wk@gnupg.org>
 
 	* secmem.c (_gcry_secmem_init): Do not print the "not locked into

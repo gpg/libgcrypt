@@ -62,7 +62,8 @@ sha1.c \
 sha256.c \
 sha512.c \
 tiger.c \
-twofish.c
+twofish.c \
+rfc2268.c
 
 # We need to lower the optimization for this module.
 tiger.o: $(srcdir)/tiger.c

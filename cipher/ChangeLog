@@ -1,3 +1,10 @@
+2004-02-06  Werner Koch  <wk@gnupg.org>
+
+	* des.c: Add a new OID as used by pkcs#12.
+
+	* rfc2268.c: New. Taken from libgcrypt. 
+	* cipher.c: Setup the rfc2268 algorithm.
+
 2004-01-25  Moritz Schulte  <mo@g10code.com>
 
 	* primegen.c (prime_generate_internal): Do not forget to free

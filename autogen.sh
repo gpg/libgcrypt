@@ -18,7 +18,7 @@ cvtver () {
 }
 
 check_version () {
-    if [ $(( `("$1" --version || echo "0") | cvtver` >= $2 )) == 1 ]; then
+    if [ `("$1" --version || echo "0") | cvtver` -ge "$2" ]; then
        return 0
     fi
     echo "**Error**: "\`$1\'" not installed or too old." >&2

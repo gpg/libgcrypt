@@ -1099,6 +1099,8 @@ static gcry_cipher_oid_spec_t oids_tripledes[] =
     { "1.2.840.113549.3.7", GCRY_CIPHER_MODE_CBC },
     /* Teletrust specific OID for 3DES. */
     { "1.3.36.3.1.3.2.1",   GCRY_CIPHER_MODE_CBC },
+    /* pbeWithSHAAnd3_KeyTripleDES_CBC */
+    { "1.2.840.113549.1.12.1.3", GCRY_CIPHER_MODE_CBC },
     { NULL }
   };
 

@@ -1,6 +1,14 @@
 Noteworthy changes in version 1.1.92 (unreleased)
 -------------------------------------------------
 
+ * Minor bug fixes.
+
+ * Included a limited implementation of RFC2268.
+
+ * Interface changes relative to the 1.1.91 release:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+GCRY_CIPHER_RFC2268_40          NEW.
+
 
 Noteworthy changes in version 1.1.91 (2003-12-19)
 -------------------------------------------------
