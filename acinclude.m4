@@ -1,11 +1,28 @@
-dnl macros to configure g10
+dnl macros to configure Libgcrypt
+dnl Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+dnl
+dnl This file is part of Libgcrypt.
+dnl
+dnl Libgcrypt is free software; you can redistribute it and/or modify
+dnl it under the terms of the GNU General Public License as published by
+dnl the Free Software Foundation; either version 2 of the License, or
+dnl (at your option) any later version.
+dnl 
+dnl Libgcrypt is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+dnl GNU General Public License for more details.
+dnl 
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
 
 dnl GNUPG_MSG_PRINT(STRING)
 dnl print a message
 dnl
 define(GNUPG_MSG_PRINT,
-  [ echo $ac_n "$1"" $ac_c" 1>&AC_FD_MSG
+  [ echo $ac_n "$1"" $ac_c" 1>&AS_MESSAGE_FD([])
   ])
 
 
@@ -15,14 +32,15 @@ dnl
 AC_DEFUN(GNUPG_CHECK_TYPEDEF,
   [ AC_MSG_CHECKING(for $1 typedef)
     AC_CACHE_VAL(gnupg_cv_typedef_$1,
-    [AC_TRY_COMPILE([#include <stdlib.h>
+    [AC_TRY_COMPILE([#define _GNU_SOURCE 1
+    #include <stdlib.h>
     #include <sys/types.h>], [
     #undef $1
     int a = sizeof($1);
     ], gnupg_cv_typedef_$1=yes, gnupg_cv_typedef_$1=no )])
     AC_MSG_RESULT($gnupg_cv_typedef_$1)
     if test "$gnupg_cv_typedef_$1" = yes; then
-        AC_DEFINE($2)
+        AC_DEFINE($2,1,[Defined if a `]$1[' is typedef'd])
     fi
   ])
 
@@ -95,29 +113,6 @@ AC_DEFUN(GNUPG_CHECK_FAQPROG,
 
 
 
-dnl GNUPG_LINK_FILES( SRC, DEST )
-dnl same as AC_LINK_FILES, but collect the files to link in
-dnl some special variables and do the link
-dnl when GNUPG_DO_LINK_FILES is called
-dnl This is a workaround for AC_LINK_FILES, because it does not work
-dnl correct when using a caching scheme
-dnl
-define(GNUPG_LINK_FILES,
-  [ if test "x$wk_link_files_src" = "x"; then
-        wk_link_files_src="$1"
-        wk_link_files_dst="$2"
-    else
-        wk_link_files_src="$wk_link_files_src $1"
-        wk_link_files_dst="$wk_link_files_dst $2"
-    fi
-  ])
-define(GNUPG_DO_LINK_FILES,
-  [ AC_LINK_FILES( $wk_link_files_src, $wk_link_files_dst )
-  ])
-
-
-
-
 dnl GNUPG_CHECK_ENDIAN
 dnl define either LITTLE_ENDIAN_HOST or BIG_ENDIAN_HOST
 dnl
@@ -158,9 +153,11 @@ define(GNUPG_CHECK_ENDIAN,
       ])
     AC_MSG_RESULT([$gnupg_cv_c_endian])
     if test "$gnupg_cv_c_endian" = little; then
-      AC_DEFINE(LITTLE_ENDIAN_HOST)
+      AC_DEFINE(LITTLE_ENDIAN_HOST,1,
+                [Defined if the host has little endian byte ordering])
     else
-      AC_DEFINE(BIG_ENDIAN_HOST)
+      AC_DEFINE(BIG_ENDIAN_HOST,1,
+                [Defined if the host has big endian byte ordering])
     fi
   ])
 
@@ -328,7 +325,8 @@ define(GNUPG_CHECK_IPC,
          gnupg_cv_ipc_rmid_deferred_release="assume-no")
        )
        if test "$gnupg_cv_ipc_rmid_deferred_release" = "yes"; then
-           AC_DEFINE(IPC_RMID_DEFERRED_RELEASE)
+           AC_DEFINE(IPC_RMID_DEFERRED_RELEASE,1,
+                     [Defined if we can do a deferred shm release])
            AC_MSG_RESULT(yes)
        else
           if test "$gnupg_cv_ipc_rmid_deferred_release" = "no"; then
@@ -351,7 +349,8 @@ define(GNUPG_CHECK_IPC,
           )
        )
        if test "$gnupg_cv_ipc_have_shm_lock" = "yes"; then
-         AC_DEFINE(IPC_HAVE_SHM_LOCK)
+         AC_DEFINE(IPC_HAVE_SHM_LOCK,1,
+                   [Defined if a SysV shared memory supports the LOCK flag])
          AC_MSG_RESULT(yes)
        else
          AC_MSG_RESULT(no)
@@ -399,7 +398,8 @@ define(GNUPG_CHECK_MLOCK,
                 gnupg_cv_mlock_is_in_sys_mman=yes,
                 gnupg_cv_mlock_is_in_sys_mman=no)])
             if test "$gnupg_cv_mlock_is_in_sys_mman" = "yes"; then
-                AC_DEFINE(HAVE_MLOCK)
+                AC_DEFINE(HAVE_MLOCK,1,
+                          [Defined if the system supports an mlock() call])
             fi
         fi
     fi
@@ -439,7 +439,8 @@ define(GNUPG_CHECK_MLOCK,
            )
          )
          if test "$gnupg_cv_have_broken_mlock" = "yes"; then
-             AC_DEFINE(HAVE_BROKEN_MLOCK)
+             AC_DEFINE(HAVE_BROKEN_MLOCK,1,
+                       [Defined if the mlock() call does not work])
              AC_MSG_RESULT(yes)
          else
             if test "$gnupg_cv_have_broken_mlock" = "no"; then
@@ -625,23 +626,23 @@ EOF
         if AC_TRY_EVAL(ac_link) && test -s conftest; then
           ac_pipe_works=yes
         else
-          echo "configure: failed program was:" >&AC_FD_CC
-          cat conftest.c >&AC_FD_CC
+          echo "configure: failed program was:" >&AS_MESSAGE_LOG_FD()
+          cat conftest.c >&AS_MESSAGE_LOG_FD()
         fi
         LIBS="$ac_save_LIBS"
         CFLAGS="$ac_save_CFLAGS"
       else
-        echo "cannot find nm_test_func in $ac_nlist" >&AC_FD_CC
+        echo "cannot find nm_test_func in $ac_nlist" >&AS_MESSAGE_LOG_FD()
       fi
     else
-      echo "cannot find nm_test_var in $ac_nlist" >&AC_FD_CC
+      echo "cannot find nm_test_var in $ac_nlist" >&AS_MESSAGE_LOG_FD()
     fi
   else
-    echo "cannot run $ac_cv_sys_global_symbol_pipe" >&AC_FD_CC
+    echo "cannot run $ac_cv_sys_global_symbol_pipe" >&AS_MESSAGE_LOG_FD()
   fi
 else
-  echo "$progname: failed program was:" >&AC_FD_CC
-  cat conftest.c >&AC_FD_CC
+  echo "$progname: failed program was:" >&AS_MESSAGE_LOG_FD()
+  cat conftest.c >&AS_MESSAGE_LOG_FD()
 fi
 rm -rf conftest*
 
@@ -700,15 +701,15 @@ if AC_TRY_EVAL(ac_compile); then
       if egrep '^nm_test_func ' "$ac_nlist" >/dev/null; then
         :
       else
-        echo "configure: cannot find nm_test_func in $ac_nlist" >&AC_FD_CC
+        echo "configure: cannot find nm_test_func in $ac_nlist" >&AS_MESSAGE_LOG_FD()
       fi
     fi
   else
-    echo "configure: cannot run $ac_cv_sys_global_symbol_pipe" >&AC_FD_CC
+    echo "configure: cannot run $ac_cv_sys_global_symbol_pipe" >&AS_MESSAGE_LOG_FD()
   fi
 else
-  echo "configure: failed program was:" >&AC_FD_CC
-  cat conftest.c >&AC_FD_CC
+  echo "configure: failed program was:" >&AS_MESSAGE_LOG_FD()
+  cat conftest.c >&AS_MESSAGE_LOG_FD()
 fi
 rm -rf conftest*
 ])
@@ -741,7 +742,8 @@ AC_CACHE_CHECK([if mkdir takes one argument], gnupg_cv_mkdir_takes_one_arg,
 #endif], [mkdir ("foo", 0);],
         gnupg_cv_mkdir_takes_one_arg=no, gnupg_cv_mkdir_takes_one_arg=yes)])
 if test $gnupg_cv_mkdir_takes_one_arg = yes ; then
-  AC_DEFINE(MKDIR_TAKES_ONE_ARG)
+  AC_DEFINE(MKDIR_TAKES_ONE_ARG,1,
+            [Defined if mkdir() does not take permission flags])
 fi
 ])
 

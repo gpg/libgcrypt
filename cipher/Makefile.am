@@ -87,9 +87,11 @@ libcipher_la_LIBADD =	  @STATIC_CIPHER_OBJS@
 # If I remember it correct, automake 1.4 has a feature to set
 # fooFLAGS depending on the program.  So we should check it out.
 
+#if BUILD_MODULE_TIGER
 tiger: $(srcdir)/tiger.c
 	`echo $(COMPILE) $(DYNLINK_MOD_CFLAGS) -o tiger $(srcdir)/tiger.c | \
 	    sed -e 's/-O[2-9s]*/-O/g' `
+#endif
 
 tiger.o: $(srcdir)/tiger.c
 	`echo $(COMPILE) -c $(srcdir)/tiger.c | sed -e 's/-O[2-9s]*/-O1/g' `
@@ -98,19 +100,28 @@ tiger.o: $(srcdir)/tiger.c
 #	 `echo $(COMPILE) $(DYNLINK_MOD_CFLAGS) -o twofish $(srcdir)/twofish.c | \
 #	     sed -e 's/-O[0-9s]*/  /g' `
 
+#if BUILD_MODULE_TWOFISH
 twofish: $(srcdir)/twofish.c
 	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o twofish $(srcdir)/twofish.c
+#endif
 
 #twofish.o: $(srcdir)/twofish.c
 #	 `echo $(COMPILE) -c $(srcdir)/twofish.c | sed -e 's/-O[0-9s]*/  /g' `
 
-
+#if BUILD_MODULE_RNDUNIX
 rndunix: $(srcdir)/rndunix.c
 	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o rndunix $(srcdir)/rndunix.c
+#endif
 
+#if BUILD_MODULE_RNDLINUX
 rndlinux: $(srcdir)/rndlinux.c
 	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o rndlinux $(srcdir)/rndlinux.c
+#endif
 
+#if BUILD_MODULE_RNDEGD
 rndegd: $(srcdir)/rndegd.c
 	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o rndegd $(srcdir)/rndegd.c
+#endif
+
+
 

@@ -4,7 +4,7 @@
 PGM=GnuPG
 DIE=no
 
-autoconf_vers=2.13
+autoconf_vers=2.52
 automake_vers=1.4
 aclocal_vers=1.4
 libtool_vers=1.3

@@ -1,17 +1,26 @@
+dnl Configure.ac script for Libgcrypt
+dnl Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
 dnl
-dnl Configure template for GNUPG
+dnl This file is part of Libgcrypt.
+dnl
+dnl Libgcrypt is free software; you can redistribute it and/or modify
+dnl it under the terms of the GNU General Public License as published by
+dnl the Free Software Foundation; either version 2 of the License, or
+dnl (at your option) any later version.
+dnl 
+dnl Libgcrypt is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+dnl GNU General Public License for more details.
+dnl 
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 dnl
 dnl (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)dnl
 
-dnl Must reset CDPATH so that bash's cd does not print to stdout
-CDPATH=
-
-AC_PREREQ(2.13)
-AC_INIT(src/gcrypt.h)
-AC_CONFIG_AUX_DIR(scripts)
-AM_CONFIG_HEADER(config.h)
-AC_CANONICAL_SYSTEM
+AC_PREREQ(2.52)
 #############################################
 # Version numbers (Rember to change them just before a release)
 # 1. No interfaces changed, only implementations (good): Increment REVISION.
@@ -19,16 +28,27 @@ AC_CANONICAL_SYSTEM
 #    AGE, set REVISION to 0.
 # 3. Interfaces removed (BAD, breaks upward compatibility): Increment
 #    CURRENT, set AGE and REVISION to 0.
-AM_INIT_AUTOMAKE(libgcrypt,1.1.3)
+AC_INIT(libgcrypt,1.1.4)
 LIBGCRYPT_LT_CURRENT=2
 LIBGCRYPT_LT_AGE=1
-LIBGCRYPT_LT_REVISION=0
+LIBGCRYPT_LT_REVISION=1
 ##############################################
+AC_CONFIG_SRCDIR([src/gcrypt.h])
+AC_CONFIG_AUX_DIR(scripts)
+AM_CONFIG_HEADER(config.h)
+AC_CANONICAL_TARGET([])
+
 
 AC_SUBST(LIBGCRYPT_LT_CURRENT)
 AC_SUBST(LIBGCRYPT_LT_AGE)
 AC_SUBST(LIBGCRYPT_LT_REVISION)
 
+PACKAGE="$PACKAGE_NAME"
+VERSION="$PACKAGE_VERSION"
+AC_SUBST(PACKAGE)
+AC_SUBST(VERSION)
+AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
+AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 
 
 # ALL_LINGUAS="da de eo es_ES fr id it ja nl pl pt_BR pt_PT ru sv"
@@ -68,7 +88,9 @@ esac
 AC_ARG_WITH(egd-socket,
     [  --with-egd-socket=NAME  Use NAME for the EGD socket)],
             egd_socket_name="$withval", egd_socket_name="" )
-AC_DEFINE_UNQUOTED(EGD_SOCKET_NAME, "$egd_socket_name")
+AC_DEFINE_UNQUOTED(EGD_SOCKET_NAME, "$egd_socket_name",
+                   [Define if you don't want the default EGD socket name.
+                    For details see cipher/rndegd.c])
 
 
 
@@ -98,23 +120,13 @@ AC_ARG_ENABLE(asm,
      try_asm_modules=$enableval, try_asm_modules=yes)
 AC_MSG_RESULT($try_asm_modules)
 
-AC_MSG_CHECKING([whether memory debugging is requested])
-AC_ARG_ENABLE(m-debug,
-[  --enable-m-debug        enable debugging of memory allocation],
-use_m_debug=$enableval, use_m_debug=no)
-AC_MSG_RESULT($use_m_debug)
-if test "$use_m_debug" = yes; then
-    AC_DEFINE(M_DEBUG)
-    use_m_guard=yes
-else
-    AC_MSG_CHECKING([whether memory guard is requested])
-    AC_ARG_ENABLE(m-guard,
+AC_MSG_CHECKING([whether memory guard is requested])
+AC_ARG_ENABLE(m-guard,
     [  --enable-m-guard        enable memory guard facility],
     use_m_guard=$enableval, use_m_guard=no)
     AC_MSG_RESULT($use_m_guard)
-fi
 if test "$use_m_guard" = yes ; then
-    AC_DEFINE(M_GUARD)
+    AC_DEFINE(M_GUARD,1,[Define to use the (obsolete) malloc guarding feature])
 fi
 
 dnl
@@ -126,6 +138,16 @@ AC_ARG_WITH(capabilities,
 [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
 
+AH_TOP([
+/* need this, because some autoconf tests rely on this (e.g. stpcpy)
+ * and it should be used for new programs  */
+#define _GNU_SOURCE  1
+])
+
+AH_BOTTOM([
+#include "gcrypt-defs.h"
+#define _GCRYPT_IN_LIBGCRYPT 1
+])
 
 
 AM_MAINTAINER_MODE
@@ -179,9 +201,14 @@ case "${target}" in
     *-*-mingw32*)
         # special stuff for Windoze NT
         ac_cv_have_dev_random=no
-        AC_DEFINE(USE_ONLY_8DOT3)
-        AC_DEFINE(HAVE_DRIVE_LETTERS)
-        AC_DEFINE(HAVE_DOSISH_SYSTEM)
+        AC_DEFINE(USE_ONLY_8DOT3,1,
+                  [set this to limit filenames to the 8.3 format])
+        AC_DEFINE(HAVE_DRIVE_LETTERS,1,
+                  [defined if we must run on a stupid file system])
+        AC_DEFINE(HAVE_DOSISH_SYSTEM,1,
+                  [defined if we run on some of the PCDOS like systems 
+                   (DOS, Windoze. OS/2) with special properties like
+                    no file modes])
         try_gettext="no"
         ;;
     i?86-emx-os2 | i?86-*-os2*emx )
@@ -255,7 +282,8 @@ dnl let that after linux to avoid gnu-linux problems
         PRINTABLE_OS_NAME=`uname -s || echo "Unknown"`
         ;;
 esac
-AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME")
+AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
+                   [A human readable text with the name of the OS])
 
 dnl  Fixme: Are these the best flags for OpenBSD????
 case "${target}" in
@@ -282,8 +310,10 @@ case "${target}" in
         fi
         ;;
 esac
-AC_DEFINE_UNQUOTED(NAME_OF_DEV_RANDOM, "$NAME_OF_DEV_RANDOM")
-AC_DEFINE_UNQUOTED(NAME_OF_DEV_URANDOM, "$NAME_OF_DEV_URANDOM")
+AC_DEFINE_UNQUOTED(NAME_OF_DEV_RANDOM, "$NAME_OF_DEV_RANDOM",
+                   [defined to the name of the strong random device])
+AC_DEFINE_UNQUOTED(NAME_OF_DEV_URANDOM, "$NAME_OF_DEV_URANDOM",
+                   [defined to the name of the weaker random device])
 AC_SUBST(MPI_OPT_FLAGS)
 
 
@@ -314,8 +344,10 @@ fi
 if test "$try_dynload" = yes ; then
   AC_CHECK_LIB(dl,dlopen)
   if test "$ac_cv_lib_dl_dlopen" = "yes"; then
-    AC_DEFINE(USE_DYNAMIC_LINKING)
-    AC_DEFINE(HAVE_DL_DLOPEN)
+    AC_DEFINE(USE_DYNAMIC_LINKING,1,
+              [define to enable the use of extensions])
+    AC_DEFINE(HAVE_DL_DLOPEN,1,
+              [Defined when the dlopen function family is available])
     DYNLINK_LDFLAGS="$CFLAGS_EXPORTDYNAMIC"
     use_gnupg_extensions=yes
   else
@@ -329,7 +361,8 @@ if test "$try_dynload" = yes ; then
       AC_CHECK_LIB(dld,shl_load)
       if test "$ac_cv_lib_dld_shl_load" = "yes"; then
         AC_DEFINE(USE_DYNAMIC_LINKING)
-        AC_DEFINE(HAVE_DL_SHL_LOAD)
+        AC_DEFINE(HAVE_DL_SHL_LOAD,1,
+                  [Defined if the shl_load function family is available])
         DYNLINK_LDFLAGS="$CFLAGS_EXPORTDYNAMIC"
         use_gnupg_extensions=yes
 dnl -----------------
@@ -411,7 +444,8 @@ AC_CHECK_HEADERS(sys/capability.h)
 if test "$ac_cv_header_sys_capability_h" = "yes" ; then
   AC_CHECK_LIB(cap, cap_init, ac_need_libcap=1)
   if test "$ac_cv_lib_cap_cap_init" = "yes"; then
-     AC_DEFINE(USE_CAPABILITIES)
+     AC_DEFINE(USE_CAPABILITIES,1,
+               [define if capabilities should be used])
      LIBS="$LIBS -lcap"
      use_capabilities=yes
   fi
@@ -433,7 +467,8 @@ fi
 
 GNUPG_CHECK_IPC
 if test "$ac_cv_header_sys_shm_h" = "yes"; then
-  AC_DEFINE(USE_SHM_COPROCESSING)
+  AC_DEFINE(USE_SHM_COPROCESSING,1,
+            [define if the shared memory interface should be made available])
 fi
 
 dnl
@@ -444,7 +479,8 @@ if test "$try_dev_random" = yes ; then
     [if test -r "$NAME_OF_DEV_RANDOM" && test -r "$NAME_OF_DEV_URANDOM" ; then
       ac_cv_have_dev_random=yes; else ac_cv_have_dev_random=no; fi])
     if test "$ac_cv_have_dev_random" = yes; then
-        AC_DEFINE(HAVE_DEV_RANDOM)
+        AC_DEFINE(HAVE_DEV_RANDOM,1,
+                 [defined if the system supports a random device] )
     fi
 else
     AC_MSG_CHECKING(for random device)
@@ -466,7 +502,8 @@ if test "$ac_cv_have_dev_random" = yes ; then
         fi
       ])
     if test "$ac_cv_have_dev_random_ioctl" = yes; then
-        AC_DEFINE(HAVE_DEV_RANDOM_IOCTL)
+        AC_DEFINE(HAVE_DEV_RANDOM_IOCTL,1,
+                  [defined if the random device supports some IOCTLs])
     fi
 fi
 
@@ -482,7 +519,9 @@ if test "$use_static_rnd" = default; then
       case "${target}" in
           *-*-mingw32*)
               static_random_module="rndw32"
-              AC_DEFINE(USE_STATIC_RNDW32)
+              AC_DEFINE(USE_STATIC_RNDW32,1,
+                       [At a certain point in the code we need to know that
+                        we use the Windows random module.])
               ;;
           i?86-emx-os2|i?86-*-os2*emx)
               static_random_module="rndos2"
@@ -561,12 +600,35 @@ for name in $MODULES_IN_CIPHER; do
             DYNAMIC_CIPHER_MODS="$DYNAMIC_CIPHER_MODS $name"
             GNUPG_MSG_PRINT([$name])
         fi
+
+dnl        dnl Very ugly way to do this, but I don't knwo how to
+dnl        dnl cope with AC_SUBST otherwise
+dnl        case "$name" in
+dnl          tiger)
+dnl            AM_CONDITIONAL(BUILD_MODULE_TIGER,   [test $x = no])
+dnl            ;;                                   
+dnl          twofish)                               
+dnl            AM_CONDITIONAL(BUILD_MODULE_TWOFISH, [test $x = no])
+dnl            ;;                                   
+dnl          rndunix)                               
+dnl            AM_CONDITIONAL(BUILD_MODULE_RNDUNIX, [test $x = no])
+dnl            ;;                                   
+dnl          rndlinux)                              
+dnl            AM_CONDITIONAL(BUILD_MODULE_RNDLINUX,[test $x = no])
+dnl            ;;                                   
+dnl          rndegd)                                
+dnl            AM_CONDITIONAL(BUILD_MODULE_RNDEGD,  [test $x = no])
+dnl            ;;
+dnl          *)
+dnl            ;;
+dnl        esac
     fi
 done
 AC_MSG_RESULT()
 AC_SUBST(STATIC_CIPHER_OBJS)
 AC_SUBST(STATIC_CIPHER_NAMES)
 AC_SUBST(DYNAMIC_CIPHER_MODS)
+
 
 dnl
 dnl And build the constructor file
@@ -608,12 +670,13 @@ dnl
 AC_SUBST(STATIC_CIPHER_OBJS)
 AC_SUBST(DYNAMIC_CIPHER_MODS)
 
-
-dnl setup assembler stuff
+#
+# setup assembler stuff
+#
 AC_MSG_CHECKING(for mpi assembler functions)
 if test -f $srcdir/mpi/config.links ; then
     . $srcdir/mpi/config.links
-    GNUPG_LINK_FILES($mpi_ln_src, $mpi_ln_dst)
+    AC_CONFIG_LINKS("$mpi_ln_list")
     ac_cv_mpi_extra_asm_modules="$mpi_extra_modules"
     ac_cv_mpi_sflags="$mpi_sflags"
     ac_cv_mpi_config_done="yes"
@@ -623,13 +686,12 @@ else
     AC_MSG_ERROR([mpi/config.links missing!])
 fi
 MPI_EXTRA_ASM_OBJS=""
+show_extraasm=""
 if test "$ac_cv_mpi_extra_asm_modules" != ""; then
-GNUPG_MSG_PRINT([mpi extra asm functions:])
 for i in $ac_cv_mpi_extra_asm_modules; do
-    GNUPG_MSG_PRINT([$i])
-    MPI_EXTRA_ASM_OBJS="$MPI_EXTRA_ASM_OBJS $i.lo"
+    show_extraasm="$show_extraasm $i"
+    MPI_EXTRA_ASM_OBJS="$MPI_EXTRA_ASM_OBJS $i.o"
 done
-AC_MSG_RESULT()
 fi
 AC_SUBST(MPI_EXTRA_ASM_OBJS)
 MPI_SFLAGS="$ac_cv_mpi_sflags"
@@ -643,12 +705,11 @@ changequote(,)dnl
 tmp_pat='[a-zA-Z]'
 changequote([,])dnl
 if echo "$VERSION" | sed 's/-.*//' | grep "$tmp_pat" >/dev/null ; then
-    AC_DEFINE(IS_DEVELOPMENT_VERSION)
+    AC_DEFINE(IS_DEVELOPMENT_VERSION,1,
+              [Defined if this is not a regular release])
 fi
 
 AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)
-
-GNUPG_DO_LINK_FILES
 
 GNUPG_CHECK_GNUMAKE
 
@@ -664,14 +725,14 @@ dnl
 dnl Make the version number in src/gcrypt.h the same as the one here.
 dnl (this is easier than to have a *.in file just for one substitution)
 dnl
-GNUPG_FIX_HDR_VERSION(src/gcrypt.h, GCRYPT_VERSION)
+GNUPG_FIX_HDR_VERSION([src/gcrypt.h], GCRYPT_VERSION)
 
 LIBGCRYPT_LIBS="-L${libdir} -lgcrypt"
 LIBGCRYPT_CFLAGS=""
 AC_SUBST(LIBGCRYPT_LIBS)
 AC_SUBST(LIBGCRYPT_CFLAGS)
 
-AC_OUTPUT_COMMANDS([
+AC_CONFIG_COMMANDS([gcrypt-defs],[[
 chmod +x scripts/db2any
 chmod +x src/libgcrypt-config
 cat >gcrypt-defs.tmp <<G10EOF
@@ -700,16 +761,16 @@ else
     mv gcrypt-defs.tmp gcrypt-defs.h
     echo "gcrypt-defs.h created"
 fi
-],[
+]],[[
 prefix=$prefix
 exec_prefix=$exec_prefix
 libdir=$libdir
 datadir=$datadir
 DATADIRNAME=$DATADIRNAME
-])
+]])
 
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 Makefile
 jnlib/Makefile
 mpi/Makefile
@@ -720,4 +781,5 @@ src/Makefile
 src/libgcrypt-config
 tests/Makefile
 ])
+AC_OUTPUT
 

@@ -5,7 +5,6 @@ mkinstalldirs
 missing
 autogen.sh
 ChangeLog
-ltconfig
-ltmain.sh
 db2any
+ltmain.sh
 

@@ -1,5 +1,17 @@
 2001-08-03  Werner Koch  <wk@gnupg.org>
 
+	Released 1.1.4.
+
+	* acinclude.m4 (GNUPG_CHECK_TYPEDEF): Define GNU Source.
+	
+        Migrated to autoconf 2.52.
+	* acinclude.m4: Removed GNUPG_LINK_FILES and converted.
+	* acconfig.h: Removed
+	* configure.in: Replaced by...
+	* configure.ac: and modified for use with autoconf 2.52.  Replaced
+	GNUPG_LINK_FILES with AC_CONFIG_LINKS and moved some informational
+	messages to the end. Removed --enable-m-debug
+
 	* tests/: New.
 	* Makefile.am: Included tests directory
 	
@@ -8,7 +20,7 @@
 
 2001-05-31  Werner Koch  <wk@gnupg.org>
 
-	Release 1.1.3.
+	Released 1.1.3.
 
 	* configure.in: Use _gcry_ prefix when creating the cipher constructor.
 
