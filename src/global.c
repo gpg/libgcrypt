@@ -57,10 +57,23 @@ static int any_init_done;
 static void
 global_init (void)
 {
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+
   if (any_init_done)
     return;
   any_init_done = 1;
   ath_init ();
+
+  if (! err)
+    _gcry_cipher_init ();
+  if (! err)
+    _gcry_md_init ();
+  if (! err)
+    _gcry_pk_init ();
+
+  if (err)
+    /* FIXME?  */
+    BUG ();
 }
 
 
@@ -145,7 +158,6 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
   va_start (arg_ptr, cmd);
   switch (cmd)
     {
-#if 0
     case GCRYCTL_NO_MEM_IS_FATAL:
       break;
     case GCRYCTL_SET_FATAL_FNC:
@@ -266,69 +278,7 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
 const char *
 gcry_strerror (gpg_error_t ec)
 {
-#ifndef USE_LIBGPG_ERROR
-  const char *s;
-  static char buf[20];
-
-#define X(n,a) case GCRYERR_##n : s = a; break;
-    switch( ec ) {
-      X(SUCCESS,        N_("no error"))
-      X(GENERAL,        N_("general error"))
-
-      X(INV_PK_ALGO,	N_("invalid public key algorithm"))
-      X(INV_MD_ALGO,	N_("invalid hash algorithm"))
-      X(BAD_PUBLIC_KEY ,N_("bad public key"))
-      X(BAD_SECRET_KEY ,N_("bad secret key"))
-      X(BAD_SIGNATURE , N_("bad signature"))
-
-      X(INV_CIPHER_ALGO,N_("invalid cipher algorithm"))
-      X(BAD_MPI,        N_("bad big integer"))
-      X(WRONG_PK_ALGO,	N_("unusable public key algorithm"))
-      X(WEAK_KEY,	N_("weak encryption key"))
-      X(INV_KEYLEN,     N_("invalid key length"))
-      X(INV_ARG,	N_("invalid argument"))
-      X(SELFTEST,       N_("selftest failed"))
-
-      X(INV_OP, 	N_("invalid operation code or ctl command"))
-      X(INTERNAL,	N_("internal error"))
-#if 0
-      X(NO_MEM, 	N_("out of core"))
-      X(EOF,		N_("EOF"))
-#endif
-      X(INV_OBJ,	N_("an object is not valid"))
-      X(TOO_SHORT,	N_("provided buffer too short"))
-      X(TOO_LARGE,	N_("object is too large"))
-      X(NO_OBJ,         N_("no object"))
-      X(NOT_IMPL,       N_("not implemented"))
-      X(CONFLICT,	N_("conflict"))
-      X(INV_CIPHER_MODE,N_("invalid cipher mode"))
-        X(INV_FLAG,     N_("invalid flag"))
-
-        X(SEXP_INV_LEN_SPEC   ,N_("invalid length specification")) 
-        X(SEXP_STRING_TOO_LONG,N_("string too long")) 
-        X(SEXP_UNMATCHED_PAREN,N_("unmatched parenthesis")) 
-        X(SEXP_NOT_CANONICAL  ,N_("not a canonical S-expression")) 
-        X(SEXP_BAD_CHARACTER  ,N_("bad character")) 
-        X(SEXP_BAD_QUOTATION  ,N_("invalid hex/octal value or bad quotation")) 
-        X(SEXP_ZERO_PREFIX    ,N_("a length may not begin with zero")) 
-        X(SEXP_NESTED_DH      ,N_("nested display hints")) 
-        X(SEXP_UNMATCHED_DH   ,N_("unmatched display hint close")) 
-        X(SEXP_UNEXPECTED_PUNC,N_("unexpected reserved punctuation")) 
-        X(SEXP_BAD_HEX_CHAR,   N_("invalid hex character"))
-        X(SEXP_ODD_HEX_NUMBERS,N_("odd number of hex characters"))
-        X(SEXP_BAD_OCT_CHAR,   N_("invalid octal character"))
-
-      default:
-	sprintf( buf, "ec=%d", (int) gpg_err_code (ec));
-	s = buf;
-    }
-#undef X
-
-    return s;
-#else
-
-    return gpg_strerror (ec);
-#endif
+  return gpg_strerror (ec);
 }
 
 /****************
