@@ -1,3 +1,8 @@
+2003-03-02  Moritz Schulte  <moritz@g10code.com>
+
+	* basic.c (check_one_cipher): Use gcry_cipher_reset() instead of
+	gcry_cipher_close(), gcry_cipher_open and gcry_cipher_setkey().
+
 2003-01-23  Werner Koch  <wk@gnupg.org>
 
 	* keygen.c: New. 

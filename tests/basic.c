@@ -210,21 +210,8 @@ check_one_cipher (int algo, int mode, int flags)
         return;
     }
 
-    gcry_cipher_close (hd);
-    hd = gcry_cipher_open (algo, mode, flags);
-    if (!hd) {
-        fail ("algo %d, mode %d, grcy_open_cipher failed: %s\n",
-              algo, mode, gcry_strerror (-1) );
-        return;
-    }
+    gcry_cipher_reset (hd);
 
-    if (gcry_cipher_setkey (hd, key, keylen)) { 
-        fail ("algo %d, mode %d, gcry_cipher_setkey[2] failed: %s\n",
-              algo, mode, gcry_strerror (-1) );
-        gcry_cipher_close (hd);
-        return;
-    }
-    
     if ( gcry_cipher_decrypt (hd, in, 16, out, 16)) { 
         fail ("algo %d, mode %d, gcry_cipher_decrypt failed: %s\n",
               algo, mode, gcry_strerror (-1) );
