@@ -1461,7 +1461,7 @@ extern
 #ifdef __STDC__
 const
 #endif
-unsigned char __clz_tab[];
+unsigned char _gcry_clz_tab[];
 #define MPI_INTERNAL_NEED_CLZ_TAB 1
 #define count_leading_zeros(count, x) \
   do {									\
@@ -1481,7 +1481,7 @@ unsigned char __clz_tab[];
 	    break;							\
       } 								\
 									\
-    (count) = W_TYPE_SIZE - (__clz_tab[__xr >> __a] + __a);		\
+    (count) = W_TYPE_SIZE - (_gcry_clz_tab[__xr >> __a] + __a);		\
   } while (0)
 /* This version gives a well-defined value for zero. */
 #define COUNT_LEADING_ZEROS_0 W_TYPE_SIZE

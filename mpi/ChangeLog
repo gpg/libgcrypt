@@ -1,3 +1,8 @@
+2003-07-30  Moritz Schulte  <moritz@g10code.com>
+
+	* longlong.h (__clz_tab): Renamed to _gcry_clz_tab.
+	* mpi-bit.c (__clz_tab): Likewise.
+
 2003-07-27  Werner Koch  <wk@gnupg.org>
 
 	* mpicoder.c (gcry_mpi_scan): New argument BUFLEN to replace the
