@@ -1,3 +1,7 @@
+2002-06-18  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: Added a bunch for brief function descriptions.
+
 2002-05-21  Werner Koch  <wk@gnupg.org>
 
 	* misc.c (_gcry_log_printf): Don't initialize a va_list.  Noted by
