@@ -21,7 +21,7 @@
 
 # TESTS_ENVIRONMENT =  
 
-TESTS = basic
+TESTS = basic tsexp
 
 EXTRA_DIST = 
 
