@@ -63,37 +63,43 @@ static struct { const char* name; int algo;
 		const char* public_elements;
 		const char* secret_elements;
 } algo_info_table[] = {
-	{  "dsa"            , PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
-	{  "rsa"            , PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
-	{  "elg"            , PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
-	{  "openpgp-dsa"    , PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
-	{  "openpgp-rsa"    , PUBKEY_ALGO_RSA       , "pqgy", "", "x"    },
-	{  "openpgp-elg"    , PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x"    },
-	{  "openpgp-elg-sig", PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
-	{  NULL }};
+  { "dsa"            ,          PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
+  { "rsa"            ,          PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
+  { "elg"            ,          PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
+  { "openpgp-dsa"    ,          PUBKEY_ALGO_DSA       , "pqgy", "", "x"    },
+  { "openpgp-rsa"    ,          PUBKEY_ALGO_RSA       , "pqgy", "", "x"    },
+  { "openpgp-elg"    ,          PUBKEY_ALGO_ELGAMAL_E , "pgy",  "", "x"    },
+  { "openpgp-elg-sig",          PUBKEY_ALGO_ELGAMAL   , "pgy",  "", "x"    },
+  { "oid.1.2.840.113549.1.1.1", PUBKEY_ALGO_RSA       , "ne",   "", "dpqu" },
+  { NULL }
+};
 
 static struct {
     const char* name; int algo;
     const char* elements;
 } sig_info_table[] = {
-	{  "dsa"            , PUBKEY_ALGO_DSA       , "rs" },
-	{  "rsa"            , PUBKEY_ALGO_RSA       , "s"  },
-	{  "elg"            , PUBKEY_ALGO_ELGAMAL   , "rs" },
-	{  "openpgp-dsa"    , PUBKEY_ALGO_DSA       , "rs" },
-	{  "openpgp-rsa"    , PUBKEY_ALGO_RSA       , "s"  },
-	{  "openpgp-elg-sig", PUBKEY_ALGO_ELGAMAL   , "rs" },
-	{  NULL }};
+  { "dsa"                     , PUBKEY_ALGO_DSA       , "rs" },
+  { "rsa"                     , PUBKEY_ALGO_RSA       , "s"  },
+  { "elg"                     , PUBKEY_ALGO_ELGAMAL   , "rs" },
+  { "openpgp-dsa"             , PUBKEY_ALGO_DSA       , "rs" },
+  { "openpgp-rsa"             , PUBKEY_ALGO_RSA       , "s"  },
+  { "openpgp-elg-sig"         , PUBKEY_ALGO_ELGAMAL   , "rs" },
+  { "oid.1.2.840.113549.1.1.1", PUBKEY_ALGO_RSA       , "s"  },
+  { NULL }
+};
 
 static struct {
     const char* name; int algo;
     const char* elements;
 } enc_info_table[] = {
-	{  "elg"            , PUBKEY_ALGO_ELGAMAL   , "ab" },
-	{  "rsa"            , PUBKEY_ALGO_RSA       , "a"  },
-	{  "openpgp-rsa"    , PUBKEY_ALGO_RSA       , "a"  },
-	{  "openpgp-elg"    , PUBKEY_ALGO_ELGAMAL_E , "ab" },
-	{  "openpgp-elg-sig", PUBKEY_ALGO_ELGAMAL   , "ab" },
-	{  NULL }};
+  { "elg"            ,          PUBKEY_ALGO_ELGAMAL   , "ab" },
+  { "rsa"            ,          PUBKEY_ALGO_RSA       , "a"  },
+  { "openpgp-rsa"    ,          PUBKEY_ALGO_RSA       , "a"  },
+  { "openpgp-elg"    ,          PUBKEY_ALGO_ELGAMAL_E , "ab" },
+  { "openpgp-elg-sig",          PUBKEY_ALGO_ELGAMAL   , "ab" },
+  { "oid.1.2.840.113549.1.1.1", PUBKEY_ALGO_RSA       , "a"  },
+  { NULL }
+};
 
 
 static int pubkey_decrypt( int algo, MPI *result, MPI *data, MPI *skey );
@@ -673,7 +679,8 @@ pubkey_verify( int algo, MPI hash, MPI *data, MPI *pkey,
  * The <mpi> are expected to be in GCRYMPI_FMT_USG
  */
 static int
-sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
+sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray,
+             int *retalgo, int *r_algotblidx)
 {
     GCRY_SEXP list, l2;
     const char *name;
@@ -705,6 +712,8 @@ sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
 	gcry_sexp_release ( list );
 	return GCRYERR_INV_PK_ALGO; /* unknown algorithm */
     }
+    if (r_algotblidx)
+      *r_algotblidx = i;
     algo = algo_info_table[i].algo;
     elems1 = algo_info_table[i].common_elements;
     elems2 = want_private? algo_info_table[i].secret_elements
@@ -932,7 +941,7 @@ gcry_pk_encrypt( GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey )
     int i, rc, algo;
 
     /* get the key */
-    rc = sexp_to_key( s_pkey, 0, &pkey, &algo );
+    rc = sexp_to_key( s_pkey, 0, &pkey, &algo, NULL );
     if( rc ) {
 	return rc;
     }
@@ -1044,7 +1053,7 @@ gcry_pk_decrypt( GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey )
     MPI *skey, *data, plain;
     int rc, algo, dataalgo;
 
-    rc = sexp_to_key( s_skey, 1, &skey, &algo );
+    rc = sexp_to_key( s_skey, 1, &skey, &algo, NULL );
     if( rc ) {
 	return rc;
     }
@@ -1106,21 +1115,26 @@ gcry_pk_sign( GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey )
     MPI *skey, hash;
     MPI *result;
     int i, algo, rc;
-    const char *algo_name, *algo_elems;
+    const char *key_algo_name, *algo_name, *algo_elems;
 
-    rc = sexp_to_key( s_skey, 1, &skey, &algo );
+    rc = sexp_to_key( s_skey, 1, &skey, &algo, &i);
     if( rc )
 	return rc;
+    key_algo_name = algo_info_table[i].name;
+    assert (key_algo_name);
 
-    /* get the name and the required size of the result array */
+    /* get the name and the required size of the result array.  We
+       compare using the algorithm name and not the algo number - this way
+       we get the correct name for the return value */
     for(i=0; (algo_name = sig_info_table[i].name); i++ ) {
-	if( sig_info_table[i].algo == algo )
+	if( !strcmp (algo_name, key_algo_name) )
 	    break;
     }
     if( !algo_name ) {
 	release_mpi_array( skey );
 	return -4; /* oops: unknown algorithm */
     }
+    assert (sig_info_table[i].algo == algo);
     algo_elems = sig_info_table[i].elements;
 
     /* get the stuff we want to sign */
@@ -1203,7 +1217,7 @@ gcry_pk_verify( GCRY_SEXP s_sig, GCRY_SEXP s_hash, GCRY_SEXP s_pkey )
     int algo, sigalgo;
     int rc;
 
-    rc = sexp_to_key( s_pkey, 0, &pkey, &algo );
+    rc = sexp_to_key( s_pkey, 0, &pkey, &algo, NULL );
     if( rc )
 	return rc;
     rc = sexp_to_sig( s_sig, &sig, &sigalgo );
@@ -1248,7 +1262,7 @@ gcry_pk_testkey( GCRY_SEXP s_key )
     int rc, algo;
 
     /* Note we currently support only secret key checking */
-    rc = sexp_to_key( s_key, 1, &key, &algo );
+    rc = sexp_to_key( s_key, 1, &key, &algo, NULL );
     if( rc ) {
 	return rc;
     }
@@ -1449,9 +1463,9 @@ gcry_pk_get_nbits( GCRY_SEXP key )
     MPI *keyarr;
     unsigned int nbits = 0;
 
-    rc = sexp_to_key( key, 0, &keyarr, &algo );
+    rc = sexp_to_key( key, 0, &keyarr, &algo, NULL );
     if( rc == GCRYERR_INV_OBJ )
-	rc = sexp_to_key( key, 0, &keyarr, &algo );
+	rc = sexp_to_key( key, 1, &keyarr, &algo, NULL );
     if( rc )
 	return 0;
 
