@@ -1,3 +1,9 @@
+2002-05-15  Werner Koch  <wk@gnupg.org>
+
+	* mutex.h (DEFINE_LOCAL_MUTEX): Macro to define a mutex and
+	initialize it so that we can detect an unitialized mutex and don't
+	read from stdin.
+
 2002-05-14  Werner Koch  <wk@gnupg.org>
 
 	Changed license of all files to the LGPL.

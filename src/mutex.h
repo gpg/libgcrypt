@@ -33,6 +33,7 @@ typedef char mutex_t;
 #define mutex_destroy(x)
 #define mutex_lock(x) (0)
 #define mutex_unlock(x) (0)
+#define DEFINE_LOCAL_MUTEX(a) /* not needed */
 
 #elif defined(MUTEX_PTHREAD)
 
@@ -43,6 +44,7 @@ typedef char mutex_t;
 #define mutex_destroy(x) pthread_mutex_destroy(&(x))
 #define mutex_lock(x) pthread_mutex_lock (&(x))
 #define mutex_unlock(x) pthread_mutex_unlock (&(x))
+#define DEFINE_LOCAL_MUTEX(a) static mutex_t a;
 
 #else
 
@@ -54,6 +56,7 @@ int _gcry_no_internal_locking (void);
 
 /* The type of a mutex.  */
 typedef int mutex_t[2];
+#define DEFINE_LOCAL_MUTEX(a) static mutex_t a = { -1, -1 };
 
 inline static int
 set_close_on_exec (int fd)
