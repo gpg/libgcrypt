@@ -31,11 +31,14 @@ extern "C" {
  *					   *
  *******************************************/
 
-enum gcry_error {
+enum {
     GCRYERR_SUCCESS = 0,
     GCRYERR_INV_OP = 1,     /* inavlid operation code */
     GCRYERR_GENERAL = 2
 };
+
+
+const char *gcry_strerror( int ec );
 
 /*******************************************
  *					   *
@@ -112,6 +115,38 @@ void g10m_set_buffer( MPI a, const char *buffer, unsigned nbytes, int sign );
  *******  symmetric cipher functions  *******
  ********************************************/
 
+struct gcry_cipher_context;
+typedef struct gcry_cipher_context *GCRY_CIPHER_HD;
+
+enum {
+    GCRY_CIPHER_NONE	    = 0
+    GCRY_CIPHER_IDEA	    = 1
+    GCRY_CIPHER_3DES	    = 2
+    GCRY_CIPHER_CAST5	    = 3
+    GCRY_CIPHER_BLOWFISH    = 4
+    GCRY_CIPHER_SAFER_SK128 = 5
+    GCRY_CIPHER_DES_SK	    = 6
+};
+
+int gcry_string_to_cipher_algo( const char *string );
+const char * gcry_cipher_algo_to_string( int algo );
+int gcry_check_cipher_algo( int algo );
+unsigned gcry_cipher_get_keylen( int algo );
+unsigned gcry_cipher_get_blocksize( int algo );
+
+GCRY_CIPHER_HD gcry_cipher_open( algo, int mode, int secure );
+void gcry_cipher_close( GCRY_CIPHER_HD h );
+int  gcry_cipher_setkey( GCRY_CIPHER_HD h, byte *key, unsigned keylen );
+void gcry_cipher_setiv( GCRY_CIPHER_HD h, const byte *iv );
+
+/* fixme: don't assume sizeof(in) == sizeof(out) */
+void gcry_cipher_encrypt( GCRY_CIPHER_HD h,
+			  byte *out, byte *in, unsigned nbytes );
+void gcry_cipher_decrypt( GCRY_CIPHER_HD h,
+			  byte *out, byte *in, unsigned nbytes );
+
+/* fixme: replace sync with a more general call */
+void gcry_cipher_sync( GCRY_CIPHER_HD h );
 
 
 /*********************************************
