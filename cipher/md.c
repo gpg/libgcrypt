@@ -209,8 +209,8 @@ gcry_md_map_name( const char *string )
        either "OID." or "oid."), we first look into our table of ASN.1
        object identifiers to figure out the algorithm */
     if (digitp (string)
-        || !strncmp (string, "oid.") 
-        || !strncmp (string, "OID.") )
+        || !strncmp (string, "oid.", 4) 
+        || !strncmp (string, "OID.", 4) )
       {
         int i;
         const char *s =  digitp(string)? string : (string+4);
