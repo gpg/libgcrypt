@@ -88,7 +88,6 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 * S-expressions::                How to manage S-expressions.
 * MPI library::                  How to work with multi-precision-integers.
 * Utilities::                    Utility functions.
-* Error Handling::               Error codes and such.
 
 Appendices
 
@@ -122,6 +121,7 @@ Preparation
 Generalities
 * Controlling the library::     Controlling @acronym{Libgcrypt}'s behaviour.
 * Modules::                     Description of extension modules.
+* Error Handling::              Error codes and such.
 
 Handler Functions
 * Progress handler::            Using a progress handler function.
@@ -175,10 +175,6 @@ MPI library
 
 Utilities
 * Memory allocation::           Functions related with memory allocation.
-
-Error handling
-* Error values::                A list of all error values used.
-* Error strings::               How to get a descriptive string from a value.
 
 @end detailmenu
 
@@ -244,9 +240,15 @@ blocks using an extendable and flexible API.
 @section Overview
 
 @noindent
-The `@acronym{Libgcrypt}' library is fully thread-safe; the library
-automagically detects whether an applications uses no threading,
-pthreads or GNU Pth.
+The `@acronym{Libgcrypt}' library is fully thread-safe, where it makes
+sense to be thread-safe.  An exception are some cryptographic
+functions that modify a certain context stored in handles.  If the
+user really intents to use such functions from different threads on
+the same handle, he has to take care of the serialisation of such
+functions calls himself.
+
+The library automagically detects whether an applications uses no
+threading, pthreads or GNU Pth.
 
 @acronym{Libgcrypt} depends on the library `libgpg-error' [FIXME: REF?], which
 contains common error handling code for GnuPG components.
@@ -463,6 +465,7 @@ initialize_gcrypt (void)
 @menu
 * Controlling the library::     Controlling @acronym{Libgcrypt}'s behaviour.
 * Modules::                     Description of extension modules.
+* Error Handling::              Error codes and such.
 @end menu
 
 @node Controlling the library
@@ -494,6 +497,354 @@ category.  This ID can be used to reference the newly registered
 module.  After registering a module successfuly, the new functionality
 should be able to be used through the normal functions provided by
 @acronym{Libgcrypt} until it is unregistered again.
+
+@c **********************************************************
+@c *******************  Errors  ****************************
+@c **********************************************************
+@node Error Handling
+@section Error Handling
+
+Many functions in @acronym{Libgcrypt} can return an error if they
+fail.  For this reason, the application should always catch the error
+condition and take appropriate measures, for example by releasing the
+resources and passing the error up to the caller, or by displaying a
+descriptive message to the user and cancelling the operation.
+
+Some error values do not indicate a system error or an error in the
+operation, but the result of an operation that failed properly.  For
+example, if you try to decrypt a tempered message, the decryption will
+fail.  Another error value actually means that the end of a data
+buffer or list has been reached.  The following descriptions explain
+for many error codes what they mean usually.  Some error values have
+specific meanings if returned by a certain functions.  Such cases are
+described in the documentation of those functions.
+
+@acronym{Libgcrypt} uses the @code{libgpg-error} library.  This allows
+to share the error codes with other components of the GnuPG system,
+and thus pass error values transparently from the crypto engine, or
+some helper application of the crypto engine, to the user.  This way
+no information is lost.  As a consequence, @acronym{Libgcrypt} does
+not use its own identifiers for error codes, but uses those provided
+by @code{libgpg-error}.  They usually start with @code{GPG_ERR_}.
+
+However, @acronym{Libgcrypt} does provide aliases for the functions
+defined in libgpg-error, which might be preferred for name space
+consistency.
+
+
+Most functions in @acronym{Libgcrypt} return an error code in the case
+of failure.  For this reason, the application should always catch the
+error condition and take appropriate measures, for example by
+releasing the resources and passing the error up to the caller, or by
+displaying a descriptive message to the user and canceling the
+operation.
+
+Some error values do not indicate a system error or an error in the
+operation, but the result of an operation that failed properly.
+
+GnuPG components, including libgcrypt, use an extra library named
+libgpg-error to provide a common error handling scheme.  For more
+information on libgpg-error, see the according manual.
+
+@menu
+* Error Values::                  The error value and what it means.
+* Error Sources::                 A list of important error sources.
+* Error Codes::                   A list of important error codes.
+* Error Strings::                 How to get a descriptive string from a value.
+@end menu
+
+
+@node Error Values
+@subsection Error Values
+@cindex error values
+@cindex error codes
+@cindex error sources
+
+@deftp {Data type} {gcry_err_code_t}
+The @code{gcry_err_code_t} type is an alias for the
+@code{libgpg-error} type @code{gpg_err_code_t}.  The error code
+indicates the type of an error, or the reason why an operation failed.
+
+A list of important error codes can be found in the next section.
+@end deftp
+
+@deftp {Data type} {gcry_err_source_t}
+The @code{gcry_err_source_t} type is an alias for the
+@code{libgpg-error} type @code{gpg_err_source_t}.  The error source
+has not a precisely defined meaning.  Sometimes it is the place where
+the error happened, sometimes it is the place where an error was
+encoded into an error value.  Usually the error source will give an
+indication to where to look for the problem.  This is not always true,
+but it is attempted to achieve this goal.
+
+A list of important error sources can be found in the next section.
+@end deftp
+
+@deftp {Data type} {gcry_error_t}
+The @code{gcry_error_t} type is an alias for the @code{libgpg-error}
+type @code{gpg_error_t}.  An error value like this has always two
+components, an error code and an error source.  Both together form the
+error value.
+
+Thus, the error value can not be directly compared against an error
+code, but the accessor functions described below must be used.
+However, it is guaranteed that only 0 is used to indicate success
+(@code{GPG_ERR_NO_ERROR}), and that in this case all other parts of
+the error value are set to 0, too.
+
+Note that in @acronym{Libgcrypt}, the error source is used purely for
+diagnostical purposes.  Only the error code should be checked to test
+for a certain outcome of a function.  The manual only documents the
+error code part of an error value.  The error source is left
+unspecified and might be anything.
+@end deftp
+
+@deftypefun {static __inline__ gcry_err_code_t} gcry_err_code (@w{gcry_error_t @var{err}})
+The static inline function @code{gcry_err_code} returns the
+@code{gcry_err_code_t} component of the error value @var{err}.  This
+function must be used to extract the error code from an error value in
+order to compare it with the @code{GPG_ERR_*} error code macros.
+@end deftypefun
+
+@deftypefun {static __inline__ gcry_err_source_t} gcry_err_source (@w{gcry_error_t @var{err}})
+The static inline function @code{gcry_err_source} returns the
+@code{gcry_err_source_t} component of the error value @var{err}.  This
+function must be used to extract the error source from an error value in
+order to compare it with the @code{GPG_ERR_SOURCE_*} error source macros.
+@end deftypefun
+
+@deftypefun {static __inline__ gcry_error_t} gcry_err_make (@w{gcry_err_source_t @var{source}}, @w{gcry_err_code_t @var{code}})
+The static inline function @code{gcry_err_make} returns the error
+value consisting of the error source @var{source} and the error code
+@var{code}.
+
+This function can be used in callback functions to construct an error
+value to return it to the library.
+@end deftypefun
+
+@deftypefun {static __inline__ gcry_error_t} gcry_error (@w{gcry_err_code_t @var{code}})
+The static inline function @code{gcry_error} returns the error value
+consisting of the default error source and the error code @var{code}.
+
+For @acronym{GCRY} applications, the default error source is
+@code{GPG_ERR_SOURCE_USER_1}.  You can define
+@code{GCRY_ERR_SOURCE_DEFAULT} before including @file{gcrypt.h} to
+change this default.
+
+This function can be used in callback functions to construct an error
+value to return it to the library.
+@end deftypefun
+
+The @code{libgpg-error} library provides error codes for all system
+error numbers it knows about.  If @var{err} is an unknown error
+number, the error code @code{GPG_ERR_UNKNOWN_ERRNO} is used.  The
+following functions can be used to construct error values from system
+errnor numbers.
+
+@deftypefun {gcry_error_t} gcry_err_make_from_errno (@w{gcry_err_source_t @var{source}}, @w{int @var{err}})
+The function @code{gcry_err_make_from_errno} is like
+@code{gcry_err_make}, but it takes a system error like @code{errno}
+instead of a @code{gcry_err_code_t} error code.
+@end deftypefun
+
+@deftypefun {gcry_error_t} gcry_error_from_errno (@w{int @var{err}})
+The function @code{gcry_error_from_errno} is like @code{gcry_error},
+but it takes a system error like @code{errno} instead of a
+@code{gcry_err_code_t} error code.
+@end deftypefun
+
+Sometimes you might want to map system error numbers to error codes
+directly, or map an error code representing a system error back to the
+system error number.  The following functions can be used to do that.
+
+@deftypefun {gcry_err_code_t} gcry_err_code_from_errno (@w{int @var{err}})
+The function @code{gcry_err_code_from_errno} returns the error code
+for the system error @var{err}.  If @var{err} is not a known system
+error, the function returns @code{GPG_ERR_UNKNOWN_ERRNO}.
+@end deftypefun
+
+@deftypefun {int} gcry_err_code_to_errno (@w{gcry_err_code_t @var{err}})
+The function @code{gcry_err_code_to_errno} returns the system error
+for the error code @var{err}.  If @var{err} is not an error code
+representing a system error, or if this system error is not defined on
+this system, the function returns @code{0}.
+@end deftypefun
+
+
+@node Error Sources
+@subsection Error Sources
+@cindex error codes, list of
+
+The library @code{libgpg-error} defines an error source for every
+component of the GnuPG system.  The error source part of an error
+value is not well defined.  As such it is mainly useful to improve the
+diagnostic error message for the user.
+
+If the error code part of an error value is @code{0}, the whole error
+value will be @code{0}.  In this case the error source part is of
+course @code{GPG_ERR_SOURCE_UNKNOWN}.
+
+The list of error sources that might occur in applications using
+@acronym{Libgctypt} is:
+
+@table @code
+@item GPG_ERR_SOURCE_UNKNOWN
+The error source is not known.  The value of this error source is
+@code{0}.
+
+@item GPG_ERR_SOURCE_GPGME
+The error source is @acronym{GPGME} itself.
+
+@item GPG_ERR_SOURCE_GPG
+The error source is GnuPG, which is the crypto engine used for the
+OpenPGP protocol.
+
+@item GPG_ERR_SOURCE_GPGSM
+The error source is GPGSM, which is the crypto engine used for the
+OpenPGP protocol.
+
+@item GPG_ERR_SOURCE_GCRYPT
+The error source is @code{libgcrypt}, which is used by crypto engines
+to perform cryptographic operations.
+
+@item GPG_ERR_SOURCE_GPGAGENT
+The error source is @command{gpg-agent}, which is used by crypto
+engines to perform operations with the secret key.
+
+@item GPG_ERR_SOURCE_PINENTRY
+The error source is @command{pinentry}, which is used by
+@command{gpg-agent} to query the passphrase to unlock a secret key.
+
+@item GPG_ERR_SOURCE_SCD
+The error source is the SmartCard Daemon, which is used by
+@command{gpg-agent} to delegate operations with the secret key to a
+SmartCard.
+
+@item GPG_ERR_SOURCE_KEYBOX
+The error source is @code{libkbx}, a library used by the crypto
+engines to manage local keyrings.
+
+@item GPG_ERR_SOURCE_USER_1
+@item GPG_ERR_SOURCE_USER_2
+@item GPG_ERR_SOURCE_USER_3
+@item GPG_ERR_SOURCE_USER_4
+These error sources are not used by any GnuPG component and can be
+used by other software.  For example, applications using
+@acronym{Libgcrypt} can use them to mark error values coming from callback
+handlers.  Thus @code{GPG_ERR_SOURCE_USER_1} is the default for errors
+created with @code{gcry_error} and @code{gcry_error_from_errno},
+unless you define @code{GCRY_ERR_SOURCE_DEFAULT} before including
+@file{gcrypt.h}.
+@end table
+
+
+@node Error Codes
+@subsection Error Codes
+@cindex error codes, list of
+
+The library @code{libgpg-error} defines many error values.  The
+following list includes the most important error codes.
+
+@table @code
+@item GPG_ERR_EOF
+This value indicates the end of a list, buffer or file.
+
+@item GPG_ERR_NO_ERROR
+This value indicates success.  The value of this error code is
+@code{0}.  Also, it is guaranteed that an error value made from the
+error code @code{0} will be @code{0} itself (as a whole).  This means
+that the error source information is lost for this error code,
+however, as this error code indicates that no error occured, this is
+generally not a problem.
+
+@item GPG_ERR_GENERAL
+This value means that something went wrong, but either there is not
+enough information about the problem to return a more useful error
+value, or there is no separate error value for this type of problem.
+
+@item GPG_ERR_ENOMEM
+This value means that an out-of-memory condition occurred.
+
+@item GPG_ERR_E...
+System errors are mapped to GPG_ERR_EFOO where FOO is the symbol for
+the system error.
+
+@item GPG_ERR_INV_VALUE
+This value means that some user provided data was out of range.
+
+@item GPG_ERR_UNUSABLE_PUBKEY
+This value means that some recipients for a message were invalid.
+
+@item GPG_ERR_UNUSABLE_SECKEY
+This value means that some signers were invalid.
+
+@item GPG_ERR_NO_DATA
+This value means that data was expected where no data was found.
+
+@item GPG_ERR_CONFLICT
+This value means that a conflict of some sort occurred.
+
+@item GPG_ERR_NOT_IMPLEMENTED
+This value indicates that the specific function (or operation) is not
+implemented.  This error should never happen.  It can only occur if
+you use certain values or configuration options which do not work,
+but for which we think that they should work at some later time.
+
+@item GPG_ERR_DECRYPT_FAILED
+This value indicates that a decryption operation was unsuccessful.
+
+@item GPG_ERR_WRONG_KEY_USAGE
+This value indicates that a key is not used appropriately.
+
+@item GPG_ERR_NO_SECKEY
+This value indicates that no secret key for the user ID is available.
+
+@item GPG_ERR_UNSUPPORTED_ALGORITHM
+This value means a verification failed because the cryptographic
+algorithm is not supported by the crypto backend.
+
+@item GPG_ERR_BAD_SIGNATURE
+This value means a verification failed because the signature is bad.
+
+@item GPG_ERR_NO_PUBKEY
+This value means a verification failed because the public key is not
+available.
+
+@item GPG_ERR_USER_1
+@item GPG_ERR_USER_2
+@item ...
+@item GPG_ERR_USER_16
+These error codes are not used by any GnuPG component and can be
+freely used by other software.  Applications using @acronym{Libgcrypt}
+might use them to mark specific errors returned by callback handlers
+if no suitable error codes (including the system errors) for these
+errors exist already.
+@end table
+
+
+@node Error Strings
+@subsection Error Strings
+@cindex error values, printing of
+@cindex error codes, printing of
+@cindex error sources, printing of
+@cindex error strings
+
+@deftypefun {const char *} gcry_strerror (@w{gcry_error_t @var{err}})
+The function @code{gcry_strerror} returns a pointer to a statically
+allocated string containing a description of the error code contained
+in the error value @var{err}.  This string can be used to output a
+diagnostic message to the user.
+@end deftypefun
+
+
+@deftypefun {const char *} gcry_strsource (@w{gcry_error_t @var{err}})
+The function @code{gcry_strerror} returns a pointer to a statically
+allocated string containing a description of the error source
+contained in the error value @var{err}.  This string can be used to
+output a diagnostic message to the user.
+@end deftypefun
+
+The following example illustrates the use of @code{gcry_strerror}:
 
 @c **********************************************************
 @c *******************  General  ****************************
@@ -711,6 +1062,9 @@ AES (Rijndael) with a 256 bit key.
     
 @item  GCRY_CIPHER_TWOFISH
 The Twofish algorithm with a 256 bit key.
+    
+@item  GCRY_CIPHER_TWOFISH128
+The Twofish algorithm with a 128 bit key.
     
 @item  GCRY_CIPHER_ARCFOUR   
 An algorithm which is 100% compatible with RSA Inc.'s RC4 algorithm.
@@ -2963,332 +3317,6 @@ gcry_realloc tries to use secure memory as well.
 
 @deftypefun void gcry_free (void *@var{p})
 Release the memory area pointed to by @var{p}.
-@end deftypefun
-
-@c **********************************************************
-@c *******************  Errors  ****************************
-@c **********************************************************
-@node Error Handling
-@chapter Error Handling
-
-Most functions in @acronym{Libgcrypt} return an error if they fail.  For this
-reason, the application should always catch the error condition and
-take appropriate measures, for example by releasing the resources and
-passing the error up to the caller, or by displaying a descriptive
-message to the user and canceling the operation.
-
-Some error values do not indicate a system error or an error in the
-operation, but the result of an operation that failed properly.
-
-GnuPG components, including libgcrypt, use an extra library named
-libgpg-error to provide a common error handling scheme.  For more
-information on libgpg-error, see the according manual.
-
-@menu
-* Error values::                A list of all error values used.
-* Error strings::               How to get a descriptive string from a value.
-@end menu
-
-@node Error values
-@section Error values
-
-The type of error values is @code{gpg_error_t}.  A value of this type
-contains two information: an `error code' of type
-@code{gpg_err_code_t} and an `error source' of type
-@code{gpg_err_source_t}.  These values can be extracted with the
-functions @code{gpg_err_code} and @code{gpg_err_source}.
-
-@table @code
-
-@item GPG_ERR_NO_ERROR
-This value indicates success.  The value of this error code is
-guaranteed to be @code{0}.
-
-@item GPG_ERR_GENERAL
-This value means that something went wrong, but either there is not
-enough information about the problem to return a more useful error
-value, or there is no separate error value for this type of problem.
-
-@item GPG_ERR_PUBKEY_ALGO
-Invalid public key algorithm.
-
-@item GPG_ERR_DIGEST_ALGO
-Invalid message digest algorithm.
-
-@item GPG_ERR_BAD_PUBKEY
-Bad public key.
-
-@item GPG_ERR_BAD_SECKEY
-Bad secret key.
-
-@item GPG_ERR_BAD_SIGNATURE
-Bad signature.
-
-@item GPG_ERR_CIPHER_ALGO
-Invalid cipher algorithm.
-
-@item GPG_ERR_BAD_MPI
-Problem with an MPI's value.
-
-@item GPG_ERR_WRONG_PUBKEY_ALGO
-Wrong public key algorithm.
-
-@item GPG_ERR_WEAK_KEY
-Weak encryption key detected.
-
-@item GPG_ERR_INV_KEYLEN
-Invalid length of a key.
-
-@item GPG_ERR_INV_ARG
-Invalid argument.
-
-@item GPG_ERR_SELFTEST_FAILED
-A self test failed.
-
-@item GPG_ERR_INV_OP
-Invalid operation code or control command.
-
-@item GPG_ERR_OUT_OF_CORE
-Out of core; not enough memory available to perform operation.
-
-@item GPG_ERR_INTERNAL
-Internal error.  This is most likely a bug in @acronym{Libgcrypt} or due to an
-incomplete build or installation.
-
-@item GPG_ERR_INV_OBJ
-An object is not valid.
-
-@item GPG_ERR_TOO_SHORT
-Provided buffer or object too short.
-
-@item GPG_ERR_TOO_LARGE
-Object is too large.
-
-@item GPG_ERR_NO_OBJ
-Missing item in an object.
-
-@item GPG_ERR_NOT_IMPLEMENTED
-Not implemented.
-
-@item GPG_ERR_CONFLICT
-Conflicting use of function or values.
-
-@item GPG_ERR_INV_CIPHER_MODE
-Invalid or unsupported cipher mode.
-
-@item GPG_ERR_INV_FLAG
-Invalid flag.
-
-@item GPG_ERR_SEXP_INV_LEN_SPEC
-The S-expression has an invalid length specification.
-
-@item GPG_ERR_SEXP_STRING_TOO_LONG
-The encoded length of an S-expression is longer than the entire object.
-
-@item GPG_ERR_SEXP_UNMATCHED_PAREN
-There are unmatched parenthesis in the S-expression.
-
-@item GPG_ERR_SEXP_NOT_CANONICAL
-Not a canonical encoded S-expression.
-
-@item GPG_ERR_SEXP_BAD_CHARACTER
-Bad character detected in an S-expression. 
-
-@item GPG_ERR_SEXP_BAD_QUOTATION
-Bad quotation in an S-expression.  Might also indicate an invalid hex or
-octal value.
-
-@item GPG_ERR_SEXP_ZERO_PREFIX
-The length field of an S-expression element is prefixed with a 0.
-
-@item GPG_ERR_SEXP_NESTED_DH
-Nested display hints found in an S-expression.
-
-@item GPG_ERR_SEXP_UNMATCHED_DH
-Unmatched display hint found in an S-expression.
-
-@item GPG_ERR_SEXP_UNEXPECTED_PUNC
-Unexpected reserved punctuation found in an S-expression.
-
-@item GPG_ERR_SEXP_BAD_HEX_CHAR
-A bad hexadecimal character was found in an S-expression
-
-@item GPG_ERR_SEXP_ODD_HEX_NUMBERS
-An odd number of hexadecimal characters was found in an S-expression.
-
-@item GPG_ERR_SEXP_BAD_OCT_CHAR
-A bad octal character was found in an S-expression.
-
-@end table
-
-@strong{Note:} In order to provide temporary API compatibility with
-the old error handling scheme, the following @strong{deprecated}
-constants are still supported.  They are mapped to the new
-libgpg-error values and are therefore ABI compatible.
-
-@table @code
-@item GCRYERR_EOF
-This value indicates the end of a list, buffer or file and is defined to have
-the value @code{-1}.
-
-@item GCRYERR_SUCCESS
-This value indicates success.  The value of this error code is
-guaranteed to be @code{0}.
-
-@item GCRYERR_GENERAL
-This value means that something went wrong, but either there is not
-enough information about the problem to return a more useful error
-value, or there is no separate error value for this type of problem.
-
-@item GCRYERR_INV_PK_ALGO
-Invalid public key algorithm.
-
-@item GCRYERR_INV_MD_ALGO
-Invalid message digest algorithm.
-
-@item GCRYERR_BAD_PUBLIC_KEY 
-Bad public key.
-
-@item GCRYERR_BAD_SECRET_KEY
-Bad secret key.
-
-@item GCRYERR_BAD_SIGNATURE
-Bad signature.
-
-@item GCRYERR_INV_CIPHER_ALGO
-Invalid cipher algorithm.
-
-@item GCRYERR_BAD_MPI
-Problem with an MPI's value.
-
-@item GCRYERR_WRONG_PK_ALGO
-Wrong public key algorithm.
-
-@item GCRYERR_WEAK_KEY
-Weak encryption key detected.
-
-@item GCRYERR_INV_KEYLEN
-Invalid length of a key.
-
-@item GCRYERR_INV_ARG
-Invalid argument.
-
-@item GCRYERR_SELFTEST
-A self test failed.
-
-@item GCRYERR_INV_OP
-Invalid operation code or control command.
-
-@item GCRYERR_NO_MEM
-Out of core; not enough memory available to perform operation.
-
-@item GCRYERR_INTERNAL
-Internal error.  This is most likely a bug in @acronym{Libgcrypt} or due to an
-incomplete build or installation.
-
-@item GCRYERR_EOF = 64
-End-of-file condition. Note, that some functions usually return
-@code{-1} to indicate this; @acronym{Libgcrypt} error function maps this to this
-value.
-
-@item GCRYERR_INV_OBJ
-An object is not valid.
-
-@item GCRYERR_TOO_SHORT
-Provided buffer or object too short.
-
-@item GCRYERR_TOO_LARGE
-Object is too large.
-
-@item GCRYERR_NO_OBJ
-Missing item in an object.
-
-@item GCRYERR_NOT_IMPL
-Not implemented.
-
-@item GCRYERR_CONFLICT
-Conflicting use of function or values.
-
-@item GCRYERR_INV_CIPHER_MODE
-Invalid or unsupported cipher mode.
-
-@item GCRYERR_INV_FLAG
-Invalid flag.
-
-@item GCRYERR_SEXP_INV_LEN_SPEC
-The S-expression has an invalid length specification.
-
-@item GCRYERR_SEXP_STRING_TOO_LONG
-The encoded length of an S-expression is longer than the entire object.
-
-v@item GCRYERR_SEXP_UNMATCHED_PAREN
-There are unmatched parenthesis in the S-expression.
-
-@item GCRYERR_SEXP_NOT_CANONICAL
-Not a canonical encoded S-expression.
-
-@item GCRYERR_SEXP_BAD_CHARACTER
-Bad character detected in an S-expression. 
-
-@item GCRYERR_SEXP_BAD_QUOTATION
-Bad quotation in an S-expression.  Might also indicate an invalid hex or
-octal value.
-
-@item GCRYERR_SEXP_ZERO_PREFIX
-The length field of an S-expression element is prefixed with a 0.
-
-@item GCRYERR_SEXP_NESTED_DH
-Nested display hints found in an S-expression.
-
-@item GCRYERR_SEXP_UNMATCHED_DH
-Unmatched display hint found in an S-expression.
-
-@item GCRYERR_SEXP_UNEXPECTED_PUNC
-Unexpected reserved punctuation found in an S-expression.
-
-@item GCRYERR_SEXP_BAD_HEX_CHAR
-A bad hexadecimal character was found in an S-expression
-
-@item GCRYERR_SEXP_ODD_HEX_NUMBERS
-An odd number of hexadecimal characters was found in an S-expression.
-
-@item GCRYERR_SEXP_BAD_OCT_CHAR
-A bad octal character was found in an S-expression.
-
-@end table
-
-
-@node Error strings
-@section Error strings
-
-libgpg-error contains the following functions for converting error
-codes and error sources into their human-readable string
-representation:
-
-@deftypefun {const char *} gpg_strerror (@w{gpg_error_t @var{err}})
-
-This function returns a pointer to a statically allocated string
-containing a description of the error code in the error value ERR.
-
-@end deftypefun
-
-@deftypefun {const char *} gpg_strsource (@w{gpg_error_t @var{err}})
-
-This function returns a pointer to a statically allocated string
-containing a description of the error source in the error value ERR.
-
-@end deftypefun
-
-@strong{Note:} In order to provide temporary API compatibility with
-the old error handling scheme, the following @strong{deprecated}
-function is still supported.
-
-@deftypefun {const char *} gcry_strerror (@w{int @var{err}})
-
-The function @code{gcry_strerror} returns a pointer to a statically
-allocated string containing a description of the error with the error
-value @var{err}.  This string can be used to output a diagnostic
-message to the user.
 @end deftypefun
 
 @c **********************************************************
