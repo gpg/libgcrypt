@@ -28,7 +28,7 @@
 
 #include "g10lib.h"
 
-static int verbosity_level = 0; /* fixme: add a function to set it */
+static int verbosity_level = 0;
 
 static void (*fatal_error_handler)(void*,int, const char*) = NULL;
 static void *fatal_error_handler_value = 0;

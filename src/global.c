@@ -138,7 +138,7 @@ gcry_check_version( const char *req_version )
 
 
 int
-gcry_control( enum gcry_ctl_cmds cmd, ... )
+gcry_control( enum gcry_global_control_cmds cmd, ... )
 {
     static int init_finished = 0;
     va_list arg_ptr ;

@@ -1,3 +1,16 @@
+2003-03-03  Moritz Schulte  <moritz@g10code.com>
+
+	* misc.c: Removed old FIXME, since there is already a function to
+	set the value of `verbosity_level'.
+
+	* gcrypt.h: Removed enumeration list: gcry_ctl_cmds.
+	New enumeration lists: gcry_global_control_cmds,
+	gcry_control_cmds, gcry_info_cmds, gcry_algo_info_cmds.
+
+2003-03-02  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h (gcry_cipher_reset): New macro for resetting a handle.
+
 2003-02-28  Moritz Schulte  <moritz@g10code.com>
 
 	* secmem.c (DEFAULT_PAGESIZE): New symbol.

@@ -33,7 +33,7 @@ extern "C" {
 
 /* The version of this header should match the one of the library It
    should not be used by a program because gcry_check_version() should
-   reurn the same version.  The purpose of this macro is to let
+   return the same version.  The purpose of this macro is to let
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
@@ -132,61 +132,81 @@ int gcry_errno(void) _GCRY_GCC_ATTR_PURE;
 /* Map an error number to a string. */
 const char *gcry_strerror (int ec);
 
-/* Codes used with the gcry_control function. */
-enum gcry_ctl_cmds 
+/* Codes for function dispatchers.  */
+
+/* Codes for use with gcry_control.  These commands influence certain
+   general functionality of libgcrypt.  */
+enum gcry_global_control_cmds
   {
-    GCRYCTL_SET_KEY  = 1,
-    GCRYCTL_SET_IV   = 2,
-    GCRYCTL_CFB_SYNC = 3,
-    GCRYCTL_RESET    = 4,   /* e.g. for MDs */
-    GCRYCTL_FINALIZE = 5,
-    GCRYCTL_GET_KEYLEN = 6,
-    GCRYCTL_GET_BLKLEN = 7,
-    GCRYCTL_TEST_ALGO = 8,
-    GCRYCTL_IS_SECURE = 9,
-    GCRYCTL_GET_ASNOID = 10,
-    GCRYCTL_ENABLE_ALGO = 11,
-    GCRYCTL_DISABLE_ALGO = 12,
-    GCRYCTL_DUMP_RANDOM_STATS = 13,
-    GCRYCTL_DUMP_SECMEM_STATS = 14,
-    GCRYCTL_GET_ALGO_NPKEY    = 15,
-    GCRYCTL_GET_ALGO_NSKEY    = 16,
-    GCRYCTL_GET_ALGO_NSIGN    = 17,
-    GCRYCTL_GET_ALGO_NENCR    = 18,
-    GCRYCTL_SET_VERBOSITY     = 19,
-    GCRYCTL_SET_DEBUG_FLAGS   = 20,
-    GCRYCTL_CLEAR_DEBUG_FLAGS = 21,
-    GCRYCTL_USE_SECURE_RNDPOOL= 22,
-    GCRYCTL_DUMP_MEMORY_STATS = 23,
-    GCRYCTL_INIT_SECMEM       = 24,
-    GCRYCTL_TERM_SECMEM       = 25,
-    GCRYCTL_DISABLE_SECMEM_WARN = 27,
-    GCRYCTL_SUSPEND_SECMEM_WARN = 28,
-    GCRYCTL_RESUME_SECMEM_WARN	= 29,
-    GCRYCTL_DROP_PRIVS		= 30,
-    GCRYCTL_ENABLE_M_GUARD	= 31,
-    GCRYCTL_START_DUMP		= 32,
-    GCRYCTL_STOP_DUMP		= 33,
-    GCRYCTL_GET_ALGO_USAGE      = 34,
-    GCRYCTL_IS_ALGO_ENABLED     = 35,
-    GCRYCTL_DISABLE_INTERNAL_LOCKING = 36,
-    GCRYCTL_DISABLE_SECMEM      = 37,
-    GCRYCTL_INITIALIZATION_FINISHED = 38,
-    GCRYCTL_INITIALIZATION_FINISHED_P = 39,
-    GCRYCTL_ANY_INITIALIZATION_P = 40,
-    GCRYCTL_SET_CBC_CTS = 41,
-    GCRYCTL_ENABLE_QUICK_RANDOM = 42
+    GCRYCTL_ENABLE_M_GUARD,
+    GCRYCTL_ENABLE_QUICK_RANDOM,
+    GCRYCTL_DUMP_RANDOM_STATS,
+    GCRYCTL_DUMP_MEMORY_STATS,
+    GCRYCTL_DUMP_SECMEM_STATS,
+    GCRYCTL_DROP_PRIVS,
+    GCRYCTL_DISABLE_SECMEM,
+    GCRYCTL_INIT_SECMEM,
+    GCRYCTL_TERM_SECMEM,
+    GCRYCTL_DISABLE_SECMEM_WARN,
+    GCRYCTL_SUSPEND_SECMEM_WARN,
+    GCRYCTL_RESUME_SECMEM_WARN,
+    GCRYCTL_USE_SECURE_RNDPOOL,
+    GCRYCTL_SET_VERBOSITY,
+    GCRYCTL_SET_DEBUG_FLAGS,
+    GCRYCTL_CLEAR_DEBUG_FLAGS,
+    GCRYCTL_DISABLE_INTERNAL_LOCKING,
+    GCRYCTL_INITIALIZATION_FINISHED,
+    GCRYCTL_INITIALIZATION_FINISHED_P,
+    GCRYCTL_ANY_INITIALIZATION_P,
+  };
+
+/* Codes for use with gcry_cipher_ctl, gcry_md_ctl and
+   gcry_pk_ctl.  */
+enum gcry_control_cmds
+  {
+    GCRYCTL_SET_KEY,
+    GCRYCTL_SET_IV,
+    GCRYCTL_RESET,
+    GCRYCTL_CFB_SYNC,
+    GCRYCTL_SET_CBC_CTS,
+    GCRYCTL_ENABLE_ALGO,	/* Not implemented.  */
+    GCRYCTL_DISABLE_ALGO,
+    GCRYCTL_FINALIZE,
+    GCRYCTL_START_DUMP,
+    GCRYCTL_STOP_DUMP,
+  };
+
+/* Codes for use with gcry_cipher_info and gcry_md_info.  */
+enum gcry_info_cmds
+  {
+    GCRYCTL_IS_SECURE,
+    GCRYCTL_IS_ALGO_ENABLED,
+  };
+
+/* Codes for use with gcry_cipher_algo_info, gcry_cipher_md_info and
+   gcry_cipher_pk_info.  */
+enum gcry_algo_info_cmds
+  {
+    GCRYCTL_GET_KEYLEN,
+    GCRYCTL_GET_BLKLEN,
+    GCRYCTL_TEST_ALGO,
+    GCRYCTL_GET_ASNOID,
+    GCRYCTL_GET_ALGO_USAGE,
+    GCRYCTL_GET_ALGO_NPKEY,
+    GCRYCTL_GET_ALGO_NSKEY,
+    GCRYCTL_GET_ALGO_NSIGN,
+    GCRYCTL_GET_ALGO_NENCR,
   };
 
 /* Perform various operations defined by CMD. */
-int gcry_control (enum gcry_ctl_cmds CMD, ...);
+int gcry_control (enum gcry_global_control_cmds CMD, ...);
 
 
 
 /* S-expression management. */ 
 
-/* The object to represent an S-expression as used with the
-   public key functions.  GcrySexp is the preferrred form. */
+/* The object to represent an S-expression as used with the public key
+   functions.  GcrySexp is the preferred form. */
 struct gcry_sexp;
 typedef struct gcry_sexp *GCRY_SEXP;
 typedef struct gcry_sexp *GcrySexp;  
@@ -408,10 +428,9 @@ void     gcry_mpi_rshift (GcryMPI x, GcryMPI a, unsigned int n);
    value. */
 GcryMPI gcry_mpi_set_opaque (GcryMPI a, void *p, unsigned int nbits);
 
-/* creturn a pointer to an opaque value stored in A and return its
-   size in NBITS.  Note that the returned pointer is still owned by A
-   and that the function should never be used for an non-opaque
-   MPI. */
+/* Return a pointer to an opaque value stored in A and return its size
+   in NBITS.  Note that the returned pointer is still owned by A and
+   that the function should never be used for an non-opaque MPI. */
 void *gcry_mpi_get_opaque (GcryMPI a, unsigned int *nbits);
 
 /* Set the FLAG for the big integer A.  Currently only the flag
@@ -476,7 +495,7 @@ int gcry_mpi_get_flag (GcryMPI a, enum gcry_mpi_flag flag);
  *                                  *
  ************************************/
 
-/* The data object used to hold a handle to an encryption opject.
+/* The data object used to hold a handle to an encryption object.
    GcryCipherHd is the preferred one. */
 struct gcry_cipher_handle;
 typedef struct gcry_cipher_handle *GCRY_CIPHER_HD;
@@ -509,7 +528,7 @@ enum gcry_cipher_algos
 #define GCRY_CIPHER_RIJNDAEL192 GCRY_CIPHER_AES192 
 #define GCRY_CIPHER_RIJNDAEL256 GCRY_CIPHER_AES256 
 
-/* The supported encryption modes.  NOte that not all of them are
+/* The supported encryption modes.  Note that not all of them are
    supported for each algorithm. */
 enum gcry_cipher_modes 
   {
@@ -573,9 +592,9 @@ int gcry_cipher_decrypt (GcryCipherHd h,
                          unsigned char *out, size_t outsize,
                          const unsigned char *in, size_t inlen);
 
-/* Set key K of length L for the cipher handle H. 
-  (We have to cast away a const char* here - this catch-all ctl
-  function was probably not the best choice) */
+/* Set key K of length L for the cipher handle H.  (We have to cast
+   away a const char* here - this catch-all ctl function was probably
+   not the best choice) */
 #define gcry_cipher_setkey(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_KEY, \
 							 (char*)(k), (l) )
 
@@ -583,7 +602,10 @@ int gcry_cipher_decrypt (GcryCipherHd h,
 #define gcry_cipher_setiv(h,k,l)  gcry_cipher_ctl( (h), GCRYCTL_SET_IV, \
 							 (char*)(k), (l) )
 
-/* Perform the the OppenPGP sync operation if this is enabled for the
+/* Reset the handle to the state after open.  */
+#define gcry_cipher_reset(h)  gcry_cipher_ctl ((h), GCRYCTL_RESET, NULL, 0)
+
+/* Perform the the OpenPGP sync operation if this is enabled for the
    cipher handle H. */
 #define gcry_cipher_sync(h)  gcry_cipher_ctl( (h), GCRYCTL_CFB_SYNC, \
 								   NULL, 0 )
@@ -742,7 +764,7 @@ int gcry_md_enable( GcryMDHd hd, int algo );
 /* Create a new digest object as an exact copy of the object HD. */
 GcryMDHd gcry_md_copy (GcryMDHd hd);
 
-/* Reset the digest object HD to its initail state. */
+/* Reset the digest object HD to its initial state. */
 void gcry_md_reset (GcryMDHd hd);
 
 /* Perform various operations on the digets object HD. */
@@ -769,7 +791,7 @@ void gcry_md_hash_buffer (int algo, void *digest,
    if more than one algorithm is enabled in HD. */
 int gcry_md_get_algo (GcryMDHd hd);
 
-/* Retrieved the length in bytes of the digest yielded by algorithm
+/* Retrieve the length in bytes of the digest yielded by algorithm
    ALGO. */
 unsigned int gcry_md_get_algo_dlen (int algo);
 
@@ -887,7 +909,7 @@ void gcry_mpi_randomize (GcryMPI w,
  *                                  *
  ************************************/
 
-/* Log leveles used by the internal logging facility. */
+/* Log levels used by the internal logging facility. */
 enum gcry_log_levels 
   {
     GCRY_LOG_CONT   = 0,    /* continue the last log line */
