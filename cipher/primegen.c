@@ -1,5 +1,6 @@
 /* primegen.c - prime number generator
- * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2000, 2001, 2002, 2003
+ *               2004 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -38,7 +39,8 @@
 static gcry_mpi_t gen_prime (unsigned int nbits, int secret, int randomlevel, 
                              int (*extra_check)(void *, gcry_mpi_t),
                              void *extra_check_arg);
-static int check_prime( gcry_mpi_t prime, gcry_mpi_t val_2 );
+static int check_prime( gcry_mpi_t prime, gcry_mpi_t val_2,
+                        gcry_prime_check_func_t cb_func, void *cb_arg );
 static int is_prime( gcry_mpi_t n, int steps, int *count );
 static void m_out_of_n( char *array, int m, int n );
 
@@ -192,7 +194,8 @@ prime_generate_internal (int mode,
 			 unsigned int qbits, gcry_mpi_t g,
 			 gcry_mpi_t **ret_factors,
 			 gcry_random_level_t randomlevel, unsigned int flags,
-                         int all_factors)
+                         int all_factors,
+                         gcry_prime_check_func_t cb_func, void *cb_arg)
 {
   gcry_err_code_t err = 0;
   gcry_mpi_t *factors_new = NULL; /* Factors to return to the
@@ -369,7 +372,7 @@ prime_generate_internal (int mode,
 	else
 	  count2 = 0;
     }
-  while (! ((nprime == pbits) && check_prime (prime, val_2)));
+  while (! ((nprime == pbits) && check_prime (prime, val_2, cb_func, cb_arg)));
 
   if (DBG_CIPHER)
     {
@@ -519,7 +522,8 @@ _gcry_generate_elg_prime (int mode, unsigned pbits, unsigned qbits,
   gcry_mpi_t prime = NULL;
   
   err = prime_generate_internal (mode, &prime, pbits, qbits, g,
-				 ret_factors, GCRY_WEAK_RANDOM, 0, 0);
+				 ret_factors, GCRY_WEAK_RANDOM, 0, 0,
+                                 NULL, NULL);
 
   return prime;
 }
@@ -635,10 +639,11 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
  * Returns: true if this may be a prime
  */
 static int
-check_prime( gcry_mpi_t prime, gcry_mpi_t val_2 )
+check_prime( gcry_mpi_t prime, gcry_mpi_t val_2,
+             gcry_prime_check_func_t cb_func, void *cb_arg)
 {
   int i;
-  unsigned x;
+  unsigned int x;
   int count=0;
 
   /* Check against small primes. */
@@ -665,9 +670,16 @@ check_prime( gcry_mpi_t prime, gcry_mpi_t val_2 )
     mpi_free( result );
   }
 
-  /* perform stronger tests */
-  if ( is_prime(prime, 5, &count ) )
-    return 1; /* Probably a prime. */
+  if (!cb_func || cb_func (cb_arg, GCRY_PRIME_CHECK_AT_MAYBE_PRIME, prime))
+    {
+      /* Perform stronger tests. */
+      if ( is_prime( prime, 5, &count ) )
+        {
+          if (!cb_func
+              || cb_func (cb_arg, GCRY_PRIME_CHECK_AT_GOT_PRIME, prime))
+            return 1; /* Probably a prime. */
+        }
+    }
   progress('.');
   return 0;
 }
@@ -883,13 +895,14 @@ gcry_prime_generate (gcry_mpi_t *prime, unsigned int prime_bits,
   err = prime_generate_internal (mode, &prime_generated, prime_bits,
 				 factor_bits, NULL,
                                  factors? &factors_generated : NULL,
-				 random_level, flags, 1);
+				 random_level, flags, 1,
+                                 cb_func, cb_arg);
 
   if (! err)
     if (cb_func)
       {
 	/* Additional check. */
-	if (! (*cb_func) (cb_arg, 0, prime_generated))
+	if ( !cb_func (cb_arg, GCRY_PRIME_CHECK_AT_FINISH, prime_generated))
 	  {
 	    /* Failed, deallocate resources.  */
 	    unsigned int i;
@@ -922,7 +935,7 @@ gcry_prime_check (gcry_mpi_t x, unsigned int flags)
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_mpi_t val_2 = mpi_alloc_set_ui (2); /* Used by the Fermat test. */
 
-  if (! check_prime (x, val_2))
+  if (! check_prime (x, val_2, NULL, NULL))
     err = GPG_ERR_NO_PRIME;
 
   mpi_free (val_2);

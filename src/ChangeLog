@@ -1,3 +1,13 @@
+2004-02-20  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (GCRY_PRIME_CHECK_AT_GOT_PRIME)
+	(GCRY_PRIME_CHECK_AT_FINISH),
+	(GCRY_PRIME_CHECK_AT_MAYBE_PRIME): New.
+
+2004-02-18  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt-config.in: Ignore setting of --prefix.
+
 2004-02-13  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h: Added GCRY_CIPHER_RFC2268_128, alsthough not yet

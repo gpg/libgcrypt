@@ -85,9 +85,15 @@ while test $# -gt 0; do
 		usage 1 1>&2
 	    fi
 	    ;;
+        --prefix=*)
+            # For compatibility reasons with old M4 macros, we ignore
+            # setting of prefix.
+            ;;
 	--prefix)
 	    echo_prefix=yes
 	    ;;
+        --exec-prefix=*)
+            ;;
 	--exec-prefix)
 	    echo_exec_prefix=yes
 	    ;;

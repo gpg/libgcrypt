@@ -5,9 +5,23 @@ Noteworthy changes in version 1.1.92 (unreleased)
 
  * Included a limited implementation of RFC2268.
 
+ * Changed API of the gcry_ac_ functions.  Only a very few programs
+   should be affected by this.
+
  * Interface changes relative to the 1.1.91 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 GCRY_CIPHER_RFC2268_40          NEW.
+gcry_ac_data_set                CHANGED: New argument FLAGS.
+gcry_ac_data_get_name           CHANGED: New argument FLAGS.
+gcry_ac_data_get_index          CHANGED: New argument FLAGS.
+cry_ac_key_pair_generate        CHANGED: New and reordered arguments.
+gcry_ac_key_test                CHANGED: New argument HANDLE.
+gcry_ac_key_get_nbits           CHANGED: New argument HANDLE.
+gcry_ac_key_get_grip            CHANGED: New argument HANDLE.
+gcry_ac_data_search             REMOVED.
+gcry_ac_data_add                REMOVED.
+GCRY_AC_DATA_FLAG_NO_BLINDING   REMOVED.
+GCRY_AC_FLAG_NO_BLINDING        NEW: Replace above.
 
 
 Noteworthy changes in version 1.1.91 (2003-12-19)
