@@ -1,3 +1,9 @@
+2004-07-04  Moritz Schulte  <moritz@g10code.com>
+
+	* serpent.c: Use "u32_t" instead of "unsigned long", do not
+	declare S-Box variables as "register".  Fixes failure on
+	OpenBSD/sparc64, reported by Nikolay Sturm.
+
 2004-05-07  Werner Koch  <wk@gnupg.org>
 
 	* random.c (initialize): Factored out some code to ..
