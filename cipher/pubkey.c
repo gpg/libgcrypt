@@ -1344,12 +1344,12 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
 {
     GCRY_SEXP list, l2;
     const char *name;
-    const char *s;
+    const char *s, *s2;
     size_t n;
     int rc, i;
     const char *algo_name;
     int algo;
-    char sec_elems[20], pub_elems[20];	/* fixme: check bounds */
+    char sec_elems[20], pub_elems[20];
     GCRY_MPI skey[10], *factors;
     unsigned int nbits;
 
@@ -1377,10 +1377,20 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
 
     algo = algo_info_table[i].algo;
     algo_name = algo_info_table[i].name;
-    strcpy( pub_elems, algo_info_table[i].common_elements );
-    strcat( pub_elems, algo_info_table[i].public_elements );
-    strcpy( sec_elems, algo_info_table[i].common_elements );
-    strcat( sec_elems, algo_info_table[i].secret_elements );
+    
+    s = algo_info_table[i].common_elements;
+    s2 = algo_info_table[i].public_elements;
+    if( strlen( s ) + strlen( s2 ) > DIM( pub_elems ) )
+        return GCRYERR_TOO_SHORT; /* check bound failed */
+    strcpy( pub_elems, s );
+    strcat( pub_elems, s2 );
+
+    s = algo_info_table[i].common_elements;
+    s2 = algo_info_table[i].secret_elements;
+    if( strlen( s ) + strlen( s2 ) > DIM( sec_elems ) )
+        return GCRYERR_TOO_SHORT; /* check bound failed */
+    strcpy( sec_elems, s );
+    strcat( sec_elems, s2 );
 
     l2 = gcry_sexp_find_token( list, "nbits", 0 );
     gcry_sexp_release ( list );

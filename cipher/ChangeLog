@@ -1,5 +1,9 @@
 2002-10-10  Timo Schulz  <ts@winpt.org>
 
+	* pubkey.c (gcry_pk_genkey): Check boundaries.
+	
+2002-10-10  Timo Schulz  <ts@winpt.org>
+
 	* md.c (gcry_md_open): Check that algo is available and only
 	valid flags values are used.
 	(gcry_md_get_algo): Add error handling.
