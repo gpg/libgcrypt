@@ -54,7 +54,9 @@ Assigns past and future changes to FSF (cipher/{md4,crc}.c, CTR mode,
 CTS/MAC flags, self test improvements)
 simon@josefsson.org
 
-
+LIBGCRYPT Moritz Schulte	2003-04-17
+Assigns past and future changes.
+moritz@g10code.com
 
 
 
