@@ -1,3 +1,9 @@
+2005-03-23  Werner Koch  <wk@g10code.com>
+
+	* rndw32.c (_gcry_rndw32_gather_random_fast): While adding data
+	use the size of the object and not the one of its address.  Bug
+	reported by Sascha Kiefer.
+
 2005-03-19  Moritz Schulte  <moritz@g10code.com>
 
 	* cipher.c (do_cbc_encrypt): Be careful to not overwrite data,
