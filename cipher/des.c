@@ -747,7 +747,7 @@ tripledes_ecb_crypt (struct _tripledes_ctx *ctx, const byte * from, byte * to, i
 
 /*
  * Check whether the 8 byte key is weak.
- * Dose not check the parity bits of the key but simple ignore them.
+ * Does not check the parity bits of the key but simple ignore them.
  */
 static int
 is_weak_key ( const byte *key )

@@ -1,3 +1,7 @@
+2002-08-21  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c: Enable keygrip calculation for "openpgp-rsa".
+
 2002-08-17  Werner Koch  <wk@gnupg.org>
 
 	* cipher.c (setup_cipher_table): Don't overwrite the DES entry
