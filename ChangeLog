@@ -1,3 +1,11 @@
+2003-05-22  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac (AC_CHECK_HEADERS): Removed unused headers:
+	termio.h, langinfo.h.
+	(AC_CHECK_FUNCS): Removed unused functions: strsep, strlwr,
+	tcgetattr, setrlimit, strftime, nl_langinfo, sigaction,
+	sigprocmask, fopen64, fstat64.
+
 2003-04-27  Moritz Schulte  <moritz@g10code.com>
 
 	* README: Documented new configure switches.

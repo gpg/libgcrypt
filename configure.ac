@@ -75,7 +75,7 @@ AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 AC_PROG_AWK
 
 dnl Definitions for symmetric ciphers.
-available_ciphers="arcfour blowfish cast5 des aes twofish"
+available_ciphers="arcfour blowfish cast5 des aes twofish serpent"
 enabled_ciphers=""
 
 dnl Definitions for public-key ciphers.
@@ -193,6 +193,9 @@ AC_DEFINE_UNQUOTED(USE_AES, $found, [Defined if this module should be included])
 LIST_MEMBER(twofish, $enabled_ciphers)
 AM_CONDITIONAL(USE_TWOFISH, test "$found" = "1")
 AC_DEFINE_UNQUOTED(USE_TWOFISH, $found, [Defined if this module should be included])
+LIST_MEMBER(serpent, $enabled_ciphers)
+AM_CONDITIONAL(USE_SERPENT, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_SERPENT, $found, [Defined if this module should be included])
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
 AM_CONDITIONAL(USE_DSA, test "$found" = "1")
@@ -507,7 +510,7 @@ fi
 
 dnl Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS(unistd.h langinfo.h termio.h sys/select.h)
+AC_CHECK_HEADERS(unistd.h sys/select.h)
 
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -531,14 +534,12 @@ GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
 #
 AC_FUNC_VPRINTF
 dnl We have replacements for these in src/missing-string.c
-AC_CHECK_FUNCS(stpcpy strsep strlwr strcasecmp)
+AC_CHECK_FUNCS(stpcpy strcasecmp)
 dnl We have replacements for these in src/g10lib.h
 AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
 dnl Other checks
-AC_CHECK_FUNCS(strerror tcgetattr rand mmap)
-AC_CHECK_FUNCS(gettimeofday getrusage gethrtime setrlimit clock_gettime)
-AC_CHECK_FUNCS(getpagesize strftime nl_langinfo)
-AC_CHECK_FUNCS(waitpid wait4 sigaction sigprocmask fopen64 fstat64)
+AC_CHECK_FUNCS(strerror rand mmap getpagesize waitpid wait4)
+AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime)
 
 GNUPG_CHECK_MLOCK
 GNUPG_FUNC_MKDIR_TAKES_ONE_ARG
