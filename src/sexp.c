@@ -61,69 +61,74 @@ dump_mpi( GCRY_MPI a )
 #endif
 
 static void
-dump_string( FILE *fp, const byte *p, size_t n, int delim )
+dump_string (const byte *p, size_t n, int delim )
 {
-    for( ; n; n--, p++ )
-	if( (*p & 0x80) || iscntrl( *p ) || *p == delim ) {
-	    putc('\\', fp);
-	    if( *p == '\n' )
-		putc('n', fp);
-	    else if( *p == '\r' )
-		putc('r', fp);
-	    else if( *p == '\f' )
-		putc('f', fp);
-	    else if( *p == '\v' )
-		putc('v', fp);
+  for (; n; n--, p++ )
+    {
+      if ((*p & 0x80) || iscntrl( *p ) || *p == delim ) 
+        {
+          if( *p == '\n' )
+            log_printf ("\\n");
+          else if( *p == '\r' )
+            log_printf ("\\r");
+          else if( *p == '\f' )
+            log_printf ("\\f");
+          else if( *p == '\v' )
+            log_printf ("\\v");
 	    else if( *p == '\b' )
-		putc('b', fp);
-	    else if( !*p )
-		putc('0', fp);
-	    else
-		fprintf(fp, "x%02x", *p );
+              log_printf ("\\b");
+          else if( !*p )       
+            log_printf ("\\0");
+          else
+            log_printf ("\\x%02x", *p );
 	}
-	else
-	    putc(*p, fp);
+      else
+        log_printf ("%c", *p);
+    }
 }
 
 
 void
-gcry_sexp_dump( const GCRY_SEXP a )
+gcry_sexp_dump (const GCRY_SEXP a)
 {
-    const byte *p;
-    int indent = 0;
-    int type;
+  const byte *p;
+  int indent = 0;
+  int type;
 
-    if ( !a ) {
-	fputs ( "[nil]\n", stderr );
-	return;
+  if (!a)
+    {
+      log_printf ( "[nil]\n");
+      return;
     }
 
-    p = a->d;
-    while ( (type = *p) != ST_STOP ) {
-	p++;
-	switch ( type ) {
-	  case ST_OPEN:
-	    fprintf ( stderr, "%*s[open]\n", 2*indent, "" );
-	    indent++;
-	    break;
-	  case ST_CLOSE:
-	    if( indent )
-		indent--;
-	    fprintf ( stderr, "%*s[close]\n", 2*indent, "" );
-	    break;
-	  case ST_DATA: {
-		DATALEN n;
-		memcpy ( &n, p, sizeof n );
-		p += sizeof n;
-		fprintf ( stderr, "%*s[data=\"", 2*indent, "" );
-		dump_string ( stderr, p, n, '\"' );
-		fputs ( "\"]\n", stderr );
-		p += n;
-	    }
-	    break;
-	  default:
-	    fprintf ( stderr, "%*s[unknown tag %d]\n", 2*indent, "", type );
-	    break;
+  p = a->d;
+  while ( (type = *p) != ST_STOP )
+    {
+      p++;
+      switch ( type )
+        {
+        case ST_OPEN:
+          log_printf ("%*s[open]\n", 2*indent, "");
+          indent++;
+          break;
+        case ST_CLOSE:
+          if( indent )
+            indent--;
+          log_printf ("%*s[close]\n", 2*indent, "");
+          break;
+        case ST_DATA: {
+          DATALEN n;
+          memcpy ( &n, p, sizeof n );
+          p += sizeof n;
+          log_printf ("%*s[data=\"", 2*indent, "" );
+          dump_string (p, n, '\"' );
+          log_printf ("\"]\n");
+          p += n;
+        }
+        break;
+        default:
+          log_printf ("%*s[unknown tag %d]\n", 2*indent, "", type);
+          break;
 	}
     }
 }

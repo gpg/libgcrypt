@@ -217,3 +217,15 @@ _gcry_log_debug( const char *fmt, ... )
     va_end(arg_ptr);
 }
 
+void
+_gcry_log_printf (const char *fmt, ...)
+{
+  va_list arg_ptr = 0;
+  
+  if (fmt) 
+    {
+      va_start( arg_ptr, fmt ) ;
+      _gcry_logv (GCRY_LOG_CONT, fmt, arg_ptr);
+      va_end(arg_ptr);
+    }
+}

@@ -1,0 +1,6 @@
+* see where we should use the ascii_strcasecmp() functions.
+* switching from encrypt to decrypt requires a close and open.
+  Wouldn't it be better if we have a reste function or integrate that
+  with setkey?
+* add more tests.  Even basic is very minimal.
+* udiv-qrnbd.o sollte als *.lo gebaut werden (HPUX)

@@ -1,3 +1,9 @@
+2001-12-05  Werner Koch  <wk@gnupg.org>
+
+	* misc.c (_gcry_log_printf): New.
+	* sexp.c (dump_string,gcry_sexp_dump): Use logging functions
+	instead of stderr.
+
 2001-11-16  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h: New constant GCRYCTL_IS_ALGO_ENABLED.
