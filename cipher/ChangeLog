@@ -1,4 +1,13 @@
+2003-04-17  Moritz Schulte  <moritz@g10code.com>
+
+	* md.c: Include sha512/sha384 in digest_table.
+
 2003-04-16  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am: Include support for sha512.c.
+
+	* sha512.c: New file, merged from GnuPG, with few modifications
+	for libgcrypt.
 
 	* rand-internal.h: Removed declarations for constructor functions.
 

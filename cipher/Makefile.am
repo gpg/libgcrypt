@@ -83,6 +83,9 @@ endif
 if USE_SHA256
   tmp_sha256 = sha256.c
 endif
+if USE_SHA512
+  tmp_sha512 = sha512.c
+endif
 if USE_TIGER
   tmp_tiger = tiger.c
 endif
@@ -96,6 +99,7 @@ $(tmp_md4) \
 $(tmp_md5) \
 $(tmp_sha1) \
 $(tmp_sha256) \
+$(tmp_sha512) \
 $(tmp_tiger) \
 $(tmp_rmd160)
 

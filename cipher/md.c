@@ -86,6 +86,10 @@ static struct
 #if USE_SHA256
     { &digest_spec_sha256, 0 },
 #endif
+#if USE_SHA256
+    { &digest_spec_sha512, 0 },
+    { &digest_spec_sha384, 0 },
+#endif
 #if USE_TIGER
     { &digest_spec_tiger, 0 },
 #endif
