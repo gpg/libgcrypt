@@ -20,8 +20,8 @@
 #
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
-AC_PREREQ(2.57)
-min_automake_version="1.7.6"
+AC_PREREQ(2.59)
+min_automake_version="1.9.3"
 
 # Version number: Remember to change it immediately *after* a release
 # but remove a "-cvs" prefix right *before* a release and append it
