@@ -423,13 +423,11 @@ _gcry_check_heap( const void *a )
 }
 
 void *
-gcry_realloc( void *a, size_t n )
+gcry_realloc (void *a, size_t n)
 {
-    /* FIXME: Make sure that the realloced memory is cleared out */
-
-    if( realloc_func )
-	return realloc_func( a, n ) ;
-    return _gcry_private_realloc( a, n );
+  if (realloc_func)
+    return realloc_func (a, n);
+  return _gcry_private_realloc (a, n);
 }
 
 void
