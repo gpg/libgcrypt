@@ -1,4 +1,4 @@
-/* sexp.c  -  S-Expression handling
+/* sexp.c  -  Sex^H^H-Expression handling
  *	Copyright (C) 1999 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
@@ -200,11 +200,91 @@ gcry_sexp_vlist( GCRY_SEXP a, ... )
 }
 
 
+/****************
+ * Locate data in a list. Data must be the first item in the list.
+ * Returns: The sublist with that Data (don't modify it!)
+ */
+GCRY_SEXP
+gcry_sexp_find_token( GCRY_SEXP list, const char *tok, size_t toklen )
+{
+    NODE node;
+
+    for( node=list ; node; node = node->next )
+      {
+	switch( node->type ) {
+	  case ntLIST: {
+		NODE n = gcry_sexp_find_token( node->u.list, tok, toklen );
+		if( n )
+		    return n;
+	    }
+	    break;
+	  case ntDATA:
+	    if( node == list
+		&& node->u.data.len == toklen
+		&& !memcmp( node->u.data.d, tok, toklen ) )
+	      {
+		return node;
+	      }
+	    break;
+	  case ntMPI:
+	    break;
+	}
+      }
+
+    return NULL;
+}
 
 
+/****************
+ * Enumerate all objects in the list.  Ther firts time you call this, pass
+ * the address of a void pointer initialized to NULL.  Then don't touch this
+ * variable anymore but pass it verbatim to the function; you will get
+ * all lists back in turn. End of lists is indicated by a returned NIL in
+ * whic case you should not continue to use this function
+ * (it would wrap around).  If you decide to cancel the operation before
+ * the final NIL you vae to release the context by calling the function
+ * with a the context but a LIST set to NULL.
+ * Note that this function returns only lists and not single objects.
+ */
+GCRY_SEXP
+gcry_sexp_enum_lists( GCRY_SEXP list, void **context )
+{
+    NODE node;
+
+    if( !list ) {
+	/* we are lucky that we can hold all information in the pointer
+	 * value ;-) - so there is no need to release any memory */
+	*context = NULL;
+	return NULL;
+    }
+    if( !*context )  /* start enumeration */
+	node = list;
+    else
+	node = *context;
 
 
+    for( ; node; node = node->next ) {
+	if( node->type == ntLIST ) {
+	    node = node->u.list;
+	    *context = node; /* store our context */
+	    return node;
+	}
+    }
 
+    /* release resources and return nil */
+    return gcry_sexp_enum_lists( NULL, context );
+}
+
+
+/****************
+ * cdr the mpi from the list or NULL if there is no MPI.
+ * This function tries to convert plain data to an MPI.
+ */
+MPI
+gcry_sexp_cdr_mpi( GCRY_SEXP list )
+{
+
+}
 
 
 /****************
@@ -468,6 +548,7 @@ main(int argc, char **argv)
     FILE *fp;
     GCRY_SEXP s_pk, s_dsa, s_p, s_q, s_g, sexp;
 
+  #if 0
     if( argc > 1 ) {
 	fp = fopen( argv[1], "r" );
 	if( !fp )
@@ -477,6 +558,7 @@ main(int argc, char **argv)
 	rc = gcry_sexp_sscan( NULL, buffer, n, &erroff );
 	fprintf(stderr, "read: rc=%d  erroff=%u\n", rc, erroff );
     }
+  #endif
 
     s_pk = SEXP_NEW( "public-key", 10 );
     fputs("pk:\n",stderr);dump_sexp( s_pk );
@@ -492,6 +574,22 @@ main(int argc, char **argv)
 					     NULL ));
     fputs("all:\n",stderr);dump_sexp( sexp );
 
+    /* now find something */
+    if( argc > 1 )
+      {
+	GCRY_SEXP s1;
+
+	s1 = gcry_sexp_find_token( sexp, argv[1], strlen(argv[1]) );
+	if( !s1 )
+	  {
+	    fprintf(stderr, "didn't found `%s'\n", argv[1] );
+	  }
+	else
+	  {
+	    fprintf(stderr, "found `%s':\n", argv[1] );
+	    dump_sexp( s1 );
+	  }
+      }
     return 0;
 }
 
