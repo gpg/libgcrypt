@@ -1,3 +1,7 @@
+2001-11-16  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: New constant GCRYCTL_IS_ALGO_ENABLED.
+
 2001-10-02  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h: Removed a couple of trailing commas.

@@ -131,7 +131,8 @@ enum gcry_ctl_cmds {
     GCRYCTL_ENABLE_M_GUARD	= 31,
     GCRYCTL_START_DUMP		= 32,
     GCRYCTL_STOP_DUMP		= 33,
-    GCRYCTL_GET_ALGO_USAGE      = 34
+    GCRYCTL_GET_ALGO_USAGE      = 34,
+    GCRYCTL_IS_ALGO_ENABLED     = 35
 };
 
 int gcry_control( enum gcry_ctl_cmds, ... );
