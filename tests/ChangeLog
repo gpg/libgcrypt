@@ -1,5 +1,10 @@
 2003-01-20  Werner Koch  <wk@gnupg.org>
 
+	* basic.c (check_one_md): Kludge to check a one million "a".
+	(check_digests): Add checks for SHA-256.
+
+2003-01-20  Werner Koch  <wk@gnupg.org>
+
 	* basic.c (check_pubkey): Check the keygrip for the sample key.
 
 2003-01-15  Werner Koch  <wk@gnupg.org>

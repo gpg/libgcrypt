@@ -53,6 +53,10 @@ static struct {
   { "1.2.840.113549.2.4", GCRY_MD_MD4 },
   /* from NIST OIW (sha-1WithRSAEncryption) */
   { "1.3.14.3.2.29", GCRY_MD_SHA1 },
+  /* According to the OpenPGG draft rfc2440-bis06 */
+  { "2.16.840.1.101.3.4.2.1", GCRY_MD_SHA256 }, 
+  { "2.16.840.1.101.3.4.2.2", GCRY_MD_SHA384 }, 
+  { "2.16.840.1.101.3.4.2.3", GCRY_MD_SHA512 }, 
   {NULL}
 };
 
@@ -818,19 +822,23 @@ md_digest_length( int algo )
 unsigned int
 gcry_md_get_algo_dlen( int algo )
 {
-    /* we do some very quick checks here */
-    switch( algo )
+  /* we cheat a little bit */
+  switch( algo )
     {
-      case GCRY_MD_MD4:
-      case GCRY_MD_MD5: return 16;
-      case GCRY_MD_SHA1:
-      case GCRY_MD_RMD160: return 20;
-      default: {
-	    int len = md_digest_length( algo );
-	    if( !len )
-		set_lasterr( GCRYERR_INV_MD_ALGO );
-	    return 0;
-	}
+    case GCRY_MD_MD4:
+    case GCRY_MD_MD5: return 16;
+    case GCRY_MD_SHA1:
+    case GCRY_MD_RMD160: return 20;
+    case GCRY_MD_SHA256: return 32;
+    case GCRY_MD_SHA384: return 48;
+    case GCRY_MD_SHA512: return 64;
+    default: 
+      {
+        int len = md_digest_length( algo );
+        if( !len )
+          set_lasterr( GCRYERR_INV_MD_ALGO );
+        return 0;
+      }
     }
 }
 

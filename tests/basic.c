@@ -282,12 +282,15 @@ check_ciphers (void)
   /* TODO: add some extra encryption to test the higher level functions */
 }
 
+
+
 static void
 check_one_md (int algo, char *data, int len, char *expect)
 {
     GCRY_MD_HD hd;
     char *p;
     int mdlen;
+    int i;
 
     hd = gcry_md_open (algo, 0);
     if (!hd) {
@@ -301,8 +304,17 @@ check_one_md (int algo, char *data, int len, char *expect)
         fail ("algo %d, grcy_md_get_algo_dlen failed: %d\n", algo, mdlen);
         return;
     }
-    
-    gcry_md_write (hd, data, len);
+
+    if (*data == '!' && !data[1])
+      { /* hash one million times a "a" */
+        char aaa[1000];
+        
+        memset (aaa, 'a', 1000);
+        for (i=0; i < 1000; i++)
+          gcry_md_write (hd, aaa, 1000);
+      }
+    else
+      gcry_md_write (hd, data, len);
 
     p = gcry_md_read (hd, algo);
 
@@ -340,6 +352,18 @@ check_digests ()
     { GCRY_MD_SHA1, "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
       "\x84\x98\x3E\x44\x1C\x3B\xD2\x6E\xBA\xAE"
       "\x4A\xA1\xF9\x51\x29\xE5\xE5\x46\x70\xF1" },
+    { GCRY_MD_SHA1, "!" /* kludge for "a"*1000000 */,
+      "\x34\xAA\x97\x3C\xD4\xC4\xDA\xA4\xF6\x1E"
+      "\xEB\x2B\xDB\xAD\x27\x31\x65\x34\x01\x6F" },
+    { GCRY_MD_SHA256, "abc",
+      "\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23"
+      "\xb0\x03\x61\xa3\x96\x17\x7a\x9c\xb4\x10\xff\x61\xf2\x00\x15\xad" },
+    { GCRY_MD_SHA256, "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+      "\x24\x8d\x6a\x61\xd2\x06\x38\xb8\xe5\xc0\x26\x93\x0c\x3e\x60\x39"
+      "\xa3\x3c\xe4\x59\x64\xff\x21\x67\xf6\xec\xed\xd4\x19\xdb\x06\xc1" },
+    { GCRY_MD_SHA256, "!",
+      "\xcd\xc7\x6e\x5c\x99\x14\xfb\x92\x81\xa1\xc7\xe2\x84\xd7\x3e\x67" 
+      "\xf1\x80\x9a\x48\xa4\x97\x20\x0e\x04\x6d\x39\xcc\xc7\x11\x2c\xd0" },
     { GCRY_MD_RMD160, "",
       "\x9c\x11\x85\xa5\xc5\xe9\xfc\x54\x61\x28"
       "\x08\x97\x7e\xe8\xf5\x48\xb2\x25\x8d\x31" },

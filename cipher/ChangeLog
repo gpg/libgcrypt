@@ -1,5 +1,13 @@
 2003-01-20  Werner Koch  <wk@gnupg.org>
 
+	* sha256.c: New.
+	* bithelp.h (ror): New.
+	* Makfile.am: Add sha256.c.
+	* md.c (oid_table): Add values for SHA256 et al.
+	(gcry_md_get_algo_dlen): Likewise
+
+2003-01-20  Werner Koch  <wk@gnupg.org>
+
 	* pubkey.c (gcry_pk_get_keygrip): Implemented keygrips for DSA
 	and ElGamal.
 

@@ -71,7 +71,7 @@ AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 
-static_modules="sha1 md4 md5 rmd160"
+static_modules="sha1 sha256 md4 md5 rmd160"
 static_random_module=""
 
 AC_PROG_AWK

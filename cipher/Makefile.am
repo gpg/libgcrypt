@@ -28,7 +28,7 @@ noinst_LTLIBRARIES = libcipher.la
 
 
 # The configure script greps the module names from the EXTRA_PROGRAMS line
-EXTRA_PROGRAMS = rndlinux rndunix rndegd rndw32 sha1 rmd160 md4 md5 tiger
+EXTRA_PROGRAMS = rndlinux rndunix rndegd rndw32 sha1 sha256 rmd160 md4 md5 tiger
 
 EXTRA_rndlinux_SOURCES = rndlinux.c
 EXTRA_rndunix_SOURCES = rndunix.c
@@ -38,6 +38,7 @@ EXTRA_md4_SOURCES = md4.c
 EXTRA_md5_SOURCES = md5.c
 EXTRA_rmd160_SOURCES = rmd160.c
 EXTRA_sha1_SOURCES = sha1.c
+EXTRA_sha256_SOURCES = sha256.c
 EXTRA_tiger_SOURCES = tiger.c
 
 

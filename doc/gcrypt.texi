@@ -645,8 +645,8 @@ bit. It yields a message digest of 20 bytes.  Note that there is no
 implementation yet available.
 
 @item GCRY_MD_SHA256
-This is reserved for SHA-2 with 256 bits. It yields a message digest of
-32 bytes.  Note that there is no implementation yet available.
+This is the SHA-256 algorithm which yields a message digest of 32 bytes.
+See FIPS 180-2 for the specification.
 
 @item GCRY_MD_SHA384
 This is reserved for SHA-2 with 384 bits. It yields a message digest of
