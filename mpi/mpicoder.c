@@ -479,7 +479,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	    extra=1;
 	}
 
-	if( n > len && buffer ) {
+	if (buffer && n > len) {
 	    gcry_free(tmp);
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	}
@@ -500,7 +500,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	/* we ignore the sign for this format */
 	/* FIXME: for performance reasons we should put this into
 	 * mpi_aprint becuase we can then use the buffer directly */
-	if( n > len && buffer )
+	if (buffer && n > len)
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	if( buffer ) {
 	    char *tmp;
@@ -517,7 +517,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	if( a->sign )
 	    return GCRYERR_INV_ARG; /* pgp format can only handle unsigned */
 
-	if( n+2 > len && buffer )
+	if (buffer && n+2 > len)
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	if( buffer ) {
 	    char *tmp;
@@ -546,7 +546,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	    extra=1;
 	}
 
-	if( n+4 > len && buffer ) {
+	if (buffer && n+4 > len) {
 	    gcry_free(tmp);
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	}
@@ -575,7 +575,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	if( !n || (*tmp & 0x80) )
 	    extra=2;
 
-	if( 2*n + extra + !!a->sign + 1 > len && buffer ) {
+	if(buffer && 2*n + extra + !!a->sign + 1 > len) {
 	    gcry_free(tmp);
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	}

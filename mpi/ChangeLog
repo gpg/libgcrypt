@@ -1,3 +1,8 @@
+2003-04-02  Werner Koch  <wk@gnupg.org>
+
+	* mpicoder.c (gcry_mpi_print): Fixed testing against possible
+	uninitialized LEN.  Valgrinded by Nikos Mavroyanopoulos.
+
 2003-01-15  Werner Koch  <wk@gnupg.org>
 
 	* longlong.h: Removed some spaces between backslashes and newlines.
