@@ -1,0 +1,74 @@
+README.apichanges 2003-07-27
+
+
+We decided to change a couple of annoying things in Libgcrypt and to
+cleanup the API.  The new API better fits into a multi-threaded
+envronment and is more consistent.  One import change is that all
+functions return error codes from a set of error codes shared between
+gnupg, gpgme and libgcrypt.
+
+Here are some hints on how to port your application from libgcrypt <=
+1.1.13 to the current API as of 1.1.42.  We hope that there won't be
+another need for such a major change.
+
+
+* Types
+
+  All types definitions changed to a foo_t scheme; for some time we
+  will support the old names but you better start to rename them:
+
+  s/GCRY_MPI/gcry_mpi_t/
+  s/GcryMPI/gcry_mpi_t/
+  s/GCRY_SEXP/gcry_sexp_t/
+  s/GcrySexp/gcry_sexp_t/
+  s/GCRY_CIPHER_HD/gcry_cipher_hd_t/
+  s/GcryCipherHd/gcry_cipher_hd_t/
+  s/GCRY_MD_HD/gcry_md_hd_t/
+  s/GcryMDHd/gcry_md_hd_t/
+
+* Handles
+
+  gcry_cipher_open and gcry_md_open do now return an error code and
+  not a NULL ahandle on return.  The handle is now returned by
+  asigning it to the first argument.  Example on how to change your
+  code:
+
+  Old:
+
+    hd = gcry_md_open (algo, flags);
+    if (!hd)
+      {
+         fprintf (stderr, "md_open failed: %s\n", gcry_errno (-1));
+         ....
+
+  New:
+
+    rc = gcry_md_open (&hd, algo, flags);
+    if (rc)
+      {
+         fprintf (stderr, "md_open failed: %s\n", gcry_strerror (rc));
+         ....
+
+  If you are not interested in the error code, you can do it in a
+  simplified way:
+ 
+    gcry_md_open (&hd, algo, flags);
+    if (!hd)
+        abort ();
+
+  i.e. the function makes sure that HD points to NULL in case of an error.
+  The required change for gcry_cipher_open is similar.
+
+
+* Error codes
+
+  gcry_errno () has been removed because it is hard to use in
+  multi-threaded environment.  You need to save the error code
+  returned by the functions and use it either numerical or passing it
+  to gcry_strerror (gpg_strerror can also be used becuase the error
+  codes are syncronized with libgpg-error).
+
+
+
+....
+

@@ -20,7 +20,7 @@
 
 DIST_SUBDIRS = mpi cipher src doc tests w32-dll
 SUBDIRS = mpi cipher src doc tests
-EXTRA_DIST = README-alpha BUGS autogen.sh COPYING.DOC
+EXTRA_DIST = README-alpha BUGS autogen.sh COPYING.DOC README.apichanges
 DISTCLEANFILES = gcrypt-defs.h 
 
 
