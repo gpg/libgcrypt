@@ -1,3 +1,16 @@
+2003-06-14  Moritz Schulte  <moritz@g10code.com>
+
+	* des.c (des_setkey): Add selftest check.
+	(tripledes_set3keys): Likewise.
+	(do_tripledes_setkey): Remove selftest check.
+	(do_des_setkey): Likewise.
+
+2003-06-11  Moritz Schulte  <moritz@g10code.com>
+
+	* md.c (_gcry_md_init): New function.
+	* cipher.c (_gcry_cipher_init): New function.
+	* pubkey.c (_gcry_pk_init): New function.
+
 2003-06-13  Werner Koch  <wk@gnupg.org>
 
 	* md.c (gcry_md_get_algo): Reverted to old API.  This is a

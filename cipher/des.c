@@ -569,12 +569,19 @@ des_key_schedule (const byte * rawkey, u32 * subkey)
 static int
 des_setkey (struct _des_ctx *ctx, const byte * key)
 {
+  static const char *selftest_failed;
   int i;
 
-#ifdef FIXME
-  if( selftest_failed )
+  if (! initialized)
+    {
+      initialized = 1;
+      selftest_failed = selftest ();
+
+      if (selftest_failed)
+	log_error ("%s\n", selftest_failed);
+    }
+  if (selftest_failed)
     return GPG_ERR_SELFTEST_FAILED;
-#endif
 
   des_key_schedule (key, ctx->encrypt_subkeys);
   _gcry_burn_stack (32);
@@ -669,7 +676,19 @@ tripledes_set3keys (struct _tripledes_ctx *ctx,
 		    const byte * key2,
 		    const byte * key3)
 {
+  static const char *selftest_failed;
   int i;
+
+  if (! initialized)
+    {
+      initialized = 1;
+      selftest_failed = selftest ();
+
+      if (selftest_failed)
+	log_error ("%s\n", selftest_failed);
+    }
+  if (selftest_failed)
+    return GPG_ERR_SELFTEST_FAILED;
 
   des_key_schedule (key1, ctx->encrypt_subkeys);
   des_key_schedule (key2, &(ctx->decrypt_subkeys[32]));
@@ -686,7 +705,7 @@ tripledes_set3keys (struct _tripledes_ctx *ctx,
 
       ctx->decrypt_subkeys[i+64] = ctx->encrypt_subkeys[30-i];
       ctx->decrypt_subkeys[i+65] = ctx->encrypt_subkeys[31-i];
-    }
+     }
 
   return 0;
 }
@@ -977,11 +996,6 @@ do_tripledes_setkey ( void *context, const byte *key, unsigned keylen )
 {
   struct _tripledes_ctx *ctx = (struct _tripledes_ctx *) context;
 
-#ifdef FIXME
-    if( selftest_failed )
-	return GPG_ERR_SELFTEST_FAILED;
-#endif
-
     if( keylen != 24 )
 	return GPG_ERR_INV_KEYLEN;
 
@@ -1018,18 +1032,6 @@ static gpg_err_code_t
 do_des_setkey (void *context, const byte *key, unsigned keylen)
 {
   struct _des_ctx *ctx = (struct _des_ctx *) context;
-  static const char *selftest_failed;
-
-  if (! initialized)
-    {
-      initialized = 1;
-      selftest_failed = selftest ();
-
-      if (selftest_failed)
-	log_error ("%s\n", selftest_failed);
-    }
-  if (selftest_failed)
-    return GPG_ERR_SELFTEST_FAILED;
 
   if (keylen != 8)
     return GPG_ERR_INV_KEYLEN;
