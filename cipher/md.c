@@ -1183,17 +1183,6 @@ gcry_md_is_enabled (gcry_md_hd_t a, int algo)
     value = 0;
   return value;
 }
-<<<<<<< md.c
-
-
-
-
-
-
-
-
-
-=======
 
 /* Get a list consisting of the IDs of the loaded message digest
    modules.  If LIST is zero, write the number of loaded message
@@ -1213,4 +1202,3 @@ gcry_md_list (int *list, int *list_length)
 
   return err;
 }
->>>>>>> 1.73
