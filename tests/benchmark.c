@@ -300,11 +300,11 @@ do_powm ( const char *n_str, const char *e_str, const char *m_str)
   gcry_error_t err;
   int i;
 
-  err = gcry_mpi_scan (&n, GCRYMPI_FMT_HEX, n_str, 0 );
+  err = gcry_mpi_scan (&n, GCRYMPI_FMT_HEX, n_str, 0, 0);
   if (err) BUG ();
-  err = gcry_mpi_scan (&e, GCRYMPI_FMT_HEX, e_str, 0);
+  err = gcry_mpi_scan (&e, GCRYMPI_FMT_HEX, e_str, 0, 0);
   if (err) BUG ();
-  err = gcry_mpi_scan (&msg, GCRYMPI_FMT_HEX, m_str, 0);
+  err = gcry_mpi_scan (&msg, GCRYMPI_FMT_HEX, m_str, 0, 0);
   if (err) BUG ();
 
   cip = gcry_mpi_new (0);
