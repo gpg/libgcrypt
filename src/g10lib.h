@@ -199,28 +199,37 @@ struct gcry_module
   void *spec;			/* The acctual specs.  */
   int flags;			/* Associated flags.   */
   int counter;			/* Use counter.        */
+  unsigned int id;		/* ID of this module.  */
 };
 
-typedef struct gcry_module GcryModule;
+typedef struct gcry_module gcry_module_t;
 
-/* Flags for the `flags' member of GcryModule.  */
+/* Flags for the `flags' member of gcry_module_t.  */
 #define FLAG_MODULE_DISABLED 1 << 0
 
-gpg_err_code_t _gcry_module_add (GcryModule **entries, void *spec,
-				 GcryModule **module);
+gpg_err_code_t _gcry_module_add (gcry_module_t **entries,
+				 unsigned int id,
+				 void *spec,
+				 gcry_module_t **module);
 
-typedef int (*GcryModuleLookup) (void *spec, void *data);
+typedef int (*gcry_module_tLookup) (void *spec, void *data);
+
+/* Public function.  Lookup a module specification by it's ID.  After a
+   successfull lookup, the module has it's resource counter
+   incremented.  */
+gcry_module_t *_gcry_module_lookup_id (gcry_module_t *entries,
+				       unsigned int id);
 
 /* Internal function.  Lookup a module specification.  */
-GcryModule *_gcry_module_lookup (GcryModule *entries, void *data,
-				 GcryModuleLookup func);
+gcry_module_t *_gcry_module_lookup (gcry_module_t *entries, void *data,
+				 gcry_module_tLookup func);
 
 /* Public function.  Release a module.  In case the use-counter
    reaches zero, destroy the module.  */
-void _gcry_module_release (GcryModule *entry);
+void _gcry_module_release (gcry_module_t *entry);
 
 /* Public function.  Add a reference to a module.  */
-void _gcry_module_use (GcryModule *module);
+void _gcry_module_use (gcry_module_t *module);
 
 gpg_err_code_t _gcry_cipher_init (void);
 gpg_err_code_t _gcry_md_init (void);

@@ -955,47 +955,56 @@ enum gcry_log_levels
     GCRY_LOG_DEBUG  = 100
   };
 
-
+/* Type for progress handlers.  */
 typedef void (*gcry_handler_progress_t) (void *, const char *, int, int, int);
+
+/* Type for memory allocation handlers.  */
 typedef void *(*gcry_handler_alloc_t) (size_t n);
-typedef void *(*gcry_handler_secure_check_t) (void *);
+
+/* Type for secure memory check handlers.  */
+typedef int (*gcry_handler_secure_check_t) (const void *);
+
+/* Type for memory reallocation handlers.  */
 typedef void *(*gcry_handler_realloc_t) (void *p, size_t n);
-typedef void *(*gcry_handler_free_t) (void *);
-typedef void (*gcry_handler_no_mem_t) (void *, size_t, unsigned int);
+
+/* Type for memory free handlers.  */
+typedef void (*gcry_handler_free_t) (void *);
+
+/* Type for out-of-memory handlers.  */
+typedef int (*gcry_handler_no_mem_t) (void *, size_t, unsigned int);
+
+/* Type for fatal error handlers.  */
 typedef void (*gcry_handler_error_t) (void *, int, const char *);
+
+/* Type for logging handlers.  */
 typedef void (*gcry_handler_log_t) (void *, int, const char *, va_list);
 
 /* Certain operations can provide progress information.  This function
    is used to register a handler for retrieving these information. */
-void gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
-                                void *cb_data);
+void gcry_set_progress_handler (gcry_handler_progress_t cb, void *cb_data);
 
 
 /* Register a custom memory allocation functions. */
-void gcry_set_allocation_handler (void *(*new_alloc_func)(size_t n),
-				  void *(*new_alloc_secure_func)(size_t n),
-				  int (*new_is_secure_func)(const void*),
-				  void *(*new_realloc_func)(void *p, size_t n),
-				  void (*new_free_func)(void*));
+void gcry_set_allocation_handler (gcry_handler_alloc_t func_alloc,
+				  gcry_handler_alloc_t func_alloc_secure,
+				  gcry_handler_secure_check_t func_secure_check,
+				  gcry_handler_realloc_t func_realloc,
+				  gcry_handler_free_t func_free);
 
 /* Register a function used instead of the internal out of memory
    handler. */
-void gcry_set_outofcore_handler (int (*h)(void*, size_t, unsigned int),
-                                 void *opaque );
+void gcry_set_outofcore_handler (gcry_handler_no_mem_t h, void *opaque);
 
 /* Register a function used instead of the internal fatal error
    handler. */
-void gcry_set_fatalerror_handler (void (*fnc)(void*,int, const char*),
-                                  void *opaque);
-
-/* Reserved for future use. */
-void gcry_set_gettext_handler (const char *(*f)(const char*));
+void gcry_set_fatalerror_handler (gcry_handler_error_t fnc, void *opaque);
 
 /* Register a function used instead of the internal logging
    facility. */
-void gcry_set_log_handler (void (*f)(void*,int, const char*, va_list),
-                           void *opaque);
+void gcry_set_log_handler (gcry_handler_log_t f, void *opaque);
 
+/* Reserved for future use. */
+void gcry_set_gettext_handler (const char *(*f)(const char*));
 
 /* Libgcrypt uses its own memory allocation.  It is important to use
    gcry_free () to release memory allocated by libgcrypt. */
