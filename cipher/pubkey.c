@@ -1213,7 +1213,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
                   if (!p[j])
                     p[j] = pp[--k];
                   if (p[j])
-                    j++
+                    j++;
                 }
               gcry_free (pp);
             }

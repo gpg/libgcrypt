@@ -763,7 +763,10 @@ read_pool (byte *buffer, size_t length, int level)
   
   /* Mix the pid in so that we for sure won't deliver the same random
      after a fork. */
-  add_randomness (&my_pid, sizeof (my_pid), 0);
+  {
+    pid_t apid = my_pid;
+    add_randomness (&apid, sizeof (apid), 0);
+  }
 
   /* Mix the pool (if add_randomness() didn't it). */
   if (!just_mixed)

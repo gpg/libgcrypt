@@ -263,7 +263,9 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
         if (! init_finished)
 	  {
             global_init ();
-            _gcry_random_initialize ();
+            /* Do only a basic random initialization, i.e. init the
+               mutexes. */
+            _gcry_random_initialize (0);
             init_finished = 1;
 	  }
         break;
