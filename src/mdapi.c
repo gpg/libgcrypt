@@ -31,16 +31,13 @@
 #include "memory.h"
 
 
-int
-gcry_md_open( GCRY_MD_HD *ret_hd, int algo, unsigned flags )
+GCRY_MD_HD
+gcry_md_open( GCRY_MD_HD *ret_hd, int algo, unsigned int flags )
 {
-    GCRY_MD_HD hd;
-
     /* fixme: check that algo is available and that only valid
      * flag values are used */
     hd = md_open( algo, (flags & GCRY_MD_FLAG_SECURE) );
-    *ret_hd = hd;
-    return 0;
+    return hd;
 }
 
 void
@@ -68,8 +65,6 @@ gcry_md_ctl( GCRY_MD_HD hd, int cmd, byte *buffer, size_t buflen)
 {
     if( cmd == GCRYCTL_FINALIZE )
 	md_final( hd );
-    else if( cmd == GCRYCTL_FINALIZE )
-	md_final( hd );
     else
 	return GCRYERR_INV_OP;
     return 0;
@@ -93,16 +88,17 @@ gcry_md_read( GCRY_MD_HD hd, int algo )
 }
 
 int
-gcry_md_algo( GCRY_MD_HD hd )
+gcry_md_get_algo( GCRY_MD_HD hd )
 {
-    return md_get_algo( hd );
+    return md_get_algo( hd ); /* fixme: we need error handling */
 }
 
 /****************
  * Return the length of the digest in bytes.
+ * This function will return 0 in case of errors.
  */
-size_t
-gcry_md_dlen( int algo )
+unsigned int
+gcry_md_get_algo_dlen( int algo )
 {
     /* we do some very quick checks here */
     switch( algo )
@@ -110,7 +106,10 @@ gcry_md_dlen( int algo )
       case GCRY_MD_MD5: return 16;
       case GCRY_MD_SHA1:
       case GCRY_MD_RMD160: return 20;
-      default: return 0; /* fixme: pass it to a lookup function */
+      default:
+	/* fixme: pass it to a lookup function */
+	set_lasterr( GCRYERR_INV_ALGO );
+	return -1;
     }
 }
 

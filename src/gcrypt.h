@@ -61,6 +61,9 @@ enum gcry_ctl_cmds {
     GCRYCTL_CFB_SYNC = 3,
     GCRYCTL_RESET    = 4,   /* e.g. for MDs */
     GCRYCTL_FINALIZE = 5,
+    GCRYCTL_GET_KEYLEN = 6,
+    GCRYCTL_GET_BLKLEN = 7,
+    GCRYCTL_TEST_ALGO = 8,
 };
 
 int gcry_control( enum gcry_ctl_cmds, ... );
@@ -181,20 +184,20 @@ enum gcry_cipher_flags {
 
 #if 0 /* not yet done */
 int gcry_string_to_cipher_algo( const char *string );
-const char * gcry_cipher_algo_to_string( int algo );
 int gcry_check_cipher_algo( int algo );
-unsigned gcry_cipher_get_keylen( int algo );
-unsigned gcry_cipher_get_blocksize( int algo );
 #endif
 
-int gcry_cipher_open( GCRY_CIPHER_HD *rhd, int algo, int mode, unsigned flags);
+GCRY_CIPHER_HD r gcry_cipher_open( int algo, int mode, unsigned flags);
 void gcry_cipher_close( GCRY_CIPHER_HD h );
 int  gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, byte *buffer, size_t buflen);
+int gcry_cipher_info( GCRY_CIPHER_HD h, int what, void *buffer, size_t *nbytes);
+int gcry_cipher_algo_info( int algo, int what, void *buffer, size_t *nbytes);
+const char *gcry_cipher_algo_name( int algo );
 
 int gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
-					    byte *in, size_t inlen );
+				      const byte *in, size_t inlen );
 int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
-					    byte *in, size_t inlen );
+				      const byte *in, size_t inlen );
 
 
 /* some handy macros */
@@ -204,6 +207,13 @@ int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 								  (k), (l) )
 #define gcry_cipher_sync(h)  gcry_cipher_ctl( (h), GCRYCTL_CFB_SYNC, \
 								   NULL, 0 )
+
+#define gcry_cipher_get_algo_keylen(a) \
+	    gcry_cipher_algo_info( (a), GCRYCTL_GET_KEYLEN, NULL, NULL );
+#define gcry_cipher_get_algo_blklen(a) \
+	    gcry_cipher_algo_info( (a), GCRYCTL_GET_BLKLEN, NULL, NULL );
+#define gcry_cipher_test_algo(a) \
+	    gcry_cipher_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL );
 
 
 /*********************************************
@@ -236,16 +246,16 @@ enum gcry_md_flags {
 };
 
 
-int gcry_md_open( GCRY_MD_HD *ret_hd, int algo, unsigned flags );
+GCRY_MD_HD gcry_md_open( int algo, unsigned flags );
 void gcry_md_close( GCRY_MD_HD hd );
 int gcry_md_enable( GCRY_MD_HD hd, int algo );
 GCRY_MD_HD gcry_md_copy( GCRY_MD_HD hd );
 int gcry_md_ctl( GCRY_MD_HD hd, int cmd, byte *buffer, size_t buflen);
 void gcry_md_write( GCRY_MD_HD hd, const byte *buffer, size_t length);
 byte *gcry_md_read( GCRY_MD_HD hd, int algo );
-int gcry_md_algo( GCRY_MD_HD hd );
-size_t gcry_md_dlen( int algo );
-int gcry_md_get( GCRY_MD_HD hd, int algo, byte *buffer, int buflen );
+int gcry_md_get_algo( GCRY_MD_HD hd );
+int gcry_md_get_dlen( int algo );
+/*??int gcry_md_get( GCRY_MD_HD hd, int algo, byte *buffer, int buflen );*/
 
 
 /*****************************************
