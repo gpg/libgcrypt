@@ -1,3 +1,7 @@
+2004-04-06  Werner Koch  <wk@gnupg.org>
+
+	* libtool.m4: Updated from 1.5.4
+
 2003-12-08  Werner Koch  <wk@gnupg.org>
 
 	* libtool.m4: New.

@@ -1,3 +1,8 @@
+2004-04-06  Werner Koch  <wk@gnupg.org>
+
+	* config.guess, config.sub, ltmain.sh: Updated to those from
+	libtools 1.5.4.
+
 2004-03-29  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.94.
