@@ -1,3 +1,11 @@
+2003-07-23  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c (gcry_ac_data_construct): New argument: include_flags, only
+	include `flags' S-expression, if include_flags is true.  Adjust
+	callers.  Thanks for triggering a bug caused by `flags'
+	sub-S-expression where they are not expected to Ralf Schneider
+	<ralf@tapfere-schneiderleins.de>.
+
 2003-07-21  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (gcry_pk_lookup_func_name): Use new member name

@@ -404,12 +404,12 @@ gcry_ac_data_extract (const char *identifier, const char *algorithm,
 /* Construct an S-expression from the DATA and store it in
    DATA_SEXP. The S-expression will be of the following structure:
 
-     (IDENTIFIER (flags [...])
+     (IDENTIFIER [(flags [...])]
                  (ALGORITHM <list of named MPI values>))  */
 static gcry_err_code_t
-gcry_ac_data_construct (const char *identifier, unsigned int flags,
-			const char *algorithm, gcry_ac_data_t data,
-			gcry_sexp_t *data_sexp)
+gcry_ac_data_construct (const char *identifier, int include_flags,
+			unsigned int flags, const char *algorithm,
+			gcry_ac_data_t data, gcry_sexp_t *data_sexp)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   void **arg_list = NULL;
@@ -435,15 +435,16 @@ gcry_ac_data_construct (const char *identifier, unsigned int flags,
     {
       /* Calculate size of format string.  */
 
-      data_format_n = 12 + strlen (identifier) + strlen (algorithm);
+      data_format_n = 5 + (include_flags ? 7 : 0) + strlen (identifier) + strlen (algorithm);
       for (i = 0; i < data->data_n; i++)
 	/* Per-element sizes.  */
 	data_format_n += 4 + strlen (data->data[i].name);
 
-      /* Add flags.  */
-      for (i = 0; gcry_ac_flags[i].number; i++)
-	if (flags & gcry_ac_flags[i].number)
-	  data_format_n += strlen (gcry_ac_flags[i].string) + 1;
+      if (include_flags)
+	/* Add flags.  */
+	for (i = 0; gcry_ac_flags[i].number; i++)
+	  if (flags & gcry_ac_flags[i].number)
+	    data_format_n += strlen (gcry_ac_flags[i].string) + 1;
 
       /* Done.  */
       data_format = gcry_malloc (data_format_n);
@@ -458,14 +459,18 @@ gcry_ac_data_construct (const char *identifier, unsigned int flags,
       *data_format = 0;
       strcat (data_format, "(");
       strcat (data_format, identifier);
-      strcat (data_format, "(flags");
-      for (i = 0; gcry_ac_flags[i].number; i++)
-	if (flags & gcry_ac_flags[i].number)
-	  {
-	    strcat (data_format, " ");
-	    strcat (data_format, gcry_ac_flags[i].string);
-	  }
-      strcat (data_format, ")(");
+      if (include_flags)
+	{
+	  strcat (data_format, "(flags");
+	  for (i = 0; gcry_ac_flags[i].number; i++)
+	    if (flags & gcry_ac_flags[i].number)
+	      {
+		strcat (data_format, " ");
+		strcat (data_format, gcry_ac_flags[i].string);
+	      }
+	  strcat (data_format, ")");
+	}
+      strcat (data_format, "(");
       strcat (data_format, algorithm);
       for (i = 0; i < data->data_n; i++)
 	{
@@ -753,7 +758,7 @@ gcry_ac_key_init (gcry_ac_key_t *key,
 
   if (! err)
     /* Create S-expression from data set.  */
-    err = gcry_ac_data_construct (ac_key_identifiers[type], 0,
+    err = gcry_ac_data_construct (ac_key_identifiers[type], 0, 0,
 				  handle->algorithm_name, data, &data_sexp);
 
   if (! err)
@@ -1166,7 +1171,7 @@ gcry_ac_data_decrypt (gcry_ac_handle_t handle,
 
   if (! err)
     /* Create S-expression from data.  */
-    err = gcry_ac_data_construct ("enc-val", flags, handle->algorithm_name,
+    err = gcry_ac_data_construct ("enc-val", 1, flags, handle->algorithm_name,
 				  data_encrypted, &sexp_request);
 
   if (! err)
@@ -1268,7 +1273,7 @@ gcry_ac_data_verify (gcry_ac_handle_t handle,
 
   if (! err)
     /* Construct S-expression holding the signature data.  */
-    err = gcry_ac_data_construct ("sig-val", 0, handle->algorithm_name,
+    err = gcry_ac_data_construct ("sig-val", 1, 0, handle->algorithm_name,
 				  data_signature, &sexp_request);
 
   if (! err)
