@@ -47,7 +47,7 @@ extern "C" {
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.2.0"
+#define GCRYPT_VERSION "1.2.1-cvs"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -726,7 +726,7 @@ enum gcry_cipher_algos
     GCRY_CIPHER_SERPENT192  = 305,
     GCRY_CIPHER_SERPENT256  = 306,
     GCRY_CIPHER_RFC2268_40  = 307,  /* Ron's Cipher 2 (40 bit). */
-    GCRY_CIPHER_RFC2268_128 = 308,  /* Ron's Cipher 2 (128 bit). */
+    GCRY_CIPHER_RFC2268_128 = 308   /* Ron's Cipher 2 (128 bit). */
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */
@@ -944,7 +944,7 @@ typedef enum gcry_ac_id
     GCRY_AC_RSA = 1,
     GCRY_AC_DSA = 17,
     GCRY_AC_ELG = 20,
-    GCRY_AC_ELG_E = 16,
+    GCRY_AC_ELG_E = 16
   }
 gcry_ac_id_t;
 
@@ -952,7 +952,7 @@ gcry_ac_id_t;
 typedef enum gcry_ac_key_type
   {
     GCRY_AC_KEY_SECRET,
-    GCRY_AC_KEY_PUBLIC,
+    GCRY_AC_KEY_PUBLIC
   }
 gcry_ac_key_type_t;
 
