@@ -35,7 +35,7 @@ extern "C" {
  * header matches the installed library.
  * Note: Do not edit the next line as configure may fix the string here.
  */
-#define GCRYPT_VERSION "1.1.5"
+#define GCRYPT_VERSION "1.1.5a-cvs"
 
 
 #ifndef HAVE_BYTE_TYPEDEF

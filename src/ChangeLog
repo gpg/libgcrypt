@@ -1,3 +1,9 @@
+2001-12-20  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c (gcry_sexp_canon_len): Describe the error codes and
+	return an error if this is not a S-Exp; i.e. it does not start
+	with an open parenthesis.
+
 2001-12-18  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (gcry_sexp_canon_len): Fixed the test on NULL buffer.

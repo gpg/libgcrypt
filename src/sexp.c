@@ -1104,7 +1104,20 @@ gcry_sexp_sprint( const GCRY_SEXP list, int mode,
    it should never return 0.  If LENGTH is not zero, the maximum
    length to scan is given - this can be used for syntax checks of
    data passed from outside. erroce and erroff may both be passed as
-   NULL */
+   NULL
+
+   Errorcodes (for historic reasons they are all negative):
+    -1 := invalid length specification
+    -2 := string too long 
+    -3 := unmatched parenthesis
+    -4 := not a (canonical) S-expression
+    -5 := bad character 
+    -6 := invalid hex octal value or bad quotation
+    -7 := a length may not begin with zero 
+    -8 := nested display hints 
+    -9 := unmatched display hint close
+   -10 := unexpected reserved punctuation 
+ */
 size_t
 gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
                      size_t *erroff, int *errcode)
@@ -1126,6 +1139,8 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
   *erroff = 0;
   if (!buffer)
     return 0;
+  if (*buffer != '(')
+    return -4; /* not a canonical S-expression */
 
   for (p=buffer; ; p++, count++ )
     {
@@ -1149,8 +1164,6 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
               count += datalen;
               p += datalen;
               datalen = 0;
-              if (!level)
-                return count+1; /* expression is not a list - return now */
 	    }
           else if (digitp(p))
             datalen = datalen*10 + atoi_1(p);
@@ -1232,4 +1245,5 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 	}
     }
 }
+
 
