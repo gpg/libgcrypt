@@ -1,3 +1,7 @@
+2003-07-02  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi: Documented ac interface.
+
 2003-06-18  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi: Small fixes.

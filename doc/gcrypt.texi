@@ -76,18 +76,19 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @end ifnottex
 
 @menu
-* Introduction::                What is @acronym{Libgcrypt}.
-* Preparation::                 What you should do before using the library.
-* General Functions::           General library functions.
-* Handler Functions::           Working with handler functions.
-* Symmetric cryptography::      How to use symmetric crytography.
-* Hashing::                     How to use hashing.
-* Public Key cryptography::     How to use public key cryptography.
-* Random Numbers::              How to work with random numbers.
-* S-expressions::               How to manage S-expressions.
-* MPI library::                 How to work with multi-precision-integers.
-* Utilities::                   Utility functions.
-* Error Handling::              Error codes and such.
+* Introduction::                 What is @acronym{Libgcrypt}.
+* Preparation::                  What you should do before using the library.
+* General Functions::            General library functions.
+* Handler Functions::            Working with handler functions.
+* Symmetric cryptography::       How to use symmetric crytography.
+* Hashing::                      How to use hashing.
+* Public Key cryptography (I)::  How to use public key cryptography.
+* Public Key cryptography (II):: How to use public key cryptography, alternatively.
+* Random Numbers::               How to work with random numbers.
+* S-expressions::                How to manage S-expressions.
+* MPI library::                  How to work with multi-precision-integers.
+* Utilities::                    Utility functions.
+* Error Handling::               Error codes and such.
 
 Appendices
 
@@ -137,11 +138,19 @@ Hashing
 * Available hash algorithms::           List of hash algorithms supported by the library.
 * Working with hash algorithms::        List of functions related to hashing.
 
-Public Key cryptography
+Public Key cryptography (I)
 * Used S-expressions::                    Introduction into the used S-expression.
 * Available algorithms::                  Algorithms supported by the library.
 * Cryptographic Functions::               Functions for performing the cryptographic actions.
 * General public-key related Functions::  General functions, not implementing any cryptography.
+
+Public Key cryptography (II)
+* Available asymmetric algorithms:: List of algorithms supported by the library.
+* Working with sets of data::       How to work with sets of data.
+* Working with handles::            How to use handles.
+* Working with keys::               How to work with keys.
+* Using cryptographic functions::   How to perform cryptographic operations.
+* Handle-independent functions::    General functions independent of handles.
 
 Random Numbers
 * Quality of random numbers::   @acronym{Libgcrypt} uses different quality levels.
@@ -1326,11 +1335,14 @@ does implicitly stop debugging.
 @c **********************************************************
 @c *******************  Public Key  *************************
 @c **********************************************************
-@node Public Key cryptography
-@chapter Public Key cryptography
+@node Public Key cryptography (I)
+@chapter Public Key cryptography (I)
 
 Public key cryptography, also known as asymmetric cryptography, is an
 easy way for key management and to provide digital signatures.
+@acronym{Libgcrypt} provides two completely different interfaces to
+public key cryptography, this chapter explains the one based on
+S-expressions.
 
 @menu
 * Used S-expressions::                    Introduction into the used S-expression.
@@ -1888,7 +1900,235 @@ useful information.
 @end deftypefun
 @c end gcry_pk_genkey
 
+@node Public Key cryptography (II)
+@chapter Public Key cryptography (II)
 
+This chapter documents the alternative interface to asymmetric
+cryptography (ac) that is not based on S-expressions, but on native C
+data structures.  As opposed to the pk interface described in the
+former chapter, this one follows an open/use/close paradigm like other
+building blocks of the library.
+
+@menu
+* Available asymmetric algorithms:: List of algorithms supported by the library.
+* Working with sets of data::       How to work with sets of data.
+* Working with handles::            How to use handles.
+* Working with keys::               How to work with keys.
+* Using cryptographic functions::   How to perform cryptographic operations.
+* Handle-independent functions::    General functions independent of handles.
+@end menu
+
+@node Available asymmetric algorithms
+@section Available asymmetric algorithms
+
+@acronym{Libgcrypt} supports the RSA (Rivest-Shamir-Adleman)
+algorithms as well as DSA (Digital Signature Algorithm) and ElGamal.
+The versatile interface allows to add more algorithms in the future.
+
+@deftp {Data type} gcry_ac_id_t
+
+The following constants are defined for this type:
+
+@table @code
+@item GCRY_AC_RSA
+Riven-Shamir-Adleman
+@item GCRY_AC_DSA
+Digital Signature Algorithm
+@item GCRY_AC_ELG
+ElGamal
+@end table
+@end deftp
+
+@node Working with sets of data
+@section Working with sets of data
+
+In the context of this interface the term `data set' refers to a list
+of `named MPI values' that is used by functions performing
+cryptographic operations.
+
+Such data sets are used for representing keys, since keys simply
+consist of a variable amount of numbers.  Furthermore some functions
+return data sets to the caller that are to be provided to other
+functions.
+
+This section documents the data types and functions that are relevant
+for working with such data sets.
+
+@deftp {Data type} gcry_ac_data_t
+A data set, that is simply a list of named MPI values.
+@end deftp
+
+@deftypefun gpg_error_t gcry_ac_data_new (gcry_ac_data_t *@var{data})
+Creates a new, empty data set and stores it in @var{data}.
+@end deftypefun
+
+@deftypefun void gcry_ac_data_destroy (gcry_ac_data_t @var{data})
+Destroys the data set @var{data}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_data_set (gcry_ac_data_t @var{data},
+char *@var{name}, gcry_mpi_t @var{mpi})
+
+Adds the value @var{mpi} to the data set @var{data} with the label
+@var{name}.  If there is already a value with that label, it is replaced,
+otherwise a new value is added.
+@end deftypefun
+
+@deftypefun unsigned int gcry_ac_data_length (gcry_ac_data_t @var{data})
+Returns the number of named MPI values inside of the data set
+@var{data}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_data_get_name (gcry_ac_data_t @var{data},
+char *@var{name}, gcry_mpi_t *@var{mpi})
+
+Stores the value labelled with @var{name} found in data set @var{data}
+in @var{mpi}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_data_get_index (gcry_ac_data_t @var{data}, unsigned int @var{index}, const char **@var{name}, gcry_mpi_t *@var{mpi})
+
+Stores in @var{name} and @var{mpi} the named MPI value contained in
+the data set @var{data} with the index @var{index}.  @var{name} or
+@var{mpi} may be @code{NULL}.
+@end deftypefun
+
+@deftypefun void gcry_ac_data_clear (gcry_ac_data_t @var{data})
+Destroys any values contained in the data set @var{data}.
+@end deftypefun
+
+@node Working with handles
+@section Working with handles
+
+In order to use an algorithm, an according handle must be created.
+This is done using the following function:
+
+@deftypefun gpg_error_t gcry_ac_open (gcry_ac_handle_t *@var{handle},
+int @var{algorithm}, int @var{flags})
+
+Creates a new handle for the algorithm @var{algorithm} and stores it
+in @var{handle}.  @var{flags} is not used yet.
+
+@var{algorithm} must be a valid algorithm ID, see @xref{Available
+algorithms}, for a list of supported algorithms and the according
+constants.  Besides using the listed constants directly, the functions
+@code{gcry_ac_name_to_id} may be used to convert the textual name of
+an algorithm into the according numeric ID.
+@end deftypefun
+
+@deftypefun void gcry_ac_close (gcry_ac_handle_t @var{handle})
+Destroys the handle @var{handle}.
+@end deftypefun
+
+@node Working with keys
+@section Working with keys
+
+@deftp {Data type} gcry_ac_key_id_t
+Defined constants:
+
+@table @code
+@item GCRY_AC_KEY_TYPE_SECRET
+Specifies a secret key.
+@item GCRY_AC_KEY_TYPE_PUBLIC
+Specifies a public key.
+@end table
+@end deftp
+
+@deftp {Data type} gcry_ac_key_t
+This type represents a single `key', either a secret one or a public
+one.
+@end deftp
+
+@deftp {Data type} gcry_ac_key_pair_t
+This type represents a `key pair' containing a secret and a public key.
+@end deftp
+
+Key data structures can be created in two different ways; a new key
+pair can be generated, resulting in ready-to-use key.  Alternatively a
+key can be initialized from a given data set.
+
+@deftypefun gpg_error_t gcry_ac_key_init (gcry_ac_key_t *@var{key}, gcry_ac_handle_t @var{handle}, gcry_ac_key_type_t @var{type}, gcry_ac_data_t @var{data})
+Creates a new key of type @var{type}, consisting of the MPI values
+contained in the data set @var{data} and stores it in @var{key}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t @var{handle}, gcry_ac_key_pair_t *@var{key_pair}, unsigned int @var{nbits}, void *@var{key_spec})
+
+Generates a new key pair via the handle @var{handle} of @var{NBITS}
+bits and stores it in @var{key_pair}.  In case non-standard settings
+are wanted, a pointer to a structure of type
+@code{gcry_ac_key_spec_<algorithm>_t}, matching the selected
+algorithm, can be given as KEY_SPEC.
+@end deftypefun
+
+
+@deftypefun gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t @var{key_pair}, gcry_ac_key_type_t @var{which})
+Returns the key of type @var{which} out of the key pair
+@var{key_pair}.
+@end deftypefun
+
+@deftypefun void gcry_ac_key_destroy (gcry_ac_key_t @var{key})
+Destroys the key @var{key}.
+@end deftypefun
+
+@deftypefun void gcry_ac_key_pair_destroy (gcry_ac_key_pair_t @var{key_pair})
+Destroys the key pair @var{key_pair}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_key_test (gcry_ac_key_t @var{key})
+Verifies that the key @var{key} is sane.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_key_get_nbits (gcry_ac_key_t @var{key}, unsigned int *@var{nbits})
+Stores the number of bits of the key @var{key} in @var{nbits}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_key_get_grip (gcry_ac_key_t @var{key}, unsigned char *@var{key_grip})
+Writes the 20 byte long key grip of the key @var{key} to
+@var{key_grip}.
+@end deftypefun
+
+@node Using cryptographic functions
+@section Using cryptographic functions
+
+@deftypefun gpg_error_t gcry_ac_data_encrypt (gcry_ac_handle_t @var{handle}, unsigned int @var{flags}, gcry_ac_key_t @var{key}, gcry_mpi_t @var{data_plain}, gcry_ac_data_t **@var{data_encrypted})
+Encrypts the plain text MPI value @var{data_plain} with the key public
+@var{key} under the control of the flags @var{flags} and stores the
+resulting data set into @var{data_encrypted}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_data_decrypt (gcry_ac_handle_t @var{handle}, unsigned int @var{flags}, gcry_ac_key_t @var{key}, gcry_mpi_t *@var{data_plain}, gcry_ac_data_t @var{data_encrypted})
+Decrypts the encrypted data contained in the data set
+@var{data_encrypted} with the secret key KEY under the control of the
+flags @var{flags} and stores the resulting plain text MPI value in
+@var{DATA_PLAIN}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_data_sign (gcry_ac_handle_t @var{handle}, gcry_ac_key_t @var{key}, gcry_mpi_t @var{data}, gcry_ac_data_t *@var{data_signature})
+Signs the data contained in @var{data} with the secret key @var{key}
+and stores the resulting signature in the data set
+@var{data_signature}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_data_verify (gcry_ac_handle_t @var{handle}, gcry_ac_key_t @var{key}, gcry_mpi_t @var{data}, gcry_ac_data_t @var{data_signature})
+Verifies that the signature contained in the data set
+@var{data_signature} is indeed the result of signing the data
+contained in @var{data} with the secret key belonging to the public
+key @var{key}.
+@end deftypefun
+
+@node Handle-independent functions
+@section Handle-independent functions
+
+@deftypefun gpg_error_t gcry_ac_id_to_name (gcry_ac_id_t @var{algorithm}, const char **@var{name})
+Stores the textual representation of the algorithm whose id is given
+in @var{algorithm} in @var{name}.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_ac_name_to_id (const char *@var{name}, gcry_ac_id_t *@var{algorithm})
+Stores the numeric ID of the algorithm whose textual representation is
+contained in @var{name} in @var{algorithm}.
+@end deftypefun
 
 @c **********************************************************
 @c *******************  Random  *****************************
