@@ -1,4 +1,4 @@
-<!-- gcryptref.sgml - libgcrypt reference
+<!-- reference.sgml - libgcrypt reference
     Copyright (C) 2000 Free Software Foundation, Inc.
 
     This file is part of GnuPG.
@@ -19,14 +19,14 @@
 -->
 
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V3.1//EN" [
-<!--entity genindex system "gcryptref.toc-idx"-->
+<!--entity genindex system "reference.toc-idx"-->
 <!entity packageversion system "version.sgml">
 <!entity libgcrypt "Libgcrypt">
 <!entity sexp	   "S-Exp">
-<!entity cipherref system "gcryptref-cipher.sgml">
-<!entity digestref system "gcryptref-digest.sgml">
-<!entity pubkeyref system "gcryptref-pubkey.sgml">
-<!entity miscref   system "gcryptref-misc.sgml">
+<!entity cipherref system "cipher-ref.sgml">
+<!entity digestref system "digest-ref.sgml">
+<!entity pubkeyref system "pubkey-ref.sgml">
+<!entity miscref   system "misc-ref.sgml">
 ]>
 
 <book>
@@ -73,4 +73,6 @@ General Public License</phrase></ulink>.
 &miscref;
 
 </reference>
+
+
 

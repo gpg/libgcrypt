@@ -1,4 +1,4 @@
-<!-- gcryptref-digest.sgml - libgcrypt reference (digests)
+<!-- misc-ref.sgml - libgcrypt reference (digests)
     Copyright (C) 2000 Free Software Foundation, Inc.
 
     This file is part of GnuPG.
@@ -62,6 +62,7 @@ string back without any checking.
       </funcsynopsisinfo>
       <funcprototype>
 	<funcdef>int <function>gcry_errno</function></funcdef>
+        <paramdef></paramdef>
       </funcprototype>
       <funcprototype>
 	<funcdef>const char *<function>gcry_strerror</function></funcdef>
@@ -216,9 +217,13 @@ errorcode from &libgcrypt; and some descriptive text string.
 
 
 
-
+<!--
 void gcry_set_log_handler( void (*f)(void*,int, const char*, va_list ),
-							     void *opaque );
+							     void
+                                                             *opaque
+                                                             );
+-->
+
 <refentry>
   <refnamediv>
     <refname>gcry_set_log_handler</refname>
@@ -250,7 +255,7 @@ Fixme: Describe how this is intended to work.
   </para>
 </refentry>
 
-
+<!--
 void *gcry_malloc( size_t n );
 void *gcry_calloc( size_t n, size_t m );
 void *gcry_malloc_secure( size_t n );
@@ -264,6 +269,7 @@ void *gcry_xrealloc( void *a, size_t n );
 char *gcry_xstrdup( const char * a);
 void  gcry_free( void *a );
 int   gcry_is_secure( const void *a );
+-->
 
 <refentry>
   <refnamediv>
@@ -279,7 +285,7 @@ int   gcry_is_secure( const void *a );
     <refname>gcry_xrealloc</refname>
     <refname>gcry_xstrdup</refname>
 
-  WORk WORK
+ <!-- WORk WORK -->
     <refname>gcry_malloc</refname>
     <refname>gcry_malloc</refname>
     
@@ -312,15 +318,16 @@ Fixme: Describe how this is intended to work.
 </refentry>
 
 
-
+<!--
 void gcry_randomize( byte *buffer, size_t length,
 		     enum gcry_random_level level );
 void *gcry_random_bytes( size_t nbytes, enum gcry_random_level level );
 void *gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level );
 
-
-
     -->
+
+
+
 
 
 

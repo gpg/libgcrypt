@@ -1,4 +1,4 @@
-<!-- gcryptref-digest.sgml - libgcrypt reference (digests)
+<!-- digest-ref.sgml - libgcrypt reference (digests)
     Copyright (C) 2000 Free Software Foundation, Inc.
 
     This file is part of GnuPG.
@@ -482,5 +482,5 @@
 </refentry>
 
 
-<!-- FIXME: doc gcry_md_setkey */
+<!-- FIXME: doc gcry_md_setkey -->
 

@@ -680,7 +680,7 @@ AC_SUBST(LIBGCRYPT_CFLAGS)
 
 AC_OUTPUT_COMMANDS([
 chmod +x scripts/db2html
-chmod +x src/gcrypt-config
+chmod +x src/libgcrypt-config
 cat >gcrypt-defs.tmp <<G10EOF
 /* Generated automatically by configure */
 #ifdef HAVE_DRIVE_LETTERS
