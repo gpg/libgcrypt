@@ -804,7 +804,7 @@ md_asn_oid( int algo, size_t *asnlen, size_t *mdlen )
  *
  * On error the value -1 is returned and the error reason may be
  * retrieved by gcry_errno().
- * Note:  Because this function is in most caes used to return an
+ * Note:  Because this function is in most cases used to return an
  * integer value, we can make it easier for the caller to just look at
  * the return value.  The caller will in all cases consult the value
  * and thereby detecting whether a error occured or not (i.e. while checking
@@ -895,13 +895,34 @@ md_stop_debug( GCRY_MD_HD md )
  *  GCRYCTL_IS_SECURE:
  *	Returns 1 when the handle works on secured memory
  *	otherwise 0 is returned.  There is no error return.
+ *  GCRYCTL_IS_ALGO_ENABLED:
+ *     Returns 1 if the algo is enanled for that handle.
+ *     The algo must be passed as the address of an int.
  */
 int
 gcry_md_info( GCRY_MD_HD h, int cmd, void *buffer, size_t *nbytes)
 {
+
     switch( cmd ) {
       case GCRYCTL_IS_SECURE:
 	return h->ctx->secure;
+
+      case GCRYCTL_IS_ALGO_ENABLED:
+        {
+            int algo;
+            struct md_digest_list_s *r;
+
+            if (!buffer || (nbytes && *nbytes != sizeof (int))) {
+                set_lasterr (GCRYERR_INV_ARG);
+                return -1;
+            }
+            algo = *(int*)buffer;        
+            for(r=h->ctx->list; r; r = r->next ) {
+                if( r->algo == algo )
+                    return 1;
+            }
+        }
+        break;
 
       default:
 	set_lasterr( GCRYERR_INV_OP );

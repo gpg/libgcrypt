@@ -23,7 +23,7 @@ INCLUDES = -I$(top_srcdir)/src
 
 noinst_LTLIBRARIES = libcipher.la
 
-OMIT_DEPENDENCIES = types.h gcrypt.h
+#OMIT_DEPENDENCIES = types.h gcrypt.h
 
 
 # The configure script greps the module names from the EXTRA_PROGRAMS line
