@@ -2472,8 +2472,7 @@ The function accepts public or secret keys in @var{key}.
 
 @deftypefun gcry_error_t gcry_pk_testkey (gcry_sexp_t @var{key})
 
-Return 0 if @var{key} (either private or public) is sane.  NOTE: at
-the moment only the checking of secret keys is supported.
+Return zero if the private key @var{key} is `sane', an error code otherwise.
 
 @end deftypefun
 
@@ -2835,7 +2834,7 @@ Example code:
   gcry_ac_key_spec_rsa  rsa_spec;
 
   rsa_spec.e = gcry_mpi_new (0);
-  gry_mpi_set_ui (rsa_spec.e, 1)
+  gcry_mpi_set_ui (rsa_spec.e, 1)
 
   err = gcry_ac_open  (&handle, GCRY_AC_RSA, 0);
   assert (! err);
@@ -2865,7 +2864,7 @@ Returns the data set contained in the key @var{key}.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_ac_key_test (gcry_ac_key_t @var{key})
-Verifies that the key @var{key} is sane.
+Verifies that the private key @var{key} is sane.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_ac_key_get_nbits (gcry_ac_key_t @var{key}, unsigned int *@var{nbits})

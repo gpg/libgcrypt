@@ -1,3 +1,9 @@
+2003-07-28  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Working with keys): Mention that gcry_pk_testkey
+	and gcry_ac_key_test only verify private keys.
+	(Working with keys): Fix typo.
+
 2003-07-27  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi: Adjusted description of gcry_mpi_scan and
