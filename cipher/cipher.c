@@ -219,6 +219,17 @@ setup_cipher_table(void)
     if( !cipher_table[i].name )
 	BUG();
     i++;
+    cipher_table[i].algo = GCRY_CIPHER_DES;
+    cipher_table[i].name = _gcry_des_get_info( cipher_table[i].algo,
+					 &cipher_table[i].keylen,
+					 &cipher_table[i].blocksize,
+					 &cipher_table[i].contextsize,
+					 &cipher_table[i].setkey,
+					 &cipher_table[i].encrypt,
+					 &cipher_table[i].decrypt     );
+    if( !cipher_table[i].name )
+	BUG();
+
     cipher_table[i].algo = CIPHER_ALGO_DUMMY;
     cipher_table[i].name = "DUMMY";
     cipher_table[i].blocksize = 8;

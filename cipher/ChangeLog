@@ -1,3 +1,9 @@
+2002-08-14  Werner Koch  <wk@gnupg.org>
+
+	* des.c (do_des_setkey,do_des_encrypt, do_des_decrypt): New.
+	(_gcry_des_get_info): Support plain old DES.
+	* cipher.c (setup_cipher_table): Put DES into the table.
+
 2002-07-25  Werner Koch  <wk@gnupg.org>
 
 	* rndunix.c (_gcry_rndunix_constructor): Prefixed with _gcry_.

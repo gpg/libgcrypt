@@ -22,6 +22,7 @@
 #define _GCRYPT_H
 
 #include <stdarg.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -479,7 +480,8 @@ enum gcry_cipher_algos
     GCRY_CIPHER_AES256      = 9,
     GCRY_CIPHER_TWOFISH     = 10,
     /* other cipher numbers are above 300 for OpenPGP reasons. */
-    GCRY_CIPHER_ARCFOUR     = 301
+    GCRY_CIPHER_ARCFOUR     = 301,
+    GCRY_CIPHER_DES         = 302
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */

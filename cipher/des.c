@@ -150,10 +150,16 @@ burn_stack (int bytes)
 
 /* Some defines/checks to support standalone modules */
 
-#ifndef CIPHER_ALGO_3DES
-  #define CIPHER_ALGO_3DES 2
-#elif CIPHER_ALGO_3DES != 2
-  #error CIPHER_ALGO_3DES is defined to a wrong value.
+#ifndef GCRY_CIPHER_3DES
+# define CIPHER_ALGO_3DES 2
+#elif GCRY_CIPHER_3DES != 2
+# error CIPHER_ALGO_3DES is defined to a wrong value.
+#endif
+
+#ifndef GCRY_CIPHER_DES
+# define CIPHER_ALGO_DES 302
+#elif GCRY_CIPHER_DES != 302
+# error CIPHER_ALGO_DES is defined to a wrong value.
 #endif
 
 
@@ -988,6 +994,43 @@ do_tripledes_decrypt( struct _tripledes_ctx *ctx, byte *outbuf, byte *inbuf )
 }
 
 
+
+
+static int
+do_des_setkey ( struct _des_ctx *ctx, byte *key, unsigned keylen )
+{
+    if( selftest_failed )
+	return GCRYERR_SELFTEST;
+    if( keylen != 8 )
+	return GCRYERR_INV_KEYLEN;
+
+    des_setkey (ctx, key);
+
+    if( is_weak_key( key ) ) {
+        burn_stack (64);
+	return GCRYERR_WEAK_KEY;
+    }
+    burn_stack (64);
+
+    return 0;
+}
+
+
+static void
+do_des_encrypt( struct _des_ctx *ctx, byte *outbuf, byte *inbuf )
+{
+    des_ecb_encrypt ( ctx, inbuf, outbuf );
+    burn_stack (32);
+}
+
+static void
+do_des_decrypt( struct _des_ctx *ctx, byte *outbuf, byte *inbuf )
+{
+    des_ecb_decrypt ( ctx, inbuf, outbuf );
+    burn_stack (32);
+}
+
+
 /****************
  * Return some information about the algorithm.  We need algo here to
  * distinguish different flavors of the algorithm.
@@ -1015,7 +1058,7 @@ _gcry_des_get_info( int algo, size_t *keylen,
     }
 
 
-    if( algo == CIPHER_ALGO_3DES ) {
+    if( algo == GCRY_CIPHER_3DES ) {
 	*keylen = 192;
 	*blocksize = 8;
 	*contextsize = sizeof(struct _tripledes_ctx);
@@ -1026,6 +1069,18 @@ _gcry_des_get_info( int algo, size_t *keylen,
 	*(void (**)(struct _tripledes_ctx*, byte*, byte*))r_decrypt
 							= do_tripledes_decrypt;
 	return "3DES";
+    }
+    else if( algo == GCRY_CIPHER_DES ) {
+	*keylen = 64;
+	*blocksize = 8;
+	*contextsize = sizeof(struct _des_ctx);
+	*(int  (**)(struct _des_ctx*, byte*, unsigned))r_setkey
+							= do_des_setkey;
+	*(void (**)(struct _des_ctx*, byte*, byte*))r_encrypt
+							= do_des_encrypt;
+	*(void (**)(struct _des_ctx*, byte*, byte*))r_decrypt
+							= do_des_decrypt;
+	return "DES";
     }
     return NULL;
 }

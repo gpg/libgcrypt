@@ -151,7 +151,7 @@ subject to the terms of the GNU General Public License
 list of these parts.
 
 @item It encapsulates the low level cryptography
-`Libgcrypt' a high level interface to cryptographic buiilding blocks
+`Libgcrypt' a high level interface to cryptographic building blocks
 using an extendable and flexible API.
 
 @end table
@@ -225,7 +225,7 @@ are created.
 @node Building the source
 @section Building the source
 
-If you want to compile a source file including the `gcry.h' header
+If you want to compile a source file including the `gcrypt.h' header
 file, you must make sure that the compiler can find it in the
 directory hierarchy.  This is accomplished by adding the path to the
 directory in which the header file is located to the compilers include
