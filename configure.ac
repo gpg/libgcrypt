@@ -23,7 +23,7 @@ AC_REVISION($Revision$)dnl
 AC_PREREQ(2.52)
 # Version numbers (Remember to change them just before a release)
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
-#   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
+# X (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
 AC_INIT(libgcrypt,1.1.4b-cvs)
 LIBGCRYPT_LT_CURRENT=2

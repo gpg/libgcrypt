@@ -189,7 +189,7 @@ GCRY_MPI    gcry_sexp_nth_mpi( GCRY_SEXP list, int number, int mpifmt );
 enum gcry_mpi_format {
     GCRYMPI_FMT_NONE= 0,
     GCRYMPI_FMT_STD = 1,    /* twos complement stored without length */
-    GCRYMPI_FMT_PGP = 2,    /* As used by OpenPGP */
+    GCRYMPI_FMT_PGP = 2,    /* As used by OpenPGP (only defined as unsigned)*/
     GCRYMPI_FMT_SSH = 3,    /* As used by SSH (same as 1 but with length)*/
     GCRYMPI_FMT_HEX = 4,    /* hex format */
     GCRYMPI_FMT_USG = 5     /* like STD but this is an unsigned one */
@@ -311,7 +311,7 @@ enum gcry_cipher_algos {
 };
 
 #define GCRY_CIPHER_AES    GCRY_CIPHER_RIJNDAEL
-#define GCRY_CIPHER_AES128 GCRY_CIPHER_RIJNDAEL128
+#define GCRY_CIPHER_AES128 GCRY_CIPHER_RIJNDAEL
 #define GCRY_CIPHER_AES192 GCRY_CIPHER_RIJNDAEL192
 #define GCRY_CIPHER_AES256 GCRY_CIPHER_RIJNDAEL256
 
@@ -320,7 +320,8 @@ enum gcry_cipher_modes {
     GCRY_CIPHER_MODE_ECB    = 1,
     GCRY_CIPHER_MODE_CFB    = 2,
     GCRY_CIPHER_MODE_CBC    = 3,
-    GCRY_CIPHER_MODE_STREAM = 4 /* native stream mode of some the algorithms */
+    GCRY_CIPHER_MODE_STREAM = 4, /* native stream mode of some the algorithms */
+    GCRY_CIPHER_MODE_OFB    = 5
 };
 
 enum gcry_cipher_flags {
@@ -336,6 +337,7 @@ int gcry_cipher_info( GCRY_CIPHER_HD h, int what, void *buffer, size_t *nbytes);
 int gcry_cipher_algo_info( int algo, int what, void *buffer, size_t *nbytes);
 const char *gcry_cipher_algo_name( int algo );
 int gcry_cipher_map_name( const char* name );
+int gcry_cipher_mode_from_oid (const char *string);
 
 int gcry_cipher_encrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 				      const byte *in, size_t inlen );

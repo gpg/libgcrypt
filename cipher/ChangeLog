@@ -1,3 +1,10 @@
+2001-12-11  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c: Added OIDs for AES.
+	(gcry_cipher_mode_from_oid): New.
+	(gcry_cipher_map_name): Moved OID search code to ..
+	(search_oid): .. new function.
+
 2001-12-10  Werner Koch  <wk@gnupg.org>
 
 	* pubkey.c (gcry_pk_encrypt): Find the signature algorithm by name

@@ -43,8 +43,25 @@
 static struct {
   const char *oidstring;
   int algo;
+  int mode;
 } oid_table[] = {
-  { "1.2.840.113549.3.7",  GCRY_CIPHER_3DES /* des-EDE3-CBC*/},
+  { "1.2.840.113549.3.7",      GCRY_CIPHER_3DES,   GCRY_CIPHER_MODE_CBC },
+
+  /* OIDs from NIST. See http://csrc.nist.gov.csor/ */
+  { "2.16.840.1.101.3.4.1.1",  GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_ECB },
+  { "2.16.840.1.101.3.4.1.2",  GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CBC },
+  { "2.16.840.1.101.3.4.1.3",  GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_OFB },
+  { "2.16.840.1.101.3.4.1.4",  GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_CFB },
+  { "2.16.840.1.101.3.4.1.21", GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_ECB },
+  { "2.16.840.1.101.3.4.1.22", GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_CBC },
+  { "2.16.840.1.101.3.4.1.23", GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_OFB },
+  { "2.16.840.1.101.3.4.1.24", GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_CFB },
+  { "2.16.840.1.101.3.4.1.41", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_ECB },
+  { "2.16.840.1.101.3.4.1.42", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CBC },
+  { "2.16.840.1.101.3.4.1.43", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_OFB },
+  { "2.16.840.1.101.3.4.1.44", GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CFB },
+
+
   {NULL}
 };
 
@@ -280,6 +297,28 @@ load_cipher_modules(void)
     return any;
 }
 
+/* locate the OID in the oid table and return the index or -1 when not
+   found */
+static int 
+search_oid (const char *string)
+{
+  int i;
+  const char *s;
+
+  if (string && (digitp (string)
+                 || !strncmp (string, "oid.", 4) 
+                 || !strncmp (string, "OID.", 4) ))
+    {
+      s =  digitp(string)? string : (string+4);
+
+      for (i=0; oid_table[i].oidstring; i++)
+        {
+          if (!strcmp (s, oid_table[i].oidstring))
+            return i;
+        }
+    }
+  return -1;
+}
 
 /****************
  * Map a string to the cipher algo.
@@ -298,19 +337,9 @@ gcry_cipher_map_name( const char *string )
     /* If the string starts with a digit (optionally prefixed with
        either "OID." or "oid."), we first look into our table of ASN.1
        object identifiers to figure out the algorithm */
-    if (digitp (string)
-        || !strncmp (string, "oid.", 4) 
-        || !strncmp (string, "OID.", 4) )
-      {
-        int i;
-        const char *s =  digitp(string)? string : (string+4);
-
-        for (i=0; oid_table[i].oidstring; i++)
-          {
-            if (!strcmp (s, oid_table[i].oidstring))
-              return oid_table[i].algo;
-          }
-      }
+    i = search_oid (string);
+    if (i != -1)
+      return oid_table[i].algo;
 
     do {
 	for(i=0; (s=cipher_table[i].name); i++ )
@@ -318,6 +347,15 @@ gcry_cipher_map_name( const char *string )
 		return cipher_table[i].algo;
     } while( load_cipher_modules() );
     return 0;
+}
+
+int
+gcry_cipher_mode_from_oid (const char *string)
+{
+  int i;
+
+  i = search_oid (string);
+  return i == -1? 0 : oid_table[i].mode;
 }
 
 
@@ -889,32 +927,33 @@ cipher_sync( GCRY_CIPHER_HD c )
 int
 gcry_cipher_ctl( GCRY_CIPHER_HD h, int cmd, void *buffer, size_t buflen)
 {
-    int rc = 0;
+  int rc = 0;
 
-    switch( cmd ) {
-      case GCRYCTL_SET_KEY:
-	rc = cipher_setkey( h, buffer, buflen );
-	break;
-      case GCRYCTL_SET_IV:
-	cipher_setiv( h, buffer, buflen );
-	break;
-      case GCRYCTL_CFB_SYNC:
-	cipher_sync( h );
-	break;
+  switch (cmd)
+    {
+    case GCRYCTL_SET_KEY:
+      rc = cipher_setkey( h, buffer, buflen );
+      break;
+    case GCRYCTL_SET_IV:
+      cipher_setiv( h, buffer, buflen );
+      break;
+    case GCRYCTL_CFB_SYNC:
+      cipher_sync( h );
+      break;
 
-      case GCRYCTL_DISABLE_ALGO:
-	/* this one expects a NULL handle and buffer pointing to an
-	 * integer with the algo number.
-	 */
-	if( h || !buffer || buflen != sizeof(int) )
-	    return set_lasterr( GCRYERR_INV_CIPHER_ALGO );
-	disable_cipher_algo( *(int*)buffer );
-	break;
+    case GCRYCTL_DISABLE_ALGO:
+      /* this one expects a NULL handle and buffer pointing to an
+       * integer with the algo number.
+       */
+      if( h || !buffer || buflen != sizeof(int) )
+        return set_lasterr( GCRYERR_INV_CIPHER_ALGO );
+      disable_cipher_algo( *(int*)buffer );
+      break;
 
-      default:
-	rc = GCRYERR_INV_OP;
+    default:
+      rc = GCRYERR_INV_OP;
     }
-    return set_lasterr (rc);
+  return set_lasterr (rc);
 }
 
 

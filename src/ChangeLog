@@ -1,3 +1,7 @@
+2001-12-11  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: Fixed AES128 macro, add enum for OFB mode.
+
 2001-12-05  Werner Koch  <wk@gnupg.org>
 
 	* misc.c (_gcry_log_printf): New.
