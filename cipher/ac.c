@@ -688,7 +688,7 @@ gcry_ac_open (gcry_ac_handle_t *handle,
   const char *algorithm_name;
 
   /* Get name.  */
-  algorithm_name = gcry_pk_algo_name (algorithm);
+  algorithm_name = _gcry_pk_aliased_algo_name (algorithm);
   if (! *algorithm_name)
     err = GPG_ERR_PUBKEY_ALGO;
 

@@ -82,6 +82,7 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
   gcry_sexp_t plain1, cipher, l;
   gcry_mpi_t x0, x1;
   int rc;
+  int have_flags;
 
   /* Extract data from plaintext.  */
   l = gcry_sexp_find_token (plain0, "value", 0);
@@ -92,17 +93,37 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
   if (rc)
     die ("encryption failed: %s\n", gcry_strerror (rc));
 
+  l = gcry_sexp_find_token (plain1, "flags", 0);
+  have_flags = !!l;
+  gcry_sexp_release (l);
+
   /* Decrypt data.  */
   rc = gcry_pk_decrypt (&plain1, cipher, skey);
   gcry_sexp_release (cipher);
   if (rc)
     die ("decryption failed: %s\n", gcry_strerror (rc));
 
-  /* Extract decrypted data.  */
+  /* Extract decrypted data.  Note that for compatibility reasons, the
+     output opf gcry_pk_decrypt depends on whether a flags lists (even
+     if empty) occurs in its input data.  Because we passed the output
+     of encrypt directly to decrypt, such a flag value won't be there
+     as of today.  We check it anyway. */
   l = gcry_sexp_find_token (plain1, "value", 0);
-  gcry_sexp_release (plain1);
-  x1 = gcry_sexp_nth_mpi (l, 1, GCRYMPI_FMT_USG);
-  gcry_sexp_release (l);
+  if (l)
+    {
+      if (!have_flags)
+        die ("compatibility mode of pk_decrypt broken\n");
+      gcry_sexp_release (plain1);
+      x1 = gcry_sexp_nth_mpi (l, 1, GCRYMPI_FMT_USG);
+      gcry_sexp_release (l);
+    }
+  else
+    {
+      if (have_flags)
+        die ("compatibility mode of pk_decrypt broken\n");
+      x1 = gcry_sexp_nth_mpi (plain1, 0, GCRYMPI_FMT_USG);
+      gcry_sexp_release (plain1);
+    }
 
   /* Compare.  */
   if (gcry_mpi_cmp (x0, x1))

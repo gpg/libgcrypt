@@ -1,5 +1,8 @@
 2003-09-04  Werner Koch  <wk@gnupg.org>
 
+	* pubkey.c (_gcry_pk_aliased_algo_name): New.
+	* ac.c (gcry_ac_open): Use it here.
+
 	* Makefile.am (EXTRA_libcipher_la_SOURCES): Add serpent.c
 
 2003-09-02  Moritz Schulte  <mo@g10code.com>
