@@ -1,87 +1,63 @@
 \input texinfo                  @c -*- Texinfo -*-
-@c Copyright (C) 2000, 2002, 2003 Free Software Foundation, Inc.
-@c 
-@c This file is part of the Libgcrypt.
-@c
-@c Permission is granted to copy, distribute and/or modify this document
-@c under the terms of the GNU General Public License as published by the
-@c Free Software Foundation; either version 2 of the License, or (at your
-@c option) any later version. A copy of the license is included in the 
-@c file 'gpl.texi'.
-@c
+@c %**start of header
 @setfilename gcrypt.info
-@settitle The `Libgcrypt' Reference Manual
+@include version.texi
+@settitle The Libgcrypt Reference Manual
+@c Unify some of the indices.
+@syncodeindex tp fn
+@syncodeindex pg fn
+@c %**end of header
+@copying
+This manual is for Libgcrypt
+(version @value{VERSION}, @value{UPDATED}),
+which is GNU's library of cryptographic building blocks.
+
+Copyright @copyright{} 2000, 2002, 2003, 2004 Free Software Foundation, Inc.
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version. The text of the license can be found in the
+section entitled ``Copying''.
+@end quotation
+@end copying
 
 @dircategory GNU Libraries
 @direntry
 * libgcrypt: (gcrypt) Cryptographic function library.
 @end direntry
 
-@include version.texi
 
-@c Unify some of the indices.
-@syncodeindex tp fn
-@syncodeindex pg fn
 
-@ifinfo
-This file documents the `Libgcrypt' library.
-
-This is Edition @value{EDITION}, last updated @value{UPDATED}, of
-@cite{The `Libgcrypt' Reference Manual}, for Version
-@value{VERSION}.
-
-Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
-
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2 of the License, or (at your
-option) any later version. The text of the license can be found in the
-section entitled ``Copying''.
-@end ifinfo
-
-@c @iftex
-@c @shorttitlepage The `Libgcrypt' Reference Manual
-@c @end iftex
+@c
+@c Titlepage
+@c
+@setchapternewpage odd
 @titlepage
-@center @titlefont{The `Libgcrypt'}
-@sp 1
-@center @titlefont{Reference Manual}
-@sp 6
-@center Edition @value{EDITION}
-@sp 1
-@center last updated @value{UPDATED}
-@sp 1
-@center for version @value{VERSION}
+@title The Libgcrypt Reference Manual
+@subtitle Version @value{VERSION}
+@subtitle @value{UPDATED}
+@author Werner Koch (@email{wk@@gnupg.org})
+@author Moritz Schulte (@email{mo@@g10code.com})
+
 @page
 @vskip 0pt plus 1filll
-Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
-
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2 of the License, or (at your
-option) any later version. The text of the license can be found in the
-section entitled ``Copying''.
+@insertcopying
 @end titlepage
+
+
 @summarycontents
 @contents
 @page
 
+
 @ifnottex
 @node Top
-@top Main Menu
-This is Edition @value{EDITION}, last updated @value{UPDATED}, of
-@cite{The `Libgcrypt' Reference Manual}, for Version
-@value{VERSION} of the @acronym{Libgcrypt} library.
-
-Copyright @copyright{} 2000, 2002, 2003 Free Software Foundation, Inc.
-
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2 of the License, or (at your
-option) any later version. The text of the license can be found in the
-section entitled ``Copying''.
-
+@top The Libgcrypt Library
+@insertcopying
 @end ifnottex
+
 
 @menu
 * Introduction::                 What is @acronym{Libgcrypt}.
@@ -208,6 +184,7 @@ This manual documents the `@acronym{Libgcrypt}' library application programming
 interface (API).  All functions and data types provided by the library
 are explained.
 
+@noindent
 The reader is assumed to possess basic knowledge about applied
 cryptography.
 
@@ -224,7 +201,6 @@ of the interface which are unclear.
 @node Features
 @section Features
 
-@noindent
 `Libgcrypt' might have a couple of advantages over other libraries doing
 a similar job.
 
@@ -242,7 +218,6 @@ list of these parts.
 blocks using an extendable and flexible API.
 
 @end table
-
 
 @node Overview
 @section Overview
@@ -1278,8 +1253,7 @@ Counter mode.
 To use a cipher algorithm, you must first allocate an according
 handle.  This is to be done using the open function:
 
-@deftypefun gcry_error_t gcry_cipher_open (gcry_cipher_hd_t *@var{hd},
-int @var{algo}, int @var{mode}, unsigned int @var{flags})
+@deftypefun gcry_error_t gcry_cipher_open (gcry_cipher_hd_t *@var{hd}, int @var{algo}, int @var{mode}, unsigned int @var{flags})
 
 This function creates the context handle required for most of the
 other cipher functions and returns a handle to it in `hd'.  In case of
@@ -1754,8 +1728,7 @@ detected and ignored.
 If the flag @code{GCRY_MD_FLAG_HMAC} was used, the key for the MAC must
 be set using the function:
 
-@deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key},
-size_t @var{keylen})
+@deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
 
 For use with the HMAC feature, set the MAC key to the value of @var{key}
 of length @var{keylen}.
@@ -2756,8 +2729,7 @@ Creates a new, empty data set and stores it in @var{data}.
 Destroys the data set @var{data}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_set (gcry_ac_data_t @var{data},
-unsigned int @var{flags}, char *@var{name}, gcry_mpi_t @var{mpi})
+@deftypefun gcry_error_t gcry_ac_data_set (gcry_ac_data_t @var{data}, unsigned int @var{flags}, char *@var{name}, gcry_mpi_t @var{mpi})
 Add the value @var{mpi} to @var{data} with the label @var{name}.  If
 @var{flags} contains GCRY_AC_FLAG_DATA_COPY, the data set will contain
 copies of @var{name} and @var{mpi}.  If @var{flags} contains
@@ -2775,16 +2747,13 @@ Returns the number of named MPI values inside of the data set
 @var{data}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t @var{data},
-unsigned int @var{flags}, char *@var{name}, gcry_mpi_t *@var{mpi})
+@deftypefun gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t @var{data}, unsigned int @var{flags}, char *@var{name}, gcry_mpi_t *@var{mpi})
 Store the value labelled with @var{name} found in @var{data} in
 @var{mpi}.  If @var{flags} contains GCRY_AC_FLAG_COPY, store a copy of
 the @var{mpi} value contained in the data set.  @var{mpi} may be NULL.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t @var{data},
-unsigned int flags, unsigned int @var{index},
-const char **@var{name}, gcry_mpi_t *@var{mpi})
+@deftypefun gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t @var{data}, unsigned int flags, unsigned int @var{index}, const char **@var{name}, gcry_mpi_t *@var{mpi})
 Stores in @var{name} and @var{mpi} the named @var{mpi} value contained
 in the data set @var{data} with the index @var{idx}.  If @var{flags}
 contains GCRY_AC_FLAG_COPY, store copies of the values contained in
@@ -2801,8 +2770,7 @@ Destroys any values contained in the data set @var{data}.
 In order to use an algorithm, an according handle must be created.
 This is done using the following function:
 
-@deftypefun gcry_error_t gcry_ac_open (gcry_ac_handle_t *@var{handle},
-int @var{algorithm}, int @var{flags})
+@deftypefun gcry_error_t gcry_ac_open (gcry_ac_handle_t *@var{handle}, int @var{algorithm}, int @var{flags})
 
 Creates a new handle for the algorithm @var{algorithm} and stores it
 in @var{handle}.  @var{flags} is not used yet.
@@ -2850,9 +2818,7 @@ Creates a new key of type @var{type}, consisting of the MPI values
 contained in the data set @var{data} and stores it in @var{key}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t @var{handle},
-unsigned int @var{nbits}, void *@var{key_spec}, gcry_ac_key_pair_t *@var{key_pair},
-gcry_mpi_t **@var{misc_data})
+@deftypefun gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t @var{handle}, unsigned int @var{nbits}, void *@var{key_spec}, gcry_ac_key_pair_t *@var{key_pair}, gcry_mpi_t **@var{misc_data})
 
 Generates a new key pair via the handle @var{handle} of @var{NBITS}
 bits and stores it in @var{key_pair}.
@@ -2925,13 +2891,11 @@ Returns the data set contained in the key @var{key}.
 Verifies that the private key @var{key} is sane via @var{handle}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t @var{handle},
-gcry_ac_key_t @var{key}, unsigned int *@var{nbits})
+@deftypefun gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t @var{handle}, gcry_ac_key_t @var{key}, unsigned int *@var{nbits})
 Stores the number of bits of the key @var{key} in @var{nbits} via @var{handle}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t @var{handle},
-gcry_ac_key_t @var{key}, unsigned char *@var{key_grip})
+@deftypefun gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t @var{handle}, gcry_ac_key_t @var{key}, unsigned char *@var{key_grip})
 Writes the 20 byte long key grip of the key @var{key} to
 @var{key_grip} via @var{handle}.
 @end deftypefun
@@ -3786,4 +3750,7 @@ initialization using:
 
 
 @c  LocalWords:  int HD
+
+
+
 
