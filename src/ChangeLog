@@ -1,7 +1,12 @@
+2003-01-24  Werner Koch  <wk@gnupg.org>
+
+	* global.c (gcry_set_progress_handler): Register a random progress
+	handler.
+
 2003-01-23  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (GCRY_ENABLE_QUICK_RANDOM): New. 
-	* global.c (gcry_control): 
+	* global.c (gcry_control): Make use of it.
 
 2003-01-21  Werner Koch  <wk@gnupg.org>
 
@@ -463,7 +468,7 @@ Tue Dec  8 13:15:16 CET 1998  Werner Koch  <wk@isil.d.shuttle.de>
 	* mpiapi.c: New
 
 	
- Copyright 1998,1999,2000,2001,2002 Free Software Foundation, Inc.
+ Copyright 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

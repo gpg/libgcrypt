@@ -1,5 +1,5 @@
 /* global.c  -	global control functions
- * Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -223,7 +223,7 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 
       case GCRYCTL_DISABLE_INTERNAL_LOCKING:
         global_init ();
-        /* We wase some bytes by doing it this way.  OTOH this
+        /* We waste some bytes by doing it this way.  OTOH this
            function is not anymore required becuase it is done
            automagically. */
         ath_deinit ();
@@ -581,6 +581,29 @@ _gcry_get_debug_flag( unsigned int mask )
    of progress currently done and TOTAL the expected amount of
    progress.  A value of 0 for TOTAL indicates that there is no
    estimation available.
+
+   Defined values for WHAT:
+
+   "need_entropy"  X    0  number-of-bytes-required
+            When running low on entropy
+   "primegen"      '\n'  0 0
+           Prime generated
+                   '!'
+           Need to refresh the prime pool
+                   '<','>'
+           Number of bits adjusted
+                   '^'
+           Looking for a generator
+                   '.'
+           Fermat tests on 10 candidates failed
+                  ':'
+           Restart with a new random value
+                  '+'
+           Rabin Miller test passed          
+   "pk_elg"        '+','-','.','\n'   0  0
+            Only used in debugging mode.
+   "pk_dsa"       
+            Only used in debugging mode.
 */
 void
 gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
@@ -589,4 +612,5 @@ gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
   _gcry_register_pk_dsa_progress (cb, cb_data);
   _gcry_register_pk_elg_progress (cb, cb_data);
   _gcry_register_primegen_progress (cb, cb_data);
+  _gcry_register_random_progress (cb, cb_data);
 }
