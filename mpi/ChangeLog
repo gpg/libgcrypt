@@ -1,3 +1,7 @@
+2003-10-12  Moritz Schulte  <mo@g10code.com>
+
+	* mpiutil.c (_gcry_mpi_get_ui, gcry_mpi_get_ui): New functions.
+
 2003-08-19  Marcus Brinkmann  <marcus@g10code.de>
 
 	* Makefile.am (SUFFIXES): New variable.
