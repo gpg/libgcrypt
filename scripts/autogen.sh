@@ -1,7 +1,7 @@
 #!/bin/sh
 # Run this to generate all the initial makefiles, etc.
 
-PGM=GnuPG
+PGM=LIBGCRYPT
 
 autoconf_vers=2.52
 automake_vers=1.5
