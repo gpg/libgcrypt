@@ -3439,7 +3439,7 @@ Basic arithmetic operations:
 
 @deftypefun void gcry_mpi_addm (@w{gcry_mpi_t @var{w}}, @w{gcry_mpi_t @var{u}}, @w{gcry_mpi_t @var{v}}, @w{gcry_mpi_t @var{m}})
 
-@math{var{w} = @var{u} + @var{v} \bmod @var{m}}.
+@math{@var{w} = @var{u} + @var{v} \bmod @var{m}}.
 @end deftypefun
 
 @deftypefun void gcry_mpi_sub (@w{gcry_mpi_t @var{w}}, @w{gcry_mpi_t @var{u}}, @w{gcry_mpi_t @var{v}})
