@@ -456,7 +456,7 @@ static char *dsa_names[] =
     NULL,
   };
 
-GcryPubkeySpec pubkey_spec_dsa =
+gcry_pubkey_spec_t pubkey_spec_dsa =
   {
     "DSA", dsa_names, GCRY_PK_DSA,
     "pqgy", "pqgyx", "", "rs", "pqgy",

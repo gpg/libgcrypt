@@ -62,7 +62,7 @@ static struct {
 
 static struct
 {
-  GcryDigestSpec *digest;
+  gcry_digest_spec_t *digest;
   int flags;
 } digest_table[] =
   {
@@ -97,7 +97,7 @@ static struct
   };
 
 /* List of registered digests.  */
-static GcryModule *digests_registered;
+static gcry_module_t *digests_registered;
 
 /* This is the lock protecting DIGESTS_REGISTERED.  */
 static ath_mutex_t digests_registered_lock = ATH_MUTEX_INITIALIZER;
@@ -130,6 +130,7 @@ gcry_digest_register_default (void)
   
   for (i = 0; (! err) && digest_table[i].digest; i++)
     err = _gcry_module_add (&digests_registered,
+			    digest_table[i].digest->id,
 			    (void *) digest_table[i].digest,
 			    NULL);
 
@@ -139,41 +140,19 @@ gcry_digest_register_default (void)
 
 /* Internal callback function.  */
 static int
-gcry_digest_lookup_func_id (void *spec, void *data)
-{
-  GcryDigestSpec *digest = (GcryDigestSpec *) spec;
-  int id = *((int *) data);
-
-  return (digest->id == id);
-}
-
-/* Internal callback function.  */
-static int
 gcry_digest_lookup_func_name (void *spec, void *data)
 {
-  GcryDigestSpec *digest = (GcryDigestSpec *) spec;
+  gcry_digest_spec_t *digest = (gcry_digest_spec_t *) spec;
   char *name = (char *) data;
 
   return (! stricmp (digest->name, name));
 }
 
-/* Internal function.  Lookup a digest entry by it's ID.  */
-static GcryModule *
-gcry_digest_lookup_id (int id)
-{
-  GcryModule *digest;
-
-  digest = _gcry_module_lookup (digests_registered, (void *) &id,
-				gcry_digest_lookup_func_id);
-
-  return digest;
-}
-
 /* Internal function.  Lookup a digest entry by it's name.  */
-static GcryModule *
+static gcry_module_t *
 gcry_digest_lookup_name (const char *name)
 {
-  GcryModule *digest;
+  gcry_module_t *digest;
 
   digest = _gcry_module_lookup (digests_registered, (void *) name,
 				gcry_digest_lookup_func_name);
@@ -181,44 +160,25 @@ gcry_digest_lookup_name (const char *name)
   return digest;
 }
 
-/* Return a new, unused digest ID for a user-provided digest
-   implementation.  */
-static int
-gcry_digest_id_new (void)
-{
-  int id, id_start = 500, id_end = 600;	/* FIXME.  */
-  
-  for (id = id_start; id < id_end; id++)
-    if (! gcry_digest_lookup_id (id))
-      return id;
-
-  return 0;
-}
-
 /* Public function.  Register a provided DIGEST.  Returns zero on
    success, in which case the chosen digest ID has been stored in
    DIGEST, or an error code.  */
 gpg_error_t
-gcry_digest_register (GcryDigestSpec *digest, GcryModule **module)
+gcry_digest_register (gcry_digest_spec_t *digest, gcry_module_t **module)
 {
   gpg_err_code_t err = 0;
-  int id;
-  GcryModule *mod;
+  gcry_module_t *mod;
 
   ath_mutex_lock (&digests_registered_lock);
-  id = gcry_digest_id_new ();
-  if (! id)
-    err = GPG_ERR_INTERNAL;	/* FIXME.  */
-  else
-    {
-      digest->id = id;
-      err = _gcry_module_add (&digests_registered, (void *) digest,
-			      &mod);
-    }
+  err = _gcry_module_add (&digests_registered, 0,
+			  (void *) digest, &mod);
   ath_mutex_unlock (&digests_registered_lock);
   
   if (! err)
-    *module = mod;
+    {
+      *module = mod;
+      digest->id = mod->id;
+    }
 
   return gpg_error (err);
 }
@@ -226,7 +186,7 @@ gcry_digest_register (GcryDigestSpec *digest, GcryModule **module)
 /* Public function.  Unregister the digest identified by ID, which
    must have been registered with gcry_digest_register.  */
 void
-gcry_digest_unregister (GcryModule *module)
+gcry_digest_unregister (gcry_module_t *module)
 {
   ath_mutex_lock (&digests_registered_lock);
   _gcry_module_release (module);
@@ -235,8 +195,8 @@ gcry_digest_unregister (GcryModule *module)
 
 typedef struct gcry_md_list
 {
-  GcryDigestSpec *digest;
-  GcryModule *module;
+  gcry_digest_spec_t *digest;
+  gcry_module_t *module;
   struct gcry_md_list *next;
   PROPERLY_ALIGNED_TYPE context;
 } GcryDigestEntry;
@@ -277,7 +237,7 @@ static void md_stop_debug( gcry_md_hd_t a );
 int
 gcry_md_map_name (const char *string)
 {
-  GcryModule *digest;
+  gcry_module_t *digest;
   int id = 0;
 
   if (!string)
@@ -307,7 +267,7 @@ gcry_md_map_name (const char *string)
   digest = gcry_digest_lookup_name (string);
   if (digest)
     {
-      id = ((GcryDigestSpec *) digest->spec)->id;
+      id = ((gcry_digest_spec_t *) digest->spec)->id;
       _gcry_module_release (digest);
     }
   ath_mutex_unlock (&digests_registered_lock);
@@ -323,15 +283,15 @@ static const char *
 digest_algo_to_string (int id)
 {
   const char *name = NULL;
-  GcryModule *digest;
+  gcry_module_t *digest;
 
   REGISTER_DEFAULT_DIGESTS;
 
   ath_mutex_lock (&digests_registered_lock);
-  digest = gcry_digest_lookup_id (id);
+  digest = _gcry_module_lookup_id (digests_registered, id);
   if (digest)
     {
-      name = ((GcryDigestSpec *) digest->spec)->name;
+      name = ((gcry_digest_spec_t *) digest->spec)->name;
       _gcry_module_release (digest);
     }
   ath_mutex_unlock (&digests_registered_lock);
@@ -357,12 +317,12 @@ static gpg_err_code_t
 check_digest_algo (int id)
 {
   gpg_err_code_t rc = 0;
-  GcryModule *digest;
+  gcry_module_t *digest;
 
   REGISTER_DEFAULT_DIGESTS;
 
   ath_mutex_lock (&digests_registered_lock);
-  digest = gcry_digest_lookup_id (id);
+  digest = _gcry_module_lookup_id (digests_registered, id);
   if (digest)
     _gcry_module_release (digest);
   else
@@ -486,9 +446,9 @@ static gpg_err_code_t
 md_enable (gcry_md_hd_t hd, int id)
 {
   struct gcry_md_context *h = hd->ctx;
-  GcryDigestSpec *digest = NULL;
+  gcry_digest_spec_t *digest = NULL;
   GcryDigestEntry *entry;
-  GcryModule *module;
+  gcry_module_t *module;
   gpg_err_code_t err = 0;
 
   for (entry = h->list; entry; entry = entry->next)
@@ -498,7 +458,7 @@ md_enable (gcry_md_hd_t hd, int id)
   REGISTER_DEFAULT_DIGESTS;
 
   ath_mutex_lock (&digests_registered_lock);
-  module = gcry_digest_lookup_id (id);
+  module = _gcry_module_lookup_id (digests_registered, id);
   ath_mutex_unlock (&digests_registered_lock);
   if (! module)
     {
@@ -506,7 +466,7 @@ md_enable (gcry_md_hd_t hd, int id)
       err = GPG_ERR_DIGEST_ALGO;
     }
   else
-    digest = (GcryDigestSpec *) module->spec;
+    digest = (gcry_digest_spec_t *) module->spec;
 
   if (! err)
     {
@@ -982,16 +942,16 @@ gcry_md_get_algo (gcry_md_hd_t hd)
 static int
 md_digest_length (int id)
 {
-  GcryModule *digest;
+  gcry_module_t *digest;
   int mdlen = 0;
 
   REGISTER_DEFAULT_DIGESTS;
 
   ath_mutex_lock (&digests_registered_lock);
-  digest = gcry_digest_lookup_id (id);
+  digest = _gcry_module_lookup_id (digests_registered, id);
   if (digest)
     {
-      mdlen = ((GcryDigestSpec *) digest->spec)->mdlen;
+      mdlen = ((gcry_digest_spec_t *) digest->spec)->mdlen;
       _gcry_module_release (digest);
     }
   ath_mutex_unlock (&digests_registered_lock);
@@ -1016,19 +976,19 @@ static const byte *
 md_asn_oid (int id, size_t *asnlen, size_t *mdlen)
 {
   const byte *asnoid = NULL;
-  GcryModule *digest;
+  gcry_module_t *digest;
 
   REGISTER_DEFAULT_DIGESTS;
 
   ath_mutex_lock (&digests_registered_lock);
-  digest = gcry_digest_lookup_id (id);
+  digest = _gcry_module_lookup_id (digests_registered, id);
   if (digest)
     {
       if (asnlen)
-	*asnlen = ((GcryDigestSpec *) digest->spec)->asnlen;
+	*asnlen = ((gcry_digest_spec_t *) digest->spec)->asnlen;
       if (mdlen)
-	*mdlen = ((GcryDigestSpec *) digest->spec)->mdlen;
-      asnoid = ((GcryDigestSpec *) digest->spec)->asnoid;
+	*mdlen = ((gcry_digest_spec_t *) digest->spec)->mdlen;
+      asnoid = ((gcry_digest_spec_t *) digest->spec)->asnoid;
       _gcry_module_release (digest);
     }
   else

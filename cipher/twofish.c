@@ -1019,13 +1019,13 @@ main()
 
 
 
-GcryCipherSpec cipher_spec_twofish =
+gcry_cipher_spec_t cipher_spec_twofish =
   {
     "TWOFISH", GCRY_CIPHER_TWOFISH, 16, 256, sizeof (TWOFISH_context),
     twofish_setkey, twofish_encrypt, twofish_decrypt,
   };
 
-GcryCipherSpec cipher_spec_twofish128 =
+gcry_cipher_spec_t cipher_spec_twofish128 =
   {
     "TWOFISH128", GCRY_CIPHER_TWOFISH, 16, 128, sizeof (TWOFISH_context),
     twofish_setkey, twofish_encrypt, twofish_decrypt,

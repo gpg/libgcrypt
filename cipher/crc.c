@@ -271,14 +271,14 @@ crc24rfc2440_final (void *context)
   ctx->buf[2] = (ctx->CRC      ) & 0xFF;
 }
 
-GcryDigestSpec digest_spec_crc32 =
+gcry_digest_spec_t digest_spec_crc32 =
   {
     "CRC32", GCRY_MD_CRC32, NULL, 0, 4,
     crc32_init, crc32_write, crc32_final, crc32_read,
     sizeof (CRC_CONTEXT)
   };
 
-GcryDigestSpec digest_spec_crc32_rfc1510 =
+gcry_digest_spec_t digest_spec_crc32_rfc1510 =
   {
     "CRC32RFC1510", GCRY_MD_CRC32_RFC1510, NULL, 0, 4,
     crc32rfc1510_init, crc32_write,
@@ -286,7 +286,7 @@ GcryDigestSpec digest_spec_crc32_rfc1510 =
     sizeof (CRC_CONTEXT)
   };
 
-GcryDigestSpec digest_spec_crc24_rfc2440 =
+gcry_digest_spec_t digest_spec_crc24_rfc2440 =
   {
     "CRC24RFC2440", GCRY_MD_CRC24_RFC2440, NULL, 0, 3,
     crc24rfc2440_init, crc24rfc2440_write,

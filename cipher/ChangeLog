@@ -1,3 +1,73 @@
+2003-06-18  Moritz Schulte  <moritz@g10code.com>
+
+	* arcfour.c, cipher.c, blowfish.c, md.c, cast5.c, pubkey.c, crc.c,
+	des.c, dsa.c, elgamal.c, md4.c, md5.c, random.c, rijndael.c,
+	rmd160.c, rsa.c, sha1.c, sha256.c, sha512.c, tiger.c, twofish.c:
+	Replaced older types GcryDigestSpec, GcryCipherSpec and
+	GcryPubkeySpec with newer types: gcry_digest_spec_t,
+	gcry_cipher_spec_t and gcry_pubkey_spec_t.
+
+	* md.c (gcry_digest_id_new): Removed function.
+	(gcry_digest_register): Removed code for generating a new module
+	ID.
+
+	* pubkey.c (gcry_pubkey_id_new): Removed function.
+	(gcry_pubkey_register): Removed code for generating a new module
+	ID.
+
+	* cipher.c, md.c, pubkey.c: Replace old type GcryModule with newer
+	one: gcry_module_t.
+	(gcry_cipher_id_new): Removed function.
+	(gcry_cipher_register): Removed code for generating a new module
+	ID.
+
+	* cipher.c (gcry_cipher_register): Adjust call to
+	_gcry_module_add.
+	(gcry_cipher_register_default): Likewise.
+	* pubkey.c (gcry_pubkey_register_default): Likewise.
+	(gcry_pubkey_register): Likewise.
+	* md.c (gcry_digest_register_default): Likewise.
+	(gcry_digest_register): Likewise.
+
+	* md.c (gcry_digest_lookup_func_id): Removed function.
+	(gcry_digest_lookup_id): Likewise.
+	(gcry_digest_id_new): Use _gcry_module_lookup_id instead of
+	gcry_digest_lookup_id.
+	(digest_algo_to_string): Likewise.
+	(check_digest_algo): Likewise.
+	(md_enable): Likewise.
+	(md_digest_length): Likewise.
+	(md_asn_oid): Likewise.
+
+	* pubkey.c (gcry_pubkey_lookup_id): Removed function.
+	(gcry_pubkey_lookup_func_id): Likewise.
+	(gcry_pubkey_id_new): Use _gcry_module_lookup_id instead of
+	gcry_pubkey_id_new.
+	(gcry_pk_algo_name): Likewise.
+	(disable_pubkey_algo): Likewise.
+	(check_pubkey_algo): Likewise.
+	(pubkey_get_npkey): Likewise.
+	(pubkey_get_nskey): Likewise.
+	(pubkey_get_nsig): Likewise.
+	(pubkey_get_nenc): Likewise.
+	(pubkey_generate): Likewise.
+	(pubkey_check_secret_key): Likewise.
+	(pubkey_encrypt): Likewise.
+	(pubkey_decrypt): Likewise.
+	(pubkey_sign): Likewise.
+	(pubkey_verify): Likewise.
+	(gcry_pk_algo_info): Likewise.
+
+	* cipher.c (gcry_cipher_lookup_func_id): Removed function.
+	(gcry_cipher_lookup_id): Likewise.
+	(cipher_algo_to_string): use _gcry_module_lookup_id instead of
+	gcry_cipher_lookup_id.
+	(disable_cipher_algo): Likewise.
+	(check_cipher_algo): Likewise.
+	(cipher_get_blocksize): Likewise.
+	(gcry_cipher_open): Likewise.
+	(gcry_cipher_id_new): Likewise.
+
 2003-06-17  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am (GCRYPT_MODULES): Set to @GCRYPT_CIPHERS@,
