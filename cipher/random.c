@@ -1,5 +1,6 @@
 /* random.c  -	random number generator
- * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2000, 2001, 2002, 2003,
+ *               2004  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -135,22 +136,33 @@ static void *progress_cb_data;
 /* Note, we assume that this function is used before any concurrent
    access happens. */
 static void
-initialize(void)
+initialize_basics(void)
 {
+  static int initialized;
   int err;
 
-  err = ath_mutex_init (&pool_lock);
-  if (err)
-    log_fatal ("failed to create the pool lock: %s\n", strerror (err) );
+  if (!initialized)
+    {
+      initialized = 1;
+      err = ath_mutex_init (&pool_lock);
+      if (err)
+        log_fatal ("failed to create the pool lock: %s\n", strerror (err) );
+      
+      err = ath_mutex_init (&nonce_buffer_lock);
+      if (err)
+        log_fatal ("failed to create the nonce buffer lock: %s\n",
+                   strerror (err) );
+    }
+}
 
-  err = ath_mutex_init (&nonce_buffer_lock);
-  if (err)
-    log_fatal ("failed to create the nonce buffer lock: %s\n",
-               strerror (err) );
-    
+
+static void
+initialize(void)
+{
+  initialize_basics ();
   /* The data buffer is allocated somewhat larger, so that we can use
-    this extra space (which is allocated in secure memory) as a
-    temporary hash buffer */
+     this extra space (which is allocated in secure memory) as a
+     temporary hash buffer */
   rndpool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
                          : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
   keypool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
@@ -180,14 +192,16 @@ _gcry_random_progress (const char *what, int printchar, int current, int total)
 }
 
 
-/* Initialize this random subsystem.  This function merely calls the
-   initialize and does not do anything more.  Doing this is not really
-   required but when running in a threaded environment we might get a
-   race condition otherwise. */
+/* Initialize this random subsystem.  If FULL is false, this function
+   merely calls the initialize and does not do anything more.  Doing
+   this is not really required but when running in a threaded
+   environment we might get a race condition otherwise. */
 void
-_gcry_random_initialize ()
+_gcry_random_initialize (int full)
 {
-  if (!is_initialized)
+  if (!full)
+    initialize_basics ();
+  else if (!is_initialized)
     initialize ();
 }
 
@@ -746,7 +760,7 @@ read_pool (byte *buffer, size_t length, int level)
 
   /* Always do a fast random poll (we have to use the unlocked version). */
   do_fast_random_poll();
-
+  
   /* Mix the pid in so that we for sure won't deliver the same random
      after a fork. */
   add_randomness (&my_pid, sizeof (my_pid), 0);
@@ -767,7 +781,7 @@ read_pool (byte *buffer, size_t length, int level)
   mix_pool(rndpool); rndstats.mixrnd++;
   mix_pool(keypool); rndstats.mixkey++;
 
-  /* Read the required data.  We use a readpoiter to read from a
+  /* Read the required data.  We use a readpointer to read from a
      different position each time */
   while (length--)
     {
@@ -792,7 +806,12 @@ read_pool (byte *buffer, size_t length, int level)
      faults, though.
    */
   if ( getpid () != my_pid )
-    goto retry;
+    {
+      pid_t x = getpid();
+      add_randomness (&x, sizeof(x), 0);
+      just_mixed = 0; /* Make sure it will get mixed. */
+      goto retry;
+    }
 }
 
 
@@ -978,20 +997,19 @@ do_fast_random_poll (void)
 
 /* The fast random pool function as called at some places in
    libgcrypt.  This is merely a wrapper to make sure that this module
-   is initalized and to look the pool. */
+   is initalized and to look the pool.  Note, that this function is a
+   NOP unless a random function has been used or _gcry_initialize (1)
+   has been used.  We use this hack so that the internal use of this
+   function in cipher_open and md_open won't start filling up the
+   radnom pool, even if no random will be required by the process. */
 void
 _gcry_fast_random_poll (void)
 {
   int err;
 
-  /* We have to make sure that the intialization is done because this
-     gatherer might be called before any other functions and it is not
-     sufficient to initialize it within do_fast_random_pool because we
-     want to use the mutex here. FIXME: Whe should initialize the
-     mutex using a global constructor independent from the
-     initialization of the pool. */
   if (!is_initialized)
-    initialize ();
+    return;
+
   err = ath_mutex_lock (&pool_lock);
   if (err)
     log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
