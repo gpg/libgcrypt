@@ -1206,12 +1206,14 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
               if (!k)
                 break; /* Okay: no (more) zero bytes. */
               
-              k += k/128; /* Better get some more. */
+              k += k/128 + 3; /* Better get some more. */
               pp = gcry_random_bytes_secure (k, GCRY_STRONG_RANDOM);
-              for (j=0; j < i && k; j++)
+              for (j=0; j < i && k;)
                 {
                   if (!p[j])
                     p[j] = pp[--k];
+                  if (p[j])
+                    j++
                 }
               gcry_free (pp);
             }
