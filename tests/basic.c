@@ -129,6 +129,7 @@ check_ciphers (void)
     GCRY_CIPHER_AES192,
     GCRY_CIPHER_AES256,
     GCRY_CIPHER_TWOFISH,
+    GCRY_CIPHER_DES,
     0
   };
   static int algos2[] = {
