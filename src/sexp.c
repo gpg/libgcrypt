@@ -45,11 +45,15 @@ struct gcry_sexp {
 #define ST_CLOSE 4
 
 #define digitp(p)   (*(p) >= '0' && *(p) <= '9')
+#define alphap(a)    (   (*(a) >= 'A' && *(a) <= 'Z')  \
+                      || (*(a) >= 'a' && *(a) <= 'z'))
 #define hexdigitp(a) (digitp (a)                     \
                       || (*(a) >= 'A' && *(a) <= 'F')  \
                       || (*(a) >= 'a' && *(a) <= 'f'))
 /* the atoi macros assume that the buffer has only valid digits */
 #define atoi_1(p)   (*(p) - '0' )
+
+#define TOKEN_SPECIALS  "-./_:*+="
 
 
 #if 0
@@ -1025,6 +1029,123 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff,
     return sexp_sscan( retsexp, erroff, buffer, length, dummy_arg_ptr, 0 );
 }
 
+
+/* Figure out a suitable encoding for BUFFER of LENGTH.
+   Returns: 0 = Binary
+            1 = String possible
+            2 = Token possible
+*/
+static int
+suitable_encoding (const unsigned char *buffer, size_t length)
+{
+  const unsigned char *s;
+  int maybe_token = 1;
+
+  if (!length)
+    return 1;
+  
+  for (s=buffer; length; s++, length--)
+    {
+      if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0))
+           && !strchr ("\b\t\v\n\f\r\"\'\\", *s))
+        return 0; /*binary*/
+      if ( maybe_token
+           && !alphap (s) && !digitp (s)  && !strchr (TOKEN_SPECIALS, *s))
+        maybe_token = 0;
+    }
+  s = buffer;
+  if ( maybe_token && !digitp (s) )
+    return 2;
+  return 1;
+}
+
+
+static int
+convert_to_hex (const unsigned char *src, size_t len, unsigned char *dest)
+{
+  int i;
+
+  if (dest)
+    {
+      *dest++ = '#';
+      for (i=0; i < len; i++, dest += 2 )
+        sprintf (dest, "%02X", src[i]);
+      *dest++ = '#';
+    }
+  return len*2+2;
+}
+
+static int
+convert_to_string (const unsigned char *s, size_t len, unsigned char *dest)
+{
+  if (dest)
+    {
+      unsigned char *p = dest;
+      *p++ = '\"';
+      for (; len; len--, s++ )
+        {
+          switch (*s)
+            {
+            case '\b': *p++ = '\\'; *p++ = 'b';  break;
+            case '\t': *p++ = '\\'; *p++ = 't';  break;
+            case '\v': *p++ = '\\'; *p++ = 'v';  break;
+            case '\n': *p++ = '\\'; *p++ = 'n';  break;
+            case '\f': *p++ = '\\'; *p++ = 'f';  break;
+            case '\r': *p++ = '\\'; *p++ = 'r';  break;
+            case '\"': *p++ = '\\'; *p++ = '\"';  break;
+            case '\'': *p++ = '\\'; *p++ = '\'';  break;
+            case '\\': *p++ = '\\'; *p++ = '\\';  break;
+            default: 
+              if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0)))
+                {
+                  sprintf (p, "\\x%02x", *s); 
+                  p += 4;
+                }
+              else
+                *p++ = *s;
+            }
+        }
+      *p++ = '\"';
+      return p - dest;
+    }
+  else
+    {
+      int count = 2;
+      for (; len; len--, s++ )
+        {
+          switch (*s)
+            {
+            case '\b': 
+            case '\t': 
+            case '\v': 
+            case '\n': 
+            case '\f': 
+            case '\r': 
+            case '\"':
+            case '\'':
+            case '\\': count += 2; break;
+            default: 
+              if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0)))
+                count += 4;
+              else
+                count++;
+            }
+        }
+      return count;
+    }
+}
+
+
+
+static int
+convert_to_token (const unsigned char *src, size_t len, unsigned char *dest)
+{
+  if (dest)
+    memcpy (dest, src, len);
+  return len;
+}
+
+
 /****************
  * Print SEXP to buffer using the MODE.  Returns the length of the
  * SEXP in buffer or 0 if the buffer is too short (We have at least an
@@ -1035,65 +1156,144 @@ size_t
 gcry_sexp_sprint( const GCRY_SEXP list, int mode,
 					char *buffer, size_t maxlength )
 {
-    static byte empty[3] = { ST_OPEN, ST_CLOSE, ST_STOP };
-    const byte *s;
-    char *d;
-    DATALEN n;
-    char numbuf[20];
-    size_t len = 0;
+  static byte empty[3] = { ST_OPEN, ST_CLOSE, ST_STOP };
+  const byte *s;
+  char *d;
+  DATALEN n;
+  char numbuf[20];
+  size_t len = 0;
+  int i, indent = 0;
+  
+  s = list? list->d : empty;
+  d = buffer;
+  while ( *s != ST_STOP )
+    {
+      switch ( *s )
+        {
+        case ST_OPEN:
+          s++;
+          if ( mode != GCRYSEXP_FMT_CANON )
+            {
+              if (indent)
+                len++; 
+              len += indent;
+            }
+          len++;
+          if ( buffer ) 
+            {
+              if ( len >= maxlength )
+                return 0;
+              if ( mode != GCRYSEXP_FMT_CANON )
+                {
+                  if (indent)
+                    *d++ = '\n'; 
+                  for (i=0; i < indent; i++)
+                    *d++ = ' ';
+                }
+              *d++ = '(';
+	    }
+          indent++;
+          break;
+        case ST_CLOSE:
+          s++;
+          len++;
+          if ( buffer ) 
+            {
+              if ( len >= maxlength )
+                return 0;
+              *d++ = ')';
+	    }
+          indent--;
+          if (*s != ST_OPEN && *s != ST_STOP && mode != GCRYSEXP_FMT_CANON)
+            {
+              len++;
+              len += indent;
+              if (buffer)
+                {
+                  if (len >= maxlength)
+                    return 0;
+                  *d++ = '\n';
+                  for (i=0; i < indent; i++)
+                    *d++ = ' ';
+                }
+            }
+          break;
+        case ST_DATA:
+          s++;
+          memcpy ( &n, s, sizeof n ); s += sizeof n;
+          if (mode == GCRYSEXP_FMT_ADVANCED)
+            {
+              int type;
+              size_t nn;
 
-    s = list? list->d : empty;
-    d = buffer;
-    while ( *s != ST_STOP ) {
-	switch ( *s ) {
-	  case ST_OPEN:
-	    s++;
-	    len++;
-	    if ( buffer ) {
-		if ( len >= maxlength )
+              switch ( (type=suitable_encoding (s, n)))
+                {
+                case 1: nn = convert_to_string (s, n, NULL); break;
+                case 2: nn = convert_to_token (s, n, NULL); break;
+                default: nn = convert_to_hex (s, n, NULL); break;
+                }
+              len += nn;
+              if (buffer)
+                {
+                  if (len >= maxlength)
+                    return 0;
+                  switch (type)
+                    {
+                    case 1: convert_to_string (s, n, d); break;
+                    case 2: convert_to_token (s, n, d); break;
+                    default: convert_to_hex (s, n, d); break;
+                    }
+                  d += nn;
+                }
+              if (s[n] != ST_CLOSE)
+                {
+                  len++;
+                  if (buffer)
+                    {
+                      if (len >= maxlength)
+                        return 0;
+                      *d++ = ' ';
+                    }
+                }
+            }
+          else
+            {
+              sprintf (numbuf, "%u:", (unsigned int)n );
+              len += strlen (numbuf) + n;
+              if ( buffer ) 
+                {
+                  if ( len >= maxlength )
 		    return 0;
-		*d++ = '(';
-	    }
-	    break;
-	  case ST_CLOSE:
-	    s++;
-	    len++;
-	    if ( mode != GCRYSEXP_FMT_CANON )
-		len++;
-	    if ( buffer ) {
-		if ( len >= maxlength )
-		    return 0;
-		*d++ = ')';
-		if ( mode != GCRYSEXP_FMT_CANON )
-		    *d++ = '\n';
-	    }
-	    break;
-	  case ST_DATA:
-	    s++;
-	    memcpy ( &n, s, sizeof n ); s += sizeof n;
-	    sprintf (numbuf, "%u:", (unsigned int)n );
-	    len += strlen (numbuf) + n;
-	    if ( buffer ) {
-		if ( len >= maxlength )
-		    return 0;
-		d = stpcpy ( d, numbuf );
-		memcpy ( d, s, n ); d += n;
-	    }
-	    s += n;
-	    break;
-	  default:
-	    BUG ();
+                  d = stpcpy ( d, numbuf );
+                  memcpy ( d, s, n ); d += n;
+                }
+            }
+          s += n;
+          break;
+        default:
+          BUG ();
 	}
     }
-    if (buffer) {
-	if ( len >= maxlength )
-	    return 0;
-	*d++ = 0; /* for convenience we make a C string */
+  if ( mode != GCRYSEXP_FMT_CANON )
+    {
+      len++;
+      if (buffer)
+        {
+          if ( len >= maxlength )
+            return 0;
+          *d++ = '\n'; 
+        }
     }
-    else
-	len++; /* we need one byte more for this */
+  if (buffer) 
+    {
+      if ( len >= maxlength )
+        return 0;
+      *d++ = 0; /* for convenience we make a C string */
+    }
+  else
+    len++; /* we need one byte more for this */
 
-    return len;
+  return len;
 }
 
 

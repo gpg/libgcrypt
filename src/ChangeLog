@@ -1,10 +1,21 @@
+2002-01-31  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c (suitable_encoding,convert_to_hex,convert_to_string)
+	(convert_to_token): New.
+	(gcry_sexp_sprint): Better formatting of advanced encoding, does
+	now insert LFs and escapes all unprintable characters.
+
+2002-01-26  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt-config.in: Add copyright notice.
+
 2002-01-11  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (gcry_sexp_canon_len): Fixed last change.
 
 2002-01-01  Timo Schulz <ts@winpt.org>
 
-	* stdmem.c (_gcry_private_realloc): if pointer is NULL now realloc
+	* stdmem.c (_gcry_private_realloc): If pointer is NULL now realloc
 	behaves like malloc.
 
 2001-12-20  Werner Koch  <wk@gnupg.org>
@@ -20,7 +31,7 @@
 	* Makefile.am (DISTCLEANFILES): Include libgcrypt.sym
 
 	* sexp.c: Removed the commented test code because we now have a
-	text in ../tests/
+	test in ../tests/
 
 2001-12-17  Werner Koch  <wk@gnupg.org>
 
