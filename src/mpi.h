@@ -106,6 +106,7 @@ struct gcry_mpi {
 #define mpi_alloc_like(a)     _gcry_mpi_alloc_like((a))  
 #define mpi_set(a,b)          _gcry_mpi_set ((a),(b))        
 #define mpi_set_ui(a,b)       _gcry_mpi_set_ui ((a),(b))      
+#define mpi_get_ui(a,b)       _gcry_mpi_get_ui ((a),(b))      
 #define mpi_alloc_set_ui(a)   _gcry_mpi_alloc_set_ui ((a))
 #define mpi_m_check(a)        _gcry_mpi_m_check ((a))     
 #define mpi_swap(a,b)         _gcry_mpi_swap ((a),(b))       
@@ -113,9 +114,9 @@ struct gcry_mpi {
 void _gcry_mpi_clear( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_like( gcry_mpi_t a );
 void _gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u);
-void _gcry_mpi_set_ui( gcry_mpi_t w, unsigned long u);
-gcry_err_code_t _gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u);
+void _gcry_mpi_set_ui( gcry_mpi_t w, ulong u);
 gcry_mpi_t  _gcry_mpi_alloc_set_ui( unsigned long u);
+gcry_err_code_t _gcry_mpi_get_ui (gcry_mpi_t w, ulong *u);
 void _gcry_mpi_m_check( gcry_mpi_t a );
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
 
