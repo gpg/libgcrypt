@@ -1,3 +1,8 @@
+2003-01-21  Werner Koch  <wk@gnupg.org>
+
+	* random.c (gcry_random_add_bytes): Add QUALITY argument, let
+	function return an error code and disable its core for now.
+
 2003-01-21  Timo Schulz  <twoaday@freakmail.de>
 
 	* random.c (gcry_random_add_bytes): New. Function to add external

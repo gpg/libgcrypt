@@ -1,5 +1,5 @@
 /* random.c  -	random number generator
- * Copyright (C) 1998, 2000, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -264,12 +264,24 @@ get_random_bytes( size_t nbytes, int level, int secure )
 }
 
 
-void
-gcry_random_add_bytes( const void * buf, size_t buflen )
+/* Add BUFLEN bytes from BUF to the internal random pool.  QUALITY
+   should be in the range of 0..100 to indicate the goodness of the
+   entropy added, or -1 for goodness not known. 
+
+   Note, that this fucntion currently does nothing.
+*/
+int 
+gcry_random_add_bytes (const void * buf, size_t buflen, int quality)
 {
-    if( !buf || !buflen )
-        return; /* do nothing */
-    add_randomness( buf, buflen, 1 );
+  if (!buf || quality < -1 || quality > 100)
+    return GCRYERR_INV_ARG;
+  if (!buflen)
+    return 0; /* Shortcut this dummy case. */
+  /* Before we actuall enbale this code, we need to lock the pool,
+     have a look at the quality and find a way to add them without
+     disturbing the real entropy (we have estimated). */
+  /*add_randomness( buf, buflen, 1 );*/
+  return 0;
 }   
     
 

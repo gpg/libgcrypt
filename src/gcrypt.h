@@ -1,5 +1,5 @@
 /* gcrypt.h -  GNU cryptographic library interface
- * Copyright (C) 1998,1999,2000,2001,2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -856,8 +856,10 @@ enum gcry_random_level
 void gcry_randomize (unsigned char *buffer, size_t length,
 		     enum gcry_random_level level);
 
-/* Add the external random from BUFFER with LENGTH bytes into the pool. */
-void gcry_random_add_bytes (const void * buffer, size_t length);
+/* Add the external random from BUFFER with LENGTH bytes into the
+   pool. QUALITY should either be -1 for unknown or in the range of 0
+   to 100 */
+int gcry_random_add_bytes (const void *buffer, size_t length, int quality);
 
 /* Return NBYTES of allocated random using a random numbers of quality
    LEVEL. */
