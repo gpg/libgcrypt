@@ -1,3 +1,11 @@
+2004-05-07  Moritz Schulte  <moritz@g10code.de>
+
+	* gcrypt.texi: Merged several fixes reported by Umberto Salsi.
+
+2004-04-08  Moritz Schulte  <moritz@g10code.de>
+
+	* gcrypt.texi (Multi Threading): Typo fix.
+
 2004-03-11  Marcus Brinkmann  <marcus@g10code.de>
 
 	* gcrypt.texi (Multi Threading): Partially document new thread

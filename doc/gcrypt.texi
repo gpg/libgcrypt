@@ -265,11 +265,11 @@ contains common error handling related code for GnuPG components.
 @node Preparation
 @chapter Preparation
 
-To use `@acronym{Libgcrypt}', you have to perform some changes to your sources and
-the build system.  The necessary changes are small and explained in the
-following sections.  At the end of this chapter, it is described how the
-library is initialized, and how the requirements of the library are
-verified.
+To use `@acronym{Libgcrypt}', you have to perform some changes to your
+sources and the build system.  The necessary changes are small and
+explained in the following sections.  At the end of this chapter, it
+is described how the library is initialized, and how the requirements
+of the library are verified.
 
 @menu
 * Header::                      What header file you need to include.
@@ -438,23 +438,24 @@ make it a bit simpler for you, this will probably work, but only if
 both libraries have the same requirement for the thread package.  This
 is currently only supported for the non-threaded case, GNU Pth and
 pthread.  Support for more thread packages is easy to add, so contact
-is if you require it.
+us if you require it.
 
 @item
 The function @code{gcry_check_version} must be called before any other
 function in the library, except the @code{GCRYCTL_SET_THREAD_CBS}
-command, because it initializes the thread support subsystem in
-@acronym{Libgcrypt}.  To achieve this in multi-threaded programs, you
-must synchronize the memory with respect to other threads that also
-want to use @acronym{Libgcrypt}.  For this, it is sufficient to call
+command (called via the @code{gcry_control} function0, because it
+initializes the thread support subsystem in @acronym{Libgcrypt}.  To
+achieve this in multi-threaded programs, you must synchronize the
+memory with respect to other threads that also want to use
+@acronym{Libgcrypt}.  For this, it is sufficient to call
 @code{gcry_check_version} before creating the other threads using
 @acronym{Libgcrypt}@footnote{At least this is true for POSIX threads,
 as @code{pthread_create} is a function that synchronizes memory with
 respects to other threads.  There are many functions which have this
 property, a complete list can be found in POSIX, IEEE Std 1003.1-2003,
 Base Definitions, Issue 6, in the definition of the term ``Memory
-Synchronization''.  For other thread packages, more relaxed or
-more strict rules may apply.}.
+Synchronization''.  For other thread packages, more relaxed or more
+strict rules may apply.}.
 
 @item
 As with the function @code{gpg_strerror}, @code{gcry_strerror} is not
@@ -963,7 +964,7 @@ Memory allocation functions are of the following types:
 This type is defined as: @code{void *(*gcry_handler_alloc_t) (size_t n)}.
 @end deftp
 @deftp {Data type} gcry_handler_secure_check_t
-This type is defined as: @code{void *(*gcry_handler_secure_check_t) (void *)}.
+This type is defined as: @code{int *(*gcry_handler_secure_check_t) (const void *)}.
 @end deftp
 @deftp {Data type} gcry_handler_realloc_t
 This type is defined as: @code{void *(*gcry_handler_realloc_t) (void *p, size_t n)}.
@@ -2789,7 +2790,7 @@ Destroys the handle @var{handle}.
 @node Working with keys
 @section Working with keys
 
-@deftp {Data type} gcry_ac_key_id_t
+@deftp {Data type} gcry_ac_key_type_t
 Defined constants:
 
 @table @code
@@ -3406,9 +3407,9 @@ format (MSB first).
 @deftypefun int gcry_mpi_print (@w{enum gcry_mpi_format @var{format}}, @w{unsigned char *@var{buffer}}, @w{size_t @var{buflen}}, @w{size_t *@var{nwritten}}, @w{const gcry_mpi_t @var{a}})
 
 Convert the MPI @var{a} into an external representation described by
-@var{format} (see above) and store it in the provided @var{buffer} which
+@var{format} (see above) and store it in the provided @var{buffer}
 which has a usable length of at least the @var{buflen} bytes. If
-@var{nwritten} is not NULL, it wilol receive the number of bytes
+@var{nwritten} is not NULL, it will receive the number of bytes
 actually stored in @var{buffer} after a successful operation.
 @end deftypefun
 
