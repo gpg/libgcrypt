@@ -1,5 +1,7 @@
 2003-10-27  Moritz Schulte  <mo@g10code.com>
 
+	* libgcrypt-config.in: Include libs/cflags of libgpg-error.
+
 	* sexp.c (sexp_sscan): Cleaned up, deallocate scanned sexp on
 	error.
 

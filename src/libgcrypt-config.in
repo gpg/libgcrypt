@@ -34,7 +34,6 @@ digests="@LIBGCRYPT_DIGESTS@"
 thread_modules="@LIBGCRYPT_THREAD_MODULES@"
 
 # State variables.
-exec_prefix_set=no
 echo_libs=no
 echo_cflags=no
 echo_prefix=no
@@ -49,8 +48,8 @@ usage()
 Usage: $0 [OPTIONS]
 Options:
 	[--thread={${thread_modules}}]
-	[--prefix[=DIR]]
-	[--exec-prefix[=DIR]]
+	[--prefix]
+	[--exec-prefix]
 	[--version]
 	[--libs]
 	[--cflags]
@@ -86,18 +85,8 @@ while test $# -gt 0; do
 		usage 1 1>&2
 	    fi
 	    ;;
-	--prefix=*)
-	    prefix=$optarg
-	    if test $exec_prefix_set = no ; then
-		exec_prefix=$optarg
-	    fi
-	    ;;
 	--prefix)
 	    echo_prefix=yes
-	    ;;
-	--exec-prefix=*)
-	    exec_prefix=$optarg
-	    exec_prefix_set=yes
 	    ;;
 	--exec-prefix)
 	    echo_exec_prefix=yes
@@ -122,11 +111,11 @@ while test $# -gt 0; do
 done
 
 if test "$echo_prefix" = "yes"; then
-    echo $prefix
+    echo "$prefix"
 fi
 
 if test "$echo_exec_prefix" = "yes"; then
-    echo $exec_prefix
+    echo "$exec_prefix"
 fi
 
 if test "$echo_cflags" = "yes"; then
@@ -152,8 +141,9 @@ if test "$echo_cflags" = "yes"; then
 	    cflags_final=$cflags_pth
 	    ;;
     esac
+    cflags_final="$cflags_final @GPG_ERROR_CFLAGS@"
 
-    echo "$includes" "$cflags_final"
+    echo "$includes $cflags_final"
 fi
 
 if test "$echo_libs" = "yes"; then
@@ -179,12 +169,13 @@ if test "$echo_libs" = "yes"; then
 	    libs_final=$libs_pth
 	    ;;
     esac
+    libs_final="$libs_final @GPG_ERROR_LIBS@"
 
-    echo $libdirs $libs_final
+    echo "$libdirs $libs_final"
 fi
 
 if test "$echo_version" = "yes"; then
-    echo $version
+    echo "$version"
 fi
 
 if test "$echo_algorithms" = "yes"; then
