@@ -1,5 +1,6 @@
 # Configure.ac script for Libgcrypt
-# Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+# Copyright (C) 1998, 1999, 2000, 2001,
+#               2002, 2003 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -71,23 +72,150 @@ AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 
-static_modules="sha1 sha256 md4 md5 rmd160 crc"
-static_random_module=""
-
 AC_PROG_AWK
 
-MODULES_IN_CIPHER=`$AWK '/^EXTRA_PROGRAMS/ { for(i=3;i<=NF;i++) print $i}' \
-                                              $srcdir/cipher/Makefile.am`
+dnl Definitions for symmetric ciphers.
+available_ciphers="arcfour blowfish cast5 des aes twofish"
+default_ciphers="$available_ciphers"
+enabled_ciphers=""
+
+dnl Definitions for public-key ciphers.
+available_pubkey_ciphers="dsa elgamal rsa"
+default_pubkey_ciphers="$available_pubkey_ciphers"
+enabled_pubkey_ciphers=""
+
+dnl Definitions for message digests.
+available_digests="crc md4 md5 rmd160 sha1 sha256 tiger"
+default_digests=$available_digests
+enabled_digests=""
+
+dnl Support for the --enable-ciphers switch.
+AC_ARG_ENABLE(ciphers,
+	      AC_HELP_STRING([--enable-ciphers=ciphers],
+			     [select the symmetric ciphers to include]),
+	      [enabled_ciphers=$(echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]')],
+	      [enabled_ciphers=""])
+if test "x$enabled_ciphers" = "x" \
+   -o "$enabled_ciphers" = "yes"  \
+   -o "$enabled_ciphers" = "no"; then
+   enabled_ciphers=$default_ciphers
+fi
+AC_MSG_CHECKING([which symmetric ciphers to include])
+for cipher in $enabled_ciphers; do
+    LIST_MEMBER($cipher, $available_ciphers)
+    if test "$found" = "0"; then
+       AC_MSG_ERROR([unsupported cipher specified])
+    fi
+done
+AC_MSG_RESULT([$enabled_ciphers])
+
+dnl Support for the --enable-pubkey-ciphers switch.
+AC_ARG_ENABLE(pubkey-ciphers,
+	      AC_HELP_STRING([--enable-pubkey-ciphers=ciphers],
+			     [select the public-key ciphers to include]),
+	      [enabled_pubkey_ciphers=$(echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]')],
+	      [enabled_pubkey_ciphers=""])
+if test "x$enabled_pubkey_ciphers" = "x" \
+   -o "$enabled_pubkey_ciphers" = "yes"  \
+   -o "$enabled_pubkey_ciphers" = "no"; then
+   enabled_pubkey_ciphers=$default_pubkey_ciphers
+fi
+AC_MSG_CHECKING([which public-key ciphers to include])
+for cipher in $enabled_pubkey_ciphers; do
+    LIST_MEMBER($cipher, $available_pubkey_ciphers)
+    if test "$found" = "0"; then
+       AC_MSG_ERROR([unsupported public-key cipher specified])
+    fi
+done
+AC_MSG_RESULT([$enabled_pubkey_ciphers])
+
+dnl Support for the --enable-digests switch.
+AC_ARG_ENABLE(digests,
+	      AC_HELP_STRING([--enable-digests=digests],
+			     [select the message digests to include]),
+	      [enabled_digests=$(echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]')],
+	      [enabled_digests=""])
+if test "x$enabled_digests" = "x" \
+   -o "$enabled_digests" = "yes"  \
+   -o "$enabled_digests" = "no"; then
+   enabled_digests=$default_digests
+fi
+AC_MSG_CHECKING([which message digests to include])
+for digest in $enabled_digests; do
+    LIST_MEMBER($digest, $available_digests)
+    if test "$found" = "0"; then
+       AC_MSG_ERROR([unsupported message digest specified])
+    fi
+done
+AC_MSG_RESULT([$enabled_digests])
+
+dnl Define automake conditionals and config.h symbols depending on the
+dnl selected ciphers, pubkey-ciphers and digests.
+
+LIST_MEMBER(arcfour, $enabled_ciphers)
+AM_CONDITIONAL(USE_ARCFOUR, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_ARCFOUR, $found, [Defined if this module should be included])
+LIST_MEMBER(blowfish, $enabled_ciphers)
+AM_CONDITIONAL(USE_BLOWFISH, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_BLOWFISH, $found, [Defined if this module should be included])
+LIST_MEMBER(cast5, $enabled_ciphers)
+AM_CONDITIONAL(USE_CAST5, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_CAST5, $found, [Defined if this module should be included])
+LIST_MEMBER(des, $enabled_ciphers)
+AM_CONDITIONAL(USE_DES, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_DES, $found, [Defined if this module should be included])
+LIST_MEMBER(aes, $enabled_ciphers)
+AM_CONDITIONAL(USE_AES, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_AES, $found, [Defined if this module should be included])
+LIST_MEMBER(twofish, $enabled_ciphers)
+AM_CONDITIONAL(USE_TWOFISH, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_TWOFISH, $found, [Defined if this module should be included])
+
+LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
+AM_CONDITIONAL(USE_DSA, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_DSA, $found, [Defined if this module should be included])
+LIST_MEMBER(rsa, $enabled_pubkey_ciphers)
+AM_CONDITIONAL(USE_RSA, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_RSA, $found, [Defined if this module should be included])
+LIST_MEMBER(elgamal, $enabled_pubkey_ciphers)
+AM_CONDITIONAL(USE_ELGAMAL, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_ELGAMAL, $found, [Defined if this module should be included])
+
+LIST_MEMBER(crc, $enabled_digests)
+AM_CONDITIONAL(USE_CRC, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_CRC, $found, [Defined if this module should be included])
+LIST_MEMBER(md4, $enabled_digests)
+AM_CONDITIONAL(USE_MD4, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_MD4, $found, [Defined if this module should be included])
+LIST_MEMBER(md5, $enabled_digests)
+AM_CONDITIONAL(USE_MD5, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_MD5, $found, [Defined if this module should be included])
+LIST_MEMBER(sha1, $enabled_digests)
+AM_CONDITIONAL(USE_SHA1, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_SHA1, $found, [Defined if this module should be included])
+LIST_MEMBER(sha256, $enabled_digests)
+AM_CONDITIONAL(USE_SHA256, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_SHA256, $found, [Defined if this module should be included])
+LIST_MEMBER(tiger, $enabled_digests)
+AM_CONDITIONAL(USE_TIGER, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_TIGER, $found, [Defined if this module should be included])
+
+# rmd160 should be included always.
+AM_CONDITIONAL(USE_RMD160, true)
+AC_DEFINE_UNQUOTED(USE_RMD160, 1, [Defined if this module should be included])
+
+
+AC_SUBST(LIBGCRYPT_CIPHERS, $enabled_ciphers)
+AC_SUBST(LIBGCRYPT_PUBKEY_CIPHERS, $enabled_pubkey_ciphers)
+AC_SUBST(LIBGCRYPT_DIGESTS, $enabled_digests)
 
 dnl
 dnl  Check for random module options
 dnl
-dnl  Fixme: get the list of available modules from MODULES_IN_CIPHER
-dnl         and check against this list
 
-AC_MSG_CHECKING([which static random module to use])
+AC_MSG_CHECKING([which random module to use])
 AC_ARG_ENABLE(static-rnd,
-    [  --enable-static-rnd=[egd|unix|linux]  ],
+    [  --enable-static-rnd=[egd|unix|linux|default|auto]  ],
 [use_static_rnd=$enableval], [use_static_rnd=default] )
 
 if test "$use_static_rnd" = no; then
@@ -97,6 +225,9 @@ fi
 case "$use_static_rnd" in
     egd | linux | unix | default )
       AC_MSG_RESULT($use_static_rnd)
+      ;;
+    auto )
+      AC_MSG_RESULT(automagically selected at runtime)
       ;;
     * )
       AC_MSG_RESULT(invalid argument)
@@ -492,115 +623,89 @@ fi
 #
 
 dnl
-dnl Figure out the default linkage mode for cipher modules
+dnl Figure out the random modules that are available for this
+dnl configuration.
 dnl
 print_egd_notice=no
+random_modules=""
 if test "$use_static_rnd" = default; then
-  if test "$ac_cv_have_dev_random" = yes; then
-      static_random_module="rndlinux"
-  else
-      case "${target}" in
-          *-*-mingw32*)
-              static_random_module="rndw32"
-              AC_DEFINE(USE_STATIC_RNDW32,1,
-                       [At a certain point in the code we need to know that
-                        we use the Windows random module.])
-              ;;
-          i?86-emx-os2|i?86-*-os2*emx)
-              static_random_module="rndos2"
-              ;;
-          m68k-atari-mint)
-              static_random_module="rndatari"
-              ;;
-          i?86-*-msdosdjgpp*)
-              :
-              ;;
-          *)
-              static_random_module="rndunix"
-              print_egd_notice=yes
-             ;;
-      esac
-  fi
+
+     # Figure out the default random module.
+     if test "$ac_cv_have_dev_random" = yes; then
+        random_modules="rndlinux"
+     else
+         case "${target}" in
+            *-*-mingw32*|*-*-cygwin*)
+                random_modules="rndw32"
+                ;;
+            i?86-emx-os2|i?86-*-os2*emx)
+                random_modules="rndos2"
+                ;;
+            m68k-atari-mint)
+                random_modules="rndatari"
+                ;;
+            i?86-*-msdosdjgpp*)
+                :
+                ;;
+            *)
+                random_modules="rndlinux rndegd rndunix"
+                AC_DEFINE(USE_ALL_RANDOM_MODULES, 1, 
+                          [Allow to select random modules at runtime.])
+                ;;
+         esac
+     fi
 else
-  if test "$use_static_rnd" = none; then
-    :
-  else
-    static_random_module="rnd$use_static_rnd"
-    if test "$use_static_rnd" = "unix"; then
-        print_egd_notice=yes
-    fi
-  fi
+     if test "$use_static_rnd" = auto; then
+          random_modules="rndlinux rndegd rndunix"
+          AC_DEFINE(USE_ALL_RANDOM_MODULES, 1)
+     else
+          random_modules="rnd$use_static_rnd";
+     fi
+fi
+
+if test -z "$random_modules"; then
+   AC_MSG_ERROR(no random module available)
 fi
 
 
-dnl
-dnl Parse the modules list and build the list
-dnl of static and dymically linked modules
-dnl
-dnl (We always need a static rmd160)
-static_modules="$static_modules rmd160 $static_random_module"
-STATIC_CIPHER_NAMES=""
-STATIC_CIPHER_OBJS=""
-for name in $MODULES_IN_CIPHER; do
-    x="yes"
-    for i in $disallowed_modules; do
-        if test "$name" = "$i" ; then x="no" ; fi
-    done;
-    if test $x = yes; then
-        x="no"
-        for i in $static_modules; do
-            if test "$name" = "$i" ; then
-                x="yes"
-            fi
-        done;
-        if test $x = yes; then
-            STATIC_CIPHER_NAMES="$STATIC_CIPHER_NAMES $name"
-            STATIC_CIPHER_OBJS="$STATIC_CIPHER_OBJS $name.lo"
-        fi
-
+dnl Filter out the modules contained in `disallowed_modules'.
+random_modules_tmp=$random_modules
+random_modules=""
+for rndmod in $random_modules_tmp; do
+    LIST_MEMBER($rndmod, $disallowed_modules)
+    if test "$found" = "0"; then
+       random_modules="$random_modules $rndmod"
     fi
 done
+
+dnl Define conditionals and config.h symbols depending on the enabled
+dnl random modules.
+
+LIST_MEMBER(rndlinux, $random_modules)
+AM_CONDITIONAL(USE_RNDLINUX, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_RNDLINUX, $found, [Defined if the /dev/random based RNG should be used.])
+
+LIST_MEMBER(rndunix, $random_modules)
+AM_CONDITIONAL(USE_RNDUNIX, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_RNDUNIX, $found, [Defined if the default Unix RNG should be used.])
+if test "$found" = "1"; then
+   print_egd_notice=yes
+fi
+
+LIST_MEMBER(rndegd, $random_modules)
+AM_CONDITIONAL(USE_RNDEGD, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_RNDEGD, $found, [Defined if the EGD based RNG should be used.])
+if test "$found" = "1"; then
+   EGDLIBS=$NETLIBS
+   AC_SUBST(EGDLIBS)
+fi
+
+LIST_MEMBER(rndw32, $random_modules)
+AM_CONDITIONAL(USE_RNDW32, test "$found" = "1")
+AC_DEFINE_UNQUOTED(USE_RNDW32, $found, [Defined if the Windows specific RNG should be used.])
+
 AC_MSG_RESULT()
-AC_SUBST(STATIC_CIPHER_OBJS)
-AC_SUBST(STATIC_CIPHER_NAMES)
 
-
-dnl
-dnl And build the constructor file
-dnl
-
-test -d cipher || mkdir cipher
-cat <<G10EOF >cipher/construct.c
-/* automatically generated by configure - do not edit */
-
-G10EOF
-for name in $STATIC_CIPHER_NAMES; do
-    echo "void _gcry_${name}_constructor(void);" >>cipher/construct.c
-done
-AC_MSG_RESULT()
-cat <<G10EOF >>cipher/construct.c
-
-void
-_gcry_cipher_modules_constructor(void)
-{
-    static int done = 0;
-    if( done )
-        return;
-    done = 1;
-
-G10EOF
-for name in $STATIC_CIPHER_NAMES; do
-    echo "   _gcry_${name}_constructor();" >>cipher/construct.c
-done
-echo '}' >>cipher/construct.c
-
-
-
-
-dnl
-dnl Figure how to link the cipher modules
-dnl
-AC_SUBST(STATIC_CIPHER_OBJS)
 
 #
 # setup assembler stuff
@@ -764,7 +869,7 @@ G10EOF
 fi
 
 warn=""
-for file in "$static_random_module"; do
+for file in "random_modules"; do
   case "$file" in rndunix | rndw32) warn="$warn $file";; esac
 done
 if test -n "$warn"; then
@@ -774,3 +879,10 @@ if test -n "$warn"; then
   echo "use of this library has to comply with the conditions of the GPL."
 fi
 
+# Give some feedback
+echo
+echo   "                Configured for: $PRINTABLE_OS_NAME ($target)"
+if test -n "$show_extraasm"; then
+  echo "  Extra cpu specific functions:$show_extraasm"
+fi
+echo
