@@ -1,5 +1,9 @@
 2002-09-20  Werner Koch  <wk@gnupg.org>
 
+	* mpi-mul.c (gcry_mpi_mul_2exp): New. This was declared in
+	gcrypt.h but only implemented as internal function.  Noted by Timo
+	but a few minutes to late for today's release.
+
 	* Makefile.am (DISTCLEANFILES): Include mpi-asm-defs.h
 
 2002-09-18  Werner Koch  <wk@gnupg.org>

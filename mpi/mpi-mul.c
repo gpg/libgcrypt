@@ -106,6 +106,12 @@ _gcry_mpi_mul_2exp( MPI w, MPI u, unsigned long cnt)
 }
 
 
+void
+gcry_mpi_mul_2exp( MPI w, MPI u, unsigned long cnt)
+{
+  _gcry_mpi_mul_2exp (w, u, cnt);
+}
+
 
 void
 gcry_mpi_mul( MPI w, MPI u, MPI v)
