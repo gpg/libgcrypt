@@ -1,3 +1,7 @@
+2003-04-17  Moritz Schulte  <moritz@g10code.com>
+
+	* basic.c (check_digests): Include checks for SHA512 and SHA384.
+
 2003-04-16  Moritz Schulte  <moritz@g10code.com>
 
 	* basic.c (check_one_md): Also test md_copy.
