@@ -42,6 +42,13 @@ benchmark_LDADD = libgcrypt.la
 
 include_HEADERS = gcrypt.h
 
+if USE_LIBGPG_ERROR
+  libgpg_error_link = -lgpg-error
+  libgpg_error_compile = -DUSE_LIBGPG_ERROR
+else
+  libgpg_error_link =
+  libgpg_error_compile =
+endif
 
 if HAVE_PTHREAD
 ath_components_pthread = ath-pthread.c
@@ -83,5 +90,4 @@ libgcrypt_la_SOURCES =	 g10lib.h \
 libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
                          $(srcdir)/libgcrypt.vers
 
-libgcrypt_la_LIBADD = ../cipher/libcipher.la  ../mpi/libmpi.la
-
+libgcrypt_la_LIBADD = ../cipher/libcipher.la  ../mpi/libmpi.la $(libgpg_error_link)

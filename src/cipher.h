@@ -25,12 +25,7 @@
 
 #include "../cipher/random.h"
 
-#define PUBKEY_FLAG_NO_BLINDING 0x00000001
-
-#define is_RSA(a)     ((a)==GCRY_PK_RSA || (a)==GCRY_PK_RSA_E \
-		       || (a)==GCRY_PK_RSA_S )
-#define is_ELGAMAL(a) ((a)==GCRY_PK_ELG || (a)==GCRY_PK_ELG_E)
-
+#define PUBKEY_FLAG_NO_BLINDING 1 << 0
 
 /*-- rmd160.c --*/
 void _gcry_rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length );
@@ -63,15 +58,15 @@ typedef struct gcry_pubkey_spec
   const char *elements_sig;
   const char *elements_grip;
   int use;
-  int (*generate) (int algo, unsigned int nbits, unsigned long use_e,
-		   GcryMPI *skey, GcryMPI **retfactors);
-  int (*check_secret_key) (int algo, GcryMPI *skey);
-  int (*encrypt) (int algo, GcryMPI *resarr, GcryMPI data, GcryMPI *pkey, int flags);
-  int (*decrypt) (int algo, GcryMPI *result, GcryMPI *data, GcryMPI *skey, int flags);
-  int (*sign) (int algo, GcryMPI *resarr, GcryMPI data, GcryMPI *skey);
-  int (*verify) (int algo, GcryMPI hash, GcryMPI *data, GcryMPI *pkey,
-		 int (*cmp)(void *, GcryMPI), void *opaquev);
-  unsigned (*get_nbits) (int algo, GcryMPI *pkey);
+  gpg_err_code_t (*generate) (int algo, unsigned int nbits, unsigned long use_e,
+		   gcry_mpi_t *skey, gcry_mpi_t **retfactors);
+  gpg_err_code_t (*check_secret_key) (int algo, gcry_mpi_t *skey);
+  gpg_err_code_t (*encrypt) (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, int flags);
+  gpg_err_code_t (*decrypt) (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags);
+  gpg_err_code_t (*sign) (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey);
+  gpg_err_code_t (*verify) (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+		 int (*cmp)(void *, gcry_mpi_t), void *opaquev);
+  unsigned (*get_nbits) (int algo, gcry_mpi_t *pkey);
 } GcryPubkeySpec;
 
 typedef struct gcry_digest_spec
@@ -95,7 +90,7 @@ typedef struct gcry_cipher_spec
   size_t blocksize;
   size_t keylen;
   size_t contextsize;
-  int  (*setkey) (void *c, const unsigned char *key, unsigned keylen);
+  gpg_err_code_t (*setkey) (void *c, const unsigned char *key, unsigned keylen);
   void (*encrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf);
   void (*decrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf);
   void (*stencrypt) (void *c, unsigned char *outbuf, const unsigned char *inbuf,
@@ -115,6 +110,9 @@ extern GcryCipherSpec cipher_spec_aes192;
 extern GcryCipherSpec cipher_spec_aes256;
 extern GcryCipherSpec cipher_spec_twofish;
 extern GcryCipherSpec cipher_spec_twofish128;
+extern GcryCipherSpec cipher_spec_serpent128;
+extern GcryCipherSpec cipher_spec_serpent192;
+extern GcryCipherSpec cipher_spec_serpent256;
 
 /* Declarations for the digest specifications.  */
 extern GcryDigestSpec digest_spec_crc32;

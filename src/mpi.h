@@ -34,7 +34,7 @@
 #include "../mpi/mpi-asm-defs.h"
 
 #ifndef _GCRYPT_IN_LIBGCRYPT
- #error this file should only be used inside libgcrypt
+#error this file should only be used inside libgcrypt
 #endif
 
 #ifndef BITS_PER_MPI_LIMB
@@ -51,7 +51,7 @@
   typedef unsigned short int mpi_limb_t;
   typedef   signed short int mpi_limb_signed_t;
 #else
-  #error BYTES_PER_MPI_LIMB does not match any C type
+#error BYTES_PER_MPI_LIMB does not match any C type
 #endif
 #define BITS_PER_MPI_LIMB    (8*BYTES_PER_MPI_LIMB)
 #endif /*BITS_PER_MPI_LIMB*/
@@ -70,7 +70,7 @@ struct gcry_mpi {
 
 #ifndef DID_MPI_TYPEDEF
   typedef struct gcry_mpi *MPI;
-  #define DID_MPI_TYPEDEF
+#define DID_MPI_TYPEDEF
 #endif
 
 #define MPI_NULL NULL
@@ -81,22 +81,22 @@ struct gcry_mpi {
 /*-- mpiutil.c --*/
 
 #ifdef M_DEBUG
-  #define mpi_alloc(n)	_gcry_mpi_debug_alloc((n), M_DBGINFO( __LINE__ ) )
-  #define mpi_alloc_secure(n)  _gcry_mpi_debug_alloc_secure((n), M_DBGINFO( __LINE__ ) )
-  #define mpi_free(a)	_gcry_mpi_debug_free((a), M_DBGINFO(__LINE__) )
-  #define mpi_resize(a,b) _gcry_mpi_debug_resize((a),(b), M_DBGINFO(__LINE__) )
-  #define mpi_copy(a)	  _gcry_mpi_debug_copy((a), M_DBGINFO(__LINE__) )
+#define mpi_alloc(n)	_gcry_mpi_debug_alloc((n), M_DBGINFO( __LINE__ ) )
+#define mpi_alloc_secure(n)  _gcry_mpi_debug_alloc_secure((n), M_DBGINFO( __LINE__ ) )
+#define mpi_free(a)	_gcry_mpi_debug_free((a), M_DBGINFO(__LINE__) )
+#define mpi_resize(a,b) _gcry_mpi_debug_resize((a),(b), M_DBGINFO(__LINE__) )
+#define mpi_copy(a)	  _gcry_mpi_debug_copy((a), M_DBGINFO(__LINE__) )
   MPI _gcry_mpi_debug_alloc( unsigned nlimbs, const char *info );
   MPI _gcry_mpi_debug_alloc_secure( unsigned nlimbs, const char *info );
   void _gcry_mpi_debug_free( MPI a, const char *info );
   void _gcry_mpi_debug_resize( MPI a, unsigned nlimbs, const char *info );
   MPI  _gcry_mpi_debug_copy( MPI a, const char *info	);
 #else
-  #define mpi_alloc(n)	       _gcry_mpi_alloc((n) )
-  #define mpi_alloc_secure(n)  _gcry_mpi_alloc_secure((n) )
-  #define mpi_free(a)	       _gcry_mpi_free((a) )
-  #define mpi_resize(a,b)      _gcry_mpi_resize((a),(b))
-  #define mpi_copy(a)	       _gcry_mpi_copy((a))
+#define mpi_alloc(n)	       _gcry_mpi_alloc((n) )
+#define mpi_alloc_secure(n)  _gcry_mpi_alloc_secure((n) )
+#define mpi_free(a)	       _gcry_mpi_free((a) )
+#define mpi_resize(a,b)      _gcry_mpi_resize((a),(b))
+#define mpi_copy(a)	       _gcry_mpi_copy((a))
   MPI  _gcry_mpi_alloc( unsigned nlimbs );
   MPI  _gcry_mpi_alloc_secure( unsigned nlimbs );
   void _gcry_mpi_free( MPI a );

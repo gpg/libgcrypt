@@ -25,8 +25,8 @@
 #include <sys/types.h>
 
 #ifdef HAVE_DOSISH_SYSTEM
-# include <windows.h> /* for fd_set */
-# include <process.h> /* for pid_t */
+#include <windows.h> /* for fd_set */
+#include <process.h> /* for pid_t */
   typedef unsigned int ssize_t;
 #endif
 

@@ -20,20 +20,21 @@
 
 #include <assert.h>
 #include <config.h>
+#include <errno.h>
 #include "g10lib.h"
 
 /* Public function.  Add a module specification to the list ENTRIES.
    The new module has it's use-counter set to one.  */
-int
+gpg_err_code_t
 _gcry_module_add (GcryModule **entries, void *spec,
 		  GcryModule **module)
 {
+  gpg_err_code_t err = 0;
   GcryModule *entry;
-  int err = 0;
 
   entry = gcry_malloc (sizeof (GcryModule));
   if (! entry)
-    err = GCRYERR_NO_MEM;
+    err = gpg_err_code_from_errno (errno);
   else
     {
       /* Fill new module entry.  */

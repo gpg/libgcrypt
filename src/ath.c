@@ -25,13 +25,13 @@
 
 #include <unistd.h>
 #ifndef HAVE_DOSISH_SYSTEM
-# ifdef HAVE_SYS_SELECT_H
-#  include <sys/select.h>
-# else
-#  include <sys/time.h>
-# endif
-# include <sys/types.h>
-# include <sys/wait.h>
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#else
+#include <sys/time.h>
+#endif
+#include <sys/types.h>
+#include <sys/wait.h>
 #endif /*HAVE_DOSISH_SYSTEM*/
 
 #include "ath.h"

@@ -1,3 +1,150 @@
+2003-06-09  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am: Support for libgpg-error.
+
+2003-06-08  Moritz Schulte  <moritz@g10code.com>
+
+	* sexp.c (gcry_sexp_create): Expect sane error values from
+	gcry_sexp_canon_len instead of the `historical' values.
+
+2003-06-07  Moritz Schulte  <moritz@g10code.com>
+
+	* ath.c, ath.c, ath-pth.c, ath-pthread.c, benchmark.c, cipher.h,
+	g10lib.h, gcrypt.h, global.c, misc.c, missing-string.c, module.c,
+	mpi.h, secmem.c, secmem.h, sexp.c, stdmem.c, stdmem.h, testapi.c,
+	types.h: Edited all preprocessor instructions to remove whitespace
+	before the '#'.  This is not required by C89, but there are some
+	compilers out there that don't like it.  Replaced any occurence of
+	the now deprecated type names with the new ones.
+	
+	* gcrypt.h: Re-organized checking for gcc features; New macro:
+	_GCRY_GCC_ATTR_DEPRECATED.
+	Include copy of libgpg-error's gpg-error.h in order to make it
+	easy to build libgcrypt without needing libgpg-error.h.
+
+	(GCRY_MPI, GcryMPI, GCRY_SEXP, GcrySexp, GCRY_CIPHER_HD,
+	GcryCipherHd, GCRY_MD_HD, GcryMDHd): Declared deprecated.
+	(gcry_mpi_t, gcry_sexp_t, gcry_cipher_hd_t, gcry_md_hd_t): New
+	types.
+
+2003-06-04  Moritz Schulte  <moritz@g10code.com>
+
+	* sexp.c (sexp_sscan): New argument: arg_list, adjusted all
+	callers.
+	(ARG_NEXT): New macro.
+	(sexp_sscan): Use ARG_NEXT for receiving format string arguments.
+	(gcry_sexp_build_array): New function.
+
+2003-06-02  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h: Added some comments describing the gcry_sexp_*
+	functions.
+	Include <gpg-error.h> instead of <gpg/error.h>.
+
+2003-06-01  Moritz Schulte  <moritz@g10code.com>
+
+	* sexp.c (OLDPARSECODE): Removed macro...
+	(gcry_sexp_canon_len): ... and do not use it.
+
+	* gcrypt.h (gcry_errno): Removed declaration.
+
+	* g10lib.h (string_to_pubkey_algo, pubkey_algo_to_string,
+	pubkey_nbits): Removed declarations for non-existing functions.
+
+2003-05-31  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.h (is_RSA, is_ELGAMAL): Removed macros.
+
+	* g10lib.h (set_lasterr): Removed macro.
+	(_gcry_set_lasterr): Removed declaration.
+
+	* gcrypt.h: Changed declarations for: gcry_pk_algo_info,
+	gcry_md_open, gcry_md_copy, gcry_md_algo_info, gcry_md_info,
+	gcry_md_get_algo, gcry_random_add_bytes.
+	
+	(gcry_md_is_secure): Adjust macro for new API.
+
+2003-05-29  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h: Changed declarations for: gcry_cipher_open,
+	gcry_cipher_info, gcry_cipher_algo_info.
+	(gcry_cipher_get_algo_keylen): Adjuster for new
+	gcry_cipher_algo_info interface.
+	(gcry_cipher_get_algo_blklen): Likewise.
+
+	* global.c (gcry_errno): Removed function.
+	(gcry_strerror): Do not use gcry_errno.
+	(_gcry_set_lasterr): Removed function.
+	(last_ec): Removed variable.
+
+2003-05-27  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h (enum gcry_cipher_algos): Make Serpent IDs do not
+	conflict with OpenPGP.  Reported by Timo Schulz.
+
+	* global.c (gcry_control): Fixed name of enum list.
+
+2003-05-25  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.h (gcry_cipher_spec): Adjust return type of `setkey' for
+	libgpg-error.
+	(gcry_pubkey_spec): Adjust return type of `generate',
+	`check_secret_key', `encrypt', `decrypt', `sign' and `verify' for
+	libgpg-error.
+
+	* sexp.c (gcry_sexp_canon_len): Adjusted for libgpg-error.
+	(gcry_sexp_create): Likewise.
+	(gcry_sexp_new): Likewise.
+	(sexp_sscan): Likewise.
+	(gcry_sexp_build): Likewise.
+	(gcry_sexp_sscan): Likewise.
+
+	* module.c (_gcry_module_add): Likewise.
+
+	* global.c (last_ec): Change type to gpg_error_t.
+	(gcry_control): Adjust for libgpg-error.
+	(gcry_errno): Likewise.
+	(gcry_strerror): Likewise.
+	(_gcry_set_lasterr): Likewise.
+	(gcry_xmalloc): Likewise.
+	(gcry_xrealloc): Likewise.
+
+2003-05-22  Moritz Schulte  <moritz@g10code.com>
+
+	* types.h: Merged code from GnuPG regarding U64_C.
+
+	* missing-string.c (strsep): Removed function.
+
+	* g10lib.h: Removed declarations: strsep, strlwr.
+
+	* secmem.c (secmem_lock): New variable.
+	(SECMEM_LOCK, SECMEM_UNLOCK): New macros.
+	(_gcry_secmem_set_flags): Use SECMEM_LOCK and SECMEM_UNLOCK.
+	(_gcry_secmem_get_flags): Likewise.
+	(_gcry_secmem_init): Likewie.
+	(_gcry_secmem_malloc): Likewise.
+	(_gcry_secmem_free): Likewise.
+	(_gcry_secmem_malloc): Renamed to ...
+	(_gcry_secmem_malloc_internal): ... this.
+	(_gcry_secmem_malloc): New function, use SECMEM_LOCK,
+	SECMEM_UNLOCK, call _gcry_secmem_malloc_internal.
+	(_gcry_secmem_free): Renamed to ...
+	(_gcry_secmem_free_internal): ... this.
+	(_gcry_secmem_free): New function, use SECMEM_LOCK, SECMEM_UNLOCK,
+	call _gcry_secmem_free_internal.
+	(_gcry_secmem_realloc): Use SECMEM_LOCK, SECMEM_UNLOCK, call
+	_gcry_secmem_malloc_internal and _gcry_secmem_free_internal.
+	(_gcry_private_is_secure): Use SECMEM_LOCK, SECMEM_UNLOCK.
+	(_gcry_secmem_dump_stats): Likewise.
+	(_gcry_secmem_malloc_internal): Removed unused variable:
+	compressed.
+	Include "ath.h".
+
+2003-05-21  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h (GCRY_CIPHER_SERPENT128, GCRY_CIPHER_SERPENT192,
+	GCRY_CIPHER_SERPENT256): New symbols.
+
 2003-05-19  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.h: Reversed changes from 2003-03-03 since they would have

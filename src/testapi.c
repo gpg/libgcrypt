@@ -39,8 +39,8 @@ void
 test_sexp ( int argc, char **argv )
 {
     int rc, nbits;
-    GCRY_SEXP sexp;
-    GCRY_MPI key[3];
+    gcry_sexp_t sexp;
+    gcry_mpi_t key[3];
     size_t n;
     char *buf;
 
@@ -57,7 +57,7 @@ test_sexp ( int argc, char **argv )
 				  key[0], key[1], key[2] );
     fputs ( "DUMP of PK:\n", stderr );
     gcry_sexp_dump ( sexp );
-    {  GCRY_SEXP x;
+    {  gcry_sexp_t x;
        x = gcry_sexp_cdr ( sexp );
        fputs ( "DUMP of CDR:\n", stderr );
        gcry_sexp_dump ( x );
@@ -78,7 +78,7 @@ void
 test_genkey ( int argc, char **argv )
 {
     int rc, nbits = 1024;
-    GCRY_SEXP s_parms, s_key;
+    gcry_sexp_t s_parms, s_key;
 
     gcry_control( GCRYCTL_INIT_SECMEM, 16384, 0 );
     rc = gcry_sexp_build ( &s_parms, NULL, "(genkey(dsa(nbits %d)))", nbits );

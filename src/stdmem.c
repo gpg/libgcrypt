@@ -34,9 +34,9 @@
 #define MAGIC_END_BYTE 0xaa
 
 #if SIZEOF_UNSIGNED_LONG == 8
-  #define EXTRA_ALIGN 4
+#define EXTRA_ALIGN 4
 #else
-  #define EXTRA_ALIGN 0
+#define EXTRA_ALIGN 0
 #endif
 
 

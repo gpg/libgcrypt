@@ -28,12 +28,12 @@
 #include <stddef.h>
 
 #if defined(HAVE_MLOCK) || defined(HAVE_MMAP)
-# include <sys/mman.h>
-# include <sys/types.h>
-# include <fcntl.h>
-# ifdef USE_CAPABILITIES
-#  include <sys/capability.h>
-# endif
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#ifdef USE_CAPABILITIES
+#include <sys/capability.h>
+#endif
 #endif
 
 #include "ath.h"
@@ -41,7 +41,7 @@
 #include "secmem.h"
 
 #if defined (MAP_ANON) && ! defined (MAP_ANONYMOUS)
-# define MAP_ANONYMOUS MAP_ANON
+#define MAP_ANONYMOUS MAP_ANON
 #endif
 
 #define DEFAULT_POOL_SIZE 16384
@@ -610,16 +610,18 @@ _gcry_secmem_term ()
 void
 _gcry_secmem_dump_stats ()
 {
+#if 1 
+  SECMEM_LOCK;
+
+ if (pool_okay)
+    log_info ("secmem usage: %u/%u bytes in %u blocks\n",
+	      cur_alloced, pool_size, cur_blocks);
+  SECMEM_UNLOCK;
+#else
   memblock_t *mb;
   int i;
 
   SECMEM_LOCK;
-
-#if 1
-  if (pool_okay)
-    log_info ("secmem usage: %u/%u bytes in %u blocks\n",
-	      cur_alloced, pool_size, cur_blocks);
-#else
 
   for (i = 0, mb = (memblock_t *) pool;
        BLOCK_VALID (mb);
@@ -628,7 +630,6 @@ _gcry_secmem_dump_stats ()
 	      (mb->flags & MB_FLAG_ACTIVE) ? "used" : "free",
 	      i,
 	      mb->size);
-#endif
-
   SECMEM_UNLOCK;
+#endif
 }
