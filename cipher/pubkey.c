@@ -2124,7 +2124,7 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   memcpy (array, gcry_md_read (md, GCRY_MD_SHA1), 20);
   gcry_md_close (md);
   gcry_sexp_release (list);
-  return array;
+   return array;
 
  fail:
   if (l2)
@@ -2254,4 +2254,14 @@ gcry_pk_algo_info (int id, int what, void *buffer, size_t *nbytes)
     }
 
   return gpg_error (err);
+}
+
+gpg_err_code_t
+_gcry_pk_init (void)
+{
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+
+  REGISTER_DEFAULT_PUBKEYS;
+
+  return err;
 }

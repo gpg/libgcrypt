@@ -1187,6 +1187,16 @@ gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
   return gpg_error (err);
 }
 
+gpg_err_code_t
+_gcry_md_init (void)
+{
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+
+  REGISTER_DEFAULT_DIGESTS;
+
+  return err;
+}
+
 
 int
 gcry_md_is_secure (gcry_md_hd_t a) 
@@ -1209,4 +1219,3 @@ gcry_md_is_enabled (gcry_md_hd_t a, int algo)
     value = 0;
   return value;
 }
-

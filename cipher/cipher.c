@@ -1288,3 +1288,13 @@ gcry_cipher_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 
   return gpg_error (err);
 }
+
+gpg_err_code_t
+_gcry_cipher_init (void)
+{
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+
+  REGISTER_DEFAULT_CIPHERS;
+
+  return err;
+}
