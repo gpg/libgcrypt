@@ -1,8 +1,14 @@
+2000-12-19  Werner Koch  <wk@gnupg.org>
+
+ 	Major change:
+	Removed all GnuPG stuff and renamed this piece of software
+	to gcrypt. 
+
 Fri Jul 14 19:38:23 CEST 2000  Werner Koch  <wk@>
 
-  * argparse.c (default_strusage): Changed year of default copyright.
+        * argparse.c (default_strusage): Changed year of default copyright.
 
-  * dotlock.c (disable_dotlock): New.
+        * dotlock.c (disable_dotlock): New.
 
 Mon Jan 24 13:04:28 CET 2000  Werner Koch  <wk@gnupg.de>
 
