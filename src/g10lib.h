@@ -26,11 +26,11 @@
 #define G10LIB_H 1
 
 #ifdef _GCRYPT_H
-  #error  gcrypt.h already included
+#error  gcrypt.h already included
 #endif
 
 #ifndef _GCRYPT_IN_LIBGCRYPT 
-  #error something is wrong with config.h
+#error something is wrong with config.h
 #endif
 
 #include <gcrypt.h>
@@ -42,14 +42,29 @@
 # define JNLIB_GCC_A_PRINTF( f, a )  __attribute__ ((format (printf,f,a)))
 # define JNLIB_GCC_A_NR_PRINTF( f, a ) \
 			    __attribute__ ((noreturn, format (printf,f,a)))
+# define GCC_ATTR_NORETURN  __attribute__ ((__noreturn__))
 #else
 # define JNLIB_GCC_A_NR
 # define JNLIB_GCC_A_PRINTF( f, a )
 # define JNLIB_GCC_A_NR_PRINTF( f, a )
+# define GCC_ATTR_NORETURN 
+#endif
+
+#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96 )
+# define GCC_ATTR_PURE  __attribute__ ((__pure__))
+#else
+# define GCC_ATTR_PURE
+#endif
+
+/* (The malloc attribute might be defined prior to 3.2 - I am just not sure) */
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 2 )
+# define GCC_ATTR_MALLOC    __attribute__ ((__malloc__))
+#else
+# define GCC_ATTR_MALLOC
 #endif
 
 #ifdef G10_I18N_H
-  #error i18n should not be included here
+#error i18n should not be included here
 #endif
 
 #define _(a)  _gcry_gettext(a)
@@ -67,12 +82,13 @@ int _gcry_get_debug_flag( unsigned int mask );
 /*-- gcrypt/misc.c --*/
 
 #ifdef JNLIB_GCC_M_FUNCTION
-void _gcry_bug( const char *file, int line, const char *func ) JNLIB_GCC_A_NR;
+void _gcry_bug (const char *file, int line,
+                const char *func) GCC_ATTR_NORETURN;
 #else
-void _gcry_bug( const char *file, int line );
+void _gcry_bug (const char *file, int line);
 #endif
 
-const char *_gcry_gettext( const char *key );
+const char *_gcry_gettext (const char *key);
 void _gcry_fatal_error(int rc, const char *text ) JNLIB_GCC_A_NR;
 void _gcry_log( int level, const char *fmt, ... ) JNLIB_GCC_A_PRINTF(2,3);
 void _gcry_log_bug( const char *fmt, ... )   JNLIB_GCC_A_NR_PRINTF(1,2);
@@ -139,7 +155,7 @@ char *strsep (char **stringp, const char *delim);
 char *strlwr (char *a);
 #endif
 #ifndef HAVE_STRCASECMP
-int strcasecmp (const char *a, const char *b);
+int strcasecmp (const char *a, const char *b) GCC_ATTR_PURE;
 #endif
 
 
@@ -171,5 +187,3 @@ int strcasecmp (const char *a, const char *b);
 
 
 #endif /* G10LIB_H */
-
-

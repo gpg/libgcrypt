@@ -40,7 +40,7 @@
 #endif
 
 
-static int use_m_guard = 1;
+static int use_m_guard = 0;
 
 /****************
  * Warning: Never use this function after any of the functions

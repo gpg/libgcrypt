@@ -1,3 +1,12 @@
+2002-12-21  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h: Make use of gcc's pure and malloc attributes 
+	(gcry_md_putc): Use a helper variable to avoid multiple
+	evaluation of H. 
+	* g10lib.h, stdmem.h, secmem.h: Use gcc attributes pure and malloc.
+
+	* stdmem.c (use_m_guard): Don't default to yes.
+
 2002-12-19  Werner Koch  <wk@gnupg.org>
 
 	* global.c (global_init): The meat was never run due to a faulty
