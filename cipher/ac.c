@@ -211,8 +211,10 @@ gcry_ac_data_copy_internal (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
     }
 
   if (! err)
-    /* Copy out.  */
-    *data_cp = data_new;
+    {
+      /* Copy out.  */
+      *data_cp = data_new;
+    }
   else
     {
       /* Deallocate resources.  */
@@ -298,7 +300,8 @@ gcry_ac_data_extract (const char *identifier, const char *algorithm,
 	err = gpg_err_code_from_errno (errno);
       else
 	{
-	  data_new->data = gcry_malloc (sizeof (gcry_ac_mpi_t) * (inner_data_n - 1));
+	  data_new->data = gcry_malloc (sizeof (gcry_ac_mpi_t)
+                                        * (inner_data_n - 1));
 	  if (! data_new->data)
 	    err = gpg_err_code_from_errno (errno);
 	}
@@ -433,16 +436,22 @@ gcry_ac_data_construct (const char *identifier, int include_flags,
     {
       /* Calculate size of format string.  */
 
-      data_format_n = 5 + (include_flags ? 7 : 0) + strlen (identifier) + strlen (algorithm);
+      data_format_n = (5 + (include_flags ? 7 : 0)
+                       + strlen (identifier) + strlen (algorithm));
+
       for (i = 0; i < data->data_n; i++)
-	/* Per-element sizes.  */
-	data_format_n += 4 + strlen (data->data[i].name);
+        {
+          /* Per-element sizes.  */
+          data_format_n += 4 + strlen (data->data[i].name);
+        }
 
       if (include_flags)
-	/* Add flags.  */
-	for (i = 0; gcry_ac_flags[i].number; i++)
-	  if (flags & gcry_ac_flags[i].number)
-	    data_format_n += strlen (gcry_ac_flags[i].string) + 1;
+        {
+          /* Add flags.  */
+          for (i = 0; gcry_ac_flags[i].number; i++)
+            if (flags & gcry_ac_flags[i].number)
+              data_format_n += strlen (gcry_ac_flags[i].string) + 1;
+        }
 
       /* Done.  */
       data_format = gcry_malloc (data_format_n);
@@ -685,6 +694,8 @@ gcry_ac_open (gcry_ac_handle_t *handle,
   gcry_ac_handle_t handle_new;
   const char *algorithm_name;
 
+  *handle = NULL;
+
   /* Get name.  */
   algorithm_name = _gcry_pk_aliased_algo_name (algorithm);
   if (! *algorithm_name)
@@ -725,8 +736,11 @@ void
 gcry_ac_close (gcry_ac_handle_t handle)
 {
   /* Release reference to pubkey module.  */
-  _gcry_pk_module_release (handle->module);
-  gcry_free (handle);
+  if (handle)
+    {
+      _gcry_pk_module_release (handle->module);
+      gcry_free (handle);
+    }
 }
 
 
@@ -754,13 +768,17 @@ gcry_ac_key_init (gcry_ac_key_t *key,
     err = gpg_err_code_from_errno (errno);
 
   if (! err)
-    /* Create S-expression from data set.  */
-    err = gcry_ac_data_construct (ac_key_identifiers[type], 0, 0,
-				  handle->algorithm_name, data, &data_sexp);
+    {
+      /* Create S-expression from data set.  */
+      err = gcry_ac_data_construct (ac_key_identifiers[type], 0, 0,
+                                    handle->algorithm_name, data, &data_sexp);
+    }
 
   if (! err)
-    /* Copy data set.  */
-    err = gcry_ac_data_copy_internal (&data_new, data);
+    {
+      /* Copy data set.  */
+      err = gcry_ac_data_copy_internal (&data_new, data);
+    }
 
   if (! err)
     {
@@ -891,9 +909,10 @@ gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
 		{
 		  /* Add name of this specification flag and the
 		     according member of the spec strucuture.  */
-		  arg_list[j++] = (void *) (&gcry_ac_key_generate_specs[i].name);
-		  arg_list[j++] = (void *) (((char *) key_spec)
-					    + gcry_ac_key_generate_specs[i].offset);
+		  arg_list[j++] = (void *)(&gcry_ac_key_generate_specs[i].name);
+		  arg_list[j++] = (void *)
+                                  (((char *) key_spec)
+                                   + gcry_ac_key_generate_specs[i].offset);
 		}
 	}
     }
@@ -994,25 +1013,31 @@ gcry_ac_key_destroy (gcry_ac_key_t key)
 {
   int i;
 
-  if (key->data)
+  if (key)
     {
-      for (i = 0; i < key->data->data_n; i++)
-	if (key->data->data[i].mpi != NULL)
-	  gcry_mpi_release (key->data->data[i].mpi);
-      gcry_free (key->data);
+      if (key->data)
+        {
+          for (i = 0; i < key->data->data_n; i++)
+            if (key->data->data[i].mpi != NULL)
+              gcry_mpi_release (key->data->data[i].mpi);
+          gcry_free (key->data);
+        }
+      if (key->data_sexp)
+        gcry_sexp_release (key->data_sexp);
+      gcry_free (key);
     }
-  if (key->data_sexp)
-    gcry_sexp_release (key->data_sexp);
-  gcry_free (key);
 }
 
 /* Destroys the key pair KEY_PAIR.  */
 void
 gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
 {
-  gcry_ac_key_destroy (key_pair->secret);
-  gcry_ac_key_destroy (key_pair->public);
-  gcry_free (key_pair);
+  if (key_pair)
+    {
+      gcry_ac_key_destroy (key_pair->secret);
+      gcry_ac_key_destroy (key_pair->public);
+      gcry_free (key_pair);
+    }
 }
 
 /* Returns the data set contained in the key KEY.  */
@@ -1026,7 +1051,7 @@ gcry_ac_key_data_get (gcry_ac_key_t key)
 gcry_error_t
 gcry_ac_key_test (gcry_ac_key_t key)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err;
 
   err = gcry_err_code (gcry_pk_testkey (key->data_sexp));
 
@@ -1058,7 +1083,7 @@ gcry_ac_key_get_grip (gcry_ac_key_t key, unsigned char *key_grip)
 
   ret = gcry_pk_get_keygrip (key->data_sexp, key_grip);
   if (! ret)
-    err = GPG_ERR_INTERNAL; 	/* FIXME.  */
+    err = GPG_ERR_INV_OBJ;
 
   return gcry_error (err);
 }

@@ -1,3 +1,21 @@
+2003-12-19  Werner Koch  <wk@gnupg.org>
+
+	* ac.c (gcry_ac_open): Make sure HANDLE gets initialized even when
+	the function is not successful.
+	(gcry_ac_close): Allow a NULL handle.
+	(gcry_ac_key_destroy, gcry_ac_key_pair_destroy): Ditto.
+	(gcry_ac_key_get_grip): Return INV_OBJ on error.
+
+	* primegen.c (prime_generate_internal): Fixed error code for
+	failed malloc.  Replaced the !err if chain by gotos.
+	(gcry_prime_group_generator): Remove the extra sanity check.
+
+	* md.c: Minor code and comment cleanups.
+
+2003-12-16  Werner Koch  <wk@gnupg.org>
+
+	* primegen.c (gen_prime): Doc fix.  Thanks to Newton Hammet.
+
 2003-12-11  Werner Koch  <wk@gnupg.org>
 
 	* rndunix.c (slow_poll): Don't use #warning but #error.
