@@ -80,9 +80,13 @@ AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 # Used by libgcrypt-config
 LIBGCRYPT_CONFIG_LIBS="-lgcrypt"
 LIBGCRYPT_CONFIG_CFLAGS=""
+LIBGCRYPT_CONFIG_LIBS_PTHREAD="-lgcrypt-pthread"
+LIBGCRYPT_CONFIG_CFLAGS_PTHREAD=""
+LIBGCRYPT_CONFIG_LIBS_PTH="-lgcrypt-pth"
+LIBGCRYPT_CONFIG_CFLAGS_PTH=""
 
 # Definitions for symmetric ciphers.
-available_ciphers="arcfour blowfish cast5 des aes twofish"
+available_ciphers="arcfour blowfish cast5 des aes twofish serpent"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
@@ -97,6 +101,9 @@ enabled_digests=""
 # Definitions for random modules.
 available_random_modules="linux egd unix"
 auto_random_modules="$available_random_modules"
+
+# Supported thread backends.
+LIBGCRYPT_THREAD_MODULES=""
 
 # Other definitions.
 print_egd_notice=no
@@ -467,20 +474,28 @@ AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime)
 
 GNUPG_CHECK_MLOCK
 
-# The ATH systems needs to know whether pth or pthreads are available.
+# Check which thread libraries are supported by the system.
 have_pth=no
 have_pthread=no
+
 AC_CHECK_LIB(pth,pth_version,have_pth=yes)
 if test "$have_pth" = yes; then
+  LIBGCRYPT_CONFIG_LIBS_PTH="$LIBGCRYPT_CONFIG_LIBS_PTH -lpth"
+  LIBGCRYPT_THREAD_MODULES="$LIBGCRYPT_THREAD_MODULES pth"
   AC_DEFINE(HAVE_PTH, ,[Define if we have Pth.])
 fi
+
 AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
-if test "$have_pthread" != yes; then
+if test "$have_pthread" = yes; then
+  LIBGCRYPT_CONFIG_LIBS_PTHREAD="$LIBGCRYPT_CONFIG_LIBS_PTHREAD -lpthread"
+else
   AC_CHECK_LIB(c,pthread_create,have_pthread=yes)
 fi
 if test "$have_pthread" = yes; then
+  LIBGCRYPT_THREAD_MODULES="$LIBGCRYPT_THREAD_MODULES pthread"
   AC_DEFINE(HAVE_PTHREAD, ,[Define if we have pthread.])
 fi
+
 AM_CONDITIONAL(HAVE_PTH, test "$have_pth" = "yes")
 AM_CONDITIONAL(HAVE_PTHREAD, test "$have_pthread" = "yes")
 
@@ -611,6 +626,11 @@ GNUPG_FIX_HDR_VERSION([src/gcrypt.h], GCRYPT_VERSION)
 
 AC_SUBST(LIBGCRYPT_CONFIG_LIBS)
 AC_SUBST(LIBGCRYPT_CONFIG_CFLAGS)
+AC_SUBST(LIBGCRYPT_CONFIG_LIBS_PTHREAD)
+AC_SUBST(LIBGCRYPT_CONFIG_CFLAGS_PTHREAD)
+AC_SUBST(LIBGCRYPT_CONFIG_LIBS_PTH)
+AC_SUBST(LIBGCRYPT_CONFIG_CFLAGS_PTH)
+AC_SUBST(LIBGCRYPT_THREAD_MODULES)
 
 AC_CONFIG_COMMANDS([gcrypt-defs],[[
 chmod +x src/libgcrypt-config
