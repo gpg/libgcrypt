@@ -1,3 +1,13 @@
+2003-08-27  Moritz Schulte  <mo@g10code.com>
+
+	* libgcrypt-config.in: Adjusted script for new thread handling.
+
+	* Makefile.am: New version, based on GPGMEs Makefile.am.
+
+	* ath.c, ath-compat.c, ath.h, ath-pth.c, ath-pth-compat.c,
+	ath-pthread.c, ath-pthread-compat.c: New files, merged from GPGME.
+	* ath.c, ath.h, ath-pthread.c, ath-pth.c: Removed files.
+
 2003-08-08  Moritz Schulte  <moritz@g10code.com>
 
 	* global.c (gcry_realloc): Remove FIXME about `clearing out

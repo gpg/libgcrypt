@@ -539,7 +539,7 @@ _gcry_secmem_realloc (void *p, size_t newsize)
 
   SECMEM_LOCK;
 
-  mb = (memblock_t *) ((char *) p - ((size_t) & ((memblock_t *) 0)->aligned.c));
+  mb = (memblock_t *) ((char *) p - ((size_t) &((memblock_t *) 0)->aligned.c));
   size = mb->size;
   if (newsize < size)
     return p;			/* it is easier not to shrink the memory */

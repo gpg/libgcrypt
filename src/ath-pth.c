@@ -1,37 +1,34 @@
 /* ath-pth.c - Pth module for self-adapting thread-safeness library
- *      Copyright (C) 2002 g10 Code GmbH
- *	Copyright (C) 2002 Free Software Foundation, Inc.
- *
- * This file is part of Libgcrypt.
- *
- * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * Libgcrypt is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
- */
+   Copyright (C) 2002, 2003 g10 Code GmbH
+
+   This file is part of GPGME.
+ 
+   GPGME is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+ 
+   GPGME is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+ 
+   You should have received a copy of the GNU General Public License
+   along with GPGME; if not, write to the Free Software Foundation,
+   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
+
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <stdlib.h>
 #include <errno.h>
+
 #include <pth.h>
 
 #include "ath.h"
 
-#pragma weak pth_mutex_init
-#pragma weak pth_mutex_acquire
-#pragma weak pth_mutex_release
-#pragma weak pth_read
-#pragma weak pth_write
-#pragma weak pth_select
-#pragma weak pth_waitpid
 
 /* The lock we take while checking for lazy lock initialization.  */
 static pth_mutex_t check_init_lock = PTH_MUTEX_INIT;
@@ -39,7 +36,7 @@ static pth_mutex_t check_init_lock = PTH_MUTEX_INIT;
 /* Initialize the mutex *PRIV.  If JUST_CHECK is true, only do this if
    it is not already initialized.  */
 static int
-mutex_pth_init (void **priv, int just_check)
+mutex_pth_init (ath_mutex_t *priv, int just_check)
 {
   int err = 0;
 
@@ -61,7 +58,7 @@ mutex_pth_init (void **priv, int just_check)
 	  if (err)
 	    free (lock);
 	  else
-	    *priv = lock;
+	    *priv = (ath_mutex_t) lock;
 	}
     }
   if (just_check)
@@ -70,55 +67,111 @@ mutex_pth_init (void **priv, int just_check)
 }
 
 
-static int
-mutex_pth_destroy (void *priv)
+void
+ath_init (void)
 {
-  free (priv);
-  return 0;
+  /* Nothing to do.  */
 }
 
 
-static int
-mutex_pth_lock (void *priv)
+int
+ath_mutex_init (ath_mutex_t *lock)
 {
-  int ret = pth_mutex_acquire ((pth_mutex_t *) priv, 0, NULL);
+  return mutex_pth_init (lock, 0);
+}
+
+
+int
+ath_mutex_destroy (ath_mutex_t *lock)
+{
+  int err = mutex_pth_init (lock, 1);
+  if (!err)
+    {
+      /* GNU Pth has no destructor function.  */
+      free (*lock);
+    }
+  return err;
+}
+
+
+int
+ath_mutex_lock (ath_mutex_t *lock)
+{
+  int ret = mutex_pth_init (lock, 1);
+  if (ret)
+    return ret;
+
+  ret = pth_mutex_acquire ((pth_mutex_t *) *lock, 0, NULL);
   return ret == FALSE ? errno : 0;
 }
 
 
-static int
-mutex_pth_unlock (void *priv)
+int
+ath_mutex_unlock (ath_mutex_t *lock)
 {
-  int ret = pth_mutex_release ((pth_mutex_t *) priv);
+  int ret = mutex_pth_init (lock, 1);
+  if (ret)
+    return ret;
+
+  ret = pth_mutex_release ((pth_mutex_t *) *lock);
   return ret == FALSE ? errno : 0;
 }
 
 
-static struct ath_ops ath_pth_ops =
-  {
-    mutex_pth_init,
-    mutex_pth_destroy,
-    mutex_pth_lock,
-    mutex_pth_unlock,
-    pth_read,
-    pth_write,
-    pth_select,
-    pth_waitpid
-  };
-
-
-struct ath_ops *
-ath_pth_available (void)
+ssize_t
+ath_read (int fd, void *buf, size_t nbytes)
 {
-  if (pth_mutex_init && pth_mutex_acquire && pth_mutex_release
-      && pth_read && pth_write && pth_select && pth_waitpid)
-    return &ath_pth_ops;
-  else
-    return 0;
+  return pth_read (fd, buf, nbytes);
 }
 
 
+ssize_t
+ath_write (int fd, const void *buf, size_t nbytes)
+{
+  return pth_write (fd, buf, nbytes);
+}
 
 
+ssize_t
+ath_select (int nfd, fd_set *rset, fd_set *wset, fd_set *eset,
+	    struct timeval *timeout)
+{
+  return pth_select (nfd, rset, wset, eset, timeout);
+}
 
+ 
+ssize_t
+ath_waitpid (pid_t pid, int *status, int options)
+{
+  return pth_waitpid (pid, status, options);
+}
+
+
+int
+ath_accept (int s, struct sockaddr *addr, socklen_t *length_ptr)
+{
+  return pth_accept (s, addr, length_ptr);
+}
+
+
+int
+ath_connect (int s, struct sockaddr *addr, socklen_t length)
+{
+  return pth_connect (s, addr, length);
+}
+
+int
+ath_sendmsg (int s, const struct msghdr *msg, int flags)
+{
+  /* FIXME: GNU Pth is missing pth_sendmsg.  */
+  return sendmsg (s, msg, flags);
+}
+
+
+int
+ath_recvmsg (int s, struct msghdr *msg, int flags)
+{
+  /* FIXME: GNU Pth is missing pth_recvmsg.  */
+  return recvmsg (s, msg, flags);
+}
 

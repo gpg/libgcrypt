@@ -9,30 +9,46 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-PGM=libgcrypt-config
-libs="@LIBGCRYPT_CONFIG_LIBS@"
-cflags="@LIBGCRYPT_CONFIG_CFLAGS@"
-ciphers="@LIBGCRYPT_CIPHERS@"
-pubkey_ciphers="@LIBGCRYPT_PUBKEY_CIPHERS@"
-digests="@LIBGCRYPT_DIGESTS@"
+# General.
+prefix="@prefix@"
+exec_prefix="@exec_prefix@"
+thread_module=""
+version="@VERSION@"
+gpg_error_libs="@GPG_ERROR_LIBS@"
+gpg_error_cflags="@GPG_ERROR_CFLAGS@"
 
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-includes=""
-libdirs=""
+# LIBS values.
+libs="@LIBGCRYPT_CONFIG_LIBS@"
+libs_pthread="@LIBGCRYPT_CONFIG_LIBS_PTHREAD@"
+libs_pth="@LIBGCRYPT_CONFIG_LIBS_PTH@"
+
+# CFLAGS values.
+cflags="@LIBGCRYPT_CONFIG_CFLAGS@"
+cflags_pthread="@LIBGCRYPT_CONFIG_CFLAGS_PTHREAD@"
+cflags_pth="@LIBGCRYPT_CONFIG_CFLAGS_PTH@"
+
+# Misc information.
+symmetric_ciphers="@LIBGCRYPT_CIPHERS@"
+asymmetric_ciphers="@LIBGCRYPT_PUBKEY_CIPHERS@"
+digests="@LIBGCRYPT_DIGESTS@"
+thread_modules="@LIBGCRYPT_THREAD_MODULES@"
+
+# State variables.
 exec_prefix_set=no
 echo_libs=no
 echo_cflags=no
 echo_prefix=no
 echo_algorithms=no
 echo_exec_prefix=no
+echo_version=no
 
-
+# Prints usage information.
 usage()
 {
-	cat <<EOF
-Usage: $PGM [OPTIONS]
+    cat <<EOF
+Usage: $0 [OPTIONS]
 Options:
+	[--thread={${thread_modules}}]
 	[--prefix[=DIR]]
 	[--exec-prefix[=DIR]]
 	[--version]
@@ -40,54 +56,69 @@ Options:
 	[--cflags]
 	[--algorithms]
 EOF
-	exit $1
+    exit $1
 }
 
 if test $# -eq 0; then
-	usage 1 1>&2
+    # Nothing to do.
+    usage 1 1>&2
 fi
 
 while test $# -gt 0; do
-  case "$1" in
-  -*=*) optarg=`echo "$1" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
-  *) optarg= ;;
-  esac
+    case "$1" in
+	# Set up `optarg'.
+	--*=*)
+	    optarg=`echo "$1" | sed 's/[-_a-zA-Z0-9]*=//'`
+	    ;;
+	*)
+	    optarg=""
+	    ;;
+    esac
 
-  case $1 in
-    --prefix=*)
-      prefix=$optarg
-      if test $exec_prefix_set = no ; then
-	exec_prefix=$optarg
-      fi
-      ;;
-    --prefix)
-      echo_prefix=yes
-      ;;
-    --exec-prefix=*)
-      exec_prefix=$optarg
-      exec_prefix_set=yes
-      ;;
-    --exec-prefix)
-      echo_exec_prefix=yes
-      ;;
-    --version)
-      echo "@VERSION@"
-      exit 0
-      ;;
-    --cflags)
-      echo_cflags=yes
-      ;;
-    --libs)
-      echo_libs=yes
-      ;;
-    --algorithms)
-      echo_algorithms=yes
-      ;;
-    *)
-      usage 1 1>&2
-      ;;
-  esac
-  shift
+    case $1 in
+	--thread=*)
+	    for thread_mod in $thread_modules; do
+		if test "$thread_mod" = "$optarg"; then
+		    thread_module="$optarg";
+		fi
+	    done
+	    if test "x$thread_module" = "x"; then
+		usage 1 1>&2
+	    fi
+	    ;;
+	--prefix=*)
+	    prefix=$optarg
+	    if test $exec_prefix_set = no ; then
+		exec_prefix=$optarg
+	    fi
+	    ;;
+	--prefix)
+	    echo_prefix=yes
+	    ;;
+	--exec-prefix=*)
+	    exec_prefix=$optarg
+	    exec_prefix_set=yes
+	    ;;
+	--exec-prefix)
+	    echo_exec_prefix=yes
+	    ;;
+	--version)
+	    echo_version=yes
+	    ;;
+	--cflags)
+	    echo_cflags=yes
+	    ;;
+	--libs)
+	    echo_libs=yes
+	    ;;
+	--algorithms)
+	    echo_algorithms=yes
+	    ;;
+	*)
+	    usage 1 1>&2
+	    ;;
+    esac
+    shift
 done
 
 if test "$echo_prefix" = "yes"; then
@@ -99,27 +130,61 @@ if test "$echo_exec_prefix" = "yes"; then
 fi
 
 if test "$echo_cflags" = "yes"; then
+    includes=""
+    cflags_final="$cflags"
+
+    # Set up `includes'.
     if test "@includedir@" != "/usr/include" ; then
-      includes="-I@includedir@"
-      for i in $cflags ; do
-	if test "$i" = "-I@includedir@" ; then
-	  includes=""
-	fi
-      done
+	includes="-I@includedir@"
+	for i in $cflags ; do
+	    if test "$i" = "-I@includedir@" ; then
+		includes=""
+	    fi
+	done
     fi
-    echo $includes $cflags
+
+    # Set up `cflags_final'.
+    case "$thread_module" in
+	pthread)
+	    cflags_final=$cflags_pthread
+	    ;;
+	pth)
+	    cflags_final=$cflags_pth
+	    ;;
+    esac
+
+    echo "$includes" "$cflags_final"
 fi
 
 if test "$echo_libs" = "yes"; then
+    libdirs=""
+    libs_final="$libs"
+
+    # Set up `libdirs'.
     if test "@libdir@" != "/usr/lib" ; then
-      libdirs="-L@libdir@"
-      for i in $libs ; do
-	if test "$i" = "-L@libdir@" ; then
-	  libdirs=""
-	fi
-      done
+	libdirs="-L@libdir@"
+	for i in $libs ; do
+	    if test "$i" = "-L@libdir@" ; then
+		libdirs=""
+	    fi
+	done
     fi
-    echo $libdirs $libs
+
+    # Set up `libs_final'.
+    case "$thread_module" in
+	pthread)
+	    libs_final=$libs_pthread
+	    ;;
+	pth)
+	    libs_final=$libs_pth
+	    ;;
+    esac
+
+    echo $libdirs $libs_final
+fi
+
+if test "$echo_version" = "yes"; then
+    echo $version
 fi
 
 if test "$echo_algorithms" = "yes"; then
