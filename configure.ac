@@ -423,12 +423,18 @@ if test "$ac_cv_sizeof_unsigned_short" = "0" \
 fi
 
 
-
-dnl Checks for library functions.
+#
+# Checks for library functions.
+#
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(strerror stpcpy strlwr stricmp tcgetattr rand strtoul mmap)
-AC_CHECK_FUNCS(memmove gettimeofday getrusage gethrtime setrlimit clock_gettime)
-AC_CHECK_FUNCS(memicmp atexit raise getpagesize strftime nl_langinfo)
+dnl We have replacements for these in src/missing-string.c
+AC_CHECK_FUNCS(stpcpy strsep strlwr strcasecmp)
+dnl We have replacements for these in src/g10lib.h
+AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
+dnl Other checks
+AC_CHECK_FUNCS(strerror tcgetattr rand mmap)
+AC_CHECK_FUNCS(gettimeofday getrusage gethrtime setrlimit clock_gettime)
+AC_CHECK_FUNCS(getpagesize strftime nl_langinfo)
 AC_CHECK_FUNCS(waitpid wait4 sigaction sigprocmask fopen64 fstat64)
 
 GNUPG_CHECK_MLOCK

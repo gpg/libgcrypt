@@ -1,3 +1,7 @@
+2002-05-16  Werner Koch  <wk@gnupg.org>
+
+	* configure.ac: Reordered the C_CHECK_FUNCS.
+
 2002-05-15  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac: Adjusted for new MPI module stuff.

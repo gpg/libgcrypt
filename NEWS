@@ -17,6 +17,8 @@ GCRYCTL_INITIALIZATION_FINISHED   NEW
 GCRYCTL_INITIALIZATION_FINISHED_P NEW
 GCRYCTL_ANY_INITIALIZATION_P      NEW
 gcry_strdup                       NEW
+gcry_sexp_create                  NEW
+gcry_sexp_new                     NEW
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Noteworthy changes in version 1.1.6 (2002-02-07)
