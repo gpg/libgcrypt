@@ -703,6 +703,7 @@ gcry_md_hash_buffer( int algo, char *digest, const char *buffer, size_t length)
 	md_write( h, (byte*)buffer, length );
 	md_final( h );
 	memcpy( digest, md_read( h, algo ), md_digest_length( algo ) );
+        md_close (h);
     }
 }
 

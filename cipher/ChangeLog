@@ -1,3 +1,18 @@
+2001-11-07  Werner Koch  <wk@gnupg.org>
+
+	* md.c (gcry_md_hash_buffer): Close the handle which was left open
+	for algorithms other than rmd160.
+
+2001-08-08  Werner Koch  <wk@gnupg.org>
+
+	* rndw32.c (gather_random): Use toolhelp in addition to the NT
+	gatherer for Windows2000.  Suggested by Sami Tolvanen.
+
+	* random.c (read_pool): Fixed length check, this used to be one
+	byte to strict.  Made an assert out of it because the caller has
+	already made sure that only poolsize bytes are requested.
+	Reported by Marcus Brinkmann.
+
 2001-08-03  Werner Koch  <wk@gnupg.org>
 
 	* cipher.c (cipher_encrypt, cipher_decrypt): Prepare to return

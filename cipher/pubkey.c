@@ -908,8 +908,10 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo)
  *
  * Caller has to provide a public key as the SEXP pkey and data as a SEXP
  * with just one MPI in it.  The function returns a a sexp which may
- * be passed tp to pk_decrypt.
- * Later versions of this functions may take more complex input data.
+ * be passed to to pk_decrypt.
+ * Later versions of this functions may take more complex input data, for 
+ * example s_data could have a control tag which allows us to to PKCS-1
+ * encoding directly here.
  *
  * Returns: 0 or an errorcode.
  *
