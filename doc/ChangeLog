@@ -1,3 +1,12 @@
+2003-06-16  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher-ref.sgml: Removed file.
+	* digest-ref.sgml: Likewise.
+	* misc-ref.sgml: Likewise.
+	* pubkey-ref.sgml: Likewise.
+	* reference.sgml: Likewise.
+	* version.sgml.in: Likewise.
+
 2003-06-15  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi: Documented several parts of the library, merged
