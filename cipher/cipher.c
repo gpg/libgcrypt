@@ -678,8 +678,8 @@ gcry_cipher_close (gcry_cipher_hd_t h)
      been allocated in secure memory.  The user might have disabled
      secure memory or is using his own implementation which does not
      do the wiping.  To accomplish this we need to keep track of the
-     actual size of this structure because we have now way to known
-     how large the allocated are was when using a standard malloc. */
+     actual size of this structure because we have no way to known
+     how large the allocated area was when using a standard malloc. */
   wipememory (h, h->actual_handle_size);
 
   gcry_free (h);
