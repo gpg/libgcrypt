@@ -1,0 +1,9 @@
+2002-09-18  Timo Schulz  <ts@winpt.org>
+
+	* build-def: Now there are no duplicates in the libgcrypt.def
+	file any longer.
+
+	* build-dll: Only generate the DLL if HAVE_DOSISH_SYSTEM was
+	defined.
+	
+	

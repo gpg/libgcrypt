@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
-# Run this to generate the .def file for the libgcrypt DLL
+# Run this to generate the .def file for the libgcrypt W32 DLL
 #
-# Copyright (C) 2001 Free Software Foundation, Inc.
+# Copyright (C) 2001, 2002 Free Software Foundation, Inc.
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -11,21 +11,26 @@
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-$gcrypt_h="../src/gcrypt.h";
+$gcrypt_h = "../src/gcrypt.h";
 $i = 1;
+$header_passed = 0;
 
-open(FD, $gcrypt_h) || die "$gcrypt_h: $!";
+open( FD, $gcrypt_h ) || die "$gcrypt_h: $!";
 @filebuf = <FD>;
-close(FD);
+close( FD );
 
-open(FD, ">libgcrypt.def") || die "$!";
+open( FD, ">libgcrypt.def" ) || die "$!";
 print FD "EXPORTS\n";
-foreach $in (@filebuf) {
-	if ($in !~ m/\#define/ && $in !~ m/\\/ && $in !~ m/^\t/) {
-		if ($in =~ m/gcry_/ && $' =~ m/\( /) {
-			print FD "\tgcry_$`\t\@$i\n";
-			$i++;
-		}
-	}
+foreach $in( @filebuf ) {
+    if( $in =~ m/GCRYPT_VERSION/ ) {
+        $header_passed = 1;
+    }
+    if( $header_passed == 1 && $in !~ m/\#define/ && $in !~ m/\t/ 
+        && $in !~ m/\*\// ) {
+        if( $in =~ m/gcry_/ && $' =~ m/\(/ ) {
+            print FD "\tgcry_$` \@$i\n";
+            $i++;
+        }
+    }
 }
-close(FD);
+close( FD );
