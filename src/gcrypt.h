@@ -923,6 +923,10 @@ gpg_error_t gcry_ac_data_set (gcry_ac_data_t data,
 			      const char *name,
 			      gcry_mpi_t mpi);
 
+/* Create a copy of the data set DATA and store it in DATA_CP.  */
+gpg_error_t gcry_ac_data_copy (gcry_ac_data_t *data_cp,
+			       gcry_ac_data_t data);
+
 /* Return the number of named MPI values inside of the data set
    DATA.  */
 unsigned int gcry_ac_data_length (gcry_ac_data_t data);
