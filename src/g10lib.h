@@ -131,12 +131,14 @@ gcry_mpi_t _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 					   gcry_mpi_t g, gcry_mpi_t **factors );
 
 
-/* replacements of missing functions (missing-string.c)*/
+/* Replacements of missing functions (missing-string.c)*/
 #ifndef HAVE_STPCPY
-char *stpcpy (char *a, const char *b);
+char *_gcry_stpcpy (char *a, const char *b);
+#define stpcpy(a,b) _gcry_stpcpy ((a), (b))
 #endif
 #ifndef HAVE_STRCASECMP
-int strcasecmp (const char *a, const char *b) GCC_ATTR_PURE;
+int _gcry_strcasecmp (const char *a, const char *b) GCC_ATTR_PURE;
+#define strcasecmp(a,b) _gcry_strcasecmp ((a), (b))
 #endif
 
 /* macros used to rename missing functions */
@@ -153,7 +155,7 @@ int strcasecmp (const char *a, const char *b) GCC_ATTR_PURE;
 #define atexit(a)    (on_exit((a),0))
 #endif
 #ifndef HAVE_RAISE
-#define raise(a) kill(getpid(), (a))
+#define raise(a)      kill(getpid(), (a))
 #endif
 
 

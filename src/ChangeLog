@@ -1,3 +1,11 @@
+2004-12-06  Werner Koch  <wk@g10code.com>
+
+	* g10lib.h (stpcpy, strcasecmp): Prefix them with _gcry_ and add
+	macros to define them to the real name.  This is needed to avoid
+	double symbols when using static linkage.
+	* missing-string.c: Likewise.
+	(vasprintf): Removed as it is not used anywhere.
+
 2004-11-26  Werner Koch  <wk@g10code.com>
 
 	* types.h [_WIN32]: Avoid warning about double defined type byte.
