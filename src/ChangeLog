@@ -1,5 +1,8 @@
 2003-07-07  Moritz Schulte  <moritz@g10code.com>
 
+	* sexp.c (gcry_sexp_build_array): Use dummy argument pointer.
+	Thanks to Simon Josefsson <jas@extunde.com>.
+
 	* gcrypt.h: Declare: gcry_cipher_list, gcry_pk_list, gcry_md_list.
 	
 2003-07-05  Moritz Schulte  <moritz@g10code.com>
