@@ -30,10 +30,13 @@
 # include <sys/time.h>
 #endif
 #include <sys/types.h>
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 #include <errno.h>
 
 #include "ath.h"
+
 
 
 /* The interface table.  */
@@ -227,13 +230,22 @@ ath_write (int fd, const void *buf, size_t nbytes)
 
 
 ssize_t
+#ifdef _WIN32
+ath_select (int nfd, void *rset, void *wset, void *eset,
+	    struct timeval *timeout)
+#else
 ath_select (int nfd, fd_set *rset, fd_set *wset, fd_set *eset,
 	    struct timeval *timeout)
+#endif
 {
   if (ops_set && ops.select)
     return (*ops.select) (nfd, rset, wset, eset, timeout);
   else
+#ifdef _WIN32
+    return -1;
+#else
     return select (nfd, rset, wset, eset, timeout);
+#endif
 }
 
  
@@ -243,45 +255,82 @@ ath_waitpid (pid_t pid, int *status, int options)
   if (ops_set && ops.waitpid)
     return (*ops.waitpid) (pid, status, options);
   else
+#ifdef _WIN32
+    return -1;
+#else
     return waitpid (pid, status, options);
+#endif
 }
 
 
 int
+#ifdef _WIN32
+ath_accept (int s, void *addr, int *length_ptr)
+#else
 ath_accept (int s, struct sockaddr *addr, socklen_t *length_ptr)
+#endif
 {
   if (ops_set && ops.accept)
     return (*ops.accept) (s, addr, length_ptr);
   else
+#ifdef _WIN32
+    return -1;
+#else
     return accept (s, addr, length_ptr);
+#endif
 }
 
 
 int
+#ifdef _WIN32
+ath_connect (int s, void *addr, socklen_t length)
+#else
 ath_connect (int s, struct sockaddr *addr, socklen_t length)
+#endif
 {
   if (ops_set && ops.connect)
     return (*ops.connect) (s, addr, length);
   else
+#ifdef _WIN32
+    return -1;
+#else
     return connect (s, addr, length);
+#endif
 }
 
 
 int
+#ifdef _WIN32
+ath_sendmsg (int s, const void *msg, int flags)
+#else
 ath_sendmsg (int s, const struct msghdr *msg, int flags)
+#endif
 {
   if (ops_set && ops.sendmsg)
     return (*ops.sendmsg) (s, msg, flags);
   else
+#ifdef _WIN32
+    return -1;
+#else
     return sendmsg (s, msg, flags);
+#endif
 }
 
 
 int
+#ifdef _WIN32
+ath_recvmsg (int s, void *msg, int flags)
+#else
 ath_recvmsg (int s, struct msghdr *msg, int flags)
+#endif
 {
   if (ops_set && ops.recvmsg)
     return (*ops.recvmsg) (s, msg, flags);
   else
+#ifdef _WIN32
+    return -1;
+#else
     return recvmsg (s, msg, flags);
+#endif
 }
+

@@ -1,3 +1,11 @@
+2004-11-26  Werner Koch  <wk@g10code.com>
+
+	* types.h [_WIN32]: Avoid warning about double defined type byte.
+
+2004-11-25  Werner Koch  <wk@g10code.com>
+
+	* ath.h [_WIN32]: Adjusted for modern mingw cross compiler.
+
 2004-11-09  Werner Koch  <wk@g10code.de>
 
 	* gcrypt.h: Removed 3 trailing commas from enums.  Reported by
