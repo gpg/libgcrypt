@@ -2457,5 +2457,56 @@ message to the user.
 @contents
 @bye
 
+  /* Version check should be the very first gcry call because it
+     makes sure that constructor functrions are run. */
+  if (!gcry_check_version (GCRYPT_VERSION))
+    die ("version mismatch\n");
+  /* Many applications don't require secure memory, so they should
+     disable it right away.  There won't be a problem unless one makes
+     use of a feature which requires secure memoery - in that case the
+     process would abort becuase the secmem is not initialized. */
+  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+
+  /* .. add whatever initialization you want, but better don't make calls
+        to libgcrypt from more than one thread ... */
+
+  /* Tell Libgcrypt that initialization has completed. */
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+
+
+If you require secure memory, this code should be used: 
+
+  if (!gcry_check_version (GCRYPT_VERSION))
+    die ("version mismatch\n");
+  /* We don't want to see any warnings, e.g. because we have not yet
+    parsed options which might be used to suppress such warnings */
+  gcry_control (GCRYCTL_SUSPEND_SECMEM_WARN);
+
+  /* ... */
+
+  /* Allocate a pool of 16k secure memory.  This also drops priviliges
+     on some systems. */
+  gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
+
+  /* It is now okay to let Libgcrypt complain when there was/is a problem
+     with the secure memory. */
+  gcry_control (GCRYCTL_RESUME_SECMEM_WARN);
+
+  /* Tell Libgcrypt that initialization has completed. */
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+
+
+This sounds a bit complicated but has the advantage that the caller
+must decide whether he wants secure memory or not - there is no
+default.
+
+It is important that this initialization is not done by a library but
+in the application.  The library might want to check for finished
+initialization using:
+
+  if (!gcry_control (GCRYCTL_INITIALIZATION_FINISHED_P))
+    return MYLIB_ERROR_LIBGCRYPT_NOT_INITIALIZED;
+
+
 @c  LocalWords:  int HD
 

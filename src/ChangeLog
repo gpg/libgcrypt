@@ -1,3 +1,7 @@
+2003-03-19  Werner Koch  <wk@gnupg.org>
+
+	* g10lib.h: Adjusted primegen.c prototypes.
+
 2003-03-12  Werner Koch  <wk@gnupg.org>
 
 	* sexp.c (sexp_sscan): Initialize NM.  Thanks to Ian Peters for

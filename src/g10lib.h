@@ -136,8 +136,12 @@ unsigned pubkey_nbits( int algo, MPI *pkey );
 
 
 /*-- primegen.c --*/
-MPI _gcry_generate_secret_prime( unsigned nbits );
-MPI _gcry_generate_public_prime( unsigned nbits );
+MPI _gcry_generate_secret_prime (unsigned int nbits,
+                                 int (*extra_check)(void*, MPI),
+                                 void *extra_check_arg);
+MPI _gcry_generate_public_prime (unsigned int nbits,
+                                 int (*extra_check)(void*, MPI),
+                                 void *extra_check_arg);
 MPI _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 					   MPI g, MPI **factors );
 
