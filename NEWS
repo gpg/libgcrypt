@@ -1,4 +1,4 @@
-Noteworthy changes in version 1.1.92 (unreleased)
+Noteworthy changes in version 1.1.92 (2004-02-20)
 -------------------------------------------------
 
  * Minor bug fixes.
@@ -21,7 +21,7 @@ gcry_ac_key_get_grip            CHANGED: New argument HANDLE.
 gcry_ac_data_search             REMOVED.
 gcry_ac_data_add                REMOVED.
 GCRY_AC_DATA_FLAG_NO_BLINDING   REMOVED.
-GCRY_AC_FLAG_NO_BLINDING        NEW: Replace above.
+GCRY_AC_FLAG_NO_BLINDING        NEW: Replaces above.
 
 
 Noteworthy changes in version 1.1.91 (2003-12-19)

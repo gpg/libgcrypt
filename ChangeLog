@@ -1,3 +1,9 @@
+2004-02-20  Werner Koch  <wk@gnupg.org>
+
+        Released 1.1.92.
+	
+	* configure.ac: Set LT to C11/A0/R0.
+
 2004-02-11  Werner Koch  <wk@gnupg.org>
 
 	* autogen.sh (check_version): Removed bashism and simplified.
