@@ -72,7 +72,7 @@ entitled ``GNU Free Documentation License''.
 @top Main Menu
 This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 @cite{The `Libgcrypt' Reference Manual}, for Version
-@value{VERSION} of the @acronym{GPGME} library.
+@value{VERSION} of the @acronym{Libgcrypt} library.
 @end ifnottex
 
 @menu
@@ -396,7 +396,12 @@ This flag enables the CFB sync mode, which is a special feature of
 Libgcrypt's CFB mode implementation to allow for OpenPGP's CFB variant. 
 See @code{gcry_cipher_sync}.
 @item GCRY_CIPHER_CBC_CTS
-Enable cipher text stealing for the CBS mode.
+Enable cipher text stealing (CTS) for the CBC mode.  Cannot be used
+simultaneous as GCRY_CIPHER_CBC_MAC.
+@item GCRY_CIPHER_CBC_MAC
+Compute CBC-MAC keyed checksums.  This is the same as CBC mode, but
+only output the last block.  Cannot be used simultaneous as
+GCRY_CIPHER_CBC_CTS.
 @end table
 
 @end deftypefun 
@@ -690,6 +695,8 @@ this is the hashed data is highly confidential.
 @item GCRY_MD_FLAG_HMAC
 Turn the algorithm into a HMAC message authentication algorithm.  Note
 that the function @code{gcry_md_setkey} must be used set the MAC key.
+If you want CBC message authenentication codes based on a cipher, see
+@xref{Cipher Functions}.
 
 @end table
 @c begin table of hash flags
