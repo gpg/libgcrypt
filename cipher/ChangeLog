@@ -1,5 +1,8 @@
 2003-04-27  Moritz Schulte  <moritz@g10code.com>
 
+	* pubkey.c (gcry_pk_genkey): Release sexp after extracted data has
+	been used.
+
 	* md.c (gcry_md_get_algo_dlen): Simplified, simply call
 	md_digest_length to do the job.
 
