@@ -1,3 +1,8 @@
+2003-09-28  Moritz Schulte  <mo@g10code.com>
+
+	* secmem.c (_gcry_secmem_realloc): Do not forget to release secmem
+	lock.  Thanks to low halo for triggering this bug.
+
 2003-09-04  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (_GCRY_ERR_SOURCE_DEFAULT): Removed cruft.

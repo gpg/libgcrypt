@@ -542,13 +542,20 @@ _gcry_secmem_realloc (void *p, size_t newsize)
   mb = (memblock_t *) ((char *) p - ((size_t) &((memblock_t *) 0)->aligned.c));
   size = mb->size;
   if (newsize < size)
-    return p;			/* it is easier not to shrink the memory */
-  a = _gcry_secmem_malloc_internal (newsize);
-  if (a)
     {
-      memcpy (a, p, size);
-      memset ((char *) a + size, 0, newsize - size);
-      _gcry_secmem_free_internal (p);
+      SECMEM_UNLOCK;
+      /* It is easier to not shrink the memory.  */
+      a = p;
+    }
+  else
+    {
+      a = _gcry_secmem_malloc_internal (newsize);
+      if (a)
+	{
+	  memcpy (a, p, size);
+	  memset ((char *) a + size, 0, newsize - size);
+	  _gcry_secmem_free_internal (p);
+	}
     }
 
   SECMEM_UNLOCK;
