@@ -1,5 +1,11 @@
 2003-04-17  Moritz Schulte  <moritz@g10code.com>
 
+	* pubkey.c (sexp_elements_extract): New function.
+	* pubkey.c (sexp_to_key): Removed variable `idx', added `err', use
+	sexp_elements_extract.
+	(sexp_to_sig): Likewise.
+	(sexp_to_enc): Likewise.
+
 	* pubkey.c: Terminate list correctly.
 	* md.c: Include sha512/sha384 in digest_table.
 

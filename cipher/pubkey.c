@@ -739,6 +739,36 @@ pubkey_verify (int id, MPI hash, MPI *data, MPI *pkey,
   return rc;
 }
 
+/* Internal function.   */
+static int
+sexp_elements_extract (GCRY_SEXP key_sexp, const char *element_names,
+		       GCRY_MPI *elements)
+{
+  int i, index, err = 0;
+  const char *name;
+  GCRY_SEXP list;
+
+  for (name = element_names, index = 0; *name && (! err); name++, index++)
+    {
+      list = gcry_sexp_find_token (key_sexp, name, 1);
+      if (! list)
+	err = GCRYERR_NO_OBJ;
+      else
+	{
+	  elements[index] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_USG);
+	  gcry_sexp_release (list);
+	  if (! elements[index])
+	    err = GCRYERR_INV_OBJ;
+	}
+    }
+
+  if (err)
+    for (i = 0; i < index; i++)
+      if (elements[i])
+	gcry_free (elements[i]);
+
+  return err;
+}
 
 /****************
  * Convert a S-Exp with either a private or a public key to our
@@ -781,10 +811,11 @@ sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray,
     const char *name;
     const char *s;
     size_t n;
-    int i, idx;
+    int i;
     int algo;
     const char *elems1, *elems2;
     GCRY_MPI *array;
+    int err = 0;
 
     /* check that the first element is valid */
     list = gcry_sexp_find_token( sexp, want_private? "private-key"
@@ -819,51 +850,21 @@ sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray,
 	return GCRYERR_NO_MEM;
     }
 
-    idx = 0;
-    for(s=elems1; *s; s++, idx++ ) {
-	l2 = gcry_sexp_find_token( list, s, 1 );
-	if( !l2 ) {
-	    for(i=0; i<idx; i++)
-		gcry_free( array[i] );
-	    gcry_free( array );
-	    gcry_sexp_release ( list );
-	    return GCRYERR_NO_OBJ; /* required parameter not found */
-	}
-	array[idx] = gcry_sexp_nth_mpi( l2, 1, GCRYMPI_FMT_USG );
-	gcry_sexp_release ( l2 );
-	if( !array[idx] ) {
-	    for(i=0; i<idx; i++)
-		gcry_free( array[i] );
-	    gcry_free( array );
-	    gcry_sexp_release ( list );
-	    return GCRYERR_INV_OBJ; /* required parameter is invalid */
-	}
-    }
-    for(s=elems2; *s; s++, idx++ ) {
-	l2 = gcry_sexp_find_token( list, s, 1 );
-	if( !l2 ) {
-	    for(i=0; i<idx; i++)
-		gcry_free( array[i] );
-	    gcry_free( array );
-	    gcry_sexp_release ( list );
-	    return GCRYERR_NO_OBJ; /* required parameter not found */
-	}
-	array[idx] = gcry_sexp_nth_mpi( l2, 1, GCRYMPI_FMT_USG );
-	gcry_sexp_release ( l2 );
-	if( !array[idx] ) {
-	    for(i=0; i<idx; i++)
-		gcry_free( array[i] );
-	    gcry_free( array );
-	    gcry_sexp_release ( list );
-	    return GCRYERR_INV_OBJ; /* required parameter is invalid */
-	}
-    }
+    err = sexp_elements_extract (list, elems1, array);
+    if (! err)
+      err = sexp_elements_extract (list, elems2, array + strlen (elems1));
+    
+    gcry_sexp_release (list);
 
-    gcry_sexp_release ( list );
-    *retarray = array;
-    *retalgo = algo;
+    if (err)
+      gcry_free (array);
+    else
+      {
+	*retarray = array;
+	*retalgo = algo;
+      }
 
-    return 0;
+    return err;
 }
 
 static int
@@ -873,10 +874,11 @@ sexp_to_sig( GCRY_SEXP sexp, MPI **retarray, int *retalgo)
     const char *name;
     const char *s;
     size_t n;
-    int i, idx;
+    int i;
     int algo;
     const char *elems;
     GCRY_MPI *array;
+    int err = 0;
 
     /* check that the first element is valid */
     list = gcry_sexp_find_token( sexp, "sig-val" , 0 );
@@ -908,28 +910,18 @@ sexp_to_sig( GCRY_SEXP sexp, MPI **retarray, int *retalgo)
 	return GCRYERR_NO_MEM;
     }
 
-    idx = 0;
-    for(s=elems; *s; s++, idx++ ) {
-	l2 = gcry_sexp_find_token( list, s, 1 );
-	if( !l2 ) {
-	    gcry_free( array );
-	    gcry_sexp_release ( list );
-	    return GCRYERR_NO_OBJ; /* required parameter not found */
-	}
-	array[idx] = gcry_sexp_nth_mpi( l2, 1, GCRYMPI_FMT_USG );
-	gcry_sexp_release ( l2 );
-	if( !array[idx] ) {
-	    gcry_free( array );
-	    gcry_sexp_release ( list );
-	    return GCRYERR_INV_OBJ; /* required parameter is invalid */
-	}
-    }
+    err = sexp_elements_extract (list, elems, array);
+    gcry_sexp_release (list);
 
-    gcry_sexp_release ( list );
-    *retarray = array;
-    *retalgo = algo;
+    if (err)
+      gcry_free (array);
+    else
+      {
+	*retarray = array;
+	*retalgo = algo;
+      }
 
-    return 0;
+    return err;
 }
 
 
@@ -954,11 +946,12 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo,
     const char *name;
     const char *s;
     size_t n;
-    int i, idx;
+    int i;
     int algo;
     int parsed_flags = 0;
     const char *elems;
     GCRY_MPI *array;
+    int err = 0;
 
     *ret_want_pkcs1 = 0;
     *ret_modern = 0;
@@ -1035,30 +1028,19 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo,
 	return GCRYERR_NO_MEM;
     }
 
-    idx = 0;
-    for(s=elems; *s; s++, idx++ ) {
-	l2 = gcry_sexp_find_token( list, s, 1 );
-	if( !l2 ) {
-	    gcry_free( array );
-	    gcry_sexp_release ( list );
-	    return GCRYERR_NO_OBJ; /* required parameter not found */
-	}
-	array[idx] = gcry_sexp_nth_mpi( l2, 1, GCRYMPI_FMT_USG );
-	gcry_sexp_release ( l2 );
-	if( !array[idx] ) {
-	    gcry_free( array );
-	    gcry_sexp_release ( list );
-	    return GCRYERR_INV_OBJ; /* required parameter is invalid */
-	}
-    }
+    err = sexp_elements_extract (list, elems, array);
+    gcry_sexp_release (list);
 
-    gcry_sexp_release ( list );
-    *retarray = array;
-    *retalgo = algo;
+    if (err)
+      gcry_free (array);
+    else
+      {
+	*retarray = array;
+	*retalgo = algo;
+	*flags = parsed_flags;
+      }
 
-    *flags = parsed_flags;
-
-    return 0;
+    return err;
 }
 
 /* Take the hash value and convert into an MPI, suitable for for
