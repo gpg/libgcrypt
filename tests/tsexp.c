@@ -213,6 +213,64 @@ canon_len (void)
 }
 
 
+static void
+back_and_forth_one (int testno, const char *buffer, size_t length)
+{
+  int rc;
+  GcrySexp se, se1;
+  size_t n, n1;
+  char *p1;
+
+  rc = gcry_sexp_new (&se, buffer, length, 1);
+  if (rc)
+    {
+      fail ("baf %d: gcry_sexp_new failed: %s\n", testno, gcry_strerror (rc));
+      return;
+    }
+  n1 = gcry_sexp_sprint (se, GCRYSEXP_FMT_CANON, NULL, 0);
+  if (!n1)
+    {
+      fail ("baf %d: get required length for canon failed\n", testno);
+      return;
+    }
+  p1 = gcry_xmalloc (n1);
+  n = gcry_sexp_sprint (se, GCRYSEXP_FMT_CANON, p1, n1);
+  if (n1 != n+1) /* sprints adds an extra 0 but dies not return it */
+    {
+      fail ("baf %d: length mismatch for canon\n", testno);
+      return;
+    }
+  rc = gcry_sexp_create (&se1, p1, n, 0, gcry_free);
+  if (rc)
+    {
+      fail ("baf %d: gcry_sexp_create failed: %s\n",
+            testno, gcry_strerror (rc));
+      return;
+    }
+  gcry_sexp_release (se1);
+  
+  /* FIXME: we need a lot more tests */
+
+  gcry_sexp_release (se);
+}
+
+
+
+static void
+back_and_forth (void)
+{
+  static struct { char *buf; int len; } tests[] = {
+    { "(7:g34:fgh1::2:())", 0 },
+    { "(7:g34:fgh1::2:())", 18 },
+    { NULL, 0 }
+  };
+  int idx;
+
+  for (idx=0; tests[idx].buf; idx++)
+    back_and_forth_one (idx, tests[idx].buf, tests[idx].len);
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -221,8 +279,13 @@ main (int argc, char **argv)
 
   basic ();
   canon_len ();
+  back_and_forth ();
   
   return error_count? 1:0;
 }
+
+
+
+
 
 

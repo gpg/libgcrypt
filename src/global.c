@@ -280,6 +280,19 @@ gcry_strerror( int ec )
       X(CONFLICT,	N_("conflict"))
       X(INV_CIPHER_MODE,N_("invalid cipher mode"))
 
+        X(SEXP_INV_LEN_SPEC   ,N_("invalid length specification")) 
+        X(SEXP_STRING_TOO_LONG,N_("string too long")) 
+        X(SEXP_UNMATCHED_PAREN,N_("unmatched parenthesis")) 
+        X(SEXP_NOT_CANONICAL  ,N_("not a canonical S-expression")) 
+        X(SEXP_BAD_CHARACTER  ,N_("bad character")) 
+        X(SEXP_BAD_QUOTATION  ,N_("invalid hex/octal value or bad quotation")) 
+        X(SEXP_ZERO_PREFIX    ,N_("a length may not begin with zero")) 
+        X(SEXP_NESTED_DH      ,N_("nested display hints")) 
+        X(SEXP_UNMATCHED_DH   ,N_("unmatched display hint close")) 
+        X(SEXP_UNEXPECTED_PUNC,N_("unexpected reserved punctuation")) 
+        X(SEXP_BAD_HEX_CHAR,   N_("invalid hex character"))
+        X(SEXP_ODD_HEX_NUMBERS,N_("odd number of hex characters"))
+        X(SEXP_BAD_OCT_CHAR,   N_("invalid octal character"))
 
       default:
 	sprintf( buf, "ec=%d", ec );

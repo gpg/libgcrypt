@@ -52,6 +52,7 @@ extern "C" {
 
 struct gcry_mpi;
 typedef struct gcry_mpi *GCRY_MPI;
+typedef struct gcry_mpi *GcryMPI;
 
 /*******************************************
  *					   *
@@ -90,7 +91,23 @@ enum {
     GCRYERR_NO_OBJ = 68,     /* Missing item in an object */
     GCRYERR_NOT_IMPL = 69,   /* Not implemented */
     GCRYERR_CONFLICT = 70,
-    GCRYERR_INV_CIPHER_MODE = 71
+    GCRYERR_INV_CIPHER_MODE = 71,
+
+    /* error codes pertaining to S-expressions */
+    GCRYERR_SEXP_INV_LEN_SPEC    = 201,
+    GCRYERR_SEXP_STRING_TOO_LONG = 202,
+    GCRYERR_SEXP_UNMATCHED_PAREN = 203, 
+    GCRYERR_SEXP_NOT_CANONICAL   = 204, 
+    GCRYERR_SEXP_BAD_CHARACTER   = 205, 
+    GCRYERR_SEXP_BAD_QUOTATION   = 206,/* or invalid hex or octal value */
+    GCRYERR_SEXP_ZERO_PREFIX     = 207,/* first character of a length is 0 */
+    GCRYERR_SEXP_NESTED_DH       = 208,/* nested display hints */
+    GCRYERR_SEXP_UNMATCHED_DH    = 209,/* unmatched display hint */
+    GCRYERR_SEXP_UNEXPECTED_PUNC = 210,/* unexpected reserved punctuation */
+    GCRYERR_SEXP_BAD_HEX_CHAR    = 211,
+    GCRYERR_SEXP_ODD_HEX_NUMBERS = 212,
+    GCRYERR_SEXP_BAD_OCT_CHAR    = 213
+
 };
 
 const char *gcry_check_version( const char *req_version );
@@ -151,6 +168,7 @@ enum gcry_random_level {
 
 struct gcry_sexp;
 typedef struct gcry_sexp *GCRY_SEXP;
+typedef struct gcry_sexp *GcrySexp;  /* this type looks more pretty */
 
 enum gcry_sexp_format {
     GCRYSEXP_FMT_DEFAULT   = 0,
@@ -159,20 +177,29 @@ enum gcry_sexp_format {
     GCRYSEXP_FMT_ADVANCED  = 3
 };
 
-void	  gcry_sexp_release( GCRY_SEXP sexp );
+int gcry_sexp_new (GCRY_SEXP *retsexp, const void *buffer, size_t length,
+                   int autodetect);
+int gcry_sexp_create (GCRY_SEXP *retsexp, void *buffer, size_t length,
+                       int autodetect, void (*freefnc)(void*) );
+int gcry_sexp_sscan (GCRY_SEXP *retsexp, size_t *erroff,
+                     const char *buffer, size_t length );
+int gcry_sexp_build (GCRY_SEXP *retsexp, size_t *erroff,
+                     const char *format, ... );
+void gcry_sexp_release (GCRY_SEXP sexp);
+
+size_t gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
+                            size_t *erroff, int *errcode);
+
+size_t	  gcry_sexp_sprint (GCRY_SEXP sexp, int mode, char *buffer,
+                            size_t maxlength );
+
 void	  gcry_sexp_dump( const GCRY_SEXP a );
 GCRY_SEXP gcry_sexp_cons( const GCRY_SEXP a, const GCRY_SEXP b );
 GCRY_SEXP gcry_sexp_alist( const GCRY_SEXP *array );
 GCRY_SEXP gcry_sexp_vlist( const GCRY_SEXP a, ... );
 GCRY_SEXP gcry_sexp_append( const GCRY_SEXP a, const GCRY_SEXP n );
 GCRY_SEXP gcry_sexp_prepend( const GCRY_SEXP a, const GCRY_SEXP n );
-int	  gcry_sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff,
-			   const char *buffer, size_t length );
-int	  gcry_sexp_build( GCRY_SEXP *retsexp, size_t *erroff,
-			   const char *format, ... );
-size_t	  gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer,
-						size_t maxlength );
-GCRY_SEXP   gcry_sexp_find_token( GCRY_SEXP list,
+GCRY_SEXP gcry_sexp_find_token( GCRY_SEXP list,
 				  const char *tok, size_t toklen );
 int	    gcry_sexp_length( const GCRY_SEXP list );
 GCRY_SEXP   gcry_sexp_nth( const GCRY_SEXP list, int number );
@@ -183,8 +210,6 @@ const char *gcry_sexp_nth_data( const GCRY_SEXP list, int number,
 						      size_t *datalen );
 GCRY_MPI    gcry_sexp_nth_mpi( GCRY_SEXP list, int number, int mpifmt );
 
-size_t gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
-                            size_t *erroff, int *errcode);
 
 
 /*******************************************
@@ -305,6 +330,7 @@ int      gcry_mpi_get_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
 
 struct gcry_cipher_handle;
 typedef struct gcry_cipher_handle *GCRY_CIPHER_HD;
+typedef struct gcry_cipher_handle *GcryCipherHd;
 
 enum gcry_cipher_algos {
     GCRY_CIPHER_NONE	    = 0,
@@ -436,6 +462,7 @@ struct gcry_md_handle {
     byte buf[1];
 };
 typedef struct gcry_md_handle *GCRY_MD_HD;
+typedef struct gcry_md_handle *GcryMDHd;
 
 
 GCRY_MD_HD gcry_md_open( int algo, unsigned flags );

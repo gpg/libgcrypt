@@ -128,16 +128,22 @@ MPI _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 
 
 
-/* replacements of missing functions */
-#ifndef HAVE_MEMICMP
-int memicmp( const char *a, const char *b, size_t n );
-#endif
+/* replacements of missing functions (missing-string.c)*/
 #ifndef HAVE_STPCPY
-char *stpcpy(char *a,const char *b);
+char *stpcpy (char *a, const char *b);
+#endif
+#ifndef HAVE_STRSEP
+char *strsep (char **stringp, const char *delim);
 #endif
 #ifndef HAVE_STRLWR
-char *strlwr(char *a);
+char *strlwr (char *a);
 #endif
+#ifndef HAVE_STRCASECMP
+int strcasecmp (const char *a, const char *b);
+#endif
+
+
+/* macros used to rename missing functions */
 #ifndef HAVE_STRTOUL
   #define strtoul(a,b,c)  ((unsigned long)strtol((a),(b),(c)))
 #endif
@@ -154,6 +160,7 @@ char *strlwr(char *a);
   #define raise(a) kill(getpid(), (a))
 #endif
 
+
 /* some handy macros */
 #ifndef STR
   #define STR(v) #v
@@ -164,3 +171,5 @@ char *strlwr(char *a);
 
 
 #endif /* G10LIB_H */
+
+

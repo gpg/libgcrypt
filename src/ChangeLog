@@ -1,3 +1,16 @@
+2002-05-16  Werner Koch  <wk@gnupg.org>
+
+	* missing-string.c: New.
+
+	* gcrypt.h: Add new error codes GCRYERR_SEXP_ and typedefs
+	GcryMPI, GcrySexp, GcryCipherHd, GcryMDHd as aliases for the old
+	ones using an underscore.
+
+	* global.c (gcry_strerror): Add strings fro the new error codes.
+	* sexp.c (gcry_sexp_canon_len): Use a macro to convert from new to
+	old error codes.
+	(gcry_sexp_create,gcry_sexp_new): New.
+
 2002-05-15  Werner Koch  <wk@gnupg.org>
 
 	* mutex.h (DEFINE_LOCAL_MUTEX): Macro to define a mutex and

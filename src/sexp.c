@@ -59,6 +59,13 @@ struct gcry_sexp {
 
 #define TOKEN_SPECIALS  "-./_:*+="
 
+#define OLDPARSECODE(a) (-((GCRYERR_SEXP_ ## a)-GCRYERR_SEXP_INV_LEN_SPEC+1))
+
+
+static int
+sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
+	    const char *buffer, size_t length, va_list arg_ptr, int argflag);
+
 
 #if 0
 static void
@@ -173,6 +180,73 @@ normalize ( GCRY_SEXP list )
 
     return list;
 }
+
+/* Create a new S-expression object by reading LENGTH bytes from
+   BUFFER, assuming it is canonilized encoded or autodetected encoding
+   when AUTODETECT is set to 1.  With FREEFNC not NULL, ownership of
+   the buffer is transferred to tyhe newle created object.  FREEFNC
+   should be the freefnc used to release BUFFER; there is no guarantee
+   at which point this function is called; most likey you want to use
+   free() or gcry_free(). 
+ 
+   Passing LENGTH and AUTODETECT as 0 is allowed to indicate that
+   BUFFER points to a valid canonical encoded S-expression.  A LENGTH
+   of 0 and AUTODETECT 1 indicates that buffer points to a
+   null-terminated string.
+  
+   This function returns 0 and and the pointer to the new object in
+   RETSEXP or an error code in which case RETSEXP is set to NULL.  */
+int 
+gcry_sexp_create (GCRY_SEXP *retsexp, void *buffer, size_t length,
+                  int autodetect, void (*freefnc)(void*) )
+{
+  int errcode;
+  GCRY_SEXP se;
+  volatile va_list dummy_arg_ptr;
+
+  if (!retsexp)
+    return GCRYERR_INV_ARG;
+  *retsexp = NULL;
+  if (autodetect < 0 || autodetect > 1 || !buffer)
+    return GCRYERR_INV_ARG;
+
+  if (!length && !autodetect)
+    { /* What a brave caller to assume that there is really a canonical
+         encoded S-expression in buffer */
+      length = gcry_sexp_canon_len (buffer, 0, NULL, &errcode);
+      if (!length)
+        return 200 - errcode;
+    }
+  else if (!length && autodetect)
+    { /* buffer is a string */
+      length = strlen ((char *)buffer);
+    }
+
+  errcode = sexp_sscan (&se, NULL, buffer, length, dummy_arg_ptr, 0);
+  if (errcode)
+    return 200 - errcode;
+
+  *retsexp = se;
+  if (freefnc)
+    {
+      /* For now we release the buffer immediately.  As soon as we
+         have changed the internal represenation of S-expression to
+         the canoncial format - which has the advantage of faster
+         parsing - we will use this function as a closure in our
+         GCRYSEXP object and use the BUFFER directly */
+      freefnc (buffer);
+    }
+  return 0;
+}
+
+/* Same as gcry_sexp_create but don't transfer ownership */
+int
+gcry_sexp_new (GCRY_SEXP *retsexp, const void *buffer, size_t length,
+               int autodetect)
+{
+  return gcry_sexp_create (retsexp, (void *)buffer, length, autodetect, NULL);
+}
+
 
 /****************
  * Release resource of the given SEXP object.
@@ -890,7 +964,7 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 	    else if( *p == '#' ) {
 		if( (hexcount & 1) ) {
 		    *erroff = p - buffer;
-		    return -12;  /* odd number of hex digits */
+		    return OLDPARSECODE (ODD_HEX_NUMBERS);
 		}
 
 		datalen = hexcount/2;
@@ -907,7 +981,7 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 	    }
 	    else if( !isspace( *p ) ) {
 		*erroff = p - buffer;
-		return -11;  /* invalid hex character */
+		return OLDPARSECODE (BAD_HEX_CHAR);
 	    }
 	}
 	else if( base64 ) {
@@ -1394,7 +1468,7 @@ gcry_sexp_sprint( const GCRY_SEXP list, int mode,
    return the actual length this S-expression uses.  For a valid S-Exp
    it should never return 0.  If LENGTH is not zero, the maximum
    length to scan is given - this can be used for syntax checks of
-   data passed from outside. erroce and erroff may both be passed as
+   data passed from outside. errorcode and erroff may both be passed as
    NULL
 
    Errorcodes (for historic reasons they are all negative):
@@ -1407,7 +1481,10 @@ gcry_sexp_sprint( const GCRY_SEXP list, int mode,
     -7 := a length may not begin with zero 
     -8 := nested display hints 
     -9 := unmatched display hint close
-   -10 := unexpected reserved punctuation 
+   -10 := unexpected reserved punctuation          
+
+   Use this formula to convert the errorcodes:
+   gcryerr = 200 - errcode;
  */
 size_t
 gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
@@ -1432,7 +1509,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
     return 0;
   if (*buffer != '(')
     {
-      *errcode = -4; /* not a canonical S-expression */
+      *errcode = OLDPARSECODE (NOT_CANONICAL);
       return 0;
     }
 
@@ -1441,7 +1518,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
       if (length && count >= length)
         {
           *erroff = count;
-          *errcode = -2; /* string too long */
+          *errcode = OLDPARSECODE (STRING_TOO_LONG); 
           return 0;
         }
       
@@ -1452,7 +1529,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
               if (length && (count+datalen) >= length)
                 {
                   *erroff = count;
-                  *errcode = -2; /* string too long */
+                  *errcode = OLDPARSECODE (STRING_TOO_LONG);
                   return 0;
                 }
               count += datalen;
@@ -1464,7 +1541,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           else 
             {
               *erroff = count;
-              *errcode = -1;
+              *errcode = OLDPARSECODE (INV_LEN_SPEC);
               return 0;
 	    }
 	}
@@ -1473,7 +1550,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if (disphint)
             {
               *erroff = count;
-              *errcode = -9; /* open display hint */
+              *errcode = OLDPARSECODE (UNMATCHED_DH);
               return 0;
 	    }
           level++;
@@ -1483,13 +1560,13 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if (!level)
             {
               *erroff = count;
-              *errcode = -3; /* unmatched parenthesis */
+              *errcode = OLDPARSECODE (UNMATCHED_PAREN);
               return 0;
 	    }
           if (disphint)
             {
               *erroff = count;
-              *errcode = -9; /* open display hint */
+              *errcode = OLDPARSECODE (UNMATCHED_DH);
               return 0;
 	    }
           if (!--level)
@@ -1500,7 +1577,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if (disphint) 
             {
               *erroff = count;
-              *errcode = -8; /* nested display hints */
+              *errcode = OLDPARSECODE (NESTED_DH);
               return 0;
             }
           disphint = p;
@@ -1510,7 +1587,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if( !disphint ) 
             {
               *erroff = count;
-              *errcode = -9; /* unmatched display hint close */
+              *errcode = OLDPARSECODE (UNMATCHED_DH);
               return 0;
 	    }
           disphint = NULL;
@@ -1520,7 +1597,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if (*p == '0')
             { 
               *erroff = count;
-              *errcode = -7; /* a length may not begin with zero */
+              *errcode = OLDPARSECODE (ZERO_PREFIX);
               return 0;
 	    }
           datalen = atoi_1 (p);
@@ -1528,16 +1605,14 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
       else if (*p == '&' || *p == '\\')
         {
           *erroff = count;
-          *errcode = -10; /* unexpected reserved punctuation */
+          *errcode = OLDPARSECODE (UNEXPECTED_PUNC);
           return 0;
 	}
       else
         { 
           *erroff = count;
-          *errcode = -5; /* bad character */
+          *errcode = OLDPARSECODE (BAD_CHARACTER);
           return 0;
 	}
     }
 }
-
-
