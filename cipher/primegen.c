@@ -325,13 +325,13 @@ gen_prime( unsigned  nbits, int secret, int randomlevel )
 	/* generate a random number */
 	gcry_mpi_randomize( prime, nbits, randomlevel );
 
-	/* set high order bit to 1, set low order bit to 1.  If we are
+	/* Set high order bit to 1, set low order bit to 0.  If we are
            generating a secret prime we are most probably doing that
            for RSA, to make sure that the modulus does have the
            requested keysize we set the 2 high order bits */
 	mpi_set_highbit (prime, nbits-1);
         if (secret)
-          mpi_set_highbit (prime, nbits-2);
+          mpi_set_bit (prime, nbits-2);
 	mpi_set_bit(prime, 0);
 
 	/* calculate all remainders */
@@ -360,7 +360,7 @@ gen_prime( unsigned  nbits, int secret, int randomlevel )
 	    if( !mpi_cmp_ui( result, 1 ) ) { /* not composite */
 		/* perform stronger tests */
 		if( is_prime(ptest, 5, &count2 ) ) {
-		    if( !mpi_test_bit( ptest, nbits-1 ) ) {
+		    if( !mpi_test_bit( ptest, nbits-1-secret ) ) {
 			progress('\n');
 			log_debug("overflow in prime generation\n");
 			break; /* step loop, continue with a new prime */

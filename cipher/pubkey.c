@@ -1477,7 +1477,7 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
 	gcry_free ( string );
     }
     release_mpi_array ( skey );
-    gcry_free (skey);
+    /* no free:  skey is a static array */
     release_mpi_array ( factors );
     gcry_free (factors);
 

@@ -1,3 +1,10 @@
+2002-01-04  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c (gcry_pk_genkey): Do not release skey - it is static.
+
+	* primegen.c (gen_prime): Of course we should use set_bit
+	and not set_highbit to set the second high bit.
+
 2001-12-18  Werner Koch  <wk@gnupg.org>
 
 	* rsa.c (generate): Loop until we find the exact modulus size.
