@@ -20,7 +20,7 @@
 
 DIST_SUBDIRS = mpi cipher src doc tests w32-dll
 SUBDIRS = mpi cipher src doc tests
-EXTRA_DIST = README-alpha BUGS autogen.sh COPYING.DOC README.apichanges
+EXTRA_DIST = BUGS autogen.sh README.apichanges README.CVS
 DISTCLEANFILES = 
 
 
@@ -30,7 +30,7 @@ DISTCLEANFILES =
 dist-hook:
 	@set -e; \
 	 for file in `cd $(top_srcdir); \
-	      find mpi scripts -type f -name distfiles`; do \
+	      find mpi -type f -name distfiles`; do \
 	    dir=`dirname $$file` ; $(mkinstalldirs) $(distdir)/$$dir ; \
 	    for i in distfiles `cat $(top_srcdir)/$$file` ; do \
 		ln $(top_srcdir)/$$dir/$$i $(distdir)/$$dir/$$i 2> /dev/null \

@@ -1,3 +1,15 @@
+2003-12-08  Werner Koch  <wk@gnupg.org>
+
+	* Makefile.am (dist-hook): Don't distribute stuff from the now
+	obsolete scripts dir.
+	(EXTRA_DIST): Remove README_alpha
+	* README-alpha: Removed.
+	* configure.ac (AM_CONFIG_AUX_DIR): Removed.
+
+	* COPYING.DOC: Removed.
+	* Makefile.am (EXTRA_DIST): Added README.CVS and
+	autogen.sh. Removed COPYING.DOC.
+
 2003-11-14  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.90.

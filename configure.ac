@@ -20,7 +20,8 @@
 #
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
-AC_PREREQ(2.52)
+AC_PREREQ(2.57)
+min_automake_version="1.7.6"
 
 # Version number: Remember to change it immediately *after* a release
 # but remove a "-cvs" prefix right *before* a release and append it
@@ -43,7 +44,6 @@ PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_SRCDIR([src/gcrypt.h])
-AC_CONFIG_AUX_DIR(scripts)
 AC_CANONICAL_TARGET()
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 AM_CONFIG_HEADER(config.h)
