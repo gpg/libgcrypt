@@ -50,8 +50,8 @@ Assigns past and future changes.
 twoaday@freakmail.de
 
 LIBGCRYPT Simon Josefsson       2002-10-25
-Assigns past and future changes to FSF (cipher/{md4,crc}.c, CTS/MAC flags,
-self test improvements)
+Assigns past and future changes to FSF (cipher/{md4,crc}.c, CTR mode,
+CTS/MAC flags, self test improvements)
 simon@josefsson.org
 
 
