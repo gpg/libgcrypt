@@ -779,7 +779,17 @@ serpent_decrypt_internal (serpent_context_t *context,
   serpent_block_t b, b_next;
   int round = ROUNDS;
 
-  BLOCK_COPY (b_next, input);
+#ifdef WORDS_BIGENDIAN
+  b_next[0] = byte_swap_32 (input[0]);
+  b_next[1] = byte_swap_32 (input[1]);
+  b_next[2] = byte_swap_32 (input[2]);
+  b_next[3] = byte_swap_32 (input[3]);
+#else
+  b_next[0] = input[0];
+  b_next[1] = input[1];
+  b_next[2] = input[2];
+  b_next[3] = input[3];
+#endif
 
   ROUND_FIRST_INVERSE (7, context->keys, b_next, b);
 
@@ -815,7 +825,18 @@ serpent_decrypt_internal (serpent_context_t *context,
   ROUND_INVERSE (1, context->keys, b, b_next);
   ROUND_INVERSE (0, context->keys, b, b_next);
 
-  BLOCK_COPY (output, b_next);
+
+#ifdef WORDS_BIGENDIAN
+  output[0] = byte_swap_32 (b_next[0]);
+  output[1] = byte_swap_32 (b_next[1]);
+  output[2] = byte_swap_32 (b_next[2]);
+  output[3] = byte_swap_32 (b_next[3]);
+#else
+  output[0] = b_next[0];
+  output[1] = b_next[1];
+  output[2] = b_next[2];
+  output[3] = b_next[3];
+#endif
 }
 
 static void
@@ -896,6 +917,7 @@ serpent_test (void)
       serpent_encrypt_internal (&context,
 				(const u32_t *) test_data[i].text_plain,
 				(u32_t *) scratch);
+
       if (memcmp (scratch, test_data[i].text_cipher, sizeof (serpent_block_t)))
 	switch (test_data[i].key_length)
 	  {
