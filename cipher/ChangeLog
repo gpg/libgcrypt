@@ -1,3 +1,8 @@
+2001-11-24  Werner Koch  <wk@gnupg.org>
+
+	* md.c (gcry_md_map_name): Look also for OIDs prefixed with "oid."
+	or "OID." so that an OID string can be used as an S-Exp token.
+
 2001-11-20  Werner Koch  <wk@gnupg.org>
 
 	* md.c (gcry_md_map_name): Lookup by OID if the the name begins

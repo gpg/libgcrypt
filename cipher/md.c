@@ -205,14 +205,19 @@ gcry_md_map_name( const char *string )
     if (!string)
       return 0;
 
-    /* If the string starts with a digit, we first look into our table
-       of ASN.1 object identifiers to figure out the algorithm */
-    if (digitp (string))
+    /* If the string starts with a digit (optionally prefixed with
+       either "OID." or "oid."), we first look into our table of ASN.1
+       object identifiers to figure out the algorithm */
+    if (digitp (string)
+        || !strncmp (string, "oid.") 
+        || !strncmp (string, "OID.") )
       {
         int i;
+        const char *s =  digitp(string)? string : (string+4);
+
         for (i=0; oid_table[i].oidstring; i++)
           {
-            if (!strcmp (string, oid_table[i].oidstring))
+            if (!strcmp (s, oid_table[i].oidstring))
               return oid_table[i].algo;
           }
       }
