@@ -1,3 +1,24 @@
+2003-06-09  Moritz Schulte  <moritz@g10code.com>
+
+	* mpicoder.c (gcry_mpi_scan): Adjust for libgpg-error.
+	(gcry_mpi_print): Likewise.
+	(gcry_mpi_aprint): Likewise.
+
+2003-06-07  Moritz Schulte  <moritz@g10code.com>
+
+	* longlong.h, mpi-add.c, mpi-bit.c, mpi-cmp.c, mpi-div.c,
+	mpi-gcd.c, mpi-inline.c, mpi-inline.h, mpi-internal.h, mpi-inv.c,
+	mpi-mpow.c, mpi-mul.c, mpi-pow.c, mpi-scan.c, mpicoder.c,
+	mpih-div.c, mpih-mul.c, mpiutil.c, generic/mpi-asm-defs.h,
+	generic/mpih-add1.c, generic/mpih-lshift.c, generic/mpih-mul1.c,
+	generic/mpih-mul2.c, generic/mpih-mul3.c, generic/mpih-rshift.c,
+	generic/mpih-sub1.c, generic/udiv-w-sdiv.c, i386/syntax.h,
+	m68k/syntax.h, mips3/mpi-asm-defs.h, powerpc32/syntax.h: Edited
+	all preprocessor instructions to remove whitespace before the '#'.
+	This is not required by C89, but there are some compilers out
+	there that don't like it.  Replaced any occurence of the now
+	deprecated type names with the new ones.
+
 2003-05-21  Moritz Schulte  <moritz@g10code.com>
 
 	* mpiutil.c (_gcry_mpi_alloc_limb_space): Only try to allocate

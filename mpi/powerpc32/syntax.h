@@ -30,15 +30,15 @@
 #define ASM_GLOBAL_DIRECTIVE   .globl
 
 #ifdef __STDC__
-# define C_LABEL(name) C_SYMBOL_NAME(name)##:
+#define C_LABEL(name) C_SYMBOL_NAME(name)##:
 #else
-# define C_LABEL(name) C_SYMBOL_NAME(name)/**/:
+#define C_LABEL(name) C_SYMBOL_NAME(name)/**/:
 #endif
 
 #ifdef __STDC__
-# define L(body) .L##body
+#define L(body) .L##body
 #else
-# define L(body) .L/**/body
+#define L(body) .L/**/body
 #endif
 
 /* No profiling of gmp's assembly for now... */

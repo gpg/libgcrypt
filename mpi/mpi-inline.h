@@ -29,7 +29,7 @@
 #define G10_MPI_INLINE_H
 
 #ifndef G10_MPI_INLINE_DECL
-  #define G10_MPI_INLINE_DECL  extern __inline__
+#define G10_MPI_INLINE_DECL  extern __inline__
 #endif
 
 G10_MPI_INLINE_DECL  mpi_limb_t

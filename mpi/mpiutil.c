@@ -318,42 +318,42 @@ gcry_mpi_swap( MPI a, MPI b)
 }
 
 
-GCRY_MPI
+gcry_mpi_t
 gcry_mpi_new( unsigned int nbits )
 {
     return _gcry_mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
 }
 
 
-GCRY_MPI
+gcry_mpi_t
 gcry_mpi_snew( unsigned int nbits )
 {
     return _gcry_mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
 }
 
 void
-gcry_mpi_release( GCRY_MPI a )
+gcry_mpi_release( gcry_mpi_t a )
 {
     _gcry_mpi_free( a );
 }
 
-GCRY_MPI
-gcry_mpi_copy( const GCRY_MPI a )
+gcry_mpi_t
+gcry_mpi_copy( const gcry_mpi_t a )
 {
-    return _gcry_mpi_copy( (GCRY_MPI)a );
+    return _gcry_mpi_copy( (gcry_mpi_t)a );
 }
 
-GCRY_MPI
-gcry_mpi_set( GCRY_MPI w, const GCRY_MPI u )
+gcry_mpi_t
+gcry_mpi_set( gcry_mpi_t w, const gcry_mpi_t u )
 {
     if( !w )
 	w = _gcry_mpi_alloc( mpi_get_nlimbs(u) );
-    _gcry_mpi_set( w, (GCRY_MPI)u );
+    _gcry_mpi_set( w, (gcry_mpi_t)u );
     return w;
 }
 
-GCRY_MPI
-gcry_mpi_set_ui( GCRY_MPI w, unsigned long u )
+gcry_mpi_t
+gcry_mpi_set_ui( gcry_mpi_t w, unsigned long u )
 {
     if( !w )
 	w = _gcry_mpi_alloc(1);
@@ -363,7 +363,7 @@ gcry_mpi_set_ui( GCRY_MPI w, unsigned long u )
 
 
 void
-gcry_mpi_randomize( GCRY_MPI w,
+gcry_mpi_randomize( gcry_mpi_t w,
 		    unsigned int nbits, enum gcry_random_level level )
 {
     char *p = mpi_is_secure(w) ? gcry_random_bytes( (nbits+7)/8, level )
@@ -374,7 +374,7 @@ gcry_mpi_randomize( GCRY_MPI w,
 
 
 void
-gcry_mpi_set_flag( GCRY_MPI a, enum gcry_mpi_flag flag )
+gcry_mpi_set_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 {
     switch( flag ) {
       case GCRYMPI_FLAG_SECURE:  mpi_set_secure(a); break;
@@ -384,7 +384,7 @@ gcry_mpi_set_flag( GCRY_MPI a, enum gcry_mpi_flag flag )
 }
 
 void
-gcry_mpi_clear_flag( GCRY_MPI a, enum gcry_mpi_flag flag )
+gcry_mpi_clear_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 {
     switch( flag ) {
       case GCRYMPI_FLAG_SECURE:
@@ -394,7 +394,7 @@ gcry_mpi_clear_flag( GCRY_MPI a, enum gcry_mpi_flag flag )
 }
 
 int
-gcry_mpi_get_flag( GCRY_MPI a, enum gcry_mpi_flag flag )
+gcry_mpi_get_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 {
     switch( flag ) {
       case GCRYMPI_FLAG_SECURE: return (a->flags & 1);

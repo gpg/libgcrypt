@@ -70,10 +70,10 @@ _gcry_mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI m)
     int i, j, idx;
     MPI *G;	/* table with precomputed values of size 2^k */
     MPI tmp;
-  #ifdef USE_BARRETT
+#ifdef USE_BARRETT
     MPI barrett_y, barrett_r1, barrett_r2;
     int barrett_k;
-  #endif
+#endif
 
     for(k=0; basearray[k]; k++ )
 	;
@@ -90,9 +90,9 @@ _gcry_mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI m)
     assert( k < 10 );
 
     G = gcry_xcalloc( (1<<k) , sizeof *G );
-  #ifdef USE_BARRETT
+#ifdef USE_BARRETT
     barrett_y = init_barrett( m, &barrett_k, &barrett_r1, &barrett_r2 );
-  #endif
+#endif
     /* and calculate */
     tmp =  mpi_alloc( mpi_get_nlimbs(m)+1 );
     mpi_set_ui( res, 1 );
@@ -123,11 +123,11 @@ _gcry_mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI m)
 
     /* cleanup */
     mpi_free(tmp);
-  #ifdef USE_BARRETT
+#ifdef USE_BARRETT
     mpi_free(barrett_y);
     mpi_free(barrett_r1);
     mpi_free(barrett_r2);
-  #endif
+#endif
     for(i=0; i < (1<<k); i++ )
 	mpi_free(G[i]);
     gcry_free(G);
