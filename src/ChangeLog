@@ -1,3 +1,12 @@
+2001-12-18  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c: Removed the commented test code becuase we now have a
+	text in ../tests/
+
+2001-12-17  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c (gcry_sexp_canon_len): New.
+
 2001-12-11  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h: Fixed AES128 macro, add enum for OFB mode.
@@ -205,3 +214,13 @@ Tue Dec  8 13:15:16 CET 1998  Werner Koch  <wk@isil.d.shuttle.de>
 	* gcrypt.h: New
 	* mpiapi.c: New
 
+	
+ Copyright 1998,1999,2000,2001 Free Software Foundation, Inc.
+
+ This file is free software; as a special exception the author gives
+ unlimited permission to copy and/or distribute it, with or without
+ modifications, as long as this notice is preserved.
+
+ This file is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+ implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

@@ -14,7 +14,7 @@ This is a development version, the first stable version will be 1.2.0.
 
 If you are using the CVS version, make sure that you have the latest
 automake (I am using Debian Sid). Ignore the make warnings about
-overriding old rules. I had to include lsmain.sh two times due to
+overriding old rules. I had to include ltmain.sh two times due to
 autoconf/libtool mismatches.
 
 

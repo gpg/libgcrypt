@@ -3,4 +3,4 @@
   Wouldn't it be better if we have a reste function or integrate that
   with setkey?
 * add more tests.  Even basic is very minimal.
-* udiv-qrnbd.o sollte als *.lo gebaut werden (HPUX)
+* udiv-qrnbd.o should get build as *.lo [HPUX]
