@@ -2,24 +2,46 @@ Noteworthy changes in version 1.1.42 (unreleased)
 -------------------------------------------------
 
  * Major API cleanup.  Applications need to be converted to the new
-   API.  See README.apichanges for hints on how to do that.
+   API.  See README.apichanges for hints on how to do that.  Backward
+   compatibility is provided where it was possible without too much
+   effort and did not collide with the overall sanitization effort.
+   However, this is only for ease of transition.  NO DEPRECATED
+   FUNCTION OR DATA TYPE IS CONSIDERED A PART OF THE API OR ABI AND
+   WILL BE DROPPED IN THE FUTURE WITHOUT CHANGING THE SONAME OF THE
+   LIBRARY. 
+
+ * If gcrypt.h is included in sources compiled by GCC 3.1 or later,
+   deprecated attributes will warn about use of obsolete functions and
+   type definitions.  You can suppress these warnings by passing
+   -Wno-deprecated-declarations to the gcc command.
+
+ * gcry_check_version must be called from now on to initialize the
+   library, it is not longer optional.
+
+ * Removed `libgcrypt errno' concept.
+
+ * Libgcrypt depends on libgpg-error, a library that provides error
+   codes and according functions for all GnuPG components.  Functions
+   that used to return error codes asa `int' have been changed to
+   return a code of type `gcry_error_t'.  All GCRYERR_* error symbols
+   have been removed, since they are now contained in libgpg-error
+   (GPG_ERR_*). All functions and types in libgpg-error have also been
+   wrapped in Libgcrypt. The new types are gcry_err_code_t and
+   gcry_err_source_t.  The new functions are gcry_err_code,
+   gcry_err_source, gcry_error, gcry_err_make, gcry_error_from_errno,
+   gcry_err_make_from_errno, gcry_err_code_from_errno,
+   gcry_err_code_to_errno, gcry_strsource.
 
  * New function gcry_mpi_dump to help in debugging. 
 
  * Added alternative interface for asymmetric cryptography.
 
- * Removed `libgcrypt errno' concept.
-
- * Renamed all libgcrypt specific types.
-
- * Use libgpg-error for error handling.
-
- * CRC-32, CRC-32 a'la RFC 1510, CRC-24 a'la RFC 2440 is now
+ * CRC-32, CRC-32 a'la RFC 1510, CRC-24 a'la RFC 2440 are now
    supported.
 
- * SHA-256 is now supported.
+ * SHA-256, SHA-384 and SHA-512 are now supported.
 
- * The public RSA exponent can now be specified in key generation. 
+ * 128 bit Twofish is now supported.
 
  * The random module won't print the "not enough random bytes
    available" anymore.  A new progress status is issued instead.
@@ -29,10 +51,16 @@ Noteworthy changes in version 1.1.42 (unreleased)
 
  * CTR mode for block ciphers is now supported.
 
+ * The public RSA exponent can now be specified in key generation. 
+
  * RSA blinding is now supported and is used automatically for RSA
-   decryption.  It can be explicitely disabled by using the `no-blinding'
-   symbol in the `flags' S-Expression or by using the
+   decryption.  It can be explicitely disabled by using the
+   `no-blinding' symbol in the `flags' S-Expression or by using the
    GCRY_AC_FLAG_DATA_NO_BLINDING flag when using the ac interface.
+
+ * gcry_sexp_canon_len does not use a `historically encoded' error
+   code anymore.
+
 
  * Interface changes relative to the 1.1.12 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
