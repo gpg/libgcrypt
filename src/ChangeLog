@@ -1,3 +1,8 @@
+2003-05-19  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h: Reversed changes from 2003-03-03 since they would have
+	been an unnecessary ABI break.
+
 2003-05-13  Moritz Schulte  <moritz@g10code.com>
 
 	* secmem.c (stats_update): New function.

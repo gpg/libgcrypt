@@ -134,74 +134,56 @@ const char *gcry_strerror (int ec);
 
 /* Codes for function dispatchers.  */
 
-/* Codes for use with gcry_control.  These commands influence certain
-   general functionality of libgcrypt.  */
-enum gcry_global_control_cmds
+/* Codes used with the gcry_control function. */
+enum gcry_ctl_cmds 
   {
-    GCRYCTL_ENABLE_M_GUARD,
-    GCRYCTL_ENABLE_QUICK_RANDOM,
-    GCRYCTL_DUMP_RANDOM_STATS,
-    GCRYCTL_DUMP_MEMORY_STATS,
-    GCRYCTL_DUMP_SECMEM_STATS,
-    GCRYCTL_DROP_PRIVS,
-    GCRYCTL_DISABLE_SECMEM,
-    GCRYCTL_INIT_SECMEM,
-    GCRYCTL_TERM_SECMEM,
-    GCRYCTL_DISABLE_SECMEM_WARN,
-    GCRYCTL_SUSPEND_SECMEM_WARN,
-    GCRYCTL_RESUME_SECMEM_WARN,
-    GCRYCTL_USE_SECURE_RNDPOOL,
-    GCRYCTL_SET_VERBOSITY,
-    GCRYCTL_SET_DEBUG_FLAGS,
-    GCRYCTL_CLEAR_DEBUG_FLAGS,
-    GCRYCTL_DISABLE_INTERNAL_LOCKING,
-    GCRYCTL_INITIALIZATION_FINISHED,
-    GCRYCTL_INITIALIZATION_FINISHED_P,
-    GCRYCTL_ANY_INITIALIZATION_P,
-  };
-
-/* Codes for use with gcry_cipher_ctl, gcry_md_ctl and
-   gcry_pk_ctl.  */
-enum gcry_control_cmds
-  {
-    GCRYCTL_SET_KEY,
-    GCRYCTL_SET_IV,
-    GCRYCTL_RESET,
-    GCRYCTL_CFB_SYNC,
-    GCRYCTL_SET_CBC_CTS,
-    GCRYCTL_SET_CBC_MAC,
-    GCRYCTL_ENABLE_ALGO,	/* Not implemented.  */
-    GCRYCTL_DISABLE_ALGO,
-    GCRYCTL_FINALIZE,
-    GCRYCTL_START_DUMP,
-    GCRYCTL_STOP_DUMP,
-    GCRYCTL_SET_CTR
-  };
-
-/* Codes for use with gcry_cipher_info and gcry_md_info.  */
-enum gcry_info_cmds
-  {
-    GCRYCTL_IS_SECURE,
-    GCRYCTL_IS_ALGO_ENABLED,
-  };
-
-/* Codes for use with gcry_cipher_algo_info, gcry_cipher_md_info and
-   gcry_cipher_pk_info.  */
-enum gcry_algo_info_cmds
-  {
-    GCRYCTL_GET_KEYLEN,
-    GCRYCTL_GET_BLKLEN,
-    GCRYCTL_TEST_ALGO,
-    GCRYCTL_GET_ASNOID,
-    GCRYCTL_GET_ALGO_USAGE,
-    GCRYCTL_GET_ALGO_NPKEY,
-    GCRYCTL_GET_ALGO_NSKEY,
-    GCRYCTL_GET_ALGO_NSIGN,
-    GCRYCTL_GET_ALGO_NENCR,
+    GCRYCTL_SET_KEY  = 1,
+    GCRYCTL_SET_IV   = 2,
+    GCRYCTL_CFB_SYNC = 3,
+    GCRYCTL_RESET    = 4,   /* e.g. for MDs */
+    GCRYCTL_FINALIZE = 5,
+    GCRYCTL_GET_KEYLEN = 6,
+    GCRYCTL_GET_BLKLEN = 7,
+    GCRYCTL_TEST_ALGO = 8,
+    GCRYCTL_IS_SECURE = 9,
+    GCRYCTL_GET_ASNOID = 10,
+    GCRYCTL_ENABLE_ALGO = 11,
+    GCRYCTL_DISABLE_ALGO = 12,
+    GCRYCTL_DUMP_RANDOM_STATS = 13,
+    GCRYCTL_DUMP_SECMEM_STATS = 14,
+    GCRYCTL_GET_ALGO_NPKEY    = 15,
+    GCRYCTL_GET_ALGO_NSKEY    = 16,
+    GCRYCTL_GET_ALGO_NSIGN    = 17,
+    GCRYCTL_GET_ALGO_NENCR    = 18,
+    GCRYCTL_SET_VERBOSITY     = 19,
+    GCRYCTL_SET_DEBUG_FLAGS   = 20,
+    GCRYCTL_CLEAR_DEBUG_FLAGS = 21,
+    GCRYCTL_USE_SECURE_RNDPOOL= 22,
+    GCRYCTL_DUMP_MEMORY_STATS = 23,
+    GCRYCTL_INIT_SECMEM       = 24,
+    GCRYCTL_TERM_SECMEM       = 25,
+    GCRYCTL_DISABLE_SECMEM_WARN = 27,
+    GCRYCTL_SUSPEND_SECMEM_WARN = 28,
+    GCRYCTL_RESUME_SECMEM_WARN	= 29,
+    GCRYCTL_DROP_PRIVS		= 30,
+    GCRYCTL_ENABLE_M_GUARD	= 31,
+    GCRYCTL_START_DUMP		= 32,
+    GCRYCTL_STOP_DUMP		= 33,
+    GCRYCTL_GET_ALGO_USAGE      = 34,
+    GCRYCTL_IS_ALGO_ENABLED     = 35,
+    GCRYCTL_DISABLE_INTERNAL_LOCKING = 36,
+    GCRYCTL_DISABLE_SECMEM      = 37,
+    GCRYCTL_INITIALIZATION_FINISHED = 38,
+    GCRYCTL_INITIALIZATION_FINISHED_P = 39,
+    GCRYCTL_ANY_INITIALIZATION_P = 40,
+    GCRYCTL_SET_CBC_CTS = 41,
+    GCRYCTL_SET_CBC_MAC = 42,
+    GCRYCTL_SET_CTR = 43,
+    GCRYCTL_ENABLE_QUICK_RANDOM = 44,
   };
 
 /* Perform various operations defined by CMD. */
-int gcry_control (enum gcry_global_control_cmds CMD, ...);
+int gcry_control (enum gcry_ctl_cmds CMD, ...);
 
 
 
@@ -958,7 +940,7 @@ void gcry_set_fatalerror_handler (void (*fnc)(void*,int, const char*),
 /* Reserved for future use. */
 void gcry_set_gettext_handler (const char *(*f)(const char*));
 
-/* Regstier a function used instead of the internal logging
+/* Register a function used instead of the internal logging
    facility. */
 void gcry_set_log_handler (void (*f)(void*,int, const char*, va_list),
                            void *opaque);
