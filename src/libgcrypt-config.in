@@ -75,7 +75,7 @@ while test $# -gt 0; do
     case $1 in
 	--thread=*)
 	    echo "$0: --thread option obsolete: use the thread callback interface" 1>&2
-	    exit 1
+	    # exit 1  <-- enable this for 1.2.0.
 	    ;;
         --prefix=*)
             # For compatibility reasons with old M4 macros, we ignore

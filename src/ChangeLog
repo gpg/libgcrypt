@@ -1,3 +1,8 @@
+2004-03-29  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt-config.in (Options): Ignore the obsolete --threads
+	option for now.
+
 2004-03-17  Marcus Brinkmann  <marcus@g10code.de>
 
 	* libgcrypt-config.in (includedir, libdir): Quote'em.  Use
