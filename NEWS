@@ -11,6 +11,7 @@ Noteworthy changes in version 1.1.13 (unreleased)
  * Interface changes relative to the 1.1.12 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 gcry_pk_decrypt         ENHANCED: Allows flag to return complete S-expression.
+gcry_cipher_reset	NEW
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Noteworthy changes in version 1.1.12 (2003-01-20)
