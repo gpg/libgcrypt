@@ -1521,10 +1521,10 @@ gcry_pk_get_nbits( GCRY_SEXP key )
 /* Return the so called KEYGRIP which is the SHA-1 hash of the public
    key parameters expressed in a way depended on the algorithm.
 
-   ARRAY must either be 20 bytes long or NULL; in the later case a
-   newly allocated array of that size is return, other wiese the array
-   or NULL to indicate an error which is most likely an unknow
-   algorithm.  The function accept public or secret keys. */
+   ARRAY must either be 20 bytes long or NULL; in the latter case a
+   newly allocated array of that size is returned, otherwise ARRAY or
+   NULL is retruned to indicate an error which is most likely an
+   unknown algorithm.  The function accepts public or secret keys. */
 /* Please note that keygrip is still experimental and should not be
    used without contacting the author */
 unsigned char *
