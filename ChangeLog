@@ -1,6 +1,14 @@
+2003-11-04  Werner Koch  <wk@gnupg.org>
+
+	* configure.ac (USE_SHA1): Make sure it is always included.
+	(USE_RMD160): Removed this AM conditional.
+
 2003-10-31  Werner Koch  <wk@gnupg.org>
 
-	Release 1.1.44.
+	* configure.ac: Bumbed version number to 1.1.90-cvs for futher
+	development
+
+	Released 1.1.44.
 	
 	* acinclude.m4 (AC_CHECK_PTH): Added.
 	* configure.ac: Use it here instead of the generic lib test.

@@ -1,3 +1,14 @@
+Noteworthy changes in version 1.1.90 (unreleased)
+-------------------------------------------------
+
+ * The use of the GCRY_WEAK_RANDOM level is now deprecated in favor of
+   the new gcry_create_nonce function.
+ 
+ * Interface changes relative to the 1.1.44 release:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gcry_create_nonce               NEW
+
+
 Noteworthy changes in version 1.1.44 (2003-10-31)
 -------------------------------------------------
 

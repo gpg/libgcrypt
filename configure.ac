@@ -26,7 +26,7 @@ AC_PREREQ(2.52)
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.1.44, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.1.90-cvs, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
@@ -741,11 +741,6 @@ test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS md5.lo"
 AC_DEFINE_UNQUOTED(USE_MD5, $found,
                              [Defined if this module should be included])
 
-LIST_MEMBER(sha1, $enabled_digests)
-test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1.lo"
-AC_DEFINE_UNQUOTED(USE_SHA1, $found,
-                             [Defined if this module should be included])
-
 LIST_MEMBER(sha256, $enabled_digests)
 test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256.lo"
 AC_DEFINE_UNQUOTED(USE_SHA256, $found,
@@ -761,10 +756,10 @@ test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS tiger.lo"
 AC_DEFINE_UNQUOTED(USE_TIGER, $found,
                                [Defined if this module should be included])
 
-# rmd160 should be included always.
-GCRYPT_DIGESTS="$GCRYPT_DIGESTS rmd160.lo"
-AM_CONDITIONAL(USE_RMD160, true)
+# rmd160 and sha1 should be included always.
+GCRYPT_DIGESTS="$GCRYPT_DIGESTS rmd160.lo sha1.lo"
 AC_DEFINE_UNQUOTED(USE_RMD160, 1, [Defined if this module should be included])
+AC_DEFINE_UNQUOTED(USE_SHA1, 1,   [Defined if this module should be included])
 
 LIST_MEMBER(linux, $random_modules)
 test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndlinux.lo"
