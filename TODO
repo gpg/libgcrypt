@@ -13,7 +13,7 @@
   is not given (saves space).
 
 * Add a warning to the manual, to check that libgcrypt actually has
-  been compiled with thread support wehen used by a trhersded
+  been compiled with thread support when used by a threaded
   application.
 
 * write an autoconf test to check whether the linker supports a
