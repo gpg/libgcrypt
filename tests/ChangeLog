@@ -1,3 +1,8 @@
+2003-08-27  Moritz Schulte  <mo@g10code.com>
+
+	* basic.c (check_ciphers): Added: Serpent.
+	Write braces around flags.
+
 2003-08-04  Moritz Schulte  <moritz@g10code.com>
 
 	* benchmark.c (do_powm): Adjust for new gcry_mpi_scan interface.

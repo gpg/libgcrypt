@@ -41,9 +41,9 @@ typedef struct test_spec_pubkey
 }
 test_spec_pubkey_t;
 
-#define FLAG_CRYPT 1 << 0
-#define FLAG_SIGN  1 << 1
-#define FLAG_GRIP  1 << 2
+#define FLAG_CRYPT (1 << 0)
+#define FLAG_SIGN  (1 << 1)
+#define FLAG_GRIP  (1 << 2)
 
 static int verbose;
 static int error_count;
@@ -539,6 +539,9 @@ check_ciphers (void)
     GCRY_CIPHER_TWOFISH,
     GCRY_CIPHER_TWOFISH128,
     GCRY_CIPHER_DES,
+    GCRY_CIPHER_SERPENT128,
+    GCRY_CIPHER_SERPENT192,
+    GCRY_CIPHER_SERPENT256,
     0
   };
   static int algos2[] = {
