@@ -1,3 +1,11 @@
+2002-05-02  Werner Koch  <wk@gnupg.org>
+
+	* jnlib/: Removed.
+	* Makefile.am (SUBDIRS): Removed jnlib.
+	* configure.ac (jnlib/Makefile): Removed.
+
+	* configure.ac: Define _REENTRANT.
+	
 2002-02-18  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac (MPI_EXTRA_ASM_OBJS): Use .lo suffix.

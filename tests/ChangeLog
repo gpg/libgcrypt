@@ -1,3 +1,7 @@
+2002-05-02  Werner Koch  <wk@gnupg.org>
+
+	* basic.c: Add option --verbose.
+
 2002-01-11  Werner Koch  <wk@gnupg.org>
 
 	* tsexp.c (canon_len): Fixed tests.

@@ -1,6 +1,14 @@
-* see where we should use the ascii_strcasecmp() functions.
 * switching from encrypt to decrypt requires a close and open.
-  Wouldn't it be better if we have a reste function or integrate that
+  Wouldn't it be better if we have a reset function or integrate that
   with setkey?
+
 * add more tests.  Even basic is very minimal.
+
 * udiv-qrnbd.o should get build as *.lo [HPUX]
+
+* Define a function to be used as a constructor to set up things in a
+  MT safe way.  There is already a hook for this.
+
+* Allow operation using RSA keys consisting of the OpenSSL list of
+  paramemters and allow for a third form where the private Exponent
+  is not given (saves space)

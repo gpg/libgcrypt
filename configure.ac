@@ -46,11 +46,18 @@ AH_TOP([
 #define _GNU_SOURCE  1
 ])
 
+
 AH_BOTTOM([
 #include "gcrypt-defs.h"
 #define _GCRYPT_IN_LIBGCRYPT 1
 ])
 
+AH_VERBATIM([_REENTRANT],
+[/* To allow the use of Libgcrypt in multithreaded programs we have to use
+    special features from the library. */
+#ifndef _REENTRANT
+# define _REENTRANT 1
+#endif])
 
 
 
@@ -62,8 +69,6 @@ AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
 
-
-# ALL_LINGUAS="da de eo es_ES fr id it ja nl pl pt_BR pt_PT ru sv"
 static_modules="sha1 md5 rmd160"
 static_random_module=""
 
@@ -764,7 +769,6 @@ DATADIRNAME=$DATADIRNAME
 
 AC_CONFIG_FILES([
 Makefile
-jnlib/Makefile
 mpi/Makefile
 cipher/Makefile
 doc/Makefile

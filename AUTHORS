@@ -1,4 +1,4 @@
-Maintainer: libgcrypt@g10code.com
+Maintainer: wk@g10code.com
 
 Libgcrypt used to be part of GnuPG but has been take out into its own
 package on 2000-12-21.
@@ -9,9 +9,8 @@ Authors of Libgcrypt
 
 GNUPG	Werner Koch		  1998-02-23
 Assigns GNU Privacy Guard and future changes.
-werner.koch@guug.de
+wk@gnupg.org
 Designed and implemented GnuPG.
-
 
 GNUPG	Matthew Skala		   1998-08-10
 Disclaims changes.
@@ -40,10 +39,14 @@ Assigns past and future changes. (g10/compress.c, g10/encr-data.c,
 g10/free-packet.c, g10/mdfilter.c, g10/plaintext.c, util/iobuf.c)
 rguyom@mail.dotcom.fr
 
+ANY     g10 Code GmbH           2001-06-07
+Code marked with ChangeLog entries of Werner Koch or Marcus Brinkmann.
 
 LIBGCRYPT Timo Schulz           2001-08-31
 Assigns past and future changes.
 twoaday@freakmail.de
+
+
 
 
 

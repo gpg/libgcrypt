@@ -24,6 +24,7 @@
 #include <stdarg.h>
 #include "../src/gcrypt.h"
 
+static int verbose;
 static int error_count;
 
 static void
@@ -120,28 +121,42 @@ check_one_cipher (int algo, int mode)
 static void
 check_ciphers (void)
 {
-    static int algos[] = {
-        GCRY_CIPHER_3DES,
-        GCRY_CIPHER_CAST5,
-        GCRY_CIPHER_BLOWFISH,
-        GCRY_CIPHER_RIJNDAEL,
-        GCRY_CIPHER_RIJNDAEL192,
-        GCRY_CIPHER_RIJNDAEL256,
-        GCRY_CIPHER_TWOFISH,
-        0
-    };
-    int i;
+  static int algos[] = {
+    GCRY_CIPHER_3DES,
+    GCRY_CIPHER_CAST5,
+    GCRY_CIPHER_BLOWFISH,
+    GCRY_CIPHER_AES,
+    GCRY_CIPHER_AES192,
+    GCRY_CIPHER_AES256,
+    GCRY_CIPHER_TWOFISH,
+    0
+  };
+  static int algos2[] = {
+    GCRY_CIPHER_ARCFOUR,
+    0
+  };
+  int i;
 
-    for (i=0; algos[i]; i++ ) {
-        check_one_cipher (algos[i], GCRY_CIPHER_MODE_ECB);
-        check_one_cipher (algos[i], GCRY_CIPHER_MODE_CFB);
-        check_one_cipher (algos[i], GCRY_CIPHER_MODE_CBC);
+  for (i=0; algos[i]; i++ ) 
+    {
+      if (verbose)
+        fprintf (stderr, "checking `%s'\n", gcry_cipher_algo_name (algos[i]));
+                 
+      check_one_cipher (algos[i], GCRY_CIPHER_MODE_ECB);
+      check_one_cipher (algos[i], GCRY_CIPHER_MODE_CFB);
+      check_one_cipher (algos[i], GCRY_CIPHER_MODE_CBC);
     }
 
-    check_one_cipher (GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM);
-    /* we have now run all cipher's selftests */
-    /* TODO: add some extra encryption to test the higher level functions */
+  for (i=0; algos2[i]; i++ ) 
+    {
+      if (verbose)
+        fprintf (stderr, "checking `%s'\n", gcry_cipher_algo_name (algos2[i]));
+                 
+      check_one_cipher (algos2[i], GCRY_CIPHER_MODE_STREAM);
+    }
+  /* we have now run all cipher's selftests */
 
+  /* TODO: add some extra encryption to test the higher level functions */
 }
 
 
@@ -155,12 +170,16 @@ check_digests ()
 int
 main (int argc, char **argv)
 {
-    if (!gcry_check_version (GCRYPT_VERSION))
-        die ("Version mismatch\n");
-    check_ciphers ();
-    check_digests ();
+  if (argc > 1 && !strcmp (argv[1], "--verbose"))
+    verbose = 1;
 
-    return error_count? 1:0;
+  /*gcry_control (GCRYCTL_DISABLE_INTERNAL_LOCKING, NULL, 0);*/
+  if (!gcry_check_version (GCRYPT_VERSION))
+    die ("version mismatch\n");
+  check_ciphers ();
+  check_digests ();
+  
+  return error_count? 1:0;
 }
 
 
