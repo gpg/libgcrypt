@@ -1,3 +1,8 @@
+2003-08-09  Timo Schulz  <twoaday@freakmail.de>
+
+	* random.c (getfnc_gather_random): Don't check NAME_OF_DEV_RANDOM
+	two times, but also the NAME_OF_DEV_URANDOM device.
+	
 2003-08-08  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (sexp_to_enc): Fixed extraction of S-Expression: do not
