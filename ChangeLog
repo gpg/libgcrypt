@@ -1,3 +1,9 @@
+2003-07-31  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.42.
+	
+	* configure.ac: Set LT version to 7/0/0.
+
 2003-07-30  Werner Koch  <wk@gnupg.org>
 
 	* AUTHORS (Maintainer): Assigned Moritz as Maintainer.

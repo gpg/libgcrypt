@@ -1,6 +1,6 @@
 # Configure.ac script for Libgcrypt
-# Copyright (C) 1998, 1999, 2000, 2001,
-#               2002, 2003 Free Software Foundation, Inc.
+# Copyright (C) 1998, 1999, 2000, 2001, 2002
+#               2003 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -26,15 +26,15 @@ AC_PREREQ(2.52)
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.1.42-cvs, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.1.42, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=6
-LIBGCRYPT_LT_AGE=5
-LIBGCRYPT_LT_REVISION=1
+LIBGCRYPT_LT_CURRENT=7
+LIBGCRYPT_LT_AGE=0
+LIBGCRYPT_LT_REVISION=0
 
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
