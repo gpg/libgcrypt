@@ -38,8 +38,6 @@
 #define CTX_MAGIC_NORMAL 0x24091964
 #define CTX_MAGIC_SECURE 0x46919042
 
-#define digitp(p)   (*(p) >= 0 && *(p) <= '9')
-
 static struct {
   const char *oidstring;
   int algo;

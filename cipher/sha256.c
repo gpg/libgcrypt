@@ -53,18 +53,6 @@ typedef struct {
 
 
 static void
-burn_stack (int bytes)
-{
-    char buf[128];
-    
-    memset (buf, 0, sizeof buf);
-    bytes -= sizeof buf;
-    if (bytes > 0)
-        burn_stack (bytes);
-}
-
-
-static void
 sha256_init (SHA256_CONTEXT *hd)
 {
   hd->h0 = 0x6a09e667;
@@ -190,7 +178,7 @@ sha256_write (SHA256_CONTEXT *hd, byte *inbuf, size_t inlen)
   if (hd->count == 64)
     { /* flush the buffer */
       transform (hd, hd->buf);
-      burn_stack (74*4+32);
+      _gcry_burn_stack (74*4+32);
       hd->count = 0;
       hd->nblocks++;
     }
@@ -213,7 +201,7 @@ sha256_write (SHA256_CONTEXT *hd, byte *inbuf, size_t inlen)
       inlen -= 64;
       inbuf += 64;
     }
-  burn_stack (74*4+32);
+  _gcry_burn_stack (74*4+32);
   for (; inlen && hd->count < 64; inlen--)
     hd->buf[hd->count++] = *inbuf++;
 }
@@ -270,7 +258,7 @@ sha256_final(SHA256_CONTEXT *hd)
   hd->buf[62] = lsb >>  8;
   hd->buf[63] = lsb;
   transform (hd, hd->buf);
-  burn_stack (74*4+32);
+  _gcry_burn_stack (74*4+32);
 
   p = hd->buf;
 #ifdef BIG_ENDIAN_HOST

@@ -1,5 +1,5 @@
 /* blowfish.c  -  Blowfish encryption
- *	Copyright (C) 1998, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -282,18 +282,6 @@ function_F( BLOWFISH_context *bc, u32 x )
 #define R(l,r,i)  do { l ^= p[i]; r ^= F(l); } while(0)
 
 static void
-burn_stack (int bytes)
-{
-    char buf[64];
-    
-    memset (buf, 0, sizeof buf);
-    bytes -= sizeof buf;
-    if (bytes > 0)
-        burn_stack (bytes);
-}
-
-
-static void
 do_encrypt(  BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
 {
   #if BLOWFISH_ROUNDS == 16
@@ -448,7 +436,7 @@ static void
 encrypt_block ( BLOWFISH_context *bc, byte *outbuf, byte *inbuf )
 {
     do_encrypt_block (bc, outbuf, inbuf);
-    burn_stack (64);
+    _gcry_burn_stack (64);
 }
 
 
@@ -474,7 +462,7 @@ static void
 decrypt_block( BLOWFISH_context *bc, byte *outbuf, byte *inbuf )
 {
     do_decrypt_block (bc, outbuf, inbuf);
-    burn_stack (64);
+    _gcry_burn_stack (64);
 }
 
 
@@ -596,7 +584,7 @@ static int
 bf_setkey( BLOWFISH_context *c, byte *key, unsigned keylen )
 {
     int rc = do_bf_setkey (c, key, keylen);
-    burn_stack (64);
+    _gcry_burn_stack (64);
     return rc;
 }
 

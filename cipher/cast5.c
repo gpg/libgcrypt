@@ -1,5 +1,5 @@
 /* cast5.c  -  CAST5 cipher (RFC2144)
- *	Copyright (C) 1998, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -358,18 +358,6 @@ rol(int n, u32 x)
     (((s1[I >> 24] + s2[(I>>16)&0xff]) ^ s3[(I>>8)&0xff]) - s4[I&0xff]) )
 
 static void
-burn_stack (int bytes)
-{
-    char buf[64];
-    
-    memset (buf, 0, sizeof buf);
-    bytes -= sizeof buf;
-    if (bytes > 0)
-        burn_stack (bytes);
-}
-
-
-static void
 do_encrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
 {
     u32 l, r, t;
@@ -427,7 +415,7 @@ static void
 encrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
 {
     do_encrypt_block (c, outbuf, inbuf);
-    burn_stack (20+4*sizeof(void*));
+    _gcry_burn_stack (20+4*sizeof(void*));
 }
 
 
@@ -477,7 +465,7 @@ static void
 decrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
 {
     do_decrypt_block (c, outbuf, inbuf);
-    burn_stack (20+4*sizeof(void*));
+    _gcry_burn_stack (20+4*sizeof(void*));
 }
 
 
@@ -624,7 +612,7 @@ static int
 cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
 {
     int rc = do_cast_setkey (c, key, keylen);
-    burn_stack (96+7*sizeof(void*));
+    _gcry_burn_stack (96+7*sizeof(void*));
     return rc;
 }
 

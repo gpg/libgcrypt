@@ -1,5 +1,5 @@
 /* Twofish for GPG
- * Copyright (C) 1998, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2002, 2003 Free Software Foundation, Inc.
  * Written by Matthew Skala <mskala@ansuz.sooke.bc.ca>, July 26, 1998
  * 256-bit key length added March 20, 1999
  * Some modifications to reduce the text size by Werner Koch, April, 1998
@@ -560,17 +560,6 @@ static byte calc_sb_tbl[512] = {
    ctx->a[(j) + 1] = (y << 9) + (y >> 23)
 
 
-static void
-burn_stack (int bytes)
-{
-    char buf[64];
-    
-    memset (buf, 0, sizeof buf);
-    bytes -= sizeof buf;
-    if (bytes > 0)
-        burn_stack (bytes);
-}
-
 
 /* Perform the key setup.  Note that this works only with 128- and 256-bit
  * keys, despite the API that looks like it might support other sizes. */
@@ -714,7 +703,7 @@ static int
 twofish_setkey (TWOFISH_context *ctx, const byte *key, unsigned int keylen)
 {
     int rc = do_twofish_setkey (ctx, key, keylen);
-    burn_stack (23+6*sizeof(void*));
+    _gcry_burn_stack (23+6*sizeof(void*));
     return rc;
 }
 
@@ -816,7 +805,7 @@ static void
 twofish_encrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
 {
     do_twofish_encrypt (ctx, out, in);
-    burn_stack (24+3*sizeof (void*));
+    _gcry_burn_stack (24+3*sizeof (void*));
 }
 
 
@@ -858,7 +847,7 @@ static void
 twofish_decrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
 {
     do_twofish_decrypt (ctx, out, in);
-    burn_stack (24+3*sizeof (void*));
+    _gcry_burn_stack (24+3*sizeof (void*));
 }
 
 

@@ -1,5 +1,5 @@
 /* arcfour.c  -  The arcfour stream cipher
- *	Copyright (C) 2000, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -41,18 +41,6 @@ typedef struct {
 
 
 static void
-burn_stack (int bytes)
-{
-    char buf[64];
-    
-    memset (buf, 0, sizeof buf);
-    bytes -= sizeof buf;
-    if (bytes > 0)
-        burn_stack (bytes);
-}
-
-
-static void
 do_encrypt_stream( ARCFOUR_context *ctx,
                 byte *outbuf, const byte *inbuf, unsigned int length )
 {
@@ -81,7 +69,7 @@ encrypt_stream( ARCFOUR_context *ctx,
 {
 
     do_encrypt_stream (ctx, outbuf, inbuf, length );
-    burn_stack (64);
+    _gcry_burn_stack (64);
 }
 
 
@@ -126,7 +114,7 @@ static int
 arcfour_setkey ( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
 {
     int rc = do_arcfour_setkey (ctx, key, keylen );
-    burn_stack (300);
+    _gcry_burn_stack (300);
     return rc;
 }
 
@@ -188,7 +176,7 @@ _gcry_arcfour_get_info( int algo, size_t *keylen, size_t *blocksize,
 							= encrypt_stream;
 
 
-    if( algo == 301 )
+    if( algo == GCRY_CIPHER_ARCFOUR )
 	return "ARCFOUR";
     return NULL;
 }

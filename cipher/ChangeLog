@@ -1,3 +1,40 @@
+2003-02-23  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.c: Remove (bogus) `digitp' macro definition.
+	* md.c: Likewise.
+
+	* blowfish.c (burn_stack): Removed.
+	* arcfour.c (burn_stack): Likewise.
+	* cast5.c (burn_stack): Likewise.
+	* des.c (burn_stack): Likewise.
+	* md4.c (burn_stack): Likewise.
+	* md5.c (burn_stack): Likewise.
+	* random.c (burn_stack): Likewise.
+	* rijndael.c (burn_stack): Likewise.
+	* rmd160.c (burn_stack): Likewise.
+	* sha1.c (burn_stack): Likewise.
+	* sha256.c (burn_stack): Likewise.
+	* tiger.c (burn_stack): Likewise.
+	* twofish.c (burn_stack): Likewise.
+
+	* blowfish.c: Changed all occurences of burn_stack to
+	_gcry_burn_stack.
+	* arcfour.c: Likewise.
+	* cast5.c: Likewise.
+	* des.c: Likewise.
+	* md4.c: Likewise.
+	* md5.c: Likewise.
+	* random.c: Likewise.
+	* rijndael.c: Likewise.
+	* rmd160.c: Likewise.
+	* sha1.c: Likewise.
+	* sha256.c: Likewise.
+	* tiger.c: Likewise.
+	* twofish.c: Likewise.
+
+	* arcfour.c (_gcry_arcfour_get_info): Use GCRY_CIPHER_ARCFOUR
+	instead of hard-coded value `301'.
+
 2003-01-24  Werner Koch  <wk@gnupg.org>
 
 	* random.c (_gcry_register_random_progress): New.

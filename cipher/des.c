@@ -1,5 +1,5 @@
 /* des.c - DES and Triple-DES encryption/decryption Algorithm
- *	Copyright (C) 1998, 1999, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -134,18 +134,6 @@ working_memcmp( const char *a, const char *b, size_t n )
     return 0;
 }
 #endif
-
-static void
-burn_stack (int bytes)
-{
-    char buf[64];
-    
-    memset (buf, 0, sizeof buf);
-    bytes -= sizeof buf;
-    if (bytes > 0)
-        burn_stack (bytes);
-}
-
 
 
 /* Some defines/checks to support standalone modules */
@@ -610,7 +598,7 @@ des_setkey (struct _des_ctx *ctx, const byte * key)
     return GCRYERR_SELFTEST;
 
   des_key_schedule (key, ctx->encrypt_subkeys);
-  burn_stack (32);
+  _gcry_burn_stack (32);
 
   for(i=0; i<32; i+=2)
     {
@@ -669,7 +657,7 @@ tripledes_set2keys (struct _tripledes_ctx *ctx,
 
   des_key_schedule (key1, ctx->encrypt_subkeys);
   des_key_schedule (key2, &(ctx->decrypt_subkeys[32]));
-  burn_stack (32);
+  _gcry_burn_stack (32);
 
   for(i=0; i<32; i+=2)
     {
@@ -707,7 +695,7 @@ tripledes_set3keys (struct _tripledes_ctx *ctx,
   des_key_schedule (key1, ctx->encrypt_subkeys);
   des_key_schedule (key2, &(ctx->decrypt_subkeys[32]));
   des_key_schedule (key3, &(ctx->encrypt_subkeys[64]));
-  burn_stack (32);
+  _gcry_burn_stack (32);
 
   for(i=0; i<32; i+=2)
     {
@@ -1016,10 +1004,10 @@ do_tripledes_setkey ( struct _tripledes_ctx *ctx, byte *key, unsigned keylen )
     tripledes_set3keys ( ctx, key, key+8, key+16);
 
     if( is_weak_key( key ) || is_weak_key( key+8 ) || is_weak_key( key+16 ) ) {
-        burn_stack (64);
+        _gcry_burn_stack (64);
 	return GCRYERR_WEAK_KEY;
     }
-    burn_stack (64);
+    _gcry_burn_stack (64);
 
     return 0;
 }
@@ -1029,14 +1017,14 @@ static void
 do_tripledes_encrypt( struct _tripledes_ctx *ctx, byte *outbuf, byte *inbuf )
 {
     tripledes_ecb_encrypt ( ctx, inbuf, outbuf );
-    burn_stack (32);
+    _gcry_burn_stack (32);
 }
 
 static void
 do_tripledes_decrypt( struct _tripledes_ctx *ctx, byte *outbuf, byte *inbuf )
 {
     tripledes_ecb_decrypt ( ctx, inbuf, outbuf );
-    burn_stack (32);
+    _gcry_burn_stack (32);
 }
 
 
@@ -1053,10 +1041,10 @@ do_des_setkey ( struct _des_ctx *ctx, byte *key, unsigned keylen )
     des_setkey (ctx, key);
 
     if( is_weak_key( key ) ) {
-        burn_stack (64);
+        _gcry_burn_stack (64);
 	return GCRYERR_WEAK_KEY;
     }
-    burn_stack (64);
+    _gcry_burn_stack (64);
 
     return 0;
 }
@@ -1066,14 +1054,14 @@ static void
 do_des_encrypt( struct _des_ctx *ctx, byte *outbuf, byte *inbuf )
 {
     des_ecb_encrypt ( ctx, inbuf, outbuf );
-    burn_stack (32);
+    _gcry_burn_stack (32);
 }
 
 static void
 do_des_decrypt( struct _des_ctx *ctx, byte *outbuf, byte *inbuf )
 {
     des_ecb_decrypt ( ctx, inbuf, outbuf );
-    burn_stack (32);
+    _gcry_burn_stack (32);
 }
 
 

@@ -188,19 +188,6 @@ _gcry_random_initialize ()
     initialize ();
 }
 
-
-static void
-burn_stack (int bytes)
-{
-    char buf[128];
-    
-    memset (buf, 0, sizeof buf);
-    bytes -= sizeof buf;
-    if (bytes > 0)
-        burn_stack (bytes);
-}
-
-
 void
 _gcry_random_dump_stats()
 {
@@ -461,7 +448,7 @@ mix_pool(byte *pool)
         _gcry_rmd160_hash_buffer (failsafe_digest, pool, POOLSIZE);
         failsafe_digest_valid = 1;
       }
-    burn_stack (384); /* for the rmd160_mixblock(), rmd160_hash_buffer */
+    _gcry_burn_stack (384); /* for the rmd160_mixblock(), rmd160_hash_buffer */
 }
 
 void

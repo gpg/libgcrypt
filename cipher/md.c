@@ -114,9 +114,6 @@ struct md_digest_list_s {
 
 static struct md_digest_list_s *digest_list;
 
-#define digitp(p)   (*(p) >= 0 && *(p) <= '9')
-
-
 
 
 static struct md_digest_list_s *
