@@ -1,3 +1,9 @@
+2005-03-19  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.c (do_cbc_encrypt): Be careful to not overwrite data,
+	which is to be used later on.  This happend, in case CTS is
+	enabled and OUTBUF is equal to INBUF.
+
 2005-02-25  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (gcry_pk_get_keygrip): Allow for shadowed-private-key.
