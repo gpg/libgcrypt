@@ -279,7 +279,7 @@ fi
 
 # Figure the required modules out
 mpi_required_modules=$mpi_standard_modules
-if test $mpi_extra_modules != ""; then
+if test "$mpi_extra_modules" != ""; then
   for fn in $mpi_extra_modules; do
       for i in $mpi_optional_modules; do 
           if test "$fn" = "$i" ; then
