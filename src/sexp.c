@@ -661,7 +661,7 @@ make_space ( struct make_space_ctx *c, size_t n )
  * Scan the provided buffer and return the S expression in our internal
  * format.  Returns a newly allocated expression.  If erroff is not NULL and
  * a parsing error has occured, the offset into buffer will be returned.
- * If ARG_PTR is not NULL, the function supports some printf like
+ * If ARGFLAG is true, the function supports some printf like
  * expressions.
  *  These are:
  *	%m - MPI
@@ -679,7 +679,7 @@ make_space ( struct make_space_ctx *c, size_t n )
  */
 static int
 sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
-	    const char *buffer, size_t length, va_list arg_ptr )
+	    const char *buffer, size_t length, va_list arg_ptr, int argflag )
 {
     static const char tokenchars[] = "abcdefghijklmnopqrstuvwxyz"
 				     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -972,7 +972,7 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 	    *erroff = p - buffer;
 	    return -10; /* unexpected reserved punctuation */
 	}
-	else if( arg_ptr && *p == '%' ) {
+	else if( argflag && *p == '%' ) {
 	    percent = p;
 	}
 	else { /* bad or unavailable*/
@@ -994,7 +994,9 @@ int
 gcry_sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff,
 			    const char *buffer, size_t length )
 {
-    return sexp_sscan( retsexp, erroff, buffer, length, NULL );
+    va_list dummy_arg_ptr = 0;
+
+    return sexp_sscan( retsexp, erroff, buffer, length, dummy_arg_ptr, 0 );
 }
 
 int
@@ -1004,7 +1006,7 @@ gcry_sexp_build( GCRY_SEXP *retsexp, size_t *erroff, const char *format, ... )
     va_list arg_ptr ;
 
     va_start( arg_ptr, format ) ;
-    rc = sexp_sscan( retsexp, erroff, format, strlen(format), arg_ptr );
+    rc = sexp_sscan( retsexp, erroff, format, strlen(format), arg_ptr, 1 );
     va_end(arg_ptr);
 
     return rc;
