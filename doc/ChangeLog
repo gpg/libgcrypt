@@ -1,3 +1,9 @@
+2003-06-15  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi: Documented several parts of the library, merged
+	some documentation from GPGME's manual, re-structured the whole
+	manual, added more menus.
+
 2003-06-14  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi (Hash Functions): Adjusteded description of
