@@ -26,21 +26,11 @@
 
 #include "../cipher/random.h"
 
-#define PUBKEY_FLAG_NO_BLINDING 1 << 0
-
 /*-- rmd160.c --*/
 void _gcry_rmd160_hash_buffer (char *outbuf, const char *buffer, size_t length);
 
-/*-- smallprime.c --*/
-extern ushort small_prime_numbers[];
-
-/*-- dsa.c --*/
-void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data);
-/*-- elgamal.c --*/
-void _gcry_register_pk_elg_progress (gcry_handler_progress_t cb, void *cb_data);
 /*-- primegen.c --*/
 void _gcry_register_primegen_progress (gcry_handler_progress_t cb, void *cb_data);
-
 
 /* Declarations for the cipher specifications.  */
 extern gcry_cipher_spec_t cipher_spec_blowfish;

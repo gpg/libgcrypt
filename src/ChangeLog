@@ -1,3 +1,9 @@
+2003-10-28  Moritz Schulte  <mo@g10code.com>
+
+	* cipher.h: Removed declarations: _gcry_register_pk_dsa_progress,
+	_gcry_register_pk_elg_progress, small_prime_numbers.
+	(PUBKEY_FLAG_NO_BLINDING): Removed symbol.
+
 2003-10-19  Moritz Schulte  <mo@g10code.com>
 
 	* gcrypt.h: New type: gcry_md_algo_t, use it.
