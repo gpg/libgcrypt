@@ -1,3 +1,8 @@
+Noteworthy changes in version 1.1.6 (2002-02-07)
+------------------------------------------------
+
+  * Enhanced the S-expression conversion functions.
+        
 Noteworthy changes in version 1.1.5 (2001-12-18)
 ------------------------------------------------
 
@@ -27,7 +32,7 @@ Noteworthy changes in version 1.1.3 (2001-05-31)
     into into libgcrypt and GnuPG.
 
 
-Copyright 2001 Free Software Foundation, Inc.
+Copyright 2001, 2002 Free Software Foundation, Inc.
 
 This file is free software; as a special exception the author gives
 unlimited permission to copy and/or distribute it, with or without

@@ -1,3 +1,7 @@
+2002-02-07  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.6. 
+
 2002-01-24  Werner Koch  <wk@gnupg.org>
 
 	* jnlib/: Replaced by a fresh copy from GnuPG (actually the NewPG
