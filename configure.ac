@@ -25,7 +25,7 @@ AC_PREREQ(2.53)
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-AC_INIT(libgcrypt,1.1.7)
+AC_INIT(libgcrypt,1.1.8-cvs)
 LIBGCRYPT_LT_CURRENT=4
 LIBGCRYPT_LT_AGE=3
 LIBGCRYPT_LT_REVISION=0
@@ -711,14 +711,15 @@ echo
 if test "$print_egd_notice" = "yes"; then
 cat <<G10EOF
   
-   The performance of the UNIX random gatherer module is not very good
-   and it does not keep the entropy pool over multiple invocations of
-   GnuPG.  The suggested way to overcome this problem is to use the
+   The performance of the Unix random gatherer module (rndunix) is not
+   very good and it does not keep the entropy pool over multiple
+   invocations of GnuPG.  The suggested way to overcome this problem is
+   to use the
   
                  Entropy Gathering Daemon (EGD)
   
    which provides a entropy source for the whole system.  It is written
-   in Perl and available at the GnuPG FTP servers.  To enable EGD you 
+   in Perl and available at the GnuPG FTP servers.  To enable EGD you
    should rerun configure with the option "--enable-static-rnd=egd".
    For more information consult the GnuPG webpages:
   
@@ -735,6 +736,6 @@ if test -n "$warn"; then
   echo "Please note that you are building a version of Libgcrypt with"
   echo "  $warn"
   echo "included.  These parts are licensed under the GPL and thus the"
-  echo "use of this library has to comply with the conditions of the GPL"
+  echo "use of this library has to comply with the conditions of the GPL."
 fi
 

@@ -45,7 +45,8 @@ static struct {
   { "1.3.14.3.2.26",         GCRY_MD_SHA1 },
   /* rsaSignatureWithripemd160 */
   { "1.3.36.3.3.1.2",       GCRY_MD_RMD160 },
-
+  /* RSADSI digestAlgorithm MD5 */
+  { "1.2.840.113549.2.5",   GCRY_MD_MD5 },
   {NULL}
 };
 

@@ -1,3 +1,7 @@
+2002-06-12  Werner Koch  <wk@gnupg.org>
+
+	* hppa1.1/udiv-qrnnd.S: Changes for PIC by Randolph Chung.
+
 2002-05-15  Werner Koch  <wk@gnupg.org>
 
 	* config.links: Chnage the way the mpi modules are determined.

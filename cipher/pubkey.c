@@ -1520,7 +1520,6 @@ gcry_pk_get_nbits( GCRY_SEXP key )
 
 /* Return the so called KEYGRIP which is the SHA-1 hash of the public
    key parameters expressed in a way depended on the algorithm.
-   This value is known in pkcs#15 as the subjectKeyHash.
 
    ARRAY must either be 20 bytes long or NULL; in the later case a
    newly allocated array of that size is return, other wiese the array
@@ -1542,6 +1541,8 @@ gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
   list = gcry_sexp_find_token (key, "public-key", 0);
   if (!list)
     list = gcry_sexp_find_token (key, "private-key", 0);
+  if (!list)
+    list = gcry_sexp_find_token (key, "protected-private-key", 0);
   if (!list)
     return NULL; /* no public- or private-key object */
 

@@ -25,47 +25,50 @@
 
 #ifdef __cplusplus
 extern "C" {
+#if 0 /* keep Emacsens's auto-indent happy */
+}
+#endif
 #endif
 
-/*
- * The version of this header should match the one of the library
- * It should not be used by a program because gcry_check_version()
- * should reurn the same version.  The purpose of this macro is to
- * let autoconf (using the AM_PATH_GCRYPT macro) check that this
- * header matches the installed library.
- * Note: Do not edit the next line as configure may fix the string here.
- */
-#define GCRYPT_VERSION "1.1.7"
+/* The version of this header should match the one of the library It
+   should not be used by a program because gcry_check_version() should
+   reurn the same version.  The purpose of this macro is to let
+   autoconf (using the AM_PATH_GCRYPT macro) check that this header
+   matches the installed library.  Note: Do not edit the next line as
+   configure may fix the string here.  */
+#define GCRYPT_VERSION "1.1.8-cvs"
 
-
+/* Internal: We can't to use the convenience macros for the multi
+   precision integer functions when build this library. */
 #ifdef _GCRYPT_IN_LIBGCRYPT
 # ifndef GCRYPT_NO_MPI_MACROS
 #   define GCRYPT_NO_MPI_MACROS 1
 # endif
 #endif
 
+/* The data object used to hold a multi precision integer.  GcryMPI is
+   the preferred one. */
 struct gcry_mpi;
 typedef struct gcry_mpi *GCRY_MPI;
 typedef struct gcry_mpi *GcryMPI;
 
-/*******************************************
- *					   *
- *  error handling etc. 		   *
- *					   *
- *******************************************/
+
+/* Error handling etc. */
 
-/* FIXME: We should use the same values as they were used in GnuPG 1.0.
- *	  gpg --status-fd may print some of these values */
-enum {
+/* The error numbers used by Libgcrypt. */
+/* FIXME: We should use the same values as they were used in GnuPG
+   1.0.  gpg --status-fd may print some of these values. */
+enum
+  {
     GCRYERR_SUCCESS = 0,    /* "no error" */
     GCRYERR_GENERAL = 1,    /* catch all the other errors code */
-
+    
     GCRYERR_INV_PK_ALGO = 4, /* invalid public key algorithm */
     GCRYERR_INV_MD_ALGO = 5, /* invalid message digest algorithm */
     GCRYERR_BAD_PUBLIC_KEY = 6, /* Bad public key */
     GCRYERR_BAD_SECRET_KEY = 7, /* Bad secret key */
     GCRYERR_BAD_SIGNATURE = 8,	/* Bad signature */
-
+    
     GCRYERR_INV_CIPHER_ALGO = 12, /* invalid cipher algorithm */
     GCRYERR_BAD_MPI = 30,
     GCRYERR_WRONG_PK_ALGO = 41, /* wrong public key algorithm */
@@ -101,15 +104,20 @@ enum {
     GCRYERR_SEXP_BAD_HEX_CHAR    = 211,
     GCRYERR_SEXP_ODD_HEX_NUMBERS = 212,
     GCRYERR_SEXP_BAD_OCT_CHAR    = 213
+  };
 
-};
+/* Check that the library fulfills the version requirement.  */
+const char *gcry_check_version (const char *req_version);
 
-const char *gcry_check_version( const char *req_version );
-
+/* Return the error number for the last failed function call. */
 int gcry_errno(void);
-const char *gcry_strerror( int ec );
 
-enum gcry_ctl_cmds {
+/* Map an error number to a string. */
+const char *gcry_strerror (int ec);
+
+/* Codes used with the gcry_control function. */
+enum gcry_ctl_cmds 
+  {
     GCRYCTL_SET_KEY  = 1,
     GCRYCTL_SET_IV   = 2,
     GCRYCTL_CFB_SYNC = 3,
@@ -149,21 +157,33 @@ enum gcry_ctl_cmds {
     GCRYCTL_INITIALIZATION_FINISHED = 38,
     GCRYCTL_INITIALIZATION_FINISHED_P = 39,
     GCRYCTL_ANY_INITIALIZATION_P = 40
-};
+  };
 
-int gcry_control( enum gcry_ctl_cmds, ... );
+/* Perform various operations defined by CMD. */
+int gcry_control (enum gcry_ctl_cmds CMD, ...);
 
-enum gcry_random_level {
+/* The possible values for the random quality.  The rule of thumb is
+   to usef use WEAK for random number which don't need to be
+   cryptographically strong, STRONG for session keys and VERY_STRONG
+   for key material. */
+enum gcry_random_level
+  {
     GCRY_WEAK_RANDOM = 0,
     GCRY_STRONG_RANDOM = 1,
     GCRY_VERY_STRONG_RANDOM = 2
-};
+  };
 
 
+
+/* S-expression management. */ 
+
+/* The object to represent an S-expression as used with the
+   public key functions.  GcrySexp is the preferrred form. */
 struct gcry_sexp;
 typedef struct gcry_sexp *GCRY_SEXP;
-typedef struct gcry_sexp *GcrySexp;  /* this type looks more pretty */
+typedef struct gcry_sexp *GcrySexp;  
 
+/* The possible values for the S-expression format. */
 enum gcry_sexp_format {
     GCRYSEXP_FMT_DEFAULT   = 0,
     GCRYSEXP_FMT_CANON	   = 1,
@@ -171,21 +191,39 @@ enum gcry_sexp_format {
     GCRYSEXP_FMT_ADVANCED  = 3
 };
 
-int gcry_sexp_new (GCRY_SEXP *retsexp, const void *buffer, size_t length,
+/* Create an new S-expression object from BUFFER of size LENGTH aand
+   return it in RETSEXP.  With AUTODETECT set to 0 the data in BUFFER
+   is expected to be in canonized format */
+int gcry_sexp_new (GcrySexp *retsexp, const void *buffer, size_t length,
                    int autodetect);
-int gcry_sexp_create (GCRY_SEXP *retsexp, void *buffer, size_t length,
-                       int autodetect, void (*freefnc)(void*) );
-int gcry_sexp_sscan (GCRY_SEXP *retsexp, size_t *erroff,
-                     const char *buffer, size_t length );
-int gcry_sexp_build (GCRY_SEXP *retsexp, size_t *erroff,
-                     const char *format, ... );
-void gcry_sexp_release (GCRY_SEXP sexp);
 
+/* Same as gcry_sexp_new but allows to pass a FREEFNC which has the
+   effect to transfer ownership of BUFFER to the created object. */
+int gcry_sexp_create (GcrySexp *retsexp, void *buffer, size_t length,
+                      int autodetect, void (*freefnc)(void*) );
+
+/* Scan BUFFER and return a new S-expression object in RETSEXP.  This
+   function expects a printf like string in BUFFER. */
+int gcry_sexp_sscan (GcrySexp *retsexp, size_t *erroff,
+                     const char *buffer, size_t length );
+
+/* Same as gcry_sexp_sscan but expects a string in FORMAT and can thus
+   only be used for certain encodings. */
+int gcry_sexp_build (GcrySexp *retsexp, size_t *erroff,
+                     const char *format, ... );
+
+/* Release the S-expression object SEXP */
+void gcry_sexp_release (GcrySexp sexp);
+
+/* Calculate the length of an canonized S-expresion in BUFFER and
+   check for a valid encoding. */
 size_t gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
                             size_t *erroff, int *errcode);
 
-size_t	  gcry_sexp_sprint (GCRY_SEXP sexp, int mode, char *buffer,
-                            size_t maxlength );
+/* Copies the S-expression object SEXP into BUFFER using the format
+   specified in MODE. */
+size_t gcry_sexp_sprint (GCRY_SEXP sexp, int mode, char *buffer,
+                         size_t maxlength );
 
 void	  gcry_sexp_dump( const GCRY_SEXP a );
 GCRY_SEXP gcry_sexp_cons( const GCRY_SEXP a, const GCRY_SEXP b );

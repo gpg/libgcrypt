@@ -140,13 +140,16 @@ generate( RSA_secret_key *sk, unsigned nbits )
          e=41    0.75 ms
          e=257   0.95 ms
          e=65537 1.80 ms
-     */
+
+       Note: Due to Sphinx requirements we temorrary change the
+       exponent until we can rework the interface to provide more
+       parameters than just the modulus length.  */
     e = mpi_alloc( (32+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );
-    mpi_set_ui( e, 41); 
-    if( !gcry_mpi_gcd(t1, e, phi) ) {
+    mpi_set_ui (e, 65537); 
+    if( !gcry_mpi_gcd(t1, e, phi) ) { /* actually never triggered ;-) */
       mpi_set_ui( e, 257); 
       if( !gcry_mpi_gcd(t1, e, phi) ) {
-        mpi_set_ui( e, 65537); 
+        mpi_set_ui( e, 41); 
         while( !gcry_mpi_gcd(t1, e, phi) ) /* (while gcd is not 1) */
           mpi_add_ui( e, e, 2);
       }
@@ -347,7 +350,7 @@ secret(MPI output, MPI input, RSA_secret_key *skey )
  *********************************************/
 
 int
-_gcry_rsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
+_gcry_rsa_generate (int algo, unsigned int nbits, MPI *skey, MPI **retfactors)
 {
     RSA_secret_key sk;
 

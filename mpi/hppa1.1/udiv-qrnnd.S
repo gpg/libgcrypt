@@ -36,10 +36,11 @@
  *   d		   gr23
  */
 
-	.code
+       .data
 	.label L$0000
 	.word		0x43f00000
 	.word		0x0
+        .code
 	.export 	__udiv_qrnnd
 	.label		__udiv_qrnnd
 	.proc
@@ -49,13 +50,14 @@
 
 	stws		%r25,-16(0,%r30)	; n_hi
 	stws		%r24,-12(0,%r30)	; n_lo
-	ldil		L'L$0000,%r19           ; '
-	ldo		R'L$0000(%r19),%r19     ; '
+        stw             %r19,-32(%r30)
+        addil           LT%L$0000,%r19
+        ldw             RT%L$0000(%r1),%r1
 	fldds		-16(0,%r30),%fr5
 	stws		%r23,-12(0,%r30)
 	comib,<=	0,%r25,L$1
 	fcnvxf,dbl,dbl	%fr5,%fr5
-	fldds		0(0,%r19),%fr4
+        fldds           0(0,%r1),%fr4
 	fadd,dbl	%fr4,%fr5,%fr5
 	.label	L$1
 	fcpy,sgl	%fr0,%fr6L
@@ -72,8 +74,8 @@
 	ldws		-12(0,%r30),%r21
 	ldws		-16(0,%r30),%r20
 	sub		%r24,%r21,%r22
-	subb		%r25,%r20,%r19
-	comib,= 	0,%r19,L$2
+        subb            %r25,%r20,%r1
+        comib,=         0,%r1,L$2
 	ldo		-64(%r30),%r30
 
 	add		%r22,%r23,%r22

@@ -1,8 +1,20 @@
+2002-06-12  Werner Koch  <wk@gnupg.org>
+
+	* rsa.c (generate): Use e = 65537 for now.
+
+2002-06-11  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c (gcry_pk_get_keygrip): Allow a "protected-private-key".
+
 2002-06-05  Timo Schulz  <ts@winpt.org>
 
 	* cipher.c (gcry_cipher_encrypt, gcry_cipher_decrypt):
 	Check that the input size is a multiple of the blocksize.
 	
+2002-05-23  Werner Koch  <wk@gnupg.org>
+
+	* md.c (oid_table): Add an rsadsi OID for MD5.
+
 2002-05-21  Werner Koch  <wk@gnupg.org>
 
 	* primegen.c, elgamal.c, dsa.c (progress): Do not print anything
