@@ -23,12 +23,12 @@ AC_REVISION($Revision$)dnl
 AC_PREREQ(2.52)
 # Version numbers (Remember to change them just before a release)
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
-# X (Interfaces added:      CURRENT++, AGE++, REVISION=0)
+#   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-AC_INIT(libgcrypt,1.1.4b-cvs)
-LIBGCRYPT_LT_CURRENT=2
-LIBGCRYPT_LT_AGE=1
-LIBGCRYPT_LT_REVISION=1
+AC_INIT(libgcrypt,1.1.5)
+LIBGCRYPT_LT_CURRENT=3
+LIBGCRYPT_LT_AGE=2
+LIBGCRYPT_LT_REVISION=0
 #-----------------------
 
 PACKAGE=$PACKAGE_NAME
@@ -726,7 +726,6 @@ AC_SUBST(LIBGCRYPT_LIBS)
 AC_SUBST(LIBGCRYPT_CFLAGS)
 
 AC_CONFIG_COMMANDS([gcrypt-defs],[[
-chmod +x scripts/db2any
 chmod +x src/libgcrypt-config
 cat >gcrypt-defs.tmp <<G10EOF
 /* Generated automatically by configure */

@@ -1,3 +1,15 @@
+2001-12-18  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.5.
+
+	* Makefile.am (dist-hook): Only look in mpi and scripts for
+	distfiles; this way we don't include those of a stale "make dist"
+	directory.
+
+	* acinclude.m4 (GNUPG_FIX_HDR_VERSION): Make it work with the new
+	automake.
+	* configure.ac: Don't chmod db2any.
+
 2001-08-06  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac: Removed cross compiling hacks.
