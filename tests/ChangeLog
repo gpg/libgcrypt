@@ -1,3 +1,9 @@
+2005-03-30  Moritz Schulte  <moritz@g10code.com>
+
+	* ac-schemes.c: New file.
+	* ac-data.c: New file.
+	* Makefile.am (TESTS): Added ac-schemes and ac-data.
+
 2004-09-15  Moritz Schulte  <moritz@g10code.com>
 
 	* pkbench.c: Include <time.h>.
