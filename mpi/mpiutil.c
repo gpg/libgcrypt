@@ -307,6 +307,12 @@ _gcry_mpi_swap( MPI a, MPI b)
     tmp = *a; *a = *b; *b = tmp;
 }
 
+void
+gcry_mpi_swap( MPI a, MPI b)
+{
+  _gcry_mpi_swap (a, b);
+}
+
 
 GCRY_MPI
 gcry_mpi_new( unsigned int nbits )

@@ -36,7 +36,7 @@ extern "C" {
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.1.8-cvs"
+#define GCRYPT_VERSION "1.1.8"
 
 /* Internal: We can't to use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -279,6 +279,9 @@ GcryMPI gcry_mpi_set (GcryMPI w, const GcryMPI u);
 /* Store the unsigned integer value U in W. */
 GcryMPI gcry_mpi_set_ui (GcryMPI w, unsigned long u);
 
+/* Swap the values of A and B. */
+void gcry_mpi_swap (GcryMPI a, GcryMPI b);
+
 /* Compare the big integer number U and V returning 0 for equality, a
    positive value for U > V and a negative for U < V. */
 int gcry_mpi_cmp (const GcryMPI u, const GcryMPI v);
@@ -340,13 +343,26 @@ void gcry_mpi_mulm (GcryMPI w, GcryMPI u, GcryMPI v, GcryMPI m);
 /* W = U * (2 ^ CNT). */
 void gcry_mpi_mul_2exp (GcryMPI w, GcryMPI u, unsigned long cnt);
 
+/* Q = DIVIDEND / DIVISOR, R = DIVIDEND % DIVISOR,
+   Q or R may be passed as NULL.  ROUND should be negative or 0. */
+void gcry_mpi_div (GcryMPI q, GcryMPI r,
+                   GcryMPI dividend, GcryMPI divisor, int round);
+
+/* R = DIVIDEND % DIVISOR */
+void gcry_mpi_mod (GcryMPI r, GcryMPI dividend, GcryMPI divisor);
+
 /* W = B ^ E mod M. */
 void gcry_mpi_powm (GcryMPI w,
                     const GcryMPI b, const GcryMPI e, const GcryMPI m);
 
 /* Set G to the greatest common divisor of A and B.  
    Return true if the G is 1. */
-int  gcry_mpi_gcd (GcryMPI g, GcryMPI a, GcryMPI b);
+int gcry_mpi_gcd (GcryMPI g, GcryMPI a, GcryMPI b);
+
+/* Set X to the multiplicative inverse of A mod M.
+   Return true if the value exists. */
+int gcry_mpi_invm (GcryMPI x, GcryMPI a, GcryMPI m);
+
 
 /* Return the number of bits required to represent A. */
 unsigned int gcry_mpi_get_nbits (GcryMPI a);
@@ -414,8 +430,12 @@ int gcry_mpi_get_flag (GcryMPI a, enum gcry_mpi_flag flag);
 #define mpi_mul_2exp(w,u,v) gcry_mpi_mul_2exp ((w),(u),(v))
 #define mpi_mul(w,u,v)      gcry_mpi_mul ((w),(u),(v))
 #define mpi_mulm(w,u,v,m)   gcry_mpi_mulm ((w),(u),(v),(m))
-#define mpi_powm(w,b,e,m)   gcry_mpi_powm( (w), (b), (e), (m) )
-#define mpi_gcd(g,a,b)      gcry_mpi_gcd( (g), (a), (b) )
+#define mpi_powm(w,b,e,m)   gcry_mpi_powm ( (w), (b), (e), (m) )
+#define mpi_tdiv(q,r,a,m)   gcry_mpi_div ( (q), (r), (a), (m), 0)
+#define mpi_fdiv(q,r,a,m)   gcry_mpi_div ( (q), (r), (a), (m), -1)
+#define mpi_mod(r,a,m)      gcry_mpi_mod ((r), (a), (m))
+#define mpi_gcd(g,a,b)      gcry_mpi_gcd ( (g), (a), (b) )
+#define mpi_invm(g,a,b)     gcry_mpi_invm ( (g), (a), (b) )
 
 #define mpi_get_nbits(a)       gcry_mpi_get_nbits ((a))
 #define mpi_test_bit(a,b)      gcry_mpi_test_bit ((a),(b))

@@ -221,12 +221,14 @@ do_get_buffer( MPI a, unsigned *nbytes, int *sign, int force_secure )
     byte *p, *buffer;
     mpi_limb_t alimb;
     int i;
+    size_t n;
 
     if( sign )
 	*sign = a->sign;
     *nbytes = a->nlimbs * BYTES_PER_MPI_LIMB;
-    p = buffer = force_secure || mpi_is_secure(a) ? gcry_xmalloc_secure( *nbytes)
-						  : gcry_xmalloc( *nbytes );
+    n = *nbytes? *nbytes:1; /* allocate at least one byte */
+    p = buffer = force_secure || mpi_is_secure(a) ? gcry_xmalloc_secure(n)
+						  : gcry_xmalloc(n);
 
     for(i=a->nlimbs-1; i >= 0; i-- ) {
 	alimb = a->d[i];

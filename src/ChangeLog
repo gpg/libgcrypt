@@ -1,6 +1,13 @@
+2002-06-24  Werner Koch  <wk@gnupg.org>
+
+	* missing-string.c: Include ctype.h.
+
+	* gcrypt.h (gcry_mpi_invm, gcry_mpi_div, gcry_mpi_mod)
+	(gcry_mpi_swap): New.
+
 2002-06-18  Werner Koch  <wk@gnupg.org>
 
-	* gcrypt.h: Added a bunch for brief function descriptions.
+	* gcrypt.h: Added a bunch of brief function descriptions.
 
 2002-05-21  Werner Koch  <wk@gnupg.org>
 

@@ -1,3 +1,14 @@
+2002-06-24  Werner Koch  <wk@gnupg.org>
+
+	* mpiutil.c (gcry_mpi_swap): New.
+
+	* mpi-div.c (gcry_mpi_div): New.
+	(gcry_mpi_mod): New.
+	* mpi-inv.c (gcry_mpi_invm): New.
+
+	* mpicoder.c (do_get_buffer): Make sure that we allocate at least
+	one byte.
+
 2002-06-12  Werner Koch  <wk@gnupg.org>
 
 	* hppa1.1/udiv-qrnnd.S: Changes for PIC by Randolph Chung.

@@ -317,3 +317,39 @@ _gcry_mpi_divisible_ui(MPI dividend, ulong divisor )
     return !_gcry_mpih_mod_1( dividend->d, dividend->nlimbs, divisor );
 }
 
+
+void
+gcry_mpi_div (MPI quot, MPI rem, MPI dividend, MPI divisor, int round)
+{
+  if (!round)
+    {
+      if (!rem)
+        {
+          MPI tmp = mpi_alloc (mpi_get_nlimbs(quot));
+          _gcry_mpi_tdiv_qr (quot, tmp, dividend, divisor);
+          mpi_free (tmp);
+        }
+      else
+        _gcry_mpi_tdiv_qr (quot, rem, dividend, divisor);
+    }
+  else if (round < 0)
+    {
+      if (!rem)
+        _gcry_mpi_fdiv_q (quot, dividend, divisor);
+      else if (!quot)
+        _gcry_mpi_fdiv_r (rem, dividend, divisor);
+      else
+        _gcry_mpi_fdiv_qr (quot, rem, dividend, divisor);
+    }
+  else
+    log_bug ("mpi rounding to ceiling not yet implemented\n");
+}
+
+
+void
+gcry_mpi_mod (MPI rem, MPI dividend, MPI divisor)
+{
+  _gcry_mpi_fdiv_r (rem, dividend, divisor);
+  rem->sign = 0;
+}
+

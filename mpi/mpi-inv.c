@@ -267,4 +267,9 @@ _gcry_mpi_invm( MPI x, MPI a, MPI n )
 }
 
 
-
+int
+gcry_mpi_invm (MPI x, MPI a, MPI n)
+{
+  _gcry_mpi_invm (x, a, n);
+  return 1;
+}
