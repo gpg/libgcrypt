@@ -76,9 +76,10 @@ mpi_ptr_t
 _gcry_mpi_alloc_limb_space( unsigned nlimbs, int secure )
 {
     size_t len = nlimbs * sizeof(mpi_limb_t);
-    mpi_ptr_t p;
+    mpi_ptr_t p = NULL;
 
-    p = secure? gcry_xmalloc_secure( len ) : gcry_xmalloc( len );
+    if (nlimbs)
+      p = secure? gcry_xmalloc_secure( len ) : gcry_xmalloc( len );
 
     return p;
 }
