@@ -76,18 +76,41 @@ AC_PROG_AWK
 
 dnl Definitions for symmetric ciphers.
 available_ciphers="arcfour blowfish cast5 des aes twofish"
-default_ciphers="$available_ciphers"
 enabled_ciphers=""
 
 dnl Definitions for public-key ciphers.
 available_pubkey_ciphers="dsa elgamal rsa"
-default_pubkey_ciphers="$available_pubkey_ciphers"
 enabled_pubkey_ciphers=""
 
 dnl Definitions for message digests.
-available_digests="crc md4 md5 rmd160 sha1 sha256 sha512 tiger"
-default_digests=$available_digests
+available_digests="crc md4 md5 rmd160 sha1 sha256"
 enabled_digests=""
+
+AC_CHECK_SIZEOF(unsigned short, 2)
+AC_CHECK_SIZEOF(unsigned int, 4)
+AC_CHECK_SIZEOF(unsigned long, 4)
+AC_CHECK_SIZEOF(unsigned long long, 0)
+
+if test "$ac_cv_sizeof_unsigned_short" = "0" \
+   || test "$ac_cv_sizeof_unsigned_int" = "0" \
+   || test "$ac_cv_sizeof_unsigned_long" = "0"; then
+    AC_MSG_WARN([Hmmm, something is wrong with the sizes - using defaults]);
+fi
+
+dnl Do we have any 64-bit data types?
+if test "$ac_cv_sizeof_unsigned_int" != "8" \
+   && test "$ac_cv_sizeof_unsigned_long" != "8" \
+   && test "$ac_cv_sizeof_unsigned_long_long" != "8" \
+   && test "$ac_cv_sizeof_uint64_t" != "8"; then
+    AC_MSG_WARN([No 64-bit types.  Disabling TIGER/192, SHA-384, and SHA-512])
+else
+  available_digests="$available_digests sha512 tiger"
+fi
+
+dnl If not specified otherwise, all algorithms will be included.
+default_ciphers="$available_ciphers"
+default_pubkey_ciphers="$available_pubkey_ciphers"
+default_digests="$available_digests"
 
 dnl Support for the --enable-ciphers switch.
 AC_ARG_ENABLE(ciphers,
@@ -502,18 +525,6 @@ GNUPG_CHECK_TYPEDEF(ushort, HAVE_USHORT_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(ulong, HAVE_ULONG_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u16, HAVE_U16_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
-
-AC_CHECK_SIZEOF(unsigned short, 2)
-AC_CHECK_SIZEOF(unsigned int, 4)
-AC_CHECK_SIZEOF(unsigned long, 4)
-AC_CHECK_SIZEOF(unsigned long long, 0)
-
-if test "$ac_cv_sizeof_unsigned_short" = "0" \
-   || test "$ac_cv_sizeof_unsigned_int" = "0" \
-   || test "$ac_cv_sizeof_unsigned_long" = "0"; then
-    AC_MSG_WARN([Hmmm, something is wrong with the sizes - using defaults]);
-fi
-
 
 #
 # Checks for library functions.
