@@ -1,3 +1,13 @@
+2003-04-16  Moritz Schulte  <moritz@g10code.com>
+
+	* basic.c (check_one_md): Also test md_copy.
+
+2003-04-07  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (TESTS): Added register.
+
+	* register.c: New file.
+
 2003-03-30  Simon Josefsson  <jas@extundo.com>
 
 	* basic.c (check_one_cipher): New.  Test CTR.

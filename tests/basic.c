@@ -498,7 +498,7 @@ check_ciphers (void)
 static void
 check_one_md (int algo, char *data, int len, char *expect)
 {
-    GCRY_MD_HD hd;
+    GCRY_MD_HD hd, hd2;
     char *p;
     int mdlen;
     int i;
@@ -527,7 +527,16 @@ check_one_md (int algo, char *data, int len, char *expect)
     else
       gcry_md_write (hd, data, len);
 
-    p = gcry_md_read (hd, algo);
+    hd2 = gcry_md_copy (hd);
+    if (! hd2)
+      {
+	fail ("algo %d, gcry_md_copy failed: %s\n",
+	      algo, gcry_strerror (-1));
+      }
+    
+    gcry_md_close (hd);
+
+    p = gcry_md_read (hd2, algo);
 
     if ( memcmp (p, expect, mdlen) )
       {
@@ -542,7 +551,7 @@ check_one_md (int algo, char *data, int len, char *expect)
 	fail ("algo %d, digest mismatch\n", algo);
       }
 
-    gcry_md_close (hd);
+    gcry_md_close (hd2);
 }
 
 static void
