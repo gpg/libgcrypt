@@ -177,7 +177,7 @@ MPI library
 * Calculations::                Performing MPI calculations.
 * Comparisons::                 How to compare MPI values.
 * Bit manipulations::           How to access single bits of MPI values.
-* Misc::                        Miscellaneous MPI functions.
+* Miscellaneous::               Miscellaneous MPI functions.
 
 Utilities
 * Memory allocation::           Functions related with memory allocation.
@@ -3307,7 +3307,7 @@ can't be converted to an MPI, @code{NULL} is returned.
 * Calculations::                Performing MPI calculations.
 * Comparisons::                 How to compare MPI values.
 * Bit manipulations::           How to access single bits of MPI values.
-* Misc::                        Misc, fixme.
+* Miscellaneous::               Miscellaneous MPI functions.
 @end menu
 
 Public key cryptography is based on mathematics with large numbers.  To
@@ -3618,19 +3618,15 @@ Shift the value of @var{a} by @var{n} bits to the right and store the
 result in @var{x}.
 @end deftypefun
 
-@node Misc
-@section Misc
-
-@noindent
-The remaining MPI functions take care of very special properties of the
-implementation:
+@node Miscellaneous
+@section Miscellanous
 
 @deftypefun gcry_mpi_t gcry_mpi_set_opaque (@w{gcry_mpi_t @var{a}}, @w{void *@var{p}}, @w{unsigned int @var{nbits}})
 
 Store @var{nbits} of the value @var{p} points to in @var{a} and mark
 @var{a} as an opaque value (i.e. an value that can't be used for any
 math calculation and is only used to store an arbitrary bit pattern in
-@var{a}.
+@var{a}).
 
 WARNING: Never use an opaque MPI for actual math operations.  The only
 valid functions are gcry_mpi_get_opaque and gcry_mpi_release.  Use
@@ -3662,6 +3658,14 @@ currently useless as no flags are allowed.
 @deftypefun int gcry_mpi_get_flag (@w{gcry_mpi_t @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
 
 Return true when the @var{flag} is set for @var{a}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_randomize (@w{gcry_mpi_t @var{w}}, @w{unsigned int @var{nbits}}, @w{enum gcry_random_level @var{level}})
+
+Set the big integer @var{w} to a random value of @var{nbits}, using
+random data quality of level @var{level}.  In case @var{nbits} is not
+a multiple of a byte, @var{nbits} is rounded up to the next byte
+boundary.
 @end deftypefun
 
 @node Utilities
