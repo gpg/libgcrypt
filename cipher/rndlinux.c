@@ -42,7 +42,7 @@
 #endif
 #include "types.h"
 #include "g10lib.h"
-#include "rand-internal.h"
+#include "random.h"
 
 static int open_device( const char *name, int minor );
 int rndlinux_gather_random( void (*add)(const void*, size_t, int), int requester,

@@ -1,3 +1,15 @@
+2003-10-28  Moritz Schulte  <mo@g10code.com>
+
+	* rsa.c: Use GCRY_AC_FLAG_DATA_NO_BLINDING instead of
+	PUBKEY_FLAG_NO_BLINDING.
+
+	* random.c: Do not include rand-internal.h.
+	* rndlinux.c: Include random.h instead of rand-internal.h.
+
+	* rand-internal.h: Move decleration of _gcry_random_progress ...
+	* random.h: ... here.
+	* rand-internal.h: Removed file.
+
 2003-10-27  Moritz Schulte  <mo@g10code.com>
 
 	* md.c (_gcry_md_info_get): New function.

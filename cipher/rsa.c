@@ -255,7 +255,7 @@ decrypt (data_encrypted_t *data_encrypted, key_secret_t *key_secret,
   gcry_mpi_t y;			/* Result.  */
 
   y = gcry_mpi_snew (gcry_mpi_get_nbits (key_secret->n));
-  if (! (flags & PUBKEY_FLAG_NO_BLINDING))
+  if (! (flags & GCRY_AC_FLAG_DATA_NO_BLINDING))
     {
       /* Initialize blinding.  */
       
@@ -285,7 +285,7 @@ decrypt (data_encrypted_t *data_encrypted, key_secret_t *key_secret,
   /* Do the encryption.  */
   secret (y, x, key_secret);
 
-  if (! (flags & PUBKEY_FLAG_NO_BLINDING))
+  if (! (flags & GCRY_AC_FLAG_DATA_NO_BLINDING))
     {
       /* Undo blinding.  */
       gcry_mpi_t a = gcry_mpi_copy (y);
@@ -294,7 +294,7 @@ decrypt (data_encrypted_t *data_encrypted, key_secret_t *key_secret,
       y = unblind (a, ri, key_secret->n);
     }
 
-  if (! (flags & PUBKEY_FLAG_NO_BLINDING))
+  if (! (flags & GCRY_AC_FLAG_DATA_NO_BLINDING))
     {
       /* Deallocate resources needed for blinding.  */
       gcry_mpi_release (x);

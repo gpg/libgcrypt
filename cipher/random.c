@@ -52,8 +52,6 @@
 #include "g10lib.h"
 #include "rmd.h"
 #include "random.h"
-#include "rand-internal.h"
-//#include "dynload.h"
 #include "cipher.h" /* only used for the rmd160_hash_buffer() prototype */
 #include "ath.h"
 
