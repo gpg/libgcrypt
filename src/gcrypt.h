@@ -65,26 +65,17 @@ enum gcry_ctl_cmds {
 
 int gcry_control( enum gcry_ctl_cmds, ... );
 
+enum gcry_random_level {
+    GCRY_WEAK_RANDOM = 0,
+    GCRY_STRONG_RANDOM = 1,
+    GCRY_VERY_STRONG_RANDOM = 2
+};
 
 /*******************************************
  *					   *
  *  multi precision integer functions	   *
  *					   *
  *******************************************/
-
-enum gcry_mpi_opcode {
-    GCRYMPI_NOOP = 0,
-    GCRYMPI_NEW  = 1,	    /* use gcry_mpi_new() */
-    GCRYMPI_SNEW = 2,	    /* use gcry_mpi_new() */
-    GCRYMPI_RELEASE = 3,
-    GCRYMPI_RESIZE = 4,
-    GCRYMPI_COPY = 5,	    /* use gcry_mpi_new() */
-    GCRYMPI_SWAP = 6,
-    GCRYMPI_SET  = 7,
-    GCRYMPI_SET_UI = 8,
-    GCRYMPI_CMP    = 9,
-    GCRYMPI_CMP_UI = 10
-};
 
 enum gcry_mpi_format {
     GCRYMPI_FMT_STD = 0,    /* As used by OpenPGP */
@@ -93,35 +84,42 @@ enum gcry_mpi_format {
 };
 
 struct gcry_mpi;
+typedef struct gcry_mpi *GCRY_MPI;
 
-int gcry_mpi_api( enum gcry_mpi_opcode opcode, int n_args, ... );
-struct gcry_mpi *gcry_mpi_new( enum gcry_mpi_opcode opcode,
-			       unsigned int size,
-			       struct gcry_mpi *val
-			      );
-int gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
-					const char *buffer, size_t *nbytes );
-int gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
-		    struct gcry_mpi *a );
+GCRY_MPI gcry_mpi_new( unsigned int nbits );
+GCRY_MPI gcry_mpi_snew( unsigned int nbits );
+void	 gcry_mpi_release( GCRY_MPI a );
+GCRY_MPI gcry_mpi_copy( const GCRY_MPI a );
+GCRY_MPI gcry_mpi_set( GCRY_MPI w, const GCRY_MPI u );
+GCRY_MPI gcry_mpi_set_ui( GCRY_MPI w, unsigned long u );
+int	 gcry_mpi_cmp( const GCRY_MPI u, const GCRY_MPI v );
+int	 gcry_mpi_cmp_ui( const GCRY_MPI u, unsigned long v );
+void	 gcry_mpi_randomize( GCRY_MPI w,
+			     unsigned int nbits, enum gcry_random_level level);
+int	 gcry_mpi_scan( GCRY_MPI *ret_mpi, enum gcry_mpi_format format,
+				       const char *buffer, size_t *nbytes );
+int	 gcry_mpi_print( enum gcry_mpi_format format,
+			 char *buffer, size_t *nbytes, const GCRY_MPI a );
+
+void gcry_mpi_powm( GCRY_MPI w,
+		    const GCRY_MPI b, const GCRY_MPI e, const GCRY_MPI m );
+
 
 #ifndef GCRYPT_NO_MPI_MACROS
-#define mpi_new( nbits )  gcry_mpi_new( GCRYMPI_NEW, (nbits), NULL )
-#define mpi_secure_new( nbits )  gcry_mpi_new( GCRYMPI_SNEW, (nbits), NULL )
-#define mpi_release( a )     do {   gcry_mpi_api( GCRYMPI_RELEASE, 1, (a) ); \
-				    (a) = NULL; } while(0)
-#define mpi_resize( a, n )  gcry_mpi_api( GCRYMPI_RESIZE, 2, (a), (n) )
-#define mpi_copy( a )	    gcry_mpi_new( GCRYMPI_COPY, 0, (a) )
-#define mpi_swap( a, b )    gcyr_mpi_api( GCRYMPI_SWAP, 2, (a), (b) )
-/* void mpi_set( MPI w, MPI u ); */
-#define mpi_set( w, u)	    gcry_mpi_api( GCRYMPI_SET, 2, (w), (u) )
-/* void mpi_set_ui( MPI w, unsigned long u ); */
-#define mpi_set_ui( w, u)   gcry_mpi_api( GCRYMPI_SET_UI, 2, (w), (u) )
-/* int	mpi_cmp( MPI u, MPI v ); */
-#define mpi_cmp( u, v )     gcry_mpi_api( GCRYMPI_CMP, 2, (u), (v) )
-/* int	mpi_cmp_ui( MPI u, unsigned long v ); */
-#define mpi_cmp_ui( u, v )  gcry_mpi_api( GCRYMPI_CMP_UI, 2, (u), (v) )
+#define mpi_new(n)	    gcry_mpi_new( (n) )
+#define mpi_secure_new( n ) gcry_mpi_snew( (n) )
+#define mpi_release( a )    do { gcry_mpi_release( (a) ); \
+				 (a) = NULL; } while(0)
+#define mpi_copy( a )	    gcry_mpi_copy( (a) )
+#define mpi_set( w, u)	    gcry_mpi_set( (w), (u) )
+#define mpi_set_ui( w, u)   gcry_mpi_set_ui( (w), (u) )
+#define mpi_cmp( u, v )     gcry_mpi_cmp( (u), (v) )
+#define mpi_cmp_ui( u, v )  gcry_mpi_cmp_ui( (u), (v) )
+
+#define mpi_powm(w,b,e,m)   gcry_mpi_powm( (w), (b), (e), (m) )
 
 #if 0
+#define mpi_swap( a, b )    gcry_mpi_api( (a), (b) )
 void g10m_add(MPI w, MPI u, MPI v);
 void g10m_add_ui(MPI w, MPI u, unsigned long v );
 void g10m_sub( MPI w, MPI u, MPI v);
@@ -133,8 +131,6 @@ void g10m_mul( MPI w, MPI u, MPI v);
 void g10m_mulm( MPI w, MPI u, MPI v, MPI m);
 
 void g10m_fdiv_q( MPI quot, MPI dividend, MPI divisor );
-
-void g10m_powm( MPI res, MPI base, MPI exp, MPI mod);
 
 int  g10m_gcd( MPI g, MPI a, MPI b );
 int  g10m_invm( MPI x, MPI u, MPI v );

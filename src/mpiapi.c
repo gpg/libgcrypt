@@ -28,40 +28,75 @@
 #define GCRYPT_NO_MPI_MACROS 1
 #include "g10lib.h"
 #include "mpi.h"
+#include "../cipher/random.h"
 
+
+GCRY_MPI
+gcry_mpi_new( unsigned int nbits )
+{
+    return mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
+}
+
+
+GCRY_MPI
+gcry_mpi_snew( unsigned int nbits )
+{
+    return mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
+}
+
+void
+gcry_mpi_release( GCRY_MPI a )
+{
+    mpi_free( a );
+}
+
+GCRY_MPI
+gcry_mpi_copy( const GCRY_MPI a )
+{
+    return mpi_copy( (GCRY_MPI)a );
+}
+
+GCRY_MPI
+gcry_mpi_set( GCRY_MPI w, const GCRY_MPI u )
+{
+    if( !w )
+	w = mpi_alloc( mpi_get_nlimbs(u) );
+    mpi_set( w, (GCRY_MPI)u );
+    return w;
+}
+
+GCRY_MPI
+gcry_mpi_set_ui( GCRY_MPI w, unsigned long u )
+{
+    if( !w )
+	w = mpi_alloc(1);
+    mpi_set_ui( w, u );
+    return w;
+}
 
 
 int
-gcry_mpi_api( enum gcry_mpi_opcode opcode, int n_args, ... )
+gcry_mpi_cmp( const GCRY_MPI u, const GCRY_MPI v )
 {
-    switch( opcode ) {
-      case GCRYMPI_NOOP:
-	return 0;
+    return mpi_cmp( (GCRY_MPI)u, (GCRY_MPI)v );
+}
 
-      default:
-	return GCRYERR_INV_OP;
-    }
+int
+gcry_mpi_cmp_ui( const GCRY_MPI u, unsigned long v )
+{
+    return mpi_cmp_ui( (GCRY_MPI)u, v );
 }
 
 
-struct gcry_mpi *
-gcry_mpi_new( enum gcry_mpi_opcode opcode,
-	      unsigned int nbits, struct gcry_mpi *val)
+void
+gcry_mpi_randomize( GCRY_MPI w,
+		    unsigned int nbits, enum gcry_random_level level )
 {
-    switch( opcode ) {
-      case GCRYMPI_NEW:
-	return mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
-
-      case GCRYMPI_SNEW:
-	return mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1)
-				 / BITS_PER_MPI_LIMB );
-      case GCRYMPI_COPY:
-	return mpi_copy( val );
-
-      default:
-	return NULL;
-    }
+    char *p = get_random_bits( nbits, level, mpi_is_secure(w) );
+    mpi_set_buffer( w, p, (nbits+7)/8, 0 );
+    m_free(p);
 }
+
 
 
 int
@@ -195,19 +230,16 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	    return GCRYERR_INTERNAL; /* can't handle it yet */
 
 	tmp = mpi_get_buffer( a, &n, NULL );
-	if( n && (*tmp & 0x80) ) {
-	    n++;
+	if( !n || (*tmp & 0x80) )
 	    extra=1;
-	}
 
 	if( 2*n+2+1 > len ) {
 	    m_free(tmp);
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	}
-	if( extra || !n ) {
+	if( extra ) {
 	    *s++ = '0';
 	    *s++ = '0';
-	    n += 2;
 	}
 
        #if BYTES_PER_MPI_LIMB == 2
@@ -233,4 +265,12 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
     else
 	return GCRYERR_INV_ARG;
 }
+
+
+void
+gcry_mpi_powm( MPI w, MPI b, MPI e, MPI m )
+{
+    mpi_powm( w, b, e, m );
+}
+
 
