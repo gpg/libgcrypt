@@ -290,18 +290,20 @@ AC_DEFUN(AM_PATH_GPG_ERROR,
     req_minor=`echo $min_gpg_error_version | \
                sed 's/\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
     gpg_error_config_version=`$GPG_ERROR_CONFIG $gpg_error_config_args --version`
-    major=`echo $gpg_error_config_version | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
-    minor=`echo $gpg_error_config_version | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\).*/\2/'`
-    if test "$major" -gt "$req_major"; then
-        ok=yes
-    else 
-        if test "$major" -eq "$req_major"; then
-            if test "$minor" -ge "$req_minor"; then
-               ok=yes
-            fi
-        fi
+    if test "$gpg_error_config_version"; then
+      major=`echo $gpg_error_config_version | \
+                 sed 's/\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
+      minor=`echo $gpg_error_config_version | \
+                 sed 's/\([[0-9]]*\)\.\([[0-9]]*\).*/\2/'`
+      if test "$major" -gt "$req_major"; then
+          ok=yes
+      else 
+          if test "$major" -eq "$req_major"; then
+              if test "$minor" -ge "$req_minor"; then
+                 ok=yes
+              fi
+          fi
+      fi
     fi
   fi
   if test $ok = yes; then
