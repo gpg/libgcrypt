@@ -1321,7 +1321,16 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     {
       assert (module);
       pubkey = (gcry_pk_spec_t *) module->spec;
-      algo_name = pubkey->name;
+
+      /* If aliases for the algorithm name exists, take the first one
+	 instead of the regular name to adhere to SPKI conventions.
+	 We assume that the first alias name is the lowercase version
+	 of the regular one.  This change is required for
+	 compatibility with 1.1.12 generated S-expressions. */
+      algo_name = pubkey->aliases? *pubkey->aliases : NULL;
+      if (!algo_name || !*algo_name)
+        algo_name = pubkey->name;
+
       algo_elems = pubkey->elements_enc;
       
       /* get the stuff we want to encrypt */
@@ -1345,15 +1354,9 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
       size_t nelem = strlen (algo_elems);
       size_t needed = 19 + strlen (algo_name) + (nelem * 5);
 
-      if (flags & PUBKEY_FLAG_NO_BLINDING)
-	needed += 12;
-
       /* Build the string.  */
       string = p = gcry_xmalloc (needed);
-      p = stpcpy ( p, "(enc-val(flags" );
-      if (flags & PUBKEY_FLAG_NO_BLINDING)
-	p = stpcpy (p, " no-blinding");
-      p = stpcpy (p, ")(");
+      p = stpcpy ( p, "(enc-val(" );
       p = stpcpy ( p, algo_name );
       for(i=0; algo_elems[i]; i++ ) {
 	*p++ = '(';
@@ -1529,7 +1532,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   gcry_mpi_t *skey = NULL, hash = NULL, *result = NULL;
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
-  const char *key_algo_name, *algo_name, *algo_elems;
+  const char *algo_name, *algo_elems;
   int i;
   gcry_err_code_t rc;
 
@@ -1543,13 +1546,16 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
     {
       assert (module);
       pubkey = (gcry_pk_spec_t *) module->spec;
-      algo_name = key_algo_name = pubkey->name;
+      algo_name = pubkey->aliases? *pubkey->aliases : NULL;
+      if (!algo_name || !*algo_name)
+        algo_name = pubkey->name;
 
       algo_elems = pubkey->elements_sig;
 
       /* get the stuff we want to sign */
       /* Note that pk_get_nbits does also work on a private key */
-      rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_skey), &hash, 0, NULL);
+      rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_skey),
+                             &hash, 0, NULL);
     }
 
   if (! rc)
@@ -1796,7 +1802,9 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 	{
 	  pubkey = (gcry_pk_spec_t *) module->spec;
 	  algo = module->mod_id;
-	  algo_name = pubkey->name;
+          algo_name = pubkey->aliases? *pubkey->aliases : NULL;
+          if (!algo_name || !*algo_name)
+            algo_name = pubkey->name;
 	  pub_elems = pubkey->elements_pkey;
 	  sec_elems = pubkey->elements_skey;
 	}

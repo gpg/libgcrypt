@@ -1,3 +1,14 @@
+2003-08-28  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c (gcry_pk_encrypt): Don't include the flags list in the
+	return value.  This does not make sense and breaks any programs
+	parsing the output strictly (e.g. current gpgsm).
+	(gcry_pk_encrypt): If aliases for the algorithm name exists, take
+	the first one instead of the regular name to adhere to SPKI
+	conventions.
+	(gcry_pk_genkey): Ditto.
+	(gcry_pk_sign): Ditto. Removed unused KEY_ALGO_NAME.
+
 2003-08-19  Moritz Schulte  <mo@g10code.com>
 
 	* cipher.c: Add support for Serpent
