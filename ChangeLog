@@ -1,3 +1,8 @@
+2003-08-29  Werner Koch  <wk@gnupg.org>
+
+	* acinclude.m4 (GNUPG_SYS_SYMBOL_UNDERSCORE): Re-implemented.
+	* configure.ac: Use it here.
+
 2003-08-07  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Fail, if libgpg-error could not be found.

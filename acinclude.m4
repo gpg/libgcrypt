@@ -1,5 +1,6 @@
 dnl macros to configure Libgcrypt
-dnl Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+dnl Copyright (C) 1998, 1999, 2000, 2001, 2002,
+dnl               2003 Free Software Foundation, Inc.
 dnl
 dnl This file is part of Libgcrypt.
 dnl
@@ -85,6 +86,68 @@ AC_DEFUN(GNUPG_CHECK_GNUMAKE,
 ***]])
     fi
   ])
+
+
+#
+# GNUPG_SYS_SYMBOL_UNDERSCORE
+# Does the compiler prefix global symbols with an underscore?
+#
+# Taken from GnuPG 1.2 and modified to use the libtool macros.
+AC_DEFUN(GNUPG_SYS_SYMBOL_UNDERSCORE,
+[tmp_do_check="no"
+case "${target}" in
+    i386-emx-os2 | i[3456]86-pc-os2*emx | i386-pc-msdosdjgpp)
+        ac_cv_sys_symbol_underscore=yes
+        ;;
+    *)
+      if test "$cross_compiling" = yes; then
+         ac_cv_sys_symbol_underscore=yes
+      else
+         tmp_do_check="yes"
+      fi
+       ;;
+esac
+if test "$tmp_do_check" = "yes"; then
+  AC_REQUIRE([AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE])
+  AC_MSG_CHECKING([for _ prefix in compiled symbols])
+  AC_CACHE_VAL(ac_cv_sys_symbol_underscore,
+  [ac_cv_sys_symbol_underscore=no
+   cat > conftest.$ac_ext <<EOF
+      void nm_test_func(){}
+      int main(){nm_test_func;return 0;
+EOF
+  if AC_TRY_EVAL(ac_compile); then
+    # Now try to grab the symbols.
+    ac_nlist=conftest.nm
+    if AC_TRY_EVAL(NM conftest.$ac_objext \| $global_symbol_pipe \> $ac_nlist) && test -s "$ac_nlist"; then
+      # See whether the symbols have a leading underscore.
+      if egrep '^_nm_test_func' "$ac_nlist" >/dev/null; then
+        ac_cv_sys_symbol_underscore=yes
+      else
+        if egrep '^nm_test_func ' "$ac_nlist" >/dev/null; then
+          :
+        else
+          echo "configure: cannot find nm_test_func in $ac_nlist" >&AC_FD_CC
+        fi
+      fi
+    else
+      echo "configure: cannot run $global_symbol_pipe" >&AC_FD_CC
+    fi
+  else
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.c >&AC_FD_CC
+  fi
+  rm -rf conftest*
+  ])
+  else
+  AC_MSG_CHECKING([for _ prefix in compiled symbols])
+  fi
+AC_MSG_RESULT($ac_cv_sys_symbol_underscore)
+if test x$ac_cv_sys_symbol_underscore = xyes; then
+  AC_DEFINE(WITH_SYMBOL_UNDERSCORE,1,
+            [Defined if compiled symbols have a leading underscore])
+fi
+])
 
 
 ######################################################################

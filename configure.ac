@@ -567,9 +567,11 @@ else
     fi
 fi
 
-AC_MSG_RESULT()
 
+#
 # Setup assembler stuff.
+#
+GNUPG_SYS_SYMBOL_UNDERSCORE()
 AC_MSG_CHECKING(for mpi assembler functions)
 if test -f $srcdir/mpi/config.links ; then
     . $srcdir/mpi/config.links
