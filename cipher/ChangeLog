@@ -8,7 +8,7 @@
 	* primegen.c (prime_generate_internal): New arg
 	ALL_FACTORS. Changed all callers.
 	(gcry_prime_generate): Make the factors arg optional. Request
-	all_factors.
+	all_factors.  Make sure PRIME is set to NULL even on error.
 	(gcry_prime_group_generator): New.
 	(gcry_prime_release_factors): New.
 

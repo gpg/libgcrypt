@@ -834,6 +834,10 @@ gcry_prime_generate (gcry_mpi_t *prime, unsigned int prime_bits,
   gcry_mpi_t prime_generated = NULL;
   unsigned int mode = 0;
 
+  if (!prime)
+    return gpg_error (GPG_ERR_INV_ARG);
+  *prime = NULL; 
+
   if (flags & GCRY_PRIME_FLAG_SPECIAL_FACTOR)
     mode = 1;
 
@@ -907,6 +911,7 @@ gcry_prime_group_generator (gcry_mpi_t *r_g,
 
   if (!factors || !r_g || !prime)
     return gpg_error (GPG_ERR_INV_ARG);
+  *r_g = NULL; 
 
   for (n=0; factors[n]; n++)
     ;
