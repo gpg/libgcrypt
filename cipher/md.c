@@ -38,31 +38,31 @@ static struct digest_table_entry
 } digest_table[] =
   {
 #if USE_CRC    
-    { &digest_spec_crc32, GCRY_MD_CRC32 },
-    { &digest_spec_crc32_rfc1510, GCRY_MD_CRC32_RFC1510 },
-    { &digest_spec_crc24_rfc2440, GCRY_MD_CRC24_RFC2440 },
+    { &_gcry_digest_spec_crc32, GCRY_MD_CRC32 },
+    { &_gcry_digest_spec_crc32_rfc1510, GCRY_MD_CRC32_RFC1510 },
+    { &_gcry_digest_spec_crc24_rfc2440, GCRY_MD_CRC24_RFC2440 },
 #endif
 #if USE_MD4
-    { &digest_spec_md4, GCRY_MD_MD4 },
+    { &_gcry_digest_spec_md4, GCRY_MD_MD4 },
 #endif
 #if USE_MD5
-    { &digest_spec_md5, GCRY_MD_MD5 },
+    { &_gcry_digest_spec_md5, GCRY_MD_MD5 },
 #endif
 #if USE_RMD160
-    { &digest_spec_rmd160, GCRY_MD_RMD160 },
+    { &_gcry_digest_spec_rmd160, GCRY_MD_RMD160 },
 #endif
 #if USE_SHA1
-    { &digest_spec_sha1, GCRY_MD_SHA1 },
+    { &_gcry_digest_spec_sha1, GCRY_MD_SHA1 },
 #endif
 #if USE_SHA256
-    { &digest_spec_sha256, GCRY_MD_SHA256 },
+    { &_gcry_digest_spec_sha256, GCRY_MD_SHA256 },
 #endif
 #if USE_SHA512
-    { &digest_spec_sha512, GCRY_MD_SHA512 },
-    { &digest_spec_sha384, GCRY_MD_SHA384 },
+    { &_gcry_digest_spec_sha512, GCRY_MD_SHA512 },
+    { &_gcry_digest_spec_sha384, GCRY_MD_SHA384 },
 #endif
 #if USE_TIGER
-    { &digest_spec_tiger, GCRY_MD_TIGER },
+    { &_gcry_digest_spec_tiger, GCRY_MD_TIGER },
 #endif
     { NULL },
   };
@@ -77,6 +77,32 @@ static ath_mutex_t digests_registered_lock = ATH_MUTEX_INITIALIZER;
    registered.  */
 static int default_digests_registered;
 
+typedef struct gcry_md_list
+{
+  gcry_md_spec_t *digest;
+  gcry_module_t module;
+  struct gcry_md_list *next;
+  size_t actual_struct_size;     /* Allocated size of this structure. */
+  PROPERLY_ALIGNED_TYPE context;
+} GcryDigestEntry;
+
+/* this structure is put right after the gcry_md_hd_t buffer, so that
+ * only one memory block is needed. */
+struct gcry_md_context
+{
+  int  magic;
+  size_t actual_handle_size;     /* Allocated size of this handle. */
+  int  secure;
+  FILE  *debug;
+  int finalized;
+  GcryDigestEntry *list;
+  byte *macpads;
+};
+
+
+#define CTX_MAGIC_NORMAL 0x11071961
+#define CTX_MAGIC_SECURE 0x16917011
+
 /* Convenient macro for registering the default digests.  */
 #define REGISTER_DEFAULT_DIGESTS                   \
   do                                               \
@@ -90,6 +116,26 @@ static int default_digests_registered;
       ath_mutex_unlock (&digests_registered_lock); \
     }                                              \
   while (0)
+
+
+static const char * digest_algo_to_string( int algo );
+static gcry_err_code_t check_digest_algo (int algo);
+static gcry_err_code_t md_open (gcry_md_hd_t *h, int algo,
+                                int secure, int hmac);
+static gcry_err_code_t md_enable (gcry_md_hd_t hd, int algo);
+static gcry_err_code_t md_copy (gcry_md_hd_t a, gcry_md_hd_t *b);
+static void md_close (gcry_md_hd_t a);
+static void md_write (gcry_md_hd_t a, byte *inbuf, size_t inlen);
+static void md_final(gcry_md_hd_t a);
+static byte *md_read( gcry_md_hd_t a, int algo );
+static int md_get_algo( gcry_md_hd_t a );
+static int md_digest_length( int algo );
+static const byte *md_asn_oid( int algo, size_t *asnlen, size_t *mdlen );
+static void md_start_debug( gcry_md_hd_t a, char *suffix );
+static void md_stop_debug( gcry_md_hd_t a );
+
+
+
 
 /* Internal function.  Register all the ciphers included in
    CIPHER_TABLE.  Returns zero on success or an error code.  */
@@ -197,43 +243,6 @@ gcry_md_unregister (gcry_module_t module)
   ath_mutex_unlock (&digests_registered_lock);
 }
 
-typedef struct gcry_md_list
-{
-  gcry_md_spec_t *digest;
-  gcry_module_t module;
-  struct gcry_md_list *next;
-  PROPERLY_ALIGNED_TYPE context;
-} GcryDigestEntry;
-
-/* this structure is put right after the gcry_md_hd_t buffer, so that
- * only one memory block is needed. */
-struct gcry_md_context
-{
-  int  magic;
-  int  secure;
-  FILE  *debug;
-  int finalized;
-  GcryDigestEntry *list;
-  byte *macpads;
-};
-
-#define CTX_MAGIC_NORMAL 0x11071961
-#define CTX_MAGIC_SECURE 0x16917011
-
-static const char * digest_algo_to_string( int algo );
-static gcry_err_code_t check_digest_algo (int algo);
-static gcry_err_code_t md_open (gcry_md_hd_t *h, int algo, int secure, int hmac);
-static gcry_err_code_t md_enable (gcry_md_hd_t hd, int algo);
-static gcry_err_code_t md_copy (gcry_md_hd_t a, gcry_md_hd_t *b);
-static void md_close (gcry_md_hd_t a);
-static void md_write (gcry_md_hd_t a, byte *inbuf, size_t inlen);
-static void md_final(gcry_md_hd_t a);
-static byte *md_read( gcry_md_hd_t a, int algo );
-static int md_get_algo( gcry_md_hd_t a );
-static int md_digest_length( int algo );
-static const byte *md_asn_oid( int algo, size_t *asnlen, size_t *mdlen );
-static void md_start_debug( gcry_md_hd_t a, const char *suffix );
-static void md_stop_debug( gcry_md_hd_t a );
 
 static int 
 search_oid (const char *oid, int *algorithm, gcry_md_oid_spec_t *oid_spec)
@@ -251,7 +260,7 @@ search_oid (const char *oid, int *algorithm, gcry_md_oid_spec_t *oid_spec)
       gcry_md_spec_t *digest = module->spec;
       int i;
 
-      for (i = 0; digest->oids[i].oidstring && (! ret); i++)
+      for (i = 0; digest->oids[i].oidstring && !ret; i++)
 	if (! stricmp (oid, digest->oids[i].oidstring))
 	  {
 	    if (algorithm)
@@ -387,13 +396,13 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
    *	  !			      ^
    *	  !---------------------------!
    *
-   * We have to make sture that private is well aligned.
+   * We have to make sure that private is well aligned.
    */
   n = sizeof (struct gcry_md_handle) + bufsize;
   n = ((n + sizeof (PROPERLY_ALIGNED_TYPE) - 1)
        / sizeof (PROPERLY_ALIGNED_TYPE)) * sizeof (PROPERLY_ALIGNED_TYPE);
 
-  /* allocate and set the Context pointer to the private data */
+  /* Allocate and set the Context pointer to the private data */
   if (secure)
     hd = gcry_malloc_secure (n + sizeof (struct gcry_md_context));
   else
@@ -405,13 +414,14 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
   if (! err)
     {
       hd->ctx = ctx = (struct gcry_md_context *) ((char *) hd + n);
-      /* setup the globally visible data (bctl in the diagram)*/
+      /* Setup the globally visible data (bctl in the diagram).*/
       hd->bufsize = n - sizeof (struct gcry_md_handle) + 1;
       hd->bufpos = 0;
 
-      /* initialize the private data */
+      /* Initialize the private data. */
       memset (hd->ctx, 0, sizeof *hd->ctx);
       ctx->magic = secure ? CTX_MAGIC_SECURE : CTX_MAGIC_NORMAL;
+      ctx->actual_handle_size = n + sizeof (struct gcry_md_context);
       ctx->secure = secure;
 
       if (hmac)
@@ -427,7 +437,7 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
 
   if (! err)
     {
-      /* FIXME: should we really do that? */
+      /* FIXME: should we really do that? - yes [-wk] */
       _gcry_fast_random_poll ();
 
       if (algo)
@@ -449,8 +459,8 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
    given as 0 if the algorithms to be used are later set using
    gcry_md_enable. H is guaranteed to be a valid handle or NULL on
    error.  */
-gcry_err_code_t
-_gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
+gcry_error_t
+gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_md_hd_t hd;
@@ -463,24 +473,11 @@ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 		     (flags & GCRY_MD_FLAG_HMAC));
     }
 
-  *h = err ? NULL : hd;
-  return err;
-}
-
-/* Create a message digest object for algorithm ALGO.  FLAGS may be
-   given as an bitwise OR of the gcry_md_flags values.  ALGO may be
-   given as 0 if the algorithms to be used are later set using
-   gcry_md_enable. H is guaranteed to be a valid handle or NULL on
-   error.  */
-gcry_error_t
-gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-
-  err = _gcry_md_open (h, algo, flags);
-
+  *h = err? NULL : hd;
   return gcry_error (err);
 }
+
+
 
 static gcry_err_code_t
 md_enable (gcry_md_hd_t hd, int algorithm)
@@ -510,11 +507,11 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 
   if (! err)
     {
-      size_t size = sizeof (*entry)
-	+ digest->contextsize
-	- sizeof (entry->context);
+      size_t size = (sizeof (*entry)
+                     + digest->contextsize
+                     - sizeof (entry->context));
 
-      /* and allocate a new list entry */
+      /* And allocate a new list entry. */
       if (h->secure)
 	entry = gcry_malloc_secure (size);
       else
@@ -527,10 +524,11 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 	  entry->digest = digest;
 	  entry->module = module;
 	  entry->next = h->list;
+          entry->actual_struct_size = size;
 	  h->list = entry;
 
-	  /* and init this instance */
-	  (*entry->digest->init) (&entry->context.c);
+	  /* And init this instance. */
+	  entry->digest->init (&entry->context.c);
 	}
     }
 
@@ -580,7 +578,7 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
   if (! err)
     {
       bhd->ctx = b = (struct gcry_md_context *) ((char *) bhd + n);
-      /* no need to copy the buffer due to the write above */
+      /* No need to copy the buffer due to the write above. */
       assert (ahd->bufsize == (n - sizeof (struct gcry_md_handle) + 1));
       bhd->bufsize = ahd->bufsize;
       bhd->bufpos = 0;
@@ -601,9 +599,8 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 	}
     }
 
-  /* and now copy the complete list of algorithms */
-  /* I know that the copied list is reversed, but that doesn't matter */
-
+  /* Copy the complete list of algorithms.  The copied list is
+     reversed, but that doesn't matter. */
   if (! err)
     for (ar = a->list; ar; ar = ar->next)
       {
@@ -644,7 +641,7 @@ gcry_md_copy (gcry_md_hd_t *handle, gcry_md_hd_t hd)
   return gcry_error (err);
 }
 
-/****************
+/*
  * Reset all contexts and discard any buffered stuff.  This may be used
  * instead of a md_close(); md_open().
  */
@@ -679,9 +676,17 @@ md_close (gcry_md_hd_t a)
       ath_mutex_lock (&digests_registered_lock);
       _gcry_module_release (r->module);
       ath_mutex_unlock (&digests_registered_lock);
+      wipememory (r, r->actual_struct_size);
       gcry_free (r);
     }
-  gcry_free(a->ctx->macpads);
+
+  if (a->ctx->macpads)
+    {
+      wipememory (a->ctx->macpads, 128);
+      gcry_free(a->ctx->macpads);
+    }
+
+  wipememory (a, a->ctx->actual_handle_size);
   gcry_free(a);
 }
 
@@ -737,7 +742,7 @@ md_final (gcry_md_hd_t a)
 
   if (a->ctx->macpads)
     {
-      /* finish the hmac */
+      /* Finish the hmac. */
       int algo = md_get_algo (a);
       byte *p = md_read (a, algo);
       size_t dlen = md_digest_length (algo);
@@ -749,7 +754,7 @@ md_final (gcry_md_hd_t a)
       md_write (om, a->ctx->macpads+64, 64);
       md_write (om, p, dlen);
       md_final (om);
-      /* replace our digest with the mac (they have the same size) */
+      /* Replace our digest with the mac (they have the same size). */
       memcpy (p, md_read (om, algo), dlen);
       md_close (om);
     }
@@ -763,28 +768,30 @@ prepare_macpads( gcry_md_hd_t hd, const byte *key, size_t keylen)
   byte *helpkey = NULL;
   byte *ipad, *opad;
 
-  if( !algo )
+  if ( !algo )
     return GPG_ERR_DIGEST_ALGO; /* i.e. no algo enabled */
 
-  if( keylen > 64 ) {
-    helpkey = gcry_malloc_secure( md_digest_length( algo ) );
-    if( !helpkey )
-      return gpg_err_code_from_errno (errno);
-    gcry_md_hash_buffer( algo, helpkey, key, keylen );
-    key = helpkey;
-    keylen = md_digest_length( algo );
-    assert( keylen <= 64 );
-  }
+  if ( keylen > 64 ) 
+    {
+      helpkey = gcry_malloc_secure ( md_digest_length( algo ) );
+      if ( !helpkey )
+        return gpg_err_code_from_errno (errno);
+      gcry_md_hash_buffer ( algo, helpkey, key, keylen );
+      key = helpkey;
+      keylen = md_digest_length( algo );
+      assert ( keylen <= 64 );
+    }
 
-  memset( hd->ctx->macpads, 0, 128 );
+  memset ( hd->ctx->macpads, 0, 128 );
   ipad = hd->ctx->macpads;
   opad = hd->ctx->macpads+64;
-  memcpy( ipad, key, keylen );
-  memcpy( opad, key, keylen );
-  for(i=0; i < 64; i++ ) {
-    ipad[i] ^= 0x36;
-    opad[i] ^= 0x5c;
-  }
+  memcpy ( ipad, key, keylen );
+  memcpy ( opad, key, keylen );
+  for (i=0; i < 64; i++ ) 
+    {
+      ipad[i] ^= 0x36;
+      opad[i] ^= 0x5c;
+    }
   gcry_free( helpkey );
 
   return GPG_ERR_NO_ERROR;
@@ -846,19 +853,19 @@ md_read( gcry_md_hd_t a, int algo )
       /* return the first algorithm */
       if (r && r->next)
 	log_debug("more than algorithm in md_read(0)\n");
-      return (*r->digest->read)( &r->context.c );
+      return r->digest->read( &r->context.c );
     }
   else
     {
       for (r = a->ctx->list; r; r = r->next)
 	if (r->module->mod_id == algo)
-	  return (*r->digest->read) (&r->context.c);
+	  return r->digest->read (&r->context.c);
     }
   BUG();
   return NULL;
 }
 
-/****************
+/*
  * Read out the complete digest, this function implictly finalizes
  * the hash.
  */
@@ -921,8 +928,8 @@ md_digest( gcry_md_hd_t a, int algo, byte *buffer, int buflen )
 }
 #endif
 
-/****************
- * Read out an intermediate digest.
+/*
+ * Read out an intermediate digest.  Not yet fucntional.
  */
 gcry_err_code_t
 gcry_md_get (gcry_md_hd_t hd, int algo, byte *buffer, int buflen)
@@ -932,22 +939,24 @@ gcry_md_get (gcry_md_hd_t hd, int algo, byte *buffer, int buflen)
 }
 
 
-/****************
+/*
  * Shortcut function to hash a buffer with a given algo. The only
- * guarnteed supported algorithm is RIPE-MD. The supplied digest
- * buffer must be large enough to store the resulting hash.  No error
- * is returned, the function will abort on an invalid algo.
- * DISABLED_ALGOS are ignored here.  */
+ * guaranteed supported algorithms are RIPE-MD160 and SHA-1. The
+ * supplied digest buffer must be large enough to store the resulting
+ * hash.  No error is returned, the function will abort on an invalid
+ * algo.  DISABLED_ALGOS are ignored here.  */
 void
 gcry_md_hash_buffer (int algo, void *digest,
                      const void *buffer, size_t length)
 {
-  if (algo == GCRY_MD_RMD160)
+  if (algo == GCRY_MD_SHA1)
+    _gcry_sha1_hash_buffer (digest, buffer, length);
+  else if (algo == GCRY_MD_RMD160)
     _gcry_rmd160_hash_buffer (digest, buffer, length);
   else
     {
       /* For the others we do not have a fast function, so we use the
-	 normal functions to do it */
+	 normal functions. */
       gcry_md_hd_t h;
       gpg_err_code_t err = md_open (&h, algo, 0, 0);
       if (err)
@@ -1033,22 +1042,13 @@ md_asn_oid (int algorithm, size_t *asnlen, size_t *mdlen)
       _gcry_module_release (digest);
     }
   else
-    log_bug ("no asn for md algo %d\n", algorithm);
+    log_bug ("no ASN.1 OID for md algo %d\n", algorithm);
   ath_mutex_unlock (&digests_registered_lock);
 
   return asnoid;
 }
 
-void
-_gcry_md_info_get (gcry_md_hd_t handle,
-		   unsigned char **md_asn, size_t *md_asn_n, size_t *md_dlen)
-{
-  gcry_md_spec_t *digest = handle->ctx->list->digest;
 
-  *md_asn = digest->asnoid;
-  *md_asn_n = digest->asnlen;
-  *md_dlen = digest->mdlen;
-}
 
 /****************
  * Return information about the given cipher algorithm
@@ -1112,10 +1112,10 @@ gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 
 
 static void
-md_start_debug( gcry_md_hd_t md, const char *suffix )
+md_start_debug( gcry_md_hd_t md, char *suffix )
 {
   static int idx=0;
-  char buf[25];
+  char buf[50];
 
   if( md->ctx->debug ) {
     log_debug("Oops: md debug already started\n");
@@ -1149,7 +1149,7 @@ md_stop_debug( gcry_md_hd_t md )
 
 
 
-/****************
+/*
  * Return information about the digest handle.
  *  GCRYCTL_IS_SECURE:
  *	Returns 1 when the handle works on secured memory
@@ -1174,7 +1174,7 @@ gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
 	GcryDigestEntry *r;
 	int algo;
 
-	if ((! buffer) || (nbytes && (*nbytes != sizeof (int))))
+	if ( !buffer || (nbytes && (*nbytes != sizeof (int))))
 	  err = GPG_ERR_INV_ARG;
 	else
 	  {
@@ -1241,11 +1241,9 @@ gcry_md_is_enabled (gcry_md_hd_t a, int algo)
    than *LIST_LENGTH, *LIST_LENGTH is updated to the correct
    number.  */
 gcry_error_t
-gcry_md_list (int **list, int *list_length)
+gcry_md_list (int *list, int *list_length)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-
-  REGISTER_DEFAULT_DIGESTS;
 
   ath_mutex_lock (&digests_registered_lock);
   err = _gcry_module_list (digests_registered, list, list_length);

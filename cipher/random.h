@@ -22,11 +22,9 @@
 
 #include "types.h"
 
-void _gcry_random_initialize (void);
+void _gcry_random_initialize (int full);
 void _gcry_register_random_progress (void (*cb)(void *,const char*,int,int,int),
                                      void *cb_data );
-void _gcry_random_progress (const char *what, int printchar,
-                            int current, int total);
 void _gcry_random_dump_stats(void);
 void _gcry_secure_random_alloc(void);
 int  _gcry_quick_random_gen( int onoff );
@@ -36,11 +34,6 @@ void _gcry_update_random_seed_file (void);
 
 byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
-
-/*-- rndw32.c --*/
-#ifdef USE_STATIC_RNDW32
-void rndw32_set_dll_name( const char *name );
-#endif
 
 #endif /*G10_RANDOM_H*/
 

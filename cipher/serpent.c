@@ -55,6 +55,10 @@ typedef struct serpent_context
   serpent_subkeys_t keys;	/* Generated subkeys.  */
 } serpent_context_t;
 
+/* A prototype.  */
+static const char *serpent_test (void);
+
+      
 #define byte_swap_32(x) \
   (0 \
    | (((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) \
@@ -78,8 +82,8 @@ typedef struct serpent_context
 
 #define SBOX0(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t05, t06, t07, t08, t09; \
-    register unsigned long t11, t12, t13, t14, t15, t17, t01; \
+    u32_t t02, t03, t05, t06, t07, t08, t09; \
+    u32_t t11, t12, t13, t14, t15, t17, t01; \
     t01 = b   ^ c  ; \
     t02 = a   | d  ; \
     t03 = a   ^ b  ; \
@@ -102,8 +106,8 @@ typedef struct serpent_context
 
 #define SBOX0_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t06, t08, t09, t10; \
-    register unsigned long t12, t13, t14, t15, t17, t18, t01; \
+    u32_t t02, t03, t04, t05, t06, t08, t09, t10; \
+    u32_t t12, t13, t14, t15, t17, t18, t01; \
     t01 = c   ^ d  ; \
     t02 = a   | b  ; \
     t03 = b   | c  ; \
@@ -127,8 +131,8 @@ typedef struct serpent_context
 
 #define SBOX1(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t06, t07, t08; \
-    register unsigned long t10, t11, t12, t13, t16, t17, t01; \
+    u32_t t02, t03, t04, t05, t06, t07, t08; \
+    u32_t t10, t11, t12, t13, t16, t17, t01; \
     t01 = a   | d  ; \
     t02 = c   ^ d  ; \
     t03 =     ~ b  ; \
@@ -151,8 +155,8 @@ typedef struct serpent_context
 
 #define SBOX1_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t06, t07, t08; \
-    register unsigned long t09, t10, t11, t14, t15, t17, t01; \
+    u32_t t02, t03, t04, t05, t06, t07, t08; \
+    u32_t t09, t10, t11, t14, t15, t17, t01; \
     t01 = a   ^ b  ; \
     t02 = b   | d  ; \
     t03 = a   & c  ; \
@@ -175,8 +179,8 @@ typedef struct serpent_context
 
 #define SBOX2(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t05, t06, t07, t08; \
-    register unsigned long t09, t10, t12, t13, t14, t01; \
+    u32_t t02, t03, t05, t06, t07, t08; \
+    u32_t t09, t10, t12, t13, t14, t01; \
     t01 = a   | c  ; \
     t02 = a   ^ b  ; \
     t03 = d   ^ t01; \
@@ -197,8 +201,8 @@ typedef struct serpent_context
 
 #define SBOX2_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t06, t07, t08, t09; \
-    register unsigned long t10, t11, t12, t15, t16, t17, t01; \
+    u32_t t02, t03, t04, t06, t07, t08, t09; \
+    u32_t t10, t11, t12, t15, t16, t17, t01; \
     t01 = a   ^ d  ; \
     t02 = c   ^ d  ; \
     t03 = a   & c  ; \
@@ -221,8 +225,8 @@ typedef struct serpent_context
 
 #define SBOX3(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t06, t07, t08; \
-    register unsigned long t09, t10, t11, t13, t14, t15, t01; \
+    u32_t t02, t03, t04, t05, t06, t07, t08; \
+    u32_t t09, t10, t11, t13, t14, t15, t01; \
     t01 = a   ^ c  ; \
     t02 = a   | d  ; \
     t03 = a   & d  ; \
@@ -245,8 +249,8 @@ typedef struct serpent_context
 
 #define SBOX3_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t06, t07, t09; \
-    register unsigned long t11, t12, t13, t14, t16, t01; \
+    u32_t t02, t03, t04, t05, t06, t07, t09; \
+    u32_t t11, t12, t13, t14, t16, t01; \
     t01 = c   | d  ; \
     t02 = a   | d  ; \
     t03 = c   ^ t02; \
@@ -268,8 +272,8 @@ typedef struct serpent_context
 
 #define SBOX4(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t06, t08, t09; \
-    register unsigned long t10, t11, t12, t13, t14, t15, t16, t01; \
+    u32_t t02, t03, t04, t05, t06, t08, t09; \
+    u32_t t10, t11, t12, t13, t14, t15, t16, t01; \
     t01 = a   | b  ; \
     t02 = b   | c  ; \
     t03 = a   ^ t02; \
@@ -293,8 +297,8 @@ typedef struct serpent_context
 
 #define SBOX4_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t06, t07, t09; \
-    register unsigned long t10, t11, t12, t13, t15, t01; \
+    u32_t t02, t03, t04, t05, t06, t07, t09; \
+    u32_t t10, t11, t12, t13, t15, t01; \
     t01 = b   | d  ; \
     t02 = c   | d  ; \
     t03 = a   & t01; \
@@ -316,8 +320,8 @@ typedef struct serpent_context
 
 #define SBOX5(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t07, t08, t09; \
-    register unsigned long t10, t11, t12, t13, t14, t01; \
+    u32_t t02, t03, t04, t05, t07, t08, t09; \
+    u32_t t10, t11, t12, t13, t14, t01; \
     t01 = b   ^ d  ; \
     t02 = b   | d  ; \
     t03 = a   & t01; \
@@ -339,8 +343,8 @@ typedef struct serpent_context
 
 #define SBOX5_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t07, t08, t09; \
-    register unsigned long t10, t12, t13, t15, t16, t01; \
+    u32_t t02, t03, t04, t05, t07, t08, t09; \
+    u32_t t10, t12, t13, t15, t16, t01; \
     t01 = a   & d  ; \
     t02 = c   ^ t01; \
     t03 = a   ^ d  ; \
@@ -362,8 +366,8 @@ typedef struct serpent_context
 
 #define SBOX6(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t07, t08, t09, t10; \
-    register unsigned long t11, t12, t13, t15, t17, t18, t01; \
+    u32_t t02, t03, t04, t05, t07, t08, t09, t10; \
+    u32_t t11, t12, t13, t15, t17, t18, t01; \
     t01 = a   & d  ; \
     t02 = b   ^ c  ; \
     t03 = a   ^ d  ; \
@@ -387,8 +391,8 @@ typedef struct serpent_context
 
 #define SBOX6_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t06, t07, t08, t09; \
-    register unsigned long t12, t13, t14, t15, t16, t17, t01; \
+    u32_t t02, t03, t04, t05, t06, t07, t08, t09; \
+    u32_t t12, t13, t14, t15, t16, t17, t01; \
     t01 = a   ^ c  ; \
     t02 =     ~ c  ; \
     t03 = b   & t01; \
@@ -412,8 +416,8 @@ typedef struct serpent_context
 
 #define SBOX7(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t05, t06, t08, t09, t10; \
-    register unsigned long t11, t13, t14, t15, t16, t17, t01; \
+    u32_t t02, t03, t04, t05, t06, t08, t09, t10; \
+    u32_t t11, t13, t14, t15, t16, t17, t01; \
     t01 = a   & c  ; \
     t02 =     ~ d  ; \
     t03 = a   & t02; \
@@ -437,8 +441,8 @@ typedef struct serpent_context
 
 #define SBOX7_INVERSE(a, b, c, d, w, x, y, z) \
   { \
-    register unsigned long t02, t03, t04, t06, t07, t08, t09; \
-    register unsigned long t10, t11, t13, t14, t15, t16, t01; \
+    u32_t t02, t03, t04, t06, t07, t08, t09; \
+    u32_t t10, t11, t13, t14, t15, t16, t01; \
     t01 = a   & b  ; \
     t02 = a   | b  ; \
     t03 = c   | t01; \
@@ -679,7 +683,7 @@ static gcry_err_code_t
 serpent_setkey (void *ctx,
 		const byte_t *key, unsigned int key_length)
 {
-  serpent_context_t *context = (serpent_context_t *) ctx;
+  serpent_context_t *context = ctx;
   static const char *serpent_test_ret;
   static int serpent_init_done;
   gcry_err_code_t ret = GPG_ERR_NO_ERROR;
@@ -687,8 +691,6 @@ serpent_setkey (void *ctx,
   if (! serpent_init_done)
     {
       /* Execute a self-test the first time, Serpent is used.  */
-      static const char *serpent_test (void);
-      
       serpent_test_ret = serpent_test ();
       if (serpent_test_ret)
 	log_error ("Serpent test failure: %s\n", serpent_test_ret);
@@ -779,7 +781,17 @@ serpent_decrypt_internal (serpent_context_t *context,
   serpent_block_t b, b_next;
   int round = ROUNDS;
 
-  BLOCK_COPY (b_next, input);
+#ifdef WORDS_BIGENDIAN
+  b_next[0] = byte_swap_32 (input[0]);
+  b_next[1] = byte_swap_32 (input[1]);
+  b_next[2] = byte_swap_32 (input[2]);
+  b_next[3] = byte_swap_32 (input[3]);
+#else
+  b_next[0] = input[0];
+  b_next[1] = input[1];
+  b_next[2] = input[2];
+  b_next[3] = input[3];
+#endif
 
   ROUND_FIRST_INVERSE (7, context->keys, b_next, b);
 
@@ -815,13 +827,24 @@ serpent_decrypt_internal (serpent_context_t *context,
   ROUND_INVERSE (1, context->keys, b, b_next);
   ROUND_INVERSE (0, context->keys, b, b_next);
 
-  BLOCK_COPY (output, b_next);
+
+#ifdef WORDS_BIGENDIAN
+  output[0] = byte_swap_32 (b_next[0]);
+  output[1] = byte_swap_32 (b_next[1]);
+  output[2] = byte_swap_32 (b_next[2]);
+  output[3] = byte_swap_32 (b_next[3]);
+#else
+  output[0] = b_next[0];
+  output[1] = b_next[1];
+  output[2] = b_next[2];
+  output[3] = b_next[3];
+#endif
 }
 
 static void
 serpent_encrypt (void *ctx, byte_t *buffer_out, const byte_t *buffer_in)
 {
-  serpent_context_t *context = (serpent_context_t *) ctx;
+  serpent_context_t *context = ctx;
 
   serpent_encrypt_internal (context,
 			    (const u32_t *) buffer_in, (u32_t *) buffer_out);
@@ -831,7 +854,7 @@ serpent_encrypt (void *ctx, byte_t *buffer_out, const byte_t *buffer_in)
 static void
 serpent_decrypt (void *ctx, byte *buffer_out, const byte *buffer_in)
 {
-  serpent_context_t *context = (serpent_context_t *) ctx;
+  serpent_context_t *context = ctx;
 
   serpent_decrypt_internal (context,
 			    (const u32_t *) buffer_in,
@@ -892,10 +915,12 @@ serpent_test (void)
 
   for (i = 0; test_data[i].key_length; i++)
     {
-      serpent_setkey_internal (&context, test_data[i].key, test_data[i].key_length);
+      serpent_setkey_internal (&context, test_data[i].key,
+                               test_data[i].key_length);
       serpent_encrypt_internal (&context,
 				(const u32_t *) test_data[i].text_plain,
 				(u32_t *) scratch);
+
       if (memcmp (scratch, test_data[i].text_cipher, sizeof (serpent_block_t)))
 	switch (test_data[i].key_length)
 	  {
@@ -934,21 +959,21 @@ static const char *cipher_spec_serpent128_aliases[] =
     NULL,
   };
 
-gcry_cipher_spec_t cipher_spec_serpent128 =
+gcry_cipher_spec_t _gcry_cipher_spec_serpent128 =
   {
     "SERPENT128", cipher_spec_serpent128_aliases, NULL, 16, 128,
     sizeof (serpent_context_t),
     serpent_setkey, serpent_encrypt, serpent_decrypt,
   };
 
-gcry_cipher_spec_t cipher_spec_serpent192 =
+gcry_cipher_spec_t _gcry_cipher_spec_serpent192 =
   {
     "SERPENT192", NULL, NULL, 16, 192,
     sizeof (serpent_context_t),
     serpent_setkey, serpent_encrypt, serpent_decrypt,
   };
 
-gcry_cipher_spec_t cipher_spec_serpent256 =
+gcry_cipher_spec_t _gcry_cipher_spec_serpent256 =
   {
     "SERPENT256", NULL, NULL, 16, 256,
     sizeof (serpent_context_t),

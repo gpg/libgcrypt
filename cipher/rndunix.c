@@ -53,7 +53,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 
 /* OS-specific includes */
 
@@ -100,6 +99,7 @@
 
 #include "types.h"  /* for byte and u32 typedefs */
 #include "g10lib.h"
+#include "rand-internal.h"
 
 #ifndef EAGAIN
 #define EAGAIN	EWOULDBLOCK
@@ -320,7 +320,7 @@ typedef struct {
 } GATHER_MSG;
 
 #ifndef HAVE_WAITPID
-pid_t
+static pid_t
 waitpid(pid_t pid, int *statptr, int options)
 {
 #ifdef HAVE_WAIT4
@@ -358,7 +358,6 @@ waitpid(pid_t pid, int *statptr, int options)
 static FILE *
 my_popen(struct RI *entry)
 {
-
     int pipedes[2];
     FILE *stream;
 
@@ -508,11 +507,13 @@ slow_poll(FILE *dbgfp, int dbgall, size_t *nbytes )
 	    dataSources[i].pipeFD = fileno(dataSources[i].pipe);
 	    if (dataSources[i].pipeFD > maxFD)
 		maxFD = dataSources[i].pipeFD;
-	  #ifdef O_NONBLOCK /* Ohhh what a hack (used for Atari) */
+
+#ifdef O_NONBLOCK /* Ohhh what a hack (used for Atari) */
 	    fcntl(dataSources[i].pipeFD, F_SETFL, O_NONBLOCK);
-	  #else
-	    #warning O_NONBLOCK is missing
-	  #endif
+#else
+#error O_NONBLOCK is missing
+#endif
+
 	    FD_SET(dataSources[i].pipeFD, &fds);
 	    dataSources[i].length = 0;
 
@@ -659,15 +660,15 @@ start_gatherer( int pipefd )
     {	int nmax, n1, n2, i;
 #ifdef _SC_OPEN_MAX
 	if( (nmax=sysconf( _SC_OPEN_MAX )) < 0 ) {
-	  #ifdef _POSIX_OPEN_MAX
+#ifdef _POSIX_OPEN_MAX
 	    nmax = _POSIX_OPEN_MAX;
-	  #else
-	    nmax = 20; /* assume a reasonable value */
-	  #endif
-	}
 #else
-	nmax = 20; /* assume a reasonable value */
+	    nmax = 20; /* assume a reasonable value */
 #endif
+	}
+#else /*!_SC_OPEN_MAX*/
+	nmax = 20; /* assume a reasonable value */
+#endif /*!_SC_OPEN_MAX*/
 	n1 = fileno( stderr );
 	n2 = dbgfp? fileno( dbgfp ) : -1;
 	for(i=0; i < nmax; i++ ) {
@@ -676,7 +677,6 @@ start_gatherer( int pipefd )
 	}
 	errno = 0;
     }
-
 
 
     /* Set up the buffer */
@@ -768,8 +768,9 @@ read_a_msg( int fd, GATHER_MSG *msg )
  * to the pool.  So this is just a dummy for this gatherer.
  */
 int
-rndunix_gather_random( void (*add)(const void*, size_t, int), int requester,
-		       size_t length, int level )
+_gcry_rndunix_gather_random (void (*add)(const void*, size_t, int),
+                             int requester,
+                             size_t length, int level )
 {
     static pid_t gatherer_pid = 0;
     static int pipedes[2];
@@ -836,7 +837,7 @@ rndunix_gather_random( void (*add)(const void*, size_t, int), int requester,
 	    n = length;
 	(*add)( msg.data, n, requester );
 
-	/* this is the trick how e cope with the goodness */
+	/* this is the trick how we cope with the goodness */
 	subtract = (ulong)n * goodness / 100;
 	/* subtract at least 1 byte to avoid infinite loops */
 	length -= subtract ? subtract : 1;

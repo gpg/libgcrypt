@@ -51,7 +51,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+
 #include "g10lib.h"
 #include "memory.h"
 #include "cipher.h"
@@ -70,7 +70,7 @@ typedef struct {
 static void
 md4_init( void *context )
 {
-  MD4_CONTEXT *ctx = (MD4_CONTEXT *) context;
+  MD4_CONTEXT *ctx = context;
 
   ctx->A = 0x67452301;
   ctx->B = 0xefcdab89;
@@ -92,95 +92,97 @@ md4_init( void *context )
 static void
 transform( MD4_CONTEXT *ctx, byte *data )
 {
-    u32 in[16];
-    register u32 A = ctx->A;
-    register u32 B = ctx->B;
-    register u32 C = ctx->C;
-    register u32 D = ctx->D;
+  u32 in[16];
+  register u32 A = ctx->A;
+  register u32 B = ctx->B;
+  register u32 C = ctx->C;
+  register u32 D = ctx->D;
 
 #ifdef WORDS_BIGENDIAN
-    { int i;
-      byte *p2, *p1;
-      for(i=0, p1=data, p2=(byte*)in; i < 16; i++, p2 += 4 ) {
+  {
+    int i;
+    byte *p2, *p1;
+    for(i=0, p1=data, p2=(byte*)in; i < 16; i++, p2 += 4 )
+      {
 	p2[3] = *p1++;
 	p2[2] = *p1++;
 	p2[1] = *p1++;
 	p2[0] = *p1++;
       }
-    }
+  }
 #else
-    memcpy (in, data, 64);
+  memcpy (in, data, 64);
 #endif
 
-    /* Round 1.  */
+  /* Round 1.  */
 #define function(a,b,c,d,k,s) a=rol(a+F(b,c,d)+in[k],s);
-          function(A,B,C,D, 0, 3);
-          function(D,A,B,C, 1, 7);
-          function(C,D,A,B, 2,11);
-          function(B,C,D,A, 3,19);
-          function(A,B,C,D, 4, 3);
-          function(D,A,B,C, 5, 7);
-          function(C,D,A,B, 6,11);
-          function(B,C,D,A, 7,19);
-          function(A,B,C,D, 8, 3);
-          function(D,A,B,C, 9, 7);
-          function(C,D,A,B,10,11);
-          function(B,C,D,A,11,19);
-          function(A,B,C,D,12, 3);
-          function(D,A,B,C,13, 7);
-          function(C,D,A,B,14,11);
-          function(B,C,D,A,15,19);
+  function(A,B,C,D, 0, 3);
+  function(D,A,B,C, 1, 7);
+  function(C,D,A,B, 2,11);
+  function(B,C,D,A, 3,19);
+  function(A,B,C,D, 4, 3);
+  function(D,A,B,C, 5, 7);
+  function(C,D,A,B, 6,11);
+  function(B,C,D,A, 7,19);
+  function(A,B,C,D, 8, 3);
+  function(D,A,B,C, 9, 7);
+  function(C,D,A,B,10,11);
+  function(B,C,D,A,11,19);
+  function(A,B,C,D,12, 3);
+  function(D,A,B,C,13, 7);
+  function(C,D,A,B,14,11);
+  function(B,C,D,A,15,19);
 
 #undef function
 
-    /* Round 2.  */
+  /* Round 2.  */
 #define function(a,b,c,d,k,s) a=rol(a+G(b,c,d)+in[k]+0x5a827999,s);
 
-          function(A,B,C,D, 0, 3);
-          function(D,A,B,C, 4, 5);
-          function(C,D,A,B, 8, 9);
-          function(B,C,D,A,12,13);
-          function(A,B,C,D, 1, 3);
-          function(D,A,B,C, 5, 5);
-          function(C,D,A,B, 9, 9);
-          function(B,C,D,A,13,13);
-          function(A,B,C,D, 2, 3);
-          function(D,A,B,C, 6, 5);
-          function(C,D,A,B,10, 9);
-          function(B,C,D,A,14,13);
-          function(A,B,C,D, 3, 3);
-          function(D,A,B,C, 7, 5);
-          function(C,D,A,B,11, 9);
-          function(B,C,D,A,15,13);
+  function(A,B,C,D, 0, 3);
+  function(D,A,B,C, 4, 5);
+  function(C,D,A,B, 8, 9);
+  function(B,C,D,A,12,13);
+  function(A,B,C,D, 1, 3);
+  function(D,A,B,C, 5, 5);
+  function(C,D,A,B, 9, 9);
+  function(B,C,D,A,13,13);
+  function(A,B,C,D, 2, 3);
+  function(D,A,B,C, 6, 5);
+  function(C,D,A,B,10, 9);
+  function(B,C,D,A,14,13);
+  function(A,B,C,D, 3, 3);
+  function(D,A,B,C, 7, 5);
+  function(C,D,A,B,11, 9);
+  function(B,C,D,A,15,13);
 
 #undef function
 
-    /* Round 3.  */
+  /* Round 3.  */
 #define function(a,b,c,d,k,s) a=rol(a+H(b,c,d)+in[k]+0x6ed9eba1,s);
 
-          function(A,B,C,D, 0, 3);
-          function(D,A,B,C, 8, 9);
-          function(C,D,A,B, 4,11);
-          function(B,C,D,A,12,15);
-          function(A,B,C,D, 2, 3);
-          function(D,A,B,C,10, 9);
-          function(C,D,A,B, 6,11);
-          function(B,C,D,A,14,15);
-          function(A,B,C,D, 1, 3);
-          function(D,A,B,C, 9, 9);
-          function(C,D,A,B, 5,11);
-          function(B,C,D,A,13,15);
-          function(A,B,C,D, 3, 3);
-          function(D,A,B,C,11, 9);
-          function(C,D,A,B, 7,11);
-          function(B,C,D,A,15,15);
+  function(A,B,C,D, 0, 3);
+  function(D,A,B,C, 8, 9);
+  function(C,D,A,B, 4,11);
+  function(B,C,D,A,12,15);
+  function(A,B,C,D, 2, 3);
+  function(D,A,B,C,10, 9);
+  function(C,D,A,B, 6,11);
+  function(B,C,D,A,14,15);
+  function(A,B,C,D, 1, 3);
+  function(D,A,B,C, 9, 9);
+  function(C,D,A,B, 5,11);
+  function(B,C,D,A,13,15);
+  function(A,B,C,D, 3, 3);
+  function(D,A,B,C,11, 9);
+  function(C,D,A,B, 7,11);
+  function(B,C,D,A,15,15);
 
 
-    /* Put checksum in context given as argument.  */
-    ctx->A += A;
-    ctx->B += B;
-    ctx->C += C;
-    ctx->D += D;
+  /* Put checksum in context given as argument.  */
+  ctx->A += A;
+  ctx->B += B;
+  ctx->C += C;
+  ctx->D += D;
 }
 
 
@@ -192,34 +194,38 @@ transform( MD4_CONTEXT *ctx, byte *data )
 static void
 md4_write( void *context, byte *inbuf, size_t inlen)
 {
-  MD4_CONTEXT *hd = (MD4_CONTEXT *) context;
-    if( hd->count == 64 ) { /* flush the buffer */
-	transform( hd, hd->buf );
-        _gcry_burn_stack (80+6*sizeof(void*));
-	hd->count = 0;
-	hd->nblocks++;
-    }
-    if( !inbuf )
-	return;
-    if( hd->count ) {
-	for( ; inlen && hd->count < 64; inlen-- )
-	    hd->buf[hd->count++] = *inbuf++;
-	md4_write( hd, NULL, 0 );
-	if( !inlen )
-	    return;
-    }
-    _gcry_burn_stack (80+6*sizeof(void*));
+  MD4_CONTEXT *hd = context;
 
-    while( inlen >= 64 ) {
-	transform( hd, inbuf );
-	hd->count = 0;
-	hd->nblocks++;
-	inlen -= 64;
-	inbuf += 64;
+  if( hd->count == 64 ) /* flush the buffer */
+    { 
+      transform( hd, hd->buf );
+      _gcry_burn_stack (80+6*sizeof(void*));
+      hd->count = 0;
+      hd->nblocks++;
     }
-    for( ; inlen && hd->count < 64; inlen-- )
-	hd->buf[hd->count++] = *inbuf++;
+  if( !inbuf )
+    return;
 
+  if( hd->count )
+    {
+      for( ; inlen && hd->count < 64; inlen-- )
+        hd->buf[hd->count++] = *inbuf++;
+      md4_write( hd, NULL, 0 );
+      if( !inlen )
+        return;
+    }
+  _gcry_burn_stack (80+6*sizeof(void*));
+
+  while( inlen >= 64 )
+    {
+      transform( hd, inbuf );
+      hd->count = 0;
+      hd->nblocks++;
+      inlen -= 64;
+      inbuf += 64;
+    }
+  for( ; inlen && hd->count < 64; inlen-- )
+    hd->buf[hd->count++] = *inbuf++;
 }
 
 
@@ -233,61 +239,63 @@ md4_write( void *context, byte *inbuf, size_t inlen)
 static void
 md4_final( void *context )
 {
-  MD4_CONTEXT *hd = (MD4_CONTEXT *) context;
-    u32 t, msb, lsb;
-    byte *p;
+  MD4_CONTEXT *hd = context;
+  u32 t, msb, lsb;
+  byte *p;
 
-    md4_write(hd, NULL, 0); /* flush */;
+  md4_write(hd, NULL, 0); /* flush */;
 
-    t = hd->nblocks;
-    /* multiply by 64 to make a byte count */
-    lsb = t << 6;
-    msb = t >> 26;
-    /* add the count */
-    t = lsb;
-    if( (lsb += hd->count) < t )
-	msb++;
-    /* multiply by 8 to make a bit count */
-    t = lsb;
-    lsb <<= 3;
-    msb <<= 3;
-    msb |= t >> 29;
-
-    if( hd->count < 56 ) { /* enough room */
-	hd->buf[hd->count++] = 0x80; /* pad */
-	while( hd->count < 56 )
-	    hd->buf[hd->count++] = 0;  /* pad */
+  t = hd->nblocks;
+  /* multiply by 64 to make a byte count */
+  lsb = t << 6;
+  msb = t >> 26;
+  /* add the count */
+  t = lsb;
+  if( (lsb += hd->count) < t )
+    msb++;
+  /* multiply by 8 to make a bit count */
+  t = lsb;
+  lsb <<= 3;
+  msb <<= 3;
+  msb |= t >> 29;
+  
+  if( hd->count < 56 )  /* enough room */
+    {
+      hd->buf[hd->count++] = 0x80; /* pad */
+      while( hd->count < 56 )
+        hd->buf[hd->count++] = 0;  /* pad */
     }
-    else { /* need one extra block */
-	hd->buf[hd->count++] = 0x80; /* pad character */
-	while( hd->count < 64 )
-	    hd->buf[hd->count++] = 0;
-	md4_write(hd, NULL, 0);  /* flush */;
-	memset(hd->buf, 0, 56 ); /* fill next block with zeroes */
+  else /* need one extra block */ 
+    { 
+      hd->buf[hd->count++] = 0x80; /* pad character */
+      while( hd->count < 64 )
+        hd->buf[hd->count++] = 0;
+      md4_write(hd, NULL, 0);  /* flush */;
+      memset(hd->buf, 0, 56 ); /* fill next block with zeroes */
     }
-    /* append the 64 bit count */
-    hd->buf[56] = lsb	   ;
-    hd->buf[57] = lsb >>  8;
-    hd->buf[58] = lsb >> 16;
-    hd->buf[59] = lsb >> 24;
-    hd->buf[60] = msb	   ;
-    hd->buf[61] = msb >>  8;
-    hd->buf[62] = msb >> 16;
-    hd->buf[63] = msb >> 24;
-    transform( hd, hd->buf );
-    _gcry_burn_stack (80+6*sizeof(void*));
+  /* append the 64 bit count */
+  hd->buf[56] = lsb	   ;
+  hd->buf[57] = lsb >>  8;
+  hd->buf[58] = lsb >> 16;
+  hd->buf[59] = lsb >> 24;
+  hd->buf[60] = msb	   ;
+  hd->buf[61] = msb >>  8;
+  hd->buf[62] = msb >> 16;
+  hd->buf[63] = msb >> 24;
+  transform( hd, hd->buf );
+  _gcry_burn_stack (80+6*sizeof(void*));
 
-    p = hd->buf;
+  p = hd->buf;
 #ifdef WORDS_BIGENDIAN
 #define X(a) do { *p++ = hd->a      ; *p++ = hd->a >> 8;      \
-		      *p++ = hd->a >> 16; *p++ = hd->a >> 24; } while(0)
+		  *p++ = hd->a >> 16; *p++ = hd->a >> 24; } while(0)
 #else /* little endian */
 #define X(a) do { *(u32*)p = (*hd).a ; p += 4; } while(0)
 #endif
-    X(A);
-    X(B);
-    X(C);
-    X(D);
+  X(A);
+  X(B);
+  X(C);
+  X(D);
 #undef X
 
 }
@@ -295,7 +303,7 @@ md4_final( void *context )
 static byte *
 md4_read (void *context)
 {
-  MD4_CONTEXT *hd = (MD4_CONTEXT *) context;
+  MD4_CONTEXT *hd = context;
   return hd->buf;
 }
 
@@ -310,11 +318,10 @@ static gcry_md_oid_spec_t oid_spec_md4[] =
     { NULL },
   };
 
-gcry_md_spec_t digest_spec_md4 =
+gcry_md_spec_t _gcry_digest_spec_md4 =
   {
     "MD4", asn, DIM (asn), oid_spec_md4,16,
     md4_init, md4_write, md4_final, md4_read,
     sizeof (MD4_CONTEXT)
   };
 
-/* end of file */

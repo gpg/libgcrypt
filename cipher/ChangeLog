@@ -1,407 +1,326 @@
-2003-11-23  Moritz Schulte  <mo@g10code.com>
+2004-12-09  Werner Koch  <wk@g10code.com>
 
-	* md.c (gcry_md_list): Adjust interface, call
-	REGISTER_DEFAULT_DIGESTS.
+	* serpent.c (serpent_setkey): Moved prototype of serpent_test to
+	outer scope.
 
-	* ac.c (gcry_ac_list, _gcry_ac_list, ac_list): Adjust interface.
-	(ac_list): Call AC_INIT.
+2004-09-11  Moritz Schulte  <moritz@g10code.com>
 
-	* cipher.c (gcry_cipher_list): Adjust interface, call
-	REGISTER_DEFAULT_CIPHERS.
+	* pubkey.c (pubkey_table): Added an alias entry for GCRY_PK_ELG_E.
 
-2003-11-02  Moritz Schulte  <mo@g10code.com>
+2004-08-23  Moritz Schulte  <moritz@g10code.com>
 
-	* rsa.c (decrypt): Use GCRY_AC_FLAG_NO_BLINDING instead of
-	GCRY_AC_FLAG_DATA_NO_BLINDING.
+	* ac.c: Do not include <assert.h>.
+	* rndegd.c: Likewise.
+	* sha1.c: Likewise.
+	* rndunix.c: Likewise.
+	* rndlinux.c: Likewise.
+	* rmd160.c: Likewise.
+	* md5.c: Likewise.
+	* md4.c: Likewise.
+	* cipher.c: Likewise.
+	* crc.c: Likewise.
+	* blowfish.c: Likewise.
 
-	* primegen.c (prime_generate_internal): Initialize prime.
+	* pubkey.c (dummy_generate, dummy_check_secret_key)
+	(dummy_encrypt, dummy_decrypt, dummy_sign, dummy_verify): Return
+	err code GPG_ERR_NOT_IMPLEMENTED instead of aborting through
+	log_bug().
+	(dummy_get_nbits): Return 0 instead of aborting though log_bug().
 
-2003-11-01  Moritz Schulte  <mo@g10code.com>
+2004-08-19  Werner Koch  <wk@g10code.de>
 
-	* pubkey.c (sexp_extract_std): Adjust to new ac interface.
-	(gcry_pk_genkey): Use _gcry_ac_key_pair_generate instead of
-	_gcry_ac_key_pair_generate_ext.
+	* pubkey.c (sexp_data_to_mpi): Changed the zero random byte
+	substituting code to actually do clever things.  Thanks to
+	Matthias Urlichs for noting the implementation problem.
 
-	* ac.c (gcry_ac_key_pair_generate_ext): Removed function.
-	(gcry_ac_key_pair_generate): New argument: misc_data.
-	(gcry_ac_key_pair_extract): Renamed to ...
-	(ac_key_pair_extract): ... this.
-	(_gcry_ac_key_pair_extract, gcry_ac_key_pair_extract): New functions.
-	(ac_data_clear): Release values, if necessary.
+2004-08-09  Moritz Schulte  <moritz@g10code.com>
 
-	* pubkey.c: Removed wrapper macros, used internal ac functions
-	instead of the public ones.
+	* pubkey.c (gcry_pk_sign): Fixed memory leak; fix provided by
+	Modestas Vainius.
 
-	* ac.c (gcry_ac_open): Renamed to ...
-	(ac_open): ... this, declared static.
-	(_gcry_ac_open, gcry_ac_open): New function.
-	(gcry_ac_close): Renamed to ...
-	(ac_close): ... this, declared static.
-	(_gcry_ac_close, gcry_ac_close): New function.
-	(gcry_ac_key_init): Renamed to ...
-	(ac_key_init): ... this, declared static.
-	(key_pair_generate): Renamed to ...
-	(ac_key_pair_generate): ... this.
-	(gcry_ac_id_to_name): Renamed to ...
-	(ac_id_to_name): ... this, declared static, changed return type.
-	(_gcry_ac_id_to_name, gcry_ac_id_to_name): New functions.
-	(gcry_ac_name_to_id): Renamed to ...
-	(ac_name_to_id): ... this, declared static, changed return type.
-	(_gcry_ac_name_to_id, ac_name_to_id): New functions.
-	(gcry_ac_list): Renamed to ...
-	(ac_list): ... this, declared static, changed return type.
-	(_gcry_ac_elements_amount_get): Rewritten.
-	(_gcry_ac_data_encode): New function.
-	(gcry_ac_data_encode): Rewritten.
-	(_gcry_ac_mpi_to_os): Renamed to ...
-	(ac_mpi_to_os): ... this, declared static.
-	(_gcry_ac_mpi_to_os): New function.
-	(_gcry_ac_mpi_to_os_alloc): Don't declare static.
-	(_gcry_ac_os_to_mpi): Renamed to ...
-	(ac_os_to_mpi): ... this, declared static.
-	(_gcry_ac_os_to_mpi): New function.
-	(gcry_ac_data_encrypt_scheme): Renamed to ...
-	(ac_data_encrypt_scheme): ... this, declared static, changed return type.
-	(_gcry_ac_data_encrypt_scheme, gcry_ac_data_encrypt_scheme): New functions.
-	(gcry_ac_data_decrypt_scheme): Renamed to ...
-	(ac_data_decrypt_scheme): ... this, declared static, changed return type.
-	(_gcry_ac_data_decrypt_scheme, gcry_ac_data_decrypt_scheme): New functions.
-	(gcry_ac_data_sign_scheme): Renamed to ...
-	(ac_data_sign_scheme): ... this, declared static, changed return type.
-	(_gcry_ac_data_sign_scheme, gcry_ac_data_sign_scheme): New functions.
-	(gcry_ac_data_verify_scheme): Renamed to ...
-	(ac_data_verify_scheme): ... this, declared static, changed return type.
-	(_gcry_ac_data_verify_scheme, gcry_ac_data_verify_scheme): New functions.
-	(AC_MOD_SPEC): New macro, use it.
-	(anon_struct_from_data_set): Renamed to ...
-	(ac_anon_struct_from_data_set): ... this.
-	(anon_struct_create): Renamed to ...
-	(ac_anon_struct_create): ... this.
-	(anon_struct_to_data_set): Renamed to ...
-	(ac_anon_struct_to_data_set): ... this.
-	(anon_struct_destroy): Renamed to ...
-	(ac_anon_struct_destroy): ... this.
+2004-07-16  Werner Koch  <wk@gnupg.org>
 
-2003-10-31  Moritz Schulte  <mo@g10code.com>
+	* rijndael.c (do_encrypt): Fix alignment problem.  Bugs found by
+	Matthias Urlichs.
+	(do_decrypt): Ditto.
+	(keySched, keySched2): Use 2 macros along with unions in the key
+	schedule context.
 
-	* ac.c (gcry_ac_key_generate_specs): Removed.
+2004-07-14  Moritz Schulte  <moritz@g10code.com>
 
-2003-10-29  Moritz Schulte  <mo@g10code.com>
+	* rsa.c (_gcry_rsa_decrypt): Don't forget to free "a".  Thanks to
+	Nikos Mavroyanopoulos.
 
-	* ac.c (data_set): Slightly rewritten.
-	(_gcry_ac_data_destroy): Renamed to ...
-	(data_destroy): ... this.
-	(gcry_ac_data_copy_internal): Renamed to ...
-	(data_copy): ... this, slightly changed.
-	(_gcry_ac_data_get_name): Renamed to ...
-	(data_get_name): ... this, declared static, new argument: flags.
-	(anon_struct_destroy): New function.
-	(key_pair_generate): Use anon_struct_destroy.
-	(gcry_ac_key_destroy): Rename to ...
-	(key_destroy): this, data_destroy, declare static.
-	(gcry_ac_key_pair_destroy): Use key_destroy, rename to ...
-	(key_pair_destroy): ... this, declare static.
-	(gcry_ac_key_data_get): Rename to ...
-	(_gcry_ac_key_data_get): ... this.
-	(gcry_ac_key_data_get): New function.
-	(gcry_ac_key_test): Rename to ...
-	(key_test): ... this, declare static, change return type.
-	(_gcry_ac_key_test, gcry_ac_key_test): New functions.
-	(_gcry_ac_key_get_nbits): Rename to ...
-	(key_get_nbits): ... this, declare static.
-	(_gcry_ac_key_get_nbits): New function.
-	(_gcry_ac_key_get_grip_std): Rename to ...
-	(gcry_ac_key_get_grip): Rename to ... 
-	(key_get_grip): ... this, declare static, change return type.
-	(_gcry_ac_key_get_grip, gcry_ac_key_get_grip): New functions.
-	(_gcry_ac_data_encrypt): Rename to ...
-	(data_encrypt): ... this, declare static.
-	(_gcry_ac_data_encrypt): New function.
-	(_gcry_ac_data_decrypt): Rename to ...
-	(data_decrypt): ... this, delcare static.
-	(_gcry_ac_data_decrypt): New function.
-	(_gcry_ac_data_sign): Rename to ...
-	(data_sign): ...this, declare static.
-	(_gcry_ac_data_sign): New function.
-	(_gcry_ac_data_verify): Rename to ...
-	(data_verify): ... this, declare static.
-	(_gcry_ac_data_verify): New function.
+2004-05-09  Werner Koch  <wk@gnupg.org>
 
-2003-10-28  Moritz Schulte  <mo@g10code.com>
+	* random.c (read_pool): Mix the PID in to better protect after a
+	fork.
 
-	* ac.c (ac_scheme_get): Return a pointer to the scheme structure,
-	instead of an error code.
-	(gcry_ac_data_encrypt_scheme): Adjust to ac_scheme_get.
-	(gcry_ac_data_decrypt_scheme): Likewise.
-	(gcry_ac_data_sign_scheme): Likewise.
-	(gcry_ac_data_verify_scheme): Likewise.
-	Use new error codes.
-	(anon_struct_from_data_set): Do not deallocate mpis on error that
-	are no copies.
-	(gcry_ac_data_get_name): Return a copy of the mpi to the user.
-	(_gcry_ac_data_set): Do not create copies of name and mpi.
-	(gcry_ac_data_set): Create copies of name and mpi.
-	(_gcry_ac_data_new): Renamed to ...
-	(data_new): ... this, changed callers.
-	(_gcry_ac_data_set): Renamed to ...
-	(data_set): ... this, changed callers, new argument: flags.
-	(data_search): Removed.
-	(gcry_ac_data_add): Removed.
+2004-07-04  Moritz Schulte  <moritz@g10code.com>
 
-	* rsa.c: Use GCRY_AC_FLAG_DATA_NO_BLINDING instead of
-	PUBKEY_FLAG_NO_BLINDING.
+	* serpent.c: Use "u32_t" instead of "unsigned long", do not
+	declare S-Box variables as "register".  Fixes failure on
+	OpenBSD/sparc64, reported by Nikolay Sturm.
 
-	* random.c: Do not include rand-internal.h.
-	* rndlinux.c: Include random.h instead of rand-internal.h.
+2004-05-07  Werner Koch  <wk@gnupg.org>
 
-	* rand-internal.h: Move decleration of _gcry_random_progress ...
-	* random.h: ... here.
-	* rand-internal.h: Removed file.
+	* random.c (initialize): Factored out some code to ..
+	(initialize_basics): .. new function.
+	(_gcry_random_initialize): Just call initialize_basics unless the
+	new arg FULL is set to TRUE.
+	(_gcry_fast_random_poll): Don't do anything unless the random
+	system has been really initialized.
+
+2004-05-07  Moritz Schulte  <moritz@g10code.de>
+
+	* ac.c (gcry_ac_open): Do not dereference NULL pointer.  Reported
+	by Umberto Salsi.
+
+2004-02-20  Werner Koch  <wk@gnupg.org>
+
+	* primegen.c (check_prime): New args CB_FUNC and CB_ARG; call them
+	at different stages.  Pass these arguments through all callers.
+
+2004-02-06  Werner Koch  <wk@gnupg.org>
+
+	* des.c: Add a new OID as used by pkcs#12.
+
+	* rfc2268.c: New. Taken from libgcrypt. 
+	* cipher.c: Setup the rfc2268 algorithm.
+
+2004-01-25  Moritz Schulte  <mo@g10code.com>
+
+	* primegen.c (prime_generate_internal): Do not forget to free
+	`q_factor'; fixed by Brieuc Jeunhomme.
+	(prime_generate_internal): Do not forget to free `prime'.
+
+2004-01-14  Moritz Schulte  <mo@g10code.com>
+
+	* ac.c (gcry_ac_data_set): New argument: flags; slightly
+	rewritten.
+	(gcry_ac_data_get_name, gcry_ac_data_get_index): Likewise.
+	(gcry_ac_key_pair_generate): New argument: misc_data; modified
+	order of arguments.
+	(gcry_ac_key_test): New argument: handle.
+	(gcry_ac_key_get_nbits, gcry_ac_key_get_grip): Likewise.
+	Use GCRY_AC_FLAG_NO_BLINDING instead of
+	GCRY_AC_DATA_FLAG_NO_BLINDING.
+	(gcry_ac_mpi): New member: flags.
+	(gcry_ac_data_search, gcry_ac_data_add): Removed functions.
+
+2003-12-22  Werner Koch  <wk@gnupg.org>
+
+	* primegen.c (is_prime): Release A2.
+
+2003-12-19  Werner Koch  <wk@gnupg.org>
+
+	* md.c: Moved a couple of functions down below the data structure
+	definitions.
+	(struct gcry_md_context): New field ACTUAL_HANDLE_SIZE.
+	(md_open): Set it here.
+	(strcut gcry_md_list): New field ACTUAL_STRUCT_SIZE.
+	(md_enable): Set it here.
+	(md_close): Wipe the context memory.
+	secure memory.
+	* cipher.c (struct gcry_cipher_handle): New field ACTUAL_HANDLE_SIZE.
+	(gcry_cipher_open): Set it here.
+	(gcry_cipher_close): Use it to always wipe out the handle data.
+
+	* ac.c (gcry_ac_open): Make sure HANDLE gets initialized even when
+	the function is not successful.
+	(gcry_ac_close): Allow a NULL handle.
+	(gcry_ac_key_destroy, gcry_ac_key_pair_destroy): Ditto.
+	(gcry_ac_key_get_grip): Return INV_OBJ on error.
+
+	* primegen.c (prime_generate_internal): Fixed error code for
+	failed malloc.  Replaced the !err if chain by gotos.
+	(gcry_prime_group_generator): Remove the extra sanity check.
+
+	* md.c: Minor code and comment cleanups.
+
+2003-12-16  Werner Koch  <wk@gnupg.org>
+
+	* primegen.c (gen_prime): Doc fix.  Thanks to Newton Hammet.
+
+2003-12-11  Werner Koch  <wk@gnupg.org>
+
+	* rndunix.c (slow_poll): Don't use #warning but #error.
+
+	* rndegd.c: Changed indentation.
+	(my_make_filename): Removd the var_arg cruft becuase we
+	don't need it here.  Changed caller.  
+
+	* rndlinux.c: Changed indentation.
+	(open_device): Remove the superfluous stat call and clarify
+	comment.
+
+	* rsa.c: Changed indentation.
+	(secret): Use the standard algorithm if p, q and u are not
+	available.
+	(rsa_blind, rsa_unblind): Renamed from _gcry_rsa_blind,
+	_gcry_rsa_unblind and moved more to the top.
+
+	* md4.c: Changed indentation.  Removed unnecessary casts.
+	* md5.c, rmd160.c, sha1.c, tiger.c: Ditto.
+	* rijndael.c, twofish.c: Ditto.
+	* serpent.c: Removed unnecessary casts.
+	* sha256.c, sha512.c: Ditto.
+
+2003-12-09  Werner Koch  <wk@gnupg.org>
+
+	* dsa.c: Unified indentation style.
+	* elgamal.c: Ditto. 
+	* des.c (des_key_schedule): Code beautifications.
+	* blowfish.c: Changed indentation style.
+	* cast5.c (do_cast_setkey): Ditto.
+
+	* pubkey.c (gcry_pk_encrypt): Replaced the chain of if(!err) tests
+	by straightforward gotos. Other cleanups.
+	(gcry_pk_decrypt): Ditto.
+	(gcry_pk_sign): Ditto.
+	(gcry_pk_verify): Ditto.
+	(gcry_pk_genkey): Ditto.  Use strtoul instead of strtol.
+	(gcry_pk_ctl): Use GPG_ERR_INV_ARG to indicate bad arguments.
+
+2003-12-07  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c (gcry_pk_register_default): Undef the helper macro.
+	(gcry_pk_map_name): Allow NULL for string.
+	(sexp_to_key): Use memcpy and not strncpy.  Use gcry_free and not
+	free.
+	(sexp_to_sig): Ditto.
+	(sexp_to_enc): Ditto.  Replaced the chain of if(!err) tests by
+	straightforward gotos.
+
+2003-12-05  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c: Documentation cleanups.
+	(gcry_cipher_mode_from_oid): Allow NULL for STRING.
+
+2003-12-03  Werner Koch  <wk@gnupg.org>
+
+	* elgamal.c (sign, do_encrypt, gen_k): Make sure that a small K is
+	only used for encryption.
+
+2003-11-18  Werner Koch  <wk@gnupg.org>
+
+	* random.h (rndw32_set_dll_name): Removed unused prototype.
+
+	* Makefile.am (EXTRA_DIST): Added Manifest.
+
+2003-11-11  Werner Koch  <wk@gnupg.org>
+
+	* Manifest: New.
+
+2003-11-04  Werner Koch  <wk@gnupg.org>
+
+	* md.c (gcry_md_hash_buffer): Use shortcut for SHA1
+	* sha1.c (_gcry_sha1_hash_buffer): New.
+
+	* random.c: Reformatted most functions.
+	(mix_pool): Moved the failsafe_digest from global
+	scope to here.
+	(do_fast_random_poll): Use the generic fucntions even if a fast
+	gathering function has been used.
+	(read_pool): Detect a fork and retry.
+	(gcry_randomize, get_random_bytes): Don't distinguish anymore
+	between weak and strong random.
+	(gcry_create_nonce): New.
+
+2003-10-31  Werner Koch  <wk@gnupg.org>
+
+	* rndw32.c (slow_gatherer_windowsNT): Use a plain buffer for the
+	disk performance values and not the W32 API structure.
+
+	* dsa.c (verify): s/exp/ex/ due to shadowing of a builtin.
+	* elgamal.c (verify): Ditto.
+
+	* ac.c (gcry_ac_data_get_index): s/index/idx/
+	(gcry_ac_data_copy_internal): Remove the cast in _gcry_malloc.
+	(gcry_ac_data_add): Must use gcry_realloc instead of realloc.
+	* pubkey.c (sexp_elements_extract): s/index/idx/ as tribute to the
+	forehackers.
+	(gcry_pk_encrypt): Removed shadowed definition of I. Reordered
+	arguments to malloc for clarity.
+	(gcry_pk_sign, gcry_pk_genkey): Ditto.
+	* primegen.c (prime_generate_internal): s/random/randomlevel/.
 
 2003-10-27  Moritz Schulte  <mo@g10code.com>
 
-	* md.c (_gcry_md_info_get): New function.
+	* pubkey.c (gcry_pk_encrypt): Don't forget to deallocate pkey.
 
-	* elgamal.c (do_verify): Cleaned up a bit.
+2003-10-27  Werner Koch  <wk@gnupg.org>
 
-2003-10-19  Moritz Schulte  <mo@g10code.com>
+	* random.c (gcry_random_add_bytes): Return if buflen is zero to
+	avoid gcc warning about unsed parameter.
+	(MASK_LEVEL): Simplified; does now work for signed and unsigned
+	w/o warnings.
 
-	* ac.c: Document code.
+	* md.c (md_start_debug): Removed the const from SUFFIX, because
+	this function is called from the control fucntion which does not
+	require const.
 
-2003-10-17  Moritz Schulte  <mo@g10code.com>
+	Prefixed all (pubkey,digest,cipher}_spec_* globale variables with
+	_gcry_.
 
-	* ac.c (_gcry_ac_key_get_nbits): New function, derived from
-	gcry_ac_key_get_nbits ...
-	(gcry_ac_key_get_nbits): Use it.
-	(gcry_ac_em_dencode_t): New type.
-	(em_randomize_nonzero): New function.
-	(emsa_pkcs_v1_5_encode, eme_pkcs_v1_5_encode)
-	(eme_pkcs_v1_5_decode): New functions.
-	(dencode_action_t): New type.
-	(data_dencode, gcry_ac_data_encode, gcry_ac_data_decode): New
+	* ac.c (ac_key_identifiers): Made static.
+
+	* random.c (getfnc_gather_random,getfnc_fast_random_poll): Move
+	prototypes to ..
+	* rand-internal.h: .. here 
+	* random.c (getfnc_gather_random): Include rndw32 gatherer.
+	* rndunix.c, rndw32.c, rndegd.c: Include them here.
+	* rndlinux.c (_gcry_rndlinux_gather_random): Prepend the _gcry_
+	prefix.  Changed all callers.
+	* rndegd.c (_gcry_rndegd_gather_random): Likewise.
+	(_gcry_rndegd_connect_socket): Likewise.
+	* rndunix.c (_gcry_rndunix_gather_random): Likewise.
+	(waitpid): Made static.
+	* rndw32.c: Removed the old and unused winseed.dll cruft.
+	(_gcry_rndw32_gather_random_fast): Renamed from
+	gather_random_fast.
+	(_gcry_rndw32_gather_random): Renamed from gather_random.  Note,
+	that the changes 2003-04-08 somehow got lost.
+
+	* sha512.c (sha512_init, sha384_init): Made static.
+
+	* cipher.c (do_ctr_decrypt): Removed "return" from this void
 	function.
-	(_gcry_ac_mpi_to_os, _gcry_ac_mpi_to_os_alloc)
-	(gcry_ac_mpi_to_os_alloc, _gcry_ac_os_to_mpi, gcry_ac_os_to_mpi):
-	New functions.
-	(gcry_ac_dencode_prepare_t, gcry_ac_dencode_to_os_t): New types.
-	(ac_es_dencode_prepare_pkcs_v1_5, ac_es_dencode_to_os_pkcs_v1_5)
-	(ac_ssa_dencode_prepare_pkcs_v1_5): New functions.
-	(ac_scheme_t): New type.
-	(ac_schemes): New variable.
-	(ac_scheme_get): New function.
-	(ac_dencode_prepare, ac_es_dencode_to_os): New functions.
-	(ac_scheme_data_type_t): New type.
-	(ac_data_set_to_mpi, ac_mpi_to_data_set)
-	(gcry_ac_data_encrypt_scheme, gcry_ac_data_decrypt_scheme): New
-	functions.
-	(gcry_ac_data_sign_scheme, gcry_ac_data_verify_scheme): New functions.
 
-2003-10-12  Moritz Schulte  <mo@g10code.com>
+2003-10-24  Moritz Schulte  <mo@g10code.com>
 
-	* elgamal.c (do_verify): Fix error condition.
+	* serpent.c: Fix an issue on big-endian systems.
 
-	* ac.c (_gcry_ac_data_set): New function, derived from
-	gcry_ac_data_set ...
-	(gcry_ac_data_set): ... use it.
-	(_gcry_ac_data_destroy): New function, derived from
-	gcry_ac_data_destroy ...
-	(gcry_ac_data_destroy): ... use it.
-	(gcry_ac_data_new_internal): Renamed to _gcry_ac_data_new, changed
-	callers.
-	(_gcry_ac_data_sign): New function, derived from gcry_ac_data_sign
-	...
-	(gcry_ac_data_sign): ... use it.
+	* rndw32.c: Removed IS_MODULE -cruft.
+	* rndlinux.c (rndlinux_gather_random): Likewise.
 
-2003-10-06  Moritz Schulte  <mo@g10code.com>
+2003-10-10  Werner Koch  <wk@gnupg.org>
 
-	* ac.c (_gcry_ac_mpi_to_os, gcry_ac_mpi_to_os)
-	(_gcry_ac_os_to_mpi, gcry_ac_os_to_mpi): New functions.
-	(_gcry_ac_data_encrypt): New function, derived from
-	gcry_ac_data_encrypt ...
-	(gcry_ac_data_encrypt): ... use it.
-	(_gcry_ac_data_decrypt): New function, derived from
-	gcry_ac_data_decrypt ...
-	(gcry_ac_data_decrypt): ... use it.
-	(gcry_ac_data_encrypt_scheme): New function.
+	* primegen.c (gen_prime): Bail out if NBITS is less than 16.
+	(prime_generate_internal): Initialize prime variable to suppress
+	compiler warning.  Check pbits, initialize qbits when passed as
+	zero.
 
-2003-10-05  Moritz Schulte  <mo@g10code.com>
+	* primegen.c (prime_generate_internal): New arg
+	ALL_FACTORS. Changed all callers.
+	(gcry_prime_generate): Make the factors arg optional. Request
+	all_factors.  Make sure PRIME is set to NULL even on error.
+	(gcry_prime_group_generator): New.
+	(gcry_prime_release_factors): New.
 
-	* md.c (_gcry_md_open): New function, derived from gcry_md_open...
-	(gcry_md_open): ... use it.
+2003-10-06  Werner Koch  <wk@gnupg.org>
 
-2003-10-04  Moritz Schulte  <mo@g10code.com>
+	* primegen.c (gen_prime): Assert that NBITS is never zero, it
+	would cause a segv.
 
-	* ac.c (gcry_ac_id_to_name): Provide the caller with the algorithm
-	name in newly allocated memory.
+2003-09-28  Moritz Schulte  <mo@g10code.com>
 
-	* md.c (_gcry_md_asn_oid): New function.
+	* ac.c: Include "cipher.h".
 
-2003-09-30  Moritz Schulte  <mo@g10code.com>
+2003-09-27  Moritz Schulte  <mo@g10code.com>
 
-	* ac.c (struct gcry_ac_key_generate_spec): Change type of
-	`algorithm' to `gcry_ac_id_t'.
-	(struct gcry_ac_handle): Likewise.
-	(pubkey_table_entry): Change type of `algorithm_id' to
-	`gcry_ac_id_t'.
-
-2003-09-18  Moritz Schulte  <mo@g10code.com>
-
-	* elgamal.c (ELG_public_key, ELG_secret_key): Removed types.
-	(key_public, key_secret, data_encrypted, data_signed): New types.
-	(GCRY_AC_ALGORITHM, GCRY_AC_ALIASES): Define symbols.
-	(GCRY_AC_SPEC_KEY_PUBLIC, GCRY_AC_SPEC_KEY_SECRET,
-	GCRY_AC_SPEC_DATA_SIGNED): Use macros.
-	(test_keys): Renamed to ...
-	(keys_test): ... this, changed interface, changed callers.
-	(check_secret_key): Renamed to ...
-	(key_secret_check): ... this, changed interface.
-	(_gcry_elg_generate, gcry_elg_check_secret_key, _gcry_elg_encrypt,
-	_gcry_elg_decrypt, _gcry_elg_sign, _gcry_elg_verify,
-	_gcry_elg_get_nbits): Removed functions.
-	(encrypt, verify, sign, get_nbits, get_grip): New functions.
-	(decrypt): Renamed to ...
-	(do_decrypt): ... this, changed interface, changed callers.
-	(sign): Renamed to ...
-	(do_sign): ... this, changed interface, changed callers.
-	(do_verify): Changed interface, changed callers.
-	(_gcry_register_pk_elg_progress): Removed function.
-	(progress): Removed function, new macro of the same name.
-	(GCRY_AC_INTERFACE_ENCRYPTION, GCRY_AC_INTERFACE_SIGNING): Defined
-	symbols.
-	Include "gcrypt-ac-glue.h".
-
-	* dsa.c (DSA_public_key, RSA_secret_key): Removed types.
-	(GCRY_AC_ALGORITHM, GCRY_AC_ALIASES): Define symbols.
-	(key_public, key_secret, data_signed): New types.
-	(GCRY_AC_SPEC_KEY_PUBLIC, GCRY_AC_SPEC_KEY_SECRET,
-	GCRY_AC_SPEC_DATA_SIGNED): Use macros.
-	(test_keys): Renamed to ...
-	(keys_test): ... this, changed interface, changed callers.
-	(check_secret_key): Renamed to ...
-	(key_secret_check): ... this, changed interface.
-	(_gcry_dsa_generate, gcry_dsa_check_secret_key, _gcry_dsa_sign,
-	_gcry_dsa_verify, _gcry_dsa_get_nbits): Removed functions.
-	(_gcry_register_pk_dsa_progress): Removed function.
-	(progress): Removed function, new macro of the same name.
-
-	(sign): Renamed to ...
-	(do_sign): ... this, changed interface, changed callers.
-	(verify): Renamed to ...
-	(do_verify): ... this, changed interface, changed callers.
-	(verify, sign, get_nbits, get_grip): New functions.
-	(generate): Changed interface.
-	(GCRY_AC_INTERFACE_SIGNING): Define symbol.
-	Include "gcrypt-ac-glue.h".
-
-	* rsa.c (RSA_public_key, RSA_secret_key): Removed types.
-	(GCRY_AC_ALGORITHM, GCRY_AC_ALIASES): Define symbols.
-	(key_public, key_secret, data_encrypted, data_signed): New types.
-	(GCRY_AC_SPEC_KEY_PUBLIC, GCRY_AC_SPEC_KEY_SECRET,
-	GCRY_AC_SPEC_DATA_ENCRYPTED, GCRY_AC_SPEC_DATA_SIGNED): Use
-	macros.
-	(test_keys): Renamed to ...
-	(keys_test): ... this, changed interface, changed callers.
-	(check_secret_key): Renamed to ...
-	(key_secret_check): ... this, changed interface.
-	(_gcry_rsa_generate, gcry_rsa_check_secret_key, _gcry_rsa_encrypt,
-	_gcry_rsa_decrypt, _gcry_rsa_sign, _gcry_rsa_verify,
-	_gcry_rsa_get_nbits): Removed functions.
-	(_gcry_rsa_blind, _gcry_rsa_unblind): Renamed to ...
-	(blind, unblind): ... this, change callers.
-	(get_nbits, get_grip): New functions.
-	(generate): Changed interface.
-	(GCRY_AC_INTERFACE_ENCRYPTION, GCRY_AC_INTERFACE_SIGNING): Define
-	symbols.
-	Include "gcrypt-ac-glue.h".
-	(_gcry_rsa_sign, _gcry_rsa_verify, _gcry_rsa_encrypt,
-	_gcry_rsa_decrypt): Renamed to ...
-	(sign, verify, encrypt, decrypt): ... this, changed interfaces.
-
-	* gcrypt-ac-glue.h: New file.
-
-	* pubkey.c (pk_sexp_type_t, pk_key_type_t): New enumeration list
-	types.
-	(PK_SEXP_FLAG_RAW, PK_SEXP_FLAG_PKCS1_V1_5,
-	PK_SEXP_FLAG_NO_BLINDING, PK_FLAG_MODERN): New symbols.
-	(pk_sexp_types, pk_sexp_flags): New variable.
-	(_pk_wrap, gcry_ac_data_get_index, gcry_ac_name_to_id)
-	(gcry_ac_open, gcry_ac_data_new, gcry_ac_data_set)
-	(gcry_ac_key_init, gcry_ac_id_to_name, gcry_sexp_build_array)
-	(gcry_sexp_build, gcry_ac_key_get_nbits, gcry_ac_data_encrypt)
-	(gcry_ac_data_decrypt, gcry_ac_data_sign, gcry_ac_data_verify)
-	(gcry_ac_key_test, gcry_ac_key_pair_generate)
-	(gcry_ac_key_get_nbits, gcry_ac_key_get_grip, gcry_ac_list): New
-	macros.
-	(pubkey_table, pubkeys_registered, pubkeys_registered_lock,
-	default_pubkeys_registered): Removed.
-	(REGISTER_DEFAULT_PUBKEYS): Likewise.
-	(dummy_generate, dummy_check_secret_key, dummy_encrypt,
-	dummy_decrypt, dummy_sign, dummy_verify, dummy_get_nbits,
-	gcry_pk_register_default, gcry_pk_lookup_func_name,
-	gcry_pk_lookup_name, gcry_pk_register, gcry_pk_unregister,
-	release_mpi_array): Removed functions.
-	(sexp_nth_number, sexp_extract_flags, sexp_extract_std)
-	(sexp_extract_key, sexp_construct_std, sexp_mpi_arg_list_create)
-	(sexp_construct_factors, sexp_construct_genkey): New functions.
-	(_gcry_pk_aliased_algo_name, disable_pubkey_algo,
-	check_pubkey_algo): Removed functions.
-	(pubkey_get_npkey, pubkey_get_nskey, pubkey_get_nsig,
-	pubkey_get_nenc, pubkey_generate, pubkey_check_secret_key,
-	pubkey_encrypt, pubkey_decrypt, pubkey_sign, pubkey_verify):
-	Likewise.
-	(sexp_elements_extract, sexp_to_key, sexp_to_sig, sexp_to_enc):
-	Removed functions.
-	(_gcry_pk_init, _gcry_pk_module_lookup, _gcry_pk_module_release):
-	Removed functions.
-	(sexp_data_to_mpi): Renamed to ...
-	(sexp_extract_data): ... this, changed callers.
-	(gcry_pk_map_name, gcry_pk_algo_name): Modified to act as a
-	wrapper for the ac interface.
-	(gcry_pk_encrypt, gcry_pk_decrypt): Likewise.
-	(gcry_pk_sign, gcry_pk_verify): Likewise.
-	(gcry_pk_testkey, gcry_pk_genkey, gcry_pk_get_nbits)
-	(gcry_pk_get_keygrip): Likewise.
-	(gcry_pk_ctl, gcry_pk_algo_info, gcry_pk_list): Likewise.
-
-	* ac.c: Include "cipher.h" and "ath.h".
-	(ac_flags, ac_key_identifiers, gcry_ac_key_generate_specs):
-	Removed.
-	(algorithm_table, algorithms, algorithms_lock, ac_init_lock): New
-	variables.
-	(AC_MODULE_CALL, ALGORITHMS_LOCK, ALGORITHMS_UNLOCK, AC_INIT_LOCK,
-	AC_INIT_UNLOCK, AC_INIT): New macros.
-	(progress_cb, progress_cb_data): New variables.
-	(_gcry_ac_progress_register, _gcry_ac_progress): New functions.
-	(anon_struct_from_data_set, anon_struct_create): Likewise.
-	(anon_struct_to_data_set): Likewise.
-	(gcry_ac_lookup_func_name, gcry_ac_lookup_name): Likewise.
-	(gcry_ac_register, gcry_ac_unregister): Likewise.
-	(gcry_ac_register_algorithms): Likewise.
-	(ac_init, _gcry_ac_init): Likewise.
-	(gcry_ac_data_extract, gcry_ac_data_construct): Removed.
-	(gcry_ac_data_new_internal): New function ...
-	(gcry_ac_data_new): ... use it.
-	(_gcry_ac_data_get_name): New function ...
-	(gcry_ac_data_get_name): ... use it.
-	(_gcry_ac_arg_list_from_data): New function.
-	(_gcry_ac_data_get_index): New function ...
-	(gcry_ac_data_get_index): ... use it.
-	(_gcry_ac_key_get_grip_std): New function.
-	(gcry_ac_open, gcry_ac_close): Modified to be a native,
-	non-wrapper, interface.
-	(gcry_ac_key_init, gcry_ac_key_pair_generate): Likewise.
-	(gcry_ac_key_destroy, gcry_ac_key_test): Likewise.
-	(gcry_ac_key_get_nbits, gcry_ac_key_get_grip): Likewise.
-	(gcry_ac_data_encrypt, gcry_ac_data_decrypt): Likewise.
-	(gcry_ac_data_sign, gcry_ac_data_verify): Likewise.
-	(gcry_ac_id_to_name, gcry_ac_name_to_id): Likewise.
-	(gcry_ac_list): New functions.
-	(_gcry_ac_algorithm_enable, _gcry_ac_algorithm_disable): Likewise.
-	(elements_amount_get, _gcry_ac_elements_amount_get): Likewise.
-	(_gcry_ac_info_get): Likewise.
-	(key_pair_generate): New function.
-	(gcry_ac_key_pair_generate_ext): Likewise.
-	(gcry_ac_key_pair_generate): Use key_pair_generate.
+	* rndegd.c (do_read): Return nread instead of nbytes; thanks to
+	Michael Caerwyn.
 
 2003-09-04  Werner Koch  <wk@gnupg.org>
 
@@ -1719,7 +1638,7 @@
 
 2002-12-16  Werner Koch  <wk@gnupg.org>
 
-	* cipher.c: Added a Tetetrust specific OID for 3DES.
+	* cipher.c: Added a Teletrust specific OID for 3DES.
 
 2002-12-12  Werner Koch  <wk@gnupg.org>
 
@@ -1870,7 +1789,7 @@
 	mutex can be used.
 
 	* primegen.c (small_prime_numbers): Moved table from smallprime.c
-	* smallprime.c: Fiel removed.
+	* smallprime.c: File removed.
 
 	* des.c (leftkey_swap, rightkey_swap, working_memcmp): Made static.
 

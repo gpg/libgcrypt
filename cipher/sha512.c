@@ -63,10 +63,10 @@ typedef struct
   int count;
 } SHA512_CONTEXT;
 
-void
+static void
 sha512_init (void *context)
 {
-  SHA512_CONTEXT *hd = (SHA512_CONTEXT *) context;
+  SHA512_CONTEXT *hd = context;
 
   hd->h0 = U64_C(0x6a09e667f3bcc908);
   hd->h1 = U64_C(0xbb67ae8584caa73b);
@@ -81,10 +81,10 @@ sha512_init (void *context)
   hd->count = 0;
 }
 
-void
+static void
 sha384_init (void *context)
 {
-  SHA512_CONTEXT *hd = (SHA512_CONTEXT *) context;
+  SHA512_CONTEXT *hd = context;
 
   hd->h0 = U64_C(0xcbbb9d5dc1059ed8);
   hd->h1 = U64_C(0x629a292a367cd507);
@@ -210,7 +210,8 @@ transform (SHA512_CONTEXT *hd, byte *data)
       b = a;
       a = t1 + t2;
 
-      /* printf("t=%d a=%016llX b=%016llX c=%016llX d=%016llX e=%016llX f=%016llX g=%016llX h=%016llX\n",t,a,b,c,d,e,f,g,h); */
+      /* printf("t=%d a=%016llX b=%016llX c=%016llX d=%016llX "
+          "e=%016llX f=%016llX g=%016llX h=%016llX\n",t,a,b,c,d,e,f,g,h); */
     }
 
   /* update chaining vars */
@@ -231,7 +232,7 @@ transform (SHA512_CONTEXT *hd, byte *data)
 static void
 sha512_write (void *context, byte *inbuf, size_t inlen)
 {
-  SHA512_CONTEXT *hd = (SHA512_CONTEXT *) context;
+  SHA512_CONTEXT *hd = context;
 
   if (hd->count == 128)
     {				/* flush the buffer */
@@ -276,7 +277,7 @@ sha512_write (void *context, byte *inbuf, size_t inlen)
 static void
 sha512_final (void *context)
 {
-  SHA512_CONTEXT *hd = (SHA512_CONTEXT *) context;
+  SHA512_CONTEXT *hd = context;
   u64 t, msb, lsb;
   byte *p;
 
@@ -373,7 +374,7 @@ static gcry_md_oid_spec_t oid_spec_sha512[] =
     { NULL }
   };
 
-gcry_md_spec_t digest_spec_sha512 = {
+gcry_md_spec_t _gcry_digest_spec_sha512 = {
   "SHA512", sha512_asn, DIM (sha512_asn), oid_spec_sha512, 64,
   sha512_init, sha512_write, sha512_final, sha512_read,
   sizeof (SHA512_CONTEXT),
@@ -392,7 +393,7 @@ static gcry_md_oid_spec_t oid_spec_sha384[] =
     { NULL },
   };
 
-gcry_md_spec_t digest_spec_sha384 = {
+gcry_md_spec_t _gcry_digest_spec_sha384 = {
   "SHA384", sha384_asn, DIM (sha384_asn), oid_spec_sha384, 48,
   sha384_init, sha512_write, sha512_final, sha512_read,
   sizeof (SHA512_CONTEXT),

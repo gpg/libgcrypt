@@ -1,5 +1,6 @@
 # Makefile for cipher modules
-# Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+# Copyright (C) 1998, 1999, 2000, 2001, 2002,
+#               2003 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -19,11 +20,13 @@
 
 # Process this file with automake to produce Makefile.in
 
+EXTRA_DIST = Manifest
 INCLUDES = -I$(top_srcdir)/src 
 
 noinst_LTLIBRARIES = libcipher.la
 
-GCRYPT_MODULES = @GCRYPT_CIPHERS@ @GCRYPT_PUBKEY_CIPHERS@ @GCRYPT_DIGESTS@ @GCRYPT_RANDOM@
+GCRYPT_MODULES = @GCRYPT_CIPHERS@ @GCRYPT_PUBKEY_CIPHERS@ @GCRYPT_DIGESTS@ \
+                 @GCRYPT_RANDOM@
 
 libcipher_la_DEPENDENCIES = $(GCRYPT_MODULES)
 libcipher_la_LIBADD = $(GCRYPT_MODULES)
@@ -59,7 +62,8 @@ sha1.c \
 sha256.c \
 sha512.c \
 tiger.c \
-twofish.c
+twofish.c \
+rfc2268.c
 
 # We need to lower the optimization for this module.
 tiger.o: $(srcdir)/tiger.c
