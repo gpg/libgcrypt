@@ -1,4 +1,4 @@
-/* sexp.c  -  Sex^H^H-Expression handling
+/* sexp.c  -  S-Expression handling
  *	Copyright (C) 1999 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
@@ -138,13 +138,16 @@ dump_sexp( NODE node )
 GCRY_SEXP
 gcry_sexp_new_data( const char *buffer, size_t length )
 {
-    NODE node;
+    NODE list, node;
 
     node = m_alloc_clear( sizeof *node + length );
     node->type = ntDATA;
     node->u.data.len = length;
     memcpy(node->u.data.d, buffer, length );
-    return node;
+    list = m_alloc_clear( sizeof *list );
+    list->type = ntLIST;
+    list->u.list = node;
+    return list;
 }
 
 /****************
@@ -159,24 +162,49 @@ gcry_sexp_release( GCRY_SEXP sexp )
 
 
 /****************
- * Make a pair from items a and b
+ * Make a pair from lists a and b, don't use a or b alter on.
+ * Special behaviour:  If one is a single element list we put the
+ * element straingt into the new pair.
  */
 GCRY_SEXP
 gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b )
 {
     NODE head;
 
+    if( a->type != ntLIST ) {
+	fputs("sexp_cons: arg 1 is not a list\n", stderr );
+	return NULL;
+    }
+    if( b->type != ntLIST ) {
+	fputs("sexp_cons: arg 2 is not a list\n", stderr );
+	return NULL;
+    }
+
+
     head = m_alloc_clear( sizeof *head );
     head->type = ntLIST;
+    if( !a->u.list->next ) { /* a has only one item */
+	NODE tmp = a;
+	a = a->u.list;
+	/* fixme: release tmp here */
+    }
+    if( !b->u.list->next ) { /* b has only one item */
+	NODE tmp = b;
+	b = b->u.list;
+	/* fixme: release tmp here */
+    }
+
     head->u.list = a;
     a->up = head;
     a->next = b;
     b->up = head;
+
     return head;
 }
 
 /****************
  * Make a list from all items, the end of list is indicated by a NULL
+ * don´ use the passed lists lateron, they are void.
  */
 GCRY_SEXP
 gcry_sexp_vlist( GCRY_SEXP a, ... )
@@ -184,14 +212,32 @@ gcry_sexp_vlist( GCRY_SEXP a, ... )
     NODE head, tail, node;
     va_list arg_ptr ;
 
+    if( a->type != ntLIST ) {
+	fputs("sexp_vlist: arg 1 is not a list\n", stderr );
+	return NULL;
+    }
     head = m_alloc_clear( sizeof *node );
     head->type = ntLIST;
+    if( !a->u.list->next ) { /* a has only one item */
+	NODE tmp = a;
+	a = a->u.list;
+	/* fixme: release tmp here */
+    }
     head->u.list = a;
     a->up = head;
     tail = a;
 
     va_start( arg_ptr, a ) ;
     while( (node = va_arg( arg_ptr, NODE )) ) {
+	if( node->type != ntLIST ) {
+	    fputs("sexp_vlist: an arg is not a list\n", stderr );
+	    return NULL;  /* fixme: we should release alread allocated nodes */
+	}
+	if( !node->u.list->next ) { /* node has only one item */
+	    NODE tmp = node;
+	    node = node->u.list;
+	    /* fixme: release tmp here */
+	}
 	tail->next = node;
 	node->up = head;
 	tail = node;
@@ -286,6 +332,15 @@ gcry_sexp_enum( GCRY_SEXP list, void **context, int mode )
 
 
 /****************
+ * Get the CAR
+ */
+GCRY_SEXP
+gcry_sexp_car( GCRY_SEXP list )
+{
+    return list;
+}
+
+/****************
  * Get data from the car
  */
 const char *
@@ -296,6 +351,17 @@ gcry_sexp_car_data( GCRY_SEXP list, size_t *datalen )
 	return list->u.data.d;
     }
 
+    return NULL;
+}
+
+/****************
+ * Get the CDR
+ */
+GCRY_SEXP
+gcry_sexp_cdr( GCRY_SEXP list )
+{
+    if( list && (list = list->next) )
+	return list;
     return NULL;
 }
 
@@ -618,7 +684,7 @@ main(int argc, char **argv)
     FILE *fp;
     GCRY_SEXP s_pk, s_dsa, s_p, s_q, s_g, sexp;
 
-  #if 1
+  #if 0
     fp = stdin;
     n = fread(buffer, 1, 5000, fp );
     rc = gcry_sexp_sscan( &sexp, buffer, n, &erroff );
@@ -661,7 +727,38 @@ main(int argc, char **argv)
 
 
 	if( argc > 2 ) /* get the MPI out of the list */
-	#if 0
+	#if 1
+	  {
+	    GCRY_SEXP s2;
+	    const char *p;
+	    size_t n;
+
+	    p = gcry_sexp_car_data( s1, &n );
+	    if( !p ) {
+		fputs("no CAR\n", stderr );
+		exit(1);
+	    }
+	    fprintf(stderr, "CAR=`%.*s'\n", (int)n, p );
+
+	    p = gcry_sexp_cdr_data( s1, &n );
+	    if( !p ) {
+		s2 = gcry_sexp_cdr( s1 );
+		if( !s2 ) {
+		    fputs("no CDR at all\n", stderr );
+		    exit(1);
+		}
+		p = gcry_sexp_car_data( s2, &n );
+	    }
+	    if( !p ) {
+		fputs("no CDR data\n", stderr );
+		exit(1);
+	    }
+	    fprintf(stderr, "CDR=`%.*s'\n", (int)n, p );
+
+
+
+	  }
+	#elif 0
 	  {
 	    GCRY_SEXP s2;
 	    MPI a;

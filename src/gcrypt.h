@@ -94,7 +94,7 @@ size_t gcry_sexp_sprint( GCRY_SEXP sexp, int mode, char *buffer,
 
 #ifndef GCRYPT_NO_SEXP_MACROS
 #define SEXP		GCRY_SEXP
-#define SEXP_NEW(a,b)	gcry_sexp_new( (a), (b) )
+#define SEXP_NEW(a,b)	gcry_sexp_new_data( (a), (b) )
 #define SEXP_RELEASE(a) do { gcry_sexp_release( (a) ); (a)=NULL; } while(0)
 #define SEXP_CONS(a,b)	gcry_sexp_cons((a),(b))
 #endif /*GCRYPT_NO_SEXP_MACROS*/
