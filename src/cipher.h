@@ -55,11 +55,13 @@ void _gcry_register_primegen_progress (void (*cb)(void *,const char *,
 typedef struct gcry_pubkey_spec
 {
   const char *name;
+  char **sexp_names;
   int id;
-  int npkey;
-  int nskey;
-  int nenc;
-  int nsig;
+  const char *elements_pkey;
+  const char *elements_skey;
+  const char *elements_enc;
+  const char *elements_sig;
+  const char *elements_grip;
   int use;
   int (*generate) (int algo, unsigned int nbits, unsigned long use_e,
 		   GcryMPI *skey, GcryMPI **retfactors);
