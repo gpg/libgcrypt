@@ -1,12 +1,18 @@
+2002-06-25  Werner Koch  <wk@gnupg.org>
+
+	Released 1.1.8.
+	
+	* configure.ac: Set LT version to 5/4/0. 
+
 2002-05-21  Werner Koch  <wk@gnupg.org>
 
-	Release 1.1.7.
+	Released 1.1.7.
 	
 	* configure.ac: Set LT version to 4/3/0.
 
 2002-05-17  Werner Koch  <wk@gnupg.org>
 
-	* configure.ac: Removed all the dynmaic loading stuff.
+	* configure.ac: Removed all the dynamic loading stuff.
 
 2002-05-16  Werner Koch  <wk@gnupg.org>
 

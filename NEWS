@@ -1,8 +1,14 @@
-Noteworthy changes in version CVS-head
+Noteworthy changes in version 1.1.8 (2002-06-25)
 ------------------------------------------------
+
+ * Minor cleanups and exported a few new functions.
 
  * Interface changes relative to the 1.1.7 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gcry_mpi_div                      NEW
+gcry_mpi_mod                      NEW
+gcry_mpi_invm                     NEW
+gcry_mpi_swap                     NEW
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Noteworthy changes in version 1.1.7 (2002-05-21)

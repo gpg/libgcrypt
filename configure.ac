@@ -25,9 +25,9 @@ AC_PREREQ(2.53)
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-AC_INIT(libgcrypt,1.1.8-cvs)
-LIBGCRYPT_LT_CURRENT=4
-LIBGCRYPT_LT_AGE=3
+AC_INIT(libgcrypt,1.1.8)
+LIBGCRYPT_LT_CURRENT=5
+LIBGCRYPT_LT_AGE=4
 LIBGCRYPT_LT_REVISION=0
 #-----------------------
 
