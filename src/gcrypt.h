@@ -642,7 +642,7 @@ const char *gcry_cipher_algo_name (int algo) _GCRY_GCC_ATTR_PURE;
 int gcry_cipher_map_name (const char *name) _GCRY_GCC_ATTR_PURE;
 
 /* Given an ASN.1 object identifier in standard IETF dotted decimal
-   format in STING, return the encryption mode associated with that
+   format in STRING, return the encryption mode associated with that
    OID or 0 if not known or applicable. */
 int gcry_cipher_mode_from_oid (const char *string) _GCRY_GCC_ATTR_PURE;
 
@@ -731,11 +731,18 @@ typedef void (*gcry_cipher_stdecrypt_t) (void *c,
 					 const unsigned char *inbuf,
 					 unsigned int n);
 
+typedef struct gcry_cipher_oid_spec
+{
+  const char *oid;
+  int mode;
+} gcry_cipher_oid_spec_t;
+
 /* Module specification structure for ciphers.  */
 typedef struct gcry_cipher_spec
 {
   const char *name;
   const char **aliases;
+  gcry_cipher_oid_spec_t *oids;
   size_t blocksize;
   size_t keylen;
   size_t contextsize;
@@ -883,7 +890,7 @@ typedef unsigned (*gcry_pk_get_nbits_t) (int algo, gcry_mpi_t *pkey);
 typedef struct gcry_pk_spec
 {
   const char *name;
-  char **sexp_names;
+  char **aliases;
   const char *elements_pkey;
   const char *elements_skey;
   const char *elements_enc;
@@ -1011,6 +1018,9 @@ gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
 /* Returns a specified key from a key pair.  */
 gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
 					gcry_ac_key_type_t which);
+
+/* Returns the data set contained in the key KEY.  */
+gcry_ac_data_t gcry_ac_key_data_get (gcry_ac_key_t key);
 
 /* Verify that the key KEY is sane.  */
 gcry_error_t gcry_ac_key_test (gcry_ac_key_t key);
@@ -1260,12 +1270,18 @@ typedef void (*gcry_md_final_t) (void *c);
 /* Type for the md_read function.  */
 typedef unsigned char *(*gcry_md_read_t) (void *c);
 
+typedef struct gcry_md_oid_spec
+{
+  const char *oidstring;
+} gcry_md_oid_spec_t;
+
 /* Module specification structure for message digests.  */
 typedef struct gcry_md_spec
 {
   const char *name;
   unsigned char *asnoid;
   int asnlen;
+  gcry_md_oid_spec_t *oids;
   int mdlen;
   gcry_md_init_t init;
   gcry_md_write_t write;

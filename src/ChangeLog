@@ -1,3 +1,18 @@
+2003-07-21  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h: Declared: gcry_ac_key_data_get.
+	(gcry_pk_spec): Renamed member `sexp_names' into `aliases'.
+
+2003-07-20  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h (gcry_md_oid_spec_t): New type.
+	(gcry_md_spec): New member: oids.
+
+2003-07-19  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h (gcry_cipher_oid_spec_t): New type.
+	(gcry_cipher_spec): New member: oids;
+
 2003-07-18  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (gcry_mpi_set_opaque): Add a warning comment.
