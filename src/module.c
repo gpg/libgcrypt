@@ -171,28 +171,36 @@ _gcry_module_use (gcry_module_t module)
    according size.  In case there are less cipher modules than
    *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
 gcry_err_code_t
-_gcry_module_list (gcry_module_t modules,
-		   int *list, int *list_length)
+_gcry_module_list (gcry_module_t modules, int **list, int *list_length)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_module_t module;
-  int length, i;
+  gcry_module_t module = NULL;
+  unsigned int modules_n = 0;
+  int *list_new = NULL;
+  unsigned int i = 0;
 
-  for (module = modules, length = 0; module; module = module->next, length++);
+  for (module = modules; module; module = module->next)
+    modules_n++;
 
-  if (list)
+  if (modules_n && list)
     {
-      if (length > *list_length)
-	length = *list_length;
-
-      for (module = modules, i = 0; i < length; module = module->next, i++)
-	list[i] = module->mod_id;
-
-      if (length < *list_length)
-	*list_length = length;
+      list_new = gcry_malloc (sizeof (*list_new) * modules_n);
+      if (! list_new)
+	err = gpg_err_code_from_errno (ENOMEM);
+      else
+	{
+	  for (module = modules, i = 0; i < modules_n; module = module->next, i++)
+	    list_new[i] = module->mod_id;
+	}
     }
-  else
-    *list_length = length;
+
+  if (! err)
+    {
+      if (list)
+	*list = list_new;
+      if (list_length)
+	*list_length = modules_n;
+    }
 
   return err;
 }

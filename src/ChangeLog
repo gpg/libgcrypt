@@ -1,4 +1,36 @@
+2003-11-28  Moritz Schulte  <mo@g10code.com>
+
+	* module.c (_gcry_module_list): Rewritten, changed interface.
+
+	* g10lib.h: Adjust declaration for: _gcry_ac_list.
+
+	* gcrypt.h: Adjust declarations for: gcry_ac_list,
+	gcry_cipher_list, gcry_md_list.
+
+2003-11-01  Moritz Schulte  <mo@g10code.com>
+
+	* g10lib.h: New declarations for: _gcry_ac_data_new,
+	_gcry_ac_data_destroy, _gcry_ac_data_length, _gcry_ac_dat_set,
+	_gcry_ac_get_name, _gcry_ac_get_index, _gcry_ac_data_clear,
+	_gcry_ac_open,_gcry_ac_close, _gcry_ac_key_init,
+	_gcry_ac_key_pair_generate, _gcry_ac_key_pair_extract,
+	_gcry_ac_key_destroy, _gcry_ac_key_pair_destroy,
+	_gcry_ac_data_get, _gcry_ac_key_test, _gcry_ac_get_nbits,
+	_gcry_ac_get_grip, _gcry_ac_data_encrypt, _gcry_ac_data_decrypt,
+	_gcry_ac_data_sign, _gcry_ac_data_verify, _gcry_ac_id_to_name,
+	_gcry_ac_name_to_id, _gcry_ac_list, _gcry_ac_data_encode,
+	_gcry_ac_data_decode, _gcry_ac_mpi_to_os,
+	_gcry_ac_mpi_to_os_alloc, _gcry_ac_os_to_mpi,
+	_gcry_ac_data_encrypt_scheme, _gcry_ac_data_decrypt_scheme,
+	_gcry_ac_data_sign_scheme, _gcry_ac_verify_scheme.
+
+	* gcrypt.h (gcry_ac_key_pair_generate_ext): Removed declaration.
+
 2003-10-28  Moritz Schulte  <mo@g10code.com>
+
+	* gcrypt-module.h (AC_STRUCT_SPEC_SECURE): New symbol.
+	(gcry_ac_struct_spec): New memmber: flags.
+	(_GCRY_AC_ELEM): Add argument: flags.
 
 	* cipher.h: Removed declarations: _gcry_register_pk_dsa_progress,
 	_gcry_register_pk_elg_progress, small_prime_numbers.

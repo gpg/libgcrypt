@@ -108,17 +108,20 @@ void gcry_cipher_unregister (gcry_module_t module);
 #define GCRY_AC_SPEC_DATA_ENCRYPTED _GCRY_AC_SPEC (data_encrypted)
 #define GCRY_AC_SPEC_DATA_SIGNED    _GCRY_AC_SPEC (data_signed)
 
-#define _GCRY_AC_ELEM(elem, type) { #elem, offsetof (type, elem) }
+#define _GCRY_AC_ELEM(elem, type) { #elem, offsetof (type, elem ) }
 
 #define GCRY_AC_ELEM_KEY_PUBLIC(elem)     _GCRY_AC_ELEM (elem, key_public_t)
 #define GCRY_AC_ELEM_KEY_SECRET(elem)     _GCRY_AC_ELEM (elem, key_secret_t)
 #define GCRY_AC_ELEM_DATA_ENCRYPTED(elem) _GCRY_AC_ELEM (elem, data_encrypted_t)
 #define GCRY_AC_ELEM_DATA_SIGNED(elem)    _GCRY_AC_ELEM (elem, data_signed_t)
 
+#define AC_STRUCT_SPEC_SECURE (1 << 0)
+
 typedef struct gcry_ac_struct_spec
 {
   const char *name;
   size_t offset;
+  unsigned int flags;
 } gcry_ac_struct_spec_t;
 
 /* Type for the pk_generate function.  */
