@@ -345,14 +345,24 @@ md_open( int algo, int secure, int hmac )
 
 
 GCRY_MD_HD
-gcry_md_open( int algo, unsigned int flags )
+gcry_md_open (int algo, unsigned int flags)
 {
-    GCRY_MD_HD hd;
-    /* fixme: check that algo is available and that only valid
-     * flag values are used */
-    hd = md_open( algo, (flags & GCRY_MD_FLAG_SECURE),
-			(flags & GCRY_MD_FLAG_HMAC) );
-    return hd;
+  GCRY_MD_HD hd;
+
+  if (check_digest_algo (algo))
+    {
+      set_lasterr (GCRYERR_INV_MD_ALGO);
+      return NULL;
+    }
+  if ((flags &~ GCRY_MD_FLAG_SECURE) > GCRY_MD_FLAG_SECURE
+      && (flags &~ GCRY_MD_FLAG_HMAC) > GCRY_MD_FLAG_HMAC)
+    {
+      set_lasterr (GCRYERR_INV_ARG);
+      return NULL;
+    }
+  hd = md_open (algo, (flags & GCRY_MD_FLAG_SECURE),
+                (flags & GCRY_MD_FLAG_HMAC));
+  return hd;
 }
 
 
@@ -768,9 +778,15 @@ md_get_algo( GCRY_MD_HD a )
 
 
 int
-gcry_md_get_algo( GCRY_MD_HD hd )
+gcry_md_get_algo (GCRY_MD_HD hd)
 {
-    return md_get_algo( hd ); /* fixme: we need error handling */
+  int algo = md_get_algo (hd);
+  if (!algo)
+    {
+      set_lasterr (GCRYERR_INV_MD_ALGO);
+      return 0;
+    }
+  return algo;
 }
 
 
