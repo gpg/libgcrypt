@@ -1,3 +1,8 @@
+2004-03-11  Marcus Brinkmann  <marcus@g10code.de>
+
+	* gcrypt.texi (Multi Threading): Partially document new thread
+	support.
+
 2004-02-24  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi (Calculations): Typo fix.

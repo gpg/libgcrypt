@@ -256,9 +256,6 @@ different threads on the same handle, he has to take care of the
 serialisation of such functions himself.  If not described otherwise,
 every function is thread-safe.
 
-The library automagically detects whether an applications uses no
-threading, pthreads or GNU Pth.
-
 @acronym{Libgcrypt} depends on the library `libgpg-error', which
 contains common error handling related code for GnuPG components.
 
@@ -413,37 +410,51 @@ thread-safe if you adhere to the following requirements:
 
 @itemize @bullet
 @item
-@acronym{Libgcrypt} supports the thread libraries pthread and GNU Pth.
-The support for this has to be enabled at compile time.
-@acronym{Libgcrypt} will automatically detect the location in which the
-thread libraries are installed and activate the support for them at
-build time.
+If your application is multi-threaded, you must set the thread support
+callbacks with the @code{GCRYCTL_SET_THREAD_CBS} command
+@strong{before} any other function in the library.
 
-Support for other thread libraries is very easy to add.  Please
-contact us if you have the need.
+This is easy enough if you are indeed writing an application using
+libgcrypt.  It is rather problematic if you are writing a library
+instead.  Here are some tips what to do if you are writing a library:
 
-@item
-If you want to use @acronym{Libgcrypt} with threads, you must link to
-the right version of the library.  The name of the right library is
-@code{libgcrypt-} followed by the name of the thread package you use.
-For example, if you use GNU Pth, the right name is
-@code{libgcrypt-pth}.  Use the Automake macros or
-@command{libgcrypt-config} program for simplicity.
+If your library requires a certain thread package, just initialize
+gcrypt to use this thread package.  If your library supports multiple
+thread packages, but needs to be configured, you will have to
+implement a way to determine which thread package the application
+wants to use with your library anyway.  Then configure gcrypt to use
+this thread package.
+
+If your library is fully reentrant without any special support by a
+thread package, then you are lucky indeed.  Unfortunately, this does
+not relieve you from doing either of the two above, or use a third
+option.  The third option is to let the application initialize gcrypt
+for you.  Then you are not using gcrypt transparently, though.
+
+As if this was not difficult enough, a conflict may arise if two
+libraries try to initialize gcrypt independently of each others, and
+both such libraries are then linked into the same application.  To
+make it a bit simpler for you, this will probably work, but only if
+both libraries have the same requirement for the thread package.  This
+is currently only supported for the non-threaded case, GNU Pth and
+pthread.  Support for more thread packages is easy to add, so contact
+is if you require it.
 
 @item
 The function @code{gcry_check_version} must be called before any other
-function in the library, because it initializes the thread support
-subsystem in @acronym{Libgcrypt}.  To achieve this in
-multi-threaded programs, you must synchronize the memory with respect
-to other threads that also want to use @acronym{Libgcrypt}.  For this, it
-is sufficient to call @code{gcry_check_version} before creating the
-other threads using @acronym{Libgcrypt}@footnote{At least this is true for
-POSIX threads, as @code{pthread_create} is a function that
-synchronizes memory with respects to other threads.  There are many
-functions which have this property, a complete list can be found in
-POSIX, IEEE Std 1003.1-2003, Base Definitions, Issue 6, in the
-definition of the term ``Memory Synchronization''.  For other thread
-packages other, more relaxed or more strict rules may apply.}.
+function in the library, except the @code{GCRYCTL_SET_THREAD_CBS}
+command, because it initializes the thread support subsystem in
+@acronym{Libgcrypt}.  To achieve this in multi-threaded programs, you
+must synchronize the memory with respect to other threads that also
+want to use @acronym{Libgcrypt}.  For this, it is sufficient to call
+@code{gcry_check_version} before creating the other threads using
+@acronym{Libgcrypt}@footnote{At least this is true for POSIX threads,
+as @code{pthread_create} is a function that synchronizes memory with
+respects to other threads.  There are many functions which have this
+property, a complete list can be found in POSIX, IEEE Std 1003.1-2003,
+Base Definitions, Issue 6, in the definition of the term ``Memory
+Synchronization''.  For other thread packages, more relaxed or
+more strict rules may apply.}.
 
 @item
 As with the function @code{gpg_strerror}, @code{gcry_strerror} is not
@@ -469,8 +480,8 @@ thread safe.  You have to use @code{gpg_strerror_r} instead.
 @deftypefun gcry_error_t gcry_control (enum gcry_ctl_cmds @var{cmd}, ...)
 
 This function can be used to influence the general behaviour of
-@acronym{Libgcrypt} in several ways.  Depending on @var{cmd}, more arguments can
-or have to be provided.
+@acronym{Libgcrypt} in several ways.  Depending on @var{cmd}, more
+arguments can or have to be provided.
 
 @end deftypefun
 

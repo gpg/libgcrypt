@@ -12,20 +12,13 @@
 # General.
 prefix="@prefix@"
 exec_prefix="@exec_prefix@"
-thread_module=""
 version="@VERSION@"
 gpg_error_libs="@GPG_ERROR_LIBS@"
 gpg_error_cflags="@GPG_ERROR_CFLAGS@"
 
-# LIBS values.
+# libgcrypt values.
 libs="@LIBGCRYPT_CONFIG_LIBS@"
-libs_pthread="@LIBGCRYPT_CONFIG_LIBS_PTHREAD@"
-libs_pth="@LIBGCRYPT_CONFIG_LIBS_PTH@"
-
-# CFLAGS values.
 cflags="@LIBGCRYPT_CONFIG_CFLAGS@"
-cflags_pthread="@LIBGCRYPT_CONFIG_CFLAGS_PTHREAD@"
-cflags_pth="@LIBGCRYPT_CONFIG_CFLAGS_PTH@"
 
 # API info
 api_version="@LIBGCRYPT_CONFIG_API_VERSION@"
@@ -34,7 +27,6 @@ api_version="@LIBGCRYPT_CONFIG_API_VERSION@"
 symmetric_ciphers="@LIBGCRYPT_CIPHERS@"
 asymmetric_ciphers="@LIBGCRYPT_PUBKEY_CIPHERS@"
 digests="@LIBGCRYPT_DIGESTS@"
-thread_modules="@LIBGCRYPT_THREAD_MODULES@"
 
 # State variables.
 echo_libs=no
@@ -51,7 +43,6 @@ usage()
     cat <<EOF
 Usage: $0 [OPTIONS]
 Options:
-	[--thread={${thread_modules}}]
 	[--prefix]
 	[--exec-prefix]
 	[--version]
@@ -81,14 +72,8 @@ while test $# -gt 0; do
 
     case $1 in
 	--thread=*)
-	    for thread_mod in $thread_modules; do
-		if test "$thread_mod" = "$optarg"; then
-		    thread_module="$optarg";
-		fi
-	    done
-	    if test "x$thread_module" = "x"; then
-		usage 1 1>&2
-	    fi
+	    echo "$0: --thread option obsolete: use the thread callback interface" 1>&2
+	    exit 1
 	    ;;
         --prefix=*)
             # For compatibility reasons with old M4 macros, we ignore
@@ -145,17 +130,8 @@ if test "$echo_cflags" = "yes"; then
 	    fi
 	done
     fi
-
     # Set up `cflags_final'.
-    case "$thread_module" in
-	pthread)
-	    cflags_final=$cflags_pthread
-	    ;;
-	pth)
-	    cflags_final=$cflags_pth
-	    ;;
-    esac
-    cflags_final="$cflags_final @GPG_ERROR_CFLAGS@"
+    cflags_final="@GPG_ERROR_CFLAGS@"
 
     echo "$includes $cflags_final"
 fi
@@ -175,15 +151,7 @@ if test "$echo_libs" = "yes"; then
     fi
 
     # Set up `libs_final'.
-    case "$thread_module" in
-	pthread)
-	    libs_final=$libs_pthread
-	    ;;
-	pth)
-	    libs_final=$libs_pth
-	    ;;
-    esac
-    libs_final="$libs_final @GPG_ERROR_LIBS@"
+    libs_final="@GPG_ERROR_LIBS@"
 
     echo "$libdirs $libs_final"
 fi

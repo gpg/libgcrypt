@@ -1,3 +1,10 @@
+2004-03-10  Marcus Brinkmann  <marcus@g10code.de>
+
+	* configure.ac (LIBGCRYPT_CONFIG_LIBS_PTHREAD,
+	LIBGCRYPT_CONFIG_CFLAGS_PTHREAD, LIBGCRYPT_CONFIG_LIBS_PTH,
+	LIBGCRYPT_CONFIG_CFLAGS_PTH, have_pth, have_pthread, AC_CHECK_PTH,
+	AC_CHECK_LIB(pthread), HAVE_PTH, HAVE_PTHREAD): Removed.
+
 2004-03-06  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.93.

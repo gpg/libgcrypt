@@ -1,3 +1,31 @@
+2004-03-10  Marcus Brinkmann  <marcus@g10code.de>
+
+	* Makefile.am (ltlib_libgcrypt_pthread, ltlib_libgcrypt_pth): Removed.
+	(lib_LTLIBRARIES): Remove those variables from here.
+	(libgcrypt_pthread_la_SOURCES, libgcrypt_pthread_la_LDFLAGS,
+	(libgcrypt_pthread_la_DEPENDENCIES, libgcrypt_pthread_la_LIBADD,
+	(libgcrypt_pth_la_SOURCES, libgcrypt_pth_la_LDFLAGS,
+	(libgcrypt_pth_la_DEPENDENCIES, libgcrypt_pth_la_LIBADD,
+	(noinst_LTLIBRARIES): Removed.
+	(libgcrypt_real_la_SOURCES): Merge with ...
+	(libgcrypt_la_SOURCES): ... likewise.
+	(libgcrypt_real_la_DEPENDENCIES): Merge with ...
+	(libgcrypt_la_DEPENDENCIES): ... this.
+	(libgcrypt_real_la_LIBADD): Merge with ...
+	(libgcrypt_la_LIBADD): ... this.
+	* libgcrypt-config.in (libs_pthread, libs_pth, cflags_pth) 
+	(cflags_pthread, thread_module, thread_modules): Removed.
+	(Options): Remove --thread option from help output.  If the option
+	is specified, output an error and exit.
+	For --cflags and --libs option, remove pth and pthread from output.
+	* gcrypt.h: Include <sys/types.h> and <sys/socket.h>.
+	(enum gcry_ctl_cmds): Add GCRYCTL_SET_THREAD_CBS.
+	(gcry_thread_cbs): New struct.
+	* global.c (gcry_control): Implement GCRYCTL_SET_THREAD_CBS.
+	(global_init): Don't call ath_init here.
+	* ath.h: Rewritten.
+	* ath.c: Rewritten.
+
 2004-03-06  Werner Koch  <wk@gnupg.org>
 
 	* libgcrypt-config.in: s/--soname-number/--api-version/

@@ -63,8 +63,8 @@ global_init (void)
   if (any_init_done)
     return;
   any_init_done = 1;
-  ath_init ();
 
+  err = ath_init ();
   if (! err)
     _gcry_cipher_init ();
   if (! err)
@@ -273,6 +273,10 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
             init_finished = 1;
 	  }
         break;
+
+    case GCRYCTL_SET_THREAD_CBS:
+      err = ath_install (va_arg (arg_ptr, void *), any_init_done);
+      break;
 
     default:
       err = GPG_ERR_INV_OP;

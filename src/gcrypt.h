@@ -1,5 +1,5 @@
 /* gcrypt.h -  GNU cryptographic library interface
- * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003,
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004
  *               2004  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
@@ -27,6 +27,9 @@
 
 #include <gpg-error.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 /* This is required for error code compatibility. */
 #define _GCRY_ERR_SOURCE_DEFAULT GPG_ERR_SOURCE_GCRYPT
 
@@ -43,7 +46,7 @@ extern "C" {
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.1.93"
+#define GCRYPT_VERSION "1.1.94-cvs"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -147,6 +150,119 @@ gcry_error_t gcry_err_make_from_errno (gcry_err_source_t source, int err);
 /* Return an error value with the system error ERR.  */
 gcry_err_code_t gcry_error_from_errno (int err);
 
+
+enum gcry_thread_option
+  {
+    GCRY_THREAD_OPTION_DEFAULT = 0,
+    GCRY_THREAD_OPTION_USER = 1,
+    GCRY_THREAD_OPTION_PTH = 2,
+    GCRY_THREAD_OPTION_PTHREAD = 3
+  };
+
+/* Wrapper for struct ath_ops.  */
+struct gcry_thread_cbs
+{
+  enum gcry_thread_option option;
+  int (*init) (void);
+  int (*mutex_init) (void **priv);
+  int (*mutex_destroy) (void **priv);
+  int (*mutex_lock) (void **priv);
+  int (*mutex_unlock) (void **priv);
+  ssize_t (*read) (int fd, void *buf, size_t nbytes);
+  ssize_t (*write) (int fd, const void *buf, size_t nbytes);
+  ssize_t (*select) (int nfd, fd_set *rset, fd_set *wset, fd_set *eset,
+		     struct timeval *timeout);
+  ssize_t (*waitpid) (pid_t pid, int *status, int options);
+  int (*accept) (int s, struct sockaddr *addr, socklen_t *length_ptr);
+  int (*connect) (int s, struct sockaddr *addr, socklen_t length);
+  int (*sendmsg) (int s, const struct msghdr *msg, int flags);
+  int (*recvmsg) (int s, struct msghdr *msg, int flags);
+};
+
+#define GCRY_THREAD_OPTION_PTH_IMPL					      \
+static int gcry_pth_init (void)						      \
+{ return (pth_init () == FALSE) ? errno : 0; }				      \
+static int gcry_pth_mutex_init (void **priv)				      \
+{									      \
+  int err = 0;								      \
+  pth_mutex_t *lock = malloc (sizeof (pth_mutex_t));			      \
+									      \
+  if (!lock)								      \
+    err = ENOMEM;							      \
+  if (!err)								      \
+    {									      \
+      err = pth_mutex_init (lock);					      \
+      if (err == FALSE)							      \
+	err = errno;							      \
+      else								      \
+	err = 0;							      \
+      if (err)								      \
+	free (lock);							      \
+      else								      \
+	*priv = lock;							      \
+    }									      \
+  return err;								      \
+}									      \
+static int gcry_pth_mutex_destroy (void **lock)				      \
+  { /* GNU Pth has no destructor function.  */ free (*lock); return 0; }      \
+static int gcry_pth_mutex_lock (void **lock)				      \
+  { return ((pth_mutex_acquire (*lock, 0, NULL)) == FALSE)		      \
+      ? errno : 0; }							      \
+static int gcry_pth_mutex_unlock (void **lock)				      \
+  { return ((pth_mutex_release (*lock)) == FALSE)			      \
+      ? errno : 0; }							      \
+static ssize_t gcry_pth_read (int fd, void *buf, size_t nbytes)		      \
+  { return pth_read (fd, buf, nbytes); }				      \
+static ssize_t gcry_pth_write (int fd, const void *buf, size_t nbytes)	      \
+  { return pth_write (fd, buf, nbytes); }				      \
+static ssize_t gcry_pth_select (int nfd, fd_set *rset, fd_set *wset,	      \
+				fd_set *eset, struct timeval *timeout)	      \
+  { return pth_select (nfd, rset, wset, eset, timeout); }		      \
+static ssize_t gcry_pth_waitpid (pid_t pid, int *status, int options)	      \
+  { return pth_waitpid (pid, status, options); }			      \
+static int gcry_pth_accept (int s, struct sockaddr *addr,		      \
+			    socklen_t *length_ptr)			      \
+  { return pth_accept (s, addr, length_ptr); }				      \
+static int gcry_pth_connect (int s, struct sockaddr *addr, socklen_t length)  \
+  { return pth_connect (s, addr, length); }				      \
+									      \
+/* FIXME: GNU Pth is missing pth_sendmsg and pth_recvmsg.  */		      \
+static struct gcry_thread_cbs gcry_threads_pth = { GCRY_THREAD_OPTION_PTH,    \
+  gcry_pth_init, gcry_pth_mutex_init, gcry_pth_mutex_destroy,		      \
+  gcry_pth_mutex_lock, gcry_pth_mutex_unlock, gcry_pth_read, gcry_pth_write,  \
+  gcry_pth_select, gcry_pth_waitpid, gcry_pth_accept, gcry_pth_connect }
+
+#define GCRY_THREAD_OPTION_PTHREAD_IMPL					      \
+static int gcry_pthread_mutex_init (void **priv)			      \
+{									      \
+  int err = 0;								      \
+  pthread_mutex_t *lock = malloc (sizeof (pthread_mutex_t));		      \
+									      \
+  if (!lock)								      \
+    err = ENOMEM;							      \
+  if (!err)								      \
+    {									      \
+      err = pthread_mutex_init (lock, NULL);				      \
+      if (err)								      \
+	free (lock);							      \
+      else								      \
+	*priv = lock;							      \
+    }									      \
+  return err;								      \
+}									      \
+static int gcry_pthread_mutex_destroy (void **lock)			      \
+  { int err = pthread_mutex_destroy (*lock);  free (*lock); return err; }     \
+static int gcry_pthread_mutex_lock (void **lock)			      \
+  { return pthread_mutex_lock (*lock); }				      \
+static int gcry_pthread_mutex_unlock (void **lock)			      \
+  { return pthread_mutex_unlock (*lock); }				      \
+									      \
+static struct gcry_thread_cbs gcry_threads_pthread =			      \
+{ GCRY_THREAD_OPTION_PTHREAD, NULL,					      \
+  gcry_pthread_mutex_init, gcry_pthread_mutex_destroy,			      \
+  gcry_pthread_mutex_lock, gcry_pthread_mutex_unlock }
+
+
 /* The data object used to hold a multi precision integer.  */
 struct gcry_mpi;
 typedef struct gcry_mpi *gcry_mpi_t;
@@ -208,7 +324,8 @@ enum gcry_ctl_cmds
     GCRYCTL_SET_CTR = 43,
     GCRYCTL_ENABLE_QUICK_RANDOM = 44,
     GCRYCTL_SET_RANDOM_SEED_FILE = 45,
-    GCRYCTL_UPDATE_RANDOM_SEED_FILE = 46
+    GCRYCTL_UPDATE_RANDOM_SEED_FILE = 46,
+    GCRYCTL_SET_THREAD_CBS = 47
   };
 
 /* Perform various operations defined by CMD. */

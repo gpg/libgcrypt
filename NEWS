@@ -1,6 +1,24 @@
 Noteworthy changes in version 1.1.94
 -------------------------------------------------
 
+ * The support for multi-threaded users goes into its third
+   incarnation.  We removed compile time support for thread libraries.
+   To support the thread library of your choice, you have to set up
+   callback handlers at initialization time.  New data structures, a
+   new control command, and default initializers are provided for this
+   purpose.
+
+ * Interface changes relative to the 1.1.93 release:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+libgcrypt-config --thread	OBSOLETE
+libgcrypt-pth.la		REMOVED
+libgcrypt-pthread.la		REMOVED
+GCRYCTL_SET_THREAD_CBS		NEW
+struct gcrypt_thread_cbs	NEW
+enum gcry_thread_option		NEW
+GCRY_THREAD_OPTION_PTH_IMPL	NEW
+GCRY_THREAD_OPTION_PTHREAD_IMPL	NEW
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Noteworthy changes in version 1.1.93 (2004-03-06)
 -------------------------------------------------
