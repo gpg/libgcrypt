@@ -156,6 +156,10 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	_gcry_private_enable_m_guard();
 	break;
 
+      case GCRYCTL_ENABLE_QUICK_RANDOM:
+        _gcry_quick_random_gen (1);
+        break;
+
       case GCRYCTL_DUMP_RANDOM_STATS:
 	_gcry_random_dump_stats();
 	break;

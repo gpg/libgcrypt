@@ -1,3 +1,8 @@
+2003-01-23  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h (GCRY_ENABLE_QUICK_RANDOM): New. 
+	* global.c (gcry_control): 
+
 2003-01-21  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (gcry_random_add_bytes): Add QUALITY argument.
