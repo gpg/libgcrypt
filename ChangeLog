@@ -1,3 +1,20 @@
+2003-06-17  Moritz Schulte  <moritz@g10code.com>
+
+	* acinclude.m4: Removed macro definitions: GNUPG_CHECK_FAQPROG,
+	GNUPG_CHECK_ENDIAN, GNUPG_CHECK_CACHE, GNUPG_CHECK_PIC,
+	GNUPG_CHECK_EXPORTDYNAMIC, GNUPG_CHECK_IPC, GNUPG_PROG_NM,
+	GNUPG_SYS_SYMBOL_UNDERSCORE, GNUPG_FUNC_MKDIR_TAKES_ONE_ARG,
+	GPH_PROG_DB2ANY.
+	Added macro definitions: AM_PATH_GPG_ERROR.
+	
+	* configure.ac: Use alternative approach for building based on
+	conditional sources, which does not make automake eat all your
+	memory, etc.
+	Removed unused tests.
+	Renamed --enable-static-rnd to --enable-random.
+	Use Autoconf's AC_C_BIGENDIAN macro instead of our own.
+	Re-organized the whole file.
+
 2003-06-16  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac (AC_CONFIG_FILES): Removed doc/version.sgml.
