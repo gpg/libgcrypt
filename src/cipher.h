@@ -30,6 +30,8 @@
 
 /*-- rmd160.c --*/
 void _gcry_rmd160_hash_buffer (char *outbuf, const char *buffer, size_t length);
+/*-- sha1.c --*/
+void _gcry_sha1_hash_buffer (char *outbuf, const char *buffer, size_t length);
 
 /*-- smallprime.c --*/
 extern ushort small_prime_numbers[];

@@ -1,3 +1,9 @@
+2003-11-04  Werner Koch  <wk@gnupg.org>
+
+	* cipher.h (_gcry_sha1_has_buffer): New.
+
+	* gcrypt.h (gcry_create_nonce): New.
+
 2003-10-31  Werner Koch  <wk@gnupg.org>
 
 	* libgcrypt.vers (_gcry_generate_elg_prime): Removed this symbol;

@@ -42,7 +42,7 @@ extern "C" {
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.1.44"
+#define GCRYPT_VERSION "1.1.90-cvs"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -1160,9 +1160,9 @@ gcry_error_t gcry_md_list (int *list, int *list_length);
  ************************************/
 
 /* The possible values for the random quality.  The rule of thumb is
-   to use WEAK for random number which don't need to be
-   cryptographically strong, STRONG for session keys and VERY_STRONG
-   for key material. */
+   to use STRONG for session keys and VERY_STRONG for key material.
+   WEAK is currently an alias for STRONG and should not be used
+   anymore - use gcry_create_nonce instead. */
 typedef enum gcry_random_level
   {
     GCRY_WEAK_RANDOM = 0,
@@ -1194,10 +1194,16 @@ void *gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
                                 _GCRY_GCC_ATTR_MALLOC;
 
 
-/* Set the big inetger W to a random value of NBITS using a random
+/* Set the big integer W to a random value of NBITS using a random
    generator with quality LEVEL. */
 void gcry_mpi_randomize (gcry_mpi_t w,
                          unsigned int nbits, enum gcry_random_level level);
+
+
+/* Create an unpredicable nonce of LENGTH bytes in BUFFER. */
+void gcry_create_nonce (unsigned char *buffer, size_t length);
+
+
 
 /* Prime interface.  */
 
