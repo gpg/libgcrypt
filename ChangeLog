@@ -1,3 +1,8 @@
+2002-02-18  Werner Koch  <wk@gnupg.org>
+
+	* configure.ac (MPI_EXTRA_ASM_OBJS): Use .lo suffix.
+	(AC_CANONICAL_TARGET): Added.
+
 2002-02-07  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.6. 

@@ -25,7 +25,7 @@ AC_PREREQ(2.52)
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-AC_INIT(libgcrypt,1.1.6)
+AC_INIT(libgcrypt,1.1.7-cvs)
 LIBGCRYPT_LT_CURRENT=3
 LIBGCRYPT_LT_AGE=2
 LIBGCRYPT_LT_REVISION=1
@@ -36,6 +36,7 @@ VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_SRCDIR([src/gcrypt.h])
 AC_CONFIG_AUX_DIR(scripts)
+AC_CANONICAL_TARGET()
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 AM_CONFIG_HEADER(config.h)
 
@@ -682,7 +683,7 @@ show_extraasm=""
 if test "$ac_cv_mpi_extra_asm_modules" != ""; then
 for i in $ac_cv_mpi_extra_asm_modules; do
     show_extraasm="$show_extraasm $i"
-    MPI_EXTRA_ASM_OBJS="$MPI_EXTRA_ASM_OBJS $i.o"
+    MPI_EXTRA_ASM_OBJS="$MPI_EXTRA_ASM_OBJS $i.lo"
 done
 fi
 AC_SUBST(MPI_EXTRA_ASM_OBJS)
