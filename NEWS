@@ -1,12 +1,14 @@
 Noteworthy changes in version 1.1.42 (unreleased)
 -------------------------------------------------
 
+ * Major API cleanup.  Applications need to be converted to the new
+   API.  See README.apichanges for hints on how to do that.
+
  * New function gcry_mpi_dump to help in debugging. 
 
  * Added alternative interface for asymmetric cryptography.
 
- * Removed `libgcrypt errno' concept, resulting in some more API
-   changes.
+ * Removed `libgcrypt errno' concept.
 
  * Renamed all libgcrypt specific types.
 
@@ -54,7 +56,8 @@ gcry_err_code_to_errno		NEW
 gcry_err_make_from_errno	NEW
 gcry_error_from_errno		NEW
 gcry_strsource			NEW
-GCRYERR_{some error code}	REMOVED; Use GPG_ERR_* from libgpg-error instead.
+GCRYERR_{some error code}	REMOVED; Use GPG_ERR_*
+                                         from libgpg-error instead.
 gcry_errno                      REMOVED
 gcry_sexp_canon_len		CHANGED
 gcry_sexp_build_array		NEW
@@ -71,7 +74,8 @@ gcry_cipher_algo_blklen		REPLACED macro with function.
 gcry_pk_register		NEW
 gcry_pk_unregister		NEW
 gcry_pk_list			NEW
-gcry_pk_decrypt			ENHANCED: Allows flag to return complete S-expression.
+gcry_pk_decrypt			ENHANCED: Allows flag to return
+                                          complete S-expression.
 gcry_md_open			CHANGED
 gcry_md_copy			CHANGED
 gcry_md_is_enabled		NEW

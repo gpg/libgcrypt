@@ -1,9 +1,9 @@
 Library: Libgcrypt
-Maintainer: Werner Koch <wk@g10code.com>
+Maintainer: Moritz Schulte <moritz@g10code.com>
 Bug reports: <bug-libgcrypt@gnupg.org>
 Security related bug reports: <security@gnupg.org>
 
-Libgcrypt used to be part of GnuPG but has been take out into its own
+Libgcrypt used to be part of GnuPG but has been taken out into its own
 package on 2000-12-21.
 
 
@@ -66,8 +66,8 @@ The ATH implementation (src/ath*) has been taken from GPGME and
 relicensed to the LGPL by the copyright holder of GPGME (g10 Code
 GmbH); it is now considered to be a part of Libgcrypt.
 
-Most of the stuff in mpi has been taken from the GMP library by
-Torbjorn Granlund <tege@noisy.tmg.se>.
+Most of the stuff in mpi has been taken from an old GMP library
+version by Torbjorn Granlund <tege@noisy.tmg.se>.
 
 The files cipher/rndunix.c and cipher/rndw32.c are based on those
 files from Cryptlib.  Copyright Peter Gutmann, Paul Kendall, and Chris

@@ -29,7 +29,11 @@ there won't be another need for such a major change.
 * Initialization
 
   For proper initialization of the library, you must call
-  gcry_check_version() before calling any other function.
+  gcry_check_version() before calling any other function except for a
+  these gcry_control operations:
+     GCRYCTL_SUSPEND_SECMEM_WARN
+     GCRYCTL_DISABLE_INTERNAL_LOCKING
+
 
 * Handles
 
@@ -81,13 +85,13 @@ there won't be another need for such a major change.
   gpg_strerror, the latter function can also be used).
 
   Instead of using the error codes GCRYERR_*, you have to use the
-  GPG_ERR_* names.
+  GPG_ERR_* names. 
 
 * S-expressions
 
   gcry_sexp_canon_len used to return a `historical' error code in
   `errcode', this is not the case anymore; the value returned in
-  `errcode' is a simple Libgcrypt error code.
+  `errcode' is now a standard Libgcrypt (i.e. gpg-error) error code.
 
 * MPI
 
@@ -104,3 +108,4 @@ there won't be another need for such a major change.
   complete S-expression of the following format:
 
     (value PLAINTEXT)
+
