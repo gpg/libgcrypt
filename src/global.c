@@ -293,6 +293,41 @@ gcry_strsource (gcry_error_t err)
   return gpg_strsource (err);
 }
 
+/* Retrieve the error code for the system error ERR.  This returns
+   GPG_ERR_UNKNOWN_ERRNO if the system error is not mapped (report
+   this).  */
+gcry_err_code_t
+gcry_err_code_from_errno (int err)
+{
+  return gpg_err_code_from_errno (err);
+}
+
+
+/* Retrieve the system error for the error code CODE.  This returns 0
+   if CODE is not a system error code.  */
+int
+gcry_err_code_to_errno (gcry_err_code_t code)
+{
+  return gpg_err_code_from_errno (code);
+}
+
+  
+/* Return an error value with the error source SOURCE and the system
+   error ERR.  */
+gcry_error_t
+gcry_err_make_from_errno (gpg_err_source_t source, int err)
+{
+  return gpg_err_make_from_errno (source, err);
+}
+
+
+/* Return an error value with the system error ERR.  */
+gcry_err_code_t
+gcry_error_from_errno (int err)
+{
+  return gcry_error (gpg_err_code_from_errno (err));
+}
+
 /****************
  * NOTE: All 5 functions should be set.  */
 void

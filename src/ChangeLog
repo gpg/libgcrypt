@@ -1,5 +1,12 @@
 2003-07-28  Moritz Schulte  <moritz@g10code.com>
 
+	* global.c (gcry_err_code_from_errno, gcry_err_code_to_errno)
+	(gcry_err_make_from_errno, gcry_error_from_errno): New functions.
+
+	* gcrypt.h: Declared: gcry_err_code_from_errno,
+	gcry_err_code_to_errno, gcry_err_make_from_errno,
+	gcry_error_from_errno.
+
 	* Makefile.am (include_HEADERS): Added: gcrypt-module.h.
 
 	* gcrypt.h: Include <gcrypt-module.h>.
