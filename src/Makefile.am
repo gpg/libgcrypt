@@ -1,20 +1,25 @@
 ## Process this file with automake to produce Makefile.in
-
-# Libtool -version-info for libgcrypta.  See (libtool)Versioning
+# Copyright (C) 1998,1999,2000,2001,2002 Free Software Foundation, Inc.
 #
-# 1. No interfaces changed, only implementations (good): Increment REVISION.
+# This file is part of Libgcrypt.
 #
-# 2. Interfaces added, none removed (good): Increment CURRENT, increment
-#    AGE, set REVISION to 0.
+# Libgcrypt is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as
+# published by the Free Software Foundation; either version 2.1 of
+# the License, or (at your option) any later version.
 #
-# 3. Interfaces removed (BAD, breaks upward compatibility): Increment
-#    CURRENT, set AGE and REVISION to 0.
+# Libgcrypt is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
 #
-# Rember to change this just before a release.
+# You should have received a copy of the GNU Lesser General Public
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
 
 # It seems that we need gcrypt.m4 here too
-EXTRA_DIST = libgcrypt-config.in  libgcrypt.m4
+EXTRA_DIST = libgcrypt-config.in  libgcrypt.m4 libgcrypt.vers
 
 #INCLUDES =  -I$(top_srcdir)/intl
 
@@ -50,11 +55,15 @@ ath_components_pth =
 endif
 ath_components = ath.h ath.c ${ath_components_pthread} ${ath_components_pth}
 
+if HAVE_LD_VERSION_SCRIPT
+libgcrypt_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt.vers
+else
+libgcrypt_version_script_cmd = 
+endif
 
-libgcrypt_la_LDFLAGS = -version-info \
+
+libgcrypt_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
       @LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@ 
-# limiting the exported symbols is not good for debugging.
-#      -export-symbols libgcrypt.sym
 
 libgcrypt_la_SOURCES =	 g10lib.h \
 		         types.h \
@@ -68,20 +77,10 @@ libgcrypt_la_SOURCES =	 g10lib.h \
 			 secmem.h \
 		         mpi.h \
 			 missing-string.c \
-			 ${ath_components} 
+			 ${ath_components}
 
-libgcrypt_la_DEPENDENCIES = libgcrypt.sym \
-			    ../cipher/libcipher.la ../mpi/libmpi.la
-libgcrypt_la_LIBADD = ../cipher/libcipher.la  \
-		      ../mpi/libmpi.la
+libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
+                         $(srcdir)/libgcrypt.vers
 
-
-BUILT_SOURCES = libgcrypt.sym
-DISTCLEANFILES = libgcrypt.sym
-
-# libtool's --export-symbols-regex does not work in 1.3.2
-# so we do it ourself
-libgcrypt.sym: $(libgcrypt_la_OBJECTS)
-	    $(NM) $(libgcrypt_la_OBJECTS) \
-	      | $(AWK) '$$2=="T" && $$3 ~ /^gcry_/ {print $$3}' >libgcrypt.sym
+libgcrypt_la_LIBADD = ../cipher/libcipher.la  ../mpi/libmpi.la
 
