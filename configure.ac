@@ -384,9 +384,26 @@ AC_CHECK_FUNCS(waitpid wait4 sigaction sigprocmask fopen64 fstat64)
 GNUPG_CHECK_MLOCK
 GNUPG_FUNC_MKDIR_TAKES_ONE_ARG
 
-dnl
-dnl Check whether we can use Linux capabilities as requested
-dnl
+# 
+# The ATH systems needs to know whether pth or pthreads are available.
+# 
+have_pth=no
+have_pthread=no
+AC_CHECK_LIB(pth,pth_version,have_pth=yes)
+if test "$have_pth" = yes; then
+  AC_DEFINE(HAVE_PTH, ,[Define if we have Pth.])
+fi
+AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
+if test "$have_pthread" = yes; then
+  AC_DEFINE(HAVE_PTHREAD, ,[Define if we have pthread.])
+fi
+AM_CONDITIONAL(HAVE_PTH, test "$have_pth" = "yes")
+AM_CONDITIONAL(HAVE_PTHREAD, test "$have_pthread" = "yes")
+
+
+#
+# Check whether we can use Linux capabilities as requested
+#
 if test "$use_capabilities" = "yes" ; then
 use_capabilities=no
 AC_CHECK_HEADERS(sys/capability.h)

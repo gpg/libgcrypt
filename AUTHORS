@@ -52,6 +52,10 @@ twoaday@freakmail.de
 
 More credits
 ============
+The ATH implementation (src/ath*) has been taken from GPGME and
+relicensed to the GPL by the copyrighr holder of GPGME (g10 Code
+GmbH) it is now considered to be a part of Libgcrypt.
+
 Most of the stuff in mpi has been taken from the GMP library by
 Torbjorn Granlund <tege@noisy.tmg.se>.
 
@@ -69,3 +73,5 @@ Wedgwood 1996-1999.
  This file is distributed in the hope that it will be useful, but
  WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+
