@@ -1,26 +1,26 @@
 /* rsa.c  -  RSA function
  *	Copyright (C) 1997, 1998, 1999 by Werner Koch (dd9jn)
- *	Copyright (C) 2000, 2001 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2001, 2002 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
  *
  * Libgcrypt is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
 /* This code uses an algorithm protected by U.S. Patent #4,405,829
-   which expires on September 20, 2000.  The patent holder placed that
+   which expired on September 20, 2000.  The patent holder placed that
    patent into the public domain on Sep 6th, 2000.
 */
 

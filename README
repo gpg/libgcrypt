@@ -2,19 +2,78 @@
 		   ------------------------------------
   			    Version 1.1
 
-        	WARNING:  This is work in PROGRESS!
+    Copyright 2000, 2002 Free Software Foundation, Inc.
 
-Libgcrypt is a general purpose crypto library based on the code used
-in GnuPG.  We can't start with a new version number becuase libgcrypt
-was part of gnupg 1.1 and some applications already used it and tested
-for the version number. We believe that the API can stay as it is,
-except that new functions may be added in the future.
+    This file is free software; as a special exception the author gives
+    unlimited permission to copy and/or distribute it, with or without
+    modifications, as long as this notice is preserved.
 
-This is a development version, the first stable version will be 1.2.0.
+    This file is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-If you are using the CVS version, make sure that you have the latest
-automake (I am using Debian Sid) and run ./autogen.sh to create
-configure.
+
+    THIS IS A DEVELOPMENT VERSION, THE FIRST STABLE VERSION WILL BE 1.2.0.
+
+
+    Overview
+    --------
+
+    Libgcrypt is a general purpose crypto library based on the code
+    used in GnuPG.  We can't start with a new version number because
+    libgcrypt was part of gnupg 1.1 and some applications already used
+    it and tested for the version number. We believe that the API can
+    stay as it is, except that new functions may be added in the
+    future.
+
+
+    CVS
+    ---
+
+    If you are using the CVS version, make sure that you have the
+    latest automake (I am using Debian Sid) and run ./autogen.sh to
+    create configure.
+
+
+    Mailing List
+    ------------
+
+    You may want to join the developer's mailing list
+    gcrypt-devel@gnupg.org by sending mail with a subject of
+    "subscribe" to gcrypt-devel-request@gnupg.org.  An archive of this
+    list is available at http://lists.gnupg.org .
+
+
+    License
+    -------
+    
+    Most of this library is distributed under the terms of the GNU
+    Lesser General Public License (LGPL); see the file COPYING.LIB for
+    the actual terms.  However some parts are distributed under the
+    GNU General Public License (GPL) so if you configure Libgcrypt to
+    include these modules or use these modules as dynamically loaded
+    plug-ins, you have to comply with the conditions of the GPL as
+    found in the file COPYING.  The modules under the GPL are:
+
+      rndunix - Entropy gatherer for Unices without a /dev/random
+      rndw32  - Entropy gatherer for MS Windows
+
+    The documentation is available under the terms of the GNU Free
+    Documentation License; see the file COPYING.DOC for the terms.
+
+    This library used to be available under the GPL - this was changed
+    with version 1.1.7 with the rationale that there are now many free
+    crypto libraries available and many of them come with capabilities
+    similar to Libcrypt.  We decided that to foster the use of
+    cryptography in Free Software an LGPLed library would make more
+    sense because it avoids problems due to license incompatibilities
+    between some Free Software licenses and the GPL.  Please note that
+    it general the use of the LGPL is not suggested, see
+    http://www.gnu.org/philosophy/why-not-lgpl.html
+
+
+
+
 
 
 

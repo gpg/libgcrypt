@@ -55,11 +55,17 @@ More credits
 Most of the stuff in mpi has been taken from the GMP library by
 Torbjorn Granlund <tege@noisy.tmg.se>.
 
-The file cipher/rndunix.c is based on rndunix.c from cryptlib.
-Copyright Peter Gutmann, Paul Kendall, and Chris Wedgwood 1996-1999.
+The files cipher/rndunix.c and cipher/rndw32.c are based on those
+files from Cryptlib.  Copyright Peter Gutmann, Paul Kendall, and Chris
+Wedgwood 1996-1999.
 
 
+ Copyright 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
 
+ This file is free software; as a special exception the author gives
+ unlimited permission to copy and/or distribute it, with or without
+ modifications, as long as this notice is preserved.
 
-
-
+ This file is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+ implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

@@ -1,3 +1,7 @@
+2002-05-14  Werner Koch  <wk@gnupg.org>
+
+	Changed license of all files to the LGPL.
+
 2002-05-07  Werner Koch  <wk@gnupg.org>
 
 	* global.c (gcry_control): Add commands

@@ -87,8 +87,10 @@ This is Edition @value{EDITION}, last updated @value{UPDATED}, of
 
 Appendices
 
+* Library Copying::             The GNU Lesser General Public License
+                                says how you can copy and share `Libgcrypt'.
 * Copying::                     The GNU General Public License says how you
-                                can copy and share `GnuPG Made Easy'.
+                                can copy and share some parts of `Libgcrypt'.
 * Free Documentation License::  This manual is under the GNU Free
                                 Documentation License.
 
@@ -98,25 +100,6 @@ Indices
 * Function and Data Index::     Index of functions, variables and data types.
 
 @detailmenu
- --- The Detailed Node Listing ---
-
-Introduction
-
-* Getting Started::             
-* Features::                    
-* Overview::                    
-
-Preparation
-
-* Header::                      
-* Version Check::               
-* Building the source::         
-
-Error Handling
-
-* Error values::                
-* Error strings::               
-
 @end detailmenu
 @end menu
 
@@ -155,13 +138,17 @@ of the interface which are unclear.
 @node Features
 @section Features
 
-`Libgcrypt' has a couple of advantages over other libraries doing a
-similar job.
+`Libgcrypt' might have a couple of advantages over other libraries doing
+a similar job.
 
 @table @asis
 @item It's Free Software
 Anybody can use, modify, and redistribute it under the terms of the GNU
-General Public License (@pxref{Copying}).
+Lesser General Public License (@pxref{Library Copying}).  Note, that
+some parts (which are not needed on a GNU or GNU/Linux system) are
+subject to the terms of the GNU General Public License
+(@pxref{Copying}); please see the README file of the distribution for of
+list of these parts.
 
 @item It encapsulates the low level cryptography
 `Libgcrypt' a high level interface to cryptographic buiilding blocks
@@ -175,7 +162,7 @@ using an extendable and flexible API.
 
 Blurb
 
-The `Libgcrypt' library is thread-safe.
+The `Libgcrypt' library is thread-safe.  Well, we hope so ;-)
 
 
 @c **********************************************************
@@ -394,467 +381,467 @@ Overlapping buffers are not allowed.
 How to use cryptographic hash functions.
 
 
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_open</refname>
-    <refname>gcry_md_enable</refname>
-    <refname>gcry_md_close</refname>
-    <refpurpose>create and destroy a message digest context</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>GCRY_MD_HD <function>gcry_md_open</function></funcdef>
-	<paramdef>int <parameter>algo</parameter></paramdef>
-	<paramdef>unsigned int <parameter>flags</parameter></paramdef>
-      </funcprototype>
-      <funcprototype>
-	<funcdef>void <function>gcry_md_enable</function></funcdef>
-	<paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-	<paramdef>int <parameter>algo</parameter></paramdef>
-      </funcprototype>
-      <funcprototype>
-	<funcdef>void <function>gcry_md_close</function></funcdef>
-	<paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_open</secondary>
-	     </indexterm>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_enable</secondary>
-	     </indexterm>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_close</secondary>
-	     </indexterm>
-  <function>gcry_md_open</function> creates the context required for
-  the message digest functions.  The hash algorithm may optionally be
-  specified. It is possible to use these functions as MAC functons; therefore
-  the flag <literal/GCRY_MD_FLAG_HMAC/ must be given along with the
-  hash functions.  Other MAC algorithms than  HMAC are currently not
-  supported.  The key for the MAC must be set using
-  the <function>gcry_md_setkey</> function.
-  <function>gcry_md_close</function> releases all resources associated
-  with the context.
-  <function>gcry_md_enable</function> may be used to enable hash
-  algorithms.  This function may be used multiple times to create
-  a hash context for multiple algorithms.  Adding an already enabled algorithm
-  has no effect.  A algorithm must be enabled prios to calculate hash
-  algorithms.
-  </para>
-</refentry>
-
-<!--**********************************************
-***********  md_copy *****************************
-***********************************************-->
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_copy</refname>
-    <refpurpose>create and copy of a message digest context</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>GCRY_MD_HD <function>gcry_md_copy</function></funcdef>
-	<paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_copy</secondary>
-	     </indexterm>
-  <function>gcry_md_copy</function> creates an excat copy of the given context.
-  This is useful to calculate hashes with a common initial part of the
-  plaintext.
-  </para>
-</refentry>
-
-<!--**********************************************
-***********  md_reset  ***************************
-***********************************************-->
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_reset</refname>
-    <refpurpose>reset a message digest context</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>void <function>gcry_md_reset</function></funcdef>
-	<paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_reset</secondary>
-	     </indexterm>
-  <function>gcry_md_reset</function> is used to reuse a message context
-  without the overhead of an open and close operation.
-  </para>
-</refentry>
-
-
-<!--**********************************************
-***********  md_ctl  *****************************
-***********************************************-->
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_ctl</refname>
-    <refname>gcry_md_final</refname>
-    <refname>gcry_md_setkey</refname>
-    <refpurpose>perform special operations on a digest context</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>int <function>gcry_md_ctl</function></funcdef>
-	<paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-	<paramdef>int <parameter>cmd</parameter></paramdef>
-	<paramdef>unsigned char * <parameter>buffer</parameter></paramdef>
-	<paramdef>size_t <parameter>buflen</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_ctl</secondary>
-	     </indexterm>
-  <function>gcry_md_ctl</function> is a multi-purpose function
-  to control the behaviour of all gcry_md functions or one instance
-  of it.
-  </para>
-  <para>
-  Currently defined values for <parameter>cmd</> are:
-  </para>
-  <para>
-    <literal>GCRYCTL_FINALIZE</> and the convenience macro
-    <function>gcry_md_final(a)</>
-  </para>
-  <para>
-    <literal>GCRYCTL_SET_KEY</> and the convenience macro
-    <function>gcry_md_setkey(a)</>.  This is used to turn these
-    hash functions into MAC functions.	The key may be any string
-    of the speicified length.  The type of the MAC is determined
-    by special flags set with the open function.
-    NEW:  There is now a function to do this
-  </para>
-</refentry>
-
-<!--**********************************************
-***********  md_write, putc  *********************
-***********************************************-->
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_write</refname>
-    <refname>gcry_md_putc</refname>
-    <refpurpose>calculate the message digest of a buffer</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>int <function>gcry_md_write</function></funcdef>
-	<paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-	<paramdef>unsigned char * <parameter>buffer</parameter></paramdef>
-	<paramdef>size_t <parameter>buflen</parameter></paramdef>
-      </funcprototype>
-      <funcprototype>
-	<funcdef>int <function>gcry_md_putc</function></funcdef>
-	<paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-	<paramdef>int <parameter>c</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_write</secondary></indexterm>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_putc</secondary></indexterm>
-  <function>gcry_md_write</function> is used to actually calulate the message
-  digest of a buffer.  This function updates the internal state of the message
-  digest.
-  </para>
-  <para>
-  <function>gcry_md_putc</function> is a macro which is used to update
-  the message digest by one byte.  this is the preferred way to calculate
-  a digest if only a few bytes at a time are available.
-  </para>
-</refentry>
-
-<!--**********************************************
-***********  md_read *****************************
-***********************************************-->
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_read</refname>
-    <refpurpose>read out the message digest</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>unsigned char * <function>gcry_md_read</function></funcdef>
-	<paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-	<paramdef>int <parameter>algo</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_read</secondary>
-	     </indexterm>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_putc</secondary>
-	     </indexterm>
-  <function>gcry_md_read</function> returns the message digest after finalizing
-  the calculation.  This function may be used as often as required but it
-  will alwas return the same value for one handle.  The returned message
-  digest is allocated within the message context and therefore valid until
-  the conext is released.  <parameter>algo</> may be given as 0 to return the
-  only enbaled message digest or it may specify one of the enabled algorithms.
-  The function will return NULL if the algorithm has not been enabled.
-  </para>
-</refentry>
-
-
-<!--**********************************************
-***********  md_info  ****************************
-***********************************************-->
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_info</refname>
-    <refpurpose>get information about a handle</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>int <function>gcry_md_info</function></funcdef>
-	<paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
-	<paramdef>int	     <parameter>what</parameter></paramdef>
-	<paramdef>void * <parameter>buffer</parameter></paramdef>
-	<paramdef>size_t <parameter>buflen</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_info</secondary>
-	     </indexterm>
-  <function>gcry_md_info</function> returns some information about the
-  handle or an global parameter.
-  </para>
-  <para>
-  The only defined value for <parameter>what</> is
-  <literal>GCRYCTL_IS_SECURE</literal> to return whether the handle
-  has been allocated in secure memory.	Buffer and buflen are not needed
-  in this cases.  The convenience macro <function>gcry_md_is_secure(a)</>
-  may be also used for this purpose.
-  </para>
-</refentry>
-
-
-<!--**********************************************
-***********  md_algo_info  ***********************
-***********************************************-->
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_algo_info</refname>
-    <refname>gcry_md_test_algo</refname>
-    <refname>gcry_md_get_algo_dlen</refname>
-    <refpurpose>get information about an algorithm</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>int <function>gcry_md_algo_info</function></funcdef>
-	<paramdef>int	     <parameter>algo</parameter></paramdef>
-	<paramdef>int	     <parameter>what</parameter></paramdef>
-	<paramdef>void * <parameter>buffer</parameter></paramdef>
-	<paramdef>size_t <parameter>buflen</parameter></paramdef>
-      </funcprototype>
-      <funcprototype>
-	<funcdef>unsigned int <function>gcry_md_get_algo_dlen</function></funcdef>
-	<paramdef>int <parameter>algo</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_algo_info</secondary>
-	     </indexterm>
-  <function>gcry_md_algo_info</function> returns some information about an
-  algorithm.  On error the value -1 is return and a more detailed error
-  description is available with <function>gcry_errno</>.
-  </para>
-  <para>
-  The defined values for <parameter>what</> are
-  <literal>GCRYCTL_TEST_ALGO</literal> to return whether the algorithm
-  is supported. Buffer and buflen are not needed
-  in this cases.  The convenience macro <function>gcry_md_test_algo(a)</>
-  may be used for this purpose.
-  </para>
-  <para>
-  <literal>GCRYCTL_GET_ASNOID</literal> to return whether the ASN.1
-  object identifier.  IF buffer is specified as NULL, only the required
-  length for the buffer is returned.
-  </para>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_get_algo_dlen</secondary>
-	     </indexterm>
-  <function>gcry_md_get_algo_dlen</function> returns the length of the
-  digest for a given algorithm in bytes.
-  </para>
-</refentry>
-
-
-<!--**********************************************
-***********  md_algo_name, map_name  *************
-***********************************************-->
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_algo_name</refname>
-    <refname>gcry_md_map_name</refname>
-    <refpurpose>map algorithm to string</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>const char * <function>gcry_md_algo_name</function></funcdef>
-	<paramdef>int	     <parameter>algo</parameter></paramdef>
-      </funcprototype>
-      <funcprototype>
-	<funcdef>int <function>gcry_md_map_name</function></funcdef>
-	<paramdef>const char*<parameter>name</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_algo_name</secondary>
-	     </indexterm>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_map_name</secondary>
-	     </indexterm>
-  These both functions are used to map a string with the algorithm name to
-  the internal algorithm identifier value and vice versa.
-  </para>
-  <para>
-  <function>gcry_md_algo_name</> never returns NULL even in cases where the
-  algorithm string is not available.  Instead a string consisting of a
-  single question mark is returned.  Do not use this function to test
-  for the existence of an algorithm.
-  </para>
-  <para>
-  <function>gcry_md_map_name</> returns 0 if the algorithm is not known
-  to &libgcrypt;.
-  </para>
-</refentry>
-
-
-
-<!--**********************************************
-***********  md_hash_buffer  *********************
-***********************************************-->
-<refentry>
-  <refnamediv>
-    <refname>gcry_md_hash_buffer</refname>
-    <refpurpose>fast message calculation</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>int <function>gcry_md_hash_buffer</function></funcdef>
-	<paramdef>int  <parameter>algo</parameter></paramdef>
-	<paramdef>char * <parameter>digest</parameter></paramdef>
-	<paramdef>const char * <parameter>buffer</parameter></paramdef>
-	<paramdef>size_t <parameter>buflen</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>hash functions</primary>
-	     <secondary>gcry_md_hash_buffer</secondary>
-	     </indexterm>
-  <function>gcry_md_hash_buffer</function> is a shortcut function
-  to calculate a message digest of a buffer.  This function does not require
-  a context and immediatley returns the message digest.
-  <parameter>digest</> must be string large enough to hold the digest
-  given by algo.  This length may be obtained by using the function
-  <function>gcry_md_get_algo_dlen</> but in most cases it will be a statically
-  allocated buffer.
-  </para>
-</refentry>
-
-
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_open</refname>
+@c     <refname>gcry_md_enable</refname>
+@c     <refname>gcry_md_close</refname>
+@c     <refpurpose>create and destroy a message digest context</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>GCRY_MD_HD <function>gcry_md_open</function></funcdef>
+@c         <paramdef>int <parameter>algo</parameter></paramdef>
+@c         <paramdef>unsigned int <parameter>flags</parameter></paramdef>
+@c       </funcprototype>
+@c       <funcprototype>
+@c         <funcdef>void <function>gcry_md_enable</function></funcdef>
+@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
+@c         <paramdef>int <parameter>algo</parameter></paramdef>
+@c       </funcprototype>
+@c       <funcprototype>
+@c         <funcdef>void <function>gcry_md_close</function></funcdef>
+@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_open</secondary>
+@c              </indexterm>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_enable</secondary>
+@c              </indexterm>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_close</secondary>
+@c              </indexterm>
+@c   <function>gcry_md_open</function> creates the context required for
+@c   the message digest functions.  The hash algorithm may optionally be
+@c   specified. It is possible to use these functions as MAC functons; therefore
+@c   the flag <literal/GCRY_MD_FLAG_HMAC/ must be given along with the
+@c   hash functions.  Other MAC algorithms than  HMAC are currently not
+@c   supported.  The key for the MAC must be set using
+@c   the <function>gcry_md_setkey</> function.
+@c   <function>gcry_md_close</function> releases all resources associated
+@c   with the context.
+@c   <function>gcry_md_enable</function> may be used to enable hash
+@c   algorithms.  This function may be used multiple times to create
+@c   a hash context for multiple algorithms.  Adding an already enabled algorithm
+@c   has no effect.  A algorithm must be enabled prios to calculate hash
+@c   algorithms.
+@c   </para>
+@c </refentry>
+@c 
+@c <!--**********************************************
+@c ***********  md_copy *****************************
+@c ***********************************************-->
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_copy</refname>
+@c     <refpurpose>create and copy of a message digest context</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>GCRY_MD_HD <function>gcry_md_copy</function></funcdef>
+@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_copy</secondary>
+@c              </indexterm>
+@c   <function>gcry_md_copy</function> creates an excat copy of the given context.
+@c   This is useful to calculate hashes with a common initial part of the
+@c   plaintext.
+@c   </para>
+@c </refentry>
+@c 
+@c <!--**********************************************
+@c ***********  md_reset  ***************************
+@c ***********************************************-->
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_reset</refname>
+@c     <refpurpose>reset a message digest context</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>void <function>gcry_md_reset</function></funcdef>
+@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_reset</secondary>
+@c              </indexterm>
+@c   <function>gcry_md_reset</function> is used to reuse a message context
+@c   without the overhead of an open and close operation.
+@c   </para>
+@c </refentry>
+@c 
+@c 
+@c <!--**********************************************
+@c ***********  md_ctl  *****************************
+@c ***********************************************-->
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_ctl</refname>
+@c     <refname>gcry_md_final</refname>
+@c     <refname>gcry_md_setkey</refname>
+@c     <refpurpose>perform special operations on a digest context</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>int <function>gcry_md_ctl</function></funcdef>
+@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
+@c         <paramdef>int <parameter>cmd</parameter></paramdef>
+@c         <paramdef>unsigned char * <parameter>buffer</parameter></paramdef>
+@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_ctl</secondary>
+@c              </indexterm>
+@c   <function>gcry_md_ctl</function> is a multi-purpose function
+@c   to control the behaviour of all gcry_md functions or one instance
+@c   of it.
+@c   </para>
+@c   <para>
+@c   Currently defined values for <parameter>cmd</> are:
+@c   </para>
+@c   <para>
+@c     <literal>GCRYCTL_FINALIZE</> and the convenience macro
+@c     <function>gcry_md_final(a)</>
+@c   </para>
+@c   <para>
+@c     <literal>GCRYCTL_SET_KEY</> and the convenience macro
+@c     <function>gcry_md_setkey(a)</>.  This is used to turn these
+@c     hash functions into MAC functions.	The key may be any string
+@c     of the speicified length.  The type of the MAC is determined
+@c     by special flags set with the open function.
+@c     NEW:  There is now a function to do this
+@c   </para>
+@c </refentry>
+@c 
+@c <!--**********************************************
+@c ***********  md_write, putc  *********************
+@c ***********************************************-->
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_write</refname>
+@c     <refname>gcry_md_putc</refname>
+@c     <refpurpose>calculate the message digest of a buffer</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>int <function>gcry_md_write</function></funcdef>
+@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
+@c         <paramdef>unsigned char * <parameter>buffer</parameter></paramdef>
+@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
+@c       </funcprototype>
+@c       <funcprototype>
+@c         <funcdef>int <function>gcry_md_putc</function></funcdef>
+@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
+@c         <paramdef>int <parameter>c</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_write</secondary></indexterm>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_putc</secondary></indexterm>
+@c   <function>gcry_md_write</function> is used to actually calulate the message
+@c   digest of a buffer.  This function updates the internal state of the message
+@c   digest.
+@c   </para>
+@c   <para>
+@c   <function>gcry_md_putc</function> is a macro which is used to update
+@c   the message digest by one byte.  this is the preferred way to calculate
+@c   a digest if only a few bytes at a time are available.
+@c   </para>
+@c </refentry>
+@c 
+@c <!--**********************************************
+@c ***********  md_read *****************************
+@c ***********************************************-->
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_read</refname>
+@c     <refpurpose>read out the message digest</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>unsigned char * <function>gcry_md_read</function></funcdef>
+@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
+@c         <paramdef>int <parameter>algo</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_read</secondary>
+@c              </indexterm>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_putc</secondary>
+@c              </indexterm>
+@c   <function>gcry_md_read</function> returns the message digest after finalizing
+@c   the calculation.  This function may be used as often as required but it
+@c   will alwas return the same value for one handle.  The returned message
+@c   digest is allocated within the message context and therefore valid until
+@c   the conext is released.  <parameter>algo</> may be given as 0 to return the
+@c   only enbaled message digest or it may specify one of the enabled algorithms.
+@c   The function will return NULL if the algorithm has not been enabled.
+@c   </para>
+@c </refentry>
+@c 
+@c 
+@c <!--**********************************************
+@c ***********  md_info  ****************************
+@c ***********************************************-->
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_info</refname>
+@c     <refpurpose>get information about a handle</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>int <function>gcry_md_info</function></funcdef>
+@c         <paramdef>GCRY_MD_HD <parameter>h</parameter></paramdef>
+@c         <paramdef>int	     <parameter>what</parameter></paramdef>
+@c         <paramdef>void * <parameter>buffer</parameter></paramdef>
+@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_info</secondary>
+@c              </indexterm>
+@c   <function>gcry_md_info</function> returns some information about the
+@c   handle or an global parameter.
+@c   </para>
+@c   <para>
+@c   The only defined value for <parameter>what</> is
+@c   <literal>GCRYCTL_IS_SECURE</literal> to return whether the handle
+@c   has been allocated in secure memory.	Buffer and buflen are not needed
+@c   in this cases.  The convenience macro <function>gcry_md_is_secure(a)</>
+@c   may be also used for this purpose.
+@c   </para>
+@c </refentry>
+@c 
+@c 
+@c <!--**********************************************
+@c ***********  md_algo_info  ***********************
+@c ***********************************************-->
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_algo_info</refname>
+@c     <refname>gcry_md_test_algo</refname>
+@c     <refname>gcry_md_get_algo_dlen</refname>
+@c     <refpurpose>get information about an algorithm</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>int <function>gcry_md_algo_info</function></funcdef>
+@c         <paramdef>int	     <parameter>algo</parameter></paramdef>
+@c         <paramdef>int	     <parameter>what</parameter></paramdef>
+@c         <paramdef>void * <parameter>buffer</parameter></paramdef>
+@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
+@c       </funcprototype>
+@c       <funcprototype>
+@c         <funcdef>unsigned int <function>gcry_md_get_algo_dlen</function></funcdef>
+@c         <paramdef>int <parameter>algo</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_algo_info</secondary>
+@c              </indexterm>
+@c   <function>gcry_md_algo_info</function> returns some information about an
+@c   algorithm.  On error the value -1 is return and a more detailed error
+@c   description is available with <function>gcry_errno</>.
+@c   </para>
+@c   <para>
+@c   The defined values for <parameter>what</> are
+@c   <literal>GCRYCTL_TEST_ALGO</literal> to return whether the algorithm
+@c   is supported. Buffer and buflen are not needed
+@c   in this cases.  The convenience macro <function>gcry_md_test_algo(a)</>
+@c   may be used for this purpose.
+@c   </para>
+@c   <para>
+@c   <literal>GCRYCTL_GET_ASNOID</literal> to return whether the ASN.1
+@c   object identifier.  IF buffer is specified as NULL, only the required
+@c   length for the buffer is returned.
+@c   </para>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_get_algo_dlen</secondary>
+@c              </indexterm>
+@c   <function>gcry_md_get_algo_dlen</function> returns the length of the
+@c   digest for a given algorithm in bytes.
+@c   </para>
+@c </refentry>
+@c 
+@c 
+@c <!--**********************************************
+@c ***********  md_algo_name, map_name  *************
+@c ***********************************************-->
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_algo_name</refname>
+@c     <refname>gcry_md_map_name</refname>
+@c     <refpurpose>map algorithm to string</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>const char * <function>gcry_md_algo_name</function></funcdef>
+@c         <paramdef>int	     <parameter>algo</parameter></paramdef>
+@c       </funcprototype>
+@c       <funcprototype>
+@c         <funcdef>int <function>gcry_md_map_name</function></funcdef>
+@c         <paramdef>const char*<parameter>name</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_algo_name</secondary>
+@c              </indexterm>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_map_name</secondary>
+@c              </indexterm>
+@c   These both functions are used to map a string with the algorithm name to
+@c   the internal algorithm identifier value and vice versa.
+@c   </para>
+@c   <para>
+@c   <function>gcry_md_algo_name</> never returns NULL even in cases where the
+@c   algorithm string is not available.  Instead a string consisting of a
+@c   single question mark is returned.  Do not use this function to test
+@c   for the existence of an algorithm.
+@c   </para>
+@c   <para>
+@c   <function>gcry_md_map_name</> returns 0 if the algorithm is not known
+@c   to &libgcrypt;.
+@c   </para>
+@c </refentry>
+@c 
+@c 
+@c 
+@c <!--**********************************************
+@c ***********  md_hash_buffer  *********************
+@c ***********************************************-->
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_md_hash_buffer</refname>
+@c     <refpurpose>fast message calculation</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>int <function>gcry_md_hash_buffer</function></funcdef>
+@c         <paramdef>int  <parameter>algo</parameter></paramdef>
+@c         <paramdef>char * <parameter>digest</parameter></paramdef>
+@c         <paramdef>const char * <parameter>buffer</parameter></paramdef>
+@c         <paramdef>size_t <parameter>buflen</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>hash functions</primary>
+@c              <secondary>gcry_md_hash_buffer</secondary>
+@c              </indexterm>
+@c   <function>gcry_md_hash_buffer</function> is a shortcut function
+@c   to calculate a message digest of a buffer.  This function does not require
+@c   a context and immediatley returns the message digest.
+@c   <parameter>digest</> must be string large enough to hold the digest
+@c   given by algo.  This length may be obtained by using the function
+@c   <function>gcry_md_get_algo_dlen</> but in most cases it will be a statically
+@c   allocated buffer.
+@c   </para>
+@c </refentry>
+@c 
+@c 
 
 
 @c **********************************************************
@@ -865,74 +852,74 @@ How to use cryptographic hash functions.
 
 How to use asymmetric encryption.
 
-<refentry>
-  <refnamediv>
-    <refname>gcry_pk_encrypt</refname>
-    <refpurpose>do a public key encryption</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>int <function>gcry_pk_encrypt</function></funcdef>
-	<paramdef>GCRY_SEXP *<parameter>result</parameter></paramdef>
-	<paramdef>GCRY_SEXP  <parameter>data</parameter></paramdef>
-	<paramdef>GCRY_SEXP  <parameter>pkey</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>public key functions</primary>
-	     <secondary>gcry_pk_encrypt</secondary>
-	     </indexterm>
-  <function>gcry_pk_encrypt</function> performs public key encryption
-  operations.  The caller has to provide a public key as the &sexp;
-  <parameter>pkey</> and <parameter>data</> as a &sexp;
-  with just one MPI in it.  The function returns a &sexp; which may
-  be passed tp to pk_decrypt.
-  Later versions of this functions may take more complex input data.
-
-  Returns: 0 or an errorcode.
-  </para>
-  <literallayout>
-  s_data = (<replaceable/mpi/)
-  s_pkey = <replaceable/key-as-defined-in-sexp_to_key/
-  r_ciph = (enc-val
-	     (<replaceable/algo/
-	       (<replaceable/param_name1/ <replaceable/mpi/)
-	       ...
-	       (<replaceable/param_namen/ <replaceable/mpi/)
-	     ))
-  </literallayout>
-</refentry>
-
-
-<!--
-int gcry_pk_decrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
-
-
-
-int gcry_pk_sign(    GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
-int gcry_pk_verify(  GCRY_SEXP sigval, GCRY_SEXP data, GCRY_SEXP pkey );
-int gcry_pk_testkey( GCRY_SEXP key );
-int gcry_pk_genkey(  GCRY_SEXP *r_key, GCRY_SEXP s_parms );
-
-int gcry_pk_ctl( int cmd, void *buffer, size_t buflen);
-int gcry_pk_algo_info( int algo, int what, void *buffer, size_t *nbytes);
-#define gcry_pk_test_algo(a) \
-	    gcry_pk_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
-
-const char *gcry_pk_algo_name( int algo );
-int gcry_pk_map_name( const char* name );
-unsigned int gcry_pk_get_nbits( GCRY_SEXP key );
-    -->
-
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_pk_encrypt</refname>
+@c     <refpurpose>do a public key encryption</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>int <function>gcry_pk_encrypt</function></funcdef>
+@c         <paramdef>GCRY_SEXP *<parameter>result</parameter></paramdef>
+@c         <paramdef>GCRY_SEXP  <parameter>data</parameter></paramdef>
+@c         <paramdef>GCRY_SEXP  <parameter>pkey</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>public key functions</primary>
+@c              <secondary>gcry_pk_encrypt</secondary>
+@c              </indexterm>
+@c   <function>gcry_pk_encrypt</function> performs public key encryption
+@c   operations.  The caller has to provide a public key as the &sexp;
+@c   <parameter>pkey</> and <parameter>data</> as a &sexp;
+@c   with just one MPI in it.  The function returns a &sexp; which may
+@c   be passed tp to pk_decrypt.
+@c   Later versions of this functions may take more complex input data.
+@c 
+@c   Returns: 0 or an errorcode.
+@c   </para>
+@c   <literallayout>
+@c   s_data = (<replaceable/mpi/)
+@c   s_pkey = <replaceable/key-as-defined-in-sexp_to_key/
+@c   r_ciph = (enc-val
+@c              (<replaceable/algo/
+@c                (<replaceable/param_name1/ <replaceable/mpi/)
+@c                ...
+@c                (<replaceable/param_namen/ <replaceable/mpi/)
+@c              ))
+@c   </literallayout>
+@c </refentry>
+@c 
+@c 
+@c <!--
+@c int gcry_pk_decrypt( GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
+@c 
+@c 
+@c 
+@c int gcry_pk_sign(    GCRY_SEXP *result, GCRY_SEXP data, GCRY_SEXP skey );
+@c int gcry_pk_verify(  GCRY_SEXP sigval, GCRY_SEXP data, GCRY_SEXP pkey );
+@c int gcry_pk_testkey( GCRY_SEXP key );
+@c int gcry_pk_genkey(  GCRY_SEXP *r_key, GCRY_SEXP s_parms );
+@c 
+@c int gcry_pk_ctl( int cmd, void *buffer, size_t buflen);
+@c int gcry_pk_algo_info( int algo, int what, void *buffer, size_t *nbytes);
+@c #define gcry_pk_test_algo(a) \
+@c             gcry_pk_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
+@c 
+@c const char *gcry_pk_algo_name( int algo );
+@c int gcry_pk_map_name( const char* name );
+@c unsigned int gcry_pk_get_nbits( GCRY_SEXP key );
+@c     -->
+@c 
 
 @c **********************************************************
 @c *******************  Random  *****************************
@@ -971,230 +958,230 @@ allcated in a ``secure'' area of the memory.
 
 Helper functions.
 
-      <funcprototype>
-	<funcdef>int <function>gcry_control</function></funcdef>
-	<paramdef>enum gcry_ctl_cmds<parameter>cmd</parameter></paramdef>
-	<paramdef><parameter>...</parameter></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>gcry_control</primary></indexterm>
-  This function is used to control various aspects of &libgcrypt;
-  FIXME: Explain all commands here.
-  </para>
-</refentry>
-
-
-
-
-
-<refentry>
-  <refnamediv>
-    <refname>gcry_set_allocation_handler</refname>
-    <refname>gcry_set_outofcore_handler</refname>
-        <refpurpose>Use application defined malloc functions</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-	<funcdef>void <function>gcry_set_allocation_handler</></funcdef>
-	<paramdef>void *(*<parameter>alloc_func</>)(size_t n)</paramdef>
-	<paramdef>void *(*<parameter>alloc_secure_func</>)(size_t n)</paramdef>
-	<paramdef>int (*<parameter>is_secure_func</>)(const void *p)</paramdef>
-	<paramdef>void *(*<parameter>realloc_func</>)(void *p, size_t n)</paramdef>
-	<paramdef>void (*<parameter>free_func</>)(void *p)</paramdef>
-      </funcprototype>
-      <funcprototype>
-	<funcdef>void <function>gcry_set_outofcore_handler</></funcdef>
-
-        <paramdef>int (*<parameter>h</>)( void*, size_t, unsigned int ),
-					void *opaque )</paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>gcry_set_allocation_handler</primary></indexterm>
-  <indexterm><primary>gcry_set_outofcore_handler</primary></indexterm>
-
-  FIXME
-  </para>
-</refentry>
-
-
-<refentry>
-  <refnamediv>
-    <refname>gcry_set_fatalerror_handler</refname>
-        <refpurpose>change the default fatal error handler</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-      	<funcdef>void <function>gcry_set_fatalerror_handler</></funcdef>
-	<paramdef>void (*<parameter>func</>)(
-             void *, int, const char*)</paramdef>
-        <paramdef>void *<parameter>opaque</></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>gcry_set_fatalerror_handler</primary></indexterm>
-  At certain places the &libgcrypt; may need to call a fatal error fucntion
-  which does terminate the process.  To allow an application to do
-  some emergency cleanup, it may register a fatal error handler with
-  the library.  This handler is assumed to terminate the application;
-  however if it returns &libgcrypt; will abort anyway.
-     </para>
-  <para>
-The handler is called with the opaque value registered here, an
-errorcode from &libgcrypt; and some descriptive text string.
-  </para>
-</refentry>
-
-
-<refentry>
-  <refnamediv>
-    <refname>gcry_set_gettext_handler</refname>
-        <refpurpose>Change the default gettext function</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-      	<funcdef>void <function>gcry_set_gettext_handler</></funcdef>
-	<paramdef>const char *(*<parameter>func</>)(const char*)</paramdef>
-        <paramdef>void *<parameter>opaque</></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>gcry_set_log_handler</primary></indexterm>
-  FIXME!!
-  </para>
-</refentry>
-
-
-
-<!--
-void gcry_set_log_handler( void (*f)(void*,int, const char*, va_list ),
-							     void
-                                                             *opaque
-                                                             );
--->
-
-<refentry>
-  <refnamediv>
-    <refname>gcry_set_log_handler</refname>
-        <refpurpose>Change the default logging function</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-      	<funcdef>void <function>gcry_set_log_handler</></funcdef>
-	<paramdef>void (*<parameter>func</>)
-         (void*, int, const char*, va_list)</paramdef>
-        <paramdef>void *<parameter>opaque</></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>gcry_set_log_handler</primary></indexterm>
-  &libgcrypt; has it;s own logging functions.  Applications which 
-  need to use their own, should provide a log function to &libgcrypt;
-so that it will use this function instead.
-
-Fixme: Describe how this is intended to work.
-  </para>
-</refentry>
-
-<!--
-void *gcry_malloc( size_t n );
-void *gcry_calloc( size_t n, size_t m );
-void *gcry_malloc_secure( size_t n );
-void *gcry_calloc_secure( size_t n, size_t m );
-void *gcry_realloc( void *a, size_t n );
-void *gcry_xmalloc( size_t n );
-void *gcry_xcalloc( size_t n, size_t m );
-void *gcry_xmalloc_secure( size_t n );
-void *gcry_xcalloc_secure( size_t n, size_t m );
-void *gcry_xrealloc( void *a, size_t n );
-char *gcry_xstrdup( const char * a);
-void  gcry_free( void *a );
-int   gcry_is_secure( const void *a );
--->
-
-<refentry>
-  <refnamediv>
-    <refname>gcry_malloc</refname>
-    <refname>gcry_calloc</refname>
-    <refname>gcry_malloc_secure</refname>
-    <refname>gcry_calloc_secure</refname>
-    <refname>gcry_realloc</refname>
-    <refname>gcry_xmalloc</refname>
-    <refname>gcry_xcalloc</refname>
-    <refname>gcry_xmalloc_secure</refname>
-    <refname>gcry_xcalloc_secure</refname>
-    <refname>gcry_xrealloc</refname>
-    <refname>gcry_xstrdup</refname>
-
- <!-- WORk WORK -->
-    <refname>gcry_malloc</refname>
-    <refname>gcry_malloc</refname>
-    
-        <refpurpose>Change the default logging function</refpurpose>
-  </refnamediv>
-
-  <refsynopsisdiv>
-    <funcsynopsis>
-      <funcsynopsisinfo>
-      #include &lt;gcrypt.h&gt;
-      </funcsynopsisinfo>
-      <funcprototype>
-      	<funcdef>void <function>gcry_set_log_handler</></funcdef>
-	<paramdef>void (*<parameter>func</>)
-         (void*, int, const char*, va_list)</paramdef>
-        <paramdef>void *<parameter>opaque</></paramdef>
-      </funcprototype>
-    </funcsynopsis>
-  </refsynopsisdiv>
-
-  <refsect1><title>Description</title>
-  <para>
-  <indexterm><primary>gcry_set_log_handler</primary></indexterm>
-  &libgcrypt; has it;s own logging functions.  Applications which 
-  need to use their own, should provide a log function to &libgcrypt;
-so that it will use this function instead.
-
-Fixme: Describe how this is intended to work.
-  </para>
-</refentry>
-
-
+@c       <funcprototype>
+@c         <funcdef>int <function>gcry_control</function></funcdef>
+@c         <paramdef>enum gcry_ctl_cmds<parameter>cmd</parameter></paramdef>
+@c         <paramdef><parameter>...</parameter></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>gcry_control</primary></indexterm>
+@c   This function is used to control various aspects of &libgcrypt;
+@c   FIXME: Explain all commands here.
+@c   </para>
+@c </refentry>
+@c 
+@c 
+@c 
+@c 
+@c 
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_set_allocation_handler</refname>
+@c     <refname>gcry_set_outofcore_handler</refname>
+@c         <refpurpose>Use application defined malloc functions</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>void <function>gcry_set_allocation_handler</></funcdef>
+@c         <paramdef>void *(*<parameter>alloc_func</>)(size_t n)</paramdef>
+@c         <paramdef>void *(*<parameter>alloc_secure_func</>)(size_t n)</paramdef>
+@c         <paramdef>int (*<parameter>is_secure_func</>)(const void *p)</paramdef>
+@c         <paramdef>void *(*<parameter>realloc_func</>)(void *p, size_t n)</paramdef>
+@c         <paramdef>void (*<parameter>free_func</>)(void *p)</paramdef>
+@c       </funcprototype>
+@c       <funcprototype>
+@c         <funcdef>void <function>gcry_set_outofcore_handler</></funcdef>
+@c 
+@c         <paramdef>int (*<parameter>h</>)( void*, size_t, unsigned int ),
+@c                                         void *opaque )</paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>gcry_set_allocation_handler</primary></indexterm>
+@c   <indexterm><primary>gcry_set_outofcore_handler</primary></indexterm>
+@c 
+@c   FIXME
+@c   </para>
+@c </refentry>
+@c 
+@c 
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_set_fatalerror_handler</refname>
+@c         <refpurpose>change the default fatal error handler</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>void <function>gcry_set_fatalerror_handler</></funcdef>
+@c         <paramdef>void (*<parameter>func</>)(
+@c              void *, int, const char*)</paramdef>
+@c         <paramdef>void *<parameter>opaque</></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>gcry_set_fatalerror_handler</primary></indexterm>
+@c   At certain places the &libgcrypt; may need to call a fatal error fucntion
+@c   which does terminate the process.  To allow an application to do
+@c   some emergency cleanup, it may register a fatal error handler with
+@c   the library.  This handler is assumed to terminate the application;
+@c   however if it returns &libgcrypt; will abort anyway.
+@c      </para>
+@c   <para>
+@c The handler is called with the opaque value registered here, an
+@c errorcode from &libgcrypt; and some descriptive text string.
+@c   </para>
+@c </refentry>
+@c 
+@c 
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_set_gettext_handler</refname>
+@c         <refpurpose>Change the default gettext function</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>void <function>gcry_set_gettext_handler</></funcdef>
+@c         <paramdef>const char *(*<parameter>func</>)(const char*)</paramdef>
+@c         <paramdef>void *<parameter>opaque</></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>gcry_set_log_handler</primary></indexterm>
+@c   FIXME!!
+@c   </para>
+@c </refentry>
+@c 
+@c 
+@c 
+@c <!--
+@c void gcry_set_log_handler( void (*f)(void*,int, const char*, va_list ),
+@c                                                              void
+@c                                                              *opaque
+@c                                                              );
+@c -->
+@c 
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_set_log_handler</refname>
+@c         <refpurpose>Change the default logging function</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>void <function>gcry_set_log_handler</></funcdef>
+@c         <paramdef>void (*<parameter>func</>)
+@c          (void*, int, const char*, va_list)</paramdef>
+@c         <paramdef>void *<parameter>opaque</></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>gcry_set_log_handler</primary></indexterm>
+@c   &libgcrypt; has it;s own logging functions.  Applications which 
+@c   need to use their own, should provide a log function to &libgcrypt;
+@c so that it will use this function instead.
+@c 
+@c Fixme: Describe how this is intended to work.
+@c   </para>
+@c </refentry>
+@c 
+@c <!--
+@c void *gcry_malloc( size_t n );
+@c void *gcry_calloc( size_t n, size_t m );
+@c void *gcry_malloc_secure( size_t n );
+@c void *gcry_calloc_secure( size_t n, size_t m );
+@c void *gcry_realloc( void *a, size_t n );
+@c void *gcry_xmalloc( size_t n );
+@c void *gcry_xcalloc( size_t n, size_t m );
+@c void *gcry_xmalloc_secure( size_t n );
+@c void *gcry_xcalloc_secure( size_t n, size_t m );
+@c void *gcry_xrealloc( void *a, size_t n );
+@c char *gcry_xstrdup( const char * a);
+@c void  gcry_free( void *a );
+@c int   gcry_is_secure( const void *a );
+@c -->
+@c 
+@c <refentry>
+@c   <refnamediv>
+@c     <refname>gcry_malloc</refname>
+@c     <refname>gcry_calloc</refname>
+@c     <refname>gcry_malloc_secure</refname>
+@c     <refname>gcry_calloc_secure</refname>
+@c     <refname>gcry_realloc</refname>
+@c     <refname>gcry_xmalloc</refname>
+@c     <refname>gcry_xcalloc</refname>
+@c     <refname>gcry_xmalloc_secure</refname>
+@c     <refname>gcry_xcalloc_secure</refname>
+@c     <refname>gcry_xrealloc</refname>
+@c     <refname>gcry_xstrdup</refname>
+@c 
+@c  <!-- WORk WORK -->
+@c     <refname>gcry_malloc</refname>
+@c     <refname>gcry_malloc</refname>
+@c     
+@c         <refpurpose>Change the default logging function</refpurpose>
+@c   </refnamediv>
+@c 
+@c   <refsynopsisdiv>
+@c     <funcsynopsis>
+@c       <funcsynopsisinfo>
+@c       #include &lt;gcrypt.h&gt;
+@c       </funcsynopsisinfo>
+@c       <funcprototype>
+@c         <funcdef>void <function>gcry_set_log_handler</></funcdef>
+@c         <paramdef>void (*<parameter>func</>)
+@c          (void*, int, const char*, va_list)</paramdef>
+@c         <paramdef>void *<parameter>opaque</></paramdef>
+@c       </funcprototype>
+@c     </funcsynopsis>
+@c   </refsynopsisdiv>
+@c 
+@c   <refsect1><title>Description</title>
+@c   <para>
+@c   <indexterm><primary>gcry_set_log_handler</primary></indexterm>
+@c   &libgcrypt; has it;s own logging functions.  Applications which 
+@c   need to use their own, should provide a log function to &libgcrypt;
+@c so that it will use this function instead.
+@c 
+@c Fixme: Describe how this is intended to work.
+@c   </para>
+@c </refentry>
+@c 
+@c 
 
 
 @c **********************************************************
@@ -1203,13 +1190,41 @@ Fixme: Describe how this is intended to work.
 @node Error Handling
 @chapter Error Handling
 
+Most functions in `Libgcrypt' are returning an error if they fail.  For
+this reason, the application should always catch the error condition and
+take appropriate measures, for example by releasing the resources and
+passing the error up to the caller, or by displaying a descriptive
+message to the user and cancelling the operation.
+
+Some error values do not indicate a system error or an error in the
+operation, but the result of an operation that failed properly.
+
 @menu
-* Error values::                
-* Error strings::               
+* Error values::                A list of all error values used.
+* Error strings::               How to get a descriptive string from a value.
 @end menu
 
 @node Error values
 @section Error values
+
+Errors are return as an @code{int} 
+Except for the EOF and No_Error cases an application should always
+use the constants.  Possible values are:
+
+@table @code
+@item GCRYERR_EOF
+This value indicates the end of a list, buffer or file and is defined to have
+the value @code{-1}.
+
+@item GCRYERR_SUCCESS
+This value indicates success.  The value of this error is @code{0}.
+
+@item GCRYERR_GENERAL
+This value means that something went wrong, but either there is not
+enough information about the problem to return a more useful error
+value, or there is no seperate error value for this type of problem.
+
+@end table
 
 
 @node Error strings
@@ -1229,6 +1244,8 @@ message to the user.
 @c *******************  Appendices  *************************
 @c **********************************************************
 
+@include lgpl.texi
+
 @include gpl.texi
 
 @include fdl.texi
@@ -1246,3 +1263,4 @@ message to the user.
 @summarycontents
 @contents
 @bye
+

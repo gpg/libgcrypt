@@ -1,11 +1,14 @@
 Noteworthy changes in version (current cvs)
 ------------------------------------------------
-  
-  * It is possible to use libgcrypt w/o intialized secure memory.
 
-  * Libgcrypt should now be thread safe after the initialization.
-    gcry_control (GCRYCRL_INITIALIZATION_FINISHED,NULL,0) should have
-    be called before creating additional threads.
+* Libgcrypt is now distributed under the terms of the GNU Lesser
+  General Public License; see the README file for details.    
+  
+* It is possible to use libgcrypt w/o intialized secure memory.
+
+* Libgcrypt should now be thread safe after the initialization.
+  gcry_control (GCRYCRL_INITIALIZATION_FINISHED,NULL,0) should have
+  be called before creating additional threads.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 GCRYCTL_DISABLE_INTERNAL_LOCKING  NEW

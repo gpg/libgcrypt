@@ -1,10 +1,25 @@
 /* Twofish for GPG
- * By Matthew Skala <mskala@ansuz.sooke.bc.ca>, July 26, 1998
+ * Copyright (C) 1998, 2002 Free Software Foundation, Inc.
+ * Written by Matthew Skala <mskala@ansuz.sooke.bc.ca>, July 26, 1998
  * 256-bit key length added March 20, 1999
  * Some modifications to reduce the text size by Werner Koch, April, 1998
  *
- * The original author has disclaimed all copyright interest in this
- * code and thus putting it in the public domain.
+ * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ ********************************************************************
  *
  * This code is a "clean room" implementation, written from the paper
  * _Twofish: A 128-Bit Block Cipher_ by Bruce Schneier, John Kelsey,

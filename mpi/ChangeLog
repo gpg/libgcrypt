@@ -1,3 +1,7 @@
+2002-05-14  Werner Koch  <wk@gnupg.org>
+
+	Changed license of all files to the LGPL.
+
 2002-04-18  Werner Koch  <wk@gnupg.org>
 
 	* mpicoder.c (gcry_mpi_scan): Don't use normalize on a NULL MPI.
@@ -385,7 +389,7 @@ Mon Feb 16 13:00:27 1998  Werner Koch  (wk@isil.d.shuttle.de)
 	* config.links : Add detection of m68k cpus
 
 
- Copyright 1998,1999,2000,2001 Free Software Foundation, Inc.
+ Copyright 1998,1999,2000,2001,2002 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

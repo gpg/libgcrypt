@@ -1,3 +1,7 @@
+2002-05-14  Werner Koch  <wk@gnupg.org>
+
+	* autogen.sh: Require vesion 2.53 of autoconf
+
 2001-12-18  Werner Koch  <wk@gnupg.org>
 
 	* distfiles: Remove files which are automatically added by automake.
@@ -113,3 +117,13 @@ Wed Oct 14 09:55:25 1998  Werner Koch  (wk@isil.d.shuttle.de)
 	* config.guess (FreeBSD): Changes from Jun Kuriyama to support ELF
 	* config.sub: (freebsd): Add to maybe_os
 
+
+  Copyright 1998,1999,2000,2001,2002 Free Software Foundation, Inc.
+
+ This file is free software; as a special exception the author gives
+ unlimited permission to copy and/or distribute it, with or without
+ modifications, as long as this notice is preserved.
+
+ This file is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+ implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

@@ -21,11 +21,11 @@ random numbers and a lot of supporting functions.
 
 %%category: security, libraries
 
-%%license: GPL
+%%license: LGPL
 %%license verified by: 
 %%license verified on: 
 
-%%maintainer: g10 Code GmbH <libgcrypt@g10code.com>
+%%maintainer: g10 Code GmbH <wk@g10code.com>
 
 %%updated: 2001-06-01
 

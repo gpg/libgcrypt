@@ -1,3 +1,7 @@
+2002-05-14  Werner Koch  <wk@gnupg.org>
+
+	Changed license of all files to the LGPL.
+
 2002-05-02  Werner Koch  <wk@gnupg.org>
 
 	* basic.c: Add option --verbose.

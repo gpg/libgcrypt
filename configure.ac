@@ -1,20 +1,20 @@
 dnl Configure.ac script for Libgcrypt
-dnl Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
+dnl Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
 dnl
 dnl This file is part of Libgcrypt.
 dnl
 dnl Libgcrypt is free software; you can redistribute it and/or modify
-dnl it under the terms of the GNU General Public License as published by
-dnl the Free Software Foundation; either version 2 of the License, or
-dnl (at your option) any later version.
-dnl 
+dnl it under the terms of the GNU Lesser general Public License as
+dnl published by the Free Software Foundation; either version 2.1 of
+dnl the License, or (at your option) any later version.
+dnl
 dnl Libgcrypt is distributed in the hope that it will be useful,
 dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
 dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-dnl GNU General Public License for more details.
-dnl 
-dnl You should have received a copy of the GNU General Public License
-dnl along with this program; if not, write to the Free Software
+dnl GNU Lesser General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU Lesser General Public
+dnl License along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 dnl
 dnl (Process this file with autoconf to produce a configure script.)
@@ -183,6 +183,7 @@ AM_MISSING_PROG(AUTOHEADER, autoheader, $missing_dir)
 dnl AM_MISSING_PROG(MAKEINFO, makeinfo, $missing_dir)
 AC_PROG_CC
 AC_PROG_CPP
+AM_PROG_AS
 AC_ISC_POSIX
 AC_PROG_INSTALL
 AC_PROG_AWK
@@ -778,4 +779,18 @@ src/libgcrypt-config
 tests/Makefile
 ])
 AC_OUTPUT
+
+# Give some feedback
+echo
+warn=""
+for file in "$static_random_module"; do
+  case "$file" in rndunix | rndw32) warn="$warn $file";; esac
+done
+if test -n "$warn"; then
+  echo "Please note that you are building a version of Libgcrypt with"
+  echo "  $warn"
+  echo "included.  These parts are licensed under the GPL and thus the"
+  echo "use of this library has to comply with the conditions of the GPL"
+fi
+
 

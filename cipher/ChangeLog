@@ -1,3 +1,7 @@
+2002-05-14  Werner Koch  <wk@gnupg.org>
+
+	Changed license of most files to the LGPL.
+
 2002-05-02  Werner Koch  <wk@gnupg.org>
 
 	* random.c (_gcry_fast_random_poll): Initialize the module so the
