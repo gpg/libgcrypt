@@ -1,3 +1,45 @@
+2003-04-27  Moritz Schulte  <moritz@g10code.com>
+
+	* md.c (gcry_md_get_algo_dlen): Simplified, simply call
+	md_digest_length to do the job.
+
+	* des.c (do_des_setkey): Check for selftest failure not only
+	during initialization.
+	(do_tripledes_setkey): Include check for selftest failure.
+
+	* pubkey.c (gcry_pubkey_register_default): New macro
+	`pubkey_use_dummy', use it.
+
+	* elgamal.c (elg_names): New variable.
+	(pubkey_spec_elg): Include elg_names.
+
+	* dsa.c (dsa_names): New variable.
+	(pubkey_spec_dsa): Include dsa_names.
+
+	* rsa.c (rsa_names): New variable.
+	(pubkey_spec_rsa): Include rsa_names.
+
+	* pubkey.c (gcry_pubkey_lookup_func_name): Compare name also with
+	the names listed in `sexp_names'.
+
+2003-04-24  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (sexp_to_key): New variables: module, pubkey.  Adjusted
+	to new module interface.
+	(sexp_to_key): Changend type of argument `retalgo' from `int *' to
+	`GcryModule **'.  Adjusted all callers.  Removed argument:
+	r_algotblidx.
+	(sexp_to_sig): Changend type of argument `retalgo' from `int *' to
+	`GcryModule **'.  Adjusted all callers.
+	(sexp_to_enc): Likewise.
+
+	(pubkey_get_npkey, pubkey_get_nskey, pubkey_get_nsig,
+	pubkey_get_nenc): Use strlen to find out the number.
+
+	* rsa.c: Adjust pubkey_spec_rsa to new internal interface.
+	* dsa.c: Likewise.
+	* elgamal.c: Likewise.
+
 2003-04-17  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (sexp_elements_extract): New function.

@@ -1,3 +1,14 @@
+2003-04-27  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.h (gcry_pubkey_spec): New member: sexp_names.
+
+2003-04-23  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.h (gcry_pubkey_spec): Removed members: npkey, nskey,
+	nenc, nsig.
+	(gcry_pubkey_spec): Added members: elements_pkey, elements_skey,
+	elements_enc, elements_sig, elements_grip.
+
 2003-04-17  Moritz Schulte  <moritz@g10code.com>
 
 	* g10lib.h (GcryModule): New typedef.
