@@ -22,7 +22,7 @@ AC_REVISION($Revision$)dnl
 
 AC_PREREQ(2.52)
 # Version number: Remember to change it immediately *after* a release.
-AC_INIT(libgcrypt,1.1.10)
+AC_INIT(libgcrypt,1.1.11)
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
