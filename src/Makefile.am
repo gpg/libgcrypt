@@ -1,18 +1,17 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = README
+## EXTRA_DIST =
 INCLUDES =  -I$(top_srcdir)/include -I$(top_srcdir)/intl
-
-#noinst_PROGRAMS = sexp
-#sexp_SOURCES = sexp.c mpiapi.c
-#sexp_LDADD =  ../cipher/libcipher.la ../mpi/libmpi.la	../util/libutil.la ./libgcrypt.la @INTLLIBS@
-
 
 lib_LTLIBRARIES = libgcrypt.la
 
+### noinst_PROGRAMS = sexp
+### sexp_SOURCES = sexp.c mpiapi.c
+### sexp_LDADD =  ../cipher/libcipher.la ../mpi/libmpi.la  ../util/libutil.la ./libgcrypt.la @INTLLIBS@
+
+
 libgcrypt_la_LDFLAGS = -version-info 0:0:0 -export-symbols libgcrypt.sym
 libgcrypt_la_SOURCES =	 gcrypt.h \
-			 g10lib.h \
 			 misc.c  \
 			 global.c \
 			 mpiapi.c
