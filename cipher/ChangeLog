@@ -1,3 +1,7 @@
+2002-12-12  Werner Koch  <wk@gnupg.org>
+
+	* md.c: Added another oddball OIW OID (sha-1WithRSAEncryption).
+
 2002-11-23  Werner Koch  <wk@gnupg.org>
 
 	* md.c (load_digest_module): Enlarged checked_algos bitmap.

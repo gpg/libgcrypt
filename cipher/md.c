@@ -51,6 +51,8 @@ static struct {
   { "1.3.6.1.4.1.11591.12.2", GCRY_MD_TIGER },
   /* iso.member-body.us.rsadsi.digestAlgorithm.md4 */
   { "1.2.840.113549.2.4", GCRY_MD_MD4 },
+  /* from NIST OIW (sha-1WithRSAEncryption) */
+  { "1.3.14.3.2.29", GCRY_MD_SHA1 },
   {NULL}
 };
 
