@@ -1,3 +1,8 @@
+2004-12-16  Werner Koch  <wk@g10code.com>
+
+	* config.links (mpi_optional_modules): Move entry for powerpc64
+	before generic powerpc.  Suggested by Rafael Ávila de Espíndola.
+
 2004-03-02  Werner Koch  <wk@gnupg.org>
 
 	* hppa1.1/udiv-qrnnd.S: Alignment fix from Lamont Jones for

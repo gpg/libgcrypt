@@ -260,8 +260,7 @@ case "${target}" in
 	mpi_sflags="-Wa,-mppc"
 	path="power powerpc32"
 	;;
-    ppc60[234]*-*-* | \
-    powerpc*-*-*)
+    ppc60[234]*-*-*)
 	mpi_sflags="-Wa,-mppc"
 	path="powerpc32"
 	;;
@@ -270,7 +269,10 @@ case "${target}" in
 	mpi_sflags="-Wa,-mppc"
 	path="powerpc64"
 	;;
-
+    powerpc*-*-*)
+	mpi_sflags="-Wa,-mppc"
+	path="powerpc32"
+	;;
     *)
 	echo '/* No assembler modules configured */' >>./mpi/asm-syntax.h
 	path=""
