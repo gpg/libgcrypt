@@ -27,7 +27,7 @@ min_automake_version="1.7.6"
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.1.92, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.1.93-cvs, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
