@@ -13,6 +13,8 @@
 prefix="@prefix@"
 exec_prefix="@exec_prefix@"
 version="@VERSION@"
+includedir=@includedir@
+libdir=@libdir@
 gpg_error_libs="@GPG_ERROR_LIBS@"
 gpg_error_cflags="@GPG_ERROR_CFLAGS@"
 
@@ -122,16 +124,11 @@ if test "$echo_cflags" = "yes"; then
     cflags_final="$cflags"
 
     # Set up `includes'.
-    if test "@includedir@" != "/usr/include" ; then
-	includes="-I@includedir@"
-	for i in $cflags ; do
-	    if test "$i" = "-I@includedir@" ; then
-		includes=""
-	    fi
-	done
+    if test "x$includedir" != "x/usr/include" -a "x$includedir" != "x/include"; then
+	includes="$includes -I$includedir"
     fi
     # Set up `cflags_final'.
-    cflags_final="@GPG_ERROR_CFLAGS@"
+    cflags_final="$cflags_final @GPG_ERROR_CFLAGS@"
 
     echo "$includes $cflags_final"
 fi
@@ -141,17 +138,12 @@ if test "$echo_libs" = "yes"; then
     libs_final="$libs"
 
     # Set up `libdirs'.
-    if test "@libdir@" != "/usr/lib" ; then
-	libdirs="-L@libdir@"
-	for i in $libs ; do
-	    if test "$i" = "-L@libdir@" ; then
-		libdirs=""
-	    fi
-	done
+    if test "x$libdir" != "x/usr/lib" -a "x$libdir" != "x/lib"; then
+	libdirs="$libdir -L@libdir@"
     fi
 
     # Set up `libs_final'.
-    libs_final="@GPG_ERROR_LIBS@"
+    libs_final="$libs_final @GPG_ERROR_LIBS@"
 
     echo "$libdirs $libs_final"
 fi

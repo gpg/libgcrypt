@@ -1,3 +1,10 @@
+2004-03-14  Marcus Brinkmann  <marcus@g10code.de>
+
+	* libgcrypt-config.in (includedir, libdir): New variables.  For
+	--cflags, don't test $cflags.  Also check against /include for the
+	GNU/Hurd.  Don't overwrite but extend $cflags_final.  Likewise for
+	--libs.
+
 2004-03-10  Marcus Brinkmann  <marcus@g10code.de>
 
 	* Makefile.am (ltlib_libgcrypt_pthread, ltlib_libgcrypt_pth): Removed.
