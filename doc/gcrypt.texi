@@ -3076,6 +3076,11 @@ string is inserted into the resulting S-expression.
 @item %d
 The next argument is expected to be of type @code{int} and its 
 value ist inserted into the resulting S-expression.
+@item %b
+The next argument is expected to be of type @code{int} directly
+followed by an argument of type @code{char *}.  This represents a
+buffer of given length to be inserted into the resulting regular
+expression.
 @end table
 
 @noindent

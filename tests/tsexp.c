@@ -59,6 +59,7 @@ fail ( const char *format, ... )
 static void
 basic (void)
 {
+  int pass;
   gcry_sexp_t sexp;
   int idx;
   const char *string;
@@ -76,84 +77,114 @@ basic (void)
   };
 
   info ("doing some pretty pointless tests\n"); 
-  string = ("(public-key (dsa (p #41424344#) (y this_is_y) "
-            "(q #61626364656667#) (g %m)))");
-     
-  if ( gcry_sexp_build (&sexp, NULL, string, gcry_mpi_set_ui (NULL, 42)) )
+
+  for (pass=0;;pass++)
     {
-      fail (" scanning `%s' failed\n", string);
-      return;
-    }
-
-  /* now find something */
-  for (idx=0; values[idx].token; idx++)
-    {
-      const char *token = values[idx].token;
-      const char *parm = values[idx].parm;
-      gcry_sexp_t s1, s2;
-      gcry_mpi_t a;
-      const char *p;
-      size_t n;
-
-      s1 = gcry_sexp_find_token (sexp, token, strlen(token) );
-      if (!s1)
+      switch (pass)
         {
-          fail ("didn't found `%s'\n", token);
-          continue;
-        }
-
-      p = gcry_sexp_nth_data (s1, 0, &n);
-      if (!p)
-        {
-          fail ("no car for `%s'\n", token);
-          continue;
-        }
-      info ("car=`%.*s'\n", (int)n, p);
-
-      s2 = gcry_sexp_cdr (s1);
-      if (!s2) 
-        {
-          fail ("no cdr for `%s'\n", token);
-          continue;
-        }
-
-      p = gcry_sexp_nth_data (s2, 0, &n);
-      if (p)
-        {
-          fail ("data at car of `%s'\n", token);
-          continue;
-        }
-
-      if (parm)
-        {
-          s2 = gcry_sexp_find_token (s1, parm, strlen (parm));
-          if (!s2)
-	    {
-              fail ("didn't found `%s'\n", parm);
-              continue;
-	    }
-          p = gcry_sexp_nth_data (s2, 0, &n);
-          if (!p) 
+        case 0:
+          string = ("(public-key (dsa (p #41424344#) (y this_is_y) "
+                    "(q #61626364656667#) (g %m)))");
+          
+          if ( gcry_sexp_build (&sexp, NULL, string,
+                                gcry_mpi_set_ui (NULL, 42)) )
             {
-              fail("no car for `%s'\n", parm );
+              fail (" scanning `%s' failed\n", string);
+              return;
+            }
+          break;
+          
+        case 1:
+          string = ("(public-key (dsa (p #41424344#) (y this_is_y) "
+                    "(q %b) (g %m)))");
+      
+          if ( gcry_sexp_build (&sexp, NULL, string, 
+                                15, "foo\0\x01\0x02789012345",
+                                gcry_mpi_set_ui (NULL, 42)) )
+            {
+              fail (" scanning `%s' failed\n", string);
+              return;
+            }
+          break;
+          
+        default:
+          return; /* Ready. */
+        }
+
+
+      /* now find something */
+      for (idx=0; values[idx].token; idx++)
+        {
+          const char *token = values[idx].token;
+          const char *parm = values[idx].parm;
+          gcry_sexp_t s1, s2;
+          gcry_mpi_t a;
+          const char *p;
+          size_t n;
+
+          s1 = gcry_sexp_find_token (sexp, token, strlen(token) );
+          if (!s1)
+            {
+              fail ("didn't found `%s'\n", token);
+              continue;
+            }
+
+          p = gcry_sexp_nth_data (s1, 0, &n);
+          if (!p)
+            {
+              fail ("no car for `%s'\n", token);
               continue;
             }
           info ("car=`%.*s'\n", (int)n, p);
-          p = gcry_sexp_nth_data (s2, 1, &n);
-          if (!p) 
+
+          s2 = gcry_sexp_cdr (s1);
+          if (!s2) 
             {
-              fail("no cdr for `%s'\n", parm );
+              fail ("no cdr for `%s'\n", token);
               continue;
             }
-          info ("cdr=`%.*s'\n", (int)n, p);
-          
-          a = gcry_sexp_nth_mpi (s2, 0, GCRYMPI_FMT_USG);
-          if (!a)
-	    {
-              fail("failed to cdr the mpi for `%s'\n", parm);
+
+          p = gcry_sexp_nth_data (s2, 0, &n);
+          if (p)
+            {
+              fail ("data at car of `%s'\n", token);
               continue;
+            }
+
+          if (parm)
+            {
+              s2 = gcry_sexp_find_token (s1, parm, strlen (parm));
+              if (!s2)
+                {
+                  fail ("didn't found `%s'\n", parm);
+                  continue;
+                }
+              p = gcry_sexp_nth_data (s2, 0, &n);
+              if (!p) 
+                {
+                  fail("no car for `%s'\n", parm );
+                  continue;
+                }
+              info ("car=`%.*s'\n", (int)n, p);
+              p = gcry_sexp_nth_data (s2, 1, &n);
+              if (!p) 
+                {
+                  fail("no cdr for `%s'\n", parm );
+                  continue;
+                }
+              info ("cdr=`%.*s'\n", (int)n, p);
+          
+              a = gcry_sexp_nth_mpi (s2, 0, GCRYMPI_FMT_USG);
+              if (!a)
+                {
+                  fail("failed to cdr the mpi for `%s'\n", parm);
+                  continue;
+                }
             }
         }
+     
+      gcry_sexp_release (sexp);
+      sexp = NULL;
     }
 }
 

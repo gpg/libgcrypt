@@ -1,0 +1,19 @@
+# Manifest - checksums
+# Copyright 2003 Free Software Foundation, Inc.
+#
+# This file is free software; as a special exception the author gives
+# unlimited permission to copy and/or distribute it, with or without
+# modifications, as long as this notice is preserved.
+#
+# This file is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+# Checksums for all source files in this directory. Format is
+# filename, blanks, base-64 part of an OpenPGP detached signature
+# without the header lines.  Blank lines and lines beginning with a
+# hash mark are ignored.  Tools to manipulate this file are currently
+# under development.
+
+random.c iQCVAwUAP6jMrkOmKjpR34vuAQJkHwP/dtQR7fux2UePwXBA96lqHsU5Y27qKlymSukbrafZWlwSV/TRQnCWKUf/gSYzFCoWI1uB9/bqVkKUlt2g7IYbF5VO19TOjR+rwGbDARrgczRt4WxU2RHfc6mK7VPvxA3CwUThPc7SJ+rv3A68uZhNKSmm+YZTwaL5nnqk6bzSNdg==rzCG
+

@@ -1,3 +1,7 @@
+2003-11-11  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.texi (Working with S-expressions): Added "%b".
+
 2003-11-04  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.texi (Retrieving random numbers): Add gcry_create_nonce.

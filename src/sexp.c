@@ -823,10 +823,12 @@ unquote_string (const unsigned char *string, size_t length, unsigned char *buf)
  *	%m - MPI
  *	%s - string (no autoswitch to secure allocation)
  *	%d - integer stored as string (no autoswitch to secure allocation)
+ *      %b - memory buffer; this takes _two_ arguments: an integer with the 
+ *           length of the buffer and a pointer to the buffer.
  *  all other format elements are currently not defined and return an error.
  *  this includes the "%%" sequence becauce the percent sign is not an
  *  allowed character.
- * FIXME: We should find a way to store the secure-MPIS not in the string
+ * FIXME: We should find a way to store the secure-MPIs not in the string
  * but as reference to somewhere - this can help us to save huge amounts
  * of secure memory.  The problem is, that if only one element is secure, all
  * other elements are automagicaly copied to secure meory too, so the most
@@ -867,7 +869,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 
   /* Depending on wether ARG_LIST is non-zero or not, this macro gives
      us the next argument, either from the variable argument list as
-     specified by ARG_PTR or from the arugment array ARG_LIST.  */
+     specified by ARG_PTR or from the argument array ARG_LIST.  */
 #define ARG_NEXT(storage, type)                          \
   do                                                     \
     {                                                    \
@@ -1122,6 +1124,21 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 
 	      ARG_NEXT (astr, const char *);
 	      alen = strlen (astr);
+	      
+	      MAKE_SPACE (alen);
+	      *c.pos++ = ST_DATA;
+	      STORE_LEN (c.pos, alen);
+	      memcpy (c.pos, astr, alen);
+	      c.pos += alen;
+	    }
+	  else if (*p == 'b')
+	    {
+	      /* Insert a memory buffer.  */
+	      const char *astr;
+	      int alen;
+
+	      ARG_NEXT (alen, int);
+	      ARG_NEXT (astr, const char *);
 	      
 	      MAKE_SPACE (alen);
 	      *c.pos++ = ST_DATA;

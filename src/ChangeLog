@@ -1,3 +1,7 @@
+2003-11-11  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c (sexp_sscan): Implemented "%b" format specifier.
+
 2003-11-11  Moritz Schulte  <mo@g10code.com>
 
 	* libgcrypt.m4: Do not set prefix when calling libgcrypt-config.
