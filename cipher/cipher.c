@@ -229,6 +229,7 @@ setup_cipher_table(void)
 					 &cipher_table[i].decrypt     );
     if( !cipher_table[i].name )
 	BUG();
+    i++;
 
     cipher_table[i].algo = CIPHER_ALGO_DUMMY;
     cipher_table[i].name = "DUMMY";

@@ -1,3 +1,8 @@
+2002-08-17  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c (setup_cipher_table): Don't overwrite the DES entry
+	with the entry for DUMMY.
+
 2002-08-14  Werner Koch  <wk@gnupg.org>
 
 	* des.c (do_des_setkey,do_des_encrypt, do_des_decrypt): New.
