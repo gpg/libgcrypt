@@ -921,15 +921,17 @@ gcry_md_get (gcry_md_hd_t hd, int algo, byte *buffer, int buflen)
 
 /****************
  * Shortcut function to hash a buffer with a given algo. The only
- * guarnteed supported algorithm is RIPE-MD. The supplied digest
- * buffer must be large enough to store the resulting hash.  No error
- * is returned, the function will abort on an invalid algo.
- * DISABLED_ALGOS are ignored here.  */
+ * guarnteed supported algorithms are RIPE-MD160 and SHA-1. The
+ * supplied digest buffer must be large enough to store the resulting
+ * hash.  No error is returned, the function will abort on an invalid
+ * algo.  DISABLED_ALGOS are ignored here.  */
 void
 gcry_md_hash_buffer (int algo, void *digest,
                      const void *buffer, size_t length)
 {
-  if (algo == GCRY_MD_RMD160)
+  if (algo == GCRY_MD_SHA1)
+    _gcry_sha1_hash_buffer (digest, buffer, length);
+  else if (algo == GCRY_MD_RMD160)
     _gcry_rmd160_hash_buffer (digest, buffer, length);
   else
     {

@@ -1,4 +1,22 @@
+2003-11-04  Werner Koch  <wk@gnupg.org>
+
+	* md.c (gcry_md_hash_buffer): Use shortcut for SHA1
+	* sha1.c (_gcry_sha1_hash_buffer): New.
+
+	* random.c: Reformatted most functions.
+	(mix_pool): Moved the failsafe_digest from global
+	scope to here.
+	(do_fast_random_poll): Use the generic fucntions even if a fast
+	gathering function has been used.
+	(read_pool): Detect a fork and retry.
+	(gcry_randomize, get_random_bytes): Don't distinguish anymore
+	between weak and strong random.
+	(gcry_create_nonce): New.
+
 2003-10-31  Werner Koch  <wk@gnupg.org>
+
+	* rndw32.c (slow_gatherer_windowsNT): Use a plain buffer for the
+	disk performance values and not the W32 API structure.
 
 	* dsa.c (verify): s/exp/ex/ due to shadowing of a builtin.
 	* elgamal.c (verify): Ditto.
@@ -1406,7 +1424,7 @@
 
 2002-12-16  Werner Koch  <wk@gnupg.org>
 
-	* cipher.c: Added a Tetetrust specific OID for 3DES.
+	* cipher.c: Added a Teletrust specific OID for 3DES.
 
 2002-12-12  Werner Koch  <wk@gnupg.org>
 
@@ -1557,7 +1575,7 @@
 	mutex can be used.
 
 	* primegen.c (small_prime_numbers): Moved table from smallprime.c
-	* smallprime.c: Fiel removed.
+	* smallprime.c: File removed.
 
 	* des.c (leftkey_swap, rightkey_swap, working_memcmp): Made static.
 

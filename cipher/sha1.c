@@ -312,8 +312,24 @@ static byte *
 sha1_read( void *context )
 {
   SHA1_CONTEXT *hd = (SHA1_CONTEXT *) context;
-    return hd->buf;
+  return hd->buf;
 }
+
+/****************
+ * Shortcut functions which puts the hash value of the supplied buffer
+ * into outbuf which must have a size of 20 bytes.
+ */
+void
+_gcry_sha1_hash_buffer (char *outbuf, const char *buffer, size_t length)
+{
+    SHA1_CONTEXT hd;
+
+    sha1_init (&hd);
+    sha1_write (&hd, (byte*)buffer, length);
+    sha1_final (&hd);
+    memcpy (outbuf, hd.buf, 20);
+}
+
 
 static byte asn[15] = /* Object ID is 1.3.14.3.2.26 */
   { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03,
