@@ -2,16 +2,16 @@
    Note: I added some stuff for use with gnupg
 
 Copyright (C) 1991, 1992, 1993, 1994, 1996, 1998,
-              2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+              2000, 2001, 2002, 2003, 2004 Free Software Foundation, Inc.
 
 This file is free software; you can redistribute it and/or modify
-it under the terms of the GNU Library General Public License as published by
-the Free Software Foundation; either version 2 of the License, or (at your
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 2.1 of the License, or (at your
 option) any later version.
 
 This file is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Library General Public
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
 License for more details.
 
 You should have received a copy of the GNU Library General Public License
@@ -317,8 +317,8 @@ extern UDItype __udiv_qrnnd ();
  ***************************************/
 #if defined (__hppa) && W_TYPE_SIZE == 32
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
-  __asm__ ("add %4,%5,%1\n"                                             \
- 	   "addc %2,%3,%0"                                              \
+  __asm__ ("	add %4,%5,%1\n"                                             \
+ 	   "	addc %2,%3,%0"                                              \
 	   : "=r" ((USItype)(sh)),                                      \
 	     "=&r" ((USItype)(sl))                                      \
 	   : "%rM" ((USItype)(ah)),                                     \
@@ -326,8 +326,8 @@ extern UDItype __udiv_qrnnd ();
 	     "%rM" ((USItype)(al)),                                     \
 	     "rM" ((USItype)(bl)))
 #define sub_ddmmss(sh, sl, ah, al, bh, bl) \
-  __asm__ ("sub %4,%5,%1\n"                                             \
-	   "subb %2,%3,%0"                                              \
+  __asm__ ("	sub %4,%5,%1\n"                                             \
+	   "	subb %2,%3,%0"                                              \
 	   : "=r" ((USItype)(sh)),                                      \
 	     "=&r" ((USItype)(sl))                                      \
 	   : "rM" ((USItype)(ah)),                                      \
@@ -340,7 +340,7 @@ extern UDItype __udiv_qrnnd ();
     union {UDItype __ll;						\
 	   struct {USItype __h, __l;} __i;				\
 	  } __xx;							\
-    __asm__ ("xmpyu %1,%2,%0"                                           \
+    __asm__ ("	xmpyu %1,%2,%0"                                           \
 	     : "=*f" (__xx.__ll)                                        \
 	     : "*f" ((USItype)(u)),                                     \
 	       "*f" ((USItype)(v)));                                    \
@@ -365,21 +365,21 @@ extern USItype __udiv_qrnnd ();
   do {								       \
     USItype __tmp;						       \
     __asm__ (				                               \
-       "ldi             1,%0                                       \n" \
-       "extru,= 	%1,15,16,%%r0  ; Bits 31..16 zero?         \n" \
-       "extru,tr	%1,15,16,%1    ; No.  Shift down, skip add.\n" \
-       "ldo		16(%0),%0      ; Yes.	Perform add.       \n" \
-       "extru,= 	%1,23,8,%%r0   ; Bits 15..8 zero?          \n" \
-       "extru,tr	%1,23,8,%1     ; No.  Shift down, skip add.\n" \
-       "ldo		8(%0),%0       ; Yes.	Perform add.       \n" \
-       "extru,= 	%1,27,4,%%r0   ; Bits 7..4 zero?           \n" \
-       "extru,tr	%1,27,4,%1     ; No.  Shift down, skip add.\n" \
-       "ldo		4(%0),%0       ; Yes.	Perform add.       \n" \
-       "extru,= 	%1,29,2,%%r0   ; Bits 3..2 zero?           \n" \
-       "extru,tr	%1,29,2,%1     ; No.  Shift down, skip add.\n" \
-       "ldo		2(%0),%0       ; Yes.	Perform add.       \n" \
-       "extru		%1,30,1,%1     ; Extract bit 1.            \n" \
-       "sub		%0,%1,%0       ; Subtract it.              "   \
+       "	ldi             1,%0                                       \n" \
+       "	extru,= 	%1,15,16,%%r0  ; Bits 31..16 zero?         \n" \
+       "	extru,tr	%1,15,16,%1    ; No.  Shift down, skip add.\n" \
+       "	ldo		16(%0),%0      ; Yes.	Perform add.       \n" \
+       "	extru,= 	%1,23,8,%%r0   ; Bits 15..8 zero?          \n" \
+       "	extru,tr	%1,23,8,%1     ; No.  Shift down, skip add.\n" \
+       "	ldo		8(%0),%0       ; Yes.	Perform add.       \n" \
+       "	extru,= 	%1,27,4,%%r0   ; Bits 7..4 zero?           \n" \
+       "	extru,tr	%1,27,4,%1     ; No.  Shift down, skip add.\n" \
+       "	ldo		4(%0),%0       ; Yes.	Perform add.       \n" \
+       "	extru,= 	%1,29,2,%%r0   ; Bits 3..2 zero?           \n" \
+       "	extru,tr	%1,29,2,%1     ; No.  Shift down, skip add.\n" \
+       "	ldo		2(%0),%0       ; Yes.	Perform add.       \n" \
+       "	extru		%1,30,1,%1     ; Extract bit 1.            \n" \
+       "	sub		%0,%1,%0       ; Subtract it.              "   \
        : "=r" (count), "=r" (__tmp) : "1" (x));                        \
   } while (0)
 #endif /* hppa */
@@ -924,6 +924,63 @@ extern USItype __udiv_qrnnd ();
 #endif
 #endif /* Power architecture variants.	*/
 
+/* Powerpc 64 bit support taken from gmp-4.1.2. */
+/* We should test _IBMR2 here when we add assembly support for the system
+   vendor compilers.  */
+#if 0 /* Not yet enabled becuase we don't have hardware for a test. */
+#if (defined (_ARCH_PPC) || defined (__powerpc__)) && W_TYPE_SIZE == 64
+#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+  do {									\
+    if (__builtin_constant_p (bh) && (bh) == 0)				\
+      __asm__ ("{a%I4|add%I4c} %1,%3,%4\n\t{aze|addze} %0,%2"		\
+	     : "=r" (sh), "=&r" (sl) : "r" (ah), "%r" (al), "rI" (bl));\
+    else if (__builtin_constant_p (bh) && (bh) == ~(UDItype) 0)		\
+      __asm__ ("{a%I4|add%I4c} %1,%3,%4\n\t{ame|addme} %0,%2"		\
+	     : "=r" (sh), "=&r" (sl) : "r" (ah), "%r" (al), "rI" (bl));\
+    else								\
+      __asm__ ("{a%I5|add%I5c} %1,%4,%5\n\t{ae|adde} %0,%2,%3"		\
+	     : "=r" (sh), "=&r" (sl)					\
+	     : "%r" (ah), "r" (bh), "%r" (al), "rI" (bl));		\
+  } while (0)
+#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+  do {									\
+    if (__builtin_constant_p (ah) && (ah) == 0)				\
+      __asm__ ("{sf%I3|subf%I3c} %1,%4,%3\n\t{sfze|subfze} %0,%2"	\
+	       : "=r" (sh), "=&r" (sl) : "r" (bh), "rI" (al), "r" (bl));\
+    else if (__builtin_constant_p (ah) && (ah) == ~(UDItype) 0)		\
+      __asm__ ("{sf%I3|subf%I3c} %1,%4,%3\n\t{sfme|subfme} %0,%2"	\
+	       : "=r" (sh), "=&r" (sl) : "r" (bh), "rI" (al), "r" (bl));\
+    else if (__builtin_constant_p (bh) && (bh) == 0)			\
+      __asm__ ("{sf%I3|subf%I3c} %1,%4,%3\n\t{ame|addme} %0,%2"		\
+	       : "=r" (sh), "=&r" (sl) : "r" (ah), "rI" (al), "r" (bl));\
+    else if (__builtin_constant_p (bh) && (bh) == ~(UDItype) 0)		\
+      __asm__ ("{sf%I3|subf%I3c} %1,%4,%3\n\t{aze|addze} %0,%2"		\
+	       : "=r" (sh), "=&r" (sl) : "r" (ah), "rI" (al), "r" (bl));\
+    else								\
+      __asm__ ("{sf%I4|subf%I4c} %1,%5,%4\n\t{sfe|subfe} %0,%3,%2"	\
+	       : "=r" (sh), "=&r" (sl)					\
+	       : "r" (ah), "r" (bh), "rI" (al), "r" (bl));		\
+  } while (0)
+#define count_leading_zeros(count, x) \
+  __asm__ ("cntlzd %0,%1" : "=r" (count) : "r" (x))
+#define COUNT_LEADING_ZEROS_0 64
+#define umul_ppmm(ph, pl, m0, m1) \
+  do {									\
+    UDItype __m0 = (m0), __m1 = (m1);					\
+    __asm__ ("mulhdu %0,%1,%2" : "=r" (ph) : "%r" (m0), "r" (m1));	\
+    (pl) = __m0 * __m1;							\
+  } while (0)
+#define UMUL_TIME 15
+#define smul_ppmm(ph, pl, m0, m1) \
+  do {									\
+    DItype __m0 = (m0), __m1 = (m1);					\
+    __asm__ ("mulhd %0,%1,%2" : "=r" (ph) : "%r" (m0), "r" (m1));	\
+    (pl) = __m0 * __m1;							\
+  } while (0)
+#define SMUL_TIME 14  /* ??? */
+#define UDIV_TIME 120 /* ??? */
+#endif /* 64-bit PowerPC.  */
+#endif /* if 0 */
 
 /***************************************
  **************  PYR  ******************

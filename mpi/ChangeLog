@@ -1,3 +1,17 @@
+2004-03-02  Werner Koch  <wk@gnupg.org>
+
+	* hppa1.1/udiv-qrnnd.S: Alignment fix from Lamont Jones for
+	Debian.  Taken from gnupg-1.3.
+
+	* longlong.h: Added PowerPC 64 bit code from GPM-4.1.2 but didn't
+	enable it yet.  Some whitespace changes in HPPA to fix assembler
+	problems on HP-UX.  From gnupg 1.3
+
+	* mpiutil.c (_gcry_mpi_alloc_limb_space): Better allocate
+	something even if NLIMBS is passed as 0.
+
+	* config.links: Updated system list to match gnupg 1.3.
+
 2003-12-19  Werner Koch  <wk@gnupg.org>
 
 	* mpi-internal.h [M_DEBUG]: Removed this unused code.

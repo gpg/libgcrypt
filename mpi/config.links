@@ -35,21 +35,32 @@ mpi_optional_modules=`$AWK '/^#BEGIN_ASM_LIST/,/^#END_ASM_LIST/ {
 
 
 echo '/* created by config.links - do not edit */' >./mpi/asm-syntax.h
+echo "/* Target: ${target} */" >>./mpi/asm-syntax.h
 
 if test "$try_asm_modules" = "yes" ; then
 case "${target}" in
+    powerpc-apple-darwin*          | \
+    i[34567]86*-*-openbsd[12]*     | \
+    i[34567]86*-*-openbsd3.[0123]*)
+       echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
+       path=""
+       ;;
+    i[3467]86*-*-openbsd*      | \
     i[3467]86*-*-freebsd*-elf  | \
     i[3467]86*-*-freebsd[3-9]* | \
     i[3467]86*-*-freebsdelf*   | \
-    i[3467]86*-*-netbsd* )
+    i[3467]86*-*-netbsd*       | \
+    i[3467]86*-*-k*bsd*)
        echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
        cat  $srcdir/mpi/i386/syntax.h	   >>./mpi/asm-syntax.h
        path="i386"
        ;;
-    i586*-*-freebsd*-elf  | \
-    i586*-*-freebsd[3-9]* | \
-    i586*-*-freebsdelf*   | \
+    i586*-*-openbsd*         | \
+    i586*-*-freebsd*-elf     | \
+    i586*-*-freebsd[3-9]*    | \
+    i586*-*-freebsdelf*      | \
     i586*-*-netbsd*	     | \
+    i586*-*-k*bsd*	     | \
     pentium-*-netbsd*	     | \
     pentiumpro-*-netbsd*)
        echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
@@ -126,6 +137,18 @@ case "${target}" in
 	path="sparc32v8 sparc32"
 	mpi_extra_modules="udiv"
 	;;
+    sparc64-sun-solaris2*)
+	# Got a report that udiv is missing, so we try this one
+	echo '/* configured for sparc64-sun-solaris2 */' >>./mpi/asm-syntax.h
+	path="sparc32v8 sparc32"
+	mpi_extra_modules="udiv"
+        ;;
+    sparc64-*-netbsd* | sparc64-*-freebsd* | sparc64-*-openbsd*)
+       # There are no sparc64 assembler modules that work on the
+       # *BSDs, so use the generic C functions.
+       echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
+       path=""
+       ;;
     sparc9*-*-*     | \
     sparc64*-*-*    | \
     ultrasparc*-*-* )
@@ -205,8 +228,8 @@ case "${target}" in
 	path="powerpc32"
 	;;
 
-    powerpc*-*-netbsd*)
-       echo '/* configured NetBSD on powerpc */' >>./mpi/asm-syntax.h
+    powerpc*-*-netbsd* | powerpc*-*-openbsd*)
+       echo '/* configured {Open,Net}BSD on powerpc */' >>./mpi/asm-syntax.h
        echo '#define ELF_SYNTAX'                 >>./mpi/asm-syntax.h
        cat   $srcdir/mpi/powerpc32/syntax.h	 >>./mpi/asm-syntax.h
        mpi_sflags="-Wa,-mppc"
