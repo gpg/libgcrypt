@@ -1,10 +1,6 @@
 		    libgcrypt - The GNU crypto library
 		   ------------------------------------
-  			    Version 1.1.94
-
-    THIS IS A PRE-RELEASE FOR THE FIRST STABLE VERSION 1.2.0, TO BE
-    RELEASED RSN.
-
+  			    Version 1.2.0
 
     Copyright 2000, 2002, 2003, 2004 Free Software Foundation, Inc.
 
@@ -30,22 +26,6 @@
 
     Libgcrypt depends on the library `libgpg-error', which must be
     installed correctly before Libgcrypt is to be built.
-
-
-    CVS
-    ---
-
-    If you are using the CVS version, make sure that you have the
-    latest GNU build tools installed and run ./autogen.sh before
-    trying to build the library.  Instead of running autogen.sh,
-    something like `autoreconf -i --symlink' can be used to prepare
-    the tree for building as well.
-
-    You also need to enable maintainer mode at configure time with the
-    `--enable-maintainer-mode' configure switch; without this switch,
-    the documentation can not be build, since the file `version.texi',
-    which is needed for building the documentation, will only be
-    generated, if maintainer mode is enabled.
 
 
     Mailing List
@@ -116,7 +96,7 @@
                      option to disable the use of version scripts.
                      Note, that you should never ever use an
                      undocumented symbol or one which is prefixed with
-                     an underscore.
+                     an underscore. 
 
      --enable-ciphers=list
      --enable-pubkey-ciphers=list
@@ -128,3 +108,9 @@
 		     data types.  With these switches it is possible
                      to select exactly those algorithm modules, which
 		     should be built.
+
+    Contact
+    -------
+
+    See the file AUTHORS.
+

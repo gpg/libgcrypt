@@ -1,5 +1,6 @@
 /* global.c  -	global control functions
- * Copyright (C) 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
+ *               2004  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -159,13 +160,6 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
   va_start (arg_ptr, cmd);
   switch (cmd)
     {
-#if 0
-    case GCRYCTL_NO_MEM_IS_FATAL:
-      break;
-    case GCRYCTL_SET_FATAL_FNC:
-      break;
-#endif
-
     case GCRYCTL_ENABLE_M_GUARD:
       _gcry_private_enable_m_guard ();
       break;
@@ -463,13 +457,13 @@ gcry_realloc (void *a, size_t n)
 void
 gcry_free( void *p )
 {
-    if( !p )
-	return;
+  if( !p )
+    return;
 
-    if( free_func )
-	free_func( p );
-    else
-	_gcry_private_free( p );
+  if (free_func)
+    free_func (p);
+  else
+    _gcry_private_free (p);
 }
 
 void *
@@ -513,13 +507,27 @@ gcry_calloc_secure (size_t n, size_t m)
 }
 
 
+/* Create and return a copy of the null-terminated string STRING.  If
+   it is contained in secure memory, the copy will be contained in
+   secure memory as well.  In an out-of-memory condition, NULL is
+   returned.  */
 char *
-gcry_strdup( const char *string )
+gcry_strdup (const char *string)
 {
-    void *p = gcry_malloc( strlen(string)+1 );
-    if (p)
-      strcpy (p, string);
-    return p;
+  char *string_cp = NULL;
+  size_t string_n = 0;
+
+  string_n = strlen (string);
+
+  if (gcry_is_secure (string))
+    string_cp = gcry_malloc_secure (string_n + 1);
+  else
+    string_cp = gcry_malloc (string_n + 1);
+  
+  if (string_cp)
+    strcpy (string_cp, string);
+
+  return string_cp;
 }
 
 
@@ -583,11 +591,25 @@ gcry_xcalloc_secure( size_t n, size_t m )
 }
 
 char *
-gcry_xstrdup( const char *string )
+gcry_xstrdup (const char *string)
 {
-    void *p = gcry_xmalloc( strlen(string)+1 );
-    strcpy( p, string );
-    return p;
+  char *p;
+
+  while ( !(p = gcry_strdup (string)) ) 
+    {
+      size_t n = strlen (string);
+      int is_sec = !!gcry_is_secure (string);
+
+      if (!outofcore_handler
+          || !outofcore_handler (outofcore_handler_value, n, is_sec) ) 
+        {
+          _gcry_fatal_error (gpg_err_code_from_errno (errno),
+                             is_sec? _("out of core in secure memory"):NULL);
+	}
+    }
+
+  strcpy( p, string );
+  return p;
 }
 
 

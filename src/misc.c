@@ -66,14 +66,14 @@ write2stderr( const char *s )
     write( 2, s, strlen(s) );
 }
 
-/****************
+/*
  * This function is called for fatal errors.  A caller might want to
- * set his own handler becuase this function simply calls abort().
+ * set his own handler because this function simply calls abort().
  */
 void
 _gcry_fatal_error (int rc, const char *text)
 {
-  if (! text) /* get a default text */
+  if ( !text ) /* get a default text */
     text = gpg_strerror (rc);
 
   if (fatal_error_handler)
@@ -234,7 +234,7 @@ _gcry_burn_stack (int bytes)
 {
     char buf[64];
     
-    memset (buf, 0, sizeof buf);
+    wipememory (buf, sizeof buf);
     bytes -= sizeof buf;
     if (bytes > 0)
         _gcry_burn_stack (bytes);

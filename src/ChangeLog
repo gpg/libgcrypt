@@ -1,3 +1,16 @@
+2004-04-15  Werner Koch  <wk@gnupg.org>
+
+	* secmem.c (_gcry_secmem_malloc_internal): Removed old extra info
+	error output.
+	(_gcry_secmem_term): Use wipememory2 here.
+
+	* misc.c (_gcry_burn_stack): Use wipememory to avoid optimizations.
+
+	* string.c: Removed.  Was never used.
+	* global.c (gcry_strdup): Replaced by the version from string.c
+	(gcry_xstrdup): Rewritten.
+	* gcrypt.h: Removed duplicate prototype for gcry_strdup.
+
 2004-03-29  Werner Koch  <wk@gnupg.org>
 
 	* secmem.c (_gcry_secmem_realloc): Fixed double unlock; bug

@@ -477,8 +477,7 @@ _gcry_secmem_malloc_internal (size_t size)
   if (!pool_okay)
     {
       log_info (_
-		("operation is not possible without initialized secure memory\n"));
-      log_info (_("(you may have used the wrong program for this task)\n"));
+	("operation is not possible without initialized secure memory\n"));
       exit (2);
     }
   if (show_warning && !suspend_warning)
@@ -487,7 +486,7 @@ _gcry_secmem_malloc_internal (size_t size)
       print_warn ();
     }
 
-  /* blocks are always a multiple of 32 */
+  /* Blocks are always a multiple of 32. */
   size = ((size + 31) / 32) * 32;
 
   mb = mb_get_new ((memblock_t *) pool, size);
@@ -612,10 +611,10 @@ _gcry_secmem_term ()
   if (!pool_okay)
     return;
 
-  memset (pool, 0xff, pool_size);
-  memset (pool, 0xaa, pool_size);
-  memset (pool, 0x55, pool_size);
-  memset (pool, 0x00, pool_size);
+  wipememory2 (pool, 0xff, pool_size);
+  wipememory2 (pool, 0xaa, pool_size);
+  wipememory2 (pool, 0x55, pool_size);
+  wipememory2 (pool, 0x00, pool_size);
 #if HAVE_MMAP
   if (pool_is_mmapped)
     munmap (pool, pool_size);

@@ -40,13 +40,13 @@ extern "C" {
 #endif
 #endif
 
-/* The version of this header should match the one of the library It
+/* The version of this header should match the one of the library. It
    should not be used by a program because gcry_check_version() should
    return the same version.  The purpose of this macro is to let
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
    matches the installed library.  Note: Do not edit the next line as
    configure may fix the string here.  */
-#define GCRYPT_VERSION "1.1.95-cvs"
+#define GCRYPT_VERSION "1.2.0"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -77,7 +77,7 @@ extern "C" {
 #define _GCRY_GCC_ATTR_MALLOC  __attribute__ ((__malloc__))
 #endif
 
-#endif
+#endif /*__GNUC__*/
 
 #ifndef _GCRY_GCC_ATTR_DEPRECATED
 #define _GCRY_GCC_ATTR_DEPRECATED
@@ -128,7 +128,7 @@ gcry_err_source (gcry_error_t err)
 
 /* Return a pointer to a string containing a description of the error
    code in the error value ERR.  */
-const char * gcry_strerror (gcry_error_t err);
+const char *gcry_strerror (gcry_error_t err);
 
 /* Return a pointer to a string containing a description of the error
    source in the error value ERR.  */
@@ -1248,7 +1248,7 @@ gcry_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
    version of the gcry_md_write function. */
 #define gcry_md_putc(h,c)  \
             do {                                          \
-                gcry_md_hd_t h__ = (h);                       \
+                gcry_md_hd_t h__ = (h);                   \
                 if( (h__)->bufpos == (h__)->bufsize )     \
                     gcry_md_write( (h__), NULL, 0 );      \
                 (h__)->buf[(h__)->bufpos++] = (c) & 0xff; \
@@ -1484,12 +1484,6 @@ void  gcry_free (void *a);
 
 /* Return true if A is allocated in "secure" memory. */
 int gcry_is_secure (const void *a) _GCRY_GCC_ATTR_PURE;
-
-/* Create and return a copy of the null-terminated string STRING.  If
-   it is contained in secure memory, the copy will be contained in
-   secure memory as well.  In an out-of-memory condition, NULL is
-   returned.  */
-char *gcry_strdup (const char *string);
 
 /* Include support for Libgcrypt modules.  */
 #include <gcrypt-module.h>

@@ -27,7 +27,7 @@ min_automake_version="1.7.6"
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.1.95-cvs, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.2.0, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
@@ -35,7 +35,7 @@ AC_INIT(libgcrypt, 1.1.95-cvs, bug-libgcrypt@gnupg.org)
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=12
 LIBGCRYPT_LT_AGE=1
-LIBGCRYPT_LT_REVISION=0
+LIBGCRYPT_LT_REVISION=1
 
 # If the API is changed in an incompatible way: increment the next counter.
 LIBGCRYPT_CONFIG_API_VERSION=1
@@ -823,5 +823,3 @@ fi
 # Give some feedback
 echo   "                Configured for: $PRINTABLE_OS_NAME ($target)"
 echo
-
-
