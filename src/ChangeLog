@@ -1,3 +1,8 @@
+2003-03-12  Werner Koch  <wk@gnupg.org>
+
+	* sexp.c (sexp_sscan): Initialize NM.  Thanks to Ian Peters for
+	valgrinding this.
+
 2003-03-06  Moritz Schulte  <mo@g10code.com>
 
 	* secmem.h (GCRY_SECMEM_FLAG_NO_WARNING,

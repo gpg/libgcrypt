@@ -1021,7 +1021,7 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 	else if ( percent ) {
 	    if ( *p == 'm' ) { /* insert an MPI */
 		GCRY_MPI m = va_arg (arg_ptr, GCRY_MPI);
-		size_t nm;
+		size_t nm = 0;
 
 		if ( gcry_mpi_print( GCRYMPI_FMT_STD, NULL, &nm, m ) )
 		    BUG ();
