@@ -27,7 +27,6 @@
 #include "memory.h"
 #include "rmd.h"
 #include "cipher.h" /* only used for the rmd160_hash_buffer() prototype */
-#include "dynload.h"
 
 #include "bithelp.h"
 
@@ -143,8 +142,9 @@
 
 
 void
-_gcry_rmd160_init( RMD160_CONTEXT *hd )
+_gcry_rmd160_init (void *context)
 {
+  RMD160_CONTEXT *hd = (RMD160_CONTEXT *) context;
     hd->h0 = 0x67452301;
     hd->h1 = 0xEFCDAB89;
     hd->h2 = 0x98BADCFE;
@@ -398,8 +398,9 @@ transform( RMD160_CONTEXT *hd, byte *data )
  * of INBUF with length INLEN.
  */
 static void
-rmd160_write( RMD160_CONTEXT *hd, byte *inbuf, size_t inlen)
+rmd160_write( void *context, byte *inbuf, size_t inlen)
 {
+  RMD160_CONTEXT *hd = (RMD160_CONTEXT *) context;
     if( hd->count == 64 ) { /* flush the buffer */
 	transform( hd, hd->buf );
         _gcry_burn_stack (108+5*sizeof(void*));
@@ -453,8 +454,9 @@ _gcry_rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer )
  */
 
 static void
-rmd160_final( RMD160_CONTEXT *hd )
+rmd160_final( void *context )
 {
+  RMD160_CONTEXT *hd = (RMD160_CONTEXT *) context;
     u32 t, msb, lsb;
     byte *p;
 
@@ -514,8 +516,9 @@ rmd160_final( RMD160_CONTEXT *hd )
 }
 
 static byte *
-rmd160_read( RMD160_CONTEXT *hd )
+rmd160_read( void *context )
 {
+  RMD160_CONTEXT *hd = (RMD160_CONTEXT *) context;
     return hd->buf;
 }
 
@@ -536,98 +539,13 @@ _gcry_rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length )
     memcpy( outbuf, hd.buf, 20 );
 }
 
+static byte asn[15] = /* Object ID is 1.3.36.3.2.1 */
+  { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x24, 0x03,
+    0x02, 0x01, 0x05, 0x00, 0x04, 0x14 };
 
-/****************
- * Return some information about the algorithm.  We need algo here to
- * distinguish different flavors of the algorithm.
- * Returns: A pointer to string describing the algorithm or NULL if
- *	    the ALGO is invalid.
- */
-static const char *
-rmd160_get_info( int algo, size_t *contextsize,
-	       byte **r_asnoid, int *r_asnlen, int *r_mdlen,
-	       void (**r_init)( void *c ),
-	       void (**r_write)( void *c, byte *buf, size_t nbytes ),
-	       void (**r_final)( void *c ),
-	       byte *(**r_read)( void *c )
-	     )
-{
-    static byte asn[15] = /* Object ID is 1.3.36.3.2.1 */
-	  { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x24, 0x03,
-	    0x02, 0x01, 0x05, 0x00, 0x04, 0x14 };
-
-    if( algo != 3 )
-	return NULL;
-
-    *contextsize = sizeof(RMD160_CONTEXT);
-    *r_asnoid = asn;
-    *r_asnlen = DIM(asn);
-    *r_mdlen = 20;
-    *(void  (**)(RMD160_CONTEXT *))r_init		  = _gcry_rmd160_init;
-    *(void  (**)(RMD160_CONTEXT *, byte*, size_t))r_write = rmd160_write;
-    *(void  (**)(RMD160_CONTEXT *))r_final		  = rmd160_final;
-    *(byte *(**)(RMD160_CONTEXT *))r_read		  = rmd160_read;
-
-    return "RIPEMD160";
-}
-
-
-#ifndef IS_MODULE
-static
-#endif
-const char * const gnupgext_version = "RMD160 ($Revision$)";
-
-static struct {
-    int class;
-    int version;
-    int  value;
-    void (*func)(void);
-} func_table[] = {
-    { 10, 1, 0, (void(*)(void))rmd160_get_info },
-    { 11, 1, 3 },
-};
-
-
-#ifndef IS_MODULE
-static
-#endif
-void *
-gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
-{
-    void *ret;
-    int i = *sequence;
-
-    do {
-	if( i >= DIM(func_table) || i < 0 ) {
-	    return NULL;
-	}
-	*class = func_table[i].class;
-	*vers  = func_table[i].version;
-	switch( *class ) {
-	  case 11:
-	  case 21:
-	  case 31:
-	    ret = &func_table[i].value;
-	    break;
-	  default:
-	    ret = func_table[i].func;
-	    break;
-	}
-	i++;
-    } while( what && what != *class );
-
-    *sequence = i;
-    return ret;
-}
-
-
-
-
-#ifndef IS_MODULE
-void
-_gcry_rmd160_constructor(void)
-{
-    _gcry_register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );
-}
-#endif
-
+GcryDigestSpec digest_spec_rmd160 =
+  {
+    "RIPEMD160", GCRY_MD_RMD160, asn, DIM (asn), 20,
+    _gcry_rmd160_init, rmd160_write, rmd160_final, rmd160_read,
+    sizeof (RMD160_CONTEXT)
+  };

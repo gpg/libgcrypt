@@ -1,4 +1,401 @@
+2003-04-16  Moritz Schulte  <moritz@g10code.com>
+
+	* rand-internal.h: Removed declarations for constructor functions.
+
+	* md.c (md_copy): Call _gcry_module_use for incrementing the usage
+	counter of the digest modules.
+
+	* rsa.c: Do not include "rsa.h".
+	* dsa.c: Do not include "dsa.h".
+	* elgamal.c: Do not include "elgamal.h".
+	* des.c: Do not include "des.h".
+	* cast5.c: Do not include "cast5.h".
+	* blowfish.c: Do not include "blowfish.h".
+	* arcfour.c: Do not include "arcfour.h".
+
+	* Makefile.am (libcipher_la_DEPENDENCIES): Removed.
+	(libcipher_la_LIBADD): Removed.
+	Use Automake conditionals for conditional compilation.
+
+2003-04-13  Moritz Schulte  <moritz@g10code.com>
+
+	* cipher.c (gcry_cipher_open): Call REGISTER_DEFAULT_CIPHERS.
+
+	* md.c (gcry_md_list): New member: module.
+	(md_enable): New variable: module, changed use of module and
+	digest.
+	(md_enable): Initialize member: module.
+	(md_close): Call _gcry_module_release.
+
+	* cipher.c (gcry_cipher_open): New variable: module, changed use of
+	module and cipher.
+	(struct gcry_cipher_handle): New member: module.
+	(gcry_cipher_open): Initialize member: module.
+	(gcry_cipher_close): Call _gcry_module_release.
+
+2003-04-09  Moritz Schulte  <moritz@g10code.com>
+	
+	* cipher.c: Include "ath.h".
+	* md.c: Likewise.
+	* pubkey.c: Likewise.
+
+	* cipher.c (ciphers_registered_lock): New variable.
+	* md.c (digests_registered_lock): New variable.
+	* pubkey.c (pubkeys_registered_lock): New variable.
+
+	* rndlinux.c (gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_rndlinux_constructor): Removed function.
+
+	* rndegd.c (gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_rndegd_constructor): Removed function.
+
+	* rndunix.c (gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_rndunix_constructor): Removed function.
+
+	* rndw32.c (gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_rndw32_constructor): Removed function.
+
+	* rndegd.c (rndegd_connect_socket): Simplify code for creating the
+	egd socket address.
+	(rndegd_connect_socket): Call log_fatal use instead of
+	g10_log_fatal.
+	(egd_gather_random): Renamed to ...
+	(rndegd_gather_random): ... here.
+
+2003-04-08  Moritz Schulte  <moritz@g10code.com>
+
+	* rndlinux.c: Do not include "dynload.h".
+	* rndunix.c: Likewise.
+	* rndw32.c: Likewise.
+
+	* rndegd.c (rndegd_connect_socket): Factored out from ...
+	(egd_gather_random): here; call it.
+	(egd_socket): New variable.
+	(egd_gather_random): Initialize fd with egd_socket, do not declare
+	fd static.
+	(do_read): Merged few changes from GnuPG. FIXME - not finished?
+	Do not include "dynload.h".
+
+	* rndw32.c (gather_random): Renamed to rndw32_gather_random, do
+	not declare static.
+	(gather_random_fast): Renamed to rndw32_gather_random_fast, do not
+	declare static.
+
+	* rndunix.c (gather_random): Renamed to rndunix_gather_random, do
+	not declare static.
+	* rndegd.c (gather_random): Renamed to rndegd_gather_random, do
+	not declare static.
+	* rndlinux.c (gather_random): Renamed to rndlinux_gather_random,
+	do not declare static.
+
+2003-04-07  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (libcipher_la_SOURCES): Removed construct.c.
+	(libcipher_la_SOURCES): Added sha1.c, sha256.c, rmd160.c, md4.c,
+	md5.c, tiger.c and crc.c
+	(EXTRA_PROGRAMS): Removed sha1, sha256, rmd160, md4, md5, tiger
+	and crc.  Removed definitions: EXTRA_md4_SOURCES,
+	EXTRA_md5_SOURCES, EXTRA_rmd160_SOURCES, EXTRA_sha1_SOURCES,
+	EXTRA_sha256_SOURCES, EXTRA_tiger_SOURCES and EXTRA_crc_SOURCES,
+	BUILT_SOURCES, DISTCLEANFILES.
+
+	* pubkey.c: Do not include "elgamal.h", "dsa.h" and "rsa.h".
+
+	* Makefile.am (libcipher_la_SOURCES): Removed rsa.h, elgamal.h,
+	dsa.h, des.h, cast5.h, arcfour.h and blowfish.h.
+
+	* rsa.h: Removed file.
+	* elgamal.h: Removed file.
+	* dsa.h: Removed file.
+	* des.h: Removed file.
+	* cast5.h: Removed file.
+	* arcfour.h: Removed file.
+	* blowfish.h: Removed file.
+
+	* Makefile.am (libcipher_la_SOURCES): Removed dynload.c and
+	dynload.h.
+
+	* rsa.c (pubkey_spec_rsa): New variable.
+	* dsa.c (pubkey_spec_rsa): New variable.
+	* elgamal.c (pubkey_spec_elg): New variable.
+	
+	* rsa.c (_gcry_rsa_get_info): Removed function.
+	* elgamal.c (_gcry_elg_get_info): Removed function.
+	* dsa.c (_gcry_dsa_get_info): Removed function.
+
+	* tiger.c (tiger_get_info): Removed function.
+	(gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_tiger_constructor): Removed function.
+	
+	* sha1.c (sha1_get_info): Removed function.
+	(gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_sha1_constructor): Removed function.
+
+	* sha256.c (sha256_get_info): Removed function.
+	(gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_sha256_constructor): Removed function.
+
+	* rmd160.c (rmd160_get_info): Removed function.
+	(gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_rmd160_constructor): Removed function.
+
+	* md5.c (md5_get_info): Removed function.
+	(gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_md5_constructor): Removed function.
+
+	* md4.c (md4_get_info): Removed function.
+	(gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func): Removed function.
+	(_gcry_md4_constructor): Removed function.
+
+	* crc.c (crc_get_info): Removed function.
+
+	* arcfour.c (do_arcfour_setkey): Changed type of context argument
+	to `void *', added local variable for cast, adjusted callers.
+	(arcfour_setkey): Likewise.
+	(encrypt_stream): Likewise.
+	* cast5.c (cast_setkey): Likewise.
+	(encrypt_block): Likewise.
+	* rijndael.c (rijndael_setkey): Likewise.
+	(rijndael_encrypt): Likewise.
+	(rijndael_decrypt): Likewise.
+	* twofish.c (twofish_setkey): Likewise.
+	(twofish_encrypt): Likewise.
+	(twofish_decrypt): Likewise.
+	* des.c (do_des_setkey): Likewise.
+	(do_des_encrypt): Likewise.
+	(do_des_encrypt): Likewise.
+	(do_tripledes_encrypt): Likewise.
+	(do_tripledes_encrypt): Likewise.
+	* blowfish.c (bf_setkey: Likewise.
+	(encrypt_block): Likewise.
+	(decrypt_block): Likewise.
+	
+	* arcfour.c (encrypt_stream): Likewise.
+
+	* rijndael.c (gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func) Removed function.	
+	
+	* twofish.c (gnupgext_version, func_table): Removed definitions.
+	(gnupgext_enum_func) Removed function.	
+
+	* cast5.c (CIPHER_ALGO_CAST5): Removed.
+
+	* blowfish.c (FNCCAST_SETKEY, FNCCAST_CRYPT): Removed macros.
+	(CIPHER_ALGO_BLOWFISH): Removed symbol.
+	* cast5.c (FNCCAST_SETKEY, FNCCAST_CRYPT): Likewise.
+	* des.c (selftest_failed): Removed.
+	(initialized): New variable.
+	(do_des_setkey): Run selftest, if not yet done.
+	(FNCCAST_SETKEY, FNCCAST_CRYPT): Removed macros.
+
+	* arcfour.c (_gcry_arcfour_get_info): Removed function.
+	* blowfish.c (_gcry_blowfish_get_info): Removed function.
+	* cast5.c (_gcry_cast5_get_info): Removed function.
+	* des.c (_gcry_des_get_info): Removed function.
+	* rijndael.c (_gcry_rijndael_get_info): Removed function.
+	* twofish.c (_gcry_twofish_get_info): Removed function.
+
+	* arcfour.c (cipher_spec_arcfour): New variable.
+	* twofish.c (cipher_spec_twofish, cipher_spec_twofish128): New
+	variables.
+	* rijndael.c (cipher_spec_aes, cipher_spec_aes192,
+	cipher_spec256): New variables.
+	* des.c (cipher_spec_des, cipher_spec_tripledes): New variables.
+	* cast5.c (cipher_spec_cast5): New variable.
+	* blowfish.c (cipher_spec_blowfish): Likewise.
+	
+	* twofish.c: Do not include "dynload.h".
+	* rijndael.c: Likewise.
+	* des.c: Likewise.
+	* cast5.c: Likewise.
+	* blowfish.c: Likewise.
+	* cipher.c: Likewise.
+	* crc.c: Likewise.
+	* md4.c: Likewise.
+	* md5.c: Likewise.
+	* md.c: Likewise.
+	* pubkey.c: Likewise.
+	* rijndael.c: Likewise.
+	* sha1.c: Likewise.
+	* sha256.c: Likewise.
+
+	* arcfour.c: Include "cipher.h".
+	* twofish.c: Likewise.
+	* rijndael.c: Likewise.
+	* des.c: Likewise.
+	* cast5.c: Likewise.
+	* blowfish.c: Likewise.
+
+	* twofish.c (twofish_setkey): Declared argument `key' const.
+	(twofish_encrypt): Declared argument `inbuf' const.
+	(twofish_decrypt): Likewise.
+
+	* rijndael.c (rijndael_setkey): Declared argument `key' const.
+	(rijndael_encrypt): Declared argument `inbuf' const.
+	(rijndael_decrypt): Likewise.
+
+	* des.c (do_des_setkey): Declared argument `key' const.
+	(do_tripledes_setkey): Likewise.
+	(do_des_encrypt): Declared argument `inbuf' const.
+	(do_des_decrypt): Likewise.
+	(do_tripledes_encrypt): Likewise.
+	(do_tripledes_decrypt): Likewise.
+
+	* cast5.c (encrypt_block): Declared argument `inbuf' const.
+	(decrypt_block): Likewise.
+	(cast_setkey): Declared argument `key' const.
+
+	* blowfish.c (do_bf_setkey): Declared argument `key' const.
+	(encrypt_block): Declared argument `inbuf' const.
+	(encrypt_block): Likewise.
+
+	
+
+	* cipher.c: Remove CIPHER_ALGO_DUMMY related code.
+	Removed struct cipher_table_s.
+	Changed definition of cipher_table.
+	Removed definition of disabled_algos.
+	(ciphers_registered, default_ciphers_registered): New variables.
+	(REGISTER_DEFAULT_CIPHERS): New macro.
+	(dummy_setkey): Declared argument `key' const.
+	(dummy_encrypt_block): Declared argument `inbuf' const.
+	(dummy_encrypt_block): Likewise.
+	(dummy_encrypt_stream): Likewise.
+	(dummy_encrypt_stream): Likewise.
+	(dummy_setkey): Use `unsigned char' instead of `byte'.
+	(dummy_encrypt_block): Likewise.
+	(dummy_decrypt_block): Likewise.
+	(dummy_encrypt_stream): Likewise.
+	(dummy_decrypt_stream): Likewise.
+	(gcry_cipher_register_default): New function.
+	(gcry_cipher_lookup_func_id): New function.
+	(gcry_cipher_lookup_func_name): New function.
+	(gcry_cipher_lookup_id): New function.
+	(gcry_cipher_lookup_name): New function.
+	(gcry_cipher_id_new): New function.
+	(gcry_cipher_register): New function.
+	(gcry_cipher_unregister): New function.
+	(setup_cipher_table): Removed function.
+	(load_cipher_modules): Removed function.
+	(gcry_cipher_map_name): Adjusted to use new module management.
+	(cipher_algo_to_string): Likewise.
+	(disable_cipher_algo): Likewise.
+	(check_cipher_algo): Likewise.
+	(cipher_get_keylen): Likewise.
+	(cipher_get_blocksize): Likewise.
+	(gcry_cipher_open): Likewise.
+	(struct gcry_cipher_handle): Replaced members algo, algo_index,
+	blocksize, setkey, encrypt, decrypt, stencrypt, stdecrypt with one
+	member: cipher.
+	(gcry_cipher_open): Adjusted code for new handle structure.
+	(cipher_setkey): Likewise.
+	(cipher_setiv): Likewise.
+	(cipher_reset): Likewise.
+	(do_ecb_encrypt): Likewise.
+	(do_ecb_decrypt): Likewise.
+	(do_cbc_encrypt): Likewise.
+	(do_cbc_decrypt): Likewise.
+	(do_cfb_encrypt): Likewise.
+	(do_cfb_decrypt): Likewise.
+	(do_ctr_encrypt): Likewise.
+	(cipher_encrypt): Likewise.
+	(gcry_cipher_encrypt): Likewise.
+	(cipher_decrypt): Likewise.
+	(gcry_cipher_decrypt): Likewise.
+	(cipher_sync): Likewise.
+	(gcry_cipher_ctl): Likewise.
+
+	* pubkey.c: Removed struct pubkey_table_s.
+	Changed definition of pubkey_table.
+	Removed definition of disabled_algos.
+	(pubkeys_registered, default_pubkeys_registered): New variables.
+	(REGISTER_DEFAULT_PUBKEYS): New macro.
+	(setup_pubkey_table): Removed function.
+	(load_pubkey_modules): Removed function.
+	(gcry_pubkey_register_default): New function.
+	(gcry_pubkey_lookup_func_id): New function.
+	(gcry_pubkey_lookup_func_name): New function.
+	(gcry_pubkey_lookup_id): New function.
+	(gcry_pubkey_lookup_name): New function.
+	(gcry_pubkey_id_new): New function.
+	(gcry_pubkey_register): New function.
+	(gcry_pubkey_unregister): New function.
+	(gcry_pk_map_name): Adjusted to use new module management.
+	(gcry_pk_algo_name): Likewise.
+	(disable_pubkey_algo): Likewise.
+	(check_pubkey_algo): Likewise.
+	(pubkey_get_npkey): Likewise.
+	(pubkey_get_nskey): Likewise.
+	(pubkey_get_nsig): Likewise.
+	(pubkey_get_nenc): Likewise.
+	(pubkey_generate): Likewise.
+	(pubkey_check_secret_key): Likewise.
+	(pubkey_encrypt): Likewise.
+	(pubkey_decrypt): Likewise.
+	(pubkey_sign): Likewise.
+	(pubkey_verify): Likewise.
+	(gcry_pk_get_nbits): Likewise.
+	(gcry_pk_algo_info): Likewise.
+
+	* md.c: Removed struct md_digest_list_s.
+	(digest_list): Changed definition.
+	(digests_registered, default_digests_registered): New variables.
+	(REGISTER_DEFAULT_DIGESTS): New macro.
+	(new_list_item): Removed function.
+	(setup_md_table): Removed function.
+	(load_digest_module): Removed function.
+	(gcry_digest_register_default): New function.
+	(gcry_digest_lookup_func_id): New function.
+	(gcry_digest_lookup_func_name): New function.
+	(gcry_digest_lookup_id): New function.
+	(gcry_digest_lookup_name): New function.
+	(gcry_digest_id_new): New function.
+	(gcry_digest_register): New function.
+	(gcry_digest_unregister): New function.
+	(GcryDigestEntry): New type.
+	(struct gcry_md_context): Adjusted type of `list'.
+	(gcry_md_map_name): Adjusted to use new module management.
+	(digest_algo_to_string): Likewise.
+	(check_digest_algo): Likewise.
+	(md_enable): Likewise.
+	(md_digest_length): Likewise.
+	(md_asn_oid): Likewise.
+
+2003-04-07  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c: Replaced PUBKEY_ALGO_DSA with GCRY_PK_DSA,
+	PUBKEY_ALGO_RSA with GCRY_PK_RSA and PUBKEY_ALGO_ELGAMAL with
+	GCRY_PK_ELG.
+
+	* dsa.c: Replaced PUBKEY_ALGO_DSA with GCRY_PK_DSA.
+
+2003-04-01  Moritz Schulte  <moritz@g10code.com>
+
+	* des.c: Removed checks for GCRY_CIPHER_3DES and GCRY_CIPHER_DES.
+
 2003-03-31  Moritz Schulte  <moritz@g10code.com>
+
+	* tiger.c (tiger_get_info): Do not declare static.
+	* sha256.c (sha256_get_info): Likewise.
+	* sha1.c (sha1_get_info): Likewise.
+	* rmd160.c (rmd160_get_info): Likewise.
+	* md5.c (md5_get_info): Likewise.
+	* md4.c (md4_get_info): Likewise.
+	* crc.c (crc_get_info): Likewise.
+
+	* md.c (load_digest_module): Call setup_md_table during
+	initialization.
+	(new_list_item): Link new element into digest_list.
 
 	* cipher.c (do_ctr_decrypt): Made do_ctr_encrypt act as a wrapper
 	for do_ctr_encrypt, since these functions are identical.

@@ -1,5 +1,5 @@
 /* elgamal.c  -  ElGamal Public Key encryption
- * Copyright (C) 1998, 2000, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -29,7 +29,6 @@
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
-#include "elgamal.h"
 
 typedef struct {
     MPI p;	    /* prime */
@@ -626,36 +625,15 @@ _gcry_elg_get_nbits( int algo, MPI *pkey )
     return mpi_get_nbits( pkey[0] );
 }
 
-
-/****************
- * Return some information about the algorithm.  We need algo here to
- * distinguish different flavors of the algorithm.
- * Returns: A pointer to string describing the algorithm or NULL if
- *	    the ALGO is invalid.
- * Usage: Bit 0 set : allows signing
- *	      1 set : allows encryption
- * NOTE: This function allows signing also for ELG-E, which is not
- * okay but a bad hack to allow to work with old gpg keys. The real check
- * is done in the gnupg ocde depending on the packet version.
- */
-const char *
-_gcry_elg_get_info( int algo, int *npkey, int *nskey, int *nenc, int *nsig,
-							 int *use )
-{
-    *npkey = 3;
-    *nskey = 4;
-    *nenc = 2;
-    *nsig = 2;
-
-    switch( algo ) {
-      case GCRY_PK_ELG:
-	*use = GCRY_PK_USAGE_SIGN|GCRY_PK_USAGE_ENCR;
-	return "ELG";
-      case GCRY_PK_ELG_E:
-	*use = GCRY_PK_USAGE_SIGN|GCRY_PK_USAGE_ENCR;
-	return "ELG-E";
-      default: *use = 0; return NULL;
-    }
-}
-
-
+GcryPubkeySpec pubkey_spec_elg =
+  {
+    "ELG", GCRY_PK_ELG, 3, 4, 2, 2,
+    GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR,
+    _gcry_elg_generate,
+    _gcry_elg_check_secret_key,
+    _gcry_elg_encrypt,
+    _gcry_elg_decrypt,
+    _gcry_elg_sign,
+    _gcry_elg_verify,
+    _gcry_elg_get_nbits,
+  };

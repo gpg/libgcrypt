@@ -25,7 +25,7 @@
 #include <assert.h>
 #include "g10lib.h"
 #include "memory.h"
-
+#include "cipher.h"
 
 #ifdef HAVE_U64_TYPEDEF
 
@@ -591,8 +591,9 @@ static u64 sbox4[256] = {
 
 
 static void
-tiger_init( TIGER_CONTEXT *hd )
+tiger_init( void *context )
 {
+  TIGER_CONTEXT *hd = (TIGER_CONTEXT *) context;
     hd->a = 0x0123456789abcdefLL;
     hd->b = 0xfedcba9876543210LL;
     hd->c = 0xf096a5b4c3b2e187LL;
@@ -718,8 +719,9 @@ transform( TIGER_CONTEXT *hd, byte *data )
  * of INBUF with length INLEN.
  */
 static void
-tiger_write( TIGER_CONTEXT *hd, byte *inbuf, size_t inlen)
+tiger_write( void *context, byte *inbuf, size_t inlen)
 {
+  TIGER_CONTEXT *hd = (TIGER_CONTEXT *) context;
     if( hd->count == 64 ) { /* flush the buffer */
 	transform( hd, hd->buf );
         _gcry_burn_stack (21*8+11*sizeof(void*));
@@ -754,8 +756,9 @@ tiger_write( TIGER_CONTEXT *hd, byte *inbuf, size_t inlen)
  */
 
 static void
-tiger_final( TIGER_CONTEXT *hd )
+tiger_final( void *context )
 {
+  TIGER_CONTEXT *hd = (TIGER_CONTEXT *) context;
     u32 t, msb, lsb;
     byte *p;
 
@@ -815,124 +818,23 @@ tiger_final( TIGER_CONTEXT *hd )
 }
 
 static byte *
-tiger_read( TIGER_CONTEXT *hd )
+tiger_read( void *context )
 {
-    return hd->buf;
+  TIGER_CONTEXT *hd = (TIGER_CONTEXT *) context;
+  return hd->buf;
 }
 
-/****************
- * Return some information about the algorithm.  We need algo here to
- * distinguish different flavors of the algorithm.
- * Returns: A pointer to string describing the algorithm or NULL if
- *	    the ALGO is invalid.
- */
-static const char *
-tiger_get_info( int algo, size_t *contextsize,
-	       byte **r_asnoid, int *r_asnlen, int *r_mdlen,
-	       void (**r_init)( void *c ),
-	       void (**r_write)( void *c, byte *buf, size_t nbytes ),
-	       void (**r_final)( void *c ),
-	       byte *(**r_read)( void *c )
-	     )
-{
-    static byte asn[19] = /* Object ID is 1.3.6.1.4.1.11591.12.2 */
-                         { 0x30, 0x29, 0x30, 0x0d, 0x06, 0x09, 0x2b, 0x06,
-                           0x01, 0x04, 0x01, 0xda, 0x47, 0x0c, 0x02,
-                           0x05, 0x00, 0x04, 0x18 };
-
-    if( algo != 6 )
-	return NULL;
-
-    *contextsize = sizeof(TIGER_CONTEXT);
-    *r_asnoid = asn;
-    *r_asnlen = DIM(asn);
-    *r_mdlen = 24;
-    *(void  (**)(TIGER_CONTEXT *))r_init		 = tiger_init;
-    *(void  (**)(TIGER_CONTEXT *, byte*, size_t))r_write = tiger_write;
-    *(void  (**)(TIGER_CONTEXT *))r_final		 = tiger_final;
-    *(byte *(**)(TIGER_CONTEXT *))r_read		 = tiger_read;
-
-    return "TIGER192";
-}
+static byte asn[19] = /* Object ID is 1.3.6.1.4.1.11591.12.2 */
+  { 0x30, 0x29, 0x30, 0x0d, 0x06, 0x09, 0x2b, 0x06,
+    0x01, 0x04, 0x01, 0xda, 0x47, 0x0c, 0x02,
+    0x05, 0x00, 0x04, 0x18 };
 
 
-
-#ifndef IS_MODULE
-static
-#endif
-const char * const gnupgext_version = "TIGER ($Revision$)";
-
-static struct {
-    int class;
-    int version;
-    int  value;
-    void (*func)(void);
-} func_table[] = {
-    { 10, 1, 0, (void(*)(void))tiger_get_info },
-    { 11, 1, 6 },
-};
-
-
-
-/****************
- * Enumerate the names of the functions together with informations about
- * this function. Set sequence to an integer with a initial value of 0 and
- * do not change it.
- * If what is 0 all kind of functions are returned.
- * Return values: class := class of function:
- *			   10 = message digest algorithm info function
- *			   11 = integer with available md algorithms
- *			   20 = cipher algorithm info function
- *			   21 = integer with available cipher algorithms
- *			   30 = public key algorithm info function
- *			   31 = integer with available pubkey algorithms
- *		  version = interface version of the function/pointer
- *			    (currently this is 1 for all functions)
- */
-#ifndef IS_MODULE
-static
-#endif
-void *
-gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
-{
-    void *ret;
-    int i = *sequence;
-
-    do {
-	if( i >= DIM(func_table) || i < 0 ) {
-	    /*fprintf(stderr, "failed\n");*/
-	    return NULL;
-	}
-	*class = func_table[i].class;
-	*vers  = func_table[i].version;
-	switch( *class ) {
-	  case 11:
-	  case 21:
-	  case 31:
-	    ret = &func_table[i].value;
-	    break;
-	  default:
-	    ret = func_table[i].func;
-	    break;
-	}
-	i++;
-    } while( what && what != *class );
-
-    *sequence = i;
-    /*fprintf(stderr, "success\n");*/
-    return ret;
-}
-
-
-
-#ifndef IS_MODULE
-void
-_gcry_tiger_constructor(void)
-{
-  _gcry_register_internal_cipher_extension( gnupgext_version,
-                                            gnupgext_enum_func );
-}
-#endif
-
+GcryDigestSpec digest_spec_tiger =
+  {
+    "TIGER192", GCRY_MD_TIGER, asn, DIM (asn), 24,
+    tiger_init, tiger_write, tiger_final, tiger_read,
+    sizeof (TIGER_CONTEXT)
+  };
 
 #endif /* HAVE_U64_TYPEDEF */

@@ -29,20 +29,18 @@
 #include <string.h>
 #include "types.h"
 #include "g10lib.h"
-#include "arcfour.h"
+#include "cipher.h"
 
 static const char *selftest(void);
-
 
 typedef struct {
     int idx_i, idx_j;
     byte sbox[256];
 } ARCFOUR_context;
 
-
 static void
 do_encrypt_stream( ARCFOUR_context *ctx,
-                byte *outbuf, const byte *inbuf, unsigned int length )
+		   byte *outbuf, const byte *inbuf, unsigned int length )
 {
   register int i = ctx->idx_i;
   register int j = ctx->idx_j;
@@ -64,22 +62,23 @@ do_encrypt_stream( ARCFOUR_context *ctx,
 }
 
 static void
-encrypt_stream( ARCFOUR_context *ctx,
-                byte *outbuf, const byte *inbuf, unsigned int length )
+encrypt_stream (void *context,
+                byte *outbuf, const byte *inbuf, unsigned int length)
 {
-
-    do_encrypt_stream (ctx, outbuf, inbuf, length );
-    _gcry_burn_stack (64);
+  ARCFOUR_context *ctx = (ARCFOUR_context *) context;
+  do_encrypt_stream (ctx, outbuf, inbuf, length );
+  _gcry_burn_stack (64);
 }
 
 
 static int
-do_arcfour_setkey( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
+do_arcfour_setkey (void *context, const byte *key, unsigned int keylen)
 {
     static int initialized;
     static const char* selftest_failed;
     int i, j;
     byte karr[256];
+    ARCFOUR_context *ctx = (ARCFOUR_context *) context;
 
     if( !initialized ) {
 	initialized = 1;
@@ -111,11 +110,12 @@ do_arcfour_setkey( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
 }
 
 static int
-arcfour_setkey ( ARCFOUR_context *ctx, const byte *key, unsigned int keylen )
+arcfour_setkey ( void *context, const byte *key, unsigned int keylen )
 {
-    int rc = do_arcfour_setkey (ctx, key, keylen );
-    _gcry_burn_stack (300);
-    return rc;
+  ARCFOUR_context *ctx = (ARCFOUR_context *) context;
+  int rc = do_arcfour_setkey (ctx, key, keylen );
+  _gcry_burn_stack (300);
+  return rc;
 }
 
 
@@ -127,9 +127,9 @@ selftest(void)
     
     /* Test vector from Cryptlib labeled there:
      * "from the State/Commerce Department" */
-    static const byte key_1[] =
+    static byte key_1[] =
         { 0x61, 0x8A, 0x63, 0xD2, 0xFB };
-    static const byte plaintext_1[] =
+    static byte plaintext_1[] =
         { 0xDC, 0xEE, 0x4C, 0xF9, 0x2C };
     static const byte ciphertext_1[] =
         { 0xF1, 0x38, 0x29, 0xC9, 0xDE };
@@ -145,38 +145,10 @@ selftest(void)
     return NULL;
 }
 
+
 
-/****************
- * Return some information about the algorithm.  We need algo here to
- * distinguish different flavors of the algorithm.
- * Returns: A pointer to string describing the algorithm or NULL if
- *	    the ALGO is invalid.
- * NOTE: This is a special get_info function which is different from all
- * others because arcfour is a stream cipher.  We use this hack until
- * we have redesign the interface.
- */
-const char *
-_gcry_arcfour_get_info( int algo, size_t *keylen, size_t *blocksize,
-		   size_t *contextsize,
-		   int	(**r_setkey)( void *c, byte *key, unsigned keylen ),
-		   void (**r_stencrypt)( void *c, byte *outbuf,
-                                       byte *inbuf, unsigned int nbytes ),
-		   void (**r_stdecrypt)( void *c, byte *outbuf,
-                                       byte *inbuf, unsigned int nbytes )
-		 )
-{
-    *keylen = 128; /* arbitrary value */
-    *blocksize = 1;
-    *contextsize = sizeof(ARCFOUR_context);
-    *(int  (**)(ARCFOUR_context*, const byte*, unsigned))r_setkey
-							= arcfour_setkey;
-    *(void (**)(ARCFOUR_context*, byte*, const byte*, unsigned))r_stencrypt
-							= encrypt_stream;
-    *(void (**)(ARCFOUR_context*, byte*, const byte*, unsigned))r_stdecrypt
-							= encrypt_stream;
-
-
-    if( algo == GCRY_CIPHER_ARCFOUR )
-	return "ARCFOUR";
-    return NULL;
-}
+GcryCipherSpec cipher_spec_arcfour =
+  {
+    "ARCFOUR", GCRY_CIPHER_ARCFOUR, 1, 128, sizeof (ARCFOUR_context),
+    arcfour_setkey, NULL, NULL, encrypt_stream, encrypt_stream,
+  };

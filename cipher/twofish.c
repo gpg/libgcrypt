@@ -43,8 +43,7 @@
 
 #include "types.h"  /* for byte and u32 typedefs */
 #include "g10lib.h"
-#include "dynload.h"
-
+#include "cipher.h"
 
 /* Prototype for the self-test function. */
 static const char *selftest(void);
@@ -700,11 +699,12 @@ do_twofish_setkey (TWOFISH_context *ctx, const byte *key, const unsigned keylen)
 }
 
 static int
-twofish_setkey (TWOFISH_context *ctx, const byte *key, unsigned int keylen)
+twofish_setkey (void *context, const byte *key, unsigned int keylen)
 {
-    int rc = do_twofish_setkey (ctx, key, keylen);
-    _gcry_burn_stack (23+6*sizeof(void*));
-    return rc;
+  TWOFISH_context *ctx = (TWOFISH_context *) context;
+  int rc = do_twofish_setkey (ctx, key, keylen);
+  _gcry_burn_stack (23+6*sizeof(void*));
+  return rc;
 }
 
 
@@ -802,10 +802,11 @@ do_twofish_encrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
 }
 
 static void
-twofish_encrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
+twofish_encrypt (void *context, byte *out, const byte *in)
 {
-    do_twofish_encrypt (ctx, out, in);
-    _gcry_burn_stack (24+3*sizeof (void*));
+  TWOFISH_context *ctx = (TWOFISH_context *) context;
+  do_twofish_encrypt (ctx, out, in);
+  _gcry_burn_stack (24+3*sizeof (void*));
 }
 
 
@@ -844,10 +845,11 @@ do_twofish_decrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
 }
 
 static void
-twofish_decrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
+twofish_decrypt (void *context, byte *out, const byte *in)
 {
-    do_twofish_decrypt (ctx, out, in);
-    _gcry_burn_stack (24+3*sizeof (void*));
+  TWOFISH_context *ctx = (TWOFISH_context *) context;
+  do_twofish_decrypt (ctx, out, in);
+  _gcry_burn_stack (24+3*sizeof (void*));
 }
 
 
@@ -864,11 +866,11 @@ selftest (void)
     * 128-bit and I=4 for 256-bit, instead of the all-0 vectors from the
     * "intermediate value test", because an all-0 key would trigger all the
     * special cases in the RS matrix multiply, leaving the math untested. */
-   static const byte plaintext[16] = {
+   static  byte plaintext[16] = {
       0xD4, 0x91, 0xDB, 0x16, 0xE7, 0xB1, 0xC3, 0x9E,
       0x86, 0xCB, 0x08, 0x6B, 0x78, 0x9F, 0x54, 0x19
    };
-   static const byte key[16] = {
+   static byte key[16] = {
       0x9F, 0x58, 0x9F, 0x5C, 0xF6, 0x12, 0x2C, 0x32,
       0xB6, 0xBF, 0xEC, 0x2F, 0x2A, 0xE8, 0xC3, 0x5A
    };
@@ -876,11 +878,11 @@ selftest (void)
       0x01, 0x9F, 0x98, 0x09, 0xDE, 0x17, 0x11, 0x85,
       0x8F, 0xAA, 0xC3, 0xA3, 0xBA, 0x20, 0xFB, 0xC3
    };
-   static const byte plaintext_256[16] = {
+   static byte plaintext_256[16] = {
       0x90, 0xAF, 0xE9, 0x1B, 0xB2, 0x88, 0x54, 0x4F,
       0x2C, 0x32, 0xDC, 0x23, 0x9B, 0x26, 0x35, 0xE6
    };
-   static const byte key_256[32] = {
+   static byte key_256[32] = {
       0xD4, 0x3B, 0xB7, 0x55, 0x6E, 0xA3, 0x2E, 0x46,
       0xF2, 0xA2, 0x82, 0xB7, 0xD4, 0x5B, 0x4E, 0x0D,
       0x57, 0xFF, 0x73, 0x9D, 0x4D, 0xC9, 0x2C, 0x1B,
@@ -1014,94 +1016,17 @@ main()
 }
 
 #endif /* TEST */
+
 
-#ifdef IS_MODULE
-static
-#endif
-       const char *
-_gcry_twofish_get_info (int algo, size_t *keylen,
-		  size_t *blocksize, size_t *contextsize,
-		  int  (**r_setkey) (void *c, byte *key, unsigned keylen),
-		  void (**r_encrypt) (void *c, byte *outbuf, byte *inbuf),
-		  void (**r_decrypt) (void *c, byte *outbuf, byte *inbuf)
-		 )
-{
-    *keylen = algo==10? 256 : 128;
-    *blocksize = 16;
-    *contextsize = sizeof (TWOFISH_context);
 
-    *(int  (**)(TWOFISH_context*, const byte*, const unsigned))r_setkey
-							= twofish_setkey;
-    *(void (**)(const TWOFISH_context*, byte*, const byte*))r_encrypt
-							= twofish_encrypt;
-    *(void (**)(const TWOFISH_context*, byte*, const byte*))r_decrypt
-							= twofish_decrypt;
+GcryCipherSpec cipher_spec_twofish =
+  {
+    "TWOFISH", GCRY_CIPHER_TWOFISH, 16, 256, sizeof (TWOFISH_context),
+    twofish_setkey, twofish_encrypt, twofish_decrypt,
+  };
 
-    if( algo == 10 )
-	return "TWOFISH";
-    if (algo == 102) /* This algorithm number is assigned for
-		      * experiments, so we can use it */
-	return "TWOFISH128";
-    return NULL;
-}
-
-#ifdef IS_MODULE
-const char * const gnupgext_version = "TWOFISH ($Revision$)";
-
-static struct {
-    int class;
-    int version;
-    int  value;
-    void (*func)(void);
-} func_table[] = {
-    { 20, 1, 0, (void(*)(void))_gcry_twofish_get_info },
-    { 21, 1, 10  },
-    { 21, 1, 102 },
-};
-
-
-
-/****************
- * Enumerate the names of the functions together with information about
- * this function. Set sequence to an integer with a initial value of 0 and
- * do not change it.
- * If what is 0 all kind of functions are returned.
- * Return values: class := class of function:
- *			   10 = message digest algorithm info function
- *			   11 = integer with available md algorithms
- *			   20 = cipher algorithm info function
- *			   21 = integer with available cipher algorithms
- *			   30 = public key algorithm info function
- *			   31 = integer with available pubkey algorithms
- *		  version = interface version of the function/pointer
- *			    (currently this is 1 for all functions)
- */
-void *
-gnupgext_enum_func ( int what, int *sequence, int *class, int *vers )
-{
-    void *ret;
-    int i = *sequence;
-
-    do {
-	if ( i >= DIM(func_table) || i < 0 ) {
-	    return NULL;
-	}
-	*class = func_table[i].class;
-	*vers  = func_table[i].version;
-	switch( *class ) {
-	  case 11:
-	  case 21:
-	  case 31:
-	    ret = &func_table[i].value;
-	    break;
-	  default:
-	    ret = func_table[i].func;
-	    break;
-	}
-	i++;
-    } while ( what && what != *class );
-
-    *sequence = i;
-    return ret;
-}
-#endif /*IS_MODULE*/
+GcryCipherSpec cipher_spec_twofish128 =
+  {
+    "TWOFISH128", GCRY_CIPHER_TWOFISH, 16, 128, sizeof (TWOFISH_context),
+    twofish_setkey, twofish_encrypt, twofish_decrypt,
+  };

@@ -29,7 +29,7 @@ typedef struct {
     int  count;
 } RMD160_CONTEXT;
 
-void _gcry_rmd160_init( RMD160_CONTEXT *hd );
+void _gcry_rmd160_init( void *context );
 void _gcry_rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer );
 
 #endif /*G10_RMD_H*/

@@ -36,15 +36,7 @@
 #include <assert.h>
 #include "types.h"
 #include "g10lib.h"
-#include "blowfish.h"
-#include "dynload.h"
-
-
-
-#define CIPHER_ALGO_BLOWFISH	 4  /* blowfish 128 bit key */
-
-#define FNCCAST_SETKEY(f)  (int(*)(void*, byte*, unsigned))(f)
-#define FNCCAST_CRYPT(f)   (void(*)(void*, byte*, byte*))(f)
+#include "cipher.h"
 
 #define BLOWFISH_BLOCKSIZE 8
 #define BLOWFISH_ROUNDS 16
@@ -57,9 +49,9 @@ typedef struct {
     u32 p[BLOWFISH_ROUNDS+2];
 } BLOWFISH_context;
 
-static int  bf_setkey( BLOWFISH_context *c, byte *key, unsigned keylen );
-static void encrypt_block( BLOWFISH_context *bc, byte *outbuf, byte *inbuf );
-static void decrypt_block( BLOWFISH_context *bc, byte *outbuf, byte *inbuf );
+static int  bf_setkey (void *c, const byte *key, unsigned keylen);
+static void encrypt_block (void *bc, byte *outbuf, const byte *inbuf);
+static void decrypt_block (void *bc, byte *outbuf, const byte *inbuf);
 
 
 /* precomputed S boxes */
@@ -415,7 +407,7 @@ decrypt(  BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
 #undef R
 
 static void
-do_encrypt_block ( BLOWFISH_context *bc, byte *outbuf, byte *inbuf )
+do_encrypt_block ( BLOWFISH_context *bc, byte *outbuf, const byte *inbuf )
 {
     u32 d1, d2;
 
@@ -433,15 +425,16 @@ do_encrypt_block ( BLOWFISH_context *bc, byte *outbuf, byte *inbuf )
 }
 
 static void
-encrypt_block ( BLOWFISH_context *bc, byte *outbuf, byte *inbuf )
+encrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
-    do_encrypt_block (bc, outbuf, inbuf);
-    _gcry_burn_stack (64);
+  BLOWFISH_context *bc = (BLOWFISH_context *) context;
+  do_encrypt_block (bc, outbuf, inbuf);
+  _gcry_burn_stack (64);
 }
 
 
 static void
-do_decrypt_block( BLOWFISH_context *bc, byte *outbuf, byte *inbuf )
+do_decrypt_block (BLOWFISH_context *bc, byte *outbuf, const byte *inbuf)
 {
     u32 d1, d2;
 
@@ -459,10 +452,11 @@ do_decrypt_block( BLOWFISH_context *bc, byte *outbuf, byte *inbuf )
 }
 
 static void
-decrypt_block( BLOWFISH_context *bc, byte *outbuf, byte *inbuf )
+decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
-    do_decrypt_block (bc, outbuf, inbuf);
-    _gcry_burn_stack (64);
+  BLOWFISH_context *bc = (BLOWFISH_context *) context;
+  do_decrypt_block (bc, outbuf, inbuf);
+  _gcry_burn_stack (64);
 }
 
 
@@ -476,19 +470,19 @@ selftest(void)
     byte key3[] = { 0x41, 0x79, 0x6E, 0xA0, 0x52, 0x61, 0x6E, 0xE4 };
     byte cipher3[] = { 0xE1, 0x13, 0xF4, 0x10, 0x2C, 0xFC, 0xCE, 0x43 };
 
-    bf_setkey( &c, "abcdefghijklmnopqrstuvwxyz", 26 );
-    encrypt_block( &c, buffer, plain );
+    bf_setkey( (void *) &c, "abcdefghijklmnopqrstuvwxyz", 26 );
+    encrypt_block( (void *) &c, buffer, plain );
     if( memcmp( buffer, "\x32\x4E\xD0\xFE\xF4\x13\xA2\x03", 8 ) )
 	return "Blowfish selftest failed (1).";
-    decrypt_block( &c, buffer, buffer );
+    decrypt_block( (void *) &c, buffer, buffer );
     if( memcmp( buffer, plain, 8 ) )
 	return "Blowfish selftest failed (2).";
 
-    bf_setkey( &c, key3, 8 );
-    encrypt_block( &c, buffer, plain3 );
+    bf_setkey( (void *) &c, key3, 8 );
+    encrypt_block( (void *) &c, buffer, plain3 );
     if( memcmp( buffer, cipher3, 8 ) )
 	return "Blowfish selftest failed (3).";
-    decrypt_block( &c, buffer, buffer );
+    decrypt_block( (void *) &c, buffer, buffer );
     if( memcmp( buffer, plain3, 8 ) )
 	return "Blowfish selftest failed (4).";
     return NULL;
@@ -497,7 +491,7 @@ selftest(void)
 
 
 static int
-do_bf_setkey( BLOWFISH_context *c, byte *key, unsigned keylen )
+do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
 {
     int i, j;
     u32 data, datal, datar;
@@ -581,40 +575,19 @@ do_bf_setkey( BLOWFISH_context *c, byte *key, unsigned keylen )
 
 
 static int
-bf_setkey( BLOWFISH_context *c, byte *key, unsigned keylen )
+bf_setkey (void *context, const byte *key, unsigned keylen)
 {
-    int rc = do_bf_setkey (c, key, keylen);
-    _gcry_burn_stack (64);
-    return rc;
+  BLOWFISH_context *c = (BLOWFISH_context *) context;
+  int rc = do_bf_setkey (c, key, keylen);
+  _gcry_burn_stack (64);
+  return rc;
 }
 
+
 
-/****************
- * Return some information about the algorithm.  We need algo here to
- * distinguish different flavors of the algorithm.
- * Returns: A pointer to string describing the algorithm or NULL if
- *	    the ALGO is invalid.
- */
-const char *
-_gcry_blowfish_get_info( int algo, size_t *keylen,
-		   size_t *blocksize, size_t *contextsize,
-		   int	(**r_setkey)( void *c, byte *key, unsigned keylen ),
-		   void (**r_encrypt)( void *c, byte *outbuf, byte *inbuf ),
-		   void (**r_decrypt)( void *c, byte *outbuf, byte *inbuf )
-		 )
-{
-    *keylen = 128;
-    *blocksize = BLOWFISH_BLOCKSIZE;
-    *contextsize = sizeof(BLOWFISH_context);
-    *(int  (**)(BLOWFISH_context*, byte*, unsigned))r_setkey
-							= bf_setkey;
-    *(void (**)(BLOWFISH_context*, byte*, byte*))r_encrypt
-							= encrypt_block;
-    *(void (**)(BLOWFISH_context*, byte*, byte*))r_decrypt
-							= decrypt_block;
-
-    if( algo == CIPHER_ALGO_BLOWFISH )
-	return "BLOWFISH";
-    return NULL;
-}
-
+GcryCipherSpec cipher_spec_blowfish =
+  {
+    "BLOWFISH", GCRY_CIPHER_BLOWFISH, BLOWFISH_BLOCKSIZE, 128,
+    sizeof (BLOWFISH_context),
+    bf_setkey, encrypt_block, decrypt_block,
+  };

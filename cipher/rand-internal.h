@@ -20,13 +20,6 @@
 #ifndef G10_RAND_INTERNAL_H
 #define G10_RAND_INTERNAL_H
 
-void rndlinux_constructor(void);
-void rndunix_constructor(void);
-void rndw32_constructor(void);
-void rndos2_constructor(void);
-void rndatari_constructor(void);
-void rndmvs_constructor(void);
-
 void _gcry_random_progress (const char *what, int printchar,
                             int current, int total);
 

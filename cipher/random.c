@@ -53,7 +53,7 @@
 #include "rmd.h"
 #include "random.h"
 #include "rand-internal.h"
-#include "dynload.h"
+//#include "dynload.h"
 #include "cipher.h" /* only used for the rmd160_hash_buffer() prototype */
 #include "ath.h"
 
@@ -133,7 +133,6 @@ static struct {
 static void (*progress_cb) (void *,const char*,int,int, int );
 static void *progress_cb_data;
 
-
 /* Note, we assume that this function is used before any concurrent
    access happens */
 static void
@@ -153,7 +152,8 @@ initialize(void)
   keypool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
                          : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
   is_initialized = 1;
-  _gcry_cipher_modules_constructor ();
+
+  //_gcry_cipher_modules_constructor ();
 }
 
 
@@ -732,6 +732,85 @@ random_poll()
     read_random_source( 2, POOLSIZE/5, 1 );
 }
 
+static int (*
+getfnc_gather_random (void))(void (*)(const void*, size_t, int), int,
+			     size_t, int)
+{
+#if USE_RNDLINUX
+  int rndlinux_gather_random (void (*add) (const void *, size_t, int),
+			      int requester, size_t length, int level);
+#endif
+#if USE_RNDUNIX
+  int rndunix_gather_random (void (*add) (const void *, size_t, int),
+			     int requester, size_t length, int level);
+#endif
+#if USE_RNDEGD
+  int rndegd_gather_random (void (*add) (const void *, size_t, int),
+			    int requester, size_t length, int level);
+  int rndegd_connect_socket (int nofail);
+#endif
+#if USE_RNDW32
+  int rndw32_gather_random (void (*add) (const void *, size_t, int),
+			    int requester, size_t length, int level);
+#endif
+
+#ifdef USE_ALL_RANDOM_MODULES
+  static int (*fnc)(void (*)(const void*, size_t, int), int, size_t, int);
+  
+  if (fnc)
+    return fnc;
+# if USE_RNDLINUX
+  if ( !access (NAME_OF_DEV_RANDOM, R_OK)
+       && !access (NAME_OF_DEV_RANDOM, R_OK))
+    {
+      fnc = rndlinux_gather_random;
+      return fnc;
+    }
+# endif
+# if USE_RNDEGD
+  if ( rndegd_connect_socket (1) != -1 )
+    {
+      fnc = rndegd_gather_random;
+      return fnc;
+    }
+# endif
+# if USE_RNDUNIX
+  fnc = rndunix_gather_random;
+  return fnc;
+# endif
+
+  log_fatal (_("no entropy gathering module detected\n"));
+
+#else
+# if USE_RNDLINUX
+  return rndlinux_gather_random;
+# endif
+# if USE_RNDUNIX
+  return rndunix_gather_random;
+# endif
+# if USE_RNDEGD
+  return rndegd_gather_random;
+# endif
+# if USE_RNDW32
+  return rndw32_gather_random;
+# endif
+# if USE_RNDRISCOS
+  return rndriscos_gather_random;
+# endif
+#endif
+  return NULL;
+}
+
+static void (*
+getfnc_fast_random_poll (void))( void (*)(const void*, size_t, int), int)
+{
+#if USE_RNDW32
+  int rndw32_gather_random_fast (void (*add) (const void *, size_t, int),
+				 int requester);
+  return rndw32_gather_random_fast;
+#endif
+  return NULL;
+}
 
 
 static void
@@ -746,7 +825,7 @@ do_fast_random_poll ()
 	if( !is_initialized )
 	    initialize();
 	initialized = 1;
-	fnc = _gcry_dynload_getfnc_fast_random_poll();
+	fnc = getfnc_fast_random_poll ();
     }
     if( fnc ) {
 	(*fnc)( add_randomness, 1 );
@@ -846,8 +925,10 @@ read_random_source( int requester, size_t length, int level )
 						    size_t, int) = NULL;
     if( !fnc ) {
 	if( !is_initialized )
-	    initialize();
-	fnc = _gcry_dynload_getfnc_gather_random();
+	  initialize();
+	fnc = getfnc_gather_random ();
+	//fnc = ((GcryRandomSpec *) randoms_registered->spec)->add;
+	//fnc = _gcry_dynload_getfnc_gather_random();
 	if( !fnc ) {
 	    faked_rng = 1;
 	    fnc = gather_faked;

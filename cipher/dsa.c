@@ -1,5 +1,5 @@
 /* dsa.c  -  DSA signature scheme
- *	Copyright (C) 1998, 2000, 2001, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -27,7 +27,6 @@
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
-#include "dsa.h"
 
 typedef struct {
     MPI p;	    /* prime */
@@ -361,7 +360,7 @@ _gcry_dsa_generate( int algo, unsigned nbits, unsigned long dummy,
 {
     DSA_secret_key sk;
 
-    if( algo != PUBKEY_ALGO_DSA )
+    if( algo != GCRY_PK_DSA )
 	return GCRYERR_INV_PK_ALGO;
 
     generate( &sk, nbits, retfactors );
@@ -379,7 +378,7 @@ _gcry_dsa_check_secret_key( int algo, MPI *skey )
 {
     DSA_secret_key sk;
 
-    if( algo != PUBKEY_ALGO_DSA )
+    if( algo != GCRY_PK_DSA )
 	return GCRYERR_INV_PK_ALGO;
     if( !skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4] )
 	return GCRYERR_BAD_MPI;
@@ -402,7 +401,7 @@ _gcry_dsa_sign( int algo, MPI *resarr, MPI data, MPI *skey )
 {
     DSA_secret_key sk;
 
-    if( algo != PUBKEY_ALGO_DSA )
+    if( algo != GCRY_PK_DSA )
 	return GCRYERR_INV_PK_ALGO;
     if( !data || !skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4] )
 	return GCRYERR_BAD_MPI;
@@ -424,7 +423,7 @@ _gcry_dsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 {
     DSA_public_key pk;
 
-    if( algo != PUBKEY_ALGO_DSA )
+    if( algo != GCRY_PK_DSA )
 	return GCRYERR_INV_PK_ALGO;
     if( !data[0] || !data[1] || !hash
 	|| !pkey[0] || !pkey[1] || !pkey[2] || !pkey[3] )
@@ -444,33 +443,20 @@ _gcry_dsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 unsigned int
 _gcry_dsa_get_nbits( int algo, MPI *pkey )
 {
-    if( algo != PUBKEY_ALGO_DSA )
+    if( algo != GCRY_PK_DSA )
 	return 0;
     return mpi_get_nbits( pkey[0] );
 }
 
-
-/****************
- * Return some information about the algorithm.  We need algo here to
- * distinguish different flavors of the algorithm.
- * Returns: A pointer to string describing the algorithm or NULL if
- *	    the ALGO is invalid.
- * Usage: Bit 0 set : allows signing
- *	      1 set : allows encryption
- */
-const char *
-_gcry_dsa_get_info( int algo, int *npkey, int *nskey, int *nenc, int *nsig,
-							 int *use )
-{
-    *npkey = 4;
-    *nskey = 5;
-    *nenc = 0;
-    *nsig = 2;
-
-    switch( algo ) {
-      case PUBKEY_ALGO_DSA:   *use = GCRY_PK_USAGE_SIGN; return "DSA";
-      default: *use = 0; return NULL;
-    }
-}
-
-
+GcryPubkeySpec pubkey_spec_dsa =
+  {
+    "DSA", GCRY_PK_DSA, 4, 5, 0, 2,
+    GCRY_PK_USAGE_SIGN,
+    _gcry_dsa_generate,
+    _gcry_dsa_check_secret_key,
+    NULL,
+    NULL,
+    _gcry_dsa_sign,
+    _gcry_dsa_verify,
+    _gcry_dsa_get_nbits,
+  };

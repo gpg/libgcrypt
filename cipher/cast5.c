@@ -41,13 +41,7 @@
 #include <string.h>
 #include "g10lib.h"
 #include "types.h"
-#include "cast5.h"
-
-
-#define CIPHER_ALGO_CAST5	 3
-
-#define FNCCAST_SETKEY(f)  (int(*)(void*, byte*, unsigned))(f)
-#define FNCCAST_CRYPT(f)   (void(*)(void*, byte*, byte*))(f)
+#include "cipher.h"
 
 #define CAST5_BLOCKSIZE 8
 
@@ -56,9 +50,9 @@ typedef struct {
     byte Kr[16];
 } CAST5_context;
 
-static int  cast_setkey( CAST5_context *c, byte *key, unsigned keylen );
-static void encrypt_block( CAST5_context *bc, byte *outbuf, byte *inbuf );
-static void decrypt_block( CAST5_context *bc, byte *outbuf, byte *inbuf );
+static int  cast_setkey (void *c, const byte *key, unsigned keylen);
+static void encrypt_block (void *c, byte *outbuf, const byte *inbuf);
+static void decrypt_block (void *c, byte *outbuf, const byte *inbuf);
 
 
 
@@ -358,7 +352,7 @@ rol(int n, u32 x)
     (((s1[I >> 24] + s2[(I>>16)&0xff]) ^ s3[(I>>8)&0xff]) - s4[I&0xff]) )
 
 static void
-do_encrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
+do_encrypt_block( CAST5_context *c, byte *outbuf, const byte *inbuf )
 {
     u32 l, r, t;
     u32 I;   /* used by the Fx macros */
@@ -412,16 +406,17 @@ do_encrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
 }
 
 static void
-encrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
+encrypt_block (void *context , byte *outbuf, const byte *inbuf)
 {
-    do_encrypt_block (c, outbuf, inbuf);
-    _gcry_burn_stack (20+4*sizeof(void*));
+  CAST5_context *c = (CAST5_context *) context;
+  do_encrypt_block (c, outbuf, inbuf);
+  _gcry_burn_stack (20+4*sizeof(void*));
 }
 
 
 
 static void
-do_decrypt_block (CAST5_context *c, byte *outbuf, byte *inbuf )
+do_decrypt_block (CAST5_context *c, byte *outbuf, const byte *inbuf )
 {
     u32 l, r, t;
     u32 I;
@@ -462,10 +457,11 @@ do_decrypt_block (CAST5_context *c, byte *outbuf, byte *inbuf )
 }
 
 static void
-decrypt_block( CAST5_context *c, byte *outbuf, byte *inbuf )
+decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
-    do_decrypt_block (c, outbuf, inbuf);
-    _gcry_burn_stack (20+4*sizeof(void*));
+  CAST5_context *c = (CAST5_context *) context;
+  do_decrypt_block (c, outbuf, inbuf);
+  _gcry_burn_stack (20+4*sizeof(void*));
 }
 
 
@@ -566,7 +562,7 @@ key_schedule( u32 *x, u32 *z, u32 *k )
 
 
 static int
-do_cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
+do_cast_setkey( CAST5_context *c, const byte *key, unsigned keylen )
 {
   static int initialized;
   static const char* selftest_failed;
@@ -609,14 +605,16 @@ do_cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
 }
 
 static int
-cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
+cast_setkey (void *context, const byte *key, unsigned keylen )
 {
-    int rc = do_cast_setkey (c, key, keylen);
-    _gcry_burn_stack (96+7*sizeof(void*));
-    return rc;
+  CAST5_context *c = (CAST5_context *) context;
+  int rc = do_cast_setkey (c, key, keylen);
+  _gcry_burn_stack (96+7*sizeof(void*));
+  return rc;
 }
 
 
+#if 0
 /****************
  * Return some information about the algorithm.  We need algo here to
  * distinguish different flavors of the algorithm.
@@ -642,8 +640,15 @@ _gcry_cast5_get_info( int algo, size_t *keylen,
 							= decrypt_block;
 
 
-    if( algo == CIPHER_ALGO_CAST5 )
+    if( algo == GCRY_CIPHER_CAST5 )
 	return "CAST5";
     return NULL;
 }
 
+#endif
+
+GcryCipherSpec cipher_spec_cast5 =
+  {
+    "CAST5", GCRY_CIPHER_CAST5, CAST5_BLOCKSIZE, 128, sizeof (CAST5_context),
+    cast_setkey, encrypt_block, decrypt_block,
+  };

@@ -32,13 +32,13 @@
 #include <sys/un.h>
 #include "types.h"
 #include "g10lib.h"
-#include "dynload.h"
 #include "cipher.h"
 
 #ifndef offsetof
 #define offsetof(type, member) ((size_t) &((type *)0)->member)
 #endif
 
+static int egd_socket = -1;
 
 /* FIXME: this is duplicated code from util/fileutil
  * I don't think that this code should go into libgcrypt anyway.
@@ -74,9 +74,6 @@ my_make_filename( const char *first_part, ... )
 }
 
 
-
-
-
 static int
 do_write( int fd, void *buf, size_t nbytes )
 {
@@ -105,14 +102,69 @@ do_read( int fd, void *buf, size_t nbytes )
 	do {
 	    n = read(fd, (char*)buf + nread, nbytes );
 	} while( n == -1 && errno == EINTR );
-	if( n == -1 )
+	if( n == -1)
+	    return nread? nread:-1;
+	if( n == 0)
 	    return -1;
 	nread += n;
+	nbytes -= n;
     } while( nread < nbytes );
     return nbytes;
 }
 
 
+/* Connect to the EGD and return the file descriptor.  Return -1 on
+   error.  With NOFAIL set to true, silently fail and return the
+   error, otherwise print an error message and die. */
+int
+rndegd_connect_socket (int nofail)
+{
+  int fd;
+  const char *bname = NULL;
+  char *name;
+  struct sockaddr_un addr;
+  int addr_len;
+
+  if (egd_socket != -1)
+    {
+      close (egd_socket);
+      egd_socket = -1;
+    }
+
+#ifdef EGD_SOCKET_NAME
+  bname = EGD_SOCKET_NAME;
+#endif
+  if ( !bname || !*bname )
+    name = my_make_filename ("~/.gnupg", "entropy", NULL); /* FIXME?  */
+  else
+    name = my_make_filename (bname, NULL);
+
+  if (strlen(name)+1 >= sizeof addr.sun_path)
+    log_fatal ("EGD socketname is too long\n");
+  
+  memset( &addr, 0, sizeof addr );
+  addr.sun_family = AF_UNIX;
+  strcpy( addr.sun_path, name );	  
+  addr_len = (offsetof( struct sockaddr_un, sun_path )
+              + strlen( addr.sun_path ));
+  
+  fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd == -1 && !nofail)
+    log_fatal("can't create unix domain socket: %s\n",
+	      strerror(errno) );
+  else if (connect (fd, (struct sockaddr*)&addr, addr_len) == -1)
+    {
+      if (!nofail)
+        log_fatal("can't connect to `%s': %s\n",
+		  name, strerror(errno) );
+      close (fd);
+      fd = -1;
+    }
+  gcry_free(name);
+  if (fd != -1)
+    egd_socket = fd;
+  return fd;
+}
 
 /****************
  * Note: we always use the highest level.
@@ -122,11 +174,11 @@ do_read( int fd, void *buf, size_t nbytes )
  * Using a level of 0 should never block and better add nothing
  * to the pool.  So this is just a dummy for EGD.
  */
-static int
-gather_random( void (*add)(const void*, size_t, int), int requester,
-					  size_t length, int level )
+int
+rndegd_gather_random( void (*add)(const void*, size_t, int), int requester,
+		      size_t length, int level )
 {
-    static int fd = -1;
+    int fd = egd_socket;
     int n;
     byte buffer[256+2];
     int nbytes;
@@ -138,35 +190,9 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 	return 0;
 
   restart:
-    if( do_restart ) {
-	if( fd != -1 ) {
-	    close( fd );
-	    fd = -1;
-	}
-    }
-    if( fd == -1 ) {
-#if __GNUC__ >= 2
-	#warning Fixme: make the filename configurable
-#endif
-	char *name = my_make_filename( "~/.gnupg-test", "entropy", NULL );
-	struct sockaddr_un addr;
-	int addr_len;
+    if (fd == -1 || do_restart)
+      fd = rndegd_connect_socket (0);
 
-	memset( &addr, 0, sizeof addr );
-	addr.sun_family = AF_UNIX;
-	strcpy( addr.sun_path, name );	  /* fixme: check that it is long enough */
-	addr_len = offsetof( struct sockaddr_un, sun_path )
-		   + strlen( addr.sun_path );
-
-	fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if( fd == -1 )
-	    log_fatal("can't create unix domain socket: %s\n",
-							    strerror(errno) );
-	if( connect( fd, (struct sockaddr*)&addr, addr_len) == -1 )
-	    log_fatal("can't connect to `%s': %s\n",
-						    name, strerror(errno) );
-	gcry_free(name);
-    }
     do_restart = 0;
 
     nbytes = length < 255? length : 255;
@@ -219,62 +245,3 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 
     return 0; /* success */
 }
-
-
-
-#ifndef IS_MODULE
-static
-#endif
-const char * const gnupgext_version = "RNDEGD ($Revision$)";
-
-static struct {
-    int class;
-    int version;
-    void *func;
-} func_table[] = {
-    { 40, 1, gather_random },
-};
-
-
-#ifndef IS_MODULE
-static
-#endif
-void *
-gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
-{
-    void *ret;
-    int i = *sequence;
-
-    do {
-	if ( i >= DIM(func_table) || i < 0 ) {
-	    return NULL;
-	}
-	*class = func_table[i].class;
-	*vers  = func_table[i].version;
-	ret = func_table[i].func;
-	i++;
-    } while ( what && what != *class );
-
-    *sequence = i;
-    return ret;
-}
-
-#ifndef IS_MODULE
-void
-_gcry_rndegd_constructor(void)
-{
-  _gcry_register_internal_cipher_extension (gnupgext_version,
-                                            gnupgext_enum_func);
-}
-#endif
-
-
-
-
-
-
-
-
-
-
-

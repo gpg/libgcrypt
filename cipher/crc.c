@@ -26,7 +26,7 @@
 #include <assert.h>
 #include "g10lib.h"
 #include "memory.h"
-#include "dynload.h"
+#include "cipher.h"
 
 #include "bithelp.h"
 
@@ -149,28 +149,32 @@ CRC_CONTEXT;
 /* CRC32 */
 
 static void
-crc32_init (CRC_CONTEXT * ctx)
+crc32_init (void *context)
 {
+  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   ctx->CRC = 0 ^ 0xffffffffL;
 }
 
 static void
-crc32_write (CRC_CONTEXT * ctx, byte * inbuf, size_t inlen)
+crc32_write (void *context, byte * inbuf, size_t inlen)
 {
+  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   if (!inbuf)
     return;
   ctx->CRC = update_crc32 (ctx->CRC, inbuf, inlen);
 }
 
 static byte *
-crc32_read (CRC_CONTEXT * ctx)
+crc32_read (void *context)
 {
+  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   return ctx->buf;
 }
 
 static void
-crc32_final (CRC_CONTEXT * ctx)
+crc32_final (void *context)
 {
+  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   ctx->CRC ^= 0xffffffffL;
   ctx->buf[0] = (ctx->CRC >> 24) & 0xFF;
   ctx->buf[1] = (ctx->CRC >> 16) & 0xFF;
@@ -180,14 +184,16 @@ crc32_final (CRC_CONTEXT * ctx)
 
 /* CRC32 a'la RFC 1510 */
 static void
-crc32rfc1510_init (CRC_CONTEXT * ctx)
+crc32rfc1510_init (void *context)
 {
+  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   ctx->CRC = 0;
 }
 
 static void
-crc32rfc1510_final (CRC_CONTEXT * ctx)
+crc32rfc1510_final (void *context)
 {
+  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   ctx->buf[0] = (ctx->CRC >> 24) & 0xFF;
   ctx->buf[1] = (ctx->CRC >> 16) & 0xFF;
   ctx->buf[2] = (ctx->CRC >>  8) & 0xFF;
@@ -231,15 +237,17 @@ crc32rfc1510_final (CRC_CONTEXT * ctx)
 #define CRC24_POLY 0x1864cfbL
 
 static void
-crc24rfc2440_init (CRC_CONTEXT * ctx)
+crc24rfc2440_init (void *context)
 {
+  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   ctx->CRC = CRC24_INIT;
 }
 
 static void
-crc24rfc2440_write (CRC_CONTEXT * ctx, byte * inbuf, size_t inlen)
+crc24rfc2440_write (void *context, byte * inbuf, size_t inlen)
 {
   int i;
+  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
 
   if (!inbuf)
     return;
@@ -255,117 +263,33 @@ crc24rfc2440_write (CRC_CONTEXT * ctx, byte * inbuf, size_t inlen)
 }
 
 static void
-crc24rfc2440_final (CRC_CONTEXT * ctx)
+crc24rfc2440_final (void *context)
 {
+  CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   ctx->buf[0] = (ctx->CRC >> 16) & 0xFF;
   ctx->buf[1] = (ctx->CRC >>  8) & 0xFF;
   ctx->buf[2] = (ctx->CRC      ) & 0xFF;
 }
 
-static const char *
-crc_get_info (int algo, size_t * contextsize,
-	      byte ** r_asnoid, int *r_asnlen, int *r_mdlen,
-	      void (**r_init) (void *c),
-	      void (**r_write) (void *c, byte * buf, size_t nbytes),
-	      void (**r_final) (void *c), byte * (**r_read) (void *c))
-{
-  *contextsize = sizeof (CRC_CONTEXT);
-  *r_asnoid = NULL;
-  *r_asnlen = 0;
+GcryDigestSpec digest_spec_crc32 =
+  {
+    "CRC32", GCRY_MD_CRC32, NULL, 0, 4,
+    crc32_init, crc32_write, crc32_final, crc32_read,
+    sizeof (CRC_CONTEXT)
+  };
 
-  switch (algo)
-    {
-    case 302:
-      *r_mdlen = 4;
-      *(void (**)(CRC_CONTEXT *)) r_init = crc32_init;
-      *(void (**)(CRC_CONTEXT *)) r_final = crc32_final;
-      *(void (**)(CRC_CONTEXT *, byte *, size_t)) r_write = crc32_write;
-      *(byte * (**)(CRC_CONTEXT *)) r_read = crc32_read;
-      return "CRC32";
+GcryDigestSpec digest_spec_crc32_rfc1510 =
+  {
+    "CRC32RFC1510", GCRY_MD_CRC32_RFC1510, NULL, 0, 4,
+    crc32rfc1510_init, crc32_write,
+    crc32rfc1510_final, crc32_read,
+    sizeof (CRC_CONTEXT)
+  };
 
-    case 303:
-      *r_mdlen = 4;
-      *(void (**)(CRC_CONTEXT *)) r_init = crc32rfc1510_init;
-      *(void (**)(CRC_CONTEXT *)) r_final = crc32rfc1510_final;
-      *(void (**)(CRC_CONTEXT *, byte *, size_t)) r_write = crc32_write;
-      *(byte * (**)(CRC_CONTEXT *)) r_read = crc32_read;
-      return "CRC32RFC1510";
-
-    case 304:
-      *r_mdlen = 3;
-      *(void (**)(CRC_CONTEXT *)) r_init = crc24rfc2440_init;
-      *(void (**)(CRC_CONTEXT *)) r_final = crc24rfc2440_final;
-      *(void (**)(CRC_CONTEXT *, byte *, size_t)) r_write = crc24rfc2440_write;
-      *(byte * (**)(CRC_CONTEXT *)) r_read = crc32_read;
-      return "CRC24RFC2440";
-
-    default:
-      return NULL;
-    }
-
-  return NULL;
-}
-
-
-#ifndef IS_MODULE
-static
-#endif
-const char *const gnupgext_version = "CRC ($Revision$)";
-
-static struct
-{
-  int class;
-  int version;
-  int value;
-  void (*func) (void);
-} func_table[] = {
-  { 10, 1, 0, (void (*)(void)) crc_get_info },
-  { 11, 1, 302 },
-  { 11, 1, 303 },
-  { 11, 1, 304 },
-};
-
-#ifndef IS_MODULE
-static
-#endif
-void *
-gnupgext_enum_func (int what, int *sequence, int *class, int *vers)
-{
-  void *ret;
-  int i = *sequence;
-
-  do
-    {
-      if (i >= DIM (func_table) || i < 0)
-	return NULL;
-      *class = func_table[i].class;
-      *vers = func_table[i].version;
-      switch (*class)
-	{
-	case 11:
-	case 21:
-	case 31:
-	  ret = &func_table[i].value;
-	  break;
-	default:
-	  ret = func_table[i].func;
-	  break;
-	}
-      i++;
-    }
-  while (what && what != *class);
-
-  *sequence = i;
-  return ret;
-}
-
-#ifndef IS_MODULE
-void
-_gcry_crc_constructor (void)
-{
-  _gcry_register_internal_cipher_extension (gnupgext_version,
-					    gnupgext_enum_func);
-}
-#endif
-
-/* end of file */
+GcryDigestSpec digest_spec_crc24_rfc2440 =
+  {
+    "CRC24RFC2440", GCRY_MD_CRC24_RFC2440, NULL, 0, 3,
+    crc24rfc2440_init, crc24rfc2440_write,
+    crc24rfc2440_final, crc32_read,
+    sizeof (CRC_CONTEXT)
+  };

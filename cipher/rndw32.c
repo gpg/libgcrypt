@@ -1,5 +1,5 @@
 /* rndw32.c  -	W32 entropy gatherer
- *	Copyright (C) 1999, 2000, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1999, 2000, 2002, 2003 Free Software Foundation, Inc.
  *	Copyright Peter Gutmann, Matt Thomlinson and Blake Coverett 1996-1999
  *
  * This file is part of Libgcrypt.
@@ -57,7 +57,6 @@
 
 #include "types.h"
 #include "g10lib.h"
-#include "dynload.h"
 
 /* We do not use the netropy DLL anymore because a standalone program is
  * easier to maintain and */
@@ -194,9 +193,9 @@ load_and_init_winseed( void )
  * TO boost the performance we may want to add some
  * additional code for level 1
  */
-static int
-gather_random( void (*add)(const void*, size_t, int), int requester,
-					  size_t length, int level )
+int
+rndw32_gather_random( void (*add)(const void*, size_t, int), int requester,
+		      size_t length, int level )
 {
     unsigned int result;
     unsigned int nbytes;
@@ -255,8 +254,8 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
     }
 }
 
-static int
-gather_random_fast( void (*add)(const void*, size_t, int), int requester )
+int
+rndw32_gather_random_fast( void (*add)(const void*, size_t, int), int requester )
 {
     unsigned int result;
     unsigned int nbytes;
@@ -894,58 +893,4 @@ gather_random_fast( void (*add)(const void*, size_t, int), int requester )
 }
 
 
-
-
-
 #endif /* !USE_ENTROPY_DLL */
-
-
-#ifndef IS_MODULE
-static
-#endif
-const char * const gnupgext_version = "RNDW32 ($Revision$)";
-
-static struct {
-    int class;
-    int version;
-    void *func;
-} func_table[] = {
-    { 40, 1, gather_random },
-    { 41, 1, gather_random_fast },
-};
-
-
-#ifndef IS_MODULE
-static
-#endif
-void *
-gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
-{
-    void *ret;
-    int i = *sequence;
-
-    debug_me = !!getenv("DEBUG_RNDW32");
-
-    do {
-	if ( i >= DIM(func_table) || i < 0 ) {
-	    return NULL;
-	}
-	*class = func_table[i].class;
-	*vers  = func_table[i].version;
-	ret = func_table[i].func;
-	i++;
-    } while ( what && what != *class );
-
-    *sequence = i;
-    return ret;
-}
-
-#ifndef IS_MODULE
-void
-_gcry_rndw32_constructor(void)
-{
-  _gcry_register_internal_cipher_extension( gnupgext_version,
-                                            gnupgext_enum_func );
-}
-#endif
-

@@ -40,9 +40,8 @@
 #include <assert.h>
 #include "g10lib.h"
 #include "memory.h"
-#include "dynload.h"
 #include "bithelp.h"
-
+#include "cipher.h"
 
 typedef struct {
   u32  h0,h1,h2,h3,h4,h5,h6,h7;
@@ -53,8 +52,10 @@ typedef struct {
 
 
 static void
-sha256_init (SHA256_CONTEXT *hd)
+sha256_init (void *context)
 {
+  SHA256_CONTEXT *hd = (SHA256_CONTEXT *) context;
+
   hd->h0 = 0x6a09e667;
   hd->h1 = 0xbb67ae85;
   hd->h2 = 0x3c6ef372;
@@ -173,8 +174,9 @@ transform (SHA256_CONTEXT *hd, byte *data)
 /* Update the message digest with the contents of INBUF with length
   INLEN.  */
 static void
-sha256_write (SHA256_CONTEXT *hd, byte *inbuf, size_t inlen)
+sha256_write (void *context, byte *inbuf, size_t inlen)
 {
+  SHA256_CONTEXT *hd = (SHA256_CONTEXT *) context;
   if (hd->count == 64)
     { /* flush the buffer */
       transform (hd, hd->buf);
@@ -213,8 +215,9 @@ sha256_write (SHA256_CONTEXT *hd, byte *inbuf, size_t inlen)
    to the handle will the destroy the returned buffer.  Returns: 32
    bytes with the message the digest.  */
 static void
-sha256_final(SHA256_CONTEXT *hd)
+sha256_final(void *context)
 {
+  SHA256_CONTEXT *hd = (SHA256_CONTEXT *) context;
   u32 t, msb, lsb;
   byte *p;
   
@@ -279,102 +282,20 @@ sha256_final(SHA256_CONTEXT *hd)
 }
 
 static byte *
-sha256_read (SHA256_CONTEXT *hd)
+sha256_read (void *context)
 {
+  SHA256_CONTEXT *hd = (SHA256_CONTEXT *) context;
   return hd->buf;
 }
 
-/*
-   Return some information about the algorithm.  We need algo here to
-   distinguish different flavors of the algorithm.  Returns: A pointer
-   to string describing the algorithm or NULL if the ALGO is invalid.  */
-static const char *
-sha256_get_info (int algo, size_t *contextsize,
-                 byte **r_asnoid, int *r_asnlen, int *r_mdlen,
-                 void (**r_init)( void *c ),
-                 void (**r_write)( void *c, byte *buf, size_t nbytes ),
-                 void (**r_final)( void *c ),
-                 byte *(**r_read)( void *c )
-                 )
-{
-  static byte asn[19] = /* Object ID is  2.16.840.1.101.3.4.2.1 */
+static byte asn[19] = /* Object ID is  2.16.840.1.101.3.4.2.1 */
   { 0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
     0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05,
     0x00, 0x04, 0x20 };
 
-  if(algo != 8)
-    return NULL;
-
-  *contextsize = sizeof(SHA256_CONTEXT);
-  *r_asnoid = asn;
-  *r_asnlen = DIM(asn);
-  *r_mdlen = 32;
-  *(void  (**)(SHA256_CONTEXT *))r_init 	          = sha256_init;
-  *(void  (**)(SHA256_CONTEXT *, byte*, size_t))r_write = sha256_write;
-  *(void  (**)(SHA256_CONTEXT *))r_final		  = sha256_final;
-  *(byte *(**)(SHA256_CONTEXT *))r_read 		  = sha256_read;
-  
-  return "SHA256";
-}
-
-
-
-#ifndef IS_MODULE
-static
-#endif
-const char * const gnupgext_version = "SHA256 ($Revision$)";
-
-static struct {
-    int class;
-    int version;
-    int  value;
-    void (*func)(void);
-} func_table[] = {
-    { 10, 1, 0, (void(*)(void))sha256_get_info },
-    { 11, 1, 8 },
-};
-
-
-#ifndef IS_MODULE
-static
-#endif
-void *
-gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
-{
-    void *ret;
-    int i = *sequence;
-
-    do {
-	if( i >= DIM(func_table) || i < 0 ) {
-	    return NULL;
-	}
-	*class = func_table[i].class;
-	*vers  = func_table[i].version;
-	switch( *class ) {
-	  case 11:
-	  case 21:
-	  case 31:
-	    ret = &func_table[i].value;
-	    break;
-	  default:
-	    ret = func_table[i].func;
-	    break;
-	}
-	i++;
-    } while( what && what != *class );
-
-    *sequence = i;
-    return ret;
-}
-
-
-
-
-#ifndef IS_MODULE
-void
-_gcry_sha256_constructor(void)
-{
-  _gcry_register_internal_cipher_extension (gnupgext_version,
-                                            gnupgext_enum_func );
-}
-#endif
+GcryDigestSpec digest_spec_sha256 =
+  {
+    "SHA256", GCRY_MD_SHA256, asn, DIM (asn), 32,
+    sha256_init, sha256_write, sha256_final, sha256_read,
+    sizeof (SHA256_CONTEXT)
+  };

@@ -31,7 +31,6 @@
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
-#include "rsa.h"
 
 
 typedef struct {
@@ -618,27 +617,15 @@ _gcry_rsa_get_nbits( int algo, MPI *pkey )
 }
 
 
-/****************
- * Return some information about the algorithm.  We need algo here to
- * distinguish different flavors of the algorithm.
- * Returns: A pointer to string describing the algorithm or NULL if
- *	    the ALGO is invalid.
- * Usage: Bit 0 set : allows signing
- *	      1 set : allows encryption
- */
-const char *
-_gcry_rsa_get_info( int algo,
-	      int *npkey, int *nskey, int *nenc, int *nsig, int *r_usage )
-{
-    *npkey = 2;
-    *nskey = 6;
-    *nenc = 1;
-    *nsig = 1;
-
-    switch( algo ) {
-      case 1: *r_usage = GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR; return "RSA";
-      case 2: *r_usage = GCRY_PK_USAGE_ENCR; return "RSA-E";
-      case 3: *r_usage = GCRY_PK_USAGE_SIGN; return "RSA-S";
-      default:*r_usage = 0; return NULL;
-    }
-}
+GcryPubkeySpec pubkey_spec_rsa =
+  {
+    "RSA", GCRY_PK_RSA, 2, 6, 1, 1,
+    GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR,
+    _gcry_rsa_generate,
+    _gcry_rsa_check_secret_key,
+    _gcry_rsa_encrypt,
+    _gcry_rsa_decrypt,
+    _gcry_rsa_sign,
+    _gcry_rsa_verify,
+    _gcry_rsa_get_nbits,
+  };
