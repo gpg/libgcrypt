@@ -500,6 +500,9 @@ enum gcry_cipher_algos
     GCRY_CIPHER_AES192      = 8,
     GCRY_CIPHER_AES256      = 9,
     GCRY_CIPHER_TWOFISH     = 10,
+    GCRY_CIPHER_SERPENT128  = 11,
+    GCRY_CIPHER_SERPENT192  = 12,
+    GCRY_CIPHER_SERPENT256  = 13,
     /* other cipher numbers are above 300 for OpenPGP reasons. */
     GCRY_CIPHER_ARCFOUR     = 301,  /* fully compatible with RSA's RC4 (tm). */
     GCRY_CIPHER_DES         = 302   /* Yes, this is single key 56 bit DES. */
