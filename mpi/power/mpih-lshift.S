@@ -31,17 +31,17 @@
  */
 
 	.toc
-	.extern mpihelp_lshift[DS]
-	.extern .mpihelp_lshift
+	.extern _gcry_mpih_lshift[DS]
+	.extern ._gcry_mpih_lshift
 .csect [PR]
 	.align 2
-	.globl mpihelp_lshift
-	.globl .mpihelp_lshift
-	.csect mpihelp_lshift[DS]
-mpihelp_lshift:
-	.long .mpihelp_lshift, TOC[tc0], 0
+	.globl _gcry_mpih_lshift
+	.globl ._gcry_mpih_lshift
+	.csect _gcry_mpih_lshift[DS]
+_gcry_mpih_lshift:
+	.long ._gcry_mpih_lshift, TOC[tc0], 0
 	.csect [PR]
-.mpihelp_lshift:
+._gcry_mpih_lshift:
 	sli	0,5,2
 	cax	9,3,0
 	cax	4,4,0

@@ -20,7 +20,7 @@
 #ifndef G10_CIPHER_H
 #define G10_CIPHER_H
 
-#define DBG_CIPHER g10_get_debug_flag( 1 )
+#define DBG_CIPHER _gcry_get_debug_flag( 1 )
 
 #include "../cipher/random.h"
 
@@ -60,10 +60,10 @@
 
 
 /*-- dynload.c --*/
-void register_cipher_extension( const char *mainpgm, const char *fname );
+void _gcry_register_cipher_extension( const char *mainpgm, const char *fname );
 
 /*-- rmd160.c --*/
-void rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length );
+void _gcry_rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length );
 
 
 /*-- smallprime.c --*/

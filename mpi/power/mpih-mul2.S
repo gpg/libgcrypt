@@ -44,15 +44,15 @@
  */
 
 	.toc
-	.csect .mpihelp_addmul_1[PR]
+	.csect ._gcry_mpih_addmul_1[PR]
 	.align 2
-	.globl mpihelp_addmul_1
-	.globl .mpihelp_addmul_1
-	.csect mpihelp_addmul_1[DS]
-mpihelp_addmul_1:
-	.long .mpihelp_addmul_1[PR], TOC[tc0], 0
-	.csect .mpihelp_addmul_1[PR]
-.mpihelp_addmul_1:
+	.globl _gcry_mpih_addmul_1
+	.globl ._gcry_mpih_addmul_1
+	.csect _gcry_mpih_addmul_1[DS]
+_gcry_mpih_addmul_1:
+	.long ._gcry_mpih_addmul_1[PR], TOC[tc0], 0
+	.csect ._gcry_mpih_addmul_1[PR]
+._gcry_mpih_addmul_1:
 
 	cal	3,-4(3)
 	l	0,0(4)

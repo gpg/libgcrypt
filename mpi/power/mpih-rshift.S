@@ -32,17 +32,17 @@
 */
 
 	.toc
-	.extern mpihelp_rshift[DS]
-	.extern .mpihelp_rshift
+	.extern _gcry_mpih_rshift[DS]
+	.extern ._gcry_mpih_rshift
 .csect [PR]
 	.align 2
-	.globl mpihelp_rshift
-	.globl .mpihelp_rshift
-	.csect mpihelp_rshift[DS]
-mpihelp_rshift:
-	.long .mpihelp_rshift, TOC[tc0], 0
+	.globl _gcry_mpih_rshift
+	.globl ._gcry_mpih_rshift
+	.csect _gcry_mpih_rshift[DS]
+_gcry_mpih_rshift:
+	.long ._gcry_mpih_rshift, TOC[tc0], 0
 	.csect [PR]
-.mpihelp_rshift:
+._gcry_mpih_rshift:
 	sfi	8,6,32
 	mtctr	5		# put limb count in CTR loop register
 	l	0,0(4)		# read least significant limb

@@ -1,5 +1,5 @@
 /* arcfour.h
- *	Copyright (C) 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -27,7 +27,7 @@
  * we have redesigned the interface.
  */
 const char *
-arcfour_get_info( int algo, size_t *keylen, size_t *blocksize,
+_gcry_arcfour_get_info( int algo, size_t *keylen, size_t *blocksize,
 		   size_t *contextsize,
 		   int	(**r_setkey)( void *c, byte *key, unsigned keylen ),
 		   void (**r_stencrypt)( void *c, byte *outbuf,

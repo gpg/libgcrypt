@@ -1,5 +1,5 @@
 /* mpi-inv.c  -  MPI functions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi-internal.h"
-
+#include "g10lib.h"
 
 /****************
  * Calculate the multiplicative inverse X of A mod N
@@ -30,7 +30,7 @@
  *		1 = (a*x) mod n
  */
 void
-mpi_invm( MPI x, MPI a, MPI n )
+_gcry_mpi_invm( MPI x, MPI a, MPI n )
 {
   #if 0
     MPI u, v, u1, u2, u3, v1, v2, v3, q, t1, t2, t3;

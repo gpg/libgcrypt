@@ -1,5 +1,5 @@
 /* blowfish.h
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -24,7 +24,7 @@
 
 
 const char *
-blowfish_get_info( int algo, size_t *keylen,
+_gcry_blowfish_get_info( int algo, size_t *keylen,
 		   size_t *blocksize, size_t *contextsize,
 		   int	(**setkeyf)( void *c, byte *key, unsigned keylen ),
 		   void (**encryptf)( void *c, byte *outbuf, byte *inbuf ),
@@ -34,7 +34,7 @@ blowfish_get_info( int algo, size_t *keylen,
 /* this is just a kludge for the time we have not yet chnaged the cipher
  * stuff to the scheme we use for random and digests */
 const char *
-twofish_get_info( int algo, size_t *keylen,
+_gcry_twofish_get_info( int algo, size_t *keylen,
 		   size_t *blocksize, size_t *contextsize,
 		   int	(**setkeyf)( void *c, byte *key, unsigned keylen ),
 		   void (**encryptf)( void *c, byte *outbuf, byte *inbuf ),
@@ -44,7 +44,7 @@ twofish_get_info( int algo, size_t *keylen,
 /* this is just a kludge for the time we have not yet chnaged the cipher
  * stuff to the scheme we use for random and digests */
 const char *
-rijndael_get_info( int algo, size_t *keylen,
+_gcry_rijndael_get_info( int algo, size_t *keylen,
 		   size_t *blocksize, size_t *contextsize,
 		   int	(**setkeyf)( void *c, byte *key, unsigned keylen ),
 		   void (**encryptf)( void *c, byte *outbuf, byte *inbuf ),

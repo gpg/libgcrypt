@@ -650,7 +650,7 @@ start_gatherer( int pipefd )
 	if( s ) {
 	    dbgfp = (*s=='-' && !s[1])? stdout : fopen(s, "a");
 	    if( !dbgfp )
-		g10_log_info("can't open debug file `%s': %s\n",
+		log_info("can't open debug file `%s': %s\n",
 			     s, strerror(errno) );
 	    else
 		fprintf(dbgfp,"\nSTART RNDUNIX DEBUG pid=%d\n", (int)getpid());
@@ -685,7 +685,7 @@ start_gatherer( int pipefd )
     gather_buffer_size = GATHER_BUFSIZE;
     gather_buffer = malloc( gather_buffer_size );
     if( !gather_buffer ) {
-	g10_log_error("out of core while allocating the gatherer buffer\n");
+	log_error("out of core while allocating the gatherer buffer\n");
 	exit(2);
     }
 
@@ -787,12 +787,12 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 	    BUG();
 	/* time to start the gatherer process */
 	if( pipe( pipedes ) ) {
-	    g10_log_error("pipe() failed: %s\n", strerror(errno));
+	    log_error("pipe() failed: %s\n", strerror(errno));
 	    return -1;
 	}
 	gatherer_pid = fork();
 	if( gatherer_pid == -1 ) {
-	    g10_log_error("can't for gatherer process: %s\n", strerror(errno));
+	    log_error("can't for gatherer process: %s\n", strerror(errno));
 	    return -1;
 	}
 	if( !gatherer_pid ) {
@@ -808,7 +808,7 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 	ulong subtract;
 
 	if( read_a_msg( pipedes[0], &msg ) ) {
-	    g10_log_error("reading from gatherer pipe failed: %s\n",
+	    log_error("reading from gatherer pipe failed: %s\n",
 							    strerror(errno));
 	    return -1;
 	}

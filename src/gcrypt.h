@@ -35,7 +35,7 @@ extern "C" {
  * header matches the installed library.
  * Note: Do not edit the next line as configure may fix the string here.
  */
-#define GCRYPT_VERSION "1.1.2a"
+#define GCRYPT_VERSION "1.1.3"
 
 
 #ifndef HAVE_BYTE_TYPEDEF
@@ -219,14 +219,35 @@ int	 gcry_mpi_print( enum gcry_mpi_format format,
 int	 gcry_mpi_aprint( enum gcry_mpi_format format,
 			  void **buffer, size_t *nbytes, const GCRY_MPI a );
 
-void gcry_mpi_powm( GCRY_MPI w,
-		    const GCRY_MPI b, const GCRY_MPI e, const GCRY_MPI m );
-GCRY_MPI gcry_mpi_set_opaque( GCRY_MPI a, void *p, unsigned int nbits );
-void	*gcry_mpi_get_opaque( GCRY_MPI a, unsigned int *nbits );
-void gcry_mpi_set_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
-void gcry_mpi_clear_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
-int  gcry_mpi_get_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
+
+void     gcry_mpi_add(GCRY_MPI w, GCRY_MPI u, GCRY_MPI v);
+void     gcry_mpi_add_ui(GCRY_MPI w, GCRY_MPI u, unsigned long v );
+void     gcry_mpi_addm(GCRY_MPI w, GCRY_MPI u, GCRY_MPI v, GCRY_MPI m);
+void     gcry_mpi_sub( GCRY_MPI w, GCRY_MPI u, GCRY_MPI v);
+void     gcry_mpi_sub_ui(GCRY_MPI w, GCRY_MPI u, ulong v );
+void     gcry_mpi_subm( GCRY_MPI w, GCRY_MPI u, GCRY_MPI v, GCRY_MPI m);
+void     gcry_mpi_mul_ui(GCRY_MPI w, GCRY_MPI u, unsigned long v );
+void     gcry_mpi_mul_2exp( GCRY_MPI w, GCRY_MPI u, unsigned long cnt);
+void     gcry_mpi_mul( GCRY_MPI w, GCRY_MPI u, GCRY_MPI v);
+void     gcry_mpi_mulm( GCRY_MPI w, GCRY_MPI u, GCRY_MPI v, GCRY_MPI m);
+
+void     gcry_mpi_powm( GCRY_MPI w,
+                        const GCRY_MPI b, const GCRY_MPI e, const GCRY_MPI m );
+int      gcry_mpi_gcd( GCRY_MPI g, GCRY_MPI a, GCRY_MPI b );
+
 unsigned int gcry_mpi_get_nbits( GCRY_MPI a );
+int      gcry_mpi_test_bit( GCRY_MPI a, unsigned int n );
+void     gcry_mpi_set_bit( GCRY_MPI a, unsigned int n );
+void     gcry_mpi_clear_bit( GCRY_MPI a, unsigned int n );
+void     gcry_mpi_set_highbit( GCRY_MPI a, unsigned int n );
+void     gcry_mpi_clear_highbit( GCRY_MPI a, unsigned int n );
+void     gcry_mpi_rshift( GCRY_MPI x, GCRY_MPI a, unsigned int n );
+
+GCRY_MPI gcry_mpi_set_opaque( GCRY_MPI a, void *p, unsigned int nbits );
+void *   gcry_mpi_get_opaque( GCRY_MPI a, unsigned int *nbits );
+void     gcry_mpi_set_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
+void     gcry_mpi_clear_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
+int      gcry_mpi_get_flag( GCRY_MPI a, enum gcry_mpi_flag flag );
 
 
 #ifndef GCRYPT_NO_MPI_MACROS
@@ -240,7 +261,27 @@ unsigned int gcry_mpi_get_nbits( GCRY_MPI a );
 #define mpi_cmp( u, v )     gcry_mpi_cmp( (u), (v) )
 #define mpi_cmp_ui( u, v )  gcry_mpi_cmp_ui( (u), (v) )
 
+#define mpi_add_ui(w,u,v)   gcry_mpi_add_ui((w),(u),(v))
+#define mpi_add(w,u,v)      gcry_mpi_add ((w),(u),(v))
+#define mpi_addm(w,u,v,m)   gcry_mpi_addm ((w),(u),(v),(m))
+#define mpi_sub_ui(w,u,v)   gcry_mpi_sub_ui ((w),(u),(v))
+#define mpi_sub(w,u,v)      gcry_mpi_sub ((w),(u),(v))
+#define mpi_subm(w,u,v,m)   gcry_mpi_subm ((w),(u),(v),(m))
+#define mpi_mul_ui(w,u,v)   gcry_mpi_mul_ui ((w),(u),(v))
+#define mpi_mul_2exp(w,u,v) gcry_mpi_mul_2exp ((w),(u),(v))
+#define mpi_mul(w,u,v)      gcry_mpi_mul ((w),(u),(v))
+#define mpi_mulm(w,u,v,m)   gcry_mpi_mulm ((w),(u),(v),(m))
 #define mpi_powm(w,b,e,m)   gcry_mpi_powm( (w), (b), (e), (m) )
+#define mpi_gcd(g,a,b)      gcry_mpi_gcd( (g), (a), (b) )
+
+#define mpi_get_nbits(a)       gcry_mpi_get_nbits ((a))
+#define mpi_test_bit(a,b)      gcry_mpi_test_bit ((a),(b))
+#define mpi_set_bit(a,b)       gcry_mpi_set_bit ((a),(b))
+#define mpi_set_highbit(a,b)   gcry_mpi_set_highbit ((a),(b))
+#define mpi_clear_bit(a,b)     gcry_mpi_clear_bit ((a),(b))
+#define mpi_clear_highbit(a,b) gcry_mpi_clear_highbit ((a),(b))
+#define mpi_rshift(a,b,c)      gcry_mpi_rshift ((a),(b),(c))
+
 #define mpi_set_opaque(a,b,c) gcry_mpi_set_opaque( (a), (b), (c) )
 #define mpi_get_opaque(a,b)   gcry_mpi_get_opaque( (a), (b) )
 #endif /* GCRYPT_NO_MPI_MACROS */
@@ -267,6 +308,11 @@ enum gcry_cipher_algos {
     /* other cipher numbers are above 300 for OpenPGP reasons. */
     GCRY_CIPHER_ARCFOUR     = 301
 };
+
+#define GCRY_CIPHER_AES    GCRY_CIPHER_RIJNDAEL
+#define GCRY_CIPHER_AES128 GCRY_CIPHER_RIJNDAEL128
+#define GCRY_CIPHER_AES192 GCRY_CIPHER_RIJNDAEL192
+#define GCRY_CIPHER_AES256 GCRY_CIPHER_RIJNDAEL256
 
 enum gcry_cipher_modes {
     GCRY_CIPHER_MODE_NONE   = 0,

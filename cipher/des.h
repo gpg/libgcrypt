@@ -1,5 +1,5 @@
 /* des.h
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -24,7 +24,7 @@
 
 
 const char *
-des_get_info( int algo, size_t *keylen,
+_gcry_des_get_info( int algo, size_t *keylen,
 		   size_t *blocksize, size_t *contextsize,
 		   int	(**setkeyf)( void *c, byte *key, unsigned keylen ),
 		   void (**encryptf)( void *c, byte *outbuf, byte *inbuf ),

@@ -41,8 +41,8 @@
 
 .text
 	.align 4
-	.global C_SYMBOL_NAME(mpihelp_addmul_1)
-C_SYMBOL_NAME(mpihelp_addmul_1):
+	.global C_SYMBOL_NAME(_gcry_mpih_addmul_1)
+C_SYMBOL_NAME(_gcry_mpih_addmul_1):
 	orcc	%g0,%g0,%g2
 	ld	[%o1+0],%o4	! 1
 

@@ -1,8 +1,8 @@
 /* g10lib.h -  internal defintions for libgcrypt
- *	Copyright (C) 1998,1999,2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
  *
  * This header is to be used inside of libgcrypt in place of gcrypt.h.
- * This way we can easily distinguish between internal and external
+ * This way we can better distinguish between internal and external
  * usage of gcrypt.h
  *
  * This file is part of Libgcrypt.
@@ -28,10 +28,10 @@
 #ifdef _GCRYPT_H
   #error  gcrypt.h already included
 #endif
-/* because libgcrypt is distributed along with GnuPG, we need some way
- * to do a sanity check.  If this macro is defined, we are inside of
- * libgcrypt */
-#define _GCRYPT_IN_LIBGCRYPT 1
+
+#ifndef _GCRYPT_IN_LIBGCRYPT 
+  #error something is wrong with config.h
+#endif
 
 #include <gcrypt.h>
 #include "types.h"
@@ -41,63 +41,50 @@
   #error i18n should not be included here
 #endif
 
-#define _(a)  g10_gettext(a)
+#define _(a)  _gcry_gettext(a)
 #define N_(a) (a)
 
 /*-- gcrypt/global.c --*/
-int set_lasterr( int ec );
+#define set_lasterr(a) _gcry_set_lasterr ((a))
+int _gcry_set_lasterr( int ec );
 
-void *g10_malloc( size_t n );
-void *g10_calloc( size_t n, size_t m );
-void *g10_malloc_secure( size_t n );
-void *g10_calloc_secure( size_t n, size_t m );
-void *g10_realloc( void *a, size_t n );
-char *g10_strdup( const char * a);
-void *g10_xmalloc( size_t n );
-void *g10_xcalloc( size_t n, size_t m );
-void *g10_xmalloc_secure( size_t n );
-void *g10_xcalloc_secure( size_t n, size_t m );
-void *g10_xrealloc( void *a, size_t n );
-char *g10_xstrdup( const char * a);
-void  g10_free( void *p );
-int   g10_is_secure( const void *a );
-void  g10_check_heap( const void *a );
+void  _gcry_check_heap( const void *a );
 
-int g10_get_debug_flag( unsigned int mask );
+int _gcry_get_debug_flag( unsigned int mask );
 
 
 /*-- gcrypt/misc.c --*/
 
 #ifdef JNLIB_GCC_M_FUNCTION
-void g10_bug( const char *file, int line, const char *func ) JNLIB_GCC_A_NR;
+void _gcry_bug( const char *file, int line, const char *func ) JNLIB_GCC_A_NR;
 #else
-void g10_bug( const char *file, int line );
+void _gcry_bug( const char *file, int line );
 #endif
 
-const char *g10_gettext( const char *key );
-void g10_fatal_error(int rc, const char *text ) JNLIB_GCC_A_NR;
-void g10_log( int level, const char *fmt, ... ) JNLIB_GCC_A_PRINTF(2,3);
-void g10_log_bug( const char *fmt, ... )   JNLIB_GCC_A_NR_PRINTF(1,2);
-void g10_log_fatal( const char *fmt, ... ) JNLIB_GCC_A_NR_PRINTF(1,2);
-void g10_log_error( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
-void g10_log_info( const char *fmt, ... )  JNLIB_GCC_A_PRINTF(1,2);
-void g10_log_debug( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
+const char *_gcry_gettext( const char *key );
+void _gcry_fatal_error(int rc, const char *text ) JNLIB_GCC_A_NR;
+void _gcry_log( int level, const char *fmt, ... ) JNLIB_GCC_A_PRINTF(2,3);
+void _gcry_log_bug( const char *fmt, ... )   JNLIB_GCC_A_NR_PRINTF(1,2);
+void _gcry_log_fatal( const char *fmt, ... ) JNLIB_GCC_A_NR_PRINTF(1,2);
+void _gcry_log_error( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
+void _gcry_log_info( const char *fmt, ... )  JNLIB_GCC_A_PRINTF(1,2);
+void _gcry_log_debug( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 
-void g10_set_log_verbosity( int level );
-int g10_log_verbosity( int level );
+void _gcry_set_log_verbosity( int level );
+int _gcry_log_verbosity( int level );
 
 #ifdef JNLIB_GCC_M_FUNCTION
-  #define BUG() g10_bug( __FILE__ , __LINE__, __FUNCTION__ )
+  #define BUG() _gcry_bug( __FILE__ , __LINE__, __FUNCTION__ )
 #else
-  #define BUG() g10_bug( __FILE__ , __LINE__ )
+  #define BUG() _gcry_bug( __FILE__ , __LINE__ )
 #endif
 
-#define log_hexdump g10_log_hexdump
-#define log_bug     g10_log_bug
-#define log_fatal   g10_log_fatal
-#define log_error   g10_log_error
-#define log_info    g10_log_info
-#define log_debug   g10_log_debug
+#define log_hexdump _gcry_log_hexdump
+#define log_bug     _gcry_log_bug
+#define log_fatal   _gcry_log_fatal
+#define log_error   _gcry_log_error
+#define log_info    _gcry_log_info
+#define log_debug   _gcry_log_debug
 
 
 
@@ -120,9 +107,9 @@ unsigned pubkey_nbits( int algo, MPI *pkey );
 
 
 /*-- primegen.c --*/
-MPI generate_secret_prime( unsigned nbits );
-MPI generate_public_prime( unsigned nbits );
-MPI generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
+MPI _gcry_generate_secret_prime( unsigned nbits );
+MPI _gcry_generate_public_prime( unsigned nbits );
+MPI _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 					   MPI g, MPI **factors );
 
 

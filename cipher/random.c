@@ -130,17 +130,17 @@ initialize(void)
     /* The data buffer is allocated somewhat larger, so that
      * we can use this extra space (which is allocated in secure memory)
      * as a temporary hash buffer */
-    rndpool = secure_alloc ? g10_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
-			   : g10_xcalloc(1,POOLSIZE+BLOCKLEN);
-    keypool = secure_alloc ? g10_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
-			   : g10_xcalloc(1,POOLSIZE+BLOCKLEN);
+    rndpool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
+			   : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
+    keypool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
+			   : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
     is_initialized = 1;
-    cipher_modules_constructor();
+    _gcry_cipher_modules_constructor();
 }
 
 
 void
-random_dump_stats()
+_gcry_random_dump_stats()
 {
     fprintf(stderr,
 	    "random usage: poolsize=%d mixed=%lu polls=%lu/%lu added=%lu/%lu\n"
@@ -152,14 +152,14 @@ random_dump_stats()
 }
 
 void
-secure_random_alloc()
+_gcry_secure_random_alloc()
 {
     secure_alloc = 1;
 }
 
 
 int
-quick_random_gen( int onoff )
+_gcry_quick_random_gen( int onoff )
 {
     int last;
 
@@ -181,12 +181,12 @@ gcry_randomize( byte *buffer, size_t length, enum gcry_random_level level )
 {
     char *p = get_random_bytes( length, level, 1 );
     memcpy( buffer, p, length );
-    g10_free(p);
+    gcry_free(p);
 }
 
 
 int
-random_is_faked()
+_gcry_random_is_faked()
 {
     if( !is_initialized )
 	initialize();
@@ -215,8 +215,8 @@ get_random_bytes( size_t nbytes, int level, int secure )
 	rndstats.ngetbytes2++;
     }
 
-    buf = secure && secure_alloc ? g10_xmalloc_secure( nbytes )
-				 : g10_xmalloc( nbytes );
+    buf = secure && secure_alloc ? gcry_xmalloc_secure( nbytes )
+				 : gcry_xmalloc( nbytes );
     for( p = buf; nbytes > 0; ) {
 	size_t n = nbytes > POOLSIZE? POOLSIZE : nbytes;
 	read_pool( p, n, level );
@@ -250,7 +250,7 @@ mix_pool(byte *pool)
     int i, n;
     RMD160_CONTEXT md;
 
-    rmd160_init( &md );
+    _gcry_rmd160_init( &md );
  #if DIGESTLEN != 20
     #error must have a digest length of 20 for ripe-md-160
  #endif
@@ -258,7 +258,7 @@ mix_pool(byte *pool)
     pend = pool + POOLSIZE;
     memcpy(hashbuf, pend - DIGESTLEN, DIGESTLEN );
     memcpy(hashbuf+DIGESTLEN, pool, BLOCKLEN-DIGESTLEN);
-    rmd160_mixblock( &md, hashbuf);
+    _gcry_rmd160_mixblock( &md, hashbuf);
     memcpy(pool, hashbuf, 20 );
 
     p = pool;
@@ -277,17 +277,17 @@ mix_pool(byte *pool)
 	    }
 	}
 
-	rmd160_mixblock( &md, hashbuf);
+	_gcry_rmd160_mixblock( &md, hashbuf);
 	memcpy(p, hashbuf, 20 );
     }
 }
 
 void
-set_random_seed_file( const char *name )
+_gcry_set_random_seed_file( const char *name )
 {
     if( seed_file_name )
 	BUG();
-    seed_file_name = g10_xstrdup( name );
+    seed_file_name = gcry_xstrdup( name );
 }
 
 /****************
@@ -374,7 +374,7 @@ read_seed_file()
 }
 
 void
-update_random_seed_file()
+_gcry_update_random_seed_file()
 {
     ulong *sp, *dp;
     int fd, i;
@@ -550,7 +550,7 @@ random_poll()
 
 
 void
-fast_random_poll()
+_gcry_fast_random_poll()
 {
     static void (*fnc)( void (*)(const void*, size_t, int), int) = NULL;
     static int initialized = 0;
@@ -560,7 +560,7 @@ fast_random_poll()
 	if( !is_initialized )
 	    initialize();
 	initialized = 1;
-	fnc = dynload_getfnc_fast_random_poll();
+	fnc = _gcry_dynload_getfnc_fast_random_poll();
     }
     if( fnc ) {
 	(*fnc)( add_randomness, 1 );
@@ -632,7 +632,7 @@ read_random_source( int requester, size_t length, int level )
     if( !fnc ) {
 	if( !is_initialized )
 	    initialize();
-	fnc = dynload_getfnc_gather_random();
+	fnc = _gcry_dynload_getfnc_gather_random();
 	if( !fnc ) {
 	    faked_rng = 1;
 	    fnc = gather_faked;
@@ -672,7 +672,7 @@ gather_faked( void (*add)(const void*, size_t, int), int requester,
       #endif
     }
 
-    p = buffer = g10_xmalloc( length );
+    p = buffer = gcry_xmalloc( length );
     n = length;
   #ifdef HAVE_RAND
     while( n-- )
@@ -682,7 +682,7 @@ gather_faked( void (*add)(const void*, size_t, int), int requester,
 	*p++ = ((unsigned)(1 + (int) (256.0*random()/(RAND_MAX+1.0)))-1);
   #endif
     add_randomness( buffer, length, requester );
-    g10_free(buffer);
+    gcry_free(buffer);
     return 0; /* okay */
 }
 

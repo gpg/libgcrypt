@@ -1,5 +1,5 @@
 /* mpi-bit.c  -  MPI bit level fucntions
- *	Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -53,7 +53,7 @@ __clz_tab[] =
  * this is for some reasons not good, so this function removes them.
  */
 void
-mpi_normalize( MPI a )
+_gcry_mpi_normalize( MPI a )
 {
     if( mpi_is_opaque(a) )
 	return;
@@ -68,7 +68,7 @@ mpi_normalize( MPI a )
  * Return the number of bits in A.
  */
 unsigned int
-mpi_get_nbits( MPI a )
+gcry_mpi_get_nbits( MPI a )
 {
     unsigned n;
 
@@ -76,7 +76,7 @@ mpi_get_nbits( MPI a )
 	return a->sign; /* which holds the number of bits */
     }
 
-    mpi_normalize( a );
+    _gcry_mpi_normalize( a );
     if( a->nlimbs ) {
 	mpi_limb_t alimb = a->d[a->nlimbs-1];
 	if( alimb )
@@ -90,19 +90,14 @@ mpi_get_nbits( MPI a )
     return n;
 }
 
-unsigned int
-gcry_mpi_get_nbits( MPI a )
-{
-    return mpi_get_nbits( a );
-}
 
 /****************
  * Test whether bit N is set.
  */
 int
-mpi_test_bit( MPI a, unsigned n )
+gcry_mpi_test_bit( MPI a, unsigned int n )
 {
-    unsigned limbno, bitno;
+    unsigned int limbno, bitno;
     mpi_limb_t limb;
 
     limbno = n / BITS_PER_MPI_LIMB;
@@ -119,9 +114,9 @@ mpi_test_bit( MPI a, unsigned n )
  * Set bit N of A.
  */
 void
-mpi_set_bit( MPI a, unsigned n )
+gcry_mpi_set_bit( MPI a, unsigned int n )
 {
-    unsigned limbno, bitno;
+    unsigned int limbno, bitno;
 
     limbno = n / BITS_PER_MPI_LIMB;
     bitno  = n % BITS_PER_MPI_LIMB;
@@ -138,9 +133,9 @@ mpi_set_bit( MPI a, unsigned n )
  * Set bit N of A. and clear all bits above
  */
 void
-mpi_set_highbit( MPI a, unsigned n )
+gcry_mpi_set_highbit( MPI a, unsigned int n )
 {
-    unsigned limbno, bitno;
+    unsigned int limbno, bitno;
 
     limbno = n / BITS_PER_MPI_LIMB;
     bitno  = n % BITS_PER_MPI_LIMB;
@@ -160,9 +155,9 @@ mpi_set_highbit( MPI a, unsigned n )
  * clear bit N of A and all bits above
  */
 void
-mpi_clear_highbit( MPI a, unsigned n )
+gcry_mpi_clear_highbit( MPI a, unsigned int n )
 {
-    unsigned limbno, bitno;
+    unsigned int limbno, bitno;
 
     limbno = n / BITS_PER_MPI_LIMB;
     bitno  = n % BITS_PER_MPI_LIMB;
@@ -179,9 +174,9 @@ mpi_clear_highbit( MPI a, unsigned n )
  * Clear bit N of A.
  */
 void
-mpi_clear_bit( MPI a, unsigned n )
+gcry_mpi_clear_bit( MPI a, unsigned int n )
 {
-    unsigned limbno, bitno;
+    unsigned int limbno, bitno;
 
     limbno = n / BITS_PER_MPI_LIMB;
     bitno  = n % BITS_PER_MPI_LIMB;
@@ -197,7 +192,7 @@ mpi_clear_bit( MPI a, unsigned n )
  * FIXME: should use alloc_limb if X and A are same.
  */
 void
-mpi_rshift( MPI x, MPI a, unsigned n )
+gcry_mpi_rshift( MPI x, MPI a, unsigned n )
 {
     mpi_ptr_t xp;
     mpi_size_t xsize;
@@ -208,7 +203,7 @@ mpi_rshift( MPI x, MPI a, unsigned n )
     xp = x->d;
 
     if( xsize ) {
-	mpihelp_rshift( xp, a->d, xsize, n);
+	_gcry_mpih_rshift( xp, a->d, xsize, n);
 	MPN_NORMALIZE( xp, xsize);
     }
     x->nlimbs = xsize;
@@ -220,7 +215,7 @@ mpi_rshift( MPI x, MPI a, unsigned n )
  * This is used only within the MPI library
  */
 void
-mpi_lshift_limbs( MPI a, unsigned int count )
+_gcry_mpi_lshift_limbs( MPI a, unsigned int count )
 {
     mpi_ptr_t ap = a->d;
     int n = a->nlimbs;
@@ -244,7 +239,7 @@ mpi_lshift_limbs( MPI a, unsigned int count )
  * This is used only within the MPI library
  */
 void
-mpi_rshift_limbs( MPI a, unsigned int count )
+_gcry_mpi_rshift_limbs( MPI a, unsigned int count )
 {
     mpi_ptr_t ap = a->d;
     mpi_size_t n = a->nlimbs;
@@ -260,5 +255,3 @@ mpi_rshift_limbs( MPI a, unsigned int count )
     ap[i] = 0;
     a->nlimbs -= count;
 }
-
-

@@ -1,5 +1,5 @@
 /* dsa.h  -  DSA signature scheme
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -20,13 +20,13 @@
 #ifndef G10_DSA_H
 #define G10_DSA_H
 
-int dsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors );
-int dsa_check_secret_key( int algo, MPI *skey );
-int dsa_sign( int algo, MPI *resarr, MPI data, MPI *skey );
-int dsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
+int _gcry_dsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors );
+int _gcry_dsa_check_secret_key( int algo, MPI *skey );
+int _gcry_dsa_sign( int algo, MPI *resarr, MPI data, MPI *skey );
+int _gcry_dsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 		    int (*cmp)(void *, MPI), void *opaquev );
-unsigned dsa_get_nbits( int algo, MPI *pkey );
-const char *dsa_get_info( int algo, int *npkey, int *nskey,
+unsigned _gcry_dsa_get_nbits( int algo, MPI *pkey );
+const char *_gcry_dsa_get_info( int algo, int *npkey, int *nskey,
 				    int *nenc, int *nsig, int *use );
 
 #endif /*G10_DSA_H*/

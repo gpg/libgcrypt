@@ -1,6 +1,6 @@
 /* rsa.h
  *	Copyright (C) 1997,1998 by Werner Koch (dd9jn)
- *	Copyright (C) 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -21,15 +21,15 @@
 #ifndef G10_RSA_H
 #define G10_RSA_H
 
-int rsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors );
-int rsa_check_secret_key( int algo, MPI *skey );
-int rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey );
-int rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey );
-int rsa_sign( int algo, MPI *resarr, MPI data, MPI *skey );
-int rsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
+int _gcry_rsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors );
+int _gcry_rsa_check_secret_key( int algo, MPI *skey );
+int _gcry_rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey );
+int _gcry_rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey );
+int _gcry_rsa_sign( int algo, MPI *resarr, MPI data, MPI *skey );
+int _gcry_rsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 		    int (*cmp)(void *, MPI), void *opaquev );
-unsigned rsa_get_nbits( int algo, MPI *pkey );
-const char *rsa_get_info( int algo, int *npkey, int *nskey,
+unsigned _gcry_rsa_get_nbits( int algo, MPI *pkey );
+const char *_gcry_rsa_get_info( int algo, int *npkey, int *nskey,
 				    int *nenc, int *nsig, int *use );
 
 

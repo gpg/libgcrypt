@@ -27,7 +27,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_lshift( mpi_ptr_t wp,	(r3)
+ * _gcry_mpih_lshift( mpi_ptr_t wp,	(r3)
  *		   mpi_ptr_t up,	(r4)
  *		   mpi_size_t usize,	(r5)
  *		   unsigned cnt)	(r6)
@@ -36,13 +36,13 @@
 	.toc
 .csect	.text[PR]
 	.align	2
-	.globl	mpihelp_lshift
-	.globl	.mpihelp_lshift
-	.csect	mpihelp_lshift[DS]
-mpihelp_lshift:
-	.long	.mpihelp_lshift,  TOC[tc0],	  0
+	.globl	_gcry_mpih_lshift
+	.globl	._gcry_mpih_lshift
+	.csect	_gcry_mpih_lshift[DS]
+_gcry_mpih_lshift:
+	.long	._gcry_mpih_lshift,  TOC[tc0],	  0
 	.csect	.text[PR]
-.mpihelp_lshift:
+._gcry_mpih_lshift:
 	mtctr	5		# copy size into CTR
 	slwi	0,5,2
 	add	7,3,0		# make r7 point at end of res
@@ -96,7 +96,7 @@ Lend2:	slw	0,10,6
 /* mp_limb_t mpn_lshift (mp_ptr wp, mp_srcptr up, mp_size_t usize,
 			unsigned int cnt)  */
 
-EALIGN(mpihelp_lshift,3,0)
+EALIGN(_gcry_mpih_lshift,3,0)
        mtctr   %r5	       # copy size into CTR
        cmplwi  %cr0,%r5,16     # is size < 16
        slwi    %r0,%r5,2
@@ -194,5 +194,5 @@ L(end2):slw    %r0,%r10,%r6
        DO_LSHIFT(30)
        DO_LSHIFT(31)
 
-END(mpihelp_lshift)
+END(_gcry_mpih_lshift)
 #endif

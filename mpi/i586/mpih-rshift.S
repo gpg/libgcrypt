@@ -36,7 +36,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_rshift( mpi_ptr_t wp,	(sp + 4)
+ * _gcry_mpih_rshift( mpi_ptr_t wp,	(sp + 4)
  *		   mpi_ptr_t up,	(sp + 8)
  *		   mpi_size_t usize,	(sp + 12)
  *		   unsigned cnt)	(sp + 16)
@@ -44,8 +44,8 @@
 
 .text
 	ALIGN (3)
-	.globl C_SYMBOL_NAME(mpihelp_rshift)
-C_SYMBOL_NAME(mpihelp_rshift:)
+	.globl C_SYMBOL_NAME(_gcry_mpih_rshift)
+C_SYMBOL_NAME(_gcry_mpih_rshift:)
 	pushl	%edi
 	pushl	%esi
 	pushl	%ebx

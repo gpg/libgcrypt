@@ -1,6 +1,5 @@
 /* mpi-pow.c  -  MPI functions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
- *	Copyright (C) 1994, 1996, 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1994, 1996, 1998, 2000 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -89,7 +88,7 @@ gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
     mp = mp_marker = mpi_alloc_limb_space(msize, msec);
     count_leading_zeros( mod_shift_cnt, mod->d[msize-1] );
     if( mod_shift_cnt )
-	mpihelp_lshift( mp, mod->d, msize, mod_shift_cnt );
+	_gcry_mpih_lshift( mp, mod->d, msize, mod_shift_cnt );
     else
 	MPN_COPY( mp, mod->d, msize );
 
@@ -102,7 +101,7 @@ gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
 	MPN_COPY( bp, base->d, bsize );
 	/* We don't care about the quotient, store it above the remainder,
 	 * at BP + MSIZE.  */
-	mpihelp_divrem( bp + msize, 0, bp, bsize, mp, msize );
+	_gcry_mpih_divrem( bp + msize, 0, bp, bsize, mp, msize );
 	bsize = msize;
 	/* Canonicalize the base, since we are going to multiply with it
 	 * quite a few times.  */
@@ -175,7 +174,7 @@ gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
 	 *
 	 * Make the result be pointed to alternately by XP and RP.  This
 	 * helps us avoid block copying, which would otherwise be necessary
-	 * with the overlap restrictions of mpihelp_divmod. With 50% probability
+	 * with the overlap restrictions of _gcry_mpih_divmod. With 50% probability
 	 * the result after this loop will be in the area originally pointed
 	 * by RP (==RES->d), and with 50% probability in the area originally
 	 * pointed to by XP.
@@ -186,9 +185,9 @@ gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
 		mpi_ptr_t tp;
 		mpi_size_t xsize;
 
-		/*mpihelp_mul_n(xp, rp, rp, rsize);*/
+		/*mpih_mul_n(xp, rp, rp, rsize);*/
 		if( rsize < KARATSUBA_THRESHOLD )
-		    mpih_sqr_n_basecase( xp, rp, rsize );
+		    _gcry_mpih_sqr_n_basecase( xp, rp, rsize );
 		else {
 		    if( !tspace ) {
 			tsize = 2 * rsize;
@@ -199,12 +198,12 @@ gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
 			tsize = 2 * rsize;
 			tspace = mpi_alloc_limb_space( tsize, 0 );
 		    }
-		    mpih_sqr_n( xp, rp, rsize, tspace );
+		    _gcry_mpih_sqr_n( xp, rp, rsize, tspace );
 		}
 
 		xsize = 2 * rsize;
 		if( xsize > msize ) {
-		    mpihelp_divrem(xp + msize, 0, xp, xsize, mp, msize);
+		    _gcry_mpih_divrem(xp + msize, 0, xp, xsize, mp, msize);
 		    xsize = msize;
 		}
 
@@ -212,18 +211,18 @@ gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
 		rsize = xsize;
 
 		if( (mpi_limb_signed_t)e < 0 ) {
-		    /*mpihelp_mul( xp, rp, rsize, bp, bsize );*/
+		    /*mpih_mul( xp, rp, rsize, bp, bsize );*/
 		    if( bsize < KARATSUBA_THRESHOLD ) {
-			mpihelp_mul( xp, rp, rsize, bp, bsize );
+			_gcry_mpih_mul( xp, rp, rsize, bp, bsize );
 		    }
 		    else {
-			mpihelp_mul_karatsuba_case(
+			_gcry_mpih_mul_karatsuba_case(
 				     xp, rp, rsize, bp, bsize, &karactx );
 		    }
 
 		    xsize = rsize + bsize;
 		    if( xsize > msize ) {
-			mpihelp_divrem(xp + msize, 0, xp, xsize, mp, msize);
+			_gcry_mpih_divrem(xp + msize, 0, xp, xsize, mp, msize);
 			xsize = msize;
 		    }
 
@@ -248,7 +247,7 @@ gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
 	 * might be, see above).
 	 */
 	if( mod_shift_cnt ) {
-	    carry_limb = mpihelp_lshift( res->d, rp, rsize, mod_shift_cnt);
+	    carry_limb = _gcry_mpih_lshift( res->d, rp, rsize, mod_shift_cnt);
 	    rp = res->d;
 	    if( carry_limb ) {
 		rp[rsize] = carry_limb;
@@ -261,22 +260,22 @@ gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
 	}
 
 	if( rsize >= msize ) {
-	    mpihelp_divrem(rp + msize, 0, rp, rsize, mp, msize);
+	    _gcry_mpih_divrem(rp + msize, 0, rp, rsize, mp, msize);
 	    rsize = msize;
 	}
 
 	/* Remove any leading zero words from the result.  */
 	if( mod_shift_cnt )
-	    mpihelp_rshift( rp, rp, rsize, mod_shift_cnt);
+	    _gcry_mpih_rshift( rp, rp, rsize, mod_shift_cnt);
 	MPN_NORMALIZE (rp, rsize);
 
-	mpihelp_release_karatsuba_ctx( &karactx );
+	_gcry_mpih_release_karatsuba_ctx( &karactx );
     }
 
     if( negative_result && rsize ) {
 	if( mod_shift_cnt )
-	    mpihelp_rshift( mp, mp, msize, mod_shift_cnt);
-	mpihelp_sub( rp, mp, msize, rp, rsize);
+	    _gcry_mpih_rshift( mp, mp, msize, mod_shift_cnt);
+	_gcry_mpih_sub( rp, mp, msize, rp, rsize);
 	rsize = msize;
 	rsign = msign;
 	MPN_NORMALIZE(rp, rsize);
@@ -285,11 +284,11 @@ gcry_mpi_powm( MPI res, MPI base, MPI exp, MPI mod)
     res->sign = rsign;
 
   leave:
-    if( assign_rp ) mpi_assign_limb_space( res, rp, size );
-    if( mp_marker ) mpi_free_limb_space( mp_marker );
-    if( bp_marker ) mpi_free_limb_space( bp_marker );
-    if( ep_marker ) mpi_free_limb_space( ep_marker );
-    if( xp_marker ) mpi_free_limb_space( xp_marker );
-    if( tspace )    mpi_free_limb_space( tspace );
+    if( assign_rp ) _gcry_mpi_assign_limb_space( res, rp, size );
+    if( mp_marker ) _gcry_mpi_free_limb_space( mp_marker );
+    if( bp_marker ) _gcry_mpi_free_limb_space( bp_marker );
+    if( ep_marker ) _gcry_mpi_free_limb_space( ep_marker );
+    if( xp_marker ) _gcry_mpi_free_limb_space( xp_marker );
+    if( tspace )    _gcry_mpi_free_limb_space( tspace );
 }
 

@@ -28,7 +28,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_submul_1( mpi_ptr_t res_ptr,      (r3)
+ * _gcry_mpih_submul_1( mpi_ptr_t res_ptr,      (r3)
  *		     mpi_ptr_t s1_ptr,	     (r4)
  *		     mpi_size_t s1_size,     (r5)
  *		     mpi_limb_t s2_limb)     (r6)
@@ -41,15 +41,15 @@
  */
 
 	.toc
-	.csect .mpihelp_submul_1[PR]
+	.csect ._gcry_mpih_submul_1[PR]
 	.align 2
-	.globl mpihelp_submul_1
-	.globl .mpihelp_submul_1
-	.csect mpihelp_submul_1[DS]
-mpihelp_submul_1:
-	.long .mpihelp_submul_1[PR], TOC[tc0], 0
-	.csect .mpihelp_submul_1[PR]
-.mpihelp_submul_1:
+	.globl _gcry_mpih_submul_1
+	.globl ._gcry_mpih_submul_1
+	.csect _gcry_mpih_submul_1[DS]
+_gcry_mpih_submul_1:
+	.long ._gcry_mpih_submul_1[PR], TOC[tc0], 0
+	.csect ._gcry_mpih_submul_1[PR]
+._gcry_mpih_submul_1:
 	mtctr	5
 
 	lwz	0,0(4)
@@ -100,7 +100,7 @@ Lend:	stw	8,4(3)
 			   mp_size_t s1_size, mp_limb_t s2_limb)
    Calculate res-s1*s2 and put result back in res; return carry.  */
 
-ENTRY(mpihelp_submul_1)
+ENTRY(_gcry_mpih_submul_1)
        mtctr   %r5
 
        lwz     %r0,0(%r4)
@@ -126,5 +126,5 @@ ENTRY(mpihelp_submul_1)
 1:     stw     %r8,4(%r3)
        addze   %r3,%r10
        blr
-END(mpihelp_submul_1)
+END(_gcry_mpih_submul_1)
 #endif

@@ -43,7 +43,7 @@
  */
 
 mpi_limb_t
-mpihelp_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize, unsigned cnt)
+_gcry_mpih_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize, unsigned cnt)
 {
     mpi_limb_t high_limb, low_limb;
     unsigned sh_1, sh_2;

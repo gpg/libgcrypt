@@ -1,3 +1,13 @@
+2001-05-31  Werner Koch  <wk@gnupg.org>
+
+	* mpih-cmp.c: Removed and moved mpihelp_cmp to ..
+	* mpi-inline.h: .. here.
+
+	Major function renaming. All global functions are now prefixed
+	with _gcry_ or gcry_.  Renamed also all mpihelp_ to just mpih_ so
+	that functions names are not getting to long an unreadable and for
+	better matching with the filenames.
+	
 2001-05-28  Werner Koch  <wk@gnupg.org>
 
 	* mpicoder.c (mpi_fromstr): Made static and assume that all input

@@ -976,7 +976,7 @@ main()
 static
 #endif
        const char *
-twofish_get_info (int algo, size_t *keylen,
+_gcry_twofish_get_info (int algo, size_t *keylen,
 		  size_t *blocksize, size_t *contextsize,
 		  int  (**r_setkey) (void *c, byte *key, unsigned keylen),
 		  void (**r_encrypt) (void *c, byte *outbuf, byte *inbuf),
@@ -1011,7 +1011,7 @@ static struct {
     int  value;
     void (*func)(void);
 } func_table[] = {
-    { 20, 1, 0, (void(*)(void))twofish_get_info },
+    { 20, 1, 0, (void(*)(void))_gcry_twofish_get_info },
     { 21, 1, 10  },
     { 21, 1, 102 },
 };

@@ -36,7 +36,7 @@
 
 /*******************
  *  mpi_limb_t
- *  mpihelp_add_n( mpi_ptr_t res_ptr,	(sp + 4)
+ *  _gcry_mpih_add_n( mpi_ptr_t res_ptr,	(sp + 4)
  *		   mpi_ptr_t s1_ptr,	(sp + 8)
  *		   mpi_ptr_t s2_ptr,	(sp + 12)
  *		   mpi_size_t size)	(sp + 16)
@@ -44,8 +44,8 @@
 
 .text
 	ALIGN (3)
-	.globl C_SYMBOL_NAME(mpihelp_add_n)
-C_SYMBOL_NAME(mpihelp_add_n:)
+	.globl C_SYMBOL_NAME(_gcry_mpih_add_n)
+C_SYMBOL_NAME(_gcry_mpih_add_n:)
 	pushl %edi
 	pushl %esi
 

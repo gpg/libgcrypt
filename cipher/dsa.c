@@ -1,5 +1,5 @@
 /* dsa.c  -  DSA signature scheme
- *	Copyright (C) 1998, 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -57,7 +57,7 @@ static void (*progress_cb) ( void *, int );
 static void *progress_cb_data;
 
 void
-register_pk_dsa_progress ( void (*cb)( void *, int), void *cb_data )
+_gcry_register_pk_dsa_progress ( void (*cb)( void *, int), void *cb_data )
 {
     progress_cb = cb;
     progress_cb_data = cb_data;
@@ -93,7 +93,7 @@ gen_k( MPI q )
 	    progress('.');
 
 	if( !rndbuf || nbits < 32 ) {
-	    g10_free(rndbuf);
+	    gcry_free(rndbuf);
 	    rndbuf = gcry_random_bytes_secure( (nbits+7)/8,
 					       GCRY_STRONG_RANDOM );
 	}
@@ -103,9 +103,9 @@ gen_k( MPI q )
 	     * maybe it is easier to do this directly in random.c */
 	    char *pp = gcry_random_bytes_secure( 4, GCRY_STRONG_RANDOM );
 	    memcpy( rndbuf,pp, 4 );
-	    g10_free(pp);
+	    gcry_free(pp);
 	}
-	mpi_set_buffer( k, rndbuf, nbytes, 0 );
+	_gcry_mpi_set_buffer( k, rndbuf, nbytes, 0 );
 	if( mpi_test_bit( k, nbits-1 ) )
 	    mpi_set_highbit( k, nbits-1 );
 	else {
@@ -125,7 +125,7 @@ gen_k( MPI q )
 	}
 	break;	/* okay */
     }
-    g10_free(rndbuf);
+    gcry_free(rndbuf);
     if( DBG_CIPHER )
 	progress('\n');
 
@@ -178,7 +178,7 @@ generate( DSA_secret_key *sk, unsigned nbits, MPI **ret_factors )
     assert( nbits >= 512 && nbits <= 1024 );
 
     qbits = 160;
-    p = generate_elg_prime( 1, nbits, qbits, NULL, ret_factors );
+    p = _gcry_generate_elg_prime( 1, nbits, qbits, NULL, ret_factors );
     /* get q out of factors */
     q = mpi_copy((*ret_factors)[0]);
     if( mpi_get_nbits(q) != qbits )
@@ -217,12 +217,12 @@ generate( DSA_secret_key *sk, unsigned nbits, MPI **ret_factors )
 	    char *r = gcry_random_bytes_secure( 2,
 						GCRY_VERY_STRONG_RANDOM );
 	    memcpy(rndbuf, r, 2 );
-	    g10_free(r);
+	    gcry_free(r);
 	}
-	mpi_set_buffer( x, rndbuf, (qbits+7)/8, 0 );
+	_gcry_mpi_set_buffer( x, rndbuf, (qbits+7)/8, 0 );
 	mpi_clear_highbit( x, qbits+1 );
     } while( !( mpi_cmp_ui( x, 0 )>0 && mpi_cmp( x, h )<0 ) );
-    g10_free(rndbuf);
+    gcry_free(rndbuf);
     mpi_free( e );
     mpi_free( h );
 
@@ -357,7 +357,7 @@ verify(MPI r, MPI s, MPI hash, DSA_public_key *pkey )
  *********************************************/
 
 int
-dsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
+_gcry_dsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
 {
     DSA_secret_key sk;
 
@@ -375,7 +375,7 @@ dsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
 
 
 int
-dsa_check_secret_key( int algo, MPI *skey )
+_gcry_dsa_check_secret_key( int algo, MPI *skey )
 {
     DSA_secret_key sk;
 
@@ -398,7 +398,7 @@ dsa_check_secret_key( int algo, MPI *skey )
 
 
 int
-dsa_sign( int algo, MPI *resarr, MPI data, MPI *skey )
+_gcry_dsa_sign( int algo, MPI *resarr, MPI data, MPI *skey )
 {
     DSA_secret_key sk;
 
@@ -419,7 +419,7 @@ dsa_sign( int algo, MPI *resarr, MPI data, MPI *skey )
 }
 
 int
-dsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
+_gcry_dsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 		    int (*cmp)(void *, MPI), void *opaquev )
 {
     DSA_public_key pk;
@@ -441,8 +441,8 @@ dsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 
 
 
-unsigned
-dsa_get_nbits( int algo, MPI *pkey )
+unsigned int
+_gcry_dsa_get_nbits( int algo, MPI *pkey )
 {
     if( algo != PUBKEY_ALGO_DSA )
 	return 0;
@@ -459,7 +459,7 @@ dsa_get_nbits( int algo, MPI *pkey )
  *	      1 set : allows encryption
  */
 const char *
-dsa_get_info( int algo, int *npkey, int *nskey, int *nenc, int *nsig,
+_gcry_dsa_get_info( int algo, int *npkey, int *nskey, int *nenc, int *nsig,
 							 int *use )
 {
     *npkey = 4;

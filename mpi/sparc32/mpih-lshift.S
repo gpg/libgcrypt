@@ -31,8 +31,8 @@
 
 	.text
 	.align	4
-	.global C_SYMBOL_NAME(mpihelp_lshift)
-C_SYMBOL_NAME(mpihelp_lshift):
+	.global C_SYMBOL_NAME(_gcry_mpih_lshift)
+C_SYMBOL_NAME(_gcry_mpih_lshift):
 	sll	%o2,2,%g1
 	add	%o1,%g1,%o1	! make %o1 point at end of src
 	ld	[%o1-4],%g2	! load first limb

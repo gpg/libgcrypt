@@ -1,5 +1,5 @@
 /* sexp.c  -  S-Expression handling
- *	Copyright (C) 1999, 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1999, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -159,7 +159,7 @@ normalize ( GCRY_SEXP list )
 void
 gcry_sexp_release( GCRY_SEXP sexp )
 {
-    g10_free ( sexp );
+    gcry_free ( sexp );
 }
 
 
@@ -269,7 +269,7 @@ gcry_sexp_find_token( const GCRY_SEXP list, const char *tok, size_t toklen )
 		} while ( level );
 		n = p - head;
 
-		newlist = g10_xmalloc ( sizeof *newlist + n );
+		newlist = gcry_xmalloc ( sizeof *newlist + n );
 		d = newlist->d;
 		memcpy ( d, head, n ); d += n;
 		*d++ = ST_STOP;
@@ -367,7 +367,7 @@ gcry_sexp_nth( const GCRY_SEXP list, int number )
 
     if ( *p == ST_DATA ) {
 	memcpy ( &n, p, sizeof n ); p += sizeof n;
-	newlist = g10_xmalloc ( sizeof *newlist + n + 1 );
+	newlist = gcry_xmalloc ( sizeof *newlist + n + 1 );
 	d = newlist->d;
 	memcpy ( d, p, n ); d += n;
 	*d++ = ST_STOP;
@@ -395,7 +395,7 @@ gcry_sexp_nth( const GCRY_SEXP list, int number )
 	} while ( level );
 	n = p + 1 - head;
 
-	newlist = g10_xmalloc ( sizeof *newlist + n );
+	newlist = gcry_xmalloc ( sizeof *newlist + n );
 	d = newlist->d;
 	memcpy ( d, head, n ); d += n;
 	*d++ = ST_STOP;
@@ -587,7 +587,7 @@ gcry_sexp_cdr( const GCRY_SEXP list )
     } while ( level );
     n = p - head;
 
-    newlist = g10_xmalloc ( sizeof *newlist + n + 2 );
+    newlist = gcry_xmalloc ( sizeof *newlist + n + 2 );
     d = newlist->d;
     *d++ = ST_OPEN;
     memcpy ( d, head, n ); d += n;
@@ -649,7 +649,7 @@ make_space ( struct make_space_ctx *c, size_t n )
 	byte *newhead;
 
 	c->allocated += 2*(n+sizeof(DATALEN)+1);
-	newsexp = g10_xrealloc ( c->sexp, sizeof *newsexp + c->allocated - 1 );
+	newsexp = gcry_xrealloc ( c->sexp, sizeof *newsexp + c->allocated - 1 );
 	newhead = newsexp->d;
 	c->pos = newhead + used;
 	c->sexp = newsexp;
@@ -716,7 +716,7 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
      * than the provided one.  However, we add space for one extra datalen
      * so that the code which does the ST_CLOSE can use MAKE_SPACE */
     c.allocated = length + sizeof(DATALEN);
-    c.sexp = g10_xmalloc ( sizeof *c.sexp + c.allocated - 1 );
+    c.sexp = gcry_xmalloc ( sizeof *c.sexp + c.allocated - 1 );
     c.pos = c.sexp->d;
 
     for(p=buffer,n=length; n; p++, n-- ) {
@@ -857,18 +857,18 @@ sexp_sscan( GCRY_SEXP *retsexp, size_t *erroff ,
 		    BUG ();
 
 		MAKE_SPACE (nm);
-		if ( !g10_is_secure ( c.sexp->d )
+		if ( !gcry_is_secure ( c.sexp->d )
 		     &&  gcry_mpi_get_flag ( m, GCRYMPI_FLAG_SECURE ) ) {
 		    /* we have to switch to secure allocation */
 		    GCRY_SEXP newsexp;
 		    byte *newhead;
 
-		    newsexp = g10_xmalloc_secure ( sizeof *newsexp
+		    newsexp = gcry_xmalloc_secure ( sizeof *newsexp
 						   + c.allocated - 1 );
 		    newhead = newsexp->d;
 		    memcpy ( newhead, c.sexp->d, (c.pos - c.sexp->d) );
 		    c.pos = newhead + ( c.pos - c.sexp->d );
-		    g10_free ( c.sexp );
+		    gcry_free ( c.sexp );
 		    c.sexp = newsexp;
 		}
 

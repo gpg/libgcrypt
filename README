@@ -2,7 +2,15 @@
 		   ------------------------------------
   			    Version 1.1
 
-	WARNING:  This is work in PROGRESS!
+        	WARNING:  This is work in PROGRESS!
+
+Libgcrypt is a general purpose crypto library based on the code used
+in GnuPG.  We can't start with a new version number becuase libgcrypt
+was part of gnupg 1.1 and some applications already used it and tested
+for the version number. We believe that the API can stay as it is,
+except that new functions may be added in the future.
+
+This is a development version, the first stable version will be 1.2.0.
 
 
 

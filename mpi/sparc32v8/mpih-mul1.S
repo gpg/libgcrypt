@@ -41,8 +41,8 @@
 
 .text
 	.align	8
-	.global C_SYMBOL_NAME(mpihelp_mul_1)
-C_SYMBOL_NAME(mpihelp_mul_1):
+	.global C_SYMBOL_NAME(_gcry_mpih_mul_1)
+C_SYMBOL_NAME(_gcry_mpih_mul_1):
 	sll	%o2,4,%g1
 	and	%g1,(4-1)<<4,%g1
 #if PIC

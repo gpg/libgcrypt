@@ -35,7 +35,7 @@
 
 /*******************
  *  mpi_limb_t
- *  mpihelp_sub_n( mpi_ptr_t res_ptr,	(sp + 4)
+ *  _gcry_mpih_sub_n( mpi_ptr_t res_ptr,	(sp + 4)
  *		   mpi_ptr_t s1_ptr,	(sp + 8)
  *		   mpi_ptr_t s2_ptr,	(sp + 16)
  *		   mpi_size_t size)	(sp + 12)
@@ -44,10 +44,10 @@
 
 	TEXT
 	ALIGN
-	GLOBL	C_SYMBOL_NAME(mpihelp_sub_n)
+	GLOBL	C_SYMBOL_NAME(_gcry_mpih_sub_n)
 
-C_SYMBOL_NAME(mpihelp_sub_n:)
-PROLOG(mpihelp_sub_n)
+C_SYMBOL_NAME(_gcry_mpih_sub_n:)
+PROLOG(_gcry_mpih_sub_n)
 /* Save used registers on the stack.  */
 	movel	R(d2),MEM_PREDEC(sp)
 	movel	R(a2),MEM_PREDEC(sp)
@@ -88,6 +88,6 @@ L(L2:)
 	movel	MEM_POSTINC(sp),R(d2)
 
 	rts
-EPILOG(mpihelp_sub_n)
+EPILOG(_gcry_mpih_sub_n)
 
 

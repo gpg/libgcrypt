@@ -1,5 +1,5 @@
 /* mpicoder.c  -  Coder for the external representation of MPIs
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -188,9 +188,9 @@ mpi_print( FILE *fp, MPI a, int mode )
     return n;
 }
 
-
+#warning We should move this function to elsewhere
 void
-g10_log_mpidump( const char *text, MPI a )
+_gcry_log_mpidump( const char *text, MPI a )
 {
     FILE *fp = stderr; /* used to be log_stream() */
 
@@ -219,8 +219,8 @@ do_get_buffer( MPI a, unsigned *nbytes, int *sign, int force_secure )
     if( sign )
 	*sign = a->sign;
     *nbytes = a->nlimbs * BYTES_PER_MPI_LIMB;
-    p = buffer = force_secure || mpi_is_secure(a) ? g10_xmalloc_secure( *nbytes)
-						  : g10_xmalloc( *nbytes );
+    p = buffer = force_secure || mpi_is_secure(a) ? gcry_xmalloc_secure( *nbytes)
+						  : gcry_xmalloc( *nbytes );
 
     for(i=a->nlimbs-1; i >= 0; i-- ) {
 	alimb = a->d[i];
@@ -254,13 +254,13 @@ do_get_buffer( MPI a, unsigned *nbytes, int *sign, int force_secure )
 
 
 byte *
-mpi_get_buffer( MPI a, unsigned *nbytes, int *sign )
+_gcry_mpi_get_buffer( MPI a, unsigned *nbytes, int *sign )
 {
     return do_get_buffer( a, nbytes, sign, 0 );
 }
 
 byte *
-mpi_get_secure_buffer( MPI a, unsigned *nbytes, int *sign )
+_gcry_mpi_get_secure_buffer( MPI a, unsigned *nbytes, int *sign )
 {
     return do_get_buffer( a, nbytes, sign, 1 );
 }
@@ -269,7 +269,7 @@ mpi_get_secure_buffer( MPI a, unsigned *nbytes, int *sign )
  * Use BUFFER to update MPI.
  */
 void
-mpi_set_buffer( MPI a, const byte *buffer, unsigned nbytes, int sign )
+_gcry_mpi_set_buffer( MPI a, const byte *buffer, unsigned nbytes, int sign )
 {
     const byte *p;
     mpi_limb_t alimb;
@@ -351,7 +351,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 		return GCRYERR_INTERNAL;
 	    }
 	    else
-		mpi_set_buffer( a, s, len, 0 );
+		_gcry_mpi_set_buffer( a, s, len, 0 );
 	}
 	if( ret_mpi ) {
 	    mpi_normalize ( a );
@@ -364,7 +364,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
     else if( format == GCRYMPI_FMT_USG ) {
 	a = mpi_alloc( (len+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB );
 	if( len )  /* not zero */
-	    mpi_set_buffer( a, buffer, len, 0 );
+	    _gcry_mpi_set_buffer( a, buffer, len, 0 );
 	if( ret_mpi ) {
 	    mpi_normalize ( a );
 	    *ret_mpi = a;
@@ -405,7 +405,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 		return GCRYERR_INTERNAL;
 	    }
 	    else
-		mpi_set_buffer( a, s, n, 0 );
+		_gcry_mpi_set_buffer( a, s, n, 0 );
 	}
 	if( nbytes )
 	    *nbytes = n+4;
@@ -460,14 +460,14 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	if( a->sign )
 	    return GCRYERR_INTERNAL; /* can't handle it yet */
 
-	tmp = mpi_get_buffer( a, &n, NULL );
+	tmp = _gcry_mpi_get_buffer( a, &n, NULL );
 	if( n && (*tmp & 0x80) ) {
 	    n++;
 	    extra=1;
 	}
 
 	if( n > len && buffer ) {
-	    g10_free(tmp);
+	    gcry_free(tmp);
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	}
 	if( buffer ) {
@@ -477,7 +477,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 
 	    memcpy( s, tmp, n-extra );
 	}
-	g10_free(tmp);
+	gcry_free(tmp);
 	*nbytes = n;
 	return 0;
     }
@@ -491,9 +491,9 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	if( buffer ) {
 	    char *tmp;
-	    tmp = mpi_get_buffer( a, &n, NULL );
+	    tmp = _gcry_mpi_get_buffer( a, &n, NULL );
 	    memcpy( buffer, tmp, n );
-	    g10_free(tmp);
+	    gcry_free(tmp);
 	}
 	*nbytes = n;
 	return 0;
@@ -512,9 +512,9 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	    s[0] = nbits >> 8;
 	    s[1] = nbits;
 
-	    tmp = mpi_get_buffer( a, &n, NULL );
+	    tmp = _gcry_mpi_get_buffer( a, &n, NULL );
 	    memcpy( s+2, tmp, n );
-	    g10_free(tmp);
+	    gcry_free(tmp);
 	}
 	*nbytes = n+2;
 	return 0;
@@ -527,14 +527,14 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	if( a->sign )
 	    return GCRYERR_INTERNAL; /* can't handle it yet */
 
-	tmp = mpi_get_buffer( a, &n, NULL );
+	tmp = _gcry_mpi_get_buffer( a, &n, NULL );
 	if( n && (*tmp & 0x80) ) {
 	    n++;
 	    extra=1;
 	}
 
 	if( n+4 > len && buffer ) {
-	    g10_free(tmp);
+	    gcry_free(tmp);
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	}
 	if( buffer ) {
@@ -548,7 +548,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 
 	    memcpy( s, tmp, n-extra );
 	}
-	g10_free(tmp);
+	gcry_free(tmp);
 	*nbytes = 4+n;
 	return 0;
     }
@@ -558,12 +558,12 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	int extra = 0;
 	unsigned int n=0;
 
-	tmp = mpi_get_buffer( a, &n, NULL );
+	tmp = _gcry_mpi_get_buffer( a, &n, NULL );
 	if( !n || (*tmp & 0x80) )
 	    extra=2;
 
 	if( 2*n + extra + !!a->sign + 1 > len && buffer ) {
-	    g10_free(tmp);
+	    gcry_free(tmp);
 	    return GCRYERR_TOO_SHORT;  /* the provided buffer is too short */
 	}
 	if( buffer ) {
@@ -587,7 +587,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t *nbytes,
 	else {
 	    *nbytes = 2*n + extra + !!a->sign + 1;
 	}
-	g10_free(tmp);
+	gcry_free(tmp);
 	return 0;
     }
     else
@@ -610,10 +610,10 @@ gcry_mpi_aprint( enum gcry_mpi_format format, void **buffer, size_t *nbytes,
     rc = gcry_mpi_print( format, NULL, &n, a );
     if( rc )
 	return rc;
-    *buffer = mpi_is_secure(a) ? g10_xmalloc_secure( n ) : g10_xmalloc( n );
+    *buffer = mpi_is_secure(a) ? gcry_xmalloc_secure( n ) : gcry_xmalloc( n );
     rc = gcry_mpi_print( format, *buffer, &n, a );
     if( rc ) {
-	g10_free(*buffer);
+	gcry_free(*buffer);
 	*buffer = NULL;
     }
     else if( nbytes )

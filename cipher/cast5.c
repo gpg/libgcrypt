@@ -600,7 +600,7 @@ cast_setkey( CAST5_context *c, byte *key, unsigned keylen )
  *	    the ALGO is invalid.
  */
 const char *
-cast5_get_info( int algo, size_t *keylen,
+_gcry_cast5_get_info( int algo, size_t *keylen,
 		   size_t *blocksize, size_t *contextsize,
 		   int	(**r_setkey)( void *c, byte *key, unsigned keylen ),
 		   void (**r_encrypt)( void *c, byte *outbuf, byte *inbuf ),

@@ -1,5 +1,5 @@
 /* misc.c
- *	Copyright (C) 1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1999, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -45,7 +45,7 @@ gcry_set_gettext_handler( const char *(*f)(const char*) )
 
 
 const char *
-g10_gettext( const char *key )
+_gcry_gettext( const char *key )
 {
     if( user_gettext_handler )
 	return user_gettext_handler( key );
@@ -71,7 +71,7 @@ write2stderr( const char *s )
  * set his own handler becuase this function simply calls abort().
  */
 void
-g10_fatal_error(int rc, const char *text )
+_gcry_fatal_error(int rc, const char *text )
 {
     if( !text ) /* get a default text */
 	text = gcry_strerror(rc);
@@ -95,13 +95,13 @@ gcry_set_log_handler( void (*logf)(void*,int, const char*, va_list ),
 }
 
 void
-g10_set_log_verbosity( int level )
+_gcry_set_log_verbosity( int level )
 {
     verbosity_level = level;
 }
 
 int
-g10_log_verbosity( int level )
+_gcry_log_verbosity( int level )
 {
     return verbosity_level >= level;
 }
@@ -111,7 +111,7 @@ g10_log_verbosity( int level )
  * using the function defined with gcry_set_log_handler().
  */
 static void
-g10_logv( int level, const char *fmt, va_list arg_ptr )
+_gcry_logv( int level, const char *fmt, va_list arg_ptr )
 {
     if( log_handler )
 	log_handler( log_handler_value, level, fmt, arg_ptr );
@@ -136,84 +136,84 @@ g10_logv( int level, const char *fmt, va_list arg_ptr )
 }
 
 void
-g10_log( int level, const char *fmt, ... )
+_gcry_log( int level, const char *fmt, ... )
 {
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    g10_logv( level, fmt, arg_ptr );
+    _gcry_logv( level, fmt, arg_ptr );
     va_end(arg_ptr);
 }
 
 
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 5 )
 void
-g10_bug( const char *file, int line, const char *func )
+_gcry_bug( const char *file, int line, const char *func )
 {
-    g10_log( GCRY_LOG_BUG,
+    _gcry_log( GCRY_LOG_BUG,
 	     ("... this is a bug (%s:%d:%s)\n"), file, line, func );
     abort(); /* never called, but it makes the compiler happy */
 }
 #else
 void
-g10_bug( const char *file, int line )
+_gcry_bug( const char *file, int line )
 {
-    g10_log( GCRY_LOG_BUG,
+    _gcry_log( GCRY_LOG_BUG,
 	     _("you found a bug ... (%s:%d)\n"), file, line);
     abort(); /* never called, but it makes the compiler happy */
 }
 #endif
 
 void
-g10_log_info( const char *fmt, ... )
+_gcry_log_info( const char *fmt, ... )
 {
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    g10_logv( GCRY_LOG_INFO, fmt, arg_ptr );
+    _gcry_logv( GCRY_LOG_INFO, fmt, arg_ptr );
     va_end(arg_ptr);
 }
 
 void
-g10_log_error( const char *fmt, ... )
+_gcry_log_error( const char *fmt, ... )
 {
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    g10_logv( GCRY_LOG_ERROR, fmt, arg_ptr );
+    _gcry_logv( GCRY_LOG_ERROR, fmt, arg_ptr );
     va_end(arg_ptr);
 }
 
 
 void
-g10_log_fatal( const char *fmt, ... )
+_gcry_log_fatal( const char *fmt, ... )
 {
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    g10_logv( GCRY_LOG_FATAL, fmt, arg_ptr );
-    va_end(arg_ptr);
-    abort(); /* never called, bugs it makes the compiler happy */
-}
-
-void
-g10_log_bug( const char *fmt, ... )
-{
-    va_list arg_ptr ;
-
-    va_start( arg_ptr, fmt ) ;
-    g10_logv( GCRY_LOG_BUG, fmt, arg_ptr );
+    _gcry_logv( GCRY_LOG_FATAL, fmt, arg_ptr );
     va_end(arg_ptr);
     abort(); /* never called, bugs it makes the compiler happy */
 }
 
 void
-g10_log_debug( const char *fmt, ... )
+_gcry_log_bug( const char *fmt, ... )
 {
     va_list arg_ptr ;
 
     va_start( arg_ptr, fmt ) ;
-    g10_logv( GCRY_LOG_DEBUG, fmt, arg_ptr );
+    _gcry_logv( GCRY_LOG_BUG, fmt, arg_ptr );
+    va_end(arg_ptr);
+    abort(); /* never called, bugs it makes the compiler happy */
+}
+
+void
+_gcry_log_debug( const char *fmt, ... )
+{
+    va_list arg_ptr ;
+
+    va_start( arg_ptr, fmt ) ;
+    _gcry_logv( GCRY_LOG_DEBUG, fmt, arg_ptr );
     va_end(arg_ptr);
 }
 

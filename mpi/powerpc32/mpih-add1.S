@@ -27,24 +27,24 @@
 
 /*******************
  *  mpi_limb_t
- *  mpihelp_add_n( mpi_ptr_t res_ptr,	(r3)
+ *  _gcry_mpih_add_n( mpi_ptr_t res_ptr,	(r3)
  *		   mpi_ptr_t s1_ptr,	(r4)
  *		   mpi_ptr_t s2_ptr,	(r5)
  *		   mpi_size_t size)	(r6)
  */
 
 	.toc
-	.extern mpihelp_add_n[DS]
-	.extern .mpihelp_add_n
+	.extern _gcry_mpih_add_n[DS]
+	.extern ._gcry_mpih_add_n
 .csect [PR]
 	.align 2
-	.globl mpihelp_add_n
-	.globl .mpihelp_add_n
-	.csect mpihelp_add_n[DS]
-mpihelp_add_n:
-	.long .mpihelp_add_n, TOC[tc0], 0
+	.globl _gcry_mpih_add_n
+	.globl ._gcry_mpih_add_n
+	.csect _gcry_mpih_add_n[DS]
+_gcry_mpih_add_n:
+	.long ._gcry_mpih_add_n, TOC[tc0], 0
 	.csect [PR]
-.mpihelp_add_n:
+._gcry_mpih_add_n:
 	mtctr	6		# copy size into CTR
 	lwz	8,0(4)		# load least significant s1 limb
 	lwz	0,0(5)		# load least significant s2 limb
@@ -93,7 +93,7 @@ Lend:	stw	7,4(3)		# store ultimate result limb
    possible 2-unrolled inner loop will not be.	Also, watch out for the
    alignment...  */
 
-EALIGN(mpihelp_add_n,3,0)
+EALIGN(_gcry_mpih_add_n,3,0)
 /* Set up for loop below.  */
        mtcrf 0x01,%r6
        srwi. %r7,%r6,1
@@ -131,6 +131,6 @@ EALIGN(mpihelp_add_n,3,0)
 /* Return the carry.  */
 1:     addze %r3,%r10
        blr
-END(mpihelp_add_n)
+END(_gcry_mpih_add_n)
 #endif
 

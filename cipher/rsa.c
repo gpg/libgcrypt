@@ -1,6 +1,6 @@
 /* rsa.c  -  RSA function
  *	Copyright (C) 1997, 1998, 1999 by Werner Koch (dd9jn)
- *	Copyright (C) 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -100,8 +100,8 @@ generate( RSA_secret_key *sk, unsigned nbits )
     MPI f;
 
     /* select two (very secret) primes */
-    p = generate_secret_prime( nbits / 2 );
-    q = generate_secret_prime( nbits / 2 );
+    p = _gcry_generate_secret_prime( nbits / 2 );
+    q = _gcry_generate_secret_prime( nbits / 2 );
     if( mpi_cmp( p, q ) > 0 ) /* p shall be smaller than q (for calc of u)*/
 	mpi_swap(p,q);
     /* calculate Euler totient: phi = (p-1)(q-1) */
@@ -113,7 +113,7 @@ generate( RSA_secret_key *sk, unsigned nbits )
     mpi_sub_ui( t1, p, 1 );
     mpi_sub_ui( t2, q, 1 );
     mpi_mul( phi, t1, t2 );
-    mpi_gcd(g, t1, t2);
+    gcry_mpi_gcd(g, t1, t2);
     mpi_fdiv_q(f, phi, g);
     /* multiply them to make the private key */
     n = gcry_mpi_new ( nbits );
@@ -121,7 +121,7 @@ generate( RSA_secret_key *sk, unsigned nbits )
     /* find a public exponent  */
     e = gcry_mpi_new ( 6 );
     mpi_set_ui( e, 17); /* start with 17 */
-    while( !mpi_gcd(t1, e, phi) ) /* (while gcd is not 1) */
+    while( !gcry_mpi_gcd(t1, e, phi) ) /* (while gcd is not 1) */
 	mpi_add_ui( e, e, 2);
     /* calculate the secret key d = e^1 mod phi */
     d = gcry_mpi_snew ( nbits );
@@ -308,7 +308,7 @@ secret(MPI output, MPI input, RSA_secret_key *skey )
  *********************************************/
 
 int
-rsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
+_gcry_rsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
 {
     RSA_secret_key sk;
 
@@ -323,13 +323,13 @@ rsa_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
     skey[4] = sk.q;
     skey[5] = sk.u;
     /* make an empty list of factors */
-    *retfactors = g10_xcalloc( 1, sizeof **retfactors );
+    *retfactors = gcry_xcalloc( 1, sizeof **retfactors );
     return 0;
 }
 
 
 int
-rsa_check_secret_key( int algo, MPI *skey )
+_gcry_rsa_check_secret_key( int algo, MPI *skey )
 {
     RSA_secret_key sk;
 
@@ -351,7 +351,7 @@ rsa_check_secret_key( int algo, MPI *skey )
 
 
 int
-rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
+_gcry_rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
 {
     RSA_public_key pk;
 
@@ -366,7 +366,7 @@ rsa_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
 }
 
 int
-rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
+_gcry_rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
 {
     RSA_secret_key sk;
 
@@ -385,7 +385,7 @@ rsa_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
 }
 
 int
-rsa_sign( int algo, MPI *resarr, MPI data, MPI *skey )
+_gcry_rsa_sign( int algo, MPI *resarr, MPI data, MPI *skey )
 {
     RSA_secret_key sk;
 
@@ -405,7 +405,7 @@ rsa_sign( int algo, MPI *resarr, MPI data, MPI *skey )
 }
 
 int
-rsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
+_gcry_rsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 	   int (*cmp)(void *opaque, MPI tmp), void *opaquev )
 {
     RSA_public_key pk;
@@ -427,7 +427,7 @@ rsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 
 
 unsigned int
-rsa_get_nbits( int algo, MPI *pkey )
+_gcry_rsa_get_nbits( int algo, MPI *pkey )
 {
     if( !is_RSA(algo) )
 	return 0;
@@ -444,7 +444,7 @@ rsa_get_nbits( int algo, MPI *pkey )
  *	      1 set : allows encryption
  */
 const char *
-rsa_get_info( int algo,
+_gcry_rsa_get_info( int algo,
 	      int *npkey, int *nskey, int *nenc, int *nsig, int *usage )
 {
     *npkey = 2;

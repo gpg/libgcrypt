@@ -1,5 +1,5 @@
 /* mpi-scan.c  -  MPI functions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -32,7 +32,7 @@
  * FIXME: This code is VERY ugly!
  */
 int
-mpi_getbyte( MPI a, unsigned idx )
+_gcry_mpi_getbyte( MPI a, unsigned idx )
 {
     int i, j;
     unsigned n;
@@ -54,7 +54,7 @@ mpi_getbyte( MPI a, unsigned idx )
  * Put a value at position IDX into A. idx counts from lsb to msb
  */
 void
-mpi_putbyte( MPI a, unsigned idx, int xc )
+_gcry_mpi_putbyte( MPI a, unsigned idx, int xc )
 {
     int i, j;
     unsigned n;
@@ -110,7 +110,7 @@ mpi_putbyte( MPI a, unsigned idx, int xc )
  * Count the number of zerobits at the low end of A
  */
 unsigned
-mpi_trailing_zeros( MPI a )
+_gcry_mpi_trailing_zeros( MPI a )
 {
     unsigned n, count = 0;
 

@@ -25,15 +25,15 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_rshift( mpi_ptr_t wp,       (gr26)
+ * _gcry_mpih_rshift( mpi_ptr_t wp,       (gr26)
  *		   mpi_ptr_t up,       (gr25)
  *		   mpi_size_t usize,   (gr24)
  *		   unsigned cnt)       (gr23)
  */
 
 	.code
-	.export 	mpihelp_rshift
-	.label		mpihelp_rshift
+	.export 	_gcry_mpih_rshift
+	.label		_gcry_mpih_rshift
 	.proc
 	.callinfo	frame=64,no_calls
 	.entry

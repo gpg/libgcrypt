@@ -31,7 +31,6 @@ libmpi_la_SOURCES = longlong.h	   \
 	      mpi-mpow.c     \
 	      mpi-scan.c     \
 	      mpicoder.c     \
-	      mpih-cmp.c     \
 	      mpih-div.c     \
 	      mpih-mul.c     \
 	      mpiutil.c      

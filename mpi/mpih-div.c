@@ -1,6 +1,5 @@
-/* mpihelp-div.c  -  MPI helper functions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
- *	Copyright (C) 1994, 1996, 2000 Free Software Foundation, Inc.
+/* mpih-div.c  -  MPI helper functions
+ * Copyright (C) 1994, 1996, 1998, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -45,7 +44,7 @@
  */
 
 mpi_limb_t
-mpihelp_mod_1(mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
+_gcry_mpih_mod_1(mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
 				      mpi_limb_t divisor_limb)
 {
     mpi_size_t i;
@@ -206,9 +205,9 @@ mpihelp_mod_1(mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
  */
 
 mpi_limb_t
-mpihelp_divrem( mpi_ptr_t qp, mpi_size_t qextra_limbs,
-		mpi_ptr_t np, mpi_size_t nsize,
-		mpi_ptr_t dp, mpi_size_t dsize)
+_gcry_mpih_divrem( mpi_ptr_t qp, mpi_size_t qextra_limbs,
+                      mpi_ptr_t np, mpi_size_t nsize,
+                      mpi_ptr_t dp, mpi_size_t dsize)
 {
     mpi_limb_t most_significant_q_limb = 0;
 
@@ -320,8 +319,8 @@ mpihelp_divrem( mpi_ptr_t qp, mpi_size_t qextra_limbs,
 	    n0 = np[dsize - 1];
 
 	    if( n0 >= dX ) {
-		if(n0 > dX || mpihelp_cmp(np, dp, dsize - 1) >= 0 ) {
-		    mpihelp_sub_n(np, np, dp, dsize);
+		if(n0 > dX || _gcry_mpih_cmp(np, dp, dsize - 1) >= 0 ) {
+		    _gcry_mpih_sub_n(np, np, dp, dsize);
 		    n0 = np[dsize - 1];
 		    most_significant_q_limb = 1;
 		}
@@ -366,10 +365,10 @@ mpihelp_divrem( mpi_ptr_t qp, mpi_size_t qextra_limbs,
 		/* Possible optimization: We already have (q * n0) and (1 * n1)
 		 * after the calculation of q.	Taking advantage of that, we
 		 * could make this loop make two iterations less.  */
-		cy_limb = mpihelp_submul_1(np, dp, dsize, q);
+		cy_limb = _gcry_mpih_submul_1(np, dp, dsize, q);
 
 		if( n2 != cy_limb ) {
-		    mpihelp_add_n(np, np, dp, dsize);
+		    _gcry_mpih_add_n(np, np, dp, dsize);
 		    q--;
 		}
 
@@ -393,9 +392,9 @@ mpihelp_divrem( mpi_ptr_t qp, mpi_size_t qextra_limbs,
  */
 
 mpi_limb_t
-mpihelp_divmod_1( mpi_ptr_t quot_ptr,
-		  mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
-		  mpi_limb_t divisor_limb)
+_gcry_mpih_divmod_1( mpi_ptr_t quot_ptr,
+                        mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
+                        mpi_limb_t divisor_limb)
 {
     mpi_size_t i;
     mpi_limb_t n1, n0, r;

@@ -22,7 +22,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_rshift( mpi_ptr_t wp,	($4)
+ * _gcry_mpih_rshift( mpi_ptr_t wp,	($4)
  *		   mpi_ptr_t up,	($5)
  *		   mpi_size_t usize,	($6)
  *		   unsigned cnt)	($7)
@@ -30,9 +30,9 @@
 
 	.text
 	.align	2
-	.globl	mpihelp_rshift
-	.ent	mpihelp_rshift
-mpihelp_rshift:
+	.globl	_gcry_mpih_rshift
+	.ent	_gcry_mpih_rshift
+_gcry_mpih_rshift:
 	.set	noreorder
 	.set	nomacro
 
@@ -91,5 +91,5 @@ mpihelp_rshift:
 .Lend:	dsrl	$8,$10,$7
 	j	$31
 	sd	$8,0($4)
-	.end	mpihelp_rshift
+	.end	_gcry_mpih_rshift
 

@@ -24,7 +24,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_mul_1( mpi_ptr_t res_ptr,	(r16)
+ * _gcry_mpih_mul_1( mpi_ptr_t res_ptr,	(r16)
  *		  mpi_ptr_t s1_ptr,	(r17)
  *		  mpi_size_t s1_size,	(r18)
  *		  mpi_limb_t s2_limb)	(r19)
@@ -45,9 +45,9 @@
 	.set	noat
 .text
 	.align	3
-	.globl	mpihelp_mul_1
-	.ent	mpihelp_mul_1 2
-mpihelp_mul_1:
+	.globl	_gcry_mpih_mul_1
+	.ent	_gcry_mpih_mul_1 2
+_gcry_mpih_mul_1:
 	.frame	$30,0,$26
 
 	ldq	$2,0($17)	# $2 = s1_limb
@@ -85,6 +85,6 @@ Lend2:	mulq	$2,$19,$3	# $3 = prod_low
 Lend1:	stq	$3,0($16)
 	ret	$31,($26),1
 
-	.end	mpihelp_mul_1
+	.end	_gcry_mpih_mul_1
 
 

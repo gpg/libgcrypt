@@ -36,7 +36,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_submul_1( mpi_ptr_t res_ptr,      (sp + 4)
+ * _gcry_mpih_submul_1( mpi_ptr_t res_ptr,      (sp + 4)
  *		     mpi_ptr_t s1_ptr,	     (sp + 8)
  *		     mpi_size_t s1_size,     (sp + 12)
  *		     mpi_limb_t s2_limb)     (sp + 16)
@@ -49,8 +49,8 @@
 
 	TEXT
 	ALIGN (3)
-	GLOBL	C_SYMBOL_NAME(mpihelp_submul_1)
-C_SYMBOL_NAME(mpihelp_submul_1:)
+	GLOBL	C_SYMBOL_NAME(_gcry_mpih_submul_1)
+C_SYMBOL_NAME(_gcry_mpih_submul_1:)
 
 	INSN1(push,l	,R(edi))
 	INSN1(push,l	,R(esi))

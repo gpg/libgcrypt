@@ -1,5 +1,5 @@
 /* secmem.c  -	memory allocation from a secure heap
- *	Copyright (C) 1998, 1999, 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -222,7 +222,7 @@ compress_pool(void)
 }
 
 void
-secmem_set_flags( unsigned flags )
+_gcry_secmem_set_flags( unsigned flags )
 {
     int was_susp = suspend_warning;
 
@@ -237,7 +237,7 @@ secmem_set_flags( unsigned flags )
 }
 
 unsigned
-secmem_get_flags(void)
+_gcry_secmem_get_flags(void)
 {
     unsigned flags;
 
@@ -247,7 +247,7 @@ secmem_get_flags(void)
 }
 
 void
-secmem_init( size_t n )
+_gcry_secmem_init( size_t n )
 {
     if( !n ) {
       #ifdef USE_CAPABILITIES
@@ -277,7 +277,7 @@ secmem_init( size_t n )
 
 
 void *
-secmem_malloc( size_t size )
+_gcry_secmem_malloc( size_t size )
 {
     MEMBLOCK *mb, *mb2;
     int compressed=0;
@@ -334,7 +334,7 @@ secmem_malloc( size_t size )
 
 
 void *
-secmem_realloc( void *p, size_t newsize )
+_gcry_secmem_realloc( void *p, size_t newsize )
 {
     MEMBLOCK *mb;
     size_t size;
@@ -344,18 +344,18 @@ secmem_realloc( void *p, size_t newsize )
     size = mb->size;
     if( newsize < size )
 	return p; /* it is easier not to shrink the memory */
-    a = secmem_malloc( newsize );
+    a = _gcry_secmem_malloc( newsize );
     if ( a ) { 
         memcpy(a, p, size);
         memset((char*)a+size, 0, newsize-size);
-        secmem_free(p);
+        _gcry_secmem_free(p);
     }
     return a;
 }
 
 
 void
-secmem_free( void *a )
+_gcry_secmem_free( void *a )
 {
     MEMBLOCK *mb;
     size_t size;
@@ -380,7 +380,7 @@ secmem_free( void *a )
 
 
 int
-g10_private_is_secure( const void *p )
+_gcry_private_is_secure( const void *p )
 {
     return p >= pool && p < (void*)((char*)pool+poolsize);
 }
@@ -396,7 +396,7 @@ g10_private_is_secure( const void *p )
  *	     there is no chance to get the secure memory cleaned.
  */
 void
-secmem_term()
+_gcry_secmem_term()
 {
     if( !pool_okay )
 	return;
@@ -418,7 +418,7 @@ secmem_term()
 
 
 void
-secmem_dump_stats()
+_gcry_secmem_dump_stats()
 {
     if( disable_secmem )
 	return;

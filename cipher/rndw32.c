@@ -177,27 +177,27 @@ load_and_init_winseed( void )
     /* we have all the functions - init the system */
     slow_seeder = create_instance( WIN32_SLOW_SEEDER, &reason);
     if( !slow_seeder ) {
-	g10_log_fatal("error creating winseed slow seeder: rc=%u\n", reason );
+	log_fatal("error creating winseed slow seeder: rc=%u\n", reason );
 	goto failure;
     }
     fast_seeder = create_instance( WIN32_FAST_SEEDER, &reason);
     if( !fast_seeder ) {
-	g10_log_fatal("error creating winseed fast seeder: rc=%u\n", reason );
+	log_fatal("error creating winseed fast seeder: rc=%u\n", reason );
 	goto failure;
     }
     n1 = get_internal_seed_size( slow_seeder );
-    /*g10_log_info("slow buffer size=%u\n", n1);*/
+    /*log_info("slow buffer size=%u\n", n1);*/
     n2 = get_internal_seed_size( fast_seeder );
-    /*g10_log_info("fast buffer size=%u\n", n2);*/
+    /*log_info("fast buffer size=%u\n", n2);*/
 
     entropy_buffer_size =  n1 > n2? n1: n2;
     entropy_buffer = m_alloc( entropy_buffer_size );
-    /*g10_log_info("using a buffer of size=%u\n", entropy_buffer_size );*/
+    /*log_info("using a buffer of size=%u\n", entropy_buffer_size );*/
 
     return;
 
   failure:
-    g10_log_fatal("error loading winseed DLL `%s'\n", dllname );
+    log_fatal("error loading winseed DLL `%s'\n", dllname );
 }
 
 
@@ -241,7 +241,7 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 	    unsigned int n1 = get_internal_seed_size( slow_seeder );
 
 	    if( n1 > MAX_SEEDER_SIZE ) {
-		g10_log_fatal("rndw32: internal seeder problem (size=%u)\n",
+		log_fatal("rndw32: internal seeder problem (size=%u)\n",
 									  n1);
 		return -1; /* actually never reached */
 	    }
@@ -257,10 +257,10 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 
 
 	if( result ) {
-	    g10_log_fatal("rndw32: get_seed(slow) failed: rc=%u\n", result);
+	    log_fatal("rndw32: get_seed(slow) failed: rc=%u\n", result);
 	    return -1; /* actually never reached */
 	}
-	/*g10_log_info("rndw32: slow poll level %d, need %u, got %u\n",
+	/*log_info("rndw32: slow poll level %d, need %u, got %u\n",
 		      level, (unsigned int)length, (unsigned int)nbytes );*/
 	(*add)( entropy_buffer, nbytes, requester );
 	if( length <= nbytes )
@@ -284,10 +284,10 @@ gather_random_fast( void (*add)(const void*, size_t, int), int requester )
     nbytes = entropy_buffer_size;
     result = get_seed( fast_seeder, entropy_buffer, &nbytes);
     if( result ) {
-	g10_log_fatal("rndw32: get_seed(fast) failed: rc=%u\n", result);
+	log_fatal("rndw32: get_seed(fast) failed: rc=%u\n", result);
 	return -1; /* actually never reached */
     }
-    /*g10_log_info("rndw32: fast poll got %u\n", (unsigned int)nbytes );*/
+    /*log_info("rndw32: fast poll got %u\n", (unsigned int)nbytes );*/
     (*add)( entropy_buffer, nbytes, requester );
     return 0;
 }
@@ -428,7 +428,7 @@ slow_gatherer_windows95( void (*add)(const void*, size_t, int), int requester )
 	/* Obtain the module handle of the kernel to retrieve the addresses
 	 * of the Toolhelp32 functions */
 	if ( ( !(hKernel = GetModuleHandle ("KERNEL32.DLL"))) ) {
-	    g10_log_fatal ( "rndw32: can't get module handle\n" );
+	    log_fatal ( "rndw32: can't get module handle\n" );
 	}
 
 	/* Now get pointers to the functions */
@@ -455,14 +455,14 @@ slow_gatherer_windows95( void (*add)(const void*, size_t, int), int requester )
 	     || !pThread32First  || !pThread32Next
 	     || !pHeap32ListFirst || !pHeap32ListNext
 	     || !pHeap32First	  || !pHeap32Next  ) {
-	    g10_log_fatal ( "rndw32: failed to get a toolhep function\n" );
+	    log_fatal ( "rndw32: failed to get a toolhep function\n" );
 	}
     }
 
     /* Take a snapshot of everything we can get to which is currently
      *	in the system */
     if ( !(hSnapshot = pCreateToolhelp32Snapshot (TH32CS_SNAPALL, 0)) ) {
-	g10_log_fatal ( "rndw32: failed to take a toolhelp snapshot\n" );
+	log_fatal ( "rndw32: failed to take a toolhelp snapshot\n" );
     }
 
     /* Walk through the local heap */
@@ -588,7 +588,7 @@ slow_gatherer_windowsNT( void (*add)(const void*, size_t, int), int requester )
 		 || !pNetApiBufferSize || !pNetApiBufferFree ) {
 		FreeLibrary (hNetAPI32);
 		hNetAPI32 = NULL;
-		g10_log_debug ("rndw32: No NETAPI found\n" );
+		log_debug ("rndw32: No NETAPI found\n" );
 	    }
 	}
 
@@ -702,7 +702,7 @@ slow_gatherer_windowsNT( void (*add)(const void*, size_t, int), int requester )
 		    (*add) ( pPerfData, dwSize, requester );
 		}
 		else
-		    g10_log_debug ( "rndw32: no PERF signature\n");
+		    log_debug ( "rndw32: no PERF signature\n");
 		break;
 	    }
 	    else if (status == ERROR_MORE_DATA) {
@@ -710,7 +710,7 @@ slow_gatherer_windowsNT( void (*add)(const void*, size_t, int), int requester )
 		pPerfData = m_realloc (pPerfData, cbPerfData);
 	    }
 	    else {
-		g10_log_debug ( "rndw32: get performance data problem\n");
+		log_debug ( "rndw32: get performance data problem\n");
 		break;
 	    }
 	}
@@ -751,7 +751,7 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 	is_windows95 = platform == VER_PLATFORM_WIN32_WINDOWS;
 
 	if ( platform == VER_PLATFORM_WIN32s ) {
-	    g10_log_fatal("can't run on a W32s platform\n" );
+	    log_fatal("can't run on a W32s platform\n" );
 	}
 	is_initialized = 1;
 	if ( debug_me )

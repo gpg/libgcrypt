@@ -1,5 +1,5 @@
 /* mpi-mpow.c  -  MPI functions
- *	Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -23,7 +23,9 @@
 #include <stdlib.h>
 #include "mpi-internal.h"
 #include "longlong.h"
+#include "g10lib.h"
 #include <assert.h>
+
 
 /* Barrett is slower than the classical way.  It can be tweaked by
  * using partial multiplications
@@ -37,7 +39,7 @@ static void barrett_mulm( MPI w, MPI u, MPI v, MPI m, MPI y, int k, MPI r1, MPI 
 static MPI init_barrett( MPI m, int *k, MPI *r1, MPI *r2 );
 static int calc_barrett( MPI r, MPI x, MPI m, MPI y, int k, MPI r1, MPI r2  );
 #else
-#define barrett_mulm( w, u, v, m, y, k, r1, r2 ) mpi_mulm( (w), (u), (v), (m) )
+#define barrett_mulm( w, u, v, m, y, k, r1, r2 ) gcry_mpi_mulm( (w), (u), (v), (m) )
 #endif
 
 
@@ -61,7 +63,7 @@ build_index( MPI *exparray, int k, int i, int t )
  * RES = (BASE[0] ^ EXP[0]) *  (BASE[1] ^ EXP[1]) * ... * mod M
  */
 void
-mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI m)
+_gcry_mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI m)
 {
     int k;	/* number of elements */
     int t;	/* bit size of largest exponent */
@@ -87,7 +89,7 @@ mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI m)
     assert(t);
     assert( k < 10 );
 
-    G = g10_xcalloc( (1<<k) , sizeof *G );
+    G = gcry_xcalloc( (1<<k) , sizeof *G );
   #ifdef USE_BARRETT
     barrett_y = init_barrett( m, &barrett_k, &barrett_r1, &barrett_r2 );
   #endif
@@ -128,7 +130,7 @@ mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI m)
   #endif
     for(i=0; i < (1<<k); i++ )
 	mpi_free(G[i]);
-    g10_free(G);
+    gcry_free(G);
 }
 
 

@@ -30,8 +30,8 @@
 
 	.text
 	.align	4
-	.global C_SYMBOL_NAME(mpihelp_rshift)
-C_SYMBOL_NAME(mpihelp_rshift):
+	.global C_SYMBOL_NAME(_gcry_mpih_rshift)
+C_SYMBOL_NAME(_gcry_mpih_rshift):
 	ld	[%o1],%g2	! load first limb
 	sub	%g0,%o3,%o5	! negate shift count
 	add	%o2,-1,%o2

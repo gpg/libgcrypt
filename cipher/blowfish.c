@@ -574,7 +574,7 @@ bf_setkey( BLOWFISH_context *c, byte *key, unsigned keylen )
  *	    the ALGO is invalid.
  */
 const char *
-blowfish_get_info( int algo, size_t *keylen,
+_gcry_blowfish_get_info( int algo, size_t *keylen,
 		   size_t *blocksize, size_t *contextsize,
 		   int	(**r_setkey)( void *c, byte *key, unsigned keylen ),
 		   void (**r_encrypt)( void *c, byte *outbuf, byte *inbuf ),

@@ -1,5 +1,5 @@
 /* dynload.c - load cipher extensions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -129,7 +129,7 @@ cmp_filenames( const char *a, const char *b )
  * it is only used in some environments.
  */
 void
-register_cipher_extension( const char *mainpgm, const char *fname )
+_gcry_register_cipher_extension( const char *mainpgm, const char *fname )
 {
     EXTLIST r, el, intex;
     char *p, *pe;
@@ -138,7 +138,7 @@ register_cipher_extension( const char *mainpgm, const char *fname )
     if( !mainpgm_path && mainpgm && *mainpgm )
 	mainpgm_path = m_strdup(mainpgm);
   #endif
-    el = g10_xcalloc( 1, sizeof *el + strlen(fname) );
+    el = gcry_xcalloc( 1, sizeof *el + strlen(fname) );
     strcpy(el->name, fname );
 
     /* check whether we have a class hint */
@@ -154,7 +154,7 @@ register_cipher_extension( const char *mainpgm, const char *fname )
     for(r = extensions; r; r = r->next ) {
 	if( !cmp_filenames(r->name, el->name) ) {
 	    log_info("extension `%s' already registered\n", el->name );
-	    g10_free(el);
+	    gcry_free(el);
 	    return;
 	}
 	else if( r->internal )
@@ -175,14 +175,14 @@ register_cipher_extension( const char *mainpgm, const char *fname )
 }
 
 void
-register_internal_cipher_extension(
+_gcry_register_internal_cipher_extension(
 			const char *module_id,
 			void * (*enumfunc)(int, int*, int*, int*)
 				  )
 {
     EXTLIST r, el;
 
-    el = g10_xcalloc( 1, sizeof *el + strlen(module_id) );
+    el = gcry_xcalloc( 1, sizeof *el + strlen(module_id) );
     strcpy(el->name, module_id );
     el->internal = 1;
 
@@ -190,7 +190,7 @@ register_internal_cipher_extension(
     for(r = extensions; r; r = r->next ) {
 	if( !cmp_filenames(r->name, el->name) ) {
 	    log_info("extension `%s' already registered\n", el->name );
-	    g10_free(el);
+	    gcry_free(el);
 	    return;
 	}
     }
@@ -270,7 +270,7 @@ load_extension( EXTLIST el )
     name = (char**)addr;
   #endif
 
-    if( g10_log_verbosity( 2 ) )
+    if( _gcry_log_verbosity( 2 ) )
 	log_info("%s: %s%s%s%s\n", el->name, *name,
 		  el->hintstr? " (":"",
 		  el->hintstr? el->hintstr:"",
@@ -301,7 +301,7 @@ load_extension( EXTLIST el )
   #endif
 
   #ifdef HAVE_DL_DLOPEN
-    if( g10_log_verbosity( 3 ) ) {
+    if( _gcry_log_verbosity( 3 ) ) {
 	/* list the contents of the module */
 	while( (sym = (*el->enumfunc)(0, &seq, &class, &vers)) ) {
 	    if( vers != 1 ) {
@@ -341,7 +341,7 @@ load_extension( EXTLIST el )
 
 
 int
-enum_gnupgext_digests( void **enum_context,
+_gcry_enum_gnupgext_digests( void **enum_context,
 	    int *algo,
 	    const char *(**r_get_info)( int, size_t*,byte**, int*, int*,
 				       void (**)(void*),
@@ -352,13 +352,13 @@ enum_gnupgext_digests( void **enum_context,
     ENUMCONTEXT *ctx;
 
     if( !*enum_context ) { /* init context */
-	ctx = g10_xcalloc( 1, sizeof( *ctx ) );
+	ctx = gcry_xcalloc( 1, sizeof( *ctx ) );
 	ctx->r = extensions;
 	ctx->reqalgo = *algo;
 	*enum_context = ctx;
     }
     else if( !algo ) { /* release the context */
-	g10_free(*enum_context);
+	gcry_free(*enum_context);
 	*enum_context = NULL;
 	return 0;
     }
@@ -398,7 +398,7 @@ enum_gnupgext_digests( void **enum_context,
 }
 
 const char *
-enum_gnupgext_ciphers( void **enum_context, int *algo,
+_gcry_enum_gnupgext_ciphers( void **enum_context, int *algo,
 		       size_t *keylen, size_t *blocksize, size_t *contextsize,
 		       int  (**setkeyf)( void *c, byte *key, unsigned keylen ),
 		       void (**encryptf)( void *c, byte *outbuf, byte *inbuf ),
@@ -413,12 +413,12 @@ enum_gnupgext_ciphers( void **enum_context, int *algo,
 			  void (**)( void *, byte *, byte *));
 
     if( !*enum_context ) { /* init context */
-	ctx = g10_xcalloc( 1, sizeof( *ctx ) );
+	ctx = gcry_xcalloc( 1, sizeof( *ctx ) );
 	ctx->r = extensions;
 	*enum_context = ctx;
     }
     else if( !algo ) { /* release the context */
-	g10_free(*enum_context);
+	gcry_free(*enum_context);
 	*enum_context = NULL;
 	return NULL;
     }
@@ -463,7 +463,7 @@ enum_gnupgext_ciphers( void **enum_context, int *algo,
 }
 
 const char *
-enum_gnupgext_pubkeys( void **enum_context, int *algo,
+_gcry_enum_gnupgext_pubkeys( void **enum_context, int *algo,
     int *npkey, int *nskey, int *nenc, int *nsig, int *use,
     int (**generate)( int algo, unsigned nbits, MPI *skey, MPI **retfactors ),
     int (**check_secret_key)( int algo, MPI *skey ),
@@ -487,12 +487,12 @@ enum_gnupgext_pubkeys( void **enum_context, int *algo,
 			   unsigned (**)( int , MPI * ) );
 
     if( !*enum_context ) { /* init context */
-	ctx = g10_xcalloc( 1, sizeof( *ctx ) );
+	ctx = gcry_xcalloc( 1, sizeof( *ctx ) );
 	ctx->r = extensions;
 	*enum_context = ctx;
     }
     else if( !algo ) { /* release the context */
-	g10_free(*enum_context);
+	gcry_free(*enum_context);
 	*enum_context = NULL;
 	return NULL;
     }
@@ -538,7 +538,7 @@ enum_gnupgext_pubkeys( void **enum_context, int *algo,
 
 
 int (*
-dynload_getfnc_gather_random())(void (*)(const void*, size_t, int), int,
+_gcry_dynload_getfnc_gather_random())(void (*)(const void*, size_t, int), int,
 							    size_t, int)
 {
     EXTLIST r;
@@ -564,7 +564,7 @@ dynload_getfnc_gather_random())(void (*)(const void*, size_t, int), int,
 
 
 void (*
-dynload_getfnc_fast_random_poll())( void (*)(const void*, size_t, int), int)
+_gcry_dynload_getfnc_fast_random_poll())( void (*)(const void*, size_t, int), int)
 {
     EXTLIST r;
     void *sym;

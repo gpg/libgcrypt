@@ -1,5 +1,5 @@
 /* mpi-gcd.c  -  MPI functions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -28,7 +28,7 @@
  * Return: true if this 1, false in all other cases
  */
 int
-mpi_gcd( MPI g, MPI xa, MPI xb )
+gcry_mpi_gcd( MPI g, MPI xa, MPI xb )
 {
     MPI a, b;
 
@@ -38,8 +38,8 @@ mpi_gcd( MPI g, MPI xa, MPI xb )
     /* TAOCP Vol II, 4.5.2, Algorithm A */
     a->sign = 0;
     b->sign = 0;
-    while( mpi_cmp_ui( b, 0 ) ) {
-	mpi_fdiv_r( g, a, b ); /* g used as temorary variable */
+    while( gcry_mpi_cmp_ui( b, 0 ) ) {
+	_gcry_mpi_fdiv_r( g, a, b ); /* g used as temorary variable */
 	mpi_set(a,b);
 	mpi_set(b,g);
     }
@@ -47,7 +47,7 @@ mpi_gcd( MPI g, MPI xa, MPI xb )
 
     mpi_free(a);
     mpi_free(b);
-    return !mpi_cmp_ui( g, 1);
+    return !gcry_mpi_cmp_ui( g, 1);
 }
 
 

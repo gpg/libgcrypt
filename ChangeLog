@@ -1,3 +1,11 @@
+2001-05-31  Werner Koch  <wk@gnupg.org>
+
+	Release 1.1.3.
+
+	* configure.in: Use _gcry_ prefix when creating the cipher constructor.
+
+	* acconfig.h (_GCRYPT_IN_LIBGCRYPT): Define it here.
+
 2001-05-28  Werner Koch  <wk@gnupg.org>
 
 	* acinclude.m4 (GPH_PROG_DOCBOOK): Removed.

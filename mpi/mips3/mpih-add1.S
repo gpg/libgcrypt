@@ -24,7 +24,7 @@
 
 /*******************
  *  mpi_limb_t
- *  mpihelp_add_n( mpi_ptr_t res_ptr,	($4)
+ *  _gcry_mpih_add_n( mpi_ptr_t res_ptr,	($4)
  *		   mpi_ptr_t s1_ptr,	($5)
  *		   mpi_ptr_t s2_ptr,	($6)
  *		   mpi_size_t size)	($7)
@@ -32,9 +32,9 @@
 
 	.text
 	.align	2
-	.globl	mpihelp_add_n
-	.ent	mpihelp_add_n
-mpihelp_add_n:
+	.globl	_gcry_mpih_add_n
+	.ent	_gcry_mpih_add_n
+_gcry_mpih_add_n:
 	.set	noreorder
 	.set	nomacro
 
@@ -120,5 +120,5 @@ mpihelp_add_n:
 	j	$31
 	or	$2,$2,$8
 
-	.end	mpihelp_add_n
+	.end	_gcry_mpih_add_n
 

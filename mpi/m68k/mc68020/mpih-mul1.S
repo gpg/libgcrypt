@@ -37,7 +37,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_mul_1( mpi_ptr_t res_ptr,	(sp + 4)
+ * _gcry_mpih_mul_1( mpi_ptr_t res_ptr,	(sp + 4)
  *		  mpi_ptr_t s1_ptr,	(sp + 8)
  *		  mpi_size_t s1_size,	(sp + 12)
  *		  mpi_limb_t s2_limb)	(sp + 16)
@@ -46,10 +46,10 @@
 
 	TEXT
 	ALIGN
-	GLOBL	C_SYMBOL_NAME(mpihelp_mul_1)
+	GLOBL	C_SYMBOL_NAME(_gcry_mpih_mul_1)
 
-C_SYMBOL_NAME(mpihelp_mul_1:)
-PROLOG(mpihelp_mul_1)
+C_SYMBOL_NAME(_gcry_mpih_mul_1:)
+PROLOG(_gcry_mpih_mul_1)
 
 #define res_ptr a0
 #define s1_ptr a1
@@ -101,6 +101,6 @@ L(L1:)	movel	MEM_POSTINC(s1_ptr),R(d3)
 	movel	MEM_POSTINC(sp),R(d2)
 #endif
 	rts
-EPILOG(mpihelp_mul_1)
+EPILOG(_gcry_mpih_mul_1)
 
 

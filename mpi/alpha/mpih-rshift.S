@@ -32,7 +32,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_rshift( mpi_ptr_t wp,	(r16)
+ * _gcry_mpih_rshift( mpi_ptr_t wp,	(r16)
  *		   mpi_ptr_t up,	(r17)
  *		   mpi_size_t usize,	(r18)
  *		   unsigned cnt)	(r19)
@@ -52,9 +52,9 @@
 	.set	noat
 .text
 	.align	3
-	.globl	mpihelp_rshift
-	.ent	mpihelp_rshift
-mpihelp_rshift:
+	.globl	_gcry_mpih_rshift
+	.ent	_gcry_mpih_rshift
+_gcry_mpih_rshift:
 	.frame	$30,0,$26,0
 
 	ldq	$4,0($17)	# load first limb
@@ -116,5 +116,5 @@ mpihelp_rshift:
 .Rend:	srl	$4,$19,$8
 	stq	$8,0($16)
 	ret	$31,($26),1
-	.end	mpihelp_rshift
+	.end	_gcry_mpih_rshift
 

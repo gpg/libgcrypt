@@ -1,6 +1,6 @@
-Maintainer: wk@gnupg.org
+Maintainer: libgcrypt@g10code.com
 
-Libgcrypt used to be part of GnuPG but has been out into it own
+Libgcrypt used to be part of GnuPG but has been take out into its own
 package on 2000-12-21.
 
 

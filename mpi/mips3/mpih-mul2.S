@@ -24,7 +24,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_addmul_1( mpi_ptr_t res_ptr,      (r4)
+ * _gcry_mpih_addmul_1( mpi_ptr_t res_ptr,      (r4)
  *		     mpi_ptr_t s1_ptr,	     (r5)
  *		     mpi_size_t s1_size,     (r6)
  *		     mpi_limb_t s2_limb)     (r7)
@@ -32,9 +32,9 @@
 
 	.text
 	.align	4
-	.globl	mpihelp_addmul_1
-	.ent	mpihelp_addmul_1
-mpihelp_addmul_1:
+	.globl	_gcry_mpih_addmul_1
+	.ent	_gcry_mpih_addmul_1
+_gcry_mpih_addmul_1:
 	.set	noreorder
 	.set	nomacro
 
@@ -97,5 +97,5 @@ $LC0:	ld	$10,0($4)
 	j	$31
 	daddu	$2,$9,$2	# add high product limb and carry from addition
 
-	.end	mpihelp_addmul_1
+	.end	_gcry_mpih_addmul_1
 

@@ -1,7 +1,6 @@
-GnuPG was originally written by Werner Koch.  Other people contributed by
-reporting problems, suggesting various improvements or submitting actual
-code.  Here is a list of those people.	Help me keep it complete and free of
-errors.
+Libgcrypt is based on the GnuPG code.  Here is a list of people, who
+helped in GnuPG and Libgcrypt development.  Please help us to keep it
+complete and free of errors.
 
 Allan Clark		   allanc@sco.com
 Anand Kumria		   wildfire@progsoc.uts.edu.au
@@ -30,6 +29,7 @@ Felix von Leitner	   leitner@amdiv.de
 Frank Heckenbach	   heckenb@mi.uni-erlangen.de
 Frank Stajano		   frank.stajano@cl.cam.ac.uk
 Gaël Quéri		   gqueri@mail.dotcom.fr
+Gerlinde Klaes             gk@u64.de
 Greg Louis		   glouis@dynamicro.on.ca
 Greg Troxel		   gdt@ir.bbn.com
 Gregory Steuck		   steuck@iname.com
@@ -107,9 +107,4 @@ Werner Koch		   werner.koch@guug.de
 Wim Vandeputte		   bunbun@reptile.rug.ac.be
 			   nbecker@hns.com
 
-Thanks to the German Unix User Group for providing FTP space,
-Martin Hamilton for initially hosting the mailing list, HSP for
-hosting gnupg.org and Linux Laptops Ltd. for a nice toy.
 
-Many thanks to my wife Gerlinde for having so much patience with
-me while hacking late in the evening.

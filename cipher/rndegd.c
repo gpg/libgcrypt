@@ -158,12 +158,12 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 
 	fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if( fd == -1 )
-	    g10_log_fatal("can't create unix domain socket: %s\n",
+	    log_fatal("can't create unix domain socket: %s\n",
 							    strerror(errno) );
 	if( connect( fd, (struct sockaddr*)&addr, addr_len) == -1 )
-	    g10_log_fatal("can't connect to `%s': %s\n",
+	    log_fatal("can't connect to `%s': %s\n",
 						    name, strerror(errno) );
-	g10_free(name);
+	gcry_free(name);
     }
     do_restart = 0;
 
@@ -172,10 +172,10 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
     buffer[0] = 1; /* non blocking */
     buffer[1] = nbytes;
     if( do_write( fd, buffer, 2 ) == -1 )
-	g10_log_fatal("can't write to the EGD: %s\n", strerror(errno) );
+	log_fatal("can't write to the EGD: %s\n", strerror(errno) );
     n = do_read( fd, buffer, 1 );
     if( n == -1 ) {
-	g10_log_error("read error on EGD: %s\n", strerror(errno));
+	log_error("read error on EGD: %s\n", strerror(errno));
 	do_restart = 1;
 	goto restart;
     }
@@ -183,7 +183,7 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
     if( n ) {
 	n = do_read( fd, buffer, n );
 	if( n == -1 ) {
-	    g10_log_error("read error on EGD: %s\n", strerror(errno));
+	    log_error("read error on EGD: %s\n", strerror(errno));
 	    do_restart = 1;
 	    goto restart;
 	}
@@ -203,10 +203,10 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 	buffer[0] = 2; /* blocking */
 	buffer[1] = nbytes;
 	if( do_write( fd, buffer, 2 ) == -1 )
-	    g10_log_fatal("can't write to the EGD: %s\n", strerror(errno) );
+	    log_fatal("can't write to the EGD: %s\n", strerror(errno) );
 	n = do_read( fd, buffer, nbytes );
 	if( n == -1 ) {
-	    g10_log_error("read error on EGD: %s\n", strerror(errno));
+	    log_error("read error on EGD: %s\n", strerror(errno));
 	    do_restart = 1;
 	    goto restart;
 	}

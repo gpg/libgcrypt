@@ -1,5 +1,5 @@
 /* global.c  -	global control functions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -27,6 +27,7 @@
 #include <assert.h>
 
 #include "g10lib.h"
+#include "../cipher/random.h"
 #include "stdmem.h" /* our own memory allocator */
 #include "secmem.h" /* our own secmem allocator */
 
@@ -131,11 +132,11 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
      #endif
 
       case GCRYCTL_ENABLE_M_GUARD:
-	g10_private_enable_m_guard();
+	_gcry_private_enable_m_guard();
 	break;
 
       case GCRYCTL_DUMP_RANDOM_STATS:
-	random_dump_stats();
+	_gcry_random_dump_stats();
 	break;
 
       case GCRYCTL_DUMP_MEMORY_STATS:
@@ -143,39 +144,39 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
 	break;
 
       case GCRYCTL_DUMP_SECMEM_STATS:
-	secmem_dump_stats();
+	_gcry_secmem_dump_stats();
 	break;
 
       case GCRYCTL_DROP_PRIVS:
-	secmem_init( 0 );
+	_gcry_secmem_init( 0 );
 	break;
 
       case GCRYCTL_INIT_SECMEM:
-	secmem_init( va_arg( arg_ptr, unsigned int ) );
+	_gcry_secmem_init( va_arg( arg_ptr, unsigned int ) );
 	break;
 
       case GCRYCTL_TERM_SECMEM:
-	secmem_term();
+	_gcry_secmem_term();
 	break;
 
       case GCRYCTL_DISABLE_SECMEM_WARN:
-	secmem_set_flags( secmem_get_flags() | 1 );
+	_gcry_secmem_set_flags( (_gcry_secmem_get_flags() | 1) );
 	break;
 
       case GCRYCTL_SUSPEND_SECMEM_WARN:
-	secmem_set_flags( secmem_get_flags() | 2 );
+	_gcry_secmem_set_flags( (_gcry_secmem_get_flags() | 2) );
 	break;
 
       case GCRYCTL_RESUME_SECMEM_WARN:
-	secmem_set_flags( secmem_get_flags() & ~2 );
+	_gcry_secmem_set_flags( (_gcry_secmem_get_flags() & ~2) );
 	break;
 
       case GCRYCTL_USE_SECURE_RNDPOOL:
-	secure_random_alloc(); /* put random number into secure memory */
+	_gcry_secure_random_alloc(); /* put random number into secure memory */
 	break;
 
       case GCRYCTL_SET_VERBOSITY:
-	g10_set_log_verbosity( va_arg( arg_ptr, int ) );
+	_gcry_set_log_verbosity( va_arg( arg_ptr, int ) );
 	break;
 
       case GCRYCTL_SET_DEBUG_FLAGS:
@@ -237,7 +238,7 @@ gcry_strerror( int ec )
 
 
 int
-set_lasterr( int ec )
+_gcry_set_lasterr( int ec )
 {
     if( ec )
 	last_ec = ec == -1 ? GCRYERR_EOF : ec;
@@ -290,53 +291,53 @@ gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
 
 
 void *
-g10_malloc( size_t n )
+gcry_malloc( size_t n )
 {
     if( alloc_func )
 	return alloc_func( n ) ;
-    return g10_private_malloc( n );
+    return _gcry_private_malloc( n );
 }
 
 void *
-g10_malloc_secure( size_t n )
+gcry_malloc_secure( size_t n )
 {
     if( alloc_secure_func )
 	return alloc_secure_func( n ) ;
-    return g10_private_malloc_secure( n );
+    return _gcry_private_malloc_secure( n );
 }
 
 int
-g10_is_secure( const void *a )
+gcry_is_secure( const void *a )
 {
     if( is_secure_func )
 	return is_secure_func( a ) ;
-    return g10_private_is_secure( a );
+    return _gcry_private_is_secure( a );
 }
 
 void
-g10_check_heap( const void *a )
+_gcry_check_heap( const void *a )
 {
     /* FIXME: implement this*/
   #if 0
     if( some_handler )
 	some_handler(a)
     else
-	g10_private_check_heap(a)
+	_gcry_private_check_heap(a)
   #endif
 }
 
 void *
-g10_realloc( void *a, size_t n )
+gcry_realloc( void *a, size_t n )
 {
     /* FIXME: Make sure that the realloced memory is cleared out */
 
     if( realloc_func )
 	return realloc_func( a, n ) ;
-    return g10_private_realloc( a, n );
+    return _gcry_private_realloc( a, n );
 }
 
 void
-g10_free( void *p )
+gcry_free( void *p )
 {
     if( !p )
 	return;
@@ -344,22 +345,22 @@ g10_free( void *p )
     if( free_func )
 	free_func( p );
     else
-	g10_private_free( p );
+	_gcry_private_free( p );
 }
 
 void *
-g10_calloc( size_t n, size_t m )
+gcry_calloc( size_t n, size_t m )
 {
-    void *p = g10_malloc( n*m );
+    void *p = gcry_malloc( n*m );
     if( p )
 	memset( p, 0, n*m );
     return p;
 }
 
 void *
-g10_calloc_secure( size_t n, size_t m )
+gcry_calloc_secure( size_t n, size_t m )
 {
-    void *p = g10_malloc_secure( n*m );
+    void *p = gcry_malloc_secure( n*m );
     if( p )
 	memset( p, 0, n*m );
     return p;
@@ -367,42 +368,42 @@ g10_calloc_secure( size_t n, size_t m )
 
 
 void *
-g10_xmalloc( size_t n )
+gcry_xmalloc( size_t n )
 {
     void *p;
 
-    while ( !(p = g10_malloc( n )) ) {
+    while ( !(p = gcry_malloc( n )) ) {
 	if( !outofcore_handler
 	    || !outofcore_handler( outofcore_handler_value, n, 0 ) ) {
-	    g10_fatal_error(GCRYERR_NO_MEM, NULL );
+	    _gcry_fatal_error(GCRYERR_NO_MEM, NULL );
 	}
     }
     return p;
 }
 
 void *
-g10_xrealloc( void *a, size_t n )
+gcry_xrealloc( void *a, size_t n )
 {
     void *p;
 
-    while ( !(p = g10_realloc( a, n )) ) {
+    while ( !(p = gcry_realloc( a, n )) ) {
 	if( !outofcore_handler
 	    || !outofcore_handler( outofcore_handler_value, n, 2 ) ) {
-	    g10_fatal_error(GCRYERR_NO_MEM, NULL );
+	    _gcry_fatal_error(GCRYERR_NO_MEM, NULL );
 	}
     }
     return p;
 }
 
 void *
-g10_xmalloc_secure( size_t n )
+gcry_xmalloc_secure( size_t n )
 {
     void *p;
 
-    while ( !(p = g10_malloc_secure( n )) ) {
+    while ( !(p = gcry_malloc_secure( n )) ) {
 	if( !outofcore_handler
 	    || !outofcore_handler( outofcore_handler_value, n, 1 ) ) {
-	    g10_fatal_error(GCRYERR_NO_MEM,
+	    _gcry_fatal_error(GCRYERR_NO_MEM,
 			     _("out of core in secure memory"));
 	}
     }
@@ -410,32 +411,32 @@ g10_xmalloc_secure( size_t n )
 }
 
 void *
-g10_xcalloc( size_t n, size_t m )
+gcry_xcalloc( size_t n, size_t m )
 {
-    void *p = g10_xmalloc( n*m );
+    void *p = gcry_xmalloc( n*m );
     memset( p, 0, n*m );
     return p;
 }
 
 void *
-g10_xcalloc_secure( size_t n, size_t m )
+gcry_xcalloc_secure( size_t n, size_t m )
 {
-    void *p = g10_xmalloc_secure( n* m );
+    void *p = gcry_xmalloc_secure( n* m );
     memset( p, 0, n*m );
     return p;
 }
 
 char *
-g10_xstrdup( const char *string )
+gcry_xstrdup( const char *string )
 {
-    void *p = g10_xmalloc( strlen(string)+1 );
+    void *p = gcry_xmalloc( strlen(string)+1 );
     strcpy( p, string );
     return p;
 }
 
 
 int
-g10_get_debug_flag( unsigned int mask )
+_gcry_get_debug_flag( unsigned int mask )
 {
     return debug_flags & mask;
 }

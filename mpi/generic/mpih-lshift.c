@@ -41,7 +41,7 @@
  */
 
 mpi_limb_t
-mpihelp_lshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
+_gcry_mpih_lshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 					    unsigned int cnt)
 {
     mpi_limb_t high_limb, low_limb;

@@ -1,5 +1,5 @@
 /* md5.c - MD5 Message-Digest Algorithm
- *	Copyright (C) 1995, 1996, 1998, 1999 Free Software Foundation, Inc.
+ * Copyright (C) 1995, 1996, 1998, 1999, 2001 Free Software Foundation, Inc.
  *
  * according to the definition of MD5 in RFC 1321 from April 1992.
  * NOTE: This is *not* the same file as the one from glibc.
@@ -400,9 +400,9 @@ gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
 
 #ifndef IS_MODULE
 void
-md5_constructor(void)
+_gcry_md5_constructor(void)
 {
-    register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );
+    _gcry_register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );
 }
 #endif
 

@@ -40,8 +40,8 @@
 
 .text
 	.align 4
-	.global C_SYMBOL_NAME(mpihelp_submul_1)
-C_SYMBOL_NAME(mpihelp_submul_1):
+	.global C_SYMBOL_NAME(_gcry_mpih_submul_1)
+C_SYMBOL_NAME(_gcry_mpih_submul_1):
 	sub	%g0,%o2,%o2		! negate ...
 	sll	%o2,2,%o2		! ... and scale size
 	sub	%o1,%o2,%o1		! o1 is offset s1_ptr

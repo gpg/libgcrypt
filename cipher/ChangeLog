@@ -1,3 +1,12 @@
+2001-05-31  Werner Koch  <wk@gnupg.org>
+
+	* sha1.c (sha1_init): Made static.
+
+        Changed all g10_ prefixed function names as well as some mpi_
+	function names to cope with the introduced naming changes.
+	
+	* md.c (prepare_macpads): Made key const.
+
 2001-05-28  Werner Koch  <wk@gnupg.org>
 
 	* rndegd.c (gather_random): Removed the use of tty_printf.

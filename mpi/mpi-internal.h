@@ -172,41 +172,43 @@ typedef int mpi_size_t;        /* (must be a signed type) */
 
 /*-- mpiutil.c --*/
 #ifdef M_DEBUG
-  #define mpi_alloc_limb_space(n,f)  mpi_debug_alloc_limb_space((n),(f), M_DBGINFO( __LINE__ ) )
-  #define mpi_free_limb_space(n)  mpi_debug_free_limb_space((n),  M_DBGINFO( __LINE__ ) )
-  mpi_ptr_t mpi_debug_alloc_limb_space( unsigned nlimbs, int sec, const char *info  );
-  void mpi_debug_free_limb_space( mpi_ptr_t a, const char *info );
+  #define mpi_alloc_limb_space(n,f)  _gcry_mpi_debug_alloc_limb_space((n),(f), M_DBGINFO( __LINE__ ) )
+  #define mpi_free_limb_space(n)  _gcry_mpi_debug_free_limb_space((n),  M_DBGINFO( __LINE__ ) )
+  mpi_ptr_t _gcry_mpi_debug_alloc_limb_space( unsigned nlimbs, int sec, const char *info  );
+  void _gcry_mpi_debug_free_limb_space( mpi_ptr_t a, const char *info );
 #else
-  mpi_ptr_t mpi_alloc_limb_space( unsigned nlimbs, int sec );
-  void mpi_free_limb_space( mpi_ptr_t a );
+  #define mpi_alloc_limb_space(n,f)  _gcry_mpi_alloc_limb_space((n),(f))
+  #define mpi_free_limb_space(n)     _gcry_mpi_free_limb_space((n))
+  mpi_ptr_t _gcry_mpi_alloc_limb_space( unsigned nlimbs, int sec );
+  void _gcry_mpi_free_limb_space( mpi_ptr_t a );
 #endif
-void mpi_assign_limb_space( MPI a, mpi_ptr_t ap, unsigned nlimbs );
+void _gcry_mpi_assign_limb_space( MPI a, mpi_ptr_t ap, unsigned nlimbs );
 
 /*-- mpi-bit.c --*/
-void mpi_rshift_limbs( MPI a, unsigned int count );
-void mpi_lshift_limbs( MPI a, unsigned int count );
+void _gcry_mpi_rshift_limbs( MPI a, unsigned int count );
+void _gcry_mpi_lshift_limbs( MPI a, unsigned int count );
 
 
-/*-- mpihelp-add.c --*/
-mpi_limb_t mpihelp_add_1(mpi_ptr_t res_ptr,  mpi_ptr_t s1_ptr,
+/*-- mpih-add.c --*/
+mpi_limb_t _gcry_mpih_add_1(mpi_ptr_t res_ptr,  mpi_ptr_t s1_ptr,
 			 mpi_size_t s1_size, mpi_limb_t s2_limb );
-mpi_limb_t mpihelp_add_n( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
+mpi_limb_t _gcry_mpih_add_n( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 			  mpi_ptr_t s2_ptr,  mpi_size_t size);
-mpi_limb_t mpihelp_add(mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
+mpi_limb_t _gcry_mpih_add(mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
 		       mpi_ptr_t s2_ptr, mpi_size_t s2_size);
 
-/*-- mpihelp-sub.c --*/
-mpi_limb_t mpihelp_sub_1( mpi_ptr_t res_ptr,  mpi_ptr_t s1_ptr,
+/*-- mpih-sub.c --*/
+mpi_limb_t _gcry_mpih_sub_1( mpi_ptr_t res_ptr,  mpi_ptr_t s1_ptr,
 			  mpi_size_t s1_size, mpi_limb_t s2_limb );
-mpi_limb_t mpihelp_sub_n( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
+mpi_limb_t _gcry_mpih_sub_n( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 			  mpi_ptr_t s2_ptr, mpi_size_t size);
-mpi_limb_t mpihelp_sub(mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
+mpi_limb_t _gcry_mpih_sub(mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
 		       mpi_ptr_t s2_ptr, mpi_size_t s2_size);
 
-/*-- mpihelp-cmp.c --*/
-int mpihelp_cmp( mpi_ptr_t op1_ptr, mpi_ptr_t op2_ptr, mpi_size_t size );
+/*-- mpih-cmp.c --*/
+int _gcry_mpih_cmp( mpi_ptr_t op1_ptr, mpi_ptr_t op2_ptr, mpi_size_t size );
 
-/*-- mpihelp-mul.c --*/
+/*-- mpih-mul.c --*/
 
 struct karatsuba_ctx {
     struct karatsuba_ctx *next;
@@ -216,44 +218,44 @@ struct karatsuba_ctx {
     mpi_size_t tp_size;
 };
 
-void mpihelp_release_karatsuba_ctx( struct karatsuba_ctx *ctx );
+void _gcry_mpih_release_karatsuba_ctx( struct karatsuba_ctx *ctx );
 
-mpi_limb_t mpihelp_addmul_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
+mpi_limb_t _gcry_mpih_addmul_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 			     mpi_size_t s1_size, mpi_limb_t s2_limb);
-mpi_limb_t mpihelp_submul_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
+mpi_limb_t _gcry_mpih_submul_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 			     mpi_size_t s1_size, mpi_limb_t s2_limb);
-void mpihelp_mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp,
+void _gcry_mpih_mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp,
 						   mpi_size_t size);
-mpi_limb_t mpihelp_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
+mpi_limb_t _gcry_mpih_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
 					 mpi_ptr_t vp, mpi_size_t vsize);
-void mpih_sqr_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size );
-void mpih_sqr_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size,
+void _gcry_mpih_sqr_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size );
+void _gcry_mpih_sqr_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size,
 						mpi_ptr_t tspace);
 
-void mpihelp_mul_karatsuba_case( mpi_ptr_t prodp,
+void _gcry_mpih_mul_karatsuba_case( mpi_ptr_t prodp,
 				 mpi_ptr_t up, mpi_size_t usize,
 				 mpi_ptr_t vp, mpi_size_t vsize,
 				 struct karatsuba_ctx *ctx );
 
 
-/*-- mpihelp-mul_1.c (or xxx/cpu/ *.S) --*/
-mpi_limb_t mpihelp_mul_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
+/*-- mpih-mul_1.c (or xxx/cpu/ *.S) --*/
+mpi_limb_t _gcry_mpih_mul_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 			  mpi_size_t s1_size, mpi_limb_t s2_limb);
 
-/*-- mpihelp-div.c --*/
-mpi_limb_t mpihelp_mod_1(mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
+/*-- mpih-div.c --*/
+mpi_limb_t _gcry_mpih_mod_1(mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
 						 mpi_limb_t divisor_limb);
-mpi_limb_t mpihelp_divrem( mpi_ptr_t qp, mpi_size_t qextra_limbs,
+mpi_limb_t _gcry_mpih_divrem( mpi_ptr_t qp, mpi_size_t qextra_limbs,
 			   mpi_ptr_t np, mpi_size_t nsize,
 			   mpi_ptr_t dp, mpi_size_t dsize);
-mpi_limb_t mpihelp_divmod_1( mpi_ptr_t quot_ptr,
+mpi_limb_t _gcry_mpih_divmod_1( mpi_ptr_t quot_ptr,
 			     mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
 			     mpi_limb_t divisor_limb);
 
-/*-- mpihelp-shift.c --*/
-mpi_limb_t mpihelp_lshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
+/*-- mpih-shift.c --*/
+mpi_limb_t _gcry_mpih_lshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 							   unsigned cnt);
-mpi_limb_t mpihelp_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
+mpi_limb_t _gcry_mpih_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 							   unsigned cnt);
 
 
@@ -278,3 +280,4 @@ mpi_limb_t mpihelp_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 #endif
 
 #endif /*G10_MPI_INTERNAL_H*/
+

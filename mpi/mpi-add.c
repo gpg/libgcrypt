@@ -1,6 +1,5 @@
 /* mpi-add.c  -  MPI functions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
- *	Copyright (C) 1994, 1996 Free Software Foundation, Inc.
+ *	Copyright (C) 1994, 1996, 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -39,7 +38,7 @@
  * result in W. U and V may be the same.
  */
 void
-mpi_add_ui(MPI w, MPI u, unsigned long v )
+gcry_mpi_add_ui(MPI w, MPI u, unsigned long v )
 {
     mpi_ptr_t wp, up;
     mpi_size_t usize, wsize;
@@ -64,7 +63,7 @@ mpi_add_ui(MPI w, MPI u, unsigned long v )
     }
     else if( !usign ) {  /* mpi is not negative */
 	mpi_limb_t cy;
-	cy = mpihelp_add_1(wp, up, usize, v);
+	cy = _gcry_mpih_add_1(wp, up, usize, v);
 	wp[usize] = cy;
 	wsize = usize + cy;
     }
@@ -75,7 +74,7 @@ mpi_add_ui(MPI w, MPI u, unsigned long v )
 	    wsize = 1;
 	}
 	else {
-	    mpihelp_sub_1(wp, up, usize, v);
+	    _gcry_mpih_sub_1(wp, up, usize, v);
 	    /* Size can decrease with at most one limb. */
 	    wsize = usize - (wp[usize-1]==0);
 	    wsign = 1;
@@ -88,7 +87,7 @@ mpi_add_ui(MPI w, MPI u, unsigned long v )
 
 
 void
-mpi_add(MPI w, MPI u, MPI v)
+gcry_mpi_add(MPI w, MPI u, MPI v)
 {
     mpi_ptr_t wp, up, vp;
     mpi_size_t usize, vsize, wsize;
@@ -127,20 +126,20 @@ mpi_add(MPI w, MPI u, MPI v)
     else if( usign != vsign ) { /* different sign */
 	/* This test is right since USIZE >= VSIZE */
 	if( usize != vsize ) {
-	    mpihelp_sub(wp, up, usize, vp, vsize);
+	    _gcry_mpih_sub(wp, up, usize, vp, vsize);
 	    wsize = usize;
 	    MPN_NORMALIZE(wp, wsize);
 	    wsign = usign;
 	}
-	else if( mpihelp_cmp(up, vp, usize) < 0 ) {
-	    mpihelp_sub_n(wp, vp, up, usize);
+	else if( _gcry_mpih_cmp(up, vp, usize) < 0 ) {
+	    _gcry_mpih_sub_n(wp, vp, up, usize);
 	    wsize = usize;
 	    MPN_NORMALIZE(wp, wsize);
 	    if( !usign )
 		wsign = 1;
 	}
 	else {
-	    mpihelp_sub_n(wp, up, vp, usize);
+	    _gcry_mpih_sub_n(wp, up, vp, usize);
 	    wsize = usize;
 	    MPN_NORMALIZE(wp, wsize);
 	    if( usign )
@@ -148,7 +147,7 @@ mpi_add(MPI w, MPI u, MPI v)
 	}
     }
     else { /* U and V have same sign. Add them. */
-	mpi_limb_t cy = mpihelp_add(wp, up, usize, vp, vsize);
+	mpi_limb_t cy = _gcry_mpih_add(wp, up, usize, vp, vsize);
 	wp[usize] = cy;
 	wsize = usize + cy;
 	if( usign )
@@ -165,7 +164,7 @@ mpi_add(MPI w, MPI u, MPI v)
  * result in W.
  */
 void
-mpi_sub_ui(MPI w, MPI u, unsigned long v )
+gcry_mpi_sub_ui(MPI w, MPI u, unsigned long v )
 {
     mpi_ptr_t wp, up;
     mpi_size_t usize, wsize;
@@ -191,7 +190,7 @@ mpi_sub_ui(MPI w, MPI u, unsigned long v )
     }
     else if( usign ) {	/* mpi and v are negative */
 	mpi_limb_t cy;
-	cy = mpihelp_add_1(wp, up, usize, v);
+	cy = _gcry_mpih_add_1(wp, up, usize, v);
 	wp[usize] = cy;
 	wsize = usize + cy;
     }
@@ -203,7 +202,7 @@ mpi_sub_ui(MPI w, MPI u, unsigned long v )
 	    wsign = 1;
 	}
 	else {
-	    mpihelp_sub_1(wp, up, usize, v);
+	    _gcry_mpih_sub_1(wp, up, usize, v);
 	    /* Size can decrease with at most one limb. */
 	    wsize = usize - (wp[usize-1]==0);
 	}
@@ -214,34 +213,34 @@ mpi_sub_ui(MPI w, MPI u, unsigned long v )
 }
 
 void
-mpi_sub(MPI w, MPI u, MPI v)
+gcry_mpi_sub(MPI w, MPI u, MPI v)
 {
     if( w == v ) {
 	MPI vv = mpi_copy(v);
 	vv->sign = !vv->sign;
-	mpi_add( w, u, vv );
+	gcry_mpi_add( w, u, vv );
 	mpi_free(vv);
     }
     else {
 	/* fixme: this is not thread-save (we temp. modify v) */
 	v->sign = !v->sign;
-	mpi_add( w, u, v );
+	gcry_mpi_add( w, u, v );
 	v->sign = !v->sign;
     }
 }
 
 
 void
-mpi_addm( MPI w, MPI u, MPI v, MPI m)
+gcry_mpi_addm( MPI w, MPI u, MPI v, MPI m)
 {
-    mpi_add(w, u, v);
-    mpi_fdiv_r( w, w, m );
+    gcry_mpi_add(w, u, v);
+    _gcry_mpi_fdiv_r( w, w, m );
 }
 
 void
-mpi_subm( MPI w, MPI u, MPI v, MPI m)
+gcry_mpi_subm( MPI w, MPI u, MPI v, MPI m)
 {
-    mpi_sub(w, u, v);
-    mpi_fdiv_r( w, w, m );
+    gcry_mpi_sub(w, u, v);
+    _gcry_mpi_fdiv_r( w, w, m );
 }
 

@@ -25,7 +25,7 @@
 
 /*******************
  *  mpi_limb_t
- *  mpihelp_add_n( mpi_ptr_t res_ptr,
+ *  _gcry_mpih_add_n( mpi_ptr_t res_ptr,
  *		   mpi_ptr_t s1_ptr,
  *		   mpi_ptr_t s2_ptr,
  *		   mpi_size_t size)
@@ -41,8 +41,8 @@
 
 	.text
 	.align	4
-	.global C_SYMBOL_NAME(mpihelp_add_n)
-C_SYMBOL_NAME(mpihelp_add_n):
+	.global C_SYMBOL_NAME(_gcry_mpih_add_n)
+C_SYMBOL_NAME(_gcry_mpih_add_n):
 	xor	s2_ptr,res_ptr,%g1
 	andcc	%g1,4,%g0
 	bne	L1			! branch if alignment differs

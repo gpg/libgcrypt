@@ -1,3 +1,15 @@
+2001-05-31  Werner Koch  <wk@gnupg.org>
+
+	* gcrypt.h, mpi.h: Made some mpi functions public.
+
+	* wrapper.c: Removed.
+	* global.c: Renamed all g10_ prefixed functions which had wrappers 
+	to gcry_xxx. So we now use the exported memory functions inernally.
+
+	Renamed all g10_ prefixed functions to _gcry_ prefixed ones.
+	
+	* g10lib.h (_GCRYPT_IN_LIBGCRYPT): Replace defintion by a test on it.
+
 2001-05-28  Werner Koch  <wk@gnupg.org>
 
 	* libgcrypt.m4: Check GCRYPT_VERSION macro and not LIBGCRYPT_VERSION.

@@ -33,7 +33,7 @@
 #include "longlong.h"
 
 mpi_limb_t
-mpihelp_sub_n( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
+_gcry_mpih_sub_n( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 				  mpi_ptr_t s2_ptr, mpi_size_t size)
 {
     mpi_limb_t x, y, cy;

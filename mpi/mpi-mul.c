@@ -1,6 +1,5 @@
 /* mpi-mul.c  -  MPI functions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
- *	Copyright (C) 1994, 1996 Free Software Foundation, Inc.
+ *	Copyright (C) 1994, 1996, 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -34,7 +33,7 @@
 
 
 void
-mpi_mul_ui( MPI prod, MPI mult, unsigned long small_mult )
+gcry_mpi_mul_ui( MPI prod, MPI mult, unsigned long small_mult )
 {
     mpi_size_t size, prod_size;
     mpi_ptr_t  prod_ptr;
@@ -55,7 +54,7 @@ mpi_mul_ui( MPI prod, MPI mult, unsigned long small_mult )
 	mpi_resize( prod, prod_size );
     prod_ptr = prod->d;
 
-    cy = mpihelp_mul_1( prod_ptr, mult->d, size, (mpi_limb_t)small_mult );
+    cy = _gcry_mpih_mul_1( prod_ptr, mult->d, size, (mpi_limb_t)small_mult );
     if( cy )
 	prod_ptr[size++] = cy;
     prod->nlimbs = size;
@@ -64,7 +63,7 @@ mpi_mul_ui( MPI prod, MPI mult, unsigned long small_mult )
 
 
 void
-mpi_mul_2exp( MPI w, MPI u, unsigned long cnt)
+_gcry_mpi_mul_2exp( MPI w, MPI u, unsigned long cnt)
 {
     mpi_size_t usize, wsize, limb_cnt;
     mpi_ptr_t wp;
@@ -90,7 +89,7 @@ mpi_mul_2exp( MPI w, MPI u, unsigned long cnt)
 
     cnt %= BITS_PER_MPI_LIMB;
     if( cnt ) {
-	wlimb = mpihelp_lshift( wp + limb_cnt, u->d, usize, cnt );
+	wlimb = _gcry_mpih_lshift( wp + limb_cnt, u->d, usize, cnt );
 	if( wlimb ) {
 	    wp[wsize] = wlimb;
 	    wsize++;
@@ -111,7 +110,7 @@ mpi_mul_2exp( MPI w, MPI u, unsigned long cnt)
 
 
 void
-mpi_mul( MPI w, MPI u, MPI v)
+gcry_mpi_mul( MPI w, MPI u, MPI v)
 {
     mpi_size_t usize, vsize, wsize;
     mpi_ptr_t up, vp, wp;
@@ -185,7 +184,7 @@ mpi_mul( MPI w, MPI u, MPI v)
     if( !vsize )
 	wsize = 0;
     else {
-	cy = mpihelp_mul( wp, up, usize, vp, vsize );
+	cy = _gcry_mpih_mul( wp, up, usize, vp, vsize );
 	wsize -= cy? 0:1;
     }
 
@@ -197,7 +196,7 @@ mpi_mul( MPI w, MPI u, MPI v)
             mpi_free_limb_space (wp);
             wp = tmp_wp;
         }
-	mpi_assign_limb_space( w, wp, wsize );
+	_gcry_mpi_assign_limb_space( w, wp, wsize );
     }
     w->nlimbs = wsize;
     w->sign = sign_product;
@@ -207,9 +206,9 @@ mpi_mul( MPI w, MPI u, MPI v)
 
 
 void
-mpi_mulm( MPI w, MPI u, MPI v, MPI m)
+gcry_mpi_mulm( MPI w, MPI u, MPI v, MPI m)
 {
-    mpi_mul(w, u, v);
-    mpi_fdiv_r( w, w, m );
+    gcry_mpi_mul(w, u, v);
+    _gcry_mpi_fdiv_r( w, w, m );
 }
 

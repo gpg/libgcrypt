@@ -34,7 +34,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_rshift( mpi_ptr_t wp,	(sp + 4)
+ * _gcry_mpih_rshift( mpi_ptr_t wp,	(sp + 4)
  *		   mpi_ptr_t up,	(sp + 8)
  *		   mpi_size_t usize,	(sp + 12)
  *		   unsigned cnt)	(sp + 16)
@@ -47,10 +47,10 @@
 
 	TEXT
 	ALIGN
-	GLOBL	C_SYMBOL_NAME(mpihelp_rshift)
+	GLOBL	C_SYMBOL_NAME(_gcry_mpih_rshift)
 
-C_SYMBOL_NAME(mpihelp_rshift:)
-PROLOG(mpihelp_rshift)
+C_SYMBOL_NAME(_gcry_mpih_rshift:)
+PROLOG(_gcry_mpih_rshift)
 	/* Save used registers on the stack.  */
 	moveml	R(d2)-R(d6)/R(a2),MEM_PREDEC(sp)
 
@@ -157,7 +157,7 @@ L(LRend:)
 /* Restore used registers from stack frame.  */
 	moveml	MEM_POSTINC(sp),R(d2)-R(d6)/R(a2)
 	rts
-EPILOG(mpihelp_rshift)
+EPILOG(_gcry_mpih_rshift)
 
 
 

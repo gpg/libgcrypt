@@ -1,5 +1,5 @@
 /* arcfour.c  -  The arcfour stream cipher
- *	Copyright (C) 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2001 Free Software Foundation, Inc.
  *
  * For a description of the algorithm, see:
  *   Bruce Schneier: Applied Cryptography. John Wiley & Sons, 1996.
@@ -135,7 +135,7 @@ selftest(void)
  * we have redesign the interface.
  */
 const char *
-arcfour_get_info( int algo, size_t *keylen, size_t *blocksize,
+_gcry_arcfour_get_info( int algo, size_t *keylen, size_t *blocksize,
 		   size_t *contextsize,
 		   int	(**r_setkey)( void *c, byte *key, unsigned keylen ),
 		   void (**r_stencrypt)( void *c, byte *outbuf,
@@ -147,7 +147,7 @@ arcfour_get_info( int algo, size_t *keylen, size_t *blocksize,
     *keylen = 128; /* arbitrary value */
     *blocksize = 1;
     *contextsize = sizeof(ARCFOUR_context);
-    *(int  (**)(ARCFOUR_context*, byte*, unsigned))r_setkey
+    *(int  (**)(ARCFOUR_context*, const byte*, unsigned))r_setkey
 							= arcfour_setkey;
     *(void (**)(ARCFOUR_context*, byte*, const byte*, unsigned))r_stencrypt
 							= encrypt_stream;

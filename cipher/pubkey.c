@@ -143,105 +143,105 @@ setup_pubkey_table(void)
 
     i = 0;
     pubkey_table[i].algo = PUBKEY_ALGO_ELGAMAL;
-    pubkey_table[i].name = elg_get_info( pubkey_table[i].algo,
+    pubkey_table[i].name = _gcry_elg_get_info( pubkey_table[i].algo,
 					 &pubkey_table[i].npkey,
 					 &pubkey_table[i].nskey,
 					 &pubkey_table[i].nenc,
 					 &pubkey_table[i].nsig,
 					 &pubkey_table[i].use );
-    pubkey_table[i].generate	     = elg_generate;
-    pubkey_table[i].check_secret_key = elg_check_secret_key;
-    pubkey_table[i].encrypt	     = elg_encrypt;
-    pubkey_table[i].decrypt	     = elg_decrypt;
-    pubkey_table[i].sign	     = elg_sign;
-    pubkey_table[i].verify	     = elg_verify;
-    pubkey_table[i].get_nbits	     = elg_get_nbits;
+    pubkey_table[i].generate	     = _gcry_elg_generate;
+    pubkey_table[i].check_secret_key = _gcry_elg_check_secret_key;
+    pubkey_table[i].encrypt	     = _gcry_elg_encrypt;
+    pubkey_table[i].decrypt	     = _gcry_elg_decrypt;
+    pubkey_table[i].sign	     = _gcry_elg_sign;
+    pubkey_table[i].verify	     = _gcry_elg_verify;
+    pubkey_table[i].get_nbits	     = _gcry_elg_get_nbits;
     if( !pubkey_table[i].name )
 	BUG();
     i++;
     pubkey_table[i].algo = PUBKEY_ALGO_ELGAMAL_E;
-    pubkey_table[i].name = elg_get_info( pubkey_table[i].algo,
+    pubkey_table[i].name = _gcry_elg_get_info( pubkey_table[i].algo,
 					 &pubkey_table[i].npkey,
 					 &pubkey_table[i].nskey,
 					 &pubkey_table[i].nenc,
 					 &pubkey_table[i].nsig,
 					 &pubkey_table[i].use );
-    pubkey_table[i].generate	     = elg_generate;
-    pubkey_table[i].check_secret_key = elg_check_secret_key;
-    pubkey_table[i].encrypt	     = elg_encrypt;
-    pubkey_table[i].decrypt	     = elg_decrypt;
-    pubkey_table[i].sign	     = elg_sign;
-    pubkey_table[i].verify	     = elg_verify;
-    pubkey_table[i].get_nbits	     = elg_get_nbits;
+    pubkey_table[i].generate	     = _gcry_elg_generate;
+    pubkey_table[i].check_secret_key = _gcry_elg_check_secret_key;
+    pubkey_table[i].encrypt	     = _gcry_elg_encrypt;
+    pubkey_table[i].decrypt	     = _gcry_elg_decrypt;
+    pubkey_table[i].sign	     = _gcry_elg_sign;
+    pubkey_table[i].verify	     = _gcry_elg_verify;
+    pubkey_table[i].get_nbits	     = _gcry_elg_get_nbits;
     if( !pubkey_table[i].name )
 	BUG();
     i++;
     pubkey_table[i].algo = PUBKEY_ALGO_DSA;
-    pubkey_table[i].name = dsa_get_info( pubkey_table[i].algo,
+    pubkey_table[i].name = _gcry_dsa_get_info( pubkey_table[i].algo,
 					 &pubkey_table[i].npkey,
 					 &pubkey_table[i].nskey,
 					 &pubkey_table[i].nenc,
 					 &pubkey_table[i].nsig,
 					 &pubkey_table[i].use );
-    pubkey_table[i].generate	     = dsa_generate;
-    pubkey_table[i].check_secret_key = dsa_check_secret_key;
+    pubkey_table[i].generate	     = _gcry_dsa_generate;
+    pubkey_table[i].check_secret_key = _gcry_dsa_check_secret_key;
     pubkey_table[i].encrypt	     = dummy_encrypt;
     pubkey_table[i].decrypt	     = dummy_decrypt;
-    pubkey_table[i].sign	     = dsa_sign;
-    pubkey_table[i].verify	     = dsa_verify;
-    pubkey_table[i].get_nbits	     = dsa_get_nbits;
+    pubkey_table[i].sign	     = _gcry_dsa_sign;
+    pubkey_table[i].verify	     = _gcry_dsa_verify;
+    pubkey_table[i].get_nbits	     = _gcry_dsa_get_nbits;
     if( !pubkey_table[i].name )
 	BUG();
     i++;
 
     pubkey_table[i].algo = PUBKEY_ALGO_RSA;
-    pubkey_table[i].name = rsa_get_info( pubkey_table[i].algo,
+    pubkey_table[i].name = _gcry_rsa_get_info( pubkey_table[i].algo,
 					 &pubkey_table[i].npkey,
 					 &pubkey_table[i].nskey,
 					 &pubkey_table[i].nenc,
 					 &pubkey_table[i].nsig,
 					 &pubkey_table[i].use );
-    pubkey_table[i].generate	     = rsa_generate;
-    pubkey_table[i].check_secret_key = rsa_check_secret_key;
-    pubkey_table[i].encrypt	     = rsa_encrypt;
-    pubkey_table[i].decrypt	     = rsa_decrypt;
-    pubkey_table[i].sign	     = rsa_sign;
-    pubkey_table[i].verify	     = rsa_verify;
-    pubkey_table[i].get_nbits	     = rsa_get_nbits;
+    pubkey_table[i].generate	     = _gcry_rsa_generate;
+    pubkey_table[i].check_secret_key = _gcry_rsa_check_secret_key;
+    pubkey_table[i].encrypt	     = _gcry_rsa_encrypt;
+    pubkey_table[i].decrypt	     = _gcry_rsa_decrypt;
+    pubkey_table[i].sign	     = _gcry_rsa_sign;
+    pubkey_table[i].verify	     = _gcry_rsa_verify;
+    pubkey_table[i].get_nbits	     = _gcry_rsa_get_nbits;
     if( !pubkey_table[i].name )
 	BUG();
     i++;
     pubkey_table[i].algo = PUBKEY_ALGO_RSA_E;
-    pubkey_table[i].name = rsa_get_info( pubkey_table[i].algo,
+    pubkey_table[i].name = _gcry_rsa_get_info( pubkey_table[i].algo,
 					 &pubkey_table[i].npkey,
 					 &pubkey_table[i].nskey,
 					 &pubkey_table[i].nenc,
 					 &pubkey_table[i].nsig,
 					 &pubkey_table[i].use );
-    pubkey_table[i].generate	     = rsa_generate;
-    pubkey_table[i].check_secret_key = rsa_check_secret_key;
-    pubkey_table[i].encrypt	     = rsa_encrypt;
-    pubkey_table[i].decrypt	     = rsa_decrypt;
+    pubkey_table[i].generate	     = _gcry_rsa_generate;
+    pubkey_table[i].check_secret_key = _gcry_rsa_check_secret_key;
+    pubkey_table[i].encrypt	     = _gcry_rsa_encrypt;
+    pubkey_table[i].decrypt	     = _gcry_rsa_decrypt;
     pubkey_table[i].sign	     = dummy_sign;
     pubkey_table[i].verify	     = dummy_verify;
-    pubkey_table[i].get_nbits	     = rsa_get_nbits;
+    pubkey_table[i].get_nbits	     = _gcry_rsa_get_nbits;
     if( !pubkey_table[i].name )
 	BUG();
     i++;
     pubkey_table[i].algo = PUBKEY_ALGO_RSA_S;
-    pubkey_table[i].name = rsa_get_info( pubkey_table[i].algo,
+    pubkey_table[i].name = _gcry_rsa_get_info( pubkey_table[i].algo,
 					 &pubkey_table[i].npkey,
 					 &pubkey_table[i].nskey,
 					 &pubkey_table[i].nenc,
 					 &pubkey_table[i].nsig,
 					 &pubkey_table[i].use );
-    pubkey_table[i].generate	     = rsa_generate;
-    pubkey_table[i].check_secret_key = rsa_check_secret_key;
+    pubkey_table[i].generate	     = _gcry_rsa_generate;
+    pubkey_table[i].check_secret_key = _gcry_rsa_check_secret_key;
     pubkey_table[i].encrypt	     = dummy_encrypt;
     pubkey_table[i].decrypt	     = dummy_decrypt;
-    pubkey_table[i].sign	     = rsa_sign;
-    pubkey_table[i].verify	     = rsa_verify;
-    pubkey_table[i].get_nbits	     = rsa_get_nbits;
+    pubkey_table[i].sign	     = _gcry_rsa_sign;
+    pubkey_table[i].verify	     = _gcry_rsa_verify;
+    pubkey_table[i].get_nbits	     = _gcry_rsa_get_nbits;
     if( !pubkey_table[i].name )
 	BUG();
     i++;
@@ -276,7 +276,7 @@ load_pubkey_modules(void)
 
 
     if( !initialized ) {
-	cipher_modules_constructor();
+	_gcry_cipher_modules_constructor();
 	setup_pubkey_table();
 	initialized = 1;
 	return 1;
@@ -291,7 +291,7 @@ load_pubkey_modules(void)
     if( ct_idx >= TABLE_SIZE-1 )
 	BUG(); /* table already full */
     /* now load all extensions */
-    while( (name = enum_gnupgext_pubkeys( &context, &ct->algo,
+    while( (name = _gcry_enum_gnupgext_pubkeys( &context, &ct->algo,
 				&ct->npkey, &ct->nskey, &ct->nenc,
 				&ct->nsig,  &ct->use,
 				&ct->generate,
@@ -318,7 +318,7 @@ load_pubkey_modules(void)
 	if( !ct->verify    )  ct->verify   = dummy_verify;
 	if( !ct->get_nbits )  ct->get_nbits= dummy_get_nbits;
 	/* put it into the table */
-	if( g10_log_verbosity( 2 ) )
+	if( _gcry_log_verbosity( 2 ) )
 	    log_info("loaded pubkey %d (%s)\n", ct->algo, name);
 	ct->name = name;
 	ct_idx++;
@@ -330,7 +330,7 @@ load_pubkey_modules(void)
 	    break;
 	}
     }
-    enum_gnupgext_pubkeys( &context, NULL, NULL, NULL, NULL, NULL, NULL,
+    _gcry_enum_gnupgext_pubkeys( &context, NULL, NULL, NULL, NULL, NULL, NULL,
 			       NULL, NULL, NULL, NULL, NULL, NULL, NULL );
     return any;
 }
@@ -709,7 +709,7 @@ sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
     elems1 = algo_info_table[i].common_elements;
     elems2 = want_private? algo_info_table[i].secret_elements
 			 : algo_info_table[i].public_elements;
-    array = g10_calloc( strlen(elems1)+strlen(elems2)+1, sizeof *array );
+    array = gcry_calloc( strlen(elems1)+strlen(elems2)+1, sizeof *array );
     if( !array ) {
 	gcry_sexp_release ( list );
 	return GCRYERR_NO_MEM;
@@ -720,8 +720,8 @@ sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
 	l2 = gcry_sexp_find_token( list, s, 1 );
 	if( !l2 ) {
 	    for(i=0; i<idx; i++)
-		g10_free( array[i] );
-	    g10_free( array );
+		gcry_free( array[i] );
+	    gcry_free( array );
 	    gcry_sexp_release ( list );
 	    return GCRYERR_NO_OBJ; /* required parameter not found */
 	}
@@ -729,8 +729,8 @@ sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
 	gcry_sexp_release ( l2 );
 	if( !array[idx] ) {
 	    for(i=0; i<idx; i++)
-		g10_free( array[i] );
-	    g10_free( array );
+		gcry_free( array[i] );
+	    gcry_free( array );
 	    gcry_sexp_release ( list );
 	    return GCRYERR_INV_OBJ; /* required parameter is invalid */
 	}
@@ -739,8 +739,8 @@ sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
 	l2 = gcry_sexp_find_token( list, s, 1 );
 	if( !l2 ) {
 	    for(i=0; i<idx; i++)
-		g10_free( array[i] );
-	    g10_free( array );
+		gcry_free( array[i] );
+	    gcry_free( array );
 	    gcry_sexp_release ( list );
 	    return GCRYERR_NO_OBJ; /* required parameter not found */
 	}
@@ -748,8 +748,8 @@ sexp_to_key( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
 	gcry_sexp_release ( l2 );
 	if( !array[idx] ) {
 	    for(i=0; i<idx; i++)
-		g10_free( array[i] );
-	    g10_free( array );
+		gcry_free( array[i] );
+	    gcry_free( array );
 	    gcry_sexp_release ( list );
 	    return GCRYERR_INV_OBJ; /* required parameter is invalid */
 	}
@@ -798,7 +798,7 @@ sexp_to_sig( GCRY_SEXP sexp, MPI **retarray, int *retalgo)
     }
     algo = sig_info_table[i].algo;
     elems = sig_info_table[i].elements;
-    array = g10_calloc( (strlen(elems)+1) , sizeof *array );
+    array = gcry_calloc( (strlen(elems)+1) , sizeof *array );
     if( !array ) {
 	gcry_sexp_release ( list );
 	return GCRYERR_NO_MEM;
@@ -808,14 +808,14 @@ sexp_to_sig( GCRY_SEXP sexp, MPI **retarray, int *retalgo)
     for(s=elems; *s; s++, idx++ ) {
 	l2 = gcry_sexp_find_token( list, s, 1 );
 	if( !l2 ) {
-	    g10_free( array );
+	    gcry_free( array );
 	    gcry_sexp_release ( list );
 	    return GCRYERR_NO_OBJ; /* required parameter not found */
 	}
 	array[idx] = gcry_sexp_nth_mpi( l2, 1, GCRYMPI_FMT_USG );
 	gcry_sexp_release ( l2 );
 	if( !array[idx] ) {
-	    g10_free( array );
+	    gcry_free( array );
 	    gcry_sexp_release ( list );
 	    return GCRYERR_INV_OBJ; /* required parameter is invalid */
 	}
@@ -872,7 +872,7 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo)
 
     algo = enc_info_table[i].algo;
     elems = enc_info_table[i].elements;
-    array = g10_calloc( (strlen(elems)+1) , sizeof *array );
+    array = gcry_calloc( (strlen(elems)+1) , sizeof *array );
     if( !array ) {
 	gcry_sexp_release ( list );
 	return GCRYERR_NO_MEM;
@@ -882,14 +882,14 @@ sexp_to_enc( GCRY_SEXP sexp, MPI **retarray, int *retalgo)
     for(s=elems; *s; s++, idx++ ) {
 	l2 = gcry_sexp_find_token( list, s, 1 );
 	if( !l2 ) {
-	    g10_free( array );
+	    gcry_free( array );
 	    gcry_sexp_release ( list );
 	    return GCRYERR_NO_OBJ; /* required parameter not found */
 	}
 	array[idx] = gcry_sexp_nth_mpi( l2, 1, GCRYMPI_FMT_USG );
 	gcry_sexp_release ( l2 );
 	if( !array[idx] ) {
-	    g10_free( array );
+	    gcry_free( array );
 	    gcry_sexp_release ( list );
 	    return GCRYERR_INV_OBJ; /* required parameter is invalid */
 	}
@@ -954,13 +954,13 @@ gcry_pk_encrypt( GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey )
     }
 
     /* Now we can encrypt data to ciph */
-    ciph = g10_xcalloc( (strlen(algo_elems)+1) , sizeof *ciph );
+    ciph = gcry_xcalloc( (strlen(algo_elems)+1) , sizeof *ciph );
     rc = pubkey_encrypt( algo, ciph, data, pkey );
     release_mpi_array( pkey );
     mpi_free( data );
     if( rc ) {
 	release_mpi_array( ciph );
-	g10_free( ciph );
+	gcry_free( ciph );
 	return rc;
     }
 
@@ -973,7 +973,7 @@ gcry_pk_encrypt( GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey )
 	for(nelem=0; algo_elems[nelem]; nelem++ )
 	    needed += 10; /* 6 + a safety margin */
 	/* build the string */
-	string = p = g10_xmalloc ( needed );
+	string = p = gcry_xmalloc ( needed );
 	p = stpcpy ( p, "(enc-val(" );
 	p = stpcpy ( p, algo_name );
 	for(i=0; algo_elems[i]; i++ ) {
@@ -1008,10 +1008,10 @@ gcry_pk_encrypt( GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey )
 	}
 	if ( rc )
 	    BUG ();
-	g10_free ( string );
+	gcry_free ( string );
     }
     release_mpi_array( ciph );
-    g10_free( ciph );
+    gcry_free( ciph );
 
 
     return 0;
@@ -1127,12 +1127,12 @@ gcry_pk_sign( GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey )
 	release_mpi_array( skey );
 	return -1; /* fixme: get a real errorcode for this */
     }
-    result = g10_xcalloc( (strlen(algo_elems)+1) , sizeof *result );
+    result = gcry_xcalloc( (strlen(algo_elems)+1) , sizeof *result );
     rc = pubkey_sign( algo, result, hash, skey );
     release_mpi_array( skey );
     mpi_free( hash );
     if( rc ) {
-	g10_free( result );
+	gcry_free( result );
 	return rc;
     }
 
@@ -1144,7 +1144,7 @@ gcry_pk_sign( GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey )
 	for(nelem=0; algo_elems[nelem]; nelem++ )
 	    needed += 10; /* 6 + a safety margin */
 	/* build the string */
-	string = p = g10_xmalloc ( needed );
+	string = p = gcry_xmalloc ( needed );
 	p = stpcpy ( p, "(sig-val(" );
 	p = stpcpy ( p, algo_name );
 	for(i=0; algo_elems[i]; i++ ) {
@@ -1179,10 +1179,10 @@ gcry_pk_sign( GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey )
 	}
 	if ( rc )
 	    BUG ();
-	g10_free ( string );
+	gcry_free ( string );
     }
     release_mpi_array( result );
-    g10_free( result );
+    gcry_free( result );
 
     return 0;
 }
@@ -1345,11 +1345,11 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
 	return GCRYERR_INV_OBJ; /* nbits without a cdr */
     }
     {
-	char *p = g10_xmalloc(n+1);
+	char *p = gcry_xmalloc(n+1);
 	memcpy(p, name, n );
 	p[n] = 0;
 	nbits = (unsigned int)strtol( p, NULL, 0 );
-	g10_free( p );
+	gcry_free( p );
     }
     gcry_sexp_release ( list );
 
@@ -1377,7 +1377,7 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
 
 	/* build the string */
 	nelem = 0;
-	string = p = g10_xmalloc ( needed );
+	string = p = gcry_xmalloc ( needed );
 	p = stpcpy ( p, "(key-data" );
 
 	p = stpcpy ( p, "(public-key(" );
@@ -1426,7 +1426,7 @@ gcry_pk_genkey( GCRY_SEXP *r_key, GCRY_SEXP s_parms )
 		  ) )
 	    BUG ();
 	assert ( DIM(mpis) == 30 );
-	g10_free ( string );
+	gcry_free ( string );
     }
     release_mpi_array ( skey );
     release_mpi_array ( factors );

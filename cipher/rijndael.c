@@ -1,5 +1,5 @@
 /* Rijndael (AES) for GnuPG
- *	Copyright (C) 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -2093,7 +2093,7 @@ selftest (void)
 static
 #endif
        const char *
-rijndael_get_info (int algo, size_t *keylen,
+_gcry_rijndael_get_info (int algo, size_t *keylen,
 		  size_t *blocksize, size_t *contextsize,
 		  int  (**r_setkey) (void *c, byte *key, unsigned keylen),
 		  void (**r_encrypt) (void *c, byte *outbuf, byte *inbuf),
@@ -2130,7 +2130,7 @@ static struct {
     int  value;
     void (*func)(void);
 } func_table[] = {
-    { 20, 1, 0, (void(*)(void))rijndael_get_info },
+    { 20, 1, 0, (void(*)(void))_gcry_rijndael_get_info },
     { 21, 1, 7  },
     { 21, 1, 8  },
     { 21, 1, 9  },

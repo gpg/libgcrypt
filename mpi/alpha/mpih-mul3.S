@@ -23,7 +23,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_submul_1( mpi_ptr_t res_ptr,      (r16   )
+ * _gcry_mpih_submul_1( mpi_ptr_t res_ptr,      (r16   )
  *		     mpi_ptr_t s1_ptr,	     (r17   )
  *		     mpi_size_t s1_size,     (r18   )
  *		     mpi_limb_t s2_limb)     (r19   )
@@ -35,9 +35,9 @@
 	.set	noat
 .text
 	.align	3
-	.globl	mpihelp_submul_1
-	.ent	mpihelp_submul_1 2
-mpihelp_submul_1:
+	.globl	_gcry_mpih_submul_1
+	.ent	_gcry_mpih_submul_1 2
+_gcry_mpih_submul_1:
 	.frame	$30,0,$26
 
 	ldq	$2,0($17)	# $2 = s1_limb
@@ -91,5 +91,5 @@ mpihelp_submul_1:
 	addq	$0,$5,$0
 	ret	$31,($26),1
 
-	.end	mpihelp_submul_1
+	.end	_gcry_mpih_submul_1
 

@@ -1,5 +1,5 @@
-/* dynload.5
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+/* dynload.h
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -23,11 +23,11 @@
 #include "mpi.h"
 
 
-void register_internal_cipher_extension( const char *module_id,
+void _gcry_register_internal_cipher_extension( const char *module_id,
 			      void * (*enumfunc)(int, int*, int*, int*) );
 
 int
-enum_gnupgext_digests( void **enum_context,
+_gcry_enum_gnupgext_digests( void **enum_context,
 	    int *algo,
 	    const char *(**r_get_info)( int, size_t*,byte**, int*, int*,
 				       void (**)(void*),
@@ -35,7 +35,7 @@ enum_gnupgext_digests( void **enum_context,
 				       void (**)(void*),byte *(**)(void*)) );
 
 const char *
-enum_gnupgext_ciphers( void **enum_context, int *algo,
+_gcry_enum_gnupgext_ciphers( void **enum_context, int *algo,
 		       size_t *keylen, size_t *blocksize, size_t *contextsize,
 		       int  (**setkeyf)( void *c, byte *key, unsigned keylen ),
 		       void (**encryptf)( void *c, byte *outbuf, byte *inbuf ),
@@ -44,7 +44,7 @@ enum_gnupgext_ciphers( void **enum_context, int *algo,
 
 
 const char *
-enum_gnupgext_pubkeys( void **enum_context, int *algo,
+_gcry_enum_gnupgext_pubkeys( void **enum_context, int *algo,
     int *npkey, int *nskey, int *nenc, int *nsig, int *use,
     int (**generate)( int algo, unsigned nbits, MPI *skey, MPI **retfactors ),
     int (**check_secret_key)( int algo, MPI *skey ),
@@ -56,13 +56,13 @@ enum_gnupgext_pubkeys( void **enum_context, int *algo,
     unsigned (**get_nbits)( int algo, MPI *pkey ) );
 
 
-int (*dynload_getfnc_gather_random(void))( void (*)(const void*, size_t, int),
+int (*_gcry_dynload_getfnc_gather_random(void))( void (*)(const void*, size_t, int),
 					   int, size_t, int);
-void (*dynload_getfnc_fast_random_poll(void)
+void (*_gcry_dynload_getfnc_fast_random_poll(void)
 				)( void (*)(const void*, size_t, int), int );
 
 
 /** This function is in construct.c **/
-void cipher_modules_constructor(void);
+void _gcry_cipher_modules_constructor(void);
 
 #endif /*G10_CIPHER_DYNLOAD_H*/

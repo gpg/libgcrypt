@@ -977,7 +977,7 @@ do_tripledes_decrypt( struct _tripledes_ctx *ctx, byte *outbuf, byte *inbuf )
  *	    the ALGO is invalid.
  */
 const char *
-des_get_info( int algo, size_t *keylen,
+_gcry_des_get_info( int algo, size_t *keylen,
 		   size_t *blocksize, size_t *contextsize,
 		   int	(**r_setkey)( void *c, byte *key, unsigned keylen ),
 		   void (**r_encrypt)( void *c, byte *outbuf, byte *inbuf ),

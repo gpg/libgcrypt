@@ -104,7 +104,7 @@ setup_cipher_table(void)
     
     i = 0;
     cipher_table[i].algo = GCRY_CIPHER_RIJNDAEL;
-    cipher_table[i].name = rijndael_get_info( cipher_table[i].algo,
+    cipher_table[i].name = _gcry_rijndael_get_info( cipher_table[i].algo,
 					 &cipher_table[i].keylen,
 					 &cipher_table[i].blocksize,
 					 &cipher_table[i].contextsize,
@@ -115,7 +115,7 @@ setup_cipher_table(void)
 	BUG();
     i++;
     cipher_table[i].algo = GCRY_CIPHER_RIJNDAEL192;
-    cipher_table[i].name = rijndael_get_info( cipher_table[i].algo,
+    cipher_table[i].name = _gcry_rijndael_get_info( cipher_table[i].algo,
 					 &cipher_table[i].keylen,
 					 &cipher_table[i].blocksize,
 					 &cipher_table[i].contextsize,
@@ -126,7 +126,7 @@ setup_cipher_table(void)
 	BUG();
     i++;
     cipher_table[i].algo = GCRY_CIPHER_RIJNDAEL256;
-    cipher_table[i].name = rijndael_get_info( cipher_table[i].algo,
+    cipher_table[i].name = _gcry_rijndael_get_info( cipher_table[i].algo,
 					 &cipher_table[i].keylen,
 					 &cipher_table[i].blocksize,
 					 &cipher_table[i].contextsize,
@@ -137,7 +137,7 @@ setup_cipher_table(void)
 	BUG();
     i++;
     cipher_table[i].algo = GCRY_CIPHER_TWOFISH;
-    cipher_table[i].name = twofish_get_info( cipher_table[i].algo,
+    cipher_table[i].name = _gcry_twofish_get_info( cipher_table[i].algo,
 					 &cipher_table[i].keylen,
 					 &cipher_table[i].blocksize,
 					 &cipher_table[i].contextsize,
@@ -148,7 +148,7 @@ setup_cipher_table(void)
 	BUG();
     i++;
     cipher_table[i].algo = GCRY_CIPHER_BLOWFISH;
-    cipher_table[i].name = blowfish_get_info( cipher_table[i].algo,
+    cipher_table[i].name = _gcry_blowfish_get_info( cipher_table[i].algo,
 					 &cipher_table[i].keylen,
 					 &cipher_table[i].blocksize,
 					 &cipher_table[i].contextsize,
@@ -159,7 +159,7 @@ setup_cipher_table(void)
 	BUG();
     i++;
     cipher_table[i].algo = GCRY_CIPHER_CAST5;
-    cipher_table[i].name = cast5_get_info( cipher_table[i].algo,
+    cipher_table[i].name = _gcry_cast5_get_info( cipher_table[i].algo,
 					 &cipher_table[i].keylen,
 					 &cipher_table[i].blocksize,
 					 &cipher_table[i].contextsize,
@@ -170,7 +170,7 @@ setup_cipher_table(void)
 	BUG();
     i++;
     cipher_table[i].algo = GCRY_CIPHER_3DES;
-    cipher_table[i].name = des_get_info( cipher_table[i].algo,
+    cipher_table[i].name = _gcry_des_get_info( cipher_table[i].algo,
 					 &cipher_table[i].keylen,
 					 &cipher_table[i].blocksize,
 					 &cipher_table[i].contextsize,
@@ -181,7 +181,7 @@ setup_cipher_table(void)
 	BUG();
     i++;
     cipher_table[i].algo = GCRY_CIPHER_ARCFOUR;
-    cipher_table[i].name = arcfour_get_info( cipher_table[i].algo,
+    cipher_table[i].name = _gcry_arcfour_get_info( cipher_table[i].algo,
 					 &cipher_table[i].keylen,
 					 &cipher_table[i].blocksize,
 					 &cipher_table[i].contextsize,
@@ -220,7 +220,7 @@ load_cipher_modules(void)
     int any = 0;
 
     if( !initialized ) {
-	cipher_modules_constructor();
+	_gcry_cipher_modules_constructor();
 	setup_cipher_table(); /* load static modules on the first call */
 	initialized = 1;
 	return 1;
@@ -237,7 +237,7 @@ load_cipher_modules(void)
     if( ct_idx >= TABLE_SIZE-1 )
 	BUG(); /* table already full */
     /* now load all extensions */
-    while( (name = enum_gnupgext_ciphers( &context, &ct->algo,
+    while( (name = _gcry_enum_gnupgext_ciphers( &context, &ct->algo,
 				&ct->keylen, &ct->blocksize, &ct->contextsize,
 				&ct->setkey, &ct->encrypt, &ct->decrypt)) ) {
 	if( ct->blocksize != 8 && ct->blocksize != 16 ) {
@@ -252,7 +252,7 @@ load_cipher_modules(void)
 	    continue;
 	}
 	/* put it into the table */
-	if( g10_log_verbosity( 2 ) )
+	if( _gcry_log_verbosity( 2 ) )
 	    log_info("loaded cipher %d (%s)\n", ct->algo, name);
 	ct->name = name;
 	ct_idx++;
@@ -264,7 +264,7 @@ load_cipher_modules(void)
 	    break;
 	}
     }
-    enum_gnupgext_ciphers( &context, NULL, NULL, NULL, NULL,
+    _gcry_enum_gnupgext_ciphers( &context, NULL, NULL, NULL, NULL,
 					   NULL, NULL, NULL );
     return any;
 }
@@ -461,10 +461,10 @@ gcry_cipher_open( int algo, int mode, unsigned int flags )
 
     /* ? perform selftest here and mark this with a flag in cipher_table ? */
 
-    h = secure ? g10_calloc_secure( 1, sizeof *h
+    h = secure ? gcry_calloc_secure( 1, sizeof *h
 				       + cipher_table[idx].contextsize
 				       - sizeof(PROPERLY_ALIGNED_TYPE) )
-	       : g10_calloc( 1, sizeof *h + cipher_table[idx].contextsize
+	       : gcry_calloc( 1, sizeof *h + cipher_table[idx].contextsize
                                        - sizeof(PROPERLY_ALIGNED_TYPE)  );
     if( !h ) {
 	set_lasterr( GCRYERR_NO_MEM );
@@ -491,10 +491,10 @@ gcry_cipher_close( GCRY_CIPHER_HD h )
     if( !h )
 	return;
     if( h->magic != CTX_MAGIC_SECURE && h->magic != CTX_MAGIC_NORMAL )
-	g10_fatal_error(GCRYERR_INTERNAL,
+	_gcry_fatal_error(GCRYERR_INTERNAL,
 			"gcry_cipher_close: already closed/invalid handle");
     h->magic = 0;
-    g10_free(h);
+    gcry_free(h);
 }
 
 

@@ -1,5 +1,5 @@
 /* elgamal.c  -  ElGamal Public Key encryption
- *	Copyright (C) 1998, 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2000, 2001 Free Software Foundation, Inc.
  *
  * For a description of the algorithm, see:
  *   Bruce Schneier: Applied Cryptography. John Wiley & Sons, 1996.
@@ -60,7 +60,7 @@ static void (*progress_cb) ( void *, int );
 static void *progress_cb_data;
 
 void
-register_pk_elg_progress ( void (*cb)( void *, int), void *cb_data )
+_gcry_register_pk_elg_progress ( void (*cb)( void *, int), void *cb_data )
 {
     progress_cb = cb;
     progress_cb_data = cb_data;
@@ -176,7 +176,7 @@ gen_k( MPI p )
     mpi_sub_ui( p_1, p, 1);
     for(;;) {
 	if( !rndbuf || nbits < 32 ) {
-	    g10_free(rndbuf);
+	    gcry_free(rndbuf);
 	    rndbuf = gcry_random_bytes_secure( nbytes, GCRY_STRONG_RANDOM );
 	}
 	else { /* change only some of the higher bits */
@@ -187,10 +187,10 @@ gen_k( MPI p )
 	     */
 	    char *pp = gcry_random_bytes_secure( 4, GCRY_STRONG_RANDOM );
 	    memcpy( rndbuf, pp, 4 );
-	    g10_free(pp);
+	    gcry_free(pp);
 	    log_debug("gen_k: tsss, never expected to reach this\n");
 	}
-	mpi_set_buffer( k, rndbuf, nbytes, 0 );
+	_gcry_mpi_set_buffer( k, rndbuf, nbytes, 0 );
 
 	for(;;) {
 	    /* Hmm, actually we don't need this step here
@@ -206,7 +206,7 @@ gen_k( MPI p )
 		    progress('-');
 		break; /* no */
 	    }
-	    if( mpi_gcd( temp, k, p_1 ) )
+	    if( gcry_mpi_gcd( temp, k, p_1 ) )
 		goto found;  /* okay, k is relatively prime to (p-1) */
 	    mpi_add_ui( k, k, 1 );
 	    if( DBG_CIPHER )
@@ -214,7 +214,7 @@ gen_k( MPI p )
 	}
     }
   found:
-    g10_free(rndbuf);
+    gcry_free(rndbuf);
     if( DBG_CIPHER )
 	progress('\n');
     mpi_free(p_1);
@@ -247,7 +247,7 @@ generate(  ELG_secret_key *sk, unsigned int nbits, MPI **ret_factors )
     if( qbits & 1 ) /* better have a even one */
 	qbits++;
     g = mpi_alloc(1);
-    p = generate_elg_prime( 0, nbits, qbits, g, ret_factors );
+    p = _gcry_generate_elg_prime( 0, nbits, qbits, g, ret_factors );
     mpi_sub_ui(p_min1, p, 1);
 
 
@@ -274,7 +274,7 @@ generate(  ELG_secret_key *sk, unsigned int nbits, MPI **ret_factors )
 	    progress('.');
 	if( rndbuf ) { /* change only some of the higher bits */
 	    if( xbits < 16 ) {/* should never happen ... */
-		g10_free(rndbuf);
+		gcry_free(rndbuf);
 		rndbuf = gcry_random_bytes_secure( (xbits+7)/8,
 						   GCRY_VERY_STRONG_RANDOM );
 	    }
@@ -282,17 +282,17 @@ generate(  ELG_secret_key *sk, unsigned int nbits, MPI **ret_factors )
 		char *r = gcry_random_bytes_secure( 2,
 						   GCRY_VERY_STRONG_RANDOM );
 		memcpy(rndbuf, r, 2 );
-		g10_free(r);
+		gcry_free(r);
 	    }
 	}
 	else {
 	    rndbuf = gcry_random_bytes_secure( (xbits+7)/8,
 					       GCRY_VERY_STRONG_RANDOM );
 	}
-	mpi_set_buffer( x, rndbuf, (xbits+7)/8, 0 );
+	_gcry_mpi_set_buffer( x, rndbuf, (xbits+7)/8, 0 );
 	mpi_clear_highbit( x, xbits+1 );
     } while( !( mpi_cmp_ui( x, 0 )>0 && mpi_cmp( x, p_min1 )<0 ) );
-    g10_free(rndbuf);
+    gcry_free(rndbuf);
 
     y = gcry_mpi_new (nbits);
     gcry_mpi_powm( y, g, x, p );
@@ -354,7 +354,7 @@ do_encrypt(MPI a, MPI b, MPI input, ELG_public_key *pkey )
      *	 = ((y^k mod p) * input) mod p
      */
     gcry_mpi_powm( b, pkey->y, k, pkey->p );
-    mpi_mulm( b, b, input, pkey->p );
+    gcry_mpi_mulm( b, b, input, pkey->p );
   #if 0
     if( DBG_CIPHER ) {
 	log_mpidump("elg encrypted y= ", pkey->y);
@@ -499,7 +499,7 @@ verify(MPI a, MPI b, MPI input, ELG_public_key *pkey )
  *********************************************/
 
 int
-elg_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
+_gcry_elg_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
 {
     ELG_secret_key sk;
 
@@ -516,7 +516,7 @@ elg_generate( int algo, unsigned nbits, MPI *skey, MPI **retfactors )
 
 
 int
-elg_check_secret_key( int algo, MPI *skey )
+_gcry_elg_check_secret_key( int algo, MPI *skey )
 {
     ELG_secret_key sk;
 
@@ -538,7 +538,7 @@ elg_check_secret_key( int algo, MPI *skey )
 
 
 int
-elg_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
+_gcry_elg_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
 {
     ELG_public_key pk;
 
@@ -557,7 +557,7 @@ elg_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey )
 }
 
 int
-elg_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
+_gcry_elg_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
 {
     ELG_secret_key sk;
 
@@ -577,7 +577,7 @@ elg_decrypt( int algo, MPI *result, MPI *data, MPI *skey )
 }
 
 int
-elg_sign( int algo, MPI *resarr, MPI data, MPI *skey )
+_gcry_elg_sign( int algo, MPI *resarr, MPI data, MPI *skey )
 {
     ELG_secret_key sk;
 
@@ -597,7 +597,7 @@ elg_sign( int algo, MPI *resarr, MPI data, MPI *skey )
 }
 
 int
-elg_verify( int algo, MPI hash, MPI *data, MPI *pkey,
+_gcry_elg_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 		    int (*cmp)(void *, MPI), void *opaquev )
 {
     ELG_public_key pk;
@@ -619,7 +619,7 @@ elg_verify( int algo, MPI hash, MPI *data, MPI *pkey,
 
 
 unsigned int
-elg_get_nbits( int algo, MPI *pkey )
+_gcry_elg_get_nbits( int algo, MPI *pkey )
 {
     if( !is_ELGAMAL(algo) )
 	return 0;
@@ -639,7 +639,7 @@ elg_get_nbits( int algo, MPI *pkey )
  * is done in the gnupg ocde depending on the packet version.
  */
 const char *
-elg_get_info( int algo, int *npkey, int *nskey, int *nenc, int *nsig,
+_gcry_elg_get_info( int algo, int *npkey, int *nskey, int *nenc, int *nsig,
 							 int *use )
 {
     *npkey = 3;

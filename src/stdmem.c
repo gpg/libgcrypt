@@ -47,7 +47,7 @@ static int use_m_guard = 1;
  * here have been used.
  */
 void
-g10_private_enable_m_guard(void)
+_gcry_private_enable_m_guard(void)
 {
     use_m_guard = 1;
 }
@@ -57,7 +57,7 @@ g10_private_enable_m_guard(void)
  * Return NULL if we are out of memory.
  */
 void *
-g10_private_malloc( size_t n)
+_gcry_private_malloc( size_t n)
 {
     if( use_m_guard ) {
 	char *p;
@@ -81,12 +81,12 @@ g10_private_malloc( size_t n)
  * Return NULL if we are out of memory.
  */
 void *
-g10_private_malloc_secure( size_t n)
+_gcry_private_malloc_secure( size_t n)
 {
     if( use_m_guard ) {
 	char *p;
 
-	if( !(p = secmem_malloc( n +EXTRA_ALIGN+ 5 )) )
+	if( !(p = _gcry_secmem_malloc( n +EXTRA_ALIGN+ 5 )) )
 	    return NULL;
 	((byte*)p)[EXTRA_ALIGN+0] = n;
 	((byte*)p)[EXTRA_ALIGN+1] = n >> 8 ;
@@ -96,7 +96,7 @@ g10_private_malloc_secure( size_t n)
 	return p+EXTRA_ALIGN+4;
     }
     else {
-	return secmem_malloc( n );
+	return _gcry_secmem_malloc( n );
     }
 }
 
@@ -106,32 +106,32 @@ g10_private_malloc_secure( size_t n)
  * Return NULL if there is not enoug memory.
  */
 void *
-g10_private_realloc( void *a, size_t n )
+_gcry_private_realloc( void *a, size_t n )
 {
     if( use_m_guard ) {
 	unsigned char *p = a;
 	void *b;
 	size_t len;
 
-	g10_private_check_heap(p);
+	_gcry_private_check_heap(p);
 	len  = p[-4];
 	len |= p[-3] << 8;
 	len |= p[-2] << 16;
 	if( len >= n ) /* we don't shrink for now */
 	    return a;
 	if( p[-1] == MAGIC_SEC_BYTE )
-	    b = g10_private_malloc_secure(n);
+	    b = _gcry_private_malloc_secure(n);
 	else
-	    b = g10_private_malloc(n);
+	    b = _gcry_private_malloc(n);
 	if( !b )
 	    return NULL;
 	memcpy(b, a, len );
 	memset(b+len, 0, n-len );
-	g10_private_free( p );
+	_gcry_private_free( p );
 	return b;
     }
-    else if( g10_private_is_secure(a) ) {
-	return secmem_realloc( a, n );
+    else if( _gcry_private_is_secure(a) ) {
+	return _gcry_secmem_realloc( a, n );
     }
     else {
 	return realloc( a, n );
@@ -140,7 +140,7 @@ g10_private_realloc( void *a, size_t n )
 
 
 void
-g10_private_check_heap( const void *a )
+_gcry_private_check_heap( const void *a )
 {
     if( use_m_guard ) {
 	const byte *p = a;
@@ -150,12 +150,12 @@ g10_private_check_heap( const void *a )
 	    return;
 
 	if( !(p[-1] == MAGIC_NOR_BYTE || p[-1] == MAGIC_SEC_BYTE) )
-	    g10_log_fatal("memory at %p corrupted (underflow=%02x)\n", p, p[-1] );
+	    _gcry_log_fatal("memory at %p corrupted (underflow=%02x)\n", p, p[-1] );
 	len  = p[-4];
 	len |= p[-3] << 8;
 	len |= p[-2] << 16;
 	if( p[len] != MAGIC_END_BYTE )
-	    g10_log_fatal("memory at %p corrupted (overflow=%02x)\n", p, p[-1] );
+	    _gcry_log_fatal("memory at %p corrupted (overflow=%02x)\n", p, p[-1] );
     }
 }
 
@@ -163,22 +163,22 @@ g10_private_check_heap( const void *a )
  * Free a memory block allocated by this opr the secmem module
  */
 void
-g10_private_free( void *a )
+_gcry_private_free( void *a )
 {
     byte *p = a;
 
     if( !p )
 	return;
     if( use_m_guard ) {
-	g10_private_check_heap(p);
-	if( g10_private_is_secure(a) )
-	    secmem_free(p-EXTRA_ALIGN-4);
+	_gcry_private_check_heap(p);
+	if( _gcry_private_is_secure(a) )
+	    _gcry_secmem_free(p-EXTRA_ALIGN-4);
 	else {
 	    free(p-EXTRA_ALIGN-4);
 	}
     }
-    else if( g10_private_is_secure(a) )
-	secmem_free(p);
+    else if( _gcry_private_is_secure(a) )
+	_gcry_secmem_free(p);
     else
 	free(p);
 }

@@ -1,5 +1,5 @@
 /* primegen.c - prime number generator
- *	Copyright (C) 1998, 2000 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2000, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -42,7 +42,7 @@ static void (*progress_cb) ( void *, int );
 static void *progress_cb_data;
 
 void
-register_primegen_progress ( void (*cb)( void *, int), void *cb_data )
+_gcry_register_primegen_progress ( void (*cb)( void *, int), void *cb_data )
 {
     progress_cb = cb;
     progress_cb_data = cb_data;
@@ -63,7 +63,7 @@ progress( int c )
  * Generate a prime number (stored in secure memory)
  */
 MPI
-generate_secret_prime( unsigned  nbits )
+_gcry_generate_secret_prime( unsigned  nbits )
 {
     MPI prime;
 
@@ -73,7 +73,7 @@ generate_secret_prime( unsigned  nbits )
 }
 
 MPI
-generate_public_prime( unsigned  nbits )
+_gcry_generate_public_prime( unsigned  nbits )
 {
     MPI prime;
 
@@ -93,7 +93,7 @@ generate_public_prime( unsigned  nbits )
  *	1: Make sure that at least one factor is of size qbits.
  */
 MPI
-generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
+_gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 		    MPI g, MPI **ret_factors )
 {
     int n;  /* number of factors */
@@ -134,7 +134,7 @@ generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
     q_factor = mode==1? gen_prime( req_qbits, 0, 0 ) : NULL;
 
     /* allocate an array to hold the factors + 2 for later usage */
-    factors = g10_xcalloc( n+2, sizeof *factors );
+    factors = gcry_xcalloc( n+2, sizeof *factors );
 
     /* make a pool of 3n+5 primes (this is an arbitrary value) */
     m = n*3+5;
@@ -142,7 +142,7 @@ generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 	m += 5; /* need some more for DSA */
     if( m < 25 )
 	m = 25;
-    pool = g10_xcalloc( m , sizeof *pool );
+    pool = gcry_xcalloc( m , sizeof *pool );
 
     /* permutate over the pool of primes */
     count1=count2=0;
@@ -155,7 +155,7 @@ generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 		pool[i] = NULL;
 	    }
 	    /* init m_out_of_n() */
-	    perms = g10_xcalloc( 1, m );
+	    perms = gcry_xcalloc( 1, m );
 	    for(i=0; i < n; i++ ) {
 		perms[i] = 1;
 		pool[i] = gen_prime( fbits, 0, 1 );
@@ -171,7 +171,7 @@ generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 		    factors[j++] = pool[i];
 		}
 	    if( i == n ) {
-		g10_free(perms); perms = NULL;
+		gcry_free(perms); perms = NULL;
 		progress('!');
 		goto next_try;	/* allocate new primes */
 	    }
@@ -226,7 +226,7 @@ generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
     }
 
     if( ret_factors ) { /* caller wants the factors */
-	*ret_factors = g10_xcalloc( n+2 , sizeof **ret_factors);
+	*ret_factors = gcry_xcalloc( n+2 , sizeof **ret_factors);
 	if( mode == 1 ) {
 	    i = 0;
 	    (*ret_factors)[i++] = mpi_copy( q_factor );
@@ -278,11 +278,11 @@ generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
     if( !DBG_CIPHER )
 	progress('\n');
 
-    g10_free( factors );  /* (factors are shallow copies) */
+    gcry_free( factors );  /* (factors are shallow copies) */
     for(i=0; i < m; i++ )
 	mpi_free( pool[i] );
-    g10_free( pool );
-    g10_free(perms);
+    gcry_free( pool );
+    gcry_free(perms);
     mpi_free(val_2);
     return prime;
 }
@@ -305,7 +305,7 @@ gen_prime( unsigned  nbits, int secret, int randomlevel )
 	for(i=0; small_prime_numbers[i]; i++ )
 	    no_of_small_prime_numbers++;
     }
-    mods = g10_xmalloc( no_of_small_prime_numbers * sizeof *mods );
+    mods = gcry_xmalloc( no_of_small_prime_numbers * sizeof *mods );
     /* make nbits fit into MPI implementation */
     val_2  = mpi_alloc_set_ui( 2 );
     val_3 = mpi_alloc_set_ui( 3);
@@ -361,7 +361,7 @@ gen_prime( unsigned  nbits, int secret, int randomlevel )
 		    mpi_free(result);
 		    mpi_free(pminus1);
 		    mpi_free(prime);
-		    g10_free(mods);
+		    gcry_free(mods);
 		    return ptest;
 		}
 	    }

@@ -1,5 +1,5 @@
 /* rndlinux.c  -  raw random number for OSes with /dev/random
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -56,7 +56,7 @@ get_entropy_count( int fd )
     ulong count;
 
     if( ioctl( fd, RNDGETENTCNT, &count ) == -1 )
-	g10_log_fatal("ioctl(RNDGETENTCNT) failed: %s\n", strerror(errno) );
+	log_fatal("ioctl(RNDGETENTCNT) failed: %s\n", strerror(errno) );
     return count;
 }
 #endif
@@ -73,12 +73,12 @@ open_device( const char *name, int minor )
 
     fd = open( name, O_RDONLY );
     if( fd == -1 )
-	g10_log_fatal("can't open %s: %s\n", name, strerror(errno) );
+	log_fatal("can't open %s: %s\n", name, strerror(errno) );
     if( fstat( fd, &sb ) )
-	g10_log_fatal("stat() off %s failed: %s\n", name, strerror(errno) );
+	log_fatal("stat() off %s failed: %s\n", name, strerror(errno) );
     /* Don't check device type for better portability */
     /*  if( (!S_ISCHR(sb.st_mode)) && (!S_ISFIFO(sb.st_mode)) )
-	  g10_log_fatal("invalid random device!\n" ); */
+	  log_fatal("invalid random device!\n" ); */
     return fd;
 }
 
@@ -107,7 +107,7 @@ gather_random( void (*add)(const void*, size_t, int), int requester,
 
   #if 0
   #ifdef HAVE_DEV_RANDOM_IOCTL
-    g10_log_info("entropy count of %d is %lu\n", fd, get_entropy_count(fd) );
+    log_info("entropy count of %d is %lu\n", fd, get_entropy_count(fd) );
   #endif
   #endif
     while( length ) {
@@ -138,12 +138,12 @@ _("\n"
 	    int nbytes = length < sizeof(buffer)? length : sizeof(buffer);
 	    n = read(fd, buffer, nbytes );
 	    if( n >= 0 && n > nbytes ) {
-		g10_log_error("bogus read from random device (n=%d)\n", n );
+		log_error("bogus read from random device (n=%d)\n", n );
 		n = nbytes;
 	    }
 	} while( n == -1 && errno == EINTR );
 	if( n == -1 )
-	    g10_log_fatal("read error on random device: %s\n", strerror(errno));
+	    log_fatal("read error on random device: %s\n", strerror(errno));
 	(*add)( buffer, n, requester );
 	length -= n;
     }
@@ -212,9 +212,9 @@ gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
 
 #ifndef IS_MODULE
 void
-rndlinux_constructor(void)
+_gcry_rndlinux_constructor(void)
 {
-    register_internal_cipher_extension( gnupgext_version,
+    _gcry_register_internal_cipher_extension( gnupgext_version,
 					gnupgext_enum_func );
 }
 #endif

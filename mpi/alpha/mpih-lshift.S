@@ -32,7 +32,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_lshift( mpi_ptr_t wp,	(r16)
+ * _gcry_mpih_lshift( mpi_ptr_t wp,	(r16)
  *		   mpi_ptr_t up,	(r17)
  *		   mpi_size_t usize,	(r18)
  *		   unsigned cnt)	(r19)
@@ -52,9 +52,9 @@
 	.set	noat
 .text
 	.align	3
-	.globl	mpihelp_lshift
-	.ent	mpihelp_lshift
-mpihelp_lshift:
+	.globl	_gcry_mpih_lshift
+	.ent	_gcry_mpih_lshift
+_gcry_mpih_lshift:
 	.frame	$30,0,$26,0
 
 	s8addq	$18,$17,$17	# make r17 point at end of s1
@@ -118,6 +118,6 @@ mpihelp_lshift:
 .Lend:	sll	$4,$19,$8
 	stq	$8,-8($16)
 	ret	$31,($26),1
-	.end	mpihelp_lshift
+	.end	_gcry_mpih_lshift
 
 

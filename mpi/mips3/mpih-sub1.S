@@ -24,7 +24,7 @@
 
 /*******************
  *  mpi_limb_t
- *  mpihelp_sub_n( mpi_ptr_t res_ptr,	(r4)
+ *  _gcry_mpih_sub_n( mpi_ptr_t res_ptr,	(r4)
  *		   mpi_ptr_t s1_ptr,	(r5)
  *		   mpi_ptr_t s2_ptr,	(r6)
  *		   mpi_size_t size)	(r7)
@@ -33,9 +33,9 @@
 
 	.text
 	.align	2
-	.globl	mpihelp_sub_n
-	.ent	mpihelp_sub_n
-mpihelp_sub_n:
+	.globl	_gcry_mpih_sub_n
+	.ent	_gcry_mpih_sub_n
+_gcry_mpih_sub_n:
 	.set	noreorder
 	.set	nomacro
 
@@ -121,5 +121,5 @@ mpihelp_sub_n:
 	j	$31
 	or	$2,$2,$8
 
-	.end	mpihelp_sub_n
+	.end	_gcry_mpih_sub_n
 

@@ -34,7 +34,7 @@
 
 
 mpi_limb_t
-mpihelp_addmul_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
+_gcry_mpih_addmul_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 		  mpi_size_t s1_size, mpi_limb_t s2_limb)
 {
     mpi_limb_t cy_limb;

@@ -1,5 +1,5 @@
 /* rmd.h - RIPE-MD hash functions
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -29,7 +29,8 @@ typedef struct {
     int  count;
 } RMD160_CONTEXT;
 
-void rmd160_init( RMD160_CONTEXT *hd );
-void rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer );
+void _gcry_rmd160_init( RMD160_CONTEXT *hd );
+void _gcry_rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer );
 
 #endif /*G10_RMD_H*/
+

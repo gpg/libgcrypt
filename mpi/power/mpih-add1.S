@@ -31,17 +31,17 @@
  */
 
 	.toc
-	.extern mpihelp_add_n[DS]
-	.extern .mpihelp_add_n
+	.extern _gcry_mpih_add_n[DS]
+	.extern ._gcry_mpih_add_n
 .csect [PR]
 	.align 2
-	.globl mpihelp_add_n
-	.globl .mpihelp_add_n
-	.csect mpihelp_add_n[DS]
-mpihelp_add_n:
-	.long .mpihelp_add_n, TOC[tc0], 0
+	.globl _gcry_mpih_add_n
+	.globl ._gcry_mpih_add_n
+	.csect _gcry_mpih_add_n[DS]
+_gcry_mpih_add_n:
+	.long ._gcry_mpih_add_n, TOC[tc0], 0
 	.csect [PR]
-.mpihelp_add_n:
+._gcry_mpih_add_n:
 	andil.	10,6,1		# odd or even number of limbs?
 	l	8,0(4)		# load least significant s1 limb
 	l	0,0(5)		# load least significant s2 limb

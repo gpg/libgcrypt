@@ -19,9 +19,9 @@ AC_CANONICAL_SYSTEM
 #    AGE, set REVISION to 0.
 # 3. Interfaces removed (BAD, breaks upward compatibility): Increment
 #    CURRENT, set AGE and REVISION to 0.
-AM_INIT_AUTOMAKE(libgcrypt,1.1.2a)
-LIBGCRYPT_LT_CURRENT=1
-LIBGCRYPT_LT_AGE=0
+AM_INIT_AUTOMAKE(libgcrypt,1.1.3)
+LIBGCRYPT_LT_CURRENT=2
+LIBGCRYPT_LT_AGE=1
 LIBGCRYPT_LT_REVISION=0
 ##############################################
 
@@ -586,14 +586,14 @@ cat <<G10EOF >cipher/construct.c
 G10EOF
 GNUPG_MSG_PRINT([statically linked cipher modules:])
 for name in $STATIC_CIPHER_NAMES; do
-    echo "void ${name}_constructor(void);" >>cipher/construct.c
+    echo "void _gcry_${name}_constructor(void);" >>cipher/construct.c
     GNUPG_MSG_PRINT([$name])
 done
 AC_MSG_RESULT()
 cat <<G10EOF >>cipher/construct.c
 
 void
-cipher_modules_constructor(void)
+_gcry_cipher_modules_constructor(void)
 {
     static int done = 0;
     if( done )
@@ -602,7 +602,7 @@ cipher_modules_constructor(void)
 
 G10EOF
 for name in $STATIC_CIPHER_NAMES; do
-    echo "   ${name}_constructor();" >>cipher/construct.c
+    echo "   _gcry_${name}_constructor();" >>cipher/construct.c
 done
 echo '}' >>cipher/construct.c
 

@@ -36,7 +36,7 @@
 
 /*******************
  *  mpi_limb_t
- *  mpihelp_sub_n( mpi_ptr_t res_ptr,	(gr26)
+ *  _gcry_mpih_sub_n( mpi_ptr_t res_ptr,	(gr26)
  *		   mpi_ptr_t s1_ptr,	(gr25)
  *		   mpi_ptr_t s2_ptr,	(gr24)
  *		   mpi_size_t size)	(gr23)
@@ -48,8 +48,8 @@
 
 
 	.code
-	.export 	mpihelp_sub_n
-	.label		mpihelp_sub_n
+	.export 	_gcry_mpih_sub_n
+	.label		_gcry_mpih_sub_n
 	.proc
 	.callinfo	frame=0,no_calls
 	.entry

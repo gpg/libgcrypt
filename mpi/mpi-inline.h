@@ -1,6 +1,5 @@
 /* mpi-inline.h  -  Internal to the Multi Precision Integers
- *	Copyright (C) 1998, 1999 Free Software Foundation, Inc.
- *	Copyright (C) 1994, 1996 Free Software Foundation, Inc.
+ * Copyright (C) 1994, 1996, 1998, 1999, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -35,7 +34,7 @@
 #endif
 
 G10_MPI_INLINE_DECL  mpi_limb_t
-mpihelp_add_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
+_gcry_mpih_add_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 	       mpi_size_t s1_size, mpi_limb_t s2_limb)
 {
     mpi_limb_t x;
@@ -65,23 +64,23 @@ mpihelp_add_1( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr,
 
 
 G10_MPI_INLINE_DECL mpi_limb_t
-mpihelp_add(mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
+_gcry_mpih_add(mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
 			       mpi_ptr_t s2_ptr, mpi_size_t s2_size)
 {
     mpi_limb_t cy = 0;
 
     if( s2_size )
-	cy = mpihelp_add_n( res_ptr, s1_ptr, s2_ptr, s2_size );
+	cy = _gcry_mpih_add_n( res_ptr, s1_ptr, s2_ptr, s2_size );
 
     if( s1_size - s2_size )
-	cy = mpihelp_add_1( res_ptr + s2_size, s1_ptr + s2_size,
+	cy = _gcry_mpih_add_1( res_ptr + s2_size, s1_ptr + s2_size,
 			    s1_size - s2_size, cy);
     return cy;
 }
 
 
 G10_MPI_INLINE_DECL mpi_limb_t
-mpihelp_sub_1(mpi_ptr_t res_ptr,  mpi_ptr_t s1_ptr,
+_gcry_mpih_sub_1(mpi_ptr_t res_ptr,  mpi_ptr_t s1_ptr,
 	      mpi_size_t s1_size, mpi_limb_t s2_limb )
 {
     mpi_limb_t x;
@@ -111,18 +110,45 @@ mpihelp_sub_1(mpi_ptr_t res_ptr,  mpi_ptr_t s1_ptr,
 
 
 G10_MPI_INLINE_DECL   mpi_limb_t
-mpihelp_sub( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
+_gcry_mpih_sub( mpi_ptr_t res_ptr, mpi_ptr_t s1_ptr, mpi_size_t s1_size,
 				mpi_ptr_t s2_ptr, mpi_size_t s2_size)
 {
     mpi_limb_t cy = 0;
 
     if( s2_size )
-	cy = mpihelp_sub_n(res_ptr, s1_ptr, s2_ptr, s2_size);
+	cy = _gcry_mpih_sub_n(res_ptr, s1_ptr, s2_ptr, s2_size);
 
     if( s1_size - s2_size )
-	cy = mpihelp_sub_1(res_ptr + s2_size, s1_ptr + s2_size,
+	cy = _gcry_mpih_sub_1(res_ptr + s2_size, s1_ptr + s2_size,
 				      s1_size - s2_size, cy);
     return cy;
+}
+
+/****************
+ * Compare OP1_PTR/OP1_SIZE with OP2_PTR/OP2_SIZE.
+ * There are no restrictions on the relative sizes of
+ * the two arguments.
+ * Return 1 if OP1 > OP2, 0 if they are equal, and -1 if OP1 < OP2.
+ */
+G10_MPI_INLINE_DECL int
+_gcry_mpih_cmp( mpi_ptr_t op1_ptr, mpi_ptr_t op2_ptr, mpi_size_t size )
+{
+    mpi_size_t i;
+    mpi_limb_t op1_word, op2_word;
+
+    for( i = size - 1; i >= 0 ; i--) {
+	op1_word = op1_ptr[i];
+	op2_word = op2_ptr[i];
+	if( op1_word != op2_word )
+	    goto diff;
+    }
+    return 0;
+
+  diff:
+    /* This can *not* be simplified to
+     *	 op2_word - op2_word
+     * since that expression might give signed overflow.  */
+    return (op1_word > op2_word) ? 1 : -1;
 }
 
 

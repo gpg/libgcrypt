@@ -1,5 +1,5 @@
 /* sha1.c - SHA1 hash function
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * Please see below for more legal information!
  *
@@ -52,7 +52,7 @@ typedef struct {
 
 
 
-void
+static void
 sha1_init( SHA1_CONTEXT *hd )
 {
     hd->h0 = 0x67452301;
@@ -401,9 +401,9 @@ gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
 
 #ifndef IS_MODULE
 void
-sha1_constructor(void)
+_gcry_sha1_constructor(void)
 {
-    register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );
+    _gcry_register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );
 }
 #endif
 

@@ -113,4 +113,7 @@
 
 #include "gcrypt-defs.h"
 
+#define _GCRYPT_IN_LIBGCRYPT 1
+
+
 #endif /*GCRYPT_CONFIG_H*/

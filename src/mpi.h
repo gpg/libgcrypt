@@ -1,5 +1,5 @@
 /* mpi.h  -  Multi Precision Integers
- *	Copyright (C) 1994, 1996, 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1994, 1996, 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of GNUPG.
  *
@@ -35,6 +35,10 @@
 #include "memory.h"
 #include "../mpi/mpi-asm-defs.h"
 
+#ifndef _GCRYPT_IN_LIBGCRYPT
+ #error this file should only be used inside libgcrypt
+#endif
+
 #ifndef BITS_PER_MPI_LIMB
 #if BYTES_PER_MPI_LIMB == SIZEOF_UNSIGNED_INT
   typedef unsigned int mpi_limb_t;
@@ -54,7 +58,7 @@
 #define BITS_PER_MPI_LIMB    (8*BYTES_PER_MPI_LIMB)
 #endif /*BITS_PER_MPI_LIMB*/
 
-#define DBG_MPI     g10_get_debug_flag( 2 );
+#define DBG_MPI     _gcry_get_debug_flag( 2 );
 
 struct gcry_mpi {
     int alloced;    /* array size (# of allocated limbs) */
@@ -79,93 +83,122 @@ struct gcry_mpi {
 /*-- mpiutil.c --*/
 
 #ifdef M_DEBUG
-  #define mpi_alloc(n)	mpi_debug_alloc((n), M_DBGINFO( __LINE__ ) )
-  #define mpi_alloc_secure(n)  mpi_debug_alloc_secure((n), M_DBGINFO( __LINE__ ) )
-  #define mpi_free(a)	mpi_debug_free((a), M_DBGINFO(__LINE__) )
-  #define mpi_resize(a,b) mpi_debug_resize((a),(b), M_DBGINFO(__LINE__) )
-  #define mpi_copy(a)	  mpi_debug_copy((a), M_DBGINFO(__LINE__) )
-  MPI mpi_debug_alloc( unsigned nlimbs, const char *info );
-  MPI mpi_debug_alloc_secure( unsigned nlimbs, const char *info );
-  void mpi_debug_free( MPI a, const char *info );
-  void mpi_debug_resize( MPI a, unsigned nlimbs, const char *info );
-  MPI  mpi_debug_copy( MPI a, const char *info	);
+  #define mpi_alloc(n)	_gcry_mpi_debug_alloc((n), M_DBGINFO( __LINE__ ) )
+  #define mpi_alloc_secure(n)  _gcry_mpi_debug_alloc_secure((n), M_DBGINFO( __LINE__ ) )
+  #define mpi_free(a)	_gcry_mpi_debug_free((a), M_DBGINFO(__LINE__) )
+  #define mpi_resize(a,b) _gcry_mpi_debug_resize((a),(b), M_DBGINFO(__LINE__) )
+  #define mpi_copy(a)	  _gcry_mpi_debug_copy((a), M_DBGINFO(__LINE__) )
+  MPI _gcry_mpi_debug_alloc( unsigned nlimbs, const char *info );
+  MPI _gcry_mpi_debug_alloc_secure( unsigned nlimbs, const char *info );
+  void _gcry_mpi_debug_free( MPI a, const char *info );
+  void _gcry_mpi_debug_resize( MPI a, unsigned nlimbs, const char *info );
+  MPI  _gcry_mpi_debug_copy( MPI a, const char *info	);
 #else
-  MPI mpi_alloc( unsigned nlimbs );
-  MPI mpi_alloc_secure( unsigned nlimbs );
-  void mpi_free( MPI a );
-  void mpi_resize( MPI a, unsigned nlimbs );
-  MPI  mpi_copy( MPI a );
+  #define mpi_alloc(n)	       _gcry_mpi_alloc((n) )
+  #define mpi_alloc_secure(n)  _gcry_mpi_alloc_secure((n) )
+  #define mpi_free(a)	       _gcry_mpi_free((a) )
+  #define mpi_resize(a,b)      _gcry_mpi_resize((a),(b))
+  #define mpi_copy(a)	       _gcry_mpi_copy((a))
+  MPI  _gcry_mpi_alloc( unsigned nlimbs );
+  MPI  _gcry_mpi_alloc_secure( unsigned nlimbs );
+  void _gcry_mpi_free( MPI a );
+  void _gcry_mpi_resize( MPI a, unsigned nlimbs );
+  MPI  _gcry_mpi_copy( MPI a );
 #endif
 #define mpi_is_opaque(a) ((a) && ((a)->flags&4))
 #define mpi_is_secure(a) ((a) && ((a)->flags&1))
-void mpi_clear( MPI a );
-MPI  mpi_alloc_like( MPI a );
-void mpi_set( MPI w, MPI u);
-void mpi_set_ui( MPI w, ulong u);
-MPI  mpi_alloc_set_ui( unsigned long u);
-void mpi_m_check( MPI a );
-void mpi_swap( MPI a, MPI b);
+#define mpi_clear(a)          _gcry_mpi_clear ((a))
+#define mpi_alloc_like(a)     _gcry_mpi_alloc_like((a))  
+#define mpi_set(a,b)          _gcry_mpi_set ((a),(b))        
+#define mpi_set_ui(a,b)       _gcry_mpi_set_ui ((a),(b))      
+#define mpi_alloc_set_ui(a)   _gcry_mpi_alloc_set_ui ((a))
+#define mpi_m_check(a)        _gcry_mpi_m_check ((a))     
+#define mpi_swap(a,b)         _gcry_mpi_swap ((a),(b))       
+
+void _gcry_mpi_clear( MPI a );
+MPI  _gcry_mpi_alloc_like( MPI a );
+void _gcry_mpi_set( MPI w, MPI u);
+void _gcry_mpi_set_ui( MPI w, ulong u);
+MPI  _gcry_mpi_alloc_set_ui( unsigned long u);
+void _gcry_mpi_m_check( MPI a );
+void _gcry_mpi_swap( MPI a, MPI b);
 
 /*-- mpicoder.c --*/
-void g10_log_mpidump( const char *text, MPI a );
-u32 mpi_get_keyid( MPI a, u32 *keyid );
-byte *mpi_get_buffer( MPI a, unsigned *nbytes, int *sign );
-byte *mpi_get_secure_buffer( MPI a, unsigned *nbytes, int *sign );
-void  mpi_set_buffer( MPI a, const byte *buffer, unsigned nbytes, int sign );
+void  _gcry_log_mpidump( const char *text, MPI a );
+u32   _gcry_mpi_get_keyid( MPI a, u32 *keyid );
+byte *_gcry_mpi_get_buffer( MPI a, unsigned *nbytes, int *sign );
+byte *_gcry_mpi_get_secure_buffer( MPI a, unsigned *nbytes, int *sign );
+void  _gcry_mpi_set_buffer( MPI a, const byte *buffer, unsigned nbytes, int sign );
 
-#define log_mpidump g10_log_mpidump
+#define log_mpidump _gcry_log_mpidump
 
 /*-- mpi-add.c --*/
-void mpi_add_ui(MPI w, MPI u, ulong v );
-void mpi_add(MPI w, MPI u, MPI v);
-void mpi_addm(MPI w, MPI u, MPI v, MPI m);
-void mpi_sub_ui(MPI w, MPI u, ulong v );
-void mpi_sub( MPI w, MPI u, MPI v);
-void mpi_subm( MPI w, MPI u, MPI v, MPI m);
+#define mpi_add_ui(w,u,v) gcry_mpi_add_ui((w),(u),(v))
+#define mpi_add(w,u,v)    gcry_mpi_add ((w),(u),(v))
+#define mpi_addm(w,u,v,m) gcry_mpi_addm ((w),(u),(v),(m))
+#define mpi_sub_ui(w,u,v) gcry_mpi_sub_ui ((w),(u),(v))
+#define mpi_sub(w,u,v)    gcry_mpi_sub ((w),(u),(v))
+#define mpi_subm(w,u,v,m) gcry_mpi_subm ((w),(u),(v),(m))
+
 
 /*-- mpi-mul.c --*/
-void mpi_mul_ui(MPI w, MPI u, ulong v );
-void mpi_mul_2exp( MPI w, MPI u, ulong cnt);
-void mpi_mul( MPI w, MPI u, MPI v);
-void mpi_mulm( MPI w, MPI u, MPI v, MPI m);
+#define mpi_mul_ui(w,u,v)   gcry_mpi_mul_ui ((w),(u),(v))
+#define mpi_mul_2exp(w,u,v) gcry_mpi_mul_2exp ((w),(u),(v))
+#define mpi_mul(w,u,v)      gcry_mpi_mul ((w),(u),(v))
+#define mpi_mulm(w,u,v,m)   gcry_mpi_mulm ((w),(u),(v),(m))
+
 
 /*-- mpi-div.c --*/
-ulong mpi_fdiv_r_ui( MPI rem, MPI dividend, ulong divisor );
-void  mpi_fdiv_r( MPI rem, MPI dividend, MPI divisor );
-void  mpi_fdiv_q( MPI quot, MPI dividend, MPI divisor );
-void  mpi_fdiv_qr( MPI quot, MPI rem, MPI dividend, MPI divisor );
-void  mpi_tdiv_r( MPI rem, MPI num, MPI den);
-void  mpi_tdiv_qr( MPI quot, MPI rem, MPI num, MPI den);
-void  mpi_tdiv_q_2exp( MPI w, MPI u, unsigned count );
-int   mpi_divisible_ui(MPI dividend, ulong divisor );
+#define mpi_fdiv_r_ui(a,b,c)   _gcry_mpi_fdiv_r_ui((a),(b),(c))
+#define mpi_fdiv_r(a,b,c)      _gcry_mpi_fdiv_r((a),(b),(c))
+#define mpi_fdiv_q(a,b,c)      _gcry_mpi_fdiv_q((a),(b),(c))
+#define mpi_fdiv_qr(a,b,c,d)   _gcry_mpi_fdiv_qr((a),(b),(c),(d))
+#define mpi_tdiv_r(a,b,c)      _gcry_mpi_tdiv_r((a),(b),(c))
+#define mpi_tdiv_qr(a,b,c,d)   _gcry_mpi_tdiv_qr((a),(b),(c),(d))
+#define mpi_tdiv_q_2exp(a,b,c) _gcry_mpi_tdiv_q_2exp((a),(b),(c))
+#define mpi_divisible_ui(a,b)  _gcry_mpi_divisible_ui((a),(b))
+ulong _gcry_mpi_fdiv_r_ui( MPI rem, MPI dividend, ulong divisor );
+void  _gcry_mpi_fdiv_r( MPI rem, MPI dividend, MPI divisor );
+void  _gcry_mpi_fdiv_q( MPI quot, MPI dividend, MPI divisor );
+void  _gcry_mpi_fdiv_qr( MPI quot, MPI rem, MPI dividend, MPI divisor );
+void  _gcry_mpi_tdiv_r( MPI rem, MPI num, MPI den);
+void  _gcry_mpi_tdiv_qr( MPI quot, MPI rem, MPI num, MPI den);
+void  _gcry_mpi_tdiv_q_2exp( MPI w, MPI u, unsigned count );
+int   _gcry_mpi_divisible_ui(MPI dividend, ulong divisor );
 
 /*-- mpi-gcd.c --*/
-int mpi_gcd( MPI g, MPI a, MPI b );
 
 /*-- mpi-mpow.c --*/
-void mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI mod);
+#define mpi_mulpowm(a,b,c,d) _gcry_mpi_mulpowm ((a),(b),(c),(d))
+void _gcry_mpi_mulpowm( MPI res, MPI *basearray, MPI *exparray, MPI mod);
 
 /*-- mpi-cmp.c --*/
-int mpi_cmp_ui( MPI u, ulong v );
-int mpi_cmp( MPI u, MPI v );
+#define mpi_cmp_ui(a,b) gcry_mpi_cmp_ui ((a),(b))
+#define mpi_cmp(a,b)    gcry_mpi_cmp ((a),(b))
+int gcry_mpi_cmp_ui( MPI u, ulong v );
+int gcry_mpi_cmp( MPI u, MPI v );
 
 /*-- mpi-scan.c --*/
-int mpi_getbyte( MPI a, unsigned idx );
-void mpi_putbyte( MPI a, unsigned idx, int value );
-unsigned mpi_trailing_zeros( MPI a );
+#define mpi_trailing_zeros(a) _gcry_mpi_trailing_zeros ((a))
+int      _gcry_mpi_getbyte( MPI a, unsigned idx );
+void     _gcry_mpi_putbyte( MPI a, unsigned idx, int value );
+unsigned _gcry_mpi_trailing_zeros( MPI a );
 
 /*-- mpi-bit.c --*/
-void mpi_normalize( MPI a );
-unsigned int mpi_get_nbits( MPI a );
-int  mpi_test_bit( MPI a, unsigned n );
-void mpi_set_bit( MPI a, unsigned n );
-void mpi_set_highbit( MPI a, unsigned n );
-void mpi_clear_highbit( MPI a, unsigned n );
-void mpi_clear_bit( MPI a, unsigned n );
-void mpi_rshift( MPI x, MPI a, unsigned n );
+#define mpi_normalize(a)       _gcry_mpi_normalize ((a))
+#define mpi_get_nbits(a)       gcry_mpi_get_nbits ((a))
+#define mpi_test_bit(a,b)      gcry_mpi_test_bit ((a),(b))
+#define mpi_set_bit(a,b)       gcry_mpi_set_bit ((a),(b))
+#define mpi_set_highbit(a,b)   gcry_mpi_set_highbit ((a),(b))
+#define mpi_clear_bit(a,b)     gcry_mpi_clear_bit ((a),(b))
+#define mpi_clear_highbit(a,b) gcry_mpi_clear_highbit ((a),(b))
+#define mpi_rshift(a,b,c)      gcry_mpi_rshift ((a),(b),(c))
+
+void _gcry_mpi_normalize( MPI a );
 
 /*-- mpi-inv.c --*/
-void mpi_invm( MPI x, MPI u, MPI v );
+#define mpi_invm(a,b,c) _gcry_mpi_invm ((a),(b),(c))
+void _gcry_mpi_invm( MPI x, MPI u, MPI v );
 
 
 #endif /*G10_MPI_H*/

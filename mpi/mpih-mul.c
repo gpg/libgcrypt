@@ -1,5 +1,6 @@
-/* mpihelp-mul.c  -  MPI helper functions
- * Copyright (C) 1994, 1996, 1998, 1999, 2000 Free Software Foundation, Inc.
+/* mpih-mul.c  -  MPI helper functions
+ * Copyright (C) 1994, 1996, 1998, 1999, 2000,
+ *               2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -32,8 +33,7 @@
 #include <string.h>
 #include "mpi-internal.h"
 #include "longlong.h"
-#include "g10lib.h" /* g10_is_secure() */
-
+#include "g10lib.h"
 
 #define MPN_MUL_N_RECURSE(prodp, up, vp, size, tspace) \
     do {						\
@@ -46,9 +46,9 @@
 #define MPN_SQR_N_RECURSE(prodp, up, size, tspace) \
     do {					    \
 	if ((size) < KARATSUBA_THRESHOLD)	    \
-	    mpih_sqr_n_basecase (prodp, up, size);	 \
+	    _gcry_mpih_sqr_n_basecase (prodp, up, size);	 \
 	else					    \
-	    mpih_sqr_n (prodp, up, size, tspace);	 \
+	    _gcry_mpih_sqr_n (prodp, up, size, tspace);	 \
     } while (0);
 
 
@@ -90,7 +90,7 @@ mul_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up,
 	cy = 0;
     }
     else
-	cy = mpihelp_mul_1( prodp, up, size, v_limb );
+	cy = _gcry_mpih_mul_1( prodp, up, size, v_limb );
 
     prodp[size] = cy;
     prodp++;
@@ -102,10 +102,10 @@ mul_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up,
 	if( v_limb <= 1 ) {
 	    cy = 0;
 	    if( v_limb == 1 )
-	       cy = mpihelp_add_n(prodp, prodp, up, size);
+	       cy = _gcry_mpih_add_n(prodp, prodp, up, size);
 	}
 	else
-	    cy = mpihelp_addmul_1(prodp, up, size, v_limb);
+	    cy = _gcry_mpih_addmul_1(prodp, up, size, v_limb);
 
 	prodp[size] = cy;
 	prodp++;
@@ -134,9 +134,9 @@ mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp,
       mpi_limb_t cy_limb;
 
       MPN_MUL_N_RECURSE( prodp, up, vp, esize, tspace );
-      cy_limb = mpihelp_addmul_1( prodp + esize, up, esize, vp[esize] );
+      cy_limb = _gcry_mpih_addmul_1( prodp + esize, up, esize, vp[esize] );
       prodp[esize + esize] = cy_limb;
-      cy_limb = mpihelp_addmul_1( prodp + esize, vp, size, up[esize] );
+      cy_limb = _gcry_mpih_addmul_1( prodp + esize, vp, size, up[esize] );
       prodp[esize + size] = cy_limb;
     }
     else {
@@ -169,20 +169,20 @@ mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp,
 	/* Product M.	   ________________
 	 *		  |_(U1-U0)(V0-V1)_|
 	 */
-	if( mpihelp_cmp(up + hsize, up, hsize) >= 0 ) {
-	    mpihelp_sub_n(prodp, up + hsize, up, hsize);
+	if( _gcry_mpih_cmp(up + hsize, up, hsize) >= 0 ) {
+	    _gcry_mpih_sub_n(prodp, up + hsize, up, hsize);
 	    negflg = 0;
 	}
 	else {
-	    mpihelp_sub_n(prodp, up, up + hsize, hsize);
+	    _gcry_mpih_sub_n(prodp, up, up + hsize, hsize);
 	    negflg = 1;
 	}
-	if( mpihelp_cmp(vp + hsize, vp, hsize) >= 0 ) {
-	    mpihelp_sub_n(prodp + hsize, vp + hsize, vp, hsize);
+	if( _gcry_mpih_cmp(vp + hsize, vp, hsize) >= 0 ) {
+	    _gcry_mpih_sub_n(prodp + hsize, vp + hsize, vp, hsize);
 	    negflg ^= 1;
 	}
 	else {
-	    mpihelp_sub_n(prodp + hsize, vp, vp + hsize, hsize);
+	    _gcry_mpih_sub_n(prodp + hsize, vp, vp + hsize, hsize);
 	    /* No change of NEGFLG.  */
 	}
 	/* Read temporary operands from low part of PROD.
@@ -193,14 +193,14 @@ mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp,
 
 	/* Add/copy product H. */
 	MPN_COPY (prodp + hsize, prodp + size, hsize);
-	cy = mpihelp_add_n( prodp + size, prodp + size,
+	cy = _gcry_mpih_add_n( prodp + size, prodp + size,
 			    prodp + size + hsize, hsize);
 
 	/* Add product M (if NEGFLG M is a negative number) */
 	if(negflg)
-	    cy -= mpihelp_sub_n(prodp + hsize, prodp + hsize, tspace, size);
+	    cy -= _gcry_mpih_sub_n(prodp + hsize, prodp + hsize, tspace, size);
 	else
-	    cy += mpihelp_add_n(prodp + hsize, prodp + hsize, tspace, size);
+	    cy += _gcry_mpih_add_n(prodp + hsize, prodp + hsize, tspace, size);
 
 	/* Product L.	   ________________  ________________
 	 *		  |________________||____U0 x V0_____|
@@ -212,20 +212,20 @@ mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp,
 
 	/* Add/copy Product L (twice) */
 
-	cy += mpihelp_add_n(prodp + hsize, prodp + hsize, tspace, size);
+	cy += _gcry_mpih_add_n(prodp + hsize, prodp + hsize, tspace, size);
 	if( cy )
-	  mpihelp_add_1(prodp + hsize + size, prodp + hsize + size, hsize, cy);
+	  _gcry_mpih_add_1(prodp + hsize + size, prodp + hsize + size, hsize, cy);
 
 	MPN_COPY(prodp, tspace, hsize);
-	cy = mpihelp_add_n(prodp + hsize, prodp + hsize, tspace + hsize, hsize);
+	cy = _gcry_mpih_add_n(prodp + hsize, prodp + hsize, tspace + hsize, hsize);
 	if( cy )
-	    mpihelp_add_1(prodp + size, prodp + size, size, 1);
+	    _gcry_mpih_add_1(prodp + size, prodp + size, size, 1);
     }
 }
 
 
 void
-mpih_sqr_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size )
+_gcry_mpih_sqr_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size )
 {
     mpi_size_t i;
     mpi_limb_t cy_limb;
@@ -242,7 +242,7 @@ mpih_sqr_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size )
 	cy_limb = 0;
     }
     else
-	cy_limb = mpihelp_mul_1( prodp, up, size, v_limb );
+	cy_limb = _gcry_mpih_mul_1( prodp, up, size, v_limb );
 
     prodp[size] = cy_limb;
     prodp++;
@@ -254,10 +254,10 @@ mpih_sqr_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size )
 	if( v_limb <= 1 ) {
 	    cy_limb = 0;
 	    if( v_limb == 1 )
-		cy_limb = mpihelp_add_n(prodp, prodp, up, size);
+		cy_limb = _gcry_mpih_add_n(prodp, prodp, up, size);
 	}
 	else
-	    cy_limb = mpihelp_addmul_1(prodp, up, size, v_limb);
+	    cy_limb = _gcry_mpih_addmul_1(prodp, up, size, v_limb);
 
 	prodp[size] = cy_limb;
 	prodp++;
@@ -266,7 +266,8 @@ mpih_sqr_n_basecase( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size )
 
 
 void
-mpih_sqr_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size, mpi_ptr_t tspace)
+_gcry_mpih_sqr_n( mpi_ptr_t prodp,
+                  mpi_ptr_t up, mpi_size_t size, mpi_ptr_t tspace)
 {
     if( size & 1 ) {
 	/* The size is odd, and the code below doesn't handle that.
@@ -283,9 +284,9 @@ mpih_sqr_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size, mpi_ptr_t tspace)
 	mpi_limb_t cy_limb;
 
 	MPN_SQR_N_RECURSE( prodp, up, esize, tspace );
-	cy_limb = mpihelp_addmul_1( prodp + esize, up, esize, up[esize] );
+	cy_limb = _gcry_mpih_addmul_1( prodp + esize, up, esize, up[esize] );
 	prodp[esize + esize] = cy_limb;
-	cy_limb = mpihelp_addmul_1( prodp + esize, up, size, up[esize] );
+	cy_limb = _gcry_mpih_addmul_1( prodp + esize, up, size, up[esize] );
 
 	prodp[esize + size] = cy_limb;
     }
@@ -303,10 +304,10 @@ mpih_sqr_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size, mpi_ptr_t tspace)
 	/* Product M.	   ________________
 	 *		  |_(U1-U0)(U0-U1)_|
 	 */
-	if( mpihelp_cmp( up + hsize, up, hsize) >= 0 )
-	    mpihelp_sub_n( prodp, up + hsize, up, hsize);
+	if( _gcry_mpih_cmp( up + hsize, up, hsize) >= 0 )
+	    _gcry_mpih_sub_n( prodp, up + hsize, up, hsize);
 	else
-	    mpihelp_sub_n (prodp, up, up + hsize, hsize);
+	    _gcry_mpih_sub_n (prodp, up, up + hsize, hsize);
 
 	/* Read temporary operands from low part of PROD.
 	 * Put result in low part of TSPACE using upper part of TSPACE
@@ -315,11 +316,11 @@ mpih_sqr_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size, mpi_ptr_t tspace)
 
 	/* Add/copy product H  */
 	MPN_COPY(prodp + hsize, prodp + size, hsize);
-	cy = mpihelp_add_n(prodp + size, prodp + size,
+	cy = _gcry_mpih_add_n(prodp + size, prodp + size,
 			   prodp + size + hsize, hsize);
 
 	/* Add product M (if NEGFLG M is a negative number).  */
-	cy -= mpihelp_sub_n (prodp + hsize, prodp + hsize, tspace, size);
+	cy -= _gcry_mpih_sub_n (prodp + hsize, prodp + hsize, tspace, size);
 
 	/* Product L.	   ________________  ________________
 	 *		  |________________||____U0 x U0_____|
@@ -329,33 +330,34 @@ mpih_sqr_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t size, mpi_ptr_t tspace)
 	MPN_SQR_N_RECURSE (tspace, up, hsize, tspace + size);
 
 	/* Add/copy Product L (twice).	*/
-	cy += mpihelp_add_n (prodp + hsize, prodp + hsize, tspace, size);
+	cy += _gcry_mpih_add_n (prodp + hsize, prodp + hsize, tspace, size);
 	if( cy )
-	    mpihelp_add_1(prodp + hsize + size, prodp + hsize + size,
+	    _gcry_mpih_add_1(prodp + hsize + size, prodp + hsize + size,
 							    hsize, cy);
 
 	MPN_COPY(prodp, tspace, hsize);
-	cy = mpihelp_add_n (prodp + hsize, prodp + hsize, tspace + hsize, hsize);
+	cy = _gcry_mpih_add_n (prodp + hsize, prodp + hsize, tspace + hsize, hsize);
 	if( cy )
-	    mpihelp_add_1 (prodp + size, prodp + size, size, 1);
+	    _gcry_mpih_add_1 (prodp + size, prodp + size, size, 1);
     }
 }
 
 
 /* This should be made into an inline function in gmp.h.  */
 void
-mpihelp_mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t size)
+_gcry_mpih_mul_n( mpi_ptr_t prodp,
+                     mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t size)
 {
     int secure;
 
     if( up == vp ) {
 	if( size < KARATSUBA_THRESHOLD )
-	    mpih_sqr_n_basecase( prodp, up, size );
+	    _gcry_mpih_sqr_n_basecase( prodp, up, size );
 	else {
 	    mpi_ptr_t tspace;
-	    secure = g10_is_secure( up );
+	    secure = gcry_is_secure( up );
 	    tspace = mpi_alloc_limb_space( 2 * size, secure );
-	    mpih_sqr_n( prodp, up, size, tspace );
+	    _gcry_mpih_sqr_n( prodp, up, size, tspace );
 	    mpi_free_limb_space( tspace );
 	}
     }
@@ -364,7 +366,7 @@ mpihelp_mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t size)
 	    mul_n_basecase( prodp, up, vp, size );
 	else {
 	    mpi_ptr_t tspace;
-	    secure = g10_is_secure( up ) || g10_is_secure( vp );
+	    secure = gcry_is_secure( up ) || gcry_is_secure( vp );
 	    tspace = mpi_alloc_limb_space( 2 * size, secure );
 	    mul_n (prodp, up, vp, size, tspace);
 	    mpi_free_limb_space( tspace );
@@ -375,10 +377,10 @@ mpihelp_mul_n( mpi_ptr_t prodp, mpi_ptr_t up, mpi_ptr_t vp, mpi_size_t size)
 
 
 void
-mpihelp_mul_karatsuba_case( mpi_ptr_t prodp,
-			    mpi_ptr_t up, mpi_size_t usize,
-			    mpi_ptr_t vp, mpi_size_t vsize,
-			    struct karatsuba_ctx *ctx )
+_gcry_mpih_mul_karatsuba_case( mpi_ptr_t prodp,
+                                  mpi_ptr_t up, mpi_size_t usize,
+                                  mpi_ptr_t vp, mpi_size_t vsize,
+                                  struct karatsuba_ctx *ctx )
 {
     mpi_limb_t cy;
 
@@ -386,7 +388,7 @@ mpihelp_mul_karatsuba_case( mpi_ptr_t prodp,
 	if( ctx->tspace )
 	    mpi_free_limb_space( ctx->tspace );
 	ctx->tspace = mpi_alloc_limb_space( 2 * vsize,
-				       g10_is_secure( up ) || g10_is_secure( vp ) );
+				       gcry_is_secure( up ) || gcry_is_secure( vp ) );
 	ctx->tspace_size = vsize;
     }
 
@@ -399,15 +401,15 @@ mpihelp_mul_karatsuba_case( mpi_ptr_t prodp,
 	if( !ctx->tp || ctx->tp_size < vsize ) {
 	    if( ctx->tp )
 		mpi_free_limb_space( ctx->tp );
-	    ctx->tp = mpi_alloc_limb_space( 2 * vsize, g10_is_secure( up )
-						      || g10_is_secure( vp ) );
+	    ctx->tp = mpi_alloc_limb_space( 2 * vsize, gcry_is_secure( up )
+						      || gcry_is_secure( vp ) );
 	    ctx->tp_size = vsize;
 	}
 
 	do {
 	    MPN_MUL_N_RECURSE( ctx->tp, up, vp, vsize, ctx->tspace );
-	    cy = mpihelp_add_n( prodp, prodp, ctx->tp, vsize );
-	    mpihelp_add_1( prodp + vsize, ctx->tp + vsize, vsize, cy );
+	    cy = _gcry_mpih_add_n( prodp, prodp, ctx->tp, vsize );
+	    _gcry_mpih_add_1( prodp + vsize, ctx->tp + vsize, vsize, cy );
 	    prodp += vsize;
 	    up += vsize;
 	    usize -= vsize;
@@ -416,26 +418,26 @@ mpihelp_mul_karatsuba_case( mpi_ptr_t prodp,
 
     if( usize ) {
 	if( usize < KARATSUBA_THRESHOLD ) {
-	    mpihelp_mul( ctx->tspace, vp, vsize, up, usize );
+	    _gcry_mpih_mul( ctx->tspace, vp, vsize, up, usize );
 	}
 	else {
 	    if( !ctx->next ) {
-		ctx->next = g10_xcalloc( 1, sizeof *ctx );
+		ctx->next = gcry_xcalloc( 1, sizeof *ctx );
 	    }
-	    mpihelp_mul_karatsuba_case( ctx->tspace,
+	    _gcry_mpih_mul_karatsuba_case( ctx->tspace,
 					vp, vsize,
 					up, usize,
 					ctx->next );
 	}
 
-	cy = mpihelp_add_n( prodp, prodp, ctx->tspace, vsize);
-	mpihelp_add_1( prodp + vsize, ctx->tspace + vsize, usize, cy );
+	cy = _gcry_mpih_add_n( prodp, prodp, ctx->tspace, vsize);
+	_gcry_mpih_add_1( prodp + vsize, ctx->tspace + vsize, usize, cy );
     }
 }
 
 
 void
-mpihelp_release_karatsuba_ctx( struct karatsuba_ctx *ctx )
+_gcry_mpih_release_karatsuba_ctx( struct karatsuba_ctx *ctx )
 {
     struct karatsuba_ctx *ctx2;
 
@@ -449,7 +451,7 @@ mpihelp_release_karatsuba_ctx( struct karatsuba_ctx *ctx )
 	    mpi_free_limb_space( ctx->tp );
 	if( ctx->tspace )
 	    mpi_free_limb_space( ctx->tspace );
-	g10_free( ctx );
+	gcry_free( ctx );
     }
 }
 
@@ -469,8 +471,8 @@ mpihelp_release_karatsuba_ctx( struct karatsuba_ctx *ctx )
  */
 
 mpi_limb_t
-mpihelp_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
-			      mpi_ptr_t vp, mpi_size_t vsize)
+_gcry_mpih_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
+                   mpi_ptr_t vp, mpi_size_t vsize)
 {
     mpi_ptr_t prod_endp = prodp + usize + vsize - 1;
     mpi_limb_t cy;
@@ -494,7 +496,7 @@ mpihelp_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
 	    cy = 0;
 	}
 	else
-	    cy = mpihelp_mul_1( prodp, up, usize, v_limb );
+	    cy = _gcry_mpih_mul_1( prodp, up, usize, v_limb );
 
 	prodp[usize] = cy;
 	prodp++;
@@ -506,10 +508,10 @@ mpihelp_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
 	    if( v_limb <= 1 ) {
 		cy = 0;
 		if( v_limb == 1 )
-		   cy = mpihelp_add_n(prodp, prodp, up, usize);
+		   cy = _gcry_mpih_add_n(prodp, prodp, up, usize);
 	    }
 	    else
-		cy = mpihelp_addmul_1(prodp, up, usize, v_limb);
+		cy = _gcry_mpih_addmul_1(prodp, up, usize, v_limb);
 
 	    prodp[usize] = cy;
 	    prodp++;
@@ -519,8 +521,8 @@ mpihelp_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
     }
 
     memset( &ctx, 0, sizeof ctx );
-    mpihelp_mul_karatsuba_case( prodp, up, usize, vp, vsize, &ctx );
-    mpihelp_release_karatsuba_ctx( &ctx );
+    _gcry_mpih_mul_karatsuba_case( prodp, up, usize, vp, vsize, &ctx );
+    _gcry_mpih_release_karatsuba_ctx( &ctx );
     return *prod_endp;
 }
 

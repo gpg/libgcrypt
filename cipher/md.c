@@ -92,13 +92,13 @@ new_list_item( int algo,
 {
     struct md_digest_list_s *r;
 
-    r = g10_xcalloc( 1, sizeof *r );
+    r = gcry_xcalloc( 1, sizeof *r );
     r->algo = algo,
     r->name = (*get_info)( algo, &r->contextsize,
 			   &r->asnoid, &r->asnlen, &r->mdlen,
 			   &r->init, &r->write, &r->final, &r->read );
     if( !r->name ) {
-	g10_free(r);
+	gcry_free(r);
 	r = NULL;
     }
     return r;
@@ -127,7 +127,7 @@ load_digest_module( int req_algo )
 			    void (**)(void*),byte *(**)(void*));
 
     if( !initialized ) {
-	cipher_modules_constructor();
+	_gcry_cipher_modules_constructor();
 	initialized = 1;
     }
     algo = req_algo;
@@ -142,7 +142,7 @@ load_digest_module( int req_algo )
     else
 	checked_algos[algo/32] |= (1 << (algo%32));
 
-    while( enum_gnupgext_digests( &context, &algo, &get_info ) ) {
+    while( _gcry_enum_gnupgext_digests( &context, &algo, &get_info ) ) {
 	if( req_algo != -1 && algo != req_algo )
 	    continue;
 	for(r=digest_list; r; r = r->next )
@@ -158,7 +158,7 @@ load_digest_module( int req_algo )
 	    continue;
 	}
 	/* put it into the list */
-	if( g10_log_verbosity( 2 ) )
+	if( _gcry_log_verbosity( 2 ) )
 	    log_info("loaded digest %d\n", algo);
 	r->next = digest_list;
 	digest_list = r;
@@ -166,7 +166,7 @@ load_digest_module( int req_algo )
 	if( req_algo != -1 )
 	    break;
     }
-    enum_gnupgext_digests( &context, NULL, NULL );
+    _gcry_enum_gnupgext_digests( &context, NULL, NULL );
     return any;
 }
 
@@ -266,8 +266,8 @@ md_open( int algo, int secure, int hmac )
 	 / sizeof(PROPERLY_ALIGNED_TYPE) ) * sizeof(PROPERLY_ALIGNED_TYPE);
 
     /* allocate and set the Context pointer to the private data */
-    hd = secure ? g10_malloc_secure( n + sizeof( struct gcry_md_context ) )
-		: g10_malloc(	     n + sizeof( struct gcry_md_context ) );
+    hd = secure ? gcry_malloc_secure( n + sizeof( struct gcry_md_context ) )
+		: gcry_malloc(	     n + sizeof( struct gcry_md_context ) );
     if( !hd ) {
 	set_lasterr( GCRYERR_NO_MEM );
 	return NULL;
@@ -282,7 +282,7 @@ md_open( int algo, int secure, int hmac )
     ctx->magic = secure ? CTX_MAGIC_SECURE : CTX_MAGIC_NORMAL;
     ctx->secure = secure;
     if( hmac ) {
-	ctx->macpads = g10_malloc_secure( 128 );
+	ctx->macpads = gcry_malloc_secure( 128 );
 	if( !ctx->macpads ) {
 	    md_close( hd );
 	    set_lasterr( GCRYERR_NO_MEM );
@@ -331,9 +331,9 @@ md_enable( GCRY_MD_HD hd, int algo )
 	return set_lasterr( GCRYERR_INV_MD_ALGO );
     }
     /* and allocate a new list entry */
-    ac = h->secure? g10_malloc_secure( sizeof *ac + r->contextsize
+    ac = h->secure? gcry_malloc_secure( sizeof *ac + r->contextsize
 					       - sizeof(r->context) )
-		  : g10_malloc( sizeof *ac + r->contextsize
+		  : gcry_malloc( sizeof *ac + r->contextsize
 					       - sizeof(r->context) );
     if( !ac )
 	return set_lasterr( GCRYERR_NO_MEM );
@@ -366,8 +366,8 @@ md_copy( GCRY_MD_HD ahd )
 	md_write( ahd, NULL, 0 );
 
     n = (char*)ahd->ctx - (char*)ahd;
-    bhd = a->secure ? g10_malloc_secure( n + sizeof( struct gcry_md_context ) )
-		    : g10_malloc(	 n + sizeof( struct gcry_md_context ) );
+    bhd = a->secure ? gcry_malloc_secure( n + sizeof( struct gcry_md_context ) )
+		    : gcry_malloc(	 n + sizeof( struct gcry_md_context ) );
     if( !bhd ) {
 	set_lasterr( GCRYERR_NO_MEM );
 	return NULL;
@@ -382,15 +382,15 @@ md_copy( GCRY_MD_HD ahd )
     b->list = NULL;
     b->debug = NULL;
     if( a->macpads ) {
-	b->macpads = g10_malloc_secure( 128 );
+	b->macpads = gcry_malloc_secure( 128 );
 	memcpy( b->macpads, a->macpads, 128 );
     }
     /* and now copy the complete list of algorithms */
     /* I know that the copied list is reversed, but that doesn't matter */
     for( ar=a->list; ar; ar = ar->next ) {
-	br = a->secure ? g10_xmalloc_secure( sizeof *br + ar->contextsize
+	br = a->secure ? gcry_xmalloc_secure( sizeof *br + ar->contextsize
 					       - sizeof(ar->context) )
-		       : g10_xmalloc( sizeof *br + ar->contextsize
+		       : gcry_xmalloc( sizeof *br + ar->contextsize
 					       - sizeof(ar->context) );
 	memcpy( br, ar, sizeof(*br) + ar->contextsize
 				    - sizeof(ar->context) );
@@ -440,10 +440,10 @@ md_close(GCRY_MD_HD a)
 	md_stop_debug(a);
     for(r=a->ctx->list; r; r = r2 ) {
 	r2 = r->next;
-	g10_free(r);
+	gcry_free(r);
     }
-    g10_free(a->ctx->macpads);
-    g10_free(a);
+    gcry_free(a->ctx->macpads);
+    gcry_free(a);
 }
 
 
@@ -504,7 +504,7 @@ md_final(GCRY_MD_HD a)
 
 	GCRY_MD_HD om = md_open( algo, a->ctx->secure, 0 );
 	if( !om )
-	    g10_fatal_error( gcry_errno(), NULL );
+	    _gcry_fatal_error( gcry_errno(), NULL );
 	md_write( om, a->ctx->macpads+64, 64 );
 	md_write( om, p, dlen );
 	md_final( om );
@@ -517,7 +517,7 @@ md_final(GCRY_MD_HD a)
 
 
 static int
-prepare_macpads( GCRY_MD_HD hd, byte *key, size_t keylen)
+prepare_macpads( GCRY_MD_HD hd, const byte *key, size_t keylen)
 {
     int i;
     int algo = md_get_algo( hd );
@@ -528,7 +528,7 @@ prepare_macpads( GCRY_MD_HD hd, byte *key, size_t keylen)
 	return GCRYERR_INV_MD_ALGO; /* i.e. no algo enabled */
 
     if( keylen > 64 ) {
-	helpkey = g10_malloc_secure( md_digest_length( algo ) );
+	helpkey = gcry_malloc_secure( md_digest_length( algo ) );
 	if( !helpkey )
 	    return GCRYERR_NO_MEM;
 	gcry_md_hash_buffer( algo, helpkey, key, keylen );
@@ -546,7 +546,7 @@ prepare_macpads( GCRY_MD_HD hd, byte *key, size_t keylen)
 	ipad[i] ^= 0x36;
 	opad[i] ^= 0x5c;
     }
-    g10_free( helpkey );
+    gcry_free( helpkey );
     return 0;
 }
 
@@ -658,8 +658,8 @@ md_digest( GCRY_MD_HD a, int algo, byte *buffer, int buflen )
 
     /* I don't want to change the interface, so I simply work on a copy
      * of the context (extra overhead - should be fixed)*/
-    context = a->ctx->secure ? g10_xmalloc_secure( r->contextsize )
-			     : g10_xmalloc( r->contextsize );
+    context = a->ctx->secure ? gcry_xmalloc_secure( r->contextsize )
+			     : gcry_xmalloc( r->contextsize );
     memcpy( context, r->context.c, r->contextsize );
     (*r->final)( context );
     digest = (*r->read)( context );
@@ -668,7 +668,7 @@ md_digest( GCRY_MD_HD a, int algo, byte *buffer, int buflen )
 	buflen = r->mdlen;
     memcpy( buffer, digest, buflen );
 
-    g10_free(context);
+    gcry_free(context);
     return buflen;
 }
 #endif
@@ -694,7 +694,7 @@ void
 gcry_md_hash_buffer( int algo, char *digest, const char *buffer, size_t length)
 {
     if( algo == GCRY_MD_RMD160 )
-	rmd160_hash_buffer( digest, buffer, length );
+	_gcry_rmd160_hash_buffer( digest, buffer, length );
     else { /* for the others we do not have a fast function, so
 	    * we use the normal functions to do it */
 	GCRY_MD_HD h = md_open( algo, 0, 0 );

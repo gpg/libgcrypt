@@ -1,5 +1,5 @@
 /* rmd160.c  -	RIPE-MD160
- *	Copyright (C) 1998 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -143,7 +143,7 @@
 
 
 void
-rmd160_init( RMD160_CONTEXT *hd )
+_gcry_rmd160_init( RMD160_CONTEXT *hd )
 {
     hd->h0 = 0x67452301;
     hd->h1 = 0xEFCDAB89;
@@ -436,7 +436,7 @@ rmd160_write( RMD160_CONTEXT *hd, byte *inbuf, size_t inlen)
  * Returns: 16 bytes in buffer with the mixed contentes of buffer.
  */
 void
-rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer )
+_gcry_rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer )
 {
     char *p = buffer;
     transform( hd, buffer );
@@ -526,11 +526,11 @@ rmd160_read( RMD160_CONTEXT *hd )
  * into outbuf which must have a size of 20 bytes.
  */
 void
-rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length )
+_gcry_rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length )
 {
     RMD160_CONTEXT hd;
 
-    rmd160_init( &hd );
+    _gcry_rmd160_init( &hd );
     rmd160_write( &hd, (byte*)buffer, length );
     rmd160_final( &hd );
     memcpy( outbuf, hd.buf, 20 );
@@ -563,7 +563,7 @@ rmd160_get_info( int algo, size_t *contextsize,
     *r_asnoid = asn;
     *r_asnlen = DIM(asn);
     *r_mdlen = 20;
-    *(void  (**)(RMD160_CONTEXT *))r_init		  = rmd160_init;
+    *(void  (**)(RMD160_CONTEXT *))r_init		  = _gcry_rmd160_init;
     *(void  (**)(RMD160_CONTEXT *, byte*, size_t))r_write = rmd160_write;
     *(void  (**)(RMD160_CONTEXT *))r_final		  = rmd160_final;
     *(byte *(**)(RMD160_CONTEXT *))r_read		  = rmd160_read;
@@ -625,9 +625,9 @@ gnupgext_enum_func( int what, int *sequence, int *class, int *vers )
 
 #ifndef IS_MODULE
 void
-rmd160_constructor(void)
+_gcry_rmd160_constructor(void)
 {
-    register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );
+    _gcry_register_internal_cipher_extension( gnupgext_version, gnupgext_enum_func );
 }
 #endif
 

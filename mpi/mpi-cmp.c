@@ -1,5 +1,5 @@
 /* mpi-cmp.c  -  MPI functions
- *	Copyright (C) 1998, 1999 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 1999, 2001 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -24,11 +24,11 @@
 #include "mpi-internal.h"
 
 int
-mpi_cmp_ui( MPI u, unsigned long v )
+gcry_mpi_cmp_ui( MPI u, unsigned long v )
 {
     mpi_limb_t limb = v;
 
-    mpi_normalize( u );
+    _gcry_mpi_normalize( u );
     if( !u->nlimbs && !limb )
 	return 0;
     if( u->sign )
@@ -45,13 +45,13 @@ mpi_cmp_ui( MPI u, unsigned long v )
 }
 
 int
-mpi_cmp( MPI u, MPI v )
+gcry_mpi_cmp( MPI u, MPI v )
 {
     mpi_size_t usize, vsize;
     int cmp;
 
-    mpi_normalize( u );
-    mpi_normalize( v );
+    _gcry_mpi_normalize( u );
+    _gcry_mpi_normalize( v );
     usize = u->nlimbs;
     vsize = v->nlimbs;
     if( !u->sign && v->sign )
@@ -64,7 +64,7 @@ mpi_cmp( MPI u, MPI v )
 	return vsize + usize;
     if( !usize )
 	return 0;
-    if( !(cmp=mpihelp_cmp( u->d, v->d, usize )) )
+    if( !(cmp = _gcry_mpih_cmp( u->d, v->d, usize )) )
 	return 0;
     if( (cmp < 0?1:0) == (u->sign?1:0))
 	return 1;

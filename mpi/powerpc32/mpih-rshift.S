@@ -28,7 +28,7 @@
 
 /*******************
  * mpi_limb_t
- * mpihelp_rshift( mpi_ptr_t wp,	(r3)
+ * _gcry_mpih_rshift( mpi_ptr_t wp,	(r3)
  *		   mpi_ptr_t up,	(r4)
  *		   mpi_size_t usize,	(r5)
  *		   unsigned cnt)	(r6)
@@ -37,13 +37,13 @@
 	.toc
 .csect	.text[PR]
 	.align	2
-	.globl	mpihelp_rshift
-	.globl	.mpihelp_rshift
-	.csect	mpihelp_rshift[DS]
-mpihelp_rshift:
-	.long	.mpihelp_rshift,  TOC[tc0],	  0
+	.globl	_gcry_mpih_rshift
+	.globl	._gcry_mpih_rshift
+	.csect	_gcry_mpih_rshift[DS]
+_gcry_mpih_rshift:
+	.long	._gcry_mpih_rshift,  TOC[tc0],	  0
 	.csect	.text[PR]
-.mpihelp_rshift:
+._gcry_mpih_rshift:
 	mtctr	5		# copy size into CTR
 	addi	7,3,-4		# move adjusted res_ptr to free return reg
 	subfic	8,6,32
@@ -99,7 +99,7 @@ Lend2:	srw	0,10,6
    size 	       r5
    cnt	       r6  */
 
-ENTRY(mpihelp_rshift)
+ENTRY(_gcry_mpih_rshift)
        mtctr   5	       # copy size into CTR
        addi    7,3,-4	       # move adjusted res_ptr to free return reg
        subfic  8,6,32
@@ -127,5 +127,5 @@ ENTRY(mpihelp_rshift)
 2:     srw     0,10,6
        stw     0,4(7)
        blr
-END(mpihelp_rshift)
+END(_gcry_mpih_rshift)
 #endif

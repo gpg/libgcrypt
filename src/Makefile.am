@@ -36,7 +36,8 @@ include_HEADERS = gcrypt.h
 
 libgcrypt_la_LDFLAGS = -version-info \
       @LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@ 
-#     -export-symbols libgcrypt.sym
+# limiting the exported symbols is not good for debugging.
+#      -export-symbols libgcrypt.sym
 
 libgcrypt_la_SOURCES =	 g10lib.h \
 		         types.h \
@@ -44,7 +45,6 @@ libgcrypt_la_SOURCES =	 g10lib.h \
 			 misc.c  \
 			 global.c \
 			 sexp.c \
-			 wrapper.c \
 			 stdmem.c \
 			 stdmem.h \
 			 secmem.c \
@@ -64,6 +64,4 @@ BUILT_SOURCES = libgcrypt.sym
 libgcrypt.sym: $(libgcrypt_la_OBJECTS)
 	    $(NM) $(libgcrypt_la_OBJECTS) \
 	      | $(AWK) '$$2=="T" && $$3 ~ /^gcry_/ {print $$3}' >libgcrypt.sym
-
-
 
