@@ -48,7 +48,7 @@ typedef struct
 
 
 static void test_keys (ELG_secret_key *sk, unsigned nbits);
-static gcry_mpi_t gen_k (gcry_mpi_t p);
+static gcry_mpi_t gen_k (gcry_mpi_t p, int small_k);
 static void generate (ELG_secret_key *sk, unsigned nbits, gcry_mpi_t **factors);
 static int  check_secret_key (ELG_secret_key *sk);
 static void do_encrypt (gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey);
@@ -149,11 +149,12 @@ test_keys( ELG_secret_key *sk, unsigned nbits )
 
 
 /****************
- * generate a random secret exponent k from prime p, so
- * that k is relatively prime to p-1
+ * Generate a random secret exponent k from prime p, so that k is
+ * relatively prime to p-1.  With SMALL_K set, k will be selected for
+ * better encryption performance - this must never be used signing!
  */
 static gcry_mpi_t
-gen_k( gcry_mpi_t p )
+gen_k( gcry_mpi_t p, int small_k )
 {
     gcry_mpi_t k = mpi_alloc_secure( 0 );
     gcry_mpi_t temp = mpi_alloc( mpi_get_nlimbs(p) );
@@ -162,13 +163,19 @@ gen_k( gcry_mpi_t p )
     unsigned int nbits, nbytes;
     char *rndbuf = NULL;
 
-    /* IMO using a k much lesser than p is sufficient and it greatly
-     * improves the encryption performance.  We use Wiener's table
-     * and add a large safety margin.
-     */
-    nbits = wiener_map( orig_nbits ) * 3 / 2;
-    if( nbits >= orig_nbits )
-	BUG();
+    if (small_k)
+      {
+        /* Using a k much lesser than p is sufficient for encryption and
+         * it greatly improves the encryption performance.  We use
+         * Wiener's table and add a large safety margin.
+         */
+        nbits = wiener_map( orig_nbits ) * 3 / 2;
+        if( nbits >= orig_nbits )
+          BUG();
+      }
+    else
+      nbits = orig_nbits;
+
 
     nbytes = (nbits+7)/8;
     if( DBG_CIPHER )
@@ -188,7 +195,6 @@ gen_k( gcry_mpi_t p )
 	    char *pp = gcry_random_bytes_secure( 4, GCRY_STRONG_RANDOM );
 	    memcpy( rndbuf, pp, 4 );
 	    gcry_free(pp);
-	    log_debug("gen_k: tsss, never expected to reach this\n");
 	}
 	_gcry_mpi_set_buffer( k, rndbuf, nbytes, 0 );
 
@@ -346,7 +352,7 @@ do_encrypt(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
      * error code.
      */
 
-    k = gen_k( pkey->p );
+    k = gen_k( pkey->p, 1 );
     gcry_mpi_powm( a, pkey->g, k, pkey->p );
     /* b = (y^k * input) mod p
      *	 = ((y^k mod p) * (input mod p)) mod p
@@ -412,7 +418,7 @@ sign(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_secret_key *skey )
     *
     */
     mpi_sub_ui(p_1, p_1, 1);
-    k = gen_k( skey->p );
+    k = gen_k( skey->p, 0 /* no small K ! */ );
     gcry_mpi_powm( a, skey->g, k, skey->p );
     mpi_mul(t, skey->x, a );
     mpi_subm(t, input, t, p_1 );

@@ -447,7 +447,7 @@ prime_generate_internal (int mode,
 		  {
 		    log_debug ("checking g:");
 		    gcry_mpi_dump (g);
-		    log_debug ("\n");
+		    log_printf ("\n");
 		  }
 		else
 		  progress('^');

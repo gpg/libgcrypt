@@ -1,3 +1,8 @@
+2003-12-03  Werner Koch  <wk@gnupg.org>
+
+	* elgamal.c (sign, do_encrypt, gen_k): Make sure that a small K is
+	only used for encryption.
+
 2003-11-18  Werner Koch  <wk@gnupg.org>
 
 	* random.h (rndw32_set_dll_name): Removed unused prototype.
