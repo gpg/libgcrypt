@@ -1,3 +1,28 @@
+2003-12-09  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c (gcry_pk_encrypt): Replaced the chain of if(!err) tests
+	by straightforward gotos. Other cleanups.
+	(gcry_pk_decrypt): Ditto.
+	(gcry_pk_sign): Ditto.
+	(gcry_pk_verify): Ditto.
+	(gcry_pk_genkey): Ditto.  Use strtoul instead of strtol.
+	(gcry_pk_ctl): Use GPG_ERR_INV_ARG to indicate bad arguments.
+
+2003-12-07  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c (gcry_pk_register_default): Undef the helper macro.
+	(gcry_pk_map_name): Allow NULL for string.
+	(sexp_to_key): Use memcpy and not strncpy.  Use gcry_free and not
+	free.
+	(sexp_to_sig): Ditto.
+	(sexp_to_enc): Ditto.  Replaced the chain of if(!err) tests by
+	straightforward gotos.
+
+2003-12-05  Werner Koch  <wk@gnupg.org>
+
+	* cipher.c: Documentation cleanups.
+	(gcry_cipher_mode_from_oid): Allow NULL for STRING.
+
 2003-12-03  Werner Koch  <wk@gnupg.org>
 
 	* elgamal.c (sign, do_encrypt, gen_k): Make sure that a small K is
