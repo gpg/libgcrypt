@@ -1,3 +1,8 @@
+2003-01-02  Werner Koch  <wk@gnupg.org>
+
+	* libgcrypt.vers: Temporary export _gcry_generate_elg_prime for
+	use by GNUTLS. 
+
 2002-12-21  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h: Make use of gcc's pure and malloc attributes 
