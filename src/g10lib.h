@@ -169,6 +169,18 @@ int strcasecmp (const char *a, const char *b) GCC_ATTR_PURE;
 
 void _gcry_burn_stack (int bytes);
 
+
+/* To avoid that a compiler optimizes certain memset calls away, these
+   macros may be used instead. */
+#define wipememory2(_ptr,_set,_len) do { \
+              volatile char *_vptr=(volatile char *)(_ptr); \
+              size_t _vlen=(_len); \
+              while(_vlen) { *_vptr=(_set); _vptr++; _vlen--; } \
+                  } while(0)
+#define wipememory(_ptr,_len) wipememory2(_ptr,0,_len)
+
+
+
 /* Digit predicates.  */
 
 #define digitp(p)   (*(p) >= '0' && *(p) <= '9')
