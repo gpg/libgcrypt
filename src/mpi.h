@@ -70,13 +70,6 @@ struct gcry_mpi {
     mpi_limb_t *d;  /* array with the limbs */
 };
 
-#if 0
-#ifndef DID_MPI_TYPEDEF
-  typedef struct gcry_mpi *MPI;
-#define DID_MPI_TYPEDEF
-#endif
-#endif
-
 #define MPI_NULL NULL
 
 #define mpi_get_nlimbs(a)     ((a)->nlimbs)

@@ -53,7 +53,7 @@ struct gcry_sexp
 
 #define TOKEN_SPECIALS  "-./_:*+="
 
-static gpg_error_t
+static gcry_error_t
 sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    const char *buffer, size_t length, int argflag,
 	    va_list arg_ptr, void **arg_list);
@@ -187,19 +187,19 @@ normalize ( gcry_sexp_t list )
   
    This function returns 0 and and the pointer to the new object in
    RETSEXP or an error code in which case RETSEXP is set to NULL.  */
-gpg_error_t
+gcry_error_t
 gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
                   int autodetect, void (*freefnc)(void*) )
 {
-  gpg_error_t errcode;
+  gcry_error_t errcode;
   gcry_sexp_t se;
   volatile va_list dummy_arg_ptr;
 
   if (!retsexp)
-    return gpg_error (GPG_ERR_INV_ARG);
+    return gcry_error (GPG_ERR_INV_ARG);
   *retsexp = NULL;
   if (autodetect < 0 || autodetect > 1 || !buffer)
-    return gpg_error (GPG_ERR_INV_ARG);
+    return gcry_error (GPG_ERR_INV_ARG);
 
   if (!length && !autodetect)
     { /* What a brave caller to assume that there is really a canonical
@@ -227,11 +227,11 @@ gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
          GCRYSEXP object and use the BUFFER directly */
       freefnc (buffer);
     }
-  return gpg_error (GPG_ERR_NO_ERROR);
+  return gcry_error (GPG_ERR_NO_ERROR);
 }
 
 /* Same as gcry_sexp_create but don't transfer ownership */
-gpg_error_t
+gcry_error_t
 gcry_sexp_new (gcry_sexp_t *retsexp, const void *buffer, size_t length,
                int autodetect)
 {
@@ -833,7 +833,7 @@ unquote_string (const unsigned char *string, size_t length, unsigned char *buf)
  * common operation gcry_sexp_cdr_mpi() will always return a secure MPI
  * regardless whether it is needed or not.
  */
-static gpg_error_t
+static gcry_error_t
 sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    const char *buffer, size_t length, int argflag,
 	    va_list arg_ptr, void **arg_list)
@@ -915,7 +915,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 		&& p[2] >= '0' && p[2] <= '7') ) {
 	    *erroff = p - buffer;
 	    /* Invalid octal value.  */
-	    return gpg_error (GPG_ERR_SEXP_BAD_QUOTATION);
+	    return gcry_error (GPG_ERR_SEXP_BAD_QUOTATION);
 	  }
 	  p += 2; n -= 2;
 	  quoted_esc = 0;
@@ -924,7 +924,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 	  if( !(n > 2 && isxdigit(p[1]) && isxdigit(p[2]) ) ) {
 	    *erroff = p - buffer;
 	    /* Invalid hex value.  */
-	    return gpg_error (GPG_ERR_SEXP_BAD_QUOTATION);
+	    return gcry_error (GPG_ERR_SEXP_BAD_QUOTATION);
 	  }
 	  p += 2; n -= 2;
 	  quoted_esc = 0;
@@ -944,7 +944,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 	default:
 	  *erroff = p - buffer;
 	  /* Invalid quoted string escape.  */
-	  return gpg_error (GPG_ERR_SEXP_BAD_QUOTATION);
+	  return gcry_error (GPG_ERR_SEXP_BAD_QUOTATION);
 	}
       }
       else if( *p == '\\' )
@@ -972,7 +972,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       else if( *p == '#' ) {
 	if( (hexcount & 1) ) {
 	  *erroff = p - buffer;
-	  return gpg_error (GPG_ERR_SEXP_ODD_HEX_NUMBERS);
+	  return gcry_error (GPG_ERR_SEXP_ODD_HEX_NUMBERS);
 	}
 
 	datalen = hexcount/2;
@@ -989,7 +989,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       }
       else if( !isspace( *p ) ) {
 	*erroff = p - buffer;
-	return gpg_error (GPG_ERR_SEXP_BAD_HEX_CHAR);
+	return gcry_error (GPG_ERR_SEXP_BAD_HEX_CHAR);
       }
     }
     else if( base64 ) {
@@ -1005,7 +1005,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 	if( datalen > n-1 ) {
 	  *erroff = p - buffer;
 	  /* Buffer too short.  */
-	  return gpg_error (GPG_ERR_SEXP_STRING_TOO_LONG);
+	  return gcry_error (GPG_ERR_SEXP_STRING_TOO_LONG);
 	}
 	/* make a new list entry */
 	MAKE_SPACE (datalen);
@@ -1032,7 +1032,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       }
       else {
 	*erroff = p - buffer;
-	return gpg_error (GPG_ERR_SEXP_INV_LEN_SPEC);
+	return gcry_error (GPG_ERR_SEXP_INV_LEN_SPEC);
       }
     }
     else if ( percent ) {
@@ -1097,7 +1097,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       else {
 	*erroff = p - buffer;
 	/* Invalid format specifier.  */
-	return gpg_error (GPG_ERR_SEXP_INV_LEN_SPEC);
+	return gcry_error (GPG_ERR_SEXP_INV_LEN_SPEC);
       }
       percent = NULL;
     }
@@ -1105,7 +1105,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       if( disphint ) {
 	*erroff = p - buffer;
 	/* Open display hint.  */
-	return gpg_error (GPG_ERR_SEXP_UNMATCHED_DH);
+	return gcry_error (GPG_ERR_SEXP_UNMATCHED_DH);
       }
       MAKE_SPACE (0);
       *c.pos++ = ST_OPEN;
@@ -1114,7 +1114,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       if( disphint ) {
 	*erroff = p - buffer;
 	/* Open display hint.  */
-	return gpg_error (GPG_ERR_SEXP_UNMATCHED_DH);
+	return gcry_error (GPG_ERR_SEXP_UNMATCHED_DH);
       }
       MAKE_SPACE (0);
       *c.pos++ = ST_CLOSE;
@@ -1133,7 +1133,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       if( disphint ) {
 	*erroff = p - buffer;
 	/* Open display hint.  */
-	return gpg_error (GPG_ERR_SEXP_NESTED_DH);
+	return gcry_error (GPG_ERR_SEXP_NESTED_DH);
       }
       disphint = p;
     }
@@ -1141,14 +1141,14 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
       if( !disphint ) {
 	*erroff = p - buffer;
 	/* Open display hint.  */
-	return gpg_error (GPG_ERR_SEXP_UNMATCHED_DH);
+	return gcry_error (GPG_ERR_SEXP_UNMATCHED_DH);
       }
       disphint = NULL;
     }
     else if( isdigit(*p) ) {
       if( *p == '0' ) { /* a length may not begin with zero */
 	*erroff = p - buffer;
-	return gpg_error (GPG_ERR_SEXP_ZERO_PREFIX);
+	return gcry_error (GPG_ERR_SEXP_ZERO_PREFIX);
       }
       digptr = p;
     }
@@ -1164,18 +1164,18 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
        * it.  Great.
        */
       *erroff = p - buffer;
-      return gpg_error (GPG_ERR_SEXP_UNEXPECTED_PUNC);
+      return gcry_error (GPG_ERR_SEXP_UNEXPECTED_PUNC);
     }
     else if( strchr( "&\\", *p ) ) { /*reserved punctuation*/
       *erroff = p - buffer;
-      return gpg_error (GPG_ERR_SEXP_UNEXPECTED_PUNC);
+      return gcry_error (GPG_ERR_SEXP_UNEXPECTED_PUNC);
     }
     else if( argflag && *p == '%' ) {
       percent = p;
     }
     else { /* bad or unavailable*/
       *erroff = p - buffer;
-      return gpg_error (GPG_ERR_SEXP_BAD_CHARACTER);
+      return gcry_error (GPG_ERR_SEXP_BAD_CHARACTER);
     }
 
   }
@@ -1183,15 +1183,15 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ\
   *c.pos++ = ST_STOP;
 
   *retsexp = normalize ( c.sexp );
-  return gpg_error (GPG_ERR_NO_ERROR);
+  return gcry_error (GPG_ERR_NO_ERROR);
 #undef MAKE_SPACE
 #undef STORE_LEN
 }
 
-gpg_error_t
+gcry_error_t
 gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff, const char *format, ...)
 {
-  gpg_error_t rc;
+  gcry_error_t rc;
   va_list arg_ptr;
   
   va_start (arg_ptr, format);
@@ -1204,7 +1204,7 @@ gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff, const char *format, ...)
 
 /* Like gcry_sexp_build, but uses an array instead of variable
    function arguments.  */
-gpg_error_t
+gcry_error_t
 gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
 		       const char *format, void **arg_list)
 {
@@ -1214,7 +1214,7 @@ gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
      suppress the compiler warning */
   volatile va_list dummy_arg_ptr;
   
-  gpg_error_t rc;
+  gcry_error_t rc;
 
   rc = sexp_sscan (retsexp, erroff, format, strlen(format), 1,
 		   dummy_arg_ptr, arg_list);
@@ -1222,7 +1222,7 @@ gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
   return rc;
 }
 
-gpg_error_t
+gcry_error_t
 gcry_sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		 const char *buffer, size_t length)
 {
@@ -1512,13 +1512,13 @@ gcry_sexp_sprint( const gcry_sexp_t list, int mode,
    NULL.  */
 size_t
 gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
-                     size_t *erroff, gpg_error_t *errcode)
+                     size_t *erroff, gcry_error_t *errcode)
 {
   const unsigned char *p;
   const char *disphint=NULL;
   unsigned int datalen = 0;
   size_t dummy_erroff;
-  gpg_error_t dummy_errcode;
+  gcry_error_t dummy_errcode;
   size_t count = 0;
   int level = 0;
 
@@ -1527,13 +1527,13 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
   if (!errcode)
     errcode = &dummy_errcode;
 
-  *errcode = gpg_error (GPG_ERR_NO_ERROR);
+  *errcode = gcry_error (GPG_ERR_NO_ERROR);
   *erroff = 0;
   if (!buffer)
     return 0;
   if (*buffer != '(')
     {
-      *errcode = gpg_error (GPG_ERR_SEXP_NOT_CANONICAL);
+      *errcode = gcry_error (GPG_ERR_SEXP_NOT_CANONICAL);
       return 0;
     }
 
@@ -1542,7 +1542,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
       if (length && count >= length)
         {
           *erroff = count;
-          *errcode = gpg_error (GPG_ERR_SEXP_STRING_TOO_LONG);
+          *errcode = gcry_error (GPG_ERR_SEXP_STRING_TOO_LONG);
           return 0;
         }
       
@@ -1553,7 +1553,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
               if (length && (count+datalen) >= length)
                 {
                   *erroff = count;
-                  *errcode = gpg_error (GPG_ERR_SEXP_STRING_TOO_LONG);
+                  *errcode = gcry_error (GPG_ERR_SEXP_STRING_TOO_LONG);
                   return 0;
                 }
               count += datalen;
@@ -1565,7 +1565,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           else 
             {
               *erroff = count;
-              *errcode = gpg_error (GPG_ERR_SEXP_INV_LEN_SPEC);
+              *errcode = gcry_error (GPG_ERR_SEXP_INV_LEN_SPEC);
               return 0;
 	    }
 	}
@@ -1574,7 +1574,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if (disphint)
             {
               *erroff = count;
-              *errcode = gpg_error (GPG_ERR_SEXP_UNMATCHED_DH);
+              *errcode = gcry_error (GPG_ERR_SEXP_UNMATCHED_DH);
               return 0;
 	    }
           level++;
@@ -1584,13 +1584,13 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if (!level)
             {
               *erroff = count;
-              *errcode = gpg_error (GPG_ERR_SEXP_UNMATCHED_PAREN);
+              *errcode = gcry_error (GPG_ERR_SEXP_UNMATCHED_PAREN);
               return 0;
 	    }
           if (disphint)
             {
               *erroff = count;
-              *errcode = gpg_error (GPG_ERR_SEXP_UNMATCHED_DH);
+              *errcode = gcry_error (GPG_ERR_SEXP_UNMATCHED_DH);
               return 0;
 	    }
           if (!--level)
@@ -1601,7 +1601,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if (disphint) 
             {
               *erroff = count;
-              *errcode = gpg_error (GPG_ERR_SEXP_NESTED_DH);
+              *errcode = gcry_error (GPG_ERR_SEXP_NESTED_DH);
               return 0;
             }
           disphint = p;
@@ -1611,7 +1611,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if( !disphint ) 
             {
               *erroff = count;
-              *errcode = gpg_error (GPG_ERR_SEXP_UNMATCHED_DH);
+              *errcode = gcry_error (GPG_ERR_SEXP_UNMATCHED_DH);
               return 0;
 	    }
           disphint = NULL;
@@ -1621,7 +1621,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           if (*p == '0')
             { 
               *erroff = count;
-              *errcode = gpg_error (GPG_ERR_SEXP_ZERO_PREFIX);
+              *errcode = gcry_error (GPG_ERR_SEXP_ZERO_PREFIX);
               return 0;
 	    }
           datalen = atoi_1 (p);
@@ -1629,13 +1629,13 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
       else if (*p == '&' || *p == '\\')
         {
           *erroff = count;
-          *errcode = gpg_error (GPG_ERR_SEXP_UNEXPECTED_PUNC);
+          *errcode = gcry_error (GPG_ERR_SEXP_UNEXPECTED_PUNC);
           return 0;
 	}
       else
         { 
           *erroff = count;
-          *errcode = gpg_error (GPG_ERR_SEXP_BAD_CHARACTER);
+          *errcode = gcry_error (GPG_ERR_SEXP_BAD_CHARACTER);
           return 0;
 	}
     }

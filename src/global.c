@@ -40,12 +40,13 @@
  */
 static unsigned int debug_flags;
 
-static void *(*alloc_func)(size_t n) = NULL;
-static void *(*alloc_secure_func)(size_t n) = NULL;
-static int   (*is_secure_func)(const void*) = NULL;
-static void *(*realloc_func)(void *p, size_t n) = NULL;
-static void (*free_func)(void*) = NULL;
-static int (*outofcore_handler)( void*, size_t, unsigned int ) = NULL;
+static gcry_handler_alloc_t alloc_func;
+static gcry_handler_alloc_t alloc_secure_func;
+static gcry_handler_secure_check_t is_secure_func;
+static gcry_handler_realloc_t realloc_func;
+static gcry_handler_free_t free_func;
+static gcry_handler_no_mem_t outofcore_handler;
+
 static void *outofcore_handler_value = NULL;
 static int no_secure_memory = 0;
 static int any_init_done;
@@ -57,7 +58,7 @@ static int any_init_done;
 static void
 global_init (void)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
   if (any_init_done)
     return;
@@ -148,10 +149,10 @@ gcry_check_version( const char *req_version )
     return NULL;
 }
 
-gpg_error_t
+gcry_error_t
 gcry_control (enum gcry_ctl_cmds cmd, ...)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   static int init_finished = 0;
   va_list arg_ptr;
   
@@ -273,31 +274,41 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
     }
 
   va_end(arg_ptr);
-  return gpg_error (err);
+  return gcry_error (err);
 }
 
+/* Return a pointer to a string containing a description of the error
+   code in the error value ERR.  */
 const char *
-gcry_strerror (gpg_error_t ec)
+gcry_strerror (gcry_error_t err)
 {
-  return gpg_strerror (ec);
+  return gpg_strerror (err);
+}
+
+/* Return a pointer to a string containing a description of the error
+   source in the error value ERR.  */
+const char *
+gcry_strsource (gcry_error_t err)
+{
+  return gpg_strsource (err);
 }
 
 /****************
  * NOTE: All 5 functions should be set.  */
 void
-gcry_set_allocation_handler( void *(*new_alloc_func)(size_t n),
-			     void *(*new_alloc_secure_func)(size_t n),
-			     int (*new_is_secure_func)(const void*),
-			     void *(*new_realloc_func)(void *p, size_t n),
-			     void (*new_free_func)(void*) )
+gcry_set_allocation_handler (gcry_handler_alloc_t new_alloc_func,
+			     gcry_handler_alloc_t new_alloc_secure_func,
+			     gcry_handler_secure_check_t new_is_secure_func,
+			     gcry_handler_realloc_t new_realloc_func,
+			     gcry_handler_free_t new_free_func)
 {
-    global_init ();
+  global_init ();
 
-    alloc_func	      = new_alloc_func;
-    alloc_secure_func = new_alloc_secure_func;
-    is_secure_func    = new_is_secure_func;
-    realloc_func      = new_realloc_func;
-    free_func	      = new_free_func;
+  alloc_func = new_alloc_func;
+  alloc_secure_func = new_alloc_secure_func;
+  is_secure_func = new_is_secure_func;
+  realloc_func = new_realloc_func;
+  free_func = new_free_func;
 }
 
 

@@ -26,13 +26,13 @@
 /* Internal function.  Generate a new, unique module ID for a module
    that should be inserted into the module chain starting at
    MODULES.  */
-static gpg_err_code_t
+static gcry_err_code_t
 _gcry_module_id_new (gcry_module_t modules, unsigned int *id_new)
 {
   /* FIXME, what should be the ID of the first module registered by
      the user?  */
   unsigned int id_min = 600, id_max = (unsigned int) -1, mod_id;
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_module_t module;
 
   /* Search for unused ID.  */
@@ -60,11 +60,11 @@ _gcry_module_id_new (gcry_module_t modules, unsigned int *id_new)
 
 /* Add a module specification to the list ENTRIES.  The new module has
    it's use-counter set to one.  */
-gpg_err_code_t
+gcry_err_code_t
 _gcry_module_add (gcry_module_t *entries, unsigned int mod_id,
 		  void *spec, gcry_module_t *module)
 {
-  gpg_err_code_t err = 0;
+  gcry_err_code_t err = 0;
   gcry_module_t entry;
 
   if (! mod_id)
@@ -169,11 +169,11 @@ _gcry_module_use (gcry_module_t module)
    *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
    according size.  In case there are less cipher modules than
    *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
-gpg_err_code_t
+gcry_err_code_t
 _gcry_module_list (gcry_module_t modules,
 		   int *list, int *list_length)
 {
-  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_module_t module;
   int length, i;
 

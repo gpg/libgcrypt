@@ -116,13 +116,6 @@ int _gcry_log_verbosity( int level );
 
 /*-- cipher/pubkey.c --*/
 
-#if 0
-#ifndef DID_MPI_TYPEDEF
- typedef struct gcry_mpi * MPI;
-#define DID_MPI_TYPEDEF
-#endif
-#endif
-
 #ifndef mpi_powm
 #define mpi_powm(w,b,e,m)   gcry_mpi_powm( (w), (b), (e), (m) )
 #endif
@@ -138,8 +131,6 @@ gcry_mpi_t _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 					   gcry_mpi_t g, gcry_mpi_t **factors );
 
 
-
-
 /* replacements of missing functions (missing-string.c)*/
 #ifndef HAVE_STPCPY
 char *stpcpy (char *a, const char *b);
@@ -147,7 +138,6 @@ char *stpcpy (char *a, const char *b);
 #ifndef HAVE_STRCASECMP
 int strcasecmp (const char *a, const char *b) GCC_ATTR_PURE;
 #endif
-
 
 /* macros used to rename missing functions */
 #ifndef HAVE_STRTOUL
@@ -205,7 +195,7 @@ struct gcry_module
 /* Flags for the `flags' member of gcry_module_t.  */
 #define FLAG_MODULE_DISABLED 1 << 0
 
-gpg_err_code_t _gcry_module_add (gcry_module_t *entries,
+gcry_err_code_t _gcry_module_add (gcry_module_t *entries,
 				 unsigned int id,
 				 void *spec,
 				 gcry_module_t *module);
@@ -229,14 +219,14 @@ void _gcry_module_release (gcry_module_t entry);
 void _gcry_module_use (gcry_module_t module);
 
 /* Return a list of module IDs.  */
-gpg_err_code_t _gcry_module_list (gcry_module_t modules,
+gcry_err_code_t _gcry_module_list (gcry_module_t modules,
 				  int *list, int *list_length);
 
-gpg_err_code_t _gcry_cipher_init (void);
-gpg_err_code_t _gcry_md_init (void);
-gpg_err_code_t _gcry_pk_init (void);
+gcry_err_code_t _gcry_cipher_init (void);
+gcry_err_code_t _gcry_md_init (void);
+gcry_err_code_t _gcry_pk_init (void);
 
-gpg_err_code_t _gcry_pk_module_lookup (int id, gcry_module_t *module);
+gcry_err_code_t _gcry_pk_module_lookup (int id, gcry_module_t *module);
 void _gcry_pk_module_release (gcry_module_t module);
 
 #endif /* G10LIB_H */
