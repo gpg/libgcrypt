@@ -449,8 +449,8 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
    given as 0 if the algorithms to be used are later set using
    gcry_md_enable. H is guaranteed to be a valid handle or NULL on
    error.  */
-gcry_error_t
-gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
+gcry_err_code_t
+_gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_md_hd_t hd;
@@ -463,11 +463,24 @@ gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 		     (flags & GCRY_MD_FLAG_HMAC));
     }
 
-  *h = err? NULL : hd;
-  return gcry_error (err);
+  *h = err ? NULL : hd;
+  return err;
 }
 
+/* Create a message digest object for algorithm ALGO.  FLAGS may be
+   given as an bitwise OR of the gcry_md_flags values.  ALGO may be
+   given as 0 if the algorithms to be used are later set using
+   gcry_md_enable. H is guaranteed to be a valid handle or NULL on
+   error.  */
+gcry_error_t
+gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
+{
+  gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
+  err = _gcry_md_open (h, algo, flags);
+
+  return gcry_error (err);
+}
 
 static gcry_err_code_t
 md_enable (gcry_md_hd_t hd, int algorithm)
@@ -1026,7 +1039,16 @@ md_asn_oid (int algorithm, size_t *asnlen, size_t *mdlen)
   return asnoid;
 }
 
+void
+_gcry_md_info_get (gcry_md_hd_t handle,
+		   unsigned char **md_asn, size_t *md_asn_n, size_t *md_dlen)
+{
+  gcry_md_spec_t *digest = handle->ctx->list->digest;
 
+  *md_asn = digest->asnoid;
+  *md_asn_n = digest->asnlen;
+  *md_dlen = digest->mdlen;
+}
 
 /****************
  * Return information about the given cipher algorithm
