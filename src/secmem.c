@@ -366,13 +366,6 @@ init_pool (size_t n)
   mb->flags = 0;
 }
 
-/* concatenate unused blocks */
-static void
-compress_pool (void)
-{
-  /* fixme: we really should do this */
-}
-
 void
 _gcry_secmem_set_flags (unsigned flags)
 {

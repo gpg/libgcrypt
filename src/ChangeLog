@@ -1,5 +1,8 @@
 2003-07-15  Moritz Schulte  <moritz@g10code.com>
 
+	* secmem.c (compress_pool): Remove function, since unused blocks
+	are automatically concatenad.
+
 	* gcrypt.h: Bumped version number up to 1.1.42-cvs.
 
 2003-07-14  Moritz Schulte  <moritz@g10code.com>
