@@ -1,3 +1,9 @@
+2004-03-17  Marcus Brinkmann  <marcus@g10code.de>
+
+	* libgcrypt-config.in (includedir, libdir): Quote'em.  Use
+	$gpg_error_cflags and $gpg_error_libs.  Fix construction of
+	$includes.
+
 2004-03-14  Marcus Brinkmann  <marcus@g10code.de>
 
 	* libgcrypt-config.in (includedir, libdir): New variables.  For
