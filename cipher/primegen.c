@@ -257,7 +257,9 @@ _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 	    if( DBG_CIPHER ) {
 		log_debug("checking g: ");
 		/*mpi_print( stderr, g, 1 );*/
-		#warning we need an internal mpi_print for debugging
+#if __GNUC__ >= 2
+#   warning we need an internal mpi_print for debugging
+#endif
 	    }
 	    else
 		progress('^');
@@ -323,9 +325,14 @@ gen_prime( unsigned  nbits, int secret, int randomlevel )
 	/* generate a random number */
 	gcry_mpi_randomize( prime, nbits, randomlevel );
 
-	/* set high order bit to 1, set low order bit to 1 */
-	mpi_set_highbit( prime, nbits-1 );
-	mpi_set_bit( prime, 0 );
+	/* set high order bit to 1, set low order bit to 1.  If we are
+           generating a secret prime we are most probably doing that
+           for RSA, to make sure that the modulus does have the
+           requested keysize we set the 2 high order bits */
+	mpi_set_highbit (prime, nbits-1);
+        if (secret)
+          mpi_set_highbit (prime, nbits-2);
+	mpi_set_bit(prime, 0);
 
 	/* calculate all remainders */
 	for(i=0; (x = small_prime_numbers[i]); i++ )

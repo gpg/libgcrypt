@@ -1,3 +1,12 @@
+2001-12-18  Werner Koch  <wk@gnupg.org>
+
+	* rsa.c (generate): Loop until we find the exact modulus size.
+	Changed the exponent to 41.
+	(rsa_get_info): s/usage/r_usage/ to avoid shadow warnings.
+	* primegen.c (gen_prime): Set 2 high order bits for secret primes.
+
+	* Makefile.am (DISTCLEANFILES): Include construct.c.
+
 2001-12-17  Werner Koch  <wk@gnupg.org>
 
 	* pubkey.c (gcry_pk_get_keygrip): New - experimental.

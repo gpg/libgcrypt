@@ -84,7 +84,7 @@ test_keys( RSA_secret_key *sk, unsigned nbits )
 
 /****************
  * Generate a key pair with a key of size NBITS
- * Returns: 2 structures filles with all needed values
+ * Returns: 2 structures filled with all needed values
  */
 static void
 generate( RSA_secret_key *sk, unsigned nbits )
@@ -95,15 +95,31 @@ generate( RSA_secret_key *sk, unsigned nbits )
     MPI t1, t2;
     MPI n;    /* the public key */
     MPI e;    /* the exponent */
-    MPI phi;  /* helper: (p-a)(q-1) */
+    MPI phi;  /* helper: (p-1)(q-1) */
     MPI g;
     MPI f;
 
-    /* select two (very secret) primes */
-    p = _gcry_generate_secret_prime( nbits / 2 );
-    q = _gcry_generate_secret_prime( nbits / 2 );
-    if( mpi_cmp( p, q ) > 0 ) /* p shall be smaller than q (for calc of u)*/
-	mpi_swap(p,q);
+    /* make sure that nbits is even so that we generate p, q of equal size */
+    if ( (nbits&1) )
+      nbits++; 
+
+    n = gcry_mpi_new (nbits);
+
+    p = q = NULL;
+    do {
+      /* select two (very secret) primes */
+      if (p)
+        gcry_mpi_release (p);
+      if (q)
+        gcry_mpi_release (q);
+      p = _gcry_generate_secret_prime (nbits/2);
+      q = _gcry_generate_secret_prime (nbits/2);
+      if (mpi_cmp (p, q) > 0 ) /* p shall be smaller than q (for calc of u)*/
+        mpi_swap(p,q);
+      /* calculate the modulus */
+      mpi_mul( n, p, q );
+    } while ( mpi_get_nbits(n) != nbits );
+
     /* calculate Euler totient: phi = (p-1)(q-1) */
     t1 = mpi_alloc_secure( mpi_get_nlimbs(p) );
     t2 = mpi_alloc_secure( mpi_get_nlimbs(p) );
@@ -115,14 +131,27 @@ generate( RSA_secret_key *sk, unsigned nbits )
     mpi_mul( phi, t1, t2 );
     gcry_mpi_gcd(g, t1, t2);
     mpi_fdiv_q(f, phi, g);
-    /* multiply them to make the private key */
-    n = gcry_mpi_new ( nbits );
-    mpi_mul( n, p, q );
-    /* find a public exponent  */
-    e = gcry_mpi_new ( 6 );
-    mpi_set_ui( e, 17); /* start with 17 */
-    while( !gcry_mpi_gcd(t1, e, phi) ) /* (while gcd is not 1) */
-	mpi_add_ui( e, e, 2);
+
+    /* find an public exponent.
+       We use 41 as this is quite fast and more secure than the
+       commonly used 17.  Benchmarking the RSA verify function
+       with a 1024 bit key yields (2001-11-08): 
+         e=17    0.54 ms
+         e=41    0.75 ms
+         e=257   0.95 ms
+         e=65537 1.80 ms
+     */
+    e = mpi_alloc( (32+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB );
+    mpi_set_ui( e, 41); 
+    if( !gcry_mpi_gcd(t1, e, phi) ) {
+      mpi_set_ui( e, 257); 
+      if( !gcry_mpi_gcd(t1, e, phi) ) {
+        mpi_set_ui( e, 65537); 
+        while( !gcry_mpi_gcd(t1, e, phi) ) /* (while gcd is not 1) */
+          mpi_add_ui( e, e, 2);
+      }
+    }
+
     /* calculate the secret key d = e^1 mod phi */
     d = gcry_mpi_snew ( nbits );
     mpi_invm(d, e, f );
@@ -131,7 +160,7 @@ generate( RSA_secret_key *sk, unsigned nbits )
     mpi_invm(u, p, q );
 
     if( DBG_CIPHER ) {
-	log_mpidump("  p= ", p );
+        log_mpidump("  p= ", p );
 	log_mpidump("  q= ", q );
 	log_mpidump("phi= ", phi );
 	log_mpidump("  g= ", g );
@@ -455,7 +484,7 @@ _gcry_rsa_get_nbits( int algo, MPI *pkey )
  */
 const char *
 _gcry_rsa_get_info( int algo,
-	      int *npkey, int *nskey, int *nenc, int *nsig, int *usage )
+	      int *npkey, int *nskey, int *nenc, int *nsig, int *r_usage )
 {
     *npkey = 2;
     *nskey = 6;
@@ -463,9 +492,9 @@ _gcry_rsa_get_info( int algo,
     *nsig = 1;
 
     switch( algo ) {
-      case 1: *usage = GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR; return "RSA";
-      case 2: *usage = GCRY_PK_USAGE_ENCR; return "RSA-E";
-      case 3: *usage = GCRY_PK_USAGE_SIGN; return "RSA-S";
-      default:*usage = 0; return NULL;
+      case 1: *r_usage = GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR; return "RSA";
+      case 2: *r_usage = GCRY_PK_USAGE_ENCR; return "RSA-E";
+      case 3: *r_usage = GCRY_PK_USAGE_SIGN; return "RSA-S";
+      default:*r_usage = 0; return NULL;
     }
 }

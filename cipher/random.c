@@ -672,7 +672,9 @@ gather_faked( void (*add)(const void*, size_t, int), int requester,
 	/* we can't use tty_printf here - do we need this function at
 	  all - does it really make sense or canit be viewed as a potential
 	  security problem ? wk 17.11.99 */
-	#warning Extended warning disabled
+#if __GNUC__ >= 2
+#     warning Extended warning disabled
+#endif
       #if 0
 	tty_printf(_("The random number generator is only a kludge to let\n"
 		   "it run - it is in no way a strong RNG!\n\n"

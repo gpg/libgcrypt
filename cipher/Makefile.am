@@ -79,16 +79,20 @@ libcipher_la_SOURCES = cipher.c  \
 
 # configure creates the constructor file
 BUILT_SOURCES = construct.c
+DISTCLEANFILES = construct.c
 
 libcipher_la_DEPENDENCIES = @STATIC_CIPHER_OBJS@
 libcipher_la_LIBADD =	  @STATIC_CIPHER_OBJS@
 
 
-# If I remember it correct, automake 1.4 has a feature to set
-# fooFLAGS depending on the program.  So we should check it out.
+# We could to something like 
+#   tiger_SOURCES = tiger.c
+#   tiger_CFLAGS = $(DYNLINK_MOD_CFLAGS)
+# but I have not yet figured out on how to suppress the link step.
+# this is probably a libtool thing.
 
 #if BUILD_MODULE_TIGER
-tiger: $(srcdir)/tiger.c
+tiger$(EXEEXT): $(srcdir)/tiger.c
 	`echo $(COMPILE) $(DYNLINK_MOD_CFLAGS) -o tiger $(srcdir)/tiger.c | \
 	    sed -e 's/-O[2-9s]*/-O/g' `
 #endif
@@ -101,7 +105,7 @@ tiger.o: $(srcdir)/tiger.c
 #	     sed -e 's/-O[0-9s]*/  /g' `
 
 #if BUILD_MODULE_TWOFISH
-twofish: $(srcdir)/twofish.c
+twofish$(EXEEXT): $(srcdir)/twofish.c
 	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o twofish $(srcdir)/twofish.c
 #endif
 
@@ -109,17 +113,17 @@ twofish: $(srcdir)/twofish.c
 #	 `echo $(COMPILE) -c $(srcdir)/twofish.c | sed -e 's/-O[0-9s]*/  /g' `
 
 #if BUILD_MODULE_RNDUNIX
-rndunix: $(srcdir)/rndunix.c
+rndunix$(EXEEXT): $(srcdir)/rndunix.c
 	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o rndunix $(srcdir)/rndunix.c
 #endif
 
 #if BUILD_MODULE_RNDLINUX
-rndlinux: $(srcdir)/rndlinux.c
+rndlinux$(EXEEXT): $(srcdir)/rndlinux.c
 	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o rndlinux $(srcdir)/rndlinux.c
 #endif
 
 #if BUILD_MODULE_RNDEGD
-rndegd: $(srcdir)/rndegd.c
+rndegd$(EXEEXT): $(srcdir)/rndegd.c
 	$(COMPILE) $(DYNLINK_MOD_CFLAGS) -o rndegd $(srcdir)/rndegd.c
 #endif
 
