@@ -1,3 +1,7 @@
+2003-06-18  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac (available_ciphers): Removed Serpent, hrrm.
+
 2003-06-17  Moritz Schulte  <moritz@g10code.com>
 
 	* acinclude.m4: Removed macro definitions: GNUPG_CHECK_FAQPROG,
