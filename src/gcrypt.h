@@ -379,7 +379,7 @@ gcry_error_t gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff,
 /* Like gcry_sexp_build, but uses an array instead of variable
    function arguments.  */
 gcry_error_t gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
-                                   const char *format, void **arg_list);
+				    const char *format, void **arg_list);
 
 /* Release the S-expression object SEXP */
 void gcry_sexp_release (gcry_sexp_t sexp);
@@ -1173,6 +1173,67 @@ typedef struct gcry_ac_key_pair *gcry_ac_key_pair_t;
    performing cryptographic operations.  */
 typedef struct gcry_ac_handle *gcry_ac_handle_t;
 
+typedef gpg_error_t (*gcry_ac_data_read_cb_t) (void *opaque,
+					       unsigned char *buffer,
+					       size_t *buffer_n);
+
+typedef gpg_error_t (*gcry_ac_data_write_cb_t) (void *opaque,
+						unsigned char *buffer,
+						size_t buffer_n);
+
+typedef enum
+  {
+    GCRY_AC_IO_READABLE,
+    GCRY_AC_IO_WRITABLE
+  }
+gcry_ac_io_mode_t;
+
+typedef enum
+  {
+    GCRY_AC_IO_STRING,
+    GCRY_AC_IO_CALLBACK
+  }
+gcry_ac_io_type_t;
+
+typedef struct gcry_ac_io
+{
+  /* This is an INTERNAL structure, do NOT use manually.  */
+  gcry_ac_io_mode_t mode;
+  gcry_ac_io_type_t type;
+  union
+  {
+    union
+    {
+      struct
+      {
+	gcry_ac_data_read_cb_t cb;
+	void *opaque;
+      } callback;
+      struct
+      {
+	unsigned char *data;
+	size_t data_n;
+      } string;
+      void *opaque;
+    } readable;
+    union
+    {
+      struct
+      {
+	gcry_ac_data_write_cb_t cb;
+	void *opaque;
+      } callback;
+      struct
+      {
+	unsigned char **data;
+	size_t *data_n;
+      } string;
+      void *opaque;
+    } writable;
+  };
+}
+gcry_ac_io_t;
+
 /* The caller of gcry_ac_key_pair_generate can provide one of these
    structures in order to influence the key generation process in an
    algorithm-specific way.  */
@@ -1257,6 +1318,18 @@ gcry_error_t gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
 gcry_error_t gcry_ac_data_from_sexp (gcry_ac_data_t *data, gcry_sexp_t sexp,
 				     const char **identifiers);
 
+/* Initialize AC_IO according to MODE, TYPE and the variable list of
+   arguments.  The list of variable arguments to specify depends on
+   the given TYPE.  */
+void gcry_ac_io_init (gcry_ac_io_t *ac_io, gcry_ac_io_mode_t mode,
+		      gcry_ac_io_type_t type, ...);
+
+/* Initialize AC_IO according to MODE, TYPE and the variable list of
+   arguments AP.  The list of variable arguments to specify depends on
+   the given TYPE.  */
+void gcry_ac_io_init_va (gcry_ac_io_t *ac_io, gcry_ac_io_mode_t mode,
+			 gcry_ac_io_type_t type, va_list ap);
+
 /* Create a new ac handle.  */
 gcry_error_t gcry_ac_open (gcry_ac_handle_t *handle,
                            gcry_ac_id_t algorithm, unsigned int flags);
@@ -1308,16 +1381,16 @@ void gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair);
    (gcry_ac_em*_t).  */
 gcry_error_t gcry_ac_data_encode (gcry_ac_em_t method,
 				  unsigned int flags, void *options,
-				  unsigned char *m, size_t m_n,
-				  unsigned char **em, size_t *em_n);
+				  gcry_ac_io_t *io_read,
+				  gcry_ac_io_t *io_write);
 
 /* Decodes a message according to the encoding method METHOD.  OPTIONS
    must be a pointer to a method-specific structure
    (gcry_ac_em*_t).  */
 gcry_error_t gcry_ac_data_decode (gcry_ac_em_t method,
 				  unsigned int flags, void *options,
-				  unsigned char *em, size_t em_n,
-				  unsigned char **m, size_t *m_n);
+				  gcry_ac_io_t *io_read,
+				  gcry_ac_io_t *io_write);
 
 /* Encrypt the plain text MPI value DATA_PLAIN with the key KEY under
    the control of the flags FLAGS and store the resulting data set
@@ -1337,32 +1410,6 @@ gcry_error_t gcry_ac_data_decrypt (gcry_ac_handle_t handle,
                                    gcry_mpi_t *data_plain,
                                    gcry_ac_data_t data_encrypted);
 
-/* Encrypts the plain text message contained in M, which is of size
-   M_N, with the public key KEY_PUBLIC according to the Encryption
-   Scheme SCHEME_ID.  HANDLE is used for accessing the low-level
-   cryptographic primitives.  If OPTS is not NULL, it has to be an
-   anonymous structure specific to the chosen scheme (gcry_ac_es_*_t).
-   The encrypted message will be stored in C and C_N.  */
-gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
-					  gcry_ac_scheme_t scheme,
-					  unsigned int flags, void *opts,
-					  gcry_ac_key_t key_public,
-					  unsigned char *m, size_t m_n,
-					  unsigned char **c, size_t *c_n);
-
-/* Decrypts the cipher message contained in C, which is of size C_N,
-   with the secret key KEY_SECRET according to the Encryption Scheme
-   SCHEME_ID.  HANDLE is used for accessing the low-level
-   cryptographic primitives.  If OPTS is not NULL, it has to be an
-   anonymous structure specific to the chosen scheme (gcry_ac_es_*_t).
-   The decrypted message will be stored in M and M_N.  */
-gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
-					  gcry_ac_scheme_t scheme,
-					  unsigned int flags, void *opts,
-					  gcry_ac_key_t key_secret,
-					  unsigned char *c, size_t c_n,
-					  unsigned char **m, size_t *m_n);
-
 /* Sign the data contained in DATA with the key KEY and store the
    resulting signature in the data set DATA_SIGNATURE.  */
 gcry_error_t gcry_ac_data_sign (gcry_ac_handle_t handle,
@@ -1378,31 +1425,54 @@ gcry_error_t gcry_ac_data_verify (gcry_ac_handle_t handle,
                                   gcry_mpi_t data,
                                   gcry_ac_data_t data_signature);
 
-/* Signs the message contained in M, which is of size M_N, with the
-   secret key KEY_SECRET according to the Signature Scheme SCHEME_ID.
-   Handle is used for accessing the low-level cryptographic
-   primitives.  If OPTS is not NULL, it has to be an anonymous
-   structure specific to the chosen scheme (gcry_ac_ssa_*_t).  The
-   signed message will be stored in S and S_N.  */
+/* Encrypts the plain text readable from IO_MESSAGE through HANDLE
+   with the public key KEY according to SCHEME, FLAGS and OPTS.  If
+   OPTS is not NULL, it has to be a pointer to a structure specific to
+   the chosen scheme (gcry_ac_es_*_t).  The encrypted message is
+   written to IO_CIPHER. */
+gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
+					  gcry_ac_scheme_t scheme,
+					  unsigned int flags, void *opts,
+					  gcry_ac_key_t key,
+					  gcry_ac_io_t *io_message,
+					  gcry_ac_io_t *io_cipher);
+
+/* Decrypts the cipher text readable from IO_CIPHER through HANDLE
+   with the secret key KEY according to SCHEME, @var{flags} and OPTS.
+   If OPTS is not NULL, it has to be a pointer to a structure specific
+   to the chosen scheme (gcry_ac_es_*_t).  The decrypted message is
+   written to IO_MESSAGE.  */
+gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
+					  gcry_ac_scheme_t scheme,
+					  unsigned int flags, void *opts,
+					  gcry_ac_key_t key,
+					  gcry_ac_io_t *io_cipher,
+					  gcry_ac_io_t *io_message);
+
+/* Signs the message readable from IO_MESSAGE through HANDLE with the
+   secret key KEY according to SCHEME, FLAGS and OPTS.  If OPTS is not
+   NULL, it has to be a pointer to a structure specific to the chosen
+   scheme (gcry_ac_ssa_*_t).  The signature is written to
+   IO_SIGNATURE.  */
 gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
 				       gcry_ac_scheme_t scheme,
 				       unsigned int flags, void *opts,
-				       gcry_ac_key_t key_secret,
-				       unsigned char *m, size_t m_n,
-				       unsigned char **s, size_t *s_n);
+				       gcry_ac_key_t key,
+				       gcry_ac_io_t *io_message,
+				       gcry_ac_io_t *io_signature);
 
-/* Verifies that the signature contained in S, which is of length S_N,
-   is indeed the result of signing the message contained in M, which
-   is of size M_N, with the secret key belonging to the public key
-   KEY_PUBLIC.  If OPTS is not NULL, it has to be an anonymous
-   structure (gcry_ac_ssa_*_t) specific to the Signature Scheme, whose
-   ID is contained in SCHEME_ID.  */
+/* Verifies through HANDLE that the signature readable from
+   IO_SIGNATURE is indeed the result of signing the message readable
+   from IO_MESSAGE with the secret key belonging to the public key KEY
+   according to SCHEME and OPTS.  If OPTS is not NULL, it has to be an
+   anonymous structure (gcry_ac_ssa_*_t) specific to the chosen
+   scheme.  */
 gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
 					 gcry_ac_scheme_t scheme,
 					 unsigned int flags, void *opts,
-					 gcry_ac_key_t key_public,
-					 unsigned char *m, size_t m_n,
-					 unsigned char *s, size_t s_n);
+					 gcry_ac_key_t key,
+					 gcry_ac_io_t *io_message,
+					 gcry_ac_io_t *io_signature);
 
 /* Store the textual representation of the algorithm whose id is given
    in ALGORITHM in NAME.  */

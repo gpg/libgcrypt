@@ -1,3 +1,15 @@
+2005-03-30  Moritz Schulte  <moritz@g10code.com>
+
+	* libgcrypt.vers: Added: gcry_ac_io_init, gry_ac_io_init_va.
+
+	* gcrypt.h (gcry_ac_data_read_cb_t, gcry_ac_data_write_cb_t,
+	gcry_ac_io_mode_t, gcry_ac_io_type_t, gcry_ac_io_t): New types.
+	(gcry_ac_io_init_va): Declare function.
+	(gcry_ac_data_encode, gcry_ac_data_decode,
+	gcry_ac_data_encrypt_scheme, gcry_ac_data_decrypt_scheme,
+	gcry_ac_data_sign_scheme, gcry_ac_data_verify_scheme): Use
+	gcry_ac_io_type_t objects instead of memory strings directly.
+
 2005-03-03  Moritz Schulte  <moritz@g10code.com>
 
 	* libgcrypt.vers: Added: gcry_ac_data_to_sexp() and
