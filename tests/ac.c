@@ -126,7 +126,6 @@ check_one (gcry_mpi_t x)
 void
 check_run (void)
 {
-  const char *s = "All Hail Discordia.";
   unsigned int a = 0x4223;
   gcry_mpi_t x;
 

@@ -64,9 +64,13 @@ check_primes (void)
 				 GCRY_WEAK_RANDOM,
 				 prime_specs[i].flags);
       assert (! err);
-      printf ("%i: ", i);
-      gcry_mpi_dump (prime);
-      putchar ('\n');
+      if (verbose)
+	{
+	  printf ("%i:", i);
+	  fflush (stdout);
+	  gcry_mpi_dump (prime);
+	  putchar ('\n');
+	}
       err = gcry_prime_check (prime, 0);
       assert (! err);
       gcry_mpi_add_ui (prime, prime, 1);
