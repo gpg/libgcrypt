@@ -1,5 +1,5 @@
 /* mpiutil.ac  -  Utility functions for MPI
- * Copyright (C) 1998, 2000, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -107,20 +107,23 @@ _gcry_mpi_assign_limb_space( MPI a, mpi_ptr_t ap, unsigned nlimbs )
  * (set to 0) [done by gcry_realloc()]
  */
 void
-_gcry_mpi_resize( MPI a, unsigned nlimbs )
+_gcry_mpi_resize (MPI a, unsigned nlimbs)
 {
-    if( nlimbs <= a->alloced )
-	return; /* no need to do it */
-    /* Note: a->secure is not used - instead the realloc functions
-     * take care of it. Maybe we should drop a->secure completely
-     * and rely on a mpi_is_secure function, which would be
-     * a wrapper around gcry_is_secure
-     */
-    if( a->d )
-	a->d = gcry_xrealloc(a->d, nlimbs * sizeof(mpi_limb_t) );
-    else  /* FIXME: It may not be allocted in secure memory */
-	a->d = gcry_xcalloc( nlimbs , sizeof(mpi_limb_t) );
-    a->alloced = nlimbs;
+  if (nlimbs <= a->alloced)
+    return; /* no need to do it */
+
+  if (a->d)
+    a->d = gcry_xrealloc (a->d, nlimbs * sizeof (mpi_limb_t));
+  else
+    {
+      if (a->flags & 1)
+	/* Secure memory is wanted.  */
+	a->d = gcry_xcalloc_secure (nlimbs , sizeof (mpi_limb_t));
+      else
+	/* Standard memory.  */
+	a->d = gcry_xcalloc (nlimbs , sizeof (mpi_limb_t));
+    }
+  a->alloced = nlimbs;
 }
 
 void

@@ -1,3 +1,11 @@
+2003-04-27  Moritz Schulte  <moritz@g10code.com>
+
+	* mpiutil.c (_gcry_mpi_resize): Allocate secure memory, in case
+	bit zero of `flags' is set.
+
+	* mpi-add.c (gcry_mpi_sub): Simplify function; always use a
+	temporary variable now.
+
 2003-04-15  Werner Koch  <wk@gnupg.org>
 
 	* longlong.h (umul_ppmm): Support SH3 and SH4.  Thanks to

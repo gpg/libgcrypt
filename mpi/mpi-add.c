@@ -1,5 +1,5 @@
 /* mpi-add.c  -  MPI functions
- * Copyright (C) 1994, 1996, 1998, 2001, 2002 Free Software Foundation, Inc.
+ * Copyright (C) 1994, 1996, 1998, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -213,18 +213,10 @@ gcry_mpi_sub_ui(MPI w, MPI u, unsigned long v )
 void
 gcry_mpi_sub(MPI w, MPI u, MPI v)
 {
-    if( w == v ) {
-	MPI vv = mpi_copy(v);
-	vv->sign = !vv->sign;
-	gcry_mpi_add( w, u, vv );
-	mpi_free(vv);
-    }
-    else {
-	/* fixme: this is not thread-save (we temp. modify v) */
-	v->sign = !v->sign;
-	gcry_mpi_add( w, u, v );
-	v->sign = !v->sign;
-    }
+  MPI vv = mpi_copy (v);
+  vv->sign = ! vv->sign;
+  gcry_mpi_add (w, u, vv);
+  mpi_free (vv);
 }
 
 
