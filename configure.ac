@@ -406,6 +406,10 @@ AC_DEFINE_UNQUOTED(NAME_OF_DEV_URANDOM, "$NAME_OF_DEV_URANDOM",
 ###############################
 
 AM_PATH_GPG_ERROR(0.1)
+if test "x$GPG_ERROR_LIBS" = "x"; then
+  AC_MSG_ERROR([libgpg-error is needed])
+fi
+
 AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
           [The default error source for libgcrypt.])
 
