@@ -93,7 +93,7 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
   if (rc)
     die ("encryption failed: %s\n", gcry_strerror (rc));
 
-  l = gcry_sexp_find_token (plain1, "flags", 0);
+  l = gcry_sexp_find_token (cipher, "flags", 0);
   have_flags = !!l;
   gcry_sexp_release (l);
 
@@ -104,7 +104,7 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
     die ("decryption failed: %s\n", gcry_strerror (rc));
 
   /* Extract decrypted data.  Note that for compatibility reasons, the
-     output opf gcry_pk_decrypt depends on whether a flags lists (even
+     output of gcry_pk_decrypt depends on whether a flags lists (even
      if empty) occurs in its input data.  Because we passed the output
      of encrypt directly to decrypt, such a flag value won't be there
      as of today.  We check it anyway. */

@@ -1,3 +1,7 @@
+2003-11-22  Werner Koch  <wk@gnupg.org>
+
+	* pubkey.c (check_keys_crypt): Fixed my last patch.
+
 2003-11-11  Werner Koch  <wk@gnupg.org>
 
 	* tsexp.c (basic): Add pass structure and a test for the %b
