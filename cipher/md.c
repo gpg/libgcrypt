@@ -832,6 +832,9 @@ gcry_md_get_algo_dlen( int algo )
     case GCRY_MD_SHA256: return 32;
     case GCRY_MD_SHA384: return 48;
     case GCRY_MD_SHA512: return 64;
+    case GCRY_MD_CRC32:
+    case GCRY_MD_CRC32_RFC1510: return 4;
+    case GCRY_MD_CRC24_RFC2440: return 3;
     default: 
       {
         int len = md_digest_length( algo );

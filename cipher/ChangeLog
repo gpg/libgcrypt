@@ -1,3 +1,9 @@
+2003-01-20  Simon Josefsson  <jas@extundo.com>
+
+	* crc.c: New.
+	* Makefile.am (EXTRA_PROGRAMS, EXTRA_crc_SOURCES): Add crc.c.
+	* md.c (gcry_md_get_algo_dlen): Add values for CRC.
+
 2003-01-20  Werner Koch  <wk@gnupg.org>
 
 	* sha256.c: New.
