@@ -1,3 +1,7 @@
+2000-10-11  Werner Koch  <wk@gnupg.org>
+
+	* mpi.h: Changed the way mpi_limb_t is defined.
+
 2000-10-10  Werner Koch  <wk@gnupg.org>
 
 	* Makefile.am: Take version-info from configure.
