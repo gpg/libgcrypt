@@ -463,9 +463,10 @@ check_one_cipher (int algo, int mode, int flags)
   gcry_cipher_hd_t hd;
   char key[32], plain[16], in[16], out[16];
   int keylen;
+  gpg_error_t err = 0;
+
   memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF", 32);
   memcpy (plain, "foobar42FOOBAR17", 16);
-  gpg_error_t err = 0;
 
   keylen = gcry_cipher_get_algo_keylen (algo);
   if (!keylen)
