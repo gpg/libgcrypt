@@ -65,7 +65,7 @@
 
 
 #ifdef IS_MODULE
-  #define _(a) (a)
+#define _(a) (a)
 #else
 /*#include "i18n.h"*/
 #endif
@@ -627,7 +627,7 @@ slow_gatherer_windowsNT( void (*add)(const void*, size_t, int), int requester )
 	CloseHandle (hDevice);
     }
 
-  #if 0 /* we don't need this in GnuPG  */
+#if 0 /* we don't need this in GnuPG  */
     /* Wait for any async keyset driver binding to complete.  You may be
      * wondering what this call is doing here... the reason it's necessary is
      * because RegQueryValueEx() will hang indefinitely if the async driver
@@ -647,7 +647,7 @@ slow_gatherer_windowsNT( void (*add)(const void*, size_t, int), int requester )
      * this, we have to wait until any async driver bind has completed
      * before we can call RegQueryValueEx() */
     waitSemaphore (SEMAPHORE_DRIVERBIND);
-  #endif
+#endif
 
     /* Get information from the system performance counters.  This can take
      * a few seconds to do.  In some environments the call to
@@ -780,7 +780,7 @@ gather_random_fast( void (*add)(const void*, size_t, int), int requester )
      * events in input queue, and milliseconds since Windows was started */
     {	byte buffer[20*sizeof(ulong)], *bufptr;
 	bufptr = buffer;
-      #define ADD(f)  do { ulong along = (ulong)(f);		      \
+#define ADD(f)  do { ulong along = (ulong)(f);		      \
 			   memcpy (bufptr, &along, sizeof (along) );  \
 			   bufptr += sizeof (along); } while (0)
 	ADD ( GetActiveWindow ());
@@ -804,7 +804,7 @@ gather_random_fast( void (*add)(const void*, size_t, int), int requester )
 
 	assert ( bufptr-buffer < sizeof (buffer) );
 	(*add) ( buffer, bufptr-buffer, requester );
-      #undef ADD
+#undef ADD
     }
 
     /* Get multiword system information: Current caret position, current

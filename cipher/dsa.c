@@ -28,47 +28,49 @@
 #include "mpi.h"
 #include "cipher.h"
 
-typedef struct {
-    MPI p;	    /* prime */
-    MPI q;	    /* group order */
-    MPI g;	    /* group generator */
-    MPI y;	    /* g^x mod p */
+typedef struct
+{
+  MPI p;	    /* prime */
+  MPI q;	    /* group order */
+  MPI g;	    /* group generator */
+  MPI y;	    /* g^x mod p */
 } DSA_public_key;
 
 
-typedef struct {
-    MPI p;	    /* prime */
-    MPI q;	    /* group order */
-    MPI g;	    /* group generator */
-    MPI y;	    /* g^x mod p */
-    MPI x;	    /* secret exponent */
+typedef struct
+{
+  MPI p;	    /* prime */
+  MPI q;	    /* group order */
+  MPI g;	    /* group generator */
+  MPI y;	    /* g^x mod p */
+  MPI x;	    /* secret exponent */
 } DSA_secret_key;
 
 
-static MPI gen_k( MPI q );
-static void test_keys( DSA_secret_key *sk, unsigned qbits );
-static int  check_secret_key( DSA_secret_key *sk );
-static void generate( DSA_secret_key *sk, unsigned nbits, MPI **ret_factors );
-static void sign(MPI r, MPI s, MPI input, DSA_secret_key *skey);
-static int  verify(MPI r, MPI s, MPI input, DSA_public_key *pkey);
+static MPI gen_k (MPI q);
+static void test_keys (DSA_secret_key *sk, unsigned qbits);
+static int check_secret_key (DSA_secret_key *sk);
+static void generate (DSA_secret_key *sk, unsigned nbits, MPI **ret_factors);
+static void sign (MPI r, MPI s, MPI input, DSA_secret_key *skey);
+static int verify (MPI r, MPI s, MPI input, DSA_public_key *pkey);
 
 static void (*progress_cb) (void *,const char *, int, int, int );
 static void *progress_cb_data;
 
 void
-_gcry_register_pk_dsa_progress ( void (*cb)( void *,const char *, int,int,int),
-                                 void *cb_data )
+_gcry_register_pk_dsa_progress (void (*cb) (void *, const char *, int, int, int),
+				void *cb_data)
 {
-    progress_cb = cb;
-    progress_cb_data = cb_data;
+  progress_cb = cb;
+  progress_cb_data = cb_data;
 }
 
 
 static void
-progress( int c )
+progress (int c)
 {
   if (progress_cb)
-    progress_cb ( progress_cb_data, "pk_dsa", c, 0, 0);
+    progress_cb (progress_cb_data, "pk_dsa", c, 0, 0);
 }
 
 
@@ -354,98 +356,97 @@ verify(MPI r, MPI s, MPI hash, DSA_public_key *pkey )
  **************  interface  ******************
  *********************************************/
 
-int
-_gcry_dsa_generate( int algo, unsigned nbits, unsigned long dummy,
-                    MPI *skey, MPI **retfactors )
+gpg_err_code_t
+_gcry_dsa_generate (int algo, unsigned nbits, unsigned long dummy,
+                    MPI *skey, MPI **retfactors)
 {
-    DSA_secret_key sk;
+  DSA_secret_key sk;
 
-    if( algo != GCRY_PK_DSA )
-	return GCRYERR_INV_PK_ALGO;
+  generate (&sk, nbits, retfactors);
+  skey[0] = sk.p;
+  skey[1] = sk.q;
+  skey[2] = sk.g;
+  skey[3] = sk.y;
+  skey[4] = sk.x;
 
-    generate( &sk, nbits, retfactors );
-    skey[0] = sk.p;
-    skey[1] = sk.q;
-    skey[2] = sk.g;
-    skey[3] = sk.y;
-    skey[4] = sk.x;
-    return 0;
+  return GPG_ERR_NO_ERROR;
 }
 
 
-int
-_gcry_dsa_check_secret_key( int algo, MPI *skey )
+gpg_err_code_t
+_gcry_dsa_check_secret_key (int algo, MPI *skey)
 {
-    DSA_secret_key sk;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  DSA_secret_key sk;
 
-    if( algo != GCRY_PK_DSA )
-	return GCRYERR_INV_PK_ALGO;
-    if( !skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4] )
-	return GCRYERR_BAD_MPI;
+  if ((! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]) || (! skey[4]))
+    err = GPG_ERR_BAD_MPI;
+  else
+    {
+      sk.p = skey[0];
+      sk.q = skey[1];
+      sk.g = skey[2];
+      sk.y = skey[3];
+      sk.x = skey[4];
+      if (! check_secret_key (&sk))
+	err = GPG_ERR_BAD_SECKEY;
+    }
 
-    sk.p = skey[0];
-    sk.q = skey[1];
-    sk.g = skey[2];
-    sk.y = skey[3];
-    sk.x = skey[4];
-    if( !check_secret_key( &sk ) )
-	return GCRYERR_BAD_SECRET_KEY;
-
-    return 0;
+  return err;
 }
 
 
-
-int
-_gcry_dsa_sign( int algo, MPI *resarr, MPI data, MPI *skey )
+gpg_err_code_t
+_gcry_dsa_sign (int algo, MPI *resarr, MPI data, MPI *skey)
 {
-    DSA_secret_key sk;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  DSA_secret_key sk;
 
-    if( algo != GCRY_PK_DSA )
-	return GCRYERR_INV_PK_ALGO;
-    if( !data || !skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4] )
-	return GCRYERR_BAD_MPI;
-
-    sk.p = skey[0];
-    sk.q = skey[1];
-    sk.g = skey[2];
-    sk.y = skey[3];
-    sk.x = skey[4];
-    resarr[0] = mpi_alloc( mpi_get_nlimbs( sk.p ) );
-    resarr[1] = mpi_alloc( mpi_get_nlimbs( sk.p ) );
-    sign( resarr[0], resarr[1], data, &sk );
-    return 0;
+  if ((! data)
+      || (! skey[0]) || (! skey[1]) || (! skey[2])
+      || (! skey[3]) || (! skey[4]))
+    err = GPG_ERR_BAD_MPI;
+  else
+    {
+      sk.p = skey[0];
+      sk.q = skey[1];
+      sk.g = skey[2];
+      sk.y = skey[3];
+      sk.x = skey[4];
+      resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.p));
+      resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.p));
+      sign (resarr[0], resarr[1], data, &sk);
+    }
+  return err;
 }
 
-int
-_gcry_dsa_verify( int algo, MPI hash, MPI *data, MPI *pkey,
-		    int (*cmp)(void *, MPI), void *opaquev )
+gpg_err_code_t
+_gcry_dsa_verify (int algo, MPI hash, MPI *data, MPI *pkey,
+		  int (*cmp) (void *, MPI), void *opaquev)
 {
-    DSA_public_key pk;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  DSA_public_key pk;
 
-    if( algo != GCRY_PK_DSA )
-	return GCRYERR_INV_PK_ALGO;
-    if( !data[0] || !data[1] || !hash
-	|| !pkey[0] || !pkey[1] || !pkey[2] || !pkey[3] )
-	return GCRYERR_BAD_MPI;
-
-    pk.p = pkey[0];
-    pk.q = pkey[1];
-    pk.g = pkey[2];
-    pk.y = pkey[3];
-    if( !verify( data[0], data[1], hash, &pk ) )
-	return GCRYERR_BAD_SIGNATURE;
-    return 0;
+  if ((! data[0]) || (! data[1]) || (! hash)
+      || (! pkey[0]) || (! pkey[1]) || (! pkey[2]) || (! pkey[3]))
+    err = GPG_ERR_BAD_MPI;
+  else
+    {
+      pk.p = pkey[0];
+      pk.q = pkey[1];
+      pk.g = pkey[2];
+      pk.y = pkey[3];
+      if (! verify (data[0], data[1], hash, &pk))
+	err = GPG_ERR_BAD_SIGNATURE;
+    }
+  return err;
 }
-
 
 
 unsigned int
-_gcry_dsa_get_nbits( int algo, MPI *pkey )
+_gcry_dsa_get_nbits (int algo, MPI *pkey)
 {
-    if( algo != GCRY_PK_DSA )
-	return 0;
-    return mpi_get_nbits( pkey[0] );
+  return mpi_get_nbits (pkey[0]);
 }
 
 static char *dsa_names[] =

@@ -563,7 +563,7 @@ static byte calc_sb_tbl[512] = {
 /* Perform the key setup.  Note that this works only with 128- and 256-bit
  * keys, despite the API that looks like it might support other sizes. */
 
-static int
+static gpg_err_code_t
 do_twofish_setkey (TWOFISH_context *ctx, const byte *key, const unsigned keylen)
 {
     int i, j, k;
@@ -585,7 +585,7 @@ do_twofish_setkey (TWOFISH_context *ctx, const byte *key, const unsigned keylen)
 
     /* Check key length. */
     if( ( ( keylen - 16 ) | 16 ) != 16 )
-	return GCRYERR_INV_KEYLEN;
+	return GPG_ERR_INV_KEYLEN;
 
     /* Do self-test if necessary. */
     if (!initialized) {
@@ -595,7 +595,7 @@ do_twofish_setkey (TWOFISH_context *ctx, const byte *key, const unsigned keylen)
 	 log_error("%s\n", selftest_failed );
     }
     if( selftest_failed )
-       return GCRYERR_SELFTEST;
+       return GPG_ERR_SELFTEST_FAILED;
 
     /* Compute the first two words of the S vector.  The magic numbers are
      * the entries of the RS matrix, preprocessed through poly_to_exp.	The
@@ -698,7 +698,7 @@ do_twofish_setkey (TWOFISH_context *ctx, const byte *key, const unsigned keylen)
     return 0;
 }
 
-static int
+static gpg_err_code_t
 twofish_setkey (void *context, const byte *key, unsigned int keylen)
 {
   TWOFISH_context *ctx = (TWOFISH_context *) context;

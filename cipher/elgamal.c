@@ -30,45 +30,47 @@
 #include "mpi.h"
 #include "cipher.h"
 
-typedef struct {
-    MPI p;	    /* prime */
-    MPI g;	    /* group generator */
-    MPI y;	    /* g^x mod p */
+typedef struct
+{
+  MPI p;	    /* prime */
+  MPI g;	    /* group generator */
+  MPI y;	    /* g^x mod p */
 } ELG_public_key;
 
 
-typedef struct {
-    MPI p;	    /* prime */
-    MPI g;	    /* group generator */
-    MPI y;	    /* g^x mod p */
-    MPI x;	    /* secret exponent */
+typedef struct
+{
+  MPI p;	    /* prime */
+  MPI g;	    /* group generator */
+  MPI y;	    /* g^x mod p */
+  MPI x;	    /* secret exponent */
 } ELG_secret_key;
 
 
-static void test_keys( ELG_secret_key *sk, unsigned nbits );
-static MPI gen_k( MPI p );
-static void generate( ELG_secret_key *sk, unsigned nbits, MPI **factors );
-static int  check_secret_key( ELG_secret_key *sk );
-static void do_encrypt(MPI a, MPI b, MPI input, ELG_public_key *pkey );
-static void decrypt(MPI output, MPI a, MPI b, ELG_secret_key *skey );
-static void sign(MPI a, MPI b, MPI input, ELG_secret_key *skey);
-static int  verify(MPI a, MPI b, MPI input, ELG_public_key *pkey);
+static void test_keys (ELG_secret_key *sk, unsigned nbits);
+static MPI gen_k (MPI p);
+static void generate (ELG_secret_key *sk, unsigned nbits, MPI **factors);
+static int  check_secret_key (ELG_secret_key *sk);
+static void do_encrypt (MPI a, MPI b, MPI input, ELG_public_key *pkey);
+static void decrypt (MPI output, MPI a, MPI b, ELG_secret_key *skey);
+static void sign (MPI a, MPI b, MPI input, ELG_secret_key *skey);
+static int  verify (MPI a, MPI b, MPI input, ELG_public_key *pkey);
 
 
-static void (*progress_cb) ( void *, const char *, int, int, int );
+static void (*progress_cb) (void *, const char *, int, int, int);
 static void *progress_cb_data;
 
 void
-_gcry_register_pk_elg_progress ( void (*cb)( void *,const char*, int,int,int),
-                                 void *cb_data )
+_gcry_register_pk_elg_progress (void (*cb) (void *, const char *, int, int, int),
+				void *cb_data)
 {
-    progress_cb = cb;
-    progress_cb_data = cb_data;
+  progress_cb = cb;
+  progress_cb_data = cb_data;
 }
 
 
 static void
-progress( int c )
+progress (int c)
 {
   if (progress_cb)
     progress_cb (progress_cb_data, "pk_elg", c, 0, 0);
@@ -353,7 +355,7 @@ do_encrypt(MPI a, MPI b, MPI input, ELG_public_key *pkey )
      */
     gcry_mpi_powm( b, pkey->y, k, pkey->p );
     gcry_mpi_mulm( b, b, input, pkey->p );
-  #if 0
+#if 0
     if( DBG_CIPHER ) {
 	log_mpidump("elg encrypted y= ", pkey->y);
 	log_mpidump("elg encrypted p= ", pkey->p);
@@ -362,7 +364,7 @@ do_encrypt(MPI a, MPI b, MPI input, ELG_public_key *pkey )
 	log_mpidump("elg encrypted a= ", a);
 	log_mpidump("elg encrypted b= ", b);
     }
-  #endif
+#endif
     mpi_free(k);
 }
 
@@ -378,7 +380,7 @@ decrypt(MPI output, MPI a, MPI b, ELG_secret_key *skey )
     gcry_mpi_powm( t1, a, skey->x, skey->p );
     mpi_invm( t1, t1, skey->p );
     mpi_mulm( output, b, t1, skey->p );
-  #if 0
+#if 0
     if( DBG_CIPHER ) {
 	log_mpidump("elg decrypted x= ", skey->x);
 	log_mpidump("elg decrypted p= ", skey->p);
@@ -386,7 +388,7 @@ decrypt(MPI output, MPI a, MPI b, ELG_secret_key *skey )
 	log_mpidump("elg decrypted b= ", b);
 	log_mpidump("elg decrypted M= ", output);
     }
-  #endif
+#endif
     mpi_free(t1);
 }
 
@@ -417,7 +419,7 @@ sign(MPI a, MPI b, MPI input, ELG_secret_key *skey )
     mpi_invm(inv, k, p_1 );
     mpi_mulm(b, t, inv, p_1 );
 
-  #if 0
+#if 0
     if( DBG_CIPHER ) {
 	log_mpidump("elg sign p= ", skey->p);
 	log_mpidump("elg sign g= ", skey->g);
@@ -428,7 +430,7 @@ sign(MPI a, MPI b, MPI input, ELG_secret_key *skey )
 	log_mpidump("elg sign a= ", a);
 	log_mpidump("elg sign b= ", b);
     }
-  #endif
+#endif
     mpi_free(k);
     mpi_free(t);
     mpi_free(inv);
@@ -454,7 +456,7 @@ verify(MPI a, MPI b, MPI input, ELG_public_key *pkey )
     t1 = mpi_alloc( mpi_get_nlimbs(a) );
     t2 = mpi_alloc( mpi_get_nlimbs(a) );
 
-  #if 0
+#if 0
     /* t1 = (y^a mod p) * (a^b mod p) mod p */
     gcry_mpi_powm( t1, pkey->y, a, pkey->p );
     gcry_mpi_powm( t2, a, b, pkey->p );
@@ -464,7 +466,7 @@ verify(MPI a, MPI b, MPI input, ELG_public_key *pkey )
     gcry_mpi_powm( t2, pkey->g, input, pkey->p );
 
     rc = !mpi_cmp( t1, t2 );
-  #elif 0
+#elif 0
     /* t1 = (y^a mod p) * (a^b mod p) mod p */
     base[0] = pkey->y; exp[0] = a;
     base[1] = a;       exp[1] = b;
@@ -475,7 +477,7 @@ verify(MPI a, MPI b, MPI input, ELG_public_key *pkey )
     gcry_mpi_powm( t2, pkey->g, input, pkey->p );
 
     rc = !mpi_cmp( t1, t2 );
-  #else
+#else
     /* t1 = g ^ - input * y ^ a * a ^ b  mod p */
     mpi_invm(t2, pkey->g, pkey->p );
     base[0] = t2     ; exp[0] = input;
@@ -485,7 +487,7 @@ verify(MPI a, MPI b, MPI input, ELG_public_key *pkey )
     mpi_mulpowm( t1, base, exp, pkey->p );
     rc = !mpi_cmp_ui( t1, 1 );
 
-  #endif
+#endif
 
     mpi_free(t1);
     mpi_free(t2);
@@ -496,133 +498,138 @@ verify(MPI a, MPI b, MPI input, ELG_public_key *pkey )
  **************  interface  ******************
  *********************************************/
 
-int
-_gcry_elg_generate( int algo, unsigned nbits, unsigned long dummy,
-                    MPI *skey, MPI **retfactors )
+gpg_err_code_t
+_gcry_elg_generate (int algo, unsigned nbits, unsigned long dummy,
+                    MPI *skey, MPI **retfactors)
 {
-    ELG_secret_key sk;
+  ELG_secret_key sk;
 
-    if( !is_ELGAMAL(algo) )
-	return GCRYERR_INV_PK_ALGO;
-
-    generate( &sk, nbits, retfactors );
-    skey[0] = sk.p;
-    skey[1] = sk.g;
-    skey[2] = sk.y;
-    skey[3] = sk.x;
-    return 0;
+  generate (&sk, nbits, retfactors);
+  skey[0] = sk.p;
+  skey[1] = sk.g;
+  skey[2] = sk.y;
+  skey[3] = sk.x;
+  
+  return GPG_ERR_NO_ERROR;
 }
 
 
-int
-_gcry_elg_check_secret_key( int algo, MPI *skey )
+gpg_err_code_t
+_gcry_elg_check_secret_key (int algo, MPI *skey)
 {
-    ELG_secret_key sk;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  ELG_secret_key sk;
 
-    if( !is_ELGAMAL(algo) )
-	return GCRYERR_INV_PK_ALGO;
-    if( !skey[0] || !skey[1] || !skey[2] || !skey[3] )
-	return GCRYERR_BAD_MPI;
+  if ((! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
+    err = GPG_ERR_BAD_MPI;
+  else
+    {
+      sk.p = skey[0];
+      sk.g = skey[1];
+      sk.y = skey[2];
+      sk.x = skey[3];
+      
+      if (! check_secret_key (&sk))
+	err = GPG_ERR_BAD_SECKEY;
+    }
 
-    sk.p = skey[0];
-    sk.g = skey[1];
-    sk.y = skey[2];
-    sk.x = skey[3];
-    if( !check_secret_key( &sk ) )
-	return GCRYERR_BAD_SECRET_KEY;
-
-    return 0;
+  return err;
 }
 
 
-
-int
-_gcry_elg_encrypt( int algo, MPI *resarr, MPI data, MPI *pkey, int flags)
+gpg_err_code_t
+_gcry_elg_encrypt (int algo, MPI *resarr, MPI data, MPI *pkey, int flags)
 {
-    ELG_public_key pk;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  ELG_public_key pk;
 
-    if( !is_ELGAMAL(algo) )
-	return GCRYERR_INV_PK_ALGO;
-    if( !data || !pkey[0] || !pkey[1] || !pkey[2] )
-	return GCRYERR_BAD_MPI;
-
-    pk.p = pkey[0];
-    pk.g = pkey[1];
-    pk.y = pkey[2];
-    resarr[0] = mpi_alloc( mpi_get_nlimbs( pk.p ) );
-    resarr[1] = mpi_alloc( mpi_get_nlimbs( pk.p ) );
-    do_encrypt( resarr[0], resarr[1], data, &pk );
-    return 0;
+  if ((! data) || (! pkey[0]) || (! pkey[1]) || (! pkey[2]))
+    err = GPG_ERR_BAD_MPI;
+  else
+    {
+      pk.p = pkey[0];
+      pk.g = pkey[1];
+      pk.y = pkey[2];
+      resarr[0] = mpi_alloc (mpi_get_nlimbs (pk.p));
+      resarr[1] = mpi_alloc (mpi_get_nlimbs (pk.p));
+      do_encrypt (resarr[0], resarr[1], data, &pk);
+    }
+  return err;
 }
 
-int
-_gcry_elg_decrypt( int algo, MPI *result, MPI *data, MPI *skey, int flags)
+
+gpg_err_code_t
+_gcry_elg_decrypt (int algo, MPI *result, MPI *data, MPI *skey, int flags)
 {
-    ELG_secret_key sk;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  ELG_secret_key sk;
 
-    if( !is_ELGAMAL(algo) )
-	return GCRYERR_INV_PK_ALGO;
-    if( !data[0] || !data[1]
-	|| !skey[0] || !skey[1] || !skey[2] || !skey[3] )
-	return GCRYERR_BAD_MPI;
-
-    sk.p = skey[0];
-    sk.g = skey[1];
-    sk.y = skey[2];
-    sk.x = skey[3];
-    *result = mpi_alloc_secure( mpi_get_nlimbs( sk.p ) );
-    decrypt( *result, data[0], data[1], &sk );
-    return 0;
+  if ((! data[0]) || (! data[1])
+      || (! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
+    err = GPG_ERR_BAD_MPI;
+  else
+    {
+      sk.p = skey[0];
+      sk.g = skey[1];
+      sk.y = skey[2];
+      sk.x = skey[3];
+      *result = mpi_alloc_secure (mpi_get_nlimbs (sk.p));
+      decrypt (*result, data[0], data[1], &sk);
+    }
+  return err;
 }
 
-int
-_gcry_elg_sign( int algo, MPI *resarr, MPI data, MPI *skey )
+
+gpg_err_code_t
+_gcry_elg_sign (int algo, MPI *resarr, MPI data, MPI *skey)
 {
-    ELG_secret_key sk;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  ELG_secret_key sk;
 
-    if( !is_ELGAMAL(algo) )
-	return GCRYERR_INV_PK_ALGO;
-    if( !data || !skey[0] || !skey[1] || !skey[2] || !skey[3] )
-	return GCRYERR_BAD_MPI;
-
-    sk.p = skey[0];
-    sk.g = skey[1];
-    sk.y = skey[2];
-    sk.x = skey[3];
-    resarr[0] = mpi_alloc( mpi_get_nlimbs( sk.p ) );
-    resarr[1] = mpi_alloc( mpi_get_nlimbs( sk.p ) );
-    sign( resarr[0], resarr[1], data, &sk );
-    return 0;
+  if ((! data)
+      || (! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
+    err = GPG_ERR_BAD_MPI;
+  else
+    {
+      sk.p = skey[0];
+      sk.g = skey[1];
+      sk.y = skey[2];
+      sk.x = skey[3];
+      resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.p));
+      resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.p));
+      sign (resarr[0], resarr[1], data, &sk);
+    }
+  
+  return err;
 }
 
-int
-_gcry_elg_verify( int algo, MPI hash, MPI *data, MPI *pkey,
-		    int (*cmp)(void *, MPI), void *opaquev )
+gpg_err_code_t
+_gcry_elg_verify (int algo, MPI hash, MPI *data, MPI *pkey,
+		  int (*cmp) (void *, MPI), void *opaquev)
 {
-    ELG_public_key pk;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  ELG_public_key pk;
 
-    if( !is_ELGAMAL(algo) )
-	return GCRYERR_INV_PK_ALGO;
-    if( !data[0] || !data[1] || !hash
-	|| !pkey[0] || !pkey[1] || !pkey[2] )
-	return GCRYERR_BAD_MPI;
+  if ((! data[0]) || (! data[1]) || (! hash)
+      || (! pkey[0]) || (! pkey[1]) || (! pkey[2]))
+    err = GPG_ERR_BAD_MPI;
+  else
+    {
+      pk.p = pkey[0];
+      pk.g = pkey[1];
+      pk.y = pkey[2];
+      if (! verify (data[0], data[1], hash, &pk))
+	err = GPG_ERR_BAD_SIGNATURE;
+    }
 
-    pk.p = pkey[0];
-    pk.g = pkey[1];
-    pk.y = pkey[2];
-    if( !verify( data[0], data[1], hash, &pk ) )
-	return GCRYERR_BAD_SIGNATURE;
-    return 0;
+  return err;
 }
-
 
 
 unsigned int
-_gcry_elg_get_nbits( int algo, MPI *pkey )
+_gcry_elg_get_nbits (int algo, MPI *pkey)
 {
-    if( !is_ELGAMAL(algo) )
-	return 0;
-    return mpi_get_nbits( pkey[0] );
+  return mpi_get_nbits (pkey[0]);
 }
 
 static char *elg_names[] =

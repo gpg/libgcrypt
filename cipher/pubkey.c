@@ -30,12 +30,10 @@
 #include "cipher.h"
 #include "ath.h"
 
-/* FIXME: use set_lasterr() */
-
-static int pubkey_decrypt (int algo, MPI *result, MPI *data, MPI *skey, int flags);
-static int pubkey_sign (int algo, MPI *resarr, MPI hash, MPI *skey);
-static int pubkey_verify (int algo, MPI hash, MPI *data, MPI *pkey,
-			  int (*cmp) (void *, MPI), void *opaque);
+static gpg_err_code_t pubkey_decrypt (int algo, MPI *result, MPI *data, MPI *skey, int flags);
+static gpg_err_code_t pubkey_sign (int algo, MPI *resarr, MPI hash, MPI *skey);
+static gpg_err_code_t pubkey_verify (int algo, MPI hash, MPI *data, MPI *pkey,
+				     int (*cmp) (void *, MPI), void *opaque);
 
 /* This is the list of the default public-key ciphers included in
    libgcrypt.  */
@@ -83,48 +81,48 @@ static int default_pubkeys_registered;
 /* These dummy functions are used in case a cipher implementation
    refuses to provide it's own functions.  */
 
-static int
+static gpg_err_code_t
 dummy_generate (int id, unsigned int nbits, unsigned long dummy,
                 MPI *skey, MPI **retfactors)
 {
   log_bug ("no generate() for %d\n", id);
-  return GCRYERR_INV_PK_ALGO;
+  return GPG_ERR_PUBKEY_ALGO;
 }
 
-static int
+static gpg_err_code_t
 dummy_check_secret_key (int id, MPI *skey)
 {
   log_bug ("no check_secret_key() for %d\n", id);
-  return GCRYERR_INV_PK_ALGO;
+  return GPG_ERR_PUBKEY_ALGO;
 }
 
-static int
+static gpg_err_code_t
 dummy_encrypt (int id, MPI *resarr, MPI data, MPI *pkey, int flags)
 {
   log_bug ("no encrypt() for %d\n", id);
-  return GCRYERR_INV_PK_ALGO;
+  return GPG_ERR_PUBKEY_ALGO;
 }
 
-static int
+static gpg_err_code_t
 dummy_decrypt (int id, MPI *result, MPI *data, MPI *skey, int flags)
 {
   log_bug ("no decrypt() for %d\n", id);
-  return GCRYERR_INV_PK_ALGO;
+  return GPG_ERR_PUBKEY_ALGO;
 }
 
-static int
+static gpg_err_code_t
 dummy_sign (int id, MPI *resarr, MPI data, MPI *skey)
 {
   log_bug ("no sign() for %d\n", id);
-  return GCRYERR_INV_PK_ALGO;
+  return GPG_ERR_PUBKEY_ALGO;
 }
 
-static int
+static gpg_err_code_t
 dummy_verify (int id, MPI hash, MPI *data, MPI *pkey,
 	      int (*cmp) (void *, MPI), void *opaquev)
 {
   log_bug ("no verify() for %d\n", id);
-  return GCRYERR_INV_PK_ALGO;
+  return GPG_ERR_PUBKEY_ALGO;
 }
 
 static unsigned
@@ -139,7 +137,8 @@ dummy_get_nbits (int id, MPI *pkey)
 static void
 gcry_pubkey_register_default (void)
 {
-  int i, err = 0;
+  gpg_err_code_t err = 0;
+  int i;
   
   for (i = 0; (! err) && pubkey_table[i].pubkey; i++)
     {
@@ -229,16 +228,17 @@ gcry_pubkey_id_new (void)
 /* Public function.  Register a provided PUBKEY.  Returns zero on
    success, in which case the chosen pubkey ID has been stored in
    PUBKEY, or an error code.  */
-int
+gpg_error_t
 gcry_pubkey_register (GcryPubkeySpec *pubkey, GcryModule **module)
 {
-  int id, err = 0;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  int id;
   GcryModule *mod;
 
   ath_mutex_lock (&pubkeys_registered_lock);
   id = gcry_pubkey_id_new ();
   if (! id)
-    err = GCRYERR_INTERNAL;	/* FIXME.  */
+    err = GPG_ERR_INTERNAL;	/* FIXME.  */
   else
     {
       pubkey->id = id;
@@ -341,12 +341,12 @@ disable_pubkey_algo (int id)
 /****************
  * a use of 0 means: don't care
  */
-static int
+static gpg_err_code_t
 check_pubkey_algo (int id, unsigned use)
 {
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
   GcryPubkeySpec *pubkey;
   GcryModule *module;
-  int err = 0;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -360,13 +360,13 @@ check_pubkey_algo (int id, unsigned use)
 	   && (! (pubkey->use & GCRY_PK_USAGE_SIGN)))
 	  || ((use & GCRY_PK_USAGE_ENCR)
 	      && (! (pubkey->use & GCRY_PK_USAGE_ENCR))))
-	err = GCRYERR_WRONG_PK_ALGO;
+	err = GPG_ERR_WRONG_PUBKEY_ALGO;
       else if (module->flags & FLAG_MODULE_DISABLED)
-	err = GCRYERR_INV_PK_ALGO;
+	err = GPG_ERR_PUBKEY_ALGO;
       _gcry_module_release (module);
     }
   else
-    err = GCRYERR_INV_PK_ALGO;
+    err = GPG_ERR_PUBKEY_ALGO;
   ath_mutex_unlock (&pubkeys_registered_lock);
 
   return err;
@@ -466,12 +466,12 @@ pubkey_get_nenc (int id)
 }
 
 
-static int
+static gpg_err_code_t
 pubkey_generate (int id, unsigned int nbits, unsigned long use_e,
                  MPI *skey, MPI **retfactors)
 {
+  gpg_err_code_t err = GPG_ERR_PUBKEY_ALGO;
   GcryModule *pubkey;
-  int err = GCRYERR_INV_PK_ALGO;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -488,11 +488,11 @@ pubkey_generate (int id, unsigned int nbits, unsigned long use_e,
   return err;
 }
 
-static int
+static gpg_err_code_t
 pubkey_check_secret_key (int id, MPI *skey)
 {
+  gpg_err_code_t err = GPG_ERR_PUBKEY_ALGO;
   GcryModule *pubkey;
-  int err = GCRYERR_INV_PK_ALGO;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -515,13 +515,14 @@ pubkey_check_secret_key (int id, MPI *skey)
  * should be an array of MPIs of size PUBKEY_MAX_NENC (or less if the
  * algorithm allows this - check with pubkey_get_nenc() )
  */
-static int
+static gpg_err_code_t
 pubkey_encrypt (int id, MPI *resarr, MPI data, MPI *pkey,
 		int flags)
 {
   GcryPubkeySpec *pubkey;
   GcryModule *module;
-  int i, rc;
+  gpg_err_code_t rc;
+  int i;
 
   if (DBG_CIPHER)
     {
@@ -540,7 +541,7 @@ pubkey_encrypt (int id, MPI *resarr, MPI data, MPI *pkey,
       _gcry_module_release (module);
       goto ready;
     }
-  rc = GCRYERR_INV_PK_ALGO;
+  rc = GPG_ERR_PUBKEY_ALGO;
 
  ready:
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -561,13 +562,14 @@ pubkey_encrypt (int id, MPI *resarr, MPI data, MPI *pkey,
  * result is a pointer to a mpi variable which will receive a
  * newly allocated mpi or NULL in case of an error.
  */
-static int
+static gpg_err_code_t
 pubkey_decrypt (int id, MPI *result, MPI *data, MPI *skey,
 		int flags)
 {
   GcryPubkeySpec *pubkey;
   GcryModule *module;
-  int i, rc;
+  gpg_err_code_t rc;
+  int i;
 
   *result = NULL; /* so the caller can always do a mpi_free */
   if (DBG_CIPHER)
@@ -589,7 +591,7 @@ pubkey_decrypt (int id, MPI *result, MPI *data, MPI *skey,
       goto ready;
     }
 
-  rc = GCRYERR_INV_PK_ALGO;
+  rc = GPG_ERR_PUBKEY_ALGO;
   
  ready:
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -607,12 +609,13 @@ pubkey_decrypt (int id, MPI *result, MPI *data, MPI *skey,
  * should be an array of MPIs of size PUBKEY_MAX_NSIG (or less if the
  * algorithm allows this - check with pubkey_get_nsig() )
  */
-static int
+static gpg_err_code_t
 pubkey_sign (int id, MPI *resarr, MPI data, MPI *skey)
 {
   GcryPubkeySpec *pubkey;
   GcryModule *module;
-  int i, rc;
+  gpg_err_code_t rc;
+  int i;
 
   if (DBG_CIPHER)
     {
@@ -632,7 +635,7 @@ pubkey_sign (int id, MPI *resarr, MPI data, MPI *skey)
       goto ready;
     }
 
-  rc = GCRYERR_INV_PK_ALGO;
+  rc = GPG_ERR_PUBKEY_ALGO;
 
  ready:
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -648,13 +651,14 @@ pubkey_sign (int id, MPI *resarr, MPI data, MPI *skey)
  * Verify a public key signature.
  * Return 0 if the signature is good
  */
-static int
+static gpg_err_code_t
 pubkey_verify (int id, MPI hash, MPI *data, MPI *pkey,
 	       int (*cmp)(void *, MPI), void *opaquev)
 {
   GcryPubkeySpec *pubkey;
   GcryModule *module;
-  int i, rc;
+  gpg_err_code_t rc;
+  int i;
 
   if (DBG_CIPHER)
     {
@@ -676,7 +680,7 @@ pubkey_verify (int id, MPI hash, MPI *data, MPI *pkey,
       goto ready;
     }
 
-  rc = GCRYERR_INV_PK_ALGO;
+  rc = GPG_ERR_PUBKEY_ALGO;
 
  ready:
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -684,25 +688,26 @@ pubkey_verify (int id, MPI hash, MPI *data, MPI *pkey,
 }
 
 /* Internal function.   */
-static int
-sexp_elements_extract (GCRY_SEXP key_sexp, const char *element_names,
-		       GCRY_MPI *elements)
+static gpg_err_code_t
+sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
+		       gcry_mpi_t *elements)
 {
-  int i, index, err = 0;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+  int i, index;
   const char *name;
-  GCRY_SEXP list;
+  gcry_sexp_t list;
 
   for (name = element_names, index = 0; *name && (! err); name++, index++)
     {
       list = gcry_sexp_find_token (key_sexp, name, 1);
       if (! list)
-	err = GCRYERR_NO_OBJ;
+	err = GPG_ERR_NO_OBJ;
       else
 	{
 	  elements[index] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_USG);
 	  gcry_sexp_release (list);
 	  if (! elements[index])
-	    err = GCRYERR_INV_OBJ;
+	    err = GPG_ERR_INV_OBJ;
 	}
     }
 
@@ -747,17 +752,17 @@ sexp_elements_extract (GCRY_SEXP key_sexp, const char *element_names,
  *  )
  * The <mpi> are expected to be in GCRYMPI_FMT_USG
  */
-static int
-sexp_to_key (GCRY_SEXP sexp, int want_private, MPI **retarray,
+static gpg_err_code_t
+sexp_to_key (gcry_sexp_t sexp, int want_private, MPI **retarray,
              GcryModule **retalgo)
 {
-    GCRY_SEXP list, l2;
+    gcry_sexp_t list, l2;
     const char *name;
     size_t n;
     int algo;
     const char *elems;
-    GCRY_MPI *array;
-    int err = 0;
+    gcry_mpi_t *array;
+    gpg_err_code_t err = GPG_ERR_NO_ERROR;
     GcryModule *module;
     GcryPubkeySpec *pubkey;
 
@@ -765,14 +770,14 @@ sexp_to_key (GCRY_SEXP sexp, int want_private, MPI **retarray,
     list = gcry_sexp_find_token( sexp, want_private? "private-key"
 						    :"public-key", 0 );
     if( !list )
-	return GCRYERR_INV_OBJ; /* Does not contain a public- or private-key object */
+	return GPG_ERR_INV_OBJ; /* Does not contain a public- or private-key object */
     l2 = gcry_sexp_cadr( list );
     gcry_sexp_release ( list );
     list = l2;
     name = gcry_sexp_nth_data( list, 0, &n );
     if( !name ) {
 	gcry_sexp_release ( list );
-	return GCRYERR_INV_OBJ; /* invalid structure of object */
+	return GPG_ERR_INV_OBJ; /* invalid structure of object */
     }
 
     {
@@ -790,7 +795,7 @@ sexp_to_key (GCRY_SEXP sexp, int want_private, MPI **retarray,
     if (! module)
       {
 	gcry_sexp_release (list);
-	return GCRYERR_INV_PK_ALGO; /* unknown algorithm */
+	return GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
       }
     else
       pubkey = (GcryPubkeySpec *) module->spec;
@@ -799,8 +804,7 @@ sexp_to_key (GCRY_SEXP sexp, int want_private, MPI **retarray,
     elems = want_private ? pubkey->elements_skey : pubkey->elements_pkey;
     array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
     if (! array)
-      err = GCRYERR_NO_MEM;
-
+      err = gpg_err_code_from_errno (errno);
     if (! err)
       err = sexp_elements_extract (list, elems, array);
 
@@ -825,33 +829,33 @@ sexp_to_key (GCRY_SEXP sexp, int want_private, MPI **retarray,
     return err;
 }
 
-static int
-sexp_to_sig (GCRY_SEXP sexp, MPI **retarray,
+static gpg_err_code_t
+sexp_to_sig (gcry_sexp_t sexp, MPI **retarray,
 	     GcryModule **retalgo)
 {
-    GCRY_SEXP list, l2;
+    gcry_sexp_t list, l2;
     const char *name;
     size_t n;
     int algo;
     const char *elems;
-    GCRY_MPI *array;
-    int err = 0;
+    gcry_mpi_t *array;
+    gpg_err_code_t err = GPG_ERR_NO_ERROR;
     GcryModule *module;
     GcryPubkeySpec *pubkey;
 
     /* check that the first element is valid */
     list = gcry_sexp_find_token( sexp, "sig-val" , 0 );
     if( !list )
-	return GCRYERR_INV_OBJ; /* Does not contain a signature value object */
+	return GPG_ERR_INV_OBJ; /* Does not contain a signature value object */
     l2 = gcry_sexp_cadr( list );
     gcry_sexp_release ( list );
     list = l2;
     if( !list )
-	return GCRYERR_NO_OBJ; /* no cadr for the sig object */
+	return GPG_ERR_NO_OBJ; /* no cadr for the sig object */
     name = gcry_sexp_nth_data( list, 0, &n );
     if( !name ) {
 	gcry_sexp_release ( list );
-	return GCRYERR_INV_OBJ; /* invalid structure of object */
+	return GPG_ERR_INV_OBJ; /* invalid structure of object */
     }
 
     {
@@ -869,7 +873,7 @@ sexp_to_sig (GCRY_SEXP sexp, MPI **retarray,
     if (! module)
       {
 	gcry_sexp_release (list);
-	return GCRYERR_INV_PK_ALGO; /* unknown algorithm */
+	return GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
       }
     else
       pubkey = (GcryPubkeySpec *) module->spec;
@@ -878,7 +882,7 @@ sexp_to_sig (GCRY_SEXP sexp, MPI **retarray,
     elems = pubkey->elements_sig;
     array = gcry_calloc (strlen (elems) + 1 , sizeof (*array));
     if (! array)
-      err = GCRYERR_NO_MEM;
+      err = gpg_err_code_from_errno (errno);
 
     if (! err)
       err = sexp_elements_extract (list, elems, array);
@@ -917,19 +921,19 @@ sexp_to_sig (GCRY_SEXP sexp, MPI **retarray,
  *	      ))
  * RET_MODERN is set to true when at least an empty flags list has been found.
  */
-static int
-sexp_to_enc (GCRY_SEXP sexp, MPI **retarray, GcryModule **retalgo,
+static gpg_err_code_t
+sexp_to_enc (gcry_sexp_t sexp, MPI **retarray, GcryModule **retalgo,
              int *ret_modern, int *ret_want_pkcs1, int *flags)
 {
-  GCRY_SEXP list = NULL, l2 = NULL;
+  gcry_sexp_t list = NULL, l2 = NULL;
   GcryPubkeySpec *pubkey = NULL;
   GcryModule *module = NULL;
   const char *name;
   size_t n;
   int parsed_flags = 0;
   const char *elems;
-  GCRY_MPI *array = NULL;
-  int err = 0;
+  gcry_mpi_t *array = NULL;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
 
   *ret_want_pkcs1 = 0;
   *ret_modern = 0;
@@ -937,13 +941,13 @@ sexp_to_enc (GCRY_SEXP sexp, MPI **retarray, GcryModule **retalgo,
   /* check that the first element is valid */
   list = gcry_sexp_find_token (sexp, "enc-val" , 0);
   if (! list)
-    err = GCRYERR_INV_OBJ; /* Does not contain an encrypted value object */
+    err = GPG_ERR_INV_OBJ; /* Does not contain an encrypted value object */
 
   if (! err)
     {
       l2 = gcry_sexp_nth (list, 1);
       if (! l2)
-	err = GCRYERR_NO_OBJ; /* no cdr for the data object */
+	err = GPG_ERR_NO_OBJ; /* no cdr for the data object */
     }
 
   if (! err)
@@ -951,7 +955,7 @@ sexp_to_enc (GCRY_SEXP sexp, MPI **retarray, GcryModule **retalgo,
       /* Extract the name of the algorithm.  */
       name = gcry_sexp_nth_data (l2, 0, &n);
       if (! name)
-	err = GCRYERR_INV_OBJ; /* invalid structure of object */
+	err = GPG_ERR_INV_OBJ; /* invalid structure of object */
     }
 
   if ((! err) && (n == 5) && (! memcmp (name, "flags", 5)))
@@ -973,7 +977,7 @@ sexp_to_enc (GCRY_SEXP sexp, MPI **retarray, GcryModule **retalgo,
 	  else if (n == 11 && ! memcmp (s, "no-blinding", 11))
 	    parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
           else
-	    err = GCRYERR_INV_FLAG;
+	    err = GPG_ERR_INV_FLAG;
 	}
     }
 
@@ -983,14 +987,14 @@ sexp_to_enc (GCRY_SEXP sexp, MPI **retarray, GcryModule **retalgo,
       gcry_sexp_release (l2);
       l2 = gcry_sexp_nth (list, 2);
       if (! l2)
-	err = GCRYERR_NO_OBJ; /* no cdr for the data object */
+	err = GPG_ERR_NO_OBJ; /* no cdr for the data object */
     }
 
   if (! err)
     {
       name = gcry_sexp_nth_data (l2, 0, &n);
       if (! name)
-	err = GCRYERR_INV_OBJ; /* invalid structure of object */
+	err = GPG_ERR_INV_OBJ; /* invalid structure of object */
       else
 	{
 	  gcry_sexp_release (list);
@@ -1012,7 +1016,7 @@ sexp_to_enc (GCRY_SEXP sexp, MPI **retarray, GcryModule **retalgo,
       free (name_terminated);
 
       if (! module)
-	err = GCRYERR_INV_PK_ALGO; /* unknown algorithm */
+	err = GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
       else
 	pubkey = (GcryPubkeySpec *) module->spec;
     }
@@ -1022,7 +1026,7 @@ sexp_to_enc (GCRY_SEXP sexp, MPI **retarray, GcryModule **retalgo,
       elems = pubkey->elements_enc;
       array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
       if (! array)
-	err = GCRYERR_NO_MEM;
+	err = gpg_err_code_from_errno (errno);
     }
 
   if (! err)
@@ -1071,12 +1075,12 @@ sexp_to_enc (GCRY_SEXP sexp, MPI **retarray, GcryModule **retalgo,
    NBITS is the length of the key in bits. 
 
 */
-static int 
-sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
+static gpg_err_code_t
+sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
                   int for_encryption, int *flags)
 {
-  int rc = 0;
-  GcrySexp ldata, lhash, lvalue;
+  gpg_err_code_t rc = 0;
+  gcry_sexp_t ldata, lhash, lvalue;
   int i;
   size_t n;
   const char *s;
@@ -1091,12 +1095,12 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
   if (!ldata)
     { /* assume old style */
       *ret_mpi = gcry_sexp_nth_mpi (input, 0, 0);
-      return *ret_mpi? 0 : GCRYERR_INV_OBJ;
+      return *ret_mpi ? GPG_ERR_NO_ERROR : GPG_ERR_INV_OBJ;
     }
 
   /* see whether there is a flags object */
   {
-    GcrySexp lflags = gcry_sexp_find_token (ldata, "flags", 0);
+    gcry_sexp_t lflags = gcry_sexp_find_token (ldata, "flags", 0);
     if (lflags)
       { /* parse the flags list. */
         for (i=gcry_sexp_length (lflags)-1; i > 0; i--)
@@ -1125,16 +1129,16 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
   lvalue = lhash? NULL : gcry_sexp_find_token (ldata, "value", 0);
 
   if (!(!lhash ^ !lvalue))
-    rc = GCRYERR_INV_OBJ; /* none or both given */
+    rc = GPG_ERR_INV_OBJ; /* none or both given */
   else if (unknown_flag)
-    rc = GCRYERR_INV_FLAG;
+    rc = GPG_ERR_INV_FLAG;
   else if (is_raw && is_pkcs1 && !for_encryption)
-    rc = GCRYERR_CONFLICT;
+    rc = GPG_ERR_CONFLICT;
   else if (is_raw && lvalue)
     {
       *ret_mpi = gcry_sexp_nth_mpi (lvalue, 1, 0);
       if (!*ret_mpi)
-        rc = GCRYERR_INV_OBJ;
+        rc = GPG_ERR_INV_OBJ;
     }
   else if (is_pkcs1 && lvalue && for_encryption)
     { /* create pkcs#1 block type 2 padding */
@@ -1145,14 +1149,14 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
       unsigned char *p;
 
       if ( !(value=gcry_sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
-        rc = GCRYERR_INV_OBJ;
+        rc = GPG_ERR_INV_OBJ;
       else if (valuelen + 7 > nframe || !nframe)
         {
           /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
-          rc = GCRYERR_TOO_SHORT; /* the key is too short */
+          rc = GPG_ERR_TOO_SHORT; /* the key is too short */
         }
       else if ( !(frame = gcry_malloc_secure (nframe)))
-        rc = GCRYERR_NO_MEM;
+        rc = gpg_err_code_from_errno (errno);
       else
         {
           n = 0;
@@ -1194,6 +1198,7 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
           n += valuelen;
           assert (n == nframe);
 
+	  /* FIXME, error checking?  */
           gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, &nframe);
         }
 
@@ -1202,9 +1207,9 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
   else if (is_pkcs1 && lhash && !for_encryption)
     { /* create pkcs#1 block type 1 padding */
       if (gcry_sexp_length (lhash) != 3)
-        rc = GCRYERR_INV_OBJ;
+        rc = GPG_ERR_INV_OBJ;
       else if ( !(s=gcry_sexp_nth_data (lhash, 1, &n)) || !n )
-        rc = GCRYERR_INV_OBJ;
+        rc = GPG_ERR_INV_OBJ;
       else
         {
           static struct { const char *name; int algo; } hashnames[] = 
@@ -1240,25 +1245,25 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
           dlen = gcry_md_get_algo_dlen (algo);
 
           if (!hashnames[i].name)
-            rc = GCRYERR_INV_MD_ALGO;
+            rc = GPG_ERR_DIGEST_ALGO;
           else if ( !(value=gcry_sexp_nth_data (lhash, 2, &valuelen))
                     || !valuelen )
-            rc = GCRYERR_INV_OBJ;
+            rc = GPG_ERR_INV_OBJ;
           else if (gcry_md_algo_info (algo, GCRYCTL_GET_ASNOID, asn, &asnlen))
-            rc = GCRYERR_NOT_IMPL; /* we don't have all of the above algos */
+            rc = GPG_ERR_NOT_IMPLEMENTED; /* we don't have all of the above algos */
           else if ( valuelen != dlen )
             {
               /* hash value does not match the length of digest for
                  the given algo */
-              rc = GCRYERR_CONFLICT;
+              rc = GPG_ERR_CONFLICT;
             }
           else if( !dlen || dlen + asnlen + 4 > nframe)
             {
               /* can't encode an DLEN byte digest MD into a NFRAME byte frame */
-              rc = GCRYERR_TOO_SHORT;
+              rc = GPG_ERR_TOO_SHORT;
             }
           else if ( !(frame = gcry_malloc (nframe)) )
-            rc = GCRYERR_NO_MEM;
+            rc = gpg_err_code_from_errno (errno);
           else
             { /* assemble the pkcs#1 block type 1 */
               n = 0;
@@ -1275,7 +1280,7 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
               n += valuelen;
               assert (n == nframe);
       
-              /* convert it into an MPI */
+              /* convert it into an MPI, FIXME: error checking?  */
               gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, &nframe);
             }
           
@@ -1283,7 +1288,7 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
         }
     }
   else
-    rc = GCRYERR_CONFLICT;
+    rc = GPG_ERR_CONFLICT;
    
   gcry_sexp_release (ldata);
   gcry_sexp_release (lhash);
@@ -1318,12 +1323,13 @@ sexp_data_to_mpi (GcrySexp input, unsigned int nbits, GcryMPI *ret_mpi,
                ))
 
 */
-int
-gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
+gpg_error_t
+gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 {
   MPI *pkey = NULL, data = NULL, *ciph = NULL;
   const char *algo_name, *algo_elems;
-  int rc, flags;
+  int flags;
+  gpg_err_code_t rc;
   GcryPubkeySpec *pubkey = NULL;
   GcryModule *module = NULL;
 
@@ -1358,9 +1364,10 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
       char *string, *p;
       int i;
       size_t nelem = strlen (algo_elems);
-      size_t needed = 18 + (nelem * 5);
+      size_t needed = 19 + strlen (algo_name) + (nelem * 5);
+
       if (flags & PUBKEY_FLAG_NO_BLINDING)
-	needed += 12;		/* FIXME, verify calculation?  */
+	needed += 12;
 
       /* Build the string.  */
       string = p = gcry_xmalloc (needed);
@@ -1379,27 +1386,23 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
       /* and now the ugly part:  we don't have a function to
        * pass an array to a format string, so we have to do it this way :-(
        */
-      switch ( nelem ) {
-      case 1: rc = gcry_sexp_build ( r_ciph, NULL, string,
-				     ciph[0]
-				     ); break;
-      case 2: rc = gcry_sexp_build ( r_ciph, NULL, string,
-				     ciph[0], ciph[1]
-				     ); break;
-      case 3: rc = gcry_sexp_build ( r_ciph, NULL, string,
-				     ciph[0], ciph[1], ciph[2]
-				     ); break;
-      case 4: rc = gcry_sexp_build ( r_ciph, NULL, string,
-				     ciph[0], ciph[1], ciph[2], ciph[3]
-				     ); break;
-      case 5: rc = gcry_sexp_build ( r_ciph, NULL, string,
-				     ciph[0], ciph[1], ciph[2], ciph[3], ciph[4]
-				     ); break;
-      case 6: rc = gcry_sexp_build ( r_ciph, NULL, string,
-				     ciph[0], ciph[1], ciph[2], ciph[3], ciph[4], ciph[5]
-				     ); break;
-      default: BUG ();
+
+      {
+	int i;
+	void **arg_list = malloc (sizeof (void *) * nelem);
+	if (arg_list)
+	  {
+	    for (i = 0; i < nelem; i++)
+	      arg_list[i] = &ciph[i];
+
+	    rc = gcry_sexp_build_array (r_ciph, NULL, string, arg_list);
+
+	    free (arg_list);
+	  }
+	else
+	  rc = gpg_err_code_from_errno (errno);
       }
+
       if (rc)
 	BUG ();
       gcry_free (string);
@@ -1418,7 +1421,7 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
       ath_mutex_unlock (&pubkeys_registered_lock);
     }
 
-  return rc;
+  return gpg_error (rc);
 }
 
 /****************
@@ -1428,7 +1431,7 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
  * format as created by gcry_pk_encrypt.  For historic reasons the
  * function returns simply an MPI as an S-expression part; this is
  * deprecated and the new method should be used which returns a real
- * S-expressionl this is selected by adding at least an empt flags
+ * S-expressionl this is selected by adding at least an empty flags
  * list to S_DATA.
  * 
  * Returns: 0 or an errorcode.
@@ -1444,11 +1447,12 @@ gcry_pk_encrypt (GCRY_SEXP *r_ciph, GCRY_SEXP s_data, GCRY_SEXP s_pkey)
  * r_plain= Either an incomplete S-expression without the parentheses
  *          or if the flags list is used (even if empty) a real S-expression:
  *          (value PLAIN).  */
-int
-gcry_pk_decrypt (GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey)
+gpg_error_t
+gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 {
   MPI *skey = NULL, *data = NULL, plain = NULL;
-  int rc, modern, want_pkcs1, flags;
+  int modern, want_pkcs1, flags;
+  gpg_err_code_t rc;
   GcryModule *module_enc = NULL, *module_key = NULL;
   GcryPubkeySpec *pubkey = NULL;
 
@@ -1464,7 +1468,7 @@ gcry_pk_decrypt (GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey)
     {
       if (((GcryPubkeySpec *) module_key->spec)->id
 	  != ((GcryPubkeySpec *) module_enc->spec)->id)
-	rc = GCRYERR_CONFLICT; /* key algo does not match data algo */
+	rc = GPG_ERR_CONFLICT; /* key algo does not match data algo */
       else
 	pubkey = (GcryPubkeySpec *) module_key->spec;
     }
@@ -1511,7 +1515,7 @@ gcry_pk_decrypt (GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey)
       ath_mutex_unlock (&pubkeys_registered_lock);
     }
 
-  return rc;
+  return gpg_error (rc);
 }
 
 
@@ -1541,14 +1545,15 @@ gcry_pk_decrypt (GCRY_SEXP *r_plain, GCRY_SEXP s_data, GCRY_SEXP s_skey)
  *		...
  *		(<param_namen> <mpi>)
  * )) */
-int
-gcry_pk_sign (GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey)
+gpg_error_t
+gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 {
   MPI *skey = NULL, hash = NULL, *result = NULL;
   GcryPubkeySpec *pubkey = NULL;
   GcryModule *module = NULL;
   const char *key_algo_name, *algo_name, *algo_elems;
-  int i, rc;
+  int i;
+  gpg_err_code_t rc;
 
 
   REGISTER_DEFAULT_PUBKEYS;
@@ -1597,31 +1602,22 @@ gcry_pk_sign (GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey)
 	}
       strcpy (p, "))");
 
-      /* and now the ugly part:  we don't have a function to
-       * pass an array to a format string, so we have to do it this way :-(
-       */
-      switch (nelem)
-	{
-	case 1: rc = gcry_sexp_build ( r_sig, NULL, string,
-				       result[0]
-				       ); break;
-	case 2: rc = gcry_sexp_build ( r_sig, NULL, string,
-				       result[0], result[1]
-				       ); break;
-	case 3: rc = gcry_sexp_build ( r_sig, NULL, string,
-				       result[0], result[1], result[2]
-				       ); break;
-	case 4: rc = gcry_sexp_build ( r_sig, NULL, string,
-				       result[0], result[1], result[2], result[3]
-				       ); break;
-	case 5: rc = gcry_sexp_build ( r_sig, NULL, string,
-				       result[0], result[1], result[2], result[3], result[4]
-				       ); break;
-	case 6: rc = gcry_sexp_build ( r_sig, NULL, string,
-				       result[0], result[1], result[2], result[3], result[4], result[5]
-				       ); break;
-	default: BUG ();
-	}
+      {
+	int i;
+	void **arg_list = malloc (sizeof (void *) * nelem);
+	if (arg_list)
+	  {
+	    for (i = 0; i < nelem; i++)
+	      arg_list[i] = &result[i];
+
+	    rc = gcry_sexp_build_array (r_sig, NULL, string, arg_list);
+
+	    free (arg_list);
+	  }
+	else
+	  rc = gpg_err_code_from_errno (errno);
+      }
+
       if (rc)
 	BUG ();
       gcry_free (string);
@@ -1639,7 +1635,7 @@ gcry_pk_sign (GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey)
   if (result)
     gcry_free (result);
 
-  return rc;
+  return gpg_error (rc);
 }
 
 
@@ -1650,12 +1646,12 @@ gcry_pk_sign (GCRY_SEXP *r_sig, GCRY_SEXP s_hash, GCRY_SEXP s_skey)
  * from gcry_pk_sign and data must be an S-Exp like the one in sign
  * too.
  */
-int
-gcry_pk_verify (GCRY_SEXP s_sig, GCRY_SEXP s_hash, GCRY_SEXP s_pkey)
+gpg_error_t
+gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 {
   GcryModule *module_key = NULL, *module_sig = NULL;
   MPI *pkey = NULL, hash = NULL, *sig = NULL;
-  int rc;
+  gpg_err_code_t rc;
 
   REGISTER_DEFAULT_PUBKEYS;
  
@@ -1666,7 +1662,7 @@ gcry_pk_verify (GCRY_SEXP s_sig, GCRY_SEXP s_hash, GCRY_SEXP s_pkey)
   if ((! rc)
       && (((GcryPubkeySpec *) module_key->spec)->id
 	  != ((GcryPubkeySpec *) module_sig->spec)->id))
-    rc = GCRYERR_CONFLICT;
+    rc = GPG_ERR_CONFLICT;
 
   if (! rc)
     rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_pkey), &hash, 0, 0);
@@ -1698,7 +1694,7 @@ gcry_pk_verify (GCRY_SEXP s_sig, GCRY_SEXP s_hash, GCRY_SEXP s_pkey)
       ath_mutex_unlock (&pubkeys_registered_lock);
     }
 
-  return rc;
+  return gpg_error (rc);
 }
 
 
@@ -1710,13 +1706,15 @@ gcry_pk_verify (GCRY_SEXP s_sig, GCRY_SEXP s_hash, GCRY_SEXP s_pkey)
  *
  * s_key = <key-as-defined-in-sexp_to_key>
  */
-int
-gcry_pk_testkey (GCRY_SEXP s_key)
+gpg_error_t
+gcry_pk_testkey (gcry_sexp_t s_key)
 {
   GcryModule *module = NULL;
   MPI *key = NULL;
-  int rc;
+  gpg_err_code_t rc;
   
+  REGISTER_DEFAULT_PUBKEYS;
+
   /* Note we currently support only secret key checking */
   rc = sexp_to_key (s_key, 1, &key, &module);
   if (! rc)
@@ -1725,7 +1723,7 @@ gcry_pk_testkey (GCRY_SEXP s_key)
       release_mpi_array (key);
       gcry_free (key);
     }
-  return rc;
+  return gpg_error (rc);
 }
 
 
@@ -1763,19 +1761,20 @@ gcry_pk_testkey (GCRY_SEXP s_key)
  *  )
  * )
  */
-int
-gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
+gpg_error_t
+gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 {
   GcryPubkeySpec *pubkey = NULL;
   GcryModule *module = NULL;
-  GCRY_SEXP list = NULL, l2 = NULL;
+  gcry_sexp_t list = NULL, l2 = NULL;
   const char *name;
   size_t n;
-  int rc = 0, i;
+  gpg_err_code_t rc = GPG_ERR_NO_ERROR;
+  int i;
   const char *algo_name = NULL;
   int algo;
   const char *sec_elems = NULL, *pub_elems = NULL;
-  GCRY_MPI skey[10] = { NULL }, *factors = NULL;
+  gcry_mpi_t skey[10] = { NULL }, *factors = NULL;
   unsigned int nbits = 0;
   unsigned long use_e = 0;
 
@@ -1784,7 +1783,7 @@ gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
   *r_key = NULL;
   list = gcry_sexp_find_token (s_parms, "genkey", 0);
   if (! list)
-    rc = GCRYERR_INV_OBJ; /* Does not contain genkey data */
+    rc = GPG_ERR_INV_OBJ; /* Does not contain genkey data */
 
   if (! rc)
     {
@@ -1793,14 +1792,14 @@ gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
       list = l2;
       l2 = NULL;
       if (! list)
-	rc = GCRYERR_NO_OBJ; /* no cdr for the genkey */
+	rc = GPG_ERR_NO_OBJ; /* no cdr for the genkey */
     }
 
   if (! rc)
     {
       name = gcry_sexp_nth_data (list, 0, &n);
       if (! name)
-	rc = GCRYERR_INV_OBJ; /* algo string missing */
+	rc = GPG_ERR_INV_OBJ; /* algo string missing */
     }
 
   if (! rc)
@@ -1809,14 +1808,14 @@ gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
       strncpy (name_terminated, name, n);
       name_terminated[n] = 0;
 
-      ath_mutex_unlock (&pubkeys_registered_lock);
+      ath_mutex_lock (&pubkeys_registered_lock);
       module = gcry_pubkey_lookup_name (name_terminated);
       ath_mutex_unlock (&pubkeys_registered_lock);
 
       free (name_terminated);
 
       if (! module)
-	rc = GCRYERR_INV_PK_ALGO; /* unknown algorithm */
+	rc = GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
       else
 	{
 	  pubkey = (GcryPubkeySpec *) module->spec;
@@ -1836,7 +1835,7 @@ gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
 
 	  name = gcry_sexp_nth_data (l2, 1, &n);
 	  if ((! name) || (n >= DIM (buf) - 1))
-	    rc = GCRYERR_INV_OBJ; /* no value or value too large */
+	    rc = GPG_ERR_INV_OBJ; /* no value or value too large */
 	  else
 	    {
 	      memcpy (buf, name, n);
@@ -1857,12 +1856,12 @@ gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
       list = l2;
       l2 = NULL;
       if (! list)
-	rc = GCRYERR_NO_OBJ; /* no nbits parameter */
+	rc = GPG_ERR_NO_OBJ; /* no nbits parameter */
       else
 	{
 	  name = gcry_sexp_nth_data (list, 1, &n);
 	  if (! name)
-	    rc = GCRYERR_INV_OBJ; /* nbits without a cdr */
+	    rc = GPG_ERR_INV_OBJ; /* nbits without a cdr */
 	  else
 	    {
 	      char *p = gcry_xmalloc (n + 1);
@@ -1880,12 +1879,14 @@ gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
   if (! rc)
     {
       char *string, *p;
-      size_t nelem=0, needed=0;
-      GCRY_MPI mpis[30];
+      size_t nelem=0, nelem_cp = 0, needed=0;
+      gcry_mpi_t mpis[30];
 
       nelem = strlen (pub_elems) + strlen (sec_elems);
       for (i = 0; factors[i]; i++)
 	nelem++;
+      nelem_cp = nelem;
+
       needed += nelem * 10;
       needed += 2 * strlen (algo_name) + 300;
       if (nelem > DIM (mpis))
@@ -1930,17 +1931,25 @@ gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
       while (nelem < DIM (mpis))
 	mpis[nelem++] = NULL;
 
-      /* and now the ugly part: we don't have a function to pass an
-       * array to a format string, so we have just pass everything we
-       * have. which normally should be no problem as only those with
-       * a corresponding %m are used
-       */
-      if (gcry_sexp_build (r_key, NULL, string,
-			   mpis[0], mpis[1], mpis[2], mpis[3], mpis[4], mpis[5],
-			   mpis[6], mpis[7], mpis[8], mpis[9], mpis[10], mpis[11],
-			   mpis[12], mpis[13], mpis[14], mpis[15], mpis[16], mpis[17],
-			   mpis[18], mpis[19], mpis[20], mpis[21], mpis[22], mpis[23],
-			   mpis[24], mpis[25], mpis[26], mpis[27], mpis[28], mpis[29]))
+      {
+	int elem_n = strlen (pub_elems) + strlen (sec_elems), i;
+	void **arg_list = malloc (sizeof (void *) * nelem_cp);
+	if (arg_list)
+	  {
+	    for (i = 0; i < elem_n; i++)
+	      arg_list[i] = &mpis[i];
+	    for (; i < nelem_cp; i++)
+	      arg_list[i] = &factors[i - elem_n];
+
+	    rc = gcry_sexp_build_array (r_key, NULL, string, arg_list);
+
+	    free (arg_list);
+	  }
+	else
+	  rc = gpg_err_code_from_errno (errno);
+      }
+
+      if (rc)
 	BUG ();
       assert (DIM (mpis) == 30);	/* ? */
       gcry_free (string);
@@ -1967,7 +1976,7 @@ gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
       ath_mutex_unlock (&pubkeys_registered_lock);
     }
 
-  return rc;
+  return gpg_error (rc);
 }
 
 /****************
@@ -1977,18 +1986,18 @@ gcry_pk_genkey (GCRY_SEXP *r_key, GCRY_SEXP s_parms)
  * different propoerties of the key?
  */
 unsigned int
-gcry_pk_get_nbits (GCRY_SEXP key)
+gcry_pk_get_nbits (gcry_sexp_t key)
 {
   GcryModule *module = NULL;
   GcryPubkeySpec *pubkey;
   MPI *keyarr = NULL;
   unsigned int nbits = 0;
-  int rc;
+  gpg_err_code_t rc;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   rc = sexp_to_key (key, 0, &keyarr, &module);
-  if (rc == GCRYERR_INV_OBJ)
+  if (rc == GPG_ERR_INV_OBJ)
     rc = sexp_to_key (key, 1, &keyarr, &module);
   if (rc)
     return 0;
@@ -2017,9 +2026,9 @@ gcry_pk_get_nbits (GCRY_SEXP key)
    NULL is returned to indicate an error which is most likely an
    unknown algorithm.  The function accepts public or secret keys. */
 unsigned char *
-gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
+gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
 {
-  GCRY_SEXP list = NULL, l2 = NULL;
+  gcry_sexp_t list = NULL, l2 = NULL;
   GcryPubkeySpec *pubkey = NULL;
   GcryModule *module = NULL;
   const char *s, *name;
@@ -2027,7 +2036,7 @@ gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
   int idx;
   int is_rsa;
   const char *elems;
-  GCRY_MD_HD md = NULL;
+  gcry_md_hd_t md = NULL;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -2074,8 +2083,7 @@ gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
   if (! elems)
     goto fail; /* no grip parameter */
     
-  md = gcry_md_open (GCRY_MD_SHA1, 0);
-  if (! md)
+  if (gcry_md_open (&md, GCRY_MD_SHA1, 0))
     goto fail;
 
   for (idx = 0, s = elems; *s; s++, idx++)
@@ -2128,24 +2136,30 @@ gcry_pk_get_keygrip (GCRY_SEXP key, unsigned char *array)
 }
 
 
-
-int
-gcry_pk_ctl( int cmd, void *buffer, size_t buflen)
+gpg_error_t
+gcry_pk_ctl (int cmd, void *buffer, size_t buflen)
 {
-    switch( cmd ) {
-      case GCRYCTL_DISABLE_ALGO:
-	/* this one expects a buffer pointing to an
-	 * integer with the algo number.
-	 */
-	if( !buffer || buflen != sizeof(int) )
-	    return set_lasterr( GCRYERR_INV_CIPHER_ALGO );
-	disable_pubkey_algo( *(int*)buffer );
-	break;
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
 
-      default:
-	return set_lasterr( GCRYERR_INV_OP );
+  REGISTER_DEFAULT_PUBKEYS;
+
+  switch (cmd)
+    {
+    case GCRYCTL_DISABLE_ALGO:
+      /* this one expects a buffer pointing to an integer with the
+       * algo number.
+       */
+      if ((! buffer) || (buflen != sizeof (int)))
+	err = GPG_ERR_CIPHER_ALGO;  /* FIXME?  */
+      else
+	disable_pubkey_algo (*((int *) buffer));
+      break;
+
+    default:
+      err = GPG_ERR_INV_OP;
     }
-    return 0;
+
+  return gpg_error (err);
 }
 
 
@@ -2163,34 +2177,28 @@ gcry_pk_ctl( int cmd, void *buffer, size_t buflen)
  *      only want to know whether the algo is at all capable of
  *      the usage.
  *
- * On error the value -1 is returned and the error reason may be
- * retrieved by gcry_errno().
  * Note:  Because this function is in most cases used to return an
  * integer value, we can make it easier for the caller to just look at
  * the return value.  The caller will in all cases consult the value
  * and thereby detecting whether a error occured or not (i.e. while checking
  * the block size)
  */
-int
+gpg_error_t
 gcry_pk_algo_info (int id, int what, void *buffer, size_t *nbytes)
 {
+  gpg_err_code_t err = GPG_ERR_NO_ERROR;
+
   switch (what)
     {
     case GCRYCTL_TEST_ALGO:
       {
-	int use = nbytes ? *nbytes: 0;
+	int use = nbytes ? *nbytes : 0;
 	if (buffer)
-	  {
-	    set_lasterr( GCRYERR_INV_ARG );
-	    return -1;
-	  }
-	if (check_pubkey_algo (id, use))
-	  {
-	    set_lasterr( GCRYERR_INV_PK_ALGO );
-	    return -1;
-	  }
+	  err = GPG_ERR_INV_ARG;
+	else if (check_pubkey_algo (id, use))
+	  err = GPG_ERR_PUBKEY_ALGO;
+	break;
       }
-      break;
 
     case GCRYCTL_GET_ALGO_USAGE:
       {
@@ -2207,22 +2215,43 @@ gcry_pk_algo_info (int id, int what, void *buffer, size_t *nbytes)
 	    _gcry_module_release (pubkey);
 	  }
 	ath_mutex_unlock (&pubkeys_registered_lock);
-	return use;
+
+	/* FIXME? */
+	*nbytes = use;
       }
 
     case GCRYCTL_GET_ALGO_NPKEY:
-      return pubkey_get_npkey (id);
+      {
+	/* FIXME?  */
+	int npkey = pubkey_get_npkey (id);
+	*nbytes = npkey;
+	break;
+      }
     case GCRYCTL_GET_ALGO_NSKEY:
-      return pubkey_get_nskey (id);
+      {
+	/* FIXME?  */
+	int nskey = pubkey_get_nskey (id);
+	*nbytes = nskey;
+	break;
+      }
     case GCRYCTL_GET_ALGO_NSIGN:
-      return pubkey_get_nsig (id);
+      {
+	/* FIXME?  */
+	int nsign = pubkey_get_nsig (id);
+	*nbytes = nsign;
+	break;
+      }
     case GCRYCTL_GET_ALGO_NENCR:
-      return pubkey_get_nenc (id);
+      {
+	/* FIXME?  */
+	int nencr = pubkey_get_nenc (id);
+	*nbytes = nencr;
+	break;
+      }
 
     default:
-      set_lasterr (GCRYERR_INV_OP);
-      return -1;
+      err = GPG_ERR_INV_OP;
     }
 
-  return 0;
+  return gpg_error (err);
 }

@@ -1710,7 +1710,7 @@ static const u32 rcon[30] = {
 
 /* Perform the key setup.
  */  
-static int
+static gpg_err_code_t
 do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 {
     static int initialized = 0;
@@ -1728,7 +1728,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
             log_error ("%s\n", selftest_failed );
     }
     if( selftest_failed )
-        return GCRYERR_SELFTEST;
+        return GPG_ERR_SELFTEST_FAILED;
 
     if( keylen == 128/8 ) {
         ROUNDS = 10;
@@ -1743,7 +1743,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
         KC = 8;
     }
     else
-	return GCRYERR_INV_KEYLEN;
+	return GPG_ERR_INV_KEYLEN;
 
     ctx->ROUNDS = ROUNDS;
     ctx->decryption_prepared = 0;
@@ -1751,7 +1751,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     for (i = 0; i < keylen; i++) {
         k[i >> 2][i & 3] = key[i]; 
     }
- #define W (ctx->keySched)
+#define W (ctx->keySched)
 
     for (j = KC-1; j >= 0; j--) {
         *((u32*)tk[j]) = *((u32*)k[j]);
@@ -1806,11 +1806,11 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
         }
     }		
     
-  #undef W    
+#undef W    
     return 0;
 }
 
-static int
+static gpg_err_code_t
 rijndael_setkey (void *context, const byte *key, const unsigned keylen)
 {
   RIJNDAEL_context *ctx = (RIJNDAEL_context *) context;
@@ -1833,7 +1833,7 @@ prepare_decryption( RIJNDAEL_context *ctx )
         *((u32*)ctx->keySched2[r][2]) = *((u32*)ctx->keySched[r][2]);
         *((u32*)ctx->keySched2[r][3]) = *((u32*)ctx->keySched[r][3]);
     }
-  #define W (ctx->keySched2)
+#define W (ctx->keySched2)
     for (r = 1; r < ctx->ROUNDS; r++) {
         w = W[r][0];
         *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
@@ -1851,7 +1851,7 @@ prepare_decryption( RIJNDAEL_context *ctx )
         *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
                    ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
     }
-  #undef W
+#undef W
 }	
 
 
@@ -1863,7 +1863,7 @@ do_encrypt (const RIJNDAEL_context *ctx, byte *b, const byte *a)
     int r;
     byte temp[4][4];
     int ROUNDS = ctx->ROUNDS;
-  #define rk (ctx->keySched)
+#define rk (ctx->keySched)
 
     *((u32*)temp[0]) = *((u32*)(a   )) ^ *((u32*)rk[0][0]);
     *((u32*)temp[1]) = *((u32*)(a+ 4)) ^ *((u32*)rk[0][1]);
@@ -1933,7 +1933,7 @@ do_encrypt (const RIJNDAEL_context *ctx, byte *b, const byte *a)
     *((u32*)(b+ 4)) ^= *((u32*)rk[ROUNDS][1]);
     *((u32*)(b+ 8)) ^= *((u32*)rk[ROUNDS][2]);
     *((u32*)(b+12)) ^= *((u32*)rk[ROUNDS][3]);
-  #undef rk
+#undef rk
 }
 
 static void
@@ -1950,7 +1950,7 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
 static void
 do_decrypt (RIJNDAEL_context *ctx, byte *b, const byte *a)
 {
-  #define rk  (ctx->keySched2)
+#define rk  (ctx->keySched2)
     int ROUNDS = ctx->ROUNDS; 
     int r;
     byte temp[4][4];
@@ -2029,7 +2029,7 @@ do_decrypt (RIJNDAEL_context *ctx, byte *b, const byte *a)
 	*((u32*)(b+ 4)) ^= *((u32*)rk[0][1]);
 	*((u32*)(b+ 8)) ^= *((u32*)rk[0][2]);
 	*((u32*)(b+12)) ^= *((u32*)rk[0][3]);
-  #undef rk
+#undef rk
 }
 
 static void

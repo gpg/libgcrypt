@@ -71,7 +71,7 @@ encrypt_stream (void *context,
 }
 
 
-static int
+static gpg_err_code_t
 do_arcfour_setkey (void *context, const byte *key, unsigned int keylen)
 {
     static int initialized;
@@ -87,10 +87,10 @@ do_arcfour_setkey (void *context, const byte *key, unsigned int keylen)
 	    log_error ("ARCFOUR selftest failed (%s)\n", selftest_failed );
     }
     if( selftest_failed )
-	return GCRYERR_SELFTEST;
+	return GPG_ERR_SELFTEST_FAILED;
 
     if( keylen < 40/8 ) /* we want at least 40 bits */
-        return GCRYERR_INV_KEYLEN; 
+        return GPG_ERR_INV_KEYLEN;
 
     ctx->idx_i = ctx->idx_j = 0;
     for (i=0; i < 256; i++ )
@@ -106,14 +106,14 @@ do_arcfour_setkey (void *context, const byte *key, unsigned int keylen)
     } 
     memset( karr, 0, 256 );
 
-    return 0;
+    return GPG_ERR_NO_ERROR;
 }
 
-static int
+static gpg_err_code_t
 arcfour_setkey ( void *context, const byte *key, unsigned int keylen )
 {
   ARCFOUR_context *ctx = (ARCFOUR_context *) context;
-  int rc = do_arcfour_setkey (ctx, key, keylen );
+  gpg_err_code_t rc = do_arcfour_setkey (ctx, key, keylen );
   _gcry_burn_stack (300);
   return rc;
 }

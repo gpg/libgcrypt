@@ -573,7 +573,7 @@ des_setkey (struct _des_ctx *ctx, const byte * key)
 
 #ifdef FIXME
   if( selftest_failed )
-    return GCRYERR_SELFTEST;
+    return GPG_ERR_SELFTEST_FAILED;
 #endif
 
   des_key_schedule (key, ctx->encrypt_subkeys);
@@ -950,11 +950,11 @@ selftest (void)
   {
     int i;
     unsigned char *p;
+    gcry_md_hd_t h;
 
-    GCRY_MD_HD h = gcry_md_open (GCRY_MD_SHA1, 0);
-
-    if (!h)
+    if (gcry_md_open (&h, GCRY_MD_SHA1, 0))
       return "SHA1 not available";
+
     for (i = 0; i < 64; ++i)
       gcry_md_write (h, weak_keys[i], 8);
     p = gcry_md_read (h, GCRY_MD_SHA1);
@@ -972,28 +972,28 @@ selftest (void)
 }
 
 
-static int
+static gpg_err_code_t
 do_tripledes_setkey ( void *context, const byte *key, unsigned keylen )
 {
   struct _tripledes_ctx *ctx = (struct _tripledes_ctx *) context;
 
 #ifdef FIXME
     if( selftest_failed )
-	return GCRYERR_SELFTEST;
+	return GPG_ERR_SELFTEST_FAILED;
 #endif
 
     if( keylen != 24 )
-	return GCRYERR_INV_KEYLEN;
+	return GPG_ERR_INV_KEYLEN;
 
     tripledes_set3keys ( ctx, key, key+8, key+16);
 
     if( is_weak_key( key ) || is_weak_key( key+8 ) || is_weak_key( key+16 ) ) {
         _gcry_burn_stack (64);
-	return GCRYERR_WEAK_KEY;
+	return GPG_ERR_WEAK_KEY;
     }
     _gcry_burn_stack (64);
 
-    return 0;
+    return GPG_ERR_NO_ERROR;
 }
 
 
@@ -1014,7 +1014,7 @@ do_tripledes_decrypt( void *context, byte *outbuf, const byte *inbuf )
   _gcry_burn_stack (32);
 }
 
-static int
+static gpg_err_code_t
 do_des_setkey (void *context, const byte *key, unsigned keylen)
 {
   struct _des_ctx *ctx = (struct _des_ctx *) context;
@@ -1029,20 +1029,20 @@ do_des_setkey (void *context, const byte *key, unsigned keylen)
 	log_error ("%s\n", selftest_failed);
     }
   if (selftest_failed)
-    return GCRYERR_SELFTEST;
+    return GPG_ERR_SELFTEST_FAILED;
 
   if (keylen != 8)
-    return GCRYERR_INV_KEYLEN;
+    return GPG_ERR_INV_KEYLEN;
 
   des_setkey (ctx, key);
 
   if (is_weak_key (key)) {
     _gcry_burn_stack (64);
-    return GCRYERR_WEAK_KEY;
+    return GPG_ERR_WEAK_KEY;
   }
   _gcry_burn_stack (64);
 
-  return 0;
+  return GPG_ERR_NO_ERROR;
 }
 
 

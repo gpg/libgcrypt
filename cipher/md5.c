@@ -303,17 +303,17 @@ md5_final( void *context)
     _gcry_burn_stack (80+6*sizeof(void*));
 
     p = hd->buf;
-  #ifdef BIG_ENDIAN_HOST
-    #define X(a) do { *p++ = hd->a      ; *p++ = hd->a >> 8;      \
+#ifdef BIG_ENDIAN_HOST
+#define X(a) do { *p++ = hd->a      ; *p++ = hd->a >> 8;      \
 		      *p++ = hd->a >> 16; *p++ = hd->a >> 24; } while(0)
-  #else /* little endian */
-    #define X(a) do { *(u32*)p = (*hd).a ; p += 4; } while(0)
-  #endif
+#else /* little endian */
+#define X(a) do { *(u32*)p = (*hd).a ; p += 4; } while(0)
+#endif
     X(A);
     X(B);
     X(C);
     X(D);
-  #undef X
+#undef X
 
 }
 

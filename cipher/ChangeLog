@@ -1,3 +1,178 @@
+2003-06-08  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (gcry_pk_encrypt): Improve calculation for size of the
+	format string.
+
+2003-06-07  Moritz Schulte  <moritz@g10code.com>
+
+	* arcfour.c, bithelp.h, blowfish.c, cast5.c, cipher.c, crc.c,
+	des.c, dsa.c, elgamal.c, md4.c, md5.c, md.c, primegen.c, pubkey.c,
+	rand-internal.h, random.c, random.h, rijndael.c, rmd160.c,
+	rmd160test.c, rmd.h, rndeged.c, rndlinux.c, rndunix.c, rndw32.c,
+	rsa.c, sha1.c, sha256.c, sha512.c, tiger.c, twofish.c: Edited all
+	preprocessor instructions to remove whitespace before the '#'.
+	This is not required by C89, but there are some compilers out
+	there that don't like it.  Replaced any occurence of the now
+	deprecated type names with the new ones.
+	
+2003-06-04  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (gcry_pk_encrypt): Construct an arg_list and use
+	gcry_sexp_build_array instead of gcry_sexp_build.
+	(gcry_pk_sign): Likewise.
+	(gcry_pk_genkey): Likewise.
+
+2003-06-01  Moritz Schulte  <moritz@g10code.com>
+
+	* dsa.c (_gcry_dsa_generate): Do not check wether the algorithm ID
+	does indeed belong to DSA.
+	(_gcry_dsa_sign): Likewise.
+	(_gcry_dsa_verify): Likewise.
+	(_gcry_dsa_get_nbits): Likewise.
+
+	* elgamal.c (_gcry_elg_check_secret_key): Do not check wether the
+	algorithm ID does indeed belong to ElGamal.
+	(_gcry_elg_encrypt): Likewise.
+	(_gcry_elg_decrypt): Likewise.
+	(_gcry_elg_sign): Likewise.
+	(_gcry_elg_verify): Likewise.
+	(_gcry_elg_get_nbits): Likewise.
+	(_gcry_elg_generate): Likewise.
+
+	* rsa.c (_gcry_rsa_generate): Do not check wether the algorithm ID
+	does indeed belong to RSA.
+	(_gcry_rsa_encrypt): Likewise.
+	(_gcry_rsa_decrypt): Likewise.
+	(_gcry_rsa_sign): Likewise.
+	(_gcry_rsa_verify): Likewise.
+	(_gcry_rsa_get_nbits): Likewise.
+
+2003-05-30  Moritz Schulte  <moritz@g10code.com>
+
+	* md.c (md_get_algo): Return zero in case to algorithm is enabled.
+
+	* md.c (gcry_md_info): Adjusted for new no-errno-API.
+	(md_final): Likewise.
+	(gcry_md_get_algo): Likewise.
+	* pubkey.c (gcry_pk_get_keygrip): Likewise.
+	(gcry_pk_ctl): Likewise.
+	(gcry_pk_algo_info): Likewise.
+	* des.c (selftest): Likewise.
+
+2003-05-29  Moritz Schulte  <moritz@g10code.com>
+
+	* md.c (md_enable): Do not forget to release module on error.
+	(gcry_md_open): Adjusted for new no-errno-API.
+	(md_open): Likewise.
+	(md_copy): Likewise.
+	(gcry_md_copy): Likewise.
+	(gcry_md_setkey): Likewise.
+	(gcry_md_algo_info): Likewise.
+
+	* cipher.c (gcry_cipher_open): Adjusted for new no-errno-API and
+	also fixed a locking bug.
+	(gcry_cipher_encrypt): Adjusted for new no-errno-API.
+	(gcry_cipher_decrypt): Likewise.
+	(gcry_cipher_ctl): Likewise.
+	(gcry_cipher_info): Likewise.
+	(gcry_cipher_algo_info): Likewise.
+
+2003-05-28  Moritz Schulte  <moritz@g10code.com>
+
+	* md.c (md_enable): Adjusted for libgpg-error.
+	(gcry_md_enable): Likewise.
+	(gcry_digest_register_default): Likewise.
+	(gcry_digest_register): Likewise.
+	(check_digest_algo): Likewise.
+	(prepare_macpads): Likewise.
+	(gcry_md_setkey): Likewise.
+	(gcry_md_ctl): Likewise.
+	(gcry_md_get): Likewise.
+	(gcry_md_algo_info): Likewise.
+	(gcry_md_info): Likewise.
+	* dsa.c (_gcry_dsa_generate): Likewise.
+	(_gcry_dsa_check_secret_key): Likewise.
+	(_gcry_dsa_sign): Likewie.
+	(_gcry_dsa_verify): Likewise.
+	* twofish.c (do_twofish_setkey): Likewise.
+	(twofish_setkey): Likewise.
+	* cipher.c (gcry_cipher_register): Likewise.
+
+2003-05-25  Moritz Schulte  <moritz@g10code.com>
+
+	* rijndael.c (do_setkey): Adjusted for libgpg-error.
+	(rijndael_setkey): Likewise.
+	* random.c (gcry_random_add_bytes): Likewise.
+	* elgamal.c (_gcry_elg_generate): Likewise.
+	(_gcry_elg_check_secret_key): Likewise.
+	(_gcry_elg_encrypt): Likewise.
+	(_gcry_elg_decrypt): Likewise.
+	(_gcry_elg_sign): Likewise.
+	(_gcry_elg_verify): Likewise.
+	* rsa.c (_gcry_rsa_generate): Likewise.
+	(_gcry_rsa_check_secret_key): Likewise.
+	(_gcry_rsa_encrypt): Likewise.
+	(_gcry_rsa_decrypt): Likewise.
+	(_gcry_rsa_sign): Likewise.
+	(_gcry_rsa_verify): Likewise.
+	* pubkey.c (dummy_generate, dummy_check_secret_key, dummy_encrypt,
+	dummy_decrypt, dummy_sign, dummy_verify): Likewise.
+	(gcry_pubkey_register): Likewise.
+	(check_pubkey_algo): Likewise.
+	(pubkey_generate): Likewise.
+	(pubkey_check_secret_key): Likewise.
+	(pubkey_encrypt): Likewise.
+	(pubkey_decrypt): Likewise.
+	(pubkey_sign): Likewise.
+	(pubkey_verify): Likewise.
+	(sexp_elements_extract): Likewise.
+	(sexp_to_key): Likewise.
+	(sexp_to_sig): Likewise.
+	(sexp_to_enc): Likewise.
+	(sexp_data_to_mpi): Likewise.
+	(gcry_pk_encrypt): Likewise.
+	(gcry_pk_decrypt): Likewise.
+	(gcry_pk_sign): Likewise.
+	(gcry_pk_verify): Likewise.
+	(gcry_pk_testkey): Likewise.
+	(gcry_pk_genkey): Likewise.
+	(gcry_pk_ctl): Likewise.
+	* cipher.c (dummy_setkey): Likewise.
+	(check_cipher_algo): Likewise.
+	(gcry_cipher_open): Likewise.
+	(cipher_setkey): Likewise.
+	(gcry_cipher_ctl): Likewise.
+	(cipher_encrypt): Likewise.
+	(gcry_cipher_encrypt): Likewise.
+	(cipher_decrypt): Likewise.
+	(gcry_cipher_decrypt): Likewise.
+	(gcry_cipher_info): Likewise.
+	(gcry_cipher_algo_info): Likewise.
+	* cast5.c (cast_setkey): Likewise.
+	(do_cast_setkey): Likewise.
+	* arcfour.c (arcfour_setkey): Likewise.
+	(do_arcfour_setkey): Likewise.
+	* blowfish.c (do_bf_setkey): Likewise.
+	(bf_setkey): Likewise.
+	* des.c (do_des_setkey): Likewise.
+	(do_tripledes_setkey): Likewise.
+
+2003-05-22  Moritz Schulte  <moritz@g10code.com>
+
+	* tiger.c: Merged code ussing the U64_C macro from GnuPG.
+
+	* sha512.c: Likewise.
+
+2003-05-17  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (gcry_pk_genkey): Fix type: acquire a lock, instead of
+	releasing it.
+
+2003-05-11  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (gcry_pk_testkey): Call REGISTER_DEFAULT_CIPHERS.
+	(gcry_pk_ctl): Likewise.
+
 2003-04-27  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (gcry_pk_genkey): Release sexp after extracted data has

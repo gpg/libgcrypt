@@ -440,13 +440,13 @@ _gcry_rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer )
 {
     char *p = buffer;
     transform( hd, buffer );
-  #define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
+#define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
     X(0);
     X(1);
     X(2);
     X(3);
     X(4);
-  #undef X
+#undef X
 }
 
 
@@ -501,18 +501,18 @@ rmd160_final( void *context )
     _gcry_burn_stack (108+5*sizeof(void*));
 
     p = hd->buf;
-  #ifdef BIG_ENDIAN_HOST
-    #define X(a) do { *p++ = hd->h##a	   ; *p++ = hd->h##a >> 8;	\
+#ifdef BIG_ENDIAN_HOST
+#define X(a) do { *p++ = hd->h##a	   ; *p++ = hd->h##a >> 8;	\
 		      *p++ = hd->h##a >> 16; *p++ = hd->h##a >> 24; } while(0)
-  #else /* little endian */
-    #define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
-  #endif
+#else /* little endian */
+#define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
+#endif
     X(0);
     X(1);
     X(2);
     X(3);
     X(4);
-  #undef X
+#undef X
 }
 
 static byte *
