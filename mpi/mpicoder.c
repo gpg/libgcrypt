@@ -333,7 +333,7 @@ _gcry_mpi_set_buffer( gcry_mpi_t a, const byte *buffer, unsigned nbytes, int sig
    bytes actually scanned after a successful operation. */
 gcry_error_t
 gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
-		const char *buffer, size_t buflen, size_t *nscanned )
+		const unsigned char *buffer, size_t buflen, size_t *nscanned )
 {
     struct gcry_mpi *a = NULL;
     unsigned int len;
@@ -458,7 +458,8 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
    has been passed as NULL.  BUFFER may be NULL to query the required
    length.*/
 gcry_error_t
-gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t buflen,
+gcry_mpi_print( enum gcry_mpi_format format,
+                unsigned char *buffer, size_t buflen,
                 size_t *nwritten, struct gcry_mpi *a)
 {
     unsigned int nbits = mpi_get_nbits(a);
@@ -600,7 +601,7 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t buflen,
 		*s++ = c < 10? '0'+c : 'A'+c-10 ;
 	    }
 	    *s++ = 0;
-	    *nwritten = (char*)s - buffer;
+	    *nwritten = s - buffer;
 	}
 	else {
 	    *nwritten = 2*n + extra + !!a->sign + 1;
@@ -618,7 +619,8 @@ gcry_mpi_print( enum gcry_mpi_format format, char *buffer, size_t buflen,
  * NULL.
  */
 gcry_error_t
-gcry_mpi_aprint( enum gcry_mpi_format format, void **buffer, size_t *nwritten,
+gcry_mpi_aprint( enum gcry_mpi_format format,
+                 unsigned char **buffer, size_t *nwritten,
 		 struct gcry_mpi *a )
 {
     size_t n;

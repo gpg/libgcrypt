@@ -379,7 +379,7 @@ int gcry_mpi_cmp_ui (const gcry_mpi_t u, unsigned long v);
    RET_MPI.  If NSCANNED is not NULL, it will receive the number of
    bytes actually scanned after a successful operation. */
 gcry_error_t gcry_mpi_scan (gcry_mpi_t *ret_mpi, enum gcry_mpi_format format,
-                            const char *buffer, size_t buflen, 
+                            const unsigned char *buffer, size_t buflen, 
                             size_t *nscanned);
 
 /* Convert the big integer A into the external representation
@@ -388,7 +388,8 @@ gcry_error_t gcry_mpi_scan (gcry_mpi_t *ret_mpi, enum gcry_mpi_format format,
    receives the actual length of the external representation unless it
    has been passed as NULL. */
 gcry_error_t gcry_mpi_print (enum gcry_mpi_format format,
-                             char *buffer, size_t buflen, size_t *nwritten,
+                             unsigned char *buffer, size_t buflen,
+                             size_t *nwritten,
                              const gcry_mpi_t a);
 
 /* Convert the big integer A int the external representation described
@@ -396,7 +397,7 @@ gcry_error_t gcry_mpi_print (enum gcry_mpi_format format,
    will be put into BUFFER.  NWRITTEN receives the actual lengths of the
    external representation. */
 gcry_error_t gcry_mpi_aprint (enum gcry_mpi_format format,
-                              void **buffer, size_t *nwritten,
+                              unsigned char **buffer, size_t *nwritten,
                               const gcry_mpi_t a);
 
 /* Dump the value of A in a format suitable for debugging to

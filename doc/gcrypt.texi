@@ -3311,7 +3311,7 @@ Swap the values of @var{a} and @var{b}.
 The following functions are used to convert between an external
 representation of an MPI and the internal one of @acronym{Libgcrypt}.
 
-@deftypefun int gcry_mpi_scan (@w{gcry_mpi_t *@var{r_mpi}}, @w{enum gcry_mpi_format @var{format}}, @w{const char *@var{buffer}}, @w{size_t @var{buflen}}, @w{size_t *@var{nscanned}})
+@deftypefun int gcry_mpi_scan (@w{gcry_mpi_t *@var{r_mpi}}, @w{enum gcry_mpi_format @var{format}}, @w{const unsigned char *@var{buffer}}, @w{size_t @var{buflen}}, @w{size_t *@var{nscanned}})
 
 Convert the external representation of an integer stored in @var{buffer}
 with a length of @var{buflen} into a newly created MPI returned which
@@ -3348,7 +3348,7 @@ format (MSB first).
 @end deftypefun
 
 
-@deftypefun int gcry_mpi_print (@w{enum gcry_mpi_format @var{format}}, @w{char *@var{buffer}}, @w{size_t @var{buflen}}, @w{size_t *@var{nwritten}}, @w{const gcry_mpi_t @var{a}})
+@deftypefun int gcry_mpi_print (@w{enum gcry_mpi_format @var{format}}, @w{unsigned char *@var{buffer}}, @w{size_t @var{buflen}}, @w{size_t *@var{nwritten}}, @w{const gcry_mpi_t @var{a}})
 
 Convert the MPI @var{a} into an external representation described by
 @var{format} (see above) and store it in the provided @var{buffer} which
@@ -3357,7 +3357,7 @@ which has a usable length of at least the @var{buflen} bytes. If
 actually stored in @var{buffer} after a successful operation.
 @end deftypefun
 
-@deftypefun int gcry_mpi_aprint (@w{enum gcry_mpi_format @var{format}}, @w{void **@var{buffer}}, @w{size_t *@var{nbytes}}, @w{const gcry_mpi_t @var{a}})
+@deftypefun int gcry_mpi_aprint (@w{enum gcry_mpi_format @var{format}}, @w{unsigned char **@var{buffer}}, @w{size_t *@var{nbytes}}, @w{const gcry_mpi_t @var{a}})
 
 Convert the MPI @var{a} into an external representation described by
 @var{format} (see above) and store it in a newly allocated buffer which
