@@ -56,7 +56,7 @@ static void sign(MPI a, MPI b, MPI input, ELG_secret_key *skey);
 static int  verify(MPI a, MPI b, MPI input, ELG_public_key *pkey);
 
 
-static void (*progress_cb) ( void *, int );
+static void (*progress_cb) ( void *, const char *, int, int, int );
 static void *progress_cb_data;
 
 void

@@ -38,7 +38,7 @@ static int check_prime( MPI prime, MPI val_2 );
 static int is_prime( MPI n, int steps, int *count );
 static void m_out_of_n( char *array, int m, int n );
 
-static void (*progress_cb) ( void *, int );
+static void (*progress_cb) (void *,const char*,int,int, int );
 static void *progress_cb_data;
 
 /* Note: 2 is not included because it can be tested more easily by

@@ -53,7 +53,7 @@ static void generate( DSA_secret_key *sk, unsigned nbits, MPI **ret_factors );
 static void sign(MPI r, MPI s, MPI input, DSA_secret_key *skey);
 static int  verify(MPI r, MPI s, MPI input, DSA_public_key *pkey);
 
-static void (*progress_cb) ( void *, int );
+static void (*progress_cb) (void *,const char *, int, int, int );
 static void *progress_cb_data;
 
 void

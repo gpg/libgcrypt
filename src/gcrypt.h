@@ -35,7 +35,7 @@ extern "C" {
  * header matches the installed library.
  * Note: Do not edit the next line as configure may fix the string here.
  */
-#define GCRYPT_VERSION "1.1.7-cvs"
+#define GCRYPT_VERSION "1.1.7"
 
 
 #ifdef _GCRYPT_IN_LIBGCRYPT
