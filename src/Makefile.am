@@ -25,12 +25,15 @@ libgcrypt_la_SOURCES =	 mpi.h \
 			 global.c \
 			 sexp.c \
 			 wrapper.c \
-			 memory.c \
-			 secmem.c
+			 stdmem.c \
+			 stdmem.h \
+			 secmem.c \
+			 secmem.h
 
 libgcrypt_la_DEPENDENCIES = libgcrypt.sym
 libgcrypt_la_LIBADD = ../cipher/libcipher.la  \
-		      ../mpi/libmpi.la
+		      ../mpi/libmpi.la \
+		      ../jnlib/libjnlib.la
 
 BUILT_SOURCES = libgcrypt.sym
 

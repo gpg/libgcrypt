@@ -1,4 +1,4 @@
-/* wrapper.c  -  wrapper around some inertal functions
+/* wrapper.c  -  wrapper around the internal functions
  *	Copyright (C) 1999 Free Software Foundation, Inc.
  *
  * This file is part of GnuPG.
@@ -38,4 +38,5 @@ void *gcry_xcalloc_secure( size_t n, size_t m )
 void *gcry_xrealloc( void *a, size_t n ) { return g10_xrealloc( a, n ); }
 char *gcry_xstrdup( const char * a)	 { return g10_xstrdup( a); }
 void  gcry_free( void *p )		 { g10_free( p ); }
+int   gcry_is_secure( const void *p )	 { g10_is_secure( p ); }
 

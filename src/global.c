@@ -27,7 +27,8 @@
 #include <assert.h>
 
 #include "g10lib.h"
-#include "memory.h" /* for the m_* functions */
+#include "stdmem.h" /* our own memory allocator */
+#include "secmem.h" /* our own secmem allocator */
 
 /****************
  * flag bits: 0 : general cipher debug
@@ -128,12 +129,45 @@ gcry_control( enum gcry_ctl_cmds cmd, ... )
       case GCRYCTL_SET_FATAL_FNC:
 	break;
      #endif
+
+      case GCRYCTL_ENABLE_M_GUARD:
+	g10_private_enable_m_guard();
+	break;
+
       case GCRYCTL_DUMP_RANDOM_STATS:
 	random_dump_stats();
 	break;
 
+      case GCRYCTL_DUMP_MEMORY_STATS:
+	/*m_print_stats("[fixme: prefix]");*/
+	break;
+
       case GCRYCTL_DUMP_SECMEM_STATS:
 	secmem_dump_stats();
+	break;
+
+      case GCRYCTL_DROP_PRIVS:
+	secmem_init( 0 );
+	break;
+
+      case GCRYCTL_INIT_SECMEM:
+	secmem_init( va_arg( arg_ptr, unsigned int ) );
+	break;
+
+      case GCRYCTL_TERM_SECMEM:
+	secmem_term();
+	break;
+
+      case GCRYCTL_DISABLE_SECMEM_WARN:
+	secmem_set_flags( secmem_get_flags() | 1 );
+	break;
+
+      case GCRYCTL_SUSPEND_SECMEM_WARN:
+	secmem_set_flags( secmem_get_flags() | 2 );
+	break;
+
+      case GCRYCTL_RESUME_SECMEM_WARN:
+	secmem_set_flags( secmem_get_flags() & ~2 );
 	break;
 
       case GCRYCTL_USE_SECURE_RNDPOOL:
@@ -234,11 +268,11 @@ gcry_set_allocation_handler( void *(*new_alloc_func)(size_t n),
  * ran out of memory.  This handler may do one of these things:
  *   o free some memory and return true, so that the xmalloc function
  *     tries again.
- *   o Do whatever tit like and return false, so that the xmalloc functions
+ *   o Do whatever it like and return false, so that the xmalloc functions
  *     use the default fatal error handler.
  *   o Terminate the program and don't return.
  *
- * The handler function is called with 3 argiments:  The opaque value set with
+ * The handler function is called with 3 arguments:  The opaque value set with
  * this function, the requested memory size, and a flag with these bits
  * currently defined:
  *	bit 0 set = secure memory has been requested.

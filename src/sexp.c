@@ -40,15 +40,6 @@
 #include "memory.h"
 
 
-/* FIXME: We should really have the m_lib functions to allow
- *	  overriding of the default malloc functions
- * For now use this kludge: */
-#define m_lib_alloc	   m_alloc
-#define m_lib_alloc_clear  m_alloc_clear
-#define m_lib_free	   m_free
-
-
-
 
 #if 0
 struct sexp_node;
@@ -173,11 +164,11 @@ gcry_sexp_new_data( const char *buffer, size_t length )
 
     if( !length )
 	length = strlen(buffer);
-    node = m_alloc_clear( sizeof *node + length );
+    node = g10_xcalloc( 1, sizeof *node + length );
     node->type = ntDATA;
     node->u.data.len = length;
     memcpy(node->u.data.d, buffer, length );
-    list = m_alloc_clear( sizeof *list );
+    list = g10_xcalloc( 1, sizeof *list );
     list->type = ntLIST;
     list->u.list = node;
     return list;
@@ -191,10 +182,10 @@ gcry_sexp_new_mpi( GCRY_MPI mpi )
 {
     NODE list, node;
 
-    node = m_alloc_clear( sizeof *node );
+    node = g10_xcalloc( 1, sizeof *node );
     node->type = ntMPI;
     node->u.mpi = gcry_mpi_copy( mpi );
-    list = m_alloc_clear( sizeof *list );
+    list = g10_xcalloc( 1, sizeof *list );
     list->type = ntLIST;
     list->u.list = node;
     return list;
@@ -254,7 +245,7 @@ gcry_sexp_cons( GCRY_SEXP a, GCRY_SEXP b )
     }
 
 
-    head = m_alloc_clear( sizeof *head );
+    head = g10_xcalloc( 1, sizeof *head );
     head->type = ntLIST;
     if( !a->u.list->next ) { /* a has only one item */
 	NODE tmp = a;
@@ -290,7 +281,7 @@ gcry_sexp_vlist( GCRY_SEXP a, ... )
 	fputs("sexp_vlist: arg 1 is not a list\n", stderr );
 	return NULL;
     }
-    head = m_alloc_clear( sizeof *node );
+    head = g10_xcalloc( 1, sizeof *node );
     head->type = ntLIST;
     if( !a->u.list->next ) { /* a has only one item */
 	NODE tmp = a;
@@ -645,7 +636,7 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
 		    return -2; /* buffer too short */
 		}
 		/* make a new list entry */
-		node = m_alloc_clear( sizeof *node + datalen );
+		node = g10_xcalloc( 1, sizeof *node + datalen );
 		if( first ) { /* stuff it into the first node */
 		    first = 0;
 		    node->up = tail;
@@ -687,7 +678,7 @@ gcry_sexp_sscan( GCRY_SEXP *retsexp, const char *buffer,
 		*erroff = p - buffer;
 		return -9; /* open display hint */
 	    }
-	    node = m_alloc_clear( sizeof *node );
+	    node = g10_xcalloc( 1, sizeof *node );
 	    if( !head )
 		head = node;
 	    else {
@@ -842,30 +833,30 @@ sexp_to_pk( GCRY_SEXP sexp, int want_private, MPI **retarray, int *retalgo)
     algo = algos[i].algo;
     elems1 = algos[i].common_elements;
     elems2 = want_private? algos[i].secret_elements : algos[i].public_elements;
-    array = m_lib_alloc_clear( (strlen(elems1)+strlen(elems2)+1) * sizeof *array );
+    array = g10_xcalloc( (strlen(elems1)+strlen(elems2)+1) , sizeof *array );
     idx = 0;
     for(s=elems1; *s; s++, idx++ ) {
 	l2 = gcry_sexp_find_token( list, s, 1 );
 	if( !l2 ) {
-	    m_lib_free( array );
+	    g10_free( array );
 	    return -5; /* required parameter not found */
 	}
 	array[idx] = gcry_sexp_cdr_mpi( l2, GCRYMPI_FMT_USG );
 	if( !array[idx] ) {
-	    m_lib_free( array );
+	    g10_free( array );
 	    return -6; /* required parameter is invalid */
 	}
     }
     for(s=elems2; *s; s++, idx++ ) {
 	l2 = gcry_sexp_find_token( list, s, 1 );
 	if( !l2 ) {
-	    m_lib_free( array );
+	    g10_free( array );
 	    return -5; /* required parameter not found */
 	}
 	/* FIXME: put the MPI in secure memory when needed */
 	array[idx] = gcry_sexp_cdr_mpi( l2, GCRYMPI_FMT_USG );
 	if( !array[idx] ) {
-	    m_lib_free( array );
+	    g10_free( array );
 	    return -6; /* required parameter is invalid */
 	}
     }

@@ -118,6 +118,14 @@ enum gcry_ctl_cmds {
     GCRYCTL_SET_DEBUG_FLAGS   = 20,
     GCRYCTL_CLEAR_DEBUG_FLAGS = 21,
     GCRYCTL_USE_SECURE_RNDPOOL= 22,
+    GCRYCTL_DUMP_MEMORY_STATS = 23,
+    GCRYCTL_INIT_SECMEM       = 24,
+    GCRYCTL_TERM_SECMEM       = 25,
+    GCRYCTL_DISABLE_SECMEM_WARN = 27,
+    GCRYCTL_SUSPEND_SECMEM_WARN = 28,
+    GCRYCTL_RESUME_SECMEM_WARN	= 29,
+    GCRYCTL_DROP_PRIVS		= 30,
+    GCRYCTL_ENABLE_M_GUARD	= 31,
 };
 
 int gcry_control( enum gcry_ctl_cmds, ... );
@@ -210,6 +218,8 @@ int	 gcry_mpi_scan( GCRY_MPI *ret_mpi, enum gcry_mpi_format format,
 				       const char *buffer, size_t *nbytes );
 int	 gcry_mpi_print( enum gcry_mpi_format format,
 			 char *buffer, size_t *nbytes, const GCRY_MPI a );
+int	 gcry_mpi_aprint( enum gcry_mpi_format format,
+			  void **buffer, size_t *nbytes, const GCRY_MPI a );
 
 void gcry_mpi_powm( GCRY_MPI w,
 		    const GCRY_MPI b, const GCRY_MPI e, const GCRY_MPI m );
@@ -324,6 +334,7 @@ int gcry_pk_ctl( int cmd, void *buffer, size_t buflen);
 int gcry_pk_algo_info( int algo, int what, void *buffer, size_t *nbytes);
 const char *gcry_pk_algo_name( int algo );
 int gcry_pk_map_name( const char* name );
+unsigned int gcry_pk_get_nbits( GCRY_SEXP key );
 
 
 #define gcry_pk_test_algo(a) \
@@ -444,7 +455,8 @@ void *gcry_xmalloc_secure( size_t n );
 void *gcry_xcalloc_secure( size_t n, size_t m );
 void *gcry_xrealloc( void *a, size_t n );
 char *gcry_xstrdup( const char * a);
-void  gcry_free( void *p );
+void  gcry_free( void *a );
+int   gcry_is_secure( const void *a );
 
 
 #ifndef GCRYPT_NO_MPI_MACROS

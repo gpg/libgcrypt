@@ -1,0 +1,186 @@
+/* stdmem.c  -	private memory allocator
+ *	Copyright (C) 1998, 2000 Free Software Foundation, Inc.
+ *
+ * This file is part of GnuPG.
+ *
+ * GnuPG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * GnuPG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ */
+
+#include <config.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+
+#include "g10lib.h"
+#include "stdmem.h"
+#include "secmem.h"
+
+
+#define MAGIC_NOR_BYTE 0x55
+#define MAGIC_SEC_BYTE 0xcc
+#define MAGIC_END_BYTE 0xaa
+
+#if SIZEOF_UNSIGNED_LONG == 8
+  #define EXTRA_ALIGN 4
+#else
+  #define EXTRA_ALIGN 0
+#endif
+
+
+static int use_m_guard = 1;
+
+/****************
+ * Warning: Never use this function after any of the functions
+ * here have been used.
+ */
+void
+g10_private_enable_m_guard(void)
+{
+    use_m_guard = 1;
+}
+
+/****************
+ * Allocate memory of size n.
+ * Return NULL if we are out of memory.
+ */
+void *
+g10_private_malloc( size_t n)
+{
+    if( use_m_guard ) {
+	char *p;
+
+	if( !(p = malloc( n + EXTRA_ALIGN+5 )) )
+	    return NULL;
+	((byte*)p)[EXTRA_ALIGN+0] = n;
+	((byte*)p)[EXTRA_ALIGN+1] = n >> 8 ;
+	((byte*)p)[EXTRA_ALIGN+2] = n >> 16 ;
+	((byte*)p)[EXTRA_ALIGN+3] = MAGIC_NOR_BYTE;
+	p[4+EXTRA_ALIGN+n] = MAGIC_END_BYTE;
+	return p+EXTRA_ALIGN+4;
+    }
+    else {
+	return malloc( n );
+    }
+}
+
+/****************
+ * Allocate memory of size n from the secure memory pool.
+ * Return NULL if we are out of memory.
+ */
+void *
+g10_private_malloc_secure( size_t n)
+{
+    if( use_m_guard ) {
+	char *p;
+
+	if( !(p = secmem_malloc( n +EXTRA_ALIGN+ 5 )) )
+	    return NULL;
+	((byte*)p)[EXTRA_ALIGN+0] = n;
+	((byte*)p)[EXTRA_ALIGN+1] = n >> 8 ;
+	((byte*)p)[EXTRA_ALIGN+2] = n >> 16 ;
+	((byte*)p)[EXTRA_ALIGN+3] = MAGIC_SEC_BYTE;
+	p[4+EXTRA_ALIGN+n] = MAGIC_END_BYTE;
+	return p+EXTRA_ALIGN+4;
+    }
+    else {
+	return secmem_malloc( n );
+    }
+}
+
+
+/****************
+ * realloc and clear the old space
+ * Return NULL if there is not enoug memory.
+ */
+void *
+g10_private_realloc( void *a, size_t n )
+{
+    if( use_m_guard ) {
+	unsigned char *p = a;
+	void *b;
+	size_t len;
+
+	g10_private_check_heap(p);
+	len  = p[-4];
+	len |= p[-3] << 8;
+	len |= p[-2] << 16;
+	if( len >= n ) /* we don't shrink for now */
+	    return a;
+	if( p[-1] == MAGIC_SEC_BYTE )
+	    b = g10_private_malloc_secure(n);
+	else
+	    b = g10_private_malloc(n);
+	if( !b )
+	    return NULL;
+	memcpy(b, a, len );
+	memset(b+len, 0, n-len );
+	g10_private_free( p );
+	return b;
+    }
+    else if( g10_private_is_secure(a) ) {
+	return secmem_realloc( a, n );
+    }
+    else {
+	return realloc( a, n );
+    }
+}
+
+
+void
+g10_private_check_heap( const void *a )
+{
+    if( use_m_guard ) {
+	const byte *p = a;
+	size_t len;
+
+	if( !p )
+	    return;
+
+	if( !(p[-1] == MAGIC_NOR_BYTE || p[-1] == MAGIC_SEC_BYTE) )
+	    g10_log_fatal("memory at %p corrupted (underflow=%02x)\n", p, p[-1] );
+	len  = p[-4];
+	len |= p[-3] << 8;
+	len |= p[-2] << 16;
+	if( p[len] != MAGIC_END_BYTE )
+	    g10_log_fatal("memory at %p corrupted (overflow=%02x)\n", p, p[-1] );
+    }
+}
+
+/****************
+ * Free a memory block allocated by this opr the secmem module
+ */
+void
+g10_private_free( void *a )
+{
+    byte *p = a;
+
+    if( !p )
+	return;
+    if( use_m_guard ) {
+	g10_private_check_heap(p);
+	if( g10_private_is_secure(a) )
+	    secmem_free(p-EXTRA_ALIGN-4);
+	else {
+	    free(p-EXTRA_ALIGN-4);
+	}
+    }
+    else if( g10_private_is_secure(a) )
+	secmem_free(p);
+    else
+	free(p);
+}
+
+
