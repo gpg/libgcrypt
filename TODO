@@ -30,6 +30,6 @@ What's left to do                                 -*- outline -*-
   I can imagine no cryptographic reason to use it.
 
 * cipher/pubkey.c and pubkey implementaions.
-  Don't rely on the secure memory based wiping fucntion but add an
+  Don't rely on the secure memory based wiping function but add an
   extra wiping.
   
