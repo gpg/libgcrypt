@@ -57,6 +57,8 @@ enum gcry_ctl_cmds {
     GCRYCTL_SET_KEY  = 1,
     GCRYCTL_SET_IV   = 2,
     GCRYCTL_CFB_SYNC = 3,
+    GCRYCTL_RESET    = 4,   /* e.g. for MDs */
+    GCRYCTL_FINALIZE = 5,
 };
 
 int gcry_control( enum gcry_ctl_cmds, ... );
@@ -199,6 +201,34 @@ int gcry_cipher_decrypt( GCRY_CIPHER_HD h, byte *out, size_t outsize,
 /*********************************************
  *******  cryptograhic hash functions  *******
  *********************************************/
+
+struct gcry_md_context;
+typedef struct gcry_md_context *GCRY_MD_HD;
+
+enum gcry_md_algos {
+    GCRY_MD_NONE    = 0,
+    GCRY_MD_MD5	    = 1,
+    GCRY_MD_SHA1    = 2,
+    GCRY_MD_RMD160  = 3,
+    GCRY_MD_TIGER   = 6
+};
+
+enum gcry_md_flags {
+    GCRY_MD_FLAG_SECURE = 1
+};
+
+
+GCRY_MD_HD gcry_md_open( int algo, unsigned flags );
+void gcry_md_close( GCRY_MD_HD hd );
+void gcry_md_enable( GCRY_MD_HD hd, int algo );
+GCRY_MD_HD gcry_md_copy( GCRY_MD_HD hd );
+int gcry_md_ctl( GCRY_MD_HD hd, int cmd, byte *buffer, size_t buflen);
+void gcry_md_write( GCRY_MD_HD hd, byte *inbuf, size_t inlen);
+byte *gcry_md_read( GCRY_MD_HD hd, int algo );
+int gcry_md_get( GCYR_MD_HD hd, int algo, byte *buffer, int buflen );
+
+
+#define gcry_md_final( a )  gcry_md_ctl( (a), GCRYCTL_FINALIZE, NULL, 0 )
 
 
 /*****************************************
