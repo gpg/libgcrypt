@@ -206,6 +206,8 @@ enum gcry_ctl_cmds
     GCRYCTL_SET_CBC_MAC = 42,
     GCRYCTL_SET_CTR = 43,
     GCRYCTL_ENABLE_QUICK_RANDOM = 44,
+    GCRYCTL_SET_RANDOM_SEED_FILE = 45,
+    GCRYCTL_UPDATE_RANDOM_SEED_FILE = 46
   };
 
 /* Perform various operations defined by CMD. */

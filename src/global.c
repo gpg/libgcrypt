@@ -226,6 +226,14 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
       _gcry_secure_random_alloc (); /* put random number into secure memory */
       break;
 
+    case GCRYCTL_SET_RANDOM_SEED_FILE:
+      _gcry_set_random_seed_file (va_arg (arg_ptr, const char *));
+      break;
+
+    case GCRYCTL_UPDATE_RANDOM_SEED_FILE:
+      _gcry_update_random_seed_file ();
+      break;
+
     case GCRYCTL_SET_VERBOSITY:
       _gcry_set_log_verbosity (va_arg (arg_ptr, int));
       break;

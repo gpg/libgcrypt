@@ -29,6 +29,9 @@ void _gcry_random_dump_stats(void);
 void _gcry_secure_random_alloc(void);
 int  _gcry_quick_random_gen( int onoff );
 int  _gcry_random_is_faked(void);
+void _gcry_set_random_seed_file (const char *name);
+void _gcry_update_random_seed_file (void);
+
 byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
 
