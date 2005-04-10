@@ -1,9 +1,3 @@
-2005-04-09  Moritz Schulte  <moritz@g10code.com>
-
-	* tiger.c: Do not forget to include file types.h.
-	* md.c: Likewise.  These changes make Libgcrypt actually INCLUDE
-	the Tiger algorithm.
-
 2005-03-30  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c (_gcry_ac_data_from_sexp): Use length of SEXP_CUR, not

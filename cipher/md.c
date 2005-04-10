@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <assert.h>
 
-#include "types.h"
 #include "g10lib.h"
 #include "cipher.h"
 #include "ath.h"

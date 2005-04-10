@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "types.h"
 #include "g10lib.h"
 #include "memory.h"
 #include "cipher.h"
