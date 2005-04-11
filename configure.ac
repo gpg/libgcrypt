@@ -96,7 +96,7 @@ enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
 available_digests="crc md4 md5 rmd160 sha1 sha256"
-available_digests_64="sha512 tiger"
+available_digests_64="sha512 tiger whirlpool"
 enabled_digests=""
 
 # Definitions for random modules.
@@ -736,6 +736,11 @@ AC_DEFINE_UNQUOTED(USE_SHA512, $found,
 LIST_MEMBER(tiger, $enabled_digests)
 test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS tiger.lo"
 AC_DEFINE_UNQUOTED(USE_TIGER, $found,
+                               [Defined if this module should be included])
+
+LIST_MEMBER(whirlpool, $enabled_digests)
+test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS whirlpool.lo"
+AC_DEFINE_UNQUOTED(USE_WHIRLPOOL, $found,
                                [Defined if this module should be included])
 
 # rmd160 and sha1 should be included always.

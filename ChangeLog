@@ -1,3 +1,7 @@
+2005-04-11  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Integrate Whirlpool.
+
 2005-01-04  Werner Koch  <wk@g10code.com>
 
 	Updated to automake 1.9.
