@@ -1572,6 +1572,10 @@ This is the above cyclic redundancy check function, as modified by RFC
 This is the OpenPGP cyclic redundancy check function.  It yields an
 output of 3 bytes.
 
+@item GCRY_MD_WHIRLPOOL
+This is the Whirlpool algorithm which yields a message digest of 64
+bytes.
+
 @end table
 @c end table of hash algorithms
 
@@ -2662,6 +2666,7 @@ building blocks of the library.
 @menu
 * Available asymmetric algorithms::  List of algorithms supported by the library.
 * Working with sets of data::   How to work with sets of data.
+* Working with IO objects::     How to work with IO objects.
 * Working with handles::        How to use handles.
 * Working with keys::           How to work with keys.
 * Using cryptographic functions::  How to perform cryptographic operations.
@@ -2696,7 +2701,8 @@ ElGamal, encryption only.
 
 In the context of this interface the term `data set' refers to a list
 of `named MPI values' that is used by functions performing
-cryptographic operations.
+cryptographic operations; a named MPI value is a an MPI value,
+associated with a label.
 
 Such data sets are used for representing keys, since keys simply
 consist of a variable amount of numbers.  Furthermore some functions
@@ -2704,10 +2710,10 @@ return data sets to the caller that are to be provided to other
 functions.
 
 This section documents the data types, symbols and functions that are
-relevant for working with such data sets.
+relevant for working with data sets.
 
 @deftp {Data type} gcry_ac_data_t
-A data set, that is simply a list of named MPI values.
+A single data set.
 @end deftp
 
 The following flags are supported:
@@ -2715,7 +2721,10 @@ The following flags are supported:
 @table @code
 @item GCRY_AC_FLAG_DEALLOC
 Used for storing data in a data set.  If given, the data will be
-released by the library.
+released by the library.  Note that whenever one of the ac functions
+is about to release objects because of this flag, the objects are
+expected to be stored in memory allocated through the Libgcrypt memory
+management.  In other words: gcry_free() is used instead of free().
 
 @item GCRY_AC_FLAG_COPY
 Used for storing/retrieving data in/from a data set.  If given, the
@@ -2741,7 +2750,8 @@ removed from the data set.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *@var{data_cp}, gcry_ac_data_t @var{data})
-Create a copy of the data set @var{data} and store it in @var{data_cp}.
+Create a copy of the data set @var{data} and store it in
+@var{data_cp}.  FIXME: exact semantics undefined.
 @end deftypefun
 
 @deftypefun unsigned int gcry_ac_data_length (gcry_ac_data_t @var{data})
@@ -2752,7 +2762,9 @@ Returns the number of named MPI values inside of the data set
 @deftypefun gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t @var{data}, unsigned int @var{flags}, char *@var{name}, gcry_mpi_t *@var{mpi})
 Store the value labelled with @var{name} found in @var{data} in
 @var{mpi}.  If @var{flags} contains GCRY_AC_FLAG_COPY, store a copy of
-the @var{mpi} value contained in the data set.  @var{mpi} may be NULL.
+the @var{mpi} value contained in the data set.  @var{mpi} may be NULL
+(this might be useful for checking the existence of an MPI with
+extracting it).
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t @var{data}, unsigned int flags, unsigned int @var{index}, const char **@var{name}, gcry_mpi_t *@var{mpi})
@@ -2766,6 +2778,104 @@ the data set. @var{name} or @var{mpi} may be NULL.
 Destroys any values contained in the data set @var{data}.
 @end deftypefun
 
+@deftypefun gcry_error_t gcry_ac_data_to_sexp (gcry_ac_data_t @var{data}, gcry_sexp_t *@var{sexp}, const char **@var{identifiers})
+This function converts the data set @var{data} into a newly created
+S-Expression, which is to be stored in @var{sexp}; @var{identifiers}
+is a NULL terminated list of C strings, which specifies the structure
+of the S-Expression.
+
+Example:
+
+If @var{identifiers} is a list of pointers to the strings ``foo'' and
+``bar'' and if @var{data} is a data set containing the values ``val1 =
+0x01'' and ``val2 = 0x02'', then the resulting S-Expression will look
+like this: (foo (bar ((val1 0x01) (val2 0x02))).
+@end deftypefun
+
+@deftypefun gcry_error gcry_ac_data_from_sexp (gcry_ac_data_t *@var{data}, gcry_sexp_t @var{sexp}, const char **@var{identifiers})
+This function converts the S-Expression @var{sexp} into a newly
+created data set, which is to be stored in @var{data};
+@var{identifiers} is a NULL terminated list of C strings, which
+specifies the structure of the S-Expression.  If the list of
+identifiers does not match the structure of the S-Expression, the
+function fails.
+@end deftypefun
+
+@node Working with IO objects
+@section Working with IO objects
+
+Note: IO objects are currently only used in the context of message
+encoding/decoding and encryption/signature schemes.
+
+@deftp {Data type} {gcry_ac_io_t}
+@code{gcry_ac_io_t} is the type to be used for IO objects.
+@end deftp
+
+IO objects provide an uniform IO layer on top of different underlying
+IO mechanisms; either they can be used for providing data to the
+library (mode is GCRY_AC_IO_READABLE) or they can be used for
+retrieving data from the library (mode is GCRY_AC_IO_WRITABLE).
+
+IO object need to be initialized by calling on of the following
+functions:
+
+@deftypefun void gcry_ac_io_init (gcry_ac_io_t *@var{ac_io}, gcry_ac_io_mode_t @var{mode}, gcry_ac_io_type_t @var{type}, ...);
+Initialize @var{ac_io} according to @var{mode}, @var{type} and the
+variable list of arguments.  The list of variable arguments to specify
+depends on the given @var{type}.
+@end deftypefun
+
+@deftypefun void gcry_ac_io_init_va (gcry_ac_io_t *@var{ac_io}, gcry_ac_io_mode_t @var{mode}, gcry_ac_io_type_t @var{type}, va_list @var{ap});
+Initialize @var{ac_io} according to @var{mode}, @var{type} and the
+variable list of arguments @var{ap}.  The list of variable arguments
+to specify depends on the given @var{type}.
+@end deftypefun
+
+The following types of IO objects exist:
+
+@table @code
+@item GCRY_AC_IO_STRING
+In case of GCRY_AC_IO_READABLE the IO object will provide data from a
+memory string.  Arguments to specify at initialization time:
+@table @code
+@item unsigned char *
+Pointer to the beginning of the memory string
+@item size_t
+Size of the memory string
+@end table
+In case of GCRY_AC_IO_WRITABLE the object will store retrieved data in
+a newly allocated memory string.  Arguments to specify at
+initialization time:
+@table @code
+@item unsigned char **
+Pointer to address, at which the pointer to the newly created memory
+string is to be stored
+@item size_t *
+Pointer to address, at which the size of the newly created memory
+string is to be stored
+@end table
+
+@item GCRY_AC_IO_CALLBACK
+In case of GCRY_AC_IO_READABLE the object will forward read requests
+to a provided callback function.  Arguments to specify at
+initialization time:
+@table @code
+@item gcry_ac_data_read_cb_t
+Callback function to use
+@item void *
+Opaque argument to provide to the callback function
+@end table
+In case of GCRY_AC_IO_WRITABLE the object will forward write requests
+to a provided callback function.  Arguments to specify at
+initialization time:
+@table @code
+@item gcry_ac_data_write_cb_t
+Callback function to use
+@item void *
+Opaque argument to provide to the callback function
+@end table
+@end table
+
 @node Working with handles
 @section Working with handles
 
@@ -2775,7 +2885,7 @@ This is done using the following function:
 @deftypefun gcry_error_t gcry_ac_open (gcry_ac_handle_t *@var{handle}, int @var{algorithm}, int @var{flags})
 
 Creates a new handle for the algorithm @var{algorithm} and stores it
-in @var{handle}.  @var{flags} is not used yet.
+in @var{handle}.  @var{flags} is not used currently.
 
 @var{algorithm} must be a valid algorithm ID, see @xref{Available
 algorithms}, for a list of supported algorithms and the according
@@ -2839,7 +2949,7 @@ Generate the key pair using a special @code{e}.  The value of @code{e}
 has the following meanings:
 @table @code
 @item = 0
-Let @acronym{Libgcrypt} device what exponent should be used.
+Let @acronym{Libgcrypt} decide what exponent should be used.
 @item = 1
 Request the use of a ``secure'' exponent; this is required by some
 specification to be 65537.
@@ -3026,33 +3136,37 @@ Option structure types:
 
 The functions implementing schemes:
 
-@deftypefun gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_public}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char **@var{c}, size_t *@var{c_n})
-Encrypts the plain text contained in @var{m} of size @var{m_n} through
-@var{handle} and @var{key_public} according to @var{scheme},
-@var{flags} and @var{opts}.  The encrypted message is stored in
-@var{c} and @var{c_n}.
+@deftypefun gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key}, gcry_ac_io_t *@var{io_message}, gcry_ac_io_t *@var{io_cipher})
+Encrypts the plain text readable from @var{io_message} through
+@var{handle} with the public key @var{key} according to @var{scheme},
+@var{flags} and @var{opts}.  If @var{opts} is not NULL, it has to be a
+pointer to a structure specific to the chosen scheme (gcry_ac_es_*_t).
+The encrypted message is written to @var{io_cipher}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_secret}, unsigned char *@var{c}, size_t @var{c_n}, unsigned char **@var{m}, size_t *@var{m_n})
-Decrypts the cipher text contained in @var{c} of size @var{c_n}
-through @var{handle} and @var{key_secret} according to @var{scheme},
-@var{flags} and @var{opts}.  The decrypted message is stored in
-@var{m} and @var{m_n}.
+@deftypefun gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key}, gcry_ac_io_t *@var{io_cipher}, gcry_ac_io_t *@var{io_message})
+Decrypts the cipher text readable from @var{io_cipher} through
+@var{handle} with the secret key @var{key} according to @var{scheme},
+@var{flags} and @var{opts}.  If @var{opts} is not NULL, it has to be a
+pointer to a structure specific to the chosen scheme (gcry_ac_es_*_t).
+The decrypted message is written to @var{io_message}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_secret}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char **@var{s}, size_t *@var{s_n})
-Signs the message contained in @var{m} of size @var{m_n} through
-@var{handle} and @var{key_secret} according to @var{scheme},
-@var{flags} and @var{opts}.  The signature is stored in @var{s} and
-@var{s_n}.
+@deftypefun gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key}, gcry_ac_io_t *@var{io_message}, gcry_ac_io_t *@var{io_signature})
+Signs the message readable from @var{io_message} through @var{handle}
+with the secret key @var{key} according to @var{scheme}, @var{flags}
+and @var{opts}.  If @var{opts} is not NULL, it has to be a pointer to
+a structure specific to the chosen scheme (gcry_ac_ssa_*_t).  The
+signature is written to @var{io_signature}.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key_public}, unsigned char *@var{m}, size_t @var{m_n}, unsigned char *@var{s}, size_t @var{s_n})
-Verifies that the signature contained in @var{s} and @var{s_n} is
-indeed the result of signing the message contained in @var{m} of size
-@var{m_n} through @var{handle} and the secret key belonging to
-@var{key_public} according to @var{scheme}, @var{flags} and
-@var{opts}.
+@deftypefun gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t @var{handle}, gcry_ac_scheme_t @var{scheme}, unsigned int @var{flags}, void *@var{opts}, gcry_ac_key_t @var{key}, gcry_ac_io_t *@var{io_message}, gcry_ac_io_t *@var{io_signature})
+Verifies through @var{handle} that the signature readable from
+@var{io_signature} is indeed the result of signing the message
+readable from @var{io_message} with the secret key belonging to the
+public key @var{key} according to @var{scheme} and @var{opts}.  If
+@var{opts} is not NULL, it has to be an anonymous structure
+(gcry_ac_ssa_*_t) specific to the chosen scheme.
 @end deftypefun
 
 @node Handle-independent functions

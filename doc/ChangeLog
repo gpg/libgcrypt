@@ -1,3 +1,12 @@
+2005-04-11  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Available hash algorithms): Add entry for Whirlpool.
+
+2005-03-30  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Working with IO objects): Document ac io objects;
+	adjust ac scheme functions, which do now use io objects.
+
 2005-03-19  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi (Working with cipher handles): Clarify CTS mode.
