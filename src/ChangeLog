@@ -1,3 +1,8 @@
+2005-04-11  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h (gcry_md_algos): Added: GCRY_MD_WHIRLPOOL.
+	* cipher.h (_gcry_digest_spec_whirlpool): Declare.
+
 2005-03-30  Moritz Schulte  <moritz@g10code.com>
 
 	* libgcrypt.vers: Added: gcry_ac_io_init, gry_ac_io_init_va.

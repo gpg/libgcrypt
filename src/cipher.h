@@ -71,6 +71,7 @@ extern gcry_md_spec_t _gcry_digest_spec_sha256;
 extern gcry_md_spec_t _gcry_digest_spec_sha512;
 extern gcry_md_spec_t _gcry_digest_spec_sha384;
 extern gcry_md_spec_t _gcry_digest_spec_tiger;
+extern gcry_md_spec_t _gcry_digest_spec_whirlpool;
 
 /* Declarations for the pubkey cipher specifications.  */
 extern gcry_pk_spec_t _gcry_pubkey_spec_rsa;

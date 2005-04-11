@@ -962,7 +962,8 @@ enum gcry_md_algos
     GCRY_MD_MD4     = 301,
     GCRY_MD_CRC32               = 302,
     GCRY_MD_CRC32_RFC1510       = 303,
-    GCRY_MD_CRC24_RFC2440       = 304
+    GCRY_MD_CRC24_RFC2440       = 304,
+    GCRY_MD_WHIRLPOOL = 305
   };
 
 /* Flags used with the open function.  */
