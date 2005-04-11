@@ -1,3 +1,7 @@
+2005-04-11  Moritz Schulte  <moritz@g10code.com>
+
+	* basic.c (check_digests): Add tests for Whirlpool.
+
 2005-03-30  Moritz Schulte  <moritz@g10code.com>
 
 	* ac-schemes.c: New file.
