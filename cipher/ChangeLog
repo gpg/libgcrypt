@@ -1,3 +1,31 @@
+2005-04-12  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c (_gcry_ac_io_write, _gcry_ac_io_read): Initialize err to
+	make the compiler happy.
+	Always use errno, now that gcry_malloc() is guaranteed to set
+	errno on failure.
+	(_gcry_ac_data_to_sexp): Don't forget to goto out after error in
+	loop.
+	(_gcry_ac_data_to_sexp): Remove unused variable: mpi_list;
+	(_gcry_ac_data_to_sexp): Always deallocate sexp_buffer.
+	(_gcry_ac_data_from_sexp): Don't forget to initialize data_set_new.
+	(_gcry_ac_data_from_sexp): Handle special case, which is
+	necessary, since gcry_sexp_nth() does not distinguish between
+	"element does not exist" and "element is the empty list".
+	(_gcry_ac_io_init_va): Use assert to make sure that mode and type
+	are correct.
+	Use gcry_error_t types where gcry_err_code_t types have been used
+	before.
+
+2005-04-11  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c (_gcry_ac_data_sign_scheme): Don't forget to initialize
+	buffer.
+
+	* whirlpool.c: New file.
+	* md.c (digest_table): Add whirlpool.
+	* Makefile.am (EXTRA_libcipher_la_SOURCES): Added: whirlpool.c.
+
 2005-03-30  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c (_gcry_ac_data_from_sexp): Use length of SEXP_CUR, not
