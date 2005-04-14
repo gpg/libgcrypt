@@ -58,6 +58,20 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    const char *buffer, size_t length, int argflag,
 	    va_list arg_ptr, void **arg_list);
 
+/* Return true if P points to a byte containing a whitespace according
+   to the S-expressions definition. */
+#undef whitespacep
+static GPG_ERR_INLINE int
+whitespacep (const unsigned char *p)
+{ 
+  switch (*p)
+    {
+    case ' ': case '\t': case '\v': case '\f': case '\r': case '\n': return 1;
+    default: return 0;
+    }
+}
+
+
 #if 0
 static void
 dump_mpi( gcry_mpi_t a )
@@ -901,7 +915,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
   /* FIXME: invent better error codes (?).  */
 
-  if (! erroff)
+  if (!erroff)
     erroff = &dummy_erroff;
 
   /* Depending on wether ARG_LIST is non-zero or not, this macro gives
@@ -910,7 +924,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 #define ARG_NEXT(storage, type)                          \
   do                                                     \
     {                                                    \
-      if (! arg_list)                                    \
+      if (!arg_list)                                    \
 	storage = va_arg (arg_ptr, type);                \
       else                                               \
 	storage = *((type *) (arg_list[arg_counter++])); \
@@ -936,7 +950,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
   for (p = buffer, n = length; n; p++, n--)
     {
-      if (tokenp && (! hexfmt))
+      if (tokenp && !hexfmt)
 	{
 	  if (strchr (tokenchars, *p))
 	    continue;
@@ -965,9 +979,9 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 		case '0': case '1': case '2': case '3': case '4':
 		case '5': case '6': case '7':
-		  if (! ((n > 2)
-			 && (p[1] >= '0') && (p[1] <= '7')
-			 && (p[2] >= '0') && (p[2] <= '7')))
+		  if (!((n > 2)
+                        && (p[1] >= '0') && (p[1] <= '7')
+                        && (p[2] >= '0') && (p[2] <= '7')))
 		    {
 		      *erroff = p - buffer;
 		      /* Invalid octal value.  */
@@ -979,7 +993,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		  break;
 		  
 		case 'x':
-		  if (! ((n > 2) && isxdigit(p[1]) && isxdigit(p[2])))
+		  if (!((n > 2) && hexdigitp (p+1) && hexdigitp (p+2)))
 		    {
 		      *erroff = p - buffer;
 		      /* Invalid hex value.  */
@@ -1054,14 +1068,14 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      STORE_LEN (c.pos, datalen);
 	      for (hexfmt++; hexfmt < p; hexfmt++)
 		{
-		  if (isspace (*hexfmt))
+		  if (whitespacep (hexfmt))
 		    continue;
 		  *c.pos++ = hextobyte (hexfmt);
 		  hexfmt++;
 		}
 	      hexfmt = NULL;
 	    }
-	  else if (! isspace (*p))
+	  else if (!whitespacep (p))
 	    {
 	      *erroff = p - buffer;
 	      err = GPG_ERR_SEXP_BAD_HEX_CHAR;
@@ -1074,7 +1088,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	}
       else if (digptr)
 	{
-	  if (isdigit (*p))
+	  if (digitp (p))
 	    ;
 	  else if (*p == ':')
 	    {
@@ -1132,8 +1146,8 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		BUG ();
 
 	      MAKE_SPACE (nm);
-	      if ((! gcry_is_secure (c.sexp->d))
-		  &&  gcry_mpi_get_flag ( m, GCRYMPI_FLAG_SECURE))
+	      if (!gcry_is_secure (c.sexp->d)
+		  && gcry_mpi_get_flag ( m, GCRYMPI_FLAG_SECURE))
 		{
 		  /* We have to switch to secure allocation.  */
 		  gcry_sexp_t newsexp;
@@ -1274,7 +1288,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	}
       else if (*p == ']')
 	{
-	  if (! disphint)
+	  if (!disphint)
 	    {
 	      *erroff = p - buffer;
 	      /* Open display hint.  */
@@ -1282,7 +1296,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    }
 	  disphint = NULL;
 	}
-      else if (isdigit (*p))
+      else if (digitp (p))
 	{
 	  if (*p == '0')
 	    {
@@ -1294,7 +1308,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	}
       else if (strchr (tokenchars, *p))
 	tokenp = p;
-      else if (isspace (*p))
+      else if (whitespacep (p))
 	;
       else if (*p == '{')
 	{
