@@ -1,3 +1,9 @@
+2005-04-14  Werner Koch  <wk@g10code.com>
+
+	* sexp.c (whitespacep): New.
+	(sexp_sscan): Replace isdigit and isspace by whitespacep and
+	digitp.
+
 2005-02-22  Werner Koch  <wk@g10code.com>
 
 	* global.c (_gcry_malloc): Make sure ERRNO is set if we return
