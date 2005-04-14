@@ -997,7 +997,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		  break;
 		  
 		case 'x':
-		  if (!((n > 2) && isxdigit(p[1]) && isxdigit(p[2])))
+		  if (!((n > 2) && hexdigitp (p+1) && hexdigitp (p+2)))
 		    {
 		      *erroff = p - buffer;
 		      /* Invalid hex value.  */
