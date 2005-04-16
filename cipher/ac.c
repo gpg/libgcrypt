@@ -151,7 +151,7 @@ gcry_ac_data_copy_internal (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 	  data_new->data[i].mpi = NULL;
 
 	  /* Name.  */
-	  data_new->data[i].name = strdup (data->data[i].name);
+	  data_new->data[i].name = gcry_strdup (data->data[i].name);
 	  if (! data_new->data[i].name)
 	    err = gpg_err_code_from_errno (errno);
 
@@ -531,7 +531,7 @@ gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
 	{
 	  /* Create copies.  */
 
-	  name_add = strdup (name);
+	  name_add = gcry_strdup (name);
 	  if (! name_add)
 	    err = GPG_ERR_ENOMEM;
 	  if (! err)
@@ -666,7 +666,7 @@ gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags, unsigned int id
 	    {
 	      /* Return copies to the user.  */
 	      if (name)
-		name_return = strdup (data->data[idx].name);
+		name_return = gcry_strdup (data->data[idx].name);
 	      if (mpi)
 		mpi_return = gcry_mpi_copy (data->data[idx].mpi);
 	      
@@ -1387,4 +1387,10 @@ gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
     err = GPG_ERR_PUBKEY_ALGO;
     
   return gcry_error (err);
+}
+
+gcry_err_code_t
+_gcry_ac_init (void)
+{
+  return 0;
 }

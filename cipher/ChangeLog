@@ -1,3 +1,8 @@
+2005-04-16  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c (_gcry_ac_init): New function.
+	Replace strdup calls with calls to gcry_strdup.
+
 2005-03-23  Werner Koch  <wk@g10code.com>
 
 	* rndw32.c (_gcry_rndw32_gather_random_fast): While adding data
