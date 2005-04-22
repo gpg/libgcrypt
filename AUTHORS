@@ -62,6 +62,13 @@ GNUTLS  Nikolaos Mavrogiannopoulos  2003-11-22
 nmav@gnutls.org
 Orginal code for cipher/rfc2268.c.
 
+LIBGCRYPT	The Written Word	2005-04-15
+Assigns past and future changes. (new: src/libgcrypt.pc.in,
+src/Makefile.am, src/secmem.c, mpi/hppa1.1/mpih-mul3.S,
+mpi/hppa1.1/udiv-qrnnd.S, mpi/hppa1.1/mpih-mul2.S,
+mpi/hppa1.1/mpih-mul1.S, mpi/Makefile.am, tests/prime.c,
+tests/register.c, tests/ac.c, tests/basic.c, tests/tsexp.c,
+tests/keygen.c, tests/pubkey.c, configure.ac, acinclude.m4)
 
 
 More credits
