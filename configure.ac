@@ -250,7 +250,7 @@ default_digests="$available_digests"
 AC_ARG_ENABLE(ciphers,
 	      AC_HELP_STRING([--enable-ciphers=ciphers],
 			     [select the symmetric ciphers to include]),
-	      [enabled_ciphers=$(echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]')],
+	      [enabled_ciphers=`echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_ciphers=""])
 if test "x$enabled_ciphers" = "x" \
    -o "$enabled_ciphers" = "yes"  \
@@ -270,7 +270,7 @@ AC_MSG_RESULT([$enabled_ciphers])
 AC_ARG_ENABLE(pubkey-ciphers,
 	      AC_HELP_STRING([--enable-pubkey-ciphers=ciphers],
 			     [select the public-key ciphers to include]),
-	      [enabled_pubkey_ciphers=$(echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]')],
+	      [enabled_pubkey_ciphers=`echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_pubkey_ciphers=""])
 if test "x$enabled_pubkey_ciphers" = "x" \
    -o "$enabled_pubkey_ciphers" = "yes"  \
@@ -290,7 +290,7 @@ AC_MSG_RESULT([$enabled_pubkey_ciphers])
 AC_ARG_ENABLE(digests,
 	      AC_HELP_STRING([--enable-digests=digests],
 			     [select the message digests to include]),
-	      [enabled_digests=$(echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]')],
+	      [enabled_digests=`echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_digests=""])
 if test "x$enabled_digests" = "x" \
    -o "$enabled_digests" = "yes"  \
@@ -310,7 +310,7 @@ AC_MSG_RESULT([$enabled_digests])
 AC_ARG_ENABLE(random,
 	      AC_HELP_STRING([--enable-random=name],
 	                     [select which random number generator to use]),
-	      [random=$(echo $enableval | tr '[A-Z]' '[a-z]')],
+	      [random=`echo $enableval | tr '[A-Z]' '[a-z]'`],
 	      [])
 if test "x$random" = "x" -o "$random" = "yes" -o "$random" = "no"; then
     random=default
@@ -428,18 +428,9 @@ AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
 
 # Solaris needs -lsocket and -lnsl. Unisys system includes
 # gethostbyname in libsocket but needs libnsl for socket.
-AC_CHECK_LIB(nsl, gethostbyname)
-AC_CHECK_LIB(socket, socket, ac_need_libsocket=1, ac_try_nsl=1)
-if test x$ac_need_libsocket = x1; then
-    LIBS="$LIBS -lsocket"
-fi
-if test x$ac_try_nsl = x1; then
-    AC_CHECK_LIB(nsl, gethostbyname, ac_need_libnsl=1)
-    if test x$ac_need_libnsl = x1
-    then
-        LIBS="$LIBS -lnsl"
-    fi
-fi
+AC_SEARCH_LIBS(setsockopt, [socket], ,
+	[AC_SEARCH_LIBS(setsockopt, [socket], , , [-lnsl])])
+AC_SEARCH_LIBS(setsockopt, [nsl])
 
 ##################################
 #### Checks for header files. ####
@@ -473,6 +464,8 @@ AC_CHECK_TYPE(socklen_t,,
 #include <sys/types.h>
 #include <sys/socket.h>
               ])
+
+TYPE_SOCKLEN_T
 
 #######################################
 #### Checks for library functions. ####
@@ -554,6 +547,8 @@ else
     if test "$random" = "auto"; then
         # Build everything, allow to select at runtime.
         random_modules="$auto_random_modules"
+    else
+        random_modules="$random"
     fi
 fi
 
@@ -788,6 +783,7 @@ cipher/Makefile
 doc/Makefile
 src/Makefile
 src/libgcrypt-config
+src/libgcrypt.pc
 tests/Makefile
 w32-dll/Makefile
 ])

@@ -18,6 +18,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -72,9 +75,7 @@ check_sexp_conversion (gcry_ac_data_t data)
   assert_err (err);
 
   length1 = gcry_ac_data_length (data);
-  assert (length1);
   length2 = gcry_ac_data_length (data2);
-  assert (length2);
   assert (length1 == length2);
 
   for (i = 0; i < length1; i++)
@@ -149,9 +150,11 @@ check_run (void)
   gcry_mpi_release (mpi1);
     
   printf ("data-set-test-1 succeeded\n");
-    
 
-  
+  gcry_ac_data_clear (data);
+  assert (! gcry_ac_data_length (data));
+  check_sexp_conversion (data);
+  printf ("data-set-test-2 succeeded\n");
  
   gcry_ac_data_destroy (data);
  

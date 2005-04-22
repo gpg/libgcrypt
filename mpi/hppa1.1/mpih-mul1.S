@@ -55,6 +55,8 @@
  * in the cache.)
  */
 
+	.level		1.1
+
 	.code
 	.export 	_gcry_mpih_mul_1
 	.label		_gcry_mpih_mul_1

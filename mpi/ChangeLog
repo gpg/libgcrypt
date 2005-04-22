@@ -1,3 +1,16 @@
+2005-04-23  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am: Don't assume the compiler will pre-process the .S
+	files. Some compilers, like those from HP and IBM, don't do
+	this. So, we use the same solution gnupg-1.4.0 does. Preprocess
+	first and then compile.
+
+	* hppa1.1/mpih-mul3.S: Add "level 1.1" directive to disable
+	warning about using PA-RISC1.1 opcodes.
+	* hppa1.1/mpih-mul2.S: Likewise.
+	* hppa1.1/mpih-mul1.S: Likewise.
+	* hppa1.1/udiv-qrnnd.S: Likewise.
+
 2005-02-16  Moritz Schulte  <moritz@g10code.com>
 
 	* mpiutil.c (_gcry_mpi_alloc_limb_space): Rewritten, fixed memory

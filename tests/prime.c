@@ -1,5 +1,5 @@
 /* prime.c - part of the Libgcrypt test suite.
-   Copyright (C) 2001, 2002, 2003 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2005 Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -16,6 +16,9 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
    USA.  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

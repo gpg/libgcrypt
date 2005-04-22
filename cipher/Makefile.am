@@ -62,6 +62,7 @@ sha1.c \
 sha256.c \
 sha512.c \
 tiger.c \
+whirlpool.c \
 twofish.c \
 rfc2268.c
 

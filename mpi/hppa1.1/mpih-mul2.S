@@ -45,6 +45,8 @@
  * There are some ideas described in mul1.S that applies to this code too.
  */
 
+	.level		1.1
+
 	.code
 	.export 	_gcry_mpih_addmul_1
 	.label		_gcry_mpih_addmul_1

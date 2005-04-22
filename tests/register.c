@@ -1,5 +1,5 @@
 /* register.c - Test for registering of additional cipher modules.
- *	Copyright (C) 2001, 2002, 2003 Free Software Foundation, Inc.
+ *	Copyright (C) 2001, 2002, 2003, 2005 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -18,6 +18,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

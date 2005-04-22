@@ -1,3 +1,17 @@
+2005-04-23  Moritz Schulte  <moritz@g10code.com>
+
+	* acinclude.m4 (TYPE_SOCKLEN_T): New type definition test;
+	provided by Albert Chin.
+	* configure.ac: Don't use $(CMD) as it's not portable; use `CMD` nstead.
+	Simpler -lnsl/-lsocket test.
+	Use TYPE_SOCKLEN_T test.
+	Don't forget to set `random_modules' correctly.
+
+2005-04-22  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Added support for pkgconfig; provided by Albert
+	Chin.
+
 2005-04-11  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac: Integrate Whirlpool.

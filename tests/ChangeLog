@@ -1,3 +1,23 @@
+2005-04-22  Moritz Schulte  <moritz@g10code.com>
+
+	* tsexp.c: Include <config.h> in case HAVE_CONFIG_H is defined;
+	thanks to Albert Chin.
+	* testapi.c: Likewise.
+	* register.c: Likewise.
+	* pubkey.c: Likewise.
+	* prime.c: Likewise.
+	* pkbench.c: Likewise.
+	* keygen.c: Likewise.
+	* benchmark.c: Likewise.
+	* basic.c: Likewise.
+	* ac-schemes.c: Likewise.
+	* ac-data.c: Likewise.
+	* ac.c: Likewise.
+
+2005-04-16  Moritz Schulte  <moritz@g10code.com>
+
+	* ac-data.c (check_run): Include new test.
+
 2005-04-11  Moritz Schulte  <moritz@g10code.com>
 
 	* basic.c (check_digests): Add tests for Whirlpool.

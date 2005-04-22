@@ -22,6 +22,8 @@ EXTRA_DIST = Manifest libgcrypt-config.in libgcrypt.m4 libgcrypt.vers
 bin_SCRIPTS = libgcrypt-config
 m4datadir = $(datadir)/aclocal
 m4data_DATA = libgcrypt.m4
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libgcrypt.pc
 include_HEADERS = gcrypt.h gcrypt-module.h
 
 lib_LTLIBRARIES = libgcrypt.la

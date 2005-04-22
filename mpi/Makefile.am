@@ -181,10 +181,14 @@ libmpi_la_DEPENDENCIES = @MPI_MOD_LIST_LO@
 SUFFIXES = .S .o .obj .lo
 
 .S.o:
-	$(CCASCOMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+	$(CPP) $(INCLUDES) $(DEFS) $< | grep -v '^#' > $*.s
+	$(CCASCOMPILE) -c `test -f '$*.s' || echo '$(srcdir)/'`$*.s
+	rm $*.s
 
 .S.obj:
 	$(CCASCOMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
 
 .S.lo:
-	$(LTCCASCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
+	$(CPP) $(INCLUDES) $(DEFS) $< | grep -v '^#' > $*.s
+	$(LTCCASCOMPILE) -c -o $@ `test -f '$*.s' || echo '$(srcdir)/'`$*.s
+	rm $*.s

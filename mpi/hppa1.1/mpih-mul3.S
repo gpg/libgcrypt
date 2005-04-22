@@ -51,6 +51,7 @@
  * but that requires reworking the hairy software pipeline...
  */
 
+	.level		1.1
 
 	.code
 	.export 	_gcry_mpih_submul_1

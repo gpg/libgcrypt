@@ -1,3 +1,15 @@
+2005-04-22  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (pkgconfigdir, pkgconfig_DATA): New; support for
+	pkgconfig provided by Albert Chin.
+	* libgcrypt.pc.in (Cflags): New file.
+
+2005-04-16  Moritz Schulte  <moritz@g10code.com>
+
+	* g10lib.h (_gcry_ac_init): Declare.
+	* global.c (global_init): Call _gcry_ac_init; don't forget to set
+	err.
+
 2005-04-14  Werner Koch  <wk@g10code.com>
 
 	* sexp.c (whitespacep): New.

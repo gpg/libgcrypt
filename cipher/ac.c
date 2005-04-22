@@ -1323,13 +1323,6 @@ ac_data_construct (const char *identifier, int include_flags,
 
 
 
-/* 
- * Wrapper macros.
- */
-
-
-
-
 /*
  * Handle management.
  */
@@ -3474,4 +3467,10 @@ gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
  out:
 
   return gcry_error (err);
+}
+
+gcry_err_code_t
+_gcry_ac_init (void)
+{
+  return 0;
 }

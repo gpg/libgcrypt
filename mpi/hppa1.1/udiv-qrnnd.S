@@ -36,6 +36,8 @@
  *   d		   gr23
  */
 
+	.level		1.1
+
         .data
 	.align		8
 	.label L$0000

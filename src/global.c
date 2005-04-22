@@ -66,11 +66,15 @@ global_init (void)
 
   err = ath_init ();
   if (! err)
-    _gcry_cipher_init ();
+    err = _gcry_cipher_init ();
   if (! err)
-    _gcry_md_init ();
+    err = _gcry_md_init ();
   if (! err)
-    _gcry_pk_init ();
+    err = _gcry_pk_init ();
+#if 0
+  if (! err)
+    err = _gcry_ac_init ();
+#endif
 
   if (err)
     /* FIXME?  */
