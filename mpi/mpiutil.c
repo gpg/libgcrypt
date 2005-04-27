@@ -410,14 +410,14 @@ gcry_mpi_randomize( gcry_mpi_t w,
   
   if (level == GCRY_WEAK_RANDOM)
     {
-      p = mpi_is_secure(w) ? gcry_xmalloc (nbytes)
-                           : gcry_xmalloc_secure (nbytes);
+      p = mpi_is_secure(w) ? gcry_xmalloc_secure (nbytes)
+                           : gcry_xmalloc (nbytes);
       gcry_create_nonce (p, nbytes);
     }
   else
     {
-      p = mpi_is_secure(w) ? gcry_random_bytes (nbytes, level)
-                           : gcry_random_bytes_secure (nbytes, level);
+      p = mpi_is_secure(w) ? gcry_random_bytes_secure (nbytes, level)
+                           : gcry_random_bytes (nbytes, level);
     }
   _gcry_mpi_set_buffer( w, p, nbytes, 0 );
   gcry_free (p);
