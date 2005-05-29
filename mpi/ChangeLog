@@ -1,3 +1,8 @@
+2005-05-29  Moritz Schulte  <moritz@g10code.com>
+
+	* mpiutil.c (gcry_mpi_randomize): Store random data in secure
+	memory if the given MPI is secure - not the other way around (argl).
+
 2005-02-16  Moritz Schulte  <moritz@g10code.com>
 
 	* mpiutil.c (_gcry_mpi_alloc_limb_space): Rewritten, fixed memory
