@@ -55,8 +55,7 @@
       rndunix - Entropy gatherer for Unices without a /dev/random
       rndw32  - Entropy gatherer for MS Windows
 
-    The documentation is available under the terms of the GNU Free
-    Documentation License; see the file COPYING.DOC for the terms.
+    The documentation is available under the terms of the GPL.
 
     This library used to be available under the GPL - this was changed
     with version 1.1.7 with the rationale that there are now many free
@@ -64,7 +63,7 @@
     similar to Libcrypt.  We decided that to foster the use of
     cryptography in Free Software an LGPLed library would make more
     sense because it avoids problems due to license incompatibilities
-    between some Free Software licenses and the GPL. 
+    between some Free Software licenses and the GPL.
 
     Please note that in many cases it is better for a library to be
     licensed under the GPL, so that it provides an advantage for free

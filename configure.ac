@@ -70,6 +70,7 @@ AH_VERBATIM([_REENTRANT],
 #endif
 ])
 
+
 AC_SUBST(LIBGCRYPT_LT_CURRENT)
 AC_SUBST(LIBGCRYPT_LT_AGE)
 AC_SUBST(LIBGCRYPT_LT_REVISION)
@@ -77,6 +78,28 @@ AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
+
+
+######################
+##  Basic checks.  ### (we need some results later on (e.g. $GCC)
+######################
+
+AC_PROG_MAKE_SET
+missing_dir=`cd $ac_aux_dir && pwd`
+AM_MISSING_PROG(ACLOCAL, aclocal, $missing_dir)
+AM_MISSING_PROG(AUTOCONF, autoconf, $missing_dir)
+AM_MISSING_PROG(AUTOMAKE, automake, $missing_dir)
+AM_MISSING_PROG(AUTOHEADER, autoheader, $missing_dir)
+# AM_MISSING_PROG(MAKEINFO, makeinfo, $missing_dir)
+AC_PROG_CC
+AC_PROG_CPP
+AM_PROG_AS
+AC_ISC_POSIX
+AC_PROG_INSTALL
+AC_PROG_AWK
+
+AM_PROG_LIBTOOL
+
 
 ##########################
 ## General definitions. ##
@@ -366,25 +389,7 @@ AC_ARG_WITH(capabilities,
 [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
 
-##############################
-#### Checks for programs. ####
-##############################
 
-AC_PROG_MAKE_SET
-missing_dir=`cd $ac_aux_dir && pwd`
-AM_MISSING_PROG(ACLOCAL, aclocal, $missing_dir)
-AM_MISSING_PROG(AUTOCONF, autoconf, $missing_dir)
-AM_MISSING_PROG(AUTOMAKE, automake, $missing_dir)
-AM_MISSING_PROG(AUTOHEADER, autoheader, $missing_dir)
-# AM_MISSING_PROG(MAKEINFO, makeinfo, $missing_dir)
-AC_PROG_CC
-AC_PROG_CPP
-AM_PROG_AS
-AC_ISC_POSIX
-AC_PROG_INSTALL
-AC_PROG_AWK
-
-AM_PROG_LIBTOOL
 
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
                    [A human readable text with the name of the OS])
