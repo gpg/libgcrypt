@@ -1,3 +1,7 @@
+2005-06-10  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Moved basic tests to the top.
+
 2005-02-03  Moritz Schulte  <moritz@g10code.com>
 
 	* THANKS: Updated.

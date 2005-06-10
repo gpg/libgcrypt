@@ -63,7 +63,6 @@ nmav@gnutls.org
 Orginal code for cipher/rfc2268.c.
 
 
-
 More credits
 ============
 The ATH implementation (src/ath*) has been taken from GPGME and
