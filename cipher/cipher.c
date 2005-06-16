@@ -250,7 +250,7 @@ gcry_cipher_lookup_oid (const char *oid)
    and a pointer representhing this module is stored in MODULE.  */
 gcry_error_t
 gcry_cipher_register (gcry_cipher_spec_t *cipher,
-		      unsigned int *algorithm_id,
+		      int *algorithm_id,
 		      gcry_module_t *module)
 {
   gcry_err_code_t err = 0;

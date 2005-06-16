@@ -812,7 +812,7 @@ gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
       rc = gcry_err_code (gcry_md_setkey (hd, buf, buflen));
       break;
     case GCRYCTL_START_DUMP:
-      md_start_debug (hd, buf);
+      md_start_debug (hd, (char*)buf);
       break;
     case GCRYCTL_STOP_DUMP:
       md_stop_debug( hd );

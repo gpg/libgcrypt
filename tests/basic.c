@@ -29,7 +29,7 @@ typedef struct test_spec_pubkey_key
 {
   const char *secret;
   const char *public;
-  const char *grip;
+  const unsigned char *grip;
 }
 test_spec_pubkey_key_t;
 
@@ -583,7 +583,7 @@ static void
 check_one_md (int algo, char *data, int len, char *expect)
 {
   gcry_md_hd_t hd, hd2;
-  char *p;
+  unsigned char *p;
   int mdlen;
   int i;
   gcry_error_t err = 0;
@@ -979,7 +979,7 @@ check_pubkey (void)
 	  "      891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea251#)\n"
 	  "  (e #010001#)))\n",
 
-	  "\x32\x10\x0c\x27\x17\x3e\xf6\xe9\xc4\xe9"
+	  (const unsigned char*)"\x32\x10\x0c\x27\x17\x3e\xf6\xe9\xc4\xe9"
 	  "\xa2\x5d\x3d\x69\xf8\x6d\x37\xa4\xf9\x39"}
       },
       {
@@ -1018,7 +1018,7 @@ check_pubkey (void)
 	  "      6E45831AB811EEE848EBB24D9F5F2883B6E5DDC4C659DEF944DCFD80BF4D0A20"
 	  "      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB#)))\n",
 
-	  "\xc6\x39\x83\x1a\x43\xe5\x05\x5d\xc6\xd8"
+	  (const unsigned char*)"\xc6\x39\x83\x1a\x43\xe5\x05\x5d\xc6\xd8"
 	  "\x4a\xa6\xf9\xeb\x23\xbf\xa9\x12\x2d\x5b" }
       },
       {
@@ -1049,7 +1049,7 @@ check_pubkey (void)
 	  "      D20DB4BEE9BDF916648DE6D6E419FA446C513AAB81C30CB7B34D6007637BE675"
 	  "      56CE6473E9F9EE9B9FADD275D001563336F2186F424DEC6199A0F758F6A00FF4#)))\n",
 
-	  "\xa7\x99\x61\xeb\x88\x83\xd2\xf4\x05\xc8"
+	  (const unsigned char*)"\xa7\x99\x61\xeb\x88\x83\xd2\xf4\x05\xc8"
 	  "\x4f\xba\x06\xf8\x78\x09\xbc\x1e\x20\xe5" }
       },
     };

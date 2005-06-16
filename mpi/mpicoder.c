@@ -32,50 +32,55 @@
 
 
 static gcry_mpi_t
-mpi_read_from_buffer(byte *buffer, unsigned *ret_nread, int secure)
+mpi_read_from_buffer (const unsigned char *buffer, unsigned int *ret_nread,
+                      int secure)
 {
-    int i, j;
-    unsigned int nbits, nbytes, nlimbs, nread=0;
-    mpi_limb_t a;
-    gcry_mpi_t val = MPI_NULL;
+  int i, j;
+  unsigned int nbits, nbytes, nlimbs, nread=0;
+  mpi_limb_t a;
+  gcry_mpi_t val = MPI_NULL;
 
-    if( *ret_nread < 2 )
-	goto leave;
-    nbits = buffer[0] << 8 | buffer[1];
-    if( nbits > MAX_EXTERN_MPI_BITS ) {
-	log_error("mpi too large (%u bits)\n", nbits);
-	goto leave;
+  if (*ret_nread < 2)
+    goto leave;
+  nbits = buffer[0] << 8 | buffer[1];
+  if (nbits > MAX_EXTERN_MPI_BITS) 
+    {
+      log_error ("mpi too large (%u bits)\n", nbits);
+      goto leave;
     }
-    else if( !nbits ) {
-	log_error("an mpi of size 0 is not allowed\n");
-	goto leave;
+  else if (!nbits) 
+    {
+      log_error ("an mpi of size 0 is not allowed\n");
+      goto leave;
     }
-    buffer += 2;
-    nread = 2;
+  buffer += 2;
+  nread = 2;
+  
+  nbytes = (nbits+7) / 8;
+  nlimbs = (nbytes+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB;
+  val = secure? mpi_alloc_secure( nlimbs )
+    : mpi_alloc( nlimbs );
+  i = BYTES_PER_MPI_LIMB - nbytes % BYTES_PER_MPI_LIMB;
+  i %= BYTES_PER_MPI_LIMB;
+  j= val->nlimbs = nlimbs;
+  val->sign = 0;
+  for( ; j > 0; j-- ) 
+    {
+      a = 0;
+      for (; i < BYTES_PER_MPI_LIMB; i++ )
+        {
+          if ( ++nread > *ret_nread )
+            log_bug ("mpi larger than buffer");
+          a <<= 8;
+          a |= *buffer++;
+        }
+      i = 0;
+      val->d[j-1] = a;
+    }
 
-    nbytes = (nbits+7) / 8;
-    nlimbs = (nbytes+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB;
-    val = secure? mpi_alloc_secure( nlimbs )
-		: mpi_alloc( nlimbs );
-    i = BYTES_PER_MPI_LIMB - nbytes % BYTES_PER_MPI_LIMB;
-    i %= BYTES_PER_MPI_LIMB;
-    j= val->nlimbs = nlimbs;
-    val->sign = 0;
-    for( ; j > 0; j-- ) {
-	a = 0;
-	for(; i < BYTES_PER_MPI_LIMB; i++ ) {
-	    if( ++nread > *ret_nread )
-		log_bug("mpi larger than buffer");
-	    a <<= 8;
-	    a |= *buffer++;
-	}
-	i = 0;
-	val->d[j-1] = a;
-    }
-
-  leave:
-    *ret_nread = nread;
-    return val;
+ leave:
+  *ret_nread = nread;
+  return val;
 }
 
 
@@ -385,7 +390,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else if( format == GCRYMPI_FMT_PGP ) {
-	a = mpi_read_from_buffer( (char*)buffer, &len, secure);
+	a = mpi_read_from_buffer (buffer, &len, secure);
 	if( nscanned )
 	    *nscanned = len;
 	if( ret_mpi && a ) {
@@ -397,7 +402,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	return gcry_error (a ? GPG_ERR_NO_ERROR : GPG_ERR_INV_OBJ);
     }
     else if( format == GCRYMPI_FMT_SSH ) {
-	const byte *s = buffer;
+	const unsigned char *s = buffer;
 	size_t n;
 
 	if( len && len < 4 )
@@ -438,7 +443,7 @@ gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	    return gcry_error (GPG_ERR_INV_ARG); /* can only handle C
                                                     strings for now */
 	a = secure? mpi_alloc_secure (0) : mpi_alloc(0);
-	if( mpi_fromstr( a, buffer ) )
+	if( mpi_fromstr ( a, (const char *)buffer ) )
 	    return gcry_error (GPG_ERR_INV_OBJ);
 	if( ret_mpi ) {
 	    mpi_normalize ( a );
@@ -473,7 +478,7 @@ gcry_mpi_print( enum gcry_mpi_format format,
     len = buflen;
     *nwritten = 0;
     if( format == GCRYMPI_FMT_STD ) {
-	char *tmp;
+	unsigned char *tmp;
 	int extra = 0;
 	unsigned int n;
 
@@ -487,8 +492,9 @@ gcry_mpi_print( enum gcry_mpi_format format,
 	}
 
 	if (buffer && n > len) {
+            /* The provided buffer is too short. */
 	    gcry_free(tmp);
-	    return gcry_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
+	    return gcry_error (GPG_ERR_TOO_SHORT);  
 	}
 	if( buffer ) {
 	    byte *s = buffer;
@@ -510,7 +516,7 @@ gcry_mpi_print( enum gcry_mpi_format format,
 	if (buffer && n > len)
 	    return gcry_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
 	if( buffer ) {
-	    char *tmp;
+	    unsigned char *tmp;
 	    tmp = _gcry_mpi_get_buffer( a, &n, NULL );
 	    memcpy( buffer, tmp, n );
 	    gcry_free(tmp);
@@ -527,8 +533,8 @@ gcry_mpi_print( enum gcry_mpi_format format,
 	if (buffer && n+2 > len)
 	    return gcry_error (GPG_ERR_TOO_SHORT);  /* the provided buffer is too short */
 	if( buffer ) {
-	    char *tmp;
-	    byte *s = buffer;
+	    unsigned char *tmp;
+	    unsigned char *s = buffer;
 	    s[0] = nbits >> 8;
 	    s[1] = nbits;
 
@@ -540,7 +546,7 @@ gcry_mpi_print( enum gcry_mpi_format format,
 	return gcry_error (GPG_ERR_NO_ERROR);
     }
     else if( format == GCRYMPI_FMT_SSH ) {
-	char *tmp;
+	unsigned char *tmp;
 	int extra = 0;
 	unsigned int n;
 

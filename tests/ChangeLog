@@ -1,3 +1,7 @@
+2005-06-16  Werner Koch  <wk@g10code.com>
+
+	* basic.c (check_one_md): Made P unsigned.
+
 2004-02-25  Werner Koch  <wk@gnupg.org>
 
 	* Makefile.am (TEST): Add benchmark.

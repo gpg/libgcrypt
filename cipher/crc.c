@@ -161,7 +161,7 @@ crc32_write (void *context, byte * inbuf, size_t inlen)
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   if (!inbuf)
     return;
-  ctx->CRC = update_crc32 (ctx->CRC, inbuf, inlen);
+  ctx->CRC = update_crc32 (ctx->CRC, (char*)inbuf, inlen);
 }
 
 static byte *

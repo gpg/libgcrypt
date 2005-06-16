@@ -1,3 +1,19 @@
+2005-06-16  Werner Koch  <wk@g10code.com>
+
+	* cipher.c (gcry_cipher_register): Changed arg ALGORITHM_ID
+	from unsigned int * to int*.
+	* rmd160.c (_gcry_rmd160_mixblock): Applied cast.
+	* tiger.c (round): Renamed to R to avoid conflict with builtin.
+	* crc.c (crc32_write): Applied cast.
+	* dsa.c (gen_k): Made RNDBUF unsigned.
+	* elgamal.c (gen_k): Ditto.
+	* blowfish.c (selftest): Added cast to constants.
+	* random.c (rndpool, keypool): Made unsigned.
+	(mix_pool): Changed char* to unsigned char*.
+	* md.c (gcry_md_ctl): Use cast to fix signed/unsigned mismatch.
+	* primegen.c (prime_generate_internal): Ditto.
+	(is_prime): Made COUNT unsigned.
+
 2005-06-15  Werner Koch  <wk@g10code.com>
 
 	* cipher.c (gcry_cipher_encrypt, gcry_cipher_decrypt): Changed OUT

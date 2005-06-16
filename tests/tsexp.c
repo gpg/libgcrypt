@@ -219,7 +219,7 @@ canon_len (void)
     size_t expected;/* expected length or 0 on error and then ... */
     size_t erroff;  /* ... and at this offset */
     gcry_error_t errcode;    /* ... with this error code */
-    unsigned char *text; 
+    char *text; 
   } values[] = {
     { 14, 13, 0, GPG_ERR_NO_ERROR, "(9:abcdefghi) " },
     { 16, 15, 0, GPG_ERR_NO_ERROR, "(10:abcdefghix)" },
@@ -245,7 +245,8 @@ canon_len (void)
   info ("checking canoncial length test function\n");
   for (idx=0; values[idx].text; idx++)
     {
-      n = gcry_sexp_canon_len (values[idx].text, values[idx].textlen, 
+      n = gcry_sexp_canon_len ((const unsigned char*)values[idx].text,
+                               values[idx].textlen, 
                                &erroff, &errcode);
       
       if (n && n == values[idx].expected)

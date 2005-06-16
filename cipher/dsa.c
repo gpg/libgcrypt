@@ -88,7 +88,7 @@ gen_k( gcry_mpi_t q )
   gcry_mpi_t k = mpi_alloc_secure( mpi_get_nlimbs(q) );
   unsigned int nbits = mpi_get_nbits(q);
   unsigned int nbytes = (nbits+7)/8;
-  char *rndbuf = NULL;
+  unsigned char *rndbuf = NULL;
 
   if ( DBG_CIPHER )
     log_debug("choosing a random k ");

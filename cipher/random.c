@@ -88,8 +88,8 @@
 
 static int is_initialized;
 #define MASK_LEVEL(a) do { (a) &= 3; } while(0)
-static char *rndpool;	/* allocated size is POOLSIZE+BLOCKLEN */
-static char *keypool;	/* allocated size is POOLSIZE+BLOCKLEN */
+static unsigned char *rndpool;	/* allocated size is POOLSIZE+BLOCKLEN */
+static unsigned char *keypool;	/* allocated size is POOLSIZE+BLOCKLEN */
 static size_t pool_readpos;
 static size_t pool_writepos;
 static int pool_filled;
@@ -452,13 +452,13 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
    Note, that this function muts only be called with a locked pool.
  */
 static void
-mix_pool(byte *pool)
+mix_pool (unsigned char *pool)
 {
   static unsigned char failsafe_digest[DIGESTLEN];
   static int failsafe_digest_valid;
 
-  char *hashbuf = pool + POOLSIZE;
-  char *p, *pend;
+  unsigned char *hashbuf = pool + POOLSIZE;
+  unsigned char *p, *pend;
   int i, n;
   RMD160_CONTEXT md;
 
@@ -473,10 +473,10 @@ mix_pool(byte *pool)
   pend = pool + POOLSIZE;
   memcpy(hashbuf, pend - DIGESTLEN, DIGESTLEN );
   memcpy(hashbuf+DIGESTLEN, pool, BLOCKLEN-DIGESTLEN);
-  _gcry_rmd160_mixblock( &md, hashbuf);
+  _gcry_rmd160_mixblock( &md, (char*)hashbuf);
   memcpy(pool, hashbuf, 20 );
 
-  if (failsafe_digest_valid && (char *)pool == rndpool)
+  if (failsafe_digest_valid && pool == rndpool)
     {
       for (i=0; i < 20; i++)
         pool[i] ^= failsafe_digest[i];
@@ -492,7 +492,7 @@ mix_pool(byte *pool)
         memcpy (hashbuf+DIGESTLEN, p+DIGESTLEN, BLOCKLEN-DIGESTLEN);
       else 
         {
-          char *pp = p + DIGESTLEN;
+          unsigned char *pp = p + DIGESTLEN;
           
           for (i=DIGESTLEN; i < BLOCKLEN; i++ )
             {
@@ -502,7 +502,7 @@ mix_pool(byte *pool)
 	    }
 	}
       
-      _gcry_rmd160_mixblock( &md, hashbuf);
+      _gcry_rmd160_mixblock( &md, (char*)hashbuf);
       memcpy(p, hashbuf, 20 );
     }
 
@@ -510,9 +510,10 @@ mix_pool(byte *pool)
        of the pool on the stack, so it is okay not to require secure
        memory here.  Before we use this pool, it will be copied to the
        help buffer anyway. */
-    if ( (char*)pool == rndpool)
+    if ( pool == rndpool)
       {
-        _gcry_rmd160_hash_buffer (failsafe_digest, pool, POOLSIZE);
+        _gcry_rmd160_hash_buffer ((char*)failsafe_digest,
+                                  (char*)pool, POOLSIZE);
         failsafe_digest_valid = 1;
       }
 
@@ -633,7 +634,7 @@ read_seed_file (void)
 void
 _gcry_update_random_seed_file()
 {
-  ulong *sp, *dp;
+  unsigned long *sp, *dp;
   int fd, i;
   int err;
   
@@ -1143,8 +1144,8 @@ gcry_create_nonce (void *buffer, size_t length)
      and updating the first 20 bytes of the buffer with this hash. */
   for (p = buffer; length > 0; length -= n, p += n)
     {
-      _gcry_sha1_hash_buffer (nonce_buffer,
-                              nonce_buffer, sizeof nonce_buffer);
+      _gcry_sha1_hash_buffer ((char*)nonce_buffer,
+                              (char*)nonce_buffer, sizeof nonce_buffer);
       n = length > 20? 20 : length;
       memcpy (p, nonce_buffer, n);
     }

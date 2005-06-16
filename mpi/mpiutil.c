@@ -377,7 +377,7 @@ void
 gcry_mpi_randomize( gcry_mpi_t w,
 		    unsigned int nbits, enum gcry_random_level level )
 {
-  char *p;
+  unsigned char *p;
   size_t nbytes = (nbits+7)/8;
   
   if (level == GCRY_WEAK_RANDOM)

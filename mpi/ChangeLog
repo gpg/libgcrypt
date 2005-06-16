@@ -1,6 +1,11 @@
 2005-06-16  Werner Koch  <wk@g10code.com>
 
+	* mpiutil.c (gcry_mpi_randomize): Made P unsigned.
 	* mpicoder.c (gcry_mpi_scan): Changed arg BUFFER to void*.
+	(mpi_read_from_buffer): Made BUFFER arg const.
+	(gcry_mpi_scan): Removed now needless cast. Add cast for arg to
+	mpi_fromstr.
+	(gcry_mpi_print): Made TMP unsigned.
 
 2005-05-29  Moritz Schulte  <moritz@g10code.com>
 

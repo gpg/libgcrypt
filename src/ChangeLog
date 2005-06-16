@@ -1,5 +1,14 @@
 2005-06-16  Werner Koch  <wk@g10code.com>
 
+	* sexp.c (normalize): Made P unsigned.
+	(gcry_sexp_nth_data): Cast return value to char*.
+	(sexp_sscan): Fixed sign/usnigned conflicts.
+	(whitespacep): Changed arg to char*.
+	(unquote_string): Changed arg STRING to char*.
+
+	* gcrypt-module.h (gcry_cipher_register): Changed arg ALGORITHM_ID
+	from unsigned int * to int*.
+
 	* gcrypt.h (gcry_mpi_scan): Changed arg BUFFER from unsigned char*
 	to void*.
 

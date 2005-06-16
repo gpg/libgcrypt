@@ -3,6 +3,7 @@ Noteworthy changes in version 1.2.2
 
  * Minor changes to some function declarations.  Buffer arguments are
    now typed as void pointer.  This should not affect any compilation.
+   A bug in the definition of gcry_cipher_register has been fixed.
 
  * Interface changes relative to the 1.2.1 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -12,6 +13,7 @@ Noteworthy changes in version 1.2.2
  gcry_md_ctl            CHANGED: Argument BUFFER is now void*.
  gcry_sexp_sprint       CHANGED: Argument BUFFER is now void*.
  gcry_mpi_scan          CHANGED: Argument BUFFER is now void*.
+ gcry_cipher_register   CHANGED: Argument ALGORITHM_ID is now int*.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 

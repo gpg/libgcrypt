@@ -167,7 +167,7 @@ gen_k( gcry_mpi_t p, int small_k )
   gcry_mpi_t p_1 = mpi_copy(p);
   unsigned int orig_nbits = mpi_get_nbits(p);
   unsigned int nbits, nbytes;
-  char *rndbuf = NULL;
+  unsigned char *rndbuf = NULL;
 
   if (small_k)
     {

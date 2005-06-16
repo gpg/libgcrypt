@@ -89,7 +89,7 @@ typedef struct gcry_cipher_spec
    CIPHER.  On success, a new algorithm ID is stored in ALGORITHM_ID
    and a pointer representhing this module is stored in MODULE.  */
 gcry_error_t gcry_cipher_register (gcry_cipher_spec_t *cipher,
-				   unsigned int *algorithm_id,
+				   int *algorithm_id,
 				   gcry_module_t *module);
 
 /* Unregister the cipher identified by MODULE, which must have been

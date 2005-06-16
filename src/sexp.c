@@ -66,7 +66,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
    to the S-expressions definition. */
 #undef whitespacep
 static GPG_ERR_INLINE int
-whitespacep (const unsigned char *p)
+whitespacep (const char *p)
 { 
   switch (*p)
     {
@@ -172,22 +172,23 @@ gcry_sexp_dump (const gcry_sexp_t a)
 static gcry_sexp_t
 normalize ( gcry_sexp_t list )
 {
-    char *p;
-    if ( !list )
-	return NULL;
-    p = list->d;
-    if ( *p == ST_STOP ) {
-	/* this is "" */
-	gcry_sexp_release ( list );
-	return NULL;
-    }
-    if( *p == ST_OPEN && p[1] == ST_CLOSE ) {
-	/* this is "()" */
-	gcry_sexp_release ( list );
-	return NULL;
-    }
+  unsigned char *p;
 
-    return list;
+  if ( !list )
+    return NULL;
+  p = list->d;
+  if ( *p == ST_STOP ) {
+    /* this is "" */
+    gcry_sexp_release ( list );
+    return NULL;
+  }
+  if( *p == ST_OPEN && p[1] == ST_CLOSE ) {
+    /* this is "()" */
+    gcry_sexp_release ( list );
+    return NULL;
+  }
+  
+  return list;
 }
 
 /* Create a new S-expression object by reading LENGTH bytes from
@@ -559,7 +560,7 @@ gcry_sexp_car( const gcry_sexp_t list )
 const char *
 gcry_sexp_nth_data( const gcry_sexp_t list, int number, size_t *datalen )
 {
-    const byte *p;
+    const unsigned char *p;
     DATALEN n;
     int level = 0;
 
@@ -600,7 +601,7 @@ gcry_sexp_nth_data( const gcry_sexp_t list, int number, size_t *datalen )
     if ( *p == ST_DATA ) {
 	memcpy ( &n, ++p, sizeof n );
 	*datalen = n;
-	return p + sizeof n;
+	return (const char*)p + sizeof n;
     }
 
     return NULL;
@@ -751,7 +752,7 @@ gcry_sexp_cadr ( const gcry_sexp_t list )
 
 
 static int
-hextobyte( const byte *s )
+hextobyte( const unsigned char *s )
 {
     int c=0;
 
@@ -773,10 +774,11 @@ hextobyte( const byte *s )
     return c;
 }
 
-struct make_space_ctx {
-    gcry_sexp_t sexp;
-    size_t allocated;
-    byte *pos;
+struct make_space_ctx 
+{
+  gcry_sexp_t sexp;
+  size_t allocated;
+  unsigned char *pos;
 };
 
 static void
@@ -801,8 +803,9 @@ make_space ( struct make_space_ctx *c, size_t n )
    quotes are must already be removed from STRING.  We assume that the
    quoted string is syntacillay correct.  */
 static size_t
-unquote_string (const unsigned char *string, size_t length, unsigned char *buf)
+unquote_string (const char *string_arg, size_t length, unsigned char *buf)
 {
+  const unsigned char *string = (const unsigned char*)string_arg;
   int esc = 0;
   const unsigned char *s = string;
   unsigned char *d = buf;
@@ -1040,7 +1043,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    {
 	      /* Keep it easy - we know that the unquoted string will
 		 never be larger. */
-	      char *save;
+	      unsigned char *save;
 	      size_t len;
 	      
 	      quoted++; /* Skip leading quote.  */
@@ -1074,7 +1077,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		{
 		  if (whitespacep (hexfmt))
 		    continue;
-		  *c.pos++ = hextobyte (hexfmt);
+		  *c.pos++ = hextobyte ((const unsigned char*)hexfmt);
 		  hexfmt++;
 		}
 	      hexfmt = NULL;
@@ -1453,7 +1456,7 @@ convert_to_hex (const unsigned char *src, size_t len, unsigned char *dest)
     {
       *dest++ = '#';
       for (i=0; i < len; i++, dest += 2 )
-        sprintf (dest, "%02X", src[i]);
+        sprintf ((char*)dest, "%02X", src[i]);
       *dest++ = '#';
     }
   return len*2+2;
@@ -1482,7 +1485,7 @@ convert_to_string (const unsigned char *s, size_t len, unsigned char *dest)
             default: 
               if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0)))
                 {
-                  sprintf (p, "\\x%02x", *s); 
+                  sprintf ((char*)p, "\\x%02x", *s); 
                   p += 4;
                 }
               else
@@ -1623,9 +1626,9 @@ gcry_sexp_sprint (const gcry_sexp_t list, int mode,
                     return 0;
                   switch (type)
                     {
-                    case 1: convert_to_string (s, n, d); break;
-                    case 2: convert_to_token (s, n, d); break;
-                    default: convert_to_hex (s, n, d); break;
+                    case 1: convert_to_string (s, n, (unsigned char*)d); break;
+                    case 2: convert_to_token (s, n, (unsigned char*)d); break;
+                    default: convert_to_hex (s, n, (unsigned char*)d); break;
                     }
                   d += nn;
                 }
@@ -1781,7 +1784,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
               *errcode = gcry_error (GPG_ERR_SEXP_NESTED_DH);
               return 0;
             }
-          disphint = p;
+          disphint = (const char*)p;
 	}
       else if (*p == ']')
         {

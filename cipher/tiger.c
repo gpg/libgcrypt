@@ -600,7 +600,7 @@ tiger_init( void *context )
 }
 
 static void
-round( u64 *ra, u64 *rb, u64 *rc, u64 x, int mul )
+R( u64 *ra, u64 *rb, u64 *rc, u64 x, int mul )
 {
   u64 a = *ra;
   u64 b = *rb;
@@ -626,14 +626,14 @@ pass( u64 *ra, u64 *rb, u64 *rc, u64 *x, int mul )
   u64 b = *rb;
   u64 c = *rc;
 
-  round( &a, &b, &c, x[0], mul );
-  round( &b, &c, &a, x[1], mul );
-  round( &c, &a, &b, x[2], mul );
-  round( &a, &b, &c, x[3], mul );
-  round( &b, &c, &a, x[4], mul );
-  round( &c, &a, &b, x[5], mul );
-  round( &a, &b, &c, x[6], mul );
-  round( &b, &c, &a, x[7], mul );
+  R( &a, &b, &c, x[0], mul );
+  R( &b, &c, &a, x[1], mul );
+  R( &c, &a, &b, x[2], mul );
+  R( &a, &b, &c, x[3], mul );
+  R( &b, &c, &a, x[4], mul );
+  R( &c, &a, &b, x[5], mul );
+  R( &a, &b, &c, x[6], mul );
+  R( &b, &c, &a, x[7], mul );
 
   *ra = a;
   *rb = b;
