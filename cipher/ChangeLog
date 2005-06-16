@@ -1,3 +1,12 @@
+2005-06-15  Werner Koch  <wk@g10code.com>
+
+	* cipher.c (gcry_cipher_encrypt, gcry_cipher_decrypt): Changed OUT
+	and IN to void*.
+
+	* md.c (gcry_md_ctl): Changed arg BUFFER to void*.
+	* random.c (gcry_randomize): Ditto.
+	(gcry_create_nonce): Ditto.
+
 2005-04-16  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c (_gcry_ac_init): New function.

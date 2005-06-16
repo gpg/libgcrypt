@@ -358,7 +358,7 @@ gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level )
    1 is strong enough for most usage, 2 is good for key generation
    stuff but may be very slow.  */
 void
-gcry_randomize (byte *buffer, size_t length, enum gcry_random_level level)
+gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {
   byte *p;
   int err;
@@ -1098,7 +1098,7 @@ gather_faked( void (*add)(const void*, size_t, int), int requester,
 
 /* Create an unpredicable nonce of LENGTH bytes in BUFFER. */
 void
-gcry_create_nonce (unsigned char *buffer, size_t length)
+gcry_create_nonce (void *buffer, size_t length)
 {
   static unsigned char nonce_buffer[20+8];
   static int nonce_buffer_initialized = 0;

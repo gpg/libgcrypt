@@ -1,3 +1,7 @@
+2005-06-16  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi: Adjusted function prototypes.
+
 2005-02-08  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.texi: Fixed direntry.

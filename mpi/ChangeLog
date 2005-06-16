@@ -1,3 +1,7 @@
+2005-06-16  Werner Koch  <wk@g10code.com>
+
+	* mpicoder.c (gcry_mpi_scan): Changed arg BUFFER to void*.
+
 2005-05-29  Moritz Schulte  <moritz@g10code.com>
 
 	* mpiutil.c (gcry_mpi_randomize): Store random data in secure

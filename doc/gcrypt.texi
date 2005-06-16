@@ -1352,7 +1352,7 @@ The actual encryption and decryption is done by using one of the
 following functions.  They may be used as often as required to process
 all the data.
 
-@deftypefun gcry_error_t gcry_cipher_encrypt (gcry_cipher_hd_t @var{h}, unsigned char *{out}, size_t @var{outsize}, const unsigned char *@var{in}, size_t @var{inlen})
+@deftypefun gcry_error_t gcry_cipher_encrypt (gcry_cipher_hd_t @var{h}, void *{out}, size_t @var{outsize}, const void *@var{in}, size_t @var{inlen})
 
 @code{gcry_cipher_encrypt} is used to encrypt the data.  This function
 can either work in place or with two buffers.  It uses the cipher
@@ -1372,7 +1372,7 @@ The function returns @code{0} on success or an error code.
 @end deftypefun
 
 
-@deftypefun gcry_error_t gcry_cipher_decrypt (gcry_cipher_hd_t @var{h}, unsigned char *{out}, size_t @var{outsize}, const unsigned char *@var{in}, size_t @var{inlen})
+@deftypefun gcry_error_t gcry_cipher_decrypt (gcry_cipher_hd_t @var{h}, void *{out}, size_t @var{outsize}, const void *@var{in}, size_t @var{inlen})
 
 @code{gcry_cipher_decrypt} is used to decrypt the data.  This function
 can either work in place or with two buffers.  It uses the cipher
@@ -3003,7 +3003,7 @@ differs from @code{gcry_random_bytes} in that the returned buffer is
 allocated in a ``secure'' area of the memory.
 @end deftypefun
 
-@deftypefun void gcry_create_nonce (unsigned char *@var{buffer}, size_t @var{length})
+@deftypefun void gcry_create_nonce (void *@var{buffer}, size_t @var{length})
 
 Fill @var{buffer} with @var{length} unpredictable bytes.  This is
 commonly called a nonce and may also be used for initialization
@@ -3129,7 +3129,7 @@ The next 2 functions are used to convert the internal representation
 back into a regular external S-expression format and to show the
 structure for debugging.
 
-@deftypefun size_t gcry_sexp_sprint (@w{gcry_sexp_t @var{sexp}}, @w{int @var{mode}}, @w{char *@var{buffer}}, @w{size_t @var{maxlength}})
+@deftypefun size_t gcry_sexp_sprint (@w{gcry_sexp_t @var{sexp}}, @w{int @var{mode}}, @w{void *@var{buffer}}, @w{size_t @var{maxlength}})
 
 Copies the S-expression object @var{sexp} into @var{buffer} using the
 format specified in @var{mode}.  @var{maxlength} must be set to the
@@ -3231,7 +3231,7 @@ This function is used to get data from a @var{list}.  A pointer to the
 actual data with index @var{number} is returned and the length of this
 data will be stored to @var{datalen}.  If there is no data at the given
 index or the index represents another list, @code{NULL} is returned.
-@strong{Note:} The returned pointer is valid as long as @var{list} is
+@strong{Take care:} The returned pointer is valid as long as @var{list} is
 not modified or released.
 
 @noindent
@@ -3362,7 +3362,7 @@ Swap the values of @var{a} and @var{b}.
 The following functions are used to convert between an external
 representation of an MPI and the internal one of @acronym{Libgcrypt}.
 
-@deftypefun int gcry_mpi_scan (@w{gcry_mpi_t *@var{r_mpi}}, @w{enum gcry_mpi_format @var{format}}, @w{const unsigned char *@var{buffer}}, @w{size_t @var{buflen}}, @w{size_t *@var{nscanned}})
+@deftypefun int gcry_mpi_scan (@w{gcry_mpi_t *@var{r_mpi}}, @w{enum gcry_mpi_format @var{format}}, @w{const void *@var{buffer}}, @w{size_t @var{buflen}}, @w{size_t *@var{nscanned}})
 
 Convert the external representation of an integer stored in @var{buffer}
 with a length of @var{buflen} into a newly created MPI returned which

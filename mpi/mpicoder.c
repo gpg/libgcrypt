@@ -333,8 +333,9 @@ _gcry_mpi_set_buffer( gcry_mpi_t a, const byte *buffer, unsigned nbytes, int sig
    bytes actually scanned after a successful operation. */
 gcry_error_t
 gcry_mpi_scan( struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
-		const unsigned char *buffer, size_t buflen, size_t *nscanned )
+	       const void *buffer_arg, size_t buflen, size_t *nscanned )
 {
+    const unsigned char *buffer = (const unsigned char*)buffer_arg;
     struct gcry_mpi *a = NULL;
     unsigned int len;
     int secure = (buffer && gcry_is_secure (buffer));

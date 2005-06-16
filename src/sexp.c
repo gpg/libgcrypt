@@ -1537,11 +1537,11 @@ convert_to_token (const unsigned char *src, size_t len, unsigned char *dest)
  * the required length is returned.
  */
 size_t
-gcry_sexp_sprint( const gcry_sexp_t list, int mode,
-					char *buffer, size_t maxlength )
+gcry_sexp_sprint (const gcry_sexp_t list, int mode,
+                  void *buffer, size_t maxlength)
 {
-  static byte empty[3] = { ST_OPEN, ST_CLOSE, ST_STOP };
-  const byte *s;
+  static unsigned char empty[3] = { ST_OPEN, ST_CLOSE, ST_STOP };
+  const unsigned char *s;
   char *d;
   DATALEN n;
   char numbuf[20];

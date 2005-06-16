@@ -411,7 +411,7 @@ size_t gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 
 /* Copies the S-expression object SEXP into BUFFER using the format
    specified in MODE.  */
-size_t gcry_sexp_sprint (gcry_sexp_t sexp, int mode, char *buffer,
+size_t gcry_sexp_sprint (gcry_sexp_t sexp, int mode, void *buffer,
                          size_t maxlength);
 
 /* Dumps the S-expression object A in a aformat suitable for debugging
@@ -537,7 +537,7 @@ int gcry_mpi_cmp_ui (const gcry_mpi_t u, unsigned long v);
    RET_MPI.  If NSCANNED is not NULL, it will receive the number of
    bytes actually scanned after a successful operation. */
 gcry_error_t gcry_mpi_scan (gcry_mpi_t *ret_mpi, enum gcry_mpi_format format,
-                            const unsigned char *buffer, size_t buflen, 
+                            const void *buffer, size_t buflen, 
                             size_t *nscanned);
 
 /* Convert the big integer A into the external representation
@@ -819,13 +819,13 @@ int gcry_cipher_mode_from_oid (const char *string) _GCRY_GCC_ATTR_PURE;
    most algorithms it is possible to pass NULL for in and 0 for INLEN
    and do a in-place decryption of the data provided in OUT.  */
 gcry_error_t gcry_cipher_encrypt (gcry_cipher_hd_t h,
-                                 unsigned char *out, size_t outsize,
-                                 const unsigned char *in, size_t inlen);
+                                  void *out, size_t outsize,
+                                  const void *in, size_t inlen);
 
 /* The counterpart to gcry_cipher_encrypt.  */
 gcry_error_t gcry_cipher_decrypt (gcry_cipher_hd_t h,
-                                 unsigned char *out, size_t outsize,
-                                 const unsigned char *in, size_t inlen);
+                                  void *out, size_t outsize,
+                                  const void *in, size_t inlen);
 
 /* Set key K of length L for the cipher handle H.  (We have to cast
    away a const char* here - this catch-all ctl function was probably
@@ -1210,8 +1210,8 @@ gcry_error_t gcry_md_copy (gcry_md_hd_t *bhd, gcry_md_hd_t ahd);
 void gcry_md_reset (gcry_md_hd_t hd);
 
 /* Perform various operations on the digets object HD. */
-gcry_error_t gcry_md_ctl (gcry_md_hd_t hd, int cmd, unsigned char *buffer,
-                         size_t buflen);
+gcry_error_t gcry_md_ctl (gcry_md_hd_t hd, int cmd,
+                          void *buffer, size_t buflen);
 
 /* Pass LENGTH bytes of data in BUFFER to the digest object HD so that
    it can update the digest values.  This is the actual hash
@@ -1332,7 +1332,7 @@ gcry_random_level_t;
 
 /* Fill BUFFER with LENGTH bytes of random, using random numbers of
    quality LEVEL. */
-void gcry_randomize (unsigned char *buffer, size_t length,
+void gcry_randomize (void *buffer, size_t length,
                      enum gcry_random_level level);
 
 /* Add the external random from BUFFER with LENGTH bytes into the
@@ -1366,7 +1366,7 @@ void gcry_mpi_randomize (gcry_mpi_t w,
 
 
 /* Create an unpredicable nonce of LENGTH bytes in BUFFER. */
-void gcry_create_nonce (unsigned char *buffer, size_t length);
+void gcry_create_nonce (void *buffer, size_t length);
 
 
 

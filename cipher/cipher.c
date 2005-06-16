@@ -1069,8 +1069,8 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf,
  * been requested.
  */
 gcry_error_t
-gcry_cipher_encrypt (gcry_cipher_hd_t h, byte *out, size_t outsize,
-                     const byte *in, size_t inlen)
+gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
+                     const void *in, size_t inlen)
 {
   gcry_err_code_t err;
 
@@ -1151,8 +1151,8 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 
 
 gcry_error_t
-gcry_cipher_decrypt (gcry_cipher_hd_t h, byte *out, size_t outsize,
-		     const byte  *in, size_t inlen)
+gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
+		     const void *in, size_t inlen)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
 

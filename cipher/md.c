@@ -798,8 +798,9 @@ prepare_macpads( gcry_md_hd_t hd, const byte *key, size_t keylen)
 }
 
 gcry_error_t
-gcry_md_ctl (gcry_md_hd_t hd, int cmd, byte *buffer, size_t buflen)
+gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
 {
+  unsigned char *buf = (unsigned char *)buffer;
   gcry_err_code_t rc = 0;
   
   switch (cmd)
@@ -808,10 +809,10 @@ gcry_md_ctl (gcry_md_hd_t hd, int cmd, byte *buffer, size_t buflen)
       md_final (hd);
       break;
     case GCRYCTL_SET_KEY:
-      rc = gcry_err_code (gcry_md_setkey (hd, buffer, buflen));
+      rc = gcry_err_code (gcry_md_setkey (hd, buf, buflen));
       break;
     case GCRYCTL_START_DUMP:
-      md_start_debug (hd, buffer);
+      md_start_debug (hd, buf);
       break;
     case GCRYCTL_STOP_DUMP:
       md_stop_debug( hd );
