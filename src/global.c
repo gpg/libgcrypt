@@ -632,7 +632,6 @@ gcry_xstrdup (const char *string)
 	}
     }
 
-  strcpy( p, string );
   return p;
 }
 
