@@ -72,8 +72,10 @@ global_init (void)
     err = _gcry_md_init ();
   if (! err)
     err = _gcry_pk_init ();
+#if 0
   if (! err)
     err = _gcry_ac_init ();
+#endif
 
   if (err)
     /* FIXME?  */
@@ -629,7 +631,6 @@ gcry_xstrdup (const char *string)
 	}
     }
 
-  strcpy( p, string );
   return p;
 }
 
