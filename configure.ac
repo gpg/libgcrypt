@@ -788,7 +788,6 @@ cipher/Makefile
 doc/Makefile
 src/Makefile
 src/libgcrypt-config
-src/libgcrypt.pc
 tests/Makefile
 w32-dll/Makefile
 ])

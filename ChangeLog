@@ -1,3 +1,7 @@
+2005-06-25  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Removed src/libgcrypt.pc from AC_CONFIG_FILES.
+
 2005-06-10  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Move detection of basic stuff to the top.  For
