@@ -1,4 +1,4 @@
-# Copyright (C) 1998,1999,2000,2001,2002,2003,2004 Free Software Foundation, Inc.
+# Copyright (C) 1998,1999,2000,2001,2002,2003,2004,2005 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -22,8 +22,6 @@ EXTRA_DIST = Manifest libgcrypt-config.in libgcrypt.m4 libgcrypt.vers
 bin_SCRIPTS = libgcrypt-config
 m4datadir = $(datadir)/aclocal
 m4data_DATA = libgcrypt.m4
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libgcrypt.pc
 include_HEADERS = gcrypt.h gcrypt-module.h
 
 lib_LTLIBRARIES = libgcrypt.la
