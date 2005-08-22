@@ -39,7 +39,7 @@
 static gcry_mpi_t gen_prime (unsigned int nbits, int secret, int randomlevel, 
                              int (*extra_check)(void *, gcry_mpi_t),
                              void *extra_check_arg);
-static int check_prime( gcry_mpi_t prime, gcry_mpi_t val_2,
+static int check_prime( gcry_mpi_t prime, gcry_mpi_t val_2, int rm_rounds,
                         gcry_prime_check_func_t cb_func, void *cb_arg );
 static int is_prime( gcry_mpi_t n, int steps, int *count );
 static void m_out_of_n( char *array, int m, int n );
@@ -372,7 +372,8 @@ prime_generate_internal (int mode,
 	else
 	  count2 = 0;
     }
-  while (! ((nprime == pbits) && check_prime (prime, val_2, cb_func, cb_arg)));
+  while (! ((nprime == pbits) && check_prime (prime, val_2, 5,
+                                              cb_func, cb_arg)));
 
   if (DBG_CIPHER)
     {
@@ -637,9 +638,10 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
 
 /****************
  * Returns: true if this may be a prime
+ * RM_ROUNDS gives the number of Rabin-Miller tests to run.
  */
 static int
-check_prime( gcry_mpi_t prime, gcry_mpi_t val_2,
+check_prime( gcry_mpi_t prime, gcry_mpi_t val_2, int rm_rounds,
              gcry_prime_check_func_t cb_func, void *cb_arg)
 {
   int i;
@@ -673,7 +675,7 @@ check_prime( gcry_mpi_t prime, gcry_mpi_t val_2,
   if (!cb_func || cb_func (cb_arg, GCRY_PRIME_CHECK_AT_MAYBE_PRIME, prime))
     {
       /* Perform stronger tests. */
-      if ( is_prime( prime, 5, &count ) )
+      if ( is_prime( prime, rm_rounds, &count ) )
         {
           if (!cb_func
               || cb_func (cb_arg, GCRY_PRIME_CHECK_AT_GOT_PRIME, prime))
@@ -700,6 +702,9 @@ is_prime (gcry_mpi_t n, int steps, int *count)
   unsigned i, j, k;
   int rc = 0;
   unsigned nbits = mpi_get_nbits( n );
+
+  if (steps < 5) /* Make sure that we do at least 5 rounds. */
+    steps = 5; 
 
   mpi_sub_ui( nminus1, n, 1 );
 
@@ -935,7 +940,9 @@ gcry_prime_check (gcry_mpi_t x, unsigned int flags)
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_mpi_t val_2 = mpi_alloc_set_ui (2); /* Used by the Fermat test. */
 
-  if (! check_prime (x, val_2, NULL, NULL))
+  /* We use 64 rounds because the prime we are going to test is not
+     guaranteed to be a random one. */
+  if (! check_prime (x, val_2, 64, NULL, NULL))
     err = GPG_ERR_NO_PRIME;
 
   mpi_free (val_2);

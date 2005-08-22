@@ -1,3 +1,11 @@
+2005-08-22  Werner Koch  <wk@g10code.com>
+
+	* primegen.c (check_prime): New arg RM_ROUNDS.
+	(prime_generate_internal): Call it here with 5 rounds as used
+	before.
+	(gcry_prime_check): But here with 64 rounds.
+	(is_prime): Make sure never to use less than 5 rounds.
+
 2005-04-16  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c (_gcry_ac_init): New function.
