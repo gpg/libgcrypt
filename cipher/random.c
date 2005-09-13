@@ -1,6 +1,6 @@
 /* random.c  -	random number generator
  * Copyright (C) 1998, 2000, 2001, 2002, 2003,
- *               2004  Free Software Foundation, Inc.
+ *               2004, 2005  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -693,21 +693,38 @@ _gcry_update_random_seed_file()
 
 
 /* Read random out of the pool. This function is the core of the
-   public random fucntions.  Note that Level 0 is not anymore handeld
-   special and in fact an alias for level 1. */
+   public random functions.  Note that Level 0 is special and in fact
+   an alias for level 1. */
 static void
 read_pool (byte *buffer, size_t length, int level)
 {
   int i;
   unsigned long *sp, *dp;
-  volatile pid_t my_pid; /* The volatile is there to make sure the
-                            compiler does not optimize the code away
-                            in case the getpid function is badly
-                            attributed. */
+  size_t n;
+  /* The volatile is there to make sure the compiler does not optimize
+     the code away in case the getpid function is badly attributed.
+     Note that we keep a pid in a static variable as well as in a
+     stack based one; the latter is to detect ill behaving thread
+     libraries, ignoring the pool mutexes. */
+  static volatile pid_t my_pid = (pid_t)(-1); 
+  volatile pid_t my_pid2;
 
  retry:
   /* Get our own pid, so that we can detect a fork. */
-  my_pid = getpid ();
+  my_pid2 = getpid ();
+  if (my_pid == (pid_t)(-1))                                
+    my_pid = my_pid2;
+  if ( my_pid != my_pid2 )
+    {
+      /* We detected a plain fork; i.e. we are now the child.  Update
+         the static pid and add some randomness. */
+      pid_t x;
+
+      my_pid = my_pid2;
+      x = my_pid;
+      add_randomness (&x, sizeof(x), 0);
+      just_mixed = 0; /* Make sure it will get mixed. */
+    }
 
   assert (pool_is_locked);
 
@@ -715,7 +732,7 @@ read_pool (byte *buffer, size_t length, int level)
      check it here. */
   if (length > POOLSIZE)
     {
-      log_bug("too many random bits requested\n");
+      log_bug("too many random bits requested (%lu)\n", (unsigned long)length);
     }
 
   if (!pool_filled)
@@ -787,7 +804,7 @@ read_pool (byte *buffer, size_t length, int level)
 
   /* Read the required data.  We use a readpointer to read from a
      different position each time */
-  while (length--)
+  for (n=0; n < length; n++)
     {
       *buffer++ = keypool[pool_readpos++];
       if (pool_readpos >= POOLSIZE)
@@ -803,17 +820,14 @@ read_pool (byte *buffer, size_t length, int level)
 
   /* We need to detect whether a fork has happened.  A fork might have
      an identical pool and thus the child and the parent could emit
-     the very same random number.  Obviously this can only happen when
-     running multi-threaded and the pool lock should even catch this.
-     However things do get wrong and thus we better check and retry it
-     here.  We assume that the thread library has no other fatal
-     faults, though.
-   */
-  if ( getpid () != my_pid )
+     the very same random number.  This test here is to detect forks
+     in a multi-threaded process. */
+  if ( getpid () != my_pid2 )
     {
       pid_t x = getpid();
       add_randomness (&x, sizeof(x), 0);
       just_mixed = 0; /* Make sure it will get mixed. */
+      my_pid = x;     /* Also update the static pid. */
       goto retry;
     }
 }
@@ -1103,6 +1117,10 @@ gcry_create_nonce (void *buffer, size_t length)
 {
   static unsigned char nonce_buffer[20+8];
   static int nonce_buffer_initialized = 0;
+  static volatile pid_t my_pid; /* The volatile is there to make sure the
+                                   compiler does not optimize the code away
+                                   in case the getpid function is badly
+                                   attributed. */
   unsigned char *p;
   size_t n;
   int err;
@@ -1123,6 +1141,8 @@ gcry_create_nonce (void *buffer, size_t length)
       pid_t apid = getpid ();
       time_t atime = time (NULL);
 
+      my_pid = apid;
+
       if ((sizeof apid + sizeof atime) > sizeof nonce_buffer)
         BUG ();
 
@@ -1138,6 +1158,12 @@ gcry_create_nonce (void *buffer, size_t length)
       gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
 
       nonce_buffer_initialized = 1;
+    }
+  else if ( my_pid != getpid () )
+    {
+      /* We forked. Need to reseed the buffer - doing this for the
+         private part should be sufficient. */
+      gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
     }
 
   /* Create the nonce by hashing the entire buffer, returning the hash

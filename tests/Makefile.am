@@ -18,7 +18,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-TESTS = prime register ac basic tsexp keygen pubkey benchmark
+TESTS = prime register ac basic tsexp keygen pubkey benchmark random
 
 INCLUDES = -I$(top_srcdir)/src
 LDADD = ../src/libgcrypt.la

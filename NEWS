@@ -1,6 +1,8 @@
 Noteworthy changes in version 1.2.2
 ------------------------------------------------
 
+ * Made the RNG immune against fork without exec.
+
  * Minor changes to some function declarations.  Buffer arguments are
    now typed as void pointer.  This should not affect any compilation.
    A bug in the definition of gcry_cipher_register has been fixed.

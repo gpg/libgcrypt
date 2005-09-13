@@ -1,3 +1,9 @@
+2005-09-13  Werner Koch  <wk@g10code.com>
+
+	* random.c (gcry_create_nonce): Detect a fork and re-seed.
+	(read_pool): Fixed the fork detection; it used to work only for
+	multi-threaded processes.
+
 2005-06-16  Werner Koch  <wk@g10code.com>
 
 	* cipher.c (gcry_cipher_register): Changed arg ALGORITHM_ID
