@@ -23,6 +23,7 @@
 
 INCLUDES =  -I$(top_srcdir)/src
 ASFLAGS = @MPI_SFLAGS@
+AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
 # We don't have .S sources listed, so automake does not autocreate these
 CCASCOMPILE = $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
