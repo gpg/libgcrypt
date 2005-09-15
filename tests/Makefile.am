@@ -19,7 +19,7 @@
 ## Process this file with automake to produce Makefile.in
 
 TESTS = prime register ac ac-schemes ac-data basic \
-        tsexp keygen pubkey benchmark pkbench hmac
+        tsexp keygen pubkey benchmark pkbench hmac keygrip
 
 INCLUDES = -I$(top_srcdir)/src
 LDADD = ../src/libgcrypt.la

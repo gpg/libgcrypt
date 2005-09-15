@@ -850,6 +850,8 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 	GPG_ERR_DIGEST_ALGO },
       {	"(data\n (flags )\n" " (value #11223344556677889900AA#))\n",
 	0 },
+      {	"(data\n (flags )\n" " (value #0090223344556677889900AA#))\n",
+	0 },
       { "(data\n (flags raw)\n" " (value #11223344556677889900AA#))\n",
 	0 },
       {	"(data\n (flags pkcs1)\n"
