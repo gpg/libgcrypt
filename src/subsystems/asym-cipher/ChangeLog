@@ -1,0 +1,7 @@
+2005-09-23  Moritz Schulte  <moritz@g10code.com>
+
+	Reorganized source tree.
+	
+	New file: core.c (based on former file cipher/ac.c).
+	New files: gcrypt-ac-common.h, gcrypt-ac.h, gcrypt-ac-internal.h,
+	interface.c, Makefile.am, README.

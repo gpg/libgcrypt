@@ -1,0 +1,11 @@
+This directory contains Libgcrypt's default implementation of the
+prime subsystem.  When built, this subsystem will be put into a
+library named `libgcrypt-prime.la'.
+
+Files:
+
+  core.c: core functionality.
+  interface.c: public interface on top of core functionality.
+  gcrypt-prime-common.h: internal and public definitions.
+  gcrypt-prime-internal.h: internal definitions.
+  gcrypt-prime.h: public definitions.

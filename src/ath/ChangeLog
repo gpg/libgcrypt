@@ -1,0 +1,5 @@
+2005-09-23  Moritz Schulte  <moritz@g10code.com>
+
+	Reorganized source tree.
+	New files: ath.c gcrypt-ath-common.h, gcrypt-ath-internal.h,
+	Makefile.am, README.

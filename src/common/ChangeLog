@@ -1,0 +1,6 @@
+2005-09-23  Moritz Schulte  <moritz@g10code.com>
+
+	Reorganized source tree.
+	New files: control.c, error.c, gcrypt-common-common.h,
+	gcrypt-common.h, gcrypt-common-internal.h, logger.c, Maekfile.am,
+	memory.c, misc.c.

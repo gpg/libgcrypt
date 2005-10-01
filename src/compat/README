@@ -1,0 +1,33 @@
+This directory contains the compatibility layer, which provides the
+traditional API known from Libgcrypt 1.x.
+
+How it works:
+
+(1) Initialization
+
+The compat layer is a layer on top of Libgcrypt-core.  For interaction
+with Libgcrypt-core it uses a global context, which gets initialized
+at ``initialization time''.  The latter term is quite hairy, since
+Libgcrypt 1.x does not implement a central initialization mechanism.
+
+Internal initialization is implemented in the `_gcry_init_do'
+function; this function is used indirectly through the function
+pointer `_gcry_init'.
+
+It needs to be distinguished between the single-threaded case and the
+multi-threaded case.
+
+(i) single-threaded:
+    - all function calls are serialized by definition
+    - every entry point into the library checks if internal
+      initialization did already happen; if not, internal initialization
+      will be done
+
+(ii) multi-threaded:
+    - the manual explicitely states that before (!) threads will be
+      created, according thread callbacks need to be passed to the library
+      through gcry_control(); this is our point of initialization
+
+After _gcry_init_do() has successfully initialized the library, the
+_gcry_init function pointer is set to an no-operation.
+

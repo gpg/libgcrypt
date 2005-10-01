@@ -1,0 +1,11 @@
+This directory contains Libgcrypt's default implementation of the
+asymmetric-cipher (ac) subsystem.  When built, this subsystem will be put
+into a library named `libgcrypt-ac.la'.
+
+Files:
+
+  core.c: core functionality.
+  interface.c: public interface on top of core functionality.
+  gcrypt-ac-common.h: internal and public definitions.
+  gcrypt-ac-internal.h: internal definitions.
+  gcrypt-ac.h: public definitions.

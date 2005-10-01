@@ -1,0 +1,11 @@
+This directory contains Libgcrypt's default implementation of the
+message-digest (md) subsystem.  When built, this subsystem will be put
+into a library named `libgcrypt-md.la'.
+
+Files:
+
+  core.c: core functionality.
+  interface.c: public interface on top of core functionality.
+  gcrypt-md-common.h: internal and public definitions.
+  gcrypt-md-internal.h: internal definitions.
+  gcrypt-md.h: public definitions.

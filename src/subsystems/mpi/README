@@ -1,0 +1,5 @@
+This directory contains Libgcrypt's default implementation of the MPI
+subsystem.  When built, this subsystem will be put into a library
+named `libgcrypt-mpi.la'.
+
+Files:

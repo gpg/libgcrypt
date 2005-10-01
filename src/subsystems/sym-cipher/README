@@ -1,0 +1,11 @@
+This directory contains Libgcrypt's default implementation of the
+symmetric-cipher (`cipher') subsystem.  When built, this subsystem
+will be put into a library named `libgcrypt-cipher.la'.
+
+Files:
+
+  core.c: core functionality.
+  interface.c: public interface on top of core functionality.
+  gcrypt-cipher-common.h: internal and public definitions.
+  gcrypt-cipher-internal.h: internal definitions.
+  gcrypt-cipher.h: public definitions.

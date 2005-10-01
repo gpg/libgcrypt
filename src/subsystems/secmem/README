@@ -1,0 +1,14 @@
+This directory contains Libgcrypt's default implementation of the
+secmem subsystem.  When built, this subsystem will be put into a
+library named `libgcrypt-secmem.la'.
+
+This subsystem contains a simple, heap-based memory manager, which is
+supposed to meet the needs of secure  ... FIXME
+
+Files:
+
+  core.c: core functionality.
+  interface.c: public interface on top of core functionality.
+  gcrypt-secmem-common.h: internal and public definitions.
+  gcrypt-secmem-internal.h: internal definitions.
+  gcrypt-secmem.h: public definitions.

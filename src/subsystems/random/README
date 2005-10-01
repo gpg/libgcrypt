@@ -1,0 +1,18 @@
+This directory contains Libgcrypt's default implementation of the
+random subsystem.  When built, this subsystem will be put into a
+library named `libgcrypt-random.la'.
+
+This subsystem contains a pseudo random number generator (PRNG)
+modelled after the one described in Peter Gutmann's paper: "Software
+Generation of Practically Strong Random Numbers".
+
+Files:
+
+  core.c: core functionality.
+  interface.c: public interface on top of core functionality.
+  gcrypt-random-common.h: internal and public definitions.
+  gcrypt-random-internal.h: internal definitions.
+  gcrypt-random.h: public definitions.
+  source-dev.c: Random gather module using /dev/{u,}random.
+  source-egd.c: Random gather module using EGD.
+  source-unix.c: Random gather module using standard Unix programs.

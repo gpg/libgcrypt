@@ -1,0 +1,18 @@
+This directory contains Libgcrypt's default implementation of the
+S-expression (`sexp') subsystem.  When built, this subsystem will be
+put into a library named `libgcrypt-sexp.la'.
+
+S-expressions are used by the public key functions to pass complex
+data structures around.  These LISP like objects are used by some
+cryptographic protocols (cf. RFC-2692) and Libgcrypt provides
+functions to parse and construct them.  For detailed information, see
+`Ron Rivest, code and description of S-expressions,
+`http://theory.lcs.mit.edu/~rivest/sexp.html''.
+
+Files:
+
+  core.c: core functionality.
+  interface.c: public interface on top of core functionality.
+  gcrypt-sexp-common.h: internal and public definitions.
+  gcrypt-sexp-internal.h: internal definitions.
+  gcrypt-sexp.h: public definitions.

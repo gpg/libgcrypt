@@ -1,30 +1,23 @@
-# Copyright (C) 1998,1999,2000,2001,2002,2003,2004,2005 Free Software Foundation, Inc.
-#
-# This file is part of Libgcrypt.
-#
-# Libgcrypt is free software; you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation; either version 2.1 of
-# the License, or (at your option) any later version.
-#
-# Libgcrypt is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+SUBDIRS = \
+include \
+liberty \
+common \
+ath \
+subsystems \
+modules \
+compat \
+scripts
 
-## Process this file with automake to produce Makefile.in
+EXTRA_DIST = OVERVIEW libgcrypt-config.in libgcrypt.m4 \
+libgcrypt.vers libgcrypt-core.vers ChangeLog.old
 
-EXTRA_DIST = Manifest libgcrypt-config.in libgcrypt.m4 libgcrypt.vers
-bin_SCRIPTS = libgcrypt-config
-m4datadir = $(datadir)/aclocal
-m4data_DATA = libgcrypt.m4
-include_HEADERS = gcrypt.h gcrypt-module.h
+lib_LTLIBRARIES = libgcrypt-core.la libgcrypt.la
 
-lib_LTLIBRARIES = libgcrypt.la
+if HAVE_LD_VERSION_SCRIPT
+  libgcrypt_core_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt-core.vers
+else
+  libgcrypt_core_version_script_cmd = 
+endif
 
 if HAVE_LD_VERSION_SCRIPT
   libgcrypt_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt.vers
@@ -32,16 +25,80 @@ else
   libgcrypt_version_script_cmd = 
 endif
 
-libgcrypt_la_CFLAGS = @GPG_ERROR_CFLAGS@
-libgcrypt_la_SOURCES = g10lib.h types.h cipher.h \
-	misc.c global.c sexp.c \
-	stdmem.c stdmem.h secmem.c secmem.h \
-	mpi.h missing-string.c module.c \
-	ath.h ath.c
+libgcrypt_core_la_SOURCES =
+libgcrypt_la_SOURCES =
 
+libgcrypt_core_la_LDFLAGS = $(libgcrypt_core_version_script_cmd) -version-info \
+	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
-libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
-	$(srcdir)/libgcrypt.vers
-libgcrypt_la_LIBADD = ../cipher/libcipher.la ../mpi/libmpi.la \
-	@LTLIBOBJS@ @GPG_ERROR_LIBS@
+
+# FIXME: liberty missing (did not get built for whatever reason?)
+
+libgcrypt_core_la_DEPENDENCIES = \
+ath/libgcrypt-ath.la \
+common/libgcrypt-common.la \
+subsystems/hash/libgcrypt-md.la \
+subsystems/asym-cipher/libgcrypt-ac.la \
+subsystems/sym-cipher/libgcrypt-cipher.la \
+modules/hash/libgcrypt-md-modules.la \
+modules/asym-cipher/libgcrypt-ac-modules.la \
+modules/sym-cipher/libgcrypt-cipher-modules.la \
+subsystems/mpi/libgcrypt-mpi.la \
+subsystems/prime/libgcrypt-prime.la \
+subsystems/random/libgcrypt-random.la \
+subsystems/secmem/libgcrypt-secmem.la \
+subsystems/sexp/libgcrypt-sexp.la \
+$(srcdir)/libgcrypt-core.vers
+
+libgcrypt_la_DEPENDENCIES = \
+ath/libgcrypt-ath.la \
+common/libgcrypt-common.la \
+compat/libgcrypt-compat.la \
+subsystems/hash/libgcrypt-md.la \
+subsystems/asym-cipher/libgcrypt-ac.la \
+modules/hash/libgcrypt-md-modules.la \
+modules/asym-cipher/libgcrypt-ac-modules.la \
+modules/sym-cipher/libgcrypt-cipher-modules.la \
+subsystems/mpi/libgcrypt-mpi.la \
+subsystems/prime/libgcrypt-prime.la \
+subsystems/random/libgcrypt-random.la \
+subsystems/secmem/libgcrypt-secmem.la \
+subsystems/sexp/libgcrypt-sexp.la \
+subsystems/sym-cipher/libgcrypt-cipher.la \
+$(srcdir)/libgcrypt.vers
+
+libgcrypt_core_la_LIBADD = \
+ath/libgcrypt-ath.la \
+common/libgcrypt-common.la \
+subsystems/hash/libgcrypt-md.la \
+subsystems/asym-cipher/libgcrypt-ac.la \
+modules/hash/libgcrypt-md-modules.la \
+modules/asym-cipher/libgcrypt-ac-modules.la \
+modules/sym-cipher/libgcrypt-cipher-modules.la \
+subsystems/mpi/libgcrypt-mpi.la \
+subsystems/prime/libgcrypt-prime.la \
+subsystems/random/libgcrypt-random.la \
+subsystems/secmem/libgcrypt-secmem.la \
+subsystems/sexp/libgcrypt-sexp.la \
+subsystems/sym-cipher/libgcrypt-cipher.la \
+@LTLIBOBJS@ \
+@GPG_ERROR_LIBS@
+
+libgcrypt_la_LIBADD = \
+ath/libgcrypt-ath.la \
+common/libgcrypt-common.la \
+compat/libgcrypt-compat.la \
+subsystems/hash/libgcrypt-md.la \
+subsystems/asym-cipher/libgcrypt-ac.la \
+modules/hash/libgcrypt-md-modules.la \
+modules/asym-cipher/libgcrypt-ac-modules.la \
+modules/sym-cipher/libgcrypt-cipher-modules.la \
+subsystems/mpi/libgcrypt-mpi.la \
+subsystems/prime/libgcrypt-prime.la \
+subsystems/random/libgcrypt-random.la \
+subsystems/secmem/libgcrypt-secmem.la \
+subsystems/sexp/libgcrypt-sexp.la \
+subsystems/sym-cipher/libgcrypt-cipher.la \
+@LTLIBOBJS@ \
+@GPG_ERROR_LIBS@

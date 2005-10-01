@@ -1,0 +1,9 @@
+mpih-add1    C
+mpih-sub1    C
+mpih-mul1    C
+mpih-mul2    C
+mpih-mul3    C
+mpih-lshift  C
+mpih-rshift  C
+udiv         O
+udiv-qrnnd   O

@@ -1,0 +1,2 @@
+This directory contains Libgcrypt's own liberty-library containing
+helper functions, which are missing on the target platform.
