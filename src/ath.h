@@ -1,5 +1,5 @@
 /* ath.h - Thread-safeness library.
-   Copyright (C) 2002, 2003, 2004 g10 Code GmbH
+   Copyright (C) 2002, 2003, 2004 Free Software Foundation, Inc.
 
    This file is part of Libgcrypt.
  
