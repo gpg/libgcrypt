@@ -29,7 +29,7 @@ CCASCOMPILE = $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
 LTCCASCOMPILE = $(LIBTOOL) --mode=compile $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
 
 
-EXTRA_DIST = Manifest config.links README asm-modules.txt
+EXTRA_DIST = config.links README asm-modules.txt
 DISTCLEANFILES = mpi-asm-defs.h \
                  mpih-add1.S mpih-mul1.S mpih-mul2.S mpih-mul3.S  \
 		 mpih-lshift.S mpih-rshift.S mpih-sub1.S asm-syntax.h sysdep.h
