@@ -813,7 +813,6 @@ src/modules/Makefile
 src/modules/hash/Makefile
 src/modules/sym-cipher/Makefile
 src/modules/asym-cipher/Makefile
-src/scripts/Makefile
 src/libgcrypt-config
 doc/Makefile
 tests/Makefile
