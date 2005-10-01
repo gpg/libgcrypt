@@ -1,3 +1,15 @@
+2005-10-01  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am: Adjust directory specifications to new source-tree
+	layout.
+
+2005-09-21  Moritz Schulte  <moritz@g10code.com>
+
+	* configure.ac: Check for threading libraries in order to allow
+	the test suite to enable threading.
+	Adjust paths for new source tree layout.
+	Bump version number up to 2.0.0-cvs.
+
 2005-09-15  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am (EXTRA_DIST): Depend on README.SVN, not on README.CVS.
@@ -16,10 +28,10 @@
 
 	* acinclude.m4 (TYPE_SOCKLEN_T): New type definition test;
 	provided by Albert Chin.
-	* configure.ac: Don't use $(CMD) as it's not portable; use CMD in
-	backticks instead.  Simpler -lnsl/-lsocket test.  Use
-	TYPE_SOCKLEN_T test.  Don't forget to set `random_modules'
-	correctly.
+	* configure.ac: Don't use $(CMD) as it's not portable; use `CMD` nstead.
+	Simpler -lnsl/-lsocket test.
+	Use TYPE_SOCKLEN_T test.
+	Don't forget to set `random_modules' correctly.
 
 2005-04-22  Moritz Schulte  <moritz@g10code.com>
 
@@ -550,9 +562,9 @@ Fri Jul 14 19:38:23 CEST 2000  Werner Koch  <wk@>
 
   * acinclude.m4, configure.in (GNUPG_CHECK_GNUMAKE): New.
 
-  * acinclude.m4 (MKDIR_TAKES_ONE_ARG): Check some headers. By Gaël Quéri.
+  * acinclude.m4 (MKDIR_TAKES_ONE_ARG): Check some headers. By GaÃ«l QuÃ©ri.
 
-  * configure.in (AM_INIT_AUTOMAKE): Use this now. By Gaël.
+  * configure.in (AM_INIT_AUTOMAKE): Use this now. By GaÃ«l.
 
   * acinclude.m4 (GNUPG_CHECK_EXPORTDYNAMIC): Replacement for
   GNUPG_CHECK_RDYNAMIC which should handle gcc with non GNU ld nicer.
@@ -570,7 +582,7 @@ Fri Jul 14 19:38:23 CEST 2000  Werner Koch  <wk@>
   * configure.in (ALL_LINGUAS): Add sv and ja.
 
   * configure.in: Use /usr/local for CFLAGS and LDFLAGS when
-  target is freebsd.  By Rémi.
+  target is freebsd.  By RÃ©mi.
 
   * configure.in: Do not set development version when the version has
   a dash in it.  Suggested by Dave Dykstra.
@@ -608,7 +620,7 @@ Mon Mar 13 19:22:46 CET 2000  Werner Koch  <wk@openit.de>
 
 Mon Jan 31 17:46:35 CET 2000  Werner Koch  <wk@>
 
-	* Makefile.am: Re-added tools. By Rémi.
+	* Makefile.am: Re-added tools. By RÃ©mi.
 
 Mon Jan 31 16:37:34 CET 2000  Werner Koch  <wk@gnupg.de>
 
@@ -860,7 +872,7 @@ Tue Jan 12 11:17:18 CET 1999  Werner Koch  <wk@isil.d.shuttle.de>
 
 	* config.links (m68k-atari-mint): New
 
-Tue Jan 12 09:17:19 CET 1999  Gaël Quéri <gqueri@mail.dotcom.fr>
+Tue Jan 12 09:17:19 CET 1999  GaÃ«l QuÃ©ri <gqueri@mail.dotcom.fr>
 
 	* all: Fixed typos all over the place
 

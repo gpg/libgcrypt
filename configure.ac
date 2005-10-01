@@ -1,3 +1,4 @@
+
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002
 #               2003, 2004 Free Software Foundation, Inc.
@@ -27,7 +28,7 @@ min_automake_version="1.9.3"
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.3.0-cvs, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 2.0.0-cvs2, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
@@ -46,7 +47,8 @@ NEED_GPG_ERROR_VERSION=1.0
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
-AC_CONFIG_SRCDIR([src/gcrypt.h])
+AC_CONFIG_SRCDIR([src/compat/gcrypt.h])
+AC_CONFIG_AUX_DIR([scripts])
 AC_CANONICAL_TARGET()
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 AM_CONFIG_HEADER(config.h)
@@ -70,7 +72,6 @@ AH_VERBATIM([_REENTRANT],
 #endif
 ])
 
-
 AC_SUBST(LIBGCRYPT_LT_CURRENT)
 AC_SUBST(LIBGCRYPT_LT_AGE)
 AC_SUBST(LIBGCRYPT_LT_REVISION)
@@ -78,7 +79,6 @@ AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
-
 
 ######################
 ##  Basic checks.  ### (we need some results later on (e.g. $GCC)
@@ -99,7 +99,6 @@ AC_PROG_INSTALL
 AC_PROG_AWK
 
 AM_PROG_LIBTOOL
-
 
 ##########################
 ## General definitions. ##
@@ -389,8 +388,6 @@ AC_ARG_WITH(capabilities,
 [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
 
-
-
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
                    [A human readable text with the name of the OS])
 
@@ -436,6 +433,20 @@ AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
 AC_SEARCH_LIBS(setsockopt, [socket], ,
 	[AC_SEARCH_LIBS(setsockopt, [socket], , , [-lnsl])])
 AC_SEARCH_LIBS(setsockopt, [nsl])
+
+# We check for threading libraries to allow the test suite to test
+# multi-threading.
+
+AC_CHECK_PTH(1.2.0,,,no,have_pth=yes)
+if test "$have_pth" = yes; then
+  AC_DEFINE(HAVE_PTH, ,[Define if we have Pth.])
+  CFLAGS="$CFLAGS $PTH_CFLAGS"
+fi
+
+AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
+if test "$have_pthread" = yes; then
+  AC_DEFINE(HAVE_PTHREAD, ,[Define if we have pthread.])
+fi
 
 ##################################
 #### Checks for header files. ####
@@ -563,8 +574,8 @@ fi
 #
 GNUPG_SYS_SYMBOL_UNDERSCORE()
 AC_MSG_CHECKING(for mpi assembler functions)
-if test -f $srcdir/mpi/config.links ; then
-    . $srcdir/mpi/config.links
+if test -f $srcdir/src/subsystems/mpi/config.links ; then
+    . $srcdir/src/subsystems/mpi/config.links
     AC_CONFIG_LINKS("$mpi_ln_list")
     ac_cv_mpi_mod_list="$mpi_mod_list"
     ac_cv_mpi_sflags="$mpi_sflags"
@@ -572,7 +583,7 @@ if test -f $srcdir/mpi/config.links ; then
     AC_MSG_RESULT(done)
 else
     AC_MSG_RESULT(failed)
-    AC_MSG_ERROR([mpi/config.links missing!])
+    AC_MSG_ERROR([src/subsystems/mpi/config.links missing!])
 fi
 MPI_MOD_LIST_LO=""
 MPI_MOD_LIST_O=""
@@ -628,7 +639,7 @@ fi
 # Make the version number in src/gcrypt.h the same as the one here.
 # (this is easier than to have a *.in file just for one substitution)
 #
-GNUPG_FIX_HDR_VERSION([src/gcrypt.h], GCRYPT_VERSION)
+GNUPG_FIX_HDR_VERSION([src/compat/gcrypt.h], GCRYPT_VERSION)
 
 AC_SUBST(LIBGCRYPT_CONFIG_API_VERSION)
 AC_SUBST(LIBGCRYPT_CONFIG_LIBS)
@@ -783,13 +794,29 @@ AC_SUBST(LIBGCRYPT_DIGESTS, $enabled_digests)
 
 AC_CONFIG_FILES([
 Makefile
-mpi/Makefile
-cipher/Makefile
-doc/Makefile
 src/Makefile
+src/include/Makefile
+src/liberty/Makefile
+src/common/Makefile
+src/ath/Makefile
+src/compat/Makefile
+src/subsystems/Makefile
+src/subsystems/mpi/Makefile
+src/subsystems/sexp/Makefile
+src/subsystems/prime/Makefile
+src/subsystems/secmem/Makefile
+src/subsystems/random/Makefile
+src/subsystems/hash/Makefile
+src/subsystems/sym-cipher/Makefile
+src/subsystems/asym-cipher/Makefile
+src/modules/Makefile
+src/modules/hash/Makefile
+src/modules/sym-cipher/Makefile
+src/modules/asym-cipher/Makefile
+src/scripts/Makefile
 src/libgcrypt-config
+doc/Makefile
 tests/Makefile
-w32-dll/Makefile
 ])
 AC_OUTPUT
 

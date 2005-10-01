@@ -1,28 +1,6 @@
-## Process this file with automake to produce Makefile.in
-# Copyright (C) 1992, 1999, 2000, 2002 Free Software Foundation, Inc.
-#
-# This file is part of Libgcrypt.
-#
-# Libgcrypt is free software; you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation; either version 2.1 of
-# the License, or (at your option) any later version.
-#
-# Libgcrypt is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
-
-ACLOCAL_AMFLAGS = -I m4
-AUTOMAKE_OPTIONS = dist-bzip2
-
-DIST_SUBDIRS = mpi cipher src doc tests w32-dll
-SUBDIRS = mpi cipher src doc tests
-EXTRA_DIST = BUGS autogen.sh README.apichanges README.SVN
+DIST_SUBDIRS = src doc tests
+SUBDIRS = src doc tests
+EXTRA_DIST = BUGS autogen.sh DESIGN
 DISTCLEANFILES = 
 
 
@@ -32,7 +10,7 @@ DISTCLEANFILES =
 dist-hook:
 	@set -e; \
 	 for file in `cd $(top_srcdir); \
-	      find mpi -type f -name distfiles`; do \
+	      find . -type f -name distfiles`; do \
 	    dir=`dirname $$file` ; $(mkinstalldirs) $(distdir)/$$dir ; \
 	    for i in distfiles `cat $(top_srcdir)/$$file` ; do \
 		ln $(top_srcdir)/$$dir/$$i $(distdir)/$$dir/$$i 2> /dev/null \
@@ -41,8 +19,3 @@ dist-hook:
 	done
 	@set -e; \
 	echo "$(VERSION)" > $(distdir)/VERSION
-
-
-
-
-
