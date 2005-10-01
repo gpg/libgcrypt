@@ -28,22 +28,12 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include "../src/gcrypt.h"
+#include "../src/compat/gcrypt.h"
+#include "common.h"
+
+unsigned int test_startup_flags = 0;
 
 static int verbose;
-
-
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
-}
 
 
 
@@ -117,7 +107,7 @@ progress_handler (void *cb_data, const char *what, int printchar,
 }
 
 int
-main (int argc, char **argv)
+test_main (int argc, char **argv)
 {
   int debug = 0;
 
@@ -126,12 +116,7 @@ main (int argc, char **argv)
   else if (argc > 1 && !strcmp (argv[1], "--debug"))
     verbose = debug = 1;
 
-  if (!gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
-
   gcry_set_progress_handler (progress_handler, NULL);
-  
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
 
   check ();
 

@@ -28,20 +28,12 @@
 #include <assert.h>
 #include <errno.h>
 
-#include "../src/gcrypt.h"
+#include "../src/compat/gcrypt.h"
+#include "common.h"
+
+unsigned int test_startup_flags = 0;
 
 static unsigned int verbose;
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr ;
-
-  va_start( arg_ptr, format ) ;
-  vfprintf (stderr, format, arg_ptr );
-  va_end(arg_ptr);
-  exit (1);
-}
 
 typedef struct scheme_spec
 {
@@ -323,7 +315,7 @@ check_run (void)
 }
 
 int
-main (int argc, char **argv)
+test_main (int argc, char **argv)
 {
   unsigned int debug = 0;
 
@@ -332,10 +324,6 @@ main (int argc, char **argv)
   else if ((argc > 1) && (! strcmp (argv[1], "--debug")))
     verbose = debug = 1;
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  if (! gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
 

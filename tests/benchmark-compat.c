@@ -25,12 +25,15 @@
 #include <stdlib.h>
 #include <time.h>
 #include <sys/times.h>
-#include <gcrypt.h>
+
+#include "../src/compat/gcrypt.h"
+#include "common.h"
 
 #define PGM "benchmark"
 #define BUG() do {fprintf ( stderr, "Ooops at %s:%d\n", __FILE__ , __LINE__ );\
 		  exit(2);} while(0)
 
+unsigned int test_startup_flags = 0;
 
 /* Helper for the start and stop timer. */
 static clock_t started_at, stopped_at;
@@ -377,7 +380,7 @@ mpi_bench (void)
 
 
 int
-main( int argc, char **argv )
+test_main( int argc, char **argv )
 {
   if (argc)
     { argc--; argv++; }

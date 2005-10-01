@@ -27,20 +27,14 @@
 #include <string.h>
 #include <assert.h>
 
-#include "../src/gcrypt.h"
+#include "../src/compat/gcrypt.h"
+#include "common.h"
+
+unsigned int test_startup_flags = 0;
 
 static int verbose;
 
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr ;
-
-  va_start( arg_ptr, format ) ;
-  vfprintf (stderr, format, arg_ptr );
-  va_end(arg_ptr);
-  exit (1);
-}
+
 
 gcry_err_code_t
 foo_setkey (void *c, const unsigned char *key, unsigned keylen)
@@ -56,7 +50,7 @@ foo_encrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
   int i;
 
   for (i = 0; i < FOO_BLOCKSIZE; i++)
-    outbuf[i] = inbuf[i] ^ 0x42;
+    outbuf[i] = inbuf[i] + 13;
 }
 
 void
@@ -65,7 +59,7 @@ foo_decrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
   int i;
 
   for (i = 0; i < FOO_BLOCKSIZE; i++)
-    outbuf[i] = inbuf[i] ^ 0x42;
+    outbuf[i] = inbuf[i] - 13;
 }
 
 gcry_cipher_spec_t cipher_spec_foo =
@@ -138,7 +132,7 @@ check_run (void)
 }
 
 int
-main (int argc, char **argv)
+test_main (int argc, char **argv)
 {
   int debug = 0;
   int i = 1;
@@ -148,10 +142,6 @@ main (int argc, char **argv)
   else if (argc > 1 && !strcmp (argv[1], "--debug"))
     verbose = debug = 1;
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  if (!gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
 

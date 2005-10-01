@@ -22,7 +22,6 @@
 #include <config.h>
 #endif
 #include <stdio.h>
-#include <gcrypt.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -31,6 +30,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+
+#include "../src/compat/gcrypt.h"
+#include "common.h"
+
+unsigned int test_startup_flags = 0;
 
 typedef struct context
 {
@@ -320,12 +324,10 @@ generate_key (const char *algorithm, const char *key_size)
 }
 
 int
-main (int argc, char **argv)
+test_main (int argc, char **argv)
 {
   program_name = argc ? argv[0] : "";
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM);
-  
   if (argv[1] && ((! strcmp (argv[1], "--help"))
 		  || (! strcmp (argv[1], "-h"))))
     print_usage (0);

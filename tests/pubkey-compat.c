@@ -26,8 +26,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../src/compat/gcrypt.h"
+#include "common.h"
 
-#include "../src/gcrypt.h"
+unsigned int test_startup_flags = 0;
 
 /* Sample RSA keys, taken from basic.c.  */
 
@@ -231,7 +233,7 @@ check_run (void)
 }
 
 int
-main (int argc, char **argv)
+test_main (int argc, char **argv)
 {
   int debug = 0;
   int i = 10;
@@ -241,10 +243,6 @@ main (int argc, char **argv)
   else if (argc > 1 && !strcmp (argv[1], "--debug"))
     verbose = debug = 1;
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  if (!gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
 

@@ -25,12 +25,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include "../src/gcrypt.h"
+
+#include "../src/compat/gcrypt.h"
+#include "common.h"
 
 #define PGMNAME "tsexp"
 
+unsigned int test_startup_flags = STARTUP_ENABLE_SECURE_MEMORY;
+
 static int verbose;
 static int error_count;
+
+
 
 static void
 info (const char *format, ...)
@@ -375,13 +381,10 @@ check_sscan (void)
 
 
 int
-main (int argc, char **argv)
+test_main (int argc, char **argv)
 {
   if (argc > 1 && !strcmp (argv[1], "-v"))
     verbose = 1;
-
-  gcry_control (GCRYCTL_DISABLE_SECMEM_WARN);
-  gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
 
   basic ();
   canon_len ();
@@ -390,9 +393,3 @@ main (int argc, char **argv)
   
   return error_count? 1:0;
 }
-
-
-
-
-
-

@@ -24,19 +24,20 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "../src/gcrypt.h"
+#include "../src/compat/gcrypt.h"
+#include "common.h"
+
+unsigned int test_startup_flags = 0;
 
 static int verbose;
 
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr;
+
 
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
-  exit (1);
+static void
+progress_handler (void *cb_data, const char *what, int printchar,
+		  int current, int total)
+{
+  putchar (printchar);
 }
 
 static void
@@ -70,11 +71,11 @@ check_primes (void)
 				 prime_specs[i].flags);
       assert (! err);
       if (verbose)
-        {
-          fprintf (stderr, "test %d: p = ", i);
-          gcry_mpi_dump (prime);
-          putc ('\n', stderr);
-        }
+	{
+	  fprintf (stderr, "test %d: p = ", i);
+	  gcry_mpi_dump (prime);
+	  putc ('\n', stderr);
+	}
 
       err = gcry_prime_check (prime, 0);
       assert (! err);
@@ -82,13 +83,14 @@ check_primes (void)
       err = gcry_prime_group_generator (&g, prime, factors, NULL);
       assert (!err);
       gcry_prime_release_factors (factors); factors = NULL;
-      
+
       if (verbose)
-        {
-          fprintf (stderr, "     %d: g = ", i);
-          gcry_mpi_dump (g);
-          putc ('\n', stderr);
-        }
+	{
+	  fprintf (stderr, "     %d: g = ", i);
+	  gcry_mpi_dump (g);
+	  putc ('\n', stderr);
+	}
+
       gcry_mpi_release (g);
 
 
@@ -99,7 +101,7 @@ check_primes (void)
 }
 
 int
-main (int argc, char **argv)
+test_main (int argc, char **argv)
 {
   int debug = 0;
 
@@ -108,13 +110,11 @@ main (int argc, char **argv)
   else if ((argc > 1) && (! strcmp (argv[1], "--debug")))
     verbose = debug = 1;
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  if (! gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
-
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+
+  //gcry_set_progress_handler (progress_handler, NULL);
+  //  gcry_set_log_handler (gcry_core_default_log_handler, stderr);
 
   check_primes ();
 

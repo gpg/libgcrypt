@@ -5,8 +5,7 @@ common \
 ath \
 subsystems \
 modules \
-compat \
-scripts
+compat
 
 EXTRA_DIST = OVERVIEW libgcrypt-config.in libgcrypt.m4 \
 libgcrypt.vers libgcrypt-core.vers ChangeLog.old

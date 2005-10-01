@@ -25,9 +25,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include "../src/gcrypt.h"
 
+#include "../src/compat/gcrypt.h"
+#include "common.h"
 
+unsigned int test_startup_flags = 0;
 
 static int verbose;
 static int error_count;
@@ -218,7 +220,7 @@ check_nonce (void)
 }
 
 int
-main (int argc, char **argv)
+test_main (int argc, char **argv)
 {
   int debug = 0;
 
@@ -227,14 +229,8 @@ main (int argc, char **argv)
   else if (argc > 1 && !strcmp (argv[1], "--debug"))
     verbose = debug = 1;
 
-  if (!gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
-  /* No valuable keys are create, so we can speed up our RNG. */
-  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 
   check_rsa_keys ();
   check_nonce ();
