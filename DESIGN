@@ -1,0 +1,197 @@
+Short:
+
+Although Libgcrypt 2 does still support the API of Libgcrypt 1.x, the
+code has been modified fundamentally; the several subsystems have been
+untangled, reordered and do now communicate through well-specified
+interfaces.
+
+Long:
+
+I felt the need to modify the Libgcrypt core, since I have observed
+several already present or potential problems:
+
+  * Libgcrypt 1.x is *monolithic*
+
+    Although Libgcrypt 1.x does consist of several so-called
+    "subsystems", these subsystems are not really that seperate from each
+    other.  This makes it difficult to extract or even replace
+    subsystems.
+
+    Furthermore, the fact that the subsystems may interact with each
+    other in subtle ways, adds unnecessary complexity.
+
+  * The well-known initialization-problem
+
+    Unexpected results might occur when Libgcrypt is initialized by
+    e.g. two seperate libraries, linked into one program.  The problem
+    steems from the fact that Libgcrypt 1 makes extensive use of
+    global state.
+
+    Related to this problem is the threading problem: Libgcrypt might
+    be used by two different libraries, which have different preferences
+    in respect to the threading library used.
+
+Design goals:
+
+  * Subsystems are *indeed* seperate from each other.  No subsystem
+    implementation does depend on a different subsystem
+    implementation; subsystems *do* depend only on subsystem
+    *interfaces*.  Example: the "sexp" subsystem needs to deal with
+    MPI object.  But instead of depending on the included MPI
+    subsystem, the sexp subsystem does only require the user to
+    register any subsystem, that complies to the MPI subsystem
+    specification; of course, the included MPI subsystem does
+    conform to the MPI subsystem specification.
+
+  * Clear rules, defining which subsystem is allowed to use which
+    subsystem interface.
+
+  * Less complex.
+
+Implementation:
+
+  * Source tree:
+
+    The source code of Libgcrypt 2 is split up into several directories:
+
+	src/liberty
+	src/include
+	src/ath
+	src/common
+	src/util
+
+	src/subsystems/asym-cipher
+	src/subsystems/hash
+	src/subsystems/mpi
+	src/subsystems/prime
+	src/subsystems/random
+	src/subsystems/secmem
+	src/subsystems/sexp
+	src/subsystems/sym-cipher
+	
+	src/compat
+
+  * The Libgcrypt 2 package does contain two libraries:
+
+	- libgcrypt-core
+	- libgcrypt
+
+    libgcrypt-core provides roughly the same functionality like
+    Libgcrypt 1, the API is different. libgcrypt-core does not use any
+    (is this correct?) global state; a context needs to be passed to
+    every single library function.
+
+    libgcrypt is a compatibility layer on top of libgcrypt-core; it
+    provides the same API and ABI like Libgcrypt 1.
+
+  * Subsystem hierarchy
+
+    
+  high-level             asym-cipher
+     .                  hash sym-cipher
+     .                    prime sexp
+     .                       mpi
+     .                      random
+  low-level                 secmem
+
+   Only down-calls are allowed.
+
+  * Namespace
+
+    Exported symbols contained in libgcrypt-core are prefixed with
+    "gcry_core_" or "GCRY_CORE_"; the same applies to exported types.
+
+    Only exceptions: Libgpg-error provided types, wrapped by
+    Libgcrypt: gcry_error_t, gcry_err_code_t, gcry_err_source_t.
+
+  * The context object
+
+    libgcrypt-core makes extensive use of a "context object".  This
+    object needs to be passed by the user to every function contained
+    in libgcrypt-core.
+
+    General procedure for users of Libgcrypt:
+
+    - create context
+    - initialize context
+      - install all required subsystems and handlers in context
+      - set general library properties (e.g. flags)
+      - use "prepare" mechanism to give subsystem a chance to
+        initialize if they need to do so
+    - use library
+    - destroy context
+
+  * Functionality which is included in libgcrypt-compat, but which has
+    been left out from libgcrypt-core
+
+    - the module system: the user needs to pass algorithm
+      specification structures directly to the library; this implies
+      the removal of the following functionality:
+
+        - lookup functions, which convert between different algorithm
+          identifiers (e.g. names to IDs)
+
+        - the possibility to disable/enable algorithms
+
+    - the pubkey subsystem: when looking at the API of the pubkey
+      subsystem, it becomes clear that it can hardly be adjusted so
+      that it makes no use of global-state: 
+
+        - algorithm identifiers are encoded in S-Expressions, module
+          lookups are necessary for retrieving the algorithm
+          specification structures
+        - the subsystem does not use "handles" at all
+
+    - the gcry_control() catch-all call: there are special functions
+      now available for the different purposes
+
+    - the API for ac data sets has been simplified; now it is not
+      possible anymore to control when copying and deallocation of
+      data happens; when storing data in or receiving data from data
+      sets, data is always copied; this reduces complexity and code
+      size
+
+    - the "convenience" MPI macros
+
+Side effects:
+
+ * Since the whole code has been reorganized fundamentally, ChangeLogs ...
+
+Notes:
+
+ * the Libgcrypt-core API is NOT public yet, it is considered highly
+   experimental and subject to changes until it is declared as stable;
+   especially in the field of subsystem interfaces, there is still much
+   work to do
+
+* the whole code has been reformatted with indent
+
+* the test suite has been changed so that each test includes some
+  shared startup code; this startup code allows for controlling the
+  test suite runs through environment variables (like:
+  GCRY_ENABLE_QUICK_RANDOM)
+
+* when linking GnuPG components against the new Libgcrypt, i noticed
+  that some components do NOT follow the instructions in the manual in
+  respect to thread initialization.  Now, this was not be a problem,
+  if the new Libgcrypt would not DEPEND on the behaviour defined in
+  the manual[0]
+
+Misc new features:
+
+* the test suite contains stress tests for threading, trying to
+  trigger race conditions
+
+To do:
+
+* update manual (actually this is a low-priority task, since the new
+  core API is not public yet)
+
+
+--
+
+[0] the manual says "If your application is multi-threaded, you must
+    set the thread support callbacks with the `GCRYCTL_SET_THREAD_CBS'
+    command *before* any other function in the library.";
+    e.g. gpg-agent and scdaemon did other kinds of Libgcrypt
+    initialization before registering the threading system

@@ -1,3 +1,7 @@
+2005-10-08  Moritz Schulte  <moritz@g10code.com>
+
+	* DESIGN: New file.
+
 2005-10-01  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am: Adjust directory specifications to new source-tree
