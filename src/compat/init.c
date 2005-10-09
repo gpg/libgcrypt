@@ -19,15 +19,6 @@
    02111-1307, USA.  */
 
 #include <gcrypt-internal.h>
-
-#include <gcrypt-secmem-internal.h>
-#include <gcrypt-mpi-internal.h>
-#include <gcrypt-md-internal.h>
-#include <gcrypt-cipher-internal.h>
-#include <gcrypt-random-internal.h>
-#include <gcrypt-sexp-internal.h>
-#include <gcrypt-prime-internal.h>
-
 #include <gcrypt-ath-internal.h>
 
 #include <string.h>
