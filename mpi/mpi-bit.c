@@ -163,7 +163,8 @@ gcry_mpi_clear_highbit( gcry_mpi_t a, unsigned int n )
     bitno  = n % BITS_PER_MPI_LIMB;
 
     if( limbno >= a->nlimbs )
-	return; /* not allocated, so need to clear bits :-) */
+	return; /* not allocated, therefore no need to clear bits
+		   :-) */
 
     for( ; bitno < BITS_PER_MPI_LIMB; bitno++ )
 	a->d[limbno] &= ~(A_LIMB_1 << bitno);

@@ -1,3 +1,8 @@
+2005-10-09  Moritz Schulte  <moritz@g10code.com>
+
+	* mpi-cmp.c (gcry_mpi_cmp_ui): Rewritten; correctly handle case of
+	zero limbs in U.
+
 2005-04-27  Moritz Schulte  <moritz@g10code.com>
 
 	* mpiutil.c (gcry_mpi_randomize): Store random data in secure
