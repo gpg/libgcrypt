@@ -1,3 +1,12 @@
+2005-10-09  Moritz Schulte  <moritz@g10code.com>
+
+	* global.c (gcry_control): Call global_init() after passing thread
+	cbs to ath.  global_init() MUST to be called AFTER passing the cbs
+	to ath and BEFORE calling library functions, which make use of
+	ath.  This change combines cbs installing with ath initialization
+	and thus removes the need to call other library initialization
+	functions inbetween like e.g. gcry_check_version().
+
 2005-10-01  Moritz Schulte  <moritz@g10code.com>
 
 	* ath.c: Assign copyright to FSF.

@@ -275,6 +275,8 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
 
     case GCRYCTL_SET_THREAD_CBS:
       err = ath_install (va_arg (arg_ptr, void *), any_init_done);
+      if (! err)
+	global_init ();
       break;
 
     case GCRYCTL_FAST_POLL:
