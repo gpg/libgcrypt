@@ -1,7 +1,16 @@
+2005-10-09  Moritz Schulte  <moritz@g10code.com>
+
+	Merged changes made by Werner to trunk from 2005-08-22:
+	* core.c (check_prime): New arg RM_ROUNDS.
+	(prime_generate_internal): Call it here with 5 rounds as used
+	before.
+	(_gcry_prime_check): But here with 64 rounds.
+	(is_prime): Make sure never to use less than 5 rounds.
+
 2005-09-23  Moritz Schulte  <moritz@g10code.com>
 
 	Reorganized source tree.
 	
-	New file: core.c (based on former file cipher/prime.c).
+	New file: core.c (based on former file cipher/primegen.c).
 	New files: gcrypt-prime-common.h, gcrypt-prime.h,
 	gcrypt-prime-internal.h, interface.c, Makefile.am, README.
