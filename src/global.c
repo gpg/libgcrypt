@@ -58,27 +58,36 @@ static int any_init_done;
 static void
 global_init (void)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_error_t err = 0;
 
   if (any_init_done)
     return;
   any_init_done = 1;
 
   err = ath_init ();
-  if (! err)
-    err = _gcry_cipher_init ();
-  if (! err)
-    err = _gcry_md_init ();
-  if (! err)
-    err = _gcry_pk_init ();
+  if (err)
+    goto fail;
+  err = _gcry_cipher_init ();
+  if (err)
+    goto fail;
+  err = _gcry_md_init ();
+  if (err)
+    goto fail;
+  err = _gcry_pk_init ();
+  if (err)
+    goto fail;
 #if 0
-  if (! err)
-    err = _gcry_ac_init ();
+  /* FIXME? */
+  err = _gcry_ac_init ();
+  if (err)
+    goto fail;
 #endif
 
-  if (err)
-    /* FIXME?  */
-    BUG ();
+  return;
+
+ fail:
+  /* FIXME: use `err'?  */
+  BUG ();
 }
 
 

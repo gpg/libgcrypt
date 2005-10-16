@@ -1,5 +1,8 @@
 2005-10-16  Moritz Schulte  <moritz@g10code.com>
 
+	* global.c (global_init): Use gcry_error_t instead of
+	gcry_err_code_t; use goto instead of if constructs.
+
 	* stdmem.c: Inserted description of the layered memory management
 	in Libgcrypt.
 
