@@ -490,6 +490,39 @@ This function can be used to influence the general behavior of
 @acronym{Libgcrypt} in several ways.  Depending on @var{cmd}, more
 arguments can or have to be provided.
 
+@table @code
+@item GCRYCTL_ENABLE_M_GUARD; Arguments: none
+This command enables the built-in memory guard.  It must not be used to
+activate the memory guard after the memory management has already been
+used; therefore it can ONLY be used at initializatoin time.  Note that
+the memory guard is NOT used when the user of the library has set his
+own memory management callbacks.
+
+@item GCRYCTL_ENABLE_QUICK_RANDOM
+@item GCRYCTL_DUMP_RANDOM_STATS
+@item GCRYCTL_DUMP_MEMORY_STATS
+@item GCRYCTL_DUMP_SECMEM_STATS
+@item GCRYCTL_DROP_PRIVS
+@item GCRYCTL_DISABLE_SECMEM
+@item GCRYCTL_INIT_SECMEM
+@item GCRYCTL_TERM_SECMEM
+@item GCRYCTL_DISABLE_SECMEM_WARN
+@item GCRYCTL_SUSPEND_SECMEM_WARN
+@item GCRYCTL_RESUME_SECMEM_WARN
+@item GCRYCTL_USE_SECURE_RNDPOOL
+@item GCRYCTL_SET_RANDOM_SEED_FILE
+@item GCRYCTL_UPDATE_RANDOM_SEED_FILE
+@item GCRYCTL_SET_VERBOSITY
+@item GCRYCTL_SET_DEBUG_FLAGS
+@item GCRYCTL_CLEAR_DEBUG_FLAGS
+@item GCRYCTL_DISABLE_INTERNAL_LOCKING
+@item GCRYCTL_ANY_INITIALIZATION_P
+@item GCRYCTL_INITIALIZATION_FINISHED_P
+@item GCRYCTL_INITIALIZATION_FINISHED
+@item GCRYCTL_SET_THREAD_CBS
+@item GCRYCTL_FAST_POOL
+@end table
+
 @end deftypefun
 
 @node Modules

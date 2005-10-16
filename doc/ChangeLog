@@ -1,3 +1,8 @@
+2005-10-16  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (Controlling the library): Start documenting the
+	existing control commands.
+
 2005-04-11  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi (Available hash algorithms): Add entry for Whirlpool.
