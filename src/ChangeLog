@@ -1,9 +1,21 @@
 2005-10-16  Moritz Schulte  <moritz@g10code.com>
 
+	* stdmem.c: Inserted description of the layered memory management
+	in Libgcrypt.
+
 	* g10lib.h: Removed G10_I18N_H related check; it seems to be a
 	GnuPG relict (Libgcrypt does not define this symbol anywhere).
 	(FLAG_MODULE_DISABLED): Don't forget parantheses around shifted
 	value.
+	
+	Removed GCC_ATTR_PURE macro definitions, since gcrypt.h does
+	already contain such a macro named _GCRY_GCC_ATTR_PURE, which we
+	can use here as well.
+
+	Likewise for GCC_ATTR_MALLOC and _GCRY_GCC_ATTR_MALLOC.
+
+	* stdmem.h: Use _GCRY_GCC_ATTR_MALLOC instead of GCC_ATTR_MALLOC.
+	* secmem.h: Likewise.
 
 2005-10-09  Moritz Schulte  <moritz@g10code.com>
 

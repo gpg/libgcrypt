@@ -1,5 +1,5 @@
 /* stdmem.c  -	private memory allocator
- *	Copyright (C) 1998, 2000, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2000, 2002, 2005 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -18,6 +18,33 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
+/*
+ * Description of the layered memory management in Libgcrypt:
+ *
+ *                                    [User]
+ *                                      |
+ *                                      |
+ *                                     \ /
+ *                      global.c: [MM entrance points]   -----> [user callbacks]
+ *                                  |          |    
+ *                                  |          |    
+ *                                 \ /        \ /
+ *
+ *      stdmem.c: [non-secure handlers] [secure handlers]
+ *
+ *                               |         |
+ *                               |         |
+ *                              \ /       \ /
+ *
+ *                  stdmem.c: [ memory guard ]
+ *
+ *                               |         |
+ *                               |         |
+ *                              \ /       \ /
+ *
+ *           libc: [ MM functions ]     secmem.c: [ secure MM functions]
+ */
+
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +55,7 @@
 #include "stdmem.h"
 #include "secmem.h"
 
+
 
 #define MAGIC_NOR_BYTE 0x55
 #define MAGIC_SEC_BYTE 0xcc
