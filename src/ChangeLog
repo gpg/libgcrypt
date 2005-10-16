@@ -1,3 +1,10 @@
+2005-10-16  Moritz Schulte  <moritz@g10code.com>
+
+	* g10lib.h: Removed G10_I18N_H related check; it seems to be a
+	GnuPG relict (Libgcrypt does not define this symbol anywhere).
+	(FLAG_MODULE_DISABLED): Don't forget parantheses around shifted
+	value.
+
 2005-10-09  Moritz Schulte  <moritz@g10code.com>
 
 	* global.c (gcry_control): Call global_init() after passing thread

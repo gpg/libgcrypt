@@ -1,5 +1,6 @@
 /* g10lib.h -  internal defintions for libgcrypt
- * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002,
+ *               2003, 2005 Free Software Foundation, Inc.
  *
  * This header is to be used inside of libgcrypt in place of gcrypt.h.
  * This way we can better distinguish between internal and external
@@ -36,6 +37,10 @@
 #include <gcrypt.h>
 #include "types.h"
 
+
+
+/* Attribute handling macros.  */
+
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 5 )
 #define JNLIB_GCC_M_FUNCTION 1
 #define JNLIB_GCC_A_NR 	     __attribute__ ((noreturn))
@@ -63,16 +68,16 @@
 #define GCC_ATTR_MALLOC
 #endif
 
-#ifdef G10_I18N_H
-#error i18n should not be included here
-#endif
+/* Gettext macros.  */
 
 #define _(a)  _gcry_gettext(a)
 #define N_(a) (a)
 
-void  _gcry_check_heap( const void *a );
+
 
-int _gcry_get_debug_flag( unsigned int mask );
+void  _gcry_check_heap (const void *a);
+
+int _gcry_get_debug_flag (unsigned int mask);
 
 
 /*-- gcrypt/misc.c --*/
@@ -116,6 +121,7 @@ int _gcry_log_verbosity( int level );
 
 /*-- cipher/pubkey.c --*/
 
+/* FIXME: shouldn't this go into mpi.h?  */
 #ifndef mpi_powm
 #define mpi_powm(w,b,e,m)   gcry_mpi_powm( (w), (b), (e), (m) )
 #endif
@@ -205,7 +211,7 @@ struct gcry_module
 };
 
 /* Flags for the `flags' member of gcry_module_t.  */
-#define FLAG_MODULE_DISABLED 1 << 0
+#define FLAG_MODULE_DISABLED (1 << 0)
 
 gcry_err_code_t _gcry_module_add (gcry_module_t *entries,
 				 unsigned int id,
