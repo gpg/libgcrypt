@@ -1,5 +1,5 @@
 /* stdmem.h -  internal definitions for stdmem
- *	Copyright (C) 2000, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 2000, 2002, 2005 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -23,8 +23,8 @@
 
 void _gcry_private_enable_m_guard(void);
 
-void *_gcry_private_malloc (size_t n) GCC_ATTR_MALLOC;
-void *_gcry_private_malloc_secure (size_t n) GCC_ATTR_MALLOC;
+void *_gcry_private_malloc (size_t n) _GCRY_GCC_ATTR_MALLOC;
+void *_gcry_private_malloc_secure (size_t n) _GCRY_GCC_ATTR_MALLOC;
 void *_gcry_private_realloc (void *a, size_t n);
 void _gcry_private_check_heap (const void *a);
 void _gcry_private_free (void *a);

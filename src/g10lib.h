@@ -55,19 +55,6 @@
 #define GCC_ATTR_NORETURN 
 #endif
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 96 )
-#define GCC_ATTR_PURE  __attribute__ ((__pure__))
-#else
-#define GCC_ATTR_PURE
-#endif
-
-/* (The malloc attribute might be defined prior to 3.2 - I am just not sure) */
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 2 )
-#define GCC_ATTR_MALLOC    __attribute__ ((__malloc__))
-#else
-#define GCC_ATTR_MALLOC
-#endif
-
 /* Gettext macros.  */
 
 #define _(a)  _gcry_gettext(a)
@@ -142,7 +129,7 @@ gcry_mpi_t _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
 char *stpcpy (char *a, const char *b);
 #endif
 #ifndef HAVE_STRCASECMP
-int strcasecmp (const char *a, const char *b) GCC_ATTR_PURE;
+int strcasecmp (const char *a, const char *b) _GCRY_GCC_ATTR_PURE;
 #endif
 
 /* macros used to rename missing functions */
@@ -204,7 +191,8 @@ struct gcry_module
 {
   struct gcry_module *next;     /* List pointers.      */
   struct gcry_module **prevp;
-  void *spec;			/* The acctual specs.  */
+  void *spec;			/* Pointer to the subsystem-specific
+				   specification structure.  */
   int flags;			/* Associated flags.   */
   int counter;			/* Use counter.        */
   unsigned int mod_id;		/* ID of this module.  */
