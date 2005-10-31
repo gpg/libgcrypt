@@ -494,16 +494,33 @@ arguments can or have to be provided.
 @item GCRYCTL_ENABLE_M_GUARD; Arguments: none
 This command enables the built-in memory guard.  It must not be used to
 activate the memory guard after the memory management has already been
-used; therefore it can ONLY be used at initializatoin time.  Note that
+used; therefore it can ONLY be used at initialization time.  Note that
 the memory guard is NOT used when the user of the library has set his
 own memory management callbacks.
 
-@item GCRYCTL_ENABLE_QUICK_RANDOM
+@item GCRYCTL_ENABLE_QUICK_RANDOM; Arguments: none
+This command activates the use of a highly-insecure, but fast PRNG.  It
+can only be used at initialization time - FIXME: is this correct?
+
 @item GCRYCTL_DUMP_RANDOM_STATS
+This command dumps PRNG related statistics to the librarys logging
+stream.
+
 @item GCRYCTL_DUMP_MEMORY_STATS
+This command dumps memory manamgent related statistics to the librarys
+logging stream.
+
 @item GCRYCTL_DUMP_SECMEM_STATS
+This command dumps secure memory manamgent related statistics to the
+librarys logging stream.
+
 @item GCRYCTL_DROP_PRIVS
+This command disables the use of secure memory and drops the priviliges
+of the current process.  FIXME.
+
 @item GCRYCTL_DISABLE_SECMEM
+This command disables the use of secure memory.  FIXME.
+
 @item GCRYCTL_INIT_SECMEM
 @item GCRYCTL_TERM_SECMEM
 @item GCRYCTL_DISABLE_SECMEM_WARN
@@ -529,8 +546,8 @@ own memory management callbacks.
 @section Modules
 
 @acronym{Libgcrypt} supports the use of `extension modules', which
-implement algorithms in addition to those already built into the
-library directly.
+implement algorithms in addition to those already built into the library
+directly.
 
 @deftp {Data type} gcry_module_t
 This data type represents a `module'.
