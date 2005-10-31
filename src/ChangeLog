@@ -1,3 +1,7 @@
+2005-10-31  Moritz Schulte  <moritz@g10code.com>
+
+	* global.c: Added documentation.
+
 2005-10-16  Moritz Schulte  <moritz@g10code.com>
 
 	* global.c (global_init): Use gcry_error_t instead of

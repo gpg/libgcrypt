@@ -20,6 +20,7 @@
  */
 
 #include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,11 +35,18 @@
 #include "secmem.h" /* our own secmem allocator */
 #include "ath.h"
 
+
+
 /****************
  * flag bits: 0 : general cipher debug
  *	      1 : general MPI debug
  */
 static unsigned int debug_flags;
+
+/* Controlled by global_init().  */
+static int any_init_done;
+
+/* Memory management. */
 
 static gcry_handler_alloc_t alloc_func;
 static gcry_handler_alloc_t alloc_secure_func;
@@ -46,10 +54,10 @@ static gcry_handler_secure_check_t is_secure_func;
 static gcry_handler_realloc_t realloc_func;
 static gcry_handler_free_t free_func;
 static gcry_handler_no_mem_t outofcore_handler;
+static void *outofcore_handler_value;
+static int no_secure_memory;
 
-static void *outofcore_handler_value = NULL;
-static int no_secure_memory = 0;
-static int any_init_done;
+
 
 /* This is our handmade constructor.  It gets called by any function
    likely to be called at startup.  The suggested way for an
@@ -90,7 +98,14 @@ global_init (void)
   BUG ();
 }
 
+
 
+/* Version number parsing.  */
+
+/* This function parses the first portion of the version number S and
+   stores it in *NUMBER.  On sucess, this function returns a pointer
+   into S starting with the first character, which is not part of the
+   initial number portion; on failure, NULL is returned.  */
 static const char*
 parse_version_number( const char *s, int *number )
 {
@@ -106,6 +121,14 @@ parse_version_number( const char *s, int *number )
     return val < 0? NULL : s;
 }
 
+/* This function breaks up the complete string-representation of the
+   version number S, which is of the following struture: <major
+   number>.<minor number>.<micro number><patch level>.  The major,
+   minor and micro number components will be stored in *MAJOR, *MINOR
+   and *MICRO.
+
+   On success, the last component, the patch level, will be returned;
+   in failure, NULL will be returned.  */
 
 static const char *
 parse_version_string( const char *s, int *major, int *minor, int *micro )
@@ -124,12 +147,13 @@ parse_version_string( const char *s, int *major, int *minor, int *micro )
     return s; /* patchlevel */
 }
 
-/****************
- * Check that the the version of the library is at minimum the requested one
- * and return the version string; return NULL if the condition is not
- * satisfied.  If a NULL is passed to this function, no check is done,
- * but the version string is simply returned.
- */
+/* If REQ_VERSION is non-NULL, check that the version of the library
+   is at minimum the requested one.  Returns the string representation
+   of the library version if the condition is satisfied; return NULL
+   if the requested version is newer than that of the library.
+
+   If a NULL is passed to this function, no check is done, but the
+   string representation of the library is simply returned.  */
 const char *
 gcry_check_version( const char *req_version )
 {
@@ -138,18 +162,28 @@ gcry_check_version( const char *req_version )
     int rq_major, rq_minor, rq_micro;
     const char *my_plvl, *rq_plvl;
 
+    /* Initialize library.  */
     global_init ();
+
     if ( !req_version )
+        /* Caller wants our version number.  */
 	return ver;
 
+    /* Parse own version number.  */
     my_plvl = parse_version_string( ver, &my_major, &my_minor, &my_micro );
     if ( !my_plvl )
-	return NULL;  /* very strange our own version is bogus */
+        /* very strange our own version is bogus.  Shouldn't we use
+	   assert() here and bail out in case this happens?  -mo.  */
+	return NULL;
+
+  /* Parse requested version number.  */
     rq_plvl = parse_version_string( req_version, &rq_major, &rq_minor,
 								&rq_micro );
     if ( !rq_plvl )
-	return NULL;  /* req version string is invalid */
+        /* req version string is invalid, this can happen.  */
+	return NULL;
 
+    /* Compare version numbers.  */
     if ( my_major > rq_major
 	|| (my_major == rq_major && my_minor > rq_minor)
 	|| (my_major == rq_major && my_minor == rq_minor
@@ -159,9 +193,14 @@ gcry_check_version( const char *req_version )
 				 && strcmp( my_plvl, rq_plvl ) >= 0) ) {
 	return ver;
     }
+
     return NULL;
 }
 
+
+
+/* Command dispatcher function, acting as general control
+   function.  */
 gcry_error_t
 gcry_control (enum gcry_ctl_cmds cmd, ...)
 {
