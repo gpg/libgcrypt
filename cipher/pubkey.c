@@ -2256,6 +2256,8 @@ gcry_pk_algo_info (int algorithm, int what, void *buffer, size_t *nbytes)
 
 	/* FIXME? */
 	*nbytes = use;
+
+	break;
       }
 
     case GCRYCTL_GET_ALGO_NPKEY:
