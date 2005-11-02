@@ -1,5 +1,6 @@
 /* pubkey.c  -	pubkey dispatcher
- * Copyright (C) 1998,1999,2000,2002,2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2002, 2003,
+ *               2005 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -266,14 +267,14 @@ gcry_pk_map_name (const char *string)
 }
 
 
-/****************
- * Map a pubkey algo to a string
- */
+/* Map the public key algorithm whose ID is contained in ALGORITHM to
+   a string representation of the algorithm name.  For unknown
+   algorithm IDs this functions returns "?". */
 const char *
 gcry_pk_algo_name (int algorithm)
 {
-  const char *name = NULL;
   gcry_module_t pubkey;
+  const char *name;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -284,6 +285,8 @@ gcry_pk_algo_name (int algorithm)
       name = ((gcry_pk_spec_t *) pubkey->spec)->name;
       _gcry_module_release (pubkey);
     }
+  else
+    name = "?";
   ath_mutex_unlock (&pubkeys_registered_lock);
 
   return name;

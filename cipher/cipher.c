@@ -1,5 +1,6 @@
 /* cipher.c  -	cipher dispatcher
- * Copyright (C) 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
+ *               2005, Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -378,14 +379,14 @@ gcry_cipher_mode_from_oid (const char *string)
 }
 
 
-/* Map the cipher algorithm identifier ALGORITHM to a string
-   representing this algorithm.  This string is the default name as
-   used by Libgcrypt.  NULL is returned for an unknown algorithm.  */
+/* Map the cipher algorithm whose ID is contained in ALGORITHM to a
+   string representation of the algorithm name.  For unknown algorithm
+   IDs this function returns "?".  */
 static const char *
 cipher_algo_to_string (int algorithm)
 {
   gcry_module_t cipher;
-  const char *name = NULL;
+  const char *name;
 
   REGISTER_DEFAULT_CIPHERS;
 
@@ -396,6 +397,8 @@ cipher_algo_to_string (int algorithm)
       name = ((gcry_cipher_spec_t *) cipher->spec)->name;
       _gcry_module_release (cipher);
     }
+  else
+    name = "?";
   ath_mutex_unlock (&ciphers_registered_lock);
 
   return name;

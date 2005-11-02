@@ -208,6 +208,8 @@ _gcry_random_initialize (int full)
 void
 _gcry_random_dump_stats()
 {
+  /* FIXME: don't we need proper locking here? -mo */
+
     log_info (
 	    "random usage: poolsize=%d mixed=%lu polls=%lu/%lu added=%lu/%lu\n"
 	    "              outmix=%lu getlvl1=%lu/%lu getlvl2=%lu/%lu\n",

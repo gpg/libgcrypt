@@ -33,3 +33,6 @@ What's left to do                                 -*- outline -*-
   Don't rely on the secure memory based wiping function but add an
   extra wiping.
   
+* update/improve documentation
+  - it's outdated for e.g. gcry_pk_algo_info.
+  - document algorithm capabilities

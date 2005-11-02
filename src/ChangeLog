@@ -1,3 +1,8 @@
+2005-11-02  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h: Update comments for functions: gcry_cipher_algo_name,
+	gcry_pk_algo_name.
+
 2005-10-31  Moritz Schulte  <moritz@g10code.com>
 
 	* global.c: Added documentation.

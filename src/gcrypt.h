@@ -780,10 +780,10 @@ gcry_error_t gcry_cipher_info (gcry_cipher_hd_t h, int what, void *buffer,
 gcry_error_t gcry_cipher_algo_info (int algo, int what, void *buffer,
                                    size_t *nbytes);
 
-/* Map the cipher algorithm id ALGO to a string representation of that
-   algorithm name.  For unknown algorithms this functions returns an
-   empty string. */
-const char *gcry_cipher_algo_name (int algo) _GCRY_GCC_ATTR_PURE;
+/* Map the cipher algorithm whose ID is contained in ALGORITHM to a
+   string representation of the algorithm name.  For unknown algorithm
+   IDs this function returns "?".  */
+const char *gcry_cipher_algo_name (int algorithm) _GCRY_GCC_ATTR_PURE;
 
 /* Map the algorithm name NAME to an cipher algorithm ID.  Return 0 if
    the algorithm name is not known. */
@@ -908,10 +908,10 @@ gcry_error_t gcry_pk_ctl (int cmd, void *buffer, size_t buflen);
 gcry_error_t gcry_pk_algo_info (int algo, int what,
                                 void *buffer, size_t *nbytes);
 
-/* Map the public key algorithm id ALGO to a string representation of the
-   algorithm name.  For unknown algorithms this functions returns an
-   empty string. */
-const char *gcry_pk_algo_name (int algo) _GCRY_GCC_ATTR_PURE;
+/* Map the public key algorithm whose ID is contained in ALGORITHM to
+   a string representation of the algorithm name.  For unknown
+   algorithm IDs this functions returns "?". */
+const char *gcry_pk_algo_name (int algorithm) _GCRY_GCC_ATTR_PURE;
 
 /* Map the algorithm NAME to a public key algorithm Id.  Return 0 if
    the algorithm name is not known. */

@@ -1,3 +1,9 @@
+2005-11-02  Moritz Schulte  <moritz@g10code.com>
+
+	* pubkey.c (gcry_pk_algo_name): Return "?" instead of NULL for
+	unknown algorithm IDs.
+	* cipher.c (cipher_algo_to_string): Likewise.
+
 2005-11-01  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (gcry_pk_algo_info): Don't forget to break after switch
