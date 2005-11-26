@@ -51,15 +51,8 @@ die (const char *format, ...)
 }
 
 static void
-check_sexp_conversion (gcry_ac_data_t data)
+check_sexp_conversion (gcry_ac_data_t data, const char **identifiers)
 {
-  const char *identifiers[] = { "foo",
-				"bar",
-				"baz",
-				"hello",
-				"somemoretexthere",
-				"blahblahblah",
-				NULL };
   gcry_ac_data_t data2;
   gcry_error_t err;
   gcry_sexp_t sexp;
@@ -70,7 +63,7 @@ check_sexp_conversion (gcry_ac_data_t data)
 
   err = gcry_ac_data_to_sexp (data, &sexp, identifiers);
   assert_err (err);
-
+  gcry_sexp_dump (sexp);
   err = gcry_ac_data_from_sexp (&data2, sexp, identifiers);
   assert_err (err);
 
@@ -95,6 +88,14 @@ check_sexp_conversion (gcry_ac_data_t data)
 void
 check_run (void)
 {
+  const char *identifiers[] = { "foo",
+				"bar",
+				"baz",
+				"hello",
+				"somemoretexthere",
+				"blahblahblah",
+				NULL };
+  const char *identifiers_null[] = { NULL };
   gcry_ac_data_t data;
   gcry_error_t err;
   const char *label0;
@@ -102,6 +103,8 @@ check_run (void)
   gcry_mpi_t mpi0;
   gcry_mpi_t mpi1;
   gcry_mpi_t mpi2;
+
+  /* Initialize values.  */
 
   label0 = "thisisreallylonglabelbutsincethereisnolimitationonthelengthoflabelsitshouldworkjustfine";
   mpi0 = gcry_mpi_new (0);
@@ -111,13 +114,20 @@ check_run (void)
   err = gcry_ac_data_new (&data);
   assert_err (err);
 
+  check_sexp_conversion (data, identifiers);
+  check_sexp_conversion (data, identifiers_null);
+  check_sexp_conversion (data, NULL);
+
   err = gcry_ac_data_set (data, 0, label0, mpi0);
   assert_err (err);
   err = gcry_ac_data_get_index (data, 0, 0, &label1, &mpi1);
   assert_err (err);
   assert (label0 == label1);
   assert (mpi0 == mpi1);
-  check_sexp_conversion (data);
+  check_sexp_conversion (data, identifiers);
+  check_sexp_conversion (data, identifiers_null);
+  check_sexp_conversion (data, NULL);
+
   printf ("data-set-test-0 succeeded\n");
 
   gcry_ac_data_clear (data);
@@ -136,7 +146,10 @@ check_run (void)
   err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY | GCRY_AC_FLAG_DEALLOC,
 			  "blah1", mpi0);
   assert_err (err);
-  check_sexp_conversion (data);
+  check_sexp_conversion (data, identifiers);
+  check_sexp_conversion (data, identifiers_null);
+  check_sexp_conversion (data, NULL);
+
   err = gcry_ac_data_get_name (data, 0, label0, &mpi1);
   assert_err (err);
   assert (mpi0 != mpi1);
@@ -153,7 +166,10 @@ check_run (void)
 
   gcry_ac_data_clear (data);
   assert (! gcry_ac_data_length (data));
-  check_sexp_conversion (data);
+  check_sexp_conversion (data, identifiers);
+  check_sexp_conversion (data, identifiers_null);
+  check_sexp_conversion (data, NULL);
+
   printf ("data-set-test-2 succeeded\n");
  
   gcry_ac_data_destroy (data);
