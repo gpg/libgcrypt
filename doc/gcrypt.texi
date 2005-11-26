@@ -71,6 +71,7 @@ section entitled ``Copying''.
 * Random Numbers::               How to work with random numbers.
 * S-expressions::                How to manage S-expressions.
 * MPI library::                  How to work with multi-precision-integers.
+* Prime numbers::                How to use the Prime number related functions.
 * Utilities::                    Utility functions.
 
 Appendices
@@ -154,6 +155,10 @@ MPI library
 * Comparisons::                 How to compare MPI values.
 * Bit manipulations::           How to access single bits of MPI values.
 * Miscellaneous::               Miscellaneous MPI functions.
+
+Prime numbers
+* Generation::                  Generation of new prime numbers.
+* Checking::                    Checking if a given number is prime.
 
 Utilities
 * Memory allocation::           Functions related with memory allocation.
@@ -3914,11 +3919,65 @@ a multiple of a byte, @var{nbits} is rounded up to the next byte
 boundary.
 @end deftypefun
 
+@c **********************************************************
+@c ******************** Prime numbers ***********************
+@c **********************************************************
+@node Prime numbers
+@chapter Prime numbers
+
+@menu
+* Generation::                  Generation of new prime numbers.
+* Checking::                    Checking if a given number is prime.
+@end menu
+
+@node Generation
+@section Generation
+
+@deftypefun gcry_error_t gcry_prime_generate (gcry_mpi_t *@var{prime},
+unsigned int @var{prime_bits}, unsigned int @var{factor_bits},
+gcry_mpi_t **@var{factors}, gcry_prime_check_func_t @var{cb_func},
+void *@var{cb_arg}, gcry_random_level_t @var{random_level},
+unsigned int @var{flags})
+
+Generate a new prime number of @var{prime_bits} bits and store it in
+@var{prime}.  If @var{factor_bits} is non-zero, one of the prime factors
+of (@var{prime} - 1) / 2 must be @var{factor_bits} bits long.  If
+@var{factors} is non-zero, allocate a new, @code{NULL}-terminated array
+holding the prime factors and store it in @var{factors}.  @var{flags}
+might be used to influence the prime number generation process.
+@end deftypefun
+
+@deftypefun gcry_prime_group_generator (gcry_mpi_t *@var{r_g},
+gcry_mpi_t @var{prime}, gcry_mpi_t *@var{factors}, gcry_mpi_t @var{start_g})
+
+Find a generator for @var{prime} where the factorization of (@var{prime}
+- 1) is in the @code{NULL} terminated array @var{factors}.  Return the
+generator as a newly allocated MPI in @var{r_g}.  If @var{start_g} is
+not NULL, use this as the start for the search.
+@end deftypefun
+
+@deftypefun void gcry_prime_release_factors (gcry_mpi_t *@var{factors})
+
+Convenience function to release the @var{factors} array.
+@end deftypefun
+
+@node Checking
+@section Checking
+
+@deftypefun gcry_error_t gcry_prime_check (gcry_mpi_t @var{p},
+unsigned int @var{flags})
+
+Check wether the number @var{p} is prime.  Returns zero in case @var{p}
+is indeed a prime, returns @code{GPG_ERR_NO_PRIME} in case @var{p} is
+not a prime and a different error code in case something went horribly
+wrong.
+@end deftypefun
+
 @node Utilities
 @chapter Utilities
 
 @menu
-* Memory allocation::           Functions related with memory allocation.
+* Memory allocation:: Functions related with memory allocation.
 @end menu
 
 @node Memory allocation
