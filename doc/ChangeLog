@@ -1,3 +1,8 @@
+2005-11-12  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (MPI formats): Document that for gcry_mpi_scan and
+	in the case of GCRYMPI_FMT_HEX, BUFLEN must be zero.
+
 2005-10-31  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi: Added more gcry_control related descriptions.

@@ -2544,7 +2544,7 @@ Note, that it is not possible to chek the `saneness' of a public key.
 @end deftypefun
 
 
-@deftypefun int gcry_pk_algo_info (@w{int @var{algo}}, @w{int @var{what}}, @w{void *@var{buffer}}, @w{size_t *@var{nbytes}})
+@deftypefun gcry_error_t gcry_pk_algo_info (@w{int @var{algo}}, @w{int @var{what}}, @w{void *@var{buffer}}, @w{size_t *@var{nbytes}})
 
 Depending on the value of @var{what} return various information about
 the public key algorithm with the id @var{algo}.  Note, that the
@@ -3669,7 +3669,7 @@ with a 4 byte big endian header.
 
 @item GCRYMPI_FMT_HEX
 Stored as a C style string with each byte of the MPI encoded as 2 hex
-digits.
+digits.  When using this format, @var{buflen} must be zero.
 
 @item GCRYMPI_FMT_USG
 Simple unsigned integer.
