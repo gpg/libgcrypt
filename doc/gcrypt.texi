@@ -1763,7 +1763,7 @@ this is the hashed data is highly confidential.
 Turn the algorithm into a HMAC message authentication algorithm.  This
 does only work if just one algorithm is enabled for the handle and
 SHA-384 and SHA512 is not used.  Note that the function
-@code{gcry_md_setkey} must be used set the MAC key.  If you want CBC
+@code{gcry_md_setkey} must be used to set the MAC key.  If you want CBC
 message authentication codes based on a cipher, see @xref{Working with
 cipher handles}.
 

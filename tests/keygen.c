@@ -124,6 +124,28 @@ check_rsa_keys (void)
   int rc;
 
   if (verbose)
+    fprintf (stderr, "creating 2048 bit DSA key using old interface\n");
+  rc = gcry_sexp_new (&keyparm, 
+                      "(genkey\n"
+                      " (dsa\n"
+                      "  (nbits 4:2048)\n"
+                      " ))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating DSA key: %s\n", gpg_strerror (rc));
+  {
+    char buffer[20000];
+    gcry_sexp_sprint (key, GCRYSEXP_FMT_ADVANCED, buffer, sizeof buffer);
+    printf ("=============================\n%s\n"
+            "=============================\n", buffer);
+  }
+  gcry_sexp_release (key);
+  exit (0);
+
+  if (verbose)
     fprintf (stderr, "creating 1024 bit RSA key using old interface\n");
   rc = gcry_sexp_new (&keyparm, 
                       "(genkey\n"
@@ -139,6 +161,7 @@ check_rsa_keys (void)
 
   check_generated_rsa_key (key, 65537);
   gcry_sexp_release (key);
+
 
   if (verbose)
     fprintf (stderr, "creating 512 bit RSA key with e=257\n");

@@ -50,8 +50,8 @@ typedef struct
 static gcry_mpi_t gen_k (gcry_mpi_t q);
 static void test_keys (DSA_secret_key *sk, unsigned qbits);
 static int check_secret_key (DSA_secret_key *sk);
-static void generate (DSA_secret_key *sk, unsigned nbits,
-                      gcry_mpi_t **ret_factors);
+static gpg_err_code_t generate (DSA_secret_key *sk, unsigned nbits,
+                                gcry_mpi_t **ret_factors);
 static void sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                   DSA_secret_key *skey);
 static int verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
@@ -172,7 +172,7 @@ test_keys( DSA_secret_key *sk, unsigned qbits )
    Returns: 2 structures filled with all needed values
  	    and an array with the n-1 factors of (p-1)
  */
-static void
+static gpg_err_code_t
 generate( DSA_secret_key *sk, unsigned nbits, gcry_mpi_t **ret_factors )
 {
   gcry_mpi_t p;    /* the prime */
@@ -182,11 +182,21 @@ generate( DSA_secret_key *sk, unsigned nbits, gcry_mpi_t **ret_factors )
   gcry_mpi_t x;    /* the secret exponent */
   gcry_mpi_t h, e;  /* helper */
   unsigned qbits;
-  byte *rndbuf;
+  unsigned char *rndbuf;
 
-  assert( nbits >= 512 && nbits <= 1024 );
+  if ( nbits >= 512 && nbits <= 1024 )
+    qbits = 160;
+  else if ( nbits == 2048 )
+    qbits = 224;
+  else if ( nbits == 3072 )
+    qbits = 256;
+/*   else if ( nbits == 7680 ) */
+/*     qbits = 384; */
+/*   else if ( nbits == 15360 ) */
+/*     qbits = 512; */
+  else
+    return GPG_ERR_INV_VALUE;
 
-  qbits = 160;
   p = _gcry_generate_elg_prime( 1, nbits, qbits, NULL, ret_factors );
   /* get q out of factors */
   q = mpi_copy((*ret_factors)[0]);
@@ -263,6 +273,7 @@ generate( DSA_secret_key *sk, unsigned nbits, gcry_mpi_t **ret_factors )
 
   /* Now we can test our keys (this should never fail!). */
   test_keys( sk, qbits );
+  return 0;
 }
 
 
@@ -374,16 +385,20 @@ gcry_err_code_t
 _gcry_dsa_generate (int algo, unsigned nbits, unsigned long dummy,
                     gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
+  gpg_err_code_t err;
   DSA_secret_key sk;
 
-  generate (&sk, nbits, retfactors);
-  skey[0] = sk.p;
-  skey[1] = sk.q;
-  skey[2] = sk.g;
-  skey[3] = sk.y;
-  skey[4] = sk.x;
+  err = generate (&sk, nbits, retfactors);
+  if (!err)
+    {
+      skey[0] = sk.p;
+      skey[1] = sk.q;
+      skey[2] = sk.g;
+      skey[3] = sk.y;
+      skey[4] = sk.x;
+    }
 
-  return GPG_ERR_NO_ERROR;
+  return err;
 }
 
 
