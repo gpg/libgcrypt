@@ -204,14 +204,14 @@ esac
 
 
 case "${target}" in
-    *-openbsd* | *-netbsd*)
+    *-openbsd*)
         # FIXME: Are these the best flags for OpenBSD?
         NAME_OF_DEV_RANDOM="/dev/srandom"
         NAME_OF_DEV_URANDOM="/dev/urandom"
 #       DYNLINK_MOD_CFLAGS="-shared -rdynamic $CFLAGS_PIC -Wl,-Bshareable -Wl,-x"
         ;;
 
-    *-solaris* | *-irix* | *-dec-osf* )
+    *-solaris* | *-irix* | *-dec-osf* | *-netbsd* )
         NAME_OF_DEV_RANDOM="/dev/random"
         NAME_OF_DEV_URANDOM="/dev/random"
 #       DYNLINK_MOD_CFLAGS="-shared $CFLAGS_PIC"

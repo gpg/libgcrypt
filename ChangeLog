@@ -1,3 +1,8 @@
+2005-12-08  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Changed the random device names for netbsd.  From
+	Christian Biere.
+
 2005-10-05  Werner Koch  <wk@g10code.com>
 
 	Released 1.2.2.
