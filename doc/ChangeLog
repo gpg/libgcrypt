@@ -1,3 +1,14 @@
+2006-01-08  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi: Added documentation for more gcry_control commands.
+
+	* gcrypt.texi: Fixed several typos; thanks to Tommi Vainikainen.
+
+2005-12-16  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.texi (MPI formats): Fix return types of functions:
+	gcry_mpi_scan, gcry_mpi_print, gcry_mpi_aprint.
+
 2005-11-26  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi: New chapter: Prime numbers.
