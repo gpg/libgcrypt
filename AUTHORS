@@ -23,19 +23,16 @@ Wrote cipher/twofish.c.
 GNUPG	Natural Resources Canada    1998-08-11
 Disclaims changes by Matthew Skala.
 
-
 GNUPG	Michael Roth	Germany     1998-09-17
 Assigns changes.
 mroth@nessie.de
 Wrote cipher/des.c.
 Changes and bug fixes all over the place.
 
-
 GNUPG	Niklas Hernaeus 	1998-09-18
 Disclaims changes.
 nh@df.lth.se
 Weak key patches.
-
 
 GNUPG	Rémi Guyomarch		1999-05-25
 Assigns past and future changes. (g10/compress.c, g10/encr-data.c,
@@ -70,6 +67,13 @@ mpi/hppa1.1/mpih-mul1.S, mpi/Makefile.am, tests/prime.c,
 tests/register.c, tests/ac.c, tests/basic.c, tests/tsexp.c,
 tests/keygen.c, tests/pubkey.c, configure.ac, acinclude.m4)
 
+LIBGCRYPT       Brad Hards       2006-02-09
+Assigns Past and Future Changes
+bradh@frogmouth.net
+(Added OFB mode. Changed cipher/cipher.c, test/basic.c doc/gcrypt.tex)
+
+
+
 
 More credits
 ============
@@ -85,7 +89,8 @@ files from Cryptlib.  Copyright Peter Gutmann, Paul Kendall, and Chris
 Wedgwood 1996-1999.
 
 
- Copyright 1998, 1999, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ Copyright 1998, 1999, 2000, 2001, 2002, 2003,
+           2006 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

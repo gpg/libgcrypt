@@ -12,7 +12,7 @@ This manual is for Libgcrypt
 (version @value{VERSION}, @value{UPDATED}),
 which is GNU's library of cryptographic building blocks.
 
-Copyright @copyright{} 2000, 2002, 2003, 2004 Free Software Foundation, Inc.
+Copyright @copyright{} 2000, 2002, 2003, 2004, 2006 Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -1318,7 +1318,7 @@ Cipher Block Chaining mode.
 Stream mode, only to be used with stream cipher algorithms.
 
 @item GCRY_CIPHER_MODE_OFB
-Outer Feedback mode.
+Output Feedback mode.
 
 @item  GCRY_CIPHER_MODE_CTR
 Counter mode.
@@ -1347,8 +1347,12 @@ an algorithm into the according numeric ID.
 
 The cipher mode to use must be specified via @var{mode}.  See
 @xref{Available cipher modes}, for a list of supported cipher modes
-and the according constants.  Note, that some modes do not work
-together with all algorithms.
+and the according constants.  Note that some modes are incompatible
+with some algorithms - in particular, stream mode
+(GCRY_CIPHER_MODE_STREAM) only works with stream ciphers. Any block
+cipher mode (GCRY_CIPHER_MODE_ECB, GCRY_CIPHER_MODE_CBC,
+GCRY_CIPHER_MODE_CFB, GCRY_CIPHER_MODE_OFB or GCRY_CIPHER_MODE_CTR)
+will work with any block cipher algorithm.
 
 The third argument @var{flags} can either be passed as @code{0} or as
 the bit-wise OR of the following constants.

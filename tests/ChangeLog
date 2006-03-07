@@ -1,3 +1,12 @@
+2006-03-07  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (cipher_bench): Add OFB mode.
+
+2006-01-18  Brad Hards  <bradh@frogmouth.net> (wk 2006-03-07)
+
+	* basic.c: Added test cases for OFB and CFB modes. Fixed some
+	compiler warnings for signedness. 
+
 2005-11-12  Moritz Schulte  <moritz@g10code.com>
 
 	* ac-data.c: Added way more test cases.

@@ -1,3 +1,8 @@
+2006-01-18  Brad Hards  <bradh@frogmouth.net> (wk 2006-03-07)
+
+	* gcrypt.texi (Available cipher modes): Typo fix, add a little
+	more detail on cipher modes vs cipher algorithms.
+
 2006-01-08  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.texi: Added documentation for more gcry_control commands.

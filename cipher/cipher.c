@@ -590,6 +590,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
       case GCRY_CIPHER_MODE_ECB:
       case GCRY_CIPHER_MODE_CBC:
       case GCRY_CIPHER_MODE_CFB:
+      case GCRY_CIPHER_MODE_OFB:
       case GCRY_CIPHER_MODE_CTR:
 	if ((cipher->encrypt == dummy_encrypt_block)
 	    || (cipher->decrypt == dummy_decrypt_block))
@@ -983,6 +984,100 @@ do_cfb_decrypt( gcry_cipher_hd_t c,
 
 
 static void
+do_ofb_encrypt( gcry_cipher_hd_t c,
+                byte *outbuf, const byte *inbuf, unsigned nbytes )
+{
+  byte *ivp;
+  size_t blocksize = c->cipher->blocksize;
+
+  if ( nbytes <= c->unused )
+    {
+      /* Short enough to be encoded by the remaining XOR mask. */
+      /* XOR the input with the IV */
+      for (ivp=c->iv+c->cipher->blocksize - c->unused;
+           nbytes;
+           nbytes--, c->unused-- )
+        *outbuf++ = (*ivp++ ^ *inbuf++);
+      return;
+    }
+
+  if( c->unused )
+    {
+      nbytes -= c->unused;
+      for(ivp=c->iv+blocksize - c->unused; c->unused; c->unused-- )
+        *outbuf++ = (*ivp++ ^ *inbuf++);
+    }
+
+  /* Now we can process complete blocks. */
+  while ( nbytes >= blocksize )
+    {
+      int i;
+      /* Encrypt the IV (and save the current one). */
+      memcpy( c->lastiv, c->iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
+      
+      for (ivp=c->iv,i=0; i < blocksize; i++ )
+        *outbuf++ = (*ivp++ ^ *inbuf++);
+      nbytes -= blocksize;
+    }
+  if ( nbytes )
+    { /* process the remaining bytes */
+      memcpy( c->lastiv, c->iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
+      c->unused = blocksize;
+      c->unused -= nbytes;
+      for(ivp=c->iv; nbytes; nbytes-- )
+        *outbuf++ = (*ivp++ ^ *inbuf++);
+    }
+}
+
+static void
+do_ofb_decrypt( gcry_cipher_hd_t c,
+                byte *outbuf, const byte *inbuf, unsigned int nbytes )
+{
+  byte *ivp;
+  size_t blocksize = c->cipher->blocksize;
+  
+  if( nbytes <= c->unused )
+    {
+      /* Short enough to be encoded by the remaining XOR mask. */
+      for (ivp=c->iv+blocksize - c->unused; nbytes; nbytes--,c->unused--)
+        *outbuf++ = *ivp++ ^ *inbuf++;
+      return;
+    }
+
+  if ( c->unused )
+    {
+      nbytes -= c->unused;
+      for (ivp=c->iv+blocksize - c->unused; c->unused; c->unused-- )
+        *outbuf++ = *ivp++ ^ *inbuf++;
+    }
+
+  /* Now we can process complete blocks. */
+  while ( nbytes >= blocksize )
+    {
+      int i;
+      /* Encrypt the IV (and save the current one). */
+      memcpy( c->lastiv, c->iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
+      for (ivp=c->iv,i=0; i < blocksize; i++ )
+        *outbuf++ = *ivp++ ^ *inbuf++;
+      nbytes -= blocksize;
+    }
+  if ( nbytes ) 
+    { /* Process the remaining bytes. */
+      /* Encrypt the IV (and save the current one). */
+      memcpy( c->lastiv, c->iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
+      c->unused = blocksize;
+      c->unused -= nbytes;
+      for (ivp=c->iv; nbytes; nbytes-- )
+        *outbuf++ = *ivp++ ^ *inbuf++;
+    }
+}
+
+
+static void
 do_ctr_encrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
                 unsigned int nbytes )
 {
@@ -1045,6 +1140,9 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf,
 	break;
       case GCRY_CIPHER_MODE_CFB:
 	do_cfb_encrypt(c, outbuf, inbuf, nbytes );
+	break;
+      case GCRY_CIPHER_MODE_OFB:
+	do_ofb_encrypt(c, outbuf, inbuf, nbytes );
 	break;
       case GCRY_CIPHER_MODE_CTR:
 	do_ctr_encrypt(c, outbuf, inbuf, nbytes );
@@ -1131,6 +1229,9 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 	break;
       case GCRY_CIPHER_MODE_CFB:
 	do_cfb_decrypt(c, outbuf, inbuf, nbytes );
+	break;
+      case GCRY_CIPHER_MODE_OFB:
+	do_ofb_decrypt(c, outbuf, inbuf, nbytes );
 	break;
       case GCRY_CIPHER_MODE_CTR:
 	do_ctr_decrypt(c, outbuf, inbuf, nbytes );
