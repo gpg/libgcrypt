@@ -67,6 +67,7 @@ extern gcry_md_spec_t _gcry_digest_spec_md4;
 extern gcry_md_spec_t _gcry_digest_spec_md5;
 extern gcry_md_spec_t _gcry_digest_spec_rmd160;
 extern gcry_md_spec_t _gcry_digest_spec_sha1;
+extern gcry_md_spec_t _gcry_digest_spec_sha224;
 extern gcry_md_spec_t _gcry_digest_spec_sha256;
 extern gcry_md_spec_t _gcry_digest_spec_sha512;
 extern gcry_md_spec_t _gcry_digest_spec_sha384;

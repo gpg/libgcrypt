@@ -1,5 +1,5 @@
 /* sha256.c - SHA256 hash function
- *	Copyright (C) 2003 Free Software Foundation, Inc.
+ *	Copyright (C) 2003, 2006 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -22,13 +22,16 @@
 /*  Test vectors:
     
     "abc"
-    ba7816bf 8f01cfea 414140de 5dae2223 b00361a3 96177a9c b410ff61 f20015ad
+    SHA224: 23097d22 3405d822 8642a477 bda255b3 2aadbce4 bda0b3f7 e36c9da7
+    SHA256: ba7816bf 8f01cfea 414140de 5dae2223 b00361a3 96177a9c b410ff61 f20015ad
 
     "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
-    248d6a61 d20638b8 e5c02693 0c3e6039 a33ce459 64ff2167 f6ecedd4 19db06c1
+    SHA224: 75388b16 512776cc 5dba5da1 fd890150 b0c6455c b4f58b19 52522525
+    SHA256: 248d6a61 d20638b8 e5c02693 0c3e6039 a33ce459 64ff2167 f6ecedd4 19db06c1
  
     "a" one million times
-    cdc76e5c 9914fb92 81a1c7e2 84d73e67 f1809a48 a497200e 046d39cc c7112cd0
+    SHA224: 20794655 980c91d8 bbb4c1ea 97618a4b f03f4258 1948b2ee 4ee7ad67
+    SHA256: cdc76e5c 9914fb92 81a1c7e2 84d73e67 f1809a48 a497200e 046d39cc c7112cd0
 
  */
 
@@ -64,6 +67,25 @@ sha256_init (void *context)
   hd->h5 = 0x9b05688c;
   hd->h6 = 0x1f83d9ab;
   hd->h7 = 0x5be0cd19;
+
+  hd->nblocks = 0;
+  hd->count = 0;
+}
+
+
+static void
+sha224_init (void *context)
+{
+  SHA256_CONTEXT *hd = context;
+
+  hd->h0 = 0xc1059ed8;
+  hd->h1 = 0x367cd507;
+  hd->h2 = 0x3070dd17;
+  hd->h3 = 0xf70e5939;
+  hd->h4 = 0xffc00b31;
+  hd->h5 = 0x68581511;
+  hd->h6 = 0x64f98fa7;
+  hd->h7 = 0xbefa4fa4;
 
   hd->nblocks = 0;
   hd->count = 0;
@@ -290,7 +312,20 @@ sha256_read (void *context)
   return hd->buf;
 }
 
-static byte asn[19] = /* Object ID is  2.16.840.1.101.3.4.2.1 */
+static byte asn224[19] = /* Object ID is 2.16.840.1.101.3.4.2.4 */
+  { 0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
+    0x01, 0x65, 0x03, 0x04, 0x02, 0x04, 0x05, 0x00, 0x04,
+    0x20
+  };
+
+static gcry_md_oid_spec_t oid_spec_sha224[] =
+  {
+    /* From RFC3874, Section 4 */
+    { "2.16.840.1.101.3.4.2.4" }, 
+    { NULL },
+  };
+
+static byte asn256[19] = /* Object ID is  2.16.840.1.101.3.4.2.1 */
   { 0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
     0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05,
     0x00, 0x04, 0x20 };
@@ -302,9 +337,16 @@ static gcry_md_oid_spec_t oid_spec_sha256[] =
     { NULL },
   };
 
+gcry_md_spec_t _gcry_digest_spec_sha224 =
+  {
+    "SHA224", asn224, DIM (asn224), oid_spec_sha224, 28,
+    sha224_init, sha256_write, sha256_final, sha256_read,
+    sizeof (SHA256_CONTEXT)
+  };
+
 gcry_md_spec_t _gcry_digest_spec_sha256 =
   {
-    "SHA256", asn, DIM (asn), oid_spec_sha256, 32,
+    "SHA256", asn256, DIM (asn256), oid_spec_sha256, 32,
     sha256_init, sha256_write, sha256_final, sha256_read,
     sizeof (SHA256_CONTEXT)
   };

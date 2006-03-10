@@ -1,6 +1,6 @@
 /* gcrypt.h -  GNU cryptographic library interface
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003,
- *               2004  Free Software Foundation, Inc.
+ *               2004, 2006  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -963,7 +963,8 @@ enum gcry_md_algos
     GCRY_MD_CRC32               = 302,
     GCRY_MD_CRC32_RFC1510       = 303,
     GCRY_MD_CRC24_RFC2440       = 304,
-    GCRY_MD_WHIRLPOOL = 305
+    GCRY_MD_WHIRLPOOL = 305,
+    GCRY_MD_SHA224  = 306
   };
 
 /* Flags used with the open function.  */

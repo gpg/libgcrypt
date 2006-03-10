@@ -845,7 +845,7 @@ This value indicates success.  The value of this error code is
 @code{0}.  Also, it is guaranteed that an error value made from the
 error code @code{0} will be @code{0} itself (as a whole).  This means
 that the error source information is lost for this error code,
-however, as this error code indicates that no error occured, this is
+however, as this error code indicates that no error occurred, this is
 generally not a problem.
 
 @item GPG_ERR_GENERAL
@@ -1630,17 +1630,21 @@ This is an reserved for the HAVAL algorithm with 5 passes and 160
 bit. It yields a message digest of 20 bytes.  Note that there is no
 implementation yet available.
 
+@item GCRY_MD_SHA224
+This is the SHA-224 algorithm which yields a message digest of 28 bytes.
+See Change Notice 1 for FIPS 180-2 for the specification.
+
 @item GCRY_MD_SHA256
 This is the SHA-256 algorithm which yields a message digest of 32 bytes.
 See FIPS 180-2 for the specification.
 
 @item GCRY_MD_SHA384
-This is reserved for SHA-2 with 384 bits. It yields a message digest of
-48 bytes.  Note that there is no implementation yet available.
+This is the SHA-384 algorithm which yields a message digest of 48 bytes.
+See FIPS 180-2 for the specification.
 
 @item GCRY_MD_SHA512
-This is reserved for SHA-2 with 512 bits. It yields a message digest of
-64 bytes.  Note that there is no implementation yet available.
+This is the SHA-384 algorithm which yields a message digest of 64 bytes.
+See FIPS 180-2 for the specification.
 
 @item GCRY_MD_CRC32
 This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It
@@ -1665,7 +1669,7 @@ bytes.
 @section Hash algorithm modules
 
 @acronym{Libgcrypt} makes it possible to load additional `message
-digest modules'; these cipher can be used just like the message digest
+digest modules'; these digests can be used just like the message digest
 algorithms that are built into the library directly.  For an
 introduction into extension modules, see @xref{Modules}.
 
@@ -1788,8 +1792,7 @@ this is the hashed data is highly confidential.
 
 @item GCRY_MD_FLAG_HMAC
 Turn the algorithm into a HMAC message authentication algorithm.  This
-does only work if just one algorithm is enabled for the handle and
-SHA-384 and SHA512 is not used.  Note that the function
+only works if just one algorithm is enabled for the handle.  Note that the function
 @code{gcry_md_setkey} must be used to set the MAC key.  If you want CBC
 message authentication codes based on a cipher, see @xref{Working with
 cipher handles}.
@@ -1846,7 +1849,7 @@ active algorithms.
 @end deftypefun
 
 
-Often it is necessary to start hashing some data and than continue to
+Often it is necessary to start hashing some data and then continue to
 hash different data.  To avoid hashing the same data several times (which
 might not even be possible if the data is received from a pipe), a
 snapshot of the current hash context can be taken and turned into a new
@@ -1861,10 +1864,10 @@ independently using the original context.
 @end deftypefun
 
 
-Now that we have prepared everything to calculate hashes, its time to
-see how it is actually done.  There are 2  ways for this, one to
+Now that we have prepared everything to calculate hashes, it is time to
+see how it is actually done.  There are two ways for this, one to
 update the hash with a block of memory and one macro to update the hash
-by just one character.  Both may be used intermixed.
+by just one character.  Both methods can be used on the same hash context.
 
 @deftypefun void gcry_md_write (gcry_md_hd_t @var{h}, const void *@var{buffer}, size_t @var{length})
 
@@ -1880,10 +1883,10 @@ update the digest value.  This is an efficient function, implemented as
 a macro to buffer the data before an actual update. 
 @end deftypefun
 
-The semantics of the hash functions don't allow to read out intermediate
-message digests because the calculation must be finalized fist.  This
+The semantics of the hash functions do not provide for reading out intermediate
+message digests because the calculation must be finalized first.  This
 finalization may for example include the number of bytes hashed in the
-message digest.  
+message digest or some padding.
 
 @deftypefun void gcry_md_final (gcry_md_hd_t @var{h})
 
@@ -1913,7 +1916,7 @@ been enabled.
 Because it is often necessary to get the message digest of one block of
 memory, a fast convenience function is available for this task: 
 
-@deftypefun void gcry_md_hash_buffer (int @var{algo}, void *@var{digest}, const cvoid *@var{buffer}, size_t @var{length});
+@deftypefun void gcry_md_hash_buffer (int @var{algo}, void *@var{digest}, const void *@var{buffer}, size_t @var{length});
 
 @code{gcry_md_hash_buffer} is a shortcut function to calculate a message
 digest of a buffer.  This function does not require a context and
@@ -1932,14 +1935,14 @@ algorithm is used.
 @c ***********************************
 
 Hash algorithms are identified by internal algorithm numbers (see
-@code{gcry_md_open} for a list.  However, in most applications they are
-used by names, so 2 functions are available to map between string
+@code{gcry_md_open} for a list).  However, in most applications they are
+used by names, so two functions are available to map between string
 representations and hash algorithm identifiers.
 
 @deftypefun const char *gcry_md_algo_name (int @var{algo})
 
 Map the digest algorithm id @var{algo} to a string representation of the
-algorithm name.  For unknown algorithms this functions returns an
+algorithm name.  For unknown algorithms this function returns an
 empty string.  This function should not be used to test for the
 availability of an algorithm.
 @end deftypefun
@@ -2571,7 +2574,7 @@ The function accepts public or secret keys in @var{key}.
 @deftypefun gcry_error_t gcry_pk_testkey (gcry_sexp_t @var{key})
 
 Return zero if the private key @var{key} is `sane', an error code otherwise.
-Note, that it is not possible to chek the `saneness' of a public key.
+Note, that it is not possible to check the `saneness' of a public key.
 
 @end deftypefun
 
@@ -3545,7 +3548,7 @@ This function is used to get data from a @var{list}.  A pointer to the
 actual data with index @var{number} is returned and the length of this
 data will be stored to @var{datalen}.  If there is no data at the given
 index or the index represents another list, @code{NULL} is returned.
-@strong{Note:} The returned pointer is valid as long as @var{list} is
+@strong{Caution:} The returned pointer is valid as long as @var{list} is
 not modified or released.
 
 @noindent
@@ -3897,7 +3900,7 @@ result in @var{x}.
 @end deftypefun
 
 @node Miscellaneous
-@section Miscellanous
+@section Miscellaneous
 
 @deftypefun gcry_mpi_t gcry_mpi_set_opaque (@w{gcry_mpi_t @var{a}}, @w{void *@var{p}}, @w{unsigned int @var{nbits}})
 
@@ -4093,7 +4096,7 @@ If you require secure memory, this code should be used:
 
   /* ... */
 
-  /* Allocate a pool of 16k secure memory.  This also drops priviliges
+  /* Allocate a pool of 16k secure memory.  This also drops privileges
      on some systems. */
   gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
 

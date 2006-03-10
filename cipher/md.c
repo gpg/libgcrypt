@@ -56,6 +56,7 @@ static struct digest_table_entry
 #endif
 #if USE_SHA256
     { &_gcry_digest_spec_sha256, GCRY_MD_SHA256 },
+    { &_gcry_digest_spec_sha224, GCRY_MD_SHA224 },
 #endif
 #if USE_SHA512
     { &_gcry_digest_spec_sha512, GCRY_MD_SHA512 },

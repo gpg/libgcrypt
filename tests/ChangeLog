@@ -1,3 +1,7 @@
+2006-03-10  Brad Hards  <bradh@frogmouth.net>  (wk, patch 2006-02-18)
+
+	* basic.c (check_one_hmac, check_hmac): New.
+
 2006-03-07  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (cipher_bench): Add OFB mode.
