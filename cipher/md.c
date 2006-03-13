@@ -1,5 +1,5 @@
 /* md.c  -  message digest dispatcher
- * Copyright (C) 1998, 1999, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2002, 2003, 2006 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -101,6 +101,7 @@ struct gcry_md_context
   int finalized;
   GcryDigestEntry *list;
   byte *macpads;
+  int macpads_Bsize;             /* Blocksize as used for the HMAC pads. */
 };
 
 
@@ -430,7 +431,13 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
 
       if (hmac)
 	{
-	  ctx->macpads = gcry_malloc_secure (128);
+	  if ( (GCRY_MD_SHA384 == algo) || (GCRY_MD_SHA512 == algo) ) {
+	    ctx->macpads_Bsize = 128;
+	    ctx->macpads = gcry_malloc_secure (2*(ctx->macpads_Bsize));
+	  } else {
+	    ctx->macpads_Bsize = 64;
+	    ctx->macpads = gcry_malloc_secure (2*(ctx->macpads_Bsize));
+	  }
 	  if (! ctx->macpads)
 	    {
 	      md_close (hd);
@@ -592,14 +599,14 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
       b->debug = NULL;
       if (a->macpads)
 	{
-	  b->macpads = gcry_malloc_secure (128);
+	  b->macpads = gcry_malloc_secure (2*(a->macpads_Bsize));
 	  if (! b->macpads)
 	    {
 	      md_close (bhd);
 	      err = gpg_err_code_from_errno (errno);
 	    }
 	  else
-	    memcpy (b->macpads, a->macpads, 128);
+	    memcpy (b->macpads, a->macpads, (2*(a->macpads_Bsize)));
 	}
     }
 
@@ -662,7 +669,7 @@ gcry_md_reset (gcry_md_hd_t a)
       (*r->digest->init) (&r->context.c);
     }
   if (a->ctx->macpads)
-    md_write (a, a->ctx->macpads, 64); /* inner pad */
+    md_write (a, a->ctx->macpads, a->ctx->macpads_Bsize); /* inner pad */
 }
 
 static void
@@ -686,7 +693,7 @@ md_close (gcry_md_hd_t a)
 
   if (a->ctx->macpads)
     {
-      wipememory (a->ctx->macpads, 128);
+      wipememory (a->ctx->macpads, 2*(a->ctx->macpads_Bsize));
       gcry_free(a->ctx->macpads);
     }
 
@@ -755,7 +762,7 @@ md_final (gcry_md_hd_t a)
 
       if (err)
 	_gcry_fatal_error (err, NULL);
-      md_write (om, a->ctx->macpads+64, 64);
+      md_write (om, (a->ctx->macpads)+(a->ctx->macpads_Bsize), a->ctx->macpads_Bsize);
       md_write (om, p, dlen);
       md_final (om);
       /* Replace our digest with the mac (they have the same size). */
@@ -786,12 +793,12 @@ prepare_macpads( gcry_md_hd_t hd, const byte *key, size_t keylen)
       assert ( keylen <= 64 );
     }
 
-  memset ( hd->ctx->macpads, 0, 128 );
+  memset ( hd->ctx->macpads, 0, 2*(hd->ctx->macpads_Bsize) );
   ipad = hd->ctx->macpads;
-  opad = hd->ctx->macpads+64;
+  opad = (hd->ctx->macpads)+(hd->ctx->macpads_Bsize);
   memcpy ( ipad, key, keylen );
   memcpy ( opad, key, keylen );
-  for (i=0; i < 64; i++ ) 
+  for (i=0; i < (hd->ctx->macpads_Bsize); i++ ) 
     {
       ipad[i] ^= 0x36;
       opad[i] ^= 0x5c;

@@ -1,3 +1,8 @@
+2006-03-12  Brad Hards  <bradh@frogmouth.net>  (wk)
+
+	* md.c (md_open): Use new variable macpads_Bsize instead of
+	hardwiring the block size.  Changed at all places.
+
 2006-03-10  Brad Hards  <bradh@frogmouth.net>  (wk, patch 2005-04-22)
 
 	* md.c, sha256.c:  Add support for SHA-224.
