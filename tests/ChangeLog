@@ -1,14 +1,15 @@
 2006-03-14  Werner Koch  <wk@g10code.com>
 
+	* benchmark.c (main): Allow for seed file argument to random bench.
+
+	* basic.c (main): Use progress handler only in verbose mode.
+	(main): Speed up test key generation.
 	* ac-data.c (check_sexp_conversion, check_run): Take care of VERBOSE.
-	* basic.c (main): Speed up test key generation.
-	(main): use progress handler only in verbose mode.
 	* ac.c (main): Ditto.
 	* pubkey.c (main): Ditto.
+	* pkbench.c (main): Ditto.
 	* keygen.c (main): Ditto.
 	(check_rsa_keys): Print key only in verbose mode.
-
-	* pkbench.c (main): Ditto.
 
 2006-03-10  Brad Hards  <bradh@frogmouth.net>  (wk, patch 2006-02-18)
 

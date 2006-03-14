@@ -1,5 +1,5 @@
 /* benchmark.c - for libgcrypt
- *	Copyright (C) 2002, 2004, 2005 Free Software Foundation, Inc.
+ * Copyright (C) 2002, 2004, 2005, 2006 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -695,7 +695,16 @@ main( int argc, char **argv )
             stdout);
   else if ( !strcmp (*argv, "random"))
     {
-      random_bench ();
+      if (argc == 1)
+        random_bench ();
+      else if (argc == 2)
+        {
+          gcry_control (GCRYCTL_SET_RANDOM_SEED_FILE, argv[1]);
+          random_bench ();
+          gcry_control (GCRYCTL_UPDATE_RANDOM_SEED_FILE);
+        }
+      else
+        fputs ("usage: benchmark random [seedfile]\n", stdout);
     }
   else if ( !strcmp (*argv, "md"))
     {
