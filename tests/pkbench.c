@@ -335,6 +335,9 @@ main (int argc, char **argv)
       char *algorithm = NULL;
       char *key_size = NULL;
 
+      /* No valuable keys are create, so we can speed up our RNG. */
+      gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+
       if (argv[2])
 	{
 	  algorithm = argv[2];

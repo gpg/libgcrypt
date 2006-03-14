@@ -7,6 +7,11 @@ Noteworthy changes in version 1.3.0 (unreleased)
    general a good idea to spread this macro into the application code
    to make sure that these polls happen often enough.
 
+ * Reading and writing the random seed file is now protected by a
+   fcntl style file lock on systems that provide this function.
+
+ * Support for SHA-224 and HMAC using SHA-384 and SHA-512.
+
  * Interface changes relative to the 1.2.0 release:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 gcry_fast_random_poll	NEW

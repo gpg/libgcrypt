@@ -139,8 +139,9 @@ check_rsa_keys (void)
   {
     char buffer[20000];
     gcry_sexp_sprint (key, GCRYSEXP_FMT_ADVANCED, buffer, sizeof buffer);
-    printf ("=============================\n%s\n"
-            "=============================\n", buffer);
+    if (verbose)
+      printf ("=============================\n%s\n"
+              "=============================\n", buffer);
   }
   gcry_sexp_release (key);
   exit (0);

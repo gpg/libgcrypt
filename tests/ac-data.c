@@ -63,7 +63,8 @@ check_sexp_conversion (gcry_ac_data_t data, const char **identifiers)
 
   err = gcry_ac_data_to_sexp (data, &sexp, identifiers);
   assert_err (err);
-  gcry_sexp_dump (sexp);
+  if (verbose)
+    gcry_sexp_dump (sexp);
   err = gcry_ac_data_from_sexp (&data2, sexp, identifiers);
   assert_err (err);
 
@@ -128,7 +129,8 @@ check_run (void)
   check_sexp_conversion (data, identifiers_null);
   check_sexp_conversion (data, NULL);
 
-  printf ("data-set-test-0 succeeded\n");
+  if (verbose)
+    printf ("data-set-test-0 succeeded\n");
 
   gcry_ac_data_clear (data);
 
@@ -161,8 +163,9 @@ check_run (void)
   assert_err (err);
   gcry_free ((void *) label1);	/* FIXME!! */
   gcry_mpi_release (mpi1);
-    
-  printf ("data-set-test-1 succeeded\n");
+
+  if (verbose)
+    printf ("data-set-test-1 succeeded\n");
 
   gcry_ac_data_clear (data);
   assert (! gcry_ac_data_length (data));
@@ -170,7 +173,8 @@ check_run (void)
   check_sexp_conversion (data, identifiers_null);
   check_sexp_conversion (data, NULL);
 
-  printf ("data-set-test-2 succeeded\n");
+  if (verbose)
+    printf ("data-set-test-2 succeeded\n");
  
   gcry_ac_data_destroy (data);
  

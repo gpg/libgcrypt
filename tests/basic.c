@@ -1096,7 +1096,7 @@ check_digests (void)
       { GCRY_MD_SHA1, "!" /* kludge for "a"*1000000 */ ,
 	"\x34\xAA\x97\x3C\xD4\xC4\xDA\xA4\xF6\x1E"
 	"\xEB\x2B\xDB\xAD\x27\x31\x65\x34\x01\x6F" },
-      // From RFC3874
+      /* From RFC3874 */
       {	GCRY_MD_SHA224, "abc",
 	"\x23\x09\x7d\x22\x34\x05\xd8\x22\x86\x42\xa4\x77\xbd\xa2\x55\xb3"
 	"\x2a\xad\xbc\xe4\xbd\xa0\xb3\xf7\xe3\x6c\x9d\xa7" },
@@ -1920,12 +1920,16 @@ main (int argc, char **argv)
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
 
-  gcry_set_progress_handler (progress_handler, NULL);
+  if (verbose)
+    gcry_set_progress_handler (progress_handler, NULL);
   
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+  /* No valuable keys are create, so we can speed up our RNG. */
+  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+
   check_ciphers ();
   check_aes128_cbc_cts_cipher ();
   check_cbc_mac_cipher ();

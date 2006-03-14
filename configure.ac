@@ -1,6 +1,6 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002
-#               2003, 2004 Free Software Foundation, Inc.
+#               2003, 2004, 2006 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -484,6 +484,7 @@ AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
 # Other checks
 AC_CHECK_FUNCS(strerror rand mmap getpagesize waitpid wait4)
 AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime)
+AC_CHECK_FUNCS(fcntl ftruncate)
 
 GNUPG_CHECK_MLOCK
 

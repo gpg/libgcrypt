@@ -1,6 +1,6 @@
 /* random.c  -	random number generator
  * Copyright (C) 1998, 2000, 2001, 2002, 2003,
- *               2004  Free Software Foundation, Inc.
+ *               2004, 2005, 2006  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -60,6 +60,13 @@
 
 #ifndef RAND_MAX   /* for SunOS */
 #define RAND_MAX 32767
+#endif
+
+/* Check whether we can lock the seed file read write. */
+#if defined(HAVE_FCNTL) && defined(HAVE_FTRUNCATE) && !defined(HAVE_W32_SYSTEM)
+#define LOCK_SEED_FILE 1
+#else
+#define LOCK_SEED_FILE 0
 #endif
 
 
@@ -259,7 +266,8 @@ get_random_bytes ( size_t nbytes, int level, int secure)
   byte *buf, *p;
   int err;
 
-  /* First a hack toavoid the strong random using our regression test suite. */
+  /* First a hack to avoid the strong random using our regression test
+     suite. */
   if (quick_test && level > 1)
     level = 1;
 
@@ -531,6 +539,45 @@ _gcry_set_random_seed_file( const char *name )
 }
 
 
+/* Lock an open file identified by file descriptor FD and wait a
+   reasonable time to succeed.  With FOR_WRITE set to true a write
+   lock will be taken.  FNAME is used only for diagnostics. Returns 0
+   on success or -1 on error. */
+static int
+lock_seed_file (int fd, const char *fname, int for_write)
+{
+#if LOCK_SEED_FILE
+  struct flock lck;
+  struct timeval tv;
+  int backoff=0;
+
+  /* We take a lock on the entire file. */
+  memset (&lck, 0, sizeof lck);
+  lck.l_type = for_write? F_WRLCK : F_RDLCK;
+  lck.l_whence = SEEK_SET;
+
+  while (fcntl (fd, F_SETLK, &lck) == -1)
+    {
+      if (errno != EAGAIN && errno != EACCES)
+        {
+          log_info (_("can't lock `%s': %s\n"), fname, strerror (errno));
+          return -1;
+        }
+
+      if (backoff > 2) /* Show the first message after ~2.25 seconds. */
+        log_info( _("waiting for lock on `%s'...\n"), fname);
+      
+      tv.tv_sec = backoff;
+      tv.tv_usec = 250000;
+      select (0, NULL, NULL, NULL, &tv);
+      if (backoff < 10)
+        backoff++ ;
+    }
+#endif /*LOCK_SEED_FILE*/
+  return 0;
+}
+
+
 /*
   Read in a seed form the random_seed file
   and return true if this was successful.
@@ -562,6 +609,11 @@ read_seed_file (void)
   if (fd == -1 )
     {
       log_info(_("can't open `%s': %s\n"), seed_file_name, strerror(errno) );
+      return 0;
+    }
+  if (lock_seed_file (fd, seed_file_name, 0))
+    {
+      close (fd);
       return 0;
     }
   if (fstat( fd, &sb ) )
@@ -652,7 +704,7 @@ _gcry_update_random_seed_file()
     log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
   pool_is_locked = 1;
 
-  /* copy the entropy pool to a scratch pool and mix both of them */
+  /* Copy the entropy pool to a scratch pool and mix both of them. */
   for (i=0,dp=(ulong*)keypool, sp=(ulong*)rndpool;
        i < POOLWORDS; i++, dp++, sp++ ) 
     {
@@ -661,28 +713,41 @@ _gcry_update_random_seed_file()
   mix_pool(rndpool); rndstats.mixrnd++;
   mix_pool(keypool); rndstats.mixkey++;
 
-#ifdef HAVE_DOSISH_SYSTEM
+#if defined(HAVE_DOSISH_SYSTEM) || defined(__CYGWIN__)
   fd = open (seed_file_name, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
              S_IRUSR|S_IWUSR );
 #else
-  fd = open (seed_file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR );
+# if LOCK_SEED_FILE
+    fd = open (seed_file_name, O_WRONLY|O_CREAT, S_IRUSR|S_IWUSR );
+# else
+    fd = open (seed_file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR );
+# endif
 #endif
 
   if (fd == -1 )
     log_info (_("can't create `%s': %s\n"), seed_file_name, strerror(errno) );
+  else if (lock_seed_file (fd, seed_file_name, 1))
+    {
+      close (fd);
+    }
+#if LOCK_SEED_FILE
+  else if (ftruncate (fd, 0))
+    {
+      log_info(_("can't write `%s': %s\n"), seed_file_name, strerror(errno));
+      close (fd);
+    }
+#endif /*LOCK_SEED_FILE*/
   else 
     {
       do
         {
           i = write (fd, keypool, POOLSIZE );
         } 
-      while( i == -1 && errno == EINTR );
+      while (i == -1 && errno == EINTR);
       if (i != POOLSIZE) 
-        log_info (_("can't write `%s': %s\n"),
-                  seed_file_name, strerror(errno) );
+        log_info (_("can't write `%s': %s\n"),seed_file_name, strerror(errno));
       if (close(fd))
-        log_info(_("can't close `%s': %s\n"),
-                 seed_file_name, strerror(errno) );
+        log_info (_("can't close `%s': %s\n"),seed_file_name, strerror(errno));
     }
   
   pool_is_locked = 0;
@@ -694,21 +759,39 @@ _gcry_update_random_seed_file()
 
 
 /* Read random out of the pool. This function is the core of the
-   public random fucntions.  Note that Level 0 is not anymore handeld
-   special and in fact an alias for level 1. */
+   public random functions.  Note that Level 0 is not anymore handeld
+   special and in fact an alias for level 1.  Must be called with the
+   pool already locked.  */
 static void
 read_pool (byte *buffer, size_t length, int level)
 {
   int i;
   unsigned long *sp, *dp;
-  volatile pid_t my_pid; /* The volatile is there to make sure the
-                            compiler does not optimize the code away
-                            in case the getpid function is badly
-                            attributed. */
+  /* The volatile is there to make sure the compiler does not optimize
+     the code away in case the getpid function is badly attributed.
+     Note that we keep a pid in a static variable as well as in a
+     stack based one; the latter is to detect ill behaving thread
+     libraries, ignoring the pool mutexes. */
+  static volatile pid_t my_pid = (pid_t)(-1); 
+  volatile pid_t my_pid2;
+
 
  retry:
   /* Get our own pid, so that we can detect a fork. */
-  my_pid = getpid ();
+  my_pid2 = getpid ();
+  if (my_pid == (pid_t)(-1))                                
+    my_pid = my_pid2;
+  if ( my_pid != my_pid2 )
+    {
+      /* We detected a plain fork; i.e. we are now the child.  Update
+         the static pid and add some randomness. */
+      pid_t x;
+
+      my_pid = my_pid2;
+      x = my_pid;
+      add_randomness (&x, sizeof(x), 0);
+      just_mixed = 0; /* Make sure it will get mixed. */
+    }
 
   assert (pool_is_locked);
 
@@ -756,7 +839,7 @@ read_pool (byte *buffer, size_t length, int level)
       pool_balance += needed;
     }
 
-  /* make sure the pool is filled */
+  /* Make sure the pool is filled. */
   while (!pool_filled)
     random_poll();
 
@@ -765,7 +848,10 @@ read_pool (byte *buffer, size_t length, int level)
   
   /* Mix the pid in so that we for sure won't deliver the same random
      after a fork. */
-  add_randomness (&my_pid, sizeof (my_pid), 0);
+  {
+    pid_t apid = my_pid;
+    add_randomness (&apid, sizeof (apid), 0);
+  }
 
   /* Mix the pool (if add_randomness() didn't it). */
   if (!just_mixed)
@@ -783,8 +869,8 @@ read_pool (byte *buffer, size_t length, int level)
   mix_pool(rndpool); rndstats.mixrnd++;
   mix_pool(keypool); rndstats.mixkey++;
 
-  /* Read the required data.  We use a readpointer to read from a
-     different position each time */
+  /* Read the requested data.  We use a read pointer to read from a
+     different position each time.  */
   while (length--)
     {
       *buffer++ = keypool[pool_readpos++];
@@ -801,17 +887,14 @@ read_pool (byte *buffer, size_t length, int level)
 
   /* We need to detect whether a fork has happened.  A fork might have
      an identical pool and thus the child and the parent could emit
-     the very same random number.  Obviously this can only happen when
-     running multi-threaded and the pool lock should even catch this.
-     However things do get wrong and thus we better check and retry it
-     here.  We assume that the thread library has no other fatal
-     faults, though.
-   */
-  if ( getpid () != my_pid )
+     the very same random number.  This test here is to detect forks
+     in a multi-threaded process. */
+  if ( getpid () != my_pid2 )
     {
       pid_t x = getpid();
       add_randomness (&x, sizeof(x), 0);
       just_mixed = 0; /* Make sure it will get mixed. */
+      my_pid = x;     /* Also update the static pid. */
       goto retry;
     }
 }
@@ -1101,6 +1184,10 @@ gcry_create_nonce (unsigned char *buffer, size_t length)
 {
   static unsigned char nonce_buffer[20+8];
   static int nonce_buffer_initialized = 0;
+  static volatile pid_t my_pid; /* The volatile is there to make sure the
+                                   compiler does not optimize the code away
+                                   in case the getpid function is badly
+                                   attributed. */
   unsigned char *p;
   size_t n;
   int err;
@@ -1121,6 +1208,8 @@ gcry_create_nonce (unsigned char *buffer, size_t length)
       pid_t apid = getpid ();
       time_t atime = time (NULL);
 
+      my_pid = apid;
+
       if ((sizeof apid + sizeof atime) > sizeof nonce_buffer)
         BUG ();
 
@@ -1136,6 +1225,12 @@ gcry_create_nonce (unsigned char *buffer, size_t length)
       gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
 
       nonce_buffer_initialized = 1;
+    }
+  else if ( my_pid != getpid () )
+    {
+      /* We forked. Need to reseed the buffer - doing this for the
+         private part should be sufficient. */
+      gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
     }
 
   /* Create the nonce by hashing the entire buffer, returning the hash

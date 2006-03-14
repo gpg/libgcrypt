@@ -1,6 +1,6 @@
 What's left to do                                 -*- outline -*-
 
-* Add more tests.  Even basic is very minimal.
+* Add more tests.
 
 * udiv-qrnbd.o should get build as *.lo [HPUX]
 
@@ -26,9 +26,6 @@ What's left to do                                 -*- outline -*-
   with the ac interface (i.e. by using ac's `data sets') and the pk
   interface could be changed to be a wrapper for the ac interface.
 
-* HMAC won't work with sha-512 due to the different block size.  OTOH,
-  I can imagine no cryptographic reason to use it.
-
 * cipher/pubkey.c and pubkey implementaions.
   Don't rely on the secure memory based wiping function but add an
   extra wiping.
@@ -39,3 +36,15 @@ What's left to do                                 -*- outline -*-
 
 * Use builtin bit functions of gcc 3.4
 
+* Consider using a daemon to maintain he random pool
+
+  The down side of this is that we can't assume that the random das
+  has always been stored in "secure memory".  And we rely on that
+  sniffing of Unix domain sockets is not possible.  We can implement
+  this simply by detecting a special prefixed random seed name and
+  divert in this case to the daemon.  There are several benefits with
+  such an approach: We keep the state of the RNG over invocations of
+  libgcrypt based applications, don't need time consuming
+  initialization of the pool and in case the entropy collectros need
+  to run that bunch of Unix utilities we don't waste their precious
+  results.
