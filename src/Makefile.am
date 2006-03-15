@@ -25,6 +25,8 @@ m4data_DATA = libgcrypt.m4
 include_HEADERS = gcrypt.h gcrypt-module.h
 
 lib_LTLIBRARIES = libgcrypt.la
+sbin_PROGRAMS = gcryptrnd
+bin_PROGRAMS = getrandom
 
 if HAVE_LD_VERSION_SCRIPT
   libgcrypt_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt.vers
@@ -45,3 +47,10 @@ libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
 	$(srcdir)/libgcrypt.vers
 libgcrypt_la_LIBADD = ../cipher/libcipher.la ../mpi/libmpi.la \
 	@LTLIBOBJS@ @GPG_ERROR_LIBS@
+
+gcryptrnd_SOURCES = gcryptrnd.c
+gcryptrnd_CFLAGS = $(GPG_ERROR_CFLAGS) $(PTH_CFLAGS)
+gcryptrnd_LDADD = ../src/libgcrypt.la $(PTH_LIBS)
+
+getrandom_SOURCES = getrandom.c
+
