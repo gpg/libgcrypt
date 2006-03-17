@@ -93,7 +93,7 @@ _gcry_daemon_randomize (void *buffer, size_t length,
    that the IPC mechanism might have not stored it there.  Return a
    pointer to a newly alloced memory or NULL if it failed.  */
 void *
-_gcry_daemon_get_random_bytes (ize_t nbytes, int level, int secure)
+_gcry_daemon_get_random_bytes (size_t nbytes, int level, int secure)
 {
   return NULL;
 }
