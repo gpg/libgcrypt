@@ -29,11 +29,20 @@ void _gcry_random_dump_stats(void);
 void _gcry_secure_random_alloc(void);
 int  _gcry_quick_random_gen( int onoff );
 int  _gcry_random_is_faked(void);
+int  _gcry_use_random_daemon (int onoff);
 void _gcry_set_random_seed_file (const char *name);
 void _gcry_update_random_seed_file (void);
 
 byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
+
+/*-- random-daemon.c (only used from random.c) --*/
+void _gcry_daemon_initialize_basics (void);
+int _gcry_daemon_randomize (void *buffer, size_t length,
+                            enum gcry_random_level level);
+void *_gcry_daemon_get_random_bytes (size_t nbytes, int level, int secure);
+int _gcry_daemon_create_nonce (void *buffer, size_t length);
+
 
 #endif /*G10_RANDOM_H*/
 

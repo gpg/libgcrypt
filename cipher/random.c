@@ -94,6 +94,7 @@
 
 
 static int is_initialized;
+static int allow_daemon; /* If true, try to use the daemon first. */
 #define MASK_LEVEL(a) do { (a) &= 3; } while(0)
 static char *rndpool;	/* allocated size is POOLSIZE+BLOCKLEN */
 static char *keypool;	/* allocated size is POOLSIZE+BLOCKLEN */
@@ -159,6 +160,7 @@ initialize_basics(void)
       if (err)
         log_fatal ("failed to create the nonce buffer lock: %s\n",
                    strerror (err) );
+      _gcry_daemon_initialize_basics ();
     }
 }
 
@@ -248,6 +250,23 @@ _gcry_quick_random_gen( int onoff )
   return faked_rng? 1 : last;
 }
 
+
+/* With ONOFF set to 1, enable the use of the daemon.  With ONOFF set
+   to 0, disable the use of the daemon.  With ONOF set to -1, return
+   whether the daemon has been enabled. */
+int
+_gcry_use_random_daemon (int onoff)
+{
+  int last;
+
+  /* FIXME: This is not really thread safe. */
+  last = allow_daemon;
+  if (onoff != -1)
+    allow_daemon = onoff;
+  return last;
+}
+
+
 int
 _gcry_random_is_faked()
 {
@@ -273,6 +292,9 @@ get_random_bytes ( size_t nbytes, int level, int secure)
 
   /* Make sure the requested level is in range. */
   MASK_LEVEL(level);
+
+  if (allow_daemon && (p=_gcry_daemon_get_random_bytes (nbytes, level,secure)))
+    return p; /* The daemon succeeded. */
 
   /* Lock the pool. */
   err = ath_mutex_lock (&pool_lock);
@@ -352,7 +374,7 @@ gcry_random_bytes( size_t nbytes, enum gcry_random_level level )
 }
 
 /* The public function to return random data of the quality LEVEL;
-   this version of the function retrun the random a buffer allocated
+   this version of the function return the random a buffer allocated
    in secure memory. */
 void *
 gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level )
@@ -383,6 +405,9 @@ gcry_randomize (byte *buffer, size_t length, enum gcry_random_level level)
 
   /* Make sure the level is okay. */
   MASK_LEVEL(level);
+
+  if (allow_daemon && !_gcry_daemon_randomize (buffer, length, level))
+    return; /* The daemon succeeded. */
 
   /* Acquire the pool lock. */
   err = ath_mutex_lock (&pool_lock);
@@ -1195,6 +1220,9 @@ gcry_create_nonce (unsigned char *buffer, size_t length)
   /* Make sure we are initialized. */
   if (!is_initialized)
     initialize ();
+
+  if (allow_daemon && !_gcry_daemon_create_nonce (buffer, length))
+    return; /* The daemon succeeded. */
 
   /* Acquire the nonce buffer lock. */
   err = ath_mutex_lock (&nonce_buffer_lock);

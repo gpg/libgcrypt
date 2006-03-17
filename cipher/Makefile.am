@@ -36,7 +36,7 @@ libcipher_la_SOURCES = \
 cipher.c pubkey.c ac.c md.c \
 bithelp.h  \
 primegen.c  \
-random.c random.h \
+random.c random-daemon.c random.h \
 rand-internal.h \
 rmd.h
 

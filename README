@@ -52,8 +52,10 @@
     the GPL as found in the file COPYING.  The modules under the GPL
     are:
 
-      rndunix - Entropy gatherer for Unices without a /dev/random
-      rndw32  - Entropy gatherer for MS Windows
+      rndunix   - Entropy gatherer for Unices without a /dev/random
+      rndw32    - Entropy gatherer for MS Windows
+      gcryptrnd - The random number daemon.
+      getrandom - A client for that daemon.
 
     The documentation is available under the terms of the GPL.
 

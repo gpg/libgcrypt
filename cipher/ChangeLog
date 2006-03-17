@@ -1,3 +1,10 @@
+2006-03-15  Werner Koch  <wk@g10code.com>
+
+	* random-daemon.c: New.
+	* random.c (_gcry_use_random_daemon): New.
+	(get_random_bytes, gcry_randomize, gcry_create_nonce): Try
+	diverting to the daemon functions.
+
 2006-03-14  Werner Koch  <wk@g10code.com>
 
 	* random.c (lock_seed_file): New.

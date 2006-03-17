@@ -1,6 +1,9 @@
 2006-03-14  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Check for fctnl and ftruncate.
+	(HAVE_PTH): Check for GNU Pth.
+	(HAVE_W32_SYSTEM): Define it.
+	* acinclude.m4 (GNUPG_PTH_VERSION_CHECK): New. Taken from GnuPG 1.4.
 
 2005-12-08  Werner Koch  <wk@g10code.com>
 
