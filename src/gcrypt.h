@@ -1248,8 +1248,7 @@ typedef struct gcry_ac_key_spec_rsa
    `EME-PKCS-V1_5' encoding method.  */
 typedef struct gcry_ac_eme_pkcs_v1_5
 {
-  gcry_ac_key_t key;
-  gcry_ac_handle_t handle;
+  size_t key_size;
 } gcry_ac_eme_pkcs_v1_5_t;
 
 typedef enum gcry_md_algos gcry_md_algo_t;

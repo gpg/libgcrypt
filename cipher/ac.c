@@ -1,5 +1,5 @@
 /* ac.c - Alternative interface for asymmetric cryptography.
-   Copyright (C) 2003, 2004, 2005 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
  
    This file is part of Libgcrypt.
   
@@ -552,9 +552,7 @@ _gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
   size_t data_n;
   unsigned int i;
 
-  /* The shortest S-Expression here is the empty one "()" (including
-     NUL).  */
-  sexp_buffer_n = 3;
+  sexp_buffer_n = 1;
   sexp_buffer = NULL;
   arg_list = NULL;
   err = 0;
@@ -570,6 +568,12 @@ _gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
 	i++;
       }
   identifiers_n = i;
+  
+  if (! identifiers_n)
+    /* If there are NO identifiers, we still add surrounding braces so
+       that we have a list of named MPI value lists.  Otherwise it
+       wouldn't be too much fun to process these lists.  */
+    sexp_buffer_n += 2;
   
   data_n = _gcry_ac_data_length (data);
   for (i = 0; i < data_n; i++)
@@ -598,12 +602,20 @@ _gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
   sexp_buffer_n = 0;
 
   /* Add identifiers: (<IDENTIFIER0>(<IDENTIFIER1>...)).  */
-  for (i = 0; i < identifiers_n; i++)
-    sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, "(%s",
-			      identifiers[i]);
+  if (identifiers_n)
+    {
+      /* Add nested identifier lists as usual.  */
+      for (i = 0; i < identifiers_n; i++)
+	sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, "(%s",
+				  identifiers[i]);
+    }
+  else
+    {
+      /* Add special list.  */
+      sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, "(");
+    }
 
   /* Add MPI list.  */
-  sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, "(");
   arg_list = gcry_malloc (sizeof (*arg_list) * (data_n + 1));
   if (! arg_list)
     {
@@ -621,11 +633,18 @@ _gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
     }
   if (err)
     goto out;
-  sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, ")");
 
-  /* Add closing braces for identifier list.  */
-  for (i = 0; i < identifiers_n; i++)
-    sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, ")");
+  if (identifiers_n)
+    {
+      /* Add closing braces for identifier lists as usual.  */
+      for (i = 0; i < identifiers_n; i++)
+	sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, ")");
+    }
+  else
+    {
+      /* Add closing braces for special list.  */
+      sexp_buffer_n += sprintf (sexp_buffer + sexp_buffer_n, ")");
+    }
 
   /* Construct.  */
   err = gcry_sexp_build_array (&sexp_new, NULL, sexp_buffer, arg_list);
@@ -670,6 +689,7 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
   size_t data_n;
   size_t sexp_n;
   unsigned int i;
+  int skip_name;
 
   data_set_new = NULL;
   sexp_cur = sexp;
@@ -684,34 +704,73 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
     {
       for (i = 0; identifiers[i]; i++)
 	{
+	  /* Next identifier.  Extract first data item from
+	     SEXP_CUR.  */
 	  data = gcry_sexp_nth_data (sexp_cur, 0, &data_n);
+
 	  if (! ((data_n == strlen (identifiers[i]))
 		 && (! strncmp (data, identifiers[i], data_n))))
 	    {
-	      /* Identifier mismatch.  */
+	      /* Identifier mismatch -> error.  */
 	      err = gcry_error (GPG_ERR_INV_SEXP);
 	      break;
 	    }
-	  sexp_tmp = gcry_sexp_nth (sexp_cur, 1);
-	  if (! sexp_tmp)
-	    {
-	      /* gcry_sexp_nth() does also return NULL in case the
-		 requested element is simple an empty list.  That's
-		 why we have to add this special case.  */
 
-	      if ((gcry_sexp_length (sexp_cur) == 1) || identifiers[i + 1])
+	  /* Identifier matches.  Now we have to distinguish two
+	     cases:
+	     
+	     (i)  we are at the last identifier:
+	     leave loop
+
+	     (ii) we are not at the last identifier:
+	     extract next element, which is supposed to be a
+	     sublist.  */
+
+	  if (! identifiers[i + 1])
+	    /* Last identifier.  */
+	    break;
+	  else
+	    {
+	      /* Not the last identifier, extract next sublist.  */
+
+	      sexp_tmp = gcry_sexp_nth (sexp_cur, 1);
+	      if (! sexp_tmp)
 		{
+		  /* Missing sublist.  */
 		  err = gcry_error (GPG_ERR_INV_SEXP);
 		  break;
 		}
+
+	      /* Release old SEXP_CUR, in case it is not equal to the
+		 original SEXP.  */
+
+	      if (sexp_cur != sexp)
+		gcry_sexp_release (sexp_cur);
+
+	      /* Make SEXP_CUR point to the new current sublist.  */
+	      sexp_cur = sexp_tmp;
 	    }
-	  if (sexp_cur != sexp)
-	    gcry_sexp_release (sexp_cur);
-	  sexp_cur = sexp_tmp;
 	}
       if (err)
 	goto out;
+
+      if (i)
+	/* We have at least one identifier in the list, this means the
+	   the list of named MPI values is prefixed, this means that
+	   we need to skip the first item (the list name), when
+	   processing the MPI values.  */
+	skip_name = 1;
+      else
+	/* Since there is no identifiers list, the list of named MPI
+	   values is not prefixed with a list name, therefore the
+	   offset to use is zero.  */
+	skip_name = 0;
     }
+  else
+    /* Since there is no identifiers list, the list of named MPI
+       values is not prefixed with a list name, therefore the offset
+       to use is zero.  */
+    skip_name = 0;
 
   /* Create data set from S-expression data.  */
   
@@ -719,20 +778,26 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
   if (err)
     goto out;
 
+  /* Figure out amount of named MPIs in SEXP_CUR.  */
   if (sexp_cur)
-    sexp_n = gcry_sexp_length (sexp_cur);
+    sexp_n = gcry_sexp_length (sexp_cur) - skip_name;
   else
     sexp_n = 0;
 
+  /* Extracte the named MPIs sequentially.  */
   for (i = 0; i < sexp_n; i++)
     {
-      sexp_tmp = gcry_sexp_nth (sexp_cur, i);
+      /* Store next S-Expression pair, which is supposed to consist of
+	 a name and an MPI value, in SEXP_TMP.  */
+
+      sexp_tmp = gcry_sexp_nth (sexp_cur, i + skip_name);
       if (! sexp_tmp)
 	{
 	  err = gcry_error (GPG_ERR_INV_SEXP);
 	  break;
 	}
 
+      /* Extract name from current S-Expression pair.  */
       data = gcry_sexp_nth_data (sexp_tmp, 0, &data_n);
       string = gcry_malloc (data_n + 1);
       if (! string)
@@ -743,6 +808,7 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
       memcpy (string, data, data_n);
       string[data_n] = 0;
 
+      /* Extract MPI value.  */
       mpi = gcry_sexp_nth_mpi (sexp_tmp, 1, 0);
       if (! mpi)
 	{
@@ -750,6 +816,7 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
 	  break;
 	}
 
+      /* Store named MPI in data_set_new.  */
       err = gcry_ac_data_set (data_set_new, GCRY_AC_FLAG_DEALLOC, string, mpi);
       if (err)
 	break;
@@ -786,6 +853,59 @@ gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
   err = _gcry_ac_data_from_sexp (data_set, sexp, identifiers);
 
   return gcry_error (err);
+}
+
+static void
+_gcry_ac_data_dump (const char *prefix, gcry_ac_data_t data)
+{
+  unsigned char *mpi_buffer;
+  size_t mpi_buffer_n;
+  unsigned int data_n;
+  gcry_error_t err;
+  const char *name;
+  gcry_mpi_t mpi;
+  unsigned int i;
+
+  if (! data)
+    return;
+
+  mpi_buffer = NULL;
+
+  data_n = _gcry_ac_data_length (data);
+  for (i = 0; i < data_n; i++)
+    {
+      err = gcry_ac_data_get_index (data, 0, i, &name, &mpi);
+      if (err)
+	{
+	  log_error ("failed to dump data set");
+	  break;
+	}
+
+      err = gcry_mpi_aprint (GCRYMPI_FMT_HEX, &mpi_buffer, &mpi_buffer_n, mpi);
+      if (err)
+	{
+	  log_error ("failed to dump data set");
+	  break;
+	}
+
+      log_printf ("%s%s%s: %s\n",
+		  prefix ? prefix : "",
+		  prefix ? ": " : ""
+		  , name, mpi_buffer);
+
+      gcry_free (mpi_buffer);
+      mpi_buffer = NULL;
+    }
+
+  gcry_free (mpi_buffer);
+}
+
+/* Dump the named MPI values contained in the data set DATA to
+   Libgcrypt's logging stream.  */
+void
+gcry_ac_data_dump (const char *prefix, gcry_ac_data_t data)
+{
+  _gcry_ac_data_dump (prefix, data);
 }
 
 /* Destroys any values contained in the data set DATA.  */
@@ -2296,11 +2416,8 @@ eme_pkcs_v1_5_encode (unsigned int flags, void *opts,
     goto out;
 
   /* Figure out key length in bytes.  */
-  err = _gcry_ac_key_get_nbits (options->handle, options->key, &k);
-  if (err)
-    goto out;
+  k = options->key_size / 8;
 
-  k /= 8;
   if (m_n > k - 11)
     {
       /* Key is too short for message.  */
@@ -2370,10 +2487,8 @@ eme_pkcs_v1_5_decode (unsigned int flags, void *opts,
   if (err)
     goto out;
 
-  err = _gcry_ac_key_get_nbits (options->handle, options->key, &k);
-  if (err)
-    goto out;
-  k /= 8;
+  /* Figure out key size.  */
+  k = options->key_size / 8;
 
   /* Search for zero byte.  */
   for (i = 0; (i < em_n) && em[i]; i++);
@@ -2812,9 +2927,9 @@ gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n)
    there for.  */
 
 typedef gcry_error_t (*gcry_ac_dencode_prepare_t) (gcry_ac_handle_t handle,
-						      gcry_ac_key_t key,
-						      void *opts,
-						      void *opts_em);
+						   gcry_ac_key_t key,
+						   void *opts,
+						   void *opts_em);
 
 /* The `dencode_prepare' function for ES-PKCS-V1_5.  */
 static gcry_error_t
@@ -2822,13 +2937,19 @@ ac_es_dencode_prepare_pkcs_v1_5 (gcry_ac_handle_t handle, gcry_ac_key_t key,
 				 void *opts, void *opts_em)
 {
   gcry_ac_eme_pkcs_v1_5_t *options_em;
+  unsigned int nbits;
+  gcry_error_t err;
+
+  err = _gcry_ac_key_get_nbits (handle, key, &nbits);
+  if (err)
+    goto out;
 
   options_em = opts_em;
+  options_em->key_size = nbits;
 
-  options_em->handle = handle;
-  options_em->key = key;
+ out:
 
-  return 0;
+  return err;
 }
 
 /* The `dencode_prepare' function for SSA-PKCS-V1_5.  */

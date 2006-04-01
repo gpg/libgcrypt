@@ -1,3 +1,11 @@
+2006-04-01  Moritz Schulte  <moritz@g10code.com>
+
+	* gcrypt.h (gcry_ac_eme_pkcs_v1_5): Removed members: key, handle;
+	added member: key_size.
+
+	* secmem.c (MB_FLAG_ACTIVE): write braces around MB_FLAG_ACTIVE
+	definition.
+
 2006-03-15  Werner Koch  <wk@g10code.com>
 
 	* getrandom.c: New.

@@ -57,7 +57,7 @@ typedef struct memblock
 } memblock_t;
 
 /* This flag specifies that the memory block is in use.  */
-#define MB_FLAG_ACTIVE 1 << 0
+#define MB_FLAG_ACTIVE (1 << 0)
 
 /* The pool of secure memory.  */
 static void *pool;

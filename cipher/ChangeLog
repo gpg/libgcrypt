@@ -1,3 +1,15 @@
+2006-04-01  Moritz Schulte  <moritz@g10code.com>
+
+	* ac.c (eme_pkcs_v1_5_encode): Use KEY_SIZE directly, no need to
+	call gcry_ac_key_get_nbits.
+	(eme_pkcs_v1_5_decode): Likewise.
+	(ac_es_dencode_prepare_pkcs_v1_5): Fill options_em structure with
+	key_size.
+	(_gcry_ac_data_dump, gcry_ac_data_dump): New functions.
+	(_gcry_ac_data_to_sexp, _gcry_ac_data_from_sexp): More or less
+	rewritten; changed S-Expression format so that it matches the one
+	used in pubkey.c.
+
 2006-03-15  Werner Koch  <wk@g10code.com>
 
 	* random-daemon.c: New.
