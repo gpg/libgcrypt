@@ -1,3 +1,22 @@
+2006-04-22  Moritz Schulte  <moritz@g10code.com>
+
+	* random-daemon.c (_gcry_daemon_initialize_basics): New argument:
+	SOCKETNAME.  Passing on to connect_to_socket() if non-NULL.
+	(connect_to_socket, writen, readn, call_daemon): New functions.
+	(_gcry_daemon_randomize, _gcry_daemon_get_random_bytes) 
+	(_gcry_daemon_create_nonce): Call call_daemon().
+	(RANDOM_DAEMON_SOCKET): New symbol.
+	(daemon_socket): New static variable.
+
+	* random.h (_gcry_daemon_initialize_basics): New parameter:
+	SOCKETNAME.
+	(_gcry_set_random_daemon_socket): New declaration.
+
+	* random.c (initialize_basics): Pass DAEMON_SOCKET_NAME to
+	_gcry_daemon_initialize_basics.
+	(_gcry_set_random_daemon_socket): New function, setting
+	DAEMON_SOCKET_NAME.
+
 2006-04-01  Moritz Schulte  <moritz@g10code.com>
 
 	* ac.c (eme_pkcs_v1_5_encode): Use KEY_SIZE directly, no need to

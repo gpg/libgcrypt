@@ -105,6 +105,7 @@ static int pool_balance;
 static int just_mixed;
 static int did_initial_extra_seeding;
 static char *seed_file_name;
+static char *daemon_socket_name;
 static int allow_seed_file_update;
 
 static int secure_alloc;
@@ -160,7 +161,7 @@ initialize_basics(void)
       if (err)
         log_fatal ("failed to create the nonce buffer lock: %s\n",
                    strerror (err) );
-      _gcry_daemon_initialize_basics ();
+      _gcry_daemon_initialize_basics (daemon_socket_name);
     }
 }
 
@@ -251,6 +252,15 @@ _gcry_quick_random_gen( int onoff )
 }
 
 
+void
+_gcry_set_random_daemon_socket (const char *socketname)
+{
+  if (daemon_socket_name)
+    BUG ();
+
+  daemon_socket_name = gcry_xstrdup (socketname);
+}
+
 /* With ONOFF set to 1, enable the use of the daemon.  With ONOFF set
    to 0, disable the use of the daemon.  With ONOF set to -1, return
    whether the daemon has been enabled. */
@@ -258,11 +268,12 @@ int
 _gcry_use_random_daemon (int onoff)
 {
   int last;
-
+  
   /* FIXME: This is not really thread safe. */
   last = allow_daemon;
   if (onoff != -1)
     allow_daemon = onoff;
+
   return last;
 }
 

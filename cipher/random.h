@@ -1,5 +1,5 @@
 /* random.h - random functions
- *	Copyright (C) 1998, 2002 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2002, 2006 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -37,7 +37,8 @@ byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
 
 /*-- random-daemon.c (only used from random.c) --*/
-void _gcry_daemon_initialize_basics (void);
+void _gcry_set_random_daemon_socket (const char *socketname);
+void _gcry_daemon_initialize_basics (const char *socketname);
 int _gcry_daemon_randomize (void *buffer, size_t length,
                             enum gcry_random_level level);
 void *_gcry_daemon_get_random_bytes (size_t nbytes, int level, int secure);
