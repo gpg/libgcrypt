@@ -1,16 +1,27 @@
+2006-04-28  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h (GCRY_MD_SHA224): Change value from 306 to 11 to match
+	the use in OpenPGP.  There has been no release yet, so we can
+	safely do it.
+
 2006-04-22  Moritz Schulte  <moritz@g10code.com>
 
-	* gcrypt.h (enum gcry_ctl_cmds): New commands:
-	GCRYCTL_SET_RANDOM_DAEMON_SOCKET, GCRYCTL_USE_RANDOM_DAEMON.  *
-	global.c (gcry_control): Handle new commands, calling
+	* gcrypt.h (gcry_ctl_cmds): New commands:
+	GCRYCTL_SET_RANDOM_DAEMON_SOCKET, GCRYCTL_USE_RANDOM_DAEMON.  
+	* global.c (gcry_control): Handle new commands, calling
 	_gcry_set_random_daemon_socket() and _gcry_use_random_daemon().
+
+2006-04-18  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h (GCRY_PK_USAGE_CERT, GCRY_PK_USAGE_AUTH)
+	(GCRY_PK_USAGE_UNKN): New.
 
 2006-04-01  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.h (gcry_ac_eme_pkcs_v1_5): Removed members: key, handle;
 	added member: key_size.
 
-	* secmem.c (MB_FLAG_ACTIVE): write braces around MB_FLAG_ACTIVE
+	* secmem.c (MB_FLAG_ACTIVE): Write braces around MB_FLAG_ACTIVE
 	definition.
 
 2006-03-15  Werner Koch  <wk@g10code.com>

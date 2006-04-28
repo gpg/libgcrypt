@@ -873,8 +873,11 @@ enum gcry_pk_algos
   };
 
 /* Flags describing usage capabilities of a PK algorithm. */
-#define GCRY_PK_USAGE_SIGN 1
-#define GCRY_PK_USAGE_ENCR 2
+#define GCRY_PK_USAGE_SIGN 1   /* Good for signatures. */            
+#define GCRY_PK_USAGE_ENCR 2   /* Good for encryption. */            
+#define GCRY_PK_USAGE_CERT 4   /* Good to certify other keys. */
+#define GCRY_PK_USAGE_AUTH 8   /* Good for authentication. */        
+#define GCRY_PK_USAGE_UNKN 128 /* Unknown usage flag. */          
 
 /* Encrypt the DATA using the public key PKEY and store the result as
    a newly created S-expression at RESULT. */
@@ -961,12 +964,12 @@ enum gcry_md_algos
     GCRY_MD_SHA256  = 8,
     GCRY_MD_SHA384  = 9,
     GCRY_MD_SHA512  = 10,
+    GCRY_MD_SHA224  = 11,
     GCRY_MD_MD4     = 301,
     GCRY_MD_CRC32               = 302,
     GCRY_MD_CRC32_RFC1510       = 303,
     GCRY_MD_CRC24_RFC2440       = 304,
-    GCRY_MD_WHIRLPOOL = 305,
-    GCRY_MD_SHA224  = 306
+    GCRY_MD_WHIRLPOOL = 305
   };
 
 /* Flags used with the open function.  */
