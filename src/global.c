@@ -1,6 +1,6 @@
 /* global.c  -	global control functions
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
- *               2004, 2005  Free Software Foundation, Inc.
+ *               2004, 2005, 2006  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -600,17 +600,37 @@ gcry_xmalloc_secure( size_t n )
 void *
 gcry_xcalloc( size_t n, size_t m )
 {
-    void *p = gcry_xmalloc( n*m );
-    memset( p, 0, n*m );
-    return p;
+  size_t nbytes;
+  void *p;
+
+  nbytes = n * m; 
+  if (m && nbytes / m != n) 
+    {
+      errno = ENOMEM;
+      _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
+    }
+
+  p = gcry_xmalloc ( nbytes );
+  memset ( p, 0, nbytes );
+  return p;
 }
 
 void *
 gcry_xcalloc_secure( size_t n, size_t m )
 {
-    void *p = gcry_xmalloc_secure( n* m );
-    memset( p, 0, n*m );
-    return p;
+  size_t nbytes;
+  void *p;
+
+  nbytes = n * m; 
+  if (m && nbytes / m != n) 
+    {
+      errno = ENOMEM;
+      _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
+    }
+
+  p = gcry_xmalloc_secure ( nbytes );
+  memset ( p, 0, nbytes );
+  return p;
 }
 
 char *
