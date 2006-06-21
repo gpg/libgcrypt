@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <errno.h>
 
 #define GCRYPT_NO_MPI_MACROS 1
 #include "g10lib.h"
@@ -367,61 +368,78 @@ gcry_sexp_prepend( const gcry_sexp_t a, const gcry_sexp_t n )
 gcry_sexp_t
 gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
 {
-    const byte *p;
-    DATALEN n;
+  const byte *p;
+  DATALEN n;
+  
+  if ( !list )
+    return NULL;
 
-    if ( !list )
-	return NULL;
+  if ( !toklen )
+    toklen = strlen(tok);
 
-    if( !toklen )
-	toklen = strlen(tok);
-    p = list->d;
-    while ( *p != ST_STOP ) {
-	if ( *p == ST_OPEN && p[1] == ST_DATA ) {
-	    const byte *head = p;
+  p = list->d;
+  while ( *p != ST_STOP )
+    {
+      if ( *p == ST_OPEN && p[1] == ST_DATA ) 
+        {
+          const byte *head = p;
 
-	    p += 2;
-	    memcpy ( &n, p, sizeof n ); p += sizeof n;
-	    if ( n == toklen && !memcmp( p, tok, toklen ) ) { /* found it */
-		gcry_sexp_t newlist;
-		byte *d;
-		int level = 1;
+          p += 2;
+          memcpy ( &n, p, sizeof n );
+          p += sizeof n;
+          if ( n == toklen && !memcmp( p, tok, toklen ) )
+            { /* found it */
+              gcry_sexp_t newlist;
+              byte *d;
+              int level = 1;
 
-		/* look for the end of the list */
-		for ( p += n; level; p++ ) {
-		    if ( *p == ST_DATA ) {
+              /* Look for the end of the list.  */
+              for ( p += n; level; p++ ) 
+                {
+                  if ( *p == ST_DATA )
+                    {
 			memcpy ( &n, ++p, sizeof n );
 			p += sizeof n + n;
-			p--; /* compensate for later increment */
+			p--; /* Compensate for later increment. */
 		    }
-		    else if ( *p == ST_OPEN ) {
-			level++;
+                  else if ( *p == ST_OPEN ) 
+                    {
+                      level++;
 		    }
-		    else if ( *p == ST_CLOSE ) {
-			level--;
+                  else if ( *p == ST_CLOSE ) 
+                    {
+                      level--;
 		    }
-		    else if ( *p == ST_STOP ) {
-			BUG ();
+                  else if ( *p == ST_STOP ) 
+                    {
+                      BUG ();
 		    }
-		} while ( level );
-		n = p - head;
+		}
+              n = p - head;
 
-		newlist = gcry_xmalloc ( sizeof *newlist + n );
-		d = newlist->d;
-		memcpy ( d, head, n ); d += n;
-		*d++ = ST_STOP;
-		return normalize ( newlist );
+              newlist = gcry_malloc ( sizeof *newlist + n );
+              if (!newlist)
+                {
+                  /* No way to return an error code, so we can only
+                     return Not Found. */
+                  return NULL;
+                }
+              d = newlist->d;
+              memcpy ( d, head, n ); d += n;
+              *d++ = ST_STOP;
+              return normalize ( newlist );
 	    }
-	    p += n;
+          p += n;
 	}
-	else if ( *p == ST_DATA ) {
-	    memcpy ( &n, ++p, sizeof n ); p += sizeof n;
-	    p += n;
+      else if ( *p == ST_DATA )
+        {
+          memcpy ( &n, ++p, sizeof n ); p += sizeof n;
+          p += n;
 	}
-	else
-	    p++;
+      else
+        p++;
     }
-    return NULL;
+  return NULL;
 }
 
 /****************
@@ -462,9 +480,8 @@ gcry_sexp_length( const gcry_sexp_t list )
 
 
 
-/****************
- * Extract the CAR of the given list
- */
+/* Extract the CAR of the given list.  May return NULL for bad lists
+   or memory failure.  */
 gcry_sexp_t
 gcry_sexp_nth( const gcry_sexp_t list, int number )
 {
@@ -503,7 +520,9 @@ gcry_sexp_nth( const gcry_sexp_t list, int number )
 
     if ( *p == ST_DATA ) {
 	memcpy ( &n, p, sizeof n ); p += sizeof n;
-	newlist = gcry_xmalloc ( sizeof *newlist + n + 1 );
+	newlist = gcry_malloc ( sizeof *newlist + n + 1 );
+        if (!newlist)
+          return NULL;
 	d = newlist->d;
 	memcpy ( d, p, n ); d += n;
 	*d++ = ST_STOP;
@@ -531,7 +550,9 @@ gcry_sexp_nth( const gcry_sexp_t list, int number )
 	} while ( level );
 	n = p + 1 - head;
 
-	newlist = gcry_xmalloc ( sizeof *newlist + n );
+	newlist = gcry_malloc ( sizeof *newlist + n );
+        if (!newlist)
+          return NULL;
 	d = newlist->d;
 	memcpy ( d, head, n ); d += n;
 	*d++ = ST_STOP;
@@ -723,7 +744,9 @@ gcry_sexp_cdr( const gcry_sexp_t list )
     } while ( level );
     n = p - head;
 
-    newlist = gcry_xmalloc ( sizeof *newlist + n + 2 );
+    newlist = gcry_malloc ( sizeof *newlist + n + 2 );
+    if (!newlist)
+      return NULL;
     d = newlist->d;
     *d++ = ST_OPEN;
     memcpy ( d, head, n ); d += n;
@@ -775,21 +798,29 @@ struct make_space_ctx {
     byte *pos;
 };
 
-static void
+static gpg_err_code_t
 make_space ( struct make_space_ctx *c, size_t n )
 {
-    size_t used = c->pos - c->sexp->d;
-
-    if ( used + n + sizeof(DATALEN) + 1 >= c->allocated ) {
-	gcry_sexp_t newsexp;
-	byte *newhead;
-
-	c->allocated += 2*(n+sizeof(DATALEN)+1);
-	newsexp = gcry_xrealloc ( c->sexp, sizeof *newsexp + c->allocated - 1 );
-	newhead = newsexp->d;
-	c->pos = newhead + used;
-	c->sexp = newsexp;
+  size_t used = c->pos - c->sexp->d;
+  
+  if ( used + n + sizeof(DATALEN) + 1 >= c->allocated )
+    {
+      gcry_sexp_t newsexp;
+      byte *newhead;
+      size_t newsize;
+      
+      newsize = c->allocated + 2*(n+sizeof(DATALEN)+1);
+      if (newsize <= c->allocated)
+        return GPG_ERR_TOO_LARGE;
+      newsexp = gcry_realloc ( c->sexp, sizeof *newsexp + newsize - 1);
+      if (!newsexp)
+        return gpg_err_code_from_errno (errno);
+      c->allocated = newsize;
+      newhead = newsexp->d;
+      c->pos = newhead + used;
+      c->sexp = newsexp;
     }
+  return 0;
 }
 
 
@@ -891,7 +922,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    const char *buffer, size_t length, int argflag,
 	    va_list arg_ptr, void **arg_list)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = 0;
   static const char tokenchars[] =
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -913,8 +944,6 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
   int arg_counter = 0;
   int level = 0;
 
-  /* FIXME: invent better error codes (?).  */
-
   if (!erroff)
     erroff = &dummy_erroff;
 
@@ -931,21 +960,41 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
     }                                                    \
   while (0)
 
-#define MAKE_SPACE(n)  do { make_space ( &c, (n) ); } while (0)
+  /* The MAKE_SPACE macro is used before each store operation to
+     ensure that the buffer is large enough.  It requires a global
+     context named C and jumps out to the label LEAVE on error! It
+     also sets ERROFF using the variables BUFFER and P.  */
+#define MAKE_SPACE(n)  do {                                                \
+                            gpg_err_code_t _ms_err = make_space (&c, (n)); \
+                            if (_ms_err)                                   \
+                              {                                            \
+                                err = _ms_err;                             \
+                                *erroff = p - buffer;                      \
+                                goto leave;                                \
+                              }                                            \
+                       } while (0)
+
+  /* The STORE_LEN macro is used to store the length N at buffer P. */
 #define STORE_LEN(p,n) do {						   \
 			    DATALEN ashort = (n);			   \
 			    memcpy ( (p), &ashort, sizeof(ashort) );	   \
 			    (p) += sizeof (ashort);			   \
 			} while (0)
 
-  /* We assume that the internal representation takes less memory
-   * than the provided one.  However, we add space for one extra datalen
-   * so that the code which does the ST_CLOSE can use MAKE_SPACE */
+  /* We assume that the internal representation takes less memory than
+     the provided one.  However, we add space for one extra datalen so
+     that the code which does the ST_CLOSE can use MAKE_SPACE */
   c.allocated = length + sizeof(DATALEN);
   if (buffer && length && gcry_is_secure (buffer))
-    c.sexp = gcry_xmalloc_secure (sizeof *c.sexp + c.allocated - 1);
+    c.sexp = gcry_malloc_secure (sizeof *c.sexp + c.allocated - 1);
   else
-    c.sexp = gcry_xmalloc (sizeof *c.sexp + c.allocated - 1);
+    c.sexp = gcry_malloc (sizeof *c.sexp + c.allocated - 1);
+  if (!c.sexp)
+    {
+      err = gpg_err_code_from_errno (errno);
+      *erroff = 0;
+      goto leave;
+    }
   c.pos = c.sexp->d;
 
   for (p = buffer, n = length; n; p++, n--)
@@ -986,6 +1035,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		      *erroff = p - buffer;
 		      /* Invalid octal value.  */
 		      err = GPG_ERR_SEXP_BAD_QUOTATION;
+                      goto leave;
 		    }
 		  p += 2;
 		  n -= 2;
@@ -998,6 +1048,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		      *erroff = p - buffer;
 		      /* Invalid hex value.  */
 		      err = GPG_ERR_SEXP_BAD_QUOTATION;
+                      goto leave;
 		    }
 		  p += 2;
 		  n -= 2;
@@ -1028,6 +1079,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		  *erroff = p - buffer;
 		  /* Invalid quoted string escape.  */
 		  err = GPG_ERR_SEXP_BAD_QUOTATION;
+                  goto leave;
 		}
 	    }
 	  else if (*p == '\\')
@@ -1060,6 +1112,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		{
 		  *erroff = p - buffer;
 		  err = GPG_ERR_SEXP_ODD_HEX_NUMBERS;
+                  goto leave;
 		}
 
 	      datalen = hexcount / 2;
@@ -1079,6 +1132,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    {
 	      *erroff = p - buffer;
 	      err = GPG_ERR_SEXP_BAD_HEX_CHAR;
+              goto leave;
 	    }
 	}
       else if (base64)
@@ -1099,6 +1153,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		  *erroff = p - buffer;
 		  /* Buffer too short.  */
 		  err = GPG_ERR_SEXP_STRING_TOO_LONG;
+                  goto leave;
 		}
 	      /* Make a new list entry.  */
 	      MAKE_SPACE (datalen);
@@ -1130,6 +1185,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    {
 	      *erroff = p - buffer;
 	      err = GPG_ERR_SEXP_INV_LEN_SPEC;
+              goto leave;
 	    }
 	}
       else if (percent)
@@ -1153,8 +1209,13 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		  gcry_sexp_t newsexp;
 		  byte *newhead;
 
-		  newsexp = gcry_xmalloc_secure (sizeof *newsexp
-						 + c.allocated - 1);
+		  newsexp = gcry_malloc_secure (sizeof *newsexp
+                                                + c.allocated - 1);
+                  if (!newsexp)
+                    {
+                      err = gpg_err_code_from_errno (errno);
+                      goto leave;
+                    }
 		  newhead = newsexp->d;
 		  memcpy (newhead, c.sexp->d, (c.pos - c.sexp->d));
 		  c.pos = newhead + (c.pos - c.sexp->d);
@@ -1201,8 +1262,13 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		  gcry_sexp_t newsexp;
 		  byte *newhead;
 
-		  newsexp = gcry_xmalloc_secure (sizeof *newsexp
- 						 + c.allocated - 1);
+		  newsexp = gcry_malloc_secure (sizeof *newsexp
+                                                + c.allocated - 1);
+                  if (!newsexp)
+                    {
+                      err = gpg_err_code_from_errno (errno);
+                      goto leave;
+                    }
 		  newhead = newsexp->d;
 		  memcpy (newhead, c.sexp->d, (c.pos - c.sexp->d));
 		  c.pos = newhead + (c.pos - c.sexp->d);
@@ -1236,6 +1302,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      *erroff = p - buffer;
 	      /* Invalid format specifier.  */
 	      err = GPG_ERR_SEXP_INV_LEN_SPEC;
+              goto leave;
 	    }
 	  percent = NULL;
 	}
@@ -1246,6 +1313,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      *erroff = p - buffer;
 	      /* Open display hint.  */
 	      err = GPG_ERR_SEXP_UNMATCHED_DH;
+              goto leave;
 	    }
 	  MAKE_SPACE (0);
 	  *c.pos++ = ST_OPEN;
@@ -1259,6 +1327,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      *erroff = p - buffer;
 	      /* Open display hint.  */
 	      err = GPG_ERR_SEXP_UNMATCHED_DH;
+              goto leave;
 	    }
 	  MAKE_SPACE (0);
 	  *c.pos++ = ST_CLOSE;
@@ -1283,6 +1352,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      *erroff = p - buffer;
 	      /* Open display hint.  */
 	      err = GPG_ERR_SEXP_NESTED_DH;
+              goto leave;
 	    }
 	  disphint = p;
 	}
@@ -1293,6 +1363,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      *erroff = p - buffer;
 	      /* Open display hint.  */
 	      err = GPG_ERR_SEXP_UNMATCHED_DH;
+              goto leave;
 	    }
 	  disphint = NULL;
 	}
@@ -1303,6 +1374,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      /* A length may not begin with zero.  */
 	      *erroff = p - buffer;
 	      err = GPG_ERR_SEXP_ZERO_PREFIX;
+              goto leave;
 	    }
 	  digptr = p;
 	}
@@ -1318,12 +1390,14 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	     need to save it.  Great.  */
 	  *erroff = p - buffer;
 	  err = GPG_ERR_SEXP_UNEXPECTED_PUNC;
+          goto leave;
 	}
       else if (strchr ("&\\", *p))
 	{
 	  /* Reserved punctuation.  */
 	  *erroff = p - buffer;
 	  err = GPG_ERR_SEXP_UNEXPECTED_PUNC;
+          goto leave;
 	}
       else if (argflag && (*p == '%'))
 	percent = p;
@@ -1332,14 +1406,16 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	  /* Bad or unavailable.  */
 	  *erroff = p - buffer;
 	  err = GPG_ERR_SEXP_BAD_CHARACTER;
+          goto leave;
 	}
     }
   MAKE_SPACE (0);
   *c.pos++ = ST_STOP;
 
-  if (level)
+  if (level && !err)
     err = GPG_ERR_SEXP_UNMATCHED_PAREN;
 
+ leave:
   if (err)
     {
       /* Error -> deallocate.  */

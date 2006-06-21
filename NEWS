@@ -18,6 +18,9 @@ gcry_fast_random_poll	NEW
 gcry_pk_algo_name       CHANGED (minor change in respect to return value)
 gcry_cipher_algo_name   CHANGED (minor change in respect to return value)
 GCRY_MD_SHA224          NEW
+GCRY_PK_USAGE_CERT      NEW
+GCRY_PK_USAGE_AUTH      NEW
+GCRY_PK_USAGE_UNKN      NEW
 
 FIXME: Please add API changes immediatley so that we don't
        forget about them.

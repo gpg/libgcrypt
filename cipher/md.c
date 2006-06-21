@@ -440,8 +440,8 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
 	  }
 	  if (! ctx->macpads)
 	    {
-	      md_close (hd);
 	      err = gpg_err_code_from_errno (errno);
+	      md_close (hd);
 	    }
 	}
     }
@@ -602,8 +602,8 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 	  b->macpads = gcry_malloc_secure (2*(a->macpads_Bsize));
 	  if (! b->macpads)
 	    {
-	      md_close (bhd);
 	      err = gpg_err_code_from_errno (errno);
+	      md_close (bhd);
 	    }
 	  else
 	    memcpy (b->macpads, a->macpads, (2*(a->macpads_Bsize)));
@@ -612,32 +612,41 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 
   /* Copy the complete list of algorithms.  The copied list is
      reversed, but that doesn't matter. */
-  if (! err)
-    for (ar = a->list; ar; ar = ar->next)
-      {
-	if (a->secure)
-	  br = gcry_xmalloc_secure (sizeof *br
-				    + ar->digest->contextsize
-				    - sizeof(ar->context));
-	else
-	  br = gcry_xmalloc (sizeof *br
-			     + ar->digest->contextsize
-			     - sizeof (ar->context));
-	memcpy (br, ar,
-		sizeof (*br) + ar->digest->contextsize - sizeof (ar->context));
-	br->next = b->list;
-	b->list = br;
+  if (!err)
+    {
+      for (ar = a->list; ar; ar = ar->next)
+        {
+          if (a->secure)
+            br = gcry_malloc_secure (sizeof *br
+                                     + ar->digest->contextsize
+                                     - sizeof(ar->context));
+          else
+            br = gcry_malloc (sizeof *br
+                              + ar->digest->contextsize
+                              - sizeof (ar->context));
+          if (!br)
+            {
+	      err = gpg_err_code_from_errno (errno);
+              md_close (bhd);
+              break;
+            }
 
-	/* Add a reference to the module.  */
-	ath_mutex_lock (&digests_registered_lock);
-	_gcry_module_use (br->module);
-	ath_mutex_unlock (&digests_registered_lock);
-       }
+          memcpy (br, ar, (sizeof (*br) + ar->digest->contextsize
+                           - sizeof (ar->context)));
+          br->next = b->list;
+          b->list = br;
+          
+          /* Add a reference to the module.  */
+          ath_mutex_lock (&digests_registered_lock);
+          _gcry_module_use (br->module);
+          ath_mutex_unlock (&digests_registered_lock);
+        }
+    }
 
-  if (a->debug)
+  if (a->debug && !err)
     md_start_debug (bhd, "unknown");
 
-  if (! err)
+  if (!err)
     *b_hd = bhd;
 
   return err;
@@ -822,7 +831,7 @@ gcry_md_ctl (gcry_md_hd_t hd, int cmd, byte *buffer, size_t buflen)
       rc = gcry_err_code (gcry_md_setkey (hd, buffer, buflen));
       break;
     case GCRYCTL_START_DUMP:
-      md_start_debug (hd, buffer);
+      md_start_debug (hd, (char*)buffer);
       break;
     case GCRYCTL_STOP_DUMP:
       md_stop_debug( hd );

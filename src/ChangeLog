@@ -1,3 +1,17 @@
+2006-06-21  Werner Koch  <wk@g10code.com>
+
+	* global.c (gcry_xcalloc, gcry_xcalloc_secure): Made safe against
+	integer overflow.
+
+	* sexp.c (make_space): Return an error on out of core.
+	(sexp_sscan): Remove all xmalloc style calls and return proper
+	error codes on allocation failures.
+	(gcry_sexp_find_token): Ditto.
+	(gcry_sexp_nth): 
+	
+	* sexp.c (gcry_sexp_find_token): Re-indented and removed a cruft
+	"while(level);" which fortunately had no effect.
+
 2006-04-28  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h (GCRY_MD_SHA224): Change value from 306 to 11 to match

@@ -1,3 +1,11 @@
+2006-06-21  Werner Koch  <wk@g10code.com>
+
+	* rsa.c (_gcry_rsa_generate): Replace xcalloc by calloc.
+	* pubkey.c (gcry_pk_encrypt, gcry_pk_sign): Ditto.
+	(sexp_to_key, sexp_to_sig, sexp_to_enc, gcry_pk_encrypt) 
+	(gcry_pk_sign, gcry_pk_genkey, gcry_pk_get_keygrip): Ditto. 
+	* md.c (md_copy): Ditto.
+	
 2006-04-22  Moritz Schulte  <moritz@g10code.com>
 
 	* random-daemon.c (_gcry_daemon_initialize_basics): New argument:

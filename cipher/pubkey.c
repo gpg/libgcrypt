@@ -786,7 +786,15 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
     }
 
     {
-      char *name_terminated = gcry_xmalloc (n + 1);
+      char *name_terminated;
+
+      name_terminated = gcry_malloc (n + 1);
+      if (!name_terminated)
+        {
+          err = gpg_err_code_from_errno (errno);
+          gcry_sexp_release (list);
+          return err;
+        }
       memcpy (name_terminated, name, n);
       name_terminated[n] = 0;
 
@@ -876,7 +884,17 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
     }
       
     {
-      char *name_terminated = gcry_xmalloc (n + 1);
+      char *name_terminated;
+
+      name_terminated = gcry_malloc (n + 1);
+      if (!name_terminated)
+        {
+          err = gcry_err_code_from_errno (errno);
+	  gcry_sexp_release (l2);
+	  gcry_sexp_release (list);
+          return err;
+        }
+          
       memcpy (name_terminated, name, n);
       name_terminated[n] = 0;
       
@@ -1026,7 +1044,14 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
     }
 
   {
-    char *name_terminated = gcry_xmalloc (n + 1);
+    char *name_terminated;
+
+    name_terminated = gcry_malloc (n + 1);
+    if (!name_terminated)
+      {
+        err = gcry_err_code_from_errno (errno);
+        goto leave;
+      }
     memcpy (name_terminated, name, n);
     name_terminated[n] = 0;
     
@@ -1391,7 +1416,12 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     goto leave;
 
   /* Now we can encrypt DATA to CIPH. */
-  ciph = gcry_xcalloc (strlen (algo_elems) + 1, sizeof (*ciph));
+  ciph = gcry_calloc (strlen (algo_elems) + 1, sizeof (*ciph));
+  if (!ciph)
+    {
+      rc = gpg_err_code_from_errno (errno);
+      goto leave;
+    }
   rc = pubkey_encrypt (module->mod_id, ciph, data, pkey, flags);
   mpi_free (data);
   data = NULL;
@@ -1407,7 +1437,12 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     void **arg_list;
     
     /* Build the string.  */
-    string = p = gcry_xmalloc (needed);
+    string = p = gcry_malloc (needed);
+    if (!string)
+      {
+        rc = gpg_err_code_from_errno (errno);
+        goto leave;
+      }
     p = stpcpy ( p, "(enc-val(" );
     p = stpcpy ( p, algo_name );
     for (i=0; algo_elems[i]; i++ )
@@ -1609,7 +1644,12 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  result = gcry_xcalloc (strlen (algo_elems) + 1, sizeof (*result));
+  result = gcry_calloc (strlen (algo_elems) + 1, sizeof (*result));
+  if (!result)
+    {
+      rc = gpg_err_code_from_errno (errno);
+      goto leave;
+    }
   rc = pubkey_sign (module->mod_id, result, hash, skey);
   if (rc)
     goto leave;
@@ -1625,7 +1665,12 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
     needed += 10 * nelem;
 
     /* Build the string. */
-    string = p = gcry_xmalloc (needed);
+    string = p = gcry_malloc (needed);
+    if (!string)
+      {
+        rc = gpg_err_code_from_errno (errno);
+        goto leave;
+      }
     p = stpcpy (p, "(sig-val(");
     p = stpcpy (p, algo_name);
     for (i = 0; algo_elems[i]; i++)
@@ -1847,7 +1892,12 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       goto leave;
     }
 
-  name_terminated = gcry_xmalloc (n + 1);
+  name_terminated = gcry_malloc (n + 1);
+  if (!name_terminated)
+    {
+      rc = gpg_err_code_from_errno (errno);
+      goto leave;
+    }
   memcpy (name_terminated, name, n);
   name_terminated[n] = 0;
   ath_mutex_lock (&pubkeys_registered_lock);
@@ -1908,7 +1958,12 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       goto leave;
     }
   
-  name_terminated = gcry_xmalloc (n + 1);
+  name_terminated = gcry_malloc (n + 1);
+  if (!name_terminated)
+    {
+      rc = gpg_err_code_from_errno (errno);
+      goto leave;
+    }
   memcpy (name_terminated, name, n);
   name_terminated[n] = 0;
   nbits = (unsigned int) strtoul (name_terminated, NULL, 0);
@@ -1935,7 +1990,12 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 
     /* Build the string. */
     nelem = 0;
-    string = p = gcry_xmalloc (needed);
+    string = p = gcry_malloc (needed);
+    if (!string)
+      {
+        rc = gpg_err_code_from_errno (errno);
+        goto leave;
+      }
     p = stpcpy (p, "(key-data");
     p = stpcpy (p, "(public-key(");
     p = stpcpy (p, algo_name);
@@ -2103,7 +2163,9 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
     goto fail; /* Invalid structure of object. */
 
   {
-    char *name_terminated = gcry_xmalloc (n + 1);
+    char *name_terminated = gcry_malloc (n + 1);
+    if (!name_terminated)
+      goto fail;
     memcpy (name_terminated, name, n);
     name_terminated[n] = 0;
     ath_mutex_lock (&pubkeys_registered_lock);

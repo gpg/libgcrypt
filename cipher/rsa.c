@@ -28,6 +28,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
@@ -440,6 +442,8 @@ _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
                     gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   RSA_secret_key sk;
+  gpg_err_code_t rc;
+  int i;
 
   generate (&sk, nbits, use_e);
   skey[0] = sk.n;
@@ -449,10 +453,21 @@ _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
   skey[4] = sk.q;
   skey[5] = sk.u;
   
-  /* make an empty list of factors */
-  *retfactors = gcry_xcalloc( 1, sizeof **retfactors );
+  /* Make an empty list of factors.  */
+  *retfactors = gcry_calloc ( 1, sizeof **retfactors );
+  if (!*retfactors)
+    {
+      rc = gpg_err_code_from_errno (errno);
+      for (i=0; i <= 5; i++)
+        {
+          gcry_mpi_release (skey[i]);
+          skey[i] = NULL;
+        }
+    }
+  else
+    rc = 0;
   
-  return GPG_ERR_NO_ERROR;
+  return rc;
 }
 
 
