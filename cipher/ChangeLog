@@ -1,3 +1,7 @@
+2006-07-04  Marcus Brinkmann  <marcus@g10code.de>
+
+	* sha512.c: Fix typo in copyright notice.
+
 2006-06-21  Werner Koch  <wk@g10code.com>
 
 	* rsa.c (_gcry_rsa_generate): Replace xcalloc by calloc.
