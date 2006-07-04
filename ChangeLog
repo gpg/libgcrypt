@@ -1,5 +1,7 @@
 2006-07-04  Marcus Brinkmann  <marcus@g10code.de>
 
+	* configure.ac: Call AC_LIBTOO_WIN32_DLL and AC_LIBTOOL_RC.
+
 	* configure.ac: Call gl_TYPE_SOCKLEN_T instead of the other
 	socklen_t checks.
 
