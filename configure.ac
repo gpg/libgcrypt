@@ -510,16 +510,7 @@ GNUPG_CHECK_TYPEDEF(ulong, HAVE_ULONG_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u16, HAVE_U16_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
 
-AC_CHECK_TYPE(socklen_t,,
-              [AC_DEFINE_UNQUOTED([socklen_t],
-                                  [int],
-                                  [Define to `int' if unavailable.])],
-              [
-#include <sys/types.h>
-#include <sys/socket.h>
-              ])
-
-TYPE_SOCKLEN_T
+gl_TYPE_SOCKLEN_T
 
 #######################################
 #### Checks for library functions. ####

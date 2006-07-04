@@ -1,3 +1,8 @@
+2006-07-04  Marcus Brinkmann  <marcus@g10code.de>
+
+	* configure.ac: Call gl_TYPE_SOCKLEN_T instead of the other
+	socklen_t checks.
+
 2006-06-08  Marcus Brinkmann  <marcus@g10code.de>
 
 	* configure.ac (PTH_LIBS): Add --all to pth-config invocation.

@@ -28,7 +28,18 @@
 #include <gpg-error.h>
 
 #include <sys/types.h>
+
+#if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#else
+#if HAVE_WINSOCK2_H
+# include <winsock2.h>
+#endif
+#if HAVE_WS2TCPIP_H
+# include <ws2tcpip.h>
+#endif
+#endif
+
 #include <sys/time.h>
 
 /* This is required for error code compatibility. */

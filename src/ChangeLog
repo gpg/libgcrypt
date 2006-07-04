@@ -1,3 +1,8 @@
+2006-07-04  Marcus Brinkmann  <marcus@g10code.de>
+
+	* gcrypt.h [!HAVE_SYS_SOCKET_H]: Do not include sys/socket.h, but
+	the appropriate windows socket header.
+
 2006-06-21  Werner Koch  <wk@g10code.com>
 
 	* global.c (gcry_xcalloc, gcry_xcalloc_secure): Made safe against
