@@ -1,4 +1,4 @@
-# Copyright (C) 1998,1999,2000,2001,2002,2003,2004,2005 Free Software Foundation, Inc.
+# Copyright (C) 1998,1999,2000,2001,2002,2003,2004,2005,2006 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -41,10 +41,45 @@ libgcrypt_la_SOURCES = g10lib.h types.h cipher.h \
 	mpi.h missing-string.c module.c \
 	ath.h ath.c
 
-libgcrypt_la_LDFLAGS = $(libgcrypt_version_script_cmd) -version-info \
+if HAVE_W32_SYSTEM
+
+LTRCCOMPILE = $(LIBTOOL) --mode=compile $(RC) \
+     `echo $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) | \
+     sed -e 's/-I/--include-dir /g;s/-D/--define /g'`
+
+%.lo : %.rc
+	$(LTRCCOMPILE) -i $< -o $@
+
+gcrypt_res = versioninfo.lo
+gcrypt_res_ldflag = -Wl,.libs/versioninfo.o
+
+no_undefined = -no-undefined
+export_symbols = -export-symbols $(srcdir)/libgcrypt.def
+
+install-def-file:
+	$(INSTALL) $(srcdir)/libgcrypt.def $(DESTDIR)$(libdir)/libgcrypt.def
+
+uninstall-def-file:
+	-rm $(DESTDIR)$(libdir)/libgcrypt.def
+
+gcrypt_deps = $(gcrypt_res) libgcrypt.def
+
+else
+gcrypt_res =
+gcrypt_res_ldflag =
+no_undefined =
+export_symbols =
+install-def-file:
+uninstall-def-file:
+
+gcrypt_deps =
+endif
+
+libgcrypt_la_LDFLAGS = $(gcrypt_res_ldflag) $(no_undefined) $(export_symbols) \
+	$(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
-	$(srcdir)/libgcrypt.vers
+	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
 libgcrypt_la_LIBADD = ../cipher/libcipher.la ../mpi/libmpi.la \
 	@LTLIBOBJS@ @GPG_ERROR_LIBS@
 
@@ -54,3 +89,6 @@ gcryptrnd_LDADD = ../src/libgcrypt.la $(PTH_LIBS)
 
 getrandom_SOURCES = getrandom.c
 
+install-data-local: install-def-file
+
+uninstall-local: uninstall-def-file

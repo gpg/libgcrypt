@@ -1,5 +1,12 @@
 2006-07-04  Marcus Brinkmann  <marcus@g10code.de>
 
+	* Makefile.am (install-data-local, uninstall-local, %.lo,
+	(install-def-file, uninstall-def-file): New targets.
+	(LTRCCOMPILE, gcrypt_res, gcrypt_res_ldflag, no_undefined,
+	(export_symbols, gcrypt_deps): New variables.
+	* versioninfo.rc.in: New file.
+	* libgcrypt.def: New file from ../w32-dll/libgcrypt.def.
+
 	* gcrypt.h [!HAVE_SYS_SOCKET_H]: Do not include sys/socket.h, but
 	the appropriate windows socket header.
 
