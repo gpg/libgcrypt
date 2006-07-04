@@ -24,7 +24,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#ifndef _WIN32
 #include <sys/times.h>
+#endif
 #include <gcrypt.h>
 
 #define PGM "benchmark"
@@ -229,19 +231,27 @@ static clock_t started_at, stopped_at;
 static void
 start_timer (void)
 {
+#ifdef _WIN32
+  started_at = stopped_at = clock ();
+#else
   struct tms tmp;
 
   times (&tmp);
   started_at = stopped_at = tmp.tms_utime;
+#endif
 }
 
 static void
 stop_timer (void)
 {
+#ifdef _WIN32
+  stopped_at = clock ();
+#else
   struct tms tmp;
 
   times (&tmp);
   stopped_at = tmp.tms_utime;
+#endif
 }
 
 static const char *
