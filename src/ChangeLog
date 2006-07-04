@@ -2,6 +2,7 @@
 
 	* ath.c: Avoid warning about double defined type byte and other
 	hacks to let it build for W32 (backported from LIBGCRYPT-1-2-BRANCH).
+	* ath.h, gcrypt.h, tests/benchmark.c, src/types.h: Likewise.
 
 	* gcrypt.h: Revert last change, and instead:
 	[_WIN32 || __WIN32__]: Do not include <sys/socket.h>, but
