@@ -29,15 +29,11 @@
 
 #include <sys/types.h>
 
-#if HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#else
-#if HAVE_WINSOCK2_H
+#if defined _WIN32 || defined __WIN32__
 # include <winsock2.h>
-#endif
-#if HAVE_WS2TCPIP_H
 # include <ws2tcpip.h>
-#endif
+#else
+# include <sys/socket.h>
 #endif
 
 #include <sys/time.h>

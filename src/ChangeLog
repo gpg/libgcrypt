@@ -1,5 +1,10 @@
 2006-07-04  Marcus Brinkmann  <marcus@g10code.de>
 
+	* gcrypt.h: Revert last change, and instead:
+	[_WIN32 || __WIN32__]: Do not include <sys/socket.h>, but
+	<winsock2.h> and <ws2tcpip.h>.
+	Suggested by Simon Josefsson <jas@extundo.com>.
+	
 	* Makefile.am (install-data-local, uninstall-local, %.lo,
 	(install-def-file, uninstall-def-file): New targets.
 	(LTRCCOMPILE, gcrypt_res, gcrypt_res_ldflag, no_undefined,
