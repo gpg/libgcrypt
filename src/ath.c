@@ -149,15 +149,17 @@ ath_mutex_destroy (ath_mutex_t *lock)
 {
   if (ops_set)
     {
-      int err = mutex_init (lock, 1);
-
-      if (err)
-	return err;
-
-      if (ops.mutex_destroy)
-	return (*ops.mutex_destroy) (lock);
-      else
+      if (!ops.mutex_destroy)
 	return 0;
+
+      (*ops.mutex_lock) (&check_init_lock);
+      if (*lock == ATH_MUTEX_INITIALIZER)
+	{
+	  (*ops.mutex_unlock) (&check_init_lock);
+	  return 0;
+	}
+      (*ops.mutex_unlock) (&check_init_lock);
+      return (*ops.mutex_destroy) (lock);
     }
 
 #ifndef NDEBUG
