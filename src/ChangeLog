@@ -2,12 +2,12 @@
 
 	* ath.c (ath_mutex_destroy): Microoptimize destruction of unused
 	statitically initialized mutexes.  Suggested by Victor Stinner
-	<haypo@inl.fr>.
+	<victor.stinner@inl.fr>.
 
 	* gcrypt.h (GCRY_THREAD_OPTION_PTHREAD_IMPL,
 	(GCRY_THREAD_OPTION_PTH_IMPL): Add missing initializers to
 	suppress gcc warning.
-	Submitted by Victor Stinner <haypo@inl.fr>.
+	Submitted by Victor Stinner <victor.stinner@inl.fr>.
 
 2006-07-04  Marcus Brinkmann  <marcus@g10code.de>
 
