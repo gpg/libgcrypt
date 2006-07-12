@@ -248,7 +248,8 @@ static int gcry_pth_connect (int s, struct sockaddr *addr, socklen_t length)  \
 static struct gcry_thread_cbs gcry_threads_pth = { GCRY_THREAD_OPTION_PTH,    \
   gcry_pth_init, gcry_pth_mutex_init, gcry_pth_mutex_destroy,		      \
   gcry_pth_mutex_lock, gcry_pth_mutex_unlock, gcry_pth_read, gcry_pth_write,  \
-  gcry_pth_select, gcry_pth_waitpid, gcry_pth_accept, gcry_pth_connect }
+  gcry_pth_select, gcry_pth_waitpid, gcry_pth_accept, gcry_pth_connect,       \
+  NULL, NULL }
 
 #define GCRY_THREAD_OPTION_PTHREAD_IMPL					      \
 static int gcry_pthread_mutex_init (void **priv)			      \
@@ -278,7 +279,8 @@ static int gcry_pthread_mutex_unlock (void **lock)			      \
 static struct gcry_thread_cbs gcry_threads_pthread =			      \
 { GCRY_THREAD_OPTION_PTHREAD, NULL,					      \
   gcry_pthread_mutex_init, gcry_pthread_mutex_destroy,			      \
-  gcry_pthread_mutex_lock, gcry_pthread_mutex_unlock }
+  gcry_pthread_mutex_lock, gcry_pthread_mutex_unlock,                         \
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 /* The data object used to hold a multi precision integer.  */
