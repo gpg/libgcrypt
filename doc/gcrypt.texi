@@ -165,8 +165,8 @@ Utilities
 
 @end detailmenu
 
-@end menu
 
+@end menu
 
 
 @c **********************************************************
@@ -3963,11 +3963,7 @@ boundary.
 @node Generation
 @section Generation
 
-@deftypefun gcry_error_t gcry_prime_generate (gcry_mpi_t *@var{prime},
-unsigned int @var{prime_bits}, unsigned int @var{factor_bits},
-gcry_mpi_t **@var{factors}, gcry_prime_check_func_t @var{cb_func},
-void *@var{cb_arg}, gcry_random_level_t @var{random_level},
-unsigned int @var{flags})
+@deftypefun gcry_error_t gcry_prime_generate (gcry_mpi_t *@var{prime},unsigned int @var{prime_bits}, unsigned int @var{factor_bits}, gcry_mpi_t **@var{factors}, gcry_prime_check_func_t @var{cb_func}, void *@var{cb_arg}, gcry_random_level_t @var{random_level}, unsigned int @var{flags})
 
 Generate a new prime number of @var{prime_bits} bits and store it in
 @var{prime}.  If @var{factor_bits} is non-zero, one of the prime factors
@@ -3980,10 +3976,10 @@ might be used to influence the prime number generation process.
 @deftypefun gcry_prime_group_generator (gcry_mpi_t *@var{r_g},
 gcry_mpi_t @var{prime}, gcry_mpi_t *@var{factors}, gcry_mpi_t @var{start_g})
 
-Find a generator for @var{prime} where the factorization of (@var{prime}
-- 1) is in the @code{NULL} terminated array @var{factors}.  Return the
-generator as a newly allocated MPI in @var{r_g}.  If @var{start_g} is
-not NULL, use this as the start for the search.
+Find a generator for @var{prime} where the factorization of
+(@var{prime}-1) is in the @code{NULL} terminated array @var{factors}.
+Return the generator as a newly allocated MPI in @var{r_g}.  If
+@var{start_g} is not NULL, use this as the start for the search.
 @end deftypefun
 
 @deftypefun void gcry_prime_release_factors (gcry_mpi_t *@var{factors})
@@ -3994,8 +3990,7 @@ Convenience function to release the @var{factors} array.
 @node Checking
 @section Checking
 
-@deftypefun gcry_error_t gcry_prime_check (gcry_mpi_t @var{p},
-unsigned int @var{flags})
+@deftypefun gcry_error_t gcry_prime_check (gcry_mpi_t @var{p}, unsigned int @var{flags})
 
 Check wether the number @var{p} is prime.  Returns zero in case @var{p}
 is indeed a prime, returns @code{GPG_ERR_NO_PRIME} in case @var{p} is
@@ -4003,6 +3998,9 @@ not a prime and a different error code in case something went horribly
 wrong.
 @end deftypefun
 
+@c **********************************************************
+@c ******************** Utilities ***************************
+@c **********************************************************
 @node Utilities
 @chapter Utilities
 

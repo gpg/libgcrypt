@@ -256,7 +256,7 @@ ac_data_mpi_copy (gcry_ac_mpi_t *data_mpis, unsigned int data_mpis_n,
 gcry_error_t
 _gcry_ac_data_copy (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
 {
-  gcry_ac_mpi_t *data_mpis;
+  gcry_ac_mpi_t *data_mpis = NULL;
   gcry_ac_data_t data_new;
   gcry_error_t err;
 

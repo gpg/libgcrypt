@@ -41,7 +41,7 @@ static gcry_mpi_t gen_prime (unsigned int nbits, int secret, int randomlevel,
                              void *extra_check_arg);
 static int check_prime( gcry_mpi_t prime, gcry_mpi_t val_2, int rm_rounds,
                         gcry_prime_check_func_t cb_func, void *cb_arg );
-static int is_prime( gcry_mpi_t n, int steps, int *count );
+static int is_prime (gcry_mpi_t n, int steps, unsigned int *count);
 static void m_out_of_n( char *array, int m, int n );
 
 static void (*progress_cb) (void *,const char*,int,int, int );
@@ -313,7 +313,7 @@ prime_generate_internal (int mode,
         }
       else
         {
-          m_out_of_n (perms, n, m);
+          m_out_of_n ( (char*)perms, n, m);
           for (i = j = 0; (i < m) && (j < n); i++)
             if (perms[i])
               {
@@ -535,8 +535,8 @@ gen_prime (unsigned int nbits, int secret, int randomlevel,
 {
   gcry_mpi_t prime, ptest, pminus1, val_2, val_3, result;
   int i;
-  unsigned x, step;
-  unsigned count1, count2;
+  unsigned int x, step;
+  unsigned int count1, count2;
   int *mods;
   
 /*   if (  DBG_CIPHER ) */
@@ -646,7 +646,7 @@ check_prime( gcry_mpi_t prime, gcry_mpi_t val_2, int rm_rounds,
 {
   int i;
   unsigned int x;
-  int count=0;
+  unsigned int count=0;
 
   /* Check against small primes. */
   for (i=0; (x = small_prime_numbers[i]); i++ )
@@ -691,7 +691,7 @@ check_prime( gcry_mpi_t prime, gcry_mpi_t val_2, int rm_rounds,
  * Return true if n is probably a prime
  */
 static int
-is_prime (gcry_mpi_t n, int steps, int *count)
+is_prime (gcry_mpi_t n, int steps, unsigned int *count)
 {
   gcry_mpi_t x = mpi_alloc( mpi_get_nlimbs( n ) );
   gcry_mpi_t y = mpi_alloc( mpi_get_nlimbs( n ) );

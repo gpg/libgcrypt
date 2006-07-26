@@ -1,3 +1,15 @@
+2006-07-26  Werner Koch  <wk@g10code.com>
+
+	* mpiutil.c (gcry_mpi_randomize): Changed P to unsigned char*.
+
+	* mpicoder.c (gcry_mpi_scan): Changed arg BUFFER to void*.
+	(mpi_read_from_buffer): Made BUFFER arg const.
+	(gcry_mpi_scan): Removed now needless cast. Add cast for arg to
+	mpi_fromstr.
+	(gcry_mpi_print): Made TMP unsigned.
+
+	* Makefile.am (AM_CCASFLAGS): New.
+
 2005-10-09  Moritz Schulte  <moritz@g10code.com>
 
 	* mpi-cmp.c (gcry_mpi_cmp_ui): Rewritten; correctly handle case of

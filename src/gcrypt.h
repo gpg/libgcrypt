@@ -538,7 +538,7 @@ int gcry_mpi_cmp_ui (const gcry_mpi_t u, unsigned long v);
    RET_MPI.  If NSCANNED is not NULL, it will receive the number of
    bytes actually scanned after a successful operation. */
 gcry_error_t gcry_mpi_scan (gcry_mpi_t *ret_mpi, enum gcry_mpi_format format,
-                            const unsigned char *buffer, size_t buflen, 
+                            const void *buffer, size_t buflen, 
                             size_t *nscanned);
 
 /* Convert the big integer A into the external representation

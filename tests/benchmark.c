@@ -266,22 +266,26 @@ elapsed_time (void)
 
 
 static void
-random_bench (void)
+random_bench (int very_strong)
 {
   char buf[128];
   int i;
 
   printf ("%-10s", "random");
 
-  start_timer ();
-  for (i=0; i < 100; i++)
-    gcry_randomize (buf, sizeof buf, GCRY_STRONG_RANDOM);
-  stop_timer ();
-  printf (" %s", elapsed_time ());
+  if (!very_strong)
+    {
+      start_timer ();
+      for (i=0; i < 100; i++)
+        gcry_randomize (buf, sizeof buf, GCRY_STRONG_RANDOM);
+      stop_timer ();
+      printf (" %s", elapsed_time ());
+    }
 
   start_timer ();
   for (i=0; i < 100; i++)
-    gcry_randomize (buf, 8, GCRY_STRONG_RANDOM);
+    gcry_randomize (buf, 8,
+                    very_strong? GCRY_VERY_STRONG_RANDOM:GCRY_STRONG_RANDOM);
   stop_timer ();
   printf (" %s", elapsed_time ());
 
@@ -688,8 +692,14 @@ main( int argc, char **argv )
       fprintf (stderr, PGM ": version mismatch\n");
       exit (1);
     }
+  if (argc && !strcmp (*argv, "--use-random-daemon"))
+    {
+      gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
+      argc--; argv++;
+    }
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
+  
   if ( !argc )
     {
       md_bench (NULL);
@@ -698,23 +708,23 @@ main( int argc, char **argv )
       putchar ('\n');
       mpi_bench ();
       putchar ('\n');
-      random_bench ();
+      random_bench (0);
     }
   else if ( !strcmp (*argv, "--help"))
      fputs ("usage: benchmark [md|cipher|random|mpi|dsa [algonames]]\n",
             stdout);
-  else if ( !strcmp (*argv, "random"))
+  else if ( !strcmp (*argv, "random") || !strcmp (*argv, "strongrandom"))
     {
       if (argc == 1)
-        random_bench ();
+        random_bench ((**argv == 's'));
       else if (argc == 2)
         {
           gcry_control (GCRYCTL_SET_RANDOM_SEED_FILE, argv[1]);
-          random_bench ();
+          random_bench ((**argv == 's'));
           gcry_control (GCRYCTL_UPDATE_RANDOM_SEED_FILE);
         }
       else
-        fputs ("usage: benchmark random [seedfile]\n", stdout);
+        fputs ("usage: benchmark [strong]random [seedfile]\n", stdout);
     }
   else if ( !strcmp (*argv, "md"))
     {

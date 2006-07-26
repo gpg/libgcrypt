@@ -1,3 +1,9 @@
+2006-07-06  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (main): New option --use-random-daemon.  New command
+	strongrandom.
+	(random_bench): New arg VERY_STRONG.
+
 2006-03-14  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (main): Allow for seed file argument to random bench.

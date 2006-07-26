@@ -400,6 +400,14 @@ AC_ARG_WITH(capabilities,
 [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
 
+# We don't have a test to check whether as(1) knows about the
+# non executable stack option.  Thus we provide an option to enable it.
+AC_MSG_CHECKING([whether non excutable stack support is requested])
+AC_ARG_ENABLE(noexecstack,
+              AC_HELP_STRING([--enable-noexecstack],
+                             [enable non executable stack support (gcc only)]),
+              noexecstack_support=$enableval, noexecstack_support=no)
+AC_MSG_RESULT($noexecstack_support)
 
 
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
@@ -643,9 +651,15 @@ fi
 
 AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)
 
-# We don't check for GNU make anymore - automake should not have the
-# old flaws anymore.
-#GNUPG_CHECK_GNUMAKE
+
+# This is handy for debugging so the compiler doesn't rearrange
+# things and eliminate variables.
+AC_ARG_ENABLE(optimization,
+       AC_HELP_STRING([--disable-optimization],
+		      [disable compiler optimization]),
+                      [if test $enableval = no ; then
+                         CFLAGS=`echo $CFLAGS | sed 's/-O[[0-9]]//'`
+                       fi])
 
 AC_ARG_ENABLE(gcc-warnings,
 	      AC_HELP_STRING([--enable-gcc-warnings],
@@ -665,7 +679,15 @@ if test "$GCC" = yes; then
     else
         CFLAGS="$CFLAGS -Wall"
     fi
+
+    # Non exec stack hack.  Fixme: Write a test to check whether as
+    # can cope with it and use the enable-noexecstack option only to
+    # disable it in case it is required on some platforms.
+    if test "$noexecstack_support" = yes; then
+        NOEXECSTACK_FLAGS="-Wa,--noexecstack"
+    fi
 fi
+AC_SUBST(NOEXECSTACK_FLAGS)
 
 #
 # Make the version number in src/gcrypt.h the same as the one here.

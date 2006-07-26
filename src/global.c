@@ -340,7 +340,7 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
 
     case GCRYCTL_USE_RANDOM_DAEMON:
       /* We need to do make sure that the random pool is really
-         initialized so that the poll fucntion is not a NOP. */
+         initialized so that the poll function is not a NOP. */
       _gcry_random_initialize (1);
       _gcry_use_random_daemon (!! va_arg (arg_ptr, int));
       break;
