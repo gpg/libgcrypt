@@ -1121,6 +1121,7 @@ gcry_create_nonce (void *buffer, size_t length)
                                    compiler does not optimize the code away
                                    in case the getpid function is badly
                                    attributed. */
+  volatile pid_t apid;
   unsigned char *p;
   size_t n;
   int err;
@@ -1135,11 +1136,12 @@ gcry_create_nonce (void *buffer, size_t length)
     log_fatal ("failed to acquire the nonce buffer lock: %s\n",
                strerror (err));
 
+  apid = getpid ();
   /* The first time intialize our buffer. */
   if (!nonce_buffer_initialized)
     {
-      pid_t apid = getpid ();
       time_t atime = time (NULL);
+      pid_t xpid = apid;
 
       my_pid = apid;
 
@@ -1150,8 +1152,8 @@ gcry_create_nonce (void *buffer, size_t length)
          a failure of gcry_randomize won't affect us too much.  Don't
          care about the uninitialized remaining bytes. */
       p = nonce_buffer;
-      memcpy (p, &apid, sizeof apid);
-      p += sizeof apid;
+      memcpy (p, &xpid, sizeof xpid);
+      p += sizeof xpid;
       memcpy (p, &atime, sizeof atime); 
 
       /* Initialize the never changing private part of 64 bits. */
@@ -1159,11 +1161,14 @@ gcry_create_nonce (void *buffer, size_t length)
 
       nonce_buffer_initialized = 1;
     }
-  else if ( my_pid != getpid () )
+  else if ( my_pid != apid )
     {
       /* We forked. Need to reseed the buffer - doing this for the
          private part should be sufficient. */
       gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
+      /* Update the pid so that we won't run into here again and
+         again. */
+      my_pid = apid;
     }
 
   /* Create the nonce by hashing the entire buffer, returning the hash

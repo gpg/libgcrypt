@@ -1,3 +1,8 @@
+2006-07-26  Werner Koch  <wk@g10code.com>
+
+	* random.c (gcry_create_nonce): Update the pid after a fork.
+	Reported by Uoti Urpala.
+
 2005-09-13  Werner Koch  <wk@g10code.com>
 
 	* random.c (gcry_create_nonce): Detect a fork and re-seed.
