@@ -357,6 +357,7 @@ init_pool (size_t n)
     else
       {
 	pool = mmap (0, pool_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+	close (fd);
       }
   }
 #endif

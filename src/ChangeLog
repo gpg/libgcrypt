@@ -1,3 +1,7 @@
+2006-07-29  Marcus Brinkmann  <marcus@g10code.de>
+
+	* secmem.c (init_pool): Close FD after establishing the mapping.
+
 2006-07-12  Marcus Brinkmann  <marcus@g10code.de>
 
 	* ath.c (ath_mutex_destroy): Microoptimize destruction of unused
