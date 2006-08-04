@@ -18,7 +18,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-TESTS = prime register ac ac-schemes ac-data basic \
+TESTS = t-mpi-bit prime register ac ac-schemes ac-data basic \
         tsexp keygen pubkey benchmark pkbench hmac keygrip
 
 INCLUDES = -I$(top_srcdir)/src

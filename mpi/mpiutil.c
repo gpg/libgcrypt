@@ -115,17 +115,30 @@ _gcry_mpi_assign_limb_space( gcry_mpi_t a, mpi_ptr_t ap, unsigned int nlimbs )
 
 
 /****************
- * Resize the array of A to NLIMBS. the additional space is cleared
- * (set to 0) [done by gcry_realloc()]
+ * Resize the array of A to NLIMBS. The additional space is cleared
+ * (set to 0).
  */
 void
 _gcry_mpi_resize (gcry_mpi_t a, unsigned nlimbs)
 {
-  if (nlimbs <= a->alloced)
-    return; /* no need to do it */
+  size_t i;
 
+  if (nlimbs <= a->alloced)
+    {
+      /* We only need to clear the new space (this is a nop if the
+         limb space is already of the correct size. */
+      for (i=a->nlimbs; i < a->alloced; i++)
+        a->d[i] = 0;
+      return; 
+    }
+
+  /* Actually resize the limb space.  */
   if (a->d)
-    a->d = gcry_xrealloc (a->d, nlimbs * sizeof (mpi_limb_t));
+    {
+      a->d = gcry_xrealloc (a->d, nlimbs * sizeof (mpi_limb_t));
+      for (i=a->alloced; i < nlimbs; i++)
+        a->d[i] = 0;
+    }
   else
     {
       if (a->flags & 1)

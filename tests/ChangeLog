@@ -1,3 +1,7 @@
+2006-08-03  Werner Koch  <wk@g10code.com>
+
+	* t-mpi-bit.c: New.
+
 2006-07-06  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (main): New option --use-random-daemon.  New command

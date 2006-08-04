@@ -12,9 +12,11 @@ Noteworthy changes in version 1.3.0 (unreleased)
 
  * Support for SHA-224 and HMAC using SHA-384 and SHA-512.
 
+ * gcry_mpi_rshift does not anymore truncate the shift count.
+
  * Interface changes relative to the 1.2.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- gcry_fast_random_poll	NEW
+ gcry_fast_random_poll	 NEW
  gcry_pk_algo_name       CHANGED (minor change in respect to return value)
  gcry_cipher_algo_name   CHANGED (minor change in respect to return value)
  GCRY_MD_SHA224          NEW

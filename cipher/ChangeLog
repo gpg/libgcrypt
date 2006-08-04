@@ -1,3 +1,15 @@
+2006-08-03  Werner Koch  <wk@g10code.com>
+
+	* random-daemon.c (_gcry_daemon_initialize_basics): Don't
+	initialize the socket.  Remove arg SOCKETNAME.
+	(connect_to_socket): Make sure that daemon is set to -1 on error.
+	(call_daemon): Initialize the socket on the first call.
+	(_gcry_daemon_randomize, _gcry_daemon_get_random_bytes) 
+	(_gcry_daemon_create_nonce): New arg SOCKETNAME.
+	* random.c (initialize): Call new daemon initializator.
+	(get_random_bytes, gcry_randomize, gcry_create_nonce): Pass socket
+	name to daemon call and reset allow_daemon on failure.
+
 2006-07-26  Werner Koch  <wk@g10code.com>
 
 	* rmd160.c (_gcry_rmd160_mixblock): Add cast to transform call.

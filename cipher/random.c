@@ -161,7 +161,7 @@ initialize_basics(void)
       if (err)
         log_fatal ("failed to create the nonce buffer lock: %s\n",
                    strerror (err) );
-      _gcry_daemon_initialize_basics (daemon_socket_name);
+      _gcry_daemon_initialize_basics ();
     }
 }
 
@@ -304,8 +304,11 @@ get_random_bytes ( size_t nbytes, int level, int secure)
   /* Make sure the requested level is in range. */
   MASK_LEVEL(level);
 
-  if (allow_daemon && (p=_gcry_daemon_get_random_bytes (nbytes, level,secure)))
+  if (allow_daemon &&
+      (p=_gcry_daemon_get_random_bytes (daemon_socket_name,
+                                        nbytes, level,secure)))
     return p; /* The daemon succeeded. */
+  allow_daemon = 0; /* Daemon failed - switch off. */
 
   /* Lock the pool. */
   err = ath_mutex_lock (&pool_lock);
@@ -417,8 +420,10 @@ gcry_randomize (byte *buffer, size_t length, enum gcry_random_level level)
   /* Make sure the level is okay. */
   MASK_LEVEL(level);
 
-  if (allow_daemon && !_gcry_daemon_randomize (buffer, length, level))
+  if (allow_daemon
+      && !_gcry_daemon_randomize (daemon_socket_name, buffer, length, level))
     return; /* The daemon succeeded. */
+  allow_daemon = 0; /* Daemon failed - switch off. */
 
   /* Acquire the pool lock. */
   err = ath_mutex_lock (&pool_lock);
@@ -1233,8 +1238,10 @@ gcry_create_nonce (unsigned char *buffer, size_t length)
   if (!is_initialized)
     initialize ();
 
-  if (allow_daemon && !_gcry_daemon_create_nonce (buffer, length))
+  if (allow_daemon
+      && !_gcry_daemon_create_nonce (daemon_socket_name, buffer, length))
     return; /* The daemon succeeded. */
+  allow_daemon = 0; /* Daemon failed - switch off. */
 
   /* Acquire the nonce buffer lock. */
   err = ath_mutex_lock (&nonce_buffer_lock);

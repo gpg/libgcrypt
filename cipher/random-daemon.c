@@ -24,7 +24,7 @@
    gcryptrnd.  Such a daemon is useful to keep a persistent pool in
    memory over invocations of a single application and to allow
    prioritizing access to the actual entropy sources.  The drawback is
-   that we need to use IPC (i.e. unxi domain socket) to convey
+   that we need to use IPC (i.e. unix domain socket) to convey
    sensitive data.
  */
 
@@ -111,20 +111,22 @@ connect_to_socket (const char *socketname, int *sock)
 
  out:
 
-  *sock = fd;
   gcry_free (srvr_addr);
-
   if (err)
-    close (fd);
+    {
+      close (fd);
+      fd = -1;
+    }
+  *sock = fd;
 
   return err;
 }
 
 
 /* Initialize basics of this module. This should be viewed as a
-   constroctur to prepare locking. */
+   constructor to prepare locking. */
 void
-_gcry_daemon_initialize_basics (const char *socketname)
+_gcry_daemon_initialize_basics (void)
 {
   static int initialized;
   int err;
@@ -135,15 +137,10 @@ _gcry_daemon_initialize_basics (const char *socketname)
       err = ath_mutex_init (&daemon_lock);
       if (err)
         log_fatal ("failed to create the daemon lock: %s\n", strerror (err) );
-
-      err = connect_to_socket (socketname ? socketname : RANDOM_DAEMON_SOCKET,
-			       &daemon_socket);
-      if (err)
-	log_info ("not using random daemon\n");
     }
 }
 
-
+
 
 /* Send LENGTH bytes of BUFFER to file descriptor FD.  Returns 0 on
    success or another value on write error. */
@@ -201,21 +198,46 @@ readn (int fd, void *buf, size_t buflen, size_t *ret_nread)
    data of random level LEVEL will be generated.  The retrieved random
    data will be stored in BUFFER.  Returns error code.  */
 static gcry_error_t
-call_daemon (void *buffer, size_t req_nbytes, int nonce,
+call_daemon (const char *socketname,
+             void *buffer, size_t req_nbytes, int nonce,
 	     enum gcry_random_level level)
 {
+  static int initialized;
   unsigned char buf[255];
-  gcry_error_t err;
+  gcry_error_t err = 0;
   size_t nbytes;
   size_t nread;
   int rc;
 
-  err = 0;
-
-  if (! req_nbytes)
+  if (!req_nbytes)
     return 0;
 
   ath_mutex_lock (&daemon_lock);
+
+  /* Open the socket if that has not been done. */
+  if (!initialized)
+    {
+      initialized = 1;
+      err = connect_to_socket (socketname ? socketname : RANDOM_DAEMON_SOCKET,
+			       &daemon_socket);
+      if (err)
+        {
+          daemon_socket = -1;
+          log_info ("not using random daemon\n");
+          ath_mutex_unlock (&daemon_lock);
+          return err;
+        }
+    }
+
+  /* Check that we have a valid socket descriptor. */
+  if ( daemon_socket == -1 )
+    {
+      ath_mutex_unlock (&daemon_lock);
+      return gcry_error (GPG_ERR_INTERNAL);
+    }
+
+
+  /* Do the real work.  */
 
   do
     {
@@ -311,12 +333,13 @@ call_daemon (void *buffer, size_t req_nbytes, int nonce,
    support GCRY_STRONG_RANDOM and GCRY_VERY_STRONG_RANDOM here.
    Return 0 on success. */
 int
-_gcry_daemon_randomize (void *buffer, size_t length,
+_gcry_daemon_randomize (const char *socketname, 
+                        void *buffer, size_t length,
                         enum gcry_random_level level)
 {
   gcry_error_t err;
 
-  err = call_daemon (buffer, length, 0, level);
+  err = call_daemon (socketname, buffer, length, 0, level);
 
   return err ? -1 : 0;
 }
@@ -327,7 +350,8 @@ _gcry_daemon_randomize (void *buffer, size_t length,
    that the IPC mechanism might have not stored it there.  Return a
    pointer to a newly alloced memory or NULL if it failed.  */
 void *
-_gcry_daemon_get_random_bytes (size_t nbytes, int level, int secure)
+_gcry_daemon_get_random_bytes (const char *socketname,
+                               size_t nbytes, int level, int secure)
 {
   gcry_error_t err;
   void *p;
@@ -336,7 +360,7 @@ _gcry_daemon_get_random_bytes (size_t nbytes, int level, int secure)
   if (err)
     goto out;
 
-  err = call_daemon (p, nbytes, 0, level);
+  err = call_daemon (socketname, p, nbytes, 0, level);
 
  out:
 
@@ -353,11 +377,11 @@ _gcry_daemon_get_random_bytes (size_t nbytes, int level, int secure)
 /* Internal function to fill BUFFER with NBYTES of data usable for a
    nonce.  Returns 0 on success. */
 int
-_gcry_daemon_create_nonce (void *buffer, size_t length)
+_gcry_daemon_create_nonce (const char *socketname, void *buffer, size_t length)
 {
   gcry_error_t err;
 
-  err = call_daemon (buffer, length, 1, 0);
+  err = call_daemon (socketname, buffer, length, 1, 0);
 
   return err ? -1 : 0;
 }

@@ -37,12 +37,14 @@ byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
 
 /*-- random-daemon.c (only used from random.c) --*/
-void _gcry_set_random_daemon_socket (const char *socketname);
-void _gcry_daemon_initialize_basics (const char *socketname);
-int _gcry_daemon_randomize (void *buffer, size_t length,
+void _gcry_daemon_initialize_basics (void);
+int _gcry_daemon_randomize (const char *socketname,
+                            void *buffer, size_t length,
                             enum gcry_random_level level);
-void *_gcry_daemon_get_random_bytes (size_t nbytes, int level, int secure);
-int _gcry_daemon_create_nonce (void *buffer, size_t length);
+void *_gcry_daemon_get_random_bytes (const char *socketname,
+                                     size_t nbytes, int level, int secure);
+int _gcry_daemon_create_nonce (const char *socketname,
+                               void *buffer, size_t length);
 
 
 #endif /*G10_RANDOM_H*/
