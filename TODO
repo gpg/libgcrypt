@@ -51,13 +51,18 @@ What's left to do                                 -*- outline -*-
   to run that bunch of Unix utilities we don't waste their precious
   results.
 
-* Out of memory handler for secure memory shopuld do proper logging
+* Out of memory handler for secure memory should do proper logging
 
   There is no shortage of standard memory, so logging is most likely
   possible.
 
 * signed vs. unsigned.
   Sync the code with 1.2 where we have fixed all these issues.
+
+* mpi_print does not use secure memory
+  for internal variables.
+
+* gry_mpi_lshift is missing
 
 
 

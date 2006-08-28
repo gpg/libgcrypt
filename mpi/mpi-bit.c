@@ -256,7 +256,17 @@ gcry_mpi_rshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
       x->nlimbs = xsize;
       
       if ( xsize )
-        _gcry_mpih_rshift (x->d, a->d, x->nlimbs, nbits );
+        {
+          if (nbits )
+            _gcry_mpih_rshift (x->d, a->d, x->nlimbs, nbits );
+          else
+            {
+              /* The rshift helper function is not specified for
+                 NBITS==0, thus we do a plain copy here. */
+              for (i=0; i < x->nlimbs; i++ )
+                x->d[i] = a->d[i];
+            }
+        }
     }
   MPN_NORMALIZE (x->d, x->nlimbs);
 }

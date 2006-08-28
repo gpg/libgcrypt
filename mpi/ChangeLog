@@ -1,3 +1,8 @@
+2006-08-25  Werner Koch  <wk@g10code.com>
+
+	* mpi-bit.c (gcry_mpi_rshift): Don't shift if N == 0 but do a
+	plain copy.
+
 2006-08-04  Werner Koch  <wk@g10code.com>
 
 	* mpi-bit.c (gcry_mpi_rshift): Rewritten to remove the limitation

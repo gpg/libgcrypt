@@ -219,6 +219,13 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
       _gcry_quick_random_gen (1);
       break;
 
+    case GCRYCTL_FAKED_RANDOM_P:
+      /* Return an error if the RNG is faked one (i.e. enabled by
+         ENABLE_QUICK_RANDOM. */
+      if (_gcry_random_is_faked ())
+        err = GPG_ERR_GENERAL;
+      break;
+
     case GCRYCTL_DUMP_RANDOM_STATS:
       _gcry_random_dump_stats ();
       break;
@@ -329,7 +336,7 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
 
     case GCRYCTL_FAST_POLL:
       /* We need to do make sure that the random pool is really
-         initialized so that the poll fucntion is not a NOP. */
+         initialized so that the poll function is not a NOP. */
       _gcry_random_initialize (1);
       _gcry_fast_random_poll (); 
       break;

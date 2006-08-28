@@ -348,7 +348,8 @@ enum gcry_ctl_cmds
     GCRYCTL_SET_THREAD_CBS = 47,
     GCRYCTL_FAST_POLL = 48,
     GCRYCTL_SET_RANDOM_DAEMON_SOCKET = 49,
-    GCRYCTL_USE_RANDOM_DAEMON = 50
+    GCRYCTL_USE_RANDOM_DAEMON = 50,
+    GCRYCTL_FAKED_RANDOM_P = 51
   };
 
 /* Perform various operations defined by CMD. */
