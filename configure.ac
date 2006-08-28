@@ -27,7 +27,7 @@ min_automake_version="1.9.3"
 # but remove a "-cvs" prefix right *before* a release and append it
 # soon later.
 
-AC_INIT(libgcrypt, 1.2.3-cvs, bug-libgcrypt@gnupg.org)
+AC_INIT(libgcrypt, 1.2.3, bug-libgcrypt@gnupg.org)
 
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
@@ -35,7 +35,7 @@ AC_INIT(libgcrypt, 1.2.3-cvs, bug-libgcrypt@gnupg.org)
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=13
 LIBGCRYPT_LT_AGE=2
-LIBGCRYPT_LT_REVISION=1
+LIBGCRYPT_LT_REVISION=2
 
 # If the API is changed in an incompatible way: increment the next counter.
 LIBGCRYPT_CONFIG_API_VERSION=1
@@ -608,9 +608,15 @@ fi
 
 AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)
 
-# We don't check for GNU make anymore - automake should not have the
-# old flaws anymore.
-#GNUPG_CHECK_GNUMAKE
+
+# This is handy for debugging so the compiler doesn't rearrange
+# things and eliminate variables.
+AC_ARG_ENABLE(optimization,
+       AC_HELP_STRING([--disable-optimization],
+		      [disable compiler optimization]),
+                      [if test $enableval = no ; then
+                         CFLAGS=`echo $CFLAGS | sed 's/-O[[0-9]]//'`
+                       fi])
 
 AC_ARG_ENABLE(gcc-warnings,
 	      AC_HELP_STRING([--enable-gcc-warnings],

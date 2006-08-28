@@ -1,3 +1,13 @@
+2006-08-28  Werner Koch  <wk@g10code.com>
+
+	Released 1.2.3.
+
+	* configure.ac: Set LT to C13/A1/R2.
+
+2006-07-26  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: New option --disable-optimization.
+
 2005-12-08  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Changed the random device names for netbsd.  From

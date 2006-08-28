@@ -172,6 +172,18 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
       _gcry_quick_random_gen (1);
       break;
 
+    case 51:  /* Should be GCRYCTL_FAKED_RANDOM_P but we want to sneak
+                 that into the API for the sake of GnuPG 1.9 - there
+                 we check the error code and print a warning message
+                 if that call is not supported.  The literal number is
+                 used there as well. */
+      /* Return an error if the RNG is faked one (i.e. enabled by
+         ENABLE_QUICK_RANDOM. */
+      if (_gcry_random_is_faked ())
+        err = GPG_ERR_GENERAL;
+      break;
+
+
     case GCRYCTL_DUMP_RANDOM_STATS:
       _gcry_random_dump_stats ();
       break;

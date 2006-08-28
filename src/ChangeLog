@@ -1,6 +1,11 @@
+2006-08-28  Werner Koch  <wk@g10code.com>
+
+	* global.c (gcry_control): Clandestine API change for
+	GCRYCTL_FAKED_RANDOM_P.
+
 2006-06-21  Werner Koch  <wk@g10code.com>
 
-	* global.c (gcry_xcalloc, gcry_xcalloc_secure): made safe against
+	* global.c (gcry_xcalloc, gcry_xcalloc_secure): Made safe against
 	integer overflow.
 
 2005-06-17  Moritz Schulte  <moritz@g10code.com>
@@ -1444,7 +1449,7 @@ Tue Dec  8 13:15:16 CET 1998  Werner Koch  <wk@isil.d.shuttle.de>
 
 	
  Copyright (C) 1998,1999,2000,2001,2002,2003
-	       2004,2005 Free Software Foundation, Inc.
+	       2004,2005,2006 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

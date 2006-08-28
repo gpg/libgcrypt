@@ -1,3 +1,13 @@
+2006-08-28  Werner Koch  <wk@g10code.com>
+
+	* mpiutil.c (_gcry_mpi_resize): Clear the new part of the resized
+	limb space.
+	* mpi-bit.c (gcry_mpi_set_bit, gcry_mpi_set_highbit): Fixed
+	allocation.  Reported by bpgcrypt at itaparica.org.
+
+	* mpi-bit.c (gcry_mpi_rshift): Rewritten to remove the limitation
+	on N (which used to be less than BITS_PER_MPI_LIMB).
+
 2005-09-14  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (AM_CCASFLAGS): Add AM_CCASFLAGS.

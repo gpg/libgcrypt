@@ -1,3 +1,7 @@
+2006-08-28  Werner Koch  <wk@g10code.com>
+
+	* t-mpi-bit.c: New.  Copied from development branch.
+
 2005-09-13  Werner Koch  <wk@g10code.com>
 
 	* random.c: New.

@@ -122,8 +122,7 @@ gcry_mpi_set_bit( gcry_mpi_t a, unsigned int n )
     bitno  = n % BITS_PER_MPI_LIMB;
 
     if( limbno >= a->nlimbs ) { /* resize */
-	if( a->alloced >= limbno )
-	    mpi_resize(a, limbno+1 );
+        mpi_resize (a, limbno+1 );
 	a->nlimbs = limbno+1;
     }
     a->d[limbno] |= (A_LIMB_1<<bitno);
@@ -141,8 +140,7 @@ gcry_mpi_set_highbit( gcry_mpi_t a, unsigned int n )
     bitno  = n % BITS_PER_MPI_LIMB;
 
     if( limbno >= a->nlimbs ) { /* resize */
-	if( a->alloced >= limbno )
-	    mpi_resize(a, limbno+1 );
+        mpi_resize (a, limbno+1 );
 	a->nlimbs = limbno+1;
     }
     a->d[limbno] |= (A_LIMB_1<<bitno);
@@ -187,26 +185,87 @@ gcry_mpi_clear_bit( gcry_mpi_t a, unsigned int n )
 }
 
 
-/****************
- * Shift A by N bits to the right
- * FIXME: should use alloc_limb if X and A are same.
+/*
+ * Shift A by N bits to the right.
  */
 void
 gcry_mpi_rshift( gcry_mpi_t x, gcry_mpi_t a, unsigned n )
 {
-    mpi_ptr_t xp;
-    mpi_size_t xsize;
+  mpi_size_t xsize;
+  unsigned int i;
+  unsigned int nlimbs = (n/BITS_PER_MPI_LIMB);
+  unsigned int nbits = (n%BITS_PER_MPI_LIMB);
 
-    xsize = a->nlimbs;
-    x->sign = a->sign;
-    RESIZE_IF_NEEDED(x, xsize);
-    xp = x->d;
+  if ( x == a )
+    {
+      /* In-place operation.  */
+      if ( nlimbs >= x->nlimbs )
+        {
+          x->nlimbs = 0;
+          return;
+        }
 
-    if( xsize ) {
-	_gcry_mpih_rshift( xp, a->d, xsize, n);
-	MPN_NORMALIZE( xp, xsize);
+      if (nlimbs)
+        {
+          for (i=0; i < x->nlimbs - nlimbs; i++ )
+            x->d[i] = x->d[i+nlimbs];
+          x->d[i] = 0;
+          x->nlimbs -= nlimbs;
+
+        }
+      if ( x->nlimbs && nbits )
+        _gcry_mpih_rshift ( x->d, x->d, x->nlimbs, nbits );
     }
-    x->nlimbs = xsize;
+  else if ( nlimbs )
+    {
+      /* Copy and shift by more or equal bits than in a limb. */
+      xsize = a->nlimbs;
+      x->sign = a->sign;
+      RESIZE_IF_NEEDED (x, xsize);
+      x->nlimbs = xsize;
+      for (i=0; i < a->nlimbs; i++ )
+        x->d[i] = a->d[i];
+      x->nlimbs = i;
+
+      if ( nlimbs >= x->nlimbs )
+        {
+          x->nlimbs = 0;
+          return;
+        }
+
+      if (nlimbs)
+        {
+          for (i=0; i < x->nlimbs - nlimbs; i++ )
+            x->d[i] = x->d[i+nlimbs];
+          x->d[i] = 0;
+          x->nlimbs -= nlimbs;
+        }
+
+      if ( x->nlimbs && nbits )
+        _gcry_mpih_rshift ( x->d, x->d, x->nlimbs, nbits );
+    }
+  else
+    {
+      /* Copy and shift by less than bits in a limb.  */
+      xsize = a->nlimbs;
+      x->sign = a->sign;
+      RESIZE_IF_NEEDED (x, xsize);
+      x->nlimbs = xsize;
+      
+      if ( xsize )
+        {
+          if (nbits )
+            _gcry_mpih_rshift (x->d, a->d, x->nlimbs, nbits );
+          else
+            {
+              /* The rshift helper function is not specified for
+                 NBITS==0, thus we do a plain copy here. */
+              for (i=0; i < x->nlimbs; i++ )
+                x->d[i] = a->d[i];
+            }
+        }
+    }
+  MPN_NORMALIZE (x->d, x->nlimbs);
 }
 
 

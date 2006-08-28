@@ -1,7 +1,12 @@
-Noteworthy changes in version 1.2.3
+Noteworthy changes in version 1.2.3 (2006-08-28)
 ------------------------------------------------
 
-Noteworthy changes in version 1.2.2 (2005-10-05}
+ * Rewrote gcry_mpi_rshift to allow arbitrary shift counts.
+
+ * Minor bug fixes.
+
+
+Noteworthy changes in version 1.2.2 (2005-10-05)
 ------------------------------------------------
 
  * Made the RNG immune against fork without exec.

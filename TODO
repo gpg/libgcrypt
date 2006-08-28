@@ -1,5 +1,7 @@
 What's left to do                                 -*- outline -*-
 
+* Updated the FSF directory.
+
 * Add more tests.  Even basic is very minimal.
 
 * udiv-qrnbd.o should get build as *.lo [HPUX]
