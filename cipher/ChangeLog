@@ -1,3 +1,7 @@
+2006-08-29  Hye-Shik Chang <perky@FreeBSD.org>  (wk)
+
+	* seed.c: New.
+
 2006-08-03  Werner Koch  <wk@g10code.com>
 
 	* random-daemon.c (_gcry_daemon_initialize_basics): Don't

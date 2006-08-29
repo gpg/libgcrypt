@@ -749,7 +749,8 @@ enum gcry_cipher_algos
     GCRY_CIPHER_SERPENT192  = 305,
     GCRY_CIPHER_SERPENT256  = 306,
     GCRY_CIPHER_RFC2268_40  = 307,  /* Ron's Cipher 2 (40 bit). */
-    GCRY_CIPHER_RFC2268_128 = 308   /* Ron's Cipher 2 (128 bit). */
+    GCRY_CIPHER_RFC2268_128 = 308,  /* Ron's Cipher 2 (128 bit). */
+    GCRY_CIPHER_SEED        = 309   /* 128 bit cipher described in RFC4269. */
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */

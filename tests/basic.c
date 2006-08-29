@@ -959,6 +959,7 @@ check_ciphers (void)
     GCRY_CIPHER_SERPENT128,
     GCRY_CIPHER_SERPENT192,
     GCRY_CIPHER_SERPENT256,
+    GCRY_CIPHER_SEED,
     0
   };
   static int algos2[] = {

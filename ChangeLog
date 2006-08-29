@@ -1,3 +1,7 @@
+2006-08-29  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (USE_SEED): New.
+
 2006-07-26  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: New options --enable-noexecstack and

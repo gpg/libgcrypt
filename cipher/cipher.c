@@ -72,6 +72,9 @@ static struct cipher_table_entry
 #ifdef USE_RFC2268
     { &_gcry_cipher_spec_rfc2268_40, GCRY_CIPHER_RFC2268_40 },
 #endif
+#ifdef USE_SEED
+    { &_gcry_cipher_spec_seed,       GCRY_CIPHER_SEED },
+#endif
     { NULL                    },
   };
 

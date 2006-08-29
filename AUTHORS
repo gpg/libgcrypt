@@ -1,5 +1,5 @@
 Library: Libgcrypt
-Maintainer: Moritz Schulte <moritz@g10code.com>
+Maintainer: Werner Koch <wk@gnupg.org>
 Bug reports: <bug-libgcrypt@gnupg.org>
 Security related bug reports: <security@gnupg.org>
 
@@ -73,6 +73,11 @@ bradh@frogmouth.net
 (Added OFB mode. Changed cipher/cipher.c, test/basic.c doc/gcrypt.tex.
  added SHA-224, changed cipher/sha256.c, added HMAC tests.)
 
+
+Hye-Shik Chang  <perky@FreeBSD.org>
+Wrote SEED cipher and put it into the Public domain.  See mail to
+gcrypt-devel@gnupg.org on 2006-07-12 <20060712143738.GA54909@FreeBSD.org>.
+(SEED cipher)
 
 
 

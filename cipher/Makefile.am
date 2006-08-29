@@ -57,6 +57,7 @@ rndegd.c \
 rndunix.c \
 rndw32.c \
 rsa.c \
+seed.c \
 serpent.c \
 sha1.c \
 sha256.c \

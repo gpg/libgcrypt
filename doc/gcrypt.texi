@@ -1183,6 +1183,20 @@ Standard DES with a 56 bit key. You need to pass 64 bit but the high
 bits of each byte are ignored.  Note, that this is a weak algorithm
 which can be broken in reasonable time using a brute force approach.
 
+@item  GCRY_CIPHER_SERPENT128
+@itemx GCRY_CIPHER_SERPENT192
+@itemx GCRY_CIPHER_SERPENT256
+The Serpent cipher from the AES contest.
+
+@item  GCRY_CIPHER_RFC2268_40
+@itemx GCRY_CIPHER_RFC2268_128
+Ron's Cipher 2 in the 40 and 128 bit variants.  Note, that we currently
+only support the 40 bit variant.  The identifier for 128 is reserved for
+future use.
+
+@item GCRY_CIPHER_SEED
+A 128 bit cipher as described by RFC4269.
+
 @end table
 
 @node Cipher modules

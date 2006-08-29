@@ -112,7 +112,7 @@ LIBGCRYPT_CONFIG_LIBS="-lgcrypt"
 LIBGCRYPT_CONFIG_CFLAGS=""
 
 # Definitions for symmetric ciphers.
-available_ciphers="arcfour blowfish cast5 des aes twofish serpent rfc2268"
+available_ciphers="arcfour blowfish cast5 des aes twofish serpent rfc2268 seed"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
@@ -756,6 +756,11 @@ LIST_MEMBER(rfc2268, $enabled_ciphers)
 test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS rfc2268.lo"
 AC_DEFINE_UNQUOTED(USE_RFC2268, $found,
                                  [Defined if this module should be included])
+
+LIST_MEMBER(seed, $enabled_ciphers)
+test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS seed.lo"
+AC_DEFINE_UNQUOTED(USE_SEED, $found,
+                             [Defined if this module should be included])
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
 test "$found" = "1" && GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS dsa.lo"
