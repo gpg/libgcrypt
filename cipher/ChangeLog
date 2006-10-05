@@ -1,3 +1,19 @@
+2006-10-04  David Shaw  <dshaw@jabberwocky.com>  (wk)
+ 
+	* tiger.c (round): Rename to tiger_round as gcc 4 has a built-in
+	round function that this conflicts with.
+ 
+2006-09-11  Werner Koch  <wk@g10code.com>
+
+	* rndw32.c (slow_gatherer_windowsNT): While adding data use the
+	size of the diskPerformance and not its address. Has been fixed in
+	GnuPG more than a year ago.  Noted by Lee Fisher.
+
+2006-08-30  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (sexp_data_to_mpi): Need to allow "ripemd160" here as
+	this is the canonical name.
+
 2006-08-29  Hye-Shik Chang <perky@FreeBSD.org>  (wk)
 
 	* seed.c: New.
