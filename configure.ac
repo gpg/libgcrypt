@@ -46,7 +46,7 @@ NEED_GPG_ERROR_VERSION=1.0
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
-AC_CONFIG_SRCDIR([src/gcrypt.h])
+AC_CONFIG_SRCDIR([src/libgcrypt.vers])
 AC_CANONICAL_TARGET()
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 AM_CONFIG_HEADER(config.h)
@@ -851,12 +851,25 @@ AC_SUBST(LIBGCRYPT_CIPHERS, $enabled_ciphers)
 AC_SUBST(LIBGCRYPT_PUBKEY_CIPHERS, $enabled_pubkey_ciphers)
 AC_SUBST(LIBGCRYPT_DIGESTS, $enabled_digests)
 
+dnl # Fallback definitions for gcrypt.h:
+dnl #
+dnl # check for network/socket size type
+AC_CHECK_SOCKLENTYPE([
+FALLBACK_SOCKLEN_T="typedef ${ac_type} socklen_t;"
+if test ".$ac_type" = ".socklen_t"; then
+    FALLBACK_SOCKLEN_T="/* $FALLBACK_SOCKLEN_T */"
+fi
+AC_SUBST(FALLBACK_SOCKLEN_T)
+])
+
+
 AC_CONFIG_FILES([
 Makefile
 mpi/Makefile
 cipher/Makefile
 doc/Makefile
 src/Makefile
+src/gcrypt.h
 src/libgcrypt-config
 tests/Makefile
 w32-dll/Makefile

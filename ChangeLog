@@ -1,3 +1,9 @@
+2006-10-10  Marcus Brinkmann  <marcus@g10code.de>
+
+	* configure.ac: Invoke AC_CHECK_SOCKLEN_TYPE.
+	(AC_CONFIG_FILES): Add src/gcrypt.h.
+	(AC_CONFIG_SRCDIR): Change to src/libgcrypt.vers.
+
 2006-08-29  Werner Koch  <wk@g10code.com>
 
 	* configure.ac (USE_SEED): New.

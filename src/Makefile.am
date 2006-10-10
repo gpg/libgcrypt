@@ -18,7 +18,8 @@
 
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = Manifest libgcrypt-config.in libgcrypt.m4 libgcrypt.vers
+EXTRA_DIST = Manifest libgcrypt-config.in libgcrypt.m4 libgcrypt.vers \
+	gcrypt.h.in
 bin_SCRIPTS = libgcrypt-config
 m4datadir = $(datadir)/aclocal
 m4data_DATA = libgcrypt.m4
