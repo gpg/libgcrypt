@@ -521,6 +521,13 @@ GNUPG_CHECK_TYPEDEF(u16, HAVE_U16_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
 
 gl_TYPE_SOCKLEN_T
+if test ".$gl_cv_socklen_t_equiv" = "."; then
+  FALLBACK_SOCKLEN_T="/* typedef socklen_t socklen_t; */"
+else
+  FALLBACK_SOCKLEN_T="typedef ${gl_cv_socklen_t_equiv} socklen_t;"
+fi
+AC_SUBST(FALLBACK_SOCKLEN_T)
+
 
 #######################################
 #### Checks for library functions. ####
@@ -844,17 +851,6 @@ AC_SUBST([GCRYPT_RANDOM])
 AC_SUBST(LIBGCRYPT_CIPHERS, $enabled_ciphers)
 AC_SUBST(LIBGCRYPT_PUBKEY_CIPHERS, $enabled_pubkey_ciphers)
 AC_SUBST(LIBGCRYPT_DIGESTS, $enabled_digests)
-
-dnl # Fallback definitions for gcrypt.h:
-dnl #
-dnl # check for network/socket size type
-AC_CHECK_SOCKLENTYPE([
-FALLBACK_SOCKLEN_T="typedef ${ac_type} socklen_t;"
-if test ".$ac_type" = ".socklen_t"; then
-    FALLBACK_SOCKLEN_T="/* $FALLBACK_SOCKLEN_T */"
-fi
-AC_SUBST(FALLBACK_SOCKLEN_T)
-])
 
 
 AC_CONFIG_FILES([

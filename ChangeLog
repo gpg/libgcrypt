@@ -1,5 +1,10 @@
 2006-10-11  Marcus Brinkmann  <marcus@g10code.de>
 
+	* configure.ac (FALLBACK_SOCKLEN_T): Rewrite in terms of
+	socklen.m4.
+
+2006-10-11  Marcus Brinkmann  <marcus@g10code.de>
+
 	* acinclude.m4 (GNUPG_FIX_HDR_VERSION): Removed.
 	* configure.ac: Do not call GNUPG_FIX_HDR_VERSION.
 
