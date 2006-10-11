@@ -1,3 +1,8 @@
+2006-10-11  Marcus Brinkmann  <marcus@g10code.de>
+
+	* acinclude.m4 (GNUPG_FIX_HDR_VERSION): Removed.
+	* configure.ac: Do not call GNUPG_FIX_HDR_VERSION.
+
 2006-10-10  Marcus Brinkmann  <marcus@g10code.de>
 
 	* configure.ac: Invoke AC_CHECK_SOCKLEN_TYPE.

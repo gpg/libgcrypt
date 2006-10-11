@@ -689,12 +689,6 @@ if test "$GCC" = yes; then
 fi
 AC_SUBST(NOEXECSTACK_FLAGS)
 
-#
-# Make the version number in src/gcrypt.h the same as the one here.
-# (this is easier than to have a *.in file just for one substitution)
-#
-GNUPG_FIX_HDR_VERSION([src/gcrypt.h], GCRYPT_VERSION)
-
 AC_SUBST(LIBGCRYPT_CONFIG_API_VERSION)
 AC_SUBST(LIBGCRYPT_CONFIG_LIBS)
 AC_SUBST(LIBGCRYPT_CONFIG_CFLAGS)
