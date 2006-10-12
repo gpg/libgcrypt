@@ -522,9 +522,9 @@ GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
 
 gl_TYPE_SOCKLEN_T
 if test ".$gl_cv_socklen_t_equiv" = "."; then
-  FALLBACK_SOCKLEN_T="/* typedef socklen_t socklen_t; */"
+  FALLBACK_SOCKLEN_T="typedef socklen_t gcry_socklen_t; */"
 else
-  FALLBACK_SOCKLEN_T="typedef ${gl_cv_socklen_t_equiv} socklen_t;"
+  FALLBACK_SOCKLEN_T="typedef ${gl_cv_socklen_t_equiv} gcry_socklen_t;"
 fi
 AC_SUBST(FALLBACK_SOCKLEN_T)
 

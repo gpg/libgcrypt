@@ -184,15 +184,15 @@ struct gcry_thread_cbs
 		     struct timeval *timeout);
   ssize_t (*waitpid) (pid_t pid, int *status, int options);
   int (*accept) (int s, void  *addr, int *length_ptr);
-  int (*connect) (int s, void *addr, socklen_t length);
+  int (*connect) (int s, void *addr, gcry_socklen_t length);
   int (*sendmsg) (int s, const void *msg, int flags);
   int (*recvmsg) (int s, void *msg, int flags);
 #else
   ssize_t (*select) (int nfd, fd_set *rset, fd_set *wset, fd_set *eset,
 		     struct timeval *timeout);
   ssize_t (*waitpid) (pid_t pid, int *status, int options);
-  int (*accept) (int s, struct sockaddr *addr, socklen_t *length_ptr);
-  int (*connect) (int s, struct sockaddr *addr, socklen_t length);
+  int (*accept) (int s, struct sockaddr *addr, gcry_socklen_t *length_ptr);
+  int (*connect) (int s, struct sockaddr *addr, gcry_socklen_t length);
   int (*sendmsg) (int s, const struct msghdr *msg, int flags);
   int (*recvmsg) (int s, struct msghdr *msg, int flags);
 #endif
@@ -240,9 +240,10 @@ static ssize_t gcry_pth_select (int nfd, fd_set *rset, fd_set *wset,	      \
 static ssize_t gcry_pth_waitpid (pid_t pid, int *status, int options)	      \
   { return pth_waitpid (pid, status, options); }			      \
 static int gcry_pth_accept (int s, struct sockaddr *addr,		      \
-			    socklen_t *length_ptr)			      \
+			    gcry_socklen_t *length_ptr)			      \
   { return pth_accept (s, addr, length_ptr); }				      \
-static int gcry_pth_connect (int s, struct sockaddr *addr, socklen_t length)  \
+static int gcry_pth_connect (int s, struct sockaddr *addr,		      \
+			     gcry_socklen_t length)			      \
   { return pth_connect (s, addr, length); }				      \
 									      \
 /* FIXME: GNU Pth is missing pth_sendmsg and pth_recvmsg.  */		      \

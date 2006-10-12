@@ -1,3 +1,7 @@
+2006-10-12  Marcus Brinkmann  <marcus@g10code.de>
+
+	* gcrypt.h.in: Replace socklen_t with gcry_socklen_t.
+
 2006-10-11  Marcus Brinkmann  <marcus@g10code.de>
 
 	* gcrypt.h.in: Replace version by @VERSION@.
