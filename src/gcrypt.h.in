@@ -29,14 +29,14 @@
 
 #include <sys/types.h>
 
-@FALLBACK_SOCKLEN_T@
-
 #if defined _WIN32 || defined __WIN32__
 # include <winsock2.h>
 # include <ws2tcpip.h>
 #else
 # include <sys/socket.h>
 #endif /*!_WIN32*/
+
+@FALLBACK_SOCKLEN_T@
 
 #include <sys/time.h>
 
