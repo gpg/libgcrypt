@@ -304,6 +304,32 @@ back_and_forth_one (int testno, const char *buffer, size_t length)
       return;
     }
   gcry_sexp_release (se1);
+
+  /* Again but with memory checking. */
+  p1 = gcry_xmalloc (n1+2);
+  *p1 = '\x55';
+  p1[n1+1] = '\xaa';
+  n = gcry_sexp_sprint (se, GCRYSEXP_FMT_CANON, p1+1, n1);
+  if (n1 != n+1) /* sprints adds an extra 0 but does not return it */
+    {
+      fail ("baf %d: length mismatch for canon\n", testno);
+      return;
+    }
+  if (*p1 != '\x55' || p1[n1+1] != '\xaa')
+    fail ("baf %d: memory corrupted (1)\n", testno);
+  rc = gcry_sexp_create (&se1, p1+1, n, 0, NULL);
+  if (rc)
+    {
+      fail ("baf %d: gcry_sexp_create failed: %s\n",
+            testno, gpg_strerror (rc));
+      return;
+    }
+  if (*p1 != '\x55' || p1[n1+1] != '\xaa')
+    fail ("baf %d: memory corrupted (2)\n", testno);
+  gcry_sexp_release (se1);
+  if (*p1 != '\x55' || p1[n1+1] != '\xaa')
+    fail ("baf %d: memory corrupted (3)\n", testno);
+  gcry_free (p1);
   
   /* FIXME: we need a lot more tests */
 
@@ -318,6 +344,18 @@ back_and_forth (void)
   static struct { char *buf; int len; } tests[] = {
     { "(7:g34:fgh1::2:())", 0 },
     { "(7:g34:fgh1::2:())", 18 },
+    {
+"(protected-private-key \n"
+" (rsa \n"
+"  (n #00BE8A536204687149A48FF9F1715FF3530AD9A836D62102BF4065E5CF5953236DB94F1DF2FF4D525CD4CE7966DDC3C839968E8BAC2948934DF047CC65287CD79F6C23C93E55D7F9231E3942BD496DE383469977635A51ADF4AF747DB958CA02E9940DFC1DC0FC7FC755E7EB6618FEE6DA54B8A06E0CBF9D9257443F9992261435#)\n"
+"  (e #010001#)\n"
+"  (protected openpgp-s2k3-sha1-aes-cbc \n"
+"   (\n"
+"    (sha1 #C2A5673BD3882405# \"96\")\n"
+"    #8D08AAF6A9209ED69D71EB7E64D78715#)\n"
+"   #F7B0B535F8F8E22F4F3DA031224070303F82F9207D42952F1ACF21A4AB1C50304EBB25527992C7B265A9E9FF702826FB88759BDD55E4759E9FCA6C879538C9D043A9C60A326CB6681090BAA731289BD880A7D5774D9999F026E5E7963BFC8C0BDC9F061393CB734B4F259725C0A0A0B15BA39C39146EF6A1B3DC4DF30A22EBE09FD05AE6CB0C8C6532951A925F354F4E26A51964F5BBA50081690C421C8385C4074E9BAB9297D081B857756607EAE652415275A741C89E815558A50AC638EDC5F5030210B4395E3E1A40FF38DCCCB333A19EA88EFE7E4D51B54128C6DF27395646836679AC21B1B25C1DA6F0A7CE9F9BE078EFC7934FA9AE202CBB0AA06C20DFAF9A66FAB7E9073FBE96B9A7F25C3BA45EC3EECA65796AEE313BA148DE5314F30345B452B50B17C4D841A7F27397126E8C10BD0CE3B50A82C0425AAEE7798031671407B681F52916256F78CAF92A477AC27BCBE26DAFD1BCE386A853E2A036F8314BB2E8E5BB1F196434232EFB0288331C2AB16DBC5457CC295EB966CAC5CE73D5DA5D566E469F0EFA82F9A12B8693E0#)\n"
+"  )\n"
+" )\n", 0 },
     { NULL, 0 }
   };
   int idx;
@@ -390,9 +428,3 @@ main (int argc, char **argv)
   
   return error_count? 1:0;
 }
-
-
-
-
-
-

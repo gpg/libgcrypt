@@ -20,6 +20,12 @@
 	(AC_CONFIG_FILES): Add src/gcrypt.h.
 	(AC_CONFIG_SRCDIR): Change to src/libgcrypt.vers.
 
+2006-10-02  Werner Koch  <wk@g10code.com>
+
+	* acinclude.m4 (GNUPG_SYS_SYMBOL_UNDERSCORE): Test on HOST and not
+	TARGET.  Hardwire for mingw32. Allow setting via command line when
+	cross compiling.
+
 2006-08-29  Werner Koch  <wk@g10code.com>
 
 	* configure.ac (USE_SEED): New.

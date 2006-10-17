@@ -35,6 +35,12 @@ void _gcry_sha1_hash_buffer (char *outbuf, const char *buffer, size_t length);
 
 /*-- dsa.c --*/
 void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data);
+gcry_err_code_t _gcry_dsa_generate2 (int algo, unsigned int nbits,
+                                     unsigned int qbits,
+                                     unsigned long dummy,
+                                     gcry_mpi_t *skey,
+                                     gcry_mpi_t **retfactors);
+
 /*-- elgamal.c --*/
 void _gcry_register_pk_elg_progress (gcry_handler_progress_t cb, void *cb_data);
 /*-- primegen.c --*/

@@ -1,3 +1,7 @@
+2006-10-17  Werner Koch  <wk@g10code.com>
+
+	* keygen.c (check_rsa_keys): Also create an 1536 bit DSA key.
+
 2006-08-03  Werner Koch  <wk@g10code.com>
 
 	* t-mpi-bit.c: New.

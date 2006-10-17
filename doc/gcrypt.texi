@@ -2326,7 +2326,7 @@ Some functions operating on S-expressions support `flags', that
 influence the operation.  These flags have to be listed in a
 sub-S-expression named `flags'; the following flags are known:
 
-@table @var
+@table @code
 @item pkcs1
 Use PKCS#1 block type 2 padding.
 @item no-blinding
@@ -2694,7 +2694,8 @@ supported parameters are:
 @table @code
 @item nbits
 This is always required to specify the length of the key.  The argument
-is a string with a number in C-notation.
+is a string with a number in C-notation.  The value should be a multiple
+of 8.
 
 @item rsa-use-e
 This is only used with RSA to give a hint for the public exponent. The
@@ -2714,6 +2715,26 @@ Reserved
 @noindent
 If this parameter is not used, @acronym{Libgcrypt} uses for historic reasons
 65537.
+
+@item qbits
+This is only meanigful for DSA keys.  If it is given the DSA key is
+generated with a Q parameyer of this size.  If it is not given or zero 
+Q is deduced from NBITS in this way:
+@table @samp
+@item 512 <= N <= 1024
+Q = 160
+@item N = 2048
+Q = 224
+@item N = 3072
+Q = 256
+@item N = 7680
+Q = 384
+w@item N = 15360
+Q = 512
+@end table
+Note, that in this case only the values for N, as given in the table,
+are allowed.  When specifying Q all values of N in the range 512 to
+15680 are valid as long as they are multiples of 8.
 
 @end table
 @c end table of parameters

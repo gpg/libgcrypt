@@ -644,7 +644,8 @@ gcry_xrealloc( void *a, size_t n )
 
     while ( !(p = gcry_realloc( a, n )) ) {
 	if( !outofcore_handler
-	    || !outofcore_handler( outofcore_handler_value, n, 2 ) ) {
+	    || !outofcore_handler( outofcore_handler_value, n,
+                                   gcry_is_secure(a)? 3:2 ) ) {
 	    _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
 	}
     }

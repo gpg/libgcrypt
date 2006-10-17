@@ -1,3 +1,11 @@
+2006-10-05  Werner Koch  <wk@g10code.com>
+
+	* module.c (_gcry_module_id_new): Don't assign modules in the range
+	the range of 1024..4096.
+	* gcrypt.h (GCRY_MD_USER, GCRY_MD_USER_LAST): New
+	(GCRY_PK_USER, GCRY_PK_USER_LAST): New.
+	(GCRY_CIPHER_USER, GCRY_CIPHER_USER_LAST): New.
+
 2006-10-12  Marcus Brinkmann  <marcus@g10code.de>
 
 	* gcrypt.h.in: Replace socklen_t with gcry_socklen_t.
@@ -12,7 +20,13 @@
 	* gcrypt.h.in: ... this file.
 	* Makefile.am (EXTRA_DIST): Add gcrypt.h.in.
 
+2006-09-04  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h: Removed some trailing comma in enums.
+
 2006-08-29  Werner Koch  <wk@g10code.com>
+
+	* global.c (gcry_xrealloc): Pass secure flag to outofcore handler.
 
 	* gcrypt.h (GCRY_CIPHER_SEED): New.
 

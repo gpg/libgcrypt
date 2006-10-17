@@ -89,7 +89,7 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
              AC_MSG_RESULT(okay)
            else
              ok=no
-             AC_MSG_RESULT([does not match (want=$req_libgcrypt_api got=$tmp)])
+             AC_MSG_RESULT([does not match. want=$req_libgcrypt_api got=$tmp])
            fi
         fi
      fi

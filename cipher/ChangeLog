@@ -1,3 +1,16 @@
+2006-10-17  Werner Koch  <wk@g10code.com>
+
+	* dsa.c (_gcry_dsa_generate2): New.
+	(generate): New arg QBITS.  Add sanity checks for reasonable qbits
+	and nbits.
+	* pubkey.c (gcry_pk_genkey): Parse an qbits element.
+	(pubkey_generate): New arg QBITS.  Pass it to the DSA generation.
+
+2006-10-05  Werner Koch  <wk@g10code.com>
+
+	* md.c (gcry_md_algo_info) <get_asnoid>: Check that the algo is
+	available.
+
 2006-10-04  David Shaw  <dshaw@jabberwocky.com>  (wk)
  
 	* tiger.c (round): Rename to tiger_round as gcc 4 has a built-in

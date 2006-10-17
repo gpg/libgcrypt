@@ -22,7 +22,16 @@
 #include <errno.h>
 #include "g10lib.h"
 
+/* Please match these numbers with the allocated algorithm
+   numbers.  */
 #define MODULE_ID_MIN 600
+#define MODULE_ID_LAST 65500
+#define MODULE_ID_USER 1024
+#define MODULE_ID_USER_LAST 4095
+
+#if MODULE_ID_MIN >= MODULE_ID_USER
+#error Need to implement a different search strategy
+#endif
 
 /* Internal function.  Generate a new, unique module ID for a module
    that should be inserted into the module chain starting at
@@ -30,15 +39,19 @@
 static gcry_err_code_t
 _gcry_module_id_new (gcry_module_t modules, unsigned int *id_new)
 {
-  /* FIXME, what should be the ID of the first module registered by
-     the user?  */
-  unsigned int id_min = MODULE_ID_MIN, id_max = (unsigned int) -1, mod_id;
+  unsigned int mod_id;
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_module_t module;
 
   /* Search for unused ID.  */
-  for (mod_id = id_min; mod_id < id_max; mod_id++)
+  for (mod_id = MODULE_ID_MIN; mod_id < MODULE_ID_LAST; mod_id++)
     {
+      if (mod_id == MODULE_ID_USER)
+        {
+          mod_id = MODULE_ID_USER_LAST;
+          continue;
+        }
+
       /* Search for a module with the current ID.  */
       for (module = modules; module; module = module->next)
 	if (mod_id == module->mod_id)
@@ -49,7 +62,7 @@ _gcry_module_id_new (gcry_module_t modules, unsigned int *id_new)
 	break;
     }
 
-  if (mod_id < id_max)
+  if (mod_id < MODULE_ID_LAST)
     /* Done.  */
     *id_new = mod_id;
   else

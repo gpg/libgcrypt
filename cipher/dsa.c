@@ -1,5 +1,6 @@
 /* dsa.c  -  DSA signature scheme
- * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2000, 2001, 2002, 2003,
+ *               2006  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -50,7 +51,9 @@ typedef struct
 static gcry_mpi_t gen_k (gcry_mpi_t q);
 static void test_keys (DSA_secret_key *sk, unsigned qbits);
 static int check_secret_key (DSA_secret_key *sk);
-static gpg_err_code_t generate (DSA_secret_key *sk, unsigned nbits,
+static gpg_err_code_t generate (DSA_secret_key *sk,
+                                unsigned int nbits,
+                                unsigned int qbits,
                                 gcry_mpi_t **ret_factors);
 static void sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                   DSA_secret_key *skey);
@@ -173,7 +176,8 @@ test_keys( DSA_secret_key *sk, unsigned qbits )
  	    and an array with the n-1 factors of (p-1)
  */
 static gpg_err_code_t
-generate( DSA_secret_key *sk, unsigned nbits, gcry_mpi_t **ret_factors )
+generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
+          gcry_mpi_t **ret_factors )
 {
   gcry_mpi_t p;    /* the prime */
   gcry_mpi_t q;    /* the 160 bit prime factor */
@@ -181,20 +185,26 @@ generate( DSA_secret_key *sk, unsigned nbits, gcry_mpi_t **ret_factors )
   gcry_mpi_t y;    /* g^x mod p */
   gcry_mpi_t x;    /* the secret exponent */
   gcry_mpi_t h, e;  /* helper */
-  unsigned qbits;
   unsigned char *rndbuf;
 
-  if ( nbits >= 512 && nbits <= 1024 )
+  if (qbits)
+    ; /* Caller supplied qbits.  Use this value.  */
+  else if ( nbits >= 512 && nbits <= 1024 )
     qbits = 160;
   else if ( nbits == 2048 )
     qbits = 224;
   else if ( nbits == 3072 )
     qbits = 256;
-/*   else if ( nbits == 7680 ) */
-/*     qbits = 384; */
-/*   else if ( nbits == 15360 ) */
-/*     qbits = 512; */
+  else if ( nbits == 7680 )
+    qbits = 384;
+  else if ( nbits == 15360 )
+    qbits = 512;
   else
+    return GPG_ERR_INV_VALUE;
+
+  if (qbits < 160 || qbits > 512 || (qbits%8) )
+    return GPG_ERR_INV_VALUE;
+  if (nbits < 2*qbits || nbits > 15360)
     return GPG_ERR_INV_VALUE;
 
   p = _gcry_generate_elg_prime( 1, nbits, qbits, NULL, ret_factors );
@@ -382,13 +392,40 @@ verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_public_key *pkey )
  *********************************************/
 
 gcry_err_code_t
-_gcry_dsa_generate (int algo, unsigned nbits, unsigned long dummy,
+_gcry_dsa_generate (int algo, unsigned int nbits, unsigned long dummy,
                     gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   gpg_err_code_t err;
   DSA_secret_key sk;
 
-  err = generate (&sk, nbits, retfactors);
+  err = generate (&sk, nbits, 0, retfactors);
+  if (!err)
+    {
+      skey[0] = sk.p;
+      skey[1] = sk.q;
+      skey[2] = sk.g;
+      skey[3] = sk.y;
+      skey[4] = sk.x;
+    }
+
+  return err;
+}
+
+
+/* We don't want to break our API.  Thus we use a hack in pubkey.c to
+   link directly to this function.  Note that we can't reuse the dummy
+   parameter because we can't be sure that applicaions accidently pass
+   a USE_E (that is for what dummy is used with RSA) to a DSA
+   generation. */
+gcry_err_code_t
+_gcry_dsa_generate2 (int algo, unsigned int nbits, unsigned int qbits,
+                     unsigned long dummy,
+                     gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+{
+  gpg_err_code_t err;
+  DSA_secret_key sk;
+
+  err = generate (&sk, nbits, qbits, retfactors);
   if (!err)
     {
       skey[0] = sk.p;

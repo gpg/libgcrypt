@@ -74,9 +74,9 @@ bradh@frogmouth.net
  added SHA-224, changed cipher/sha256.c, added HMAC tests.)
 
 
-Hye-Shik Chang  <perky@FreeBSD.org>
-Wrote SEED cipher and put it into the Public domain.  See mail to
-gcrypt-devel@gnupg.org on 2006-07-12 <20060712143738.GA54909@FreeBSD.org>.
+LIBGCRYPT       Hye-Shik Chang   2006-09-07
+Assigns Past and Future Changes
+perky@freebsd.org
 (SEED cipher)
 
 

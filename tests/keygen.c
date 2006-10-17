@@ -123,12 +123,15 @@ check_rsa_keys (void)
   gcry_sexp_t keyparm, key;
   int rc;
 
+  /* Check that DSA generation works and that it can grok the qbits
+     argument. */
   if (verbose)
-    fprintf (stderr, "creating 2048 bit DSA key using old interface\n");
+    fprintf (stderr, "creating 1536 bit DSA key using old interface\n");
   rc = gcry_sexp_new (&keyparm, 
                       "(genkey\n"
                       " (dsa\n"
-                      "  (nbits 4:2048)\n"
+                      "  (nbits 4:1536)\n"
+                      "  (qbits 3:224)\n"
                       " ))", 0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
@@ -144,7 +147,6 @@ check_rsa_keys (void)
               "=============================\n", buffer);
   }
   gcry_sexp_release (key);
-  exit (0);
 
   if (verbose)
     fprintf (stderr, "creating 1024 bit RSA key using old interface\n");

@@ -1101,27 +1101,31 @@ gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
       break;
 
     case GCRYCTL_GET_ASNOID:
-      {
-	const char unsigned *asn;
-	size_t asnlen;
-
-	asn = md_asn_oid (algo, &asnlen, NULL);
-	if (buffer && (*nbytes >= asnlen))
+      /* We need to check that the algo is available because
+         md_asn_oid would otherwise raise an assertion. */
+      err = check_digest_algo (algo);
+      if (!err)
+        {
+          const char unsigned *asn;
+          size_t asnlen;
+          
+          asn = md_asn_oid (algo, &asnlen, NULL);
+          if (buffer && (*nbytes >= asnlen))
 	  {
 	    memcpy (buffer, asn, asnlen);
 	    *nbytes = asnlen;
 	  }
-	else if ((! buffer) && nbytes)
-	  *nbytes = asnlen;
-	else
-	  {
-	    if (buffer)
-	      err = GPG_ERR_TOO_SHORT;
-	    else
-	      err = GPG_ERR_INV_ARG;
-	  }
-	break;
-      }
+          else if ((! buffer) && nbytes)
+            *nbytes = asnlen;
+          else
+            {
+              if (buffer)
+                err = GPG_ERR_TOO_SHORT;
+              else
+                err = GPG_ERR_INV_ARG;
+            }
+        }
+      break;
 
   default:
     err = GPG_ERR_INV_OP;

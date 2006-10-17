@@ -190,7 +190,7 @@ normalize ( gcry_sexp_t list )
 /* Create a new S-expression object by reading LENGTH bytes from
    BUFFER, assuming it is canonilized encoded or autodetected encoding
    when AUTODETECT is set to 1.  With FREEFNC not NULL, ownership of
-   the buffer is transferred to tyhe newle created object.  FREEFNC
+   the buffer is transferred to the newly created object.  FREEFNC
    should be the freefnc used to release BUFFER; there is no guarantee
    at which point this function is called; most likey you want to use
    free() or gcry_free(). 
@@ -239,7 +239,7 @@ gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
          have changed the internal represenation of S-expression to
          the canoncial format - which has the advantage of faster
          parsing - we will use this function as a closure in our
-         GCRYSEXP object and use the BUFFER directly */
+         GCRYSEXP object and use the BUFFER directly.  */
       freefnc (buffer);
     }
   return gcry_error (GPG_ERR_NO_ERROR);

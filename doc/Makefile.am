@@ -22,3 +22,12 @@ DISTCLEANFILES = gcrypt.cps
 info_TEXINFOS = gcrypt.texi
 gcrypt_TEXINFOS = lgpl.texi gpl.texi
 
+
+online: gcrypt.html gcrypt.pdf
+	set -e; \
+	echo "Uploading current manuals to www.gnupg.org ..."; \
+        user=werner ; \
+	(cd gcrypt.html && rsync -vr --exclude='.svn' .  \
+	  $${user}@cvs.gnupg.org:webspace/manuals/gcrypt/ ); \
+        rsync -v gcrypt.pdf $${user}@cvs.gnupg.org:webspace/manuals/
+
