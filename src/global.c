@@ -251,6 +251,8 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
     case GCRYCTL_INIT_SECMEM:
       global_init ();
       _gcry_secmem_init (va_arg (arg_ptr, unsigned int));
+      if ((_gcry_secmem_get_flags () & GCRY_SECMEM_FLAG_NOT_LOCKED))
+        err = GPG_ERR_GENERAL;
       break;
 
     case GCRYCTL_TERM_SECMEM:

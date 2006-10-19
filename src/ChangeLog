@@ -1,3 +1,11 @@
+2006-10-19  Werner Koch  <wk@g10code.com>
+
+	* global.c (gcry_control) <GCRYCTL_INIT_SECMEM>: Return an error
+	if the memory could not be locked.
+	* secmem.c (not_locked): New.
+	(_gcry_secmem_get_flags): Return that flag.
+	* secmem.h (GCRY_SECMEM_FLAG_NOT_LOCKED): New.
+
 2006-10-05  Werner Koch  <wk@g10code.com>
 
 	* module.c (_gcry_module_id_new): Don't assign modules in the range
