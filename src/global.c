@@ -209,6 +209,8 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
     case GCRYCTL_INIT_SECMEM:
       global_init ();
       _gcry_secmem_init (va_arg (arg_ptr, unsigned int));
+      if ((_gcry_secmem_get_flags () & GCRY_SECMEM_FLAG_NOT_LOCKED))
+        err = GPG_ERR_GENERAL;
       break;
 
     case GCRYCTL_TERM_SECMEM:
@@ -587,7 +589,8 @@ gcry_xrealloc( void *a, size_t n )
 
     while ( !(p = gcry_realloc( a, n )) ) {
 	if( !outofcore_handler
-	    || !outofcore_handler( outofcore_handler_value, n, 2 ) ) {
+	    || !outofcore_handler( outofcore_handler_value, n, 
+                                   gcry_is_secure(a)? 3:2 ) ) {
 	    _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
 	}
     }

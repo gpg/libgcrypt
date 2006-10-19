@@ -398,7 +398,7 @@ slow_gatherer_windowsNT( void (*add)(const void*, size_t, int), int requester )
 	/* Note: This only works if you have turned on the disk performance
 	 * counters with 'diskperf -y'.  These counters are off by default */
 	if (DeviceIoControl (hDevice, IOCTL_DISK_PERFORMANCE, NULL, 0,
-			     &diskPerformance, SIZEOF_DISK_PERFORMANCE_STRUCT,
+			     diskPerformance, SIZEOF_DISK_PERFORMANCE_STRUCT,
 			     &dwSize, NULL))
 	{
 	    if ( debug_me )

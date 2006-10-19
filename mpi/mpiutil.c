@@ -436,5 +436,7 @@ gcry_mpi_get_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
       case GCRYMPI_FLAG_OPAQUE: return (a->flags & 4);
       default: log_bug("invalid flag value\n");
     }
+    /*NOTREACHED*/
+    return 0;
 }
 

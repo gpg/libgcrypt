@@ -75,6 +75,7 @@ static volatile int pool_is_mmapped;
 /* FIXME?  */
 static int disable_secmem;
 static int show_warning;
+static int not_locked;
 static int no_warning;
 static int suspend_warning;
 
@@ -246,6 +247,7 @@ lock_pool (void *p, size_t n)
 	  )
 	log_error ("can't lock memory: %s\n", strerror (err));
       show_warning = 1;
+      not_locked = 1;
     }
 
 #elif defined(HAVE_MLOCK)
@@ -299,6 +301,7 @@ lock_pool (void *p, size_t n)
 	  )
 	log_error ("can't lock memory: %s\n", strerror (err));
       show_warning = 1;
+      not_locked = 1;
     }
 
 #elif defined ( __QNX__ )
@@ -407,7 +410,7 @@ _gcry_secmem_set_flags (unsigned flags)
   SECMEM_UNLOCK;
 }
 
-unsigned
+unsigned int
 _gcry_secmem_get_flags (void)
 {
   unsigned flags;
@@ -416,6 +419,7 @@ _gcry_secmem_get_flags (void)
 
   flags = no_warning ? GCRY_SECMEM_FLAG_NO_WARNING : 0;
   flags |= suspend_warning ? GCRY_SECMEM_FLAG_SUSPEND_WARNING : 0;
+  flags |= not_locked ? GCRY_SECMEM_FLAG_NOT_LOCKED : 0;
 
   SECMEM_UNLOCK;
 
@@ -619,6 +623,7 @@ _gcry_secmem_term ()
   pool = NULL;
   pool_okay = 0;
   pool_size = 0;
+  not_locked = 0;
 }
 
 

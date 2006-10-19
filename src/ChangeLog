@@ -1,3 +1,16 @@
+2006-10-19  Werner Koch  <wk@g10code.com>
+
+	* global.c (gcry_control) <GCRYCTL_INIT_SECMEM>: Return an error
+	if the memory could not be locked.
+	* secmem.c (not_locked): New.
+	(_gcry_secmem_get_flags): Return that flag.
+	* secmem.h (GCRY_SECMEM_FLAG_NOT_LOCKED): New.
+
+2006-08-29  Werner Koch  <wk@g10code.com>
+
+	* global.c (gcry_xrealloc): Set secure flag when calling out of
+	core handler.
+
 2006-08-28  Werner Koch  <wk@g10code.com>
 
 	* global.c (gcry_control): Clandestine API change for
