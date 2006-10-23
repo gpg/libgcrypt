@@ -257,7 +257,7 @@ static struct gcry_thread_cbs gcry_threads_pth = { GCRY_THREAD_OPTION_PTH,    \
 static int gcry_pthread_mutex_init (void **priv)			      \
 {									      \
   int err = 0;								      \
-  pthread_mutex_t *lock = malloc (sizeof (pthread_mutex_t));		      \
+  pthread_mutex_t *lock = (pthread_mutex_t*)malloc (sizeof (pthread_mutex_t));\
 									      \
   if (!lock)								      \
     err = ENOMEM;							      \
@@ -272,11 +272,12 @@ static int gcry_pthread_mutex_init (void **priv)			      \
   return err;								      \
 }									      \
 static int gcry_pthread_mutex_destroy (void **lock)			      \
-  { int err = pthread_mutex_destroy (*lock);  free (*lock); return err; }     \
+  { int err = pthread_mutex_destroy ((phread_mutex_t*)*lock);                 \
+    free (*lock); return err; }                                               \
 static int gcry_pthread_mutex_lock (void **lock)			      \
-  { return pthread_mutex_lock (*lock); }				      \
+  { return pthread_mutex_lock ((phread_mutex_t*)*lock); }		      \
 static int gcry_pthread_mutex_unlock (void **lock)			      \
-  { return pthread_mutex_unlock (*lock); }				      \
+  { return pthread_mutex_unlock ((phread_mutex_t*)*lock); }		      \
 									      \
 static struct gcry_thread_cbs gcry_threads_pthread =			      \
 { GCRY_THREAD_OPTION_PTHREAD, NULL,					      \
