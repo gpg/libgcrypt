@@ -1,3 +1,19 @@
+2006-10-25  Werner Koch  <wk@g10code.com>
+
+	* primegen.c (prime_generate_internal): Tweaked use of secure
+	memory and entropy use. Safe unused primes from the pool. Allocate
+	at least a pool of 30.
+	(save_pool_prime, get_pool_prime): New.
+
+2006-10-23  Werner Koch  <wk@g10code.com>
+
+	* ac.c (_gcry_ac_data_from_sexp): Reset sexp_tmp for failsafe
+	means.  Release sexp_cur if needed.  Reported by Dirk Stoecker.
+
+	* pubkey.c (pubkeys_registered_lock): Intialized it.  It is not
+	 realy needed because this is a mere initialization to 0 anyway.
+	 Noted by Victor Stinner.
+
 2006-10-17  Werner Koch  <wk@g10code.com>
 
 	* dsa.c (_gcry_dsa_generate2): New.
@@ -50,7 +66,7 @@
 	* blowfish.c (selftest): Cast string to usnigned char*.
 
 	* primegen.c (prime_generate_internal): Cast unsigned/char*
-	mismatch in calling m_out_od_n.
+	mismatch in calling m_out_of_n.
 	(is_prime): Changed COUNT to unsigned int *.
 
 	* ac.c (_gcry_ac_data_copy): Initialize DATA_MPIS.
@@ -3052,7 +3068,7 @@ Tue Mar  3 13:32:54 1998  Werner Koch  (wk@isil.d.shuttle.de)
 
 Mon Mar  2 19:21:46 1998  Werner Koch  (wk@isil.d.shuttle.de)
 
-	* gost.c, gost.h: Removed because they did only conatin trash.
+	* gost.c, gost.h: Removed because they did only contain trash.
 
 Sun Mar  1 16:42:29 1998  Werner Koch  (wk@isil.d.shuttle.de)
 

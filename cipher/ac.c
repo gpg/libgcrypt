@@ -743,28 +743,32 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
 
 	      /* Release old SEXP_CUR, in case it is not equal to the
 		 original SEXP.  */
-
 	      if (sexp_cur != sexp)
 		gcry_sexp_release (sexp_cur);
 
 	      /* Make SEXP_CUR point to the new current sublist.  */
 	      sexp_cur = sexp_tmp;
+              sexp_tmp = NULL;
 	    }
 	}
       if (err)
 	goto out;
 
       if (i)
-	/* We have at least one identifier in the list, this means the
-	   the list of named MPI values is prefixed, this means that
-	   we need to skip the first item (the list name), when
-	   processing the MPI values.  */
-	skip_name = 1;
+        {
+          /* We have at least one identifier in the list, this means
+             the the list of named MPI values is prefixed, this means
+             that we need to skip the first item (the list name), when
+             processing the MPI values.  */
+          skip_name = 1;
+        }
       else
-	/* Since there is no identifiers list, the list of named MPI
-	   values is not prefixed with a list name, therefore the
-	   offset to use is zero.  */
-	skip_name = 0;
+        {
+          /* Since there is no identifiers list, the list of named MPI
+             values is not prefixed with a list name, therefore the
+             offset to use is zero.  */
+          skip_name = 0;
+        }
     }
   else
     /* Since there is no identifiers list, the list of named MPI
@@ -821,7 +825,9 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
       if (err)
 	break;
 
+/*       gcry_free (string); */
       string = NULL;
+/*       gcry_mpi_release (mpi); */
       mpi = NULL;
 
       gcry_sexp_release (sexp_tmp);
@@ -834,6 +840,8 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
 
  out:
 
+  if (sexp_cur != sexp)
+    gcry_sexp_release (sexp_cur);
   gcry_sexp_release (sexp_tmp);
   gcry_mpi_release (mpi);
   gcry_free (string);
