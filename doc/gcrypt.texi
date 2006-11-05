@@ -2577,11 +2577,11 @@ public or private in @var{key}.
 
 Return the so called "keygrip" which is the SHA-1 hash of the public key
 parameters expressed in a way depended on the algorithm.  @var{array}
-must either provide space for 20 bytes or @code{NULL;}. In the latter
+must either provide space for 20 bytes or be @code{NULL}. In the latter
 case a newly allocated array of that size is returned.  On success a
 pointer to the newly allocated space or to @var{array} is returned.
-@code{NULL} is returned to indicate an error which is most likely an unknown
-algorithm or one where a "keygrip" has not yet been defined.
+@code{NULL} is returned to indicate an error which is most likely an
+unknown algorithm or one where a "keygrip" has not yet been defined.
 The function accepts public or secret keys in @var{key}.
 @end deftypefun
 
