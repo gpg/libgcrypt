@@ -19,13 +19,7 @@
 ## Process this file with automake to produce Makefile.in
 
 TESTS = t-mpi-bit prime register ac ac-schemes ac-data basic \
-        tsexp keygen pubkey benchmark pkbench hmac keygrip \
-	gcryctl-m-guard gcryctl-secure-prng gcryctl-thread-cbs \
-	random-daemon
-
-#	full
-
-XFAIL_TESTS = gryctl-m-guard
+        tsexp keygen pubkey benchmark pkbench hmac keygrip
 
 INCLUDES = -I$(top_srcdir)/src
 LDADD = ../src/libgcrypt.la
