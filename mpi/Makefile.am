@@ -151,7 +151,7 @@ CLEANFILES = _*.s __*.s
 
 noinst_LTLIBRARIES = libmpi.la
 
-AM_CFLAGS = @GPG_ERROR_CFLAGS@
+AM_CFLAGS = -I$(top_builddir)/src @GPG_ERROR_CFLAGS@
 libmpi_la_LDFLAGS =
 libmpi_la_SOURCES = longlong.h	   \
 	      mpi-add.c      \

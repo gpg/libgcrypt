@@ -27,4 +27,4 @@ LDADD = ../src/libgcrypt.la
 EXTRA_PROGRAMS = testapi
 noinst_PROGRAMS = $(TESTS)
 
-AM_CFLAGS = @GPG_ERROR_CFLAGS@
+AM_CFLAGS = -I$(top_builddir)/src @GPG_ERROR_CFLAGS@

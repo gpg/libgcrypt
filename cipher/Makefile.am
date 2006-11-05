@@ -30,7 +30,7 @@ GCRYPT_MODULES = @GCRYPT_CIPHERS@ @GCRYPT_PUBKEY_CIPHERS@ @GCRYPT_DIGESTS@ \
 
 libcipher_la_DEPENDENCIES = $(GCRYPT_MODULES)
 libcipher_la_LIBADD = $(GCRYPT_MODULES)
-AM_CFLAGS = @GPG_ERROR_CFLAGS@
+AM_CFLAGS = -I$(top_builddir)/src @GPG_ERROR_CFLAGS@
 
 libcipher_la_SOURCES = \
 cipher.c pubkey.c ac.c md.c \

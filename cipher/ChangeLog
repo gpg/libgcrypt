@@ -1,3 +1,8 @@
+2006-11-05  Moritz Schulte  <moritz@g10code.com>
+
+	* Makefile.am (AM_CFLAGS): Added -I$(top_builddir)/src so that the
+	new gcrypt.h is used, not the one installed in the system.
+
 2006-10-25  Werner Koch  <wk@g10code.com>
 
 	* primegen.c (prime_generate_internal): Tweaked use of secure
