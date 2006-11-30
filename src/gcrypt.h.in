@@ -1,6 +1,6 @@
-/* gcrypt.h -  GNU cryptographic library interface
+/* gcrypt.h -  GNU cryptographic library interface            -*- c -*-
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004
- *               2004  Free Software Foundation, Inc.
+ *               2004, 2006  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -16,7 +16,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+ * USA. 
  */
 
 #ifndef _GCRYPT_H
@@ -31,6 +32,9 @@
 #ifndef _WIN32
 #include <sys/socket.h>
 #endif /*!_WIN32*/
+
+@FALLBACK_SOCKLEN_T@
+
 #include <sys/time.h>
 
 /* This is required for error code compatibility. */
@@ -47,9 +51,8 @@ extern "C" {
    should not be used by a program because gcry_check_version() should
    return the same version.  The purpose of this macro is to let
    autoconf (using the AM_PATH_GCRYPT macro) check that this header
-   matches the installed library.  Note: Do not edit the next line as
-   configure may fix the string here.  */
-#define GCRYPT_VERSION "1.2.4-cvs"
+   matches the installed library.  */
+#define GCRYPT_VERSION "@VERSION@"
 
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
@@ -171,7 +174,7 @@ enum gcry_thread_option
 #else
 #define _GCRY_PTH_FD_SET    fd_set
 #define _GCRY_PTH_SOCKADDR  struct sockaddr
-#define _GCRY_PTH_SOCKLEN_T socklen_t
+#define _GCRY_PTH_SOCKLEN_T gcry_socklen_t
 #define _GCRY_PTH_MSGHDR    struct msghdr
 #endif
 
@@ -189,10 +192,8 @@ struct gcry_thread_cbs
   ssize_t (*select) (int nfd, _GCRY_PTH_FD_SET *rset, _GCRY_PTH_FD_SET *wset,
                      _GCRY_PTH_FD_SET *eset, struct timeval *timeout);
   ssize_t (*waitpid) (pid_t pid, int *status, int options);
-  int (*accept) (int s, _GCRY_PTH_SOCKADDR *addr,
-                 _GCRY_PTH_SOCKLEN_T *length_ptr);
-  int (*connect) (int s, _GCRY_PTH_SOCKADDR *addr,
-                  _GCRY_PTH_SOCKLEN_T length);
+  int (*accept) (int s, _GCRY_PTH_SOCKADDR *addr, gcry_socklen_t *length_ptr);
+  int (*connect) (int s, _GCRY_PTH_SOCKADDR *addr, gcry_socklen_t length);
   int (*sendmsg) (int s, const _GCRY_PTH_MSGHDR *msg, int flags);
   int (*recvmsg) (int s, _GCRY_PTH_MSGHDR *msg, int flags);
 };
@@ -241,10 +242,10 @@ static ssize_t gcry_pth_select (int nfd, _GCRY_PTH_FD_SET *rset,              \
 static ssize_t gcry_pth_waitpid (pid_t pid, int *status, int options)	      \
   { return pth_waitpid (pid, status, options); }			      \
 static int gcry_pth_accept (int s, _GCRY_PTH_SOCKADDR *addr,		      \
-			    _GCRY_PTH_SOCKLEN_T *length_ptr)		      \
+			    gcry_socklen_t *length_ptr)		              \
   { return pth_accept (s, addr, length_ptr); }				      \
 static int gcry_pth_connect (int s, _GCRY_PTH_SOCKADDR *addr,                 \
-                             _GCRY_PTH_SOCKLEN_T length)                      \
+                             gcry_socklen_t length)                           \
   { return pth_connect (s, addr, length); }				      \
 									      \
 /* FIXME: GNU Pth is missing pth_sendmsg and pth_recvmsg.  */		      \
@@ -891,8 +892,11 @@ enum gcry_pk_algos
   };
 
 /* Flags describing usage capabilities of a PK algorithm. */
-#define GCRY_PK_USAGE_SIGN 1
-#define GCRY_PK_USAGE_ENCR 2
+#define GCRY_PK_USAGE_SIGN 1   /* Good for signatures. */            
+#define GCRY_PK_USAGE_ENCR 2   /* Good for encryption. */            
+#define GCRY_PK_USAGE_CERT 4   /* Good to certify other keys. */
+#define GCRY_PK_USAGE_AUTH 8   /* Good for authentication. */        
+#define GCRY_PK_USAGE_UNKN 128 /* Unknown usage flag. */          
 
 /* Encrypt the DATA using the public key PKEY and store the result as
    a newly created S-expression at RESULT. */

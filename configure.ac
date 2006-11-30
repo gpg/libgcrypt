@@ -1,6 +1,6 @@
 # Configure.ac script for Libgcrypt
-# Copyright (C) 1998, 1999, 2000, 2001, 2002
-#               2003, 2004 Free Software Foundation, Inc.
+# Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
+#               2004, 2006  Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -16,20 +16,26 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+# USA.
 #
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
 AC_PREREQ(2.59)
 min_automake_version="1.9.3"
 
-# Version number: Remember to change it immediately *after* a release
-# but remove a "-cvs" prefix right *before* a release and append it
-# soon later.
+# Remember to change the version number immediately *after* a release.
+# Set my_issvn to "yes" for non-released code.  Remember to run an
+# "svn up" and "autogen.sh" right before creating a distribution.
+m4_define([my_version], [1.2.4])
+m4_define([my_issvn], [yes])
 
-AC_INIT(libgcrypt, 1.2.4-cvs, bug-libgcrypt@gnupg.org)
-
+m4_define([svn_revision], m4_esyscmd([echo -n $( (svn info 2>/dev/null \
+            || echo 'Revision: 0')|sed -n '/^Revision:/ {s/[^0-9]//gp;q;}')]))
+AC_INIT([libgcrypt], my_version[]m4_if(my_issvn,[yes],[-svn[]svn_revision]),
+        [bug-libgcrypt@gnupg.org])
 # LT Version numbers, remember to change them just *before* a release.
+# NOTE: API changes must be coordinated with the development branch
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
@@ -46,7 +52,7 @@ NEED_GPG_ERROR_VERSION=0.5
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
-AC_CONFIG_SRCDIR([src/gcrypt.h])
+AC_CONFIG_SRCDIR([src/libgcrypt.vers])
 AC_CANONICAL_TARGET()
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 AM_CONFIG_HEADER(config.h)
@@ -267,7 +273,7 @@ default_digests="$available_digests"
 AC_ARG_ENABLE(ciphers,
 	      AC_HELP_STRING([--enable-ciphers=ciphers],
 			     [select the symmetric ciphers to include]),
-	      [enabled_ciphers=$(echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]')],
+	      [enabled_ciphers=`echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_ciphers=""])
 if test "x$enabled_ciphers" = "x" \
    -o "$enabled_ciphers" = "yes"  \
@@ -287,7 +293,7 @@ AC_MSG_RESULT([$enabled_ciphers])
 AC_ARG_ENABLE(pubkey-ciphers,
 	      AC_HELP_STRING([--enable-pubkey-ciphers=ciphers],
 			     [select the public-key ciphers to include]),
-	      [enabled_pubkey_ciphers=$(echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]')],
+	      [enabled_pubkey_ciphers=`echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_pubkey_ciphers=""])
 if test "x$enabled_pubkey_ciphers" = "x" \
    -o "$enabled_pubkey_ciphers" = "yes"  \
@@ -307,7 +313,7 @@ AC_MSG_RESULT([$enabled_pubkey_ciphers])
 AC_ARG_ENABLE(digests,
 	      AC_HELP_STRING([--enable-digests=digests],
 			     [select the message digests to include]),
-	      [enabled_digests=$(echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]')],
+	      [enabled_digests=`echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_digests=""])
 if test "x$enabled_digests" = "x" \
    -o "$enabled_digests" = "yes"  \
@@ -327,7 +333,7 @@ AC_MSG_RESULT([$enabled_digests])
 AC_ARG_ENABLE(random,
 	      AC_HELP_STRING([--enable-random=name],
 	                     [select which random number generator to use]),
-	      [random=$(echo $enableval | tr '[A-Z]' '[a-z]')],
+	      [random=`echo $enableval | tr '[A-Z]' '[a-z]'`],
 	      [])
 if test "x$random" = "x" -o "$random" = "yes" -o "$random" = "no"; then
     random=default
@@ -473,14 +479,14 @@ GNUPG_CHECK_TYPEDEF(ulong, HAVE_ULONG_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u16, HAVE_U16_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
 
-AC_CHECK_TYPE(socklen_t,,
-              [AC_DEFINE_UNQUOTED([socklen_t],
-                                  [int],
-                                  [Define to `int' if unavailable.])],
-              [
-#include <sys/types.h>
-#include <sys/socket.h>
-              ])
+gl_TYPE_SOCKLEN_T
+if test ".$gl_cv_socklen_t_equiv" = "."; then
+  FALLBACK_SOCKLEN_T="typedef socklen_t gcry_socklen_t;"
+else
+  FALLBACK_SOCKLEN_T="typedef ${gl_cv_socklen_t_equiv} gcry_socklen_t;"
+fi
+AC_SUBST(FALLBACK_SOCKLEN_T)
+
 
 #######################################
 #### Checks for library functions. ####
@@ -646,11 +652,6 @@ if test "$GCC" = yes; then
 fi
 AC_SUBST(NOEXECSTACK_FLAGS)
 
-#
-# Make the version number in src/gcrypt.h the same as the one here.
-# (this is easier than to have a *.in file just for one substitution)
-#
-GNUPG_FIX_HDR_VERSION([src/gcrypt.h], GCRYPT_VERSION)
 
 AC_SUBST(LIBGCRYPT_CONFIG_API_VERSION)
 AC_SUBST(LIBGCRYPT_CONFIG_LIBS)
@@ -800,10 +801,12 @@ AC_SUBST(LIBGCRYPT_DIGESTS, $enabled_digests)
 
 AC_CONFIG_FILES([
 Makefile
+m4/Makefile
 mpi/Makefile
 cipher/Makefile
 doc/Makefile
 src/Makefile
+src/gcrypt.h
 src/libgcrypt-config
 tests/Makefile
 w32-dll/Makefile

@@ -1,3 +1,12 @@
+2006-11-30  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in: Replace socklen_t with gcry_socklen_t.
+	* gcrypt.h.in: Replace version by @VERSION@.
+
+	* gcrypt.h: Add fallback type for socklen_t.  Move to ...
+	* gcrypt.h.in: ... this file.
+	* Makefile.am (EXTRA_DIST): Add gcrypt.h.in.
+
 2006-10-19  Werner Koch  <wk@g10code.com>
 
 	* global.c (gcry_control) <GCRYCTL_INIT_SECMEM>: Return an error

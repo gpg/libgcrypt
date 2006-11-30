@@ -1,3 +1,16 @@
+2006-11-30  Werner Koch  <wk@g10code.com>
+
+	* autogen.sh: New option --force.
+	* configure.ac: Add SVN revision magic
+	
+	* configure.ac (FALLBACK_SOCKLEN_T): Define gcry_socklen_t, to
+	avoid conflicts with socklen_t definitions by autoconf.
+	* configure.ac: Do not call GNUPG_FIX_HDR_VERSION.
+	* configure.ac: Invoke AC_CHECK_SOCKLEN_TYPE.
+	(AC_CONFIG_FILES): Add src/gcrypt.h and m4/Makefile
+	(AC_CONFIG_SRCDIR): Change to src/libgcrypt.vers.
+	* Makefile.am (SUBDIRS): Add m4/
+
 2006-08-28  Werner Koch  <wk@g10code.com>
 
 	Released 1.2.3.

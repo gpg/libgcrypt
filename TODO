@@ -34,7 +34,5 @@ What's left to do                                 -*- outline -*-
 * cipher/pubkey.c and pubkey implementaions.
   Don't rely on the secure memory based wiping function but add an
   extra wiping.
-  
-* We need to figure out at comile time whether socklen_t is defined.
-  On IRIX 6.5 it seems not to be defined and thus gcrypt.h fails.
+ 
 

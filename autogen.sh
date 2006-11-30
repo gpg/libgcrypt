@@ -29,7 +29,11 @@ check_version () {
 }
 
 DIE=no
-
+FORCE=
+if test "$1" == "--force"; then
+  FORCE=" --force"
+  shift
+fi
 
 # Used to cross-compile for Windows.
 if test "$1" = "--build-w32"; then
@@ -147,7 +151,7 @@ echo "Running autoheader..."
 $AUTOHEADER
 echo "Running automake --gnu ..."
 $AUTOMAKE --gnu;
-echo "Running autoconf..."
-$AUTOCONF
+echo "Running autoconf${FORCE} ..."
+$AUTOCONF${FORCE}
 
 echo "You may now run \"./configure --enable-maintainer-mode && make\"."

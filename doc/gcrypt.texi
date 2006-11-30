@@ -1082,7 +1082,7 @@ Reserved and not currently implemented.
 AES (Rijndael) with a 128 bit key.
 
 @item  GCRY_CIPHER_AES192     
-@itemx GCRY_CIPHER_RIJNDAEL128
+@itemx GCRY_CIPHER_RIJNDAEL192
 AES (Rijndael) with a 192 bit key.
 
 @item  GCRY_CIPHER_AES256 
