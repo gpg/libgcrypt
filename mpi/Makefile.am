@@ -21,9 +21,14 @@
 # I was not able to build it with 64Megs - 1.6 fixes this.
 # not anymore required: AUTOMAKE_OPTIONS = 1.6
 
-INCLUDES =  -I$(top_srcdir)/src
-ASFLAGS = @MPI_SFLAGS@
+# Need to include ../src in addition to top_srcdir because gcrypt.h is
+# a built header.
+AM_CPPFLAGS = -I../src -I$(top_srcdir)/src
+AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+
+AM_ASFLAGS = $(MPI_SFLAGS)
 AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
+
 
 # We don't have .S sources listed, so automake does not autocreate these
 CCASCOMPILE = $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
@@ -151,7 +156,6 @@ CLEANFILES = _*.s __*.s
 
 noinst_LTLIBRARIES = libmpi.la
 
-AM_CFLAGS = -I$(top_builddir)/src @GPG_ERROR_CFLAGS@
 libmpi_la_LDFLAGS =
 libmpi_la_SOURCES = longlong.h	   \
 	      mpi-add.c      \
@@ -182,7 +186,9 @@ libmpi_la_DEPENDENCIES = @MPI_MOD_LIST_LO@
 SUFFIXES = .S .o .obj .lo
 
 .S.o:
-	$(CPP) $(INCLUDES) $(DEFS) $< | grep -v '^#' > $*.s
+	$(CPP) $(INCLUDES) $(AM_CPPFLAGS) $(DEFS) \
+           `test -f '$<' || echo '$(srcdir)/'`$< \
+           | grep -v '^#' > $*.s
 	$(CCASCOMPILE) -c `test -f '$*.s' || echo '$(srcdir)/'`$*.s
 	rm $*.s
 
@@ -190,6 +196,8 @@ SUFFIXES = .S .o .obj .lo
 	$(CCASCOMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
 
 .S.lo:
-	$(CPP) $(INCLUDES) $(DEFS) $< | grep -v '^#' > $*.s
+	$(CPP) $(INCLUDES) $(AM_CPPFLAGS) $(DEFS) \
+           `test -f '$<' || echo '$(srcdir)/'`$< \
+           | grep -v '^#' > $*.s
 	$(LTCCASCOMPILE) -c -o $@ `test -f '$*.s' || echo '$(srcdir)/'`$*.s
 	rm $*.s

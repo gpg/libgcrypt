@@ -21,10 +21,13 @@
 TESTS = t-mpi-bit prime register ac ac-schemes ac-data basic \
         tsexp keygen pubkey benchmark pkbench hmac keygrip
 
-INCLUDES = -I$(top_srcdir)/src
+# Need to include ../src in addition to top_srcdir because gcrypt.h is
+# a built header.
+AM_CPPFLAGS = -I../src -I$(top_srcdir)/src
+AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+
 LDADD = ../src/libgcrypt.la
 
 EXTRA_PROGRAMS = testapi
 noinst_PROGRAMS = $(TESTS)
 
-AM_CFLAGS = -I$(top_builddir)/src @GPG_ERROR_CFLAGS@

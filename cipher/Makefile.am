@@ -21,7 +21,12 @@
 # Process this file with automake to produce Makefile.in
 
 EXTRA_DIST = Manifest
-INCLUDES = -I$(top_srcdir)/src 
+
+# Need to include ../src in addition to top_srcdir because gcrypt.h is
+# a built header.
+AM_CPPFLAGS = -I../src -I$(top_srcdir)/src 
+AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+
 
 noinst_LTLIBRARIES = libcipher.la
 
@@ -30,7 +35,6 @@ GCRYPT_MODULES = @GCRYPT_CIPHERS@ @GCRYPT_PUBKEY_CIPHERS@ @GCRYPT_DIGESTS@ \
 
 libcipher_la_DEPENDENCIES = $(GCRYPT_MODULES)
 libcipher_la_LIBADD = $(GCRYPT_MODULES)
-AM_CFLAGS = -I$(top_builddir)/src @GPG_ERROR_CFLAGS@
 
 libcipher_la_SOURCES = \
 cipher.c pubkey.c ac.c md.c \

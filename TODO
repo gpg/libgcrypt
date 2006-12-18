@@ -66,4 +66,16 @@ What's left to do                                 -*- outline -*-
 
 * Add OAEP
 
+* Next API break:
+** gcry_ac_io_t
+  Remove use of anonymous union.
+
+* ac.c
+  There are still some things fishy.  The fixes I did todat
+  (2006-10-23) seem to cure just a symptom.  Needs a complete review.
+
+* gcryptrnd.c
+  Requires test for pth and other stuff.
+
+
 

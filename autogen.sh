@@ -29,6 +29,103 @@ check_version () {
 }
 
 
+DIE=no
+
+# ***** W32 build script *******
+# Used to cross-compile for Windows.
+if test "$1" = "--build-w32"; then
+    tmp=`dirname $0`
+    tsdir=`cd "$tmp"; pwd`
+    shift
+    if [ ! -f $tsdir/config.guess ]; then
+        echo "$tsdir/config.guess not found" >&2
+        exit 1
+    fi
+    build=`$tsdir/config.guess`
+
+    [ -z "$w32root" ] && w32root="$HOME/w32root"
+    echo "Using $w32root as standard install directory" >&2
+    
+    # Locate the cross compiler
+    crossbindir=
+    for host in i586-mingw32msvc i386-mingw32msvc; do
+        if ${host}-gcc --version >/dev/null 2>&1 ; then
+            crossbindir=/usr/${host}/bin
+            conf_CC="CC=${host}-gcc"
+            break;
+        fi
+    done
+    if [ -z "$crossbindir" ]; then
+        echo "Cross compiler kit not installed" >&2
+        echo "Under Debian GNU/Linux, you may install it using" >&2
+        echo "  apt-get install mingw32 mingw32-runtime mingw32-binutils" >&2 
+        echo "Stop." >&2
+        exit 1
+    fi
+   
+    if [ -f "$tsdir/config.log" ]; then
+        if ! head $tsdir/config.log | grep "$host" >/dev/null; then
+            echo "Pease run a 'make distclean' first" >&2
+            exit 1
+        fi
+    fi
+
+    ./configure --enable-maintainer-mode  --prefix=${w32root}  \
+            --host=${host} --build=${build} \
+            --with-gpg-error-prefix=${w32root}  \
+            --disable-shared    
+
+    exit $?
+fi
+# ***** end W32 build script *******
+
+
+# ***** AMD64 cross build script *******
+# Used to cross-compile for AMD64 (for testing)
+if test "$1" = "--build-amd64"; then
+    tmp=`dirname $0`
+    tsdir=`cd "$tmp"; pwd`
+    shift
+    if [ ! -f $tsdir/config.guess ]; then
+        echo "$tsdir/config.guess not found" >&2
+        exit 1
+    fi
+    build=`$tsdir/config.guess`
+
+    [ -z "$amd64root" ] && amd64root="$HOME/amd64root"
+    echo "Using $amd64root as standard install directory" >&2
+    
+    # Locate the cross compiler
+    crossbindir=
+    for host in x86_64-linux-gnu amd64-linux-gnu; do
+        if ${host}-gcc --version >/dev/null 2>&1 ; then
+            crossbindir=/usr/${host}/bin
+            conf_CC="CC=${host}-gcc"
+            break;
+        fi
+    done
+    if [ -z "$crossbindir" ]; then
+        echo "Cross compiler kit not installed" >&2
+        echo "Stop." >&2
+        exit 1
+    fi
+   
+    if [ -f "$tsdir/config.log" ]; then
+        if ! head $tsdir/config.log | grep "$host" >/dev/null; then
+            echo "Please run a 'make distclean' first" >&2
+            exit 1
+        fi
+    fi
+
+    $tsdir/configure --enable-maintainer-mode --prefix=${amd64root}  \
+             --host=${host} --build=${build} \
+             --with-gpg-error-prefix=${amd64root} 
+ 
+    rc=$?
+    exit $rc
+fi
+# ***** end AMD64 cross build script *******
+
 # Grep the required versions from configure.ac
 autoconf_vers=`sed -n '/^AC_PREREQ(/ { 
 s/^.*(\(.*\))/\1/p
@@ -64,8 +161,6 @@ ACLOCAL=${AUTOMAKE_PREFIX}${ACLOCAL:-aclocal}${AUTOMAKE_SUFFIX}
 
 #GETTEXT=${GETTEXT_PREFIX}${GETTEXT:-gettext}${GETTEXT_SUFFIX}
 #MSGMERGE=${GETTEXT_PREFIX}${MSGMERGE:-msgmerge}${GETTEXT_SUFFIX}
-
-DIE=no
 
 
 if check_version $AUTOCONF $autoconf_vers_num $autoconf_vers ; then

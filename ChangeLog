@@ -1,3 +1,7 @@
+2006-11-15  Werner Koch  <wk@g10code.com>
+
+	* autogen.sh: Add convenience option --build-amd64.
+
 2006-10-20  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (stowinstall): New convenience target.

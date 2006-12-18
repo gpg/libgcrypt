@@ -30,6 +30,7 @@
 
 
 static int verbose;
+static int debug;
 static int error_count;
 
 static void
@@ -122,11 +123,32 @@ check_rsa_keys (void)
 {
   gcry_sexp_t keyparm, key;
   int rc;
+  int i;
 
   /* Check that DSA generation works and that it can grok the qbits
      argument. */
   if (verbose)
-    fprintf (stderr, "creating 1536 bit DSA key using old interface\n");
+    fprintf (stderr, "creating 5 1024 bit DSA keys\n");
+  for (i=0; i < 5; i++)
+    {
+      rc = gcry_sexp_new (&keyparm, 
+                          "(genkey\n"
+                          " (dsa\n"
+                          "  (nbits 4:1024)\n"
+                          " ))", 0, 1);
+      if (rc)
+        die ("error creating S-expression: %s\n", gpg_strerror (rc));
+      rc = gcry_pk_genkey (&key, keyparm);
+      gcry_sexp_release (keyparm);
+      if (rc)
+        die ("error generating DSA key: %s\n", gpg_strerror (rc));
+      gcry_sexp_release (key);
+      if (verbose)
+        fprintf (stderr, "  done\n");
+    }
+
+  if (verbose)
+    fprintf (stderr, "creating 1536 bit DSA key\n");
   rc = gcry_sexp_new (&keyparm, 
                       "(genkey\n"
                       " (dsa\n"
@@ -139,17 +161,18 @@ check_rsa_keys (void)
   gcry_sexp_release (keyparm);
   if (rc)
     die ("error generating DSA key: %s\n", gpg_strerror (rc));
-  {
-    char buffer[20000];
-    gcry_sexp_sprint (key, GCRYSEXP_FMT_ADVANCED, buffer, sizeof buffer);
-    if (verbose)
-      printf ("=============================\n%s\n"
-              "=============================\n", buffer);
-  }
+  if (debug)
+    {
+      char buffer[20000];
+      gcry_sexp_sprint (key, GCRYSEXP_FMT_ADVANCED, buffer, sizeof buffer);
+      if (verbose)
+        printf ("=============================\n%s\n"
+                "=============================\n", buffer);
+    }
   gcry_sexp_release (key);
 
   if (verbose)
-    fprintf (stderr, "creating 1024 bit RSA key using old interface\n");
+    fprintf (stderr, "creating 1024 bit RSA key\n");
   rc = gcry_sexp_new (&keyparm, 
                       "(genkey\n"
                       " (rsa\n"
@@ -243,11 +266,19 @@ check_nonce (void)
     }
 }
 
+
+static void
+progress_cb (void *cb_data, const char *what, int printchar,
+		  int current, int total)
+{
+  putchar (printchar);
+  fflush (stdout);
+}
+
+
 int
 main (int argc, char **argv)
 {
-  int debug = 0;
-
   if (argc > 1 && !strcmp (argv[1], "--verbose"))
     verbose = 1;
   else if (argc > 1 && !strcmp (argv[1], "--debug"))
@@ -261,6 +292,8 @@ main (int argc, char **argv)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
   /* No valuable keys are create, so we can speed up our RNG. */
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+  if (verbose)
+    gcry_set_progress_handler ( progress_cb, NULL );
 
   check_rsa_keys ();
   check_nonce ();

@@ -1,3 +1,12 @@
+2006-12-18  Werner Koch  <wk@g10code.com>
+
+	* Makefile.am (AM_CFLAGS, AM_CPPFLAGS): Splitted and merged with
+	Moritz' changes.
+	(INCLUDES): Removed.
+
+	* keygen.c (progress_handler): New.
+	(main): Use it in verbose mode.
+
 2006-11-05  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am (AM_CFLAGS): Added -I$(top_builddir)/src so that the

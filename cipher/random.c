@@ -43,7 +43,7 @@
 #include <sys/times.h>
 #endif
 #ifdef HAVE_GETTIMEOFDAY
-#include <sys/times.h>
+#include <sys/time.h>
 #endif
 #ifdef HAVE_GETRUSAGE
 #include <sys/resource.h>
