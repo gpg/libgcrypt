@@ -42,6 +42,19 @@ int _gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
                                   int requester,
                                   size_t length, int level );
 
+static int
+set_cloexec_flag (int fd)
+{
+  int oldflags;
+
+  oldflags= fcntl (fd, F_GETFD, 0);
+  if (oldflags < 0)
+    return oldflags;
+  oldflags |= FD_CLOEXEC;
+  return fcntl (fd, F_SETFD, oldflags);
+}
+
+
 /*
  * Used to open the /dev/random devices (Linux, xBSD, Solaris (if it exists)).
  */
@@ -53,6 +66,10 @@ open_device( const char *name, int minor )
   fd = open( name, O_RDONLY );
   if( fd == -1 )
     log_fatal ("can't open %s: %s\n", name, strerror(errno) );
+
+  if (set_cloexec_flag (fd))
+    log_error ("error setting FD_CLOEXEC on fd %d: %s\n",
+               fd, strerror (errno));
 
   /* We used to do the follwing check, however it turned out that this
      is not portable since more OSes provide a random device which is

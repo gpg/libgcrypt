@@ -20,7 +20,7 @@
 ACLOCAL_AMFLAGS = -I m4
 AUTOMAKE_OPTIONS = dist-bzip2
 
-DIST_SUBDIRS = mpi cipher src doc tests w32-dll
+DIST_SUBDIRS = m4 mpi cipher src doc tests w32-dll
 SUBDIRS = m4 mpi cipher src doc tests
 EXTRA_DIST = BUGS autogen.sh README.apichanges README.SVN
 DISTCLEANFILES = 

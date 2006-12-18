@@ -1,3 +1,9 @@
+2006-12-18  Werner Koch  <wk@g10code.com>
+
+	* rndlinux.c (set_cloexec_flag): New.
+	(open_device): Set close-on-exit flags.  Suggested by Max
+	Kellermann.  Fixes Debian#403613.
+
 2006-09-11  Werner Koch  <wk@g10code.com>
 
 	* rndw32.c (slow_gatherer_windowsNT): While adding data use the

@@ -149,6 +149,8 @@ main (int argc, char **argv)
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
+  /* No valuable keys are create, so we can speed up our RNG. */
+  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 
   for (; i > 0; i--)
     check_run ();
