@@ -371,6 +371,10 @@ static byte sha512_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.3 */
 static gcry_md_oid_spec_t oid_spec_sha512[] =
   {
     { "2.16.840.1.101.3.4.2.3" },
+
+    /* PKCS#1 sha512WithRSAEncryption */
+    { "1.2.840.113549.1.1.13" },
+
     { NULL }
   };
 
@@ -390,6 +394,10 @@ static byte sha384_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.2 */
 static gcry_md_oid_spec_t oid_spec_sha384[] =
   {
     { "2.16.840.1.101.3.4.2.2" }, 
+
+    /* PKCS#1 sha384WithRSAEncryption */
+    { "1.2.840.113549.1.1.12" },
+
     { NULL },
   };
 
