@@ -299,6 +299,8 @@ static gcry_md_oid_spec_t oid_spec_sha256[] =
   {
     /* According to the OpenPGG draft rfc2440-bis06 */
     { "2.16.840.1.101.3.4.2.1" }, 
+    /* PKCS#1 sha256WithRSAEncryption */
+    { "1.2.840.113549.1.1.11" },
     { NULL },
   };
 
