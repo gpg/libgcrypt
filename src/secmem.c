@@ -524,7 +524,7 @@ _gcry_secmem_free_internal (void *a)
   /* This does not make much sense: probably this memory is held in the
    * cache. We do it anyway: */
 #define MB_WIPE_OUT(byte) \
-  memset ((memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE), (byte), size);
+  wipememory2 ((memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE), (byte), size);
 
   MB_WIPE_OUT (0xff);
   MB_WIPE_OUT (0xaa);
@@ -582,19 +582,14 @@ _gcry_secmem_realloc (void *p, size_t newsize)
   return a;
 }
 
+
+/* Return true if P points into the secure memory area.  */
 int
 _gcry_private_is_secure (const void *p)
 {
-  int ret = 0;
-
-  SECMEM_LOCK;
-
-  if (pool_okay && BLOCK_VALID (ADDR_TO_BLOCK (p)))
-    ret = 1;
-
-  SECMEM_UNLOCK;
-
-  return ret;
+  return (pool_okay
+          && p >= pool
+          && p < (const void*)((const char*)pool+pool_size));
 }
 
 

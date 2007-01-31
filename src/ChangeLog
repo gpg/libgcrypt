@@ -1,3 +1,9 @@
+2007-01-31  Werner Koch  <wk@g10code.com>
+
+	* secmem.c (_gcry_private_is_secure): Fixed severe implementation
+	flaw.  Might be the reason for some of the more obscure bugs.
+	(MB_WIPE_OUT): Use wipememory2.
+
 2006-11-30  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in: Replace socklen_t with gcry_socklen_t.
