@@ -340,6 +340,6 @@ static gcry_cipher_oid_spec_t oids_rfc2268_40[] =
 gcry_cipher_spec_t _gcry_cipher_spec_rfc2268_40 = {
   "RFC2268_40", NULL, oids_rfc2268_40,
   RFC2268_BLOCKSIZE, 40, sizeof(RFC2268_context),
-  do_setkey, do_encrypt, do_decrypt
+  do_setkey, do_encrypt, do_decrypt, NULL, NULL
 };
 

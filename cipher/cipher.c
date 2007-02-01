@@ -72,7 +72,7 @@ static struct cipher_table_entry
 #ifdef USE_RFC2268
     { &_gcry_cipher_spec_rfc2268_40, GCRY_CIPHER_RFC2268_40 },
 #endif
-    { NULL                    },
+    { NULL, 0   }
   };
 
 /* List of registered ciphers.  */
@@ -1057,6 +1057,7 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf,
 	break;
       default:
         log_fatal("cipher_encrypt: invalid mode %d\n", c->mode );
+        /*NOTREACHED*/
         rc = GPG_ERR_INV_CIPHER_MODE;
         break;
     }
@@ -1143,6 +1144,7 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 	break;
       default:
         log_fatal ("cipher_decrypt: invalid mode %d\n", c->mode );
+        /*NOTREACHED*/
         rc = GPG_ERR_INV_CIPHER_MODE;
         break;
     }
