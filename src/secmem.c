@@ -589,7 +589,7 @@ _gcry_private_is_secure (const void *p)
 {
   return (pool_okay
           && p >= pool
-          && p <  pool+pool_size);
+          && p <  (void*)((char*)pool+pool_size));
 }
 
 
