@@ -1081,6 +1081,8 @@ main (int argc, char **argv)
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+
   check_ciphers ();
   check_aes128_cbc_cts_cipher ();
   check_cbc_mac_cipher ();
