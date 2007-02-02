@@ -1,4 +1,4 @@
-# config.links - helper for ../configure
+# config.links - helper for ../configure             -*- mode: sh -*-
 # Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
@@ -221,13 +221,6 @@ case "${target}" in
 	path="m68k/mc68020 m68k"
 	;;
 
-    powerpc*-*-linux*)
-	echo '/* configured for powerpc/ELF */' >>./mpi/asm-syntax.h
-	echo '#define ELF_SYNTAX'               >>./mpi/asm-syntax.h
-	cat   $srcdir/mpi/powerpc32/syntax.h	>>./mpi/asm-syntax.h
-	path="powerpc32"
-	;;
-
     powerpc*-*-netbsd* | powerpc*-*-openbsd*)
        echo '/* configured {Open,Net}BSD on powerpc */' >>./mpi/asm-syntax.h
        echo '#define ELF_SYNTAX'                 >>./mpi/asm-syntax.h
@@ -235,6 +228,18 @@ case "${target}" in
        mpi_sflags="-Wa,-mppc"
        path="powerpc32"
        ;;
+
+    ppc620-*-*	    | \
+    powerpc64*-*-*)
+	mpi_sflags="-Wa,-mppc"
+	path="powerpc64"
+	;;
+    powerpc*-*-linux*)
+	echo '/* configured for powerpc/ELF */' >>./mpi/asm-syntax.h
+	echo '#define ELF_SYNTAX'               >>./mpi/asm-syntax.h
+	cat   $srcdir/mpi/powerpc32/syntax.h	>>./mpi/asm-syntax.h
+	path="powerpc32"
+	;;
 
     rs6000-*-aix[456789]*    | \
     rs6000-*-aix3.2.[456789])
@@ -263,11 +268,6 @@ case "${target}" in
     ppc60[234]*-*-*)
 	mpi_sflags="-Wa,-mppc"
 	path="powerpc32"
-	;;
-    ppc620-*-*	    | \
-    powerpc64*-*-*)
-	mpi_sflags="-Wa,-mppc"
-	path="powerpc64"
 	;;
     powerpc*-*-*)
 	mpi_sflags="-Wa,-mppc"
