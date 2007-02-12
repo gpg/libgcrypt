@@ -98,9 +98,20 @@ static ath_mutex_t secmem_lock;
 #define ADDR_TO_BLOCK(addr) \
   (memblock_t *) ((char *) addr - BLOCK_HEAD_SIZE)
 
-/* Check wether MB is a valid block.  */
-#define BLOCK_VALID(mb) \
-  (((char *) mb - (char *) pool) < pool_size)
+/* Check whether P points into the pool.  */
+static int
+ptr_into_pool_p (const void *p)
+{
+  /* We need to convert pointers to addresses.  This is required by
+     C-99 6.5.8 to avoid undefeined behavious.  Using size_t is at
+     least only implementation defined.  See also
+     http://lists.gnupg.org/pipermail/gcrypt-devel/2007-February/001102.html
+  */
+  size_t p_addr = (size_t)p;
+  size_t pool_addr = (size_t)pool;
+
+  return p_addr >= pool_addr && p_addr <  pool_addr+pool_size;
+}
 
 /* Update the stats.  */
 static void
@@ -126,7 +137,7 @@ mb_get_next (memblock_t *mb)
 
   mb_next = (memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE + mb->size);
   
-  if (! BLOCK_VALID (mb_next))
+  if (! ptr_into_pool_p (mb_next))
     mb_next = NULL;
 
   return mb_next;
@@ -182,7 +193,7 @@ mb_get_new (memblock_t *block, size_t size)
 {
   memblock_t *mb, *mb_split;
   
-  for (mb = block; BLOCK_VALID (mb); mb = mb_get_next (mb))
+  for (mb = block; ptr_into_pool_p (mb); mb = mb_get_next (mb))
     if (! (mb->flags & MB_FLAG_ACTIVE) && mb->size >= size)
       {
 	/* Found a free block.  */
@@ -205,7 +216,7 @@ mb_get_new (memblock_t *block, size_t size)
 	break;
       }
 
-  if (! BLOCK_VALID (mb))
+  if (! ptr_into_pool_p (mb))
     mb = NULL;
 
   return mb;
@@ -587,9 +598,7 @@ _gcry_secmem_realloc (void *p, size_t newsize)
 int
 _gcry_private_is_secure (const void *p)
 {
-  return (pool_okay
-          && p >= pool
-          && p <  (void*)((char*)pool+pool_size));
+  return pool_okay && ptr_into_pool_p (p);
 }
 
 
@@ -639,7 +648,7 @@ _gcry_secmem_dump_stats ()
   SECMEM_LOCK;
 
   for (i = 0, mb = (memblock_t *) pool;
-       BLOCK_VALID (mb);
+       ptr_into_pool_p (mb);
        mb = mb_get_next (mb), i++)
     log_info ("SECMEM: [%s] block: %i; size: %i\n",
 	      (mb->flags & MB_FLAG_ACTIVE) ? "used" : "free",

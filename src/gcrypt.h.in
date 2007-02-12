@@ -23,6 +23,7 @@
 #ifndef _GCRYPT_H
 #define _GCRYPT_H
 
+#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 
