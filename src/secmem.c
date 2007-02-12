@@ -1,6 +1,6 @@
 /* secmem.c  -	memory allocation from a secure heap
  * Copyright (C) 1998, 1999, 2000, 2001, 2002,
- *               2003 Free Software Foundation, Inc.
+ *               2003, 2007 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -98,9 +98,20 @@ static ath_mutex_t secmem_lock;
 #define ADDR_TO_BLOCK(addr) \
   (memblock_t *) ((char *) addr - BLOCK_HEAD_SIZE)
 
-/* Check wether MB is a valid block.  */
-#define BLOCK_VALID(mb) \
-  (((char *) mb - (char *) pool) < pool_size)
+/* Check whether P points into the pool.  */
+static int
+ptr_into_pool_p (const void *p)
+{
+  /* We need to convert pointers to addresses.  This is required by
+     C-99 6.5.8 to avoid undefeined behavious.  Using size_t is at
+     least only implementation defined.  See also
+     http://lists.gnupg.org/pipermail/gcrypt-devel/2007-February/001102.html
+  */
+  size_t p_addr = (size_t)p;
+  size_t pool_addr = (size_t)pool;
+
+  return p_addr >= pool_addr && p_addr <  pool_addr+pool_size;
+}
 
 /* Update the stats.  */
 static void
@@ -126,7 +137,7 @@ mb_get_next (memblock_t *mb)
 
   mb_next = (memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE + mb->size);
   
-  if (! BLOCK_VALID (mb_next))
+  if (! ptr_into_pool_p (mb_next))
     mb_next = NULL;
 
   return mb_next;
@@ -182,7 +193,7 @@ mb_get_new (memblock_t *block, size_t size)
 {
   memblock_t *mb, *mb_split;
   
-  for (mb = block; BLOCK_VALID (mb); mb = mb_get_next (mb))
+  for (mb = block; ptr_into_pool_p (mb); mb = mb_get_next (mb))
     if (! (mb->flags & MB_FLAG_ACTIVE) && mb->size >= size)
       {
 	/* Found a free block.  */
@@ -205,7 +216,7 @@ mb_get_new (memblock_t *block, size_t size)
 	break;
       }
 
-  if (! BLOCK_VALID (mb))
+  if (! ptr_into_pool_p (mb))
     mb = NULL;
 
   return mb;
@@ -360,7 +371,7 @@ init_pool (size_t n)
     else
       {
 	pool = mmap (0, pool_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-	close (fd);
+        close (fd);
       }
   }
 #endif
@@ -411,7 +422,7 @@ _gcry_secmem_set_flags (unsigned flags)
   SECMEM_UNLOCK;
 }
 
-unsigned
+unsigned int
 _gcry_secmem_get_flags (void)
 {
   unsigned flags;
@@ -458,7 +469,7 @@ _gcry_secmem_init (size_t n)
     {
       if (n < DEFAULT_POOL_SIZE)
 	n = DEFAULT_POOL_SIZE;
-      if (!pool_okay)
+      if (! pool_okay)
 	{
 	  init_pool (n);
 	  lock_pool (pool, n);
@@ -525,7 +536,7 @@ _gcry_secmem_free_internal (void *a)
   /* This does not make much sense: probably this memory is held in the
    * cache. We do it anyway: */
 #define MB_WIPE_OUT(byte) \
-  memset ((memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE), (byte), size);
+  wipememory2 ((memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE), (byte), size);
 
   MB_WIPE_OUT (0xff);
   MB_WIPE_OUT (0xaa);
@@ -583,19 +594,12 @@ _gcry_secmem_realloc (void *p, size_t newsize)
   return a;
 }
 
+
+/* Return true if P points into the secure memory area.  */
 int
 _gcry_private_is_secure (const void *p)
 {
-  int ret = 0;
-
-  SECMEM_LOCK;
-
-  if (pool_okay && BLOCK_VALID (ADDR_TO_BLOCK (p)))
-    ret = 1;
-
-  SECMEM_UNLOCK;
-
-  return ret;
+  return pool_okay && ptr_into_pool_p (p);
 }
 
 
@@ -624,6 +628,7 @@ _gcry_secmem_term ()
   pool = NULL;
   pool_okay = 0;
   pool_size = 0;
+  not_locked = 0;
 }
 
 
@@ -644,7 +649,7 @@ _gcry_secmem_dump_stats ()
   SECMEM_LOCK;
 
   for (i = 0, mb = (memblock_t *) pool;
-       BLOCK_VALID (mb);
+       ptr_into_pool_p (mb);
        mb = mb_get_next (mb), i++)
     log_info ("SECMEM: [%s] block: %i; size: %i\n",
 	      (mb->flags & MB_FLAG_ACTIVE) ? "used" : "free",

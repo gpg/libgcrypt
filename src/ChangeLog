@@ -1,3 +1,18 @@
+2007-02-12  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in: Include stdlib.h for the sake fo the trheading
+	macros.  Suggested by Andreas Metzler.
+
+	* secmem.c (ptr_into_pool_p): New.
+	(_gcry_private_is_secure): Implement in terms of new function.
+	(BLOCK_VALID): Removed.  Replaced all users by new function.
+
+2007-01-31  Werner Koch  <wk@g10code.com>
+
+	* secmem.c (_gcry_private_is_secure): Fixed severe implementation
+	flaw.  Might be the reason for some of the more obscure bugs.
+	(MB_WIPE_OUT): Use wipememory2.
+
 2006-10-23  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (GCRY_THREAD_OPTION_PTHREAD_IMPL): Add some cast for
