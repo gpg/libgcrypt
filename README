@@ -114,6 +114,12 @@
                      to select exactly those algorithm modules, which
 		     should be built.
 
+     --disable-endian-check
+                     Don't let configure test for the endianness but
+                     try to use the OS provided macros at compile
+                     time.  This is helpful to create OS X fat binaries.
+
+
     Contact
     -------
 

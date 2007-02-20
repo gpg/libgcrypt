@@ -60,6 +60,19 @@ AH_TOP([
 
 AH_BOTTOM([
 #define _GCRYPT_IN_LIBGCRYPT 1
+
+/* If the configure check for endianness has been disabled, get it from
+   OS macros.  This is intended for making fat binary builds on OS X.  */
+#ifdef DISABLED_ENDIAN_CHECK
+# if defined(__BIG_ENDIAN__)
+#  define WORDS_BIGENDIAN 1
+# elif defined(__LITTLE_ENDIAN__)
+#  undef WORDS_BIGENDIAN
+# else
+#  error "No endianness found"
+# endif
+#endif /*DISABLED_ENDIAN_CHECK*/
+
 ])
 
 AH_VERBATIM([_REENTRANT],
@@ -247,7 +260,16 @@ case "${target}" in
 esac
 
 
-AC_C_BIGENDIAN
+AC_ARG_ENABLE(endian-check,
+              AC_HELP_STRING([--disable-endian-check],
+	      [disable the endian check and trust the OS provided macros]),
+	      endiancheck=$enableval,endiancheck=yes)
+if test x"$endiancheck" = xyes ; then
+  AC_C_BIGENDIAN
+else
+  AC_DEFINE(DISABLED_ENDIAN_CHECK,1,[configure did not test for endianess])
+fi
+
 
 AC_CHECK_SIZEOF(unsigned short, 2)
 AC_CHECK_SIZEOF(unsigned int, 4)
@@ -521,12 +543,21 @@ GNUPG_CHECK_TYPEDEF(u16, HAVE_U16_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
 
 gl_TYPE_SOCKLEN_T
-if test ".$gl_cv_socklen_t_equiv" = "."; then
-  FALLBACK_SOCKLEN_T="typedef socklen_t gcry_socklen_t;"
-else
-  FALLBACK_SOCKLEN_T="typedef ${gl_cv_socklen_t_equiv} gcry_socklen_t;"
-fi
+case "${host}" in
+  *-*-mingw32*)
+    # socklen_t may or may not be defined depending on what headers
+    # are included.  To be safe we use int as this is the actual type.
+    FALLBACK_SOCKLEN_T="typedef int gcry_socklen_t;"
+    ;;
+  *)
+    if test ".$gl_cv_socklen_t_equiv" = "."; then
+      FALLBACK_SOCKLEN_T="typedef socklen_t gcry_socklen_t;"
+    else
+      FALLBACK_SOCKLEN_T="typedef ${gl_cv_socklen_t_equiv} gcry_socklen_t;"
+    fi
+esac
 AC_SUBST(FALLBACK_SOCKLEN_T)
+
 
 
 #######################################

@@ -77,5 +77,7 @@ What's left to do                                 -*- outline -*-
 * gcryptrnd.c
   Requires test for pth and other stuff.
 
-
+* secmem.c
+  Check whether the memory block is valid before releasing it and
+  print a diagnosic, like glibc does.
 
