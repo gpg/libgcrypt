@@ -1,7 +1,13 @@
 2007-02-20  Werner Koch  <wk@g10code.com>
 
-	* configure.ac: New option --disable-endian-check. 
+	* configure.ac: Bump LT version to C14/A3/R0 in preparation for a
+	release.
 	
+	* autogen.sh: Add option --force.
+	* configure.ac: New option --disable-endian-check.  Use a real
+	noexecstack test instead of requiring an option.  Add SVN version
+	magic.
+
 2007-02-02  Werner Koch  <wk@g10code.com>
 
 	* configure.ac (FALLBACK_SOCKLEN_T): Special case for mingw32.

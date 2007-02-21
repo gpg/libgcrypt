@@ -1,3 +1,45 @@
+2007-02-21  Werner Koch  <wk@g10code.com>
+
+	* random.c (rndpool, keypool): Make unsigned.
+	(mix_pool): Change char* variables to unsigned char*.
+	(gcry_randomize): Make arg BUFFER a void*.
+	(gcry_create_nonce): Ditto.
+
+	* rmd160.c (gcry_rmd160_mixblock): Make BUFFER a void*.
+	(_gcry_rmd160_hash_buffer): Make OUTBUF and BUFFER void*.
+	* sha1.c (_gcry_sha1_hash_buffer): Ditto.
+
+	* cipher.c (gcry_cipher_encrypt, cry_cipher_decrypt): Change
+	buffer args to void*.
+	(gcry_cipher_register): Make ALGORITHM_ID a int *.
+
+	* md.c (md_start_debug): Make SUFFIX a const char*.  Use snprintf.
+	(gcry_md_debug): New.
+	(gcry_md_ctl): Changed arg BUFFER from unsigned char*.
+
+	* md.c (md_write): Make INBUF a const void*.
+	(gcry_md_write): Remove needless cast.
+	* crc.c (crc32_write): Make INBUF a const void*
+	(update_crc32, crc24rfc2440_write): Ditto.
+	* sha512.c (sha512_write, transform): Ditto.
+	* sha256.c (sha256_write, transform): Ditto.
+	* rmd160.c (rmd160_write, transform): Ditto.
+	* md5.c (md5_write, transform): Ditto.
+	* md4.c (md4_write, transform): Ditto.
+	* sha1.c (sha1_write, transform): Ditto.
+
+	* tiger.c (tiger_write, transform): Ditto.
+	* whirlpool.c (whirlpool_write, whirlpool_add, transform): Ditto.
+
+	* elgamal.c (elg_names): Change to a const*.
+	* dsa.c (dsa_names): Ditto.
+	* rsa.c (rsa_names): Ditto.
+	* pubkey.c (gcry_pk_lookup_func_name): Make ALIASES a const.
+
+2007-02-20  Werner Koch  <wk@g10code.com>
+
+	* rndlinux.c (open_device): Remove unsused arg MINOR.
+
 2007-01-30  Werner Koch  <wk@g10code.com>
 
 	* sha256.c (oid_spec_sha256): Add alias from pkcs#1.

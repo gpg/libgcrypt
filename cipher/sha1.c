@@ -66,7 +66,7 @@ sha1_init (void *context)
  * Transform the message X which consists of 16 32-bit-words
  */
 static void
-transform( SHA1_CONTEXT *hd, byte *data )
+transform ( SHA1_CONTEXT *hd, const unsigned char *data )
 {
   register u32 a,b,c,d,e,tm;
   u32 x[16];
@@ -209,8 +209,9 @@ transform( SHA1_CONTEXT *hd, byte *data )
  * of INBUF with length INLEN.
  */
 static void
-sha1_write( void *context, byte *inbuf, size_t inlen)
+sha1_write( void *context, const void *inbuf_arg, size_t inlen)
 {
+  const unsigned char *inbuf = inbuf_arg;
   SHA1_CONTEXT *hd = context;
 
   if( hd->count == 64 )  /* flush the buffer */
@@ -332,12 +333,12 @@ sha1_read( void *context )
  * into outbuf which must have a size of 20 bytes.
  */
 void
-_gcry_sha1_hash_buffer (char *outbuf, const char *buffer, size_t length)
+_gcry_sha1_hash_buffer (void *outbuf, const void *buffer, size_t length)
 {
   SHA1_CONTEXT hd;
 
   sha1_init (&hd);
-  sha1_write (&hd, (byte*)buffer, length);
+  sha1_write (&hd, buffer, length);
   sha1_final (&hd);
   memcpy (outbuf, hd.buf, 20);
 }

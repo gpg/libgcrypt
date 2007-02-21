@@ -23,19 +23,25 @@ AC_REVISION($Revision$)
 AC_PREREQ(2.59)
 min_automake_version="1.9.3"
 
-# Version number: Remember to change it immediately *after* a release
-# but remove a "-cvs" prefix right *before* a release and append it
-# soon later.
 
-AC_INIT(libgcrypt, 1.3.0-cvs, bug-libgcrypt@gnupg.org)
+# Remember to change the version number immediately *after* a release.
+# Set my_issvn to "yes" for non-released code.  Remember to run an
+# "svn up" and "autogen.sh" right before creating a distribution.
+m4_define([my_version], [1.3.0])
+m4_define([my_issvn], [yes])
 
+m4_define([svn_revision], m4_esyscmd([echo -n $( (svn info 2>/dev/null \
+            || echo 'Revision: 0')|sed -n '/^Revision:/ {s/[^0-9]//gp;q;}')]))
+AC_INIT([libgcrypt], my_version[]m4_if(my_issvn,[yes],[-svn[]svn_revision]),
+        [bug-libgcrypt@gnupg.org])
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=12
-LIBGCRYPT_LT_AGE=1
-LIBGCRYPT_LT_REVISION=1
+LIBGCRYPT_LT_CURRENT=14
+LIBGCRYPT_LT_AGE=3
+LIBGCRYPT_LT_REVISION=0
+
 
 # If the API is changed in an incompatible way: increment the next counter.
 LIBGCRYPT_CONFIG_API_VERSION=1
@@ -422,16 +428,6 @@ AC_ARG_WITH(capabilities,
 [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
 
-# We don't have a test to check whether as(1) knows about the
-# non executable stack option.  Thus we provide an option to enable it.
-AC_MSG_CHECKING([whether non excutable stack support is requested])
-AC_ARG_ENABLE(noexecstack,
-              AC_HELP_STRING([--enable-noexecstack],
-                             [enable non executable stack support (gcc only)]),
-              noexecstack_support=$enableval, noexecstack_support=no)
-AC_MSG_RESULT($noexecstack_support)
-
-
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
                    [A human readable text with the name of the OS])
 
@@ -710,22 +706,24 @@ if test "$GCC" = yes; then
        test "$more_gcc_warnings" = "yes"; then
         CFLAGS="$CFLAGS -Wall -Wcast-align -Wshadow -Wstrict-prototypes"
         if test "$more_gcc_warnings" = "yes"; then
-            CFLAGS="$CFLAGS -W -Wpointer-arith -Wbad-function-cast"
-            CFLAGS="$CFLAGS -Wwrite-strings -Wunreachable-code"
+            CFLAGS="$CFLAGS -W -Wextra -Wpointer-arith -Wbad-function-cast"
+            CFLAGS="$CFLAGS -Wwrite-strings"
+            CFLAGS="$CFLAGS -Wdeclaration-after-statement"
+            CFLAGS="$CFLAGS -Wno-missing-field-initializers"
             CFLAGS="$CFLAGS -Wno-sign-compare"
+            # Note: We don't use -Wunreachable-code because this gives
+            # warnings for all asserts and many inline functions like
+            # gpg_error (gcc 4.1.2 20060928).
         fi
     else
         CFLAGS="$CFLAGS -Wall"
     fi
-
-    # Non exec stack hack.  Fixme: Write a test to check whether as
-    # can cope with it and use the enable-noexecstack option only to
-    # disable it in case it is required on some platforms.
-    if test "$noexecstack_support" = yes; then
-        NOEXECSTACK_FLAGS="-Wa,--noexecstack"
-    fi
 fi
-AC_SUBST(NOEXECSTACK_FLAGS)
+
+# Check whether as(1) supports a noeexecstack feature.  This test
+# includes an override option.
+CL_AS_NOEXECSTACK
+
 
 AC_SUBST(LIBGCRYPT_CONFIG_API_VERSION)
 AC_SUBST(LIBGCRYPT_CONFIG_LIBS)
@@ -886,6 +884,7 @@ AC_SUBST(LIBGCRYPT_DIGESTS, $enabled_digests)
 
 AC_CONFIG_FILES([
 Makefile
+m4/Makefile
 mpi/Makefile
 cipher/Makefile
 doc/Makefile

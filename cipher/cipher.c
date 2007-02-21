@@ -75,7 +75,7 @@ static struct cipher_table_entry
 #ifdef USE_SEED
     { &_gcry_cipher_spec_seed,       GCRY_CIPHER_SEED },
 #endif
-    { NULL                    },
+    { NULL                    }
   };
 
 /* List of registered ciphers.  */
@@ -123,8 +123,11 @@ struct gcry_cipher_handle
    refuses to provide it's own functions.  */
 
 static gcry_err_code_t
-dummy_setkey (void *c, const unsigned char *key, unsigned keylen)
+dummy_setkey (void *c, const unsigned char *key, unsigned int keylen)
 {
+  (void)c; 
+  (void)key;
+  (void)keylen;
   return GPG_ERR_NO_ERROR;
 }
 
@@ -132,6 +135,9 @@ static void
 dummy_encrypt_block (void *c,
 		     unsigned char *outbuf, const unsigned char *inbuf)
 {
+  (void)c;
+  (void)outbuf;
+  (void)inbuf;
   BUG();
 }
 
@@ -139,6 +145,9 @@ static void
 dummy_decrypt_block (void *c,
 		     unsigned char *outbuf, const unsigned char *inbuf)
 {
+  (void)c;
+  (void)outbuf;
+  (void)inbuf;
   BUG();
 }
 
@@ -147,6 +156,10 @@ dummy_encrypt_stream (void *c,
 		      unsigned char *outbuf, const unsigned char *inbuf,
 		      unsigned int n)
 {
+  (void)c;
+  (void)outbuf;
+  (void)inbuf;
+  (void)n;
   BUG();
 }
 
@@ -155,6 +168,10 @@ dummy_decrypt_stream (void *c,
 		      unsigned char *outbuf, const unsigned char *inbuf,
 		      unsigned int n)
 {
+  (void)c;
+  (void)outbuf;
+  (void)inbuf;
+  (void)n;
   BUG();
 }
 
@@ -253,7 +270,7 @@ gcry_cipher_lookup_oid (const char *oid)
    and a pointer representhing this module is stored in MODULE.  */
 gcry_error_t
 gcry_cipher_register (gcry_cipher_spec_t *cipher,
-		      unsigned int *algorithm_id,
+		      int *algorithm_id,
 		      gcry_module_t *module)
 {
   gcry_err_code_t err = 0;
@@ -1172,15 +1189,15 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf,
  * been requested.
  */
 gcry_error_t
-gcry_cipher_encrypt (gcry_cipher_hd_t h, byte *out, size_t outsize,
-                     const byte *in, size_t inlen)
+gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
+                     const void *in, size_t inlen)
 {
   gcry_err_code_t err;
 
   if (!in)
     /* Caller requested in-place encryption. */
-    /* Actullay cipher_encrypt() does not need to know about it, but
-     * we may change this to get better performance. */
+    /* Actually cipher_encrypt() does not need to know about it, but
+     * we may change it in the future to get better performance.  */
     err = cipher_encrypt (h, out, out, outsize);
   else if (outsize < ((h->flags & GCRY_CIPHER_CBC_MAC) ?
                       h->cipher->blocksize : inlen))
@@ -1257,15 +1274,15 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 
 
 gcry_error_t
-gcry_cipher_decrypt (gcry_cipher_hd_t h, byte *out, size_t outsize,
-		     const byte  *in, size_t inlen)
+gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
+		     const void *in, size_t inlen)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = 0;
 
-  if (! in)
+  if (!in)
     /* Caller requested in-place encryption. */
-    /* Actullay cipher_encrypt() does not need to know about it, but
-     * we may chnage this to get better performance. */
+    /* Actually cipher_encrypt() does not need to know about it, but
+     * we may change it in the future to get better performance.  */
     err = cipher_decrypt (h, out, out, outsize);
   else if (outsize < inlen)
     err = GPG_ERR_TOO_SHORT;
@@ -1367,6 +1384,10 @@ gcry_error_t
 gcry_cipher_info( gcry_cipher_hd_t h, int cmd, void *buffer, size_t *nbytes)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
+
+  (void)h;
+  (void)buffer;
+  (void)nbytes;
 
   switch (cmd)
     {

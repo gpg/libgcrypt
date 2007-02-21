@@ -79,7 +79,16 @@ void
 progress_handler (void *cb_data, const char *what, int printchar,
 		  int current, int total)
 {
-  putchar (printchar);
+  (void)cb_data;
+  (void)what;
+  (void)current;
+  (void)total;
+  
+  if (printchar == '\n')
+    fputs ( "<LF>", stdout);
+  else
+    putchar (printchar);
+  fflush (stdout);
 }
 
 static void
@@ -1004,7 +1013,7 @@ check_ciphers (void)
 
 
 static void
-check_one_md (int algo, char *data, int len, char *expect)
+check_one_md (int algo, const char *data, int len, const char *expect)
 {
   gcry_md_hd_t hd, hd2;
   unsigned char *p;
@@ -1069,8 +1078,8 @@ check_digests (void)
   static struct algos
   {
     int md;
-    char *data;
-    char *expect;
+    const char *data;
+    const char *expect;
   } algos[] =
     {
       { GCRY_MD_MD4, "",
@@ -1245,8 +1254,8 @@ check_digests (void)
 }
 
 static void
-check_one_hmac (int algo, char *data, int datalen, 
-		char *key, int keylen, char *expect)
+check_one_hmac (int algo, const char *data, int datalen, 
+		const char *key, int keylen, const char *expect)
 {
   gcry_md_hd_t hd, hd2;
   unsigned char *p;
@@ -1306,9 +1315,9 @@ check_hmac (void)
   static struct algos
   {
     int md;
-    char *data;
-    char *key;
-    char *expect;
+    const char *data;
+    const char *key;
+    const char *expect;
   } algos[] =
     {
       { GCRY_MD_MD5, "what do ya want for nothing?", "Jefe",
@@ -1666,6 +1675,8 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
       { NULL }
     };
 
+  (void)n;
+
   rc = gcry_sexp_sscan (&badhash, NULL, baddata, strlen (baddata));
   if (rc)
     die ("converting data failed: %s\n", gpg_strerror (rc));
@@ -1736,7 +1747,8 @@ check_one_pubkey (int n, test_spec_pubkey_t spec)
   if (err)
     die ("converting sample key failed: %s\n", gpg_strerror (err));
 
-  do_check_one_pubkey (n, skey, pkey, spec.key.grip, spec.flags);
+  do_check_one_pubkey (n, skey, pkey,
+                       (const unsigned char*)spec.key.grip, spec.flags);
  
   gcry_sexp_release (skey);
   gcry_sexp_release (pkey);

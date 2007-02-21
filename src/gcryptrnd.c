@@ -106,6 +106,8 @@ logit (int priority, const char *format, ...)
 static void
 my_gcry_logger (void *dummy, int level, const char *format, va_list arg_ptr)
 {
+  (void)dummy;
+
   /* Map the log levels. */
   switch (level)
     {
@@ -391,7 +393,7 @@ writen (int fd, const void *buffer, size_t length)
            return -1; /* write error */
          }
       length -= n;
-      buffer += n;
+      buffer = (const char*)buffer + n;
     }
   return 0;  /* Okay */
 }

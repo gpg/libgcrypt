@@ -525,6 +525,8 @@ gcry_is_secure (const void *a)
 void
 _gcry_check_heap( const void *a )
 {
+  (void)a;
+  
     /* FIXME: implement this*/
 #if 0
     if( some_handler )

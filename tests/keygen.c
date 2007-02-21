@@ -271,7 +271,15 @@ static void
 progress_cb (void *cb_data, const char *what, int printchar,
 		  int current, int total)
 {
-  putchar (printchar);
+  (void)cb_data;
+  (void)what;
+  (void)current;
+  (void)total;
+  
+  if (printchar == '\n')
+    fputs ( "<LF>", stdout);
+  else
+    putchar (printchar);
   fflush (stdout);
 }
 

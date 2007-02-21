@@ -2033,10 +2033,25 @@ enabled for the digest object @var{h}.
 
 
 Tracking bugs related to hashing is often a cumbersome task which
-requires to add a lot of printf statements into the code.  @acronym{Libgcrypt}
-provides an easy way to avoid this.  The actual data hashed can be
-written to files on request.  The following 2 macros should be used to
-implement such a debugging facility:
+requires to add a lot of printf statements into the code.
+@acronym{Libgcrypt} provides an easy way to avoid this.  The actual data
+hashed can be written to files on request.
+
+@deftypefun void gcry_md_debug (gcry_md_hd_t @var{h}, const char *@var{suffix})
+
+Enable debugging for the digest object with handle @var{h}.  This
+creates create files named @file{dbgmd-<n>.<string>} while doing the
+actual hashing.  @var{suffix} is the string part in the filename.  The
+number is a counter incremented for each new hashing.  The data in the
+file is the raw data as passed to @code{gcry_md_write} or
+@code{gcry_md_putc}.  If @code{NULL} is used for @var{suffix}, the
+debugging is stopped and the file closed.  This is only rarely required
+because @code{gcry_md_close} implicitly stops debugging.
+@end deftypefun
+
+
+The following two deprecated macros are used for debugging by old code.
+They shopuld be replaced by @code{gcry_md_debug}.
 
 @deftypefun void gcry_md_start_debug (gcry_md_hd_t @var{h}, const char *@var{suffix})
 

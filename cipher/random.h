@@ -29,6 +29,7 @@ void _gcry_random_dump_stats(void);
 void _gcry_secure_random_alloc(void);
 int  _gcry_quick_random_gen( int onoff );
 int  _gcry_random_is_faked(void);
+void _gcry_set_random_daemon_socket (const char *socketname);
 int  _gcry_use_random_daemon (int onoff);
 void _gcry_set_random_seed_file (const char *name);
 void _gcry_update_random_seed_file (void);

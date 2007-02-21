@@ -104,7 +104,7 @@ sha384_init (void *context)
  * Transform the message W which consists of 16 64-bit-words
  */
 static void
-transform (SHA512_CONTEXT *hd, byte *data)
+transform (SHA512_CONTEXT *hd, const unsigned char *data)
 {
   u64 a, b, c, d, e, f, g, h;
   u64 w[80];
@@ -230,8 +230,9 @@ transform (SHA512_CONTEXT *hd, byte *data)
  * of INBUF with length INLEN.
  */
 static void
-sha512_write (void *context, byte *inbuf, size_t inlen)
+sha512_write (void *context, const void *inbuf_arg, size_t inlen)
 {
+  const unsigned char *inbuf = inbuf_arg;
   SHA512_CONTEXT *hd = context;
 
   if (hd->count == 128)

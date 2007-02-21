@@ -36,7 +36,7 @@
 #include "g10lib.h"
 #include "rand-internal.h"
 
-static int open_device( const char *name, int minor );
+static int open_device ( const char *name );
 int _gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
                                   int requester,
                                   size_t length, int level );
@@ -60,7 +60,7 @@ set_cloexec_flag (int fd)
  * Used to open the /dev/random devices (Linux, xBSD, Solaris (if it exists)).
  */
 static int
-open_device( const char *name, int minor )
+open_device ( const char *name )
 {
   int fd;
 
@@ -72,9 +72,9 @@ open_device( const char *name, int minor )
     log_error ("error setting FD_CLOEXEC on fd %d: %s\n",
                fd, strerror (errno));
 
-  /* We used to do the follwing check, however it turned out that this
+  /* We used to do the following check, however it turned out that this
      is not portable since more OSes provide a random device which is
-     sometimes implemented as anoteher device type. 
+     sometimes implemented as another device type. 
      
      struct stat sb;
 
@@ -102,13 +102,13 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
   if( level >= 2 )
     {
       if( fd_random == -1 )
-        fd_random = open_device( NAME_OF_DEV_RANDOM, 8 );
+        fd_random = open_device ( NAME_OF_DEV_RANDOM );
       fd = fd_random;
     }
   else
     {
       if( fd_urandom == -1 )
-        fd_urandom = open_device( NAME_OF_DEV_URANDOM, 9 );
+        fd_urandom = open_device ( NAME_OF_DEV_URANDOM );
       fd = fd_urandom;
     }
 

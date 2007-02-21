@@ -1194,7 +1194,7 @@ whirlpool_init (void *ctx)
  * Transform block.
  */
 static void
-whirlpool_transform (whirlpool_context_t *context, unsigned char *data)
+whirlpool_transform (whirlpool_context_t *context, const unsigned char *data)
 {
   whirlpool_block_t data_block;
   whirlpool_block_t key;
@@ -1291,8 +1291,9 @@ whirlpool_transform (whirlpool_context_t *context, unsigned char *data)
 
 static void
 whirlpool_add (whirlpool_context_t *context,
-	       unsigned char *buffer, size_t buffer_n)
+	       const void *buffer_arg, size_t buffer_n)
 {
+  const unsigned char *buffer = buffer_arg;
   u64 buffer_size;
   unsigned int carry;
   unsigned int i;
@@ -1303,12 +1304,11 @@ whirlpool_add (whirlpool_context_t *context,
     {
       /* Flush the buffer.  */
       whirlpool_transform (context, context->buffer);
-      //_gcry_burn_stack (80+6*sizeof(void*)); /* FIXME */
+      /*_gcry_burn_stack (80+6*sizeof(void*));*/ /* FIXME */
       context->count = 0;
     }
   if (! buffer)
-    /* Nothing to add.  */
-    return;
+    return; /* Nothing to add.  */
 
   if (context->count)
     {
@@ -1322,7 +1322,7 @@ whirlpool_add (whirlpool_context_t *context,
 	/* Done.  */
         return;
     }
-  //_gcry_burn_stack (80+6*sizeof(void*)); /* FIXME */
+  /*_gcry_burn_stack (80+6*sizeof(void*));*/ /* FIXME */
 
   while (buffer_n >= BLOCK_SIZE) 
     {
@@ -1354,7 +1354,7 @@ whirlpool_add (whirlpool_context_t *context,
 }
 
 static void
-whirlpool_write (void *ctx, unsigned char *buffer, size_t buffer_n)
+whirlpool_write (void *ctx, const void *buffer, size_t buffer_n)
 {
   whirlpool_context_t *context = ctx;
 

@@ -80,7 +80,7 @@ md5_init( void *context )
  * transform n*64 bytes
  */
 static void
-transform( MD5_CONTEXT *ctx, byte *data )
+transform ( MD5_CONTEXT *ctx, const unsigned char *data )
 {
   u32 correct_words[16];
   register u32 A = ctx->A;
@@ -217,8 +217,9 @@ transform( MD5_CONTEXT *ctx, byte *data )
  * in the message whose digest is being computed.
  */
 static void
-md5_write( void *context, byte *inbuf, size_t inlen)
+md5_write( void *context, const void *inbuf_arg , size_t inlen)
 {
+  const unsigned char *inbuf = inbuf_arg;
   MD5_CONTEXT *hd = context;
   
   if( hd->count == 64 )  /* flush the buffer */

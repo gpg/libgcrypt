@@ -14,11 +14,16 @@ Noteworthy changes in version 1.3.0 (unreleased)
 
  * Support for the SEED cipher.
 
+ * Support for OFB encryption mode.
+
  * gcry_mpi_rshift does not anymore truncate the shift count.
 
  * Reserved algorithm ranges for use by applications.
 
  * Support for DSA2.
+
+ * The new function gcry_md_debug should be used instead of the
+   gcry_md_start_debug and gcry_md_stop_debug macros.
 
  * Interface changes relative to the 1.2.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -32,6 +37,13 @@ Noteworthy changes in version 1.3.0 (unreleased)
  GCRY_PK_USAGE_UNKN      NEW
  gcry_mpi_scan           CHANGED: Argument BUFFER is now void*.
  GCR_CIPHER_SEED         NEW
+ gcry_pk_spec_t          CHANGED (minor change, bug fix)
+ gcry_md_write_t         CHANGED (minor change, bug fix)
+ gcry_md_debug           NEW
+ gcry_cipher_encrypt     CHANGED (minor change)
+ gcry_cipher_decrypt     CHANGED (minor change)
+ gcry_randomize          CHANGED (minor change)
+ gcry_cipher_register    CHANGED (minor change)
 
  FIXME: Please add API changes immediatley so that we don't
         forget about them.

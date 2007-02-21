@@ -1,3 +1,12 @@
+2007-02-21  Werner Koch  <wk@g10code.com>
+
+	* hmac.c (check_one_mac): Make pointer args const.
+	* basic.c (check_one_md): Ditto.
+	(check_one_hmac): Ditto.
+
+	* keygen.c (progress_cb): Filter out line feeds.
+	* basic.c (progress_handler): Ditto.
+
 2006-12-18  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (AM_CFLAGS, AM_CPPFLAGS): Splitted and merged with

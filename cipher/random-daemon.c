@@ -160,7 +160,7 @@ writen (int fd, const void *buffer, size_t length)
            return -1; /* write error */
          }
       length -= n;
-      buffer += n;
+      buffer = (const char*)buffer + n;
     }
   return 0;  /* Okay */
 }

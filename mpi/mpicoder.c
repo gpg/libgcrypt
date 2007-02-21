@@ -274,8 +274,10 @@ _gcry_mpi_get_secure_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign )
  * Use BUFFER to update MPI.
  */
 void
-_gcry_mpi_set_buffer( gcry_mpi_t a, const byte *buffer, unsigned nbytes, int sign )
+_gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer_arg,
+                       unsigned int nbytes, int sign )
 {
+    const unsigned char *buffer = (const unsigned char*)buffer_arg;
     const byte *p;
     mpi_limb_t alimb;
     int nlimbs;

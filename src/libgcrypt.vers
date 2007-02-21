@@ -39,7 +39,7 @@ GCRYPT_1.2 {
     gcry_md_info; gcry_md_is_enabled; gcry_md_is_secure;
     gcry_md_list; gcry_md_map_name; gcry_md_open; gcry_md_read;
     gcry_md_register; gcry_md_reset; gcry_md_setkey; 
-    gcry_md_unregister; gcry_md_write;
+    gcry_md_unregister; gcry_md_write; gcry_md_debug;
     
     gcry_cipher_algo_info; gcry_cipher_algo_name; gcry_cipher_close;
     gcry_cipher_ctl; gcry_cipher_decrypt; gcry_cipher_encrypt;

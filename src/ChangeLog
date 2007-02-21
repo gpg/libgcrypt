@@ -1,3 +1,29 @@
+2007-02-21  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in (gcry_sexp_sprint): Change BUFFER from char* to void*.
+	(gcry_md_ctl): Change BUFFER from unsigned char* to void*.
+	(gcry_md_debug): New.
+	(gcry_cipher_encrypt, gcry_cipher_decrypt): Change buffer args to
+	void*.
+	(gcry_randomize): Change BUFFER to void.
+	(gcry_create_nonce): Ditto.
+
+	* libgcrypt.vers (gcry_md_debug): New.
+
+	* sexp.c (gcry_sexp_sprint): Ditto.
+	(normalize): Make P unsigned.
+	(gcry_sexp_nth_data): Cast return value to char*.
+	(sexp_sscan): Fix sign/unsigned conflicts.
+	(whitespacep): Change P to char*.
+	(unquote_string): Change STRING to char*.
+	(convert_to_hex): Change DEST to char*.
+	(convert_to_string): Change DEST and P to char*.
+	(convert_to_token): Chnage DEST to char*.
+	(gcry_sexp_canon_len): Change DISPHINT to unsigned char*.
+
+	* gcrypt-module.h (gcry_pk_spec): Made ALIASES a const.
+	(gcry_md_write_t): Changed BUF to a const void*.
+
 2007-02-12  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in: Include stdlib.h for the sake fo the trheading

@@ -63,7 +63,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
    to the S-expressions definition. */
 #undef whitespacep
 static GPG_ERR_INLINE int
-whitespacep (const unsigned char *p)
+whitespacep (const char *p)
 { 
   switch (*p)
     {
@@ -169,22 +169,25 @@ gcry_sexp_dump (const gcry_sexp_t a)
 static gcry_sexp_t
 normalize ( gcry_sexp_t list )
 {
-    char *p;
-    if ( !list )
-	return NULL;
-    p = list->d;
-    if ( *p == ST_STOP ) {
-	/* this is "" */
-	gcry_sexp_release ( list );
-	return NULL;
-    }
-    if( *p == ST_OPEN && p[1] == ST_CLOSE ) {
-	/* this is "()" */
-	gcry_sexp_release ( list );
-	return NULL;
-    }
+  unsigned char *p;
 
-    return list;
+  if ( !list )
+    return NULL;
+  p = list->d;
+  if ( *p == ST_STOP ) 
+    {
+      /* this is "" */
+      gcry_sexp_release ( list );
+      return NULL;
+    }
+  if ( *p == ST_OPEN && p[1] == ST_CLOSE )
+    {
+      /* this is "()" */
+      gcry_sexp_release ( list );
+      return NULL;
+    }
+  
+  return list;
 }
 
 /* Create a new S-expression object by reading LENGTH bytes from
@@ -304,6 +307,9 @@ gcry_sexp_release( gcry_sexp_t sexp )
 gcry_sexp_t
 gcry_sexp_cons( const gcry_sexp_t a, const gcry_sexp_t b )
 {
+  (void)a;
+  (void)b;
+
   /* NYI: Implementation should be quite easy with our new data
      representation */
   BUG ();
@@ -318,6 +324,8 @@ gcry_sexp_cons( const gcry_sexp_t a, const gcry_sexp_t b )
 gcry_sexp_t
 gcry_sexp_alist( const gcry_sexp_t *array )
 {
+  (void)array;
+
   /* NYI: Implementation should be quite easy with our new data
      representation. */
   BUG ();
@@ -330,6 +338,7 @@ gcry_sexp_alist( const gcry_sexp_t *array )
 gcry_sexp_t
 gcry_sexp_vlist( const gcry_sexp_t a, ... )
 {
+  (void)a;
   /* NYI: Implementation should be quite easy with our new data
      representation. */
   BUG ();
@@ -344,6 +353,8 @@ gcry_sexp_vlist( const gcry_sexp_t a, ... )
 gcry_sexp_t
 gcry_sexp_append( const gcry_sexp_t a, const gcry_sexp_t n )
 {
+  (void)a;
+  (void)n;
   /* NYI: Implementation should be quite easy with our new data
      representation. */
   BUG ();
@@ -353,6 +364,8 @@ gcry_sexp_append( const gcry_sexp_t a, const gcry_sexp_t n )
 gcry_sexp_t
 gcry_sexp_prepend( const gcry_sexp_t a, const gcry_sexp_t n )
 {
+  (void)a;
+  (void)n;
   /* NYI: Implementation should be quite easy with our new data
      representation. */
   BUG ();
@@ -617,7 +630,7 @@ gcry_sexp_nth_data( const gcry_sexp_t list, int number, size_t *datalen )
     if ( *p == ST_DATA ) {
 	memcpy ( &n, ++p, sizeof n );
 	*datalen = n;
-	return p + sizeof n;
+	return (const char*)p + sizeof n;
     }
 
     return NULL;
@@ -828,10 +841,10 @@ make_space ( struct make_space_ctx *c, size_t n )
    quotes are must already be removed from STRING.  We assume that the
    quoted string is syntacillay correct.  */
 static size_t
-unquote_string (const unsigned char *string, size_t length, unsigned char *buf)
+unquote_string (const char *string, size_t length, unsigned char *buf)
 {
   int esc = 0;
-  const unsigned char *s = string;
+  const unsigned char *s = (const unsigned char*)string;
   unsigned char *d = buf;
   size_t n = length;
 
@@ -1088,7 +1101,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    {
 	      /* Keep it easy - we know that the unquoted string will
 		 never be larger. */
-	      char *save;
+	      unsigned char *save;
 	      size_t len;
 	      
 	      quoted++; /* Skip leading quote.  */
@@ -1123,7 +1136,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		{
 		  if (whitespacep (hexfmt))
 		    continue;
-		  *c.pos++ = hextobyte (hexfmt);
+		  *c.pos++ = hextobyte ((const unsigned char*)hexfmt);
 		  hexfmt++;
 		}
 	      hexfmt = NULL;
@@ -1517,7 +1530,7 @@ suitable_encoding (const unsigned char *buffer, size_t length)
 
 
 static int
-convert_to_hex (const unsigned char *src, size_t len, unsigned char *dest)
+convert_to_hex (const unsigned char *src, size_t len, char *dest)
 {
   int i;
 
@@ -1532,11 +1545,11 @@ convert_to_hex (const unsigned char *src, size_t len, unsigned char *dest)
 }
 
 static int
-convert_to_string (const unsigned char *s, size_t len, unsigned char *dest)
+convert_to_string (const unsigned char *s, size_t len, char *dest)
 {
   if (dest)
     {
-      unsigned char *p = dest;
+      char *p = dest;
       *p++ = '\"';
       for (; len; len--, s++ )
         {
@@ -1594,7 +1607,7 @@ convert_to_string (const unsigned char *s, size_t len, unsigned char *dest)
 
 
 static int
-convert_to_token (const unsigned char *src, size_t len, unsigned char *dest)
+convert_to_token (const unsigned char *src, size_t len, char *dest)
 {
   if (dest)
     memcpy (dest, src, len);
@@ -1609,11 +1622,11 @@ convert_to_token (const unsigned char *src, size_t len, unsigned char *dest)
  * the required length is returned.
  */
 size_t
-gcry_sexp_sprint( const gcry_sexp_t list, int mode,
-					char *buffer, size_t maxlength )
+gcry_sexp_sprint (const gcry_sexp_t list, int mode,
+                  void *buffer, size_t maxlength )
 {
-  static byte empty[3] = { ST_OPEN, ST_CLOSE, ST_STOP };
-  const byte *s;
+  static unsigned char empty[3] = { ST_OPEN, ST_CLOSE, ST_STOP };
+  const unsigned char *s;
   char *d;
   DATALEN n;
   char numbuf[20];
@@ -1764,7 +1777,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
                      size_t *erroff, gcry_error_t *errcode)
 {
   const unsigned char *p;
-  const char *disphint=NULL;
+  const unsigned char *disphint = NULL;
   unsigned int datalen = 0;
   size_t dummy_erroff;
   gcry_error_t dummy_errcode;
@@ -1857,7 +1870,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 	}
       else if (*p == ']')
         {
-          if( !disphint ) 
+          if ( !disphint ) 
             {
               *erroff = count;
               *errcode = gcry_error (GPG_ERR_SEXP_UNMATCHED_DH);

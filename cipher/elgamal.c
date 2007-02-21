@@ -528,6 +528,9 @@ _gcry_elg_generate (int algo, unsigned nbits, unsigned long dummy,
 {
   ELG_secret_key sk;
 
+  (void)algo;
+  (void)dummy;
+
   generate (&sk, nbits, retfactors);
   skey[0] = sk.p;
   skey[1] = sk.g;
@@ -543,6 +546,8 @@ _gcry_elg_check_secret_key (int algo, gcry_mpi_t *skey)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
+
+  (void)algo;
 
   if ((! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
     err = GPG_ERR_BAD_MPI;
@@ -568,6 +573,9 @@ _gcry_elg_encrypt (int algo, gcry_mpi_t *resarr,
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_public_key pk;
 
+  (void)algo;
+  (void)flags;
+
   if ((! data) || (! pkey[0]) || (! pkey[1]) || (! pkey[2]))
     err = GPG_ERR_BAD_MPI;
   else
@@ -590,6 +598,9 @@ _gcry_elg_decrypt (int algo, gcry_mpi_t *result,
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
 
+  (void)algo;
+  (void)flags;
+
   if ((! data[0]) || (! data[1])
       || (! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
     err = GPG_ERR_BAD_MPI;
@@ -611,6 +622,8 @@ _gcry_elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
+
+  (void)algo;
 
   if ((! data)
       || (! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
@@ -636,6 +649,10 @@ _gcry_elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_public_key pk;
 
+  (void)algo;
+  (void)cmp;
+  (void)opaquev;
+
   if ((! data[0]) || (! data[1]) || (! hash)
       || (! pkey[0]) || (! pkey[1]) || (! pkey[2]))
     err = GPG_ERR_BAD_MPI;
@@ -655,10 +672,12 @@ _gcry_elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 unsigned int
 _gcry_elg_get_nbits (int algo, gcry_mpi_t *pkey)
 {
+  (void)algo;
+
   return mpi_get_nbits (pkey[0]);
 }
 
-static char *elg_names[] =
+static const char *elg_names[] =
   {
     "elg",
     "openpgp-elg",

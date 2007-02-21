@@ -26,7 +26,7 @@
 #include "g10lib.h"
 #include "memory.h"
 #include "rmd.h"
-#include "cipher.h" /* only used for the rmd160_hash_buffer() prototype */
+#include "cipher.h" /* Only used for the rmd160_hash_buffer() prototype. */
 
 #include "bithelp.h"
 
@@ -161,7 +161,7 @@ _gcry_rmd160_init (void *context)
  * Transform the message X which consists of 16 32-bit-words
  */
 static void
-transform( RMD160_CONTEXT *hd, byte *data )
+transform ( RMD160_CONTEXT *hd, const unsigned char *data )
 {
   register u32 a,b,c,d,e;
   u32 aa,bb,cc,dd,ee,t;
@@ -401,8 +401,9 @@ transform( RMD160_CONTEXT *hd, byte *data )
  * of INBUF with length INLEN.
  */
 static void
-rmd160_write( void *context, byte *inbuf, size_t inlen)
+rmd160_write ( void *context, const void *inbuf_arg, size_t inlen)
 {
+  const unsigned char *inbuf = inbuf_arg;
   RMD160_CONTEXT *hd = context;
 
   if( hd->count == 64 )  /* flush the buffer */
@@ -443,11 +444,11 @@ rmd160_write( void *context, byte *inbuf, size_t inlen)
  * Returns: 16 bytes in buffer with the mixed contentes of buffer.
  */
 void
-_gcry_rmd160_mixblock( RMD160_CONTEXT *hd, char *buffer )
+_gcry_rmd160_mixblock ( RMD160_CONTEXT *hd, void *blockof64byte )
 {
-  char *p = buffer;
+  char *p = blockof64byte;
 
-  transform( hd, (unsigned char *)buffer );
+  transform ( hd, blockof64byte );
 #define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
   X(0);
   X(1);
@@ -540,14 +541,14 @@ rmd160_read( void *context )
  * into outbuf which must have a size of 20 bytes.
  */
 void
-_gcry_rmd160_hash_buffer( char *outbuf, const char *buffer, size_t length )
+_gcry_rmd160_hash_buffer (void *outbuf, const void *buffer, size_t length )
 {
   RMD160_CONTEXT hd;
 
-  _gcry_rmd160_init( &hd );
-  rmd160_write( &hd, (byte*)buffer, length );
-  rmd160_final( &hd );
-  memcpy( outbuf, hd.buf, 20 );
+  _gcry_rmd160_init ( &hd );
+  rmd160_write ( &hd, buffer, length );
+  rmd160_final ( &hd );
+  memcpy ( outbuf, hd.buf, 20 );
 }
 
 static byte asn[15] = /* Object ID is 1.3.36.3.2.1 */

@@ -113,6 +113,11 @@ static void
 progress_handler (void *cb_data, const char *what, int printchar,
 		  int current, int total)
 {
+  (void)cb_data;
+  (void)what;
+  (void)current;
+  (void)total;
+
   putchar (printchar);
 }
 

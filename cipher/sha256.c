@@ -116,7 +116,7 @@ sha224_init (void *context)
           } while (0)
  
 static void
-transform (SHA256_CONTEXT *hd, byte *data)
+transform (SHA256_CONTEXT *hd, const unsigned char *data)
 {
   static const u32 K[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
@@ -196,8 +196,9 @@ transform (SHA256_CONTEXT *hd, byte *data)
 /* Update the message digest with the contents of INBUF with length
   INLEN.  */
 static void
-sha256_write (void *context, byte *inbuf, size_t inlen)
+sha256_write (void *context, const void *inbuf_arg, size_t inlen)
 {
+  const unsigned char *inbuf = inbuf_arg;
   SHA256_CONTEXT *hd = context;
 
   if (hd->count == 64)

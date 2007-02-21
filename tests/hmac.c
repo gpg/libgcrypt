@@ -57,12 +57,12 @@ die (const char *format, ...)
 
 static void
 check_one_mac (int algo,
-               void *key, size_t keylen,
-               void *data, size_t datalen,
-               char *expect)
+               const void *key, size_t keylen,
+               const void *data, size_t datalen,
+               const char *expect)
 {
   gcry_md_hd_t hd;
-  char *p;
+  unsigned char *p;
   int mdlen;
   int i;
   gcry_error_t err = 0;

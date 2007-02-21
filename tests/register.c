@@ -45,6 +45,10 @@ die (const char *format, ...)
 gcry_err_code_t
 foo_setkey (void *c, const unsigned char *key, unsigned keylen)
 {
+  (void)c;
+  (void)key;
+  (void)keylen;
+
   return 0;
 }
 
@@ -55,6 +59,8 @@ foo_encrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
 {
   int i;
 
+  (void)c;
+
   for (i = 0; i < FOO_BLOCKSIZE; i++)
     outbuf[i] = inbuf[i] ^ 0x42;
 }
@@ -63,6 +69,8 @@ void
 foo_decrypt (void *c, unsigned char *outbuf, const unsigned char *inbuf)
 {
   int i;
+
+  (void)c;
 
   for (i = 0; i < FOO_BLOCKSIZE; i++)
     outbuf[i] = inbuf[i] ^ 0x42;

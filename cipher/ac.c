@@ -71,7 +71,7 @@ struct gcry_ac_key_generate_spec
 } ac_key_generate_specs[] =
   {
     { GCRY_AC_RSA, "rsa-use-e", offsetof (gcry_ac_key_spec_rsa_t, e) },
-    { 0 },
+    { 0 }
   };
 
 /* Handle structure.  */
@@ -1373,10 +1373,12 @@ ac_data_construct (const char *identifier, int include_flags,
   /* Fill list with MPIs.  */
   for (i = 0; i < data_length; i++)
     {
-      /* FIXME!! */
-      arg_list[(i * 2) + 0] = (data->data[i].name
-			       ? (void **) &data->data[i].name
-			       : (void **) &data->data[i].name_provided);
+      /* FIXME!!  name_provided is a const char* whereas  name is char. */
+      char **nameaddr  = (data->data[i].name
+                          ? &data->data[i].name
+                          : &data->data[i].name_provided);
+
+      arg_list[(i * 2) + 0] = nameaddr;
       arg_list[(i * 2) + 1] = &data->data[i].mpi;
     }
 
@@ -1552,6 +1554,8 @@ _gcry_ac_key_init (gcry_ac_key_t *key, gcry_ac_handle_t handle,
   gcry_ac_key_t key_new;
   gcry_error_t err;
 
+  (void)handle;
+
   /* Allocate.  */
   key_new = gcry_malloc (sizeof (*key_new));
   if (! key_new)
@@ -1616,6 +1620,8 @@ _gcry_ac_key_pair_generate (gcry_ac_handle_t handle, unsigned int nbits,
   size_t arg_list_n;
   unsigned int i;
   unsigned int j;
+
+  (void)misc_data;
 
   key_data_secret = NULL;
   key_data_public = NULL;
@@ -2415,6 +2421,8 @@ eme_pkcs_v1_5_encode (unsigned int flags, void *opts,
   unsigned int ps_n;
   unsigned int k;
 
+  (void)flags;
+
   options = opts;
   buffer = NULL;
   m = NULL;
@@ -2486,6 +2494,8 @@ eme_pkcs_v1_5_decode (unsigned int flags, void *opts,
   gcry_error_t err;
   unsigned int i;
   unsigned int k;
+
+  (void)flags;
 
   options = opts;
   buffer = NULL;
@@ -2567,6 +2577,8 @@ emsa_pkcs_v1_5_encode (unsigned int flags, void *opts,
   unsigned char asn[100];	/* FIXME, always enough?  */
   size_t asn_n;
   unsigned int i;
+
+  (void)flags;
   
   options = opts;
   buffer = NULL;
@@ -2948,6 +2960,8 @@ ac_es_dencode_prepare_pkcs_v1_5 (gcry_ac_handle_t handle, gcry_ac_key_t key,
   unsigned int nbits;
   gcry_error_t err;
 
+  (void)opts;
+
   err = _gcry_ac_key_get_nbits (handle, key, &nbits);
   if (err)
     goto out;
@@ -3112,6 +3126,8 @@ _gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
   void *opts_em;
   ac_scheme_t *scheme;
 
+  (void)flags;
+
   data_encrypted = NULL;
   mpi_encrypted = NULL;
   mpi_plain = NULL;
@@ -3216,6 +3232,8 @@ _gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
   size_t elements_enc_n;
   unsigned char *c;
   size_t c_n;
+
+  (void)flags;
 
   data_encrypted = NULL;
   mpi_encrypted = NULL;
@@ -3341,6 +3359,8 @@ _gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
   gcry_mpi_t mpi_signed;
   ac_scheme_t *scheme;
 
+  (void)flags;
+
   data_signed = NULL;
   mpi_signed = NULL;
   opts_em = NULL;
@@ -3447,6 +3467,8 @@ _gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
   size_t elements_sig_n;
   unsigned char *s;
   size_t s_n;
+
+  (void)flags;
 
   mpi_signature = NULL;
   elements_sig = NULL;

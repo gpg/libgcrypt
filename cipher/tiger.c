@@ -667,7 +667,7 @@ key_schedule( u64 *x )
  * Transform the message DATA which consists of 512 bytes (8 words)
  */
 static void
-transform( TIGER_CONTEXT *hd, byte *data )
+transform ( TIGER_CONTEXT *hd, const unsigned char *data )
 {
   u64 a,b,c,aa,bb,cc;
   u64 x[8];
@@ -717,8 +717,9 @@ transform( TIGER_CONTEXT *hd, byte *data )
  * of INBUF with length INLEN.
  */
 static void
-tiger_write( void *context, byte *inbuf, size_t inlen)
+tiger_write ( void *context, const void *inbuf_arg, size_t inlen)
 {
+  const unsigned char *inbuf = inbuf_arg;
   TIGER_CONTEXT *hd = context;
 
   if( hd->count == 64 ) /* flush the buffer */

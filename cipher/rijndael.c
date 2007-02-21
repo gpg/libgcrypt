@@ -2213,7 +2213,7 @@ selftest (void)
 static const char *rijndael_names[] =
   {
     "RIJNDAEL",
-    NULL,
+    NULL
   };
 
 static gcry_cipher_oid_spec_t rijndael_oids[] =
@@ -2228,13 +2228,13 @@ static gcry_cipher_oid_spec_t rijndael_oids[] =
 gcry_cipher_spec_t _gcry_cipher_spec_aes =
   {
     "AES", rijndael_names, rijndael_oids, 16, 128, sizeof (RIJNDAEL_context),
-    rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
+    rijndael_setkey, rijndael_encrypt, rijndael_decrypt
   };
 
 static const char *rijndael192_names[] =
   {
     "RIJNDAEL192",
-    NULL,
+    NULL
   };
 
 static gcry_cipher_oid_spec_t rijndael192_oids[] =
@@ -2249,13 +2249,13 @@ static gcry_cipher_oid_spec_t rijndael192_oids[] =
 gcry_cipher_spec_t _gcry_cipher_spec_aes192 =
   {
     "AES192", rijndael192_names, rijndael192_oids, 16, 192, sizeof (RIJNDAEL_context),
-    rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
+    rijndael_setkey, rijndael_encrypt, rijndael_decrypt
   };
 
 static const char *rijndael256_names[] =
   {
     "RIJNDAEL256",
-    NULL,
+    NULL
   };
 
 static gcry_cipher_oid_spec_t rijndael256_oids[] =
@@ -2271,5 +2271,5 @@ gcry_cipher_spec_t _gcry_cipher_spec_aes256 =
   {
     "AES256", rijndael256_names, rijndael256_oids, 16, 256,
     sizeof (RIJNDAEL_context),
-    rijndael_setkey, rijndael_encrypt, rijndael_decrypt,
+    rijndael_setkey, rijndael_encrypt, rijndael_decrypt
   };

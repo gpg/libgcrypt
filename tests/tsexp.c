@@ -222,7 +222,7 @@ canon_len (void)
     size_t expected;/* expected length or 0 on error and then ... */
     size_t erroff;  /* ... and at this offset */
     gcry_error_t errcode;    /* ... with this error code */
-    unsigned char *text; 
+    const char *text; 
   } values[] = {
     { 14, 13, 0, GPG_ERR_NO_ERROR, "(9:abcdefghi) " },
     { 16, 15, 0, GPG_ERR_NO_ERROR, "(10:abcdefghix)" },
@@ -341,7 +341,7 @@ back_and_forth_one (int testno, const char *buffer, size_t length)
 static void
 back_and_forth (void)
 {
-  static struct { char *buf; int len; } tests[] = {
+  static struct { const char *buf; int len; } tests[] = {
     { "(7:g34:fgh1::2:())", 0 },
     { "(7:g34:fgh1::2:())", 18 },
     {

@@ -398,6 +398,9 @@ _gcry_dsa_generate (int algo, unsigned int nbits, unsigned long dummy,
   gpg_err_code_t err;
   DSA_secret_key sk;
 
+  (void)algo;
+  (void)dummy;
+
   err = generate (&sk, nbits, 0, retfactors);
   if (!err)
     {
@@ -425,6 +428,9 @@ _gcry_dsa_generate2 (int algo, unsigned int nbits, unsigned int qbits,
   gpg_err_code_t err;
   DSA_secret_key sk;
 
+  (void)algo;
+  (void)dummy;
+
   err = generate (&sk, nbits, qbits, retfactors);
   if (!err)
     {
@@ -444,6 +450,8 @@ _gcry_dsa_check_secret_key (int algo, gcry_mpi_t *skey)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_secret_key sk;
+
+  (void)algo;
 
   if ((! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]) || (! skey[4]))
     err = GPG_ERR_BAD_MPI;
@@ -467,6 +475,8 @@ _gcry_dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_secret_key sk;
+
+  (void)algo;
 
   if ((! data)
       || (! skey[0]) || (! skey[1]) || (! skey[2])
@@ -493,6 +503,10 @@ _gcry_dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_public_key pk;
 
+  (void)algo;
+  (void)cmp;
+  (void)opaquev;
+
   if ((! data[0]) || (! data[1]) || (! hash)
       || (! pkey[0]) || (! pkey[1]) || (! pkey[2]) || (! pkey[3]))
     err = GPG_ERR_BAD_MPI;
@@ -512,10 +526,12 @@ _gcry_dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 unsigned int
 _gcry_dsa_get_nbits (int algo, gcry_mpi_t *pkey)
 {
+  (void)algo;
+
   return mpi_get_nbits (pkey[0]);
 }
 
-static char *dsa_names[] =
+static const char *dsa_names[] =
   {
     "dsa",
     "openpgp-dsa",

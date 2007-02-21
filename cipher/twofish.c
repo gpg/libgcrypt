@@ -1030,11 +1030,11 @@ main()
 gcry_cipher_spec_t _gcry_cipher_spec_twofish =
   {
     "TWOFISH", NULL, NULL, 16, 256, sizeof (TWOFISH_context),
-    twofish_setkey, twofish_encrypt, twofish_decrypt,
+    twofish_setkey, twofish_encrypt, twofish_decrypt
   };
 
 gcry_cipher_spec_t _gcry_cipher_spec_twofish128 =
   {
     "TWOFISH128", NULL, NULL, 16, 128, sizeof (TWOFISH_context),
-    twofish_setkey, twofish_encrypt, twofish_decrypt,
+    twofish_setkey, twofish_encrypt, twofish_decrypt
   };

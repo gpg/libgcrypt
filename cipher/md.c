@@ -130,14 +130,14 @@ static gcry_err_code_t md_open (gcry_md_hd_t *h, int algo,
 static gcry_err_code_t md_enable (gcry_md_hd_t hd, int algo);
 static gcry_err_code_t md_copy (gcry_md_hd_t a, gcry_md_hd_t *b);
 static void md_close (gcry_md_hd_t a);
-static void md_write (gcry_md_hd_t a, byte *inbuf, size_t inlen);
+static void md_write (gcry_md_hd_t a, const void *inbuf, size_t inlen);
 static void md_final(gcry_md_hd_t a);
 static byte *md_read( gcry_md_hd_t a, int algo );
 static int md_get_algo( gcry_md_hd_t a );
 static int md_digest_length( int algo );
 static const byte *md_asn_oid( int algo, size_t *asnlen, size_t *mdlen );
-static void md_start_debug( gcry_md_hd_t a, char *suffix );
-static void md_stop_debug( gcry_md_hd_t a );
+static void md_start_debug ( gcry_md_hd_t a, const char *suffix );
+static void md_stop_debug ( gcry_md_hd_t a );
 
 
 
@@ -717,7 +717,7 @@ gcry_md_close (gcry_md_hd_t hd)
 }
 
 static void
-md_write (gcry_md_hd_t a, byte *inbuf, size_t inlen)
+md_write (gcry_md_hd_t a, const void *inbuf, size_t inlen)
 {
   GcryDigestEntry *r;
   
@@ -741,7 +741,7 @@ md_write (gcry_md_hd_t a, byte *inbuf, size_t inlen)
 void
 gcry_md_write (gcry_md_hd_t hd, const void *inbuf, size_t inlen)
 {
-  md_write (hd, (unsigned char *) inbuf, inlen);
+  md_write (hd, inbuf, inlen);
 }
 
 static void
@@ -818,7 +818,7 @@ prepare_macpads( gcry_md_hd_t hd, const byte *key, size_t keylen)
 }
 
 gcry_error_t
-gcry_md_ctl (gcry_md_hd_t hd, int cmd, byte *buffer, size_t buflen)
+gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
 {
   gcry_err_code_t rc = 0;
   
@@ -831,10 +831,10 @@ gcry_md_ctl (gcry_md_hd_t hd, int cmd, byte *buffer, size_t buflen)
       rc = gcry_err_code (gcry_md_setkey (hd, buffer, buflen));
       break;
     case GCRYCTL_START_DUMP:
-      md_start_debug (hd, (char*)buffer);
+      md_start_debug (hd, buffer);
       break;
     case GCRYCTL_STOP_DUMP:
-      md_stop_debug( hd );
+      md_stop_debug ( hd );
       break;
     default:
       rc = GPG_ERR_INV_OP;
@@ -858,6 +858,19 @@ gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen)
 
   return gcry_error (rc);
 }
+
+/* The new debug interface.  If SUFFIX is a string it creates an debug
+   file for the context HD.  IF suffix is NULL, the file is closed and
+   debugging is stopped.  */
+void
+gcry_md_debug (gcry_md_hd_t hd, const char *suffix)
+{
+  if (suffix)
+    md_start_debug (hd, suffix);
+  else
+    md_stop_debug (hd);
+}
+
 
 
 /****************
@@ -954,6 +967,11 @@ md_digest( gcry_md_hd_t a, int algo, byte *buffer, int buflen )
 gcry_err_code_t
 gcry_md_get (gcry_md_hd_t hd, int algo, byte *buffer, int buflen)
 {
+  (void)hd;
+  (void)algo;
+  (void)buffer;
+  (void)buflen;
+
   /*md_digest ... */
   return GPG_ERR_INTERNAL;
 }
@@ -1136,31 +1154,34 @@ gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 
 
 static void
-md_start_debug( gcry_md_hd_t md, char *suffix )
+md_start_debug ( gcry_md_hd_t md, const char *suffix )
 {
   static int idx=0;
   char buf[50];
-
-  if( md->ctx->debug ) {
-    log_debug("Oops: md debug already started\n");
-    return;
-  }
+  
+  if ( md->ctx->debug )
+    {
+      log_debug("Oops: md debug already started\n");
+      return;
+    }
   idx++;
-  sprintf(buf, "dbgmd-%05d.%.10s", idx, suffix );
+  snprintf (buf, DIM(buf)-1, "dbgmd-%05d.%.10s", idx, suffix );
   md->ctx->debug = fopen(buf, "w");
-  if( !md->ctx->debug )
+  if ( !md->ctx->debug )
     log_debug("md debug: can't open %s\n", buf );
 }
 
 static void
 md_stop_debug( gcry_md_hd_t md )
 {
-  if( md->ctx->debug ) {
-    if( md->bufpos )
-      md_write( md, NULL, 0 );
-    fclose(md->ctx->debug);
-    md->ctx->debug = NULL;
-  }
+  if ( md->ctx->debug )
+    {
+      if ( md->bufpos )
+        md_write ( md, NULL, 0 );
+      fclose (md->ctx->debug);
+      md->ctx->debug = NULL;
+    }
+
 #ifdef HAVE_U64_TYPEDEF
   {  /* a kludge to pull in the __muldi3 for Solaris */
     volatile u32 a = (u32)(ulong)md;

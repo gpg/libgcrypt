@@ -96,8 +96,8 @@
 static int is_initialized;
 static int allow_daemon; /* If true, try to use the daemon first. */
 #define MASK_LEVEL(a) do { (a) &= 3; } while(0)
-static char *rndpool;	/* allocated size is POOLSIZE+BLOCKLEN */
-static char *keypool;	/* allocated size is POOLSIZE+BLOCKLEN */
+static unsigned char *rndpool;	/* Allocated size is POOLSIZE+BLOCKLEN.  */
+static unsigned char *keypool;	/* Allocated size is POOLSIZE+BLOCKLEN.  */
 static size_t pool_readpos;
 static size_t pool_writepos;
 static int pool_filled;
@@ -404,9 +404,9 @@ gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level )
    1 is strong enough for most usage, 2 is good for key generation
    stuff but may be very slow.  */
 void
-gcry_randomize (byte *buffer, size_t length, enum gcry_random_level level)
+gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {
-  byte *p;
+  unsigned char *p;
   int err;
 
   /* Make sure we are initialized. */
@@ -500,16 +500,16 @@ gcry_randomize (byte *buffer, size_t length, enum gcry_random_level level)
    To better protect against implementation errors in this code, we
    xor a digest of the entire pool into the pool before mixing.
 
-   Note, that this function muts only be called with a locked pool.
+   Note: this function must only be called with a locked pool.
  */
 static void
-mix_pool(byte *pool)
+mix_pool(unsigned char *pool)
 {
   static unsigned char failsafe_digest[DIGESTLEN];
   static int failsafe_digest_valid;
 
-  char *hashbuf = pool + POOLSIZE;
-  char *p, *pend;
+  unsigned char *hashbuf = pool + POOLSIZE;
+  unsigned char *p, *pend;
   int i, n;
   RMD160_CONTEXT md;
 
@@ -520,14 +520,14 @@ mix_pool(byte *pool)
   assert (pool_is_locked);
   _gcry_rmd160_init( &md );
 
-  /* loop over the pool */
+  /* Loop over the pool.  */
   pend = pool + POOLSIZE;
   memcpy(hashbuf, pend - DIGESTLEN, DIGESTLEN );
   memcpy(hashbuf+DIGESTLEN, pool, BLOCKLEN-DIGESTLEN);
   _gcry_rmd160_mixblock( &md, hashbuf);
   memcpy(pool, hashbuf, 20 );
 
-  if (failsafe_digest_valid && (char *)pool == rndpool)
+  if (failsafe_digest_valid && pool == rndpool)
     {
       for (i=0; i < 20; i++)
         pool[i] ^= failsafe_digest[i];
@@ -543,7 +543,7 @@ mix_pool(byte *pool)
         memcpy (hashbuf+DIGESTLEN, p+DIGESTLEN, BLOCKLEN-DIGESTLEN);
       else 
         {
-          char *pp = p + DIGESTLEN;
+          unsigned char *pp = p + DIGESTLEN;
           
           for (i=DIGESTLEN; i < BLOCKLEN; i++ )
             {
@@ -553,7 +553,7 @@ mix_pool(byte *pool)
 	    }
 	}
       
-      _gcry_rmd160_mixblock( &md, hashbuf);
+      _gcry_rmd160_mixblock ( &md, hashbuf);
       memcpy(p, hashbuf, 20 );
     }
 
@@ -561,7 +561,7 @@ mix_pool(byte *pool)
        of the pool on the stack, so it is okay not to require secure
        memory here.  Before we use this pool, it will be copied to the
        help buffer anyway. */
-    if ( (char*)pool == rndpool)
+    if ( pool == rndpool)
       {
         _gcry_rmd160_hash_buffer (failsafe_digest, pool, POOLSIZE);
         failsafe_digest_valid = 1;
@@ -1186,6 +1186,9 @@ gather_faked( void (*add)(const void*, size_t, int), int requester,
     size_t n;
     char *buffer, *p;
 
+    (void)add;
+    (void)level;
+
     if( !initialized ) {
 	log_info(_("WARNING: using insecure random number generator!!\n"));
 	/* we can't use tty_printf here - do we need this function at
@@ -1221,7 +1224,7 @@ gather_faked( void (*add)(const void*, size_t, int), int requester,
 
 /* Create an unpredicable nonce of LENGTH bytes in BUFFER. */
 void
-gcry_create_nonce (unsigned char *buffer, size_t length)
+gcry_create_nonce (void *buffer, size_t length)
 {
   static unsigned char nonce_buffer[20+8];
   static int nonce_buffer_initialized = 0;

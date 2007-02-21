@@ -450,10 +450,13 @@ gcry_mpi_set_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 void
 gcry_mpi_clear_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 {
-    switch( flag ) {
-      case GCRYMPI_FLAG_SECURE:
-      case GCRYMPI_FLAG_OPAQUE:
-      default: log_bug("invalid flag value\n");
+  (void)a; /* Not yet used. */
+
+  switch (flag)
+    {
+    case GCRYMPI_FLAG_SECURE:
+    case GCRYMPI_FLAG_OPAQUE:
+    default: log_bug("invalid flag value\n");
     }
 }
 

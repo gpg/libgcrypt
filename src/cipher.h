@@ -29,9 +29,11 @@
 #define PUBKEY_FLAG_NO_BLINDING (1 << 0)
 
 /*-- rmd160.c --*/
-void _gcry_rmd160_hash_buffer (char *outbuf, const char *buffer, size_t length);
+void _gcry_rmd160_hash_buffer (void *outbuf,
+                               const void *buffer, size_t length);
 /*-- sha1.c --*/
-void _gcry_sha1_hash_buffer (char *outbuf, const char *buffer, size_t length);
+void _gcry_sha1_hash_buffer (void *outbuf,
+                             const void *buffer, size_t length);
 
 /*-- dsa.c --*/
 void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data);

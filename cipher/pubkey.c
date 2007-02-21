@@ -93,12 +93,19 @@ static gcry_err_code_t
 dummy_generate (int algorithm, unsigned int nbits, unsigned long dummy,
                 gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
+  (void)algorithm;
+  (void)nbits;
+  (void)dummy;
+  (void)skey;
+  (void)retfactors;
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
 static gcry_err_code_t
 dummy_check_secret_key (int algorithm, gcry_mpi_t *skey)
 {
+  (void)algorithm;
+  (void)skey;
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -106,6 +113,11 @@ static gcry_err_code_t
 dummy_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
                gcry_mpi_t *pkey, int flags)
 {
+  (void)algorithm;
+  (void)resarr;
+  (void)data;
+  (void)pkey;
+  (void)flags;
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -113,6 +125,11 @@ static gcry_err_code_t
 dummy_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data,
                gcry_mpi_t *skey, int flags)
 {
+  (void)algorithm;
+  (void)result;
+  (void)data;
+  (void)skey;
+  (void)flags;
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -120,6 +137,10 @@ static gcry_err_code_t
 dummy_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
             gcry_mpi_t *skey)
 {
+  (void)algorithm;
+  (void)resarr;
+  (void)data;
+  (void)skey;
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -128,12 +149,20 @@ dummy_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
               gcry_mpi_t *pkey,
 	      int (*cmp) (void *, gcry_mpi_t), void *opaquev)
 {
+  (void)algorithm;
+  (void)hash;
+  (void)data;
+  (void)pkey;
+  (void)cmp;
+  (void)opaquev;
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
 static unsigned
 dummy_get_nbits (int algorithm, gcry_mpi_t *pkey)
 {
+  (void)algorithm;
+  (void)pkey;
   return 0;
 }
 
@@ -174,7 +203,7 @@ gcry_pk_lookup_func_name (void *spec, void *data)
 {
   gcry_pk_spec_t *pubkey = (gcry_pk_spec_t *) spec;
   char *name = (char *) data;
-  char **aliases = pubkey->aliases;
+  const char **aliases = pubkey->aliases;
   int ret = stricmp (name, pubkey->name);
 
   while (ret && *aliases)
@@ -1280,7 +1309,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
             { "md4",    GCRY_MD_MD4 },
             { "tiger",  GCRY_MD_TIGER },
             { "haval",  GCRY_MD_HAVAL },
-            { NULL }
+            { NULL, 0 }
           };
           int algo;
           byte asn[100];

@@ -1172,6 +1172,8 @@ gcry_prime_check (gcry_mpi_t x, unsigned int flags)
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_mpi_t val_2 = mpi_alloc_set_ui (2); /* Used by the Fermat test. */
 
+  (void)flags;
+
   /* We use 64 rounds because the prime we are going to test is not
      guaranteed to be a random one. */
   if (! check_prime (x, val_2, 64, NULL, NULL))

@@ -129,8 +129,9 @@ static u32 crc32_table[256] = {
  *
  */
 static u32
-update_crc32 (u32 crc, char *buf, size_t len)
+update_crc32 (u32 crc, const void *buf_arg, size_t len)
 {
+  const char *buf = buf_arg;
   size_t n;
 
   for (n = 0; n < len; n++)
@@ -156,7 +157,7 @@ crc32_init (void *context)
 }
 
 static void
-crc32_write (void *context, byte * inbuf, size_t inlen)
+crc32_write (void *context, const void *inbuf, size_t inlen)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   if (!inbuf)
@@ -244,8 +245,9 @@ crc24rfc2440_init (void *context)
 }
 
 static void
-crc24rfc2440_write (void *context, byte * inbuf, size_t inlen)
+crc24rfc2440_write (void *context, const void *inbuf_arg, size_t inlen)
 {
+  const unsigned char *inbuf = inbuf_arg;
   int i;
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
 

@@ -1,25 +1,27 @@
-/* gcrypt-module.h - GNU cryptographic library interface
- * Copyright (C) 2003 Free Software Foundation, Inc.
- *
- * This file is part of Libgcrypt.
- *
- * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * Libgcrypt is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
- */
+/* gcrypt-module.h - GNU Cryptographic Library Interface
+   Copyright (C) 2003, 2007 Free Software Foundation, Inc.
+  
+   This file is part of Libgcrypt.
+  
+   Libgcrypt is free software; you can redistribute it and/or modify
+   it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation; either version 2.1 of
+   the License, or (at your option) any later version.
+  
+   Libgcrypt is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+   USA.  */
 
-/* This file contains the necessary declarations/definitions for
-   working with Libgcrypt modules.  */
+/*
+   This file contains the necessary declarations/definitions for
+   working with Libgcrypt modules.  
+ */
 
 #ifndef _GCRYPT_MODULE_H
 #define _GCRYPT_MODULE_H
@@ -89,7 +91,7 @@ typedef struct gcry_cipher_spec
    CIPHER.  On success, a new algorithm ID is stored in ALGORITHM_ID
    and a pointer representhing this module is stored in MODULE.  */
 gcry_error_t gcry_cipher_register (gcry_cipher_spec_t *cipher,
-				   unsigned int *algorithm_id,
+				   int *algorithm_id,
 				   gcry_module_t *module);
 
 /* Unregister the cipher identified by MODULE, which must have been
@@ -144,7 +146,7 @@ typedef unsigned (*gcry_pk_get_nbits_t) (int algo, gcry_mpi_t *pkey);
 typedef struct gcry_pk_spec
 {
   const char *name;
-  char **aliases;
+  const char **aliases;
   const char *elements_pkey;
   const char *elements_skey;
   const char *elements_enc;
@@ -177,7 +179,7 @@ void gcry_pk_unregister (gcry_module_t module);
 typedef void (*gcry_md_init_t) (void *c);
 
 /* Type for the md_write function.  */
-typedef void (*gcry_md_write_t) (void *c, unsigned char *buf, size_t nbytes);
+typedef void (*gcry_md_write_t) (void *c, const void *buf, size_t nbytes);
 
 /* Type for the md_final function.  */
 typedef void (*gcry_md_final_t) (void *c);

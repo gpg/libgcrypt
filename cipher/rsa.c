@@ -445,6 +445,8 @@ _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
   gpg_err_code_t rc;
   int i;
 
+  (void)algo;
+
   generate (&sk, nbits, use_e);
   skey[0] = sk.n;
   skey[1] = sk.e;
@@ -477,6 +479,8 @@ _gcry_rsa_check_secret_key( int algo, gcry_mpi_t *skey )
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   RSA_secret_key sk;
 
+  (void)algo;
+
   sk.n = skey[0];
   sk.e = skey[1];
   sk.d = skey[2];
@@ -496,6 +500,9 @@ _gcry_rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data,
                    gcry_mpi_t *pkey, int flags)
 {
   RSA_public_key pk;
+
+  (void)algo;
+  (void)flags;
   
   pk.n = pkey[0];
   pk.e = pkey[1];
@@ -515,6 +522,8 @@ _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
 				   r.  */
   gcry_mpi_t x = MPI_NULL;	/* Data to decrypt.  */
   gcry_mpi_t y;			/* Result.  */
+
+  (void)algo;
 
   /* Extract private key.  */
   sk.n = skey[0];
@@ -584,6 +593,8 @@ gcry_err_code_t
 _gcry_rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   RSA_secret_key sk;
+
+  (void)algo;
   
   sk.n = skey[0];
   sk.e = skey[1];
@@ -606,6 +617,10 @@ _gcry_rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   gcry_mpi_t result;
   gcry_err_code_t rc;
 
+  (void)algo;
+  (void)cmp;
+  (void)opaquev;
+
   pk.n = pkey[0];
   pk.e = pkey[1];
   result = gcry_mpi_new ( 160 );
@@ -621,10 +636,12 @@ _gcry_rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 unsigned int
 _gcry_rsa_get_nbits (int algo, gcry_mpi_t *pkey)
 {
+  (void)algo;
+
   return mpi_get_nbits (pkey[0]);
 }
 
-static char *rsa_names[] =
+static const char *rsa_names[] =
   {
     "rsa",
     "openpgp-rsa",
