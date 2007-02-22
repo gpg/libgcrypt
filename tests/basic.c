@@ -1654,6 +1654,12 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
       { "(data\n (flags pkcs1)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	0 },
+      /* This test is to see whether hash algorithms not hard wired in
+         pubkey.c are detected:  */
+      { "(data\n (flags pkcs1)\n"
+	" (hash oid.1.3.14.3.2.29 "
+        "       #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	0 },
       {	"(data\n (flags )\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	GPG_ERR_CONFLICT },

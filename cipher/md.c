@@ -303,7 +303,7 @@ gcry_md_map_name (const char *string)
   ret = search_oid (string, &algorithm, NULL);
   if (! ret)
     {
-      /* Not found, search for an acording diget name.  */
+      /* Not found, search a matching digest name.  */
       digest = gcry_md_lookup_name (string);
       if (digest)
 	{

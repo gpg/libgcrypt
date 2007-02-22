@@ -1325,12 +1325,32 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
                    && !memcmp (hashnames[i].name, s, n))
                 break;
             }
+          if (hashnames[i].name)
+            algo = hashnames[i].algo;
+          else
+            {
+              /* In case of not listed or dynamically allocated hash
+                 algorithm we fall back to this somewhat slower
+                 method.  Further, it also allows to use OIDs as
+                 algorithm names. */
+              char *tmpname;
 
-          algo = hashnames[i].algo;
+              tmpname = gcry_malloc (n+1);
+              if (!tmpname)
+                algo = 0;  /* Out of core - silently give up.  */
+              else
+                {
+                  memcpy (tmpname, s, n);
+                  tmpname[n] = 0;
+                  algo = gcry_md_map_name (tmpname);
+                  gcry_free (tmpname);
+                }
+            }
+
           asnlen = DIM(asn);
           dlen = gcry_md_get_algo_dlen (algo);
 
-          if (!hashnames[i].name)
+          if (!algo)
             rc = GPG_ERR_DIGEST_ALGO;
           else if ( !(value=gcry_sexp_nth_data (lhash, 2, &valuelen))
                     || !valuelen )

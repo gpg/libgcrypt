@@ -2,8 +2,6 @@ What's left to do                                 -*- outline -*-
 
 * Updated the FSF's directory.
 
-* Add more tests.
-
 * udiv-qrnbd.o should get build as *.lo [HPUX]
 
 * Allow operation using RSA keys consisting of the OpenSSL list of
@@ -14,14 +12,13 @@ What's left to do                                 -*- outline -*-
   been compiled with thread support when used by a threaded
   application.
 
-* write an autoconf test to check whether the linker supports a
-  version script.
+* linker script test
+  Write an autoconf test to check whether the linker supports a
+  version script. 
 
 * Make use of the forthcoming visibility attribute.
 
 * Add attributes to the MPI functions.
-
-* Write tests for the progress function
 
 * In case the ac interface will be more popular than the pk interface,
   the asymmetric ciphers could be changed for convenient interaction
@@ -39,8 +36,8 @@ What's left to do                                 -*- outline -*-
 * Use builtin bit functions of gcc 3.4
 
 * Consider using a daemon to maintain he random pool
-
-  The down side of this is that we can't assume that the random das
+  [Partly done]
+  The down side of this is that we can't assume that the random has
   has always been stored in "secure memory".  And we rely on that
   sniffing of Unix domain sockets is not possible.  We can implement
   this simply by detecting a special prefixed random seed name and
@@ -56,9 +53,6 @@ What's left to do                                 -*- outline -*-
   There is no shortage of standard memory, so logging is most likely
   possible.
 
-* signed vs. unsigned.
-  Sync the code with 1.2 where we have fixed all these issues.
-
 * mpi_print does not use secure memory
   for internal variables.
 
@@ -71,13 +65,18 @@ What's left to do                                 -*- outline -*-
   Remove use of anonymous union.
 
 * ac.c
-  There are still some things fishy.  The fixes I did todat
+  There are still some things fishy.  The fixes I did today
   (2006-10-23) seem to cure just a symptom.  Needs a complete review.
 
 * gcryptrnd.c
-  Requires test for pth and other stuff.
+  Requires a test for pth [done] as well as some other tests.
 
 * secmem.c
   Check whether the memory block is valid before releasing it and
   print a diagnosic, like glibc does.
+
+* Tests
+  We need a lot more tests.  Lets keep an ever growing list here.
+** Write tests for the progress function
+
 

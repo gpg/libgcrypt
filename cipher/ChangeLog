@@ -1,5 +1,8 @@
 2007-02-22  Werner Koch  <wk@g10code.com>
 
+	* pubkey.c (sexp_data_to_mpi): Handle dynamically allocated
+	algorithms.  Suggested by Neil Dunbar.  Fixes bug#596.
+
 	* rndw32.c (_gcry_rndw32_gather_random_fast): Make it return void.
 
 	* cipher.c (gcry_cipher_algo_name): Simplified.

@@ -19,6 +19,7 @@
 
 ACLOCAL_AMFLAGS = -I m4
 AUTOMAKE_OPTIONS = dist-bzip2
+DISTCHECK_CONFIGURE_FLAGS = --enable-random-daemon
 
 DIST_SUBDIRS = m4 mpi cipher src doc tests
 SUBDIRS = mpi cipher src doc tests

@@ -29,7 +29,7 @@
 #include <sys/stat.h>
 #ifndef HAVE_W32_SYSTEM
 #include <sys/times.h>
-#endif HAVE_W32_SYSTEM
+#endif /*HAVE_W32_SYSTEM*/
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
