@@ -12,7 +12,7 @@ This manual is for Libgcrypt
 (version @value{VERSION}, @value{UPDATED}),
 which is GNU's library of cryptographic building blocks.
 
-Copyright @copyright{} 2000, 2002, 2003, 2004, 2006 Free Software Foundation, Inc.
+Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007 Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -46,10 +46,11 @@ section entitled ``Copying''.
 @insertcopying
 @end titlepage
 
-
+@ifnothtml
 @summarycontents
 @contents
 @page
+@end ifnothtml
 
 
 @ifnottex
@@ -167,6 +168,12 @@ Utilities
 
 
 @end menu
+
+@ifhtml
+@page
+@summarycontents
+@contents
+@end ifhtml
 
 
 @c **********************************************************
@@ -1567,8 +1574,8 @@ Returns @code{0} when the specified algorithm is available for use.
 
 @code{gcry_cipher_algo_name} returns a string with the name of the
 cipher algorithm @var{algo}.  If the algorithm is not known or another
-error occurred, an empty string is returned.  This function will never
-return @code{NULL}.
+error occurred, the string @code{"?"} is returned.  This function should
+not be used to test for the availability of an algorithm.
 @end deftypefun
 
 @deftypefun int gcry_cipher_map_name (const char *@var{name})
@@ -1956,8 +1963,8 @@ representations and hash algorithm identifiers.
 @deftypefun const char *gcry_md_algo_name (int @var{algo})
 
 Map the digest algorithm id @var{algo} to a string representation of the
-algorithm name.  For unknown algorithms this function returns an
-empty string.  This function should not be used to test for the
+algorithm name.  For unknown algorithms this function returns the
+string @code{"?"}.  This function should not be used to test for the
 availability of an algorithm.
 @end deftypefun
 
@@ -2565,8 +2572,9 @@ the key, map algorithm identifiers and perform sanity checks:
 @deftypefun {const char *} gcry_pk_algo_name (int @var{algo})
 
 Map the public key algorithm id @var{algo} to a string representation of
-the algorithm name.  For unknown algorithms this functions returns an
-empty string.
+the algorithm name.  For unknown algorithms this functions returns the
+string @code{"?"}.  This function should not be used to test for the
+availability of an algorithm.
 @end deftypefun
 
 @deftypefun int gcry_pk_map_name (const char *@var{name})
@@ -3025,7 +3033,7 @@ in @var{handle}.  @var{flags} is not used currently.
 @var{algorithm} must be a valid algorithm ID, see @xref{Available
 algorithms}, for a list of supported algorithms and the according
 constants.  Besides using the listed constants directly, the functions
-@code{gcry_ac_name_to_id} may be used to convert the textual name of
+@code{gcry_pk_name_to_id} may be used to convert the textual name of
 an algorithm into the according numeric ID.
 @end deftypefun
 
@@ -3307,14 +3315,17 @@ public key @var{key} according to @var{scheme} and @var{opts}.  If
 @node Handle-independent functions
 @section Handle-independent functions
 
+These two functions are deprecated; do not use them for new code.
+
 @deftypefun gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t @var{algorithm}, const char **@var{name})
 Stores the textual representation of the algorithm whose id is given
-in @var{algorithm} in @var{name}.
+in @var{algorithm} in @var{name}.  Deprecated; use @code{gcry_pk_algo_name}.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_ac_name_to_id (const char *@var{name}, gcry_ac_id_t *@var{algorithm})
 Stores the numeric ID of the algorithm whose textual representation is
-contained in @var{name} in @var{algorithm}.
+contained in @var{name} in @var{algorithm}. Deprecated; use
+@code{gcry_pk_map_name}.
 @end deftypefun
 
 @c **********************************************************

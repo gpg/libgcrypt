@@ -431,8 +431,7 @@ cipher_algo_to_string (int algorithm)
 const char *
 gcry_cipher_algo_name (int algorithm)
 {
-  const char *s = cipher_algo_to_string (algorithm);
-  return s ? s : "";
+  return cipher_algo_to_string (algorithm);
 }
 
 

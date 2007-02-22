@@ -1,4 +1,6 @@
-# Copyright (C) 1998,1999,2000,2001,2002,2003,2004,2005,2006 Free Software Foundation, Inc.
+# Makefile.am - for gcrypt/src
+# Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+#               2006, 2007  Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -26,8 +28,10 @@ m4data_DATA = libgcrypt.m4
 include_HEADERS = gcrypt.h gcrypt-module.h
 
 lib_LTLIBRARIES = libgcrypt.la
+if USE_RANDOM_DAEMON
 sbin_PROGRAMS = gcryptrnd
 bin_PROGRAMS = getrandom
+endif USE_RANDOM_DAEMON
 
 if HAVE_LD_VERSION_SCRIPT
   libgcrypt_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt.vers
@@ -65,7 +69,8 @@ uninstall-def-file:
 
 gcrypt_deps = $(gcrypt_res) libgcrypt.def
 
-else
+else !HAVE_W32_SYSTEM
+
 gcrypt_res =
 gcrypt_res_ldflag =
 no_undefined =
@@ -74,7 +79,9 @@ install-def-file:
 uninstall-def-file:
 
 gcrypt_deps =
-endif
+
+endif !HAVE_W32_SYSTEM
+
 
 libgcrypt_la_LDFLAGS = $(gcrypt_res_ldflag) $(no_undefined) $(export_symbols) \
 	$(libgcrypt_version_script_cmd) -version-info \
@@ -84,11 +91,15 @@ libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
 libgcrypt_la_LIBADD = ../cipher/libcipher.la ../mpi/libmpi.la \
 	@LTLIBOBJS@ @GPG_ERROR_LIBS@
 
+
+if USE_RANDOM_DAEMON
 gcryptrnd_SOURCES = gcryptrnd.c
 gcryptrnd_CFLAGS = $(GPG_ERROR_CFLAGS) $(PTH_CFLAGS)
 gcryptrnd_LDADD = ../src/libgcrypt.la $(PTH_LIBS)
 
 getrandom_SOURCES = getrandom.c
+endif USE_RANDOM_DAEMON
+
 
 install-data-local: install-def-file
 

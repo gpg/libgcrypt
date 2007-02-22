@@ -1092,8 +1092,8 @@ gcry_error_t gcry_md_algo_info (int algo, int what, void *buffer,
                                size_t *nbytes);
 
 /* Map the digest algorithm id ALGO to a string representation of the
-   algorithm name.  For unknown algorithms this functions returns an
-   empty string. */
+   algorithm name.  For unknown algorithms this functions returns
+   "?". */
 const char *gcry_md_algo_name (int algo) _GCRY_GCC_ATTR_PURE;
 
 /* Map the algorithm NAME to a digest algorithm Id.  Return 0 if
@@ -1515,14 +1515,16 @@ gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
 					 gcry_ac_io_t *io_signature);
 
 /* Store the textual representation of the algorithm whose id is given
-   in ALGORITHM in NAME.  */
+   in ALGORITHM in NAME.  This function is deprecated; use
+   gcry_pk_algo_name. */
 gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm,
-                                const char **name);
-
+                                 const char **name) _GCRY_GCC_ATTR_DEPRECATED;
 /* Store the numeric ID of the algorithm whose textual representation
-   is contained in NAME in ALGORITHM.  */
+   is contained in NAME in ALGORITHM.  This function is deprecated;
+   use gcry_pk_map_name. */
 gcry_error_t gcry_ac_name_to_id (const char *name,
-                                gcry_ac_id_t *algorithm);
+                                 gcry_ac_id_t *algorithm
+                                 ) _GCRY_GCC_ATTR_DEPRECATED;;
 
 
 

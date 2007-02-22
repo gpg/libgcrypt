@@ -8,6 +8,8 @@
 # This file is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# File: @configure_input@
 
 # General.
 prefix="@prefix@"
@@ -75,7 +77,7 @@ while test $# -gt 0; do
     case $1 in
 	--thread=*)
 	    echo "$0: --thread option obsolete: use the thread callback interface" 1>&2
-	    # exit 1  <-- enable this for 1.2.0.
+	    exit 1
 	    ;;
         --prefix=*)
             # For compatibility reasons with old M4 macros, we ignore
@@ -130,7 +132,13 @@ if test "$echo_cflags" = "yes"; then
     # Set up `cflags_final'.
     cflags_final="$cflags_final $gpg_error_cflags"
 
-    echo "$includes $cflags_final"
+    tmp=""
+    for i in $includes $cflags_final; do
+       if echo "$tmp" | fgrep -v -- "$i" >/dev/null; then
+           tmp="$tmp $i"
+       fi
+    done
+    echo $tmp
 fi
 
 if test "$echo_libs" = "yes"; then
@@ -145,7 +153,13 @@ if test "$echo_libs" = "yes"; then
     # Set up `libs_final'.
     libs_final="$libs_final $gpg_error_libs"
 
-    echo "$libdirs $libs_final"
+    tmp=""
+    for i in $libdirs $libs_final; do
+       if echo "$tmp" | fgrep -v -- "$i" >/dev/null; then
+           tmp="$tmp $i"
+       fi
+    done
+    echo $tmp
 fi
 
 if test "$echo_version" = "yes"; then

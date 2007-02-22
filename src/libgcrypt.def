@@ -1,5 +1,5 @@
 ;; libgcrypt.defs -  Exported symbols for W32
-;; Copyright (C) 2003 Free Software Foundation, Inc.
+;; Copyright (C) 2003, 2007 Free Software Foundation, Inc.
 ;; 
 ;; This file is part of Libgcrypt.
 ;;
@@ -204,3 +204,23 @@ EXPORTS
       gcry_prime_group_generator  @168
       gcry_prime_release_factors  @169
       gcry_prime_check  @170
+
+      gcry_create_nonce  @171
+
+      gcry_md_debug  @172
+
+      gcry_cipher_register  @173
+      gcry_cipher_unregister @174
+      gcry_md_register  @175
+      gcry_md_unregister @176
+      gcry_pk_register  @177
+      gcry_pk_unregister @178
+       
+      gcry_ac_data_from_sexp  @179
+      gcry_ac_data_to_sexp  @180
+      gcry_ac_io_init  @181
+      gcry_ac_io_init_va  @182
+      gcry_ac_data_encrypt_scheme  @183
+      gcry_ac_data_decrypt_scheme  @184
+      gcry_ac_data_sign_scheme  @185
+      gcry_ac_data_verify_scheme  @186

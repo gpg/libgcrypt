@@ -48,7 +48,7 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 
 NEED_GPG_ERROR_VERSION=1.0
 
-
+BUILD_REVISION=svn_revision
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
@@ -215,7 +215,7 @@ AM_CONDITIONAL(HAVE_W32_SYSTEM, test "$have_w32_system" = yes)
 
 
 
-# A printable OS Name is sometime useful.
+# A printable OS Name is sometimes useful.
 case "${target}" in
     *-*-mingw32*)
         PRINTABLE_OS_NAME="MingW32"
@@ -238,7 +238,7 @@ case "${target}" in
         ;;
 esac
 
-
+# Figure out the name of the random device
 case "${target}" in
     *-openbsd*)
         # FIXME: Are these the best flags for OpenBSD?
@@ -401,6 +401,21 @@ AC_DEFINE_UNQUOTED(EGD_SOCKET_NAME, "$egd_socket_name",
                    [Define if you don't want the default EGD socket name.
                     For details see cipher/rndegd.c])
 
+# Implementation of the --enable-random-daemon
+AC_MSG_CHECKING([whether the experimental random daemon is requested])
+AC_ARG_ENABLE([random-daemon],
+              AC_HELP_STRING([--enable-random-daemon],
+                             [Build and support the experimental gcryptrnd]),
+              [use_random_daemon=$enableval],
+              [use_random_daemon=no])
+AC_MSG_RESULT($use_random_daemon)
+if test x$use_random_daemon = xyes ; then
+    AC_DEFINE(USE_RANDOM_DAEMON,1,
+              [Define to support the experimental random daemon])
+fi
+AM_CONDITIONAL(USE_RANDOM_DAEMON, test x$use_random_daemon = xyes)
+
+
 # Implementation of --disable-asm.
 AC_MSG_CHECKING([whether assembler modules are requested])
 AC_ARG_ENABLE([asm],
@@ -482,8 +497,9 @@ AC_ARG_WITH(pth-prefix,
 if test x$pth_config_prefix != x ; then
    PTH_CONFIG="$pth_config_prefix/bin/pth-config"
 fi
-AC_PATH_PROG(PTH_CONFIG, pth-config, no)
-if test "$PTH_CONFIG" = "no"; then
+if test "$use_random_daemon" = "yes"; then
+  AC_PATH_PROG(PTH_CONFIG, pth-config, no)
+  if test "$PTH_CONFIG" = "no"; then
     AC_MSG_WARN([[
 ***
 *** To build the Libgcrypt's random humber daemon
@@ -492,16 +508,17 @@ if test "$PTH_CONFIG" = "no"; then
 *** On a Debian GNU/Linux system you might want to try 
 ***   apt-get install libpth-dev
 ***]])
- else
-  GNUPG_PTH_VERSION_CHECK([1.3.7])
-  if test $have_pth = yes; then      
-     PTH_CFLAGS=`$PTH_CONFIG --cflags`
-     PTH_LIBS=`$PTH_CONFIG --ldflags`
-     PTH_LIBS="$PTH_LIBS `$PTH_CONFIG --libs --all`"
-     AC_DEFINE(USE_GNU_PTH, 1,
-              [Defined if the GNU Portable Thread Library should be used])
-     AC_DEFINE(HAVE_PTH, 1,
-              [Defined if the GNU Pth is available])
+  else
+    GNUPG_PTH_VERSION_CHECK([1.3.7])
+    if test $have_pth = yes; then      
+       PTH_CFLAGS=`$PTH_CONFIG --cflags`
+       PTH_LIBS=`$PTH_CONFIG --ldflags`
+       PTH_LIBS="$PTH_LIBS `$PTH_CONFIG --libs --all`"
+       AC_DEFINE(USE_GNU_PTH, 1,
+                [Defined if the GNU Portable Thread Library should be used])
+       AC_DEFINE(HAVE_PTH, 1,
+                [Defined if the GNU Pth is available])
+    fi
   fi
 fi
 AC_SUBST(PTH_CFLAGS)
@@ -882,6 +899,23 @@ AC_SUBST(LIBGCRYPT_PUBKEY_CIPHERS, $enabled_pubkey_ciphers)
 AC_SUBST(LIBGCRYPT_DIGESTS, $enabled_digests)
 
 
+# Generate extended version information for W32.
+if test "$have_w32_system" = yes; then
+   BUILD_TIMESTAMP=`date --iso-8601=minutes`
+   changequote(,)dnl 
+   BUILD_FILEVERSION=`echo "$VERSION" | sed 's/\([0-9.]*\).*/\1./;s/\./,/g'`
+   changequote([,])dnl
+   BUILD_FILEVERSION="${BUILD_FILEVERSION}${BUILD_REVISION}"
+fi
+AC_SUBST(BUILD_REVISION)
+AC_SUBST(BUILD_TIMESTAMP)
+AC_SUBST(BUILD_FILEVERSION)
+AC_DEFINE_UNQUOTED(BUILD_REVISION, "$BUILD_REVISION", 
+                   [Subversion revision used to build this package])
+
+
+
+# And create the files.
 AC_CONFIG_FILES([
 Makefile
 m4/Makefile
@@ -891,8 +925,8 @@ doc/Makefile
 src/Makefile
 src/gcrypt.h
 src/libgcrypt-config
+src/versioninfo.rc
 tests/Makefile
-w32-dll/Makefile
 ])
 AC_OUTPUT
 

@@ -119,6 +119,11 @@
                      try to use the OS provided macros at compile
                      time.  This is helpful to create OS X fat binaries.
 
+     --enable-random-daemon
+                     Include support for a global random damon and
+                     build the daemon.  The daemon itself is in an
+                     experimental state.
+
 
     Contact
     -------

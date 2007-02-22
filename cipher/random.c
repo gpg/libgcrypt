@@ -94,7 +94,7 @@
 
 
 static int is_initialized;
-static int allow_daemon; /* If true, try to use the daemon first. */
+
 #define MASK_LEVEL(a) do { (a) &= 3; } while(0)
 static unsigned char *rndpool;	/* Allocated size is POOLSIZE+BLOCKLEN.  */
 static unsigned char *keypool;	/* Allocated size is POOLSIZE+BLOCKLEN.  */
@@ -105,8 +105,12 @@ static int pool_balance;
 static int just_mixed;
 static int did_initial_extra_seeding;
 static char *seed_file_name;
-static char *daemon_socket_name;
 static int allow_seed_file_update;
+
+#ifdef USE_RANDOM_DAEMON
+static int allow_daemon;         /* If true, try to use the daemon first. */
+static char *daemon_socket_name; /* User supplied name of the socket.  */
+#endif /*USE_RANDOM_DAEMON*/
 
 static int secure_alloc;
 static int quick_test;
@@ -161,7 +165,9 @@ initialize_basics(void)
       if (err)
         log_fatal ("failed to create the nonce buffer lock: %s\n",
                    strerror (err) );
+#ifdef USE_RANDOM_DAEMON
       _gcry_daemon_initialize_basics ();
+#endif /*USE_RANDOM_DAEMON*/
     }
 }
 
@@ -255,10 +261,14 @@ _gcry_quick_random_gen( int onoff )
 void
 _gcry_set_random_daemon_socket (const char *socketname)
 {
+#ifdef USE_RANDOM_DAEMON
   if (daemon_socket_name)
     BUG ();
 
   daemon_socket_name = gcry_xstrdup (socketname);
+#else /*!USE_RANDOM_DAEMON*/
+  (void)socketname;
+#endif /*!USE_RANDOM_DAEMON*/
 }
 
 /* With ONOFF set to 1, enable the use of the daemon.  With ONOFF set
@@ -267,6 +277,7 @@ _gcry_set_random_daemon_socket (const char *socketname)
 int
 _gcry_use_random_daemon (int onoff)
 {
+#ifdef USE_RANDOM_DAEMON
   int last;
   
   /* FIXME: This is not really thread safe. */
@@ -275,6 +286,10 @@ _gcry_use_random_daemon (int onoff)
     allow_daemon = onoff;
 
   return last;
+#else /*!USE_RANDOM_DAEMON*/
+  (void)onoff;
+  return 0;
+#endif /*!USE_RANDOM_DAEMON*/
 }
 
 
@@ -304,11 +319,13 @@ get_random_bytes ( size_t nbytes, int level, int secure)
   /* Make sure the requested level is in range. */
   MASK_LEVEL(level);
 
+#ifdef USE_RANDOM_DAEMON
   if (allow_daemon &&
       (p=_gcry_daemon_get_random_bytes (daemon_socket_name,
                                         nbytes, level,secure)))
     return p; /* The daemon succeeded. */
   allow_daemon = 0; /* Daemon failed - switch off. */
+#endif /*USE_RANDOM_DAEMON*/
 
   /* Lock the pool. */
   err = ath_mutex_lock (&pool_lock);
@@ -420,10 +437,12 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
   /* Make sure the level is okay. */
   MASK_LEVEL(level);
 
+#ifdef USE_RANDOM_DAEMON
   if (allow_daemon
       && !_gcry_daemon_randomize (daemon_socket_name, buffer, length, level))
     return; /* The daemon succeeded. */
   allow_daemon = 0; /* Daemon failed - switch off. */
+#endif /*USE_RANDOM_DAEMON*/
 
   /* Acquire the pool lock. */
   err = ath_mutex_lock (&pool_lock);
@@ -1241,10 +1260,12 @@ gcry_create_nonce (void *buffer, size_t length)
   if (!is_initialized)
     initialize ();
 
+#ifdef USE_RANDOM_DAEMON
   if (allow_daemon
       && !_gcry_daemon_create_nonce (daemon_socket_name, buffer, length))
     return; /* The daemon succeeded. */
   allow_daemon = 0; /* Daemon failed - switch off. */
+#endif /*USE_RANDOM_DAEMON*/
 
   /* Acquire the nonce buffer lock. */
   err = ath_mutex_lock (&nonce_buffer_lock);

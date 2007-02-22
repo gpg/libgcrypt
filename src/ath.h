@@ -80,7 +80,7 @@ struct ath_ops
 		     struct timeval *timeout);
   ssize_t (*waitpid) (pid_t pid, int *status, int options);
   int (*accept) (int s, void  *addr, int *length_ptr);
-  int (*connect) (int s, void *addr, socklen_t length);
+  int (*connect) (int s, void *addr, int length);
   int (*sendmsg) (int s, const void *msg, int flags);
   int (*recvmsg) (int s, void *msg, int flags);
 #else

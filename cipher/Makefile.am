@@ -40,9 +40,14 @@ libcipher_la_SOURCES = \
 cipher.c pubkey.c ac.c md.c \
 bithelp.h  \
 primegen.c  \
-random.c random-daemon.c random.h \
+random.c random.h \
 rand-internal.h \
 rmd.h
+
+if USE_RANDOM_DAEMON
+libcipher_la_SOURCES += random-daemon.c 
+endif USE_RANDOM_DAEMON
+
 
 EXTRA_libcipher_la_SOURCES = \
 arcfour.c \

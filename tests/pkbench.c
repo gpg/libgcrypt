@@ -27,7 +27,9 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#ifndef HAVE_W32_SYSTEM
 #include <sys/times.h>
+#endif HAVE_W32_SYSTEM
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
@@ -52,16 +54,24 @@ benchmark (work_t worker, context_t context)
   struct tms timer;
   int ret = 0;
 
+#ifdef HAVE_W32_SYSTEM
+  timer_start = clock ();
+#else
   times (&timer);
   timer_start = timer.tms_utime;
+#endif
   for (i = 0; i < loop; i++)
     {
       ret = (*worker) (context, (i + 1) == loop);
       if (! ret)
 	break;
     }
+#ifdef HAVE_W32_SYSTEM
+  timer_stop = clock ();
+#else
   times (&timer);
   timer_stop = timer.tms_utime;
+#endif
 
   if (ret)
     printf ("%.0f ms\n",

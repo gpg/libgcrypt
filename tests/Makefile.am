@@ -19,7 +19,14 @@
 ## Process this file with automake to produce Makefile.in
 
 TESTS = t-mpi-bit prime register ac ac-schemes ac-data basic \
-        tsexp keygen pubkey benchmark pkbench hmac keygrip
+        tsexp keygen pubkey benchmark hmac keygrip
+
+# pkbench uses mmap for no good reason.  Needs to be fixed.  Code for
+# this can be found in libksba/tests.
+if !HAVE_W32_SYSTEM
+TESTS += pkbench 
+endif
+
 
 # Need to include ../src in addition to top_srcdir because gcrypt.h is
 # a built header.

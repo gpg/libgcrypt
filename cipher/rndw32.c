@@ -548,7 +548,7 @@ _gcry_rndw32_gather_random( void (*add)(const void*, size_t, int),
 }
 
 
-int
+void
 _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t, int),
                                  int requester )
 {
@@ -677,7 +677,5 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t, int),
 	    (*add) (&aword, sizeof (aword), requester );
 	}
     }
-
-    return 0;
 }
 

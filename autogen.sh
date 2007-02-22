@@ -77,8 +77,7 @@ if test "$1" = "--build-w32"; then
 
     ./configure --enable-maintainer-mode  --prefix=${w32root}  \
             --host=${host} --build=${build} \
-            --with-gpg-error-prefix=${w32root}  \
-            --disable-shared    
+            --with-gpg-error-prefix=${w32root} 
 
     exit $?
 fi

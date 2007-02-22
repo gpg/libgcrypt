@@ -33,8 +33,8 @@ int _gcry_rndegd_gather_random (void (*add) (const void *, size_t, int),
 int _gcry_rndegd_connect_socket (int nofail);
 int _gcry_rndw32_gather_random (void (*add) (const void *, size_t, int),
                                 int requester, size_t length, int level);
-int _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t, int),
-                                     int requester );
+void _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t, int),
+                                      int requester );
 
 
 

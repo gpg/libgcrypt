@@ -285,7 +285,7 @@ ath_accept (int s, struct sockaddr *addr, socklen_t *length_ptr)
 
 int
 #ifdef _WIN32
-ath_connect (int s, void *addr, socklen_t length)
+ath_connect (int s, void *addr, int length)
 #else
 ath_connect (int s, struct sockaddr *addr, socklen_t length)
 #endif

@@ -248,7 +248,8 @@ canon_len (void)
   info ("checking canoncial length test function\n");
   for (idx=0; values[idx].text; idx++)
     {
-      n = gcry_sexp_canon_len (values[idx].text, values[idx].textlen, 
+      n = gcry_sexp_canon_len ((const unsigned char*)values[idx].text,
+                               values[idx].textlen, 
                                &erroff, &errcode);
       
       if (n && n == values[idx].expected)
