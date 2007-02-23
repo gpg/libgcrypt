@@ -41,7 +41,7 @@ gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
 {
     mpi_ptr_t  rp, ep, mp, bp;
     mpi_size_t esize, msize, bsize, rsize;
-    int        esign, msign, bsign, rsign;
+    int               msign, bsign, rsign;
     int        esec,  msec,  bsec,  rsec;
     mpi_size_t size;
     int mod_shift_cnt;
@@ -58,7 +58,6 @@ gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
     esize = expo->nlimbs;
     msize = mod->nlimbs;
     size = 2 * msize;
-    esign = expo->sign;
     msign = mod->sign;
 
     esec = mpi_is_secure(expo);

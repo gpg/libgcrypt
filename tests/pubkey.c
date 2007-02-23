@@ -63,7 +63,6 @@ static const char sample_public_key_1[] =
 " )\n"
 ")\n";
 
-#define RANDOM_DATA_NBITS 800
 
 static int verbose;
 
@@ -134,15 +133,15 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
 }
 
 static void
-check_keys (gcry_sexp_t pkey, gcry_sexp_t skey)
+check_keys (gcry_sexp_t pkey, gcry_sexp_t skey, unsigned int nbits_data)
 {
   gcry_sexp_t plain;
   gcry_mpi_t x;
   int rc;
   
   /* Create plain text.  */
-  x = gcry_mpi_new (RANDOM_DATA_NBITS);
-  gcry_mpi_randomize (x, RANDOM_DATA_NBITS, GCRY_WEAK_RANDOM);
+  x = gcry_mpi_new (nbits_data);
+  gcry_mpi_randomize (x, nbits_data, GCRY_WEAK_RANDOM);
   
   rc = gcry_sexp_build (&plain, NULL, "(data (flags raw) (value %m))", x);
   if (rc)
@@ -154,10 +153,11 @@ check_keys (gcry_sexp_t pkey, gcry_sexp_t skey)
   gcry_mpi_release (x);
 
   /* Create plain text.  */
-  x = gcry_mpi_new (RANDOM_DATA_NBITS);
-  gcry_mpi_randomize (x, RANDOM_DATA_NBITS, GCRY_WEAK_RANDOM);
+  x = gcry_mpi_new (nbits_data);
+  gcry_mpi_randomize (x, nbits_data, GCRY_WEAK_RANDOM);
   
-  rc = gcry_sexp_build (&plain, NULL, "(data (flags raw no-blinding) (value %m))", x);
+  rc = gcry_sexp_build (&plain, NULL, 
+                        "(data (flags raw no-blinding) (value %m))", x);
   if (rc)
     die ("converting data for encryption failed: %s\n",
 	 gcry_strerror (rc));
@@ -212,20 +212,70 @@ get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   *skey = sec_key;
 }
 
+
+static void
+get_elg_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int fixed_x)
+{
+  gcry_sexp_t key_spec, key, pub_key, sec_key;
+  int rc;
+
+  rc = gcry_sexp_new 
+    (&key_spec, 
+     (fixed_x
+      ? "(genkey (elg (nbits 4:1024)(xvalue my.not-so-secret.key)))"
+      : "(genkey (elg (nbits 3:512)))"),
+     0, 1);
+
+  if (rc)
+    die ("error creating S-expression: %s\n", gcry_strerror (rc));
+  rc = gcry_pk_genkey (&key, key_spec);
+  gcry_sexp_release (key_spec);
+  if (rc)
+    die ("error generating Elgamal key: %s\n", gcry_strerror (rc));
+    
+  pub_key = gcry_sexp_find_token (key, "public-key", 0);
+  if (!pub_key)
+    die ("public part missing in key\n");
+
+  sec_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (!sec_key)
+    die ("private part missing in key\n");
+
+  gcry_sexp_release (key);
+  *pkey = pub_key;
+  *skey = sec_key;
+}
+
 static void
 check_run (void)
 {
   gcry_sexp_t pkey, skey;
 
-  /* Check sample keys.  */
+  if (verbose)
+    fprintf (stderr, "Checking sample key.\n");
   get_keys_sample (&pkey, &skey);
-  check_keys (pkey, skey);
+  check_keys (pkey, skey, 800);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
   
-  /* Check newly generated keys.  */
+  if (verbose)
+    fprintf (stderr, "Checking generated RSA key.\n");
   get_keys_new (&pkey, &skey);
-  check_keys (pkey, skey);
+  check_keys (pkey, skey, 800);
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+
+  if (verbose)
+    fprintf (stderr, "Checking generated Elgamal key.\n");
+  get_elg_key_new (&pkey, &skey, 0);
+  check_keys (pkey, skey, 400 );
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+
+  if (verbose)
+    fprintf (stderr, "Checking passphrase generated Elgamal key.\n");
+  get_elg_key_new (&pkey, &skey, 1);
+  check_keys (pkey, skey, 800);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
 }
@@ -234,7 +284,7 @@ int
 main (int argc, char **argv)
 {
   int debug = 0;
-  int i = 10;
+  int i;
 
   if (argc > 1 && !strcmp (argv[1], "--verbose"))
     verbose = 1;
@@ -250,7 +300,7 @@ main (int argc, char **argv)
   /* No valuable keys are create, so we can speed up our RNG. */
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 
-  for (; i > 0; i--)
+  for (i=0; i < 2; i++)
     check_run ();
   
   return 0;

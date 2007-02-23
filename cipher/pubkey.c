@@ -497,7 +497,7 @@ pubkey_get_nenc (int algorithm)
 
 static gcry_err_code_t
 pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
-                 unsigned long use_e,
+                 unsigned long use_e, gcry_mpi_t xvalue,
                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   gcry_err_code_t err = GPG_ERR_PUBKEY_ALGO;
@@ -511,11 +511,22 @@ pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
     {
       /* Hack to pass QBITS to the DSA generation.  */
       if (qbits && pubkey->spec == &_gcry_pubkey_spec_dsa)
-        err = _gcry_dsa_generate2
-          (algorithm, nbits, qbits, 0, skey, retfactors);
+        {
+          err = _gcry_dsa_generate2
+            (algorithm, nbits, qbits, 0, skey, retfactors);
+        }
+#ifdef USE_ELGAMAL
+      else if (xvalue && pubkey->spec == &_gcry_pubkey_spec_elg)
+        {
+          err = _gcry_elg_generate_using_x
+            (algorithm, nbits, xvalue, skey, retfactors);
+        }
+#endif /*USE_ELGAMAL*/
       else
-        err = ((gcry_pk_spec_t *) pubkey->spec)->generate 
-          (algorithm, nbits, use_e, skey, retfactors);
+        {
+          err = ((gcry_pk_spec_t *) pubkey->spec)->generate 
+            (algorithm, nbits, use_e, skey, retfactors);
+        }
       _gcry_module_release (pubkey);
     }
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -1918,6 +1929,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   unsigned int nbits = 0;
   unsigned long use_e = 0;
   unsigned int qbits;
+  gcry_mpi_t xvalue = NULL;
   char *name_terminated;
 
   REGISTER_DEFAULT_PUBKEYS;
@@ -2018,6 +2030,18 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   else
     qbits = 0;
 
+  /* Parse the optional xvalue element. */
+  l2 = gcry_sexp_find_token (list, "xvalue", 0);
+  if (l2)
+    {
+      xvalue = gcry_sexp_nth_mpi (l2, 1, 0);
+      if (!xvalue)
+        {
+          rc = GPG_ERR_BAD_MPI;
+          goto leave;
+        }
+    }
+
   /* Now parse the required nbits element. */
   l2 = gcry_sexp_find_token (list, "nbits", 0);
   gcry_sexp_release (list);
@@ -2048,7 +2072,8 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   nbits = (unsigned int) strtoul (name_terminated, NULL, 0);
   gcry_free (name_terminated);
 
-  rc = pubkey_generate (module->mod_id, nbits, qbits, use_e, skey, &factors);
+  rc = pubkey_generate (module->mod_id, nbits, qbits, use_e, xvalue,
+                        skey, &factors);
   if (rc)
     goto leave;
 
@@ -2140,7 +2165,9 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
  leave:
   release_mpi_array (skey);
   /* Don't free SKEY itself, it is a static array. */
-    
+
+  gcry_mpi_release (xvalue);
+  
   if (factors)
     {
       release_mpi_array ( factors );
@@ -2151,7 +2178,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     gcry_sexp_release (l2);
   if (list)
     gcry_sexp_release (list);
-  
+
   if (module)
     {
       ath_mutex_lock (&pubkeys_registered_lock);

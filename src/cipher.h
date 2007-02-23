@@ -45,6 +45,11 @@ gcry_err_code_t _gcry_dsa_generate2 (int algo, unsigned int nbits,
 
 /*-- elgamal.c --*/
 void _gcry_register_pk_elg_progress (gcry_handler_progress_t cb, void *cb_data);
+gcry_err_code_t _gcry_elg_generate_using_x (int algo, unsigned int nbits,
+                                            gcry_mpi_t x, 
+                                            gcry_mpi_t *skey,
+                                            gcry_mpi_t **retfactors);
+
 /*-- primegen.c --*/
 void _gcry_register_primegen_progress (gcry_handler_progress_t cb, void *cb_data);
 

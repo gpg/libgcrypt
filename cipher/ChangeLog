@@ -1,3 +1,12 @@
+2007-02-23  Werner Koch  <wk@g10code.com>
+
+	* elgamal.c (generate): Removed unused variable TEMP.
+	(test_keys): New arg NODIE.
+	(generate_using_x, _gcry_elg_generate_using_x): New.
+	* pubkey.c (pubkey_generate): New arg XVALUE and direct call to
+	the new elgamal generate fucntion.
+	(gcry_pk_genkey): Parse the new "xvalue" tag.
+
 2007-02-22  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (sexp_data_to_mpi): Handle dynamically allocated

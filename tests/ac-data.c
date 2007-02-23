@@ -78,8 +78,11 @@ check_sexp_conversion (gcry_ac_data_t data, const char **identifiers)
       assert_err (err);
       err = gcry_ac_data_get_index (data2, 0, i, &label2, &mpi2);
       assert_err (err);
-      fprintf (stderr, "Label1=`%s'\n", label1);
-      fprintf (stderr, "Label1=`%s'\n", label2);
+      if (verbose)
+        {
+          fprintf (stderr, "Label1=`%s'\n", label1);
+          fprintf (stderr, "Label2=`%s'\n", label2);
+        }
       assert (! strcmp (label1, label2));
       assert (! gcry_mpi_cmp (mpi1, mpi2));
     }

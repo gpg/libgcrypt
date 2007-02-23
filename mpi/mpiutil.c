@@ -463,10 +463,13 @@ gcry_mpi_clear_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 int
 gcry_mpi_get_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 {
-    switch( flag ) {
-      case GCRYMPI_FLAG_SECURE: return (a->flags & 1);
-      case GCRYMPI_FLAG_OPAQUE: return (a->flags & 4);
-      default: log_bug("invalid flag value\n");
+  switch (flag)
+    {
+    case GCRYMPI_FLAG_SECURE: return (a->flags & 1);
+    case GCRYMPI_FLAG_OPAQUE: return (a->flags & 4);
+    default: log_bug("invalid flag value\n");
     }
+  /*NOTREACHED*/
+  return 0;
 }
 

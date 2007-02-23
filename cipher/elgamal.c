@@ -1,4 +1,4 @@
-/* Elgamal.c  -  ElGamal Public Key encryption
+/* Elgamal.c  -  Elgamal Public Key encryption
  * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
@@ -47,7 +47,7 @@ typedef struct
 } ELG_secret_key;
 
 
-static void test_keys (ELG_secret_key *sk, unsigned nbits);
+static int test_keys (ELG_secret_key *sk, unsigned int nbits, int nodie);
 static gcry_mpi_t gen_k (gcry_mpi_t p, int small_k);
 static void generate (ELG_secret_key *sk, unsigned nbits, gcry_mpi_t **factors);
 static int  check_secret_key (ELG_secret_key *sk);
@@ -123,34 +123,46 @@ wiener_map( unsigned int n )
   return  n / 8 + 200;
 }
 
-static void
-test_keys( ELG_secret_key *sk, unsigned nbits )
+static int
+test_keys ( ELG_secret_key *sk, unsigned int nbits, int nodie )
 {
   ELG_public_key pk;
   gcry_mpi_t test = gcry_mpi_new ( 0 );
   gcry_mpi_t out1_a = gcry_mpi_new ( nbits );
   gcry_mpi_t out1_b = gcry_mpi_new ( nbits );
   gcry_mpi_t out2 = gcry_mpi_new ( nbits );
+  int failed = 0;
 
   pk.p = sk->p;
   pk.g = sk->g;
   pk.y = sk->y;
 
-  gcry_mpi_randomize( test, nbits, GCRY_WEAK_RANDOM );
+  gcry_mpi_randomize ( test, nbits, GCRY_WEAK_RANDOM );
 
-  do_encrypt( out1_a, out1_b, test, &pk );
-  decrypt( out2, out1_a, out1_b, sk );
-  if( mpi_cmp( test, out2 ) )
-    log_fatal("ElGamal operation: encrypt, decrypt failed\n");
+  do_encrypt ( out1_a, out1_b, test, &pk );
+  decrypt ( out2, out1_a, out1_b, sk );
+  if ( mpi_cmp( test, out2 ) )
+    failed |= 1;
 
-  sign( out1_a, out1_b, test, sk );
-  if( !verify( out1_a, out1_b, test, &pk ) )
-    log_fatal("ElGamal operation: sign, verify failed\n");
+  sign ( out1_a, out1_b, test, sk );
+  if ( !verify( out1_a, out1_b, test, &pk ) )
+    failed |= 2;
 
   gcry_mpi_release ( test );
   gcry_mpi_release ( out1_a );
   gcry_mpi_release ( out1_b );
   gcry_mpi_release ( out2 );
+
+  if (failed && !nodie)
+    log_fatal ("Elgamal test key for %s %s failed\n",
+               (failed & 1)? "encrypt+decrypt":"",
+               (failed & 2)? "sign+verify":"");
+  if (failed && DBG_CIPHER) 
+    log_debug ("Elgamal test key for %s %s failed\n",
+               (failed & 1)? "encrypt+decrypt":"",
+               (failed & 2)? "sign+verify":"");
+
+  return failed;
 }
 
 
@@ -239,7 +251,7 @@ gen_k( gcry_mpi_t p, int small_k )
 
 /****************
  * Generate a key pair with a key of size NBITS
- * Returns: 2 structures filles with all needed values
+ * Returns: 2 structures filled with all needed values
  *	    and an array with n-1 factors of (p-1)
  */
 static void
@@ -250,13 +262,11 @@ generate ( ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t **ret_factors )
   gcry_mpi_t g;
   gcry_mpi_t x;    /* the secret exponent */
   gcry_mpi_t y;
-  gcry_mpi_t temp;
   unsigned int qbits;
   unsigned int xbits;
   byte *rndbuf;
 
   p_min1 = gcry_mpi_new ( nbits );
-  temp   = gcry_mpi_new( nbits );
   qbits = wiener_map( nbits );
   if( qbits & 1 ) /* better have a even one */
     qbits++;
@@ -332,11 +342,90 @@ generate ( ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t **ret_factors )
   sk->y = y;
   sk->x = x;
 
+  gcry_mpi_release ( p_min1 );
+
   /* Now we can test our keys (this should never fail!) */
-  test_keys( sk, nbits - 64 );
+  test_keys ( sk, nbits - 64, 0 );
+}
+
+
+/* Generate a key pair with a key of size NBITS not using a random
+   value for the secret key but the one given as X.  This is useful to
+   implement a passphrase based decryption for a public key based
+   encryption.  It has appliactions in backup systems.
+ 
+   Returns: A structure filled with all needed values and an array
+ 	    with n-1 factors of (p-1).  */
+static gcry_err_code_t
+generate_using_x (ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t x,
+                  gcry_mpi_t **ret_factors )
+{
+  gcry_mpi_t p;      /* The prime.  */
+  gcry_mpi_t p_min1; /* The prime minus 1.  */
+  gcry_mpi_t g;      /* The generator.  */
+  gcry_mpi_t y;      /* g^x mod p.  */
+  unsigned int qbits;
+  unsigned int xbits;
+
+  sk->p = NULL;
+  sk->g = NULL;
+  sk->y = NULL;
+  sk->x = NULL;
+
+  /* Do a quick check to see whether X is suitable.  */
+  xbits = mpi_get_nbits (x);
+  if ( xbits < 64 || xbits >= nbits )
+    return GPG_ERR_INV_VALUE;
+
+  p_min1 = gcry_mpi_new ( nbits );
+  qbits  = wiener_map ( nbits );
+  if ( (qbits & 1) ) /* Better have an even one.  */
+    qbits++;
+  g = mpi_alloc (1);
+  p = _gcry_generate_elg_prime ( 0, nbits, qbits, g, ret_factors );
+  mpi_sub_ui (p_min1, p, 1);
+
+  if (DBG_CIPHER)
+    log_debug ("using a supplied x of size %u", xbits );
+  if ( !(mpi_cmp_ui ( x, 0 ) > 0 && mpi_cmp ( x, p_min1 ) <0 ) )
+    {
+      gcry_mpi_release ( p_min1 );
+      gcry_mpi_release ( p );
+      gcry_mpi_release ( g );
+      return GPG_ERR_INV_VALUE;
+    }
+
+  y = gcry_mpi_new (nbits);
+  gcry_mpi_powm ( y, g, x, p );
+
+  if ( DBG_CIPHER ) 
+    {
+      progress ('\n');
+      log_mpidump ("elg  p= ", p );
+      log_mpidump ("elg  g= ", g );
+      log_mpidump ("elg  y= ", y );
+      log_mpidump ("elg  x= ", x );
+    }
+
+  /* Copy the stuff to the key structures */
+  sk->p = p;
+  sk->g = g;
+  sk->y = y;
+  sk->x = gcry_mpi_copy (x);
 
   gcry_mpi_release ( p_min1 );
-  gcry_mpi_release ( temp   );
+
+  /* Now we can test our keys. */
+  if ( test_keys ( sk, nbits - 64, 1 ) )
+    {
+      gcry_mpi_release ( sk->p ); sk->p = NULL;
+      gcry_mpi_release ( sk->g ); sk->g = NULL;
+      gcry_mpi_release ( sk->y ); sk->y = NULL;
+      gcry_mpi_release ( sk->x ); sk->x = NULL;
+      return GPG_ERR_BAD_SECKEY;
+    }
+
+  return 0;
 }
 
 
@@ -523,7 +612,7 @@ verify(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
  *********************************************/
 
 gcry_err_code_t
-_gcry_elg_generate (int algo, unsigned nbits, unsigned long dummy,
+_gcry_elg_generate (int algo, unsigned int nbits, unsigned long dummy,
                     gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   ELG_secret_key sk;
@@ -538,6 +627,29 @@ _gcry_elg_generate (int algo, unsigned nbits, unsigned long dummy,
   skey[3] = sk.x;
   
   return GPG_ERR_NO_ERROR;
+}
+
+
+/* This is a specila generate function which is not called via the
+   module interface.  */
+gcry_err_code_t
+_gcry_elg_generate_using_x (int algo, unsigned int nbits, gcry_mpi_t x,
+                            gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+{
+  gcry_err_code_t ec;
+  ELG_secret_key sk;
+
+  (void)algo;
+
+  ec = generate_using_x (&sk, nbits, x, retfactors);
+  if (!ec)
+    {
+      skey[0] = sk.p;
+      skey[1] = sk.g;
+      skey[2] = sk.y;
+      skey[3] = sk.x;
+    }
+  return ec;
 }
 
 

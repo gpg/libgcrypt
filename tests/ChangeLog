@@ -1,3 +1,18 @@
+2007-02-23  Werner Koch  <wk@g10code.com>
+
+	* Makefile.am (TEST): Run benchmark as last. 
+
+	* ac-data.c (check_sexp_conversion): Print label only in verbose
+	mode.
+
+	* pubkey.c (main): Run test just 2 times instead of 10.
+	(get_elg_key_new): New.
+	(check_run): Also run tests with Elgamal keys.
+	(check_keys): New arg NBITS_DATA.
+	(get_elg_key_new): Use only 400 for the 512 bit Elgamal test.
+
+	* random.c: New.
+
 2007-02-22  Werner Koch  <wk@g10code.com>
 
 	* basic.c (check_pubkey_sign): Also try signing using an OID.
