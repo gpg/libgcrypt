@@ -221,6 +221,7 @@ _gcry_random_initialize (int full)
     initialize ();
 }
 
+
 void
 _gcry_random_dump_stats()
 {
@@ -234,6 +235,7 @@ _gcry_random_dump_stats()
 	rndstats.mixkey, rndstats.ngetbytes1, rndstats.getbytes1,
 		    rndstats.ngetbytes2, rndstats.getbytes2 );
 }
+
 
 void
 _gcry_secure_random_alloc()
@@ -1055,6 +1057,7 @@ getfnc_fast_random_poll (void))( void (*)(const void*, size_t, int), int)
 }
 
 
+
 static void
 do_fast_random_poll (void)
 {
@@ -1111,11 +1114,10 @@ do_fast_random_poll (void)
 # ifdef RUSAGE_SELF
   {	
     struct rusage buf;
-    /* QNX/Neutrino does return ENOSYS - so we just ignore it and
-     * add whatever is in buf.  In a chroot environment it might not
-     * work at all (i.e. because /proc/ is not accessible), so we better 
-     * ugnore all error codes and hope for the best
-     */
+    /* QNX/Neutrino does return ENOSYS - so we just ignore it and add
+       whatever is in buf.  In a chroot environment it might not work
+       at all (i.e. because /proc/ is not accessible), so we better
+       ignore all error codes and hope for the best. */
     getrusage (RUSAGE_SELF, &buf );
     add_randomness( &buf, sizeof buf, 1 );
     memset( &buf, 0, sizeof buf );

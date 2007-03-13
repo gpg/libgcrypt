@@ -110,6 +110,11 @@ case "${target}" in
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
 	path="i586 i386"
 	;;
+    x86_64-*-*)
+	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
+	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
+	path="amd64"
+	;;
     alpha*-*-*)
 	echo '/* configured for alpha */' >>./mpi/asm-syntax.h
 	path="alpha"

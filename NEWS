@@ -37,6 +37,8 @@ Noteworthy changes in version 1.3.0 (unreleased)
 
  * Support for Microsoft Windows OSes.
 
+ * Assembler support for the AMD64 architecture.
+
  * Minor changes to some function declarations.  Buffer arguments are
    now typed as void pointer.  This should not affect any compilation.
    Fixed two bugs in return values and clarified documentation.

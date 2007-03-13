@@ -78,5 +78,5 @@ What's left to do                                 -*- outline -*-
 * Tests
   We need a lot more tests.  Lets keep an ever growing list here.
 ** Write tests for the progress function
-
+** mpitests does no real checks yet.
 

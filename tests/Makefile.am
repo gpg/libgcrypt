@@ -19,7 +19,7 @@
 ## Process this file with automake to produce Makefile.in
 
 TESTS = t-mpi-bit prime register ac ac-schemes ac-data basic \
-        tsexp keygen pubkey hmac keygrip
+        mpitests tsexp keygen pubkey hmac keygrip
 
 # pkbench uses mmap for no good reason.  Needs to be fixed.  Code for
 # this can be found in libksba/tests. 

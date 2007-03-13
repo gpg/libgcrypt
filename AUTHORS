@@ -80,6 +80,11 @@ perky@freebsd.org
 (SEED cipher)
 
 
+LIBGCRYPT       Werner Dittmann  ** pending **
+werner.dittmann@t-online.de
+(mpi/amd64, tests/mpitests.c)
+
+
 
 More credits
 ============

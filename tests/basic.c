@@ -1961,5 +1961,6 @@ main (int argc, char **argv)
 
   if (verbose)
     fprintf (stderr, "\nAll tests completed. Errors: %i\n", error_count);
+
   return error_count ? 1 : 0;
 }

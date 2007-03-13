@@ -1,3 +1,12 @@
+2007-03-13  Werner Koch  <wk@g10code.com>
+
+	* mpitests.c: Reformatted to GNU standards.
+	(main): Add options --verbose and --debug for future use.
+
+2007-03-13  Werner Dittmann <Werner.Dittmann@t-online.de>  (wk)
+
+	* mpitests.c: New.
+
 2007-02-23  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (TEST): Run benchmark as last. 
