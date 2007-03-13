@@ -285,8 +285,8 @@ call_daemon (const char *socketname,
 	  break;
 	}
 
-      //      if (1)			/* FIXME, verbose */
-      //	log_info ("received response with %d bytes of data\n", buf[1]);
+      /*      if (1)*/			/* FIXME, verbose */
+      /*	log_info ("received response with %d bytes of data\n", buf[1]);*/
 
       if (buf[1] < nbytes)
 	{
@@ -342,35 +342,6 @@ _gcry_daemon_randomize (const char *socketname,
   err = call_daemon (socketname, buffer, length, 0, level);
 
   return err ? -1 : 0;
-}
-
-/* Internal function to return a pointer to a randomized buffer of
-   LEVEL and NBYTES length.  Caller must free the buffer. With SECURE
-   passed as TRUE, allocate the rwanom in secure memory - however note
-   that the IPC mechanism might have not stored it there.  Return a
-   pointer to a newly alloced memory or NULL if it failed.  */
-void *
-_gcry_daemon_get_random_bytes (const char *socketname,
-                               size_t nbytes, int level, int secure)
-{
-  gcry_error_t err;
-  void *p;
-
-  err = _gcry_malloc (nbytes, secure ? GCRY_ALLOC_FLAG_SECURE : 0, &p);
-  if (err)
-    goto out;
-
-  err = call_daemon (socketname, p, nbytes, 0, level);
-
- out:
-
-  if (err)
-    {
-      gcry_free (p);
-      p = NULL;
-    }
-
-  return p;
 }
 
 

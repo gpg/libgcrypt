@@ -1,3 +1,20 @@
+2007-03-13  Werner Koch  <wk@g10code.com>
+
+	* random.c (enum random_origins): New.
+	(add_randomness): Renamed arg SOURCE to ORIGIN.
+	(read_random_source): Renamed arg REQUESTOR to ORIGIN.
+	(getfnc_gather_random): Removed static variable because this
+	function is only called one and thus we don't need this
+	optimization.
+	(_gcry_quick_random_gen): Removed and replaced by..
+	(_gcry_enable_quick_random_gen): .. this.  It is onlyu used to
+	enable it and it does not make sense to disable it later. Changed
+	the only one caller too.
+	(get_random_bytes): Removed.
+	(gcry_random_bytes, gcry_random_bytes_secure): Implement in terms
+	of gcry_randomize.
+	* random-daemon.c (_gcry_daemon_get_random_bytes): Removed.
+
 2007-02-23  Werner Koch  <wk@g10code.com>
 
 	* elgamal.c (generate): Removed unused variable TEMP.

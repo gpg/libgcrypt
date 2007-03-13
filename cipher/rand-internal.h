@@ -20,6 +20,10 @@
 #ifndef G10_RAND_INTERNAL_H
 #define G10_RAND_INTERNAL_H
 
+
+
+
+
 void _gcry_random_progress (const char *what, int printchar,
                             int current, int total);
 

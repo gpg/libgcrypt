@@ -216,7 +216,7 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
       break;
 
     case GCRYCTL_ENABLE_QUICK_RANDOM:
-      _gcry_quick_random_gen (1);
+      _gcry_enable_quick_random_gen ();
       break;
 
     case GCRYCTL_FAKED_RANDOM_P:

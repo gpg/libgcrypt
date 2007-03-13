@@ -512,7 +512,8 @@ own memory management callbacks.
 
 @item GCRYCTL_ENABLE_QUICK_RANDOM; Arguments: none
 This command activates the use of a highly-insecure, but fast PRNG.  It
-can only be used at initialization time - FIXME: is this correct?
+can only be used at initialization time.  The only useful applications
+for this are certain regression tests.
 
 @item GCRYCTL_DUMP_RANDOM_STATS
 This command dumps PRNG related statistics to the librarys logging

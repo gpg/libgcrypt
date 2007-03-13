@@ -1,6 +1,6 @@
 /* random.c  -	random number generator
  * Copyright (C) 1998, 2000, 2001, 2002, 2003,
- *               2004, 2005, 2006  Free Software Foundation, Inc.
+ *               2004, 2005, 2006, 2007  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -19,11 +19,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
 
-/****************
- * This random number generator is modelled after the one described in
- * Peter Gutmann's paper: "Software Generation of Practically Strong
- * Random Numbers". See also chapter 6 in his book "Cryptographic
- * Security Architecture", New York, 2004, ISBN 0-387-95387-6.
+/*
+   This random number generator is modelled after the one described in
+   Peter Gutmann's paper: "Software Generation of Practically Strong
+   Random Numbers". See also chapter 6 in his book "Cryptographic
+   Security Architecture", New York, 2004, ISBN 0-387-95387-6.
  */
 
 
@@ -78,21 +78,33 @@
 #error weird size for an unsigned long
 #endif
 
-#define BLOCKLEN  64   /* hash this amount of bytes */
-#define DIGESTLEN 20   /* into a digest of this length (rmd160) */
-/* poolblocks is the number of digests which make up the pool
- * and poolsize must be a multiple of the digest length
- * to make the AND operations faster, the size should also be
- * a multiple of ulong
- */
+#define BLOCKLEN  64   /* Hash this amount of bytes... */
+#define DIGESTLEN 20   /* ... into a digest of this length (rmd160). */
+/* POOLBLOCKS is the number of digests which make up the pool and
+   POOLSIZE must be a multiple of the digest length to make the AND
+   operations faster, the size should also be a multiple of unsigned
+   long.  */
 #define POOLBLOCKS 30
 #define POOLSIZE (POOLBLOCKS*DIGESTLEN)
 #if (POOLSIZE % SIZEOF_UNSIGNED_LONG)
-#error Please make sure that poolsize is a multiple of ulong
+#error Please make sure that poolsize is a multiple of unsigned long
 #endif
 #define POOLWORDS (POOLSIZE / SIZEOF_UNSIGNED_LONG)
 
 
+/* Constants used to define the origin of random added to the pool.
+   The code is sensitive to the order of the values.  */
+enum random_origins 
+  {
+    RANDOM_ORIGIN_INIT = 0,      /* Used only for initialization. */
+    RANDOM_ORIGIN_FASTPOLL = 1,  /* Fast random poll function.  */
+    RANDOM_ORIGIN_SLOWPOLL = 2,  /* Slow poll function.  */
+    RANDOM_ORIGIN_EXTRAPOLL = 3  /* Used to mark an extra pool seed
+                                    due to a GCRY_VERY_STRONG_RANDOM
+                                    random request.  */
+  };
+
+/* Flag to tell whether this module has been initialized.  */
 static int is_initialized;
 
 #define MASK_LEVEL(a) do { (a) &= 3; } while(0)
@@ -107,40 +119,57 @@ static int did_initial_extra_seeding;
 static char *seed_file_name;
 static int allow_seed_file_update;
 
+
 #ifdef USE_RANDOM_DAEMON
-static int allow_daemon;         /* If true, try to use the daemon first. */
-static char *daemon_socket_name; /* User supplied name of the socket.  */
+
+/* If ALLOW_DAEMON is true, the module will try to use the random
+   daemon first.  If the daemon has failed, this variable is set to
+   back to false and the codecontinues as normal.  Note, we don't test
+   this flag in a locked state because a wrong value does not harm and
+   the trhead will find out itself that the daemon does not work and
+   set it (again) to false.  */
+static int allow_daemon;       
+
+/* During initialization, the user may set a non-default socket name
+   for accessing the random daemon.  If this value is NULL, the
+   default name will be used. */
+static char *daemon_socket_name;
+
 #endif /*USE_RANDOM_DAEMON*/
+
 
 static int secure_alloc;
 static int quick_test;
 static int faked_rng;
 
 static ath_mutex_t pool_lock = ATH_MUTEX_INITIALIZER;
-static int pool_is_locked; /* only used for assertion */
+
+static int pool_is_locked; /* Only used to assert that functions are
+                              called in a locked state.  It is not
+                              meant to be a thread-safe fucntion */
 
 static ath_mutex_t nonce_buffer_lock = ATH_MUTEX_INITIALIZER;
 
-static byte *get_random_bytes( size_t nbytes, int level, int secure );
 static void read_pool( byte *buffer, size_t length, int level );
-static void add_randomness( const void *buffer, size_t length, int source );
+static void add_randomness (const void *buffer, size_t length, int origin);
 static void random_poll(void);
 static void do_fast_random_poll (void);
-static void read_random_source( int requester, size_t length, int level);
+static void read_random_source( int origin, size_t length, int level);
 static int gather_faked( void (*add)(const void*, size_t, int), int requester,
 						    size_t length, int level );
 
-static struct {
-    ulong mixrnd;
-    ulong mixkey;
-    ulong slowpolls;
-    ulong fastpolls;
-    ulong getbytes1;
-    ulong ngetbytes1;
-    ulong getbytes2;
-    ulong ngetbytes2;
-    ulong addbytes;
-    ulong naddbytes;
+static struct
+{
+  unsigned long mixrnd;
+  unsigned long mixkey;
+  unsigned long slowpolls;
+  unsigned long fastpolls;
+  unsigned long getbytes1;
+  unsigned long ngetbytes1;
+  unsigned long getbytes2;
+  unsigned long ngetbytes2;
+  unsigned long addbytes;
+  unsigned long naddbytes;
 } rndstats;
 
 static void (*progress_cb) (void *,const char*,int,int, int );
@@ -165,9 +194,16 @@ initialize_basics(void)
       if (err)
         log_fatal ("failed to create the nonce buffer lock: %s\n",
                    strerror (err) );
+
 #ifdef USE_RANDOM_DAEMON
       _gcry_daemon_initialize_basics ();
 #endif /*USE_RANDOM_DAEMON*/
+
+      /* Make sure that we are still using the values we have
+         traditionally used for the random levels.  */
+      assert ( GCRY_WEAK_RANDOM == 0 
+               && GCRY_STRONG_RANDOM == 1
+               && GCRY_VERY_STRONG_RANDOM == 2);
     }
 }
 
@@ -179,10 +215,10 @@ initialize(void)
   /* The data buffer is allocated somewhat larger, so that we can use
      this extra space (which is allocated in secure memory) as a
      temporary hash buffer */
-  rndpool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
-                         : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
-  keypool = secure_alloc ? gcry_xcalloc_secure(1,POOLSIZE+BLOCKLEN)
-                         : gcry_xcalloc(1,POOLSIZE+BLOCKLEN);
+  rndpool = secure_alloc ? gcry_xcalloc_secure (1, POOLSIZE + BLOCKLEN)
+                         : gcry_xcalloc (1, POOLSIZE + BLOCKLEN);
+  keypool = secure_alloc ? gcry_xcalloc_secure (1, POOLSIZE + BLOCKLEN)
+                         : gcry_xcalloc (1, POOLSIZE + BLOCKLEN);
   is_initialized = 1;
 
 }
@@ -244,19 +280,14 @@ _gcry_secure_random_alloc()
 }
 
 
-int
-_gcry_quick_random_gen( int onoff )
+void
+_gcry_enable_quick_random_gen (void)
 {
-  int last;
-
   /* No need to lock it here because we are only initializing.  A
      prerequisite of the entire code is that it has already been
-     initialized before any possible concurrent access */
-  read_random_source(0,0,0); /* init */
-  last = quick_test;
-  if( onoff != -1 )
-    quick_test = onoff;
-  return faked_rng? 1 : last;
+     initialized before any possible concurrent access.  */
+  read_random_source (RANDOM_ORIGIN_INIT, 0, GCRY_WEAK_RANDOM); /* Init */
+  quick_test = 1;
 }
 
 
@@ -303,75 +334,6 @@ _gcry_random_is_faked()
   return (faked_rng || quick_test);
 }
 
-/*
- * Return a pointer to a randomized buffer of LEVEL and NBYTES length.
- * Caller must free the buffer. 
- */
-static byte *
-get_random_bytes ( size_t nbytes, int level, int secure)
-{
-  byte *buf, *p;
-  int err;
-
-  /* First a hack to avoid the strong random using our regression test
-     suite. */
-  if (quick_test && level > 1)
-    level = 1;
-
-  /* Make sure the requested level is in range. */
-  MASK_LEVEL(level);
-
-#ifdef USE_RANDOM_DAEMON
-  if (allow_daemon &&
-      (p=_gcry_daemon_get_random_bytes (daemon_socket_name,
-                                        nbytes, level,secure)))
-    return p; /* The daemon succeeded. */
-  allow_daemon = 0; /* Daemon failed - switch off. */
-#endif /*USE_RANDOM_DAEMON*/
-
-  /* Lock the pool. */
-  err = ath_mutex_lock (&pool_lock);
-  if (err)
-    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
-  pool_is_locked = 1;
-
-  /* Keep some statistics. */
-  if (level >= 2)
-    {
-      rndstats.getbytes2 += nbytes;
-      rndstats.ngetbytes2++;
-    }
-  else
-    {
-      rndstats.getbytes1 += nbytes;
-      rndstats.ngetbytes1++;
-    }
-
-  /* Allocate the return buffer. */
-  buf = secure && secure_alloc ? gcry_xmalloc_secure( nbytes )
-                               : gcry_xmalloc( nbytes );
-
-  /* Fill that buffer with random. */
-  for (p = buf; nbytes > 0; )
-    {
-      size_t n;
-
-      n = nbytes > POOLSIZE? POOLSIZE : nbytes;
-      read_pool( p, n, level );
-      nbytes -= n;
-      p += n;
-    }
-
-  /* Release the pool lock. */
-  pool_is_locked = 0;
-  err = ath_mutex_unlock (&pool_lock);
-  if (err)
-    log_fatal ("failed to release the pool lock: %s\n", strerror (err));
-
-  /* Return the buffer. */
-  return buf;
-}
-
 
 /* Add BUFLEN bytes from BUF to the internal random pool.  QUALITY
    should be in the range of 0..100 to indicate the goodness of the
@@ -392,36 +354,52 @@ gcry_random_add_bytes (const void * buf, size_t buflen, int quality)
   /* Before we actuall enable this code, we need to lock the pool,
      have a look at the quality and find a way to add them without
      disturbing the real entropy (we have estimated). */
-  /*add_randomness( buf, buflen, 1 );*/
+  /*add_randomness( buf, buflen, RANDOM_ORIGIN_FASTPOLL );*/
 #endif
   return err;
 }   
     
-/* The public function to return random data of the quality LEVEL. */
+/* The public function to return random data of the quality LEVEL.
+   Returns a pointer to a newly allocated and randomized buffer of
+   LEVEL and NBYTES length.  Caller must free the buffer.  */
 void *
-gcry_random_bytes( size_t nbytes, enum gcry_random_level level )
+gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
 {
+  void *buffer;
+
   if (!is_initialized)
     initialize();
-  return get_random_bytes( nbytes, level, 0 );
+
+  buffer = gcry_xmalloc (nbytes);
+  gcry_randomize (buffer, nbytes, level);
+
+  return buffer;
 }
 
 /* The public function to return random data of the quality LEVEL;
-   this version of the function return the random a buffer allocated
-   in secure memory. */
+   this version of the function returns the random in a buffer allocated
+   in secure memory.  Caller must free the buffer. */
 void *
 gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level )
 {
+  void *buffer;
+
   if (!is_initialized)
     initialize();
-  return get_random_bytes( nbytes, level, 1 );
+
+  buffer = secure_alloc ? gcry_xmalloc_secure (nbytes)
+                        : gcry_xmalloc (nbytes);
+  gcry_randomize (buffer, nbytes, level);
+
+  return buffer;
 }
 
 
 /* Public function to fill the buffer with LENGTH bytes of
-   cryptographically strong random bytes. level 0 is not very strong,
-   1 is strong enough for most usage, 2 is good for key generation
-   stuff but may be very slow.  */
+   cryptographically strong random bytes.  Level GCRY_WEAK_RANDOM is
+   not very strong, GCRY_STRONG_RANDOM is strong enough for most
+   usage, GCRY_VERY_STRONG_RANDOM is good for key generation stuff but
+   may be very slow.  */
 void
 gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {
@@ -433,8 +411,8 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
     initialize ();
 
   /* Handle our hack used for regression tests of Libgcrypt. */
-  if( quick_test && level > 1 )
-    level = 1;
+  if ( quick_test && level > GCRY_STRONG_RANDOM )
+    level = GCRY_STRONG_RANDOM;
 
   /* Make sure the level is okay. */
   MASK_LEVEL(level);
@@ -453,7 +431,7 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
   pool_is_locked = 1;
 
   /* Update the statistics. */
-  if (level >= 2)
+  if (level >= GCRY_VERY_STRONG_RANDOM)
     {
       rndstats.getbytes2 += length;
       rndstats.ngetbytes2++;
@@ -719,19 +697,19 @@ read_seed_file (void)
   
   close(fd);
 
-  add_randomness( buffer, POOLSIZE, 0 );
+  add_randomness( buffer, POOLSIZE, RANDOM_ORIGIN_INIT );
   /* add some minor entropy to the pool now (this will also force a mixing) */
   {	
     pid_t x = getpid();
-    add_randomness( &x, sizeof(x), 0 );
+    add_randomness( &x, sizeof(x), RANDOM_ORIGIN_INIT );
   }
   {
     time_t x = time(NULL);
-    add_randomness( &x, sizeof(x), 0 );
+    add_randomness( &x, sizeof(x), RANDOM_ORIGIN_INIT );
   }
   {	
     clock_t x = clock();
-    add_randomness( &x, sizeof(x), 0 );
+    add_randomness( &x, sizeof(x), RANDOM_ORIGIN_INIT );
   }
 
   /* And read a few bytes from our entropy source.  By using a level
@@ -739,7 +717,7 @@ read_seed_file (void)
    * entropy drivers, however the rndlinux driver will use
    * /dev/urandom and return some stuff - Do not read to much as we
    * want to be friendly to the scare system entropy resource. */
-  read_random_source( 0, 16, 0 );
+  read_random_source ( RANDOM_ORIGIN_INIT, 16, GCRY_WEAK_RANDOM );
 
   allow_seed_file_update = 1;
   return 1;
@@ -749,7 +727,7 @@ read_seed_file (void)
 void
 _gcry_update_random_seed_file()
 {
-  ulong *sp, *dp;
+  unsigned long *sp, *dp;
   int fd, i;
   int err;
   
@@ -767,7 +745,7 @@ _gcry_update_random_seed_file()
   pool_is_locked = 1;
 
   /* Copy the entropy pool to a scratch pool and mix both of them. */
-  for (i=0,dp=(ulong*)keypool, sp=(ulong*)rndpool;
+  for (i=0,dp=(unsigned long*)keypool, sp=(unsigned long*)rndpool;
        i < POOLWORDS; i++, dp++, sp++ ) 
     {
       *dp = *sp + ADD_VALUE;
@@ -820,10 +798,11 @@ _gcry_update_random_seed_file()
 }
 
 
-/* Read random out of the pool. This function is the core of the
-   public random functions.  Note that Level 0 is not anymore handeld
-   special and in fact an alias for level 1.  Must be called with the
-   pool already locked.  */
+/* Read random out of the pool.  This function is the core of the
+   public random functions.  Note that Level GCRY_WEAK_RANDOM is not
+   anymore handled special and in fact is an alias in teh API for
+   level GCRY_STRONG_RANDOM.  Must be called with the pool already
+   locked.  */
 static void
 read_pool (byte *buffer, size_t length, int level)
 {
@@ -851,7 +830,7 @@ read_pool (byte *buffer, size_t length, int level)
 
       my_pid = my_pid2;
       x = my_pid;
-      add_randomness (&x, sizeof(x), 0);
+      add_randomness (&x, sizeof(x), RANDOM_ORIGIN_INIT);
       just_mixed = 0; /* Make sure it will get mixed. */
     }
 
@@ -872,7 +851,7 @@ read_pool (byte *buffer, size_t length, int level)
 
   /* For level 2 quality (key generation) we always make sure that the
      pool has been seeded enough initially. */
-  if (level == 2 && !did_initial_extra_seeding)
+  if (level == GCRY_VERY_STRONG_RANDOM && !did_initial_extra_seeding)
     {
       size_t needed;
 
@@ -882,13 +861,14 @@ read_pool (byte *buffer, size_t length, int level)
         needed = POOLSIZE/2;
       else if( needed > POOLSIZE )
         BUG ();
-      read_random_source (3, needed, 2);
+      read_random_source (RANDOM_ORIGIN_EXTRAPOLL, needed,
+                          GCRY_VERY_STRONG_RANDOM);
       pool_balance += needed;
       did_initial_extra_seeding = 1;
     }
 
   /* For level 2 make sure that there is enough random in the pool. */
-  if (level == 2 && pool_balance < length)
+  if (level == GCRY_VERY_STRONG_RANDOM && pool_balance < length)
     {
       size_t needed;
       
@@ -897,7 +877,8 @@ read_pool (byte *buffer, size_t length, int level)
       needed = length - pool_balance;
       if (needed > POOLSIZE)
         BUG ();
-      read_random_source( 3, needed, 2 );
+      read_random_source (RANDOM_ORIGIN_EXTRAPOLL, needed,
+                          GCRY_VERY_STRONG_RANDOM);
       pool_balance += needed;
     }
 
@@ -912,7 +893,7 @@ read_pool (byte *buffer, size_t length, int level)
      after a fork. */
   {
     pid_t apid = my_pid;
-    add_randomness (&apid, sizeof (apid), 0);
+    add_randomness (&apid, sizeof (apid), RANDOM_ORIGIN_INIT);
   }
 
   /* Mix the pool (if add_randomness() didn't it). */
@@ -923,7 +904,7 @@ read_pool (byte *buffer, size_t length, int level)
     }
 
   /* Create a new pool. */
-  for(i=0,dp=(ulong*)keypool, sp=(ulong*)rndpool;
+  for(i=0,dp=(unsigned long*)keypool, sp=(unsigned long*)rndpool;
       i < POOLWORDS; i++, dp++, sp++ )
     *dp = *sp + ADD_VALUE;
 
@@ -954,7 +935,7 @@ read_pool (byte *buffer, size_t length, int level)
   if ( getpid () != my_pid2 )
     {
       pid_t x = getpid();
-      add_randomness (&x, sizeof(x), 0);
+      add_randomness (&x, sizeof(x), RANDOM_ORIGIN_INIT);
       just_mixed = 0; /* Make sure it will get mixed. */
       my_pid = x;     /* Also update the static pid. */
       goto retry;
@@ -962,24 +943,20 @@ read_pool (byte *buffer, size_t length, int level)
 }
 
 
-/*
- * Add LENGTH bytes of randomness from buffer to the pool.
- * source may be used to specify the randomness source.
- * Source is:
- *	0 - used ony for initialization
- *	1 - fast random poll function
- *	2 - normal poll function
- *	3 - used when level 2 random quality has been requested
- *	    to do an extra pool seed.
- */
+
+/* Add LENGTH bytes of randomness from buffer to the pool.  ORIGIN is
+   used to specify the randomness origin.  This is one of the
+   RANDOM_ORIGIN_* values. */
 static void
-add_randomness( const void *buffer, size_t length, int source )
+add_randomness( const void *buffer, size_t length, int origin )
 {
-  const byte *p = buffer;
+  const unsigned char *p = buffer;
 
   assert (pool_is_locked);
+
   if (!is_initialized)
     initialize ();
+
   rndstats.addbytes += length;
   rndstats.naddbytes++;
   while (length-- )
@@ -987,7 +964,7 @@ add_randomness( const void *buffer, size_t length, int source )
       rndpool[pool_writepos++] ^= *p++;
       if (pool_writepos >= POOLSIZE )
         {
-          if (source > 1)
+          if (origin >= RANDOM_ORIGIN_SLOWPOLL)
             pool_filled = 1;
           pool_writepos = 0;
           mix_pool(rndpool); rndstats.mixrnd++;
@@ -1002,7 +979,7 @@ static void
 random_poll()
 {
   rndstats.slowpolls++;
-  read_random_source (2, POOLSIZE/5, 1);
+  read_random_source (RANDOM_ORIGIN_SLOWPOLL, POOLSIZE/5, GCRY_STRONG_RANDOM);
 }
 
 
@@ -1010,11 +987,8 @@ static int (*
 getfnc_gather_random (void))(void (*)(const void*, size_t, int), int,
 			     size_t, int)
 {
-  static int (*fnc)(void (*)(const void*, size_t, int), int, size_t, int);
+  int (*fnc)(void (*)(const void*, size_t, int), int, size_t, int);
   
-  if (fnc)
-    return fnc;
-
 #if USE_RNDLINUX
   if ( !access (NAME_OF_DEV_RANDOM, R_OK)
        && !access (NAME_OF_DEV_URANDOM, R_OK))
@@ -1077,35 +1051,35 @@ do_fast_random_poll (void)
     }
 
   if (fnc)
-    (*fnc)( add_randomness, 1 );
+    (*fnc)( add_randomness, RANDOM_ORIGIN_FASTPOLL );
 
   /* Continue with the generic functions. */
 #if HAVE_GETHRTIME
   {	
     hrtime_t tv;
     tv = gethrtime();
-    add_randomness( &tv, sizeof(tv), 1 );
+    add_randomness( &tv, sizeof(tv), RANDOM_ORIGIN_FASTPOLL );
   }
 #elif HAVE_GETTIMEOFDAY
   {	
     struct timeval tv;
     if( gettimeofday( &tv, NULL ) )
       BUG();
-    add_randomness( &tv.tv_sec, sizeof(tv.tv_sec), 1 );
-    add_randomness( &tv.tv_usec, sizeof(tv.tv_usec), 1 );
+    add_randomness( &tv.tv_sec, sizeof(tv.tv_sec), RANDOM_ORIGIN_FASTPOLL );
+    add_randomness( &tv.tv_usec, sizeof(tv.tv_usec), RANDOM_ORIGIN_FASTPOLL );
   }
 #elif HAVE_CLOCK_GETTIME
   {	struct timespec tv;
   if( clock_gettime( CLOCK_REALTIME, &tv ) == -1 )
     BUG();
-  add_randomness( &tv.tv_sec, sizeof(tv.tv_sec), 1 );
-  add_randomness( &tv.tv_nsec, sizeof(tv.tv_nsec), 1 );
+  add_randomness( &tv.tv_sec, sizeof(tv.tv_sec), RANDOM_ORIGIN_FASTPOLL );
+  add_randomness( &tv.tv_nsec, sizeof(tv.tv_nsec), RANDOM_ORIGIN_FASTPOLL );
   }
 #else /* use times */
 # ifndef HAVE_DOSISH_SYSTEM
   {	struct tms buf;
   times( &buf );
-  add_randomness( &buf, sizeof buf, 1 );
+  add_randomness( &buf, sizeof buf, RANDOM_ORIGIN_FASTPOLL );
   }
 # endif
 #endif
@@ -1119,7 +1093,7 @@ do_fast_random_poll (void)
        at all (i.e. because /proc/ is not accessible), so we better
        ignore all error codes and hope for the best. */
     getrusage (RUSAGE_SELF, &buf );
-    add_randomness( &buf, sizeof buf, 1 );
+    add_randomness( &buf, sizeof buf, RANDOM_ORIGIN_FASTPOLL );
     memset( &buf, 0, sizeof buf );
   }
 # else /*!RUSAGE_SELF*/
@@ -1133,11 +1107,11 @@ do_fast_random_poll (void)
      just in case one of the above functions didn't work */
   {
     time_t x = time(NULL);
-    add_randomness( &x, sizeof(x), 1 );
+    add_randomness( &x, sizeof(x), RANDOM_ORIGIN_FASTPOLL );
   }
   {	
     clock_t x = clock();
-    add_randomness( &x, sizeof(x), 1 );
+    add_randomness( &x, sizeof(x), RANDOM_ORIGIN_FASTPOLL );
   }
 }
 
@@ -1174,7 +1148,7 @@ _gcry_fast_random_poll (void)
 
 
 static void
-read_random_source( int requester, size_t length, int level )
+read_random_source ( int orgin, size_t length, int level )
 {
   static int (*fnc)(void (*)(const void*, size_t, int), int,
                              size_t, int) = NULL;
@@ -1190,56 +1164,49 @@ read_random_source( int requester, size_t length, int level )
           faked_rng = 1;
           fnc = gather_faked;
 	}
-      if (!requester && !length && !level)
+      if (!orgin && !length && !level)
         return; /* Just the init was requested. */
     }
 
-  if ((*fnc)( add_randomness, requester, length, level ) < 0)
+  if ((*fnc)( add_randomness, orgin, length, level ) < 0)
     log_fatal ("No way to gather entropy for the RNG\n");
 }
 
 
 static int
-gather_faked( void (*add)(const void*, size_t, int), int requester,
+gather_faked( void (*add)(const void*, size_t, int), int origin,
 	      size_t length, int level )
 {
-    static int initialized=0;
-    size_t n;
-    char *buffer, *p;
-
-    (void)add;
-    (void)level;
-
-    if( !initialized ) {
-	log_info(_("WARNING: using insecure random number generator!!\n"));
-	/* we can't use tty_printf here - do we need this function at
-	  all - does it really make sense or canit be viewed as a potential
-	  security problem ? wk 17.11.99 */
-#if 0
-	tty_printf(_("The random number generator is only a kludge to let\n"
-		   "it run - it is in no way a strong RNG!\n\n"
-		   "DON'T USE ANY DATA GENERATED BY THIS PROGRAM!!\n\n"));
-#endif
-	initialized=1;
+  static int initialized=0;
+  size_t n;
+  char *buffer, *p;
+  
+  (void)add;
+  (void)level;
+  
+  if ( !initialized )
+    {
+      log_info(_("WARNING: using insecure random number generator!!\n"));
+      initialized=1;
 #ifdef HAVE_RAND
-	srand( time(NULL)*getpid());
+      srand( time(NULL)*getpid());
 #else
-	srandom( time(NULL)*getpid());
+      srandom( time(NULL)*getpid());
 #endif
     }
 
-    p = buffer = gcry_xmalloc( length );
-    n = length;
+  p = buffer = gcry_xmalloc( length );
+  n = length;
 #ifdef HAVE_RAND
-    while( n-- )
-	*p++ = ((unsigned)(1 + (int) (256.0*rand()/(RAND_MAX+1.0)))-1);
+  while ( n-- )
+    *p++ = ((unsigned)(1 + (int) (256.0*rand()/(RAND_MAX+1.0)))-1);
 #else
-    while( n-- )
-	*p++ = ((unsigned)(1 + (int) (256.0*random()/(RAND_MAX+1.0)))-1);
+  while ( n-- )
+    *p++ = ((unsigned)(1 + (int) (256.0*random()/(RAND_MAX+1.0)))-1);
 #endif
-    add_randomness( buffer, length, requester );
-    gcry_free(buffer);
-    return 0; /* okay */
+  add_randomness ( buffer, length, origin );
+  gcry_free (buffer);
+  return 0; /* okay */
 }
 
 
