@@ -21,6 +21,18 @@
 #define G10_RAND_INTERNAL_H
 
 
+/* Constants used to define the origin of random added to the pool.
+   The code is sensitive to the order of the values.  */
+enum random_origins 
+  {
+    RANDOM_ORIGIN_INIT = 0,      /* Used only for initialization. */
+    RANDOM_ORIGIN_FASTPOLL = 1,  /* Fast random poll function.  */
+    RANDOM_ORIGIN_SLOWPOLL = 2,  /* Slow poll function.  */
+    RANDOM_ORIGIN_EXTRAPOLL = 3  /* Used to mark an extra pool seed
+                                    due to a GCRY_VERY_STRONG_RANDOM
+                                    random request.  */
+  };
+
 
 
 
@@ -28,17 +40,26 @@ void _gcry_random_progress (const char *what, int printchar,
                             int current, int total);
 
 
-int _gcry_rndlinux_gather_random (void (*add) (const void *, size_t, int),
-                                  int requester, size_t length, int level);
-int _gcry_rndunix_gather_random (void (*add) (const void *, size_t, int),
-                                 int requester, size_t length, int level);
-int _gcry_rndegd_gather_random (void (*add) (const void *, size_t, int),
-                                int requester, size_t length, int level);
+int _gcry_rndlinux_gather_random (void (*add) (const void *, size_t,
+                                               enum random_origins),
+                                   enum random_origins origin,
+                                  size_t length, int level);
+int _gcry_rndunix_gather_random (void (*add) (const void *, size_t,
+                                              enum random_origins),
+                                 enum random_origins origin,
+                                 size_t length, int level);
+int _gcry_rndegd_gather_random (void (*add) (const void *, size_t,
+                                             enum random_origins),
+                                enum random_origins origin,
+                                size_t length, int level);
 int _gcry_rndegd_connect_socket (int nofail);
-int _gcry_rndw32_gather_random (void (*add) (const void *, size_t, int),
-                                int requester, size_t length, int level);
-void _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t, int),
-                                      int requester );
+int _gcry_rndw32_gather_random (void (*add) (const void *, size_t,
+                                             enum random_origins),
+                                enum random_origins origin,
+                                size_t length, int level);
+void _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t, 
+                                                  enum random_origins),
+                                      enum random_origins origin );
 
 
 

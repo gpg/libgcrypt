@@ -768,8 +768,9 @@ read_a_msg( int fd, GATHER_MSG *msg )
  * to the pool.  So this is just a dummy for this gatherer.
  */
 int
-_gcry_rndunix_gather_random (void (*add)(const void*, size_t, int),
-                             int requester,
+_gcry_rndunix_gather_random (void (*add)(const void*, size_t,
+                                         enum random_origins),
+                             enum random_origins origin,
                              size_t length, int level )
 {
     static pid_t gatherer_pid = 0;
@@ -835,7 +836,7 @@ _gcry_rndunix_gather_random (void (*add)(const void*, size_t, int),
 	n = msg.ndata;
 	if( n > length )
 	    n = length;
-	(*add)( msg.data, n, requester );
+	(*add)( msg.data, n, origin );
 
 	/* this is the trick how we cope with the goodness */
 	subtract = (ulong)n * goodness / 100;

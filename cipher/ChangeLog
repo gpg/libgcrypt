@@ -1,3 +1,25 @@
+2007-03-14  Werner Koch  <wk@g10code.com>
+
+	* random.c (MASK_LEVEL): Removed macro as it was used only at one
+	place.  Open coded it there.
+	(gcry_randomize, _gcry_update_random_seed_file)
+	(_gcry_fast_random_poll): Factor lock code out to ..
+	(lock_pool, unlock_pool): .. new.
+	(initialize): Look the pool while allocating.  Still not
+	sufficiently thread-safe due to the unprotected is_initialized.
+	(read_random_source, do_fast_random_poll): Moved intialization to ...
+	(initialize): .. here.
+	(_gcry_enable_quick_random_gen): No more need for initialization.
+	
+	* random.c (enum random_origins): Moved to ..
+	* rand-internal.h: .. here.
+	* rndunix.c (_gcry_rndunix_gather_random): Use enum in prototype
+	for ORIGIN and renamed REQUESTOR to ORIGIN.
+	* rndegd.c (_gcry_rndegd_gather_random): Ditto.
+	* rndlinux.c (_gcry_rndlinux_gather_random): Ditto.
+	* rndw32.c (_gcry_rndw32_gather_random): Ditto.
+	(_gcry_rndw32_gather_random_fast): Ditto.
+
 2007-03-13  Werner Koch  <wk@g10code.com>
 
 	* random.c (enum random_origins): New.

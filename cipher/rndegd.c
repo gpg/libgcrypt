@@ -176,8 +176,9 @@ _gcry_rndegd_connect_socket (int nofail)
  * to the pool.  So this is just a dummy for EGD.
  */
 int
-_gcry_rndegd_gather_random (void (*add)(const void*, size_t, int),
-                            int requester,
+_gcry_rndegd_gather_random (void (*add)(const void*, size_t,
+                                        enum random_origins),
+                            enum random_origins origin,
                             size_t length, int level )
 {
   int fd = egd_socket;
@@ -220,7 +221,7 @@ _gcry_rndegd_gather_random (void (*add)(const void*, size_t, int),
           do_restart = 1;
           goto restart;
 	}
-      (*add)( buffer, n, requester );
+      (*add)( buffer, n, origin );
       length -= n;
     }
 
@@ -246,7 +247,7 @@ _gcry_rndegd_gather_random (void (*add)(const void*, size_t, int),
           do_restart = 1;
           goto restart;
 	}
-      (*add)( buffer, n, requester );
+      (*add)( buffer, n, origin );
       length -= n;
     }
   memset(buffer, 0, sizeof(buffer) );

@@ -55,10 +55,10 @@
 #include "rmd.h"
 #include "random.h"
 #include "rand-internal.h"
-#include "cipher.h" /* only used for the rmd160_hash_buffer() prototype */
+#include "cipher.h" /* Required for the rmd160_hash_buffer() prototype.  */
 #include "ath.h"
 
-#ifndef RAND_MAX   /* for SunOS */
+#ifndef RAND_MAX   /* For SunOS. */
 #define RAND_MAX 32767
 #endif
 
@@ -69,7 +69,7 @@
 #define LOCK_SEED_FILE 0
 #endif
 
-
+/* Define the constant we use for transforming the pool at read-out. */
 #if SIZEOF_UNSIGNED_LONG == 8
 #define ADD_VALUE 0xa5a5a5a5a5a5a5a5
 #elif SIZEOF_UNSIGNED_LONG == 4
@@ -78,13 +78,14 @@
 #error weird size for an unsigned long
 #endif
 
+/* Contstants pertaining to the hash pool. */
 #define BLOCKLEN  64   /* Hash this amount of bytes... */
 #define DIGESTLEN 20   /* ... into a digest of this length (rmd160). */
-/* POOLBLOCKS is the number of digests which make up the pool and
-   POOLSIZE must be a multiple of the digest length to make the AND
+/* POOLBLOCKS is the number of digests which make up the pool.  */
+#define POOLBLOCKS 30
+/* POOLSIZE must be a multiple of the digest length to make the AND
    operations faster, the size should also be a multiple of unsigned
    long.  */
-#define POOLBLOCKS 30
 #define POOLSIZE (POOLBLOCKS*DIGESTLEN)
 #if (POOLSIZE % SIZEOF_UNSIGNED_LONG)
 #error Please make sure that poolsize is a multiple of unsigned long
@@ -92,72 +93,102 @@
 #define POOLWORDS (POOLSIZE / SIZEOF_UNSIGNED_LONG)
 
 
-/* Constants used to define the origin of random added to the pool.
-   The code is sensitive to the order of the values.  */
-enum random_origins 
-  {
-    RANDOM_ORIGIN_INIT = 0,      /* Used only for initialization. */
-    RANDOM_ORIGIN_FASTPOLL = 1,  /* Fast random poll function.  */
-    RANDOM_ORIGIN_SLOWPOLL = 2,  /* Slow poll function.  */
-    RANDOM_ORIGIN_EXTRAPOLL = 3  /* Used to mark an extra pool seed
-                                    due to a GCRY_VERY_STRONG_RANDOM
-                                    random request.  */
-  };
-
 /* Flag to tell whether this module has been initialized.  */
 static int is_initialized;
 
-#define MASK_LEVEL(a) do { (a) &= 3; } while(0)
-static unsigned char *rndpool;	/* Allocated size is POOLSIZE+BLOCKLEN.  */
-static unsigned char *keypool;	/* Allocated size is POOLSIZE+BLOCKLEN.  */
-static size_t pool_readpos;
+
+/* RNDPOOL is the pool we use to collect the entropy and to stir it
+   up.  Its allocated size is POOLSIZE+BLOCKLEN.  */
+static unsigned char *rndpool;	
+/* KEYPOOL is used as a scratch copy to read out random from RNDPOOL.
+   Its allocated size is also POOLSIZE+BLOCKLEN.  */
+static unsigned char *keypool;	
+
+/* This is the offset into RNDPOOL where the next random bytes are to
+   be mixed in.  */
 static size_t pool_writepos;
+
+/* When reading data out of KEYPOOL, we start the read at different
+   positions.  This variable keeps track on where to read next.  */
+static size_t pool_readpos;
+
+/* This flag is set to true as soon as the pool has been completely
+   filles.  This may happen either by rerading a seed file or by
+   adding enough entropy.  */
 static int pool_filled;
-static int pool_balance;
-static int just_mixed;
+
+/* If random of level GCRY_VERY_STRONG_RANDOM has been requested we
+   have stricter requirements on what kind of entropy is in the pool.
+   In particular POOL_FILLED is not sufficient.  Thus we add some
+   extra seeding and set this flag to true if the extra seeding has
+   been done.  */
 static int did_initial_extra_seeding;
+
+/* This variable is used to estimated the amount of fresh entropy
+   available in RNDPOOL.  */
+static int pool_balance;
+
+/* After a mixing operation this variable will be set to true and
+   cleared if new entropy has been added or a remix is required for
+   otehr reasons.  */
+static int just_mixed;
+
+/* The name of the seed file or NULL if no seed file has been defined.
+   The seed file needs to be regsitered at initialiation time.  we
+   keep a malloced copy here.  */
 static char *seed_file_name;
+
+/* If a seed file has been registered and maybe updated on exit this
+   flag set. */
 static int allow_seed_file_update;
 
-
-#ifdef USE_RANDOM_DAEMON
-
-/* If ALLOW_DAEMON is true, the module will try to use the random
-   daemon first.  If the daemon has failed, this variable is set to
-   back to false and the codecontinues as normal.  Note, we don't test
-   this flag in a locked state because a wrong value does not harm and
-   the trhead will find out itself that the daemon does not work and
-   set it (again) to false.  */
-static int allow_daemon;       
-
-/* During initialization, the user may set a non-default socket name
-   for accessing the random daemon.  If this value is NULL, the
-   default name will be used. */
-static char *daemon_socket_name;
-
-#endif /*USE_RANDOM_DAEMON*/
-
-
+/* Option flag set at initialiation time to force allocation of the
+   pool in secure memory.  */
 static int secure_alloc;
+
+/* This function pointer is set to the actual entropy gathering
+   function during initailization.  After initialization it is
+   guaranteed to point to function.  (On systems without a random
+   gatherer module a dummy function is used).*/
+static int (*slow_gather_fnc)(void (*)(const void*, size_t,
+                                       enum random_origins),
+                              enum random_origins, size_t, int);
+
+/* This function is set to the actual fast entropy gathering fucntion
+   during initialization.  If it is NULL, no such function is
+   available. */
+static void (*fast_gather_fnc)(void (*)(const void*, size_t,
+                                        enum random_origins),
+                               enum random_origins);
+
+
+/* Option flag useful for debugging and the test suite.  If set
+   requests for very strong random are degraded to strong random.  Not
+   used by regualr applications.  */
 static int quick_test;
+
+/* On systems without entropy gathering modules, this flag is set to
+   indicate that the random generator is not working properly.  A
+   warning message is issued as well.  This is useful only for
+   debugging and during development.  */
 static int faked_rng;
 
+/* This is the lock we use to protect all pool operations.  */
 static ath_mutex_t pool_lock = ATH_MUTEX_INITIALIZER;
 
-static int pool_is_locked; /* Only used to assert that functions are
-                              called in a locked state.  It is not
-                              meant to be a thread-safe fucntion */
+/* This is a helper for assert calls.  These calls are used to assert
+   that functions are called in a locked state.  It is not meant to be
+   thread-safe but as a method to get aware of missing locks in the
+   test suite.  */
+static int pool_is_locked;
 
+/* This is the lock we use to protect the buffer used by the nonce
+   generation.  */
 static ath_mutex_t nonce_buffer_lock = ATH_MUTEX_INITIALIZER;
 
-static void read_pool( byte *buffer, size_t length, int level );
-static void add_randomness (const void *buffer, size_t length, int origin);
-static void random_poll(void);
-static void do_fast_random_poll (void);
-static void read_random_source( int origin, size_t length, int level);
-static int gather_faked( void (*add)(const void*, size_t, int), int requester,
-						    size_t length, int level );
 
+/* We keep some counters in this structure for the sake of the
+   _gcry_random_dump_stats () function.  */
 static struct
 {
   unsigned long mixrnd;
@@ -172,11 +203,61 @@ static struct
   unsigned long naddbytes;
 } rndstats;
 
+
+/* If not NULL a progress function called from certain places and the
+   opaque value passed along.  Registred by
+   _gcry_register_random_progress (). */
 static void (*progress_cb) (void *,const char*,int,int, int );
 static void *progress_cb_data;
 
-/* Note, we assume that this function is used before any concurrent
-   access happens. */
+
+/* --- Stuff pertaining to the random daemon support. --- */
+#ifdef USE_RANDOM_DAEMON
+
+/* If ALLOW_DAEMON is true, the module will try to use the random
+   daemon first.  If the daemon has failed, this variable is set to
+   back to false and the code continues as normal.  Note, we don't
+   test this flag in a locked state because a wrong value does not
+   harm and the trhead will find out itself that the daemon does not
+   work and set it (again) to false.  */
+static int allow_daemon;       
+
+/* During initialization, the user may set a non-default socket name
+   for accessing the random daemon.  If this value is NULL, the
+   default name will be used. */
+static char *daemon_socket_name;
+
+#endif /*USE_RANDOM_DAEMON*/
+
+
+
+/* ---  Prototypes  --- */
+static void read_pool (byte *buffer, size_t length, int level );
+static void add_randomness (const void *buffer, size_t length, 
+                            enum random_origins origin);
+static void random_poll (void);
+static void do_fast_random_poll (void);
+static int (*getfnc_gather_random (void))(void (*)(const void*, size_t, 
+                                                   enum random_origins), 
+                                          enum random_origins, size_t, int);
+static void (*getfnc_fast_random_poll (void))(void (*)(const void*, size_t,
+                                                       enum random_origins),
+                                              enum random_origins);
+static void read_random_source (enum random_origins origin,
+                                size_t length, int level);
+static int gather_faked (void (*add)(const void*, size_t, enum random_origins),
+                         enum random_origins, size_t length, int level );
+
+
+
+/* ---  Functions  --- */
+
+
+/* Basic initialization which is required to initialize mutexes and
+   such.  It does not run a full initialization so that the filling of
+   the random pool can be delayed until it is actually needed.  We
+   assume that this function is used before any concurrent access
+   happens. */
 static void
 initialize_basics(void)
 {
@@ -207,19 +288,65 @@ initialize_basics(void)
     }
 }
 
+/* Take the pool lock. */
+static void
+lock_pool (void)
+{
+  int err; 
 
+  err = ath_mutex_lock (&pool_lock);
+  if (err)
+    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
+  pool_is_locked = 1;
+}
+
+/* Release the pool lock. */
+static void
+unlock_pool (void)
+{
+  int err; 
+
+  pool_is_locked = 0;
+  err = ath_mutex_unlock (&pool_lock);
+  if (err)
+    log_fatal ("failed to release the pool lock: %s\n", strerror (err));
+}
+
+
+/* Full initialization of this module. */
 static void
 initialize(void)
 {
   initialize_basics ();
-  /* The data buffer is allocated somewhat larger, so that we can use
-     this extra space (which is allocated in secure memory) as a
-     temporary hash buffer */
-  rndpool = secure_alloc ? gcry_xcalloc_secure (1, POOLSIZE + BLOCKLEN)
-                         : gcry_xcalloc (1, POOLSIZE + BLOCKLEN);
-  keypool = secure_alloc ? gcry_xcalloc_secure (1, POOLSIZE + BLOCKLEN)
-                         : gcry_xcalloc (1, POOLSIZE + BLOCKLEN);
-  is_initialized = 1;
+
+  lock_pool ();
+  if (!rndpool)
+    {
+      /* The data buffer is allocated somewhat larger, so that we can
+         use this extra space (which is allocated in secure memory) as
+         a temporary hash buffer */
+      rndpool = (secure_alloc
+                 ? gcry_xcalloc_secure (1, POOLSIZE + BLOCKLEN)
+                 : gcry_xcalloc (1, POOLSIZE + BLOCKLEN));
+      keypool = (secure_alloc
+                 ? gcry_xcalloc_secure (1, POOLSIZE + BLOCKLEN)
+                 : gcry_xcalloc (1, POOLSIZE + BLOCKLEN));
+      is_initialized = 1;
+
+      /* Setup the slow entropy gathering function.  The code requires
+         that this function exists. */
+      slow_gather_fnc = getfnc_gather_random ();
+      if (!slow_gather_fnc)
+        {
+          faked_rng = 1;
+          slow_gather_fnc = gather_faked;
+	}
+      
+      /* Setup the fast entropy gathering function.  */
+      fast_gather_fnc = getfnc_fast_random_poll ();
+
+    }
+  unlock_pool ();
 
 }
 
@@ -259,34 +386,36 @@ _gcry_random_initialize (int full)
 
 
 void
-_gcry_random_dump_stats()
+_gcry_random_dump_stats ()
 {
-  /* FIXME: don't we need proper locking here? -mo */
+  /* FIXME: don't we need proper locking here? -mo.  
+     Yes. However this is usually called during cleanup and thenwe _
+     might_ run into problems.  Needs to be checked.  -wk */
 
-    log_info (
-	    "random usage: poolsize=%d mixed=%lu polls=%lu/%lu added=%lu/%lu\n"
+  log_info ("random usage: poolsize=%d mixed=%lu polls=%lu/%lu added=%lu/%lu\n"
 	    "              outmix=%lu getlvl1=%lu/%lu getlvl2=%lu/%lu\n",
-	POOLSIZE, rndstats.mixrnd, rndstats.slowpolls, rndstats.fastpolls,
-		  rndstats.naddbytes, rndstats.addbytes,
-	rndstats.mixkey, rndstats.ngetbytes1, rndstats.getbytes1,
-		    rndstats.ngetbytes2, rndstats.getbytes2 );
+            POOLSIZE, rndstats.mixrnd, rndstats.slowpolls, rndstats.fastpolls,
+            rndstats.naddbytes, rndstats.addbytes,
+            rndstats.mixkey, rndstats.ngetbytes1, rndstats.getbytes1,
+            rndstats.ngetbytes2, rndstats.getbytes2 );
 }
 
 
+/* This function should be called during initialization and beore
+   intialization of this module to palce the random pools into secure
+   memory.  */
 void
 _gcry_secure_random_alloc()
 {
-    secure_alloc = 1;
+  secure_alloc = 1;
 }
 
 
+/* This may be called before full initialization to degrade the
+   quality of the RNG for the sake of a faster running test suite.  */
 void
 _gcry_enable_quick_random_gen (void)
 {
-  /* No need to lock it here because we are only initializing.  A
-     prerequisite of the entire code is that it has already been
-     initialized before any possible concurrent access.  */
-  read_random_source (RANDOM_ORIGIN_INIT, 0, GCRY_WEAK_RANDOM); /* Init */
   quick_test = 1;
 }
 
@@ -326,6 +455,8 @@ _gcry_use_random_daemon (int onoff)
 }
 
 
+/* This function returns true if no real RNG is available or the
+   quality of the RNG has been degraded for test purposes.  */
 int
 _gcry_random_is_faked()
 {
@@ -358,6 +489,7 @@ gcry_random_add_bytes (const void * buf, size_t buflen, int quality)
 #endif
   return err;
 }   
+
     
 /* The public function to return random data of the quality LEVEL.
    Returns a pointer to a newly allocated and randomized buffer of
@@ -375,6 +507,7 @@ gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
 
   return buffer;
 }
+
 
 /* The public function to return random data of the quality LEVEL;
    this version of the function returns the random in a buffer allocated
@@ -404,7 +537,6 @@ void
 gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {
   unsigned char *p;
-  int err;
 
   /* Make sure we are initialized. */
   if (!is_initialized)
@@ -415,7 +547,7 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
     level = GCRY_STRONG_RANDOM;
 
   /* Make sure the level is okay. */
-  MASK_LEVEL(level);
+  level &= 3;
 
 #ifdef USE_RANDOM_DAEMON
   if (allow_daemon
@@ -425,10 +557,7 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 #endif /*USE_RANDOM_DAEMON*/
 
   /* Acquire the pool lock. */
-  err = ath_mutex_lock (&pool_lock);
-  if (err)
-    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
-  pool_is_locked = 1;
+  lock_pool ();
 
   /* Update the statistics. */
   if (level >= GCRY_VERY_STRONG_RANDOM)
@@ -454,11 +583,7 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
     }
 
   /* Release the pool lock. */
-  pool_is_locked = 0;
-  err = ath_mutex_unlock (&pool_lock);
-  if (err)
-    log_fatal ("failed to release the pool lock: %s\n", strerror (err));
-
+  unlock_pool ();
 }
 
 
@@ -618,10 +743,8 @@ lock_seed_file (int fd, const char *fname, int for_write)
 }
 
 
-/*
-  Read in a seed form the random_seed file
-  and return true if this was successful.
- */
+/* Read in a seed form the random_seed file
+   and return true if this was successful.   */
 static int
 read_seed_file (void)
 {
@@ -729,7 +852,6 @@ _gcry_update_random_seed_file()
 {
   unsigned long *sp, *dp;
   int fd, i;
-  int err;
   
   if ( !seed_file_name || !is_initialized || !pool_filled )
     return;
@@ -739,10 +861,7 @@ _gcry_update_random_seed_file()
       return;
     }
 
-  err = ath_mutex_lock (&pool_lock);
-  if (err)
-    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
-  pool_is_locked = 1;
+  lock_pool ();
 
   /* Copy the entropy pool to a scratch pool and mix both of them. */
   for (i=0,dp=(unsigned long*)keypool, sp=(unsigned long*)rndpool;
@@ -790,11 +909,7 @@ _gcry_update_random_seed_file()
         log_info (_("can't close `%s': %s\n"),seed_file_name, strerror(errno));
     }
   
-  pool_is_locked = 0;
-  err = ath_mutex_unlock (&pool_lock);
-  if (err)
-    log_fatal ("failed to release the pool lock: %s\n", strerror (err));
-
+  unlock_pool ();
 }
 
 
@@ -948,7 +1063,7 @@ read_pool (byte *buffer, size_t length, int level)
    used to specify the randomness origin.  This is one of the
    RANDOM_ORIGIN_* values. */
 static void
-add_randomness( const void *buffer, size_t length, int origin )
+add_randomness (const void *buffer, size_t length, enum random_origins origin)
 {
   const unsigned char *p = buffer;
 
@@ -983,11 +1098,14 @@ random_poll()
 }
 
 
+/* Runtime determination of the slow entropy gathering module.  */
 static int (*
-getfnc_gather_random (void))(void (*)(const void*, size_t, int), int,
-			     size_t, int)
+getfnc_gather_random (void))(void (*)(const void*, size_t, 
+                                      enum random_origins), 
+                             enum random_origins, size_t, int)
 {
-  int (*fnc)(void (*)(const void*, size_t, int), int, size_t, int);
+  int (*fnc)(void (*)(const void*, size_t, enum random_origins), 
+             enum random_origins, size_t, int);
   
 #if USE_RNDLINUX
   if ( !access (NAME_OF_DEV_RANDOM, R_OK)
@@ -1021,8 +1139,12 @@ getfnc_gather_random (void))(void (*)(const void*, size_t, int), int,
   return NULL; /*NOTREACHED*/
 }
 
+/* Runtime determination of the fast entropy gathering function.
+   (Currently a compile time method is used.)  */
 static void (*
-getfnc_fast_random_poll (void))( void (*)(const void*, size_t, int), int)
+getfnc_fast_random_poll (void))( void (*)(const void*, size_t,
+                                          enum random_origins),
+                                 enum random_origins)
 {
 #if USE_RNDW32
   return _gcry_rndw32_gather_random_fast;
@@ -1035,23 +1157,12 @@ getfnc_fast_random_poll (void))( void (*)(const void*, size_t, int), int)
 static void
 do_fast_random_poll (void)
 {
-  static void (*fnc)( void (*)(const void*, size_t, int), int) = NULL;
-  static int initialized = 0;
-
   assert (pool_is_locked);
 
   rndstats.fastpolls++;
 
-  if (!initialized )
-    {
-      if (!is_initialized )
-        initialize();
-      initialized = 1;
-      fnc = getfnc_fast_random_poll ();
-    }
-
-  if (fnc)
-    (*fnc)( add_randomness, RANDOM_ORIGIN_FASTPOLL );
+  if (fast_gather_fnc)
+    fast_gather_fnc (add_randomness, RANDOM_ORIGIN_FASTPOLL);
 
   /* Continue with the generic functions. */
 #if HAVE_GETHRTIME
@@ -1126,56 +1237,30 @@ do_fast_random_poll (void)
 void
 _gcry_fast_random_poll (void)
 {
-  int err;
-
   if (!is_initialized)
     return;
 
-  err = ath_mutex_lock (&pool_lock);
-  if (err)
-    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
-  pool_is_locked = 1;
-
+  lock_pool ();
   do_fast_random_poll ();
-
-  pool_is_locked = 0;
-  err = ath_mutex_unlock (&pool_lock);
-  if (err)
-    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
-
+  unlock_pool ();
 }
 
 
 
 static void
-read_random_source ( int orgin, size_t length, int level )
+read_random_source (enum random_origins orgin, size_t length, int level )
 {
-  static int (*fnc)(void (*)(const void*, size_t, int), int,
-                             size_t, int) = NULL;
-  if (!fnc ) 
-    {
-      if (!is_initialized )
-        initialize();
+  if ( !slow_gather_fnc )
+    log_fatal ("Slow entropy gathering module not yet initialized\n");
 
-      fnc = getfnc_gather_random ();
-
-      if (!fnc)
-        {
-          faked_rng = 1;
-          fnc = gather_faked;
-	}
-      if (!orgin && !length && !level)
-        return; /* Just the init was requested. */
-    }
-
-  if ((*fnc)( add_randomness, orgin, length, level ) < 0)
+  if ( slow_gather_fnc (add_randomness, orgin, length, level) < 0)
     log_fatal ("No way to gather entropy for the RNG\n");
 }
 
 
 static int
-gather_faked( void (*add)(const void*, size_t, int), int origin,
-	      size_t length, int level )
+gather_faked (void (*add)(const void*, size_t, enum random_origins),
+              enum random_origins origin, size_t length, int level )
 {
   static int initialized=0;
   size_t n;

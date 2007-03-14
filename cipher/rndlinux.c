@@ -37,9 +37,6 @@
 #include "rand-internal.h"
 
 static int open_device ( const char *name );
-int _gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
-                                  int requester,
-                                  size_t length, int level );
 
 
 static int
@@ -88,8 +85,9 @@ open_device ( const char *name )
 
 
 int
-_gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
-                              int requester,
+_gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
+                                          enum random_origins),
+                              enum random_origins origin,
                               size_t length, int level )
 {
   static int fd_urandom = -1;
@@ -150,7 +148,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t, int),
         while( n == -1 && errno == EINTR );
 	if( n == -1 )
           log_fatal("read error on random device: %s\n", strerror(errno));
-	(*add)( buffer, n, requester );
+	(*add)( buffer, n, origin );
 	length -= n;
     }
   memset(buffer, 0, sizeof(buffer) );
