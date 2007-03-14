@@ -93,13 +93,12 @@
 #define POOLWORDS (POOLSIZE / SIZEOF_UNSIGNED_LONG)
 
 
-/* Flag to tell whether this module has been initialized.  */
-static int is_initialized;
-
-
 /* RNDPOOL is the pool we use to collect the entropy and to stir it
-   up.  Its allocated size is POOLSIZE+BLOCKLEN.  */
+   up.  Its allocated size is POOLSIZE+BLOCKLEN.  Note that this is
+   also an indication on whether the module has been fully
+   initialized. */
 static unsigned char *rndpool;	
+
 /* KEYPOOL is used as a scratch copy to read out random from RNDPOOL.
    Its allocated size is also POOLSIZE+BLOCKLEN.  */
 static unsigned char *keypool;	
@@ -317,8 +316,12 @@ unlock_pool (void)
 static void
 initialize(void)
 {
+  /* Although the basic initialization should have happened already,
+     we call it here to make sure that all prerequisites are met.  */
   initialize_basics ();
 
+  /* Now we can look the pool and complete the initialization if
+     necessary.  */
   lock_pool ();
   if (!rndpool)
     {
@@ -331,7 +334,6 @@ initialize(void)
       keypool = (secure_alloc
                  ? gcry_xcalloc_secure (1, POOLSIZE + BLOCKLEN)
                  : gcry_xcalloc (1, POOLSIZE + BLOCKLEN));
-      is_initialized = 1;
 
       /* Setup the slow entropy gathering function.  The code requires
          that this function exists. */
@@ -347,7 +349,6 @@ initialize(void)
 
     }
   unlock_pool ();
-
 }
 
 
@@ -380,7 +381,7 @@ _gcry_random_initialize (int full)
 {
   if (!full)
     initialize_basics ();
-  else if (!is_initialized)
+  else
     initialize ();
 }
 
@@ -460,8 +461,9 @@ _gcry_use_random_daemon (int onoff)
 int
 _gcry_random_is_faked()
 {
-  if( !is_initialized )
-    initialize();
+  /* We need to initialize due to the runtime determination of
+     available entropy gather modules.  */
+  initialize();
   return (faked_rng || quick_test);
 }
 
@@ -499,8 +501,7 @@ gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
 {
   void *buffer;
 
-  if (!is_initialized)
-    initialize();
+  initialize();
 
   buffer = gcry_xmalloc (nbytes);
   gcry_randomize (buffer, nbytes, level);
@@ -517,8 +518,7 @@ gcry_random_bytes_secure( size_t nbytes, enum gcry_random_level level )
 {
   void *buffer;
 
-  if (!is_initialized)
-    initialize();
+  initialize();
 
   buffer = secure_alloc ? gcry_xmalloc_secure (nbytes)
                         : gcry_xmalloc (nbytes);
@@ -539,8 +539,7 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
   unsigned char *p;
 
   /* Make sure we are initialized. */
-  if (!is_initialized)
-    initialize ();
+  initialize ();
 
   /* Handle our hack used for regression tests of Libgcrypt. */
   if ( quick_test && level > GCRY_STRONG_RANDOM )
@@ -852,16 +851,29 @@ _gcry_update_random_seed_file()
 {
   unsigned long *sp, *dp;
   int fd, i;
-  
-  if ( !seed_file_name || !is_initialized || !pool_filled )
-    return;
+
+  /* We do only a basic initialization so that we can lock the pool.
+     This is required to cope with the case that this function is
+     called by some cleanup code at a pouint where the RNG has never
+     been initialized.  */
+  initialize_basics ();
+  lock_pool ();
+
+  if ( !seed_file_name || !rndpool || !pool_filled )
+    {
+      unlock_pool ();
+      return;
+    }
   if ( !allow_seed_file_update )
     {
+      unlock_pool ();
       log_info(_("note: random_seed file not updated\n"));
       return;
     }
 
-  lock_pool ();
+  /* At this point we know that there is something in the pool and
+     thus we can conclude that the pool has been fully initialized.  */
+
 
   /* Copy the entropy pool to a scratch pool and mix both of them. */
   for (i=0,dp=(unsigned long*)keypool, sp=(unsigned long*)rndpool;
@@ -931,6 +943,7 @@ read_pool (byte *buffer, size_t length, int level)
   static volatile pid_t my_pid = (pid_t)(-1); 
   volatile pid_t my_pid2;
 
+  assert (pool_is_locked);
 
  retry:
   /* Get our own pid, so that we can detect a fork. */
@@ -1046,7 +1059,9 @@ read_pool (byte *buffer, size_t length, int level)
   /* We need to detect whether a fork has happened.  A fork might have
      an identical pool and thus the child and the parent could emit
      the very same random number.  This test here is to detect forks
-     in a multi-threaded process. */
+     in a multi-threaded process.  It does not work with all trhead
+     implementaions in particualr not with pthreads.  However it is
+     good enough for GNU Pth. */
   if ( getpid () != my_pid2 )
     {
       pid_t x = getpid();
@@ -1068,9 +1083,6 @@ add_randomness (const void *buffer, size_t length, enum random_origins origin)
   const unsigned char *p = buffer;
 
   assert (pool_is_locked);
-
-  if (!is_initialized)
-    initialize ();
 
   rndstats.addbytes += length;
   rndstats.naddbytes++;
@@ -1237,11 +1249,14 @@ do_fast_random_poll (void)
 void
 _gcry_fast_random_poll (void)
 {
-  if (!is_initialized)
-    return;
+  initialize_basics ();
 
   lock_pool ();
-  do_fast_random_poll ();
+  if (rndpool)
+    {
+      /* Yes, we are fully initalized. */
+      do_fast_random_poll ();
+    }
   unlock_pool ();
 }
 
@@ -1311,8 +1326,7 @@ gcry_create_nonce (void *buffer, size_t length)
   int err;
 
   /* Make sure we are initialized. */
-  if (!is_initialized)
-    initialize ();
+  initialize ();
 
 #ifdef USE_RANDOM_DAEMON
   if (allow_daemon

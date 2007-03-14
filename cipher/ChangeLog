@@ -5,12 +5,16 @@
 	(gcry_randomize, _gcry_update_random_seed_file)
 	(_gcry_fast_random_poll): Factor lock code out to ..
 	(lock_pool, unlock_pool): .. new.
-	(initialize): Look the pool while allocating.  Still not
-	sufficiently thread-safe due to the unprotected is_initialized.
+	(initialize): Look the pool while allocating. 
 	(read_random_source, do_fast_random_poll): Moved intialization to ...
 	(initialize): .. here.
 	(_gcry_enable_quick_random_gen): No more need for initialization.
-	
+	(is_initialized):  Moved this global flag to ..
+	(initialize): .. here and changed all users to unconditionally call
+	initialize.
+	(add_randomness): Remove initalization here.  It simply can't
+	happen. 
+
 	* random.c (enum random_origins): Moved to ..
 	* rand-internal.h: .. here.
 	* rndunix.c (_gcry_rndunix_gather_random): Use enum in prototype
