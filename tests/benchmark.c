@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdarg.h>
 #ifndef _WIN32
 #include <sys/times.h>
 #endif
@@ -226,6 +227,20 @@ static const char sample_public_dsa_key_3072[] =
 
 /* Helper for the start and stop timer. */
 static clock_t started_at, stopped_at;
+
+
+static void
+die (const char *format, ...)
+{
+  va_list arg_ptr ;
+
+  va_start( arg_ptr, format ) ;
+  putchar ('\n');
+  fputs ( PGM ": ", stderr);
+  vfprintf (stderr, format, arg_ptr );
+  va_end(arg_ptr);
+  exit (1);
+}
 
 
 static void
@@ -555,8 +570,8 @@ dsa_bench (void)
     }
 
 
-  fputs ("DSA 100 times    sign  verify\n"
-         "-----------------------------\n", stdout);
+  fputs ("Algorithm       generate  100*sign  100*verify\n"
+         "----------------------------------------------\n", stdout);
   for (i=0; i < DIM (q_sizes); i++)
     {
       gcry_mpi_t x;
@@ -572,7 +587,9 @@ dsa_bench (void)
           exit (1);
         }
 
-      printf ("DSA %d/%d ", p_sizes[i], q_sizes[i]);
+      printf ("DSA %d/%d           -", p_sizes[i], q_sizes[i]);
+      fflush (stdout);
+
       start_timer ();
       for (j=0; j < 100; j++)
         {
@@ -586,7 +603,8 @@ dsa_bench (void)
             }
         }
       stop_timer ();
-      printf (" %s", elapsed_time ());
+      printf ("   %s", elapsed_time ());
+      fflush (stdout);
 
       start_timer ();
       for (j=0; j < 100; j++)
@@ -601,7 +619,8 @@ dsa_bench (void)
             }
         }
       stop_timer ();
-      printf (" %s\n", elapsed_time ());
+      printf ("     %s\n", elapsed_time ());
+      fflush (stdout);
 
       gcry_sexp_release (sig);
       gcry_sexp_release (data);
@@ -613,6 +632,96 @@ dsa_bench (void)
       gcry_sexp_release (sec_key[i]);
       gcry_sexp_release (pub_key[i]);
     }
+}
+
+
+static void
+ecc_bench (void)
+{
+#if USE_ECC
+  gpg_error_t err;
+  int p_sizes[] = { 192, 256, 521 };
+  int testno;
+
+
+  fputs ("Algorithm       generate  100*sign  100*verify\n"
+         "----------------------------------------------\n", stdout);
+  for (testno=0; testno < DIM (p_sizes); testno++)
+    {
+      gcry_sexp_t key_spec, key_pair, pub_key, sec_key;
+      gcry_mpi_t x;
+      gcry_sexp_t data;
+      gcry_sexp_t sig = NULL;
+      int count;
+
+      printf ("ECDSA %3d bit ", p_sizes[testno]);
+      fflush (stdout);
+
+      err = gcry_sexp_build (&key_spec, NULL,
+                             "(genkey (ECDSA (nbits %d)))", p_sizes[testno]);
+      if (err)
+        die ("creating S-expression failed: %s\n", gcry_strerror (err));
+      
+
+      start_timer ();
+      err = gcry_pk_genkey (&key_pair, key_spec);
+      if (err)
+        die ("creating %d bit ECC key failed: %s\n",
+             p_sizes[testno], gcry_strerror (err));
+
+      pub_key = gcry_sexp_find_token (key_pair, "public-key", 0);
+      if (! pub_key)
+        die ("public part missing in key\n");
+      sec_key = gcry_sexp_find_token (key_pair, "private-key", 0);
+      if (! sec_key)
+        die ("private part missing in key\n");
+      gcry_sexp_release (key_pair);
+
+      stop_timer ();
+      printf ("   %s", elapsed_time ());
+      fflush (stdout);
+
+      x = gcry_mpi_new (p_sizes[testno]);
+      gcry_mpi_randomize (x, p_sizes[testno], GCRY_WEAK_RANDOM);
+      err = gcry_sexp_build (&data, NULL, "(data (flags raw) (value %m))", x);
+      gcry_mpi_release (x);
+      if (err)
+        die ("converting data failed: %s\n", gcry_strerror (err));
+
+      start_timer ();
+      for (count=0; count < 100; count++)
+        {
+          gcry_sexp_release (sig);
+          err = gcry_pk_sign (&sig, data, sec_key);
+          if (err)
+            die ("signing failed: %s\n", gpg_strerror (err));
+        }
+      stop_timer ();
+      printf ("   %s", elapsed_time ());
+      fflush (stdout);
+
+      start_timer ();
+      for (count=0; count < 100; count++)
+        {
+          err = gcry_pk_verify (sig, data, pub_key);
+          if (err)
+            {
+              putchar ('\n');
+              fprintf (stderr, PGM ": verify failed: %s\n",
+                       gpg_strerror (err));
+              exit (1);
+            }
+        }
+      stop_timer ();
+      printf ("     %s\n", elapsed_time ());
+      fflush (stdout);
+
+      gcry_sexp_release (sig);
+      gcry_sexp_release (data);
+      gcry_sexp_release (sec_key);
+      gcry_sexp_release (pub_key);
+    }
+#endif /*USE_ECC*/
 }
 
 
@@ -748,7 +857,13 @@ main( int argc, char **argv )
     }
   else if ( !strcmp (*argv, "dsa"))
     {
+        gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
         dsa_bench ();
+    }
+  else if ( !strcmp (*argv, "ecc"))
+    {
+        gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        ecc_bench ();
     }
   else
     {
