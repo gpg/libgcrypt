@@ -59,6 +59,9 @@ static struct pubkey_table_entry
 #if USE_DSA
     { &_gcry_pubkey_spec_dsa, GCRY_PK_DSA   },
 #endif
+#if USE_ECC
+    { &_gcry_pubkey_spec_ecdsa, GCRY_PK_ECDSA },
+#endif
     { NULL, 0 },
   };
 

@@ -57,6 +57,7 @@ crc.c \
 des.c \
 dsa.c \
 elgamal.c \
+ecc.c \
 md4.c \
 md5.c \
 rijndael.c \

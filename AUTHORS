@@ -1,6 +1,6 @@
 Library: Libgcrypt
 Maintainer: Werner Koch <wk@gnupg.org>
-Bug reports: <bug-libgcrypt@gnupg.org>
+Bug reports: <bug-libgcrypt@gnupg.org>  or http://bugs.gnupg.org
 Security related bug reports: <security@gnupg.org>
 
 Libgcrypt used to be part of GnuPG but has been taken out into its own
@@ -84,6 +84,8 @@ LIBGCRYPT       Werner Dittmann  ** pending **
 werner.dittmann@t-online.de
 (mpi/amd64, tests/mpitests.c)
 
+
+FIXME: The ECC code needs an entry here.
 
 
 More credits

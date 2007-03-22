@@ -280,6 +280,7 @@ check_run (void)
   gcry_sexp_release (skey);
 }
 
+
 int
 main (int argc, char **argv)
 {

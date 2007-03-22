@@ -1,3 +1,8 @@
+2007-03-22  Werner Koch  <wk@g10code.com>
+
+	* mpi-div.c (_gcry_mpi_mod): New.
+	* mpiutil.c (_gcry_mpi_new, _gcry_mpi_snew): New.
+
 2007-03-13  Werner Dittmann <Werner.Dittmann@t-online.de>  (wk)
 
 	* amd64/mpih-add1.S, amd64/mpih-add1.S, amd64/mpih-lshift.S

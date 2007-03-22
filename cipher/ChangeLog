@@ -1,3 +1,14 @@
+2007-03-22  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (pubkey_table): Initialize ECC.
+	* Makefile.am (EXTRA_libcipher_la_SOURCES): Add ecc.c.
+	* ecc.c: New. Heavily reformatted and changed for use in libgcrypt.
+	(point_init): New.
+	(escalar_mult): Make arg R the first arg to be similar to the mpi
+	functions.
+	(duplicate_point): Ditto
+	(sum_points): Ditto
+
 2007-03-14  Werner Koch  <wk@g10code.com>
 
 	* random.c (MASK_LEVEL): Removed macro as it was used only at one

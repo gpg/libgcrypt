@@ -44,14 +44,20 @@ gcry_err_code_t _gcry_dsa_generate2 (int algo, unsigned int nbits,
                                      gcry_mpi_t **retfactors);
 
 /*-- elgamal.c --*/
-void _gcry_register_pk_elg_progress (gcry_handler_progress_t cb, void *cb_data);
+void _gcry_register_pk_elg_progress (gcry_handler_progress_t cb,
+                                     void *cb_data);
 gcry_err_code_t _gcry_elg_generate_using_x (int algo, unsigned int nbits,
                                             gcry_mpi_t x, 
                                             gcry_mpi_t *skey,
                                             gcry_mpi_t **retfactors);
 
+/*-- ecc.c --*/
+void _gcry_register_pk_ecc_progress (gcry_handler_progress_t cbc,
+                                     void *cb_data);
+
 /*-- primegen.c --*/
-void _gcry_register_primegen_progress (gcry_handler_progress_t cb, void *cb_data);
+void _gcry_register_primegen_progress (gcry_handler_progress_t cb,
+                                       void *cb_data);
 
 /*-- pubkey.c --*/
 const char * _gcry_pk_aliased_algo_name (int algorithm);
@@ -92,5 +98,6 @@ extern gcry_md_spec_t _gcry_digest_spec_whirlpool;
 extern gcry_pk_spec_t _gcry_pubkey_spec_rsa;
 extern gcry_pk_spec_t _gcry_pubkey_spec_elg;
 extern gcry_pk_spec_t _gcry_pubkey_spec_dsa;
+extern gcry_pk_spec_t _gcry_pubkey_spec_ecdsa;
 
 #endif /*G10_CIPHER_H*/

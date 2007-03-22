@@ -1,3 +1,7 @@
+2007-03-22  Werner Koch  <wk@g10code.com>
+
+	* pkbench.c (main): Reworked to privide proper option handling.
+
 2007-03-13  Werner Koch  <wk@g10code.com>
 
 	* mpitests.c: Reformatted to GNU standards.

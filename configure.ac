@@ -135,7 +135,7 @@ available_ciphers="arcfour blowfish cast5 des aes twofish serpent rfc2268 seed"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
-available_pubkey_ciphers="dsa elgamal rsa"
+available_pubkey_ciphers="dsa elgamal rsa ecc"
 enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
@@ -823,6 +823,12 @@ LIST_MEMBER(elgamal, $enabled_pubkey_ciphers)
 test "$found" = "1" \ 
      && GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS elgamal.lo"
 AC_DEFINE_UNQUOTED(USE_ELGAMAL, $found,
+                                [Defined if this module should be included])
+
+LIST_MEMBER(ecc, $enabled_pubkey_ciphers)
+test "$found" = "1" \ 
+     && GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS ecc.lo"
+AC_DEFINE_UNQUOTED(USE_ECC, $found,
                                 [Defined if this module should be included])
 
 LIST_MEMBER(crc, $enabled_digests)

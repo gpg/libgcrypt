@@ -1254,7 +1254,7 @@ _gcry_fast_random_poll (void)
   lock_pool ();
   if (rndpool)
     {
-      /* Yes, we are fully initalized. */
+      /* Yes, we are fully initialized. */
       do_fast_random_poll ();
     }
   unlock_pool ();

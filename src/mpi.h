@@ -61,14 +61,15 @@
 
 #define DBG_MPI     _gcry_get_debug_flag( 2 );
 
-struct gcry_mpi {
-    int alloced;    /* array size (# of allocated limbs) */
-    int nlimbs;     /* number of valid limbs */
-    int sign;	    /* indicates a negative number and is used for opaque
-		     * MPIs to store the length */
-    unsigned flags; /* bit 0: array must be allocated in secure memory space */
-		    /* bit 2: the limb is a pointer to some m_alloced data */
-    mpi_limb_t *d;  /* array with the limbs */
+struct gcry_mpi 
+{
+  int alloced;         /* Array size (# of allocated limbs). */
+  int nlimbs;          /* Number of valid limbs. */
+  int sign;	       /* Indicates a negative number and is also used
+		          for opaque MPIs to store the length.  */
+  unsigned int flags; /* Bit 0: Array to be allocated in secure memory space.*/
+                      /* Bit 2: the limb is a pointer to some m_alloced data.*/
+  mpi_limb_t *d;      /* Array with the limbs */
 };
 
 #define MPI_NULL NULL
@@ -79,28 +80,29 @@ struct gcry_mpi {
 /*-- mpiutil.c --*/
 
 #ifdef M_DEBUG
-#define mpi_alloc(n)	_gcry_mpi_debug_alloc((n), M_DBGINFO( __LINE__ ) )
-#define mpi_alloc_secure(n)  _gcry_mpi_debug_alloc_secure((n), M_DBGINFO( __LINE__ ) )
-#define mpi_free(a)	_gcry_mpi_debug_free((a), M_DBGINFO(__LINE__) )
-#define mpi_resize(a,b) _gcry_mpi_debug_resize((a),(b), M_DBGINFO(__LINE__) )
-#define mpi_copy(a)	  _gcry_mpi_debug_copy((a), M_DBGINFO(__LINE__) )
+# define mpi_alloc(n)	_gcry_mpi_debug_alloc((n), M_DBGINFO( __LINE__ ) )
+# define mpi_alloc_secure(n)  _gcry_mpi_debug_alloc_secure((n), M_DBGINFO( __LINE__ ) )
+# define mpi_free(a)	_gcry_mpi_debug_free((a), M_DBGINFO(__LINE__) )
+# define mpi_resize(a,b) _gcry_mpi_debug_resize((a),(b), M_DBGINFO(__LINE__) )
+# define mpi_copy(a)	  _gcry_mpi_debug_copy((a), M_DBGINFO(__LINE__) )
   gcry_mpi_t _gcry_mpi_debug_alloc( unsigned nlimbs, const char *info );
   gcry_mpi_t _gcry_mpi_debug_alloc_secure( unsigned nlimbs, const char *info );
   void _gcry_mpi_debug_free( gcry_mpi_t a, const char *info );
   void _gcry_mpi_debug_resize( gcry_mpi_t a, unsigned nlimbs, const char *info );
   gcry_mpi_t  _gcry_mpi_debug_copy( gcry_mpi_t a, const char *info	);
 #else
-#define mpi_alloc(n)	       _gcry_mpi_alloc((n) )
-#define mpi_alloc_secure(n)  _gcry_mpi_alloc_secure((n) )
-#define mpi_free(a)	       _gcry_mpi_free((a) )
-#define mpi_resize(a,b)      _gcry_mpi_resize((a),(b))
-#define mpi_copy(a)	       _gcry_mpi_copy((a))
+# define mpi_alloc(n)	       _gcry_mpi_alloc((n) )
+# define mpi_alloc_secure(n)  _gcry_mpi_alloc_secure((n) )
+# define mpi_free(a)	       _gcry_mpi_free((a) )
+# define mpi_resize(a,b)      _gcry_mpi_resize((a),(b))
+# define mpi_copy(a)	       _gcry_mpi_copy((a))
   gcry_mpi_t  _gcry_mpi_alloc( unsigned nlimbs );
   gcry_mpi_t  _gcry_mpi_alloc_secure( unsigned nlimbs );
   void _gcry_mpi_free( gcry_mpi_t a );
   void _gcry_mpi_resize( gcry_mpi_t a, unsigned nlimbs );
   gcry_mpi_t  _gcry_mpi_copy( gcry_mpi_t a );
 #endif
+
 #define mpi_is_opaque(a) ((a) && ((a)->flags&4))
 #define mpi_is_secure(a) ((a) && ((a)->flags&1))
 #define mpi_clear(a)          _gcry_mpi_clear ((a))
@@ -111,6 +113,8 @@ struct gcry_mpi {
 #define mpi_alloc_set_ui(a)   _gcry_mpi_alloc_set_ui ((a))
 #define mpi_m_check(a)        _gcry_mpi_m_check ((a))     
 #define mpi_swap(a,b)         _gcry_mpi_swap ((a),(b))       
+#define mpi_new(n)            _gcry_mpi_new ((n))
+#define mpi_snew(n)           _gcry_mpi_snew ((n))
 
 void _gcry_mpi_clear( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_like( gcry_mpi_t a );
@@ -120,6 +124,8 @@ gcry_mpi_t  _gcry_mpi_alloc_set_ui( unsigned long u);
 gcry_err_code_t _gcry_mpi_get_ui (gcry_mpi_t w, ulong *u);
 void _gcry_mpi_m_check( gcry_mpi_t a );
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
+gcry_mpi_t _gcry_mpi_new (unsigned int nbits);
+gcry_mpi_t _gcry_mpi_snew (unsigned int nbits);
 
 /*-- mpicoder.c --*/
 void  _gcry_log_mpidump( const char *text, gcry_mpi_t a );
@@ -156,6 +162,8 @@ void  _gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer,
 #define mpi_tdiv_qr(a,b,c,d)   _gcry_mpi_tdiv_qr((a),(b),(c),(d))
 #define mpi_tdiv_q_2exp(a,b,c) _gcry_mpi_tdiv_q_2exp((a),(b),(c))
 #define mpi_divisible_ui(a,b)  _gcry_mpi_divisible_ui((a),(b))
+#define mpi_mod(r,a,m)         _gcry_mpi_mod ((r), (a), (m))
+
 ulong _gcry_mpi_fdiv_r_ui( gcry_mpi_t rem, gcry_mpi_t dividend, ulong divisor );
 void  _gcry_mpi_fdiv_r( gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor );
 void  _gcry_mpi_fdiv_q( gcry_mpi_t quot, gcry_mpi_t dividend, gcry_mpi_t divisor );
@@ -164,6 +172,7 @@ void  _gcry_mpi_tdiv_r( gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t den);
 void  _gcry_mpi_tdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t den);
 void  _gcry_mpi_tdiv_q_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned count );
 int   _gcry_mpi_divisible_ui(gcry_mpi_t dividend, ulong divisor );
+void _gcry_mpi_mod (gcry_mpi_t r, gcry_mpi_t dividend, gcry_mpi_t divisor);
 
 /*-- mpi-gcd.c --*/
 

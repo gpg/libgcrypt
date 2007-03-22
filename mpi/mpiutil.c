@@ -31,9 +31,10 @@
 /****************
  * Note:  It was a bad idea to use the number of limbs to allocate
  *	  because on a alpha the limbs are large but we normally need
- *	  integers of n bits - So we should chnage this to bits (or bytes).
+ *	  integers of n bits - So we should change this to bits (or bytes).
  *
- *	  But mpi_alloc is used in a lot of places :-)
+ *	  But mpi_alloc is used in a lot of places :-(.  New code
+ *	  should use mpi_new.
  */
 gcry_mpi_t
 _gcry_mpi_alloc( unsigned nlimbs )
@@ -308,6 +309,8 @@ _gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u)
 void
 _gcry_mpi_set_ui( gcry_mpi_t w, unsigned long u)
 {
+  /* FIXME: If U is 0 tehre is no ned to resize and thus possible
+     allocating the the limbs. */
     RESIZE_IF_NEEDED(w, 1);
     w->d[0] = u;
     w->nlimbs = u? 1:0;
@@ -370,6 +373,14 @@ gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b)
 }
 
 
+/* Internal version of mpi_new. */
+gcry_mpi_t
+_gcry_mpi_new( unsigned int nbits )
+{
+  return _gcry_mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
+}
+
+/* External version of mpi_new. */
 gcry_mpi_t
 gcry_mpi_new( unsigned int nbits )
 {
@@ -377,6 +388,14 @@ gcry_mpi_new( unsigned int nbits )
 }
 
 
+/* Internal version of mpi_snew. */
+gcry_mpi_t
+_gcry_mpi_snew( unsigned int nbits )
+{
+    return _gcry_mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
+}
+
+/* External version of mpi_snew. */
 gcry_mpi_t
 gcry_mpi_snew( unsigned int nbits )
 {

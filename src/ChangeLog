@@ -1,3 +1,10 @@
+2007-03-22  Werner Koch  <wk@g10code.com>
+
+	* mpi.h (mpi_mod): New.
+	(mpi_new, mpi_snew): New.
+
+	* gcrypt.h.in: Add GCRY_PK_ECDSA.
+
 2007-03-16  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (GCRY_THREAD_OPTION_PTHREAD_IMPL): Fixed typo

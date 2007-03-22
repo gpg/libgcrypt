@@ -34,6 +34,13 @@
 #include <fcntl.h>
 #include <time.h>
 
+#define PGM "pkbench"
+
+
+static int verbose;
+static int debug;
+
+
 typedef struct context
 {
   gcry_sexp_t key_secret;
@@ -290,16 +297,6 @@ process_key_pair_file (const char *key_pair_file)
   context_destroy (&context);
 }
 
-static const char *program_name = NULL;
-
-static void
-print_usage (int err)
-{
-  fprintf (err ? stderr : stdout,
-	   "Usage: %s [--help ] [ --genkey <algorithm>,<size> ] <key files ...>\n\n",
-	   program_name);
-  exit (err);
-}
 
 static void
 generate_key (const char *algorithm, const char *key_size)
@@ -329,48 +326,88 @@ generate_key (const char *algorithm, const char *key_size)
   printf ("%.*s", key_pair_buffer_size, key_pair_buffer);
 }
 
+
+
 int
 main (int argc, char **argv)
 {
-  program_name = argc ? argv[0] : "";
+  int last_argc = -1;
+  int genkey_mode = 0;
+
+  if (argc)
+    { argc--; argv++; }
 
   gcry_control (GCRYCTL_DISABLE_SECMEM);
-  
-  if (argv[1] && ((! strcmp (argv[1], "--help"))
-		  || (! strcmp (argv[1], "-h"))))
-    print_usage (0);
-  else if (argv[1] && ((! strcmp (argv[1], "--genkey"))
-		       || (! strcmp (argv[1], "-g"))))
+  if (!gcry_check_version (GCRYPT_VERSION))
     {
-      char *algorithm = NULL;
-      char *key_size = NULL;
+      fprintf (stderr, PGM ": version mismatch\n");
+      exit (1);
+    }
 
+  while (argc && last_argc != argc )
+    {
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--help"))
+        {
+          puts ("Usage: " PGM " [OPTIONS] [FILES]\n"
+                "Various public key tests:\n\n"
+                "  Default is to process all given key files\n\n"
+                "  --genkey ALGONAME SIZE  Generate a public key\n"
+                "\n"
+                "  --verbose    enable extra informational output\n"
+                "  --debug      enable additional debug output\n"
+                "  --help       display this help and exit\n\n");
+          exit (0);
+        }
+      else if (!strcmp (*argv, "--verbose"))
+        {
+          verbose = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--debug"))
+        {
+          verbose = debug = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--genkey"))
+        {
+          genkey_mode = 1;
+          argc--; argv++;
+        }
+    }          
+
+  if (genkey_mode)
+    {
       /* No valuable keys are create, so we can speed up our RNG. */
       gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+      if (debug)
+        gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
+    }
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
-      if (argv[2])
-	{
-	  algorithm = argv[2];
-	  key_size = strchr (algorithm, ',');
-	  if (key_size)
-	    {
-	      *key_size = 0;
-	      key_size++;
-	    }
-	}
-
-      if (algorithm && key_size)
-	generate_key (algorithm, key_size);
-      else
-	print_usage (EXIT_FAILURE);
+  
+  if (genkey_mode && argc == 2)
+    {
+      generate_key (argv[0], argv[1]);
+    }
+  else if (!genkey_mode && argc)
+    {
+      int i;
+      
+      for (i = 0; i < argc; i++)
+	process_key_pair_file (argv[i]);
     }
   else
     {
-      unsigned int i = 0;
-
-      for (i = 1; (i < argc); i++)
-	process_key_pair_file (argv[i]);
+      fprintf (stderr, "usage: " PGM
+               " [OPTIONS] [FILES] (try --help for more information)\n");
+      exit (1);
     }
-
-  return EXIT_SUCCESS;
+  
+  return 0;
 }
