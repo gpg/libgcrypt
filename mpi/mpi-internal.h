@@ -175,6 +175,9 @@ void _gcry_mpi_free_limb_space( mpi_ptr_t a, unsigned int nlimbs );
 void _gcry_mpi_assign_limb_space( gcry_mpi_t a, mpi_ptr_t ap, unsigned nlimbs );
 
 /*-- mpi-bit.c --*/
+#define mpi_rshift_limbs(a,n)  _gcry_mpi_rshift_limbs ((a), (n))
+#define mpi_lshift_limbs(a,n)  _gcry_mpi_lshift_limbs ((a), (n))
+
 void _gcry_mpi_rshift_limbs( gcry_mpi_t a, unsigned int count );
 void _gcry_mpi_lshift_limbs( gcry_mpi_t a, unsigned int count );
 

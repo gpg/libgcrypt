@@ -1,3 +1,13 @@
+2007-03-23  Werner Koch  <wk@g10code.com>
+
+	* mpi-bit.c (_gcry_mpi_lshift_limbs): Assign AP after the resize.
+
+	* mpi-div.c (gcry_mpi_mod, _gcry_mpi_mod): Moved to ..
+	* mpi-mod.c: .. new file.
+	(_gcry_mpi_barrett_init, _gcry_mpi_barrett_free): New.
+	(_gcry_mpi_mod_barrett): New.
+	(_gcry_mpi_mul_barrett): New.
+
 2007-03-22  Werner Koch  <wk@g10code.com>
 
 	* mpi-div.c (_gcry_mpi_mod): New.

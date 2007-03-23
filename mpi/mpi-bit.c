@@ -279,7 +279,7 @@ gcry_mpi_rshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
 void
 _gcry_mpi_lshift_limbs( gcry_mpi_t a, unsigned int count )
 {
-    mpi_ptr_t ap = a->d;
+    mpi_ptr_t ap;
     int n = a->nlimbs;
     int i;
 
@@ -288,6 +288,7 @@ _gcry_mpi_lshift_limbs( gcry_mpi_t a, unsigned int count )
 
     RESIZE_IF_NEEDED( a, n+count );
 
+    ap = a->d;
     for( i = n-1; i >= 0; i-- )
 	ap[i+count] = ap[i];
     for(i=0; i < count; i++ )

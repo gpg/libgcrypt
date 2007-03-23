@@ -162,7 +162,6 @@ void  _gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer,
 #define mpi_tdiv_qr(a,b,c,d)   _gcry_mpi_tdiv_qr((a),(b),(c),(d))
 #define mpi_tdiv_q_2exp(a,b,c) _gcry_mpi_tdiv_q_2exp((a),(b),(c))
 #define mpi_divisible_ui(a,b)  _gcry_mpi_divisible_ui((a),(b))
-#define mpi_mod(r,a,m)         _gcry_mpi_mod ((r), (a), (m))
 
 ulong _gcry_mpi_fdiv_r_ui( gcry_mpi_t rem, gcry_mpi_t dividend, ulong divisor );
 void  _gcry_mpi_fdiv_r( gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor );
@@ -172,7 +171,28 @@ void  _gcry_mpi_tdiv_r( gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t den);
 void  _gcry_mpi_tdiv_qr( gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t num, gcry_mpi_t den);
 void  _gcry_mpi_tdiv_q_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned count );
 int   _gcry_mpi_divisible_ui(gcry_mpi_t dividend, ulong divisor );
+
+
+/*-- mpi-mod.c --*/
+#define mpi_mod(r,a,m)            _gcry_mpi_mod ((r), (a), (m))
+#define mpi_barrett_init(m,f)     _gcry_mpi_barrett_init ((m),(f))
+#define mpi_barrett_free(c)       _gcry_mpi_barrett_free ((c))
+#define mpi_mod_barrett(r,a,c)    _gcry_mpi_mod_barrett ((r), (a), (c))
+#define mpi_mul_barrett(r,u,v,c)  _gcry_mpi_mul_barrett ((r), (u), (v), (c))
+
 void _gcry_mpi_mod (gcry_mpi_t r, gcry_mpi_t dividend, gcry_mpi_t divisor);
+
+/* Context used with Barrett reduction.  */
+struct barrett_ctx_s;
+typedef struct barrett_ctx_s *mpi_barrett_t;
+
+mpi_barrett_t _gcry_mpi_barrett_init (gcry_mpi_t m, int copy);
+void _gcry_mpi_barrett_free (mpi_barrett_t ctx);
+void _gcry_mpi_mod_barrett (gcry_mpi_t r, gcry_mpi_t x, mpi_barrett_t ctx);
+void _gcry_mpi_mul_barrett (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v,
+                            mpi_barrett_t ctx);
+
+
 
 /*-- mpi-gcd.c --*/
 

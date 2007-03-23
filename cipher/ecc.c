@@ -23,6 +23,33 @@
 
   - Check whether we can LGPL the code.
 
+  - Use affine coordinates for points with the public API and format
+    them in the way described by BSI's TR-03111, 5.1.3.
+
+  - If we support point compression we need to decide how to compute
+    the keygrip it should not change due to compression.
+
+  - mpi_mulm is quite slow which has never been a problem for the
+    other algorithms.  However here we are using it several times in a
+    row and thus it is an important performance factor.
+
+  - We use mpi_powm for x^2 mod p: Either implement a special case in
+    mpi_powm or check whether mpi_mulm is faster.
+
+
+
+Algorithm       generate  100*sign  100*verify
+----------------------------------------------
+Orginal version:
+ECDSA 192 bit      100ms    2630ms      5040ms
+ECDSA 256 bit      120ms    2960ms      6070ms
+ECDSA 384 bit      370ms    9570ms     18900ms
+
+Using Barrett:
+ECDSA 192 bit      130ms    3050ms      5620ms
+ECDSA 256 bit      140ms    3410ms      6950ms
+ECDSA 384 bit      400ms   10500ms     21670ms
+
 
 */
 
@@ -50,9 +77,9 @@
  *  mmr: found too many mistakes in the mathematical background transcription.
  *  mmr: improve the mathematical performance.
  *  mmr: solve ECElGamal IFP weakness.
- *  more polite gen_k() and its calls.
+ *       more polite gen_k() and its calls.
  *  mmr: extend the check_secret_key()
- * In process:
+ * In progress:
  *  gen_big_point(): Randomize the point generation.
  *  improve te memory uses.
  *  Separation between sign & encrypt keys to facility the subkeys creation.
@@ -71,6 +98,7 @@
 #include "mpi.h"
 #include "cipher.h"
 
+
 /* 
     ECC over F_p; E(F_p)
     T=(p,a,b,G,n,h)
@@ -84,6 +112,15 @@
     
              Q=[d]G, 1<=d<=n-1
 */
+
+
+/* An object to hold a computation context.  */
+struct ecc_ctx_s
+{
+  gcry_mpi_t m;   /* The modulus - may not be modified. */
+  int m_copied;   /* If true, M needs to be released.  */
+};
+typedef struct ecc_ctx_s *ecc_ctx_t;
 
 
 /* Point representation in projective coordinates. */
@@ -237,6 +274,61 @@ progress (int c)
   else
     fputc (c, stderr);
 }
+
+
+/*
+
+    M P I  W R A P P E R
+
+ */
+
+static ecc_ctx_t 
+ecc_ctx_init (gcry_mpi_t m, int copy)
+{
+  ecc_ctx_t ctx;
+
+  ctx = gcry_xcalloc (1, sizeof *ctx);
+
+  if (copy)
+    {
+      ctx->m = mpi_copy (m);
+      ctx->m_copied = 1;
+    }
+  else
+    ctx->m = m;
+
+  return ctx;
+}
+
+static void
+ecc_ctx_free (ecc_ctx_t ctx)
+{
+  if (!ctx)
+    return;
+  if (ctx->m_copied)
+    mpi_free (ctx->m);
+  gcry_free (ctx);
+}
+
+/* Our version of mpi_mod which uses a reduction algorithm depending
+   on the the context.  The modulus is part of the context. */
+static void
+ecc_mod (gcry_mpi_t r, gcry_mpi_t x, ecc_ctx_t ctx)
+{
+  mpi_mod (r, x, ctx->m);
+}
+
+/* Our version of mpi_mulm which uses a reduction algorithm depending
+   on the the context.  The modulus is part of the context. */
+static void
+ecc_mulm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, ecc_ctx_t ctx)
+{
+  /* Barrett is actually slower, so we don't do any switching here.
+     Howerver, we should take advantage of fast reduction for the NIST
+     curves.  */
+  mpi_mulm (w, u, v, ctx->m);
+}
+
 
 
 
@@ -589,10 +681,11 @@ invert_point (point_t *P, elliptic_curve_t *base)
  *  R = 2P
  */
 static void
-duplicate_point (point_t *R, point_t *P, elliptic_curve_t * base)
+duplicate_point (point_t *R, point_t *P, elliptic_curve_t *base,
+                 ecc_ctx_t pctx)
 {
   gcry_mpi_t one, two, three, four, eight;
-  gcry_mpi_t p, p_3, a;
+  gcry_mpi_t p_3, a;
   gcry_mpi_t t1, t2, t3, t4, t5, t6, t7;
   gcry_mpi_t aux;
 
@@ -601,18 +694,19 @@ duplicate_point (point_t *R, point_t *P, elliptic_curve_t * base)
   three = mpi_alloc_set_ui (3);
   four = mpi_alloc_set_ui (4);
   eight = mpi_alloc_set_ui (8);
-  p = mpi_copy (base->p_);
-  p_3 = mpi_alloc (mpi_get_nlimbs (p));
-  mpi_sub_ui (p_3, p, 3);
-  a = mpi_copy (base->a_);
-  t1 = mpi_alloc (mpi_get_nlimbs (p));
-  t2 = mpi_alloc (mpi_get_nlimbs (p));
-  t3 = mpi_alloc (mpi_get_nlimbs (p));
-  t4 = mpi_alloc (mpi_get_nlimbs (p));
-  t5 = mpi_alloc (mpi_get_nlimbs (p));
-  t6 = mpi_alloc (mpi_get_nlimbs (p));
-  t7 = mpi_alloc (mpi_get_nlimbs (p));
-  aux = mpi_alloc (mpi_get_nlimbs (p));
+
+  p_3 = mpi_alloc_like (base->p_);
+  mpi_sub_ui (p_3, base->p_, 3);      /* p_3 = p - 3 */
+
+  a  = mpi_copy (base->a_);
+  t1 = mpi_alloc_like (base->p_);
+  t2 = mpi_alloc_like (base->p_);
+  t3 = mpi_alloc_like (base->p_);
+  t4 = mpi_alloc_like (base->p_);
+  t5 = mpi_alloc_like (base->p_);
+  t6 = mpi_alloc_like (base->p_);
+  t7 = mpi_alloc_like (base->p_);
+  aux = mpi_alloc_like (base->p_);
 
   t1 = mpi_copy (P->x_);        /* t1=x1 */
   t2 = mpi_copy (P->y_);        /* t2=y1 */
@@ -626,40 +720,40 @@ duplicate_point (point_t *R, point_t *P, elliptic_curve_t * base)
     }
   else
     {
-      mpi_mod (a, a, p);        /* a mod p */
+      ecc_mod (a, a, pctx);        /* a mod p  FIXME: really needed? */
       if (!mpi_cmp (a, p_3))
         {                       /* a==p-3 */
-          mpi_powm (t4, t3, two, p);    /* t4=t3^2 mod p */
-          mpi_subm (t5, t1, t4, p);     /* t5=t1-t4 mod p */
-          mpi_addm (t4, t1, t4, p);     /* t4=t1+t4 mod p */
-          mpi_mulm (t5, t4, t5, p);     /* t5=t4*t5 mod p */
-          mpi_mulm (t4, three, t5, p);  /* t4=3*t5 mod p */
+          mpi_powm (t4, t3, two, base->p_);    /* t4=t3^2 mod p */
+          mpi_subm (t5, t1, t4, base->p_);     /* t5=t1-t4 mod p */
+          mpi_addm (t4, t1, t4, base->p_);     /* t4=t1+t4 mod p */
+          ecc_mulm (t5, t4, t5, pctx);     /* t5=t4*t5 mod p */
+          ecc_mulm (t4, three, t5, pctx);  /* t4=3*t5 mod p */
         }
       else
         {
-          t4 = mpi_copy (a);    /* t4=a */
-          mpi_powm (t5, t3, two, p);    /* t5=t3^2 mod p */
-          mpi_powm (t5, t5, two, p);    /* t5=t5^2 mod p */
-          mpi_mulm (t5, t4, t5, p);     /* t5=t4*t5 mod p */
-          mpi_powm (t4, t1, two, p);    /* t4=t1^2 mod p */
-          mpi_mulm (t4, three, t4, p);  /* t4=3*t4 mod p */
-          mpi_addm (t4, t4, t5, p);     /* t4=t4+t5 mod p */
+          mpi_set (t4, a);              /* t4=a */
+          mpi_powm (t5, t3, two, base->p_);    /* t5=t3^2 mod p */
+          mpi_powm (t5, t5, two, base->p_);    /* t5=t5^2 mod p */
+          ecc_mulm (t5, t4, t5, pctx);     /* t5=t4*t5 mod p */
+          mpi_powm (t4, t1, two, base->p_);    /* t4=t1^2 mod p */
+          ecc_mulm (t4, three, t4, pctx);  /* t4=3*t4 mod p */
+          mpi_addm (t4, t4, t5, base->p_);     /* t4=t4+t5 mod p */
         }
-      mpi_mulm (t3, t2, t3, p); /* t3=t2*t3 mod p */
-      mpi_mulm (t3, two, t3, p);        /* t3=2*t3 mod p  */
-      mpi_powm (aux, t2, two, p);       /* t2=t2^2 mod p */
-      t2 = mpi_copy (aux);
-      mpi_mulm (t5, t1, t2, p); /* t5=t1*t2 mod p */
-      mpi_mulm (t5, four, t5, p);       /* t5=4*t5 mod p */
-      mpi_powm (t1, t4, two, p);        /* t1=t4^2 mod p */
-      mpi_mulm (aux, two, t5, p);
-      mpi_subm (t1, t1, aux, p);        /* t1=t1-2*t5 mod p */
-      mpi_powm (aux, t2, two, p);       /* t2=t2^2 mod p */
-      t2 = mpi_copy (aux);
-      mpi_mulm (t2, eight, t2, p);      /* t2=8*t2 mod p */
-      mpi_subm (t5, t5, t1, p); /* t5=t5-t1 mod p */
-      mpi_mulm (t5, t4, t5, p); /* t5=t4*t5 mod p */
-      mpi_subm (t2, t5, t2, p); /* t2=t5-t2 mod p */
+      ecc_mulm (t3, t2, t3, pctx);         /* t3=t2*t3 mod p */
+      ecc_mulm (t3, two, t3, pctx);        /* t3=2*t3 mod p  */
+      mpi_powm (aux, t2, two, base->p_);       /* t2=t2^2 mod p */
+      mpi_set (t2, aux);
+      ecc_mulm (t5, t1, t2, pctx);         /* t5=t1*t2 mod p */
+      ecc_mulm (t5, four, t5, pctx);       /* t5=4*t5 mod p */
+      mpi_powm (t1, t4, two, base->p_);        /* t1=t4^2 mod p */
+      ecc_mulm (aux, two, t5, pctx);
+      mpi_subm (t1, t1, aux, base->p_);        /* t1=t1-2*t5 mod p */
+      mpi_powm (aux, t2, two, base->p_);       /* t2=t2^2 mod p */
+      mpi_set (t2, aux);
+      ecc_mulm (t2, eight, t2, pctx);      /* t2=8*t2 mod p */
+      mpi_subm (t5, t5, t1, base->p_); /* t5=t5-t1 mod p */
+      ecc_mulm (t5, t4, t5, pctx); /* t5=t4*t5 mod p */
+      mpi_subm (t2, t5, t2, base->p_); /* t2=t5-t2 mod p */
 
       mpi_set (R->x_, t1);
       mpi_set (R->y_, t2);
@@ -674,7 +768,6 @@ duplicate_point (point_t *R, point_t *P, elliptic_curve_t * base)
   mpi_free (t3);
   mpi_free (t2);
   mpi_free (t1);
-  mpi_free (p);
   mpi_free (p_3);
   mpi_free (a);
   mpi_free (eight);
@@ -691,67 +784,57 @@ duplicate_point (point_t *R, point_t *P, elliptic_curve_t * base)
    R = P0 + P1
  */
 static void
-sum_points (point_t *R, point_t *P0, point_t *P1, elliptic_curve_t * base)
+sum_points (point_t *R, point_t *P0, point_t *P1, elliptic_curve_t *base,
+            ecc_ctx_t pctx)
 {
-  gcry_mpi_t one, two;
-  gcry_mpi_t p;
-  gcry_mpi_t t1, t2, t3, t4, t5, t6, t7;
-  unsigned int nbits;
-
-  one = mpi_alloc_set_ui (1);
-  two = mpi_alloc_set_ui (2);
-  p = mpi_copy (base->p_);
-  nbits = mpi_get_nbits (p);
-  t1 = mpi_new (nbits);
-  t2 = mpi_new (nbits);
-  t3 = mpi_new (nbits);
-  t4 = mpi_new (nbits);
-  t5 = mpi_new (nbits);
-  t6 = mpi_new (nbits);
-  t7 = mpi_new (nbits);
 
   if ( (!mpi_cmp (P1->x_, P0->x_))
        && (!mpi_cmp (P1->y_, P0->y_))
        && (!mpi_cmp (P1->z_, P0->z_)) ) /* P1 == P0 */
     {                           
-      duplicate_point (R, P0, base);
+      duplicate_point (R, P0, base, pctx);
     }
   else if (point_at_infinity (*P0)) /* R == 0 && P1 == P1 */
     {                           
-      /* (!mpi_cmp_ui(P0->y_,0) || !mpi_cmp_ui(P0->z_,0))*/
       mpi_set (R->x_, P1->x_);
       mpi_set (R->y_, P1->y_);
       mpi_set (R->z_, P1->z_);
     }
   else if (point_at_infinity (*P1)) /* R == P0 && P0 == 0 */
     {           
-      /* (!mpi_cmp_ui(P1->y_,0) || !mpi_cmp_ui(P1->z_,0)) */
       mpi_set (R->x_, P0->x_);
       mpi_set (R->y_, P0->y_);
       mpi_set (R->z_, P0->z_);
     }
   else
     {
+      gcry_mpi_t two;
+      gcry_mpi_t t1, t2, t3, t4, t5, t6, t7;
+
+      two = mpi_alloc_set_ui (2);
+
       t1 = mpi_copy (P0->x_);   /* t1=x0 */
       t2 = mpi_copy (P0->y_);   /* t2=y0 */
       t3 = mpi_copy (P0->z_);   /* t3=z0 */
       t4 = mpi_copy (P1->x_);   /* t4=x1 */
       t5 = mpi_copy (P1->y_);   /* t5=y2 */
-      if (mpi_cmp (P1->z_, one))  /* z1 != 1 */
+      t6 = mpi_new (0);
+      t7 = mpi_new (0);
+
+      if (mpi_cmp_ui (P1->z_, 1))  /* z1 != 1 */
         {                       
-          /* fixme: Release old t6 or just set it. */
-          t6 = mpi_copy (P1->z_);       /* t6=z1 */
-          mpi_powm (t7, t6, two, p);    /* t7=t6^2 mod p */
-          mpi_mulm (t1, t1, t7, p);     /* t1=t1*t7 mod p */
-          mpi_mulm (t7, t6, t7, p);     /* t7=t6*t7 mod p */
-          mpi_mulm (t2, t2, t7, p);     /* t2=t2*t7 mod p */
+          mpi_set (t6, P1->z_);         /* t6=z1 */
+          mpi_powm (t7, t6, two, base->p_);    /* t7=t6^2 mod p */
+          ecc_mulm (t1, t1, t7, pctx);     /* t1=t1*t7 mod p */
+          ecc_mulm (t7, t6, t7, pctx);     /* t7=t6*t7 mod p */
+          ecc_mulm (t2, t2, t7, pctx);     /* t2=t2*t7 mod p */
         }
-      mpi_powm (t7, t3, two, p);/* t7=t3^2 mod p */
-      mpi_mulm (t4, t4, t7, p); /* t4=t4*t7 mod p */
-      mpi_mulm (t7, t3, t7, p); /* t7=t3*t7 mod p */
-      mpi_mulm (t5, t5, t7, p); /* t5=t5*t7 mod p */
-      mpi_subm (t4, t1, t4, p); /* t4=t1-t4 mod p */
-      mpi_subm (t5, t2, t5, p); /* t5=t2-t5 mod p */
+      mpi_powm (t7, t3, two, base->p_);/* t7=t3^2 mod p */
+      ecc_mulm (t4, t4, t7, pctx); /* t4=t4*t7 mod p */
+      ecc_mulm (t7, t3, t7, pctx); /* t7=t3*t7 mod p */
+      ecc_mulm (t5, t5, t7, pctx); /* t5=t5*t7 mod p */
+      mpi_subm (t4, t1, t4, base->p_); /* t4=t1-t4 mod p */
+      mpi_subm (t5, t2, t5, base->p_); /* t5=t2-t5 mod p */
 
       if (!mpi_cmp_ui (t4, 0)) /* t4==0 */
         {                       
@@ -775,44 +858,41 @@ sum_points (point_t *R, point_t *P0, point_t *P1, elliptic_curve_t * base)
         }
       else
         {
-          mpi_mulm (t1, two, t1, p);
-          mpi_subm (t1, t1, t4, p);     /* t1=2*t1-t4 mod p */
-          mpi_mulm (t2, two, t2, p);
-          mpi_subm (t2, t2, t5, p);     /* t2=2*t2-t5 mod p */
-          if (mpi_cmp (P1->z_, one)) /* z1 != 1 */
+          ecc_mulm (t1, two, t1, pctx);
+          mpi_subm (t1, t1, t4, base->p_);     /* t1=2*t1-t4 mod p */
+          ecc_mulm (t2, two, t2, pctx);
+          mpi_subm (t2, t2, t5, base->p_);     /* t2=2*t2-t5 mod p */
+          if (mpi_cmp_ui (P1->z_, 1)) /* z1 != 1 */
             {           
-              mpi_mulm (t3, t3, t6, p); /* t3=t3*t6 */
+              ecc_mulm (t3, t3, t6, pctx); /* t3=t3*t6 */
             }
-          mpi_mulm (t3, t3, t4, p);     /* t3=t3*t4 mod p */
-          mpi_powm (t7, t4, two, p);    /* t7=t4^2 mod p */
-          mpi_mulm (t4, t4, t7, p);     /* t4=t4*t7 mod p */
-          mpi_mulm (t7, t1, t7, p);     /* t7=t1*t7 mod p */
-          mpi_powm (t1, t5, two, p);    /* t1=t5^2 mod p */
-          mpi_subm (t1, t1, t7, p);     /* t1=t1-t7 mod p */
-          mpi_mulm (t6, two, t1, p);
-          mpi_subm (t7, t7, t6, p);     /* t7=t7-2*t1 mod p */
-          mpi_mulm (t5, t5, t7, p);     /* t5=t5*t7 mod p */
-          mpi_mulm (t4, t2, t4, p);     /* t4=t2*t4 mod p */
-          mpi_subm (t2, t5, t4, p);     /* t2=t5-t4 mod p */
-          mpi_invm (t6, two, p);
-          mpi_mulm (t2, t2, t6, p);     /* t2 = t2/2 */
+          ecc_mulm (t3, t3, t4, pctx);     /* t3=t3*t4 mod p */
+          mpi_powm (t7, t4, two, base->p_);    /* t7=t4^2 mod p */
+          ecc_mulm (t4, t4, t7, pctx);     /* t4=t4*t7 mod p */
+          ecc_mulm (t7, t1, t7, pctx);     /* t7=t1*t7 mod p */
+          mpi_powm (t1, t5, two, base->p_);    /* t1=t5^2 mod p */
+          mpi_subm (t1, t1, t7, base->p_);     /* t1=t1-t7 mod p */
+          ecc_mulm (t6, two, t1, pctx);
+          mpi_subm (t7, t7, t6, base->p_);     /* t7=t7-2*t1 mod p */
+          ecc_mulm (t5, t5, t7, pctx);     /* t5=t5*t7 mod p */
+          ecc_mulm (t4, t2, t4, pctx);     /* t4=t2*t4 mod p */
+          mpi_subm (t2, t5, t4, base->p_);     /* t2=t5-t4 mod p */
+          mpi_invm (t6, two, base->p_);
+          ecc_mulm (t2, t2, t6, pctx);     /* t2 = t2/2 */
 
           mpi_set (R->x_, t1);
           mpi_set (R->y_, t2);
           mpi_set (R->z_, t3);
         }
+      mpi_free (t7);
+      mpi_free (t6);
+      mpi_free (t5);
+      mpi_free (t4);
+      mpi_free (t3);
+      mpi_free (t2);
+      mpi_free (t1);
+      mpi_free (two);
     }
-
-  mpi_free (t7);
-  mpi_free (t6);
-  mpi_free (t5);
-  mpi_free (t4);
-  mpi_free (t3);
-  mpi_free (t2);
-  mpi_free (t1);
-  mpi_free (p);
-  mpi_free (two);
-  mpi_free (one);
 }
 
 /****************
@@ -828,11 +908,9 @@ sum_points (point_t *R, point_t *P0, point_t *P1, elliptic_curve_t * base)
  */
 static void
 escalar_mult (point_t *R, gcry_mpi_t escalar, point_t *P,
-              elliptic_curve_t *base)
+              elliptic_curve_t *base, ecc_ctx_t pctx)
 {
-
   gcry_mpi_t one, two, three;
-  gcry_mpi_t p;
   gcry_mpi_t x1, y1, z1, z2, z3, k, h; 
   gcry_mpi_t xx, yy, zz;
   unsigned int i, loops;
@@ -844,8 +922,6 @@ escalar_mult (point_t *R, gcry_mpi_t escalar, point_t *P,
   one   = mpi_alloc_set_ui (1);
   two   = mpi_alloc_set_ui (2);
   three = mpi_alloc_set_ui (3);
-
-  p  = mpi_copy (base->p_);
 
   x1 = mpi_alloc_like (P->x_);
   y1 = mpi_alloc_like (P->y_);
@@ -871,7 +947,7 @@ escalar_mult (point_t *R, gcry_mpi_t escalar, point_t *P,
       escalar->sign = 0;        /* +n */
       k = mpi_copy (escalar);
       yy = mpi_copy (P->y_);    /* -P */
-      mpi_invm (yy, yy, p);
+      mpi_invm (yy, yy, base->p_);
     }
   else
     {
@@ -885,12 +961,12 @@ escalar_mult (point_t *R, gcry_mpi_t escalar, point_t *P,
     }
   else
     {
-      mpi_mulm (z2, zz, zz, p); /* z^2 */
-      mpi_mulm (z3, zz, z2, p); /* z^3 */
-      mpi_invm (z2, z2, p);     /* 1/Z^2 */
-      mpi_mulm (x1, xx, z2, p); /* xx/z^2 */
-      mpi_invm (z3, z3, p);     /* 1/z^3 */
-      mpi_mulm (y1, yy, z3, p); /* yy/z^3 */
+      ecc_mulm (z2, zz, zz, pctx); /* z^2 */
+      ecc_mulm (z3, zz, z2, pctx); /* z^3 */
+      mpi_invm (z2, z2, base->p_);     /* 1/Z^2 */
+      ecc_mulm (x1, xx, z2, pctx); /* xx/z^2 */
+      mpi_invm (z3, z3, base->p_);     /* 1/z^3 */
+      ecc_mulm (y1, yy, z3, pctx); /* yy/z^3 */
     }
   mpi_mul (h, three, k);        /* h=3k */
   loops = mpi_get_nbits (h);
@@ -903,18 +979,18 @@ escalar_mult (point_t *R, gcry_mpi_t escalar, point_t *P,
   P1.z_ = mpi_copy (z1);
   while (i > 0)
     {                           /*  A.10.9. step 11  i from l-1 downto 1 */
-      duplicate_point (R, R, base);
+      duplicate_point (R, R, base, pctx);
       if (mpi_test_bit (h, i) == 1 && mpi_test_bit (k, i) == 0)
         {                       /* h_i=1 & k_i=0 */
           P2 = point_copy (*R);
-          sum_points (R, &P2, &P1, base); /* R=P2+P1 over the base elliptic curve */
+          sum_points (R, &P2, &P1, base, pctx); /* R=P2+P1 over the base elliptic curve */
         }
       if (mpi_test_bit (h, i) == 0 && mpi_test_bit (k, i) == 1)
         {                       /* h_i=0 & k_i=1 */
           P2 = point_copy (*R);
           P1_ = point_copy (P1);
           invert_point (&P1_, base);
-          sum_points (R, &P2, &P1_, base); /* R=P2+P1_ over the base elliptic curve */
+          sum_points (R, &P2, &P1_, base, pctx); /* R=P2+P1_ over the base elliptic curve */
         }
       i--;
     }
@@ -935,7 +1011,6 @@ escalar_mult (point_t *R, gcry_mpi_t escalar, point_t *P,
   mpi_free (zz);
   mpi_free (yy);
   mpi_free (xx);
-  mpi_free (p);
   mpi_free (three);
   mpi_free (two);
   mpi_free (one);
@@ -1124,6 +1199,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits)
   elliptic_curve_t E;
   gcry_mpi_t d;
   point_t Q, G;
+  ecc_ctx_t pctx;
 
   err = generate_curve (nbits, &E);
   if (err)
@@ -1137,7 +1213,9 @@ generate_key (ECC_secret_key *sk, unsigned int nbits)
 
   /* Compute Q.  */
   point_init (&Q);
-  escalar_mult (&Q, d, &E.G, &E);
+  pctx = ecc_ctx_init (E.p_, 0);
+  escalar_mult (&Q, d, &E.G, &E, pctx);
+  ecc_ctx_free (pctx);
 
   /* Copy the stuff to the key structures. */
   sk->E.p_ = mpi_copy (E.p_);
@@ -1228,6 +1306,7 @@ check_secret_key (ECC_secret_key * sk)
 {
   point_t Q;
   gcry_mpi_t y_2, y2 = mpi_alloc (0);
+  ecc_ctx_t pctx;
 
   /* ?primarity test of 'p' */
   /*  (...) //!! */
@@ -1255,12 +1334,14 @@ check_secret_key (ECC_secret_key * sk)
   /* Q=[n]G over E = PaI */
 
   point_init (&Q);
-  escalar_mult (&Q, sk->E.n_, &sk->E.G, &sk->E);
+  pctx = ecc_ctx_init (sk->E.p_, 0);
+  escalar_mult (&Q, sk->E.n_, &sk->E.G, &sk->E, pctx);
   if (!point_at_infinity (Q))
     {
       if (DBG_CIPHER)
         log_debug ("check_secret_key: E is not a curve of order n\n");
       point_free (&Q);
+      ecc_ctx_free (pctx);
       return 1;
     }
   /* pubkey cannot be PaI */
@@ -1268,17 +1349,20 @@ check_secret_key (ECC_secret_key * sk)
     {
       if (DBG_CIPHER)
         log_debug ("Bad check: Q can not be a Point at Infinity!\n");
+      ecc_ctx_free (pctx);
       return (1);
     }
   /* pubkey = [d]G over E */
-  escalar_mult (&Q, sk->d, &sk->E.G, &sk->E);
+  escalar_mult (&Q, sk->d, &sk->E.G, &sk->E, pctx);
   if ((Q.x_ == sk->Q.x_) && (Q.y_ == sk->Q.y_) && (Q.z_ == sk->Q.z_))
     {
       if (DBG_CIPHER)
         log_debug
           ("Bad check: There is NO correspondence between 'd' and 'Q'!\n");
+      ecc_ctx_free (pctx);
       return (1);
     }
+  ecc_ctx_free (pctx);
   point_free (&Q);
   return 0;
 }
@@ -1380,36 +1464,35 @@ static gpg_err_code_t
 sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
 {
   gpg_err_code_t err = 0;
-  gcry_mpi_t k, i, dr, sum, k_1, x, y;
-  point_t G, I;
-  elliptic_curve_t E;
-
+  gcry_mpi_t k, dr, sum, k_1, x, y;
+  point_t I;
+  ecc_ctx_t pctx;
+  
   k = NULL;
-  i = mpi_alloc (0); /* Fixme: we could do trivially without it.  */
   dr = mpi_alloc (0);
   sum = mpi_alloc (0);
   k_1 = mpi_alloc (0);
   x = mpi_alloc (0);
   y = mpi_alloc (0);
-  G = point_copy (skey->E.G);
-  E = curve_copy (skey->E);
   point_init (&I);
 
   mpi_set_ui (s, 0);
   mpi_set_ui (r, 0);
+
+  pctx = ecc_ctx_init (skey->E.p_, 0);
 
   while (!mpi_cmp_ui (s, 0)) /* s == 0 */
     {                           
       while (!mpi_cmp_ui (r, 0)) /* r == 0 */
         {               
           /* Note, that we are guaranteed to enter this loop at least
-             once because r has been intialized to 0.  We casn use a
-             do_while because we want to keep the value of R value
-             even if S has to be recomputed.  */
+             once because r has been intialized to 0.  We can't use a
+             do_while because we want to keep the value of R even if S
+             has to be recomputed.  */
           mpi_free (k);
-          k = gen_k (E.p_, 1);
-          escalar_mult (&I, k, &G, &E); /* I = [k]G */
-          if (point_affine (&I, x, y, &E))
+          k = gen_k (skey->E.p_, 1); /* fixme:  shouldn't that be E.n ? */
+          escalar_mult (&I, k, &skey->E.G, &skey->E, pctx); /* I = [k]G */
+          if (point_affine (&I, x, y, &skey->E))
             {
               if (DBG_CIPHER)
                 log_debug ("ecc sign: Cannot turn to affine. "
@@ -1417,24 +1500,22 @@ sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
               err = GPG_ERR_BAD_SIGNATURE;
               goto leave;
             }
-          mpi_set (i, x);         /* i = I_x     */
-          mpi_mod (r, i, E.n_);   /* r = i mod n */
+          mpi_mod (r, x, skey->E.n_);   /* r = x mod n */
         }
-      mpi_mulm (dr, skey->d, r, E.n_);  /* dr = d*r mod n */
-      mpi_addm (sum, input, dr, E.n_);  /* sum = hash + (d*r) mod n */
-      mpi_invm (k_1, k, E.n_);          /* k_1 = k^(-1) mod n */
-      mpi_mulm (s, k_1, sum, E.n_);     /* s = k^(-1)*(hash+(d*r)) mod n */
+      mpi_mulm (dr, skey->d, r, skey->E.n_);/* dr = d*r mod n */
+      mpi_addm (sum, input, dr, skey->E.n_);/* sum = hash + (d*r) mod n */
+      mpi_invm (k_1, k, skey->E.n_);        /* k_1 = k^(-1) mod n */
+      mpi_mulm (s, k_1, sum, skey->E.n_);   /* s = k^(-1)*(hash+(d*r)) mod n */
     }
 
-  /* Fixme:  What about releasing G and E?  Why do we need copies at all? */
  leave:
+  ecc_ctx_free (pctx);
   point_free (&I);
   mpi_free (y);
   mpi_free (x);
   mpi_free (k_1);
   mpi_free (sum);
   mpi_free (dr);
-  mpi_free (i);
   mpi_free (k);
 
   return err;
@@ -1448,25 +1529,13 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
 {
   gpg_err_code_t err = 0;
   gcry_mpi_t h, h1, h2, x, y;
-  point_t Q, Q1, Q2, G;
-  elliptic_curve_t E;
+  point_t Q, Q1, Q2;
+  ecc_ctx_t pctx;
 
-  /* Check that the input parameters are valid.  */
-  {
-    gcry_mpi_t r_ = mpi_alloc_like (r);
-    gcry_mpi_t s_ = mpi_alloc_like (s);
-    mpi_mod (r_, r, pkey->E.n_);  /* r = r mod E_n */
-    mpi_mod (s_, s, pkey->E.n_);  /* s = s mod E_n */
-    err = (mpi_cmp (r_, r) || mpi_cmp (s_, s));
-    mpi_free (r_);
-    mpi_free (s_);
-    if (err)
-      {                           
-        if (DBG_CIPHER)
-          log_debug ("ecc verification: No valid values.\n");
-        return GPG_ERR_BAD_SIGNATURE;
-      }
-  }
+  if( !(mpi_cmp_ui (r, 0) > 0 && mpi_cmp (r, pkey->E.n_) < 0) )
+    return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < r < n  failed.  */
+  if( !(mpi_cmp_ui (s, 0) > 0 && mpi_cmp (s, pkey->E.n_) < 0) )
+    return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < s < n  failed.  */
 
   h  = mpi_alloc (0);
   h1 = mpi_alloc (0);
@@ -1476,15 +1545,21 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
   point_init (&Q);
   point_init (&Q1);
   point_init (&Q2);
-  G = point_copy (pkey->E.G);  /* Fixme: We don't need the copy. */
-  E = curve_copy (pkey->E);    /* Fixme: We don't need the copy. */
 
-  mpi_invm (h, s, E.n_);                /* h  = s^(-1) (mod n) */
-  mpi_mulm (h1, input, h, E.n_);        /* h1 = hash * s^(-1) (mod n) */
-  escalar_mult (&Q1, h1, &G, &E);       /* Q1 = [ hash * s^(-1) ]G  */
-  mpi_mulm (h2, r, h, E.n_);            /* h2 = r * s^(-1) (mod n) */
-  escalar_mult (&Q2, h2, &pkey->Q, &E); /* Q2 = [ r * s^(-1) ]Q */
-  sum_points (&Q, &Q1, &Q2, &E);/* Q  = ([hash * s^(-1)]G) + ([r * s^(-1)]Q) */
+  pctx = ecc_ctx_init (pkey->E.p_, 0);
+
+  /* h  = s^(-1) (mod n) */
+  mpi_invm (h, s, pkey->E.n_);           
+  /* h1 = hash * s^(-1) (mod n) */
+  mpi_mulm (h1, input, h, pkey->E.n_); 
+  /* Q1 = [ hash * s^(-1) ]G  */
+  escalar_mult (&Q1, h1, &pkey->E.G, &pkey->E, pctx );
+  /* h2 = r * s^(-1) (mod n) */
+  mpi_mulm (h2, r, h, pkey->E.n_);             
+  /* Q2 = [ r * s^(-1) ]Q */
+  escalar_mult (&Q2, h2, &pkey->Q, &pkey->E, pctx);
+  /* Q  = ([hash * s^(-1)]G) + ([r * s^(-1)]Q) */
+  sum_points (&Q, &Q1, &Q2, &pkey->E, pctx);
 
   if (point_at_infinity (Q))
     {
@@ -1493,14 +1568,14 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
       err = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
-  if (point_affine (&Q, x, y, &E))
+  if (point_affine (&Q, x, y, &pkey->E))
     {                   
       if (DBG_CIPHER)
         log_debug ("ecc verification: Cannot turn to affine. Rejected.\n");
       err = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
-  mpi_mod (x, x, E.n_); /* x = x mod E_n */
+  mpi_mod (x, x, pkey->E.n_); /* x = x mod E_n */
   if (mpi_cmp (x, r))   /* x != r */
     {                           
       if (DBG_CIPHER)
@@ -1512,8 +1587,7 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
     log_debug ("ecc verification: Accepted.\n");
 
  leave:
-  curve_free (&E);
-  point_free (&G);
+  ecc_ctx_free (pctx);
   point_free (&Q2);
   point_free (&Q1);
   point_free (&Q);

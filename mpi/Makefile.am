@@ -168,6 +168,7 @@ libmpi_la_SOURCES = longlong.h	   \
 	      mpi-inline.c   \
 	      mpi-inv.c      \
 	      mpi-mul.c      \
+	      mpi-mod.c      \
 	      mpi-pow.c      \
 	      mpi-mpow.c     \
 	      mpi-scan.c     \

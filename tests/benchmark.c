@@ -640,7 +640,7 @@ ecc_bench (void)
 {
 #if USE_ECC
   gpg_error_t err;
-  int p_sizes[] = { 192, 256, 521 };
+  int p_sizes[] = { 192, 256, 384 /*, 521*/ };
   int testno;
 
 

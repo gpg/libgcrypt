@@ -1,3 +1,12 @@
+2007-03-23  Werner Koch  <wk@g10code.com>
+
+	* ecc.c (ecc_ctx_init, ecc_ctx_free, ecc_mod, ecc_mulm): New.
+	(duplicate_point, sum_points, escalar_mult): Don't use a
+	copy of base->p.  Replaced all mpi_mulm by ecc_mulm so that we can
+	experiment with different algorithms.
+	(generate_key, check_secret_key, sign, verify): Initialize a
+	computation context for use by ecc_mulm.
+
 2007-03-22  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (pubkey_table): Initialize ECC.
@@ -8,6 +17,9 @@
 	functions.
 	(duplicate_point): Ditto
 	(sum_points): Ditto
+	(sign, verify): Remove unneeded copy operations.
+	(sum_points): Removed memory leaks and optimized some compares.
+	(verify): Simplified input check.
 
 2007-03-14  Werner Koch  <wk@g10code.com>
 
