@@ -1,3 +1,7 @@
+2007-03-28  Werner Koch  <wk@g10code.com>
+
+	* ec.c: New.
+
 2007-03-23  Werner Koch  <wk@g10code.com>
 
 	* mpi-bit.c (_gcry_mpi_lshift_limbs): Assign AP after the resize.

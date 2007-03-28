@@ -535,7 +535,7 @@ cipher_bench ( const char *algoname )
 
 
 static void
-dsa_bench (void)
+dsa_bench (int iterations, int print_header)
 {
   gpg_error_t err;
   gcry_sexp_t pub_key[3], sec_key[3];
@@ -569,9 +569,10 @@ dsa_bench (void)
       exit (1);
     }
 
-
-  fputs ("Algorithm       generate  100*sign  100*verify\n"
-         "----------------------------------------------\n", stdout);
+  if (print_header)
+    printf ("Algorithm       generate %4d*sign %4d*verify\n"
+            "----------------------------------------------\n",
+            iterations, iterations );
   for (i=0; i < DIM (q_sizes); i++)
     {
       gcry_mpi_t x;
@@ -591,7 +592,7 @@ dsa_bench (void)
       fflush (stdout);
 
       start_timer ();
-      for (j=0; j < 100; j++)
+      for (j=0; j < iterations; j++)
         {
           err = gcry_pk_sign (&sig, data, sec_key[i]);
           if (err)
@@ -607,7 +608,7 @@ dsa_bench (void)
       fflush (stdout);
 
       start_timer ();
-      for (j=0; j < 100; j++)
+      for (j=0; j < iterations; j++)
         {
           err = gcry_pk_verify (sig, data, pub_key[i]);
           if (err)
@@ -636,16 +637,17 @@ dsa_bench (void)
 
 
 static void
-ecc_bench (void)
+ecc_bench (int iterations, int print_header)
 {
 #if USE_ECC
   gpg_error_t err;
-  int p_sizes[] = { 192, 256, 384 /*, 521*/ };
+  int p_sizes[] = { 192, 224, 256, 384, 521 };
   int testno;
 
-
-  fputs ("Algorithm       generate  100*sign  100*verify\n"
-         "----------------------------------------------\n", stdout);
+  if (print_header)
+    printf ("Algorithm       generate %4d*sign %4d*verify\n"
+            "----------------------------------------------\n",
+            iterations, iterations );
   for (testno=0; testno < DIM (p_sizes); testno++)
     {
       gcry_sexp_t key_spec, key_pair, pub_key, sec_key;
@@ -689,7 +691,7 @@ ecc_bench (void)
         die ("converting data failed: %s\n", gcry_strerror (err));
 
       start_timer ();
-      for (count=0; count < 100; count++)
+      for (count=0; count < iterations; count++)
         {
           gcry_sexp_release (sig);
           err = gcry_pk_sign (&sig, data, sec_key);
@@ -701,7 +703,7 @@ ecc_bench (void)
       fflush (stdout);
 
       start_timer ();
-      for (count=0; count < 100; count++)
+      for (count=0; count < iterations; count++)
         {
           err = gcry_pk_verify (sig, data, pub_key);
           if (err)
@@ -811,9 +813,13 @@ main( int argc, char **argv )
   
   if ( !argc )
     {
+      gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
       md_bench (NULL);
       putchar ('\n');
       cipher_bench (NULL);
+      putchar ('\n');
+      dsa_bench (100, 1);
+      ecc_bench (100, 0);
       putchar ('\n');
       mpi_bench ();
       putchar ('\n');
@@ -858,12 +864,12 @@ main( int argc, char **argv )
   else if ( !strcmp (*argv, "dsa"))
     {
         gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-        dsa_bench ();
+        dsa_bench (100, 1);
     }
   else if ( !strcmp (*argv, "ecc"))
     {
         gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-        ecc_bench ();
+        ecc_bench (100, 1);
     }
   else
     {
@@ -873,5 +879,4 @@ main( int argc, char **argv )
   
   return 0;
 }
-
 

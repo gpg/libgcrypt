@@ -1,3 +1,10 @@
+2007-03-28  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (dsa_bench): New args ITERATIONS and PRINT_HEADER.
+	(main): Call dsa and ecc benchs.
+
+	* Makefile.am (TESTS): Move pkbench to EXTRA_PROGRAMS.
+
 2007-03-22  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (die): New.

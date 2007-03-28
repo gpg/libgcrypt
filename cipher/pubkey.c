@@ -1928,7 +1928,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   const char *algo_name = NULL;
   int algo;
   const char *sec_elems = NULL, *pub_elems = NULL;
-  gcry_mpi_t skey[10], *factors = NULL;
+  gcry_mpi_t skey[12], *factors = NULL;
   unsigned int nbits = 0;
   unsigned long use_e = 0;
   unsigned int qbits;
@@ -1990,6 +1990,8 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     algo_name = pubkey->name;
   pub_elems = pubkey->elements_pkey;
   sec_elems = pubkey->elements_skey;
+  if (strlen (sec_elems) >= DIM(skey))
+    BUG ();
 
   /* Handle the optional rsa-use-e element. */
   l2 = gcry_sexp_find_token (list, "rsa-use-e", 0);

@@ -85,9 +85,6 @@ werner.dittmann@t-online.de
 (mpi/amd64, tests/mpitests.c)
 
 
-FIXME: The ECC code needs an entry here.
-
-
 More credits
 ============
 The ATH implementation (src/ath*) has been taken from GPGME and
@@ -100,6 +97,9 @@ version by Torbjorn Granlund <tege@noisy.tmg.se>.
 The files cipher/rndunix.c and cipher/rndw32.c are based on those
 files from Cryptlib.  Copyright Peter Gutmann, Paul Kendall, and Chris
 Wedgwood 1996-1999.
+
+The ECC code cipher/ecc.c was based on code by Sergi Blanch i Torne,
+sergi at calcurco dot org.
 
 
  Copyright 1998, 1999, 2000, 2001, 2002, 2003,

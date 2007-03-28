@@ -21,11 +21,9 @@
 TESTS = t-mpi-bit prime register ac ac-schemes ac-data basic \
         mpitests tsexp keygen pubkey hmac keygrip
 
-# pkbench uses mmap for no good reason.  Needs to be fixed.  Code for
-# this can be found in libksba/tests. 
 # random tests forking thus no a test for W32 does not make any sense.
 if !HAVE_W32_SYSTEM
-TESTS += pkbench random
+TESTS += random
 endif
 
 # The last test to run.
@@ -39,6 +37,8 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 LDADD = ../src/libgcrypt.la
 
-EXTRA_PROGRAMS = testapi
+# pkbench uses mmap for no good reason.  Needs to be fixed.  Code for
+# this can be found in libksba/tests. 
+EXTRA_PROGRAMS = testapi pkbench
 noinst_PROGRAMS = $(TESTS)
 

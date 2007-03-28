@@ -1,3 +1,13 @@
+2007-03-28  Werner Koch  <wk@g10code.com>
+
+	* ecc.c: Entirely rewritten with only a few traces of the old
+	code left.
+
+2007-03-26  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (gcry_pk_genkey): Increase size of SKEY array and add a
+	runtime bounds check.
+
 2007-03-23  Werner Koch  <wk@g10code.com>
 
 	* ecc.c (ecc_ctx_init, ecc_ctx_free, ecc_mod, ecc_mulm): New.

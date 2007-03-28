@@ -175,7 +175,8 @@ libmpi_la_SOURCES = longlong.h	   \
 	      mpicoder.c     \
 	      mpih-div.c     \
 	      mpih-mul.c     \
-	      mpiutil.c
+	      mpiutil.c      \
+              ec.c
 
 libmpi_la_LIBADD = @MPI_MOD_LIST_LO@
 libmpi_la_DEPENDENCIES = @MPI_MOD_LIST_LO@

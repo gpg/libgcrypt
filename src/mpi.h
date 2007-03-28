@@ -228,5 +228,37 @@ void _gcry_mpi_normalize( gcry_mpi_t a );
 #define mpi_invm(a,b,c) _gcry_mpi_invm ((a),(b),(c))
 void _gcry_mpi_invm( gcry_mpi_t x, gcry_mpi_t u, gcry_mpi_t v );
 
+/*-- ec.c --*/
+
+/* Object to represent a point in projective coordinates. */
+struct mpi_point_s;
+typedef struct mpi_point_s mpi_point_t;
+struct mpi_point_s
+{
+  gcry_mpi_t x;
+  gcry_mpi_t y;
+  gcry_mpi_t z;
+};
+
+/* Context used with elliptic curve fucntions.  */
+struct mpi_ec_ctx_s;
+typedef struct mpi_ec_ctx_s *mpi_ec_t;
+
+void _gcry_mpi_ec_point_init (mpi_point_t *p);
+void _gcry_mpi_ec_point_free (mpi_point_t *p);
+mpi_ec_t _gcry_mpi_ec_init (gcry_mpi_t p, gcry_mpi_t a);
+void _gcry_mpi_ec_free (mpi_ec_t ctx);
+int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t *point,
+                             mpi_ec_t ctx);
+void _gcry_mpi_ec_dup_point (mpi_point_t *result, 
+                             mpi_point_t *point, mpi_ec_t ctx);
+void _gcry_mpi_ec_add_points (mpi_point_t *result,
+                              mpi_point_t *p1, mpi_point_t *p2, 
+                              mpi_ec_t ctx);
+void _gcry_mpi_ec_mul_point (mpi_point_t *result,
+                             gcry_mpi_t scalar, mpi_point_t *point,
+                             mpi_ec_t ctx);
+
+
 
 #endif /*G10_MPI_H*/
