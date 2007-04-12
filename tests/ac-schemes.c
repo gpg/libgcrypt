@@ -48,7 +48,7 @@ typedef struct scheme_spec
   unsigned int idx;
   gcry_ac_scheme_t scheme;
   unsigned int flags;
-  unsigned char *m;
+  char *m;
   size_t m_n;
 } scheme_spec_t;
 
@@ -115,8 +115,10 @@ es_check (gcry_ac_handle_t handle, scheme_spec_t spec,
 	  gcry_ac_key_t key_public, gcry_ac_key_t key_secret)
 {
   gcry_error_t err = GPG_ERR_NO_ERROR;
-  unsigned char *c = NULL, *m2 = NULL;
-  size_t c_n = 0, m2_n = 0;
+  char *c = NULL;
+  char *m2 = NULL;
+  size_t c_n = 0;
+  size_t m2_n = 0;
   void *opts = NULL;
   gcry_ac_io_t io_m;
   gcry_ac_io_t io_c;
