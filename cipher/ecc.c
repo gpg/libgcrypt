@@ -791,6 +791,7 @@ ecc_generate (int algo, unsigned int nbits, unsigned long dummy,
   gcry_mpi_t g_x, g_y, q_x, q_y;
 
   (void)algo;
+  (void)dummy;
 
   /* Make an empty list of factors.  */
   *retfactors = gcry_calloc ( 1, sizeof **retfactors );
@@ -922,6 +923,8 @@ ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   ECC_public_key pk;
 
   (void)algo;
+  (void)cmp;
+  (void)opaquev;
 
   if (!data[0] || !data[1] || !hash || !pkey[0] || !pkey[1] || !pkey[2]
       || !pkey[3] || !pkey[4] || !pkey[5] )
