@@ -48,7 +48,7 @@ typedef struct scheme_spec
   unsigned int idx;
   gcry_ac_scheme_t scheme;
   unsigned int flags;
-  char *m;
+  const char *m;
   size_t m_n;
 } scheme_spec_t;
 

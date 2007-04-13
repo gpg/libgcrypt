@@ -1,5 +1,7 @@
 2007-04-12  Marcus Brinkmann  <marcus@g10code.de>
 
+	* ac-schemes.c (scheme_spec): Revert last change.
+	
 	* ac-schemes.c (scheme_spec): Remove const qualifier from member M.
 	(es_check): Remove const qualifier from C and M2.
 
