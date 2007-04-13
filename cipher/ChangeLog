@@ -1,5 +1,8 @@
 2007-04-13  Marcus Brinkmann  <marcus@g10code.de>
 
+	* ac.c (ac_data_construct): Cast const away to suppress compiler
+	warning.
+
 	* ecc.c (ecc_generate): Avoid compiler warning for unused argument
 	DUMMY.
 	(ecc_verify): Avoid compiler warning for unused arguments CMP and

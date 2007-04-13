@@ -1373,10 +1373,9 @@ ac_data_construct (const char *identifier, int include_flags,
   /* Fill list with MPIs.  */
   for (i = 0; i < data_length; i++)
     {
-      /* FIXME!!  name_provided is a const char* whereas  name is char. */
       char **nameaddr  = (data->data[i].name
                           ? &data->data[i].name
-                          : &data->data[i].name_provided);
+                          : ((char **) &data->data[i].name_provided));
 
       arg_list[(i * 2) + 0] = nameaddr;
       arg_list[(i * 2) + 1] = &data->data[i].mpi;
