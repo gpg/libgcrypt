@@ -613,6 +613,24 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
                         gcry_mpi_t scalar, mpi_point_t *point,
                         mpi_ec_t ctx)
 {
+#if 0
+  /* Simple left to right binary method.  GECC Algorithm 3.27 */
+  unsigned int nbits;
+  int i;
+
+  nbits = mpi_get_nbits (scalar);
+  mpi_set_ui (result->x, 1);
+  mpi_set_ui (result->y, 1);
+  mpi_set_ui (result->z, 0); 
+
+  for (i=nbits-1; i >= 0; i--)
+    {
+      _gcry_mpi_ec_dup_point (result, result, ctx);
+      if (mpi_test_bit (scalar, i) == 1)
+        _gcry_mpi_ec_add_points (result, result, point, ctx); 
+    }
+
+#else 
   gcry_mpi_t x1, y1, z1, k, h, yy;
   unsigned int i, loops;
   mpi_point_t p1, p2, p1inv;
@@ -687,4 +705,6 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
   point_free (&p1inv);
   mpi_free (h);
   mpi_free (k);
+#endif
 }
+

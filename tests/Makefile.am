@@ -39,6 +39,6 @@ LDADD = ../src/libgcrypt.la
 
 # pkbench uses mmap for no good reason.  Needs to be fixed.  Code for
 # this can be found in libksba/tests. 
-EXTRA_PROGRAMS = testapi pkbench
-noinst_PROGRAMS = $(TESTS)
+EXTRA_PROGRAMS = testapi
+noinst_PROGRAMS = $(TESTS) pkbench
 

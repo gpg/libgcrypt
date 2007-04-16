@@ -1,3 +1,9 @@
+2007-04-16  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Cehck for sysconf.
+	* acinclude.m4 (GNUPG_CHECK_MLOCK): Try to use sysconf to get the
+	page size and use getpagesize only then if available.
+
 2007-03-22  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Add support for ECC.

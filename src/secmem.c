@@ -340,6 +340,7 @@ static void
 init_pool (size_t n)
 {
   size_t pgsize;
+  long int pgsize_val;
   memblock_t *mb;
 
   pool_size = n;
@@ -347,11 +348,15 @@ init_pool (size_t n)
   if (disable_secmem)
     log_bug ("secure memory is disabled");
 
-#ifdef HAVE_GETPAGESIZE
-  pgsize = getpagesize ();
+#if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+  pgsize_val = sysconf (_SC_PAGESIZE);
+#elif defined(HAVE_GETPAGESIZE)
+  pgsize_val = getpagesize ();
 #else
-  pgsize = DEFAULT_PAGE_SIZE;
+  pgsize_val = -1;
 #endif
+  pgsize = (pgsize_val != -1 && pgsize_val > 0)? pgsize_val:DEFAULT_PAGE_SIZE;
+
 
 #if HAVE_MMAP
   pool_size = (pool_size + pgsize - 1) & ~(pgsize - 1);

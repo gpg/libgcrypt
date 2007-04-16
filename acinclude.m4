@@ -152,18 +152,18 @@ define(GNUPG_CHECK_MLOCK,
                     #include <sys/mman.h>
                     #endif
                 ], [
-                    int i;
-                    
-                    /* glibc defines this for functions which it implements
-                     * to always fail with ENOSYS.  Some functions are actually
-                     * named something starting with __ and the normal name
-                     * is an alias.  */
-                    #if defined (__stub_mlock) || defined (__stub___mlock)
-                    choke me
-                    #else
-                    mlock(&i, 4);
-                    #endif
-                    ; return 0;
+int i;
+
+/* glibc defines this for functions which it implements
+ * to always fail with ENOSYS.  Some functions are actually
+ * named something starting with __ and the normal name
+ * is an alias.  */
+#if defined (__stub_mlock) || defined (__stub___mlock)
+choke me
+#else
+mlock(&i, 4);
+#endif
+; return 0;
                 ],
                 gnupg_cv_mlock_is_in_sys_mman=yes,
                 gnupg_cv_mlock_is_in_sys_mman=no)])
@@ -174,33 +174,45 @@ define(GNUPG_CHECK_MLOCK,
         fi
     fi
     if test "$ac_cv_func_mlock" = "yes"; then
+        AC_CHECK_FUNCS(sysconf getpagesize)
         AC_MSG_CHECKING(whether mlock is broken)
           AC_CACHE_VAL(gnupg_cv_have_broken_mlock,
              AC_TRY_RUN([
-                #include <stdlib.h>
-                #include <unistd.h>
-                #include <errno.h>
-                #include <sys/mman.h>
-                #include <sys/types.h>
-                #include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
-                int main()
-                {
-                    char *pool;
-                    int err;
-                    long int pgsize = getpagesize();
+int main()
+{
+    char *pool;
+    int err;
+    long int pgsize;
 
-                    pool = malloc( 4096 + pgsize );
-                    if( !pool )
-                        return 2;
-                    pool += (pgsize - ((long int)pool % pgsize));
+#if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+    pgsize = sysconf (_SC_PAGESIZE);
+#elif defined (HAVE_GETPAGESIZE)
+    pgsize = getpagesize();       
+#else
+    pgsize = -1;
+#endif
 
-                    err = mlock( pool, 4096 );
-                    if( !err || errno == EPERM )
-                        return 0; /* okay */
+    if (pgsize == -1)
+      pgsize = 4096;
 
-                    return 1;  /* hmmm */
-                }
+    pool = malloc( 4096 + pgsize );
+    if( !pool )
+        return 2;
+    pool += (pgsize - ((long int)pool % pgsize));
+
+    err = mlock( pool, 4096 );
+    if( !err || errno == EPERM )
+        return 0; /* okay */
+
+    return 1;  /* hmmm */
+}
 
             ],
             gnupg_cv_have_broken_mlock="no",
@@ -317,10 +329,10 @@ AC_DEFUN([TYPE_SOCKLEN_T],
          for arg2 in "struct sockaddr" void; do
             for t in int size_t unsigned long "unsigned long"; do
                AC_TRY_COMPILE([
-                  #include <sys/types.h>
-                  #include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
-                  int getpeername (int, $arg2 *, $t *);
+int getpeername (int, $arg2 *, $t *);
                ],[
                   $t len;
                   getpeername(0,0,&len);

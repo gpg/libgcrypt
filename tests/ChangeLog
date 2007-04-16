@@ -7,8 +7,11 @@
 
 2007-03-28  Werner Koch  <wk@g10code.com>
 
+	* pkbench.c (generate_key): Support named curves.
+
 	* benchmark.c (dsa_bench): New args ITERATIONS and PRINT_HEADER.
 	(main): Call dsa and ecc benchs.
+	(show_sexp): New.
 
 	* Makefile.am (TESTS): Move pkbench to EXTRA_PROGRAMS.
 

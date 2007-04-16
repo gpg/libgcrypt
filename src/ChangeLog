@@ -1,3 +1,8 @@
+2007-04-16  Werner Koch  <wk@g10code.com>
+
+	* secmem.c (init_pool): Use sysconf() if available to determine
+	page size.
+	
 2007-03-22  Werner Koch  <wk@g10code.com>
 
 	* mpi.h (mpi_mod): New.

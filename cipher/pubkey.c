@@ -501,6 +501,7 @@ pubkey_get_nenc (int algorithm)
 static gcry_err_code_t
 pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
                  unsigned long use_e, gcry_mpi_t xvalue,
+                 const char *curve_name,
                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   gcry_err_code_t err = GPG_ERR_PUBKEY_ALGO;
@@ -525,6 +526,13 @@ pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
             (algorithm, nbits, xvalue, skey, retfactors);
         }
 #endif /*USE_ELGAMAL*/
+#ifdef USE_ECC
+      else if (curve_name && pubkey->spec == &_gcry_pubkey_spec_ecdsa)
+        {
+          err = _gcry_ecc_generate
+            (algorithm, nbits, curve_name, skey, retfactors);
+        }
+#endif /*USE_ECC*/
       else
         {
           err = ((gcry_pk_spec_t *) pubkey->spec)->generate 
@@ -1934,6 +1942,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   unsigned int qbits;
   gcry_mpi_t xvalue = NULL;
   char *name_terminated;
+  char *curve = NULL;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -2047,38 +2056,65 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
         }
     }
 
-  /* Now parse the required nbits element. */
+  /* Handle the optional "curve" parameter. */
+  l2 = gcry_sexp_find_token (list, "curve", 0);
+  if (l2)
+    {
+      name = gcry_sexp_nth_data (l2, 1, &n);
+      if (!name || n < 1)
+        {
+          rc = GPG_ERR_INV_OBJ; /* No name or or value too large. */
+          goto leave;
+        }
+      curve = gcry_malloc (n+1);
+      if (!curve)
+        {
+          rc = gpg_err_code_from_syserror ();
+          goto leave;
+        }
+      memcpy (curve, name, n);
+      curve[n] = 0;
+      gcry_sexp_release (l2);
+      l2 = NULL;
+    }
+
+
+  /* Unless a curve name has been given, the "nbits" parameter is
+     required.  */
   l2 = gcry_sexp_find_token (list, "nbits", 0);
   gcry_sexp_release (list);
   list = l2;
   l2 = NULL;
-  
-  if (! list)
+  if (!list && !curve)
     {
       rc = GPG_ERR_NO_OBJ; /* No nbits parameter. */
       goto leave;
     }
-
-  name = gcry_sexp_nth_data (list, 1, &n);
-  if (! name)
+  if (list)
     {
-      rc = GPG_ERR_INV_OBJ; /* nbits without a cdr. */
-      goto leave;
+      name = gcry_sexp_nth_data (list, 1, &n);
+      if (! name)
+        {
+          rc = GPG_ERR_INV_OBJ; /* nbits without a cdr. */
+          goto leave;
+        }
+      
+      name_terminated = gcry_malloc (n + 1);
+      if (!name_terminated)
+        {
+          rc = gpg_err_code_from_errno (errno);
+          goto leave;
+        }
+      memcpy (name_terminated, name, n);
+      name_terminated[n] = 0;
+      nbits = (unsigned int) strtoul (name_terminated, NULL, 0);
+      gcry_free (name_terminated);
     }
-  
-  name_terminated = gcry_malloc (n + 1);
-  if (!name_terminated)
-    {
-      rc = gpg_err_code_from_errno (errno);
-      goto leave;
-    }
-  memcpy (name_terminated, name, n);
-  name_terminated[n] = 0;
-  nbits = (unsigned int) strtoul (name_terminated, NULL, 0);
-  gcry_free (name_terminated);
+  else 
+    nbits = 0;
 
   rc = pubkey_generate (module->mod_id, nbits, qbits, use_e, xvalue,
-                        skey, &factors);
+                        curve, skey, &factors);
   if (rc)
     goto leave;
 
@@ -2130,13 +2166,18 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     /* Very ugly hack to make release_mpi_array() work FIXME */
     skey[i] = NULL;
 
-    p = stpcpy (p, "(misc-key-info(pm1-factors");
-    for(i = 0; factors[i]; i++)
+    if (factors[0])
       {
-        p = stpcpy (p, "%m");
-        mpis[nelem++] = factors[i];
+        p = stpcpy (p, "(misc-key-info(pm1-factors");
+        for(i = 0; factors[i]; i++)
+          {
+            p = stpcpy (p, "%m");
+            mpis[nelem++] = factors[i];
+          }
+        p = stpcpy (p, "))");
       }
-    strcpy (p, ")))");
+    strcpy (p, ")");
+    assert (p - string < needed);
 
     while (nelem < DIM (mpis))
       mpis[nelem++] = NULL;
@@ -2168,6 +2209,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   }
 
  leave:
+  gcry_free (curve);
   release_mpi_array (skey);
   /* Don't free SKEY itself, it is a static array. */
 

@@ -242,6 +242,22 @@ die (const char *format, ...)
   exit (1);
 }
 
+static void
+show_sexp (const char *prefix, gcry_sexp_t a)
+{
+  char *buf;
+  size_t size;
+
+  fputs (prefix, stderr);
+  size = gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, NULL, 0);
+  buf = malloc (size);
+  if (!buf)
+    die ("out of core\n");
+
+  gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, buf, size);
+  fprintf (stderr, "%.*s", (int)size, buf);
+}
+
 
 static void
 start_timer (void)
@@ -709,9 +725,10 @@ ecc_bench (int iterations, int print_header)
           if (err)
             {
               putchar ('\n');
-              fprintf (stderr, PGM ": verify failed: %s\n",
-                       gpg_strerror (err));
-              exit (1);
+              show_sexp ("seckey:\n", sec_key);
+              show_sexp ("data:\n", data);
+              show_sexp ("sig:\n", sig);
+              die ("verify failed: %s\n", gpg_strerror (err));
             }
         }
       stop_timer ();
@@ -826,7 +843,7 @@ main( int argc, char **argv )
       random_bench (0);
     }
   else if ( !strcmp (*argv, "--help"))
-     fputs ("usage: benchmark [md|cipher|random|mpi|dsa [algonames]]\n",
+     fputs ("usage: benchmark [md|cipher|random|mpi|dsa|ecc [algonames]]\n",
             stdout);
   else if ( !strcmp (*argv, "random") || !strcmp (*argv, "strongrandom"))
     {

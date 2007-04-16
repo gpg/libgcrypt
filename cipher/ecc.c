@@ -86,6 +86,32 @@ typedef struct
 } ECC_secret_key;
 
 
+/* This tables defines aliases for curve names.  */
+static const struct
+{
+  const char *name;  /* Our name.  */
+  const char *other; /* Other name. */
+} curve_aliases[] = 
+  {
+    { "NIST P-192", "1.2.840.10045.3.1.1" }, /* X9.62 OID  */
+    { "NIST P-192", "prime192v1" },          /* X9.62 name.  */
+    { "NIST P-192", "secp192r1"  },          /* SECP name.  */
+
+    { "NIST P-224", "secp224r1" },
+
+    { "NIST P-256", "1.2.840.10045.3.1.7" }, 
+    { "NIST P-256", "prime256v1" },          
+    { "NIST P-256", "secp256r1"  },          
+
+    { "NIST P-384", "secp384r1" },
+
+    { "NIST P-521", "secp521r1" },
+
+    { NULL, NULL}
+  };
+
+
+
 /* This static table defines all available curves.  */
 static const struct
 {
@@ -97,6 +123,16 @@ static const struct
   const char *g_x, *g_y;      /* Base point.  */
 } domain_parms[] =
   {
+    { "secp160r1", 160,
+      "0x",
+      "0x",
+      "0x",
+      "0x",
+
+      "0x",
+      "0x"
+    }, 
+
     {
       "NIST P-192", 192,
       "0xfffffffffffffffffffffffffffffffeffffffffffffffff",
@@ -324,16 +360,27 @@ gen_k (gcry_mpi_t p, int security_level)
  * The subgroup generator point is in another function: gen_big_point.
  */
 static gpg_err_code_t
-generate_curve (unsigned int nbits, elliptic_curve_t *curve)
+generate_curve (unsigned int nbits, const char *name, 
+                elliptic_curve_t *curve, unsigned int *r_nbits)
 {
   int idx;
 
-  for (idx = 0; domain_parms[idx].desc; idx++)
-    if (nbits == domain_parms[idx].nbits)
-      break;
+  if (name)
+    {
+      for (idx = 0; domain_parms[idx].desc; idx++)
+        if (!strcmp (name, domain_parms[idx].desc))
+          break;
+    }
+  else
+    {
+      for (idx = 0; domain_parms[idx].desc; idx++)
+        if (nbits == domain_parms[idx].nbits)
+          break;
+    }
   if (!domain_parms[idx].desc)
     return GPG_ERR_INV_VALUE;
 
+  *r_nbits = domain_parms[idx].nbits;
   curve->p = scanval (domain_parms[idx].p);
   curve->a = scanval (domain_parms[idx].a);
   curve->b = scanval (domain_parms[idx].b);
@@ -351,7 +398,7 @@ generate_curve (unsigned int nbits, elliptic_curve_t *curve)
  * secret value, and calculate the public point.
  */
 static gpg_err_code_t
-generate_key (ECC_secret_key *sk, unsigned int nbits,
+generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
               gcry_mpi_t g_x, gcry_mpi_t g_y,
               gcry_mpi_t q_x, gcry_mpi_t q_y)
 {
@@ -361,7 +408,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits,
   mpi_point_t Q, G;
   mpi_ec_t ctx;
 
-  err = generate_curve (nbits, &E);
+  err = generate_curve (nbits, name, &E, &nbits);
   if (err)
     return err;
 
@@ -629,16 +676,28 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
 
   /* h  = s^(-1) (mod n) */
   mpi_invm (h, s, pkey->E.n);
+/*   log_mpidump ("   h", h); */
   /* h1 = hash * s^(-1) (mod n) */
   mpi_mulm (h1, input, h, pkey->E.n);
+/*   log_mpidump ("  h1", h1); */
   /* Q1 = [ hash * s^(-1) ]G  */
   _gcry_mpi_ec_mul_point (&Q1, h1, &pkey->E.G, ctx);
+/*   log_mpidump ("Q1.x", Q1.x); */
+/*   log_mpidump ("Q1.y", Q1.y); */
+/*   log_mpidump ("Q1.z", Q1.z); */
   /* h2 = r * s^(-1) (mod n) */
   mpi_mulm (h2, r, h, pkey->E.n);
+/*   log_mpidump ("  h2", h2); */
   /* Q2 = [ r * s^(-1) ]Q */
   _gcry_mpi_ec_mul_point (&Q2, h2, &pkey->Q, ctx);
+/*   log_mpidump ("Q2.x", Q2.x); */
+/*   log_mpidump ("Q2.y", Q2.y); */
+/*   log_mpidump ("Q2.z", Q2.z); */
   /* Q  = ([hash * s^(-1)]G) + ([r * s^(-1)]Q) */
   _gcry_mpi_ec_add_points (&Q, &Q1, &Q2, ctx);
+/*   log_mpidump (" Q.x", Q.x); */
+/*   log_mpidump (" Q.y", Q.y); */
+/*   log_mpidump (" Q.z", Q.z); */
 
   if (!mpi_cmp_ui (Q.z, 0))
     {
@@ -658,7 +717,13 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
   if (mpi_cmp (x, r))   /* x != r */
     {
       if (DBG_CIPHER)
-        log_debug ("ecc verify: Not verified\n");
+        {
+          log_mpidump ("   x", x);
+          log_mpidump ("   y", y);
+          log_mpidump ("   r", r);
+          log_mpidump ("   s", s);
+          log_debug ("ecc verify: Not verified\n");
+        }
       err = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
@@ -782,16 +847,18 @@ os2ec (mpi_point_t *result, gcry_mpi_t value)
   return 0;
 }
 
-static gcry_err_code_t
-ecc_generate (int algo, unsigned int nbits, unsigned long dummy,
-              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+/* Extended version of ecc_generate which is called directly by
+   pubkey.c.  If CURVE is not NULL, that name will be used to select
+   the domain parameters.  NBITS is not used in this case.  */
+gcry_err_code_t
+_gcry_ecc_generate (int algo, unsigned int nbits, const char *curve,
+                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   gpg_err_code_t err;
   ECC_secret_key sk;
   gcry_mpi_t g_x, g_y, q_x, q_y;
 
   (void)algo;
-  (void)dummy;
 
   /* Make an empty list of factors.  */
   *retfactors = gcry_calloc ( 1, sizeof **retfactors );
@@ -802,7 +869,7 @@ ecc_generate (int algo, unsigned int nbits, unsigned long dummy,
   g_y = mpi_new (0);
   q_x = mpi_new (0);
   q_y = mpi_new (0);
-  err = generate_key (&sk, nbits, g_x, g_y, q_x, q_y);
+  err = generate_key (&sk, nbits, curve, g_x, g_y, q_x, q_y);
   if (err)
     {
       gcry_free (*retfactors);
@@ -819,6 +886,15 @@ ecc_generate (int algo, unsigned int nbits, unsigned long dummy,
   skey[6] = sk.d;
 
   return 0;
+}
+
+
+static gcry_err_code_t
+ecc_generate (int algo, unsigned int nbits, unsigned long dummy,
+              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+{
+  (void)dummy;
+  return _gcry_ecc_generate (algo, nbits, NULL, skey, retfactors);
 }
 
 

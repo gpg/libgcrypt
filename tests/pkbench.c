@@ -25,6 +25,7 @@
 #include <gcrypt.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #ifndef HAVE_W32_SYSTEM
@@ -39,6 +40,7 @@
 
 static int verbose;
 static int debug;
+static int error_count;
 
 
 typedef struct context
@@ -51,6 +53,50 @@ typedef struct context
 } *context_t;
 
 typedef int (*work_t) (context_t context, unsigned int final);
+
+
+static void
+fail (const char *format, ...)
+{
+  va_list arg_ptr;
+
+  fputs ( PGM ": ", stderr);
+  va_start (arg_ptr, format);
+  vfprintf (stderr, format, arg_ptr);
+  va_end (arg_ptr);
+  error_count++;
+}
+
+static void
+die (const char *format, ...)
+{
+  va_list arg_ptr;
+
+  putchar ('\n');
+  fputs ( PGM ": ", stderr);
+  va_start (arg_ptr, format);
+  vfprintf (stderr, format, arg_ptr);
+  va_end (arg_ptr);
+  exit (1);
+}
+
+static void
+show_sexp (const char *prefix, gcry_sexp_t a)
+{
+  char *buf;
+  size_t size;
+
+  fputs (prefix, stderr);
+  size = gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, NULL, 0);
+  buf = malloc (size);
+  if (!buf)
+    die ("out of core\n");
+
+  gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, buf, size);
+  fprintf (stderr, "%.*s", (int)size, buf);
+}
+
+
 
 static void
 benchmark (work_t worker, context_t context)
@@ -156,10 +202,13 @@ work_sign (context_t context, unsigned int final)
       err = GPG_ERR_NO_ERROR;
       ret = 0;
     }
+  else if (err)
+    {
+      fail ("pk_sign failed: %s\n", gpg_strerror (err));
+      ret = 0;
+    }
   else
     {
-      assert (! err);
-
       if (final)
 	context->data_signed = data_signed;
       else
@@ -175,21 +224,25 @@ work_verify (context_t context, unsigned int final)
   gcry_error_t err = GPG_ERR_NO_ERROR;
   int ret = 1;
 
-  if (! context->data_signed)
-    ret = 0;
-  else
-    {
-      err = gcry_pk_verify (context->data_signed,
-			    context->data,
-			    context->key_public);
-      assert (! err);
-      if (final)
-	{
-	  gcry_sexp_release (context->data_signed);
-	  context->data_signed = NULL;
-	}
-    }
+  if (!context->data_signed)
+    return 0;
 
+  err = gcry_pk_verify (context->data_signed,
+                        context->data,
+                        context->key_public);
+  if (err)
+    {
+      show_sexp ("data_signed:\n", context->data_signed);
+      show_sexp ("data:\n", context->data);
+      fail ("pk_verify failed: %s\n", gpg_strerror (err));
+      ret = 0;
+    }
+  else if (final)
+    {
+      gcry_sexp_release (context->data_signed);
+      context->data_signed = NULL;
+    }
+    
   return ret;
 }
 
@@ -307,13 +360,23 @@ generate_key (const char *algorithm, const char *key_size)
   gcry_sexp_t key_spec = NULL;
   gcry_sexp_t key_pair = NULL;
 
-  err = gcry_sexp_build (&key_spec, NULL,
-			 "(genkey (%s (nbits %s)))",
-			 algorithm, key_size);
-  assert (! err);
+  if (isdigit ((unsigned int)*key_size))
+    err = gcry_sexp_build (&key_spec, NULL,
+                           "(genkey (%s (nbits %s)))",
+                           algorithm, key_size);
+  else
+    err = gcry_sexp_build (&key_spec, NULL,
+                           "(genkey (%s (curve %s)))",
+                           algorithm, key_size);
+  if (err)
+    die ("sexp_build failed: %s\n", gpg_strerror (err));
 
   err = gcry_pk_genkey (&key_pair, key_spec);
-  assert (! err);
+  if (err)
+    {
+      show_sexp ("request:\n", key_spec);
+      die ("pk_genkey failed: %s\n", gpg_strerror (err));
+    }
 
   key_pair_buffer_size = gcry_sexp_sprint (key_pair, GCRYSEXP_FMT_ADVANCED,
 					   NULL, 0);
@@ -323,7 +386,7 @@ generate_key (const char *algorithm, const char *key_size)
   gcry_sexp_sprint (key_pair, GCRYSEXP_FMT_ADVANCED,
 		    key_pair_buffer, key_pair_buffer_size);
 
-  printf ("%.*s", key_pair_buffer_size, key_pair_buffer);
+  printf ("%.*s", (int)key_pair_buffer_size, key_pair_buffer);
 }
 
 
@@ -385,9 +448,9 @@ main (int argc, char **argv)
     {
       /* No valuable keys are create, so we can speed up our RNG. */
       gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-      if (debug)
-        gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
-    }
+    } 
+  if (debug)
+    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
   
@@ -409,5 +472,5 @@ main (int argc, char **argv)
       exit (1);
     }
   
-  return 0;
+  return error_count ? 1 : 0;
 }

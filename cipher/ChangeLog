@@ -1,3 +1,7 @@
+2007-04-16  Werner Koch  <wk@g10code.com>
+
+	* ecc.c (_gcry_ecc_generate): Renamed DUMMY to CURVE and use it.
+
 2007-04-13  Marcus Brinkmann  <marcus@g10code.de>
 
 	* ac.c (ac_data_construct): Cast const away to suppress compiler
@@ -8,10 +12,21 @@
 	(ecc_verify): Avoid compiler warning for unused arguments CMP and
 	OPAQUEV.
 
+2007-04-06  Werner Koch  <wk@g10code.com>
+
+	* sha1.c (oid_spec_sha1): Add another oid from X9.62.
+
 2007-03-28  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (gcry_pk_genkey): Do not issue misc-key-info if it is
+	empty.
+	(gcry_pk_genkey): New parameter "curve".
 
 	* ecc.c: Entirely rewritten with only a few traces of the old
 	code left.
+	(_gcry_ecc_generate): New.
+	(generate_key) New arg NAME.
+	(generate_curve): Ditto.  Return actual number of NBITS.
 
 2007-03-26  Werner Koch  <wk@g10code.com>
 

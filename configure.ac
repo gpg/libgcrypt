@@ -583,7 +583,7 @@ AC_CHECK_FUNCS(stpcpy strcasecmp)
 # We have replacements for these in src/g10lib.h
 AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
 # Other checks
-AC_CHECK_FUNCS(strerror rand mmap getpagesize waitpid wait4)
+AC_CHECK_FUNCS(strerror rand mmap getpagesize sysconf waitpid wait4)
 AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime)
 AC_CHECK_FUNCS(fcntl ftruncate)
 

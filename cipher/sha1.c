@@ -358,6 +358,8 @@ static gcry_md_oid_spec_t oid_spec_sha1[] =
     { "1.3.14.3.2.26" },
     /* from NIST OIW (sha-1WithRSAEncryption) */
     { "1.3.14.3.2.29" },
+    /* iso.member-body.us.ansi-x9-62.signatures.ecdsa-with-sha1 */
+    { "1.2.840.10045.4.1" },
     { NULL },
   };
 

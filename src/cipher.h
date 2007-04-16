@@ -54,6 +54,9 @@ gcry_err_code_t _gcry_elg_generate_using_x (int algo, unsigned int nbits,
 /*-- ecc.c --*/
 void _gcry_register_pk_ecc_progress (gcry_handler_progress_t cbc,
                                      void *cb_data);
+gcry_err_code_t _gcry_ecc_generate (int algo, unsigned int nbits,
+                                    const char *curve,
+                                    gcry_mpi_t *skey, gcry_mpi_t **retfactors);
 
 /*-- primegen.c --*/
 void _gcry_register_primegen_progress (gcry_handler_progress_t cb,
