@@ -1,3 +1,13 @@
+2007-04-18  Werner Koch  <wk@g10code.com>
+
+	* ecc.c (generate_curve): Implement alias mechanism.
+
+	* pubkey.c (sexp_elements_extract_ecc): New.
+	(sexp_to_key): Add special case for ecc.
+	(sexp_to_key, sexp_to_sig, sexp_to_enc, gcry_pk_genkey): Replace
+	name_terminated stuff by a call to _gcry_sexp_nth_string.
+	(gcry_pk_get_keygrip): Ditto.
+
 2007-04-16  Werner Koch  <wk@g10code.com>
 
 	* ecc.c (_gcry_ecc_generate): Renamed DUMMY to CURVE and use it.

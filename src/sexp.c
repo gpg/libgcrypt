@@ -1,6 +1,6 @@
 /* sexp.c  -  S-Expression handling
  * Copyright (C) 1999, 2000, 2001, 2002, 2003,
- *               2004, 2006 Free Software Foundation, Inc.
+ *               2004, 2006, 2007 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -582,116 +582,123 @@ gcry_sexp_car( const gcry_sexp_t list )
     return gcry_sexp_nth ( list, 0 );
 }
 
-/****************
- * Get data from the car.  The returned value is valid as long as the list
- * is not modified.
- */
-const char *
-gcry_sexp_nth_data( const gcry_sexp_t list, int number, size_t *datalen )
+
+/* Helper to get data from the car.  The returned value is valid as
+   long as the list is not modified. */
+static const char *
+sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
 {
-    const byte *p;
-    DATALEN n;
-    int level = 0;
-
-    *datalen = 0;
-    if ( !list ) {
-	return NULL;
-    }
-    p = list->d;
-    if ( *p == ST_OPEN )
-	p++;	     /* yep, a list */
-    else if (number )
-	return NULL; /* not a list but an n > 0 element requested */
-
-    /* skip n elements */
-    while ( number > 0 ) {
-	if ( *p == ST_DATA ) {
-	    memcpy ( &n, ++p, sizeof n );
-	    p += sizeof n + n;
-	    p--;
-	    if ( !level )
-		number--;
-	}
-	else if ( *p == ST_OPEN ) {
-	    level++;
-	}
-	else if ( *p == ST_CLOSE ) {
-	    level--;
-	    if ( !level )
-		number--;
-	}
-	else if ( *p == ST_STOP ) {
-	    return NULL;
-	}
-	p++;
-    }
-
-
-    if ( *p == ST_DATA ) {
-	memcpy ( &n, ++p, sizeof n );
-	*datalen = n;
-	return (const char*)p + sizeof n;
-    }
-
+  const byte *p;
+  DATALEN n;
+  int level = 0;
+  
+  *datalen = 0;
+  if ( !list ) 
     return NULL;
+
+  p = list->d;
+  if ( *p == ST_OPEN )
+    p++;	     /* Yep, a list. */
+  else if (number)
+    return NULL;     /* Not a list but N > 0 requested. */
+
+  /* Skip over N elements. */
+  while ( number > 0 ) 
+    {
+      if ( *p == ST_DATA ) 
+        {
+          memcpy ( &n, ++p, sizeof n );
+          p += sizeof n + n;
+          p--;
+          if ( !level )
+            number--;
+	}
+      else if ( *p == ST_OPEN ) 
+        {
+          level++;
+	}
+      else if ( *p == ST_CLOSE ) 
+        {
+          level--;
+          if ( !level )
+            number--;
+	}
+      else if ( *p == ST_STOP ) 
+        {
+          return NULL;
+	}
+      p++;
+    }
+
+  /* If this is data, return it.  */
+  if ( *p == ST_DATA )
+    {
+      memcpy ( &n, ++p, sizeof n );
+      *datalen = n;
+      return (const char*)p + sizeof n;
+    }
+  
+  return NULL;
 }
 
-/****************
+
+/* Get data from the car.  The returned value is valid as long as the
+   list is not modified.  */
+const char *
+gcry_sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen )
+{
+  return sexp_nth_data (list, number, datalen);
+}
+
+
+/* Get a string from the car.  The returned value is a malloced string
+   and needs to be freed by the caller.  */
+char *
+_gcry_sexp_nth_string (const gcry_sexp_t list, int number)
+{
+  const char *s;
+  size_t n;
+  char *buf;
+
+  s = sexp_nth_data (list, number, &n);
+  if (!s || n < 1 || (n+1) < 1)
+    return NULL;
+  buf = gcry_malloc (n+1);
+  if (!buf)
+    return NULL;
+  memcpy (buf, s, n);
+  buf[n] = 0;
+  return buf;
+}
+
+/* Public version of _gcry_sexp_nth_string. */
+char *
+gcry_sexp_nth_string (const gcry_sexp_t list, int number)
+{
+  return _gcry_sexp_nth_string (list, number);
+}
+
+/*
  * Get a MPI from the car
  */
 gcry_mpi_t
 gcry_sexp_nth_mpi( gcry_sexp_t list, int number, int mpifmt )
 {
-    const byte *p;
-    DATALEN n;
-    int level = 0;
+  const char *s;
+  size_t n;
+  gcry_mpi_t a;
 
-    if ( !list )
-	return NULL;
-    if ( !mpifmt )
-	mpifmt = GCRYMPI_FMT_STD;
+  if ( !mpifmt )
+    mpifmt = GCRYMPI_FMT_STD;
 
-    p = list->d;
-    if ( *p == ST_OPEN )
-	p++;	     /* yep, a list */
-    else if (number )
-	return NULL; /* not a list but an n > 0 element requested */
-
-    /* skip n elements */
-    while ( number > 0 ) {
-	if ( *p == ST_DATA ) {
-	    memcpy ( &n, ++p, sizeof n );
-	    p += sizeof n + n;
-	    p--;
-	    if ( !level )
-		number--;
-	}
-	else if ( *p == ST_OPEN ) {
-	    level++;
-	}
-	else if ( *p == ST_CLOSE ) {
-	    level--;
-	    if ( !level )
-		number--;
-	}
-	else if ( *p == ST_STOP ) {
-	    return NULL;
-	}
-	p++;
-    }
-
-    if ( *p == ST_DATA ) {
-	gcry_mpi_t a;
-	size_t nbytes;
-
-	memcpy ( &n, ++p, sizeof n );
-	p += sizeof n;
-	nbytes = n;
-	if( !gcry_mpi_scan( &a, mpifmt, p, n, &nbytes ) )
-	    return a;
-    }
-
+  s = sexp_nth_data (list, number, &n);
+  if (!s)
     return NULL;
+
+  if ( gcry_mpi_scan ( &a, mpifmt, s, n, NULL ) )
+    return NULL;
+
+  return a;
 }
 
 

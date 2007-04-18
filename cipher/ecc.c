@@ -363,13 +363,28 @@ static gpg_err_code_t
 generate_curve (unsigned int nbits, const char *name, 
                 elliptic_curve_t *curve, unsigned int *r_nbits)
 {
-  int idx;
+  int idx, aliasno;
 
   if (name)
     {
+      /* First check nor native curves.  */
       for (idx = 0; domain_parms[idx].desc; idx++)
         if (!strcmp (name, domain_parms[idx].desc))
           break;
+      /* If not found consult the alias table.  */
+      if (!domain_parms[idx].desc)
+        {
+          for (aliasno = 0; curve_aliases[aliasno].name; aliasno++)
+            if (!strcmp (name, curve_aliases[aliasno].other))
+              break;
+          if (curve_aliases[aliasno].name)
+            {
+              for (idx = 0; domain_parms[idx].desc; idx++)
+                if (!strcmp (curve_aliases[aliasno].name,
+                             domain_parms[idx].desc))
+                  break;
+            }
+        }
     }
   else
     {
@@ -888,6 +903,37 @@ _gcry_ecc_generate (int algo, unsigned int nbits, const char *curve,
   return 0;
 }
 
+/* Return the parameters of the curve NAME.  */
+gcry_err_code_t
+_gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey)
+{
+  gpg_err_code_t err;
+  unsigned int nbits;
+  elliptic_curve_t E;
+  mpi_ec_t ctx;
+  gcry_mpi_t g_x, g_y;
+  
+  err = generate_curve (0, name, &E, &nbits);
+  if (err)
+    return err;
+
+  g_x = mpi_new (0);
+  g_y = mpi_new (0);
+  ctx = _gcry_mpi_ec_init (E.p, E.a);
+  if (_gcry_mpi_ec_get_affine (g_x, g_y, &E.G, ctx))
+    log_fatal ("ecc get param: Failed to get affine coordinates\n");
+  _gcry_mpi_ec_free (ctx);
+  point_free (&E.G);
+
+  pkey[0] = E.p;
+  pkey[1] = E.a;
+  pkey[2] = E.b;
+  pkey[3] = ec2os (g_x, g_y, E.p);
+  pkey[4] = E.n;
+  pkey[5] = NULL;
+
+  return 0;
+}
 
 static gcry_err_code_t
 ecc_generate (int algo, unsigned int nbits, unsigned long dummy,
@@ -1047,6 +1093,7 @@ ecc_get_nbits (int algo, gcry_mpi_t *pkey)
 static const char *ecdsa_names[] =
   {
     "ecdsa",
+    "ecc",
     NULL,
   };
 

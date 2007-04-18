@@ -82,6 +82,7 @@ GCRYPT_1.2 {
     gcry_sexp_new; gcry_sexp_nth; gcry_sexp_nth_data;
     gcry_sexp_nth_mpi; gcry_sexp_prepend; gcry_sexp_release;
     gcry_sexp_sprint; gcry_sexp_sscan; gcry_sexp_vlist;
+    gcry_sexp_nth_string;
     
     gcry_mpi_add; gcry_mpi_add_ui; gcry_mpi_addm; gcry_mpi_aprint;
     gcry_mpi_clear_bit; gcry_mpi_clear_flag; gcry_mpi_clear_highbit;

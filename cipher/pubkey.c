@@ -1,6 +1,6 @@
 /* pubkey.c  -	pubkey dispatcher
  * Copyright (C) 1998, 1999, 2000, 2002, 2003,
- *               2005 Free Software Foundation, Inc.
+ *               2005, 2007 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -781,6 +781,91 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
   return err;
 }
 
+/* Internal function used for ecc.  Note, that this function makes use
+   of its intimate knowledge about the ECC parameters from ecc.c. */
+static gcry_err_code_t
+sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
+                           gcry_mpi_t *elements)
+{
+  gcry_err_code_t err = 0;
+  int idx;
+  const char *name;
+  gcry_sexp_t list;
+
+  /* Clear the array for easir error cleanup. */
+  for (name = element_names, idx = 0; *name; name++, idx++)
+    elements[idx] = NULL;
+  assert (idx >= 6); /* We know that ECC has at least 6 elements.  */
+
+  /* Init the array with the available curve parameters. */
+  for (name = element_names, idx = 0; *name && !err; name++, idx++)
+    {
+      list = gcry_sexp_find_token (key_sexp, name, 1);
+      if (!list)
+	elements[idx] = NULL;
+      else
+	{
+	  elements[idx] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_USG);
+	  gcry_sexp_release (list);
+	  if (!elements[idx])
+            {
+              err = GPG_ERR_INV_OBJ;
+              goto leave;
+            }
+	}
+    }
+
+  /* Check whether a curve parameter has been given and then fill any
+     missing elements.  */
+  list = gcry_sexp_find_token (key_sexp, "curve", 5);
+  if (list)
+    {
+      char *curve;
+      gcry_mpi_t params[6];
+
+      for (idx = 0; idx < DIM(params); idx++)
+        params[idx] = NULL;
+
+      curve = _gcry_sexp_nth_string (list, 1);
+      if (!curve)
+        {
+          err = GPG_ERR_INV_OBJ; /* No curve name given (or out of core). */
+          goto leave;
+        }
+      err = _gcry_ecc_get_param (curve, params);
+      gcry_free (curve);
+      if (err)
+        goto leave;
+
+      for (idx = 0; idx < DIM(params); idx++)
+        {
+          if (!elements[idx])
+            elements[idx] = params[idx];
+          else
+            mpi_free (params[idx]);
+        }
+    }
+
+  /* Check that all parameters are known.  */
+  for (name = element_names, idx = 0; *name; name++, idx++)
+    if (!elements[idx])
+      {
+        err = GPG_ERR_NO_OBJ;
+        goto leave;
+      }
+  
+ leave:
+  if (err)
+    {
+      for (name = element_names, idx = 0; *name; name++, idx++)
+        if (elements[idx])
+          gcry_free (elements[idx]);
+    }
+  return err;
+}
+
+
+
 /****************
  * Convert a S-Exp with either a private or a public key to our
  * internal format. Currently we do only support the following
@@ -791,6 +876,7 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
  *    openpgp-rsa
  *    openpgp-elg
  *    openpgp-elg-sig
+ *    ecdsa
  * Provide a SE with the first element be either "private-key" or
  * or "public-key". It is followed by a list with its first element
  * be one of the above algorithm identifiers and the remaning
@@ -818,186 +904,169 @@ static gcry_err_code_t
 sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
              gcry_module_t *retalgo)
 {
-    gcry_sexp_t list, l2;
-    const char *name;
-    size_t n;
-    const char *elems;
-    gcry_mpi_t *array;
-    gcry_err_code_t err = GPG_ERR_NO_ERROR;
-    gcry_module_t module;
-    gcry_pk_spec_t *pubkey;
+  gcry_err_code_t err = 0;
+  gcry_sexp_t list, l2;
+  char *name;
+  const char *elems;
+  gcry_mpi_t *array;
+  gcry_module_t module;
+  gcry_pk_spec_t *pubkey;
+  int is_ecc;
 
-    /* check that the first element is valid */
-    list = gcry_sexp_find_token( sexp, want_private? "private-key"
-						    :"public-key", 0 );
-    if( !list )
-	return GPG_ERR_INV_OBJ; /* Does not contain a public-
-                                   or private-key object */
-    l2 = gcry_sexp_cadr( list );
-    gcry_sexp_release ( list );
-    list = l2;
-    name = gcry_sexp_nth_data( list, 0, &n );
-    if( !name ) {
-	gcry_sexp_release ( list );
-	return GPG_ERR_INV_OBJ; /* invalid structure of object */
+  /* Check that the first element is valid.  */
+  list = gcry_sexp_find_token (sexp, 
+                               want_private? "private-key":"public-key", 0);
+  if (!list)
+    return GPG_ERR_INV_OBJ; /* Does not contain a key object.  */
+
+  l2 = gcry_sexp_cadr( list );
+  gcry_sexp_release ( list );
+  list = l2;
+  name = _gcry_sexp_nth_string (list, 0);
+  if (!name)
+    {
+      gcry_sexp_release ( list );
+      return GPG_ERR_INV_OBJ;      /* Invalid structure of object. */
     }
 
+  ath_mutex_lock (&pubkeys_registered_lock);
+  module = gcry_pk_lookup_name (name);
+  ath_mutex_unlock (&pubkeys_registered_lock);
+  
+  /* Fixme: We should make sure that an ECC key is always named "ecc"
+     and not "ecdsa".  "ecdsa" should be used for the signature
+     itself.  We need a function to test whether an algorithm given
+     with a key is compatible with an application of the key (signing,
+     encryption).  For RSA this is easy, but ECC is the first
+     algorithm which has many flavours. */
+  is_ecc = ( !strcmp (name, "ecdsa") || !strcmp (name, "ecc") );
+  
+  if (!module)
     {
-      char *name_terminated;
+      gcry_sexp_release (list);
+      return GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm. */
+    }
+  else
+    pubkey = (gcry_pk_spec_t *) module->spec;
 
-      name_terminated = gcry_malloc (n + 1);
-      if (!name_terminated)
-        {
-          err = gpg_err_code_from_errno (errno);
-          gcry_sexp_release (list);
-          return err;
-        }
-      memcpy (name_terminated, name, n);
-      name_terminated[n] = 0;
+  elems = want_private ? pubkey->elements_skey : pubkey->elements_pkey;
+  array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
+  if (!array)
+    err = gpg_err_code_from_errno (errno);
+  if (!err)
+    {
+      if (is_ecc)
+        err = sexp_elements_extract_ecc (list, elems, array);
+      else
+        err = sexp_elements_extract (list, elems, array);
+    }
+  
+  gcry_sexp_release (list);
+  
+  if (err)
+    {
+      gcry_free (array);
 
       ath_mutex_lock (&pubkeys_registered_lock);
-      module = gcry_pk_lookup_name (name_terminated);
+      _gcry_module_release (module);
       ath_mutex_unlock (&pubkeys_registered_lock);
-
-      gcry_free (name_terminated);
     }
-
-    if (! module)
-      {
-	gcry_sexp_release (list);
-	return GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
-      }
-    else
-      pubkey = (gcry_pk_spec_t *) module->spec;
-
-    elems = want_private ? pubkey->elements_skey : pubkey->elements_pkey;
-    array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
-    if (! array)
-      err = gpg_err_code_from_errno (errno);
-    if (! err)
-      err = sexp_elements_extract (list, elems, array);
-
-    if (list)
-      gcry_sexp_release (list);
-
-    if (err)
-      {
-	if (array)
-	  gcry_free (array);
-
-	ath_mutex_lock (&pubkeys_registered_lock);
-	_gcry_module_release (module);
-	ath_mutex_unlock (&pubkeys_registered_lock);
-      }
-    else
-      {
-	*retarray = array;
-	*retalgo = module;
-      }
-
-    return err;
+  else
+    {
+      *retarray = array;
+      *retalgo = module;
+    }
+  
+  return err;
 }
+
 
 static gcry_err_code_t
 sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
 	     gcry_module_t *retalgo)
 {
-    gcry_sexp_t list, l2;
-    const char *name;
-    size_t n;
-    const char *elems;
-    gcry_mpi_t *array;
-    gcry_err_code_t err = GPG_ERR_NO_ERROR;
-    gcry_module_t module;
-    gcry_pk_spec_t *pubkey;
+  gcry_err_code_t err = 0;
+  gcry_sexp_t list, l2;
+  char *name;
+  const char *elems;
+  gcry_mpi_t *array;
+  gcry_module_t module;
+  gcry_pk_spec_t *pubkey;
+  
+  /* Check that the first element is valid.  */
+  list = gcry_sexp_find_token( sexp, "sig-val" , 0 );
+  if (!list)
+    return GPG_ERR_INV_OBJ; /* Does not contain a signature value object.  */
 
-    /* check that the first element is valid */
-    list = gcry_sexp_find_token( sexp, "sig-val" , 0 );
-    if( !list )
-	return GPG_ERR_INV_OBJ; /* Does not contain a signature value object */
-    l2 = gcry_sexp_nth (list, 1);
-    if(! l2)
-      {
-	gcry_sexp_release (list);
-	return GPG_ERR_NO_OBJ; /* no cadr for the sig object */
-      }
-    name = gcry_sexp_nth_data( l2, 0, &n );
-    if( !name ) {
-      	gcry_sexp_release ( list );
-      	gcry_sexp_release ( l2 );
-	return GPG_ERR_INV_OBJ; /* invalid structure of object */
+  l2 = gcry_sexp_nth (list, 1);
+  if (!l2)
+    {
+      gcry_sexp_release (list);
+      return GPG_ERR_NO_OBJ;   /* No cadr for the sig object.  */
     }
-    else if (n == 5 && (! memcmp (name, "flags", 5))) {
-      /* Skip flags, since they are not used but just here for the
+  name = _gcry_sexp_nth_string (l2, 0);
+  if (!name)
+    {
+      gcry_sexp_release (list);
+      gcry_sexp_release (l2);
+      return GPG_ERR_INV_OBJ;  /* Invalid structure of object.  */
+    }
+  else if (!strcmp (name, "flags")) 
+    {
+      /* Skip flags, since they are not used but here just for the
 	 sake of consistent S-expressions.  */
+      gcry_free (name);
       gcry_sexp_release (l2);
       l2 = gcry_sexp_nth (list, 2);
-      if (! l2)
+      if (!l2)
 	{
 	  gcry_sexp_release (list);
 	  return GPG_ERR_INV_OBJ;
 	}
-      name = gcry_sexp_nth_data (l2, 0, &n);
+      name = _gcry_sexp_nth_string (l2, 0);
     }
       
+  ath_mutex_lock (&pubkeys_registered_lock);
+  module = gcry_pk_lookup_name (name);
+  ath_mutex_unlock (&pubkeys_registered_lock);
+  gcry_free (name);
+  name = NULL;
+
+  if (!module)
     {
-      char *name_terminated;
-
-      name_terminated = gcry_malloc (n + 1);
-      if (!name_terminated)
-        {
-          err = gcry_err_code_from_errno (errno);
-	  gcry_sexp_release (l2);
-	  gcry_sexp_release (list);
-          return err;
-        }
-          
-      memcpy (name_terminated, name, n);
-      name_terminated[n] = 0;
-      
-      ath_mutex_lock (&pubkeys_registered_lock);
-      module = gcry_pk_lookup_name (name_terminated);
-      ath_mutex_unlock (&pubkeys_registered_lock);
-
-      gcry_free (name_terminated);
+      gcry_sexp_release (l2);
+      gcry_sexp_release (list);
+      return GPG_ERR_PUBKEY_ALGO;  /* Unknown algorithm. */
     }
+  else
+    pubkey = (gcry_pk_spec_t *) module->spec;
 
-    if (! module)
-      {
-	gcry_sexp_release (l2);
-	gcry_sexp_release (list);
-	return GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
-      }
-    else
-      pubkey = (gcry_pk_spec_t *) module->spec;
+  elems = pubkey->elements_sig;
+  array = gcry_calloc (strlen (elems) + 1 , sizeof *array );
+  if (!array)
+    err = gpg_err_code_from_errno (errno);
 
-    elems = pubkey->elements_sig;
-    array = gcry_calloc (strlen (elems) + 1 , sizeof (*array));
-    if (! array)
-      err = gpg_err_code_from_errno (errno);
+  if (!err)
+    err = sexp_elements_extract (list, elems, array);
 
-    if (! err)
-      err = sexp_elements_extract (list, elems, array);
+  gcry_sexp_release (l2);
+  gcry_sexp_release (list);
 
-    gcry_sexp_release (l2);
-    gcry_sexp_release (list);
-
-    if (err)
-      {
-	ath_mutex_lock (&pubkeys_registered_lock);
-	_gcry_module_release (module);
-	ath_mutex_unlock (&pubkeys_registered_lock);
-
-	if (array)
-	  gcry_free (array);
-      }
-    else
-      {
-	*retarray = array;
-	*retalgo = module;
-      }
-
-    return err;
+  if (err)
+    {
+      ath_mutex_lock (&pubkeys_registered_lock);
+      _gcry_module_release (module);
+      ath_mutex_unlock (&pubkeys_registered_lock);
+      
+      gcry_free (array);
+    }
+  else
+    {
+      *retarray = array;
+      *retalgo = module;
+    }
+  
+  return err;
 }
 
 
@@ -1017,45 +1086,45 @@ static gcry_err_code_t
 sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
              int *ret_modern, int *ret_want_pkcs1, int *flags)
 {
+  gcry_err_code_t err = 0;
   gcry_sexp_t list = NULL, l2 = NULL;
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
-  const char *name;
+  char *name = NULL;
   size_t n;
   int parsed_flags = 0;
   const char *elems;
   gcry_mpi_t *array = NULL;
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
   *ret_want_pkcs1 = 0;
   *ret_modern = 0;
 
-  /* check that the first element is valid */
+  /* Check that the first element is valid.  */
   list = gcry_sexp_find_token (sexp, "enc-val" , 0);
-  if (! list)
+  if (!list)
     {
-      err = GPG_ERR_INV_OBJ; /* Does not contain an encrypted value object */
+      err = GPG_ERR_INV_OBJ; /* Does not contain an encrypted value object.  */
       goto leave;
     }
 
   l2 = gcry_sexp_nth (list, 1);
-  if (! l2)
+  if (!l2)
     {
-      err = GPG_ERR_NO_OBJ; /* no cdr for the data object */
+      err = GPG_ERR_NO_OBJ; /* No cdr for the data object.  */
       goto leave;
     }
 
   /* Extract identifier of sublist.  */
-  name = gcry_sexp_nth_data (l2, 0, &n);
-  if (! name)
+  name = _gcry_sexp_nth_string (l2, 0);
+  if (!name)
     {
-      err = GPG_ERR_INV_OBJ; /* invalid structure of object */
+      err = GPG_ERR_INV_OBJ; /* Invalid structure of object.  */
       goto leave;
     }
   
-  if ((n == 5) && (! memcmp (name, "flags", 5)))
+  if (!strcmp (name, "flags"))
     {
-      /* There is a flags element - process it */
+      /* There is a flags element - process it.  */
       const char *s;
       int i;
       
@@ -1064,10 +1133,10 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
         {
           s = gcry_sexp_nth_data (l2, i, &n);
           if (! s)
-            ; /* not a data element - ignore */
-          else if (n == 3 && ! memcmp (s, "raw", 3))
-            ; /* just a dummy because it is the default */
-          else if (n == 5 && ! memcmp (s, "pkcs1", 5))
+            ; /* Not a data element - ignore.  */
+          else if (n == 3 && !memcmp (s, "raw", 3))
+            ; /* This is just a dummy as it is the default.  */
+          else if (n == 5 && !memcmp (s, "pkcs1", 5))
             *ret_want_pkcs1 = 1;
           else if (n == 11 && ! memcmp (s, "no-blinding", 11))
             parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
@@ -1078,20 +1147,21 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
             }
         }
       
-      /* Get the next which has the actual data */
+      /* Get the next which has the actual data. */
       gcry_sexp_release (l2);
       l2 = gcry_sexp_nth (list, 2);
-      if (! l2)
+      if (!l2)
         {
-          err = GPG_ERR_NO_OBJ; /* no cdr for the data object */
+          err = GPG_ERR_NO_OBJ; /* No cdr for the data object. */
           goto leave;
         }
 
       /* Extract sublist identifier.  */
-      name = gcry_sexp_nth_data (l2, 0, &n);
-      if (! name)
+      gcry_free (name);
+      name = _gcry_sexp_nth_string (l2, 0);
+      if (!name)
         {
-          err = GPG_ERR_INV_OBJ; /* invalid structure of object */
+          err = GPG_ERR_INV_OBJ; /* Invalid structure of object. */
           goto leave;
         }
 
@@ -1100,35 +1170,20 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
       l2 = NULL;
     }
 
-  {
-    char *name_terminated;
-
-    name_terminated = gcry_malloc (n + 1);
-    if (!name_terminated)
-      {
-        err = gcry_err_code_from_errno (errno);
-        goto leave;
-      }
-    memcpy (name_terminated, name, n);
-    name_terminated[n] = 0;
-    
-    ath_mutex_lock (&pubkeys_registered_lock);
-    module = gcry_pk_lookup_name (name_terminated);
-    ath_mutex_unlock (&pubkeys_registered_lock);
-    
-    gcry_free (name_terminated);
-    
-    if (! module)
-      {
-        err = GPG_ERR_PUBKEY_ALGO; /* unknown algorithm */
-        goto leave;
-      }
-    pubkey = (gcry_pk_spec_t *) module->spec;
-  }
+  ath_mutex_lock (&pubkeys_registered_lock);
+  module = gcry_pk_lookup_name (name);
+  ath_mutex_unlock (&pubkeys_registered_lock);
+  
+  if (!module)
+    {
+      err = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm.  */
+      goto leave;
+    }
+  pubkey = (gcry_pk_spec_t *) module->spec;
 
   elems = pubkey->elements_enc;
   array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
-  if (! array)
+  if (!array)
     {
       err = gpg_err_code_from_errno (errno);
       goto leave;
@@ -1137,18 +1192,16 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
   err = sexp_elements_extract (list, elems, array);
 
  leave:
-  if (list)
-    gcry_sexp_release (list);
-  if (l2)
-    gcry_sexp_release (l2);
+  gcry_sexp_release (list);
+  gcry_sexp_release (l2);
+  gcry_free (name);
 
   if (err)
     {
       ath_mutex_lock (&pubkeys_registered_lock);
       _gcry_module_release (module);
       ath_mutex_unlock (&pubkeys_registered_lock);
-      if (array)
-	gcry_free (array);
+      gcry_free (array);
     }
   else
     {
@@ -1820,6 +1873,9 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
   if (rc)
     goto leave;
 
+  /* Fixme: Check that the algorithm of S_SIG is compatible to the one
+     of S_PKEY.  */
+
   if (module_key->mod_id != module_sig->mod_id)
     {
       rc = GPG_ERR_CONFLICT;
@@ -1929,7 +1985,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
   gcry_sexp_t list = NULL, l2 = NULL;
-  const char *name;
+  char *name = NULL;
   size_t n;
   gcry_err_code_t rc = GPG_ERR_NO_ERROR;
   int i;
@@ -1941,7 +1997,6 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   unsigned long use_e = 0;
   unsigned int qbits;
   gcry_mpi_t xvalue = NULL;
-  char *name_terminated;
   char *curve = NULL;
 
   REGISTER_DEFAULT_PUBKEYS;
@@ -1966,29 +2021,21 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       goto leave;
     }
 
-  name = gcry_sexp_nth_data (list, 0, &n);
-  if (! name)
+  name = _gcry_sexp_nth_string (list, 0);
+  if (!name)
     {
-      rc = GPG_ERR_INV_OBJ; /* Algo string missing. */
+      rc = GPG_ERR_INV_OBJ; /* Algo string missing.  */
       goto leave;
     }
-
-  name_terminated = gcry_malloc (n + 1);
-  if (!name_terminated)
-    {
-      rc = gpg_err_code_from_errno (errno);
-      goto leave;
-    }
-  memcpy (name_terminated, name, n);
-  name_terminated[n] = 0;
+  
   ath_mutex_lock (&pubkeys_registered_lock);
-  module = gcry_pk_lookup_name (name_terminated);
+  module = gcry_pk_lookup_name (name);
   ath_mutex_unlock (&pubkeys_registered_lock);
-  gcry_free (name_terminated);
-
-  if (! module)
+  gcry_free (name);
+  name = NULL;
+  if (!module)
     {
-      rc = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm. */
+      rc = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm.  */
       goto leave;
     }
   
@@ -2007,14 +2054,15 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   if (l2)
     {
       char buf[50];
+      const char *s;
 
-      name = gcry_sexp_nth_data (l2, 1, &n);
-      if ((! name) || (n >= DIM (buf) - 1))
+      s = gcry_sexp_nth_data (l2, 1, &n);
+      if ( !s || n >= DIM (buf) - 1 )
         {
-          rc = GPG_ERR_INV_OBJ; /* No value or value too large. */
+          rc = GPG_ERR_INV_OBJ; /* No value or value too large.  */
           goto leave;
         }
-      memcpy (buf, name, n);
+      memcpy (buf, s, n);
       buf[n] = 0;
       use_e = strtoul (buf, NULL, 0);
       gcry_sexp_release (l2);
@@ -2028,14 +2076,15 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   if (l2)
     {
       char buf[50];
+      const char *s;
 
-      name = gcry_sexp_nth_data (l2, 1, &n);
-      if ((! name) || (n >= DIM (buf) - 1))
+      s = gcry_sexp_nth_data (l2, 1, &n);
+      if (!s || n >= DIM (buf) - 1 )
         {
-          rc = GPG_ERR_INV_OBJ; /* No value or value too large. */
+          rc = GPG_ERR_INV_OBJ; /* No value or value too large.  */
           goto leave;
         }
-      memcpy (buf, name, n);
+      memcpy (buf, s, n);
       buf[n] = 0;
       qbits = (unsigned int)strtoul (buf, NULL, 0);
       gcry_sexp_release (l2);
@@ -2060,20 +2109,12 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   l2 = gcry_sexp_find_token (list, "curve", 0);
   if (l2)
     {
-      name = gcry_sexp_nth_data (l2, 1, &n);
-      if (!name || n < 1)
-        {
-          rc = GPG_ERR_INV_OBJ; /* No name or or value too large. */
-          goto leave;
-        }
-      curve = gcry_malloc (n+1);
+      curve = _gcry_sexp_nth_string (l2, 1);
       if (!curve)
         {
-          rc = gpg_err_code_from_syserror ();
+          rc = GPG_ERR_INV_OBJ; /* No curve name or value too large. */
           goto leave;
         }
-      memcpy (curve, name, n);
-      curve[n] = 0;
       gcry_sexp_release (l2);
       l2 = NULL;
     }
@@ -2092,23 +2133,18 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     }
   if (list)
     {
-      name = gcry_sexp_nth_data (list, 1, &n);
-      if (! name)
+      char buf[50];
+      const char *s;
+
+      s = gcry_sexp_nth_data (list, 1, &n);
+      if (!s || n >= DIM (buf) - 1 )
         {
-          rc = GPG_ERR_INV_OBJ; /* nbits without a cdr. */
+          rc = GPG_ERR_INV_OBJ; /* NBITS given without a cdr.  */
           goto leave;
         }
-      
-      name_terminated = gcry_malloc (n + 1);
-      if (!name_terminated)
-        {
-          rc = gpg_err_code_from_errno (errno);
-          goto leave;
-        }
-      memcpy (name_terminated, name, n);
-      name_terminated[n] = 0;
-      nbits = (unsigned int) strtoul (name_terminated, NULL, 0);
-      gcry_free (name_terminated);
+      memcpy (buf, s, n);
+      buf[n] = 0;
+      nbits = (unsigned int)strtoul (buf, NULL, 0);
     }
   else 
     nbits = 0;
@@ -2209,6 +2245,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   }
 
  leave:
+  gcry_free (name);
   gcry_free (curve);
   release_mpi_array (skey);
   /* Don't free SKEY itself, it is a static array. */
@@ -2286,8 +2323,8 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   gcry_sexp_t list = NULL, l2 = NULL;
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
-  const char *s, *name;
-  size_t n;
+  const char *s;
+  char *name = NULL;
   int idx;
   int is_rsa;
   const char *elems;
@@ -2311,24 +2348,16 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   list = l2;
   l2 = NULL;
 
-  name = gcry_sexp_nth_data (list, 0, &n);
-  if (! name)
+  name = _gcry_sexp_nth_string (list, 0);
+  if (!name)
     goto fail; /* Invalid structure of object. */
 
-  {
-    char *name_terminated = gcry_malloc (n + 1);
-    if (!name_terminated)
-      goto fail;
-    memcpy (name_terminated, name, n);
-    name_terminated[n] = 0;
-    ath_mutex_lock (&pubkeys_registered_lock);
-    module = gcry_pk_lookup_name (name_terminated);
-    ath_mutex_unlock (&pubkeys_registered_lock);
-    gcry_free (name_terminated);
-  }
+  ath_mutex_lock (&pubkeys_registered_lock);
+  module = gcry_pk_lookup_name (name);
+  ath_mutex_unlock (&pubkeys_registered_lock);
 
-  if (! module)
-    goto fail; /* unknown algorithm */
+  if (!module)
+    goto fail; /* Unknown algorithm.  */
 
   pubkey = (gcry_pk_spec_t *) module->spec;
 
@@ -2337,7 +2366,7 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   is_rsa = module->mod_id == GCRY_PK_RSA;
   elems = pubkey->elements_grip;
   if (! elems)
-    goto fail; /* no grip parameter */
+    goto fail; /* No grip parameter.  */
     
   if (gcry_md_open (&md, GCRY_MD_SHA1, 0))
     goto fail;
@@ -2385,10 +2414,9 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   return array;
 
  fail:
-  if (l2)
-    gcry_sexp_release (l2);
-  if (md)
-    gcry_md_close (md);
+  gcry_free (name);
+  gcry_sexp_release (l2);
+  gcry_md_close (md);
   gcry_sexp_release (list);
   return NULL;
 }

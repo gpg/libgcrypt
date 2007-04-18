@@ -3634,6 +3634,15 @@ printf ("my name is %.*s\n", (int)len, name);
 @end example
 @end deftypefun
 
+@deftypefun char *gcry_sexp_nth_string (@w{gcry_sexp_t @var{list}}, @w{int @var{number}})
+
+This function is used to get and convert data from a @var{list}. The
+data is assumed to be a Nul terminated string.  The caller must
+release this returned value using @code{gcry_free}.  If there is
+no data at the given index, the index represents a list or the value
+can't be converted to a string, @code{NULL} is returned.
+@end deftypefun
+
 @deftypefun gcry_mpi_t gcry_sexp_nth_mpi (@w{gcry_sexp_t @var{list}}, @w{int @var{number}}, @w{int @var{mpifmt}})
 
 This function is used to get and convert data from a @var{list}. This

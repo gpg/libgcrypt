@@ -57,6 +57,8 @@ void _gcry_register_pk_ecc_progress (gcry_handler_progress_t cbc,
 gcry_err_code_t _gcry_ecc_generate (int algo, unsigned int nbits,
                                     const char *curve,
                                     gcry_mpi_t *skey, gcry_mpi_t **retfactors);
+gcry_err_code_t _gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey);
+
 
 /*-- primegen.c --*/
 void _gcry_register_primegen_progress (gcry_handler_progress_t cb,

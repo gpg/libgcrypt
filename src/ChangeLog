@@ -1,3 +1,12 @@
+2007-04-18  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in (gcry_sexp_nth_string): New.
+
+	* sexp.c (gcry_sexp_nth_data): Factored code out to ...
+	(sexp_nth_data): ... new.
+	(gcry_sexp_nth_string): New.
+	(gcry_sexp_nth_mpi): Reimplemented in terms of sexp_ntd_data.
+
 2007-04-16  Werner Koch  <wk@g10code.com>
 
 	* secmem.c (init_pool): Use sysconf() if available to determine

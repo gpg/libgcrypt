@@ -243,4 +243,9 @@ gcry_err_code_t _gcry_malloc (size_t n, unsigned int flags, void **mem);
 
 #define GCRY_ALLOC_FLAG_SECURE (1 << 0)
 
+
+/*-- sexp.c --*/
+char *_gcry_sexp_nth_string (const gcry_sexp_t list, int number);
+
+
 #endif /* G10LIB_H */
