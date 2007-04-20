@@ -2137,7 +2137,7 @@ The following information are stored in S-expressions:
 @end table
 
 @noindent
-To describe how Libgcrypt expect keys, we use some examples. Note that
+To describe how Libgcrypt expect keys, we use examples. Note that
 words in
 @ifnottex
 uppercase
@@ -2147,42 +2147,22 @@ italics
 @end iftex
 indicate parameters whereas lowercase words are literals.
 
-@example
-(private-key
-  (dsa
-    (p @var{p-mpi})
-    (q @var{q-mpi})
-    (g @var{g-mpi})
-    (y @var{y-mpi})
-    (x @var{x-mpi})))
-@end example
+Note that all MPI (big integer) values are expected to be in
+@code{GCRYMPI_FMT_USG} format.  An easy way to create S-expressions is
+by using @code{gcry_sexp_build} which allows to pass a string with
+printf-like escapes to insert MPI values.
+
+@menu
+* RSA key parameters::  Parameters used with an RSA key.
+* DSA key parameters::  Parameters used with a DSA key.
+* ECC key parameters::  Parameters used with ECC keys.
+@end menu
+
+@node RSA key parameters
+@subsection RSA key parameters
 
 @noindent
-This specifies a DSA private key with the following parameters:
-
-@table @var
-@item p-mpi
-DSA prime @math{p}.
-@item q-mpi
-DSA group order @math{q} (which is a prime divisor of @math{p-1}).
-@item g-mpi
-DSA group generator @math{g}.
-@item y-mpi
-DSA public key value @math{y = g^x \bmod p}.
-@item x-mpi
-DSA secret exponent x.
-@end table
-
-All the MPI values are  expected to be in @code{GCRYMPI_FMT_USG} format.
-The public key is similar with "private-key" replaced by "public-key"
-and no @var{x-mpi}.
-
-An easy way to create such an S-expressions is by using
-@code{gcry_sexp_build} which allows to pass a string with printf-like
-escapes to insert MPI values.
-
-@noindent
-Here is an example for an RSA key:
+An RSA private key is described by this S-expression:
 
 @example
 (private-key
@@ -2192,11 +2172,19 @@ Here is an example for an RSA key:
     (d @var{d-mpi})
     (p @var{p-mpi})
     (q @var{q-mpi})
-    (u @var{u-mpi})
+    (u @var{u-mpi})))
 @end example
 
 @noindent
-with
+An RSA public key is described by this S-expression:
+
+@example
+(public-key
+  (rsa
+    (n @var{n-mpi})
+    (e @var{e-mpi})))
+@end example
+
 
 @table @var
 @item n-mpi
@@ -2212,6 +2200,129 @@ RSA secret prime @math{q} with @math{q > p}.
 @item u-mpi
 multiplicative inverse @math{u = p^{-1} \bmod q}.
 @end table
+
+
+
+@node DSA key parameters
+@subsection DSA key parameters
+
+@noindent
+A DSA private key is described by this S-expression:
+
+@example
+(private-key
+  (dsa
+    (p @var{p-mpi})
+    (q @var{q-mpi})
+    (g @var{g-mpi})
+    (y @var{y-mpi})
+    (x @var{x-mpi})))
+@end example
+
+@table @var
+@item p-mpi
+DSA prime @math{p}.
+@item q-mpi
+DSA group order @math{q} (which is a prime divisor of @math{p-1}).
+@item g-mpi
+DSA group generator @math{g}.
+@item y-mpi
+DSA public key value @math{y = g^x \bmod p}.
+@item x-mpi
+DSA secret exponent x.
+@end table
+
+The public key is similar with "private-key" replaced by "public-key"
+and no @var{x-mpi}.
+
+
+@node ECC key parameters
+@subsection ECC key parameters
+
+@noindent
+An ECC private key is described by this S-expression:
+
+@example
+(private-key
+  (ecc
+    (p @var{p-mpi})
+    (a @var{a-mpi})
+    (b @var{b-mpi})
+    (g @var{g-point})
+    (n @var{n-mpi})
+    (q @var{q-point})
+    (d @var{d-mpi})))
+@end example
+
+@table @var
+@item p-mpi
+Prime specifying the field @math{GF(p)}.
+@item a-mpi
+@itemx b-mpi
+The two coefficients of the Weierstrass equation @math{y^2 = x^3 + ax + b}
+@item g-point
+Base point @math{g}.
+@item n-mpi
+Order of @math{g}
+@item q-point
+The point representing the public key @math{Q = dP}.
+@item d-mpi
+The private key @math{d}
+@end table
+
+All point values are encoded in standard format; Libgcrypt does
+currently only support uncompressed points, thus the first byte needs to
+be @code{0x04}.
+
+The public key is similar with "private-key" replaced by "public-key"
+and no @var{d-mpi}.
+
+If the domain parameters are well-known, the name of this curve may be
+used.  For example
+
+@example
+(private-key
+  (ecc
+    (curve "NIST P-192")
+    (q @var{q-point})
+    (d @var{d-mpi})))
+@end example
+
+The @code{curve} parameter may be given in any case and is used to replace
+missing parameters.
+
+@noindent
+Currently implemented curves are:
+@table @code
+@item NIST P-192
+@itemx 1.2.840.10045.3.1.1
+@itemx prime192v1
+@itemx secp192r1
+The NIST 192 bit curve, its OID, X9.62 and SECP aliases.
+
+@item NIST P-224
+@itemx secp224r1
+The NIST 224 bit curve and its SECP alias.
+
+@item NIST P-256
+@itemx 1.2.840.10045.3.1.7
+@itemx prime256v1
+@itemx secp256r1
+The NIST 256 bit curve, its OID, X9.62 and SECP aliases.
+
+@item NIST P-384
+@itemx secp384r1
+The NIST 384 bit curve and its SECP alias.
+
+@item NIST P-521
+@itemx secp521r1
+The NIST 521 bit curve and its SECP alias.
+
+@end table
+As usual the OIDs may optionally be prefixed with the string @code{OID.}
+or @code{oid.}.
+
+
 
 @node Public key modules
 @section Public key modules
@@ -2729,6 +2840,13 @@ This is always required to specify the length of the key.  The argument
 is a string with a number in C-notation.  The value should be a multiple
 of 8.
 
+@item curve @var{name}
+For ECC a named curve may be used instead of giving the number of
+requested bits.  This allows to request a specific curve to override a
+default selection Libgcrypt would have taken if @code{nbits} has been
+given.  The available names are listed with the description of the ECC
+public key parameters.
+
 @item rsa-use-e
 This is only used with RSA to give a hint for the public exponent. The
 value will be used as a base to test for a usable exponent. Some values
@@ -2761,7 +2879,7 @@ Q = 224
 Q = 256
 @item N = 7680
 Q = 384
-w@item N = 15360
+@item N = 15360
 Q = 512
 @end table
 Note that in this case only the values for N, as given in the table,

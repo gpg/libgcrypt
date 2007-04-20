@@ -2278,7 +2278,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
    Get the number of nbits from the public key.
 
    Hmmm: Should we have really this function or is it better to have a
-   more general function to retrieve different propoerties of the key?  */
+   more general function to retrieve different properties of the key?  */
 unsigned int
 gcry_pk_get_nbits (gcry_sexp_t key)
 {
