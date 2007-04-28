@@ -1,3 +1,10 @@
+2007-04-28  Marcus Brinkmann  <marcus@g10code.de>
+
+	* ac.c (gcry_ac_mpi): Remove member NAME_PROVIDED.
+	(ac_data_mpi_copy, _gcry_ac_data_set, _gcry_ac_data_get_name)
+	(_gcry_ac_data_get_index, ac_data_construct): Adjust handling of
+	NAME accordingly.
+
 2007-04-20  Werner Koch  <wk@g10code.com>
 
 	* ecc.c (domain_parms): Add standard brainpool curves.

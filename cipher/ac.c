@@ -88,7 +88,6 @@ struct gcry_ac_handle
 /* A named MPI value.  */
 typedef struct gcry_ac_mpi
 {
-  const char *name_provided;	/* Provided name of MPI value. */
   char *name;			/* Self-maintained copy of name.  */
   gcry_mpi_t mpi;		/* MPI value.         */
   unsigned int flags;		/* Flags.             */
@@ -213,10 +212,7 @@ ac_data_mpi_copy (gcry_ac_mpi_t *data_mpis, unsigned int data_mpis_n,
     {
       /* Copy values.  */
 
-      if (data_mpis[i].name)
-	label = gcry_strdup (data_mpis[i].name);
-      else
-	label = gcry_strdup (data_mpis[i].name_provided);
+      label = gcry_strdup (data_mpis[i].name);
       mpi = gcry_mpi_copy (data_mpis[i].mpi);
       if (! (label && mpi))
 	{
@@ -331,6 +327,7 @@ _gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
     {
       /* Create copies.  */
 
+      flags |= GCRY_AC_FLAG_DEALLOC;
       name_cp = gcry_strdup (name);
       mpi_cp = gcry_mpi_copy (mpi);
       if (! (name_cp && mpi_cp))
@@ -342,9 +339,7 @@ _gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
 
   /* Search for existing entry.  */
   for (i = 0; i < data->data_n; i++)
-    if (! strcmp (name,
-		  data->data[i].name
-		  ? data->data[i].name : data->data[i].name_provided))
+    if (! strcmp (name, data->data[i].name))
       break;
   if (i < data->data_n)
     {
@@ -374,8 +369,7 @@ _gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
       data->data_n++;
     }
 
-  data->data[i].name_provided = name_cp ? NULL : name;
-  data->data[i].name = name_cp;
+  data->data[i].name = name_cp ? name_cp : ((char *) name);
   data->data[i].mpi = mpi_cp ? mpi_cp : mpi;
   data->data[i].flags = flags;
   err = 0;
@@ -417,9 +411,7 @@ _gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
     }
 
   for (i = 0; i < data->data_n; i++)
-    if (! strcmp (name,
-		  data->data[i].name ?
-		  data->data[i].name : data->data[i].name_provided))
+    if (! strcmp (name, data->data[i].name))
       break;
   if (i == data->data_n)
     {
@@ -487,10 +479,7 @@ _gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
       /* Return copies to the user.  */
       if (name)
 	{
-	  if (data->data[idx].name_provided)
-	    name_cp = gcry_strdup (data->data[idx].name_provided);
-	  else
-	    name_cp = gcry_strdup (data->data[idx].name);
+	  name_cp = gcry_strdup (data->data[idx].name);
 	  if (! name_cp)
 	    {
 	      err = gcry_error_from_errno (errno);
@@ -509,9 +498,7 @@ _gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
     }
 
   if (name)
-    *name = name_cp ? name_cp : (data->data[idx].name
-				 ? data->data[idx].name
-				 : data->data[idx].name_provided);
+    *name = name_cp ? name_cp : data->data[idx].name;
   if (mpi)
     *mpi = mpi_cp ? mpi_cp : data->data[idx].mpi;
   err = 0;
@@ -1373,9 +1360,7 @@ ac_data_construct (const char *identifier, int include_flags,
   /* Fill list with MPIs.  */
   for (i = 0; i < data_length; i++)
     {
-      char **nameaddr  = (data->data[i].name
-                          ? &data->data[i].name
-                          : ((char **) &data->data[i].name_provided));
+      char **nameaddr  = &data->data[i].name;
 
       arg_list[(i * 2) + 0] = nameaddr;
       arg_list[(i * 2) + 1] = &data->data[i].mpi;

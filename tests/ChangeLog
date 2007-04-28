@@ -1,3 +1,9 @@
+2007-04-28  Marcus Brinkmann  <marcus@g10code.de>
+
+	* ac-data.c (check_run): Don't give redundant GCRY_AC_FLAG_DEALLOC
+	in addition to GCRY_AC_FLAG_COPY.  Don't release LABEL1 or MPI0,
+	as those are donated to libgcrypt, but do release MPI0 and MPI2.
+
 2007-04-12  Marcus Brinkmann  <marcus@g10code.de>
 
 	* ac-schemes.c (scheme_spec): Revert last change.

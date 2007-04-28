@@ -141,17 +141,14 @@ check_run (void)
 
   err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY, label0, mpi0);
   assert_err (err);
-  err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY | GCRY_AC_FLAG_DEALLOC,
-			  "foo", mpi0);
+
+  err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY, "foo", mpi0);
   assert_err (err);
-  err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY | GCRY_AC_FLAG_DEALLOC,
-			  "foo", mpi0);
+  err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY, "foo", mpi0);
   assert_err (err);
-  err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY | GCRY_AC_FLAG_DEALLOC,
-			  "bar", mpi0);
+  err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY, "bar", mpi0);
   assert_err (err);
-  err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY | GCRY_AC_FLAG_DEALLOC,
-			  "blah1", mpi0);
+  err = gcry_ac_data_set (data, GCRY_AC_FLAG_COPY, "blah1", mpi0);
   assert_err (err);
   check_sexp_conversion (data, identifiers);
   check_sexp_conversion (data, identifiers_null);
@@ -166,8 +163,8 @@ check_run (void)
   assert (mpi1 != mpi2);
   err = gcry_ac_data_get_index (data, 0, 0, &label1, &mpi1);
   assert_err (err);
-  gcry_free ((void *) label1);	/* FIXME!! */
-  gcry_mpi_release (mpi1);
+  gcry_mpi_release (mpi0);
+  gcry_mpi_release (mpi2);
 
   if (verbose)
     printf ("data-set-test-1 succeeded\n");
