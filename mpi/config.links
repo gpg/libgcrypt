@@ -322,7 +322,7 @@ fi
 # if this fails get it from the generic subdirectory.
 mpi_ln_list=
 mpi_mod_list=
-path="$path generic"
+path="$mpi_extra_path $path generic"
 for fn in $mpi_required_modules ; do
     fnu=`echo $fn | sed 's/-/_/g'`
     eval mpi_mod_c_${fnu}=no

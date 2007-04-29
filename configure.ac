@@ -664,6 +664,10 @@ fi
 # Setup assembler stuff.
 #
 GNUPG_SYS_SYMBOL_UNDERSCORE()
+AC_ARG_ENABLE(mpi-path,
+              AC_HELP_STRING([--enable-mpi-path=EXTRA_PATH],
+	      [prepend EXTRA_PATH to list of CPU specific optimizations]),
+	      mpi_extra_path="$enableval",mpi_extra_path="")
 AC_MSG_CHECKING(for mpi assembler functions)
 if test -f $srcdir/mpi/config.links ; then
     . $srcdir/mpi/config.links
