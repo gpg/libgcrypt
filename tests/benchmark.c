@@ -679,7 +679,6 @@ ecc_bench (int iterations, int print_header)
                              "(genkey (ECDSA (nbits %d)))", p_sizes[testno]);
       if (err)
         die ("creating S-expression failed: %s\n", gcry_strerror (err));
-      
 
       start_timer ();
       err = gcry_pk_genkey (&key_pair, key_spec);
@@ -694,6 +693,7 @@ ecc_bench (int iterations, int print_header)
       if (! sec_key)
         die ("private part missing in key\n");
       gcry_sexp_release (key_pair);
+      gcry_sexp_release (key_spec);
 
       stop_timer ();
       printf ("   %s", elapsed_time ());

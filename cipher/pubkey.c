@@ -940,6 +940,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
      encryption).  For RSA this is easy, but ECC is the first
      algorithm which has many flavours. */
   is_ecc = ( !strcmp (name, "ecdsa") || !strcmp (name, "ecc") );
+  gcry_free (name);
   
   if (!module)
     {

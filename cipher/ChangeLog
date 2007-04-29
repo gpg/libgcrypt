@@ -1,3 +1,13 @@
+2007-04-30  Marcus Brinkmann  <marcus@g10code.de>
+
+	* ecc.c (ec2os): Fix relocation of short numbers.
+
+	* ecc.c (generate_key): Do not allocate D, which will be allocated
+	by GEN_K.  Remove G.  Fix test if g_x, g_y resp. q_x, q_y are
+	requested.
+	(_gcry_ecc_generate): Release unneeded members of SK.
+	* pubkey.c (sexp_to_key): Release NAME.
+
 2007-04-28  Marcus Brinkmann  <marcus@g10code.de>
 
 	* ac.c (gcry_ac_mpi): Remove member NAME_PROVIDED.

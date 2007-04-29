@@ -503,7 +503,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
   gpg_err_code_t err;
   elliptic_curve_t E;
   gcry_mpi_t d;
-  mpi_point_t Q, G;
+  mpi_point_t Q;
   mpi_ec_t ctx;
 
   err = generate_curve (nbits, name, &E, &nbits);
@@ -521,12 +521,9 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
       log_mpidump ("ecc generation  Gz", E.G.z);
     }
 
-  d = mpi_snew (nbits);
   if (DBG_CIPHER)
     log_debug ("choosing a random x of size %u\n", nbits);
   d = gen_k (E.n, GCRY_VERY_STRONG_RANDOM); 
-  point_init (&G);
-  point_set (&G, &E.G);
 
   /* Compute Q.  */
   point_init (&Q);
@@ -545,12 +542,12 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
   sk->d    = mpi_copy (d);
   /* We also return copies of G and Q in affine coordinates if
      requested.  */
-  if (g_x && q_x)
+  if (g_x && g_y)
     {
       if (_gcry_mpi_ec_get_affine (g_x, g_y, &sk->E.G, ctx))
         log_fatal ("ecc generate: Failed to get affine coordinates\n");
     }
-  if (q_x && q_x)
+  if (q_x && q_y)
     {
       if (_gcry_mpi_ec_get_affine (q_x, q_y, &sk->Q, ctx))
         log_fatal ("ecc generate: Failed to get affine coordinates\n");
@@ -863,7 +860,7 @@ ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
     log_fatal ("mpi_print failed: %s\n", gpg_strerror (err));
   if (n < pbytes)
     {
-      memmove (ptr+(pbytes-n), buf+1, n);
+      memmove (ptr+(pbytes-n), ptr, n);
       memset (ptr, 0, (pbytes-n));
     }
   ptr += pbytes;
@@ -872,7 +869,7 @@ ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
     log_fatal ("mpi_print failed: %s\n", gpg_strerror (err));
   if (n < pbytes)
     {
-      memmove (ptr+(pbytes-n), buf+1, n);
+      memmove (ptr+(pbytes-n), ptr, n);
       memset (ptr, 0, (pbytes-n));
     }
   
@@ -978,10 +975,15 @@ _gcry_ecc_generate (int algo, unsigned int nbits, const char *curve,
   skey[0] = sk.E.p;
   skey[1] = sk.E.a;
   skey[2] = sk.E.b;
+  /* The function ec2os releases g_x and g_y.  */
   skey[3] = ec2os (g_x, g_y, sk.E.p);
   skey[4] = sk.E.n;
+  /* The function ec2os releases g_x and g_y.  */
   skey[5] = ec2os (q_x, q_y, sk.E.p);
   skey[6] = sk.d;
+
+  point_free (&sk.E.G);
+  point_free (&sk.Q);
 
   return 0;
 }

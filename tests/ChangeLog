@@ -1,3 +1,7 @@
+2007-04-30  Marcus Brinkmann  <marcus@g10code.de>
+
+	* benchmark.c (ecc_bench): Release KEY_SPEC.
+
 2007-04-28  Marcus Brinkmann  <marcus@g10code.de>
 
 	* ac-data.c (check_run): Don't give redundant GCRY_AC_FLAG_DEALLOC
