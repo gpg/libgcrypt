@@ -343,6 +343,14 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
       _gcry_fast_random_poll (); 
       break;
 
+    case GCRYCTL_SET_RNDEGD_SOCKET:
+#if USE_RNDEGD
+      err = _gcry_rndegd_set_socket_name (va_arg (arg_ptr, const char *));
+#else
+      err = gpg_error (GPG_ERR_NOT_SUPPORTED);
+#endif
+      break;
+
     case GCRYCTL_SET_RANDOM_DAEMON_SOCKET:
       _gcry_set_random_daemon_socket (va_arg (arg_ptr, const char *));
       break;
@@ -359,8 +367,22 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
          used before the intialization has been finished but not
          before a gcry_version_check. */
     case GCRYCTL_DUMP_CONFIG:
-      log_info ("version=%s\n", VERSION);
-      log_info ("mpi-asm=%s\n", _gcry_mpi_get_hw_config ());
+      log_info ("version:%s:\n", VERSION);
+      log_info ("mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
+      log_info ("rnd-mod:"
+#if USE_RNDEGD
+                "egd:"
+#endif
+#if USE_RNDLINUX
+                "linux:"
+#endif
+#if USE_RNDUNIX
+                "unix:"
+#endif
+#if USE_RNDW32
+                "w32:"
+#endif
+                "\n");
       break;
 
     default:

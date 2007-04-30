@@ -40,6 +40,10 @@
 
 static int egd_socket = -1;
 
+/* Allocated name of the socket if supplied at runtime.  */
+static char *user_socket_name;
+
+
 /* Allocate a new filename from FIRST_PART and SECOND_PART and to
    tilde expansion for first_part.  SECOND_PART might be NULL.
  */
@@ -115,6 +119,25 @@ do_read( int fd, void *buf, size_t nbytes )
 }
 
 
+/* Note that his fucntion is not thread-safe.  */
+gpg_error_t
+_gcry_rndegd_set_socket_name (const char *name)
+{
+  char *newname;
+  struct sockaddr_un addr;
+
+  newname = my_make_filename (name, NULL);
+  if (strlen (newname)+1 >= sizeof addr.sun_path)
+    {
+      gcry_free (newname);
+      return gpg_error_from_syserror ();
+    }
+  gcry_free (user_socket_name);
+  user_socket_name = newname;
+  return 0;
+}
+
+
 /* Connect to the EGD and return the file descriptor.  Return -1 on
    error.  With NOFAIL set to true, silently fail and return the
    error, otherwise print an error message and die. */
@@ -136,7 +159,18 @@ _gcry_rndegd_connect_socket (int nofail)
 #ifdef EGD_SOCKET_NAME
   bname = EGD_SOCKET_NAME;
 #endif
-  if ( !bname || !*bname )
+  if (user_socket_name)
+    {
+      name = gcry_strdup (user_socket_name);
+      if (!name)
+        {
+          if (!nofail)
+            log_fatal ("error allocating memory in rndegd: %s\n",
+                       strerror(errno) );
+          return -1;
+        }
+    }
+  else if ( !bname || !*bname )
     name = my_make_filename ("~/.gnupg", "entropy");
   else
     name = my_make_filename (bname, NULL);

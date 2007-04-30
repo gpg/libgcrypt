@@ -535,7 +535,7 @@ logging stream.
 This command dumps secure memory manamgent related statistics to the
 librarys logging stream.
 
-@item GCRYCTL_DUMP_CONFIG
+@item GCRYCTL_DUMP_CONFIG; Arguments: none
 This command dumps information pertaining to the configuration of
 libgcrypt to the logging stream.  It may be used before the
 intialization has been finished but not before a gcry_version_check.
@@ -586,7 +586,23 @@ Write out the PRNG pool's content into the registered seed file.
 This command registers a thread-callback structure.  See section ``multi
 threading'' for more information on this command.
 
-@item GCRYCTL_FAST_POOL
+@item GCRYCTL_FAST_POLL
+
+Run a fast random poll.
+
+
+@item GCRYCTL_SET_RNDEGD_SOCKET; Arguments: const char *filename
+
+This command may be used to override the default name of the EGD socket
+to connect to.  It may be used only during initialization as it is not
+thread safe.  Changing the socket name again is not supported.  The
+function may return an error if the given filename is too long for a
+local socket name.
+
+EGD is an alternative random gatherer, used only on a few systems.
+
+
+
 @end table
 
 @end deftypefun

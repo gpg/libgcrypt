@@ -37,6 +37,9 @@ void _gcry_update_random_seed_file (void);
 byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
 
+/*-- rndegd.c --*/
+gpg_error_t _gcry_rndegd_set_socket_name (const char *name);
+
 /*-- random-daemon.c (only used from random.c) --*/
 #ifdef USE_RANDOM_DAEMON
 void _gcry_daemon_initialize_basics (void);

@@ -1,3 +1,7 @@
+2007-04-30  Werner Koch  <wk@g10code.com>
+
+	* rndegd.c (_gcry_rndegd_set_socket_name): New.
+
 2007-04-30  Marcus Brinkmann  <marcus@g10code.de>
 
 	* ecc.c (ec2os): Fix relocation of short numbers.
