@@ -197,6 +197,30 @@ gcry_check_version( const char *req_version )
     return NULL;
 }
 
+
+static void
+print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
+{
+  fnc (fp, "version:%s:\n", VERSION);
+  fnc (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
+  fnc (fp, "rnd-mod:"
+#if USE_RNDEGD
+                "egd:"
+#endif
+#if USE_RNDLINUX
+                "linux:"
+#endif
+#if USE_RNDUNIX
+                "unix:"
+#endif
+#if USE_RNDW32
+                "w32:"
+#endif
+       "\n");
+
+}
+
+
 
 
 /* Command dispatcher function, acting as general control
@@ -361,28 +385,16 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
       _gcry_random_initialize (1);
       _gcry_use_random_daemon (!! va_arg (arg_ptr, int));
       break;
-
+      
       /* This command dumps information pertaining to the
-         configuration of libgcrypt to the logging stream.  It may be
+         configuration of libgcrypt to the given stream.  It may be
          used before the intialization has been finished but not
          before a gcry_version_check. */
-    case GCRYCTL_DUMP_CONFIG:
-      log_info ("version:%s:\n", VERSION);
-      log_info ("mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
-      log_info ("rnd-mod:"
-#if USE_RNDEGD
-                "egd:"
-#endif
-#if USE_RNDLINUX
-                "linux:"
-#endif
-#if USE_RNDUNIX
-                "unix:"
-#endif
-#if USE_RNDW32
-                "w32:"
-#endif
-                "\n");
+    case GCRYCTL_PRINT_CONFIG:
+      {
+        FILE *fp = va_arg (arg_ptr, FILE *);
+        print_config (fp?fprintf:_gcry_log_info_with_dummy_fp, fp);
+      }
       break;
 
     default:

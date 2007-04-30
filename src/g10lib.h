@@ -34,6 +34,8 @@
 #error something is wrong with config.h
 #endif
 
+#include <stdio.h>
+
 #include <gcrypt.h>
 #include "types.h"
 
@@ -83,6 +85,8 @@ void _gcry_log_bug( const char *fmt, ... )   JNLIB_GCC_A_NR_PRINTF(1,2);
 void _gcry_log_fatal( const char *fmt, ... ) JNLIB_GCC_A_NR_PRINTF(1,2);
 void _gcry_log_error( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 void _gcry_log_info( const char *fmt, ... )  JNLIB_GCC_A_PRINTF(1,2);
+int  _gcry_log_info_with_dummy_fp (FILE *fp, const char *fmt, ... )
+                                             JNLIB_GCC_A_PRINTF(2,3);
 void _gcry_log_debug( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 void _gcry_log_printf ( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 

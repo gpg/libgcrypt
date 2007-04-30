@@ -51,7 +51,7 @@ main (int argc, char **argv)
       exit (1);
     }
 
-  gcry_control (GCRYCTL_DUMP_CONFIG, 0);
+  gcry_control (GCRYCTL_PRINT_CONFIG, NULL);
 
   return 0;
 }

@@ -1,9 +1,11 @@
 2007-04-30  Werner Koch  <wk@g10code.com>
 
-	* gcrypt.h.in (GCRYCTL_DUMP_CONFIG): New.
+	* gcrypt.h.in (GCRYCTL_PRINT_CONFIG): New.
 	(GCRYCTL_SET_RNDEGD_SOCKET): New.
-	* global.c (gcry_control): Add GCRYCTL_DUMP_CONFIG and
+	* global.c (gcry_control): Add GCRYCTL_PRINT_CONFIG and
 	GCRYCTL_SET_RNDEGD_SOCKET.
+	(print_config): New.
+	* misc.c (_gcry_log_info_with_dummy_fp): New.
 
 2007-04-18  Werner Koch  <wk@g10code.com>
 
