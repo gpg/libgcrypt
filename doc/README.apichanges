@@ -1,5 +1,7 @@
 README.apichanges 2003-07-28
 
+  NOTE: THESE ARE API CHANGES DONE BEFORE THE FIRST STABLE RELEASE SO
+  THEY ARE NOT RELEVANT ANYMORE [stable is 1.2.4 right now]
 
 We decided to change a couple of annoying things in Libgcrypt and to
 cleanup the API.  The new API better fits into a multi-threaded

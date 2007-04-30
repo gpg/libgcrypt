@@ -18,7 +18,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-TESTS = t-mpi-bit prime register ac ac-schemes ac-data basic \
+TESTS = version t-mpi-bit prime register ac ac-schemes ac-data basic \
         mpitests tsexp keygen pubkey hmac keygrip
 
 # random tests forking thus no a test for W32 does not make any sense.

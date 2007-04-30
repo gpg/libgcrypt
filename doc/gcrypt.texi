@@ -535,6 +535,11 @@ logging stream.
 This command dumps secure memory manamgent related statistics to the
 librarys logging stream.
 
+@item GCRYCTL_DUMP_CONFIG
+This command dumps information pertaining to the configuration of
+libgcrypt to the logging stream.  It may be used before the
+intialization has been finished but not before a gcry_version_check.
+
 @item GCRYCTL_DROP_PRIVS
 This command disables the use of secure memory and drops the priviliges
 of the current process.  FIXME.

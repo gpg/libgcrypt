@@ -105,6 +105,9 @@ int _gcry_log_verbosity( int level );
 
 
 
+/*-- mpi/mpiutil.c --*/
+const char *_gcry_mpi_get_hw_config (void);
+
 
 /*-- cipher/pubkey.c --*/
 

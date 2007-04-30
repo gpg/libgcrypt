@@ -318,11 +318,14 @@ if test "$mpi_extra_modules" != ""; then
   done
 fi
 
-# try to get file to link from the assembler subdirectory and
+# Try to get file to link from the assembler subdirectory and
 # if this fails get it from the generic subdirectory.
 mpi_ln_list=
 mpi_mod_list=
 path="$mpi_extra_path $path generic"
+echo '/* Created by config.links - do not edit */' >./mpi/mod-source-info.h
+echo "/* Target: ${target} */" >>./mpi/mod-source-info.h
+echo "static char mod_source_info[] =" >>./mpi/mod-source-info.h
 for fn in $mpi_required_modules ; do
     fnu=`echo $fn | sed 's/-/_/g'`
     eval mpi_mod_c_${fnu}=no
@@ -330,11 +333,13 @@ for fn in $mpi_required_modules ; do
     for dir in $path ; do
 	rm -f $srcdir/mpi/$fn.[Sc]
 	if test -f $srcdir/mpi/$dir/$fn.S ; then
+            echo "  \":$dir/$fn.S\"" >>./mpi/mod-source-info.h
             mpi_ln_list="$mpi_ln_list mpi/$fn.S:mpi/$dir/$fn.S"
             eval mpi_mod_asm_${fnu}=yes
             mpi_mod_list="$mpi_mod_list $fn"
 	    break;
 	elif test -f $srcdir/mpi/$dir/$fn.c ; then
+            echo "  \":$dir/$fn.c\"" >>./mpi/mod-source-info.h
             mpi_ln_list="$mpi_ln_list mpi/$fn.c:mpi/$dir/$fn.c"
             eval mpi_mod_c_${fnu}=yes
             mpi_mod_list="$mpi_mod_list $fn"
@@ -342,6 +347,7 @@ for fn in $mpi_required_modules ; do
 	fi
     done
 done
+echo "  ;" >>./mpi/mod-source-info.h
 
 # Same thing for the file which defines the limb size
 path="$path generic"

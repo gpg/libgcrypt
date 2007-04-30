@@ -51,6 +51,7 @@ Noteworthy changes in version 1.3.0 (unreleased)
  gcry_md_debug           NEW
  gcry_sexp_nth_string    NEW
  GCRYCTL_FAKED_RANDOM_P  NEW 
+ GCRYCTL_DUMP_CONFIG     NEW
  GCRY_MD_SHA224          NEW
  GCRY_PK_USAGE_CERT      NEW
  GCRY_PK_USAGE_AUTH      NEW

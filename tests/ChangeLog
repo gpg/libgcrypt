@@ -1,3 +1,8 @@
+2007-04-30  Werner Koch  <wk@g10code.com>
+
+	* version.c: New.
+	* Makefile.am (TESTS): Add version.
+
 2007-04-30  Marcus Brinkmann  <marcus@g10code.de>
 
 	* benchmark.c (ecc_bench): Release KEY_SPEC.

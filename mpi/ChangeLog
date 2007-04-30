@@ -1,3 +1,9 @@
+2007-04-30  Werner Koch  <wk@g10code.com>
+
+	* config.links: Create a file mod-source-info.h.
+	* Makefile.am (DISTCLEANFILES): Add that file.
+	* mpiutil.c (_gcry_mpi_get_hw_config): New.
+
 2007-04-28  Marcus Brinkmann  <marcus@g10code.de>
 
 	* config.links: Add additional assembler search directories.

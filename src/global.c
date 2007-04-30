@@ -354,6 +354,15 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
       _gcry_use_random_daemon (!! va_arg (arg_ptr, int));
       break;
 
+      /* This command dumps information pertaining to the
+         configuration of libgcrypt to the logging stream.  It may be
+         used before the intialization has been finished but not
+         before a gcry_version_check. */
+    case GCRYCTL_DUMP_CONFIG:
+      log_info ("version=%s\n", VERSION);
+      log_info ("mpi-asm=%s\n", _gcry_mpi_get_hw_config ());
+      break;
+
     default:
       err = GPG_ERR_INV_OP;
     }

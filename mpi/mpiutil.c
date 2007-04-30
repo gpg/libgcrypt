@@ -27,6 +27,15 @@
 #include "g10lib.h"
 #include "mpi-internal.h"
 #include "memory.h"
+#include "mod-source-info.h"
+
+
+const char *
+_gcry_mpi_get_hw_config (void)
+{
+  return mod_source_info + 1;
+}
+
 
 /****************
  * Note:  It was a bad idea to use the number of limbs to allocate

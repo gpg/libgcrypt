@@ -1,3 +1,9 @@
+2007-04-30  Werner Koch  <wk@g10code.com>
+
+	* global.c (gcry_control): New.
+
+	* gcrypt.h.in (GCRYCTL_DUMP_CONFIG): New.
+
 2007-04-18  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (gcry_sexp_nth_string): New.
