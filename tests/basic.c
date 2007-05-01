@@ -956,23 +956,42 @@ static void
 check_ciphers (void)
 {
   static int algos[] = {
-    GCRY_CIPHER_3DES,
-    GCRY_CIPHER_CAST5,
+#if USE_BLOWFISH
     GCRY_CIPHER_BLOWFISH,
+#endif
+#if USE_DES
+    GCRY_CIPHER_DES,
+    GCRY_CIPHER_3DES,
+#endif
+#if USE_CAST5
+    GCRY_CIPHER_CAST5,
+#endif
+#if USE_AES
     GCRY_CIPHER_AES,
     GCRY_CIPHER_AES192,
     GCRY_CIPHER_AES256,
+#endif
+#if USE_TWOFISH
     GCRY_CIPHER_TWOFISH,
     GCRY_CIPHER_TWOFISH128,
-    GCRY_CIPHER_DES,
+#endif
+#if USE_SERPENT
     GCRY_CIPHER_SERPENT128,
     GCRY_CIPHER_SERPENT192,
     GCRY_CIPHER_SERPENT256,
+#endif
+#if USE_RFC2268
+    GCRY_CIPHER_RFC2268_40,
+#endif
+#if USE_SEED
     GCRY_CIPHER_SEED,
+#endif
     0
   };
   static int algos2[] = {
+#if USE_ARCFOUR
     GCRY_CIPHER_ARCFOUR,
+#endif
     0
   };
   int i;

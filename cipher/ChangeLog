@@ -1,3 +1,8 @@
+2007-04-30  David Shaw  <dshaw@jabberwocky.com>
+
+	* cipher.c: Use #if instead of #ifdef as configure defines the
+	USE_cipher defines as 0 for disabled.
+
 2007-04-30  Werner Koch  <wk@g10code.com>
 
 	* rndegd.c (_gcry_rndegd_set_socket_name): New.

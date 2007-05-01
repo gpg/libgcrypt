@@ -1,3 +1,8 @@
+2007-04-30  David Shaw  <dshaw@jabberwocky.com>
+
+	* basic.c (check_ciphers): #if out ciphers we don't have.  Add
+	test for GCRY_CIPHER_RFC2268_40.
+
 2007-04-30  Werner Koch  <wk@g10code.com>
 
 	* version.c: New.
