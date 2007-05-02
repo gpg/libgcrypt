@@ -202,7 +202,9 @@ static void
 print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
 {
   fnc (fp, "version:%s:\n", VERSION);
-  fnc (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
+  fnc (fp, "ciphers:%s:\n", LIBGCRYPT_CIPHERS);
+  fnc (fp, "pubkeys:%s:\n", LIBGCRYPT_PUBKEY_CIPHERS);
+  fnc (fp, "digests:%s:\n", LIBGCRYPT_DIGESTS);
   fnc (fp, "rnd-mod:"
 #if USE_RNDEGD
                 "egd:"
@@ -217,7 +219,7 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
                 "w32:"
 #endif
        "\n");
-
+  fnc (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
 }
 
 

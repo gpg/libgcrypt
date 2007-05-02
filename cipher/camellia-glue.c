@@ -22,7 +22,25 @@
 /* I put all the libgcrypt-specific stuff in this file to keep the
    camellia.c/camellia.h files exactly as provided by NTT.  If they
    update their code, this should make it easier to bring the changes
-   in. - dshaw */
+   in. - dshaw
+
+   There is one small change which needs to be done: Include the
+   following code at the top of camellia.h: */
+#if 0
+/* Need to redefine the external symbols to keep the libgcrypt name
+   space clean.  */ 
+#define Camellia_Ekeygen      _gcry_Camellia_Ekeygen
+#define Camellia_EncryptBlock _gcry_Camellia_EncryptBlock
+#define Camellia_DecryptBlock _gcry_Camellia_DecryptBlock
+#define camellia_decrypt128   _gcry_camellia_decrypt128
+#define camellia_decrypt256   _gcry_camellia_decrypt256
+#define camellia_encrypt128   _gcry_camellia_encrypt128
+#define camellia_encrypt256   _gcry_camellia_encrypt256
+#define camellia_setup128     _gcry_camellia_setup128  
+#define camellia_setup192     _gcry_camellia_setup192  
+#define camellia_setup256     _gcry_camellia_setup256
+#endif /* Code sample. */
+
 
 #include <config.h>
 #include "types.h"

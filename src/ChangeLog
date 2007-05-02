@@ -1,3 +1,7 @@
+2007-05-02  Werner Koch  <wk@g10code.com>
+
+	* global.c (print_config): Print ciphers, digests and pubkeys.
+
 2007-05-02  David Shaw  <dshaw@jabberwocky.com>
 
 	* cipher.h, gcrypt.h.in: Add Camellia.

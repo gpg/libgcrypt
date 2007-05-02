@@ -73,16 +73,20 @@ bradh@frogmouth.net
 (Added OFB mode. Changed cipher/cipher.c, test/basic.c doc/gcrypt.tex.
  added SHA-224, changed cipher/sha256.c, added HMAC tests.)
 
-
 LIBGCRYPT       Hye-Shik Chang   2006-09-07
 Assigns Past and Future Changes
 perky@freebsd.org
 (SEED cipher)
 
-
 LIBGCRYPT       Werner Dittmann  ** pending **
 werner.dittmann@t-online.de
 (mpi/amd64, tests/mpitests.c)
+
+GNUPG           David Shaw
+Assigns past and future changes.
+dshaw@jabberwocky.com>
+(cipher/camellia-glue.c and related stuff)
+
 
 
 More credits
@@ -101,9 +105,12 @@ Wedgwood 1996-1999.
 The ECC code cipher/ecc.c was based on code by Sergi Blanch i Torne,
 sergi at calcurco dot org.
 
+The implementation of the Camellia cipher has been been taken from the
+original NTT provided GPL source.
+
 
  Copyright 1998, 1999, 2000, 2001, 2002, 2003,
-           2006 Free Software Foundation, Inc.
+           2006, 2007 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

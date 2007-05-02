@@ -132,6 +132,7 @@ LIBGCRYPT_CONFIG_CFLAGS=""
 
 # Definitions for symmetric ciphers.
 available_ciphers="arcfour blowfish cast5 des aes twofish serpent rfc2268 seed"
+available_ciphers="$available_ciphers camellia"
 enabled_ciphers=""
 
 # Definitions for public-key ciphers.
@@ -312,7 +313,7 @@ default_digests="$available_digests"
 AC_ARG_ENABLE(ciphers,
 	      AC_HELP_STRING([--enable-ciphers=ciphers],
 			     [select the symmetric ciphers to include]),
-	      [enabled_ciphers=`echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]'`],
+	      [enabled_ciphers=`echo $enableval | tr ',:' '  ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_ciphers=""])
 if test "x$enabled_ciphers" = "x" \
    -o "$enabled_ciphers" = "yes"  \
@@ -323,7 +324,7 @@ AC_MSG_CHECKING([which symmetric ciphers to include])
 for cipher in $enabled_ciphers; do
     LIST_MEMBER($cipher, $available_ciphers)
     if test "$found" = "0"; then
-       AC_MSG_ERROR([unsupported cipher specified])
+       AC_MSG_ERROR([unsupported cipher "$cipher" specified])
     fi
 done
 AC_MSG_RESULT([$enabled_ciphers])
@@ -332,7 +333,7 @@ AC_MSG_RESULT([$enabled_ciphers])
 AC_ARG_ENABLE(pubkey-ciphers,
 	      AC_HELP_STRING([--enable-pubkey-ciphers=ciphers],
 			     [select the public-key ciphers to include]),
-	      [enabled_pubkey_ciphers=`echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]'`],
+	      [enabled_pubkey_ciphers=`echo $enableval | tr ',:' '  ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_pubkey_ciphers=""])
 if test "x$enabled_pubkey_ciphers" = "x" \
    -o "$enabled_pubkey_ciphers" = "yes"  \
@@ -352,7 +353,7 @@ AC_MSG_RESULT([$enabled_pubkey_ciphers])
 AC_ARG_ENABLE(digests,
 	      AC_HELP_STRING([--enable-digests=digests],
 			     [select the message digests to include]),
-	      [enabled_digests=`echo $enableval | tr , ' ' | tr '[A-Z]' '[a-z]'`],
+	      [enabled_digests=`echo $enableval | tr ',:' '  ' | tr '[A-Z]' '[a-z]'`],
 	      [enabled_digests=""])
 if test "x$enabled_digests" = "x" \
    -o "$enabled_digests" = "yes"  \
@@ -912,6 +913,19 @@ AC_SUBST([GCRYPT_RANDOM])
 AC_SUBST(LIBGCRYPT_CIPHERS, $enabled_ciphers)
 AC_SUBST(LIBGCRYPT_PUBKEY_CIPHERS, $enabled_pubkey_ciphers)
 AC_SUBST(LIBGCRYPT_DIGESTS, $enabled_digests)
+
+# For printing the configuration we need a colon separated list of
+# algorithm names.
+tmp=`echo "$enabled_ciphers" | tr ' ' : `
+AC_DEFINE_UNQUOTED(LIBGCRYPT_CIPHERS, "$tmp", 
+                   [List of available cipher algorithms])
+tmp=`echo "$enabled_pubkey_ciphers" | tr ' ' : `
+AC_DEFINE_UNQUOTED(LIBGCRYPT_PUBKEY_CIPHERS, "$tmp", 
+                   [List of available public key cipher algorithms])
+tmp=`echo "$enabled_digests" | tr ' ' : `
+AC_DEFINE_UNQUOTED(LIBGCRYPT_DIGESTS, "$tmp", 
+                   [List of available digest algorithms])
+
 
 
 # Generate extended version information for W32.

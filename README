@@ -23,7 +23,7 @@
 
     Libgcrypt is a general purpose crypto library based on the code
     used in GnuPG.  We can't start with a new version number because
-    libgcrypt was part of gnupg 1.1 and some applications already used
+    libgcrypt was part of GnuPG 1.1 and some applications already used
     it and tested for the version number. We believe that the API can
     stay as it is, except that new functions may be added in the
     future.
@@ -56,6 +56,7 @@
       rndw32    - Entropy gatherer for MS Windows
       gcryptrnd - The random number daemon.
       getrandom - A client for that daemon.
+      camellia  - The Camellia cipher.
 
     The documentation is available under the terms of the GPL.
 
@@ -112,7 +113,10 @@
 		     features not provided by the system, like 64bit
 		     data types.  With these switches it is possible
                      to select exactly those algorithm modules, which
-		     should be built.
+		     should be built.  The algorithms are to be
+                     separated by spaces, commas or colons.  To view
+                     the list used with the current build the program
+                     tests/version may be used.
 
      --disable-endian-check
                      Don't let configure test for the endianness but
@@ -121,8 +125,33 @@
 
      --enable-random-daemon
                      Include support for a global random damon and
-                     build the daemon.  The daemon itself is in an
-                     experimental state.
+                     build the daemon.  This is an experimental feature.
+
+     --enable-mpi-path=EXTRA_PATH
+                     Prepend EXTRA_PATH to list of CPU specific
+                     optimizations.  For example, if you want to add
+                     optimizations forn a Intel Pentium 4 compatible
+                     CPU, you may use
+                        --enable-mpi-path="pentium4/sse2 pentium4/mmx"
+                     Take care: The generated library may crash on
+                     non-compatible CPUs
+
+     --enable-random=NAME 
+                     Force the use of the random gathering module
+		     NAME.  Default is either to use /dev/random or
+		     the auto mode.  Possible values for NAME are:
+		       egd - Use the module which accesses the
+			     Entropy Gathering Daemon. See the webpages
+			     for more information about it.
+		      unix - Use the standard Unix module which does not
+			     have a very good performance.
+		     linux - Use the module which accesses /dev/random.
+			     This is the first choice and the default one
+			     for GNU/Linux or *BSD.
+                      auto - Compile linux, egd and unix in and 
+                             automagically select at runtime.
+  
+
 
 
     Contact

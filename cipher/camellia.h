@@ -21,6 +21,20 @@
 #ifndef HEADER_CAMELLIA_H
 #define HEADER_CAMELLIA_H
 
+/* Need to redefine the external symbols to keep the libgcrypt name
+   space clean.  */ 
+#define Camellia_Ekeygen      _gcry_Camellia_Ekeygen
+#define Camellia_EncryptBlock _gcry_Camellia_EncryptBlock
+#define Camellia_DecryptBlock _gcry_Camellia_DecryptBlock
+#define camellia_decrypt128   _gcry_camellia_decrypt128
+#define camellia_decrypt256   _gcry_camellia_decrypt256
+#define camellia_encrypt128   _gcry_camellia_encrypt128
+#define camellia_encrypt256   _gcry_camellia_encrypt256
+#define camellia_setup128     _gcry_camellia_setup128  
+#define camellia_setup192     _gcry_camellia_setup192  
+#define camellia_setup256     _gcry_camellia_setup256
+
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
