@@ -79,7 +79,12 @@ camellia_setkey(void *c, const byte *key, unsigned keylen)
 
   ctx->keybitlength=keylen*8;
   Camellia_Ekeygen(ctx->keybitlength,key,ctx->keytable);
-  _gcry_burn_stack(4+4+6+34+34+sizeof(unsigned char *)+sizeof(u32 *));
+  _gcry_burn_stack
+    ((19+34+34)*sizeof(u32)+2*sizeof(void*) /* camellia_setup256 */
+     +(4+32)*sizeof(u32)+2*sizeof(void*)    /* camellia_setup192 */
+     +0+sizeof(int)+2*sizeof(void*)         /* Camellia_Ekeygen */
+     +3*2*sizeof(void*)                     /* Function calls.  */
+     );  
 
   return 0;
 }
@@ -90,9 +95,12 @@ camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
   CAMELLIA_context *ctx=c;
 
   Camellia_EncryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
-  _gcry_burn_stack(sizeof(int)+sizeof(unsigned char *)+sizeof(KEY_TABLE_TYPE)
-		   +sizeof(unsigned char *)+16+4+4+4+4+sizeof(u32 *)
-		   +sizeof(u32 *));
+  _gcry_burn_stack
+    (sizeof(int)+2*sizeof(unsigned char *)+sizeof(KEY_TABLE_TYPE)
+     +4*sizeof(u32)
+     +2*sizeof(u32*)+4*sizeof(u32)
+     +2*2*sizeof(void*) /* Function calls.  */
+    );
 }
 
 static void
@@ -101,9 +109,12 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
   CAMELLIA_context *ctx=c;
 
   Camellia_DecryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
-  _gcry_burn_stack(sizeof(int)+sizeof(unsigned char *)+sizeof(KEY_TABLE_TYPE)
-		   +sizeof(unsigned char *)+16+4+4+4+4+sizeof(u32 *)
-		   +sizeof(u32 *));
+  _gcry_burn_stack
+    (sizeof(int)+2*sizeof(unsigned char *)+sizeof(KEY_TABLE_TYPE)
+     +4*sizeof(u32)
+     +2*sizeof(u32*)+4*sizeof(u32)
+     +2*2*sizeof(void*) /* Function calls.  */
+    );
 }
 
 static const char *

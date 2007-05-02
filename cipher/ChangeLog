@@ -1,5 +1,8 @@
 2007-05-02  Werner Koch  <wk@g10code.com>
 
+	* camellia-glue.c (camellia_setkey, camellia_encrypt)
+	(camellia_decrypt): Recalculated used stack size in called
+	functions.
 	* camellia.h: Redefine external symbols.
 
 2007-05-02  David Shaw  <dshaw@jabberwocky.com>
