@@ -2,6 +2,7 @@
 
 	* configure.ac (LIBGCRYPT_DIGESTS, LIBGCRYPT_CIPHERS) 
 	(LIBGCRYPT_PUBKEY_CIPHERS): Ac_define lists of algorithms.
+	(default_ciphers): Don't make camellia a default.
 
 2007-05-02  David Shaw  <dshaw@jabberwocky.com>
 

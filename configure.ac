@@ -300,8 +300,8 @@ else
 fi
 
 # If not specified otherwise, all available algorithms will be
-# included.
-default_ciphers="$available_ciphers"
+# included.  Except for Camellia which is GPLed.
+default_ciphers=`echo "$available_ciphers" | sed 's/ camellia//'`
 default_pubkey_ciphers="$available_pubkey_ciphers"
 default_digests="$available_digests"
 
