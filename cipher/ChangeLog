@@ -1,3 +1,13 @@
+2007-05-02  David Shaw  <dshaw@jabberwocky.com>
+
+	* Makefile.am, cipher.c: Add Camellia.
+
+	* camellia-glue.c: New.  The necessary glue to interface libgcrypt
+	to the stock NTT Camellia distribution.
+
+	* camellia.h, camellia.c: The stock NTT Camellia distribution
+	(GPL).
+
 2007-04-30  David Shaw  <dshaw@jabberwocky.com>
 
 	* cipher.c: Use #if instead of #ifdef as configure defines the

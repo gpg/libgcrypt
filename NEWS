@@ -16,6 +16,10 @@ Noteworthy changes in version 1.3.0 (unreleased)
 
  * Support for the SEED cipher.
 
+ * Support for the Camellia cipher.  Note that Camellia is disabled by
+   default, and that enabling it changes the license of libgcrypt from
+   LGPL to GPL.
+
  * Support for OFB encryption mode.
 
  * gcry_mpi_rshift does not anymore truncate the shift count.
@@ -56,6 +60,9 @@ Noteworthy changes in version 1.3.0 (unreleased)
  GCRY_PK_USAGE_UNKN      NEW
  GCRY_PK_ECDSA           NEW
  GCRY_CIPHER_SEED        NEW
+ GCRY_CIPHER_CAMELLIA128 NEW
+ GCRY_CIPHER_CAMELLIA192 NEW
+ GCRY_CIPHER_CAMELLIA256 NEW
  GCRYCTL_FAKED_RANDOM_P  NEW 
  GCRYCTL_PRINT_CONFIG    NEW
  GCRYCTL_SET_RNDEGD_SOCKET  NEW.

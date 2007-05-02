@@ -502,7 +502,7 @@ if test "$use_random_daemon" = "yes"; then
   if test "$PTH_CONFIG" = "no"; then
     AC_MSG_WARN([[
 ***
-*** To build the Libgcrypt's random humber daemon
+*** To build the Libgcrypt's random number daemon
 *** we need the support of the GNU Portable Threads Library.
 *** Download it from ftp://ftp.gnu.org/gnu/pth/
 *** On a Debian GNU/Linux system you might want to try 
@@ -813,6 +813,11 @@ test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS seed.lo"
 AC_DEFINE_UNQUOTED(USE_SEED, $found,
                              [Defined if this module should be included])
 
+LIST_MEMBER(camellia, $enabled_ciphers)
+test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia.lo camellia-glue.lo" && gpl="$gpl camellia"
+AC_DEFINE_UNQUOTED(USE_CAMELLIA, $found,
+                             [Defined if this module should be included])
+
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
 test "$found" = "1" && GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS dsa.lo"
 AC_DEFINE_UNQUOTED(USE_DSA, $found,
@@ -963,13 +968,12 @@ cat <<G10EOF
 G10EOF
 fi
 
-warn=""
 for file in "random_modules"; do
-  case "$file" in rndunix | rndw32) warn="$warn $file";; esac
+  case "$file" in rndunix | rndw32) gpl="$gpl $file";; esac
 done
-if test -n "$warn"; then
+if test -n "$gpl"; then
   echo "Please note that you are building a version of Libgcrypt with"
-  echo "  $warn"
+  echo "  $gpl"
   echo "included.  These parts are licensed under the GPL and thus the"
   echo "use of this library has to comply with the conditions of the GPL."
 fi

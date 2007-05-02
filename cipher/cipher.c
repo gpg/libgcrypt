@@ -75,6 +75,11 @@ static struct cipher_table_entry
 #if USE_SEED
     { &_gcry_cipher_spec_seed,       GCRY_CIPHER_SEED },
 #endif
+#if USE_CAMELLIA
+    { &_gcry_cipher_spec_camellia128, GCRY_CIPHER_CAMELLIA128 },
+    { &_gcry_cipher_spec_camellia192, GCRY_CIPHER_CAMELLIA192 },
+    { &_gcry_cipher_spec_camellia256, GCRY_CIPHER_CAMELLIA256 },
+#endif
     { NULL                    }
   };
 

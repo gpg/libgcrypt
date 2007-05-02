@@ -75,7 +75,8 @@ sha512.c \
 tiger.c \
 whirlpool.c \
 twofish.c \
-rfc2268.c
+rfc2268.c \
+camellia.c camellia.h camellia-glue.c
 
 # We need to lower the optimization for this module.
 tiger.o: $(srcdir)/tiger.c

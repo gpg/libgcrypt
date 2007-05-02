@@ -986,6 +986,11 @@ check_ciphers (void)
 #if USE_SEED
     GCRY_CIPHER_SEED,
 #endif
+#if USE_CAMELLIA
+    GCRY_CIPHER_CAMELLIA128,
+    GCRY_CIPHER_CAMELLIA192,
+    GCRY_CIPHER_CAMELLIA256,
+#endif
     0
   };
   static int algos2[] = {
