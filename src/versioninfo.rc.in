@@ -34,7 +34,7 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            /* Note that the Windows versioin falls under the GPL. */
+            /* Note that the Windows version falls under the GPL. */
             VALUE "Comments", "Provided under the terms of the GNU General Public License.\0"
             VALUE "CompanyName", "g10 Code GmbH\0"
             VALUE "FileDescription", "Libgcrypt - The GNU Crypto Library\0"

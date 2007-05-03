@@ -888,7 +888,8 @@ AC_DEFINE_UNQUOTED(USE_RNDLINUX, $found,
 
 
 LIST_MEMBER(unix, $random_modules)
-test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndunix.lo"
+test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndunix.lo" \
+                    && gpl="$gpl rndunix"
 AC_DEFINE_UNQUOTED(USE_RNDUNIX, $found,
                   [Defined if the default Unix RNG should be used.])
 if test "$found" = "1"; then
@@ -901,7 +902,8 @@ AC_DEFINE_UNQUOTED(USE_RNDEGD, $found,
                   [Defined if the EGD based RNG should be used.])
 
 LIST_MEMBER(w32, $random_modules)
-test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo"
+test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo" \
+                    && gpl="$gpl rndw32"
 AC_DEFINE_UNQUOTED(USE_RNDW32, $found,
                   [Defined if the Windows specific RNG should be used.])
 
@@ -982,9 +984,6 @@ cat <<G10EOF
 G10EOF
 fi
 
-for file in "random_modules"; do
-  case "$file" in rndunix | rndw32) gpl="$gpl $file";; esac
-done
 if test -n "$gpl"; then
   echo "Please note that you are building a version of Libgcrypt with"
   echo "  $gpl"

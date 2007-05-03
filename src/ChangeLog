@@ -1,3 +1,8 @@
+2007-05-03  Werner Koch  <wk@g10code.com>
+
+	* libgcrypt.def (gcry_sexp_nth_string): New.
+	* Makefile.am (EXTRA_DIST): Add libgcrypt.def.
+
 2007-05-02  Werner Koch  <wk@g10code.com>
 
 	* global.c (print_config): Print ciphers, digests and pubkeys.

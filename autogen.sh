@@ -181,7 +181,7 @@ if test "$DIE" = "yes"; then
     cat <<EOF
 
 Note that you may use alternative versions of the tools by setting 
-the corresponding environment variables; see README.CVS for details.
+the corresponding environment variables; see README.SVN for details.
                    
 EOF
     exit 1

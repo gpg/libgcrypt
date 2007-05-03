@@ -224,3 +224,6 @@ EXPORTS
       gcry_ac_data_decrypt_scheme  @184
       gcry_ac_data_sign_scheme  @185
       gcry_ac_data_verify_scheme  @186
+
+      gcry_sexp_nth_string  @187
+
