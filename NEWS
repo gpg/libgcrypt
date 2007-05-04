@@ -1,4 +1,4 @@
-Noteworthy changes in version 1.3.0 (unreleased)
+Noteworthy changes in version 1.3.0 (2007-05-04)
 ------------------------------------------------
 
  * Changed the way the RNG gets initialized. This allows to keep it
@@ -39,7 +39,7 @@ Noteworthy changes in version 1.3.0 (unreleased)
  * Non executable stack support is now used by default on systems
    supporting it.
 
- * Support for Microsoft Windows OSes.
+ * Support for Microsoft Windows.
 
  * Assembler support for the AMD64 architecture.
 

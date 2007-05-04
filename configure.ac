@@ -20,15 +20,15 @@
 #
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
-AC_PREREQ(2.59)
-min_automake_version="1.9.3"
+AC_PREREQ(2.60)
+min_automake_version="1.10"
 
 
 # Remember to change the version number immediately *after* a release.
 # Set my_issvn to "yes" for non-released code.  Remember to run an
 # "svn up" and "autogen.sh" right before creating a distribution.
 m4_define([my_version], [1.3.0])
-m4_define([my_issvn], [yes])
+m4_define([my_issvn], [no])
 
 m4_define([svn_revision], m4_esyscmd([echo -n $( (svn info 2>/dev/null \
             || echo 'Revision: 0')|sed -n '/^Revision:/ {s/[^0-9]//gp;q;}')]))
@@ -38,8 +38,8 @@ AC_INIT([libgcrypt], my_version[]m4_if(my_issvn,[yes],[-svn[]svn_revision]),
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=14
-LIBGCRYPT_LT_AGE=3
+LIBGCRYPT_LT_CURRENT=15
+LIBGCRYPT_LT_AGE=4
 LIBGCRYPT_LT_REVISION=0
 
 
@@ -112,6 +112,7 @@ AM_MISSING_PROG(AUTOHEADER, autoheader, $missing_dir)
 # AM_MISSING_PROG(MAKEINFO, makeinfo, $missing_dir)
 AC_PROG_CC
 AC_PROG_CPP
+AM_PROG_CC_C_O
 AM_PROG_AS
 AC_ISC_POSIX
 AC_PROG_INSTALL

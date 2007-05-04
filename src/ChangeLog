@@ -1,3 +1,7 @@
+2007-05-04  Werner Koch  <wk@g10code.com>
+
+	* Makefile.am (.rc.lo): New to replace gmake specific suffix rule.
+
 2007-05-03  Werner Koch  <wk@g10code.com>
 
 	* libgcrypt.def (gcry_sexp_nth_string): New.

@@ -75,10 +75,11 @@ if test "$1" = "--build-w32"; then
         fi
     fi
 
+    # Note: we include Camellia because this is anyway a GPLed build.
     ./configure --enable-maintainer-mode  --prefix=${w32root}  \
             --host=${host} --build=${build} \
-            --with-gpg-error-prefix=${w32root} 
-
+            --with-gpg-error-prefix=${w32root} \
+            --enable-ciphers=arcfour:blowfish:cast5:des:aes:twofish:serpent:rfc2268:seed:camellia
     exit $?
 fi
 # ***** end W32 build script *******

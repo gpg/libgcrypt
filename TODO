@@ -1,7 +1,5 @@
 What's left to do                                 -*- outline -*-
 
-* Updated the FSF's directory.
-
 * udiv-qrnbd.o should get build as *.lo [HPUX]
 
 * Allow operation using RSA keys consisting of the OpenSSL list of
@@ -70,7 +68,7 @@ What's left to do                                 -*- outline -*-
 
 * Use builtin bit functions of gcc 3.4
 
-* Consider using a daemon to maintain he random pool
+* Consider using a daemon to maintaint he random pool
   [Partly done] The down side of this is that we can't assume that the
   random has has always been stored in "secure memory".  And we rely
   on that sniffing of Unix domain sockets is not possible.  We can

@@ -52,7 +52,7 @@ LTRCCOMPILE = $(LIBTOOL) --mode=compile $(RC) \
      `echo $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) | \
      sed -e 's/-I/--include-dir /g;s/-D/--define /g'`
 
-%.lo : %.rc
+.rc.lo:
 	$(LTRCCOMPILE) -i $< -o $@
 
 gcrypt_res = versioninfo.lo
