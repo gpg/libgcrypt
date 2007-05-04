@@ -1,3 +1,7 @@
+2007-05-04  Werner Koch  <wk@g10code.com>
+
+	* config.links (path): Allowthe sue of colons as delimiters. 
+
 2007-05-03  Werner Koch  <wk@g10code.com>
 
 	* pentium4/distfiles: Fixed.

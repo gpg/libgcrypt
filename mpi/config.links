@@ -322,7 +322,7 @@ fi
 # if this fails get it from the generic subdirectory.
 mpi_ln_list=
 mpi_mod_list=
-path="$mpi_extra_path $path generic"
+path=`echo "$mpi_extra_path $path generic" | tr ':' ' '`
 echo '/* Created by config.links - do not edit */' >./mpi/mod-source-info.h
 echo "/* Target: ${target} */" >>./mpi/mod-source-info.h
 echo "static char mod_source_info[] =" >>./mpi/mod-source-info.h
@@ -350,7 +350,7 @@ done
 echo "  ;" >>./mpi/mod-source-info.h
 
 # Same thing for the file which defines the limb size
-path="$path generic"
+path=`echo "$path generic" | tr ':' ' '`
 for dir in $path ; do
     rm -f $srcdir/mpi/mpi-asm-defs.h
     if test -f $srcdir/mpi/$dir/mpi-asm-defs.h ; then

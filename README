@@ -132,9 +132,9 @@
                      optimizations.  For example, if you want to add
                      optimizations forn a Intel Pentium 4 compatible
                      CPU, you may use
-                        --enable-mpi-path="pentium4/sse2 pentium4/mmx"
+                        --enable-mpi-path=pentium4/sse2:pentium4/mmx
                      Take care: The generated library may crash on
-                     non-compatible CPUs
+                     non-compatible CPUs.
 
      --enable-random=NAME 
                      Force the use of the random gathering module

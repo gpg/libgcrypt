@@ -17,12 +17,10 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
-all_ciphers=
-
 ACLOCAL_AMFLAGS = -I m4
 AUTOMAKE_OPTIONS = dist-bzip2
 DISTCHECK_CONFIGURE_FLAGS = --enable-random-daemon \
-  --enable-ciphers="arcfour:blowfish:cast5:des:aes:twofish:serpent:rfc2268:seed:camellia"
+  --enable-ciphers=arcfour:blowfish:cast5:des:aes:twofish:serpent:rfc2268:seed:camellia
 
 DIST_SUBDIRS = m4 mpi cipher src doc tests
 SUBDIRS = mpi cipher src doc tests
