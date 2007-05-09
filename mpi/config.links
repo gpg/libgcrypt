@@ -334,7 +334,7 @@ for fn in $mpi_required_modules ; do
 	rm -f $srcdir/mpi/$fn.[Sc]
 	if test -f $srcdir/mpi/$dir/$fn.S ; then
             echo "  \":$dir/$fn.S\"" >>./mpi/mod-source-info.h
-            mpi_ln_list="$mpi_ln_list mpi/$fn.S:mpi/$dir/$fn.S"
+            mpi_ln_list="$mpi_ln_list mpi/$fn-asm.S:mpi/$dir/$fn.S"
             eval mpi_mod_asm_${fnu}=yes
             mpi_mod_list="$mpi_mod_list $fn"
 	    break;

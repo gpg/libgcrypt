@@ -674,26 +674,33 @@ AC_MSG_CHECKING(for mpi assembler functions)
 if test -f $srcdir/mpi/config.links ; then
     . $srcdir/mpi/config.links
     AC_CONFIG_LINKS("$mpi_ln_list")
-    ac_cv_mpi_mod_list="$mpi_mod_list"
     ac_cv_mpi_sflags="$mpi_sflags"
-    ac_cv_mpi_config_done="yes"
     AC_MSG_RESULT(done)
 else
     AC_MSG_RESULT(failed)
     AC_MSG_ERROR([mpi/config.links missing!])
 fi
-MPI_MOD_LIST_LO=""
-MPI_MOD_LIST_O=""
-if test "$ac_cv_mpi_mod_list" != ""; then
-  for i in $ac_cv_mpi_mod_list; do
-      MPI_MOD_LIST_LO="$MPI_MOD_LIST_LO $i.lo"
-      MPI_MOD_LIST_O="$MPI_MOD_LIST_O $i.o"
-  done
-fi
-AC_SUBST(MPI_MOD_LIST_LO)
-AC_SUBST(MPI_MOD_LIST_O)
 MPI_SFLAGS="$ac_cv_mpi_sflags"
 AC_SUBST(MPI_SFLAGS)
+
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_ADD1, test "$mpi_mod_asm_mpih_add1" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_SUB1, test "$mpi_mod_asm_mpih_sub1" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL1, test "$mpi_mod_asm_mpih_mul1" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL2, test "$mpi_mod_asm_mpih_mul2" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL3, test "$mpi_mod_asm_mpih_mul3" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_LSHIFT, test "$mpi_mod_asm_mpih_lshift" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_RSHIFT, test "$mpi_mod_asm_mpih_rshift" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_UDIV, test "$mpi_mod_asm_mpih_udiv" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_UDIV_QRNND, test "$mpi_mod_asm_mpih_udiv_qrnnd" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_ADD1, test "$mpi_mod_c_mpih_add1" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_SUB1, test "$mpi_mod_c_mpih_sub1" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL1, test "$mpi_mod_c_mpih_mul1" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL2, test "$mpi_mod_c_mpih_mul2" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL3, test "$mpi_mod_c_mpih_mul3" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_LSHIFT, test "$mpi_mod_c_mpih_lshift" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_RSHIFT, test "$mpi_mod_c_mpih_rshift" = yes)
+AM_CONDITIONAL(MPI_MOD_C_UDIV, test "$mpi_mod_c_mpih_udiv" = yes)
+AM_CONDITIONAL(MPI_MOD_C_UDIV_QRNND, test "$mpi_mod_c_mpih_udiv_qrnnd" = yes)
 
 # Allow users to append something to the version string without
 # flagging it as development version.  The user version part is

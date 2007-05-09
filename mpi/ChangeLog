@@ -1,3 +1,15 @@
+2007-05-09  Marcus Brinkmann  <marcus@g10code.de>
+
+	* config.links: Rename assembler file links by suffixing "-asm".
+	* Makefile.am (CCASCOMPILE, LTCCASCOMPILE, CLEANFILES,
+	libmpi_la_LIBADD, libmpi_la_DEPENDENCIES, SUFFIXES, .S.o, .S.obj,
+	.S.lo): Removed variables and targets.
+	(mpih_add1, mpih_sub1, mpih_mul1, mpih_mul2, mpih_mul3,
+	mpih_lshift, mpih_rshift, mpih_udiv, mpih_udiv_qrnnd,
+	nodist_libmpi_la_SOURCES): New variables.
+	(DISTCLEANFILES): Rename assembler file links by suffixing "-asm".
+	Add variants for C file links.
+
 2007-05-04  Werner Koch  <wk@g10code.com>
 
 	* config.links (path): Allowthe sue of colons as delimiters. 
