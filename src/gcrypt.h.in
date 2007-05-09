@@ -101,6 +101,15 @@ extern "C" {
 #define _GCRY_GCC_ATTR_MALLOC
 #endif
 
+/* Some members in a public type should only be used internally.
+   There is no "internal" attribute, so we abuse the deprecated
+   attribute to discourage external use.  */
+#ifdef _GCRYPT_IN_LIBGCRYPT
+#define _GCRY_ATTR_INTERNAL
+#else
+#define _GCRY_ATTR_INTERNAL	_GCRY_GCC_ATTR_DEPRECATED
+#endif
+
 /* Wrappers for the libgpg-error library.  */
 
 typedef gpg_error_t gcry_error_t;
@@ -1253,8 +1262,8 @@ gcry_ac_io_type_t;
 typedef struct gcry_ac_io
 {
   /* This is an INTERNAL structure, do NOT use manually.  */
-  gcry_ac_io_mode_t mode;
-  gcry_ac_io_type_t type;
+  gcry_ac_io_mode_t mode _GCRY_ATTR_INTERNAL;
+  gcry_ac_io_type_t type _GCRY_ATTR_INTERNAL;
   union
   {
     union
@@ -1285,7 +1294,7 @@ typedef struct gcry_ac_io
       } string;
       void *opaque;
     } writable;
-  };
+  } io _GCRY_ATTR_INTERNAL;
 }
 gcry_ac_io_t;
 

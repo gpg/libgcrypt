@@ -946,13 +946,13 @@ _gcry_ac_io_init_va (gcry_ac_io_t *ac_io,
       switch (type)
 	{
 	case GCRY_AC_IO_STRING:
-	  ac_io->readable.string.data = va_arg (ap, unsigned char *);
-	  ac_io->readable.string.data_n = va_arg (ap, size_t);
+	  ac_io->io.readable.string.data = va_arg (ap, unsigned char *);
+	  ac_io->io.readable.string.data_n = va_arg (ap, size_t);
 	  break;
 
 	case GCRY_AC_IO_CALLBACK:
-	  ac_io->readable.callback.cb = va_arg (ap, gcry_ac_data_read_cb_t);
-	  ac_io->readable.callback.opaque = va_arg (ap, void *);
+	  ac_io->io.readable.callback.cb = va_arg (ap, gcry_ac_data_read_cb_t);
+	  ac_io->io.readable.callback.opaque = va_arg (ap, void *);
 	  break;
 	}
       break;
@@ -960,13 +960,13 @@ _gcry_ac_io_init_va (gcry_ac_io_t *ac_io,
       switch (type)
 	{
 	case GCRY_AC_IO_STRING:
-	  ac_io->writable.string.data = va_arg (ap, unsigned char **);
-	  ac_io->writable.string.data_n = va_arg (ap, size_t *);
+	  ac_io->io.writable.string.data = va_arg (ap, unsigned char **);
+	  ac_io->io.writable.string.data_n = va_arg (ap, size_t *);
 	  break;
 
 	case GCRY_AC_IO_CALLBACK:
-	  ac_io->writable.callback.cb = va_arg (ap, gcry_ac_data_write_cb_t);
-	  ac_io->writable.callback.opaque = va_arg (ap, void *);
+	  ac_io->io.writable.callback.cb = va_arg (ap, gcry_ac_data_write_cb_t);
+	  ac_io->io.writable.callback.opaque = va_arg (ap, void *);
 	  break;
 	}
       break;
@@ -1022,18 +1022,18 @@ _gcry_ac_io_write (gcry_ac_io_t *ac_io, unsigned char *buffer, size_t buffer_n)
       {
 	unsigned char *p;
 
-	if (*ac_io->writable.string.data)
+	if (*ac_io->io.writable.string.data)
 	  {
-	    p = gcry_realloc (*ac_io->writable.string.data,
-			      *ac_io->writable.string.data_n + buffer_n);
+	    p = gcry_realloc (*ac_io->io.writable.string.data,
+			      *ac_io->io.writable.string.data_n + buffer_n);
 	    if (! p)
 	      err = gcry_error_from_errno (errno);
 	    else
 	      {
-		if (*ac_io->writable.string.data != p)
-		  *ac_io->writable.string.data = p;
-		memcpy (p + *ac_io->writable.string.data_n, buffer, buffer_n);
-		*ac_io->writable.string.data_n += buffer_n;
+		if (*ac_io->io.writable.string.data != p)
+		  *ac_io->io.writable.string.data = p;
+		memcpy (p + *ac_io->io.writable.string.data_n, buffer, buffer_n);
+		*ac_io->io.writable.string.data_n += buffer_n;
 	      }
 	  }
 	else
@@ -1047,16 +1047,16 @@ _gcry_ac_io_write (gcry_ac_io_t *ac_io, unsigned char *buffer, size_t buffer_n)
 	    else
 	      {
 		memcpy (p, buffer, buffer_n);
-		*ac_io->writable.string.data = p;
-		*ac_io->writable.string.data_n = buffer_n;
+		*ac_io->io.writable.string.data = p;
+		*ac_io->io.writable.string.data_n = buffer_n;
 	      }
 	  }
       }
       break;
 
     case GCRY_AC_IO_CALLBACK:
-      err = (*ac_io->writable.callback.cb) (ac_io->writable.callback.opaque,
-					    buffer, buffer_n);
+      err = (*ac_io->io.writable.callback.cb) (ac_io->io.writable.callback.opaque,
+					       buffer, buffer_n);
       break;
     }
 
@@ -1084,7 +1084,7 @@ _gcry_ac_io_read (gcry_ac_io_t *ac_io,
 	size_t bytes_to_read;
 	size_t bytes_wanted;
 
-	bytes_available = ac_io->readable.string.data_n - nread;
+	bytes_available = ac_io->io.readable.string.data_n - nread;
 	bytes_wanted = *buffer_n;
 
 	if (bytes_wanted > bytes_available)
@@ -1092,15 +1092,15 @@ _gcry_ac_io_read (gcry_ac_io_t *ac_io,
 	else
 	  bytes_to_read = bytes_wanted;
 
-	memcpy (buffer, ac_io->readable.string.data + nread, bytes_to_read);
+	memcpy (buffer, ac_io->io.readable.string.data + nread, bytes_to_read);
 	*buffer_n = bytes_to_read;
 	err = 0;
 	break;
       }
 
     case GCRY_AC_IO_CALLBACK:
-      err = (*ac_io->readable.callback.cb) (ac_io->readable.callback.opaque,
-					    buffer, buffer_n);
+      err = (*ac_io->io.readable.callback.cb)
+	(ac_io->io.readable.callback.opaque, buffer, buffer_n);
       break;
     }
 
