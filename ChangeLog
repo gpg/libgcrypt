@@ -1,3 +1,8 @@
+2007-05-19  Marcus Brinkmann  <marcus@g10code.de>
+
+	* configure.ac: Fix test for optional UDIV and UDIV_QRNND MPI
+	modules.
+
 2007-05-09  Marcus Brinkmann  <marcus@g10code.de>
 
 	* configure.ac (ac_cv_mpi_config_done): Unused variable removed.
