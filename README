@@ -56,7 +56,6 @@
       rndw32    - Entropy gatherer for MS Windows
       gcryptrnd - The random number daemon.
       getrandom - A client for that daemon.
-      camellia  - The Camellia cipher.
 
     The documentation is available under the terms of the GPL.
 

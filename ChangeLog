@@ -1,3 +1,11 @@
+2007-05-30  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Camellia is no longer GPL.
+
+2007-05-24  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Try to use -Wpointer-arith.
+
 2007-05-19  Marcus Brinkmann  <marcus@g10code.de>
 
 	* configure.ac: Fix test for optional UDIV and UDIV_QRNND MPI

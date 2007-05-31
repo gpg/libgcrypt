@@ -1,3 +1,8 @@
+2007-05-30  Werner Koch  <wk@g10code.com>
+
+	* camellia.h, camellia.c: Replace by new LGPL version and adjusted
+	camellia.h.
+
 2007-05-09  Marcus Brinkmann  <marcus@g10code.de>
 
 	* ac.c (_gcry_ac_io_init_va, _gcry_ac_io_write, _gcry_ac_io_read):

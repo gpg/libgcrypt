@@ -5,7 +5,7 @@
 # This file is part of Libgcrypt.
 #
 # Libgcrypt is free software; you can redistribute it and/or modify
-# it under the terms of the GNU Lesser general Public License as
+# it under the terms of the GNU Lesser General Public License as
 # published by the Free Software Foundation; either version 2.1 of
 # the License, or (at your option) any later version.
 #
@@ -301,8 +301,8 @@ else
 fi
 
 # If not specified otherwise, all available algorithms will be
-# included.  Except for Camellia which is GPLed.
-default_ciphers=`echo "$available_ciphers" | sed 's/ camellia//'`
+# included.  
+default_ciphers="$available_ciphers"
 default_pubkey_ciphers="$available_pubkey_ciphers"
 default_digests="$available_digests"
 
@@ -736,7 +736,7 @@ if test "$GCC" = yes; then
        test "$more_gcc_warnings" = "yes"; then
         CFLAGS="$CFLAGS -Wall -Wcast-align -Wshadow -Wstrict-prototypes"
         if test "$more_gcc_warnings" = "yes"; then
-            CFLAGS="$CFLAGS -W -Wextra -Wpointer-arith -Wbad-function-cast"
+            CFLAGS="$CFLAGS -W -Wextra -Wbad-function-cast"
             CFLAGS="$CFLAGS -Wwrite-strings"
             CFLAGS="$CFLAGS -Wdeclaration-after-statement"
             CFLAGS="$CFLAGS -Wno-missing-field-initializers"
@@ -747,6 +747,16 @@ if test "$GCC" = yes; then
         fi
     else
         CFLAGS="$CFLAGS -Wall"
+    fi
+
+    AC_MSG_CHECKING([if gcc supports -Wpointer-arith])
+    _gcc_cflags_save=$CFLAGS
+    CFLAGS="-Wpointer-arith"
+    AC_COMPILE_IFELSE(AC_LANG_PROGRAM([]),_gcc_wopt=yes,_gcc_wopt=no)
+    AC_MSG_RESULT($_gcc_wopt)
+    CFLAGS=$_gcc_cflags_save;
+    if test x"$_gcc_wopt" = xyes ; then
+       CFLAGS="$CFLAGS -Wpointer-arith"
     fi
 fi
 
@@ -823,7 +833,7 @@ AC_DEFINE_UNQUOTED(USE_SEED, $found,
                              [Defined if this module should be included])
 
 LIST_MEMBER(camellia, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia.lo camellia-glue.lo" && gpl="$gpl camellia"
+test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia.lo camellia-glue.lo"
 AC_DEFINE_UNQUOTED(USE_CAMELLIA, $found,
                              [Defined if this module should be included])
 

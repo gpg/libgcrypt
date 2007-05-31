@@ -1,5 +1,9 @@
 What's left to do                                 -*- outline -*-
 
+* Next API break:
+** gcry_ac_io_t
+  Remove use of anonymous union.
+
 * udiv-qrnbd.o should get build as *.lo [HPUX]
 
 * Allow operation using RSA keys consisting of the OpenSSL list of
@@ -94,14 +98,6 @@ What's left to do                                 -*- outline -*-
   Or make use of the visibility attribute.
 
 * Add OAEP
-
-* Next API break:
-** gcry_ac_io_t
-  Remove use of anonymous union.
-
-* ac.c
-  There are still some things fishy.  The fixes I did today
-  (2006-10-23) seem to cure just a symptom.  Needs a complete review.
 
 * gcryptrnd.c
   Requires a test for pth [done] as well as some other tests.

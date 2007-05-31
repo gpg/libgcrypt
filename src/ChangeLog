@@ -1,3 +1,7 @@
+2007-05-09  Werner Koch  <wk@g10code.com>
+
+	* libgcrypt.m4: Print found version on success.
+
 2007-05-09  Marcus Brinkmann  <marcus@g10code.de>
 
 	* gcrypt.h.in (gcry_ac_io_t): Add name for anonymous union, and mark
