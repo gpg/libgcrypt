@@ -210,6 +210,36 @@ struct gcry_thread_cbs
 #endif
 };
 
+#ifdef _WIN32
+# define _GCRY_THREAD_OPTION_PTH_IMPL_NET				      \
+static ssize_t gcry_pth_select (int nfd, void *rset, void *wset,	      \
+				void *eset, struct timeval *timeout)	      \
+  { return pth_select (nfd, rset, wset, eset, timeout); }		      \
+static ssize_t gcry_pth_waitpid (pid_t pid, int *status, int options)	      \
+  { return pth_waitpid (pid, status, options); }			      \
+static int gcry_pth_accept (int s, void *addr,                                \
+			    gcry_socklen_t *length_ptr)			      \
+  { return pth_accept (s, addr, length_ptr); }				      \
+static int gcry_pth_connect (int s, void *addr,		                      \
+			     gcry_socklen_t length)			      \
+  { return pth_connect (s, addr, length); }
+#else /*!_WIN32*/
+# define _GCRY_THREAD_OPTION_PTH_IMPL_NET				      \
+static ssize_t gcry_pth_select (int nfd, fd_set *rset, fd_set *wset,	      \
+				fd_set *eset, struct timeval *timeout)	      \
+  { return pth_select (nfd, rset, wset, eset, timeout); }		      \
+static ssize_t gcry_pth_waitpid (pid_t pid, int *status, int options)	      \
+  { return pth_waitpid (pid, status, options); }			      \
+static int gcry_pth_accept (int s, struct sockaddr *addr,		      \
+			    gcry_socklen_t *length_ptr)			      \
+  { return pth_accept (s, addr, length_ptr); }				      \
+static int gcry_pth_connect (int s, struct sockaddr *addr,		      \
+			     gcry_socklen_t length)			      \
+  { return pth_connect (s, addr, length); }
+#endif /*!_WIN32*/
+
+
+
 #define GCRY_THREAD_OPTION_PTH_IMPL					      \
 static int gcry_pth_init (void)						      \
 { return (pth_init () == FALSE) ? errno : 0; }				      \
@@ -246,17 +276,7 @@ static ssize_t gcry_pth_read (int fd, void *buf, size_t nbytes)		      \
   { return pth_read (fd, buf, nbytes); }				      \
 static ssize_t gcry_pth_write (int fd, const void *buf, size_t nbytes)	      \
   { return pth_write (fd, buf, nbytes); }				      \
-static ssize_t gcry_pth_select (int nfd, fd_set *rset, fd_set *wset,	      \
-				fd_set *eset, struct timeval *timeout)	      \
-  { return pth_select (nfd, rset, wset, eset, timeout); }		      \
-static ssize_t gcry_pth_waitpid (pid_t pid, int *status, int options)	      \
-  { return pth_waitpid (pid, status, options); }			      \
-static int gcry_pth_accept (int s, struct sockaddr *addr,		      \
-			    gcry_socklen_t *length_ptr)			      \
-  { return pth_accept (s, addr, length_ptr); }				      \
-static int gcry_pth_connect (int s, struct sockaddr *addr,		      \
-			     gcry_socklen_t length)			      \
-  { return pth_connect (s, addr, length); }				      \
+_GCRY_THREAD_OPTION_PTH_IMPL_NET                                              \
 									      \
 /* FIXME: GNU Pth is missing pth_sendmsg and pth_recvmsg.  */		      \
 static struct gcry_thread_cbs gcry_threads_pth = { GCRY_THREAD_OPTION_PTH,    \
@@ -264,6 +284,7 @@ static struct gcry_thread_cbs gcry_threads_pth = { GCRY_THREAD_OPTION_PTH,    \
   gcry_pth_mutex_lock, gcry_pth_mutex_unlock, gcry_pth_read, gcry_pth_write,  \
   gcry_pth_select, gcry_pth_waitpid, gcry_pth_accept, gcry_pth_connect,       \
   NULL, NULL }
+
 
 #define GCRY_THREAD_OPTION_PTHREAD_IMPL					      \
 static int gcry_pthread_mutex_init (void **priv)			      \

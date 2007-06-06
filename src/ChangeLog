@@ -1,3 +1,9 @@
+2007-06-06  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in (GCRY_THREAD_OPTION_PTH_IMPL): Factror network
+	related code out so that the prototypes can be adjusted for W32.
+	(_GCRY_THREAD_OPTION_PTH_IMPL_NET): New.
+
 2007-05-09  Werner Koch  <wk@g10code.com>
 
 	* libgcrypt.m4: Print found version on success.
