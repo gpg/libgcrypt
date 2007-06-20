@@ -597,7 +597,7 @@ rsa_bench (int iterations, int print_header)
       fflush (stdout);
 
       x = gcry_mpi_new (p_sizes[testno]);
-      gcry_mpi_randomize (x, p_sizes[testno], GCRY_WEAK_RANDOM);
+      gcry_mpi_randomize (x, p_sizes[testno]-8, GCRY_WEAK_RANDOM);
       err = gcry_sexp_build (&data, NULL, "(data (flags raw) (value %m))", x);
       gcry_mpi_release (x);
       if (err)
@@ -609,7 +609,7 @@ rsa_bench (int iterations, int print_header)
           gcry_sexp_release (sig);
           err = gcry_pk_sign (&sig, data, sec_key);
           if (err)
-            die ("signing failed: %s\n", gpg_strerror (err));
+            die ("signing failed (%d): %s\n", count, gpg_strerror (err));
         }
       stop_timer ();
       printf ("   %s", elapsed_time ());
@@ -625,7 +625,7 @@ rsa_bench (int iterations, int print_header)
               show_sexp ("seckey:\n", sec_key);
               show_sexp ("data:\n", data);
               show_sexp ("sig:\n", sig);
-              die ("verify failed: %s\n", gpg_strerror (err));
+              die ("verify failed (%d): %s\n", count, gpg_strerror (err));
             }
         }
       stop_timer ();
