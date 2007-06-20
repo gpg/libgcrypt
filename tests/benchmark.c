@@ -551,6 +551,97 @@ cipher_bench ( const char *algoname )
 
 
 static void
+rsa_bench (int iterations, int print_header)
+{
+  gpg_error_t err;
+  int p_sizes[] = { 1024, 2048, 3072, 4096 };
+  int testno;
+
+  if (print_header)
+    printf ("Algorithm       generate %4d*sign %4d*verify\n"
+            "----------------------------------------------\n",
+            iterations, iterations );
+  for (testno=0; testno < DIM (p_sizes); testno++)
+    {
+      gcry_sexp_t key_spec, key_pair, pub_key, sec_key;
+      gcry_mpi_t x;
+      gcry_sexp_t data;
+      gcry_sexp_t sig = NULL;
+      int count;
+
+      printf ("RSA %3d bit   ", p_sizes[testno]);
+      fflush (stdout);
+
+      err = gcry_sexp_build (&key_spec, NULL,
+                             "(genkey (RSA (nbits %d)))", p_sizes[testno]);
+      if (err)
+        die ("creating S-expression failed: %s\n", gcry_strerror (err));
+
+      start_timer ();
+      err = gcry_pk_genkey (&key_pair, key_spec);
+      if (err)
+        die ("creating %d bit RSA key failed: %s\n",
+             p_sizes[testno], gcry_strerror (err));
+
+      pub_key = gcry_sexp_find_token (key_pair, "public-key", 0);
+      if (! pub_key)
+        die ("public part missing in key\n");
+      sec_key = gcry_sexp_find_token (key_pair, "private-key", 0);
+      if (! sec_key)
+        die ("private part missing in key\n");
+      gcry_sexp_release (key_pair);
+      gcry_sexp_release (key_spec);
+
+      stop_timer ();
+      printf ("   %s", elapsed_time ());
+      fflush (stdout);
+
+      x = gcry_mpi_new (p_sizes[testno]);
+      gcry_mpi_randomize (x, p_sizes[testno], GCRY_WEAK_RANDOM);
+      err = gcry_sexp_build (&data, NULL, "(data (flags raw) (value %m))", x);
+      gcry_mpi_release (x);
+      if (err)
+        die ("converting data failed: %s\n", gcry_strerror (err));
+
+      start_timer ();
+      for (count=0; count < iterations; count++)
+        {
+          gcry_sexp_release (sig);
+          err = gcry_pk_sign (&sig, data, sec_key);
+          if (err)
+            die ("signing failed: %s\n", gpg_strerror (err));
+        }
+      stop_timer ();
+      printf ("   %s", elapsed_time ());
+      fflush (stdout);
+
+      start_timer ();
+      for (count=0; count < iterations; count++)
+        {
+          err = gcry_pk_verify (sig, data, pub_key);
+          if (err)
+            {
+              putchar ('\n');
+              show_sexp ("seckey:\n", sec_key);
+              show_sexp ("data:\n", data);
+              show_sexp ("sig:\n", sig);
+              die ("verify failed: %s\n", gpg_strerror (err));
+            }
+        }
+      stop_timer ();
+      printf ("     %s\n", elapsed_time ());
+      fflush (stdout);
+
+      gcry_sexp_release (sig);
+      gcry_sexp_release (data);
+      gcry_sexp_release (sec_key);
+      gcry_sexp_release (pub_key);
+    }
+}
+
+
+
+static void
 dsa_bench (int iterations, int print_header)
 {
   gpg_error_t err;
@@ -843,7 +934,8 @@ main( int argc, char **argv )
       random_bench (0);
     }
   else if ( !strcmp (*argv, "--help"))
-     fputs ("usage: benchmark [md|cipher|random|mpi|dsa|ecc [algonames]]\n",
+     fputs ("usage: benchmark "
+            "[md|cipher|random|mpi|rsa|dsa|ecc [algonames]]\n",
             stdout);
   else if ( !strcmp (*argv, "random") || !strcmp (*argv, "strongrandom"))
     {
@@ -877,6 +969,11 @@ main( int argc, char **argv )
   else if ( !strcmp (*argv, "mpi"))
     {
         mpi_bench ();
+    }
+  else if ( !strcmp (*argv, "rsa"))
+    {
+        gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        rsa_bench (100, 1);
     }
   else if ( !strcmp (*argv, "dsa"))
     {

@@ -1,3 +1,8 @@
+2007-06-20  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (rsa_bench): New.
+	(main): New command "rsa".
+
 2007-05-03  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (EXTRA_DIST): Do not build pkbench.c
