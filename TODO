@@ -132,3 +132,6 @@ What's left to do                                 -*- outline -*-
 ** C++ tests
   We have some code to allow using libgcrypt from C++, so we also
   should have a test case.
+
+* /dev/urandom and Solaris
+  Make the configure check similar to GnuPG.

@@ -31,7 +31,7 @@ check_version () {
 
 DIE=no
 FORCE=
-if test "$1" = "--force"; then
+if test x"$1" = x"--force"; then
   FORCE=" --force"
   shift
 fi
@@ -75,11 +75,9 @@ if test "$1" = "--build-w32"; then
         fi
     fi
 
-    # Note: we include Camellia because this is anyway a GPLed build.
     ./configure --enable-maintainer-mode  --prefix=${w32root}  \
             --host=${host} --build=${build} \
-            --with-gpg-error-prefix=${w32root} \
-            --enable-ciphers=arcfour:blowfish:cast5:des:aes:twofish:serpent:rfc2268:seed:camellia
+            --with-gpg-error-prefix=${w32root}
     exit $?
 fi
 # ***** end W32 build script *******

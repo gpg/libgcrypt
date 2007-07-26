@@ -1214,7 +1214,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
   return err;
 }
 
-/* Take the hash value and convert into an MPI, suitable for for
+/* Take the hash value and convert into an MPI, suitable for
    passing to the low level functions.  We currently support the
    old style way of passing just a MPI and the modern interface which
    allows to pass flags so that we can choose between raw and pkcs1

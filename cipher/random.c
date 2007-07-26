@@ -163,7 +163,7 @@ static void (*fast_gather_fnc)(void (*)(const void*, size_t,
 
 /* Option flag useful for debugging and the test suite.  If set
    requests for very strong random are degraded to strong random.  Not
-   used by regualr applications.  */
+   used by regular applications.  */
 static int quick_test;
 
 /* On systems without entropy gathering modules, this flag is set to

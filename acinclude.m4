@@ -93,12 +93,12 @@ if test "$tmp_do_check" = "yes"; then
   [ac_cv_sys_symbol_underscore=no
    cat > conftest.$ac_ext <<EOF
       void nm_test_func(){}
-      int main(){nm_test_func;return 0;
+      int main(){nm_test_func;return 0;}
 EOF
   if AC_TRY_EVAL(ac_compile); then
     # Now try to grab the symbols.
     ac_nlist=conftest.nm
-    if AC_TRY_EVAL(NM conftest.$ac_objext \| $global_symbol_pipe \> $ac_nlist) && test -s "$ac_nlist"; then
+    if AC_TRY_EVAL(NM conftest.$ac_objext \| $lt_cv_sys_global_symbol_pipe \| cut -d \' \' -f 2 \> $ac_nlist) && test -s "$ac_nlist"; then
       # See whether the symbols have a leading underscore.
       if egrep '^_nm_test_func' "$ac_nlist" >/dev/null; then
         ac_cv_sys_symbol_underscore=yes
@@ -110,7 +110,7 @@ EOF
         fi
       fi
     else
-      echo "configure: cannot run $global_symbol_pipe" >&AC_FD_CC
+      echo "configure: cannot run $lt_cv_sys_global_symbol_pipe" >&AC_FD_CC
     fi
   else
     echo "configure: failed program was:" >&AC_FD_CC

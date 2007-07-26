@@ -1,6 +1,13 @@
-2007-06-15  Marcus Brinkmann  <marcus@g10code.de>
+2007-07-26  Werner Koch  <wk@g10code.com>
 
-	* autogen.sh: Use = instead of == in test.
+	* acinclude.m4 (GNUPG_SYS_SYMBOL_UNDERSCORE): Fix a syntax error
+	in the test program which lurked there for 4 years.  Adjusted name
+	of libtools global_system_pipe variable and add extra cut stage.
+	Reported by Gregor Riepl.
+	
+2007-06-15  Werner Koch  <wk@g10code.com>
+
+	* autogen.sh (FORCE): Use = and not == in test to be POSIXly correct.
 
 2007-05-30  Werner Koch  <wk@g10code.com>
 

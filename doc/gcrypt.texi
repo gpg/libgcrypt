@@ -519,9 +519,16 @@ the memory guard is NOT used when the user of the library has set his
 own memory management callbacks.
 
 @item GCRYCTL_ENABLE_QUICK_RANDOM; Arguments: none
-This command activates the use of a highly-insecure, but fast PRNG.  It
-can only be used at initialization time.  The only useful applications
-for this are certain regression tests.
+This command inhibits the use the very secure random quality level
+(@code{GCRY_VERY_STRONG_RANDOM}) and degrades all request down to
+@code{GCRY_STRONG_RANDOM}.  In general this is not recommened.  However,
+for some applications the extra quality random Libgcrypt tries to create
+is not justified and this option may help to get better performace.
+Please check with a crypto expert whether this option can be used for
+your application.
+
+This option can only be used at initialization time.
+
 
 @item GCRYCTL_DUMP_RANDOM_STATS
 This command dumps PRNG related statistics to the librarys logging

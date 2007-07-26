@@ -3,6 +3,9 @@ Noteworthy changes in version 1.3.1
 
  * The Camellia cipher is now under the LGPL and included by default.
 
+ * Fixed a bug in the detection of symbol prefixes which inhibited the
+   build of optimzied assembler code on certain systems.
+
  * Interface changes relative to the 1.3.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
