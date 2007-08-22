@@ -28,10 +28,12 @@ m4data_DATA = libgcrypt.m4
 include_HEADERS = gcrypt.h gcrypt-module.h
 
 lib_LTLIBRARIES = libgcrypt.la
+bin_PROGRAMS = dumpsexp
 if USE_RANDOM_DAEMON
 sbin_PROGRAMS = gcryptrnd
-bin_PROGRAMS = getrandom
+bin_PROGRAMS += getrandom
 endif USE_RANDOM_DAEMON
+
 
 if HAVE_LD_VERSION_SCRIPT
   libgcrypt_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt.vers
@@ -91,6 +93,9 @@ libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
 libgcrypt_la_LIBADD = ../cipher/libcipher.la ../mpi/libmpi.la \
 	@LTLIBOBJS@ @GPG_ERROR_LIBS@
 
+
+dumpsexp_SOURCES = dumpsexp.c
+dumpsexp_LDADD = 
 
 if USE_RANDOM_DAEMON
 gcryptrnd_SOURCES = gcryptrnd.c

@@ -1,5 +1,8 @@
 2007-08-22  Werner Koch  <wk@g10code.com>
 
+	* dumpsexp.c: New.
+	* Makefile.am (bin_PROGRAMS): Install it.
+
 	* getrandom.c (print_version): Use new standard license line.
 	* gcryptrnd.c (print_version): Ditto.
 
