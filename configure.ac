@@ -53,9 +53,9 @@ PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])
-AC_CANONICAL_TARGET()
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 AM_CONFIG_HEADER(config.h)
+AC_CANONICAL_HOST
 AM_MAINTAINER_MODE
 
 AH_TOP([
@@ -156,8 +156,8 @@ LIBGCRYPT_THREAD_MODULES=""
 print_egd_notice=no
 have_w32_system=no
 
-# Setup some stuff depending on host/target.
-case "${target}" in
+# Setup some stuff depending on host.
+case "${host}" in
     *-*-mingw32*)
       available_random_modules="w32"
       ac_cv_have_dev_random=no
@@ -218,7 +218,7 @@ AM_CONDITIONAL(HAVE_W32_SYSTEM, test "$have_w32_system" = yes)
 
 
 # A printable OS Name is sometimes useful.
-case "${target}" in
+case "${host}" in
     *-*-mingw32*)
         PRINTABLE_OS_NAME="MingW32"
         ;;
@@ -241,7 +241,7 @@ case "${target}" in
 esac
 
 # Figure out the name of the random device
-case "${target}" in
+case "${host}" in
     *-openbsd*)
         # FIXME: Are these the best flags for OpenBSD?
         NAME_OF_DEV_RANDOM="/dev/srandom"
@@ -641,7 +641,7 @@ if test "$random" = "default"; then
         # Try Linuxish random device.
         random_modules="linux"
     else
-        case "${target}" in
+        case "${host}" in
         *-*-mingw32*|*-*-cygwin*)
           # Windows random device.
           random_modules="w32"
@@ -920,8 +920,7 @@ AC_DEFINE_UNQUOTED(USE_RNDEGD, $found,
                   [Defined if the EGD based RNG should be used.])
 
 LIST_MEMBER(w32, $random_modules)
-test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo" \
-                    && gpl="$gpl rndw32"
+test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo"
 AC_DEFINE_UNQUOTED(USE_RNDW32, $found,
                   [Defined if the Windows specific RNG should be used.])
 
@@ -1010,5 +1009,5 @@ if test -n "$gpl"; then
 fi
 
 # Give some feedback
-echo   "                Configured for: $PRINTABLE_OS_NAME ($target)"
+echo   "                Configured for: $PRINTABLE_OS_NAME ($host)"
 echo

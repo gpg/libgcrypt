@@ -1,3 +1,7 @@
+2007-08-22  Werner Koch  <wk@g10code.com>
+
+	* rndw32.c: Switched tpo LGPL.
+
 2007-05-30  Werner Koch  <wk@g10code.com>
 
 	* camellia.h, camellia.c: Replace by new LGPL version and adjusted

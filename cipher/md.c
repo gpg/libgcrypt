@@ -885,7 +885,7 @@ md_read( gcry_md_hd_t a, int algo )
     {
       /* return the first algorithm */
       if (r && r->next)
-	log_debug("more than algorithm in md_read(0)\n");
+	log_debug ("more than one algorithm in md_read(0)\n");
       return r->digest->read( &r->context.c );
     }
   else
@@ -1133,7 +1133,7 @@ gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 	    memcpy (buffer, asn, asnlen);
 	    *nbytes = asnlen;
 	  }
-          else if ((! buffer) && nbytes)
+          else if (!buffer && nbytes)
             *nbytes = asnlen;
           else
             {
@@ -1200,7 +1200,7 @@ md_stop_debug( gcry_md_hd_t md )
  *	Returns 1 when the handle works on secured memory
  *	otherwise 0 is returned.  There is no error return.
  *  GCRYCTL_IS_ALGO_ENABLED:
- *     Returns 1 if the algo is enanled for that handle.
+ *     Returns 1 if the algo is enabled for that handle.
  *     The algo must be passed as the address of an int.
  */
 gcry_error_t

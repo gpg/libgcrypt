@@ -1,3 +1,11 @@
+2007-08-22  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (USE_RNDW32): Unmark rndw32 as GPL.
+
+2007-08-08  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Use $host and not $target.
+
 2007-07-26  Werner Koch  <wk@g10code.com>
 
 	* acinclude.m4 (GNUPG_SYS_SYMBOL_UNDERSCORE): Fix a syntax error

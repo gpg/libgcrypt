@@ -34,15 +34,38 @@
  *    author, <pgut001@cs.auckland.ac.nz> to allow them to be added to the
  *    baseline version of the code.
  *
- * ALTERNATIVELY, the code may be distributed under the terms of the GNU
- * General Public License, version 2 or any later version published by the
- * Free Software Foundation, in which case the provisions of the GNU GPL are
- * required INSTEAD OF the above restrictions.
+ * ALTERNATIVELY, the code may be distributed under the terms of the
+ * GNU Lesser General Public License, version 2.1 or any later version
+ * published by the Free Software Foundation, in which case the
+ * provisions of the GNU LGPL are required INSTEAD OF the above
+ * restrictions.
  *
- * Although not required under the terms of the GPL, it would still be nice if
- * you could make any changes available to the author to allow a consistent
- * code base to be maintained
+ * Although not required under the terms of the LGPL, it would still
+ * be nice if you could make any changes available to the author to
+ * allow a consistent code base to be maintained.
  *************************************************************************
+ * The above alternative was changed from GPL to LGPL on 2007-08-22 with
+ * permission from Peter Gutmann:
+ *==========
+ From: pgut001 <pgut001@cs.auckland.ac.nz>
+ Subject: Re: LGPL for the windows entropy gatherer
+ To: wk@gnupg.org
+ Date: Wed, 22 Aug 2007 03:05:42 +1200
+ 
+ Hi,
+ 
+ >As of now libgcrypt is GPL under Windows due to that module and some people
+ >would really like to see it under LGPL too.  Can you do such a license change
+ >to LGPL version 2?  Note that LGPL give the user the option to relicense it
+ >under GPL, so the change would be pretty easy and backwar compatible.
+ 
+ Sure.  I assumed that since GPG was GPLd, you'd prefer the GPL for the entropy
+ code as well, but Ian asked for LGPL as an option so as of the next release
+ I'll have LGPL in there.  You can consider it to be retroactive, so your
+ current version will be LGPLd as well.
+ 
+ Peter.
+ *==========
  */
 
 #include <config.h>
@@ -481,7 +504,8 @@ slow_gatherer_windowsNT( void (*add)(const void*, size_t, int), int requester )
 		pPerfData = gcry_realloc (pPerfData, cbPerfData);
 	    }
 	    else {
-		log_debug ( "rndw32: get performance data problem\n");
+		log_debug ("rndw32: get performance data problem: ec=%ld\n", 
+                           status);
 		break;
 	    }
 	}
