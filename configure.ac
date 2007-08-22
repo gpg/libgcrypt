@@ -906,8 +906,7 @@ AC_DEFINE_UNQUOTED(USE_RNDLINUX, $found,
 
 
 LIST_MEMBER(unix, $random_modules)
-test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndunix.lo" \
-                    && gpl="$gpl rndunix"
+test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndunix.lo"
 AC_DEFINE_UNQUOTED(USE_RNDUNIX, $found,
                   [Defined if the default Unix RNG should be used.])
 if test "$found" = "1"; then

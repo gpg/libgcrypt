@@ -1,6 +1,7 @@
 2007-08-22  Werner Koch  <wk@g10code.com>
 
-	* configure.ac (USE_RNDW32): Unmark rndw32 as GPL.
+	* README: Rewrite the license description.
+	* configure.ac (USE_RNDW32, USE_RNDUNIX): Unmark as GPL modules.
 
 2007-08-08  Werner Koch  <wk@g10code.com>
 

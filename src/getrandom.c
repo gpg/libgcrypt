@@ -79,9 +79,10 @@ print_version (int with_help)
 {
   fputs (MYVERSION_LINE "\n"
          "Copyright (C) 2006 Free Software Foundation, Inc.\n"
-         "This program comes with ABSOLUTELY NO WARRANTY.\n"
-         "This is free software, and you are welcome to redistribute it\n"
-         "under certain conditions. See the file COPYING for details.\n",
+         "License GPLv2+: GNU GPL version 2 or later "
+         "<http://www.gnu.org/licenses/old-licenses/gpl-2.0.html>\n"
+         "This is free software: you are free to change and redistribute it.\n"
+         "There is NO WARRANTY, to the extent permitted by law.\n",
          stdout);
         
   if (with_help)

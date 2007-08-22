@@ -1,6 +1,6 @@
 2007-08-22  Werner Koch  <wk@g10code.com>
 
-	* rndw32.c: Switched tpo LGPL.
+	* rndw32.c, rndunix.c: Switched to LGPL.
 
 2007-05-30  Werner Koch  <wk@g10code.com>
 
