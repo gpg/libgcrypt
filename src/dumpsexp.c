@@ -32,6 +32,7 @@
 
 static int verbose;  /* Verbose mode.  */
 static int decimal;  /* Print addresses in decimal.  */
+static int assume_hex;  /* Assume input is hexencoded.  */
 
 static void
 print_version (int with_help)
@@ -49,6 +50,8 @@ print_version (int with_help)
            "Usage: " PGM " [OPTIONS] [file]\n"
            "Debug tool for S-expressions\n"
            "\n"
+           "  --decimal     Print offsetc using decimal notation\n"
+           "  --assume-hex  Assume input is a hex dump\n"
            "  --verbose     Show what we are doing\n"
            "  --version     Print version of the program and exit\n"
            "  --help        Display this help and exit\n"
@@ -66,13 +69,16 @@ print_usage (void)
 }
 
 
-#define digit_p(a)   ((a) >= '0' && (a) <= '9')
+#define space_p(a)    ((a)==' ' || (a)=='\n' || (a)=='\r' || (a)=='\t')
+#define digit_p(a)    ((a) >= '0' && (a) <= '9')
 #define octdigit_p(a) ((a) >= '0' && (a) <= '7')
 #define alpha_p(a)    (   ((a) >= 'A' && (a) <= 'Z')  \
                        || ((a) >= 'a' && (a) <= 'z'))
 #define hexdigit_p(a) (digit_p (a)                     \
                        || ((a) >= 'A' && (a) <= 'F')  \
                        || ((a) >= 'a' && (a) <= 'f'))
+#define xtoi_1(a)     ((a) <= '9'? ((a)- '0'): \
+                       (a) <= 'F'? ((a)-'A'+10):((a)-'a'+10))
 
 
 /* Return true if P points to a byte containing a whitespace according
@@ -108,6 +114,46 @@ static int skipdatabufferlen;
 static int nbytesprinted;
 /* The file offset of the current data buffer .  */
 static unsigned long databufferoffset;
+
+
+
+static int
+my_getc (FILE *fp)
+{
+  int c1, c2;
+
+  if (!assume_hex)
+    return getc (fp);
+
+  while ( (c1=getc (fp)) != EOF && space_p (c1) )
+    ;
+  if (c1 == EOF)
+    return EOF;
+
+  if (!hexdigit_p (c1))
+    {
+      logit ("non hex-digit encountered\n");
+      return EOF;
+    }
+
+  while ( (c2=getc (fp)) != EOF && space_p (c2) )
+    ;
+  if (c2 == EOF)
+    {
+      logit ("error reading second hex nibble\n");
+      return EOF;
+    }
+  if (!hexdigit_p (c2))
+    {
+      logit ("second hex nibble is not a hex-digit\n");
+      return EOF;
+    }
+  return xtoi_1 (c1) * 16 + xtoi_1 (c2);
+}
+
+
+
+
 
 /* Flush the raw data buffer.  */
 static void
@@ -229,6 +275,8 @@ printhex (int c)
 
 
 
+
+
 static int
 parse_and_print (FILE *fp)
 {
@@ -253,7 +301,7 @@ parse_and_print (FILE *fp)
   state = INIT_STATE;
   
 
-  while ((c = getc (fp)) != EOF )
+  while ((c = my_getc (fp)) != EOF )
     {
       addrawdata (c);
       switch (state)
@@ -526,6 +574,11 @@ main (int argc, char **argv)
         {
           argc--; argv++;
           decimal = 1;
+        }
+      else if (!strcmp (*argv, "--assume-hex"))
+        {
+          argc--; argv++;
+          assume_hex = 1;
         }
       else
         print_usage ();

@@ -26,6 +26,8 @@ What's left to do                                 -*- outline -*-
   the asymmetric ciphers could be changed for convenient interaction
   with the ac interface (i.e. by using ac's `data sets') and the pk
   interface could be changed to be a wrapper for the ac interface.
+  ==> It is unlikely that we will do that.  The AC interafce turned
+  out to be more complicated than the regular one.
 
 * cipher/pubkey.c and pubkey implementaions.
   Don't rely on the secure memory based wiping function but add an
@@ -34,19 +36,6 @@ What's left to do                                 -*- outline -*-
 * update/improve documentation
 ** it's outdated for e.g. gcry_pk_algo_info.
 ** document algorithm capabilities
-** Explain seed files and correlation
-  Multiple instances of the applications sharing the same random seed
-  file can be started in parallel, in which case they will read out
-  the same pool and then race for updating it (the last update
-  overwrites earlier updates).  They will differentiate only by the
-  weak entropy that is added in read_seed_file based on the PID and
-  clock, and up to 16 bytes of weak random non-blockingly.  The
-  consequence is that the output of these different instances is
-  correlated to some extent.  In the perfect scenario, the attacker
-  can control (or at least guess) the PID and clock of the
-  application, and drain the system's entropy pool to reduce the "up
-  to 16 bytes" above to 0.  Then the dependencies of the inital states
-  of the pools are completely known.
 ** Init requirements for random
    The documentation says in "Controlling the library" that some
    functions can only be used at initialization time, but it does not
@@ -72,7 +61,7 @@ What's left to do                                 -*- outline -*-
 
 * Use builtin bit functions of gcc 3.4
 
-* Consider using a daemon to maintaint he random pool
+* Consider using a daemon to maintain the random pool
   [Partly done] The down side of this is that we can't assume that the
   random has has always been stored in "secure memory".  And we rely
   on that sniffing of Unix domain sockets is not possible.  We can
@@ -101,18 +90,6 @@ What's left to do                                 -*- outline -*-
 
 * gcryptrnd.c
   Requires a test for pth [done] as well as some other tests.
-
-* random.c
- If add_randomness is invoked before the pool is filled, but with a
- weak source of entropy, for example the fast random poll, which
- may happen from other parts of gcrypt, then the pool is filled
- partially with weak random, defeating the purpose of pool_filled
- and the "source > 1" check in add_randomness.
-
- Suggestion: Count initial filling bytes with source > 1 in
- add_randomness seperately from the pool_writepos cursor.  Only set
- pool_filled if really POOLSIZE bytes with source > 1 have been
- added.
 
 * secmem.c
   Check whether the memory block is valid before releasing it and

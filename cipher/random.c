@@ -112,9 +112,13 @@ static size_t pool_writepos;
 static size_t pool_readpos;
 
 /* This flag is set to true as soon as the pool has been completely
-   filles.  This may happen either by rerading a seed file or by
-   adding enough entropy.  */
+   filled the first time.  This may happen either by rereading a seed
+   file or by adding enough entropy.  */
 static int pool_filled;
+
+/* This counter is used to track whether the initial seeding has been
+   done with enough bytes from a reliable entropy source.  */
+static size_t pool_filled_counter;
 
 /* If random of level GCRY_VERY_STRONG_RANDOM has been requested we
    have stricter requirements on what kind of entropy is in the pool.
@@ -133,7 +137,7 @@ static int pool_balance;
 static int just_mixed;
 
 /* The name of the seed file or NULL if no seed file has been defined.
-   The seed file needs to be regsitered at initialiation time.  we
+   The seed file needs to be regsitered at initialiation time.  We
    keep a malloced copy here.  */
 static char *seed_file_name;
 
@@ -742,8 +746,21 @@ lock_seed_file (int fd, const char *fname, int for_write)
 }
 
 
-/* Read in a seed form the random_seed file
-   and return true if this was successful.   */
+/* Read in a seed from the random_seed file and return true if this
+   was successful.
+
+   Note: Multiple instances of applications sharing the same random
+   seed file can be started in parallel, in which case they will read
+   out the same pool and then race for updating it (the last update
+   overwrites earlier updates).  They will differentiate only by the
+   weak entropy that is added in read_seed_file based on the PID and
+   clock, and up to 16 bytes of weak random non-blockingly.  The
+   consequence is that the output of these different instances is
+   correlated to some extent.  In the perfect scenario, the attacker
+   can control (or at least guess) the PID and clock of the
+   application, and drain the system's entropy pool to reduce the "up
+   to 16 bytes" above to 0.  Then the dependencies of the inital
+   states of the pools are completely known.  */
 static int
 read_seed_file (void)
 {
@@ -837,7 +854,7 @@ read_seed_file (void)
   /* And read a few bytes from our entropy source.  By using a level
    * of 0 this will not block and might not return anything with some
    * entropy drivers, however the rndlinux driver will use
-   * /dev/urandom and return some stuff - Do not read to much as we
+   * /dev/urandom and return some stuff - Do not read too much as we
    * want to be friendly to the scare system entropy resource. */
   read_random_source ( RANDOM_ORIGIN_INIT, 16, GCRY_WEAK_RANDOM );
 
@@ -927,7 +944,7 @@ _gcry_update_random_seed_file()
 
 /* Read random out of the pool.  This function is the core of the
    public random functions.  Note that Level GCRY_WEAK_RANDOM is not
-   anymore handled special and in fact is an alias in teh API for
+   anymore handled special and in fact is an alias in the API for
    level GCRY_STRONG_RANDOM.  Must be called with the pool already
    locked.  */
 static void
@@ -1059,8 +1076,8 @@ read_pool (byte *buffer, size_t length, int level)
   /* We need to detect whether a fork has happened.  A fork might have
      an identical pool and thus the child and the parent could emit
      the very same random number.  This test here is to detect forks
-     in a multi-threaded process.  It does not work with all trhead
-     implementaions in particualr not with pthreads.  However it is
+     in a multi-threaded process.  It does not work with all thread
+     implementations in particular not with pthreads.  However it is
      good enough for GNU Pth. */
   if ( getpid () != my_pid2 )
     {
@@ -1091,8 +1108,16 @@ add_randomness (const void *buffer, size_t length, enum random_origins origin)
       rndpool[pool_writepos++] ^= *p++;
       if (pool_writepos >= POOLSIZE )
         {
-          if (origin >= RANDOM_ORIGIN_SLOWPOLL)
-            pool_filled = 1;
+          /* It is possible that we are invoked before the pool is
+             filled using an unreliable origin of entropy, for example
+             the fast random poll.  To avoid flagging the pool as
+             filled in this case, we track the initial filling state
+             separately.  See also the remarks about the seed file. */
+          if (origin >= RANDOM_ORIGIN_SLOWPOLL && !pool_filled)
+            {
+              if (++pool_filled_counter >= POOLSIZE)
+                pool_filled = 1;
+            }
           pool_writepos = 0;
           mix_pool(rndpool); rndstats.mixrnd++;
           just_mixed = !length;

@@ -570,13 +570,28 @@ FIXME: what about initialization time?
 This command specifies the file, which is to be used as seed file for
 the PRNG.  If the seed file is registered prior to initialization of the
 PRNG, the seed file's content (if it exists and seems to be valid) is
-feed into the PRNG pool.  After the seed file has been registered, the
+fed into the PRNG pool.  After the seed file has been registered, the
 PRNG can be signalled to write out the PRNG pool's content into the seed
 file with the following command.
+
 
 @item GCRYCTL_UPDATE_RANDOM_SEED_FILE; Arguments: none
 
 Write out the PRNG pool's content into the registered seed file.
+
+Multiple instances of the applications sharing the same random seed file
+can be started in parallel, in which case they will read out the same
+pool and then race for updating it (the last update overwrites earlier
+updates).  They will differentiate only by the weak entropy that is
+added in read_seed_file based on the PID and clock, and up to 16 bytes
+of weak random non-blockingly.  The consequence is that the output of
+these different instances is correlated to some extent.  In the perfect
+scenario, the attacker can control (or at least guess) the PID and clock
+of the application, and drain the system's entropy pool to reduce the
+"up to 16 bytes" above to 0.  Then the dependencies of the inital states
+of the pools are completely known.  Note that this is not an issue if
+random of @code{GCRY_VERY_STRONG_RANDOM} quality is requested as in this
+case enough extra entropy gets mixed.
 
 @item GCRYCTL_SET_VERBOSITY
 
@@ -1240,6 +1255,12 @@ future use.
 
 @item GCRY_CIPHER_SEED
 A 128 bit cipher as described by RFC4269.
+
+@item  GCRY_CIPHER_CAMELLIA128
+@itemx GCRY_CIPHER_CAMELLIA192
+@itemx GCRY_CIPHER_CAMELLIA256
+The Camellia cipher by NTT.  See
+@uref{http://info.isl.ntt.co.jp/@/crypt/@/eng/@/camellia/@/specifications.html}.
 
 @end table
 
