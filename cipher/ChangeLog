@@ -1,3 +1,14 @@
+2007-10-25  Werner Koch  <wk@g10code.com>
+
+	* rndw32.c: Updated from current cryptlib snapshot and modified
+	for our use.  Removed support from pre NT systems.
+	(slow_gatherer_windows95): Remove.
+	(_gcry_rndw32_gather_random): Require an NT platform.
+	(init_system_rng, read_system_rng, read_mbm_data): New.
+	(slow_gatherer_windowsNT): Rename to ...
+	(slow_gatherer): .. this.  Read system RNG and MBM.
+	(registry_poll): New with code factored out from slow_gatherer.
+
 2007-08-23  Werner Koch  <wk@g10code.com>
 
 	* random.c (pool_filled_counter): New.

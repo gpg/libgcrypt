@@ -50,7 +50,7 @@ print_version (int with_help)
            "Usage: " PGM " [OPTIONS] [file]\n"
            "Debug tool for S-expressions\n"
            "\n"
-           "  --decimal     Print offsetc using decimal notation\n"
+           "  --decimal     Print offsets using decimal notation\n"
            "  --assume-hex  Assume input is a hex dump\n"
            "  --verbose     Show what we are doing\n"
            "  --version     Print version of the program and exit\n"
