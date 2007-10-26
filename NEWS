@@ -1,4 +1,4 @@
-Noteworthy changes in version 1.3.1
+Noteworthy changes in version 1.3.1 (2007-10-26)
 ------------------------------------------------
 
  * The entire library is now under the LGPL. The helper programs and
@@ -11,9 +11,6 @@ Noteworthy changes in version 1.3.1
    build of optimzied assembler code on certain systems.
 
  * Updated the entropy gatherer for W32.
-
- * Interface changes relative to the 1.3.0 release:
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 Noteworthy changes in version 1.3.0 (2007-05-04)

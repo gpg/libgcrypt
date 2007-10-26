@@ -244,7 +244,7 @@ static RTLGENRANDOM        pRtlGenRandom;
 static int system_rng_available; /* Whether a system RNG is available.  */
 static HCRYPTPROV hRNGProv;      /* Handle to Intel RNG CSP. */
 
-static int debug_me = 1;  /* Debug flag.  */
+static int debug_me;  /* Debug flag.  */
 
 
 

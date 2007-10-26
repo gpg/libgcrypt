@@ -88,12 +88,14 @@ case "${target}" in
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
 	path="i586 i386"
 	;;
-    i[3467]86*-msdosdjgpp*)
+    i[3467]86*-msdosdjgpp* | \
+    i[34]86*-apple-darwin*)
 	echo '#define BSD_SYNTAX'        >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	 >>./mpi/asm-syntax.h
 	path="i386"
 	;;
-    i586*-msdosdjgpp*)
+    i586*-msdosdjgpp* | \
+    i[567]86*-apple-darwin*)
 	echo '#define BSD_SYNTAX'        >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	 >>./mpi/asm-syntax.h
 	path="i586 i386"

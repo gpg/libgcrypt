@@ -1,3 +1,8 @@
+2007-10-26  Werner Koch  <wk@g10code.com>
+
+	* config.links (mpi_optional_modules): Special rules for Apple
+	Darwin on ia32 from Gregor Riepl.
+
 2007-05-09  Marcus Brinkmann  <marcus@g10code.de>
 
 	* config.links: Rename assembler file links by suffixing "-asm".

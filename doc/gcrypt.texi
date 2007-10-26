@@ -2161,7 +2161,7 @@ S-expressions.
 @section Available algorithms
 
 Libgcrypt supports the RSA (Rivest-Shamir-Adleman) algorithms as well
-as DSA (Digital Signature Algorithm) and ElGamal.  The versatile
+as DSA (Digital Signature Algorithm) and Elgamal.  The versatile
 interface allows to add more algorithms in the future.
 
 @node Used S-expressions
@@ -2589,7 +2589,7 @@ The returned S-expression has this format when used with RSA:
 
 @noindent
 Where @var{a-mpi} is an MPI with the result of the RSA operation.  When
-using the ElGamal algorithm, the return value will have this format:
+using the Elgamal algorithm, the return value will have this format:
 
 @example
 (enc-val
@@ -2600,7 +2600,7 @@ using the ElGamal algorithm, the return value will have this format:
 
 @noindent
 Where @var{a-mpi} and @var{b-mpi} are MPIs with the result of the
-ElGamal encryption operation.
+Elgamal encryption operation.
 @end deftypefun
 @c end gcry_pk_encrypt
 
@@ -2703,7 +2703,7 @@ S-expression returned is:
 @end example
 
 Where @var{r-mpi} and @var{s-mpi} are the result of the DSA sign
-operation.  For ElGamal signing (which is slow, yields large numbers
+operation.  For Elgamal signing (which is slow, yields large numbers
 and probably is not as secure as the other algorithms), the same format is
 used with "elg" replacing "dsa".
 @end deftypefun
@@ -2878,7 +2878,7 @@ Here is an example for @var{parms} for creating a 1024 bit RSA key:
 @end example
 
 @noindent
-To create an ElGamal key, substitute "elg" for "rsa" and to create a DSA
+To create an Elgamal key, substitute "elg" for "rsa" and to create a DSA
 key use "dsa".  Valid ranges for the key length depend on the
 algorithms; all commonly used key lengths are supported.  Currently
 supported parameters are:
@@ -2944,7 +2944,7 @@ private and public keys are returned in one container and may be
 accompanied by some miscellaneous information.
 
 @noindent
-As an example, here is what the ElGamal key generation returns:
+As an example, here is what the Elgamal key generation returns:
 
 @example
 (key-data
@@ -2982,6 +2982,11 @@ data structures.  As opposed to the pk interface described in the
 former chapter, this one follows an open/use/close paradigm like other
 building blocks of the library.
 
+@strong{This interface as some known problems; most noteworthy an
+inherent tendency to leak memory.  It might even be removed in a some
+future version of Libgcrypt.}
+
+
 @menu
 * Available asymmetric algorithms::  List of algorithms supported by the library.
 * Working with sets of data::   How to work with sets of data.
@@ -2996,7 +3001,7 @@ building blocks of the library.
 @section Available asymmetric algorithms
 
 Libgcrypt supports the RSA (Rivest-Shamir-Adleman)
-algorithms as well as DSA (Digital Signature Algorithm) and ElGamal.
+algorithms as well as DSA (Digital Signature Algorithm) and Elgamal.
 The versatile interface allows to add more algorithms in the future.
 
 @deftp {Data type} gcry_ac_id_t
@@ -3005,13 +3010,13 @@ The following constants are defined for this type:
 
 @table @code
 @item GCRY_AC_RSA
-Riven-Shamir-Adleman
+Rivest-Shamir-Adleman
 @item GCRY_AC_DSA
 Digital Signature Algorithm
 @item GCRY_AC_ELG
-ElGamal
+Elgamal
 @item GCRY_AC_ELG_E
-ElGamal, encryption only.
+Elgamal, encryption only.
 @end table
 @end deftp
 

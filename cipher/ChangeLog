@@ -1,3 +1,7 @@
+2007-10-26  Werner Koch  <wk@g10code.com>
+
+	* rndw32.c: Disable debug flag.
+
 2007-10-25  Werner Koch  <wk@g10code.com>
 
 	* rndw32.c: Updated from current cryptlib snapshot and modified
