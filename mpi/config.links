@@ -35,10 +35,10 @@ mpi_optional_modules=`$AWK '/^#BEGIN_ASM_LIST/,/^#END_ASM_LIST/ {
 
 
 echo '/* created by config.links - do not edit */' >./mpi/asm-syntax.h
-echo "/* Target: ${target} */" >>./mpi/asm-syntax.h
+echo "/* Host: ${host} */" >>./mpi/asm-syntax.h
 
 if test "$try_asm_modules" = "yes" ; then
-case "${target}" in
+case "${host}" in
     powerpc-apple-darwin*          | \
     i[34567]86*-*-openbsd[12]*     | \
     i[34567]86*-*-openbsd3.[0123]*)
@@ -326,7 +326,7 @@ mpi_ln_list=
 mpi_mod_list=
 path=`echo "$mpi_extra_path $path generic" | tr ':' ' '`
 echo '/* Created by config.links - do not edit */' >./mpi/mod-source-info.h
-echo "/* Target: ${target} */" >>./mpi/mod-source-info.h
+echo "/* Host: ${host} */" >>./mpi/mod-source-info.h
 echo "static char mod_source_info[] =" >>./mpi/mod-source-info.h
 for fn in $mpi_required_modules ; do
     fnu=`echo $fn | sed 's/-/_/g'`
