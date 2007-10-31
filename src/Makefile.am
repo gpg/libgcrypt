@@ -42,8 +42,8 @@ else
 endif
 
 libgcrypt_la_CFLAGS = @GPG_ERROR_CFLAGS@
-libgcrypt_la_SOURCES = g10lib.h types.h cipher.h \
-	misc.c global.c sexp.c \
+libgcrypt_la_SOURCES = g10lib.h visibility.c visibility.h types.h cipher.h \
+	misc.c global.c sexp.c hwfeatures.c \
 	stdmem.c stdmem.h secmem.c secmem.h \
 	mpi.h missing-string.c module.c \
 	ath.h ath.c

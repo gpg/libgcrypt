@@ -1,3 +1,16 @@
+2007-10-31  Werner Koch  <wk@g10code.com>
+
+	* mpi-mod.c (gcry_mpi_mod): Remove
+	* mpi-inv.c (_gcry_mpi_invm): Remove _ prefix.
+	* mpiutil.c (_gcry_mpi_swap): Remove.
+	(_gcry_mpi_new): Remove.
+	(_gcry_mpi_snew): Remove.
+	(gcry_mpi_invm): Remove.
+	(gcry_mpi_copy): Remove and rename _version to this.
+	(gcry_mpi_set, gcry_mpi_set_ui): Merge with _ version.
+	* mpi-inv.c (gcry_mpi_invm): Remove _ prefix and return 1.
+	* mpi-mul.c (gcry_mpi_mul_2exp): Remove and rename _ version to this.
+
 2007-10-29  Werner Koch  <wk@g10code.com>
 
 	* config.links: No Candadian Cross here, thus use $host instead of

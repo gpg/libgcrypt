@@ -654,7 +654,7 @@ gcry_sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen )
 /* Get a string from the car.  The returned value is a malloced string
    and needs to be freed by the caller.  */
 char *
-_gcry_sexp_nth_string (const gcry_sexp_t list, int number)
+gcry_sexp_nth_string (const gcry_sexp_t list, int number)
 {
   const char *s;
   size_t n;
@@ -669,13 +669,6 @@ _gcry_sexp_nth_string (const gcry_sexp_t list, int number)
   memcpy (buf, s, n);
   buf[n] = 0;
   return buf;
-}
-
-/* Public version of _gcry_sexp_nth_string. */
-char *
-gcry_sexp_nth_string (const gcry_sexp_t list, int number)
-{
-  return _gcry_sexp_nth_string (list, number);
 }
 
 /*
@@ -1469,6 +1462,15 @@ gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff, const char *format, ...)
   va_end (arg_ptr);
   
   return rc;
+}
+
+
+gcry_error_t
+_gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff, 
+                   const char *format, va_list arg_ptr)
+{
+  return sexp_sscan (retsexp, erroff, format, strlen(format), 1,
+                     arg_ptr, NULL);
 }
 
 /* Like gcry_sexp_build, but uses an array instead of variable

@@ -118,8 +118,6 @@ struct gcry_mpi
 
 void _gcry_mpi_clear( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_like( gcry_mpi_t a );
-void _gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u);
-void _gcry_mpi_set_ui( gcry_mpi_t w, ulong u);
 gcry_mpi_t  _gcry_mpi_alloc_set_ui( unsigned long u);
 gcry_err_code_t _gcry_mpi_get_ui (gcry_mpi_t w, ulong *u);
 void _gcry_mpi_m_check( gcry_mpi_t a );
@@ -226,7 +224,6 @@ void _gcry_mpi_normalize( gcry_mpi_t a );
 
 /*-- mpi-inv.c --*/
 #define mpi_invm(a,b,c) _gcry_mpi_invm ((a),(b),(c))
-void _gcry_mpi_invm( gcry_mpi_t x, gcry_mpi_t u, gcry_mpi_t v );
 
 /*-- ec.c --*/
 

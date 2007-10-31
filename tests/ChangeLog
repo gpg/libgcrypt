@@ -1,3 +1,7 @@
+2007-10-31  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (start_timer, stop_timer, elapsed_time) [W32]: Fixed.
+
 2007-06-20  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (rsa_bench): New.

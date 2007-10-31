@@ -1,3 +1,24 @@
+2007-10-31  Werner Koch  <wk@g10code.com>
+
+	* global.c (gcry_control): Factor most code out to ..
+	(_gcry_vcontrol): .. new.
+	* sexp.c (_gcry_sexp_vbuild): New.
+	* mpi.h (_gcry_mpi_set, _gcry_mpi_set_ui, _gcry_mpi_invm): Remove
+	prototypes as they are already in gcrypt.h.
+
+2007-10-30  Werner Koch  <wk@g10code.com>
+
+	* sexp.c (gcry_sexp_nth_string): Replace by _gcry_sexp_nth_string.
+
+	* visibility.h, visibility.c: New.
+	* g10lib.h: Include visibility.h instead of gcrypt.h.
+	* globals.c (_gcry_malloc): Rename to ..
+	(do_malloc): .. this.
+
+	* hwfeatures.c: New.
+	* global.c (global_init): Detect features.
+	(print_config): Print them.
+
 2007-08-22  Werner Koch  <wk@g10code.com>
 
 	* dumpsexp.c: New.

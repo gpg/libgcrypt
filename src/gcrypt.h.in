@@ -1,6 +1,6 @@
 /* gcrypt.h -  GNU Cryptographic Library Interface              -*- c -*-
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003,
-                 2004, 2006, 2007  Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006
+                 2007  Free Software Foundation, Inc.
   
    This file is part of Libgcrypt.
   
@@ -15,9 +15,7 @@
    GNU Lesser General Public License for more details.
   
    You should have received a copy of the GNU Lesser General Public
-   License along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-   USA. 
+   License along with this program; if not, see <http://www.gnu.org/licenses/>.
 
    File: @configure_input@ */
 
@@ -323,8 +321,10 @@ static struct gcry_thread_cbs gcry_threads_pthread =			      \
 struct gcry_mpi;
 typedef struct gcry_mpi *gcry_mpi_t;
 
+#ifndef GCRYPT_NO_DEPRECATED
 typedef struct gcry_mpi *GCRY_MPI _GCRY_GCC_ATTR_DEPRECATED;
 typedef struct gcry_mpi *GcryMPI _GCRY_GCC_ATTR_DEPRECATED;
+#endif
 
 
 
@@ -401,8 +401,10 @@ gcry_error_t gcry_control (enum gcry_ctl_cmds CMD, ...);
 struct gcry_sexp;
 typedef struct gcry_sexp *gcry_sexp_t;
 
+#ifndef GCRYPT_NO_DEPRECATED
 typedef struct gcry_sexp *GCRY_SEXP _GCRY_GCC_ATTR_DEPRECATED;
 typedef struct gcry_sexp *GcrySexp _GCRY_GCC_ATTR_DEPRECATED;
+#endif
 
 /* The possible values for the S-expression format. */
 enum gcry_sexp_format
@@ -767,8 +769,10 @@ int gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 struct gcry_cipher_handle;
 typedef struct gcry_cipher_handle *gcry_cipher_hd_t;
 
+#ifndef GCRYPT_NO_DEPRECATED
 typedef struct gcry_cipher_handle *GCRY_CIPHER_HD _GCRY_GCC_ATTR_DEPRECATED;
 typedef struct gcry_cipher_handle *GcryCipherHd _GCRY_GCC_ATTR_DEPRECATED;
+#endif
 
 /* All symmetric encryption algorithms are identified by their IDs.
    More IDs may be registered at runtime. */
@@ -1070,8 +1074,10 @@ typedef struct gcry_md_handle
 } *gcry_md_hd_t;
 
 /* Compatibility types, do not use them.  */
+#ifndef GCRYPT_NO_DEPRECATED
 typedef struct gcry_md_handle *GCRY_MD_HD _GCRY_GCC_ATTR_DEPRECATED;
 typedef struct gcry_md_handle *GcryMDHd _GCRY_GCC_ATTR_DEPRECATED;
+#endif
 
 /* Create a message digest object for algorithm ALGO.  FLAGS may be
    given as an bitwise OR of the gcry_md_flags values.  ALGO may be
@@ -1183,6 +1189,7 @@ void gcry_md_debug (gcry_md_hd_t hd, const char *suffix);
 /* Enable debugging for digest object A; i.e. create files named
    dbgmd-<n>.<string> while hashing.  B is a string used as the suffix
    for the filename.  This macro is deprecated, use gcry_md_debug. */
+#ifndef GCRYPT_NO_DEPRECATED
 #define gcry_md_start_debug(a,b) \
             gcry_md_ctl( (a), GCRYCTL_START_DUMP, (b), 0 )
 
@@ -1190,6 +1197,7 @@ void gcry_md_debug (gcry_md_hd_t hd, const char *suffix);
    gcry_md_debug.  */
 #define gcry_md_stop_debug(a,b) \
             gcry_md_ctl( (a), GCRYCTL_STOP_DUMP, (b), 0 )
+#endif
 
 /* Get a list consisting of the IDs of the loaded message digest
    modules.  If LIST is zero, write the number of loaded message
@@ -1561,15 +1569,17 @@ gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
 /* Store the textual representation of the algorithm whose id is given
    in ALGORITHM in NAME.  This function is deprecated; use
    gcry_pk_algo_name. */
+#ifndef GCRYPT_NO_DEPRECATED
 gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm,
-                                 const char **name) _GCRY_GCC_ATTR_DEPRECATED;
+                                 const char **name) 
+     /* */                      _GCRY_GCC_ATTR_DEPRECATED;
 /* Store the numeric ID of the algorithm whose textual representation
    is contained in NAME in ALGORITHM.  This function is deprecated;
    use gcry_pk_map_name. */
 gcry_error_t gcry_ac_name_to_id (const char *name,
-                                 gcry_ac_id_t *algorithm
-                                 ) _GCRY_GCC_ATTR_DEPRECATED;;
-
+                                 gcry_ac_id_t *algorithm)
+     /* */                      _GCRY_GCC_ATTR_DEPRECATED;
+#endif
 
 
 /************************************

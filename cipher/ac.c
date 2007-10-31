@@ -1,5 +1,6 @@
 /* ac.c - Alternative interface for asymmetric cryptography.
-   Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006
+                 2007  Free Software Foundation, Inc.
  
    This file is part of Libgcrypt.
   
@@ -14,9 +15,8 @@
    GNU Lesser General Public License for more details.
   
    You should have received a copy of the GNU Lesser General Public
-   License along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-   02111-1307, USA.  */
+   License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <config.h>
 #include <errno.h>
@@ -144,16 +144,6 @@ _gcry_ac_data_new (gcry_ac_data_t *data)
   return err;
 }
 
-gcry_error_t
-gcry_ac_data_new (gcry_ac_data_t *data)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_new (data);
-
-  return gcry_error (err);
-}
-
 /* Destroys all the entries in DATA, but not DATA itself.  */
 static void
 ac_data_values_destroy (gcry_ac_data_t data)
@@ -178,12 +168,6 @@ _gcry_ac_data_destroy (gcry_ac_data_t data)
       gcry_free (data->data);
       gcry_free (data);
     }
-}
-
-void
-gcry_ac_data_destroy (gcry_ac_data_t data)
-{
-  return _gcry_ac_data_destroy (data);
 }
 
 /* This function creates a copy of the array of named MPIs DATA_MPIS,
@@ -280,12 +264,6 @@ _gcry_ac_data_copy (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
   return err;
 }
 
-gcry_error_t
-gcry_ac_data_copy (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
-{
-  return gcry_error (_gcry_ac_data_copy (data_cp, data));
-}
-
 /* Returns the number of named MPI values inside of the data set
    DATA.  */
 unsigned int
@@ -294,11 +272,6 @@ _gcry_ac_data_length (gcry_ac_data_t data)
   return data->data_n;
 }
 
-unsigned int
-gcry_ac_data_length (gcry_ac_data_t data)
-{
-  return _gcry_ac_data_length (data);
-}
 
 /* Add the value MPI to DATA with the label NAME.  If FLAGS contains
    GCRY_AC_FLAG_COPY, the data set will contain copies of NAME
@@ -385,13 +358,6 @@ _gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
   return err;
 }
 
-gcry_error_t
-gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
-		  const char *name, gcry_mpi_t mpi)
-{
-  return gcry_error (_gcry_ac_data_set (data, flags, name, mpi));
-}
-
 /* Stores the value labelled with NAME found in the data set DATA in
    MPI.  The returned MPI value will be released in case
    gcry_ac_data_set is used to associate the label NAME with a
@@ -437,13 +403,6 @@ _gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
  out:
 
   return err;
-}
-
-gcry_error_t
-gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
-		       const char *name, gcry_mpi_t *mpi)
-{
-  return gcry_error (_gcry_ac_data_get_name (data, flags, name, mpi));
 }
 
 /* Stores in NAME and MPI the named MPI value contained in the data
@@ -512,13 +471,6 @@ _gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
     }
 
   return err;
-}
-
-gcry_error_t
-gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
-			unsigned int idx, const char **name, gcry_mpi_t *mpi)
-{
-  return gcry_error (_gcry_ac_data_get_index (data, flags, idx, name, mpi));
 }
 
 /* Convert the data set DATA into a new S-Expression, which is to be
@@ -646,17 +598,6 @@ _gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
   gcry_free (arg_list);
 
   return err;
-}
-
-gcry_error_t
-gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
-		      const char **identifiers)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_to_sexp (data, sexp, identifiers);
-
-  return gcry_error (err);
 }
 
 /* Create a new data set, which is to be stored in DATA_SET, from the
@@ -839,16 +780,6 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
   return err;
 }
 
-gcry_error_t
-gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
-			const char **identifiers)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_from_sexp (data_set, sexp, identifiers);
-
-  return gcry_error (err);
-}
 
 static void
 _gcry_ac_data_dump (const char *prefix, gcry_ac_data_t data)
@@ -913,12 +844,6 @@ _gcry_ac_data_clear (gcry_ac_data_t data)
   data->data_n = 0;
 }
 
-void
-gcry_ac_data_clear (gcry_ac_data_t data)
-{
-  return _gcry_ac_data_clear (data);
-}
-
 
 
 /*
@@ -928,7 +853,7 @@ gcry_ac_data_clear (gcry_ac_data_t data)
 /* Initialize AC_IO according to MODE, TYPE and the variable list of
    arguments AP.  The list of variable arguments to specify depends on
    the given TYPE.  */
-static void
+void
 _gcry_ac_io_init_va (gcry_ac_io_t *ac_io,
 		     gcry_ac_io_mode_t mode, gcry_ac_io_type_t type, va_list ap)
 {
@@ -973,17 +898,10 @@ _gcry_ac_io_init_va (gcry_ac_io_t *ac_io,
     }
 }
 
-void
-gcry_ac_io_init_va (gcry_ac_io_t *ac_io,
-		    gcry_ac_io_mode_t mode, gcry_ac_io_type_t type, va_list ap)
-{
-  _gcry_ac_io_init_va (ac_io, mode, type, ap);
-}
-
 /* Initialize AC_IO according to MODE, TYPE and the variable list of
    arguments.  The list of variable arguments to specify depends on
    the given TYPE. */
-static void
+void
 _gcry_ac_io_init (gcry_ac_io_t *ac_io,
 		  gcry_ac_io_mode_t mode, gcry_ac_io_type_t type, ...)
 {
@@ -994,17 +912,6 @@ _gcry_ac_io_init (gcry_ac_io_t *ac_io,
   va_end (ap);
 }
 
-
-void
-gcry_ac_io_init (gcry_ac_io_t *ac_io,
-		 gcry_ac_io_mode_t mode, gcry_ac_io_type_t type, ...)
-{
-  va_list ap;
-
-  va_start (ap, type);
-  _gcry_ac_io_init_va (ac_io, mode, type, ap);
-  va_end (ap);
-}
 
 /* Write to the IO object AC_IO BUFFER_N bytes from BUFFER.  Return
    zero on success or error code.  */
@@ -1492,16 +1399,6 @@ _gcry_ac_open (gcry_ac_handle_t *handle,
   return err;
 }
 
-gcry_error_t
-gcry_ac_open (gcry_ac_handle_t *handle,
-	      gcry_ac_id_t algorithm, unsigned int flags)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_open (handle, algorithm, flags);
-
-  return gcry_error (err);
-}
 
 /* Destroys the handle HANDLE.  */
 void
@@ -1515,14 +1412,8 @@ _gcry_ac_close (gcry_ac_handle_t handle)
     }
 }
 
-void
-gcry_ac_close (gcry_ac_handle_t handle)
-{
-  _gcry_ac_close (handle);
-}
 
 
-
 /* 
  * Key management.
  */
@@ -1567,16 +1458,6 @@ _gcry_ac_key_init (gcry_ac_key_t *key, gcry_ac_handle_t handle,
   return err;
 }
 
-gcry_error_t
-gcry_ac_key_init (gcry_ac_key_t *key, gcry_ac_handle_t handle,
-		  gcry_ac_key_type_t type, gcry_ac_data_t data)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_key_init (key, handle, type, data);
-
-  return gcry_error (err);
-}
 
 /* Generates a new key pair via the handle HANDLE of NBITS bits and
    stores it in KEY_PAIR.  In case non-standard settings are wanted, a
@@ -1762,20 +1643,10 @@ _gcry_ac_key_pair_generate (gcry_ac_handle_t handle, unsigned int nbits,
   return err;
 }
 
-gcry_error_t
-gcry_ac_key_pair_generate (gcry_ac_handle_t handle, unsigned int nbits, void *key_spec,
-			   gcry_ac_key_pair_t *key_pair, gcry_mpi_t **misc_data)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_key_pair_generate (handle, nbits, key_spec, key_pair, misc_data);
-
-  return gcry_error (err);
-}
-
 /* Returns the key of type WHICH out of the key pair KEY_PAIR.  */
 gcry_ac_key_t
-_gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair, gcry_ac_key_type_t which)
+_gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair, 
+                           gcry_ac_key_type_t which)
 {
   gcry_ac_key_t key;
 
@@ -1793,16 +1664,6 @@ _gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair, gcry_ac_key_type_t which
       key = NULL;
       break;
     }
-
-  return key;
-}
-
-gcry_ac_key_t
-gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair, gcry_ac_key_type_t which)
-{
-  gcry_ac_key_t key;
-
-  key = _gcry_ac_key_pair_extract (key_pair, which);
 
   return key;
 }
@@ -1826,12 +1687,6 @@ _gcry_ac_key_destroy (gcry_ac_key_t key)
     }
 }
 
-void
-gcry_ac_key_destroy (gcry_ac_key_t key)
-{
-  _gcry_ac_key_destroy (key);
-}
-
 /* Destroys the key pair KEY_PAIR.  */
 void
 _gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
@@ -1844,27 +1699,11 @@ _gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
     }
 }
 
-void
-gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
-{
-  _gcry_ac_key_pair_destroy (key_pair);
-}
-
 /* Returns the data set contained in the key KEY.  */
 gcry_ac_data_t
 _gcry_ac_key_data_get (gcry_ac_key_t key)
 {
   return key->data;
-}
-
-gcry_ac_data_t
-gcry_ac_key_data_get (gcry_ac_key_t key)
-{
-  gcry_ac_data_t data;
-
-  data = _gcry_ac_key_data_get (key);
-
-  return data;
 }
 
 /* Verifies that the key KEY is sane via HANDLE.  */
@@ -1885,16 +1724,6 @@ _gcry_ac_key_test (gcry_ac_handle_t handle, gcry_ac_key_t key)
  out:
 
   gcry_sexp_release (key_sexp);
-
-  return gcry_error (err);
-}
-
-gcry_error_t
-gcry_ac_key_test (gcry_ac_handle_t handle, gcry_ac_key_t key)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_key_test (handle, key);
 
   return gcry_error (err);
 }
@@ -1931,17 +1760,6 @@ _gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
   return err;
 }
 
-gcry_error_t
-gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
-		       gcry_ac_key_t key, unsigned int *nbits)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_key_get_nbits (handle, key, nbits);
-
-  return gcry_error (err);
-}
-
 /* Writes the 20 byte long key grip of the key KEY to KEY_GRIP via
    HANDLE.  */
 gcry_error_t
@@ -1972,17 +1790,6 @@ _gcry_ac_key_get_grip (gcry_ac_handle_t handle,
   gcry_sexp_release (key_sexp);
 
   return err;
-}
-
-gcry_error_t
-gcry_ac_key_get_grip (gcry_ac_handle_t handle,
-		      gcry_ac_key_t key, unsigned char *key_grip)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_key_get_grip (handle, key, key_grip);
-
-  return gcry_error (err);
 }
 
 
@@ -2065,20 +1872,6 @@ _gcry_ac_data_encrypt (gcry_ac_handle_t handle,
   return err;
 }
 
-gcry_error_t
-gcry_ac_data_encrypt (gcry_ac_handle_t handle,
-		      unsigned int flags,
-		      gcry_ac_key_t key,
-		      gcry_mpi_t data_plain,
-		      gcry_ac_data_t *data_encrypted)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_encrypt (handle, flags, key, data_plain, data_encrypted);
-
-  return gcry_error (err);
-}
-
 /* Decrypts the encrypted data contained in the data set
    DATA_ENCRYPTED with the secret key KEY under the control of the
    flags FLAGS and stores the resulting plain text MPI value in
@@ -2154,20 +1947,6 @@ _gcry_ac_data_decrypt (gcry_ac_handle_t handle,
 
 }
 
-gcry_error_t
-gcry_ac_data_decrypt (gcry_ac_handle_t handle,
-		      unsigned int flags,
-		      gcry_ac_key_t key,
-		      gcry_mpi_t *data_plain,
-		      gcry_ac_data_t data_encrypted)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_decrypt (handle, flags, key, data_plain, data_encrypted);
-
-  return gcry_error (err);
-}
-
 /* Signs the data contained in DATA with the secret key KEY and stores
    the resulting signature data set in DATA_SIGNATURE.  */
 gcry_error_t
@@ -2237,19 +2016,6 @@ _gcry_ac_data_sign (gcry_ac_handle_t handle,
   return gcry_error (err);
 }
 
-gcry_error_t
-gcry_ac_data_sign (gcry_ac_handle_t handle,
-		   gcry_ac_key_t key,
-		   gcry_mpi_t data,
-		   gcry_ac_data_t *data_signature)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_sign (handle, key, data, data_signature);
-
-  return gcry_error (err);
-}
-
 
 /* Verifies that the signature contained in the data set
    DATA_SIGNATURE is indeed the result of signing the data contained
@@ -2314,22 +2080,9 @@ _gcry_ac_data_verify (gcry_ac_handle_t handle,
   return gcry_error (err);
 }
 
-gcry_error_t
-gcry_ac_data_verify (gcry_ac_handle_t handle,
-		     gcry_ac_key_t key,
-		     gcry_mpi_t data,
-		     gcry_ac_data_t data_signature)
-{
-  gcry_error_t err;
 
-  err = _gcry_ac_data_verify (handle, key, data, data_signature);
-
-  return gcry_error (err);
-}
 
 
-
-
 /*
  * Implementation of encoding methods (em).
  */
@@ -2766,34 +2519,6 @@ _gcry_ac_data_decode (gcry_ac_em_t method,
 			  ac_io_read, ac_io_write);
 }
 
-gcry_error_t
-gcry_ac_data_encode (gcry_ac_em_t method,
-		     unsigned int flags, void *options,
-		     gcry_ac_io_t *ac_io_read,
-		     gcry_ac_io_t *ac_io_write)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_encode (method, flags, options,
-			      ac_io_read, ac_io_write);
-
-  return gcry_error (err);
-}
-
-gcry_error_t
-gcry_ac_data_decode (gcry_ac_em_t method,
-		     unsigned int flags, void *options,
-		     gcry_ac_io_t *ac_io_read,
-		     gcry_ac_io_t *ac_io_write)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_decode (method, flags, options,
-			      ac_io_read, ac_io_write);
-  
-  return gcry_error (err);
-}
-
 /* Convert an MPI into an octet string.  */
 void
 _gcry_ac_mpi_to_os (gcry_mpi_t mpi, unsigned char *os, size_t os_n)
@@ -2834,13 +2559,6 @@ _gcry_ac_mpi_to_os (gcry_mpi_t mpi, unsigned char *os, size_t os_n)
   gcry_mpi_release (m);
 }
 
-/* Convert an MPI into an octet string (I2OSP). */
-void
-gcry_ac_mpi_to_os (gcry_mpi_t mpi, unsigned char *os, size_t os_n)
-{
-  _gcry_ac_mpi_to_os (mpi, os, os_n);
-}
-
 /* Convert an MPI into an newly allocated octet string.  */
 gcry_error_t
 _gcry_ac_mpi_to_os_alloc (gcry_mpi_t mpi, unsigned char **os, size_t *os_n)
@@ -2869,15 +2587,6 @@ _gcry_ac_mpi_to_os_alloc (gcry_mpi_t mpi, unsigned char **os, size_t *os_n)
   return err;
 }
 
-gcry_error_t
-gcry_ac_mpi_to_os_alloc (gcry_mpi_t mpi, unsigned char **os, size_t *os_n)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_mpi_to_os_alloc (mpi, os, os_n);
-
-  return gcry_error (err);
-}
 
 /* Convert an octet string into an MPI.  */
 void
@@ -2908,14 +2617,8 @@ _gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n)
   gcry_mpi_release (x);		/* FIXME: correct? */
 }
 
-void
-gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n)
-{
-  _gcry_ac_os_to_mpi (mpi, os, os_n);
-}
 
 
-
 /* 
  * Implementation of Encryption Schemes (ES) and Signature Schemes
  * with Appendix (SSA).
@@ -3173,22 +2876,6 @@ _gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
   return err;
 }
 
-gcry_error_t
-gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
-			     gcry_ac_scheme_t scheme_id,
-			     unsigned int flags, void *opts,
-			     gcry_ac_key_t key,
-			     gcry_ac_io_t *io_message,
-			     gcry_ac_io_t *io_cipher)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_encrypt_scheme (handle, scheme_id, flags, opts, key,
-				      io_message, io_cipher);
-
-  return gcry_error (err);
-}
-
 /* Decryptes the cipher message contained in C, which is of size C_N,
    with the secret key KEY_SECRET according to the Encryption Scheme
    SCHEME_ID.  Handle is used for accessing the low-level
@@ -3301,21 +2988,6 @@ _gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
   return err;
 }
 
-gcry_error_t
-gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
-			     gcry_ac_scheme_t scheme_id,
-			     unsigned int flags, void *opts,
-			     gcry_ac_key_t key,
-			     gcry_ac_io_t *io_cipher,
-			     gcry_ac_io_t *io_message)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_decrypt_scheme (handle, scheme_id, flags, opts, key,
-				      io_cipher, io_message);
-
-  return gcry_error (err);
-}  
 
 /* Signs the message contained in M, which is of size M_N, with the
    secret key KEY according to the Signature Scheme SCHEME_ID.  Handle
@@ -3405,23 +3077,6 @@ _gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
   gcry_free (em);
 
   return err;
-}
-
-gcry_error_t
-gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
-			  gcry_ac_scheme_t scheme_id,
-			  unsigned int flags,
-			  void *opts,
-			  gcry_ac_key_t key,
-			  gcry_ac_io_t *io_message,
-			  gcry_ac_io_t *io_signature)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_sign_scheme (handle, scheme_id, flags, opts, key,
-				   io_message, io_signature);
-
-  return gcry_error (err);
 }
 
 /* Verifies that the signature contained in S, which is of length S_N,
@@ -3536,73 +3191,10 @@ _gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
   return err;
 }
 
-gcry_error_t
-gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
-			    gcry_ac_scheme_t scheme_id,
-			    unsigned int flags, void *opts,
-			    gcry_ac_key_t key,
-			    gcry_ac_io_t *io_message,
-			    gcry_ac_io_t *io_signature)
-{
-  gcry_error_t err;
-
-  err = _gcry_ac_data_verify_scheme (handle, scheme_id, flags, opts, key,
-				     io_message, io_signature);
-
-  return gcry_error (err);
-}
-
-
 
 /* 
  * General functions.
  */
-
-/* Stores the textual representation of the algorithm whose id is
-   given in ALGORITHM in NAME.  */
-gcry_error_t
-gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
-{
-  gcry_error_t err;
-  const char *n;
-
-  n = gcry_pk_algo_name (algorithm);
-  if (! *n)
-    {
-      err = gcry_error (GPG_ERR_PUBKEY_ALGO);
-      goto out;
-    }
-
-  *name = n;
-  err = 0;
-
- out:
-
-  return gcry_error (err);
-}
-
-/* Stores the numeric ID of the algorithm whose textual representation
-   is contained in NAME in ALGORITHM.  */
-gcry_error_t
-gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
-{
-  gcry_error_t err;
-  int algo;
-
-  algo = gcry_pk_map_name (name);
-  if (! algo)
-    {
-      err = gcry_error (GPG_ERR_PUBKEY_ALGO);
-      goto out;
-    }
-
-  *algorithm = algo;
-  err = 0;
-
- out:
-
-  return gcry_error (err);
-}
 
 gcry_err_code_t
 _gcry_ac_init (void)

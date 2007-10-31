@@ -61,7 +61,7 @@ gcry_mpi_mul_ui( gcry_mpi_t prod, gcry_mpi_t mult, unsigned long small_mult )
 
 
 void
-_gcry_mpi_mul_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt)
+gcry_mpi_mul_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt)
 {
     mpi_size_t usize, wsize, limb_cnt;
     mpi_ptr_t wp;
@@ -103,13 +103,6 @@ _gcry_mpi_mul_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt)
 
     w->nlimbs = wsize;
     w->sign = wsign;
-}
-
-
-void
-gcry_mpi_mul_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt)
-{
-  _gcry_mpi_mul_2exp (w, u, cnt);
 }
 
 

@@ -1,3 +1,23 @@
+2007-10-31  Werner Koch  <wk@g10code.com>
+
+	* ac.c (gcry_ac_data_new): Remove due to the visibility wrapper.
+	(gcry_ac_data_destroy, gcry_ac_data_copy, gcry_ac_data_length) 
+	(gcry_ac_data_set, gcry_ac_data_get_name, gcry_ac_data_get_index) 
+	(gcry_ac_data_to_sexp, gcry_ac_data_from_sexp) 
+	(gcry_ac_data_clear, gcry_ac_io_init, gcry_ac_open) 
+	(gcry_ac_close, gcry_ac_key_init, gcry_ac_key_pair_generate) 
+	(gcry_ac_key_pair_extract, gcry_ac_key_destroy) 
+	(gcry_ac_key_pair_destroy, gcry_ac_key_data_get) 
+	(gcry_ac_key_test, gcry_ac_key_get_nbits, gcry_ac_key_get_grip) 
+	(gcry_ac_data_encrypt, gcry_ac_data_decrypt, gcry_ac_data_sign) 
+	(gcry_ac_data_verify, gcry_ac_data_encode, gcry_ac_data_decode) 
+	(gcry_ac_mpi_to_os, gcry_ac_mpi_to_os_alloc, gcry_ac_os_to_mpi) 
+	(gcry_ac_data_encrypt_scheme, gcry_ac_data_decrypt_scheme) 
+	(gcry_ac_data_sign_scheme, gcry_ac_data_verify_scheme) 
+	(gcry_ac_io_init_va): Ditto.
+	(gcry_ac_id_to_name, gcry_ac_name_to_id): Remove as these
+	deprecated functions are now implemented by visibility.c.
+
 2007-10-26  Werner Koch  <wk@g10code.com>
 
 	* rndw32.c: Disable debug flag.
@@ -3391,7 +3411,8 @@ Mon Feb 16 10:08:47 1998  Werner Koch  (wk@isil.d.shuttle.de)
 	(digest_algo_to_string): New.
 
 
- Copyright 1998,1999,2000,2001,2002,2003 Free Software Foundation, Inc.
+ Copyright 1998,1999,2000,2001,2002,2003,2004,2005,2006
+	   2007 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

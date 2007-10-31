@@ -271,7 +271,7 @@ of the library are verified.
 @section Header
 
 All interfaces (data types and functions) of the library are defined
-in the header file `gcrypt.h'.  You must include this in all source
+in the header file @file{gcrypt.h}.  You must include this in all source
 files using the library, either directly or through some other header
 file, like this:
 
@@ -286,6 +286,17 @@ internal use and should never be used by an application.  Note that
 Libgcrypt uses libgpg-error, which uses @code{gpg_*} as
 name space for function and type names and @code{GPG_*} for other
 symbols, including all the error codes.
+
+@noindent
+Certain parts of gcrypt.h may be excluded by defining these macros:
+
+@table @code
+@item GCRYPT_NO_MPI_MACROS
+Do not define the shorthand macros @code{mpi_*} for @code{gcry_mpi_*}.
+
+@item GCRYPT_NO_DEPRECATED
+Do not include defintions for deprecated features.
+@end table
 
 
 @node Building sources

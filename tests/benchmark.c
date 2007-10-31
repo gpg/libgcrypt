@@ -25,7 +25,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdarg.h>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <sys/times.h>
 #endif
 #include <gcrypt.h>
@@ -226,8 +228,13 @@ static const char sample_public_dsa_key_3072[] =
 
 
 /* Helper for the start and stop timer. */
+#ifdef _WIN32
+struct {
+  FILETIME creation_time, exit_time, kernel_time, user_time;
+} started_at, stopped_at;
+#else
 static clock_t started_at, stopped_at;
-
+#endif
 
 static void
 die (const char *format, ...)
@@ -263,7 +270,10 @@ static void
 start_timer (void)
 {
 #ifdef _WIN32
-  started_at = stopped_at = clock ();
+  GetProcessTimes (GetCurrentProcess (),
+                   &started_at.creation_time, &started_at.exit_time,
+                   &started_at.kernel_time, &started_at.user_time);
+  stopped_at = started_at;
 #else
   struct tms tmp;
 
@@ -276,7 +286,9 @@ static void
 stop_timer (void)
 {
 #ifdef _WIN32
-  stopped_at = clock ();
+  GetProcessTimes (GetCurrentProcess (),
+                   &stopped_at.creation_time, &stopped_at.exit_time,
+                   &stopped_at.kernel_time, &stopped_at.user_time);
 #else
   struct tms tmp;
 
@@ -289,9 +301,23 @@ static const char *
 elapsed_time (void)
 {
   static char buf[50];
+#if _WIN32
+  unsigned long long t1, t2, t;
 
-  sprintf (buf, "%5.0fms",
-           (((double) (stopped_at - started_at))/CLOCKS_PER_SEC)*10000000);
+  t1 = (((unsigned long long)started_at.kernel_time.dwHighDateTime << 32)
+        + started_at.kernel_time.dwLowDateTime);
+  t1 += (((unsigned long long)started_at.user_time.dwHighDateTime << 32)
+        + started_at.user_time.dwLowDateTime);
+  t2 = (((unsigned long long)stopped_at.kernel_time.dwHighDateTime << 32)
+        + stopped_at.kernel_time.dwLowDateTime);
+  t2 += (((unsigned long long)stopped_at.user_time.dwHighDateTime << 32)
+        + stopped_at.user_time.dwLowDateTime);
+  t = (t2 - t1)/10000;
+  snprintf (buf, sizeof buf, "%5lums", (unsigned long)t );
+#else
+  snprintf (buf, sizeof buf, "%5.0fms",
+            (((double) (stopped_at - started_at))/CLOCKS_PER_SEC)*10000000);
+#endif
   return buf;
 }
 
@@ -423,11 +449,11 @@ cipher_bench ( const char *algoname )
 
   if (!header_printed)
     {
-      printf ("%-10s", "");
+      printf ("%-12s", "");
       for (modeidx=0; modes[modeidx].mode; modeidx++)
         printf (" %-15s", modes[modeidx].name );
       putchar ('\n');
-      printf ("%-10s", "");
+      printf ("%-12s", "");
       for (modeidx=0; modes[modeidx].mode; modeidx++)
         printf (" ---------------" );
       putchar ('\n');
@@ -465,7 +491,7 @@ cipher_bench ( const char *algoname )
       exit (1);
     }
 
-  printf ("%-10s", gcry_cipher_algo_name (algo));
+  printf ("%-12s", gcry_cipher_algo_name (algo));
   fflush (stdout);
 
   for (modeidx=0; modes[modeidx].mode; modeidx++)
@@ -558,8 +584,8 @@ rsa_bench (int iterations, int print_header)
   int testno;
 
   if (print_header)
-    printf ("Algorithm       generate %4d*sign %4d*verify\n"
-            "----------------------------------------------\n",
+    printf ("Algorithm         generate %4d*sign %4d*verify\n"
+            "------------------------------------------------\n",
             iterations, iterations );
   for (testno=0; testno < DIM (p_sizes); testno++)
     {
@@ -569,7 +595,7 @@ rsa_bench (int iterations, int print_header)
       gcry_sexp_t sig = NULL;
       int count;
 
-      printf ("RSA %3d bit   ", p_sizes[testno]);
+      printf ("RSA %3d bit    ", p_sizes[testno]);
       fflush (stdout);
 
       err = gcry_sexp_build (&key_spec, NULL,
@@ -677,8 +703,8 @@ dsa_bench (int iterations, int print_header)
     }
 
   if (print_header)
-    printf ("Algorithm       generate %4d*sign %4d*verify\n"
-            "----------------------------------------------\n",
+    printf ("Algorithm         generate %4d*sign %4d*verify\n"
+            "------------------------------------------------\n",
             iterations, iterations );
   for (i=0; i < DIM (q_sizes); i++)
     {
@@ -695,7 +721,7 @@ dsa_bench (int iterations, int print_header)
           exit (1);
         }
 
-      printf ("DSA %d/%d           -", p_sizes[i], q_sizes[i]);
+      printf ("DSA %d/%d             -", p_sizes[i], q_sizes[i]);
       fflush (stdout);
 
       start_timer ();
@@ -752,8 +778,8 @@ ecc_bench (int iterations, int print_header)
   int testno;
 
   if (print_header)
-    printf ("Algorithm       generate %4d*sign %4d*verify\n"
-            "----------------------------------------------\n",
+    printf ("Algorithm         generate %4d*sign %4d*verify\n"
+            "------------------------------------------------\n",
             iterations, iterations );
   for (testno=0; testno < DIM (p_sizes); testno++)
     {
@@ -787,7 +813,7 @@ ecc_bench (int iterations, int print_header)
       gcry_sexp_release (key_spec);
 
       stop_timer ();
-      printf ("   %s", elapsed_time ());
+      printf ("     %s", elapsed_time ());
       fflush (stdout);
 
       x = gcry_mpi_new (p_sizes[testno]);
@@ -926,7 +952,8 @@ main( int argc, char **argv )
       putchar ('\n');
       cipher_bench (NULL);
       putchar ('\n');
-      dsa_bench (100, 1);
+      rsa_bench (100, 1);
+      dsa_bench (100, 0);
       ecc_bench (100, 0);
       putchar ('\n');
       mpi_bench ();

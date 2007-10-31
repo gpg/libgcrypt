@@ -14,8 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -29,8 +28,8 @@
  * That is: Find the solution x for
  *		1 = (a*x) mod n
  */
-void
-_gcry_mpi_invm( gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n )
+int
+gcry_mpi_invm( gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n )
 {
 #if 0
     gcry_mpi_t u, v, u1, u2, u3, v1, v2, v3, q, t1, t2, t3;
@@ -264,12 +263,5 @@ _gcry_mpi_invm( gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n )
     mpi_free(u);
     mpi_free(v);
 #endif
-}
-
-
-int
-gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
-{
-  _gcry_mpi_invm (x, a, n);
-  return 1;
+    return 1;
 }

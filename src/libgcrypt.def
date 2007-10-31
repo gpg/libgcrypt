@@ -19,7 +19,7 @@
 ;;
 
 ;; Note: This file should be updated manually and the ordinals shall
-;; never be changed.
+;; never be changed.  Also check libgcrypt.vers and visibility.h.
 
 
 EXPORTS

@@ -75,6 +75,11 @@ global_init (void)
   err = ath_init ();
   if (err)
     goto fail;
+
+  /* Before we do any other initialization we need to test available
+     hardware features.  */
+  _gcry_detect_hw_features ();
+
   err = _gcry_cipher_init ();
   if (err)
     goto fail;
@@ -201,6 +206,18 @@ gcry_check_version( const char *req_version )
 static void
 print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
 {
+  unsigned int hwf;
+  struct {
+    unsigned int flag;
+    const char *desc;
+  } hwflist[] = {
+    { HWF_PADLOCK_RNG, "padlock-rng" },
+    { HWF_PADLOCK_AES, "padlock-aes" },
+    { HWF_PADLOCK_SHA, "padlock-sha" },
+    { 0, NULL} 
+  };
+  int i;
+
   fnc (fp, "version:%s:\n", VERSION);
   fnc (fp, "ciphers:%s:\n", LIBGCRYPT_CIPHERS);
   fnc (fp, "pubkeys:%s:\n", LIBGCRYPT_PUBKEY_CIPHERS);
@@ -220,6 +237,12 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
 #endif
        "\n");
   fnc (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
+  hwf = _gcry_get_hw_features ();
+  fnc (fp, "hwflist:");
+  for (i=0; hwflist[i].desc; i++)
+  if ( (hwf & hwflist[i].flag) )
+    fnc (fp, "%s:", hwflist[i].desc);
+  fnc (fp, "\n");
 }
 
 
@@ -228,13 +251,11 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
 /* Command dispatcher function, acting as general control
    function.  */
 gcry_error_t
-gcry_control (enum gcry_ctl_cmds cmd, ...)
+_gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   static int init_finished = 0;
-  va_list arg_ptr;
+  gcry_err_code_t err = 0;
   
-  va_start (arg_ptr, cmd);
   switch (cmd)
     {
     case GCRYCTL_ENABLE_M_GUARD:
@@ -403,9 +424,25 @@ gcry_control (enum gcry_ctl_cmds cmd, ...)
       err = GPG_ERR_INV_OP;
     }
 
-  va_end(arg_ptr);
   return gcry_error (err);
 }
+
+
+/* Command dispatcher function, acting as general control
+   function.  */
+gcry_error_t
+gcry_control (enum gcry_ctl_cmds cmd, ...)
+{
+  gcry_error_t err;
+  va_list arg_ptr;
+  
+  va_start (arg_ptr, cmd);
+  err = _gcry_vcontrol (cmd, arg_ptr);
+  va_end(arg_ptr);
+  return err;
+}
+
+
 
 /* Return a pointer to a string containing a description of the error
    code in the error value ERR.  */
@@ -502,8 +539,8 @@ gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
     outofcore_handler_value = value;
 }
 
-gcry_err_code_t
-_gcry_malloc (size_t n, unsigned int flags, void **mem)
+static gcry_err_code_t
+do_malloc (size_t n, unsigned int flags, void **mem)
 {
   gcry_err_code_t err = 0;
   void *m;
@@ -542,7 +579,7 @@ gcry_malloc (size_t n)
 {
   void *mem = NULL;
 
-  _gcry_malloc (n, 0, &mem);
+  do_malloc (n, 0, &mem);
 
   return mem;
 }
@@ -552,7 +589,7 @@ gcry_malloc_secure (size_t n)
 {
   void *mem = NULL;
 
-  _gcry_malloc (n, GCRY_ALLOC_FLAG_SECURE, &mem);
+  do_malloc (n, GCRY_ALLOC_FLAG_SECURE, &mem);
 
   return mem;
 }

@@ -1,10 +1,6 @@
-/* g10lib.h -  internal defintions for libgcrypt
- * Copyright (C) 1998, 1999, 2000, 2001, 2002,
- *               2003, 2005 Free Software Foundation, Inc.
- *
- * This header is to be used inside of libgcrypt in place of gcrypt.h.
- * This way we can better distinguish between internal and external
- * usage of gcrypt.h
+/* g10lib.h - Internal definitions for libgcrypt
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2005
+ *               2007 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -19,9 +15,12 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
+
+/* This header is to be used inside of libgcrypt in place of gcrypt.h.
+   This way we can better distinguish between internal and external
+   usage of gcrypt.h. */
 
 #ifndef G10LIB_H
 #define G10LIB_H 1
@@ -35,8 +34,9 @@
 #endif
 
 #include <stdio.h>
+#include <stdarg.h>
 
-#include <gcrypt.h>
+#include "visibility.h"
 #include "types.h"
 
 
@@ -64,12 +64,13 @@
 
 
 
+/*-- src/global.c -*/
+gcry_error_t _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr);
 void  _gcry_check_heap (const void *a);
-
 int _gcry_get_debug_flag (unsigned int mask);
 
 
-/*-- gcrypt/misc.c --*/
+/*-- src/misc.c --*/
 
 #ifdef JNLIB_GCC_M_FUNCTION
 void _gcry_bug (const char *file, int line,
@@ -107,6 +108,15 @@ int _gcry_log_verbosity( int level );
 #define log_debug   _gcry_log_debug
 #define log_printf  _gcry_log_printf
 
+
+/*-- src/hwfeatures.c --*/
+#define HWF_PADLOCK_RNG  1
+#define HWF_PADLOCK_AES  2
+#define HWF_PADLOCK_SHA  4
+#define HWF_PADLOCK_MMUL 8
+
+unsigned int _gcry_get_hw_features (void);
+void _gcry_detect_hw_features (void);
 
 
 /*-- mpi/mpiutil.c --*/
@@ -245,13 +255,12 @@ void _gcry_pk_module_release (gcry_module_t module);
 gcry_err_code_t _gcry_pk_get_elements (int algo, char **enc, char **sig);
 
 /* Memory management.  */
-
-gcry_err_code_t _gcry_malloc (size_t n, unsigned int flags, void **mem);
-
 #define GCRY_ALLOC_FLAG_SECURE (1 << 0)
 
 
 /*-- sexp.c --*/
+gcry_error_t _gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff, 
+                                const char *format, va_list arg_ptr);
 char *_gcry_sexp_nth_string (const gcry_sexp_t list, int number);
 
 

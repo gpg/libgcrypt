@@ -1,5 +1,6 @@
 /* mpiutil.ac  -  Utility functions for MPI
- * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2000, 2001, 2002, 2003,
+ *               2007  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -14,8 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -242,7 +242,7 @@ gcry_mpi_get_opaque( gcry_mpi_t a, unsigned int *nbits )
  *	 but copy it transparently.
  */
 gcry_mpi_t
-_gcry_mpi_copy( gcry_mpi_t a )
+gcry_mpi_copy( gcry_mpi_t a )
 {
     int i;
     gcry_mpi_t b;
@@ -298,33 +298,39 @@ _gcry_mpi_alloc_like( gcry_mpi_t a )
 }
 
 
-void
-_gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u)
+gcry_mpi_t
+gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u)
 {
-    mpi_ptr_t wp, up;
-    mpi_size_t usize = u->nlimbs;
-    int usign = u->sign;
-
-    RESIZE_IF_NEEDED(w, usize);
-    wp = w->d;
-    up = u->d;
-    MPN_COPY( wp, up, usize );
-    w->nlimbs = usize;
-    w->flags = u->flags;
-    w->sign = usign;
+  mpi_ptr_t wp, up;
+  mpi_size_t usize = u->nlimbs;
+  int usign = u->sign;
+  
+  if (!w)
+    w = _gcry_mpi_alloc( mpi_get_nlimbs(u) );
+  RESIZE_IF_NEEDED(w, usize);
+  wp = w->d;
+  up = u->d;
+  MPN_COPY( wp, up, usize );
+  w->nlimbs = usize;
+  w->flags = u->flags;
+  w->sign = usign;
+  return w;
 }
 
 
-void
-_gcry_mpi_set_ui( gcry_mpi_t w, unsigned long u)
+gcry_mpi_t
+gcry_mpi_set_ui( gcry_mpi_t w, unsigned long u)
 {
-  /* FIXME: If U is 0 tehre is no ned to resize and thus possible
+  if (!w)
+    w = _gcry_mpi_alloc (1);
+  /* FIXME: If U is 0 we have no need to resize and thus possible
      allocating the the limbs. */
-    RESIZE_IF_NEEDED(w, 1);
-    w->d[0] = u;
-    w->nlimbs = u? 1:0;
-    w->sign = 0;
-    w->flags = 0;
+  RESIZE_IF_NEEDED(w, 1);
+  w->d[0] = u;
+  w->nlimbs = u? 1:0;
+  w->sign = 0;
+  w->flags = 0;
+  return w;
 }
 
 gcry_err_code_t
@@ -366,49 +372,28 @@ _gcry_mpi_alloc_set_ui( unsigned long u)
     return w;
 }
 
-
 void
-_gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b)
+gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b)
 {
     struct gcry_mpi tmp;
 
     tmp = *a; *a = *b; *b = tmp;
 }
 
-void
-gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b)
-{
-  _gcry_mpi_swap (a, b);
-}
 
-
-/* Internal version of mpi_new. */
-gcry_mpi_t
-_gcry_mpi_new( unsigned int nbits )
-{
-  return _gcry_mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
-}
-
-/* External version of mpi_new. */
 gcry_mpi_t
 gcry_mpi_new( unsigned int nbits )
 {
-    return _gcry_mpi_alloc( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
+    return _gcry_mpi_alloc ( (nbits+BITS_PER_MPI_LIMB-1)
+                             / BITS_PER_MPI_LIMB );
 }
 
 
-/* Internal version of mpi_snew. */
-gcry_mpi_t
-_gcry_mpi_snew( unsigned int nbits )
-{
-    return _gcry_mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
-}
-
-/* External version of mpi_snew. */
 gcry_mpi_t
 gcry_mpi_snew( unsigned int nbits )
 {
-    return _gcry_mpi_alloc_secure( (nbits+BITS_PER_MPI_LIMB-1) / BITS_PER_MPI_LIMB );
+  return _gcry_mpi_alloc_secure ( (nbits+BITS_PER_MPI_LIMB-1)
+                                  / BITS_PER_MPI_LIMB );
 }
 
 void
@@ -416,31 +401,6 @@ gcry_mpi_release( gcry_mpi_t a )
 {
     _gcry_mpi_free( a );
 }
-
-gcry_mpi_t
-gcry_mpi_copy( const gcry_mpi_t a )
-{
-    return _gcry_mpi_copy( (gcry_mpi_t)a );
-}
-
-gcry_mpi_t
-gcry_mpi_set( gcry_mpi_t w, const gcry_mpi_t u )
-{
-    if( !w )
-	w = _gcry_mpi_alloc( mpi_get_nlimbs(u) );
-    _gcry_mpi_set( w, (gcry_mpi_t)u );
-    return w;
-}
-
-gcry_mpi_t
-gcry_mpi_set_ui( gcry_mpi_t w, unsigned long u )
-{
-    if( !w )
-	w = _gcry_mpi_alloc(1);
-    _gcry_mpi_set_ui( w, u );
-    return w;
-}
-
 
 void
 gcry_mpi_randomize( gcry_mpi_t w,

@@ -51,14 +51,6 @@ _gcry_mpi_mod (gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor)
   rem->sign = 0;
 }
 
-void
-gcry_mpi_mod (gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor)
-{
-  _gcry_mpi_fdiv_r (rem, dividend, divisor);
-  rem->sign = 0;
-}
-
-
 
 /* This function returns a new context for Barrett based operations on
    the modulus M.  This context needs to be released using
