@@ -46,10 +46,11 @@ section entitled ``Copying''.
 @insertcopying
 @end titlepage
 
-
+@ifnothtml
 @summarycontents
 @contents
 @page
+@end ifnothtml
 
 
 @ifnottex
@@ -162,6 +163,11 @@ Utilities
 
 @end menu
 
+@ifhtml
+@page
+@summarycontents
+@contents
+@end ifhtml
 
 
 @c **********************************************************

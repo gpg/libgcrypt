@@ -1,3 +1,10 @@
+2007-02-04  Werner Koch  <wk@g10code.com>
+
+	* md.c (md_copy): Use cast for the string in md_start_debug.
+
+	* ac.c (gcry_ac_data_copy_internal): Take care of strict aliasing
+	when calling _gcry_malloc. 
+
 2007-02-01  Werner Koch  <wk@g10code.com>
 
 	* serpent.c: Add some missing struct element inits.  Also for all

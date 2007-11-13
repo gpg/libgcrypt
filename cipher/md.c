@@ -131,7 +131,7 @@ static byte *md_read( gcry_md_hd_t a, int algo );
 static int md_get_algo( gcry_md_hd_t a );
 static int md_digest_length( int algo );
 static const byte *md_asn_oid( int algo, size_t *asnlen, size_t *mdlen );
-static void md_start_debug( gcry_md_hd_t a, char *suffix );
+static void md_start_debug ( gcry_md_hd_t a, char *suffix );
 static void md_stop_debug( gcry_md_hd_t a );
 
 
@@ -623,8 +623,11 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 	ath_mutex_unlock (&digests_registered_lock);
        }
 
+  /* (The cast is required to silent the gcc warning. md_start-debug
+     should actually take a const string but that may conflict wity
+     gcry_md_ctl.)  */
   if (a->debug)
-    md_start_debug (bhd, "unknown");
+    md_start_debug (bhd, (char*)"unknown");
 
   if (! err)
     *b_hd = bhd;
@@ -1113,7 +1116,7 @@ gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 
 
 static void
-md_start_debug( gcry_md_hd_t md, char *suffix )
+md_start_debug ( gcry_md_hd_t md, char *suffix )
 {
   static int idx=0;
   char buf[50];

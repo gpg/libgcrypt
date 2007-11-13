@@ -19,7 +19,7 @@ AC_DEFUN([gl_TYPE_SOCKLEN_T],
   [AC_REQUIRE([gl_HEADER_SYS_SOCKET])dnl
    AC_CHECK_TYPE([socklen_t], ,
      [AC_MSG_CHECKING([for socklen_t equivalent])
-      AC_CACHE_VAL([gl_cv_gl_cv_socklen_t_equiv],
+      AC_CACHE_VAL([gl_cv_socklen_t_equiv],
 	[# Systems have either "struct sockaddr *" or
 	 # "void *" as the second argument to getpeername
 	 gl_cv_socklen_t_equiv=

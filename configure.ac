@@ -39,6 +39,8 @@ AC_INIT([libgcrypt], my_version[]m4_if(my_issvn,[yes],[-svn[]svn_revision]),
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
+# WARNING: This is the stable branch: Never change any interface; thus
+#          only bump up revision.
 LIBGCRYPT_LT_CURRENT=13
 LIBGCRYPT_LT_AGE=2
 LIBGCRYPT_LT_REVISION=3
@@ -479,12 +481,21 @@ GNUPG_CHECK_TYPEDEF(ulong, HAVE_ULONG_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u16, HAVE_U16_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(u32, HAVE_U32_TYPEDEF)
 
+
 gl_TYPE_SOCKLEN_T
-if test ".$gl_cv_socklen_t_equiv" = "."; then
-  FALLBACK_SOCKLEN_T="typedef socklen_t gcry_socklen_t;"
-else
-  FALLBACK_SOCKLEN_T="typedef ${gl_cv_socklen_t_equiv} gcry_socklen_t;"
-fi
+case "${host}" in
+  *-*-mingw32*)
+    # socklen_t may or may not be defined depending on what headers
+    # are included.  To be safe we use int as this is the actual type.
+    FALLBACK_SOCKLEN_T="typedef int gcry_socklen_t;"
+    ;;
+  *)
+    if test ".$gl_cv_socklen_t_equiv" = "."; then
+      FALLBACK_SOCKLEN_T="typedef socklen_t gcry_socklen_t;"
+    else
+      FALLBACK_SOCKLEN_T="typedef ${gl_cv_socklen_t_equiv} gcry_socklen_t;"
+    fi
+esac
 AC_SUBST(FALLBACK_SOCKLEN_T)
 
 
@@ -635,8 +646,8 @@ if test "$GCC" = yes; then
        test "$more_gcc_warnings" = "yes"; then
         CFLAGS="$CFLAGS -Wall -Wcast-align -Wshadow -Wstrict-prototypes"
         if test "$more_gcc_warnings" = "yes"; then
-            CFLAGS="$CFLAGS -W -Wpointer-arith -Wbad-function-cast"
-            CFLAGS="$CFLAGS -Wwrite-strings -Wunreachable-code"
+            CFLAGS="$CFLAGS -Wpointer-arith -Wbad-function-cast"
+            CFLAGS="$CFLAGS -Wwrite-strings"
             CFLAGS="$CFLAGS -Wno-sign-compare"
         fi
     else
