@@ -83,7 +83,7 @@ extern "C" {
 #define _GCRY_GCC_ATTR_PURE  __attribute__ ((__pure__))
 #endif
 
-#if _GCRY_GCC_VERSION >= 300200
+#if _GCRY_GCC_VERSION >= 30200
 #define _GCRY_GCC_ATTR_MALLOC  __attribute__ ((__malloc__))
 #endif
 
