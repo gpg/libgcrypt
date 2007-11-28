@@ -1,3 +1,9 @@
+2007-11-28  Werner Koch  <wk@g10code.com>
+
+	* sha256.c (asn224): Fixed wrong template.  It happened due to a
+	bug in RFC4880.  SHA-224 is not in the stable version of libgcrypt
+	so the consequences are limited to users of this devel version.
+
 2007-10-31  Werner Koch  <wk@g10code.com>
 
 	* ac.c (gcry_ac_data_new): Remove due to the visibility wrapper.
