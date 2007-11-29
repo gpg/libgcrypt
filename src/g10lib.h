@@ -110,6 +110,7 @@ int _gcry_log_verbosity( int level );
 
 
 /*-- src/hwfeatures.c --*/
+/* (Do not change these values unless synced with the asm code.)  */
 #define HWF_PADLOCK_RNG  1
 #define HWF_PADLOCK_AES  2
 #define HWF_PADLOCK_SHA  4

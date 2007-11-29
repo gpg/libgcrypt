@@ -14,8 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  *******************************************************************
  * The code here is based on the optimized implementation taken from
  * http://www.esat.kuleuven.ac.be/~rijmen/rijndael/ on Oct 2, 2000,
@@ -46,13 +45,26 @@
 #define MAXROUNDS		14
 
 
+/* USE_PADLOCK indicates whether to compile the padlock specific
+   code.  */
+#undef USE_PADLOCK
+#if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
+#define USE_PADLOCK
+#endif
+
+
 static const char *selftest(void);
 
 typedef struct 
 {
-  int   ROUNDS;                   /* key-length-dependent number of rounds */
-  int decryption_prepared;
-  union 
+  int   ROUNDS;             /* Key-length-dependent number of rounds.  */
+  int decryption_prepared;  /* The decryption key schedule is available.  */
+#ifdef USE_PADLOCK
+  int use_padlock;          /* Padlock shall be used.  */
+  /* The key as passed to the padlock engine.  */
+  unsigned char padlock_key[16] __attribute__ ((aligned (16)));
+#endif
+  union
   {
     PROPERLY_ALIGNED_TYPE dummy;
     byte keyschedule[MAXROUNDS+1][4][4];
@@ -69,26 +81,26 @@ typedef struct
 
 
 static const byte S[256] = {
-    99, 124, 119, 123, 242, 107, 111, 197,
-    48,   1, 103,  43, 254, 215, 171, 118, 
+     99, 124, 119, 123, 242, 107, 111, 197,
+     48,   1, 103,  43, 254, 215, 171, 118, 
     202, 130, 201, 125, 250,  89,  71, 240,
     173, 212, 162, 175, 156, 164, 114, 192, 
     183, 253, 147,  38,  54,  63, 247, 204,
-    52, 165, 229, 241, 113, 216,  49,  21, 
-    4, 199,  35, 195,  24, 150,   5, 154,
-    7,  18, 128, 226, 235,  39, 178, 117, 
-    9, 131,  44,  26,  27, 110,  90, 160, 
-    82,  59, 214, 179,  41, 227,  47, 132, 
-    83, 209,   0, 237,  32, 252, 177,  91,
+     52, 165, 229, 241, 113, 216,  49,  21, 
+      4, 199,  35, 195,  24, 150,   5, 154,
+      7,  18, 128, 226, 235,  39, 178, 117, 
+      9, 131,  44,  26,  27, 110,  90, 160, 
+     82,  59, 214, 179,  41, 227,  47, 132, 
+     83, 209,   0, 237,  32, 252, 177,  91,
     106, 203, 190,  57,  74,  76,  88, 207, 
     208, 239, 170, 251,  67,  77,  51, 133,
-    69, 249,   2, 127,  80,  60, 159, 168, 
-    81, 163,  64, 143, 146, 157,  56, 245,
+     69, 249,   2, 127,  80,  60, 159, 168, 
+     81, 163,  64, 143, 146, 157,  56, 245,
     188, 182, 218,  33,  16, 255, 243, 210, 
     205,  12,  19, 236,  95, 151,  68,  23,
     196, 167, 126,  61, 100,  93,  25, 115, 
-    96, 129,  79, 220,  34,  42, 144, 136,
-    70, 238, 184,  20, 222,  94,  11, 219, 
+     96, 129,  79, 220,  34,  42, 144, 136,
+     70, 238, 184,  20, 222,  94,  11, 219, 
     224,  50,  58,  10,  73,   6,  36,  92,
     194, 211, 172,  98, 145, 149, 228, 121, 
     231, 200,  55, 109, 141, 213,  78, 169, 
@@ -96,11 +108,11 @@ static const byte S[256] = {
     186, 120,  37,  46,  28, 166, 180, 198, 
     232, 221, 116,  31,  75, 189, 139, 138, 
     112,  62, 181, 102,  72,   3, 246,  14,
-    97,  53,  87, 185, 134, 193,  29, 158, 
+     97,  53,  87, 185, 134, 193,  29, 158, 
     225, 248, 152,  17, 105, 217, 142, 148,
     155,  30, 135, 233, 206,  85,  40, 223, 
     140, 161, 137,  13, 191, 230,  66, 104, 
-    65, 153,  45,  15, 176,  84, 187,  22
+     65, 153,  45,  15, 176,  84, 187,  22
 };
 
 
@@ -1743,10 +1755,22 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   if( selftest_failed )
     return GPG_ERR_SELFTEST_FAILED;
 
+  ctx->decryption_prepared = 0;
+#ifdef USE_PADLOCK
+  ctx->use_padlock = 0;
+#endif
+
   if( keylen == 128/8 )
     {
       ROUNDS = 10;
       KC = 4;
+#ifdef USE_PADLOCK
+      if ((_gcry_get_hw_features () & HWF_PADLOCK_AES))
+        {
+          ctx->use_padlock = 1;
+          memcpy (ctx->padlock_key, key, keylen);
+        }
+#endif
     }
   else if ( keylen == 192/8 )
     {
@@ -1762,68 +1786,29 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     return GPG_ERR_INV_KEYLEN;
 
   ctx->ROUNDS = ROUNDS;
-  ctx->decryption_prepared = 0;
 
-  for (i = 0; i < keylen; i++) 
+#ifdef USE_PADLOCK
+  if (ctx->use_padlock)
     {
-      k[i >> 2][i & 3] = key[i]; 
+      /* Nothing to do as we support only hardware key generation for
+         now.  */
     }
+  else
+#endif /*USE_PADLOCK*/
+    {
 #define W (ctx->keySched)
-
-  for (j = KC-1; j >= 0; j--) 
-    {
-      *((u32*)tk[j]) = *((u32*)k[j]);
-    }
-  r = 0;
-  t = 0;
-  /* copy values into round key array */
-  for (j = 0; (j < KC) && (r < ROUNDS + 1); )
-    {
-      for (; (j < KC) && (t < 4); j++, t++)
+      for (i = 0; i < keylen; i++) 
         {
-          *((u32*)W[r][t]) = *((u32*)tk[j]);
+          k[i >> 2][i & 3] = key[i]; 
         }
-      if (t == 4)
+      
+      for (j = KC-1; j >= 0; j--) 
         {
-          r++;
-          t = 0;
+          *((u32*)tk[j]) = *((u32*)k[j]);
         }
-    }
-		
-  while (r < ROUNDS + 1)
-    {
-      /* While not enough round key material calculated */
-      /* calculate new values. */
-      tk[0][0] ^= S[tk[KC-1][1]];
-      tk[0][1] ^= S[tk[KC-1][2]];
-      tk[0][2] ^= S[tk[KC-1][3]];
-      tk[0][3] ^= S[tk[KC-1][0]];
-      tk[0][0] ^= rcon[rconpointer++];
-        
-      if (KC != 8)
-        {
-          for (j = 1; j < KC; j++) 
-            {
-              *((u32*)tk[j]) ^= *((u32*)tk[j-1]);
-            }
-        } 
-      else 
-        {
-          for (j = 1; j < KC/2; j++)
-            {
-              *((u32*)tk[j]) ^= *((u32*)tk[j-1]);
-            }
-          tk[KC/2][0] ^= S[tk[KC/2 - 1][0]];
-          tk[KC/2][1] ^= S[tk[KC/2 - 1][1]];
-          tk[KC/2][2] ^= S[tk[KC/2 - 1][2]];
-          tk[KC/2][3] ^= S[tk[KC/2 - 1][3]];
-          for (j = KC/2 + 1; j < KC; j++)
-            {
-              *((u32*)tk[j]) ^= *((u32*)tk[j-1]);
-            }
-        }
-
-      /* Copy values into round key array. */
+      r = 0;
+      t = 0;
+      /* Copy values into round key array.  */
       for (j = 0; (j < KC) && (r < ROUNDS + 1); )
         {
           for (; (j < KC) && (t < 4); j++, t++)
@@ -1836,11 +1821,60 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
               t = 0;
             }
         }
-    }		
-    
+      
+      while (r < ROUNDS + 1)
+        {
+          /* While not enough round key material calculated calculate
+             new values.  */
+          tk[0][0] ^= S[tk[KC-1][1]];
+          tk[0][1] ^= S[tk[KC-1][2]];
+          tk[0][2] ^= S[tk[KC-1][3]];
+          tk[0][3] ^= S[tk[KC-1][0]];
+          tk[0][0] ^= rcon[rconpointer++];
+          
+          if (KC != 8)
+            {
+              for (j = 1; j < KC; j++) 
+                {
+                  *((u32*)tk[j]) ^= *((u32*)tk[j-1]);
+                }
+            } 
+          else 
+            {
+              for (j = 1; j < KC/2; j++)
+                {
+                  *((u32*)tk[j]) ^= *((u32*)tk[j-1]);
+                }
+              tk[KC/2][0] ^= S[tk[KC/2 - 1][0]];
+              tk[KC/2][1] ^= S[tk[KC/2 - 1][1]];
+              tk[KC/2][2] ^= S[tk[KC/2 - 1][2]];
+              tk[KC/2][3] ^= S[tk[KC/2 - 1][3]];
+              for (j = KC/2 + 1; j < KC; j++)
+                {
+                  *((u32*)tk[j]) ^= *((u32*)tk[j-1]);
+                }
+            }
+          
+          /* Copy values into round key array.  */
+          for (j = 0; (j < KC) && (r < ROUNDS + 1); )
+            {
+              for (; (j < KC) && (t < 4); j++, t++)
+                {
+                  *((u32*)W[r][t]) = *((u32*)tk[j]);
+                }
+              if (t == 4)
+                {
+                  r++;
+                  t = 0;
+                }
+            }
+        }		
 #undef W    
+    }
+
   return 0;
 }
+
 
 static gcry_err_code_t
 rijndael_setkey (void *context, const byte *key, const unsigned keylen)
@@ -1998,13 +2032,70 @@ do_encrypt (const RIJNDAEL_context *ctx, byte *bx, const byte *ax)
 #undef rk
 }
 
+
+/* Encrypt or decrypt one block using the padlock engine.  A and B may
+   be the same. */
+#ifdef USE_PADLOCK
+static void
+do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
+            unsigned char *bx, const unsigned char *ax)
+{
+  /* BX and AX are not necessary correctly aligned.  Thus we need to
+     copy them here. */
+  unsigned char a[16] __attribute__ ((aligned (16)));
+  unsigned char b[16] __attribute__ ((aligned (16)));
+  unsigned int cword[4] __attribute__ ((aligned (16)));
+
+  /* The control word fields are:
+      127:12   11:10 9     8     7     6     5     4     3:0
+      RESERVED KSIZE CRYPT INTER KEYGN CIPHR ALIGN DGEST ROUND  */
+  cword[0] = (ctx->ROUNDS & 15);  /* (The mask is just a safeguard.)  */
+  cword[1] = 0;
+  cword[2] = 0;
+  cword[3] = 0;
+  if (decrypt_flag)
+    cword[0] |= 0x00000200;
+
+  memcpy (a, ax, 16);
+   
+  asm volatile 
+    ("pushfl\n\t"          /* Force key reload.  */            
+     "popfl\n\t"
+     "pushl %%ebx\n\t"     /* Save GOT register.  */
+     "movl %0, %%esi\n\t"  /* Load input.  */
+     "movl %1, %%edi\n\t"  /* Load output.  */
+     "movl %2, %%edx\n\t"  /* Load control world.  */
+     "movl %3, %%ebx\n\t"  /* Load key.  */
+     "movl $1, %%ecx\n\t"  /* Init counter for just one block.  */
+     ".byte 0xf3, 0x0f, 0xa7, 0xc8\n\t" /* REP XSTORE ECB. */
+     "popl %%ebx\n"         /* Restore GOT register.  */
+     : /* No output */
+     : "g" (a), "g" (b), "g" (cword), "g" (ctx->padlock_key)
+     : "%esi", "%edi", "%edx", "%ecx"
+     );
+
+  memcpy (bx, b, 16);
+}
+#endif /*USE_PADLOCK*/
+
+
 static void
 rijndael_encrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
 
-  do_encrypt (ctx, b, a);
-  _gcry_burn_stack (48 + 2*sizeof(int));
+#ifdef USE_PADLOCK
+  if (ctx->use_padlock)
+    {
+      do_padlock (ctx, 0, b, a);
+      _gcry_burn_stack (48 + 15 /* possible padding for alignment */);
+    }
+  else
+#endif /*USE_PADLOCK*/
+    {
+      do_encrypt (ctx, b, a);
+      _gcry_burn_stack (48 + 2*sizeof(int));
+    }
 }
 
 
@@ -2124,9 +2215,20 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
 
-  do_decrypt (ctx, b, a);
-  _gcry_burn_stack (48+2*sizeof(int));
+#ifdef USE_PADLOCK
+  if (ctx->use_padlock)
+    {
+      do_padlock (ctx, 1, b, a);
+      _gcry_burn_stack (48 + 2*sizeof(int) /* FIXME */);
+    }
+  else
+#endif /*USE_PADLOCK*/
+    {
+      do_decrypt (ctx, b, a);
+      _gcry_burn_stack (48+2*sizeof(int));
+    }
 }
+
 
 
 /* Test a single encryption and decryption with each key size. */

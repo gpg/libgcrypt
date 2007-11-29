@@ -1,3 +1,7 @@
+2007-11-29  Werner Koch  <wk@g10code.com>
+
+	* hwfeatures.c (detect_ia32_gnuc): Detect Padlock engine.
+
 2007-11-13  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (_GCRY_GCC_ATTR_MALLOC): Fixed gcc version check.

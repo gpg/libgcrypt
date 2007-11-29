@@ -1,6 +1,6 @@
 /* cipher.c  -	cipher dispatcher
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
- *               2005, Free Software Foundation, Inc.
+ *               2005, 2007 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -15,8 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -33,6 +32,11 @@
 #define TABLE_SIZE 14
 #define CTX_MAGIC_NORMAL 0x24091964
 #define CTX_MAGIC_SECURE 0x46919042
+
+#undef NEED_16BYTE_ALIGNED_CONTEXT
+#if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
+#define NEED_16BYTE_ALIGNED_CONTEXT 1
+#endif
 
 /* This is the list of the default ciphers, which are included in
    libgcrypt.  */
@@ -107,11 +111,30 @@ static int default_ciphers_registered;
     }                                              \
   while (0)
 
+
+/* A VIA processor with the Padlock engine requires an alignment of
+   most data on a 16 byte boundary.  Because we trick out the compiler
+   while allocating the context, the align attribute as used in
+   rijndael.c does not work on its own.  Thus we need to make sure
+   that the entire context structure is a aligned on that boundary.
+   We achieve this by defining a new type and use that instead of our
+   usual alignment type.  */
+typedef union 
+{
+  PROPERLY_ALIGNED_TYPE foo;
+#ifdef NEED_16BYTE_ALIGNED_CONTEXT
+  char bar[16] __attribute__ ((aligned (16)));
+#endif  
+  char c[1];
+} cipher_context_alignment_t;
+
+
 /* The handle structure.  */
 struct gcry_cipher_handle
 {
   int magic;
   size_t actual_handle_size;     /* Allocated size of this handle. */
+  size_t handle_offset;          /* Offset to the malloced block.  */
   gcry_cipher_spec_t *cipher;
   gcry_module_t module;
   int mode;
@@ -120,7 +143,12 @@ struct gcry_cipher_handle
   unsigned char lastiv[MAX_BLOCKSIZE];
   int unused;  /* in IV */
   unsigned char ctr[MAX_BLOCKSIZE];     /* For Counter (CTR) mode. */
-  PROPERLY_ALIGNED_TYPE context;
+  /* What follows are two contexts of the cipher in use.  The first
+     one needs to be aligned well enough for the cipher operation
+     whereas the second one is a copy created by cipher_setkey and
+     used by cipher_reset.  That second copy has no need for proper
+     aligment because it is only accessed by memcpy.  */
+  cipher_context_alignment_t context;
 };
 
 
@@ -635,14 +663,21 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 	err = GPG_ERR_INV_CIPHER_MODE;
       }
 
-  /* ? FIXME: perform selftest here and mark this with a flag in
-     cipher_table ? */
+  /* Perform selftest here and mark this with a flag in cipher_table?
+     No, we should not do this as it takes too long.  Further it does
+     not make sense to exclude algorithms with failing selftests at
+     runtime: If a selftest fails there is something seriously wrong
+     with the system and thus we better die immediately. */
 
   if (! err)
     {
       size_t size = (sizeof (*h)
                      + 2 * cipher->contextsize
-                     - sizeof (PROPERLY_ALIGNED_TYPE));
+                     - sizeof (cipher_context_alignment_t)
+#ifdef NEED_16BYTE_ALIGNED_CONTEXT
+                     + 15  /* Space for leading alignment gap.  */
+#endif /*NEED_16BYTE_ALIGNED_CONTEXT*/
+                     );
 
       if (secure)
 	h = gcry_calloc_secure (1, size);
@@ -653,8 +688,21 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 	err = gpg_err_code_from_errno (errno);
       else
 	{
+          size_t off = 0;
+
+#ifdef NEED_16BYTE_ALIGNED_CONTEXT
+          if ( ((unsigned long)h & 0x0f) )
+            {
+              /* The malloced block is not aligned on a 16 byte
+                 boundary.  Correct for this.  */
+              off = 16 - ((unsigned long)h & 0x0f);
+              h = (void*)((char*)h + off);
+            }
+#endif /*NEED_16BYTE_ALIGNED_CONTEXT*/
+
 	  h->magic = secure ? CTX_MAGIC_SECURE : CTX_MAGIC_NORMAL;
-          h->actual_handle_size = size;
+          h->actual_handle_size = size - off;
+          h->handle_offset = off;
 	  h->cipher = cipher;
 	  h->module = module;
 	  h->mode = mode;
@@ -686,6 +734,8 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 void
 gcry_cipher_close (gcry_cipher_hd_t h)
 {
+  size_t off;
+
   if (! h)
     return;
 
@@ -707,9 +757,10 @@ gcry_cipher_close (gcry_cipher_hd_t h)
      do the wiping.  To accomplish this we need to keep track of the
      actual size of this structure because we have no way to known
      how large the allocated area was when using a standard malloc. */
+  off = h->handle_offset;
   wipememory (h, h->actual_handle_size);
 
-  gcry_free (h);
+  gcry_free ((char*)h - off);
 }
 
 
@@ -749,7 +800,7 @@ cipher_setiv( gcry_cipher_hd_t c, const byte *iv, unsigned ivlen )
 }
 
 
-/* Reset the cipher context to the initial contex.  This is basically
+/* Reset the cipher context to the initial context.  This is basically
    the same as an release followed by a new. */
 static void
 cipher_reset (gcry_cipher_hd_t c)

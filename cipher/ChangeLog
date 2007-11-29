@@ -1,3 +1,20 @@
+2007-11-29  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (USE_PADLOCK): Define new macro used for ia32.
+	(RIJNDAEL_context) [USE_PADLOCK]: Add fields USE_PADLOCK and
+	PADLOCK_KEY.
+	(do_setkey) [USE_PADLOCK]: Enable padlock if available for 128 bit
+	AES.
+	(do_padlock) [USE_PADLOCK]: New.
+	(rijndael_encrypt, rijndael_decrypt) [USE_PADLOCK]: Divert to
+	do_padlock.
+	* cipher.c (cipher_context_alignment_t): New.  Use it in this
+	module in place of PROPERLY_ALIGNED_TYPE.
+	(NEED_16BYTE_ALIGNED_CONTEXT): Define macro for ia32.
+	(struct gcry_cipher_handle): Add field HANDLE_OFFSET.
+	(gcry_cipher_open): Take care of increased alignment requirements.
+	(gcry_cipher_close): Ditto.
+
 2007-11-28  Werner Koch  <wk@g10code.com>
 
 	* sha256.c (asn224): Fixed wrong template.  It happened due to a
