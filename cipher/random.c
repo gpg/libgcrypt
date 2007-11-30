@@ -15,8 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -398,11 +397,12 @@ _gcry_random_dump_stats ()
      might_ run into problems.  Needs to be checked.  -wk */
 
   log_info ("random usage: poolsize=%d mixed=%lu polls=%lu/%lu added=%lu/%lu\n"
-	    "              outmix=%lu getlvl1=%lu/%lu getlvl2=%lu/%lu\n",
+	    "              outmix=%lu getlvl1=%lu/%lu getlvl2=%lu/%lu%s\n",
             POOLSIZE, rndstats.mixrnd, rndstats.slowpolls, rndstats.fastpolls,
             rndstats.naddbytes, rndstats.addbytes,
             rndstats.mixkey, rndstats.ngetbytes1, rndstats.getbytes1,
-            rndstats.ngetbytes2, rndstats.getbytes2 );
+            rndstats.ngetbytes2, rndstats.getbytes2,
+            _gcry_rndhw_failed_p()? " (hwrng failed)":"");
 }
 
 
@@ -1251,8 +1251,8 @@ do_fast_random_poll (void)
 # endif /*!RUSAGE_SELF*/
 #endif /*HAVE_GETRUSAGE*/
 
-  /* time and clock are availabe on all systems - so we better do it
-     just in case one of the above functions didn't work */
+  /* Time and clock are availabe on all systems - so we better do it
+     just in case one of the above functions didn't work.  */
   {
     time_t x = time(NULL);
     add_randomness( &x, sizeof(x), RANDOM_ORIGIN_FASTPOLL );
@@ -1261,6 +1261,10 @@ do_fast_random_poll (void)
     clock_t x = clock();
     add_randomness( &x, sizeof(x), RANDOM_ORIGIN_FASTPOLL );
   }
+
+  /* If the system features a fast hardware RNG, read some bytes from
+     there.  */
+  _gcry_rndhw_poll_fast (add_randomness, RANDOM_ORIGIN_FASTPOLL);
 }
 
 

@@ -61,6 +61,14 @@ void _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
                                                   enum random_origins),
                                       enum random_origins origin );
 
+int _gcry_rndhw_failed_p (void);
+void _gcry_rndhw_poll_fast (void (*add)(const void*, size_t,
+                                        enum random_origins),
+                            enum random_origins origin);
+size_t _gcry_rndhw_poll_slow (void (*add)(const void*, size_t,
+                                          enum random_origins),
+                              enum random_origins origin);
+
 
 
 #endif /*G10_RAND_INTERNAL_H*/

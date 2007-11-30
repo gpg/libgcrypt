@@ -41,6 +41,7 @@ cipher.c pubkey.c ac.c md.c \
 bithelp.h  \
 primegen.c  \
 random.c random.h \
+rndhw.c \
 rand-internal.h \
 rmd.h
 

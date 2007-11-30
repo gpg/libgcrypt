@@ -1,5 +1,5 @@
 /* rndlinux.c  -  raw random number for OSes with /dev/random
- * Copyright (C) 1998, 2001, 2002, 2003  Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2001, 2002, 2003, 2007  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -14,8 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -96,8 +95,18 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
   int n;
   int warn=0;
   byte buffer[768];
+  size_t n_hw;
 
-  if( level >= 2 )
+  /* First read from a hardware source.  However let it account only
+     for up to 50% of the requested bytes.  */
+  n_hw = _gcry_rndhw_poll_slow (add, origin);
+  if (n_hw > length/2)
+    n_hw = length/2;
+  if (length > 1)
+    length -= n_hw;
+
+  /* Open the requested device.  */
+  if (level >= 2)
     {
       if( fd_random == -1 )
         fd_random = open_device ( NAME_OF_DEV_RANDOM );
@@ -110,6 +119,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
       fd = fd_urandom;
     }
 
+  /* And enter the read loop.  */
   while (length)
     {
       fd_set rfds;

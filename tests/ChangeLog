@@ -1,3 +1,9 @@
+2007-11-30  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (main): Add optione --verbose and reworked the
+	option parsing.
+	(random_bench): Dump random stats.
+
 2007-10-31  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (start_timer, stop_timer, elapsed_time) [W32]: Fixed.

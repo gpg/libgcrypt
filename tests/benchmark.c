@@ -14,8 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,6 +32,8 @@
 #include <gcrypt.h>
 
 #define PGM "benchmark"
+
+static int verbose;
 
 static const char sample_private_dsa_key_1024[] =
 "(private-key\n"
@@ -347,6 +348,8 @@ random_bench (int very_strong)
   printf (" %s", elapsed_time ());
 
   putchar ('\n');
+  if (verbose)
+    gcry_control (GCRYCTL_DUMP_RANDOM_STATS);
 }
 
 
@@ -928,6 +931,8 @@ mpi_bench (void)
 int
 main( int argc, char **argv )
 {
+  int last_argc = -1;
+
   if (argc)
     { argc--; argv++; }
 
@@ -942,6 +947,33 @@ main( int argc, char **argv )
       gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
       argc--; argv++;
     }
+
+  while (argc && last_argc != argc )
+    {
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--help"))
+        {
+          fputs ("usage: benchmark "
+                 "[md|cipher|random|mpi|rsa|dsa|ecc [algonames]]\n",
+                 stdout);
+          exit (0);
+        }
+      else if (!strcmp (*argv, "--verbose"))
+        {
+          verbose = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--use-random-daemon"))
+        {
+          gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
+          argc--; argv++;
+        }
+    }          
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
   
@@ -960,10 +992,6 @@ main( int argc, char **argv )
       putchar ('\n');
       random_bench (0);
     }
-  else if ( !strcmp (*argv, "--help"))
-     fputs ("usage: benchmark "
-            "[md|cipher|random|mpi|rsa|dsa|ecc [algonames]]\n",
-            stdout);
   else if ( !strcmp (*argv, "random") || !strcmp (*argv, "strongrandom"))
     {
       if (argc == 1)
