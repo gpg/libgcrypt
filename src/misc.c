@@ -1,10 +1,10 @@
 /* misc.c
- *	Copyright (C) 1999, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1999, 2001, 2002, 2003, 2007 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser general Public License as
+ * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
  * the License, or (at your option) any later version.
  *
@@ -14,8 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -26,6 +25,7 @@
 #include <unistd.h>
 
 #include "g10lib.h"
+#include "secmem.h"
 
 static int verbosity_level = 0;
 
@@ -81,6 +81,7 @@ _gcry_fatal_error (int rc, const char *text)
   write2stderr("\nFatal error: ");
   write2stderr(text);
   write2stderr("\n");
+  _gcry_secmem_term ();
   abort ();
 }
 
@@ -111,27 +112,31 @@ _gcry_log_verbosity( int level )
 static void
 _gcry_logv( int level, const char *fmt, va_list arg_ptr )
 {
-    if( log_handler )
-	log_handler( log_handler_value, level, fmt, arg_ptr );
-    else {
-	switch ( level ) {
-	  case GCRY_LOG_CONT: break;
-	  case GCRY_LOG_INFO: break;
-	  case GCRY_LOG_WARN: break;
-	  case GCRY_LOG_ERROR: break;
-	  case GCRY_LOG_FATAL: fputs("Fatal: ",stderr ); break;
-	  case GCRY_LOG_BUG: fputs("Ohhhh jeeee: ", stderr); break;
-	  case GCRY_LOG_DEBUG: fputs("DBG: ", stderr ); break;
-	  default: fprintf(stderr,"[Unknown log level %d]: ", level ); break;
+  if (log_handler)
+    log_handler (log_handler_value, level, fmt, arg_ptr);
+  else 
+    {
+      switch (level) 
+        {
+        case GCRY_LOG_CONT:  break;
+        case GCRY_LOG_INFO:  break;
+        case GCRY_LOG_WARN:  break;
+        case GCRY_LOG_ERROR: break;
+        case GCRY_LOG_FATAL: fputs("Fatal: ",stderr ); break;
+        case GCRY_LOG_BUG:   fputs("Ohhhh jeeee: ", stderr); break;
+        case GCRY_LOG_DEBUG: fputs("DBG: ", stderr ); break;
+        default: fprintf(stderr,"[Unknown log level %d]: ", level ); break;
 	}
-	vfprintf(stderr,fmt,arg_ptr) ;
+      vfprintf(stderr,fmt,arg_ptr) ;
     }
-
-    if( level == GCRY_LOG_FATAL )
-	exit(2);
-    else if( level == GCRY_LOG_BUG )
-	abort();
+  
+  if ( level == GCRY_LOG_FATAL || level == GCRY_LOG_BUG )
+    {
+      _gcry_secmem_term ();
+      abort ();
+    }
 }
+
 
 void
 _gcry_log( int level, const char *fmt, ... )

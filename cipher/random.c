@@ -474,26 +474,43 @@ _gcry_random_is_faked()
 
 /* Add BUFLEN bytes from BUF to the internal random pool.  QUALITY
    should be in the range of 0..100 to indicate the goodness of the
-   entropy added, or -1 for goodness not known. 
-
-   Note, that this function currently does nothing.
-*/
+   entropy added, or -1 for goodness not known.  */
 gcry_error_t
-gcry_random_add_bytes (const void * buf, size_t buflen, int quality)
+gcry_random_add_bytes (const void *buf, size_t buflen, int quality)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  size_t nbytes;
+  const char *bufptr;
 
-  if (!buf || quality < -1 || quality > 100)
-    err = GPG_ERR_INV_ARG;
-  if (!buflen)
-    return 0; /* Shortcut this dummy case. */
-#if 0
-  /* Before we actuall enable this code, we need to lock the pool,
-     have a look at the quality and find a way to add them without
-     disturbing the real entropy (we have estimated). */
-  /*add_randomness( buf, buflen, RANDOM_ORIGIN_FASTPOLL );*/
-#endif
-  return err;
+  if (quality == -1)
+    quality = 35;
+  else if (quality > 100)
+    quality = 100;
+  else if (quality < 0)
+    quality = 0;
+      
+  if (!buf)
+    return gpg_error (GPG_ERR_INV_ARG);
+
+  if (!buflen || quality < 10)
+    return 0; /* Take a shortcut. */
+
+  /* Because we don't increment the entropy estimation with FASTPOLL,
+     we don't need to take lock that estimation while adding from an
+     external source.  This limited entropy estimation also means that
+     we can't take QUALITY into account.  */
+  initialize_basics ();
+  bufptr = buf;
+  while (buflen)
+    {
+      nbytes = buflen > POOLSIZE? POOLSIZE : buflen;
+      lock_pool ();
+      if (rndpool)
+        add_randomness (bufptr, nbytes, RANDOM_ORIGIN_EXTERNAL);
+      unlock_pool ();
+      bufptr += nbytes;
+      buflen -= nbytes;
+    }
+  return 0;
 }   
 
     
@@ -871,7 +888,7 @@ _gcry_update_random_seed_file()
 
   /* We do only a basic initialization so that we can lock the pool.
      This is required to cope with the case that this function is
-     called by some cleanup code at a pouint where the RNG has never
+     called by some cleanup code at a point where the RNG has never
      been initialized.  */
   initialize_basics ();
   lock_pool ();
@@ -1274,7 +1291,7 @@ do_fast_random_poll (void)
    NOP unless a random function has been used or _gcry_initialize (1)
    has been used.  We use this hack so that the internal use of this
    function in cipher_open and md_open won't start filling up the
-   radnom pool, even if no random will be required by the process. */
+   random pool, even if no random will be required by the process. */
 void
 _gcry_fast_random_poll (void)
 {

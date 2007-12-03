@@ -1609,7 +1609,7 @@ void gcry_randomize (void *buffer, size_t length,
    pool. QUALITY should either be -1 for unknown or in the range of 0
    to 100 */
 gcry_error_t gcry_random_add_bytes (const void *buffer, size_t length,
-                                   int quality);
+                                    int quality);
 
 /* If random numbers are used in an application, this macro should be
    called from time to time so that new stuff gets added to the

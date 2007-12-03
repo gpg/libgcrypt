@@ -26,9 +26,10 @@
 enum random_origins 
   {
     RANDOM_ORIGIN_INIT = 0,      /* Used only for initialization. */
-    RANDOM_ORIGIN_FASTPOLL = 1,  /* Fast random poll function.  */
-    RANDOM_ORIGIN_SLOWPOLL = 2,  /* Slow poll function.  */
-    RANDOM_ORIGIN_EXTRAPOLL = 3  /* Used to mark an extra pool seed
+    RANDOM_ORIGIN_EXTERNAL = 1,  /* Added from an external source.  */
+    RANDOM_ORIGIN_FASTPOLL = 2,  /* Fast random poll function.  */
+    RANDOM_ORIGIN_SLOWPOLL = 3,  /* Slow poll function.  */
+    RANDOM_ORIGIN_EXTRAPOLL = 4  /* Used to mark an extra pool seed
                                     due to a GCRY_VERY_STRONG_RANDOM
                                     random request.  */
   };

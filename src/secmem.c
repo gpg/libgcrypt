@@ -494,9 +494,8 @@ _gcry_secmem_malloc_internal (size_t size)
 
   if (!pool_okay)
     {
-      log_info (_
+      log_bug (_
 	("operation is not possible without initialized secure memory\n"));
-      exit (2);
     }
   if (show_warning && !suspend_warning)
     {

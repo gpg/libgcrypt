@@ -1,3 +1,12 @@
+2007-12-03  Werner Koch  <wk@g10code.com>
+
+	* misc.c (_gcry_logv): Use abort for error levels fatal and bug as
+	this is more approriate for a library.  Terminate the secmem
+	before doing so.
+	(_gcry_fatal_error): Terminate secmem before abort.
+	* secmem.c (_gcry_secmem_malloc_internal): Use log_bug instead of
+	exit.
+
 2007-11-29  Werner Koch  <wk@g10code.com>
 
 	* hwfeatures.c (detect_ia32_gnuc): Detect Padlock engine.

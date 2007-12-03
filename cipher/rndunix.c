@@ -486,11 +486,12 @@ my_pclose(struct RI *entry)
     if (fclose(entry->pipe))
 	return (-1);
 
-    /* We ignore the return value from the process because some programs
-     * return funny values which would result in the input being discarded
-     * even if they executed successfully.  This isn't a problem because the
-     * result data size threshold will filter out any programs which exit
-     * with a usage message without producing useful output */
+    /* We ignore the return value from the process because some
+       programs return funny values which would result in the input
+       being discarded even if they executed successfully.  This isn't
+       a problem because the result data size threshold will filter
+       out any programs which exit with a usage message without
+       producing useful output.  */
     if (waitpid(entry->pid, NULL, 0) != entry->pid)
 	status = -1;
 
