@@ -14,8 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,6 +51,43 @@ static const char sample_private_key_1[] =
 " )\n"
 ")\n";
 
+/* The same key as above but without p, q and u to test the non CRT case. */
+static const char sample_private_key_1_1[] =
+"(private-key\n"
+" (openpgp-rsa\n"
+"  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
+      "2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
+      "ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
+      "891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea251#)\n"
+"  (e #010001#)\n"
+"  (d #046129F2489D71579BE0A75FE029BD6CDB574EBF57EA8A5B0FDA942CAB943B11"
+      "7D7BB95E5D28875E0F9FC5FCC06A72F6D502464DABDED78EF6B716177B83D5BD"
+      "C543DC5D3FED932E59F5897E92E6F58A0F33424106A3B6FA2CBF877510E4AC21"
+      "C3EE47851E97D12996222AC3566D4CCB0B83D164074ABF7DE655FC2446DA1781#)\n"
+" )\n"
+")\n";
+
+/* The same key as above but just without q to test the non CRT case.  This
+   should fail. */
+static const char sample_private_key_1_2[] =
+"(private-key\n"
+" (openpgp-rsa\n"
+"  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
+      "2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
+      "ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
+      "891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea251#)\n"
+"  (e #010001#)\n"
+"  (d #046129F2489D71579BE0A75FE029BD6CDB574EBF57EA8A5B0FDA942CAB943B11"
+      "7D7BB95E5D28875E0F9FC5FCC06A72F6D502464DABDED78EF6B716177B83D5BD"
+      "C543DC5D3FED932E59F5897E92E6F58A0F33424106A3B6FA2CBF877510E4AC21"
+      "C3EE47851E97D12996222AC3566D4CCB0B83D164074ABF7DE655FC2446DA1781#)\n"
+"  (p #00e861b700e17e8afe6837e7512e35b6ca11d0ae47d8b85161c67baf64377213"
+      "fe52d772f2035b3ca830af41d8a4120e1c1c70d12cc22f00d28d31dd48a8d424f1#)\n"
+"  (u #304559a9ead56d2309d203811a641bb1a09626bc8eb36fffa23c968ec5bd891e"
+      "ebbafc73ae666e01ba7c8990bae06cc2bbe10b75e69fcacb353a6473079d8e9b#)\n"
+" )\n"
+")\n";
+
 static const char sample_public_key_1[] =
 "(public-key\n"
 " (rsa\n"
@@ -79,7 +115,7 @@ die (const char *format, ...)
 
 static void
 check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
-		  gcry_sexp_t plain0)
+		  gcry_sexp_t plain0, gpg_err_code_t decrypt_fail_code)
 {
   gcry_sexp_t plain1, cipher, l;
   gcry_mpi_t x0, x1;
@@ -103,7 +139,11 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
   rc = gcry_pk_decrypt (&plain1, cipher, skey);
   gcry_sexp_release (cipher);
   if (rc)
-    die ("decryption failed: %s\n", gcry_strerror (rc));
+    {
+      if (decrypt_fail_code && gpg_err_code (rc) == decrypt_fail_code)
+        return; /* This is the expected failure code.  */
+      die ("decryption failed: %s\n", gcry_strerror (rc));
+    }
 
   /* Extract decrypted data.  Note that for compatibility reasons, the
      output of gcry_pk_decrypt depends on whether a flags lists (even
@@ -133,7 +173,8 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
 }
 
 static void
-check_keys (gcry_sexp_t pkey, gcry_sexp_t skey, unsigned int nbits_data)
+check_keys (gcry_sexp_t pkey, gcry_sexp_t skey, unsigned int nbits_data,
+            gpg_err_code_t decrypt_fail_code)
 {
   gcry_sexp_t plain;
   gcry_mpi_t x;
@@ -148,7 +189,7 @@ check_keys (gcry_sexp_t pkey, gcry_sexp_t skey, unsigned int nbits_data)
     die ("converting data for encryption failed: %s\n",
 	 gcry_strerror (rc));
 
-  check_keys_crypt (pkey, skey, plain);
+  check_keys_crypt (pkey, skey, plain, decrypt_fail_code);
   gcry_sexp_release (plain);
   gcry_mpi_release (x);
 
@@ -162,21 +203,30 @@ check_keys (gcry_sexp_t pkey, gcry_sexp_t skey, unsigned int nbits_data)
     die ("converting data for encryption failed: %s\n",
 	 gcry_strerror (rc));
 
-  check_keys_crypt (pkey, skey, plain);
+  check_keys_crypt (pkey, skey, plain, decrypt_fail_code);
   gcry_sexp_release (plain);
 }
 
 static void
-get_keys_sample (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+get_keys_sample (gcry_sexp_t *pkey, gcry_sexp_t *skey, int secret_variant)
 {
   gcry_sexp_t pub_key, sec_key;
   int rc;
+  static const char *secret;
+
+
+  switch (secret_variant)
+    {
+    case 0: secret = sample_private_key_1; break;
+    case 1: secret = sample_private_key_1_1; break;
+    case 2: secret = sample_private_key_1_2; break;
+    default: die ("BUG\n");
+    }
 
   rc = gcry_sexp_sscan (&pub_key, NULL, sample_public_key_1,
 			strlen (sample_public_key_1));
-  if (! rc)
-    rc = gcry_sexp_sscan (&sec_key, NULL, sample_private_key_1,
-			  strlen (sample_private_key_1));
+  if (!rc)
+    rc = gcry_sexp_sscan (&sec_key, NULL, secret, strlen (secret));
   if (rc)
     die ("converting sample keys failed: %s\n", gcry_strerror (rc));
 
@@ -249,33 +299,44 @@ get_elg_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int fixed_x)
 static void
 check_run (void)
 {
+  gpg_error_t err;
   gcry_sexp_t pkey, skey;
+  int variant;
 
-  if (verbose)
-    fprintf (stderr, "Checking sample key.\n");
-  get_keys_sample (&pkey, &skey);
-  check_keys (pkey, skey, 800);
-  gcry_sexp_release (pkey);
-  gcry_sexp_release (skey);
-  
+  for (variant=0; variant < 3; variant++)
+    {
+      if (verbose)
+        fprintf (stderr, "Checking sample key (%d).\n", variant);
+      get_keys_sample (&pkey, &skey, variant);
+      /* Check gcry_pk_testkey which requires all elements.  */
+      err = gcry_pk_testkey (skey);
+      if ((variant == 0 && err)
+          || (variant > 0 && gpg_err_code (err) != GPG_ERR_NO_OBJ))
+          die ("gcry_pk_testkey failed: %s\n", gpg_strerror (err));
+      /* Run the usual check but expect an error from variant 2.  */
+      check_keys (pkey, skey, 800, variant == 2? GPG_ERR_NO_OBJ : 0);
+      gcry_sexp_release (pkey);
+      gcry_sexp_release (skey);
+    }
+
   if (verbose)
     fprintf (stderr, "Checking generated RSA key.\n");
   get_keys_new (&pkey, &skey);
-  check_keys (pkey, skey, 800);
+  check_keys (pkey, skey, 800, 0);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
 
   if (verbose)
     fprintf (stderr, "Checking generated Elgamal key.\n");
   get_elg_key_new (&pkey, &skey, 0);
-  check_keys (pkey, skey, 400 );
+  check_keys (pkey, skey, 400, 0);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
 
   if (verbose)
     fprintf (stderr, "Checking passphrase generated Elgamal key.\n");
   get_elg_key_new (&pkey, &skey, 1);
-  check_keys (pkey, skey, 800);
+  check_keys (pkey, skey, 800, 0);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
 }
@@ -294,7 +355,7 @@ main (int argc, char **argv)
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
+    /*die ("version mismatch\n")*/;
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);

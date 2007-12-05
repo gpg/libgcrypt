@@ -1,6 +1,6 @@
 /* rsa.c  -  RSA function
- *	Copyright (C) 1997, 1998, 1999 by Werner Koch (dd9jn)
- *	Copyright (C) 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1997, 1998, 1999 by Werner Koch (dd9jn)
+ * Copyright (C) 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -15,8 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /* This code uses an algorithm protected by U.S. Patent #4,405,829
@@ -357,7 +356,7 @@ stronger_key_check ( RSA_secret_key *skey )
 static void
 secret(gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
 {
-  if (!skey->p && !skey->q && !skey->u)
+  if (!skey->p || !skey->q || !skey->u)
     {
       mpi_powm (output, input, skey->d, skey->n);
     }
@@ -488,7 +487,10 @@ _gcry_rsa_check_secret_key( int algo, gcry_mpi_t *skey )
   sk.q = skey[4];
   sk.u = skey[5];
 
-  if (! check_secret_key (&sk))
+  if (!sk.p || !sk.q || !sk.u)
+    err = GPG_ERR_NO_OBJ;  /* To check the key we need the optional
+                              parameters. */
+  else if (!check_secret_key (&sk))
     err = GPG_ERR_PUBKEY_ALGO;
 
   return err;
@@ -529,9 +531,9 @@ _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
   sk.n = skey[0];
   sk.e = skey[1];
   sk.d = skey[2];
-  sk.p = skey[3];
-  sk.q = skey[4];
-  sk.u = skey[5];
+  sk.p = skey[3]; /* Optional. */
+  sk.q = skey[4]; /* Optional. */
+  sk.u = skey[5]; /* Optional. */
 
   y = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
 

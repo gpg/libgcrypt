@@ -1,3 +1,11 @@
+2007-12-05  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (sample_private_key_1_1,sample_private_key_1_2): New.
+	(get_keys_sample): Add arg SECRET_VARIANT.
+	(check_run): Check all variants.  Also check gcry_pk_testkey.
+	(check_keys_crypt): Add DECRYPT_FAIL_CODE.
+	(check_keys): Ditto.
+
 2007-11-30  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (main): Add optione --verbose and reworked the

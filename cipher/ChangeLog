@@ -1,3 +1,14 @@
+2007-12-05  Werner Koch  <wk@g10code.com>
+
+	* rsa.c (secret): Fixed condition test for using CRT.  Reported by
+	Dean Scarff.  Fixes bug#864.
+	(_gcry_rsa_check_secret_key): Return an erro if the optional
+	parameters are missing.
+	* pubkey.c (sexp_elements_extract): Add arg ALGO_NAME. Changed all
+	callers to pass NULL. Add hack to allow for optional RSA
+	parameters.
+	(sexp_to_key): Pass algo name to sexp_elements_extract.
+
 2007-12-03  Werner Koch  <wk@g10code.com>
 
 	* random.c (gcry_random_add_bytes): Implement it.

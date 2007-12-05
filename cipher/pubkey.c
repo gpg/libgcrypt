@@ -751,9 +751,9 @@ pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
 /* Internal function.   */
 static gcry_err_code_t
 sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
-		       gcry_mpi_t *elements)
+		       gcry_mpi_t *elements, const char *algo_name)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err = 0;
   int i, idx;
   const char *name;
   gcry_sexp_t list;
@@ -761,16 +761,40 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
   for (name = element_names, idx = 0; *name && !err; name++, idx++)
     {
       list = gcry_sexp_find_token (key_sexp, name, 1);
-      if (! list)
-	err = GPG_ERR_NO_OBJ;
+      if (!list)
+	elements[idx] = NULL;
       else
 	{
 	  elements[idx] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_USG);
 	  gcry_sexp_release (list);
-	  if (! elements[idx])
+	  if (!elements[idx])
 	    err = GPG_ERR_INV_OBJ;
 	}
     }
+
+  if (!err)
+    {
+      /* Check that all elements are available.  */
+      for (name = element_names, idx = 0; *name; name++, idx++)
+        if (!elements[idx])
+          break;
+      if (*name)
+        {
+          err = GPG_ERR_NO_OBJ;
+          /* Some are missing.  Before bailing out we test for
+             optional parameters.  */
+          if (algo_name && !strcmp (algo_name, "RSA")
+              && !strcmp (element_names, "nedpqu") )
+            {
+              /* This is RSA.  Test whether we got N, E and D and that
+                 the optional P, Q and U are all missing.  */
+              if (elements[0] && elements[1] && elements[2]
+                  && !elements[3] && !elements[4] && !elements[5])
+                err = 0;
+            }
+        }
+    }
+
 
   if (err)
     {
@@ -884,8 +908,6 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
  * NOTE: we look through the list to find a list beginning with
  * "private-key" or "public-key" - the first one found is used.
  *
- * FIXME: Allow for encrypted secret keys here.
- *
  * Returns: A pointer to an allocated array of MPIs if the return value is
  *	    zero; the caller has to release this array.
  *
@@ -959,7 +981,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
       if (is_ecc)
         err = sexp_elements_extract_ecc (list, elems, array);
       else
-        err = sexp_elements_extract (list, elems, array);
+        err = sexp_elements_extract (list, elems, array, pubkey->name);
     }
   
   gcry_sexp_release (list);
@@ -1048,7 +1070,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
     err = gpg_err_code_from_errno (errno);
 
   if (!err)
-    err = sexp_elements_extract (list, elems, array);
+    err = sexp_elements_extract (list, elems, array, NULL);
 
   gcry_sexp_release (l2);
   gcry_sexp_release (list);
@@ -1190,7 +1212,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
       goto leave;
     }
 
-  err = sexp_elements_extract (list, elems, array);
+  err = sexp_elements_extract (list, elems, array, NULL);
 
  leave:
   gcry_sexp_release (list);
@@ -1921,7 +1943,7 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
    Test a key.
 
    This may be used either for a public or a secret key to see whether
-   internal structre is valid.
+   the internal structure is okay.
   
    Returns: 0 or an errorcode.
   
