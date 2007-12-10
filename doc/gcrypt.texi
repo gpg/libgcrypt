@@ -2256,10 +2256,28 @@ RSA secret exponent @math{d = e^{-1} \bmod (p-1)(q-1)}.
 @item p-mpi
 RSA secret prime @math{p}.
 @item q-mpi
-RSA secret prime @math{q} with @math{q > p}.
+RSA secret prime @math{q} with @math{p < q}.
 @item u-mpi
-multiplicative inverse @math{u = p^{-1} \bmod q}.
+Multiplicative inverse @math{u = p^{-1} \bmod q}.
 @end table
+
+For signing and decryption the parameters @math{(p, q, u)} are optional
+but greatly improve the performance.  Either all of these optional
+parameters must be given or none of them.  They are mandatory for
+gcry_pk_testkey.
+
+Note that OpenSSL uses slighly different parameters: @math{q < p} and 
+ @math{u = q^{-1} \bmod p}.  To use these parameters you will need to
+swap the values and recompute @math{u}.  Here is example code to do this:
+
+@example
+  if (gcry_mpi_cmp (p, q) > 0)
+    @{
+      gcry_mpi_swap (p, q);
+      gcry_mpi_invm (u, p, q);
+    @}
+@end example
+
 
 
 
@@ -2993,9 +3011,9 @@ data structures.  As opposed to the pk interface described in the
 former chapter, this one follows an open/use/close paradigm like other
 building blocks of the library.
 
-@strong{This interface as some known problems; most noteworthy an
-inherent tendency to leak memory.  It might even be removed in a some
-future version of Libgcrypt.}
+@strong{This interface has a few known problems; most noteworthy an
+inherent tendency to leak memory.  It might not be available in
+forthcoming versions Libgcrypt.}
 
 
 @menu
@@ -3273,7 +3291,7 @@ bits and stores it in @var{key_pair}.
 In case non-standard settings are wanted, a pointer to a structure of
 type @code{gcry_ac_key_spec_<algorithm>_t}, matching the selected
 algorithm, can be given as @var{key_spec}.  @var{misc_data} is not
-used yet.  Such a structure does only exist for RSA.  A descriptions
+used yet.  Such a structure does only exist for RSA.  A description
 of the members of the supported structures follows.
 
 @table @code

@@ -27,9 +27,11 @@
 #include "rand-internal.h"
 
 #undef USE_PADLOCK
-#if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
-#define USE_PADLOCK
-#endif
+#ifdef ENABLE_PADLOCK_SUPPORT
+# if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
+# define USE_PADLOCK
+# endif
+#endif /*ENABLE_PADLOCK_SUPPORT*/
 
 /* Keep track on whether the RNG has problems.  */
 static volatile int rng_failed;

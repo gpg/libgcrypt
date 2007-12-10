@@ -1,5 +1,8 @@
-Noteworthy changes in version 1.4.0
+Noteworthy changes in version 1.4.0 (2007-12-10)
 ------------------------------------------------
+
+ * New configure option --disable-padlock-support which is mostly
+   useful in case of build problems.
 
 
 Noteworthy changes in version 1.3.2 (2007-12-03)

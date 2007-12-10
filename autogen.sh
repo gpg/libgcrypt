@@ -77,7 +77,8 @@ if test "$1" = "--build-w32"; then
 
     ./configure --enable-maintainer-mode  --prefix=${w32root}  \
             --host=${host} --build=${build} \
-            --with-gpg-error-prefix=${w32root}
+            --with-gpg-error-prefix=${w32root} \
+            --disable-padlock-support
     exit $?
 fi
 # ***** end W32 build script *******

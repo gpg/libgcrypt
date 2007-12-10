@@ -44,6 +44,9 @@ _gcry_get_hw_features (void)
 static void
 detect_ia32_gnuc (void)
 {
+#ifdef ENABLE_PADLOCK_SUPPORT  
+  /* The code here is only useful for the PadLock engine thus we don't
+     build it if that support has been disabled.  */
   int has_cpuid = 0;
   char vendor_id[12+1];
   
@@ -137,9 +140,8 @@ detect_ia32_gnuc (void)
          : "%eax", "%edx", "cc"
          );
     }
-
+#endif /*ENABLE_PADLOCK_SUPPORT*/
 }
-
 #endif /* __i386__ && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ */
 
 

@@ -1,6 +1,6 @@
 # Configure.ac script for Libgcrypt
-# Copyright (C) 1998, 1999, 2000, 2001, 2002
-#               2003, 2004, 2006 Free Software Foundation, Inc.
+# Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
+#               2007 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -27,8 +27,8 @@ min_automake_version="1.10"
 # Remember to change the version number immediately *after* a release.
 # Set my_issvn to "yes" for non-released code.  Remember to run an
 # "svn up" and "autogen.sh" right before creating a distribution.
-m4_define([my_version], [1.3.3])
-m4_define([my_issvn], [yes])
+m4_define([my_version], [1.4.0])
+m4_define([my_issvn], [no])
 
 m4_define([svn_revision], m4_esyscmd([echo -n $( (svn info 2>/dev/null \
             || echo 'Revision: 0')|sed -n '/^Revision:/ {s/[^0-9]//gp;q;}')]))
@@ -40,7 +40,7 @@ AC_INIT([libgcrypt], my_version[]m4_if(my_issvn,[yes],[-svn[]svn_revision]),
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=15
 LIBGCRYPT_LT_AGE=4
-LIBGCRYPT_LT_REVISION=2
+LIBGCRYPT_LT_REVISION=3
 
 
 # If the API is changed in an incompatible way: increment the next counter.
@@ -281,7 +281,6 @@ else
   AC_DEFINE(DISABLED_ENDIAN_CHECK,1,[configure did not test for endianess])
 fi
 
-
 AC_CHECK_SIZEOF(unsigned short, 2)
 AC_CHECK_SIZEOF(unsigned int, 4)
 AC_CHECK_SIZEOF(unsigned long, 4)
@@ -422,10 +421,10 @@ AM_CONDITIONAL(USE_RANDOM_DAEMON, test x$use_random_daemon = xyes)
 
 
 # Implementation of --disable-asm.
-AC_MSG_CHECKING([whether assembler modules are requested])
+AC_MSG_CHECKING([whether MPI assembler modules are requested])
 AC_ARG_ENABLE([asm],
               AC_HELP_STRING([--disable-asm],
-	                     [Disable assembler modules]),
+	                     [Disable MPI assembler modules]),
               [try_asm_modules=$enableval],
               [try_asm_modules=yes])
 AC_MSG_RESULT($try_asm_modules)
@@ -433,9 +432,10 @@ AC_MSG_RESULT($try_asm_modules)
 # Implementation of the --enable-m-guard switch.
 AC_MSG_CHECKING([whether memory guard is requested])
 AC_ARG_ENABLE(m-guard,
-    [  --enable-m-guard        enable memory guard facility],
-    use_m_guard=$enableval, use_m_guard=no)
-    AC_MSG_RESULT($use_m_guard)
+              AC_HELP_STRING([--enable-m-guard],
+                             [Enable memory guard facility]),
+              [use_m_guard=$enableval], [use_m_guard=no])
+AC_MSG_RESULT($use_m_guard)
 if test "$use_m_guard" = yes ; then
     AC_DEFINE(M_GUARD,1,[Define to use the (obsolete) malloc guarding feature])
 fi
@@ -444,9 +444,25 @@ fi
 # Check whether we want to use Linux capabilities
 AC_MSG_CHECKING([whether use of capabilities is requested])
 AC_ARG_WITH(capabilities,
-    [  --with-capabilities     use linux capabilities [default=no]],
-[use_capabilities="$withval"],[use_capabilities=no])
+            AC_HELP_STRING([--with-capabilities],
+                           [Use linux capabilities [default=no]]),
+            [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
+
+
+# Implementation of the --disable-padlock-support switch.
+AC_MSG_CHECKING([whether padlock support is requested])
+AC_ARG_ENABLE(padlock-support,
+              AC_HELP_STRING([--disable-padlock-support],
+       	         [Disable support for the PadLock Engine of VIA processors]),
+	      padlocksupport=$enableval,padlocksupport=yes)
+AC_MSG_RESULT($padlocksupport)
+if test x"$padlocksupport" = xyes ; then
+  AC_DEFINE(ENABLE_PADLOCK_SUPPORT, 1,
+            [Enable support for the PadLock engine.])
+fi
+
+
 
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
                    [A human readable text with the name of the OS])
@@ -655,7 +671,7 @@ if test "$gcry_cv_visibility_attribute" = "yes" \
    && test "$gcry_cv_gcc_has_f_visibility" = "yes"  
  then
    AC_DEFINE(GCRY_USE_VISIBILITY, 1,
-               [Define to use the GNU C visibility attribute])
+               [Define to use the GNU C visibility attribute.])
    CFLAGS="$CFLAGS -fvisibility=hidden"
 fi
 

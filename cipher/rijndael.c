@@ -48,10 +48,11 @@
 /* USE_PADLOCK indicates whether to compile the padlock specific
    code.  */
 #undef USE_PADLOCK
-#if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
-#define USE_PADLOCK
-#endif
-
+#ifdef ENABLE_PADLOCK_SUPPORT
+# if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
+# define USE_PADLOCK
+# endif
+#endif /*ENABLE_PADLOCK_SUPPORT*/
 
 static const char *selftest(void);
 

@@ -1,5 +1,8 @@
 2007-12-05  Werner Koch  <wk@g10code.com>
 
+	* rijndael.c (USE_PADLOCK): Depend on ENABLE_PADLOCK_SUPPORT.
+	* rndhw.c (USE_PADLOCK): Ditto
+
 	* rsa.c (secret): Fixed condition test for using CRT.  Reported by
 	Dean Scarff.  Fixes bug#864.
 	(_gcry_rsa_check_secret_key): Return an erro if the optional

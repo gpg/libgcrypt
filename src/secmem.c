@@ -103,7 +103,7 @@ static int
 ptr_into_pool_p (const void *p)
 {
   /* We need to convert pointers to addresses.  This is required by
-     C-99 6.5.8 to avoid undefeined behavious.  Using size_t is at
+     C-99 6.5.8 to avoid undefined behaviour.  Using size_t is at
      least only implementation defined.  See also
      http://lists.gnupg.org/pipermail/gcrypt-devel/2007-February/001102.html
   */

@@ -1,3 +1,7 @@
+2007-12-05  Werner Koch  <wk@g10code.com>
+
+	* hwfeatures.c (detect_ia32_gnuc): Depend on ENABLE_PADLOCK_SUPPORT.
+
 2007-12-03  Werner Koch  <wk@g10code.com>
 
 	* misc.c (_gcry_logv): Use abort for error levels fatal and bug as
