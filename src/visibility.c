@@ -699,7 +699,7 @@ void
 gcry_md_hash_buffer (int algo, void *digest,
                      const void *buffer, size_t length)
 {
-  return _gcry_md_hash_buffer (algo, digest, buffer, length);
+  _gcry_md_hash_buffer (algo, digest, buffer, length);
 }
 
 int
@@ -848,7 +848,7 @@ void
 gcry_ac_io_init_va (gcry_ac_io_t *ac_io, gcry_ac_io_mode_t mode,
                     gcry_ac_io_type_t type, va_list ap)
 {
-  return _gcry_ac_io_init_va (ac_io, mode, type, ap);
+  _gcry_ac_io_init_va (ac_io, mode, type, ap);
 }
 
 gcry_error_t
