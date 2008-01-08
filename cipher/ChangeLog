@@ -1,3 +1,12 @@
+2008-01-08  Werner Koch  <wk@g10code.com>
+
+	* random.c (add_randomness): Do not just increment
+	POOL_FILLED_COUNTER but update it by the actual amount of data.
+
+2007-12-13  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (sexp_data_to_mpi): Support SHA-224.
+
 2007-12-05  Werner Koch  <wk@g10code.com>
 
 	* rijndael.c (USE_PADLOCK): Depend on ENABLE_PADLOCK_SUPPORT.

@@ -563,7 +563,13 @@ This command disables the use of secure memory and drops the priviliges
 of the current process.  FIXME.
 
 @item GCRYCTL_DISABLE_SECMEM
-This command disables the use of secure memory.  FIXME.
+This command disables the use of secure memory. 
+
+Many applications do not require secure memory, so they should disable
+it right away.  There won't be a problem if not disabling it unless one
+makes use of a feature which requires secure memory - in that case the
+process will abort because the secmem is not initialized.
+
 
 @item GCRYCTL_INIT_SECMEM
 @item GCRYCTL_TERM_SECMEM
@@ -596,13 +602,16 @@ pool and then race for updating it (the last update overwrites earlier
 updates).  They will differentiate only by the weak entropy that is
 added in read_seed_file based on the PID and clock, and up to 16 bytes
 of weak random non-blockingly.  The consequence is that the output of
-these different instances is correlated to some extent.  In the perfect
-scenario, the attacker can control (or at least guess) the PID and clock
-of the application, and drain the system's entropy pool to reduce the
-"up to 16 bytes" above to 0.  Then the dependencies of the inital states
-of the pools are completely known.  Note that this is not an issue if
-random of @code{GCRY_VERY_STRONG_RANDOM} quality is requested as in this
-case enough extra entropy gets mixed.
+these different instances is correlated to some extent.  In a perfect
+attack scenario, the attacker can control (or at least guess) the PID
+and clock of the application, and drain the system's entropy pool to
+reduce the "up to 16 bytes" above to 0.  Then the dependencies of the
+inital states of the pools are completely known.  Note that this is not
+an issue if random of @code{GCRY_VERY_STRONG_RANDOM} quality is
+requested as in this case enough extra entropy gets mixed.  It is also
+not an issue when using Linux (rndlinux driver), because this one
+guarantees to read full 16 bytes from /dev/urandom and thus there is no
+way for an attacker without kernel access to conrol these 16 bytes.
 
 @item GCRYCTL_SET_VERBOSITY
 
@@ -2178,10 +2187,10 @@ interface allows to add more algorithms in the future.
 @node Used S-expressions
 @section Used S-expressions
 
-Libgcrypt's API for asymmetric cryptography is based on data
-structures called S-expressions (see XXXX) and does not work with
-contexts as most of the other building blocks of Libgcrypt
-do.
+Libgcrypt's API for asymmetric cryptography is based on data structures
+called S-expressions (see
+@uref{http://people.csail.mit.edu/@/rivest/@/sexp.html}) and does not work
+with contexts as most of the other building blocks of Libgcrypt do.
 
 The following information are stored in S-expressions:
 
@@ -3095,9 +3104,9 @@ Destroys the data set @var{data}.
 
 @deftypefun gcry_error_t gcry_ac_data_set (gcry_ac_data_t @var{data}, unsigned int @var{flags}, char *@var{name}, gcry_mpi_t @var{mpi})
 Add the value @var{mpi} to @var{data} with the label @var{name}.  If
-@var{flags} contains GCRY_AC_FLAG_DATA_COPY, the data set will contain
+@var{flags} contains GCRY_AC_FLAG_COPY, the data set will contain
 copies of @var{name} and @var{mpi}.  If @var{flags} contains
-GCRY_AC_FLAG_DATA_DEALLOC or GCRY_AC_FLAG_DATA_COPY, the values
+GCRY_AC_FLAG_DEALLOC or GCRY_AC_FLAG_COPY, the values
 contained in the data set will be deallocated when they are to be
 removed from the data set.
 @end deftypefun
@@ -3241,10 +3250,10 @@ Creates a new handle for the algorithm @var{algorithm} and stores it
 in @var{handle}.  @var{flags} is not used currently.
 
 @var{algorithm} must be a valid algorithm ID, see @xref{Available
-algorithms}, for a list of supported algorithms and the according
-constants.  Besides using the listed constants directly, the functions
-@code{gcry_pk_name_to_id} may be used to convert the textual name of
-an algorithm into the according numeric ID.
+asymmetric algorithms}, for a list of supported algorithms and the
+according constants.  Besides using the listed constants directly, the
+functions @code{gcry_pk_name_to_id} may be used to convert the textual
+name of an algorithm into the according numeric ID.
 @end deftypefun
 
 @deftypefun void gcry_ac_close (gcry_ac_handle_t @var{handle})
@@ -3258,9 +3267,9 @@ Destroys the handle @var{handle}.
 Defined constants:
 
 @table @code
-@item GCRY_AC_KEY_TYPE_SECRET
+@item GCRY_AC_KEY_SECRET
 Specifies a secret key.
-@item GCRY_AC_KEY_TYPE_PUBLIC
+@item GCRY_AC_KEY_PUBLIC
 Specifies a public key.
 @end table
 @end deftp
@@ -3320,15 +3329,15 @@ Example code:
 @example
 @{
   gcry_ac_key_pair_t key_pair;
-  gcry_ac_key_spec_rsa_t  rsa_spec;
+  gcry_ac_key_spec_rsa_t rsa_spec;
 
   rsa_spec.e = gcry_mpi_new (0);
-  gcry_mpi_set_ui (rsa_spec.e, 1)
+  gcry_mpi_set_ui (rsa_spec.e, 1);
 
   err = gcry_ac_open  (&handle, GCRY_AC_RSA, 0);
   assert (! err);
 
-  err = gcry_ac_key_pair_generate (handle, &key_pair, 1024, (void *) &rsa_spec);
+  err = gcry_ac_key_pair_generate (handle, 1024, &rsa_spec, &key_pair, NULL);
   assert (! err);
 @}
 @end example
@@ -3394,7 +3403,7 @@ through schemes.
 
 What follows is a description of the cryptographic primitives.
 
-@deftypefun gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t @var{handle}, unsigned int @var{flags}, gcry_ac_key_t @var{key}, gcry_mpi_t @var{data_plain}, gcry_ac_data_t **@var{data_encrypted})
+@deftypefun gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t @var{handle}, unsigned int @var{flags}, gcry_ac_key_t @var{key}, gcry_mpi_t @var{data_plain}, gcry_ac_data_t *@var{data_encrypted})
 Encrypts the plain text MPI value @var{data_plain} with the key public
 @var{key} under the control of the flags @var{flags} and stores the
 resulting data set into @var{data_encrypted}.
@@ -3964,7 +3973,7 @@ representation of an MPI and the internal one of Libgcrypt.
 Convert the external representation of an integer stored in @var{buffer}
 with a length of @var{buflen} into a newly created MPI returned which
 will be stored at the address of @var{r_mpi}.  For certain formats the
-length argument is not required and may be passed as @code{0}.  After a
+length argument is not required and should be passed as @code{0}.  After a
 successful operation the variable @var{nscanned} receives the number of
 bytes actually scanned unless @var{nscanned} was given as
 @code{NULL}. @var{format} describes the format of the MPI as stored in

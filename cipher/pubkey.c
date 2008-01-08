@@ -1097,7 +1097,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
  * Take sexp and return an array of MPI as used for our internal decrypt
  * function.
  * s_data = (enc-val
- *           [(flags [pkcs1])
+ *           [(flags [pkcs1])]
  *	      (<algo>
  *		(<param_name1> <mpi>)
  *		...
@@ -1403,6 +1403,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
             { "rmd160", GCRY_MD_RMD160 },
             { "sha384", GCRY_MD_SHA384 },
             { "sha512", GCRY_MD_SHA512 },
+            { "sha224", GCRY_MD_SHA224 },
             { "md2",    GCRY_MD_MD2 },
             { "md4",    GCRY_MD_MD4 },
             { "tiger",  GCRY_MD_TIGER },
@@ -1764,7 +1765,10 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
               (<algo>
                 (<param_name1> <mpi>)
                 ...
-                (<param_namen> <mpi>))) 
+                (<param_namen> <mpi>))
+             [(hash algo)]) 
+
+  Note that (hash algo) in R_SIG is not used.
 */
 gcry_error_t
 gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)

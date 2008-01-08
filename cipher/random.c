@@ -1115,6 +1115,7 @@ static void
 add_randomness (const void *buffer, size_t length, enum random_origins origin)
 {
   const unsigned char *p = buffer;
+  size_t count = 0;
 
   assert (pool_is_locked);
 
@@ -1123,6 +1124,7 @@ add_randomness (const void *buffer, size_t length, enum random_origins origin)
   while (length-- )
     {
       rndpool[pool_writepos++] ^= *p++;
+      count++;
       if (pool_writepos >= POOLSIZE )
         {
           /* It is possible that we are invoked before the pool is
@@ -1132,7 +1134,9 @@ add_randomness (const void *buffer, size_t length, enum random_origins origin)
              separately.  See also the remarks about the seed file. */
           if (origin >= RANDOM_ORIGIN_SLOWPOLL && !pool_filled)
             {
-              if (++pool_filled_counter >= POOLSIZE)
+              pool_filled_counter += count;
+              count = 0;
+              if (pool_filled_counter >= POOLSIZE)
                 pool_filled = 1;
             }
           pool_writepos = 0;

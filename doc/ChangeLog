@@ -1,3 +1,13 @@
+2008-01-04  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi (Controlling the library): Add remark that the
+	theoritical attack on a seed file is not feasible under Linux.
+
+2007-12-11  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi: Various minor corrections as reported by Elie De
+	Brauer more than a year ago.
+
 2007-06-15  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.texi (Controlling the library): Clarified the use of
