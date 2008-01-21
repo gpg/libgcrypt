@@ -79,13 +79,12 @@ detect_ia32_gnuc (void)
     ("pushl %%ebx\n\t"           /* Save GOT register.  */
      "xorl  %%eax, %%eax\n\t"    /* 0 -> EAX.  */
      "cpuid\n\t"                 /* Get vendor ID.  */
-     "leal  %0, %%eax\n\t"       /* EBX,EDX,ECX -> VENDOR_ID.  */
-     "movl  %%ebx, (%%eax)\n\t"
-     "movl  %%edx, 4(%%eax)\n\t"
-     "movl  %%ecx, 8(%%eax)\n\t"
+     "movl  %%ebx, (%0)\n\t"     /* EBX,EDX,ECX -> VENDOR_ID.  */
+     "movl  %%edx, 4(%0)\n\t"
+     "movl  %%ecx, 8(%0)\n\t"
      "popl  %%ebx\n"
-     : "=m" (vendor_id)
      :
+     : "S" (&vendor_id[0])
      : "%eax", "%ecx", "%edx", "cc"
      );
   vendor_id[12] = 0;
