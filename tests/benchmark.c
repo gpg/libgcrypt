@@ -1,5 +1,5 @@
 /* benchmark.c - for libgcrypt
- * Copyright (C) 2002, 2004, 2005, 2006 Free Software Foundation, Inc.
+ * Copyright (C) 2002, 2004, 2005, 2006, 2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -580,7 +580,7 @@ cipher_bench ( const char *algoname )
 
 
 static void
-rsa_bench (int iterations, int print_header)
+rsa_bench (int iterations, int print_header, int no_blinding)
 {
   gpg_error_t err;
   int p_sizes[] = { 1024, 2048, 3072, 4096 };
@@ -627,7 +627,8 @@ rsa_bench (int iterations, int print_header)
 
       x = gcry_mpi_new (p_sizes[testno]);
       gcry_mpi_randomize (x, p_sizes[testno]-8, GCRY_WEAK_RANDOM);
-      err = gcry_sexp_build (&data, NULL, "(data (flags raw) (value %m))", x);
+      err = gcry_sexp_build (&data, NULL,
+                             "(data (flags raw) (value %m))", x);
       gcry_mpi_release (x);
       if (err)
         die ("converting data failed: %s\n", gcry_strerror (err));
@@ -658,7 +659,33 @@ rsa_bench (int iterations, int print_header)
             }
         }
       stop_timer ();
-      printf ("     %s\n", elapsed_time ());
+      printf ("     %s", elapsed_time ());
+
+      if (no_blinding)
+        {
+          fflush (stdout);
+          x = gcry_mpi_new (p_sizes[testno]);
+          gcry_mpi_randomize (x, p_sizes[testno]-8, GCRY_WEAK_RANDOM);
+          err = gcry_sexp_build (&data, NULL,
+                                 "(data (flags no-blinding) (value %m))", x);
+          gcry_mpi_release (x);
+          if (err)
+            die ("converting data failed: %s\n", gcry_strerror (err));
+
+          start_timer ();
+          for (count=0; count < iterations; count++)
+            {
+              gcry_sexp_release (sig);
+              err = gcry_pk_sign (&sig, data, sec_key);
+              if (err)
+                die ("signing failed (%d): %s\n", count, gpg_strerror (err));
+            }
+          stop_timer ();
+          printf ("   %s", elapsed_time ());
+          fflush (stdout);
+        }
+
+      putchar ('\n');
       fflush (stdout);
 
       gcry_sexp_release (sig);
@@ -932,6 +959,7 @@ int
 main( int argc, char **argv )
 {
   int last_argc = -1;
+  int no_blinding = 0;
 
   if (argc)
     { argc--; argv++; }
@@ -973,6 +1001,11 @@ main( int argc, char **argv )
           gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--no-blinding"))
+        {
+          no_blinding = 1;
+          argc--; argv++;
+        }
     }          
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
@@ -984,7 +1017,7 @@ main( int argc, char **argv )
       putchar ('\n');
       cipher_bench (NULL);
       putchar ('\n');
-      rsa_bench (100, 1);
+      rsa_bench (100, 1, no_blinding);
       dsa_bench (100, 0);
       ecc_bench (100, 0);
       putchar ('\n');
@@ -1028,7 +1061,7 @@ main( int argc, char **argv )
   else if ( !strcmp (*argv, "rsa"))
     {
         gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-        rsa_bench (100, 1);
+        rsa_bench (100, 1, no_blinding);
     }
   else if ( !strcmp (*argv, "dsa"))
     {
