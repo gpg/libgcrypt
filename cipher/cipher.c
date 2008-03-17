@@ -60,9 +60,9 @@ static struct cipher_table_entry
     { &_gcry_cipher_spec_cast5,      GCRY_CIPHER_CAST5 },
 #endif
 #if USE_AES
-    { &_gcry_cipher_spec_aes,        GCRY_CIPHER_AES },
-    { &_gcry_cipher_spec_aes192,     GCRY_CIPHER_AES192 },
-    { &_gcry_cipher_spec_aes256,     GCRY_CIPHER_AES256 },
+    { &_gcry_cipher_spec_aes,        GCRY_CIPHER_AES},
+    { &_gcry_cipher_spec_aes192,     GCRY_CIPHER_AES192},
+    { &_gcry_cipher_spec_aes256,     GCRY_CIPHER_AES256},
 #endif
 #if USE_TWOFISH
     { &_gcry_cipher_spec_twofish,    GCRY_CIPHER_TWOFISH },
@@ -137,12 +137,49 @@ struct gcry_cipher_handle
   size_t handle_offset;          /* Offset to the malloced block.  */
   gcry_cipher_spec_t *cipher;
   gcry_module_t module;
+
+  /* The algorithm id.  This is a hack required because the module
+     interface does not easily allow to retrieve this value. */
+  int algo;  
+
+  /* A structure with function pointers for bulk operations.  Due to
+     limitations of the module system (we don't want to change the
+     API) we need to keep these function pointers here.  The cipher
+     open function intializes them and the actual encryption routines
+     use them if they are not NULL.  */
+  struct {
+    void (*cfb_enc)(void *context, unsigned char *iv, 
+                    void *outbuf_arg, const void *inbuf_arg,
+                    unsigned int nblocks);
+    void (*cfb_dec)(void *context, unsigned char *iv, 
+                    void *outbuf_arg, const void *inbuf_arg,
+                    unsigned int nblocks);
+    void (*cbc_enc)(void *context, unsigned char *iv, 
+                    void *outbuf_arg, const void *inbuf_arg,
+                    unsigned int nblocks, int cbc_mac);
+    void (*cbc_dec)(void *context, unsigned char *iv, 
+                    void *outbuf_arg, const void *inbuf_arg,
+                    unsigned int nblocks);
+  } bulk;
+
+
   int mode;
   unsigned int flags;
-  unsigned char iv[MAX_BLOCKSIZE];	/* (this should be ulong aligned) */
+
+  /* The initialization vector.  To help code optimization we make
+     sure that it is aligned on an unsigned long and u32 boundary.  */
+  union {
+    unsigned long dummy_iv;         
+    u32 dummy_u32_iv;
+    unsigned char iv[MAX_BLOCKSIZE];	
+  } u_iv;
+
   unsigned char lastiv[MAX_BLOCKSIZE];
-  int unused;  /* in IV */
+  int unused;  /* Number of unused bytes in the IV. */
+
   unsigned char ctr[MAX_BLOCKSIZE];     /* For Counter (CTR) mode. */
+
+
   /* What follows are two contexts of the cipher in use.  The first
      one needs to be aligned well enough for the cipher operation
      whereas the second one is a copy created by cipher_setkey and
@@ -150,6 +187,7 @@ struct gcry_cipher_handle
      aligment because it is only accessed by memcpy.  */
   cipher_context_alignment_t context;
 };
+
 
 
 /* These dummy functions are used in case a cipher implementation
@@ -705,8 +743,25 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
           h->handle_offset = off;
 	  h->cipher = cipher;
 	  h->module = module;
+          h->algo = algo;
 	  h->mode = mode;
 	  h->flags = flags;
+
+          /* Setup bulk encryption routines.  */
+          switch (algo)
+            {
+            case GCRY_CIPHER_AES128:
+            case GCRY_CIPHER_AES192:
+            case GCRY_CIPHER_AES256:
+              h->bulk.cfb_enc = _gcry_aes_cfb_enc;
+              h->bulk.cfb_dec = _gcry_aes_cfb_dec;
+              h->bulk.cbc_enc = _gcry_aes_cbc_enc;
+              h->bulk.cbc_dec = _gcry_aes_cbc_dec;
+              break;
+              
+            default:
+              break;
+            }
 	}
     }
 
@@ -787,16 +842,17 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, unsigned keylen)
 static void
 cipher_setiv( gcry_cipher_hd_t c, const byte *iv, unsigned ivlen )
 {
-    memset( c->iv, 0, c->cipher->blocksize );
-    if( iv ) {
-	if( ivlen != c->cipher->blocksize )
-	    log_info("WARNING: cipher_setiv: ivlen=%u blklen=%u\n",
-		     ivlen, (unsigned) c->cipher->blocksize );
-	if (ivlen > c->cipher->blocksize)
-	  ivlen = c->cipher->blocksize;
-	memcpy( c->iv, iv, ivlen );
+  memset (c->u_iv.iv, 0, c->cipher->blocksize);
+  if (iv) 
+    {
+      if (ivlen != c->cipher->blocksize)
+        log_info ("WARNING: cipher_setiv: ivlen=%u blklen=%u\n",
+                  ivlen, (unsigned int)c->cipher->blocksize);
+      if (ivlen > c->cipher->blocksize)
+        ivlen = c->cipher->blocksize;
+      memcpy (c->u_iv.iv, iv, ivlen);
     }
-    c->unused = 0;
+  c->unused = 0;
 }
 
 
@@ -808,7 +864,7 @@ cipher_reset (gcry_cipher_hd_t c)
   memcpy (&c->context.c,
 	  (char *) &c->context.c + c->cipher->contextsize,
 	  c->cipher->contextsize);
-  memset (c->iv, 0, c->cipher->blocksize);
+  memset (c->u_iv.iv, 0, c->cipher->blocksize);
   memset (c->lastiv, 0, c->cipher->blocksize);
   memset (c->ctr, 0, c->cipher->blocksize);
 }
@@ -840,220 +896,312 @@ do_ecb_decrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
     }
 }
 
-static void
-do_cbc_encrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
-                unsigned int nbytes )
-{
-    unsigned int n;
-    byte *ivp;
-    int i;
-    size_t blocksize = c->cipher->blocksize;
-    unsigned nblocks = nbytes / blocksize;
 
-    if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) {
+static void
+do_cbc_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf, 
+                const unsigned char *inbuf, unsigned int nbytes )
+{
+  unsigned int n;
+  unsigned char *ivp;
+  int i;
+  size_t blocksize = c->cipher->blocksize;
+  unsigned nblocks = nbytes / blocksize;
+
+  if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) 
+    {
       if ((nbytes % blocksize) == 0)
 	nblocks--;
     }
 
-    for(n=0; n < nblocks; n++ ) {
-	/* fixme: the xor should work on words and not on
-	 * bytes.  Maybe it is a good idea to enhance the cipher backend
-	 * API to allow for CBC handling direct in the backend */
-	for(ivp=c->iv,i=0; i < blocksize; i++ )
-	    outbuf[i] = inbuf[i] ^ *ivp++;
-	c->cipher->encrypt ( &c->context.c, outbuf, outbuf );
-	memcpy(c->iv, outbuf, blocksize );
-	inbuf  += blocksize;
-	if (!(c->flags & GCRY_CIPHER_CBC_MAC))
-	  outbuf += blocksize;
+  if (c->bulk.cbc_enc)
+    {
+      c->bulk.cbc_enc (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks,
+                       (c->flags & GCRY_CIPHER_CBC_MAC)); 
+      inbuf  += nblocks * blocksize;
+      if (!(c->flags & GCRY_CIPHER_CBC_MAC))
+        outbuf += nblocks * blocksize;
+    }
+  else
+    {
+      for (n=0; n < nblocks; n++ )
+        {
+          for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
+            outbuf[i] = inbuf[i] ^ *ivp++;
+          c->cipher->encrypt ( &c->context.c, outbuf, outbuf );
+          memcpy (c->u_iv.iv, outbuf, blocksize );
+          inbuf  += blocksize;
+          if (!(c->flags & GCRY_CIPHER_CBC_MAC))
+            outbuf += blocksize;
+        }
     }
 
-    if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize)
-      {
-	/* We have to be careful here, since outbuf might be equal to
-	   inbuf.  */
+  if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize)
+    {
+      /* We have to be careful here, since outbuf might be equal to
+         inbuf.  */
+      int restbytes;
+      unsigned char b;
 
-	int restbytes;
-	byte b;
+      if ((nbytes % blocksize) == 0)
+        restbytes = blocksize;
+      else
+        restbytes = nbytes % blocksize;
 
-	if ((nbytes % blocksize) == 0)
-	  restbytes = blocksize;
-	else
-	  restbytes = nbytes % blocksize;
-
-	outbuf -= blocksize;
-	for (ivp = c->iv, i = 0; i < restbytes; i++)
-	  {
-	    b = inbuf[i];
-	    outbuf[blocksize + i] = outbuf[i];
-	    outbuf[i] = b ^ *ivp++;
-	  }
-	for (; i < blocksize; i++)
-	  outbuf[i] = 0 ^ *ivp++;
-
-	c->cipher->encrypt (&c->context.c, outbuf, outbuf);
-	memcpy (c->iv, outbuf, blocksize);
-      }
+      outbuf -= blocksize;
+      for (ivp = c->u_iv.iv, i = 0; i < restbytes; i++)
+        {
+          b = inbuf[i];
+          outbuf[blocksize + i] = outbuf[i];
+          outbuf[i] = b ^ *ivp++;
+        }
+      for (; i < blocksize; i++)
+        outbuf[i] = 0 ^ *ivp++;
+      
+      c->cipher->encrypt (&c->context.c, outbuf, outbuf);
+      memcpy (c->u_iv.iv, outbuf, blocksize);
+    }
 }
 
-static void
-do_cbc_decrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
-                unsigned int nbytes )
-{
-    unsigned int n;
-    byte *ivp;
-    int i;
-    size_t blocksize = c->cipher->blocksize;
-    unsigned int nblocks = nbytes / blocksize;
 
-    if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) {
+static void
+do_cbc_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf, 
+                const unsigned char *inbuf, unsigned int nbytes)
+{
+  unsigned int n;
+  unsigned char *ivp;
+  int i;
+  size_t blocksize = c->cipher->blocksize;
+  unsigned int nblocks = nbytes / blocksize;
+
+  if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize)
+    {
       nblocks--;
       if ((nbytes % blocksize) == 0)
 	nblocks--;
-      memcpy(c->lastiv, c->iv, blocksize );
+      memcpy (c->lastiv, c->u_iv.iv, blocksize);
     }
 
-    for(n=0; n < nblocks; n++ ) {
-	/* Because outbuf and inbuf might be the same, we have
-	 * to save the original ciphertext block.  We use lastiv
-	 * for this here because it is not used otherwise. */
-	memcpy(c->lastiv, inbuf, blocksize );
-	c->cipher->decrypt ( &c->context.c, outbuf, inbuf );
-	for(ivp=c->iv,i=0; i < blocksize; i++ )
+  if (c->bulk.cbc_dec)
+    {
+      c->bulk.cbc_dec (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks); 
+      inbuf  += nblocks * blocksize;
+      outbuf += nblocks * blocksize;
+    }
+  else
+    {
+      for (n=0; n < nblocks; n++ ) 
+        {
+          /* Because outbuf and inbuf might be the same, we have to
+           * save the original ciphertext block.  We use lastiv for
+           * this here because it is not used otherwise. */
+          memcpy (c->lastiv, inbuf, blocksize);
+          c->cipher->decrypt ( &c->context.c, outbuf, inbuf );
+          for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
 	    outbuf[i] ^= *ivp++;
-	memcpy(c->iv, c->lastiv, blocksize );
-	inbuf  += c->cipher->blocksize;
-	outbuf += c->cipher->blocksize;
+          memcpy(c->u_iv.iv, c->lastiv, blocksize );
+          inbuf  += c->cipher->blocksize;
+          outbuf += c->cipher->blocksize;
+        }
     }
 
-    if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) {
-	int restbytes;
+  if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) 
+    {
+      int restbytes;
+      
+      if ((nbytes % blocksize) == 0)
+        restbytes = blocksize;
+      else
+        restbytes = nbytes % blocksize;
+      
+      memcpy (c->lastiv, c->u_iv.iv, blocksize );         /* Save Cn-2. */
+      memcpy (c->u_iv.iv, inbuf + blocksize, restbytes ); /* Save Cn. */
 
-	if ((nbytes % blocksize) == 0)
-	  restbytes = blocksize;
-	else
-	  restbytes = nbytes % blocksize;
-
-	memcpy(c->lastiv, c->iv, blocksize ); /* save Cn-2 */
-	memcpy(c->iv, inbuf + blocksize, restbytes ); /* save Cn */
-
-	c->cipher->decrypt ( &c->context.c, outbuf, inbuf );
-	for(ivp=c->iv,i=0; i < restbytes; i++ )
-	    outbuf[i] ^= *ivp++;
-
-	memcpy(outbuf + blocksize, outbuf, restbytes);
-	for(i=restbytes; i < blocksize; i++)
-	  c->iv[i] = outbuf[i];
-	c->cipher->decrypt ( &c->context.c, outbuf, c->iv );
-	for(ivp=c->lastiv,i=0; i < blocksize; i++ )
-	    outbuf[i] ^= *ivp++;
-	/* c->lastiv is now really lastlastiv, does this matter? */
+      c->cipher->decrypt ( &c->context.c, outbuf, inbuf );
+      for (ivp=c->u_iv.iv,i=0; i < restbytes; i++ )
+        outbuf[i] ^= *ivp++;
+      
+      memcpy(outbuf + blocksize, outbuf, restbytes);
+      for(i=restbytes; i < blocksize; i++)
+        c->u_iv.iv[i] = outbuf[i];
+      c->cipher->decrypt (&c->context.c, outbuf, c->u_iv.iv);
+      for(ivp=c->lastiv,i=0; i < blocksize; i++ )
+        outbuf[i] ^= *ivp++;
+      /* c->lastiv is now really lastlastiv, does this matter? */
     }
 }
 
 
 static void
-do_cfb_encrypt( gcry_cipher_hd_t c,
-                byte *outbuf, const byte *inbuf, unsigned nbytes )
+do_cfb_encrypt( gcry_cipher_hd_t c, unsigned char *outbuf, 
+                const unsigned char *inbuf, unsigned int nbytes )
 {
-    byte *ivp;
-    size_t blocksize = c->cipher->blocksize;
-
-    if( nbytes <= c->unused ) {
-	/* Short enough to be encoded by the remaining XOR mask. */
-	/* XOR the input with the IV and store input into IV. */
-	for (ivp=c->iv+c->cipher->blocksize - c->unused;
-             nbytes;
-             nbytes--, c->unused-- )
-          *outbuf++ = (*ivp++ ^= *inbuf++);
-	return;
+  unsigned char *ivp;
+  size_t blocksize = c->cipher->blocksize;
+  size_t blocksize_x_2 = blocksize + blocksize;
+  
+  if ( nbytes <= c->unused )
+    {
+      /* Short enough to be encoded by the remaining XOR mask. */
+      /* XOR the input with the IV and store input into IV. */
+      for (ivp=c->u_iv.iv+c->cipher->blocksize - c->unused;
+           nbytes;
+           nbytes--, c->unused-- )
+        *outbuf++ = (*ivp++ ^= *inbuf++);
+      return;
     }
 
-    if( c->unused ) {
-	/* XOR the input with the IV and store input into IV */
-	nbytes -= c->unused;
-	for(ivp=c->iv+blocksize - c->unused; c->unused; c->unused-- )
-	    *outbuf++ = (*ivp++ ^= *inbuf++);
+  if ( c->unused )
+    {
+      /* XOR the input with the IV and store input into IV */
+      nbytes -= c->unused;
+      for(ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
+        *outbuf++ = (*ivp++ ^= *inbuf++);
     }
 
-    /* Now we can process complete blocks. */
-    while( nbytes >= blocksize ) {
-	int i;
-	/* Encrypt the IV (and save the current one). */
-	memcpy( c->lastiv, c->iv, blocksize );
-	c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
-	/* XOR the input with the IV and store input into IV */
-	for(ivp=c->iv,i=0; i < blocksize; i++ )
-	    *outbuf++ = (*ivp++ ^= *inbuf++);
-	nbytes -= blocksize;
+  /* Now we can process complete blocks.  We use a loop as long as we
+     have at least 2 blocks and use conditions for the rest.  This
+     also allows to use a bulk encryption function if available.  */
+  if (nbytes >= blocksize_x_2 && c->bulk.cfb_enc)
+    {
+      unsigned int nblocks = nbytes / blocksize;
+      c->bulk.cfb_enc (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks); 
+      outbuf += nblocks * blocksize;
+      inbuf  += nblocks * blocksize;
+      nbytes -= nblocks * blocksize;
     }
-    if( nbytes ) { /* process the remaining bytes */
-	/* encrypt the IV (and save the current one) */
-	memcpy( c->lastiv, c->iv, blocksize );
-	c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
-	c->unused = blocksize;
-	/* and apply the xor */
-	c->unused -= nbytes;
-	for(ivp=c->iv; nbytes; nbytes-- )
-	    *outbuf++ = (*ivp++ ^= *inbuf++);
+  else
+    {
+      while ( nbytes >= blocksize_x_2 )
+        {
+          int i;
+          /* Encrypt the IV. */
+          c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+          /* XOR the input with the IV and store input into IV.  */
+          for(ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
+            *outbuf++ = (*ivp++ ^= *inbuf++);
+          nbytes -= blocksize;
+        }
+    }
+
+  if ( nbytes >= blocksize )
+    {
+      int i;
+      /* Save the current IV and then encrypt the IV. */
+      memcpy( c->lastiv, c->u_iv.iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      /* XOR the input with the IV and store input into IV */
+      for(ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
+        *outbuf++ = (*ivp++ ^= *inbuf++);
+      nbytes -= blocksize;
+    }
+  if ( nbytes ) 
+    {
+      /* Save the current IV and then encrypt the IV. */
+      memcpy( c->lastiv, c->u_iv.iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      c->unused = blocksize;
+      /* Apply the XOR. */
+      c->unused -= nbytes;
+      for(ivp=c->u_iv.iv; nbytes; nbytes-- )
+        *outbuf++ = (*ivp++ ^= *inbuf++);
     }
 }
 
+
 static void
-do_cfb_decrypt( gcry_cipher_hd_t c,
-                byte *outbuf, const byte *inbuf, unsigned int nbytes )
+do_cfb_decrypt( gcry_cipher_hd_t c, unsigned char *outbuf, 
+                const unsigned char *inbuf, unsigned int nbytes )
 {
-    byte *ivp;
-    ulong temp;
-    size_t blocksize = c->cipher->blocksize;
-
-    if( nbytes <= c->unused ) {
-	/* Short enough to be encoded by the remaining XOR mask. */
-	/* XOR the input with the IV and store input into IV. */
-	for(ivp=c->iv+blocksize - c->unused; nbytes; nbytes--,c->unused--) {
-	    temp = *inbuf++;
-	    *outbuf++ = *ivp ^ temp;
-	    *ivp++ = temp;
-	}
-	return;
+  unsigned char *ivp;
+  unsigned long temp;
+  int i;
+  size_t blocksize = c->cipher->blocksize;
+  size_t blocksize_x_2 = blocksize + blocksize;
+  
+  if (nbytes <= c->unused)
+    {
+      /* Short enough to be encoded by the remaining XOR mask. */
+      /* XOR the input with the IV and store input into IV. */
+      for (ivp=c->u_iv.iv+blocksize - c->unused;
+           nbytes; 
+           nbytes--, c->unused--)
+        {
+          temp = *inbuf++;
+          *outbuf++ = *ivp ^ temp;
+          *ivp++ = temp;
+        }
+      return;
+    }
+  
+  if (c->unused)
+    {
+      /* XOR the input with the IV and store input into IV. */
+      nbytes -= c->unused;
+      for (ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
+        {
+          temp = *inbuf++;
+          *outbuf++ = *ivp ^ temp;
+          *ivp++ = temp;
+        }
+    }
+  
+  /* Now we can process complete blocks.  We use a loop as long as we
+     have at least 2 blocks and use conditions for the rest.  This
+     also allows to use a bulk encryption function if available.  */
+  if (nbytes >= blocksize_x_2 && c->bulk.cfb_dec)
+    {
+      unsigned int nblocks = nbytes / blocksize;
+      c->bulk.cfb_dec (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks); 
+      outbuf += nblocks * blocksize;
+      inbuf  += nblocks * blocksize;
+      nbytes -= nblocks * blocksize;
+    }
+  else
+    {
+      while (nbytes >= blocksize_x_2 )
+        {
+          /* Encrypt the IV. */
+          c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+          /* XOR the input with the IV and store input into IV. */
+          for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
+            {
+              temp = *inbuf++;
+              *outbuf++ = *ivp ^ temp;
+              *ivp++ = temp;
+            }
+          nbytes -= blocksize;
+        }
     }
 
-    if( c->unused ) {
-	/* XOR the input with the IV and store input into IV. */
-	nbytes -= c->unused;
-	for(ivp=c->iv+blocksize - c->unused; c->unused; c->unused-- ) {
-	    temp = *inbuf++;
-	    *outbuf++ = *ivp ^ temp;
-	    *ivp++ = temp;
-	}
+  if (nbytes >= blocksize )
+    {
+      /* Save the current IV and then encrypt the IV. */
+      memcpy ( c->lastiv, c->u_iv.iv, blocksize);
+      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      /* XOR the input with the IV and store input into IV */
+      for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
+        {
+          temp = *inbuf++;
+          *outbuf++ = *ivp ^ temp;
+          *ivp++ = temp;
+        }
+      nbytes -= blocksize;
     }
 
-    /* now we can process complete blocks */
-    while( nbytes >= blocksize ) {
-	int i;
-	/* encrypt the IV (and save the current one) */
-	memcpy( c->lastiv, c->iv, blocksize );
-	c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
-	/* XOR the input with the IV and store input into IV */
-	for(ivp=c->iv,i=0; i < blocksize; i++ ) {
-	    temp = *inbuf++;
-	    *outbuf++ = *ivp ^ temp;
-	    *ivp++ = temp;
-	}
-	nbytes -= blocksize;
-    }
-    if( nbytes ) { /* process the remaining bytes */
-	/* encrypt the IV (and save the current one) */
-	memcpy( c->lastiv, c->iv, blocksize );
-	c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
-	c->unused = blocksize;
-	/* and apply the xor */
-	c->unused -= nbytes;
-	for(ivp=c->iv; nbytes; nbytes-- ) {
-	    temp = *inbuf++;
-	    *outbuf++ = *ivp ^ temp;
-	    *ivp++ = temp;
-	}
+  if (nbytes)
+    { 
+      /* Save the current IV and then encrypt the IV. */
+      memcpy ( c->lastiv, c->u_iv.iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      c->unused = blocksize;
+      /* Apply the XOR. */
+      c->unused -= nbytes;
+      for (ivp=c->u_iv.iv; nbytes; nbytes-- )
+        {
+          temp = *inbuf++;
+          *outbuf++ = *ivp ^ temp;
+          *ivp++ = temp;
+        }
     }
 }
 
@@ -1069,7 +1217,7 @@ do_ofb_encrypt( gcry_cipher_hd_t c,
     {
       /* Short enough to be encoded by the remaining XOR mask. */
       /* XOR the input with the IV */
-      for (ivp=c->iv+c->cipher->blocksize - c->unused;
+      for (ivp=c->u_iv.iv+c->cipher->blocksize - c->unused;
            nbytes;
            nbytes--, c->unused-- )
         *outbuf++ = (*ivp++ ^ *inbuf++);
@@ -1079,7 +1227,7 @@ do_ofb_encrypt( gcry_cipher_hd_t c,
   if( c->unused )
     {
       nbytes -= c->unused;
-      for(ivp=c->iv+blocksize - c->unused; c->unused; c->unused-- )
+      for(ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
         *outbuf++ = (*ivp++ ^ *inbuf++);
     }
 
@@ -1088,20 +1236,20 @@ do_ofb_encrypt( gcry_cipher_hd_t c,
     {
       int i;
       /* Encrypt the IV (and save the current one). */
-      memcpy( c->lastiv, c->iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
+      memcpy( c->lastiv, c->u_iv.iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       
-      for (ivp=c->iv,i=0; i < blocksize; i++ )
+      for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
         *outbuf++ = (*ivp++ ^ *inbuf++);
       nbytes -= blocksize;
     }
   if ( nbytes )
     { /* process the remaining bytes */
-      memcpy( c->lastiv, c->iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
+      memcpy( c->lastiv, c->u_iv.iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       c->unused = blocksize;
       c->unused -= nbytes;
-      for(ivp=c->iv; nbytes; nbytes-- )
+      for(ivp=c->u_iv.iv; nbytes; nbytes-- )
         *outbuf++ = (*ivp++ ^ *inbuf++);
     }
 }
@@ -1116,7 +1264,7 @@ do_ofb_decrypt( gcry_cipher_hd_t c,
   if( nbytes <= c->unused )
     {
       /* Short enough to be encoded by the remaining XOR mask. */
-      for (ivp=c->iv+blocksize - c->unused; nbytes; nbytes--,c->unused--)
+      for (ivp=c->u_iv.iv+blocksize - c->unused; nbytes; nbytes--,c->unused--)
         *outbuf++ = *ivp++ ^ *inbuf++;
       return;
     }
@@ -1124,7 +1272,7 @@ do_ofb_decrypt( gcry_cipher_hd_t c,
   if ( c->unused )
     {
       nbytes -= c->unused;
-      for (ivp=c->iv+blocksize - c->unused; c->unused; c->unused-- )
+      for (ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
         *outbuf++ = *ivp++ ^ *inbuf++;
     }
 
@@ -1133,20 +1281,20 @@ do_ofb_decrypt( gcry_cipher_hd_t c,
     {
       int i;
       /* Encrypt the IV (and save the current one). */
-      memcpy( c->lastiv, c->iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
-      for (ivp=c->iv,i=0; i < blocksize; i++ )
+      memcpy( c->lastiv, c->u_iv.iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
         *outbuf++ = *ivp++ ^ *inbuf++;
       nbytes -= blocksize;
     }
   if ( nbytes ) 
     { /* Process the remaining bytes. */
       /* Encrypt the IV (and save the current one). */
-      memcpy( c->lastiv, c->iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->iv, c->iv );
+      memcpy( c->lastiv, c->u_iv.iv, blocksize );
+      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       c->unused = blocksize;
       c->unused -= nbytes;
-      for (ivp=c->iv; nbytes; nbytes-- )
+      for (ivp=c->u_iv.iv; nbytes; nbytes-- )
         *outbuf++ = *ivp++ ^ *inbuf++;
     }
 }
@@ -1362,10 +1510,13 @@ gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
 static void
 cipher_sync( gcry_cipher_hd_t c )
 {
-    if( (c->flags & GCRY_CIPHER_ENABLE_SYNC) && c->unused ) {
-	memmove(c->iv + c->unused, c->iv, c->cipher->blocksize - c->unused );
-	memcpy(c->iv, c->lastiv + c->cipher->blocksize - c->unused, c->unused);
-	c->unused = 0;
+  if ((c->flags & GCRY_CIPHER_ENABLE_SYNC) && c->unused)
+    {
+      memmove (c->u_iv.iv + c->unused,
+               c->u_iv.iv, c->cipher->blocksize - c->unused);
+      memcpy (c->u_iv.iv,
+              c->lastiv + c->cipher->blocksize - c->unused, c->unused);
+      c->unused = 0;
     }
 }
 

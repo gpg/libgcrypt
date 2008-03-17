@@ -35,6 +35,13 @@
 
 static int verbose;
 
+/* Do encryption tests with large buffers.  */
+static int large_buffers;
+
+/* Number of cipher repetitions.  */
+static int cipher_repetitions;
+
+
 static const char sample_private_dsa_key_1024[] =
 "(private-key\n"
 "  (dsa\n"
@@ -426,8 +433,9 @@ cipher_bench ( const char *algoname )
   int i;
   int keylen, blklen;
   char key[128];
-  char outbuf[1000], buf[1000];
-  size_t buflen;
+  char *outbuf, *buf;
+  size_t allocated_buflen, buflen;
+  int repetitions;
   static struct { int mode; const char *name; int blocked; } modes[] = {
     { GCRY_CIPHER_MODE_ECB, "ECB", 1 },
     { GCRY_CIPHER_MODE_CBC, "CBC", 1 },
@@ -449,9 +457,25 @@ cipher_bench ( const char *algoname )
       return;
     }
 
+  if (large_buffers)
+    {
+      allocated_buflen = 1024 * 100;
+      repetitions = 10;
+    }
+  else
+    {
+      allocated_buflen = 1024;
+      repetitions = 1000;
+    }
+  repetitions *= cipher_repetitions;
+
+  buf = gcry_xmalloc (allocated_buflen);
+  outbuf = gcry_xmalloc (allocated_buflen);
 
   if (!header_printed)
     {
+      if (cipher_repetitions != 1)
+        printf ("Running each test %d times.\n", cipher_repetitions);
       printf ("%-12s", "");
       for (modeidx=0; modes[modeidx].mode; modeidx++)
         printf (" %-15s", modes[modeidx].name );
@@ -525,14 +549,15 @@ cipher_bench ( const char *algoname )
           exit (1);
         }
 
-      buflen = sizeof buf;
+      buflen = allocated_buflen;
       if (modes[modeidx].blocked)
         buflen = (buflen / blklen) * blklen;
-
+      
       start_timer ();
-      for (i=err=0; !err && i < 1000; i++)
+      for (i=err=0; !err && i < repetitions; i++)
         err = gcry_cipher_encrypt ( hd, outbuf, buflen, buf, buflen);
       stop_timer ();
+
       printf (" %s", elapsed_time ());
       fflush (stdout);
       gcry_cipher_close (hd);
@@ -560,7 +585,7 @@ cipher_bench ( const char *algoname )
         }
 
       start_timer ();
-      for (i=err=0; !err && i < 1000; i++)
+      for (i=err=0; !err && i < repetitions; i++)
         err = gcry_cipher_decrypt ( hd, outbuf, buflen,  buf, buflen);
       stop_timer ();
       printf (" %s", elapsed_time ());
@@ -575,6 +600,8 @@ cipher_bench ( const char *algoname )
     }
 
   putchar ('\n');
+  gcry_free (buf);
+  gcry_free (outbuf);
 }
 
 
@@ -961,6 +988,7 @@ main( int argc, char **argv )
   int last_argc = -1;
   int no_blinding = 0;
 
+
   if (argc)
     { argc--; argv++; }
 
@@ -1006,9 +1034,25 @@ main( int argc, char **argv )
           no_blinding = 1;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--large-buffers"))
+        {
+          large_buffers = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--cipher-repetition"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              cipher_repetitions = atoi(*argv);
+              argc--; argv++;
+            }
+        }
     }          
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
+  if (cipher_repetitions < 1)
+    cipher_repetitions = 1;
   
   if ( !argc )
     {

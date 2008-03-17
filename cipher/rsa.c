@@ -627,6 +627,13 @@ _gcry_rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   pk.e = pkey[1];
   result = gcry_mpi_new ( 160 );
   public( result, data[0], &pk );
+#ifdef IS_DEVELOPMENT_VERSION
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("rsa verify result:", result );
+      log_mpidump ("             hash:", hash );
+    }
+#endif /*IS_DEVELOPMENT_VERSION*/
   /*rc = (*cmp)( opaquev, result );*/
   rc = mpi_cmp (result, hash) ? GPG_ERR_BAD_SIGNATURE : GPG_ERR_NO_ERROR;
   gcry_mpi_release (result);

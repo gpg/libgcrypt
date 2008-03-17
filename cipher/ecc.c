@@ -100,9 +100,9 @@ static const struct
     { "NIST P-224", "secp224r1" },
     { "NIST P-224", "1.3.132.0.33" },        /* SECP OID.  */
 
-    { "NIST P-256", "1.2.840.10045.3.1.7" }, 
+    { "NIST P-256", "1.2.840.10045.3.1.7" }, /* From NIST SP 800-78-1.  */
     { "NIST P-256", "prime256v1" },          
-    { "NIST P-256", "secp256r1"  },          
+    { "NIST P-256", "secp256r1"  },
 
     { "NIST P-384", "secp384r1" },
     { "NIST P-384", "1.3.132.0.34" },       

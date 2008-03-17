@@ -1,3 +1,7 @@
+2008-02-18  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (IS_DEVELOPMENT_VERSION): Set depending on the my_svn.
+
 2007-12-11  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: We actually require libgpg-error 1.4.  Reported by

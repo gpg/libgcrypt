@@ -1,3 +1,8 @@
+2008-03-17  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (main): Add option --cipher-repetition.
+	(cipher_bench): Use it.
+
 2008-03-12  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (rsa_bench): Add arg NO_BLINDING.

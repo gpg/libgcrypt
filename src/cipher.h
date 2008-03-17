@@ -35,6 +35,21 @@ void _gcry_rmd160_hash_buffer (void *outbuf,
 void _gcry_sha1_hash_buffer (void *outbuf,
                              const void *buffer, size_t length);
 
+/*-- rijndael.c --*/
+void _gcry_aes_cfb_enc (void *context, unsigned char *iv, 
+                        void *outbuf, const void *inbuf,
+                        unsigned int nblocks);
+void _gcry_aes_cfb_dec (void *context, unsigned char *iv, 
+                        void *outbuf_arg, const void *inbuf_arg,
+                        unsigned int nblocks);
+void _gcry_aes_cbc_enc (void *context, unsigned char *iv, 
+                        void *outbuf_arg, const void *inbuf_arg,
+                        unsigned int nblocks, int cbc_mac);
+void _gcry_aes_cbc_dec (void *context, unsigned char *iv, 
+                        void *outbuf_arg, const void *inbuf_arg,
+                        unsigned int nblocks);
+
+
 /*-- dsa.c --*/
 void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data);
 gcry_err_code_t _gcry_dsa_generate2 (int algo, unsigned int nbits,

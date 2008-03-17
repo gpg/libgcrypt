@@ -1,8 +1,10 @@
 Noteworthy changes in version 1.4.1
 ------------------------------------------------
 
- * Fixed a bug introduced by 1.3.1 led to the comsumption of far too
-   much entropy for the intial seeding.
+ * Fixed a bug introduced by 1.3.1 which led to the comsumption of far
+   too much entropy for the intial seeding.
+
+ * Improved AES performance for CFB and CBS modes.
 
 
 Noteworthy changes in version 1.4.0 (2007-12-10)

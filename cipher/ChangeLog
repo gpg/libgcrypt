@@ -1,3 +1,29 @@
+2008-03-17  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (_gcry_aes_cfb_dec): New.
+	(do_encrypt): Factor code out to ..
+	(do_encrypt_aligned): .. New.
+	(_gcry_aes_cfb_enc, _gcry_aes_cfb_dec): Use new function.
+	(do_decrypt): Factor code out to ..
+	(do_decrypt_aligned): .. new.
+	(_gcry_aes_cbc_enc, _gcry_aes_cbc_dec): New.
+	* cipher.c (struct gcry_cipher_handle): Put field IV into new
+	union U_IV to enforce proper alignment.  Change all users.
+	(do_cfb_decrypt): Optimize.
+	(do_cbc_encrypt, do_cbc_decrypt): Optimize.
+
+2008-03-15  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (_gcry_aes_cfb_enc): New.
+	* cipher.c (struct gcry_cipher_handle): Add field ALGO and BULK.
+	(gcry_cipher_open): Set ALGO and BULK.
+	(do_cfb_encrypt): Optimize.
+
+2008-02-18  Werner Koch  <wk@g10code.com>
+
+	* rsa.c (_gcry_rsa_verify) [IS_DEVELOPMENT_VERSION]: Print
+	intermediate results.
+
 2008-01-08  Werner Koch  <wk@g10code.com>
 
 	* random.c (add_randomness): Do not just increment
@@ -3471,7 +3497,7 @@ Mon Feb 16 10:08:47 1998  Werner Koch  (wk@isil.d.shuttle.de)
 
 
  Copyright 1998,1999,2000,2001,2002,2003,2004,2005,2006
-	   2007 Free Software Foundation, Inc.
+	   2007, 2008 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

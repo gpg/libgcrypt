@@ -48,6 +48,7 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 
 NEED_GPG_ERROR_VERSION=1.4
 
+is_development_version=my_issvn
 BUILD_REVISION=svn_revision
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
@@ -803,16 +804,11 @@ AM_CONDITIONAL(MPI_MOD_C_MPIH_RSHIFT, test "$mpi_mod_c_mpih_rshift" = yes)
 AM_CONDITIONAL(MPI_MOD_C_UDIV, test "$mpi_mod_c_udiv" = yes)
 AM_CONDITIONAL(MPI_MOD_C_UDIV_QRNND, test "$mpi_mod_c_udiv_qrnnd" = yes)
 
-# Allow users to append something to the version string without
-# flagging it as development version.  The user version part is
-# considered everything after a dash.
-changequote(,)#
-tmp_pat='[a-zA-Z]'
-changequote([,])#
-if echo "$VERSION" | sed 's/-.*//' | grep "$tmp_pat" >/dev/null ; then
+if test "$is_development_version" = "yes"; then
     AC_DEFINE(IS_DEVELOPMENT_VERSION,1,
               [Defined if this is not a regular release])
 fi
+
 
 AM_CONDITIONAL(CROSS_COMPILING, test x$cross_compiling = xyes)
 
@@ -1079,15 +1075,20 @@ tests/Makefile
 AC_OUTPUT
 
 # Give some feedback
-echo
+echo "
+        Libgcrypt v${VERSION} has been configured as follows:
+        
+        Platform:  $PRINTABLE_OS_NAME ($host)
+"
+
 
 if test "$print_egd_notice" = "yes"; then
 cat <<G10EOF
   
    The performance of the Unix random gatherer module (rndunix) is not
    very good and it does not keep the entropy pool over multiple
-   invocations of GnuPG.  The suggested way to overcome this problem is
-   to use the
+   invocations of Libgcrypt base applications.  The suggested way to
+   overcome this problem is to use the
   
                  Entropy Gathering Daemon (EGD)
   
@@ -1108,6 +1109,3 @@ if test -n "$gpl"; then
   echo "use of this library has to comply with the conditions of the GPL."
 fi
 
-# Give some feedback
-echo   "                Configured for: $PRINTABLE_OS_NAME ($host)"
-echo

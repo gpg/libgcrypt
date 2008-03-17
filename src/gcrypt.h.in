@@ -1234,7 +1234,7 @@ gcry_ac_key_type_t;
 typedef enum gcry_ac_em
   {
     GCRY_AC_EME_PKCS_V1_5,
-    GCRY_AC_EMSA_PKCS_V1_5,
+    GCRY_AC_EMSA_PKCS_V1_5
   }
 gcry_ac_em_t;
 
@@ -1242,7 +1242,7 @@ gcry_ac_em_t;
 typedef enum gcry_ac_scheme
   {
     GCRY_AC_ES_PKCS_V1_5,
-    GCRY_AC_SSA_PKCS_V1_5,
+    GCRY_AC_SSA_PKCS_V1_5
   }
 gcry_ac_scheme_t;
 
