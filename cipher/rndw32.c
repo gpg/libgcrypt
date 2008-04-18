@@ -440,8 +440,17 @@ registry_poll (void (*add)(const void*, size_t, enum random_origins),
         }
       else
         {
-          log_debug ("rndw32: get performance data problem: ec=%ld\n",
-                     status);
+          static int been_here;
+
+          /* Silence the error message.  In particular under Wine (as
+             of 2008) we would get swamped with such diagnotiscs.  One
+             such diagnotiscs should be enough.  */
+          if (been_here != status)
+            {
+              been_here = status;
+              log_debug ("rndw32: get performance data problem: ec=%ld\n",
+                         status);
+            }
           break;
         }
     }

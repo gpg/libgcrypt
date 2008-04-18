@@ -27,18 +27,33 @@
    There is one small change which needs to be done: Include the
    following code at the top of camellia.h: */
 #if 0
-/* Need to redefine the external symbols to keep the libgcrypt name
-   space clean.  */ 
-#define Camellia_Ekeygen      _gcry_Camellia_Ekeygen
-#define Camellia_EncryptBlock _gcry_Camellia_EncryptBlock
-#define Camellia_DecryptBlock _gcry_Camellia_DecryptBlock
-#define camellia_decrypt128   _gcry_camellia_decrypt128
-#define camellia_decrypt256   _gcry_camellia_decrypt256
-#define camellia_encrypt128   _gcry_camellia_encrypt128
-#define camellia_encrypt256   _gcry_camellia_encrypt256
-#define camellia_setup128     _gcry_camellia_setup128  
-#define camellia_setup192     _gcry_camellia_setup192  
-#define camellia_setup256     _gcry_camellia_setup256
+
+/* To use Camellia with libraries it is often useful to keep the name
+ * space of the library clean.  The following macro is thus useful:
+ *
+ *     #define CAMELLIA_EXT_SYM_PREFIX foo_
+ *  
+ * This prefixes all external symbols with "foo_".
+ */
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#ifdef CAMELLIA_EXT_SYM_PREFIX
+#define CAMELLIA_PREFIX1(x,y) x ## y
+#define CAMELLIA_PREFIX2(x,y) CAMELLIA_PREFIX1(x,y)
+#define CAMELLIA_PREFIX(x)    CAMELLIA_PREFIX2(CAMELLIA_EXT_SYM_PREFIX,x)
+#define Camellia_Ekeygen      CAMELLIA_PREFIX(Camellia_Ekeygen)
+#define Camellia_EncryptBlock CAMELLIA_PREFIX(Camellia_EncryptBlock)
+#define Camellia_DecryptBlock CAMELLIA_PREFIX(Camellia_DecryptBlock)
+#define camellia_decrypt128   CAMELLIA_PREFIX(camellia_decrypt128)
+#define camellia_decrypt256   CAMELLIA_PREFIX(camellia_decrypt256)
+#define camellia_encrypt128   CAMELLIA_PREFIX(camellia_encrypt128)
+#define camellia_encrypt256   CAMELLIA_PREFIX(camellia_encrypt256)
+#define camellia_setup128     CAMELLIA_PREFIX(camellia_setup128)
+#define camellia_setup192     CAMELLIA_PREFIX(camellia_setup192) 
+#define camellia_setup256     CAMELLIA_PREFIX(camellia_setup256)
+#endif /*CAMELLIA_EXT_SYM_PREFIX*/
+
 #endif /* Code sample. */
 
 

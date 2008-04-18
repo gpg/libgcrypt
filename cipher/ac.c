@@ -1117,7 +1117,7 @@ _gcry_ac_io_process (gcry_ac_io_t *ac_io,
 
    (IDENTIFIER [...]
    (ALGORITHM <list of named MPI values>)) */
-gcry_error_t
+static gcry_error_t
 ac_data_extract (const char *identifier, const char *algorithm,
 		 gcry_sexp_t sexp, gcry_ac_data_t *data)
 {

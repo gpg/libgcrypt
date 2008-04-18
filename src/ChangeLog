@@ -1,3 +1,8 @@
+2008-04-18  Werner Koch  <wk@g10code.com>
+
+	* missing-string.c (vasprintf): Remove.  It is not used.  Reported
+	by Simon Josefsson.
+
 2008-03-11  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (gcry_ac_em_t, gcry_ac_scheme_t): Remove trailing

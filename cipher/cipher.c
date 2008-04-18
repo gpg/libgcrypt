@@ -750,6 +750,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
           /* Setup bulk encryption routines.  */
           switch (algo)
             {
+#ifdef USE_AES
             case GCRY_CIPHER_AES128:
             case GCRY_CIPHER_AES192:
             case GCRY_CIPHER_AES256:
@@ -758,6 +759,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
               h->bulk.cbc_enc = _gcry_aes_cbc_enc;
               h->bulk.cbc_dec = _gcry_aes_cbc_dec;
               break;
+#endif /*USE_AES*/
               
             default:
               break;

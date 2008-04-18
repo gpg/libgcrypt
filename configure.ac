@@ -1,6 +1,6 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
-#               2007 Free Software Foundation, Inc.
+#               2007, 2008 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -32,7 +32,8 @@ m4_define([my_issvn], [yes])
 
 m4_define([svn_revision], m4_esyscmd([echo -n $( (svn info 2>/dev/null \
             || echo 'Revision: 0')|sed -n '/^Revision:/ {s/[^0-9]//gp;q;}')]))
-AC_INIT([libgcrypt], my_version[]m4_if(my_issvn,[yes],[-svn[]svn_revision]),
+AC_INIT([libgcrypt], 
+        [my_version[]m4_if(my_issvn,[yes],[-svn[]svn_revision])],
         [bug-libgcrypt@gnupg.org])
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
@@ -81,6 +82,11 @@ AH_BOTTOM([
 #  error "No endianness found"
 # endif
 #endif /*DISABLED_ENDIAN_CHECK*/
+
+/* We basically use the original Camellia source.  Make sure the symbols 
+   properly prefixed.  */
+#define CAMELLIA_EXT_SYM_PREFIX _gcry_
+
 
 #endif /*_GCRYPT_CONFIG_H_INCLUDED*/
 ])
@@ -286,6 +292,8 @@ AC_CHECK_SIZEOF(unsigned short, 2)
 AC_CHECK_SIZEOF(unsigned int, 4)
 AC_CHECK_SIZEOF(unsigned long, 4)
 AC_CHECK_SIZEOF(unsigned long long, 0)
+
+AC_TYPE_UINTPTR_T
 
 if test "$ac_cv_sizeof_unsigned_short" = "0" \
    || test "$ac_cv_sizeof_unsigned_int" = "0" \
@@ -885,140 +893,161 @@ DATADIRNAME=$DATADIRNAME
 # selected ciphers, pubkey-ciphers, digests and random modules.
 
 LIST_MEMBER(arcfour, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS arcfour.lo"
-AC_DEFINE_UNQUOTED(USE_ARCFOUR, $found,
-                                 [Defined if this module should be included])
+if test "$found" = "1"; then 
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS arcfour.lo"
+   AC_DEFINE(USE_ARCFOUR, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(blowfish, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS blowfish.lo"
-AC_DEFINE_UNQUOTED(USE_BLOWFISH, $found,
-                                  [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS blowfish.lo"
+   AC_DEFINE(USE_BLOWFISH, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(cast5, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS cast5.lo"
-AC_DEFINE_UNQUOTED(USE_CAST5, $found,
-                               [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS cast5.lo"
+   AC_DEFINE(USE_CAST5, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(des, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS des.lo"
-AC_DEFINE_UNQUOTED(USE_DES, $found,
-                             [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS des.lo"
+   AC_DEFINE(USE_DES, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(aes, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael.lo"
-AC_DEFINE_UNQUOTED(USE_AES, $found,
-                             [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael.lo"
+   AC_DEFINE(USE_AES, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(twofish, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS twofish.lo"
-AC_DEFINE_UNQUOTED(USE_TWOFISH, $found,
-                                 [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS twofish.lo"
+   AC_DEFINE(USE_TWOFISH, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(serpent, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS serpent.lo"
-AC_DEFINE_UNQUOTED(USE_SERPENT, $found,
-                                 [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS serpent.lo"
+   AC_DEFINE(USE_SERPENT, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(rfc2268, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS rfc2268.lo"
-AC_DEFINE_UNQUOTED(USE_RFC2268, $found,
-                                 [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS rfc2268.lo"
+   AC_DEFINE(USE_RFC2268, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(seed, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS seed.lo"
-AC_DEFINE_UNQUOTED(USE_SEED, $found,
-                             [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS seed.lo"
+   AC_DEFINE(USE_SEED, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(camellia, $enabled_ciphers)
-test "$found" = "1" && GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia.lo camellia-glue.lo"
-AC_DEFINE_UNQUOTED(USE_CAMELLIA, $found,
-                             [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia.lo camellia-glue.lo"
+   AC_DEFINE(USE_CAMELLIA, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
-test "$found" = "1" && GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS dsa.lo"
-AC_DEFINE_UNQUOTED(USE_DSA, $found,
-                             [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS dsa.lo"
+   AC_DEFINE(USE_DSA, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(rsa, $enabled_pubkey_ciphers)
-test "$found" = "1" && GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS rsa.lo"
-AC_DEFINE_UNQUOTED(USE_RSA, $found,
-                            [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS rsa.lo"
+   AC_DEFINE(USE_RSA, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(elgamal, $enabled_pubkey_ciphers)
-test "$found" = "1" \ 
-     && GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS elgamal.lo"
-AC_DEFINE_UNQUOTED(USE_ELGAMAL, $found,
-                                [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS elgamal.lo"
+   AC_DEFINE(USE_ELGAMAL, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(ecc, $enabled_pubkey_ciphers)
-test "$found" = "1" \ 
-     && GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS ecc.lo"
-AC_DEFINE_UNQUOTED(USE_ECC, $found,
-                                [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS ecc.lo"
+   AC_DEFINE(USE_ECC, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(crc, $enabled_digests)
-test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc.lo"
-AC_DEFINE_UNQUOTED(USE_CRC, $found,
-                            [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc.lo"
+   AC_DEFINE(USE_CRC, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(md4, $enabled_digests)
-test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS md4.lo"
-AC_DEFINE_UNQUOTED(USE_MD4, $found,
-                             [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS md4.lo"
+   AC_DEFINE(USE_MD4, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(md5, $enabled_digests)
-test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS md5.lo"
-AC_DEFINE_UNQUOTED(USE_MD5, $found,
-                             [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS md5.lo"
+   AC_DEFINE(USE_MD5, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(sha256, $enabled_digests)
-test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256.lo"
-AC_DEFINE_UNQUOTED(USE_SHA256, $found,
-                                [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256.lo"
+   AC_DEFINE(USE_SHA256, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(sha512, $enabled_digests)
-test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512.lo"
-AC_DEFINE_UNQUOTED(USE_SHA512, $found,
-                                [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512.lo"
+   AC_DEFINE(USE_SHA512, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(tiger, $enabled_digests)
-test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS tiger.lo"
-AC_DEFINE_UNQUOTED(USE_TIGER, $found,
-                               [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS tiger.lo"
+   AC_DEFINE(USE_TIGER, 1, [Defined if this module should be included])
+fi
 
 LIST_MEMBER(whirlpool, $enabled_digests)
-test "$found" = "1" && GCRYPT_DIGESTS="$GCRYPT_DIGESTS whirlpool.lo"
-AC_DEFINE_UNQUOTED(USE_WHIRLPOOL, $found,
-                               [Defined if this module should be included])
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS whirlpool.lo"
+   AC_DEFINE(USE_WHIRLPOOL, 1, [Defined if this module should be included])
+fi
 
 # rmd160 and sha1 should be included always.
 GCRYPT_DIGESTS="$GCRYPT_DIGESTS rmd160.lo sha1.lo"
-AC_DEFINE_UNQUOTED(USE_RMD160, 1, [Defined if this module should be included])
-AC_DEFINE_UNQUOTED(USE_SHA1, 1,   [Defined if this module should be included])
+AC_DEFINE(USE_RMD160, 1, [Defined if this module should be included])
+AC_DEFINE(USE_SHA1, 1,   [Defined if this module should be included])
 
 LIST_MEMBER(linux, $random_modules)
-test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndlinux.lo"
-AC_DEFINE_UNQUOTED(USE_RNDLINUX, $found,
-                   [Defined if the /dev/random based RNG should be used.])
-
+if test "$found" = "1" ; then
+   GCRYPT_RANDOM="$GCRYPT_RANDOM rndlinux.lo"
+   AC_DEFINE(USE_RNDLINUX, 1, [Defined if the /dev/random RNG should be used.])
+fi
 
 LIST_MEMBER(unix, $random_modules)
-test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndunix.lo"
-AC_DEFINE_UNQUOTED(USE_RNDUNIX, $found,
-                  [Defined if the default Unix RNG should be used.])
-if test "$found" = "1"; then
+if test "$found" = "1" ; then
+   GCRYPT_RANDOM="$GCRYPT_RANDOM rndunix.lo"
+   AC_DEFINE(USE_RNDUNIX, 1, [Defined if the default Unix RNG should be used.])
    print_egd_notice=yes
 fi
 
 LIST_MEMBER(egd, $random_modules)
-test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndegd.lo"
-AC_DEFINE_UNQUOTED(USE_RNDEGD, $found,
-                  [Defined if the EGD based RNG should be used.])
+if test "$found" = "1" ; then
+   GCRYPT_RANDOM="$GCRYPT_RANDOM rndegd.lo"
+   AC_DEFINE(USE_RNDEGD, 1, [Defined if the EGD based RNG should be used.])
+fi
 
 LIST_MEMBER(w32, $random_modules)
-test "$found" = "1" && GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo"
-AC_DEFINE_UNQUOTED(USE_RNDW32, $found,
-                  [Defined if the Windows specific RNG should be used.])
+if test "$found" = "1" ; then
+   GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo"
+   AC_DEFINE(USE_RNDW32, 1, 
+             [Defined if the Windows specific RNG should be used.])
+fi
 
 AC_SUBST([GCRYPT_CIPHERS])
 AC_SUBST([GCRYPT_PUBKEY_CIPHERS])

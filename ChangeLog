@@ -1,3 +1,20 @@
+2008-04-18  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (AH_BOTTOM): Add CAMELLIA_EXT_SYM_PREFIX.
+
+2008-04-01  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (AC_INIT): Fix quoting.
+
+2008-03-19  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Fix the tests for USE_<algo> to either define or
+	undef the macros.  Suggested by Dirk Stoecker.
+
+2008-03-18  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Test for uintptr_t.
+
 2008-02-18  Werner Koch  <wk@g10code.com>
 
 	* configure.ac (IS_DEVELOPMENT_VERSION): Set depending on the my_svn.
@@ -1248,7 +1265,7 @@ Fri Feb 13 19:43:41 1998  Werner Koch  (wk@isil.d.shuttle.de)
 
 	
  Copyright 1998, 1999, 2000, 2001, 2002, 2003,
-	   2004, 2006 Free Software Foundation, Inc.
+	   2004, 2006, 2007, 2008 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

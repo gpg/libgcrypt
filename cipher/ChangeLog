@@ -1,3 +1,27 @@
+2008-04-18  Werner Koch  <wk@g10code.com>
+
+	* ac.c (ac_data_extract): Make static.
+
+	* camellia.h [HAVE_CONFIG_H]: Include config.h.
+
+	* rndw32.c (registry_poll): Only print the performance data
+	problem warning once.  Suggested by Simon Josefsson.
+
+2008-03-19  Werner Koch  <wk@g10code.com>
+
+	* cipher.c (gcry_cipher_open) [USE_AES]: Init bulk encryption only
+	if requested.  Suggested by Dirk Stoecker.
+
+2008-03-18  Werner Koch  <wk@g10code.com>
+
+	* sha1.c: Include stdint.h.
+	(transform): Add arg NBLOCKS so that we can work on more than one
+	block and avoid updates of the chaining variables.  Changed all
+	callers to use 1.
+	(sha1_write): Replace loop around transform.
+	(transform_aligned) [WORDS_BIGENDIAN]: New.
+	(TRANSFORM): New macro to replace all direct calls of transform.
+
 2008-03-17  Werner Koch  <wk@g10code.com>
 
 	* rijndael.c (_gcry_aes_cfb_dec): New.

@@ -28,6 +28,9 @@
  *  
  * This prefixes all external symbols with "foo_".
  */
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #ifdef CAMELLIA_EXT_SYM_PREFIX
 #define CAMELLIA_PREFIX1(x,y) x ## y
 #define CAMELLIA_PREFIX2(x,y) CAMELLIA_PREFIX1(x,y)
@@ -43,6 +46,7 @@
 #define camellia_setup192     CAMELLIA_PREFIX(camellia_setup192) 
 #define camellia_setup256     CAMELLIA_PREFIX(camellia_setup256)
 #endif /*CAMELLIA_EXT_SYM_PREFIX*/
+
 
 #ifdef  __cplusplus
 extern "C" {
