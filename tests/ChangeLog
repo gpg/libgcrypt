@@ -1,3 +1,7 @@
+2008-04-22  Werner Koch  <wk@g10code.com>
+
+	* basic.c (check_one_cipher): Also check in-place encryption.
+
 2008-03-17  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (main): Add option --cipher-repetition.

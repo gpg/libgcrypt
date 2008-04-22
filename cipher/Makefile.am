@@ -61,7 +61,7 @@ elgamal.c \
 ecc.c \
 md4.c \
 md5.c \
-rijndael.c \
+rijndael.c rijndael-tables.h \
 rmd160.c \
 rndlinux.c \
 rndegd.c \

@@ -27,8 +27,8 @@ min_automake_version="1.10"
 # Remember to change the version number immediately *after* a release.
 # Set my_issvn to "yes" for non-released code.  Remember to run an
 # "svn up" and "autogen.sh" right before creating a distribution.
-m4_define([my_version], [1.4.1])
-m4_define([my_issvn], [yes])
+m4_define([my_version], [1.4.1rc1])
+m4_define([my_issvn], [no])
 
 m4_define([svn_revision], m4_esyscmd([echo -n $( (svn info 2>/dev/null \
             || echo 'Revision: 0')|sed -n '/^Revision:/ {s/[^0-9]//gp;q;}')]))
@@ -250,30 +250,18 @@ case "${host}" in
         ;;
 esac
 
+#
 # Figure out the name of the random device
+#
 case "${host}" in
     *-openbsd*)
-        # FIXME: Are these the best flags for OpenBSD?
         NAME_OF_DEV_RANDOM="/dev/srandom"
         NAME_OF_DEV_URANDOM="/dev/urandom"
-#       DYNLINK_MOD_CFLAGS="-shared -rdynamic $CFLAGS_PIC -Wl,-Bshareable -Wl,-x"
-        ;;
-
-    *-solaris* | *-irix* | *-dec-osf* | *-netbsd* )
-        NAME_OF_DEV_RANDOM="/dev/random"
-        NAME_OF_DEV_URANDOM="/dev/random"
-#       DYNLINK_MOD_CFLAGS="-shared $CFLAGS_PIC"
         ;;
 
     *)
         NAME_OF_DEV_RANDOM="/dev/random"
         NAME_OF_DEV_URANDOM="/dev/urandom"
-        # -shared is a gcc-ism.  Find pic flags from GNUPG_CHECK_PIC.
-#        if test -n "$GCC" ; then
-#           DYNLINK_MOD_CFLAGS="-shared $CFLAGS_PIC"                            
-#        else
-#           DYNLINK_MOD_CFLAGS="$CFLAGS_PIC"
-#        fi
         ;;
 esac
 

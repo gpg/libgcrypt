@@ -1,4 +1,16 @@
+2008-04-22  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (_gcry_aes_cfb_enc, _gcry_aes_cbc_enc) 
+	(_gcry_aes_cfb_dec, _gcry_aes_cbc_dec): Use Padlock if possible.
+
 2008-04-18  Werner Koch  <wk@g10code.com>
+
+	* sha1.c (transform_aligned): Remove.  That is will obviosuly not
+	work becuase we need a scratch working area and our internal API
+	does not allow to modify the buffers.
+
+	* rijndael.c: Factor tables out to ..
+	* rijndael-tables.h: .. new.
 
 	* ac.c (ac_data_extract): Make static.
 
@@ -412,7 +424,7 @@
 2006-11-03  Werner Koch  <wk@g10code.com>
 
 	* random.c [HAVE_GETTIMEOFDAY]: Included sys/time.h and not
-	sys/times.h.  Reported by Rafaël Carré.
+	sys/times.h.  Reported by RafaÃ«l CarrÃ©.
 
 2006-11-05  Moritz Schulte  <moritz@g10code.com>
 
@@ -2521,7 +2533,7 @@
 2002-02-20  Werner Koch  <wk@gnupg.org>
 
 	* sha1.c: Removed a left over comment note.  The code has been
-	rewritten from scratch in 1998.  Thanks to Niels Möller for
+	rewritten from scratch in 1998.  Thanks to Niels MÃ¶ller for
 	reporting this misleading comment.
 
 2002-02-18  Werner Koch  <wk@gnupg.org>

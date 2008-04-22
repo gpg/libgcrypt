@@ -1,6 +1,12 @@
+2008-04-22  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Set version to 1.4.1rc1.
+
 2008-04-18  Werner Koch  <wk@g10code.com>
 
 	* configure.ac (AH_BOTTOM): Add CAMELLIA_EXT_SYM_PREFIX.
+	(NAME_OF_DEV_RANDOM):  Remove special cases for Solaris etc.  This
+	matches the gnupg 1.4.9 version.
 
 2008-04-01  Werner Koch  <wk@g10code.com>
 

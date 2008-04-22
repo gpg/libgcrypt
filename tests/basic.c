@@ -945,10 +945,39 @@ check_one_cipher (int algo, int mode, int flags)
       return;
     }
 
-  gcry_cipher_close (hd);
-
   if (memcmp (plain, in, 16))
     fail ("algo %d, mode %d, encrypt-decrypt mismatch\n", algo, mode);
+
+  /* Again, using in-place encryption.  */
+  gcry_cipher_reset (hd);
+
+  memcpy (out, plain, 16);
+  err = gcry_cipher_encrypt (hd, out, 16, NULL, 0);
+  if (err)
+    {
+      fail ("algo %d, mode %d, in-place, gcry_cipher_encrypt failed: %s\n",
+	    algo, mode, gpg_strerror (err));
+      gcry_cipher_close (hd);
+      return;
+    }
+
+  gcry_cipher_reset (hd);
+
+  err = gcry_cipher_decrypt (hd, out, 16, NULL, 0);
+  if (err)
+    {
+      fail ("algo %d, mode %d, in-place, gcry_cipher_decrypt failed: %s\n",
+	    algo, mode, gpg_strerror (err));
+      gcry_cipher_close (hd);
+      return;
+    }
+
+  if (memcmp (plain, out, 16))
+    fail ("algo %d, mode %d, in-place, encrypt-decrypt mismatch\n",algo, mode);
+
+
+  gcry_cipher_close (hd);
+
 }
 
 
@@ -1263,7 +1292,7 @@ check_digests (void)
   if (verbose)
     fprintf (stderr, "Starting hash checks.\n");
 
-  for (i = 0; i < 1 && algos[i].md; i++)
+  for (i = 0; algos[i].md; i++)
     {
       if (verbose)
 	fprintf (stderr, "  checking %s [%i] for length %zi\n", 
