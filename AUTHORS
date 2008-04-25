@@ -2,6 +2,7 @@ Library: Libgcrypt
 Maintainer: Werner Koch <wk@gnupg.org>
 Bug reports: <bug-libgcrypt@gnupg.org>  or http://bugs.gnupg.org
 Security related bug reports: <security@gnupg.org>
+License: LGPLv2.1+
 
 Libgcrypt used to be part of GnuPG but has been taken out into its own
 package on 2000-12-21.
@@ -110,7 +111,7 @@ original NTT provided GPL source.
 
 
  Copyright 1998, 1999, 2000, 2001, 2002, 2003,
-           2006, 2007 Free Software Foundation, Inc.
+           2006, 2007, 2008 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

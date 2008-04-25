@@ -1,3 +1,9 @@
+2008-04-25  Werner Koch  <wk@g10code.com>
+
+	Release 1.4.1.
+	
+	* configure.ac: Bump LT version to C15/A4/R4.
+
 2008-04-22  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Set version to 1.4.1rc1.

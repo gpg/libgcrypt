@@ -6,7 +6,7 @@
 2008-04-18  Werner Koch  <wk@g10code.com>
 
 	* sha1.c (transform_aligned): Remove.  That is will obviosuly not
-	work becuase we need a scratch working area and our internal API
+	work because we need a scratch working area and our internal API
 	does not allow to modify the buffers.
 
 	* rijndael.c: Factor tables out to ..

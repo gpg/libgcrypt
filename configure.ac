@@ -15,9 +15,8 @@
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public
-# License along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
-#
+# License along with this program; if not, see <http://www.gnu.org/licenses/>.
+
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
 AC_PREREQ(2.60)
@@ -27,7 +26,7 @@ min_automake_version="1.10"
 # Remember to change the version number immediately *after* a release.
 # Set my_issvn to "yes" for non-released code.  Remember to run an
 # "svn up" and "autogen.sh" right before creating a distribution.
-m4_define([my_version], [1.4.1rc1])
+m4_define([my_version], [1.4.1])
 m4_define([my_issvn], [no])
 
 m4_define([svn_revision], m4_esyscmd([echo -n $( (svn info 2>/dev/null \
@@ -41,7 +40,7 @@ AC_INIT([libgcrypt],
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=15
 LIBGCRYPT_LT_AGE=4
-LIBGCRYPT_LT_REVISION=3
+LIBGCRYPT_LT_REVISION=4
 
 
 # If the API is changed in an incompatible way: increment the next counter.
