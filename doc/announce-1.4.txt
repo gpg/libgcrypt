@@ -1,0 +1,155 @@
+To: gnupg-announce@gnupg.org, info-gnu@gnu.org
+Cc: gcrypt-devel@gnupg.org
+
+
+Hello! 
+
+We are pleased to announce the availability of Libgcrypt 1.4.0.  This
+is the new stable version of Libgcrypt and upward compatible with the
+1.2 series.
+
+The 1.2 series will enter end of life state in 2 years on 2009-12-31.
+
+Libgcrypt is a general purpose library of cryptographic building
+blocks.  It is originally based on code used by GnuPG.  It does not
+provide any implementation of OpenPGP or other protocols.  Thorough
+understanding of applied cryptography is required to use Libgcrypt.
+
+
+Noteworthy changes between 1.2.x and 1.4.0 are:
+
+ * Support for SHA-224 and HMAC using SHA-384 and SHA-512.
+
+ * Support for the SEED cipher.
+
+ * Support for the Camellia cipher. 
+
+ * Support for OFB encryption mode.
+
+ * Support for DSA2.
+
+ * Support for Microsoft Windows.
+
+ * The entire library is now under the LGPLv2+. The helper programs
+   and the manual are under the GPLv2+.  Kudos to Peter Gutmann for
+   giving permissions to relicense the rndw32 and rndunix modules.
+
+ * The visibility attribute is now used if supported by the toolchain.
+
+ * The ACE engine of VIA processors is now used for AES-128.
+
+ * Changed the way the RNG gets initialized.  This allows to keep it
+   uninitialized as long as no random numbers are used.
+
+ * Updated the entropy gatherer for W32.
+
+ * Made the RNG immune against fork without exec.
+
+ * Reading and writing the random seed file is now protected by a
+   fcntl style file lock on systems that provide this function.
+
+ * gcry_mpi_rshift does not anymore truncate the shift count.
+
+ * Reserved algorithm ranges for use by applications.
+
+ * The new function gcry_md_debug should be used instead of the
+   gcry_md_start_debug and gcry_md_stop_debug macros.
+
+ * Non executable stack support is now used by default on systems
+   supporting it.
+
+ * Assembler support for the AMD64 architecture.
+
+ * New configure option --enable-mpi-path for optimized builds.
+
+ * Fixed a bug in the detection of symbol prefixes which inhibited the
+   build of optimized assembler code on certain systems.
+
+ * New control code GCRYCTL_PRINT_CONFIG to print the build
+   configuration.
+
+ * Experimental support for ECDSA; should only be used for testing.
+
+ * New configure option --enable-random-daemon to support a system
+   wide random daemon.  The daemon code is experimental and not yet
+   very well working.  It will eventually allow to keep a global
+   random pool for the sake of short living processes.
+
+ * Minor changes to some function declarations.  Buffer arguments are
+   now typed as void pointer.  This should not affect any compilation.
+   Fixed two bugs in return values and clarified documentation.
+
+ * Interface changes relative to the 1.2.0 release:
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   gcry_fast_random_pol       NEW.
+   gcry_md_debug              NEW.
+   gcry_sexp_nth_string       NEW.
+   GCRY_MD_SHA224             NEW.
+   GCRY_PK_USAGE_CERT         NEW.
+   GCRY_PK_USAGE_AUTH         NEW.
+   GCRY_PK_USAGE_UNKN         NEW.
+   GCRY_PK_ECDSA              NEW.
+   GCRY_CIPHER_SEED           NEW.
+   GCRY_CIPHER_CAMELLIA128    NEW.
+   GCRY_CIPHER_CAMELLIA192    NEW.
+   GCRY_CIPHER_CAMELLIA256    NEW.
+   GCRYCTL_FAKED_RANDOM_P     NEW. 
+   GCRYCTL_PRINT_CONFIG       NEW.
+   GCRYCTL_SET_RNDEGD_SOCKET  NEW.
+   gcry_mpi_scan           CHANGED: Argument BUFFER is now void*.
+   gcry_pk_algo_name       CHANGED: Returns "?" instead of NULL.
+   gcry_cipher_algo_name   CHANGED: Returns "?" instead of "".
+   gcry_pk_spec_t          CHANGED: Element ALIASES is now const ptr.
+   gcry_md_write_t         CHANGED: Argument BUF is now a const void*.
+   gcry_md_ctl             CHANGED: Argument BUFFER is now void*.
+   gcry_cipher_encrypt     CHANGED: Arguments IN and OUT are now void*.
+   gcry_cipher_decrypt     CHANGED: Arguments IN and OUT are now void*.
+   gcry_sexp_sprint        CHANGED: Argument BUFFER is now void*.
+   gcry_create_nonce       CHANGED: Argument BUFFER is now void*.
+   gcry_randomize          CHANGED: Argument BUFFER is now void*.
+   gcry_cipher_register    CHANGED: Argument ALGORITHM_ID is now int*.
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+
+Source code is hosted at the GnuPG FTP server and its mirrors as
+listed at http://www.gnupg.org/download/mirrors.html .  On the primary
+server the source file and its digital signatures is:
+
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.0.tar.bz2 (942k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.0.tar.bz2.sig
+
+This file is bzip2 compressed.  A gzip compressed version is also
+available:
+
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.0.tar.gz (1176k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.0.tar.gz.sig
+
+The SHA-1 checksums are:
+
+cd1b52e8ecfa361737c6f130ed2f1d850e312c16  libgcrypt-1.4.0.tar.bz2
+69183b7100b60da8eb1648f49836a611454541bb  libgcrypt-1.4.0.tar.gz
+
+For help on developing with Libgcrypt you should read the included
+manual and optional ask on the gcrypt-devel mailing list [1].
+
+Improving Libgcrypt is costly, but you can help!  We are looking for
+organizations that find Libgcrypt useful and wish to contribute back.
+You can contribute by reporting bugs, improve the software [2], or by
+donating money.
+
+Commercial support contracts for Libgcrypt are available [3], and they
+help finance continued maintenance.  g10 Code GmbH, a Duesseldorf
+based company, is currently funding Libgcrypt development.  We are
+always looking for interesting development projects.
+
+Many thanks to all who contributed to Libgcrypt development, be it bug
+fixes, code, documentation, testing or helping users.
+
+Happy hacking,
+
+  Werner
+
+
+[1] See http://www.gnupg.org/documentation/mailing-lists.html .
+[2] Note that copyright assignments to the FSF are required.
+[3] See the service directory at http://www.gnupg.org/service.html .
