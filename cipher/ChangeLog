@@ -1,3 +1,8 @@
+2008-06-24  Szakats Istvan <szaki.ms@gmail.com>  (wk)
+
+	* ac.c (_gcry_ac_key_destroy, _gcry_ac_key_pair_generate): Relase
+	some more memory.
+
 2008-04-22  Werner Koch  <wk@g10code.com>
 
 	* rijndael.c (_gcry_aes_cfb_enc, _gcry_aes_cbc_enc) 

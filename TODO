@@ -66,6 +66,16 @@ What's left to do                                 -*- outline -*-
   collectros need to run that bunch of Unix utilities we don't waste
   their precious results.
 
+* Add transient flag to RSA key generation
+ For short living keys it makes sense to allow generation using a PRNG.
+ We could implement it this way:
+
+ (genkey
+   (rsa
+     (nbits 4:1024)
+     (transient-key)))
+
+
 * Out of memory handler for secure memory should do proper logging
 
   There is no shortage of standard memory, so logging is most likely

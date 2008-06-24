@@ -1,6 +1,6 @@
 /* ac.c - Alternative interface for asymmetric cryptography.
    Copyright (C) 2003, 2004, 2005, 2006
-                 2007  Free Software Foundation, Inc.
+                 2007, 2008  Free Software Foundation, Inc.
  
    This file is part of Libgcrypt.
   
@@ -1496,6 +1496,7 @@ _gcry_ac_key_pair_generate (gcry_ac_handle_t handle, unsigned int nbits,
   arg_list = NULL;
   genkey_sexp_request = NULL;
   genkey_sexp_reply = NULL;
+  key_sexp = NULL;
 
   /* Allocate key pair.  */
   key_pair_new = gcry_malloc (sizeof (struct gcry_ac_key_pair));
@@ -1631,6 +1632,7 @@ _gcry_ac_key_pair_generate (gcry_ac_handle_t handle, unsigned int nbits,
   gcry_free (arg_list);
   gcry_sexp_release (genkey_sexp_request);
   gcry_sexp_release (genkey_sexp_reply);
+  gcry_sexp_release (key_sexp);
   if (err)
     {
       _gcry_ac_data_destroy (key_data_secret);
@@ -1679,8 +1681,13 @@ _gcry_ac_key_destroy (gcry_ac_key_t key)
       if (key->data)
         {
           for (i = 0; i < key->data->data_n; i++)
-            if (key->data->data[i].mpi != NULL)
-              gcry_mpi_release (key->data->data[i].mpi);
+            {
+              if (key->data->data[i].mpi)
+                gcry_mpi_release (key->data->data[i].mpi);
+              if (key->data->data[i].name)
+                gcry_free (key->data->data[i].name);
+            }
+          gcry_free (key->data->data);
           gcry_free (key->data);
         }
       gcry_free (key);
