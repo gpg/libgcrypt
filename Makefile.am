@@ -22,8 +22,8 @@ AUTOMAKE_OPTIONS = dist-bzip2
 DISTCHECK_CONFIGURE_FLAGS = --enable-random-daemon \
   --enable-ciphers=arcfour:blowfish:cast5:des:aes:twofish:serpent:rfc2268:seed:camellia
 
-DIST_SUBDIRS = m4 mpi cipher src doc tests
-SUBDIRS = mpi cipher src doc tests
+DIST_SUBDIRS = m4 mpi cipher random src doc tests
+SUBDIRS = mpi cipher random src doc tests
 EXTRA_DIST = BUGS autogen.sh README.SVN
 DISTCLEANFILES = 
 

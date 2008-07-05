@@ -88,9 +88,15 @@ endif !HAVE_W32_SYSTEM
 libgcrypt_la_LDFLAGS = $(gcrypt_res_ldflag) $(no_undefined) $(export_symbols) \
 	$(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
-libgcrypt_la_DEPENDENCIES = ../cipher/libcipher.la ../mpi/libmpi.la \
+libgcrypt_la_DEPENDENCIES = \
+	../cipher/libcipher.la \
+	../random/librandom.la \
+	../mpi/libmpi.la \
 	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
-libgcrypt_la_LIBADD = ../cipher/libcipher.la ../mpi/libmpi.la \
+libgcrypt_la_LIBADD = \
+	../cipher/libcipher.la \
+	../random/librandom.la \
+	../mpi/libmpi.la \
 	@LTLIBOBJS@ @GPG_ERROR_LIBS@
 
 

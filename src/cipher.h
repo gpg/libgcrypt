@@ -24,7 +24,7 @@
 
 #define DBG_CIPHER _gcry_get_debug_flag( 1 )
 
-#include "../cipher/random.h"
+#include "../random/random.h"
 
 #define PUBKEY_FLAG_NO_BLINDING (1 << 0)
 

@@ -1081,6 +1081,7 @@ Makefile
 m4/Makefile
 mpi/Makefile
 cipher/Makefile
+random/Makefile
 doc/Makefile
 src/Makefile
 src/gcrypt.h

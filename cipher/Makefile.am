@@ -15,8 +15,7 @@
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public
-# License along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+# License along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 # Process this file with automake to produce Makefile.in
 
@@ -30,8 +29,7 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 noinst_LTLIBRARIES = libcipher.la
 
-GCRYPT_MODULES = @GCRYPT_CIPHERS@ @GCRYPT_PUBKEY_CIPHERS@ @GCRYPT_DIGESTS@ \
-                 @GCRYPT_RANDOM@
+GCRYPT_MODULES = @GCRYPT_CIPHERS@ @GCRYPT_PUBKEY_CIPHERS@ @GCRYPT_DIGESTS@
 
 libcipher_la_DEPENDENCIES = $(GCRYPT_MODULES)
 libcipher_la_LIBADD = $(GCRYPT_MODULES)
@@ -40,15 +38,7 @@ libcipher_la_SOURCES = \
 cipher.c pubkey.c ac.c md.c \
 bithelp.h  \
 primegen.c  \
-random.c random.h \
-rndhw.c \
-rand-internal.h \
 rmd.h
-
-if USE_RANDOM_DAEMON
-libcipher_la_SOURCES += random-daemon.c 
-endif USE_RANDOM_DAEMON
-
 
 EXTRA_libcipher_la_SOURCES = \
 arcfour.c \
@@ -63,10 +53,6 @@ md4.c \
 md5.c \
 rijndael.c rijndael-tables.h \
 rmd160.c \
-rndlinux.c \
-rndegd.c \
-rndunix.c \
-rndw32.c \
 rsa.c \
 seed.c \
 serpent.c \

@@ -1,0 +1,17 @@
+2008-07-05  Werner Koch  <wk@g10code.com>
+
+	* random-daemon.c, random.h, rndhw.c, rndunix.c, rand-internal.h *
+	random.c, rndegd.c, rndlinux.c, rndw32.c: Move from ../cipher/ to
+	here.
+	* Makefile.am: New.
+
+ Copyright 2008 Free Software Foundation, Inc.
+
+ This file is free software; as a special exception the author gives
+ unlimited permission to copy and/or distribute it, with or without
+ modifications, as long as this notice is preserved.
+
+ This file is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
+ implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+	

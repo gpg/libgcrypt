@@ -1,3 +1,9 @@
+2008-07-05  Werner Koch  <wk@g10code.com>
+
+	* random/: New.
+	* Makefile.am (DIST_SUBDIRS): Add random.
+	* configure.ac (AC_CONFIG_FILES): Add random/Makefile.
+
 2008-04-25  Werner Koch  <wk@g10code.com>
 
 	Release 1.4.1.

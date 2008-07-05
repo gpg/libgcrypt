@@ -51,7 +51,7 @@
 #include <process.h>
 #endif
 #include "g10lib.h"
-#include "rmd.h"
+#include "../cipher/rmd.h"
 #include "random.h"
 #include "rand-internal.h"
 #include "cipher.h" /* Required for the rmd160_hash_buffer() prototype.  */
