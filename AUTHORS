@@ -2,7 +2,8 @@ Library: Libgcrypt
 Maintainer: Werner Koch <wk@gnupg.org>
 Bug reports: <bug-libgcrypt@gnupg.org>  or http://bugs.gnupg.org
 Security related bug reports: <security@gnupg.org>
-License: LGPLv2.1+
+License (library): LGPLv2.1+
+License (manual and tools): GPLv2+
 
 Libgcrypt used to be part of GnuPG but has been taken out into its own
 package on 2000-12-21.

@@ -820,8 +820,8 @@ _gcry_rndunix_gather_random (void (*add)(const void*, size_t,
 	return 0;
 
     if( !gatherer_pid ) {
-	/* make sure we are not setuid */
-	if( getuid() != geteuid() )
+	/* Make sure we are not setuid. */
+	if ( getuid() != geteuid() )
 	    BUG();
 	/* time to start the gatherer process */
 	if( pipe( pipedes ) ) {
