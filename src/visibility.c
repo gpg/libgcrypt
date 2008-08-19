@@ -457,6 +457,12 @@ gcry_mpi_rshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n)
   _gcry_mpi_rshift (x, a, n);
 }
 
+void
+gcry_mpi_lshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n)
+{
+  _gcry_mpi_lshift (x, a, n);
+}
+
 gcry_mpi_t
 gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits)
 {

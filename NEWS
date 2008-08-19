@@ -1,14 +1,19 @@
-Noteworthy changes in version 1.4.2
+Noteworthy changes in version 1.4.2 (unreleased)
 ------------------------------------------------
 
- * The library may now be switched into a FIPS mode.
+ * The library may now be switched into a FIPS mode.  Note that this
+   mode is not yet fully working in 1.4.2rc1.
 
  * More runtime selftests.
 
  * A few macros have been replaced by functions for better type
    checking.
 
- * The thread initialiation structure now carries version information.
+ * The thread initialization structure now carries version
+   information.
+
+ * The long missing gcry_mpi_lshift function has been added.  Note
+   that it is not yet working in 1.4.2rc1.
 
  * Interface changes relative to the 1.3.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -18,6 +23,7 @@ Noteworthy changes in version 1.4.2
  gcry_cipher_setkey      NEW: Replaces macro.
  gcry_cipher_setiv       NEW: Replaces macro.
  gcry_cipher_setctr      NEW: Replaces macro.
+ gcry_mpi_lshift         NEW.
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 

@@ -214,6 +214,7 @@
 #define gcry_mpi_randomize          _gcry_mpi_randomize
 #define gcry_mpi_release            _gcry_mpi_release
 #define gcry_mpi_rshift             _gcry_mpi_rshift
+#define gcry_mpi_lshift             _gcry_mpi_lshift
 #define gcry_mpi_scan               _gcry_mpi_scan
 #define gcry_mpi_set                _gcry_mpi_set
 #define gcry_mpi_set_bit            _gcry_mpi_set_bit
@@ -468,6 +469,7 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 #undef gcry_mpi_randomize         
 #undef gcry_mpi_release           
 #undef gcry_mpi_rshift            
+#undef gcry_mpi_lshift            
 #undef gcry_mpi_scan              
 #undef gcry_mpi_set               
 #undef gcry_mpi_set_bit           
@@ -679,6 +681,7 @@ MARK_VISIBLE (gcry_mpi_print)
 MARK_VISIBLE (gcry_mpi_randomize)
 MARK_VISIBLE (gcry_mpi_release)
 MARK_VISIBLE (gcry_mpi_rshift)
+MARK_VISIBLE (gcry_mpi_lshift)
 MARK_VISIBLE (gcry_mpi_scan)
 MARK_VISIBLE (gcry_mpi_set)
 MARK_VISIBLE (gcry_mpi_set_bit)

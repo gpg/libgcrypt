@@ -708,6 +708,9 @@ void     gcry_mpi_clear_highbit (gcry_mpi_t a, unsigned int n);
 /* Shift the value of A by N bits to the right and store the result in X. */
 void     gcry_mpi_rshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n);
 
+/* Shift the value of A by N bits to the left and store the result in X. */
+void     gcry_mpi_lshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n);
+
 /* Store NBITS of the value P points to in A and mark A as an opaque
    value.  WARNING: Never use an opaque MPI for anything thing else then 
    gcry_mpi_release, gcry_mpi_get_opaque. */
@@ -773,6 +776,7 @@ int gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 #define mpi_clear_bit(a,b)     gcry_mpi_clear_bit ((a),(b))
 #define mpi_clear_highbit(a,b) gcry_mpi_clear_highbit ((a),(b))
 #define mpi_rshift(a,b,c)      gcry_mpi_rshift ((a),(b),(c))
+#define mpi_lshift(a,b,c)      gcry_mpi_lshift ((a),(b),(c))
 
 #define mpi_set_opaque(a,b,c)  gcry_mpi_set_opaque( (a), (b), (c) )
 #define mpi_get_opaque(a,b)    gcry_mpi_get_opaque( (a), (b) )

@@ -297,6 +297,16 @@ _gcry_mpi_lshift_limbs( gcry_mpi_t a, unsigned int count )
 }
 
 
+/*
+ * Shift A by N bits to the left.
+ */
+void
+gcry_mpi_lshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
+{
+  BUG (); /* Not yet implemented in 1.4.2rc1 but will be soon.  */
+}
+
+
 /****************
  * Shift A by COUNT limbs to the right
  * This is used only within the MPI library

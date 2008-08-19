@@ -67,7 +67,7 @@ section entitled ``Copying''.
 * Handler Functions::            Working with handler functions.
 * Symmetric cryptography::       How to use symmetric cryptography.
 * Public Key cryptography::      How to use public key cryptography.
-* Hashing::                      How to use hashing.
+* Hashing::                      How to use hash and MAC algorithms.
 * Random Numbers::               How to work with random numbers.
 * S-expressions::                How to manage S-expressions.
 * MPI library::                  How to work with multi-precision-integers.
@@ -102,6 +102,7 @@ Indices
 @c **********************************************************
 @node Introduction
 @chapter Introduction
+
 Libgcrypt is a library providing cryptographic building blocks.
 
 @menu
@@ -3200,12 +3201,11 @@ contained in @var{name} in @var{algorithm}. Deprecated; use
 @node Hashing
 @chapter Hashing
 
-Libgcrypt provides an easy and consistent to use interface
-for hashing.  Hashing is buffered and several hash algorithms can be
-updated at once.  It is possible to calculate a MAC using the same
-routines.  The programming model follows an open/process/close
-paradigm and is in that similar to other building blocks provided by
-Libgcrypt.
+Libgcrypt provides an easy and consistent to use interface for hashing.
+Hashing is buffered and several hash algorithms can be updated at once.
+It is possible to compute a MAC using the same routines.  The
+programming model follows an open/process/close paradigm and is in that
+similar to other building blocks provided by Libgcrypt.
 
 For convenience reasons, a few cyclic redundancy check value operations
 are also supported.

@@ -230,6 +230,8 @@ EXPORTS
       gcry_cipher_setkey    @188
       gcry_cipher_setiv     @189
       gcry_cipher_setctr    @190
-
+      
+      gcry_mpi_lshift       @191
+  
 
 

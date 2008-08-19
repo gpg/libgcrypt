@@ -84,8 +84,6 @@ What's left to do                                 -*- outline -*-
 * mpi_print does not use secure memory
   for internal variables.
 
-* gcry_mpi_lshift is missing
-
 * Add OAEP
 
 * gcryptrnd.c
@@ -110,4 +108,5 @@ What's left to do                                 -*- outline -*-
   We have some code to allow using libgcrypt from C++, so we also
   should have a test case.
 
-* Use aliases for symbol instead of the wrappers in visibility.c.
+* gcry_mpi_lshift needs actual code.
+

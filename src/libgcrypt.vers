@@ -100,6 +100,7 @@ GCRYPT_1.2 {
     gcry_mpi_set_flag; gcry_mpi_set_highbit; gcry_mpi_set_opaque;
     gcry_mpi_set_ui; gcry_mpi_snew; gcry_mpi_sub; gcry_mpi_sub_ui;
     gcry_mpi_subm; gcry_mpi_swap; gcry_mpi_test_bit;
+    gcry_mpi_lshift;
 
   local:
     *;

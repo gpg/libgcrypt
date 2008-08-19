@@ -219,6 +219,7 @@ unsigned _gcry_mpi_trailing_zeros( gcry_mpi_t a );
 #define mpi_clear_bit(a,b)     gcry_mpi_clear_bit ((a),(b))
 #define mpi_clear_highbit(a,b) gcry_mpi_clear_highbit ((a),(b))
 #define mpi_rshift(a,b,c)      gcry_mpi_rshift ((a),(b),(c))
+#define mpi_lshift(a,b,c)      gcry_mpi_lshift ((a),(b),(c))
 
 void _gcry_mpi_normalize( gcry_mpi_t a );
 
