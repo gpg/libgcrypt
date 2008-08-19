@@ -12,7 +12,7 @@ This manual is for Libgcrypt
 (version @value{VERSION}, @value{UPDATED}),
 which is GNU's library of cryptographic building blocks.
 
-Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007 Free Software Foundation, Inc.
+Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -66,17 +66,18 @@ section entitled ``Copying''.
 * Generalities::                 General library functions and data types.
 * Handler Functions::            Working with handler functions.
 * Symmetric cryptography::       How to use symmetric cryptography.
+* Public Key cryptography::      How to use public key cryptography.
 * Hashing::                      How to use hashing.
-* Public Key cryptography (I)::  How to use public key cryptography.
-* Public Key cryptography (II):: How to use public key cryptography, alternatively.
 * Random Numbers::               How to work with random numbers.
 * S-expressions::                How to manage S-expressions.
 * MPI library::                  How to work with multi-precision-integers.
 * Prime numbers::                How to use the Prime number related functions.
 * Utilities::                    Utility functions.
+* Architecture::                 How Libgcrypt works internally.
 
 Appendices
 
+* FIPS Restrictions::           Restrictions in FIPS mode.
 * Library Copying::             The GNU Lesser General Public License
                                 says how you can copy and share Libgcrypt.
 * Copying::                     The GNU General Public License says how you
@@ -86,86 +87,6 @@ Indices
 
 * Concept Index::               Index of concepts and programs.
 * Function and Data Index::     Index of functions, variables and data types.
-
-@detailmenu
- --- The Detailed Node Listing ---
-
-Introduction
-* Getting Started::             How to use this manual.
-* Features::                    A glance at Libgcrypt's features.
-* Overview::                    Overview about the library.
-
-Preparation
-* Header::                              What header file you need to include.
-* Building sources::                    How to build sources using the library.
-* Building sources using Automake::     How to build sources with the help of Automake.
-* Initializing the library::            How to initialize the library.
-* Multi-Threading::                     How Libgcrypt can be used in a MT environment.
-
-Generalities
-* Controlling the library::     Controlling Libgcrypt's behavior.
-* Modules::                     Description of extension modules.
-* Error Handling::              Error codes and such.
-
-Handler Functions
-* Progress handler::            Using a progress handler function.
-* Allocation handler::          Using special memory allocation functions.
-* Error handler::               Using error handler functions.
-* Logging handler::             Using a special logging function.
-
-Symmetric cryptography
-* Available ciphers::           List of ciphers supported by the library.
-* Cipher modules::              How to work with cipher modules.
-* Available cipher modes::      List of cipher modes supported by the library.
-* Working with cipher handles:: How to perform operations related to cipher handles.
-* General cipher functions::    General cipher functions independent of cipher handles.
-
-Hashing
-* Available hash algorithms::           List of hash algorithms supported by the library.
-* Hash algorithm modules::              How to work with hash algorithm modules.
-* Working with hash algorithms::        List of functions related to hashing.
-
-Public Key cryptography (I)
-* Used S-expressions::                    Introduction into the used S-expression.
-* Available algorithms::                  Algorithms supported by the library.
-* Public key modules::                    How to work with public key modules.
-* Cryptographic Functions::               Functions for performing the cryptographic actions.
-* General public-key related Functions::  General functions, not implementing any cryptography.
-
-Public Key cryptography (II)
-* Available asymmetric algorithms:: List of algorithms supported by the library.
-* Working with sets of data::       How to work with sets of data.
-* Working with handles::            How to use handles.
-* Working with keys::               How to work with keys.
-* Using cryptographic functions::   How to perform cryptographic operations.
-* Handle-independent functions::    General functions independent of handles.
-
-Random Numbers
-* Quality of random numbers::   Libgcrypt uses different quality levels.
-* Retrieving random numbers::   How to retrieve random numbers.
-
-S-expressions
-* Data types for S-expressions::   Data types related with S-expressions.
-* Working with S-expressions::     How to work with S-expressions.
-
-MPI library
-* Data types::                  MPI related data types.
-* Basic functions::             First steps with MPI numbers.
-* MPI formats::                 External representation of MPIs.
-* Calculations::                Performing MPI calculations.
-* Comparisons::                 How to compare MPI values.
-* Bit manipulations::           How to access single bits of MPI values.
-* Miscellaneous::               Miscellaneous MPI functions.
-
-Prime numbers
-* Generation::                  Generation of new prime numbers.
-* Checking::                    Checking if a given number is prime.
-
-Utilities
-* Memory allocation::           Functions related with memory allocation.
-
-@end detailmenu
-
 
 @end menu
 
@@ -220,10 +141,9 @@ a similar job.
 @item It's Free Software
 Anybody can use, modify, and redistribute it under the terms of the GNU
 Lesser General Public License (@pxref{Library Copying}).  Note, that
-some parts (which are not needed on a GNU or GNU/Linux system) are
-subject to the terms of the GNU General Public License
-(@pxref{Copying}); please see the README file of the distribution for of
-list of these parts.
+some parts (which are in general not needed by applications) are subject
+to the terms of the GNU General Public License (@pxref{Copying}); please
+see the README file of the distribution for of list of these parts.
 
 @item It encapsulates the low level cryptography
 Libgcrypt provides a high level interface to cryptographic
@@ -264,6 +184,7 @@ of the library are verified.
 * Building sources using Automake::  How to build sources with the help of Automake.
 * Initializing the library::    How to initialize the library.
 * Multi-Threading::             How Libgcrypt can be used in a MT environment.
+* FIPS mode::                   How to enable the FIPS mode.
 @end menu
 
 
@@ -295,9 +216,9 @@ Certain parts of gcrypt.h may be excluded by defining these macros:
 Do not define the shorthand macros @code{mpi_*} for @code{gcry_mpi_*}.
 
 @item GCRYPT_NO_DEPRECATED
-Do not include defintions for deprecated features.
+Do not include defintions for deprecated features.  This is useful to
+make sure that no deprecated features are used.
 @end table
-
 
 @node Building sources
 @section Building sources
@@ -394,10 +315,10 @@ after program startup.
 
 @deftypefun const char *gcry_check_version (const char *@var{req_version})
 
-The function @code{gcry_check_version} initializes the sub-systems
-used by Libgcrypt and must be invoked before any other function in the
-library, with the exception of the @code{GCRYCTL_SET_THREAD_CBS}
-command (called via the @code{gcry_control} function), see
+The function @code{gcry_check_version} initializes some subsystems used
+by Libgcrypt and must be invoked before any other function in the
+library, with the exception of the @code{GCRYCTL_SET_THREAD_CBS} command
+(called via the @code{gcry_control} function).
 @xref{Multi-Threading}.
 
 Furthermore, this function returns the version number of the library.
@@ -405,6 +326,94 @@ It can also verify that the version number is higher than a certain
 required version number @var{req_version}, if this value is not a null
 pointer.
 @end deftypefun
+
+Libgcrypt uses a concept known as secure memory, which is a region of
+memory set aside for storing sensitive data.  Because such memory is a
+scare resource, it needs to be setup in advanced to a fixed size.
+Further, most operating systems have special requirements on how that
+secure memory can be used.  For example, it might be required to install
+an application as ``setuid(root)'' to allow allocating such memory.
+Libgcrypt requires a sequence of initialization steps to make sure that
+this works correctly.  The following examples show the necessary steps.
+
+If you don't have a need for secure memory, for example if your
+application does not use secret keys or other confidential data or it
+runs in a controlled environment where key material floating around in
+memory is not a problem, you should initialize Libgcrypt this way:
+
+@example
+  /* Version check should be the very first call because it
+     makes sure that important subsystems are intialized. */
+  if (!gcry_check_version (GCRYPT_VERSION))
+    @{
+      fputs ("libgcrypt version mismatch\n", stderr);
+      exit (2);
+    @}
+        
+  /* Disable secure memory.  */
+  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+
+  /* ... If required, other initialization goes here.  */
+
+  /* Tell Libgcrypt that initialization has completed. */
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+@end example
+
+
+If you have to protect your keys or other information in memory against
+being swapped out to disk and to enable an automatic overwrite of used
+and freed memory, you need to initialize Libgcrypt this way:
+
+@example
+  /* Version check should be the very first call because it
+     makes sure that important subsystems are intialized. */
+  if (!gcry_check_version (GCRYPT_VERSION))
+    @{
+      fputs ("libgcrypt version mismatch\n", stderr);
+      exit (2);
+    @}
+
+@anchor{sample-use-suspend-secmem}
+  /* We don't want to see any warnings, e.g. because we have not yet
+     parsed program options which might be used to suppress such
+     warnings. */
+  gcry_control (GCRYCTL_SUSPEND_SECMEM_WARN);
+
+  /* ... If required, other initialization goes here.  Note that the
+     process might still be running with increased privileges and that 
+     the secure memory has not been intialized.  */
+
+  /* Allocate a pool of 16k secure memory.  This make the secure memory
+     available and also drops privileges where needed.  */
+  gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
+
+@anchor{sample-use-resume-secmem}
+  /* It is now okay to let Libgcrypt complain when there was/is a problem
+     with the secure memory. */
+  gcry_control (GCRYCTL_RESUME_SECMEM_WARN);
+
+  /* ... If required, other initialization goes here.  */
+
+  /* Tell Libgcrypt that initialization has completed. */
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+@end example
+
+It is important that these initialization steps are not done by a
+library but by the actual application.  A library using Libgcrypt might
+want to check for finished initialization using:
+
+@example
+  if (!gcry_control (GCRYCTL_INITIALIZATION_FINISHED_P))
+    @{
+      fputs ("libgcrypt has not been initialized\n", stderr);
+      abort ();
+    @}       
+@end example
+
+Instead of terminating the process, the library may instead print a
+warning and try to initialize Libgcrypt itself.  See also the section on
+multi-threading below for more pitfalls.
+
 
 
 @node Multi-Threading
@@ -500,6 +509,45 @@ Note that these macros need to be terminated with a semicolon.  Keep
 in mind that these are convenient macros for C programmers; C++
 programmers might have to wrap these macros in an ``extern C'' body.
 
+
+
+@node FIPS mode
+@section FIPS Mode
+
+Libgcrypt may be used in a FIPS 140 mode.  Note, that this does not
+necessary mean that Libcgrypt is n appoved FIPS 140-2 module.  Check the
+NIST database at @url{http://csrc.nist.gov/groups/STM/cmvp/} to see what
+versions of Libgcrypt are approved.
+
+Because FIPS 140 has certain restrictions on the use of cryptography
+which are not always wanted, Libgcrypt needs to be put into FIPS mode
+explicitly.  Three alternative mechanisms are provided to switch
+Libgcrypt into this mode:
+
+@itemize
+@item 
+If the file @file{/proc/fips140} exists and contains the string value
+@code{1}, Libgcrypt is put into FIPS mode at initialization time.
+Obviously this works only on systems with a @code{proc} file system
+(ie.e GNU/Linux).
+
+@item 
+If the file @file{/etc/gcrypt/fips140.force} exists, Libgcrypt is put
+into FIPS mode at initialization time.  Note that this filename is
+hardwired and does not depend on any configuration options.
+
+@item 
+If the applications requests FIPS mode using the control command
+@code{GCRYCTL_FORCE_FIPS_MODE}.  This may be done at any time.
+
+@end itemize
+
+Note that once Libgcrypt has been put into FIPS mode, it is not possible
+to switch back to standard mode without terminating the process first.
+
+
+
+
 @c **********************************************************
 @c *******************  General  ****************************
 @c **********************************************************
@@ -541,49 +589,72 @@ your application.
 This option can only be used at initialization time.
 
 
-@item GCRYCTL_DUMP_RANDOM_STATS
-This command dumps PRNG related statistics to the librarys logging
-stream.
+@item GCRYCTL_DUMP_RANDOM_STATS; Arguments: none
+This command dumps randum number generator related statistics to the
+library's logging stream.
 
-@item GCRYCTL_DUMP_MEMORY_STATS
-This command dumps memory manamgent related statistics to the librarys
+@item GCRYCTL_DUMP_MEMORY_STATS; Arguments: none
+This command dumps memory managment related statistics to the library's
 logging stream.
 
-@item GCRYCTL_DUMP_SECMEM_STATS
+@item GCRYCTL_DUMP_SECMEM_STATS; Arguments: none
 This command dumps secure memory manamgent related statistics to the
-librarys logging stream.
+library's logging stream.
 
-@item GCRYCTL_DUMP_CONFIG; Arguments: none
-This command dumps information pertaining to the configuration of
-libgcrypt to the logging stream.  It may be used before the
-intialization has been finished but not before a gcry_version_check.
-
-@item GCRYCTL_DROP_PRIVS
+@item GCRYCTL_DROP_PRIVS; Arguments: none
 This command disables the use of secure memory and drops the priviliges
-of the current process.  FIXME.
+of the current process.  This command has not much use; the suggested way
+to disable secure memory is to use @code{GCRYCTL_DISABLE_SECMEM} right
+after initialization.
 
-@item GCRYCTL_DISABLE_SECMEM
+@item GCRYCTL_DISABLE_SECMEM; Arguments: none
 This command disables the use of secure memory. 
 
 Many applications do not require secure memory, so they should disable
 it right away.  There won't be a problem if not disabling it unless one
 makes use of a feature which requires secure memory - in that case the
-process will abort because the secmem is not initialized.
+process will abort because the secmem is not initialized.  This command
+should be executed right after @code{gcry_check_version}.
 
+@item GCRYCTL_INIT_SECMEM; Arguments: int nbytes
+This command is used to allocate a pool of secure memory and thus
+enabling the use of secure memory.  It also drops all extra privileges
+the process has (i.e. if it is run as setuid (root)).  If the argument
+@var{nbytes} is 0, secure memory will be disabled.  The minimum amount
+of secure memory allocated is currently 16384 bytes; you may thus use a
+value of 1 to request that default size.
 
-@item GCRYCTL_INIT_SECMEM
-@item GCRYCTL_TERM_SECMEM
-@item GCRYCTL_DISABLE_SECMEM_WARN
-@item GCRYCTL_SUSPEND_SECMEM_WARN
-@item GCRYCTL_RESUME_SECMEM_WARN
+@item GCRYCTL_TERM_SECMEM; Arguments: none
+This command zeroises the secure memory and destroys the handler.  The
+secure memory pool may not be used anymore after running this command.
+If the secure memory pool as already been destroyed, this command has no
+effect.  Applications might want to run this command from their exit
+handler to make sure that the secure memory gets properly destroyed.
+This command is not necessary thread-safe but that should not be needed
+in cleanup code.  It may be called from a signal handler.
+
+@item GCRYCTL_DISABLE_SECMEM_WARN; Arguments: none
+Disable warning messages about problems with the secure memory
+subsystem. This command should be run right after
+@code{gcry_check_version}.
+
+@item GCRYCTL_SUSPEND_SECMEM_WARN; Arguments: none
+Postpone warning messages from the secure memory subsystem. 
+@xref{sample-use-suspend-secmem,,the initialization example}, on how to
+use it. 
+
+@item GCRYCTL_RESUME_SECMEM_WARN; Arguments: none
+Resume warning messages from the secure memory subsystem.
+@xref{sample-use-resume-secmem,,the initialization example}, on how to
+use it.
 
 @item GCRYCTL_USE_SECURE_RNDPOOL; Arguments: none
-
 This command tells the PRNG to store random numbers in secure memory.
-FIXME: what about initialization time?
+This command should be run right after @code{gcry_check_version} and not
+later than the command GCRYCTL_INIT_SECMEM.  Note that in FIPS mode the
+secure memory is always used.
 
 @item GCRYCTL_SET_RANDOM_SEED_FILE; Arguments: const char *filename
-
 This command specifies the file, which is to be used as seed file for
 the PRNG.  If the seed file is registered prior to initialization of the
 PRNG, the seed file's content (if it exists and seems to be valid) is
@@ -593,7 +664,6 @@ file with the following command.
 
 
 @item GCRYCTL_UPDATE_RANDOM_SEED_FILE; Arguments: none
-
 Write out the PRNG pool's content into the registered seed file.
 
 Multiple instances of the applications sharing the same random seed file
@@ -613,36 +683,86 @@ not an issue when using Linux (rndlinux driver), because this one
 guarantees to read full 16 bytes from /dev/urandom and thus there is no
 way for an attacker without kernel access to conrol these 16 bytes.
 
-@item GCRYCTL_SET_VERBOSITY
+@item GCRYCTL_SET_VERBOSITY; Arguments: int level
+This command sets the verbosity of the logging.  A level of 0 disables
+all extra logging whereas positive numbers enable more verbose logging.
+The level may be changed at any time but be aware that no memory
+syncronization is done so the effect of this command might not
+immediately show up in other threads.
 
+@item GCRYCTL_SET_DEBUG_FLAGS; Arguments: unsigned int flags
+Set the debug flag bits as given by the argument.  Be aware that that no
+memory syncronization is done so the effect of this command might not
+immediately show up in other threads.  The debug flags are not
+considered part of the API and thus may change without notice.  As of
+now bit 0 enables debugging of cipher functions and bit 1 debugging of
+multi-precision-integers.
 
-@item GCRYCTL_SET_DEBUG_FLAGS
-@item GCRYCTL_CLEAR_DEBUG_FLAGS
-@item GCRYCTL_DISABLE_INTERNAL_LOCKING
-@item GCRYCTL_ANY_INITIALIZATION_P
-@item GCRYCTL_INITIALIZATION_FINISHED_P
-@item GCRYCTL_INITIALIZATION_FINISHED
+@item GCRYCTL_CLEAR_DEBUG_FLAGS; Arguments: unsigned int flags
+Set the debug flag bits as given by the argument.  Be aware that that no
+memory syncronization is done so the effect of this command might not
+immediately show up in other threads.
+
+@item GCRYCTL_DISABLE_INTERNAL_LOCKING; Arguments: none
+This command does nothing.  It exists only for backward compatibility.
+
+@item GCRYCTL_ANY_INITIALIZATION_P; Arguments: none
+This command returns true if the library has been basically initialized.
+Such a basic initialization happens implicitly with many commands to get
+certain internal subsystems running.  The common and suggested way to
+do this basic intialization is by calling gcry_check_version.
+
+@item GCRYCTL_INITIALIZATION_FINISHED; Arguments: none
+This command tells the libray that the application has finished the
+intialization.
+
+@item GCRYCTL_INITIALIZATION_FINISHED_P; Arguments: none
+This command returns true if the command@*
+GCRYCTL_INITIALIZATION_FINISHED has already been run.
 
 @item GCRYCTL_SET_THREAD_CBS; Arguments: struct ath_ops *ath_ops
+This command registers a thread-callback structure.
+@xref{Multi-Threading}.
 
-This command registers a thread-callback structure.  See section ``multi
-threading'' for more information on this command.
-
-@item GCRYCTL_FAST_POLL
-
+@item GCRYCTL_FAST_POLL; Arguments: none
 Run a fast random poll.
 
-
 @item GCRYCTL_SET_RNDEGD_SOCKET; Arguments: const char *filename
-
 This command may be used to override the default name of the EGD socket
 to connect to.  It may be used only during initialization as it is not
 thread safe.  Changing the socket name again is not supported.  The
 function may return an error if the given filename is too long for a
 local socket name.
 
-EGD is an alternative random gatherer, used only on a few systems.
+EGD is an alternative random gatherer, used only on systems lacking a
+proper random device.
 
+@item GCRYCTL_PRINT_CONFIG; Arguments: FILE *stream
+This command dumps information pertaining to the configuration of the
+library to the given stream.  If NULL is given for @var{stream}, the log
+system is used.  This command may be used before the intialization has
+been finished but not before a gcry_version_check.
+
+@item GCRYCTL_OPERATIONAL_P; Arguments: none
+This command returns true if the library is in an operational state.
+This information makes only sense in FIPS mode.  In contrast to other
+functions, this is a pure test function and won't put the library into
+FIPS mode or change the internal state.  This command may be used before
+the intialization has been finished but not before a gcry_version_check.
+
+@item GCRYCTL_FIPS_MODE_P; Arguments: none
+This command returns true if the library is in FIPS mode.  Note, that
+this is no indication about the current state of the library.  This
+command may be used before the intialization has been finished but not
+before a gcry_version_check.
+
+@item GCRYCTL_FORCE_FIPS_MODE; Arguments: none
+Running this command puts the library into FIPS mode.  If the library
+has already been initialized or is already in FIPS mode, a selftest is
+triggered and thus the library will be put into operational state.  This
+command may even be used before a call to gcry_check_version and that is
+actually the recommended way to let an application switch the library
+into FIPS mode.
 
 
 @end table
@@ -855,7 +975,7 @@ value will be @code{0}.  In this case the error source part is of
 course @code{GPG_ERR_SOURCE_UNKNOWN}.
 
 The list of error sources that might occur in applications using
-@acronym{Libgctypt} is:
+@acronym{Libgcrypt} is:
 
 @table @code
 @item GPG_ERR_SOURCE_UNKNOWN
@@ -979,6 +1099,16 @@ This value means a verification failed because the signature is bad.
 @item GPG_ERR_NO_PUBKEY
 This value means a verification failed because the public key is not
 available.
+
+@item GPG_ERR_NOT_OPERATIONAL
+This value means that the library is not yet in state which allows to
+use this function.  This error code is in particular returned if
+Libgcrypt is operated in FIPS mode and the internal state of the
+library does not yet or not anymore allow the use of a service.
+
+This error code is only available with newer libgpg-error versions, thus
+you might see ``invalid error code'' when passing this to
+@code{gpg_strerror}.  The numeric value of this error code is 176.
 
 @item GPG_ERR_USER_1
 @item GPG_ERR_USER_2
@@ -1486,7 +1616,7 @@ This function releases the context created by @code{gcry_cipher_open}.
 In order to use a handle for performing cryptographic operations, a
 `key' has to be set first:
 
-@deftypefun gcry_error_t gcry_cipher_setkey (gcry_cipher_hd_t @var{h}, void *@var{k}, size_t @var{l})
+@deftypefun gcry_error_t gcry_cipher_setkey (gcry_cipher_hd_t @var{h}, const void *@var{k}, size_t @var{l})
 
 Set the key @var{k} used for encryption or decryption in the context
 denoted by the handle @var{h}.  The length @var{l} of the key @var{k}
@@ -1495,8 +1625,6 @@ be in the allowed range for algorithms with variable key size.  The
 function checks this and returns an error if there is a problem.  A
 caller should always check for an error.
 
-Note that this is currently implemented as a macro but may be changed
-to a function in the future.
 @end deftypefun
 
 Most crypto modes requires an initialization vector (IV), which
@@ -1504,23 +1632,21 @@ usually is a non-secret random string acting as a kind of salt value.
 The CTR mode requires a counter, which is also similar to a salt
 value.  To set the IV or CTR, use these functions:
 
-@deftypefun gcry_error_t gcry_cipher_setiv (gcry_cipher_hd_t @var{h}, void *@var{k}, size_t @var{l})
+@deftypefun gcry_error_t gcry_cipher_setiv (gcry_cipher_hd_t @var{h}, const void *@var{k}, size_t @var{l})
 
 Set the initialization vector used for encryption or decryption. The
 vector is passed as the buffer @var{K} of length @var{l} and copied to
 internal data structures.  The function checks that the IV matches the
-requirement of the selected algorithm and mode.  Note that this is
-implemented as a macro.
+requirement of the selected algorithm and mode. 
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_cipher_setctr (gcry_cipher_hd_t @var{h}, void *@var{c}, size_t @var{l})
+@deftypefun gcry_error_t gcry_cipher_setctr (gcry_cipher_hd_t @var{h}, const void *@var{c}, size_t @var{l})
 
 Set the counter vector used for encryption or decryption. The counter
 is passed as the buffer @var{c} of length @var{l} and copied to
 internal data structures.  The function checks that the counter
 matches the requirement of the selected algorithm (i.e., it must be
-the same size as the block size).  Note that this is implemented as a
-macro.
+the same size as the block size).  
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_cipher_reset (gcry_cipher_hd_t @var{h})
@@ -1674,494 +1800,10 @@ with it.
 
 
 @c **********************************************************
-@c *******************  Hash Functions  *********************
-@c **********************************************************
-@node Hashing
-@chapter Hashing
-
-Libgcrypt provides an easy and consistent to use interface
-for hashing.  Hashing is buffered and several hash algorithms can be
-updated at once.  It is possible to calculate a MAC using the same
-routines.  The programming model follows an open/process/close
-paradigm and is in that similar to other building blocks provided by
-Libgcrypt.
-
-For convenience reasons, a few cyclic redundancy check value operations
-are also supported.
-
-@menu
-* Available hash algorithms::   List of hash algorithms supported by the library.
-* Hash algorithm modules::      How to work with hash algorithm modules.
-* Working with hash algorithms::  List of functions related to hashing.
-@end menu
-
-@node Available hash algorithms
-@section Available hash algorithms
-
-@c begin table of hash algorithms
-@table @code
-@item GCRY_MD_NONE
-This is not a real algorithm but used by some functions as an error
-return value.  This constant is guaranteed to have the value @code{0}.
-
-@item GCRY_MD_SHA1
-This is the SHA-1 algorithm which yields a message digest of 20 bytes.
-
-@item GCRY_MD_RMD160
-This is the 160 bit version of the RIPE message digest (RIPE-MD-160).
-Like SHA-1 it also yields a digest of 20 bytes.
-
-@item GCRY_MD_MD5
-This is the well known MD5 algorithm, which yields a message digest of
-16 bytes. 
-
-@item GCRY_MD_MD4
-This is the MD4 algorithm, which yields a message digest of 16 bytes.
-
-@item GCRY_MD_MD2
-This is an reserved identifier for MD-2; there is no implementation yet.
-
-@item GCRY_MD_TIGER
-This is the TIGER/192 algorithm which yields a message digest of 24 bytes.
-
-@item GCRY_MD_HAVAL
-This is an reserved for the HAVAL algorithm with 5 passes and 160
-bit. It yields a message digest of 20 bytes.  Note that there is no
-implementation yet available.
-
-@item GCRY_MD_SHA224
-This is the SHA-224 algorithm which yields a message digest of 28 bytes.
-See Change Notice 1 for FIPS 180-2 for the specification.
-
-@item GCRY_MD_SHA256
-This is the SHA-256 algorithm which yields a message digest of 32 bytes.
-See FIPS 180-2 for the specification.
-
-@item GCRY_MD_SHA384
-This is the SHA-384 algorithm which yields a message digest of 48 bytes.
-See FIPS 180-2 for the specification.
-
-@item GCRY_MD_SHA512
-This is the SHA-384 algorithm which yields a message digest of 64 bytes.
-See FIPS 180-2 for the specification.
-
-@item GCRY_MD_CRC32
-This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It
-yields an output of 4 bytes.
-
-@item GCRY_MD_CRC32_RFC1510
-This is the above cyclic redundancy check function, as modified by RFC
-1510.  It yields an output of 4 bytes.
-
-@item GCRY_MD_CRC24_RFC2440
-This is the OpenPGP cyclic redundancy check function.  It yields an
-output of 3 bytes.
-
-@item GCRY_MD_WHIRLPOOL
-This is the Whirlpool algorithm which yields a message digest of 64
-bytes.
-
-@end table
-@c end table of hash algorithms
-
-@node Hash algorithm modules
-@section Hash algorithm modules
-
-Libgcrypt makes it possible to load additional `message
-digest modules'; these digests can be used just like the message digest
-algorithms that are built into the library directly.  For an
-introduction into extension modules, see @xref{Modules}.
-
-@deftp {Data type} gcry_md_spec_t
-This is the `module specification structure' needed for registering
-message digest modules, which has to be filled in by the user before
-it can be used to register a module.  It contains the following
-members:
-
-@table @code
-@item const char *name
-The primary name of this algorithm.
-@item unsigned char *asnoid
-Array of bytes that form the ASN OID.
-@item int asnlen
-Length of bytes in `asnoid'.
-@item gcry_md_oid_spec_t *oids
-A list of OIDs that are to be associated with the algorithm.  The
-list's last element must have it's `oid' member set to NULL.  See
-below for an explanation of this type.  See below for an explanation
-of this type.
-@item int mdlen
-Length of the message digest algorithm.  See below for an explanation
-of this type.
-@item gcry_md_init_t init
-The function responsible for initializing a handle.  See below for an
-explanation of this type.
-@item gcry_md_write_t write
-The function responsible for writing data into a message digest
-context.  See below for an explanation of this type.
-@item gcry_md_final_t final
-The function responsible for `finalizing' a message digest context.
-See below for an explanation of this type.
-@item gcry_md_read_t read
-The function responsible for reading out a message digest result.  See
-below for an explanation of this type.
-@item size_t contextsize
-The size of the algorithm-specific `context', that should be
-allocated for each handle.
-@end table
-@end deftp
-
-@deftp {Data type} gcry_md_oid_spec_t
-This type is used for associating a user-provided algorithm
-implementation with certain OIDs.  It contains the following members:
-
-@table @code
-@item const char *oidstring
-Textual representation of the OID.
-@end table
-@end deftp
-
-@deftp {Data type} gcry_md_init_t
-Type for the `init' function, defined as: void (*gcry_md_init_t) (void
-*c)
-@end deftp
-
-@deftp {Data type} gcry_md_write_t
-Type for the `write' function, defined as: void (*gcry_md_write_t)
-(void *c, unsigned char *buf, size_t nbytes)
-@end deftp
-
-@deftp {Data type} gcry_md_final_t
-Type for the `final' function, defined as: void (*gcry_md_final_t)
-(void *c)
-@end deftp
-
-@deftp {Data type} gcry_md_read_t
-Type for the `read' function, defined as: unsigned char
-*(*gcry_md_read_t) (void *c)
-@end deftp
-
-@deftypefun gcry_error_t gcry_md_register (gcry_md_spec_t *@var{digest}, unsigned int *algorithm_id, gcry_module_t *@var{module})
-
-Register a new digest module whose specification can be found in
-@var{digest}.  On success, a new algorithm ID is stored in
-@var{algorithm_id} and a pointer representing this module is stored
-in @var{module}.
-@end deftypefun
-
-@deftypefun void gcry_md_unregister (gcry_module_t @var{module})
-Unregister the digest identified by @var{module}, which must have been
-registered with gcry_md_register.
-@end deftypefun
-
-@deftypefun gcry_error_t gcry_md_list (int *@var{list}, int *@var{list_length})
-Get a list consisting of the IDs of the loaded message digest modules.
-If @var{list} is zero, write the number of loaded message digest
-modules to @var{list_length} and return.  If @var{list} is non-zero,
-the first *@var{list_length} algorithm IDs are stored in @var{list},
-which must be of according size.  In case there are less message
-digests modules than *@var{list_length}, *@var{list_length} is updated
-to the correct number.
-@end deftypefun
-
-@node Working with hash algorithms
-@section Working with hash algorithms
-
-To use most of these function it is necessary to create a context;
-this is done using:
-
-@deftypefun gcry_error_t gcry_md_open (gcry_md_hd_t *@var{hd}, int @var{algo}, unsigned int @var{flags})
-
-Create a message digest object for algorithm @var{algo}.  @var{flags}
-may be given as an bitwise OR of constants described below.  @var{algo}
-may be given as @code{0} if the algorithms to use are later set using
-@code{gcry_md_enable}. @var{hd} is guaranteed to either receive a valid
-handle or NULL.
-
-For a list of supported algorithms, see @xref{Available hash
-algorithms}.
-
-The flags allowed for @var{mode} are:
-
-@c begin table of hash flags
-@table @code
-@item GCRY_MD_FLAG_SECURE
-Allocate all buffers and the resulting digest in "secure memory".  Use
-this is the hashed data is highly confidential.
-
-@item GCRY_MD_FLAG_HMAC
-Turn the algorithm into a HMAC message authentication algorithm.  This
-only works if just one algorithm is enabled for the handle.  Note that the function
-@code{gcry_md_setkey} must be used to set the MAC key.  If you want CBC
-message authentication codes based on a cipher, see @xref{Working with
-cipher handles}.
-
-@end table
-@c begin table of hash flags
-
-You may use the function @code{gcry_md_is_enabled} to later check
-whether an algorithm has been enabled.
-
-@end deftypefun
-@c end function gcry_md_open
-
-If you want to calculate several hash algorithms at the same time, you
-have to use the following function right after the @code{gcry_md_open}:
-
-@deftypefun gcry_error_t gcry_md_enable (gcry_md_hd_t @var{h}, int @var{algo})
-
-Add the message digest algorithm @var{algo} to the digest object
-described by handle @var{h}.  Duplicated enabling of algorithms is
-detected and ignored.
-@end deftypefun
-
-If the flag @code{GCRY_MD_FLAG_HMAC} was used, the key for the MAC must
-be set using the function:
-
-@deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
-
-For use with the HMAC feature, set the MAC key to the value of @var{key}
-of length @var{keylen}.
-@end deftypefun
-
-
-After you are done with the hash calculation, you should release the
-resources by using:
-
-@deftypefun void gcry_md_close (gcry_md_hd_t @var{h})
-
-Release all resources of hash context @var{h}.  @var{h} should not be
-used after a call to this function.  A @code{NULL} passed as @var{h} is
-ignored.
-
-@end deftypefun
-
-Often you have to do several hash operations using the same algorithm.
-To avoid the overhead of creating and releasing context, a reset function
-is provided:
-
-@deftypefun void gcry_md_reset (gcry_md_hd_t @var{h})
-
-Reset the current context to its initial state.  This is effectively
-identical to a close followed by an open and enabling all currently
-active algorithms.
-@end deftypefun
-
-
-Often it is necessary to start hashing some data and then continue to
-hash different data.  To avoid hashing the same data several times (which
-might not even be possible if the data is received from a pipe), a
-snapshot of the current hash context can be taken and turned into a new
-context:
-
-@deftypefun gcry_error_t gcry_md_copy (gcry_md_hd_t *@var{handle_dst}, gcry_md_hd_t @var{handle_src})
-
-Create a new digest object as an exact copy of the object described by
-handle @var{handle_src} and store it in @var{handle_dst}.  The context
-is not reset and you can continue to hash data using this context and
-independently using the original context.
-@end deftypefun
-
-
-Now that we have prepared everything to calculate hashes, it is time to
-see how it is actually done.  There are two ways for this, one to
-update the hash with a block of memory and one macro to update the hash
-by just one character.  Both methods can be used on the same hash context.
-
-@deftypefun void gcry_md_write (gcry_md_hd_t @var{h}, const void *@var{buffer}, size_t @var{length})
-
-Pass @var{length} bytes of the data in @var{buffer} to the digest object
-with handle @var{h} to update the digest values. This
-function should be used for large blocks of data.
-@end deftypefun
-
-@deftypefun void gcry_md_putc (gcry_md_hd_t @var{h}, int @var{c})
-
-Pass the byte in @var{c} to the digest object with handle @var{h} to
-update the digest value.  This is an efficient function, implemented as
-a macro to buffer the data before an actual update. 
-@end deftypefun
-
-The semantics of the hash functions do not provide for reading out intermediate
-message digests because the calculation must be finalized first.  This
-finalization may for example include the number of bytes hashed in the
-message digest or some padding.
-
-@deftypefun void gcry_md_final (gcry_md_hd_t @var{h})
-
-Finalize the message digest calculation.  This is not really needed
-because @code{gcry_md_read} does this implicitly.  After this has been
-done no further updates (by means of @code{gcry_md_write} or
-@code{gcry_md_putc} are allowed.  Only the first call to this function
-has an effect. It is implemented as a macro.
-@end deftypefun
-
-The way to read out the calculated message digest is by using the
-function:
-
-@deftypefun unsigned char *gcry_md_read (gcry_md_hd_t @var{h}, int @var{algo})
-
-@code{gcry_md_read} returns the message digest after finalizing the
-calculation.  This function may be used as often as required but it will
-always return the same value for one handle.  The returned message digest
-is allocated within the message context and therefore valid until the
-handle is released or reseted (using @code{gcry_md_close} or
-@code{gcry_md_reset}.  @var{algo} may be given as 0 to return the only
-enabled message digest or it may specify one of the enabled algorithms.
-The function does return @code{NULL} if the requested algorithm has not
-been enabled.
-@end deftypefun
-
-Because it is often necessary to get the message digest of one block of
-memory, a fast convenience function is available for this task: 
-
-@deftypefun void gcry_md_hash_buffer (int @var{algo}, void *@var{digest}, const void *@var{buffer}, size_t @var{length});
-
-@code{gcry_md_hash_buffer} is a shortcut function to calculate a message
-digest of a buffer.  This function does not require a context and
-immediately returns the message digest of the @var{length} bytes at
-@var{buffer}.  @var{digest} must be allocated by the caller, large
-enough to hold the message digest yielded by the the specified algorithm
-@var{algo}.  This required size may be obtained by using the function
-@code{gcry_md_get_algo_dlen}.
-
-Note that this function will abort the process if an unavailable
-algorithm is used.
-@end deftypefun
-
-@c ***********************************
-@c ***** MD info functions ***********
-@c ***********************************
-
-Hash algorithms are identified by internal algorithm numbers (see
-@code{gcry_md_open} for a list).  However, in most applications they are
-used by names, so two functions are available to map between string
-representations and hash algorithm identifiers.
-
-@deftypefun const char *gcry_md_algo_name (int @var{algo})
-
-Map the digest algorithm id @var{algo} to a string representation of the
-algorithm name.  For unknown algorithms this function returns the
-string @code{"?"}.  This function should not be used to test for the
-availability of an algorithm.
-@end deftypefun
-
-@deftypefun int gcry_md_map_name (const char *@var{name})
-
-Map the algorithm with @var{name} to a digest algorithm identifier.
-Returns 0 if the algorithm name is not known.  Names representing
-@acronym{ASN.1} object identifiers are recognized if the @acronym{IETF}
-dotted format is used and the OID is prefixed with either "@code{oid.}"
-or "@code{OID.}".  For a list of supported OIDs, see the source code at
-@file{cipher/md.c}. This function should not be used to test for the
-availability of an algorithm.
-@end deftypefun
-
-@deftypefun gcry_error_t gcry_md_get_asnoid (int @var{algo}, void *@var{buffer}, size_t *@var{length})
-
-Return an DER encoded ASN.1 OID for the algorithm @var{algo} in the
-user allocated @var{buffer}. @var{length} must point to variable with
-the available size of @var{buffer} and receives after return the
-actual size of the returned OID.  The returned error code may be
-@code{GPG_ERR_TOO_SHORT} if the provided buffer is to short to receive
-the OID; it is possible to call the function with @code{NULL} for
-@var{buffer} to have it only return the required size.  The function
-returns 0 on success.
-
-@end deftypefun
-
-
-To test whether an algorithm is actually available for use, the
-following macro should be used:
-
-@deftypefun gcry_error_t gcry_md_test_algo (int @var{algo}) 
-
-The macro returns 0 if the algorithm @var{algo} is available for use.
-@end deftypefun
-
-If the length of a message digest is not known, it can be retrieved
-using the following function:
-
-@deftypefun unsigned int gcry_md_get_algo_dlen (int @var{algo})
-
-Retrieve the length in bytes of the digest yielded by algorithm
-@var{algo}.  This is often used prior to @code{gcry_md_read} to allocate
-sufficient memory for the digest.
-@end deftypefun
-
-
-In some situations it might be hard to remember the algorithm used for
-the ongoing hashing. The following function might be used to get that
-information:
-
-@deftypefun int gcry_md_get_algo (gcry_md_hd_t @var{h})
-
-Retrieve the algorithm used with the handle @var{h}.  Note that this
-does not work reliable if more than one algorithm is enabled in @var{h}.
-@end deftypefun
-
-The following macro might also be useful:
-
-@deftypefun int gcry_md_is_secure (gcry_md_hd_t @var{h})
-
-This function returns true when the digest object @var{h} is allocated
-in "secure memory"; i.e. @var{h} was created with the
-@code{GCRY_MD_FLAG_SECURE}.
-@end deftypefun
-
-@deftypefun int gcry_md_is_enabled (gcry_md_hd_t @var{h}, int @var{algo})
-
-This function returns true when the algorithm @var{algo} has been
-enabled for the digest object @var{h}.
-@end deftypefun
-
-
-
-Tracking bugs related to hashing is often a cumbersome task which
-requires to add a lot of printf statements into the code.
-Libgcrypt provides an easy way to avoid this.  The actual data
-hashed can be written to files on request.
-
-@deftypefun void gcry_md_debug (gcry_md_hd_t @var{h}, const char *@var{suffix})
-
-Enable debugging for the digest object with handle @var{h}.  This
-creates create files named @file{dbgmd-<n>.<string>} while doing the
-actual hashing.  @var{suffix} is the string part in the filename.  The
-number is a counter incremented for each new hashing.  The data in the
-file is the raw data as passed to @code{gcry_md_write} or
-@code{gcry_md_putc}.  If @code{NULL} is used for @var{suffix}, the
-debugging is stopped and the file closed.  This is only rarely required
-because @code{gcry_md_close} implicitly stops debugging.
-@end deftypefun
-
-
-The following two deprecated macros are used for debugging by old code.
-They shopuld be replaced by @code{gcry_md_debug}.
-
-@deftypefun void gcry_md_start_debug (gcry_md_hd_t @var{h}, const char *@var{suffix})
-
-Enable debugging for the digest object with handle @var{h}.  This
-creates create files named @file{dbgmd-<n>.<string>} while doing the
-actual hashing.  @var{suffix} is the string part in the filename.  The
-number is a counter incremented for each new hashing.  The data in the
-file is the raw data as passed to @code{gcry_md_write} or
-@code{gcry_md_putc}.
-@end deftypefun
-
-
-@deftypefun void gcry_md_stop_debug (gcry_md_hd_t @var{h}, int @var{reserved})
-
-Stop debugging on handle @var{h}.  @var{reserved} should be specified as
-0.  This function is usually not required because @code{gcry_md_close}
-does implicitly stop debugging.
-@end deftypefun
-
-
-@c **********************************************************
 @c *******************  Public Key  *************************
 @c **********************************************************
-@node Public Key cryptography (I)
-@chapter Public Key cryptography (I)
+@node Public Key cryptography
+@chapter Public Key cryptography
 
 Public key cryptography, also known as asymmetric cryptography, is an
 easy way for key management and to provide digital signatures.
@@ -2175,6 +1817,8 @@ S-expressions.
 * Public key modules::          How to work with public key modules.
 * Cryptographic Functions::     Functions for performing the cryptographic actions.
 * General public-key related Functions::  General functions, not implementing any cryptography.
+
+* AC Interface::                Alternative interface to public key functions.
 @end menu
 
 @node Available algorithms
@@ -2216,7 +1860,7 @@ italics
 @end iftex
 indicate parameters whereas lowercase words are literals.
 
-Note that all MPI (big integer) values are expected to be in
+Note that all MPI (multi-precision-integers) values are expected to be in
 @code{GCRYMPI_FMT_USG} format.  An easy way to create S-expressions is
 by using @code{gcry_sexp_build} which allows to pass a string with
 printf-like escapes to insert MPI values.
@@ -2833,7 +2477,7 @@ values for @var{what} are:
 
 @table @code
 @item GCRYCTL_TEST_ALGO:
-Return 0 when the specified algorithm is available for use.
+Return 0 if the specified algorithm is available for use.
 @var{buffer} must be @code{NULL}, @var{nbytes} may be passed as
 @code{NULL} or point to a variable with the required usage of the
 algorithm. This may be 0 for "don't care" or the bit-wise OR of these
@@ -2845,6 +2489,9 @@ Algorithm is usable for signing.
 @item GCRY_PK_USAGE_ENCR 
 Algorithm is usable for encryption.
 @end table
+
+Unless you need to test for the allowed usage, it is in general better
+to use the macro gcry_pk_test_algo instead.
 
 @item GCRYCTL_GET_ALGO_USAGE:
 Return the usage flags for the given algorithm.  An invalid algorithm
@@ -3011,10 +2658,10 @@ useful information.
 @end deftypefun
 @c end gcry_pk_genkey
 
-@node Public Key cryptography (II)
-@chapter Public Key cryptography (II)
+@node AC Interface
+@section Alternative Public Key Interface
 
-This chapter documents the alternative interface to asymmetric
+This section documents the alternative interface to asymmetric
 cryptography (ac) that is not based on S-expressions, but on native C
 data structures.  As opposed to the pk interface described in the
 former chapter, this one follows an open/use/close paradigm like other
@@ -3036,7 +2683,7 @@ forthcoming versions Libgcrypt.}
 @end menu
 
 @node Available asymmetric algorithms
-@section Available asymmetric algorithms
+@subsection Available asymmetric algorithms
 
 Libgcrypt supports the RSA (Rivest-Shamir-Adleman)
 algorithms as well as DSA (Digital Signature Algorithm) and Elgamal.
@@ -3059,7 +2706,7 @@ Elgamal, encryption only.
 @end deftp
 
 @node Working with sets of data
-@section Working with sets of data
+@subsection Working with sets of data
 
 In the context of this interface the term `data set' refers to a list
 of `named MPI values' that is used by functions performing
@@ -3164,7 +2811,7 @@ function fails.
 @end deftypefun
 
 @node Working with IO objects
-@section Working with IO objects
+@subsection Working with IO objects
 
 Note: IO objects are currently only used in the context of message
 encoding/decoding and encryption/signature schemes.
@@ -3239,7 +2886,7 @@ Opaque argument to provide to the callback function
 @end table
 
 @node Working with handles
-@section Working with handles
+@subsection Working with handles
 
 In order to use an algorithm, an according handle must be created.
 This is done using the following function:
@@ -3261,7 +2908,7 @@ Destroys the handle @var{handle}.
 @end deftypefun
 
 @node Working with keys
-@section Working with keys
+@subsection Working with keys
 
 @deftp {Data type} gcry_ac_key_type_t
 Defined constants:
@@ -3375,7 +3022,7 @@ Writes the 20 byte long key grip of the key @var{key} to
 @end deftypefun
 
 @node Using cryptographic functions
-@section Using cryptographic functions
+@subsection Using cryptographic functions
 
 The following flags might be relevant:
 
@@ -3532,7 +3179,7 @@ public key @var{key} according to @var{scheme} and @var{opts}.  If
 @end deftypefun
 
 @node Handle-independent functions
-@section Handle-independent functions
+@subsection Handle-independent functions
 
 These two functions are deprecated; do not use them for new code.
 
@@ -3546,6 +3193,490 @@ Stores the numeric ID of the algorithm whose textual representation is
 contained in @var{name} in @var{algorithm}. Deprecated; use
 @code{gcry_pk_map_name}.
 @end deftypefun
+
+@c **********************************************************
+@c *******************  Hash Functions  *********************
+@c **********************************************************
+@node Hashing
+@chapter Hashing
+
+Libgcrypt provides an easy and consistent to use interface
+for hashing.  Hashing is buffered and several hash algorithms can be
+updated at once.  It is possible to calculate a MAC using the same
+routines.  The programming model follows an open/process/close
+paradigm and is in that similar to other building blocks provided by
+Libgcrypt.
+
+For convenience reasons, a few cyclic redundancy check value operations
+are also supported.
+
+@menu
+* Available hash algorithms::   List of hash algorithms supported by the library.
+* Hash algorithm modules::      How to work with hash algorithm modules.
+* Working with hash algorithms::  List of functions related to hashing.
+@end menu
+
+@node Available hash algorithms
+@section Available hash algorithms
+
+@c begin table of hash algorithms
+@table @code
+@item GCRY_MD_NONE
+This is not a real algorithm but used by some functions as an error
+return value.  This constant is guaranteed to have the value @code{0}.
+
+@item GCRY_MD_SHA1
+This is the SHA-1 algorithm which yields a message digest of 20 bytes.
+
+@item GCRY_MD_RMD160
+This is the 160 bit version of the RIPE message digest (RIPE-MD-160).
+Like SHA-1 it also yields a digest of 20 bytes.
+
+@item GCRY_MD_MD5
+This is the well known MD5 algorithm, which yields a message digest of
+16 bytes. 
+
+@item GCRY_MD_MD4
+This is the MD4 algorithm, which yields a message digest of 16 bytes.
+
+@item GCRY_MD_MD2
+This is an reserved identifier for MD-2; there is no implementation yet.
+
+@item GCRY_MD_TIGER
+This is the TIGER/192 algorithm which yields a message digest of 24 bytes.
+
+@item GCRY_MD_HAVAL
+This is an reserved for the HAVAL algorithm with 5 passes and 160
+bit. It yields a message digest of 20 bytes.  Note that there is no
+implementation yet available.
+
+@item GCRY_MD_SHA224
+This is the SHA-224 algorithm which yields a message digest of 28 bytes.
+See Change Notice 1 for FIPS 180-2 for the specification.
+
+@item GCRY_MD_SHA256
+This is the SHA-256 algorithm which yields a message digest of 32 bytes.
+See FIPS 180-2 for the specification.
+
+@item GCRY_MD_SHA384
+This is the SHA-384 algorithm which yields a message digest of 48 bytes.
+See FIPS 180-2 for the specification.
+
+@item GCRY_MD_SHA512
+This is the SHA-384 algorithm which yields a message digest of 64 bytes.
+See FIPS 180-2 for the specification.
+
+@item GCRY_MD_CRC32
+This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It
+yields an output of 4 bytes.
+
+@item GCRY_MD_CRC32_RFC1510
+This is the above cyclic redundancy check function, as modified by RFC
+1510.  It yields an output of 4 bytes.
+
+@item GCRY_MD_CRC24_RFC2440
+This is the OpenPGP cyclic redundancy check function.  It yields an
+output of 3 bytes.
+
+@item GCRY_MD_WHIRLPOOL
+This is the Whirlpool algorithm which yields a message digest of 64
+bytes.
+
+@end table
+@c end table of hash algorithms
+
+@node Hash algorithm modules
+@section Hash algorithm modules
+
+Libgcrypt makes it possible to load additional `message
+digest modules'; these digests can be used just like the message digest
+algorithms that are built into the library directly.  For an
+introduction into extension modules, see @xref{Modules}.
+
+@deftp {Data type} gcry_md_spec_t
+This is the `module specification structure' needed for registering
+message digest modules, which has to be filled in by the user before
+it can be used to register a module.  It contains the following
+members:
+
+@table @code
+@item const char *name
+The primary name of this algorithm.
+@item unsigned char *asnoid
+Array of bytes that form the ASN OID.
+@item int asnlen
+Length of bytes in `asnoid'.
+@item gcry_md_oid_spec_t *oids
+A list of OIDs that are to be associated with the algorithm.  The
+list's last element must have it's `oid' member set to NULL.  See
+below for an explanation of this type.  See below for an explanation
+of this type.
+@item int mdlen
+Length of the message digest algorithm.  See below for an explanation
+of this type.
+@item gcry_md_init_t init
+The function responsible for initializing a handle.  See below for an
+explanation of this type.
+@item gcry_md_write_t write
+The function responsible for writing data into a message digest
+context.  See below for an explanation of this type.
+@item gcry_md_final_t final
+The function responsible for `finalizing' a message digest context.
+See below for an explanation of this type.
+@item gcry_md_read_t read
+The function responsible for reading out a message digest result.  See
+below for an explanation of this type.
+@item size_t contextsize
+The size of the algorithm-specific `context', that should be
+allocated for each handle.
+@end table
+@end deftp
+
+@deftp {Data type} gcry_md_oid_spec_t
+This type is used for associating a user-provided algorithm
+implementation with certain OIDs.  It contains the following members:
+
+@table @code
+@item const char *oidstring
+Textual representation of the OID.
+@end table
+@end deftp
+
+@deftp {Data type} gcry_md_init_t
+Type for the `init' function, defined as: void (*gcry_md_init_t) (void
+*c)
+@end deftp
+
+@deftp {Data type} gcry_md_write_t
+Type for the `write' function, defined as: void (*gcry_md_write_t)
+(void *c, unsigned char *buf, size_t nbytes)
+@end deftp
+
+@deftp {Data type} gcry_md_final_t
+Type for the `final' function, defined as: void (*gcry_md_final_t)
+(void *c)
+@end deftp
+
+@deftp {Data type} gcry_md_read_t
+Type for the `read' function, defined as: unsigned char
+*(*gcry_md_read_t) (void *c)
+@end deftp
+
+@deftypefun gcry_error_t gcry_md_register (gcry_md_spec_t *@var{digest}, unsigned int *algorithm_id, gcry_module_t *@var{module})
+
+Register a new digest module whose specification can be found in
+@var{digest}.  On success, a new algorithm ID is stored in
+@var{algorithm_id} and a pointer representing this module is stored
+in @var{module}.
+@end deftypefun
+
+@deftypefun void gcry_md_unregister (gcry_module_t @var{module})
+Unregister the digest identified by @var{module}, which must have been
+registered with gcry_md_register.
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_md_list (int *@var{list}, int *@var{list_length})
+Get a list consisting of the IDs of the loaded message digest modules.
+If @var{list} is zero, write the number of loaded message digest
+modules to @var{list_length} and return.  If @var{list} is non-zero,
+the first *@var{list_length} algorithm IDs are stored in @var{list},
+which must be of according size.  In case there are less message
+digests modules than *@var{list_length}, *@var{list_length} is updated
+to the correct number.
+@end deftypefun
+
+@node Working with hash algorithms
+@section Working with hash algorithms
+
+To use most of these function it is necessary to create a context;
+this is done using:
+
+@deftypefun gcry_error_t gcry_md_open (gcry_md_hd_t *@var{hd}, int @var{algo}, unsigned int @var{flags})
+
+Create a message digest object for algorithm @var{algo}.  @var{flags}
+may be given as an bitwise OR of constants described below.  @var{algo}
+may be given as @code{0} if the algorithms to use are later set using
+@code{gcry_md_enable}. @var{hd} is guaranteed to either receive a valid
+handle or NULL.
+
+For a list of supported algorithms, see @xref{Available hash
+algorithms}.
+
+The flags allowed for @var{mode} are:
+
+@c begin table of hash flags
+@table @code
+@item GCRY_MD_FLAG_SECURE
+Allocate all buffers and the resulting digest in "secure memory".  Use
+this is the hashed data is highly confidential.
+
+@item GCRY_MD_FLAG_HMAC
+Turn the algorithm into a HMAC message authentication algorithm.  This
+only works if just one algorithm is enabled for the handle.  Note that the function
+@code{gcry_md_setkey} must be used to set the MAC key.  If you want CBC
+message authentication codes based on a cipher, see @xref{Working with
+cipher handles}.
+
+@end table
+@c begin table of hash flags
+
+You may use the function @code{gcry_md_is_enabled} to later check
+whether an algorithm has been enabled.
+
+@end deftypefun
+@c end function gcry_md_open
+
+If you want to calculate several hash algorithms at the same time, you
+have to use the following function right after the @code{gcry_md_open}:
+
+@deftypefun gcry_error_t gcry_md_enable (gcry_md_hd_t @var{h}, int @var{algo})
+
+Add the message digest algorithm @var{algo} to the digest object
+described by handle @var{h}.  Duplicated enabling of algorithms is
+detected and ignored.
+@end deftypefun
+
+If the flag @code{GCRY_MD_FLAG_HMAC} was used, the key for the MAC must
+be set using the function:
+
+@deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
+
+For use with the HMAC feature, set the MAC key to the value of @var{key}
+of length @var{keylen}.
+@end deftypefun
+
+
+After you are done with the hash calculation, you should release the
+resources by using:
+
+@deftypefun void gcry_md_close (gcry_md_hd_t @var{h})
+
+Release all resources of hash context @var{h}.  @var{h} should not be
+used after a call to this function.  A @code{NULL} passed as @var{h} is
+ignored.
+
+@end deftypefun
+
+Often you have to do several hash operations using the same algorithm.
+To avoid the overhead of creating and releasing context, a reset function
+is provided:
+
+@deftypefun void gcry_md_reset (gcry_md_hd_t @var{h})
+
+Reset the current context to its initial state.  This is effectively
+identical to a close followed by an open and enabling all currently
+active algorithms.
+@end deftypefun
+
+
+Often it is necessary to start hashing some data and then continue to
+hash different data.  To avoid hashing the same data several times (which
+might not even be possible if the data is received from a pipe), a
+snapshot of the current hash context can be taken and turned into a new
+context:
+
+@deftypefun gcry_error_t gcry_md_copy (gcry_md_hd_t *@var{handle_dst}, gcry_md_hd_t @var{handle_src})
+
+Create a new digest object as an exact copy of the object described by
+handle @var{handle_src} and store it in @var{handle_dst}.  The context
+is not reset and you can continue to hash data using this context and
+independently using the original context.
+@end deftypefun
+
+
+Now that we have prepared everything to calculate hashes, it is time to
+see how it is actually done.  There are two ways for this, one to
+update the hash with a block of memory and one macro to update the hash
+by just one character.  Both methods can be used on the same hash context.
+
+@deftypefun void gcry_md_write (gcry_md_hd_t @var{h}, const void *@var{buffer}, size_t @var{length})
+
+Pass @var{length} bytes of the data in @var{buffer} to the digest object
+with handle @var{h} to update the digest values. This
+function should be used for large blocks of data.
+@end deftypefun
+
+@deftypefun void gcry_md_putc (gcry_md_hd_t @var{h}, int @var{c})
+
+Pass the byte in @var{c} to the digest object with handle @var{h} to
+update the digest value.  This is an efficient function, implemented as
+a macro to buffer the data before an actual update. 
+@end deftypefun
+
+The semantics of the hash functions do not provide for reading out intermediate
+message digests because the calculation must be finalized first.  This
+finalization may for example include the number of bytes hashed in the
+message digest or some padding.
+
+@deftypefun void gcry_md_final (gcry_md_hd_t @var{h})
+
+Finalize the message digest calculation.  This is not really needed
+because @code{gcry_md_read} does this implicitly.  After this has been
+done no further updates (by means of @code{gcry_md_write} or
+@code{gcry_md_putc} are allowed.  Only the first call to this function
+has an effect. It is implemented as a macro.
+@end deftypefun
+
+The way to read out the calculated message digest is by using the
+function:
+
+@deftypefun unsigned char *gcry_md_read (gcry_md_hd_t @var{h}, int @var{algo})
+
+@code{gcry_md_read} returns the message digest after finalizing the
+calculation.  This function may be used as often as required but it will
+always return the same value for one handle.  The returned message digest
+is allocated within the message context and therefore valid until the
+handle is released or reseted (using @code{gcry_md_close} or
+@code{gcry_md_reset}.  @var{algo} may be given as 0 to return the only
+enabled message digest or it may specify one of the enabled algorithms.
+The function does return @code{NULL} if the requested algorithm has not
+been enabled.
+@end deftypefun
+
+Because it is often necessary to get the message digest of one block of
+memory, a fast convenience function is available for this task: 
+
+@deftypefun void gcry_md_hash_buffer (int @var{algo}, void *@var{digest}, const void *@var{buffer}, size_t @var{length});
+
+@code{gcry_md_hash_buffer} is a shortcut function to calculate a message
+digest of a buffer.  This function does not require a context and
+immediately returns the message digest of the @var{length} bytes at
+@var{buffer}.  @var{digest} must be allocated by the caller, large
+enough to hold the message digest yielded by the the specified algorithm
+@var{algo}.  This required size may be obtained by using the function
+@code{gcry_md_get_algo_dlen}.
+
+Note that this function will abort the process if an unavailable
+algorithm is used.
+@end deftypefun
+
+@c ***********************************
+@c ***** MD info functions ***********
+@c ***********************************
+
+Hash algorithms are identified by internal algorithm numbers (see
+@code{gcry_md_open} for a list).  However, in most applications they are
+used by names, so two functions are available to map between string
+representations and hash algorithm identifiers.
+
+@deftypefun const char *gcry_md_algo_name (int @var{algo})
+
+Map the digest algorithm id @var{algo} to a string representation of the
+algorithm name.  For unknown algorithms this function returns the
+string @code{"?"}.  This function should not be used to test for the
+availability of an algorithm.
+@end deftypefun
+
+@deftypefun int gcry_md_map_name (const char *@var{name})
+
+Map the algorithm with @var{name} to a digest algorithm identifier.
+Returns 0 if the algorithm name is not known.  Names representing
+@acronym{ASN.1} object identifiers are recognized if the @acronym{IETF}
+dotted format is used and the OID is prefixed with either "@code{oid.}"
+or "@code{OID.}".  For a list of supported OIDs, see the source code at
+@file{cipher/md.c}. This function should not be used to test for the
+availability of an algorithm.
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_md_get_asnoid (int @var{algo}, void *@var{buffer}, size_t *@var{length})
+
+Return an DER encoded ASN.1 OID for the algorithm @var{algo} in the
+user allocated @var{buffer}. @var{length} must point to variable with
+the available size of @var{buffer} and receives after return the
+actual size of the returned OID.  The returned error code may be
+@code{GPG_ERR_TOO_SHORT} if the provided buffer is to short to receive
+the OID; it is possible to call the function with @code{NULL} for
+@var{buffer} to have it only return the required size.  The function
+returns 0 on success.
+
+@end deftypefun
+
+
+To test whether an algorithm is actually available for use, the
+following macro should be used:
+
+@deftypefun gcry_error_t gcry_md_test_algo (int @var{algo}) 
+
+The macro returns 0 if the algorithm @var{algo} is available for use.
+@end deftypefun
+
+If the length of a message digest is not known, it can be retrieved
+using the following function:
+
+@deftypefun unsigned int gcry_md_get_algo_dlen (int @var{algo})
+
+Retrieve the length in bytes of the digest yielded by algorithm
+@var{algo}.  This is often used prior to @code{gcry_md_read} to allocate
+sufficient memory for the digest.
+@end deftypefun
+
+
+In some situations it might be hard to remember the algorithm used for
+the ongoing hashing. The following function might be used to get that
+information:
+
+@deftypefun int gcry_md_get_algo (gcry_md_hd_t @var{h})
+
+Retrieve the algorithm used with the handle @var{h}.  Note that this
+does not work reliable if more than one algorithm is enabled in @var{h}.
+@end deftypefun
+
+The following macro might also be useful:
+
+@deftypefun int gcry_md_is_secure (gcry_md_hd_t @var{h})
+
+This function returns true when the digest object @var{h} is allocated
+in "secure memory"; i.e. @var{h} was created with the
+@code{GCRY_MD_FLAG_SECURE}.
+@end deftypefun
+
+@deftypefun int gcry_md_is_enabled (gcry_md_hd_t @var{h}, int @var{algo})
+
+This function returns true when the algorithm @var{algo} has been
+enabled for the digest object @var{h}.
+@end deftypefun
+
+
+
+Tracking bugs related to hashing is often a cumbersome task which
+requires to add a lot of printf statements into the code.
+Libgcrypt provides an easy way to avoid this.  The actual data
+hashed can be written to files on request.
+
+@deftypefun void gcry_md_debug (gcry_md_hd_t @var{h}, const char *@var{suffix})
+
+Enable debugging for the digest object with handle @var{h}.  This
+creates create files named @file{dbgmd-<n>.<string>} while doing the
+actual hashing.  @var{suffix} is the string part in the filename.  The
+number is a counter incremented for each new hashing.  The data in the
+file is the raw data as passed to @code{gcry_md_write} or
+@code{gcry_md_putc}.  If @code{NULL} is used for @var{suffix}, the
+debugging is stopped and the file closed.  This is only rarely required
+because @code{gcry_md_close} implicitly stops debugging.
+@end deftypefun
+
+
+The following two deprecated macros are used for debugging by old code.
+They shopuld be replaced by @code{gcry_md_debug}.
+
+@deftypefun void gcry_md_start_debug (gcry_md_hd_t @var{h}, const char *@var{suffix})
+
+Enable debugging for the digest object with handle @var{h}.  This
+creates create files named @file{dbgmd-<n>.<string>} while doing the
+actual hashing.  @var{suffix} is the string part in the filename.  The
+number is a counter incremented for each new hashing.  The data in the
+file is the raw data as passed to @code{gcry_md_write} or
+@code{gcry_md_putc}.
+@end deftypefun
+
+
+@deftypefun void gcry_md_stop_debug (gcry_md_hd_t @var{h}, int @var{reserved})
+
+Stop debugging on handle @var{h}.  @var{reserved} should be specified as
+0.  This function is usually not required because @code{gcry_md_close}
+does implicitly stop debugging.
+@end deftypefun
+
 
 @c **********************************************************
 @c *******************  Random  *****************************
@@ -3588,16 +3719,18 @@ as defined by @var{level}.
 
 @deftypefun void * gcry_random_bytes (size_t @var{nbytes}, enum gcry_random_level @var{level})
 
-Allocate a memory block consisting of @var{nbytes} fresh random bytes
-using a random quality as defined by @var{level}.
+Convenience function to allocate a memory block consisting of
+@var{nbytes} fresh random bytes using a random quality as defined by
+@var{level}.
 @end deftypefun
 
 @deftypefun void * gcry_random_bytes_secure (size_t @var{nbytes}, enum gcry_random_level @var{level})
 
-Allocate a memory block consisting of @var{nbytes} fresh random bytes
-using a random quality as defined by @var{level}.  This function
-differs from @code{gcry_random_bytes} in that the returned buffer is
-allocated in a ``secure'' area of the memory.
+Convenience function to allocate a memory block consisting of
+@var{nbytes} fresh random bytes using a random quality as defined by
+@var{level}.  This function differs from @code{gcry_random_bytes} in
+that the returned buffer is allocated in a ``secure'' area of the
+memory.
 @end deftypefun
 
 @deftypefun void gcry_create_nonce (unsigned char *@var{buffer}, size_t @var{length})
@@ -4132,16 +4265,16 @@ The next 2 functions are used to compare MPIs:
 
 @deftypefun int gcry_mpi_cmp (@w{const gcry_mpi_t @var{u}}, @w{const gcry_mpi_t @var{v}})
 
-Compare the big integer number @var{u} and @var{v} returning 0 for
-equality, a positive value for @var{u} > @var{v} and a negative for
-@var{u} < @var{v}.
+Compare the multi-precision-integers number @var{u} and @var{v}
+returning 0 for equality, a positive value for @var{u} > @var{v} and a
+negative for @var{u} < @var{v}.
 @end deftypefun
 
 @deftypefun int gcry_mpi_cmp_ui (@w{const gcry_mpi_t @var{u}}, @w{unsigned long @var{v}})
 
-Compare the big integer number @var{u} with the unsigned integer @var{v}
-returning 0 for equality, a positive value for @var{u} > @var{v} and a
-negative for @var{u} < @var{v}.
+Compare the multi-precision-integers number @var{u} with the unsigned
+integer @var{v} returning 0 for equality, a positive value for @var{u} >
+@var{v} and a negative for @var{u} < @var{v}.
 @end deftypefun
 
 
@@ -4221,8 +4354,8 @@ stored in "secure memory".
 
 @deftypefun void gcry_mpi_clear_flag (@w{gcry_mpi_t @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
 
-Clear @var{flag} for the big integer @var{a}.  Note that this function is
-currently useless as no flags are allowed.
+Clear @var{flag} for the multi-precision-integers @var{a}.  Note that
+this function is currently useless as no flags are allowed.
 @end deftypefun
 
 @deftypefun int gcry_mpi_get_flag (@w{gcry_mpi_t @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
@@ -4232,10 +4365,10 @@ Return true when the @var{flag} is set for @var{a}.
 
 @deftypefun void gcry_mpi_randomize (@w{gcry_mpi_t @var{w}}, @w{unsigned int @var{nbits}}, @w{enum gcry_random_level @var{level}})
 
-Set the big integer @var{w} to a random value of @var{nbits}, using
-random data quality of level @var{level}.  In case @var{nbits} is not
-a multiple of a byte, @var{nbits} is rounded up to the next byte
-boundary.
+Set the multi-precision-integers @var{w} to a random value of
+@var{nbits}, using random data quality of level @var{level}.  In case
+@var{nbits} is not a multiple of a byte, @var{nbits} is rounded up to
+the next byte boundary.
 @end deftypefun
 
 @c **********************************************************
@@ -4337,9 +4470,152 @@ Release the memory area pointed to by @var{p}.
 @end deftypefun
 
 @c **********************************************************
+@c *****************  Architecure Overview  *****************
+@c **********************************************************
+@node Architecture
+@chapter Architecture
+
+This chapter describes the internal architecture of Libgcrypt.
+
+Libgcrypt is a function library written in ISO C-90.  Any compliant
+compiler should be able to build Libgcrypt as long as the target is
+either a POSIX platform or compatible to the API used by Windows NT.
+Provisions have been take so that the library can be directly used from
+C++ applications; however building with a C++ compiler is not supported.
+
+Building libgcrypt is done by using the common @code{./configure && make}
+approach.  The configure command is included in the source distribution
+and as a portable shell script it works on any Unix-alike system.  The
+result of running the configure script are a C header file
+(@file{config.h}), customized Makefiles, the setup of symbolic links and
+a few other things.  After that the make tool builds and optionally
+installs the library and the documentation.  See the files
+@file{INSTALL} and @file{README} in the source distribution on how to do
+this.
+
+Libgcrypt is developed using a Subversion@footnote{A version control
+system available for many platforms} repository.  Although all released
+versions are tagged in this repository, they should not be used to build
+production versions of Libgcrypt.  Instead released tarballs should be
+used.  These tarballs are available from several places with the master
+copy at @indicateurl{ftp://ftp.gnupg.org/gcrypt/libgcrypt/}.
+Announcements of new releases are posted to the
+@indicateurl{gnupg-announce@@gnupg.org} mailing list@footnote{See
+@url{http://www.gnupg.org/documentation/mailing-lists.en.html} for
+details.}.
+
+@noindent
+Libgcrypt consists of several subsystems as shown by this diagram:
+
+@center @image{libgcrypt-modules, 10cm,,Module Overview}
+
+All of these subsystems provide a public API including the helper
+systesm like S-expression.  The API style depends on the subsystem; in
+general an open, use, close approach is implemented.  The open returns a
+handle to a context used for all futher operations on this handle,
+several functions may then be used on this handle and a final close
+function releases all resources associated with the handle.
+
+@menu
+* Public-Key Subsystem Architecture::              All about public keys.
+* Symmetric Encryption Subsystem Architecture::    All about standard ciphers.
+* Hashing and MACing Subsystem Architecture::      All about hashing.
+* Multi-Precision-Integer Subsystem Architecture:: All about big integers.
+* Prime-Number-Generator Subsystem Architecture::  All about prime numbers.
+* Random-Number Subsystem Architecture::           All about random stuff.
+* Helper Subsystems Architecture::                 All about other stuff.
+@end menu
+
+
+
+@node Public-Key Subsystem Architecture
+@section Public-Key Architecture
+
+TBD.
+
+@node Symmetric Encryption Subsystem Architecture
+@section Symmetric Encryption Subsystem Architecturen
+
+TBD.
+
+@node Hashing and MACing Subsystem Architecture
+@section Hashing and MACing Subsystem Architecture
+
+TBD.
+
+
+@node Multi-Precision-Integer Subsystem Architecture
+@section Multi-Precision-Integer Subsystem Architecture
+
+TBD.
+
+@node Prime-Number-Generator Subsystem Architecture
+@section Prime-Number-Generator Subsystem Architecture
+
+TBD.
+
+@node Random-Number Subsystem Architecture
+@section Random-Number Subsystem Architecture
+
+TBD.
+
+
+@node Helper Subsystems Architecture
+@section Helper Subsystems Architecture
+
+There are a few smaller subsystems which are mainly used internally by
+Libgcrypt but also available to applications.
+
+@menu
+* S-expression Subsystem Architecture::   Details about the S-expression architecture.
+* Memory Subsystem Architecture::         Details about the memory allocation architecture.
+* Miscellaneous Subsystems Architecture:: Details about other subsystems.
+@end menu
+
+@node S-expression Subsystem Architecture
+@subsection S-expression Subsystem Architecture
+
+TBD.
+
+
+@node Memory Subsystem Architecture 
+@subsection Memory Subsystem Architecture 
+
+TBD.
+
+
+@node Miscellaneous Subsystems Architecture
+@subsection Miscellaneous Subsystems Architecture
+
+TBD.
+
+
+
+
+
+@c **********************************************************
 @c *******************  Appendices  *************************
 @c **********************************************************
 
+@node FIPS Restrictions
+@appendix Restrictions in FIPS mode
+
+If Libgcrypt is used FIPS mode these restrictions are effective:
+
+@itemize
+
+@item  TBD
+
+
+
+@end itemize
+
+
+
+
+@c **********************************************************
+@c *************  Appendices (license etc.)  ****************
+@c **********************************************************
 @include lgpl.texi
 
 @include gpl.texi
@@ -4355,56 +4631,6 @@ Release the memory area pointed to by @var{p}.
 @printindex fn
 
 @bye
-
-  /* Version check should be the very first gcry call because it
-     makes sure that constructor functions are run. */
-  if (!gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
-  /* Many applications don't require secure memory, so they should
-     disable it right away.  There won't be a problem unless one makes
-     use of a feature which requires secure memory - in that case the
-     process would abort because the secmem is not initialized. */
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-
-  /* .. add whatever initialization you want, but better don't make calls
-        to libgcrypt from more than one thread ... */
-
-  /* Tell Libgcrypt that initialization has completed. */
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
-
-
-If you require secure memory, this code should be used: 
-
-  if (!gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
-  /* We don't want to see any warnings, e.g. because we have not yet
-    parsed options which might be used to suppress such warnings */
-  gcry_control (GCRYCTL_SUSPEND_SECMEM_WARN);
-
-  /* ... */
-
-  /* Allocate a pool of 16k secure memory.  This also drops privileges
-     on some systems. */
-  gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
-
-  /* It is now okay to let Libgcrypt complain when there was/is a problem
-     with the secure memory. */
-  gcry_control (GCRYCTL_RESUME_SECMEM_WARN);
-
-  /* Tell Libgcrypt that initialization has completed. */
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
-
-
-This sounds a bit complicated but has the advantage that the caller
-must decide whether he wants secure memory or not - there is no
-default.
-
-It is important that this initialization is not done by a library but
-in the application.  The library might want to check for finished
-initialization using:
-
-  if (!gcry_control (GCRYCTL_INITIALIZATION_FINISHED_P))
-    return MYLIB_ERROR_LIBGCRYPT_NOT_INITIALIZED;
 
 
 @c  LocalWords:  int HD

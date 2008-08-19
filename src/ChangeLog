@@ -1,3 +1,62 @@
+2008-08-15  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in (gcry_cipher_setkey): Replace macro by function.
+	(gcry_cipher_setiv):  Ditto.
+	(gcry_cipher_setctr): Ditto.
+	* visibility.c (gcry_cipher_setkey, gcry_cipher_setiv) 
+	(gcry_cipher_setctr): New.
+	* visibility.h (gcry_cipher_setkey, gcry_cipher_setiv) 
+	(gcry_cipher_setctr): New.
+	* libgcrypt.vers (gcry_cipher_setkey, gcry_cipher_setiv)
+	(gcry_cipher_setctr): New.
+	* libgcrypt.def (gcry_cipher_setkey, gcry_cipher_setiv) 
+	(gcry_cipher_setctr): New.
+
+	* hmac256.h, hmac256.c: New.
+	* Makefile.am (hmac256_SOURCES): New. 
+	* Makefile.am (bin_PROGRAMS): Add hmac256.
+
+	* gcrypt.h.in (struct gcry_thread_cbs): Change type of OPTION to
+	unsigned int.  Although this is a type change it does not make a
+	difference.
+	* ath.c (ath_install): Take the version of the option field in
+	account.
+	
+	* visibility.c (gcry_pk_encrypt, gcry_pk_decrypt, gcry_pk_sign)
+	(gcry_pk_verify, gcry_pk_testkey, gcry_pk_genkey)
+	(gcry_pk_get_nbits, gcry_pk_get_keygrip)
+	(gcry_md_open, gcry_md_copy, gcry_md_enable) 
+	(gcry_md_write, md_final, gcry_md_ctl, gcry_md_setkey) 
+	(gcry_md_hash_buffer, gcry_md_get_algo, gcry_md_info) 
+	(gcry_md_is_enabled)
+	(gcry_cipher_open, gcry_cipher_encrypt)
+	(gcry_cipher_decrypt, gcry_cipher_ctl)
+	(gcry_cipher_algo_info): Check whether the library is operational.
+
+	* cipher-proto.h: New.
+	* cipher.h: Include cipher-proto.h.
+	* visibility.h: Remove duplicate macro definitions.  Remove
+	gcry_cipher_register, gcry_md_register,	gcry_pk_register macros.
+	* visibility.c: Include cipher-proto.h. 
+	(gcry_cipher_register): Pass dummy extra args to the internal
+	register function.
+	(gcry_md_register, gcry_pk_register): Ditto.
+	* g10lib.h (struct gcry_module): Add field EXTRASPEC.
+	* module.c (_gcry_module_add): Add arg EXTRASPEC.  Changed all
+	callers to pass NULL.
+
+	* fips.c: New.
+	* gcrypt.h.in (GCRYCTL_FIPS_MODE_P): New.
+	* global.c (global_init): Call fips initialization.
+	(_gcry_vcontrol): Add GCRYCTL_FIPS_MODE_P code.
+	(print_config): Add config item fips-mode.
+	(gcry_set_allocation_handler): Do not allow the use of custom
+	allocation handlers.
+	(gcry_set_outofcore_handler): Ditto.
+	(_gcry_get_debug_flag): Do not return any debug flags in fips mode.
+	* misc.c (_gcry_logv): Signal fips error on BUG or FATAL.
+	(_gcry_fatal_error): Ditto.
+
 2008-07-05  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am: Include librandom.la.

@@ -1,5 +1,5 @@
 /* module.c - Module management for libgcrypt.
- * Copyright (C) 2003 Free Software Foundation, Inc.
+ * Copyright (C) 2003, 2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -14,8 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -76,7 +75,7 @@ _gcry_module_id_new (gcry_module_t modules, unsigned int *id_new)
    it's use-counter set to one.  */
 gcry_err_code_t
 _gcry_module_add (gcry_module_t *entries, unsigned int mod_id,
-		  void *spec, gcry_module_t *module)
+		  void *spec, void *extraspec, gcry_module_t *module)
 {
   gcry_err_code_t err = 0;
   gcry_module_t entry;
@@ -97,6 +96,7 @@ _gcry_module_add (gcry_module_t *entries, unsigned int mod_id,
       entry->flags = 0;
       entry->counter = 1;
       entry->spec = spec;
+      entry->extraspec = extraspec;
       entry->mod_id = mod_id;
 
       /* Link it into the list.  */

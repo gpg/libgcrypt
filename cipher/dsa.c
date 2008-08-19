@@ -1,6 +1,6 @@
 /* dsa.c  -  DSA signature scheme
  * Copyright (C) 1998, 2000, 2001, 2002, 2003,
- *               2006  Free Software Foundation, Inc.
+ *               2006, 2008  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -205,6 +205,9 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   if (qbits < 160 || qbits > 512 || (qbits%8) )
     return GPG_ERR_INV_VALUE;
   if (nbits < 2*qbits || nbits > 15360)
+    return GPG_ERR_INV_VALUE;
+
+  if (nbits < 1024 && fips_mode ())
     return GPG_ERR_INV_VALUE;
 
   p = _gcry_generate_elg_prime( 1, nbits, qbits, NULL, ret_factors );
@@ -531,6 +534,57 @@ _gcry_dsa_get_nbits (int algo, gcry_mpi_t *pkey)
   return mpi_get_nbits (pkey[0]);
 }
 
+
+
+/* 
+     Self-test section.
+ */
+
+
+static gpg_err_code_t
+selftests_dsa (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = NULL; /*selftest ();*/
+  if (errtxt)
+    goto failed;
+
+  /* FIXME:  need more tests.  */
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("pubkey", GCRY_PK_DSA, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+
+/* Run a full self-test for ALGO and return 0 on success.  */
+static gpg_err_code_t
+run_selftests (int algo, selftest_report_func_t report)
+{
+  gpg_err_code_t ec;
+
+  switch (algo)
+    {
+    case GCRY_PK_DSA:
+      ec = selftests_dsa (report);
+      break;
+    default:
+      ec = GPG_ERR_PUBKEY_ALGO;
+      break;
+        
+    }
+  return ec;
+}
+
+
+
+
 static const char *dsa_names[] =
   {
     "dsa",
@@ -550,5 +604,9 @@ gcry_pk_spec_t _gcry_pubkey_spec_dsa =
     _gcry_dsa_sign,
     _gcry_dsa_verify,
     _gcry_dsa_get_nbits,
+  };
+pk_extra_spec_t _gcry_pubkey_extraspec_dsa = 
+  {
+    run_selftests
   };
 

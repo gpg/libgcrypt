@@ -32,8 +32,10 @@ librandom_la_LIBADD = $(GCRYPT_MODULES)
 
 librandom_la_SOURCES = \
 random.c random.h \
-rndhw.c \
-rand-internal.h
+rand-internal.h \
+random-csprng.c \
+random-fips.c \
+rndhw.c
 
 if USE_RANDOM_DAEMON
 librandom_la_SOURCES += random-daemon.c 

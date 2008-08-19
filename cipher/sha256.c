@@ -1,5 +1,5 @@
 /* sha256.c - SHA256 hash function
- *	Copyright (C) 2003, 2006 Free Software Foundation, Inc.
+ *	Copyright (C) 2003, 2006, 2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -14,8 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -313,6 +312,81 @@ sha256_read (void *context)
   return hd->buf;
 }
 
+
+
+/* 
+     Self-test section.
+ */
+
+
+static gpg_err_code_t
+selftests_sha224 (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = NULL; /*selftest ();*/
+  if (errtxt)
+    goto failed;
+
+  /* FIXME:  need more tests.  */
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("digest", GCRY_MD_SHA224, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+static gpg_err_code_t
+selftests_sha256 (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = NULL; /*selftest ();*/
+  if (errtxt)
+    goto failed;
+
+  /* FIXME:  need more tests.  */
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("digest", GCRY_MD_SHA256, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+
+/* Run a full self-test for ALGO and return 0 on success.  */
+static gpg_err_code_t
+run_selftests (int algo, selftest_report_func_t report)
+{
+  gpg_err_code_t ec;
+
+  switch (algo)
+    {
+    case GCRY_MD_SHA224:
+      ec = selftests_sha224 (report);
+      break;
+    case GCRY_MD_SHA256:
+      ec = selftests_sha256 (report);
+      break;
+    default:
+      ec = GPG_ERR_DIGEST_ALGO;
+      break;
+        
+    }
+  return ec;
+}
+
+
+
+
 static byte asn224[19] = /* Object ID is 2.16.840.1.101.3.4.2.4 */
   { 0x30, 0x2D, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
     0x01, 0x65, 0x03, 0x04, 0x02, 0x04, 0x05, 0x00, 0x04,
@@ -347,10 +421,18 @@ gcry_md_spec_t _gcry_digest_spec_sha224 =
     sha224_init, sha256_write, sha256_final, sha256_read,
     sizeof (SHA256_CONTEXT)
   };
+md_extra_spec_t _gcry_digest_extraspec_sha224 = 
+  {
+    run_selftests
+  };
 
 gcry_md_spec_t _gcry_digest_spec_sha256 =
   {
     "SHA256", asn256, DIM (asn256), oid_spec_sha256, 32,
     sha256_init, sha256_write, sha256_final, sha256_read,
     sizeof (SHA256_CONTEXT)
+  };
+md_extra_spec_t _gcry_digest_extraspec_sha256 = 
+  {
+    run_selftests
   };

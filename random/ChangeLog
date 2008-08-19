@@ -1,3 +1,34 @@
+2008-08-15  Werner Koch  <wk@g10code.com>
+
+	* random-fips.c: New.
+
+	* random-csprng.c (process-cb, progress_cb_data): Move to
+	random.c.
+	(_gcry_register_random_progress, _gcry_random_progress): Ditto.
+	(_gcry_random_initialize): Rename to _gcry_rngcsprng_initialize.
+	(_gcry_random_dump_stats): Rename to _gcry_rngcsprng_dump_stats.
+	(_gcry_secure_random_alloc): Rename to
+	_gcry_rngcsprng_secure_alloc.
+	(_gcry_enable_quick_random_gen): Rename to
+	_gcry_rngcsprng_enable_quick_gen.
+	(_gcry_set_random_daemon_socket): Rename to
+	_gcry_rngcsprng_set_daemon_socket.
+	(_gcry_use_random_daemon): Rename to _gcry_rngcsprng_use_daemon.
+	(_gcry_random_is_faked): Rename to _gcry_rngcsprng_is_faked.
+	(gcry_random_add_bytes): Rename to _gcry_rngcsprng_add_bytes.
+	(gcry_random_bytes): Remove
+	(gcry_random_bytes_secure): Remove.
+	(gcry_randomize): Rename to _gcry_rngcsprng_randomize.
+	(_gcry_set_random_seed_file): Rename to
+	_gcry_rngcsprng_set_seed_file.
+	(_gcry_update_random_seed_file): Rename to
+	_gcry_rngcsprng_update_seed_file.
+	(_gcry_fast_random_poll): Rename to _gcry_rngcsprng_fast_poll.
+	(gcry_create_nonce): Rename to _gcry_rngcsprng_create_nonce.
+
+	* random.c: Factor all code out to random-csprng.c and implement
+	wrapper functions.
+
 2008-07-05  Werner Koch  <wk@g10code.com>
 
 	* random-daemon.c, random.h, rndhw.c, rndunix.c, rand-internal.h *

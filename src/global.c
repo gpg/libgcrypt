@@ -1,6 +1,6 @@
 /* global.c  -	global control functions
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
- *               2004, 2005, 2006  Free Software Foundation, Inc.
+ *               2004, 2005, 2006, 2008  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -15,8 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -28,6 +27,8 @@
 #include <ctype.h>
 #include <limits.h>
 #include <errno.h>
+#include <unistd.h>
+#include <assert.h>
 
 #include "g10lib.h"
 #include "cipher.h"
@@ -43,8 +44,14 @@
  */
 static unsigned int debug_flags;
 
+/* gcry_control (GCRYCTL_SET_FIPS_MODE), sets this flag so that the
+   intialization code swicthed fips mode on.  */
+static int force_fips_mode;
+
 /* Controlled by global_init().  */
 static int any_init_done;
+
+
 
 /* Memory management. */
 
@@ -57,7 +64,9 @@ static gcry_handler_no_mem_t outofcore_handler;
 static void *outofcore_handler_value;
 static int no_secure_memory;
 
+
 
+
 
 /* This is our handmade constructor.  It gets called by any function
    likely to be called at startup.  The suggested way for an
@@ -72,9 +81,14 @@ global_init (void)
     return;
   any_init_done = 1;
 
+  /* Initialize our portable theead/mutex wrapper.  */
   err = ath_init ();
   if (err)
     goto fail;
+  
+  /* See whether the system is in FIPS mode.  This needs to come as
+     early as possible put after the ATH has been initialized.  */
+  _gcry_initialize_fips_mode (force_fips_mode);
 
   /* Before we do any other initialization we need to test available
      hardware features.  */
@@ -90,10 +104,13 @@ global_init (void)
   if (err)
     goto fail;
 #if 0
-  /* FIXME? */
-  err = _gcry_ac_init ();
-  if (err)
-    goto fail;
+  /* Hmmm, as of now ac_init does nothing. */
+  if ( !fips_mode () )
+    {
+      err = _gcry_ac_init ();
+      if (err)
+        goto fail;
+    }
 #endif
 
   return;
@@ -243,6 +260,7 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
   if ( (hwf & hwflist[i].flag) )
     fnc (fp, "%s:", hwflist[i].desc);
   fnc (fp, "\n");
+  fnc (fp, "fips-mode:%d:\n", fips_mode () );
 }
 
 
@@ -267,10 +285,10 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_FAKED_RANDOM_P:
-      /* Return an error if the RNG is faked one (i.e. enabled by
+      /* Return an error if the RNG is faked one (e.g. enabled by
          ENABLE_QUICK_RANDOM. */
       if (_gcry_random_is_faked ())
-        err = GPG_ERR_GENERAL;
+        err = GPG_ERR_GENERAL;  /* Use as TRUE value.  */
       break;
 
     case GCRYCTL_DUMP_RANDOM_STATS:
@@ -324,7 +342,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     case GCRYCTL_USE_SECURE_RNDPOOL:
       global_init ();
-      _gcry_secure_random_alloc (); /* put random number into secure memory */
+      _gcry_secure_random_alloc (); /* Put random number into secure memory. */
       break;
 
     case GCRYCTL_SET_RANDOM_SEED_FILE:
@@ -348,6 +366,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_DISABLE_INTERNAL_LOCKING:
+      /* Not used anymore.  */
       global_init ();
       break;
 
@@ -358,7 +377,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     case GCRYCTL_INITIALIZATION_FINISHED_P:
       if (init_finished)
-	err = GPG_ERR_GENERAL;
+	err = GPG_ERR_GENERAL; /* Yes.  */
       break;
 
     case GCRYCTL_INITIALIZATION_FINISHED:
@@ -367,15 +386,15 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 	 are started.  It is not really needed but the only way to be
 	 really sure that all initialization for thread-safety has
 	 been done. */
-        if (! init_finished)
-	  {
-            global_init ();
-            /* Do only a basic random initialization, i.e. init the
-               mutexes. */
-            _gcry_random_initialize (0);
-            init_finished = 1;
-	  }
-        break;
+      if (! init_finished)
+        {
+          global_init ();
+          /* Do only a basic random initialization, i.e. init the
+             mutexes. */
+          _gcry_random_initialize (0);
+          init_finished = 1;
+        }
+      break;
 
     case GCRYCTL_SET_THREAD_CBS:
       err = ath_install (va_arg (arg_ptr, void *), any_init_done);
@@ -417,6 +436,40 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       {
         FILE *fp = va_arg (arg_ptr, FILE *);
         print_config (fp?fprintf:_gcry_log_info_with_dummy_fp, fp);
+      }
+      break;
+
+    case GCRYCTL_OPERATIONAL_P:
+      /* Returns true if the library is in an operational state.  This
+         is always true for non-fips mode.  */
+      if (_gcry_fips_test_operational ())
+        err = GPG_ERR_GENERAL; /* Used as TRUE value */
+      break;
+
+    case GCRYCTL_FIPS_MODE_P:
+      if (fips_mode ())
+	err = GPG_ERR_GENERAL; /* Used as TRUE value */
+      break;
+
+    case GCRYCTL_FORCE_FIPS_MODE:
+      /* Performing this command puts the library into fips mode.  If
+         the library has already been initialized or is already in
+         fips mode, a selftest is triggered.  */
+      if (!any_init_done)
+        {
+          /* Not yet intialized at all.  Set a flag so that we are put
+             into fips mode during initialization.  */
+          force_fips_mode = 1;
+        }
+      else 
+        {
+          /* Already initialized.  If we are already operational we
+             run a selftest.  If not we use the is_operational call to
+             force us into operational state if possible.  */
+          if (_gcry_fips_test_operational ())
+            _gcry_fips_run_selftests ();
+          if (_gcry_fips_is_operational ())
+            err = GPG_ERR_GENERAL; /* Used as TRUE value */
       }
       break;
 
@@ -506,6 +559,12 @@ gcry_set_allocation_handler (gcry_handler_alloc_t new_alloc_func,
 {
   global_init ();
 
+  if (fips_mode () )
+    {
+      fips_signal_error ("custom allocation handler used");
+      return;
+    }
+
   alloc_func = new_alloc_func;
   alloc_secure_func = new_alloc_secure_func;
   is_secure_func = new_is_secure_func;
@@ -533,10 +592,16 @@ void
 gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
 							void *value )
 {
-    global_init ();
+  global_init ();
 
-    outofcore_handler = f;
-    outofcore_handler_value = value;
+  if (fips_mode () )
+    {
+      fips_signal_error ("out of core handler used");
+      return;
+    }
+  
+  outofcore_handler = f;
+  outofcore_handler_value = value;
 }
 
 static gcry_err_code_t
@@ -813,9 +878,11 @@ gcry_xstrdup (const char *string)
 
 
 int
-_gcry_get_debug_flag( unsigned int mask )
+_gcry_get_debug_flag (unsigned int mask)
 {
-    return debug_flags & mask;
+  if ( fips_mode () )
+    return 0;
+  return (debug_flags & mask);
 }
 
 

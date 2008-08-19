@@ -20,7 +20,8 @@
 #ifndef GCRY_VISIBILITY_H
 #define GCRY_VISIBILITY_H
 
-/* Redefine all public symbols with an underscore.  */
+/* Redefine all public symbols with an underscore unless we already
+   use the underscore prefixed version internally.  */
 #define gcry_check_version          _gcry_check_version
 #define gcry_control                _gcry_control
 
@@ -69,16 +70,19 @@
 #define gcry_md_map_name            _gcry_md_map_name
 #define gcry_md_open                _gcry_md_open
 #define gcry_md_read                _gcry_md_read
-#define gcry_md_register            _gcry_md_register
+/* gcry_md_register and _gcry_md_register differ.  */
+#define gcry_md_unregister          _gcry_md_unregister
 #define gcry_md_reset               _gcry_md_reset
 #define gcry_md_setkey              _gcry_md_setkey
-#define gcry_md_unregister          _gcry_md_unregister
 #define gcry_md_write               _gcry_md_write
 #define gcry_md_debug               _gcry_md_debug
 
 #define gcry_cipher_algo_info       _gcry_cipher_algo_info
 #define gcry_cipher_algo_name       _gcry_cipher_algo_name
 #define gcry_cipher_close           _gcry_cipher_close
+#define gcry_cipher_setkey          _gcry_cipher_setkey
+#define gcry_cipher_setiv           _gcry_cipher_setiv
+#define gcry_cipher_setctr          _gcry_cipher_setctr
 #define gcry_cipher_ctl             _gcry_cipher_ctl
 #define gcry_cipher_decrypt         _gcry_cipher_decrypt
 #define gcry_cipher_encrypt         _gcry_cipher_encrypt
@@ -89,7 +93,7 @@
 #define gcry_cipher_map_name        _gcry_cipher_map_name
 #define gcry_cipher_mode_from_oid   _gcry_cipher_mode_from_oid
 #define gcry_cipher_open            _gcry_cipher_open
-#define gcry_cipher_register        _gcry_cipher_register
+/* gcry_cipher_register and  _gcry_cipher_register differ.  */
 #define gcry_cipher_unregister      _gcry_cipher_unregister
 
 #define gcry_pk_algo_info           _gcry_pk_algo_info
@@ -102,10 +106,10 @@
 #define gcry_pk_get_nbits           _gcry_pk_get_nbits
 #define gcry_pk_list                _gcry_pk_list
 #define gcry_pk_map_name            _gcry_pk_map_name
-#define gcry_pk_register            _gcry_pk_register
+/* gcry_pk_register and _gcry_pk_register differ.  */
+#define gcry_pk_unregister          _gcry_pk_unregister
 #define gcry_pk_sign                _gcry_pk_sign
 #define gcry_pk_testkey             _gcry_pk_testkey
-#define gcry_pk_unregister          _gcry_pk_unregister
 #define gcry_pk_verify              _gcry_pk_verify
 
 #define gcry_ac_data_new            _gcry_ac_data_new
@@ -224,13 +228,6 @@
 #define gcry_mpi_swap               _gcry_mpi_swap
 #define gcry_mpi_test_bit           _gcry_mpi_test_bit
 
-#define gcry_cipher_register        _gcry_cipher_register
-#define gcry_cipher_unregister      _gcry_cipher_unregister
-#define gcry_pk_register            _gcry_pk_register    
-#define gcry_pk_unregister          _gcry_pk_unregister    
-#define gcry_md_register            _gcry_md_register    
-#define gcry_md_unregister          _gcry_md_unregister
-
 
 /* Include the main header here so that public symbols are mapped to
    the internal underscored ones.  */
@@ -265,12 +262,15 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 #ifdef _GCRY_INCLUDED_BY_VISIBILITY_C
 
 /* A macro to flag a function as visible.  Note that we take the
-   defintion from the mapped name.  */
+   definition from the mapped name.  */
 #ifdef GCRY_USE_VISIBILITY
 # define MARK_VISIBLE(name) \
     extern __typeof__ (_##name) name __attribute__ ((visibility("default")));
+# define MARK_VISIBLEX(name) \
+    extern __typeof__ (name) name __attribute__ ((visibility("default")));
 #else
 # define MARK_VISIBLE(name) /* */
+# define MARK_VISIBLEX(name) /* */
 #endif
 
 
@@ -324,16 +324,19 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 #undef gcry_md_map_name           
 #undef gcry_md_open               
 #undef gcry_md_read               
-#undef gcry_md_register           
+/* gcry_md_register is not anymore a macro.  */
+#undef gcry_md_unregister         
 #undef gcry_md_reset              
 #undef gcry_md_setkey             
-#undef gcry_md_unregister         
 #undef gcry_md_write              
 #undef gcry_md_debug              
 
 #undef gcry_cipher_algo_info      
 #undef gcry_cipher_algo_name      
 #undef gcry_cipher_close          
+#undef gcry_cipher_setkey
+#undef gcry_cipher_setiv
+#undef gcry_cipher_setctr
 #undef gcry_cipher_ctl            
 #undef gcry_cipher_decrypt        
 #undef gcry_cipher_encrypt        
@@ -344,7 +347,7 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 #undef gcry_cipher_map_name       
 #undef gcry_cipher_mode_from_oid  
 #undef gcry_cipher_open           
-#undef gcry_cipher_register       
+/* gcry_cipher_register is not anymore a macro.  */
 #undef gcry_cipher_unregister     
 
 #undef gcry_pk_algo_info          
@@ -357,10 +360,10 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 #undef gcry_pk_get_nbits          
 #undef gcry_pk_list               
 #undef gcry_pk_map_name           
-#undef gcry_pk_register           
+/* gcry_pk_register is not anymore a macro.  */
+#undef gcry_pk_unregister         
 #undef gcry_pk_sign               
 #undef gcry_pk_testkey            
-#undef gcry_pk_unregister         
 #undef gcry_pk_verify             
 
 #undef gcry_ac_data_new           
@@ -479,14 +482,6 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 #undef gcry_mpi_swap              
 #undef gcry_mpi_test_bit          
 
-#undef gcry_cipher_register
-#undef gcry_cipher_unregister
-#undef gcry_pk_register
-#undef gcry_pk_unregister
-#undef gcry_md_register
-#undef gcry_md_unregister
-
-
 
 /* Now mark all symbols.  */
 
@@ -538,7 +533,7 @@ MARK_VISIBLE (gcry_md_list)
 MARK_VISIBLE (gcry_md_map_name)
 MARK_VISIBLE (gcry_md_open)
 MARK_VISIBLE (gcry_md_read)
-MARK_VISIBLE (gcry_md_register)
+MARK_VISIBLEX(gcry_md_register)
 MARK_VISIBLE (gcry_md_reset)
 MARK_VISIBLE (gcry_md_setkey)
 MARK_VISIBLE (gcry_md_unregister)
@@ -548,6 +543,9 @@ MARK_VISIBLE (gcry_md_debug)
 MARK_VISIBLE (gcry_cipher_algo_info)
 MARK_VISIBLE (gcry_cipher_algo_name)
 MARK_VISIBLE (gcry_cipher_close)
+MARK_VISIBLE (gcry_cipher_setkey)
+MARK_VISIBLE (gcry_cipher_setiv)
+MARK_VISIBLE (gcry_cipher_setctr)
 MARK_VISIBLE (gcry_cipher_ctl)
 MARK_VISIBLE (gcry_cipher_decrypt)
 MARK_VISIBLE (gcry_cipher_encrypt)
@@ -558,7 +556,7 @@ MARK_VISIBLE (gcry_cipher_list)
 MARK_VISIBLE (gcry_cipher_map_name)
 MARK_VISIBLE (gcry_cipher_mode_from_oid)
 MARK_VISIBLE (gcry_cipher_open)
-MARK_VISIBLE (gcry_cipher_register)
+MARK_VISIBLEX(gcry_cipher_register)
 MARK_VISIBLE (gcry_cipher_unregister)
 
 MARK_VISIBLE (gcry_pk_algo_info)
@@ -571,7 +569,7 @@ MARK_VISIBLE (gcry_pk_get_keygrip)
 MARK_VISIBLE (gcry_pk_get_nbits)
 MARK_VISIBLE (gcry_pk_list)
 MARK_VISIBLE (gcry_pk_map_name)
-MARK_VISIBLE (gcry_pk_register)
+MARK_VISIBLEX(gcry_pk_register)
 MARK_VISIBLE (gcry_pk_sign)
 MARK_VISIBLE (gcry_pk_testkey)
 MARK_VISIBLE (gcry_pk_unregister)
@@ -694,13 +692,6 @@ MARK_VISIBLE (gcry_mpi_sub_ui)
 MARK_VISIBLE (gcry_mpi_subm)
 MARK_VISIBLE (gcry_mpi_swap)
 MARK_VISIBLE (gcry_mpi_test_bit)
-
-MARK_VISIBLE (gcry_cipher_register)
-MARK_VISIBLE (gcry_cipher_unregister)
-MARK_VISIBLE (gcry_pk_register)
-MARK_VISIBLE (gcry_pk_unregister)
-MARK_VISIBLE (gcry_md_register)
-MARK_VISIBLE (gcry_md_unregister)
 
 
 

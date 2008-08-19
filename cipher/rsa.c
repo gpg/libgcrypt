@@ -1,6 +1,6 @@
 /* rsa.c  -  RSA function
  * Copyright (C) 1997, 1998, 1999 by Werner Koch (dd9jn)
- * Copyright (C) 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 2000, 2001, 2002, 2003, 2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -53,8 +53,8 @@ typedef struct
 
 
 static void test_keys (RSA_secret_key *sk, unsigned nbits);
-static void generate (RSA_secret_key *sk,
-                      unsigned int nbits, unsigned long use_e);
+static gpg_err_code_t generate (RSA_secret_key *sk,
+                                unsigned int nbits, unsigned long use_e);
 static int  check_secret_key (RSA_secret_key *sk);
 static void public (gcry_mpi_t output, gcry_mpi_t input, RSA_public_key *skey);
 static void secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey);
@@ -111,7 +111,7 @@ check_exponent (void *arg, gcry_mpi_t a)
  *       > 2 Try starting at this value until a working exponent is found.
  * Returns: 2 structures filled with all needed values
  */
-static void
+static gpg_err_code_t
 generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
 {
   gcry_mpi_t p, q; /* the two primes */
@@ -124,7 +124,10 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
   gcry_mpi_t g;
   gcry_mpi_t f;
 
-  /* make sure that nbits is even so that we generate p, q of equal size */
+  if ( nbits < 1024 && fips_mode ())
+    return GPG_ERR_INV_VALUE;
+
+  /* Make sure that nbits is even so that we generate p, q of equal size. */
   if ( (nbits&1) )
     nbits++; 
 
@@ -232,6 +235,8 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
 
   /* now we can test our keys (this should never fail!) */
   test_keys( sk, nbits - 64 );
+
+  return 0;
 }
 
 
@@ -441,34 +446,37 @@ _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
                     gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   RSA_secret_key sk;
-  gpg_err_code_t rc;
+  gpg_err_code_t ec;
   int i;
 
   (void)algo;
 
-  generate (&sk, nbits, use_e);
-  skey[0] = sk.n;
-  skey[1] = sk.e;
-  skey[2] = sk.d;
-  skey[3] = sk.p;
-  skey[4] = sk.q;
-  skey[5] = sk.u;
-  
-  /* Make an empty list of factors.  */
-  *retfactors = gcry_calloc ( 1, sizeof **retfactors );
-  if (!*retfactors)
+  ec = generate (&sk, nbits, use_e);
+  if (!ec)
     {
-      rc = gpg_err_code_from_errno (errno);
-      for (i=0; i <= 5; i++)
-        {
-          gcry_mpi_release (skey[i]);
-          skey[i] = NULL;
-        }
-    }
-  else
-    rc = 0;
+      skey[0] = sk.n;
+      skey[1] = sk.e;
+      skey[2] = sk.d;
+      skey[3] = sk.p;
+      skey[4] = sk.q;
+      skey[5] = sk.u;
   
-  return rc;
+      /* Make an empty list of factors.  */
+      *retfactors = gcry_calloc ( 1, sizeof **retfactors );
+      if (!*retfactors)
+        {
+          ec = gpg_err_code_from_syserror ();
+          for (i=0; i <= 5; i++)
+            {
+              gcry_mpi_release (skey[i]);
+              skey[i] = NULL;
+            }
+        }
+      else
+        ec = 0;
+    }
+  
+  return ec;
 }
 
 
@@ -537,6 +545,9 @@ _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
 
   y = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
 
+  /* We use blinding by default to mitigate timing attacks which can
+     be practically mounted over the network as shown by Brumley and
+     Boney in 2003.  */ 
   if (! (flags & PUBKEY_FLAG_NO_BLINDING))
     {
       /* Initialize blinding.  */
@@ -650,6 +661,58 @@ _gcry_rsa_get_nbits (int algo, gcry_mpi_t *pkey)
   return mpi_get_nbits (pkey[0]);
 }
 
+
+
+
+/* 
+     Self-test section.
+ */
+
+
+static gpg_err_code_t
+selftests_rsa (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = NULL; /*selftest ();*/
+  if (errtxt)
+    goto failed;
+
+  /* FIXME:  need more tests.  */
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("pubkey", GCRY_PK_RSA, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+
+/* Run a full self-test for ALGO and return 0 on success.  */
+static gpg_err_code_t
+run_selftests (int algo, selftest_report_func_t report)
+{
+  gpg_err_code_t ec;
+
+  switch (algo)
+    {
+    case GCRY_PK_RSA:
+      ec = selftests_rsa (report);
+      break;
+    default:
+      ec = GPG_ERR_PUBKEY_ALGO;
+      break;
+        
+    }
+  return ec;
+}
+
+
+
+
 static const char *rsa_names[] =
   {
     "rsa",
@@ -671,3 +734,8 @@ gcry_pk_spec_t _gcry_pubkey_spec_rsa =
     _gcry_rsa_verify,
     _gcry_rsa_get_nbits,
   };
+pk_extra_spec_t _gcry_pubkey_extraspec_rsa = 
+  {
+    run_selftests
+  };
+

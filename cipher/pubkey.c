@@ -1,6 +1,6 @@
 /* pubkey.c  -	pubkey dispatcher
- * Copyright (C) 1998, 1999, 2000, 2002, 2003,
- *               2005, 2007 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2002, 2003, 2005, 
+ *               2007, 2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -15,8 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <config.h>
@@ -41,26 +40,41 @@ static gcry_err_code_t pubkey_verify (int algo, gcry_mpi_t hash,
 				     int (*cmp) (void *, gcry_mpi_t),
                                       void *opaque);
 
+
+/* A dummy extraspec so that we do not need to tests the extraspec
+   field from the module specification against NULL and instead
+   directly test the respective fields of extraspecs.  */
+static pk_extra_spec_t dummy_extra_spec;
+
+
 /* This is the list of the default public-key ciphers included in
-   libgcrypt.  */
+   libgcrypt.  FIPS_ALLOWED indicated whether the algorithm is used in
+   FIPS mode. */
 static struct pubkey_table_entry
 {
   gcry_pk_spec_t *pubkey;
+  pk_extra_spec_t *extraspec;
   unsigned int algorithm;
+  int fips_allowed; 
 } pubkey_table[] =
   {
 #if USE_RSA
-    { &_gcry_pubkey_spec_rsa, GCRY_PK_RSA   },
+    { &_gcry_pubkey_spec_rsa,
+      &_gcry_pubkey_extraspec_rsa,   GCRY_PK_RSA, 1},
 #endif
 #if USE_ELGAMAL
-    { &_gcry_pubkey_spec_elg, GCRY_PK_ELG   },
-    { &_gcry_pubkey_spec_elg, GCRY_PK_ELG_E },
+    { &_gcry_pubkey_spec_elg,
+      &dummy_extra_spec,             GCRY_PK_ELG   },
+    { &_gcry_pubkey_spec_elg,
+      &dummy_extra_spec,             GCRY_PK_ELG_E },
 #endif
 #if USE_DSA
-    { &_gcry_pubkey_spec_dsa, GCRY_PK_DSA   },
+    { &_gcry_pubkey_spec_dsa,
+      &_gcry_pubkey_extraspec_dsa,   GCRY_PK_DSA, 1   },
 #endif
 #if USE_ECC
-    { &_gcry_pubkey_spec_ecdsa, GCRY_PK_ECDSA },
+    { &_gcry_pubkey_spec_ecdsa,
+      &_gcry_pubkey_extraspec_ecdsa, GCRY_PK_ECDSA, 0 },
 #endif
     { NULL, 0 },
   };
@@ -82,7 +96,7 @@ static int default_pubkeys_registered;
       ath_mutex_lock (&pubkeys_registered_lock);   \
       if (! default_pubkeys_registered)            \
         {                                          \
-          gcry_pk_register_default ();         \
+          pk_register_default ();                  \
           default_pubkeys_registered = 1;          \
         }                                          \
       ath_mutex_unlock (&pubkeys_registered_lock); \
@@ -101,6 +115,7 @@ dummy_generate (int algorithm, unsigned int nbits, unsigned long dummy,
   (void)dummy;
   (void)skey;
   (void)retfactors;
+  fips_signal_error ("using dummy public key function");
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -109,6 +124,7 @@ dummy_check_secret_key (int algorithm, gcry_mpi_t *skey)
 {
   (void)algorithm;
   (void)skey;
+  fips_signal_error ("using dummy public key function");
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -121,6 +137,7 @@ dummy_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
   (void)data;
   (void)pkey;
   (void)flags;
+  fips_signal_error ("using dummy public key function");
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -133,6 +150,7 @@ dummy_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data,
   (void)data;
   (void)skey;
   (void)flags;
+  fips_signal_error ("using dummy public key function");
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -144,6 +162,7 @@ dummy_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
   (void)resarr;
   (void)data;
   (void)skey;
+  fips_signal_error ("using dummy public key function");
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -158,6 +177,7 @@ dummy_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
   (void)pkey;
   (void)cmp;
   (void)opaquev;
+  fips_signal_error ("using dummy public key function");
   return GPG_ERR_NOT_IMPLEMENTED;
 }
 
@@ -166,13 +186,14 @@ dummy_get_nbits (int algorithm, gcry_mpi_t *pkey)
 {
   (void)algorithm;
   (void)pkey;
+  fips_signal_error ("using dummy public key function");
   return 0;
 }
 
 /* Internal function.  Register all the pubkeys included in
    PUBKEY_TABLE.  Returns zero on success or an error code.  */
 static void
-gcry_pk_register_default (void)
+pk_register_default (void)
 {
   gcry_err_code_t err = 0;
   int i;
@@ -191,9 +212,12 @@ gcry_pk_register_default (void)
       pubkey_use_dummy (verify);
       pubkey_use_dummy (get_nbits);
 #undef pubkey_use_dummy
+
       err = _gcry_module_add (&pubkeys_registered,
 			      pubkey_table[i].algorithm,
-			      (void *) pubkey_table[i].pubkey, NULL);
+			      (void *) pubkey_table[i].pubkey, 
+			      (void *) pubkey_table[i].extraspec, 
+                              NULL);
     }
 
   if (err)
@@ -231,16 +255,23 @@ gcry_pk_lookup_name (const char *name)
    PUBKEY.  On success, a new algorithm ID is stored in ALGORITHM_ID
    and a pointer representhing this module is stored in MODULE.  */
 gcry_error_t
-gcry_pk_register (gcry_pk_spec_t *pubkey,
-		  unsigned int *algorithm_id,
-		  gcry_module_t *module)
+_gcry_pk_register (gcry_pk_spec_t *pubkey,
+                   pk_extra_spec_t *extraspec,
+                   unsigned int *algorithm_id,
+                   gcry_module_t *module)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_module_t mod;
 
+  /* We do not support module loading in fips mode.  */
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   ath_mutex_lock (&pubkeys_registered_lock);
   err = _gcry_module_add (&pubkeys_registered, 0,
-			  (void *) pubkey, &mod);
+			  (void *) pubkey, 
+			  (void *)(extraspec? extraspec : &dummy_extra_spec), 
+                          &mod);
   ath_mutex_unlock (&pubkeys_registered_lock);
 
   if (! err)
@@ -498,6 +529,13 @@ pubkey_get_nenc (int algorithm)
 }
 
 
+/* Generate a new public key with algorithm ALGORITHM of size NBITS
+   and return it at SKEY. The use of the arguments QBITS, USE_E,
+   XVALUE and CURVE+_NAME depend onthe ALGORITHM.  RETFACTOR is used
+   by some algorithms to return certain additional information which
+   are in general not required.  
+
+   The function returns ther error code number or 0 on success. */
 static gcry_err_code_t
 pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
                  unsigned long use_e, gcry_mpi_t xvalue,
@@ -582,7 +620,10 @@ pubkey_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
   gcry_err_code_t rc;
   int i;
 
-  if (DBG_CIPHER)
+  /* Note: In fips mode DBG_CIPHER will enver evaluate to true but as
+     an extra failsafe protection we explicitly test for fips mode
+     here. */ 
+  if (DBG_CIPHER && !fips_mode ())
     {
       log_debug ("pubkey_encrypt: algo=%d\n", algorithm);
       for(i = 0; i < pubkey_get_npkey (algorithm); i++)
@@ -604,7 +645,7 @@ pubkey_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
  ready:
   ath_mutex_unlock (&pubkeys_registered_lock);
 
-  if (!rc && DBG_CIPHER)
+  if (!rc && DBG_CIPHER && !fips_mode ())
     {
       for(i = 0; i < pubkey_get_nenc (algorithm); i++)
 	log_mpidump("  encr:", resarr[i] );
@@ -630,7 +671,7 @@ pubkey_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data,
   int i;
 
   *result = NULL; /* so the caller can always do a mpi_free */
-  if (DBG_CIPHER)
+  if (DBG_CIPHER && !fips_mode ())
     {
       log_debug ("pubkey_decrypt: algo=%d\n", algorithm);
       for(i = 0; i < pubkey_get_nskey (algorithm); i++)
@@ -654,7 +695,7 @@ pubkey_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data,
  ready:
   ath_mutex_unlock (&pubkeys_registered_lock);
 
-  if (! rc && DBG_CIPHER)
+  if (!rc && DBG_CIPHER && !fips_mode ())
     log_mpidump (" plain:", *result);
 
   return rc;
@@ -676,7 +717,7 @@ pubkey_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
   gcry_err_code_t rc;
   int i;
 
-  if (DBG_CIPHER)
+  if (DBG_CIPHER && !fips_mode ())
     {
       log_debug ("pubkey_sign: algo=%d\n", algorithm);
       for(i = 0; i < pubkey_get_nskey (algorithm); i++)
@@ -699,7 +740,7 @@ pubkey_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
  ready:
   ath_mutex_unlock (&pubkeys_registered_lock);
 
-  if (! rc && DBG_CIPHER)
+  if (!rc && DBG_CIPHER && !fips_mode ())
     for (i = 0; i < pubkey_get_nsig (algorithm); i++)
       log_mpidump ("   sig:", resarr[i]);
 
@@ -720,7 +761,7 @@ pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
   gcry_err_code_t rc;
   int i;
 
-  if (DBG_CIPHER)
+  if (DBG_CIPHER && !fips_mode ())
     {
       log_debug ("pubkey_verify: algo=%d\n", algorithm);
       for (i = 0; i < pubkey_get_npkey (algorithm); i++)
@@ -844,6 +885,7 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
   list = gcry_sexp_find_token (key_sexp, "curve", 5);
   if (list)
     {
+#if USE_ECC
       char *curve;
       gcry_mpi_t params[6];
 
@@ -868,6 +910,10 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
           else
             mpi_free (params[idx]);
         }
+#else /* !USE_ECC */
+      err = GPG_ERR_INV_OBJ; /* "curve" given but ECC not supported. */
+      goto leave;
+#endif /* !USE_ECC */
     }
 
   /* Check that all parameters are known.  */
@@ -1322,7 +1368,8 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
         rc = GPG_ERR_INV_OBJ;
     }
   else if (is_pkcs1 && lvalue && for_encryption)
-    { /* Create pkcs#1 block type 2 padding. */
+    { 
+      /* Create pkcs#1 block type 2 padding. */
       unsigned char *frame = NULL;
       size_t nframe = (nbits+7) / 8;
       const void * value;
@@ -1388,7 +1435,8 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
       gcry_free(frame);
     }
   else if (is_pkcs1 && lhash && !for_encryption)
-    { /* Create pkcs#1 block type 1 padding. */
+    { 
+      /* Create pkcs#1 block type 1 padding. */
       if (gcry_sexp_length (lhash) != 3)
         rc = GPG_ERR_INV_OBJ;
       else if ( !(s=gcry_sexp_nth_data (lhash, 1, &n)) || !n )
@@ -1489,7 +1537,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
               n += valuelen;
               assert (n == nframe);
       
-              /* convert it into an MPI, FIXME: error checking?  */
+              /* Convert it into an MPI.  FIXME: error checking?  */
               gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, n, &nframe);
             }
           
@@ -1542,10 +1590,11 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
 
+  *r_ciph = NULL;
+
   REGISTER_DEFAULT_PUBKEYS;
 
-  *r_ciph = NULL;
-  /* get the key */
+  /* Get the key. */
   rc = sexp_to_key (s_pkey, 0, &pkey, &module);
   if (rc)
     goto leave;
@@ -1610,7 +1659,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     
     /* And now the ugly part: We don't have a function to pass an
      * array to a format string, so we have to do it this way :-(.  */
-    /* FIXME: There is now such a format spefier, so we can could
+    /* FIXME: There is now such a format specifier, so we can
        change the code to be more clear. */
     arg_list = malloc (nelem * sizeof *arg_list);
     if (!arg_list)
@@ -1685,9 +1734,10 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   gcry_module_t module_enc = NULL, module_key = NULL;
   gcry_pk_spec_t *pubkey = NULL;
 
+  *r_plain = NULL;
+
   REGISTER_DEFAULT_PUBKEYS;
 
-  *r_plain = NULL;
   rc = sexp_to_key (s_skey, 1, &skey, &module_key);
   if (rc)
     goto leave;
@@ -1780,9 +1830,10 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   int i;
   gcry_err_code_t rc;
 
+  *r_sig = NULL;
+
   REGISTER_DEFAULT_PUBKEYS;
 
-  *r_sig = NULL;
   rc = sexp_to_key (s_skey, 1, &skey, &module);
   if (rc)
     goto leave;
@@ -2026,10 +2077,10 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   gcry_mpi_t xvalue = NULL;
   char *curve = NULL;
 
-  REGISTER_DEFAULT_PUBKEYS;
-
   skey[0] = NULL;
   *r_key = NULL;
+
+  REGISTER_DEFAULT_PUBKEYS;
 
   list = gcry_sexp_find_token (s_parms, "genkey", 0);
   if (!list)
@@ -2398,6 +2449,12 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   if (gcry_md_open (&md, GCRY_MD_SHA1, 0))
     goto fail;
 
+#if USE_ECC
+# ifdef __GNUC__
+#  warning needs to be fixed for ECC.
+# endif
+#endif
+
   for (idx = 0, s = elems; *s; s++, idx++)
     {
       const char *data;
@@ -2418,8 +2475,8 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
         }
   
       /* PKCS-15 says that for RSA only the modulus should be hashed -
-         however, it is not clear wether this is meant to has the raw
-         bytes assuming this is an unsigned integer or whether the DER
+         however, it is not clear wether this is meant to use the raw
+         bytes (assuming this is an unsigned integer) or whether the DER
          required 0 should be prefixed. We hash the raw bytes.  For
          non-RSA we hash S-expressions. */
       gcry_md_write (md, data, datalen);
@@ -2475,14 +2532,16 @@ gcry_pk_ctl (int cmd, void *buffer, size_t buflen)
 }
 
 
-/*
-   Return information about the given algorithm
-   WHAT select the kind of information returned:
+/* Return information about the given algorithm
+
+   WHAT selects the kind of information returned:
+
     GCRYCTL_TEST_ALGO:
         Returns 0 when the specified algorithm is available for use.
         Buffer must be NULL, nbytes  may have the address of a variable
         with the required usage of the algorithm. It may be 0 for don't
         care or a combination of the GCRY_PK_USAGE_xxx flags;
+
     GCRYCTL_GET_ALGO_USAGE:
         Return the usage glafs for the give algo.  An invalid alog
         does return 0.  Disabled algos are ignored here becuase we
@@ -2570,6 +2629,7 @@ gcry_pk_algo_info (int algorithm, int what, void *buffer, size_t *nbytes)
 }
 
 
+/* Explicitly initialize this module.  */
 gcry_err_code_t
 _gcry_pk_init (void)
 {
@@ -2627,6 +2687,46 @@ gcry_pk_list (int *list, int *list_length)
   return err;
 }
 
+
+/* Run the selftests for pubkey algorithm ALGO with optional reporting
+   function REPORT.  */
+gpg_error_t
+_gcry_pk_selftest (int algo, selftest_report_func_t report)
+{
+  gcry_module_t module = NULL;
+  cipher_extra_spec_t *extraspec = NULL;
+  gcry_err_code_t ec = 0;
+
+  REGISTER_DEFAULT_PUBKEYS;
+
+  ath_mutex_lock (&pubkeys_registered_lock);
+  module = _gcry_module_lookup_id (pubkeys_registered, algo);
+  if (module && !(module->flags & FLAG_MODULE_DISABLED))
+    extraspec = module->extraspec;
+  ath_mutex_unlock (&pubkeys_registered_lock);
+  if (extraspec && extraspec->selftest)
+    ec = extraspec->selftest (algo, report);
+  else
+    {
+      ec = GPG_ERR_PUBKEY_ALGO;
+      if (report)
+        report ("pubkey", algo, "module", 
+                module && !(module->flags & FLAG_MODULE_DISABLED)?
+                "no selftest available" :
+                module? "algorithm disabled" : "algorithm not found");
+    }
+
+  if (module)
+    {
+      ath_mutex_lock (&pubkeys_registered_lock);
+      _gcry_module_release (module);
+      ath_mutex_unlock (&pubkeys_registered_lock);
+    }
+  return gpg_error (ec);
+}
+
+
+/* This function is only used by ac.c!  */
 gcry_err_code_t
 _gcry_pk_get_elements (int algo, char **enc, char **sig)
 {

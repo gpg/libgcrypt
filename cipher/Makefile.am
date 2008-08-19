@@ -36,6 +36,7 @@ libcipher_la_LIBADD = $(GCRYPT_MODULES)
 
 libcipher_la_SOURCES = \
 cipher.c pubkey.c ac.c md.c \
+hmac-tests.c \
 bithelp.h  \
 primegen.c  \
 rmd.h
@@ -64,6 +65,7 @@ whirlpool.c \
 twofish.c \
 rfc2268.c \
 camellia.c camellia.h camellia-glue.c
+
 
 # We need to lower the optimization for this module.
 tiger.o: $(srcdir)/tiger.c

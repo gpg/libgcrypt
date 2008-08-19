@@ -14,9 +14,9 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
+
 #ifndef G10_RAND_INTERNAL_H
 #define G10_RAND_INTERNAL_H
 
@@ -36,24 +36,71 @@ enum random_origins
 
 
 
-
+/*-- random.c --*/
 void _gcry_random_progress (const char *what, int printchar,
                             int current, int total);
 
 
+/*-- random-csprng.c --*/
+void _gcry_rngcsprng_initialize (int full);
+void _gcry_rngcsprng_dump_stats (void);
+void _gcry_rngcsprng_secure_alloc (void);
+void _gcry_rngcsprng_enable_quick_gen (void);
+void _gcry_rngcsprng_set_daemon_socket (const char *socketname);
+int  _gcry_rngcsprng_use_daemon (int onoff);
+int  _gcry_rngcsprng_is_faked (void);
+gcry_error_t _gcry_rngcsprng_add_bytes (const void *buf, size_t buflen,
+                                        int quality);
+void *_gcry_rngcsprng_get_bytes (size_t nbytes,
+                                 enum gcry_random_level level);
+void *_gcry_rngcsprng_get_bytes_secure (size_t nbytes, 
+                                        enum gcry_random_level level);
+void _gcry_rngcsprng_randomize (void *buffer, size_t length,
+                                enum gcry_random_level level);
+void _gcry_rngcsprng_set_seed_file (const char *name);
+void _gcry_rngcsprng_update_seed_file (void);
+void _gcry_rngcsprng_fast_poll (void);
+void _gcry_rngcsprng_create_nonce (void *buffer, size_t length);
+
+/*-- random-rngcsprng.c --*/
+void _gcry_rngfips_initialize (int full);
+void _gcry_rngfips_dump_stats (void);
+int  _gcry_rngfips_is_faked (void);
+gcry_error_t _gcry_rngfips_add_bytes (const void *buf, size_t buflen,
+                                        int quality);
+void *_gcry_rngfips_get_bytes (size_t nbytes,
+                               enum gcry_random_level level);
+void *_gcry_rngfips_get_bytes_secure (size_t nbytes, 
+                                      enum gcry_random_level level);
+void _gcry_rngfips_randomize (void *buffer, size_t length,
+                                enum gcry_random_level level);
+void _gcry_rngfips_create_nonce (void *buffer, size_t length);
+
+
+
+
+
+
+/*-- rndlinux.c --*/
 int _gcry_rndlinux_gather_random (void (*add) (const void *, size_t,
                                                enum random_origins),
                                    enum random_origins origin,
                                   size_t length, int level);
+
+/*-- rndunix.c --*/
 int _gcry_rndunix_gather_random (void (*add) (const void *, size_t,
                                               enum random_origins),
                                  enum random_origins origin,
                                  size_t length, int level);
+
+/*-- rndelg.c --*/
 int _gcry_rndegd_gather_random (void (*add) (const void *, size_t,
                                              enum random_origins),
                                 enum random_origins origin,
                                 size_t length, int level);
 int _gcry_rndegd_connect_socket (int nofail);
+
+/*-- rndw32.c --*/
 int _gcry_rndw32_gather_random (void (*add) (const void *, size_t,
                                              enum random_origins),
                                 enum random_origins origin,
@@ -62,6 +109,7 @@ void _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
                                                   enum random_origins),
                                       enum random_origins origin );
 
+/*-- rndhw.c --*/
 int _gcry_rndhw_failed_p (void);
 void _gcry_rndhw_poll_fast (void (*add)(const void*, size_t,
                                         enum random_origins),

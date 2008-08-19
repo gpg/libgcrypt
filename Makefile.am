@@ -24,7 +24,7 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-random-daemon \
 
 DIST_SUBDIRS = m4 mpi cipher random src doc tests
 SUBDIRS = mpi cipher random src doc tests
-EXTRA_DIST = BUGS autogen.sh README.SVN
+EXTRA_DIST = autogen.sh README.SVN
 DISTCLEANFILES = 
 
 

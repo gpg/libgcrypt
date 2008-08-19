@@ -1,3 +1,17 @@
+2008-08-18  Werner Koch  <wk@g10code.com>
+
+	* basic.c (main): Add option --fips.
+
+2008-08-15  Werner Koch  <wk@g10code.com>
+
+	* register.c (main): Check for fips mode.
+	(check_run): Take care of fips mode.
+
+	* basic.c (check_cbc_mac_cipher, check_ciphers, check_digests)
+	(check_hmac, check_pubkey): Do not test unavalaible algorithms in
+	fips mode.
+	(main): Check for fips mode.
+
 2008-04-22  Werner Koch  <wk@g10code.com>
 
 	* basic.c (check_one_cipher): Also check in-place encryption.

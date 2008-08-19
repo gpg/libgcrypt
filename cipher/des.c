@@ -100,7 +100,7 @@
  *     char *error_msg;
  *
  *     * To perform a selftest of this DES/Triple-DES implementation use the
- *	 function selftest(). It will return an error string if their are
+ *	 function selftest(). It will return an error string if there are
  *	 some problems with this library. *
  *
  *     if ( (error_msg = selftest()) )
@@ -310,7 +310,7 @@ static byte encrypt_rotate_tab[16] =
 
 /*
  * Table with weak DES keys sorted in ascending order.
- * In DES their are 64 known keys wich are weak. They are weak
+ * In DES their are 64 known keys which are weak. They are weak
  * because they produce only one, two or four different
  * subkeys in the subkey scheduling process.
  * The keys in this table have all their parity bits cleared.
@@ -584,7 +584,7 @@ des_setkey (struct _des_ctx *ctx, const byte * key)
   static const char *selftest_failed;
   int i;
 
-  if (! initialized)
+  if (!fips_mode () && !initialized)
     {
       initialized = 1;
       selftest_failed = selftest ();
@@ -691,7 +691,7 @@ tripledes_set3keys (struct _tripledes_ctx *ctx,
   static const char *selftest_failed;
   int i;
 
-  if (! initialized)
+  if (!fips_mode () && !initialized)
     {
       initialized = 1;
       selftest_failed = selftest ();
@@ -956,7 +956,6 @@ selftest (void)
 
     byte		result[8];
     int		i;
-    static char	error[80];
     tripledes_ctx	des3;
 
     for (i=0; i<sizeof(testdata)/sizeof(*testdata); ++i)
@@ -966,19 +965,11 @@ selftest (void)
         
         tripledes_ecb_encrypt (des3, testdata[i].plain, result);
         if (memcmp (testdata[i].cipher, result, 8))
-          {
-            sprintf (error, "Triple-DES SSLeay test pattern no. %d "
-                     "failed on encryption.", i+1);
-            return error;
-          }
+          return "Triple-DES SSLeay test failed on encryption.";
 
         tripledes_ecb_decrypt (des3, testdata[i].cipher, result);
         if (memcmp (testdata[i].plain, result, 8))
-          {
-            sprintf (error, "Triple-DES SSLeay test pattern no. %d "
-                     "failed on decryption.", i+1);
-            return error;
-          }
+          return  "Triple-DES SSLeay test failed on decryption.";;
       }
   }
 
@@ -992,14 +983,14 @@ selftest (void)
     unsigned char *p;
     gcry_md_hd_t h;
 
-    if (gcry_md_open (&h, GCRY_MD_SHA1, 0))
+    if (_gcry_md_open (&h, GCRY_MD_SHA1, 0))
       return "SHA1 not available";
 
     for (i = 0; i < 64; ++i)
-      gcry_md_write (h, weak_keys[i], 8);
-    p = gcry_md_read (h, GCRY_MD_SHA1);
+      _gcry_md_write (h, weak_keys[i], 8);
+    p = _gcry_md_read (h, GCRY_MD_SHA1);
     i = memcmp (p, weak_keys_chksum, 20);
-    gcry_md_close (h);
+    _gcry_md_close (h);
     if (i)
       return "weak key table defect";
 
@@ -1088,6 +1079,59 @@ do_des_decrypt( void *context, byte *outbuf, const byte *inbuf )
   _gcry_burn_stack (32);
 }
 
+
+
+
+/* 
+     Self-test section.
+ */
+
+
+/* Complete selftest for TripleDES with all modes and driver code.  */
+static gpg_err_code_t
+selftest_fips (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = selftest ();
+  if (errtxt)
+    goto failed;
+
+  /* FIXME:  need more tests.  */
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("cipher", GCRY_CIPHER_3DES, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+
+
+/* Run a full self-test for ALGO and return 0 on success.  */
+static gpg_err_code_t
+run_selftests (int algo, selftest_report_func_t report)
+{
+  gpg_err_code_t ec;
+
+  switch (algo)
+    {
+    case GCRY_CIPHER_3DES:
+      ec = selftest_fips (report);
+      break;
+    default:
+      ec = GPG_ERR_CIPHER_ALGO;
+      break;
+        
+    }
+  return ec;
+}
+
+
+
 gcry_cipher_spec_t _gcry_cipher_spec_des =
   {
     "DES", NULL, NULL, 8, 64, sizeof (struct _des_ctx),
@@ -1108,4 +1152,9 @@ gcry_cipher_spec_t _gcry_cipher_spec_tripledes =
   {
     "3DES", NULL, oids_tripledes, 8, 192, sizeof (struct _tripledes_ctx),
     do_tripledes_setkey, do_tripledes_encrypt, do_tripledes_decrypt
+  };
+
+cipher_extra_spec_t _gcry_cipher_extraspec_tripledes = 
+  {
+    run_selftests
   };

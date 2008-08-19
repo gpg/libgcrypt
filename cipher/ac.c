@@ -127,6 +127,9 @@ _gcry_ac_data_new (gcry_ac_data_t *data)
   gcry_ac_data_t data_new;
   gcry_error_t err;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   data_new = gcry_malloc (sizeof (*data_new));
   if (! data_new)
     {
@@ -240,6 +243,9 @@ _gcry_ac_data_copy (gcry_ac_data_t *data_cp, gcry_ac_data_t data)
   gcry_ac_data_t data_new;
   gcry_error_t err;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   /* Allocate data set.  */
   data_new = gcry_malloc (sizeof (*data_new));
   if (! data_new)
@@ -289,6 +295,9 @@ _gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
 
   name_cp = NULL;
   mpi_cp = NULL;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   if (flags & ~(GCRY_AC_FLAG_DEALLOC | GCRY_AC_FLAG_COPY))
     {
@@ -370,6 +379,9 @@ _gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
   gcry_error_t err;
   unsigned int i;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   if (flags & ~(GCRY_AC_FLAG_COPY))
     {
       err = gcry_error (GPG_ERR_INV_ARG);
@@ -420,6 +432,9 @@ _gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
 
   name_cp = NULL;
   mpi_cp = NULL;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   if (flags & ~(GCRY_AC_FLAG_COPY))
     {
@@ -495,6 +510,9 @@ _gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
   sexp_buffer = NULL;
   arg_list = NULL;
   err = 0;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   /* Calculate size of S-expression representation.  */
 
@@ -625,6 +643,9 @@ _gcry_ac_data_from_sexp (gcry_ac_data_t *data_set, gcry_sexp_t sexp,
   string = NULL;
   mpi = NULL;
   err = 0;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   /* Process S-expression/identifiers.  */
 
@@ -795,6 +816,9 @@ _gcry_ac_data_dump (const char *prefix, gcry_ac_data_t data)
   if (! data)
     return;
 
+  if (fips_mode ())
+    return;
+
   mpi_buffer = NULL;
 
   data_n = _gcry_ac_data_length (data);
@@ -858,6 +882,9 @@ _gcry_ac_io_init_va (gcry_ac_io_t *ac_io,
 		     gcry_ac_io_mode_t mode, gcry_ac_io_type_t type, va_list ap)
 {
   memset (ac_io, 0, sizeof (*ac_io));
+
+  if (fips_mode ())
+    return;
 
   assert ((mode == GCRY_AC_IO_READABLE) || (mode == GCRY_AC_IO_WRITABLE));
   assert ((type == GCRY_AC_IO_STRING) || (type == GCRY_AC_IO_STRING));
@@ -1362,6 +1389,9 @@ _gcry_ac_open (gcry_ac_handle_t *handle,
   *handle = NULL;
   module = NULL;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   /* Get name.  */
   algorithm_name = _gcry_pk_aliased_algo_name (algorithm);
   if (! algorithm_name)
@@ -1431,6 +1461,9 @@ _gcry_ac_key_init (gcry_ac_key_t *key, gcry_ac_handle_t handle,
 
   (void)handle;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   /* Allocate.  */
   key_new = gcry_malloc (sizeof (*key_new));
   if (! key_new)
@@ -1487,6 +1520,9 @@ _gcry_ac_key_pair_generate (gcry_ac_handle_t handle, unsigned int nbits,
   unsigned int j;
 
   (void)misc_data;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   key_data_secret = NULL;
   key_data_public = NULL;
@@ -1652,6 +1688,9 @@ _gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
 {
   gcry_ac_key_t key;
 
+  if (fips_mode ())
+    return NULL;
+
   switch (which)
     {
     case GCRY_AC_KEY_SECRET:
@@ -1710,6 +1749,8 @@ _gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair)
 gcry_ac_data_t
 _gcry_ac_key_data_get (gcry_ac_key_t key)
 {
+  if (fips_mode ())
+    return NULL;
   return key->data;
 }
 
@@ -1719,6 +1760,9 @@ _gcry_ac_key_test (gcry_ac_handle_t handle, gcry_ac_key_t key)
 {
   gcry_sexp_t key_sexp;
   gcry_error_t err;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   key_sexp = NULL;
   err = ac_data_construct (ac_key_identifiers[key->type], 0, 0,
@@ -1743,6 +1787,9 @@ _gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
   gcry_sexp_t key_sexp;
   gcry_error_t err;
   unsigned int n;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   key_sexp = NULL;
 
@@ -1776,6 +1823,9 @@ _gcry_ac_key_get_grip (gcry_ac_handle_t handle,
   gcry_sexp_t key_sexp;
   gcry_error_t err;
   unsigned char *ret;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   key_sexp = NULL;
   err = ac_data_construct (ac_key_identifiers[key->type], 0, 0,
@@ -1822,6 +1872,9 @@ _gcry_ac_data_encrypt (gcry_ac_handle_t handle,
   gcry_sexp_t sexp_reply;
   gcry_sexp_t sexp_key;
   gcry_error_t err;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   data_encrypted_new = NULL;
   sexp_request = NULL;
@@ -1897,6 +1950,9 @@ _gcry_ac_data_decrypt (gcry_ac_handle_t handle,
   gcry_sexp_t sexp_key;
   gcry_error_t err;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   sexp_request = NULL;
   sexp_reply = NULL;
   sexp_value = NULL;
@@ -1969,6 +2025,9 @@ _gcry_ac_data_sign (gcry_ac_handle_t handle,
   gcry_sexp_t sexp_key;
   gcry_error_t err;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   data_signed = NULL;
   data_value = NULL;
   sexp_request = NULL;
@@ -2038,6 +2097,9 @@ _gcry_ac_data_verify (gcry_ac_handle_t handle,
   gcry_sexp_t sexp_data;
   gcry_sexp_t sexp_key;
   gcry_error_t err;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   sexp_signature = NULL;
   data_value = NULL;
@@ -2509,6 +2571,9 @@ _gcry_ac_data_encode (gcry_ac_em_t method,
 		      gcry_ac_io_t *ac_io_read,
 		      gcry_ac_io_t *ac_io_write)
 {
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   return ac_data_dencode (method, DATA_ENCODE, flags, options,
 			  ac_io_read, ac_io_write);
 }
@@ -2522,6 +2587,9 @@ _gcry_ac_data_decode (gcry_ac_em_t method,
 		      gcry_ac_io_t *ac_io_read,
 		      gcry_ac_io_t *ac_io_write)
 {
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   return ac_data_dencode (method, DATA_DECODE, flags, options,
 			  ac_io_read, ac_io_write);
 }
@@ -2536,6 +2604,9 @@ _gcry_ac_mpi_to_os (gcry_mpi_t mpi, unsigned char *os, size_t os_n)
   unsigned int n;
   gcry_mpi_t m;
   gcry_mpi_t d;
+
+  if (fips_mode ())
+    return;
 
   base = gcry_mpi_new (0);
   gcry_mpi_set_ui (base, 256);
@@ -2575,6 +2646,9 @@ _gcry_ac_mpi_to_os_alloc (gcry_mpi_t mpi, unsigned char **os, size_t *os_n)
   gcry_error_t err;
   unsigned int nbits;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   nbits = gcry_mpi_get_nbits (mpi);
   buffer_n = (nbits + 7) / 8;
   buffer = gcry_malloc (buffer_n);
@@ -2604,6 +2678,9 @@ _gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n)
   gcry_mpi_t x;
   gcry_mpi_t a;
   
+  if (fips_mode ())
+    return;
+
   a = gcry_mpi_new (0);
   gcry_mpi_set_ui (a, 1);
   x = gcry_mpi_new (0);
@@ -2822,6 +2899,9 @@ _gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
 
   (void)flags;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   data_encrypted = NULL;
   mpi_encrypted = NULL;
   mpi_plain = NULL;
@@ -2912,6 +2992,9 @@ _gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
   size_t c_n;
 
   (void)flags;
+
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 
   data_encrypted = NULL;
   mpi_encrypted = NULL;
@@ -3024,6 +3107,9 @@ _gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
 
   (void)flags;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   data_signed = NULL;
   mpi_signed = NULL;
   opts_em = NULL;
@@ -3116,6 +3202,9 @@ _gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
 
   (void)flags;
 
+  if (fips_mode ())
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+
   mpi_signature = NULL;
   elements_sig = NULL;
   data_signed = NULL;
@@ -3206,5 +3295,8 @@ _gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
 gcry_err_code_t
 _gcry_ac_init (void)
 {
+  if (fips_mode ())
+    return GPG_ERR_NOT_SUPPORTED;
+
   return 0;
 }

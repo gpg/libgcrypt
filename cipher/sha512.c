@@ -1,7 +1,5 @@
 /* sha512.c - SHA384 and SHA512 hash functions
- *	Copyright (C) 2003 Free Software Foundation, Inc.
- *
- * Please see below for more legal information!
+ *	Copyright (C) 2003, 2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -15,9 +13,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -362,12 +359,87 @@ sha512_read (void *context)
   return hd->buf;
 }
 
-static byte sha512_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.3 */
+
+
+/* 
+     Self-test section.
+ */
+
+
+static gpg_err_code_t
+selftests_sha384 (selftest_report_func_t report)
 {
-  0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
-  0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05,
-  0x00, 0x04, 0x40
-};
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = NULL; /*selftest ();*/
+  if (errtxt)
+    goto failed;
+
+  /* FIXME:  need more tests.  */
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("digest", GCRY_MD_SHA384, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+static gpg_err_code_t
+selftests_sha512 (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = NULL; /*selftest ();*/
+  if (errtxt)
+    goto failed;
+
+  /* FIXME:  need more tests.  */
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("digest", GCRY_MD_SHA512, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+
+/* Run a full self-test for ALGO and return 0 on success.  */
+static gpg_err_code_t
+run_selftests (int algo, selftest_report_func_t report)
+{
+  gpg_err_code_t ec;
+
+  switch (algo)
+    {
+    case GCRY_MD_SHA384:
+      ec = selftests_sha384 (report);
+      break;
+    case GCRY_MD_SHA512:
+      ec = selftests_sha512 (report);
+      break;
+    default:
+      ec = GPG_ERR_DIGEST_ALGO;
+      break;
+        
+    }
+  return ec;
+}
+
+
+
+
+static byte sha512_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.3 */
+  {
+    0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
+    0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05,
+    0x00, 0x04, 0x40
+  };
 
 static gcry_md_oid_spec_t oid_spec_sha512[] =
   {
@@ -379,18 +451,23 @@ static gcry_md_oid_spec_t oid_spec_sha512[] =
     { NULL }
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha512 = {
-  "SHA512", sha512_asn, DIM (sha512_asn), oid_spec_sha512, 64,
-  sha512_init, sha512_write, sha512_final, sha512_read,
-  sizeof (SHA512_CONTEXT),
-};
+gcry_md_spec_t _gcry_digest_spec_sha512 = 
+  {
+    "SHA512", sha512_asn, DIM (sha512_asn), oid_spec_sha512, 64,
+    sha512_init, sha512_write, sha512_final, sha512_read,
+    sizeof (SHA512_CONTEXT),
+  };
+md_extra_spec_t _gcry_digest_extraspec_sha512 = 
+  {
+    run_selftests
+  };
 
 static byte sha384_asn[] =	/* Object ID is 2.16.840.1.101.3.4.2.2 */
-{
-  0x30, 0x41, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
-  0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02, 0x05,
-  0x00, 0x04, 0x30
-};
+  {
+    0x30, 0x41, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86,
+    0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02, 0x05,
+    0x00, 0x04, 0x30
+  };
 
 static gcry_md_oid_spec_t oid_spec_sha384[] =
   {
@@ -402,8 +479,13 @@ static gcry_md_oid_spec_t oid_spec_sha384[] =
     { NULL },
   };
 
-gcry_md_spec_t _gcry_digest_spec_sha384 = {
-  "SHA384", sha384_asn, DIM (sha384_asn), oid_spec_sha384, 48,
-  sha384_init, sha512_write, sha512_final, sha512_read,
-  sizeof (SHA512_CONTEXT),
-};
+gcry_md_spec_t _gcry_digest_spec_sha384 = 
+  {
+    "SHA384", sha384_asn, DIM (sha384_asn), oid_spec_sha384, 48,
+    sha384_init, sha512_write, sha512_final, sha512_read,
+    sizeof (SHA512_CONTEXT),
+  };
+md_extra_spec_t _gcry_digest_extraspec_sha384 = 
+  {
+    run_selftests
+  };

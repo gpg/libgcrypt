@@ -1,5 +1,5 @@
 /* visibility.c - Wrapper for all public functions.
- * Copyright (C) 2007  Free Software Foundation, Inc.
+ * Copyright (C) 2007, 2008  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -22,6 +22,8 @@
 
 #define _GCRY_INCLUDED_BY_VISIBILITY_C 
 #include "g10lib.h"
+#include "cipher-proto.h"
+
 
 
 const char *
@@ -489,6 +491,12 @@ gcry_error_t
 gcry_cipher_open (gcry_cipher_hd_t *handle,
                   int algo, int mode, unsigned int flags)
 {
+  if (!fips_is_operational ())
+    {
+      *handle = NULL;
+      return gpg_error (fips_not_operational ());
+    }
+
   return _gcry_cipher_open (handle, algo, mode, flags);
 }
 
@@ -499,8 +507,39 @@ gcry_cipher_close (gcry_cipher_hd_t h)
 }
 
 gcry_error_t
+gcry_cipher_setkey (gcry_cipher_hd_t hd, const void *key, size_t keylen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_cipher_setkey (hd, key, keylen);
+}
+
+gcry_error_t
+gcry_cipher_setiv (gcry_cipher_hd_t hd, const void *iv, size_t ivlen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_cipher_setiv (hd, iv, ivlen);
+}
+
+gpg_error_t
+gcry_cipher_setctr (gcry_cipher_hd_t hd, const void *ctr, size_t ctrlen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_cipher_setctr (hd, ctr, ctrlen);
+}
+
+
+gcry_error_t
 gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
   return _gcry_cipher_ctl (h, cmd, buffer, buflen);
 }
 
@@ -513,6 +552,9 @@ gcry_cipher_info (gcry_cipher_hd_t h, int what, void *buffer, size_t *nbytes)
 gcry_error_t
 gcry_cipher_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
   return _gcry_cipher_algo_info (algo, what, buffer, nbytes);
 }
 
@@ -539,6 +581,14 @@ gcry_cipher_encrypt (gcry_cipher_hd_t h,
                      void *out, size_t outsize,
                      const void *in, size_t inlen)
 {
+  if (!fips_is_operational ())
+    {
+      /* Make sure that the plaintext will never make it to OUT. */
+      if (out)
+        memset (out, 0x42, outsize); 
+      return gpg_error (fips_not_operational ());
+    }
+
   return _gcry_cipher_encrypt (h, out, outsize, in, inlen);
 }
 
@@ -547,8 +597,10 @@ gcry_cipher_decrypt (gcry_cipher_hd_t h,
                      void *out, size_t outsize,
                      const void *in, size_t inlen)
 {
-  return _gcry_cipher_decrypt (h, out, outsize, in, inlen);
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
 
+  return _gcry_cipher_decrypt (h, out, outsize, in, inlen);
 }
 
 size_t
@@ -572,36 +624,60 @@ gcry_cipher_list (int *list, int *list_length)
 gcry_error_t
 gcry_pk_encrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t pkey)
 {
+  if (!fips_is_operational ())
+    {
+      *result = NULL;
+      return gpg_error (fips_not_operational ());
+    }
   return _gcry_pk_encrypt (result, data, pkey);
 }
 
 gcry_error_t
 gcry_pk_decrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey)
 {
+  if (!fips_is_operational ())
+    {
+      *result = NULL;
+      return gpg_error (fips_not_operational ());
+    }
   return _gcry_pk_decrypt (result, data, skey);
 }
 
 gcry_error_t
 gcry_pk_sign (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t skey)
 {
+  if (!fips_is_operational ())
+    {
+      *result = NULL;
+      return gpg_error (fips_not_operational ());
+    }
   return _gcry_pk_sign (result, data, skey);
 }
 
 gcry_error_t
 gcry_pk_verify (gcry_sexp_t sigval, gcry_sexp_t data, gcry_sexp_t pkey)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
   return _gcry_pk_verify (sigval, data, pkey);
 }
 
 gcry_error_t
 gcry_pk_testkey (gcry_sexp_t key)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
   return _gcry_pk_testkey (key);
 }
 
 gcry_error_t
 gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 {
+  if (!fips_is_operational ())
+    {
+      *r_key = NULL;
+      return gpg_error (fips_not_operational ());
+    }
   return _gcry_pk_genkey (r_key, s_parms);
 }
 
@@ -614,6 +690,9 @@ gcry_pk_ctl (int cmd, void *buffer, size_t buflen)
 gcry_error_t
 gcry_pk_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
   return _gcry_pk_algo_info (algo, what, buffer, nbytes);
 }
 
@@ -632,12 +711,23 @@ gcry_pk_map_name (const char *name)
 unsigned int
 gcry_pk_get_nbits (gcry_sexp_t key)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      return 0;
+    }
+
   return _gcry_pk_get_nbits (key);
 }
 
 unsigned char *
 gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      return NULL;
+    }
   return _gcry_pk_get_keygrip (key, array);
 }
 
@@ -650,6 +740,12 @@ gcry_pk_list (int *list, int *list_length)
 gcry_error_t
 gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 {
+  if (!fips_is_operational ())
+    {
+      *h = NULL;
+      return gpg_error (fips_not_operational ());
+    }
+
   return _gcry_md_open (h, algo, flags);
 }
 
@@ -662,12 +758,19 @@ gcry_md_close (gcry_md_hd_t hd)
 gcry_error_t
 gcry_md_enable (gcry_md_hd_t hd, int algo)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
   return _gcry_md_enable (hd, algo);
 }
 
 gcry_error_t
 gcry_md_copy (gcry_md_hd_t *bhd, gcry_md_hd_t ahd)
 {
+  if (!fips_is_operational ())
+    {
+      *bhd = NULL;
+      return gpg_error (fips_not_operational ());
+    }
   return _gcry_md_copy (bhd, ahd);
 }
 
@@ -680,12 +783,19 @@ gcry_md_reset (gcry_md_hd_t hd)
 gcry_error_t
 gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
   return _gcry_md_ctl (hd, cmd, buffer, buflen);
 }
 
 void
 gcry_md_write (gcry_md_hd_t hd, const void *buffer, size_t length)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      return;
+    }
   _gcry_md_write (hd, buffer, length);
 }
 
@@ -699,12 +809,23 @@ void
 gcry_md_hash_buffer (int algo, void *digest,
                      const void *buffer, size_t length)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      fips_signal_error ("called in non-operational state");
+    }
   _gcry_md_hash_buffer (algo, digest, buffer, length);
 }
 
 int
 gcry_md_get_algo (gcry_md_hd_t hd)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      fips_signal_error ("used in non-operational state");
+      return 0;
+    }
   return _gcry_md_get_algo (hd);
 }
 
@@ -717,6 +838,12 @@ gcry_md_get_algo_dlen (int algo)
 int
 gcry_md_is_enabled (gcry_md_hd_t a, int algo)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      return 0;
+    }
+
   return _gcry_md_is_enabled (a, algo);
 }
 
@@ -729,6 +856,9 @@ gcry_md_is_secure (gcry_md_hd_t a)
 gcry_error_t
 gcry_md_info (gcry_md_hd_t h, int what, void *buffer, size_t *nbytes)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
   return _gcry_md_info (h, what, buffer, nbytes);
 }
 
@@ -753,6 +883,8 @@ gcry_md_map_name (const char* name)
 gcry_error_t
 gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
   return _gcry_md_setkey (hd, key, keylen);
 }
 
@@ -1053,24 +1185,46 @@ gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
 void
 gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      fips_signal_fatal_error ("called in non-operational state");
+      fips_noreturn (); 
+    }
   _gcry_randomize (buffer, length, level);
 }
 
 gcry_error_t
 gcry_random_add_bytes (const void *buffer, size_t length, int quality)
 {
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
   return _gcry_random_add_bytes (buffer, length, quality);
 }
 
 void *
 gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      fips_signal_fatal_error ("called in non-operational state");
+      fips_noreturn (); 
+    }
+
   return _gcry_random_bytes (nbytes,level);
 }
 
 void *
 gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      fips_signal_fatal_error ("called in non-operational state");
+      fips_noreturn (); 
+    }
+
   return _gcry_random_bytes_secure (nbytes, level);
 }
 
@@ -1084,6 +1238,12 @@ gcry_mpi_randomize (gcry_mpi_t w,
 void
 gcry_create_nonce (void *buffer, size_t length)
 {
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      fips_signal_fatal_error ("called in non-operational state");
+      fips_noreturn (); 
+    }
   _gcry_create_nonce (buffer, length);
 }
 
@@ -1251,7 +1411,7 @@ gcry_error_t
 gcry_cipher_register (gcry_cipher_spec_t *cipher, int *algorithm_id,
                       gcry_module_t *module)
 {
-  return _gcry_cipher_register (cipher, algorithm_id, module);
+  return _gcry_cipher_register (cipher, NULL, algorithm_id, module);
 }
 
 void
@@ -1264,7 +1424,7 @@ gcry_error_t
 gcry_pk_register (gcry_pk_spec_t *pubkey, unsigned int *algorithm_id,
                   gcry_module_t *module)
 {
-  return _gcry_pk_register (pubkey, algorithm_id, module);
+  return _gcry_pk_register (pubkey, NULL, algorithm_id, module);
 }
 
 void
@@ -1277,7 +1437,7 @@ gcry_error_t
 gcry_md_register (gcry_md_spec_t *digest, unsigned int *algorithm_id,
                   gcry_module_t *module)
 {
-  return _gcry_md_register (digest, algorithm_id, module);
+  return _gcry_md_register (digest, NULL, algorithm_id, module);
 }
 
 void

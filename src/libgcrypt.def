@@ -227,3 +227,9 @@ EXPORTS
 
       gcry_sexp_nth_string  @187
 
+      gcry_cipher_setkey    @188
+      gcry_cipher_setiv     @189
+      gcry_cipher_setctr    @190
+
+
+

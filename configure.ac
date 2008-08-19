@@ -86,6 +86,10 @@ AH_BOTTOM([
    properly prefixed.  */
 #define CAMELLIA_EXT_SYM_PREFIX _gcry_
 
+/* This error code is only available with gpg-error 1.7.  Thus
+   we define it here with the usual gcry prefix.  */
+#define GCRY_GPG_ERR_NOT_OPERATIONAL  176
+
 
 #endif /*_GCRYPT_CONFIG_H_INCLUDED*/
 ])

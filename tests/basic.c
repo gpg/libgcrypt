@@ -50,6 +50,7 @@ test_spec_pubkey_t;
 
 static int verbose;
 static int error_count;
+static int in_fips_mode;
 
 static void
 fail (const char *format, ...)
@@ -127,6 +128,14 @@ check_cbc_mac_cipher (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                     tv[i].algo);
+          continue;
+        }
+
       err = gcry_cipher_open (&hd,
 			      tv[i].algo,
 			      GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_CBC_MAC);
@@ -1034,6 +1043,13 @@ check_ciphers (void)
     fprintf (stderr, "Starting Cipher checks.\n");
   for (i = 0; algos[i]; i++)
     {
+      if (gcry_cipher_test_algo (algos[i]) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     algos[i]);
+          continue;
+        }
       if (verbose)
 	fprintf (stderr, "  checking %s [%i]\n",
 		 gcry_cipher_algo_name (algos[i]),
@@ -1049,6 +1065,13 @@ check_ciphers (void)
 
   for (i = 0; algos2[i]; i++)
     {
+      if (gcry_cipher_test_algo (algos[i]) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     algos[i]);
+          continue;
+        }
       if (verbose)
 	fprintf (stderr, "  checking `%s'\n",
 		 gcry_cipher_algo_name (algos2[i]));
@@ -1294,6 +1317,13 @@ check_digests (void)
 
   for (i = 0; algos[i].md; i++)
     {
+      if (gcry_md_test_algo (algos[i].md) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     algos[i].md);
+          continue;
+        }
       if (verbose)
 	fprintf (stderr, "  checking %s [%i] for length %zi\n", 
 		 gcry_md_algo_name (algos[i].md),
@@ -1656,6 +1686,13 @@ check_hmac (void)
 
   for (i = 0; algos[i].md; i++)
     {
+      if (gcry_md_test_algo (algos[i].md) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     algos[i].md);
+          continue;
+        }
       if (verbose)
 	fprintf (stderr, "  checking %s [%i] for length %zi\n", 
 		 gcry_md_algo_name (algos[i].md),
@@ -1968,7 +2005,16 @@ check_pubkey (void)
     fprintf (stderr, "Starting public key checks.\n");
   for (i = 0; i < sizeof (pubkeys) / sizeof (*pubkeys); i++)
     if (pubkeys[i].id)
-      check_one_pubkey (i, pubkeys[i]);
+      {
+        if (gcry_pk_test_algo (pubkeys[i].id) && in_fips_mode)
+          {
+            if (verbose)
+              fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                       pubkeys[i].id);
+            continue;
+          }
+        check_one_pubkey (i, pubkeys[i]);
+      }
   if (verbose)
     fprintf (stderr, "Completed public key checks.\n");
 
@@ -1976,7 +2022,16 @@ check_pubkey (void)
     fprintf (stderr, "Starting additional public key checks.\n");
   for (i = 0; i < sizeof (pubkeys) / sizeof (*pubkeys); i++)
     if (pubkeys[i].id)
-      check_one_pubkey_new (i);
+      {
+        if (gcry_pk_test_algo (pubkeys[i].id) && in_fips_mode)
+          {
+            if (verbose)
+              fprintf (stderr, "  algorithm %d not available in fips mode\n",
+                       pubkeys[i].id);
+            continue;
+          }
+        check_one_pubkey_new (i);
+      }
   if (verbose)
     fprintf (stderr, "Completed additional public key checks.\n");
 
@@ -1984,13 +2039,41 @@ check_pubkey (void)
 
 int
 main (int argc, char **argv)
-{
+{ 
+  int last_argc = -1;
   int debug = 0;
+  int use_fips = 0;
 
-  if (argc > 1 && !strcmp (argv[1], "--verbose"))
-    verbose = 1;
-  else if (argc > 1 && !strcmp (argv[1], "--debug"))
-    verbose = debug = 1;
+  if (argc)
+    { argc--; argv++; }
+
+  while (argc && last_argc != argc )
+    {
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--verbose"))
+        {
+          verbose = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--debug"))
+        {
+          verbose = debug = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--fips"))
+        {
+          use_fips = 1;
+          argc--; argv++;
+        }
+    }          
+
+  if (use_fips)
+    gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
 
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
@@ -2005,6 +2088,9 @@ main (int argc, char **argv)
   /* No valuable keys are create, so we can speed up our RNG. */
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 
+  if ( gcry_control (GCRYCTL_FIPS_MODE_P, 0) )
+    in_fips_mode = 1;
+
   check_ciphers ();
   check_aes128_cbc_cts_cipher ();
   check_cbc_mac_cipher ();
@@ -2014,6 +2100,10 @@ main (int argc, char **argv)
   check_digests ();
   check_hmac ();
   check_pubkey ();
+
+  /* If we are in fips mode, trigger a selftest.  */
+  if (in_fips_mode)
+    gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
 
   if (verbose)
     fprintf (stderr, "\nAll tests completed. Errors: %i\n", error_count);

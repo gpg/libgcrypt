@@ -1,3 +1,96 @@
+2008-08-19  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (sexp_elements_extract_ecc) [!USE_ECC]: Do not allow
+	allow "curve" parameter.
+
+2008-08-15  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (_gcry_pk_selftest): New.
+	* dsa.c (selftests_dsa, run_selftests): New.
+	* rsa.c (selftests_rsa, run_selftests): New.
+	* ecc.c (selftests_ecdsa, run_selftests): New.
+
+	* md.c (_gcry_md_selftest): New.
+	* sha1.c (run_selftests, selftests_sha1): New.
+	* sha256.c (selftests_sha224, selftests_sha256, run_selftests): New.
+	* sha512.c (selftests_sha384, selftests_sha512, run_selftests): New.
+
+	* des.c (selftest): Remove static variable form selftest.
+	(des_setkey): No on-the-fly self test in fips mode.
+	(tripledes_set3keys): Ditto.
+
+	* cipher.c (_gcry_cipher_setkey, _gcry_cipher_setiv): 
+
+	* dsa.c (generate): Bail out in fips mode if NBITS is less than	1024.
+	* rsa.c (generate): Return an error code if the the requested size
+	is less than 1024 and we are in fpis mode.
+	(_gcry_rsa_generate): Take care of that error code.
+
+	* ecc.c (generate_curve): In fips mode enable only NIST curves.
+
+	* cipher.c (_gcry_cipher_selftest): New.
+
+	* sha512.c (_gcry_digest_extraspec_sha384)
+	(_gcry_digest_extraspec_sha512): New.
+	* sha256.c (_gcry_digest_extraspec_sha224)
+	(_gcry_digest_extraspec_sha256): New.
+	* sha1.c (_gcry_digest_extraspec_sha1): New.
+	* ecc.c (_gcry_pubkey_extraspec_ecdsa): New.
+	* dsa.c (_gcry_pubkey_extraspec_dsa): New.
+	* rsa.c (_gcry_pubkey_extraspec_rsa): New.
+	* rijndael.c (_gcry_cipher_extraspec_aes)
+	(_gcry_cipher_extraspec_aes192, _gcry_cipher_extraspec_aes256): New.
+	* des.c (_gcry_cipher_extraspec_tripledes): New.
+
+	* cipher.c (gcry_cipher_register): Rename to _gcry_cipher_register.
+	Add arg EXTRASPEC.
+	(dummy_extra_spec): New.
+	(cipher_table_entry): Add extraspec field.
+	* md.c (_gcry_md_register): Rename to _gcry_md_register.  Add
+	arg EXTRASPEC.
+	(dummy_extra_spec): New.
+	(digest_table_entry): Add extraspec field.
+	* pubkey.c (gcry_pk_register): Rename to _gcry_pk_register.  Add
+	arg EXTRASPEC.
+	(dummy_extra_spec): New.
+	(pubkey_table_entry): Add extraspec field.
+
+	* ac.c: Let most public functions return GPG_ERR_UNSUPPORTED in
+	fips mode.
+
+	* pubkey.c (pubkey_table_entry): Add field FIPS_ALLOWED and mark
+	appropriate algorithms.
+	(dummy_generate, dummy_check_secret_key, dummy_encrypt) 
+	(dummy_decrypt, dummy_sign, dummy_verify, dummy_get_nbits): Signal
+	a fips error when used.
+	(gcry_pk_register): In fips mode do not allow to register new
+	algorithms.
+
+	* md.c (digest_table): Add field FIPS_ALLOWED and mark appropriate
+	algorithms.
+	(md_register_default): In fips mode register only fips algorithms.
+	(gcry_md_register): In fips mode do not allow to register new
+	algorithms.
+	(gcry_md_get): Signal a fips error if called.
+	(gcry_md_hash_buffer): Do not allow rmd160 when not in fips mode.
+	(md_start_debug): Disable in fips_mode.
+
+	* md.c (gcry_md_register_default): Rename to ..
+	(md_register_default): .. this.
+	(md_digest): Remove this commented fucntion.
+	* pubkey.c (gcry_pk_register_default): Rename to ..
+	(pk_register_default): .. this.
+
+	* cipher.c (cipher_table_entry): Add field FIPS_ALLOWED.
+	(gcry_cipher_register_default): Register only fips approved
+	algorithms.
+	(gcry_cipher_register): Do not allow to register new ciphers.
+	(cipher_setiv): Signal fips error.
+	
+	* cipher (gcry_cipher_register_default): Rename to ..
+	(cipher_register_default): .. this.
+	(REGISTER_DEFAULT_CIPHERS): Adjust for that change.
+
 2008-07-05  Werner Koch  <wk@g10code.com>
 
 	* random-daemon.c, random.h, rndhw.c, rndunix.c, rand-internal.h

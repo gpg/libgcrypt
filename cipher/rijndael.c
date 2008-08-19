@@ -31,12 +31,17 @@
  *
  * This code is placed in the public domain.
  *------------------------------------------
+ *
+ * The SP800-38a document is available at:
+ *   http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf
+ *
  */
 
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> /* for memcmp() */
+#include <assert.h>
 
 #include "types.h"  /* for byte and u32 typedefs */
 #include "g10lib.h"
@@ -98,14 +103,21 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   byte tk[MAXKC][4];
   int KC;
   
-  if (!initialized)
+  /* The on-the-fly self tests are only run in non-fips mode. In fips
+     mode explicit self-tests are required.  Actually the on-the-fly
+     self-tests are not fully thread-safe and it might happen that a
+     failed self-test won't get noticed in another thread.  
+
+     FIXME: We might want to have a central registry of succeeded
+     self-tests. */
+  if (!fips_mode () && !initialized)
     {
       initialized = 1;
       selftest_failed = selftest ();
-      if( selftest_failed )
+      if (selftest_failed)
         log_error ("%s\n", selftest_failed );
     }
-  if( selftest_failed )
+  if (selftest_failed)
     return GPG_ERR_SELFTEST_FAILED;
 
   ctx->decryption_prepared = 0;
@@ -774,84 +786,367 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 
 
 
-/* Test a single encryption and decryption with each key size. */
+/* Run the self-tests for AES 128.  Returns NULL on success. */
 static const char*
-selftest (void)
+selftest_basic_128 (void)
 {
   RIJNDAEL_context ctx;
-  byte scratch[16];	   
+  unsigned char scratch[16];	   
 
-  /* The test vectors are from the AES supplied ones; more or less 
-   * randomly taken from ecb_tbl.txt (I=42,81,14)
-   */
-  static byte plaintext[16] = {
-    0x01,0x4B,0xAF,0x22,0x78,0xA6,0x9D,0x33,
-    0x1D,0x51,0x80,0x10,0x36,0x43,0xE9,0x9A
-  };
-  static byte key[16] = {
-    0xE8,0xE9,0xEA,0xEB,0xED,0xEE,0xEF,0xF0,
-    0xF2,0xF3,0xF4,0xF5,0xF7,0xF8,0xF9,0xFA
-  };
-  static const byte ciphertext[16] = {
-    0x67,0x43,0xC3,0xD1,0x51,0x9A,0xB4,0xF2,
-    0xCD,0x9A,0x78,0xAB,0x09,0xA5,0x11,0xBD
-  };
-
-  static byte plaintext_192[16] = {
-    0x76,0x77,0x74,0x75,0xF1,0xF2,0xF3,0xF4,
-    0xF8,0xF9,0xE6,0xE7,0x77,0x70,0x71,0x72
-  };
-  static byte key_192[24] = {
-    0x04,0x05,0x06,0x07,0x09,0x0A,0x0B,0x0C,
-    0x0E,0x0F,0x10,0x11,0x13,0x14,0x15,0x16,
-    0x18,0x19,0x1A,0x1B,0x1D,0x1E,0x1F,0x20
-  };
-  static const byte ciphertext_192[16] = {
-    0x5D,0x1E,0xF2,0x0D,0xCE,0xD6,0xBC,0xBC,
-    0x12,0x13,0x1A,0xC7,0xC5,0x47,0x88,0xAA
-  };
-    
-  static byte plaintext_256[16] = {
-    0x06,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
-    0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x21
-  };
-  static byte key_256[32] = {
-    0x08,0x09,0x0A,0x0B,0x0D,0x0E,0x0F,0x10,
-    0x12,0x13,0x14,0x15,0x17,0x18,0x19,0x1A,
-    0x1C,0x1D,0x1E,0x1F,0x21,0x22,0x23,0x24,
-    0x26,0x27,0x28,0x29,0x2B,0x2C,0x2D,0x2E
-  };
-  static const byte ciphertext_256[16] = {
-    0x08,0x0E,0x95,0x17,0xEB,0x16,0x77,0x71,
-    0x9A,0xCF,0x72,0x80,0x86,0x04,0x0A,0xE3
-  };
-
-  rijndael_setkey (&ctx, key, sizeof(key));
-  rijndael_encrypt (&ctx, scratch, plaintext);
-  if (memcmp (scratch, ciphertext, sizeof (ciphertext)))
-    return "Rijndael-128 test encryption failed.";
+  /* The test vectors are from the AES supplied ones; more or less
+     randomly taken from ecb_tbl.txt (I=42,81,14) */
+  static const unsigned char plaintext_128[16] = 
+    {
+      0x01,0x4B,0xAF,0x22,0x78,0xA6,0x9D,0x33,
+      0x1D,0x51,0x80,0x10,0x36,0x43,0xE9,0x9A
+    };
+  static const unsigned char key_128[16] =
+    {
+      0xE8,0xE9,0xEA,0xEB,0xED,0xEE,0xEF,0xF0,
+      0xF2,0xF3,0xF4,0xF5,0xF7,0xF8,0xF9,0xFA
+    };
+  static const unsigned char ciphertext_128[16] =
+    {
+      0x67,0x43,0xC3,0xD1,0x51,0x9A,0xB4,0xF2,
+      0xCD,0x9A,0x78,0xAB,0x09,0xA5,0x11,0xBD
+    };
+  
+  rijndael_setkey (&ctx, key_128, sizeof (key_128));
+  rijndael_encrypt (&ctx, scratch, plaintext_128);
+  if (memcmp (scratch, ciphertext_128, sizeof (ciphertext_128)))
+     return "AES-128 test encryption failed.";
   rijndael_decrypt (&ctx, scratch, scratch);
-  if (memcmp (scratch, plaintext, sizeof (plaintext)))
-    return "Rijndael-128 test decryption failed.";
+  if (memcmp (scratch, plaintext_128, sizeof (plaintext_128)))
+    return "AES-128 test decryption failed.";
+  
+  return NULL;
+}
 
+/* Run the self-tests for AES 192.  Returns NULL on success. */
+static const char*
+selftest_basic_192 (void)
+{
+  RIJNDAEL_context ctx;
+  unsigned char scratch[16];	   
+  
+  static unsigned char plaintext_192[16] = 
+    {
+      0x76,0x77,0x74,0x75,0xF1,0xF2,0xF3,0xF4,
+      0xF8,0xF9,0xE6,0xE7,0x77,0x70,0x71,0x72
+    };
+  static unsigned char key_192[24] = 
+    {
+      0x04,0x05,0x06,0x07,0x09,0x0A,0x0B,0x0C,
+      0x0E,0x0F,0x10,0x11,0x13,0x14,0x15,0x16,
+      0x18,0x19,0x1A,0x1B,0x1D,0x1E,0x1F,0x20
+    };
+  static const unsigned char ciphertext_192[16] =
+    {
+      0x5D,0x1E,0xF2,0x0D,0xCE,0xD6,0xBC,0xBC,
+      0x12,0x13,0x1A,0xC7,0xC5,0x47,0x88,0xAA
+    };
+    
   rijndael_setkey (&ctx, key_192, sizeof(key_192));
   rijndael_encrypt (&ctx, scratch, plaintext_192);
   if (memcmp (scratch, ciphertext_192, sizeof (ciphertext_192)))
-    return "Rijndael-192 test encryption failed.";
+    return "AES-192 test encryption failed.";
   rijndael_decrypt (&ctx, scratch, scratch);
   if (memcmp (scratch, plaintext_192, sizeof (plaintext_192)))
-    return "Rijndael-192 test decryption failed.";
-    
+    return "AES-192 test decryption failed.";
+  
+  return NULL;
+}
+
+
+/* Run the self-tests for AES 256.  Returns NULL on success. */
+static const char*
+selftest_basic_256 (void)
+{
+  RIJNDAEL_context ctx;
+  unsigned char scratch[16];	   
+
+  static unsigned char plaintext_256[16] = 
+    {
+      0x06,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x21
+    };
+  static unsigned char key_256[32] = 
+    {
+      0x08,0x09,0x0A,0x0B,0x0D,0x0E,0x0F,0x10,
+      0x12,0x13,0x14,0x15,0x17,0x18,0x19,0x1A,
+      0x1C,0x1D,0x1E,0x1F,0x21,0x22,0x23,0x24,
+      0x26,0x27,0x28,0x29,0x2B,0x2C,0x2D,0x2E
+    };
+  static const unsigned char ciphertext_256[16] = 
+    {
+      0x08,0x0E,0x95,0x17,0xEB,0x16,0x77,0x71,
+      0x9A,0xCF,0x72,0x80,0x86,0x04,0x0A,0xE3
+    };
+
   rijndael_setkey (&ctx, key_256, sizeof(key_256));
   rijndael_encrypt (&ctx, scratch, plaintext_256);
   if (memcmp (scratch, ciphertext_256, sizeof (ciphertext_256)))
-    return "Rijndael-256 test encryption failed.";
+    return "AES-256 test encryption failed.";
   rijndael_decrypt (&ctx, scratch, scratch);
   if (memcmp (scratch, plaintext_256, sizeof (plaintext_256)))
-    return "Rijndael-256 test decryption failed.";
+    return "AES-256 test decryption failed.";
     
   return NULL;
 }
+
+/* Run all the self-tests and return NULL on success.  This function
+   is used for the on-the-fly self-tests. */
+static const char *
+selftest (void)
+{
+  const char *r;
+
+  if ( (r = selftest_basic_128 ())
+       || (r = selftest_basic_192 ())
+       || (r = selftest_basic_256 ()) )
+    return r;
+
+  return r;
+}
+
+
+/* SP800-38a.pdf for AES-128.  */
+static const char *
+selftest_fips_128_38a (int requested_mode)
+{
+  struct tv
+  {
+    int mode;
+    const unsigned char key[16];
+    const unsigned char iv[16];
+    struct 
+    {
+      const unsigned char input[16];
+      const unsigned char output[16];
+    } data[4];
+  } tv[2] =
+    {
+      {
+        GCRY_CIPHER_MODE_CFB,  /* F.3.13, CFB128-AES128 */
+        { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
+          0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c },
+        { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
+          0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f },
+        {
+          { { 0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96,
+              0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a },
+            { 0x3b, 0x3f, 0xd9, 0x2e, 0xb7, 0x2d, 0xad, 0x20,
+              0x33, 0x34, 0x49, 0xf8, 0xe8, 0x3c, 0xfb, 0x4a } },
+          
+          { { 0xae, 0x2d, 0x8a, 0x57, 0x1e, 0x03, 0xac, 0x9c,
+              0x9e, 0xb7, 0x6f, 0xac, 0x45, 0xaf, 0x8e, 0x51 },
+            { 0xc8, 0xa6, 0x45, 0x37, 0xa0, 0xb3, 0xa9, 0x3f,
+              0xcd, 0xe3, 0xcd, 0xad, 0x9f, 0x1c, 0xe5, 0x8b } },
+          
+          { { 0x30, 0xc8, 0x1c, 0x46, 0xa3, 0x5c, 0xe4, 0x11, 
+              0xe5, 0xfb, 0xc1, 0x19, 0x1a, 0x0a, 0x52, 0xef },
+            { 0x26, 0x75, 0x1f, 0x67, 0xa3, 0xcb, 0xb1, 0x40,
+              0xb1, 0x80, 0x8c, 0xf1, 0x87, 0xa4, 0xf4, 0xdf } },
+          
+          { { 0xf6, 0x9f, 0x24, 0x45, 0xdf, 0x4f, 0x9b, 0x17,
+              0xad, 0x2b, 0x41, 0x7b, 0xe6, 0x6c, 0x37, 0x10 },
+            { 0xc0, 0x4b, 0x05, 0x35, 0x7c, 0x5d, 0x1c, 0x0e,
+              0xea, 0xc4, 0xc6, 0x6f, 0x9f, 0xf7, 0xf2, 0xe6 } }
+        }
+      },
+      {
+        GCRY_CIPHER_MODE_OFB,
+        { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
+          0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c },
+        { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
+          0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f },
+        {
+          { { 0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96,
+              0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a },
+            { 0x3b, 0x3f, 0xd9, 0x2e, 0xb7, 0x2d, 0xad, 0x20,
+              0x33, 0x34, 0x49, 0xf8, 0xe8, 0x3c, 0xfb, 0x4a } },
+
+          { { 0xae, 0x2d, 0x8a, 0x57, 0x1e, 0x03, 0xac, 0x9c,
+              0x9e, 0xb7, 0x6f, 0xac, 0x45, 0xaf, 0x8e, 0x51 },
+            { 0x77, 0x89, 0x50, 0x8d, 0x16, 0x91, 0x8f, 0x03,
+              0xf5, 0x3c, 0x52, 0xda, 0xc5, 0x4e, 0xd8, 0x25 } },
+          
+          { { 0x30, 0xc8, 0x1c, 0x46, 0xa3, 0x5c, 0xe4, 0x11,
+              0xe5, 0xfb, 0xc1, 0x19, 0x1a, 0x0a, 0x52, 0xef },
+            { 0x97, 0x40, 0x05, 0x1e, 0x9c, 0x5f, 0xec, 0xf6,
+              0x43, 0x44, 0xf7, 0xa8, 0x22, 0x60, 0xed, 0xcc } },
+
+          { { 0xf6, 0x9f, 0x24, 0x45, 0xdf, 0x4f, 0x9b, 0x17,
+              0xad, 0x2b, 0x41, 0x7b, 0xe6, 0x6c, 0x37, 0x10 },
+            { 0x30, 0x4c, 0x65, 0x28, 0xf6, 0x59, 0xc7, 0x78,
+              0x66, 0xa5, 0x10, 0xd9, 0xc1, 0xd6, 0xae, 0x5e } },
+        }
+      }
+    };
+  unsigned char scratch[16];
+  gpg_error_t err;
+  int tvi, idx;
+  gcry_cipher_hd_t hdenc = NULL;
+  gcry_cipher_hd_t hddec = NULL;
+
+#define Fail(a) do {           \
+    _gcry_cipher_close (hdenc);  \
+    _gcry_cipher_close (hddec);  \
+    return a;                    \
+  } while (0)
+
+  assert (sizeof tv[0].data[0].input == sizeof scratch);
+  assert (sizeof tv[0].data[0].output == sizeof scratch);
+
+  for (tvi=0; tvi < DIM (tv); tvi++)
+    if (tv[tvi].mode == requested_mode)
+      break;
+  if (tvi == DIM (tv))
+    Fail ("no test data for this mode");
+
+  err = _gcry_cipher_open (&hdenc, GCRY_CIPHER_AES, tv[tvi].mode, 0);
+  if (err)
+    Fail ("open");
+  err = _gcry_cipher_open (&hddec, GCRY_CIPHER_AES, tv[tvi].mode, 0);
+  if (err)
+    Fail ("open");
+  err = _gcry_cipher_setkey (hdenc, tv[tvi].key,  sizeof tv[tvi].key);
+  if (!err)
+    err = _gcry_cipher_setkey (hddec, tv[tvi].key, sizeof tv[tvi].key);
+  if (err)
+    Fail ("set key");
+  err = _gcry_cipher_setiv (hdenc, tv[tvi].iv, sizeof tv[tvi].iv);
+  if (!err)
+    err = _gcry_cipher_setiv (hddec, tv[tvi].iv, sizeof tv[tvi].iv);
+  if (err)
+    Fail ("set IV");
+  for (idx=0; idx < DIM (tv[tvi].data); idx++)
+    {
+      err = _gcry_cipher_encrypt (hdenc, scratch, sizeof scratch,
+                                  tv[tvi].data[idx].input,
+                                  sizeof tv[tvi].data[idx].input);
+      if (err)
+        Fail ("encrypt command");
+      if (memcmp (scratch, tv[tvi].data[idx].output, sizeof scratch))
+        Fail ("encrypt mismatch");
+      err = _gcry_cipher_decrypt (hddec, scratch, sizeof scratch,
+                                  tv[tvi].data[idx].output,
+                                  sizeof tv[tvi].data[idx].output);
+      if (err)
+        Fail ("decrypt command");
+      if (memcmp (scratch, tv[tvi].data[idx].input, sizeof scratch))
+        Fail ("decrypt mismatch");
+    }
+
+#undef Fail
+  _gcry_cipher_close (hdenc);
+  _gcry_cipher_close (hddec); 
+  return NULL;
+}
+
+
+/* Complete selftest for AES-128 with all modes and driver code.  */
+static gpg_err_code_t
+selftest_fips_128 (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = selftest_basic_128 ();
+  if (errtxt)
+    goto failed;
+
+  what = "cfb";
+  errtxt = selftest_fips_128_38a (GCRY_CIPHER_MODE_CFB);
+  if (errtxt)
+    goto failed;
+
+  what = "ofb";
+  errtxt = selftest_fips_128_38a (GCRY_CIPHER_MODE_OFB);
+  if (errtxt)
+    goto failed;
+
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("cipher", GCRY_CIPHER_AES128, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+/* Complete selftest for AES-192 with all modes and driver code.  */
+static gpg_err_code_t
+selftest_fips_192 (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+
+  what = "low-level";
+  errtxt = selftest_basic_192 ();
+  if (errtxt)
+    goto failed;
+
+
+
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("cipher", GCRY_CIPHER_AES192, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+
+/* Complete selftest for AES-256 with all modes and driver code.  */
+static gpg_err_code_t
+selftest_fips_256 (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = selftest_basic_256 ();
+  if (errtxt)
+    goto failed;
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("cipher", GCRY_CIPHER_AES256, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+
+
+/* Run a full self-test for ALGO and return 0 on success.  */
+static gpg_err_code_t
+run_selftests (int algo, selftest_report_func_t report)
+{
+  gpg_err_code_t ec;
+
+  switch (algo)
+    {
+    case GCRY_CIPHER_AES128:
+      ec = selftest_fips_128 (report);
+      break;
+    case GCRY_CIPHER_AES192:
+      ec = selftest_fips_192 (report);
+      break;
+    case GCRY_CIPHER_AES256:
+      ec = selftest_fips_256 (report);
+      break;
+    default:
+      ec = GPG_ERR_CIPHER_ALGO;
+      break;
+        
+    }
+  return ec;
+}
+
 
 
 
@@ -875,6 +1170,10 @@ gcry_cipher_spec_t _gcry_cipher_spec_aes =
     "AES", rijndael_names, rijndael_oids, 16, 128, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt
   };
+cipher_extra_spec_t _gcry_cipher_extraspec_aes = 
+  {
+    run_selftests
+  };
 
 static const char *rijndael192_names[] =
   {
@@ -895,6 +1194,10 @@ gcry_cipher_spec_t _gcry_cipher_spec_aes192 =
   {
     "AES192", rijndael192_names, rijndael192_oids, 16, 192, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt
+  };
+cipher_extra_spec_t _gcry_cipher_extraspec_aes192 = 
+  {
+    run_selftests
   };
 
 static const char *rijndael256_names[] =
@@ -917,4 +1220,9 @@ gcry_cipher_spec_t _gcry_cipher_spec_aes256 =
     "AES256", rijndael256_names, rijndael256_oids, 16, 256,
     sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt
+  };
+
+cipher_extra_spec_t _gcry_cipher_extraspec_aes256 = 
+  {
+    run_selftests
   };

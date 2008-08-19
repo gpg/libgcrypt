@@ -28,6 +28,9 @@
 
 #define PUBKEY_FLAG_NO_BLINDING (1 << 0)
 
+#include "cipher-proto.h"
+
+
 /*-- rmd160.c --*/
 void _gcry_rmd160_hash_buffer (void *outbuf,
                                const void *buffer, size_t length);
@@ -102,6 +105,12 @@ extern gcry_cipher_spec_t _gcry_cipher_spec_camellia128;
 extern gcry_cipher_spec_t _gcry_cipher_spec_camellia192;
 extern gcry_cipher_spec_t _gcry_cipher_spec_camellia256;
 
+extern cipher_extra_spec_t _gcry_cipher_extraspec_tripledes;
+extern cipher_extra_spec_t _gcry_cipher_extraspec_aes;
+extern cipher_extra_spec_t _gcry_cipher_extraspec_aes192;
+extern cipher_extra_spec_t _gcry_cipher_extraspec_aes256;
+
+
 /* Declarations for the digest specifications.  */
 extern gcry_md_spec_t _gcry_digest_spec_crc32;
 extern gcry_md_spec_t _gcry_digest_spec_crc32_rfc1510;
@@ -117,10 +126,21 @@ extern gcry_md_spec_t _gcry_digest_spec_sha384;
 extern gcry_md_spec_t _gcry_digest_spec_tiger;
 extern gcry_md_spec_t _gcry_digest_spec_whirlpool;
 
+extern md_extra_spec_t _gcry_digest_extraspec_sha1;
+extern md_extra_spec_t _gcry_digest_extraspec_sha224;
+extern md_extra_spec_t _gcry_digest_extraspec_sha256;
+extern md_extra_spec_t _gcry_digest_extraspec_sha384;
+extern md_extra_spec_t _gcry_digest_extraspec_sha512;
+
 /* Declarations for the pubkey cipher specifications.  */
 extern gcry_pk_spec_t _gcry_pubkey_spec_rsa;
 extern gcry_pk_spec_t _gcry_pubkey_spec_elg;
 extern gcry_pk_spec_t _gcry_pubkey_spec_dsa;
 extern gcry_pk_spec_t _gcry_pubkey_spec_ecdsa;
+
+extern pk_extra_spec_t _gcry_pubkey_extraspec_rsa; 
+extern pk_extra_spec_t _gcry_pubkey_extraspec_dsa; 
+extern pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa; 
+
 
 #endif /*G10_CIPHER_H*/

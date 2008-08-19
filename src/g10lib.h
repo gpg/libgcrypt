@@ -39,6 +39,7 @@
 #include "visibility.h"
 #include "types.h"
 
+
 
 
 /* Attribute handling macros.  */
@@ -211,6 +212,8 @@ struct gcry_module
   struct gcry_module **prevp;
   void *spec;			/* Pointer to the subsystem-specific
 				   specification structure.  */
+  void *extraspec;		/* Pointer to the subsystem-specific
+				   extra specification structure.  */
   int flags;			/* Associated flags.   */
   int counter;			/* Use counter.        */
   unsigned int mod_id;		/* ID of this module.  */
@@ -220,9 +223,10 @@ struct gcry_module
 #define FLAG_MODULE_DISABLED (1 << 0)
 
 gcry_err_code_t _gcry_module_add (gcry_module_t *entries,
-				 unsigned int id,
-				 void *spec,
-				 gcry_module_t *module);
+                                  unsigned int id,
+                                  void *spec,
+                                  void *extraspec,
+                                  gcry_module_t *module);
 
 typedef int (*gcry_module_lookup_t) (void *spec, void *data);
 
@@ -263,6 +267,43 @@ gcry_err_code_t _gcry_pk_get_elements (int algo, char **enc, char **sig);
 gcry_error_t _gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff, 
                                 const char *format, va_list arg_ptr);
 char *_gcry_sexp_nth_string (const gcry_sexp_t list, int number);
+
+
+/*-- fips.c --*/
+
+void _gcry_initialize_fips_mode (int force);
+
+int _gcry_fips_mode (void);
+#define fips_mode() _gcry_fips_mode ()
+
+void _gcry_fips_signal_error (const char *srcfile, 
+                              int srcline, 
+                              const char *srcfunc,
+                              int is_fatal,
+                              const char *description);
+#ifdef JNLIB_GCC_M_FUNCTION
+# define fips_signal_error(a) \
+           _gcry_fips_signal_error (__FILE__, __LINE__, __FUNCTION__, 0, (a))
+# define fips_signal_fatal_error(a) \
+           _gcry_fips_signal_error (__FILE__, __LINE__, __FUNCTION__, 1, (a))
+#else
+# define fips_signal_error(a) \
+           _gcry_fips_signal_error (__FILE__, __LINE__, NULL, 0, (a))
+# define fips_signal_fatal_error(a) \
+           _gcry_fips_signal_error (__FILE__, __LINE__, NULL, 1, (a))
+#endif
+
+int _gcry_fips_is_operational (void);
+#define fips_is_operational()   (_gcry_fips_is_operational ())
+#define fips_not_operational()  (GCRY_GPG_ERR_NOT_OPERATIONAL)
+
+int _gcry_fips_test_operational (void);
+
+void _gcry_fips_run_selftests (void);
+
+void _gcry_fips_noreturn (void);
+#define fips_noreturn()  (_gcry_fips_noreturn ())
+
 
 
 #endif /* G10LIB_H */

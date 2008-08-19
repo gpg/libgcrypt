@@ -373,6 +373,56 @@ _gcry_sha1_hash_buffer (void *outbuf, const void *buffer, size_t length)
 }
 
 
+
+/* 
+     Self-test section.
+ */
+
+
+static gpg_err_code_t
+selftests_sha1 (selftest_report_func_t report)
+{
+  const char *what;
+  const char *errtxt;
+  
+  what = "low-level";
+  errtxt = NULL; /*selftest ();*/
+  if (errtxt)
+    goto failed;
+
+  /* FIXME:  need more tests.  */
+
+  return 0; /* Succeeded. */
+
+ failed:
+  if (report)
+    report ("digest", GCRY_MD_SHA1, what, errtxt);
+  return GPG_ERR_SELFTEST_FAILED;
+}
+
+
+/* Run a full self-test for ALGO and return 0 on success.  */
+static gpg_err_code_t
+run_selftests (int algo, selftest_report_func_t report)
+{
+  gpg_err_code_t ec;
+
+  switch (algo)
+    {
+    case GCRY_MD_SHA1:
+      ec = selftests_sha1 (report);
+      break;
+    default:
+      ec = GPG_ERR_DIGEST_ALGO;
+      break;
+        
+    }
+  return ec;
+}
+
+
+
+
 static unsigned char asn[15] = /* Object ID is 1.3.14.3.2.26 */
   { 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03,
     0x02, 0x1a, 0x05, 0x00, 0x04, 0x14 };
@@ -398,3 +448,8 @@ gcry_md_spec_t _gcry_digest_spec_sha1 =
     sha1_init, sha1_write, sha1_final, sha1_read,
     sizeof (SHA1_CONTEXT)
   };
+md_extra_spec_t _gcry_digest_extraspec_sha1 = 
+  {
+    run_selftests
+  };
+

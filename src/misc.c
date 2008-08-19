@@ -75,9 +75,10 @@ _gcry_fatal_error (int rc, const char *text)
   if ( !text ) /* get a default text */
     text = gpg_strerror (rc);
 
-  if (fatal_error_handler)
+  if (fatal_error_handler && !fips_mode () )
     fatal_error_handler (fatal_error_handler_value, rc, text);
 
+  fips_signal_fatal_error (text);
   write2stderr("\nFatal error: ");
   write2stderr(text);
   write2stderr("\n");
@@ -132,6 +133,7 @@ _gcry_logv( int level, const char *fmt, va_list arg_ptr )
   
   if ( level == GCRY_LOG_FATAL || level == GCRY_LOG_BUG )
     {
+      fips_signal_fatal_error ("internal error (fatal or bug)");
       _gcry_secmem_term ();
       abort ();
     }

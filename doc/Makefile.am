@@ -17,12 +17,32 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
-EXTRA_DIST = README.apichanges HACKING 
+EXTRA_DIST = README.apichanges HACKING \
+	     libgcrypt-modules.eps \
+	     libgcrypt-modules.png \
+             libgcrypt-modules.pdf
 
 DISTCLEANFILES = gcrypt.cps
 
+BUILT_SOURCES = libgcrypt-modules.eps \
+                libgcrypt-modules.png \
+                libgcrypt-modules.pdf
+
 info_TEXINFOS = gcrypt.texi
-gcrypt_TEXINFOS = lgpl.texi gpl.texi
+gcrypt_TEXINFOS = lgpl.texi gpl.texi libgcrypt-modules.fig
+
+
+.fig.png:
+	fig2dev -L png `test -f '$<' || echo '$(srcdir)/'`$< $@
+
+.fig.jpg:
+	fig2dev -L jpg `test -f '$<' || echo '$(srcdir)/'`$< $@
+
+.fig.eps:
+	fig2dev -L eps `test -f '$<' || echo '$(srcdir)/'`$< $@
+
+.fig.pdf:
+	fig2dev -L pdf `test -f '$<' || echo '$(srcdir)/'`$< $@
 
 
 online: gcrypt.html gcrypt.pdf gcrypt.info

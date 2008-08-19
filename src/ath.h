@@ -67,7 +67,13 @@ enum ath_thread_option
 
 struct ath_ops
 {
-  enum ath_thread_option option;
+  /* The OPTION field encodes the thread model and the version number
+     of this structure.   
+       Bits  7 - 0  are used for the thread model
+       Bits 15 - 8  are used for the version number.
+  */
+  unsigned int option;
+
   int (*init) (void);
   int (*mutex_init) (void **priv);
   int (*mutex_destroy) (void *priv);

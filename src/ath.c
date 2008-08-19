@@ -52,6 +52,12 @@ static int ops_set;
 #define MUTEX_DESTROYED	((ath_mutex_t) 2)
 
 
+/* Return the thread type from the option field. */
+#define GET_OPTION(a)    ((a) & 0xff)
+/* Return the version number from the option field.  */
+#define GET_VERSION(a)   (((a) >> 8)& 0xff)
+
+
 
 /* The lock we take while checking for lazy lock initialization.  */
 static ath_mutex_t check_init_lock = ATH_MUTEX_INITIALIZER;
@@ -81,19 +87,20 @@ ath_install (struct ath_ops *ath_ops, int check_only)
 {
   if (check_only)
     {
-      enum ath_thread_option option = ATH_THREAD_OPTION_DEFAULT;
+      unsigned int option = 0;
       
       /* Check if the requested thread option is compatible to the
 	 thread option we are already committed to.  */
       if (ath_ops)
 	option = ath_ops->option;
 
-      if (!ops_set && option)
+      if (!ops_set && GET_OPTION (option))
 	return GPG_ERR_NOT_SUPPORTED;
 
-      if (ops.option == ATH_THREAD_OPTION_USER
-	  || option == ATH_THREAD_OPTION_USER
-	  || ops.option != option)
+      if (GET_OPTION (ops.option) == ATH_THREAD_OPTION_USER
+	  || GET_OPTION (option) == ATH_THREAD_OPTION_USER
+	  || GET_OPTION (ops.option) != GET_OPTION (option)
+          || GET_VERSION (ops.option) != GET_VERSION (option))
 	return GPG_ERR_NOT_SUPPORTED;
 
       return 0;

@@ -30,6 +30,7 @@
 #include "../src/gcrypt.h"
 
 static int verbose;
+static int in_fips_mode;
 
 static void
 die (const char *format, ...)
@@ -114,10 +115,21 @@ check_run (void)
   int ret;
 
   err = gcry_cipher_register (&cipher_spec_foo, &algorithm, &module);
-  assert (! err);
+  if (in_fips_mode)
+    {
+      if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
+        die ("register cipher failed in fips mode: %s\n", gpg_strerror (err));
+      return;
+    }
+  else
+    {
+      if (err)
+        die ("register cipher failed: %s\n", gpg_strerror (err));
+    }
 
   err = gcry_cipher_open (&h, algorithm, GCRY_CIPHER_MODE_CBC, 0);
-  assert (! err);
+  if (err)
+    die ("gcry_cipher_open failed: %s\n", gpg_strerror (err));
 
   err = gcry_cipher_encrypt (h,
 			     (unsigned char *) encrypted, sizeof (encrypted),
@@ -163,8 +175,13 @@ main (int argc, char **argv)
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
 
+  if ( gcry_control (GCRYCTL_FIPS_MODE_P, 0) )
+    in_fips_mode = 1;
+
   for (; i > 0; i--)
     check_run ();
-  
-  return 0;
+
+  /* In fips mode we let the Makefile skip this test because a PASS
+     would not make much sense with all egistering disabled. */
+  return in_fips_mode? 77:0; 
 }

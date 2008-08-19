@@ -992,12 +992,13 @@ main( int argc, char **argv )
   if (argc)
     { argc--; argv++; }
 
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
     {
       fprintf (stderr, PGM ": version mismatch\n");
       exit (1);
     }
+  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+
   if (argc && !strcmp (*argv, "--use-random-daemon"))
     {
       gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
@@ -1047,6 +1048,11 @@ main( int argc, char **argv )
               cipher_repetitions = atoi(*argv);
               argc--; argv++;
             }
+        }
+      else if (!strcmp (*argv, "--fips"))
+        {
+          argc--; argv++;
+          gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
         }
     }          
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);

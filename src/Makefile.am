@@ -28,7 +28,7 @@ m4data_DATA = libgcrypt.m4
 include_HEADERS = gcrypt.h gcrypt-module.h
 
 lib_LTLIBRARIES = libgcrypt.la
-bin_PROGRAMS = dumpsexp
+bin_PROGRAMS = dumpsexp hmac256
 if USE_RANDOM_DAEMON
 sbin_PROGRAMS = gcryptrnd
 bin_PROGRAMS += getrandom
@@ -42,10 +42,12 @@ else
 endif
 
 libgcrypt_la_CFLAGS = @GPG_ERROR_CFLAGS@
-libgcrypt_la_SOURCES = g10lib.h visibility.c visibility.h types.h cipher.h \
+libgcrypt_la_SOURCES = g10lib.h visibility.c visibility.h types.h \
+	cipher.h cipher-proto.h \
 	misc.c global.c sexp.c hwfeatures.c \
 	stdmem.c stdmem.h secmem.c secmem.h \
-	mpi.h missing-string.c module.c \
+	mpi.h missing-string.c module.c fips.c \
+	hmac256.c hmac256.h \
 	ath.h ath.c
 
 if HAVE_W32_SYSTEM
@@ -102,6 +104,10 @@ libgcrypt_la_LIBADD = \
 
 dumpsexp_SOURCES = dumpsexp.c
 dumpsexp_LDADD = 
+
+hmac256_SOURCES = hmac256.c
+hmac256_CFLAGS = -DSTANDALONE
+hmac256_LDADD = 
 
 if USE_RANDOM_DAEMON
 gcryptrnd_SOURCES = gcryptrnd.c
