@@ -41,7 +41,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h> /* for memcmp() */
-#include <assert.h>
 
 #include "types.h"  /* for byte and u32 typedefs */
 #include "g10lib.h"
@@ -995,8 +994,8 @@ selftest_fips_128_38a (int requested_mode)
     return a;                    \
   } while (0)
 
-  assert (sizeof tv[0].data[0].input == sizeof scratch);
-  assert (sizeof tv[0].data[0].output == sizeof scratch);
+  gcry_assert (sizeof tv[0].data[0].input == sizeof scratch);
+  gcry_assert (sizeof tv[0].data[0].output == sizeof scratch);
 
   for (tvi=0; tvi < DIM (tv); tvi++)
     if (tv[tvi].mode == requested_mode)

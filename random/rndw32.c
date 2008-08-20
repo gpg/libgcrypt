@@ -71,7 +71,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <errno.h>
 #include <string.h>
 #ifdef __GNUC__  
@@ -735,7 +734,7 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
           (*add) (buffer, powerInfo[i].size, requester);
           no_results++;
         }
-      assert (i < 100);
+      gcry_assert (i < 100);
     }
   gcry_free (buffer);
 
@@ -833,7 +832,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
     ADD ( GetQueueStatus (QS_ALLEVENTS));
     ADD ( GetTickCount ());
 
-    assert ( bufptr-buffer < sizeof (buffer) );
+    gcry_assert ( bufptr-buffer < sizeof (buffer) );
     (*add) ( buffer, bufptr-buffer, origin );
 #undef ADD
   }

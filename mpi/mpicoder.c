@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "mpi-internal.h"
 #include "g10lib.h"
@@ -123,9 +122,9 @@ mpi_fromstr(gcry_mpi_t val, const char *str)
 	    }
 	    else
 		c1 = *str++;
-	    assert(c1);
+	    gcry_assert (c1);
 	    c2 = *str++;
-	    assert(c2);
+	    gcry_assert (c2);
 	    if( c1 >= '0' && c1 <= '9' )
 		c = c1 - '0';
 	    else if( c1 >= 'a' && c1 <= 'f' )
@@ -328,7 +327,7 @@ _gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer_arg,
 	a->d[i++] = alimb;
     }
     a->nlimbs = i;
-    assert( i == nlimbs );
+    gcry_assert (i == nlimbs);
 }
 
 

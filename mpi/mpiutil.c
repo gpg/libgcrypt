@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "g10lib.h"
 #include "mpi-internal.h"
@@ -196,7 +195,7 @@ mpi_set_secure( gcry_mpi_t a )
   ap = a->d;
   if (!a->nlimbs)
     {
-      assert(!ap);
+      gcry_assert (!ap);
       return;
     }
   bp = mpi_alloc_limb_space (a->nlimbs, 1);

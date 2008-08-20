@@ -29,7 +29,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/time.h>
@@ -278,9 +277,9 @@ initialize_basics(void)
 
       /* Make sure that we are still using the values we have
          traditionally used for the random levels.  */
-      assert ( GCRY_WEAK_RANDOM == 0 
-               && GCRY_STRONG_RANDOM == 1
-               && GCRY_VERY_STRONG_RANDOM == 2);
+      gcry_assert (GCRY_WEAK_RANDOM == 0 
+                   && GCRY_STRONG_RANDOM == 1
+                   && GCRY_VERY_STRONG_RANDOM == 2);
     }
 }
 
@@ -603,7 +602,7 @@ mix_pool(unsigned char *pool)
 #error must have a digest length of 20 for ripe-md-160
 #endif
 
-  assert (pool_is_locked);
+  gcry_assert (pool_is_locked);
   _gcry_rmd160_init( &md );
 
   /* Loop over the pool.  */
@@ -728,7 +727,7 @@ read_seed_file (void)
   unsigned char buffer[POOLSIZE];
   int n;
 
-  assert (pool_is_locked);
+  gcry_assert (pool_is_locked);
 
   if (!seed_file_name)
     return 0;
@@ -919,7 +918,7 @@ read_pool (byte *buffer, size_t length, int level)
   static volatile pid_t my_pid = (pid_t)(-1); 
   volatile pid_t my_pid2;
 
-  assert (pool_is_locked);
+  gcry_assert (pool_is_locked);
 
  retry:
   /* Get our own pid, so that we can detect a fork. */
@@ -938,7 +937,7 @@ read_pool (byte *buffer, size_t length, int level)
       just_mixed = 0; /* Make sure it will get mixed. */
     }
 
-  assert (pool_is_locked);
+  gcry_assert (pool_is_locked);
 
   /* Our code does not allow to extract more than POOLSIZE.  Better
      check it here. */
@@ -1059,7 +1058,7 @@ add_randomness (const void *buffer, size_t length, enum random_origins origin)
   const unsigned char *p = buffer;
   size_t count = 0;
 
-  assert (pool_is_locked);
+  gcry_assert (pool_is_locked);
 
   rndstats.addbytes += length;
   rndstats.naddbytes++;
@@ -1157,7 +1156,7 @@ getfnc_fast_random_poll (void))( void (*)(const void*, size_t,
 static void
 do_fast_random_poll (void)
 {
-  assert (pool_is_locked);
+  gcry_assert (pool_is_locked);
 
   rndstats.fastpolls++;
 

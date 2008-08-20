@@ -28,9 +28,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "mpi-internal.h"
 #include "longlong.h"
-#include <assert.h>
 
 
 /****************
@@ -133,7 +133,7 @@ gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
     else { /* Make BASE, EXPO and MOD not overlap with RES.  */
 	if( rp == bp ) {
 	    /* RES and BASE are identical.  Allocate temp. space for BASE.  */
-	    assert( !bp_marker );
+	    gcry_assert (!bp_marker);
             bp_nlimbs = bsec? bsize:0;
 	    bp = bp_marker = mpi_alloc_limb_space( bsize, bsec );
 	    MPN_COPY(bp, rp, bsize);
@@ -146,7 +146,7 @@ gcry_mpi_powm( gcry_mpi_t res, gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
 	}
 	if( rp == mp ) {
 	    /* RES and MOD are identical.  Allocate temporary space for MOD.*/
-	    assert( !mp_marker );
+	    gcry_assert (!mp_marker);
             mp_nlimbs = msec?msize:0;
 	    mp = mp_marker = mpi_alloc_limb_space( msize, msec );
 	    MPN_COPY(mp, rp, msize);

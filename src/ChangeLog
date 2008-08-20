@@ -1,3 +1,10 @@
+2008-08-20  Werner Koch  <wk@g10code.com>
+
+	* g10lib.h (gcry_assert): New.  use this at almost all places
+	where we used a plain assert.
+	* misc.c (_gcry_assert_failed): New.
+	(_gcry_bug): Also use func variant for ISO-C99.
+
 2008-08-19  Werner Koch  <wk@g10code.com>
 
 	* visibility.c, visibility.h (gcry_mpi_lshift): New.

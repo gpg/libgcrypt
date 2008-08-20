@@ -21,10 +21,10 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "mpi-internal.h"
 #include "longlong.h"
 #include "g10lib.h"
-#include <assert.h>
 
 
 /* Barrett is slower than the classical way.  It can be tweaked by
@@ -77,7 +77,7 @@ _gcry_mpi_mulpowm( gcry_mpi_t res, gcry_mpi_t *basearray, gcry_mpi_t *exparray, 
 
     for(k=0; basearray[k]; k++ )
 	;
-    assert(k);
+    gcry_assert(k);
     for(t=0, i=0; (tmp=exparray[i]); i++ ) {
 	/*log_mpidump("exp: ", tmp );*/
 	j = mpi_get_nbits(tmp);
@@ -85,9 +85,9 @@ _gcry_mpi_mulpowm( gcry_mpi_t res, gcry_mpi_t *basearray, gcry_mpi_t *exparray, 
 	    t = j;
     }
     /*log_mpidump("mod: ", m );*/
-    assert(i==k);
-    assert(t);
-    assert( k < 10 );
+    gcry_assert (i==k);
+    gcry_assert (t);
+    gcry_assert (k < 10);
 
     G = gcry_xcalloc( (1<<k) , sizeof *G );
 #ifdef USE_BARRETT
@@ -100,7 +100,7 @@ _gcry_mpi_mulpowm( gcry_mpi_t res, gcry_mpi_t *basearray, gcry_mpi_t *exparray, 
 	barrett_mulm(tmp, res, res, m, barrett_y, barrett_k,
 				       barrett_r1, barrett_r2 );
 	idx = build_index( exparray, k, i, t );
-	assert( idx >= 0 && idx < (1<<k) );
+	gcry_assert (idx >= 0 && idx < (1<<k));
 	if( !G[idx] ) {
 	    if( !idx )
 		 G[0] = mpi_alloc_set_ui( 1 );

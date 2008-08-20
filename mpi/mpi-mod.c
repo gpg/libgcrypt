@@ -23,7 +23,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "mpi-internal.h"
 #include "longlong.h"

@@ -33,7 +33,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "types.h"
 #include "g10lib.h"
@@ -1350,7 +1349,7 @@ whirlpool_add (whirlpool_context_t *context,
       buffer_size >>= 8;
       carry >>= 8;
     }
-  assert (! (buffer_size || carry));
+  gcry_assert (! (buffer_size || carry));
 }
 
 static void

@@ -28,7 +28,6 @@
 #include <limits.h>
 #include <errno.h>
 #include <unistd.h>
-#include <assert.h>
 
 #include "g10lib.h"
 #include "cipher.h"

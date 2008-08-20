@@ -24,7 +24,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <errno.h>
 
 #include "g10lib.h"
@@ -208,7 +207,7 @@ get_pool_prime (unsigned int nbits, gcry_random_level_t randomlevel)
       {
         gcry_mpi_t prime = item->prime;
         item->prime = NULL;
-        assert (nbits == mpi_get_nbits (prime));
+        gcry_assert (nbits == mpi_get_nbits (prime));
         return prime;
       }
   return NULL;
@@ -950,7 +949,7 @@ is_prime (gcry_mpi_t n, int steps, unsigned int *count)
               mpi_set_highbit( x, nbits-2 );
               mpi_clear_bit( x, nbits-2 );
             }
-          assert ( mpi_cmp( x, nminus1 ) < 0 && mpi_cmp_ui( x, 1 ) > 0 );
+          gcry_assert (mpi_cmp (x, nminus1) < 0 && mpi_cmp_ui (x, 1) > 0);
 	}
       gcry_mpi_powm ( y, x, q, n);
       if ( mpi_cmp_ui(y, 1) && mpi_cmp( y, nminus1 ) )

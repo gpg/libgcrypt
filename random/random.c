@@ -25,7 +25,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <errno.h>
 
 #include "g10lib.h"

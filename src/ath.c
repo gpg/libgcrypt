@@ -22,7 +22,7 @@
 #include <config.h>
 #endif
 
-#include <assert.h>
+#include <assert.h>  /* Right: We need to use assert and not gcry_assert.  */
 #include <unistd.h>
 #ifdef HAVE_SYS_SELECT_H
 # include <sys/select.h>

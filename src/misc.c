@@ -1,5 +1,6 @@
 /* misc.c
- * Copyright (C) 1999, 2001, 2002, 2003, 2007 Free Software Foundation, Inc.
+ * Copyright (C) 1999, 2001, 2002, 2003, 2007, 
+ *               2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -151,13 +152,21 @@ _gcry_log( int level, const char *fmt, ... )
 }
 
 
-#if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 5 )
+#if defined(JNLIB_GCC_M_FUNCTION) || __STDC_VERSION__ >= 199901L
 void
 _gcry_bug( const char *file, int line, const char *func )
 {
     _gcry_log( GCRY_LOG_BUG,
 	     ("... this is a bug (%s:%d:%s)\n"), file, line, func );
     abort(); /* never called, but it makes the compiler happy */
+}
+void
+_gcry_assert_failed (const char *expr, const char *file, int line,
+                     const char *func)
+{
+  _gcry_log (GCRY_LOG_BUG,
+             ("Assertion `%s' failed (%s:%d:%s)\n"), expr, file, line, func );
+  abort(); /* Never called, but it makes the compiler happy. */
 }
 #else
 void
@@ -166,6 +175,13 @@ _gcry_bug( const char *file, int line )
     _gcry_log( GCRY_LOG_BUG,
 	     _("you found a bug ... (%s:%d)\n"), file, line);
     abort(); /* never called, but it makes the compiler happy */
+}
+void
+_gcry_assert_failed (const char *expr, const char *file, int line)
+{
+  _gcry_log (GCRY_LOG_BUG,
+             ("Assertion `%s' failed (%s:%d)\n"), expr, file, line);
+  abort(); /* Never called, but it makes the compiler happy. */
 }
 #endif
 

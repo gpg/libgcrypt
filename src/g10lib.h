@@ -63,6 +63,14 @@
 #define _(a)  _gcry_gettext(a)
 #define N_(a) (a)
 
+/* Some handy macros */
+#ifndef STR
+#define STR(v) #v
+#endif
+#define STR2(v) STR(v)
+#define DIM(v) (sizeof(v)/sizeof((v)[0]))
+#define DIMof(type,member)   DIM(((type *)0)->member)
+
 
 
 /*-- src/global.c -*/
@@ -73,11 +81,14 @@ int _gcry_get_debug_flag (unsigned int mask);
 
 /*-- src/misc.c --*/
 
-#ifdef JNLIB_GCC_M_FUNCTION
+#if defined(JNLIB_GCC_M_FUNCTION) || __STDC_VERSION__ >= 199901L
 void _gcry_bug (const char *file, int line,
                 const char *func) GCC_ATTR_NORETURN;
+void _gcry_assert_failed (const char *expr, const char *file, int line,
+                          const char *func) GCC_ATTR_NORETURN;
 #else
 void _gcry_bug (const char *file, int line);
+void _gcry_assert_failed (const char *expr, const char *file, int line);
 #endif
 
 const char *_gcry_gettext (const char *key);
@@ -97,9 +108,18 @@ int _gcry_log_verbosity( int level );
 
 #ifdef JNLIB_GCC_M_FUNCTION
 #define BUG() _gcry_bug( __FILE__ , __LINE__, __FUNCTION__ )
+#define gcry_assert(expr) ((expr)? (void)0 \
+         : _gcry_assert_failed (STR(expr), __FILE__, __LINE__, __FUNCTION__))
+#elif __STDC_VERSION__ >= 199901L
+#define BUG() _gcry_bug( __FILE__ , __LINE__, __func__ )
+#define gcry_assert(expr) ((expr)? (void)0 \
+         : _gcry_assert_failed (STR(expr), __FILE__, __LINE__, __func__))
 #else
 #define BUG() _gcry_bug( __FILE__ , __LINE__ )
+#define gcry_assert(expr) ((expr)? (void)0 \
+         : _gcry_assert_failed (STR(expr), __FILE__, __LINE__))
 #endif
+
 
 #define log_hexdump _gcry_log_hexdump
 #define log_bug     _gcry_log_bug
@@ -168,14 +188,6 @@ int strcasecmp (const char *a, const char *b) _GCRY_GCC_ATTR_PURE;
 #define raise(a) kill(getpid(), (a))
 #endif
 
-
-/* some handy macros */
-#ifndef STR
-#define STR(v) #v
-#endif
-#define STR2(v) STR(v)
-#define DIM(v) (sizeof(v)/sizeof((v)[0]))
-#define DIMof(type,member)   DIM(((type *)0)->member)
 
 /* Stack burning.  */
 

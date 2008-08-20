@@ -20,7 +20,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <errno.h>
 #include <unistd.h>
 
@@ -85,14 +84,14 @@ _gcry_initialize_fips_mode (int force)
           fips_noreturn ();
         }
       /* If not in fips mode an assert is sufficient.  */
-      assert (!done);
+      gcry_assert (!done);
     }
   done = 1;
 
   /* If the calling applicatione explicitly requested fipsmode, do so.  */
   if (force)
     {
-      assert (!no_fips_mode_required);
+      gcry_assert (!no_fips_mode_required);
       goto leave;
     }
 
@@ -106,7 +105,7 @@ _gcry_initialize_fips_mode (int force)
      allowed.  */
   if ( !access ("/etc/gcrypt/fips140.force", F_OK) )
     {
-      assert (!no_fips_mode_required);
+      gcry_assert (!no_fips_mode_required);
       goto leave;
     }
 
@@ -124,7 +123,7 @@ _gcry_initialize_fips_mode (int force)
           {
             /* System is in fips mode.  */
             fclose (fp);
-            assert (!no_fips_mode_required);
+            gcry_assert (!no_fips_mode_required);
             goto leave;
           }
         fclose (fp);

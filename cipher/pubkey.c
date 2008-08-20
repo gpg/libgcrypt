@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <assert.h>
 
 #include "g10lib.h"
 #include "mpi.h"
@@ -860,7 +859,7 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
   /* Clear the array for easir error cleanup. */
   for (name = element_names, idx = 0; *name; name++, idx++)
     elements[idx] = NULL;
-  assert (idx >= 6); /* We know that ECC has at least 6 elements.  */
+  gcry_assert (idx >= 6); /* We know that ECC has at least 6 elements.  */
 
   /* Init the array with the available curve parameters. */
   for (name = element_names, idx = 0; *name && !err; name++, idx++)
@@ -1391,7 +1390,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
           frame[n++] = 0;
           frame[n++] = 2; /* block type */
           i = nframe - 3 - valuelen;
-          assert (i > 0);
+          gcry_assert (i > 0);
           p = gcry_random_bytes_secure (i, GCRY_STRONG_RANDOM);
           /* Replace zero bytes by new values. */
           for (;;)
@@ -1426,7 +1425,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
           frame[n++] = 0;
           memcpy (frame+n, value, valuelen);
           n += valuelen;
-          assert (n == nframe);
+          gcry_assert (n == nframe);
 
 	  /* FIXME, error checking?  */
           gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, n, &nframe);
@@ -1527,7 +1526,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
               frame[n++] = 0;
               frame[n++] = 1; /* block type */
               i = nframe - valuelen - asnlen - 3 ;
-              assert (i > 1);
+              gcry_assert (i > 1);
               memset (frame+n, 0xff, i );
               n += i;
               frame[n++] = 0;
@@ -1535,7 +1534,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
               n += asnlen;
               memcpy (frame+n, value, valuelen );
               n += valuelen;
-              assert (n == nframe);
+              gcry_assert (n == nframe);
       
               /* Convert it into an MPI.  FIXME: error checking?  */
               gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, n, &nframe);
@@ -1599,7 +1598,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   if (rc)
     goto leave;
 
-  assert (module);
+  gcry_assert (module);
   pubkey = (gcry_pk_spec_t *) module->spec;
 
   /* If aliases for the algorithm name exists, take the first one
@@ -1838,7 +1837,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  assert (module);
+  gcry_assert (module);
   pubkey = (gcry_pk_spec_t *) module->spec;
   algo_name = pubkey->aliases? *pubkey->aliases : NULL;
   if (!algo_name || !*algo_name)
@@ -2291,7 +2290,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
         p = stpcpy (p, "))");
       }
     strcpy (p, ")");
-    assert (p - string < needed);
+    gcry_assert (p - string < needed);
 
     while (nelem < DIM (mpis))
       mpis[nelem++] = NULL;
@@ -2315,9 +2314,9 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       free (arg_list);
       if (rc)
 	BUG ();
-      assert (DIM (mpis) == 30); /* Reminder to make sure that the
-                                    array gets increased if new
-                                    parameters are added. */
+      gcry_assert (DIM (mpis) == 30); /* Reminder to make sure that
+                                         the array gets increased if
+                                         new parameters are added. */
     }
     gcry_free (string);
   }

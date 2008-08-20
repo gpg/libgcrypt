@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "g10lib.h"
 #include "mpi.h"
@@ -237,7 +236,7 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
    * is the secret part. */
   if( DBG_CIPHER )
     log_debug("choosing a random x ");
-  assert( qbits >= 160 );
+  gcry_assert( qbits >= 160 );
   x = mpi_alloc_secure( mpi_get_nlimbs(q) );
   mpi_sub_ui( h, q, 1 );  /* put q-1 into h */
   rndbuf = NULL;

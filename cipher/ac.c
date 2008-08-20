@@ -24,7 +24,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <assert.h>
 
 #include "g10lib.h"
 #include "cipher.h"
@@ -886,8 +885,8 @@ _gcry_ac_io_init_va (gcry_ac_io_t *ac_io,
   if (fips_mode ())
     return;
 
-  assert ((mode == GCRY_AC_IO_READABLE) || (mode == GCRY_AC_IO_WRITABLE));
-  assert ((type == GCRY_AC_IO_STRING) || (type == GCRY_AC_IO_STRING));
+  gcry_assert ((mode == GCRY_AC_IO_READABLE) || (mode == GCRY_AC_IO_WRITABLE));
+  gcry_assert ((type == GCRY_AC_IO_STRING) || (type == GCRY_AC_IO_STRING));
 
   ac_io->mode = mode;
   ac_io->type = type;
@@ -947,7 +946,7 @@ _gcry_ac_io_write (gcry_ac_io_t *ac_io, unsigned char *buffer, size_t buffer_n)
 {
   gcry_error_t err;
 
-  assert (ac_io->mode == GCRY_AC_IO_WRITABLE);
+  gcry_assert (ac_io->mode == GCRY_AC_IO_WRITABLE);
   err = 0;
 
   switch (ac_io->type)
@@ -1007,7 +1006,7 @@ _gcry_ac_io_read (gcry_ac_io_t *ac_io,
 {
   gcry_error_t err;
   
-  assert (ac_io->mode == GCRY_AC_IO_READABLE);
+  gcry_assert (ac_io->mode == GCRY_AC_IO_READABLE);
   err = 0;
 
   switch (ac_io->type)

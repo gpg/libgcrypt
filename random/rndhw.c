@@ -20,7 +20,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "types.h"
 #include "g10lib.h"

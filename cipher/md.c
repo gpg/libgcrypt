@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <assert.h>
 
 #include "g10lib.h"
 #include "cipher.h"
@@ -627,10 +626,10 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
     {
       bhd->ctx = b = (struct gcry_md_context *) ((char *) bhd + n);
       /* No need to copy the buffer due to the write above. */
-      assert (ahd->bufsize == (n - sizeof (struct gcry_md_handle) + 1));
+      gcry_assert (ahd->bufsize == (n - sizeof (struct gcry_md_handle) + 1));
       bhd->bufsize = ahd->bufsize;
       bhd->bufpos = 0;
-      assert (! ahd->bufpos);
+      gcry_assert (! ahd->bufpos);
       memcpy (b, a, sizeof *a);
       b->list = NULL;
       b->debug = NULL;
@@ -843,7 +842,7 @@ prepare_macpads( gcry_md_hd_t hd, const byte *key, size_t keylen)
       gcry_md_hash_buffer ( algo, helpkey, key, keylen );
       key = helpkey;
       keylen = md_digest_length( algo );
-      assert ( keylen <= 64 );
+      gcry_assert ( keylen <= 64 );
     }
 
   memset ( hd->ctx->macpads, 0, 2*(hd->ctx->macpads_Bsize) );
