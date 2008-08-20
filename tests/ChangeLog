@@ -1,3 +1,9 @@
+2008-08-20  Werner Koch  <wk@g10code.com>
+
+	* t-mpi-bit.c (test_lshift): New.
+	(mpi2bitstr_nlz, lshiftbitstring): New.
+	(main): Run test.
+
 2008-08-18  Werner Koch  <wk@g10code.com>
 
 	* basic.c (main): Add option --fips.

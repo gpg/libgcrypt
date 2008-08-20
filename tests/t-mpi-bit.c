@@ -100,6 +100,24 @@ mpi2bitstr (gcry_mpi_t a, size_t length)
   return buf;
 }
 
+/* Allocate a bit string consisting of '0' and '1' from the MPI A.  Do
+   not return any leading zero bits. Caller needs to xfree the
+   result. */
+static char *
+mpi2bitstr_nlz (gcry_mpi_t a)
+{
+  char *p, *buf;
+  size_t length = gcry_mpi_get_nbits (a);
+  
+  buf = p = xmalloc (length + 1);
+  while (length-- > 1)
+    *p++ = gcry_mpi_test_bit (a, length) ? '1':'0';
+  *p++ = gcry_mpi_test_bit (a, 0) ? '1':'0';
+  *p = 0;
+
+  return buf;
+}
+
 /* Shift a bit string to the right. */
 static void
 rshiftbitstring (char *string, size_t n)
@@ -111,6 +129,28 @@ rshiftbitstring (char *string, size_t n)
 
   memmove (string+n, string, len-n);
   memset (string, '0', n);
+}
+
+/* Shift a bit string to the left. Caller needs to free the result. */
+static char *
+lshiftbitstring (const char *string, size_t n)
+{
+  size_t len = strlen (string);
+  char *result;
+
+  if (len+n+1 < len)
+    die ("internal overflow\n");
+  /* Allocate enough space. */ 
+  result = xmalloc (len+n+1);
+  for (; *string == '0' && string[1]; string++, len--)
+    ;
+  memcpy (result, string, len);
+  if (*string == '0' && !string[1])
+    n = 0; /* Avoid extra nulls for an only 0 string.  */
+  else
+    memset (result+len, '0', n);
+  result[len+n] = 0;
+  return result;
 }
 
 
@@ -141,7 +181,6 @@ one_bit_only (int highbit)
     fail ("failed to clear a bit\n");
   result = mpi2bitstr (a, 70);
   assert (strlen (result) == 70);
-  show ("r=%s\n", result);
   for (i=0; result[i]; i++)
     if ( result[i] != '0' )
       break;
@@ -210,6 +249,76 @@ test_rshift (int pass)
   gcry_mpi_release (a);
 }
 
+/* Check that the left shifting.  */
+static void
+test_lshift (int pass)
+{
+  static int size_list[] = {1, 31, 32, 63, 64, 65, 70, 0};
+  int size_idx;
+  gcry_mpi_t a, b;
+  char *tmpstr, *result, *result2;
+  int i;
+
+  wherestr = "test_lshift";
+  show ("checking that lshift works as expected (pass %d)\n", pass);
+
+  for (size_idx=0; size_list[size_idx]; size_idx++)
+    {
+      a = gcry_mpi_new (0);
+      b = gcry_mpi_new (0);
+
+      /* gcry_mpi_randomize rounds up to full bytes, thus we need to
+         use gcry_mpi_clear_highbit to fix that.  */
+      gcry_mpi_randomize (a, size_list[size_idx], GCRY_WEAK_RANDOM);
+      gcry_mpi_clear_highbit (a, size_list[size_idx]);
+
+      for (i=0; i < 75; i++)
+        {
+          gcry_mpi_lshift (b, a, i);
+          
+          result = mpi2bitstr_nlz (b);
+          tmpstr = mpi2bitstr_nlz (a);
+          result2 = lshiftbitstring (tmpstr, i);
+          xfree (tmpstr);
+          if (strcmp (result, result2))
+            {
+              show ("got =%s\n", result);
+              show ("want=%s\n", result2);
+              fail ("lshift by %d failed\n", i);
+            }
+          xfree (result);
+          xfree (result2);
+        }
+      
+      /* Again. This time using in-place operation. */
+      gcry_mpi_randomize (a, size_list[size_idx], GCRY_WEAK_RANDOM);
+      gcry_mpi_clear_highbit (a, size_list[size_idx]);
+      
+      for (i=0; i < 75; i++)
+        {
+          gcry_mpi_release (b);
+          b = gcry_mpi_copy (a);
+          gcry_mpi_lshift (b, b, i);
+
+          result = mpi2bitstr_nlz (b);
+          tmpstr = mpi2bitstr_nlz (a);
+          result2 = lshiftbitstring (tmpstr, i);
+          xfree (tmpstr);
+          if (strcmp (result, result2))
+            {
+              show ("got =%s\n", result);
+              show ("want=%s\n", result2);
+              fail ("in-place lshift by %d failed\n", i);
+            }
+          xfree (result2);
+          xfree (result);
+        }
+
+      gcry_mpi_release (b);
+      gcry_mpi_release (a);
+    }
+}
+
 
 int
 main (int argc, char **argv)
@@ -226,15 +335,19 @@ main (int argc, char **argv)
     die ("version mismatch\n");
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
-  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
   one_bit_only (0);
   one_bit_only (1);
   for (i=0; i < 5; i++)
     test_rshift (i); /* Run several times due to random initializations. */
+
+  for (i=0; i < 5; i++)
+    test_lshift (i); /* Run several times due to random initializations. */
   
   show ("All tests completed. Errors: %d\n", error_count);
   return error_count ? 1 : 0;

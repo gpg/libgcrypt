@@ -188,6 +188,29 @@ gcry_mpi_clear_bit( gcry_mpi_t a, unsigned int n )
 }
 
 
+/****************
+ * Shift A by COUNT limbs to the right
+ * This is used only within the MPI library
+ */
+void
+_gcry_mpi_rshift_limbs( gcry_mpi_t a, unsigned int count )
+{
+    mpi_ptr_t ap = a->d;
+    mpi_size_t n = a->nlimbs;
+    unsigned int i;
+
+    if( count >= n ) {
+	a->nlimbs = 0;
+	return;
+    }
+
+    for( i = 0; i < n - count; i++ )
+	ap[i] = ap[i+count];
+    ap[i] = 0;
+    a->nlimbs -= count;
+}
+
+
 /*
  * Shift A by N bits to the right.
  */
@@ -277,23 +300,23 @@ gcry_mpi_rshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
  * This is used only within the MPI library
  */
 void
-_gcry_mpi_lshift_limbs( gcry_mpi_t a, unsigned int count )
+_gcry_mpi_lshift_limbs (gcry_mpi_t a, unsigned int count)
 {
-    mpi_ptr_t ap;
-    int n = a->nlimbs;
-    int i;
+  mpi_ptr_t ap;
+  int n = a->nlimbs;
+  int i;
 
-    if( !count || !n )
-	return;
+  if (!count || !n)
+    return;
 
-    RESIZE_IF_NEEDED( a, n+count );
+  RESIZE_IF_NEEDED (a, n+count);
 
-    ap = a->d;
-    for( i = n-1; i >= 0; i-- )
-	ap[i+count] = ap[i];
-    for(i=0; i < count; i++ )
-	ap[i] = 0;
-    a->nlimbs += count;
+  ap = a->d;
+  for (i = n-1; i >= 0; i--)
+    ap[i+count] = ap[i];
+  for (i=0; i < count; i++ )
+    ap[i] = 0;
+  a->nlimbs += count;
 }
 
 
@@ -303,28 +326,41 @@ _gcry_mpi_lshift_limbs( gcry_mpi_t a, unsigned int count )
 void
 gcry_mpi_lshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
 {
-  BUG (); /* Not yet implemented in 1.4.2rc1 but will be soon.  */
-}
+  unsigned int nlimbs = (n/BITS_PER_MPI_LIMB);
+  unsigned int nbits = (n%BITS_PER_MPI_LIMB);
 
+  if (x == a && !n)
+    return;  /* In-place shift with an amount of zero.  */
 
-/****************
- * Shift A by COUNT limbs to the right
- * This is used only within the MPI library
- */
-void
-_gcry_mpi_rshift_limbs( gcry_mpi_t a, unsigned int count )
-{
-    mpi_ptr_t ap = a->d;
-    mpi_size_t n = a->nlimbs;
-    unsigned int i;
+  if ( x != a )
+    {
+      /* Copy A to X.  */
+      unsigned int alimbs = a->nlimbs;
+      int asign  = a->sign;
+      mpi_ptr_t xp, ap;
 
-    if( count >= n ) {
-	a->nlimbs = 0;
-	return;
+      RESIZE_IF_NEEDED (x, alimbs+nlimbs+1);
+      xp = x->d;
+      ap = a->d;
+      MPN_COPY (xp, ap, alimbs);
+      x->nlimbs = alimbs;
+      x->flags = a->flags;
+      x->sign = asign;
     }
 
-    for( i = 0; i < n - count; i++ )
-	ap[i] = ap[i+count];
-    ap[i] = 0;
-    a->nlimbs -= count;
+  if (nlimbs && !nbits)
+    {
+      /* Shift a full number of limbs.  */
+      _gcry_mpi_lshift_limbs (x, nlimbs);
+    }
+  else if (n)
+    {
+      /* We use a very dump approach: Shift left by the number of
+         limbs plus one and than fix it up by an rshift.  */
+      _gcry_mpi_lshift_limbs (x, nlimbs+1);
+      gcry_mpi_rshift (x, x, BITS_PER_MPI_LIMB - nbits);
+    }
+
+  MPN_NORMALIZE (x->d, x->nlimbs);
 }
+

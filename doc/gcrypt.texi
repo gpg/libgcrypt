@@ -3700,8 +3700,9 @@ The constants for the random quality levels are of this type.
 
 @table @code
 @item GCRY_WEAK_RANDOM
-This should not anymore be used.  It has recently been changed to an
-alias of GCRY_STRONG_RANDOM.  Use @code{gcry_create_nonce} instead.
+For all functions, except for @code{gcry_mpi_randomize}, this level maps
+to GCRY_STRONG_RANDOM. IF you do not want this, consider using
+@code{gcry_create_nonce}.
 @item GCRY_STRONG_RANDOM
 Use this level for e.g. session keys and similar purposes.
 @item GCRY_VERY_STRONG_RANDOM
@@ -4368,7 +4369,9 @@ Return true when the @var{flag} is set for @var{a}.
 Set the multi-precision-integers @var{w} to a random value of
 @var{nbits}, using random data quality of level @var{level}.  In case
 @var{nbits} is not a multiple of a byte, @var{nbits} is rounded up to
-the next byte boundary.
+the next byte boundary.  When using a @var{level} of
+@code{GCRY_WEAK_RANDOM} this function makes use of
+@code{gcry_create_nonce}.
 @end deftypefun
 
 @c **********************************************************

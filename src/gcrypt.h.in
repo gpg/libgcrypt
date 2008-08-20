@@ -1612,8 +1612,8 @@ gcry_error_t gcry_ac_name_to_id (const char *name,
 
 /* The possible values for the random quality.  The rule of thumb is
    to use STRONG for session keys and VERY_STRONG for key material.
-   WEAK is currently an alias for STRONG and should not be used
-   anymore - use gcry_create_nonce instead. */
+   WEAK is usually an alias for STRONG and should not be used anymore
+   (except with gcry_mpi_randomize); use gcry_create_nonce instead. */
 typedef enum gcry_random_level
   {
     GCRY_WEAK_RANDOM = 0,
@@ -1652,7 +1652,8 @@ void *gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
 
 
 /* Set the big integer W to a random value of NBITS using a random
-   generator with quality LEVEL. */
+   generator with quality LEVEL.  Note that using a level of
+   GCRY_WEAK_RANDOM here, uses gcry_create_nonce internally. */
 void gcry_mpi_randomize (gcry_mpi_t w,
                          unsigned int nbits, enum gcry_random_level level);
 
