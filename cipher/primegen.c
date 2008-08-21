@@ -245,7 +245,8 @@ _gcry_generate_secret_prime (unsigned int nbits,
 {
   gcry_mpi_t prime;
 
-  prime = gen_prime( nbits, 1, 2, extra_check, extra_check_arg);
+  prime = gen_prime (nbits, 1, GCRY_VERY_STRONG_RANDOM,
+                     extra_check, extra_check_arg);
   progress('\n');
   return prime;
 }
@@ -257,7 +258,8 @@ _gcry_generate_public_prime( unsigned int nbits,
 {
   gcry_mpi_t prime;
 
-  prime = gen_prime( nbits, 0, 2, extra_check, extra_check_arg );
+  prime = gen_prime (nbits, 0, GCRY_VERY_STRONG_RANDOM,
+                     extra_check, extra_check_arg );
   progress('\n');
   return prime;
 }

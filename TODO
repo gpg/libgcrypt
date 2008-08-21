@@ -108,5 +108,4 @@ What's left to do                                 -*- outline -*-
   We have some code to allow using libgcrypt from C++, so we also
   should have a test case.
 
-* gcry_mpi_lshift needs actual code.
-
+* The prime generator always uses very-strong-random. 

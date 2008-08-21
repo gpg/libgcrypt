@@ -250,6 +250,7 @@ _gcry_log_debug( const char *fmt, ... )
     va_end(arg_ptr);
 }
 
+
 void
 _gcry_log_printf (const char *fmt, ...)
 {
@@ -262,6 +263,26 @@ _gcry_log_printf (const char *fmt, ...)
       va_end(arg_ptr);
     }
 }
+
+/* Print a hexdump of BUFFER.  With TEXT of NULL print just the raw
+   dump, with TEXT an empty string, print a trailing linefeed,
+   otherwise print an entire debug line. */
+void
+_gcry_log_printhex (const char *text, const void *buffer, size_t length)
+{
+  if (text && *text)
+    log_debug ("%s ", text);
+  if (length)
+    {
+      const unsigned char *p = buffer;
+      log_printf ("%02X", *p);
+      for (length--, p++; length--; p++)
+        log_printf (" %02X", *p);
+    }
+  if (text)
+    log_printf ("\n");
+}
+
 
 void
 _gcry_burn_stack (int bytes)

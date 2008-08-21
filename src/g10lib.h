@@ -102,6 +102,7 @@ int  _gcry_log_info_with_dummy_fp (FILE *fp, const char *fmt, ... )
                                              JNLIB_GCC_A_PRINTF(2,3);
 void _gcry_log_debug( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 void _gcry_log_printf ( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
+void _gcry_log_printhex (const char *text, const void *buffer, size_t length);
 
 void _gcry_set_log_verbosity( int level );
 int _gcry_log_verbosity( int level );
@@ -121,13 +122,13 @@ int _gcry_log_verbosity( int level );
 #endif
 
 
-#define log_hexdump _gcry_log_hexdump
 #define log_bug     _gcry_log_bug
 #define log_fatal   _gcry_log_fatal
 #define log_error   _gcry_log_error
 #define log_info    _gcry_log_info
 #define log_debug   _gcry_log_debug
 #define log_printf  _gcry_log_printf
+#define log_printhex _gcry_log_printhex
 
 
 /*-- src/hwfeatures.c --*/

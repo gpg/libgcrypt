@@ -422,6 +422,10 @@ run_pubkey_selftests (void)
 static int
 run_random_selftests (void)
 {
+  char buffer[8];
+
+  /* FIXME: For now we just try to get a few bytes.  */
+  gcry_randomize (buffer, sizeof buffer, GCRY_STRONG_RANDOM);
 
   return 0;
 }
@@ -536,6 +540,7 @@ fips_new_state (enum module_states new_state)
       
     case STATE_ERROR:
       if (new_state == STATE_SHUTDOWN
+          || new_state == STATE_FATALERROR
           || new_state == STATE_INIT)
         ok = 1;
       break;

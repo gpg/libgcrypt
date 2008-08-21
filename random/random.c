@@ -226,7 +226,7 @@ _gcry_set_random_seed_file (const char *name)
 void
 _gcry_update_random_seed_file (void)
 {
-  if (!fips_is_operational ())
+  if (!fips_is_operational ())  /* FIXME:  This does no look correct.  */
     return;
 
   _gcry_rngcsprng_update_seed_file ();

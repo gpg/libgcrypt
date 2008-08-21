@@ -1,3 +1,9 @@
+2008-08-21  Werner Koch  <wk@g10code.com>
+
+	* primegen.c (_gcry_generate_secret_prime)
+	(_gcry_generate_public_prime): Use a constant macro for the random
+	level.
+	
 2008-08-19  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (sexp_elements_extract_ecc) [!USE_ECC]: Do not allow
