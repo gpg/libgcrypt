@@ -158,12 +158,18 @@
                       auto - Compile linux, egd and unix in and 
                              automagically select at runtime.
   
+     --enable-hmac-binary-check
+                     Include support to check the binary at runtime
+                     against a HMAC checksum.  This works only in FIPS
+                     mode and on systems providing the dladdr function.
+
      --disable-padlock-support
                      Disable support for the PadLock engine of VIA
                      processors.  The default is to use PadLock if
                      available.  Try this if you get problems with
                      assembler code.
 
+       
 
 
     License

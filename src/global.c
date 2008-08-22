@@ -349,7 +349,8 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_UPDATE_RANDOM_SEED_FILE:
-      _gcry_update_random_seed_file ();
+      if ( fips_is_operational () )
+        _gcry_update_random_seed_file ();
       break;
 
     case GCRYCTL_SET_VERBOSITY:
@@ -405,7 +406,9 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       /* We need to do make sure that the random pool is really
          initialized so that the poll function is not a NOP. */
       _gcry_random_initialize (1);
-      _gcry_fast_random_poll (); 
+
+      if ( fips_is_operational () )
+        _gcry_fast_random_poll (); 
       break;
 
     case GCRYCTL_SET_RNDEGD_SOCKET:

@@ -449,6 +449,19 @@ AC_ARG_WITH(capabilities,
             [use_capabilities="$withval"],[use_capabilities=no])
 AC_MSG_RESULT($use_capabilities)
 
+# Implementation of the --enable-hmac-binary-check.
+AC_MSG_CHECKING([whether a HMAC binary check is requested])
+AC_ARG_ENABLE(hmac-binary-check,
+              AC_HELP_STRING([--enable-hmac-binary-check],
+                             [Enable library integrity check]),
+              [use_hmac_binary_check=$enableval],
+              [use_hmac_binary_check=no])
+AC_MSG_RESULT($use_hmac_binary_check)
+if test "$use_hmac_binary_check" = yes ; then
+    AC_DEFINE(ENABLE_HMAC_BINARY_CHECK,1,
+              [Define to support an HMAC based integrity check])
+fi
+
 
 # Implementation of the --disable-padlock-support switch.
 AC_MSG_CHECKING([whether padlock support is requested])
@@ -692,7 +705,25 @@ AC_CHECK_FUNCS(fcntl ftruncate)
 
 GNUPG_CHECK_MLOCK
 
+
+#
+# Check wether it is necessary to link against libdl.
+#
+DL_LIBS=""
+if test "$use_hmac_binary_check" = yes ; then
+  _gcry_save_libs="$LIBS"
+  LIBS=""
+  AC_SEARCH_LIBS(dlopen, c dl,,,)
+  DL_LIBS=$LIBS
+  LIBS="$_gcry_save_libs"
+  LIBGCRYPT_CONFIG_LIBS="${LIBGCRYPT_CONFIG_LIBS} ${DL_LIBS}"
+fi
+AC_SUBST(DL_LIBS)
+
+
+#
 # Check whether we can use Linux capabilities as requested.
+#
 if test "$use_capabilities" = "yes" ; then
 use_capabilities=no
 AC_CHECK_HEADERS(sys/capability.h)

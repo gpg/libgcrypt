@@ -52,6 +52,9 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#if defined(__WIN32) && defined(STANDALONE)
+# include <fcntl.h> /* We need setmode().  */
+#endif
 
 #include "hmac256.h"
 
@@ -361,6 +364,7 @@ _gcry_hmac256_release (hmac256_context_t ctx)
 {
   if (ctx)
     {
+      /* Note: We need to take care not to modify errno.  */
       if (ctx->use_hmac)
         my_wipememory (ctx->opad, 64);
       free (ctx);
@@ -439,6 +443,78 @@ _gcry_hmac256_finalize (hmac256_context_t hd, size_t *r_dlen)
     *r_dlen = 32;
   return (void*)hd->buf;
 }
+
+
+/* Convenience function to compute the HMAC-SHA256 of one file.  The
+   user needs to provide a buffer RESULT of at least 32 bytes, he
+   needs to put the size of the buffer into RESULTSIZE and the
+   FILENAME.  KEY and KEYLEN are as described for _gcry_hmac256_new.
+   On success the function returns the valid length of the result
+   buffer (which will be 32) or -1 on error.  On error ERRNO is set
+   appropriate.  */ 
+int
+_gcry_hmac256_file (void *result, size_t resultsize, const char *filename,
+                    const void *key, size_t keylen)
+{
+  FILE *fp;
+  hmac256_context_t hd;
+  size_t buffer_size, nread, digestlen;
+  char *buffer;
+  const unsigned char *digest;
+  
+  fp = fopen (filename, "rb");
+  if (!fp)
+    return -1;
+
+  hd = _gcry_hmac256_new (key, keylen);
+  if (!hd)
+    {
+      fclose (fp);
+      return -1;
+    }
+
+  buffer_size = 32768;
+  buffer = malloc (buffer_size);
+  if (!buffer)
+    {
+      fclose (fp);
+      _gcry_hmac256_release (hd);
+      return -1;
+    }
+
+  while ( (nread = fread (buffer, 1, buffer_size, fp)))
+    _gcry_hmac256_update (hd, buffer, nread);
+
+  free (buffer);
+
+  if (ferror (fp))
+    {
+      fclose (fp);
+      _gcry_hmac256_release (hd);
+      return -1;
+    }
+
+  fclose (fp);
+
+  digest = _gcry_hmac256_finalize (hd, &digestlen);
+  if (!digest)
+    {
+      _gcry_hmac256_release (hd);
+      return -1;
+    }
+  
+  if (digestlen > resultsize)
+    {
+      _gcry_hmac256_release (hd);
+      errno = EINVAL;
+      return -1;
+    }
+  memcpy (result, digest, digestlen);
+  _gcry_hmac256_release (hd);
+
+  return digestlen;
+}
+
 
 
 #ifdef STANDALONE
@@ -574,8 +650,12 @@ main (int argc, char **argv)
   char buffer[4096];
   size_t n, dlen, idx;
   int use_stdin = 0;
+  int use_binary = 0;
 
   assert (sizeof (u32) == 4);
+#ifdef __WIN32
+  setmode (fileno (stdin), O_BINARY);
+#endif
 
   if (argc)
     {
@@ -609,14 +689,23 @@ main (int argc, char **argv)
                  stdout);
           exit (0);
         }
+      else if (!strcmp (*argv, "--binary"))
+        {
+          argc--; argv++;
+          use_binary = 1;
+        }
     }          
 
   if (argc < 1)
     {
-      fprintf (stderr, "usage: %s key [filename]\n", pgm);
+      fprintf (stderr, "usage: %s [--binary] key [filename]\n", pgm);
       exit (1);
     }
 
+#ifdef __WIN32
+  if (use_binary)
+    setmode (fileno (stdout), O_BINARY);
+#endif
 
   key = *argv;
   argc--, argv++;
@@ -664,15 +753,27 @@ main (int argc, char **argv)
                    pgm, strerror (errno));
           exit (1);
         }
-      for (idx=0; idx < dlen; idx++)
-        printf ("%02x", digest[idx]);
-      _gcry_hmac256_release (hd);
-      if (use_stdin)
+      if (use_binary)
         {
-          putchar ('\n');
-          break;
+          if (fwrite (digest, dlen, 1, stdout) != 1)
+            {
+              fprintf (stderr, "%s: error writing output: %s\n", 
+                       pgm, strerror (errno));
+              exit (1);
+            }
         }
-      printf ("  %s\n", fname);
+      else
+        {
+          for (idx=0; idx < dlen; idx++)
+            printf ("%02x", digest[idx]);
+          _gcry_hmac256_release (hd);
+          if (use_stdin)
+            {
+              putchar ('\n');
+              break;
+            }
+          printf ("  %s\n", fname);
+        }
     }
 
   return 0;

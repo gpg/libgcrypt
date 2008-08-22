@@ -22,12 +22,14 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
-
-/* #include <dlfcn.h>  /\* FIXME:  GNU only *\/ */
+#ifdef ENABLE_HMAC_BINARY_CHECK
+# include <dlfcn.h> 
+#endif
 
 #include "g10lib.h"
 #include "ath.h"
 #include "cipher-proto.h"
+#include "hmac256.h"
 
 /* The states of the finite state machine used in fips mode.  */
 enum module_states 
@@ -417,17 +419,79 @@ run_pubkey_selftests (void)
 }
 
 
-/* Run self-tests for the random number generator.  Return 0 on
+/* Run self-tests for the random number generator.  Returns 0 on
    success. */
 static int
 run_random_selftests (void)
 {
-  char buffer[8];
+  gpg_error_t err;
 
-  /* FIXME: For now we just try to get a few bytes.  */
-  gcry_randomize (buffer, sizeof buffer, GCRY_STRONG_RANDOM);
+  err = _gcry_random_selftest (reporter);
+  reporter ("random", 0, NULL, err? gpg_strerror (err):NULL);
+  
+  return !!err;
+}
 
+/* Run an integrity check on the binary.  Returns 0 on success.  */
+static int
+check_binary_integrity (void)
+{
+#ifdef ENABLE_HMAC_BINARY_CHECK
+  gpg_error_t err;
+  Dl_info info;
+  unsigned char digest[32];
+  int dlen;
+  char *fname = NULL;
+  const char key[] = "What am I, a doctor or a moonshuttle conductor?";
+  
+  if (!dladdr ("gcry_check_version", &info))
+    err = gpg_error_from_syserror ();
+  else
+    {
+      dlen = _gcry_hmac256_file (digest, sizeof digest, info.dli_fname,
+                                 key, strlen (key));
+      if (dlen < 0)
+        err = gpg_error_from_syserror ();
+      else if (dlen != 32)
+        err = gpg_error (GPG_ERR_INTERNAL);
+      else
+        {
+          FILE *fp;
+  
+          fname = gcry_malloc (strlen (info.dli_fname) + 5 + 1 );
+          if (!fname)
+            err = gpg_error_from_syserror ();
+          else
+            {
+              strcpy (stpcpy (fname, info.dli_fname), ".hmac");
+              fp = fopen (fname, "rb");
+              if (!fp)
+                err = gpg_error_from_syserror ();
+              else
+                {
+                  char buffer[33];
+                  int n;
+
+                  /* We expect a file of exactly 32 bytes.  Consider
+                     the self-test failed if this is not the case or
+                     if it does not match the just computed HMAC.  */
+                  if ((n=fread (buffer, 1, 33, fp)) != 32
+                      || memcmp (digest, buffer, 32) )
+                    err = gpg_error (GPG_ERR_SELFTEST_FAILED);
+                  else
+                    err = 0;
+
+                  fclose (fp);
+                }
+            }
+        }
+    }
+  reporter ("binary", 0, fname, err? gpg_strerror (err):NULL);
+  gcry_free (fname);
+  return !!err;
+#else
   return 0;
+#endif
 }
 
 
@@ -438,15 +502,6 @@ _gcry_fips_run_selftests (void)
   enum module_states result = STATE_ERROR;
   
   fips_new_state (STATE_SELFTEST);
-
-/*   { */
-/*     Dl_info info; */
-
-/*     if (dladdr ("gcry_check_version", &info)) */
-/*       log_info ("DL_info:  fname=`%s'\n", */
-/*                 info.dli_fname); */
-/*   } */
-
 
   if (run_cipher_selftests ())
     goto leave;
@@ -461,6 +516,11 @@ _gcry_fips_run_selftests (void)
     goto leave;
 
   if (run_random_selftests ())
+    goto leave;
+
+  /* Now check the integrity of the binary.  We do this this after
+     having checked the HMAC code.  */
+  if (check_binary_integrity ())
     goto leave;
 
   /* All selftests passed.  */

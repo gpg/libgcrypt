@@ -75,7 +75,7 @@ _gcry_random_progress (const char *what, int printchar, int current, int total)
 void
 _gcry_random_initialize (int full)
 {
-  if ( fips_mode() )
+  if (fips_mode ())
     _gcry_rngfips_initialize (full);
   else
     _gcry_rngcsprng_initialize (full);
@@ -85,7 +85,7 @@ _gcry_random_initialize (int full)
 void
 _gcry_random_dump_stats (void)
 {
-  if ( fips_mode() )
+  if (fips_mode ())
     _gcry_rngfips_dump_stats ();
   else
     _gcry_rngcsprng_dump_stats ();
@@ -98,9 +98,10 @@ _gcry_random_dump_stats (void)
 void
 _gcry_secure_random_alloc (void)
 {
-  if ( fips_mode() )
-    return;  /* Not used; the fips rng is allows in secure mode.  */
-  _gcry_rngcsprng_secure_alloc ();
+  if (fips_mode ())
+    ;  /* Not used; the fips rng is allows in secure mode.  */
+  else
+    _gcry_rngcsprng_secure_alloc ();
 }
 
 
@@ -109,18 +110,20 @@ _gcry_secure_random_alloc (void)
 void
 _gcry_enable_quick_random_gen (void)
 {
-  if ( fips_mode() )
-    return;  /* Not used.  */
-  _gcry_rngcsprng_enable_quick_gen ();
+  if (fips_mode ())
+    ;  /* Not used.  */
+  else
+    _gcry_rngcsprng_enable_quick_gen ();
 }
 
 
 void
 _gcry_set_random_daemon_socket (const char *socketname)
 {
-  if ( fips_mode() )
-    return;  /* Not used.  */
-  _gcry_rngcsprng_set_daemon_socket (socketname);
+  if (fips_mode ())
+    ;  /* Not used.  */
+  else
+    _gcry_rngcsprng_set_daemon_socket (socketname);
 }
 
 /* With ONOFF set to 1, enable the use of the daemon.  With ONOFF set
@@ -131,7 +134,8 @@ _gcry_use_random_daemon (int onoff)
 {
   if (fips_mode ())
     return 0; /* Never enabled in fips mode.  */
-  return _gcry_rngcsprng_use_daemon (onoff);
+  else
+    return _gcry_rngcsprng_use_daemon (onoff);
 }
 
 
@@ -141,8 +145,9 @@ int
 _gcry_random_is_faked (void)
 {
   if (fips_mode ())
-    return 0; /* Never faked in fips mode.  */
-  return _gcry_rngcsprng_is_faked ();
+    return _gcry_rngfips_is_faked ();
+  else
+    return _gcry_rngcsprng_is_faked ();
 }
 
 
@@ -154,7 +159,8 @@ gcry_random_add_bytes (const void *buf, size_t buflen, int quality)
 {
   if (fips_mode ())
     return 0; /* No need for this in fips mode.  */
-  return _gcry_rngcsprng_add_bytes (buf, buflen, quality);
+  else
+    return _gcry_rngcsprng_add_bytes (buf, buflen, quality);
 }   
 
   
@@ -217,7 +223,10 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 void
 _gcry_set_random_seed_file (const char *name)
 {
-  _gcry_rngcsprng_set_seed_file (name);
+  if (fips_mode ())
+    ; /* No need for this in fips mode.  */
+  else
+    _gcry_rngcsprng_set_seed_file (name);
 }
 
 
@@ -226,10 +235,10 @@ _gcry_set_random_seed_file (const char *name)
 void
 _gcry_update_random_seed_file (void)
 {
-  if (!fips_is_operational ())  /* FIXME:  This does no look correct.  */
-    return;
-
-  _gcry_rngcsprng_update_seed_file ();
+  if (fips_mode ())
+    ; /* No need for this in fips mode.  */
+  else
+    _gcry_rngcsprng_update_seed_file ();
 }
 
 
@@ -244,10 +253,10 @@ _gcry_update_random_seed_file (void)
 void
 _gcry_fast_random_poll (void)
 {
-  if (!fips_is_operational ())
-    return;
-
-  _gcry_rngcsprng_fast_poll ();
+  if (fips_mode ())
+    ; /* No need for this in fips mode.  */
+  else
+    _gcry_rngcsprng_fast_poll ();
 }
 
 
@@ -256,6 +265,21 @@ _gcry_fast_random_poll (void)
 void
 gcry_create_nonce (void *buffer, size_t length)
 {
-  _gcry_rngcsprng_create_nonce (buffer, length);
+  if (fips_mode ())
+    _gcry_rngfips_create_nonce (buffer, length);
+  else
+    _gcry_rngcsprng_create_nonce (buffer, length);
+}
+
+
+/* Run the self-tests for the RNG.  This is currently only implemented
+   for the FIPS generator.  */
+gpg_error_t
+_gcry_random_selftest (selftest_report_func_t report)
+{
+  if (fips_mode ())
+    return _gcry_rngfips_selftest (report);
+  else
+    return gpg_error (GPG_ERR_NOT_SUPPORTED);
 }
 

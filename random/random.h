@@ -22,6 +22,7 @@
 
 #include "types.h"
 
+/*-- random.c --*/
 void _gcry_register_random_progress (void (*cb)(void *,const char*,int,int,int),
                                      void *cb_data );
 
@@ -37,6 +38,7 @@ void _gcry_update_random_seed_file (void);
 
 byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
+
 
 /*-- rndegd.c --*/
 gpg_error_t _gcry_rndegd_set_socket_name (const char *name);

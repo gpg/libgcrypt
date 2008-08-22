@@ -79,5 +79,6 @@ gcry_error_t _gcry_md_selftest (int algo, selftest_report_func_t report);
 gcry_error_t _gcry_pk_selftest (int algo, selftest_report_func_t report);
 gcry_error_t _gcry_hmac_selftest (int algo, selftest_report_func_t report);
 
+gcry_error_t _gcry_random_selftest (selftest_report_func_t report);
 
 #endif /*G10_CIPHER_PROTO_H*/

@@ -4607,7 +4607,9 @@ If Libgcrypt is used FIPS mode these restrictions are effective:
 
 @itemize
 
-@item  TBD
+@item 
+It may only be used on systesm with a /dev/random device.  Swicthing
+into FIPS mode on other systems will fail at runtime.
 
 
 

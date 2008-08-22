@@ -20,6 +20,7 @@
 #ifndef G10_RAND_INTERNAL_H
 #define G10_RAND_INTERNAL_H
 
+#include "../src/cipher-proto.h"
 
 /* Constants used to define the origin of random added to the pool.
    The code is sensitive to the order of the values.  */
@@ -75,6 +76,8 @@ void *_gcry_rngfips_get_bytes_secure (size_t nbytes,
 void _gcry_rngfips_randomize (void *buffer, size_t length,
                                 enum gcry_random_level level);
 void _gcry_rngfips_create_nonce (void *buffer, size_t length);
+
+gcry_error_t _gcry_rngfips_selftest (selftest_report_func_t report);
 
 
 

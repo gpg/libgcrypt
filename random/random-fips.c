@@ -602,6 +602,7 @@ get_random (void *buffer, size_t length, rng_context_t rng_ctx)
 }
 
 
+
 /* Initialize this random subsystem.  If FULL is false, this function
    merely calls the basic initialization of the module and does not do
    anything more.  Doing this is not really required but when running
@@ -639,9 +640,11 @@ _gcry_rngfips_initialize (int full)
 }
 
 
+/* Print some statistics about the RNG.  */
 void
 _gcry_rngfips_dump_stats (void)
 {
+  /* Not yet implemented.  */
 }
 
 
@@ -656,11 +659,11 @@ _gcry_rngfips_is_faked (void)
 
 /* Add BUFLEN bytes from BUF to the internal random pool.  QUALITY
    should be in the range of 0..100 to indicate the goodness of the
-   entropy added, or -1 for goodness not known.  */
+   entropy added, or -1 for goodness not known. */
 gcry_error_t
 _gcry_rngfips_add_bytes (const void *buf, size_t buflen, int quality)
 {
-  return 0;
+  return 0;  /* Not implemented. */
 }   
 
     
@@ -689,5 +692,20 @@ _gcry_rngfips_create_nonce (void *buffer, size_t length)
   _gcry_rngfips_initialize (1);  /* Auto-initialize if needed.  */
 
   get_random (buffer, length, nonce_context);
+}
+
+
+/* Run the self-tests.  */
+gcry_error_t
+_gcry_rngfips_selftest (selftest_report_func_t report)
+{
+  gcry_err_code_t ec = 0;
+  char buffer[8];
+
+  /* Do a simple test using the public interface.  */
+  gcry_randomize (buffer, sizeof buffer, GCRY_STRONG_RANDOM);
+
+
+  return gpg_error (ec);
 }
 
