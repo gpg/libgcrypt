@@ -1,3 +1,11 @@
+2008-08-25  Werner Koch  <wk@g10code.com>
+
+	* random-fips.c (x931_aes): Take datetime_GT from an arg.
+	(x931_aes_driver): Call x931_get_dt here.
+	(x931_get_dt): Implement the KAT hack.
+	(x931_generate_seed): Copy the seed value to the provided buffer.
+	(selftest_kat): New.
+
 2008-08-22  Werner Koch  <wk@g10code.com>
 
 	* random.c (_gcry_update_random_seed_file): Move operational check

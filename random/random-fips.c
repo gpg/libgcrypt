@@ -21,10 +21,8 @@
    The core of this deterministic random number generator is
    implemented according to the document "NIST-Recommended Random
    Number Generator Based on ANSI X9.31 Appendix A.2.4 Using the 3-Key
-   Triple DES and AES Algorithms" (2005-01-31) and uses the AES
-   variant.
-
-
+   Triple DES and AES Algorithms" (2005-01-31).  This implementaion
+   uses the AES variant.
  */
 
 #include <config.h>
@@ -111,12 +109,22 @@ struct rng_context
 
   unsigned char guard_3[1];
 
+  /* To implement a KAT we need to provide a know DT value.  To
+     accomplish this the x931_get_dt function checks whether this
+     field is not NULL and then uses the 16 bytes at this address for
+     the DT value.  However the last byte is will be replaced by the
+     value of field TEST_DT_COUNTER which will be incremented with
+     each invocation of x931_get_dt. We use a pointer and not a buffer
+     because there is no need to put this value into secure  memory.  */
+  const unsigned char *test_dt_ptr;
+  unsigned char test_dt_counter;
+
   /* We need to keep track of the process which did the initialization
      so that we can detect a fork.  The volatile modifier is required
      so that the compiler does not optimize it away in case the getpid
      function is badly attributed.  */ 
-   pid_t key_init_pid;
-   pid_t seed_init_pid;
+  pid_t key_init_pid;
+  pid_t seed_init_pid;
 };
 typedef struct rng_context *rng_context_t;
 
@@ -210,8 +218,8 @@ check_guards (rng_context_t rng_ctx)
 
 /* Get the DT vector for use with the core PRNG function.  Buffer
    needs to be provided by the caller with a size of at least LENGTH
-   bytes.  The 16 byte timestamp we construct is made up the real time
-   and three counters:
+   bytes. RNG_CTX needs to be passed to allow for a KAT.  The 16 byte
+   timestamp we construct is made up the real time and three counters:
 
    Buffer:       00112233445566778899AABBCCDDEEFF
                  !--+---!!-+-!!+!!--+---!!--+---!     
@@ -225,10 +233,24 @@ check_guards (rng_context_t rng_ctx)
    milliseconds whereas counters 1 and 0 are combined to a free
    running 64 bit counter.  */
 static void 
-x931_get_dt (unsigned char *buffer, size_t length)
+x931_get_dt (unsigned char *buffer, size_t length, rng_context_t rng_ctx)
 {
   gcry_assert (length == 16); /* This length is required for use with AES.  */
   gcry_assert (fips_rng_is_locked);
+
+  /* If the random context indicates that a test DT should be used,
+     take the DT value from the context.  For safety reasons we do
+     this only if the context is not one of the regular contexts.  */
+  if (rng_ctx->test_dt_ptr 
+      && rng_ctx != nonce_context
+      && rng_ctx != std_rng_context
+      && rng_ctx != strong_rng_context)
+    {
+      memcpy (buffer, rng_ctx->test_dt_ptr, 15);
+      buffer[15] = rng_ctx->test_dt_counter++;
+      return;
+    }
+
 
 #if HAVE_GETTIMEOFDAY
   {
@@ -329,21 +351,20 @@ encrypt_aes (gcry_cipher_hd_t key,
 
 
 /* The core ANSI X9.31, Appendix A.2.4 function using AES.  The caller
-   needs to pass a 16 byte buffer for the result and the 16 byte seed
-   value V.  The caller also needs to pass an appropriate KEY and make
-   sure to pass a valid seed_V.  The caller also needs to provide two
-   16 bytes buffer for intermediate results, they may be reused by the
-   caller later.
+   needs to pass a 16 byte buffer for the result, the 16 byte
+   datetime_DT value and the 16 byte seed value V.  The caller also
+   needs to pass an appropriate KEY and make sure to pass a valid
+   seed_V.  The caller also needs to provide two 16 bytes buffer for
+   intermediate results, they may be reused by the caller later.
 
    On return the result is stored at RESULT_R and the SEED_V is
    updated.  May only be used while holding the lock.  */
 static void
-x931_aes (unsigned char result_R[16], unsigned char seed_V[16],
+x931_aes (unsigned char result_R[16], 
+          unsigned char datetime_DT[16], unsigned char seed_V[16],
           gcry_cipher_hd_t key,
           unsigned char intermediate_I[16], unsigned char temp_xor[16])
 {
-  unsigned char datetime_DT[16];
-
   /* Let ede*X(Y) represent the AES encryption of Y under the key *X.
 
      Let V be a 128-bit seed value which is also kept secret, and XOR
@@ -351,7 +372,6 @@ x931_aes (unsigned char result_R[16], unsigned char seed_V[16],
      is updated on each iteration. I is a intermediate value. 
 
      I = ede*K(DT)  */
-  x931_get_dt (datetime_DT, 16);
   encrypt_aes (key, intermediate_I, datetime_DT, 16);
 
   /* R = ede*K(I XOR V) */
@@ -376,6 +396,7 @@ x931_aes (unsigned char result_R[16], unsigned char seed_V[16],
 static int
 x931_aes_driver (unsigned char *output, size_t length, rng_context_t rng_ctx)
 {
+  unsigned char datetime_DT[16];
   unsigned char *intermediate_I, *temp_buffer, *result_buffer;
   size_t nbytes;
 
@@ -397,7 +418,10 @@ x931_aes_driver (unsigned char *output, size_t length, rng_context_t rng_ctx)
          next invocation, but that would make the control flow harder
          to read.  */
       nbytes = length < 16? length : 16;
-      x931_aes (result_buffer, rng_ctx->seed_V, rng_ctx->cipher_hd,
+
+      x931_get_dt (datetime_DT, 16, rng_ctx);
+      x931_aes (result_buffer,
+                datetime_DT, rng_ctx->seed_V, rng_ctx->cipher_hd,
                 intermediate_I, temp_buffer);
 
       /* Do a basic check on the output to avoid a stuck generator.  */
@@ -541,6 +565,8 @@ x931_generate_seed (unsigned char *seed_buffer, size_t length, int very_strong)
 #else
   log_fatal ("/dev/random support is not compiled in\n");
 #endif
+  memcpy (seed_buffer, entropy_collect_buffer, X931_AES_KEYLEN);
+  wipememory (entropy_collect_buffer, X931_AES_KEYLEN);
   gcry_free (entropy_collect_buffer);
   entropy_collect_buffer = NULL;
 }
@@ -635,7 +661,16 @@ _gcry_rngfips_initialize (int full)
       strong_rng_context->need_strong_entropy = 1;
       setup_guards (strong_rng_context);
     }
-
+  else
+    {
+      /* Already initialized. Do some sanity checks.  */
+      gcry_assert (!nonce_context->test_dt_ptr);
+      gcry_assert (!std_rng_context->test_dt_ptr);
+      gcry_assert (!strong_rng_context->test_dt_ptr);
+      check_guards (nonce_context);
+      check_guards (std_rng_context);
+      check_guards (strong_rng_context);
+    }
   unlock_rng ();
 }
 
@@ -695,16 +730,161 @@ _gcry_rngfips_create_nonce (void *buffer, size_t length)
 }
 
 
+/* Run a Know-Answer-Test using a dedicated test context.  Note that
+   we can't use the samples from the NISR RNGVS document because they
+   don't take the requirement to throw away the first block and use
+   that for duplicate check in account.  Thus we made up our own test
+   vectors. */
+static gcry_err_code_t
+selftest_kat (selftest_report_func_t report)
+{
+  static struct 
+  {
+    const unsigned char key[16];
+    const unsigned char dt[16];
+    const unsigned char v[16];
+    const unsigned char r[3][16];
+  } tv[] =
+    {
+      { { 0xb9, 0xca, 0x7f, 0xd6, 0xa0, 0xf5, 0xd3, 0x42,
+          0x19, 0x6d, 0x84, 0x91, 0x76, 0x1c, 0x3b, 0xbe },
+        { 0x48, 0xb2, 0x82, 0x98, 0x68, 0xc2, 0x80, 0x00,
+          0x00, 0x00, 0x28, 0x18, 0x00, 0x00, 0x25, 0x00 },
+        { 0x52, 0x17, 0x8d, 0x29, 0xa2, 0xd5, 0x84, 0x12,
+          0x9d, 0x89, 0x9a, 0x45, 0x82, 0x02, 0xf7, 0x77 },
+        { { 0x42, 0x9c, 0x08, 0x3d, 0x82, 0xf4, 0x8a, 0x40,
+            0x66, 0xb5, 0x49, 0x27, 0xab, 0x42, 0xc7, 0xc3 },
+          { 0x0e, 0xb7, 0x61, 0x3c, 0xfe, 0xb0, 0xbe, 0x73,
+            0xf7, 0x6e, 0x6d, 0x6f, 0x1d, 0xa3, 0x14, 0xfa },
+          { 0xbb, 0x4b, 0xc1, 0x0e, 0xc5, 0xfb, 0xcd, 0x46,
+            0xbe, 0x28, 0x61, 0xe7, 0x03, 0x2b, 0x37, 0x7d } } },
+      { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+        { { 0xf7, 0x95, 0xbd, 0x4a, 0x52, 0xe2, 0x9e, 0xd7,
+            0x13, 0xd3, 0x13, 0xfa, 0x20, 0xe9, 0x8d, 0xbc },
+          { 0xc8, 0xd1, 0xe5, 0x11, 0x59, 0x52, 0xf7, 0xfa,
+            0x37, 0x38, 0xb4, 0xc5, 0xce, 0xb2, 0xb0, 0x9a },
+          { 0x0d, 0x9c, 0xc5, 0x0d, 0x16, 0xe1, 0xbc, 0xed, 
+            0xcf, 0x60, 0x62, 0x09, 0x9d, 0x20, 0x83, 0x7e } } },
+      { { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+          0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f },
+        { 0x80, 0x00, 0x81, 0x01, 0x82, 0x02, 0x83, 0x03,
+          0xa0, 0x20, 0xa1, 0x21, 0xa2, 0x22, 0xa3, 0x23 },
+        { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+          0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff },
+        { { 0x96, 0xed, 0xcc, 0xc3, 0xdd, 0x04, 0x7f, 0x75,
+            0x63, 0x19, 0x37, 0x6f, 0x15, 0x22, 0x57, 0x56 },
+          { 0x7a, 0x14, 0x76, 0x77, 0x95, 0x17, 0x7e, 0xc8,
+            0x92, 0xe8, 0xdd, 0x15, 0xcb, 0x1f, 0xbc, 0xb1 },
+          { 0x25, 0x3e, 0x2e, 0xa2, 0x41, 0x1b, 0xdd, 0xf5, 
+            0x21, 0x48, 0x41, 0x71, 0xb3, 0x8d, 0x2f, 0x4c } } }
+    };
+  int tvidx, ridx;
+  rng_context_t test_ctx;
+  gpg_error_t err;
+  const char *errtxt = NULL;
+  unsigned char result[16];
+
+  gcry_assert (tempvalue_for_x931_aes_driver);
+
+  test_ctx = gcry_xcalloc (1, sizeof *test_ctx);
+  setup_guards (test_ctx);
+  
+  lock_rng ();
+
+  for (tvidx=0; tvidx < DIM (tv); tvidx++)
+    {
+      /* Setup the key.  */
+      err = gcry_cipher_open (&test_ctx->cipher_hd,
+                              GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_ECB,
+                              GCRY_CIPHER_SECURE);
+      if (err)
+        {
+          errtxt = "error creating cipher context for RNG";
+          goto leave;
+        }
+
+      err = gcry_cipher_setkey (test_ctx->cipher_hd, tv[tvidx].key, 16);
+      if (err)
+        {
+          errtxt = "error setting key for RNG";
+          goto leave;
+        }
+      test_ctx->key_init_pid = getpid ();
+      
+      /* Setup the seed.  */
+      memcpy (test_ctx->seed_V, tv[tvidx].v, 16);
+      test_ctx->is_seeded = 1;
+      test_ctx->seed_init_pid = getpid ();
+      
+      /* Setup a DT value.  */
+      test_ctx->test_dt_ptr = tv[tvidx].dt;
+      test_ctx->test_dt_counter = tv[tvidx].dt[15];
+
+      /* Get ant compare the first three results.  */
+      for (ridx=0; ridx < 3; ridx++)
+        {
+          /* Compute the next value.  */
+          if (x931_aes_driver (result, 16, test_ctx))
+            {
+              errtxt = "X9.31 RNG core function failed";
+              goto leave;
+            }
+          
+          /* Compare it to the known value.  */
+          if (memcmp (result, tv[tvidx].r[ridx], 16))
+            {
+              /* log_printhex ("x931_aes got: ", result, 16); */
+              /* log_printhex ("x931_aes exp: ", tv[tvidx].r[ridx], 16); */
+              errtxt = "RNG output does not match known value";
+              goto leave;
+            }
+        }
+
+      /* This test is actual pretty pointless because we use a local test
+         context.  */
+      if (test_ctx->key_init_pid != getpid ()
+          || test_ctx->seed_init_pid != getpid ())
+        {
+          errtxt = "fork detection failed";
+          goto leave;
+        }
+
+      gcry_cipher_close (test_ctx->cipher_hd);
+      test_ctx->cipher_hd = NULL;
+      test_ctx->is_seeded = 0;
+      check_guards (test_ctx);
+    }
+
+ leave:
+  unlock_rng ();
+  gcry_cipher_close (test_ctx->cipher_hd);
+  check_guards (test_ctx);
+  gcry_free (test_ctx);
+  if (report && errtxt)
+    report ("random", 0, "KAT", errtxt);
+  return errtxt? GPG_ERR_SELFTEST_FAILED : 0;
+}
+
+
 /* Run the self-tests.  */
 gcry_error_t
 _gcry_rngfips_selftest (selftest_report_func_t report)
 {
-  gcry_err_code_t ec = 0;
+  gcry_err_code_t ec;
   char buffer[8];
 
-  /* Do a simple test using the public interface.  */
+  /* Do a simple test using the public interface.  This will also
+     enforce full intialization of the RNG.  We need to be fully
+     initialized due to the global requirement of the
+     tempvalue_for_x931_aes_driver stuff. */
   gcry_randomize (buffer, sizeof buffer, GCRY_STRONG_RANDOM);
 
+  ec = selftest_kat (report);
 
   return gpg_error (ec);
 }
