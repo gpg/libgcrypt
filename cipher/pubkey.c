@@ -29,6 +29,7 @@
 #include "cipher.h"
 #include "ath.h"
 
+
 static gcry_err_code_t pubkey_decrypt (int algo, gcry_mpi_t *result,
                                        gcry_mpi_t *data, gcry_mpi_t *skey,
                                        int flags);
@@ -530,18 +531,18 @@ pubkey_get_nenc (int algorithm)
 
 /* Generate a new public key with algorithm ALGORITHM of size NBITS
    and return it at SKEY. The use of the arguments QBITS, USE_E,
-   XVALUE and CURVE+_NAME depend onthe ALGORITHM.  RETFACTOR is used
+   XVALUE and CURVE_NAME depend on the ALGORITHM.  RETFACTOR is used
    by some algorithms to return certain additional information which
-   are in general not required.  
+   are in general not required.
 
-   The function returns ther error code number or 0 on success. */
+   The function returns the error code number or 0 on success. */
 static gcry_err_code_t
 pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
                  unsigned long use_e, gcry_mpi_t xvalue,
-                 const char *curve_name,
+                 const char *curve_name, unsigned int keygen_flags,
                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
-  gcry_err_code_t err = GPG_ERR_PUBKEY_ALGO;
+  gcry_err_code_t ec = GPG_ERR_PUBKEY_ALGO;
   gcry_module_t pubkey;
 
   REGISTER_DEFAULT_PUBKEYS;
@@ -550,36 +551,57 @@ pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
   pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
-      /* Hack to pass QBITS to the DSA generation.  */
-      if (qbits && pubkey->spec == &_gcry_pubkey_spec_dsa)
+      pk_extra_spec_t *extraspec = pubkey->extraspec;
+
+      if (keygen_flags && (!extraspec || !extraspec->ext_generate))
         {
-          err = _gcry_dsa_generate2
+          /* A keygen flag has been given but the module does not
+             provide an ext_generate function.  We don't want to
+             ignore such a condition as it might eventually be
+             security sensitive..  */
+          ec = GPG_ERR_INV_FLAG;
+        }
+      else if (qbits && pubkey->spec == &_gcry_pubkey_spec_dsa)
+        {
+          /* Hack to pass QBITS to the DSA generation.  fixme: We
+             should merge this into an ext_generate fucntion. */
+          ec = _gcry_dsa_generate2
             (algorithm, nbits, qbits, 0, skey, retfactors);
         }
 #ifdef USE_ELGAMAL
       else if (xvalue && pubkey->spec == &_gcry_pubkey_spec_elg)
         {
-          err = _gcry_elg_generate_using_x
+          /* Fixme: Merge this into an ext_generate fucntion.  */
+          ec = _gcry_elg_generate_using_x
             (algorithm, nbits, xvalue, skey, retfactors);
         }
 #endif /*USE_ELGAMAL*/
 #ifdef USE_ECC
       else if (curve_name && pubkey->spec == &_gcry_pubkey_spec_ecdsa)
         {
-          err = _gcry_ecc_generate
+          /* Fixme: Merge this into an ext_generate fucntion.  */
+          ec = _gcry_ecc_generate
             (algorithm, nbits, curve_name, skey, retfactors);
         }
 #endif /*USE_ECC*/
+      else if (extraspec && extraspec->ext_generate)
+        {
+          /* Use the extended generate function if available.  */
+          ec = extraspec->ext_generate (algorithm, nbits, use_e,
+                                        keygen_flags,
+                                        skey, retfactors);
+        }
       else
         {
-          err = ((gcry_pk_spec_t *) pubkey->spec)->generate 
+          /* Use the standard generate function.  */
+          ec = ((gcry_pk_spec_t *) pubkey->spec)->generate 
             (algorithm, nbits, use_e, skey, retfactors);
         }
       _gcry_module_release (pubkey);
     }
   ath_mutex_unlock (&pubkeys_registered_lock);
 
-  return err;
+  return ec;
 }
 
 static gcry_err_code_t
@@ -2075,6 +2097,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   unsigned int qbits;
   gcry_mpi_t xvalue = NULL;
   char *curve = NULL;
+  unsigned int keygen_flags = 0;
 
   skey[0] = NULL;
   *r_key = NULL;
@@ -2182,7 +2205,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
         }
     }
 
-  /* Handle the optional "curve" parameter. */
+  /* Parse the optional "curve" parameter. */
   l2 = gcry_sexp_find_token (list, "curve", 0);
   if (l2)
     {
@@ -2192,6 +2215,15 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
           rc = GPG_ERR_INV_OBJ; /* No curve name or value too large. */
           goto leave;
         }
+      gcry_sexp_release (l2);
+      l2 = NULL;
+    }
+
+  /* Parse the optional "transient-key" flag. */
+  l2 = gcry_sexp_find_token (list, "transient-key", 0);
+  if (l2)
+    {
+      keygen_flags |= PUBKEY_FLAG_TRANSIENT_KEY;
       gcry_sexp_release (l2);
       l2 = NULL;
     }
@@ -2227,7 +2259,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     nbits = 0;
 
   rc = pubkey_generate (module->mod_id, nbits, qbits, use_e, xvalue,
-                        curve, skey, &factors);
+                        curve, keygen_flags, skey, &factors);
   if (rc)
     goto leave;
 
@@ -2693,7 +2725,7 @@ gpg_error_t
 _gcry_pk_selftest (int algo, selftest_report_func_t report)
 {
   gcry_module_t module = NULL;
-  cipher_extra_spec_t *extraspec = NULL;
+  pk_extra_spec_t *extraspec = NULL;
   gcry_err_code_t ec = 0;
 
   REGISTER_DEFAULT_PUBKEYS;

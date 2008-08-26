@@ -54,7 +54,8 @@ typedef struct
 
 static void test_keys (RSA_secret_key *sk, unsigned nbits);
 static gpg_err_code_t generate (RSA_secret_key *sk,
-                                unsigned int nbits, unsigned long use_e);
+                                unsigned int nbits, unsigned long use_e,
+                                int transient_key);
 static int  check_secret_key (RSA_secret_key *sk);
 static void public (gcry_mpi_t output, gcry_mpi_t input, RSA_public_key *skey);
 static void secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey);
@@ -109,10 +110,12 @@ check_exponent (void *arg, gcry_mpi_t a)
  *       = 1 request the use of a "secure" exponent; this is required by some 
  *           specification to be 65537.
  *       > 2 Try starting at this value until a working exponent is found.
+ * TRANSIENT_KEY:  If true, generate the primes using the standard RNG.
  * Returns: 2 structures filled with all needed values
  */
 static gpg_err_code_t
-generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
+generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
+          int transient_key)
 {
   gcry_mpi_t p, q; /* the two primes */
   gcry_mpi_t d;    /* the private key */
@@ -123,9 +126,18 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
   gcry_mpi_t phi;  /* helper: (p-1)(q-1) */
   gcry_mpi_t g;
   gcry_mpi_t f;
+  gcry_random_level_t random_level;
 
-  if ( nbits < 1024 && fips_mode ())
-    return GPG_ERR_INV_VALUE;
+  if (fips_mode ())
+  {
+    if (nbits < 1024)
+      return GPG_ERR_INV_VALUE;
+    if (transient_key)
+      return GPG_ERR_INV_VALUE;
+  }
+
+  /* The random quality depends on the transient_key flag.  */
+  random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
 
   /* Make sure that nbits is even so that we generate p, q of equal size. */
   if ( (nbits&1) )
@@ -165,13 +177,15 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e)
       if (use_e)
         { /* Do an extra test to ensure that the given exponent is
              suitable. */
-          p = _gcry_generate_secret_prime (nbits/2, check_exponent, e);
-          q = _gcry_generate_secret_prime (nbits/2, check_exponent, e);
+          p = _gcry_generate_secret_prime (nbits/2, random_level,
+                                           check_exponent, e);
+          q = _gcry_generate_secret_prime (nbits/2, random_level,
+                                           check_exponent, e);
         }
       else
         { /* We check the exponent later. */
-          p = _gcry_generate_secret_prime (nbits/2, NULL, NULL);
-          q = _gcry_generate_secret_prime (nbits/2, NULL, NULL);
+          p = _gcry_generate_secret_prime (nbits/2, random_level, NULL, NULL);
+          q = _gcry_generate_secret_prime (nbits/2, random_level, NULL, NULL);
         }
       if (mpi_cmp (p, q) > 0 ) /* p shall be smaller than q (for calc of u)*/
         mpi_swap(p,q);
@@ -441,9 +455,10 @@ rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
  **************  interface  ******************
  *********************************************/
 
-gcry_err_code_t
-_gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
-                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+static gcry_err_code_t
+rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
+              unsigned int keygen_flags,
+              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   RSA_secret_key sk;
   gpg_err_code_t ec;
@@ -451,7 +466,8 @@ _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
 
   (void)algo;
 
-  ec = generate (&sk, nbits, use_e);
+  ec = generate (&sk, nbits, use_e,
+                 !!(keygen_flags & PUBKEY_FLAG_TRANSIENT_KEY) );
   if (!ec)
     {
       skey[0] = sk.n;
@@ -477,6 +493,14 @@ _gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
     }
   
   return ec;
+}
+
+
+gcry_err_code_t
+_gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
+                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+{
+  return rsa_generate (algo, nbits, use_e, 0, skey, retfactors);
 }
 
 
@@ -736,6 +760,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_rsa =
   };
 pk_extra_spec_t _gcry_pubkey_extraspec_rsa = 
   {
-    run_selftests
+    run_selftests,
+    rsa_generate
   };
 

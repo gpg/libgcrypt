@@ -240,26 +240,29 @@ progress( int c )
  */
 gcry_mpi_t
 _gcry_generate_secret_prime (unsigned int nbits,
+                             gcry_random_level_t random_level,
                              int (*extra_check)(void*, gcry_mpi_t),
                              void *extra_check_arg)
 {
   gcry_mpi_t prime;
 
-  prime = gen_prime (nbits, 1, GCRY_VERY_STRONG_RANDOM,
-                     extra_check, extra_check_arg);
+  prime = gen_prime (nbits, 1, random_level, extra_check, extra_check_arg);
   progress('\n');
   return prime;
 }
 
+
+/* Generate a prime number which may be public, i.e. not allocated in
+   secure memory.  */
 gcry_mpi_t
-_gcry_generate_public_prime( unsigned int nbits,
+_gcry_generate_public_prime (unsigned int nbits,
+                             gcry_random_level_t random_level,
                              int (*extra_check)(void*, gcry_mpi_t),
                              void *extra_check_arg)
 {
   gcry_mpi_t prime;
 
-  prime = gen_prime (nbits, 0, GCRY_VERY_STRONG_RANDOM,
-                     extra_check, extra_check_arg );
+  prime = gen_prime (nbits, 0, random_level, extra_check, extra_check_arg);
   progress('\n');
   return prime;
 }
@@ -730,7 +733,8 @@ prime_generate_internal (int need_q_factor,
 }
 
 
-
+/* Generate a prime used for discrete logarithm algorithms; i.e. this
+   prime will be public and no strong random is required.  */
 gcry_mpi_t
 _gcry_generate_elg_prime (int mode, unsigned pbits, unsigned qbits,
 			  gcry_mpi_t g, gcry_mpi_t **ret_factors)
@@ -744,6 +748,7 @@ _gcry_generate_elg_prime (int mode, unsigned pbits, unsigned qbits,
 
   return prime;
 }
+
 
 static gcry_mpi_t
 gen_prime (unsigned int nbits, int secret, int randomlevel, 

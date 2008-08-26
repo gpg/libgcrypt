@@ -39,6 +39,16 @@ typedef gpg_err_code_t (*selftest_func_t)
      (int algo, selftest_report_func_t report);
 
 
+/* An extended type of the generate function.  */
+typedef gcry_err_code_t (*pk_ext_generate_t)
+     (int algo,
+      unsigned int nbits,
+      unsigned long use_e,
+      unsigned int keygen_flags, 
+      gcry_mpi_t *skey,
+      gcry_mpi_t **retfactors);
+
+
 /* Extra module specification structures.  These are used for internal
    modules which provide more functions than available through the
    public algorithm register APIs.  */
@@ -55,6 +65,7 @@ typedef struct md_extra_spec
 typedef struct pk_extra_spec
 {
   selftest_func_t selftest;
+  pk_ext_generate_t ext_generate;
 } pk_extra_spec_t;
 
 

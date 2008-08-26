@@ -1861,7 +1861,9 @@ get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   if (verbose)
     fprintf (stderr, "  generating RSA key:");  
   rc = gcry_sexp_new (&key_spec,
-		      "(genkey (rsa (nbits 4:1024)))", 0, 1);
+		      in_fips_mode ? "(genkey (rsa (nbits 4:1024)))"
+                      : "(genkey (rsa (nbits 4:1024)(transient-key)))", 
+                      0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, key_spec);
@@ -2057,7 +2059,7 @@ main (int argc, char **argv)
         }
       else if (!strcmp (*argv, "--verbose"))
         {
-          verbose = 1;
+          verbose++;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--debug"))
@@ -2071,6 +2073,8 @@ main (int argc, char **argv)
           argc--; argv++;
         }
     }          
+
+  gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
 
   if (use_fips)
     gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);

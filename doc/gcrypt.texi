@@ -539,13 +539,15 @@ hardwired and does not depend on any configuration options.
 
 @item 
 If the applications requests FIPS mode using the control command
-@code{GCRYCTL_FORCE_FIPS_MODE}.  This may be done at any time.
+@code{GCRYCTL_FORCE_FIPS_MODE}.  This must be done prior to any
+initialization (i.e. before @code{gcry_check_version}).
 
 @end itemize
 
 Note that once Libgcrypt has been put into FIPS mode, it is not possible
 to switch back to standard mode without terminating the process first.
-
+If the log verbosity level of Libgcrypt has been set to at least 2, the
+state transitions and the selftests are logged.
 
 
 
@@ -689,7 +691,8 @@ This command sets the verbosity of the logging.  A level of 0 disables
 all extra logging whereas positive numbers enable more verbose logging.
 The level may be changed at any time but be aware that no memory
 syncronization is done so the effect of this command might not
-immediately show up in other threads.
+immediately show up in other threads.  This command may even be used
+prioe to @code{gcry_check_version}.
 
 @item GCRYCTL_SET_DEBUG_FLAGS; Arguments: unsigned int flags
 Set the debug flag bits as given by the argument.  Be aware that that no
@@ -697,12 +700,14 @@ memory syncronization is done so the effect of this command might not
 immediately show up in other threads.  The debug flags are not
 considered part of the API and thus may change without notice.  As of
 now bit 0 enables debugging of cipher functions and bit 1 debugging of
-multi-precision-integers.
+multi-precision-integers.  This command may even be used prioe to
+@code{gcry_check_version}.
 
 @item GCRYCTL_CLEAR_DEBUG_FLAGS; Arguments: unsigned int flags
 Set the debug flag bits as given by the argument.  Be aware that that no
 memory syncronization is done so the effect of this command might not
-immediately show up in other threads.
+immediately show up in other threads.  This command may even be used
+prioe to @code{gcry_check_version}.
 
 @item GCRYCTL_DISABLE_INTERNAL_LOCKING; Arguments: none
 This command does nothing.  It exists only for backward compatibility.
@@ -758,12 +763,12 @@ command may be used before the intialization has been finished but not
 before a gcry_version_check.
 
 @item GCRYCTL_FORCE_FIPS_MODE; Arguments: none
-Running this command puts the library into FIPS mode.  If the library
-has already been initialized or is already in FIPS mode, a selftest is
-triggered and thus the library will be put into operational state.  This
-command may even be used before a call to gcry_check_version and that is
-actually the recommended way to let an application switch the library
-into FIPS mode.
+Running this command puts the library into FIPS mode.  If the library is
+already in FIPS mode, a selftest is triggered and thus the library will
+be put into operational state.  This command may be used before a call
+to gcry_check_version and that is actually the recommended way to let an
+application switch the library into FIPS mode.  Note that Libgcrypt will
+reject an attempt to switch to fips mode during or after the intialization.
 
 
 @end table
@@ -1279,8 +1284,8 @@ functions for doing memory allocation.
 @section Error handler
 
 The following functions may be used to register handler functions that
-are called by Libgcrypt in case certain error conditions
-occur.
+are called by Libgcrypt in case certain error conditions occur.  They
+may and should be registered prior to calling @code{gcry_check_version}.
 
 @deftp {Data type} gcry_handler_no_mem_t
 This type is defined as: @code{void (*gcry_handler_no_mem_t) (void *, size_t, unsigned int)}
@@ -1308,9 +1313,10 @@ This type is defined as: @code{void (*gcry_handler_log_t) (void *, int, const ch
 @end deftp
 
 @deftypefun void gcry_set_log_handler (gcry_handler_log_t @var{func_log}, void *@var{cb_data})
-This function registers @var{func_log} as `logging handler', which
-means that it will be called in case Libgcrypt wants to log
-a message.
+This function registers @var{func_log} as `logging handler', which means
+that it will be called in case Libgcrypt wants to log a message.  This
+function may and should be used prior to calling
+@code{gcry_check_version}.
 @end deftypefun
 
 @c **********************************************************
@@ -2620,6 +2626,13 @@ Q = 512
 Note that in this case only the values for N, as given in the table,
 are allowed.  When specifying Q all values of N in the range 512 to
 15680 are valid as long as they are multiples of 8.
+
+@item transient-key
+This is only meaningful for RSA keys.  This is a flag with no value.  If
+given the RSA key is created using a faster and a somewhat less secure
+random number generator.  This flag may be used for keys which are only
+used for a short time and do not require full cryptograohic strength.
+
 
 @end table
 @c end table of parameters

@@ -155,13 +155,16 @@ const char *_gcry_mpi_get_hw_config (void);
 
 /*-- primegen.c --*/
 gcry_mpi_t _gcry_generate_secret_prime (unsigned int nbits,
+                                 gcry_random_level_t random_level,
                                  int (*extra_check)(void*, gcry_mpi_t),
                                  void *extra_check_arg);
 gcry_mpi_t _gcry_generate_public_prime (unsigned int nbits,
+                                 gcry_random_level_t random_level,
                                  int (*extra_check)(void*, gcry_mpi_t),
                                  void *extra_check_arg);
-gcry_mpi_t _gcry_generate_elg_prime( int mode, unsigned pbits, unsigned qbits,
-					   gcry_mpi_t g, gcry_mpi_t **factors );
+gcry_mpi_t _gcry_generate_elg_prime (int mode, 
+                                     unsigned int pbits, unsigned int qbits,
+                                     gcry_mpi_t g, gcry_mpi_t **factors);
 
 
 /* replacements of missing functions (missing-string.c)*/

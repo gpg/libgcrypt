@@ -292,6 +292,9 @@ _gcry_fips_test_operational (void)
 static void
 reporter (const char *domain, int algo, const char *what, const char *errtxt)
 {
+  if (!errtxt && !_gcry_log_verbosity (2))
+    return;
+
   log_info ("libgcrypt selftest: %s %s%s (%d): %s%s%s%s\n",
             !strcmp (domain, "hmac")? "digest":domain,
             !strcmp (domain, "hmac")? "HMAC-":"",
@@ -625,9 +628,10 @@ fips_new_state (enum module_states new_state)
 
   unlock_fsm ();
 
-  log_info ("libgcrypt state transition %s => %s %s\n",
-            state2str (last_state), state2str (new_state),
-            ok? "granted":"denied");
+  if (!ok || _gcry_log_verbosity (2))
+    log_info ("libgcrypt state transition %s => %s %s\n",
+              state2str (last_state), state2str (new_state),
+              ok? "granted":"denied");
   
   if (!ok)
     {

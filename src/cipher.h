@@ -26,7 +26,8 @@
 
 #include "../random/random.h"
 
-#define PUBKEY_FLAG_NO_BLINDING (1 << 0)
+#define PUBKEY_FLAG_NO_BLINDING    (1 << 0)
+#define PUBKEY_FLAG_TRANSIENT_KEY  (1 << 1)
 
 #include "cipher-proto.h"
 

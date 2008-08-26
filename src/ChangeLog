@@ -1,3 +1,13 @@
+2008-08-26  Werner Koch  <wk@g10code.com>
+
+	* fips.c (fips_new_state): Print state transitions only at
+	verbosity level of 2.
+	(reporter): Likewise.
+
+	* cipher-proto.h (pk_ext_generate_t): New.
+	(pk_extra_spec): Add member ext_generate.
+	* cipher.h (PUBKEY_FLAG_TRANSIENT_KEY): New.
+
 2008-08-22  Werner Koch  <wk@g10code.com>
 
 	* hmac256.c (_gcry_hmac256_file): New.

@@ -629,7 +629,10 @@ rsa_bench (int iterations, int print_header, int no_blinding)
       fflush (stdout);
 
       err = gcry_sexp_build (&key_spec, NULL,
-                             "(genkey (RSA (nbits %d)))", p_sizes[testno]);
+                             gcry_control (GCRYCTL_FIPS_MODE_P, 0)
+                             ? "(genkey (RSA (nbits %d)))"
+                             : "(genkey (RSA (nbits %d)(transient-key)))",
+                             p_sizes[testno]);
       if (err)
         die ("creating S-expression failed: %s\n", gcry_strerror (err));
 
@@ -987,23 +990,10 @@ main( int argc, char **argv )
 {
   int last_argc = -1;
   int no_blinding = 0;
-
+  int use_random_daemon = 0;
 
   if (argc)
     { argc--; argv++; }
-
-  if (!gcry_check_version (GCRYPT_VERSION))
-    {
-      fprintf (stderr, PGM ": version mismatch\n");
-      exit (1);
-    }
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-
-  if (argc && !strcmp (*argv, "--use-random-daemon"))
-    {
-      gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
-      argc--; argv++;
-    }
 
   while (argc && last_argc != argc )
     {
@@ -1022,12 +1012,12 @@ main( int argc, char **argv )
         }
       else if (!strcmp (*argv, "--verbose"))
         {
-          verbose = 1;
+          verbose++;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--use-random-daemon"))
         {
-          gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
+          use_random_daemon = 1;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--no-blinding"))
@@ -1052,10 +1042,25 @@ main( int argc, char **argv )
       else if (!strcmp (*argv, "--fips"))
         {
           argc--; argv++;
+          /* This command needs to be called before gcry_check_version.  */
           gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
         }
     }          
+
+  gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+
+  if (!gcry_check_version (GCRYPT_VERSION))
+    {
+      fprintf (stderr, PGM ": version mismatch\n");
+      exit (1);
+    }
+  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+
+  if (use_random_daemon)
+    gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
+
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+
 
   if (cipher_repetitions < 1)
     cipher_repetitions = 1;
