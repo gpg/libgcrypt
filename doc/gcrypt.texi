@@ -78,6 +78,7 @@ section entitled ``Copying''.
 Appendices
 
 * FIPS Restrictions::           Restrictions in FIPS mode.
+* FIPS Finite State Machine::   Description of the FIPS FSM.
 * Library Copying::             The GNU Lesser General Public License
                                 says how you can copy and share Libgcrypt.
 * Copying::                     The GNU General Public License says how you
@@ -85,6 +86,7 @@ Appendices
 
 Indices
 
+* Figures and Tables::          Index of figures and tables.
 * Concept Index::               Index of concepts and programs.
 * Function and Data Index::     Index of functions, variables and data types.
 
@@ -4520,17 +4522,19 @@ Announcements of new releases are posted to the
 @url{http://www.gnupg.org/documentation/mailing-lists.en.html} for
 details.}.
 
-@noindent
-Libgcrypt consists of several subsystems as shown by this diagram:
 
-@center @image{libgcrypt-modules, 10cm,,Module Overview}
+@float Figure,fig:subsystems
+@caption{Libgcrypt subsystems}
+@center @image{libgcrypt-modules, 150mm,,Libgcrypt subsystems}
+@end float
 
-All of these subsystems provide a public API including the helper
-systesm like S-expression.  The API style depends on the subsystem; in
-general an open, use, close approach is implemented.  The open returns a
-handle to a context used for all futher operations on this handle,
-several functions may then be used on this handle and a final close
-function releases all resources associated with the handle.
+Libgcrypt consists of several subsystems (@pxref{fig:subsystems}) and
+all these subsystems provide a public API; this includes the helper
+subsystems like the one for S-expression.  The API style depends on the
+subsystem; in general an open, use, close approach is implemented.  The
+open returns a handle to a context used for all futher operations on
+this handle, several functions may then be used on this handle and a
+final close function releases all resources associated with the handle.
 
 @menu
 * Public-Key Subsystem Architecture::              All about public keys.
@@ -4613,6 +4617,7 @@ TBD.
 @c *******************  Appendices  *************************
 @c **********************************************************
 
+@c ********************************************
 @node FIPS Restrictions
 @appendix Restrictions in FIPS mode
 
@@ -4629,7 +4634,142 @@ into FIPS mode on other systems will fail at runtime.
 @end itemize
 
 
+@c ********************************************
+@node FIPS Finite State Machine
+@appendix FIPS Finite State Machine
 
+The FIPS mode of libgcrypt implements a finite state machine (FSM) using
+8 states (@pxref{tbl:fips-states}) and checks at runtime that only valid
+transitions (@pxref{tbl:fips-state-transitions}) may happen.
+
+@float Figure,fig:fips-fsm
+@caption{FIPS mode state diagram}
+@center @image{fips-fsm,150mm,,FIPS FSM Diagram}
+@end float
+
+@float Table,tbl:fips-states
+@caption{FIPS mode states}
+@noindent
+States used by the FIPS FSM:
+@table @asis
+
+@item Power-Off 
+Libgcrypt is not runtime linked to another application.  This usually
+means that the library is not loaded into main memory.  This state is
+documentation only.
+
+@item Power-On
+Libgcrypt is loaded into memory and API calls may be made.  Compiler
+introducted constructor functions may be run.  Note that Libgcrypt does
+not implement any arbitrary constructor functions to be called by the
+operating system
+
+@item Init
+The Libgcrypt initialization functions are performed and the library has
+not yet run any self-test.
+
+@item Self-Test
+Libgcrypt is performing self-tests.               
+
+@item Operational
+Libgcrypt is in the operational state and all interfaces may be used.
+
+@item Error
+Libgrypt is in the error state.  When calling any FIPS relevant
+interfaces they either return an error (@code{GPG_ERR_NOT_OPERATIONAL})
+or put Libgcrypt into the Fatal-Error state and won't return.  
+
+@item Fatal-Error
+Libgcrypt is in a non-recoverable error state and 
+will automatically transit into the  Shutdown state.        
+
+@item Shutdown
+Libgcrypt is about to be terminated and removed from the memory. The
+application may at this point still runing cleanup handlers.
+
+@end table
+@end float
+
+
+@float Table,tbl:fips-state-transitions
+@caption{FIPS mode state transitions}
+@noindent
+The valid state transitions (@pxref{fig:fips-fsm}) are:
+@table @code
+@item 1 
+Power-Off to Power-On is implicitly done by the OS loading Libgcrypt as
+a shared library and having it linked to an application.
+
+@item 2
+Power-On to Init is triggered by the application calling the
+Libgcrypt intialization function @code{gcry_check_version}.
+
+@item 3
+Init to Self-Test is either triggred by a dedicated API call or implicit
+by invoking a libgrypt service conrolled by the FSM.
+
+@item 4 
+Self-Test to Operational is triggered after all self-tests passed
+successfully.  
+
+@item 5
+Operational to Shutdown is an artifical state without any direct action
+in Libgcrypt.  When reaching the Shutdown state the library is
+deinitialized and can't return to any other state again.
+
+@item 6
+Shutdown to Power-off is the process of removing Libgcrypt from the
+computer's memory.  For obvious reasons the Power-Off state can't be
+represented within Libgcrypt and thus this transition is for
+documentation only.
+
+@item 7
+Operational to Error is triggered if Libgcrypt detected an application
+error which can't be returned to the caller but still allows Libgcrypt
+to properly run.  In the Error state all FIPS relevant interfaces return
+an error code.
+
+@item 8
+Error to Shutdown is similar to the Operational to Shutdown transition
+(5).
+
+@item 9
+Error to Fatal-Error is triggred if Libgrypt detects an fatal error
+while already being in Error state.
+
+@item 10
+Fatal-Error to Shutdown is automatically entered by Libgcrypt 
+after having reported the error.
+
+@item 11
+Power-On to Shutdown is an artifical state to document that Libgcrypt
+has not ye been initializaed but the process is about to terminate.
+
+@item 12
+Power-On to Fatal-Error will be triggerd if certain Libgcrypt functions
+are used without having reached the Init state.
+
+@item 13
+Self-Test to Fatal-Error is triggred by severe errors in Libgcrypt while
+running self-tests.
+
+@item 14
+Self-Test to Error is triggred by a failed self-test.
+
+@item 15
+Operational to Fatal-Error is triggred if Libcrypt encountered a
+non-recoverable error.
+
+@item 16
+Operational to Self-Test is triggred if the application requested to run
+the self-tests again.
+
+@item 17
+Error to Self-Test is triggered if the application has requested to run
+self-tests to get to get back into operational state after an error.
+
+@end table
+@end float
 
 @c **********************************************************
 @c *************  Appendices (license etc.)  ****************
@@ -4637,6 +4777,13 @@ into FIPS mode on other systems will fail at runtime.
 @include lgpl.texi
 
 @include gpl.texi
+
+@node Figures and Tables
+@unnumbered List of Figures and Tables
+
+@listoffloats Figure
+
+@listoffloats Table
 
 @node Concept Index
 @unnumbered Concept Index
@@ -4647,6 +4794,8 @@ into FIPS mode on other systems will fail at runtime.
 @unnumbered Function and Data Index
 
 @printindex fn
+
+
 
 @bye
 

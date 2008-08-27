@@ -18,18 +18,18 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
 EXTRA_DIST = README.apichanges HACKING \
-	     libgcrypt-modules.eps \
-	     libgcrypt-modules.png \
-             libgcrypt-modules.pdf
+	     libgcrypt-modules.eps fips-fsm.eps \
+	     libgcrypt-modules.png fips-fsm.png \
+             libgcrypt-modules.pdf fips-fsm.pdf 
 
 DISTCLEANFILES = gcrypt.cps
 
-BUILT_SOURCES = libgcrypt-modules.eps \
-                libgcrypt-modules.png \
-                libgcrypt-modules.pdf
+BUILT_SOURCES = libgcrypt-modules.eps fips-fsm.eps \
+                libgcrypt-modules.png fips-fsm.png \
+                libgcrypt-modules.pdf fips-fsm.pdf
 
 info_TEXINFOS = gcrypt.texi
-gcrypt_TEXINFOS = lgpl.texi gpl.texi libgcrypt-modules.fig
+gcrypt_TEXINFOS = lgpl.texi gpl.texi libgcrypt-modules.fig fips-fsm.fig
 
 
 .fig.png:
