@@ -314,6 +314,7 @@ int _gcry_fips_is_operational (void);
 #define fips_not_operational()  (GCRY_GPG_ERR_NOT_OPERATIONAL)
 
 int _gcry_fips_test_operational (void);
+int _gcry_fips_test_error_or_operational (void);
 
 void _gcry_fips_run_selftests (void);
 

@@ -1011,7 +1011,7 @@ md_get_algo (gcry_md_hd_t a)
   if (r && r->next)
     {
       fips_signal_error ("possible usage error");
-      log_error ("WARNING: more than algorithm in md_get_algo()\n");
+      log_error ("WARNING: more than one algorithm in md_get_algo()\n");
     }
   return r ? r->module->mod_id : 0;
 }

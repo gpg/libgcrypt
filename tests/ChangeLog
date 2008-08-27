@@ -1,3 +1,7 @@
+2008-08-27  Werner Koch  <wk@g10code.com>
+
+	* basic.c (main): Extended FIPS self-test test.
+
 2008-08-26  Werner Koch  <wk@g10code.com>
 
 	* basic.c (get_keys_new): Use transient-key flag. 

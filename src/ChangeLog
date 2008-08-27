@@ -1,3 +1,11 @@
+2008-08-27  Werner Koch  <wk@g10code.com>
+
+	* global.c (_gcry_vcontrol): Allow running selftests from error
+	state.
+	* fips.c (_gcry_fips_test_error_or_operational): New.
+	(fips_new_state): Allow transtion from error into selftest.
+	Disallow error to init.
+
 2008-08-26  Werner Koch  <wk@g10code.com>
 
 	* fips.c (fips_new_state): Print state transitions only at

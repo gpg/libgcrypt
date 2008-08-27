@@ -2042,6 +2042,7 @@ check_pubkey (void)
 int
 main (int argc, char **argv)
 { 
+  gpg_error_t err;
   int last_argc = -1;
   int debug = 0;
   int use_fips = 0;
@@ -2105,9 +2106,49 @@ main (int argc, char **argv)
   check_hmac ();
   check_pubkey ();
 
-  /* If we are in fips mode, trigger a selftest.  */
+  /* If we are in fips mode do some more tests. */
   if (in_fips_mode)
-    gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+    {
+      gcry_md_hd_t md;
+
+      /* First trigger a self-test.  */
+      gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+      if (!gcry_control (GCRYCTL_OPERATIONAL_P, 0))
+        fail ("not in operational state after self-test\n");
+      
+      /* Get us into the error state.  */
+      err = gcry_md_open (&md, GCRY_MD_SHA1, 0);
+      if (err)
+        fail ("failed to open SHA-1 hash context: %s\n", gpg_strerror (err));
+      else
+        {
+          err = gcry_md_enable (md, GCRY_MD_SHA256);
+          if (err)
+            fail ("failed to add SHA-256 hash context: %s\n",
+                  gpg_strerror (err));
+          else
+            {
+              /* gcry_md_get_algo is only defined for a context with
+                 just one digest algorithm.  With our setup it should
+                 put the oibrary intoerror state.  */
+              gcry_md_get_algo (md);
+              gcry_md_close (md);
+              if (gcry_control (GCRYCTL_OPERATIONAL_P, 0))
+                fail ("expected error state but still in operational state\n");
+              else
+                {
+                  /* Now run a self-test and to get back into
+                     operational state.  */
+                  gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+                  if (!gcry_control (GCRYCTL_OPERATIONAL_P, 0))
+                    fail ("did not reach operational after error "
+                          "and self-test\n");
+                }
+            }
+        }
+      
+    }
+  
 
   if (verbose)
     fprintf (stderr, "\nAll tests completed. Errors: %i\n", error_count);

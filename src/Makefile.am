@@ -122,9 +122,9 @@ install-data-local: install-def-file
 
 uninstall-local: uninstall-def-file
 
-# FIXME: We ned to figure out how to gte the actual name (parsing
+# FIXME: We need to figure out how to get the actual name (parsing
 # libgcrypt.la?) and how to create the hmac file already at link time
-# so that it can be used without first installing.
+# so that it can be used without installing libgcrypt first.
 #install-exec-hook:
 #	./hmac256 --binary "What am I, a doctor or a moonshuttle conductor?" \
 #           $(DESTDIR)$(libdir)/libgcrypt.so.11.5.0 \

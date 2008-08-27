@@ -469,7 +469,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
           /* Already initialized.  If we are already operational we
              run a selftest.  If not we use the is_operational call to
              force us into operational state if possible.  */
-          if (_gcry_fips_test_operational ())
+          if (_gcry_fips_test_error_or_operational ())
             _gcry_fips_run_selftests ();
           if (_gcry_fips_is_operational ())
             err = GPG_ERR_GENERAL; /* Used as TRUE value */

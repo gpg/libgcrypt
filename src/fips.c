@@ -289,6 +289,26 @@ _gcry_fips_test_operational (void)
 }
 
 
+/* This is a test on whether the library is in the error or
+   operational state. */
+int
+_gcry_fips_test_error_or_operational (void)
+{
+  int result;
+
+  if (!fips_mode ())
+    result = 1;
+  else
+    {
+      lock_fsm ();
+      result = (current_state == STATE_OPERATIONAL
+                || current_state == STATE_ERROR);
+      unlock_fsm ();
+    }
+  return result;
+}
+
+
 static void
 reporter (const char *domain, int algo, const char *what, const char *errtxt)
 {
@@ -604,7 +624,7 @@ fips_new_state (enum module_states new_state)
     case STATE_ERROR:
       if (new_state == STATE_SHUTDOWN
           || new_state == STATE_FATALERROR
-          || new_state == STATE_INIT)
+          || new_state == STATE_SELFTEST)
         ok = 1;
       break;
       
