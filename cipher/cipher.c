@@ -731,7 +731,11 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 	break;
 
       case GCRY_CIPHER_MODE_NONE:
-	/* FIXME: issue a warning when this mode is used */
+        /* This mode may be used for debbuging.  It copies the main
+           text verbatim to the ciphertext.  We do not allow this in
+           fips mode or if no debug flag has been set.  */
+	if (fips_mode () || !_gcry_get_debug_flag (0))
+          err = GPG_ERR_INV_CIPHER_MODE;
 	break;
 
       default:
@@ -1421,8 +1425,16 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf,
                                outbuf, (byte*)/*arggg*/inbuf, nbytes );
         break;
       case GCRY_CIPHER_MODE_NONE:
-	if( inbuf != outbuf )
-	    memmove( outbuf, inbuf, nbytes );
+       	if (fips_mode () || !_gcry_get_debug_flag (0))
+          {
+            fips_signal_error ("cipher mode NONE used");
+            rc = GPG_ERR_INV_CIPHER_MODE;
+          }
+        else
+          {
+            if ( inbuf != outbuf )
+              memmove (outbuf, inbuf, nbytes);
+          }
 	break;
       default:
         log_fatal("cipher_encrypt: invalid mode %d\n", c->mode );
@@ -1512,8 +1524,16 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
                                outbuf, (byte*)/*arggg*/inbuf, nbytes );
         break;
       case GCRY_CIPHER_MODE_NONE:
-	if( inbuf != outbuf )
-	    memmove( outbuf, inbuf, nbytes );
+       	if (fips_mode () || !_gcry_get_debug_flag (0))
+          {
+            fips_signal_error ("cipher mode NONE used");
+            rc = GPG_ERR_INV_CIPHER_MODE;
+          }
+        else
+          {
+            if (inbuf != outbuf)
+              memmove (outbuf, inbuf, nbytes);
+          }
 	break;
       default:
         log_fatal ("cipher_decrypt: invalid mode %d\n", c->mode );

@@ -38,9 +38,8 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 LDADD = ../src/libgcrypt.la $(DL_LIBS)
 
-EXTRA_PROGRAMS = testapi
+EXTRA_PROGRAMS = testapi pkbench
 noinst_PROGRAMS = $(TESTS)
 
-# pkbench uses mmap for no good reason.  Needs to be fixed.  Code for
-# this can be found in libksba/tests. 
-EXTRA_DIST = pkbench.c
+EXTRA_DIST = README rsa-16k.key
+

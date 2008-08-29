@@ -1,3 +1,22 @@
+2008-08-29  Werner Koch  <wk@g10code.com>
+
+	* random-fips.c (SEED_TTL): New.
+	(struct rng_context): Add USE_COUNTER, remove NEED_STRONG_ENTROPY.
+	(x931_aes_driver): Do re-seeding if required.
+	(x931_generate_key, x931_generate_seed): Factor common code out to ..
+	(get_entropy): .. new.  Always use /dev/random.
+	(x931_generate_key): Seed key for nonce_context from std_rng_context.
+	(x931_reseed): New. Seed nonce context from std_rng_context.
+	(get_random): Use x931_reseed.
+	(_gcry_rngfips_selftest): Return an error if no /dev/radom support
+	has been compiled in.
+	(get_random): Remove locking.
+	(_gcry_rngfips_randomize, _gcry_rngfips_create_nonce): Lock here.
+
+2008-08-28  Werner Koch  <wk@g10code.com>
+
+	* random-daemon.c (connect_to_socket): Use GPG_ERR_ENAMETOOLONG.
+
 2008-08-25  Werner Koch  <wk@g10code.com>
 
 	* random-fips.c (x931_aes): Take datetime_GT from an arg.

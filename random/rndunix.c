@@ -81,9 +81,6 @@
  =========
 */
 
-/* Fixme: We use plain mallocs here because it may be used as a module.
- * Should be changed. */
-
 /* General includes */
 
 #include <config.h>
@@ -717,7 +714,7 @@ start_gatherer( int pipefd )
     }
 
 
-    /* Set up the buffer */
+    /* Set up the buffer.  Not ethat we use a plain standard malloc here. */
     gather_buffer_size = GATHER_BUFSIZE;
     gather_buffer = malloc( gather_buffer_size );
     if( !gather_buffer ) {

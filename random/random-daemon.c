@@ -90,7 +90,7 @@ connect_to_socket (const char *socketname, int *sock)
   if (strlen (socketname) + 1 >= sizeof (srvr_addr->sun_path))
     {
       log_error ("socket name `%s' too long\n", socketname);
-      err = gcry_error (GPG_ERR_INTERNAL); /* FIXME? */
+      err = gcry_error (GPG_ERR_ENAMETOOLONG);
       goto out;
     }
   strcpy (srvr_addr->sun_path, socketname);
@@ -285,7 +285,7 @@ call_daemon (const char *socketname,
 	  break;
 	}
 
-      /*      if (1)*/			/* FIXME, verbose */
+      /*      if (1)*/			/* Do this in verbose mode? */
       /*	log_info ("received response with %d bytes of data\n", buf[1]);*/
 
       if (buf[1] < nbytes)

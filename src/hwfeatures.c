@@ -145,13 +145,16 @@ detect_ia32_gnuc (void)
 
 
 
-/* Detect the available hardware features.  This fucntion is called
+/* Detect the available hardware features.  This function is called
    once right at startup and we assume that no other threads are
    running.  */
 void
 _gcry_detect_hw_features (void)
 {
   hw_features = 0;
+
+  if (fips_mode ())
+    return; /* Hardware support is not to be evaluated.  */ 
 
 #if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4
 #ifdef __GNUC__  

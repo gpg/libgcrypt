@@ -83,8 +83,9 @@ progress (int c)
 
 
 /****************
- * Michael Wiener's table on subgroup sizes to match field sizes
- * (floating around somewhere - Fixme: need a reference)
+ * Michael Wiener's table on subgroup sizes to match field sizes.
+ * (floating around somewhere, probably based on the paper from
+ * Eurocrypt 96, page 332)
  */
 static unsigned int
 wiener_map( unsigned int n )

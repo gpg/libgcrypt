@@ -367,9 +367,9 @@ _gcry_rngcsprng_initialize (int full)
 void
 _gcry_rngcsprng_dump_stats (void)
 {
-  /* FIXME: don't we need proper locking here? -mo.  
-     Yes. However this is usually called during cleanup and thenwe _
-     might_ run into problems.  Needs to be checked.  -wk */
+  /* In theory we would need to lock the stats here.  However this
+     function is usually called during cleanup and then we _might_ run
+     into problems.  */
 
   log_info ("random usage: poolsize=%d mixed=%lu polls=%lu/%lu added=%lu/%lu\n"
 	    "              outmix=%lu getlvl1=%lu/%lu getlvl2=%lu/%lu%s\n",
@@ -422,7 +422,11 @@ _gcry_rngcsprng_use_daemon (int onoff)
 #ifdef USE_RANDOM_DAEMON
   int last;
   
-  /* FIXME: This is not really thread safe. */
+  /* This is not really thread safe.  However it is expected that this
+     function is being called during initialization and at that point
+     we are for other reasons not really thread safe.  We do not want
+     to lock it because we might eventually decide that this function
+     may even be called prior to gcry_check_version.  */
   last = allow_daemon;
   if (onoff != -1)
     allow_daemon = onoff;

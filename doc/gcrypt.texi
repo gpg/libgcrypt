@@ -1540,8 +1540,9 @@ number.
 
 @table @code
 @item GCRY_CIPHER_MODE_NONE
-No mode specified, may be set later using other functions.  The value
-of this constant is always 0.
+No mode specified.  This should not be used.  The only exception is that
+if Libgcrypt is not used in FIPS mode and if any debug flag has been
+set, this mode may be used to bypass the actual encryption.
 
 @item GCRY_CIPHER_MODE_ECB
 Electronic Codebook mode.  
@@ -4621,14 +4622,95 @@ TBD.
 @node FIPS Restrictions
 @appendix Restrictions in FIPS mode
 
-If Libgcrypt is used FIPS mode these restrictions are effective:
+If Libgcrypt is used in FIPS mode these restrictions are effective:
 
 @itemize
+@item
+The cryptographic algorithms are restricted to this list:
+
+@table @asis
+@item GCRY_CIPHER_3DES
+3 key EDE Triple-DES symmetric encryption.
+@item GCRY_CIPHER_AES128
+AES 128 bit symmetric encryption.
+@item GCRY_CIPHER_AES192
+AES 192 bit symmetric encryption.
+@item GCRY_CIPHER_AES256
+AES 256 bit symmetric encryption.
+@item GCRY_MD_SHA1
+SHA-1 message digest.
+@item GCRY_MD_SHA224
+SHA-224 message digest.
+@item GCRY_MD_SHA256
+SHA-256 message digest.
+@item GCRY_MD_SHA384
+SHA-384 message digest.
+@item GCRY_MD_SHA512
+SHA-512 message digest.
+@item GCRY_MD_SHA1,GCRY_MD_FLAG_HMAC
+HMAC using a SHA-1 message digest.
+@item GCRY_MD_SHA224,GCRY_MD_FLAG_HMAC
+HMAC using a SHA-224 message digest.
+@item GCRY_MD_SHA256,GCRY_MD_FLAG_HMAC
+HMAC using a SHA-256 message digest.
+@item GCRY_MD_SHA384,GCRY_MD_FLAG_HMAC
+HMAC using a SHA-384 message digest.
+@item GCRY_MD_SHA512,GCRY_MD_FLAG_HMAC
+HMAC using a SHA-512 message digest.
+@item GCRY_PK_RSA
+RSA encryption and signing.         
+@item GCRY_PK_DSA
+DSA signing.
+@end table
+
+Note that the CRC algorithms are not considered cryptographic algorithms
+and thus are in addition available.
+
+@item
+RSA and DSA key generation refuses to create a key with a keysize of
+less than 1024 bits.  
+
+@item
+The @code{transient-key} flag for RSA key generation is ignored.
+
+@item
+Support for the VIA Padlock engine is disabled.
 
 @item 
-It may only be used on systesm with a /dev/random device.  Swicthing
-into FIPS mode on other systems will fail at runtime.
+FIPS mode may only be used on systems with a /dev/random device.
+Switching into FIPS mode on other systems will fail at runtime.
 
+@item
+Saving and loading a random seed file is not ignored.
+
+@item
+An X9.31 style random number generator is used in place of the
+large-pool-CSPRNG generator.
+
+@item
+The Alternative Public Key Interface (@code{gcry_ac_xxx}) is not
+supported and all API calls return an error.
+
+@item Registration of external modules is not supported.
+
+@item 
+Message digest debugging is disabled.
+
+@item
+All debug output related to cryptographic data is suppressed.
+
+@item 
+On-the-fly self-tests are not performed, instead of this self-tests are
+run before entering operational state.
+
+@item
+The function @code{gcry_set_allocation_handler} may not be used.  If it
+is used Libgcrypt will enter the error state.
+
+@item
+A handler set by @code{gcry_set_outofcore_handler} is ignored.
+@item
+A handler set by @code{gcry_set_fatalerror_handler} is ignored.
 
 
 @end itemize
@@ -4798,6 +4880,14 @@ self-tests to get to get back into operational state after an error.
 
 
 @bye
+
+GCRYCTL_SET_RANDOM_DAEMON_SOCKET
+GCRYCTL_USE_RANDOM_DAEMON
+The random damon is still a bit experimental, thus we do not document
+them.  Not ethat they should be used during initialization and that
+these functions are not really thread safe.
+
+
 
 
 @c  LocalWords:  int HD

@@ -395,8 +395,7 @@ prime_generate_internal (int need_q_factor,
   /* Make a pool of 3n+5 primes (this is an arbitrary value).  We
      require at least 30 primes for are useful selection process. 
      
-     FIXME: We need to do some reseacrh on the best formula for sizing
-     the pool.
+     Fixme: We need to research the best formula for sizing the pool.
   */
   m = n * 3 + 5;
   if (need_q_factor) /* Need some more in this case. */

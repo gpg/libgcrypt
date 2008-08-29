@@ -939,7 +939,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
      directly by checking for CPUID capabilities, and fall back to QPC if
      this isn't present.  */
 #ifdef __GNUC__  
-/*   FIXME: We need to implement the CPU feature tests first.  */
+/*   FIXME: We would need to implement the CPU feature tests first.  */
 /*   if (cpu_has_feature_rdtsc) */
 /*     { */
 /*       uint32_t lo, hi; */

@@ -1,5 +1,5 @@
 /* pkbench.c - Pubkey menchmarking
- *	Copyright (C) 2004, 2005 Free Software Foundation, Inc.
+ * Copyright (C) 2004, 2005, 2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -14,8 +14,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -26,14 +25,14 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
 #ifndef HAVE_W32_SYSTEM
-#include <sys/times.h>
+# include <sys/times.h>
 #endif /*HAVE_W32_SYSTEM*/
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#include <errno.h>
 
 #define PGM "pkbench"
 
@@ -88,12 +87,50 @@ show_sexp (const char *prefix, gcry_sexp_t a)
 
   fputs (prefix, stderr);
   size = gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, NULL, 0);
-  buf = malloc (size);
-  if (!buf)
-    die ("out of core\n");
+  buf = gcry_xmalloc (size);
 
   gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, buf, size);
   fprintf (stderr, "%.*s", (int)size, buf);
+  gcry_free (buf);
+}
+
+
+static void *
+read_file (const char *fname, size_t *r_length)
+{
+  FILE *fp;
+  struct stat st;
+  char *buf;
+  size_t buflen;
+  
+  fp = fopen (fname, "rb");
+  if (!fp)
+    {
+      fail ("can't open `%s': %s\n", fname, strerror (errno));
+      return NULL;
+    }
+  
+  if (fstat (fileno(fp), &st))
+    {
+      fail ("can't stat `%s': %s\n", fname, strerror (errno));
+      fclose (fp);
+      return NULL;
+    }
+
+  buflen = st.st_size;
+  buf = gcry_xmalloc (buflen+1);
+  if (fread (buf, buflen, 1, fp) != 1)
+    {
+      fail ("error reading `%s': %s\n", fname, strerror (errno));
+      fclose (fp);
+      gcry_free (buf);
+      return NULL;
+    }
+  fclose (fp);
+
+  if (r_length)
+    *r_length = buflen;
+  return buf;
 }
 
 
@@ -312,23 +349,16 @@ process_key_pair_file (const char *key_pair_file)
   gcry_sexp_t key_secret_sexp = NULL;
   gcry_sexp_t key_public_sexp = NULL;
   struct context context = { NULL };
-  struct stat statbuf;
-  int key_pair_fd = -1;
-  int ret = 0;
+  size_t file_length;
 
-  ret = stat (key_pair_file, &statbuf);
-  assert (! ret);
-
-  key_pair_fd = open (key_pair_file, O_RDONLY);
-  assert (key_pair_fd != -1);
-
-  key_pair_buffer = mmap (NULL, statbuf.st_size, PROT_READ,
-			  MAP_PRIVATE, key_pair_fd, 0);
-  assert (key_pair_buffer != MAP_FAILED);
+  key_pair_buffer = read_file (key_pair_file, &file_length);
+  if (!key_pair_buffer)
+    die ("failed to open `%s'\n", key_pair_file);
 
   err = gcry_sexp_sscan (&key_pair_sexp, NULL,
-			 key_pair_buffer, statbuf.st_size);
-  assert (! err);
+			 key_pair_buffer, file_length);
+  if (err)
+    die ("gcry_sexp_sscan failed\n");
 
   key_secret_sexp = gcry_sexp_find_token (key_pair_sexp, "private-key", 0);
   assert (key_secret_sexp);
@@ -336,10 +366,6 @@ process_key_pair_file (const char *key_pair_file)
   assert (key_public_sexp);
 
   gcry_sexp_release (key_pair_sexp);
-  ret = munmap (key_pair_buffer, statbuf.st_size);
-  assert (! ret);
-  ret = close (key_pair_fd);
-  assert (! ret);
 
   context_init (&context, key_secret_sexp, key_public_sexp);
 
@@ -348,6 +374,7 @@ process_key_pair_file (const char *key_pair_file)
   printf ("\n");
 
   context_destroy (&context);
+  gcry_free (key_pair_buffer);
 }
 
 
@@ -380,13 +407,13 @@ generate_key (const char *algorithm, const char *key_size)
 
   key_pair_buffer_size = gcry_sexp_sprint (key_pair, GCRYSEXP_FMT_ADVANCED,
 					   NULL, 0);
-  key_pair_buffer = malloc (key_pair_buffer_size);
-  assert (key_pair_buffer);
+  key_pair_buffer = gcry_xmalloc (key_pair_buffer_size);
 
   gcry_sexp_sprint (key_pair, GCRYSEXP_FMT_ADVANCED,
 		    key_pair_buffer, key_pair_buffer_size);
 
   printf ("%.*s", (int)key_pair_buffer_size, key_pair_buffer);
+  gcry_free (key_pair_buffer);
 }
 
 
@@ -396,16 +423,10 @@ main (int argc, char **argv)
 {
   int last_argc = -1;
   int genkey_mode = 0;
+  int fips_mode = 0;
 
   if (argc)
     { argc--; argv++; }
-
-  gcry_control (GCRYCTL_DISABLE_SECMEM);
-  if (!gcry_check_version (GCRYPT_VERSION))
-    {
-      fprintf (stderr, PGM ": version mismatch\n");
-      exit (1);
-    }
 
   while (argc && last_argc != argc )
     {
@@ -429,7 +450,7 @@ main (int argc, char **argv)
         }
       else if (!strcmp (*argv, "--verbose"))
         {
-          verbose = 1;
+          verbose++;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--debug"))
@@ -442,7 +463,24 @@ main (int argc, char **argv)
           genkey_mode = 1;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--fips"))
+        {
+          fips_mode = 1;
+          argc--; argv++;
+        }
     }          
+
+  gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+
+  if (fips_mode)
+    gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+
+  gcry_control (GCRYCTL_DISABLE_SECMEM);
+  if (!gcry_check_version (GCRYPT_VERSION))
+    {
+      fprintf (stderr, PGM ": version mismatch\n");
+      exit (1);
+    }
 
   if (genkey_mode)
     {

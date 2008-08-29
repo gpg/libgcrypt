@@ -1,3 +1,10 @@
+2008-08-28  Werner Koch  <wk@g10code.com>
+
+	* cipher.c (cipher_decrypt, cipher_encrypt): Return an error if
+	mode NONE is used.
+	(gcry_cipher_open): Allow mode NONE only with a debug flag set and
+	if not in FIPS mode.
+
 2008-08-26  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (pubkey_generate): Add arg KEYGEN_FLAGS.

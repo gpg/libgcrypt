@@ -21,8 +21,36 @@
    The core of this deterministic random number generator is
    implemented according to the document "NIST-Recommended Random
    Number Generator Based on ANSI X9.31 Appendix A.2.4 Using the 3-Key
-   Triple DES and AES Algorithms" (2005-01-31).  This implementaion
+   Triple DES and AES Algorithms" (2005-01-31).  This implementation
    uses the AES variant.
+
+   There are 3 random context which map to the different levels of
+   random quality:
+
+   Generator                Seed and Key        Kernel entropy (init/reseed)
+   ------------------------------------------------------------
+   GCRY_VERY_STRONG_RANDOM  /dev/random         256/128 bits
+   GCRY_STRONG_RANDOM       /dev/random         256/128 bits
+   gcry_create_nonce        GCRY_STRONG_RANDOM  n/a
+
+   All random generators return their data in 128 bit blocks.  If the
+   caller requested less bits, the extra bits are not used.  The key
+   for each generator is only set once at the first time a generator
+   is used.  The seed value is set with the key and again after 1000
+   (SEED_TTL) output blocks.
+
+   The GCRY_VERY_STRONG_RANDOM and GCRY_STRONG_RANDOM generators are
+   keyed and seeded from the /dev/random device.  Thus these
+   generators may block until the kernel has collected enough entropy.
+
+   The gcry_create_nonce generator is keyed and seeded from the
+   GCRY_STRONG_RANDOM generator.  It may also block if the
+   GCRY_STRONG_RANDOM generator has not yet been used before and thus
+   gets initialized on the first use by gcry_create_nonce.  This
+   special treatment is justified by the weaker requirements for a
+   nonce generator and to save precious kernel entropy for use by the
+   real random generators.
+
  */
 
 #include <config.h>
@@ -59,6 +87,11 @@ static int fips_rng_is_locked;
 static unsigned char *tempvalue_for_x931_aes_driver;
 
 
+/* After having retrieved this number of blocks from the RNG, we want
+   to do a reseeding.  */
+#define SEED_TTL 1000
+
+
 /* The length of the key we use:  16 bytes (128 bit) for AES128.  */
 #define X931_AES_KEYLEN  16
 /* A global buffer used to communicate between the x931_generate_key
@@ -83,10 +116,6 @@ struct rng_context
      established.  */
   gcry_cipher_hd_t cipher_hd;
 
-  /* If this flag is true, this context requires strong entropy;
-     i.e. from /dev/random.  */
-  int need_strong_entropy:1;
-
   /* If this flag is true, the SEED_V buffer below carries a valid
      seed.  */
   int is_seeded:1;
@@ -95,6 +124,9 @@ struct rng_context
      against the last result.  This flag indicates that such a block
      is available.  */
   int compare_value_valid:1;
+
+  /* A counter used to trigger re-seeding.  */
+  unsigned int use_counter;
 
   unsigned char guard_1[1];
 
@@ -138,6 +170,11 @@ static rng_context_t std_rng_context;
 /* The random context used for the very strong random generator.  May
    only be used while holding the FIPS_RNG_LOCK.  */
 static rng_context_t strong_rng_context;
+
+
+/* --- Local prototypes ---  */
+static void x931_reseed (rng_context_t rng_ctx);
+static void get_random (void *buffer, size_t length, rng_context_t rng_ctx);
 
 
 
@@ -412,6 +449,13 @@ x931_aes_driver (unsigned char *output, size_t length, rng_context_t rng_ctx)
 
   while (length)
     {
+      /* We require a new seed after some time.  */
+      if (rng_ctx->use_counter > SEED_TTL)
+        {
+          x931_reseed (rng_ctx);
+          rng_ctx->use_counter = 0;
+        }
+
       /* Due to the design of the RNG, we always receive 16 bytes (128
          bit) of random even if we require less.  The extra bytes
          returned are not used.  Intheory we could save them for the
@@ -423,6 +467,7 @@ x931_aes_driver (unsigned char *output, size_t length, rng_context_t rng_ctx)
       x931_aes (result_buffer,
                 datetime_DT, rng_ctx->seed_V, rng_ctx->cipher_hd,
                 intermediate_I, temp_buffer);
+      rng_ctx->use_counter++;
 
       /* Do a basic check on the output to avoid a stuck generator.  */
       if (!rng_ctx->compare_value_valid)
@@ -455,9 +500,9 @@ x931_aes_driver (unsigned char *output, size_t length, rng_context_t rng_ctx)
 
 
 /* Callback for x931_generate_key. Note that this callback uses the
-   global ENTROPY_COLLECT_BUFFER which has been setup by
-   x931_generate_key.  ORIGIN is not used but required due to the
-   emtropy gathering module. */
+   global ENTROPY_COLLECT_BUFFER which has been setup by get_entropy.
+   ORIGIN is not used but required due to the design of entropy
+   gathering module. */
 static void
 entropy_collect_cb (const void *buffer, size_t length,
                     enum random_origins origin)
@@ -476,15 +521,49 @@ entropy_collect_cb (const void *buffer, size_t length,
     }
 }
 
+
+/* Get NBYTES of entropy from the kernel device.  The callers needs to
+   free the returned buffer.  The function either succeeds or
+   terminates the process in case of a fatal error. */
+static void *
+get_entropy (size_t nbytes)
+{
+#if USE_RNDLINUX
+  void *result;
+
+  gcry_assert (!entropy_collect_buffer);
+  entropy_collect_buffer = gcry_xmalloc_secure (nbytes);
+  entropy_collect_buffer_size = nbytes;
+  entropy_collect_buffer_len = 0;
+  if (_gcry_rndlinux_gather_random (entropy_collect_cb, 0,
+                                    X931_AES_KEYLEN,
+                                    GCRY_VERY_STRONG_RANDOM) < 0
+      || entropy_collect_buffer_len != entropy_collect_buffer_size)
+    {
+      gcry_free (entropy_collect_buffer);
+      entropy_collect_buffer = NULL;
+      log_fatal ("error getting entropy data\n");
+    }
+  result = entropy_collect_buffer;
+  entropy_collect_buffer = NULL;
+  return result;
+#else
+  log_fatal ("/dev/random support is not compiled in\n");
+  return NULL;  /* NOTREACHED */
+#endif
+}
+
+
 /* Generate a key for use with x931_aes.  The function returns a
    handle to the cipher context readily prepared for ECB encryption.
-   If VERY_STRONG is true the key is read from /dev/random, otherwise
-   from /dev/urandom.  On error NULL is returned.  */
+   If FOR_NONCE is true, the key is retrieved by readong random from
+   the standard generator.  On error NULL is returned.  */
 static gcry_cipher_hd_t
-x931_generate_key (int very_strong)
+x931_generate_key (int for_nonce)
 {
   gcry_cipher_hd_t hd;
   gpg_error_t err;
+  void *buffer;
 
   gcry_assert (fips_rng_is_locked);
 
@@ -498,34 +577,22 @@ x931_generate_key (int very_strong)
       return NULL;
     }
 
-  /* Get a key from the entropy source.  */
-#if USE_RNDLINUX
-  gcry_assert (!entropy_collect_buffer);
-  entropy_collect_buffer = gcry_xmalloc_secure (X931_AES_KEYLEN);
-  entropy_collect_buffer_size = X931_AES_KEYLEN;
-  entropy_collect_buffer_len = 0;
-  if (_gcry_rndlinux_gather_random (entropy_collect_cb, 0, X931_AES_KEYLEN,
-                                    (very_strong
-                                     ? GCRY_VERY_STRONG_RANDOM
-                                     : GCRY_STRONG_RANDOM)
-                                    ) < 0
-      || entropy_collect_buffer_len != entropy_collect_buffer_size)
+  /* Get a key from the standard RNG or from the entropy source.  */
+  if (for_nonce)
     {
-      gcry_free (entropy_collect_buffer);
-      entropy_collect_buffer = NULL;
-      gcry_cipher_close (hd);
-      log_fatal ("error getting entropy data for the RNG key\n");
+      buffer = gcry_xmalloc (X931_AES_KEYLEN);
+      get_random (buffer, X931_AES_KEYLEN, std_rng_context);
     }
-#else
-  log_fatal ("/dev/random support is not compiled in\n");
-#endif
+  else
+    {
+      buffer = get_entropy (X931_AES_KEYLEN);
+    }
 
   /* Set the key and delete the buffer because the key is now part of
      the cipher context.  */
-  err = gcry_cipher_setkey (hd, entropy_collect_buffer, X931_AES_KEYLEN);
-  wipememory (entropy_collect_buffer, X931_AES_KEYLEN);
-  gcry_free (entropy_collect_buffer);
-  entropy_collect_buffer = NULL;
+  err = gcry_cipher_setkey (hd, buffer, X931_AES_KEYLEN);
+  wipememory (buffer, X931_AES_KEYLEN);
+  gcry_free (buffer);
   if (err)
     {
       log_error ("error creating key for RNG: %s\n", gcry_strerror (err));
@@ -540,35 +607,43 @@ x931_generate_key (int very_strong)
 /* Generate a key for use with x931_aes.  The function copies a seed
    of LENGTH bytes into SEED_BUFFER. LENGTH needs to by given as 16.  */
 static void
-x931_generate_seed (unsigned char *seed_buffer, size_t length, int very_strong)
+x931_generate_seed (unsigned char *seed_buffer, size_t length)
 {
+  void *buffer;
+
   gcry_assert (fips_rng_is_locked);
   gcry_assert (length == 16);
 
-  /* Get a seed from the entropy source.  */
-#if USE_RNDLINUX
-  gcry_assert (!entropy_collect_buffer);
-  entropy_collect_buffer = gcry_xmalloc_secure (X931_AES_KEYLEN);
-  entropy_collect_buffer_size = X931_AES_KEYLEN;
-  entropy_collect_buffer_len = 0;
-  if (_gcry_rndlinux_gather_random (entropy_collect_cb, 0, X931_AES_KEYLEN,
-                                    (very_strong
-                                     ? GCRY_VERY_STRONG_RANDOM
-                                     : GCRY_STRONG_RANDOM)
-                                    ) < 0
-      || entropy_collect_buffer_len != entropy_collect_buffer_size)
+  buffer = get_entropy (X931_AES_KEYLEN);
+
+  memcpy (seed_buffer, buffer, X931_AES_KEYLEN);
+  wipememory (buffer, X931_AES_KEYLEN);
+  gcry_free (buffer);
+}
+
+
+
+/* Reseed a generator.  This is also used for the initial seeding. */
+static void
+x931_reseed (rng_context_t rng_ctx)
+{
+  gcry_assert (fips_rng_is_locked);
+
+  if (rng_ctx == nonce_context)
     {
-      gcry_free (entropy_collect_buffer);
-      entropy_collect_buffer = NULL;
-      log_fatal ("error getting entropy data for the RNG seed\n");
+      /* The nonce context is special.  It will be seeded using the
+         standard random generator.  */
+      get_random (rng_ctx->seed_V, 16, std_rng_context);
+      rng_ctx->is_seeded = 1;
+      rng_ctx->seed_init_pid = getpid ();
     }
-#else
-  log_fatal ("/dev/random support is not compiled in\n");
-#endif
-  memcpy (seed_buffer, entropy_collect_buffer, X931_AES_KEYLEN);
-  wipememory (entropy_collect_buffer, X931_AES_KEYLEN);
-  gcry_free (entropy_collect_buffer);
-  entropy_collect_buffer = NULL;
+  else
+    {
+      /* The other two generators are seeded from /dev/random.  */
+      x931_generate_seed (rng_ctx->seed_V, 16);
+      rng_ctx->is_seeded = 1;
+      rng_ctx->seed_init_pid = getpid ();
+    }
 }
 
 
@@ -582,13 +657,15 @@ get_random (void *buffer, size_t length, rng_context_t rng_ctx)
   gcry_assert (buffer);
   gcry_assert (rng_ctx);
 
-  lock_rng ();
   check_guards (rng_ctx);
 
   /* Initialize the cipher handle and thus setup the key if needed.  */
   if (!rng_ctx->cipher_hd)
     {
-      rng_ctx->cipher_hd = x931_generate_key (rng_ctx->need_strong_entropy);
+      if (rng_ctx == nonce_context)
+        rng_ctx->cipher_hd = x931_generate_key (1);
+      else
+        rng_ctx->cipher_hd = x931_generate_key (0);
       if (!rng_ctx->cipher_hd)
         goto bailout;
       rng_ctx->key_init_pid = getpid ();
@@ -596,11 +673,7 @@ get_random (void *buffer, size_t length, rng_context_t rng_ctx)
 
   /* Initialize the seed value if needed.  */
   if (!rng_ctx->is_seeded)
-    {
-      x931_generate_seed (rng_ctx->seed_V, 16, rng_ctx->need_strong_entropy);
-      rng_ctx->is_seeded = 1;
-      rng_ctx->seed_init_pid = getpid ();
-    }
+    x931_reseed (rng_ctx);
 
   if (rng_ctx->key_init_pid != getpid ()
       || rng_ctx->seed_init_pid != getpid ())
@@ -618,17 +691,17 @@ get_random (void *buffer, size_t length, rng_context_t rng_ctx)
     goto bailout;
 
   check_guards (rng_ctx);
-  unlock_rng ();
   return;
 
  bailout:
-  unlock_rng ();
   log_fatal ("severe error getting random\n");
   /*NOTREACHED*/
 }
 
 
 
+/* --- Public Functions --- */
+
 /* Initialize this random subsystem.  If FULL is false, this function
    merely calls the basic initialization of the module and does not do
    anything more.  Doing this is not really required but when running
@@ -658,7 +731,6 @@ _gcry_rngfips_initialize (int full)
       setup_guards (std_rng_context);
       
       strong_rng_context = gcry_xcalloc_secure (1, sizeof *strong_rng_context);
-      strong_rng_context->need_strong_entropy = 1;
       setup_guards (strong_rng_context);
     }
   else
@@ -713,10 +785,12 @@ _gcry_rngfips_randomize (void *buffer, size_t length,
 {
   _gcry_rngfips_initialize (1);  /* Auto-initialize if needed.  */
   
+  lock_rng ();
   if (level == GCRY_VERY_STRONG_RANDOM)
     get_random (buffer, length, strong_rng_context);
   else
     get_random (buffer, length, std_rng_context);
+  unlock_rng ();
 }
 
 
@@ -726,7 +800,9 @@ _gcry_rngfips_create_nonce (void *buffer, size_t length)
 {
   _gcry_rngfips_initialize (1);  /* Auto-initialize if needed.  */
 
+  lock_rng ();
   get_random (buffer, length, nonce_context);
+  unlock_rng ();
 }
 
 
@@ -876,16 +952,24 @@ gcry_error_t
 _gcry_rngfips_selftest (selftest_report_func_t report)
 {
   gcry_err_code_t ec;
-  char buffer[8];
 
-  /* Do a simple test using the public interface.  This will also
-     enforce full intialization of the RNG.  We need to be fully
-     initialized due to the global requirement of the
-     tempvalue_for_x931_aes_driver stuff. */
-  gcry_randomize (buffer, sizeof buffer, GCRY_STRONG_RANDOM);
+#if USE_RNDLINUX
+  {
+    char buffer[8];
+
+    /* Do a simple test using the public interface.  This will also
+       enforce full intialization of the RNG.  We need to be fully
+       initialized due to the global requirement of the
+       tempvalue_for_x931_aes_driver stuff. */
+    gcry_randomize (buffer, sizeof buffer, GCRY_STRONG_RANDOM);
+  }
 
   ec = selftest_kat (report);
 
+#else /*!USE_RNDLINUX*/
+  report ("random", 0, "setup", "no support for /dev/random");
+  ec = GPG_ERR_SELFTEST_FAILED;
+#endif
   return gpg_error (ec);
 }
 

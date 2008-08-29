@@ -1,4 +1,14 @@
+2008-08-28  Werner Koch  <wk@g10code.com>
+
+	* rsa-16k.key: New sample key.
+
 2008-08-27  Werner Koch  <wk@g10code.com>
+
+	* pkbench.c (read_file): New.
+	(process_key_pair_file): Replace mmap by read_file.
+	(main): Add a --fips option.
+	* Makefile.am (EXTRA_DIST): Remove.
+	(EXTRA_PROGRAMS): Add pkbench.
 
 	* basic.c (main): Extended FIPS self-test test.
 

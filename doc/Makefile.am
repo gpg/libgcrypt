@@ -45,11 +45,27 @@ gcrypt_TEXINFOS = lgpl.texi gpl.texi libgcrypt-modules.fig fips-fsm.fig
 	fig2dev -L pdf `test -f '$<' || echo '$(srcdir)/'`$< $@
 
 
+# Make sure that gcrypt.texi is touched if any other source file has
+# been modified.  This is required so that the version.texi magic
+# updates the release date.
+gnupg.texi : $(gcrypt_TEXINFOS)
+	touch $(srcdir)/gcrypt.texi
+
 online: gcrypt.html gcrypt.pdf gcrypt.info
 	set -e; \
 	echo "Uploading current manuals to www.gnupg.org ..."; \
-        user=werner ; dir="webspace/manuals/gcrypt-devel/" ; \
-	(cd gcrypt.html && rsync -vr --exclude='.svn' .  \
-	  $${user}@cvs.gnupg.org:$${dir} ); \
-        rsync -v gcrypt.pdf gcrypt.info $${user}@cvs.gnupg.org:$${dir}
+	cp libgcrypt-modules.png gcrypt.html/; \
+	cp fips-fsm.png gcrypt.html/; \
+        user=werner ; dashdevel="" ; \
+        if echo "@PACKAGE_VERSION@" | grep -- "-svn" >/dev/null; then \
+	  dashdevel="-devel" ; \
+	  cp gcrypt.pdf gcrypt.html/; \
+	  cp gcrypt.info gcrypt.html/; \
+	else \
+          rsync -v gcrypt.pdf gcrypt.info \
+               $${user}@cvs.gnupg.org:webspace/manuals/ ; \
+        fi ; \
+	cd gcrypt.html ; \
+        rsync -vr --exclude='.svn' .  \
+	  $${user}@cvs.gnupg.org:webspace/manuals/gcrypt$${dashdevel}/ 
 

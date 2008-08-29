@@ -115,12 +115,11 @@ global_init (void)
   return;
 
  fail:
-  /* FIXME: use `err'?  */
   BUG ();
 }
 
-
 
+
 /* Version number parsing.  */
 
 /* This function parses the first portion of the version number S and
@@ -599,7 +598,7 @@ gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
 
   if (fips_mode () )
     {
-      fips_signal_error ("out of core handler used");
+      log_info ("out of core handler ignored in FIPS mode\n");
       return;
     }
   
@@ -780,13 +779,16 @@ gcry_strdup (const char *string)
 void *
 gcry_xmalloc( size_t n )
 {
-    void *p;
-
-    while ( !(p = gcry_malloc( n )) ) {
-	if( !outofcore_handler
-	    || !outofcore_handler( outofcore_handler_value, n, 0 ) ) {
-	    _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
-	}
+  void *p;
+  
+  while ( !(p = gcry_malloc( n )) ) 
+    {
+      if ( fips_mode () 
+           || !outofcore_handler
+           || !outofcore_handler (outofcore_handler_value, n, 0) )
+        {
+          _gcry_fatal_error (gpg_err_code_from_errno (errno), NULL);
+        }
     }
     return p;
 }
@@ -794,13 +796,16 @@ gcry_xmalloc( size_t n )
 void *
 gcry_xrealloc( void *a, size_t n )
 {
-    void *p;
-
-    while ( !(p = gcry_realloc( a, n )) ) {
-	if( !outofcore_handler
-	    || !outofcore_handler( outofcore_handler_value, n,
-                                   gcry_is_secure(a)? 3:2 ) ) {
-	    _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
+  void *p;
+  
+  while ( !(p = gcry_realloc( a, n )) )
+    {
+      if ( fips_mode ()
+           || !outofcore_handler
+           || !outofcore_handler (outofcore_handler_value, n,
+                                   gcry_is_secure(a)? 3:2 ) )
+        {
+          _gcry_fatal_error (gpg_err_code_from_errno (errno), NULL );
 	}
     }
     return p;
@@ -809,16 +814,19 @@ gcry_xrealloc( void *a, size_t n )
 void *
 gcry_xmalloc_secure( size_t n )
 {
-    void *p;
-
-    while ( !(p = gcry_malloc_secure( n )) ) {
-	if( !outofcore_handler
-	    || !outofcore_handler( outofcore_handler_value, n, 1 ) ) {
-	    _gcry_fatal_error(gpg_err_code_from_errno (errno),
-			     _("out of core in secure memory"));
+  void *p;
+  
+  while ( !(p = gcry_malloc_secure( n )) ) 
+    {
+      if ( fips_mode ()
+           || !outofcore_handler
+           || !outofcore_handler (outofcore_handler_value, n, 1) )
+        {
+          _gcry_fatal_error (gpg_err_code_from_errno (errno),
+                             _("out of core in secure memory"));
 	}
     }
-    return p;
+  return p;
 }
 
 
@@ -862,13 +870,14 @@ char *
 gcry_xstrdup (const char *string)
 {
   char *p;
-
+  
   while ( !(p = gcry_strdup (string)) ) 
     {
       size_t n = strlen (string);
       int is_sec = !!gcry_is_secure (string);
-
-      if (!outofcore_handler
+      
+      if (fips_mode ()
+          || !outofcore_handler
           || !outofcore_handler (outofcore_handler_value, n, is_sec) ) 
         {
           _gcry_fatal_error (gpg_err_code_from_errno (errno),
