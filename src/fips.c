@@ -115,13 +115,14 @@ _gcry_initialize_fips_mode (int force)
   {
     FILE *fp;
     int saved_errno;
+    static const char const procfname[] = "/proc/sys/crypto/fips_enabled";
 
-    fp = fopen ("/proc/fips140", "r");
+    fp = fopen (procfname, "r");
     if (fp)
       {
         char line[256];
         
-        if (fgets (line, sizeof line, fp) && atoi (line) == 1)
+        if (fgets (line, sizeof line, fp) && atoi (line))
           {
             /* System is in fips mode.  */
             fclose (fp);
@@ -136,7 +137,7 @@ _gcry_initialize_fips_mode (int force)
         /* Problem reading the fips file despite that we have the proc
            file system.  We better stop right away. */
         log_info ("FATAL: error reading `%s' in libgcrypt: %s\n",
-                  "/proc/fips140", strerror (saved_errno));
+                  procfname, strerror (saved_errno));
         abort ();
       }
   }

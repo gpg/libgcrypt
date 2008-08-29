@@ -12,10 +12,6 @@ What's left to do                                 -*- outline -*-
   This requires the introduction of a parameter names (say) U which
   is calculated according to OpenSSL/PKCS#1 rules.
 
-* Add a warning to the manual, to check that libgcrypt actually has
-  been compiled with thread support when used by a threaded
-  application.
-
 * linker script test
   Write an autoconf test to check whether the linker supports a
   version script. 
@@ -97,5 +93,3 @@ What's left to do                                 -*- outline -*-
 ** C++ tests
   We have some code to allow using libgcrypt from C++, so we also
   should have a test case.
-
-* The prime generator always uses very-strong-random. 

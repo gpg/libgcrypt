@@ -686,6 +686,44 @@ _gcry_rsa_get_nbits (int algo, gcry_mpi_t *pkey)
 }
 
 
+/* Compute a keygrip.  MD is the hash context which we are going to
+   update.  KEYPARAM is an S-expression with the key parameters, this
+   is usually a public key but may also be a secret key.  An example
+   of such an S-expression is:
+
+      (rsa
+        (n #00B...#)
+        (e #010001#))
+        
+   PKCS-15 says that for RSA only the modulus should be hashed -
+   however, it is not clear wether this is meant to use the raw bytes
+   (assuming this is an unsigned integer) or whether the DER required
+   0 should be prefixed.  We hash the raw bytes.  */
+static gpg_err_code_t
+compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
+{
+  gcry_sexp_t l1;
+  const char *data;
+  size_t datalen;
+
+  l1 = gcry_sexp_find_token (keyparam, "n", 1);
+  if (!l1)
+    return GPG_ERR_NO_OBJ;
+
+  data = gcry_sexp_nth_data (l1, 1, &datalen);
+  if (!data)
+    {
+      gcry_sexp_release (l1);
+      return GPG_ERR_NO_OBJ;
+    }
+
+  gcry_md_write (md, data, datalen);
+  gcry_sexp_release (l1);
+
+  return 0;
+}
+
+
 
 
 /* 
@@ -761,6 +799,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_rsa =
 pk_extra_spec_t _gcry_pubkey_extraspec_rsa = 
   {
     run_selftests,
-    rsa_generate
+    rsa_generate,
+    compute_keygrip
   };
 

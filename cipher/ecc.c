@@ -1182,6 +1182,110 @@ ecc_get_nbits (int algo, gcry_mpi_t *pkey)
 }
 
 
+
+/* See rsa.c for a description of this function.  */
+static gpg_err_code_t
+compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
+{
+  gpg_err_code_t ec = 0;
+  gcry_sexp_t l1;
+  static const char const names[] = "pabgnq";
+  gcry_mpi_t values[6];
+  int idx;
+
+  /* Clear the values for easier error cleanup.  */
+  for (idx=0; idx < 6; idx++)
+    values[idx] = NULL;
+    
+  /* Fill values with all available parameters.  */
+  for (idx=0; idx < 6; idx++)
+    {
+      l1 = gcry_sexp_find_token (keyparam, names+idx, 1);
+      if (l1)
+        {
+          values[idx] = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+	  gcry_sexp_release (l1);
+	  if (!values[idx])
+            {
+              ec = GPG_ERR_INV_OBJ;
+              goto leave;
+            }
+	}
+    }
+  
+  /* Check whether a curve parameter is available and use that to fill
+     in missing values.  */
+  l1 = gcry_sexp_find_token (keyparam, "curve", 5);
+  if (l1)
+    {
+      char *curve;
+      gcry_mpi_t tmpvalues[6];
+      
+      for (idx = 0; idx < 6; idx++)
+        tmpvalues[idx] = NULL;
+
+      curve = _gcry_sexp_nth_string (l1, 1);
+      if (!curve)
+        {
+          ec = GPG_ERR_INV_OBJ; /* Name missing or out of core. */
+          goto leave;
+        }
+      ec = _gcry_ecc_get_param (curve, tmpvalues);
+      gcry_free (curve);
+      if (ec)
+        goto leave;
+
+      for (idx = 0; idx < 6; idx++)
+        {
+          if (!values[idx])
+            values[idx] = tmpvalues[idx];
+          else
+            mpi_free (tmpvalues[idx]);
+        }
+    }
+
+  /* Check that all parameters are known and normalize all MPIs (that
+     should not be required but we use an internal fucntion later and
+     thus we better make 100% sure that they are normalized). */
+  for (idx = 0; idx < 6; idx++)
+    if (!values[idx])
+      {
+        ec = GPG_ERR_NO_OBJ;
+        goto leave;
+      }
+    else
+      _gcry_mpi_normalize (values[idx]);
+      
+  /* Hash them all.  */
+  for (idx = 0; idx < 6; idx++)
+    {
+      char buf[30];
+      unsigned char *rawmpi;
+      unsigned int rawmpilen;
+      
+      rawmpi = _gcry_mpi_get_buffer (values[idx], &rawmpilen, NULL);
+      if (!rawmpi)
+        {
+          ec = gpg_err_code_from_syserror ();
+          goto leave;
+        }
+      snprintf (buf, sizeof buf, "(1:%c%u:", names[idx], rawmpilen);
+      gcry_md_write (md, buf, strlen (buf));
+      gcry_md_write (md, rawmpi, rawmpilen);
+      gcry_md_write (md, ")", 1);
+      gcry_free (rawmpi);
+    }
+
+ leave:
+  for (idx = 0; idx < 6; idx++)
+    _gcry_mpi_release (values[idx]);
+  
+  return ec;
+}
+
+
+
+
 
 /* 
      Self-test section.
@@ -1254,6 +1358,8 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
   };
 pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa = 
   {
-    run_selftests
+    run_selftests,
+    NULL,
+    compute_keygrip
   };
 

@@ -48,6 +48,10 @@ typedef gcry_err_code_t (*pk_ext_generate_t)
       gcry_mpi_t *skey,
       gcry_mpi_t **retfactors);
 
+/* The type is used to compute the keygrip.  */
+typedef gpg_err_code_t (*pk_comp_keygrip_t)
+     (gcry_md_hd_t md, gcry_sexp_t keyparm);
+
 
 /* Extra module specification structures.  These are used for internal
    modules which provide more functions than available through the
@@ -66,6 +70,7 @@ typedef struct pk_extra_spec
 {
   selftest_func_t selftest;
   pk_ext_generate_t ext_generate;
+  pk_comp_keygrip_t comp_keygrip;
 } pk_extra_spec_t;
 
 

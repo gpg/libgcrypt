@@ -1,3 +1,12 @@
+2008-08-29  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (gcry_pk_get_keygrip): Remove the special case for RSA
+	and check whether a custom computation function has been setup.
+	* rsa.c (compute_keygrip): New.
+	(_gcry_pubkey_extraspec_rsa): Setup this function.
+	* ecc.c (compute_keygrip): New.
+	(_gcry_pubkey_extraspec_ecdsa): Setup this function.
+
 2008-08-28  Werner Koch  <wk@g10code.com>
 
 	* cipher.c (cipher_decrypt, cipher_encrypt): Return an error if

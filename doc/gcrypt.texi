@@ -529,10 +529,10 @@ Libgcrypt into this mode:
 
 @itemize
 @item 
-If the file @file{/proc/fips140} exists and contains the string value
-@code{1}, Libgcrypt is put into FIPS mode at initialization time.
-Obviously this works only on systems with a @code{proc} file system
-(ie.e GNU/Linux).
+If the file @file{/proc/sys/crypto/fips_enabled} exists and contains a
+numeric value other than @code{0}, Libgcrypt is put into FIPS mode at
+initialization time.  Obviously this works only on systems with a
+@code{proc} file system (ie.e GNU/Linux).
 
 @item 
 If the file @file{/etc/gcrypt/fips140.force} exists, Libgcrypt is put

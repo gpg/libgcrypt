@@ -1,3 +1,7 @@
+2008-08-29  Werner Koch  <wk@g10code.com>
+
+	* keygrip.c: Update to also check ECDSA.
+
 2008-08-28  Werner Koch  <wk@g10code.com>
 
 	* rsa-16k.key: New sample key.

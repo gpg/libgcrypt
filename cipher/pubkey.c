@@ -878,7 +878,7 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
   const char *name;
   gcry_sexp_t list;
 
-  /* Clear the array for easir error cleanup. */
+  /* Clear the array for easier error cleanup. */
   for (name = element_names, idx = 0; *name; name++, idx++)
     elements[idx] = NULL;
   gcry_assert (idx >= 6); /* We know that ECC has at least 6 elements.  */
@@ -2432,10 +2432,10 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   gcry_sexp_t list = NULL, l2 = NULL;
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
+  pk_extra_spec_t *extraspec;
   const char *s;
   char *name = NULL;
   int idx;
-  int is_rsa;
   const char *elems;
   gcry_md_hd_t md = NULL;
 
@@ -2469,53 +2469,45 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
     goto fail; /* Unknown algorithm.  */
 
   pubkey = (gcry_pk_spec_t *) module->spec;
+  extraspec = module->extraspec;
 
-  /* FIXME, special handling should be implemented by the algorithms,
-     not by the libgcrypt core.  */
-  is_rsa = module->mod_id == GCRY_PK_RSA;
   elems = pubkey->elements_grip;
-  if (! elems)
+  if (!elems)
     goto fail; /* No grip parameter.  */
     
   if (gcry_md_open (&md, GCRY_MD_SHA1, 0))
     goto fail;
 
-#if USE_ECC
-# ifdef __GNUC__
-#  warning needs to be fixed for ECC.
-# endif
-#endif
-
-  for (idx = 0, s = elems; *s; s++, idx++)
+  if (extraspec && extraspec->comp_keygrip)
     {
-      const char *data;
-      size_t datalen;
-
-      l2 = gcry_sexp_find_token (list, s, 1);
-      if (! l2)
+      /* Module specific method to compute a keygrip.  */
+      if (extraspec->comp_keygrip (md, list))
         goto fail;
-      data = gcry_sexp_nth_data (l2, 1, &datalen);
-      if (! data)
-        goto fail;
-      if (!is_rsa)
-        {
-          char buf[30];
-
-          sprintf (buf, "(1:%c%u:", *s, (unsigned int)datalen);
-          gcry_md_write (md, buf, strlen (buf));
-        }
-  
-      /* PKCS-15 says that for RSA only the modulus should be hashed -
-         however, it is not clear wether this is meant to use the raw
-         bytes (assuming this is an unsigned integer) or whether the DER
-         required 0 should be prefixed. We hash the raw bytes.  For
-         non-RSA we hash S-expressions. */
-      gcry_md_write (md, data, datalen);
-      gcry_sexp_release (l2);
-      if (!is_rsa)
-        gcry_md_write (md, ")", 1);
     }
-
+  else
+    {
+      /* Generic method to compute a keygrip.  */
+      for (idx = 0, s = elems; *s; s++, idx++)
+        {
+          const char *data;
+          size_t datalen;
+          char buf[30];
+          
+          l2 = gcry_sexp_find_token (list, s, 1);
+          if (! l2)
+            goto fail;
+          data = gcry_sexp_nth_data (l2, 1, &datalen);
+          if (! data)
+            goto fail;
+          
+          snprintf (buf, sizeof buf, "(1:%c%u:", *s, (unsigned int)datalen);
+          gcry_md_write (md, buf, strlen (buf));
+          gcry_md_write (md, data, datalen);
+          gcry_sexp_release (l2);
+          gcry_md_write (md, ")", 1);
+        }
+    }
+  
   if (!array)
     {
       array = gcry_malloc (20);

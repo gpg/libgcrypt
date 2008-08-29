@@ -247,8 +247,8 @@ do_get_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign, int force_secure )
 #endif
     }
 
-    /* this is sub-optimal but we need to do the shift oepration because
-     * the caller has to free the returned buffer */
+    /* This is sub-optimal but we need to do the shift operation
+       because the caller has to free the returned buffer */
     for(p=buffer; !*p && *nbytes; p++, --*nbytes )
 	;
     if( p != buffer )

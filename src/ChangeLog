@@ -1,3 +1,11 @@
+2008-08-29  Werner Koch  <wk@g10code.com>
+
+	* fips.c (_gcry_initialize_fips_mode): Changed /proc file to test
+	for FIPS mode.
+
+	* cipher-proto.h (pk_compute_keygrip_t): New.
+	(pk_extra_spec): Add field comp_keygrip.
+
 2008-08-28  Werner Koch  <wk@g10code.com>
 
 	* hwfeatures.c (_gcry_detect_hw_features): Disable hardware
