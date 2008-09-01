@@ -1,3 +1,9 @@
+2008-09-01  Werner Koch  <wk@g10code.com>
+
+	Release 1.4.2rc2.
+
+	* configure.ac: Update svn_revision macro.
+
 2008-08-22  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Add option --enable-hmac-binary-check.

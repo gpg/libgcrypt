@@ -304,7 +304,9 @@ x931_get_dt (unsigned char *buffer, size_t length, rng_context_t rng_ctx)
            to an not so easy predictable value to avoid always
            starting at 0.  Not really needed but it doesn't harm.  */
         counter1 = (u32)getpid ();
+#ifndef HAVE_W32_SYSTEM
         counter0 = (u32)getppid ();
+#endif
       }
 
 
@@ -513,10 +515,11 @@ entropy_collect_cb (const void *buffer, size_t length,
 
   gcry_assert (fips_rng_is_locked);
   gcry_assert (entropy_collect_buffer);
-  
-  while (length--)
+
+  /* Note that we need to protect against gatherers returning more
+     than the requested bytes (e.g. rndw32).  */
+  while (length-- && entropy_collect_buffer_len < entropy_collect_buffer_size)
     {
-      gcry_assert (entropy_collect_buffer_len < entropy_collect_buffer_size);
       entropy_collect_buffer[entropy_collect_buffer_len++] ^= *p++;
     }
 }
@@ -528,17 +531,31 @@ entropy_collect_cb (const void *buffer, size_t length,
 static void *
 get_entropy (size_t nbytes)
 {
-#if USE_RNDLINUX
   void *result;
+  int rc;
 
   gcry_assert (!entropy_collect_buffer);
   entropy_collect_buffer = gcry_xmalloc_secure (nbytes);
   entropy_collect_buffer_size = nbytes;
   entropy_collect_buffer_len = 0;
-  if (_gcry_rndlinux_gather_random (entropy_collect_cb, 0,
-                                    X931_AES_KEYLEN,
-                                    GCRY_VERY_STRONG_RANDOM) < 0
-      || entropy_collect_buffer_len != entropy_collect_buffer_size)
+
+#if USE_RNDLINUX
+  rc = _gcry_rndlinux_gather_random (entropy_collect_cb, 0,
+                                     X931_AES_KEYLEN,
+                                     GCRY_VERY_STRONG_RANDOM);
+#elif USE_RNDW32
+  do 
+    {
+      rc = _gcry_rndw32_gather_random (entropy_collect_cb, 0,
+                                       X931_AES_KEYLEN,
+                                       GCRY_VERY_STRONG_RANDOM);
+    }
+  while (rc >= 0 && entropy_collect_buffer_len < entropy_collect_buffer_size);
+#else
+  rc = -1;
+#endif
+
+  if (rc < 0 || entropy_collect_buffer_len != entropy_collect_buffer_size)
     {
       gcry_free (entropy_collect_buffer);
       entropy_collect_buffer = NULL;
@@ -547,10 +564,6 @@ get_entropy (size_t nbytes)
   result = entropy_collect_buffer;
   entropy_collect_buffer = NULL;
   return result;
-#else
-  log_fatal ("/dev/random support is not compiled in\n");
-  return NULL;  /* NOTREACHED */
-#endif
 }
 
 
@@ -953,7 +966,7 @@ _gcry_rngfips_selftest (selftest_report_func_t report)
 {
   gcry_err_code_t ec;
 
-#if USE_RNDLINUX
+#if defined(USE_RNDLINUX) || defined(USE_RNDW32)
   {
     char buffer[8];
 
@@ -966,8 +979,8 @@ _gcry_rngfips_selftest (selftest_report_func_t report)
 
   ec = selftest_kat (report);
 
-#else /*!USE_RNDLINUX*/
-  report ("random", 0, "setup", "no support for /dev/random");
+#else /*!(USE_RNDLINUX||USE_RNDW32)*/
+  report ("random", 0, "setup", "no entropy gathering module");
   ec = GPG_ERR_SELFTEST_FAILED;
 #endif
   return gpg_error (ec);

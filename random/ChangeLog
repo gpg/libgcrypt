@@ -1,3 +1,11 @@
+2008-09-01  Werner Koch  <wk@g10code.com>
+
+	* random-fips.c (x931_get_dt) [W32]: Do not use getppid.
+	(get_entropy): Prepare for use under Windows.
+	(_gcry_rngfips_selftest): Ditto.
+	(entropy_collect_cb): Make sure that the gatherer never overflows
+	the buffers.
+
 2008-08-29  Werner Koch  <wk@g10code.com>
 
 	* random-fips.c (SEED_TTL): New.
