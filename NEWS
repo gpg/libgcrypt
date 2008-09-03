@@ -1,9 +1,12 @@
 Noteworthy changes in version 1.4.2 (unreleased)
 ------------------------------------------------
 
- * The library may now be switched into a FIPS mode.
+ * The long missing gcry_mpi_lshift function has been added.
 
- * More runtime selftests.
+ * RSA key generation now supports a "transient-key" flag.
+
+ * The keygrip computation for ECDSA has been implemented thus ECDSA
+   is now fully supported.
 
  * A few macros have been replaced by functions for better type
    checking.
@@ -11,9 +14,9 @@ Noteworthy changes in version 1.4.2 (unreleased)
  * The thread initialization structure now carries version
    information.
 
- * The long missing gcry_mpi_lshift function has been added.
+ * The manual describes more clearly how to initialize Libgcrypt.
 
- * RSA key generation now supports a "transient-key" flag.
+ * The library may now be switched into a FIPS mode.
 
  * Interface changes relative to the 1.3.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -2634,7 +2634,7 @@ are allowed.  When specifying Q all values of N in the range 512 to
 This is only meaningful for RSA keys.  This is a flag with no value.  If
 given the RSA key is created using a faster and a somewhat less secure
 random number generator.  This flag may be used for keys which are only
-used for a short time and do not require full cryptograohic strength.
+used for a short time and do not require full cryptographic strength.
 
 
 @end table
@@ -4335,6 +4335,12 @@ Clear bit number @var{n} in @var{a} and all bits greater than @var{n}.
 @deftypefun void gcry_mpi_rshift (@w{gcry_mpi_t @var{x}}, @w{gcry_mpi_t @var{a}}, @w{unsigned int @var{n}})
 
 Shift the value of @var{a} by @var{n} bits to the right and store the
+result in @var{x}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_lshift (@w{gcry_mpi_t @var{x}}, @w{gcry_mpi_t @var{a}}, @w{unsigned int @var{n}})
+
+Shift the value of @var{a} by @var{n} bits to the left and store the
 result in @var{x}.
 @end deftypefun
 
