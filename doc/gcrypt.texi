@@ -772,6 +772,11 @@ to gcry_check_version and that is actually the recommended way to let an
 application switch the library into FIPS mode.  Note that Libgcrypt will
 reject an attempt to switch to fips mode during or after the intialization.
 
+@item GCRYCTL_SELFTEST; Arguments: none
+This may be used at anytime to have the library run all implemented
+selftests.  It works in standard and in FIPS mode.  Returns 0 on
+success or an error code.
+
 
 @end table
 
@@ -4033,14 +4038,7 @@ can't be converted to an MPI, @code{NULL} is returned.
 Public key cryptography is based on mathematics with large numbers.  To
 implement the public key functions, a library for handling these large
 numbers is required.  Because of the general usefulness of such a
-library, its interface is exposed by Libgcrypt.  The implementation is
-based on an old release of GNU Multi-Precision Library (GMP) but in the
-meantime heavily modified and stripped down to what is required for
-cryptography. For a lot of CPUs, high performance assembler
-implementations of some very low level functions are used to gain much
-better performance than with the standard C implementation.
-
-@noindent
+library, its interface is exposed by Libgcrypt. 
 In the context of Libgcrypt and in most other applications, these large
 numbers are called MPIs (multi-precision-integers).
 
@@ -4508,7 +4506,7 @@ either a POSIX platform or compatible to the API used by Windows NT.
 Provisions have been take so that the library can be directly used from
 C++ applications; however building with a C++ compiler is not supported.
 
-Building libgcrypt is done by using the common @code{./configure && make}
+Building Libgcrypt is done by using the common @code{./configure && make}
 approach.  The configure command is included in the source distribution
 and as a portable shell script it works on any Unix-alike system.  The
 result of running the configure script are a C header file
@@ -4539,18 +4537,18 @@ Libgcrypt consists of several subsystems (@pxref{fig:subsystems}) and
 all these subsystems provide a public API; this includes the helper
 subsystems like the one for S-expression.  The API style depends on the
 subsystem; in general an open, use, close approach is implemented.  The
-open returns a handle to a context used for all futher operations on
+open returns a handle to a context used for all further operations on
 this handle, several functions may then be used on this handle and a
 final close function releases all resources associated with the handle.
 
 @menu
-* Public-Key Subsystem Architecture::              All about public keys.
-* Symmetric Encryption Subsystem Architecture::    All about standard ciphers.
-* Hashing and MACing Subsystem Architecture::      All about hashing.
-* Multi-Precision-Integer Subsystem Architecture:: All about big integers.
-* Prime-Number-Generator Subsystem Architecture::  All about prime numbers.
-* Random-Number Subsystem Architecture::           All about random stuff.
-* Helper Subsystems Architecture::                 All about other stuff.
+* Public-Key Subsystem Architecture::              About public keys.
+* Symmetric Encryption Subsystem Architecture::    About standard ciphers.
+* Hashing and MACing Subsystem Architecture::      About hashing.
+* Multi-Precision-Integer Subsystem Architecture:: About big integers.
+* Prime-Number-Generator Subsystem Architecture::  About prime numbers.
+* Random-Number Subsystem Architecture::           About random stuff.
+@c * Helper Subsystems Architecture::                 About other stuff.
 @end menu
 
 
@@ -4558,65 +4556,421 @@ final close function releases all resources associated with the handle.
 @node Public-Key Subsystem Architecture
 @section Public-Key Architecture
 
-TBD.
+Libgcrypt implements two interfaces for public key cryptography: The
+standard interface is PK interface using functions in the
+@code{gcry_pk_} name space.  The AC interface in an alternative one
+which is now deprecated and will not be further described.  The AC
+interface is also disabled in FIPS mode.
+
+Because public key cryptography is almost always used to process small
+amounts of data (hash values or session keys), the interface is not
+implemented using the open-use-close paradigm, but with single
+self-contained functions.  Due to the wide variety of parameters
+required by different algorithms S-expressions, as flexible way to
+convey these parameters, are used.  There is a set of helper functions
+to work with these S-expressions.
+@c see @xref{S-expression Subsystem Architecture}.
+
+Aside of functions to register new algorithms, map algorithms names to
+algorithms identifiers and to lookup properties of a key, the
+following main functions are available:
+
+@table @code
+
+@item gcry_pk_encrypt 
+Encrypt data using a public key.
+
+@item gcry_pk_decrypt 
+Decrypt data using a private key.
+
+@item gcry_pk_sign 
+Sign data using a private key.
+
+@item gcry_pk_verify
+Verify that a signature matches the data.
+
+@item gcry_pk_testkey
+Perform a consistency over a public or private key.
+
+@item gcry_pk_genkey
+Create a new public/private key pair.
+
+@end table
+
+With the help of the module registration system all these functions
+lookup the module implementing the algorithm and pass the actual work
+to that module.  The parsing of the S-expression input and the
+construction of S-expression for the return values is done by the high
+level code (@file{cipher/pubkey.c}).  Thus the internal interface
+between the algorithm modules and the high level functions passes data
+in a custom format.  The interface to the modules is published
+(@file{gcrypt-modules.h}) so that it can used to register external
+implementations of algorithms with Libgcrypt.  However, for some algorithms this
+module interface is to limited and thus for the internal modules an
+extra interface is sometimes used to convey more information.
+
 
 @node Symmetric Encryption Subsystem Architecture
-@section Symmetric Encryption Subsystem Architecturen
+@section Symmetric Encryption Subsystem Architecture
 
-TBD.
+The interface to work with symmetric encryption algorithms is made up
+of functions from the @code{gcry_cipher_} name space.  The
+implementation follows the open-use-close paradigm and uses registered
+algorithm modules for the actual work.  Unless a module implements
+optimized cipher mode implementations, the high level code
+(@file{cipher/cipher.c}) implements the modes and calls the core
+algorithm functions to process each block.
+
+The most important functions are:
+
+@table @code
+
+@item gcry_cipher_open
+Create a new instance to encrypt or decrypt using a specified
+algorithm and mode.
+
+@item gcry_cipher_close
+Release an instance.
+
+@item gcry_cipher_setkey
+Set a key to be used for encryption or decryption. 
+
+@item gcry_cipher_setiv
+Set an initialization vector to be used for encryption or decryption.
+
+@item gcry_cipher_encrypt
+@itemx gcry_cipher_decrypt 
+Encrypt or decrypt data.  These functions may be called with arbitrary
+amounts of data and as often as needed to encrypt or decrypt all data.
+
+@end table
+
+There are also functions to query properties of algorithms or context,
+like block length, key length, map names or to enable features like
+padding methods.
+
+
 
 @node Hashing and MACing Subsystem Architecture
 @section Hashing and MACing Subsystem Architecture
 
-TBD.
+The interface to work with message digests and CRC algorithms is made
+up of functions from the @code{gcry_md_} name space.  The
+implementation follows the open-use-close paradigm and uses registered
+algorithm modules for the actual work.  Although CRC algorithms are
+not considered cryptographic hash algorithms, they share enough
+properties so that it makes sense to handle them in the same way.
+It is possible to use several algorithms at once with one context and
+thus compute them all on the same data.
+
+The most important functions are:
+
+@table @code
+@item gcry_md_open
+Create a new message digest instance and optionally enable one
+algorithm.  A flag may be used to turn the message digest algorithm
+into a HMAC algorithm.
+
+@item gcry_md_enable
+Enable an additional algorithm for the instance.
+
+@item gcry_md_setkey
+Set the key for the MAC.
+
+@item gcry_md_write
+Pass more data for computing the message digest to an instance.
+
+@item gcry_md_putc
+Buffered version of @code{gcry_md_write} implemented as a macro.
+
+@item gcry_md_read
+Finalize the computation of the message digest or HMAC and return the
+result.
+
+@item gcry_md_close
+Release an instance
+
+@item gcry_md_hash_buffer
+Convenience function to directly compute a message digest over a
+memory buffer without the need to create an instance first.
+
+@end table
+
+There are also functions to query properties of algorithms or the
+instance, like enabled algorithms, digest length, map algorithm names.
+it is also possible to reset an instance or to copy the current state
+of an instance at any time.  Debug functions to write the hashed data
+to files are available as well.
+
 
 
 @node Multi-Precision-Integer Subsystem Architecture
 @section Multi-Precision-Integer Subsystem Architecture
 
-TBD.
+The implementation of Libgcrypt's big integer computation code is
+based on an old release of GNU Multi-Precision Library (GMP).  The
+decision not to use the GMP library directly was due to stalled
+development at that time and due to security requirements which could
+not be provided by the code in GMP.  As GMP does, Libgcrypt provides
+high performance assembler implementations of low level code for
+several CPUS to gain much better performance than with a generic C
+implementation.
+
+@noindent
+Major features of Libgcrypt's multi-precision-integer code compared to
+GMP are:
+
+@itemize
+@item 
+Avoidance of stack based allocations to allow protection against
+swapping out of sensitive data and for easy zeroing of sensitive
+intermediate results.
+
+@item
+Optional use of secure memory and tracking of its use so that results
+are also put into secure memory.
+
+@item
+MPIs are identified by a handle (implemented as a pointer) to give
+better control over allocations and to augment them with extra
+properties like opaque data.
+
+@item
+Removal of unnecessary code to reduce complexity.
+
+@item
+Functions specialized for public key cryptography.
+
+@end itemize
+
+
 
 @node Prime-Number-Generator Subsystem Architecture
 @section Prime-Number-Generator Subsystem Architecture
 
-TBD.
+Libgcrypt provides an interface to its prime number generator.  These
+functions make use of the internal prime number generator which is
+required for the generation for public key key pairs.  The plain prime
+checking function is exported as well.
+
+The generation of random prime numbers is based on the Lim and Lee
+algorithm to create practically save primes.@footnote{Chae Hoon Lim
+and Pil Joong Lee. A key recovery attack on discrete log-based shemes
+using a prime order subgroup. In Burton S. Kaliski Jr., editor,
+Advances in Cryptology: Crypto '97, pages 249­-263, Berlin /
+Heidelberg / New York, 1997. Springer-Verlag.  Described on page 260.}
+This algorithm creates a pool of smaller primes, select a few of them
+to create candidate primes of the form @math{2 * p_0 * p_1 * ... * p_n
++ 1}, tests the candidate for primality and permutates the pool until
+a prime has been found.  It is possible to clamp one of the small
+primes to a certain size to help DSA style algorithms.  Because most
+of the small primes in the pool are not used for the resulting prime
+number, they are saved for later use (see @code{save_pool_prime} and
+@code{get_pool_prime} in @file{cipher/primegen.c}).  The prime
+generator optionally supports the finding of an appropriate generator.
+
+@noindent
+The primality test works in three steps:
+
+@enumerate
+@item
+The standard sieve algorithm using the primes up to 4999 is used as a
+quick first check.
+
+@item
+A Fermat test filters out almost all non-primes.
+
+@item
+A 5 round Rabin-Miller test is finally used.  The first round uses a
+witness of 2, whereas the next rounds use a random witness.
+
+@end enumerate
 
 @node Random-Number Subsystem Architecture
 @section Random-Number Subsystem Architecture
 
-TBD.
+Libgcrypt provides 3 levels or random quality: The level
+@code{GCRY_VERY_STRONG_RANDOM} usually used for key generation, the
+level @code{GCRY_STRONG_RANDOM} for all other strong random
+requirements and the function @code{gcry_create_nonce} which is used
+for weaker usages like nonces.  There is also a level
+@code{GCRY_WEAK_RANDOM} which in general maps to
+@code{GCRY_STRONG_RANDOM} except when used with the function
+@code{gcry_mpi_randomize}, where it randomizes an
+multi-precision-integer using the @code{gcry_create_nonce} function.
 
+@noindent
+There are two distinct random generators available: 
 
-@node Helper Subsystems Architecture
-@section Helper Subsystems Architecture
+@itemize
+@item 
+The Continuously Seeded Pseudo Random Number Generator (CSPRNG), which
+is based on the classic GnuPG derived big pool implementation.
+Implemented in @code{random/random-csprng.c} and used by default.
+@item
+A FIPS approved ANSI X9.31 PRNG using AES with a 128 bit key. Implemented in
+@code{random/random-fips.c} and used if Libgcrypt is in FIPS mode.
+@end itemize
 
-There are a few smaller subsystems which are mainly used internally by
-Libgcrypt but also available to applications.
+@noindent
+Both generators make use of so-called entropy gathering modules:
+
+@table @asis
+@item rndlinux
+Uses the operating system provided
+@file{/dev/random} and @file{/dev/urandom} devices.
+
+@item rndunix
+Runs several operating system commands to collect entropy from sources
+like virtual machine and process statistics.  It is a kind of
+poor-man's @code{/dev/random} implementation. It is not available in
+FIPS mode.
+
+@item rndegd
+Uses the operating system provided Entropy Gathering Daemon (EGD).
+The EGD basically uses the same algorithms as rndunix does.  However
+as a system daemon it keeps on running and thus can serve several
+processes requiring entropy input and does not waste collected entropy
+if the application does not need all the collected entropy. It is not
+available in FIPS mode.
+
+@item rndw32
+Targeted for the Microsoft Windows OS.  It uses certain properties of
+that system and is the only gathering module available for that OS.
+
+@item rndhw
+Extra module to collect additional entropy by utilizing a hardware
+random number generator.  As of now the only supported hardware RNG is
+the Padlock engine of VIA (Centaur) CPUs.  It is not available in FIPS
+mode.
+
+@end table
+
 
 @menu
-* S-expression Subsystem Architecture::   Details about the S-expression architecture.
-* Memory Subsystem Architecture::         Details about the memory allocation architecture.
-* Miscellaneous Subsystems Architecture:: Details about other subsystems.
+* CSPRNG Description::      Description of the CSPRNG.
+* FIPS PRNG Description::   Description of the FIPS X9.31 PRNG.
 @end menu
 
-@node S-expression Subsystem Architecture
-@subsection S-expression Subsystem Architecture
 
-TBD.
+@node CSPRNG Description
+@subsection Description of the CSPRNG
+
+This random number generator is loosely modelled after the one
+described in Peter Gutmann's paper: "Software Generation of
+Practically Strong Random Numbers".@footnote{Also described in chapter
+6 of his book "Cryptographic Security Architecture", New York, 2004,
+ISBN 0-387-95387-6.}
+
+A pool of 600 bytes is used and mixed using the core RIPE-MD160 hash
+transform function.  Several extra features are used to make the
+robust against a wide variety of attacks and to protect against
+failures of subsystems.  The state of the generator may be saved to a
+file and initially seed form a file.
+
+Depending on how Libgcrypt was build the generator is able to select
+the best working entropy gathering module.  It makes use of the slow
+and fast collection methods and requires the pool to initially seeded
+form the slow gatherer or a seed file.  An entropy estimation is used
+to mix in enough data from the gather modules before returning the
+actual random output.  Process fork detection and protection is
+implemented.
+
+@c FIXME:  The design and implementaion needs a more verbose description.
+
+The implementation of the nonce generator (for
+@code{gcry_create_nonce}) is a straightforward repeated hash design: A
+28 byte buffer is initially seeded with the PID and the time in
+seconds in the first 20 bytes and with 8 bytes of random taken from
+the @code{GCRY_STRONG_RANDOM} generator.  Random numbers are then
+created by hashing all the 28 bytes with SHA-1 and saving that again
+in the first 20 bytes.  The hash is also returned as result.
 
 
-@node Memory Subsystem Architecture 
-@subsection Memory Subsystem Architecture 
+@node FIPS PRNG Description
+@subsection Description of the FIPS X9.31 PRNG
 
-TBD.
+The core of this deterministic random number generator is implemented
+according to the document ``NIST-Recommended Random Number Generator
+Based on ANSI X9.31 Appendix A.2.4 Using the 3-Key Triple DES and AES
+Algorithms'', dated 2005-01-31.  This implementation uses the AES
+variant.
+
+The generator is based on contexts to utilize the same core functions
+for all random levels as required by the high-level interface.  All
+random generators return their data in 128 bit blocks.  If the caller
+requests less bits, the extra bits are not used.  The key for each
+generator is only set once at the first time a generator context is
+used.  The seed value is set along with the key and again after 1000
+output blocks.
+
+On Unix like systems the @code{GCRY_VERY_STRONG_RANDOM} and
+@code{GCRY_STRONG_RANDOM} generators are keyed and seeded using the
+rndlinux module with the @file{/dev/radnom} device. Thus these
+generators may block until the OS kernel has collected enough entropy.
+When used with Microsoft Windows the rndw32 module is used instead.
+
+The generator used for @code{gcry_create_nonce} is keyed and seeded
+from the @code{GCRY_STRONG_RANDOM} generator.  Thus is may also block
+if the @code{GCRY_STRONG_RANDOM} generator has not yet been used
+before and thus gets initialized on the first use by
+@code{gcry_create_nonce}.  This special treatment is justified by the
+weaker requirements for a nonce generator and to save precious kernel
+entropy for use by the ``real'' random generators.
+
+A self test facility uses a separate context to check the
+functionality of the core X9.31 functions using a known answers test.
+During runtime each output block is compared to the previous one to
+detect a stucked generator.
+
+The DT value for the generator is made up of the current time down to
+microseconds (if available) and a free running 64 bit counter.  When
+used with the test context the DT value is taken from the context and
+incremented on each use.
 
 
-@node Miscellaneous Subsystems Architecture
-@subsection Miscellaneous Subsystems Architecture
 
-TBD.
-
-
+@c @node Helper Subsystems Architecture
+@c @section Helper Subsystems Architecture
+@c 
+@c There are a few smaller subsystems which are mainly used internally by
+@c Libgcrypt but also available to applications.
+@c 
+@c @menu
+@c * S-expression Subsystem Architecture::   Details about the S-expression architecture.
+@c * Memory Subsystem Architecture::         Details about the memory allocation architecture.
+@c * Miscellaneous Subsystems Architecture:: Details about other subsystems.
+@c @end menu
+@c 
+@c @node S-expression Subsystem Architecture
+@c @subsection S-expression Subsystem Architecture
+@c 
+@c Libgcrypt provides an interface to S-expression to create and parse
+@c them.  To use an S-expression with Libgcrypt it needs first be
+@c converted into the internal representation used by Libgcrypt (the type
+@c @code{gcry_sexp_t}).  The conversion functions support a large subset
+@c of the S-expression specification and further fature a printf like
+@c function to convert a list of big integers or other binary data into
+@c an S-expression.
+@c 
+@c Libgcrypt currently implements S-expressions using a tagged linked
+@c list.  However this is not exposed to an application and may be
+@c changed in future releases to reduce overhead when already working
+@c with canonically encoded S-expressions.  Secure memory is supported by
+@c this S-expressions implementation.
+@c 
+@c @node Memory Subsystem Architecture 
+@c @subsection Memory Subsystem Architecture 
+@c 
+@c TBD.
+@c 
+@c 
+@c @node Miscellaneous Subsystems Architecture
+@c @subsection Miscellaneous Subsystems Architecture
+@c 
+@c TBD.
+@c 
+@c 
 
 
 
@@ -4890,7 +5244,7 @@ self-tests to get to get back into operational state after an error.
 GCRYCTL_SET_RANDOM_DAEMON_SOCKET
 GCRYCTL_USE_RANDOM_DAEMON
 The random damon is still a bit experimental, thus we do not document
-them.  Not ethat they should be used during initialization and that
+them.  Note that they should be used during initialization and that
 these functions are not really thread safe.
 
 
