@@ -316,7 +316,7 @@ int _gcry_fips_is_operational (void);
 int _gcry_fips_test_operational (void);
 int _gcry_fips_test_error_or_operational (void);
 
-void _gcry_fips_run_selftests (void);
+gpg_err_code_t _gcry_fips_run_selftests (void);
 
 void _gcry_fips_noreturn (void);
 #define fips_noreturn()  (_gcry_fips_noreturn ())

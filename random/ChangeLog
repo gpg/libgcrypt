@@ -1,3 +1,8 @@
+2008-09-05  Werner Koch  <wk@g10code.com>
+
+	* random.c (_gcry_random_selftest): Return success if not in fips
+	mode.
+
 2008-09-01  Werner Koch  <wk@g10code.com>
 
 	* random-fips.c (x931_get_dt) [W32]: Do not use getppid.

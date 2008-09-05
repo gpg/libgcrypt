@@ -408,7 +408,8 @@ enum gcry_ctl_cmds
     GCRYCTL_PRINT_CONFIG = 53,
     GCRYCTL_OPERATIONAL_P = 54,
     GCRYCTL_FIPS_MODE_P = 55,
-    GCRYCTL_FORCE_FIPS_MODE = 56
+    GCRYCTL_FORCE_FIPS_MODE = 56,
+    GCRYCTL_SELFTEST = 57
   };
 
 /* Perform various operations defined by CMD. */

@@ -783,6 +783,9 @@ _gcry_rngfips_is_faked (void)
 gcry_error_t
 _gcry_rngfips_add_bytes (const void *buf, size_t buflen, int quality)
 {
+  (void)buf;
+  (void)buflen;
+  (void)quality;
   return 0;  /* Not implemented. */
 }   
 

@@ -200,8 +200,8 @@ unlock_fsm (void)
 
 /* This function returns true if fips mode is enabled.  This is
    independent of the fips required finite state machine and only used
-   to enable run fips specific code.  Please use the fips_mode macro
-   instead of calling this fucntion directly. */
+   to enable fips specific code.  Please use the fips_mode macro
+   instead of calling this function directly. */
 int
 _gcry_fips_mode (void)
 {
@@ -520,12 +520,14 @@ check_binary_integrity (void)
 
 
 /* Run the self-tests.  */
-void
+gpg_err_code_t
 _gcry_fips_run_selftests (void)
 {
   enum module_states result = STATE_ERROR;
+  gcry_err_code_t ec = GPG_ERR_SELFTEST_FAILED;
   
-  fips_new_state (STATE_SELFTEST);
+  if (fips_mode ())
+    fips_new_state (STATE_SELFTEST);
 
   if (run_cipher_selftests ())
     goto leave;
@@ -549,9 +551,13 @@ _gcry_fips_run_selftests (void)
 
   /* All selftests passed.  */
   result = STATE_OPERATIONAL;
+  ec = 0;
 
  leave:
-  fips_new_state (result);
+  if (fips_mode ())
+    fips_new_state (result);
+
+  return ec;
 }
 
 

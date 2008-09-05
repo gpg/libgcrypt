@@ -2105,9 +2105,9 @@ main (int argc, char **argv)
   check_hmac ();
   check_pubkey ();
 
-  /* If we are in fips mode do some more tests. */
   if (in_fips_mode)
     {
+      /* If we are in fips mode do some more tests. */
       gcry_md_hd_t md;
 
       /* First trigger a self-test.  */
@@ -2130,6 +2130,8 @@ main (int argc, char **argv)
               /* gcry_md_get_algo is only defined for a context with
                  just one digest algorithm.  With our setup it should
                  put the oibrary intoerror state.  */
+              fputs ("Note: Two lines with error messages follow "
+                     "- this is expected\n", stderr);
               gcry_md_get_algo (md);
               gcry_md_close (md);
               if (gcry_control (GCRYCTL_OPERATIONAL_P, 0))
@@ -2147,7 +2149,11 @@ main (int argc, char **argv)
         }
       
     }
-  
+  else
+    {
+      /* If in standard mode, run selftests.  */
+      gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+    }
 
   if (verbose)
     fprintf (stderr, "\nAll tests completed. Errors: %i\n", error_count);

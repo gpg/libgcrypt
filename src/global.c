@@ -475,6 +475,13 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       }
       break;
 
+    case GCRYCTL_SELFTEST:
+      /* Run a selftest.  This works in fips mode as weel as in
+         standard mode.  Returns 0 on success or an error code. */
+      global_init ();
+      err = _gcry_fips_run_selftests ();
+      break;
+
     default:
       err = GPG_ERR_INV_OP;
     }

@@ -280,6 +280,6 @@ _gcry_random_selftest (selftest_report_func_t report)
   if (fips_mode ())
     return _gcry_rngfips_selftest (report);
   else
-    return gpg_error (GPG_ERR_NOT_SUPPORTED);
+    return 0; /* No selftests yet.  */
 }
 
