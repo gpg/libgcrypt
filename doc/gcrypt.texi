@@ -4422,8 +4422,7 @@ holding the prime factors and store it in @var{factors}.  @var{flags}
 might be used to influence the prime number generation process.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_prime_group_generator (gcry_mpi_t *@var{r_g},
-gcry_mpi_t @var{prime}, gcry_mpi_t *@var{factors}, gcry_mpi_t @var{start_g})
+@deftypefun gcry_error_t gcry_prime_group_generator (gcry_mpi_t *@var{r_g}, gcry_mpi_t @var{prime}, gcry_mpi_t *@var{factors}, gcry_mpi_t @var{start_g})
 
 Find a generator for @var{prime} where the factorization of
 (@var{prime}-1) is in the @code{NULL} terminated array @var{factors}.
