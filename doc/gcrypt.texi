@@ -332,7 +332,7 @@ pointer.
 
 Libgcrypt uses a concept known as secure memory, which is a region of
 memory set aside for storing sensitive data.  Because such memory is a
-scare resource, it needs to be setup in advanced to a fixed size.
+scarce resource, it needs to be setup in advanced to a fixed size.
 Further, most operating systems have special requirements on how that
 secure memory can be used.  For example, it might be required to install
 an application as ``setuid(root)'' to allow allocating such memory.
@@ -500,8 +500,9 @@ callback structure named ``gcry_threads_pth''.
 @item GCRY_THREAD_OPTION_PTHREAD_IMPL
 
 This macro defines the following (static) symbols:
-gcry_pthread_mutex_init, gcry_pthread_mutex_destroy, gcry_mutex_lock,
-gcry_mutex_unlock, gcry_threads_pthread.
+gcry_pthread_mutex_init, gcry_pthread_mutex_destroy,
+gcry_pthread_mutex_lock, gcry_pthread_mutex_unlock,
+gcry_threads_pthread.
 
 After including this macro, gcry_control() shall be used with a
 command of GCRYCTL_SET_THREAD_CBS in order to register the thread
@@ -632,11 +633,12 @@ value of 1 to request that default size.
 @item GCRYCTL_TERM_SECMEM; Arguments: none
 This command zeroises the secure memory and destroys the handler.  The
 secure memory pool may not be used anymore after running this command.
-If the secure memory pool as already been destroyed, this command has no
-effect.  Applications might want to run this command from their exit
-handler to make sure that the secure memory gets properly destroyed.
-This command is not necessary thread-safe but that should not be needed
-in cleanup code.  It may be called from a signal handler.
+If the secure memory pool as already been destroyed, this command has
+no effect.  Applications might want to run this command from their
+exit handler to make sure that the secure memory gets properly
+destroyed.  This command is not necessarily thread-safe but that
+should not be needed in cleanup code.  It may be called from a signal
+handler.
 
 @item GCRYCTL_DISABLE_SECMEM_WARN; Arguments: none
 Disable warning messages about problems with the secure memory
@@ -686,30 +688,30 @@ an issue if random of @code{GCRY_VERY_STRONG_RANDOM} quality is
 requested as in this case enough extra entropy gets mixed.  It is also
 not an issue when using Linux (rndlinux driver), because this one
 guarantees to read full 16 bytes from /dev/urandom and thus there is no
-way for an attacker without kernel access to conrol these 16 bytes.
+way for an attacker without kernel access to control these 16 bytes.
 
 @item GCRYCTL_SET_VERBOSITY; Arguments: int level
 This command sets the verbosity of the logging.  A level of 0 disables
 all extra logging whereas positive numbers enable more verbose logging.
 The level may be changed at any time but be aware that no memory
-syncronization is done so the effect of this command might not
+synchronization is done so the effect of this command might not
 immediately show up in other threads.  This command may even be used
-prioe to @code{gcry_check_version}.
+prior to @code{gcry_check_version}.
 
 @item GCRYCTL_SET_DEBUG_FLAGS; Arguments: unsigned int flags
 Set the debug flag bits as given by the argument.  Be aware that that no
-memory syncronization is done so the effect of this command might not
+memory synchronization is done so the effect of this command might not
 immediately show up in other threads.  The debug flags are not
 considered part of the API and thus may change without notice.  As of
 now bit 0 enables debugging of cipher functions and bit 1 debugging of
-multi-precision-integers.  This command may even be used prioe to
+multi-precision-integers.  This command may even be used prior to
 @code{gcry_check_version}.
 
 @item GCRYCTL_CLEAR_DEBUG_FLAGS; Arguments: unsigned int flags
 Set the debug flag bits as given by the argument.  Be aware that that no
-memory syncronization is done so the effect of this command might not
+memory synchronization is done so the effect of this command might not
 immediately show up in other threads.  This command may even be used
-prioe to @code{gcry_check_version}.
+prior to @code{gcry_check_version}.
 
 @item GCRYCTL_DISABLE_INTERNAL_LOCKING; Arguments: none
 This command does nothing.  It exists only for backward compatibility.
