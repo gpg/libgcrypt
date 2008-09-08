@@ -19,7 +19,7 @@ Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU General Public License as published by the
 Free Software Foundation; either version 2 of the License, or (at your
 option) any later version. The text of the license can be found in the
-section entitled ``Copying''.
+section entitled ``GNU General Public License''.
 @end quotation
 @end copying
 
@@ -316,7 +316,7 @@ but due to problem with the dynamic linker an old version may actually
 be used.  So you may want to check that the version is okay right
 after program startup.
 
-@deftypefun const char *gcry_check_version (const char *@var{req_version})
+@deftypefun {const char *} gcry_check_version (const char *@var{req_version})
 
 The function @code{gcry_check_version} initializes some subsystems used
 by Libgcrypt and must be invoked before any other function in the
@@ -475,10 +475,10 @@ Synchronization''.  For other thread packages, more relaxed or more
 strict rules may apply.}.
 
 @item
-
 Just like the function @code{gpg_strerror}, the function
 @code{gcry_strerror} is not thread safe.  You have to use
 @code{gpg_strerror_r} instead.
+
 @end itemize
 
 
@@ -517,8 +517,8 @@ programmers might have to wrap these macros in an ``extern C'' body.
 @node FIPS mode
 @section FIPS Mode
 
-Libgcrypt may be used in a FIPS 140 mode.  Note, that this does not
-necessary mean that Libcgrypt is n appoved FIPS 140-2 module.  Check the
+Libgcrypt may be used in a FIPS 140-2 mode.  Note, that this does not
+necessary mean that Libcgrypt is an appoved FIPS 140-2 module.  Check the
 NIST database at @url{http://csrc.nist.gov/groups/STM/cmvp/} to see what
 versions of Libgcrypt are approved.
 
@@ -532,7 +532,7 @@ Libgcrypt into this mode:
 If the file @file{/proc/sys/crypto/fips_enabled} exists and contains a
 numeric value other than @code{0}, Libgcrypt is put into FIPS mode at
 initialization time.  Obviously this works only on systems with a
-@code{proc} file system (ie.e GNU/Linux).
+@code{proc} file system (i.e. GNU/Linux).
 
 @item 
 If the file @file{/etc/gcrypt/fips140.force} exists, Libgcrypt is put
@@ -540,16 +540,16 @@ into FIPS mode at initialization time.  Note that this filename is
 hardwired and does not depend on any configuration options.
 
 @item 
-If the applications requests FIPS mode using the control command
+If the application requests FIPS mode using the control command
 @code{GCRYCTL_FORCE_FIPS_MODE}.  This must be done prior to any
 initialization (i.e. before @code{gcry_check_version}).
 
 @end itemize
 
-Note that once Libgcrypt has been put into FIPS mode, it is not possible
-to switch back to standard mode without terminating the process first.
-If the log verbosity level of Libgcrypt has been set to at least 2, the
-state transitions and the selftests are logged.
+Once Libgcrypt has been put into FIPS mode, it is not possible to
+switch back to standard mode without terminating the process first.
+If the logging verbosity level of Libgcrypt has been set to at least
+2, the state transitions and the selftests are logged.
 
 
 
@@ -775,7 +775,7 @@ reject an attempt to switch to fips mode during or after the intialization.
 @item GCRYCTL_SELFTEST; Arguments: none
 This may be used at anytime to have the library run all implemented
 selftests.  It works in standard and in FIPS mode.  Returns 0 on
-success or an error code.
+success or an error code on failure.
 
 
 @end table
@@ -1593,10 +1593,11 @@ The cipher mode to use must be specified via @var{mode}.  See
 @xref{Available cipher modes}, for a list of supported cipher modes
 and the according constants.  Note that some modes are incompatible
 with some algorithms - in particular, stream mode
-(GCRY_CIPHER_MODE_STREAM) only works with stream ciphers. Any block
-cipher mode (GCRY_CIPHER_MODE_ECB, GCRY_CIPHER_MODE_CBC,
-GCRY_CIPHER_MODE_CFB, GCRY_CIPHER_MODE_OFB or GCRY_CIPHER_MODE_CTR)
-will work with any block cipher algorithm.
+(@code{GCRY_CIPHER_MODE_STREAM}) only works with stream ciphers. Any
+block cipher mode (@code{GCRY_CIPHER_MODE_ECB},
+@code{GCRY_CIPHER_MODE_CBC}, @code{GCRY_CIPHER_MODE_CFB},
+@code{GCRY_CIPHER_MODE_OFB} or @code{GCRY_CIPHER_MODE_CTR}) will work
+with any block cipher algorithm.
 
 The third argument @var{flags} can either be passed as @code{0} or as
 the bit-wise OR of the following constants.
@@ -1789,7 +1790,7 @@ Returns @code{0} when the specified algorithm is available for use.
 @end deftypefun
 @c end gcry_cipher_algo_info
 
-@deftypefun const char *gcry_cipher_algo_name (int @var{algo})
+@deftypefun {const char *} gcry_cipher_algo_name (int @var{algo})
 
 @code{gcry_cipher_algo_name} returns a string with the name of the
 cipher algorithm @var{algo}.  If the algorithm is not known or another
@@ -1851,9 +1852,10 @@ called S-expressions (see
 @uref{http://people.csail.mit.edu/@/rivest/@/sexp.html}) and does not work
 with contexts as most of the other building blocks of Libgcrypt do.
 
+@noindent
 The following information are stored in S-expressions:
 
-@table @asis
+@itemize @asis
 @item keys
 
 @item plain text data
@@ -1862,7 +1864,7 @@ The following information are stored in S-expressions:
 
 @item signatures
 
-@end table
+@end itemize
 
 @noindent
 To describe how Libgcrypt expect keys, we use examples. Note that
@@ -2785,7 +2787,7 @@ Create a copy of the data set @var{data} and store it in
 @var{data_cp}.  FIXME: exact semantics undefined.
 @end deftypefun
 
-@deftypefun unsigned int gcry_ac_data_length (gcry_ac_data_t @var{data})
+@deftypefun {unsigned int} gcry_ac_data_length (gcry_ac_data_t @var{data})
 Returns the number of named MPI values inside of the data set
 @var{data}.
 @end deftypefun
@@ -3541,7 +3543,7 @@ has an effect. It is implemented as a macro.
 The way to read out the calculated message digest is by using the
 function:
 
-@deftypefun unsigned char *gcry_md_read (gcry_md_hd_t @var{h}, int @var{algo})
+@deftypefun {unsigned char *} gcry_md_read (gcry_md_hd_t @var{h}, int @var{algo})
 
 @code{gcry_md_read} returns the message digest after finalizing the
 calculation.  This function may be used as often as required but it will
@@ -3580,7 +3582,7 @@ Hash algorithms are identified by internal algorithm numbers (see
 used by names, so two functions are available to map between string
 representations and hash algorithm identifiers.
 
-@deftypefun const char *gcry_md_algo_name (int @var{algo})
+@deftypefun {const char *} gcry_md_algo_name (int @var{algo})
 
 Map the digest algorithm id @var{algo} to a string representation of the
 algorithm name.  For unknown algorithms this function returns the
@@ -3624,7 +3626,7 @@ The macro returns 0 if the algorithm @var{algo} is available for use.
 If the length of a message digest is not known, it can be retrieved
 using the following function:
 
-@deftypefun unsigned int gcry_md_get_algo_dlen (int @var{algo})
+@deftypefun {unsigned int} gcry_md_get_algo_dlen (int @var{algo})
 
 Retrieve the length in bytes of the digest yielded by algorithm
 @var{algo}.  This is often used prior to @code{gcry_md_read} to allocate
@@ -3715,19 +3717,19 @@ does implicitly stop debugging.
 
 @acronym{Libgcypt} offers random numbers of different quality levels:
 
-@deftp {Data type} enum gcry_random_level
-The constants for the random quality levels are of this type.
+@deftp {Data type} gcry_random_level_t
+The constants for the random quality levels are of this enum type.
 @end deftp
 
 @table @code
 @item GCRY_WEAK_RANDOM
 For all functions, except for @code{gcry_mpi_randomize}, this level maps
-to GCRY_STRONG_RANDOM. IF you do not want this, consider using
+to GCRY_STRONG_RANDOM.  If you do not want this, consider using
 @code{gcry_create_nonce}.
 @item GCRY_STRONG_RANDOM
-Use this level for e.g. session keys and similar purposes.
+Use this level for session keys and similar purposes.
 @item GCRY_VERY_STRONG_RANDOM
-Use this level for e.g. key material.
+Use this level for long term key material.
 @end table
 
 @node Retrieving random numbers
@@ -3739,14 +3741,14 @@ Fill @var{buffer} with @var{length} random bytes using a random quality
 as defined by @var{level}.
 @end deftypefun
 
-@deftypefun void * gcry_random_bytes (size_t @var{nbytes}, enum gcry_random_level @var{level})
+@deftypefun {void *} gcry_random_bytes (size_t @var{nbytes}, enum gcry_random_level @var{level})
 
 Convenience function to allocate a memory block consisting of
 @var{nbytes} fresh random bytes using a random quality as defined by
 @var{level}.
 @end deftypefun
 
-@deftypefun void * gcry_random_bytes_secure (size_t @var{nbytes}, enum gcry_random_level @var{level})
+@deftypefun {void *} gcry_random_bytes_secure (size_t @var{nbytes}, enum gcry_random_level @var{level})
 
 Convenience function to allocate a memory block consisting of
 @var{nbytes} fresh random bytes using a random quality as defined by
@@ -3999,7 +4001,7 @@ printf ("my name is %.*s\n", (int)len, name);
 @end example
 @end deftypefun
 
-@deftypefun char *gcry_sexp_nth_string (@w{gcry_sexp_t @var{list}}, @w{int @var{number}})
+@deftypefun {char *} gcry_sexp_nth_string (@w{gcry_sexp_t @var{list}}, @w{int @var{number}})
 
 This function is used to get and convert data from a @var{list}. The
 data is assumed to be a Nul terminated string.  The caller must
@@ -4045,8 +4047,8 @@ numbers are called MPIs (multi-precision-integers).
 @node Data types
 @section Data types
 
-@deftp {Data type} gcry_mpi_t
-The @code{gcry_mpi_t} type represents an object to hold an MPI.
+@deftp {Data type} {gcry_mpi_t}
+This type represents an object to hold an MPI.
 @end deftp
 
 @node Basic functions
@@ -4418,7 +4420,7 @@ holding the prime factors and store it in @var{factors}.  @var{flags}
 might be used to influence the prime number generation process.
 @end deftypefun
 
-@deftypefun gcry_prime_group_generator (gcry_mpi_t *@var{r_g},
+@deftypefun gcry_error_t gcry_prime_group_generator (gcry_mpi_t *@var{r_g},
 gcry_mpi_t @var{prime}, gcry_mpi_t *@var{factors}, gcry_mpi_t @var{start_g})
 
 Find a generator for @var{prime} where the factorization of
@@ -4456,18 +4458,18 @@ wrong.
 @node Memory allocation
 @section Memory allocation
 
-@deftypefun void *gcry_malloc (size_t @var{n})
+@deftypefun {void *} gcry_malloc (size_t @var{n})
 
 This function tries to allocate @var{n} bytes of memory.  On success
 it returns a pointer to the memory area, in an out-of-core condition,
 it returns NULL.
 @end deftypefun
 
-@deftypefun void *gcry_malloc_secure (size_t @var{n})
+@deftypefun {void *} gcry_malloc_secure (size_t @var{n})
 Like @code{gcry_malloc}, but uses secure memory.
 @end deftypefun
 
-@deftypefun void *gcry_calloc (size_t @var{n})
+@deftypefun {void *} gcry_calloc (size_t @var{n})
 
 This function tries to allocate @var{n} bytes of cleared memory
 (i.e. memory that is initialized with zero bytes).  On success it
@@ -4475,11 +4477,11 @@ returns a pointer to the memory area, in an out-of-core condition, it
 returns NULL.
 @end deftypefun
 
-@deftypefun void *gcry_calloc_secure (size_t @var{n})
+@deftypefun {void *} gcry_calloc_secure (size_t @var{n})
 Like @code{gcry_calloc}, but uses secure memory.
 @end deftypefun
 
-@deftypefun void *gcry_realloc (void *@var{p}, size_t @var{n})
+@deftypefun {void *} gcry_realloc (void *@var{p}, size_t @var{n})
 
 This function tries to resize the memory area pointed to by @var{p} to
 @var{n} bytes.  On success it returns a pointer to the new memory
@@ -4535,8 +4537,8 @@ details.}.
 
 Libgcrypt consists of several subsystems (@pxref{fig:subsystems}) and
 all these subsystems provide a public API; this includes the helper
-subsystems like the one for S-expression.  The API style depends on the
-subsystem; in general an open, use, close approach is implemented.  The
+subsystems like the one for S-expressions.  The API style depends on the
+subsystem; in general an open-use-close approach is implemented.  The
 open returns a handle to a context used for all further operations on
 this handle, several functions may then be used on this handle and a
 final close function releases all resources associated with the handle.

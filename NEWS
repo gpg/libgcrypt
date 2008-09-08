@@ -1,4 +1,4 @@
-Noteworthy changes in version 1.4.2 (unreleased)
+Noteworthy changes in version 1.4.2 (2008-09-08)
 ------------------------------------------------
 
  * The long missing gcry_mpi_lshift function has been added.
