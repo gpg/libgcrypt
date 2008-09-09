@@ -1087,7 +1087,7 @@ do_des_decrypt( void *context, byte *outbuf, const byte *inbuf )
  */
 
 
-/* Complete selftest for TripleDES with all modes and driver code.  */
+/* Selftest for TripleDES.  */
 static gpg_err_code_t
 selftest_fips (selftest_report_func_t report)
 {
@@ -1099,7 +1099,10 @@ selftest_fips (selftest_report_func_t report)
   if (errtxt)
     goto failed;
 
-  /* FIXME:  need more tests.  */
+  /* The low-level self-tests are quite extensive and thus we can do
+     without high level tests.  This is also justified because we have
+     no custom block code implementation for 3des but always use the
+     standard high level block code.  */
 
   return 0; /* Succeeded. */
 

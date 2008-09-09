@@ -44,6 +44,7 @@
 #include "memory.h"
 #include "bithelp.h"
 #include "cipher.h"
+#include "hash-common.h"
 
 typedef struct {
   u32  h0,h1,h2,h3,h4,h5,h6,h7;
@@ -325,12 +326,32 @@ selftests_sha224 (selftest_report_func_t report)
   const char *what;
   const char *errtxt;
   
-  what = "low-level";
-  errtxt = NULL; /*selftest ();*/
+  what = "short string";
+  errtxt = _gcry_hash_selftest_check_one
+    (GCRY_MD_SHA224, 0, 
+     "abc", 3,
+     "\x23\x09\x7d\x22\x34\x05\xd8\x22\x86\x42\xa4\x77\xbd\xa2\x55\xb3"
+     "\x2a\xad\xbc\xe4\xbd\xa0\xb3\xf7\xe3\x6c\x9d\xa7", 28);
   if (errtxt)
     goto failed;
 
-  /* FIXME:  need more tests.  */
+  what = "long string";
+  errtxt = _gcry_hash_selftest_check_one
+    (GCRY_MD_SHA224, 0, 
+     "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", 56,
+     "\x75\x38\x8b\x16\x51\x27\x76\xcc\x5d\xba\x5d\xa1\xfd\x89\x01\x50"
+     "\xb0\xc6\x45\x5c\xb4\xf5\x8b\x19\x52\x52\x25\x25", 28);
+  if (errtxt)
+    goto failed;
+
+  what = "one million \"a\"";
+  errtxt = _gcry_hash_selftest_check_one
+    (GCRY_MD_SHA224, 1,
+     NULL, 0,
+     "\x20\x79\x46\x55\x98\x0c\x91\xd8\xbb\xb4\xc1\xea\x97\x61\x8a\x4b"
+     "\xf0\x3f\x42\x58\x19\x48\xb2\xee\x4e\xe7\xad\x67", 28);
+  if (errtxt)
+    goto failed;
 
   return 0; /* Succeeded. */
 
@@ -346,12 +367,32 @@ selftests_sha256 (selftest_report_func_t report)
   const char *what;
   const char *errtxt;
   
-  what = "low-level";
-  errtxt = NULL; /*selftest ();*/
+  what = "short string";
+  errtxt = _gcry_hash_selftest_check_one
+    (GCRY_MD_SHA256, 0, 
+     "abc", 3,
+     "\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23"
+     "\xb0\x03\x61\xa3\x96\x17\x7a\x9c\xb4\x10\xff\x61\xf2\x00\x15\xad", 32);
   if (errtxt)
     goto failed;
 
-  /* FIXME:  need more tests.  */
+  what = "long string";
+  errtxt = _gcry_hash_selftest_check_one
+    (GCRY_MD_SHA256, 0, 
+     "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", 56,
+     "\x24\x8d\x6a\x61\xd2\x06\x38\xb8\xe5\xc0\x26\x93\x0c\x3e\x60\x39"
+     "\xa3\x3c\xe4\x59\x64\xff\x21\x67\xf6\xec\xed\xd4\x19\xdb\x06\xc1", 32);
+  if (errtxt)
+    goto failed;
+
+  what = "one million \"a\"";
+  errtxt = _gcry_hash_selftest_check_one
+    (GCRY_MD_SHA256, 1,
+     NULL, 0,
+     "\xcd\xc7\x6e\x5c\x99\x14\xfb\x92\x81\xa1\xc7\xe2\x84\xd7\x3e\x67"
+     "\xf1\x80\x9a\x48\xa4\x97\x20\x0e\x04\x6d\x39\xcc\xc7\x11\x2c\xd0", 32);
+  if (errtxt)
+    goto failed;
 
   return 0; /* Succeeded. */
 

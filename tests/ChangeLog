@@ -1,3 +1,7 @@
+2008-09-09  Werner Koch  <wk@g10code.com>
+
+	* basic.c (main): New option --selftest.
+
 2008-08-29  Werner Koch  <wk@g10code.com>
 
 	* keygrip.c: Update to also check ECDSA.

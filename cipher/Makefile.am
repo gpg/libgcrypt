@@ -39,6 +39,7 @@ cipher.c pubkey.c ac.c md.c \
 hmac-tests.c \
 bithelp.h  \
 primegen.c  \
+hash-common.c hash-common.h \
 rmd.h
 
 EXTRA_libcipher_la_SOURCES = \

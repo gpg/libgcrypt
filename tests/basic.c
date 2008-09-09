@@ -2045,6 +2045,7 @@ main (int argc, char **argv)
   int last_argc = -1;
   int debug = 0;
   int use_fips = 0;
+  int selftest_only = 0;
 
   if (argc)
     { argc--; argv++; }
@@ -2072,6 +2073,12 @@ main (int argc, char **argv)
           use_fips = 1;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--selftest"))
+        {
+          selftest_only = 1;
+          verbose += 2;
+          argc--; argv++;
+        }
     }          
 
   gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
@@ -2095,17 +2102,20 @@ main (int argc, char **argv)
   if ( gcry_control (GCRYCTL_FIPS_MODE_P, 0) )
     in_fips_mode = 1;
 
-  check_ciphers ();
-  check_aes128_cbc_cts_cipher ();
-  check_cbc_mac_cipher ();
-  check_ctr_cipher ();
-  check_cfb_cipher ();
-  check_ofb_cipher ();
-  check_digests ();
-  check_hmac ();
-  check_pubkey ();
+  if (!selftest_only)
+    {
+      check_ciphers ();
+      check_aes128_cbc_cts_cipher ();
+      check_cbc_mac_cipher ();
+      check_ctr_cipher ();
+      check_cfb_cipher ();
+      check_ofb_cipher ();
+      check_digests ();
+      check_hmac ();
+      check_pubkey ();
+    }
 
-  if (in_fips_mode)
+  if (in_fips_mode && !selftest_only)
     {
       /* If we are in fips mode do some more tests. */
       gcry_md_hd_t md;
@@ -2152,7 +2162,7 @@ main (int argc, char **argv)
   else
     {
       /* If in standard mode, run selftests.  */
-      gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+      gcry_control (GCRYCTL_SELFTEST, 0);
     }
 
   if (verbose)

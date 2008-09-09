@@ -1,3 +1,13 @@
+2008-09-09  Werner Koch  <wk@g10code.com>
+
+	* hmac-tests.c (selftests_sha1): Add tests.
+	(selftests_sha224, selftests_sha384, selftests_sha512): Make up tests.
+
+	* hash-common.c, hash-common.h: New.
+	* sha1.c (selftests_sha1): Add 3 tests.
+	* sha256.c (selftests_sha256, selftests_sha224): Ditto.
+	* sha512.c (selftests_sha512, selftests_sha384): Ditto.
+
 2008-08-29  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (gcry_pk_get_keygrip): Remove the special case for RSA
