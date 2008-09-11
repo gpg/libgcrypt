@@ -1,3 +1,14 @@
+2008-09-11  Werner Koch  <wk@g10code.com>
+
+	* rsa.c (_gcry_rsa_decrypt): Return an error instead of calling
+	BUG in case of a practically impossible condition.
+	(sample_secret_key, sample_public_key): New.
+	(selftest_sign_1024, selftest_encr_1024): New.
+	(selftests_rsa): Implement tests.
+	* dsa.c (sample_secret_key, sample_public_key): New.
+	(selftest_sign_1024): New.
+	(selftests_dsa): Implement tests.
+
 2008-09-09  Werner Koch  <wk@g10code.com>
 
 	* hmac-tests.c (selftests_sha1): Add tests.

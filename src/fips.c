@@ -538,10 +538,12 @@ _gcry_fips_run_selftests (void)
   if (run_hmac_selftests ())
     goto leave;
 
-  if (run_pubkey_selftests ())
+  /* Run random tests before the pubkey tests because the latter
+     require random.  */
+  if (run_random_selftests ())
     goto leave;
 
-  if (run_random_selftests ())
+  if (run_pubkey_selftests ())
     goto leave;
 
   /* Now check the integrity of the binary.  We do this this after

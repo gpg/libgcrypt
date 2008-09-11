@@ -63,9 +63,9 @@ online: gcrypt.html gcrypt.pdf gcrypt.info
 	  cp gcrypt.info gcrypt.html/; \
 	else \
           rsync -v gcrypt.pdf gcrypt.info \
-               $${user}@cvs.gnupg.org:webspace/manuals/ ; \
+               $${user}@trithemius.gnupg.org:webspace/manuals/ ; \
         fi ; \
 	cd gcrypt.html ; \
         rsync -vr --exclude='.svn' .  \
-	  $${user}@cvs.gnupg.org:webspace/manuals/gcrypt$${dashdevel}/ 
+	  $${user}@trithemius.gnupg.org:webspace/manuals/gcrypt$${dashdevel}/ 
 

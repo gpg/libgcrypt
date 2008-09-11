@@ -1,4 +1,4 @@
-/* rsa.c  -  RSA function
+/* rsa.c - RSA implementation
  * Copyright (C) 1997, 1998, 1999 by Werner Koch (dd9jn)
  * Copyright (C) 2000, 2001, 2002, 2003, 2008 Free Software Foundation, Inc.
  *
@@ -52,6 +52,38 @@ typedef struct
 } RSA_secret_key;
 
 
+/* A sample 1024 bit RSA key used for the selftests.  */
+static const char sample_secret_key[] =
+"(private-key"
+" (rsa"
+"  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
+"      2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
+"      ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
+"      891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea251#)"
+"  (e #010001#)"
+"  (d #046129f2489d71579be0a75fe029bd6cdb574ebf57ea8a5b0fda942cab943b11"
+"      7d7bb95e5d28875e0f9fc5fcc06a72f6d502464dabded78ef6b716177b83d5bd"
+"      c543dc5d3fed932e59f5897e92e6f58a0f33424106a3b6fa2cbf877510e4ac21"
+"      c3ee47851e97d12996222ac3566d4ccb0b83d164074abf7de655fc2446da1781#)"
+"  (p #00e861b700e17e8afe6837e7512e35b6ca11d0ae47d8b85161c67baf64377213"
+"      fe52d772f2035b3ca830af41d8a4120e1c1c70d12cc22f00d28d31dd48a8d424f1#)"
+"  (q #00f7a7ca5367c661f8e62df34f0d05c10c88e5492348dd7bddc942c9a8f369f9"
+"      35a07785d2db805215ed786e4285df1658eed3ce84f469b81b50d358407b4ad361#)"
+"  (u #304559a9ead56d2309d203811a641bb1a09626bc8eb36fffa23c968ec5bd891e"
+"      ebbafc73ae666e01ba7c8990bae06cc2bbe10b75e69fcacb353a6473079d8e9b#)))";
+/* A sample 1024 bit RSA key used for the selftests (public only).  */
+static const char sample_public_key[] = 
+"(public-key"
+" (rsa"
+"  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
+"      2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
+"      ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
+"      891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea251#)"
+"  (e #010001#)))";
+
+
+
+
 static void test_keys (RSA_secret_key *sk, unsigned nbits);
 static gpg_err_code_t generate (RSA_secret_key *sk,
                                 unsigned int nbits, unsigned long use_e,
@@ -585,12 +617,11 @@ _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
 			  GCRY_STRONG_RANDOM);
       gcry_mpi_mod (r, r, sk.n);
 
-      /* Actually it should be okay to skip the check for equality
-	 with either p or q here.  */
-
-      /* Calculate inverse of r.  */
-      if (! gcry_mpi_invm (ri, r, sk.n))
-	BUG ();
+      /* Calculate inverse of r.  It practically impossible that the
+         follwing test fails, thus we do not add code to release
+         allocated resources.  */
+      if (!gcry_mpi_invm (ri, r, sk.n))
+	return GPG_ERR_INTERNAL;
     }
 
   if (! (flags & PUBKEY_FLAG_NO_BLINDING))
@@ -730,23 +761,179 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
      Self-test section.
  */
 
+static const char *
+selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
+{
+  static const char sample_data[] = 
+    "(data (flags pkcs1)"
+    " (hash sha1 #11223344556677889900aabbccddeeff10203040#))";
+  static const char sample_data_bad[] = 
+    "(data (flags pkcs1)"
+    " (hash sha1 #11223344556677889900aabbccddeeff80203040#))";
+
+  const char *errtxt = NULL;
+  gcry_error_t err;
+  gcry_sexp_t data = NULL;
+  gcry_sexp_t data_bad = NULL;
+  gcry_sexp_t sig = NULL;
+
+  err = gcry_sexp_sscan (&data, NULL,
+                         sample_data, strlen (sample_data));
+  if (!err)
+    err = gcry_sexp_sscan (&data_bad, NULL, 
+                           sample_data_bad, strlen (sample_data_bad));
+  if (err)
+    {
+      errtxt = "converting data failed";
+      goto leave;
+    }
+
+  err = gcry_pk_sign (&sig, data, skey);
+  if (err)
+    {
+      errtxt = "signing failed";
+      goto leave;
+    }
+  err = gcry_pk_verify (sig, data, pkey);
+  if (err)
+    {
+      errtxt = "verify failed";
+      goto leave;
+    }
+  err = gcry_pk_verify (sig, data_bad, pkey);
+  if (gcry_err_code (err) != GPG_ERR_BAD_SIGNATURE)
+    {
+      errtxt = "bad signature not detected";
+      goto leave;
+    }
+
+
+ leave:
+  gcry_sexp_release (sig);
+  gcry_sexp_release (data_bad);
+  gcry_sexp_release (data);
+  return errtxt;
+}
+
+
+static const char *
+selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
+{
+  const char *errtxt = NULL;
+  gcry_error_t err;
+  const unsigned int nbits = 1000; /* Encrypt 1000 random bits.  */
+  gcry_mpi_t value = NULL;
+  gcry_sexp_t plain = NULL;
+  gcry_sexp_t encr  = NULL;
+  gcry_sexp_t decr  = NULL;
+  gcry_mpi_t  decr_value = NULL;
+  gcry_sexp_t tmplist = NULL;
+
+  /* Create plain text.  */
+  value = gcry_mpi_new (nbits);
+  gcry_mpi_randomize (value, nbits, GCRY_WEAK_RANDOM);
+  
+  err = gcry_sexp_build (&plain, NULL, "(data (flags raw) (value %m))", value);
+  if (err)
+    {
+      errtxt = "converting data failed";
+      goto leave;
+    }
+
+  /* Encrypt and decrypt.  */
+  err = gcry_pk_encrypt (&encr, plain, pkey);
+  if (err)
+    {
+      errtxt = "encrypt failed";
+      goto leave;
+    }
+  err = gcry_pk_decrypt (&decr, encr, skey);
+  if (err)
+    {
+      errtxt = "decrypt failed";
+      goto leave;
+    }
+
+  /* Extract decrypted data.  The output of gcry_pk_decrypt depends on
+     whether a flags lists occurs in its input data.  Because we
+     passed the output of gcry_pk_encrypt directly to gcry_pk_decrypt,
+     such a flag value won't be there as of today.  To be prepared for
+     future changes we take care of it anyway.  */
+  tmplist = gcry_sexp_find_token (decr, "value", 0);
+  if (tmplist)
+    decr_value = gcry_sexp_nth_mpi (tmplist, 1, GCRYMPI_FMT_USG);
+  else
+    decr_value = gcry_sexp_nth_mpi (decr, 0, GCRYMPI_FMT_USG);
+  if (!decr_value)
+    {
+      errtxt = "decrypt returned no value";
+      goto leave;
+    }
+
+  if (gcry_mpi_cmp (value, decr_value))
+    {
+      errtxt = "mismatch";
+      goto leave;
+    }
+
+ leave:
+  gcry_sexp_release (tmplist);
+  gcry_mpi_release (decr_value);
+  gcry_sexp_release (decr);
+  gcry_sexp_release (encr);
+  gcry_sexp_release (plain);
+  gcry_mpi_release (value);
+  return errtxt;
+}
+
 
 static gpg_err_code_t
 selftests_rsa (selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
+  gcry_error_t err;
+  gcry_sexp_t skey = NULL;
+  gcry_sexp_t pkey = NULL;
   
-  what = "low-level";
-  errtxt = NULL; /*selftest ();*/
+  /* Convert the S-expressions into the internal representation.  */
+  what = "convert";
+  err = gcry_sexp_sscan (&skey, NULL, 
+                         sample_secret_key, strlen (sample_secret_key));
+  if (!err)
+    err = gcry_sexp_sscan (&pkey, NULL, 
+                           sample_public_key, strlen (sample_public_key));
+  if (err)
+    {
+      errtxt = gcry_strerror (err);
+      goto failed;
+    }
+
+  what = "key consistency";
+  err = gcry_pk_testkey (skey);
+  if (err)
+    {
+      errtxt = gcry_strerror (err);
+      goto failed;
+    }
+
+  what = "sign";
+  errtxt = selftest_sign_1024 (pkey, skey);
   if (errtxt)
     goto failed;
 
-  /* FIXME:  need more tests.  */
+  what = "encrypt";
+  errtxt = selftest_encr_1024 (pkey, skey);
+  if (errtxt)
+    goto failed;
 
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
   return 0; /* Succeeded. */
 
  failed:
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
   if (report)
     report ("pubkey", GCRY_PK_RSA, what, errtxt);
   return GPG_ERR_SELFTEST_FAILED;

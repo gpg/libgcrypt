@@ -1375,7 +1375,7 @@ check_one_hmac (int algo, const char *data, int datalen,
   gcry_md_close (hd);
 
   p = gcry_md_read (hd2, algo);
-  if (0 == p)
+  if (!p)
     fail("algo %d, hmac gcry_md_read failed\n", algo);
 
   if (memcmp (p, expect, mdlen))

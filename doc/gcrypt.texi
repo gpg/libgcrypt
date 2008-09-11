@@ -2273,7 +2273,7 @@ function checks that this data actually can be used with the given key,
 does the padding and encrypts it.
 
 If the function could successfully perform the encryption, the return
-value will be 0 and a a new S-expression with the encrypted result is
+value will be 0 and a new S-expression with the encrypted result is
 allocated and assigned to the variable at the address of @var{r_ciph}.
 The caller is responsible to release this value using
 @code{gcry_sexp_release}.  In case of an error, an error code is
@@ -4608,9 +4608,20 @@ level code (@file{cipher/pubkey.c}).  Thus the internal interface
 between the algorithm modules and the high level functions passes data
 in a custom format.  The interface to the modules is published
 (@file{gcrypt-modules.h}) so that it can used to register external
-implementations of algorithms with Libgcrypt.  However, for some algorithms this
-module interface is to limited and thus for the internal modules an
-extra interface is sometimes used to convey more information.
+implementations of algorithms with Libgcrypt.  However, for some
+algorithms this module interface is to limited and thus for the
+internal modules an extra interface is sometimes used to convey more
+information.
+
+By default Libgcrypt uses a blinding technique for RSA decryption to
+mitigate real world timing attacks over a network: Instead of using
+the RSA decryption directly, a blinded value @math{y = x r^{e} \bmod n}
+is decrypted and the unblinded value @math{x' = y' r^{-1} \bmod n}
+returned.  The blinding value @math{r} is a random value with the size
+of the modulus @math{n} and generated with @code{GCRY_STRONG_RANDOM}
+random level.
+
+
 
 
 @node Symmetric Encryption Subsystem Architecture

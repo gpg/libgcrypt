@@ -1,4 +1,4 @@
-/* dsa.c  -  DSA signature scheme
+/* dsa.c - DSA signature scheme
  * Copyright (C) 1998, 2000, 2001, 2002, 2003,
  *               2006, 2008  Free Software Foundation, Inc.
  *
@@ -47,6 +47,45 @@ typedef struct
 } DSA_secret_key;
 
 
+/* A sample 1024 bit DSA key used for the selftests.  */
+static const char sample_secret_key[] =
+"(private-key"
+" (dsa"
+"  (p #00AD7C0025BA1A15F775F3F2D673718391D00456978D347B33D7B49E7F32EDAB"
+"      96273899DD8B2BB46CD6ECA263FAF04A28903503D59062A8865D2AE8ADFB5191"
+"      CF36FFB562D0E2F5809801A1F675DAE59698A9E01EFE8D7DCFCA084F4C6F5A44"
+"      44D499A06FFAEA5E8EF5E01F2FD20A7B7EF3F6968AFBA1FB8D91F1559D52D8777B#)"
+"  (q #00EB7B5751D25EBBB7BD59D920315FD840E19AEBF9#)"
+"  (g #1574363387FDFD1DDF38F4FBE135BB20C7EE4772FB94C337AF86EA8E49666503"
+"      AE04B6BE81A2F8DD095311E0217ACA698A11E6C5D33CCDAE71498ED35D13991E"
+"      B02F09AB40BD8F4C5ED8C75DA779D0AE104BC34C960B002377068AB4B5A1F984"
+"      3FBA91F537F1B7CAC4D8DD6D89B0D863AF7025D549F9C765D2FC07EE208F8D15#)"
+"  (y #64B11EF8871BE4AB572AA810D5D3CA11A6CDBC637A8014602C72960DB135BF46"
+"      A1816A724C34F87330FC9E187C5D66897A04535CC2AC9164A7150ABFA8179827"
+"      6E45831AB811EEE848EBB24D9F5F2883B6E5DDC4C659DEF944DCFD80BF4D0A20"
+"      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB#)"
+"  (x #11D54E4ADBD3034160F2CED4B7CD292A4EBF3EC0#)))";
+/* A sample 1024 bit DSA key used for the selftests (public only).  */
+static const char sample_public_key[] = 
+"(public-key"
+" (dsa"
+"  (p #00AD7C0025BA1A15F775F3F2D673718391D00456978D347B33D7B49E7F32EDAB"
+"      96273899DD8B2BB46CD6ECA263FAF04A28903503D59062A8865D2AE8ADFB5191"
+"      CF36FFB562D0E2F5809801A1F675DAE59698A9E01EFE8D7DCFCA084F4C6F5A44"
+"      44D499A06FFAEA5E8EF5E01F2FD20A7B7EF3F6968AFBA1FB8D91F1559D52D8777B#)"
+"  (q #00EB7B5751D25EBBB7BD59D920315FD840E19AEBF9#)"
+"  (g #1574363387FDFD1DDF38F4FBE135BB20C7EE4772FB94C337AF86EA8E49666503"
+"      AE04B6BE81A2F8DD095311E0217ACA698A11E6C5D33CCDAE71498ED35D13991E"
+"      B02F09AB40BD8F4C5ED8C75DA779D0AE104BC34C960B002377068AB4B5A1F984"
+"      3FBA91F537F1B7CAC4D8DD6D89B0D863AF7025D549F9C765D2FC07EE208F8D15#)"
+"  (y #64B11EF8871BE4AB572AA810D5D3CA11A6CDBC637A8014602C72960DB135BF46"
+"      A1816A724C34F87330FC9E187C5D66897A04535CC2AC9164A7150ABFA8179827"
+"      6E45831AB811EEE848EBB24D9F5F2883B6E5DDC4C659DEF944DCFD80BF4D0A20"
+"      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB#)))";
+
+
+
+
 static gcry_mpi_t gen_k (gcry_mpi_t q);
 static void test_keys (DSA_secret_key *sk, unsigned qbits);
 static int check_secret_key (DSA_secret_key *sk);
@@ -539,23 +578,103 @@ _gcry_dsa_get_nbits (int algo, gcry_mpi_t *pkey)
      Self-test section.
  */
 
+static const char *
+selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
+{
+  static const char sample_data[] = 
+    "(data (flags pkcs1)"
+    " (hash sha1 #a0b1c2d3e4f500102030405060708090a1b2c3d4#))";
+  static const char sample_data_bad[] = 
+    "(data (flags pkcs1)"
+    " (hash sha1 #a0b1c2d3e4f510102030405060708090a1b2c3d4#))";
+
+  const char *errtxt = NULL;
+  gcry_error_t err;
+  gcry_sexp_t data = NULL;
+  gcry_sexp_t data_bad = NULL;
+  gcry_sexp_t sig = NULL;
+
+  err = gcry_sexp_sscan (&data, NULL,
+                         sample_data, strlen (sample_data));
+  if (!err)
+    err = gcry_sexp_sscan (&data_bad, NULL, 
+                           sample_data_bad, strlen (sample_data_bad));
+  if (err)
+    {
+      errtxt = "converting data failed";
+      goto leave;
+    }
+
+  err = gcry_pk_sign (&sig, data, skey);
+  if (err)
+    {
+      errtxt = "signing failed";
+      goto leave;
+    }
+  err = gcry_pk_verify (sig, data, pkey);
+  if (err)
+    {
+      errtxt = "verify failed";
+      goto leave;
+    }
+  err = gcry_pk_verify (sig, data_bad, pkey);
+  if (gcry_err_code (err) != GPG_ERR_BAD_SIGNATURE)
+    {
+      errtxt = "bad signature not detected";
+      goto leave;
+    }
+
+
+ leave:
+  gcry_sexp_release (sig);
+  gcry_sexp_release (data_bad);
+  gcry_sexp_release (data);
+  return errtxt;
+}
+
 
 static gpg_err_code_t
 selftests_dsa (selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
-  
-  what = "low-level";
-  errtxt = NULL; /*selftest ();*/
+  gcry_error_t err;
+  gcry_sexp_t skey = NULL;
+  gcry_sexp_t pkey = NULL;
+
+  /* Convert the S-expressions into the internal representation.  */
+  what = "convert";
+  err = gcry_sexp_sscan (&skey, NULL, 
+                         sample_secret_key, strlen (sample_secret_key));
+  if (!err)
+    err = gcry_sexp_sscan (&pkey, NULL, 
+                           sample_public_key, strlen (sample_public_key));
+  if (err)
+    {
+      errtxt = gcry_strerror (err);
+      goto failed;
+    }
+
+  what = "key consistency";
+  err = gcry_pk_testkey (skey);
+  if (err)
+    {
+      errtxt = gcry_strerror (err);
+      goto failed;
+    }
+
+  what = "sign";
+  errtxt = selftest_sign_1024 (pkey, skey);
   if (errtxt)
     goto failed;
 
-  /* FIXME:  need more tests.  */
-
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
   return 0; /* Succeeded. */
 
  failed:
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
   if (report)
     report ("pubkey", GCRY_PK_DSA, what, errtxt);
   return GPG_ERR_SELFTEST_FAILED;
