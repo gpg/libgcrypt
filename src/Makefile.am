@@ -126,7 +126,7 @@ uninstall-local: uninstall-def-file
 # libgcrypt.la?) and how to create the hmac file already at link time
 # so that it can be used without installing libgcrypt first.
 #install-exec-hook:
-#	./hmac256 --binary "What am I, a doctor or a moonshuttle conductor?" \
-#           $(DESTDIR)$(libdir)/libgcrypt.so.11.5.0 \
-#          >$(DESTDIR)$(libdir)/libgcrypt.so.11.5.0.hmac
+#	./hmac256 "What am I, a doctor or a moonshuttle conductor?" \
+#          < $(DESTDIR)$(libdir)/libgcrypt.so.11.5.0 \
+#          > $(DESTDIR)$(libdir)/.libgcrypt.so.11.5.0.hmac
 

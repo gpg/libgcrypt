@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
+#include <string.h>
 #ifdef ENABLE_HMAC_BINARY_CHECK
 # include <dlfcn.h> 
 #endif
@@ -60,9 +61,18 @@ static enum module_states current_state;
 
 
 
+
 
 static void fips_new_state (enum module_states new_state);
 
+
+
+/* Convert lowercase hex digits; assumes valid hex digits. */
+#define loxtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): (*(p)-'a'+10))
+#define loxtoi_2(p)   ((loxtoi_1(p) * 16) + loxtoi_1((p)+1))
+
+/* Returns true if P points to a lowercase hex digit. */
+#define loxdigit_p(p) !!strchr ("01234567890abcdef", *(p))
 
 
 
@@ -480,31 +490,52 @@ check_binary_integrity (void)
         err = gpg_error (GPG_ERR_INTERNAL);
       else
         {
-          FILE *fp;
-  
-          fname = gcry_malloc (strlen (info.dli_fname) + 5 + 1 );
+          fname = gcry_malloc (strlen (info.dli_fname) + 1 + 5 + 1 );
           if (!fname)
             err = gpg_error_from_syserror ();
           else
             {
-              strcpy (stpcpy (fname, info.dli_fname), ".hmac");
-              fp = fopen (fname, "rb");
+              FILE *fp;
+              char *p;
+
+              /* Prefix the basename with a dot.  */
+              strcpy (fname, info.dli_fname);
+              p = strrchr (fname, '/');
+              if (p)
+                p++;
+              else
+                p = fname;
+              memmove (p+1, p, strlen (p)+1);
+              *p = '.';
+              strcat (fname, ".hmac");
+
+              /* Open the file.  */
+              fp = fopen (fname, "r");
               if (!fp)
                 err = gpg_error_from_syserror ();
               else
                 {
-                  char buffer[33];
+                  /* A buffer of 64 bytes plus one for a LF and one to
+                     detect garbage.  */
+                  unsigned char buffer[64+1+1]; 
+                  const unsigned char *s;
                   int n;
 
-                  /* We expect a file of exactly 32 bytes.  Consider
-                     the self-test failed if this is not the case or
-                     if it does not match the just computed HMAC.  */
-                  if ((n=fread (buffer, 1, 33, fp)) != 32
-                      || memcmp (digest, buffer, 32) )
-                    err = gpg_error (GPG_ERR_SELFTEST_FAILED);
-                  else
-                    err = 0;
-
+                  /* The HMAC files consists of lowercase hex digits
+                     only with an optional trailing linefeed.  Fail if
+                     there is any garbage.  */
+                  err = gpg_error (GPG_ERR_SELFTEST_FAILED);
+                  n = fread (buffer, 1, sizeof buffer, fp);
+                  if (n == 64 || (n == 65 && buffer[64] == '\n'))
+                    {
+                      buffer[64] = 0;
+                      for (n=0, s= buffer;
+                           n < 32 && loxdigit_p (s) && loxdigit_p (s+1);
+                           n++, s += 2)
+                        buffer[n] = loxtoi_2 (s);
+                      if ( n == 32 && !memcmp (digest, buffer, 32) )
+                        err = 0;
+                    }
                   fclose (fp);
                 }
             }

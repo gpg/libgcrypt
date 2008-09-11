@@ -1,5 +1,9 @@
 2008-09-11  Werner Koch  <wk@g10code.com>
 
+	* fips.c: Include string.h.
+	(loxtoi_1, loxtoi_2, loxdigit_p): New.
+	(check_binary_integrity): Change the format of the expected file.
+
 	* fips.c (_gcry_fips_run_selftests): Run random tests before the
 	pubkey tests.
 
