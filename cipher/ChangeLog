@@ -1,3 +1,9 @@
+2008-09-12  Werner Koch  <wk@g10code.com>
+
+	* rsa.c (extract_a_from_sexp): New.
+	(selftest_encr_1024): Check that the ciphertext does not match the
+	plaintext.
+
 2008-09-11  Werner Koch  <wk@g10code.com>
 
 	* rsa.c (_gcry_rsa_decrypt): Return an error instead of calling

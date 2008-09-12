@@ -816,37 +816,93 @@ selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
 }
 
 
+
+/* Given an S-expression ENCR_DATA of the form:
+
+   (enc-val
+    (rsa
+     (a a-value)))
+
+   as returned by gcry_pk_decrypt, return the the A-VALUE.  On error,
+   return NULL.  */
+static gcry_mpi_t
+extract_a_from_sexp (gcry_sexp_t encr_data)
+{
+  gcry_sexp_t l1, l2, l3;
+  gcry_mpi_t a_value;
+
+  l1 = gcry_sexp_find_token (encr_data, "enc-val", 0);
+  if (!l1)
+    return NULL;
+  l2 = gcry_sexp_find_token (l1, "rsa", 0);
+  gcry_sexp_release (l1);
+  if (!l2)
+    return NULL;
+  l3 = gcry_sexp_find_token (l2, "a", 0);
+  gcry_sexp_release (l2);
+  if (!l3)
+    return NULL;
+  a_value = gcry_sexp_nth_mpi (l3, 1, 0);
+  gcry_sexp_release (l3);
+
+  return a_value;
+}
+
+
 static const char *
 selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
 {
   const char *errtxt = NULL;
   gcry_error_t err;
   const unsigned int nbits = 1000; /* Encrypt 1000 random bits.  */
-  gcry_mpi_t value = NULL;
+  gcry_mpi_t plaintext = NULL;
   gcry_sexp_t plain = NULL;
   gcry_sexp_t encr  = NULL;
+  gcry_mpi_t  ciphertext = NULL;
   gcry_sexp_t decr  = NULL;
-  gcry_mpi_t  decr_value = NULL;
+  gcry_mpi_t  decr_plaintext = NULL;
   gcry_sexp_t tmplist = NULL;
 
-  /* Create plain text.  */
-  value = gcry_mpi_new (nbits);
-  gcry_mpi_randomize (value, nbits, GCRY_WEAK_RANDOM);
+  /* Create plaintext.  The plaintext is actually a big integer number.  */
+  plaintext = gcry_mpi_new (nbits);
+  gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
   
-  err = gcry_sexp_build (&plain, NULL, "(data (flags raw) (value %m))", value);
+  /* Put the plaintext into an S-expression.  */
+  err = gcry_sexp_build (&plain, NULL,
+                         "(data (flags raw) (value %m))", plaintext);
   if (err)
     {
       errtxt = "converting data failed";
       goto leave;
     }
 
-  /* Encrypt and decrypt.  */
+  /* Encrypt.  */
   err = gcry_pk_encrypt (&encr, plain, pkey);
   if (err)
     {
       errtxt = "encrypt failed";
       goto leave;
     }
+
+  /* Extraxt the ciphertext from the returned S-expression.  */
+  /*gcry_sexp_dump (encr);*/
+  ciphertext = extract_a_from_sexp (encr);
+  if (!ciphertext)
+    {
+      errtxt = "gcry_pk_decrypt returned garbage";
+      goto leave;
+    }
+
+  /* Check that the ciphertext does no match the plaintext.  */
+  /* _gcry_log_mpidump ("plaintext", plaintext); */
+  /* _gcry_log_mpidump ("ciphertxt", ciphertext); */
+  if (!gcry_mpi_cmp (plaintext, ciphertext))
+    {
+      errtxt = "ciphertext matches plaintext";
+      goto leave;
+    }
+
+  /* Decrypt.  */
   err = gcry_pk_decrypt (&decr, encr, skey);
   if (err)
     {
@@ -854,23 +910,25 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
       goto leave;
     }
 
-  /* Extract decrypted data.  The output of gcry_pk_decrypt depends on
-     whether a flags lists occurs in its input data.  Because we
-     passed the output of gcry_pk_encrypt directly to gcry_pk_decrypt,
-     such a flag value won't be there as of today.  To be prepared for
-     future changes we take care of it anyway.  */
+  /* Extract the decrypted data from the S-expression.  Note that the
+     output of gcry_pk_decrypt depends on whether a flags lists occurs
+     in its input data.  Because we passed the output of
+     gcry_pk_encrypt directly to gcry_pk_decrypt, such a flag value
+     won't be there as of today.  To be prepared for future changes we
+     take care of it anyway.  */
   tmplist = gcry_sexp_find_token (decr, "value", 0);
   if (tmplist)
-    decr_value = gcry_sexp_nth_mpi (tmplist, 1, GCRYMPI_FMT_USG);
+    decr_plaintext = gcry_sexp_nth_mpi (tmplist, 1, GCRYMPI_FMT_USG);
   else
-    decr_value = gcry_sexp_nth_mpi (decr, 0, GCRYMPI_FMT_USG);
-  if (!decr_value)
+    decr_plaintext = gcry_sexp_nth_mpi (decr, 0, GCRYMPI_FMT_USG);
+  if (!decr_plaintext)
     {
-      errtxt = "decrypt returned no value";
+      errtxt = "decrypt returned no plaintext";
       goto leave;
     }
-
-  if (gcry_mpi_cmp (value, decr_value))
+  
+  /* Check that the decrypted plaintext matches the original  plaintext.  */
+  if (gcry_mpi_cmp (plaintext, decr_plaintext))
     {
       errtxt = "mismatch";
       goto leave;
@@ -878,11 +936,12 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
 
  leave:
   gcry_sexp_release (tmplist);
-  gcry_mpi_release (decr_value);
+  gcry_mpi_release (decr_plaintext);
   gcry_sexp_release (decr);
+  gcry_mpi_release (ciphertext);
   gcry_sexp_release (encr);
   gcry_sexp_release (plain);
-  gcry_mpi_release (value);
+  gcry_mpi_release (plaintext);
   return errtxt;
 }
 
