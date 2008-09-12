@@ -77,6 +77,7 @@ section entitled ``GNU General Public License''.
 
 Appendices
 
+* Self-Tests::                  Description of self-tests.
 * FIPS Restrictions::           Restrictions in FIPS mode.
 * FIPS Finite State Machine::   Description of the FIPS FSM.
 * Library Copying::             The GNU Lesser General Public License
@@ -550,7 +551,7 @@ initialization (i.e. before @code{gcry_check_version}).
 Once Libgcrypt has been put into FIPS mode, it is not possible to
 switch back to standard mode without terminating the process first.
 If the logging verbosity level of Libgcrypt has been set to at least
-2, the state transitions and the selftests are logged.
+2, the state transitions and the self-tests are logged.
 
 
 
@@ -768,7 +769,7 @@ before a gcry_version_check.
 
 @item GCRYCTL_FORCE_FIPS_MODE; Arguments: none
 Running this command puts the library into FIPS mode.  If the library is
-already in FIPS mode, a selftest is triggered and thus the library will
+already in FIPS mode, a self-test is triggered and thus the library will
 be put into operational state.  This command may be used before a call
 to gcry_check_version and that is actually the recommended way to let an
 application switch the library into FIPS mode.  Note that Libgcrypt will
@@ -776,7 +777,7 @@ reject an attempt to switch to fips mode during or after the intialization.
 
 @item GCRYCTL_SELFTEST; Arguments: none
 This may be used at anytime to have the library run all implemented
-selftests.  It works in standard and in FIPS mode.  Returns 0 on
+self-tests.  It works in standard and in FIPS mode.  Returns 0 on
 success or an error code on failure.
 
 
@@ -4932,7 +4933,7 @@ before and thus gets initialized on the first use by
 weaker requirements for a nonce generator and to save precious kernel
 entropy for use by the ``real'' random generators.
 
-A self test facility uses a separate context to check the
+A self-test facility uses a separate context to check the
 functionality of the core X9.31 functions using a known answers test.
 During runtime each output block is compared to the previous one to
 detect a stucked generator.
@@ -4993,9 +4994,343 @@ incremented on each use.
 @c **********************************************************
 
 @c ********************************************
+@node Self-Tests
+@appendix Description of Self-Tests
+
+In addition to the build time regression test suite, Libgcrypt
+implements self-tests to be performed at runtime.  Which self-tests
+are actually used depends on the mode Libgcrypt is used in.  In
+standard mode a limited set of self-tests is run at the time an
+algorithm is first used.  Note that not all algorithms feature a
+self-test in standard mode.  The @code{GCRYCTL_SELFTEST} control
+command may be used to run all implemented self-tests at any time;
+this will even run more tests than those run in FIPS mode.
+
+If any of the self-tests fails, the library immediately returns an
+error code to the caller.  If Libgcrypt is in FIPS mode the self-tests
+will be performed within the ``Self-Test'' state and any failure puts
+the library into the ``Error'' state.
+
+@c --------------------------------
+@section Power-Up Tests
+
+Power-up tests are only performed if Libgcrypt is in FIPS mode.  
+
+@subsection Symmetric Cipher Algorithm Power-Up Tests
+
+The following symmetric encryption algorithm tests are run during
+power-up:
+
+@table @asis
+@item 3DES
+To test the 3DES 3-key EDE encryption in ECB mode these tests are
+run:
+@enumerate
+@item
+A known answer test is run on a 64 bit test vector processed by 64
+rounds of Single-DES block encryption and decryption using a key
+changed with each round.
+@item
+A known answer test is run on a 64 bit test vector processed by 16
+rounds of 2-key and 3-key Triple-DES block encryption and decryptions
+using a key changed with each round.
+@item
+10 known answer tests using 3-key Triple-DES EDE encryption, comparing
+the ciphertext to the known value, then running a decryption and
+comparing it to the initial plaintext.
+@end enumerate
+(@code{cipher/des.c:selftest})
+
+@item AES-128
+A known answer tests is run using one test vector and one test
+key with AES in ECB mode. (@code{cipher/rijndael.c:selftest_basic_128})
+
+@item AES-192
+A known answer tests is run using one test vector and one test
+key with AES in ECB mode. (@code{cipher/rijndael.c:selftest_basic_192})
+
+@item AES-256
+A known answer tests is run using one test vector and one test key
+with AES in ECB mode. (@code{cipher/rijndael.c:selftest_basic_256})
+@end table
+
+@subsection Hash Algorithm Power-Up Tests
+
+The following hash algorithm tests are run during power-up:
+
+@table @asis
+@item SHA-1
+A known answer test using the string @code{"abc"} is run.
+(@code{cipher/@/sha1.c:@/selftests_sha1})
+@item SHA-224
+A known answer test using the string @code{"abc"} is run.
+(@code{cipher/@/sha256.c:@/selftests_sha224})
+@item SHA-256
+A known answer test using the string @code{"abc"} is run.
+(@code{cipher/@/sha256.c:@/selftests_sha256})
+@item SHA-384
+A known answer test using the string @code{"abc"} is run.
+(@code{cipher/@/sha512.c:@/selftests_sha384})
+@item SHA-512
+A known answer test using the string @code{"abc"} is run.
+(@code{cipher/@/sha512.c:@/selftests_sha512})
+@end table
+
+@subsection MAC Algorithm Power-Up Tests
+
+The following MAC algorithm tests are run during power-up:
+
+@table @asis
+@item HMAC SHA-1
+A known answer test using 9 byte of data and a 64 byte key is run.
+(@code{cipher/hmac-tests.c:selftests_sha1})
+@item HMAC SHA-224
+A known answer test using 28 byte of data and a 4 byte key is run.
+(@code{cipher/hmac-tests.c:selftests_sha224})
+@item HMAC SHA-256
+A known answer test using 28 byte of data and a 4 byte key is run.
+(@code{cipher/hmac-tests.c:selftests_sha256})
+@item HMAC SHA-384
+A known answer test using 28 byte of data and a 4 byte key is run.
+(@code{cipher/hmac-tests.c:selftests_sha384})
+@item HMAC SHA-512
+A known answer test using 28 byte of data and a 4 byte key is run.
+(@code{cipher/hmac-tests.c:selftests_sha512})
+@end table
+
+@subsection Random Number Power-Up Test
+
+The DRNG is tested during power-up this way:
+
+@enumerate
+@item 
+Requesting one block of random using the public interface to check
+general working and the duplicated block detection.
+@item
+3 know answer tests using pre-defined keys, seed and initial DT
+values.  For each test 3 blocks of 16 bytes are requested and compared
+to the expected result.  The DT value is incremented for each block.
+@end enumerate
+
+@subsection Public Key Algorithm Power-Up Tests
+
+The public key algorithms are tested during power-up:
+
+@table @asis
+@item RSA
+A pre-defined 1024 bit RSA key is used and these tests are run
+in turn:
+@enumerate
+@item 
+Conversion of S-expression to internal format. 
+(@code{cipher/@/rsa.c:@/selftests_rsa})
+@item 
+Private key consistency check.
+(@code{cipher/@/rsa.c:@/selftests_rsa})
+@item
+A pre-defined 20 byte value is signed with PKCS#1 padding for SHA-1.
+The result is verified using the public key against the original data
+and against modified data.  (@code{cipher/@/rsa.c:@/selftest_sign_1024})
+@item
+A 1000 bit random value is encrypted and checked that it does not
+match the orginal random value.  The encrtypted result is then
+decrypted and checked that it macthes the original random value.
+(@code{cipher/@/rsa.c:@/selftest_encr_1024})
+@end enumerate
+
+@item DSA
+A pre-defined 1024 bit DSA key is used and these tests are run in turn:
+@enumerate
+@item
+Conversion of S-expression to internal format.
+(@code{cipher/@/dsa.c:@/selftests_dsa})
+@item
+Private key consistency check.
+(@code{cipher/@/dsa.c:@/selftests_dsa})
+@item
+A pre-defined 20 byte value is signed with PKCS#1 padding for
+SHA-1.  The result is verified using the public key against the
+original data and against modified data.
+(@code{cipher/@/dsa.c:@/selftest_sign_1024})
+@end enumerate
+@end table
+
+@subsection Integrity Power-Up Tests
+
+The integrity of the Libgcrypt is tested during power-up but only if
+checking has been enabled at build time.  The check works by computing
+a HMAC SHA-256 checksum over the file used to load Libgcrypt into
+memory.  That checksum is compared against a checksum stored in a file
+of the same name but with a single dot as a prefix and a suffix of
+@file{.hmac}.
+
+
+@subsection Critical Functions Power-Up Tests
+
+The 3DES weak key detection is tested during power-up by calling the
+detection function with keys taken from a table listening all weak
+keys.  The table itself is protected using a SHA-1 hash.
+(@code{cipher/@/des.c:@/selftest})
+
+
+
+@c --------------------------------
+@section Conditional Tests
+
+The conditional tests are performed if a certain contidion is met.
+This may occur at any time; the library does not necessary enter the
+``Self-Test'' state to run these tests but will transit to the
+``Error'' state if a test failed.
+
+@subsection Key-Pair Generation Tests
+
+After an asymmetric key-pair has been generated, Libgcrypt runs a
+pair-wise consistency tests on the generated key.  On failure the
+generated key is not used, an error code is returned and, if in FIPS
+mode, the library is put into the ``Error'' state.
+
+@table @asis
+@item RSA
+The test uses a random number 64 bits less the size of the modulus to
+test the encryption and decryption operation.  A new random number of
+the same size is then generated to test the signing operation.  The
+signature is then modified and then checked to test that a modified
+signature is correcty detected.  (@code{cipher/@/dsa.c:@/test_keys})
+@item DSA
+The test uses a random number of the size of the Q parameter to create
+a signature and then checked that the signature verifies. The data is
+then modified and then checked that the signature does not verify.
+(@code{cipher/@/dsa.c:@/test_keys})
+@end table
+
+
+@subsection Software Load Tests
+
+Loading of extra modules into libgcrypt is disabled in FIPS mode and
+thus no tests are
+implemented. (@code{cipher/@/cipher.c:@/gcry_cipher_register},
+@code{cipher/@/md.c:@/gcry_md_register},
+@code{cipher/@/md.c:@/gcry_pk_register})
+
+
+@subsection Manual Key Entry Tests
+
+A manual key entry feature is not implemented in Libgcrypt.
+
+
+@subsection Continuous RNG Tests
+
+The continuous random number test is only used in FIPS mode.  The RNG
+generates blocks of 128 bit size; the first block generated per
+context is saved in the context and another block is generated to be
+returned to the caller.  Each block is compared against the saved
+block and then stored in the context.  If a duplicated block is
+detected an error is signaled and the libray is put into the
+``Fatal-Error'' state.
+(@code{random/@/random-fips.c:@/x931_aes_driver})
+
+
+
+@c --------------------------------
+@section Application Requested Tests
+
+The application may requests tests at any time by means of the
+@code{GCRYCTL_SELFTEST} control command.  Note that using these tests
+is not FIPS conform: Although Libgcrypt rejects all application
+requests for services while running self-tests, it does not ensure
+that no other operations of Libgcrypt are still being executed.  Thus
+in FIPS mode an application requesting self-tests needs to be
+power-cycle Libgcrypt instead.
+
+When self-tests are requested, Libgcrypt runs all the tests it does
+during power-up as well as a few extra checks as described below.
+
+@subsection Symmetric Cipher Algorithm Tests
+
+The following symmetric encryption algorithm tests are run in addition
+to the power-up tests:
+
+@table @asis
+@item AES-128
+A known answer tests with test vectors taken from NIST SP800-38a and
+using the high level functions is run for block modes CFB and OFB.
+
+@end table
+
+@subsection Hash Algorithm Tests
+
+The following hash algorithm tests are run in addition to the 
+power-up tests:
+
+@table @asis
+@item SHA-1
+@itemx SHA-224
+@itemx SHA-256
+@enumerate
+@item
+A known answer test using a 56 byte string is run.
+@item 
+A known answer test using a string of one million letters "a" is run.
+@end enumerate
+(@code{cipher/@/sha1.c:@/selftests_sha1},
+@code{cipher/@/sha256.c:@/selftests_sha224},
+@code{cipher/@/sha256.c:@/selftests_sha256})
+@item SHA-384
+@item SHA-512
+@enumerate
+@item
+A known answer test using a 112 byte string is run.
+@item 
+A known answer test using a string of one million letters "a" is run.
+@end enumerate
+(@code{cipher/@/sha512.c:@/selftests_sha384},
+@code{cipher/@/sha512.c:@/selftests_sha512})
+@end table
+
+@subsection MAC Algorithm Tests
+
+The following MAC algorithm tests are run in addition to the power-up
+tests:
+
+@table @asis
+@item HMAC SHA-1
+@enumerate
+@item
+A known answer test using 9 byte of data and a 20 byte key is run.
+@item
+A known answer test using 9 byte of data and a 100 byte key is run.
+@item
+A known answer test using 9 byte of data and a 49 byte key is run.
+@end enumerate
+(@code{cipher/hmac-tests.c:selftests_sha1})
+@item HMAC SHA-224
+@itemx HMAC SHA-256
+@itemx HMAC SHA-384
+@itemx HMAC SHA-512
+@enumerate
+@item
+A known answer test using 9 byte of data and a 20 byte key is run.
+@item
+A known answer test using 50 byte of data and a 20 byte key is run.
+@item
+A known answer test using 50 byte of data and a 26 byte key is run.
+@item
+A known answer test using 54 byte of data and a 131 byte key is run.
+@item
+A known answer test using 152 byte of data and a 131 byte key is run.
+@end enumerate
+(@code{cipher/@/hmac-tests.c:@/selftests_sha224},
+@code{cipher/@/hmac-tests.c:@/selftests_sha256},
+@code{cipher/@/hmac-tests.c:@/selftests_sha384},
+@code{cipher/@/hmac-tests.c:@/selftests_sha512})
+@end table
+
+
+@c ********************************************
 @node FIPS Restrictions
 @appendix Restrictions in FIPS mode
 
+@noindent
 If Libgcrypt is used in FIPS mode these restrictions are effective:
 
 @itemize
