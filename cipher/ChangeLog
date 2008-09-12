@@ -1,5 +1,41 @@
 2008-09-12  Werner Koch  <wk@g10code.com>
 
+	* cipher.c (_gcry_cipher_selftest): Add arg EXTENDED and pass it
+	to the called tests.
+	* md.c (_gcry_md_selftest): Ditto.
+	* pubkey.c (_gcry_pk_selftest): Ditto.
+	* rijndael.c (run_selftests): Add arg EXTENDED and pass it to the
+	called tests.
+	(selftest_fips_128): Add arg EXTENDED and run only one test
+	non-extended mode.
+	(selftest_fips_192): Add dummy arg EXTENDED.
+	(selftest_fips_256): Ditto.
+	* hmac-tests.c (_gcry_hmac_selftest): Ditto.
+	(run_selftests): Ditto.
+	(selftests_sha1): Add arg EXTENDED and run only one test
+	non-extended mode.
+	(selftests_sha224, selftests_sha256): Ditto.
+	(selftests_sha384, selftests_sha512): Ditto.
+	* sha1.c (run_selftests): Add arg EXTENDED and pass it to the
+	called test.
+	(selftests_sha1): Add arg EXTENDED and run only one test
+	non-extended mode.
+	* sha256.c (run_selftests): Add arg EXTENDED and pass it to the
+	called tests.
+	(selftests_sha224): Add arg EXTENDED and run only one test
+	non-extended mode.
+	(selftests_sha256): Ditto.
+	* sha512.c (run_selftests): Add arg EXTENDED and pass it to the
+	called tests.
+	(selftests_sha384): Add arg EXTENDED and run only one test
+	non-extended mode.
+	(selftests_sha512): Ditto.
+	* des.c (run_selftests): Add arg EXTENDED and pass it to the
+	called test.
+	(selftest_fips): Add dummy arg EXTENDED.
+	* rsa.c (run_selftests): Add dummy arg EXTENDED.
+	* dsa.c (run_selftests): Add dummy arg EXTENDED.
+
 	* rsa.c (extract_a_from_sexp): New.
 	(selftest_encr_1024): Check that the ciphertext does not match the
 	plaintext.

@@ -2714,7 +2714,7 @@ gcry_pk_list (int *list, int *list_length)
 /* Run the selftests for pubkey algorithm ALGO with optional reporting
    function REPORT.  */
 gpg_error_t
-_gcry_pk_selftest (int algo, selftest_report_func_t report)
+_gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 {
   gcry_module_t module = NULL;
   pk_extra_spec_t *extraspec = NULL;
@@ -2728,7 +2728,7 @@ _gcry_pk_selftest (int algo, selftest_report_func_t report)
     extraspec = module->extraspec;
   ath_mutex_unlock (&pubkeys_registered_lock);
   if (extraspec && extraspec->selftest)
-    ec = extraspec->selftest (algo, report);
+    ec = extraspec->selftest (algo, extended, report);
   else
     {
       ec = GPG_ERR_PUBKEY_ALGO;

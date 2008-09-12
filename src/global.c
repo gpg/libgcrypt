@@ -469,17 +469,19 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
              run a selftest.  If not we use the is_operational call to
              force us into operational state if possible.  */
           if (_gcry_fips_test_error_or_operational ())
-            _gcry_fips_run_selftests ();
+            _gcry_fips_run_selftests (1);
           if (_gcry_fips_is_operational ())
             err = GPG_ERR_GENERAL; /* Used as TRUE value */
       }
       break;
 
     case GCRYCTL_SELFTEST:
-      /* Run a selftest.  This works in fips mode as weel as in
-         standard mode.  Returns 0 on success or an error code. */
+      /* Run a selftest.  This works in fips mode as well as in
+         standard mode.  In contrast to the power-up tests, we use an
+         extended version ofthe selftests. Returns 0 on success or an
+         error code. */
       global_init ();
-      err = _gcry_fips_run_selftests ();
+      err = _gcry_fips_run_selftests (1);
       break;
 
     default:

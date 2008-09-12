@@ -93,7 +93,7 @@ check_one (int algo,
 
 
 static gpg_err_code_t
-selftests_sha1 (selftest_report_func_t report)
+selftests_sha1 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
@@ -111,39 +111,41 @@ selftests_sha1 (selftest_report_func_t report)
   if (errtxt)
     goto failed;
 
-  what = "FIPS-198a, A.2";
-  for (i=0, j=0x30; i < 20; i++)
-    key[i] = j++;
-  errtxt = check_one (GCRY_MD_SHA1,
-                      "Sample #2", 9,
-                      key, 20,
-                      "\x09\x22\xd3\x40\x5f\xaa\x3d\x19\x4f\x82"
-                      "\xa4\x58\x30\x73\x7d\x5c\xc6\xc7\x5d\x24", 20);
-  if (errtxt)
-    goto failed;
-
-  what = "FIPS-198a, A.3";
-  for (i=0, j=0x50; i < 100; i++)
-    key[i] = j++;
-  errtxt = check_one (GCRY_MD_SHA1,
-                      "Sample #3", 9,
-                      key, 100,
-                      "\xbc\xf4\x1e\xab\x8b\xb2\xd8\x02\xf3\xd0"
-                      "\x5c\xaf\x7c\xb0\x92\xec\xf8\xd1\xa3\xaa", 20 );
-  if (errtxt)
-    goto failed;
-
-  what = "FIPS-198a, A.4";
-  for (i=0, j=0x70; i < 49; i++)
-    key[i] = j++;
-  errtxt = check_one (GCRY_MD_SHA1,
-                      "Sample #4", 9,
-                      key, 49,
-                      "\x9e\xa8\x86\xef\xe2\x68\xdb\xec\xce\x42"
-                      "\x0c\x75\x24\xdf\x32\xe0\x75\x1a\x2a\x26", 20 );
-  if (errtxt)
-    goto failed;
-
+  if (extended)
+    {
+      what = "FIPS-198a, A.2";
+      for (i=0, j=0x30; i < 20; i++)
+        key[i] = j++;
+      errtxt = check_one (GCRY_MD_SHA1,
+                          "Sample #2", 9,
+                          key, 20,
+                          "\x09\x22\xd3\x40\x5f\xaa\x3d\x19\x4f\x82"
+                          "\xa4\x58\x30\x73\x7d\x5c\xc6\xc7\x5d\x24", 20);
+      if (errtxt)
+        goto failed;
+      
+      what = "FIPS-198a, A.3";
+      for (i=0, j=0x50; i < 100; i++)
+        key[i] = j++;
+      errtxt = check_one (GCRY_MD_SHA1,
+                          "Sample #3", 9,
+                          key, 100,
+                          "\xbc\xf4\x1e\xab\x8b\xb2\xd8\x02\xf3\xd0"
+                          "\x5c\xaf\x7c\xb0\x92\xec\xf8\xd1\xa3\xaa", 20 );
+      if (errtxt)
+        goto failed;
+      
+      what = "FIPS-198a, A.4";
+      for (i=0, j=0x70; i < 49; i++)
+        key[i] = j++;
+      errtxt = check_one (GCRY_MD_SHA1,
+                          "Sample #4", 9,
+                          key, 49,
+                          "\x9e\xa8\x86\xef\xe2\x68\xdb\xec\xce\x42"
+                          "\x0c\x75\x24\xdf\x32\xe0\x75\x1a\x2a\x26", 20 );
+      if (errtxt)
+        goto failed;
+    }
 
   return 0; /* Succeeded. */
 
@@ -156,7 +158,7 @@ selftests_sha1 (selftest_report_func_t report)
 
 
 static gpg_err_code_t
-selftests_sha224 (selftest_report_func_t report)
+selftests_sha224 (int extended, selftest_report_func_t report)
 {
   static struct 
   {
@@ -256,6 +258,8 @@ selftests_sha224 (selftest_report_func_t report)
                           tv[tvidx].expect, DIM (tv[tvidx].expect) );
       if (errtxt)
         goto failed;
+      if (!extended)
+        break;
     }
 
   return 0; /* Succeeded. */
@@ -268,7 +272,7 @@ selftests_sha224 (selftest_report_func_t report)
 
 
 static gpg_err_code_t
-selftests_sha256 (selftest_report_func_t report)
+selftests_sha256 (int extended, selftest_report_func_t report)
 {
   static struct 
   {
@@ -395,6 +399,9 @@ selftests_sha256 (selftest_report_func_t report)
           goto failed;
         }
       _gcry_hmac256_release (hmachd);
+
+      if (!extended)
+        break;
     }
 
   return 0; /* Succeeded. */
@@ -407,7 +414,7 @@ selftests_sha256 (selftest_report_func_t report)
 
 
 static gpg_err_code_t
-selftests_sha384 (selftest_report_func_t report)
+selftests_sha384 (int extended, selftest_report_func_t report)
 {
   static struct 
   {
@@ -519,6 +526,8 @@ selftests_sha384 (selftest_report_func_t report)
                           tv[tvidx].expect, DIM (tv[tvidx].expect) );
       if (errtxt)
         goto failed;
+      if (!extended)
+        break;
     }
 
   return 0; /* Succeeded. */
@@ -531,7 +540,7 @@ selftests_sha384 (selftest_report_func_t report)
 
 
 static gpg_err_code_t
-selftests_sha512 (selftest_report_func_t report)
+selftests_sha512 (int extended, selftest_report_func_t report)
 {
   static struct 
   {
@@ -655,6 +664,8 @@ selftests_sha512 (selftest_report_func_t report)
                           tv[tvidx].expect, DIM (tv[tvidx].expect) );
       if (errtxt)
         goto failed;
+      if (!extended)
+        break;
     }
 
   return 0; /* Succeeded. */
@@ -669,26 +680,26 @@ selftests_sha512 (selftest_report_func_t report)
 
 /* Run a full self-test for ALGO and return 0 on success.  */
 static gpg_err_code_t
-run_selftests (int algo, selftest_report_func_t report)
+run_selftests (int algo, int extended, selftest_report_func_t report)
 {
   gpg_err_code_t ec;
 
   switch (algo)
     {
     case GCRY_MD_SHA1:
-      ec = selftests_sha1 (report);
+      ec = selftests_sha1 (extended, report);
       break;
     case GCRY_MD_SHA224:
-      ec = selftests_sha224 (report);
+      ec = selftests_sha224 (extended, report);
       break;
     case GCRY_MD_SHA256:
-      ec = selftests_sha256 (report);
+      ec = selftests_sha256 (extended, report);
       break;
     case GCRY_MD_SHA384:
-      ec = selftests_sha384 (report);
+      ec = selftests_sha384 (extended, report);
       break;
     case GCRY_MD_SHA512:
-      ec = selftests_sha512 (report);
+      ec = selftests_sha512 (extended, report);
       break;
     default:
       ec = GPG_ERR_DIGEST_ALGO;
@@ -703,13 +714,13 @@ run_selftests (int algo, selftest_report_func_t report)
 /* Run the selftests for HMAC with digest algorithm ALGO with optional
    reporting function REPORT.  */
 gpg_error_t
-_gcry_hmac_selftest (int algo, selftest_report_func_t report)
+_gcry_hmac_selftest (int algo, int extended, selftest_report_func_t report)
 {
   gcry_err_code_t ec = 0;
 
   if (!gcry_md_test_algo (algo))
     {
-      ec = run_selftests (algo, report);
+      ec = run_selftests (algo, extended, report);
     }
   else
     {

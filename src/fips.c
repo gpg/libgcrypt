@@ -269,7 +269,7 @@ _gcry_fips_is_operational (void)
              performed by severeal threads; that is no problem because
              our FSM make sure that we won't oversee any error. */
           unlock_fsm ();
-          _gcry_fips_run_selftests ();
+          _gcry_fips_run_selftests (0);
           lock_fsm ();
         }
 
@@ -340,7 +340,7 @@ reporter (const char *domain, int algo, const char *what, const char *errtxt)
 /* Run self-tests for all required cipher algorithms.  Return 0 on
    success. */
 static int
-run_cipher_selftests (void)
+run_cipher_selftests (int extended)
 {
   static int algos[] = 
     {
@@ -356,7 +356,7 @@ run_cipher_selftests (void)
 
   for (idx=0; algos[idx]; idx++)
     {
-      err = _gcry_cipher_selftest (algos[idx], reporter);
+      err = _gcry_cipher_selftest (algos[idx], extended, reporter);
       reporter ("cipher", algos[idx], NULL,
                 err? gpg_strerror (err):NULL);
       if (err)
@@ -369,7 +369,7 @@ run_cipher_selftests (void)
 /* Run self-tests for all required hash algorithms.  Return 0 on
    success. */
 static int
-run_digest_selftests (void)
+run_digest_selftests (int extended)
 {
   static int algos[] = 
     {
@@ -386,7 +386,7 @@ run_digest_selftests (void)
 
   for (idx=0; algos[idx]; idx++)
     {
-      err = _gcry_md_selftest (algos[idx], reporter);
+      err = _gcry_md_selftest (algos[idx], extended, reporter);
       reporter ("digest", algos[idx], NULL,
                 err? gpg_strerror (err):NULL);
       if (err)
@@ -398,7 +398,7 @@ run_digest_selftests (void)
 
 /* Run self-tests for all HMAC algorithms.  Return 0 on success. */
 static int
-run_hmac_selftests (void)
+run_hmac_selftests (int extended)
 {
   static int algos[] = 
     {
@@ -415,7 +415,7 @@ run_hmac_selftests (void)
 
   for (idx=0; algos[idx]; idx++)
     {
-      err = _gcry_hmac_selftest (algos[idx], reporter);
+      err = _gcry_hmac_selftest (algos[idx], extended, reporter);
       reporter ("hmac", algos[idx], NULL,
                 err? gpg_strerror (err):NULL);
       if (err)
@@ -428,7 +428,7 @@ run_hmac_selftests (void)
 /* Run self-tests for all required public key algorithms.  Return 0 on
    success. */
 static int
-run_pubkey_selftests (void)
+run_pubkey_selftests (int extended)
 {
   static int algos[] = 
     {
@@ -443,7 +443,7 @@ run_pubkey_selftests (void)
 
   for (idx=0; algos[idx]; idx++)
     {
-      err = _gcry_pk_selftest (algos[idx], reporter);
+      err = _gcry_pk_selftest (algos[idx], extended, reporter);
       reporter ("pubkey", algos[idx], NULL,
                 err? gpg_strerror (err):NULL);
       if (err)
@@ -550,9 +550,10 @@ check_binary_integrity (void)
 }
 
 
-/* Run the self-tests.  */
+/* Run the self-tests.  If EXTENDED is true, extended versions of the
+   selftest are run, that is more tests than required by FIPS.  */
 gpg_err_code_t
-_gcry_fips_run_selftests (void)
+_gcry_fips_run_selftests (int extended)
 {
   enum module_states result = STATE_ERROR;
   gcry_err_code_t ec = GPG_ERR_SELFTEST_FAILED;
@@ -560,13 +561,13 @@ _gcry_fips_run_selftests (void)
   if (fips_mode ())
     fips_new_state (STATE_SELFTEST);
 
-  if (run_cipher_selftests ())
+  if (run_cipher_selftests (extended))
     goto leave;
 
-  if (run_digest_selftests ())
+  if (run_digest_selftests (extended))
     goto leave;
 
-  if (run_hmac_selftests ())
+  if (run_hmac_selftests (extended))
     goto leave;
 
   /* Run random tests before the pubkey tests because the latter
@@ -574,7 +575,7 @@ _gcry_fips_run_selftests (void)
   if (run_random_selftests ())
     goto leave;
 
-  if (run_pubkey_selftests ())
+  if (run_pubkey_selftests (extended))
     goto leave;
 
   /* Now check the integrity of the binary.  We do this this after

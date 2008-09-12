@@ -321,7 +321,7 @@ sha256_read (void *context)
 
 
 static gpg_err_code_t
-selftests_sha224 (selftest_report_func_t report)
+selftests_sha224 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
@@ -335,23 +335,26 @@ selftests_sha224 (selftest_report_func_t report)
   if (errtxt)
     goto failed;
 
-  what = "long string";
-  errtxt = _gcry_hash_selftest_check_one
-    (GCRY_MD_SHA224, 0, 
-     "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", 56,
-     "\x75\x38\x8b\x16\x51\x27\x76\xcc\x5d\xba\x5d\xa1\xfd\x89\x01\x50"
-     "\xb0\xc6\x45\x5c\xb4\xf5\x8b\x19\x52\x52\x25\x25", 28);
-  if (errtxt)
-    goto failed;
-
-  what = "one million \"a\"";
-  errtxt = _gcry_hash_selftest_check_one
-    (GCRY_MD_SHA224, 1,
-     NULL, 0,
-     "\x20\x79\x46\x55\x98\x0c\x91\xd8\xbb\xb4\xc1\xea\x97\x61\x8a\x4b"
-     "\xf0\x3f\x42\x58\x19\x48\xb2\xee\x4e\xe7\xad\x67", 28);
-  if (errtxt)
-    goto failed;
+  if (extended)
+    {
+      what = "long string";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA224, 0, 
+         "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", 56,
+         "\x75\x38\x8b\x16\x51\x27\x76\xcc\x5d\xba\x5d\xa1\xfd\x89\x01\x50"
+         "\xb0\xc6\x45\x5c\xb4\xf5\x8b\x19\x52\x52\x25\x25", 28);
+      if (errtxt)
+        goto failed;
+      
+      what = "one million \"a\"";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA224, 1,
+         NULL, 0,
+         "\x20\x79\x46\x55\x98\x0c\x91\xd8\xbb\xb4\xc1\xea\x97\x61\x8a\x4b"
+         "\xf0\x3f\x42\x58\x19\x48\xb2\xee\x4e\xe7\xad\x67", 28);
+      if (errtxt)
+        goto failed;
+    }
 
   return 0; /* Succeeded. */
 
@@ -362,7 +365,7 @@ selftests_sha224 (selftest_report_func_t report)
 }
 
 static gpg_err_code_t
-selftests_sha256 (selftest_report_func_t report)
+selftests_sha256 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
@@ -376,23 +379,28 @@ selftests_sha256 (selftest_report_func_t report)
   if (errtxt)
     goto failed;
 
-  what = "long string";
-  errtxt = _gcry_hash_selftest_check_one
-    (GCRY_MD_SHA256, 0, 
-     "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", 56,
-     "\x24\x8d\x6a\x61\xd2\x06\x38\xb8\xe5\xc0\x26\x93\x0c\x3e\x60\x39"
-     "\xa3\x3c\xe4\x59\x64\xff\x21\x67\xf6\xec\xed\xd4\x19\xdb\x06\xc1", 32);
-  if (errtxt)
-    goto failed;
-
-  what = "one million \"a\"";
-  errtxt = _gcry_hash_selftest_check_one
-    (GCRY_MD_SHA256, 1,
-     NULL, 0,
-     "\xcd\xc7\x6e\x5c\x99\x14\xfb\x92\x81\xa1\xc7\xe2\x84\xd7\x3e\x67"
-     "\xf1\x80\x9a\x48\xa4\x97\x20\x0e\x04\x6d\x39\xcc\xc7\x11\x2c\xd0", 32);
-  if (errtxt)
-    goto failed;
+  if (extended)
+    {
+      what = "long string";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA256, 0, 
+         "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", 56,
+         "\x24\x8d\x6a\x61\xd2\x06\x38\xb8\xe5\xc0\x26\x93\x0c\x3e\x60\x39"
+         "\xa3\x3c\xe4\x59\x64\xff\x21\x67\xf6\xec\xed\xd4\x19\xdb\x06\xc1",
+         32);
+      if (errtxt)
+        goto failed;
+      
+      what = "one million \"a\"";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA256, 1,
+         NULL, 0,
+         "\xcd\xc7\x6e\x5c\x99\x14\xfb\x92\x81\xa1\xc7\xe2\x84\xd7\x3e\x67"
+         "\xf1\x80\x9a\x48\xa4\x97\x20\x0e\x04\x6d\x39\xcc\xc7\x11\x2c\xd0",
+         32);
+      if (errtxt)
+        goto failed;
+    }
 
   return 0; /* Succeeded. */
 
@@ -405,17 +413,17 @@ selftests_sha256 (selftest_report_func_t report)
 
 /* Run a full self-test for ALGO and return 0 on success.  */
 static gpg_err_code_t
-run_selftests (int algo, selftest_report_func_t report)
+run_selftests (int algo, int extended, selftest_report_func_t report)
 {
   gpg_err_code_t ec;
 
   switch (algo)
     {
     case GCRY_MD_SHA224:
-      ec = selftests_sha224 (report);
+      ec = selftests_sha224 (extended, report);
       break;
     case GCRY_MD_SHA256:
-      ec = selftests_sha256 (report);
+      ec = selftests_sha256 (extended, report);
       break;
     default:
       ec = GPG_ERR_DIGEST_ALGO;

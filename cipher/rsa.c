@@ -316,6 +316,7 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       gcry_mpi_release (sk->q); sk->q = NULL;
       gcry_mpi_release (sk->d); sk->d = NULL;
       gcry_mpi_release (sk->u); sk->u = NULL;
+      fips_signal_error ("self-test after key generation failed");
       return GPG_ERR_SELFTEST_FAILED;
     }
 
@@ -1038,9 +1039,11 @@ selftests_rsa (selftest_report_func_t report)
 
 /* Run a full self-test for ALGO and return 0 on success.  */
 static gpg_err_code_t
-run_selftests (int algo, selftest_report_func_t report)
+run_selftests (int algo, int extended, selftest_report_func_t report)
 {
   gpg_err_code_t ec;
+
+  (void)extended;
 
   switch (algo)
     {

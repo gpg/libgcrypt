@@ -1859,7 +1859,7 @@ gcry_cipher_list (int *list, int *list_length)
 /* Run the selftests for cipher algorithm ALGO with optional reporting
    function REPORT.  */
 gpg_error_t
-_gcry_cipher_selftest (int algo, selftest_report_func_t report)
+_gcry_cipher_selftest (int algo, int extended, selftest_report_func_t report)
 {
   gcry_module_t module = NULL;
   cipher_extra_spec_t *extraspec = NULL;
@@ -1873,7 +1873,7 @@ _gcry_cipher_selftest (int algo, selftest_report_func_t report)
     extraspec = module->extraspec;
   ath_mutex_unlock (&ciphers_registered_lock);
   if (extraspec && extraspec->selftest)
-    ec = extraspec->selftest (algo, report);
+    ec = extraspec->selftest (algo, extended, report);
   else
     {
       ec = GPG_ERR_CIPHER_ALGO;

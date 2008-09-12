@@ -36,7 +36,7 @@ typedef void (*selftest_report_func_t)(const char *domain,
 
 /* Definition of the selftest functions.  */
 typedef gpg_err_code_t (*selftest_func_t)
-     (int algo, selftest_report_func_t report);
+     (int algo, int extended, selftest_report_func_t report);
 
 
 /* An extended type of the generate function.  */
@@ -90,10 +90,14 @@ gcry_error_t _gcry_pk_register (gcry_pk_spec_t *cipher,
                                 gcry_module_t *module);
 
 /* The selftest functions.  */
-gcry_error_t _gcry_cipher_selftest (int algo, selftest_report_func_t report);
-gcry_error_t _gcry_md_selftest (int algo, selftest_report_func_t report);
-gcry_error_t _gcry_pk_selftest (int algo, selftest_report_func_t report);
-gcry_error_t _gcry_hmac_selftest (int algo, selftest_report_func_t report);
+gcry_error_t _gcry_cipher_selftest (int algo, int extended, 
+                                    selftest_report_func_t report);
+gcry_error_t _gcry_md_selftest (int algo, int extended,
+                                selftest_report_func_t report);
+gcry_error_t _gcry_pk_selftest (int algo, int extended,
+                                selftest_report_func_t report);
+gcry_error_t _gcry_hmac_selftest (int algo, int extended,
+                                  selftest_report_func_t report);
 
 gcry_error_t _gcry_random_selftest (selftest_report_func_t report);
 

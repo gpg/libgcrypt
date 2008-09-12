@@ -1,3 +1,10 @@
+2008-09-12  Werner Koch  <wk@g10code.com>
+
+	* fips.c (_gcry_fips_run_selftests): Add arg EXTENDED.
+	(run_cipher_selftests, run_digest_selftests, run_hmac_selftests) 
+	(run_pubkey_selftests): Ditto.
+	* cipher-proto.h (selftest_func_t): Add arg EXTENDED
+
 2008-09-11  Werner Koch  <wk@g10code.com>
 
 	* fips.c: Include string.h.

@@ -1046,7 +1046,7 @@ selftest_fips_128_38a (int requested_mode)
 
 /* Complete selftest for AES-128 with all modes and driver code.  */
 static gpg_err_code_t
-selftest_fips_128 (selftest_report_func_t report)
+selftest_fips_128 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
@@ -1056,16 +1056,18 @@ selftest_fips_128 (selftest_report_func_t report)
   if (errtxt)
     goto failed;
 
-  what = "cfb";
-  errtxt = selftest_fips_128_38a (GCRY_CIPHER_MODE_CFB);
-  if (errtxt)
-    goto failed;
-
-  what = "ofb";
-  errtxt = selftest_fips_128_38a (GCRY_CIPHER_MODE_OFB);
-  if (errtxt)
-    goto failed;
-
+  if (extended)
+    {
+      what = "cfb";
+      errtxt = selftest_fips_128_38a (GCRY_CIPHER_MODE_CFB);
+      if (errtxt)
+        goto failed;
+      
+      what = "ofb";
+      errtxt = selftest_fips_128_38a (GCRY_CIPHER_MODE_OFB);
+      if (errtxt)
+        goto failed;
+    }
 
   return 0; /* Succeeded. */
 
@@ -1075,19 +1077,19 @@ selftest_fips_128 (selftest_report_func_t report)
   return GPG_ERR_SELFTEST_FAILED;
 }
 
-/* Complete selftest for AES-192 with all modes and driver code.  */
+/* Complete selftest for AES-192.  */
 static gpg_err_code_t
-selftest_fips_192 (selftest_report_func_t report)
+selftest_fips_192 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
+
+  (void)extended; /* No extended tests available.  */
 
   what = "low-level";
   errtxt = selftest_basic_192 ();
   if (errtxt)
     goto failed;
-
-
 
 
   return 0; /* Succeeded. */
@@ -1099,13 +1101,15 @@ selftest_fips_192 (selftest_report_func_t report)
 }
 
 
-/* Complete selftest for AES-256 with all modes and driver code.  */
+/* Complete selftest for AES-256.  */
 static gpg_err_code_t
-selftest_fips_256 (selftest_report_func_t report)
+selftest_fips_256 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
   
+  (void)extended; /* No extended tests available.  */
+
   what = "low-level";
   errtxt = selftest_basic_256 ();
   if (errtxt)
@@ -1123,20 +1127,20 @@ selftest_fips_256 (selftest_report_func_t report)
 
 /* Run a full self-test for ALGO and return 0 on success.  */
 static gpg_err_code_t
-run_selftests (int algo, selftest_report_func_t report)
+run_selftests (int algo, int extended, selftest_report_func_t report)
 {
   gpg_err_code_t ec;
 
   switch (algo)
     {
     case GCRY_CIPHER_AES128:
-      ec = selftest_fips_128 (report);
+      ec = selftest_fips_128 (extended, report);
       break;
     case GCRY_CIPHER_AES192:
-      ec = selftest_fips_192 (report);
+      ec = selftest_fips_192 (extended, report);
       break;
     case GCRY_CIPHER_AES256:
-      ec = selftest_fips_256 (report);
+      ec = selftest_fips_256 (extended, report);
       break;
     default:
       ec = GPG_ERR_CIPHER_ALGO;

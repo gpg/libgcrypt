@@ -368,7 +368,7 @@ sha512_read (void *context)
 
 
 static gpg_err_code_t
-selftests_sha384 (selftest_report_func_t report)
+selftests_sha384 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
@@ -383,26 +383,31 @@ selftests_sha384 (selftest_report_func_t report)
   if (errtxt)
     goto failed;
 
-  what = "long string";
-  errtxt = _gcry_hash_selftest_check_one
-    (GCRY_MD_SHA384, 0, 
-     "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
-     "hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu", 112, 
-     "\x09\x33\x0C\x33\xF7\x11\x47\xE8\x3D\x19\x2F\xC7\x82\xCD\x1B\x47"
-     "\x53\x11\x1B\x17\x3B\x3B\x05\xD2\x2F\xA0\x80\x86\xE3\xB0\xF7\x12"
-     "\xFC\xC7\xC7\x1A\x55\x7E\x2D\xB9\x66\xC3\xE9\xFA\x91\x74\x60\x39", 48);
-  if (errtxt)
-    goto failed;
+  if (extended)
+    {
+      what = "long string";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA384, 0, 
+         "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
+         "hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu", 112, 
+         "\x09\x33\x0C\x33\xF7\x11\x47\xE8\x3D\x19\x2F\xC7\x82\xCD\x1B\x47"
+         "\x53\x11\x1B\x17\x3B\x3B\x05\xD2\x2F\xA0\x80\x86\xE3\xB0\xF7\x12"
+         "\xFC\xC7\xC7\x1A\x55\x7E\x2D\xB9\x66\xC3\xE9\xFA\x91\x74\x60\x39",
+         48);
+      if (errtxt)
+        goto failed;
 
-  what = "one million \"a\"";
-  errtxt = _gcry_hash_selftest_check_one
-    (GCRY_MD_SHA384, 1,
-     NULL, 0,
-     "\x9D\x0E\x18\x09\x71\x64\x74\xCB\x08\x6E\x83\x4E\x31\x0A\x4A\x1C"
-     "\xED\x14\x9E\x9C\x00\xF2\x48\x52\x79\x72\xCE\xC5\x70\x4C\x2A\x5B"
-     "\x07\xB8\xB3\xDC\x38\xEC\xC4\xEB\xAE\x97\xDD\xD8\x7F\x3D\x89\x85", 48);
- if (errtxt)
-    goto failed;
+      what = "one million \"a\"";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA384, 1,
+         NULL, 0,
+         "\x9D\x0E\x18\x09\x71\x64\x74\xCB\x08\x6E\x83\x4E\x31\x0A\x4A\x1C"
+         "\xED\x14\x9E\x9C\x00\xF2\x48\x52\x79\x72\xCE\xC5\x70\x4C\x2A\x5B"
+         "\x07\xB8\xB3\xDC\x38\xEC\xC4\xEB\xAE\x97\xDD\xD8\x7F\x3D\x89\x85",
+         48);
+      if (errtxt)
+        goto failed;
+    }
 
   return 0; /* Succeeded. */
 
@@ -413,7 +418,7 @@ selftests_sha384 (selftest_report_func_t report)
 }
 
 static gpg_err_code_t
-selftests_sha512 (selftest_report_func_t report)
+selftests_sha512 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
@@ -429,28 +434,33 @@ selftests_sha512 (selftest_report_func_t report)
   if (errtxt)
     goto failed;
 
-  what = "long string";
-  errtxt = _gcry_hash_selftest_check_one
-    (GCRY_MD_SHA512, 0, 
-     "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
-     "hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu", 112, 
-     "\x8E\x95\x9B\x75\xDA\xE3\x13\xDA\x8C\xF4\xF7\x28\x14\xFC\x14\x3F"
-     "\x8F\x77\x79\xC6\xEB\x9F\x7F\xA1\x72\x99\xAE\xAD\xB6\x88\x90\x18"
-     "\x50\x1D\x28\x9E\x49\x00\xF7\xE4\x33\x1B\x99\xDE\xC4\xB5\x43\x3A"
-     "\xC7\xD3\x29\xEE\xB6\xDD\x26\x54\x5E\x96\xE5\x5B\x87\x4B\xE9\x09", 64);
-  if (errtxt)
-    goto failed;
-
-  what = "one million \"a\"";
-  errtxt = _gcry_hash_selftest_check_one
-    (GCRY_MD_SHA512, 1,
-     NULL, 0,
-     "\xE7\x18\x48\x3D\x0C\xE7\x69\x64\x4E\x2E\x42\xC7\xBC\x15\xB4\x63"
-     "\x8E\x1F\x98\xB1\x3B\x20\x44\x28\x56\x32\xA8\x03\xAF\xA9\x73\xEB"
-     "\xDE\x0F\xF2\x44\x87\x7E\xA6\x0A\x4C\xB0\x43\x2C\xE5\x77\xC3\x1B"
-     "\xEB\x00\x9C\x5C\x2C\x49\xAA\x2E\x4E\xAD\xB2\x17\xAD\x8C\xC0\x9B", 64);
-  if (errtxt)
-    goto failed;
+  if (extended)
+    {
+      what = "long string";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA512, 0, 
+         "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
+         "hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu", 112, 
+         "\x8E\x95\x9B\x75\xDA\xE3\x13\xDA\x8C\xF4\xF7\x28\x14\xFC\x14\x3F"
+         "\x8F\x77\x79\xC6\xEB\x9F\x7F\xA1\x72\x99\xAE\xAD\xB6\x88\x90\x18"
+         "\x50\x1D\x28\x9E\x49\x00\xF7\xE4\x33\x1B\x99\xDE\xC4\xB5\x43\x3A"
+         "\xC7\xD3\x29\xEE\xB6\xDD\x26\x54\x5E\x96\xE5\x5B\x87\x4B\xE9\x09",
+         64);
+      if (errtxt)
+        goto failed;
+      
+      what = "one million \"a\"";
+      errtxt = _gcry_hash_selftest_check_one
+        (GCRY_MD_SHA512, 1,
+         NULL, 0,
+         "\xE7\x18\x48\x3D\x0C\xE7\x69\x64\x4E\x2E\x42\xC7\xBC\x15\xB4\x63"
+         "\x8E\x1F\x98\xB1\x3B\x20\x44\x28\x56\x32\xA8\x03\xAF\xA9\x73\xEB"
+         "\xDE\x0F\xF2\x44\x87\x7E\xA6\x0A\x4C\xB0\x43\x2C\xE5\x77\xC3\x1B"
+         "\xEB\x00\x9C\x5C\x2C\x49\xAA\x2E\x4E\xAD\xB2\x17\xAD\x8C\xC0\x9B",
+         64);
+      if (errtxt)
+        goto failed;
+    }
 
   return 0; /* Succeeded. */
 
@@ -463,17 +473,17 @@ selftests_sha512 (selftest_report_func_t report)
 
 /* Run a full self-test for ALGO and return 0 on success.  */
 static gpg_err_code_t
-run_selftests (int algo, selftest_report_func_t report)
+run_selftests (int algo, int extended, selftest_report_func_t report)
 {
   gpg_err_code_t ec;
 
   switch (algo)
     {
     case GCRY_MD_SHA384:
-      ec = selftests_sha384 (report);
+      ec = selftests_sha384 (extended, report);
       break;
     case GCRY_MD_SHA512:
-      ec = selftests_sha512 (report);
+      ec = selftests_sha512 (extended, report);
       break;
     default:
       ec = GPG_ERR_DIGEST_ALGO;

@@ -1089,11 +1089,13 @@ do_des_decrypt( void *context, byte *outbuf, const byte *inbuf )
 
 /* Selftest for TripleDES.  */
 static gpg_err_code_t
-selftest_fips (selftest_report_func_t report)
+selftest_fips (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
   
+  (void)extended; /* No extended tests available.  */
+
   what = "low-level";
   errtxt = selftest ();
   if (errtxt)
@@ -1116,14 +1118,14 @@ selftest_fips (selftest_report_func_t report)
 
 /* Run a full self-test for ALGO and return 0 on success.  */
 static gpg_err_code_t
-run_selftests (int algo, selftest_report_func_t report)
+run_selftests (int algo, int extended, selftest_report_func_t report)
 {
   gpg_err_code_t ec;
 
   switch (algo)
     {
     case GCRY_CIPHER_3DES:
-      ec = selftest_fips (report);
+      ec = selftest_fips (extended, report);
       break;
     default:
       ec = GPG_ERR_CIPHER_ALGO;
