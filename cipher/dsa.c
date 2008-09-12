@@ -87,7 +87,7 @@ static const char sample_public_key[] =
 
 
 static gcry_mpi_t gen_k (gcry_mpi_t q);
-static void test_keys (DSA_secret_key *sk, unsigned qbits);
+static int test_keys (DSA_secret_key *sk, unsigned int qbits);
 static int check_secret_key (DSA_secret_key *sk);
 static gpg_err_code_t generate (DSA_secret_key *sk,
                                 unsigned int nbits,
@@ -183,27 +183,39 @@ gen_k( gcry_mpi_t q )
 }
 
 
-static void
-test_keys( DSA_secret_key *sk, unsigned qbits )
+/* Check that a freshly generated key actually works.  Returns 0 on success. */
+static int
+test_keys (DSA_secret_key *sk, unsigned int qbits)
 {
+  int result = -1;  /* Default to failure.  */
   DSA_public_key pk;
-  gcry_mpi_t test = gcry_mpi_new ( qbits  );
-  gcry_mpi_t out1_a = gcry_mpi_new ( qbits );
-  gcry_mpi_t out1_b = gcry_mpi_new ( qbits );
+  gcry_mpi_t data  = gcry_mpi_new (qbits);
+  gcry_mpi_t sig_a = gcry_mpi_new (qbits);
+  gcry_mpi_t sig_b = gcry_mpi_new (qbits);
 
+  /* Put the relevant parameters into a public key structure.  */
   pk.p = sk->p;
   pk.q = sk->q;
   pk.g = sk->g;
   pk.y = sk->y;
-  gcry_mpi_randomize( test, qbits, GCRY_WEAK_RANDOM );
 
-  sign( out1_a, out1_b, test, sk );
-  if( !verify( out1_a, out1_b, test, &pk ) )
-    log_fatal("DSA:: sign, verify failed\n");
+  /* Create a random plaintext.  */
+  gcry_mpi_randomize (data, qbits, GCRY_WEAK_RANDOM);
 
-  gcry_mpi_release ( test );
-  gcry_mpi_release ( out1_a );
-  gcry_mpi_release ( out1_b );
+  /* Sign DATA using the secret key.  */
+  sign (sig_a, sig_b, data, sk);
+
+  /* Verify the signature using the public key.  */
+  if ( !verify (sig_a, sig_b, data, &pk) )
+    goto leave; /* Signature does not match.  */
+
+  result = 0; /* The test succeeded.  */
+
+ leave:
+  gcry_mpi_release (sig_b);
+  gcry_mpi_release (sig_a);
+  gcry_mpi_release (data);
+  return result;
 }
 
 
@@ -323,7 +335,15 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   sk->x = x;
 
   /* Now we can test our keys (this should never fail!). */
-  test_keys( sk, qbits );
+  if ( test_keys (sk, qbits) )
+    {
+      gcry_mpi_release (sk->p); sk->p = NULL;
+      gcry_mpi_release (sk->q); sk->q = NULL;
+      gcry_mpi_release (sk->g); sk->g = NULL;
+      gcry_mpi_release (sk->y); sk->y = NULL;
+      gcry_mpi_release (sk->x); sk->x = NULL;
+      return GPG_ERR_SELFTEST_FAILED;
+    }
   return 0;
 }
 

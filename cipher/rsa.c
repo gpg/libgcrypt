@@ -84,7 +84,7 @@ static const char sample_public_key[] =
 
 
 
-static void test_keys (RSA_secret_key *sk, unsigned nbits);
+static int test_keys (RSA_secret_key *sk, unsigned nbits);
 static gpg_err_code_t generate (RSA_secret_key *sk,
                                 unsigned int nbits, unsigned long use_e,
                                 int transient_key);
@@ -93,29 +93,57 @@ static void public (gcry_mpi_t output, gcry_mpi_t input, RSA_public_key *skey);
 static void secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey);
 
 
-static void
-test_keys( RSA_secret_key *sk, unsigned nbits )
+/* Check that a freshly generated key actually works.  Returns 0 on success. */
+static int
+test_keys (RSA_secret_key *sk, unsigned int nbits)
 {
+  int result = -1; /* Default to failure.  */
   RSA_public_key pk;
-  gcry_mpi_t test = gcry_mpi_new ( nbits );
-  gcry_mpi_t out1 = gcry_mpi_new ( nbits );
-  gcry_mpi_t out2 = gcry_mpi_new ( nbits );
+  gcry_mpi_t plaintext = gcry_mpi_new (nbits);
+  gcry_mpi_t ciphertext = gcry_mpi_new (nbits);
+  gcry_mpi_t decr_plaintext = gcry_mpi_new (nbits);
+  gcry_mpi_t signature = gcry_mpi_new (nbits);
 
+  /* Put the relevant parameters into a public key structure.  */
   pk.n = sk->n;
   pk.e = sk->e;
-  gcry_mpi_randomize( test, nbits, GCRY_WEAK_RANDOM );
 
-  public( out1, test, &pk );
-  secret( out2, out1, sk );
-  if( mpi_cmp( test, out2 ) )
-    log_fatal("RSA operation: public, secret failed\n");
-  secret( out1, test, sk );
-  public( out2, out1, &pk );
-  if( mpi_cmp( test, out2 ) )
-    log_fatal("RSA operation: secret, public failed\n");
-  gcry_mpi_release ( test );
-  gcry_mpi_release ( out1 );
-  gcry_mpi_release ( out2 );
+  /* Create a random plaintext.  */
+  gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
+
+  /* Encrypt using the public key.  */
+  public (ciphertext, plaintext, &pk);
+
+  /* Check that the cipher text does not match the plaintext.  */
+  if (!gcry_mpi_cmp (ciphertext, plaintext))
+    goto leave; /* Ciphertext is identical to the plaintext.  */
+
+  /* Decrypt using the secret key.  */
+  secret (decr_plaintext, ciphertext, sk);
+
+  /* Check that the decrypted plaintext matches the original plaintext.  */
+  if (gcry_mpi_cmp (decr_plaintext, plaintext))
+    goto leave; /* Plaintext does not match.  */
+
+  /* Create another random plaintext as data for signature checking.  */
+  gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
+
+  /* Use the RSA secret function to create a signature of the plaintext.  */
+  secret (signature, plaintext, sk);
+  
+  /* Use the RSA public function to verify this signature.  */
+  public (decr_plaintext, signature, &pk);
+  if (gcry_mpi_cmp (decr_plaintext, plaintext))
+    goto leave; /* Signature does not match.  */
+
+  result = 0; /* All tests succeeded.  */
+
+ leave:
+  gcry_mpi_release (signature);
+  gcry_mpi_release (decr_plaintext);
+  gcry_mpi_release (ciphertext);
+  gcry_mpi_release (plaintext);
+  return result;
 }
 
 
@@ -279,8 +307,17 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
   sk->d = d;
   sk->u = u;
 
-  /* now we can test our keys (this should never fail!) */
-  test_keys( sk, nbits - 64 );
+  /* Now we can test our keys. */
+  if (test_keys (sk, nbits - 64))
+    {
+      gcry_mpi_release (sk->n); sk->n = NULL;
+      gcry_mpi_release (sk->e); sk->e = NULL;
+      gcry_mpi_release (sk->p); sk->p = NULL;
+      gcry_mpi_release (sk->q); sk->q = NULL;
+      gcry_mpi_release (sk->d); sk->d = NULL;
+      gcry_mpi_release (sk->u); sk->u = NULL;
+      return GPG_ERR_SELFTEST_FAILED;
+    }
 
   return 0;
 }

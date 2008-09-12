@@ -3,6 +3,10 @@
 	* rsa.c (extract_a_from_sexp): New.
 	(selftest_encr_1024): Check that the ciphertext does not match the
 	plaintext.
+	(test_keys): Improve tests and return an error status.
+	(generate): Return an error if test_keys fails.
+	* dsa.c (test_keys): Add comments and return an error status.
+	(generate): Return an error if test_keys failed.
 
 2008-09-11  Werner Koch  <wk@g10code.com>
 
