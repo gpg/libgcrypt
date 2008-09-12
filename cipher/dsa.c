@@ -209,6 +209,11 @@ test_keys (DSA_secret_key *sk, unsigned int qbits)
   if ( !verify (sig_a, sig_b, data, &pk) )
     goto leave; /* Signature does not match.  */
 
+  /* Modify the data and check that the signing fails.  */
+  gcry_mpi_add_ui (data, data, 1);
+  if ( verify (sig_a, sig_b, data, &pk) )
+    goto leave; /* Signature matches but should not.  */
+
   result = 0; /* The test succeeded.  */
 
  leave:

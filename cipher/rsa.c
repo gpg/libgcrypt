@@ -136,6 +136,12 @@ test_keys (RSA_secret_key *sk, unsigned int nbits)
   if (gcry_mpi_cmp (decr_plaintext, plaintext))
     goto leave; /* Signature does not match.  */
 
+  /* Modify the signature and check that the signing fails.  */
+  gcry_mpi_add_ui (signature, signature, 1);
+  public (decr_plaintext, signature, &pk);
+  if (!gcry_mpi_cmp (decr_plaintext, plaintext))
+    goto leave; /* Signature matches but should not.  */
+
   result = 0; /* All tests succeeded.  */
 
  leave:
