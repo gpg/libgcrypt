@@ -1558,7 +1558,8 @@ set, this mode may be used to bypass the actual encryption.
 Electronic Codebook mode.  
 
 @item GCRY_CIPHER_MODE_CFB
-Cipher Feedback mode.
+Cipher Feedback mode.  The shift size equals the block size of the
+cipher (e.g. for AES it is CFB-128).
 
 @item  GCRY_CIPHER_MODE_CBC
 Cipher Block Chaining mode.
@@ -5203,7 +5204,7 @@ A new random number of the same size is generated, signed and verified
 to test the correctness of the signing operation.  As a second signing
 test, the signature is modified by incrementing its value and then
 verified with the expected result that the verification fails.
-(@code{cipher/@/dsa.c:@/test_keys})
+(@code{cipher/@/rsa.c:@/test_keys})
 @item DSA
 The test uses a random number of the size of the Q parameter to create
 a signature and then checks that the signature verifies.  As a second
