@@ -77,9 +77,8 @@ section entitled ``GNU General Public License''.
 
 Appendices
 
-* Self-Tests::                  Description of self-tests.
-* FIPS Restrictions::           Restrictions in FIPS mode.
-* FIPS Finite State Machine::   Description of the FIPS FSM.
+* Self-Tests::                  Description of the self-tests.
+* FIPS Mode::                   Description of the FIPS mode.
 * Library Copying::             The GNU Lesser General Public License
                                 says how you can copy and share Libgcrypt.
 * Copying::                     The GNU General Public License says how you
@@ -188,7 +187,7 @@ of the library are verified.
 * Building sources using Automake::  How to build sources with the help of Automake.
 * Initializing the library::    How to initialize the library.
 * Multi-Threading::             How Libgcrypt can be used in a MT environment.
-* FIPS mode::                   How to enable the FIPS mode.
+* Enabling FIPS mode::          How to enable the FIPS mode.
 @end menu
 
 
@@ -392,8 +391,8 @@ and freed memory, you need to initialize Libgcrypt this way:
   gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
 
 @anchor{sample-use-resume-secmem}
-  /* It is now okay to let Libgcrypt complain when there was/is a problem
-     with the secure memory. */
+  /* It is now okay to let Libgcrypt complain when there was/is
+     a problem with the secure memory. */
   gcry_control (GCRYCTL_RESUME_SECMEM_WARN);
 
   /* ... If required, other initialization goes here.  */
@@ -489,25 +488,28 @@ necessary thread callbacks for PThread and for GNU Pth:
 @table @code
 @item GCRY_THREAD_OPTION_PTH_IMPL
 
-This macro defines the following (static) symbols: gcry_pth_init,
-gcry_pth_mutex_init, gcry_pth_mutex_destroy, gcry_pth_mutex_lock,
-gcry_pth_mutex_unlock, gcry_pth_read, gcry_pth_write, gcry_pth_select,
-gcry_pth_waitpid, gcry_pth_accept, gcry_pth_connect, gcry_threads_pth.
+This macro defines the following (static) symbols:
+@code{gcry_pth_init}, @code{gcry_pth_mutex_init},
+@code{gcry_pth_mutex_destroy}, @code{gcry_pth_mutex_lock},
+@code{gcry_pth_mutex_unlock}, @code{gcry_pth_read},
+@code{gcry_pth_write}, @code{gcry_pth_select},
+@code{gcry_pth_waitpid}, @code{gcry_pth_accept},
+@code{gcry_pth_connect}, @code{gcry_threads_pth}.
 
-After including this macro, gcry_control() shall be used with a
-command of GCRYCTL_SET_THREAD_CBS in order to register the thread
-callback structure named ``gcry_threads_pth''.
+After including this macro, @code{gcry_control()} shall be used with a
+command of @code{GCRYCTL_SET_THREAD_CBS} in order to register the
+thread callback structure named ``gcry_threads_pth''.
 
 @item GCRY_THREAD_OPTION_PTHREAD_IMPL
 
 This macro defines the following (static) symbols:
-gcry_pthread_mutex_init, gcry_pthread_mutex_destroy,
-gcry_pthread_mutex_lock, gcry_pthread_mutex_unlock,
-gcry_threads_pthread.
+@code{gcry_pthread_mutex_init}, @code{gcry_pthread_mutex_destroy},
+@code{gcry_pthread_mutex_lock}, @code{gcry_pthread_mutex_unlock},
+@code{gcry_threads_pthread}.
 
-After including this macro, gcry_control() shall be used with a
-command of GCRYCTL_SET_THREAD_CBS in order to register the thread
-callback structure named ``gcry_threads_pthread''.
+After including this macro, @code{gcry_control()} shall be used with a
+command of @code{GCRYCTL_SET_THREAD_CBS} in order to register the
+thread callback structure named ``gcry_threads_pthread''.
 @end table
 
 Note that these macros need to be terminated with a semicolon.  Keep
@@ -515,9 +517,8 @@ in mind that these are convenient macros for C programmers; C++
 programmers might have to wrap these macros in an ``extern C'' body.
 
 
-
-@node FIPS mode
-@section FIPS Mode
+@node Enabling FIPS mode
+@section How to enable the FIPS mode
 
 Libgcrypt may be used in a FIPS 140-2 mode.  Note, that this does not
 necessary mean that Libcgrypt is an appoved FIPS 140-2 module.  Check the
@@ -1168,7 +1169,8 @@ above:
   gcry_cipher_hd_t handle;
   gcry_error_t err = 0;
 
-  err = gcry_cipher_open (&handle, GCRY_CIPHER_AES, GCRY_CIPHER_MODE_CBC, 0);
+  err = gcry_cipher_open (&handle, GCRY_CIPHER_AES, 
+                          GCRY_CIPHER_MODE_CBC, 0);
   if (err)
     @{
       fprintf (stderr, "Failure: %s/%s\n",
@@ -1510,13 +1512,13 @@ unsigned char *inbuf)
 
 @deftp {Data type} gcry_cipher_stencrypt_t
 Type for the `stencrypt' function, defined as: gcry_err_code_t
-(*gcry_cipher_stencrypt_t) (void *c, const unsigned char *outbuf, const
+(*gcry_@/cipher_@/stencrypt_@/t) (void *c, const unsigned char *outbuf, const
 unsigned char *, unsigned int n)
 @end deftp
 
 @deftp {Data type} gcry_cipher_stdecrypt_t
 Type for the `stdecrypt' function, defined as: gcry_err_code_t
-(*gcry_cipher_stdecrypt_t) (void *c, const unsigned char *outbuf, const
+(*gcry_@/cipher_@/stdecrypt_@/t) (void *c, const unsigned char *outbuf, const
 unsigned char *, unsigned int n)
 @end deftp
 
@@ -3011,7 +3013,8 @@ Example code:
   err = gcry_ac_open  (&handle, GCRY_AC_RSA, 0);
   assert (! err);
 
-  err = gcry_ac_key_pair_generate (handle, 1024, &rsa_spec, &key_pair, NULL);
+  err = gcry_ac_key_pair_generate (handle, 1024, &rsa_spec,
+                                   &key_pair, NULL);
   assert (! err);
 @}
 @end example
@@ -4995,7 +4998,7 @@ incremented on each use.
 
 @c ********************************************
 @node Self-Tests
-@appendix Description of Self-Tests
+@appendix Description of the Self-Tests
 
 In addition to the build time regression test suite, Libgcrypt
 implements self-tests to be performed at runtime.  Which self-tests
@@ -5191,16 +5194,22 @@ mode, the library is put into the ``Error'' state.
 
 @table @asis
 @item RSA
-The test uses a random number 64 bits less the size of the modulus to
-test the encryption and decryption operation.  A new random number of
-the same size is then generated to test the signing operation.  The
-signature is then modified and then checked to test that a modified
-signature is correcty detected.  (@code{cipher/@/dsa.c:@/test_keys})
+The test uses a random number 64 bits less the size of the modulus as
+plaintext and runs an encryption and decryption operation in turn.  The
+encrypted value is checked to not match the plaintext and the result
+of the decryption is checked to match the plaintext.
+
+A new random number of the same size is generated, signed and verified
+to test the correctness of the signing operation.  As a second signing
+test, the signature is modified by incrementing its value and then
+verified with the expected result that the verification fails.
+(@code{cipher/@/dsa.c:@/test_keys})
 @item DSA
 The test uses a random number of the size of the Q parameter to create
-a signature and then checked that the signature verifies. The data is
-then modified and then checked that the signature does not verify.
-(@code{cipher/@/dsa.c:@/test_keys})
+a signature and then checks that the signature verifies.  As a second
+signing test, the data is modified by incrementing its value and then
+verified against the signature with the expected result that the
+verification fails.  (@code{cipher/@/dsa.c:@/test_keys})
 @end table
 
 
@@ -5327,8 +5336,16 @@ A known answer test using 152 byte of data and a 131 byte key is run.
 
 
 @c ********************************************
-@node FIPS Restrictions
-@appendix Restrictions in FIPS mode
+@node FIPS Mode
+@appendix Description of the FIPS Mode
+
+This appendix gives detailed information pertaining to the FIPS mode.
+In particular, the changes to the standard mode and the finite state
+machine are described.  The self-tests required in this mode are
+described in the appendix on self-tests.
+
+@c -------------------------------
+@section Restrictions in FIPS Mode
 
 @noindent
 If Libgcrypt is used in FIPS mode these restrictions are effective:
@@ -5426,8 +5443,7 @@ A handler set by @code{gcry_set_fatalerror_handler} is ignored.
 
 
 @c ********************************************
-@node FIPS Finite State Machine
-@appendix FIPS Finite State Machine
+@section FIPS Finite State Machine
 
 The FIPS mode of libgcrypt implements a finite state machine (FSM) using
 8 states (@pxref{tbl:fips-states}) and checks at runtime that only valid

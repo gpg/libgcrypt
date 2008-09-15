@@ -1,3 +1,7 @@
+2008-09-15  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi: Fold the two FIPS appendices into one.
+
 2008-09-11  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.texi (Public-Key Subsystem Architecture): Explain RSA
