@@ -4,6 +4,7 @@
 	(_gcry_initialize_fips_mode, lock_fsm, unlock_fsm)
 	(_gcry_fips_signal_error, fips_new_state)
 	(_gcry_fips_noreturn) [HAVE_SYSLOG]: Also log via syslog.
+	(check_binary_integrity) [HAVE_SYSLOG]: Log failure.
 	* global.h [HAVE_SYSLOG]: Include syslog.h.
 	(_gcry_global_is_operational) [HAVE_SYSLOG]: Print warning.
 

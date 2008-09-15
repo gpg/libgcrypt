@@ -565,6 +565,12 @@ check_binary_integrity (void)
         }
     }
   reporter ("binary", 0, fname, err? gpg_strerror (err):NULL);
+#ifdef HAVE_SYSLOG
+  if (err)
+    syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
+            "integrity check on `%s' failed: %s",
+            fname? fname:"[?]", gpg_strerror (err));
+#endif /*HAVE_SYSLOG*/
   gcry_free (fname);
   return !!err;
 #else
