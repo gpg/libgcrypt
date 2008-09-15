@@ -1,3 +1,7 @@
+2008-09-15  Werner Koch  <wk@g10code.com>
+
+	* fipsrngdrv.c: New.
+
 2008-09-09  Werner Koch  <wk@g10code.com>
 
 	* basic.c (main): New option --selftest.

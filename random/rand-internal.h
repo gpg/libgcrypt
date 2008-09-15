@@ -79,6 +79,16 @@ void _gcry_rngfips_create_nonce (void *buffer, size_t length);
 
 gcry_error_t _gcry_rngfips_selftest (selftest_report_func_t report);
 
+gcry_err_code_t _gcry_rngfips_init_external_test (void **r_context, 
+                                                  const void *key,
+                                                  size_t keylen,
+                                                  const void *seed,
+                                                  size_t seedlen,
+                                                  const void *dt,
+                                                  size_t dtlen);
+gcry_err_code_t _gcry_rngfips_run_external_test (void *context,
+                                                 char *buffer, size_t buflen);
+void _gcry_rngfips_deinit_external_test (void *context);
 
 
 

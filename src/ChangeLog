@@ -1,3 +1,18 @@
+2008-09-15  Werner Koch  <wk@g10code.com>
+
+	* fips.c [HAVE_SYSLOG]: Include syslog.h.
+	(_gcry_initialize_fips_mode, lock_fsm, unlock_fsm)
+	(_gcry_fips_signal_error, fips_new_state)
+	(_gcry_fips_noreturn) [HAVE_SYSLOG]: Also log via syslog.
+	* global.h [HAVE_SYSLOG]: Include syslog.h.
+	(_gcry_global_is_operational) [HAVE_SYSLOG]: Print warning.
+
+	* global.c (_gcry_vcontrol): Use GCRYCTL_INITIALIZATION_FINISHED
+	to run power-up tests.  Add unpublished control commands 58-60.
+
+	* global.c (_gcry_global_is_operational): New.
+	* g10lib.h (fips_is_operational): Change to call this function.
+
 2008-09-12  Werner Koch  <wk@g10code.com>
 
 	* fips.c (_gcry_fips_run_selftests): Add arg EXTENDED.

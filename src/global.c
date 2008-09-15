@@ -28,6 +28,9 @@
 #include <limits.h>
 #include <errno.h>
 #include <unistd.h>
+#ifdef HAVE_SYSLOG
+# include <syslog.h>
+#endif /*HAVE_SYSLOG*/
 
 #include "g10lib.h"
 #include "cipher.h"
@@ -80,7 +83,7 @@ global_init (void)
     return;
   any_init_done = 1;
 
-  /* Initialize our portable theead/mutex wrapper.  */
+  /* Initialize our portable thread/mutex wrapper.  */
   err = ath_init ();
   if (err)
     goto fail;
@@ -117,6 +120,39 @@ global_init (void)
  fail:
   BUG ();
 }
+
+
+/* This function is called by the macro fips_is_operational and makes
+   sure that the minimal initialization has been done.  This is far
+   from a perfect solution and hides problems with an improper
+   initialization but at least in single-threaded mode it should work
+   reliable. 
+
+   The reason we need this is that a lot of applications don't use
+   Libgcrypt properly by not running any initialization code at all.
+   They just call a Libgcrypt function and that is all what they want.
+   Now with the FIPS mode, that has the side effect of entering FIPS
+   mode (for security reasons, FIPS mode is the default if no
+   initialization has been done) and bailing out immediately because
+   the FSM is in the wrong state.  If we always run the init code,
+   Libgcrypt can test for FIPS mode and at least if not in FIPS mode,
+   it will behave as before.  Note that this on-the-fly initialization
+   is only done for the cryptographic functions subject to FIPS mode
+   and thus not all API calls will do such an initialization.  */
+int
+_gcry_global_is_operational (void)
+{
+  if (!any_init_done)
+    {
+#ifdef HAVE_SYSLOG
+      syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
+              "missing initialization - please fix the application");
+#endif /*HAVE_SYSLOG*/
+      global_init ();
+    }
+  return _gcry_fips_is_operational ();
+}
+
 
 
 
@@ -392,6 +428,8 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
              mutexes. */
           _gcry_random_initialize (0);
           init_finished = 1;
+          /* Force us into operational state if in FIPS mode.  */
+          (void)fips_is_operational ();
         }
       break;
 
@@ -478,11 +516,47 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
     case GCRYCTL_SELFTEST:
       /* Run a selftest.  This works in fips mode as well as in
          standard mode.  In contrast to the power-up tests, we use an
-         extended version ofthe selftests. Returns 0 on success or an
+         extended version of the selftests. Returns 0 on success or an
          error code. */
       global_init ();
       err = _gcry_fips_run_selftests (1);
       break;
+
+    case 58:
+      {
+        void **rctx        = va_arg (arg_ptr, void **);
+        unsigned int flags = va_arg (arg_ptr, unsigned int);
+        const void *key    = va_arg (arg_ptr, const void *);
+        size_t keylen      = va_arg (arg_ptr, size_t);
+        const void *seed   = va_arg (arg_ptr, const void *);
+        size_t seedlen     = va_arg (arg_ptr, size_t);
+        const void *dt     = va_arg (arg_ptr, const void *);
+        size_t dtlen       = va_arg (arg_ptr, size_t);
+        if (!fips_is_operational ())
+          err = fips_not_operational ();
+        else
+          err = _gcry_random_init_external_test (rctx, flags, key, keylen,
+                                                 seed, seedlen, dt, dtlen);
+      }
+      break;
+    case 59:
+      {
+        void *ctx     = va_arg (arg_ptr, void *);
+        void *buffer  = va_arg (arg_ptr, void *);
+        size_t buflen = va_arg (arg_ptr, size_t);
+        if (!fips_is_operational ())
+          err = fips_not_operational ();
+        else
+          err = _gcry_random_run_external_test (ctx, buffer, buflen);
+      }
+      break;
+    case 60:
+      {
+        void *ctx = va_arg (arg_ptr, void *);
+        _gcry_random_deinit_external_test (ctx);
+      }
+      break;
+
 
     default:
       err = GPG_ERR_INV_OP;

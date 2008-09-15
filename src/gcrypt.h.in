@@ -410,6 +410,7 @@ enum gcry_ctl_cmds
     GCRYCTL_FIPS_MODE_P = 55,
     GCRYCTL_FORCE_FIPS_MODE = 56,
     GCRYCTL_SELFTEST = 57
+    /* Note: 58, 59 and 60 are used internally.  */
   };
 
 /* Perform various operations defined by CMD. */

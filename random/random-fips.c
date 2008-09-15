@@ -144,12 +144,12 @@ struct rng_context
   /* To implement a KAT we need to provide a know DT value.  To
      accomplish this the x931_get_dt function checks whether this
      field is not NULL and then uses the 16 bytes at this address for
-     the DT value.  However the last byte is will be replaced by the
-     value of field TEST_DT_COUNTER which will be incremented with
+     the DT value.  However the last 4 bytes are replaced by the
+     value of field TEST_DT_COUNTER which will be incremented after
      each invocation of x931_get_dt. We use a pointer and not a buffer
      because there is no need to put this value into secure  memory.  */
   const unsigned char *test_dt_ptr;
-  unsigned char test_dt_counter;
+  u32 test_dt_counter;
 
   /* We need to keep track of the process which did the initialization
      so that we can detect a fork.  The volatile modifier is required
@@ -283,8 +283,12 @@ x931_get_dt (unsigned char *buffer, size_t length, rng_context_t rng_ctx)
       && rng_ctx != std_rng_context
       && rng_ctx != strong_rng_context)
     {
-      memcpy (buffer, rng_ctx->test_dt_ptr, 15);
-      buffer[15] = rng_ctx->test_dt_counter++;
+      memcpy (buffer, rng_ctx->test_dt_ptr, 16);
+      buffer[12] = (rng_ctx->test_dt_counter >> 24);
+      buffer[13] = (rng_ctx->test_dt_counter >> 16);
+      buffer[14] = (rng_ctx->test_dt_counter >> 8);
+      buffer[15] = rng_ctx->test_dt_counter;
+      rng_ctx->test_dt_counter++;
       return;
     }
 
@@ -792,7 +796,7 @@ _gcry_rngfips_add_bytes (const void *buf, size_t buflen, int quality)
     
 /* Public function to fill the buffer with LENGTH bytes of
    cryptographically strong random bytes.  Level GCRY_WEAK_RANDOM is
-   here mapped to GCRY_STRING_RANDOM, GCRY_STRONG_RANDOM is strong
+   here mapped to GCRY_STRONG_RANDOM, GCRY_STRONG_RANDOM is strong
    enough for most usage, GCRY_VERY_STRONG_RANDOM is good for key
    generation stuff but may be very slow.  */
 void
@@ -915,9 +919,12 @@ selftest_kat (selftest_report_func_t report)
       
       /* Setup a DT value.  */
       test_ctx->test_dt_ptr = tv[tvidx].dt;
-      test_ctx->test_dt_counter = tv[tvidx].dt[15];
+      test_ctx->test_dt_counter = ( (tv[tvidx].dt[12] << 24) 
+                                   |(tv[tvidx].dt[13] << 16)
+                                   |(tv[tvidx].dt[14] << 8)
+                                   |(tv[tvidx].dt[15]) );
 
-      /* Get ant compare the first three results.  */
+      /* Get and compare the first three results.  */
       for (ridx=0; ridx < 3; ridx++)
         {
           /* Compute the next value.  */
@@ -988,4 +995,105 @@ _gcry_rngfips_selftest (selftest_report_func_t report)
 #endif
   return gpg_error (ec);
 }
+
+
+/* Create a new test context for an external RNG test driver.  On
+   success the test context is stored at R_CONTEXT; on failure NULL is
+   stored at R_CONTEXT and an error code is returned.  */
+gcry_err_code_t
+_gcry_rngfips_init_external_test (void **r_context,
+                                  const void *key, size_t keylen,
+                                  const void *seed, size_t seedlen,
+                                  const void *dt, size_t dtlen)
+{
+  gpg_error_t err;
+  rng_context_t test_ctx;
+
+  _gcry_rngfips_initialize (1);  /* Auto-initialize if needed.  */
+  
+  if (!r_context
+      || !key  || keylen  != 16 
+      || !seed || seedlen != 16
+      || !dt   || dtlen   != 16 )
+    return GPG_ERR_INV_ARG;
+
+  test_ctx = gcry_calloc (1, sizeof *test_ctx + dtlen);
+  if (!test_ctx)
+    return gpg_err_code_from_syserror ();
+  setup_guards (test_ctx);
+  
+  /* Setup the key.  */
+  err = gcry_cipher_open (&test_ctx->cipher_hd,
+                          GCRY_CIPHER_AES128, GCRY_CIPHER_MODE_ECB,
+                          GCRY_CIPHER_SECURE);
+  if (err)
+    goto leave;
+
+  err = gcry_cipher_setkey (test_ctx->cipher_hd, key, keylen);
+  if (err)
+    goto leave;
+
+  test_ctx->key_init_pid = getpid ();
+      
+  /* Setup the seed.  */
+  memcpy (test_ctx->seed_V, seed, seedlen);
+  test_ctx->is_seeded = 1;
+  test_ctx->seed_init_pid = getpid ();
+  
+  /* Setup a DT value.  Because our context structure only stores a
+     pointer we copy the DT value to the extra space we allocated in
+     the test_ctx and set the pointer to tehre.  */
+  memcpy ((char*)test_ctx + sizeof *test_ctx, dt, dtlen);
+  test_ctx->test_dt_ptr = (unsigned char*)test_ctx + sizeof test_ctx; 
+  test_ctx->test_dt_counter = ( (test_ctx->test_dt_ptr[12] << 24) 
+                               |(test_ctx->test_dt_ptr[13] << 16)
+                               |(test_ctx->test_dt_ptr[14] << 8)
+                               |(test_ctx->test_dt_ptr[15]) );
+
+  check_guards (test_ctx);
+  /* All fine.  */
+  err = 0;
+
+ leave:
+  if (err)
+    {
+      gcry_cipher_close (test_ctx->cipher_hd);
+      gcry_free (test_ctx);
+      *r_context = NULL;
+    }
+  else
+    *r_context = test_ctx;
+  return gcry_err_code (err);
+}
+
+
+/* Get BUFLEN bytes from the RNG using the test CONTEXT and store them
+   at BUFFER.  Return 0 on success or an error code.  */
+gcry_err_code_t
+_gcry_rngfips_run_external_test (void *context, char *buffer, size_t buflen)
+{
+  rng_context_t test_ctx = context;
+
+  if (!test_ctx || !buffer || buflen != 16)
+    return GPG_ERR_INV_ARG;
+
+  lock_rng ();
+  get_random (buffer, buflen, test_ctx);
+  unlock_rng ();
+  return 0;
+}
+
+/* Release the test CONTEXT.  */
+void
+_gcry_rngfips_deinit_external_test (void *context)
+{
+  rng_context_t test_ctx = context;
+
+  if (test_ctx)
+    {
+      gcry_cipher_close (test_ctx->cipher_hd);
+      gcry_free (test_ctx);
+    }
+}
+
 

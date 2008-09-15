@@ -700,7 +700,7 @@ AC_CHECK_FUNCS(stpcpy strcasecmp)
 AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
 # Other checks
 AC_CHECK_FUNCS(strerror rand mmap getpagesize sysconf waitpid wait4)
-AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime)
+AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime syslog)
 AC_CHECK_FUNCS(fcntl ftruncate)
 
 GNUPG_CHECK_MLOCK

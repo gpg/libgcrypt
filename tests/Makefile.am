@@ -39,7 +39,7 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 LDADD = ../src/libgcrypt.la $(DL_LIBS)
 
 EXTRA_PROGRAMS = testapi pkbench
-noinst_PROGRAMS = $(TESTS)
+noinst_PROGRAMS = $(TESTS) fipsrngdrv
 
 EXTRA_DIST = README rsa-16k.key
 

@@ -26,6 +26,9 @@
 #ifdef ENABLE_HMAC_BINARY_CHECK
 # include <dlfcn.h> 
 #endif
+#ifdef HAVE_SYSLOG
+# include <syslog.h>
+#endif /*HAVE_SYSLOG*/
 
 #include "g10lib.h"
 #include "ath.h"
@@ -148,6 +151,11 @@ _gcry_initialize_fips_mode (int force)
            file system.  We better stop right away. */
         log_info ("FATAL: error reading `%s' in libgcrypt: %s\n",
                   procfname, strerror (saved_errno));
+#ifdef HAVE_SYSLOG
+        syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
+                "reading `%s' failed: %s - abort",
+                procfname, strerror (saved_errno));
+#endif /*HAVE_SYSLOG*/
         abort ();
       }
   }
@@ -169,6 +177,11 @@ _gcry_initialize_fips_mode (int force)
              get involved.  */
           log_info ("FATAL: failed to create the FSM lock in libgcrypt: %s\n",
                      strerror (err));
+#ifdef HAVE_SYSLOG
+          syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
+                  "creating FSM lock failed: %s - abort",
+                  strerror (err));
+#endif /*HAVE_SYSLOG*/
           abort ();
         }
       
@@ -189,6 +202,11 @@ lock_fsm (void)
     {
       log_info ("FATAL: failed to acquire the FSM lock in libgrypt: %s\n", 
                 strerror (err));
+#ifdef HAVE_SYSLOG
+      syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
+              "acquiring FSM lock failed: %s - abort",
+              strerror (err));
+#endif /*HAVE_SYSLOG*/
       abort ();
     }
 }
@@ -203,6 +221,11 @@ unlock_fsm (void)
     {
       log_info ("FATAL: failed to release the FSM lock in libgrypt: %s\n",
                 strerror (err));
+#ifdef HAVE_SYSLOG
+      syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
+              "releasing FSM lock failed: %s - abort",
+              strerror (err));
+#endif /*HAVE_SYSLOG*/
       abort ();
     }
 }
@@ -619,6 +642,14 @@ _gcry_fips_signal_error (const char *srcfile, int srcline, const char *srcfunc,
             srcfile, srcline, 
             srcfunc? ", function ":"", srcfunc? srcfunc:"",
             description? description : "no description available");
+#ifdef HAVE_SYSLOG
+  syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
+          "%serror in file %s, line %d%s%s: %s",
+          is_fatal? "fatal ":"",
+          srcfile, srcline, 
+          srcfunc? ", function ":"", srcfunc? srcfunc:"",
+          description? description : "no description available");
+#endif /*HAVE_SYSLOG*/
 }
 
 
@@ -697,7 +728,20 @@ fips_new_state (enum module_states new_state)
   if (!ok)
     {
       /* Invalid state transition.  Halting library. */
+#ifdef HAVE_SYSLOG
+      syslog (LOG_USER|LOG_ERR, 
+              "Libgcrypt error: invalid state transition %s => %s",
+              state2str (last_state), state2str (new_state));
+#endif /*HAVE_SYSLOG*/
       fips_noreturn ();
+    }
+  else if (new_state == STATE_ERROR || new_state == STATE_FATALERROR)
+    {
+#ifdef HAVE_SYSLOG
+      syslog (LOG_USER|LOG_WARNING, 
+              "Libgcrypt notice: state transition %s => %s",
+              state2str (last_state), state2str (new_state));
+#endif /*HAVE_SYSLOG*/
     }
 }
 
@@ -709,6 +753,9 @@ fips_new_state (enum module_states new_state)
 void
 _gcry_fips_noreturn (void)
 {
+#ifdef HAVE_SYSLOG
+  syslog (LOG_USER|LOG_ERR, "Libgcrypt terminated the application");
+#endif /*HAVE_SYSLOG*/
   fflush (NULL);
   abort ();
   /*NOTREACHED*/

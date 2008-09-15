@@ -1,6 +1,15 @@
 Noteworthy changes in version 1.4.3
 ------------------------------------------------
 
+ * Try to auto-initialize Libgcrypt to minimize the effect of
+   applications not doing that correctly.  This is not a perfect
+   solution but given that many applicationion would totally fail
+   without such a hack, we try to help at least with the most common
+   cases.  Folks, please read the manual to learn how to properly
+   initialize Libgcrypt!
+
+ * Log fatal error via syslog.
+
  * More self-tests.
 
  * Documentation cleanups.

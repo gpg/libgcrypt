@@ -283,3 +283,41 @@ _gcry_random_selftest (selftest_report_func_t report)
     return 0; /* No selftests yet.  */
 }
 
+
+/* Create a new test context for an external RNG test driver.  On
+   success the test context is stored at R_CONTEXT; on failure NULL is
+   stored at R_CONTEXT and an error code is returned.  */
+gcry_err_code_t
+_gcry_random_init_external_test (void **r_context, 
+                                 unsigned int flags,
+                                 const void *key, size_t keylen,
+                                 const void *seed, size_t seedlen,
+                                 const void *dt, size_t dtlen)
+{
+  (void)flags;
+  if (fips_mode ())
+    return _gcry_rngfips_init_external_test (r_context, key, keylen,
+                                             seed, seedlen,
+                                             dt, dtlen);
+  else
+    return GPG_ERR_NOT_SUPPORTED;
+}
+
+/* Get BUFLEN bytes from the RNG using the test CONTEXT and store them
+   at BUFFER.  Return 0 on success or an error code.  */
+gcry_err_code_t
+_gcry_random_run_external_test (void *context, char *buffer, size_t buflen)
+{
+  if (fips_mode ())
+    return _gcry_rngfips_run_external_test (context, buffer, buflen);
+  else
+    return GPG_ERR_NOT_SUPPORTED;
+}
+
+/* Release the test CONTEXT.  */
+void
+_gcry_random_deinit_external_test (void *context)
+{
+  if (fips_mode ())
+    return _gcry_rngfips_deinit_external_test (context);
+}
