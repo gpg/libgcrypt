@@ -63,7 +63,7 @@ die (const char *format, ...)
    exactly to LENGTH bytes. The string is delimited by either end of
    string or a white space character.  The function returns -1 on
    error or the length of the parsed string.  */
-int
+static int
 hex2bin (const char *string, void *buffer, size_t length)
 {
   int i;
@@ -149,9 +149,16 @@ main (int argc, char **argv)
           argc--; argv++;
           break;
         }
+      else if (!strcmp (*argv, "--help"))
+        {
+          fputs ("usage: " PGM 
+                 " [--verbose] [--binary] [--loop] [--progress] KEY V DT\n",
+                 stdout);
+          exit (0);
+        }
       else if (!strcmp (*argv, "--verbose"))
         {
-          verbose = 2;
+          verbose++;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--binary"))
@@ -185,12 +192,15 @@ main (int argc, char **argv)
         die ("args are not 32 hex digits each\n");
     }
   else
-    die ("invalid usage\n");
+    die ("invalid usage (try --help)\n");
 
 #ifndef HAVE_W32_SYSTEM
   if (loop)
     signal (SIGPIPE, SIG_IGN);
 #endif
+
+  if (verbose)
+    fputs (PGM ": started\n", stderr);
 
   gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
   gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
@@ -205,26 +215,33 @@ main (int argc, char **argv)
 
   do 
     {
+      int writerr = 0;
+
       err = run_external_test (context, buffer, sizeof buffer);
       if (err)
         die ("run external test failed: %s\n", gpg_strerror (err));
       if (binary)
         {
           if (fwrite (buffer, 16, 1, stdout) != 1)
-            {
-#ifndef HAVE_W32_SYSTEM
-              if (loop && errno == EPIPE)
-                break;
-#endif
-              die ("writing output failed: %s\n", strerror (errno));
-            }
-          fflush (stdout);
+            writerr = 1;
+          else
+            fflush (stdout);
         }
       else
         {
           print_buffer (buffer, sizeof buffer);
-          putchar ('\n');
+          if (putchar ('\n') == EOF)
+            writerr = 1;
         }
+      if (writerr)
+        {
+#ifndef HAVE_W32_SYSTEM
+          if (loop && errno == EPIPE)
+            break;
+#endif
+          die ("writing output failed: %s\n", strerror (errno));
+        }
+
       if (progress)
         {
           putc ('.', stderr);
@@ -237,6 +254,9 @@ main (int argc, char **argv)
     putc ('\n', stderr);
 
   deinit_external_test (context);
+
+  if (verbose)
+    fputs (PGM ": ready\n", stderr);
 
   return 0;
 }

@@ -3442,10 +3442,11 @@ this is the hashed data is highly confidential.
 
 @item GCRY_MD_FLAG_HMAC
 Turn the algorithm into a HMAC message authentication algorithm.  This
-only works if just one algorithm is enabled for the handle.  Note that the function
-@code{gcry_md_setkey} must be used to set the MAC key.  If you want CBC
-message authentication codes based on a cipher, see @xref{Working with
-cipher handles}.
+only works if just one algorithm is enabled for the handle.  Note that
+the function @code{gcry_md_setkey} must be used to set the MAC key.
+The size of the MAC is equal to the message digest of the underlying
+hash algorithm.  If you want CBC message authentication codes based on
+a cipher, see @xref{Working with cipher handles}.
 
 @end table
 @c begin table of hash flags
@@ -3472,7 +3473,7 @@ be set using the function:
 @deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
 
 For use with the HMAC feature, set the MAC key to the value of @var{key}
-of length @var{keylen}.
+of length @var{keylen}.  There is no restriction on the length of the key.
 @end deftypefun
 
 

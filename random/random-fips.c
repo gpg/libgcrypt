@@ -37,7 +37,7 @@
    caller requested less bits, the extra bits are not used.  The key
    for each generator is only set once at the first time a generator
    is used.  The seed value is set with the key and again after 1000
-   (SEED_TTL) output blocks.
+   (SEED_TTL) output blocks; the re-seeding is disabled in test mode.
 
    The GCRY_VERY_STRONG_RANDOM and GCRY_STRONG_RANDOM generators are
    keyed and seeded from the /dev/random device.  Thus these
@@ -1043,9 +1043,9 @@ _gcry_rngfips_init_external_test (void **r_context,
   
   /* Setup a DT value.  Because our context structure only stores a
      pointer we copy the DT value to the extra space we allocated in
-     the test_ctx and set the pointer to tehre.  */
-  memcpy ((char*)test_ctx + sizeof *test_ctx, dt, dtlen);
-  test_ctx->test_dt_ptr = (unsigned char*)test_ctx + sizeof test_ctx; 
+     the test_ctx and set the pointer to that address.  */
+  memcpy ((unsigned char*)test_ctx + sizeof *test_ctx, dt, dtlen);
+  test_ctx->test_dt_ptr = (unsigned char*)test_ctx + sizeof *test_ctx; 
   test_ctx->test_dt_counter = ( (test_ctx->test_dt_ptr[12] << 24) 
                                |(test_ctx->test_dt_ptr[13] << 16)
                                |(test_ctx->test_dt_ptr[14] << 8)
