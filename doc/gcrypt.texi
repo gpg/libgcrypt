@@ -5249,9 +5249,9 @@ The application may requests tests at any time by means of the
 @code{GCRYCTL_SELFTEST} control command.  Note that using these tests
 is not FIPS conform: Although Libgcrypt rejects all application
 requests for services while running self-tests, it does not ensure
-that no other operations of Libgcrypt are still being executed.  Thus
-in FIPS mode an application requesting self-tests needs to be
-power-cycle Libgcrypt instead.
+that no other operations of Libgcrypt are still being executed.  Thus,
+in FIPS mode an application requesting self-tests needs to power-cycle
+Libgcrypt instead.
 
 When self-tests are requested, Libgcrypt runs all the tests it does
 during power-up as well as a few extra checks as described below.

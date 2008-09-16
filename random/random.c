@@ -296,7 +296,7 @@ _gcry_random_init_external_test (void **r_context,
 {
   (void)flags;
   if (fips_mode ())
-    return _gcry_rngfips_init_external_test (r_context, key, keylen,
+    return _gcry_rngfips_init_external_test (r_context, flags, key, keylen,
                                              seed, seedlen,
                                              dt, dtlen);
   else

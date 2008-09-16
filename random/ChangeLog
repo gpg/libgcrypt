@@ -2,6 +2,11 @@
 
 	* random-fips.c (x931_aes_driver): No re-seeding with test contexts.
 	(_gcry_rngfips_init_external_test): Fix setting of test_dt_ptr.
+	(struct rng_context): Add flag TEST_NO_DUP_CHECK.
+	(x931_aes_driver): Use that flag.
+	(_gcry_rngfips_init_external_test): Add arg FLAGS and use it to
+	modify the test.
+	* random.c (_gcry_random_init_external_test): Pass FLAGS.
 
 2008-09-15  Werner Koch  <wk@g10code.com>
 

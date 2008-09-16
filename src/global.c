@@ -294,7 +294,10 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
   if ( (hwf & hwflist[i].flag) )
     fnc (fp, "%s:", hwflist[i].desc);
   fnc (fp, "\n");
-  fnc (fp, "fips-mode:%d:\n", fips_mode () );
+  /* We use y/n instead of 1/0 for the simple reason that Emacsen's
+     compile error parser would accidently flag that line when printed
+     during "make check" as an error.  */
+  fnc (fp, "fips-mode:%c:\n", fips_mode ()? 'y':'n' );
 }
 
 

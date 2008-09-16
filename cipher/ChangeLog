@@ -1,3 +1,7 @@
+2008-09-16  Werner Koch  <wk@g10code.com>
+
+	* ecc.c (run_selftests): Add arg EXTENDED.
+
 2008-09-12  Werner Koch  <wk@g10code.com>
 
 	* rsa.c (test_keys): Do a bad case signature check.

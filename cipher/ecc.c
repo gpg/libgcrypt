@@ -1316,9 +1316,11 @@ selftests_ecdsa (selftest_report_func_t report)
 
 /* Run a full self-test for ALGO and return 0 on success.  */
 static gpg_err_code_t
-run_selftests (int algo, selftest_report_func_t report)
+run_selftests (int algo, int extended, selftest_report_func_t report)
 {
   gpg_err_code_t ec;
+
+  (void)extended;
 
   switch (algo)
     {

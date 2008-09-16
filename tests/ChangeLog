@@ -2,6 +2,7 @@
 
 	* fipsrngdrv.c (main): Bail out on write error.  Implement verbose
 	option.
+	(main): Use flag to disable dup block checks.
 
 2008-09-15  Werner Koch  <wk@g10code.com>
 

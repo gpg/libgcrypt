@@ -209,7 +209,9 @@ main (int argc, char **argv)
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
-  err = init_external_test (&context, 0, key, 16, seed, 16, dt, 16);
+  /* The flag value 1 disables the dup check, so that the RNG returns
+     all generated data.  */
+  err = init_external_test (&context, 1, key, 16, seed, 16, dt, 16);
   if (err)
     die ("init external test failed: %s\n", gpg_strerror (err));
 

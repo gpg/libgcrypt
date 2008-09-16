@@ -141,13 +141,16 @@ struct rng_context
 
   unsigned char guard_3[1];
 
+  /* The external test may want to suppress the duplicate bock check.
+     This is done if the this flag is set.  */
+  unsigned char test_no_dup_check;
   /* To implement a KAT we need to provide a know DT value.  To
      accomplish this the x931_get_dt function checks whether this
      field is not NULL and then uses the 16 bytes at this address for
      the DT value.  However the last 4 bytes are replaced by the
      value of field TEST_DT_COUNTER which will be incremented after
      each invocation of x931_get_dt. We use a pointer and not a buffer
-     because there is no need to put this value into secure  memory.  */
+     because there is no need to put this value into secure memory.  */
   const unsigned char *test_dt_ptr;
   u32 test_dt_counter;
 
@@ -476,24 +479,36 @@ x931_aes_driver (unsigned char *output, size_t length, rng_context_t rng_ctx)
                 intermediate_I, temp_buffer);
       rng_ctx->use_counter++;
 
-      /* Do a basic check on the output to avoid a stuck generator.  */
-      if (!rng_ctx->compare_value_valid)
+      if (rng_ctx->test_no_dup_check
+          && rng_ctx->test_dt_ptr
+          && rng_ctx != nonce_context
+          && rng_ctx != std_rng_context
+          && rng_ctx != strong_rng_context)
         {
-          /* First time used, only save the result.  */
+          /* This is a test context which does not want the duplicate
+             block check. */
+        }
+      else
+        {
+          /* Do a basic check on the output to avoid a stuck generator.  */
+          if (!rng_ctx->compare_value_valid)
+            {
+              /* First time used, only save the result.  */
+              memcpy (rng_ctx->compare_value, result_buffer, 16);
+              rng_ctx->compare_value_valid = 1;
+              continue;
+            }
+          if (!memcmp (rng_ctx->compare_value, result_buffer, 16))
+            {
+              /* Ooops, we received the same 128 bit block - that should
+                 in theory never happen.  The FIPS requirement says that
+                 we need to put ourself into the error state in such
+                 case.  */
+              fips_signal_error ("duplicate 128 bit block returned by RNG");
+              return -1;
+            }
           memcpy (rng_ctx->compare_value, result_buffer, 16);
-          rng_ctx->compare_value_valid = 1;
-          continue;
         }
-      if (!memcmp (rng_ctx->compare_value, result_buffer, 16))
-        {
-          /* Ooops, we received the same 128 bit block - that should
-             in theory never happen.  The FIPS requirement says that
-             we need to put ourself into the error state in such
-             case.  */
-          fips_signal_error ("duplicate 128 bit block returned by RNG");
-          return -1;
-        }
-      memcpy (rng_ctx->compare_value, result_buffer, 16);
       
       /* Append to outbut.  */
       memcpy (output, result_buffer, nbytes);
@@ -1002,7 +1017,7 @@ _gcry_rngfips_selftest (selftest_report_func_t report)
    success the test context is stored at R_CONTEXT; on failure NULL is
    stored at R_CONTEXT and an error code is returned.  */
 gcry_err_code_t
-_gcry_rngfips_init_external_test (void **r_context,
+_gcry_rngfips_init_external_test (void **r_context, unsigned int flags,
                                   const void *key, size_t keylen,
                                   const void *seed, size_t seedlen,
                                   const void *dt, size_t dtlen)
@@ -1050,6 +1065,9 @@ _gcry_rngfips_init_external_test (void **r_context,
                                |(test_ctx->test_dt_ptr[13] << 16)
                                |(test_ctx->test_dt_ptr[14] << 8)
                                |(test_ctx->test_dt_ptr[15]) );
+
+  if ( (flags & 1) )
+    test_ctx->test_no_dup_check = 1;
 
   check_guards (test_ctx);
   /* All fine.  */

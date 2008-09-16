@@ -1,5 +1,7 @@
 2008-09-16  Werner Koch  <wk@g10code.com>
 
+	* global.c (print_config): Use y/n for fips mode.
+
 	* fips.c (fips_new_state): Allow transition to Error and
 	Fatal-error from Init.
 

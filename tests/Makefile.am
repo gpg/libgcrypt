@@ -43,3 +43,6 @@ noinst_PROGRAMS = $(TESTS) fipsrngdrv
 
 EXTRA_DIST = README rsa-16k.key
 
+# Note: There is a file cavs-driver.pl in the SVN but we do not
+# distribute it because we have no configure tests for Perl and thus
+# we can expect that people get it from the SVN instead.
