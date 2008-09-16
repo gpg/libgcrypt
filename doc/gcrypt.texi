@@ -5566,7 +5566,7 @@ running self-tests.
 Self-Test to Error is triggred by a failed self-test.
 
 @item 15
-Operational to Fatal-Error is triggred if Libcrypt encountered a
+Operational to Fatal-Error is triggered if Libcrypt encountered a
 non-recoverable error.
 
 @item 16
@@ -5576,6 +5576,13 @@ the self-tests again.
 @item 17
 Error to Self-Test is triggered if the application has requested to run
 self-tests to get to get back into operational state after an error.
+
+@item 18
+Init to Error is triggered by errors in the initialization code.
+
+@item 19
+Init to Fatal-Error is triggered by non-recoverable errors in the
+initialization code.
 
 @end table
 @end float

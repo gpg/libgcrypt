@@ -680,7 +680,9 @@ fips_new_state (enum module_states new_state)
       break;
 
     case STATE_INIT:
-      if (new_state == STATE_SELFTEST )
+      if (new_state == STATE_SELFTEST
+          || new_state == STATE_ERROR
+          || new_state == STATE_FATALERROR)
         ok = 1;
       break;
       

@@ -1,3 +1,8 @@
+2008-09-16  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi (FIPS Mode): Describe new transitions 18 and 19.
+	* fips-fsm.fig: Add new transitions.
+
 2008-09-15  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.texi: Fold the two FIPS appendices into one.
