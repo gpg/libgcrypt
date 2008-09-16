@@ -455,8 +455,9 @@ x931_aes_driver (unsigned char *output, size_t length, rng_context_t rng_ctx)
 
   while (length)
     {
-      /* We require a new seed after some time.  */
-      if (rng_ctx->use_counter > SEED_TTL)
+      /* Unless we are running with a test context, we require a new
+         seed after some time.  */
+      if (!rng_ctx->test_dt_ptr && rng_ctx->use_counter > SEED_TTL)
         {
           x931_reseed (rng_ctx);
           rng_ctx->use_counter = 0;

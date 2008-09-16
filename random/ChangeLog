@@ -1,3 +1,7 @@
+2008-09-16  Werner Koch  <wk@g10code.com>
+
+	* random-fips.c (x931_aes_driver): No re-seeding with test contexts.
+
 2008-09-15  Werner Koch  <wk@g10code.com>
 
 	* random.c (_gcry_random_init_external_test): New.

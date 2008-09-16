@@ -1,3 +1,7 @@
+2008-09-16  Werner Koch  <wk@g10code.com>
+
+	* fipsrngdrv.c: Bail out on write error.
+
 2008-09-15  Werner Koch  <wk@g10code.com>
 
 	* fipsrngdrv.c: New.
