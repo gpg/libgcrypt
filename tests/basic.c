@@ -2089,7 +2089,7 @@ main (int argc, char **argv)
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
 
-  if ( gcry_control (GCRYCTL_FIPS_MODE_P, 0) )
+  if ( gcry_fips_mode_active () )
     in_fips_mode = 1;
 
   if (!in_fips_mode)

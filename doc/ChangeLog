@@ -2,6 +2,7 @@
 
 	* gcrypt.texi: Add a couple of index items.
 	(FIPS Mode): Reflect recent changes. 
+	(Controlling the library): Describe gcry_fips_mode_active.
 
 2008-09-16  Werner Koch  <wk@g10code.com>
 

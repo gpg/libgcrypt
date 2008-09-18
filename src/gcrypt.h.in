@@ -1815,6 +1815,10 @@ void  gcry_free (void *a);
 /* Return true if A is allocated in "secure" memory. */
 int gcry_is_secure (const void *a) _GCRY_GCC_ATTR_PURE;
 
+/* Return true if Libgcrypt is in FIPS mode.  */
+#define gcry_fips_mode_active()  !!gcry_control (GCRYCTL_FIPS_MODE_P, 0)
+
+
 /* Include support for Libgcrypt modules.  */
 #include <gcrypt-module.h>
 

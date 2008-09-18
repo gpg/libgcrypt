@@ -1,5 +1,7 @@
 2008-09-18  Werner Koch  <wk@g10code.com>
 
+	* gcrypt.h.in (gcry_fips_mode_active): New.
+
 	* secmem.c (_gcry_secmem_init): Factor most code out to ..
 	(secmem_init): .. new.
 	(DEFAULT_POOL_SIZE): Rename to MINIMUM_POOL_SIZE.

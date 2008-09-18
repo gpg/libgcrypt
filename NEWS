@@ -1,4 +1,4 @@
-Noteworthy changes in version 1.4.3
+Noteworthy changes in version 1.4.3 (2008-09-18)
 ------------------------------------------------
 
  * Try to auto-initialize Libgcrypt to minimize the effect of
@@ -8,12 +8,14 @@ Noteworthy changes in version 1.4.3
    cases.  Folks, please read the manual to learn how to properly
    initialize Libgcrypt!
 
- * Log fatal errors via syslog.
-
  * Auto-initialize the secure memory to 32k instead of aborting the
    process.
 
+ * Log fatal errors via syslog.
+
  * Changed the name and the semantics of the fips mode config file.
+
+ * Add convenience macro gcry_fips_mode_active.
 
  * More self-tests.
 

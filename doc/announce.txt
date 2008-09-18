@@ -5,66 +5,54 @@ Cc: gcrypt-devel@gnupg.org
 Hello! 
 
 The GNU project is pleased to announce the availability of Libgcrypt
-version 1.4.2.
+version 1.4.3.
 
 Libgcrypt is a general purpose library of cryptographic building
 blocks.  It is originally based on code used by GnuPG.  It does not
 provide any implementation of OpenPGP or other protocols.  Thorough
 understanding of applied cryptography is required to use Libgcrypt.
 
-Noteworthy changes in version 1.4.2:
+Noteworthy changes in version 1.4.3:
 
- * The long missing gcry_mpi_lshift function has been added.
+ * Try to auto-initialize Libgcrypt to minimize the effect of
+   applications not doing that correctly.  This is not a perfect
+   solution but given that many applicationion would totally fail
+   without such a hack, we try to help at least with the most common
+   cases.  Folks, please read the manual to learn how to properly
+   initialize Libgcrypt!
 
- * RSA key generation now supports a "transient-key" flag.
+ * Auto-initialize the secure memory to 32k instead of aborting the
+   process.
 
- * The keygrip computation for ECDSA has been implemented thus ECDSA
-   is now fully supported.
+ * Log fatal errors via syslog.
 
- * A few macros have been replaced by functions for better type
-   checking.
+ * Changed the name and the semantics of the fips mode config file.
 
- * The thread initialization structure now carries version
-   information.
+ * Add convenience macro gcry_fips_mode_active.
 
- * The manual describes more clearly how to initialize Libgcrypt.
+ * More self-tests.
 
- * The library may now be switched into a FIPS mode.
-
- * Interface changes relative to the 1.3.0 release:
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- GCRYCTL_OPERATIONAL_P   NEW.
- GCRYCTL_FIPS_MODE_P     NEW.
- GCRYCTL_FORCE_FIPS_MODE NEW.
- gcry_cipher_setkey      NEW: Replaces macro.
- gcry_cipher_setiv       NEW: Replaces macro.
- gcry_cipher_setctr      NEW: Replaces macro.
- gcry_mpi_lshift         NEW.
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Documentation cleanups.
 
 
 Source code is hosted at the GnuPG FTP server and its mirrors as
 listed at http://www.gnupg.org/download/mirrors.html .  On the primary
 server the source file and its digital signatures is:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.2.tar.bz2 (1049k)
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.2.tar.bz2.sig
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.bz2 (k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.bz2.sig
 
 This file is bzip2 compressed.  A gzip compressed version is also
 available:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.1.tar.gz (1301k)
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.1.tar.gz.sig
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.gz (k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.gz.sig
 
-Alternativley you may upgrade version 1.4.1 using this patch file:
+Alternativley you may upgrade version 1.4.2 using this patch file:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.1-1.4.2.diff.bz2 (171k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.2-1.4.3.diff.bz2 (k)
 
 The SHA-1 checksums are:
-
-f4eda0d4a63905aef3bcdf24bb3dad787ef4b918  libgcrypt-1.4.2.tar.gz
-e9c65688e3191c4cad2910bda2f6c69fc05997a2  libgcrypt-1.4.2.tar.bz2
-e0e5e4192f144ae0fc093d08aff50b725f46c0f9  libgcrypt-1.4.1-1.4.2.diff.bz2
 
 
 For help on developing with Libgcrypt you should read the included

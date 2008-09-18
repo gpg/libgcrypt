@@ -626,8 +626,8 @@ after initialization.
 
 @item GCRYCTL_DISABLE_SECMEM; Arguments: none
 This command disables the use of secure memory.  If this command is
-used in FIPS mode, FIPS mode will be disabled and the command
-@code{GCRYCTL_FIPS_MODE_P} returns false.  However, in Enforced FIPS
+used in FIPS mode, FIPS mode will be disabled and the fucntion
+@code{gcry_fips_mode_active} returns false.  However, in Enforced FIPS
 mode this command has no effect at all.
 
 Many applications do not require secure memory, so they should disable
@@ -776,8 +776,17 @@ the intialization has been finished but not before a gcry_version_check.
 This command returns true if the library is in FIPS mode.  Note, that
 this is no indication about the current state of the library.  This
 command may be used before the intialization has been finished but not
-before a gcry_version_check.  An application may use this function to
-check whether FIPS mode is still active.
+before a gcry_version_check.  An application may use this command or
+the convenience macro below to check whether FIPS mode is actually
+active.
+
+@deftypefun int gcry_fips_mode_active (void)
+
+Returns true if the FIPS mode is active.  Note that this is
+implemented as a macro.
+@end deftypefun
+
+
 
 @item GCRYCTL_FORCE_FIPS_MODE; Arguments: none
 Running this command puts the library into FIPS mode.  If the library is
@@ -5499,8 +5508,8 @@ A handler set by @code{gcry_set_fatalerror_handler} is ignored.
 @end itemize
 
 Note that when we speak about disabling FIPS mode, it merely means
-that the command @code{GCRYCTL_FIPS_MODE_P} returns false; it does not
-mean that any non FIPS algorithms are allowed.
+that the fucntion @code{gcry_fips_mode_active} returns false; it does
+not mean that any non FIPS algorithms are allowed.
 
 
 @c ********************************************

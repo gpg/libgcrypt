@@ -27,7 +27,7 @@ min_automake_version="1.10"
 # Set my_issvn to "yes" for non-released code.  Remember to run an
 # "svn up" and "autogen.sh" right before creating a distribution.
 m4_define([my_version], [1.4.3])
-m4_define([my_issvn], [yes])
+m4_define([my_issvn], [no])
 
 m4_define([svn_revision], m4_esyscmd([printf "%d" $(svn info 2>/dev/null \
           | sed -n '/^Revision:/ s/[^0-9]//gp'|head -1)]))
@@ -40,7 +40,7 @@ AC_INIT([libgcrypt],
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=16
 LIBGCRYPT_LT_AGE=5
-LIBGCRYPT_LT_REVISION=0
+LIBGCRYPT_LT_REVISION=1
 
 
 # If the API is changed in an incompatible way: increment the next counter.

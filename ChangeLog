@@ -1,3 +1,9 @@
+2008-09-18  Werner Koch  <wk@g10code.com>
+
+	Release 1.4.3.
+
+	* configure.ac: Bump LT version to C16/A5/R1.
+
 2008-09-15  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Cehck for syslog.
