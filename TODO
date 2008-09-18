@@ -22,32 +22,6 @@ What's left to do                                 -*- outline -*-
   Don't rely on the secure memory based wiping function but add an
   extra wiping.
   
-* update/improve documentation
-** it's outdated for e.g. gcry_pk_algo_info.
-** document algorithm capabilities
-** Init requirements for random
-   The documentation says in "Controlling the library" that some
-   functions can only be used at initialization time, but it does not
-   explain what that means.  Initialization is a multi-step procedure:
-   First the thread callbacks have to be set up (optional), then the
-   gcry_check_version() function must be called (mandatory), then
-   further functions can be used.
-
-   The manual also says that something happens when the seed file is
-   registered berfore the PRNG is initialized, but it does not say how
-   one can guarantee to call it early enough.
-
-   Suggested fix: Specify initialization time as the time after
-   gcry_check_version and before calling any other function except
-   gcry_control().
-
-   All functions which modify global state without a lock must be
-   documented as "can only be called during initialization time" (but
-   see item 1).  Then the extraneous calls to _gcry_random_initialize
-   in gcry_control() can be removed, and the comments "not thread
-   safe" in various initialization-time-only functions like
-   _gcry_use_random_daemon become superfluous.
-
 * Use builtin bit functions of gcc 3.4
 
 * Consider using a daemon to maintain the random pool

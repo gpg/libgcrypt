@@ -1,3 +1,26 @@
+2008-09-18  Werner Koch  <wk@g10code.com>
+
+	* secmem.c (_gcry_secmem_init): Factor most code out to ..
+	(secmem_init): .. new.
+	(DEFAULT_POOL_SIZE): Rename to MINIMUM_POOL_SIZE.
+	(STANDARD_POOL_SIZE): New.
+	(_gcry_secmem_malloc_internal): Don't abort if the pool is not
+	initialized but try to out intialize it first and only then print
+	an error message and return NULL.  If the pool is not locked while
+	in FIPS mode, return NULL.
+
+	* fips.c (FIPS_FORCE_FILE): New constant.  Change the file name to
+	"/etc/gcrypt/fips_enabled".
+	(enforced_fips_mode): New.
+	(_gcry_initialize_fips_mode): Set that flag.
+	(_gcry_enforced_fips_mode): New.
+	* global.c (inactive_fips_mode): New.
+	(_gcry_vcontrol): Take that flag in account for	GCRYCTL_FIPS_MODE_P.
+	(gcry_set_allocation_handler): Take care of the enforced fips mdoe
+	flag.
+	(get_no_secure_memory): New.
+	(do_malloc, gcry_is_secure): Use it.
+
 2008-09-16  Werner Koch  <wk@g10code.com>
 
 	* global.c (print_config): Use y/n for fips mode.

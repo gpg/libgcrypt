@@ -2089,18 +2089,20 @@ main (int argc, char **argv)
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
 
+  if ( gcry_control (GCRYCTL_FIPS_MODE_P, 0) )
+    in_fips_mode = 1;
+
+  if (!in_fips_mode)
+    gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+
   if (verbose)
     gcry_set_progress_handler (progress_handler, NULL);
-  
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
   /* No valuable keys are create, so we can speed up our RNG. */
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-
-  if ( gcry_control (GCRYCTL_FIPS_MODE_P, 0) )
-    in_fips_mode = 1;
 
   if (!selftest_only)
     {

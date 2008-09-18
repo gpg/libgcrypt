@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 #
+# $Id: cavs_driver.pl 1236 2008-09-17 13:00:06Z smueller $
+#
 # CAVS test driver (based on the OpenSSL driver)
 # Written by: Stephan Müller <sm@atsec.com>
 # Copyright (c) atsec information security corporation
@@ -51,12 +53,12 @@
 # but have not been tested)
 #
 # AES
-#	CBCGFSbox[128|192|256]
-#	CBCMCT[128|192|256]
-#	CBCVarKey[128|192|256]
-#	CBCKeySbox[128|192|256]
-#	CBCMMT[128|192|256]
-#	CBCVarTxt[128|192|256]
+#	[CBC|CFB128|ECB|OFB]GFSbox[128|192|256]
+#	[CBC|CFB128|ECB|OFB]MCT[128|192|256]
+#	[CBC|CFB128|ECB|OFB]VarKey[128|192|256]
+#	[CBC|CFB128|ECB|OFB]KeySbox[128|192|256]
+#	[CBC|CFB128|ECB|OFB]MMT[128|192|256]
+#	[CBC|CFB128|ECB|OFB]VarTxt[128|192|256]
 #
 # RSA
 #	SigGen[15|RSA]
@@ -65,18 +67,23 @@
 #		is not done through openssl dgst)
 #
 # SHA
-#	SHA1ShortMsg
-#	SHA1LongMsg
-#	SHA1Monte
+#	SHA[1|224|256|384|512]ShortMsg
+#	SHA[1|224|256|384|512]LongMsg
+#	SHA[1|224|256|384|512]Monte
+#
+# HMAC (SHA - caveat: we only support hash output equal to the block size of
+# 	of the hash - we do not support truncation of the hash; to support
+# 	that, we first need to decipher the HMAC.req file - see hmac_kat() )
+# 	HMAC
 #
 # TDES
-#	TCBCMonte[1|2|3]
-#	TCBCpermop
-#	TCBCMMT[1|2|3]
-#	TCBCsubtab
-#	TCBCvarkey
-#	TCBCinvperm
-#	TCBCvartext
+#	T[CBC|CFB??|ECB|OFB]Monte[1|2|3]
+#	T[CBC|CFB??|ECB|OFB]permop
+#	T[CBC|CFB??|ECB|OFB]MMT[1|2|3]
+#	T[CBC|CFB??|ECB|OFB]subtab
+#	T[CBC|CFB??|ECB|OFB]varkey
+#	T[CBC|CFB??|ECB|OFB]invperm
+#	T[CBC|CFB??|ECB|OFB]vartext
 #
 # ANSI X9.31 RNG
 # 	ANSI931_AES128MCT
@@ -110,9 +117,15 @@ my %opt;
 # function to the given variables.
 
 # common encryption/decryption routine
-# $1 key in hex form
+# $1 key in hex form (please note for 3DES: even when ede3 for three
+#    independent ciphers is given with the cipher specification, we hand in
+#    either one key for k1 = k2 = k3, two keys which are concatinated for
+#    k1 = k3, k2 independent, or three keys which are concatinated for
+#    k1, k2, k3 independent)
 # $2 iv in hex form
-# $3 cipher
+# $3 cipher - the cipher string is defined as specified in the openssl
+#    enc(1ssl) specification for the option "-ciphername"
+#    (e.g. aes-128-cbc or des-ede3-cbc)
 # $4 encrypt=1/decrypt=0
 # $5 de/encrypted data in hex form
 # return en/decrypted data in hex form
@@ -133,15 +146,18 @@ my $rsa_sign;
 # return: 1 == verfied / 0 == not verified
 my $rsa_verify;
 
-# generate a new private RSA key in PEM format
+# generate a new private RSA key with the following properties:
+# 	exponent is 65537
+#	PEM format
 # $1 key size in bit
 # $2 keyfile name
 # return: nothing, but file created
 my $gen_rsakey;
 
 # Creating a hash
-# $1: Plaintext
-# $2: hash type
+# $1: Plaintext in hex form
+# $2: hash type in the form documented in openssl's dgst(1ssl) - e.g.
+#     sha1, sha224, sha256, sha384, sha512
 # return: hash in hex form
 my $hash;
 
@@ -171,6 +187,14 @@ my $state_cipher;
 # reads 128 bits repeatedly where the state of the RNG must be retained
 # between the reads. The output of the RNG on STDOUT is assumed to be binary.
 my $state_rng;
+
+# Generate an HMAC based on SHAx
+# $1: Key to be used for the HMAC in hex format
+# $2: length of the hash to be calculated in bits
+# $3: Message for which the HMAC shall be calculated in hex format
+# $4: hash type (1 - SHA1, 224 - SHA224, and so on)
+# return: calculated HMAC in hex format
+my $hmac;
 
 ################################################################
 ##### OpenSSL interface functions
@@ -264,6 +288,16 @@ sub libgcrypt_state_rng($$$) {
 	my $v = shift;
 
 	return "fipsrngdrv --binary --loop $key $v $dt";
+}
+
+sub libgcrypt_hmac($$$$) {
+	my $key = shift;
+	my $maclen = shift;
+	my $msg = shift;
+	my $hashtype = shift;
+
+	die "libgcrypt HMAC test not yet implemented: key $key, maclen $maclen, msg $msg, hashtype $hashtype";
+	
 }
 
 ######### End of libgcrypt implementation ################
@@ -757,14 +791,12 @@ sub kat($$$$$$$$) {
 
 	my $out = "";
 
+	$out .= "$keytype = $key1\n";
+
 	# this is the concardination of the keys for 3DES
-	# as used in OpenSSL
 	if (defined($key2)) {
-		$out .= "$keytype = $key1\n";
 		$out .= "KEY2 = $key2\n";
 		$key1 = $key1 . $key2;
-	} else {
-		$out .= "$keytype = $key1\n";
 	}
 	if (defined($key3)) {
 		$out .= "KEY3 = $key3\n";
@@ -799,6 +831,46 @@ sub hash_kat($$$) {
 	$out .= "MD = " . &$hash($pt, $cipher);
 	return $out;
 }
+
+# Known Answer Test for HMAC hash
+# $1: key length in bytes
+# $2: MAC length in bytes
+# $3: key for HMAC in hex form
+# $4: message to be hashed
+# return: string formatted as expected by CAVS
+sub hmac_kat($$$$) {
+	my $klen = shift;
+	my $tlen = shift;
+	my $key  = shift;
+	my $msg  = shift;
+
+	# XXX this is a hack - we need to decipher the HMAC REQ files in a more
+	# sane way
+	#
+	# This is a conversion table from the expected hash output size
+	# to the assumed hash type - we only define here the block size of
+	# the underlying hashes and do not allow any truncation
+	my %hashtype = (
+		20 => 1,
+		28 => 224,
+		32 => 256,
+		48 => 384,
+		64 => 512
+	);
+
+	die "Hash output size $tlen is not supported!"
+		if(!defined($hashtype{$tlen}));
+
+	my $out = "";
+	$out .= "Klen = $klen\n";
+	$out .= "Tlen = $tlen\n";
+	$out .= "Key = $key\n";
+	$out .= "Msg = $msg\n";
+	$out .= "Mac = " . &$hmac($key, $tlen, $msg, $hashtype{$tlen}) . "\n\n";
+
+	return $out;
+}
+
 
 # Cipher Monte Carlo Testing
 # $1: the string that we have to put in front of the key
@@ -1132,6 +1204,8 @@ sub parse($$) {
 	my $rsa_keyfile = "";
 	my $dt = "";
 	my $v = "";
+	my $klen = "";
+	my $tlen = "";
 
 	my $mode = "";
 
@@ -1162,13 +1236,17 @@ sub parse($$) {
 
 		##### Extract cipher
 		# XXX there may be more - to be added
-		if ($tmpline =~ /^#.*(CBC|ECB|OFB|CFB|SHA-1|SigGen|SigVer|RC4VS|ANSI X9\.31)/) {
+		if ($tmpline =~ /^#.*(CBC|ECB|OFB|CFB|SHA-|SigGen|SigVer|RC4VS|ANSI X9\.31|Hash sizes tested)/) {
 			if ($tmpline    =~ /CBC/)   { $mode="cbc"; }
 			elsif ($tmpline =~ /ECB/)   { $mode="ecb"; }
 			elsif ($tmpline =~ /OFB/)   { $mode="ofb"; }
 			elsif ($tmpline =~ /CFB/)   { $mode="cfb"; }
 			#we do not need mode as the cipher is already clear
 			elsif ($tmpline =~ /SHA-1/) { $cipher="sha1"; }
+			elsif ($tmpline =~ /SHA-224/) { $cipher="sha224"; }
+			elsif ($tmpline =~ /SHA-256/) { $cipher="sha256"; }
+			elsif ($tmpline =~ /SHA-384/) { $cipher="sha384"; }
+			elsif ($tmpline =~ /SHA-512/) { $cipher="sha512"; }
 			#we do not need mode as the cipher is already clear
 			elsif ($tmpline =~ /RC4VS/) { $cipher="rc4"; }
 			elsif ($tmpline =~ /SigGen|SigVer/) {
@@ -1211,7 +1289,11 @@ sub parse($$) {
 
 
 			##### Identify the test type
-			if ($tmpline =~ /ANSI X9\.31/ && $tmpline =~ /MCT/) {
+			if ($tmpline =~ /Hash sizes tested/) {
+				$tt = 9;
+				die "Interface function hmac for HMAC testing not defined for tested library"
+					if (!defined($hmac));
+			} elsif ($tmpline =~ /ANSI X9\.31/ && $tmpline =~ /MCT/) {
 				$tt = 8;
 				die "Interface function state_rng for RNG MCT not defined for tested library"
 					if (!defined($state_rng));
@@ -1227,7 +1309,7 @@ sub parse($$) {
 				$tt = 5;
 				die "Interface function rsa_sign or gen_rsakey for RSA sign not defined for tested library"
 					if (!defined($rsa_sign) || !defined($gen_rsakey));
-			} elsif ($tmpline =~ /Monte|MCT|Carlo/ && $cipher eq "sha1") {
+			} elsif ($tmpline =~ /Monte|MCT|Carlo/ && $cipher eq "sha") {
 				$tt = 4;
 				die "Interface function hash for Hashing not defined for tested library"
 					if (!defined($hash));
@@ -1235,7 +1317,7 @@ sub parse($$) {
 				$tt = 2;
 				die "Interface function state_cipher for Stateful Cipher operation defined for tested library"
 					if (!defined($state_cipher));
-			} elsif ($cipher eq "sha1" && $tt!=5 && $tt!=6) {
+			} elsif ($cipher eq "sha" && $tt!=5 && $tt!=6) {
 				$tt = 3;
 				die "Interface function hash for Hashing not defined for tested library"
 					if (!defined($hash));
@@ -1276,7 +1358,7 @@ sub parse($$) {
 		}
 		elsif ($line =~ /^KEY3\s*=\s*(.*)/) { # found in TDES
 			die "Second key not set, but got already third key - input file crap" if ($key2 eq "");
-			die "KEY2 seen twice - input file crap" if (defined($key3));
+			die "KEY3 seen twice - input file crap" if (defined($key3));
 			$key3=$1;
 			$key3 =~ s/\s//g; #replace potential white spaces
 		}
@@ -1348,6 +1430,16 @@ sub parse($$) {
 				if ($v ne "");
 			$v=$1;
 		}
+		elsif ($line =~ /^Klen\s*=\s*(.*)/) { # HMAC requests
+			die "Klen seen twice - check input file"
+				if ($klen ne "");
+			$klen=$1;
+		}
+		elsif ($line =~ /^Tlen\s*=\s*(.*)/) { # HMAC RNG requests
+			die "Tlen seen twice - check input file"
+				if ($tlen ne "");
+			$tlen=$1;
+		}
 		else {
 			$out .= $line . "\n";
 		}
@@ -1417,6 +1509,15 @@ sub parse($$) {
 				$v = "";
 			}
 		}
+		elsif ($tt == 9) {
+			if ($klen ne "" && $tlen ne "" && $key1 ne "" && $pt ne "") {
+				$out .= hmac_kat($klen, $tlen, $key1, $pt);
+				$key1 = "";
+				$tlen = "";
+				$klen = "";
+				$pt = "";
+			}
+		}
 		elsif ($tt > 0) {
 			die "Test case $tt not defined";
 		}
@@ -1452,15 +1553,16 @@ sub main() {
 	##### Set library
 
 	#print STDERR "Using OpenSSL interface functions\n";
-	#$encdec=\&openssl_encdec;
-	#$rsa_sign=\&openssl_rsa_sign;
-	#$rsa_verify=\&openssl_rsa_verify;
-	#$gen_rsakey=\&openssl_gen_rsakey;
-	#$hash=\&openssl_hash;
-	#$state_cipher=\&openssl_state_cipher;
+	#$encdec =		\&openssl_encdec;
+	#$rsa_sign =		\&openssl_rsa_sign;
+	#$rsa_verify =		\&openssl_rsa_verify;
+	#$gen_rsakey =		\&openssl_gen_rsakey;
+	#$hash =		\&openssl_hash;
+	#$state_cipher =	\&openssl_state_cipher;
 
 	print STDERR "Using libgcrypt interface functions\n";
-	$state_rng=\&libgcrypt_state_rng;
+	$state_rng =	\&libgcrypt_state_rng;
+	$hmac =		\&libgcrypt_hmac;
 
 	my $infile=$ARGV[0];
 	die "Error: Test vector file $infile not found" if (! -f $infile);

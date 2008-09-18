@@ -293,6 +293,8 @@ void _gcry_initialize_fips_mode (int force);
 int _gcry_fips_mode (void);
 #define fips_mode() _gcry_fips_mode ()
 
+int _gcry_enforced_fips_mode (void);
+
 void _gcry_fips_signal_error (const char *srcfile, 
                               int srcline, 
                               const char *srcfunc,

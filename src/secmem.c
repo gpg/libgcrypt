@@ -44,7 +44,8 @@
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-#define DEFAULT_POOL_SIZE 16384
+#define MINIMUM_POOL_SIZE 16384
+#define STANDARD_POOL_SIZE 32768
 #define DEFAULT_PAGE_SIZE 4096
 
 typedef struct memblock
@@ -442,15 +443,12 @@ _gcry_secmem_get_flags (void)
   return flags;
 }
 
-/* Initialize the secure memory system.  If running with the necessary
-   privileges, the secure memory pool will be locked into the core in
-   order to prevent page-outs of the data.  Furthermore allocated
-   secure memory will be wiped out when released.  */
-void
-_gcry_secmem_init (size_t n)
-{
-  SECMEM_LOCK;
 
+/* See _gcry_secmem_init.  This function is expected to be called with
+   the secmem lock held. */
+static void
+secmem_init (size_t n)
+{
   if (!n)
     {
 #ifdef USE_CAPABILITIES
@@ -471,8 +469,8 @@ _gcry_secmem_init (size_t n)
     }
   else
     {
-      if (n < DEFAULT_POOL_SIZE)
-	n = DEFAULT_POOL_SIZE;
+      if (n < MINIMUM_POOL_SIZE)
+	n = MINIMUM_POOL_SIZE;
       if (! pool_okay)
 	{
 	  init_pool (n);
@@ -481,6 +479,20 @@ _gcry_secmem_init (size_t n)
       else
 	log_error ("Oops, secure memory pool already initialized\n");
     }
+}
+
+
+
+/* Initialize the secure memory system.  If running with the necessary
+   privileges, the secure memory pool will be locked into the core in
+   order to prevent page-outs of the data.  Furthermore allocated
+   secure memory will be wiped out when released.  */
+void
+_gcry_secmem_init (size_t n)
+{
+  SECMEM_LOCK;
+
+  secmem_init (n);
 
   SECMEM_UNLOCK;
 }
@@ -493,8 +505,19 @@ _gcry_secmem_malloc_internal (size_t size)
 
   if (!pool_okay)
     {
-      log_bug (_
-	("operation is not possible without initialized secure memory\n"));
+      /* Try to initialize the pool if the user forgot about it.  */
+      secmem_init (STANDARD_POOL_SIZE);
+      if (!pool_okay)
+        {
+          log_info (_("operation is not possible without "
+                      "initialized secure memory\n"));
+          return NULL;
+        }
+    }
+  if (not_locked && fips_mode ())
+    {
+      log_info (_("secure memory pool is not locked while in FIPS mode\n"));
+      return NULL;
     }
   if (show_warning && !suspend_warning)
     {

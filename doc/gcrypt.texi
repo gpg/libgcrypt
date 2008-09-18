@@ -519,6 +519,7 @@ programmers might have to wrap these macros in an ``extern C'' body.
 
 @node Enabling FIPS mode
 @section How to enable the FIPS mode
+@cindex FIPS mode
 
 Libgcrypt may be used in a FIPS 140-2 mode.  Note, that this does not
 necessary mean that Libcgrypt is an appoved FIPS 140-2 module.  Check the
@@ -538,7 +539,7 @@ initialization time.  Obviously this works only on systems with a
 @code{proc} file system (i.e. GNU/Linux).
 
 @item 
-If the file @file{/etc/gcrypt/fips140.force} exists, Libgcrypt is put
+If the file @file{/etc/gcrypt/fips_enabled} exists, Libgcrypt is put
 into FIPS mode at initialization time.  Note that this filename is
 hardwired and does not depend on any configuration options.
 
@@ -548,6 +549,14 @@ If the application requests FIPS mode using the control command
 initialization (i.e. before @code{gcry_check_version}).
 
 @end itemize
+
+@cindex Enforced FIPS mode
+
+In addition to the standard FIPS mode, Libgcrypt may also be put into
+an Enforced FIPS mode by writing a non-zero value into the file
+@file{/etc/gcrypt/fips_enabled}.  The Enforced FIPS mode helps to
+detect applications which don't fulfill all requirements for using
+Libgcrypt in FIPS mode (@pxref{FIPS Mode}).
 
 Once Libgcrypt has been put into FIPS mode, it is not possible to
 switch back to standard mode without terminating the process first.
@@ -616,13 +625,14 @@ to disable secure memory is to use @code{GCRYCTL_DISABLE_SECMEM} right
 after initialization.
 
 @item GCRYCTL_DISABLE_SECMEM; Arguments: none
-This command disables the use of secure memory. 
+This command disables the use of secure memory.  If this command is
+used in FIPS mode, FIPS mode will be disabled and the command
+@code{GCRYCTL_FIPS_MODE_P} returns false.  However, in Enforced FIPS
+mode this command has no effect at all.
 
 Many applications do not require secure memory, so they should disable
-it right away.  There won't be a problem if not disabling it unless one
-makes use of a feature which requires secure memory - in that case the
-process will abort because the secmem is not initialized.  This command
-should be executed right after @code{gcry_check_version}.
+it right away.  This command should be executed right after
+@code{gcry_check_version}. 
 
 @item GCRYCTL_INIT_SECMEM; Arguments: int nbytes
 This command is used to allocate a pool of secure memory and thus
@@ -766,7 +776,8 @@ the intialization has been finished but not before a gcry_version_check.
 This command returns true if the library is in FIPS mode.  Note, that
 this is no indication about the current state of the library.  This
 command may be used before the intialization has been finished but not
-before a gcry_version_check.
+before a gcry_version_check.  An application may use this function to
+check whether FIPS mode is still active.
 
 @item GCRYCTL_FORCE_FIPS_MODE; Arguments: none
 Running this command puts the library into FIPS mode.  If the library is
@@ -1360,18 +1371,25 @@ This is not a real algorithm but used by some functions as error return.
 The value always evaluates to false.
 
 @item GCRY_CIPHER_IDEA
+@cindex IDEA
 This is the IDEA algorithm.  The constant is provided but there is
 currently no implementation for it because the algorithm is patented.
 
 @item GCRY_CIPHER_3DES
+@cindex 3DES
+@cindex Triple-DES
+@cindex DES-EDE
+@cindex Digital Encryption Standard
 Triple-DES with 3 Keys as EDE.  The key size of this algorithm is 168 but
 you have to pass 192 bits because the most significant bits of each byte
 are ignored.
 
 @item GCRY_CIPHER_CAST5
+@cindex CAST5
 CAST128-5 block cipher algorithm.  The key size is 128 bits.
 	
 @item GCRY_CIPHER_BLOWFISH
+@cindex Blowfish
 The blowfish algorithm. The current implementation allows only for a key
 size of 128 bits.
 
@@ -1385,6 +1403,9 @@ Reserved and not currently implemented.
 @itemx GCRY_CIPHER_AES128
 @itemx GCRY_CIPHER_RIJNDAEL
 @itemx GCRY_CIPHER_RIJNDAEL128
+@cindex Rijndael
+@cindex AES
+@cindex Advanced Encryption Standard
 AES (Rijndael) with a 128 bit key.
 
 @item  GCRY_CIPHER_AES192     
@@ -1396,17 +1417,21 @@ AES (Rijndael) with a 192 bit key.
 AES (Rijndael) with a 256 bit key.
     
 @item  GCRY_CIPHER_TWOFISH
+@cindex Twofish
 The Twofish algorithm with a 256 bit key.
     
 @item  GCRY_CIPHER_TWOFISH128
 The Twofish algorithm with a 128 bit key.
     
 @item  GCRY_CIPHER_ARCFOUR   
+@cindex Arcfour
+@cindex RC4
 An algorithm which is 100% compatible with RSA Inc.'s RC4 algorithm.
 Note that this is a stream cipher and must be used very carefully to
 avoid a couple of weaknesses. 
 
-@item  GCRY_CIPHER_DES       
+@item  GCRY_CIPHER_DES
+@cindex DES
 Standard DES with a 56 bit key. You need to pass 64 bit but the high
 bits of each byte are ignored.  Note, that this is a weak algorithm
 which can be broken in reasonable time using a brute force approach.
@@ -1414,20 +1439,25 @@ which can be broken in reasonable time using a brute force approach.
 @item  GCRY_CIPHER_SERPENT128
 @itemx GCRY_CIPHER_SERPENT192
 @itemx GCRY_CIPHER_SERPENT256
+@cindex Serpent
 The Serpent cipher from the AES contest.
 
 @item  GCRY_CIPHER_RFC2268_40
 @itemx GCRY_CIPHER_RFC2268_128
+@cindex rfc-2268
+@cindex RC2
 Ron's Cipher 2 in the 40 and 128 bit variants.  Note, that we currently
 only support the 40 bit variant.  The identifier for 128 is reserved for
 future use.
 
 @item GCRY_CIPHER_SEED
+@cindex Seed (cipher)
 A 128 bit cipher as described by RFC4269.
 
 @item  GCRY_CIPHER_CAMELLIA128
 @itemx GCRY_CIPHER_CAMELLIA192
 @itemx GCRY_CIPHER_CAMELLIA256
+@cindex Camellia
 The Camellia cipher by NTT.  See
 @uref{http://info.isl.ntt.co.jp/@/crypt/@/eng/@/camellia/@/specifications.html}.
 
@@ -1555,22 +1585,27 @@ if Libgcrypt is not used in FIPS mode and if any debug flag has been
 set, this mode may be used to bypass the actual encryption.
 
 @item GCRY_CIPHER_MODE_ECB
+@cindex ECB, Electronic Codebook mode
 Electronic Codebook mode.  
 
 @item GCRY_CIPHER_MODE_CFB
+@cindex CFB, Cipher Feedback mode
 Cipher Feedback mode.  The shift size equals the block size of the
 cipher (e.g. for AES it is CFB-128).
 
 @item  GCRY_CIPHER_MODE_CBC
+@cindex CBC, Cipher Block Chaining mode
 Cipher Block Chaining mode.
 
 @item GCRY_CIPHER_MODE_STREAM
 Stream mode, only to be used with stream cipher algorithms.
 
 @item GCRY_CIPHER_MODE_OFB
+@cindex OFB, Output Feedback mode
 Output Feedback mode.
 
 @item  GCRY_CIPHER_MODE_CTR
+@cindex CTR, Counter mode
 Counter mode.
 
 @end table
@@ -1613,15 +1648,18 @@ the bit-wise OR of the following constants.
 Make sure that all operations are allocated in secure memory.  This is
 useful when the key material is highly confidential.
 @item GCRY_CIPHER_ENABLE_SYNC
+@cindex sync mode (OpenPGP)
 This flag enables the CFB sync mode, which is a special feature of
 Libgcrypt's CFB mode implementation to allow for OpenPGP's CFB variant. 
 See @code{gcry_cipher_sync}.
 @item GCRY_CIPHER_CBC_CTS
+@cindex cipher text stealing
 Enable cipher text stealing (CTS) for the CBC mode.  Cannot be used
 simultaneous as GCRY_CIPHER_CBC_MAC.  CTS mode makes it possible to
 transform data of almost arbitrary size (only limitation is that it
 must be greater than the algorithm's block size).
 @item GCRY_CIPHER_CBC_MAC
+@cindex CBC-MAC
 Compute CBC-MAC keyed checksums.  This is the same as CBC mode, but
 only output the last block.  Cannot be used simultaneous as
 GCRY_CIPHER_CBC_CTS.
@@ -3250,6 +3288,14 @@ are also supported.
 @section Available hash algorithms
 
 @c begin table of hash algorithms
+@cindex SHA-1
+@cindex SHA-224, SHA-256, SHA-384, SHA-512
+@cindex RIPE-MD-160
+@cindex MD2, MD4, MD5
+@cindex TIGER
+@cindex HAVAL
+@cindex Whirlpool
+@cindex CRC32
 @table @code
 @item GCRY_MD_NONE
 This is not a real algorithm but used by some functions as an error
@@ -3441,6 +3487,7 @@ Allocate all buffers and the resulting digest in "secure memory".  Use
 this is the hashed data is highly confidential.
 
 @item GCRY_MD_FLAG_HMAC
+@cindex HMAC
 Turn the algorithm into a HMAC message authentication algorithm.  This
 only works if just one algorithm is enabled for the handle.  Note that
 the function @code{gcry_md_setkey} must be used to set the MAC key.
@@ -5409,17 +5456,21 @@ FIPS mode may only be used on systems with a /dev/random device.
 Switching into FIPS mode on other systems will fail at runtime.
 
 @item
-Saving and loading a random seed file is not ignored.
+Saving and loading a random seed file is ignored.
 
 @item
 An X9.31 style random number generator is used in place of the
 large-pool-CSPRNG generator.
 
 @item
+The command @code{GCRYCTL_ENABLE_QUICK_RANDOM} is ignored.
+
+@item
 The Alternative Public Key Interface (@code{gcry_ac_xxx}) is not
 supported and all API calls return an error.
 
-@item Registration of external modules is not supported.
+@item
+Registration of external modules is not supported.
 
 @item 
 Message digest debugging is disabled.
@@ -5428,20 +5479,28 @@ Message digest debugging is disabled.
 All debug output related to cryptographic data is suppressed.
 
 @item 
-On-the-fly self-tests are not performed, instead of this self-tests are
-run before entering operational state.
+On-the-fly self-tests are not performed, instead self-tests are run
+before entering operational state.
 
 @item
-The function @code{gcry_set_allocation_handler} may not be used.  If it
-is used Libgcrypt will enter the error state.
+The function @code{gcry_set_allocation_handler} may not be used.  If
+it is used Libgcrypt disables FIPS mode unless Enforced FIPS mode is
+enabled, in which case Libgcrypt will enter the error state.
+
+@item 
+In Enforced FIPS mode the command @code{GCRYCTL_DISABLE_SECMEM} is
+ignored.  In standard FIPS mode it disables FIPS mode.
 
 @item
 A handler set by @code{gcry_set_outofcore_handler} is ignored.
 @item
 A handler set by @code{gcry_set_fatalerror_handler} is ignored.
 
-
 @end itemize
+
+Note that when we speak about disabling FIPS mode, it merely means
+that the command @code{GCRYCTL_FIPS_MODE_P} returns false; it does not
+mean that any non FIPS algorithms are allowed.
 
 
 @c ********************************************

@@ -50,6 +50,10 @@ static unsigned int debug_flags;
    intialization code swicthed fips mode on.  */
 static int force_fips_mode;
 
+/* If this flag is set, the application may no longer assume that the
+   process is running in FIPS mode.  */
+static int inactive_fips_mode;
+
 /* Controlled by global_init().  */
 static int any_init_done;
 
@@ -297,7 +301,9 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
   /* We use y/n instead of 1/0 for the simple reason that Emacsen's
      compile error parser would accidently flag that line when printed
      during "make check" as an error.  */
-  fnc (fp, "fips-mode:%c:\n", fips_mode ()? 'y':'n' );
+  fnc (fp, "fips-mode:%c:%c:\n", 
+       fips_mode ()? 'y':'n';
+       _gcry_enforced_fips_mode ()? 'y':'n' );
 }
 
 
@@ -489,7 +495,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_FIPS_MODE_P:
-      if (fips_mode ())
+      if (fips_mode () && !inactive_fips_mode && !no_secure_memory)
 	err = GPG_ERR_GENERAL; /* Used as TRUE value */
       break;
 
@@ -636,7 +642,10 @@ gcry_error_from_errno (int err)
   return gcry_error (gpg_err_code_from_errno (err));
 }
 
-/****************
+
+/* Set custom allocation handlers.  This is in general not useful
+ * because the libgcrypt allocation functions are guaranteed to
+ * provide proper allocation handlers which zeroize memory if needed.
  * NOTE: All 5 functions should be set.  */
 void
 gcry_set_allocation_handler (gcry_handler_alloc_t new_alloc_func,
@@ -647,10 +656,22 @@ gcry_set_allocation_handler (gcry_handler_alloc_t new_alloc_func,
 {
   global_init ();
 
-  if (fips_mode () )
+  if (fips_mode ())
     {
-      fips_signal_error ("custom allocation handler used");
-      return;
+      if (_gcry_enforced_fips_mode () )
+        {
+          /* Get us into the error state. */
+          fips_signal_error ("custom allocation handler used");
+          return;
+        }
+      /* We do not want to enforce the fips mode, but merely set a
+         flag so that the application may check wheter it is still in
+         fips mode.  */
+      inactive_fips_mode = 1;
+#ifdef HAVE_SYSLOG
+      syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
+              "custom allocation handler used - FIPS mode disabled");
+#endif /*HAVE_SYSLOG*/
     }
 
   alloc_func = new_alloc_func;
@@ -692,13 +713,28 @@ gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
   outofcore_handler_value = value;
 }
 
+/* Return the no_secure_memory flag.  */
+static int
+get_no_secure_memory (void)
+{
+  if (!no_secure_memory)
+    return 0;
+  if (_gcry_enforced_fips_mode ())
+    {
+      no_secure_memory = 0;
+      return 0;
+    }
+  return no_secure_memory;
+}
+
+
 static gcry_err_code_t
 do_malloc (size_t n, unsigned int flags, void **mem)
 {
   gcry_err_code_t err = 0;
   void *m;
 
-  if ((flags & GCRY_ALLOC_FLAG_SECURE) && !no_secure_memory)
+  if ((flags & GCRY_ALLOC_FLAG_SECURE) && !get_no_secure_memory ())
     {
       if (alloc_secure_func)
 	m = (*alloc_secure_func) (n);
@@ -750,7 +786,7 @@ gcry_malloc_secure (size_t n)
 int
 gcry_is_secure (const void *a)
 {
-  if (no_secure_memory)
+  if (get_no_secure_memory ())
     return 0;
   if (is_secure_func)
     return is_secure_func (a) ;

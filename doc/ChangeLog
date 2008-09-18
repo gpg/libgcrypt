@@ -1,3 +1,8 @@
+2008-09-18  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi: Add a couple of index items.
+	(FIPS Mode): Reflect recent changes. 
+
 2008-09-16  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.texi (FIPS Mode): Describe new transitions 18 and 19.
@@ -407,7 +412,7 @@ Wed Feb 10 17:15:39 CET 1999  Werner Koch  <wk@isil.d.shuttle.de>
 	* FAQ: Ditto.
 	* DETAILS: Ditto.
 
- Copyright 1999, 2000, 2002, 2003 Free Software Foundation, Inc.
+ Copyright 1999, 2000, 2002, 2003, 2008 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

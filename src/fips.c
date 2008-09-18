@@ -35,6 +35,11 @@
 #include "cipher-proto.h"
 #include "hmac256.h"
 
+
+/* The name of the file used to foce libgcrypt into fips mode. */
+#define FIPS_FORCE_FILE "/etc/gcrypt/fips_enabled"
+
+
 /* The states of the finite state machine used in fips mode.  */
 enum module_states 
   {
@@ -54,6 +59,9 @@ enum module_states
    code. To check whether fips mode is enabled, use the function
    fips_mode()! */
 static int no_fips_mode_required;
+
+/* Flag to indicate that we are in the enforced FIPS mode.  */
+static int enforced_fips_mode;
 
 /* This is the lock we use to protect the FSM.  */
 static ath_mutex_t fsm_lock = ATH_MUTEX_INITIALIZER;
@@ -103,7 +111,7 @@ _gcry_initialize_fips_mode (int force)
     }
   done = 1;
 
-  /* If the calling applicatione explicitly requested fipsmode, do so.  */
+  /* If the calling application explicitly requested fipsmode, do so.  */
   if (force)
     {
       gcry_assert (!no_fips_mode_required);
@@ -114,11 +122,8 @@ _gcry_initialize_fips_mode (int force)
      provided detection of the FIPS mode and force FIPS mode using a
      file.  The filename is hardwired so that there won't be any
      confusion on whether /etc/gcrypt/ or /usr/local/etc/gcrypt/ is
-     actually used.  The file itself may be empty.  A comment may be
-     included in the file, but comment lines need to be prefixed with
-     a hash mark; only such comment lines and empty lines are
-     allowed.  */
-  if ( !access ("/etc/gcrypt/fips140.force", F_OK) )
+     actually used.  The file itself may be empty.  */
+  if ( !access (FIPS_FORCE_FILE, F_OK) )
     {
       gcry_assert (!no_fips_mode_required);
       goto leave;
@@ -167,6 +172,7 @@ _gcry_initialize_fips_mode (int force)
   if (!no_fips_mode_required)
     {
       /* Yes, we are in FIPS mode.  */
+      FILE *fp;
 
       /* Intitialize the lock to protect the FSM.  */
       err = ath_mutex_init (&fsm_lock);
@@ -184,7 +190,20 @@ _gcry_initialize_fips_mode (int force)
 #endif /*HAVE_SYSLOG*/
           abort ();
         }
+
       
+      /* If the FIPS force files exists, is readable and has a number
+         != 0 on its first line, we enable the enforced fips mode.  */
+      fp = fopen (FIPS_FORCE_FILE, "r");
+      if (fp)
+        {
+          char line[256];
+          
+          if (fgets (line, sizeof line, fp) && atoi (line))
+            enforced_fips_mode = 1;
+          fclose (fp);
+        }
+
       /* Now get us into the INIT state.  */
       fips_new_state (STATE_INIT);
       
@@ -242,6 +261,14 @@ _gcry_fips_mode (void)
      variable is only intialized once with no other threads
      exiisting.  */
   return !no_fips_mode_required;
+}
+
+
+/* Return a flag telling whether we are in the enforced fips mode.  */
+int 
+_gcry_enforced_fips_mode (void)
+{
+  return enforced_fips_mode;
 }
 
 
