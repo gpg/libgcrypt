@@ -321,7 +321,7 @@ elapsed_time (void)
   t2 += (((unsigned long long)stopped_at.user_time.dwHighDateTime << 32)
         + stopped_at.user_time.dwLowDateTime);
   t = (t2 - t1)/10000;
-  snprintf (buf, sizeof buf, "%5lums", (unsigned long)t );
+  snprintf (buf, sizeof buf, "%5.0fms", (double)t );
 #else
   snprintf (buf, sizeof buf, "%5.0fms",
             (((double) (stopped_at - started_at))/CLOCKS_PER_SEC)*10000000);
