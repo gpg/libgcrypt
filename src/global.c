@@ -302,7 +302,7 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
      compile error parser would accidently flag that line when printed
      during "make check" as an error.  */
   fnc (fp, "fips-mode:%c:%c:\n", 
-       fips_mode ()? 'y':'n';
+       fips_mode ()? 'y':'n',
        _gcry_enforced_fips_mode ()? 'y':'n' );
 }
 
