@@ -97,11 +97,21 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   static int initialized = 0;
   static const char *selftest_failed=0;
   int ROUNDS;
-  byte k[MAXKC][4];
   int i,j, r, t, rconpointer = 0;
-  byte tk[MAXKC][4];
   int KC;
-  
+  union
+  {
+    PROPERLY_ALIGNED_TYPE dummy;
+    byte k[MAXKC][4];
+  } k;
+#define k k.k
+  union
+  {
+    PROPERLY_ALIGNED_TYPE dummy;
+    byte tk[MAXKC][4];
+  } tk;
+#define tk tk.tk  
+
   /* The on-the-fly self tests are only run in non-fips mode. In fips
      mode explicit self-tests are required.  Actually the on-the-fly
      self-tests are not fully thread-safe and it might happen that a
@@ -237,6 +247,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     }
 
   return 0;
+#undef tk
+#undef k
 }
 
 
@@ -256,7 +268,12 @@ static void
 prepare_decryption( RIJNDAEL_context *ctx )
 {
   int r;
-  byte *w;
+  union
+  {
+    PROPERLY_ALIGNED_TYPE dummy;
+    byte *w;
+  } w;
+#define w w.w
 
   for (r=0; r < MAXROUNDS+1; r++ )
     {
@@ -285,6 +302,7 @@ prepare_decryption( RIJNDAEL_context *ctx )
         ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
     }
 #undef W
+#undef w
 }	
 
 

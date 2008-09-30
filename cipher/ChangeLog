@@ -1,3 +1,29 @@
+2008-09-30  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (do_setkey): Properly align "t" and "tk".
+	(prepare_decryption): Properly align "w".  Fixes bug #936.
+
+2008-09-18  Werner Koch  <wk@g10code.com>
+
+
+	* pubkey.c (gcry_pk_genkey): Parse domain parameter.
+	(pubkey_generate): Add new arg DOMAIN and remove special case for
+	DSA with qbits.
+	* rsa.c (rsa_generate): Add dummy args QBITS, NAME and DOMAIN and
+	rename to rsa_generate_ext.  Change caller.
+	(_gcry_rsa_generate, _gcry_rsa_check_secret_key) 
+	(_gcry_rsa_encrypt, _gcry_rsa_decrypt, _gcry_rsa_sign) 
+	(_gcry_rsa_verify, _gcry_rsa_get_nbits): Make static and remove
+	_gcry_ prefix.
+	(_gcry_pubkey_spec_rsa, _gcry_pubkey_extraspec_rsa): Adjust names.
+	* dsa.c (dsa_generate_ext): New.
+	(_gcry_dsa_generate): Replace code by a call to dsa_generate.
+	(_gcry_dsa_check_secret_key, _gcry_dsa_sign, _gcry_dsa_verify)
+	(_gcry_dsa_get_nbits): Make static and remove _gcry prefix.
+	(_gcry_dsa_generate2): Remove.
+	(_gcry_pubkey_spec_dsa): Adjust to name changes.
+	(_gcry_pubkey_extraspec_rsa): Add dsa_generate_ext.
+
 2008-09-16  Werner Koch  <wk@g10code.com>
 
 	* ecc.c (run_selftests): Add arg EXTENDED.

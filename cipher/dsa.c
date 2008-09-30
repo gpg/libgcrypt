@@ -1,4 +1,4 @@
-/* dsa.c - DSA signature scheme
+/* dsa.c - DSA signature algorithm
  * Copyright (C) 1998, 2000, 2001, 2002, 2003,
  *               2006, 2008  Free Software Foundation, Inc.
  *
@@ -458,18 +458,24 @@ verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_public_key *pkey )
  **************  interface  ******************
  *********************************************/
 
-gcry_err_code_t
-_gcry_dsa_generate (int algo, unsigned int nbits, unsigned long dummy,
-                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+static gcry_err_code_t
+dsa_generate_ext (int algo, unsigned int nbits, unsigned int qbits, 
+                  unsigned long use_e,
+                  const char *name, const gcry_sexp_t domain,
+                  unsigned int keygen_flags,
+                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
-  gpg_err_code_t err;
+  gpg_err_code_t ec;
   DSA_secret_key sk;
 
   (void)algo;
-  (void)dummy;
+  (void)use_e;
+  (void)name;
+  (void)domain;
+  (void)keygen_flags;
 
-  err = generate (&sk, nbits, 0, retfactors);
-  if (!err)
+  ec = generate (&sk, nbits, qbits, retfactors);
+  if (!ec)
     {
       skey[0] = sk.p;
       skey[1] = sk.q;
@@ -478,42 +484,22 @@ _gcry_dsa_generate (int algo, unsigned int nbits, unsigned long dummy,
       skey[4] = sk.x;
     }
 
-  return err;
+  return ec;
 }
 
 
-/* We don't want to break our API.  Thus we use a hack in pubkey.c to
-   link directly to this function.  Note that we can't reuse the dummy
-   parameter because we can't be sure that applicaions accidently pass
-   a USE_E (that is for what dummy is used with RSA) to a DSA
-   generation. */
-gcry_err_code_t
-_gcry_dsa_generate2 (int algo, unsigned int nbits, unsigned int qbits,
-                     unsigned long dummy,
-                     gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+static gcry_err_code_t
+dsa_generate (int algo, unsigned int nbits, unsigned long dummy,
+              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
-  gpg_err_code_t err;
-  DSA_secret_key sk;
-
-  (void)algo;
   (void)dummy;
-
-  err = generate (&sk, nbits, qbits, retfactors);
-  if (!err)
-    {
-      skey[0] = sk.p;
-      skey[1] = sk.q;
-      skey[2] = sk.g;
-      skey[3] = sk.y;
-      skey[4] = sk.x;
-    }
-
-  return err;
+  return dsa_generate_ext (algo, nbits, 0, 0, NULL, NULL, 0, skey, retfactors);
 }
 
 
-gcry_err_code_t
-_gcry_dsa_check_secret_key (int algo, gcry_mpi_t *skey)
+
+static gcry_err_code_t
+dsa_check_secret_key (int algo, gcry_mpi_t *skey)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_secret_key sk;
@@ -537,8 +523,8 @@ _gcry_dsa_check_secret_key (int algo, gcry_mpi_t *skey)
 }
 
 
-gcry_err_code_t
-_gcry_dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
+static gcry_err_code_t
+dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_secret_key sk;
@@ -563,9 +549,9 @@ _gcry_dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
   return err;
 }
 
-gcry_err_code_t
-_gcry_dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
-		  int (*cmp) (void *, gcry_mpi_t), void *opaquev)
+static gcry_err_code_t
+dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+            int (*cmp) (void *, gcry_mpi_t), void *opaquev)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_public_key pk;
@@ -590,8 +576,8 @@ _gcry_dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 }
 
 
-unsigned int
-_gcry_dsa_get_nbits (int algo, gcry_mpi_t *pkey)
+static unsigned int
+dsa_get_nbits (int algo, gcry_mpi_t *pkey)
 {
   (void)algo;
 
@@ -743,16 +729,17 @@ gcry_pk_spec_t _gcry_pubkey_spec_dsa =
     "DSA", dsa_names, 
     "pqgy", "pqgyx", "", "rs", "pqgy",
     GCRY_PK_USAGE_SIGN,
-    _gcry_dsa_generate,
-    _gcry_dsa_check_secret_key,
+    dsa_generate,
+    dsa_check_secret_key,
     NULL,
     NULL,
-    _gcry_dsa_sign,
-    _gcry_dsa_verify,
-    _gcry_dsa_get_nbits,
+    dsa_sign,
+    dsa_verify,
+    dsa_get_nbits
   };
 pk_extra_spec_t _gcry_pubkey_extraspec_dsa = 
   {
-    run_selftests
+    run_selftests,
+    dsa_generate_ext
   };
 

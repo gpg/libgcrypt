@@ -532,15 +532,20 @@ rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
  *********************************************/
 
 static gcry_err_code_t
-rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
-              unsigned int keygen_flags,
-              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+rsa_generate_ext (int algo, unsigned int nbits, unsigned int qbits,
+                  unsigned long use_e,
+                  const char *name, const gcry_sexp_t domain,
+                  unsigned int keygen_flags,
+                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   RSA_secret_key sk;
   gpg_err_code_t ec;
   int i;
 
   (void)algo;
+  (void)qbits;
+  (void)name;
+  (void)domain;
 
   ec = generate (&sk, nbits, use_e,
                  !!(keygen_flags & PUBKEY_FLAG_TRANSIENT_KEY) );
@@ -572,16 +577,17 @@ rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
 }
 
 
-gcry_err_code_t
-_gcry_rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
-                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+static gcry_err_code_t
+rsa_generate (int algo, unsigned int nbits, unsigned long use_e,
+              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
-  return rsa_generate (algo, nbits, use_e, 0, skey, retfactors);
+  return rsa_generate_ext (algo, nbits, 0, use_e, NULL, NULL, 0,
+                           skey, retfactors);
 }
 
 
-gcry_err_code_t
-_gcry_rsa_check_secret_key( int algo, gcry_mpi_t *skey )
+static gcry_err_code_t
+rsa_check_secret_key (int algo, gcry_mpi_t *skey)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   RSA_secret_key sk;
@@ -605,9 +611,9 @@ _gcry_rsa_check_secret_key( int algo, gcry_mpi_t *skey )
 }
 
 
-gcry_err_code_t
-_gcry_rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data,
-                   gcry_mpi_t *pkey, int flags)
+static gcry_err_code_t
+rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data,
+             gcry_mpi_t *pkey, int flags)
 {
   RSA_public_key pk;
 
@@ -622,9 +628,10 @@ _gcry_rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data,
   return GPG_ERR_NO_ERROR;
 }
 
-gcry_err_code_t
-_gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
-                   gcry_mpi_t *skey, int flags)
+
+static gcry_err_code_t
+rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
+             gcry_mpi_t *skey, int flags)
 {
   RSA_secret_key sk;
   gcry_mpi_t r = MPI_NULL;	/* Random number needed for blinding.  */
@@ -701,8 +708,9 @@ _gcry_rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
   return GPG_ERR_NO_ERROR;
 }
 
-gcry_err_code_t
-_gcry_rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
+
+static gcry_err_code_t
+rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   RSA_secret_key sk;
 
@@ -720,8 +728,9 @@ _gcry_rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
   return GPG_ERR_NO_ERROR;
 }
 
-gcry_err_code_t
-_gcry_rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+
+static gcry_err_code_t
+rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 		  int (*cmp) (void *opaque, gcry_mpi_t tmp),
 		  void *opaquev)
 {
@@ -752,8 +761,8 @@ _gcry_rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 }
 
 
-unsigned int
-_gcry_rsa_get_nbits (int algo, gcry_mpi_t *pkey)
+static unsigned int
+rsa_get_nbits (int algo, gcry_mpi_t *pkey)
 {
   (void)algo;
 
@@ -1080,18 +1089,18 @@ gcry_pk_spec_t _gcry_pubkey_spec_rsa =
     "RSA", rsa_names,
     "ne", "nedpqu", "a", "s", "n",
     GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR,
-    _gcry_rsa_generate,
-    _gcry_rsa_check_secret_key,
-    _gcry_rsa_encrypt,
-    _gcry_rsa_decrypt,
-    _gcry_rsa_sign,
-    _gcry_rsa_verify,
-    _gcry_rsa_get_nbits,
+    rsa_generate,
+    rsa_check_secret_key,
+    rsa_encrypt,
+    rsa_decrypt,
+    rsa_sign,
+    rsa_verify,
+    rsa_get_nbits,
   };
 pk_extra_spec_t _gcry_pubkey_extraspec_rsa = 
   {
     run_selftests,
-    rsa_generate,
+    rsa_generate_ext,
     compute_keygrip
   };
 

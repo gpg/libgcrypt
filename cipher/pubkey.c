@@ -531,15 +531,16 @@ pubkey_get_nenc (int algorithm)
 
 /* Generate a new public key with algorithm ALGORITHM of size NBITS
    and return it at SKEY. The use of the arguments QBITS, USE_E,
-   XVALUE and CURVE_NAME depend on the ALGORITHM.  RETFACTOR is used
-   by some algorithms to return certain additional information which
-   are in general not required.
+   XVALUE, CURVE_NAME and DOMAIN depend on the ALGORITHM.  RETFACTOR
+   is used by some algorithms to return certain additional information
+   which are in general not required.
 
    The function returns the error code number or 0 on success. */
 static gcry_err_code_t
 pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
                  unsigned long use_e, gcry_mpi_t xvalue,
-                 const char *curve_name, unsigned int keygen_flags,
+                 const char *curve_name, gcry_sexp_t domain,
+                 unsigned int keygen_flags,
                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   gcry_err_code_t ec = GPG_ERR_PUBKEY_ALGO;
@@ -561,13 +562,6 @@ pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
              security sensitive..  */
           ec = GPG_ERR_INV_FLAG;
         }
-      else if (qbits && pubkey->spec == &_gcry_pubkey_spec_dsa)
-        {
-          /* Hack to pass QBITS to the DSA generation.  fixme: We
-             should merge this into an ext_generate fucntion. */
-          ec = _gcry_dsa_generate2
-            (algorithm, nbits, qbits, 0, skey, retfactors);
-        }
 #ifdef USE_ELGAMAL
       else if (xvalue && pubkey->spec == &_gcry_pubkey_spec_elg)
         {
@@ -587,9 +581,16 @@ pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
       else if (extraspec && extraspec->ext_generate)
         {
           /* Use the extended generate function if available.  */
-          ec = extraspec->ext_generate (algorithm, nbits, use_e,
-                                        keygen_flags,
+          ec = extraspec->ext_generate (algorithm, nbits, qbits, use_e,
+                                        NULL, domain, keygen_flags,
                                         skey, retfactors);
+        }
+      else if (qbits || domain)
+        {
+          /* A qbits or domain parameter is specified but the
+             algorithm does not feature an extended generation
+             function.  */
+          ec = GPG_ERR_INV_PARAMETER;
         }
       else
         {
@@ -2258,8 +2259,11 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   else 
     nbits = 0;
 
+  /* Extract the optional domain parameter and call the key generation.  */
+  l2 = gcry_sexp_find_token (list, "domain", 0);
   rc = pubkey_generate (module->mod_id, nbits, qbits, use_e, xvalue,
-                        curve, keygen_flags, skey, &factors);
+                        curve, l2, keygen_flags, skey, &factors);
+  gcry_sexp_release (l2);
   if (rc)
     goto leave;
 
