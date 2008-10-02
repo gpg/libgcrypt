@@ -431,11 +431,11 @@ parse_tag (unsigned char const **buffer, size_t *buflen, struct tag_info *ti)
 }
 
 
-/* Read the file FNAME assuming it is a PEM encoded private key file
-   and return an S-expression.  With SHOW set, the key parameters are
-   printed.  */
+/* Read the file FNAME assuming it is a PEM encoded private or public
+   key file and return an S-expression.  With SHOW set, the key
+   parameters are printed.  */
 static gcry_sexp_t
-read_key_file (const char *fname, int show)
+read_key_file (const char *fname, int private, int show)
 {
   gcry_error_t err;
   FILE *fp;
@@ -445,6 +445,7 @@ read_key_file (const char *fname, int show)
   size_t derlen;
   struct tag_info ti;
   gcry_mpi_t keyparms[8];
+  int n_keyparms = private? 8 : 2;
   int idx;
   gcry_sexp_t s_key;
 
@@ -471,7 +472,7 @@ read_key_file (const char *fname, int show)
     goto bad_asn1;  /* The value of the first integer is no 0. */
   der += ti.length; derlen += ti.length;
 
-  for (idx=0; idx < DIM(keyparms); idx++)
+  for (idx=0; idx < n_keyparms; idx++)
     {
       if ( parse_tag (&der, &derlen, &ti)
            || ti.tag != TAG_INTEGER || ti.class || ti.cons || ti.ndef)
@@ -489,28 +490,39 @@ read_key_file (const char *fname, int show)
         die ("error scanning RSA parameter %d: %s\n", idx, gpg_strerror (err));
       der += ti.length; derlen += ti.length;
     }
-  if (idx != DIM(keyparms))
+  if (idx != n_keyparms)
     die ("not enough RSA key parameters\n");
 
   gcry_free (buffer);
 
-  /* Convert from OpenSSL parameter ordering to the OpenPGP order. */
-  /* First check that p < q; if not swap p and q and recompute u.  */ 
-  if (gcry_mpi_cmp (keyparms[3], keyparms[4]) > 0)
+  if (private)
     {
-      gcry_mpi_swap (keyparms[3], keyparms[4]);
-      gcry_mpi_invm (keyparms[7], keyparms[3], keyparms[4]);
+      /* Convert from OpenSSL parameter ordering to the OpenPGP order. */
+      /* First check that p < q; if not swap p and q and recompute u.  */ 
+      if (gcry_mpi_cmp (keyparms[3], keyparms[4]) > 0)
+        {
+          gcry_mpi_swap (keyparms[3], keyparms[4]);
+          gcry_mpi_invm (keyparms[7], keyparms[3], keyparms[4]);
+        }
+      
+      /* Build the S-expression.  */
+      err = gcry_sexp_build (&s_key, NULL,
+                             "(private-key(rsa(n%m)(e%m)"
+                             /**/            "(d%m)(p%m)(q%m)(u%m)))",
+                             keyparms[0], keyparms[1], keyparms[2],
+                             keyparms[3], keyparms[4], keyparms[7] );
     }
+  else
+    {
+      err = gcry_sexp_build (&s_key, NULL,
+                             "(public-key(rsa(n%m)(e%m)))",
+                             keyparms[0], keyparms[1]);
 
-  /* Build the S-expression.  */
-  err = gcry_sexp_build (&s_key, NULL,
-                        "(private-key(rsa(n%m)(e%m)(d%m)(p%m)(q%m)(u%m)))",
-                         keyparms[0], keyparms[1], keyparms[2],
-                         keyparms[3], keyparms[4], keyparms[7] );
+    }
   if (err)
     die ("error building S-expression: %s\n", gpg_strerror (err));
-
-  for (idx=0; idx < DIM(keyparms); idx++)
+  
+  for (idx=0; idx < n_keyparms; idx++)
     gcry_mpi_release (keyparms[idx]);
 
   return s_key;
@@ -518,6 +530,39 @@ read_key_file (const char *fname, int show)
  bad_asn1:
   die ("invalid ASN.1 structure in `%s'\n", fname);
   return NULL; /*NOTREACHED*/
+}
+
+
+/* Read the file FNAME assuming it is a binary signature result and
+   return an an S-expression suitable for gcry_pk_verify.  */
+static gcry_sexp_t
+read_sig_file (const char *fname)
+{
+  gcry_error_t err;
+  FILE *fp;
+  char *buffer;
+  size_t buflen;
+  gcry_mpi_t tmpmpi;
+  gcry_sexp_t s_sig;
+
+  fp = fopen (fname, "rb");
+  if (!fp)
+    die ("can't open `%s': %s\n", fname, strerror (errno));
+  buffer = read_file (fp, 0, &buflen);
+  if (!buffer)
+    die ("error reading `%s'\n", fname);
+  fclose (fp);
+
+  err = gcry_mpi_scan (&tmpmpi, GCRYMPI_FMT_USG, buffer, buflen, NULL);
+  if (!err)
+    err = gcry_sexp_build (&s_sig, NULL,
+                           "(sig-val(rsa(s %m)))", tmpmpi);
+  if (err)
+    die ("error building S-expression: %s\n", gpg_strerror (err));
+  gcry_mpi_release (tmpmpi);
+  gcry_free (buffer);
+
+  return s_sig;
 }
 
 
@@ -1038,12 +1083,12 @@ run_rsa_sign (const void *data, size_t datalen,
     die ("gcry_sexp_build failed for RSA data input: %s\n",
          gpg_strerror (err));
 
-  s_key = read_key_file (keyfile, 0);
+  s_key = read_key_file (keyfile, 1, 0);
 
   err = gcry_pk_sign (&s_sig, s_data, s_key);
   if (err)
     {
-      gcry_sexp_release (read_key_file (keyfile, 1));
+      gcry_sexp_release (read_key_file (keyfile, 1, 1));
       die ("gcry_pk_signed failed (datalen=%d,keyfile=%s): %s\n",
            (int)datalen, keyfile, gpg_strerror (err));
     }
@@ -1083,6 +1128,56 @@ run_rsa_sign (const void *data, size_t datalen,
 }
 
 
+
+/* Verify DATA of length DATALEN using the public key taken from the
+   PEM encoded KEYFILE and the hash algorithm HASHALGO against the
+   binary signature in SIGFILE.  */
+static void
+run_rsa_verify (const void *data, size_t datalen, int hashalgo, int pkcs1,
+                const char *keyfile, const char *sigfile)
+
+{
+  gpg_error_t err;
+  gcry_sexp_t s_data, s_key, s_sig;
+  
+  if (pkcs1)
+    err = gcry_sexp_build (&s_data, NULL,
+                           "(data (flags pkcs1)(hash %s %b))",
+                           gcry_md_algo_name (hashalgo), (int)datalen, data);
+  else
+    {
+      gcry_mpi_t tmp;
+
+      err = gcry_mpi_scan (&tmp, GCRYMPI_FMT_USG, data, datalen,NULL);
+      if (!err)
+        {
+          err = gcry_sexp_build (&s_data, NULL,
+                                 "(data (flags raw)(value %m))", tmp);
+          gcry_mpi_release (tmp);
+        }
+    }
+  if (err)
+    die ("gcry_sexp_build failed for RSA data input: %s\n",
+         gpg_strerror (err));
+
+  s_key = read_key_file (keyfile, 0, 0);
+
+  s_sig = read_sig_file (sigfile);
+
+  err = gcry_pk_verify (s_sig, s_data, s_key);
+  if (!err)
+    puts ("GOOD signature\n");
+  else if (gpg_err_code (err) == GPG_ERR_BAD_SIGNATURE)
+    puts ("BAD signature\n");
+  else
+    printf ("ERROR (%s)\n", gpg_strerror (err));
+
+  gcry_sexp_release (s_sig);
+  gcry_sexp_release (s_key);
+  gcry_sexp_release (s_data);
+}
+
+
 
 
 static void
@@ -1100,19 +1195,20 @@ usage (int show_help)
      "MODE:\n"
      "  encrypt, decrypt, digest, random, hmac-sha, rsa-{gen,sign,verify}\n"
      "OPTIONS:\n"
-     "  --verbose       print additional information\n"
-     "  --binary        input and output is in binary form\n"
-     "  --no-fips       do not force FIPS mode\n"
-     "  --key KEY       use the hex encoded KEY\n"
-     "  --iv IV         use the hex encoded IV\n"
-     "  --dt DT         use the hex encoded DT for the RNG\n"
-     "  --algo NAME     use algorithm NAME\n"
-     "  --keysize N     use a keysize of N bits\n"
-     "  --chunk N       read in chunks of N bytes (implies --binary)\n"
-     "  --pkcs1         use PKCS#1 encoding\n"
-     "  --loop          enable random loop mode\n"
-     "  --progress      print pogress indicators\n"
-     "  --help          print this text\n"
+     "  --verbose        print additional information\n"
+     "  --binary         input and output is in binary form\n"
+     "  --no-fips        do not force FIPS mode\n"
+     "  --key KEY        use the hex encoded KEY\n"
+     "  --iv IV          use the hex encoded IV\n"
+     "  --dt DT          use the hex encoded DT for the RNG\n"
+     "  --algo NAME      use algorithm NAME\n"
+     "  --keysize N      use a keysize of N bits\n"
+     "  --signature NAME take signature from file NAME\n"
+     "  --chunk N        read in chunks of N bytes (implies --binary)\n"
+     "  --pkcs1          use PKCS#1 encoding\n"
+     "  --loop           enable random loop mode\n"
+     "  --progress       print pogress indicators\n"
+     "  --help           print this text\n"
      "With no FILE, or when FILE is -, read standard input.\n"
      "Report bugs to " PACKAGE_BUGREPORT ".\n" , stdout);
   exit (0);
@@ -1132,6 +1228,7 @@ main (int argc, char **argv)
   const char *dt_string = NULL;
   const char *algo_string = NULL;
   const char *keysize_string = NULL;
+  const char *signature_string = NULL;
   FILE *input;
   void *data;
   size_t datalen;
@@ -1221,6 +1318,14 @@ main (int argc, char **argv)
           if (!argc)
             usage (0);
           keysize_string = *argv;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--signature"))
+        {
+          argc--; argv++;
+          if (!argc)
+            usage (0);
+          signature_string = *argv;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--chunk"))
@@ -1438,6 +1543,27 @@ main (int argc, char **argv)
     }
   else if (!strcmp (mode_string, "rsa-verify"))
     {
+      int algo;
+
+      if (!key_string)
+        die ("option --key is required in this mode\n");
+      if (access (key_string, R_OK))
+        die ("option --key needs to specify an existing keyfile\n");
+      if (!algo_string)
+        die ("option --algo is required in this mode\n");
+      algo = gcry_md_map_name (algo_string);
+      if (!algo)
+        die ("digest algorithm `%s' is not supported\n", algo_string);
+      if (!data)
+        die ("no data available (do not use --chunk)\n");
+      if (!signature_string)
+        die ("option --signature is required in this mode\n");
+      if (access (signature_string, R_OK))
+        die ("option --signature needs to specify an existing file\n");
+
+      run_rsa_verify (data, datalen, algo, use_pkcs1, key_string,
+                      signature_string);
+
     }
   else
     usage (0);

@@ -1,9 +1,9 @@
 2008-10-02  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c (print_buffer): Add base64 printing code.
-	(base64_decode, read_key_file,parse_tag): New.
+	(base64_decode, read_key_file, parse_tag, read_sig_file): New.
 	(run_rsa_gen, run_rsa_sign): New.
-	(main): Add mode rsa-gen and rsa-sign.
+	(main): Add modes rsa-gen, rsa-sign and rsa-verify.
 
 2008-09-29  Werner Koch  <wk@g10code.com>
 

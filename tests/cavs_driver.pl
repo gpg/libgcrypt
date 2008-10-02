@@ -315,10 +315,10 @@ sub libgcrypt_rsa_verify($$$$) {
 	$data = hex2bin($data);
 	die "ARCFOUR not available for RSA" if $opt{'R'};
 	$data = pipe_through_program($data,
-		"fipsdrv --key $keyfile rsa-verify");
+                   "fipsdrv --verbose --algo $hashalgo --key $keyfile --signature $sigfile rsa-verify");
 
-	# Parse through the OpenSSL output information
-	return ($data =~ /OK/);
+	# Parse through the output information
+	return ($data =~ /GOOD signature/);
 }
 
 
