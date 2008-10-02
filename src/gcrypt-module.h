@@ -32,6 +32,13 @@ extern "C" {
 #endif
 #endif
 
+/* The interfaces using the module system reserve a certain range of
+   IDs for application use.  These IDs are not valid within Libgcrypt
+   but Libgcrypt makes sure never to allocate such a module ID.  */
+#define GCRY_MODULE_ID_USER      1024 
+#define GCRY_MODULE_ID_USER_LAST 4095
+
+
 /* This type represents a `module'.  */
 typedef struct gcry_module *gcry_module_t;
 

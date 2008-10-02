@@ -56,11 +56,6 @@ void _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 
 /*-- dsa.c --*/
 void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data);
-gcry_err_code_t _gcry_dsa_generate2 (int algo, unsigned int nbits,
-                                     unsigned int qbits,
-                                     unsigned long dummy,
-                                     gcry_mpi_t *skey,
-                                     gcry_mpi_t **retfactors);
 
 /*-- elgamal.c --*/
 void _gcry_register_pk_elg_progress (gcry_handler_progress_t cb,

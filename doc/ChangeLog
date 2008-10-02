@@ -1,5 +1,10 @@
 2008-09-18  Werner Koch  <wk@g10code.com>
 
+	* gcrypt.texi (FIPS Mode): Add state transition Error to Error.
+	* fips-fsm.fig: Ditto.
+
+2008-09-18  Werner Koch  <wk@g10code.com>
+
 	* gcrypt.texi: Add a couple of index items.
 	(FIPS Mode): Reflect recent changes. 
 	(Controlling the library): Describe gcry_fips_mode_active.

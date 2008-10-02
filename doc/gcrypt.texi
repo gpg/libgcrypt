@@ -2612,7 +2612,7 @@ and @var{buflen} must have the value @code{sizeof (int)}.
 @c end gcry_pk_ctl
 
 @noindent
-Libgcrypt also provides a function for generating public key
+Libgcrypt also provides a function to generate public key
 pairs:
 
 @deftypefun gcry_error_t gcry_pk_genkey (@w{gcry_sexp_t *@var{r_key}}, @w{gcry_sexp_t @var{parms}})
@@ -2624,12 +2624,12 @@ an error, @var{r_key} is set to @code{NULL}.  The return code is 0 for
 success or an error code otherwise.
 
 @noindent
-Here is an example for @var{parms} for creating a 1024 bit RSA key:
+Here is an example for @var{parms} to create an 2048 bit RSA key:
 
 @example
 (genkey
   (rsa
-    (nbits 4:1024)))
+    (nbits 4:2048)))
 @end example
 
 @noindent
@@ -2660,10 +2660,12 @@ are special:
 @item 0
 Use a secure and fast value.  This is currently the number 41.
 @item 1
-Use a secure value as required by some specification.  This is currently
+Use a value as required by some crypto policies.  This is currently
 the number 65537.
 @item 2
 Reserved
+@item > 2
+Use the given value.
 @end table
 
 @noindent
@@ -2696,6 +2698,26 @@ given the RSA key is created using a faster and a somewhat less secure
 random number generator.  This flag may be used for keys which are only
 used for a short time and do not require full cryptographic strength.
 
+@item domain
+This is only meaningful for DLP algorithms.  If specified keys are
+generated with domain parameters taken from this list.  The exact
+format of this parameter depends on the actual algorithm.  It is
+currently only implemented for DSA using this format:
+
+@example
+(genkey
+  (dsa
+    (domain
+      (p @var{p-mpi})
+      (q @var{q-mpi})
+      (g @var{q-mpi})
+      (seed @var{seed-mpi})
+      (counter @var{counter-mpi})
+      (h @var{h-mpi}))))
+@end example
+
+The @code{seed}, @code{counter} and @code{h} domain parameters are
+optional and currently not used.
 
 @end table
 @c end table of parameters
@@ -5651,6 +5673,11 @@ Init to Error is triggered by errors in the initialization code.
 @item 19
 Init to Fatal-Error is triggered by non-recoverable errors in the
 initialization code.
+
+@item 20
+Error to Error is triggered by errors while already in the Error
+state.
+
 
 @end table
 @end float

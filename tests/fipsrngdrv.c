@@ -131,6 +131,7 @@ main (int argc, char **argv)
   int binary = 0;
   int loop = 0;
   int progress = 0;
+  int no_fips = 0;
   unsigned char key[16];
   unsigned char seed[16];
   unsigned char dt[16];
@@ -159,6 +160,11 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--verbose"))
         {
           verbose++;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--no-fips"))
+        {
+          no_fips++;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--binary"))
@@ -203,7 +209,8 @@ main (int argc, char **argv)
     fputs (PGM ": started\n", stderr);
 
   gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
-  gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+  if (!no_fips)
+    gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
   if (!gcry_check_version ("1.4.3"))
     die ("version mismatch\n");
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);

@@ -263,11 +263,13 @@ printctl (const char *text)
 static void 
 printchr (int c)
 {
+  (void)c;
 }
 
 static void
 printhex (int c)
 {
+  (void)c;
 }
 
 

@@ -1,3 +1,20 @@
+2008-09-29  Werner Koch  <wk@g10code.com>
+
+	* gcrypt-module.h (GCRY_MODULE_ID_USER, GCRY_MODULE_ID_USER_LAST):
+	New.
+	* module.c (MODULE_ID_USER, MODULE_ID_USER_LAST): Define using new
+	macros.
+
+2008-09-20  Werner Koch  <wk@g10code.com>
+
+	* hmac256.c (finalize) [WORDS_BIGENDIAN]: Fix sigbus problem.
+
+2008-09-18  Werner Koch  <wk@g10code.com>
+
+	* cipher-proto.h (pk_ext_generate_t): Add args QBITS, NAME, DOMAIN.
+
+	* fips.c (fips_new_state): Allow Error => Error transition.
+
 2008-09-18  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (gcry_fips_mode_active): New.

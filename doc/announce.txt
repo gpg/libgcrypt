@@ -39,20 +39,24 @@ Source code is hosted at the GnuPG FTP server and its mirrors as
 listed at http://www.gnupg.org/download/mirrors.html .  On the primary
 server the source file and its digital signatures is:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.bz2 (k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.bz2 (1062k)
  ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.bz2.sig
 
 This file is bzip2 compressed.  A gzip compressed version is also
 available:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.gz (k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.gz (1325k)
  ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.gz.sig
 
 Alternativley you may upgrade version 1.4.2 using this patch file:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.2-1.4.3.diff.bz2 (k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.2-1.4.3.diff.bz2 (42k)
 
 The SHA-1 checksums are:
+
+bdc67c1fdcec464a94dca691615f2335a12db5ce  libgcrypt-1.4.3.tar.bz2
+3d9d583501ce951596fa7dd3667afd357ac7d056  libgcrypt-1.4.3.tar.gz
+e28b74c5824364e20ae7f147f1b89925f5426669  libgcrypt-1.4.2-1.4.3.diff.bz2
 
 
 For help on developing with Libgcrypt you should read the included

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# $Id: cavs_driver.pl 1236 2008-09-17 13:00:06Z smueller $
+# Id: cavs_driver.pl 1236 2008-09-17 13:00:06Z smueller
 #
 # CAVS test driver (based on the OpenSSL driver)
 # Written by: Stephan Müller <sm@atsec.com>
@@ -282,12 +282,87 @@ sub openssl_state_cipher($$$$$) {
 ###########################################################
 ###### libgcrypt implementation
 ###########################################################
+sub libgcrypt_encdec($$$$$) {
+	my $key=shift;
+	my $iv=shift;
+	my $cipher=shift;
+	my $enc = (shift) ? "encrypt" : "decrypt";
+	my $data=shift;
+
+	my $program="fipsdrv --no-fips --key $key --iv $iv --algo $cipher $enc";
+
+	return pipe_through_program($data,$program);
+}
+
+
+sub libgcrypt_rsa_sign($$$) {
+	my $data = shift;
+	my $hashalgo = shift;
+	my $keyfile = shift;
+
+	die "ARCFOUR not available for RSA" if $opt{'R'};
+	return pipe_through_program($data,
+                  "fipsdrv --verbose --algo $hashalgo --key $keyfile rsa-sign");
+}
+
+
+sub libgcrypt_rsa_verify($$$$) {
+	my $data = shift;
+	my $cipher = shift;
+	my $keyfile = shift;
+	my $sigfile = shift;
+
+	$data = hex2bin($data);
+	die "ARCFOUR not available for RSA" if $opt{'R'};
+	$data = pipe_through_program($data,
+		"fipsdrv --key $keyfile rsa-verify");
+
+	# Parse through the OpenSSL output information
+	return ($data =~ /OK/);
+}
+
+
+sub libgcrypt_gen_rsakey($$) {
+	my $keylen = shift;
+	my $file = shift;
+
+	die "ARCFOUR not available for RSA" if $opt{'R'};
+	my @args = ("fipsdrv --keysize $keylen rsa-gen > $file");
+        system(@args) == 0
+		or die "system @args failed: $?";
+	die "system @args failed: file $file not created" if (! -f $file);
+}
+
+
+sub libgcrypt_hash($$) {
+	my $pt = shift;
+	my $hashalgo = shift;
+
+        my $program = "fipsdrv --no-fips --algo $hashalgo digest";
+	die "ARCFOUR not available for hashes" if $opt{'R'};
+        
+	return pipe_through_program($pt, $program);
+}
+
+
+sub libgcrypt_state_cipher($$$$$) {
+	my $cipher = shift;
+	my $enc = (shift) ? "encrypt": "decrypt";
+	my $bufsize = shift;
+	my $key = shift;
+	my $iv = shift;
+
+	my $program="fipsdrv --no-fips --binary --key ".bin2hex($key)." --iv ".bin2hex($iv)." --algo '$cipher' --chunk '$bufsize' $enc";
+	return $program;
+}
+
+
 sub libgcrypt_state_rng($$$) {
 	my $key = shift;
 	my $dt = shift;
 	my $v = shift;
 
-	return "fipsrngdrv --binary --loop $key $v $dt";
+	return "fipsdrv --binary --progress --loop --key $key --iv $v --dt $dt random";
 }
 
 sub libgcrypt_hmac($$$$) {
@@ -296,8 +371,8 @@ sub libgcrypt_hmac($$$$) {
 	my $msg = shift;
 	my $hashtype = shift;
 
-	die "libgcrypt HMAC test not yet implemented: key $key, maclen $maclen, msg $msg, hashtype $hashtype";
-	
+	my $program = "fipsdrv --no-fips --key $key --algo $hashtype hmac-sha";
+	return pipe_through_program($msg, $program);
 }
 
 ######### End of libgcrypt implementation ################
@@ -941,12 +1016,12 @@ sub crypto_mct($$$$$$$$) {
                         $old_calc_data = $calc_data;
 
 			# $calc_data = AES($key, $calc_data);
-			#print STDERR "source_data=", bin2hex($source_data), "\n";
+		        #print STDERR "source_data=", bin2hex($source_data), "\n";
 			syswrite $CI, $source_data or die;
 			my $len = sysread $CO, $calc_data, $bufsize;
-			#print STDERR "len=$len, bufsize=$bufsize\n";
+		        #print STDERR "len=$len, bufsize=$bufsize\n";
 			die if $len ne $bufsize;
-			#print STDERR "calc_data=", bin2hex($calc_data), "\n";
+		        #print STDERR "calc_data=", bin2hex($calc_data), "\n";
 
 			if ( (!$enc && $ciph =~ /des/) ||
 			     $ciph =~ /rc4/ ) {
@@ -1158,10 +1233,12 @@ sub rngx931($$$$) {
 sub usage() {
 
 	print STDERR "Usage:
-$0 [-R] <CAVS-test vector file>
+$0 [-R] [-I name] <CAVS-test vector file>
 
--R  execution of ARCFOUR instead of OpenSSL";
-
+-R       execution of ARCFOUR instead of OpenSSL
+-I NAME  Use interface style NAME:
+            openssl     OpenSSL (default)
+            libgcrypt   Libgcrypt";
 }
 
 # Parser of CAVS test vector file
@@ -1548,21 +1625,31 @@ sub main() {
 
 	usage() unless @ARGV;
 
-	getopts("R", \%opt) or die "bad option";
+	getopts("RI:", \%opt) or die "bad option";
 
 	##### Set library
 
-	#print STDERR "Using OpenSSL interface functions\n";
-	#$encdec =		\&openssl_encdec;
-	#$rsa_sign =		\&openssl_rsa_sign;
-	#$rsa_verify =		\&openssl_rsa_verify;
-	#$gen_rsakey =		\&openssl_gen_rsakey;
-	#$hash =		\&openssl_hash;
-	#$state_cipher =	\&openssl_state_cipher;
-
-	print STDERR "Using libgcrypt interface functions\n";
-	$state_rng =	\&libgcrypt_state_rng;
-	$hmac =		\&libgcrypt_hmac;
+        if ( ! defined $opt{'I'} || $opt{'I'} eq 'openssl' ) {
+	        print STDERR "Using OpenSSL interface functions\n";
+                $encdec =	\&openssl_encdec;
+                $rsa_sign =	\&openssl_rsa_sign;
+                $rsa_verify =	\&openssl_rsa_verify;
+                $gen_rsakey =	\&openssl_gen_rsakey;
+                $hash =		\&openssl_hash;
+                $state_cipher =	\&openssl_state_cipher;
+        } elsif ( $opt{'I'} eq 'libgcrypt' ) {
+                print STDERR "Using libgcrypt interface functions\n";
+                $encdec =	\&libgcrypt_encdec;
+                $rsa_sign =	\&libgcrypt_rsa_sign;
+                $rsa_verify =	\&libgcrypt_rsa_verify;
+                $gen_rsakey =	\&libgcrypt_gen_rsakey;
+                $hash =		\&libgcrypt_hash;
+                $state_cipher =	\&libgcrypt_state_cipher;
+                $state_rng =	\&libgcrypt_state_rng;
+                $hmac =		\&libgcrypt_hmac;
+        } else {
+                die "Invalid interface option given"; 
+        }
 
 	my $infile=$ARGV[0];
 	die "Error: Test vector file $infile not found" if (! -f $infile);

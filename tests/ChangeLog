@@ -1,3 +1,25 @@
+2008-10-02  Werner Koch  <wk@g10code.com>
+
+	* fipsdrv.c (print_buffer): Add base64 printing code.
+	(base64_decode, read_key_file,parse_tag): New.
+	(run_rsa_gen, run_rsa_sign): New.
+	(main): Add mode rsa-gen and rsa-sign.
+
+2008-09-29  Werner Koch  <wk@g10code.com>
+
+	* fipsdrv.c: Merge code from fipsrngdrv.c
+	* fipsrngdrv.c: Remove.
+
+2008-09-26  Werner Koch  <wk@g10code.com>
+
+	* Makefile.am: Distribute cavs_driver.pl.
+	* cavs_tests.sh: New. 
+	* fipsdrv.c: New.
+
+2008-09-18  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (main): Do not disable secure memory in FIPS mode.
+
 2008-09-18  Werner Koch  <wk@g10code.com>
 
 	* basic.c (main): Do not disable secure memory in FIPS mode.
@@ -604,7 +626,7 @@
 	* tsexp.c: New.
 
 	
- Copyright 2001, 2002, 2003 Free Software Foundation, Inc.
+ Copyright 2001, 2002, 2003, 2008 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

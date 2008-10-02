@@ -39,10 +39,6 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 LDADD = ../src/libgcrypt.la $(DL_LIBS)
 
 EXTRA_PROGRAMS = testapi pkbench
-noinst_PROGRAMS = $(TESTS) fipsrngdrv
+noinst_PROGRAMS = $(TESTS) fipsdrv
 
-EXTRA_DIST = README rsa-16k.key
-
-# Note: There is a file cavs-driver.pl in the SVN but we do not
-# distribute it because we have no configure tests for Perl and thus
-# we can expect that people get it from the SVN instead.
+EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl

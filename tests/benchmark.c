@@ -1054,7 +1054,9 @@ main( int argc, char **argv )
       fprintf (stderr, PGM ": version mismatch\n");
       exit (1);
     }
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+
+  if (!gcry_fips_mode_active ())
+    gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
 
   if (use_random_daemon)
     gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);

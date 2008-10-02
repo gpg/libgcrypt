@@ -25,8 +25,8 @@
    numbers.  */
 #define MODULE_ID_MIN 600
 #define MODULE_ID_LAST 65500
-#define MODULE_ID_USER 1024
-#define MODULE_ID_USER_LAST 4095
+#define MODULE_ID_USER GCRY_MODULE_ID_USER
+#define MODULE_ID_USER_LAST GCRY_MODULE_ID_USER_LAST
 
 #if MODULE_ID_MIN >= MODULE_ID_USER
 #error Need to implement a different search strategy

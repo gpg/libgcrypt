@@ -43,7 +43,10 @@ typedef gpg_err_code_t (*selftest_func_t)
 typedef gcry_err_code_t (*pk_ext_generate_t)
      (int algo,
       unsigned int nbits,
+      unsigned int qbits,
       unsigned long use_e,
+      const char *name,
+      gcry_sexp_t domain,
       unsigned int keygen_flags, 
       gcry_mpi_t *skey,
       gcry_mpi_t **retfactors);

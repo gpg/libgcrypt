@@ -479,7 +479,7 @@ size_t gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 size_t gcry_sexp_sprint (gcry_sexp_t sexp, int mode, void *buffer,
                          size_t maxlength);
 
-/* Dumps the S-expression object A in a aformat suitable for debugging
+/* Dumps the S-expression object A in a format suitable for debugging
    to Libgcrypt's logging stream.  */
 void gcry_sexp_dump (const gcry_sexp_t a);
 
@@ -1165,7 +1165,7 @@ gcry_error_t gcry_md_algo_info (int algo, int what, void *buffer,
                                size_t *nbytes);
 
 /* Map the digest algorithm id ALGO to a string representation of the
-   algorithm name.  For unknown algorithms this functions returns
+   algorithm name.  For unknown algorithms this function returns
    "?". */
 const char *gcry_md_algo_name (int algo) _GCRY_GCC_ATTR_PURE;
 

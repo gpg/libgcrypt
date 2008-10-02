@@ -730,6 +730,7 @@ fips_new_state (enum module_states new_state)
       
     case STATE_ERROR:
       if (new_state == STATE_SHUTDOWN
+          || new_state == STATE_ERROR
           || new_state == STATE_FATALERROR
           || new_state == STATE_SELFTEST)
         ok = 1;

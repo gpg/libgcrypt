@@ -1,3 +1,10 @@
+Noteworthy changes in version 1.4.4
+------------------------------------------------
+
+ * Publish GCRY_MODULE_ID_USER and GCRY_MODULE_ID_USER_LAST constants.
+   This functionality is in Libgcrypt since 1.3.0. 
+
+
 Noteworthy changes in version 1.4.3 (2008-09-18)
 ------------------------------------------------
 

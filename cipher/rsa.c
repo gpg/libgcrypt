@@ -175,7 +175,8 @@ check_exponent (void *arg, gcry_mpi_t a)
  * USE_E = 0 let Libcgrypt decide what exponent to use.
  *       = 1 request the use of a "secure" exponent; this is required by some 
  *           specification to be 65537.
- *       > 2 Try starting at this value until a working exponent is found.
+ *       > 2 Use this public exponent.  If the given exponent
+ *           is not odd one is internally added to it. 
  * TRANSIENT_KEY:  If true, generate the primes using the standard RNG.
  * Returns: 2 structures filled with all needed values
  */
