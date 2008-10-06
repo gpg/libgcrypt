@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Id: cavs_driver.pl 1236 2008-09-17 13:00:06Z smueller
+# $Id: cavs_driver.pl 1243 2008-09-18 18:42:57Z smueller $
 #
 # CAVS test driver (based on the OpenSSL driver)
 # Written by: Stephan Müller <sm@atsec.com>
@@ -294,7 +294,6 @@ sub libgcrypt_encdec($$$$$) {
 	return pipe_through_program($data,$program);
 }
 
-
 sub libgcrypt_rsa_sign($$$) {
 	my $data = shift;
 	my $hashalgo = shift;
@@ -302,25 +301,22 @@ sub libgcrypt_rsa_sign($$$) {
 
 	die "ARCFOUR not available for RSA" if $opt{'R'};
 	return pipe_through_program($data,
-                  "fipsdrv --verbose --algo $hashalgo --key $keyfile rsa-sign");
+		"fipsdrv --verbose --pkcs1 --algo $hashalgo --key $keyfile rsa-sign");
 }
-
 
 sub libgcrypt_rsa_verify($$$$) {
 	my $data = shift;
-	my $cipher = shift;
+	my $hashalgo = shift;
 	my $keyfile = shift;
 	my $sigfile = shift;
 
-	$data = hex2bin($data);
 	die "ARCFOUR not available for RSA" if $opt{'R'};
 	$data = pipe_through_program($data,
-                   "fipsdrv --verbose --algo $hashalgo --key $keyfile --signature $sigfile rsa-verify");
+		"fipsdrv --verbose --pkcs1 --algo $hashalgo --key $keyfile --signature $sigfile rsa-verify");
 
 	# Parse through the output information
 	return ($data =~ /GOOD signature/);
 }
-
 
 sub libgcrypt_gen_rsakey($$) {
 	my $keylen = shift;
@@ -328,22 +324,20 @@ sub libgcrypt_gen_rsakey($$) {
 
 	die "ARCFOUR not available for RSA" if $opt{'R'};
 	my @args = ("fipsdrv --keysize $keylen rsa-gen > $file");
-        system(@args) == 0
+	system(@args) == 0
 		or die "system @args failed: $?";
 	die "system @args failed: file $file not created" if (! -f $file);
 }
-
 
 sub libgcrypt_hash($$) {
 	my $pt = shift;
 	my $hashalgo = shift;
 
-        my $program = "fipsdrv --no-fips --algo $hashalgo digest";
+	my $program = "fipsdrv --no-fips --algo $hashalgo digest";
 	die "ARCFOUR not available for hashes" if $opt{'R'};
-        
+
 	return pipe_through_program($pt, $program);
 }
-
 
 sub libgcrypt_state_cipher($$$$$) {
 	my $cipher = shift;
@@ -355,7 +349,6 @@ sub libgcrypt_state_cipher($$$$$) {
 	my $program="fipsdrv --no-fips --binary --key ".bin2hex($key)." --iv ".bin2hex($iv)." --algo '$cipher' --chunk '$bufsize' $enc";
 	return $program;
 }
-
 
 sub libgcrypt_state_rng($$$) {
 	my $key = shift;
@@ -372,10 +365,40 @@ sub libgcrypt_hmac($$$$) {
 	my $hashtype = shift;
 
 	my $program = "fipsdrv --no-fips --key $key --algo $hashtype hmac-sha";
-	return pipe_through_program($msg, $program);
+	return pipe_through_program($msg, $program);	
 }
 
 ######### End of libgcrypt implementation ################
+
+################################################################
+###### Vendor1 interface functions
+################################################################
+
+sub vendor1_encdec($$$$$) {
+	my $key=shift;
+	my $iv=shift;
+	my $cipher=shift;
+	my $enc = (shift) ? "encrypt" : "decrypt";
+	my $data=shift;
+
+	$data=hex2bin($data);
+	my $program = "./aes $enc $key";
+	$data=pipe_through_program($data,$program);
+	return bin2hex($data);
+}
+
+sub vendor1_state_cipher($$$$$) {
+	my $cipher = shift;
+	my $encdec = shift;
+	my $bufsize = shift;
+	my $key = shift;
+	my $iv = shift;
+
+	$key = bin2hex($key);
+	my $enc = $encdec ? "encrypt": "decrypt";
+	my $out = "./aes $enc $key $bufsize";
+	return $out;
+}
 
 ##### No other interface functions below this point ######
 ##########################################################
@@ -878,7 +901,7 @@ sub kat($$$$$$$$) {
 		$key1= $key1 . $key3;
 	}
 	
-	$out .= "IV = $iv\n";
+	$out .= "IV = $iv\n" if (defined($iv) && $iv ne "");
 	if ($enc) {
 		$out .= "PLAINTEXT = $pt\n";
 		$out .= "CIPHERTEXT = " . encrypt($key1, $iv, $cipher, $pt) . "\n";
@@ -997,7 +1020,8 @@ sub crypto_mct($$$$$$$$) {
 		}
         	my $keylen = length($key1);
 
-                $out .= "IV = ". bin2hex($iv). "\n";
+                $out .= "IV = ". bin2hex($iv) . "\n"
+			if (defined($iv) && $iv ne "");
 
                 if ($enc) {
                         $out .= "PLAINTEXT = ". bin2hex($source_data). "\n";
@@ -1016,12 +1040,12 @@ sub crypto_mct($$$$$$$$) {
                         $old_calc_data = $calc_data;
 
 			# $calc_data = AES($key, $calc_data);
-		        #print STDERR "source_data=", bin2hex($source_data), "\n";
+			#print STDERR "source_data=", bin2hex($source_data), "\n";
 			syswrite $CI, $source_data or die;
 			my $len = sysread $CO, $calc_data, $bufsize;
-		        #print STDERR "len=$len, bufsize=$bufsize\n";
+			#print STDERR "len=$len, bufsize=$bufsize\n";
 			die if $len ne $bufsize;
-		        #print STDERR "calc_data=", bin2hex($calc_data), "\n";
+			#print STDERR "calc_data=", bin2hex($calc_data), "\n";
 
 			if ( (!$enc && $ciph =~ /des/) ||
 			     $ciph =~ /rc4/ ) {
@@ -1235,10 +1259,10 @@ sub usage() {
 	print STDERR "Usage:
 $0 [-R] [-I name] <CAVS-test vector file>
 
--R       execution of ARCFOUR instead of OpenSSL
--I NAME  Use interface style NAME:
-            openssl     OpenSSL (default)
-            libgcrypt   Libgcrypt";
+-R	execution of ARCFOUR instead of OpenSSL
+-I NAME	Use interface style NAME:
+		openssl     OpenSSL (default)
+		libgcrypt   Libgcrypt";
 }
 
 # Parser of CAVS test vector file
@@ -1394,7 +1418,7 @@ sub parse($$) {
 				$tt = 2;
 				die "Interface function state_cipher for Stateful Cipher operation defined for tested library"
 					if (!defined($state_cipher));
-			} elsif ($cipher eq "sha" && $tt!=5 && $tt!=6) {
+			} elsif ($cipher =~ /^sha\d+/ && $tt!=5 && $tt!=6) {
 				$tt = 3;
 				die "Interface function hash for Hashing not defined for tested library"
 					if (!defined($hash));
@@ -1523,7 +1547,7 @@ sub parse($$) {
 
 		# call tests if all input data is there
 		if ($tt == 1) {
- 			if ($key1 ne "" && $iv ne "" && $pt ne "" && $cipher ne "") {
+ 			if ($key1 ne "" && $pt ne "" && $cipher ne "") {
 				$out .= kat($keytype, $key1, $key2, $key3, $iv, $pt, $cipher, $enc);
 				$keytype = "";
 				$key1 = "";
@@ -1534,7 +1558,7 @@ sub parse($$) {
 			}
 		}
 		elsif ($tt == 2) {
-			if ($key1 ne "" && $iv ne "" && $pt ne "" && $cipher ne "") {
+			if ($key1 ne "" && $pt ne "" && $cipher ne "") {
 				$out .= crypto_mct($keytype, $key1, $key2, $key3, $iv, $pt, $cipher, $enc);
 				$keytype = "";
 				$key1 = "";
@@ -1629,26 +1653,26 @@ sub main() {
 
 	##### Set library
 
-        if ( ! defined $opt{'I'} || $opt{'I'} eq 'openssl' ) {
-	        print STDERR "Using OpenSSL interface functions\n";
-                $encdec =	\&openssl_encdec;
-                $rsa_sign =	\&openssl_rsa_sign;
-                $rsa_verify =	\&openssl_rsa_verify;
-                $gen_rsakey =	\&openssl_gen_rsakey;
-                $hash =		\&openssl_hash;
-                $state_cipher =	\&openssl_state_cipher;
-        } elsif ( $opt{'I'} eq 'libgcrypt' ) {
-                print STDERR "Using libgcrypt interface functions\n";
-                $encdec =	\&libgcrypt_encdec;
-                $rsa_sign =	\&libgcrypt_rsa_sign;
-                $rsa_verify =	\&libgcrypt_rsa_verify;
-                $gen_rsakey =	\&libgcrypt_gen_rsakey;
-                $hash =		\&libgcrypt_hash;
-                $state_cipher =	\&libgcrypt_state_cipher;
-                $state_rng =	\&libgcrypt_state_rng;
-                $hmac =		\&libgcrypt_hmac;
+	if ( ! defined $opt{'I'} || $opt{'I'} eq 'openssl' ) {
+		print STDERR "Using OpenSSL interface functions\n";
+		$encdec =	\&openssl_encdec;
+		$rsa_sign =	\&openssl_rsa_sign;
+		$rsa_verify =	\&openssl_rsa_verify;
+		$gen_rsakey =	\&openssl_gen_rsakey;
+		$hash =		\&openssl_hash;
+		$state_cipher =	\&openssl_state_cipher;
+	} elsif ( $opt{'I'} eq 'libgcrypt' ) {
+		print STDERR "Using libgcrypt interface functions\n";
+		$encdec =	\&libgcrypt_encdec;
+		$rsa_sign =	\&libgcrypt_rsa_sign;
+		$rsa_verify =	\&libgcrypt_rsa_verify;
+		$gen_rsakey =	\&libgcrypt_gen_rsakey;
+		$hash =		\&libgcrypt_hash;
+		$state_cipher =	\&libgcrypt_state_cipher;
+		$state_rng =	\&libgcrypt_state_rng;
+		$hmac =		\&libgcrypt_hmac;
         } else {
-                die "Invalid interface option given"; 
+                die "Invalid interface option given";
         }
 
 	my $infile=$ARGV[0];
