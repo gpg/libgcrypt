@@ -1320,12 +1320,18 @@ are called by Libgcrypt in case certain error conditions occur.  They
 may and should be registered prior to calling @code{gcry_check_version}.
 
 @deftp {Data type} gcry_handler_no_mem_t
-This type is defined as: @code{void (*gcry_handler_no_mem_t) (void *, size_t, unsigned int)}
+This type is defined as: @code{int (*gcry_handler_no_mem_t) (void *, size_t, unsigned int)}
 @end deftp
 @deftypefun void gcry_set_outofcore_handler (gcry_handler_no_mem_t @var{func_no_mem}, void *@var{cb_data})
 This function registers @var{func_no_mem} as `out-of-core handler',
 which means that it will be called in the case of not having enough
-memory available.
+memory available.  The handler is called with 3 arguments: The first
+one is the pointer @var{cb_data} as set with this function, the second
+is the requested memory size and the last being a flag.  If bit 0 of
+the flag is set, secure memory has been requested.  The handler should
+either return true to indicate that Libgcrypt should try again
+allocating memory or return false to let Libgcrypt use its default
+fatal error handler.
 @end deftypefun
 
 @deftp {Data type} gcry_handler_error_t

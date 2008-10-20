@@ -1,3 +1,9 @@
+2008-10-20  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi (Error handler): Fix description of
+	gcry_handler_no_mem_t.  Reported by Patrick Strateman.  desribe
+	what what the error handler is expected to do.  Fixes bug #961.
+
 2008-09-18  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.texi (FIPS Mode): Add state transition Error to Error.
