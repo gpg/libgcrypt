@@ -50,10 +50,6 @@ static unsigned int debug_flags;
    intialization code swicthed fips mode on.  */
 static int force_fips_mode;
 
-/* If this flag is set, the application may no longer assume that the
-   process is running in FIPS mode.  */
-static int inactive_fips_mode;
-
 /* Controlled by global_init().  */
 static int any_init_done;
 
@@ -495,7 +491,9 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_FIPS_MODE_P:
-      if (fips_mode () && !inactive_fips_mode && !no_secure_memory)
+      if (fips_mode () 
+          && !_gcry_is_fips_mode_inactive () 
+          && !no_secure_memory)
 	err = GPG_ERR_GENERAL; /* Used as TRUE value */
       break;
 
@@ -658,20 +656,10 @@ gcry_set_allocation_handler (gcry_handler_alloc_t new_alloc_func,
 
   if (fips_mode ())
     {
-      if (_gcry_enforced_fips_mode () )
-        {
-          /* Get us into the error state. */
-          fips_signal_error ("custom allocation handler used");
-          return;
-        }
       /* We do not want to enforce the fips mode, but merely set a
-         flag so that the application may check wheter it is still in
+         flag so that the application may check whether it is still in
          fips mode.  */
-      inactive_fips_mode = 1;
-#ifdef HAVE_SYSLOG
-      syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "custom allocation handler used - FIPS mode disabled");
-#endif /*HAVE_SYSLOG*/
+      _gcry_inactivate_fips_mode ("custom allocation handler");
     }
 
   alloc_func = new_alloc_func;

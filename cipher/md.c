@@ -43,7 +43,7 @@ static struct digest_table_entry
   gcry_md_spec_t *digest;
   md_extra_spec_t *extraspec;
   unsigned int algorithm;
-  int fips_allowed;
+  int fips_allowed; 
 } digest_table[] =
   {
 #if USE_CRC    
@@ -62,7 +62,7 @@ static struct digest_table_entry
 #endif
 #if USE_MD5
     { &_gcry_digest_spec_md5,
-      &dummy_extra_spec,                 GCRY_MD_MD5 },
+      &dummy_extra_spec,                 GCRY_MD_MD5, 1 },
 #endif
 #if USE_RMD160
     { &_gcry_digest_spec_rmd160,
@@ -176,8 +176,14 @@ md_register_default (void)
   
   for (i = 0; !err && digest_table[i].digest; i++)
     {
-      if ( fips_mode () && !digest_table[i].fips_allowed )
-        continue;
+      if ( fips_mode ())
+        {
+          if (!digest_table[i].fips_allowed)
+            continue;
+          if (digest_table[i].algorithm == GCRY_MD_MD5
+              && _gcry_enforced_fips_mode () )
+            continue;  /* Do not register in enforced fips mode.  */
+        }
 
       err = _gcry_module_add (&digests_registered,
                               digest_table[i].algorithm,
@@ -550,10 +556,22 @@ md_enable (gcry_md_hd_t hd, int algorithm)
       log_debug ("md_enable: algorithm %d not available\n", algorithm);
       err = GPG_ERR_DIGEST_ALGO;
     }
-  else
+ else
     digest = (gcry_md_spec_t *) module->spec;
 
-  if (! err)
+  
+  if (!err && algorithm == GCRY_MD_MD5 && fips_mode ())
+    {
+      _gcry_inactivate_fips_mode ("MD5 used");
+      if (_gcry_enforced_fips_mode () )
+        {
+          /* We should never get to here because we do not register
+             MD5 in enforced fips mode. But better throw an error.  */
+          err = GPG_ERR_DIGEST_ALGO;
+        }
+    }
+  
+  if (!err)
     {
       size_t size = (sizeof (*entry)
                      + digest->contextsize
@@ -992,7 +1010,20 @@ gcry_md_hash_buffer (int algo, void *digest,
       /* For the others we do not have a fast function, so we use the
 	 normal functions. */
       gcry_md_hd_t h;
-      gpg_err_code_t err = md_open (&h, algo, 0, 0);
+      gpg_err_code_t err;
+
+      if (algo == GCRY_MD_MD5 && fips_mode ())
+        {
+          _gcry_inactivate_fips_mode ("MD5 used");
+          if (_gcry_enforced_fips_mode () )
+            {
+              /* We should never get to here because we do not register
+                 MD5 in enforced fips mode.  */
+              _gcry_fips_noreturn ();
+            }
+        }
+
+      err = md_open (&h, algo, 0, 0);
       if (err)
 	log_bug ("gcry_md_open failed for algo %d: %s",
                  algo, gpg_strerror (gcry_error(err)));

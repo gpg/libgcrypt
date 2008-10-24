@@ -1,3 +1,10 @@
+2008-10-24  Werner Koch  <wk@g10code.com>
+
+	* global.c (inactive_fips_mode): Move to fips.c. 
+	(gcry_set_allocation_handler): Factor code out to ...
+	* fips.c (_gcry_inactivate_fips_mode): New.
+	(_gcry_is_fips_mode_inactive): New.
+
 2008-09-29  Werner Koch  <wk@g10code.com>
 
 	* gcrypt-module.h (GCRY_MODULE_ID_USER, GCRY_MODULE_ID_USER_LAST):

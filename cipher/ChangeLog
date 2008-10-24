@@ -1,3 +1,9 @@
+2008-10-24  Werner Koch  <wk@g10code.com>
+
+	* md.c (digest_table): Allow MD5 in fips mode.
+	(md_register_default): Take special action for MD5.
+	(md_enable, gcry_md_hash_buffer): Ditto.
+
 2008-09-30  Werner Koch  <wk@g10code.com>
 
 	* rijndael.c (do_setkey): Properly align "t" and "tk".

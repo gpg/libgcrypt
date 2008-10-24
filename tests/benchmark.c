@@ -41,6 +41,9 @@ static int large_buffers;
 /* Number of cipher repetitions.  */
 static int cipher_repetitions;
 
+/* Whether fips mode was active at startup.  */
+static int in_fips_mode;
+
 
 static const char sample_private_dsa_key_1024[] =
 "(private-key\n"
@@ -373,7 +376,9 @@ md_bench ( const char *algoname )
   if (!algoname)
     {
       for (i=1; i < 400; i++)
-        if ( !gcry_md_test_algo (i) )
+        if (in_fips_mode && i == GCRY_MD_MD5)
+          ; /* Don't use MD5 in fips mode.  */
+        else if ( !gcry_md_test_algo (i) )
           md_bench (gcry_md_algo_name (i));
       return;
     }
@@ -1055,7 +1060,9 @@ main( int argc, char **argv )
       exit (1);
     }
 
-  if (!gcry_fips_mode_active ())
+  if (gcry_fips_mode_active ())
+    in_fips_mode = 1;
+  else
     gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
 
   if (use_random_daemon)
@@ -1135,6 +1142,10 @@ main( int argc, char **argv )
       fprintf (stderr, PGM ": bad arguments\n");
       return 1;
     }
+
+
+  if (in_fips_mode && !gcry_fips_mode_active ())
+    fprintf (stderr, PGM ": FIPS mode is not anymore active\n");
   
   return 0;
 }

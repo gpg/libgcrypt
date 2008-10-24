@@ -1,3 +1,8 @@
+2008-10-24  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (md_bench): Do not test MD5 in fips mode.
+	* basic.c (check_digests, check_hmac): Ditto.
+
 2008-10-06  Werner Koch  <wk@g10code.com>
 
 	* cavs_driver.pl: New version from upstream.

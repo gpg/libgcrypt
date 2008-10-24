@@ -1316,7 +1316,8 @@ check_digests (void)
 
   for (i = 0; algos[i].md; i++)
     {
-      if (gcry_md_test_algo (algos[i].md) && in_fips_mode)
+      if ((gcry_md_test_algo (algos[i].md) || algos[i].md == GCRY_MD_MD5)
+          && in_fips_mode)
         {
           if (verbose)
             fprintf (stderr, "  algorithm %d not available in fips mode\n",
@@ -1685,7 +1686,8 @@ check_hmac (void)
 
   for (i = 0; algos[i].md; i++)
     {
-      if (gcry_md_test_algo (algos[i].md) && in_fips_mode)
+      if ((gcry_md_test_algo (algos[i].md) || algos[i].md == GCRY_MD_MD5)
+          && in_fips_mode)
         {
           if (verbose)
             fprintf (stderr, "  algorithm %d not available in fips mode\n",
@@ -2117,6 +2119,7 @@ main (int argc, char **argv)
       check_pubkey ();
     }
 
+
   if (in_fips_mode && !selftest_only)
     {
       /* If we are in fips mode do some more tests. */
@@ -2169,6 +2172,9 @@ main (int argc, char **argv)
 
   if (verbose)
     fprintf (stderr, "\nAll tests completed. Errors: %i\n", error_count);
+
+  if (in_fips_mode && !gcry_fips_mode_active ())
+    fprintf (stderr, "FIPS mode is not anymore active\n");
 
   return error_count ? 1 : 0;
 }

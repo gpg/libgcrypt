@@ -196,12 +196,12 @@ generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
   gcry_random_level_t random_level;
 
   if (fips_mode ())
-  {
-    if (nbits < 1024)
-      return GPG_ERR_INV_VALUE;
-    if (transient_key)
-      return GPG_ERR_INV_VALUE;
-  }
+    {
+      if (nbits < 1024)
+        return GPG_ERR_INV_VALUE;
+      if (transient_key)
+        return GPG_ERR_INV_VALUE;
+    }
 
   /* The random quality depends on the transient_key flag.  */
   random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;

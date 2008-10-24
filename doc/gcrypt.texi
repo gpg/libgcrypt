@@ -5524,6 +5524,11 @@ The function @code{gcry_set_allocation_handler} may not be used.  If
 it is used Libgcrypt disables FIPS mode unless Enforced FIPS mode is
 enabled, in which case Libgcrypt will enter the error state.
 
+@item
+The digest algorithm MD5 may not be used.  If it is used Libgcrypt
+disables FIPS mode unless Enforced FIPS mode is enabled, in which case
+Libgcrypt will enter the error state.
+
 @item 
 In Enforced FIPS mode the command @code{GCRYCTL_DISABLE_SECMEM} is
 ignored.  In standard FIPS mode it disables FIPS mode.
@@ -5536,9 +5541,8 @@ A handler set by @code{gcry_set_fatalerror_handler} is ignored.
 @end itemize
 
 Note that when we speak about disabling FIPS mode, it merely means
-that the fucntion @code{gcry_fips_mode_active} returns false; it does
+that the function @code{gcry_fips_mode_active} returns false; it does
 not mean that any non FIPS algorithms are allowed.
-
 
 @c ********************************************
 @section FIPS Finite State Machine
@@ -5687,6 +5691,25 @@ state.
 
 @end table
 @end float
+
+@c ********************************************
+@section FIPS Miscellaneous Information
+
+Libgcrypt does not do any key management on itself; the application
+needs to care about it.  Keys which are passed to Libgcrypt should be
+allocated in secure memory as available with the functions
+@code{gcry_malloc_secure} and @code{gcry_calloc_secure}.  By calling
+@code{gcry_free} on this memory, the memory and thus the keys are
+overwritten with zero bytes before releasing the memory.
+
+For use with the random number generator, Libgcrypt generates 3
+internal keys which are stored in the encryption contexts used by the
+RNG.  These keys are stored in secure memory for the lifetime of the
+process.  Application are required to use @code{GCRYCTL_TERM_SECMEM}
+before process termination.  This will zero out the entire secure
+memory and thus also the encryption contexts with these keys.
+
+
 
 @c **********************************************************
 @c *************  Appendices (license etc.)  ****************
