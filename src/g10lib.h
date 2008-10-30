@@ -58,6 +58,15 @@
 #define GCC_ATTR_NORETURN 
 #endif
 
+#if __GNUC__ >= 3 
+/* According to glibc this attribute is available since 2.8 however we
+   better play safe and use it only with gcc 3 or newer. */
+#define GCC_ATTR_FORMAT_ARG(a)  __attribute__ ((format_arg (a)))
+#else
+#define GCC_ATTR_FORMAT_ARG(a)  
+#endif
+
+
 /* Gettext macros.  */
 
 #define _(a)  _gcry_gettext(a)
@@ -92,7 +101,7 @@ void _gcry_bug (const char *file, int line);
 void _gcry_assert_failed (const char *expr, const char *file, int line);
 #endif
 
-const char *_gcry_gettext (const char *key);
+const char *_gcry_gettext (const char *key) GCC_ATTR_FORMAT_ARG(1);
 void _gcry_fatal_error(int rc, const char *text ) JNLIB_GCC_A_NR;
 void _gcry_log( int level, const char *fmt, ... ) JNLIB_GCC_A_PRINTF(2,3);
 void _gcry_log_bug( const char *fmt, ... )   JNLIB_GCC_A_NR_PRINTF(1,2);

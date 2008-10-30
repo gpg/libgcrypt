@@ -1,3 +1,8 @@
+2008-10-30  Werner Koch  <wk@g10code.com>
+
+	* g10lib.h (GCC_ATTR_FORMAT_ARG): New.
+	(_gcry_gettext): Use it.
+
 2008-10-24  Werner Koch  <wk@g10code.com>
 
 	* global.c (inactive_fips_mode): Move to fips.c. 

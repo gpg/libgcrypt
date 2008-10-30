@@ -195,5 +195,6 @@ $AUTOMAKE --gnu;
 echo "Running autoconf${FORCE} ..."
 $AUTOCONF${FORCE}
 
-echo "You may now run \"./configure --enable-maintainer-mode && make\"."
-echo "(gcc users may want to add the option \"--enable-gcc-warnings\")"
+echo "You may now run: 
+  ./configure --enable-maintainer-mode && make
+"

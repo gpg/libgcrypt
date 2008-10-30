@@ -1,3 +1,8 @@
+2008-10-30  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Remove option --enable-gcc-warnings.  Autodetect
+	useful gcc warnings in maintainer mode.
+
 2008-09-18  Werner Koch  <wk@g10code.com>
 
 	Release 1.4.3.

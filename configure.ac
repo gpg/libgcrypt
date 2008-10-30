@@ -852,39 +852,40 @@ AC_ARG_ENABLE(optimization,
                          CFLAGS=`echo $CFLAGS | sed 's/-O[[0-9]]//'`
                        fi])
 
-AC_ARG_ENABLE(gcc-warnings,
-	      AC_HELP_STRING([--enable-gcc-warnings],
-			     [enable more verbose gcc warnings]),
-	      [more_gcc_warnings="$enableval"],
-	      [more_gcc_warnings="no"])
-
+# CFLAGS mangling when using gcc.
 if test "$GCC" = yes; then
-    if test "$USE_MAINTAINER_MODE" = "yes" ||
-       test "$more_gcc_warnings" = "yes"; then
-        CFLAGS="$CFLAGS -Wall -Wcast-align -Wshadow -Wstrict-prototypes"
-        if test "$more_gcc_warnings" = "yes"; then
-            CFLAGS="$CFLAGS -W -Wextra -Wbad-function-cast"
-            CFLAGS="$CFLAGS -Wwrite-strings"
-            CFLAGS="$CFLAGS -Wdeclaration-after-statement"
-            CFLAGS="$CFLAGS -Wno-missing-field-initializers"
-            CFLAGS="$CFLAGS -Wno-sign-compare"
-            # Note: We don't use -Wunreachable-code because this gives
-            # warnings for all asserts and many inline functions like
-            # gpg_error (gcc 4.1.2 20060928).
+    CFLAGS="$CFLAGS -Wall"
+    if test "$USE_MAINTAINER_MODE" = "yes"; then
+        CFLAGS="$CFLAGS -Wcast-align -Wshadow -Wstrict-prototypes"
+        CFLAGS="$CFLAGS -Wformat -Wno-format-y2k -Wformat-security"
+
+        # If -Wno-missing-field-initializers is supported we can enable a 
+        # a bunch of really useful warnings.
+        AC_MSG_CHECKING([if gcc supports -Wno-missing-field-initializers])
+        _gcc_cflags_save=$CFLAGS
+        CFLAGS="-Wno-missing-field-initializers"
+        AC_COMPILE_IFELSE(AC_LANG_PROGRAM([]),_gcc_wopt=yes,_gcc_wopt=no)
+        AC_MSG_RESULT($_gcc_wopt)
+        CFLAGS=$_gcc_cflags_save;
+        if test x"$_gcc_wopt" = xyes ; then
+          CFLAGS="$CFLAGS -W -Wextra -Wbad-function-cast"
+          CFLAGS="$CFLAGS -Wwrite-strings"
+          CFLAGS="$CFLAGS -Wdeclaration-after-statement"
+          CFLAGS="$CFLAGS -Wno-missing-field-initializers"
+          CFLAGS="$CFLAGS -Wno-sign-compare"
         fi
-    else
-        CFLAGS="$CFLAGS -Wall"
+
+        AC_MSG_CHECKING([if gcc supports -Wpointer-arith])
+        _gcc_cflags_save=$CFLAGS
+        CFLAGS="-Wpointer-arith"
+        AC_COMPILE_IFELSE(AC_LANG_PROGRAM([]),_gcc_wopt=yes,_gcc_wopt=no)
+        AC_MSG_RESULT($_gcc_wopt)
+        CFLAGS=$_gcc_cflags_save;
+        if test x"$_gcc_wopt" = xyes ; then
+          CFLAGS="$CFLAGS -Wpointer-arith"
+        fi
     fi
 
-    AC_MSG_CHECKING([if gcc supports -Wpointer-arith])
-    _gcc_cflags_save=$CFLAGS
-    CFLAGS="-Wpointer-arith"
-    AC_COMPILE_IFELSE(AC_LANG_PROGRAM([]),_gcc_wopt=yes,_gcc_wopt=no)
-    AC_MSG_RESULT($_gcc_wopt)
-    CFLAGS=$_gcc_cflags_save;
-    if test x"$_gcc_wopt" = xyes ; then
-       CFLAGS="$CFLAGS -Wpointer-arith"
-    fi
 fi
 
 # Check whether as(1) supports a noeexecstack feature.  This test
