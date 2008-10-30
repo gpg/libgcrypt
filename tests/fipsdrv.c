@@ -867,10 +867,13 @@ run_encrypt_decrypt (int encrypt_mode,
     die ("gcry_cipher_setkey failed with keylen %u: %s\n",
          (unsigned int)key_buflen, gpg_strerror (err));
 
-  err = gcry_cipher_setiv (hd, iv_buffer, iv_buflen);
-  if (err)
-    die ("gcry_cipher_setiv failed with ivlen %u: %s\n",
-         (unsigned int)iv_buflen, gpg_strerror (err));
+  if (iv_buffer)
+    {
+      err = gcry_cipher_setiv (hd, iv_buffer, iv_buflen);
+      if (err)
+        die ("gcry_cipher_setiv failed with ivlen %u: %s\n",
+             (unsigned int)iv_buflen, gpg_strerror (err));
+    }
 
   inbuf = data? NULL : gcry_xmalloc (datalen);
   outbuflen = datalen;
@@ -1508,11 +1511,19 @@ main (int argc, char **argv)
       cipher_algo = map_openssl_cipher_name (algo_string, &cipher_mode);
       if (!cipher_algo)
         die ("cipher algorithm `%s' is not supported\n", algo_string);
-      if (!iv_string)
-        die ("option --iv is required in this mode\n");
-      iv_buffer = hex2buffer (iv_string, &iv_buflen);
-      if (!iv_buffer)
-        die ("invalid value for IV\n");
+      if (cipher_mode != GCRY_CIPHER_MODE_ECB)
+        {
+          if (!iv_string)
+            die ("option --iv is required in this mode\n");
+          iv_buffer = hex2buffer (iv_string, &iv_buflen);
+          if (!iv_buffer)
+            die ("invalid value for IV\n");
+        }
+      else
+        {
+          iv_buffer = NULL;
+          iv_buflen = 0;
+        }
       if (!key_string)
         die ("option --key is required in this mode\n");
       key_buffer = hex2buffer (key_string, &key_buflen);

@@ -1,3 +1,11 @@
+2008-10-27  Werner Koch  <wk@g10code.com>
+
+	* fipsdrv.c (run_encrypt_decrypt): Make IV_BUFFER optional.
+	(main): Ditto.
+	* cavs_driver.pl: Remove the --no-fips flags.
+	(libgcrypt_encdec($$$$$)): Make IV optional.
+	(libgcrypt_state_cipher($$$$$)): Ditto.
+
 2008-10-24  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (md_bench): Do not test MD5 in fips mode.

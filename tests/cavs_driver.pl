@@ -289,7 +289,9 @@ sub libgcrypt_encdec($$$$$) {
 	my $enc = (shift) ? "encrypt" : "decrypt";
 	my $data=shift;
 
-	my $program="fipsdrv --no-fips --key $key --iv $iv --algo $cipher $enc";
+        $iv = "--iv $iv" if ($iv);
+
+	my $program="fipsdrv --key $key $iv --algo $cipher $enc";
 
 	return pipe_through_program($data,$program);
 }
@@ -333,7 +335,7 @@ sub libgcrypt_hash($$) {
 	my $pt = shift;
 	my $hashalgo = shift;
 
-	my $program = "fipsdrv --no-fips --algo $hashalgo digest";
+	my $program = "fipsdrv --algo $hashalgo digest";
 	die "ARCFOUR not available for hashes" if $opt{'R'};
 
 	return pipe_through_program($pt, $program);
@@ -346,7 +348,9 @@ sub libgcrypt_state_cipher($$$$$) {
 	my $key = shift;
 	my $iv = shift;
 
-	my $program="fipsdrv --no-fips --binary --key ".bin2hex($key)." --iv ".bin2hex($iv)." --algo '$cipher' --chunk '$bufsize' $enc";
+        $iv = "--iv $iv" if ($iv);
+
+	my $program="fipsdrv --binary --key ".bin2hex($key)." $iv ".bin2hex($iv)." --algo '$cipher' --chunk '$bufsize' $enc";
 	return $program;
 }
 
@@ -364,7 +368,7 @@ sub libgcrypt_hmac($$$$) {
 	my $msg = shift;
 	my $hashtype = shift;
 
-	my $program = "fipsdrv --no-fips --key $key --algo $hashtype hmac-sha";
+	my $program = "fipsdrv --key $key --algo $hashtype hmac-sha";
 	return pipe_through_program($msg, $program);	
 }
 

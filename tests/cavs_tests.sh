@@ -55,12 +55,14 @@ function run_one_test () {
     [ -f "$rspfile" ] &&  rm "$rspfile"
     
     if ./cavs_driver.pl -I libgcrypt "$reqfile"; then
-        echo "failed test: $reqfile" >&2
-        : >"$errors_seen_file"
-    elif [ -f "$tmprspfile" ]; then
-        mv "$tmprspfile" "$rspfile"
-    else 
-        echo "failed test: $reqfile" >&2
+      if [ -f "$tmprspfile" ]; then
+          mv "$tmprspfile" "$rspfile"
+      else 
+          echo "failed test: $reqfile" >&2
+          : >"$errors_seen_file"
+      fi
+    else
+        echo "failed test: $reqfile rc=$?" >&2
         : >"$errors_seen_file"
     fi
 }
@@ -72,7 +74,7 @@ DATE=$(date +%Y%m%d)
 ARCH=$(arch || echo unknown)
 result_file="CAVS_results-$ARCH-$DATE.zip"
 
-for f in fipsdrv fipsrngdrv cavs_driver.pl; do
+for f in fipsdrv cavs_driver.pl; do
     if [ ! -f "./$f" ]; then
       echo "required program \"$f\" missing in current directory" >&2
       exit 2
@@ -110,6 +112,9 @@ fi
 find cavs -type f -name "*.req" | while read f ; do
     echo "Running test file $f" >&2
     run_one_test "$f"
+    if [ -f "$errors_seen_file" ]; then
+        break;
+    fi
 done
 
 if [ -f "$errors_seen_file" ]; then
