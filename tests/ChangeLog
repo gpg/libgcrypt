@@ -1,3 +1,7 @@
+2008-10-31  Werner Koch  <wk@g10code.com>
+
+	* fipsdrv.c (run_rsa_sign): Buffer needs to be larger for SHA512.
+
 2008-10-27  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c (run_encrypt_decrypt): Make IV_BUFFER optional.

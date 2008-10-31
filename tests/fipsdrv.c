@@ -799,8 +799,8 @@ map_openssl_cipher_name (const char *name, int *r_mode)
       { "des-ecb",      GCRY_CIPHER_DES, GCRY_CIPHER_MODE_ECB },
 
       { "des-ede3-cbc", GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_CBC },
-      { "des-ede3    ", GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_ECB },
-      { "des3        ", GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_CBC },
+      { "des-ede3",     GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_ECB },
+      { "des3",         GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_CBC },
       { "des-ede3-cfb", GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_CFB },
       { "des-ede3-ofb", GCRY_CIPHER_3DES, GCRY_CIPHER_MODE_OFB },
 
@@ -1151,7 +1151,7 @@ run_rsa_sign (const void *data, size_t datalen,
 /*   showhex ("D", data, datalen); */
   if (pkcs1)
     {
-      unsigned char hash[50];
+      unsigned char hash[64];
       unsigned int hashsize;
 
       hashsize = gcry_md_get_algo_dlen (hashalgo);
