@@ -1,3 +1,14 @@
+2008-11-05  Werner Koch  <wk@g10code.com>
+
+	* cipher.c (gcry_cipher_handle): Add field EXTRASPEC.
+	(gcry_cipher_open): Set it.
+	(gcry_cipher_ctl): Add private control code to disable weak key
+	detection and to return the current input block.
+	* des.c (_tripledes_ctx): Add field FLAGS.
+	(do_tripledes_set_extra_info): New.
+	(_gcry_cipher_extraspec_tripledes): Add new function.
+	(do_tripledes_setkey): Disable weak key detection.
+
 2008-10-24  Werner Koch  <wk@g10code.com>
 
 	* md.c (digest_table): Allow MD5 in fips mode.

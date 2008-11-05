@@ -48,6 +48,13 @@
 #define DIMof(type,member)   DIM(((type *)0)->member)
 
 
+#define PRIV_CTL_INIT_EXTRNG_TEST   58
+#define PRIV_CTL_RUN_EXTRNG_TEST    59
+#define PRIV_CTL_DEINIT_EXTRNG_TEST 60
+#define PRIV_CTL_DISABLE_WEAK_KEY   61
+#define PRIV_CTL_GET_INPUT_VECTOR   62
+
+
 /* Verbose mode flag.  */
 static int verbose;
 
@@ -62,6 +69,10 @@ static int base64_output;
 
 /* We need to know whetehr we are in loop_mode.  */
 static int loop_mode;
+
+/* If true the input vectors are printed before and after encryption
+   and decryption.  */
+static int print_ivs;
 
 /* ASN.1 classes.  */
 enum
@@ -747,7 +758,7 @@ init_external_rng_test (void **r_context,
                     const void *seed, size_t seedlen,
                     const void *dt, size_t dtlen)
 {
-  return gcry_control (58, 
+  return gcry_control (PRIV_CTL_INIT_EXTRNG_TEST, 
                        r_context, flags,
                        key, keylen,
                        seed, seedlen,
@@ -757,13 +768,13 @@ init_external_rng_test (void **r_context,
 static gcry_error_t
 run_external_rng_test (void *context, void *buffer, size_t buflen)
 {
-  return gcry_control (59, context, buffer, buflen);
+  return gcry_control (PRIV_CTL_RUN_EXTRNG_TEST, context, buffer, buflen);
 }
 
 static void
 deinit_external_rng_test (void *context)
 {
-  gcry_control (60, context);
+  gcry_control (PRIV_CTL_DEINIT_EXTRNG_TEST, context);
 }
 
 
@@ -856,11 +867,17 @@ run_encrypt_decrypt (int encrypt_mode,
   size_t outbuflen;
   void *inbuf;
   size_t inbuflen;
+  size_t blocklen;
 
   err = gcry_cipher_open (&hd, cipher_algo, cipher_mode, 0);
   if (err)
     die ("gcry_cipher_open failed for algo %d, mode %d: %s\n", 
          cipher_algo, cipher_mode, gpg_strerror (err));
+
+  blocklen = gcry_cipher_get_algo_blklen (cipher_algo);
+  assert (blocklen);
+
+  gcry_cipher_ctl (hd, PRIV_CTL_DISABLE_WEAK_KEY, NULL, 0);
 
   err = gcry_cipher_setkey (hd, key_buffer, key_buflen);
   if (err)
@@ -877,7 +894,7 @@ run_encrypt_decrypt (int encrypt_mode,
 
   inbuf = data? NULL : gcry_xmalloc (datalen);
   outbuflen = datalen;
-  outbuf = gcry_xmalloc (outbuflen);
+  outbuf = gcry_xmalloc (outbuflen < blocklen? blocklen:outbuflen);
 
   do
     {
@@ -892,14 +909,52 @@ run_encrypt_decrypt (int encrypt_mode,
       else
         inbuflen = datalen;
 
-      if (encrypt_mode)
-        err = gcry_cipher_encrypt (hd, outbuf, outbuflen, data, inbuflen);
+      if (print_ivs)
+        {
+          /* If we want to print the input vectors we need to pass the
+             data block by block to the encryption function.  */
+          unsigned char tmp[17];
+          const unsigned char *iptr = data;
+          size_t ilen;
+          
+          do
+            {
+              ilen = inbuflen > blocklen? blocklen : inbuflen;
+              
+              if (gcry_cipher_ctl (hd, PRIV_CTL_GET_INPUT_VECTOR,
+                                   tmp, sizeof tmp))
+                die ("error getting input block\n");
+              print_buffer (tmp+1, *tmp);
+              putchar ('\n');
+
+              if (encrypt_mode)
+                err = gcry_cipher_encrypt (hd, outbuf, blocklen, iptr, ilen);
+              else
+                err = gcry_cipher_decrypt (hd, outbuf, blocklen, iptr, ilen);
+              if (err)
+                die ("gcry_cipher_%scrypt failed: %s\n",
+                     encrypt_mode? "en":"de", gpg_strerror (err));
+              
+              print_buffer (outbuf, blocklen);
+              putchar ('\n');
+
+              iptr += ilen;
+              inbuflen -= ilen;
+             }
+          while (inbuflen);
+        }
       else
-        err = gcry_cipher_decrypt (hd, outbuf, outbuflen, data, inbuflen);
-      if (err)
-        die ("gcry_cipher_%scrypt failed: %s\n",
-             encrypt_mode? "en":"de", gpg_strerror (err));
-      print_buffer (outbuf, outbuflen);
+        {
+          if (encrypt_mode)
+            err = gcry_cipher_encrypt (hd, outbuf, outbuflen, data, inbuflen);
+          else
+            err = gcry_cipher_decrypt (hd, outbuf, outbuflen, data, inbuflen);
+          if (err)
+            die ("gcry_cipher_%scrypt failed: %s\n",
+                 encrypt_mode? "en":"de", gpg_strerror (err));
+          
+          print_buffer (outbuf, outbuflen);
+        }
     }
   while (inbuf);
 
@@ -1301,20 +1356,21 @@ usage (int show_help)
      "MODE:\n"
      "  encrypt, decrypt, digest, random, hmac-sha, rsa-{gen,sign,verify}\n"
      "OPTIONS:\n"
-     "  --verbose        print additional information\n"
-     "  --binary         input and output is in binary form\n"
-     "  --no-fips        do not force FIPS mode\n"
-     "  --key KEY        use the hex encoded KEY\n"
-     "  --iv IV          use the hex encoded IV\n"
-     "  --dt DT          use the hex encoded DT for the RNG\n"
-     "  --algo NAME      use algorithm NAME\n"
-     "  --keysize N      use a keysize of N bits\n"
-     "  --signature NAME take signature from file NAME\n"
-     "  --chunk N        read in chunks of N bytes (implies --binary)\n"
-     "  --pkcs1          use PKCS#1 encoding\n"
-     "  --loop           enable random loop mode\n"
-     "  --progress       print pogress indicators\n"
-     "  --help           print this text\n"
+     "  --verbose        Print additional information\n"
+     "  --binary         Input and output is in binary form\n"
+     "  --no-fips        Do not force FIPS mode\n"
+     "  --key KEY        Use the hex encoded KEY\n"
+     "  --iv IV          Use the hex encoded IV\n"
+     "  --dt DT          Use the hex encoded DT for the RNG\n"
+     "  --algo NAME      Use algorithm NAME\n"
+     "  --keysize N      Use a keysize of N bits\n"
+     "  --signature NAME Take signature from file NAME\n"
+     "  --chunk N        Read in chunks of N bytes (implies --binary)\n"
+     "  --pkcs1          Use PKCS#1 encoding\n"
+     "  --print-ivs      Print input vectors\n"
+     "  --loop           Enable random loop mode\n"
+     "  --progress       Print pogress indicators\n"
+     "  --help           Print this text\n"
      "With no FILE, or when FILE is -, read standard input.\n"
      "Report bugs to " PACKAGE_BUGREPORT ".\n" , stdout);
   exit (0);
@@ -1446,6 +1502,11 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--pkcs1"))
         {
           use_pkcs1 = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--print-ivs"))
+        {
+          print_ivs = 1;
           argc--; argv++;
         }
     }          

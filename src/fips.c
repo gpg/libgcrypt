@@ -262,8 +262,8 @@ unlock_fsm (void)
 int
 _gcry_fips_mode (void)
 {
-  /* No locking is required becuase we have the requirement that this
-     variable is only intialized once with no other threads
+  /* No locking is required because we have the requirement that this
+     variable is only initialized once with no other threads
      existing.  */
   return !no_fips_mode_required;
 }

@@ -1,5 +1,6 @@
 /* des.c - DES and Triple-DES encryption/decryption Algorithm
- * Copyright (C) 1998, 1999, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2001, 2002, 2003,
+ *               2008  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -152,6 +153,9 @@ typedef struct _tripledes_ctx
   {
     u32 encrypt_subkeys[96];
     u32 decrypt_subkeys[96];
+    struct {
+      int no_weak_key;
+    } flags;
   }
 tripledes_ctx[1];
 
@@ -1013,7 +1017,9 @@ do_tripledes_setkey ( void *context, const byte *key, unsigned keylen )
 
   tripledes_set3keys ( ctx, key, key+8, key+16);
 
-  if( is_weak_key( key ) || is_weak_key( key+8 ) || is_weak_key( key+16 ) )
+  if (ctx->flags.no_weak_key)
+    ; /* Detection has been disabled.  */
+  else if (is_weak_key (key) || is_weak_key (key+8) || is_weak_key (key+16))
     {
       _gcry_burn_stack (64);
       return GPG_ERR_WEAK_KEY;
@@ -1021,6 +1027,30 @@ do_tripledes_setkey ( void *context, const byte *key, unsigned keylen )
   _gcry_burn_stack (64);
 
   return GPG_ERR_NO_ERROR;
+}
+
+
+static gcry_err_code_t
+do_tripledes_set_extra_info (void *context, int what,
+                             const void *buffer, size_t buflen)
+{
+  struct _tripledes_ctx *ctx = (struct _tripledes_ctx *)context;
+  gpg_err_code_t ec = 0;
+
+  (void)buffer;
+  (void)buflen;
+
+  switch (what)
+    {
+    case CIPHER_INFO_NO_WEAK_KEY:
+      ctx->flags.no_weak_key = 1;
+      break;
+
+    default:
+      ec = GPG_ERR_INV_OP; 
+      break;
+    }
+  return ec;
 }
 
 
@@ -1161,5 +1191,6 @@ gcry_cipher_spec_t _gcry_cipher_spec_tripledes =
 
 cipher_extra_spec_t _gcry_cipher_extraspec_tripledes = 
   {
-    run_selftests
+    run_selftests,
+    do_tripledes_set_extra_info
   };

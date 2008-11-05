@@ -161,6 +161,7 @@ struct gcry_cipher_handle
   size_t actual_handle_size;     /* Allocated size of this handle. */
   size_t handle_offset;          /* Offset to the malloced block.  */
   gcry_cipher_spec_t *cipher;
+  cipher_extra_spec_t *extraspec;
   gcry_module_t module;
 
   /* The algorithm id.  This is a hack required because the module
@@ -669,6 +670,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 {
   int secure = (flags & GCRY_CIPHER_SECURE);
   gcry_cipher_spec_t *cipher = NULL;
+  cipher_extra_spec_t *extraspec = NULL;
   gcry_module_t module = NULL;
   gcry_cipher_hd_t h = NULL;
   gcry_err_code_t err = 0;
@@ -694,7 +696,10 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 	  _gcry_module_release (module);
 	}
       else
-	cipher = (gcry_cipher_spec_t *) module->spec;
+        {
+          cipher = (gcry_cipher_spec_t *) module->spec;
+          extraspec = module->extraspec;
+        }
     }
   else
     err = GPG_ERR_CIPHER_ALGO;
@@ -731,7 +736,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 	break;
 
       case GCRY_CIPHER_MODE_NONE:
-        /* This mode may be used for debbuging.  It copies the main
+        /* This mode may be used for debugging.  It copies the main
            text verbatim to the ciphertext.  We do not allow this in
            fips mode or if no debug flag has been set.  */
 	if (fips_mode () || !_gcry_get_debug_flag (0))
@@ -783,6 +788,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
           h->actual_handle_size = size - off;
           h->handle_offset = off;
 	  h->cipher = cipher;
+	  h->extraspec = extraspec;
 	  h->module = module;
           h->algo = algo;
 	  h->mode = mode;
@@ -1679,6 +1685,38 @@ gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
 	memset (h->ctr, 0, h->cipher->blocksize);
       else
 	rc = GPG_ERR_INV_ARG;
+      break;
+
+    case 61:  /* Disable weak key detection (private).  */
+      if (h->extraspec->set_extra_info)
+        rc = h->extraspec->set_extra_info 
+          (&h->context.c, CIPHER_INFO_NO_WEAK_KEY, NULL, 0);
+      else
+        rc = GPG_ERR_NOT_SUPPORTED;
+      break;
+
+    case 62: /* Return current input vector (private).  */
+      /* This is the input block as used in CFB and OFB mode which has
+         initially been set as IV.  The returned format is: 
+           1 byte  Actual length of the block in bytes.
+           n byte  The block.
+         If the provided buffer is too short, an error is returned. */
+      if (buflen < (1 + h->cipher->blocksize))
+        rc = GPG_ERR_TOO_SHORT;
+      else
+        {
+          unsigned char *ivp;
+          unsigned char *dst = buffer;
+          int n = h->unused;
+          
+          if (!n)
+            n = h->cipher->blocksize;
+          gcry_assert (n <= h->cipher->blocksize);
+          *dst++ = n;
+          ivp = h->u_iv.iv + h->cipher->blocksize - n;
+          while (n--)
+            *dst++ = *ivp++;
+        }
       break;
 
     default:

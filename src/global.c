@@ -529,7 +529,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       err = _gcry_fips_run_selftests (1);
       break;
 
-    case 58:
+    case 58:  /* Init external random test.  */
       {
         void **rctx        = va_arg (arg_ptr, void **);
         unsigned int flags = va_arg (arg_ptr, unsigned int);
@@ -546,7 +546,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
                                                  seed, seedlen, dt, dtlen);
       }
       break;
-    case 59:
+    case 59:  /* Run external random test.  */
       {
         void *ctx     = va_arg (arg_ptr, void *);
         void *buffer  = va_arg (arg_ptr, void *);
@@ -557,7 +557,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
           err = _gcry_random_run_external_test (ctx, buffer, buflen);
       }
       break;
-    case 60:
+    case 60:  /* Deinit external random test.  */
       {
         void *ctx = va_arg (arg_ptr, void *);
         _gcry_random_deinit_external_test (ctx);

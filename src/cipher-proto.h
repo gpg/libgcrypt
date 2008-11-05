@@ -55,6 +55,10 @@ typedef gcry_err_code_t (*pk_ext_generate_t)
 typedef gpg_err_code_t (*pk_comp_keygrip_t)
      (gcry_md_hd_t md, gcry_sexp_t keyparm);
 
+/* The type used to convey additional information to a cipher.  */
+typedef gpg_err_code_t (*cipher_set_extra_info_t)
+     (void *c, int what, const void *buffer, size_t buflen);
+
 
 /* Extra module specification structures.  These are used for internal
    modules which provide more functions than available through the
@@ -62,6 +66,7 @@ typedef gpg_err_code_t (*pk_comp_keygrip_t)
 typedef struct cipher_extra_spec
 {
   selftest_func_t selftest;
+  cipher_set_extra_info_t set_extra_info;
 } cipher_extra_spec_t;
 
 typedef struct md_extra_spec
