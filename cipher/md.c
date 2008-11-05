@@ -474,14 +474,18 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
 
       if (hmac)
 	{
-	  if ( (GCRY_MD_SHA384 == algo) || (GCRY_MD_SHA512 == algo) ) {
-	    ctx->macpads_Bsize = 128;
-	    ctx->macpads = gcry_malloc_secure (2*(ctx->macpads_Bsize));
-	  } else {
-	    ctx->macpads_Bsize = 64;
-	    ctx->macpads = gcry_malloc_secure (2*(ctx->macpads_Bsize));
-	  }
-	  if (! ctx->macpads)
+	  switch (algo)
+            {
+              case GCRY_MD_SHA384:
+              case GCRY_MD_SHA512:
+                ctx->macpads_Bsize = 128;
+                break;
+              default:
+                ctx->macpads_Bsize = 64;
+                break;
+            }
+          ctx->macpads = gcry_malloc_secure (2*(ctx->macpads_Bsize));
+	  if (!ctx->macpads)
 	    {
 	      err = gpg_err_code_from_errno (errno);
 	      md_close (hd);
@@ -842,25 +846,25 @@ md_final (gcry_md_hd_t a)
 }
 
 static gcry_err_code_t
-prepare_macpads( gcry_md_hd_t hd, const byte *key, size_t keylen)
+prepare_macpads (gcry_md_hd_t hd, const unsigned char *key, size_t keylen)
 {
   int i;
-  int algo = md_get_algo( hd );
-  byte *helpkey = NULL;
-  byte *ipad, *opad;
+  int algo = md_get_algo (hd);
+  unsigned char *helpkey = NULL;
+  unsigned char *ipad, *opad;
 
-  if ( !algo )
-    return GPG_ERR_DIGEST_ALGO; /* i.e. no algo enabled */
+  if (!algo)
+    return GPG_ERR_DIGEST_ALGO; /* Might happen if no algo is enabled.  */
 
-  if ( keylen > 64 ) 
+  if ( keylen > hd->ctx->macpads_Bsize ) 
     {
-      helpkey = gcry_malloc_secure ( md_digest_length( algo ) );
-      if ( !helpkey )
+      helpkey = gcry_malloc_secure (md_digest_length (algo));
+      if (!helpkey)
         return gpg_err_code_from_errno (errno);
-      gcry_md_hash_buffer ( algo, helpkey, key, keylen );
+      gcry_md_hash_buffer (algo, helpkey, key, keylen);
       key = helpkey;
-      keylen = md_digest_length( algo );
-      gcry_assert ( keylen <= 64 );
+      keylen = md_digest_length (algo);
+      gcry_assert ( keylen <= hd->ctx->macpads_Bsize );
     }
 
   memset ( hd->ctx->macpads, 0, 2*(hd->ctx->macpads_Bsize) );
@@ -868,12 +872,12 @@ prepare_macpads( gcry_md_hd_t hd, const byte *key, size_t keylen)
   opad = (hd->ctx->macpads)+(hd->ctx->macpads_Bsize);
   memcpy ( ipad, key, keylen );
   memcpy ( opad, key, keylen );
-  for (i=0; i < (hd->ctx->macpads_Bsize); i++ ) 
+  for (i=0; i < hd->ctx->macpads_Bsize; i++ ) 
     {
       ipad[i] ^= 0x36;
       opad[i] ^= 0x5c;
     }
-  gcry_free( helpkey );
+  gcry_free (helpkey);
 
   return GPG_ERR_NO_ERROR;
 }

@@ -1,5 +1,8 @@
 2008-11-05  Werner Koch  <wk@g10code.com>
 
+	* md.c (md_open): Use a switch to set the Bsize.
+	(prepare_macpads): Fix long key case for SHA384 and SHA512.
+
 	* cipher.c (gcry_cipher_handle): Add field EXTRASPEC.
 	(gcry_cipher_open): Set it.
 	(gcry_cipher_ctl): Add private control code to disable weak key
@@ -21,7 +24,6 @@
 	(prepare_decryption): Properly align "w".  Fixes bug #936.
 
 2008-09-18  Werner Koch  <wk@g10code.com>
-
 
 	* pubkey.c (gcry_pk_genkey): Parse domain parameter.
 	(pubkey_generate): Add new arg DOMAIN and remove special case for

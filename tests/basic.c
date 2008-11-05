@@ -1695,10 +1695,11 @@ check_hmac (void)
           continue;
         }
       if (verbose)
-	fprintf (stderr, "  checking %s [%i] for length %zi\n", 
+	fprintf (stderr, 
+                 "  checking %s [%i] for %zi byte key and %zi byte data\n", 
 		 gcry_md_algo_name (algos[i].md),
 		 algos[i].md,
-		 strlen(algos[i].data));
+		 strlen(algos[i].key), strlen(algos[i].data));
 
       check_one_hmac (algos[i].md, algos[i].data, strlen (algos[i].data),
 		      algos[i].key, strlen(algos[i].key),
