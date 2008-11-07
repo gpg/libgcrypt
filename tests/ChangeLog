@@ -1,3 +1,10 @@
+2008-11-07  Werner Koch  <wk@g10code.com>
+
+	* fipsdrv.c (run_cipher_mct_loop, get_current_iv): New.
+	(read_textline, read_hexline, skip_to_empty_line): New.
+	(main): New option --mct-server.
+	* cavs_driver.pl: Update from upstream and adjust to new fipsdrv.
+
 2008-11-05  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c (run_encrypt_decrypt): Disable weak key detection.

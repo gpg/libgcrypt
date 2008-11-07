@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# $Id: cavs_driver.pl 1243 2008-09-18 18:42:57Z smueller $
+# $Id: cavs_driver.pl 1383 2008-10-30 11:45:31Z smueller $
 #
 # CAVS test driver (based on the OpenSSL driver)
 # Written by: Stephan Müller <sm@atsec.com>
@@ -206,8 +206,12 @@ sub openssl_encdec($$$$$) {
 	my $enc = (shift) ? "-e" : "-d";
 	my $data=shift;
 
+	# We only invoke the driver with the IV parameter, if we have
+	# an IV, otherwise, we skip it
+	$iv = "-iv $iv" if ($iv);
+
 	$data=hex2bin($data);
-	my $program="openssl enc -$cipher -nopad -nosalt -K $key $enc -iv $iv";
+	my $program="openssl enc -$cipher -nopad -nosalt -K $key $enc $iv";
 	$program = "rc4 -k $key" if $opt{'R'}; #for ARCFOUR, no IV must be given
 	$data=pipe_through_program($data,$program);
 	return bin2hex($data);
@@ -269,9 +273,15 @@ sub openssl_state_cipher($$$$$) {
 	my $key = shift;
 	my $iv = shift;
 
+        #FIXME: Implement the inner loop right here.
+
 	my $enc = $encdec ? "-e": "-d";
 
-	my $out = "openssl enc -'$cipher' $enc -nopad -nosalt -bufsize $bufsize -K ".bin2hex($key)." -iv ".bin2hex($iv);
+	# We only invoke the driver with the IV parameter, if we have
+	# an IV, otherwise, we skip it
+	$iv = "-iv ".bin2hex($iv) if ($iv);
+
+	my $out = "openssl enc -'$cipher' $enc -nopad -nosalt -bufsize $bufsize -K ".bin2hex($key)." $iv";
 	#for ARCFOUR, no IV must be given
 	$out = "rc4 -k " . bin2hex($key) if $opt{'R'};
 	return $out;
@@ -289,11 +299,14 @@ sub libgcrypt_encdec($$$$$) {
 	my $enc = (shift) ? "encrypt" : "decrypt";
 	my $data=shift;
 
-        $iv = "--iv $iv" if ($iv);
+	# We only invoke the driver with the IV parameter, if we have
+	# an IV, otherwise, we skip it
+	$iv = "--iv $iv" if ($iv);
 
 	my $program="fipsdrv --key $key $iv --algo $cipher $enc";
 
 	return pipe_through_program($data,$program);
+
 }
 
 sub libgcrypt_rsa_sign($$$) {
@@ -302,8 +315,9 @@ sub libgcrypt_rsa_sign($$$) {
 	my $keyfile = shift;
 
 	die "ARCFOUR not available for RSA" if $opt{'R'};
+
 	return pipe_through_program($data,
-		"fipsdrv --verbose --pkcs1 --algo $hashalgo --key $keyfile rsa-sign");
+		"fipsdrv --pkcs1 --algo $hashalgo --key $keyfile rsa-sign");
 }
 
 sub libgcrypt_rsa_verify($$$$) {
@@ -314,7 +328,7 @@ sub libgcrypt_rsa_verify($$$$) {
 
 	die "ARCFOUR not available for RSA" if $opt{'R'};
 	$data = pipe_through_program($data,
-		"fipsdrv --verbose --pkcs1 --algo $hashalgo --key $keyfile --signature $sigfile rsa-verify");
+		"fipsdrv --pkcs1 --algo $hashalgo --key $keyfile --signature $sigfile rsa-verify");
 
 	# Parse through the output information
 	return ($data =~ /GOOD signature/);
@@ -348,9 +362,7 @@ sub libgcrypt_state_cipher($$$$$) {
 	my $key = shift;
 	my $iv = shift;
 
-        $iv = "--iv $iv" if ($iv);
-
-	my $program="fipsdrv --binary --key ".bin2hex($key)." $iv ".bin2hex($iv)." --algo '$cipher' --chunk '$bufsize' $enc";
+	my $program="fipsdrv --algo '$cipher' --mct-server $enc";
 	return $program;
 }
 
@@ -359,7 +371,7 @@ sub libgcrypt_state_rng($$$) {
 	my $dt = shift;
 	my $v = shift;
 
-	return "fipsdrv --binary --progress --loop --key $key --iv $v --dt $dt random";
+	return "fipsdrv --binary --loop --key $key --iv $v --dt $dt random";
 }
 
 sub libgcrypt_hmac($$$$) {
@@ -930,7 +942,9 @@ sub hash_kat($$$) {
 	my $out = "";
 	$out .= "Len = $len\n" if (defined($len));
 	$out .= "Msg = $pt\n";
-	$out .= "MD = " . &$hash($pt, $cipher);
+
+	$pt = "" if(!$len);
+	$out .= "MD = " . &$hash($pt, $cipher) . "\n";
 	return $out;
 }
 
@@ -994,6 +1008,8 @@ sub crypto_mct($$$$$$$$) {
         my $source_data = hex2bin(shift);
 	my $cipher = shift;
         my $enc = shift;
+        my $line;
+        my $next_source;
 
 	my $out = "";
 
@@ -1009,7 +1025,17 @@ sub crypto_mct($$$$$$$$) {
 	my $iloop=1000;
 	if ($ciph =~ /des/) {$oloop=400;$iloop=10000;}
 
+        my ($CO, $CI);
+        my $cipher_imp = &$state_cipher($cipher, $enc, $bufsize, $key1, $iv);
+        my $pid = open2($CO, $CI, $cipher_imp);
+        my $len;
+
         for (my $i=0; $i<$oloop; ++$i) {
+                my $calc_data;
+                my $old_calc_data;
+                my $old_old_calc_data;
+                my $ov;
+
 		$out .= "COUNT = $i\n";
 		if (defined($key2)) {
 			$out .= "$keytype = ". bin2hex($key1). "\n";
@@ -1032,43 +1058,40 @@ sub crypto_mct($$$$$$$$) {
                 } else {
                         $out .= "CIPHERTEXT = ". bin2hex($source_data). "\n";
                 }
-                my ($CO, $CI);
-		my $cipher_imp = &$state_cipher($cipher, $enc, $bufsize, $key1, $iv);
-                my $pid = open2($CO, $CI, $cipher_imp);
 
-                my $calc_data = $iv; # CT[j]
-                my $old_calc_data; # CT[j-1]
-                my $old_old_calc_data; # CT[j-2]
-                for (my $j = 0; $j < $iloop; ++$j) {
-			$old_old_calc_data = $old_calc_data;
-                        $old_calc_data = $calc_data;
+                print $CI "1\n"
+                          .$iloop."\n"
+                          .bin2hex($key1)."\n"
+                          .bin2hex($iv)."\n"
+                          .bin2hex($source_data)."\n\n" or die;
+                
+                # fixme: We should skip over empty lines here.
 
-			# $calc_data = AES($key, $calc_data);
-			#print STDERR "source_data=", bin2hex($source_data), "\n";
-			syswrite $CI, $source_data or die;
-			my $len = sysread $CO, $calc_data, $bufsize;
-			#print STDERR "len=$len, bufsize=$bufsize\n";
-			die if $len ne $bufsize;
-			#print STDERR "calc_data=", bin2hex($calc_data), "\n";
+                chomp($line = <$CO>); #print STDERR "        calc=$line\n";
+                $calc_data = hex2bin($line);
 
-			if ( (!$enc && $ciph =~ /des/) ||
-			     $ciph =~ /rc4/ ) {
-				#TDES in decryption mode and RC4 have a special rule
-				$source_data = $calc_data;
-			} else {
-	                        $source_data = $old_calc_data;
-			}
-                }
-                close $CO;
-                close $CI;
-                waitpid $pid, 0;
+                chomp($line = <$CO>); #print STDERR "    old_calc=$line\n";
+                $old_calc_data = hex2bin($line);
+
+                chomp($line = <$CO>); #print STDERR "old_old_calc=$line\n";
+                $old_old_calc_data = hex2bin($line);
+                
+                chomp($line = <$CO>); #print STDERR "          ov=$line\n";
+                $ov = hex2bin($line);
+                
+                chomp($line = <$CO>); #print STDERR " next source=$line\n";
+                $next_source = hex2bin($line);
+
+                # Skip over empty line.
+                $line = <$CO>;
+
 
                 if ($enc) {
                         $out .= "CIPHERTEXT = ". bin2hex($calc_data). "\n\n";
                 } else {
                         $out .= "PLAINTEXT = ". bin2hex($calc_data). "\n\n";
                 }
-		
+
 		if ( $ciph =~ /aes/ ) {
 	                $key1 ^= substr($old_calc_data . $calc_data, -$keylen);
 			#print STDERR bin2hex($key1)."\n";
@@ -1106,18 +1129,25 @@ sub crypto_mct($$$$$$$$) {
 			die "Test limitation: cipher '$cipher' not supported in Monte Carlo testing";
 		}
 
-		if (! $enc && $ciph =~ /des/ ) {
-			#TDES in decryption mode has a special rule
-			$iv = $old_calc_data;
-			$source_data = $calc_data;
-		} elsif ( $ciph =~ /rc4/ ) {
+                if ($ciph =~ /des/) {
+                    $iv = $ov;
+                    if ($cipher =~ /des-ede3-ofb/) {
+                        $source_data = $source_data ^ $next_source;
+                    } else {
+                        $source_data = $next_source;
+                    }
+		} elsif ( $ciph =~ /rc4/ || $cipher =~ /ecb/ ) {
 			#No resetting of IV as the IV is all zero set initially (i.e. no IV)
 			$source_data = $calc_data;
 		} else {
 	                $iv = $calc_data;
 			$source_data = $old_calc_data;
 		}
+
         }
+        close $CO;
+        close $CI;
+        waitpid $pid, 0;
 
 	return $out;
 }
@@ -1133,13 +1163,14 @@ sub hash_mct($$) {
 	my $out = "";
 
 	$out .= "Seed = $pt\n\n";
-	
+
         for (my $j=0; $j<100; ++$j) {
 		$out .= "COUNT = $j\n";
 		my $md0=$pt;
 		my $md1=$pt;
 		my $md2=$pt;
         	for (my $i=0; $i<1000; ++$i) {
+			#print STDERR "outer loop $j; inner loop $i\n";
 			my $mi= $md0 . $md1 . $md2;
 			$md0=$md1;
 			$md1=$md2;
@@ -1164,10 +1195,10 @@ sub rsa_siggen($$$) {
 	my $keyfile = shift;
 
 	my $out = "";
-	
+
 	$out .= "SHAAlg = $cipher\n";
 	$out .= "Msg = $data\n";
-	$out .= "S = " . &$rsa_sign($data, $cipher, $keyfile) . "\n";
+	$out .= "S = " . &$rsa_sign($data, lc($cipher), $keyfile) . "\n";
 
 	return $out;
 }
@@ -1204,7 +1235,7 @@ sub rsa_sigver($$$$$) {
 	print FH hex2bin($signature);
 	close FH;
 
-	$out .= "Result = " . (&$rsa_verify($data, $cipher, $keyfile, $sigfile) ? "P\n" : "F\n");
+	$out .= "Result = " . (&$rsa_verify($data, lc($cipher), $keyfile, $sigfile) ? "P\n" : "F\n");
 
 	unlink($keyfile);
 	unlink($sigfile);
@@ -1392,44 +1423,50 @@ sub parse($$) {
 				}
 			}
 
-
+			if ($tt == 0) {
 			##### Identify the test type
-			if ($tmpline =~ /Hash sizes tested/) {
-				$tt = 9;
-				die "Interface function hmac for HMAC testing not defined for tested library"
-					if (!defined($hmac));
-			} elsif ($tmpline =~ /ANSI X9\.31/ && $tmpline =~ /MCT/) {
-				$tt = 8;
-				die "Interface function state_rng for RNG MCT not defined for tested library"
-					if (!defined($state_rng));
-			} elsif ($tmpline =~ /ANSI X9\.31/ && $tmpline =~ /VST/) {
-				$tt = 7;
-				die "Interface function state_rng for RNG KAT not defined for tested library"
-					if (!defined($state_rng));
-			} elsif ($tmpline =~ /SigVer/ ) {
-				$tt = 6;
-				die "Interface function rsa_verify or gen_rsakey for RSA verification not defined for tested library"
-					if (!defined($rsa_verify) || !defined($gen_rsakey));
-			} elsif ($tmpline =~ /SigGen/ ) {
-				$tt = 5;
-				die "Interface function rsa_sign or gen_rsakey for RSA sign not defined for tested library"
-					if (!defined($rsa_sign) || !defined($gen_rsakey));
-			} elsif ($tmpline =~ /Monte|MCT|Carlo/ && $cipher eq "sha") {
-				$tt = 4;
-				die "Interface function hash for Hashing not defined for tested library"
-					if (!defined($hash));
-			} elsif ($tmpline =~ /Monte|MCT|Carlo/) {
-				$tt = 2;
-				die "Interface function state_cipher for Stateful Cipher operation defined for tested library"
-					if (!defined($state_cipher));
-			} elsif ($cipher =~ /^sha\d+/ && $tt!=5 && $tt!=6) {
-				$tt = 3;
-				die "Interface function hash for Hashing not defined for tested library"
-					if (!defined($hash));
-			} else {
-				$tt = 1;
-				die "Interface function encdec for Encryption/Decryption not defined for tested library"
-					if (!defined($encdec));
+				if ($tmpline =~ /KeyGen RSA \(X9.31\)/) {
+					$tt =~ 10;
+					die "Interface function for RSA KeyGen testing not defined for tested library"
+						if (!defined($gen_rsakey));
+				}
+				if ($tmpline =~ /Hash sizes tested/) {
+					$tt = 9;
+					die "Interface function hmac for HMAC testing not defined for tested library"
+						if (!defined($hmac));
+				} elsif ($tmpline =~ /ANSI X9\.31/ && $tmpline =~ /MCT/) {
+					$tt = 8;
+					die "Interface function state_rng for RNG MCT not defined for tested library"
+						if (!defined($state_rng));
+				} elsif ($tmpline =~ /ANSI X9\.31/ && $tmpline =~ /VST/) {
+					$tt = 7;
+					die "Interface function state_rng for RNG KAT not defined for tested library"
+						if (!defined($state_rng));
+				} elsif ($tmpline =~ /SigVer/ ) {
+					$tt = 6;
+					die "Interface function rsa_verify or gen_rsakey for RSA verification not defined for tested library"
+						if (!defined($rsa_verify) || !defined($gen_rsakey));
+				} elsif ($tmpline =~ /SigGen/ ) {
+					$tt = 5;
+					die "Interface function rsa_sign or gen_rsakey for RSA sign not defined for tested library"
+						if (!defined($rsa_sign) || !defined($gen_rsakey));
+				} elsif ($tmpline =~ /Monte|MCT|Carlo/ && $cipher =~ /^sha/) {
+					$tt = 4;
+					die "Interface function hash for Hashing not defined for tested library"
+						if (!defined($hash));
+				} elsif ($tmpline =~ /Monte|MCT|Carlo/) {
+					$tt = 2;
+					die "Interface function state_cipher for Stateful Cipher operation defined for tested library"
+						if (!defined($state_cipher));
+				} elsif ($cipher =~ /^sha/) {
+					$tt = 3;
+					die "Interface function hash for Hashing not defined for tested library"
+						if (!defined($hash));
+				} else {
+					$tt = 1;
+					die "Interface function encdec for Encryption/Decryption not defined for tested library"
+						if (!defined($encdec));
+				}
 			}
 		}
 
@@ -1449,11 +1486,19 @@ sub parse($$) {
 		}
 
 		# Get the test data
-		if ($line =~ /^(KEY|KEYs|KEY1|Key)\s*=\s*(.*)/) { # found in ciphers and RNG
+		if ($line =~ /^(KEY|KEY1|Key)\s*=\s*(.*)/) { # found in ciphers and RNG
 			die "KEY seen twice - input file crap" if ($key1 ne "");
 			$keytype=$1;
 			$key1=$2;
 			$key1 =~ s/\s//g; #replace potential white spaces
+		}
+		elsif ($line =~ /^(KEYs)\s*=\s*(.*)/) { # found in ciphers and RNG
+			die "KEY seen twice - input file crap" if ($key1 ne "");
+			$keytype=$1;
+			$key1=$2;
+			$key1 =~ s/\s//g; #replace potential white spaces
+			$key2 = $key1;
+			$key3 = $key1;
 		}
 		elsif ($line =~ /^KEY2\s*=\s*(.*)/) { # found in TDES
 			die "First key not set, but got already second key - input file crap" if ($key1 eq "");

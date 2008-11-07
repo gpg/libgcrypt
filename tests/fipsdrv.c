@@ -70,9 +70,6 @@ static int base64_output;
 /* We need to know whetehr we are in loop_mode.  */
 static int loop_mode;
 
-/* If true the input vectors are printed before and after encryption
-   and decryption.  */
-static int print_ivs;
 
 /* ASN.1 classes.  */
 enum
@@ -211,6 +208,78 @@ hex2buffer (const char *string, size_t *r_length)
   *r_length = length;
   return buffer;
 }
+
+
+static char *
+read_textline (FILE *fp)
+{
+  char line[256];
+  char *p;
+  int any = 0;
+
+  /* Read line but skip over initial empty lines.  */
+  do
+    {
+      do 
+        {
+          if (!fgets (line, sizeof line, fp))
+            {
+              if (feof (fp))
+                return NULL;
+              die ("error reading input line: %s\n", strerror (errno));
+            }
+          p = strchr (line, '\n');
+          if (p)
+            *p = 0;
+          p = line + (*line? (strlen (line)-1):0);
+          for ( ;p > line; p--)
+            if (my_isascii (*p) && isspace (*p))
+              *p = 0;
+        }
+      while (!any && !*line);
+      any = 1;
+    }
+  while (*line == '#');  /* Always skip comment lines.  */
+  return gcry_xstrdup (line);
+}
+
+static char *
+read_hexline (FILE *fp, size_t *retlen)
+{
+  char *line, *p;
+
+  line = read_textline (fp);
+  if (!line)
+    return NULL;
+  p = hex2buffer (line, retlen);
+  if (!p)
+    die ("error decoding hex string on input\n");
+  gcry_free (line);
+  return p;
+}
+
+static void
+skip_to_empty_line (FILE *fp)
+{
+  char line[256];
+  char *p;
+
+  do
+    {
+      if (!fgets (line, sizeof line, fp))
+        {
+          if (feof (fp))
+            return;
+          die ("error reading input line: %s\n", strerror (errno));
+        }
+      p = strchr (line, '\n');
+      if (p)
+        *p =0;
+    }
+  while (*line);
+}
+
+
 
 /* Read a file from stream FP into a newly allocated buffer and return
    that buffer.  The valid length of the buffer is stored at R_LENGTH.
@@ -909,58 +978,131 @@ run_encrypt_decrypt (int encrypt_mode,
       else
         inbuflen = datalen;
 
-      if (print_ivs)
-        {
-          /* If we want to print the input vectors we need to pass the
-             data block by block to the encryption function.  */
-          unsigned char tmp[17];
-          const unsigned char *iptr = data;
-          size_t ilen;
-          
-          do
-            {
-              ilen = inbuflen > blocklen? blocklen : inbuflen;
-              
-              if (gcry_cipher_ctl (hd, PRIV_CTL_GET_INPUT_VECTOR,
-                                   tmp, sizeof tmp))
-                die ("error getting input block\n");
-              print_buffer (tmp+1, *tmp);
-              putchar ('\n');
-
-              if (encrypt_mode)
-                err = gcry_cipher_encrypt (hd, outbuf, blocklen, iptr, ilen);
-              else
-                err = gcry_cipher_decrypt (hd, outbuf, blocklen, iptr, ilen);
-              if (err)
-                die ("gcry_cipher_%scrypt failed: %s\n",
-                     encrypt_mode? "en":"de", gpg_strerror (err));
-              
-              print_buffer (outbuf, blocklen);
-              putchar ('\n');
-
-              iptr += ilen;
-              inbuflen -= ilen;
-             }
-          while (inbuflen);
-        }
+      if (encrypt_mode)
+        err = gcry_cipher_encrypt (hd, outbuf, outbuflen, data, inbuflen);
       else
-        {
-          if (encrypt_mode)
-            err = gcry_cipher_encrypt (hd, outbuf, outbuflen, data, inbuflen);
-          else
-            err = gcry_cipher_decrypt (hd, outbuf, outbuflen, data, inbuflen);
-          if (err)
-            die ("gcry_cipher_%scrypt failed: %s\n",
-                 encrypt_mode? "en":"de", gpg_strerror (err));
-          
-          print_buffer (outbuf, outbuflen);
-        }
+        err = gcry_cipher_decrypt (hd, outbuf, outbuflen, data, inbuflen);
+      if (err)
+        die ("gcry_cipher_%scrypt failed: %s\n",
+             encrypt_mode? "en":"de", gpg_strerror (err));
+      
+      print_buffer (outbuf, outbuflen);
     }
   while (inbuf);
 
   gcry_cipher_close (hd);
   gcry_free (outbuf);
   gcry_free (inbuf);
+}
+
+
+static void
+get_current_iv (gcry_cipher_hd_t hd, void *buffer, size_t buflen)
+{
+  unsigned char tmp[17];
+
+  if (gcry_cipher_ctl (hd, PRIV_CTL_GET_INPUT_VECTOR, tmp, sizeof tmp))
+    die ("error getting current input vector\n");
+  if (buflen > *tmp)
+    die ("buffer too short to store the current input vector\n");
+  memcpy (buffer, tmp+1, *tmp);
+}
+
+/* Run the inner loop of the CAVS monte carlo test.  */
+static void
+run_cipher_mct_loop (int encrypt_mode, int cipher_algo, int cipher_mode, 
+                     const void *iv_buffer, size_t iv_buflen,
+                     const void *key_buffer, size_t key_buflen,
+                     const void *data, size_t datalen, int iterations)
+{
+  gpg_error_t err;
+  gcry_cipher_hd_t hd;
+  size_t blocklen;
+  int count;
+  char input[16];
+  char output[16];
+  char last_output[16];
+  char last_last_output[16];
+  char last_iv[16]; 
+
+
+  err = gcry_cipher_open (&hd, cipher_algo, cipher_mode, 0);
+  if (err)
+    die ("gcry_cipher_open failed for algo %d, mode %d: %s\n", 
+         cipher_algo, cipher_mode, gpg_strerror (err));
+
+  blocklen = gcry_cipher_get_algo_blklen (cipher_algo);
+  if (!blocklen || blocklen > sizeof output)
+    die ("invalid block length %d\n", blocklen);
+
+
+  gcry_cipher_ctl (hd, PRIV_CTL_DISABLE_WEAK_KEY, NULL, 0);
+
+  err = gcry_cipher_setkey (hd, key_buffer, key_buflen);
+  if (err)
+    die ("gcry_cipher_setkey failed with keylen %u: %s\n",
+         (unsigned int)key_buflen, gpg_strerror (err));
+
+  if (iv_buffer)
+    {
+      err = gcry_cipher_setiv (hd, iv_buffer, iv_buflen);
+      if (err)
+        die ("gcry_cipher_setiv failed with ivlen %u: %s\n",
+             (unsigned int)iv_buflen, gpg_strerror (err));
+    }
+
+  if (datalen != blocklen)
+    die ("length of input (%u) does not match block length (%u)\n", 
+         (unsigned int)datalen, (unsigned int)blocklen);
+  memcpy (input, data, datalen);
+  memset (output, 0, sizeof output);
+  for (count=0; count < iterations; count++)
+    {
+      memcpy (last_last_output, last_output, sizeof last_output);
+      memcpy (last_output, output, sizeof output);
+
+      get_current_iv (hd, last_iv, blocklen);
+
+      if (encrypt_mode)
+        err = gcry_cipher_encrypt (hd, output, blocklen, input, blocklen);
+      else
+        err = gcry_cipher_decrypt (hd, output, blocklen, input, blocklen);
+      if (err)
+        die ("gcry_cipher_%scrypt failed: %s\n",
+             encrypt_mode? "en":"de", gpg_strerror (err));
+
+  
+      if (encrypt_mode && (cipher_mode == GCRY_CIPHER_MODE_CFB
+                           || cipher_mode == GCRY_CIPHER_MODE_CBC))
+        memcpy (input, last_iv, blocklen);
+      else if (cipher_mode == GCRY_CIPHER_MODE_OFB)
+        memcpy (input, last_iv, blocklen);
+      else if (!encrypt_mode && cipher_mode == GCRY_CIPHER_MODE_CFB)
+        {
+          /* Reconstruct the output vector.  */
+          int i;
+          for (i=0; i < blocklen; i++)
+            input[i] ^= output[i];
+        }
+      else
+        memcpy (input, output, blocklen);
+    }
+
+  print_buffer (output, blocklen);
+  putchar ('\n');
+  print_buffer (last_output, blocklen);
+  putchar ('\n');
+  print_buffer (last_last_output, blocklen);
+  putchar ('\n');
+  get_current_iv (hd, last_iv, blocklen);
+  print_buffer (last_iv, blocklen); /* Last output vector.  */
+  putchar ('\n');
+  print_buffer (input, blocklen);   /* Next input text. */
+  putchar ('\n');
+  putchar ('\n');
+  fflush (stdout);
+
+  gcry_cipher_close (hd);
 }
 
 
@@ -1367,7 +1509,7 @@ usage (int show_help)
      "  --signature NAME Take signature from file NAME\n"
      "  --chunk N        Read in chunks of N bytes (implies --binary)\n"
      "  --pkcs1          Use PKCS#1 encoding\n"
-     "  --print-ivs      Print input vectors\n"
+     "  --mct-server     Run a monte carlo test server\n"
      "  --loop           Enable random loop mode\n"
      "  --progress       Print pogress indicators\n"
      "  --help           Print this text\n"
@@ -1395,6 +1537,7 @@ main (int argc, char **argv)
   void *data;
   size_t datalen;
   size_t chunksize = 0;
+  int mct_server = 0;
 
 
   if (argc)
@@ -1504,9 +1647,9 @@ main (int argc, char **argv)
           use_pkcs1 = 1;
           argc--; argv++;
         }
-      else if (!strcmp (*argv, "--print-ivs"))
+      else if (!strcmp (*argv, "--mct-server"))
         {
-          print_ivs = 1;
+          mct_server = 1;
           argc--; argv++;
         }
     }          
@@ -1544,6 +1687,7 @@ main (int argc, char **argv)
 
   /* Most operations need some input data.  */
   if (!chunksize
+      && !mct_server
       && strcmp (mode_string, "random")
       && strcmp (mode_string, "rsa-gen") )
     {
@@ -1564,7 +1708,8 @@ main (int argc, char **argv)
   if (!strcmp (mode_string, "encrypt") || !strcmp (mode_string, "decrypt"))
     {
       int cipher_algo, cipher_mode;
-      void  *iv_buffer, *key_buffer;
+      void  *iv_buffer = NULL;
+      void *key_buffer = NULL;
       size_t iv_buflen,  key_buflen;
 
       if (!algo_string)
@@ -1572,30 +1717,70 @@ main (int argc, char **argv)
       cipher_algo = map_openssl_cipher_name (algo_string, &cipher_mode);
       if (!cipher_algo)
         die ("cipher algorithm `%s' is not supported\n", algo_string);
-      if (cipher_mode != GCRY_CIPHER_MODE_ECB)
+      if (mct_server)
         {
-          if (!iv_string)
-            die ("option --iv is required in this mode\n");
-          iv_buffer = hex2buffer (iv_string, &iv_buflen);
-          if (!iv_buffer)
-            die ("invalid value for IV\n");
+          int iterations;
+
+          for (;;)
+            {
+              gcry_free (key_buffer); key_buffer = NULL;
+              gcry_free (iv_buffer); iv_buffer = NULL;
+              gcry_free (data); data = NULL;
+              if (!(key_buffer = read_textline (input)))
+                {
+                  if (feof (input))
+                    break;
+                  die ("no version info in input\n");
+                }
+              if (atoi (key_buffer) != 1)
+                die ("unsupported input version %s\n", key_buffer);
+              gcry_free (key_buffer);
+              if (!(key_buffer = read_textline (input)))
+                die ("no iteration count in input\n");
+              iterations = atoi (key_buffer);
+              gcry_free (key_buffer);
+              if (!(key_buffer = read_hexline (input, &key_buflen)))
+                die ("no key in input\n");
+              if (!(iv_buffer = read_hexline (input, &iv_buflen)))
+                die ("no IV in input\n");
+              if (!(data = read_hexline (input, &datalen)))
+                die ("no data in input\n");
+              skip_to_empty_line (input);
+              
+              run_cipher_mct_loop ((*mode_string == 'e'),
+                                   cipher_algo, cipher_mode,
+                                   iv_buffer, iv_buflen,
+                                   key_buffer, key_buflen,
+                                   data, datalen, iterations);
+            }
         }
       else
         {
-          iv_buffer = NULL;
-          iv_buflen = 0;
-        }
-      if (!key_string)
-        die ("option --key is required in this mode\n");
-      key_buffer = hex2buffer (key_string, &key_buflen);
-      if (!key_buffer)
-        die ("invalid value for KEY\n");
+          if (cipher_mode != GCRY_CIPHER_MODE_ECB)
+            {
+              if (!iv_string)
+                die ("option --iv is required in this mode\n");
+              iv_buffer = hex2buffer (iv_string, &iv_buflen);
+              if (!iv_buffer)
+                die ("invalid value for IV\n");
+            }
+          else
+            {
+              iv_buffer = NULL;
+              iv_buflen = 0;
+            }
+          if (!key_string)
+            die ("option --key is required in this mode\n");
+          key_buffer = hex2buffer (key_string, &key_buflen);
+          if (!key_buffer)
+            die ("invalid value for KEY\n");
 
-      run_encrypt_decrypt ((*mode_string == 'e'),
-                           cipher_algo, cipher_mode,
-                           iv_buffer, iv_buflen,
-                           key_buffer, key_buflen,
-                           data, data? datalen:chunksize, input);
+          run_encrypt_decrypt ((*mode_string == 'e'),
+                               cipher_algo, cipher_mode,
+                               iv_buffer, iv_buflen,
+                               key_buffer, key_buflen,
+                               data, data? datalen:chunksize, input);
+        }
       gcry_free (key_buffer);
       gcry_free (iv_buffer);
     }
@@ -1608,6 +1793,8 @@ main (int argc, char **argv)
       algo = gcry_md_map_name (algo_string);
       if (!algo)
         die ("digest algorithm `%s' is not supported\n", algo_string);
+      if (!data)
+        die ("no data available (do not use --chunk)\n");
 
       run_digest (algo, data, datalen);
     }
