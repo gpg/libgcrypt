@@ -85,9 +85,6 @@ static const char sample_public_key[] =
 
 
 static int test_keys (RSA_secret_key *sk, unsigned nbits);
-static gpg_err_code_t generate (RSA_secret_key *sk,
-                                unsigned int nbits, unsigned long use_e,
-                                int transient_key);
 static int  check_secret_key (RSA_secret_key *sk);
 static void public (gcry_mpi_t output, gcry_mpi_t input, RSA_public_key *skey);
 static void secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey);
@@ -181,8 +178,8 @@ check_exponent (void *arg, gcry_mpi_t a)
  * Returns: 2 structures filled with all needed values
  */
 static gpg_err_code_t
-generate (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
-          int transient_key)
+generate_std (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
+              int transient_key)
 {
   gcry_mpi_t p, q; /* the two primes */
   gcry_mpi_t d;    /* the private key */
@@ -548,8 +545,8 @@ rsa_generate_ext (int algo, unsigned int nbits, unsigned int qbits,
   (void)name;
   (void)domain;
 
-  ec = generate (&sk, nbits, use_e,
-                 !!(keygen_flags & PUBKEY_FLAG_TRANSIENT_KEY) );
+  ec = generate_std (&sk, nbits, use_e,
+                     !!(keygen_flags & PUBKEY_FLAG_TRANSIENT_KEY) );
   if (!ec)
     {
       skey[0] = sk.n;
@@ -661,12 +658,14 @@ rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
       /* Initialize blinding.  */
       
       /* First, we need a random number r between 0 and n - 1, which
-	 is relatively prime to n (i.e. it is neither p nor q).  */
+	 is relatively prime to n (i.e. it is neither p nor q).  The
+	 random number needs to be only unpredictable, thus we employ
+	 the gcry_create_nonce function by using GCRY_WEAK_RANDOM with
+	 gcry_mpi_randomize.  */
       r = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
       ri = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
       
-      gcry_mpi_randomize (r, gcry_mpi_get_nbits (sk.n),
-			  GCRY_STRONG_RANDOM);
+      gcry_mpi_randomize (r, gcry_mpi_get_nbits (sk.n), GCRY_WEAK_RANDOM);
       gcry_mpi_mod (r, r, sk.n);
 
       /* Calculate inverse of r.  It practically impossible that the

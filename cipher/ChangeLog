@@ -1,3 +1,8 @@
+2008-11-19  Werner Koch  <wk@g10code.com>
+
+	* rsa.c (rsa_decrypt): Use gcry_create_nonce for blinding.
+	(generate): Rename to generate_std.
+
 2008-11-05  Werner Koch  <wk@g10code.com>
 
 	* md.c (md_open): Use a switch to set the Bsize.
