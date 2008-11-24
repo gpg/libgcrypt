@@ -43,17 +43,18 @@ typedef gpg_err_code_t (*selftest_func_t)
 typedef gcry_err_code_t (*pk_ext_generate_t)
      (int algo,
       unsigned int nbits,
-      unsigned int qbits,
-      unsigned long use_e,
-      const char *name,
-      gcry_sexp_t domain,
-      unsigned int keygen_flags, 
+      unsigned long evalue,
+      gcry_sexp_t genparms,
       gcry_mpi_t *skey,
       gcry_mpi_t **retfactors);
 
-/* The type is used to compute the keygrip.  */
+/* The type used to compute the keygrip.  */
 typedef gpg_err_code_t (*pk_comp_keygrip_t)
      (gcry_md_hd_t md, gcry_sexp_t keyparm);
+
+/* The type used to quert ECC curve parameters.  */
+typedef gcry_err_code_t (*pk_get_param_t)
+     (const char *name, gcry_mpi_t *pkey);
 
 /* The type used to convey additional information to a cipher.  */
 typedef gpg_err_code_t (*cipher_set_extra_info_t)
@@ -79,6 +80,7 @@ typedef struct pk_extra_spec
   selftest_func_t selftest;
   pk_ext_generate_t ext_generate;
   pk_comp_keygrip_t comp_keygrip;
+  pk_get_param_t get_param;
 } pk_extra_spec_t;
 
 

@@ -459,20 +459,40 @@ verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_public_key *pkey )
  *********************************************/
 
 static gcry_err_code_t
-dsa_generate_ext (int algo, unsigned int nbits, unsigned int qbits, 
-                  unsigned long use_e,
-                  const char *name, const gcry_sexp_t domain,
-                  unsigned int keygen_flags,
+dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
+                  const gcry_sexp_t genparms,
                   gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   gpg_err_code_t ec;
   DSA_secret_key sk;
+  gcry_sexp_t l1;
+  unsigned int qbits = 0;
 
-  (void)algo;
-  (void)use_e;
-  (void)name;
-  (void)domain;
-  (void)keygen_flags;
+  (void)algo;    /* No need to check it.  */
+  (void)evalue;  /* Not required for DSA. */
+
+  /* Parse the optional qbits element. */
+  if (genparms)
+    {
+      l1 = gcry_sexp_find_token (genparms, "qbits", 0);
+      if (l1)
+        {
+          char buf[50];
+          const char *s;
+          size_t n;
+          
+          s = gcry_sexp_nth_data (l1, 1, &n);
+          if (!s || n >= DIM (buf) - 1 )
+            {
+              gcry_sexp_release (l1);
+              return GPG_ERR_INV_OBJ; /* No value or value too large.  */
+            }
+          memcpy (buf, s, n);
+          buf[n] = 0;
+          qbits = (unsigned int)strtoul (buf, NULL, 0);
+          gcry_sexp_release (l1);
+        }
+    }
 
   ec = generate (&sk, nbits, qbits, retfactors);
   if (!ec)
@@ -489,11 +509,11 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned int qbits,
 
 
 static gcry_err_code_t
-dsa_generate (int algo, unsigned int nbits, unsigned long dummy,
+dsa_generate (int algo, unsigned int nbits, unsigned long evalue,
               gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
-  (void)dummy;
-  return dsa_generate_ext (algo, nbits, 0, 0, NULL, NULL, 0, skey, retfactors);
+  (void)evalue;
+  return dsa_generate_ext (algo, nbits, 0, NULL, skey, retfactors);
 }
 
 

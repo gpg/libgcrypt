@@ -27,7 +27,6 @@
 #include "../random/random.h"
 
 #define PUBKEY_FLAG_NO_BLINDING    (1 << 0)
-#define PUBKEY_FLAG_TRANSIENT_KEY  (1 << 1)
 
 #define CIPHER_INFO_NO_WEAK_KEY    1
 
@@ -62,18 +61,11 @@ void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data)
 /*-- elgamal.c --*/
 void _gcry_register_pk_elg_progress (gcry_handler_progress_t cb,
                                      void *cb_data);
-gcry_err_code_t _gcry_elg_generate_using_x (int algo, unsigned int nbits,
-                                            gcry_mpi_t x, 
-                                            gcry_mpi_t *skey,
-                                            gcry_mpi_t **retfactors);
+
 
 /*-- ecc.c --*/
 void _gcry_register_pk_ecc_progress (gcry_handler_progress_t cbc,
                                      void *cb_data);
-gcry_err_code_t _gcry_ecc_generate (int algo, unsigned int nbits,
-                                    const char *curve,
-                                    gcry_mpi_t *skey, gcry_mpi_t **retfactors);
-gcry_err_code_t _gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey);
 
 
 /*-- primegen.c --*/
@@ -138,6 +130,7 @@ extern gcry_pk_spec_t _gcry_pubkey_spec_ecdsa;
 
 extern pk_extra_spec_t _gcry_pubkey_extraspec_rsa; 
 extern pk_extra_spec_t _gcry_pubkey_extraspec_dsa; 
+extern pk_extra_spec_t _gcry_pubkey_extraspec_elg; 
 extern pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa; 
 
 

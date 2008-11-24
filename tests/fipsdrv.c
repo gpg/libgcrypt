@@ -240,6 +240,8 @@ read_textline (FILE *fp)
       any = 1;
     }
   while (*line == '#');  /* Always skip comment lines.  */
+  if (verbose > 1)
+    fprintf (stderr, PGM ": received line: %s\n", line);
   return gcry_xstrdup (line);
 }
 
@@ -800,6 +802,8 @@ print_buffer (const void *buffer, size_t length)
     {
       const unsigned char *p = buffer;
       
+      if (verbose > 1)
+        showhex ("sent line", buffer, length);
       while (length-- && !ferror (stdout) )
         printf ("%02X", *p++);
       if (ferror (stdout))
@@ -1099,6 +1103,8 @@ run_cipher_mct_loop (int encrypt_mode, int cipher_algo, int cipher_mode,
   putchar ('\n');
   print_buffer (input, blocklen);   /* Next input text. */
   putchar ('\n');
+  if (verbose > 1)
+    showhex ("sent line", "", 0);
   putchar ('\n');
   fflush (stdout);
 

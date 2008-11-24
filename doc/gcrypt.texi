@@ -2725,6 +2725,33 @@ currently only implemented for DSA using this format:
 The @code{seed}, @code{counter} and @code{h} domain parameters are
 optional and currently not used.
 
+@item derive-parms
+This is currently only meaningful for RSA keys.  If given, it is used
+to derive the RSA keys using the given parameters.  This is in general
+only useful for key generation tests.  If given for an RSA key the
+X9.31 key generation algorithm is used even if libgcrypt is not in
+FIPS mode.
+
+@example
+(genkey
+  (rsa
+    (nbits 4:1024)
+    (rsa-use-e 1:3)
+    (derive-parms
+      (Xp1 #1A1916DDB29B4EB7EB6732E128#)
+      (Xp2 #192E8AAC41C576C822D93EA433#)
+      (Xp  #D8CD81F035EC57EFE822955149D3BFF70C53520D
+            769D6D76646C7A792E16EBD89FE6FC5B605A6493
+            39DFC925A86A4C6D150B71B9EEA02D68885F5009
+            B98BD984#)
+      (Xq1 #1A5CF72EE770DE50CB09ACCEA9#)
+      (Xq2 #134E4CAA16D2350A21D775C404#)
+      (Xq  #CC1092495D867E64065DEE3E7955F2EBC7D47A2D
+            7C9953388F97DDDC3E1CA19C35CA659EDC2FC325
+            6D29C2627479C086A699A49C4C9CEE7EF7BD1B34
+            321DE34A#))))
+@end example
+
 @end table
 @c end table of parameters
 
@@ -2750,16 +2777,17 @@ As an example, here is what the Elgamal key generation returns:
       (y @var{y-mpi})
       (x @var{x-mpi})))
   (misc-key-info
-    (pm1-factors @var{n1 n2 ... nn})))
+    (pm1-factors @var{n1 n2 ... nn}))
 @end example
 
 @noindent
-As you can see, some of the information is duplicated, but this provides
-an easy way to extract either the public or the private key.  Note that
-the order of the elements is not defined, e.g. the private key may be
-stored before the public key. @var{n1 n2 ... nn} is a list of prime
-numbers used to composite @var{p-mpi}; this is in general not a very
-useful information.
+As you can see, some of the information is duplicated, but this
+provides an easy way to extract either the public or the private key.
+Note that the order of the elements is not defined, e.g. the private
+key may be stored before the public key. @var{n1 n2 ... nn} is a list
+of prime numbers used to composite @var{p-mpi}; this is in general not
+a very useful information and only available if the key generation
+algorithm provides them.  
 @end deftypefun
 @c end gcry_pk_genkey
 

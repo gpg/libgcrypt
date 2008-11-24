@@ -1,10 +1,11 @@
 /* Elgamal.c  -  Elgamal Public Key encryption
- * Copyright (C) 1998, 2000, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2000, 2001, 2002, 2003,
+ *               2008  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser general Public License as
+ * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
  * the License, or (at your option) any later version.
  *
@@ -14,8 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * For a description of the algorithm, see:
  *   Bruce Schneier: Applied Cryptography. John Wiley & Sons, 1996.
@@ -612,14 +612,57 @@ verify(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
  **************  interface  ******************
  *********************************************/
 
-gcry_err_code_t
-_gcry_elg_generate (int algo, unsigned int nbits, unsigned long dummy,
-                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+static gpg_err_code_t
+elg_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
+                  const gcry_sexp_t genparms,
+                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+{
+  gpg_err_code_t ec;
+  ELG_secret_key sk;
+  gcry_mpi_t xvalue = NULL;
+  gcry_sexp_t l1;
+
+  (void)algo;
+  (void)evalue;
+
+  if (genparms)
+    {
+      /* Parse the optional xvalue element. */
+      l1 = gcry_sexp_find_token (genparms, "xvalue", 0);
+      if (l1)
+        {
+          xvalue = gcry_sexp_nth_mpi (l1, 1, 0);
+          gcry_sexp_release (l1);
+          if (!xvalue)
+            return GPG_ERR_BAD_MPI;
+        }
+    }
+
+  if (xvalue)
+    ec = generate_using_x (&sk, nbits, xvalue, retfactors);
+  else
+    {
+      generate (&sk, nbits, retfactors);
+      ec = 0;
+    }
+
+  skey[0] = sk.p;
+  skey[1] = sk.g;
+  skey[2] = sk.y;
+  skey[3] = sk.x;
+  
+  return ec;
+}
+
+
+static gcry_err_code_t
+elg_generate (int algo, unsigned int nbits, unsigned long evalue,
+              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   ELG_secret_key sk;
 
   (void)algo;
-  (void)dummy;
+  (void)evalue;
 
   generate (&sk, nbits, retfactors);
   skey[0] = sk.p;
@@ -631,31 +674,8 @@ _gcry_elg_generate (int algo, unsigned int nbits, unsigned long dummy,
 }
 
 
-/* This is a specila generate function which is not called via the
-   module interface.  */
-gcry_err_code_t
-_gcry_elg_generate_using_x (int algo, unsigned int nbits, gcry_mpi_t x,
-                            gcry_mpi_t *skey, gcry_mpi_t **retfactors)
-{
-  gcry_err_code_t ec;
-  ELG_secret_key sk;
-
-  (void)algo;
-
-  ec = generate_using_x (&sk, nbits, x, retfactors);
-  if (!ec)
-    {
-      skey[0] = sk.p;
-      skey[1] = sk.g;
-      skey[2] = sk.y;
-      skey[3] = sk.x;
-    }
-  return ec;
-}
-
-
-gcry_err_code_t
-_gcry_elg_check_secret_key (int algo, gcry_mpi_t *skey)
+static gcry_err_code_t
+elg_check_secret_key (int algo, gcry_mpi_t *skey)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
@@ -679,9 +699,9 @@ _gcry_elg_check_secret_key (int algo, gcry_mpi_t *skey)
 }
 
 
-gcry_err_code_t
-_gcry_elg_encrypt (int algo, gcry_mpi_t *resarr,
-                   gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
+static gcry_err_code_t
+elg_encrypt (int algo, gcry_mpi_t *resarr,
+             gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_public_key pk;
@@ -704,9 +724,9 @@ _gcry_elg_encrypt (int algo, gcry_mpi_t *resarr,
 }
 
 
-gcry_err_code_t
-_gcry_elg_decrypt (int algo, gcry_mpi_t *result,
-                   gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
+static gcry_err_code_t
+elg_decrypt (int algo, gcry_mpi_t *result,
+             gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
@@ -730,8 +750,8 @@ _gcry_elg_decrypt (int algo, gcry_mpi_t *result,
 }
 
 
-gcry_err_code_t
-_gcry_elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
+static gcry_err_code_t
+elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
@@ -755,9 +775,10 @@ _gcry_elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
   return err;
 }
 
-gcry_err_code_t
-_gcry_elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
-		  int (*cmp) (void *, gcry_mpi_t), void *opaquev)
+
+static gcry_err_code_t
+elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
+            int (*cmp) (void *, gcry_mpi_t), void *opaquev)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_public_key pk;
@@ -782,13 +803,14 @@ _gcry_elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 }
 
 
-unsigned int
-_gcry_elg_get_nbits (int algo, gcry_mpi_t *pkey)
+static unsigned int
+elg_get_nbits (int algo, gcry_mpi_t *pkey)
 {
   (void)algo;
 
   return mpi_get_nbits (pkey[0]);
 }
+
 
 static const char *elg_names[] =
   {
@@ -804,11 +826,19 @@ gcry_pk_spec_t _gcry_pubkey_spec_elg =
     "ELG", elg_names,
     "pgy", "pgyx", "ab", "rs", "pgy",
     GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR,
-    _gcry_elg_generate,
-    _gcry_elg_check_secret_key,
-    _gcry_elg_encrypt,
-    _gcry_elg_decrypt,
-    _gcry_elg_sign,
-    _gcry_elg_verify,
-    _gcry_elg_get_nbits,
+    elg_generate,
+    elg_check_secret_key,
+    elg_encrypt,
+    elg_decrypt,
+    elg_sign,
+    elg_verify,
+    elg_get_nbits
   };
+
+pk_extra_spec_t _gcry_pubkey_extraspec_elg = 
+  {
+    NULL,
+    elg_generate_ext,
+    NULL
+  };
+

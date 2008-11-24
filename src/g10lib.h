@@ -175,6 +175,10 @@ gcry_mpi_t _gcry_generate_public_prime (unsigned int nbits,
 gcry_mpi_t _gcry_generate_elg_prime (int mode, 
                                      unsigned int pbits, unsigned int qbits,
                                      gcry_mpi_t g, gcry_mpi_t **factors);
+gcry_mpi_t _gcry_derive_x931_prime (const gcry_mpi_t xp, 
+                                    const gcry_mpi_t xp1, const gcry_mpi_t xp2,
+                                    const gcry_mpi_t e,
+                                    gcry_mpi_t *r_p1, gcry_mpi_t *r_p2);
 
 
 /* replacements of missing functions (missing-string.c)*/

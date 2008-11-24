@@ -1,3 +1,38 @@
+2008-11-24  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (gcry_pk_genkey): Remove parsing of almost all
+	parameters and pass the parameter S-expression to pubkey_generate.
+	(pubkey_generate): Simplify by requitring modules to parse the
+	parameters. Remove the special cases for Elgamal and ECC.
+	(sexp_elements_extract_ecc): Add arg EXTRASPEC and use it.  Fix
+	small memory leak.
+	(sexp_to_key): Pass EXTRASPEC to sexp_elements_extract_ecc.
+	(pubkey_table) [USE_ELGAMAL]: Add real extraspec.
+	* rsa.c (rsa_generate_ext): Adjust for new calling convention.
+	* dsa.c (dsa_generate_ext): Ditto.
+	* elgamal.c (_gcry_elg_generate): Ditto. Rename to elg_generate_ext.
+	(elg_generate): New.
+	(_gcry_elg_generate_using_x): Remove after merging code with
+	elg_generate_ext.
+	(_gcry_pubkey_extraspec_elg): New.
+	(_gcry_elg_check_secret_key, _gcry_elg_encrypt, _gcry_elg_sign) 
+	(_gcry_elg_verify, _gcry_elg_get_nbits): Make static and remove
+	_gcry_ prefix.
+	* ecc.c (_gcry_ecc_generate): Rename to ecc_generate_ext and
+	adjust for new calling convention.
+	(_gcry_ecc_get_param): Rename to ecc_get_param and make static.
+	(_gcry_pubkey_extraspec_ecdsa): Add ecc_generate_ext and
+	ecc_get_param.
+	
+2008-11-20  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (pubkey_generate): Add arg DERIVEPARMS.
+	(gcry_pk_genkey): Parse derive-parms and pass it to above.
+	* rsa.c (generate_x931): New.
+	(rsa_generate_ext): Add arg DERIVEPARMS and call new function in
+	fips mode or if DERIVEPARMS is given.
+	* primegen.c (_gcry_derive_x931_prime, find_x931_prime): New.
+
 2008-11-19  Werner Koch  <wk@g10code.com>
 
 	* rsa.c (rsa_decrypt): Use gcry_create_nonce for blinding.

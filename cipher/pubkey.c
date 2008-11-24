@@ -64,9 +64,9 @@ static struct pubkey_table_entry
 #endif
 #if USE_ELGAMAL
     { &_gcry_pubkey_spec_elg,
-      &dummy_extra_spec,             GCRY_PK_ELG   },
+      &_gcry_pubkey_extraspec_elg,    GCRY_PK_ELG   },
     { &_gcry_pubkey_spec_elg,
-      &dummy_extra_spec,             GCRY_PK_ELG_E },
+      &_gcry_pubkey_extraspec_elg,    GCRY_PK_ELG_E },
 #endif
 #if USE_DSA
     { &_gcry_pubkey_spec_dsa,
@@ -530,17 +530,18 @@ pubkey_get_nenc (int algorithm)
 
 
 /* Generate a new public key with algorithm ALGORITHM of size NBITS
-   and return it at SKEY. The use of the arguments QBITS, USE_E,
-   XVALUE, CURVE_NAME and DOMAIN depend on the ALGORITHM.  RETFACTOR
-   is used by some algorithms to return certain additional information
-   which are in general not required.
+   and return it at SKEY.  USE_E depends on the ALGORITHM.  GENPARMS
+   is passed to the algorithm module if it features an extended
+   generation function.  RETFACTOR is used by some algorithms to
+   return certain additional information which are in general not
+   required.
 
    The function returns the error code number or 0 on success. */
 static gcry_err_code_t
-pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
-                 unsigned long use_e, gcry_mpi_t xvalue,
-                 const char *curve_name, gcry_sexp_t domain,
-                 unsigned int keygen_flags,
+pubkey_generate (int algorithm,
+                 unsigned int nbits,
+                 unsigned long use_e,
+                 gcry_sexp_t genparms,
                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   gcry_err_code_t ec = GPG_ERR_PUBKEY_ALGO;
@@ -554,43 +555,11 @@ pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
     {
       pk_extra_spec_t *extraspec = pubkey->extraspec;
 
-      if (keygen_flags && (!extraspec || !extraspec->ext_generate))
+      if (extraspec && extraspec->ext_generate)
         {
-          /* A keygen flag has been given but the module does not
-             provide an ext_generate function.  We don't want to
-             ignore such a condition as it might eventually be
-             security sensitive..  */
-          ec = GPG_ERR_INV_FLAG;
-        }
-#ifdef USE_ELGAMAL
-      else if (xvalue && pubkey->spec == &_gcry_pubkey_spec_elg)
-        {
-          /* Fixme: Merge this into an ext_generate fucntion.  */
-          ec = _gcry_elg_generate_using_x
-            (algorithm, nbits, xvalue, skey, retfactors);
-        }
-#endif /*USE_ELGAMAL*/
-#ifdef USE_ECC
-      else if (curve_name && pubkey->spec == &_gcry_pubkey_spec_ecdsa)
-        {
-          /* Fixme: Merge this into an ext_generate fucntion.  */
-          ec = _gcry_ecc_generate
-            (algorithm, nbits, curve_name, skey, retfactors);
-        }
-#endif /*USE_ECC*/
-      else if (extraspec && extraspec->ext_generate)
-        {
-          /* Use the extended generate function if available.  */
-          ec = extraspec->ext_generate (algorithm, nbits, qbits, use_e,
-                                        NULL, domain, keygen_flags,
-                                        skey, retfactors);
-        }
-      else if (qbits || domain)
-        {
-          /* A qbits or domain parameter is specified but the
-             algorithm does not feature an extended generation
-             function.  */
-          ec = GPG_ERR_INV_PARAMETER;
+          /* Use the extended generate function.  */
+          ec = extraspec->ext_generate 
+            (algorithm, nbits, use_e, genparms, skey, retfactors);
         }
       else
         {
@@ -604,6 +573,7 @@ pubkey_generate (int algorithm, unsigned int nbits, unsigned int qbits,
 
   return ec;
 }
+
 
 static gcry_err_code_t
 pubkey_check_secret_key (int algorithm, gcry_mpi_t *skey)
@@ -868,11 +838,13 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
   return err;
 }
 
+
 /* Internal function used for ecc.  Note, that this function makes use
    of its intimate knowledge about the ECC parameters from ecc.c. */
 static gcry_err_code_t
 sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
-                           gcry_mpi_t *elements)
+                           gcry_mpi_t *elements, pk_extra_spec_t *extraspec)
+
 {
   gcry_err_code_t err = 0;
   int idx;
@@ -907,35 +879,41 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
   list = gcry_sexp_find_token (key_sexp, "curve", 5);
   if (list)
     {
-#if USE_ECC
-      char *curve;
-      gcry_mpi_t params[6];
-
-      for (idx = 0; idx < DIM(params); idx++)
-        params[idx] = NULL;
-
-      curve = _gcry_sexp_nth_string (list, 1);
-      if (!curve)
+      if (extraspec->get_param)
         {
-          err = GPG_ERR_INV_OBJ; /* No curve name given (or out of core). */
+          char *curve;
+          gcry_mpi_t params[6];
+          
+          for (idx = 0; idx < DIM(params); idx++)
+            params[idx] = NULL;
+          
+          curve = _gcry_sexp_nth_string (list, 1);
+          gcry_sexp_release (list);
+          if (!curve)
+            {
+              /* No curve name given (or out of core). */
+              err = GPG_ERR_INV_OBJ; 
+              goto leave;
+            }
+          err = extraspec->get_param (curve, params);
+          gcry_free (curve);
+          if (err)
+            goto leave;
+          
+          for (idx = 0; idx < DIM(params); idx++)
+            {
+              if (!elements[idx])
+                elements[idx] = params[idx];
+              else
+                mpi_free (params[idx]);
+            }
+        }
+      else
+        {
+          gcry_sexp_release (list);
+          err = GPG_ERR_INV_OBJ; /* "curve" given but ECC not supported. */
           goto leave;
         }
-      err = _gcry_ecc_get_param (curve, params);
-      gcry_free (curve);
-      if (err)
-        goto leave;
-
-      for (idx = 0; idx < DIM(params); idx++)
-        {
-          if (!elements[idx])
-            elements[idx] = params[idx];
-          else
-            mpi_free (params[idx]);
-        }
-#else /* !USE_ECC */
-      err = GPG_ERR_INV_OBJ; /* "curve" given but ECC not supported. */
-      goto leave;
-#endif /* !USE_ECC */
     }
 
   /* Check that all parameters are known.  */
@@ -1001,6 +979,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
   gcry_mpi_t *array;
   gcry_module_t module;
   gcry_pk_spec_t *pubkey;
+  pk_extra_spec_t *extraspec;
   int is_ecc;
 
   /* Check that the first element is valid.  */
@@ -1038,7 +1017,10 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
       return GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm. */
     }
   else
-    pubkey = (gcry_pk_spec_t *) module->spec;
+    {
+      pubkey = (gcry_pk_spec_t *) module->spec;
+      extraspec = module->extraspec;
+    }
 
   elems = want_private ? pubkey->elements_skey : pubkey->elements_pkey;
   array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
@@ -1047,7 +1029,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
   if (!err)
     {
       if (is_ecc)
-        err = sexp_elements_extract_ecc (list, elems, array);
+        err = sexp_elements_extract_ecc (list, elems, array, extraspec);
       else
         err = sexp_elements_extract (list, elems, array, pubkey->name);
     }
@@ -2084,7 +2066,9 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 {
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
-  gcry_sexp_t list = NULL, l2 = NULL;
+  gcry_sexp_t list = NULL;
+  gcry_sexp_t l2 = NULL;
+  gcry_sexp_t l3 = NULL;
   char *name = NULL;
   size_t n;
   gcry_err_code_t rc = GPG_ERR_NO_ERROR;
@@ -2095,10 +2079,6 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   gcry_mpi_t skey[12], *factors = NULL;
   unsigned int nbits = 0;
   unsigned long use_e = 0;
-  unsigned int qbits;
-  gcry_mpi_t xvalue = NULL;
-  char *curve = NULL;
-  unsigned int keygen_flags = 0;
 
   skey[0] = NULL;
   *r_key = NULL;
@@ -2150,7 +2130,9 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   if (strlen (sec_elems) >= DIM(skey))
     BUG ();
 
-  /* Handle the optional rsa-use-e element. */
+  /* Handle the optional rsa-use-e element.  Actually this belong into
+     the algorithm module but we have this parameter in the public
+     moudle API, so we need to parse it right here.  */
   l2 = gcry_sexp_find_token (list, "rsa-use-e", 0);
   if (l2)
     {
@@ -2172,8 +2154,9 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   else
     use_e = 65537; /* Not given, use the value generated by old versions. */
 
-  /* Handle the optional qbits element. */
-  l2 = gcry_sexp_find_token (list, "qbits", 0);
+
+  /* Get the "nbits" parameter.  */
+  l2 = gcry_sexp_find_token (list, "nbits", 0);
   if (l2)
     {
       char buf[50];
@@ -2182,91 +2165,24 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       s = gcry_sexp_nth_data (l2, 1, &n);
       if (!s || n >= DIM (buf) - 1 )
         {
-          rc = GPG_ERR_INV_OBJ; /* No value or value too large.  */
-          goto leave;
-        }
-      memcpy (buf, s, n);
-      buf[n] = 0;
-      qbits = (unsigned int)strtoul (buf, NULL, 0);
-      gcry_sexp_release (l2);
-      l2 = NULL;
-    }
-  else
-    qbits = 0;
-
-  /* Parse the optional xvalue element. */
-  l2 = gcry_sexp_find_token (list, "xvalue", 0);
-  if (l2)
-    {
-      xvalue = gcry_sexp_nth_mpi (l2, 1, 0);
-      if (!xvalue)
-        {
-          rc = GPG_ERR_BAD_MPI;
-          goto leave;
-        }
-    }
-
-  /* Parse the optional "curve" parameter. */
-  l2 = gcry_sexp_find_token (list, "curve", 0);
-  if (l2)
-    {
-      curve = _gcry_sexp_nth_string (l2, 1);
-      if (!curve)
-        {
-          rc = GPG_ERR_INV_OBJ; /* No curve name or value too large. */
-          goto leave;
-        }
-      gcry_sexp_release (l2);
-      l2 = NULL;
-    }
-
-  /* Parse the optional "transient-key" flag. */
-  l2 = gcry_sexp_find_token (list, "transient-key", 0);
-  if (l2)
-    {
-      keygen_flags |= PUBKEY_FLAG_TRANSIENT_KEY;
-      gcry_sexp_release (l2);
-      l2 = NULL;
-    }
-
-
-  /* Unless a curve name has been given, the "nbits" parameter is
-     required.  */
-  l2 = gcry_sexp_find_token (list, "nbits", 0);
-  gcry_sexp_release (list);
-  list = l2;
-  l2 = NULL;
-  if (!list && !curve)
-    {
-      rc = GPG_ERR_NO_OBJ; /* No nbits parameter. */
-      goto leave;
-    }
-  if (list)
-    {
-      char buf[50];
-      const char *s;
-
-      s = gcry_sexp_nth_data (list, 1, &n);
-      if (!s || n >= DIM (buf) - 1 )
-        {
           rc = GPG_ERR_INV_OBJ; /* NBITS given without a cdr.  */
           goto leave;
         }
       memcpy (buf, s, n);
       buf[n] = 0;
       nbits = (unsigned int)strtoul (buf, NULL, 0);
+      gcry_sexp_release (l2); l2 = NULL;
     }
   else 
     nbits = 0;
 
-  /* Extract the optional domain parameter and call the key generation.  */
-  l2 = gcry_sexp_find_token (list, "domain", 0);
-  rc = pubkey_generate (module->mod_id, nbits, qbits, use_e, xvalue,
-                        curve, l2, keygen_flags, skey, &factors);
-  gcry_sexp_release (l2);
+  /* Pass control to the algorithm module. */
+  rc = pubkey_generate (module->mod_id, nbits, use_e, list, skey, &factors);
+  gcry_sexp_release (list); list = NULL;
   if (rc)
     goto leave;
 
+  /* Key generation succeeded: Build an S-expression.  */
   {
     char *string, *p;
     size_t nelem=0, nelem_cp = 0, needed=0;
@@ -2312,7 +2228,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       }
     p = stpcpy (p, "))");
 
-    /* Very ugly hack to make release_mpi_array() work FIXME */
+    /* Hack to make release_mpi_array() work.  */
     skey[i] = NULL;
 
     if (factors[0])
@@ -2359,22 +2275,18 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 
  leave:
   gcry_free (name);
-  gcry_free (curve);
   release_mpi_array (skey);
-  /* Don't free SKEY itself, it is a static array. */
+  /* Don't free SKEY itself, it is an stack allocated array. */
 
-  gcry_mpi_release (xvalue);
-  
   if (factors)
     {
       release_mpi_array ( factors );
       gcry_free (factors);
     }
   
-  if (l2)
-    gcry_sexp_release (l2);
-  if (list)
-    gcry_sexp_release (list);
+  gcry_sexp_release (l3);
+  gcry_sexp_release (l2);
+  gcry_sexp_release (list);
 
   if (module)
     {

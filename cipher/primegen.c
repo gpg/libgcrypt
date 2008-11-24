@@ -1,6 +1,6 @@
 /* primegen.c - prime number generator
  * Copyright (C) 1998, 2000, 2001, 2002, 2003
- *               2004 Free Software Foundation, Inc.
+ *               2004, 2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -1271,4 +1271,143 @@ gcry_prime_release_factors (gcry_mpi_t *factors)
         mpi_free (factors[i]);
       gcry_free (factors);
     }
+}
+
+
+/* Helper for _gcry_generate_x931_prime.  */
+static gcry_mpi_t
+find_x931_prime (const gcry_mpi_t pfirst)
+{
+  gcry_mpi_t val_2 = mpi_alloc_set_ui (2); 
+  gcry_mpi_t prime;
+  
+  prime = gcry_mpi_copy (pfirst);
+  /* If P is even add 1.  */ 
+  mpi_set_bit (prime, 0);
+
+  /* We use 64 Rabin-Miller rounds which is better and thus
+     sufficient.  We do not have a Lucas test implementaion thus we
+     can't do it in the X9.31 preferred way of running a few
+     Rabin-Miller followed by one Lucas test.  */
+  while ( !check_prime (prime, val_2, 64, NULL, NULL) )
+    mpi_add_ui (prime, prime, 2);
+
+  mpi_free (val_2);
+
+  return prime;
+}
+
+
+/* Generate a prime using the algorithm from X9.31 appendix B.4. 
+
+   This function requires that the provided public exponent E is odd.
+   XP, XP1 and XP2 are the seed values.  All values are mandatory.
+
+   On success the prime is returned.  If R_P1 or R_P2 are given the
+   internal values P1 and P2 are saved at these addresses.  On error
+   NULL is returned.  */
+gcry_mpi_t
+_gcry_derive_x931_prime (const gcry_mpi_t xp, 
+                         const gcry_mpi_t xp1, const gcry_mpi_t xp2,
+                         const gcry_mpi_t e,
+                         gcry_mpi_t *r_p1, gcry_mpi_t *r_p2)
+{
+  gcry_mpi_t p1, p2, p1p2, yp0;
+
+  if (!xp || !xp1 || !xp2)
+    return NULL;
+  if (!e || !mpi_test_bit (e, 0))
+    return NULL;  /* We support only odd values for E.  */
+
+  p1 = find_x931_prime (xp1);
+  p2 = find_x931_prime (xp2);
+  p1p2 = mpi_alloc_like (xp);
+  mpi_mul (p1p2, p1, p2);
+
+  {
+    gcry_mpi_t r1, tmp;
+  
+    /* r1 = (p2^{-1} mod p1)p2 - (p1^{-1} mod p2) */
+    tmp = mpi_alloc_like (p1);
+    mpi_invm (tmp, p2, p1);
+    mpi_mul (tmp, tmp, p2);
+    r1 = tmp;
+    
+    tmp = mpi_alloc_like (p2);
+    mpi_invm (tmp, p1, p2);
+    mpi_mul (tmp, tmp, p1);
+    mpi_sub (r1, r1, tmp);
+
+    /* Fixup a negative value.  */
+    if (mpi_is_neg (r1)) 
+      mpi_add (r1, r1, p1p2);
+
+    /* yp0 = xp + (r1 - xp mod p1*p2)  */
+    yp0 = tmp; tmp = NULL;
+    mpi_subm (yp0, r1, xp, p1p2);
+    mpi_add (yp0, yp0, xp);
+    mpi_free (r1);
+
+    /* Fixup a negative value.  */
+    if (mpi_cmp (yp0, xp) < 0 ) 
+      mpi_add (yp0, yp0, p1p2);
+  }
+
+  /* yp0 is now the first integer greater than xp with p1 being a
+     large prime factor of yp0-1 and p2 a large prime factor of yp0+1.  */
+
+  /* Note that the first example from X9.31 (D.1.1) which uses
+       (Xq1 #1A5CF72EE770DE50CB09ACCEA9#)
+       (Xq2 #134E4CAA16D2350A21D775C404#)
+       (Xq  #CC1092495D867E64065DEE3E7955F2EBC7D47A2D
+             7C9953388F97DDDC3E1CA19C35CA659EDC2FC325
+             6D29C2627479C086A699A49C4C9CEE7EF7BD1B34
+             321DE34A#))))
+     returns an yp0 of
+            #CC1092495D867E64065DEE3E7955F2EBC7D47A2D
+             7C9953388F97DDDC3E1CA19C35CA659EDC2FC4E3
+             BF20CB896EE37E098A906313271422162CB6C642
+             75C1201F#
+     and not
+            #CC1092495D867E64065DEE3E7955F2EBC7D47A2D
+             7C9953388F97DDDC3E1CA19C35CA659EDC2FC2E6
+             C88FE299D52D78BE405A97E01FD71DD7819ECB91
+             FA85A076#
+     as stated in the standard.  This seems to be a bug in X9.31.
+   */
+
+  {
+    gcry_mpi_t val_2 = mpi_alloc_set_ui (2); 
+    gcry_mpi_t gcdtmp = mpi_alloc_like (yp0);
+    int gcdres;
+  
+    mpi_sub_ui (p1p2, p1p2, 1); /* Adjust for loop body.  */
+    mpi_sub_ui (yp0, yp0, 1);   /* Ditto.  */
+    for (;;)
+      {
+        gcdres = gcry_mpi_gcd (gcdtmp, e, yp0);
+        mpi_add_ui (yp0, yp0, 1);
+        if (!gcdres)
+          progress ('/');  /* gcd (e, yp0-1) != 1  */
+        else if (check_prime (yp0, val_2, 64, NULL, NULL))
+          break; /* Found.  */
+        /* We add p1p2-1 because yp0 is incremented after the gcd test.  */
+        mpi_add (yp0, yp0, p1p2);
+      }
+    mpi_free (gcdtmp);
+    mpi_free (val_2);
+  }
+
+  mpi_free (p1p2);
+
+  progress('\n');
+  if (r_p1)
+    *r_p1 = p1;
+  else
+    mpi_free (p1);
+  if (r_p2)
+    *r_p2 = p2;
+  else
+    mpi_free (p2);
+  return yp0;
 }

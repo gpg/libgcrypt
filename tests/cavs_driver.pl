@@ -1035,6 +1035,7 @@ sub crypto_mct($$$$$$$$) {
                 my $old_calc_data;
                 my $old_old_calc_data;
                 my $ov;
+                my $iv_arg;
 
 		$out .= "COUNT = $i\n";
 		if (defined($key2)) {
@@ -1059,10 +1060,15 @@ sub crypto_mct($$$$$$$$) {
                         $out .= "CIPHERTEXT = ". bin2hex($source_data). "\n";
                 }
 
+                # Need to provide a dummy IV in case of ECB mode.
+                $iv_arg =  (defined($iv) && $iv ne "")
+                             ? bin2hex($iv)
+                             : "00"x(length($source_data)); 
+
                 print $CI "1\n"
                           .$iloop."\n"
                           .bin2hex($key1)."\n"
-                          .bin2hex($iv)."\n"
+                          .$iv_arg."\n"
                           .bin2hex($source_data)."\n\n" or die;
                 
                 # fixme: We should skip over empty lines here.
@@ -1130,7 +1136,7 @@ sub crypto_mct($$$$$$$$) {
 		}
 
                 if ($ciph =~ /des/) {
-                    $iv = $ov;
+                    $iv = $ov if (defined($iv) && $iv ne "");
                     if ($cipher =~ /des-ede3-ofb/) {
                         $source_data = $source_data ^ $next_source;
                     } else {

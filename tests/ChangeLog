@@ -1,3 +1,7 @@
+2008-11-24  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (check_x931_derived_key): New.
+
 2008-11-07  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c (run_cipher_mct_loop, get_current_iv): New.

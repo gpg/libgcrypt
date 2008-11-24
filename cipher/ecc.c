@@ -949,35 +949,47 @@ os2ec (mpi_point_t *result, gcry_mpi_t value)
   return 0;
 }
 
-/* Extended version of ecc_generate which is called directly by
-   pubkey.c.  If CURVE is not NULL, that name will be used to select
-   the domain parameters.  NBITS is not used in this case.  */
-gcry_err_code_t
-_gcry_ecc_generate (int algo, unsigned int nbits, const char *curve,
-                    gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+
+/* Extended version of ecc_generate.  */
+static gcry_err_code_t
+ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
+                  const gcry_sexp_t genparms,
+                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
-  gpg_err_code_t err;
+  gpg_err_code_t ec;
   ECC_secret_key sk;
   gcry_mpi_t g_x, g_y, q_x, q_y;
+  char *curve_name = NULL;
+  gcry_sexp_t l1;
 
   (void)algo;
+  (void)evalue;
 
-  /* Make an empty list of factors.  */
-  *retfactors = gcry_calloc ( 1, sizeof **retfactors );
-  if (!*retfactors)
-    return gpg_err_code_from_syserror ();
+  if (genparms)
+    {
+      /* Parse the optional "curve" parameter. */
+      l1 = gcry_sexp_find_token (genparms, "curve", 0);
+      if (l1)
+        {
+          curve_name = _gcry_sexp_nth_string (l1, 1);
+          gcry_sexp_release (l1);
+          if (!curve_name)
+            return GPG_ERR_INV_OBJ; /* No curve name or value too large. */
+        }
+    }
+
+  /* NBITS is required if no curve name has been given.  */
+  if (!nbits && !curve_name)
+    return GPG_ERR_NO_OBJ; /* No NBITS parameter. */
 
   g_x = mpi_new (0);
   g_y = mpi_new (0);
   q_x = mpi_new (0);
   q_y = mpi_new (0);
-  err = generate_key (&sk, nbits, curve, g_x, g_y, q_x, q_y);
-  if (err)
-    {
-      gcry_free (*retfactors);
-      *retfactors = NULL;
-      return err;
-    }
+  ec = generate_key (&sk, nbits, curve_name, g_x, g_y, q_x, q_y);
+  gcry_free (curve_name);
+  if (ec)
+    return ec;
 
   skey[0] = sk.E.p;
   skey[1] = sk.E.a;
@@ -992,12 +1004,27 @@ _gcry_ecc_generate (int algo, unsigned int nbits, const char *curve,
   point_free (&sk.E.G);
   point_free (&sk.Q);
 
+  /* Make an empty list of factors.  */
+  *retfactors = gcry_calloc ( 1, sizeof **retfactors );
+  if (!*retfactors)
+    return gpg_err_code_from_syserror ();
+
   return 0;
 }
 
+
+static gcry_err_code_t
+ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
+              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+{
+  (void)evalue;
+  return ecc_generate_ext (algo, nbits, 0, NULL, skey, retfactors);
+}
+
+
 /* Return the parameters of the curve NAME.  */
-gcry_err_code_t
-_gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey)
+static gcry_err_code_t
+ecc_get_param (const char *name, gcry_mpi_t *pkey)
 {
   gpg_err_code_t err;
   unsigned int nbits;
@@ -1025,14 +1052,6 @@ _gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey)
   pkey[5] = NULL;
 
   return 0;
-}
-
-static gcry_err_code_t
-ecc_generate (int algo, unsigned int nbits, unsigned long dummy,
-              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
-{
-  (void)dummy;
-  return _gcry_ecc_generate (algo, nbits, NULL, skey, retfactors);
 }
 
 
@@ -1230,7 +1249,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
           ec = GPG_ERR_INV_OBJ; /* Name missing or out of core. */
           goto leave;
         }
-      ec = _gcry_ecc_get_param (curve, tmpvalues);
+      ec = ecc_get_param (curve, tmpvalues);
       gcry_free (curve);
       if (ec)
         goto leave;
@@ -1358,10 +1377,12 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
     ecc_verify,
     ecc_get_nbits
   };
+
 pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa = 
   {
     run_selftests,
-    NULL,
-    compute_keygrip
+    ecc_generate_ext,
+    compute_keygrip,
+    ecc_get_param
   };
 
