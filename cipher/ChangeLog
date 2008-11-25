@@ -1,3 +1,10 @@
+2008-11-25  Werner Koch  <wk@g10code.com>
+
+	* dsa.c (generate_fips186): New.
+	(dsa_generate_ext): Use new function if derive-parms are given or
+	if in FIPS mode.
+	* primegen.c (_gcry_generate_fips186_2_prime): New.
+
 2008-11-24  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (gcry_pk_genkey): Insert code to output extrainfo.

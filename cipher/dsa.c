@@ -325,11 +325,11 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   if( DBG_CIPHER ) 
     {
       progress('\n');
-      log_mpidump("dsa  p= ", p );
-      log_mpidump("dsa  q= ", q );
-      log_mpidump("dsa  g= ", g );
-      log_mpidump("dsa  y= ", y );
-      log_mpidump("dsa  x= ", x );
+      log_mpidump("dsa  p", p );
+      log_mpidump("dsa  q", q );
+      log_mpidump("dsa  g", g );
+      log_mpidump("dsa  y", y );
+      log_mpidump("dsa  x", x );
     }
 
   /* Copy the stuff to the key structures. */
@@ -351,6 +351,146 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
       return GPG_ERR_SELFTEST_FAILED;
     }
   return 0;
+}
+
+
+/* Generate a DSA key pair with a key of size NBITS using the
+   algorithm given in FIPS-186.  At the time of implementation FIPS
+   186-3 was not released; the Draft from November 2008 was used
+   instead to avoid limiting ourself to FIPS 186-2.  */
+static gpg_err_code_t
+generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
+                  int *r_counter, void **r_seed, size_t *r_seedlen,
+                  gcry_mpi_t *r_h)
+{
+  gpg_err_code_t ec;
+  gcry_mpi_t prime_q = NULL; 
+  gcry_mpi_t prime_p = NULL; 
+  gcry_mpi_t value_g = NULL; /* The generator. */
+  gcry_mpi_t value_y = NULL; /* g^x mod p */
+  gcry_mpi_t value_x = NULL; /* The secret exponent. */
+  gcry_mpi_t value_h = NULL; /* Helper.  */
+  gcry_mpi_t value_e = NULL; /* Helper.  */
+
+  /* Preset return values.  */
+  *r_counter = 0;
+  *r_seed = NULL;
+  *r_seedlen = 0;
+  *r_h = NULL;
+
+  /* Derive QBITS from NBITS if requested  */
+  if (!qbits)
+    {
+      if (nbits == 1024)
+        qbits = 160;
+      else if (nbits == 2048)
+        qbits = 224;
+      else if (nbits == 3072)
+        qbits = 256;
+    }
+
+  /* Check that QBITS and NBITS match the standard.  Note that FIPS
+     186-3 uses N for QBITS and L for NBITS.  */
+  if (nbits == 1024 && qbits == 160)
+    ;
+  else if (nbits == 2048 && qbits == 224)
+    ;
+  else if (nbits == 2048 && qbits == 256)
+    ;
+  else if (nbits == 2048 && qbits == 256)
+    ;
+  else
+    return GPG_ERR_INV_VALUE;
+
+  /* Note that we currently do not yet support 186-3 for prime
+     generation becuase it is not clear whether CAVS is prepared for
+     it.  */
+  ec = _gcry_generate_fips186_2_prime (nbits, qbits, NULL, 0,
+                                       &prime_q, &prime_p, 
+                                       r_counter,
+                                       r_seed, r_seedlen);
+  if (ec)
+    goto leave;
+
+  /* Find a generator g (h and e are helpers).
+     e = (p-1)/q */
+  value_e = mpi_alloc_like (prime_p);
+  mpi_sub_ui (value_e, prime_p, 1);
+  mpi_fdiv_q (value_e, value_e, prime_q );
+  value_g = mpi_alloc_like (prime_p);
+  value_h = mpi_alloc_set_ui (1); 
+  do
+    {
+      mpi_add_ui (value_h, value_h, 1);
+      /* g = h^e mod p */
+      mpi_powm (value_g, value_h, value_e, prime_p);
+    } 
+  while (!mpi_cmp_ui (value_g, 1));  /* Continue until g != 1.  */
+
+  /* Select a random number x with:  0 < x < q  */
+  value_x = gcry_mpi_snew (qbits);
+  do 
+    {
+      if( DBG_CIPHER )
+        progress('.');
+      gcry_mpi_randomize (value_x, qbits, GCRY_VERY_STRONG_RANDOM);
+      mpi_clear_highbit (value_x, qbits+1);
+    } 
+  while (!(mpi_cmp_ui (value_x, 0) > 0 && mpi_cmp (value_x, prime_q) < 0));
+
+  /* y = g^x mod p */
+  value_y = mpi_alloc_like (prime_p);
+  gcry_mpi_powm (value_y, value_g, value_x, prime_p);
+
+  if (DBG_CIPHER) 
+    {
+      progress('\n');
+      log_mpidump("dsa  p", prime_p );
+      log_mpidump("dsa  q", prime_q );
+      log_mpidump("dsa  g", value_g );
+      log_mpidump("dsa  y", value_y );
+      log_mpidump("dsa  x", value_x );
+      log_mpidump("dsa  h", value_h );
+    }
+
+  /* Copy the stuff to the key structures. */
+  sk->p = prime_p; prime_p = NULL;
+  sk->q = prime_q; prime_q = NULL;
+  sk->g = value_g; value_g = NULL;
+  sk->y = value_y; value_y = NULL;
+  sk->x = value_x; value_x = NULL;
+  *r_h = value_h; value_h = NULL;
+
+ leave:
+  gcry_mpi_release (prime_p);
+  gcry_mpi_release (prime_q);
+  gcry_mpi_release (value_g);
+  gcry_mpi_release (value_y);
+  gcry_mpi_release (value_x);
+  gcry_mpi_release (value_h);
+  gcry_mpi_release (value_e);
+
+  /* As a last step test this keys (this should never fail of course). */
+  if (!ec && test_keys (sk, qbits) )
+    {
+      gcry_mpi_release (sk->p); sk->p = NULL;
+      gcry_mpi_release (sk->q); sk->q = NULL;
+      gcry_mpi_release (sk->g); sk->g = NULL;
+      gcry_mpi_release (sk->y); sk->y = NULL;
+      gcry_mpi_release (sk->x); sk->x = NULL;
+      fips_signal_error ("self-test after key generation failed");
+      ec = GPG_ERR_SELFTEST_FAILED;
+    }
+
+  if (ec)
+    {
+      *r_counter = 0;
+      gcry_free (*r_seed); *r_seed = NULL;
+      *r_seedlen = 0;
+      gcry_mpi_release (*r_h); *r_h = NULL;
+    }
+
+  return ec;
 }
 
 
@@ -468,13 +608,17 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   DSA_secret_key sk;
   gcry_sexp_t l1;
   unsigned int qbits = 0;
+  gcry_sexp_t deriveparms = NULL;
+  gcry_sexp_t seedinfo = NULL;
+  int use_fips186 = 0;
+  
 
   (void)algo;    /* No need to check it.  */
   (void)evalue;  /* Not required for DSA. */
 
-  /* Parse the optional qbits element. */
   if (genparms)
     {
+      /* Parse the optional qbits element.  */
       l1 = gcry_sexp_find_token (genparms, "qbits", 0);
       if (l1)
         {
@@ -493,9 +637,50 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
           qbits = (unsigned int)strtoul (buf, NULL, 0);
           gcry_sexp_release (l1);
         }
+
+      deriveparms = gcry_sexp_find_token (genparms, "derive-parms", 0);
+
+      /* Parse the optional "use-fips186" flag.  */
+      l1 = gcry_sexp_find_token (genparms, "use-fips186", 0);
+      if (l1)
+        {
+          use_fips186 = 1;
+          gcry_sexp_release (l1);
+        }
     }
 
-  ec = generate (&sk, nbits, qbits, retfactors);
+  if (deriveparms || use_fips186 || fips_mode ())
+    {
+      int counter;
+      void *seed;
+      size_t seedlen;
+      gcry_mpi_t h_value;
+
+      ec = generate_fips186 (&sk, nbits, qbits, 
+                             &counter, &seed, &seedlen, &h_value);
+      gcry_sexp_release (deriveparms);
+      if (!ec)
+        {
+          ec = gpg_err_code (gcry_sexp_build 
+                             (&seedinfo, NULL,
+                              "(seed-values(counter %d)(seed %b)(h %m))",
+                              counter, (int)seedlen, seed, h_value));
+          if (ec)
+            {
+              gcry_mpi_release (sk.p); sk.p = NULL;
+              gcry_mpi_release (sk.q); sk.q = NULL;
+              gcry_mpi_release (sk.g); sk.g = NULL;
+              gcry_mpi_release (sk.y); sk.y = NULL;
+              gcry_mpi_release (sk.x); sk.x = NULL;
+            }
+          gcry_free (seed);
+          gcry_mpi_release (h_value);
+        }
+    }
+  else
+    {
+      ec = generate (&sk, nbits, qbits, retfactors);
+    }
   if (!ec)
     {
       skey[0] = sk.p;
@@ -509,9 +694,9 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
           /* Old style interface - return the factors - if any - at
              retfactors.  */
         }
-      else if (r_extrainfo && !*retfactors)
+      else if (!*retfactors && !seedinfo)
         {
-          /* No factors, thus there is nothing to return.  */
+          /* No factors and no seedinfo, thus there is nothing to return.  */
           *r_extrainfo = NULL;
         }
       else
@@ -520,36 +705,46 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
              to make use of the new interface.  Note that the factors
              are not confidential thus we can store them in standard
              memory.  */
-          int nfactors, i;
+          int nfactors, i, j;
           char *p;
           char *format = NULL;
           void **arg_list = NULL;
 
-          for (nfactors=0; (*retfactors)[nfactors]; nfactors++)
+          for (nfactors=0; *retfactors && (*retfactors)[nfactors]; nfactors++)
             ;
           /* Allocate space for the format string:
-               "(misc-key-info(pm1-factors%m))"
-             with one "%m" for each factor and build the string  */
-          format = gcry_malloc (40 + 2*nfactors);
+               "(misc-key-info%S(pm1-factors%m))"
+             with one "%m" for each factor and construct it.  */
+          format = gcry_malloc (50 + 2*nfactors);
           if (!format)
             ec = gpg_err_code_from_syserror ();
           else
             {
-              p = stpcpy (format, "(misc-key-info(pm1-factors");
-              for (i=0; i < nfactors; i++)
-                p = stpcpy (p, "%m");
-              p = stpcpy (p, "))");
+              p = stpcpy (format, "(misc-key-info");
+              if (seedinfo)
+                p = stpcpy (p, "%S");
+              if (nfactors)
+                {
+                  p = stpcpy (p, "(pm1-factors");
+                  for (i=0; i < nfactors; i++)
+                    p = stpcpy (p, "%m");
+                  p = stpcpy (p, ")");
+                }
+              p = stpcpy (p, ")");
               
-              /* Allocate space for the argument list plus an extra
-                 NULL entry for safety and fill it with the
-                 factors.  */
-              arg_list = gcry_calloc (nfactors+1, sizeof *arg_list);
+              /* Allocate space for the list of factors plus one for
+                 an S-expression plus an extra NULL entry for safety
+                 and fill it with the factors.  */
+              arg_list = gcry_calloc (nfactors+1+1, sizeof *arg_list);
               if (!arg_list)
                 ec = gpg_err_code_from_syserror ();
               else
                 {
-                  for (i=0; i < nfactors; i++)
-                    arg_list[i] = (*retfactors) + i;
+                  i = 0;
+                  if (seedinfo)
+                    arg_list[i++] = &seedinfo;
+                  for (j=0; j < nfactors; j++)
+                    arg_list[i++] = (*retfactors) + j;
                   arg_list[i] = NULL;
                   
                   ec = gpg_err_code (gcry_sexp_build_array 
@@ -576,6 +771,7 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
         }
     }
 
+  gcry_sexp_release (seedinfo);
   return ec;
 }
 

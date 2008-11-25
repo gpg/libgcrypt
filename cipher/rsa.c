@@ -793,7 +793,7 @@ rsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
                  gcry_sexp_find_token (genparms, "derive-parms", 0) : NULL);
   if (!deriveparms)
     {
-      /* Parse the optional "rsa-use-x931" flag. */
+      /* Parse the optional "use-x931" flag. */
       l1 = gcry_sexp_find_token (genparms, "use-x931", 0);
       if (l1)
         {

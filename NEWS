@@ -8,6 +8,9 @@ Noteworthy changes in version 1.4.4
 
  * Fixed HMAC for SHA-384 and SHA-512 with keys longer than 64 bytes.
 
+ * In fips mode, RSA keys are now generated using the X9.31 algorithm
+   and DSA keys using the FIPS 186-2 algorithm.
+
 
 Noteworthy changes in version 1.4.3 (2008-09-18)
 ------------------------------------------------

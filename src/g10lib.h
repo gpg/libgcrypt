@@ -179,6 +179,12 @@ gcry_mpi_t _gcry_derive_x931_prime (const gcry_mpi_t xp,
                                     const gcry_mpi_t xp1, const gcry_mpi_t xp2,
                                     const gcry_mpi_t e,
                                     gcry_mpi_t *r_p1, gcry_mpi_t *r_p2);
+gpg_err_code_t _gcry_generate_fips186_2_prime
+                 (unsigned int pbits, unsigned int qbits,
+                  const void *seed, size_t seedlen,
+                  gcry_mpi_t *r_q, gcry_mpi_t *r_p,
+                  int *r_counter,
+                  void **r_seed, size_t *r_seedlen);
 
 
 /* replacements of missing functions (missing-string.c)*/

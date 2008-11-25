@@ -364,7 +364,7 @@ get_dsa_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   rc = gcry_pk_genkey (&key, key_spec);
   gcry_sexp_release (key_spec);
   if (rc)
-    die ("error generating Elgamal key: %s\n", gcry_strerror (rc));
+    die ("error generating DSA key: %s\n", gcry_strerror (rc));
     
   if (verbose > 1)
     show_sexp ("generated DSA key:\n", key);
@@ -382,6 +382,37 @@ get_dsa_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   *skey = sec_key;
 }
 
+
+static void
+get_dsa_key_fips186_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+{
+  gcry_sexp_t key_spec, key, pub_key, sec_key;
+  int rc;
+
+  rc = gcry_sexp_new 
+    (&key_spec, "(genkey (dsa (nbits 4:1024)(use-fips186)))",  0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gcry_strerror (rc));
+  rc = gcry_pk_genkey (&key, key_spec);
+  gcry_sexp_release (key_spec);
+  if (rc)
+    die ("error generating DSA key: %s\n", gcry_strerror (rc));
+    
+  if (verbose > 1)
+    show_sexp ("generated DSA key (fips 186):\n", key);
+
+  pub_key = gcry_sexp_find_token (key, "public-key", 0);
+  if (!pub_key)
+    die ("public part missing in key\n");
+
+  sec_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (!sec_key)
+    die ("private part missing in key\n");
+
+  gcry_sexp_release (key);
+  *pkey = pub_key;
+  *skey = sec_key;
+}
 
 static void
 check_run (void)
@@ -437,6 +468,13 @@ check_run (void)
   if (verbose)
     fprintf (stderr, "Generating DSA key.\n");
   get_dsa_key_new (&pkey, &skey);
+  /* Fixme:  Add a check function for DSA keys.  */
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+
+  if (verbose)
+    fprintf (stderr, "Generating DSA key (FIPS 186).\n");
+  get_dsa_key_fips186_new (&pkey, &skey);
   /* Fixme:  Add a check function for DSA keys.  */
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
@@ -684,7 +722,7 @@ main (int argc, char **argv)
   for (i=0; i < 2; i++)
     check_run ();
 
-  for (i=0; i < 4; i++) 
+  for (i=0; i < 4; i++)
     check_x931_derived_key (i);
   
   return 0;
