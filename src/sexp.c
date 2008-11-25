@@ -1,6 +1,6 @@
 /* sexp.c  -  S-Expression handling
  * Copyright (C) 1999, 2000, 2001, 2002, 2003,
- *               2004, 2006, 2007 Free Software Foundation, Inc.
+ *               2004, 2006, 2007, 2008  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -191,7 +191,7 @@ normalize ( gcry_sexp_t list )
 }
 
 /* Create a new S-expression object by reading LENGTH bytes from
-   BUFFER, assuming it is canonilized encoded or autodetected encoding
+   BUFFER, assuming it is canonical encoded or autodetected encoding
    when AUTODETECT is set to 1.  With FREEFNC not NULL, ownership of
    the buffer is transferred to the newly created object.  FREEFNC
    should be the freefnc used to release BUFFER; there is no guarantee
@@ -489,6 +489,47 @@ gcry_sexp_length( const gcry_sexp_t list )
 	}
     }
     return length;
+}
+
+
+/* Return the internal lengths offset of LIST.  That is the size of
+   the buffer from the first ST_OPEN, which is retruned at R_OFF, to
+   the corresponding ST_CLOSE inclusive.  */
+static size_t
+get_internal_buffer (const gcry_sexp_t list, size_t *r_off)
+{
+  const unsigned char *p;
+  DATALEN n;
+  int type;
+  int level = 0;
+  
+  *r_off = 0;
+  if (list)
+    {
+      p = list->d;
+      while ( (type=*p) != ST_STOP ) 
+        {
+          p++;
+          if (type == ST_DATA) 
+            {
+              memcpy (&n, p, sizeof n);
+              p += sizeof n + n;
+            }
+          else if (type == ST_OPEN)
+            {
+              if (!level)
+                *r_off = (p-1) - list->d;
+              level++;
+            }
+          else if ( type == ST_CLOSE )
+            {
+              level--;
+              if (!level)
+                return p - list->d;
+            }
+        }
+    }
+  return 0; /* Not a proper list.  */
 }
 
 
@@ -920,6 +961,9 @@ unquote_string (const char *string, size_t length, unsigned char *buf)
  *	%d - integer stored as string (no autoswitch to secure allocation)
  *      %b - memory buffer; this takes _two_ arguments: an integer with the 
  *           length of the buffer and a pointer to the buffer.
+ *      %S - Copy an gcry_sexp_t here.  The S-expression needs to be a
+ *           regular one, starting with a parenthesis. 
+ *           (no autoswitch to secure allocation)
  *  all other format elements are currently not defined and return an error.
  *  this includes the "%%" sequence becauce the percent sign is not an
  *  allowed character.
@@ -966,7 +1010,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 #define ARG_NEXT(storage, type)                          \
   do                                                     \
     {                                                    \
-      if (!arg_list)                                    \
+      if (!arg_list)                                     \
 	storage = va_arg (arg_ptr, type);                \
       else                                               \
 	storage = *((type *) (arg_list[arg_counter++])); \
@@ -1309,6 +1353,21 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      STORE_LEN (c.pos, alen);
 	      memcpy (c.pos, buf, alen);
 	      c.pos += alen;
+	    }
+	  else if (*p == 'S')
+	    {
+	      /* Insert a gcry_sexp_t.  */
+	      gcry_sexp_t asexp;
+	      size_t alen, aoff;
+
+	      ARG_NEXT (asexp, gcry_sexp_t);
+              alen = get_internal_buffer (asexp, &aoff);
+              if (alen)
+                {
+                  MAKE_SPACE (alen);
+                  memcpy (c.pos, asexp->d + aoff, alen);
+                  c.pos += alen;
+                }
 	    }
 	  else
 	    {

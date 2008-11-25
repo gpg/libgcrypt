@@ -266,12 +266,47 @@ get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   if (rc)
     die ("error generating RSA key: %s\n", gcry_strerror (rc));
     
+  if (verbose > 1)
+    show_sexp ("generated RSA key:\n", key);
+
   pub_key = gcry_sexp_find_token (key, "public-key", 0);
   if (! pub_key)
     die ("public part missing in key\n");
 
   sec_key = gcry_sexp_find_token (key, "private-key", 0);
   if (! sec_key)
+    die ("private part missing in key\n");
+
+  gcry_sexp_release (key);
+  *pkey = pub_key;
+  *skey = sec_key;
+}
+
+
+static void
+get_keys_x931_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+{
+  gcry_sexp_t key_spec, key, pub_key, sec_key;
+  int rc;
+  
+  rc = gcry_sexp_new (&key_spec,
+		      "(genkey (rsa (nbits 4:1024)(use-x931)))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gcry_strerror (rc));
+  rc = gcry_pk_genkey (&key, key_spec);
+  gcry_sexp_release (key_spec);
+  if (rc)
+    die ("error generating RSA key: %s\n", gcry_strerror (rc));
+    
+  if (verbose > 1)
+    show_sexp ("generated RSA (X9.31) key:\n", key);
+
+  pub_key = gcry_sexp_find_token (key, "public-key", 0);
+  if (!pub_key)
+    die ("public part missing in key\n");
+
+  sec_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (!sec_key)
     die ("private part missing in key\n");
 
   gcry_sexp_release (key);
@@ -300,6 +335,40 @@ get_elg_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int fixed_x)
   if (rc)
     die ("error generating Elgamal key: %s\n", gcry_strerror (rc));
     
+  if (verbose > 1)
+    show_sexp ("generated ELG key:\n", key);
+
+  pub_key = gcry_sexp_find_token (key, "public-key", 0);
+  if (!pub_key)
+    die ("public part missing in key\n");
+
+  sec_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (!sec_key)
+    die ("private part missing in key\n");
+
+  gcry_sexp_release (key);
+  *pkey = pub_key;
+  *skey = sec_key;
+}
+
+static void
+get_dsa_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+{
+  gcry_sexp_t key_spec, key, pub_key, sec_key;
+  int rc;
+
+  rc = gcry_sexp_new 
+    (&key_spec, "(genkey (dsa (nbits 4:1024)))",  0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gcry_strerror (rc));
+  rc = gcry_pk_genkey (&key, key_spec);
+  gcry_sexp_release (key_spec);
+  if (rc)
+    die ("error generating Elgamal key: %s\n", gcry_strerror (rc));
+    
+  if (verbose > 1)
+    show_sexp ("generated DSA key:\n", key);
+
   pub_key = gcry_sexp_find_token (key, "public-key", 0);
   if (!pub_key)
     die ("public part missing in key\n");
@@ -345,6 +414,13 @@ check_run (void)
   gcry_sexp_release (skey);
 
   if (verbose)
+    fprintf (stderr, "Checking generated RSA key (X9.31).\n");
+  get_keys_x931_new (&pkey, &skey);
+  check_keys (pkey, skey, 800, 0);
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+
+  if (verbose)
     fprintf (stderr, "Checking generated Elgamal key.\n");
   get_elg_key_new (&pkey, &skey, 0);
   check_keys (pkey, skey, 400, 0);
@@ -355,6 +431,13 @@ check_run (void)
     fprintf (stderr, "Checking passphrase generated Elgamal key.\n");
   get_elg_key_new (&pkey, &skey, 1);
   check_keys (pkey, skey, 800, 0);
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+
+  if (verbose)
+    fprintf (stderr, "Generating DSA key.\n");
+  get_dsa_key_new (&pkey, &skey);
+  /* Fixme:  Add a check function for DSA keys.  */
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
 }
@@ -377,6 +460,7 @@ key_param_from_sexp (gcry_sexp_t sexp, const char *topname, const char *name)
       gcry_sexp_release (l1);
       return NULL;
     }
+
   result = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
   gcry_sexp_release (l2);
   gcry_sexp_release (l1);
@@ -552,8 +636,9 @@ check_x931_derived_key (int what)
   if (err)
     die ("error converting string [%d]\n", what);
 
-  if (verbose)
-    show_sexp ("generated private key:\n", sec_key);
+  if (verbose > 1)
+    show_sexp ("generated key:\n", key);
+
   d_have = key_param_from_sexp (sec_key, "rsa", "d");
   if (!d_have)
     die ("parameter d not found in RSA secret key [%d]\n", what);
@@ -582,7 +667,10 @@ main (int argc, char **argv)
   if (argc > 1 && !strcmp (argv[1], "--verbose"))
     verbose = 1;
   else if (argc > 1 && !strcmp (argv[1], "--debug"))
-    verbose = debug = 1;
+    {
+      verbose = 2;
+      debug = 1;
+    }
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))

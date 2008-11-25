@@ -2752,6 +2752,13 @@ FIPS mode.
             321DE34A#))))
 @end example
 
+@item use-x931
+Force the use of the ANSI X9.31 key generation algorithm instead of
+the default algorithm. This flag is only meaningful for RSA and
+usullat not required.  Note that this algorithm is implicitly used if
+either @code{derive-parms} are given or Libgcrypt is in FIPS mode.
+
+
 @end table
 @c end table of parameters
 

@@ -1,6 +1,14 @@
+2008-11-25  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (get_dsa_key_new): New.
+
 2008-11-24  Werner Koch  <wk@g10code.com>
 
+	* tsexp.c (basic): Add test for format character S.
+
 	* pubkey.c (check_x931_derived_key): New.
+	(get_keys_x931_new): New.
+	(check_run): Check X9.31 generated RSA key.
 
 2008-11-07  Werner Koch  <wk@g10code.com>
 

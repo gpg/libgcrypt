@@ -1,5 +1,15 @@
 2008-11-24  Werner Koch  <wk@g10code.com>
 
+	* pubkey.c (gcry_pk_genkey): Insert code to output extrainfo.
+	(pubkey_generate): Add arg R_EXTRAINFO and pass it to the extended
+	key generation function.
+	* rsa.c (gen_x931_parm_xp, gen_x931_parm_xi): New.
+	(generate_x931): Generate params if not given.
+	(rsa_generate_ext): Parse use-x931 flag.  Return p-q-swapped
+	indicator.
+	* dsa.c (dsa_generate_ext): Put RETFACTORS into R_EXTRAINFO if
+	possible.
+
 	* pubkey.c (gcry_pk_genkey): Remove parsing of almost all
 	parameters and pass the parameter S-expression to pubkey_generate.
 	(pubkey_generate): Simplify by requitring modules to parse the

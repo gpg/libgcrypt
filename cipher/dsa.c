@@ -461,7 +461,8 @@ verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_public_key *pkey )
 static gcry_err_code_t
 dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
                   const gcry_sexp_t genparms,
-                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+                  gcry_mpi_t *skey, gcry_mpi_t **retfactors,
+                  gcry_sexp_t *r_extrainfo)
 {
   gpg_err_code_t ec;
   DSA_secret_key sk;
@@ -502,6 +503,77 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
       skey[2] = sk.g;
       skey[3] = sk.y;
       skey[4] = sk.x;
+
+      if (!r_extrainfo)
+        {
+          /* Old style interface - return the factors - if any - at
+             retfactors.  */
+        }
+      else if (r_extrainfo && !*retfactors)
+        {
+          /* No factors, thus there is nothing to return.  */
+          *r_extrainfo = NULL;
+        }
+      else
+        {
+          /* Put the factors into extrainfo and set retfactors to NULL
+             to make use of the new interface.  Note that the factors
+             are not confidential thus we can store them in standard
+             memory.  */
+          int nfactors, i;
+          char *p;
+          char *format = NULL;
+          void **arg_list = NULL;
+
+          for (nfactors=0; (*retfactors)[nfactors]; nfactors++)
+            ;
+          /* Allocate space for the format string:
+               "(misc-key-info(pm1-factors%m))"
+             with one "%m" for each factor and build the string  */
+          format = gcry_malloc (40 + 2*nfactors);
+          if (!format)
+            ec = gpg_err_code_from_syserror ();
+          else
+            {
+              p = stpcpy (format, "(misc-key-info(pm1-factors");
+              for (i=0; i < nfactors; i++)
+                p = stpcpy (p, "%m");
+              p = stpcpy (p, "))");
+              
+              /* Allocate space for the argument list plus an extra
+                 NULL entry for safety and fill it with the
+                 factors.  */
+              arg_list = gcry_calloc (nfactors+1, sizeof *arg_list);
+              if (!arg_list)
+                ec = gpg_err_code_from_syserror ();
+              else
+                {
+                  for (i=0; i < nfactors; i++)
+                    arg_list[i] = (*retfactors) + i;
+                  arg_list[i] = NULL;
+                  
+                  ec = gpg_err_code (gcry_sexp_build_array 
+                                     (r_extrainfo, NULL, format, arg_list));
+                }
+            }
+
+          gcry_free (arg_list);
+          gcry_free (format);
+          for (i=0; i < nfactors; i++)
+            {
+              gcry_mpi_release ((*retfactors)[i]);
+              (*retfactors)[i] = NULL;
+            }
+          *retfactors = NULL;
+          if (ec)
+            {
+              for (i=0; i < 5; i++)
+                {
+                  gcry_mpi_release (skey[i]);
+                  skey[i] = NULL;
+                }
+            }
+        }
     }
 
   return ec;
@@ -513,7 +585,7 @@ dsa_generate (int algo, unsigned int nbits, unsigned long evalue,
               gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   (void)evalue;
-  return dsa_generate_ext (algo, nbits, 0, NULL, skey, retfactors);
+  return dsa_generate_ext (algo, nbits, 0, NULL, skey, retfactors, NULL);
 }
 
 

@@ -954,7 +954,8 @@ os2ec (mpi_point_t *result, gcry_mpi_t value)
 static gcry_err_code_t
 ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
                   const gcry_sexp_t genparms,
-                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+                  gcry_mpi_t *skey, gcry_mpi_t **retfactors,
+                  gcry_sexp_t *r_extrainfo)
 {
   gpg_err_code_t ec;
   ECC_secret_key sk;
@@ -964,6 +965,7 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
 
   (void)algo;
   (void)evalue;
+  (void)r_extrainfo;
 
   if (genparms)
     {
@@ -1018,7 +1020,7 @@ ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
               gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
   (void)evalue;
-  return ecc_generate_ext (algo, nbits, 0, NULL, skey, retfactors);
+  return ecc_generate_ext (algo, nbits, 0, NULL, skey, retfactors, NULL);
 }
 
 

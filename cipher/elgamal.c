@@ -615,7 +615,8 @@ verify(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
 static gpg_err_code_t
 elg_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
                   const gcry_sexp_t genparms,
-                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+                  gcry_mpi_t *skey, gcry_mpi_t **retfactors,
+                  gcry_sexp_t *r_extrainfo)
 {
   gpg_err_code_t ec;
   ELG_secret_key sk;
@@ -624,6 +625,7 @@ elg_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
 
   (void)algo;
   (void)evalue;
+  (void)r_extrainfo;
 
   if (genparms)
     {

@@ -542,7 +542,8 @@ pubkey_generate (int algorithm,
                  unsigned int nbits,
                  unsigned long use_e,
                  gcry_sexp_t genparms,
-                 gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+                 gcry_mpi_t *skey, gcry_mpi_t **retfactors,
+                 gcry_sexp_t *r_extrainfo)
 {
   gcry_err_code_t ec = GPG_ERR_PUBKEY_ALGO;
   gcry_module_t pubkey;
@@ -559,7 +560,7 @@ pubkey_generate (int algorithm,
         {
           /* Use the extended generate function.  */
           ec = extraspec->ext_generate 
-            (algorithm, nbits, use_e, genparms, skey, retfactors);
+            (algorithm, nbits, use_e, genparms, skey, retfactors, r_extrainfo);
         }
       else
         {
@@ -2076,7 +2077,9 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   const char *algo_name = NULL;
   int algo;
   const char *sec_elems = NULL, *pub_elems = NULL;
-  gcry_mpi_t skey[12], *factors = NULL;
+  gcry_mpi_t skey[12];
+  gcry_mpi_t *factors = NULL;
+  gcry_sexp_t extrainfo = NULL;
   unsigned int nbits = 0;
   unsigned long use_e = 0;
 
@@ -2132,7 +2135,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 
   /* Handle the optional rsa-use-e element.  Actually this belong into
      the algorithm module but we have this parameter in the public
-     moudle API, so we need to parse it right here.  */
+     module API, so we need to parse it right here.  */
   l2 = gcry_sexp_find_token (list, "rsa-use-e", 0);
   if (l2)
     {
@@ -2177,7 +2180,8 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     nbits = 0;
 
   /* Pass control to the algorithm module. */
-  rc = pubkey_generate (module->mod_id, nbits, use_e, list, skey, &factors);
+  rc = pubkey_generate (module->mod_id, nbits, use_e, list, skey, 
+                        &factors, &extrainfo);
   gcry_sexp_release (list); list = NULL;
   if (rc)
     goto leave;
@@ -2188,13 +2192,18 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     size_t nelem=0, nelem_cp = 0, needed=0;
     gcry_mpi_t mpis[30];
     
+    /* Estimate size of format string.  */
     nelem = strlen (pub_elems) + strlen (sec_elems);
-    for (i = 0; factors[i]; i++)
-      nelem++;
+    if (factors)
+      {
+        for (i = 0; factors[i]; i++)
+          nelem++;
+      }
     nelem_cp = nelem;
 
     needed += nelem * 10;
-    needed += 2 * strlen (algo_name) + 300;
+    /* (+5 is for EXTRAINFO ("%S")).  */
+    needed += 2 * strlen (algo_name) + 300 + 5;
     if (nelem > DIM (mpis))
       BUG ();
 
@@ -2231,7 +2240,12 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     /* Hack to make release_mpi_array() work.  */
     skey[i] = NULL;
 
-    if (factors[0])
+    if (extrainfo)
+      {
+        /* If we have extrainfo we should not have any factors.  */
+        p = stpcpy (p, "%S");
+      }
+    else if (factors && factors[0])
       {
         p = stpcpy (p, "(misc-key-info(pm1-factors");
         for(i = 0; factors[i]; i++)
@@ -2251,7 +2265,8 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       int elem_n = strlen (pub_elems) + strlen (sec_elems);
       void **arg_list;
 
-      arg_list = malloc (nelem_cp * sizeof *arg_list);
+      /* Allocate one extra for EXTRAINFO ("%S").  */
+      arg_list = gcry_calloc (nelem_cp+1, sizeof *arg_list);
       if (!arg_list)
         {
           rc = gpg_err_code_from_errno (errno);
@@ -2259,11 +2274,16 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
         }
       for (i = 0; i < elem_n; i++)
         arg_list[i] = mpis + i;
-      for (; i < nelem_cp; i++)
-        arg_list[i] = factors + i - elem_n;
+      if (extrainfo)
+        arg_list[i] = &extrainfo;
+      else if (factors && factors[0])
+        {
+          for (; i < nelem_cp; i++)
+            arg_list[i] = factors + i - elem_n;
+        }
       
       rc = gcry_sexp_build_array (r_key, NULL, string, arg_list);
-      free (arg_list);
+      gcry_free (arg_list);
       if (rc)
 	BUG ();
       gcry_assert (DIM (mpis) == 30); /* Reminder to make sure that
@@ -2275,6 +2295,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 
  leave:
   gcry_free (name);
+  gcry_sexp_release (extrainfo);
   release_mpi_array (skey);
   /* Don't free SKEY itself, it is an stack allocated array. */
 

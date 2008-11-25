@@ -328,6 +328,46 @@ generate_std (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
 }
 
 
+/* Helper for generate_x931.  */
+static gcry_mpi_t 
+gen_x931_parm_xp (unsigned int nbits)
+{
+  gcry_mpi_t xp;
+
+  xp = gcry_mpi_snew (nbits);
+  gcry_mpi_randomize (xp, nbits, GCRY_VERY_STRONG_RANDOM);
+      
+  /* The requirement for Xp is:
+
+       sqrt{2}*2^{nbits-1} <= xp <= 2^{nbits} - 1
+
+     We set the two high order bits to 1 to satisfy the lower bound.
+     By using mpi_set_highbit we make sure that the upper bound is
+     satisfied as well.  */
+  mpi_set_highbit (xp, nbits-1);
+  mpi_set_bit (xp, nbits-2);
+  gcry_assert ( mpi_get_nbits (xp) == nbits );
+  
+  return xp;
+}     
+
+
+/* Helper for generate_x931.  */
+static gcry_mpi_t 
+gen_x931_parm_xi (void)
+{
+  gcry_mpi_t xi;
+
+  xi = gcry_mpi_snew (101);
+  gcry_mpi_randomize (xi, 101, GCRY_VERY_STRONG_RANDOM);
+  mpi_set_highbit (xi, 100);
+  gcry_assert ( mpi_get_nbits (xi) == 101 );
+  
+  return xi;
+}     
+
+
+
 /* Variant of the standard key generation code using the algorithm
    from X9.31.  Using this algorithm has the advantage that the
    generation can be made deterministic which is required for CAVS
@@ -378,14 +418,32 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
     gcry_mpi_t xq1 = NULL;
     gcry_mpi_t xq2 = NULL;
     gcry_mpi_t xq  = NULL;
+    gcry_mpi_t tmpval;
 
     if (!deriveparms)
       {
-        /* Fixme: Create them.  */
-        return GPG_ERR_INV_VALUE;
+        /* Not given: Generate them.  */
+        xp = gen_x931_parm_xp (nbits/2);
+        /* Make sure that |xp - xq| > 2^{nbits - 100} holds.  */
+        tmpval = gcry_mpi_snew (nbits/2);
+        do
+          {
+            gcry_mpi_release (xq);
+            xq = gen_x931_parm_xp (nbits/2);
+            mpi_sub (tmpval, xp, xq);
+          }
+        while (mpi_get_nbits (tmpval) <= (nbits/2 - 100));
+        gcry_mpi_release (tmpval);
+
+        xp1 = gen_x931_parm_xi ();
+        xp2 = gen_x931_parm_xi ();
+        xq1 = gen_x931_parm_xi ();
+        xq2 = gen_x931_parm_xi ();
+
       }
     else
       {
+        /* Parameters to derive the key are given.  */
         struct { const char *name; gcry_mpi_t *value; } tbl[] = {
           { "Xp1", &xp1 },
           { "Xp2", &xp2 },
@@ -478,7 +536,7 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
 
   if( DBG_CIPHER )
     {
-      if (swapped)
+      if (*swapped)
         log_debug ("p and q are swapped\n");
       log_mpidump("  p", p );
       log_mpidump("  q", q );
@@ -717,25 +775,52 @@ rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
 static gcry_err_code_t
 rsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
                   const gcry_sexp_t genparms,
-                  gcry_mpi_t *skey, gcry_mpi_t **retfactors)
+                  gcry_mpi_t *skey, gcry_mpi_t **retfactors,
+                  gcry_sexp_t *r_extrainfo)
 {
   RSA_secret_key sk;
   gpg_err_code_t ec;
   gcry_sexp_t deriveparms;
   int transient_key = 0;
+  int use_x931 = 0;
   gcry_sexp_t l1;
-  int swapped;
-  int i;
 
   (void)algo;
+  
+  *retfactors = NULL; /* We don't return them.  */
 
   deriveparms = (genparms?
                  gcry_sexp_find_token (genparms, "derive-parms", 0) : NULL);
-
-  if (deriveparms || fips_mode ())
+  if (!deriveparms)
     {
+      /* Parse the optional "rsa-use-x931" flag. */
+      l1 = gcry_sexp_find_token (genparms, "use-x931", 0);
+      if (l1)
+        {
+          use_x931 = 1;
+          gcry_sexp_release (l1);
+        }
+    }
+
+  if (deriveparms || use_x931 || fips_mode ())
+    {
+      int swapped;
       ec = generate_x931 (&sk, nbits, evalue, deriveparms, &swapped);
       gcry_sexp_release (deriveparms);
+      if (!ec && r_extrainfo && swapped)
+        {
+          ec = gcry_sexp_new (r_extrainfo, 
+                              "(misc-key-info(p-q-swapped))", 0, 1);
+          if (ec)
+            {
+              gcry_mpi_release (sk.n); sk.n = NULL;
+              gcry_mpi_release (sk.e); sk.e = NULL;
+              gcry_mpi_release (sk.p); sk.p = NULL;
+              gcry_mpi_release (sk.q); sk.q = NULL;
+              gcry_mpi_release (sk.d); sk.d = NULL;
+              gcry_mpi_release (sk.u); sk.u = NULL;
+            }
+        }
     }
   else
     {
@@ -745,7 +830,6 @@ rsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
         {
           transient_key = 1;
           gcry_sexp_release (l1);
-          l1 = NULL;
         }
       /* Generate.  */
       ec = generate_std (&sk, nbits, evalue, transient_key);
@@ -759,20 +843,6 @@ rsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
       skey[3] = sk.p;
       skey[4] = sk.q;
       skey[5] = sk.u;
-  
-      /* Make an empty list of factors.  */
-      *retfactors = gcry_calloc ( 1, sizeof **retfactors );
-      if (!*retfactors)
-        {
-          ec = gpg_err_code_from_syserror ();
-          for (i=0; i <= 5; i++)
-            {
-              gcry_mpi_release (skey[i]);
-              skey[i] = NULL;
-            }
-        }
-      else
-        ec = 0;
     }
   
   return ec;
@@ -783,7 +853,7 @@ static gcry_err_code_t
 rsa_generate (int algo, unsigned int nbits, unsigned long evalue,
               gcry_mpi_t *skey, gcry_mpi_t **retfactors)
 {
-  return rsa_generate_ext (algo, nbits, evalue, NULL, skey, retfactors);
+  return rsa_generate_ext (algo, nbits, evalue, NULL, skey, retfactors, NULL);
 }
 
 

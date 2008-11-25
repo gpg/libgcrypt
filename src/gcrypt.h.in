@@ -1654,8 +1654,8 @@ void *gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
 
 
 /* Set the big integer W to a random value of NBITS using a random
-   generator with quality LEVEL.  Note that using a level of
-   GCRY_WEAK_RANDOM here, uses gcry_create_nonce internally. */
+   generator with quality LEVEL.  Note that by using a level of
+   GCRY_WEAK_RANDOM gcry_create_nonce is used internally. */
 void gcry_mpi_randomize (gcry_mpi_t w,
                          unsigned int nbits, enum gcry_random_level level);
 

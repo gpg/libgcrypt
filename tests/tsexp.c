@@ -130,6 +130,31 @@ basic (void)
           if (!gcry_is_secure (sexp))
             fail ("gcry_sexp_build did not switch to secure memory\n");
           break;
+
+        case 3:
+          {
+            gcry_sexp_t help_sexp;
+
+            if (gcry_sexp_new (&help_sexp,
+                               "(foobar-parms (xp #1234#)(xq #03#))", 0, 1))
+              {
+                fail (" scanning fixed string failed\n");
+                return;
+              }
+
+            string = ("(public-key (dsa (p #41424344#) (parm %S) "
+                      "(y dummy)(q %b) (g %m)))");
+            if ( gcry_sexp_build (&sexp, NULL, string, help_sexp,
+                                  secure_buffer_len, secure_buffer,
+                                  gcry_mpi_set_ui (NULL, 17)) )
+              {
+                fail (" scanning `%s' failed\n", string);
+                return;
+              }
+            gcry_sexp_release (help_sexp);
+          }
+          break;
+          
           
         default:
           return; /* Ready. */
@@ -416,7 +441,7 @@ check_sscan (void)
 int
 main (int argc, char **argv)
 {
-  if (argc > 1 && !strcmp (argv[1], "-v"))
+  if (argc > 1 && !strcmp (argv[1], "--verbose"))
     verbose = 1;
 
   gcry_control (GCRYCTL_DISABLE_SECMEM_WARN);

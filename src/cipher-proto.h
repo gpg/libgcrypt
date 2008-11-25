@@ -46,7 +46,8 @@ typedef gcry_err_code_t (*pk_ext_generate_t)
       unsigned long evalue,
       gcry_sexp_t genparms,
       gcry_mpi_t *skey,
-      gcry_mpi_t **retfactors);
+      gcry_mpi_t **retfactors,
+      gcry_sexp_t *extrainfo);
 
 /* The type used to compute the keygrip.  */
 typedef gpg_err_code_t (*pk_comp_keygrip_t)
