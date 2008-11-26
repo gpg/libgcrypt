@@ -1417,7 +1417,7 @@ _gcry_derive_x931_prime (const gcry_mpi_t xp,
 
 /* Generate the two prime used for DSA using the algorithm specified
    in FIPS 186-2.  PBITS is the desired length of the prime P and a
-   QBIST the length of the prime Q.  If SEED is not supplied and
+   QBITS the length of the prime Q.  If SEED is not supplied and
    SEEDLEN is 0 the function generates an appropriate SEED.  On
    success the generated primes are stored at R_Q and R_P, the counter
    value is stored at R_COUNTER and the seed actually used for
@@ -1580,7 +1580,7 @@ _gcry_generate_fips186_2_prime (unsigned int pbits, unsigned int qbits,
     }
 
   /* Step 15:  Save p, q, counter and seed.  */
-/*   log_debug ("fips186-2 nbits p=%u q=%u counter=%d\n", */
+/*   log_debug ("fips186-2 pbits p=%u q=%u counter=%d\n", */
 /*              mpi_get_nbits (prime_p), mpi_get_nbits (prime_q), counter); */
 /*   log_printhex("fips186-2 seed:", seed, seedlen);  */
 /*   log_mpidump ("fips186-2 prime p", prime_p); */
@@ -1616,3 +1616,247 @@ _gcry_generate_fips186_2_prime (unsigned int pbits, unsigned int qbits,
   gcry_mpi_release (val_2);
   return ec;
 }
+
+
+
+/* WARNING: The code below has not yet been tested!  However, it is
+   not yet used.  We need to wait for FIPS 186-3 final and for test
+   vectors.
+
+   Generate the two prime used for DSA using the algorithm specified
+   in FIPS 186-3, A.1.1.2.  PBITS is the desired length of the prime P
+   and a QBITS the length of the prime Q.  If SEED is not supplied and
+   SEEDLEN is 0 the function generates an appropriate SEED.  On
+   success the generated primes are stored at R_Q and R_P, the counter
+   value is stored at R_COUNTER and the seed actually used for
+   generation is stored at R_SEED and R_SEEDVALUE.  The hash algorithm
+   used is stored at R_HASHALGO.
+   
+   Note that this function is very similar to the fips186_2 code.  Due
+   to the minor differences, other buffer sizes and for documentarion,
+   we use a separate function.
+*/
+gpg_err_code_t
+_gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
+                                const void *seed, size_t seedlen,
+                                gcry_mpi_t *r_q, gcry_mpi_t *r_p,
+                                int *r_counter,
+                                void **r_seed, size_t *r_seedlen,
+                                int *r_hashalgo)
+{
+  gpg_err_code_t ec;
+  unsigned char seed_help_buffer[256/8];  /* Used to hold a generated SEED. */
+  unsigned char *seed_plus;     /* Malloced buffer to hold SEED+x.  */
+  unsigned char digest[256/8];  /* Helper buffer for SHA-1 digest.  */
+  gcry_mpi_t val_2 = NULL;      /* Helper for the prime test.  */
+  gcry_mpi_t tmpval = NULL;     /* Helper variable.  */
+  int hashalgo;                 /* The id of the Approved Hash Function.  */
+  int i;
+  
+  unsigned char value_u[256/8];
+  int value_n, value_b, value_j;
+  int counter;
+  gcry_mpi_t value_w = NULL;
+  gcry_mpi_t value_x = NULL;
+  gcry_mpi_t prime_q = NULL;
+  gcry_mpi_t prime_p = NULL;
+
+  gcry_assert (sizeof seed_help_buffer == sizeof digest
+               && sizeof seed_help_buffer == sizeof value_u);
+
+  /* Step 1:  Check the requested prime lengths.  */
+  /* Note that due to the size of our buffers QBITS is limited to 256.  */
+  if (pbits == 1024 && qbits == 160)
+    hashalgo = GCRY_MD_SHA1;
+  else if (pbits == 2048 && qbits == 224)
+    hashalgo = GCRY_MD_SHA224;
+  else if (pbits == 2048 && qbits == 256)
+    hashalgo = GCRY_MD_SHA256;
+  else if (pbits == 3072 && qbits == 256)
+    hashalgo = GCRY_MD_SHA256;
+  else
+    return GPG_ERR_INV_KEYLEN;
+
+  /* Also check that the hash algorithm is available.  */
+  ec = gpg_err_code (gcry_md_test_algo (hashalgo));
+  if (ec)
+    return ec;
+  gcry_assert (qbits/8 <= sizeof digest);
+  gcry_assert (gcry_md_get_algo_dlen (hashalgo) == qbits/8);
+
+
+  /* Step 2:  Check seedlen.  */
+  if (!seed && !seedlen)
+    ; /* No seed value given:  We are asked to generate it.  */
+  else if (!seed || seedlen < qbits/8)
+    return GPG_ERR_INV_ARG;
+  
+  /* Allocate a buffer to later compute SEED+some_increment and a few
+     helper variables.  */
+  seed_plus = gcry_malloc (seedlen < sizeof seed_help_buffer? 
+                           sizeof seed_help_buffer : seedlen);
+  if (!seed_plus)
+    {
+      ec = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+  val_2   = mpi_alloc_set_ui (2);
+  value_w = gcry_mpi_new (pbits);
+  value_x = gcry_mpi_new (pbits);
+
+  /* Step 3: n = \lceil L / outlen \rceil - 1  */
+  value_n = (pbits + qbits - 1) / qbits - 1;
+  /* Step 4: b = L - 1 - (n * outlen)  */
+  value_b = pbits - 1 - (value_n * qbits);
+
+ restart:  
+  /* Generate Q.  */
+  for (;;)
+    {
+      /* Step 5:  Generate a (new) seed unless one has been supplied.  */
+      if (!seed)
+        {
+          seedlen = qbits/8;
+          gcry_assert (seedlen <= sizeof seed_help_buffer);
+          gcry_create_nonce (seed_help_buffer, seedlen);
+          seed = seed_help_buffer;
+        }
+      
+      /* Step 6:  U = hash(seed)  */
+      gcry_md_hash_buffer (hashalgo, value_u, seed, seedlen);
+
+      /* Step 7:  q = 2^{N-1} + U + 1 - (U mod 2)  */
+      if ( !(value_u[qbits/8-1] & 0x01) )
+        {
+          for (i=qbits/8-1; i >= 0; i--)
+            {
+              value_u[i]++;
+              if (value_u[i])
+                break;
+            }
+        }
+      gcry_mpi_release (prime_q); prime_q = NULL;
+      ec = gpg_err_code (gcry_mpi_scan (&prime_q, GCRYMPI_FMT_USG, 
+                                        value_u, sizeof value_u, NULL));
+      if (ec)
+        goto leave;
+      mpi_set_highbit (prime_q, qbits-1 );
+      
+      /* Step 8:  Test whether Q is prime using 64 round of Rabin-Miller.
+                  According to table C.1 this is sufficient for all
+                  supported prime sizes (i.e. up 3072/256).  */
+      if (check_prime (prime_q, val_2, 64, NULL, NULL))
+        break; /* Yes, Q is prime.  */
+
+      /* Step 8.  */
+      seed = NULL;  /* Force a new seed at Step 5.  */
+    }
+  
+  /* Step 11.  Note that we do no use an explicit offset but increment
+     SEED_PLUS accordingly.  */
+  memcpy (seed_plus, seed, seedlen);
+  counter = 0;
+
+  /* Generate P. */
+  prime_p = gcry_mpi_new (pbits);
+  for (;;)
+    {
+      /* Step 11.1: For j = 0,...n let 
+                      V_j = hash(seed+offset+j)  
+         Step 11.2: W = V_0 + V_1*2^outlen + 
+                            ... 
+                            + V_{n-1}*2^{(n-1)*outlen}
+                            + (V_{n} mod 2^b)*2^{n*outlen}                
+       */
+      mpi_set_ui (value_w, 0);
+      for (value_j=0; value_j <= value_n; value_j++)
+        {
+          /* There is no need to have an explicit offset variable: In
+             the first round we shall have an offset of 1 and a j of
+             0.  This is achieved by incrementing SEED_PLUS here.  For
+             the next round offset is implicitly updated by using
+             SEED_PLUS again.  */
+          for (i=seedlen-1; i >= 0; i--)
+            {
+              seed_plus[i]++;
+              if (seed_plus[i])
+                break;
+            }
+          gcry_md_hash_buffer (GCRY_MD_SHA1, digest, seed_plus, seedlen);
+          
+          gcry_mpi_release (tmpval); tmpval = NULL;
+          ec = gpg_err_code (gcry_mpi_scan (&tmpval, GCRYMPI_FMT_USG,
+                                            digest, sizeof digest, NULL));
+          if (ec)
+            goto leave;
+          if (value_j == value_n)
+            mpi_clear_highbit (tmpval, value_b+1); /* (V_n mod 2^b) */
+          mpi_lshift (tmpval, tmpval, value_j*qbits);
+          mpi_add (value_w, value_w, tmpval);
+        }
+
+      /* Step 11.3: X = W + 2^{L-1}  */
+      mpi_set_ui (value_x, 0);
+      mpi_set_highbit (value_x, pbits-1);
+      mpi_add (value_x, value_x, value_w);
+
+      /* Step 11.4:  c = X mod 2q  */
+      mpi_mul_2exp (tmpval, prime_q, 1);
+      mpi_mod (tmpval, value_x, tmpval);
+
+      /* Step 11.5:  p = X - (c - 1)  */
+      mpi_sub_ui (tmpval, tmpval, 1);
+      mpi_sub (prime_p, value_x, tmpval);
+
+      /* Step 11.6: If  p < 2^{L-1}  skip the primality test.  */
+      /* Step 11.7 and 11.8: Primality test.  */
+      if (mpi_get_nbits (prime_p) >= pbits-1
+          && check_prime (prime_p, val_2, 64, NULL, NULL) )
+        break; /* Yes, P is prime, continue with Step 15.  */
+      
+      /* Step 11.9: counter = counter + 1, offset = offset + n + 1.
+                    If counter >= 4L  goto Step 5.  */
+      counter++;
+      if (counter >= 4*pbits)
+        goto restart;
+    }
+
+  /* Step 12:  Save p, q, counter and seed.  */
+  log_debug ("fips186-3 pbits p=%u q=%u counter=%d\n",
+             mpi_get_nbits (prime_p), mpi_get_nbits (prime_q), counter);
+  log_printhex("fips186-3 seed:", seed, seedlen);
+  log_mpidump ("fips186-3 prime p", prime_p);
+  log_mpidump ("fips186-3 prime q", prime_q);
+  if (r_q)
+    {
+      *r_q = prime_q;
+      prime_q = NULL;
+    }
+  if (r_p)
+    {
+      *r_p = prime_p;
+      prime_p = NULL;
+    }
+  if (r_counter)
+    *r_counter = counter;
+  if (r_seed && r_seedlen)
+    {
+      memcpy (seed_plus, seed, seedlen);
+      *r_seed = seed_plus;
+      seed_plus = NULL;
+      *r_seedlen = seedlen;
+    }
+  if (r_hashalgo)
+    *r_hashalgo = hashalgo;
+
+ leave:
+  gcry_mpi_release (tmpval);
+  gcry_mpi_release (value_x);
+  gcry_mpi_release (value_w);
+  gcry_mpi_release (prime_p);
+  gcry_mpi_release (prime_q);
+  gcry_free (seed_plus);
+  gcry_mpi_release (val_2);
+  return ec;
+}
+

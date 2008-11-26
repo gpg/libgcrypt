@@ -1,3 +1,9 @@
+2008-11-26  Werner Koch  <wk@g10code.com>
+
+	* primegen.c (_gcry_generate_fips186_3_prime): New.
+	* dsa.c (generate_fips186): Add arg USE_FIPS186_2.
+	(dsa_generate_ext): Parse new flag use-fips183-2.
+
 2008-11-25  Werner Koch  <wk@g10code.com>
 
 	* dsa.c (generate_fips186): New.

@@ -185,9 +185,15 @@ gpg_err_code_t _gcry_generate_fips186_2_prime
                   gcry_mpi_t *r_q, gcry_mpi_t *r_p,
                   int *r_counter,
                   void **r_seed, size_t *r_seedlen);
+gpg_err_code_t _gcry_generate_fips186_3_prime 
+                 (unsigned int pbits, unsigned int qbits,
+                  const void *seed, size_t seedlen,
+                  gcry_mpi_t *r_q, gcry_mpi_t *r_p,
+                  int *r_counter,
+                  void **r_seed, size_t *r_seedlen, int *r_hashalgo);
 
 
-/* replacements of missing functions (missing-string.c)*/
+/* Replacements of missing functions (missing-string.c).  */
 #ifndef HAVE_STPCPY
 char *stpcpy (char *a, const char *b);
 #endif
@@ -195,7 +201,7 @@ char *stpcpy (char *a, const char *b);
 int strcasecmp (const char *a, const char *b) _GCRY_GCC_ATTR_PURE;
 #endif
 
-/* macros used to rename missing functions */
+/* Macros used to rename missing functions.  */
 #ifndef HAVE_STRTOUL
 #define strtoul(a,b,c)  ((unsigned long)strtol((a),(b),(c)))
 #endif
