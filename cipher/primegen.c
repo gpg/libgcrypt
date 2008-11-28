@@ -1549,7 +1549,7 @@ _gcry_generate_fips186_2_prime (unsigned int pbits, unsigned int qbits,
           if (ec)
             goto leave;
           if (value_k == value_n)
-            mpi_clear_highbit (tmpval, value_b+1); /* (V_n mod 2^b) */
+            mpi_clear_highbit (tmpval, value_b); /* (V_n mod 2^b) */
           mpi_lshift (tmpval, tmpval, value_k*qbits);
           mpi_add (value_w, value_w, tmpval);
         }
@@ -1570,7 +1570,7 @@ _gcry_generate_fips186_2_prime (unsigned int pbits, unsigned int qbits,
       if (mpi_get_nbits (prime_p) >= pbits-1
           && check_prime (prime_p, val_2, 64, NULL, NULL) )
         break; /* Yes, P is prime, continue with Step 15.  */
-      
+
       /* Step 13: counter = counter + 1, offset = offset + n + 1. */
       counter++;
 
@@ -1582,7 +1582,7 @@ _gcry_generate_fips186_2_prime (unsigned int pbits, unsigned int qbits,
   /* Step 15:  Save p, q, counter and seed.  */
 /*   log_debug ("fips186-2 pbits p=%u q=%u counter=%d\n", */
 /*              mpi_get_nbits (prime_p), mpi_get_nbits (prime_q), counter); */
-/*   log_printhex("fips186-2 seed:", seed, seedlen);  */
+/*   log_printhex("fips186-2 seed:", seed, seedlen); */
 /*   log_mpidump ("fips186-2 prime p", prime_p); */
 /*   log_mpidump ("fips186-2 prime q", prime_q); */
   if (r_q)
@@ -1790,7 +1790,7 @@ _gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
           if (ec)
             goto leave;
           if (value_j == value_n)
-            mpi_clear_highbit (tmpval, value_b+1); /* (V_n mod 2^b) */
+            mpi_clear_highbit (tmpval, value_b); /* (V_n mod 2^b) */
           mpi_lshift (tmpval, tmpval, value_j*qbits);
           mpi_add (value_w, value_w, tmpval);
         }

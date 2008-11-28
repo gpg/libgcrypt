@@ -823,6 +823,53 @@ print_buffer (const void *buffer, size_t length)
 }
 
 
+/* Print an MPI on a line.  */
+static void
+print_mpi_line (gcry_mpi_t a, int no_lz)
+{
+  unsigned char *buf, *p;
+  gcry_error_t err;
+  int writerr = 0;
+
+  err = gcry_mpi_aprint (GCRYMPI_FMT_HEX, &buf, NULL, a);
+  if (err)
+    die ("gcry_mpi_aprint failed: %s\n", gpg_strerror (err));
+
+  p = buf;
+  if (no_lz && p[0] == '0' && p[1] == '0' && p[2])
+    p +=2;
+    
+  printf ("%s\n", p);
+  if (ferror (stdout))
+    writerr++;
+  if (!writerr && fflush (stdout) == EOF)
+    writerr++;
+  if (writerr)
+    die ("writing output failed: %s\n", strerror (errno));
+  gcry_free (buf);
+}
+
+
+/* Print some data on hex format on a line.  */
+static void
+print_data_line (const void *data, size_t datalen)
+{
+  const unsigned char *p = data;
+  int writerr = 0;
+      
+  while (data && datalen-- && !ferror (stdout) )
+    printf ("%02X", *p++);
+  putchar ('\n');
+  if (ferror (stdout))
+    writerr++;
+  if (!writerr && fflush (stdout) == EOF)
+    writerr++;
+  if (writerr)
+    die ("writing output failed: %s\n", strerror (errno));
+}
+
+
+
 
 static gcry_error_t
 init_external_rng_test (void **r_context, 
@@ -1487,6 +1534,105 @@ run_rsa_verify (const void *data, size_t datalen, int hashalgo, int pkcs1,
 }
 
 
+
+/* Generate DSA donmain parameters for a modulus size of KEYSIZE.  The
+   result is printed to stdout with one parameter per line in hex
+   format and in this order: p, q, g, seed, counter, h.  */
+static void
+run_dsa_pqg_gen (int keysize)
+{
+  gpg_error_t err;
+  gcry_sexp_t keyspec, key, l1, l2;
+  gcry_mpi_t mpi;
+  int idx;
+  const void *data;
+  size_t datalen;
+  char *string;
+
+  /* Note that we create a complete key but don't return the x and y
+     values.  */
+  err = gcry_sexp_build (&keyspec, NULL, 
+                         "(genkey (dsa (nbits %d)(use-fips186-2)))",
+                         keysize);
+  if (err)
+    die ("gcry_sexp_build failed for DSA domain parameter generation: %s\n",
+         gpg_strerror (err));
+
+  err = gcry_pk_genkey (&key, keyspec);
+  if (err)
+    die ("gcry_pk_genkey failed for RSA: %s\n", gpg_strerror (err));
+  
+  gcry_sexp_release (keyspec);
+
+  l1 = gcry_sexp_find_token (key, "private-key", 0);
+  if (!l1)
+    die ("private key not found in genkey result\n");
+
+  l2 = gcry_sexp_find_token (l1, "dsa", 0);
+  if (!l2)
+    die ("returned private key not formed as expected\n");
+  gcry_sexp_release (l1);
+  l1 = l2;
+
+  /* Extract the parameters from the S-expression and print them to stdout.  */
+  for (idx=0; "pqg"[idx]; idx++) 
+    {
+      l2 = gcry_sexp_find_token (l1, "pqg"+idx, 1);
+      if (!l2)
+        die ("no %c parameter in returned private key\n", "pqg"[idx]);
+      mpi = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+      if (!mpi)
+        die ("no value for %c parameter in returned private key\n","pqg"[idx]);
+      gcry_sexp_release (l2);
+      print_mpi_line (mpi, 1);
+      gcry_mpi_release (mpi);
+    }
+  gcry_sexp_release (l1);
+
+  /* Extract the seed values.  */
+  l1 = gcry_sexp_find_token (key, "misc-key-info", 0);
+  if (!l1)
+    die ("misc-key-info not found in genkey result\n");
+
+  l2 = gcry_sexp_find_token (l1, "seed-values", 0);
+  if (!l2)
+    die ("no seed-values in returned private key\n");
+  gcry_sexp_release (l1);
+  l1 = l2;
+
+  l2 = gcry_sexp_find_token (l1, "seed", 0);
+  if (!l2)
+    die ("no seed value in returned private key\n");
+  data = gcry_sexp_nth_data (l2, 1, &datalen);
+  if (!data)
+    die ("no seed value in returned private key\n");
+  print_data_line (data, datalen);
+  gcry_sexp_release (l2);
+
+  l2 = gcry_sexp_find_token (l1, "counter", 0);
+  if (!l2)
+    die ("no counter value in returned private key\n");
+  string = gcry_sexp_nth_string (l2, 1);
+  if (!string)
+    die ("no counter value in returned private key\n");
+  printf ("%lX\n", strtoul (string, NULL, 10));
+  gcry_free (string);
+  gcry_sexp_release (l2);
+
+  l2 = gcry_sexp_find_token (l1, "h", 0);
+  if (!l2)
+    die ("no n value in returned private key\n");
+  mpi = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+  if (!mpi)
+    die ("no h value in returned private key\n");
+  print_mpi_line (mpi, 1);
+  gcry_mpi_release (mpi);
+  gcry_sexp_release (l2);
+
+  gcry_sexp_release (l1);
+  gcry_sexp_release (key);
+}
+
 
 
 static void
@@ -1502,7 +1648,8 @@ usage (int show_help)
     ("Usage: " PGM " [OPTIONS] MODE [FILE]\n"
      "Run a crypto operation using hex encoded input and output.\n"
      "MODE:\n"
-     "  encrypt, decrypt, digest, random, hmac-sha, rsa-{gen,sign,verify}\n"
+     "  encrypt, decrypt, digest, random, hmac-sha, rsa-{gen,sign,verify},\n"
+     "  dsa-pqg-gen\n"
      "OPTIONS:\n"
      "  --verbose        Print additional information\n"
      "  --binary         Input and output is in binary form\n"
@@ -1695,7 +1842,8 @@ main (int argc, char **argv)
   if (!chunksize
       && !mct_server
       && strcmp (mode_string, "random")
-      && strcmp (mode_string, "rsa-gen") )
+      && strcmp (mode_string, "rsa-gen")
+      && strcmp (mode_string, "dsa-pqg-gen") )
     {
       data = read_file (input, !binary_input, &datalen);
       if (!data)
@@ -1932,6 +2080,15 @@ main (int argc, char **argv)
       run_rsa_verify (data, datalen, algo, use_pkcs1, key_string,
                       signature_string);
 
+    }
+  else if (!strcmp (mode_string, "dsa-pqg-gen"))
+    {
+      int keysize;
+      
+      keysize = keysize_string? atoi (keysize_string) : 0;
+      if (keysize < 1024 || keysize > 3072)
+        die ("invalid keysize specified; needs to be 1024 .. 3072\n");
+      run_dsa_pqg_gen (keysize);
     }
   else
     usage (0);

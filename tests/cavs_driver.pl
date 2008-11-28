@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# $Id: cavs_driver.pl 1383 2008-10-30 11:45:31Z smueller $
+# $Id: cavs_driver.pl 1395 2008-11-10 15:18:03Z smueller $
 #
 # CAVS test driver (based on the OpenSSL driver)
 # Written by: Stephan Müller <sm@atsec.com>
@@ -89,6 +89,11 @@
 # 	ANSI931_AES128MCT
 # 	ANSI931_AES128VST
 #
+# DSA
+# 	PQGGen
+# 	SigGen
+# 	SigVer
+#
 # RC4 (atsec developed tests)
 # 	RC4KeyBD
 # 	RC4MCT
@@ -104,7 +109,6 @@ use MIME::Base64;
 
 # Contains the command line options
 my %opt;
-
 
 #################################################################
 ##### Central interface functions to the external ciphers #######
@@ -143,7 +147,7 @@ my $rsa_sign;
 # $2: hash algo
 # $3: file holding the public RSA key in PEM format
 # $4: file holding the signature in binary form
-# return: 1 == verfied / 0 == not verified
+# return: 1 == verified / 0 == not verified
 my $rsa_verify;
 
 # generate a new private RSA key with the following properties:
@@ -171,6 +175,9 @@ my $hash;
 # $5: IV in binary form
 # return: command line to execute the application
 my $state_cipher;
+# the only difference of the DES version is that it implements the inner loop
+# of the TDES tests
+my $state_cipher_des;
 
 # supplying the call to the external cipher implementation
 # that is being used to keep STDIN and STDOUT open
@@ -195,6 +202,40 @@ my $state_rng;
 # $4: hash type (1 - SHA1, 224 - SHA224, and so on)
 # return: calculated HMAC in hex format
 my $hmac;
+
+#
+# Generate the P, Q, G, Seed, counter, h (value used to generate g) values
+# for DSA
+# $1: modulus size
+# return: string with the calculated values in hex format, where each value
+# 	  is separated from the previous with a \n in the following order:
+#         P\n
+#         Q\n
+#         G\n
+#         Seed\n
+#         counter\n
+#         h
+my $dsa_pqggen;
+
+# Verify a message with DSA
+# $1: data to be verified in hex form
+# $2: file holding the public DSA key in PEM format
+# $3: R value of the signature
+# $4: S value of the signature
+# return: 1 == verified / 0 == not verified
+my $dsa_verify;
+
+# generate a new DSA key with the following properties:
+#	PEM format
+# $1 keyfile name 
+# return: file created, hash with keys of P, Q, G in hex format
+my $gen_dsakey;
+
+# Sign a message with DSA
+# $1: data to be signed in hex form
+# $2: Key file in PEM format with the private key
+# return: hash of digest information in hex format with Y, R, S as keys
+my $dsa_sign;
 
 ################################################################
 ##### OpenSSL interface functions
@@ -272,8 +313,6 @@ sub openssl_state_cipher($$$$$) {
 	my $bufsize = shift;
 	my $key = shift;
 	my $iv = shift;
-
-        #FIXME: Implement the inner loop right here.
 
 	my $enc = $encdec ? "-e": "-d";
 
@@ -362,7 +401,28 @@ sub libgcrypt_state_cipher($$$$$) {
 	my $key = shift;
 	my $iv = shift;
 
+	# We only invoke the driver with the IV parameter, if we have
+	# an IV, otherwise, we skip it
+	$iv = "--iv ".bin2hex($iv) if ($iv);
+
+	my $program="fipsdrv --binary --key ".bin2hex($key)." $iv --algo '$cipher' --chunk '$bufsize' $enc";
+
+	return $program;
+}
+
+sub libgcrypt_state_cipher_des($$$$$) {
+	my $cipher = shift;
+	my $enc = (shift) ? "encrypt": "decrypt";
+	my $bufsize = shift;
+	my $key = shift;
+	my $iv = shift;
+
+	# We only invoke the driver with the IV parameter, if we have
+	# an IV, otherwise, we skip it
+	$iv = "--iv ".bin2hex($iv) if ($iv);
+
 	my $program="fipsdrv --algo '$cipher' --mct-server $enc";
+
 	return $program;
 }
 
@@ -382,6 +442,13 @@ sub libgcrypt_hmac($$$$) {
 
 	my $program = "fipsdrv --key $key --algo $hashtype hmac-sha";
 	return pipe_through_program($msg, $program);	
+}
+
+sub libgcrypt_dsa_pqggen($) {
+	my $mod = shift;
+
+	my $program = "fipsdrv --keysize $mod dsa-pqg-gen";
+	return pipe_through_program("", $program);
 }
 
 ######### End of libgcrypt implementation ################
@@ -529,39 +596,6 @@ sub fix_key_parity($) {
 	}
 
 	return $out;
-}
-
-####################################################
-# Encrypt/Decrypt routines
-
-# encryption
-# $1 key in hex form
-# $2 iv in hex form
-# $3 cipher
-# $4 data in hex form
-# return encrypted data
-sub encrypt($$$$) {
-	my $key=shift;
-	my $iv=shift;
-	my $cipher=shift;
-	my $data=shift;
-
-	return &$encdec($key, $iv, $cipher, 1, $data);
-}
-
-# decryption
-# $1 key in hex form
-# $2 iv in hex form
-# $3 cipher
-# $4 data in hex form
-# return encrypted data
-sub decrypt($$$$) {
-	my $key=shift;
-	my $iv=shift;
-	my $cipher=shift;
-	my $data=shift;
-
-	return &$encdec($key, $iv, $cipher, 0, $data);
 }
 
 ####################################################
@@ -920,10 +954,10 @@ sub kat($$$$$$$$) {
 	$out .= "IV = $iv\n" if (defined($iv) && $iv ne "");
 	if ($enc) {
 		$out .= "PLAINTEXT = $pt\n";
-		$out .= "CIPHERTEXT = " . encrypt($key1, $iv, $cipher, $pt) . "\n";
+		$out .= "CIPHERTEXT = " . &$encdec($key1, $iv, $cipher, 1, $pt) . "\n";
 	} else {
 		$out .= "CIPHERTEXT = $pt\n";
-		$out .= "PLAINTEXT = " . decrypt($key1, $iv, $cipher, $pt) . "\n";
+		$out .= "PLAINTEXT = " . &$encdec($key1, $iv, $cipher, 0, $pt) . "\n";
 	}
 
 	return $out;
@@ -1008,8 +1042,6 @@ sub crypto_mct($$$$$$$$) {
         my $source_data = hex2bin(shift);
 	my $cipher = shift;
         my $enc = shift;
-        my $line;
-        my $next_source;
 
 	my $out = "";
 
@@ -1025,18 +1057,7 @@ sub crypto_mct($$$$$$$$) {
 	my $iloop=1000;
 	if ($ciph =~ /des/) {$oloop=400;$iloop=10000;}
 
-        my ($CO, $CI);
-        my $cipher_imp = &$state_cipher($cipher, $enc, $bufsize, $key1, $iv);
-        my $pid = open2($CO, $CI, $cipher_imp);
-        my $len;
-
         for (my $i=0; $i<$oloop; ++$i) {
-                my $calc_data;
-                my $old_calc_data;
-                my $old_old_calc_data;
-                my $ov;
-                my $iv_arg;
-
 		$out .= "COUNT = $i\n";
 		if (defined($key2)) {
 			$out .= "$keytype = ". bin2hex($key1). "\n";
@@ -1059,45 +1080,69 @@ sub crypto_mct($$$$$$$$) {
                 } else {
                         $out .= "CIPHERTEXT = ". bin2hex($source_data). "\n";
                 }
+                my ($CO, $CI);
+		my $cipher_imp = &$state_cipher($cipher, $enc, $bufsize, $key1, $iv);
+		$cipher_imp = &$state_cipher_des($cipher, $enc, $bufsize, $key1, $iv) if($cipher =~ /des/);
+                my $pid = open2($CO, $CI, $cipher_imp);
 
-                # Need to provide a dummy IV in case of ECB mode.
-                $iv_arg =  (defined($iv) && $iv ne "")
-                             ? bin2hex($iv)
-                             : "00"x(length($source_data)); 
+                my $calc_data = $iv; # CT[j]
+                my $old_calc_data; # CT[j-1]
+                my $old_old_calc_data; # CT[j-2]
+		my $next_source;
 
-                print $CI "1\n"
-                          .$iloop."\n"
-                          .bin2hex($key1)."\n"
-                          .$iv_arg."\n"
-                          .bin2hex($source_data)."\n\n" or die;
-                
-                # fixme: We should skip over empty lines here.
+		# TDES inner loop implements logic within driver
+		if ($cipher =~ /des/) {
+			print $CI "1\n"
+				  .$iloop."\n"
+				  .bin2hex($key1)."\n"
+				  .bin2hex($iv)."\n"
+				  .bin2hex($source_data)."\n\n" or die;
+			chomp(my $line = <$CO>);
+			$calc_data = hex2bin($line);
+			chomp($line = <$CO>);
+			$old_calc_data = hex2bin($line);
+			chomp($line = <$CO>);
+			$old_old_calc_data = hex2bin($line);
+			chomp($line = <$CO>);
+			$iv = hex2bin($line);
+			chomp($line = <$CO>);
+			$next_source = hex2bin($line);
+			# Skip over empty line.
+			$line = <$CO>;
+		} else {
+	                for (my $j = 0; $j < $iloop; ++$j) {
+				$old_old_calc_data = $old_calc_data;
+                	        $old_calc_data = $calc_data;
 
-                chomp($line = <$CO>); #print STDERR "        calc=$line\n";
-                $calc_data = hex2bin($line);
+				#print STDERR "source_data=", bin2hex($source_data), "\n";
+				syswrite $CI, $source_data or die $!;
+				my $len = sysread $CO, $calc_data, $bufsize;
 
-                chomp($line = <$CO>); #print STDERR "    old_calc=$line\n";
-                $old_calc_data = hex2bin($line);
+				#print STDERR "len=$len, bufsize=$bufsize\n";
+				die if $len ne $bufsize;
+				#print STDERR "calc_data=", bin2hex($calc_data), "\n";
 
-                chomp($line = <$CO>); #print STDERR "old_old_calc=$line\n";
-                $old_old_calc_data = hex2bin($line);
-                
-                chomp($line = <$CO>); #print STDERR "          ov=$line\n";
-                $ov = hex2bin($line);
-                
-                chomp($line = <$CO>); #print STDERR " next source=$line\n";
-                $next_source = hex2bin($line);
-
-                # Skip over empty line.
-                $line = <$CO>;
-
+				if ( (!$enc && $ciph =~ /des/) ||
+				     $ciph =~ /rc4/ || 
+				     $cipher =~ /ecb/ ) {
+					#TDES in decryption mode, RC4 and ECB mode
+					#have a special rule
+					$source_data = $calc_data;
+				} else {
+		                        $source_data = $old_calc_data;
+				}
+	                }
+		}
+                close $CO;
+                close $CI;
+                waitpid $pid, 0;
 
                 if ($enc) {
                         $out .= "CIPHERTEXT = ". bin2hex($calc_data). "\n\n";
                 } else {
                         $out .= "PLAINTEXT = ". bin2hex($calc_data). "\n\n";
                 }
-
+		
 		if ( $ciph =~ /aes/ ) {
 	                $key1 ^= substr($old_calc_data . $calc_data, -$keylen);
 			#print STDERR bin2hex($key1)."\n";
@@ -1135,13 +1180,15 @@ sub crypto_mct($$$$$$$$) {
 			die "Test limitation: cipher '$cipher' not supported in Monte Carlo testing";
 		}
 
-                if ($ciph =~ /des/) {
-                    $iv = $ov if (defined($iv) && $iv ne "");
-                    if ($cipher =~ /des-ede3-ofb/) {
+		if ($cipher =~ /des-ede3-ofb/) {
                         $source_data = $source_data ^ $next_source;
-                    } else {
-                        $source_data = $next_source;
-                    }
+		} elsif (!$enc && $cipher =~ /des-ede3-cfb/) {
+			#TDES decryption CFB has a special rule
+			$source_data = $next_source;
+		} elsif (! $enc && $ciph =~ /des/ ) {
+			#TDES in decryption mode has a special rule
+			$iv = $old_calc_data;
+			$source_data = $calc_data;
 		} elsif ( $ciph =~ /rc4/ || $cipher =~ /ecb/ ) {
 			#No resetting of IV as the IV is all zero set initially (i.e. no IV)
 			$source_data = $calc_data;
@@ -1149,11 +1196,7 @@ sub crypto_mct($$$$$$$$) {
 	                $iv = $calc_data;
 			$source_data = $old_calc_data;
 		}
-
         }
-        close $CO;
-        close $CI;
-        waitpid $pid, 0;
 
 	return $out;
 }
@@ -1291,6 +1334,96 @@ sub rngx931($$$$) {
 	return $out;
 }
 
+# DSA PQGGen test
+# $1 modulus size
+# $2 number of rounds to perform the test
+# return: string formatted as expected by CAVS
+sub dsa_pqggen_driver($$) {
+	my $mod = shift;
+	my $rounds = shift;
+
+	my $out = "";
+	for(my $i=0; $i<$rounds; $i++) {
+		my $ret = &$dsa_pqggen($mod);
+		my ($P, $Q, $G, $Seed, $c, $H) = split(/\n/, $ret);
+		die "Return value does not contain all expected values of P, Q, G, Seed, c, H for dsa_pqggen"
+			if (!defined($P) || !defined($Q) || !defined($G) ||
+			    !defined($Seed) || !defined($c) || !defined($H));
+		$out .= "P = $P\n";
+		$out .= "Q = $Q\n";
+		$out .= "G = $G\n";
+		$out .= "Seed = $Seed\n";
+		$out .= "c = $c\n";
+		$out .= "H = $H\n\n";
+	}
+
+	return $out;
+}
+
+
+# DSA SigGen test
+# $1: Message to be signed in hex form
+# $2: file name with DSA key in PEM form
+# return: string formatted as expected by CAVS
+sub dsa_siggen($$) {
+	my $data = shift;
+	my $keyfile = shift;
+
+	my $out = "";
+
+	my %ret = &$dsa_sign($data, $keyfile);
+
+	$out .= "Msg = $data\n";
+	$out .= "Y = " . $ret{'Y'} . "\n";
+	$out .= "R = " . $ret{'R'} . "\n";
+	$out .= "S = " . $ret{'S'} . "\n";
+
+	return $out;
+}
+
+
+# DSA signature verification
+# $1 modulus
+# $2 P
+# $3 Q
+# $4 G
+# $5 Y - public key
+# $6 r
+# $7 s
+# $8 message to be verified
+# return: string formatted as expected by CAVS
+sub dsa_sigver($$$$$$$$) {
+	my $modulus = shift;
+	my $p = shift;
+	my $q = shift;
+	my $g = shift;
+	my $y = shift;
+	my $r = shift;
+	my $s = shift;
+	my $msg = shift;
+
+	my $out = "";
+
+	#PQG are already printed - do not print them here
+
+	$out .= "Msg = $msg\n";
+	$out .= "Y = $y\n";
+	$out .= "R = $r\n";
+	$out .= "S = $s\n";
+
+	# XXX maybe a secure temp file name is better here
+	# but since it is not run on a security sensitive
+	# system, I hope that this is fine
+	my $keyfile = "dsa_sigver.tmp.$$";
+	gen_pubdsakey($keyfile, $p, $q, $g, $y);
+
+	$out .= "Result = " . (&$dsa_verify($msg, $keyfile, $r, $s) ? "P\n" : "F\n");
+
+	unlink($keyfile);
+
+	return $out;
+}
+
 ##############################################################
 # Parser of input file and generator of result file
 #
@@ -1298,12 +1431,16 @@ sub rngx931($$$$) {
 sub usage() {
 
 	print STDERR "Usage:
-$0 [-R] [-I name] <CAVS-test vector file>
+$0 [-R] [-D] [-I name] <CAVS-test vector file>
 
 -R	execution of ARCFOUR instead of OpenSSL
 -I NAME	Use interface style NAME:
 		openssl     OpenSSL (default)
-		libgcrypt   Libgcrypt";
+		libgcrypt   Libgcrypt
+-D	SigGen and SigVer are executed with DSA
+	Please note that the DSA CAVS vectors do not allow distinguishing
+	them from the RSA vectors. As the RSA test is the default, you have
+	to supply this option to apply the DSA logic";
 }
 
 # Parser of CAVS test vector file
@@ -1315,9 +1452,6 @@ sub parse($$) {
 	my $outfile = shift;
 
 	my $out = "";
-
-	# Do I need to generate the key?
-	my $rsa_keygen = 0;
 
 	# this is my cipher/hash type
 	my $cipher = "";
@@ -1344,10 +1478,19 @@ sub parse($$) {
 	my $e = "";
 	my $signature = "";
 	my $rsa_keyfile = "";
+	my $dsa_keyfile = "";
 	my $dt = "";
 	my $v = "";
 	my $klen = "";
 	my $tlen = "";
+	my $modulus = "";
+	my $capital_n = 0;
+	my $capital_p = "";
+	my $capital_q = "";
+	my $capital_g = "";
+	my $capital_y = "";
+	my $capital_r = "";
+	my $capital_s = "";
 
 	my $mode = "";
 
@@ -1378,7 +1521,7 @@ sub parse($$) {
 
 		##### Extract cipher
 		# XXX there may be more - to be added
-		if ($tmpline =~ /^#.*(CBC|ECB|OFB|CFB|SHA-|SigGen|SigVer|RC4VS|ANSI X9\.31|Hash sizes tested)/) {
+		if ($tmpline =~ /^#.*(CBC|ECB|OFB|CFB|SHA-|SigGen|SigVer|RC4VS|ANSI X9\.31|Hash sizes tested|PQGGen)/) {
 			if ($tmpline    =~ /CBC/)   { $mode="cbc"; }
 			elsif ($tmpline =~ /ECB/)   { $mode="ecb"; }
 			elsif ($tmpline =~ /OFB/)   { $mode="ofb"; }
@@ -1397,10 +1540,6 @@ sub parse($$) {
 				$cipher="sha1"; #place holder - might be overwritten later
 			}
 
-			# RSA Key Generation test
-			if ($tmpline =~ /SigGen/) {
-				$rsa_keygen = 1;
-			}
 			if ($tmpline =~ /^#.*AESVS/) {
 				# AES cipher (part of it)
 				$cipher="aes";
@@ -1431,12 +1570,19 @@ sub parse($$) {
 
 			if ($tt == 0) {
 			##### Identify the test type
-				if ($tmpline =~ /KeyGen RSA \(X9.31\)/) {
-					$tt =~ 10;
-					die "Interface function for RSA KeyGen testing not defined for tested library"
-						if (!defined($gen_rsakey));
-				}
-				if ($tmpline =~ /Hash sizes tested/) {
+				if ($tmpline =~ /SigVer/ && $opt{'D'} ) {
+					$tt = 12;
+					die "Interface function dsa_verify for dSA verification not defined for tested library"
+						if (!defined($dsa_verify));
+				} elsif ($tmpline =~ /SigGen/ && $opt{'D'}) {
+					$tt = 11;
+					die "Interface function dsa_sign or gen_dsakey for DSA sign not defined for tested library"
+						if (!defined($dsa_sign) || !defined($gen_rsakey));
+				} elsif ($tmpline =~ /PQGGen/) {
+					$tt = 10;
+					die "Interface function for DSA PQGGen testing not defined for tested library"
+						if (!defined($dsa_pqggen));
+				} elsif ($tmpline =~ /Hash sizes tested/) {
 					$tt = 9;
 					die "Interface function hmac for HMAC testing not defined for tested library"
 						if (!defined($hmac));
@@ -1463,7 +1609,7 @@ sub parse($$) {
 				} elsif ($tmpline =~ /Monte|MCT|Carlo/) {
 					$tt = 2;
 					die "Interface function state_cipher for Stateful Cipher operation defined for tested library"
-						if (!defined($state_cipher));
+						if (!defined($state_cipher) || !defined($state_cipher_des));
 				} elsif ($cipher =~ /^sha/) {
 					$tt = 3;
 					die "Interface function hash for Hashing not defined for tested library"
@@ -1547,19 +1693,26 @@ sub parse($$) {
 			$pt=$2;
 		}
 		elsif ($line =~ /^\[mod\s*=\s*(.*)\]$/) { # found in RSA requests
-			$out .= $line . "\n"; # print it
+			$modulus = $1;
+			$out .= $line . "\n\n"; # print it
 			# generate the private key with given bit length now
 			# as we have the required key length in bit
-			if ($tt == 5) {
+			if ($tt == 11) {
+				$dsa_keyfile = "dsa_siggen.tmp.$$";
+				my %pqg = &$gen_dsakey($dsa_keyfile);
+				$out .= "P = " . $pqg{'P'} . "\n";
+				$out .= "Q = " . $pqg{'Q'} . "\n";
+				$out .= "G = " . $pqg{'G'} . "\n";
+			} elsif ( $tt == 5 ) {
 				# XXX maybe a secure temp file name is better here
 				# but since it is not run on a security sensitive
 				# system, I hope that this is fine
 				$rsa_keyfile = "rsa_siggen.tmp.$$";
-				&$gen_rsakey($1, $rsa_keyfile);
+				&$gen_rsakey($modulus, $rsa_keyfile);
 				my $modulus = pipe_through_program("", "openssl rsa -pubout -modulus -in $rsa_keyfile");
 				$modulus =~ s/Modulus=(.*?)\s(.|\s)*/$1/;
-				$out .= "\nn = $modulus\n";
-		                $out .= "\ne = 10001\n"
+				$out .= "n = $modulus\n";
+	        	        $out .= "\ne = 10001\n"
 			}
 		}
 		elsif ($line =~ /^SHAAlg\s*=\s*(.*)/) { #found in RSA requests
@@ -1595,6 +1748,44 @@ sub parse($$) {
 			die "Tlen seen twice - check input file"
 				if ($tlen ne "");
 			$tlen=$1;
+		}
+		elsif ($line =~ /^N\s*=\s*(.)/) { #DSA PQGGen
+			die "N seen twice - check input file"
+				if ($capital_n);
+			$capital_n = $1;
+		}
+		elsif ($line =~ /^P\s*=\s*(.)/) { #DSA SigVer
+			die "P seen twice - check input file"
+				if ($capital_p);
+			$capital_p = $1;
+			$out .= $line . "\n"; # print it
+		}
+		elsif ($line =~ /^Q\s*=\s*(.)/) { #DSA SigVer
+			die "Q seen twice - check input file"
+				if ($capital_q);
+			$capital_q = $1;
+			$out .= $line . "\n"; # print it
+		}
+		elsif ($line =~ /^G\s*=\s*(.)/) { #DSA SigVer
+			die "G seen twice - check input file"
+				if ($capital_g);
+			$capital_g = $1;
+			$out .= $line . "\n"; # print it
+		}
+		elsif ($line =~ /^Y\s*=\s*(.)/) { #DSA SigVer
+			die "Y seen twice - check input file"
+				if ($capital_y);
+			$capital_y = $1;
+		}
+		elsif ($line =~ /^R\s*=\s*(.)/) { #DSA SigVer
+			die "R seen twice - check input file"
+				if ($capital_r);
+			$capital_r = $1;
+		}
+		elsif ($line =~ /^S\s*=\s*(.)/) { #DSA SigVer
+			die "S seen twice - check input file"
+				if ($capital_s);
+			$capital_s = $1;
 		}
 		else {
 			$out .= $line . "\n";
@@ -1674,6 +1865,48 @@ sub parse($$) {
 				$pt = "";
 			}
 		}
+		elsif ($tt == 10) {
+			if ($modulus ne "" && $capital_n > 0) {
+				$out .= dsa_pqggen_driver($modulus, $capital_n);
+				#$mod is not resetted
+				$capital_n = 0;
+			}
+		}
+		elsif ($tt == 11) {
+			if ($pt ne "" && $dsa_keyfile ne "") {
+				$out .= dsa_siggen($pt, $dsa_keyfile);
+				$pt = "";
+			}
+		}
+		elsif ($tt == 12) {
+			if ($modulus ne "" &&
+			    $capital_p ne "" &&
+			    $capital_q ne "" &&
+			    $capital_g ne "" &&
+			    $capital_y ne "" &&
+			    $capital_r ne "" &&
+			    $capital_s ne "" &&
+			    $pt ne "") {
+				$out .= dsa_sigver($modulus,
+					 	   $capital_p,
+						   $capital_q,
+						   $capital_g,
+						   $capital_y,
+						   $capital_r,
+						   $capital_s,
+						   $pt);
+
+				# We do not clear the domain values PQG and
+				# the modulus value as they
+				# are specified only once in a file
+				# and we do not need to print them as they
+				# are already printed above
+				$capital_y = "";
+				$capital_r = "";
+				$capital_s = "";
+				$pt = "";
+			}
+		}
 		elsif ($tt > 0) {
 			die "Test case $tt not defined";
 		}
@@ -1704,7 +1937,7 @@ sub main() {
 
 	usage() unless @ARGV;
 
-	getopts("RI:", \%opt) or die "bad option";
+	getopts("DRI:", \%opt) or die "bad option";
 
 	##### Set library
 
@@ -1724,8 +1957,10 @@ sub main() {
 		$gen_rsakey =	\&libgcrypt_gen_rsakey;
 		$hash =		\&libgcrypt_hash;
 		$state_cipher =	\&libgcrypt_state_cipher;
+		$state_cipher_des =	\&libgcrypt_state_cipher_des;
 		$state_rng =	\&libgcrypt_state_rng;
 		$hmac =		\&libgcrypt_hmac;
+		$dsa_pqggen = 	\&libgcrypt_dsa_pqggen;
         } else {
                 die "Invalid interface option given";
         }

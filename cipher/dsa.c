@@ -356,15 +356,20 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
 
 /* Generate a DSA key pair with a key of size NBITS using the
    algorithm given in FIPS-186-3.  If USE_FIPS186_2 is true,
-   FIPS-186-2 is used and thus the length is restricted to
-   1024/160.  */
+   FIPS-186-2 is used and thus the length is restricted to 1024/160.
+   If DERIVEPARMS are not NULL the may contain a seed value. */
 static gpg_err_code_t
 generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
-                  int use_fips186_2,
+                  gcry_sexp_t deriveparms, int use_fips186_2,
                   int *r_counter, void **r_seed, size_t *r_seedlen,
                   gcry_mpi_t *r_h)
 {
   gpg_err_code_t ec;
+  struct {
+    gcry_sexp_t sexp;
+    const void *seed;
+    size_t seedlen;
+  } initial_seed = { NULL, NULL, 0 };
   gcry_mpi_t prime_q = NULL; 
   gcry_mpi_t prime_p = NULL; 
   gcry_mpi_t value_g = NULL; /* The generator. */
@@ -403,10 +408,22 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   else
     return GPG_ERR_INV_VALUE;
 
+  /* Get an initial seed value.  */
+  if (deriveparms)
+    {
+      initial_seed.sexp = gcry_sexp_find_token (deriveparms, "seed", 0);
+      if (initial_seed.sexp)
+        initial_seed.seed = gcry_sexp_nth_data (initial_seed.sexp, 1,
+                                                &initial_seed.seedlen);
+    }
+
   /* Fixme: Enable 186-3 after it has been approved and after fixing
-     the generation fucntion.  */
+     the generation function.  */
 /*   if (use_fips186_2) */
-    ec = _gcry_generate_fips186_2_prime (nbits, qbits, NULL, 0,
+  (void)use_fips186_2;
+    ec = _gcry_generate_fips186_2_prime (nbits, qbits, 
+                                         initial_seed.seed, 
+                                         initial_seed.seedlen,
                                          &prime_q, &prime_p, 
                                          r_counter,
                                          r_seed, r_seedlen);
@@ -415,6 +432,7 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
 /*                                          &prime_q, &prime_p, */
 /*                                          r_counter, */
 /*                                          r_seed, r_seedlen, NULL); */
+  gcry_sexp_release (initial_seed.sexp);
   if (ec)
     goto leave;
 
@@ -669,7 +687,7 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
       size_t seedlen;
       gcry_mpi_t h_value;
 
-      ec = generate_fips186 (&sk, nbits, qbits, use_fips186_2,
+      ec = generate_fips186 (&sk, nbits, qbits, deriveparms, use_fips186_2,
                              &counter, &seed, &seedlen, &h_value);
       gcry_sexp_release (deriveparms);
       if (!ec)
