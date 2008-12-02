@@ -34,6 +34,19 @@ static int verbose;
 static int debug;
 
 
+static void
+die (const char *format, ...)
+{
+  va_list arg_ptr;
+
+  va_start (arg_ptr, format);
+  vfprintf (stderr, format, arg_ptr);
+  va_end (arg_ptr);
+  exit (1);
+}
+
+
+
 /* Set up some test patterns */
 
 /* 48 bytes with value 1: this results in 8 limbs for 64bit limbs, 16limb for 32 bit limbs */
@@ -157,6 +170,110 @@ test_mul (void)
 }
 
 
+/* What we test here is that we don't overwrite our args and that
+   using thne same mpi for several args works.  */
+static int
+test_powm (void)
+{
+  int b_int = 17;
+  int e_int = 3;
+  int m_int = 19;  
+  gcry_mpi_t base = gcry_mpi_set_ui (NULL, b_int);
+  gcry_mpi_t exp = gcry_mpi_set_ui (NULL, e_int);
+  gcry_mpi_t mod = gcry_mpi_set_ui (NULL, m_int);
+  gcry_mpi_t res = gcry_mpi_new (0);
+
+  gcry_mpi_powm (res, base, exp, mod);
+  if (gcry_mpi_cmp_ui (base, b_int))
+    die ("test_powm failed for base at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (exp, e_int))
+    die ("test_powm_ui failed for exp at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (mod, m_int))
+    die ("test_powm failed for mod at %d\n", __LINE__);
+
+  /* Check using base for the result.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_set_ui (exp, e_int);
+  gcry_mpi_set_ui(mod, m_int);
+  gcry_mpi_powm (base, base, exp, mod);
+  if (gcry_mpi_cmp (res, base))
+    die ("test_powm failed at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (exp, e_int))
+    die ("test_powm_ui failed for exp at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (mod, m_int))
+    die ("test_powm failed for mod at %d\n", __LINE__);
+
+  /* Check using exp for the result.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_set_ui (exp, e_int);
+  gcry_mpi_set_ui(mod, m_int);
+  gcry_mpi_powm (exp, base, exp, mod);
+  if (gcry_mpi_cmp (res, exp))
+    die ("test_powm failed at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (base, b_int))
+    die ("test_powm failed for base at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (mod, m_int))
+    die ("test_powm failed for mod at %d\n", __LINE__);
+
+  /* Check using mod for the result.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_set_ui (exp, e_int);
+  gcry_mpi_set_ui(mod, m_int);
+  gcry_mpi_powm (mod, base, exp, mod);
+  if (gcry_mpi_cmp (res, mod))
+    die ("test_powm failed at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (base, b_int))
+    die ("test_powm failed for base at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (exp, e_int))
+    die ("test_powm_ui failed for exp at %d\n", __LINE__);
+
+  /* Now check base ^ base mod mod.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_set_ui(mod, m_int);
+  gcry_mpi_powm (res, base, base, mod);
+  if (gcry_mpi_cmp_ui (base, b_int))
+    die ("test_powm failed for base at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (mod, m_int))
+    die ("test_powm failed for mod at %d\n", __LINE__);
+
+  /* Check base ^ base mod mod with base as result.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_set_ui(mod, m_int);
+  gcry_mpi_powm (base, base, base, mod);
+  if (gcry_mpi_cmp (res, base))
+    die ("test_powm failed at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (mod, m_int))
+    die ("test_powm failed for mod at %d\n", __LINE__);
+
+  /* Check base ^ base mod mod with mod as result.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_set_ui(mod, m_int);
+  gcry_mpi_powm (mod, base, base, mod);
+  if (gcry_mpi_cmp (res, mod))
+    die ("test_powm failed at %d\n", __LINE__);
+  if (gcry_mpi_cmp_ui (base, b_int))
+    die ("test_powm failed for base at %d\n", __LINE__);
+
+  /* Now check base ^ base mod base.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_powm (res, base, base, base);
+  if (gcry_mpi_cmp_ui (base, b_int))
+    die ("test_powm failed for base at %d\n", __LINE__);
+
+  /* Check base ^ base mod base with base as result.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_powm (base, base, base, base);
+  if (gcry_mpi_cmp (res, base))
+    die ("test_powm failed at %d\n", __LINE__);
+
+  /* Fixme: We should add the rest of the cases of course.  */
+
+
+
+  return 1;
+}
+
+
 int 
 main (int argc, char* argv[])
 {
@@ -175,6 +292,7 @@ main (int argc, char* argv[])
   test_add ();
   test_sub ();
   test_mul ();
+  test_powm ();
 
   return 0;
 }

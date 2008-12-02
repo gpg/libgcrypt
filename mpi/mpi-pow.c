@@ -40,11 +40,15 @@ void
 gcry_mpi_powm (gcry_mpi_t res, 
                gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
 {
+  /* Pointer to the limbs of the arguments, their size and signs. */
   mpi_ptr_t  rp, ep, mp, bp;
   mpi_size_t esize, msize, bsize, rsize;
   int               msign, bsign, rsign;
-  int        esec,  msec,  bsec,  rsec;
+  /* Flags telling the secure allocation status of the arguments.  */
+  int        esec,  msec,  bsec,  rsec;  
+  /* Size of the result including space for temporary values.  */
   mpi_size_t size;
+  /* Helper.  */
   int mod_shift_cnt;
   int negative_result;
   mpi_ptr_t mp_marker = NULL;
@@ -55,7 +59,6 @@ gcry_mpi_powm (gcry_mpi_t res,
   unsigned int bp_nlimbs = 0;
   unsigned int ep_nlimbs = 0;
   unsigned int xp_nlimbs = 0;
-  int assign_rp = 0;
   mpi_ptr_t tspace = NULL;
   mpi_size_t tsize = 0; 
 
@@ -127,54 +130,43 @@ gcry_mpi_powm (gcry_mpi_t res,
       goto leave;
     }
 
+
+  /* Make BASE, EXPO and MOD not overlap with RES.  */
+  if ( rp == bp )
+    {
+      /* RES and BASE are identical.  Allocate temp. space for BASE.  */
+      gcry_assert (!bp_marker);
+      bp_nlimbs = bsec? bsize:0;
+      bp = bp_marker = mpi_alloc_limb_space( bsize, bsec );
+      MPN_COPY(bp, rp, bsize);
+    }
+  if ( rp == ep )
+    {
+      /* RES and EXPO are identical.  Allocate temp. space for EXPO.  */
+      ep_nlimbs = esec? esize:0;
+      ep = ep_marker = mpi_alloc_limb_space( esize, esec );
+      MPN_COPY(ep, rp, esize);
+    }
+  if ( rp == mp ) 
+    {
+      /* RES and MOD are identical.  Allocate temporary space for MOD.*/
+      gcry_assert (!mp_marker);
+      mp_nlimbs = msec?msize:0;
+      mp = mp_marker = mpi_alloc_limb_space( msize, msec );
+      MPN_COPY(mp, rp, msize);
+    }
+
+  /* Copy base to the result.  */
   if (res->alloced < size)
     {
-      /* We have to allocate more space for RES.  If any of the input
-         parameters are identical to RES, defer deallocation of the
-         old space.  */
-	if ( rp == ep || rp == mp || rp == bp ) 
-          {
-	    rp = mpi_alloc_limb_space( size, rsec );
-	    assign_rp = 1;
-          }
-	else
-          {
-	    mpi_resize( res, size );
-	    rp = res->d;
-          }
+      mpi_resize (res, size);
+      rp = res->d;
     }
-  else
-    { 
-      /* Make BASE, EXPO and MOD not overlap with RES.  */
-      if ( rp == bp )
-        {
-          /* RES and BASE are identical.  Allocate temp. space for BASE.  */
-          gcry_assert (!bp_marker);
-          bp_nlimbs = bsec? bsize:0;
-          bp = bp_marker = mpi_alloc_limb_space( bsize, bsec );
-          MPN_COPY(bp, rp, bsize);
-	}
-      if ( rp == ep )
-        {
-          /* RES and EXPO are identical.  Allocate temp. space for EXPO.  */
-          ep_nlimbs = esec? esize:0;
-          ep = ep_marker = mpi_alloc_limb_space( esize, esec );
-          MPN_COPY(ep, rp, esize);
-	}
-      if ( rp == mp ) 
-        {
-          /* RES and MOD are identical.  Allocate temporary space for MOD.*/
-          gcry_assert (!mp_marker);
-          mp_nlimbs = msec?msize:0;
-          mp = mp_marker = mpi_alloc_limb_space( msize, msec );
-          MPN_COPY(mp, rp, msize);
-	}
-    }
-  
   MPN_COPY ( rp, bp, bsize );
   rsize = bsize;
   rsign = bsign;
   
+  /* Main processing.  */
   {
     mpi_size_t i;
     mpi_ptr_t xp;
@@ -285,12 +277,8 @@ gcry_mpi_powm (gcry_mpi_t res,
             rsize++;
           }
       }
-    else
-      {
-        MPN_COPY( res->d, rp, rsize);
-        rp = res->d;
-      }
 
+    gcry_assert (res->d == rp);
     if ( rsize >= msize ) 
       {
         _gcry_mpih_divrem(rp + msize, 0, rp, rsize, mp, msize);
@@ -305,6 +293,7 @@ gcry_mpi_powm (gcry_mpi_t res,
     _gcry_mpih_release_karatsuba_ctx (&karactx );
   }
 
+  /* Fixup for negative results.  */
   if ( negative_result && rsize )
     {
       if ( mod_shift_cnt )
@@ -314,12 +303,11 @@ gcry_mpi_powm (gcry_mpi_t res,
       rsign = msign;
       MPN_NORMALIZE(rp, rsize);
     }
+  gcry_assert (res->d == rp);
   res->nlimbs = rsize;
   res->sign = rsign;
   
  leave:
-  if (assign_rp)
-    _gcry_mpi_assign_limb_space( res, rp, size );
   if (mp_marker)
     _gcry_mpi_free_limb_space( mp_marker, mp_nlimbs );
   if (bp_marker)
