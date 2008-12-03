@@ -25,7 +25,12 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "../src/gcrypt.h"
+#ifdef _GCRYPT_IN_LIBGCRYPT
+# include "../src/gcrypt.h"
+#else
+# include <gcrypt.h>
+#endif
+
 
 #define my_isascii(c) (!((c) & 0x80))
 #define digitp(p)   (*(p) >= '0' && *(p) <= '9')
@@ -444,7 +449,7 @@ main (int argc, char **argv)
     }
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  if (!gcry_check_version (GCRYPT_VERSION))
+  if (!gcry_check_version ("1.4.4"))
     die ("version mismatch\n");
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)

@@ -29,7 +29,13 @@
 #else
 #include <sys/times.h>
 #endif
-#include <gcrypt.h>
+
+#ifdef _GCRYPT_IN_LIBGCRYPT
+# include "../src/gcrypt.h"
+#else
+# include <gcrypt.h>
+#endif
+
 
 #define PGM "benchmark"
 

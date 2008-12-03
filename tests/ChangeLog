@@ -1,5 +1,7 @@
 2008-12-02  Werner Koch  <wk@g10code.com>
 
+	* fipsdrv.c: All standalone build.
+
 	* mpitests.c (mpi_powm): New.
 
 2008-11-28  Werner Koch  <wk@g10code.com>

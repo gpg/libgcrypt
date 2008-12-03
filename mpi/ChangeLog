@@ -1,3 +1,8 @@
+2008-12-03  Werner Koch  <wk@g10code.com>
+
+	* mpi-pow.c (gcry_mpi_powm): Fix last change.  Asserts are really
+	useful!
+
 2008-12-02  Werner Koch  <wk@g10code.com>
 
 	* mpi-pow.c (gcry_mpi_powm): Re-indent.
@@ -189,7 +194,7 @@
 2004-12-16  Werner Koch  <wk@g10code.com>
 
 	* config.links (mpi_optional_modules): Move entry for powerpc64
-	before generic powerpc.  Suggested by Rafael ¡vila de EspÌndola.
+	before generic powerpc.  Suggested by Rafael √Åvila de Esp√≠ndola.
 
 2004-03-02  Werner Koch  <wk@gnupg.org>
 
@@ -726,7 +731,7 @@ Thu Apr  9 11:31:36 1998  Werner Koch  (wk@isil.d.shuttle.de)
 
 Wed Apr  8 09:44:33 1998  Werner Koch  (wk@isil.d.shuttle.de)
 
-	* config.links: Applied small fix from Ulf Mˆller.
+	* config.links: Applied small fix from Ulf M√∂ller.
 
 Mon Apr  6 12:38:52 1998  Werner Koch  (wk@isil.d.shuttle.de)
 

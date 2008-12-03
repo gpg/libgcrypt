@@ -32,7 +32,14 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include <gcrypt.h>
+#ifdef _GCRYPT_IN_LIBGCRYPT
+# include "../src/gcrypt.h"
+#else
+# include <gcrypt.h>
+# define PACKAGE_BUGREPORT "devnull@example.org"
+# define PACKAGE_VERSION "[build on " __DATE__ " " __TIME__ "]"
+#endif
+
 
 #define PGM "fipsdrv"
 

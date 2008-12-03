@@ -277,8 +277,12 @@ gcry_mpi_powm (gcry_mpi_t res,
             rsize++;
           }
       }
+    else if (res->d != rp)
+      {
+        MPN_COPY (res->d, rp, rsize);
+        rp = res->d;
+      }
 
-    gcry_assert (res->d == rp);
     if ( rsize >= msize ) 
       {
         _gcry_mpih_divrem(rp + msize, 0, rp, rsize, mp, msize);

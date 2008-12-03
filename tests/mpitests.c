@@ -27,8 +27,11 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "../src/gcrypt.h"
-
+#ifdef _GCRYPT_IN_LIBGCRYPT
+# include "../src/gcrypt.h"
+#else
+# include <gcrypt.h>
+#endif
 
 static int verbose;
 static int debug;
