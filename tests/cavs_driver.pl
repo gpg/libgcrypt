@@ -217,6 +217,16 @@ my $hmac;
 #         h
 my $dsa_pqggen;
 
+#
+# Generate an DSA public key from the provided parameters:
+# $1: Name of file to create
+# $2: P in hex form
+# $3: Q in hex form
+# $4: G in hex form
+# $5: Y in hex form  
+my $dsa_genpubkey;
+
+
 # Verify a message with DSA
 # $1: data to be verified in hex form
 # $2: file holding the public DSA key in PEM format
@@ -450,6 +460,75 @@ sub libgcrypt_dsa_pqggen($) {
 	my $program = "fipsdrv --keysize $mod dsa-pqg-gen";
 	return pipe_through_program("", $program);
 }
+
+sub libgcrypt_gen_dsakey($) {
+	my $file = shift;
+
+	my $program = "fipsdrv --keysize 1024 --key $file dsa-gen";
+        my $tmp;
+        my %ret;
+
+	die "ARCFOUR not available for DSA" if $opt{'R'};
+
+        $tmp = pipe_through_program("", $program);
+	die "dsa key gen failed: file $file not created" if (! -f $file);
+
+        @ret{'P', 'Q', 'G', 'Seed', 'c', 'H'} = split(/\n/, $tmp);
+        return %ret;
+}
+
+sub libgcrypt_dsa_genpubkey($$$$$) {
+	my $filename = shift;
+	my $p = shift;
+	my $q = shift;
+	my $g = shift;
+	my $y = shift;
+
+        my $sexp;
+
+        $sexp = "(public-key(dsa(p #$p#)(q #$q#)(g #$g#)(y #$y#)))"; 
+
+	open(FH, ">", $filename) or die;
+	print FH $sexp;
+	close FH;  
+}
+
+sub libgcrypt_dsa_sign($$) {
+	my $data = shift;
+	my $keyfile = shift;
+        my $tmp;
+        my %ret; 
+        
+	die "ARCFOUR not available for DSA" if $opt{'R'};
+
+	$tmp = pipe_through_program($data, "fipsdrv --key $keyfile dsa-sign");
+        @ret{'Y', 'R', 'S'} = split(/\n/, $tmp);
+        return %ret;
+}
+
+sub libgcrypt_dsa_verify($$$$) {
+	my $data = shift;
+	my $keyfile = shift;
+	my $r = shift;
+	my $s = shift;
+        
+        my $ret;
+
+	die "ARCFOUR not available for DSA" if $opt{'R'};
+
+	my $sigfile = "$keyfile.sig";
+	open(FH, ">$sigfile") or die "Cannot create file $sigfile: $?";
+	print FH "(sig-val(dsa(r #$r)(s #$s#)))";
+	close FH;
+
+	$ret = pipe_through_program($data, 
+                 "fipsdrv --verbose --key $keyfile --signature $sigfile dsa-verify");
+        unlink ($sigfile);
+	# Parse through the output information
+	return ($ret =~ /GOOD signature/);
+}
+
+
 
 ######### End of libgcrypt implementation ################
 
@@ -1415,7 +1494,7 @@ sub dsa_sigver($$$$$$$$) {
 	# but since it is not run on a security sensitive
 	# system, I hope that this is fine
 	my $keyfile = "dsa_sigver.tmp.$$";
-	gen_pubdsakey($keyfile, $p, $q, $g, $y);
+	&dsa_genpubkey($keyfile, $p, $q, $g, $y);
 
 	$out .= "Result = " . (&$dsa_verify($msg, $keyfile, $r, $s) ? "P\n" : "F\n");
 
@@ -1572,8 +1651,8 @@ sub parse($$) {
 			##### Identify the test type
 				if ($tmpline =~ /SigVer/ && $opt{'D'} ) {
 					$tt = 12;
-					die "Interface function dsa_verify for dSA verification not defined for tested library"
-						if (!defined($dsa_verify));
+					die "Interface function dsa_verify or dsa_genpubey for dSA verification not defined for tested library"
+						if (!defined($dsa_verify) || !defined($dsa_genpubkey));
 				} elsif ($tmpline =~ /SigGen/ && $opt{'D'}) {
 					$tt = 11;
 					die "Interface function dsa_sign or gen_dsakey for DSA sign not defined for tested library"
@@ -1927,6 +2006,8 @@ sub cleanup() {
 	unlink("rsa_sigver.tmp.$$.sig");
 	unlink("rsa_sigver.tmp.$$.der");
 	unlink("rsa_sigver.tmp.$$.cnf");
+
+	unlink("dsa_sigver.tmp.$$.sig");
 	exit;
 }
 
@@ -1961,6 +2042,10 @@ sub main() {
 		$state_rng =	\&libgcrypt_state_rng;
 		$hmac =		\&libgcrypt_hmac;
 		$dsa_pqggen = 	\&libgcrypt_dsa_pqggen;
+		$gen_dsakey = 	\&libgcrypt_gen_dsakey;
+		$dsa_sign = 	\&libgcrypt_dsa_sign;
+		$dsa_verify = 	\&libgcrypt_dsa_verify;
+                $dsa_genpubkey = \&libgcrypt_dsa_genpubkey;
         } else {
                 die "Invalid interface option given";
         }

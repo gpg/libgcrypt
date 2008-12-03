@@ -1,3 +1,11 @@
+2008-12-03  Werner Koch  <wk@g10code.com>
+
+	* fipsdrv.c (run_dsa_pqg_gen): Facor code out into ..
+	(print_dsa_domain_parameters, dsa_gen): .. these two new functions.
+	(print_sexp, read_sexp_from_file): New.
+	(run_dsa_sign): New.
+	(run_dsa_verify): New.
+
 2008-12-02  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c: All standalone build.

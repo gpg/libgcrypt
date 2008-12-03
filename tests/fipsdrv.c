@@ -739,6 +739,34 @@ read_sig_file (const char *fname)
 }
 
 
+/* Read an S-expression from FNAME.  */
+static gcry_sexp_t
+read_sexp_from_file (const char *fname)
+{
+  gcry_error_t err;
+  FILE *fp;
+  char *buffer;
+  size_t buflen;
+  gcry_sexp_t sexp;
+
+  fp = fopen (fname, "rb");
+  if (!fp)
+    die ("can't open `%s': %s\n", fname, strerror (errno));
+  buffer = read_file (fp, 0, &buflen);
+  if (!buffer)
+    die ("error reading `%s'\n", fname);
+  fclose (fp);
+  if (!buflen)
+    die ("error: file `%s' is empty\n", fname);
+
+  err = gcry_sexp_create (&sexp, buffer, buflen, 1, gcry_free);
+  if (err)
+    die ("error parsing `%s': %s\n", fname, gpg_strerror (err));
+
+  return sexp;
+}
+
+
 static void
 print_buffer (const void *buffer, size_t length)
 {
@@ -873,6 +901,21 @@ print_data_line (const void *data, size_t datalen)
     writerr++;
   if (writerr)
     die ("writing output failed: %s\n", strerror (errno));
+}
+
+/* Print the S-expression A to the stream FP.  */
+static void
+print_sexp (gcry_sexp_t a, FILE *fp)
+{
+  char *buf;
+  size_t size;
+
+  size = gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, NULL, 0);
+  buf = gcry_xmalloc (size);
+  gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, buf, size);
+  if (fwrite (buf, size, 1, fp) != 1)
+    die ("error writing to stream: %s\n", strerror (errno));
+  gcry_free (buf);
 }
 
 
@@ -1542,42 +1585,52 @@ run_rsa_verify (const void *data, size_t datalen, int hashalgo, int pkcs1,
 
 
 
-/* Generate DSA donmain parameters for a modulus size of KEYSIZE.  The
-   result is printed to stdout with one parameter per line in hex
-   format and in this order: p, q, g, seed, counter, h.  */
-static void
-run_dsa_pqg_gen (int keysize)
+/* Generate a DSA key of size KEYSIZE and return the complete
+   S-expression.  */
+static gcry_sexp_t
+dsa_gen (int keysize)
 {
   gpg_error_t err;
-  gcry_sexp_t keyspec, key, l1, l2;
+  gcry_sexp_t keyspec, key;
+
+  err = gcry_sexp_build (&keyspec, NULL, 
+                         "(genkey (dsa (nbits %d)(use-fips186-2)))",
+                         keysize);
+  if (err)
+    die ("gcry_sexp_build failed for DSA key generation: %s\n",
+         gpg_strerror (err));
+
+  err = gcry_pk_genkey (&key, keyspec);
+  if (err)
+    die ("gcry_pk_genkey failed for DSA: %s\n", gpg_strerror (err));
+  
+  gcry_sexp_release (keyspec);
+
+  return key;
+}
+
+
+/* Print the domain parameter as well as the derive information.  KEY
+   is the complete key as returned by dsa_gen.  We print to stdout
+   with one parameter per line in hex format using this order: p, q,
+   g, seed, counter, h. */
+static void 
+print_dsa_domain_parameters (gcry_sexp_t key)
+{
+  gcry_sexp_t l1, l2;
   gcry_mpi_t mpi;
   int idx;
   const void *data;
   size_t datalen;
   char *string;
 
-  /* Note that we create a complete key but don't return the x and y
-     values.  */
-  err = gcry_sexp_build (&keyspec, NULL, 
-                         "(genkey (dsa (nbits %d)(use-fips186-2)))",
-                         keysize);
-  if (err)
-    die ("gcry_sexp_build failed for DSA domain parameter generation: %s\n",
-         gpg_strerror (err));
-
-  err = gcry_pk_genkey (&key, keyspec);
-  if (err)
-    die ("gcry_pk_genkey failed for RSA: %s\n", gpg_strerror (err));
-  
-  gcry_sexp_release (keyspec);
-
-  l1 = gcry_sexp_find_token (key, "private-key", 0);
+  l1 = gcry_sexp_find_token (key, "public-key", 0);
   if (!l1)
-    die ("private key not found in genkey result\n");
+    die ("public key not found in genkey result\n");
 
   l2 = gcry_sexp_find_token (l1, "dsa", 0);
   if (!l2)
-    die ("returned private key not formed as expected\n");
+    die ("returned public key not formed as expected\n");
   gcry_sexp_release (l1);
   l1 = l2;
 
@@ -1586,10 +1639,10 @@ run_dsa_pqg_gen (int keysize)
     {
       l2 = gcry_sexp_find_token (l1, "pqg"+idx, 1);
       if (!l2)
-        die ("no %c parameter in returned private key\n", "pqg"[idx]);
+        die ("no %c parameter in returned public key\n", "pqg"[idx]);
       mpi = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
       if (!mpi)
-        die ("no value for %c parameter in returned private key\n","pqg"[idx]);
+        die ("no value for %c parameter in returned public key\n","pqg"[idx]);
       gcry_sexp_release (l2);
       print_mpi_line (mpi, 1);
       gcry_mpi_release (mpi);
@@ -1603,42 +1656,211 @@ run_dsa_pqg_gen (int keysize)
 
   l2 = gcry_sexp_find_token (l1, "seed-values", 0);
   if (!l2)
-    die ("no seed-values in returned private key\n");
+    die ("no seed-values in returned key\n");
   gcry_sexp_release (l1);
   l1 = l2;
 
   l2 = gcry_sexp_find_token (l1, "seed", 0);
   if (!l2)
-    die ("no seed value in returned private key\n");
+    die ("no seed value in returned key\n");
   data = gcry_sexp_nth_data (l2, 1, &datalen);
   if (!data)
-    die ("no seed value in returned private key\n");
+    die ("no seed value in returned key\n");
   print_data_line (data, datalen);
   gcry_sexp_release (l2);
 
   l2 = gcry_sexp_find_token (l1, "counter", 0);
   if (!l2)
-    die ("no counter value in returned private key\n");
+    die ("no counter value in returned key\n");
   string = gcry_sexp_nth_string (l2, 1);
   if (!string)
-    die ("no counter value in returned private key\n");
+    die ("no counter value in returned key\n");
   printf ("%lX\n", strtoul (string, NULL, 10));
   gcry_free (string);
   gcry_sexp_release (l2);
 
   l2 = gcry_sexp_find_token (l1, "h", 0);
   if (!l2)
-    die ("no n value in returned private key\n");
+    die ("no n value in returned key\n");
   mpi = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
   if (!mpi)
-    die ("no h value in returned private key\n");
+    die ("no h value in returned key\n");
   print_mpi_line (mpi, 1);
   gcry_mpi_release (mpi);
   gcry_sexp_release (l2);
 
   gcry_sexp_release (l1);
+}
+
+
+/* Generate DSA domain parameters for a modulus size of KEYSIZE.  The
+   result is printed to stdout with one parameter per line in hex
+   format and in this order: p, q, g, seed, counter, h.  */
+static void
+run_dsa_pqg_gen (int keysize)
+{
+  gcry_sexp_t key;
+
+  key = dsa_gen (keysize);
+  print_dsa_domain_parameters (key);
   gcry_sexp_release (key);
 }
+
+
+/* Generate a DSA key of size of KEYSIZE and write the private key to
+   FILENAME.  Also write the parameters to stdout in the same way as
+   run_dsa_pqg_gen.  */
+static void
+run_dsa_gen (int keysize, const char *filename)
+{
+  gcry_sexp_t key, private_key;
+  FILE *fp;
+
+  key = dsa_gen (keysize);
+  private_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (!private_key)
+    die ("private key not found in genkey result\n");
+  print_dsa_domain_parameters (key);
+
+  fp = fopen (filename, "wb");
+  if (!fp)
+    die ("can't create `%s': %s\n", filename, strerror (errno));
+  print_sexp (private_key, fp);
+  fclose (fp);
+
+  gcry_sexp_release (private_key);
+  gcry_sexp_release (key);
+}
+
+
+
+/* Sign DATA of length DATALEN using the key taken from the S-expression
+   encoded KEYFILE. */
+static void
+run_dsa_sign (const void *data, size_t datalen, const char *keyfile)
+
+{
+  gpg_error_t err;
+  gcry_sexp_t s_data, s_key, s_sig, s_tmp, s_tmp2;
+  gcry_mpi_t tmpmpi;
+
+  err = gcry_mpi_scan (&tmpmpi, GCRYMPI_FMT_USG, data, datalen, NULL);
+  if (!err)
+    {
+      err = gcry_sexp_build (&s_data, NULL,
+                             "(data (flags raw)(value %m))", tmpmpi);
+      gcry_mpi_release (tmpmpi);
+    }
+  if (err)
+    die ("gcry_sexp_build failed for DSA data input: %s\n",
+         gpg_strerror (err));
+
+  s_key = read_sexp_from_file (keyfile);
+
+  err = gcry_pk_sign (&s_sig, s_data, s_key);
+  if (err)
+    {
+      gcry_sexp_release (read_private_key_file (keyfile, 1));
+      die ("gcry_pk_signed failed (datalen=%d,keyfile=%s): %s\n",
+           (int)datalen, keyfile, gpg_strerror (err));
+    }
+  gcry_sexp_release (s_data);
+
+  /* We need to return the Y parameter first.  */
+  s_tmp = gcry_sexp_find_token (s_key, "private-key", 0);
+  if (!s_tmp)
+    die ("private key part not found in provided key\n");
+
+  s_tmp2 = gcry_sexp_find_token (s_tmp, "dsa", 0);
+  if (!s_tmp2)
+    die ("private key part is not a DSA key\n");
+  gcry_sexp_release (s_tmp);
+
+  s_tmp = gcry_sexp_find_token (s_tmp2, "y", 0);
+  tmpmpi = gcry_sexp_nth_mpi (s_tmp, 1, GCRYMPI_FMT_USG);
+  if (!tmpmpi)
+    die ("no y parameter in DSA key\n");
+  print_mpi_line (tmpmpi, 1);
+  gcry_mpi_release (tmpmpi);
+  gcry_sexp_release (s_tmp);
+
+  gcry_sexp_release (s_key);
+
+
+  /* Now return the actual signature.  */
+  s_tmp = gcry_sexp_find_token (s_sig, "sig-val", 0);
+  if (!s_tmp)
+    die ("no sig-val element in returned S-expression\n");
+
+  gcry_sexp_release (s_sig);
+  s_sig = s_tmp;
+  s_tmp = gcry_sexp_find_token (s_sig, "dsa", 0);
+  if (!s_tmp)
+    die ("no dsa element in returned S-expression\n");
+
+  gcry_sexp_release (s_sig);
+  s_sig = s_tmp;
+
+  s_tmp = gcry_sexp_find_token (s_sig, "r", 0);
+  tmpmpi = gcry_sexp_nth_mpi (s_tmp, 1, GCRYMPI_FMT_USG);
+  if (!tmpmpi)
+    die ("no r parameter in returned S-expression\n");
+  print_mpi_line (tmpmpi, 1);
+  gcry_mpi_release (tmpmpi);
+  gcry_sexp_release (s_tmp);
+    
+  s_tmp = gcry_sexp_find_token (s_sig, "s", 0);
+  tmpmpi = gcry_sexp_nth_mpi (s_tmp, 1, GCRYMPI_FMT_USG);
+  if (!tmpmpi)
+    die ("no s parameter in returned S-expression\n");
+  print_mpi_line (tmpmpi, 1);
+  gcry_mpi_release (tmpmpi);
+  gcry_sexp_release (s_tmp);
+
+  gcry_sexp_release (s_sig);
+}
+
+
+
+/* Verify DATA of length DATALEN using the public key taken from the
+   S-expression in KEYFILE against the S-expression formatted
+   signature in SIGFILE.  */
+static void
+run_dsa_verify (const void *data, size_t datalen,
+                const char *keyfile, const char *sigfile)
+
+{
+  gpg_error_t err;
+  gcry_sexp_t s_data, s_key, s_sig;
+  gcry_mpi_t tmpmpi;
+  
+  err = gcry_mpi_scan (&tmpmpi, GCRYMPI_FMT_USG, data, datalen, NULL);
+  if (!err)
+    {
+      err = gcry_sexp_build (&s_data, NULL,
+                             "(data (flags raw)(value %m))", tmpmpi);
+      gcry_mpi_release (tmpmpi);
+    }
+  if (err)
+    die ("gcry_sexp_build failed for DSA data input: %s\n",
+         gpg_strerror (err));
+
+  s_key = read_sexp_from_file (keyfile);
+  s_sig = read_sexp_from_file (sigfile);
+
+  err = gcry_pk_verify (s_sig, s_data, s_key);
+  if (!err)
+    puts ("GOOD signature");
+  else if (gpg_err_code (err) == GPG_ERR_BAD_SIGNATURE)
+    puts ("BAD signature");
+  else
+    printf ("ERROR (%s)\n", gpg_strerror (err));
+
+  gcry_sexp_release (s_sig);
+  gcry_sexp_release (s_key);
+  gcry_sexp_release (s_data);
+}
+
 
 
 
@@ -1656,7 +1878,7 @@ usage (int show_help)
      "Run a crypto operation using hex encoded input and output.\n"
      "MODE:\n"
      "  encrypt, decrypt, digest, random, hmac-sha, rsa-{gen,sign,verify},\n"
-     "  dsa-pqg-gen\n"
+     "  dsa-{pqg-gen,gen,sign,verify}\n"
      "OPTIONS:\n"
      "  --verbose        Print additional information\n"
      "  --binary         Input and output is in binary form\n"
@@ -1850,7 +2072,8 @@ main (int argc, char **argv)
       && !mct_server
       && strcmp (mode_string, "random")
       && strcmp (mode_string, "rsa-gen")
-      && strcmp (mode_string, "dsa-pqg-gen") )
+      && strcmp (mode_string, "dsa-pqg-gen")
+      && strcmp (mode_string, "dsa-gen") )
     {
       data = read_file (input, !binary_input, &datalen);
       if (!data)
@@ -2096,6 +2319,43 @@ main (int argc, char **argv)
       if (keysize < 1024 || keysize > 3072)
         die ("invalid keysize specified; needs to be 1024 .. 3072\n");
       run_dsa_pqg_gen (keysize);
+    }
+  else if (!strcmp (mode_string, "dsa-gen"))
+    {
+      int keysize;
+      
+      keysize = keysize_string? atoi (keysize_string) : 0;
+      if (keysize < 1024 || keysize > 3072)
+        die ("invalid keysize specified; needs to be 1024 .. 3072\n");
+      if (!key_string)
+        die ("option --key is required in this mode\n");
+      run_dsa_gen (keysize, key_string);
+    }
+  else if (!strcmp (mode_string, "dsa-sign"))
+    {
+      if (!key_string)
+        die ("option --key is required in this mode\n");
+      if (access (key_string, R_OK))
+        die ("option --key needs to specify an existing keyfile\n");
+      if (!data)
+        die ("no data available (do not use --chunk)\n");
+
+      run_dsa_sign (data, datalen, key_string);
+    }
+  else if (!strcmp (mode_string, "dsa-verify"))
+    {
+      if (!key_string)
+        die ("option --key is required in this mode\n");
+      if (access (key_string, R_OK))
+        die ("option --key needs to specify an existing keyfile\n");
+      if (!data)
+        die ("no data available (do not use --chunk)\n");
+      if (!signature_string)
+        die ("option --signature is required in this mode\n");
+      if (access (signature_string, R_OK))
+        die ("option --signature needs to specify an existing file\n");
+
+      run_dsa_verify (data, datalen, key_string, signature_string);
     }
   else
     usage (0);
