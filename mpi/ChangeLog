@@ -1,3 +1,7 @@
+2008-12-04  Werner Koch  <wk@g10code.com>
+
+	* mpicoder.c: Re-indent.
+
 2008-12-03  Werner Koch  <wk@g10code.com>
 
 	* mpi-pow.c (gcry_mpi_powm): Fix last change.  Asserts are really
