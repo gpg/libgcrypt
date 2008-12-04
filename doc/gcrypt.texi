@@ -626,7 +626,7 @@ after initialization.
 
 @item GCRYCTL_DISABLE_SECMEM; Arguments: none
 This command disables the use of secure memory.  If this command is
-used in FIPS mode, FIPS mode will be disabled and the fucntion
+used in FIPS mode, FIPS mode will be disabled and the function
 @code{gcry_fips_mode_active} returns false.  However, in Enforced FIPS
 mode this command has no effect at all.
 
@@ -1207,7 +1207,7 @@ above:
 @chapter Handler Functions
 
 Libgcrypt makes it possible to install so called `handler functions',
-which get called by Libgcrypt in case of certain events.
+which get called by Libgcrypt in case of certain events. 
 
 @menu
 * Progress handler::            Using a progress handler function.
@@ -1235,7 +1235,8 @@ this purpose.
 @deftypefun void gcry_set_progress_handler (gcry_handler_progress_t @var{cb}, void *@var{cb_data})
 
 This function installs @var{cb} as the `Progress handler' function.
-@var{cb} must be defined as follows:
+It may be used only during initialization.  @var{cb} must be defined
+as follows:
 
 @example
 void
@@ -1309,7 +1310,14 @@ following function:
 
 @deftypefun void gcry_set_allocation_handler (gcry_handler_alloc_t @var{func_alloc}, gcry_handler_alloc_t @var{func_alloc_secure}, gcry_handler_secure_check_t @var{func_secure_check}, gcry_handler_realloc_t @var{func_realloc}, gcry_handler_free_t @var{func_free})
 Install the provided functions and use them instead of the built-in
-functions for doing memory allocation.
+functions for doing memory allocation.  Using this function is in
+general not recommended because the standard Libgcrypt allocation
+functions are guaranteed to zeroize memory if needed.
+
+This function may be used only during initialization and may not be
+used in fips mode.
+
+
 @end deftypefun
 
 @node Error handler
