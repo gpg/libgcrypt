@@ -1,4 +1,14 @@
-2008-12-04  Werner Koch  <wk@g10code.com>
+2008-12-05  Werner Koch  <wk@g10code.com>
+
+	* mpicoder.c (mpi_read_from_buffer): Do not bail out if the mpi is
+	larger than the buffer (potential problem).  Do not print error
+	messages.
+	(mpi_fromstr): Return an error instead of hitting an assert.
+	(gcry_mpi_scan) <PGP>: Fix potential double free problem.
+	(gcry_mpi_scan) <HEX>: Fix potential memory leak.
+	(do_get_buffer): Return NULL on memory allocation failure.
+	(gcry_mpi_print): Check result of do_get_buffer.
+	(gcry_mpi_aprint): Return error on a memory allocation failure.
 
 	* mpicoder.c: Re-indent.
 

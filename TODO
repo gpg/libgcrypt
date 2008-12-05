@@ -36,9 +36,6 @@ What's left to do                                 -*- outline -*-
   collectros need to run that bunch of Unix utilities we don't waste
   their precious results.
 
-* mpi_print does not use secure memory
-  for internal variables.
-
 * Add OAEP
 
 * gcryptrnd.c

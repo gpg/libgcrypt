@@ -1,4 +1,4 @@
-/* random-csprng.c - CSPRNG style random number generator (libgcrypt clssic)
+/* random-csprng.c - CSPRNG style random number generator (libgcrypt classic)
  * Copyright (C) 1998, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
  *               2007, 2008  Free Software Foundation, Inc.
  *
@@ -20,9 +20,15 @@
 
 /*
    This random number generator is modelled after the one described in
-   Peter Gutmann's paper: "Software Generation of Practically Strong
-   Random Numbers". See also chapter 6 in his book "Cryptographic
-   Security Architecture", New York, 2004, ISBN 0-387-95387-6.
+   Peter Gutmann's 1998 Usenix Security Symposium paper: "Software
+   Generation of Practically Strong Random Numbers".  See also chapter
+   6 in his book "Cryptographic Security Architecture", New York,
+   2004, ISBN 0-387-95387-6.
+
+   Note that the acronym CSPRNG stands for "Continuously Seeded
+   PseudoRandom Number Generator" as used in Peter's implementation of
+   the paper and not only for "Cryptographically Secure PseudoRandom
+   Number Generator".
  */
 
 

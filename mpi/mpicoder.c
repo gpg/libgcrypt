@@ -1,6 +1,6 @@
 /* mpicoder.c  -  Coder for the external representation of MPIs
- * Copyright (C) 1998, 1999, 2000, 2001, 2002,
- *               2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
+ *               2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -43,12 +43,12 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
   nbits = buffer[0] << 8 | buffer[1];
   if ( nbits > MAX_EXTERN_MPI_BITS )
     {
-      log_error ("mpi too large (%u bits)\n", nbits);
+/*       log_debug ("mpi too large (%u bits)\n", nbits); */
       goto leave;
     }
   else if( !nbits ) 
     {
-      log_error ("an mpi of size 0 is not allowed\n");
+/*       log_debug ("an mpi of size 0 is not allowed\n"); */
       goto leave;
     }
   buffer += 2;
@@ -56,7 +56,7 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
 
   nbytes = (nbits+7) / 8;
   nlimbs = (nbytes+BYTES_PER_MPI_LIMB-1) / BYTES_PER_MPI_LIMB;
-  val = secure? mpi_alloc_secure (nlimbs) : mpi_alloc( nlimbs );
+  val = secure? mpi_alloc_secure (nlimbs) : mpi_alloc (nlimbs);
   i = BYTES_PER_MPI_LIMB - nbytes % BYTES_PER_MPI_LIMB;
   i %= BYTES_PER_MPI_LIMB;
   j= val->nlimbs = nlimbs;
@@ -67,7 +67,12 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
       for (; i < BYTES_PER_MPI_LIMB; i++ ) 
         {
           if ( ++nread > *ret_nread )
-            log_bug ("mpi larger than buffer");
+            {
+/*               log_debug ("mpi larger than buffer"); */
+              mpi_free (val);
+              val = NULL;
+              goto leave;
+            }
           a <<= 8;
           a |= *buffer++;
 	}
@@ -82,7 +87,7 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
 
 
 /****************
- * Make an mpi from a hex character string.
+ * Fill the mpi VAL from the hex string in STR.
  */
 static int
 mpi_fromstr (gcry_mpi_t val, const char *str)
@@ -130,9 +135,17 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
           else
             c1 = *str++;
 
-          gcry_assert (c1);
+          if (!c1)
+            {
+              mpi_clear (val);
+              return 1;  /* Error.  */
+	    }
           c2 = *str++;
-          gcry_assert (c2);
+          if (!c2)
+            {
+              mpi_clear (val);
+              return 1;  /* Error.  */
+	    }
           if ( c1 >= '0' && c1 <= '9' )
             c = c1 - '0';
           else if ( c1 >= 'a' && c1 <= 'f' )
@@ -216,9 +229,10 @@ _gcry_log_mpidump (const char *text, gcry_mpi_t a)
 
 /* Return an allocated buffer with the MPI (msb first).  NBYTES
    receives the length of this buffer.  Caller must free the return
-   string.  This function does return a 0 byte buffer with NBYTES set
+   string.  This function returns an allocated buffer with NBYTES set
    to zero if the value of A is zero.  If sign is not NULL, it will be
-   set to the sign of the A.  */
+   set to the sign of the A.  On error NULL is returned and ERRNO set
+   appropriately.  */
 static unsigned char *
 do_get_buffer (gcry_mpi_t a, unsigned int *nbytes, int *sign, int force_secure)
 {
@@ -232,8 +246,10 @@ do_get_buffer (gcry_mpi_t a, unsigned int *nbytes, int *sign, int force_secure)
 
   *nbytes = a->nlimbs * BYTES_PER_MPI_LIMB;
   n = *nbytes? *nbytes:1; /* Allocate at least one byte.  */
-  p = buffer = force_secure || mpi_is_secure(a) ? gcry_xmalloc_secure(n)
-						  : gcry_xmalloc(n);
+  p = buffer = (force_secure || mpi_is_secure(a))? gcry_malloc_secure (n)
+						 : gcry_malloc (n);
+  if (!buffer)
+    return NULL;
 
   for (i=a->nlimbs-1; i >= 0; i--)
     {
@@ -399,7 +415,7 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	}
       else
         mpi_free(a);
-      return gcry_error (GPG_ERR_NO_ERROR);
+      return 0;
     }
   else if (format == GCRYMPI_FMT_USG)
     {
@@ -428,9 +444,12 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
           mpi_normalize (a);
           *ret_mpi = a;
 	}
-      else
-        mpi_free(a);
-      return gcry_error (a ? GPG_ERR_NO_ERROR : GPG_ERR_INV_OBJ);
+      else if (a)
+        {
+          mpi_free(a);
+          a = NULL;
+        }
+      return a? 0 : gcry_error (GPG_ERR_INV_OBJ);
     }
   else if (format == GCRYMPI_FMT_SSH)
     {
@@ -464,14 +483,14 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 	}
       if (nscanned)
         *nscanned = n+4;
-	if (ret_mpi)
-          {
-	    mpi_normalize ( a );
-	    *ret_mpi = a;
-          }
-	else
-          mpi_free(a);
-	return 0;
+      if (ret_mpi)
+        {
+          mpi_normalize ( a );
+          *ret_mpi = a;
+        }
+      else
+        mpi_free(a);
+      return 0;
     }
   else if (format == GCRYMPI_FMT_HEX)
     {
@@ -481,7 +500,10 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
 
       a = secure? mpi_alloc_secure (0) : mpi_alloc(0);
       if (mpi_fromstr (a, (const char *)buffer))
-        return gcry_error (GPG_ERR_INV_OBJ);
+        {
+          mpi_free (a);
+          return gcry_error (GPG_ERR_INV_OBJ);
+        }
       if (ret_mpi) 
         {
           mpi_normalize ( a );
@@ -526,6 +548,8 @@ gcry_mpi_print (enum gcry_mpi_format format,
         return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
 
       tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+      if (!tmp)
+        return gpg_error_from_syserror ();
       if (n && (*tmp & 0x80))
         {
           n++;
@@ -564,6 +588,8 @@ gcry_mpi_print (enum gcry_mpi_format format,
           unsigned char *tmp;
 
           tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+          if (!tmp)
+            return gpg_error_from_syserror ();
           memcpy (buffer, tmp, n);
           gcry_free (tmp);
 	}
@@ -590,6 +616,8 @@ gcry_mpi_print (enum gcry_mpi_format format,
           s[1] = nbits;
           
           tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+          if (!tmp)
+            return gpg_error_from_syserror ();
           memcpy (s+2, tmp, n);
           gcry_free (tmp);
 	}
@@ -606,6 +634,8 @@ gcry_mpi_print (enum gcry_mpi_format format,
         return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet.  */
       
       tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+      if (!tmp)
+        return gpg_error_from_syserror ();
       if (n && (*tmp & 0x80))
         {
           n++;
@@ -643,6 +673,8 @@ gcry_mpi_print (enum gcry_mpi_format format,
       unsigned int n = 0;
       
       tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+      if (!tmp)
+        return gpg_error_from_syserror ();
       if (!n || (*tmp & 0x80))
         extra = 2;
 
@@ -704,7 +736,9 @@ gcry_mpi_aprint (enum gcry_mpi_format format,
   if (rc)
     return rc;
 
-  *buffer = mpi_is_secure(a) ? gcry_xmalloc_secure( n ) : gcry_xmalloc( n );
+  *buffer = mpi_is_secure(a) ? gcry_malloc_secure (n) : gcry_malloc (n);
+  if (!*buffer)
+    return gpg_error_from_syserror ();
   rc = gcry_mpi_print( format, *buffer, n, &n, a );
   if (rc)
     {

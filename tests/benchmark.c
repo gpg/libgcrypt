@@ -640,7 +640,7 @@ rsa_bench (int iterations, int print_header, int no_blinding)
       fflush (stdout);
 
       err = gcry_sexp_build (&key_spec, NULL,
-                             gcry_control (GCRYCTL_FIPS_MODE_P, 0)
+                             gcry_fips_mode_active ()
                              ? "(genkey (RSA (nbits %d)))"
                              : "(genkey (RSA (nbits %d)(transient-key)))",
                              p_sizes[testno]);
