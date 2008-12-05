@@ -520,6 +520,7 @@ programmers might have to wrap these macros in an ``extern C'' body.
 @node Enabling FIPS mode
 @section How to enable the FIPS mode
 @cindex FIPS mode
+@cindex FIPS 140
 
 Libgcrypt may be used in a FIPS 140-2 mode.  Note, that this does not
 necessary mean that Libcgrypt is an appoved FIPS 140-2 module.  Check the
@@ -2761,12 +2762,14 @@ FIPS mode.
 @end example
 
 @item use-x931
+@cindex X9.31
 Force the use of the ANSI X9.31 key generation algorithm instead of
 the default algorithm. This flag is only meaningful for RSA and
 usually not required.  Note that this algorithm is implicitly used if
 either @code{derive-parms} is given or Libgcrypt is in FIPS mode.
 
 @item use-fips186
+@cindex FIPS 186
 Force the use of the FIPS 186 key generation algorithm instead of the
 default algorithm.  This flag is only meaningful for DSA and usually
 not required.  Note that this algorithm is implicitly used if either
@@ -4766,9 +4769,16 @@ mitigate real world timing attacks over a network: Instead of using
 the RSA decryption directly, a blinded value @math{y = x r^{e} \bmod n}
 is decrypted and the unblinded value @math{x' = y' r^{-1} \bmod n}
 returned.  The blinding value @math{r} is a random value with the size
-of the modulus @math{n} and generated with @code{GCRY_STRONG_RANDOM}
+of the modulus @math{n} and generated with @code{GCRY_WEAK_RANDOM}
 random level.
 
+@cindex X9.31
+@cindex FIPS 186
+The algorithm used for RSA and DSA key generation depends on whether
+Libgcrypt is operated in standard or in FIPS mode.  In standard mode
+an algorithm based on the Lim-Lee prime number generator is used.  In
+FIPS mode RSA keys are generated as specified in ANSI X9.31 (1998) and
+DSA keys as specified in FIPS 186-2.
 
 
 
@@ -4947,6 +4957,14 @@ A 5 round Rabin-Miller test is finally used.  The first round uses a
 witness of 2, whereas the next rounds use a random witness.
 
 @end enumerate
+
+To support the generation of RSA and DSA keys in FIPS mode according
+to X9.31 and FIPS 186-2, Libgcrypt implements two additional prime
+generation functions: @code{_gcry_derive_x931_prime} and
+@code{_gcry_generate_fips186_2_prime}.  These functions are internal
+and not available through the public API.
+
+
 
 @node Random-Number Subsystem Architecture
 @section Random-Number Subsystem Architecture
@@ -5537,8 +5555,12 @@ Note that the CRC algorithms are not considered cryptographic algorithms
 and thus are in addition available.
 
 @item
-RSA and DSA key generation refuses to create a key with a keysize of
+RSA key generation refuses to create a key with a keysize of
 less than 1024 bits.  
+
+@item
+DSA key generation refuses to create a key with a keysize other
+than 1024 bits.
 
 @item
 The @code{transient-key} flag for RSA key generation is ignored.
