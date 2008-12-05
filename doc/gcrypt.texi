@@ -2708,10 +2708,11 @@ are allowed.  When specifying Q all values of N in the range 512 to
 15680 are valid as long as they are multiples of 8.
 
 @item transient-key
-This is only meaningful for RSA keys.  This is a flag with no value.  If
-given the RSA key is created using a faster and a somewhat less secure
-random number generator.  This flag may be used for keys which are only
-used for a short time and do not require full cryptographic strength.
+This is only meaningful for RSA and DSA keys.  This is a flag with no
+value.  If given the RSA or DSA key is created using a faster and a
+somewhat less secure random number generator.  This flag may be used
+for keys which are only used for a short time and do not require full
+cryptographic strength.
 
 @item domain
 This is only meaningful for DLP algorithms.  If specified keys are
@@ -5563,7 +5564,7 @@ DSA key generation refuses to create a key with a keysize other
 than 1024 bits.
 
 @item
-The @code{transient-key} flag for RSA key generation is ignored.
+The @code{transient-key} flag for RSA and DSA key generation is ignored.
 
 @item
 Support for the VIA Padlock engine is disabled.

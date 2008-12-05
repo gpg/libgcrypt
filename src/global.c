@@ -810,15 +810,24 @@ gcry_realloc (void *a, size_t n)
 }
 
 void
-gcry_free( void *p )
+gcry_free (void *p)
 {
-  if( !p )
+  int save_errno;
+
+  if (!p)
     return;
 
+  /* In case ERRNO is set we better save it so that the free machinery
+     may not accidently change ERRNO.  We restore it only if it was
+     already set to comply with the usual C semantic for ERRNO.  */
+  save_errno = errno;
   if (free_func)
     free_func (p);
   else
     _gcry_private_free (p);
+
+  if (save_errno)
+    errno = save_errno;
 }
 
 void *

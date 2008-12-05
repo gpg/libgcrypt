@@ -1,3 +1,8 @@
+2008-12-05  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (get_dsa_key_new): Add arg transient_key.
+	(check_run): Use it.
+
 2008-12-03  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c (run_dsa_pqg_gen): Facor code out into ..

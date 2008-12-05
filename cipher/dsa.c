@@ -91,6 +91,7 @@ static int check_secret_key (DSA_secret_key *sk);
 static gpg_err_code_t generate (DSA_secret_key *sk,
                                 unsigned int nbits,
                                 unsigned int qbits,
+                                int transient_key,
                                 gcry_mpi_t **ret_factors);
 static void sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                   DSA_secret_key *skey);
@@ -225,13 +226,16 @@ test_keys (DSA_secret_key *sk, unsigned int qbits)
 
 
 /*
-   Generate a DSA key pair with a key of size NBITS.
+   Generate a DSA key pair with a key of size NBITS.  If transient_key
+   is true the key is generated using the standard RNG and not the
+   very secure one.
+
    Returns: 2 structures filled with all needed values
  	    and an array with the n-1 factors of (p-1)
  */
 static gpg_err_code_t
 generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
-          gcry_mpi_t **ret_factors )
+          int transient_key,  gcry_mpi_t **ret_factors )
 {
   gcry_mpi_t p;    /* the prime */
   gcry_mpi_t q;    /* the 160 bit prime factor */
@@ -240,6 +244,7 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   gcry_mpi_t x;    /* the secret exponent */
   gcry_mpi_t h, e;  /* helper */
   unsigned char *rndbuf;
+  gcry_random_level_t random_level;
 
   if (qbits)
     ; /* Caller supplied qbits.  Use this value.  */
@@ -261,9 +266,15 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   if (nbits < 2*qbits || nbits > 15360)
     return GPG_ERR_INV_VALUE;
 
-  if (nbits < 1024 && fips_mode ())
-    return GPG_ERR_INV_VALUE;
+  if (fips_mode ())
+    {
+      if (nbits < 1024)
+        return GPG_ERR_INV_VALUE;
+      if (transient_key)
+        return GPG_ERR_INV_VALUE;
+    }
 
+  /* Generate the primes.  */
   p = _gcry_generate_elg_prime( 1, nbits, qbits, NULL, ret_factors );
   /* get q out of factors */
   q = mpi_copy((*ret_factors)[0]);
@@ -289,8 +300,10 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
    *	 0 < x < q-1
    * This must be a very good random number because this
    * is the secret part. */
-  if( DBG_CIPHER )
-    log_debug("choosing a random x ");
+  /* The random quality depends on the transient_key flag.  */
+  random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
+  if (DBG_CIPHER)
+    log_debug("choosing a random x%s", transient_key? " (transient-key)":"");
   gcry_assert( qbits >= 160 );
   x = mpi_alloc_secure( mpi_get_nlimbs(q) );
   mpi_sub_ui( h, q, 1 );  /* put q-1 into h */
@@ -300,11 +313,10 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
       if( DBG_CIPHER )
         progress('.');
       if( !rndbuf )
-        rndbuf = gcry_random_bytes_secure( (qbits+7)/8,
-                                           GCRY_VERY_STRONG_RANDOM );
+        rndbuf = gcry_random_bytes_secure ((qbits+7)/8, random_level);
       else 
         { /* Change only some of the higher bits (= 2 bytes)*/
-          char *r = gcry_random_bytes_secure (2, GCRY_VERY_STRONG_RANDOM);
+          char *r = gcry_random_bytes_secure (2, random_level);
           memcpy(rndbuf, r, 2 );
           gcry_free(r);
         }
@@ -633,6 +645,7 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   unsigned int qbits = 0;
   gcry_sexp_t deriveparms = NULL;
   gcry_sexp_t seedinfo = NULL;
+  int transient_key = 0;
   int use_fips186_2 = 0;
   int use_fips186 = 0;
   
@@ -662,6 +675,15 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
           gcry_sexp_release (l1);
         }
 
+      /* Parse the optional transient-key flag.  */
+      l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
+      if (l1)
+        {
+          transient_key = 1;
+          gcry_sexp_release (l1);
+        }
+
+      /* Get the optional derive parameters.  */
       deriveparms = gcry_sexp_find_token (genparms, "derive-parms", 0);
 
       /* Parse the optional "use-fips186" flags.  */
@@ -709,7 +731,7 @@ dsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
     }
   else
     {
-      ec = generate (&sk, nbits, qbits, retfactors);
+      ec = generate (&sk, nbits, qbits, transient_key, retfactors);
     }
   if (!ec)
     {

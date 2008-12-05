@@ -351,14 +351,18 @@ get_elg_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int fixed_x)
   *skey = sec_key;
 }
 
+
 static void
-get_dsa_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+get_dsa_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int transient_key)
 {
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
 
-  rc = gcry_sexp_new 
-    (&key_spec, "(genkey (dsa (nbits 4:1024)))",  0, 1);
+  rc = gcry_sexp_new (&key_spec, 
+                      transient_key
+                      ? "(genkey (dsa (nbits 4:1024)(transient-key)))"
+                      : "(genkey (dsa (nbits 4:1024)))",
+                      0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));
   rc = gcry_pk_genkey (&key, key_spec);
@@ -467,10 +471,20 @@ check_run (void)
 
   if (verbose)
     fprintf (stderr, "Generating DSA key.\n");
-  get_dsa_key_new (&pkey, &skey);
+  get_dsa_key_new (&pkey, &skey, 0);
   /* Fixme:  Add a check function for DSA keys.  */
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
+
+  if (!gcry_fips_mode_active ())
+    {
+      if (verbose)
+        fprintf (stderr, "Generating transient DSA key.\n");
+      get_dsa_key_new (&pkey, &skey, 1);
+      /* Fixme:  Add a check function for DSA keys.  */
+      gcry_sexp_release (pkey);
+      gcry_sexp_release (skey);
+    }
 
   if (verbose)
     fprintf (stderr, "Generating DSA key (FIPS 186).\n");

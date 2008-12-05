@@ -207,12 +207,12 @@ _gcry_private_check_heap (const void *a)
 
 
 /*
- * Free a memory block allocated by this opr the secmem module
+ * Free a memory block allocated by this or the secmem module
  */
 void
 _gcry_private_free (void *a)
 {
-  byte *p = a;
+  unsigned char *p = a;
 
   if (!p)
     return;
