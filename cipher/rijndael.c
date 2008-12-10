@@ -1174,6 +1174,8 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 static const char *rijndael_names[] =
   {
     "RIJNDAEL",
+    "AES128",
+    "AES-128",
     NULL
   };
 
@@ -1199,6 +1201,7 @@ cipher_extra_spec_t _gcry_cipher_extraspec_aes =
 static const char *rijndael192_names[] =
   {
     "RIJNDAEL192",
+    "AES-192",
     NULL
   };
 
@@ -1224,6 +1227,7 @@ cipher_extra_spec_t _gcry_cipher_extraspec_aes192 =
 static const char *rijndael256_names[] =
   {
     "RIJNDAEL256",
+    "AES-256",
     NULL
   };
 

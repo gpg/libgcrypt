@@ -1,3 +1,14 @@
+2008-12-10  Werner Koch  <wk@g10code.com>
+
+	* dsa.c (generate): Add arg DOMAIN and use it if specified.
+	(generate_fips186): Ditto.
+	(dsa_generate_ext): Parse and check the optional "domain"
+	parameter and pass them to the generate functions.
+
+	* rijndael.c (rijndael_names): Add "AES128" and "AES-128".
+	(rijndael192_names): Add "AES-192".
+	(rijndael256_names): Add "AES-256".
+
 2008-12-05  Werner Koch  <wk@g10code.com>
 
 	* dsa.c (generate): Add arg TRANSIENT_KEY and use it to detrmine

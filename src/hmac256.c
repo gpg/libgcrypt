@@ -19,7 +19,7 @@
 
 /* 
     This is a standalone HMAC-SHA-256 implementation based on the code
-    from ../cipher/sha256.c.  It is a second implementarion to allow
+    from ../cipher/sha256.c.  It is a second implementation to allow
     comparing against the standard implementations and to be used for
     internal consistency checks.  It should not be used for sensitive
     data because no mechanisms to clear the stack etc are used.

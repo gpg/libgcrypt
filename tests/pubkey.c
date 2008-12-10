@@ -418,6 +418,92 @@ get_dsa_key_fips186_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   *skey = sec_key;
 }
 
+
+static void
+get_dsa_key_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+{
+  gcry_sexp_t key_spec, key, pub_key, sec_key;
+  int rc;
+
+  rc = gcry_sexp_new 
+    (&key_spec, 
+     "(genkey (dsa (transient-key)(domain"
+     "(p #d3aed1876054db831d0c1348fbb1ada72507e5fbf9a62cbd47a63aeb7859d6921"
+     "4adeb9146a6ec3f43520f0fd8e3125dd8bbc5d87405d1ac5f82073cd762a3f8d7"
+     "74322657c9da88a7d2f0e1a9ceb84a39cb40876179e6a76e400498de4bb9379b0"
+     "5f5feb7b91eb8fea97ee17a955a0a8a37587a272c4719d6feb6b54ba4ab69#)"
+     "(q #9c916d121de9a03f71fb21bc2e1c0d116f065a4f#)"
+     "(g #8157c5f68ca40b3ded11c353327ab9b8af3e186dd2e8dade98761a0996dda99ab"
+     "0250d3409063ad99efae48b10c6ab2bba3ea9a67b12b911a372a2bba260176fad"
+     "b4b93247d9712aad13aa70216c55da9858f7a298deb670a403eb1e7c91b847f1e"
+     "ccfbd14bd806fd42cf45dbb69cd6d6b43add2a78f7d16928eaa04458dea44#)"
+     ")))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gcry_strerror (rc));
+  rc = gcry_pk_genkey (&key, key_spec);
+  gcry_sexp_release (key_spec);
+  if (rc)
+    die ("error generating DSA key: %s\n", gcry_strerror (rc));
+    
+  if (verbose > 1)
+    show_sexp ("generated DSA key:\n", key);
+
+  pub_key = gcry_sexp_find_token (key, "public-key", 0);
+  if (!pub_key)
+    die ("public part missing in key\n");
+
+  sec_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (!sec_key)
+    die ("private part missing in key\n");
+
+  gcry_sexp_release (key);
+  *pkey = pub_key;
+  *skey = sec_key;
+}
+
+static void
+get_dsa_key_fips186_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+{
+  gcry_sexp_t key_spec, key, pub_key, sec_key;
+  int rc;
+
+  rc = gcry_sexp_new 
+    (&key_spec, 
+     "(genkey (dsa (transient-key)(use-fips186)(domain"
+     "(p #d3aed1876054db831d0c1348fbb1ada72507e5fbf9a62cbd47a63aeb7859d6921"
+     "4adeb9146a6ec3f43520f0fd8e3125dd8bbc5d87405d1ac5f82073cd762a3f8d7"
+     "74322657c9da88a7d2f0e1a9ceb84a39cb40876179e6a76e400498de4bb9379b0"
+     "5f5feb7b91eb8fea97ee17a955a0a8a37587a272c4719d6feb6b54ba4ab69#)"
+     "(q #9c916d121de9a03f71fb21bc2e1c0d116f065a4f#)"
+     "(g #8157c5f68ca40b3ded11c353327ab9b8af3e186dd2e8dade98761a0996dda99ab"
+     "0250d3409063ad99efae48b10c6ab2bba3ea9a67b12b911a372a2bba260176fad"
+     "b4b93247d9712aad13aa70216c55da9858f7a298deb670a403eb1e7c91b847f1e"
+     "ccfbd14bd806fd42cf45dbb69cd6d6b43add2a78f7d16928eaa04458dea44#)"
+     ")))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gcry_strerror (rc));
+  rc = gcry_pk_genkey (&key, key_spec);
+  gcry_sexp_release (key_spec);
+  if (rc)
+    die ("error generating DSA key: %s\n", gcry_strerror (rc));
+    
+  if (verbose > 1)
+    show_sexp ("generated DSA key:\n", key);
+
+  pub_key = gcry_sexp_find_token (key, "public-key", 0);
+  if (!pub_key)
+    die ("public part missing in key\n");
+
+  sec_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (!sec_key)
+    die ("private part missing in key\n");
+
+  gcry_sexp_release (key);
+  *pkey = pub_key;
+  *skey = sec_key;
+}
+
+
 static void
 check_run (void)
 {
@@ -489,6 +575,20 @@ check_run (void)
   if (verbose)
     fprintf (stderr, "Generating DSA key (FIPS 186).\n");
   get_dsa_key_fips186_new (&pkey, &skey);
+  /* Fixme:  Add a check function for DSA keys.  */
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+
+  if (verbose)
+    fprintf (stderr, "Generating DSA key with given domain.\n");
+  get_dsa_key_with_domain_new (&pkey, &skey);
+  /* Fixme:  Add a check function for DSA keys.  */
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+
+  if (verbose)
+    fprintf (stderr, "Generating DSA key with given domain (FIPS 186).\n");
+  get_dsa_key_fips186_with_domain_new (&pkey, &skey);
   /* Fixme:  Add a check function for DSA keys.  */
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);

@@ -26,7 +26,9 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <ctype.h>
-#ifndef HAVE_W32_SYSTEM
+#ifdef HAVE_W32_SYSTEM
+# include <fcntl.h> /* We need setmode().  */
+#else
 # include <signal.h>
 #endif
 #include <assert.h>

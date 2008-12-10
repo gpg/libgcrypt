@@ -11,6 +11,9 @@ Noteworthy changes in version 1.4.4
  * In fips mode, RSA keys are now generated using the X9.31 algorithm
    and DSA keys using the FIPS 186-2 algorithm.
 
+ * The transient-key flag is now also supported for DSA key
+   generation.  DSA domain parameters may given as well.
+
 
 Noteworthy changes in version 1.4.3 (2008-09-18)
 ------------------------------------------------
