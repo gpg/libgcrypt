@@ -2168,7 +2168,8 @@ main (int argc, char **argv)
   else
     {
       /* If in standard mode, run selftests.  */
-      gcry_control (GCRYCTL_SELFTEST, 0);
+      if (gcry_control (GCRYCTL_SELFTEST, 0))
+        fail ("running self-test failed\n");
     }
 
   if (verbose)

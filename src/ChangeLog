@@ -1,3 +1,7 @@
+2008-12-10  Werner Koch  <wk@g10code.com>
+
+	* hmac256.c (finalize): Fix for big endian hosts.
+
 2008-12-05  Werner Koch  <wk@g10code.com>
 
 	* global.c (gcry_free): Save and restore ERRNO if set.

@@ -1,5 +1,8 @@
 2008-12-10  Werner Koch  <wk@g10code.com>
 
+	* basic.c (main): Check for error after running self-test in
+	non-fips mode.
+
 	* pubkey.c (get_dsa_key_with_domain_new): New.
 	(get_dsa_key_fips186_with_domain_new): New.
 	(check_run): Call them.
