@@ -164,6 +164,22 @@ showhex (const char *prefix, const void *buffer, size_t length)
     putc ('\n', stderr);
 }
 
+/* static void */
+/* show_sexp (const char *prefix, gcry_sexp_t a) */
+/* { */
+/*   char *buf; */
+/*   size_t size; */
+
+/*   if (prefix) */
+/*     fputs (prefix, stderr); */
+/*   size = gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, NULL, 0); */
+/*   buf = gcry_xmalloc (size); */
+
+/*   gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, buf, size); */
+/*   fprintf (stderr, "%.*s", (int)size, buf); */
+/*   gcry_free (buf); */
+/* } */
+
 
 /* Convert STRING consisting of hex characters into its binary
    representation and store that at BUFFER.  BUFFER needs to be of
@@ -1261,6 +1277,71 @@ run_hmac (int digest_algo, const void *key, size_t keylen,
   gcry_md_close (hd);
 }
 
+
+
+/* Derive an RSA key using the S-expression in (DATA,DATALEN).  This
+   S-expression is used directly as input to gcry_pk_genkey.  The
+   result is printed to stdout with one parameter per line in hex
+   format and in this order: p, q, d.  */
+static void
+run_rsa_derive (const void *data, size_t datalen)
+{
+  gpg_error_t err;
+  gcry_sexp_t s_keyspec, s_key, s_top, l1;
+  gcry_mpi_t mpi;
+  const char *parmlist;
+  int idx;
+
+  if (!datalen)
+    err = gpg_error (GPG_ERR_NO_DATA);
+  else
+    err = gcry_sexp_new (&s_keyspec, data, datalen, 1);
+  if (err)
+    die ("gcry_sexp_new failed for RSA key derive: %s\n",
+         gpg_strerror (err));
+
+  err = gcry_pk_genkey (&s_key, s_keyspec);
+  if (err)
+    die ("gcry_pk_genkey failed for RSA: %s\n", gpg_strerror (err));
+
+  gcry_sexp_release (s_keyspec);
+
+  /* P and Q might have been swapped but we need to to return them in
+     the proper order.  Build the parameter list accordingly.  */
+  parmlist = "pqd";
+  s_top = gcry_sexp_find_token (s_key, "misc-key-info", 0);
+  if (s_top)
+    {
+      l1 = gcry_sexp_find_token (s_top, "p-q-swapped", 0);
+      if (l1)
+        parmlist = "qpd";
+      gcry_sexp_release (l1);
+      gcry_sexp_release (s_top);
+    }
+
+  /* Parse and print the parameters.  */
+  l1 = gcry_sexp_find_token (s_key, "private-key", 0);
+  s_top = gcry_sexp_find_token (l1, "rsa", 0);
+  gcry_sexp_release (l1);
+  if (!s_top)
+    die ("private-key part not found in result\n");
+
+  for (idx=0; parmlist[idx]; idx++)
+    {
+      l1 = gcry_sexp_find_token (s_top, parmlist+idx, 1);
+      mpi = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      gcry_sexp_release (l1);
+      if (!mpi)
+        die ("parameter %c missing in private-key\n", parmlist[idx]);
+      print_mpi_line (mpi, 1);
+      gcry_mpi_release (mpi);
+    }
+
+  gcry_sexp_release (s_top);
+  gcry_sexp_release (s_key);
+}
+
+
 
 static size_t
 compute_tag_length (size_t n)
@@ -1879,8 +1960,8 @@ usage (int show_help)
     ("Usage: " PGM " [OPTIONS] MODE [FILE]\n"
      "Run a crypto operation using hex encoded input and output.\n"
      "MODE:\n"
-     "  encrypt, decrypt, digest, random, hmac-sha, rsa-{gen,sign,verify},\n"
-     "  dsa-{pqg-gen,gen,sign,verify}\n"
+     "  encrypt, decrypt, digest, random, hmac-sha,\n"
+     "  rsa-{derive,gen,sign,verify}, dsa-{pqg-gen,gen,sign,verify}\n"
      "OPTIONS:\n"
      "  --verbose        Print additional information\n"
      "  --binary         Input and output is in binary form\n"
@@ -2041,6 +2122,10 @@ main (int argc, char **argv)
   if (!argc || argc > 2)
     usage (0);
   mode_string = *argv;
+
+  if (!strcmp (mode_string, "rsa-derive"))
+    binary_input = 1;
+
   if (argc == 2 && strcmp (argv[1], "-"))
     {
       input = fopen (argv[1], binary_input? "rb":"r");
@@ -2257,6 +2342,12 @@ main (int argc, char **argv)
       run_hmac (algo, key_buffer, key_buflen, data, datalen);
 
       gcry_free (key_buffer);
+    }
+  else if (!strcmp (mode_string, "rsa-derive"))
+    {
+      if (!data)
+        die ("no data available (do not use --chunk)\n");
+      run_rsa_derive (data, datalen);
     }
   else if (!strcmp (mode_string, "rsa-gen"))
     {

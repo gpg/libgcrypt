@@ -1,3 +1,8 @@
+2008-12-11  Werner Koch  <wk@g10code.com>
+
+	* fipsdrv.c (run_rsa_derive): New.
+	(main): Add mode rsa-derive.
+
 2008-12-10  Werner Koch  <wk@g10code.com>
 
 	* basic.c (main): Check for error after running self-test in

@@ -135,6 +135,24 @@ my %opt;
 # return en/decrypted data in hex form
 my $encdec;
 
+#
+# Derive an RSA key from the given X9.31 parameters.
+# $1: modulus size
+# $2: E   in hex form 
+# $3: Xp1 in hex form 
+# $4: Xp2 in hex form 
+# $5: Xp  in hex form 
+# $6: Xq1 in hex form 
+# $7: Xq2 in hex form 
+# $8: Xq  in hex form 
+# return: string with the calculated values in hex format, where each value
+# 	  is separated from the previous with a \n in the following order:
+#         P\n
+#         Q\n
+#         D\n
+my $rsa_derive;
+
+
 # Sign a message with RSA
 # $1: data to be signed in hex form
 # $2: Hash algo
@@ -356,6 +374,33 @@ sub libgcrypt_encdec($$$$$) {
 
 	return pipe_through_program($data,$program);
 
+}
+
+sub libgcrypt_rsa_derive($$$$$$$$) {
+	my $n   = shift;
+        my $e   = shift;
+        my $xp1 = shift;
+        my $xp2 = shift;
+        my $xp  = shift;
+        my $xq1 = shift;
+        my $xq2 = shift;
+        my $xq  = shift;
+        my $sexp;
+        my @tmp;
+
+        $n = sprintf ("%u", $n);
+        $e = sprintf ("%u", $e);
+        $sexp = "(genkey(rsa(nbits " . sprintf ("%u:%s", length($n), $n) . ")"
+                . "(rsa-use-e " . sprintf ("%u:%s", length($e), $e) . ")"
+                . "(derive-parms"
+                . "(Xp1 #$xp1#)"
+                . "(Xp2 #$xp2#)"
+                . "(Xp  #$xp#)"
+                . "(Xq1 #$xq1#)"
+                . "(Xq2 #$xq2#)"
+                . "(Xq  #$xq#))))\n";
+
+        return pipe_through_program($sexp, "fipsdrv rsa-derive");
 }
 
 sub libgcrypt_rsa_sign($$$) {
