@@ -389,7 +389,7 @@ sub libgcrypt_rsa_derive($$$$$$$$) {
         my @tmp;
 
         $n = sprintf ("%u", $n);
-        $e = sprintf ("%u", $e);
+        $e = sprintf ("%u", hex($e));
         $sexp = "(genkey(rsa(nbits " . sprintf ("%u:%s", length($n), $n) . ")"
                 . "(rsa-use-e " . sprintf ("%u:%s", length($e), $e) . ")"
                 . "(derive-parms"
