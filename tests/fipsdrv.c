@@ -1916,10 +1916,18 @@ run_dsa_verify (const void *data, size_t datalen,
   gpg_error_t err;
   gcry_sexp_t s_data, s_key, s_sig;
   char hash[20];
-  
+  gcry_mpi_t tmpmpi;
+
   gcry_md_hash_buffer (GCRY_MD_SHA1, hash, data, datalen);
-  err = gcry_sexp_build (&s_data, NULL,
-                         "(data (flags raw)(value %b))", 20, hash);
+  /* Note that we can't simply use %b with HASH to build the
+     S-expression, because that might yield a negative value.  */
+  err = gcry_mpi_scan (&tmpmpi, GCRYMPI_FMT_USG, hash, 20, NULL);
+  if (!err)
+    {
+      err = gcry_sexp_build (&s_data, NULL,
+                             "(data (flags raw)(value %m))", tmpmpi);
+      gcry_mpi_release (tmpmpi);
+    }
   if (err)
     die ("gcry_sexp_build failed for DSA data input: %s\n",
          gpg_strerror (err));

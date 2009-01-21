@@ -1,5 +1,7 @@
 2009-01-21  Werner Koch  <wk@g10code.com>
 
+	* fipsdrv.c (run_dsa_verify): Use gcry_mpi_scan again.
+
 	* fipsdrv.c (run_dsa_verify): Use hash of the data.
 
 	* pubkey.c (get_dsa_key_fips186_with_seed_new): New.
