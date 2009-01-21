@@ -149,6 +149,7 @@ my $encdec;
 #        is separated from the previous with a \n in the following order:
 #         P\n
 #         Q\n
+#         N\
 #         D\n
 my $rsa_derive;
 

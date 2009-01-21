@@ -1,6 +1,7 @@
 2009-01-21  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c (run_dsa_verify): Use gcry_mpi_scan again.
+	(run_rsa_derive): Also print N.
 
 	* fipsdrv.c (run_dsa_verify): Use hash of the data.
 

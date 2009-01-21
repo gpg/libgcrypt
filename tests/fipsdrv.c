@@ -1282,7 +1282,7 @@ run_hmac (int digest_algo, const void *key, size_t keylen,
 /* Derive an RSA key using the S-expression in (DATA,DATALEN).  This
    S-expression is used directly as input to gcry_pk_genkey.  The
    result is printed to stdout with one parameter per line in hex
-   format and in this order: p, q, d.  */
+   format and in this order: p, q, n, d.  */
 static void
 run_rsa_derive (const void *data, size_t datalen)
 {
@@ -1308,13 +1308,13 @@ run_rsa_derive (const void *data, size_t datalen)
 
   /* P and Q might have been swapped but we need to to return them in
      the proper order.  Build the parameter list accordingly.  */
-  parmlist = "pqd";
+  parmlist = "pqnd";
   s_top = gcry_sexp_find_token (s_key, "misc-key-info", 0);
   if (s_top)
     {
       l1 = gcry_sexp_find_token (s_top, "p-q-swapped", 0);
       if (l1)
-        parmlist = "qpd";
+        parmlist = "qpnd";
       gcry_sexp_release (l1);
       gcry_sexp_release (s_top);
     }
