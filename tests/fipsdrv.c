@@ -1915,15 +1915,11 @@ run_dsa_verify (const void *data, size_t datalen,
 {
   gpg_error_t err;
   gcry_sexp_t s_data, s_key, s_sig;
-  gcry_mpi_t tmpmpi;
+  char hash[20];
   
-  err = gcry_mpi_scan (&tmpmpi, GCRYMPI_FMT_USG, data, datalen, NULL);
-  if (!err)
-    {
-      err = gcry_sexp_build (&s_data, NULL,
-                             "(data (flags raw)(value %m))", tmpmpi);
-      gcry_mpi_release (tmpmpi);
-    }
+  gcry_md_hash_buffer (GCRY_MD_SHA1, hash, data, datalen);
+  err = gcry_sexp_build (&s_data, NULL,
+                         "(data (flags raw)(value %b))", 20, hash);
   if (err)
     die ("gcry_sexp_build failed for DSA data input: %s\n",
          gpg_strerror (err));

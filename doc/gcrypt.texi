@@ -2789,8 +2789,8 @@ will be changed to implement 186-3.
 
 @item use-fips186-2
 Force the use of the FIPS 186-2 key generation algorithm instead of
-the default algorithm.  This algorithm has a slighlty different from
-FIPS 186-3 and allws only 1024 bit keys.  This flag is only meaningful
+the default algorithm.  This algorithm is slighlty different from
+FIPS 186-3 and allows only 1024 bit keys.  This flag is only meaningful
 for DSA and only required for FIPS testing backward compatibility.
 
 

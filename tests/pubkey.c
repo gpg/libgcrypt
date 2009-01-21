@@ -505,6 +505,46 @@ get_dsa_key_fips186_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
 
 
 static void
+get_dsa_key_fips186_with_seed_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
+{
+  gcry_sexp_t key_spec, key, pub_key, sec_key;
+  int rc;
+
+  rc = gcry_sexp_new 
+    (&key_spec,
+     "(genkey"
+     "  (dsa" 
+     "    (nbits 4:1024)"
+     "    (use-fips186)"
+     "    (transient-key)"
+     "    (derive-parms"
+     "      (seed #0cb1990c1fd3626055d7a0096f8fa99807399871#))))",
+     0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gcry_strerror (rc));
+  rc = gcry_pk_genkey (&key, key_spec);
+  gcry_sexp_release (key_spec);
+  if (rc)
+    die ("error generating DSA key: %s\n", gcry_strerror (rc));
+    
+  if (verbose > 1 || 1)
+    show_sexp ("generated DSA key (fips 186 with seed):\n", key);
+
+  pub_key = gcry_sexp_find_token (key, "public-key", 0);
+  if (!pub_key)
+    die ("public part missing in key\n");
+
+  sec_key = gcry_sexp_find_token (key, "private-key", 0);
+  if (!sec_key)
+    die ("private part missing in key\n");
+
+  gcry_sexp_release (key);
+  *pkey = pub_key;
+  *skey = sec_key;
+}
+
+
+static void
 check_run (void)
 {
   gpg_error_t err;
@@ -589,6 +629,13 @@ check_run (void)
   if (verbose)
     fprintf (stderr, "Generating DSA key with given domain (FIPS 186).\n");
   get_dsa_key_fips186_with_domain_new (&pkey, &skey);
+  /* Fixme:  Add a check function for DSA keys.  */
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
+
+  if (verbose)
+    fprintf (stderr, "Generating DSA key with given seed (FIPS 186).\n");
+  get_dsa_key_fips186_with_seed_new (&pkey, &skey);
   /* Fixme:  Add a check function for DSA keys.  */
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);

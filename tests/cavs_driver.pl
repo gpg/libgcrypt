@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# $Id: cavs_driver.pl 1395 2008-11-10 15:18:03Z smueller $
+# $Id: cavs_driver.pl 1488 2009-01-16 14:29:00Z smueller $
 #
 # CAVS test driver (based on the OpenSSL driver)
 # Written by: Stephan Müller <sm@atsec.com>
@@ -138,20 +138,19 @@ my $encdec;
 #
 # Derive an RSA key from the given X9.31 parameters.
 # $1: modulus size
-# $2: E   in hex form 
-# $3: Xp1 in hex form 
-# $4: Xp2 in hex form 
-# $5: Xp  in hex form 
-# $6: Xq1 in hex form 
-# $7: Xq2 in hex form 
-# $8: Xq  in hex form 
+# $2: E   in hex form
+# $3: Xp1 in hex form
+# $4: Xp2 in hex form
+# $5: Xp  in hex form
+# $6: Xq1 in hex form
+# $7: Xq2 in hex form
+# $8: Xq  in hex form
 # return: string with the calculated values in hex format, where each value
-# 	  is separated from the previous with a \n in the following order:
+#        is separated from the previous with a \n in the following order:
 #         P\n
 #         Q\n
 #         D\n
 my $rsa_derive;
-
 
 # Sign a message with RSA
 # $1: data to be signed in hex form
@@ -241,9 +240,8 @@ my $dsa_pqggen;
 # $2: P in hex form
 # $3: Q in hex form
 # $4: G in hex form
-# $5: Y in hex form  
+# $5: Y in hex form
 my $dsa_genpubkey;
-
 
 # Verify a message with DSA
 # $1: data to be verified in hex form
@@ -378,30 +376,31 @@ sub libgcrypt_encdec($$$$$) {
 
 sub libgcrypt_rsa_derive($$$$$$$$) {
 	my $n   = shift;
-        my $e   = shift;
-        my $xp1 = shift;
-        my $xp2 = shift;
-        my $xp  = shift;
-        my $xq1 = shift;
-        my $xq2 = shift;
-        my $xq  = shift;
-        my $sexp;
-        my @tmp;
+	my $e   = shift;
+	my $xp1 = shift;
+	my $xp2 = shift;
+	my $xp  = shift;
+	my $xq1 = shift;
+	my $xq2 = shift;
+	my $xq  = shift;
+	my $sexp;
+	my @tmp;
 
-        $n = sprintf ("%u", $n);
-        $e = sprintf ("%u", hex($e));
-        $sexp = "(genkey(rsa(nbits " . sprintf ("%u:%s", length($n), $n) . ")"
-                . "(rsa-use-e " . sprintf ("%u:%s", length($e), $e) . ")"
-                . "(derive-parms"
-                . "(Xp1 #$xp1#)"
-                . "(Xp2 #$xp2#)"
-                . "(Xp  #$xp#)"
-                . "(Xq1 #$xq1#)"
-                . "(Xq2 #$xq2#)"
-                . "(Xq  #$xq#))))\n";
+	$n = sprintf ("%u", $n);
+	$e = sprintf ("%u", hex($e));
+	$sexp = "(genkey(rsa(nbits " . sprintf ("%u:%s", length($n), $n) . ")"
+		. "(rsa-use-e " . sprintf ("%u:%s", length($e), $e) . ")"
+		. "(derive-parms"
+		. "(Xp1 #$xp1#)"
+		. "(Xp2 #$xp2#)"
+		. "(Xp  #$xp#)"
+		. "(Xq1 #$xq1#)"
+		. "(Xq2 #$xq2#)"
+		. "(Xq  #$xq#))))\n";
 
-        return pipe_through_program($sexp, "fipsdrv rsa-derive");
+	return pipe_through_program($sexp, "fipsdrv rsa-derive");
 }
+
 
 sub libgcrypt_rsa_sign($$$) {
 	my $data = shift;
@@ -510,16 +509,16 @@ sub libgcrypt_gen_dsakey($) {
 	my $file = shift;
 
 	my $program = "fipsdrv --keysize 1024 --key $file dsa-gen";
-        my $tmp;
-        my %ret;
+	my $tmp;
+	my %ret;
 
 	die "ARCFOUR not available for DSA" if $opt{'R'};
 
-        $tmp = pipe_through_program("", $program);
+	$tmp = pipe_through_program("", $program);
 	die "dsa key gen failed: file $file not created" if (! -f $file);
 
-        @ret{'P', 'Q', 'G', 'Seed', 'c', 'H'} = split(/\n/, $tmp);
-        return %ret;
+	@ret{'P', 'Q', 'G', 'Seed', 'c', 'H'} = split(/\n/, $tmp);
+	return %ret;
 }
 
 sub libgcrypt_dsa_genpubkey($$$$$) {
@@ -529,26 +528,26 @@ sub libgcrypt_dsa_genpubkey($$$$$) {
 	my $g = shift;
 	my $y = shift;
 
-        my $sexp;
+	my $sexp;
 
-        $sexp = "(public-key(dsa(p #$p#)(q #$q#)(g #$g#)(y #$y#)))"; 
+	$sexp = "(public-key(dsa(p #$p#)(q #$q#)(g #$g#)(y #$y#)))";
 
 	open(FH, ">", $filename) or die;
 	print FH $sexp;
-	close FH;  
+	close FH;
 }
 
 sub libgcrypt_dsa_sign($$) {
 	my $data = shift;
 	my $keyfile = shift;
-        my $tmp;
-        my %ret; 
-        
+	my $tmp;
+	my %ret;
+
 	die "ARCFOUR not available for DSA" if $opt{'R'};
 
 	$tmp = pipe_through_program($data, "fipsdrv --key $keyfile dsa-sign");
-        @ret{'Y', 'R', 'S'} = split(/\n/, $tmp);
-        return %ret;
+	@ret{'Y', 'R', 'S'} = split(/\n/, $tmp);
+	return %ret;
 }
 
 sub libgcrypt_dsa_verify($$$$) {
@@ -556,24 +555,22 @@ sub libgcrypt_dsa_verify($$$$) {
 	my $keyfile = shift;
 	my $r = shift;
 	my $s = shift;
-        
-        my $ret;
+
+	my $ret;
 
 	die "ARCFOUR not available for DSA" if $opt{'R'};
 
 	my $sigfile = "$keyfile.sig";
 	open(FH, ">$sigfile") or die "Cannot create file $sigfile: $?";
-	print FH "(sig-val(dsa(r #$r)(s #$s#)))";
+	print FH "(sig-val(dsa(r #$r#)(s #$s#)))";
 	close FH;
 
-	$ret = pipe_through_program($data, 
-                 "fipsdrv --verbose --key $keyfile --signature $sigfile dsa-verify");
-        unlink ($sigfile);
+	$ret = pipe_through_program($data,
+		"fipsdrv --verbose --key $keyfile --signature $sigfile dsa-verify");
+	unlink ($sigfile);
 	# Parse through the output information
 	return ($ret =~ /GOOD signature/);
 }
-
-
 
 ######### End of libgcrypt implementation ################
 
@@ -1216,10 +1213,14 @@ sub crypto_mct($$$$$$$$) {
 
 		# TDES inner loop implements logic within driver
 		if ($cipher =~ /des/) {
+			# Need to provide a dummy IV in case of ECB mode.
+			my $iv_arg = (defined($iv) && $iv ne "")
+					? bin2hex($iv)
+					: "00"x(length($source_data));
 			print $CI "1\n"
 				  .$iloop."\n"
 				  .bin2hex($key1)."\n"
-				  .bin2hex($iv)."\n"
+				  .$iv_arg."\n"
 				  .bin2hex($source_data)."\n\n" or die;
 			chomp(my $line = <$CO>);
 			$calc_data = hex2bin($line);
@@ -1228,7 +1229,7 @@ sub crypto_mct($$$$$$$$) {
 			chomp($line = <$CO>);
 			$old_old_calc_data = hex2bin($line);
 			chomp($line = <$CO>);
-			$iv = hex2bin($line);
+			$iv = hex2bin($line) if (defined($iv) && $iv ne "");
 			chomp($line = <$CO>);
 			$next_source = hex2bin($line);
 			# Skip over empty line.
@@ -1309,12 +1310,12 @@ sub crypto_mct($$$$$$$$) {
 		} elsif (!$enc && $cipher =~ /des-ede3-cfb/) {
 			#TDES decryption CFB has a special rule
 			$source_data = $next_source;
+		} elsif ( $ciph =~ /rc4/ || $cipher eq "des-ede3" || $cipher =~ /ecb/) {
+			#No resetting of IV as the IV is all zero set initially (i.e. no IV)
+			$source_data = $calc_data;
 		} elsif (! $enc && $ciph =~ /des/ ) {
 			#TDES in decryption mode has a special rule
 			$iv = $old_calc_data;
-			$source_data = $calc_data;
-		} elsif ( $ciph =~ /rc4/ || $cipher =~ /ecb/ ) {
-			#No resetting of IV as the IV is all zero set initially (i.e. no IV)
 			$source_data = $calc_data;
 		} else {
 	                $iv = $calc_data;
@@ -1539,7 +1540,7 @@ sub dsa_sigver($$$$$$$$) {
 	# but since it is not run on a security sensitive
 	# system, I hope that this is fine
 	my $keyfile = "dsa_sigver.tmp.$$";
-	&dsa_genpubkey($keyfile, $p, $q, $g, $y);
+	&$dsa_genpubkey($keyfile, $p, $q, $g, $y);
 
 	$out .= "Result = " . (&$dsa_verify($msg, $keyfile, $r, $s) ? "P\n" : "F\n");
 
@@ -1614,7 +1615,6 @@ sub parse($$) {
 	my $capital_g = "";
 	my $capital_y = "";
 	my $capital_r = "";
-	my $capital_s = "";
 
 	my $mode = "";
 
@@ -1696,7 +1696,7 @@ sub parse($$) {
 			##### Identify the test type
 				if ($tmpline =~ /SigVer/ && $opt{'D'} ) {
 					$tt = 12;
-					die "Interface function dsa_verify or dsa_genpubey for dSA verification not defined for tested library"
+					die "Interface function dsa_verify or dsa_genpubkey for DSA verification not defined for tested library"
 						if (!defined($dsa_verify) || !defined($dsa_genpubkey));
 				} elsif ($tmpline =~ /SigGen/ && $opt{'D'}) {
 					$tt = 11;
@@ -1873,43 +1873,38 @@ sub parse($$) {
 				if ($tlen ne "");
 			$tlen=$1;
 		}
-		elsif ($line =~ /^N\s*=\s*(.)/) { #DSA PQGGen
+		elsif ($line =~ /^N\s*=\s*(.*)/) { #DSA PQGGen
 			die "N seen twice - check input file"
 				if ($capital_n);
 			$capital_n = $1;
 		}
-		elsif ($line =~ /^P\s*=\s*(.)/) { #DSA SigVer
+		elsif ($line =~ /^P\s*=\s*(.*)/) { #DSA SigVer
 			die "P seen twice - check input file"
 				if ($capital_p);
 			$capital_p = $1;
 			$out .= $line . "\n"; # print it
 		}
-		elsif ($line =~ /^Q\s*=\s*(.)/) { #DSA SigVer
+		elsif ($line =~ /^Q\s*=\s*(.*)/) { #DSA SigVer
 			die "Q seen twice - check input file"
 				if ($capital_q);
 			$capital_q = $1;
 			$out .= $line . "\n"; # print it
 		}
-		elsif ($line =~ /^G\s*=\s*(.)/) { #DSA SigVer
+		elsif ($line =~ /^G\s*=\s*(.*)/) { #DSA SigVer
 			die "G seen twice - check input file"
 				if ($capital_g);
 			$capital_g = $1;
 			$out .= $line . "\n"; # print it
 		}
-		elsif ($line =~ /^Y\s*=\s*(.)/) { #DSA SigVer
+		elsif ($line =~ /^Y\s*=\s*(.*)/) { #DSA SigVer
 			die "Y seen twice - check input file"
 				if ($capital_y);
 			$capital_y = $1;
 		}
-		elsif ($line =~ /^R\s*=\s*(.)/) { #DSA SigVer
+		elsif ($line =~ /^R\s*=\s*(.*)/) { #DSA SigVer
 			die "R seen twice - check input file"
 				if ($capital_r);
 			$capital_r = $1;
-		}
-		elsif ($line =~ /^S\s*=\s*(.)/) { #DSA SigVer
-			die "S seen twice - check input file"
-				if ($capital_s);
-			$capital_s = $1;
 		}
 		else {
 			$out .= $line . "\n";
@@ -2009,7 +2004,7 @@ sub parse($$) {
 			    $capital_g ne "" &&
 			    $capital_y ne "" &&
 			    $capital_r ne "" &&
-			    $capital_s ne "" &&
+			    $signature ne "" &&
 			    $pt ne "") {
 				$out .= dsa_sigver($modulus,
 					 	   $capital_p,
@@ -2017,7 +2012,7 @@ sub parse($$) {
 						   $capital_g,
 						   $capital_y,
 						   $capital_r,
-						   $capital_s,
+						   $signature,
 						   $pt);
 
 				# We do not clear the domain values PQG and
@@ -2027,7 +2022,7 @@ sub parse($$) {
 				# are already printed above
 				$capital_y = "";
 				$capital_r = "";
-				$capital_s = "";
+				$signature = "";
 				$pt = "";
 			}
 		}
@@ -2051,7 +2046,8 @@ sub cleanup() {
 	unlink("rsa_sigver.tmp.$$.sig");
 	unlink("rsa_sigver.tmp.$$.der");
 	unlink("rsa_sigver.tmp.$$.cnf");
-
+	unlink("dsa_siggen.tmp.$$");
+	unlink("dsa_sigver.tmp.$$");
 	unlink("dsa_sigver.tmp.$$.sig");
 	exit;
 }
@@ -2087,10 +2083,10 @@ sub main() {
 		$state_rng =	\&libgcrypt_state_rng;
 		$hmac =		\&libgcrypt_hmac;
 		$dsa_pqggen = 	\&libgcrypt_dsa_pqggen;
-		$gen_dsakey = 	\&libgcrypt_gen_dsakey;
-		$dsa_sign = 	\&libgcrypt_dsa_sign;
-		$dsa_verify = 	\&libgcrypt_dsa_verify;
-                $dsa_genpubkey = \&libgcrypt_dsa_genpubkey;
+		$gen_dsakey =   \&libgcrypt_gen_dsakey;
+		$dsa_sign =     \&libgcrypt_dsa_sign;
+		$dsa_verify =   \&libgcrypt_dsa_verify;
+		$dsa_genpubkey = \&libgcrypt_dsa_genpubkey;
         } else {
                 die "Invalid interface option given";
         }
@@ -2120,8 +2116,6 @@ sub main() {
 
 	# Do the job
 	parse($infile, $outfile);
-
-	unlink("rsa_siggen.tmp.$$");
 
 }
 

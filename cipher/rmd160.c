@@ -559,7 +559,9 @@ static gcry_md_oid_spec_t oid_spec_rmd160[] =
   {
     /* rsaSignatureWithripemd160 */
     { "1.3.36.3.3.1.2" },
-    { NULL },
+    /* TeleTrust hash algorithm.  */
+    { "1.3.36.3.2.1" },
+    { NULL }
   };
 
 gcry_md_spec_t _gcry_digest_spec_rmd160 =
