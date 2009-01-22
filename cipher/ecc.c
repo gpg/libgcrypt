@@ -1208,9 +1208,9 @@ ecc_get_nbits (int algo, gcry_mpi_t *pkey)
 static gpg_err_code_t
 compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
 {
+  static const char names[] = "pabgnq";
   gpg_err_code_t ec = 0;
   gcry_sexp_t l1;
-  static const char const names[] = "pabgnq";
   gcry_mpi_t values[6];
   int idx;
 

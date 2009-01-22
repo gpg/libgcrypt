@@ -1,3 +1,7 @@
+2009-01-22  Werner Koch  <wk@g10code.com>
+
+	* ecc.c (compute_keygrip): Remove superfluous const.
+
 2009-01-06  Werner Koch  <wk@g10code.com>
 
 	* rmd160.c (oid_spec_rmd160): Add TeleTrust identifier.

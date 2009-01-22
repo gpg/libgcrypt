@@ -136,9 +136,9 @@ _gcry_initialize_fips_mode (int force)
 
   /* Checking based on /proc file properties.  */
   {
+    static const char procfname[] = "/proc/sys/crypto/fips_enabled";
     FILE *fp;
     int saved_errno;
-    static const char const procfname[] = "/proc/sys/crypto/fips_enabled";
 
     fp = fopen (procfname, "r");
     if (fp)

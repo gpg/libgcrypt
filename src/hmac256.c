@@ -522,7 +522,7 @@ selftest (void)
     const char * const desc;
     const char * const data;
     const char * const key;
-    const char const expect[32];
+    const unsigned char expect[32];
   } tv[] =
     {
       { "data-28 key-4",

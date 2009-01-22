@@ -2844,7 +2844,7 @@ building blocks of the library.
 
 @strong{This interface has a few known problems; most noteworthy an
 inherent tendency to leak memory.  It might not be available in
-forthcoming versions Libgcrypt.}
+forthcoming versions of Libgcrypt.}
 
 
 @menu

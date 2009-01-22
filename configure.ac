@@ -1,6 +1,6 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
-#               2007, 2008 Free Software Foundation, Inc.
+#               2007, 2008, 2009 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -27,7 +27,7 @@ min_automake_version="1.10"
 # Set my_issvn to "yes" for non-released code.  Remember to run an
 # "svn up" and "autogen.sh" right before creating a distribution.
 m4_define([my_version], [1.4.4])
-m4_define([my_issvn], [yes])
+m4_define([my_issvn], [no])
 
 m4_define([svn_revision], m4_esyscmd([printf "%d" $(svn info 2>/dev/null \
           | sed -n '/^Revision:/ s/[^0-9]//gp'|head -1)]))
@@ -40,7 +40,7 @@ AC_INIT([libgcrypt],
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=16
 LIBGCRYPT_LT_AGE=5
-LIBGCRYPT_LT_REVISION=1
+LIBGCRYPT_LT_REVISION=2
 
 
 # If the API is changed in an incompatible way: increment the next counter.

@@ -319,5 +319,5 @@ void
 _gcry_random_deinit_external_test (void *context)
 {
   if (fips_mode ())
-    return _gcry_rngfips_deinit_external_test (context);
+    _gcry_rngfips_deinit_external_test (context);
 }
