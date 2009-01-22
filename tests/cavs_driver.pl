@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# $Id: cavs_driver.pl 1495 2009-01-22 10:47:13Z smueller $
+# $Id: cavs_driver.pl 1497 2009-01-22 14:01:29Z smueller $
 #
 # CAVS test driver (based on the OpenSSL driver)
 # Written by: Stephan Müller <sm@atsec.com>
@@ -1139,7 +1139,7 @@ sub hmac_kat($$$$) {
 	$out .= "Tlen = $tlen\n";
 	$out .= "Key = $key\n";
 	$out .= "Msg = $msg\n";
-	$out .= "Mac = " . &$hmac($key, $tlen, $msg, $hashtype{$tlen}) . "\n\n";
+	$out .= "Mac = " . &$hmac($key, $tlen, $msg, $hashtype{$tlen}) . "\n";
 
 	return $out;
 }
@@ -2232,6 +2232,8 @@ sub main() {
 
 	# Do the job
 	parse($infile, $outfile);
+
+	cleanup();
 
 }
 
