@@ -46,6 +46,7 @@ function run_one_test () {
     local rspfile
     local tmprspfile
     local respdir
+    local dflag=""
 
     tmprspfile=$(echo "$reqfile" | sed 's,.req$,.rsp,')
     rspfile=$(echo "$tmprspfile" | sed 's,/req/,/resp/,' )
@@ -53,8 +54,12 @@ function run_one_test () {
     [ -f "$tmprspfile" ] && rm "$tmprspfile"
     [ -d "$respdir" ] || mkdir "$respdir"
     [ -f "$rspfile" ] &&  rm "$rspfile"
+
+    if echo "$reqfile" | grep '/DSA/req/' >/dev/null 2>/dev/null; then
+        dflag="-D"
+    fi 
     
-    if ./cavs_driver.pl -I libgcrypt "$reqfile"; then
+    if ./cavs_driver.pl -I libgcrypt $dflag "$reqfile"; then
       if [ -f "$tmprspfile" ]; then
           mv "$tmprspfile" "$rspfile"
       else 
@@ -119,7 +124,7 @@ done
 
 if [ -f "$errors_seen_file" ]; then
     rm "$errors_seen_file"
-    echo "Error enountered - not packing up response file" >&2
+    echo "Error encountered - not packing up response file" >&2
     exit 1
 fi
 

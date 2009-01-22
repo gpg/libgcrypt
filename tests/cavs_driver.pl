@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# $Id: cavs_driver.pl 1494 2009-01-21 19:30:16Z smueller $
+# $Id: cavs_driver.pl 1495 2009-01-22 10:47:13Z smueller $
 #
 # CAVS test driver (based on the OpenSSL driver)
 # Written by: Stephan Müller <sm@atsec.com>
@@ -1518,6 +1518,11 @@ sub dsa_pqggen_driver($$) {
 		die "Return value does not contain all expected values of P, Q, G, Seed, c, H for dsa_pqggen"
 			if (!defined($P) || !defined($Q) || !defined($G) ||
 			    !defined($Seed) || !defined($c) || !defined($H));
+
+		# now change the counter to decimal as CAVS wants decimal
+		# counter value although all other is HEX
+		$c = hex($c);
+
 		$out .= "P = $P\n";
 		$out .= "Q = $Q\n";
 		$out .= "G = $G\n";
