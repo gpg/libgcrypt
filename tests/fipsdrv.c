@@ -76,8 +76,12 @@ static int binary_output;
 /* Base64 output flag.  */
 static int base64_output;
 
-/* We need to know whetehr we are in loop_mode.  */
+/* We need to know whether we are in loop_mode.  */
 static int loop_mode;
+
+/* If true some functions are modified to print the output in the CAVS
+   response file format.  */
+static int standalone_mode;
 
 
 /* ASN.1 classes.  */
@@ -890,7 +894,7 @@ print_mpi_line (gcry_mpi_t a, int no_lz)
 
   p = buf;
   if (no_lz && p[0] == '0' && p[1] == '0' && p[2])
-    p +=2;
+    p += 2;
     
   printf ("%s\n", p);
   if (ferror (stdout))
@@ -1693,6 +1697,36 @@ dsa_gen (int keysize)
 }
 
 
+/* Generate a DSA key of size KEYSIZE and return the complete
+   S-expression.  */
+static gcry_sexp_t
+dsa_gen_with_seed (int keysize, const void *seed, size_t seedlen)
+{
+  gpg_error_t err;
+  gcry_sexp_t keyspec, key;
+
+  err = gcry_sexp_build (&keyspec, NULL, 
+                         "(genkey"
+                         "  (dsa"
+                         "    (nbits %d)"
+                         "    (use-fips186-2)"
+                         "    (derive-parms"
+                         "      (seed %b))))",
+                         keysize, (int)seedlen, seed);
+  if (err)
+    die ("gcry_sexp_build failed for DSA key generation: %s\n",
+         gpg_strerror (err));
+
+  err = gcry_pk_genkey (&key, keyspec);
+  if (err)
+    die ("gcry_pk_genkey failed for DSA: %s\n", gpg_strerror (err));
+  
+  gcry_sexp_release (keyspec);
+
+  return key;
+}
+
+
 /* Print the domain parameter as well as the derive information.  KEY
    is the complete key as returned by dsa_gen.  We print to stdout
    with one parameter per line in hex format using this order: p, q,
@@ -1727,6 +1761,8 @@ print_dsa_domain_parameters (gcry_sexp_t key)
       if (!mpi)
         die ("no value for %c parameter in returned public key\n","pqg"[idx]);
       gcry_sexp_release (l2);
+      if (standalone_mode)
+        printf ("%c = ", "PQG"[idx]);
       print_mpi_line (mpi, 1);
       gcry_mpi_release (mpi);
     }
@@ -1749,6 +1785,8 @@ print_dsa_domain_parameters (gcry_sexp_t key)
   data = gcry_sexp_nth_data (l2, 1, &datalen);
   if (!data)
     die ("no seed value in returned key\n");
+  if (standalone_mode)
+    printf ("Seed = ");
   print_data_line (data, datalen);
   gcry_sexp_release (l2);
 
@@ -1758,7 +1796,10 @@ print_dsa_domain_parameters (gcry_sexp_t key)
   string = gcry_sexp_nth_string (l2, 1);
   if (!string)
     die ("no counter value in returned key\n");
-  printf ("%lX\n", strtoul (string, NULL, 10));
+  if (standalone_mode)
+    printf ("c = %ld\n", strtoul (string, NULL, 10));
+  else
+    printf ("%lX\n", strtoul (string, NULL, 10));
   gcry_free (string);
   gcry_sexp_release (l2);
 
@@ -1768,6 +1809,8 @@ print_dsa_domain_parameters (gcry_sexp_t key)
   mpi = gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
   if (!mpi)
     die ("no h value in returned key\n");
+  if (standalone_mode)
+    printf ("H = ");
   print_mpi_line (mpi, 1);
   gcry_mpi_release (mpi);
   gcry_sexp_release (l2);
@@ -1778,13 +1821,17 @@ print_dsa_domain_parameters (gcry_sexp_t key)
 
 /* Generate DSA domain parameters for a modulus size of KEYSIZE.  The
    result is printed to stdout with one parameter per line in hex
-   format and in this order: p, q, g, seed, counter, h.  */
+   format and in this order: p, q, g, seed, counter, h.  If SEED is
+   not NULL this seed value will be used for the generation.  */
 static void
-run_dsa_pqg_gen (int keysize)
+run_dsa_pqg_gen (int keysize, const void *seed, size_t seedlen)
 {
   gcry_sexp_t key;
 
-  key = dsa_gen (keysize);
+  if (seed)
+    key = dsa_gen_with_seed (keysize, seed, seedlen);
+  else
+    key = dsa_gen (keysize);
   print_dsa_domain_parameters (key);
   gcry_sexp_release (key);
 }
@@ -1825,9 +1872,11 @@ run_dsa_sign (const void *data, size_t datalen, const char *keyfile)
 {
   gpg_error_t err;
   gcry_sexp_t s_data, s_key, s_sig, s_tmp, s_tmp2;
+  char hash[20];
   gcry_mpi_t tmpmpi;
 
-  err = gcry_mpi_scan (&tmpmpi, GCRYMPI_FMT_USG, data, datalen, NULL);
+  gcry_md_hash_buffer (GCRY_MD_SHA1, hash, data, datalen);
+  err = gcry_mpi_scan (&tmpmpi, GCRYMPI_FMT_USG, hash, 20, NULL);
   if (!err)
     {
       err = gcry_sexp_build (&s_data, NULL,
@@ -2121,6 +2170,11 @@ main (int argc, char **argv)
           mct_server = 1;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--standalone"))
+        {
+          standalone_mode = 1;
+          argc--; argv++;
+        }
     }          
 
   if (!argc || argc > 2)
@@ -2163,7 +2217,6 @@ main (int argc, char **argv)
       && !mct_server
       && strcmp (mode_string, "random")
       && strcmp (mode_string, "rsa-gen")
-      && strcmp (mode_string, "dsa-pqg-gen")
       && strcmp (mode_string, "dsa-gen") )
     {
       data = read_file (input, !binary_input, &datalen);
@@ -2415,7 +2468,7 @@ main (int argc, char **argv)
       keysize = keysize_string? atoi (keysize_string) : 0;
       if (keysize < 1024 || keysize > 3072)
         die ("invalid keysize specified; needs to be 1024 .. 3072\n");
-      run_dsa_pqg_gen (keysize);
+      run_dsa_pqg_gen (keysize, datalen? data:NULL, datalen);
     }
   else if (!strcmp (mode_string, "dsa-gen"))
     {

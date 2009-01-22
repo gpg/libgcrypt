@@ -527,7 +527,7 @@ get_dsa_key_fips186_with_seed_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   if (rc)
     die ("error generating DSA key: %s\n", gcry_strerror (rc));
     
-  if (verbose > 1 || 1)
+  if (verbose > 1)
     show_sexp ("generated DSA key (fips 186 with seed):\n", key);
 
   pub_key = gcry_sexp_find_token (key, "public-key", 0);

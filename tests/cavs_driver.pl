@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# $Id: cavs_driver.pl 1488 2009-01-16 14:29:00Z smueller $
+# $Id: cavs_driver.pl 1494 2009-01-21 19:30:16Z smueller $
 #
 # CAVS test driver (based on the OpenSSL driver)
 # Written by: Stephan Müller <sm@atsec.com>
@@ -65,6 +65,7 @@
 #	SigVer15
 #	(SigVerRSA is not applicable for OpenSSL as X9.31 padding
 #		is not done through openssl dgst)
+#	KeyGen RSA X9.31
 #
 # SHA
 #	SHA[1|224|256|384|512]ShortMsg
@@ -149,7 +150,7 @@ my $encdec;
 #        is separated from the previous with a \n in the following order:
 #         P\n
 #         Q\n
-#         N\
+#         N\n
 #         D\n
 my $rsa_derive;
 
@@ -567,7 +568,7 @@ sub libgcrypt_dsa_verify($$$$) {
 	close FH;
 
 	$ret = pipe_through_program($data,
-		"fipsdrv --verbose --key $keyfile --signature $sigfile dsa-verify");
+		"fipsdrv --key $keyfile --signature $sigfile dsa-verify");
 	unlink ($sigfile);
 	# Parse through the output information
 	return ($ret =~ /GOOD signature/);
@@ -1418,6 +1419,48 @@ sub rsa_sigver($$$$$) {
 	return $out;
 }
 
+# RSA X9.31 key generation test
+# $1 modulus size
+# $2 e
+# $3 xp1
+# $4 xp2
+# $5 Xp
+# $6 xq1
+# $7 xq2
+# $8 Xq
+# return: string formatted as expected by CAVS
+sub rsa_keygen($$$$$$$$) {
+	my $modulus = shift;
+	my $e = shift;
+	my $xp1 = shift;
+	my $xp2 = shift;
+	my $Xp = shift;
+	my $xq1 = shift;
+	my $xq2 = shift;
+	my $Xq = shift;
+
+	my $out = "";
+
+	my $ret = &$rsa_derive($modulus, $e, $xp1, $xp2, $Xp, $xq1, $xq2, $Xq);
+
+	my ($P, $Q, $N, $D) = split(/\n/, $ret);
+
+	$out .= "e = $e\n";	
+	$out .= "xp1 = $xp1\n";	
+	$out .= "xp2 = $xp2\n";	
+	$out .= "Xp = $Xp\n";	
+	$out .= "p = $P\n";
+	$out .= "xq1 = $xq1\n";	
+	$out .= "xq2 = $xq2\n";	
+	$out .= "Xq = $Xq\n";	
+	$out .= "q = $Q\n";
+	$out .= "n = $N\n";
+	$out .= "d = $D\n\n";
+
+	return $out;
+	
+}
+
 # X9.31 RNG test
 # $1 key for the AES cipher
 # $2 DT value
@@ -1616,6 +1659,12 @@ sub parse($$) {
 	my $capital_g = "";
 	my $capital_y = "";
 	my $capital_r = "";
+	my $xp1 = "";
+	my $xp2 = "";
+	my $Xp = "";
+	my $xq1 = "";
+	my $xq2 = "";
+	my $Xq = "";
 
 	my $mode = "";
 
@@ -1646,7 +1695,7 @@ sub parse($$) {
 
 		##### Extract cipher
 		# XXX there may be more - to be added
-		if ($tmpline =~ /^#.*(CBC|ECB|OFB|CFB|SHA-|SigGen|SigVer|RC4VS|ANSI X9\.31|Hash sizes tested|PQGGen)/) {
+		if ($tmpline =~ /^#.*(CBC|ECB|OFB|CFB|SHA-|SigGen|SigVer|RC4VS|ANSI X9\.31|Hash sizes tested|PQGGen|KeyGen RSA)/) {
 			if ($tmpline    =~ /CBC/)   { $mode="cbc"; }
 			elsif ($tmpline =~ /ECB/)   { $mode="ecb"; }
 			elsif ($tmpline =~ /OFB/)   { $mode="ofb"; }
@@ -1695,7 +1744,11 @@ sub parse($$) {
 
 			if ($tt == 0) {
 			##### Identify the test type
-				if ($tmpline =~ /SigVer/ && $opt{'D'} ) {
+				if ($tmpline =~ /KeyGen RSA \(X9\.31\)/) {
+					$tt = 13;
+					die "Interface function rsa_derive for RSA key generation not defined for tested library"
+						if (!defined($rsa_derive));
+				} elsif ($tmpline =~ /SigVer/ && $opt{'D'} ) {
 					$tt = 12;
 					die "Interface function dsa_verify or dsa_genpubkey for DSA verification not defined for tested library"
 						if (!defined($dsa_verify) || !defined($dsa_genpubkey));
@@ -1907,6 +1960,36 @@ sub parse($$) {
 				if ($capital_r);
 			$capital_r = $1;
 		}
+		elsif ($line =~ /^xp1\s*=\s*(.*)/) { #RSA key gen
+			die "xp1 seen twice - check input file"
+				if ($xp1);
+			$xp1 = $1;
+		}
+		elsif ($line =~ /^xp2\s*=\s*(.*)/) { #RSA key gen
+			die "xp2 seen twice - check input file"
+				if ($xp2);
+			$xp2 = $1;
+		}
+		elsif ($line =~ /^Xp\s*=\s*(.*)/) { #RSA key gen
+			die "Xp seen twice - check input file"
+				if ($Xp);
+			$Xp = $1;
+		}
+		elsif ($line =~ /^xq1\s*=\s*(.*)/) { #RSA key gen
+			die "xq1 seen twice - check input file"
+				if ($xq1);
+			$xq1 = $1;
+		}
+		elsif ($line =~ /^xq2\s*=\s*(.*)/) { #RSA key gen
+			die "xq2 seen twice - check input file"
+				if ($xq2);
+			$xq2 = $1;
+		}
+		elsif ($line =~ /^Xq\s*=\s*(.*)/) { #RSA key gen
+			die "Xq seen twice - check input file"
+				if ($Xq);
+			$Xq = $1;
+		}
 		else {
 			$out .= $line . "\n";
 		}
@@ -2027,6 +2110,32 @@ sub parse($$) {
 				$pt = "";
 			}
 		}
+		elsif ($tt == 13) {
+			if($modulus ne "" &&
+			   $e ne "" &&
+			   $xp1 ne "" &&
+			   $xp2 ne "" &&
+			   $Xp ne "" &&
+			   $xq1 ne "" &&
+			   $xq2 ne "" &&
+			   $Xq ne "") {
+				$out .= rsa_keygen($modulus,
+						   $e,
+						   $xp1,
+						   $xp2,
+						   $Xp,
+						   $xq1,
+						   $xq2,
+						   $Xq);
+				$e = "";
+				$xp1 = "";
+				$xp2 = "";
+				$Xp = "";
+				$xq1 = "";
+				$xq2 = "";
+				$Xq = "";
+			}
+		}
 		elsif ($tt > 0) {
 			die "Test case $tt not defined";
 		}
@@ -2078,6 +2187,7 @@ sub main() {
 		$rsa_sign =	\&libgcrypt_rsa_sign;
 		$rsa_verify =	\&libgcrypt_rsa_verify;
 		$gen_rsakey =	\&libgcrypt_gen_rsakey;
+		$rsa_derive = 	\&libgcrypt_rsa_derive;
 		$hash =		\&libgcrypt_hash;
 		$state_cipher =	\&libgcrypt_state_cipher;
 		$state_cipher_des =	\&libgcrypt_state_cipher_des;

@@ -1,3 +1,13 @@
+2009-01-22  Werner Koch  <wk@g10code.com>
+
+	* fipsdrv.c (run_dsa_sign): Use hash of the data.
+	(dsa_gen_with_seed): New.
+	(run_dsa_pqg_gen): Add args SEED and SEEDLEN and use them.
+	(main): Optically take a seed for dsa-pgq-gen.
+	(standalone_mode): New.
+	(main): Add option --standalone.
+	(print_dsa_domain_parameters): Implement standalone mode.
+
 2009-01-21  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c (run_dsa_verify): Use gcry_mpi_scan again.
