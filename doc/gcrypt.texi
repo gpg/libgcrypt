@@ -2431,9 +2431,9 @@ This example requests to sign the data in @var{block} after applying
 PKCS#1 block type 1 style padding.  @var{hash-algo} is a string with the
 hash algorithm to be encoded into the signature, this may be any hash
 algorithm name as supported by Libgcrypt.  Most likely, this will be
-"sha1", "rmd160" or "md5".  It is obvious that the length of @var{block}
-must match the size of that message digests; the function checks that
-this and other constraints are valid.
+"sha256" or "sha1".  It is obvious that the length of @var{block} must
+match the size of that message digests; the function checks that this
+and other constraints are valid.
 
 @noindent
 If PKCS#1 padding is not required (because the caller does already
@@ -3410,26 +3410,36 @@ return value.  This constant is guaranteed to have the value @code{0}.
 
 @item GCRY_MD_SHA1
 This is the SHA-1 algorithm which yields a message digest of 20 bytes.
+Note that SHA-1 begins to show some weaknesses and it is suggested to
+fade out its use if strong cryptographic properties are required.
 
 @item GCRY_MD_RMD160
 This is the 160 bit version of the RIPE message digest (RIPE-MD-160).
-Like SHA-1 it also yields a digest of 20 bytes.
+Like SHA-1 it also yields a digest of 20 bytes.  This algorithm share a
+lot of design properties with SHA-1 and thus it is advisable not to use
+it for new protocols.
 
 @item GCRY_MD_MD5
 This is the well known MD5 algorithm, which yields a message digest of
-16 bytes. 
+16 bytes.  Note that the MD5 algorithm has severe weaknesses, for
+example it is easy to compute two messages yielding the same hash
+(collision attack).  The use of this algorithm is only justified for
+non-cryptographic application.
+
 
 @item GCRY_MD_MD4
 This is the MD4 algorithm, which yields a message digest of 16 bytes.
+This algorithms ha severe weaknesses and should not be used.
 
 @item GCRY_MD_MD2
 This is an reserved identifier for MD-2; there is no implementation yet.
+This algorithm has severe weaknesses and should not be used.
 
 @item GCRY_MD_TIGER
 This is the TIGER/192 algorithm which yields a message digest of 24 bytes.
 
 @item GCRY_MD_HAVAL
-This is an reserved for the HAVAL algorithm with 5 passes and 160
+This is an reserved value for the HAVAL algorithm with 5 passes and 160
 bit. It yields a message digest of 20 bytes.  Note that there is no
 implementation yet available.
 
@@ -3450,16 +3460,19 @@ This is the SHA-384 algorithm which yields a message digest of 64 bytes.
 See FIPS 180-2 for the specification.
 
 @item GCRY_MD_CRC32
-This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It
-yields an output of 4 bytes.
+This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It yields
+an output of 4 bytes.  Note that this is not a hash algorithm in the
+cryptographic sense.
 
 @item GCRY_MD_CRC32_RFC1510
 This is the above cyclic redundancy check function, as modified by RFC
-1510.  It yields an output of 4 bytes.
+1510.  It yields an output of 4 bytes.  Note that this is not a hash
+algorithm in the cryptographic sense.
 
 @item GCRY_MD_CRC24_RFC2440
 This is the OpenPGP cyclic redundancy check function.  It yields an
-output of 3 bytes.
+output of 3 bytes.  Note that this is not a hash algorithm in the
+cryptographic sense.
 
 @item GCRY_MD_WHIRLPOOL
 This is the Whirlpool algorithm which yields a message digest of 64
