@@ -29,6 +29,8 @@
 #endif
 #include <gpg-error.h>
 
+#include <sys/time.h>  /* Required by Interix.  */
+
 #include <config.h>
 
 
