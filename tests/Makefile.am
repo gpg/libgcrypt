@@ -39,6 +39,6 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 LDADD = ../src/libgcrypt.la $(DL_LIBS)
 
 EXTRA_PROGRAMS = testapi pkbench
-noinst_PROGRAMS = $(TESTS) fipsdrv
+noinst_PROGRAMS = $(TESTS) fipsdrv rsacvt
 
 EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl
