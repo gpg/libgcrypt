@@ -83,6 +83,10 @@ static int with_labels;
 /* Do not suppress leading zeroes.  */
 static int keep_lz; 
 
+/* Create parameters as specified by OpenPGP (rfc4880).  That is we
+   don't store dmp1 and dmp1 but d and make sure that p is less than  q.  */
+static int openpgp_mode;
+
 
 /* Print a error message and exit the process with an error code.  */
 static void
@@ -227,7 +231,7 @@ compute_missing (gcry_mpi_t rsa_p, gcry_mpi_t rsa_q, gcry_mpi_t rsa_e)
   tmp_g = gcry_mpi_new (0);
 
   /* Check that p < q; if not swap p and q.  */ 
-  if (gcry_mpi_cmp (rsa_p, rsa_q) > 0)
+  if (openpgp_mode && gcry_mpi_cmp (rsa_p, rsa_q) > 0)
     {
       fprintf (stderr, PGM ": swapping p and q\n");
       gcry_mpi_swap (rsa_p, rsa_q);
@@ -253,10 +257,14 @@ compute_missing (gcry_mpi_t rsa_p, gcry_mpi_t rsa_q, gcry_mpi_t rsa_e)
 
   /* Compute the CRT helpers: d mod (p-1), d mod (q-1)   */
   gcry_mpi_mod (rsa_pm1, rsa_d, rsa_pm1);
-  gcry_mpi_mod (rsa_qm1, rsa_d, rsa_pm1);
+  gcry_mpi_mod (rsa_qm1, rsa_d, rsa_qm1);
 
-  /* Compute the CRT value: u = p^{-1} mod q  */
-  gcry_mpi_invm (rsa_u, rsa_p, rsa_q);
+  /* Compute the CRT value:   OpenPGP:    u = p^{-1} mod q 
+                             Standard: iqmp = q^{-1} mod p */
+  if (openpgp_mode)
+    gcry_mpi_invm (rsa_u, rsa_p, rsa_q);
+  else
+    gcry_mpi_invm (rsa_u, rsa_q, rsa_p);
 
   gcry_mpi_release (phi);
   gcry_mpi_release (tmp_f);
@@ -265,12 +273,18 @@ compute_missing (gcry_mpi_t rsa_p, gcry_mpi_t rsa_q, gcry_mpi_t rsa_e)
   /* Print everything.  */
   print_mpi_line ("n", rsa_n);
   print_mpi_line ("e", rsa_e);
-  print_mpi_line ("d", rsa_d);
+  if (openpgp_mode)
+    print_mpi_line ("d", rsa_d);
   print_mpi_line ("p", rsa_p);
   print_mpi_line ("q", rsa_q);
-  print_mpi_line ("dmp1", rsa_pm1);
-  print_mpi_line ("dmq1", rsa_qm1);
-  print_mpi_line ("u", rsa_u);
+  if (openpgp_mode)
+    print_mpi_line ("u", rsa_u);
+  else
+    {
+      print_mpi_line ("dmp1", rsa_pm1);
+      print_mpi_line ("dmq1", rsa_qm1);
+      print_mpi_line ("iqmp", rsa_u);
+    }
 
   gcry_mpi_release (rsa_n);
   gcry_mpi_release (rsa_d);
@@ -294,10 +308,11 @@ usage (int show_help)
     ("Usage: " PGM " [OPTIONS] [FILE]\n"
      "Take RSA parameters p, n, e and compute missing parameters.\n"
      "OPTIONS:\n"
-     "  --version        Print version information\n"
-     "  --verbose        Print additional information\n"
+     "  --openpgp        Compute as specified by RFC4880\n"
      "  --labels         Prefix output with labels\n"
      "  --keep-lz        Keep all leading zeroes in the output\n"
+     "  --verbose        Print additional information\n"
+     "  --version        Print version information\n"
      "  --help           Print this text\n"
      "With no FILE, or if FILE is -, read standard input.\n"
      "Report bugs to " PACKAGE_BUGREPORT ".\n" , stdout);
@@ -348,6 +363,11 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--keep-lz"))
         {
           keep_lz = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--openpgp"))
+        {
+          openpgp_mode = 1;
           argc--; argv++;
         }
     }          

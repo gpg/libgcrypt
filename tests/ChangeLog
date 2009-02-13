@@ -1,3 +1,9 @@
+2009-02-13  Werner Koch  <wk@g10code.com>
+
+	* rsacvt.c (compute_missing): Fix dqm1 computation.  Take care of
+	openpgp flag.
+	(main): Add option --openpgp.
+
 2009-02-11  Werner Koch  <wk@g10code.com>
 
 	* rsacvt.c: New.
