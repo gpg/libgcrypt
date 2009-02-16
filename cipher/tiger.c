@@ -24,7 +24,6 @@
 #include <string.h>
 
 #include "g10lib.h"
-#include "memory.h"
 #include "cipher.h"
 
 #ifdef HAVE_U64_TYPEDEF

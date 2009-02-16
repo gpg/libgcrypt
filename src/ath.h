@@ -21,17 +21,21 @@
 #ifndef ATH_H
 #define ATH_H
 
+#include <config.h>
+
 #ifdef _WIN32
-#include <windows.h>
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
+# include <windows.h>
+#else /* !_WIN32 */
+# ifdef HAVE_SYS_SELECT_H
+#  include <sys/select.h>
+# else
+#  include <sys/time.h>
+# endif
+# include <sys/types.h>
+# include <sys/socket.h>
+#endif /* !_WIN32 */
 #include <gpg-error.h>
 
-#include <sys/time.h>  /* Required by Interix.  */
-
-#include <config.h>
 
 
 /* Define _ATH_EXT_SYM_PREFIX if you want to give all external symbols

@@ -30,7 +30,6 @@
 
 #define GCRYPT_NO_MPI_MACROS 1
 #include "g10lib.h"
-#include "memory.h"
 
 typedef struct gcry_sexp *NODE;
 typedef unsigned short DATALEN;

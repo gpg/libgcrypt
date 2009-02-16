@@ -797,9 +797,9 @@ print_buffer (const void *buffer, size_t length)
   if (base64_output)
     {
       static const unsigned char bintoasc[64+1] = 
-        ("ABCDEFGHIJKLMNOPQRSTUVWXYZ" 
-         "abcdefghijklmnopqrstuvwxyz" 
-         "0123456789+/"); 
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ" 
+        "abcdefghijklmnopqrstuvwxyz" 
+        "0123456789+/"; 
       const unsigned char *p;
       unsigned char inbuf[4];
       char outbuf[4];

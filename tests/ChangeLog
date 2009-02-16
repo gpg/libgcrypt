@@ -1,3 +1,8 @@
+2009-02-16  Werner Koch  <wk@g10code.com>
+
+	* fipsdrv.c (print_buffer): Remove parens from initializer for
+	better portability.  Reported by Dan Fandrich.
+
 2009-02-13  Werner Koch  <wk@g10code.com>
 
 	* rsacvt.c (compute_missing): Fix dqm1 computation.  Take care of

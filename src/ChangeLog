@@ -1,3 +1,13 @@
+2009-02-16  Werner Koch  <wk@g10code.com>
+
+	* ath.h [HAVE_SYS_SELECT_H]: Include <sys/select.h> for fd_set.
+	[!HAVE_SYS_SELECT_H]: Include <sys/time.h>.  Move inclusion of
+	config.h to the top.  The actual configure check was already
+	there.
+
+	* sexp.c: Remove memory.h.
+	* mpi.h: Remove memory.h.  Add string.h.
+
 2009-02-02  Werner Koch  <wk@g10code.com>
 
 	* ath.h: Include sys/time.h.  Fixes bug#993.

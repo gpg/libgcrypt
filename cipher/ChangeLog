@@ -1,3 +1,11 @@
+2009-02-16  Werner Koch  <wk@g10code.com>
+
+	* rsa.c (generate_x931): Do not initialize TBL with automatic
+	variables.
+	* whirlpool.c, tiger.c, sha256.c, sha1.c, rmd160.c, md5.c
+	* md4.c, crc.c: Remove memory.h.  This is garbage from gnupg.
+	Reported by Dan Fandrich.
+
 2009-01-22  Werner Koch  <wk@g10code.com>
 
 	* ecc.c (compute_keygrip): Remove superfluous const.

@@ -30,8 +30,9 @@
 
 #include <config.h>
 #include <stdio.h>
+#include <string.h>
+
 #include "types.h"
-#include "memory.h"
 #include "../mpi/mpi-asm-defs.h"
 
 #include "g10lib.h"
