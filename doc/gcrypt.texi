@@ -4643,15 +4643,15 @@ it returns NULL.
 Like @code{gcry_malloc}, but uses secure memory.
 @end deftypefun
 
-@deftypefun {void *} gcry_calloc (size_t @var{n})
+@deftypefun {void *} gcry_calloc (size_t @var{n}, size_t @var{m})
 
-This function tries to allocate @var{n} bytes of cleared memory
-(i.e. memory that is initialized with zero bytes).  On success it
-returns a pointer to the memory area, in an out-of-core condition, it
-returns NULL.
+This function allocates a cleared block of memory (i.e. initialized with
+zero bytes) long enough to contain a vector of @var{n} elements, each of
+size @var{m} bytes.  On success it returns a pointer to the memory
+block; in an out-of-core condition, it returns NULL.
 @end deftypefun
 
-@deftypefun {void *} gcry_calloc_secure (size_t @var{n})
+@deftypefun {void *} gcry_calloc_secure (size_t @var{n}, size_t @var{m})
 Like @code{gcry_calloc}, but uses secure memory.
 @end deftypefun
 
