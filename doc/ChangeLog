@@ -1,3 +1,7 @@
+2009-04-02  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi (Self-Tests): Fix name of register functions.
+
 2008-12-10  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.texi (Cryptographic Functions): Explain the domain

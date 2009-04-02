@@ -5388,9 +5388,9 @@ verification fails.  (@code{cipher/@/dsa.c:@/test_keys})
 
 Loading of extra modules into libgcrypt is disabled in FIPS mode and
 thus no tests are
-implemented. (@code{cipher/@/cipher.c:@/gcry_cipher_register},
-@code{cipher/@/md.c:@/gcry_md_register},
-@code{cipher/@/md.c:@/gcry_pk_register})
+implemented. (@code{cipher/@/cipher.c:@/_gcry_cipher_register},
+@code{cipher/@/md.c:@/_gcry_md_register},
+@code{cipher/@/pubkey.c:@/_gcry_pk_register})
 
 
 @subsection Manual Key Entry Tests
