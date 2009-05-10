@@ -1,3 +1,8 @@
+2009-03-31  Werner Koch  <wk@g10code.com>
+
+	* rsa.c (rsa_check_secret_key): Return GPG_ERR_BAD_SECKEY and not
+	GPG_ERR_PUBKEY_ALGO.
+
 2009-02-16  Werner Koch  <wk@g10code.com>
 
 	* rsa.c (generate_x931): Do not initialize TBL with automatic

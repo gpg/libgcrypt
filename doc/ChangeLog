@@ -1,3 +1,12 @@
+2009-05-10  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi (Working with cipher handles): Clarified that
+	keylengths are in bytes.
+
+2009-04-02  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.texi (Self-Tests): Fix register fucntion names.
+
 2009-02-22  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.texi (Memory allocation): Fix describion of gcry-calloc.

@@ -886,7 +886,7 @@ rsa_check_secret_key (int algo, gcry_mpi_t *skey)
     err = GPG_ERR_NO_OBJ;  /* To check the key we need the optional
                               parameters. */
   else if (!check_secret_key (&sk))
-    err = GPG_ERR_PUBKEY_ALGO;
+    err = GPG_ERR_BAD_SECKEY;
 
   return err;
 }

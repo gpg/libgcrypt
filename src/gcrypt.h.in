@@ -909,7 +909,7 @@ gcry_error_t gcry_cipher_decrypt (gcry_cipher_hd_t h,
                                   void *out, size_t outsize,
                                   const void *in, size_t inlen);
 
-/* Set KEY of length KEYLEN for the cipher handle HD.  */
+/* Set KEY of length KEYLEN bytes for the cipher handle HD.  */
 gcry_error_t gcry_cipher_setkey (gcry_cipher_hd_t hd,
                                  const void *key, size_t keylen);
 
@@ -935,10 +935,10 @@ gcry_error_t gcry_cipher_setiv (gcry_cipher_hd_t hd,
 gpg_error_t gcry_cipher_setctr (gcry_cipher_hd_t hd,
                                 const void *ctr, size_t ctrlen);
 
-/* Retrieved the key length used with algorithm A. */
+/* Retrieved the key length in bytes used with algorithm A. */
 size_t gcry_cipher_get_algo_keylen (int algo);
 
-/* Retrieve the block length used with algorithm A. */
+/* Retrieve the block length in bytes used with algorithm A. */
 size_t gcry_cipher_get_algo_blklen (int algo);
 
 /* Return 0 if the algorithm A is available for use. */
@@ -1174,7 +1174,7 @@ const char *gcry_md_algo_name (int algo) _GCRY_GCC_ATTR_PURE;
 int gcry_md_map_name (const char* name) _GCRY_GCC_ATTR_PURE;
 
 /* For use with the HMAC feature, the set MAC key to the KEY of
-   KEYLEN. */
+   KEYLEN bytes. */
 gcry_error_t gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen);
 
 /* Start or stop debugging for digest handle HD; i.e. create a file

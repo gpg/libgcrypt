@@ -73,7 +73,7 @@
       cd doc
       make pdf
 
-
+      
 
     Mailing List
     ------------
@@ -132,7 +132,7 @@
                      time.  This is helpful to create OS X fat binaries.
 
      --enable-random-daemon
-                     Include support for a global random damon and
+                     Include support for a global random daemon and
                      build the daemon.  This is an experimental feature.
 
      --enable-mpi-path=EXTRA_PATH
@@ -170,7 +170,52 @@
                      available.  Try this if you get problems with
                      assembler code.
 
-       
+
+    Build Problems
+    --------------
+
+    We can't check all assembler files, so if you have problems
+    assembling them (or the program crashes) use --disable-asm with
+    ./configure.  If you opt to delete individual replacement files in
+    hopes of using the remaining ones, be aware that the configure
+    scripts may consider several subdirectories to get all available
+    assembler files; be sure to delete the correct ones.  Never delete
+    udiv-qrnnd.S in any CPU directory, because there may be no C
+    substitute (in mpi/genereic).  Don't forget to delete
+    "config.cache" and run "./config.status --recheck".  We got a few
+    reports about problems using versions of gcc earlier than 2.96
+    along with a non-GNU assembler (as).  If this applies to your
+    platform, you can either upgrade gcc to a more recent version, or
+    use the GNU assembler.
+
+    Some make tools are broken - the best solution is to use GNU's
+    make.  Try gmake or grab the sources from a GNU archive and
+    install them.
+
+    If you are cross-compiling and you get an error either building a
+    tool called "yat2m" or running that tool, the problem is most
+    likely a bad or missing native compiler.  We require a standard
+    C-89 compiler to produce an executable to be run on the build
+    platform.  You can explicitly set such a compiler with configure
+    arguments. On HP/UX you might want to try: "CC_FOR_BUILD=c89".
+
+    Specific problems on some machines:
+
+      * IBM RS/6000 running AIX
+
+	Due to a change in gcc (since version 2.8) the MPI stuff may
+	not build. In this case try to run configure using:
+	    CFLAGS="-g -O2 -mcpu=powerpc" ./configure
+
+      * SVR4.2 (ESIX V4.2 cc)
+
+        Due to problems with the ESIX as(1), you probably want to do:
+            CFLAGS="-O -K pentium" ./configure --disable-asm
+
+      * SunOS 4.1.4
+      
+         ./configure ac_cv_sys_symbol_underscore=yes
+
 
 
     License

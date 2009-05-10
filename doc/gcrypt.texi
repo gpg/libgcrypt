@@ -12,7 +12,7 @@ This manual is for Libgcrypt
 (version @value{VERSION}, @value{UPDATED}),
 which is GNU's library of cryptographic building blocks.
 
-Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008 Free Software Foundation, Inc.
+Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -1703,11 +1703,11 @@ In order to use a handle for performing cryptographic operations, a
 @deftypefun gcry_error_t gcry_cipher_setkey (gcry_cipher_hd_t @var{h}, const void *@var{k}, size_t @var{l})
 
 Set the key @var{k} used for encryption or decryption in the context
-denoted by the handle @var{h}.  The length @var{l} of the key @var{k}
-must match the required length of the algorithm set for this context or
-be in the allowed range for algorithms with variable key size.  The
-function checks this and returns an error if there is a problem.  A
-caller should always check for an error.
+denoted by the handle @var{h}.  The length @var{l} (in bytes) of the
+key @var{k} must match the required length of the algorithm set for
+this context or be in the allowed range for algorithms with variable
+key size.  The function checks this and returns an error if there is a
+problem.  A caller should always check for an error.
 
 @end deftypefun
 
@@ -1719,18 +1719,18 @@ value.  To set the IV or CTR, use these functions:
 @deftypefun gcry_error_t gcry_cipher_setiv (gcry_cipher_hd_t @var{h}, const void *@var{k}, size_t @var{l})
 
 Set the initialization vector used for encryption or decryption. The
-vector is passed as the buffer @var{K} of length @var{l} and copied to
-internal data structures.  The function checks that the IV matches the
-requirement of the selected algorithm and mode. 
+vector is passed as the buffer @var{K} of length @var{l} bytes and
+copied to internal data structures.  The function checks that the IV
+matches the requirement of the selected algorithm and mode.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_cipher_setctr (gcry_cipher_hd_t @var{h}, const void *@var{c}, size_t @var{l})
 
 Set the counter vector used for encryption or decryption. The counter
-is passed as the buffer @var{c} of length @var{l} and copied to
+is passed as the buffer @var{c} of length @var{l} bytes and copied to
 internal data structures.  The function checks that the counter
 matches the requirement of the selected algorithm (i.e., it must be
-the same size as the block size).  
+the same size as the block size).
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_cipher_reset (gcry_cipher_hd_t @var{h})
@@ -3639,8 +3639,9 @@ be set using the function:
 
 @deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
 
-For use with the HMAC feature, set the MAC key to the value of @var{key}
-of length @var{keylen}.  There is no restriction on the length of the key.
+For use with the HMAC feature, set the MAC key to the value of
+@var{key} of length @var{keylen} bytes.  There is no restriction on
+the length of the key.
 @end deftypefun
 
 
@@ -5401,9 +5402,9 @@ verification fails.  (@code{cipher/@/dsa.c:@/test_keys})
 
 Loading of extra modules into libgcrypt is disabled in FIPS mode and
 thus no tests are
-implemented. (@code{cipher/@/cipher.c:@/gcry_cipher_register},
-@code{cipher/@/md.c:@/gcry_md_register},
-@code{cipher/@/md.c:@/gcry_pk_register})
+implemented. (@code{cipher/@/cipher.c:@/_gcry_cipher_register},
+@code{cipher/@/md.c:@/_gcry_md_register},
+@code{cipher/@/pubkey.c:@/_gcry_pk_register})
 
 
 @subsection Manual Key Entry Tests
