@@ -1,3 +1,8 @@
+2009-05-26  Werner Koch  <wk@g10code.com>
+
+	* mpicoder.c (mpi_read_from_buffer): Allow zero-sized MPIs (i.e a
+	zero).
+
 2009-02-16  Werner Koch  <wk@g10code.com>
 
 	* mpiutil.c: Remove memory.h.

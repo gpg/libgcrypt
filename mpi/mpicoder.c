@@ -46,11 +46,6 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
 /*       log_debug ("mpi too large (%u bits)\n", nbits); */
       goto leave;
     }
-  else if( !nbits ) 
-    {
-/*       log_debug ("an mpi of size 0 is not allowed\n"); */
-      goto leave;
-    }
   buffer += 2;
   nread = 2;
 
