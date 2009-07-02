@@ -4038,8 +4038,13 @@ inserted into the resulting S-expression.
 @item %b
 The next argument is expected to be of type @code{int} directly
 followed by an argument of type @code{char *}.  This represents a
-buffer of given length to be inserted into the resulting regular
-expression.
+buffer of given length to be inserted into the resulting S-expression.
+@item %S
+The next argument is expected to be of type @code{gcry_sexp_t} and a
+copy of that S-expression is embedded in the resulting S-expression.
+The argument needs to be a regular S-expression, starting with a
+parenthesis.
+
 @end table
 
 @noindent
@@ -4111,8 +4116,7 @@ passed as @code{NULL}.
 
 
 @noindent
-There are a couple of functions to parse S-expressions and retrieve
-elements:
+There are functions to parse S-expressions and retrieve elements:
 
 @deftypefun gcry_sexp_t gcry_sexp_find_token (@w{const gcry_sexp_t @var{list}}, @w{const char *@var{token}}, @w{size_t @var{toklen}})
 
