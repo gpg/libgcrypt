@@ -909,7 +909,6 @@ unquote_string (const char *string, size_t length, unsigned char *buf)
                 {
                   s++; n--;
                 }
-              esc = 0;
               break;
               
             case '\n':  /* ignore LF[,CR] */

@@ -276,7 +276,7 @@ printhex (int c)
 
 
 
-
+/* Returns 0 on success.  */
 static int
 parse_and_print (FILE *fp)
 {
@@ -488,12 +488,37 @@ parse_and_print (FILE *fp)
               state = IN_STRING;
               break;
             }
+          break;
           
         case IN_OCT_ESC: 
-          state = IN_STRING;
+          if (quote_idx < 3 && strchr ("01234567", c))
+            {
+              quote_buf[quote_idx++] = c; 
+              if (quote_idx == 3)
+                {
+                  printchr ((unsigned int)quote_buf[0] * 8 * 8
+                            + (unsigned int)quote_buf[1] * 8
+                            + (unsigned int)quote_buf[2]);
+                  state = IN_STRING;
+                }
+            }
+          else
+            state = IN_STRING;
           break;
         case IN_HEX_ESC: 
-          state = IN_STRING;
+          if (quote_idx < 2 && strchr ("0123456789abcdefABCDEF", c))
+            {
+              quote_buf[quote_idx++] = c; 
+              if (quote_idx == 2)
+                {
+                  printchr (xtoi_1 (quote_buf[0]) * 16
+                            + xtoi_1 (quote_buf[1]));
+
+                  state = IN_STRING;
+                }
+            }
+          else
+            state = IN_STRING;
           break;
         case CR_ESC:
           state = IN_STRING;
@@ -590,7 +615,8 @@ main (int argc, char **argv)
     }
   else
     {
-      for (; argc; argc--)
+      rc = 0;
+      for (; argc; argv++, argc--)
         {
           FILE *fp = fopen (*argv, "rb");
           if (!fp)
@@ -600,14 +626,13 @@ main (int argc, char **argv)
             }
           else 
             {
-              if ( parse_and_print (fp) )
+              if (parse_and_print (fp))
                 rc = 1;
               fclose (fp);
             }
         }
     }
   
-
-  return !rc;
+  return !!rc;
 }
 

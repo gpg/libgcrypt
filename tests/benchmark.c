@@ -448,12 +448,12 @@ cipher_bench ( const char *algoname )
   size_t allocated_buflen, buflen;
   int repetitions;
   static struct { int mode; const char *name; int blocked; } modes[] = {
-    { GCRY_CIPHER_MODE_ECB, "ECB", 1 },
-    { GCRY_CIPHER_MODE_CBC, "CBC", 1 },
-    { GCRY_CIPHER_MODE_CFB, "CFB", 0 },
-    { GCRY_CIPHER_MODE_OFB, "OFB", 0 },
-    { GCRY_CIPHER_MODE_CTR, "CTR", 0 },
-    { GCRY_CIPHER_MODE_STREAM, "STREAM", 0 },
+    { GCRY_CIPHER_MODE_ECB, "      ECB", 1 },
+    { GCRY_CIPHER_MODE_CBC, "      CBC", 1 },
+    { GCRY_CIPHER_MODE_CFB, "      CFB", 0 },
+    { GCRY_CIPHER_MODE_OFB, "      OFB", 0 },
+    { GCRY_CIPHER_MODE_CTR, "      CTR", 0 },
+    { GCRY_CIPHER_MODE_STREAM, "    STREAM", 0 },
     {0}
   };
   int modeidx;

@@ -948,10 +948,13 @@ md_read( gcry_md_hd_t a, int algo )
 
   if (! algo)
     {
-      /* return the first algorithm */
-      if (r && r->next)
-	log_debug ("more than one algorithm in md_read(0)\n");
-      return r->digest->read( &r->context.c );
+      /* Return the first algorithm */
+      if (r)
+        {
+          if (r->next)
+            log_debug ("more than one algorithm in md_read(0)\n");
+          return r->digest->read (&r->context.c);
+        }
     }
   else
     {

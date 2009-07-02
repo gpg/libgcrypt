@@ -1,3 +1,8 @@
+2009-07-02  Werner Koch  <wk@g10code.com>
+
+	* md.c (md_read): Fix incomplete check for NULL.
+	Reported by Fabian Kail.
+
 2009-03-31  Werner Koch  <wk@g10code.com>
 
 	* rsa.c (rsa_check_secret_key): Return GPG_ERR_BAD_SECKEY and not

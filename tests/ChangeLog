@@ -1,3 +1,7 @@
+2009-06-08  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (cipher_bench): Center labels.  Suggested by Brad Hards.
+
 2009-02-16  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c (print_buffer): Remove parens from initializer for
