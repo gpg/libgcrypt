@@ -41,8 +41,8 @@ static size_t
 poll_padlock (void (*add)(const void*, size_t, enum random_origins),
               enum random_origins origin, int fast)
 {
-  char buffer[64+8] __attribute__ ((aligned (8)));
-  char *p;
+  volatile char buffer[64+8] __attribute__ ((aligned (8)));
+  volatile char *p;
   unsigned int nbytes, status;
   
   /* Peter Gutmann's cryptlib tests again whether the RNG is enabled
@@ -59,8 +59,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
         ("movl %1, %%edi\n\t"         /* Set buffer.  */
          "xorl %%edx, %%edx\n\t"      /* Request up to 8 bytes.  */
          ".byte 0x0f, 0xa7, 0xc0\n\t" /* XSTORE RNG. */
-         "movl %%eax, %0\n"           /* Return the status.  */
-         : "=g" (status)
+         : "=a" (status)
          : "g" (p)
          : "%edx", "%edi", "cc"
          );
@@ -88,7 +87,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
 
   if (nbytes)
     {
-      (*add) (buffer, nbytes, origin);
+      (*add) ((void*)buffer, nbytes, origin);
       wipememory (buffer, nbytes);
     }
   return nbytes;

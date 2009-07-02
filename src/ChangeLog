@@ -1,3 +1,8 @@
+2009-06-24  Werner Koch  <wk@g10code.com>
+
+	* fips.c (_gcry_initialize_fips_mode): No FIPS mode if
+	/proc/version has insufficient permissions.
+
 2009-02-02  Werner Koch  <wk@g10code.com>
 
 	* ath.h: Include sys/time.h.  Fixes bug#993.

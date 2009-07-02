@@ -155,6 +155,7 @@ _gcry_initialize_fips_mode (int force)
         fclose (fp);
       }
     else if ((saved_errno = errno) != ENOENT
+             && saved_errno != EACCES
              && !access ("/proc/version", F_OK) )
       {
         /* Problem reading the fips file despite that we have the proc
