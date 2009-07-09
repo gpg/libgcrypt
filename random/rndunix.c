@@ -521,7 +521,10 @@ slow_poll(FILE *dbgfp, int dbgall, size_t *nbytes )
     int maxFD = 0;
 #endif /* OS-specific brokenness */
     int bufPos, i, usefulness = 0;
-
+    int last_so_far = 0;
+    int any_need_entropy = 0;
+    int delay;
+    int rc;
 
     /* Fire up each randomness source */
     FD_ZERO(&fds);
@@ -566,22 +569,41 @@ slow_poll(FILE *dbgfp, int dbgall, size_t *nbytes )
     /* Suck all the data we can get from each of the sources */
     bufPos = 0;
     moreSources = 1;
+    delay = 0; /* Return immediately (well, after 100ms) the first time.  */
     while (moreSources && bufPos <= gather_buffer_size) {
 	/* Wait for data to become available from any of the sources, with a
 	 * timeout of 10 seconds.  This adds even more randomness since data
 	 * becomes available in a nondeterministic fashion.  Kudos to HP's QA
 	 * department for managing to ship a select() which breaks its own
 	 * prototype */
-	tv.tv_sec = 10;
-	tv.tv_usec = 0;
+	tv.tv_sec = delay;
+	tv.tv_usec = delay? 0 : 100000;
 
 #if defined( __hpux ) && ( OS_VERSION == 9 )
-	if (select(maxFD + 1, (int *)&fds, NULL, NULL, &tv) == -1)
+	rc = select(maxFD + 1, (int *)&fds, NULL, NULL, &tv);
 #else  /*  */
-	if (select(maxFD + 1, &fds, NULL, NULL, &tv) == -1)
+	rc = select(maxFD + 1, &fds, NULL, NULL, &tv);
 #endif /* __hpux */
-	    break;
+        if (rc == -1)
+          break; /* Ooops; select failed. */
 
+        if (!rc)
+          {
+            /* FIXME: Because we run several tools at once it is
+               unlikely that we will see a block in select at all. */
+            if (!any_need_entropy 
+                || last_so_far != (gather_buffer_size - bufPos) )
+              {
+                last_so_far = gather_buffer_size - bufPos;
+                _gcry_random_progress ("need_entropy", 'X',
+                                       last_so_far, 
+                                       gather_buffer_size);
+                any_need_entropy = 1;
+              }
+            delay = 10; /* Use 10 seconds henceforth.  */
+            /* Note that the fd_set is setup again at the end of this loop.  */
+          }
+        
 	/* One of the sources has data available, read it into the buffer */
 	for (i = 0; dataSources[i].path != NULL; i++) {
 	    if( dataSources[i].pipe && FD_ISSET(dataSources[i].pipeFD, &fds)) {
@@ -660,6 +682,11 @@ slow_poll(FILE *dbgfp, int dbgall, size_t *nbytes )
 	    }
 	}
     }
+
+    if (any_need_entropy)
+        _gcry_random_progress ("need_entropy", 'X',
+                               gather_buffer_size,
+                               gather_buffer_size);
 
     if( dbgfp ) {
 	fprintf(dbgfp, "Got %d bytes, usefulness = %d\n", bufPos, usefulness);

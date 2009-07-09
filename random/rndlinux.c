@@ -1,5 +1,6 @@
 /* rndlinux.c  -  raw random number for OSes with /dev/random
- * Copyright (C) 1998, 2001, 2002, 2003, 2007  Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2001, 2002, 2003, 2007,
+ *               2009  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -93,9 +94,12 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
   static int fd_random = -1;
   int fd;
   int n;
-  int warn=0;
   byte buffer[768];
   size_t n_hw;
+  size_t want = length;
+  size_t last_so_far = 0;
+  int any_need_entropy = 0;
+  int delay;
 
   /* First read from a hardware source.  However let it account only
      for up to 50% of the requested bytes.  */
@@ -119,7 +123,11 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
       fd = fd_urandom;
     }
 
-  /* And enter the read loop.  */
+  /* Enter the read loop.  */
+  delay = 0;  /* Start with 0 seconds so that we do no block on the
+                 first iteration and in turn call the progess function
+                 before blocking.  To give the OS a better chance to
+                 return with something we will actually use 100ms. */
   while (length)
     {
       fd_set rfds;
@@ -128,40 +136,49 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
       
       FD_ZERO(&rfds);
       FD_SET(fd, &rfds);
-      tv.tv_sec = 3;
-      tv.tv_usec = 0;
-      if( !(rc=select(fd+1, &rfds, NULL, NULL, &tv)) )
+      tv.tv_sec = delay;
+      tv.tv_usec = delay? 0 : 100000;
+      if ( !(rc=select(fd+1, &rfds, NULL, NULL, &tv)) )
         {
-          if( !warn )
+          if (!any_need_entropy || last_so_far != (want - length) )
             {
-              _gcry_random_progress ("need_entropy", 'X', 0, (int)length);
-	      warn = 1;
+              last_so_far = want - length;
+              _gcry_random_progress ("need_entropy", 'X',
+                                     (int)last_so_far, (int)want);
+              any_need_entropy = 1;
 	    }
+          delay = 3; /* Use 3 seconds henceforth.  */
 	  continue;
 	}
-	else if( rc == -1 )
-          {
-	    log_error ("select() error: %s\n", strerror(errno));
-	    continue;
-          }
+      else if( rc == -1 )
+        {
+          log_error ("select() error: %s\n", strerror(errno));
+          if (!delay)
+            delay = 1; /* Use 1 second if we encounter an error before
+                          we have ever blocked.  */
+          continue;
+        }
 
-	do 
-          {
-	    int nbytes = length < sizeof(buffer)? length : sizeof(buffer);
-	    n = read(fd, buffer, nbytes );
-	    if( n >= 0 && n > nbytes ) 
-              {
-		log_error("bogus read from random device (n=%d)\n", n );
-		n = nbytes;
-              }
-          } 
-        while( n == -1 && errno == EINTR );
-	if( n == -1 )
-          log_fatal("read error on random device: %s\n", strerror(errno));
-	(*add)( buffer, n, origin );
-	length -= n;
+      do 
+        {
+          int nbytes = length < sizeof(buffer)? length : sizeof(buffer);
+          n = read(fd, buffer, nbytes );
+          if( n >= 0 && n > nbytes ) 
+            {
+              log_error("bogus read from random device (n=%d)\n", n );
+              n = nbytes;
+            }
+        } 
+      while( n == -1 && errno == EINTR );
+      if ( n == -1 )
+        log_fatal("read error on random device: %s\n", strerror(errno));
+      (*add)( buffer, n, origin );
+      length -= n;
     }
   memset(buffer, 0, sizeof(buffer) );
-
+  
+  if (any_need_entropy)
+    _gcry_random_progress ("need_entropy", 'X', (int)want, (int)want);
+  
   return 0; /* success */
 }

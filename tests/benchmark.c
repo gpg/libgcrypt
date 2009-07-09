@@ -340,6 +340,18 @@ elapsed_time (void)
 
 
 static void
+progress_cb (void *cb_data, const char *what, int printchar,
+             int current, int total)
+{
+  (void)cb_data;
+  
+  fprintf (stderr, PGM ": progress (%s %c %d %d)\n",
+           what, printchar, current, total);
+  fflush (stderr);
+}
+
+
+static void
 random_bench (int very_strong)
 {
   char buf[128];
@@ -1002,6 +1014,7 @@ main( int argc, char **argv )
   int last_argc = -1;
   int no_blinding = 0;
   int use_random_daemon = 0;
+  int with_progress = 0;
 
   if (argc)
     { argc--; argv++; }
@@ -1056,6 +1069,11 @@ main( int argc, char **argv )
           /* This command needs to be called before gcry_check_version.  */
           gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
         }
+      else if (!strcmp (*argv, "--progress"))
+        {
+          argc--; argv++;
+          with_progress = 1;
+        }
     }          
 
   gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
@@ -1074,7 +1092,10 @@ main( int argc, char **argv )
   if (use_random_daemon)
     gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
 
+  gcry_set_progress_handler (progress_cb, NULL);
+
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+
 
 
   if (cipher_repetitions < 1)

@@ -1,3 +1,10 @@
+2009-07-09  Werner Koch  <wk@g10code.com>
+
+	* rndlinux.c (_gcry_rndlinux_gather_random): Print real values for
+	the progess function and call it before blocking.  Suggested by
+	Christian Grothoff.
+	* rndunix.c (slow_poll): Add similar, but not yet functional, code.
+
 2009-07-02  Werner Koch  <wk@g10code.com>
 
 	* rndhw.c (poll_padlock): Asm change from Fedora.
@@ -120,7 +127,7 @@
 	here.
 	* Makefile.am: New.
 
- Copyright 2008 Free Software Foundation, Inc.
+ Copyright 2008, 2009 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without
