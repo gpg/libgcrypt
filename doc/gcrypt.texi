@@ -1695,6 +1695,8 @@ Use the following function to release an existing handle:
 @deftypefun void gcry_cipher_close (gcry_cipher_hd_t @var{h})
 
 This function releases the context created by @code{gcry_cipher_open}.
+It also zeroises all sensitive information associated with this cipher
+handle.
 @end deftypefun
 
 In order to use a handle for performing cryptographic operations, a
@@ -3652,7 +3654,9 @@ resources by using:
 
 Release all resources of hash context @var{h}.  @var{h} should not be
 used after a call to this function.  A @code{NULL} passed as @var{h} is
-ignored.
+ignored.  The function also zeroises all sensitive information
+associated with this handle.
+
 
 @end deftypefun
 
@@ -4055,7 +4059,10 @@ sign is not a valid character in an S-expression.
 
 @deftypefun void gcry_sexp_release (@w{gcry_sexp_t @var{sexp}})
 
-Release the S-expression object @var{sexp}.
+Release the S-expression object @var{sexp}.  If the S-expression is
+stored in secure memory it explicitly zeroises that memory; note that
+this is done in addition to the zeroisation always done when freeing
+secure memory.
 @end deftypefun
 
 
@@ -5134,8 +5141,6 @@ The DT value for the generator is made up of the current time down to
 microseconds (if available) and a free running 64 bit counter.  When
 used with the test context the DT value is taken from the context and
 incremented on each use.
-
-
 
 @c @node Helper Subsystems Architecture
 @c @section Helper Subsystems Architecture
