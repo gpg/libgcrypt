@@ -12,7 +12,7 @@ This manual is for Libgcrypt
 (version @value{VERSION}, @value{UPDATED}),
 which is GNU's library of cryptographic building blocks.
 
-Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008 Free Software Foundation, Inc.
+Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -1695,6 +1695,8 @@ Use the following function to release an existing handle:
 @deftypefun void gcry_cipher_close (gcry_cipher_hd_t @var{h})
 
 This function releases the context created by @code{gcry_cipher_open}.
+It also zeroises all sensitive information associated with this cipher
+handle.
 @end deftypefun
 
 In order to use a handle for performing cryptographic operations, a
@@ -1703,11 +1705,11 @@ In order to use a handle for performing cryptographic operations, a
 @deftypefun gcry_error_t gcry_cipher_setkey (gcry_cipher_hd_t @var{h}, const void *@var{k}, size_t @var{l})
 
 Set the key @var{k} used for encryption or decryption in the context
-denoted by the handle @var{h}.  The length @var{l} of the key @var{k}
-must match the required length of the algorithm set for this context or
-be in the allowed range for algorithms with variable key size.  The
-function checks this and returns an error if there is a problem.  A
-caller should always check for an error.
+denoted by the handle @var{h}.  The length @var{l} (in bytes) of the
+key @var{k} must match the required length of the algorithm set for
+this context or be in the allowed range for algorithms with variable
+key size.  The function checks this and returns an error if there is a
+problem.  A caller should always check for an error.
 
 @end deftypefun
 
@@ -1719,18 +1721,18 @@ value.  To set the IV or CTR, use these functions:
 @deftypefun gcry_error_t gcry_cipher_setiv (gcry_cipher_hd_t @var{h}, const void *@var{k}, size_t @var{l})
 
 Set the initialization vector used for encryption or decryption. The
-vector is passed as the buffer @var{K} of length @var{l} and copied to
-internal data structures.  The function checks that the IV matches the
-requirement of the selected algorithm and mode. 
+vector is passed as the buffer @var{K} of length @var{l} bytes and
+copied to internal data structures.  The function checks that the IV
+matches the requirement of the selected algorithm and mode.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_cipher_setctr (gcry_cipher_hd_t @var{h}, const void *@var{c}, size_t @var{l})
 
 Set the counter vector used for encryption or decryption. The counter
-is passed as the buffer @var{c} of length @var{l} and copied to
+is passed as the buffer @var{c} of length @var{l} bytes and copied to
 internal data structures.  The function checks that the counter
 matches the requirement of the selected algorithm (i.e., it must be
-the same size as the block size).  
+the same size as the block size).
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_cipher_reset (gcry_cipher_hd_t @var{h})
@@ -2431,9 +2433,9 @@ This example requests to sign the data in @var{block} after applying
 PKCS#1 block type 1 style padding.  @var{hash-algo} is a string with the
 hash algorithm to be encoded into the signature, this may be any hash
 algorithm name as supported by Libgcrypt.  Most likely, this will be
-"sha1", "rmd160" or "md5".  It is obvious that the length of @var{block}
-must match the size of that message digests; the function checks that
-this and other constraints are valid.
+"sha256" or "sha1".  It is obvious that the length of @var{block} must
+match the size of that message digests; the function checks that this
+and other constraints are valid.
 
 @noindent
 If PKCS#1 padding is not required (because the caller does already
@@ -3410,26 +3412,36 @@ return value.  This constant is guaranteed to have the value @code{0}.
 
 @item GCRY_MD_SHA1
 This is the SHA-1 algorithm which yields a message digest of 20 bytes.
+Note that SHA-1 begins to show some weaknesses and it is suggested to
+fade out its use if strong cryptographic properties are required.
 
 @item GCRY_MD_RMD160
 This is the 160 bit version of the RIPE message digest (RIPE-MD-160).
-Like SHA-1 it also yields a digest of 20 bytes.
+Like SHA-1 it also yields a digest of 20 bytes.  This algorithm share a
+lot of design properties with SHA-1 and thus it is advisable not to use
+it for new protocols.
 
 @item GCRY_MD_MD5
 This is the well known MD5 algorithm, which yields a message digest of
-16 bytes. 
+16 bytes.  Note that the MD5 algorithm has severe weaknesses, for
+example it is easy to compute two messages yielding the same hash
+(collision attack).  The use of this algorithm is only justified for
+non-cryptographic application.
+
 
 @item GCRY_MD_MD4
 This is the MD4 algorithm, which yields a message digest of 16 bytes.
+This algorithms ha severe weaknesses and should not be used.
 
 @item GCRY_MD_MD2
 This is an reserved identifier for MD-2; there is no implementation yet.
+This algorithm has severe weaknesses and should not be used.
 
 @item GCRY_MD_TIGER
 This is the TIGER/192 algorithm which yields a message digest of 24 bytes.
 
 @item GCRY_MD_HAVAL
-This is an reserved for the HAVAL algorithm with 5 passes and 160
+This is an reserved value for the HAVAL algorithm with 5 passes and 160
 bit. It yields a message digest of 20 bytes.  Note that there is no
 implementation yet available.
 
@@ -3450,16 +3462,19 @@ This is the SHA-384 algorithm which yields a message digest of 64 bytes.
 See FIPS 180-2 for the specification.
 
 @item GCRY_MD_CRC32
-This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It
-yields an output of 4 bytes.
+This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It yields
+an output of 4 bytes.  Note that this is not a hash algorithm in the
+cryptographic sense.
 
 @item GCRY_MD_CRC32_RFC1510
 This is the above cyclic redundancy check function, as modified by RFC
-1510.  It yields an output of 4 bytes.
+1510.  It yields an output of 4 bytes.  Note that this is not a hash
+algorithm in the cryptographic sense.
 
 @item GCRY_MD_CRC24_RFC2440
 This is the OpenPGP cyclic redundancy check function.  It yields an
-output of 3 bytes.
+output of 3 bytes.  Note that this is not a hash algorithm in the
+cryptographic sense.
 
 @item GCRY_MD_WHIRLPOOL
 This is the Whirlpool algorithm which yields a message digest of 64
@@ -3626,8 +3641,9 @@ be set using the function:
 
 @deftypefun gcry_error_t gcry_md_setkey (gcry_md_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
 
-For use with the HMAC feature, set the MAC key to the value of @var{key}
-of length @var{keylen}.  There is no restriction on the length of the key.
+For use with the HMAC feature, set the MAC key to the value of
+@var{key} of length @var{keylen} bytes.  There is no restriction on
+the length of the key.
 @end deftypefun
 
 
@@ -3638,7 +3654,9 @@ resources by using:
 
 Release all resources of hash context @var{h}.  @var{h} should not be
 used after a call to this function.  A @code{NULL} passed as @var{h} is
-ignored.
+ignored.  The function also zeroises all sensitive information
+associated with this handle.
+
 
 @end deftypefun
 
@@ -4024,8 +4042,13 @@ inserted into the resulting S-expression.
 @item %b
 The next argument is expected to be of type @code{int} directly
 followed by an argument of type @code{char *}.  This represents a
-buffer of given length to be inserted into the resulting regular
-expression.
+buffer of given length to be inserted into the resulting S-expression.
+@item %S
+The next argument is expected to be of type @code{gcry_sexp_t} and a
+copy of that S-expression is embedded in the resulting S-expression.
+The argument needs to be a regular S-expression, starting with a
+parenthesis.
+
 @end table
 
 @noindent
@@ -4036,7 +4059,10 @@ sign is not a valid character in an S-expression.
 
 @deftypefun void gcry_sexp_release (@w{gcry_sexp_t @var{sexp}})
 
-Release the S-expression object @var{sexp}.
+Release the S-expression object @var{sexp}.  If the S-expression is
+stored in secure memory it explicitly zeroises that memory; note that
+this is done in addition to the zeroisation always done when freeing
+secure memory.
 @end deftypefun
 
 
@@ -4097,8 +4123,7 @@ passed as @code{NULL}.
 
 
 @noindent
-There are a couple of functions to parse S-expressions and retrieve
-elements:
+There are functions to parse S-expressions and retrieve elements:
 
 @deftypefun gcry_sexp_t gcry_sexp_find_token (@w{const gcry_sexp_t @var{list}}, @w{const char *@var{token}}, @w{size_t @var{toklen}})
 
@@ -4630,15 +4655,15 @@ it returns NULL.
 Like @code{gcry_malloc}, but uses secure memory.
 @end deftypefun
 
-@deftypefun {void *} gcry_calloc (size_t @var{n})
+@deftypefun {void *} gcry_calloc (size_t @var{n}, size_t @var{m})
 
-This function tries to allocate @var{n} bytes of cleared memory
-(i.e. memory that is initialized with zero bytes).  On success it
-returns a pointer to the memory area, in an out-of-core condition, it
-returns NULL.
+This function allocates a cleared block of memory (i.e. initialized with
+zero bytes) long enough to contain a vector of @var{n} elements, each of
+size @var{m} bytes.  On success it returns a pointer to the memory
+block; in an out-of-core condition, it returns NULL.
 @end deftypefun
 
-@deftypefun {void *} gcry_calloc_secure (size_t @var{n})
+@deftypefun {void *} gcry_calloc_secure (size_t @var{n}, size_t @var{m})
 Like @code{gcry_calloc}, but uses secure memory.
 @end deftypefun
 
@@ -5116,8 +5141,6 @@ The DT value for the generator is made up of the current time down to
 microseconds (if available) and a free running 64 bit counter.  When
 used with the test context the DT value is taken from the context and
 incremented on each use.
-
-
 
 @c @node Helper Subsystems Architecture
 @c @section Helper Subsystems Architecture
