@@ -571,7 +571,7 @@ AC_SEARCH_LIBS(setsockopt, [nsl])
 ##################################
 
 AC_HEADER_STDC
-AC_CHECK_HEADERS(unistd.h sys/select.h)
+AC_CHECK_HEADERS(unistd.h sys/select.h sys/msg.h)
 
 ##########################################
 #### Checks for typedefs, structures, ####

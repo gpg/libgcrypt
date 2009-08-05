@@ -32,6 +32,9 @@
 #  include <sys/time.h>
 # endif
 # include <sys/types.h>
+# ifdef HAVE_SYS_MSG_H
+#  include <sys/msg.h>  /* (e.g. for zOS) */
+# endif
 # include <sys/socket.h>
 #endif /* !_WIN32 */
 #include <gpg-error.h>

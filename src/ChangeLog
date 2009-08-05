@@ -1,3 +1,7 @@
+2009-08-05  Werner Koch  <wk@g10code.com>
+
+	* ath.h: Include sys/msg.h.
+
 2009-07-02  Werner Koch  <wk@g10code.com>
 
 	* fips.c (_gcry_initialize_fips_mode): Do not use FIPS mode if
