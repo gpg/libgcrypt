@@ -498,7 +498,12 @@ This macro defines the following (static) symbols:
 
 After including this macro, @code{gcry_control()} shall be used with a
 command of @code{GCRYCTL_SET_THREAD_CBS} in order to register the
-thread callback structure named ``gcry_threads_pth''.
+thread callback structure named ``gcry_threads_pth''.  Example:
+
+@smallexample
+  ret = gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pth);
+@end smallexample
+
 
 @item GCRY_THREAD_OPTION_PTHREAD_IMPL
 
@@ -509,7 +514,13 @@ This macro defines the following (static) symbols:
 
 After including this macro, @code{gcry_control()} shall be used with a
 command of @code{GCRYCTL_SET_THREAD_CBS} in order to register the
-thread callback structure named ``gcry_threads_pthread''.
+thread callback structure named ``gcry_threads_pthread''.  Example:
+
+@smallexample
+  ret = gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
+@end smallexample
+
+
 @end table
 
 Note that these macros need to be terminated with a semicolon.  Keep
@@ -589,11 +600,12 @@ arguments can or have to be provided.
 
 @table @code
 @item GCRYCTL_ENABLE_M_GUARD; Arguments: none
-This command enables the built-in memory guard.  It must not be used to
-activate the memory guard after the memory management has already been
-used; therefore it can ONLY be used at initialization time.  Note that
-the memory guard is NOT used when the user of the library has set his
-own memory management callbacks.
+This command enables the built-in memory guard.  It must not be used
+to activate the memory guard after the memory management has already
+been used; therefore it can ONLY be used before
+@code{gcry_check_version}.  Note that the memory guard is NOT used
+when the user of the library has set his own memory management
+callbacks.
 
 @item GCRYCTL_ENABLE_QUICK_RANDOM; Arguments: none
 This command inhibits the use the very secure random quality level
