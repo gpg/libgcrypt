@@ -1394,7 +1394,7 @@ do_ctr_decrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 /****************
  * Encrypt INBUF to OUTBUF with the mode selected at open.
  * inbuf and outbuf may overlap or be the same.
- * Depending on the mode some contraints apply to NBYTES.
+ * Depending on the mode some constraints apply to NBYTES.
  */
 static gcry_err_code_t
 cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf,

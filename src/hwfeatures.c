@@ -67,7 +67,7 @@ detect_ia32_gnuc (void)
      "jz .Lno_cpuid%=\n\t"       /* Toggling did not work, thus no CPUID.  */
      "movl $1, %0\n"             /* Worked. true -> HAS_CPUID.  */
      ".Lno_cpuid%=:\n\t"
-     : "=r" (has_cpuid)
+     : "+r" (has_cpuid)
      :
      : "%eax", "%ecx", "cc"
      );

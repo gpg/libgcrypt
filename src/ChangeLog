@@ -1,3 +1,9 @@
+2009-11-29  Werner Koch  <wk@g10code.com>
+
+	* hwfeatures.c (detect_ia32_gnuc): Repalce "=r" by "+r" so that
+	HAS-CPUDID is always initialized.  Thanks to Ben Hutchings for
+	pointing out this problem.
+
 2009-08-05  Werner Koch  <wk@g10code.com>
 
 	* ath.h: Include sys/msg.h.

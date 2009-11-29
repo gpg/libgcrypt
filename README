@@ -192,13 +192,6 @@
     make.  Try gmake or grab the sources from a GNU archive and
     install them.
 
-    If you are cross-compiling and you get an error either building a
-    tool called "yat2m" or running that tool, the problem is most
-    likely a bad or missing native compiler.  We require a standard
-    C-89 compiler to produce an executable to be run on the build
-    platform.  You can explicitly set such a compiler with configure
-    arguments. On HP/UX you might want to try: "CC_FOR_BUILD=c89".
-
     Specific problems on some machines:
 
       * IBM RS/6000 running AIX
@@ -216,6 +209,11 @@
       
          ./configure ac_cv_sys_symbol_underscore=yes
 
+      * Sparc64 CPUs
+
+        We have reports about failures in the AES module when
+        compiling using gcc (e.g. version 4.1.2) and the option -O3;
+        using -O2 solves the problem.
 
 
     License
