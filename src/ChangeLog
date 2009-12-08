@@ -1,3 +1,15 @@
+2009-12-08  Marcus Brinkmann  <marcus@g10code.de>
+
+	* Makefile.am (LTRCCOMPILE): Refactor with ...
+	(RCCOMPILE): ... this new macro.  Add $(libgcrypt_la_CPPFLAGS).
+	(SUFFIXES): Add .lo.
+	(.rc.o): Change to ...
+	(.rc.lo): ... this implicit rule.
+	(gcrypt_res_ldflag): Removed.
+	(gcrypt_res): Use libtool object file name here.
+	(libgcrypt_la_LDFLAGS): Remove gcrypt_res_ldflag usage.
+	(libgcrypt_la_LIBADD): Add gcrypt_res.
+
 2009-11-29  Werner Koch  <wk@g10code.com>
 
 	* hwfeatures.c (detect_ia32_gnuc): Repalce "=r" by "+r" so that

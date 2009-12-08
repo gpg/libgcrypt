@@ -1,3 +1,14 @@
+2009-12-08  Marcus Brinkmann  <marcus@g10code.de>
+
+	Update to libtool 2.2.6a.
+	* configure.ac: Invoke AC_CONFIG_MACRO_DIR.
+	(AC_LIBTOOL_WIN32_DLL, AC_LIBTOOL_RC): Replace by ...
+	(LT_PREREQ, LT_INIT, LT_LANG): ... these.
+	* config.guess, config.sub, install-sh, ltmain.sh, m4/libtool.m4:
+	Updated to libtool 2.2.6a.
+	* m4/ltoptions.m4, m4/ltsugar.m4, m4/ltversion.m4,
+	m4/lt~obsolete.m4: New files from libtool 2.2.6a.
+
 2009-08-05  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Test for sys/msg.h.

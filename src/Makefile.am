@@ -52,16 +52,16 @@ libgcrypt_la_SOURCES = g10lib.h visibility.c visibility.h types.h \
 
 if HAVE_W32_SYSTEM
 
-LTRCCOMPILE = $(LIBTOOL) --mode=compile $(RC) \
-     `echo $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) | \
-     sed -e 's/-I/--include-dir /g;s/-D/--define /g'`
+RCCOMPILE = $(RC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(libgcrypt_la_CPPFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS)
+LTRCCOMPILE = $(LIBTOOL) --mode=compile --tag=RC $(RCCOMPILE)
+
+SUFFIXES = .rc .lo
 
 .rc.lo:
-	$(LTRCCOMPILE) -i $< -o $@
+	$(LTRCCOMPILE) -i "$<" -o "$@"
 
 gcrypt_res = versioninfo.lo
-gcrypt_res_ldflag = -Wl,.libs/versioninfo.o
-
 no_undefined = -no-undefined
 export_symbols = -export-symbols $(srcdir)/libgcrypt.def
 
@@ -87,7 +87,7 @@ gcrypt_deps =
 endif !HAVE_W32_SYSTEM
 
 
-libgcrypt_la_LDFLAGS = $(gcrypt_res_ldflag) $(no_undefined) $(export_symbols) \
+libgcrypt_la_LDFLAGS = $(no_undefined) $(export_symbols) \
 	$(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_la_DEPENDENCIES = \
@@ -95,11 +95,10 @@ libgcrypt_la_DEPENDENCIES = \
 	../random/librandom.la \
 	../mpi/libmpi.la \
 	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
-libgcrypt_la_LIBADD = \
+libgcrypt_la_LIBADD = $(gcrypt_res) \
 	../cipher/libcipher.la \
 	../random/librandom.la \
-	../mpi/libmpi.la \
-	@LTLIBOBJS@ @GPG_ERROR_LIBS@
+	../mpi/libmpi.la @LTLIBOBJS@ @GPG_ERROR_LIBS@
 
 
 dumpsexp_SOURCES = dumpsexp.c
