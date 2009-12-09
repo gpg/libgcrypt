@@ -849,7 +849,8 @@ enum gcry_cipher_modes
     GCRY_CIPHER_MODE_CBC    = 3,  /* Cipher block chaining. */
     GCRY_CIPHER_MODE_STREAM = 4,  /* Used with stream ciphers. */
     GCRY_CIPHER_MODE_OFB    = 5,  /* Outer feedback. */
-    GCRY_CIPHER_MODE_CTR    = 6   /* Counter. */
+    GCRY_CIPHER_MODE_CTR    = 6,  /* Counter. */
+    GCRY_CIPHER_MODE_AESWRAP= 7   /* AES-WRAP algorithm.  */
   };
 
 /* Flags used with the open function. */ 

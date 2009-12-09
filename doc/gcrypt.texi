@@ -1644,6 +1644,20 @@ Output Feedback mode.
 @cindex CTR, Counter mode
 Counter mode.
 
+@item  GCRY_CIPHER_MODE_AESWRAP
+@cindex AES-Wrap mode
+This mode is used to implement the AES-Wrap algorithm according to
+RFC-3394.  It may be used with any 128 bit block length algorithm,
+however the specs require one of the 3 AES algorithms.  These special
+conditions apply: If @code{gcry_cipher_setiv} has not been used the
+standard IV is used; if it has been used the lower 64 bit of the IV
+are used as the Alternative Initial Value.  On encryption the provided
+output buffer must be 64 bit (8 byte) larger than the input buffer;
+in-place encryption is still allowed.  On decryption the output buffer
+may be specified 64 bit (8 byte) shorter than then input buffer.  As
+per specs the input length must be at least 128 bits and the length
+must be a multiple of 64 bits.
+
 @end table
 
 @node Working with cipher handles

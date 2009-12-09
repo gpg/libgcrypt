@@ -1092,7 +1092,8 @@ main( int argc, char **argv )
   if (use_random_daemon)
     gcry_control (GCRYCTL_USE_RANDOM_DAEMON, 1);
 
-  gcry_set_progress_handler (progress_cb, NULL);
+  if (with_progress)
+    gcry_set_progress_handler (progress_cb, NULL);
 
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 

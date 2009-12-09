@@ -1,3 +1,16 @@
+2009-12-09  Werner Koch  <wk@g10code.com>
+
+	* cipher.c (gcry_cipher_open): Allow for GCRY_CIPHER_MODE_AESWRAP.
+	(cipher_encrypt, cipher_decrypt): Ditto.
+	(do_aeswrap_encrypt, do_aeswrap_decrypt): New.
+	(struct gcry_cipher_handle): Add field marks.
+	(cipher_setkey, cipher_setiv): Update marks flags.
+	(cipher_reset): Reset marks.
+	(cipher_encrypt, cipher_decrypt): Add new arg OUTBUFLEN.
+	(gcry_cipher_encrypt, gcry_cipher_decrypt): Pass outbuflen to
+	cipher_encrypt.  Replace GPG_ERR_TOO_SHORT by
+	GPG_ERR_BUFFER_TOO_SHORT.
+
 2009-08-21  Werner Koch  <wk@g10code.com>
 
 	* dsa.c (dsa_generate_ext): Release retfactors array before

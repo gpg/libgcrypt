@@ -1,6 +1,12 @@
 Noteworthy changes in version 1.5.x (unreleased)
 ------------------------------------------------
 
+ * New cipher algorithm mode for AES-WRAP.
+
+ * Interface changes relative to the 1.4.2 release:
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ GCRY_CIPHER_MODE_AESWRAP   NEW.
+
 
 Noteworthy changes in version 1.4.4 (2009-01-22)
 ------------------------------------------------

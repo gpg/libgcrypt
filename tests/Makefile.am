@@ -19,7 +19,7 @@
 ## Process this file with automake to produce Makefile.in
 
 TESTS = version t-mpi-bit prime register ac ac-schemes ac-data basic \
-        mpitests tsexp keygen pubkey hmac keygrip fips186-dsa
+        mpitests tsexp keygen pubkey hmac keygrip fips186-dsa aeswrap
 
 
 # random.c uses fork() thus a test for W32 does not make any sense.
