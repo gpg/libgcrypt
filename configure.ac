@@ -477,6 +477,16 @@ if test x"$padlocksupport" = xyes ; then
             [Enable support for the PadLock engine.])
 fi
 
+# Implementation of the --disable-O-flag-munging switch.
+AC_MSG_CHECKING([whether a -O flag munging is requested])
+AC_ARG_ENABLE([O-flag-munging],
+              AC_HELP_STRING([--disable-O-flag-munging],
+                 [Disable modification of the cc -O flag]),
+              [enable_o_flag_munging=$enableval],
+              [enable_o_flag_munging=yes])
+AC_MSG_RESULT($enable_o_flag_munging)
+AM_CONDITIONAL(ENABLE_O_FLAG_MUNGING, test "$enable_o_flag_munging" = "yes")
+
 
 
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
@@ -505,6 +515,7 @@ AC_DEFINE_UNQUOTED(NAME_OF_DEV_RANDOM, "$NAME_OF_DEV_RANDOM",
                    [defined to the name of the strong random device])
 AC_DEFINE_UNQUOTED(NAME_OF_DEV_URANDOM, "$NAME_OF_DEV_URANDOM",
                    [defined to the name of the weaker random device])
+
 
 ###############################
 #### Checks for libraries. ####

@@ -1,5 +1,8 @@
 2009-12-10  Werner Koch  <wk@g10code.com>
 
+	* Makefile.am (o_flag_munging): New.
+	(tiger.o, tiger.lo): Use it. 
+
 	* cipher.c (do_ctr_encrypt): Add arg OUTBUFLEN.  Check for
 	suitable value.  Add check for valid inputlen.  Wipe temporary
 	memory.

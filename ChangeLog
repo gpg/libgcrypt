@@ -1,3 +1,7 @@
+2009-12-10  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Add option --disable-O-flag-munging.
+
 2009-12-08  Marcus Brinkmann  <marcus@g10code.de>
 
 	Update to libtool 2.2.6a.

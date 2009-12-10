@@ -170,6 +170,18 @@
                      available.  Try this if you get problems with
                      assembler code.
 
+     --disable-O-flag-munging
+                     Some code is too complex for some compilers while
+                     in higher optimization modes, thus the compiler
+                     invocation is modified to use a lower
+                     optimization level.  Usually this works very well
+                     but on some platforms these rules break the
+                     invocation.  This option may be used to disable
+                     the feature under the assumption that either good
+                     CFLAGS are given or the compiler can grok the code.
+
+                      
+
 
     Build Problems
     --------------
