@@ -1,3 +1,10 @@
+2009-12-10  Werner Koch  <wk@g10code.com>
+
+	* rndw32.c (system_is_w2000): New.
+	(_gcry_rndw32_gather_random): Set it.
+	(slow_gatherer): Ignore SystemObjectInformation on W2000.  Fixes
+	bug#1167.
+
 2009-06-24  Werner Koch  <wk@g10code.com>
 
 	* rndhw.c (poll_padlock): Asm change from Fedora.

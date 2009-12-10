@@ -1,3 +1,15 @@
+Noteworthy changes in version 1.4.5 (unreleased)
+------------------------------------------------
+
+ * Fix minor memory leak in DSA key generation.
+
+ * No switch into FIPS mode if /proc/version is not readable.
+
+ * Fix sigill during Padlock detection on old CPUs.
+
+ * Fix a hang on some W2000 machines.
+
+
 Noteworthy changes in version 1.4.4 (2009-01-22)
 ------------------------------------------------
 
