@@ -460,12 +460,12 @@ cipher_bench ( const char *algoname )
   size_t allocated_buflen, buflen;
   int repetitions;
   static struct { int mode; const char *name; int blocked; } modes[] = {
-    { GCRY_CIPHER_MODE_ECB, "      ECB", 1 },
+    { GCRY_CIPHER_MODE_ECB, "   ECB/Stream", 1 },
     { GCRY_CIPHER_MODE_CBC, "      CBC", 1 },
     { GCRY_CIPHER_MODE_CFB, "      CFB", 0 },
     { GCRY_CIPHER_MODE_OFB, "      OFB", 0 },
     { GCRY_CIPHER_MODE_CTR, "      CTR", 0 },
-    { GCRY_CIPHER_MODE_STREAM, "    STREAM", 0 },
+    { GCRY_CIPHER_MODE_STREAM, "", 0 },
     {0}
   };
   int modeidx;
@@ -501,11 +501,13 @@ cipher_bench ( const char *algoname )
         printf ("Running each test %d times.\n", cipher_repetitions);
       printf ("%-12s", "");
       for (modeidx=0; modes[modeidx].mode; modeidx++)
-        printf (" %-15s", modes[modeidx].name );
+        if (*modes[modeidx].name)
+          printf (" %-15s", modes[modeidx].name );
       putchar ('\n');
       printf ("%-12s", "");
       for (modeidx=0; modes[modeidx].mode; modeidx++)
-        printf (" ---------------" );
+        if (*modes[modeidx].name)
+          printf (" ---------------" );
       putchar ('\n');
       header_printed = 1;
     }
@@ -548,10 +550,7 @@ cipher_bench ( const char *algoname )
     {
       if ((blklen > 1 && modes[modeidx].mode == GCRY_CIPHER_MODE_STREAM)
           | (blklen == 1 && modes[modeidx].mode != GCRY_CIPHER_MODE_STREAM))
-        {
-          printf ("                " );
-          continue;
-        }
+        continue;
 
       for (i=0; i < sizeof buf; i++)
         buf[i] = i;

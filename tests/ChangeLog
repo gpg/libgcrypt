@@ -1,3 +1,9 @@
+2009-12-10  Werner Koch  <wk@g10code.com>
+
+	* basic.c (check_ctr_cipher): Add some return code checks.
+
+	* benchmark.c (cipher_bench): Merge Stream with ECB column.
+
 2009-12-09  Werner Koch  <wk@g10code.com>
 
 	* aeswrap.c: New.

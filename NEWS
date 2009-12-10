@@ -3,6 +3,14 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * New cipher algorithm mode for AES-WRAP.
 
+ * Fix minor memory leak in DSA key generation.
+
+ * No switch into FIPS mode if /proc/version is not readable.
+
+ * Fix sigill during Padlock detection on old CPUs.
+
+ * Fix a hang on some W2000 machines.
+
  * Interface changes relative to the 1.4.2 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  GCRY_CIPHER_MODE_AESWRAP   NEW.

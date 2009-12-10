@@ -1,5 +1,6 @@
 /* basic.c  -  basic regression tests
- * Copyright (C) 2001, 2002, 2003, 2005, 2008 Free Software Foundation, Inc.
+ * Copyright (C) 2001, 2002, 2003, 2005, 2008,
+ *               2009 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -459,7 +460,7 @@ check_ctr_cipher (void)
 	}
 
       if (verbose)
-	fprintf (stderr, "  checking CTR mode for for %s [%i]\n", 
+	fprintf (stderr, "  checking CTR mode for %s [%i]\n", 
 		 gcry_cipher_algo_name (tv[i].algo),
 		 tv[i].algo);
       for (j = 0; tv[i].data[j].inlen; j++)
@@ -493,8 +494,82 @@ check_ctr_cipher (void)
 
 	  if (memcmp (tv[i].data[j].plaintext, out, tv[i].data[j].inlen))
 	    fail ("aes-ctr, decrypt mismatch entry %d:%d\n", i, j);
-	}
 
+        }
+          
+      /* Now check that we get valid return codes back for good and
+         bad inputs.  */
+      err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+                                 "1234567890123456", 16);
+      if (err)
+        fail ("aes-ctr, encryption failed for valid input");
+      
+      err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+                                 "1234567890123456", 15);
+      if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
+        fail ("aes-ctr, too short input returned wrong error: %s\n",
+              gpg_strerror (err));
+      
+      err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+                                 "12345678901234567", 17);
+      if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
+        fail ("aes-ctr, too long input returned wrong error: %s\n",
+              gpg_strerror (err));
+      
+      err = gcry_cipher_encrypt (hde, out, 15,
+                                 "1234567890123456", 16);
+      if (gpg_err_code (err) != GPG_ERR_BUFFER_TOO_SHORT)
+        fail ("aes-ctr, too short output buffer returned wrong error: %s\n",
+              gpg_strerror (err));
+      
+      err = gcry_cipher_encrypt (hde, out, 0,
+                                 "1234567890123456", 16);
+      if (gpg_err_code (err) != GPG_ERR_BUFFER_TOO_SHORT)
+        fail ("aes-ctr, 0 length output buffer returned wrong error: %s\n",
+              gpg_strerror (err));
+      
+      err = gcry_cipher_encrypt (hde, out, 16,
+                                 "1234567890123456", 16);
+      if (err)
+        fail ("aes-ctr, correct length output buffer returned error: %s\n",
+              gpg_strerror (err));
+
+      /* Again, now for decryption.  */
+      err = gcry_cipher_decrypt (hde, out, MAX_DATA_LEN,
+                                 "1234567890123456", 16);
+      if (err)
+        fail ("aes-ctr, decryption failed for valid input");
+      
+      err = gcry_cipher_decrypt (hde, out, MAX_DATA_LEN,
+                                 "1234567890123456", 15);
+      if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
+        fail ("aes-ctr, too short input returned wrong error: %s\n",
+              gpg_strerror (err));
+      
+      err = gcry_cipher_decrypt (hde, out, MAX_DATA_LEN,
+                                 "12345678901234567", 17);
+      if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
+        fail ("aes-ctr, too long input returned wrong error: %s\n",
+              gpg_strerror (err));
+      
+      err = gcry_cipher_decrypt (hde, out, 15,
+                                 "1234567890123456", 16);
+      if (gpg_err_code (err) != GPG_ERR_BUFFER_TOO_SHORT)
+        fail ("aes-ctr, too short output buffer returned wrong error: %s\n",
+              gpg_strerror (err));
+      
+      err = gcry_cipher_decrypt (hde, out, 0,
+                                 "1234567890123456", 16);
+      if (gpg_err_code (err) != GPG_ERR_BUFFER_TOO_SHORT)
+        fail ("aes-ctr, 0 length output buffer returned wrong error: %s\n",
+              gpg_strerror (err));
+      
+      err = gcry_cipher_decrypt (hde, out, 16,
+                                 "1234567890123456", 16);
+      if (err)
+        fail ("aes-ctr, correct length output buffer returned error: %s\n",
+              gpg_strerror (err));
+      
       gcry_cipher_close (hde);
       gcry_cipher_close (hdd);
     }

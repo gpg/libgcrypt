@@ -1,6 +1,6 @@
 /* cipher.c  -	cipher dispatcher
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
- *               2005, 2007, 2008 Free Software Foundation, Inc.
+ *               2005, 2007, 2008, 2009 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -937,48 +937,78 @@ cipher_reset (gcry_cipher_hd_t c)
 }
 
 
-static void
-do_ecb_encrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
-                unsigned int nblocks )
+
+static gcry_err_code_t
+do_ecb_encrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
-  unsigned int n;
+  unsigned int blocksize = c->cipher->blocksize;
+  unsigned int n, nblocks;
   
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+  if ((inbuflen % blocksize))
+    return GPG_ERR_INV_LENGTH;
+
+  nblocks = inbuflen / c->cipher->blocksize;
+
   for (n=0; n < nblocks; n++ )
     {
-      c->cipher->encrypt ( &c->context.c, outbuf, (byte*)/*arggg*/inbuf );
-      inbuf  += c->cipher->blocksize;
-      outbuf += c->cipher->blocksize;
+      c->cipher->encrypt (&c->context.c, outbuf, (byte*)/*arggg*/inbuf);
+      inbuf  += blocksize;
+      outbuf += blocksize;
     }
+  return 0;
 }
 
-static void
-do_ecb_decrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
-                unsigned int nblocks )
+static gcry_err_code_t
+do_ecb_decrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
-  unsigned int n;
+  unsigned int blocksize = c->cipher->blocksize;
+  unsigned int n, nblocks;
+
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+  if ((inbuflen % blocksize))
+    return GPG_ERR_INV_LENGTH;
+  nblocks = inbuflen / c->cipher->blocksize;
 
   for (n=0; n < nblocks; n++ ) 
     {
-      c->cipher->decrypt ( &c->context.c, outbuf, (byte*)/*arggg*/inbuf );
-      inbuf  += c->cipher->blocksize;
-      outbuf += c->cipher->blocksize;
+      c->cipher->decrypt (&c->context.c, outbuf, (byte*)/*arggg*/inbuf );
+      inbuf  += blocksize;
+      outbuf += blocksize;
     }
+
+  return 0;
 }
 
 
-static void
-do_cbc_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf, 
-                const unsigned char *inbuf, unsigned int nbytes )
+static gcry_err_code_t
+do_cbc_encrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
   unsigned int n;
   unsigned char *ivp;
   int i;
   size_t blocksize = c->cipher->blocksize;
-  unsigned nblocks = nbytes / blocksize;
+  unsigned nblocks = inbuflen / blocksize;
 
-  if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) 
+  if (outbuflen < ((c->flags & GCRY_CIPHER_CBC_MAC)? blocksize : inbuflen))
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  if ((inbuflen % c->cipher->blocksize)
+      && !(inbuflen > c->cipher->blocksize
+           && (c->flags & GCRY_CIPHER_CBC_CTS)))
+    return GPG_ERR_INV_LENGTH;
+
+  if ((c->flags & GCRY_CIPHER_CBC_CTS) && inbuflen > blocksize) 
     {
-      if ((nbytes % blocksize) == 0)
+      if ((inbuflen % blocksize) == 0)
 	nblocks--;
     }
 
@@ -1004,17 +1034,17 @@ do_cbc_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
         }
     }
 
-  if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize)
+  if ((c->flags & GCRY_CIPHER_CBC_CTS) && inbuflen > blocksize)
     {
       /* We have to be careful here, since outbuf might be equal to
          inbuf.  */
       int restbytes;
       unsigned char b;
 
-      if ((nbytes % blocksize) == 0)
+      if ((inbuflen % blocksize) == 0)
         restbytes = blocksize;
       else
-        restbytes = nbytes % blocksize;
+        restbytes = inbuflen % blocksize;
 
       outbuf -= blocksize;
       for (ivp = c->u_iv.iv, i = 0; i < restbytes; i++)
@@ -1029,23 +1059,34 @@ do_cbc_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
       c->cipher->encrypt (&c->context.c, outbuf, outbuf);
       memcpy (c->u_iv.iv, outbuf, blocksize);
     }
+
+  return 0;
 }
 
 
-static void
-do_cbc_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf, 
-                const unsigned char *inbuf, unsigned int nbytes)
+static gcry_err_code_t
+do_cbc_decrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
   unsigned int n;
   unsigned char *ivp;
   int i;
   size_t blocksize = c->cipher->blocksize;
-  unsigned int nblocks = nbytes / blocksize;
+  unsigned int nblocks = inbuflen / blocksize;
 
-  if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize)
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  if ((inbuflen % c->cipher->blocksize)
+      && !(inbuflen > c->cipher->blocksize
+           && (c->flags & GCRY_CIPHER_CBC_CTS)))
+    return GPG_ERR_INV_LENGTH;
+
+  if ((c->flags & GCRY_CIPHER_CBC_CTS) && inbuflen > blocksize)
     {
       nblocks--;
-      if ((nbytes % blocksize) == 0)
+      if ((inbuflen % blocksize) == 0)
 	nblocks--;
       memcpy (c->lastiv, c->u_iv.iv, blocksize);
     }
@@ -1073,14 +1114,14 @@ do_cbc_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
         }
     }
 
-  if ((c->flags & GCRY_CIPHER_CBC_CTS) && nbytes > blocksize) 
+  if ((c->flags & GCRY_CIPHER_CBC_CTS) && inbuflen > blocksize) 
     {
       int restbytes;
       
-      if ((nbytes % blocksize) == 0)
+      if ((inbuflen % blocksize) == 0)
         restbytes = blocksize;
       else
-        restbytes = nbytes % blocksize;
+        restbytes = inbuflen % blocksize;
       
       memcpy (c->lastiv, c->u_iv.iv, blocksize );         /* Save Cn-2. */
       memcpy (c->u_iv.iv, inbuf + blocksize, restbytes ); /* Save Cn. */
@@ -1097,32 +1138,38 @@ do_cbc_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
         outbuf[i] ^= *ivp++;
       /* c->lastiv is now really lastlastiv, does this matter? */
     }
+
+  return 0;
 }
 
 
-static void
-do_cfb_encrypt( gcry_cipher_hd_t c, unsigned char *outbuf, 
-                const unsigned char *inbuf, unsigned int nbytes )
+static gcry_err_code_t
+do_cfb_encrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
   unsigned char *ivp;
   size_t blocksize = c->cipher->blocksize;
   size_t blocksize_x_2 = blocksize + blocksize;
   
-  if ( nbytes <= c->unused )
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  if ( inbuflen <= c->unused )
     {
       /* Short enough to be encoded by the remaining XOR mask. */
       /* XOR the input with the IV and store input into IV. */
       for (ivp=c->u_iv.iv+c->cipher->blocksize - c->unused;
-           nbytes;
-           nbytes--, c->unused-- )
+           inbuflen;
+           inbuflen--, c->unused-- )
         *outbuf++ = (*ivp++ ^= *inbuf++);
-      return;
+      return 0;
     }
 
   if ( c->unused )
     {
       /* XOR the input with the IV and store input into IV */
-      nbytes -= c->unused;
+      inbuflen -= c->unused;
       for(ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
         *outbuf++ = (*ivp++ ^= *inbuf++);
     }
@@ -1130,17 +1177,17 @@ do_cfb_encrypt( gcry_cipher_hd_t c, unsigned char *outbuf,
   /* Now we can process complete blocks.  We use a loop as long as we
      have at least 2 blocks and use conditions for the rest.  This
      also allows to use a bulk encryption function if available.  */
-  if (nbytes >= blocksize_x_2 && c->bulk.cfb_enc)
+  if (inbuflen >= blocksize_x_2 && c->bulk.cfb_enc)
     {
-      unsigned int nblocks = nbytes / blocksize;
+      unsigned int nblocks = inbuflen / blocksize;
       c->bulk.cfb_enc (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks); 
       outbuf += nblocks * blocksize;
       inbuf  += nblocks * blocksize;
-      nbytes -= nblocks * blocksize;
+      inbuflen -= nblocks * blocksize;
     }
   else
     {
-      while ( nbytes >= blocksize_x_2 )
+      while ( inbuflen >= blocksize_x_2 )
         {
           int i;
           /* Encrypt the IV. */
@@ -1148,11 +1195,11 @@ do_cfb_encrypt( gcry_cipher_hd_t c, unsigned char *outbuf,
           /* XOR the input with the IV and store input into IV.  */
           for(ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
             *outbuf++ = (*ivp++ ^= *inbuf++);
-          nbytes -= blocksize;
+          inbuflen -= blocksize;
         }
     }
 
-  if ( nbytes >= blocksize )
+  if ( inbuflen >= blocksize )
     {
       int i;
       /* Save the current IV and then encrypt the IV. */
@@ -1161,25 +1208,27 @@ do_cfb_encrypt( gcry_cipher_hd_t c, unsigned char *outbuf,
       /* XOR the input with the IV and store input into IV */
       for(ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
         *outbuf++ = (*ivp++ ^= *inbuf++);
-      nbytes -= blocksize;
+      inbuflen -= blocksize;
     }
-  if ( nbytes ) 
+  if ( inbuflen ) 
     {
       /* Save the current IV and then encrypt the IV. */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       c->unused = blocksize;
       /* Apply the XOR. */
-      c->unused -= nbytes;
-      for(ivp=c->u_iv.iv; nbytes; nbytes-- )
+      c->unused -= inbuflen;
+      for(ivp=c->u_iv.iv; inbuflen; inbuflen-- )
         *outbuf++ = (*ivp++ ^= *inbuf++);
     }
+  return 0;
 }
 
 
-static void
-do_cfb_decrypt( gcry_cipher_hd_t c, unsigned char *outbuf, 
-                const unsigned char *inbuf, unsigned int nbytes )
+static gcry_err_code_t
+do_cfb_decrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
   unsigned char *ivp;
   unsigned long temp;
@@ -1187,25 +1236,28 @@ do_cfb_decrypt( gcry_cipher_hd_t c, unsigned char *outbuf,
   size_t blocksize = c->cipher->blocksize;
   size_t blocksize_x_2 = blocksize + blocksize;
   
-  if (nbytes <= c->unused)
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  if (inbuflen <= c->unused)
     {
       /* Short enough to be encoded by the remaining XOR mask. */
       /* XOR the input with the IV and store input into IV. */
       for (ivp=c->u_iv.iv+blocksize - c->unused;
-           nbytes; 
-           nbytes--, c->unused--)
+           inbuflen; 
+           inbuflen--, c->unused--)
         {
           temp = *inbuf++;
           *outbuf++ = *ivp ^ temp;
           *ivp++ = temp;
         }
-      return;
+      return 0;
     }
   
   if (c->unused)
     {
       /* XOR the input with the IV and store input into IV. */
-      nbytes -= c->unused;
+      inbuflen -= c->unused;
       for (ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
         {
           temp = *inbuf++;
@@ -1217,17 +1269,17 @@ do_cfb_decrypt( gcry_cipher_hd_t c, unsigned char *outbuf,
   /* Now we can process complete blocks.  We use a loop as long as we
      have at least 2 blocks and use conditions for the rest.  This
      also allows to use a bulk encryption function if available.  */
-  if (nbytes >= blocksize_x_2 && c->bulk.cfb_dec)
+  if (inbuflen >= blocksize_x_2 && c->bulk.cfb_dec)
     {
-      unsigned int nblocks = nbytes / blocksize;
+      unsigned int nblocks = inbuflen / blocksize;
       c->bulk.cfb_dec (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks); 
       outbuf += nblocks * blocksize;
       inbuf  += nblocks * blocksize;
-      nbytes -= nblocks * blocksize;
+      inbuflen -= nblocks * blocksize;
     }
   else
     {
-      while (nbytes >= blocksize_x_2 )
+      while (inbuflen >= blocksize_x_2 )
         {
           /* Encrypt the IV. */
           c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
@@ -1238,11 +1290,11 @@ do_cfb_decrypt( gcry_cipher_hd_t c, unsigned char *outbuf,
               *outbuf++ = *ivp ^ temp;
               *ivp++ = temp;
             }
-          nbytes -= blocksize;
+          inbuflen -= blocksize;
         }
     }
 
-  if (nbytes >= blocksize )
+  if (inbuflen >= blocksize )
     {
       /* Save the current IV and then encrypt the IV. */
       memcpy ( c->lastiv, c->u_iv.iv, blocksize);
@@ -1254,54 +1306,59 @@ do_cfb_decrypt( gcry_cipher_hd_t c, unsigned char *outbuf,
           *outbuf++ = *ivp ^ temp;
           *ivp++ = temp;
         }
-      nbytes -= blocksize;
+      inbuflen -= blocksize;
     }
 
-  if (nbytes)
+  if (inbuflen)
     { 
       /* Save the current IV and then encrypt the IV. */
       memcpy ( c->lastiv, c->u_iv.iv, blocksize );
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       c->unused = blocksize;
       /* Apply the XOR. */
-      c->unused -= nbytes;
-      for (ivp=c->u_iv.iv; nbytes; nbytes-- )
+      c->unused -= inbuflen;
+      for (ivp=c->u_iv.iv; inbuflen; inbuflen-- )
         {
           temp = *inbuf++;
           *outbuf++ = *ivp ^ temp;
           *ivp++ = temp;
         }
     }
+  return 0;
 }
 
 
-static void
-do_ofb_encrypt( gcry_cipher_hd_t c,
-                byte *outbuf, const byte *inbuf, unsigned nbytes )
+static gcry_err_code_t
+do_ofb_encrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
-  byte *ivp;
+  unsigned char *ivp;
   size_t blocksize = c->cipher->blocksize;
 
-  if ( nbytes <= c->unused )
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  if ( inbuflen <= c->unused )
     {
       /* Short enough to be encoded by the remaining XOR mask. */
       /* XOR the input with the IV */
       for (ivp=c->u_iv.iv+c->cipher->blocksize - c->unused;
-           nbytes;
-           nbytes--, c->unused-- )
+           inbuflen;
+           inbuflen--, c->unused-- )
         *outbuf++ = (*ivp++ ^ *inbuf++);
-      return;
+      return 0;
     }
 
   if( c->unused )
     {
-      nbytes -= c->unused;
+      inbuflen -= c->unused;
       for(ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
         *outbuf++ = (*ivp++ ^ *inbuf++);
     }
 
   /* Now we can process complete blocks. */
-  while ( nbytes >= blocksize )
+  while ( inbuflen >= blocksize )
     {
       int i;
       /* Encrypt the IV (and save the current one). */
@@ -1310,43 +1367,48 @@ do_ofb_encrypt( gcry_cipher_hd_t c,
       
       for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
         *outbuf++ = (*ivp++ ^ *inbuf++);
-      nbytes -= blocksize;
+      inbuflen -= blocksize;
     }
-  if ( nbytes )
+  if ( inbuflen )
     { /* process the remaining bytes */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       c->unused = blocksize;
-      c->unused -= nbytes;
-      for(ivp=c->u_iv.iv; nbytes; nbytes-- )
+      c->unused -= inbuflen;
+      for(ivp=c->u_iv.iv; inbuflen; inbuflen-- )
         *outbuf++ = (*ivp++ ^ *inbuf++);
     }
+  return 0;
 }
 
-static void
-do_ofb_decrypt( gcry_cipher_hd_t c,
-                byte *outbuf, const byte *inbuf, unsigned int nbytes )
+static gcry_err_code_t
+do_ofb_decrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
-  byte *ivp;
+  unsigned char *ivp;
   size_t blocksize = c->cipher->blocksize;
   
-  if( nbytes <= c->unused )
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  if( inbuflen <= c->unused )
     {
       /* Short enough to be encoded by the remaining XOR mask. */
-      for (ivp=c->u_iv.iv+blocksize - c->unused; nbytes; nbytes--,c->unused--)
+      for (ivp=c->u_iv.iv+blocksize - c->unused; inbuflen; inbuflen--,c->unused--)
         *outbuf++ = *ivp++ ^ *inbuf++;
-      return;
+      return 0;
     }
 
   if ( c->unused )
     {
-      nbytes -= c->unused;
+      inbuflen -= c->unused;
       for (ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
         *outbuf++ = *ivp++ ^ *inbuf++;
     }
 
   /* Now we can process complete blocks. */
-  while ( nbytes >= blocksize )
+  while ( inbuflen >= blocksize )
     {
       int i;
       /* Encrypt the IV (and save the current one). */
@@ -1354,36 +1416,45 @@ do_ofb_decrypt( gcry_cipher_hd_t c,
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
         *outbuf++ = *ivp++ ^ *inbuf++;
-      nbytes -= blocksize;
+      inbuflen -= blocksize;
     }
-  if ( nbytes ) 
+  if ( inbuflen ) 
     { /* Process the remaining bytes. */
       /* Encrypt the IV (and save the current one). */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       c->unused = blocksize;
-      c->unused -= nbytes;
-      for (ivp=c->u_iv.iv; nbytes; nbytes-- )
+      c->unused -= inbuflen;
+      for (ivp=c->u_iv.iv; inbuflen; inbuflen-- )
         *outbuf++ = *ivp++ ^ *inbuf++;
     }
+  return 0;
 }
 
 
-static void
-do_ctr_encrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
-                unsigned int nbytes )
+static gcry_err_code_t
+do_ctr_encrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
   unsigned int n;
-  byte tmp[MAX_BLOCKSIZE];
+  unsigned char tmp[MAX_BLOCKSIZE];
   int i;
+  unsigned int blocksize = c->cipher->blocksize;
 
-  for(n=0; n < nbytes; n++)
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+
+  if ((inbuflen % blocksize))
+    return GPG_ERR_INV_LENGTH;
+
+  for (n=0; n < inbuflen; n++)
     {
-      if ((n % c->cipher->blocksize) == 0)
+      if ((n % blocksize) == 0)
 	{
 	  c->cipher->encrypt (&c->context.c, tmp, c->ctr);
 
-	  for (i = c->cipher->blocksize; i > 0; i--)
+	  for (i = blocksize; i > 0; i--)
 	    {
 	      c->ctr[i-1]++;
 	      if (c->ctr[i-1] != 0)
@@ -1391,16 +1462,20 @@ do_ctr_encrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 	    }
 	}
 
-      /* XOR input with encrypted counter and store in output. */
-      outbuf[n] = inbuf[n] ^ tmp[n % c->cipher->blocksize];
+      /* XOR input with encrypted counter and store in output.  */
+      outbuf[n] = inbuf[n] ^ tmp[n % blocksize];
     }
+
+  wipememory (tmp, sizeof tmp);
+  return 0;
 }
 
-static void
-do_ctr_decrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
-                unsigned int nbytes )
+static gcry_err_code_t
+do_ctr_decrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
 {
-  do_ctr_encrypt (c, outbuf, inbuf, nbytes);
+  return do_ctr_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
 }
 
 
@@ -1578,45 +1653,38 @@ static gcry_err_code_t
 cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
 		const byte *inbuf, unsigned int inbuflen)
 {
-  gcry_err_code_t rc = 0;
+  gcry_err_code_t rc;
 
   switch (c->mode)
     {
     case GCRY_CIPHER_MODE_ECB:
-      if (!(inbuflen % c->cipher->blocksize))
-        do_ecb_encrypt(c, outbuf, inbuf, inbuflen/c->cipher->blocksize );
-      else 
-        rc = GPG_ERR_INV_ARG;
+      rc = do_ecb_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_CBC:
-      if (!(inbuflen % c->cipher->blocksize)
-          || (inbuflen > c->cipher->blocksize
-              && (c->flags & GCRY_CIPHER_CBC_CTS)))
-        do_cbc_encrypt(c, outbuf, inbuf, inbuflen );
-      else 
-        rc = GPG_ERR_INV_ARG;
+      rc = do_cbc_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
       
     case GCRY_CIPHER_MODE_CFB:
-      do_cfb_encrypt(c, outbuf, inbuf, inbuflen );
+      rc = do_cfb_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_OFB:
-      do_ofb_encrypt(c, outbuf, inbuf, inbuflen );
+      rc = do_ofb_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_CTR:
-      do_ctr_encrypt(c, outbuf, inbuf, inbuflen );
+      rc = do_ctr_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_AESWRAP:
-      rc = do_aeswrap_encrypt (c, outbuf, outbuflen, inbuf, inbuflen );
+      rc = do_aeswrap_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_STREAM:
       c->cipher->stencrypt (&c->context.c,
-                            outbuf, (byte*)/*arggg*/inbuf, inbuflen );
+                            outbuf, (byte*)/*arggg*/inbuf, inbuflen);
+      rc = 0;
       break;
 
     case GCRY_CIPHER_MODE_NONE:
@@ -1627,8 +1695,9 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
         }
       else
         {
-          if ( inbuf != outbuf )
+          if (inbuf != outbuf)
             memmove (outbuf, inbuf, inbuflen);
+          rc = 0;
         }
       break;
       
@@ -1652,20 +1721,8 @@ gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
 {
   gcry_err_code_t err;
 
-  if (!in)
-    {
-      /* Caller requested in-place encryption.  */
-      err = cipher_encrypt (h, out, outsize, out, outsize);
-    }
-  else if (outsize < ((h->flags & GCRY_CIPHER_CBC_MAC) ?
-                      h->cipher->blocksize : inlen))
-    err = GPG_ERR_BUFFER_TOO_SHORT;
-  else if ((h->mode == GCRY_CIPHER_MODE_ECB
-	    || (h->mode == GCRY_CIPHER_MODE_CBC
-		&& (! ((h->flags & GCRY_CIPHER_CBC_CTS)
-		       && (inlen > h->cipher->blocksize)))))
-	   && (inlen % h->cipher->blocksize))
-    err = GPG_ERR_INV_ARG;
+  if (!in)  /* Caller requested in-place encryption.  */
+    err = cipher_encrypt (h, out, outsize, out, outsize);
   else
     err = cipher_encrypt (h, out, outsize, in, inlen);
 
@@ -1682,51 +1739,44 @@ gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
 /****************
  * Decrypt INBUF to OUTBUF with the mode selected at open.
  * inbuf and outbuf may overlap or be the same.
- * Depending on the mode some some contraints apply to NBYTES.
+ * Depending on the mode some some contraints apply to INBUFLEN.
  */
 static gcry_err_code_t
 cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
                 const byte *inbuf, unsigned int inbuflen)
 {
-  gcry_err_code_t rc = 0;
+  gcry_err_code_t rc;
 
   switch (c->mode)
     {
     case GCRY_CIPHER_MODE_ECB:
-      if (!(inbuflen % c->cipher->blocksize))
-        do_ecb_decrypt (c, outbuf, inbuf, inbuflen/c->cipher->blocksize );
-      else 
-        rc = GPG_ERR_INV_ARG;
+      rc = do_ecb_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_CBC:
-      if (!(inbuflen % c->cipher->blocksize)
-          || (inbuflen > c->cipher->blocksize
-              && (c->flags & GCRY_CIPHER_CBC_CTS)))
-        do_cbc_decrypt (c, outbuf, inbuf, inbuflen );
-      else 
-        rc = GPG_ERR_INV_ARG;
+      rc = do_cbc_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_CFB:
-      do_cfb_decrypt (c, outbuf, inbuf, inbuflen );
-
+      rc = do_cfb_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
+
     case GCRY_CIPHER_MODE_OFB:
-      do_ofb_decrypt (c, outbuf, inbuf, inbuflen );
+      rc = do_ofb_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_CTR:
-      do_ctr_decrypt (c, outbuf, inbuf, inbuflen );
+      rc = do_ctr_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_AESWRAP:
-      rc = do_aeswrap_decrypt (c, outbuf, outbuflen, inbuf, inbuflen );
+      rc = do_aeswrap_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_STREAM:
       c->cipher->stdecrypt (&c->context.c,
-                            outbuf, (byte*)/*arggg*/inbuf, inbuflen );
+                            outbuf, (byte*)/*arggg*/inbuf, inbuflen);
+      rc = 0;
       break;
 
     case GCRY_CIPHER_MODE_NONE:
@@ -1739,6 +1789,7 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
         {
           if (inbuf != outbuf)
             memmove (outbuf, inbuf, inbuflen);
+          rc = 0;
         }
       break;
       
@@ -1756,26 +1807,10 @@ gcry_error_t
 gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
 		     const void *in, size_t inlen)
 {
-  gcry_err_code_t err = 0;
+  gcry_err_code_t err;
 
-  if (!in)
-    {
-      /* Caller requested in-place encryption. */
-      err = cipher_decrypt (h, out, outsize, out, outsize);
-    }
-  else if (outsize < inlen && h->mode != GCRY_CIPHER_MODE_AESWRAP)
-    {
-      /* Note that do_aeswrap_decrypt does its own length checking.
-         Fixme: we should move all buffer length checkings to teh
-         actual decryption functions.  */
-      err = GPG_ERR_BUFFER_TOO_SHORT;
-    }
-  else if (((h->mode == GCRY_CIPHER_MODE_ECB)
-	    || ((h->mode == GCRY_CIPHER_MODE_CBC)
-		&& (! ((h->flags & GCRY_CIPHER_CBC_CTS)
-		       && (inlen > h->cipher->blocksize)))))
-	   && (inlen % h->cipher->blocksize) != 0)
-    err = GPG_ERR_INV_ARG;
+  if (!in) /* Caller requested in-place encryption. */
+    err = cipher_decrypt (h, out, outsize, out, outsize);
   else
     err = cipher_decrypt (h, out, outsize, in, inlen);
 

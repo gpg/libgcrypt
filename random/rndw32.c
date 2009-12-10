@@ -245,6 +245,8 @@ static HCRYPTPROV hRNGProv;      /* Handle to Intel RNG CSP. */
 
 static int debug_me;  /* Debug flag.  */
 
+static int system_is_w2000;     /* True if running on W2000.  */
+
 
 
 
@@ -643,6 +645,12 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
     {
       switch (dwType)
         {
+          /* ID 17 = SystemObjectInformation hangs on some win2k systems.  */
+        case 17:
+          if (system_is_w2000)
+            continue;
+          break;
+
           /* Some information types are write-only (the IDs are shared with
              a set-information call), we skip these.  */
         case 26: case 27: case 38: case 46: case 47: case 48: case 52:
@@ -768,6 +776,7 @@ _gcry_rndw32_gather_random (void (*add)(const void*, size_t,
       GetVersionEx( &osvi );
       if ( osvi.dwPlatformId != VER_PLATFORM_WIN32_NT)
         log_fatal ("can only run on a Windows NT platform\n" );
+      system_is_w2000 = (osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 0);
       init_system_rng ();
       is_initialized = 1;
     }
