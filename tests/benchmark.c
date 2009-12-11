@@ -47,6 +47,9 @@ static int large_buffers;
 /* Number of cipher repetitions.  */
 static int cipher_repetitions;
 
+/* Number of hash repetitions.  */
+static int hash_repetitions;
+
 /* Whether fips mode was active at startup.  */
 static int in_fips_mode;
 
@@ -387,8 +390,10 @@ md_bench ( const char *algoname )
 {
   int algo;
   gcry_md_hd_t hd;
-  int i;
+  int i, repcount;
   char buf[1000];
+  char *largebuf;
+  char digest[512/8];
   gcry_error_t err = GPG_ERR_NO_ERROR;
 
   if (!algoname)
@@ -421,30 +426,57 @@ md_bench ( const char *algoname )
   printf ("%-12s", gcry_md_algo_name (algo));
 
   start_timer ();
-  for (i=0; i < 1000; i++)
-    gcry_md_write (hd, buf, sizeof buf);
+  for (repcount=0; repcount < hash_repetitions; repcount++)
+    for (i=0; i < 1000; i++)
+      gcry_md_write (hd, buf, sizeof buf);
   gcry_md_final (hd);
   stop_timer ();
   printf (" %s", elapsed_time ());
+  fflush (stdout);
 
   gcry_md_reset (hd);
   start_timer ();
-  for (i=0; i < 10000; i++)
-    gcry_md_write (hd, buf, sizeof buf/10);
+  for (repcount=0; repcount < hash_repetitions; repcount++)
+    for (i=0; i < 10000; i++)
+      gcry_md_write (hd, buf, sizeof buf/10);
   gcry_md_final (hd);
   stop_timer ();
   printf (" %s", elapsed_time ());
+  fflush (stdout);
 
   gcry_md_reset (hd);
   start_timer ();
-  for (i=0; i < 1000000; i++)
-    gcry_md_write (hd, "", 1);
+  for (repcount=0; repcount < hash_repetitions; repcount++)
+    for (i=0; i < 1000000; i++)
+      gcry_md_write (hd, "", 1);
   gcry_md_final (hd);
   stop_timer ();
   printf (" %s", elapsed_time ());
+  fflush (stdout);
 
   gcry_md_close (hd);
+
+  /* Now 100 hash operations on 10000 bytes using the fast function.
+     We initialize the buffer so that all memory pages are committed
+     and we have repeatable values.  */
+  if (gcry_md_get_algo_dlen (algo) > sizeof digest)
+    die ("digest buffer too short\n");
+
+  largebuf = malloc (10000);
+  if (!largebuf)
+    die ("out of core\n");
+  for (i=0; i < 10000; i++)
+    largebuf[i] = i;
+  start_timer ();
+  for (repcount=0; repcount < hash_repetitions; repcount++)
+    for (i=0; i < 100; i++)
+      gcry_md_hash_buffer (algo, digest, largebuf, 10000);
+  stop_timer ();
+  printf (" %s", elapsed_time ());
+  free (largebuf);
+
   putchar ('\n');
+  fflush (stdout);
 }
 
 static void
@@ -1053,12 +1085,21 @@ main( int argc, char **argv )
           large_buffers = 1;
           argc--; argv++;
         }
-      else if (!strcmp (*argv, "--cipher-repetition"))
+      else if (!strcmp (*argv, "--cipher-repetitions"))
         {
           argc--; argv++;
           if (argc)
             {
               cipher_repetitions = atoi(*argv);
+              argc--; argv++;
+            }
+        }
+      else if (!strcmp (*argv, "--hash-repetitions"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              hash_repetitions = atoi(*argv);
               argc--; argv++;
             }
         }
@@ -1096,10 +1137,10 @@ main( int argc, char **argv )
 
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
-
-
   if (cipher_repetitions < 1)
     cipher_repetitions = 1;
+  if (hash_repetitions < 1)
+    hash_repetitions = 1;
   
   if ( !argc )
     {

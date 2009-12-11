@@ -1,3 +1,14 @@
+2009-12-11  Werner Koch  <wk@g10code.com>
+
+	* sha256.c (Cho, Maj, Sum0, Sum1): Turn macros into inline
+	functions.
+	(transform): Partly unroll to interweave the chain variables
+
+	* sha512.c (ROTR, Ch, Maj, Sum0, Sum1): Turn macros into inline
+	functions.
+	(transform): Partly Unroll to interweave the chain variables.
+	Suggested by Christian Grothoff.
+
 2009-12-10  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (o_flag_munging): New.
