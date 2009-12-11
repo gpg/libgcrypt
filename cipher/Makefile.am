@@ -1,6 +1,6 @@
 # Makefile for cipher modules
 # Copyright (C) 1998, 1999, 2000, 2001, 2002,
-#               2003 Free Software Foundation, Inc.
+#               2003, 2009 Free Software Foundation, Inc.
 #
 # This file is part of Libgcrypt.
 #
@@ -67,10 +67,16 @@ twofish.c \
 rfc2268.c \
 camellia.c camellia.h camellia-glue.c
 
+if ENABLE_O_FLAG_MUNGING
+o_flag_munging = sed -e 's/-O[2-9s]*/-O1/g'
+else
+o_flag_munging = cat
+endif
+
 
 # We need to lower the optimization for this module.
 tiger.o: $(srcdir)/tiger.c
-	`echo $(COMPILE) -c $(srcdir)/tiger.c | sed -e 's/-O[2-9s]*/-O1/g' `
+	`echo $(COMPILE) -c $(srcdir)/tiger.c | $(o_flag_munging) `
 
 tiger.lo: $(srcdir)/tiger.c
-	`echo $(LTCOMPILE) -c $(srcdir)/tiger.c | sed -e 's/-O[2-9s]*/-O1/g' `
+	`echo $(LTCOMPILE) -c $(srcdir)/tiger.c | $(o_flag_munging) `

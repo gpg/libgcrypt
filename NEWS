@@ -1,13 +1,16 @@
-Noteworthy changes in version 1.4.5 (unreleased)
+Noteworthy changes in version 1.4.5 (2009-12-11)
 ------------------------------------------------
 
- * Fix minor memory leak in DSA key generation.
+ * Fixed minor memory leak in DSA key generation.
 
- * No switch into FIPS mode if /proc/version is not readable.
+ * No more switching to FIPS mode if /proc/version is not readable.
 
- * Fix sigill during Padlock detection on old CPUs.
+ * Fixed a sigill during Padlock detection on old CPUs.
 
- * Fix a hang on some W2000 machines.
+ * Fixed a hang on some W2000 machines.
+
+ * Boosted SHA-512 performance by 30% on ia32 boxes and gcc 4.3;
+   SHA-256 went up by 25%.
 
 
 Noteworthy changes in version 1.4.4 (2009-01-22)

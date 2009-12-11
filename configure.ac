@@ -27,7 +27,7 @@ min_automake_version="1.10"
 # Set my_issvn to "yes" for non-released code.  Remember to run an
 # "svn up" and "autogen.sh" right before creating a distribution.
 m4_define([my_version], [1.4.5])
-m4_define([my_issvn], [yes])
+m4_define([my_issvn], [no])
 
 m4_define([svn_revision], m4_esyscmd([printf "%d" $(svn info 2>/dev/null \
           | sed -n '/^Revision:/ s/[^0-9]//gp'|head -1)]))
@@ -40,7 +40,7 @@ AC_INIT([libgcrypt],
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=16
 LIBGCRYPT_LT_AGE=5
-LIBGCRYPT_LT_REVISION=2
+LIBGCRYPT_LT_REVISION=3
 
 
 # If the API is changed in an incompatible way: increment the next counter.
@@ -475,6 +475,15 @@ if test x"$padlocksupport" = xyes ; then
             [Enable support for the PadLock engine.])
 fi
 
+# Implementation of the --disable-O-flag-munging switch.
+AC_MSG_CHECKING([whether a -O flag munging is requested])
+AC_ARG_ENABLE([O-flag-munging],
+              AC_HELP_STRING([--disable-O-flag-munging],
+                 [Disable modification of the cc -O flag]),
+              [enable_o_flag_munging=$enableval],
+              [enable_o_flag_munging=yes])
+AC_MSG_RESULT($enable_o_flag_munging)
+AM_CONDITIONAL(ENABLE_O_FLAG_MUNGING, test "$enable_o_flag_munging" = "yes")
 
 
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
