@@ -1,5 +1,5 @@
 /* sha512.c - SHA384 and SHA512 hash functions
- *	Copyright (C) 2003, 2008 Free Software Foundation, Inc.
+ * Copyright (C) 2003, 2008, 2009 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *

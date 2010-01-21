@@ -970,7 +970,8 @@ enum gcry_pk_algos
     GCRY_PK_ELG_E = 16,
     GCRY_PK_DSA   = 17,
     GCRY_PK_ELG   = 20,
-    GCRY_PK_ECDSA = 301
+    GCRY_PK_ECDSA = 301,
+    GCRY_PK_ECDH  = 302
   };
 
 /* Flags describing usage capabilities of a PK algorithm. */

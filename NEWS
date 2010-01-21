@@ -3,20 +3,21 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * New cipher algorithm mode for AES-WRAP.
 
- * Fix minor memory leak in DSA key generation.
+ * Fixed minor memory leak in DSA key generation.
 
- * No switch into FIPS mode if /proc/version is not readable.
+ * No more switching to FIPS mode if /proc/version is not readable.
 
- * Fix sigill during Padlock detection on old CPUs.
+ * Fixed sigill during Padlock detection on old CPUs.
 
- * Fix a hang on some W2000 machines.
+ * Fixed a hang on some W2000 machines.
 
- * Boost SHA-512 performance by 30% on ia32 boxes and gcc 4.3; SHA-256
-   goes up by 25%.
+ * Boosted SHA-512 performance by 30% on ia32 boxes and gcc 4.3;
+   SHA-256 went up by 25%.
 
  * Interface changes relative to the 1.4.2 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  GCRY_CIPHER_MODE_AESWRAP   NEW.
+ GCRY_PK_ECDH               NEW.
 
 
 Noteworthy changes in version 1.4.4 (2009-01-22)
