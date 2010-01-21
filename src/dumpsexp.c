@@ -22,6 +22,11 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <errno.h>
+/* For a native WindowsCE binary we need to include gpg-error.h to
+   provide a replacement for strerror.  */
+#ifdef __MINGW32CE__
+# include <gpg-error.h>
+#endif
 
 #define PGM "dumpsexp"
 #define MYVERSION_LINE PGM " (Libgcrypt) " VERSION

@@ -319,18 +319,23 @@ lock_pool (void *p, size_t n)
   /* QNX does not page at all, so the whole secure memory stuff does
    * not make much sense.  However it is still of use because it
    * wipes out the memory on a free().
-   * Therefore it is sufficient to suppress the warning
-   */
+   * Therefore it is sufficient to suppress the warning.  */
+  (void)p;
+  (void)n;
 #elif defined (HAVE_DOSISH_SYSTEM) || defined (__CYGWIN__)
     /* It does not make sense to print such a warning, given the fact that 
-     * this whole Windows !@#$% and their user base are inherently insecure
-     */
+     * this whole Windows !@#$% and their user base are inherently insecure. */
+  (void)p;
+  (void)n;
 #elif defined (__riscos__)
-    /* no virtual memory on RISC OS, so no pages are swapped to disc,
+    /* No virtual memory on RISC OS, so no pages are swapped to disc,
      * besides we don't have mmap, so we don't use it! ;-)
-     * But don't complain, as explained above.
-     */
+     * But don't complain, as explained above.  */
+  (void)p;
+  (void)n;
 #else
+  (void)p;
+  (void)n;
   log_info ("Please note that you don't have secure memory on this system\n");
 #endif
 }

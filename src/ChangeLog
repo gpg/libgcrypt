@@ -1,3 +1,20 @@
+2010-01-21  Werner Koch  <wk@g10code.com>
+
+	* Makefile.am (arch_gpg_error_cflags, arch_gpg_error_libs): New.
+	(dumpsexp_CFLAGS): New.
+	(dumpsexp_LDADD): Add arch_gpg_error_libs.
+	(hmac256_CFLAGS, hmac256_LDADD): Add the arch variables.
+	(libgcrypt_la_DEPENDENCIES): Add libcompat.
+	* secmem.c (lock_pool): Mark unused args.
+	* global.c (do_malloc, gcry_realloc, gcry_free, gcry_calloc)
+	(gcry_calloc_secure, gcry_xcalloc, gcry_xcalloc_secure): Use
+	gpg_err_set_errno.
+	(_gcry_vcontrol): Call _gcry_compat_identification.
+	* hmac256.c [__MINGW32CE__]: Include gpg-error.h.
+	(_gcry_hmac256_file): Use gpg_err_set_errno.
+	(gpg_err_set_errno) [!GPG_ERR_INLINE]: Add macro.
+	* g10lib.h: Include libcompat.h.
+
 2010-01-05  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (GCRY_PK_ECDH): New.

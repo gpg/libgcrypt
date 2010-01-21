@@ -36,7 +36,7 @@ TESTS += benchmark
 AM_CPPFLAGS = -I../src -I$(top_srcdir)/src
 AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
-LDADD = ../src/libgcrypt.la $(DL_LIBS)
+LDADD = ../src/libgcrypt.la $(DL_LIBS) ../compat/libcompat.la
 
 EXTRA_PROGRAMS = testapi pkbench
 noinst_PROGRAMS = $(TESTS) fipsdrv rsacvt

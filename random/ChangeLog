@@ -1,3 +1,10 @@
+2010-01-21  Werner Koch  <wk@g10code.com>
+
+	* rndw32.c (read_mbm_data) [W32CE]: Do not build.
+	(slow_gatherer) [W32CE]: Do not call read_mbm_data.
+	(_gcry_rndw32_gather_random_fast) [W32CE]: Exclude some calls.
+	(_gcry_rndw32_gather_random): Adjust version test for WindowsCE.
+
 2009-12-10  Werner Koch  <wk@g10code.com>
 
 	* rndw32.c (system_is_w2000): New.

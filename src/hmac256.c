@@ -56,6 +56,15 @@
 # include <fcntl.h> /* We need setmode().  */
 #endif
 
+/* For a native WindowsCE binary we need to include gpg-error.h to
+   provide a replacement for strerror.  In other cases we need a
+   replacement macro for gpg_err_set_errno.  */
+#ifdef __MINGW32CE__
+# include <gpg-error.h>
+#else
+# define gpg_err_set_errno(a) (errno = (a))
+#endif
+
 #include "hmac256.h"
 
 
@@ -502,7 +511,7 @@ _gcry_hmac256_file (void *result, size_t resultsize, const char *filename,
   if (digestlen > resultsize)
     {
       _gcry_hmac256_release (hd);
-      errno = EINVAL;
+      gpg_err_set_errno (EINVAL);
       return -1;
     }
   memcpy (result, digest, digestlen);

@@ -566,6 +566,8 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
 
     default:
+      /* A call to make sure that the dummy code is linked in.  */
+      _gcry_compat_identification ();
       err = GPG_ERR_INV_OP;
     }
 
@@ -742,7 +744,7 @@ do_malloc (size_t n, unsigned int flags, void **mem)
       /* Make sure that ERRNO has been set in case a user supplied
          memory handler didn't it correctly. */
       if (!errno)
-        errno = ENOMEM;
+        gpg_err_set_errno (ENOMEM);
       err = gpg_err_code_from_errno (errno);
     }
   else
@@ -805,7 +807,7 @@ gcry_realloc (void *a, size_t n)
   else
     p =  _gcry_private_realloc (a, n);
   if (!p && !errno)
-    errno = ENOMEM;
+    gpg_err_set_errno (ENOMEM);
   return p;
 }
 
@@ -827,7 +829,7 @@ gcry_free (void *p)
     _gcry_private_free (p);
 
   if (save_errno)
-    errno = save_errno;
+    gpg_err_set_errno (save_errno);
 }
 
 void *
@@ -840,7 +842,7 @@ gcry_calloc (size_t n, size_t m)
                     defined. */
   if (m && bytes / m != n) 
     {
-      errno = ENOMEM;
+      gpg_err_set_errno (ENOMEM);
       return NULL;
     }
 
@@ -860,7 +862,7 @@ gcry_calloc_secure (size_t n, size_t m)
                     defined. */
   if (m && bytes / m != n) 
     {
-      errno = ENOMEM;
+      gpg_err_set_errno (ENOMEM);
       return NULL;
     }
   
@@ -958,7 +960,7 @@ gcry_xcalloc( size_t n, size_t m )
   nbytes = n * m; 
   if (m && nbytes / m != n) 
     {
-      errno = ENOMEM;
+      gpg_err_set_errno (ENOMEM);
       _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
     }
 
@@ -976,7 +978,7 @@ gcry_xcalloc_secure( size_t n, size_t m )
   nbytes = n * m; 
   if (m && nbytes / m != n) 
     {
-      errno = ENOMEM;
+      gpg_err_set_errno (ENOMEM);
       _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
     }
 

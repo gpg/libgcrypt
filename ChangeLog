@@ -1,3 +1,22 @@
+2010-01-21  Werner Koch  <wk@g10code.com>
+
+	* compat/Makefile.am: New.
+	* compat/compat.c: New.
+	* compat/libcompat.h: New.
+	* compat/getpid.c, compat/clock.c: New.
+
+	* configure.ac: Require libgpg-error 1.8.
+	(HAVE_W32CE_SYSTEM): New am_defines and am_conditionals.
+	(getpid): Check for replacement function.
+	(AC_CONFIG_LIBOBJ_DIR): New.
+	(AC_TYPE_PID_T): New.
+	(AM_INIT_AUTOMAKE): Use modern variant.
+	(AC_CONFIG_FILES): Add compat/Makfile.
+	* autogen.sh: Support W32CE.
+	* ltmain.sh: Update to 2.2.6b
+	(wrappers_required): Don't set for mingw32ce.
+	* Makefile.am (DIST_SUBDIRS, SUBDIRS): Add compat.
+
 2009-12-10  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Add option --disable-O-flag-munging.
@@ -29,7 +48,7 @@
 2009-01-22  Werner Koch  <wk@g10code.com>
 
 	Release 1.4.4.
-	
+
 	* configure.ac: Bump LT version to C16/A5/R2.
 
 2008-10-30  Werner Koch  <wk@g10code.com>

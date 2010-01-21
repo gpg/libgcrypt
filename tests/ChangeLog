@@ -1,3 +1,9 @@
+2010-01-21  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c [_GCRYPT_IN_LIBGCRYPT]: Include libcompat.h.
+	(start_timer, stop_timer) [__MINGW32CE__]: Use GetThreadTimes.
+	* Makefile.am (LDADD): Add libcompat.
+
 2009-12-10  Werner Koch  <wk@g10code.com>
 
 	* basic.c (check_ctr_cipher): Add some return code checks.

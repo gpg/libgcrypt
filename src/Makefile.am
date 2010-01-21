@@ -14,14 +14,15 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public
-# License along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <http://www.gnu.org/licenses/>.
+
 
 ## Process this file with automake to produce Makefile.in
 
 EXTRA_DIST = Manifest libgcrypt-config.in libgcrypt.m4 libgcrypt.vers \
              gcrypt.h.in libgcrypt.def
+
 bin_SCRIPTS = libgcrypt-config
 m4datadir = $(datadir)/aclocal
 m4data_DATA = libgcrypt.m4
@@ -34,6 +35,15 @@ sbin_PROGRAMS = gcryptrnd
 bin_PROGRAMS += getrandom
 endif USE_RANDOM_DAEMON
 
+# Depending on the architecture some targets require libgpg-error.
+if HAVE_W32CE_SYSTEM
+arch_gpg_error_cflags = $(GPG_ERROR_CFLAGS)
+arch_gpg_error_libs   = $(GPG_ERROR_LIBS)
+else
+arch_gpg_error_cflags =
+arch_gpg_error_libs   = 
+endif
+
 
 if HAVE_LD_VERSION_SCRIPT
   libgcrypt_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt.vers
@@ -41,7 +51,7 @@ else
   libgcrypt_version_script_cmd = 
 endif
 
-libgcrypt_la_CFLAGS = @GPG_ERROR_CFLAGS@
+libgcrypt_la_CFLAGS = $(GPG_ERROR_CFLAGS)
 libgcrypt_la_SOURCES = g10lib.h visibility.c visibility.h types.h \
 	cipher.h cipher-proto.h \
 	misc.c global.c sexp.c hwfeatures.c \
@@ -94,19 +104,22 @@ libgcrypt_la_DEPENDENCIES = \
 	../cipher/libcipher.la \
 	../random/librandom.la \
 	../mpi/libmpi.la \
-	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
+	../compat/libcompat.la \
+	$(srcdir)/libgcrypt.vers $(gcrypt_deps) 
 libgcrypt_la_LIBADD = $(gcrypt_res) \
 	../cipher/libcipher.la \
 	../random/librandom.la \
-	../mpi/libmpi.la @LTLIBOBJS@ @GPG_ERROR_LIBS@
+	../mpi/libmpi.la \
+	../compat/libcompat.la  $(GPG_ERROR_LIBS)
 
 
 dumpsexp_SOURCES = dumpsexp.c
-dumpsexp_LDADD = 
+dumpsexp_CFLAGS = $(arch_gpg_error_cflags)
+dumpsexp_LDADD = $(arch_gpg_error_libs)
 
 hmac256_SOURCES = hmac256.c
-hmac256_CFLAGS = -DSTANDALONE
-hmac256_LDADD = 
+hmac256_CFLAGS = -DSTANDALONE $(arch_gpg_error_cflags)
+hmac256_LDADD = $(arch_gpg_error_libs)
 
 if USE_RANDOM_DAEMON
 gcryptrnd_SOURCES = gcryptrnd.c

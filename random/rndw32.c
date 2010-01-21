@@ -1,5 +1,6 @@
 /* rndw32.c  -  W32 entropy gatherer
- * Copyright (C) 1999, 2000, 2002, 2003, 2007 Free Software Foundation, Inc.
+ * Copyright (C) 1999, 2000, 2002, 2003, 2007,
+ *               2010 Free Software Foundation, Inc.
  * Copyright Peter Gutmann, Matt Thomlinson and Blake Coverett 1996-2006
  *
  * This file is part of Libgcrypt.
@@ -328,6 +329,7 @@ read_system_rng (void (*add)(const void*, size_t, enum random_origins),
 
 /* Read data from MBM.  This communicates via shared memory, so all we
    need to do is map a file and read the data out.  */
+#ifndef HAVE_W32CE_SYSTEM
 static void
 read_mbm_data (void (*add)(const void*, size_t, enum random_origins), 
                enum random_origins requester)
@@ -350,6 +352,7 @@ read_mbm_data (void (*add)(const void*, size_t, enum random_origins),
       CloseHandle (hMBMData);
     }
 }
+#endif /*!HAVE_W32CE_SYSTEM*/
 
 
 /* Fallback method using the registry to poll the statistics.  */
@@ -556,8 +559,10 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
     }
   
   read_system_rng ( add, requester );
+#ifndef HAVE_W32CE_SYSTEM
   read_mbm_data ( add, requester );
-  
+#endif  
+
   /* Get network statistics.    Note: Both NT Workstation and NT Server by
      default will be running both the workstation and server services.  The
      heuristic below is probably useful though on the assumption that the
@@ -774,8 +779,13 @@ _gcry_rndw32_gather_random (void (*add)(const void*, size_t,
       OSVERSIONINFO osvi = { sizeof( osvi ) };
 
       GetVersionEx( &osvi );
-      if ( osvi.dwPlatformId != VER_PLATFORM_WIN32_NT)
+#ifdef HAVE_W32CE_SYSTEM
+      if (osvi.dwPlatformId != VER_PLATFORM_WIN32_CE)
+        log_fatal ("can only run on a Windows CE platform\n" );
+#else
+      if (osvi.dwPlatformId != VER_PLATFORM_WIN32_NT)
         log_fatal ("can only run on a Windows NT platform\n" );
+#endif
       system_is_w2000 = (osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 0);
       init_system_rng ();
       is_initialized = 1;
@@ -821,23 +831,28 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
                      memcpy (bufptr, &along, sizeof (along) );  \
                      bufptr += sizeof (along);                  \
                    } while (0)
+#ifdef HAVE_W32CE_SYSTEM
+# define ADD_NO_CE(f)
+#else
+# define ADD_NO_CE(f)  ADD(f)
+#endif
 
     ADD ( GetActiveWindow ());
     ADD ( GetCapture ());
     ADD ( GetClipboardOwner ());
-    ADD ( GetClipboardViewer ());
+    ADD_NO_CE ( GetClipboardViewer ());
     ADD ( GetCurrentProcess ());
     ADD ( GetCurrentProcessId ());
     ADD ( GetCurrentThread ());
     ADD ( GetCurrentThreadId ());
     ADD ( GetDesktopWindow ());
     ADD ( GetFocus ());
-    ADD ( GetInputState ());
+    ADD_NO_CE ( GetInputState ());
     ADD ( GetMessagePos ());
-    ADD ( GetMessageTime ());
+    ADD_NO_CE ( GetMessageTime ());
     ADD ( GetOpenClipboardWindow ());
     ADD ( GetProcessHeap ());
-    ADD ( GetProcessWindowStation ());
+    ADD_NO_CE ( GetProcessWindowStation ());
     ADD ( GetQueueStatus (QS_ALLEVENTS));
     ADD ( GetTickCount ());
 
@@ -883,9 +898,15 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
     (*add) ( &kernelTime, sizeof (kernelTime), origin );
     (*add) ( &userTime, sizeof (userTime), origin );
 
+#ifdef HAVE_W32CE_SYSTEM
+    handle = GetCurrentThread ();
+    GetThreadTimes (handle, &creationTime, &exitTime,
+                     &kernelTime, &userTime);
+#else
     handle = GetCurrentProcess ();
     GetProcessTimes (handle, &creationTime, &exitTime,
                      &kernelTime, &userTime);
+#endif
     (*add) ( &creationTime, sizeof (creationTime), origin );
     (*add) ( &exitTime, sizeof (exitTime), origin );
     (*add) ( &kernelTime, sizeof (kernelTime), origin );
@@ -893,17 +914,20 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
 
     /* Get the minimum and maximum working set size for the current
        process.  */
+#ifndef HAVE_W32CE_SYSTEM
     GetProcessWorkingSetSize (handle, &minimumWorkingSetSize,
                               &maximumWorkingSetSize);
     (*add) ( &minimumWorkingSetSize,
              sizeof (minimumWorkingSetSize), origin );
     (*add) ( &maximumWorkingSetSize,
              sizeof (maximumWorkingSetSize), origin );
+#endif /*!HAVE_W32CE_SYSTEM*/
   }
 
 
   /* The following are fixed for the lifetime of the process so we only
    * add them once */
+#ifndef HAVE_W32CE_SYSTEM
   if (!addedFixedItems)
     {
       STARTUPINFO startupInfo;
@@ -916,6 +940,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
       (*add) ( &startupInfo, sizeof (STARTUPINFO), origin );
       addedFixedItems = 1;
     }
+#endif /*!HAVE_W32CE_SYSTEM*/
 
   /* The performance of QPC varies depending on the architecture it's
      running on and on the OS, the MS documentation is vague about the

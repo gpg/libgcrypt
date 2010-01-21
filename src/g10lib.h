@@ -201,6 +201,9 @@ char *stpcpy (char *a, const char *b);
 int strcasecmp (const char *a, const char *b) _GCRY_GCC_ATTR_PURE;
 #endif
 
+#include "../compat/libcompat.h"
+
+
 /* Macros used to rename missing functions.  */
 #ifndef HAVE_STRTOUL
 #define strtoul(a,b,c)  ((unsigned long)strtol((a),(b),(c)))

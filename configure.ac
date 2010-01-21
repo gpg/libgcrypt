@@ -47,7 +47,7 @@ LIBGCRYPT_LT_REVISION=0
 # If the API is changed in an incompatible way: increment the next counter.
 LIBGCRYPT_CONFIG_API_VERSION=1
 
-NEED_GPG_ERROR_VERSION=1.4
+NEED_GPG_ERROR_VERSION=1.8
 
 is_development_version=my_issvn
 BUILD_REVISION=svn_revision
@@ -55,9 +55,10 @@ PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])
-AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
+AM_INIT_AUTOMAKE([])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_LIBOBJ_DIR([compat])
 AC_CANONICAL_HOST
 AM_MAINTAINER_MODE
 
@@ -170,6 +171,7 @@ LIBGCRYPT_THREAD_MODULES=""
 # Other definitions.
 print_egd_notice=no
 have_w32_system=no
+have_w32ce_system=no
 
 # Setup some stuff depending on host.
 case "${host}" in
@@ -177,6 +179,7 @@ case "${host}" in
       available_random_modules="w32"
       ac_cv_have_dev_random=no
       have_w32_system=yes
+      case "${host}" in *-mingw32ce*) have_w32ce_system=yes ;; esac
       AC_DEFINE(USE_ONLY_8DOT3,1,
                 [set this to limit filenames to the 8.3 format])
       AC_DEFINE(HAVE_DRIVE_LETTERS,1,
@@ -227,13 +230,21 @@ esac
 
 if test "$have_w32_system" = yes; then
    AC_DEFINE(HAVE_W32_SYSTEM,1, [Defined if we run on a W32 API based system])
+   if test "$have_w32ce_system" = yes; then
+     AC_DEFINE(HAVE_W32CE_SYSTEM,1,[Defined if we run on WindowsCE])
+   fi
 fi
 AM_CONDITIONAL(HAVE_W32_SYSTEM, test "$have_w32_system" = yes)
+AM_CONDITIONAL(HAVE_W32CE_SYSTEM, test "$have_w32ce_system" = yes)
 
 
 
 # A printable OS Name is sometimes useful.
 case "${host}" in
+    *-*-mingw32ce*)
+        PRINTABLE_OS_NAME="MingW32CE"
+        ;;
+
     *-*-mingw32*)
         PRINTABLE_OS_NAME="MingW32"
         ;;
@@ -595,6 +606,7 @@ AC_C_INLINE
 AC_TYPE_SIZE_T
 AC_TYPE_SIGNAL
 AC_DECL_SYS_SIGLIST
+AC_TYPE_PID_T
 
 GNUPG_CHECK_TYPEDEF(byte, HAVE_BYTE_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(ushort, HAVE_USHORT_TYPEDEF)
@@ -717,6 +729,11 @@ AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime syslog)
 AC_CHECK_FUNCS(fcntl ftruncate)
 
 GNUPG_CHECK_MLOCK
+
+#
+# Replacement functions.
+#
+AC_REPLACE_FUNCS([getpid clock])
 
 
 #
@@ -1128,6 +1145,7 @@ AC_DEFINE_UNQUOTED(BUILD_REVISION, "$BUILD_REVISION",
 AC_CONFIG_FILES([
 Makefile
 m4/Makefile
+compat/Makefile
 mpi/Makefile
 cipher/Makefile
 random/Makefile
