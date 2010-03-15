@@ -31,8 +31,11 @@ m4_define([my_issvn], [yes])
 
 m4_define([svn_revision], m4_esyscmd([printf "%d" $(svn info 2>/dev/null \
           | sed -n '/^Revision:/ s/[^0-9]//gp'|head -1)]))
+m4_define([git_revision], m4_esyscmd([git branch -v 2>/dev/null \
+          | awk '/^\* / {printf "%s",$3}']))
 AC_INIT([libgcrypt], 
-        [my_version[]m4_if(my_issvn,[yes],[-svn[]svn_revision])],
+        [my_version[]m4_if(my_issvn,[yes],
+        [m4_if(git_revision,[],[-svn[]svn_revision],[-git[]git_revision])])],
         [bug-libgcrypt@gnupg.org])
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
@@ -1139,6 +1142,11 @@ AC_SUBST(BUILD_FILEVERSION)
 AC_DEFINE_UNQUOTED(BUILD_REVISION, "$BUILD_REVISION", 
                    [Subversion revision used to build this package])
 
+
+# Substitutions to set generated files in a Emacs buffer to read-only.
+AC_SUBST(emacs_local_vars_begin, ['Local Variables:'])
+AC_SUBST(emacs_local_vars_read_only, ['buffer-read-only: t'])
+AC_SUBST(emacs_local_vars_end, ['End:'])
 
 
 # And create the files.

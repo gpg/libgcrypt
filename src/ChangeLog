@@ -1,3 +1,8 @@
+2010-03-15  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in: Add autoconf template to set generated file to
+	read-only in an Emacs buffer.
+
 2010-01-21  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (arch_gpg_error_cflags, arch_gpg_error_libs): New.

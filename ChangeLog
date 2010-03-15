@@ -1,3 +1,8 @@
+2010-03-15  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (emacs_local_vars_begin)
+	(emacs_local_vars_read_only, emacs_local_vars_end): New.
+
 2010-01-21  Werner Koch  <wk@g10code.com>
 
 	* compat/Makefile.am: New.
