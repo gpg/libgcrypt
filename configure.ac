@@ -179,10 +179,17 @@ have_w32ce_system=no
 # Setup some stuff depending on host.
 case "${host}" in
     *-*-mingw32*)
-      available_random_modules="w32"
       ac_cv_have_dev_random=no
       have_w32_system=yes
-      case "${host}" in *-mingw32ce*) have_w32ce_system=yes ;; esac
+      case "${host}" in 
+        *-mingw32ce*)
+            have_w32ce_system=yes
+            available_random_modules="w32ce"
+            ;;
+        *)
+            available_random_modules="w32"
+            ;;
+      esac
       AC_DEFINE(USE_ONLY_8DOT3,1,
                 [set this to limit filenames to the 8.3 format])
       AC_DEFINE(HAVE_DRIVE_LETTERS,1,
@@ -245,11 +252,11 @@ AM_CONDITIONAL(HAVE_W32CE_SYSTEM, test "$have_w32ce_system" = yes)
 # A printable OS Name is sometimes useful.
 case "${host}" in
     *-*-mingw32ce*)
-        PRINTABLE_OS_NAME="MingW32CE"
+        PRINTABLE_OS_NAME="W32CE"
         ;;
 
     *-*-mingw32*)
-        PRINTABLE_OS_NAME="MingW32"
+        PRINTABLE_OS_NAME="W32"
         ;;
 
     i?86-emx-os2 | i?86-*-os2*emx )
@@ -807,6 +814,10 @@ if test "$random" = "default"; then
         random_modules="linux"
     else
         case "${host}" in
+        *-*-mingw32ce*)
+          # WindowsCE random device.
+          random_modules="w32ce"
+          ;;
         *-*-mingw32*|*-*-cygwin*)
           # Windows random device.
           random_modules="w32"
@@ -1103,6 +1114,13 @@ if test "$found" = "1" ; then
    GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo"
    AC_DEFINE(USE_RNDW32, 1, 
              [Defined if the Windows specific RNG should be used.])
+fi
+
+LIST_MEMBER(w32ce, $random_modules)
+if test "$found" = "1" ; then
+   GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32ce.lo"
+   AC_DEFINE(USE_RNDW32CE, 1, 
+             [Defined if the WindowsCE specific RNG should be used.])
 fi
 
 AC_SUBST([GCRYPT_CIPHERS])

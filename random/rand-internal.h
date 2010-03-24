@@ -123,6 +123,15 @@ void _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
                                                   enum random_origins),
                                       enum random_origins origin );
 
+/*-- rndw32ce.c --*/
+int _gcry_rndw32ce_gather_random (void (*add) (const void *, size_t,
+                                               enum random_origins),
+                                  enum random_origins origin,
+                                  size_t length, int level);
+void _gcry_rndw32ce_gather_random_fast (void (*add)(const void*, size_t, 
+                                                    enum random_origins),
+                                        enum random_origins origin );
+
 /*-- rndhw.c --*/
 int _gcry_rndhw_failed_p (void);
 void _gcry_rndhw_poll_fast (void (*add)(const void*, size_t,

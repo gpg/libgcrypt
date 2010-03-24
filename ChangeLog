@@ -1,3 +1,7 @@
+2010-03-24  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (USE_RNDW32CE): New.
+
 2010-03-15  Werner Koch  <wk@g10code.com>
 
 	* configure.ac (emacs_local_vars_begin)

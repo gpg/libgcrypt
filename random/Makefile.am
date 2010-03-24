@@ -46,4 +46,5 @@ EXTRA_librandom_la_SOURCES = \
 rndlinux.c \
 rndegd.c \
 rndunix.c \
-rndw32.c 
+rndw32.c  \
+rndw32ce.c
