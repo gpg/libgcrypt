@@ -1,3 +1,8 @@
+2010-03-26  Werner Koch  <wk@g10code.com>
+
+	* basic.c (check_digests): Add tests for TIGER1 and TIGER2 from
+	the NESSIE project.
+
 2010-01-21  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c [_GCRYPT_IN_LIBGCRYPT]: Include libcompat.h.

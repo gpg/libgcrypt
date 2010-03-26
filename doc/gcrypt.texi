@@ -3427,7 +3427,7 @@ are also supported.
 @cindex SHA-224, SHA-256, SHA-384, SHA-512
 @cindex RIPE-MD-160
 @cindex MD2, MD4, MD5
-@cindex TIGER
+@cindex TIGER, TIGER1, TIGER2
 @cindex HAVAL
 @cindex Whirlpool
 @cindex CRC32
@@ -3464,7 +3464,17 @@ This is an reserved identifier for MD-2; there is no implementation yet.
 This algorithm has severe weaknesses and should not be used.
 
 @item GCRY_MD_TIGER
-This is the TIGER/192 algorithm which yields a message digest of 24 bytes.
+This is the TIGER/192 algorithm which yields a message digest of 24
+bytes.  Actually this is a variant of TIGER with a different output
+print order as used by GnuPG up to version 1.3.2.
+
+@item GCRY_MD_TIGER1
+This is the TIGER variant as used by the NESSIE project.  It uses the
+most commonly used output print order.
+
+@item GCRY_MD_TIGER2
+This is another variant of TIGER with a different padding scheme.
+
 
 @item GCRY_MD_HAVAL
 This is an reserved value for the HAVAL algorithm with 5 passes and 160

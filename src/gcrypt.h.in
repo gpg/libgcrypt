@@ -1061,7 +1061,7 @@ enum gcry_md_algos
     GCRY_MD_SHA1    = 2,
     GCRY_MD_RMD160  = 3,
     GCRY_MD_MD2     = 5,
-    GCRY_MD_TIGER   = 6,   /* TIGER/192. */
+    GCRY_MD_TIGER   = 6,   /* TIGER/192 as used by gpg <= 1.3.2. */
     GCRY_MD_HAVAL   = 7,   /* HAVAL, 5 pass, 160 bit. */
     GCRY_MD_SHA256  = 8,
     GCRY_MD_SHA384  = 9,
@@ -1071,7 +1071,9 @@ enum gcry_md_algos
     GCRY_MD_CRC32         = 302,
     GCRY_MD_CRC32_RFC1510 = 303,
     GCRY_MD_CRC24_RFC2440 = 304,
-    GCRY_MD_WHIRLPOOL = 305
+    GCRY_MD_WHIRLPOOL = 305,
+    GCRY_MD_TIGER1  = 306, /* TIGER fixed.  */
+    GCRY_MD_TIGER2  = 307  /* TIGER2 variant.   */
   };
 
 /* Flags used with the open function.  */

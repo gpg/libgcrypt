@@ -114,6 +114,8 @@ extern gcry_md_spec_t _gcry_digest_spec_sha256;
 extern gcry_md_spec_t _gcry_digest_spec_sha512;
 extern gcry_md_spec_t _gcry_digest_spec_sha384;
 extern gcry_md_spec_t _gcry_digest_spec_tiger;
+extern gcry_md_spec_t _gcry_digest_spec_tiger1;
+extern gcry_md_spec_t _gcry_digest_spec_tiger2;
 extern gcry_md_spec_t _gcry_digest_spec_whirlpool;
 
 extern md_extra_spec_t _gcry_digest_extraspec_sha1;

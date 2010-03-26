@@ -87,6 +87,10 @@ static struct digest_table_entry
 #if USE_TIGER
     { &_gcry_digest_spec_tiger,
       &dummy_extra_spec,                 GCRY_MD_TIGER },
+    { &_gcry_digest_spec_tiger1,
+      &dummy_extra_spec,                 GCRY_MD_TIGER1 },
+    { &_gcry_digest_spec_tiger2,
+      &dummy_extra_spec,                 GCRY_MD_TIGER2 },
 #endif
 #if USE_WHIRLPOOL
     { &_gcry_digest_spec_whirlpool,
