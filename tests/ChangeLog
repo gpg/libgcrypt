@@ -1,3 +1,7 @@
+2010-04-06  Brad Hards  <bradh@frogmouth.net>  (wk)
+
+	* aeswrap.c, hmac.c, basic.c:  Typo fixes.
+
 2010-03-26  Werner Koch  <wk@g10code.com>
 
 	* basic.c (check_digests): Add tests for TIGER1 and TIGER2 from

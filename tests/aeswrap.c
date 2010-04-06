@@ -69,14 +69,14 @@ check (int algo,
   err = gcry_cipher_open (&hd, algo, GCRY_CIPHER_MODE_AESWRAP, 0);
   if (err)
     {
-      fail ("gcrypt_cipher_open failed: %s\n", gpg_strerror (err));
+      fail ("gcry_cipher_open failed: %s\n", gpg_strerror (err));
       return;
     }
 
   err = gcry_cipher_setkey (hd, kek, keklen);
   if (err)
     {
-      fail ("grcy_cipher_setkey failed: %s\n", gpg_strerror (err));
+      fail ("gcry_cipher_setkey failed: %s\n", gpg_strerror (err));
       return;
     }
 
@@ -87,7 +87,7 @@ check (int algo,
     err = gcry_cipher_encrypt (hd, outbuf, outbuflen, data, datalen);
   if (err)
     {
-      fail ("grcy_cipher_encrypt failed: %s\n", gpg_strerror (err));
+      fail ("gcry_cipher_encrypt failed: %s\n", gpg_strerror (err));
       return;
     }
 
@@ -114,7 +114,7 @@ check (int algo,
     err = gcry_cipher_decrypt (hd, outbuf, outbuflen, expected, expectedlen);
   if (err)
     {
-      fail ("grcy_cipher_decrypt failed: %s\n", gpg_strerror (err));
+      fail ("gcry_cipher_decrypt failed: %s\n", gpg_strerror (err));
       return;
     }
 
@@ -143,7 +143,7 @@ check (int algo,
     err = gcry_cipher_decrypt (hd, outbuf, outbuflen, expected, expectedlen);
   if (err)
     {
-      fail ("grcy_cipher_decrypt(2) failed: %s\n", gpg_strerror (err));
+      fail ("gcry_cipher_decrypt(2) failed: %s\n", gpg_strerror (err));
       return;
     }
 
@@ -158,7 +158,7 @@ check (int algo,
     err = gcry_cipher_decrypt (hd, outbuf, outbuflen, expected, expectedlen);
   if (err)
     {
-      fail ("grcy_cipher_decrypt(3) failed: %s\n", gpg_strerror (err));
+      fail ("gcry_cipher_decrypt(3) failed: %s\n", gpg_strerror (err));
       return;
     }
 

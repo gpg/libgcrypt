@@ -748,7 +748,7 @@ certain internal subsystems running.  The common and suggested way to
 do this basic intialization is by calling gcry_check_version.
 
 @item GCRYCTL_INITIALIZATION_FINISHED; Arguments: none
-This command tells the libray that the application has finished the
+This command tells the library that the application has finished the
 intialization.
 
 @item GCRYCTL_INITIALIZATION_FINISHED_P; Arguments: none
@@ -5464,7 +5464,7 @@ generates blocks of 128 bit size; the first block generated per
 context is saved in the context and another block is generated to be
 returned to the caller.  Each block is compared against the saved
 block and then stored in the context.  If a duplicated block is
-detected an error is signaled and the libray is put into the
+detected an error is signaled and the library is put into the
 ``Fatal-Error'' state.
 (@code{random/@/random-fips.c:@/x931_aes_driver})
 

@@ -70,21 +70,21 @@ check_one_mac (int algo,
   err = gcry_md_open (&hd, algo, GCRY_MD_FLAG_HMAC);
   if (err)
     {
-      fail ("algo %d, grcy_md_open failed: %s\n", algo, gpg_strerror (err));
+      fail ("algo %d, gcry_md_open failed: %s\n", algo, gpg_strerror (err));
       return;
     }
 
   mdlen = gcry_md_get_algo_dlen (algo);
   if (mdlen < 1 || mdlen > 500)
     {
-      fail ("algo %d, grcy_md_get_algo_dlen failed: %d\n", algo, mdlen);
+      fail ("algo %d, gcry_md_get_algo_dlen failed: %d\n", algo, mdlen);
       return;
     }
 
   err = gcry_md_setkey (hd, key, keylen);
   if (err)
     {
-      fail ("algo %d, grcy_md_setkey failed: %s\n", algo, gpg_strerror (err));
+      fail ("algo %d, gcry_md_setkey failed: %s\n", algo, gpg_strerror (err));
       return;
     }
 

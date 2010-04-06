@@ -141,7 +141,7 @@ check_cbc_mac_cipher (void)
 			      GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_CBC_MAC);
       if (!hd)
 	{
-	  fail ("cbc-mac algo %d, grcy_open_cipher failed: %s\n",
+	  fail ("cbc-mac algo %d, gcry_cipher_open failed: %s\n",
 		tv[i].algo, gpg_strerror (err));
 	  return;
 	}
@@ -264,7 +264,7 @@ check_aes128_cbc_cts_cipher (void)
 			  GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_CBC_CTS);
   if (err)
     {
-      fail ("aes-cbc-cts, grcy_open_cipher failed: %s\n", gpg_strerror (err));
+      fail ("aes-cbc-cts, gcry_cipher_open failed: %s\n", gpg_strerror (err));
       return;
     }
 
@@ -417,7 +417,7 @@ check_ctr_cipher (void)
 	err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
       if (err)
 	{
-	  fail ("aes-ctr, grcy_open_cipher failed: %s\n", gpg_strerror (err));
+	  fail ("aes-ctr, gcry_cipher_open failed: %s\n", gpg_strerror (err));
 	  return;
 	}
 
@@ -661,7 +661,7 @@ check_cfb_cipher (void)
         err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_CFB, 0);
       if (err)
         {
-          fail ("aes-cfb, grcy_open_cipher failed: %s\n", gpg_strerror (err));
+          fail ("aes-cfb, gcry_cipher_open failed: %s\n", gpg_strerror (err));
           return;
         }
 
@@ -823,7 +823,7 @@ check_ofb_cipher (void)
         err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_OFB, 0);
       if (err)
         {
-          fail ("aes-ofb, grcy_open_cipher failed: %s\n", gpg_strerror (err));
+          fail ("aes-ofb, gcry_cipher_open failed: %s\n", gpg_strerror (err));
           return;
         }
 
@@ -994,7 +994,7 @@ check_one_cipher (int algo, int mode, int flags)
   err = gcry_cipher_open (&hd, algo, mode, flags);
   if (err)
     {
-      fail ("algo %d, mode %d, grcy_open_cipher failed: %s\n",
+      fail ("algo %d, mode %d, gcry_cipher_open failed: %s\n",
 	    algo, mode, gpg_strerror (err));
       return;
     }
@@ -1174,14 +1174,14 @@ check_one_md (int algo, const char *data, int len, const char *expect)
   err = gcry_md_open (&hd, algo, 0);
   if (err)
     {
-      fail ("algo %d, grcy_md_open failed: %s\n", algo, gpg_strerror (err));
+      fail ("algo %d, gcry_md_open failed: %s\n", algo, gpg_strerror (err));
       return;
     }
 
   mdlen = gcry_md_get_algo_dlen (algo);
   if (mdlen < 1 || mdlen > 500)
     {
-      fail ("algo %d, grcy_md_get_algo_dlen failed: %d\n", algo, mdlen);
+      fail ("algo %d, gcry_md_get_algo_dlen failed: %d\n", algo, mdlen);
       return;
     }
 
@@ -1495,14 +1495,14 @@ check_one_hmac (int algo, const char *data, int datalen,
   err = gcry_md_open (&hd, algo, GCRY_MD_FLAG_HMAC);
   if (err)
     {
-      fail ("algo %d, grcy_md_open failed: %s\n", algo, gpg_strerror (err));
+      fail ("algo %d, gcry_md_open failed: %s\n", algo, gpg_strerror (err));
       return;
     }
 
   mdlen = gcry_md_get_algo_dlen (algo);
   if (mdlen < 1 || mdlen > 500)
     {
-      fail ("algo %d, grcy_md_get_algo_dlen failed: %d\n", algo, mdlen);
+      fail ("algo %d, gcry_md_get_algo_dlen failed: %d\n", algo, mdlen);
       return;
     }
 
