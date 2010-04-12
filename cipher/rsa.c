@@ -582,7 +582,7 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
 
 
 /****************
- * Test wether the secret key is valid.
+ * Test whether the secret key is valid.
  * Returns: true if this is a valid key.
  */
 static int
@@ -952,7 +952,7 @@ rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
       gcry_mpi_mod (r, r, sk.n);
 
       /* Calculate inverse of r.  It practically impossible that the
-         follwing test fails, thus we do not add code to release
+         following test fails, thus we do not add code to release
          allocated resources.  */
       if (!gcry_mpi_invm (ri, r, sk.n))
 	return GPG_ERR_INTERNAL;
@@ -1063,7 +1063,7 @@ rsa_get_nbits (int algo, gcry_mpi_t *pkey)
         (e #010001#))
         
    PKCS-15 says that for RSA only the modulus should be hashed -
-   however, it is not clear wether this is meant to use the raw bytes
+   however, it is not clear whether this is meant to use the raw bytes
    (assuming this is an unsigned integer) or whether the DER required
    0 should be prefixed.  We hash the raw bytes.  */
 static gpg_err_code_t

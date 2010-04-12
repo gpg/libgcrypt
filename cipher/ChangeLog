@@ -1,3 +1,7 @@
+2010-04-12  Brad Hards  <bradh@frogmouth.net>  (wk)
+
+	Spelling fixes.
+
 2010-03-26  Werner Koch  <wk@g10code.com>
 
 	* tiger.c (asn): Unfetter the old TIGER from an OID.
@@ -16,13 +20,13 @@
 
 	* sha512.c (ROTR, Ch, Maj, Sum0, Sum1): Turn macros into inline
 	functions.
-	(transform): Partly Unroll to interweave the chain variables.
+	(transform): Partly unroll to interweave the chain variables.
 	Suggested by Christian Grothoff.
 
 2009-12-10  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (o_flag_munging): New.
-	(tiger.o, tiger.lo): Use it. 
+	(tiger.o, tiger.lo): Use it.
 
 	* cipher.c (do_ctr_encrypt): Add arg OUTBUFLEN.  Check for
 	suitable value.  Add check for valid inputlen.  Wipe temporary

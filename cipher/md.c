@@ -105,7 +105,7 @@ static gcry_module_t digests_registered;
 /* This is the lock protecting DIGESTS_REGISTERED.  */
 static ath_mutex_t digests_registered_lock = ATH_MUTEX_INITIALIZER;
 
-/* Flag to check wether the default ciphers have already been
+/* Flag to check whether the default ciphers have already been
    registered.  */
 static int default_digests_registered;
 
@@ -1142,7 +1142,7 @@ md_asn_oid (int algorithm, size_t *asnlen, size_t *mdlen)
  * Note:  Because this function is in most cases used to return an
  * integer value, we can make it easier for the caller to just look at
  * the return value.  The caller will in all cases consult the value
- * and thereby detecting whether a error occured or not (i.e. while checking
+ * and thereby detecting whether a error occurred or not (i.e. while checking
  * the block size)
  */
 gcry_error_t

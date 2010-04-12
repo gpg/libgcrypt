@@ -135,7 +135,7 @@ struct rng_context
 
   unsigned char guard_2[1];
 
-  /* The last result from the x931_aes fucntion.  Only valid if
+  /* The last result from the x931_aes function.  Only valid if
      compare_value_valid is set.  */
   unsigned char compare_value[16];
 
@@ -997,7 +997,7 @@ _gcry_rngfips_selftest (selftest_report_func_t report)
     char buffer[8];
 
     /* Do a simple test using the public interface.  This will also
-       enforce full intialization of the RNG.  We need to be fully
+       enforce full initialization of the RNG.  We need to be fully
        initialized due to the global requirement of the
        tempvalue_for_x931_aes_driver stuff. */
     gcry_randomize (buffer, sizeof buffer, GCRY_STRONG_RANDOM);

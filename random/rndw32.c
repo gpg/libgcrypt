@@ -278,7 +278,7 @@ init_system_rng (void)
      the 760 MP chipset) also has a hardware RNG, but there doesn't appear 
      to be any driver support for this as there is for the Intel RNG so we 
      can't do much with it.  OTOH the Intel RNG is also effectively dead 
-     as well, mostly due to virtually nonexistant support/marketing by 
+     as well, mostly due to virtually nonexistent support/marketing by
      Intel, it's included here mostly for form's sake.  */
   if ( (!pCryptAcquireContext || !pCryptGenRandom || !pCryptReleaseContext
         || !pCryptAcquireContext (&hRNGProv, NULL, INTEL_DEF_PROV,

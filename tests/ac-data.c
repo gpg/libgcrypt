@@ -29,7 +29,7 @@
   do \
     if (err) \
       { \
-        fprintf (stderr, "Error occured at line %i: %s\n", \
+        fprintf (stderr, "Error occurred at line %i: %s\n", \
                  __LINE__, gcry_strerror (err)); \
         exit (1); \
       } \

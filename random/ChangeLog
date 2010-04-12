@@ -1,3 +1,7 @@
+2010-04-12  Brad Hards  <bradh@frogmouth.net>  (wk)
+
+	Spelling fixes.
+
 2010-03-24  Werner Koch  <wk@g10code.com>
 
 	* rndw32.c: Revert all changes from 2010-01-21.

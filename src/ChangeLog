@@ -1,3 +1,7 @@
+2010-04-12  Brad Hards  <bradh@frogmouth.net>  (wk)
+
+	Spelling fixes.
+
 2010-03-15  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in: Add autoconf template to set generated file to

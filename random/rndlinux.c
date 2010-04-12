@@ -125,7 +125,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
 
   /* Enter the read loop.  */
   delay = 0;  /* Start with 0 seconds so that we do no block on the
-                 first iteration and in turn call the progess function
+                 first iteration and in turn call the progress function
                  before blocking.  To give the OS a better chance to
                  return with something we will actually use 100ms. */
   while (length)

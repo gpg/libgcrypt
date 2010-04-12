@@ -125,7 +125,7 @@ _gcry_module_drop (gcry_module_t entry)
   gcry_free (entry);
 }
 
-/* Lookup a module specification by it's ID.  After a successfull
+/* Lookup a module specification by it's ID.  After a successful
    lookup, the module has it's resource counter incremented.  */
 gcry_module_t 
 _gcry_module_lookup_id (gcry_module_t entries, unsigned int mod_id)
@@ -142,7 +142,7 @@ _gcry_module_lookup_id (gcry_module_t entries, unsigned int mod_id)
   return entry;
 }
 
-/* Lookup a module specification.  After a successfull lookup, the
+/* Lookup a module specification.  After a successful lookup, the
    module has it's resource counter incremented.  FUNC is a function
    provided by the caller, which is responsible for identifying the
    wanted module.  */

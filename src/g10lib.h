@@ -275,7 +275,7 @@ gcry_err_code_t _gcry_module_add (gcry_module_t *entries,
 
 typedef int (*gcry_module_lookup_t) (void *spec, void *data);
 
-/* Lookup a module specification by it's ID.  After a successfull
+/* Lookup a module specification by it's ID.  After a successful
    lookup, the module has it's resource counter incremented.  */
 gcry_module_t _gcry_module_lookup_id (gcry_module_t entries,
 				       unsigned int id);

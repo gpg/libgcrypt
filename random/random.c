@@ -34,7 +34,7 @@
 
 
 /* If not NULL a progress function called from certain places and the
-   opaque value passed along.  Registred by
+   opaque value passed along.  Registered by
    _gcry_register_random_progress (). */
 static void (*progress_cb) (void *,const char*,int,int, int );
 static void *progress_cb_data;
@@ -93,7 +93,7 @@ _gcry_random_dump_stats (void)
 
 
 /* This function should be called during initialization and beore
-   intialization of this module to place the random pools into secure
+   initialization of this module to place the random pools into secure
    memory.  */
 void
 _gcry_secure_random_alloc (void)
@@ -218,7 +218,7 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 
 
 /* This function may be used to specify the file to be used as a seed
-   file for the PRNG.  This fucntion should be called prior to the
+   file for the PRNG.  This function should be called prior to the
    initialization of the random module.  NAME may not be NULL.  */
 void
 _gcry_set_random_seed_file (const char *name)
@@ -245,7 +245,7 @@ _gcry_update_random_seed_file (void)
 
 /* The fast random pool function as called at some places in
    libgcrypt.  This is merely a wrapper to make sure that this module
-   is initalized and to lock the pool.  Note, that this function is a
+   is initialized and to lock the pool.  Note, that this function is a
    NOP unless a random function has been used or _gcry_initialize (1)
    has been used.  We use this hack so that the internal use of this
    function in cipher_open and md_open won't start filling up the

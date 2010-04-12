@@ -137,7 +137,7 @@ static int pool_balance;
 
 /* After a mixing operation this variable will be set to true and
    cleared if new entropy has been added or a remix is required for
-   otehr reasons.  */
+   other reasons.  */
 static int just_mixed;
 
 /* The name of the seed file or NULL if no seed file has been defined.
@@ -161,7 +161,7 @@ static int (*slow_gather_fnc)(void (*)(const void*, size_t,
                                        enum random_origins),
                               enum random_origins, size_t, int);
 
-/* This function is set to the actual fast entropy gathering fucntion
+/* This function is set to the actual fast entropy gathering function
    during initialization.  If it is NULL, no such function is
    available. */
 static void (*fast_gather_fnc)(void (*)(const void*, size_t,
@@ -388,7 +388,7 @@ _gcry_rngcsprng_dump_stats (void)
 
 
 /* This function should be called during initialization and before
-   intialization of this module to place the random pools into secure
+   initialization of this module to place the random pools into secure
    memory.  */
 void
 _gcry_rngcsprng_secure_alloc (void)
@@ -728,7 +728,7 @@ lock_seed_file (int fd, const char *fname, int for_write)
    correlated to some extent.  In the perfect scenario, the attacker
    can control (or at least guess) the PID and clock of the
    application, and drain the system's entropy pool to reduce the "up
-   to 16 bytes" above to 0.  Then the dependencies of the inital
+   to 16 bytes" above to 0.  Then the dependencies of the initial
    states of the pools are completely known.  */
 static int
 read_seed_file (void)
@@ -1251,7 +1251,7 @@ do_fast_random_poll (void)
 
 /* The fast random pool function as called at some places in
    libgcrypt.  This is merely a wrapper to make sure that this module
-   is initalized and to look the pool.  Note, that this function is a
+   is initialized and to lock the pool.  Note, that this function is a
    NOP unless a random function has been used or _gcry_initialize (1)
    has been used.  We use this hack so that the internal use of this
    function in cipher_open and md_open won't start filling up the
@@ -1352,7 +1352,7 @@ _gcry_rngcsprng_create_nonce (void *buffer, size_t length)
                strerror (err));
 
   apid = getpid ();
-  /* The first time intialize our buffer. */
+  /* The first time initialize our buffer. */
   if (!nonce_buffer_initialized)
     {
       time_t atime = time (NULL);

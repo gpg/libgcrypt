@@ -118,7 +118,7 @@ static gcry_module_t ciphers_registered;
 /* This is the lock protecting CIPHERS_REGISTERED.  */
 static ath_mutex_t ciphers_registered_lock = ATH_MUTEX_INITIALIZER;
 
-/* Flag to check wether the default ciphers have already been
+/* Flag to check whether the default ciphers have already been
    registered.  */
 static int default_ciphers_registered;
 
@@ -686,7 +686,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
   
   REGISTER_DEFAULT_CIPHERS;
 
-  /* Fetch the according module and check wether the cipher is marked
+  /* Fetch the according module and check whether the cipher is marked
      available for use.  */
   ath_mutex_lock (&ciphers_registered_lock);
   module = _gcry_module_lookup_id (ciphers_registered, algo);
@@ -1972,7 +1972,7 @@ gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
 
    There are no values for CMD yet defined.  
 
-   The fucntion always returns GPG_ERR_INV_OP.
+   The function always returns GPG_ERR_INV_OP.
    
  */
 gcry_error_t
@@ -2014,7 +2014,7 @@ gcry_cipher_info (gcry_cipher_hd_t h, int cmd, void *buffer, size_t *nbytes)
    Note: Because this function is in most cases used to return an
    integer value, we can make it easier for the caller to just look at
    the return value.  The caller will in all cases consult the value
-   and thereby detecting whether a error occured or not (i.e. while
+   and thereby detecting whether a error occurred or not (i.e. while
    checking the block size)
  */
 gcry_error_t

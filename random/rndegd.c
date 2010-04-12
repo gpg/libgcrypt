@@ -119,7 +119,7 @@ do_read( int fd, void *buf, size_t nbytes )
 }
 
 
-/* Note that his fucntion is not thread-safe.  */
+/* Note that his function is not thread-safe.  */
 gpg_error_t
 _gcry_rndegd_set_socket_name (const char *name)
 {

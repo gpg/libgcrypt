@@ -950,7 +950,7 @@ unquote_string (const char *string, size_t length, unsigned char *buf)
 /****************
  * Scan the provided buffer and return the S expression in our internal
  * format.  Returns a newly allocated expression.  If erroff is not NULL and
- * a parsing error has occured, the offset into buffer will be returned.
+ * a parsing error has occurred, the offset into buffer will be returned.
  * If ARGFLAG is true, the function supports some printf like
  * expressions.
  *  These are:
@@ -1002,7 +1002,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
   if (!erroff)
     erroff = &dummy_erroff;
 
-  /* Depending on wether ARG_LIST is non-zero or not, this macro gives
+  /* Depending on whether ARG_LIST is non-zero or not, this macro gives
      us the next argument, either from the variable argument list as
      specified by ARG_PTR or from the argument array ARG_LIST.  */
 #define ARG_NEXT(storage, type)                          \

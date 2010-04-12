@@ -878,7 +878,7 @@ gcry_md_spec_t _gcry_digest_spec_tiger =
 
 
 
-/* This is the fixed TIGER implemenation.  */
+/* This is the fixed TIGER implementation.  */
 static byte asn1[19] = /* Object ID is 1.3.6.1.4.1.11591.12.2 */
   { 0x30, 0x29, 0x30, 0x0d, 0x06, 0x09, 0x2b, 0x06,
     0x01, 0x04, 0x01, 0xda, 0x47, 0x0c, 0x02,

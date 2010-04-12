@@ -124,7 +124,7 @@ check_cbc_mac_cipher (void)
   gcry_error_t err = 0;
 
   if (verbose)
-    fprintf (stderr, "Starting CBC MAC checks.\n");
+    fprintf (stderr, "  Starting CBC MAC checks.\n");
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
@@ -182,7 +182,7 @@ check_cbc_mac_cipher (void)
 	}
 
       if (verbose)
-	fprintf (stderr, "  checking CBC MAC for %s [%i]\n", 
+	fprintf (stderr, "    checking CBC MAC for %s [%i]\n", 
 		 gcry_cipher_algo_name (tv[i].algo),
 		 tv[i].algo);
       err = gcry_cipher_encrypt (hd,
@@ -214,7 +214,7 @@ check_cbc_mac_cipher (void)
       gcry_cipher_close (hd);
     }
   if (verbose)
-    fprintf (stderr, "Completed CBC MAC checks.\n");
+    fprintf (stderr, "  Completed CBC MAC checks.\n");
 }
 
 static void
@@ -258,7 +258,7 @@ check_aes128_cbc_cts_cipher (void)
   gcry_error_t err = 0;
 
   if (verbose)
-    fprintf (stderr, "Starting AES128 CBC CTS checks.\n");
+    fprintf (stderr, "  Starting AES128 CBC CTS checks.\n");
   err = gcry_cipher_open (&hd,
 			  GCRY_CIPHER_AES,
 			  GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_CBC_CTS);
@@ -289,7 +289,7 @@ check_aes128_cbc_cts_cipher (void)
 	}
 
       if (verbose)
-	fprintf (stderr, "  checking encryption for length %i\n", tv[i].inlen);
+	fprintf (stderr, "    checking encryption for length %i\n", tv[i].inlen);
       err = gcry_cipher_encrypt (hd, out, MAX_DATA_LEN,
 				 plaintext, tv[i].inlen);
       if (err)
@@ -312,7 +312,7 @@ check_aes128_cbc_cts_cipher (void)
 	  return;
 	}
       if (verbose)
-	fprintf (stderr, "  checking decryption for length %i\n", tv[i].inlen);
+	fprintf (stderr, "    checking decryption for length %i\n", tv[i].inlen);
       err = gcry_cipher_decrypt (hd, out, tv[i].inlen, NULL, 0);
       if (err)
 	{
@@ -328,7 +328,7 @@ check_aes128_cbc_cts_cipher (void)
 
   gcry_cipher_close (hd);
   if (verbose)
-    fprintf (stderr, "Completed AES128 CBC CTS checks.\n");
+    fprintf (stderr, "  Completed AES128 CBC CTS checks.\n");
 }
 
 static void
@@ -409,7 +409,7 @@ check_ctr_cipher (void)
   gcry_error_t err = 0;
 
   if (verbose)
-    fprintf (stderr, "Starting CTR cipher checks.\n");
+    fprintf (stderr, "  Starting CTR cipher checks.\n");
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
       err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
@@ -460,7 +460,7 @@ check_ctr_cipher (void)
 	}
 
       if (verbose)
-	fprintf (stderr, "  checking CTR mode for %s [%i]\n", 
+	fprintf (stderr, "    checking CTR mode for %s [%i]\n", 
 		 gcry_cipher_algo_name (tv[i].algo),
 		 tv[i].algo);
       for (j = 0; tv[i].data[j].inlen; j++)
@@ -574,7 +574,7 @@ check_ctr_cipher (void)
       gcry_cipher_close (hdd);
     }
   if (verbose)
-    fprintf (stderr, "Completed CTR cipher checks.\n");
+    fprintf (stderr, "  Completed CTR cipher checks.\n");
 }
 
 static void
@@ -654,8 +654,15 @@ check_cfb_cipher (void)
   int i, j, keylen, blklen;
   gcry_error_t err = 0;
 
+  if (verbose)
+    fprintf (stderr, "  Starting CFB checks.\n");
+    
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (verbose)
+        fprintf (stderr, "    checking CFB mode for %s [%i]\n", 
+		 gcry_cipher_algo_name (tv[i].algo),
+		 tv[i].algo);
       err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_CFB, 0);
       if (!err)
         err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_CFB, 0);
@@ -737,6 +744,8 @@ check_cfb_cipher (void)
       gcry_cipher_close (hde);
       gcry_cipher_close (hdd);
     }
+  if (verbose)
+    fprintf (stderr, "  Completed CFB checks.\n");
 }
 
 static void
@@ -816,8 +825,15 @@ check_ofb_cipher (void)
   int i, j, keylen, blklen;
   gcry_error_t err = 0;
 
+  if (verbose)
+    fprintf (stderr, "  Starting OFB checks.\n");
+    
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (verbose)
+        fprintf (stderr, "    checking OFB mode for %s [%i]\n", 
+		 gcry_cipher_algo_name (tv[i].algo),
+		 tv[i].algo);
       err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_OFB, 0);
       if (!err)
         err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_OFB, 0);
@@ -963,6 +979,8 @@ check_ofb_cipher (void)
       gcry_cipher_close (hde);
       gcry_cipher_close (hdd);
     }
+  if (verbose)
+    fprintf (stderr, "  Completed OFB checks.\n");
 }
 
 static void
@@ -1161,6 +1179,21 @@ check_ciphers (void)
 }
 
 
+static void
+check_cipher_modes(void)
+{  
+  if (verbose)
+    fprintf (stderr, "Starting Cipher Mode checks.\n");
+      
+  check_aes128_cbc_cts_cipher ();
+  check_cbc_mac_cipher ();
+  check_ctr_cipher ();
+  check_cfb_cipher ();
+  check_ofb_cipher ();
+      
+  if (verbose)
+    fprintf (stderr, "Completed Cipher Mode checks.\n");
+}
 
 static void
 check_one_md (int algo, const char *data, int len, const char *expect)
@@ -2253,11 +2286,7 @@ main (int argc, char **argv)
   if (!selftest_only)
     {
       check_ciphers ();
-      check_aes128_cbc_cts_cipher ();
-      check_cbc_mac_cipher ();
-      check_ctr_cipher ();
-      check_cfb_cipher ();
-      check_ofb_cipher ();
+      check_cipher_modes ();
       check_digests ();
       check_hmac ();
       check_pubkey ();

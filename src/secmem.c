@@ -143,7 +143,7 @@ mb_get_next (memblock_t *mb)
   return mb_next;
 }
 
-/* Return the block preceeding MB or NULL, if MB is the first
+/* Return the block preceding MB or NULL, if MB is the first
    block.  */
 static memblock_t *
 mb_get_prev (memblock_t *mb)
@@ -168,7 +168,7 @@ mb_get_prev (memblock_t *mb)
   return mb_prev;
 }
 
-/* If the preceeding block of MB and/or the following block of MB
+/* If the preceding block of MB and/or the following block of MB
    exist and are not active, merge them to form a bigger block.  */
 static void
 mb_merge (memblock_t *mb)

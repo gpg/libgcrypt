@@ -1,3 +1,7 @@
+2010-04-12  Brad Hards  <bradh@frogmouth.net>  (wk)
+
+	Spelling fixes.
+
 2010-02-22  Aurelien Jarno <aurel32@debian.org>  (wk)
 
 	* longlong.h (umul_ppmm) <mips> [__GNUC__ >= 4.4]: Patch according

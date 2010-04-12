@@ -239,7 +239,7 @@ struct mpi_point_s
   gcry_mpi_t z;
 };
 
-/* Context used with elliptic curve fucntions.  */
+/* Context used with elliptic curve functions.  */
 struct mpi_ec_ctx_s;
 typedef struct mpi_ec_ctx_s *mpi_ec_t;
 

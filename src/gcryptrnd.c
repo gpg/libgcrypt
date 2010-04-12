@@ -81,7 +81,7 @@ static void serve (int listen_fd);
 
 
 /* Error printing utility.  PRIORITY should be one of syslog's
-   priority levels.  This fucntions prints to the stderro or syslog
+   priority levels.  This functions prints to the stderr or syslog
    depending on whether we are already daemonized. */
 static void
 logit (int priority, const char *format, ...)
@@ -536,7 +536,7 @@ connection_loop (int fd)
           break;
         }
       if (rc)
-        break; /* A write error occured while sending the response. */
+        break; /* A write error occurred while sending the response. */
     }
 }
 

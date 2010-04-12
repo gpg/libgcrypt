@@ -296,7 +296,7 @@ finalize (hmac256_context_t hd)
 
 
 /* Create a new context.  On error NULL is returned and errno is set
-   appropriately.  If KEY is given the fucntion computes HMAC using
+   appropriately.  If KEY is given the function computes HMAC using
    this key; with KEY given as NULL, a plain SHA-256 digest is
    computed.  */
 hmac256_context_t

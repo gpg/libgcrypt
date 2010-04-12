@@ -1188,9 +1188,13 @@ AC_OUTPUT
 echo "
         Libgcrypt v${VERSION} has been configured as follows:
         
-        Platform:  $PRINTABLE_OS_NAME ($host)
+        Platform:                  $PRINTABLE_OS_NAME ($host)
+        Enabled cipher algorithms: $enabled_ciphers
+        Enabled digest algorithms: $enabled_digests
+        Enabled pubkey algorithms: $enabled_pubkey_ciphers
+        Random number generator:   $random
+        Using linux capabilities:  $use_capabilities
 "
-
 
 if test "$print_egd_notice" = "yes"; then
 cat <<G10EOF

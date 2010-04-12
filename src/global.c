@@ -47,7 +47,7 @@
 static unsigned int debug_flags;
 
 /* gcry_control (GCRYCTL_SET_FIPS_MODE), sets this flag so that the
-   intialization code swicthed fips mode on.  */
+   initialization code switched fips mode on.  */
 static int force_fips_mode;
 
 /* Controlled by global_init().  */
@@ -159,7 +159,7 @@ _gcry_global_is_operational (void)
 /* Version number parsing.  */
 
 /* This function parses the first portion of the version number S and
-   stores it in *NUMBER.  On sucess, this function returns a pointer
+   stores it in *NUMBER.  On success, this function returns a pointer
    into S starting with the first character, which is not part of the
    initial number portion; on failure, NULL is returned.  */
 static const char*
@@ -474,7 +474,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       
       /* This command dumps information pertaining to the
          configuration of libgcrypt to the given stream.  It may be
-         used before the intialization has been finished but not
+         used before the initialization has been finished but not
          before a gcry_version_check. */
     case GCRYCTL_PRINT_CONFIG:
       {

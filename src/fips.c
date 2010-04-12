@@ -55,7 +55,7 @@ enum module_states
 
 
 /* Flag telling whether we are in fips mode.  It uses inverse logic so
-   that fips mode is the default unless changed by the intialization
+   that fips mode is the default unless changed by the initialization
    code. To check whether fips mode is enabled, use the function
    fips_mode()! */
 static int no_fips_mode_required;
@@ -384,7 +384,7 @@ _gcry_fips_is_operational (void)
 }
 
 
-/* This is test on wether the library is in the operational state.  In
+/* This is test on whether the library is in the operational state.  In
    contrast to _gcry_fips_is_operational this function won't do a
    state transition on the fly.  */
 int

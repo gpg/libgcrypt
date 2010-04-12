@@ -1266,7 +1266,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
     }
 
   /* Check that all parameters are known and normalize all MPIs (that
-     should not be required but we use an internal fucntion later and
+     should not be required but we use an internal function later and
      thus we better make 100% sure that they are normalized). */
   for (idx = 0; idx < 6; idx++)
     if (!values[idx])
