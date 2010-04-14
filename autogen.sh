@@ -36,6 +36,24 @@ if test x"$1" = x"--force"; then
   shift
 fi
 
+# Begin list of optional variables sourced from ~/.gnupg-autogen.rc
+w32_toolprefixes=
+w32_extraoptions=
+w32ce_toolprefixes=
+w32ce_extraoptions=
+amd64_toolprefixes=
+# End list of optional variables sourced from ~/.gnupg-autogen.rc
+# What follows are variables which are sourced but default to 
+# environment variables or lacking them hardcoded values.
+#w32root=
+#w32ce_root=
+#amd64root=
+
+if [ -f "$HOME/.gnupg-autogen.rc" ]; then
+    echo "sourcing extra definitions from $HOME/.gnupg-autogen.rc"
+    . "$HOME/.gnupg-autogen.rc"
+fi
+
 # Convenience option to use certain configure options for some hosts.
 myhost="" 
 myhostsub=""
@@ -50,8 +68,12 @@ case "$1" in
     --build-amd64)
         myhost="amd64"
         ;;
+    --build*)
+        echo "**Error**: invalid build option $1" >&2
+        exit 1
+        ;;
      *)
-     ;;
+        ;;
 esac
 
 
@@ -69,6 +91,7 @@ if [ "$myhost" = "w32" ]; then
 
     case $myhostsub in
         ce)
+          w32root="$w32ce_root"
           [ -z "$w32root" ] && w32root="$HOME/w32ce_root"
           toolprefixes="arm-mingw32ce"
           ;;
