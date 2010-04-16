@@ -54,9 +54,14 @@ struct gcry_sexp
 #define TOKEN_SPECIALS  "-./_:*+="
 
 static gcry_error_t
+vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
+	     const char *buffer, size_t length, int argflag,
+	     void **arg_list, va_list arg_ptr);
+
+static gcry_error_t
 sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	    const char *buffer, size_t length, int argflag,
-	    va_list arg_ptr, void **arg_list);
+	    void **arg_list, ...);
 
 /* Return true if P points to a byte containing a whitespace according
    to the S-expressions definition. */
@@ -210,7 +215,6 @@ gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
 {
   gcry_error_t errcode;
   gcry_sexp_t se;
-  volatile va_list dummy_arg_ptr;
 
   if (!retsexp)
     return gcry_error (GPG_ERR_INV_ARG);
@@ -230,7 +234,7 @@ gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
       length = strlen ((char *)buffer);
     }
 
-  errcode = sexp_sscan (&se, NULL, buffer, length, 0, dummy_arg_ptr, NULL);
+  errcode = sexp_sscan (&se, NULL, buffer, length, 0, NULL);
   if (errcode)
     return errcode;
 
@@ -973,9 +977,9 @@ unquote_string (const char *string, size_t length, unsigned char *buf)
  * regardless whether it is needed or not.
  */
 static gcry_error_t
-sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
-	    const char *buffer, size_t length, int argflag,
-	    va_list arg_ptr, void **arg_list)
+vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
+	     const char *buffer, size_t length, int argflag,
+	     void **arg_list, va_list arg_ptr)
 {
   gcry_err_code_t err = 0;
   static const char tokenchars[] =
@@ -1507,6 +1511,24 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 #undef STORE_LEN
 }
 
+
+static gcry_error_t
+sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
+	    const char *buffer, size_t length, int argflag,
+	    void **arg_list, ...)
+{
+  gcry_error_t rc;
+  va_list arg_ptr;
+  
+  va_start (arg_ptr, arg_list);
+  rc = vsexp_sscan (retsexp, erroff, buffer, length, argflag,
+		    arg_list, arg_ptr);
+  va_end (arg_ptr);
+  
+  return rc;
+}
+
+
 gcry_error_t
 gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff, const char *format, ...)
 {
@@ -1514,8 +1536,8 @@ gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff, const char *format, ...)
   va_list arg_ptr;
   
   va_start (arg_ptr, format);
-  rc = sexp_sscan (retsexp, erroff, format, strlen(format), 1,
-		   arg_ptr, NULL);
+  rc = vsexp_sscan (retsexp, erroff, format, strlen(format), 1,
+		    NULL, arg_ptr);
   va_end (arg_ptr);
   
   return rc;
@@ -1526,9 +1548,10 @@ gcry_error_t
 _gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff, 
                    const char *format, va_list arg_ptr)
 {
-  return sexp_sscan (retsexp, erroff, format, strlen(format), 1,
-                     arg_ptr, NULL);
+  return vsexp_sscan (retsexp, erroff, format, strlen(format), 1,
+		      NULL, arg_ptr);
 }
+
 
 /* Like gcry_sexp_build, but uses an array instead of variable
    function arguments.  */
@@ -1536,32 +1559,15 @@ gcry_error_t
 gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
 		       const char *format, void **arg_list)
 {
-  /* We don't need the va_list because it is controlled by the
-     following flag, however we have to pass it but can't initialize
-     it as there is no portable way to do so.  volatile is needed to
-     suppress the compiler warning */
-  volatile va_list dummy_arg_ptr;
-  
-  gcry_error_t rc;
-
-  rc = sexp_sscan (retsexp, erroff, format, strlen(format), 1,
-		   dummy_arg_ptr, arg_list);
-
-  return rc;
+  return sexp_sscan (retsexp, erroff, format, strlen(format), 1, arg_list);
 }
+
 
 gcry_error_t
 gcry_sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		 const char *buffer, size_t length)
 {
-  /* We don't need the va_list because it is controlled by the
-     following flag, however we have to pass it but can't initialize
-     it as there is no portable way to do so.  volatile is needed to
-     suppress the compiler warning */
-  volatile va_list dummy_arg_ptr;
-
-  return sexp_sscan (retsexp, erroff, buffer, length, 0,
-		     dummy_arg_ptr, NULL);
+  return sexp_sscan (retsexp, erroff, buffer, length, 0, NULL);
 }
 
 
