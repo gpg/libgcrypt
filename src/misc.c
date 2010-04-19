@@ -63,7 +63,9 @@ gcry_set_fatalerror_handler( void (*fnc)(void*,int, const char*), void *value)
 static void
 write2stderr( const char *s )
 {
-    write( 2, s, strlen(s) );
+  /* Dummy variable to silence gcc warning.  */
+  int res = write( 2, s, strlen(s) );
+  (void) res;
 }
 
 /*

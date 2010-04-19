@@ -1,3 +1,7 @@
+2010-04-19  Marcus Brinkmann  <marcus@g10code.de>
+
+	* misc.c (write2stderr): Dummy variable to silence gcc warning.
+
 2010-04-16  Marcus Brinkmann  <marcus@g10code.de>
 
 	* sexp.c: (sexp_sscan): Make it variable length, and rename the old version to ...
