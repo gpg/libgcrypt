@@ -1,3 +1,7 @@
+2010-04-19  Marcus Brinkmann  <marcus@g10code.de>
+
+	* configure.ac: Check for -fno-strict-aliasing.
+
 2010-04-12  Brad Hards  <bradh@frogmouth.net>  (wk)
 
 	* configure.ac: Print more verbose info at the end.
