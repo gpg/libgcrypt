@@ -34,25 +34,31 @@
    some extra random.  We do this, despite that it is a questionable
    suggestion as the OS as better means of collecting entropy than an
    application.  */
+static size_t filler_used;
+static size_t filler_length;
+static unsigned char *filler_buffer;
+
+static void
+filler (const void *data, size_t datalen, enum random_origins dummy)
+{
+  (void)dummy;
+  if (filler_used + datalen > filler_length)
+    datalen = filler_length - filler_used;
+  memcpy (filler_buffer + filler_used, data, datalen);
+  filler_used += datalen;
+}
+
+
 static void
 fillup_buffer (unsigned char *buffer, size_t length)
 {
-  size_t used = 0;
+  filler_used = 0;
+  filler_length = length;
+  filler_buffer = buffer;
 
-  /* This code uses gcc anyway, thus we can use a nested function.  */
-  void filler (const void *data, size_t datalen, enum random_origins dummy)
-  {
-    (void)dummy;
-    if (used + datalen > length)
-      datalen = length - used;
-    memcpy (buffer+used, data, datalen);
-    used += datalen;
-  }
-
-  while (used < length)
+  while (filler_used < length)
     _gcry_rndw32ce_gather_random_fast (filler, 0);
 }
-
 
 
 int
