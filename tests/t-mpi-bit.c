@@ -108,13 +108,20 @@ mpi2bitstr_nlz (gcry_mpi_t a)
 {
   char *p, *buf;
   size_t length = gcry_mpi_get_nbits (a);
-  
-  buf = p = xmalloc (length + 1);
-  while (length-- > 1)
-    *p++ = gcry_mpi_test_bit (a, length) ? '1':'0';
-  *p++ = gcry_mpi_test_bit (a, 0) ? '1':'0';
-  *p = 0;
 
+  if (!length)
+    {
+      buf = p = xmalloc (2);
+      *p++ = '0';
+    }
+  else
+    {
+      buf = p = xmalloc (length + 1);
+      while (length-- > 1)
+        *p++ = gcry_mpi_test_bit (a, length) ? '1':'0';
+      *p++ = gcry_mpi_test_bit (a, 0) ? '1':'0';
+    }
+  *p = 0;
   return buf;
 }
 
@@ -190,7 +197,7 @@ one_bit_only (int highbit)
   gcry_mpi_release (a);
 }
 
-/* Check that the shifting actually works for an amount larger than
+/* Check that right shifting actually works for an amount larger than
    the number of bits per limb. */
 static void
 test_rshift (int pass)
@@ -249,7 +256,7 @@ test_rshift (int pass)
   gcry_mpi_release (a);
 }
 
-/* Check that the left shifting.  */
+/* Check that left shifting works correctly.  */
 static void
 test_lshift (int pass)
 {

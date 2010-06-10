@@ -1,3 +1,7 @@
+2010-06-10  Werner Koch  <wk@g10code.com>
+
+	* t-mpi-bit.c (mpi2bitstr_nlz): Handle case for LENGTH==0.
+
 2009-01-22  Werner Koch  <wk@g10code.com>
 
 	* cavs_tests.sh: Pass option -D to driver if required.
