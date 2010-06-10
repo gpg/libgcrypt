@@ -2736,10 +2736,10 @@ are allowed.  When specifying Q all values of N in the range 512 to
 15680 are valid as long as they are multiples of 8.
 
 @item transient-key
-This is only meaningful for RSA and DSA keys.  This is a flag with no
-value.  If given the RSA or DSA key is created using a faster and a
-somewhat less secure random number generator.  This flag may be used
-for keys which are only used for a short time and do not require full
+This is only meaningful for RSA, DSA and ECDSA keys.  This is a flag
+with no value.  If given the key is created using a faster and a
+somewhat less secure random number generator.  This flag may be used for
+keys which are only used for a short time and do not require full
 cryptographic strength.
 
 @item domain

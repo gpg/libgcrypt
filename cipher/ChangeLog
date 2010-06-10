@@ -1,3 +1,9 @@
+2010-06-10  Jeff Johnson  <n3npq@mac.com>  (wk)
+
+	* ecc.c (ecc_generate_ext): Parse transient-key flag.
+	(generate_key): Add arg TRANSIENT_KEY and use it to set the random
+	level.
+
 2010-04-12  Brad Hards  <bradh@frogmouth.net>  (wk)
 
 	Spelling fixes.
