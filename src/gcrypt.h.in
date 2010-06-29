@@ -33,13 +33,14 @@
 #if defined _WIN32 || defined __WIN32__
 # include <winsock2.h>
 # include <ws2tcpip.h>
+# include <time.h>
+  typedef long ssize_t;
 #else
 # include <sys/socket.h>
+# include <sys/time.h>
 #endif /*!_WIN32*/
 
 @FALLBACK_SOCKLEN_T@
-
-#include <sys/time.h>
 
 /* This is required for error code compatibility. */
 #define _GCRY_ERR_SOURCE_DEFAULT GPG_ERR_SOURCE_GCRYPT

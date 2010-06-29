@@ -1838,7 +1838,7 @@ gcry_sexp_sprint (const gcry_sexp_t list, int mode,
 }
 
 
-/* Scan a cannocial encoded buffer with implicit length values and
+/* Scan a canonical encoded buffer with implicit length values and
    return the actual length this S-expression uses.  For a valid S-Exp
    it should never return 0.  If LENGTH is not zero, the maximum
    length to scan is given - this can be used for syntax checks of
