@@ -41,9 +41,11 @@ AC_INIT([libgcrypt],
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-# NOTE: As an exception the the LT versions are already set for 1.5.0!
-LIBGCRYPT_LT_CURRENT=17
-LIBGCRYPT_LT_AGE=6
+
+# NOTE: As an exception during development of this branch the LT
+#       versions are already set for 1.5.0!
+LIBGCRYPT_LT_CURRENT=18
+LIBGCRYPT_LT_AGE=7
 LIBGCRYPT_LT_REVISION=0
 
 

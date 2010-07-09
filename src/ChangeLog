@@ -1,3 +1,8 @@
+2010-07-09  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in [!__GNUC__ && W32]: Typedef ssize_t and pid_t to
+	help building with MSVC.
+
 2010-06-24  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in [W32]: Include time.h and not sys/time.h.
@@ -8,7 +13,8 @@
 
 2010-04-16  Marcus Brinkmann  <marcus@g10code.de>
 
-	* sexp.c: (sexp_sscan): Make it variable length, and rename the old version to ...
+	* sexp.c: (sexp_sscan): Make it variable length, and rename the
+	old version to ...
 	(vsexp_sscan): ... this new function.  Also swap last two arguments.
 	(gcry_sexp_create): Remove dummy va_list.
 	(gcry_sexp_build): Use vsexp_sscan instead of sexp_sscan.
