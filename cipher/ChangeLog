@@ -1,3 +1,26 @@
+2010-07-13  Werner Koch  <wk@g10code.com>
+
+	* cipher.c (do_aeswrap_encrypt, do_aeswrap_decrypt): New.  Take
+	from current SVN trunk.
+	(gcry_cipher_open, gcry_cipher_encrypt, gcry_cipher_decrypt): Hook
+	them in.
+	(struct gcry_cipher_handle): Add field MARKS.
+	(cipher_setkey, cipher_setiv): Set MARKS.
+	(cipher_reset): Clear MARKS.
+
+2010-07-09  Werner Koch  <wk@g10code.com>
+
+	* tiger.c (asn): Unfetter the old TIGER from an OID.
+	(TIGER_CONTEXT): Add field VARIANT.
+	(tiger_init): Factor code out to ...
+	(do_init): ... new.
+	(tiger1_init, tiger2_init): New.
+	(_gcry_digest_spec_tiger1, _gcry_digest_spec_tiger2): New.
+	* md.c (digest_table): Add TIGER1 and TIGER2 variants.
+
+	* md.c (md_read): Fix incomplete check for NULL.  Reported by
+	Fabian Kail.
+
 2009-12-11  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (o_flag_munging): New.

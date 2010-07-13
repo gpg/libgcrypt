@@ -87,6 +87,10 @@ static struct digest_table_entry
 #if USE_TIGER
     { &_gcry_digest_spec_tiger,
       &dummy_extra_spec,                 GCRY_MD_TIGER },
+    { &_gcry_digest_spec_tiger1,
+      &dummy_extra_spec,                 GCRY_MD_TIGER1 },
+    { &_gcry_digest_spec_tiger2,
+      &dummy_extra_spec,                 GCRY_MD_TIGER2 },
 #endif
 #if USE_WHIRLPOOL
     { &_gcry_digest_spec_whirlpool,
@@ -948,10 +952,13 @@ md_read( gcry_md_hd_t a, int algo )
 
   if (! algo)
     {
-      /* return the first algorithm */
-      if (r && r->next)
-	log_debug ("more than one algorithm in md_read(0)\n");
-      return r->digest->read( &r->context.c );
+      /* Return the first algorithm.  */
+      if (r)
+        {
+          if (r->next)
+            log_debug ("more than one algorithm in md_read(0)\n");
+          return r->digest->read( &r->context.c );
+        }
     }
   else
     {

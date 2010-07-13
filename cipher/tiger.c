@@ -1,5 +1,5 @@
 /* tiger.c  -  The TIGER hash function
- *	Copyright (C) 1998, 2001, 2002, 2003 Free Software Foundation, Inc.
+ * Copyright (C) 1998, 2001, 2002, 2003, 2010 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -14,9 +14,10 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
+
+/* See http://www.cs.technion.ac.il/~biham/Reports/Tiger/  */
 
 #include <config.h>
 #include <stdio.h>
@@ -37,6 +38,7 @@ typedef struct {
     byte buf[64];
     int  count;
     u32  nblocks;
+    int  variant;  /* 0 = old code, 1 = fixed code, 2 - TIGER2.  */
 } TIGER_CONTEXT;
 
 
@@ -588,7 +590,7 @@ static u64 sbox4[256] = {
 };
 
 static void
-tiger_init( void *context )
+do_init (void *context, int variant)
 {
   TIGER_CONTEXT *hd = context;
 
@@ -597,6 +599,25 @@ tiger_init( void *context )
   hd->c = 0xf096a5b4c3b2e187LL;
   hd->nblocks = 0;
   hd->count = 0;
+  hd->variant = variant;
+}
+
+static void
+tiger_init( void *context )
+{
+  do_init (context, 0);
+}
+
+static void
+tiger1_init( void *context )
+{
+  do_init (context, 1);
+}
+
+static void
+tiger2_init( void *context )
+{
+  do_init (context, 2);
 }
 
 static void
@@ -763,6 +784,7 @@ tiger_final( void *context )
   TIGER_CONTEXT *hd = context;
   u32 t, msb, lsb;
   byte *p;
+  byte pad = hd->variant == 2? 0x80 : 0x01;
 
   tiger_write(hd, NULL, 0); /* flush */;
 
@@ -782,13 +804,13 @@ tiger_final( void *context )
 
   if( hd->count < 56 )  /* enough room */
     {
-      hd->buf[hd->count++] = 0x01; /* pad */
+      hd->buf[hd->count++] = pad;
       while( hd->count < 56 )
         hd->buf[hd->count++] = 0;  /* pad */
     }
   else  /* need one extra block */
     {
-      hd->buf[hd->count++] = 0x01; /* pad character */
+      hd->buf[hd->count++] = pad;
       while( hd->count < 64 )
         hd->buf[hd->count++] = 0;
       tiger_write(hd, NULL, 0);  /* flush */;
@@ -815,10 +837,24 @@ tiger_final( void *context )
 	          *p++ = hd->a >> 24; *p++ = hd->a >> 16; \
 	          *p++ = hd->a >>  8; *p++ = hd->a;       } while(0)
 #endif
-  X(a);
-  X(b);
-  X(c);
+#define Y(a) do { *p++ = hd->a      ; *p++ = hd->a >> 8;  \
+	          *p++ = hd->a >> 16; *p++ = hd->a >> 24; \
+	          *p++ = hd->a >> 32; *p++ = hd->a >> 40; \
+	          *p++ = hd->a >> 48; *p++ = hd->a >> 56; } while(0)
+  if (hd->variant == 0)
+    {
+      X(a);
+      X(b);
+      X(c);
+    }
+  else
+    {
+      Y(a);
+      Y(b);
+      Y(c);
+    }
 #undef X
+#undef Y
 }
 
 static byte *
@@ -829,23 +865,49 @@ tiger_read( void *context )
   return hd->buf;
 }
 
-static byte asn[19] = /* Object ID is 1.3.6.1.4.1.11591.12.2 */
+
+/* This is the old TIGER variant based on the unfixed reference
+   implementation.  It was used in GnuPG up to 1.3.2.  We don't provide
+   an OID anymore because that would not be correct.  */
+gcry_md_spec_t _gcry_digest_spec_tiger =
+  {
+    "TIGER192", NULL, 0, NULL, 24,
+    tiger_init, tiger_write, tiger_final, tiger_read,
+    sizeof (TIGER_CONTEXT)
+  };
+
+
+
+/* This is the fixed TIGER implementation.  */
+static byte asn1[19] = /* Object ID is 1.3.6.1.4.1.11591.12.2 */
   { 0x30, 0x29, 0x30, 0x0d, 0x06, 0x09, 0x2b, 0x06,
     0x01, 0x04, 0x01, 0xda, 0x47, 0x0c, 0x02,
     0x05, 0x00, 0x04, 0x18 };
 
-static gcry_md_oid_spec_t oid_spec_tiger[] =
+static gcry_md_oid_spec_t oid_spec_tiger1[] =
   {
     /* GNU.digestAlgorithm TIGER */
     { "1.3.6.1.4.1.11591.12.2" },
     { NULL }
   };
 
-gcry_md_spec_t _gcry_digest_spec_tiger =
+gcry_md_spec_t _gcry_digest_spec_tiger1 =
   {
-    "TIGER192", asn, DIM (asn), oid_spec_tiger, 24,
-    tiger_init, tiger_write, tiger_final, tiger_read,
+    "TIGER", asn1, DIM (asn1), oid_spec_tiger1, 24,
+    tiger1_init, tiger_write, tiger_final, tiger_read,
     sizeof (TIGER_CONTEXT)
   };
+
+
+
+/* This is TIGER2 which uses a changed padding algorithm.  */
+gcry_md_spec_t _gcry_digest_spec_tiger2 =
+  {
+    "TIGER2", NULL, 0, NULL, 24,
+    tiger2_init, tiger_write, tiger_final, tiger_read,
+    sizeof (TIGER_CONTEXT)
+  };
+
+
 
 #endif /* HAVE_U64_TYPEDEF */

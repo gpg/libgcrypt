@@ -1,3 +1,15 @@
+2010-07-13  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in (GCRY_CIPHER_MODE_AESWRAP): New.
+
+2010-07-09  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in (GCRY_MD_TIGER1, GCRY_MD_TIGER2): New.
+
+	* gcrypt.h.in [!__GNUC__ && W32]: Typedef ssize_t and pid_t to
+	help building with MSVC.
+	* gcrypt.h.in [W32]: Include time.h and not sys/time.h.
+
 2009-11-29  Werner Koch  <wk@g10code.com>
 
 	* hwfeatures.c (detect_ia32_gnuc): Replace "=r" by "+r" so that

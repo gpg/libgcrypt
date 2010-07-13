@@ -1,3 +1,12 @@
+2010-07-13  Werner Koch  <wk@g10code.com>
+
+	* aeswrap.c: New.  Take from trunk.
+
+2010-07-09  Werner Koch  <wk@g10code.com>
+
+	* basic.c (check_digests): Add tests for TIGER1 and TIGER2 from
+	the NESSIE project.
+
 2010-06-10  Werner Koch  <wk@g10code.com>
 
 	* t-mpi-bit.c (mpi2bitstr_nlz): Handle case for LENGTH==0.

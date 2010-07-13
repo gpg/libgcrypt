@@ -1,6 +1,6 @@
 /* cipher.c  -	cipher dispatcher
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
- *               2005, 2007, 2008 Free Software Foundation, Inc.
+ *               2005, 2007, 2008, 2010 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -191,6 +191,11 @@ struct gcry_cipher_handle
 
   int mode;
   unsigned int flags;
+
+  struct {
+    unsigned int key:1; /* Set to 1 if a key has been set.  */
+    unsigned int iv:1;  /* Set to 1 if a IV has been set.  */
+  } marks;
 
   /* The initialization vector.  To help code optimization we make
      sure that it is aligned on an unsigned long and u32 boundary.  */
@@ -724,6 +729,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
       case GCRY_CIPHER_MODE_CFB:
       case GCRY_CIPHER_MODE_OFB:
       case GCRY_CIPHER_MODE_CTR:
+      case GCRY_CIPHER_MODE_AESWRAP:
 	if ((cipher->encrypt == dummy_encrypt_block)
 	    || (cipher->decrypt == dummy_decrypt_block))
 	  err = GPG_ERR_INV_CIPHER_MODE;
@@ -882,7 +888,10 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, unsigned int keylen)
       memcpy ((void *) ((char *) &c->context.c + c->cipher->contextsize),
               (void *) &c->context.c,
               c->cipher->contextsize);
+      c->marks.key = 1;
     }
+  else
+    c->marks.key = 0;
 
   return gcry_error (ret);
 }
@@ -905,7 +914,11 @@ cipher_setiv( gcry_cipher_hd_t c, const byte *iv, unsigned ivlen )
       if (ivlen > c->cipher->blocksize)
         ivlen = c->cipher->blocksize;
       memcpy (c->u_iv.iv, iv, ivlen);
+      c->marks.iv = 1;
     }
+  else
+    c->marks.iv = 0;
+
   c->unused = 0;
 }
 
@@ -918,6 +931,7 @@ cipher_reset (gcry_cipher_hd_t c)
   memcpy (&c->context.c,
 	  (char *) &c->context.c + c->cipher->contextsize,
 	  c->cipher->contextsize);
+  memset (&c->marks, 0, sizeof c->marks);
   memset (c->u_iv.iv, 0, c->cipher->blocksize);
   memset (c->lastiv, 0, c->cipher->blocksize);
   memset (c->ctr, 0, c->cipher->blocksize);
@@ -1391,6 +1405,171 @@ do_ctr_decrypt( gcry_cipher_hd_t c, byte *outbuf, const byte *inbuf,
 }
 
 
+/* Perform the AES-Wrap algorithm as specified by RFC3394.  We
+   implement this as a mode usable with any cipher algorithm of
+   blocksize 128.  */
+static gcry_err_code_t
+do_aeswrap_encrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
+                    const byte *inbuf, unsigned int inbuflen )
+{
+  int j, x;
+  unsigned int n, i;
+  unsigned char *r, *a, *b;
+  unsigned char t[8];
+
+#if MAX_BLOCKSIZE < 8
+#error Invalid block size
+#endif
+  /* We require a cipher with a 128 bit block length.  */
+  if (c->cipher->blocksize != 16)
+    return GPG_ERR_INV_LENGTH;  
+  
+  /* The output buffer must be able to hold the input data plus one
+     additional block.  */
+  if (outbuflen < inbuflen + 8)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+  /* Input data must be multiple of 64 bits.  */
+  if (inbuflen % 8)
+    return GPG_ERR_INV_ARG;   
+
+  n = inbuflen / 8;
+
+  /* We need at least two 64 bit blocks.  */
+  if (n < 2)
+    return GPG_ERR_INV_ARG;
+
+  r = outbuf; 
+  a = outbuf;  /* We store A directly in OUTBUF.  */
+  b = c->ctr;  /* B is also used to concatenate stuff.  */
+
+  /* If an IV has been set we use that IV as the Alternative Initial
+     Value; if it has not been set we use the standard value.  */
+  if (c->marks.iv)
+    memcpy (a, c->u_iv.iv, 8);
+  else
+    memset (a, 0xa6, 8);
+
+  /* Copy the inbuf to the outbuf. */
+  memmove (r+8, inbuf, inbuflen);
+
+  memset (t, 0, sizeof t); /* t := 0.  */
+
+  for (j = 0; j <= 5; j++)
+    {
+      for (i = 1; i <= n; i++)
+        {
+          /* B := AES_k( A | R[i] ) */
+          memcpy (b, a, 8);
+          memcpy (b+8, r+i*8, 8);
+          c->cipher->encrypt (&c->context.c, b, b);
+          /* t := t + 1  */
+	  for (x = 7; x >= 0; x--)
+	    {
+	      t[x]++;
+	      if (t[x])
+		break;
+	    }
+          /* A := MSB_64(B) ^ t */
+          for (x=0; x < 8; x++)
+            a[x] = b[x] ^ t[x];
+          /* R[i] := LSB_64(B) */
+          memcpy (r+i*8, b+8, 8);
+        }
+   }
+  
+  return 0;
+}
+
+/* Perform the AES-Unwrap algorithm as specified by RFC3394.  We
+   implement this as a mode usable with any cipher algorithm of
+   blocksize 128.  */
+static gcry_err_code_t
+do_aeswrap_decrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
+                    const byte *inbuf, unsigned int inbuflen)
+{
+  int j, x;
+  unsigned int n, i;
+  unsigned char *r, *a, *b;
+  unsigned char t[8];
+
+#if MAX_BLOCKSIZE < 8
+#error Invalid block size
+#endif
+  /* We require a cipher with a 128 bit block length.  */
+  if (c->cipher->blocksize != 16)
+    return GPG_ERR_INV_LENGTH;  
+  
+  /* The output buffer must be able to hold the input data minus one
+     additional block.  Fixme: The caller has more restrictive checks
+     - we may want to fix them for this mode.  */
+  if (outbuflen + 8  < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+  /* Input data must be multiple of 64 bits.  */
+  if (inbuflen % 8)
+    return GPG_ERR_INV_ARG;   
+
+  n = inbuflen / 8;
+
+  /* We need at least three 64 bit blocks.  */
+  if (n < 3)
+    return GPG_ERR_INV_ARG;
+
+  r = outbuf; 
+  a = c->lastiv;  /* We use c->LASTIV as buffer for A.  */
+  b = c->ctr;     /* B is also used to concatenate stuff.  */
+
+  /* Copy the inbuf to the outbuf and save A. */
+  memcpy (a, inbuf, 8);
+  memmove (r, inbuf+8, inbuflen-8);
+  n--; /* Reduce to actual number of data blocks.  */
+
+  /* t := 6 * n  */
+  i = n * 6;  /* The range is valid because: n = inbuflen / 8 - 1.  */
+  for (x=0; x < 8 && x < sizeof (i); x++)
+    t[7-x] = i >> (8*x);
+  for (; x < 8; x++)
+    t[7-x] = 0;
+
+  for (j = 5; j >= 0; j--)
+    {
+      for (i = n; i >= 1; i--)
+        {
+          /* B := AES_k^1( (A ^ t)| R[i] ) */
+          for (x = 0; x < 8; x++)
+            b[x] = a[x] ^ t[x];
+          memcpy (b+8, r+(i-1)*8, 8);
+          c->cipher->decrypt (&c->context.c, b, b);
+          /* t := t - 1  */
+	  for (x = 7; x >= 0; x--)
+	    {
+	      t[x]--;
+	      if (t[x] != 0xff)
+		break;
+	    }
+          /* A := MSB_64(B) */
+          memcpy (a, b, 8);
+          /* R[i] := LSB_64(B) */
+          memcpy (r+(i-1)*8, b+8, 8);
+        }
+   }
+
+  /* If an IV has been set we compare against this Alternative Initial
+     Value; if it has not been set we compare against the standard IV.  */
+  if (c->marks.iv)
+    j = memcmp (a, c->u_iv.iv, 8);
+  else
+    {
+      for (j=0, x=0; x < 8; x++)
+        if (a[x] != 0xa6)
+          {
+            j=1;
+            break;
+          }
+    }
+  return j? GPG_ERR_CHECKSUM : 0;
+}
+
+
 /****************
  * Encrypt INBUF to OUTBUF with the mode selected at open.
  * inbuf and outbuf may overlap or be the same.
@@ -1461,7 +1640,18 @@ gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
 {
   gcry_err_code_t err;
 
-  if (!in)
+  if (h->mode == GCRY_CIPHER_MODE_AESWRAP)
+    {
+      /* Hack to implement AESWRAP without touching the other modes.
+         The actual function has been taken from the current
+         development version which does all error checking in each
+         mode function.  */
+      if (!in)
+        err = do_aeswrap_encrypt (h, out, outsize, out, outsize);
+      else
+        err = do_aeswrap_encrypt (h, out, outsize, in, inlen);
+    }
+  else if (!in)
     {
       /* Caller requested in-place encryption. */
       /* Actually cipher_encrypt() does not need to know about it, but
@@ -1556,7 +1746,18 @@ gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
 {
   gcry_err_code_t err = 0;
 
-  if (!in)
+  if (h->mode == GCRY_CIPHER_MODE_AESWRAP)
+    {
+      /* Hack to implement AESWRAP without touching the other modes.
+         The actual function has been taken from the current
+         development version which does all error checking in each
+         mode function.  */
+      if (!in)
+        err = do_aeswrap_decrypt (h, out, outsize, out, outsize);
+      else
+        err = do_aeswrap_decrypt (h, out, outsize, in, inlen);
+    }
+  else if (!in)
     {
       /* Caller requested in-place encryption. */
       /* Actually cipher_encrypt() does not need to know about it, but
