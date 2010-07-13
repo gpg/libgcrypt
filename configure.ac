@@ -39,7 +39,7 @@ AC_INIT([libgcrypt],
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
 LIBGCRYPT_LT_CURRENT=17
-LIBGCRYPT_LT_AGE=7
+LIBGCRYPT_LT_AGE=6
 LIBGCRYPT_LT_REVISION=0
 
 
