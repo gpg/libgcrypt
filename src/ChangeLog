@@ -1,3 +1,7 @@
+2010-08-16  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in [!WIN32]: Add INSERT_SYS_SELECT_H autoconf substitute.
+
 2010-07-09  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in [!__GNUC__ && W32]: Typedef ssize_t and pid_t to

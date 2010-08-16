@@ -607,6 +607,12 @@ AC_SEARCH_LIBS(setsockopt, [nsl])
 
 AC_HEADER_STDC
 AC_CHECK_HEADERS(unistd.h sys/select.h sys/msg.h)
+INSERT_SYS_SELECT_H=
+if test x"$ac_cv_header_sys_select_h" = xyes; then
+  INSERT_SYS_SELECT_H=" include <sys/select.h>"
+fi
+AC_SUBST(INSERT_SYS_SELECT_H)
+
 
 ##########################################
 #### Checks for typedefs, structures, ####

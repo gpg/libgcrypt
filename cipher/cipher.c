@@ -194,7 +194,7 @@ struct gcry_cipher_handle
 
   struct {
     unsigned int key:1; /* Set to 1 if a key has been set.  */
-    unsigned int iv:1;  /* Set to 1 if ae IV has been set.  */
+    unsigned int iv:1;  /* Set to 1 if a IV has been set.  */
   } marks;
 
   /* The initialization vector.  To help code optimization we make
