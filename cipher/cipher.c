@@ -698,7 +698,6 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 	{
 	  /* Not available for use.  */
 	  err = GPG_ERR_CIPHER_ALGO;
-	  _gcry_module_release (module);
 	}
       else
         {
