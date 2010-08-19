@@ -70,9 +70,9 @@ AM_MAINTAINER_MODE
 AH_TOP([
 #ifndef _GCRYPT_CONFIG_H_INCLUDED
 #define _GCRYPT_CONFIG_H_INCLUDED
-/* need this, because some autoconf tests rely on this (e.g. stpcpy)
- * and it should be used for new programs  */
-#define _GNU_SOURCE  1
+
+/* Enable gpg-error's strerror macro for W32CE.  */
+#define GPG_ERR_ENABLE_ERRNO_MACROS 1
 ])
 
 AH_BOTTOM([
@@ -138,6 +138,9 @@ AM_PROG_AS
 AC_ISC_POSIX
 AC_PROG_INSTALL
 AC_PROG_AWK
+
+AC_GNU_SOURCE
+
 
 LT_PREREQ([2.2.6])
 LT_INIT([win32-dll disable-static])

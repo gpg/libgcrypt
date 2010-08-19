@@ -1,3 +1,13 @@
+2010-08-19  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Define GPG_ERR_ENABLE_ERRNO_MACROS. Remove
+	definition of _GNU_SOURCE.
+	(AC_GNU_SOURCE): New.
+
+2010-08-16  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (INSERT_SYS_SELECT_H): New.
+
 2010-07-09  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Bump LT version to C18/A7/R0 to prepare a backport
