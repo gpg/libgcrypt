@@ -682,7 +682,9 @@ _gcry_rngcsprng_set_seed_file (const char *name)
 static int
 lock_seed_file (int fd, const char *fname, int for_write)
 {
+#ifdef __GCC__
 #warning Check whether we can lock on Windows.
+#endif
 #if LOCK_SEED_FILE
   struct flock lck;
   struct timeval tv;
