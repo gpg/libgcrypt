@@ -1,3 +1,9 @@
+2010-08-27  Werner Koch  <wk@g10code.com>
+
+	* g10lib.h (HWF_INTEL_AES): New.
+	* global.c (print_config): Print new flag.
+	* hwfeatures.c (detect_ia32_gnuc): Detect this flag.
+
 2010-08-16  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in [!WIN32]: Add INSERT_SYS_SELECT_H autoconf substitute.

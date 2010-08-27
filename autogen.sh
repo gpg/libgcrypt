@@ -128,7 +128,7 @@ if [ "$myhost" = "w32" ]; then
         fi
     fi
 
-    ./configure --enable-maintainer-mode  --prefix=${w32root}  \
+    $tsdir/configure --enable-maintainer-mode  --prefix=${w32root}  \
             --host=${host} --build=${build} \
             --with-gpg-error-prefix=${w32root}
     exit $?

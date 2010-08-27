@@ -148,6 +148,9 @@ int _gcry_log_verbosity( int level );
 #define HWF_PADLOCK_SHA  4
 #define HWF_PADLOCK_MMUL 8
 
+#define HWF_INTEL_AES    256
+
+
 unsigned int _gcry_get_hw_features (void);
 void _gcry_detect_hw_features (void);
 

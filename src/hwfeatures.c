@@ -44,7 +44,6 @@ _gcry_get_hw_features (void)
 static void
 detect_ia32_gnuc (void)
 {
-#ifdef ENABLE_PADLOCK_SUPPORT  
   /* The code here is only useful for the PadLock engine thus we don't
      build it if that support has been disabled.  */
   int has_cpuid = 0;
@@ -89,10 +88,12 @@ detect_ia32_gnuc (void)
      );
   vendor_id[12] = 0;
 
-  /* Check whether this is a VIA CPU and what PadLock features we
-     have.  */
-  if (!strcmp (vendor_id, "CentaurHauls"))
+  if (0)
+    ; /* Just to make "else if" and ifdef macros look pretty.  */
+#ifdef ENABLE_PADLOCK_SUPPORT  
+  else if (!strcmp (vendor_id, "CentaurHauls"))
     {
+      /* This is a VIA CPU.  Check what PadLock features we have.  */
       asm volatile 
         ("pushl %%ebx\n\t"	        /* Save GOT register.  */
          "movl $0xC0000000, %%eax\n\t"  /* Check for extended centaur  */
@@ -140,9 +141,31 @@ detect_ia32_gnuc (void)
          );
     }
 #endif /*ENABLE_PADLOCK_SUPPORT*/
+  else if (!strcmp (vendor_id, "GenuineIntel"))
+    {
+      /* This is an Intel CPU.  */
+      asm volatile 
+        ("pushl %%ebx\n\t"	        /* Save GOT register.  */
+         "movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
+         "cpuid\n"
+         "popl %%ebx\n\t"	        /* Restore GOT register. */
+         "cmpl $0x02000000, %%ecx\n\t"  /* Test bit 25.  */
+         "jnz .Lno_aes%=\n\t"           /* No AES support.  */
+         "orl $256, %0\n"               /* Set our HWF_INTEL_AES bit.  */
+
+         ".Lno_aes%=:\n"
+         : "+r" (hw_features)
+         :
+         : "%eax", "%ecx", "%edx", "cc"
+         );
+    }
+  else if (!strcmp (vendor_id, "AuthenticAMD"))
+    {
+      /* This is an AMD CPU.  */
+
+    }
 }
 #endif /* __i386__ && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ */
-
 
 
 /* Detect the available hardware features.  This function is called
