@@ -2357,7 +2357,7 @@ gcry_pk_get_nbits (gcry_sexp_t key)
 
 
 /* Return the so called KEYGRIP which is the SHA-1 hash of the public
-   key parameters expressed in a way depended on the algorithm.
+   key parameters expressed in a way depending on the algorithm.
 
    ARRAY must either be 20 bytes long or NULL; in the latter case a
    newly allocated array of that size is returned, otherwise ARRAY or
