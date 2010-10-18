@@ -418,45 +418,58 @@ registry_poll (void (*add)(const void*, size_t, enum random_origins),
      this can consume tens of MB of memory and huge amounts of CPU time
      while it gathers its data, and even running once can still consume
      about 1/2MB of memory */
-  pPerfData = gcry_xmalloc (cbPerfData);
-  for (iterations=0; iterations < 10; iterations++)
+  if (getenv ("GNUPG_RNDW32_NOPERF"))
     {
-      dwSize = cbPerfData;
-      if ( debug_me )
-        log_debug ("rndw32#slow_gatherer_nt: get perf data\n" );
-
-      status = RegQueryValueEx (HKEY_PERFORMANCE_DATA, "Global", NULL,
-                                NULL, (LPBYTE) pPerfData, &dwSize);
-      if (status == ERROR_SUCCESS)
+      static int shown;
+      
+      if (!shown)
         {
-          if (!memcmp (pPerfData->Signature, L"PERF", 8))
-            (*add) ( pPerfData, dwSize, requester );
-          else
-            log_debug ("rndw32: no PERF signature\n");
-          break;
-        }
-      else if (status == ERROR_MORE_DATA)
-        {
-          cbPerfData += PERFORMANCE_BUFFER_STEP;
-          pPerfData = gcry_xrealloc (pPerfData, cbPerfData);
-        }
-      else
-        {
-          static int been_here;
-
-          /* Silence the error message.  In particular under Wine (as
-             of 2008) we would get swamped with such diagnotiscs.  One
-             such diagnotiscs should be enough.  */
-          if (been_here != status)
-            {
-              been_here = status;
-              log_debug ("rndw32: get performance data problem: ec=%ld\n",
-                         status);
-            }
-          break;
+          shown = 1;
+          log_info ("note: get performance data has been disabled\n");
         }
     }
-  gcry_free (pPerfData);
+  else
+    {
+      pPerfData = gcry_xmalloc (cbPerfData);
+      for (iterations=0; iterations < 10; iterations++)
+        {
+          dwSize = cbPerfData;
+          if ( debug_me )
+            log_debug ("rndw32#slow_gatherer_nt: get perf data\n" );
+          
+          status = RegQueryValueEx (HKEY_PERFORMANCE_DATA, "Global", NULL,
+                                    NULL, (LPBYTE) pPerfData, &dwSize);
+          if (status == ERROR_SUCCESS)
+            {
+              if (!memcmp (pPerfData->Signature, L"PERF", 8))
+                (*add) ( pPerfData, dwSize, requester );
+              else
+                log_debug ("rndw32: no PERF signature\n");
+              break;
+            }
+          else if (status == ERROR_MORE_DATA)
+            {
+              cbPerfData += PERFORMANCE_BUFFER_STEP;
+              pPerfData = gcry_xrealloc (pPerfData, cbPerfData);
+            }
+          else
+            {
+              static int been_here;
+              
+              /* Silence the error message.  In particular under Wine (as
+                 of 2008) we would get swamped with such diagnotiscs.  One
+                 such diagnotiscs should be enough.  */
+              if (been_here != status)
+                {
+                  been_here = status;
+                  log_debug ("rndw32: get performance data problem: ec=%ld\n",
+                             status);
+                }
+              break;
+            }
+        }
+      gcry_free (pPerfData);
+    }
 
   /* Although this isn't documented in the Win32 API docs, it's necessary
      to explicitly close the HKEY_PERFORMANCE_DATA key after use (it's
