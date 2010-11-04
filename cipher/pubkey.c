@@ -2503,8 +2503,8 @@ gcry_pk_ctl (int cmd, void *buffer, size_t buflen)
         care or a combination of the GCRY_PK_USAGE_xxx flags;
 
     GCRYCTL_GET_ALGO_USAGE:
-        Return the usage glafs for the give algo.  An invalid alog
-        does return 0.  Disabled algos are ignored here because we
+        Return the usage flags for the given algo.  An invalid algo
+        returns 0.  Disabled algos are ignored here because we
         only want to know whether the algo is at all capable of
         the usage.
   

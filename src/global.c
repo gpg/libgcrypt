@@ -501,7 +501,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
     case GCRYCTL_FORCE_FIPS_MODE:
       /* Performing this command puts the library into fips mode.  If
          the library has already been initialized into fips mode, a
-         selftest is triggered.  it is not possible to put the libraty
+         selftest is triggered.  It is not possible to put the libraty
          into fips mode after having passed the initialization. */
       if (!any_init_done)
         {

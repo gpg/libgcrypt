@@ -92,14 +92,14 @@ _gcry_random_dump_stats (void)
 }
 
 
-/* This function should be called during initialization and beore
+/* This function should be called during initialization and before
    initialization of this module to place the random pools into secure
    memory.  */
 void
 _gcry_secure_random_alloc (void)
 {
   if (fips_mode ())
-    ;  /* Not used; the fips rng is allows in secure mode.  */
+    ;  /* Not used; the FIPS RNG is always in secure mode.  */
   else
     _gcry_rngcsprng_secure_alloc ();
 }
