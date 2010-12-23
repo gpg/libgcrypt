@@ -55,7 +55,7 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 NEED_GPG_ERROR_VERSION=1.8
 
 is_development_version=my_issvn
-BUILD_REVISION=svn_revision
+BUILD_REVISION=m4_if(git_revision,[],[svn_revision],[git_revision])
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
