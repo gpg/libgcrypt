@@ -1,3 +1,7 @@
+2010-12-23  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Support a git_revision.
+
 2010-07-13  Werner Koch  <wk@g10code.com>
 
 	Release 1.4.6.
