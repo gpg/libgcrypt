@@ -1,3 +1,8 @@
+2011-01-04  Werner Koch  <wk@g10code.com>
+
+	* Makefile.am (LDADD): Fix typo in last change.  Reported by
+	Andrey Jivsov.
+
 2010-07-19  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (LDADD): Add GPG_ERROR_LIBS to help a new wannabe ld.
