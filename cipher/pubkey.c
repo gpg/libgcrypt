@@ -75,6 +75,8 @@ static struct pubkey_table_entry
 #if USE_ECC
     { &_gcry_pubkey_spec_ecdsa,
       &_gcry_pubkey_extraspec_ecdsa, GCRY_PK_ECDSA, 0 },
+    { &_gcry_pubkey_spec_ecdh,
+      &_gcry_pubkey_extraspec_ecdsa, GCRY_PK_ECDH, 0 },
 #endif
     { NULL, 0 },
   };
@@ -981,7 +983,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
   gcry_module_t module;
   gcry_pk_spec_t *pubkey;
   pk_extra_spec_t *extraspec;
-  int is_ecc;
+//  int is_ecc;
 
   /* Check that the first element is valid.  */
   list = gcry_sexp_find_token (sexp, 
@@ -1009,7 +1011,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
      with a key is compatible with an application of the key (signing,
      encryption).  For RSA this is easy, but ECC is the first
      algorithm which has many flavours. */
-  is_ecc = ( !strcmp (name, "ecdsa") || !strcmp (name, "ecc") );
+//  is_ecc = ( !strcmp (name, "ecdsa") || !strcmp (name, "ecc") );
   gcry_free (name);
   
   if (!module)
@@ -1029,9 +1031,9 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
     err = gpg_err_code_from_errno (errno);
   if (!err)
     {
-      if (is_ecc)
-        err = sexp_elements_extract_ecc (list, elems, array, extraspec);
-      else
+   //   if (is_ecc)
+ //       err = sexp_elements_extract_ecc (list, elems, array, extraspec);
+   //   else
         err = sexp_elements_extract (list, elems, array, pubkey->name);
     }
   

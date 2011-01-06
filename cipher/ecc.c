@@ -58,7 +58,9 @@
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
+#include <assert.h>
 
+#define MAX_ECC_OID_LEN 16
 
 /* Definition of a curve.  */
 typedef struct
@@ -68,6 +70,10 @@ typedef struct
   gcry_mpi_t b;   /* Second coefficient of the Weierstrass equation.  */
   mpi_point_t G;  /* Base point (generator).  */
   gcry_mpi_t n;   /* Order of G.  */
+  /* one byte length, followed by DER representation of curve OID:
+   * N byte OID is encoded as N+1 bytes as follows:  N x0 x1 ... xN 
+   */
+  byte name_oid[MAX_ECC_OID_LEN]; 
 } elliptic_curve_t; 
 
 
@@ -120,22 +126,26 @@ static const struct
     { NULL, NULL}
   };
 
+static const byte curve_oid_NISTP256[] = { 8, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07 };
+static const byte curve_oid_NISTP384[] = { 5, 0x2B, 0x81, 0x04, 0x00, 0x22 };
+static const byte curve_oid_NISTP521[] = { 5, 0x2B, 0x81, 0x04, 0x00, 0x23 };
 
-
-/* This static table defines all available curves.  */
-static const struct
-{
+typedef struct   {
   const char *desc;           /* Description of the curve.  */
   unsigned int nbits;         /* Number of bits.  */
   unsigned int fips:1;        /* True if this is a FIPS140-2 approved curve. */
+  const byte *name_oid;       /* points to LEN + curve DER OID, optional */
   const char  *p;             /* Order of the prime field.  */
   const char *a, *b;          /* The coefficients. */
   const char *n;              /* The order of the base point.  */
   const char *g_x, *g_y;      /* Base point.  */
-} domain_parms[] =
+} ecc_domain_parms_t;
+
+/* This static table defines all available curves.  */
+static const ecc_domain_parms_t domain_parms[] =
   {
     {
-      "NIST P-192", 192, 1,
+      "NIST P-192", 192, 1, NULL,
       "0xfffffffffffffffffffffffffffffffeffffffffffffffff",
       "0xfffffffffffffffffffffffffffffffefffffffffffffffc",
       "0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1",
@@ -145,7 +155,7 @@ static const struct
       "0x07192b95ffc8da78631011ed6b24cdd573f977a11e794811"
     },
     {
-      "NIST P-224", 224, 1,
+      "NIST P-224", 224, 1, NULL,
       "0xffffffffffffffffffffffffffffffff000000000000000000000001",
       "0xfffffffffffffffffffffffffffffffefffffffffffffffffffffffe",
       "0xb4050a850c04b3abf54132565044b0b7d7bfd8ba270b39432355ffb4",
@@ -155,7 +165,7 @@ static const struct
       "0xbd376388b5f723fb4c22dfe6cd4375a05a07476444d5819985007e34"
     },
     {
-      "NIST P-256", 256, 1,
+      "NIST P-256", 256, 1, curve_oid_NISTP256,
       "0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
       "0xffffffff00000001000000000000000000000000fffffffffffffffffffffffc",
       "0x5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b",
@@ -165,7 +175,7 @@ static const struct
       "0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5"
     },
     {
-      "NIST P-384", 384, 1,
+      "NIST P-384", 384, 1, curve_oid_NISTP384,
       "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
       "ffffffff0000000000000000ffffffff",
       "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
@@ -181,7 +191,7 @@ static const struct
       "0a60b1ce1d7e819d7a431d7c90ea0e5f"
     },
     {
-      "NIST P-521", 521, 1,
+      "NIST P-521", 521, 1, curve_oid_NISTP521,
       "0x01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "0x01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -197,7 +207,7 @@ static const struct
       "62c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650"
     },
 
-    { "brainpoolP160r1", 160, 0, 
+    { "brainpoolP160r1", 160, 0, NULL,
       "0xe95e4a5f737059dc60dfc7ad95b3d8139515620f",
       "0x340e7be2a280eb74e2be61bada745d97e8f7c300",
       "0x1e589a8595423412134faa2dbdec95c8d8675e58",
@@ -206,7 +216,7 @@ static const struct
       "0x1667cb477a1a8ec338f94741669c976316da6321"
     },
 
-    { "brainpoolP192r1", 192, 0, 
+    { "brainpoolP192r1", 192, 0, NULL,
       "0xc302f41d932a36cda7a3463093d18db78fce476de1a86297",
       "0x6a91174076b1e0e19c39c031fe8685c1cae040e5c69a28ef",
       "0x469a28ef7c28cca3dc721d044f4496bcca7ef4146fbf25c9",
@@ -215,7 +225,7 @@ static const struct
       "0x14b690866abd5bb88b5f4828c1490002e6773fa2fa299b8f"
     },
 
-    { "brainpoolP224r1", 224, 0,
+    { "brainpoolP224r1", 224, 0, NULL,
       "0xd7c134aa264366862a18302575d1d787b09f075797da89f57ec8c0ff",
       "0x68a5e62ca9ce6c1c299803a6c1530b514e182ad8b0042a59cad29f43",
       "0x2580f63ccfe44138870713b1a92369e33e2135d266dbb372386c400b",
@@ -224,7 +234,7 @@ static const struct
       "0x58aa56f772c0726f24c6b89e4ecdac24354b9e99caa3f6d3761402cd"
     },
 
-    { "brainpoolP256r1", 256, 0,
+    { "brainpoolP256r1", 256, 0, NULL,
       "0xa9fb57dba1eea9bc3e660a909d838d726e3bf623d52620282013481d1f6e5377",
       "0x7d5a0975fc2c3057eef67530417affe7fb8055c126dc5c6ce94a4b44f330b5d9",
       "0x26dc5c6ce94a4b44f330b5d9bbd77cbf958416295cf7e1ce6bccdc18ff8c07b6",
@@ -233,7 +243,7 @@ static const struct
       "0x547ef835c3dac4fd97f8461a14611dc9c27745132ded8e545c1d54c72f046997"
     },
 
-    { "brainpoolP320r1", 320, 0,
+    { "brainpoolP320r1", 320, 0, NULL,
       "0xd35e472036bc4fb7e13c785ed201e065f98fcfa6f6f40def4f92b9ec7893ec28"
       "fcd412b1f1b32e27",
       "0x3ee30b568fbab0f883ccebd46d3f3bb8a2a73513f5eb79da66190eb085ffa9f4"
@@ -248,7 +258,7 @@ static const struct
       "d35245d1692e8ee1"
     },
 
-    { "brainpoolP384r1", 384, 0,
+    { "brainpoolP384r1", 384, 0, NULL,
       "0x8cb91e82a3386d280f5d6f7e50e641df152f7109ed5456b412b1da197fb71123"
       "acd3a729901d1a71874700133107ec53",
       "0x7bc382c63d8c150c3c72080ace05afa0c2bea28e4fb22787139165efba91f90f"
@@ -263,7 +273,7 @@ static const struct
       "0e4646217791811142820341263c5315"
     },
 
-    { "brainpoolP512r1", 512, 0,
+    { "brainpoolP512r1", 512, 0, NULL,
       "0xaadd9db8dbe9c48b3fd4e6ae33c9fc07cb308db3b3c9d20ed6639cca70330871"
       "7d4d9b009bc66842aecda12ae6a380e62881ff2f2d82c68528aa6056583a48f3",
       "0x7830a3318b603b89e2327145ac234cc594cbdd8d3df91610a83441caea9863bc"
@@ -278,7 +288,7 @@ static const struct
       "b2dcde494a5f485e5bca4bd88a2763aed1ca2b2fa8f0540678cd1e0f3ad80892"
     },
 
-    { NULL, 0, 0, NULL, NULL, NULL, NULL }
+    { NULL, 0, 0, NULL, NULL, NULL, NULL, NULL }
   };
 
 
@@ -349,6 +359,22 @@ curve_free (elliptic_curve_t *E)
   mpi_free (E->n);  E->n = NULL;
 }
 
+/*
+ * Release a PK object.
+ */
+static void ecc_pk_free( ECC_public_key *pk )  {
+  point_free (&pk->Q);
+  curve_free (&pk->E);
+}
+
+/*
+ * Release a SK object.
+ */
+static void ecc_sk_free( ECC_secret_key *sk )  {
+  point_free (&sk->Q);
+  curve_free (&sk->E);
+  mpi_free (sk->d);  sk->d = NULL;
+}
 
 /*
  * Return a copy of a curve object.
@@ -493,6 +519,9 @@ generate_curve (unsigned int nbits, const char *name,
   curve->G.x = scanval (domain_parms[idx].g_x);
   curve->G.y = scanval (domain_parms[idx].g_y);
   curve->G.z = mpi_alloc_set_ui (1);
+  memset( curve->name_oid, 0, sizeof(curve->name_oid) );
+  if( domain_parms[idx].name_oid != NULL )
+    memcpy( curve->name_oid, domain_parms[idx].name_oid, domain_parms[idx].name_oid[0]+1 );
 
   return 0;
 }
@@ -521,13 +550,15 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
 
   if (DBG_CIPHER)
     {
-      log_mpidump ("ecc generation   p", E.p);
-      log_mpidump ("ecc generation   a", E.a);
-      log_mpidump ("ecc generation   b", E.b);
-      log_mpidump ("ecc generation   n", E.n);
-      log_mpidump ("ecc generation  Gx", E.G.x);
-      log_mpidump ("ecc generation  Gy", E.G.y);
-      log_mpidump ("ecc generation  Gz", E.G.z);
+      log_mpidump ("ecgen curve p", E.p);
+      log_mpidump ("ecgen curve a", E.a);
+      log_mpidump ("ecgen curve b", E.b);
+      log_mpidump ("ecgen curve n", E.n);
+      log_mpidump ("ecgen curve G.x", E.G.x);
+      /* log_mpidump ("ecc generation  Gy", E.G.y);
+      log_mpidump ("ecc generation  Gz", E.G.z); */
+    
+      log_printf  ("ecgen curve OID: [%d] ...%02X %02X\n", E.name_oid[0], E.name_oid[0]>0 ? E.name_oid[E.name_oid[0]-1] : 0, E.name_oid[E.name_oid[0]]);
     }
 
   random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
@@ -545,6 +576,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
   sk->E.p = mpi_copy (E.p);
   sk->E.a = mpi_copy (E.a);
   sk->E.b = mpi_copy (E.b);
+  memcpy(sk->E.name_oid, E.name_oid, sizeof(E.name_oid));
   point_init (&sk->E.G);
   point_set (&sk->E.G, &E.G);
   sk->E.n = mpi_copy (E.n);
@@ -556,12 +588,12 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
   if (g_x && g_y)
     {
       if (_gcry_mpi_ec_get_affine (g_x, g_y, &sk->E.G, ctx))
-        log_fatal ("ecc generate: Failed to get affine coordinates\n");
+        log_fatal ("ecgen: Failed to get affine coordinates\n");
     }
   if (q_x && q_y)
     {
       if (_gcry_mpi_ec_get_affine (q_x, q_y, &sk->Q, ctx))
-        log_fatal ("ecc generate: Failed to get affine coordinates\n");
+        log_fatal ("ecgen: Failed to get affine coordinates\n");
     }
   _gcry_mpi_ec_free (ctx);
 
@@ -571,7 +603,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
 
   /* Now we can test our keys (this should never fail!). */
   test_keys (sk, nbits - 64);
-
+  
   return 0;
 }
 
@@ -615,8 +647,7 @@ test_keys (ECC_secret_key *sk, unsigned int nbits)
   if (DBG_CIPHER)
     log_debug ("ECDSA operation: sign, verify ok.\n");
 
-  point_free (&pk.Q);
-  curve_free (&pk.E);
+  ecc_pk_free( &pk );
 
   point_free (&R_);
   mpi_free (s);
@@ -849,7 +880,45 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
   return err;
 }
 
+/* lookup named curve and fill in internal curve parameters 
+ * returns GPG_ERR_NOT_FOUND for an unknown OID
+ */
+static int
+fill_in_curve( const byte name_oid[], elliptic_curve_t *curve )  {
+  int i;
+  const ecc_domain_parms_t *p;
+  if( name_oid == NULL || name_oid[0] == 0 )  {
+     log_debug ("ecc OID is malformed\n");
+     return GPG_ERR_INV_ARG;
+  }
 
+  for (i = 0; domain_parms[i].desc; i++)  {
+    p = domain_parms + i;
+    if( p->name_oid == NULL || p->name_oid[0] != name_oid[0] )
+      continue;
+    if ( memcmp( p->name_oid, name_oid, name_oid[0]+1 )==0 )
+      break;
+  }
+
+  if( ! p->desc )  {
+    log_debug ("ecc OID is not recognized\n");
+    return GPG_ERR_NOT_FOUND; 
+  }
+
+  // TODO: there is no reason why these values are encoded as ASCII v.s. binary
+  curve->p = scanval (p->p);
+  curve->a = scanval (p->a);
+  curve->b = scanval (p->b);
+  curve->n = scanval (p->n);
+  curve->G.x = scanval (p->g_x);
+  curve->G.y = scanval (p->g_y);
+  curve->G.z = mpi_alloc_set_ui (1);
+
+  if (DBG_CIPHER)
+    log_debug( "ec filled in curve %s\n", p->desc );
+
+  return 0;
+}
 
 /*********************************************
  **************  interface  ******************
@@ -889,8 +958,20 @@ ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
     log_fatal ("mpi_scan failed: %s\n", gpg_strerror (err));
   gcry_free (buf);
 
-  mpi_free (x);
-  mpi_free (y);
+  return result;
+}
+
+static gcry_mpi_t
+name_oid_to_mpi( const byte *name_oid )  {
+  gpg_error_t err;
+  gcry_mpi_t result;
+
+  if( name_oid == NULL || name_oid[0] == 0 )
+    return mpi_new (0);
+   
+  err = gcry_mpi_scan (&result, GCRYMPI_FMT_USG, name_oid, name_oid[0]+1, NULL);
+  if (err)
+    log_fatal ("mpi_scan failed: %s\n", gpg_strerror (err));
 
   return result;
 }
@@ -953,6 +1034,35 @@ os2ec (mpi_point_t *result, gcry_mpi_t value)
   return 0;
 }
 
+static gcry_err_code_t
+mpi_to_name_oid( gcry_mpi_t mpi_in, byte name_oid_out[MAX_ECC_OID_LEN] )  {
+  size_t nbytes;
+  unsigned char *buf;
+  gcry_error_t err;
+
+  memset( name_oid_out, 0, MAX_ECC_OID_LEN );
+
+  nbytes = (mpi_get_nbits (mpi_in)+7)/8;
+  if( nbytes == 0 )
+    return 0;
+
+  buf = gcry_xmalloc (nbytes);
+  err = gcry_mpi_print (GCRYMPI_FMT_USG, buf, nbytes, &nbytes, mpi_in);
+  if (err)
+    {
+      gcry_free (buf);
+      return err;
+    }
+  if (buf[0]+1 != nbytes || nbytes >= MAX_ECC_OID_LEN) 
+    {
+      gcry_free (buf);
+      return GPG_ERR_INV_OBJ;
+    }
+  memcpy( name_oid_out, buf, nbytes+1 ); 
+  gcry_free (buf);
+
+  return 0;
+}
 
 /* Extended version of ecc_generate.  */
 static gcry_err_code_t
@@ -964,6 +1074,7 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   gpg_err_code_t ec;
   ECC_secret_key sk;
   gcry_mpi_t g_x, g_y, q_x, q_y;
+  gcry_mpi_t kek_params = NULL;
   char *curve_name = NULL;
   gcry_sexp_t l1;
   int transient_key = 0;
@@ -974,6 +1085,7 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
 
   if (genparms)
     {
+
       /* Parse the optional "curve" parameter. */
       l1 = gcry_sexp_find_token (genparms, "curve", 0);
       if (l1)
@@ -986,10 +1098,30 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
 
       /* Parse the optional transient-key flag.  */
       l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
+      if( l1 )  {
+         const char *s;
+        s = _gcry_sexp_nth_string (l1, 1);
+         if( s && strcmp( s, "1" )==0 )
+           transient_key = 1;
+         gcry_sexp_release (l1);
+         if (DBG_CIPHER)
+           log_debug( "ecgen 'transient-key' parameter supplied, value=%d\n", transient_key);
+       }
+
+      /* Parse the "KEK parameters" parameter. */
+      l1 = gcry_sexp_find_token (genparms, "kek-params", 0);
       if (l1)
         {
-          transient_key = 1;
+	  kek_params = gcry_sexp_nth_mpi (l1, 1, 0);
           gcry_sexp_release (l1);
+          if (!kek_params) {
+            log_debug( "ecgen failed to parse 'kek-params'\n" );
+            return GPG_ERR_INV_OBJ; /* No curve name or value too large. */
+          }
+          if (DBG_CIPHER)  {
+           log_debug( "ecgen 'kek-params' parameter supplied\n" );
+           log_mpidump ("ecgen DH kek-param", kek_params);
+          }
         }
     }
 
@@ -1006,16 +1138,20 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   if (ec)
     return ec;
 
-  skey[0] = sk.E.p;
-  skey[1] = sk.E.a;
-  skey[2] = sk.E.b;
-  /* The function ec2os releases g_x and g_y.  */
-  skey[3] = ec2os (g_x, g_y, sk.E.p);
-  skey[4] = sk.E.n;
-  /* The function ec2os releases g_x and g_y.  */
-  skey[5] = ec2os (q_x, q_y, sk.E.p);
-  skey[6] = sk.d;
+  skey[0] = name_oid_to_mpi( sk.E.name_oid );	// "c", name OID
+  //if( (ec=fill_in_curve( sk.E.name_oid, &sk.E )) )
+  //  return ec; 
+  skey[1] = ec2os (q_x, q_y, sk.E.p);	/* public key */ // "q", public key, the point
+  mpi_free (q_x);
+  mpi_free (q_y);
 
+  if( algo == GCRY_PK_ECDSA )  {
+    skey[2] = sk.d;    
+  }
+  else  {
+    skey[2] = (kek_params ? kek_params : mpi_new (0));             	// params, the last field in the public key portion
+    skey[3] = sk.d;    
+  }
   point_free (&sk.E.G);
   point_free (&sk.Q);
 
@@ -1023,6 +1159,21 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   *retfactors = gcry_calloc ( 1, sizeof **retfactors );
   if (!*retfactors)
     return gpg_err_code_from_syserror ();
+
+  if (DBG_CIPHER)
+  {
+    if( algo == GCRY_PK_ECDSA )  {
+      log_mpidump ("ecgen DSA c   ", skey[0]);
+      log_mpidump ("ecgen DSA Q   ", skey[1]);
+      log_mpidump ("ecgen DSA d   ", skey[2]);
+    }
+    else  {
+      log_mpidump ("ecgen DH c   ", skey[0]);
+      log_mpidump ("ecgen DH Q   ", skey[1]);
+      log_mpidump ("ecgen DH p   ", skey[2]);
+      log_mpidump ("ecgen DH d   ", skey[3]);
+    }
+  }
 
   return 0;
 }
@@ -1036,7 +1187,12 @@ ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
   return ecc_generate_ext (algo, nbits, 0, NULL, skey, retfactors, NULL);
 }
 
-
+#if 0
+/* Need to be implemented, if called neeeded. The issue is that the purpose of this function is to return the information about
+ * the curve that is beyond the information present in the public key. In particular, the pkey size is now just 2, 
+ * while we may need to return E.a, E.b, E.p, E.n, E.g, type of the curve, at the minimum. 
+ * This information is readily available for well-known named curves. 
+ */
 /* Return the parameters of the curve NAME.  */
 static gcry_err_code_t
 ecc_get_param (const char *name, gcry_mpi_t *pkey)
@@ -1059,15 +1215,17 @@ ecc_get_param (const char *name, gcry_mpi_t *pkey)
   _gcry_mpi_ec_free (ctx);
   point_free (&E.G);
 
-  pkey[0] = E.p;
-  pkey[1] = E.a;
-  pkey[2] = E.b;
-  pkey[3] = ec2os (g_x, g_y, E.p);
-  pkey[4] = E.n;
-  pkey[5] = NULL;
+  pkey[0] = name_oid_to_mpi( E.name_oid );
+  pkey[1] = E.p;
+  pkey[2] = E.a;
+  pkey[3] = E.b;
+  pkey[4] = ec2os (g_x, g_y, E.p);
+  pkey[5] = E.n;
+  pkey[6] = NULL;
 
   return 0;
 }
+#endif
 
 
 static gcry_err_code_t
@@ -1078,23 +1236,15 @@ ecc_check_secret_key (int algo, gcry_mpi_t *skey)
 
   (void)algo;
 
-  if (!skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4] || !skey[5]
-      || !skey[6] || !skey[7] || !skey[8] || !skey[9] || !skey[10])
+  if (!skey[0] || !skey[1] || !skey[2] )
     return GPG_ERR_BAD_MPI;
 
-  sk.E.p = skey[0];
-  sk.E.a = skey[1];
-  sk.E.b = skey[2];
-  point_init (&sk.E.G);
-  err = os2ec (&sk.E.G, skey[3]);
-  if (err)
-    {
-      point_free (&sk.E.G);
-      return err;
-    }
-  sk.E.n = skey[4];
+  if( (err=mpi_to_name_oid( skey[0], sk.E.name_oid )) )
+    return err;
+  if( (err=fill_in_curve( sk.E.name_oid, &sk.E )) )
+    return err;
   point_init (&sk.Q);
-  err = os2ec (&sk.Q, skey[5]);
+  err = os2ec (&sk.Q, skey[1]);
   if (err)
     {
       point_free (&sk.E.G);
@@ -1102,7 +1252,7 @@ ecc_check_secret_key (int algo, gcry_mpi_t *skey)
       return err;
     }
 
-  sk.d = skey[6];
+  sk.d = skey[2];
 
   if (check_secret_key (&sk))
     {
@@ -1124,30 +1274,22 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
 
   (void)algo;
 
-  if (!data || !skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4]
-      || !skey[5] || !skey[6] )
+  if (!data || !skey[0] || !skey[1] || !skey[2] )
     return GPG_ERR_BAD_MPI;
 
-  sk.E.p = skey[0];
-  sk.E.a = skey[1];
-  sk.E.b = skey[2];
-  point_init (&sk.E.G);
-  err = os2ec (&sk.E.G, skey[3]);
-  if (err)
-    {
-      point_free (&sk.E.G);
-      return err;
-    }
-  sk.E.n = skey[4];
+  if( (err=mpi_to_name_oid( skey[0], sk.E.name_oid )) )
+    return err;
+  if( (err=fill_in_curve( sk.E.name_oid, &sk.E )) )
+    return err;
   point_init (&sk.Q);
-  err = os2ec (&sk.Q, skey[5]);
+  err = os2ec (&sk.Q, skey[1]);
   if (err)
     {
       point_free (&sk.E.G);
       point_free (&sk.Q);
       return err;
     }
-  sk.d = skey[6];
+  sk.d = gcry_mpi_copy( skey[2] );
 
   resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.E.p));
   resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.E.p));
@@ -1158,8 +1300,7 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
       mpi_free (resarr[1]);
       resarr[0] = NULL; /* Mark array as released.  */
     }
-  point_free (&sk.E.G);
-  point_free (&sk.Q);
+  ecc_sk_free( &sk );
   return err;
 }
 
@@ -1174,65 +1315,139 @@ ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   (void)cmp;
   (void)opaquev;
 
-  if (!data[0] || !data[1] || !hash || !pkey[0] || !pkey[1] || !pkey[2]
-      || !pkey[3] || !pkey[4] || !pkey[5] )
+  if (!data[0] || !data[1] || !hash || !pkey[0] || !pkey[1] )
     return GPG_ERR_BAD_MPI;
 
-  pk.E.p = pkey[0];
-  pk.E.a = pkey[1];
-  pk.E.b = pkey[2];
-  point_init (&pk.E.G);
-  err = os2ec (&pk.E.G, pkey[3]);
-  if (err)
-    {
-      point_free (&pk.E.G);
-      return err;
-    }
-  pk.E.n = pkey[4];
+  if( (err=mpi_to_name_oid( pkey[0], pk.E.name_oid )) )
+    return err;
+  if( (err=fill_in_curve( pk.E.name_oid, &pk.E )) )
+    return err;
   point_init (&pk.Q);
-  err = os2ec (&pk.Q, pkey[5]);
+  err = os2ec (&pk.Q, pkey[1]);
   if (err)
     {
-      point_free (&pk.E.G);
-      point_free (&pk.Q);
+      ecc_pk_free( &pk );
       return err;
     }
 
   err = verify (hash, &pk, data[0], data[1]);
 
-  point_free (&pk.E.G);
-  point_free (&pk.Q);
+  ecc_pk_free( &pk );
   return err;
 }
 
 
+/* ecdh is very simple. It is basically the implementation of the primitive operation in the EC field. 
+ * 'data' is scalar, 2-MPI array pkey uniquely defines a point on the curve.
+ *
+ * The complexity of ECDH encryption is shifted into OpenPGP layer to keep libgcrypt
+ * layer generic. ecc_encrypt is identical to ecc_decrypt due to the symmetry of DH protocol.
+ */
+static gcry_err_code_t
+ecc_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
+{
+  ECC_secret_key sk;
+  mpi_point_t R;	/* result that we return */
+  mpi_ec_t ctx;
+  gcry_mpi_t result;
+  int err;
+
+  (void)algo;
+  (void)flags;
+
+  if (DBG_CIPHER)
+    log_debug ("Called ecc_encrypt data size=%d bits, flags=%08x\n", gcry_mpi_get_nbits (data), flags);
+
+  if ( !data || !pkey[0] || !pkey[1] )
+    return GPG_ERR_BAD_MPI;
+
+  if (DBG_CIPHER)
+  {
+    log_mpidump ("ecdh encrypt c   ", pkey[0]);
+    log_mpidump ("ecdh encrypt q   ", pkey[1]);
+    log_mpidump ("ecdh encrypt p   ", pkey[2]);
+    log_mpidump ("ecdh encrypt data", data);
+  }
+
+  if( (err=mpi_to_name_oid( pkey[0], sk.E.name_oid )) )
+    return err;
+  if( (err=fill_in_curve( sk.E.name_oid, &sk.E )) )
+    return err;
+
+  point_init (&sk.Q);
+  err = os2ec (&sk.Q, pkey[1]);
+  sk.d = gcry_mpi_copy( data );
+  if (err)
+    {
+      ecc_sk_free( &sk );
+      return err;
+    }
+
+  ctx = _gcry_mpi_ec_init (sk.E.p, sk.E.a);
+
+  point_init (&R);
+  _gcry_mpi_ec_mul_point (&R, sk.d, &sk.Q, ctx);
+
+  /* the following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so */
+  {
+    gcry_mpi_t x,y;
+    x = mpi_new (0);	
+    y = mpi_new (0);	
+
+    if (_gcry_mpi_ec_get_affine (x, y, &R, ctx))
+        log_fatal ("ecdh: Failed to get affine coordinates\n");
+
+    result = ec2os( x, y, sk.E.p );
+    mpi_free(x);
+    mpi_free(y);
+  }
+
+  point_free( &R );
+  _gcry_mpi_ec_free (ctx);
+  ecc_sk_free( &sk );
+
+  if( result == NULL )
+	return GPG_ERR_ENOMEM;
+
+  /* success */
+
+  resarr[0] = result;
+  resarr[1] = mpi_new (0);	/* not used; it is constructruced at OpenPGP layer */
+
+  return GPG_ERR_NO_ERROR;
+}
+
+static gcry_err_code_t
+ecc_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
+{
+  return ecc_encrypt( algo, result, data[0], skey, flags );
+}
 
 static unsigned int
 ecc_get_nbits (int algo, gcry_mpi_t *pkey)
 {
   (void)algo;
-
-  return mpi_get_nbits (pkey[0]);
+  /* derive it from public key point Q, which is 1 byte + x + y */
+  return (mpi_get_nbits (pkey[1]) / (8*2)) * 8;
 }
-
-
 
 /* See rsa.c for a description of this function.  */
 static gpg_err_code_t
 compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
 {
-  static const char names[] = "pabgnq";
+#define N_ECC_PUBKEY_COMPONENETS 2
+  static const char names[] = "cq";
   gpg_err_code_t ec = 0;
   gcry_sexp_t l1;
-  gcry_mpi_t values[6];
+  gcry_mpi_t values[N_ECC_PUBKEY_COMPONENETS];
   int idx;
 
   /* Clear the values for easier error cleanup.  */
-  for (idx=0; idx < 6; idx++)
+  for (idx=0; idx < sizeof(values)/sizeof(values[0]); idx++)
     values[idx] = NULL;
     
   /* Fill values with all available parameters.  */
-  for (idx=0; idx < 6; idx++)
+  for (idx=0; idx < sizeof(values)/sizeof(values[0]); idx++)
     {
       l1 = gcry_sexp_find_token (keyparam, names+idx, 1);
       if (l1)
@@ -1246,16 +1461,18 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
             }
 	}
     }
-  
+ 
+#if 0
+  /* Not used now: curve name (DER OID of the name, actually) is always hashed above */
   /* Check whether a curve parameter is available and use that to fill
      in missing values.  */
   l1 = gcry_sexp_find_token (keyparam, "curve", 5);
   if (l1)
     {
       char *curve;
-      gcry_mpi_t tmpvalues[6];
+      gcry_mpi_t tmpvalues[N_ECC_PUBKEY_COMPONENETS];
       
-      for (idx = 0; idx < 6; idx++)
+      for (idx = 0; idx < sizeof(tmpvalues)/sizeof(tmpvalues[0]); idx++)
         tmpvalues[idx] = NULL;
 
       curve = _gcry_sexp_nth_string (l1, 1);
@@ -1269,7 +1486,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
       if (ec)
         goto leave;
 
-      for (idx = 0; idx < 6; idx++)
+      for (idx = 0; idx < sizeof(values)/sizeof(values[0]); idx++)
         {
           if (!values[idx])
             values[idx] = tmpvalues[idx];
@@ -1277,11 +1494,12 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
             mpi_free (tmpvalues[idx]);
         }
     }
+#endif
 
   /* Check that all parameters are known and normalize all MPIs (that
      should not be required but we use an internal function later and
      thus we better make 100% sure that they are normalized). */
-  for (idx = 0; idx < 6; idx++)
+  for (idx = 0; idx < sizeof(values)/sizeof(values[0]); idx++)
     if (!values[idx])
       {
         ec = GPG_ERR_NO_OBJ;
@@ -1291,7 +1509,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
       _gcry_mpi_normalize (values[idx]);
       
   /* Hash them all.  */
-  for (idx = 0; idx < 6; idx++)
+  for (idx = 0; idx < sizeof(values)/sizeof(values[0]); idx++)
     {
       char buf[30];
       unsigned char *rawmpi;
@@ -1311,10 +1529,11 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
     }
 
  leave:
-  for (idx = 0; idx < 6; idx++)
+  for (idx = 0; idx < sizeof(values)/sizeof(values[0]); idx++)
     _gcry_mpi_release (values[idx]);
   
   return ec;
+#undef N_ECC_PUBKEY_COMPONENETS
 }
 
 
@@ -1375,14 +1594,20 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 static const char *ecdsa_names[] =
   {
     "ecdsa",
-    "ecc",
+    "ecdh",
+    "ecc",	// only here, for the minimum number of public parameters (= 2)
+    NULL,
+  };
+static const char *ecdh_names[] =
+  {
+    "ecdh",
     NULL,
   };
 
 gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
   {
     "ECDSA", ecdsa_names,
-    "pabgnq", "pabgnqd", "", "rs", "pabgnq",
+    "cq", "cqd", "", "rs", "cq",
     GCRY_PK_USAGE_SIGN,
     ecc_generate,
     ecc_check_secret_key,
@@ -1393,11 +1618,26 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
     ecc_get_nbits
   };
 
+gcry_pk_spec_t _gcry_pubkey_spec_ecdh =
+  {
+    "ECDH", ecdh_names,
+    "cqp", "cqpd", "ab", "", "cqp",
+    GCRY_PK_USAGE_ENCR,
+    ecc_generate,
+    ecc_check_secret_key,
+    ecc_encrypt,
+    ecc_decrypt,
+    NULL,
+    NULL,
+    ecc_get_nbits
+  };
+
+
 pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa = 
   {
     run_selftests,
     ecc_generate_ext,
     compute_keygrip,
-    ecc_get_param
+    NULL // ecc_get_param
   };
 

@@ -129,6 +129,7 @@ extern gcry_pk_spec_t _gcry_pubkey_spec_rsa;
 extern gcry_pk_spec_t _gcry_pubkey_spec_elg;
 extern gcry_pk_spec_t _gcry_pubkey_spec_dsa;
 extern gcry_pk_spec_t _gcry_pubkey_spec_ecdsa;
+extern gcry_pk_spec_t _gcry_pubkey_spec_ecdh;
 
 extern pk_extra_spec_t _gcry_pubkey_extraspec_rsa; 
 extern pk_extra_spec_t _gcry_pubkey_extraspec_dsa; 
