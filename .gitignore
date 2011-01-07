@@ -1,0 +1,8 @@
+/aclocal.m4
+/autom4te.cache
+/config.h.in
+/configure
+Makefile.in
+doc/gcrypt.info
+doc/stamp-vti
+doc/version.texi
