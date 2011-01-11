@@ -1337,36 +1337,61 @@ ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 }
 
 
-/* ecdh is very simple. It is basically the implementation of the primitive operation in the EC field. 
- * 'data' is scalar, 2-MPI array pkey uniquely defines a point on the curve.
+/* ecdh raw is classic 2-round DH protocol published in 1976. 
+ * Some overloading is needed to fit it to encrypt/decrypt PK interface of libgcrypt.
+ * 
+ * The only need for this complexity is that some designs of client of libgcrypt 
+ * don't allow to get the private components of public keys.
  *
- * The complexity of ECDH encryption is shifted into OpenPGP layer to keep libgcrypt
- * layer generic. ecc_encrypt is identical to ecc_decrypt due to the symmetry of DH protocol.
+ * Overview of ecc_encrypt_raw and ecc_decrypt_raw.
+ *
+ * As with any PK operation, encrypt version uses a public key and decrypt -- private.  
+ *
+ * Symbols used bellow:
+ *     G - field generator point
+ *     x - private long-term scalar
+ *    xG - public long-term key
+ *     k - ephemeral scalar
+ *    kG - ephemeral public key
+ *   xkG - shared secret
+ *
+ * ecc_encrypt_raw description:
+ *   input:
+ *     data[0] : private scalar (k)
+ *   output: 
+ *     resaddr[0] : shared point (k*x*G, where x is the secret scalar of pkey; it's the shared secret)
+ *     resaddr[1] : generated ephemeral public key (kG)
+ *
+ * ecc_decrypt_raw description:
+ *   input:
+ *     data[0] : a point kG (ephemeral public key)
+ *   output:
+ *     result[0] : shared point (k*x*G, where x is the secret scalar of pkey; it's the shared secret)
  */
 static gcry_err_code_t
-ecc_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
+ecc_encrypt_raw (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
 {
   ECC_secret_key sk;
-  mpi_point_t R;	/* result that we return */
   mpi_ec_t ctx;
-  gcry_mpi_t result;
+  gcry_mpi_t result[2];
+  mpi_point_t  eph_Q;
   int err;
 
   (void)algo;
   (void)flags;
 
   if (DBG_CIPHER)
-    log_debug ("Called ecc_encrypt data size=%d bits, flags=%08x\n", gcry_mpi_get_nbits (data), flags);
+    log_debug ("Called ecc_encrypt_raw data size=%d bits, flags=%08x\n", gcry_mpi_get_nbits (data), flags);
 
   if ( !data || !pkey[0] || !pkey[1] )
     return GPG_ERR_BAD_MPI;
 
   if (DBG_CIPHER)
   {
-    log_mpidump ("ecdh encrypt c   ", pkey[0]);
-    log_mpidump ("ecdh encrypt q   ", pkey[1]);
-    log_mpidump ("ecdh encrypt p   ", pkey[2]);
-    log_mpidump ("ecdh encrypt data", data);
+    log_mpidump ("ecdh encrypt PK c  ", pkey[0]);
+    log_mpidump ("ecdh encrypt PK q  ", pkey[1]);
+    log_mpidump ("ecdh encrypt PK p  ", pkey[2]);
+    log_mpidump ("ecdh encrypt data k", data);
   }
 
   if( (err=mpi_to_name_oid( pkey[0], sk.E.name_oid )) )
@@ -1377,6 +1402,108 @@ ecc_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, in
   point_init (&sk.Q);
   err = os2ec (&sk.Q, pkey[1]);
   sk.d = gcry_mpi_copy( data );
+  if (err)
+    {
+      ecc_sk_free( &sk );
+      return err;
+    }
+
+  ctx = _gcry_mpi_ec_init (sk.E.p, sk.E.a);
+
+
+  /* the following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so */
+  {
+    mpi_point_t R;	/* result that we return */
+    gcry_mpi_t x,y;
+
+    x = mpi_new (0);	
+    y = mpi_new (0);	
+
+    point_init (&R);
+
+    _gcry_mpi_ec_mul_point (&R, sk.d, &sk.Q, ctx);
+
+    if (_gcry_mpi_ec_get_affine (x, y, &R, ctx))
+        log_fatal ("ecdh: Failed to get affine coordinates for xkG\n");
+
+    result[0] = ec2os( x, y, sk.E.p );	/* xkG */
+
+    _gcry_mpi_ec_mul_point (&R, sk.d, &sk.E.G, ctx);
+
+    if (_gcry_mpi_ec_get_affine (x, y, &R, ctx))
+        log_fatal ("ecdh: Failed to get affine coordinates for kG\n");
+
+    result[1] = ec2os( x, y, sk.E.p );	/* kG */
+
+    mpi_free(x);
+    mpi_free(y);
+
+    point_free( &R );
+  }
+
+  _gcry_mpi_ec_free (ctx);
+  ecc_sk_free( &sk );
+
+  if( result[0] == NULL || result[1] == NULL )  {
+    mpi_free( result[0] );
+    mpi_free( result[1] );
+    return GPG_ERR_ENOMEM;
+  }
+
+  /* success */
+
+   /* none of 2 returned values are used as is; they are further processed at OpenPGP layer.
+    * However, they match the number of MPIs (2) needed to encrypt a message in OpenPGP format 
+    */
+  resarr[0] = result[0];
+  resarr[1] = result[1];	
+
+  return GPG_ERR_NO_ERROR;
+}
+
+ /*  input:
+ *     data[0] : a point kG (ephemeral public key)
+ *   output:
+ *     resaddr[0] : shared point k*x*G
+ *
+ *  see ecc_encrypt_raw for details.
+ */
+static gcry_err_code_t
+ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
+{
+  ECC_secret_key sk;
+  mpi_point_t R;	/* result that we return */
+  mpi_ec_t ctx;
+  gcry_mpi_t r;
+  int err;
+
+  (void)algo;
+  (void)flags;
+
+  *result = NULL;
+
+  if (DBG_CIPHER)
+    log_debug ("Called ecc_encrypt_raw data size=%d bits, flags=%08x\n", gcry_mpi_get_nbits (data), flags);
+
+  if ( !data || !data[0] || !skey[0] || !skey[1] || !skey[3] )
+    return GPG_ERR_BAD_MPI;
+
+  if (DBG_CIPHER)
+  {
+    log_mpidump ("ecdh decrypt SK c   ", skey[0]);
+    log_mpidump ("ecdh decrypt SK q   ", skey[1]);
+    log_mpidump ("ecdh decrypt SK p   ", skey[2]);
+    log_mpidump ("ecdh decrypt data kG", data[0]);
+  }
+
+  if( (err=mpi_to_name_oid( skey[0], sk.E.name_oid )) )
+    return err;
+  if( (err=fill_in_curve( sk.E.name_oid, &sk.E )) )
+    return err;
+
+  point_init (&sk.Q);
+  err = os2ec (&sk.Q, data[0]);
+  sk.d = gcry_mpi_copy( skey[3] );
   if (err)
     {
       ecc_sk_free( &sk );
@@ -1397,7 +1524,7 @@ ecc_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, in
     if (_gcry_mpi_ec_get_affine (x, y, &R, ctx))
         log_fatal ("ecdh: Failed to get affine coordinates\n");
 
-    result = ec2os( x, y, sk.E.p );
+    r = ec2os( x, y, sk.E.p );
     mpi_free(x);
     mpi_free(y);
   }
@@ -1406,21 +1533,14 @@ ecc_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey, in
   _gcry_mpi_ec_free (ctx);
   ecc_sk_free( &sk );
 
-  if( result == NULL )
+  if( r == NULL )
 	return GPG_ERR_ENOMEM;
 
   /* success */
 
-  resarr[0] = result;
-  resarr[1] = mpi_new (0);	/* not used; it is constructruced at OpenPGP layer */
+  *result = r;
 
   return GPG_ERR_NO_ERROR;
-}
-
-static gcry_err_code_t
-ecc_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *skey, int flags)
-{
-  return ecc_encrypt( algo, result, data[0], skey, flags );
 }
 
 static unsigned int
@@ -1625,8 +1745,8 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdh =
     GCRY_PK_USAGE_ENCR,
     ecc_generate,
     ecc_check_secret_key,
-    ecc_encrypt,
-    ecc_decrypt,
+    ecc_encrypt_raw,
+    ecc_decrypt_raw,
     NULL,
     NULL,
     ecc_get_nbits
