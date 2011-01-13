@@ -734,6 +734,11 @@ sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
   mpi_point_t I;
   mpi_ec_t ctx;
 
+  if (DBG_CIPHER)
+  {
+    log_mpidump ("ecdsa sign hash  ", input );
+  }
+
   k = NULL;
   dr = mpi_alloc (0);
   sum = mpi_alloc (0);
@@ -771,6 +776,12 @@ sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
       mpi_invm (k_1, k, skey->E.n);         /* k_1 = k^(-1) mod n  */
       mpi_mulm (s, k_1, sum, skey->E.n);    /* s = k^(-1)*(hash+(d*r)) mod n */
     }
+
+  if (DBG_CIPHER)
+  {
+    log_mpidump ("ecdsa return r ", r );
+    log_mpidump ("ecdsa return s ", s );
+  }
 
  leave:
   _gcry_mpi_ec_free (ctx);
@@ -859,7 +870,7 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
           log_mpidump ("   y", y);
           log_mpidump ("   r", r);
           log_mpidump ("   s", s);
-          log_debug ("ecc verify: Not verified\n");
+          log_debug ("ecc verify: Not verified (x != y)\n");
         }
       err = GPG_ERR_BAD_SIGNATURE;
       goto leave;
@@ -1374,7 +1385,6 @@ ecc_encrypt_raw (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *pkey
   ECC_secret_key sk;
   mpi_ec_t ctx;
   gcry_mpi_t result[2];
-  mpi_point_t  eph_Q;
   int err;
 
   (void)algo;
@@ -1483,7 +1493,7 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data, gcry_mpi_t *ske
   *result = NULL;
 
   if (DBG_CIPHER)
-    log_debug ("Called ecc_encrypt_raw data size=%d bits, flags=%08x\n", gcry_mpi_get_nbits (data), flags);
+    log_debug ("Called ecc_encrypt_raw data size=%d bits, flags=%08x\n", gcry_mpi_get_nbits (data[0]), flags);
 
   if ( !data || !data[0] || !skey[0] || !skey[1] || !skey[3] )
     return GPG_ERR_BAD_MPI;
