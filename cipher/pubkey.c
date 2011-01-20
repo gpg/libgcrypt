@@ -1,6 +1,6 @@
 /* pubkey.c  -	pubkey dispatcher
  * Copyright (C) 1998, 1999, 2000, 2002, 2003, 2005, 
- *               2007, 2008 Free Software Foundation, Inc.
+ *               2007, 2008, 2011 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -983,7 +983,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
   gcry_module_t module;
   gcry_pk_spec_t *pubkey;
   pk_extra_spec_t *extraspec;
-//  int is_ecc;
+  /* FIXME: Why has this been removed?  int is_ecc; *
 
   /* Check that the first element is valid.  */
   list = gcry_sexp_find_token (sexp, 
@@ -1010,8 +1010,8 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
      itself.  We need a function to test whether an algorithm given
      with a key is compatible with an application of the key (signing,
      encryption).  For RSA this is easy, but ECC is the first
-     algorithm which has many flavours. */
-//  is_ecc = ( !strcmp (name, "ecdsa") || !strcmp (name, "ecc") );
+     algorithm which has many flavours.  */
+  /*  is_ecc = ( !strcmp (name, "ecdsa") || !strcmp (name, "ecc") ); */
   gcry_free (name);
   
   if (!module)
@@ -1031,9 +1031,10 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
     err = gpg_err_code_from_errno (errno);
   if (!err)
     {
-   //   if (is_ecc)
- //       err = sexp_elements_extract_ecc (list, elems, array, extraspec);
-   //   else
+      /* FIXME:  Removing this ECC case changes the ABI; we can't do it.  */
+      /* if (is_ecc) */
+      /*   err = sexp_elements_extract_ecc (list, elems, array, extraspec); */
+      /* else */
         err = sexp_elements_extract (list, elems, array, pubkey->name);
     }
   
