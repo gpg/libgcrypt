@@ -1,3 +1,10 @@
+2011-01-26  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (sexp_to_key): Revert to pre-ECDH integration state.
+	Allow for ecdh.
+	* ecc.c (ecc_get_param): Revert to pre-ECDH integration state.
+	(compute_keygrip): Revert to 6 parameter version.
+
 2010-08-19  Werner Koch  <wk@g10code.com>
 
 	* cipher.c (gcry_cipher_open): Remove double release of the module.
@@ -3979,7 +3986,7 @@ Mon Feb 16 10:08:47 1998  Werner Koch  (wk@isil.d.shuttle.de)
 
 
  Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-	   2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+	   2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

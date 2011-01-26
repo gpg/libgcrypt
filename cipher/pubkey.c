@@ -950,6 +950,7 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
  *    openpgp-elg
  *    openpgp-elg-sig
  *    ecdsa
+ *    ecdh
  * Provide a SE with the first element be either "private-key" or
  * or "public-key". It is followed by a list with its first element
  * be one of the above algorithm identifiers and the remaning
@@ -983,7 +984,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
   gcry_module_t module;
   gcry_pk_spec_t *pubkey;
   pk_extra_spec_t *extraspec;
-  /* FIXME: Why has this been removed?  int is_ecc; *
+  int is_ecc;
 
   /* Check that the first element is valid.  */
   list = gcry_sexp_find_token (sexp, 
@@ -1011,7 +1012,9 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
      with a key is compatible with an application of the key (signing,
      encryption).  For RSA this is easy, but ECC is the first
      algorithm which has many flavours.  */
-  /*  is_ecc = ( !strcmp (name, "ecdsa") || !strcmp (name, "ecc") ); */
+  is_ecc = ( !strcmp (name, "ecdsa") 
+             || !strcmp (name, "ecdh")
+             || !strcmp (name, "ecc") );
   gcry_free (name);
   
   if (!module)
@@ -1031,10 +1034,9 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
     err = gpg_err_code_from_errno (errno);
   if (!err)
     {
-      /* FIXME:  Removing this ECC case changes the ABI; we can't do it.  */
-      /* if (is_ecc) */
-      /*   err = sexp_elements_extract_ecc (list, elems, array, extraspec); */
-      /* else */
+      if (is_ecc)
+        err = sexp_elements_extract_ecc (list, elems, array, extraspec);
+      else
         err = sexp_elements_extract (list, elems, array, pubkey->name);
     }
   

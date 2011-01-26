@@ -1137,16 +1137,11 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
 
       /* Parse the optional transient-key flag.  */
       l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
-      if( l1 )  {
-         const char *s;
-        s = _gcry_sexp_nth_string (l1, 1);
-         if( s && strcmp( s, "1" )==0 )
-           transient_key = 1;
-         gcry_sexp_release (l1);
-         if (DBG_CIPHER)
-           log_debug ("ecgen 'transient-key' parameter supplied, value=%d\n",
-                      transient_key);
-       }
+      if (l1)
+        {
+          transient_key = 1;
+          gcry_sexp_release (l1);
+        }
 
       /* Parse the "KEK parameters" parameter. */
       l1 = gcry_sexp_find_token (genparms, "kek-params", 0);
@@ -1154,14 +1149,16 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
         {
 	  kek_params = gcry_sexp_nth_mpi (l1, 1, 0);
           gcry_sexp_release (l1);
-          if (!kek_params) {
-            log_debug( "ecgen failed to parse 'kek-params'\n" );
-            return GPG_ERR_INV_OBJ; /* No curve name or value too large. */
-          }
-          if (DBG_CIPHER)  {
-           log_debug( "ecgen 'kek-params' parameter supplied\n" );
-           log_mpidump ("ecgen DH kek-param", kek_params);
-          }
+          if (!kek_params)
+            {
+              log_debug( "ecgen failed to parse 'kek-params'\n" );
+              return GPG_ERR_INV_OBJ; /* No value for kek-params. */
+            }
+          if (DBG_CIPHER)
+            {
+              log_debug ("ecgen 'kek-params' parameter supplied\n" );
+              log_mpidump ("ecgen DH kek-param", kek_params);
+            }
         }
     }
 
@@ -1235,14 +1232,6 @@ ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
 }
 
 
-#if 0
-/* Need to be implemented, if called neeeded. The issue is that the
- * purpose of this function is to return the information about the
- * curve that is beyond the information present in the public key. In
- * particular, the pkey size is now just 2, while we may need to
- * return E.a, E.b, E.p, E.n, E.g, type of the curve, at the minimum.
- * This information is readily available for well-known named curves.
- */
 /* Return the parameters of the curve NAME.  */
 static gcry_err_code_t
 ecc_get_param (const char *name, gcry_mpi_t *pkey)
@@ -1265,17 +1254,15 @@ ecc_get_param (const char *name, gcry_mpi_t *pkey)
   _gcry_mpi_ec_free (ctx);
   point_free (&E.G);
 
-  pkey[0] = name_oid_to_mpi( E.name_oid );
-  pkey[1] = E.p;
-  pkey[2] = E.a;
-  pkey[3] = E.b;
-  pkey[4] = ec2os (g_x, g_y, E.p);
-  pkey[5] = E.n;
-  pkey[6] = NULL;
+  pkey[0] = E.p;
+  pkey[1] = E.a;
+  pkey[2] = E.b;
+  pkey[3] = ec2os (g_x, g_y, E.p);
+  pkey[4] = E.n;
+  pkey[5] = NULL;
 
   return 0;
 }
-#endif
 
 
 static gcry_err_code_t
@@ -1616,19 +1603,19 @@ ecc_get_nbits (int algo, gcry_mpi_t *pkey)
 static gpg_err_code_t
 compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
 {
-#define N_ECC_PUBKEY_COMPONENETS 2
-  static const char names[] = "cq";
+#define N_COMPONENTS 6
+  static const char names[N_COMPONENTS+1] = "pabgnq";
   gpg_err_code_t ec = 0;
   gcry_sexp_t l1;
-  gcry_mpi_t values[N_ECC_PUBKEY_COMPONENETS];
+  gcry_mpi_t values[N_COMPONENTS];
   int idx;
 
   /* Clear the values for easier error cleanup.  */
-  for (idx=0; idx < sizeof(values)/sizeof(values[0]); idx++)
+  for (idx=0; idx < N_COMPONENTS; idx++)
     values[idx] = NULL;
 
-  /* Fill values with all available parameters.  */
-  for (idx=0; idx < sizeof(values)/sizeof(values[0]); idx++)
+  /* Fill values with all provided parameters.  */
+  for (idx=0; idx < N_COMPONENTS; idx++)
     {
       l1 = gcry_sexp_find_token (keyparam, names+idx, 1);
       if (l1)
@@ -1643,18 +1630,15 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
 	}
     }
 
-#if 0
-  /* Not used now: curve name (DER OID of the name, actually) is
-     always hashed above.  */
   /* Check whether a curve parameter is available and use that to fill
      in missing values.  */
   l1 = gcry_sexp_find_token (keyparam, "curve", 5);
   if (l1)
     {
       char *curve;
-      gcry_mpi_t tmpvalues[N_ECC_PUBKEY_COMPONENETS];
+      gcry_mpi_t tmpvalues[N_COMPONENTS];
 
-      for (idx = 0; idx < sizeof(tmpvalues)/sizeof(tmpvalues[0]); idx++)
+      for (idx = 0; idx < N_COMPONENTS; idx++)
         tmpvalues[idx] = NULL;
 
       curve = _gcry_sexp_nth_string (l1, 1);
@@ -1668,7 +1652,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
       if (ec)
         goto leave;
 
-      for (idx = 0; idx < sizeof(values)/sizeof(values[0]); idx++)
+      for (idx = 0; idx < N_COMPONENTS; idx++)
         {
           if (!values[idx])
             values[idx] = tmpvalues[idx];
@@ -1676,12 +1660,11 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
             mpi_free (tmpvalues[idx]);
         }
     }
-#endif
 
   /* Check that all parameters are known and normalize all MPIs (that
      should not be required but we use an internal function later and
      thus we better make 100% sure that they are normalized). */
-  for (idx = 0; idx < sizeof(values)/sizeof(values[0]); idx++)
+  for (idx = 0; idx < N_COMPONENTS; idx++)
     if (!values[idx])
       {
         ec = GPG_ERR_NO_OBJ;
@@ -1691,7 +1674,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
       _gcry_mpi_normalize (values[idx]);
 
   /* Hash them all.  */
-  for (idx = 0; idx < sizeof(values)/sizeof(values[0]); idx++)
+  for (idx = 0; idx < N_COMPONENTS; idx++)
     {
       char buf[30];
       unsigned char *rawmpi;
@@ -1711,11 +1694,11 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
     }
 
  leave:
-  for (idx = 0; idx < sizeof(values)/sizeof(values[0]); idx++)
+  for (idx = 0; idx < N_COMPONENTS; idx++)
     _gcry_mpi_release (values[idx]);
 
   return ec;
-#undef N_ECC_PUBKEY_COMPONENETS
+#undef N_COMPONENTS
 }
 
 
@@ -1820,5 +1803,5 @@ pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa =
     run_selftests,
     ecc_generate_ext,
     compute_keygrip,
-    NULL /* ecc_get_param */
+    ecc_get_param
   };
