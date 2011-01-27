@@ -1,3 +1,28 @@
+2011-01-27  Werner Koch  <wk@g10code.com>
+
+	* ecc.c (fill_in_curve): Remove.
+	(MAX_ECC_OID_LEN): Remove.
+	(elliptic_curve_t, ecc_domain_parms_t): Remove field NAME_OID.
+	(curve_oid_NISTP256, curve_oid_NISTP384, curve_oid_NISTP521):
+	Remove.
+	(generate_curve): Rename to ..
+	(fill_in_curve): this.  Remove setting of NAME_OID.
+	(ecc_generate_ext): Remove kek-params code.
+	(generate_key): Remove name oid stuff.
+	(name_oid_to_mpi): Remove.
+	(mpi_to_name_oid): Remove.
+	(ecc_generate_ext): Revert to pre-ECDH integration state.
+	(ecc_check_secret_key): Ditto.
+	(ecc_sign): Ditto.
+	(ecc_verify): Ditto.
+	(ecc_get_nbits): Revert.
+	(_gcry_pubkey_spec_ecdsa): Revert list or parameters.
+	(_gcry_pubkey_spec_ecdh): Use same parameter list as for ECDSA.
+	(ecc_encrypt_raw): Change name of arg DATA to K for better
+	readability.  Use ECC_public_key instead of ECC_secret_key.
+	Require a caller to pass a complete pkey array.
+	(ecc_decrypt_raw): Require a caller to pass a complete skey array.
+
 2011-01-26  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (sexp_to_key): Revert to pre-ECDH integration state.
