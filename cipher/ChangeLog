@@ -1,3 +1,7 @@
+2011-01-28  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (gcry_pk_genkey): Hack to insert the used curve name.
+
 2011-01-27  Werner Koch  <wk@g10code.com>
 
 	* ecc.c (fill_in_curve): Remove.
@@ -22,6 +26,10 @@
 	readability.  Use ECC_public_key instead of ECC_secret_key.
 	Require a caller to pass a complete pkey array.
 	(ecc_decrypt_raw): Require a caller to pass a complete skey array.
+	(elliptic_curve_t): Add field NAME.
+	(fill_in_curve): Set field.
+	(generate_key): Add arg R_USED_CURVE.
+	(ecc_generate_ext): Return used curve name.
 
 2011-01-26  Werner Koch  <wk@g10code.com>
 

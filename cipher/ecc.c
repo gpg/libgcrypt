@@ -68,6 +68,7 @@ typedef struct
   gcry_mpi_t b;   /* Second coefficient of the Weierstrass equation.  */
   mpi_point_t G;  /* Base point (generator).  */
   gcry_mpi_t n;   /* Order of G.  */
+  const char *name;  /* Name of curve or NULL.  */
 } elliptic_curve_t;
 
 
@@ -465,13 +466,17 @@ fill_in_curve (unsigned int nbits, const char *name,
                elliptic_curve_t *curve, unsigned int *r_nbits)
 {
   int idx, aliasno;
+  const char *resname = NULL; /* Set to a found curve name.  */
 
   if (name)
     {
-      /* First check nor native curves.  */
+      /* First check our native curves.  */
       for (idx = 0; domain_parms[idx].desc; idx++)
         if (!strcmp (name, domain_parms[idx].desc))
-          break;
+          {
+            resname = domain_parms[idx].desc;
+            break;
+          }
       /* If not found consult the alias table.  */
       if (!domain_parms[idx].desc)
         {
@@ -483,7 +488,10 @@ fill_in_curve (unsigned int nbits, const char *name,
               for (idx = 0; domain_parms[idx].desc; idx++)
                 if (!strcmp (curve_aliases[aliasno].name,
                              domain_parms[idx].desc))
-                  break;
+                  {
+                    resname = domain_parms[idx].desc;
+                    break;
+                  }
             }
         }
     }
@@ -510,6 +518,7 @@ fill_in_curve (unsigned int nbits, const char *name,
   curve->G.x = scanval (domain_parms[idx].g_x);
   curve->G.y = scanval (domain_parms[idx].g_y);
   curve->G.z = mpi_alloc_set_ui (1);
+  curve->name = resname;
 
   return 0;
 }
@@ -523,7 +532,8 @@ static gpg_err_code_t
 generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
               int transient_key,
               gcry_mpi_t g_x, gcry_mpi_t g_y,
-              gcry_mpi_t q_x, gcry_mpi_t q_y)
+              gcry_mpi_t q_x, gcry_mpi_t q_y,
+              const char **r_usedcurve)
 {
   gpg_err_code_t err;
   elliptic_curve_t E;
@@ -531,6 +541,8 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
   mpi_point_t Q;
   mpi_ec_t ctx;
   gcry_random_level_t random_level;
+
+  *r_usedcurve = NULL;
 
   err = fill_in_curve (nbits, name, &E, &nbits);
   if (err)
@@ -544,7 +556,9 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
       log_mpidump ("ecgen curve  n", E.n);
       log_mpidump ("ecgen curve Gx", E.G.x);
       log_mpidump ("ecgen curve Gy", E.G.y);
-      log_mpidump ("ecgen cyrve Gz", E.G.z);
+      log_mpidump ("ecgen curve Gz", E.G.z);
+      if (E.name)
+        log_debug   ("ecgen curve used: %s\n", E.name);
     }
 
   random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
@@ -584,6 +598,8 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
 
   point_free (&Q);
   mpi_free (d);
+
+  *r_usedcurve = E.name;
   curve_free (&E);
 
   /* Now we can test our keys (this should never fail!).  */
@@ -992,10 +1008,10 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   char *curve_name = NULL;
   gcry_sexp_t l1;
   int transient_key = 0;
+  const char *usedcurve = NULL;
 
   (void)algo;
   (void)evalue;
-  (void)r_extrainfo;
 
   if (genparms)
     {
@@ -1026,10 +1042,13 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   g_y = mpi_new (0);
   q_x = mpi_new (0);
   q_y = mpi_new (0);
-  ec = generate_key (&sk, nbits, curve_name, transient_key, g_x, g_y, q_x, q_y);
+  ec = generate_key (&sk, nbits, curve_name, transient_key, g_x, g_y, q_x, q_y,
+                     &usedcurve);
   gcry_free (curve_name);
   if (ec)
     return ec;
+  if (usedcurve)  /* Fixme: No error return checking.  */
+    gcry_sexp_build (r_extrainfo, NULL, "(curve %s)", usedcurve);
 
   skey[0] = sk.E.p;
   skey[1] = sk.E.a;
@@ -1050,7 +1069,7 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   /* Make an empty list of factors.  */
   *retfactors = gcry_calloc ( 1, sizeof **retfactors );
   if (!*retfactors)
-    return gpg_err_code_from_syserror ();
+    return gpg_err_code_from_syserror ();  /* Fixme: relase mem?  */
 
   if (DBG_CIPHER)
     {
@@ -1659,7 +1678,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
 gcry_pk_spec_t _gcry_pubkey_spec_ecdh =
   {
     "ECDH", ecdh_names,
-    "pabgnq", "pabgnqd", "", "rs", "pabgnq",
+    "pabgnq", "pabgnqd", "rs", "", "pabgnq",
     GCRY_PK_USAGE_ENCR,
     ecc_generate,
     ecc_check_secret_key,

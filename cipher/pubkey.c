@@ -2078,7 +2078,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   char *name = NULL;
   size_t n;
   gcry_err_code_t rc = GPG_ERR_NO_ERROR;
-  int i;
+  int i, j;
   const char *algo_name = NULL;
   int algo;
   const char *sec_elems = NULL, *pub_elems = NULL;
@@ -2196,6 +2196,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     char *string, *p;
     size_t nelem=0, nelem_cp = 0, needed=0;
     gcry_mpi_t mpis[30];
+    int percent_s_idx = -1;
     
     /* Estimate size of format string.  */
     nelem = strlen (pub_elems) + strlen (sec_elems);
@@ -2230,6 +2231,13 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
         p = stpcpy (p, "%m)");
         mpis[nelem++] = skey[i];
       }
+    if (extrainfo && (algo == GCRY_PK_ECDSA || algo == GCRY_PK_ECDH))
+      {
+        /* Very ugly hack to insert the used curve parameter into the
+           list of public key parameters.  */
+        percent_s_idx = nelem;
+        p = stpcpy (p, "%S");
+      }
     p = stpcpy (p, "))");
     p = stpcpy (p, "(private-key(");
     p = stpcpy (p, algo_name);
@@ -2245,7 +2253,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     /* Hack to make release_mpi_array() work.  */
     skey[i] = NULL;
 
-    if (extrainfo)
+    if (extrainfo && percent_s_idx == -1)
       {
         /* If we have extrainfo we should not have any factors.  */
         p = stpcpy (p, "%S");
@@ -2266,6 +2274,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     while (nelem < DIM (mpis))
       mpis[nelem++] = NULL;
 
+    log_debug ("-->%s<-- %d\n", string, percent_s_idx);
     {
       int elem_n = strlen (pub_elems) + strlen (sec_elems);
       void **arg_list;
@@ -2277,16 +2286,19 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
           rc = gpg_err_code_from_errno (errno);
           goto leave;
         }
-      for (i = 0; i < elem_n; i++)
-        arg_list[i] = mpis + i;
-      if (extrainfo)
-        arg_list[i] = &extrainfo;
+      for (i = j = 0; i < elem_n; i++)
+        {
+          if (i == percent_s_idx)
+            arg_list[j++] = &extrainfo;
+          arg_list[j++] = mpis + i;
+        }
+      if (extrainfo && percent_s_idx == -1)
+        arg_list[j] = &extrainfo;
       else if (factors && factors[0])
         {
           for (; i < nelem_cp; i++)
-            arg_list[i] = factors + i - elem_n;
+            arg_list[j++] = factors + i - elem_n;
         }
-      
       rc = gcry_sexp_build_array (r_key, NULL, string, arg_list);
       gcry_free (arg_list);
       if (rc)
