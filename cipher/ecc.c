@@ -351,29 +351,6 @@ curve_free (elliptic_curve_t *E)
 
 
 /*
- * Release a PK object.
- */
-static void
-ecc_pk_free (ECC_public_key *pk)
-{
-  point_free (&pk->Q);
-  curve_free (&pk->E);
-}
-
-
-/*
- * Release a SK object.
- */
-static void
-ecc_sk_free (ECC_secret_key *sk)
-{
-  point_free (&sk->Q);
-  curve_free (&sk->E);
-  mpi_free (sk->d);  sk->d = NULL;
-}
-
-
-/*
  * Return a copy of a curve object.
  */
 static elliptic_curve_t
@@ -447,7 +424,8 @@ gen_k (gcry_mpi_t p, int security_level)
   nbits = mpi_get_nbits (p);
   k = mpi_snew (nbits);
   if (DBG_CIPHER)
-    log_debug ("choosing a random k of %u bits\n", nbits);
+    log_debug ("choosing a random k of %u bits at seclevel %d\n",
+               nbits, security_level);
 
   gcry_mpi_randomize (k, nbits, security_level);
 
@@ -562,9 +540,6 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
     }
 
   random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
-  if (DBG_CIPHER)
-    log_debug ("choosing a random x of size %u%s\n", nbits,
-               transient_key? " (transient-key)":"");
   d = gen_k (E.n, random_level);
 
   /* Compute Q.  */
@@ -648,7 +623,8 @@ test_keys (ECC_secret_key *sk, unsigned int nbits)
   if (DBG_CIPHER)
     log_debug ("ECDSA operation: sign, verify ok.\n");
 
-  ecc_pk_free (&pk);
+  point_free (&pk.Q);
+  curve_free (&pk.E);
 
   point_free (&R_);
   mpi_free (s);
@@ -1368,7 +1344,8 @@ ecc_encrypt_raw (int algo, gcry_mpi_t *resarr, gcry_mpi_t k,
   }
 
   _gcry_mpi_ec_free (ctx);
-  ecc_pk_free (&pk);
+  point_free (&pk.E.G);
+  point_free (&pk.Q);
 
   if (!result[0] || !result[1])
     {
@@ -1469,7 +1446,9 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
 
   point_free (&R);
   _gcry_mpi_ec_free (ctx);
-  ecc_sk_free (&sk) ;
+  point_free (&kG);
+  point_free (&sk.E.G);
+  point_free (&sk.Q);
 
   if (!r)
     return GPG_ERR_ENOMEM;
@@ -1678,7 +1657,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
 gcry_pk_spec_t _gcry_pubkey_spec_ecdh =
   {
     "ECDH", ecdh_names,
-    "pabgnq", "pabgnqd", "rs", "", "pabgnq",
+    "pabgnq", "pabgnqd", "se", "", "pabgnq",
     GCRY_PK_USAGE_ENCR,
     ecc_generate,
     ecc_check_secret_key,

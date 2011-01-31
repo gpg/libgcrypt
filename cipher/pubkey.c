@@ -2274,7 +2274,6 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     while (nelem < DIM (mpis))
       mpis[nelem++] = NULL;
 
-    log_debug ("-->%s<-- %d\n", string, percent_s_idx);
     {
       int elem_n = strlen (pub_elems) + strlen (sec_elems);
       void **arg_list;

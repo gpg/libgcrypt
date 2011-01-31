@@ -1257,36 +1257,76 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 	      ARG_NEXT (m, gcry_mpi_t);
 	      
-	      if (gcry_mpi_print (GCRYMPI_FMT_STD, NULL, 0, &nm, m))
-		BUG ();
+              if (gcry_mpi_get_flag (m, GCRYMPI_FLAG_OPAQUE))
+                {
+                  void *mp;
+                  unsigned int nbits;
 
-	      MAKE_SPACE (nm);
-	      if (!gcry_is_secure (c.sexp->d)
-		  && gcry_mpi_get_flag ( m, GCRYMPI_FLAG_SECURE))
-		{
-		  /* We have to switch to secure allocation.  */
-		  gcry_sexp_t newsexp;
-		  byte *newhead;
-
-		  newsexp = gcry_malloc_secure (sizeof *newsexp
-                                                + c.allocated - 1);
-                  if (!newsexp)
+                  mp = gcry_mpi_get_opaque (m, &nbits);
+                  nm = (nbits+7)/8;
+                  if (mp && nm)
                     {
-                      err = gpg_err_code_from_errno (errno);
-                      goto leave;
-                    }
-		  newhead = newsexp->d;
-		  memcpy (newhead, c.sexp->d, (c.pos - c.sexp->d));
-		  c.pos = newhead + (c.pos - c.sexp->d);
-		  gcry_free (c.sexp);
-		  c.sexp = newsexp;
-		}
+                      MAKE_SPACE (nm);
+                      if (!gcry_is_secure (c.sexp->d)
+                          && gcry_mpi_get_flag (m, GCRYMPI_FLAG_SECURE))
+                        {
+                          /* We have to switch to secure allocation.  */
+                          gcry_sexp_t newsexp;
+                          byte *newhead;
 
-	      *c.pos++ = ST_DATA;
-	      STORE_LEN (c.pos, nm);
-	      if (gcry_mpi_print (GCRYMPI_FMT_STD, c.pos, nm, &nm, m))
-		BUG ();
-	      c.pos += nm;
+                          newsexp = gcry_malloc_secure (sizeof *newsexp
+                                                        + c.allocated - 1);
+                          if (!newsexp)
+                            {
+                              err = gpg_err_code_from_errno (errno);
+                              goto leave;
+                            }
+                          newhead = newsexp->d;
+                          memcpy (newhead, c.sexp->d, (c.pos - c.sexp->d));
+                          c.pos = newhead + (c.pos - c.sexp->d);
+                          gcry_free (c.sexp);
+                          c.sexp = newsexp;
+                        }
+
+                      *c.pos++ = ST_DATA;
+                      STORE_LEN (c.pos, nm);
+                      memcpy (c.pos, mp, nm);
+                      c.pos += nm;
+                    }
+                }
+              else
+                {
+                  if (gcry_mpi_print (GCRYMPI_FMT_STD, NULL, 0, &nm, m))
+                    BUG ();
+
+                  MAKE_SPACE (nm);
+                  if (!gcry_is_secure (c.sexp->d)
+                      && gcry_mpi_get_flag ( m, GCRYMPI_FLAG_SECURE))
+                    {
+                      /* We have to switch to secure allocation.  */
+                      gcry_sexp_t newsexp;
+                      byte *newhead;
+
+                      newsexp = gcry_malloc_secure (sizeof *newsexp
+                                                    + c.allocated - 1);
+                      if (!newsexp)
+                        {
+                          err = gpg_err_code_from_errno (errno);
+                          goto leave;
+                        }
+                      newhead = newsexp->d;
+                      memcpy (newhead, c.sexp->d, (c.pos - c.sexp->d));
+                      c.pos = newhead + (c.pos - c.sexp->d);
+                      gcry_free (c.sexp);
+                      c.sexp = newsexp;
+                    }
+
+                  *c.pos++ = ST_DATA;
+                  STORE_LEN (c.pos, nm);
+                  if (gcry_mpi_print (GCRYMPI_FMT_STD, c.pos, nm, &nm, m))
+                    BUG ();
+                  c.pos += nm;
+                }
 	    }
 	  else if (*p == 's')
 	    {

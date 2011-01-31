@@ -20,6 +20,8 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * Support ECDH.
 
+ * gcry_sexp_build does now support opaque MPIs with "%m".
+
  * Interface changes relative to the 1.4.2 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  GCRY_CIPHER_MODE_AESWRAP   NEW.
