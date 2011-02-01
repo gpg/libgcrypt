@@ -57,6 +57,7 @@ GCRYPT_1.2 {
     gcry_pk_get_keygrip; gcry_pk_get_nbits; gcry_pk_list;
     gcry_pk_map_name; gcry_pk_register; gcry_pk_sign;
     gcry_pk_testkey; gcry_pk_unregister; gcry_pk_verify;
+    gcry_pk_get_curve;
 
     gcry_ac_data_new; gcry_ac_data_destroy; gcry_ac_data_copy;
     gcry_ac_data_length; gcry_ac_data_clear; gcry_ac_data_set;

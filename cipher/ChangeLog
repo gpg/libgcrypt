@@ -1,3 +1,8 @@
+2011-02-01  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (gcry_pk_get_curve): New.
+	* ecc.c (ecc_get_curve): New.
+
 2011-01-31  Werner Koch  <wk@g10code.com>
 
 	* ecc.c (ecc_encrypt_raw, ecc_decrypt_raw): Do not free passed

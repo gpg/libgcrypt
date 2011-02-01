@@ -2482,6 +2482,85 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
 }
 
 
+
+const char *
+gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
+{
+  gcry_mpi_t *pkey = NULL;
+  gcry_sexp_t list = NULL;
+  gcry_sexp_t l2;
+  gcry_module_t module = NULL;
+  pk_extra_spec_t *extraspec;
+  char *name = NULL;
+  const char *result = NULL;
+  int want_private = 1;
+
+  if (r_nbits)
+    *r_nbits = 0;
+
+  REGISTER_DEFAULT_PUBKEYS;
+
+  if (key)
+    {
+      iterator = 0;
+
+      /* Check that the first element is valid. */
+      list = gcry_sexp_find_token (key, "public-key", 0);
+      if (list)
+        want_private = 0;
+      if (!list)
+        list = gcry_sexp_find_token (key, "private-key", 0);
+      if (!list)
+        return NULL; /* No public- or private-key object. */
+
+      l2 = gcry_sexp_cadr (list);
+      gcry_sexp_release (list);
+      list = l2;
+      l2 = NULL;
+
+      name = _gcry_sexp_nth_string (list, 0);
+      if (!name)
+        goto leave; /* Invalid structure of object. */
+
+      /* Get the key. */
+      if (sexp_to_key (key, want_private, &pkey, &module))
+        goto leave;
+    }
+  else
+    {
+      ath_mutex_lock (&pubkeys_registered_lock);
+      module = gcry_pk_lookup_name ("ecc");
+      ath_mutex_unlock (&pubkeys_registered_lock);
+      if (!module)
+        goto leave;
+    }
+
+  extraspec = module->extraspec;
+  if (!extraspec || !extraspec->get_curve)
+    goto leave;
+
+  result = extraspec->get_curve (pkey, iterator, r_nbits);
+
+ leave:
+  if (pkey)
+    {
+      release_mpi_array (pkey);
+      gcry_free (pkey);
+    }
+  if (module)
+    {
+      ath_mutex_lock (&pubkeys_registered_lock);
+      _gcry_module_release (module);
+      ath_mutex_unlock (&pubkeys_registered_lock);
+    }
+  gcry_free (name);
+  gcry_sexp_release (list);
+  return result;
+}
+
+
+
+
 gcry_error_t
 gcry_pk_ctl (int cmd, void *buffer, size_t buflen)
 {

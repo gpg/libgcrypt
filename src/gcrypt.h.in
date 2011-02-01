@@ -1037,6 +1037,10 @@ unsigned int gcry_pk_get_nbits (gcry_sexp_t key) _GCRY_GCC_ATTR_PURE;
    used without contacting the author. */
 unsigned char *gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array);
 
+/* Return the name of the curve matching KEY.  */
+const char *gcry_pk_get_curve (gcry_sexp_t key, int iterator,
+                               unsigned int *r_nbits);
+
 /* Return 0 if the public key algorithm A is available for use. */
 #define gcry_pk_test_algo(a) \
             gcry_pk_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )

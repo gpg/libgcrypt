@@ -1,5 +1,5 @@
 /* visibility.c - Wrapper for all public functions.
- * Copyright (C) 2007, 2008  Free Software Foundation, Inc.
+ * Copyright (C) 2007, 2008, 2011  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -735,6 +735,17 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
       return NULL;
     }
   return _gcry_pk_get_keygrip (key, array);
+}
+
+const char *
+gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
+{
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      return NULL;
+    }
+  return _gcry_pk_get_curve (key, iterator, r_nbits);
 }
 
 gcry_error_t

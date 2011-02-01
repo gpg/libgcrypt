@@ -1,5 +1,5 @@
 /* cipher-proto.h - Internal declarations
- *	Copyright (C) 2008 Free Software Foundation, Inc.
+ *	Copyright (C) 2008, 2011 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -53,9 +53,13 @@ typedef gcry_err_code_t (*pk_ext_generate_t)
 typedef gpg_err_code_t (*pk_comp_keygrip_t)
      (gcry_md_hd_t md, gcry_sexp_t keyparm);
 
-/* The type used to quert ECC curve parameters.  */
+/* The type used to query ECC curve parameters.  */
 typedef gcry_err_code_t (*pk_get_param_t)
      (const char *name, gcry_mpi_t *pkey);
+
+/* The type used to query an ECC curve name.  */
+typedef const char *(*pk_get_curve_t)(gcry_mpi_t *pkey, int iterator,
+                                      unsigned int *r_nbits);
 
 /* The type used to convey additional information to a cipher.  */
 typedef gpg_err_code_t (*cipher_set_extra_info_t)
@@ -82,6 +86,7 @@ typedef struct pk_extra_spec
   pk_ext_generate_t ext_generate;
   pk_comp_keygrip_t comp_keygrip;
   pk_get_param_t get_param;
+  pk_get_curve_t get_curve;
 } pk_extra_spec_t;
 
 

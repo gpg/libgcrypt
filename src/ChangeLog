@@ -1,3 +1,10 @@
+2011-02-01  Werner Koch  <wk@g10code.com>
+
+	* libgcrypt.vers (gcry_pk_get_curve): Add.
+	* libgcrypt.def (gcry_pk_get_curve): Add.
+	* visibility.c (gcry_pk_get_curve): New.
+	* cipher-proto.h (pk_extra_spec): Add field GET_CURVE.
+
 2011-01-31  Werner Koch  <wk@g10code.com>
 
 	* sexp.c (vsexp_sscan): Allow opaque MPIs in "%m".

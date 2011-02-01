@@ -1,3 +1,7 @@
+2011-02-01  Werner Koch  <wk@g10code.com>
+
+	* curves.c: New.
+
 2011-01-04  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am (LDADD): Fix typo in last change.  Reported by
