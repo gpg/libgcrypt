@@ -234,3 +234,4 @@ EXPORTS
       gcry_mpi_lshift       @191
 
       gcry_pk_get_curve     @192
+      gcry_pk_get_param     @193

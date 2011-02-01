@@ -1071,7 +1071,7 @@ ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
 }
 
 
-/* Return the parameters of the curve NAME.  */
+/* Return the parameters of the curve NAME in an MPI array.  */
 static gcry_err_code_t
 ecc_get_param (const char *name, gcry_mpi_t *pkey)
 {
@@ -1104,6 +1104,29 @@ ecc_get_param (const char *name, gcry_mpi_t *pkey)
   mpi_free (g_y);
 
   return 0;
+}
+
+
+/* Return the parameters of the curve NAME as an S-expression.  */
+static gcry_sexp_t
+ecc_get_param_sexp (const char *name)
+{
+  gcry_mpi_t pkey[6];
+  gcry_sexp_t result;
+  int i;
+
+  if (ecc_get_param (name, pkey))
+    return NULL;
+
+  if (gcry_sexp_build (&result, NULL,
+                       "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)))",
+                       pkey[0], pkey[1], pkey[2], pkey[3], pkey[4]))
+    result = NULL;
+
+  for (i=0; pkey[i]; i++)
+    gcry_mpi_release (pkey[i]);
+
+  return result;
 }
 
 
@@ -1759,5 +1782,6 @@ pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa =
     ecc_generate_ext,
     compute_keygrip,
     ecc_get_param,
-    ecc_get_curve
+    ecc_get_curve,
+    ecc_get_param_sexp
   };

@@ -104,6 +104,7 @@
 #define gcry_pk_genkey              _gcry_pk_genkey
 #define gcry_pk_get_keygrip         _gcry_pk_get_keygrip
 #define gcry_pk_get_curve           _gcry_pk_get_curve
+#define gcry_pk_get_param           _gcry_pk_get_param
 #define gcry_pk_get_nbits           _gcry_pk_get_nbits
 #define gcry_pk_list                _gcry_pk_list
 #define gcry_pk_map_name            _gcry_pk_map_name
@@ -360,6 +361,7 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 #undef gcry_pk_genkey             
 #undef gcry_pk_get_keygrip        
 #undef gcry_pk_get_curve
+#undef gcry_pk_get_param
 #undef gcry_pk_get_nbits          
 #undef gcry_pk_list               
 #undef gcry_pk_map_name           
@@ -571,6 +573,7 @@ MARK_VISIBLE (gcry_pk_encrypt)
 MARK_VISIBLE (gcry_pk_genkey)
 MARK_VISIBLE (gcry_pk_get_keygrip)
 MARK_VISIBLE (gcry_pk_get_curve)
+MARK_VISIBLE (gcry_pk_get_param)
 MARK_VISIBLE (gcry_pk_get_nbits)
 MARK_VISIBLE (gcry_pk_list)
 MARK_VISIBLE (gcry_pk_map_name)

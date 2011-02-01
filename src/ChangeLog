@@ -1,9 +1,11 @@
 2011-02-01  Werner Koch  <wk@g10code.com>
 
-	* libgcrypt.vers (gcry_pk_get_curve): Add.
-	* libgcrypt.def (gcry_pk_get_curve): Add.
-	* visibility.c (gcry_pk_get_curve): New.
-	* cipher-proto.h (pk_extra_spec): Add field GET_CURVE.
+	* gcrypt.h.in (gcry_pk_get_curve, gcry_pk_get_param): New.
+	* libgcrypt.vers (gcry_pk_get_curve, gcry_pk_get_param): Add.
+	* libgcrypt.def (gcry_pk_get_curve, gcry_pk_get_param): Add.
+	* visibility.c (gcry_pk_get_curve, gcry_pk_get_param): New.
+	* cipher-proto.h (pk_extra_spec): Add fields GET_CURVE and
+	GET_CURVE_PARM.
 
 2011-01-31  Werner Koch  <wk@g10code.com>
 
@@ -2226,9 +2228,9 @@ Tue Dec  8 13:15:16 CET 1998  Werner Koch  <wk@isil.d.shuttle.de>
 	* gcrypt.h: New
 	* mpiapi.c: New
 
-	
+
  Copyright (C) 1998,1999,2000,2001,2002,2003
-	       2004, 2005, 2008, 2009 Free Software Foundation, Inc.
+	       2004, 2005, 2008, 2009, 2011 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

@@ -1,5 +1,5 @@
 /* pubkey.c  -	pubkey dispatcher
- * Copyright (C) 1998, 1999, 2000, 2002, 2003, 2005, 
+ * Copyright (C) 1998, 1999, 2000, 2002, 2003, 2005,
  *               2007, 2008, 2011 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
@@ -55,7 +55,7 @@ static struct pubkey_table_entry
   gcry_pk_spec_t *pubkey;
   pk_extra_spec_t *extraspec;
   unsigned int algorithm;
-  int fips_allowed; 
+  int fips_allowed;
 } pubkey_table[] =
   {
 #if USE_RSA
@@ -199,7 +199,7 @@ pk_register_default (void)
 {
   gcry_err_code_t err = 0;
   int i;
-  
+
   for (i = 0; (! err) && pubkey_table[i].pubkey; i++)
     {
 #define pubkey_use_dummy(func)                       \
@@ -217,8 +217,8 @@ pk_register_default (void)
 
       err = _gcry_module_add (&pubkeys_registered,
 			      pubkey_table[i].algorithm,
-			      (void *) pubkey_table[i].pubkey, 
-			      (void *) pubkey_table[i].extraspec, 
+			      (void *) pubkey_table[i].pubkey,
+			      (void *) pubkey_table[i].extraspec,
                               NULL);
     }
 
@@ -242,7 +242,7 @@ gcry_pk_lookup_func_name (void *spec, void *data)
 }
 
 /* Internal function.  Lookup a pubkey entry by it's name.  */
-static gcry_module_t 
+static gcry_module_t
 gcry_pk_lookup_name (const char *name)
 {
   gcry_module_t pubkey;
@@ -271,8 +271,8 @@ _gcry_pk_register (gcry_pk_spec_t *pubkey,
 
   ath_mutex_lock (&pubkeys_registered_lock);
   err = _gcry_module_add (&pubkeys_registered, 0,
-			  (void *) pubkey, 
-			  (void *)(extraspec? extraspec : &dummy_extra_spec), 
+			  (void *) pubkey,
+			  (void *)(extraspec? extraspec : &dummy_extra_spec),
                           &mod);
   ath_mutex_unlock (&pubkeys_registered_lock);
 
@@ -561,13 +561,13 @@ pubkey_generate (int algorithm,
       if (extraspec && extraspec->ext_generate)
         {
           /* Use the extended generate function.  */
-          ec = extraspec->ext_generate 
+          ec = extraspec->ext_generate
             (algorithm, nbits, use_e, genparms, skey, retfactors, r_extrainfo);
         }
       else
         {
           /* Use the standard generate function.  */
-          ec = ((gcry_pk_spec_t *) pubkey->spec)->generate 
+          ec = ((gcry_pk_spec_t *) pubkey->spec)->generate
             (algorithm, nbits, use_e, skey, retfactors);
         }
       _gcry_module_release (pubkey);
@@ -617,7 +617,7 @@ pubkey_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
 
   /* Note: In fips mode DBG_CIPHER will enver evaluate to true but as
      an extra failsafe protection we explicitly test for fips mode
-     here. */ 
+     here. */
   if (DBG_CIPHER && !fips_mode ())
     {
       log_debug ("pubkey_encrypt: algo=%d\n", algorithm);
@@ -686,7 +686,7 @@ pubkey_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data,
     }
 
   rc = GPG_ERR_PUBKEY_ALGO;
-  
+
  ready:
   ath_mutex_unlock (&pubkeys_registered_lock);
 
@@ -857,7 +857,11 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
   /* Clear the array for easier error cleanup. */
   for (name = element_names, idx = 0; *name; name++, idx++)
     elements[idx] = NULL;
-  gcry_assert (idx >= 6); /* We know that ECC has at least 6 elements.  */
+  gcry_assert (idx >= 5); /* We know that ECC has at least 5 elements
+                             (params only) or 6 (full public key).  */
+  if (idx == 5)
+    elements[5] = NULL;   /* Extra clear for the params only case.  */
+
 
   /* Init the array with the available curve parameters. */
   for (name = element_names, idx = 0; *name && !err; name++, idx++)
@@ -886,23 +890,23 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
         {
           char *curve;
           gcry_mpi_t params[6];
-          
+
           for (idx = 0; idx < DIM(params); idx++)
             params[idx] = NULL;
-          
+
           curve = _gcry_sexp_nth_string (list, 1);
           gcry_sexp_release (list);
           if (!curve)
             {
               /* No curve name given (or out of core). */
-              err = GPG_ERR_INV_OBJ; 
+              err = GPG_ERR_INV_OBJ;
               goto leave;
             }
           err = extraspec->get_param (curve, params);
           gcry_free (curve);
           if (err)
             goto leave;
-          
+
           for (idx = 0; idx < DIM(params); idx++)
             {
               if (!elements[idx])
@@ -926,7 +930,7 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
         err = GPG_ERR_NO_OBJ;
         goto leave;
       }
-  
+
  leave:
   if (err)
     {
@@ -958,6 +962,10 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
  * NOTE: we look through the list to find a list beginning with
  * "private-key" or "public-key" - the first one found is used.
  *
+ * If OVERRIDE_ELEMS is not NULL those elems override the parameter
+ * specification taken from the module.  This ise used by
+ * gcry_pk_get_curve.
+ *
  * Returns: A pointer to an allocated array of MPIs if the return value is
  *	    zero; the caller has to release this array.
  *
@@ -973,8 +981,8 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
  * The <mpi> are expected to be in GCRYMPI_FMT_USG
  */
 static gcry_err_code_t
-sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
-             gcry_module_t *retalgo)
+sexp_to_key (gcry_sexp_t sexp, int want_private, const char *override_elems,
+             gcry_mpi_t **retarray, gcry_module_t *retalgo)
 {
   gcry_err_code_t err = 0;
   gcry_sexp_t list, l2;
@@ -987,7 +995,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
   int is_ecc;
 
   /* Check that the first element is valid.  */
-  list = gcry_sexp_find_token (sexp, 
+  list = gcry_sexp_find_token (sexp,
                                want_private? "private-key":"public-key", 0);
   if (!list)
     return GPG_ERR_INV_OBJ; /* Does not contain a key object.  */
@@ -1005,18 +1013,18 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
   ath_mutex_lock (&pubkeys_registered_lock);
   module = gcry_pk_lookup_name (name);
   ath_mutex_unlock (&pubkeys_registered_lock);
-  
+
   /* Fixme: We should make sure that an ECC key is always named "ecc"
      and not "ecdsa".  "ecdsa" should be used for the signature
      itself.  We need a function to test whether an algorithm given
      with a key is compatible with an application of the key (signing,
      encryption).  For RSA this is easy, but ECC is the first
      algorithm which has many flavours.  */
-  is_ecc = ( !strcmp (name, "ecdsa") 
+  is_ecc = ( !strcmp (name, "ecdsa")
              || !strcmp (name, "ecdh")
              || !strcmp (name, "ecc") );
   gcry_free (name);
-  
+
   if (!module)
     {
       gcry_sexp_release (list);
@@ -1028,7 +1036,12 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
       extraspec = module->extraspec;
     }
 
-  elems = want_private ? pubkey->elements_skey : pubkey->elements_pkey;
+  if (override_elems)
+    elems = override_elems;
+  else if (want_private)
+    elems = pubkey->elements_skey;
+  else
+    elems = pubkey->elements_pkey;
   array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
   if (!array)
     err = gpg_err_code_from_errno (errno);
@@ -1039,9 +1052,9 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
       else
         err = sexp_elements_extract (list, elems, array, pubkey->name);
     }
-  
+
   gcry_sexp_release (list);
-  
+
   if (err)
     {
       gcry_free (array);
@@ -1055,7 +1068,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, gcry_mpi_t **retarray,
       *retarray = array;
       *retalgo = module;
     }
-  
+
   return err;
 }
 
@@ -1071,7 +1084,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
   gcry_mpi_t *array;
   gcry_module_t module;
   gcry_pk_spec_t *pubkey;
-  
+
   /* Check that the first element is valid.  */
   list = gcry_sexp_find_token( sexp, "sig-val" , 0 );
   if (!list)
@@ -1090,7 +1103,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
       gcry_sexp_release (l2);
       return GPG_ERR_INV_OBJ;  /* Invalid structure of object.  */
     }
-  else if (!strcmp (name, "flags")) 
+  else if (!strcmp (name, "flags"))
     {
       /* Skip flags, since they are not used but here just for the
 	 sake of consistent S-expressions.  */
@@ -1104,7 +1117,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
 	}
       name = _gcry_sexp_nth_string (l2, 0);
     }
-      
+
   ath_mutex_lock (&pubkeys_registered_lock);
   module = gcry_pk_lookup_name (name);
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -1136,7 +1149,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
       ath_mutex_lock (&pubkeys_registered_lock);
       _gcry_module_release (module);
       ath_mutex_unlock (&pubkeys_registered_lock);
-      
+
       gcry_free (array);
     }
   else
@@ -1144,7 +1157,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
       *retarray = array;
       *retalgo = module;
     }
-  
+
   return err;
 }
 
@@ -1200,13 +1213,13 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
       err = GPG_ERR_INV_OBJ; /* Invalid structure of object.  */
       goto leave;
     }
-  
+
   if (!strcmp (name, "flags"))
     {
       /* There is a flags element - process it.  */
       const char *s;
       int i;
-      
+
       *ret_modern = 1;
       for (i = gcry_sexp_length (l2) - 1; i > 0; i--)
         {
@@ -1225,7 +1238,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
               goto leave;
             }
         }
-      
+
       /* Get the next which has the actual data. */
       gcry_sexp_release (l2);
       l2 = gcry_sexp_nth (list, 2);
@@ -1252,7 +1265,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
   ath_mutex_lock (&pubkeys_registered_lock);
   module = gcry_pk_lookup_name (name);
   ath_mutex_unlock (&pubkeys_registered_lock);
-  
+
   if (!module)
     {
       err = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm.  */
@@ -1296,7 +1309,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
    passing to the low level functions.  We currently support the
    old style way of passing just a MPI and the modern interface which
    allows to pass flags so that we can choose between raw and pkcs1
-   padding - may be more padding options later. 
+   padding - may be more padding options later.
 
    (<mpi>)
    or
@@ -1305,11 +1318,11 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
     [(hash <algo> <value>)]
     [(value <text>)]
    )
-   
+
    Either the VALUE or the HASH element must be present for use
    with signatures.  VALUE is used for encryption.
 
-   NBITS is the length of the key in bits. 
+   NBITS is the length of the key in bits.
 
 */
 static gcry_err_code_t
@@ -1321,12 +1334,12 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
   int i;
   size_t n;
   const char *s;
-  int is_raw = 0, is_pkcs1 = 0, unknown_flag=0; 
+  int is_raw = 0, is_pkcs1 = 0, unknown_flag=0;
   int parsed_flags = 0, dummy_flags;
 
   if (! flags)
     flags = &dummy_flags;
-  
+
   *ret_mpi = NULL;
   ldata = gcry_sexp_find_token (input, "data", 0);
   if (!ldata)
@@ -1378,7 +1391,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
         rc = GPG_ERR_INV_OBJ;
     }
   else if (is_pkcs1 && lvalue && for_encryption)
-    { 
+    {
       /* Create pkcs#1 block type 2 padding. */
       unsigned char *frame = NULL;
       size_t nframe = (nbits+7) / 8;
@@ -1408,7 +1421,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
             {
               int j, k;
               unsigned char *pp;
-              
+
               /* Count the zero bytes. */
               for (j=k=0; j < i; j++)
                 {
@@ -1417,7 +1430,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
                 }
               if (!k)
                 break; /* Okay: no (more) zero bytes. */
-              
+
               k += k/128 + 3; /* Better get some more. */
               pp = gcry_random_bytes_secure (k, GCRY_STRONG_RANDOM);
               for (j=0; j < i && k; )
@@ -1432,7 +1445,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
           memcpy (frame+n, p, i);
           n += i;
           gcry_free (p);
-          
+
           frame[n++] = 0;
           memcpy (frame+n, value, valuelen);
           n += valuelen;
@@ -1445,7 +1458,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
       gcry_free(frame);
     }
   else if (is_pkcs1 && lhash && !for_encryption)
-    { 
+    {
       /* Create pkcs#1 block type 1 padding. */
       if (gcry_sexp_length (lhash) != 3)
         rc = GPG_ERR_INV_OBJ;
@@ -1453,7 +1466,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
         rc = GPG_ERR_INV_OBJ;
       else
         {
-          static struct { const char *name; int algo; } hashnames[] = 
+          static struct { const char *name; int algo; } hashnames[] =
           { { "sha1",   GCRY_MD_SHA1 },
             { "md5",    GCRY_MD_MD5 },
             { "sha256", GCRY_MD_SHA256 },
@@ -1475,7 +1488,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
           const void * value;
           size_t valuelen;
           size_t asnlen, dlen;
-            
+
           for (i=0; hashnames[i].name; i++)
             {
               if ( strlen (hashnames[i].name) == n
@@ -1546,17 +1559,17 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
               memcpy (frame+n, value, valuelen );
               n += valuelen;
               gcry_assert (n == nframe);
-      
+
               /* Convert it into an MPI.  FIXME: error checking?  */
               gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, n, &nframe);
             }
-          
+
           gcry_free (frame);
         }
     }
   else
     rc = GPG_ERR_CONFLICT;
-   
+
   gcry_sexp_release (ldata);
   gcry_sexp_release (lhash);
   gcry_sexp_release (lvalue);
@@ -1570,16 +1583,16 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
 
 /*
    Do a PK encrypt operation
-  
+
    Caller has to provide a public key as the SEXP pkey and data as a
    SEXP with just one MPI in it. Alternatively S_DATA might be a
    complex S-Expression, similar to the one used for signature
    verification.  This provides a flag which allows to handle PKCS#1
    block type 2 padding.  The function returns a a sexp which may be
    passed to to pk_decrypt.
-  
+
    Returns: 0 or an errorcode.
-  
+
    s_data = See comment for sexp_data_to_mpi
    s_pkey = <key-as-defined-in-sexp_to_key>
    r_ciph = (enc-val
@@ -1605,7 +1618,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   REGISTER_DEFAULT_PUBKEYS;
 
   /* Get the key. */
-  rc = sexp_to_key (s_pkey, 0, &pkey, &module);
+  rc = sexp_to_key (s_pkey, 0, NULL, &pkey, &module);
   if (rc)
     goto leave;
 
@@ -1620,9 +1633,9 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   algo_name = pubkey->aliases? *pubkey->aliases : NULL;
   if (!algo_name || !*algo_name)
     algo_name = pubkey->name;
-  
+
   algo_elems = pubkey->elements_enc;
-  
+
   /* Get the stuff we want to encrypt. */
   rc = sexp_data_to_mpi (s_data, gcry_pk_get_nbits (s_pkey), &data, 1,
                          &flags);
@@ -1649,7 +1662,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     size_t nelem = strlen (algo_elems);
     size_t needed = 19 + strlen (algo_name) + (nelem * 5);
     void **arg_list;
-    
+
     /* Build the string.  */
     string = p = gcry_malloc (needed);
     if (!string)
@@ -1666,7 +1679,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
         p = stpcpy ( p, "%m)" );
       }
     strcpy ( p, "))" );
-    
+
     /* And now the ugly part: We don't have a function to pass an
      * array to a format string, so we have to do it this way :-(.  */
     /* FIXME: There is now such a format specifier, so we can
@@ -1680,7 +1693,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 
     for (i = 0; i < nelem; i++)
       arg_list[i] = ciph + i;
-    
+
     rc = gcry_sexp_build_array (r_ciph, NULL, string, arg_list);
     free (arg_list);
     if (rc)
@@ -1711,18 +1724,18 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   return gcry_error (rc);
 }
 
-/* 
+/*
    Do a PK decrypt operation
-  
+
    Caller has to provide a secret key as the SEXP skey and data in a
    format as created by gcry_pk_encrypt.  For historic reasons the
    function returns simply an MPI as an S-expression part; this is
    deprecated and the new method should be used which returns a real
    S-expressionl this is selected by adding at least an empty flags
    list to S_DATA.
-   
+
    Returns: 0 or an errorcode.
-  
+
    s_data = (enc-val
               [(flags)]
               (<algo>
@@ -1733,7 +1746,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
    s_skey = <key-as-defined-in-sexp_to_key>
    r_plain= Either an incomplete S-expression without the parentheses
             or if the flags list is used (even if empty) a real S-expression:
-            (value PLAIN). 
+            (value PLAIN).
  */
 gcry_error_t
 gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
@@ -1748,14 +1761,14 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 
   REGISTER_DEFAULT_PUBKEYS;
 
-  rc = sexp_to_key (s_skey, 1, &skey, &module_key);
+  rc = sexp_to_key (s_skey, 1, NULL, &skey, &module_key);
   if (rc)
     goto leave;
 
   rc = sexp_to_enc (s_data, &data, &module_enc, &modern, &want_pkcs1, &flags);
   if (rc)
     goto leave;
-  
+
   if (module_key->mod_id != module_enc->mod_id)
     {
       rc = GPG_ERR_CONFLICT; /* Key algo does not match data algo. */
@@ -1770,7 +1783,7 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 
   if (gcry_sexp_build (r_plain, NULL, modern? "(value %m)" : "%m", plain))
     BUG ();
-  
+
  leave:
   if (skey)
     {
@@ -1804,29 +1817,29 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 
 /*
    Create a signature.
-  
+
    Caller has to provide a secret key as the SEXP skey and data
    expressed as a SEXP list hash with only one element which should
    instantly be available as a MPI. Alternatively the structure given
    below may be used for S_HASH, it provides the abiliy to pass flags
    to the operation; the only flag defined by now is "pkcs1" which
    does PKCS#1 block type 1 style padding.
-  
+
    Returns: 0 or an errorcode.
             In case of 0 the function returns a new SEXP with the
             signature value; the structure of this signature depends on the
             other arguments but is always suitable to be passed to
             gcry_pk_verify
-  
+
    s_hash = See comment for sexp_data_to_mpi
-               
+
    s_skey = <key-as-defined-in-sexp_to_key>
    r_sig  = (sig-val
               (<algo>
                 (<param_name1> <mpi>)
                 ...
                 (<param_namen> <mpi>))
-             [(hash algo)]) 
+             [(hash algo)])
 
   Note that (hash algo) in R_SIG is not used.
 */
@@ -1844,7 +1857,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 
   REGISTER_DEFAULT_PUBKEYS;
 
-  rc = sexp_to_key (s_skey, 1, &skey, &module);
+  rc = sexp_to_key (s_skey, 1, NULL, &skey, &module);
   if (rc)
     goto leave;
 
@@ -1853,7 +1866,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   algo_name = pubkey->aliases? *pubkey->aliases : NULL;
   if (!algo_name || !*algo_name)
     algo_name = pubkey->name;
-  
+
   algo_elems = pubkey->elements_sig;
 
   /* Get the stuff we want to sign.  Note that pk_get_nbits does also
@@ -1879,7 +1892,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
     void **arg_list;
 
     nelem = strlen (algo_elems);
-    
+
     /* Count elements, so that we can allocate enough space. */
     needed += 10 * nelem;
 
@@ -1952,8 +1965,8 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
   gcry_err_code_t rc;
 
   REGISTER_DEFAULT_PUBKEYS;
- 
-  rc = sexp_to_key (s_pkey, 0, &pkey, &module_key);
+
+  rc = sexp_to_key (s_pkey, 0, NULL, &pkey, &module_key);
   if (rc)
     goto leave;
 
@@ -2009,9 +2022,9 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 
    This may be used either for a public or a secret key to see whether
    the internal structure is okay.
-  
+
    Returns: 0 or an errorcode.
-  
+
    s_key = <key-as-defined-in-sexp_to_key> */
 gcry_error_t
 gcry_pk_testkey (gcry_sexp_t s_key)
@@ -2019,11 +2032,11 @@ gcry_pk_testkey (gcry_sexp_t s_key)
   gcry_module_t module = NULL;
   gcry_mpi_t *key = NULL;
   gcry_err_code_t rc;
-  
+
   REGISTER_DEFAULT_PUBKEYS;
 
   /* Note we currently support only secret key checking. */
-  rc = sexp_to_key (s_key, 1, &key, &module);
+  rc = sexp_to_key (s_key, 1, NULL, &key, &module);
   if (! rc)
     {
       rc = pubkey_check_secret_key (module->mod_id, key);
@@ -2116,7 +2129,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       rc = GPG_ERR_INV_OBJ; /* Algo string missing.  */
       goto leave;
     }
-  
+
   ath_mutex_lock (&pubkeys_registered_lock);
   module = gcry_pk_lookup_name (name);
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -2127,7 +2140,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       rc = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm.  */
       goto leave;
     }
-  
+
   pubkey = (gcry_pk_spec_t *) module->spec;
   algo = module->mod_id;
   algo_name = pubkey->aliases? *pubkey->aliases : NULL;
@@ -2181,11 +2194,11 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       nbits = (unsigned int)strtoul (buf, NULL, 0);
       gcry_sexp_release (l2); l2 = NULL;
     }
-  else 
+  else
     nbits = 0;
 
   /* Pass control to the algorithm module. */
-  rc = pubkey_generate (module->mod_id, nbits, use_e, list, skey, 
+  rc = pubkey_generate (module->mod_id, nbits, use_e, list, skey,
                         &factors, &extrainfo);
   gcry_sexp_release (list); list = NULL;
   if (rc)
@@ -2197,7 +2210,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     size_t nelem=0, nelem_cp = 0, needed=0;
     gcry_mpi_t mpis[30];
     int percent_s_idx = -1;
-    
+
     /* Estimate size of format string.  */
     nelem = strlen (pub_elems) + strlen (sec_elems);
     if (factors)
@@ -2320,7 +2333,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       release_mpi_array ( factors );
       gcry_free (factors);
     }
-  
+
   gcry_sexp_release (l3);
   gcry_sexp_release (l2);
   gcry_sexp_release (list);
@@ -2336,7 +2349,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 }
 
 
-/* 
+/*
    Get the number of nbits from the public key.
 
    Hmmm: Should we have really this function or is it better to have a
@@ -2352,15 +2365,15 @@ gcry_pk_get_nbits (gcry_sexp_t key)
 
   REGISTER_DEFAULT_PUBKEYS;
 
-  rc = sexp_to_key (key, 0, &keyarr, &module);
+  rc = sexp_to_key (key, 0, NULL, &keyarr, &module);
   if (rc == GPG_ERR_INV_OBJ)
-    rc = sexp_to_key (key, 1, &keyarr, &module);
+    rc = sexp_to_key (key, 1, NULL, &keyarr, &module);
   if (rc)
     return 0; /* Error - 0 is a suitable indication for that. */
 
   pubkey = (gcry_pk_spec_t *) module->spec;
   nbits = (*pubkey->get_nbits) (module->mod_id, keyarr);
-  
+
   ath_mutex_lock (&pubkeys_registered_lock);
   _gcry_module_release (module);
   ath_mutex_unlock (&pubkeys_registered_lock);
@@ -2427,7 +2440,7 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   elems = pubkey->elements_grip;
   if (!elems)
     goto fail; /* No grip parameter.  */
-    
+
   if (gcry_md_open (&md, GCRY_MD_SHA1, 0))
     goto fail;
 
@@ -2445,14 +2458,14 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
           const char *data;
           size_t datalen;
           char buf[30];
-          
+
           l2 = gcry_sexp_find_token (list, s, 1);
           if (! l2)
             goto fail;
           data = gcry_sexp_nth_data (l2, 1, &datalen);
           if (! data)
             goto fail;
-          
+
           snprintf (buf, sizeof buf, "(1:%c%u:", *s, (unsigned int)datalen);
           gcry_md_write (md, buf, strlen (buf));
           gcry_md_write (md, data, datalen);
@@ -2460,7 +2473,7 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
           gcry_md_write (md, ")", 1);
         }
     }
-  
+
   if (!array)
     {
       array = gcry_malloc (20);
@@ -2522,8 +2535,10 @@ gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
       if (!name)
         goto leave; /* Invalid structure of object. */
 
-      /* Get the key. */
-      if (sexp_to_key (key, want_private, &pkey, &module))
+      /* Get the key.  We pass the names of the parameters for
+         override_elems; this allows to call this function without the
+         actual public key parameter.  */
+      if (sexp_to_key (key, want_private, "pabgn", &pkey, &module))
         goto leave;
     }
   else
@@ -2558,6 +2573,35 @@ gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
   return result;
 }
 
+
+
+gcry_sexp_t
+gcry_pk_get_param (int algo, const char *name)
+{
+  gcry_module_t module = NULL;
+  pk_extra_spec_t *extraspec;
+  gcry_sexp_t result = NULL;
+
+  if (algo != GCRY_PK_ECDSA && algo != GCRY_PK_ECDH)
+    return NULL;
+
+  REGISTER_DEFAULT_PUBKEYS;
+
+  ath_mutex_lock (&pubkeys_registered_lock);
+  module = gcry_pk_lookup_name ("ecc");
+  ath_mutex_unlock (&pubkeys_registered_lock);
+  if (module)
+    {
+      extraspec = module->extraspec;
+      if (extraspec && extraspec->get_curve_param)
+        result = extraspec->get_curve_param (name);
+
+      ath_mutex_lock (&pubkeys_registered_lock);
+      _gcry_module_release (module);
+      ath_mutex_unlock (&pubkeys_registered_lock);
+    }
+  return result;
+}
 
 
 
@@ -2602,7 +2646,7 @@ gcry_pk_ctl (int cmd, void *buffer, size_t buflen)
         returns 0.  Disabled algos are ignored here because we
         only want to know whether the algo is at all capable of
         the usage.
-  
+
    Note: Because this function is in most cases used to return an
    integer value, we can make it easier for the caller to just look at
    the return value.  The caller will in all cases consult the value
@@ -2765,7 +2809,7 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
     {
       ec = GPG_ERR_PUBKEY_ALGO;
       if (report)
-        report ("pubkey", algo, "module", 
+        report ("pubkey", algo, "module",
                 module && !(module->flags & FLAG_MODULE_DISABLED)?
                 "no selftest available" :
                 module? "algorithm disabled" : "algorithm not found");
@@ -2814,7 +2858,7 @@ _gcry_pk_get_elements (int algo, char **enc, char **sig)
 	  goto out;
 	}
     }
-  
+
   if (sig)
     {
       sig_cp = strdup (spec->elements_sig);

@@ -748,6 +748,17 @@ gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
   return _gcry_pk_get_curve (key, iterator, r_nbits);
 }
 
+gcry_sexp_t
+gcry_pk_get_param (int algo, const char *name)
+{
+  if (!fips_is_operational ())
+    {
+      (void)fips_not_operational ();
+      return NULL;
+    }
+  return _gcry_pk_get_param (algo, name);
+}
+
 gcry_error_t
 gcry_pk_list (int *list, int *list_length)
 {

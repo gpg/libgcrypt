@@ -61,6 +61,9 @@ typedef gcry_err_code_t (*pk_get_param_t)
 typedef const char *(*pk_get_curve_t)(gcry_mpi_t *pkey, int iterator,
                                       unsigned int *r_nbits);
 
+/* The type used to query ECC curve parameters by name.  */
+typedef gcry_sexp_t (*pk_get_curve_param_t)(const char *name);
+
 /* The type used to convey additional information to a cipher.  */
 typedef gpg_err_code_t (*cipher_set_extra_info_t)
      (void *c, int what, const void *buffer, size_t buflen);
@@ -87,6 +90,7 @@ typedef struct pk_extra_spec
   pk_comp_keygrip_t comp_keygrip;
   pk_get_param_t get_param;
   pk_get_curve_t get_curve;
+  pk_get_curve_param_t get_curve_param;
 } pk_extra_spec_t;
 
 

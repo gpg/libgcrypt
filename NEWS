@@ -22,8 +22,8 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * gcry_sexp_build does now support opaque MPIs with "%m".
 
- * New function gcry_pk_get_curve to map ECC parameters to a curve
-   name.
+ * New functions gcry_pk_get_curve and gcry_pk_get_param to map ECC
+   parameters to a curve name and to retrieve parameter values.
 
  * gcry_mpi_cmp applied to opaque values has a defined semantic now.
 
@@ -34,6 +34,7 @@ Noteworthy changes in version 1.5.x (unreleased)
  GCRY_MD_TIGER1             NEW.
  GCRY_MD_TIGER2             NEW.
  gcry_pk_get_curve          NEW.
+ gcry_pk_get_param          NEW.
 
 
 Noteworthy changes in version 1.4.4 (2009-01-22)
