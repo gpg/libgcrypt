@@ -4507,7 +4507,10 @@ The next 2 functions are used to compare MPIs:
 
 Compare the multi-precision-integers number @var{u} and @var{v}
 returning 0 for equality, a positive value for @var{u} > @var{v} and a
-negative for @var{u} < @var{v}.
+negative for @var{u} < @var{v}.  If both numbers are opaque values
+(cf, gcry_mpi_set_opaque) the comparison is done by checking the bit
+sizes using memcmp.  If only one number is an opaque value, the opaque
+value is less than the other number.
 @end deftypefun
 
 @deftypefun int gcry_mpi_cmp_ui (@w{const gcry_mpi_t @var{u}}, @w{unsigned long @var{v}})
