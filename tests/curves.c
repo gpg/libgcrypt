@@ -197,7 +197,7 @@ main (int argc, char **argv)
 
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
-  
+
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
@@ -205,6 +205,6 @@ main (int argc, char **argv)
   list_curves ();
   check_matching ();
   check_get_params ();
-  
+
   return error_count ? 1 : 0;
 }

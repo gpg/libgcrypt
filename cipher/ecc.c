@@ -847,7 +847,7 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
           log_mpidump ("   y", y);
           log_mpidump ("   r", r);
           log_mpidump ("   s", s);
-          log_debug ("ecc verify: Not verified (x != y)\n");
+          log_debug ("ecc verify: Not verified\n");
         }
       err = GPG_ERR_BAD_SIGNATURE;
       goto leave;

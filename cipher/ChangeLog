@@ -7,13 +7,6 @@
 	* ecc.c (ecc_get_curve): New.
 	(ecc_get_param_sexp): New.
 
-2011-01-31  Werner Koch  <wk@g10code.com>
-
-	* ecc.c (ecc_encrypt_raw, ecc_decrypt_raw): Do not free passed
-	parameters.
-	(ecc_sk_free, ecc_pk_free): Remove.
-	(test_keys): Replace ecc_pk_free by point_free and curve_free.
-
 2011-01-28  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (gcry_pk_genkey): Hack to insert the used curve name.
@@ -21,23 +14,8 @@
 2011-01-27  Werner Koch  <wk@g10code.com>
 
 	* ecc.c (fill_in_curve): Remove.
-	(MAX_ECC_OID_LEN): Remove.
-	(elliptic_curve_t, ecc_domain_parms_t): Remove field NAME_OID.
-	(curve_oid_NISTP256, curve_oid_NISTP384, curve_oid_NISTP521):
-	Remove.
 	(generate_curve): Rename to ..
 	(fill_in_curve): this.  Remove setting of NAME_OID.
-	(ecc_generate_ext): Remove kek-params code.
-	(generate_key): Remove name oid stuff.
-	(name_oid_to_mpi): Remove.
-	(mpi_to_name_oid): Remove.
-	(ecc_generate_ext): Revert to pre-ECDH integration state.
-	(ecc_check_secret_key): Ditto.
-	(ecc_sign): Ditto.
-	(ecc_verify): Ditto.
-	(ecc_get_nbits): Revert.
-	(_gcry_pubkey_spec_ecdsa): Revert list or parameters.
-	(_gcry_pubkey_spec_ecdh): Use same parameter list as for ECDSA.
 	(ecc_encrypt_raw): Change name of arg DATA to K for better
 	readability.  Use ECC_public_key instead of ECC_secret_key.
 	Require a caller to pass a complete pkey array.
@@ -47,12 +25,13 @@
 	(generate_key): Add arg R_USED_CURVE.
 	(ecc_generate_ext): Return used curve name.
 
-2011-01-26  Werner Koch  <wk@g10code.com>
+2011-01-13  Andrey Jivsov  <openpgp@brainhub.org>  (wk)
 
-	* pubkey.c (sexp_to_key): Revert to pre-ECDH integration state.
-	Allow for ecdh.
-	* ecc.c (ecc_get_param): Revert to pre-ECDH integration state.
-	(compute_keygrip): Revert to 6 parameter version.
+	* ecc.c (ec2os): Do not free passed parameters X and Y.  Adjust
+	callers.
+	(ecc_encrypt_raw, ecc_decrypt_raw): New.
+	(ecdh_names, _gcry_pubkey_spec_ecdh): New.
+	* pubkey.c (pubkey_table): Support ECDH.
 
 2010-08-19  Werner Koch  <wk@g10code.com>
 
@@ -217,7 +196,7 @@
 	(_gcry_elg_generate_using_x): Remove after merging code with
 	elg_generate_ext.
 	(_gcry_pubkey_extraspec_elg): New.
-	(_gcry_elg_check_secret_key, _gcry_elg_encrypt, _gcry_elg_sign) 
+	(_gcry_elg_check_secret_key, _gcry_elg_encrypt, _gcry_elg_sign)
 	(_gcry_elg_verify, _gcry_elg_get_nbits): Make static and remove
 	_gcry_ prefix.
 	* ecc.c (_gcry_ecc_generate): Rename to ecc_generate_ext and
@@ -225,7 +204,7 @@
 	(_gcry_ecc_get_param): Rename to ecc_get_param and make static.
 	(_gcry_pubkey_extraspec_ecdsa): Add ecc_generate_ext and
 	ecc_get_param.
-	
+
 2008-11-20  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (pubkey_generate): Add arg DERIVEPARMS.
@@ -272,8 +251,8 @@
 	DSA with qbits.
 	* rsa.c (rsa_generate): Add dummy args QBITS, NAME and DOMAIN and
 	rename to rsa_generate_ext.  Change caller.
-	(_gcry_rsa_generate, _gcry_rsa_check_secret_key) 
-	(_gcry_rsa_encrypt, _gcry_rsa_decrypt, _gcry_rsa_sign) 
+	(_gcry_rsa_generate, _gcry_rsa_check_secret_key)
+	(_gcry_rsa_encrypt, _gcry_rsa_decrypt, _gcry_rsa_sign)
 	(_gcry_rsa_verify, _gcry_rsa_get_nbits): Make static and remove
 	_gcry_ prefix.
 	(_gcry_pubkey_spec_rsa, _gcry_pubkey_extraspec_rsa): Adjust names.
@@ -387,7 +366,7 @@
 	(_gcry_rsa_generate): Factor all code out to ...
 	(rsa_generate): .. new func with extra arg KEYGEN_FLAGS.
 	(_gcry_pubkey_extraspec_ecdsa): Setup rsa_generate.
-	* primegen.c (_gcry_generate_secret_prime) 
+	* primegen.c (_gcry_generate_secret_prime)
 	(_gcry_generate_public_prime): Add new arg RANDOM_LEVEL.
 
 2008-08-21  Werner Koch  <wk@g10code.com>
@@ -395,7 +374,7 @@
 	* primegen.c (_gcry_generate_secret_prime)
 	(_gcry_generate_public_prime): Use a constant macro for the random
 	level.
-	
+
 2008-08-19  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (sexp_elements_extract_ecc) [!USE_ECC]: Do not allow
@@ -417,7 +396,7 @@
 	(des_setkey): No on-the-fly self test in fips mode.
 	(tripledes_set3keys): Ditto.
 
-	* cipher.c (_gcry_cipher_setkey, _gcry_cipher_setiv): 
+	* cipher.c (_gcry_cipher_setkey, _gcry_cipher_setiv):
 
 	* dsa.c (generate): Bail out in fips mode if NBITS is less than	1024.
 	* rsa.c (generate): Return an error code if the the requested size
@@ -458,7 +437,7 @@
 
 	* pubkey.c (pubkey_table_entry): Add field FIPS_ALLOWED and mark
 	appropriate algorithms.
-	(dummy_generate, dummy_check_secret_key, dummy_encrypt) 
+	(dummy_generate, dummy_check_secret_key, dummy_encrypt)
 	(dummy_decrypt, dummy_sign, dummy_verify, dummy_get_nbits): Signal
 	a fips error when used.
 	(gcry_pk_register): In fips mode do not allow to register new
@@ -484,7 +463,7 @@
 	algorithms.
 	(gcry_cipher_register): Do not allow to register new ciphers.
 	(cipher_setiv): Signal fips error.
-	
+
 	* cipher (gcry_cipher_register_default): Rename to ..
 	(cipher_register_default): .. this.
 	(REGISTER_DEFAULT_CIPHERS): Adjust for that change.
@@ -502,7 +481,7 @@
 
 2008-04-22  Werner Koch  <wk@g10code.com>
 
-	* rijndael.c (_gcry_aes_cfb_enc, _gcry_aes_cbc_enc) 
+	* rijndael.c (_gcry_aes_cfb_enc, _gcry_aes_cbc_enc)
 	(_gcry_aes_cfb_dec, _gcry_aes_cbc_dec): Use Padlock if possible.
 
 2008-04-18  Werner Koch  <wk@g10code.com>
@@ -624,19 +603,19 @@
 2007-10-31  Werner Koch  <wk@g10code.com>
 
 	* ac.c (gcry_ac_data_new): Remove due to the visibility wrapper.
-	(gcry_ac_data_destroy, gcry_ac_data_copy, gcry_ac_data_length) 
-	(gcry_ac_data_set, gcry_ac_data_get_name, gcry_ac_data_get_index) 
-	(gcry_ac_data_to_sexp, gcry_ac_data_from_sexp) 
-	(gcry_ac_data_clear, gcry_ac_io_init, gcry_ac_open) 
-	(gcry_ac_close, gcry_ac_key_init, gcry_ac_key_pair_generate) 
-	(gcry_ac_key_pair_extract, gcry_ac_key_destroy) 
-	(gcry_ac_key_pair_destroy, gcry_ac_key_data_get) 
-	(gcry_ac_key_test, gcry_ac_key_get_nbits, gcry_ac_key_get_grip) 
-	(gcry_ac_data_encrypt, gcry_ac_data_decrypt, gcry_ac_data_sign) 
-	(gcry_ac_data_verify, gcry_ac_data_encode, gcry_ac_data_decode) 
-	(gcry_ac_mpi_to_os, gcry_ac_mpi_to_os_alloc, gcry_ac_os_to_mpi) 
-	(gcry_ac_data_encrypt_scheme, gcry_ac_data_decrypt_scheme) 
-	(gcry_ac_data_sign_scheme, gcry_ac_data_verify_scheme) 
+	(gcry_ac_data_destroy, gcry_ac_data_copy, gcry_ac_data_length)
+	(gcry_ac_data_set, gcry_ac_data_get_name, gcry_ac_data_get_index)
+	(gcry_ac_data_to_sexp, gcry_ac_data_from_sexp)
+	(gcry_ac_data_clear, gcry_ac_io_init, gcry_ac_open)
+	(gcry_ac_close, gcry_ac_key_init, gcry_ac_key_pair_generate)
+	(gcry_ac_key_pair_extract, gcry_ac_key_destroy)
+	(gcry_ac_key_pair_destroy, gcry_ac_key_data_get)
+	(gcry_ac_key_test, gcry_ac_key_get_nbits, gcry_ac_key_get_grip)
+	(gcry_ac_data_encrypt, gcry_ac_data_decrypt, gcry_ac_data_sign)
+	(gcry_ac_data_verify, gcry_ac_data_encode, gcry_ac_data_decode)
+	(gcry_ac_mpi_to_os, gcry_ac_mpi_to_os_alloc, gcry_ac_os_to_mpi)
+	(gcry_ac_data_encrypt_scheme, gcry_ac_data_decrypt_scheme)
+	(gcry_ac_data_sign_scheme, gcry_ac_data_verify_scheme)
 	(gcry_ac_io_init_va): Ditto.
 	(gcry_ac_id_to_name, gcry_ac_name_to_id): Remove as these
 	deprecated functions are now implemented by visibility.c.
@@ -798,7 +777,7 @@
 	(gcry_randomize, _gcry_update_random_seed_file)
 	(_gcry_fast_random_poll): Factor lock code out to ..
 	(lock_pool, unlock_pool): .. new.
-	(initialize): Look the pool while allocating. 
+	(initialize): Look the pool while allocating.
 	(read_random_source, do_fast_random_poll): Moved intialization to ...
 	(initialize): .. here.
 	(_gcry_enable_quick_random_gen): No more need for initialization.
@@ -806,7 +785,7 @@
 	(initialize): .. here and changed all users to unconditionally call
 	initialize.
 	(add_randomness): Remove initalization here.  It simply can't
-	happen. 
+	happen.
 
 	* random.c (enum random_origins): Moved to ..
 	* rand-internal.h: .. here.
@@ -852,7 +831,7 @@
 
 	* cipher.c (gcry_cipher_algo_name): Simplified.
 
-	* random.c: Use the daemon only if compiled with USE_RANDOM_DAEMON. 
+	* random.c: Use the daemon only if compiled with USE_RANDOM_DAEMON.
 
 	* Makefile.am (libcipher_la_SOURCES): Build random-daemon support
 	only if requested.
@@ -963,10 +942,10 @@
 	available.
 
 2006-10-04  David Shaw  <dshaw@jabberwocky.com>  (wk)
- 
+
 	* tiger.c (round): Rename to tiger_round as gcc 4 has a built-in
 	round function that this conflicts with.
- 
+
 2006-09-11  Werner Koch  <wk@g10code.com>
 
 	* rndw32.c (slow_gatherer_windowsNT): While adding data use the
@@ -988,7 +967,7 @@
 	initialize the socket.  Remove arg SOCKETNAME.
 	(connect_to_socket): Make sure that daemon is set to -1 on error.
 	(call_daemon): Initialize the socket on the first call.
-	(_gcry_daemon_randomize, _gcry_daemon_get_random_bytes) 
+	(_gcry_daemon_randomize, _gcry_daemon_get_random_bytes)
 	(_gcry_daemon_create_nonce): New arg SOCKETNAME.
 	* random.c (initialize): Call new daemon initializator.
 	(get_random_bytes, gcry_randomize, gcry_create_nonce): Pass socket
@@ -1017,16 +996,16 @@
 
 	* rsa.c (_gcry_rsa_generate): Replace xcalloc by calloc.
 	* pubkey.c (gcry_pk_encrypt, gcry_pk_sign): Ditto.
-	(sexp_to_key, sexp_to_sig, sexp_to_enc, gcry_pk_encrypt) 
-	(gcry_pk_sign, gcry_pk_genkey, gcry_pk_get_keygrip): Ditto. 
+	(sexp_to_key, sexp_to_sig, sexp_to_enc, gcry_pk_encrypt)
+	(gcry_pk_sign, gcry_pk_genkey, gcry_pk_get_keygrip): Ditto.
 	* md.c (md_copy): Ditto.
-	
+
 2006-04-22  Moritz Schulte  <moritz@g10code.com>
 
 	* random-daemon.c (_gcry_daemon_initialize_basics): New argument:
 	SOCKETNAME.  Passing on to connect_to_socket() if non-NULL.
 	(connect_to_socket, writen, readn, call_daemon): New functions.
-	(_gcry_daemon_randomize, _gcry_daemon_get_random_bytes) 
+	(_gcry_daemon_randomize, _gcry_daemon_get_random_bytes)
 	(_gcry_daemon_create_nonce): Call call_daemon().
 	(RANDOM_DAEMON_SOCKET): New symbol.
 	(daemon_socket): New static variable.
@@ -1077,7 +1056,7 @@
 
 	* md.c, sha256.c:  Add support for SHA-224.
 	(sha224_init): New.
-	
+
 2006-01-18  Brad Hards  <bradh@frogmouth.net>  (wk 2006-03-07)
 
 	* cipher.c (cipher_encrypt, cipher_decrypt, do_ofb_encrypt)
@@ -1298,7 +1277,7 @@
 
 	* des.c: Add a new OID as used by pkcs#12.
 
-	* rfc2268.c: New. Taken from libgcrypt. 
+	* rfc2268.c: New. Taken from libgcrypt.
 	* cipher.c: Setup the rfc2268 algorithm.
 
 2004-01-25  Moritz Schulte  <mo@g10code.com>
@@ -1361,7 +1340,7 @@
 
 	* rndegd.c: Changed indentation.
 	(my_make_filename): Removd the var_arg cruft becuase we
-	don't need it here.  Changed caller.  
+	don't need it here.  Changed caller.
 
 	* rndlinux.c: Changed indentation.
 	(open_device): Remove the superfluous stat call and clarify
@@ -1382,7 +1361,7 @@
 2003-12-09  Werner Koch  <wk@gnupg.org>
 
 	* dsa.c: Unified indentation style.
-	* elgamal.c: Ditto. 
+	* elgamal.c: Ditto.
 	* des.c (des_key_schedule): Code beautifications.
 	* blowfish.c: Changed indentation style.
 	* cast5.c (do_cast_setkey): Ditto.
@@ -1480,7 +1459,7 @@
 
 	* random.c (getfnc_gather_random,getfnc_fast_random_poll): Move
 	prototypes to ..
-	* rand-internal.h: .. here 
+	* rand-internal.h: .. here
 	* random.c (getfnc_gather_random): Include rndw32 gatherer.
 	* rndunix.c, rndw32.c, rndegd.c: Include them here.
 	* rndlinux.c (_gcry_rndlinux_gather_random): Prepend the _gcry_
@@ -1575,7 +1554,7 @@
 
 	* random.c (getfnc_gather_random): Don't check NAME_OF_DEV_RANDOM
 	two times, but also the NAME_OF_DEV_URANDOM device.
-	
+
 2003-08-08  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (sexp_to_enc): Fixed extraction of S-Expression: do not
@@ -1838,7 +1817,7 @@
 
 2003-06-19  Werner Koch  <wk@gnupg.org>
 
-	* md.c (gcry_md_is_enabled): Fixed. 
+	* md.c (gcry_md_is_enabled): Fixed.
 
 2003-06-18  Werner Koch  <wk@gnupg.org>
 
@@ -1978,7 +1957,7 @@
 	(gcry_md_copy): Swapped arguments so that it is more in lione with
 	md_open and most other API fucntions like memcpy (destination
 	comes first).  Make sure HANDLE is set to NULL on error.
-	
+
 	* rijndael.c (do_encrypt): Hack to force correct alignment.  It
 	seems not to be	not sufficient, though.  We should rework this
 	fucntions and remove all these ugly casts.  Let the compiler
@@ -2005,7 +1984,7 @@
 	This is not required by C89, but there are some compilers out
 	there that don't like it.  Replaced any occurence of the now
 	deprecated type names with the new ones.
-	
+
 2003-06-04  Moritz Schulte  <moritz@g10code.com>
 
 	* pubkey.c (gcry_pk_encrypt): Construct an arg_list and use
@@ -2261,7 +2240,7 @@
 	(gcry_cipher_close): Call _gcry_module_release.
 
 2003-04-09  Moritz Schulte  <moritz@g10code.com>
-	
+
 	* cipher.c: Include "ath.h".
 	* md.c: Likewise.
 	* pubkey.c: Likewise.
@@ -2349,7 +2328,7 @@
 	* rsa.c (pubkey_spec_rsa): New variable.
 	* dsa.c (pubkey_spec_rsa): New variable.
 	* elgamal.c (pubkey_spec_elg): New variable.
-	
+
 	* rsa.c (_gcry_rsa_get_info): Removed function.
 	* elgamal.c (_gcry_elg_get_info): Removed function.
 	* dsa.c (_gcry_dsa_get_info): Removed function.
@@ -2358,7 +2337,7 @@
 	(gnupgext_version, func_table): Removed definitions.
 	(gnupgext_enum_func): Removed function.
 	(_gcry_tiger_constructor): Removed function.
-	
+
 	* sha1.c (sha1_get_info): Removed function.
 	(gnupgext_version, func_table): Removed definitions.
 	(gnupgext_enum_func): Removed function.
@@ -2406,14 +2385,14 @@
 	* blowfish.c (bf_setkey: Likewise.
 	(encrypt_block): Likewise.
 	(decrypt_block): Likewise.
-	
+
 	* arcfour.c (encrypt_stream): Likewise.
 
 	* rijndael.c (gnupgext_version, func_table): Removed definitions.
-	(gnupgext_enum_func) Removed function.	
-	
+	(gnupgext_enum_func) Removed function.
+
 	* twofish.c (gnupgext_version, func_table): Removed definitions.
-	(gnupgext_enum_func) Removed function.	
+	(gnupgext_enum_func) Removed function.
 
 	* cast5.c (CIPHER_ALGO_CAST5): Removed.
 
@@ -2440,7 +2419,7 @@
 	* des.c (cipher_spec_des, cipher_spec_tripledes): New variables.
 	* cast5.c (cipher_spec_cast5): New variable.
 	* blowfish.c (cipher_spec_blowfish): Likewise.
-	
+
 	* twofish.c: Do not include "dynload.h".
 	* rijndael.c: Likewise.
 	* des.c: Likewise.
@@ -2486,7 +2465,7 @@
 	(encrypt_block): Declared argument `inbuf' const.
 	(encrypt_block): Likewise.
 
-	
+
 
 	* cipher.c: Remove CIPHER_ALGO_DUMMY related code.
 	Removed struct cipher_table_s.
@@ -2648,7 +2627,7 @@
 	`decrypt' function arguments.
 	(_gcry_enum_gnupgext_pubkeys): Likewise.
 	* dynload.h: Likewise.
-	
+
 	* pubkey.c (dummy_decrypt): Add argument: int flags.
 	(dummy_encrypt): Likewise.
 
@@ -2758,7 +2737,7 @@
 	* random.c (_gcry_register_random_progress): New.
 	(_gcry_random_progress): New.
 
-	* rndlinux.c (gather_random): Call the random progress function. 
+	* rndlinux.c (gather_random): Call the random progress function.
 
 2003-01-23  Werner Koch  <wk@gnupg.org>
 
@@ -2786,7 +2765,7 @@
 
 	* random.c (gcry_random_add_bytes): New. Function to add external
 	random to the pool.
-	
+
 2003-01-20  Simon Josefsson  <jas@extundo.com>
 
 	* crc.c: New.
@@ -2860,7 +2839,7 @@
 2002-11-23  Werner Koch  <wk@gnupg.org>
 
 	* md.c (load_digest_module): Enlarged checked_algos bitmap.
-	* md4.c (func_table):  Fixed entry for md4. 
+	* md4.c (func_table):  Fixed entry for md4.
 	Both by Simon Josephson.
 	(transform): Copy data to get the alignment straight. Tested only
 	on i386.
@@ -2868,7 +2847,7 @@
 2002-11-10  Simon Josefsson  <jas@extundo.com>
 
 	* cipher.c (gcry_cipher_open): Don't reject CTS flag.
-	(do_cbc_encrypt, do_cbc_decrypt, cipher_encrypt) 
+	(do_cbc_encrypt, do_cbc_decrypt, cipher_encrypt)
 	(gcry_cipher_encrypt, cipher_decrypt)
 	(gcry_cipher_decrypt): Support CTS flag.
 	(gcry_cipher_ctl): Toggle CTS flag.
@@ -2876,8 +2855,8 @@
 2002-11-10  Werner Koch  <wk@gnupg.org>
 
 	* md4.c: New. By Simon Josefsson.
-	* Makefile.am (EXTRA_PROGRAMS): Add md4.c. 
-	* md.c (oid_table,gcry_md_get_algo_dlen): MD4 support. 
+	* Makefile.am (EXTRA_PROGRAMS): Add md4.c.
+	* md.c (oid_table,gcry_md_get_algo_dlen): MD4 support.
 
 2002-10-14  Werner Koch  <wk@gnupg.org>
 
@@ -2887,11 +2866,11 @@
 2002-10-10  Timo Schulz  <ts@winpt.org>
 
 	* pubkey.c (gcry_pk_genkey): Check boundaries.
-	
+
 	* md.c (gcry_md_open): Check that algo is available and only
 	valid flag values are used.
 	(gcry_md_get_algo): Add error handling.
-	
+
 2002-09-26  Werner Koch  <wk@gnupg.org>
 
 	* md.c: Include an OID for TIGER.
@@ -2916,7 +2895,7 @@
 	* twofish.c (do_twofish_setkey): Ditto.
 	* rndegd.c (gather_random): Ditto.
 	* rijndael.c (do_setkey): Ditto.
-	* random.c (_gcry_random_dump_stats): Ditto. 
+	* random.c (_gcry_random_dump_stats): Ditto.
 	* primegen.c (_gcry_generate_elg_prime): Ditto.
 	* des.c (_gcry_des_get_info): Ditto.
 	* cast5.c (do_cast_setkey): Ditto.
@@ -2950,9 +2929,9 @@
 
 2002-07-08  Timo Schulz  <ts@winpt.org>
 
-	* rndw32.c: Replaced the m_ memory functions with the real 
+	* rndw32.c: Replaced the m_ memory functions with the real
 	gcry_ functions. Renamed all g10_ prefixed functions to log_.
-	
+
 2002-06-12  Werner Koch  <wk@gnupg.org>
 
 	* rsa.c (generate): Use e = 65537 for now.
@@ -2965,7 +2944,7 @@
 
 	* cipher.c (gcry_cipher_encrypt, gcry_cipher_decrypt):
 	Check that the input size is a multiple of the blocksize.
-	
+
 2002-05-23  Werner Koch  <wk@gnupg.org>
 
 	* md.c (oid_table): Add an rsadsi OID for MD5.
@@ -3087,7 +3066,7 @@
 
 	* pubkey.c (gcry_pk_encrypt): Find the signature algorithm by name
 	and not by number.
-	
+
 	* pubkey.c (gcry_pk_encrypt,gcry_pk_decrypt,gcry_pk_sign)
 	(gcry_pk_verify,gcry_pk_testkey, gcry_pk_genkey)
 	(gcry_pk_get_nbits): Release the arrays.  Noted by Nikos
@@ -3100,7 +3079,7 @@
 
 2001-12-05  Werner Koch  <wk@gnupg.org>
 
-	* pubkey.c (algo_info_table): Fixed entry for openpgp-rsa. 
+	* pubkey.c (algo_info_table): Fixed entry for openpgp-rsa.
 
 2001-11-24  Werner Koch  <wk@gnupg.org>
 
@@ -3111,7 +3090,7 @@
 	number.
 	(gcry_pk_get_nbits): Fixed so that we can now really pass a secret
 	key to get the result.
-	
+
 	* md.c (gcry_md_map_name): Look also for OIDs prefixed with "oid."
 	or "OID." so that an OID string can be used as an S-Exp token.
 
@@ -3120,7 +3099,7 @@
 	* md.c (gcry_md_map_name): Lookup by OID if the the name begins
 	with a digit.
 	(oid_table): New.
-	
+
 2001-11-16  Werner Koch  <wk@gnupg.org>
 
 	* md.c (gcry_md_info): New operator GCRYCTL_IS_ALGO_ENABLED.
@@ -3147,14 +3126,14 @@
 	this really work but we should do so to prepare for hardware
 	encryption modules.
 	(gcry_cipher_encrypt, gcry_cipher_decrypt): Return the error and
-	set lasterr. 
+	set lasterr.
 	(gcry_cipher_ctl): Make sure that errors from setkey are returned.
 
 2001-08-02  Werner Koch  <wk@gnupg.org>
 
 	* rndlinux.c (gather_random): casted a size_t arg to int so that
 	the format string is correct.  Casting is okay here and avoids
-	translation changes. 
+	translation changes.
 
 	* random.c (fast_random_poll): Do not check the return code of
 	getrusage.
@@ -3182,7 +3161,7 @@
 
 	* arcfour.c (arcfour_setkey): Check the minimim keylength against
 	bytes and not bits.
-	(selftest): Must reset the key before decryption. 
+	(selftest): Must reset the key before decryption.
 
 2001-05-31  Werner Koch  <wk@gnupg.org>
 
@@ -3190,7 +3169,7 @@
 
         Changed all g10_ prefixed function names as well as some mpi_
 	function names to cope with the introduced naming changes.
-	
+
 	* md.c (prepare_macpads): Made key const.
 
 2001-05-28  Werner Koch  <wk@gnupg.org>
@@ -3217,7 +3196,7 @@
 
 	* tiger.c (tiger_get_info): Return "TIGER192" and not just
 	"TIGER".  By Edwin Woudt.
-	
+
 	* random.c: Always include time.h - standard requirement.  Thanks
 	to James Troup.
 
@@ -3232,7 +3211,7 @@
 
  	Major change:
 	Removed all GnuPG stuff and renamed this piece of software
-	to gcrypt. 
+	to gcrypt.
 
 2000-11-14  Werner Koch  <wk@gnupg.org>
 
@@ -3260,10 +3239,10 @@ Wed Oct  4 13:16:18 CEST 2000  Werner Koch  <wk@openit.de>
         * sha1.c (transform): Use rol() macro.  Actually this is not needed
         for a newer gcc but there are still aoter compilers.
 
-        * rsa.c (test_keys): Use new random function. 
+        * rsa.c (test_keys): Use new random function.
 
         * md.c (gcry_md_setkey): New function to overcome problems with
-        const conflics.  
+        const conflics.
         (gcry_md_ctl): Pass set key to the new functions.
 
         * rijndael.c: New.
