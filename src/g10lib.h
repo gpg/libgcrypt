@@ -29,7 +29,7 @@
 #error  gcrypt.h already included
 #endif
 
-#ifndef _GCRYPT_IN_LIBGCRYPT 
+#ifndef _GCRYPT_IN_LIBGCRYPT
 #error something is wrong with config.h
 #endif
 
@@ -55,15 +55,15 @@
 #define JNLIB_GCC_A_NR
 #define JNLIB_GCC_A_PRINTF( f, a )
 #define JNLIB_GCC_A_NR_PRINTF( f, a )
-#define GCC_ATTR_NORETURN 
+#define GCC_ATTR_NORETURN
 #endif
 
-#if __GNUC__ >= 3 
+#if __GNUC__ >= 3
 /* According to glibc this attribute is available since 2.8 however we
    better play safe and use it only with gcc 3 or newer. */
 #define GCC_ATTR_FORMAT_ARG(a)  __attribute__ ((format_arg (a)))
 #else
-#define GCC_ATTR_FORMAT_ARG(a)  
+#define GCC_ATTR_FORMAT_ARG(a)
 #endif
 
 
@@ -175,10 +175,10 @@ gcry_mpi_t _gcry_generate_public_prime (unsigned int nbits,
                                  gcry_random_level_t random_level,
                                  int (*extra_check)(void*, gcry_mpi_t),
                                  void *extra_check_arg);
-gcry_mpi_t _gcry_generate_elg_prime (int mode, 
+gcry_mpi_t _gcry_generate_elg_prime (int mode,
                                      unsigned int pbits, unsigned int qbits,
                                      gcry_mpi_t g, gcry_mpi_t **factors);
-gcry_mpi_t _gcry_derive_x931_prime (const gcry_mpi_t xp, 
+gcry_mpi_t _gcry_derive_x931_prime (const gcry_mpi_t xp,
                                     const gcry_mpi_t xp1, const gcry_mpi_t xp2,
                                     const gcry_mpi_t e,
                                     gcry_mpi_t *r_p1, gcry_mpi_t *r_p2);
@@ -188,7 +188,7 @@ gpg_err_code_t _gcry_generate_fips186_2_prime
                   gcry_mpi_t *r_q, gcry_mpi_t *r_p,
                   int *r_counter,
                   void **r_seed, size_t *r_seedlen);
-gpg_err_code_t _gcry_generate_fips186_3_prime 
+gpg_err_code_t _gcry_generate_fips186_3_prime
                  (unsigned int pbits, unsigned int qbits,
                   const void *seed, size_t seedlen,
                   gcry_mpi_t *r_q, gcry_mpi_t *r_p,
@@ -312,7 +312,7 @@ gcry_err_code_t _gcry_pk_get_elements (int algo, char **enc, char **sig);
 
 
 /*-- sexp.c --*/
-gcry_error_t _gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff, 
+gcry_error_t _gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff,
                                 const char *format, va_list arg_ptr);
 char *_gcry_sexp_nth_string (const gcry_sexp_t list, int number);
 
@@ -330,8 +330,8 @@ void _gcry_inactivate_fips_mode (const char *text);
 int _gcry_is_fips_mode_inactive (void);
 
 
-void _gcry_fips_signal_error (const char *srcfile, 
-                              int srcline, 
+void _gcry_fips_signal_error (const char *srcfile,
+                              int srcline,
                               const char *srcfunc,
                               int is_fatal,
                               const char *description);

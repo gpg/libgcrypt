@@ -177,9 +177,9 @@ check_run (void)
 
   if (verbose)
     printf ("data-set-test-2 succeeded\n");
- 
+
   gcry_ac_data_destroy (data);
- 
+
 
 }
 
@@ -203,6 +203,6 @@ main (int argc, char **argv)
 
   for (; i > 0; i--)
     check_run ();
-  
+
   return 0;
 }

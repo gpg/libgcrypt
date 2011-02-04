@@ -52,7 +52,7 @@
 #define gcry_xmalloc_secure         _gcry_xmalloc_secure
 #define gcry_xrealloc               _gcry_xrealloc
 #define gcry_xstrdup                _gcry_xstrdup
-                                    
+
 #define gcry_md_algo_info           _gcry_md_algo_info
 #define gcry_md_algo_name           _gcry_md_algo_name
 #define gcry_md_close               _gcry_md_close
@@ -246,7 +246,7 @@
 #endif
 
 /* Prototypes of functions exported but not ready for use.  */
-gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo, 
+gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
                              unsigned char *buffer, int buflen);
 void gcry_ac_mpi_to_os (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 gcry_error_t gcry_ac_mpi_to_os_alloc (gcry_mpi_t mpi, unsigned char **os,
@@ -257,7 +257,7 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 
 /* Our use of the ELF visibility feature works by passing
    -fvisibiliy=hidden on the command line and by explicitly marking
-   all exported functions as visible.  
+   all exported functions as visible.
 
    NOTE: When adding new functions, please make sure to add them to
          libgcrypt.vers and libgcrypt.def as well.  */
@@ -279,214 +279,214 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 
 /* First undef all redefined symbols so that we set the attribute on
    the correct version name.  */
-#undef gcry_check_version         
-#undef gcry_control               
+#undef gcry_check_version
+#undef gcry_control
 
 #undef gcry_set_allocation_handler
 #undef gcry_set_fatalerror_handler
-#undef gcry_set_gettext_handler   
-#undef gcry_set_log_handler       
-#undef gcry_set_outofcore_handler 
-#undef gcry_set_progress_handler  
-#undef gcry_err_code_from_errno   
-#undef gcry_err_code_to_errno     
-#undef gcry_err_make_from_errno   
-#undef gcry_error_from_errno      
-#undef gcry_strerror              
-#undef gcry_strsource             
+#undef gcry_set_gettext_handler
+#undef gcry_set_log_handler
+#undef gcry_set_outofcore_handler
+#undef gcry_set_progress_handler
+#undef gcry_err_code_from_errno
+#undef gcry_err_code_to_errno
+#undef gcry_err_make_from_errno
+#undef gcry_error_from_errno
+#undef gcry_strerror
+#undef gcry_strsource
 
-#undef gcry_free                  
-#undef gcry_malloc                
-#undef gcry_malloc_secure         
-#undef gcry_calloc                
-#undef gcry_calloc_secure         
-#undef gcry_realloc               
-#undef gcry_strdup                
-#undef gcry_is_secure             
-#undef gcry_xcalloc               
-#undef gcry_xcalloc_secure        
-#undef gcry_xmalloc               
-#undef gcry_xmalloc_secure        
-#undef gcry_xrealloc              
-#undef gcry_xstrdup               
-                                   
-#undef gcry_md_algo_info          
-#undef gcry_md_algo_name          
-#undef gcry_md_close              
-#undef gcry_md_copy               
-#undef gcry_md_ctl                
-#undef gcry_md_enable             
-#undef gcry_md_get                
-#undef gcry_md_get_algo           
-#undef gcry_md_get_algo_dlen      
-#undef gcry_md_hash_buffer        
-#undef gcry_md_info               
-#undef gcry_md_is_enabled         
-#undef gcry_md_is_secure          
-#undef gcry_md_list               
-#undef gcry_md_map_name           
-#undef gcry_md_open               
-#undef gcry_md_read               
+#undef gcry_free
+#undef gcry_malloc
+#undef gcry_malloc_secure
+#undef gcry_calloc
+#undef gcry_calloc_secure
+#undef gcry_realloc
+#undef gcry_strdup
+#undef gcry_is_secure
+#undef gcry_xcalloc
+#undef gcry_xcalloc_secure
+#undef gcry_xmalloc
+#undef gcry_xmalloc_secure
+#undef gcry_xrealloc
+#undef gcry_xstrdup
+
+#undef gcry_md_algo_info
+#undef gcry_md_algo_name
+#undef gcry_md_close
+#undef gcry_md_copy
+#undef gcry_md_ctl
+#undef gcry_md_enable
+#undef gcry_md_get
+#undef gcry_md_get_algo
+#undef gcry_md_get_algo_dlen
+#undef gcry_md_hash_buffer
+#undef gcry_md_info
+#undef gcry_md_is_enabled
+#undef gcry_md_is_secure
+#undef gcry_md_list
+#undef gcry_md_map_name
+#undef gcry_md_open
+#undef gcry_md_read
 /* gcry_md_register is not anymore a macro.  */
-#undef gcry_md_unregister         
-#undef gcry_md_reset              
-#undef gcry_md_setkey             
-#undef gcry_md_write              
-#undef gcry_md_debug              
+#undef gcry_md_unregister
+#undef gcry_md_reset
+#undef gcry_md_setkey
+#undef gcry_md_write
+#undef gcry_md_debug
 
-#undef gcry_cipher_algo_info      
-#undef gcry_cipher_algo_name      
-#undef gcry_cipher_close          
+#undef gcry_cipher_algo_info
+#undef gcry_cipher_algo_name
+#undef gcry_cipher_close
 #undef gcry_cipher_setkey
 #undef gcry_cipher_setiv
 #undef gcry_cipher_setctr
-#undef gcry_cipher_ctl            
-#undef gcry_cipher_decrypt        
-#undef gcry_cipher_encrypt        
+#undef gcry_cipher_ctl
+#undef gcry_cipher_decrypt
+#undef gcry_cipher_encrypt
 #undef gcry_cipher_get_algo_blklen
 #undef gcry_cipher_get_algo_keylen
-#undef gcry_cipher_info           
-#undef gcry_cipher_list           
-#undef gcry_cipher_map_name       
-#undef gcry_cipher_mode_from_oid  
-#undef gcry_cipher_open           
+#undef gcry_cipher_info
+#undef gcry_cipher_list
+#undef gcry_cipher_map_name
+#undef gcry_cipher_mode_from_oid
+#undef gcry_cipher_open
 /* gcry_cipher_register is not anymore a macro.  */
-#undef gcry_cipher_unregister     
+#undef gcry_cipher_unregister
 
-#undef gcry_pk_algo_info          
-#undef gcry_pk_algo_name          
-#undef gcry_pk_ctl                
-#undef gcry_pk_decrypt            
-#undef gcry_pk_encrypt            
-#undef gcry_pk_genkey             
-#undef gcry_pk_get_keygrip        
+#undef gcry_pk_algo_info
+#undef gcry_pk_algo_name
+#undef gcry_pk_ctl
+#undef gcry_pk_decrypt
+#undef gcry_pk_encrypt
+#undef gcry_pk_genkey
+#undef gcry_pk_get_keygrip
 #undef gcry_pk_get_curve
 #undef gcry_pk_get_param
-#undef gcry_pk_get_nbits          
-#undef gcry_pk_list               
-#undef gcry_pk_map_name           
+#undef gcry_pk_get_nbits
+#undef gcry_pk_list
+#undef gcry_pk_map_name
 /* gcry_pk_register is not anymore a macro.  */
-#undef gcry_pk_unregister         
-#undef gcry_pk_sign               
-#undef gcry_pk_testkey            
-#undef gcry_pk_verify             
+#undef gcry_pk_unregister
+#undef gcry_pk_sign
+#undef gcry_pk_testkey
+#undef gcry_pk_verify
 
-#undef gcry_ac_data_new           
-#undef gcry_ac_data_destroy       
-#undef gcry_ac_data_copy          
-#undef gcry_ac_data_length        
-#undef gcry_ac_data_clear         
-#undef gcry_ac_data_set           
-#undef gcry_ac_data_get_name      
-#undef gcry_ac_data_get_index     
-#undef gcry_ac_open               
-#undef gcry_ac_close              
-#undef gcry_ac_key_init           
-#undef gcry_ac_key_pair_generate  
-#undef gcry_ac_key_pair_extract   
-#undef gcry_ac_key_data_get       
-#undef gcry_ac_key_test           
-#undef gcry_ac_key_get_nbits      
-#undef gcry_ac_key_get_grip       
-#undef gcry_ac_key_destroy        
-#undef gcry_ac_key_pair_destroy   
-#undef gcry_ac_data_encrypt       
-#undef gcry_ac_data_decrypt       
-#undef gcry_ac_data_sign          
-#undef gcry_ac_data_verify        
-#undef gcry_ac_id_to_name         
-#undef gcry_ac_name_to_id         
-#undef gcry_ac_data_encode        
-#undef gcry_ac_data_decode        
-#undef gcry_ac_mpi_to_os          
-#undef gcry_ac_mpi_to_os_alloc    
-#undef gcry_ac_os_to_mpi          
+#undef gcry_ac_data_new
+#undef gcry_ac_data_destroy
+#undef gcry_ac_data_copy
+#undef gcry_ac_data_length
+#undef gcry_ac_data_clear
+#undef gcry_ac_data_set
+#undef gcry_ac_data_get_name
+#undef gcry_ac_data_get_index
+#undef gcry_ac_open
+#undef gcry_ac_close
+#undef gcry_ac_key_init
+#undef gcry_ac_key_pair_generate
+#undef gcry_ac_key_pair_extract
+#undef gcry_ac_key_data_get
+#undef gcry_ac_key_test
+#undef gcry_ac_key_get_nbits
+#undef gcry_ac_key_get_grip
+#undef gcry_ac_key_destroy
+#undef gcry_ac_key_pair_destroy
+#undef gcry_ac_data_encrypt
+#undef gcry_ac_data_decrypt
+#undef gcry_ac_data_sign
+#undef gcry_ac_data_verify
+#undef gcry_ac_id_to_name
+#undef gcry_ac_name_to_id
+#undef gcry_ac_data_encode
+#undef gcry_ac_data_decode
+#undef gcry_ac_mpi_to_os
+#undef gcry_ac_mpi_to_os_alloc
+#undef gcry_ac_os_to_mpi
 #undef gcry_ac_data_encrypt_scheme
 #undef gcry_ac_data_decrypt_scheme
-#undef gcry_ac_data_sign_scheme   
-#undef gcry_ac_data_verify_scheme 
-#undef gcry_ac_data_to_sexp       
-#undef gcry_ac_data_from_sexp     
-#undef gcry_ac_io_init            
-#undef gcry_ac_io_init_va         
+#undef gcry_ac_data_sign_scheme
+#undef gcry_ac_data_verify_scheme
+#undef gcry_ac_data_to_sexp
+#undef gcry_ac_data_from_sexp
+#undef gcry_ac_io_init
+#undef gcry_ac_io_init_va
 
-#undef gcry_prime_check           
-#undef gcry_prime_generate        
-#undef gcry_prime_group_generator 
-#undef gcry_prime_release_factors 
+#undef gcry_prime_check
+#undef gcry_prime_generate
+#undef gcry_prime_group_generator
+#undef gcry_prime_release_factors
 
-#undef gcry_random_add_bytes      
-#undef gcry_random_bytes          
-#undef gcry_random_bytes_secure   
-#undef gcry_randomize             
-#undef gcry_create_nonce          
+#undef gcry_random_add_bytes
+#undef gcry_random_bytes
+#undef gcry_random_bytes_secure
+#undef gcry_randomize
+#undef gcry_create_nonce
 
-#undef gcry_sexp_alist            
-#undef gcry_sexp_append           
-#undef gcry_sexp_build            
-#undef gcry_sexp_build_array      
-#undef gcry_sexp_cadr             
-#undef gcry_sexp_canon_len        
-#undef gcry_sexp_car              
-#undef gcry_sexp_cdr              
-#undef gcry_sexp_cons             
-#undef gcry_sexp_create           
-#undef gcry_sexp_dump             
-#undef gcry_sexp_find_token       
-#undef gcry_sexp_length           
-#undef gcry_sexp_new              
-#undef gcry_sexp_nth              
-#undef gcry_sexp_nth_data         
-#undef gcry_sexp_nth_mpi          
-#undef gcry_sexp_prepend          
-#undef gcry_sexp_release          
-#undef gcry_sexp_sprint           
-#undef gcry_sexp_sscan            
-#undef gcry_sexp_vlist            
-#undef gcry_sexp_nth_string       
+#undef gcry_sexp_alist
+#undef gcry_sexp_append
+#undef gcry_sexp_build
+#undef gcry_sexp_build_array
+#undef gcry_sexp_cadr
+#undef gcry_sexp_canon_len
+#undef gcry_sexp_car
+#undef gcry_sexp_cdr
+#undef gcry_sexp_cons
+#undef gcry_sexp_create
+#undef gcry_sexp_dump
+#undef gcry_sexp_find_token
+#undef gcry_sexp_length
+#undef gcry_sexp_new
+#undef gcry_sexp_nth
+#undef gcry_sexp_nth_data
+#undef gcry_sexp_nth_mpi
+#undef gcry_sexp_prepend
+#undef gcry_sexp_release
+#undef gcry_sexp_sprint
+#undef gcry_sexp_sscan
+#undef gcry_sexp_vlist
+#undef gcry_sexp_nth_string
 
-#undef gcry_mpi_add               
-#undef gcry_mpi_add_ui            
-#undef gcry_mpi_addm              
-#undef gcry_mpi_aprint            
-#undef gcry_mpi_clear_bit         
-#undef gcry_mpi_clear_flag        
-#undef gcry_mpi_clear_highbit     
-#undef gcry_mpi_cmp               
-#undef gcry_mpi_cmp_ui            
-#undef gcry_mpi_copy              
-#undef gcry_mpi_div               
-#undef gcry_mpi_dump              
-#undef gcry_mpi_gcd               
-#undef gcry_mpi_get_flag          
-#undef gcry_mpi_get_nbits         
-#undef gcry_mpi_get_opaque        
-#undef gcry_mpi_invm              
-#undef gcry_mpi_mod               
-#undef gcry_mpi_mul               
-#undef gcry_mpi_mul_2exp          
-#undef gcry_mpi_mul_ui            
-#undef gcry_mpi_mulm              
-#undef gcry_mpi_new               
-#undef gcry_mpi_powm              
-#undef gcry_mpi_print             
-#undef gcry_mpi_randomize         
-#undef gcry_mpi_release           
-#undef gcry_mpi_rshift            
-#undef gcry_mpi_lshift            
-#undef gcry_mpi_scan              
-#undef gcry_mpi_set               
-#undef gcry_mpi_set_bit           
-#undef gcry_mpi_set_flag          
-#undef gcry_mpi_set_highbit       
-#undef gcry_mpi_set_opaque        
-#undef gcry_mpi_set_ui            
-#undef gcry_mpi_snew              
-#undef gcry_mpi_sub               
-#undef gcry_mpi_sub_ui            
-#undef gcry_mpi_subm              
-#undef gcry_mpi_swap              
-#undef gcry_mpi_test_bit          
+#undef gcry_mpi_add
+#undef gcry_mpi_add_ui
+#undef gcry_mpi_addm
+#undef gcry_mpi_aprint
+#undef gcry_mpi_clear_bit
+#undef gcry_mpi_clear_flag
+#undef gcry_mpi_clear_highbit
+#undef gcry_mpi_cmp
+#undef gcry_mpi_cmp_ui
+#undef gcry_mpi_copy
+#undef gcry_mpi_div
+#undef gcry_mpi_dump
+#undef gcry_mpi_gcd
+#undef gcry_mpi_get_flag
+#undef gcry_mpi_get_nbits
+#undef gcry_mpi_get_opaque
+#undef gcry_mpi_invm
+#undef gcry_mpi_mod
+#undef gcry_mpi_mul
+#undef gcry_mpi_mul_2exp
+#undef gcry_mpi_mul_ui
+#undef gcry_mpi_mulm
+#undef gcry_mpi_new
+#undef gcry_mpi_powm
+#undef gcry_mpi_print
+#undef gcry_mpi_randomize
+#undef gcry_mpi_release
+#undef gcry_mpi_rshift
+#undef gcry_mpi_lshift
+#undef gcry_mpi_scan
+#undef gcry_mpi_set
+#undef gcry_mpi_set_bit
+#undef gcry_mpi_set_flag
+#undef gcry_mpi_set_highbit
+#undef gcry_mpi_set_opaque
+#undef gcry_mpi_set_ui
+#undef gcry_mpi_snew
+#undef gcry_mpi_sub
+#undef gcry_mpi_sub_ui
+#undef gcry_mpi_subm
+#undef gcry_mpi_swap
+#undef gcry_mpi_test_bit
 
 
 /* Now mark all symbols.  */

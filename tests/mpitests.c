@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
- * USA. 
+ * USA.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -89,7 +89,7 @@ unsigned char manyff[] = {
 
 
 
-static int 
+static int
 test_add (void)
 {
   gcry_mpi_t one;
@@ -97,12 +97,12 @@ test_add (void)
   gcry_mpi_t ff;
   gcry_mpi_t result;
   unsigned char* pc;
-  
+
   gcry_mpi_scan(&one, GCRYMPI_FMT_USG, ones, sizeof(ones), NULL);
   gcry_mpi_scan(&two, GCRYMPI_FMT_USG, twos, sizeof(twos), NULL);
   gcry_mpi_scan(&ff, GCRYMPI_FMT_USG, manyff, sizeof(manyff), NULL);
   result = gcry_mpi_new(0);
-  
+
   gcry_mpi_add(result, one, two);
   gcry_mpi_aprint(GCRYMPI_FMT_HEX, &pc, NULL, result);
   if (verbose)
@@ -114,7 +114,7 @@ test_add (void)
   if (verbose)
     printf("Result of ff plus one:\n%s\n", pc);
   gcry_free(pc);
-  
+
   gcry_mpi_release(one);
   gcry_mpi_release(two);
   gcry_mpi_release(ff);
@@ -123,24 +123,24 @@ test_add (void)
 }
 
 
-static int 
+static int
 test_sub (void)
 {
   gcry_mpi_t one;
   gcry_mpi_t two;
   gcry_mpi_t result;
   unsigned char* pc;
-  
+
   gcry_mpi_scan(&one, GCRYMPI_FMT_USG, ones, sizeof(ones), NULL);
   gcry_mpi_scan(&two, GCRYMPI_FMT_USG, twos, sizeof(twos), NULL);
   result = gcry_mpi_new(0);
   gcry_mpi_sub(result, two, one);
-  
+
   gcry_mpi_aprint(GCRYMPI_FMT_HEX, &pc, NULL, result);
   if (verbose)
     printf("Result of two minus one:\n%s\n", pc);
   gcry_free(pc);
-  
+
   gcry_mpi_release(one);
   gcry_mpi_release(two);
   gcry_mpi_release(result);
@@ -148,24 +148,24 @@ test_sub (void)
 }
 
 
-static int 
+static int
 test_mul (void)
 {
   gcry_mpi_t two;
   gcry_mpi_t three;
   gcry_mpi_t result;
   unsigned char* pc;
-  
+
   gcry_mpi_scan(&two, GCRYMPI_FMT_USG, twos, sizeof(twos), NULL);
   gcry_mpi_scan(&three, GCRYMPI_FMT_USG, threes, sizeof(threes), NULL);
   result = gcry_mpi_new(0);
   gcry_mpi_mul(result, two, three);
-  
+
   gcry_mpi_aprint(GCRYMPI_FMT_HEX, &pc, NULL, result);
   if (verbose)
     printf("Result of two mul three:\n%s\n", pc);
   gcry_free(pc);
-  
+
   gcry_mpi_release(two);
   gcry_mpi_release(three);
   gcry_mpi_release(result);
@@ -180,7 +180,7 @@ test_powm (void)
 {
   int b_int = 17;
   int e_int = 3;
-  int m_int = 19;  
+  int m_int = 19;
   gcry_mpi_t base = gcry_mpi_set_ui (NULL, b_int);
   gcry_mpi_t exp = gcry_mpi_set_ui (NULL, e_int);
   gcry_mpi_t mod = gcry_mpi_set_ui (NULL, m_int);
@@ -277,7 +277,7 @@ test_powm (void)
 }
 
 
-int 
+int
 main (int argc, char* argv[])
 {
   if (argc > 1 && !strcmp (argv[1], "--verbose"))
@@ -299,4 +299,3 @@ main (int argc, char* argv[])
 
   return 0;
 }
-

@@ -1,19 +1,19 @@
 /* gcrypt.h -  GNU Cryptographic Library Interface              -*- c -*-
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006
                  2007, 2008, 2009, 2010, 2011  Free Software Foundation, Inc.
-  
+
    This file is part of Libgcrypt.
-  
+
    Libgcrypt is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as
    published by the Free Software Foundation; either version 2.1 of
    the License, or (at your option) any later version.
-  
+
    Libgcrypt is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Lesser General Public License for more details.
-  
+
    You should have received a copy of the GNU Lesser General Public
    License along with this program; if not, see <http://www.gnu.org/licenses/>.
 
@@ -198,7 +198,7 @@ enum gcry_thread_option
 struct gcry_thread_cbs
 {
   /* The OPTION field encodes the thread model and the version number
-     of this structure.   
+     of this structure.
        Bits  7 - 0  are used for the thread model
        Bits 15 - 8  are used for the version number.
   */
@@ -357,7 +357,7 @@ const char *gcry_check_version (const char *req_version);
 /* Codes for function dispatchers.  */
 
 /* Codes used with the gcry_control function. */
-enum gcry_ctl_cmds 
+enum gcry_ctl_cmds
   {
     GCRYCTL_SET_KEY  = 1,
     GCRYCTL_SET_IV   = 2,
@@ -422,7 +422,7 @@ enum gcry_ctl_cmds
 gcry_error_t gcry_control (enum gcry_ctl_cmds CMD, ...);
 
 
-/* S-expression management. */ 
+/* S-expression management. */
 
 /* The object to represent an S-expression as used with the public key
    functions.  */
@@ -476,7 +476,7 @@ void gcry_sexp_release (gcry_sexp_t sexp);
 
 /* Calculate the length of an canonized S-expresion in BUFFER and
    check for a valid encoding. */
-size_t gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
+size_t gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
                             size_t *erroff, gcry_error_t *errcode);
 
 /* Copies the S-expression object SEXP into BUFFER using the format
@@ -558,7 +558,7 @@ gcry_mpi_t gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt);
  *******************************************/
 
 /* Different formats of external big integer representation. */
-enum gcry_mpi_format 
+enum gcry_mpi_format
   {
     GCRYMPI_FMT_NONE= 0,
     GCRYMPI_FMT_STD = 1,    /* Twos complement stored without length.  */
@@ -569,7 +569,7 @@ enum gcry_mpi_format
   };
 
 /* Flags used for creating big integers.  */
-enum gcry_mpi_flag 
+enum gcry_mpi_flag
   {
     GCRYMPI_FLAG_SECURE = 1,  /* Allocate the number in "secure" memory.  */
     GCRYMPI_FLAG_OPAQUE = 2   /* The number is not a real one but just
@@ -614,7 +614,7 @@ int gcry_mpi_cmp_ui (const gcry_mpi_t u, unsigned long v);
    RET_MPI.  If NSCANNED is not NULL, it will receive the number of
    bytes actually scanned after a successful operation. */
 gcry_error_t gcry_mpi_scan (gcry_mpi_t *ret_mpi, enum gcry_mpi_format format,
-                            const void *buffer, size_t buflen, 
+                            const void *buffer, size_t buflen,
                             size_t *nscanned);
 
 /* Convert the big integer A into the external representation
@@ -685,7 +685,7 @@ void gcry_mpi_powm (gcry_mpi_t w,
                     const gcry_mpi_t b, const gcry_mpi_t e,
                     const gcry_mpi_t m);
 
-/* Set G to the greatest common divisor of A and B.  
+/* Set G to the greatest common divisor of A and B.
    Return true if the G is 1. */
 int gcry_mpi_gcd (gcry_mpi_t g, gcry_mpi_t a, gcry_mpi_t b);
 
@@ -719,7 +719,7 @@ void     gcry_mpi_rshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n);
 void     gcry_mpi_lshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n);
 
 /* Store NBITS of the value P points to in A and mark A as an opaque
-   value.  WARNING: Never use an opaque MPI for anything thing else then 
+   value.  WARNING: Never use an opaque MPI for anything thing else then
    gcry_mpi_release, gcry_mpi_get_opaque. */
 gcry_mpi_t gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits);
 
@@ -758,7 +758,7 @@ int gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 #define mpi_set_ui( w, u)      gcry_mpi_set_ui( (w), (u) )
 #define mpi_cmp( u, v )        gcry_mpi_cmp( (u), (v) )
 #define mpi_cmp_ui( u, v )     gcry_mpi_cmp_ui( (u), (v) )
-                              
+
 #define mpi_add_ui(w,u,v)      gcry_mpi_add_ui((w),(u),(v))
 #define mpi_add(w,u,v)         gcry_mpi_add ((w),(u),(v))
 #define mpi_addm(w,u,v,m)      gcry_mpi_addm ((w),(u),(v),(m))
@@ -838,15 +838,15 @@ enum gcry_cipher_algos
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */
-#define GCRY_CIPHER_AES128      GCRY_CIPHER_AES    
-#define GCRY_CIPHER_RIJNDAEL    GCRY_CIPHER_AES    
-#define GCRY_CIPHER_RIJNDAEL128 GCRY_CIPHER_AES128 
-#define GCRY_CIPHER_RIJNDAEL192 GCRY_CIPHER_AES192 
-#define GCRY_CIPHER_RIJNDAEL256 GCRY_CIPHER_AES256 
+#define GCRY_CIPHER_AES128      GCRY_CIPHER_AES
+#define GCRY_CIPHER_RIJNDAEL    GCRY_CIPHER_AES
+#define GCRY_CIPHER_RIJNDAEL128 GCRY_CIPHER_AES128
+#define GCRY_CIPHER_RIJNDAEL192 GCRY_CIPHER_AES192
+#define GCRY_CIPHER_RIJNDAEL256 GCRY_CIPHER_AES256
 
 /* The supported encryption modes.  Note that not all of them are
    supported for each algorithm. */
-enum gcry_cipher_modes 
+enum gcry_cipher_modes
   {
     GCRY_CIPHER_MODE_NONE   = 0,  /* Not yet specified. */
     GCRY_CIPHER_MODE_ECB    = 1,  /* Electronic codebook. */
@@ -858,7 +858,7 @@ enum gcry_cipher_modes
     GCRY_CIPHER_MODE_AESWRAP= 7   /* AES-WRAP algorithm.  */
   };
 
-/* Flags used with the open function. */ 
+/* Flags used with the open function. */
 enum gcry_cipher_flags
   {
     GCRY_CIPHER_SECURE      = 1,  /* Allocate in secure memory. */
@@ -967,7 +967,7 @@ gcry_error_t gcry_cipher_list (int *list, int *list_length);
  ************************************/
 
 /* The algorithms and their IDs we support. */
-enum gcry_pk_algos 
+enum gcry_pk_algos
   {
     GCRY_PK_RSA   = 1,
     GCRY_PK_RSA_E = 2,      /* (deprecated) */
@@ -980,11 +980,11 @@ enum gcry_pk_algos
   };
 
 /* Flags describing usage capabilities of a PK algorithm. */
-#define GCRY_PK_USAGE_SIGN 1   /* Good for signatures. */            
-#define GCRY_PK_USAGE_ENCR 2   /* Good for encryption. */            
+#define GCRY_PK_USAGE_SIGN 1   /* Good for signatures. */
+#define GCRY_PK_USAGE_ENCR 2   /* Good for encryption. */
 #define GCRY_PK_USAGE_CERT 4   /* Good to certify other keys. */
-#define GCRY_PK_USAGE_AUTH 8   /* Good for authentication. */        
-#define GCRY_PK_USAGE_UNKN 128 /* Unknown usage flag. */          
+#define GCRY_PK_USAGE_AUTH 8   /* Good for authentication. */
+#define GCRY_PK_USAGE_UNKN 128 /* Unknown usage flag. */
 
 /* Encrypt the DATA using the public key PKEY and store the result as
    a newly created S-expression at RESULT. */
@@ -1069,7 +1069,7 @@ gcry_error_t gcry_pk_list (int *list, int *list_length);
    are implemnted. */
 enum gcry_md_algos
   {
-    GCRY_MD_NONE    = 0,  
+    GCRY_MD_NONE    = 0,
     GCRY_MD_MD5     = 1,
     GCRY_MD_SHA1    = 2,
     GCRY_MD_RMD160  = 3,
@@ -1102,11 +1102,11 @@ struct gcry_md_context;
 /* This object is used to hold a handle to a message digest object.
    This structure is private - only to be used by the public gcry_md_*
    macros.  */
-typedef struct gcry_md_handle 
+typedef struct gcry_md_handle
 {
   /* Actual context.  */
   struct gcry_md_context *ctx;
-  
+
   /* Buffer management.  */
   int  bufpos;
   int  bufsize;
@@ -1612,7 +1612,7 @@ gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
    gcry_pk_algo_name. */
 #ifndef GCRYPT_NO_DEPRECATED
 gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm,
-                                 const char **name) 
+                                 const char **name)
      /* */                      _GCRY_GCC_ATTR_DEPRECATED;
 /* Store the numeric ID of the algorithm whose textual representation
    is contained in NAME in ALGORITHM.  This function is deprecated;
@@ -1750,7 +1750,7 @@ gcry_error_t gcry_prime_check (gcry_mpi_t x, unsigned int flags);
  ************************************/
 
 /* Log levels used by the internal logging facility. */
-enum gcry_log_levels 
+enum gcry_log_levels
   {
     GCRY_LOG_CONT   = 0,    /* (Continue the last log line.) */
     GCRY_LOG_INFO   = 10,

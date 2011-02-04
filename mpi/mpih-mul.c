@@ -526,5 +526,3 @@ _gcry_mpih_mul( mpi_ptr_t prodp, mpi_ptr_t up, mpi_size_t usize,
     _gcry_mpih_release_karatsuba_ctx( &ctx );
     return *prod_endp;
 }
-
-

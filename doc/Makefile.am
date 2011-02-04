@@ -20,7 +20,7 @@
 EXTRA_DIST = README.apichanges HACKING \
 	     libgcrypt-modules.eps fips-fsm.eps \
 	     libgcrypt-modules.png fips-fsm.png \
-             libgcrypt-modules.pdf fips-fsm.pdf 
+             libgcrypt-modules.pdf fips-fsm.pdf
 
 DISTCLEANFILES = gcrypt.cps
 
@@ -67,5 +67,4 @@ online: gcrypt.html gcrypt.pdf gcrypt.info
         fi ; \
 	cd gcrypt.html ; \
         rsync -vr --exclude='.svn' .  \
-	  $${user}@trithemius.gnupg.org:webspace/manuals/gcrypt$${dashdevel}/ 
-
+	  $${user}@trithemius.gnupg.org:webspace/manuals/gcrypt$${dashdevel}/

@@ -221,4 +221,3 @@ calc_barrett( gcry_mpi_t r, gcry_mpi_t x, gcry_mpi_t m, gcry_mpi_t y, int k, gcr
     return 0;
 }
 #endif /* USE_BARRETT */
-

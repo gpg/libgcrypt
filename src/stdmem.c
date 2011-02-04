@@ -25,8 +25,8 @@
  *                                    |
  *                                   \ /
  *                   global.c: [MM entrance points]   -----> [user callbacks]
- *                               |          |    
- *                               |          |    
+ *                               |          |
+ *                               |          |
  *                              \ /        \ /
  *
  *      stdmem.c: [non-secure handlers] [secure handlers]
@@ -87,13 +87,13 @@ _gcry_private_enable_m_guard (void)
 void *
 _gcry_private_malloc (size_t n)
 {
-  if (!n) 
+  if (!n)
     return NULL; /* Allocating 0 bytes is undefined - we better return
                     an error to detect such coding errors.  */
-  if (use_m_guard) 
+  if (use_m_guard)
     {
       char *p;
-      
+
       if ( !(p = malloc (n + EXTRA_ALIGN+5)) )
         return NULL;
       ((byte*)p)[EXTRA_ALIGN+0] = n;
@@ -103,7 +103,7 @@ _gcry_private_malloc (size_t n)
       p[4+EXTRA_ALIGN+n] = MAGIC_END_BYTE;
       return p+EXTRA_ALIGN+4;
     }
-  else 
+  else
     {
       return malloc( n );
     }
@@ -117,13 +117,13 @@ _gcry_private_malloc (size_t n)
 void *
 _gcry_private_malloc_secure (size_t n)
 {
-  if (!n) 
+  if (!n)
     return NULL; /* Allocating 0 bytes is undefined - better return an
                     error to detect such coding errors.  */
-  if (use_m_guard) 
+  if (use_m_guard)
     {
       char *p;
-      
+
       if ( !(p = _gcry_secmem_malloc (n +EXTRA_ALIGN+ 5)) )
         return NULL;
       ((byte*)p)[EXTRA_ALIGN+0] = n;
@@ -152,10 +152,10 @@ _gcry_private_realloc ( void *a, size_t n )
       unsigned char *p = a;
       char *b;
       size_t len;
-      
+
       if (!a)
         return _gcry_private_malloc(n);
-        
+
       _gcry_private_check_heap(p);
       len  = p[-4];
       len |= p[-3] << 8;
@@ -191,10 +191,10 @@ _gcry_private_check_heap (const void *a)
     {
       const byte *p = a;
       size_t len;
-      
+
       if (!p)
         return;
-      
+
       if ( !(p[-1] == MAGIC_NOR_BYTE || p[-1] == MAGIC_SEC_BYTE) )
         _gcry_log_fatal ("memory at %p corrupted (underflow=%02x)\n", p, p[-1]);
       len  = p[-4];
@@ -231,5 +231,3 @@ _gcry_private_free (void *a)
   else
     free(p);
 }
-
-

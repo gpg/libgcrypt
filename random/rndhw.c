@@ -44,7 +44,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
   volatile char buffer[64+8] __attribute__ ((aligned (8)));
   volatile char *p;
   unsigned int nbytes, status;
-  
+
   /* Peter Gutmann's cryptlib tests again whether the RNG is enabled
      but we don't do so.  We would have to do this also for our AES
      implementaion and that is definitely too time consuming.  There
@@ -55,7 +55,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
   nbytes = 0;
   while (nbytes < 64)
     {
-      asm volatile 
+      asm volatile
         ("movl %1, %%edi\n\t"         /* Set buffer.  */
          "xorl %%edx, %%edx\n\t"      /* Request up to 8 bytes.  */
          ".byte 0x0f, 0xa7, 0xc0\n\t" /* XSTORE RNG. */
@@ -75,13 +75,13 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
             break; /* Don't get into the loop with the fast flag set.  */
           p += (status & 0x1f);
         }
-      else 
+      else
         {
           /* If there was an error we need to break the loop and
              record that there is something wrong with the padlock
              RNG.  */
           rng_failed = 1;
-          break; 
+          break;
         }
     }
 
@@ -114,7 +114,7 @@ _gcry_rndhw_poll_fast (void (*add)(const void*, size_t, enum random_origins),
 #ifdef USE_PADLOCK
   if ((_gcry_get_hw_features () & HWF_PADLOCK_RNG))
     poll_padlock (add, origin, 1);
-#endif  
+#endif
 }
 
 
@@ -132,7 +132,7 @@ _gcry_rndhw_poll_slow (void (*add)(const void*, size_t, enum random_origins),
 #ifdef USE_PADLOCK
   if ((_gcry_get_hw_features () & HWF_PADLOCK_RNG))
     nbytes += poll_padlock (add, origin, 0);
-#endif  
+#endif
 
   return nbytes;
 }

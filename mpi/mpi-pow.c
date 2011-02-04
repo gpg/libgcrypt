@@ -37,7 +37,7 @@
  * RES = BASE ^ EXPO mod MOD
  */
 void
-gcry_mpi_powm (gcry_mpi_t res, 
+gcry_mpi_powm (gcry_mpi_t res,
                gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
 {
   /* Pointer to the limbs of the arguments, their size and signs. */
@@ -45,7 +45,7 @@ gcry_mpi_powm (gcry_mpi_t res,
   mpi_size_t esize, msize, bsize, rsize;
   int               msign, bsign, rsign;
   /* Flags telling the secure allocation status of the arguments.  */
-  int        esec,  msec,  bsec,  rsec;  
+  int        esec,  msec,  bsec,  rsec;
   /* Size of the result including space for temporary values.  */
   mpi_size_t size;
   /* Helper.  */
@@ -60,14 +60,14 @@ gcry_mpi_powm (gcry_mpi_t res,
   unsigned int ep_nlimbs = 0;
   unsigned int xp_nlimbs = 0;
   mpi_ptr_t tspace = NULL;
-  mpi_size_t tsize = 0; 
+  mpi_size_t tsize = 0;
 
 
   esize = expo->nlimbs;
   msize = mod->nlimbs;
   size = 2 * msize;
   msign = mod->sign;
-  
+
   esec = mpi_is_secure(expo);
   msec = mpi_is_secure(mod);
   bsec = mpi_is_secure(base);
@@ -79,7 +79,7 @@ gcry_mpi_powm (gcry_mpi_t res,
   if (!msize)
     msize = 1 / msize;	    /* Provoke a signal.  */
 
-  if (!esize) 
+  if (!esize)
     {
       /* Exponent is zero, result is 1 mod MOD, i.e., 1 or 0 depending
         on if MOD equals 1.  */
@@ -103,7 +103,7 @@ gcry_mpi_powm (gcry_mpi_t res,
 
   bsize = base->nlimbs;
   bsign = base->sign;
-  if (bsize > msize) 
+  if (bsize > msize)
     {
       /* The base is larger than the module.  Reduce it.
 
@@ -147,7 +147,7 @@ gcry_mpi_powm (gcry_mpi_t res,
       ep = ep_marker = mpi_alloc_limb_space( esize, esec );
       MPN_COPY(ep, rp, esize);
     }
-  if ( rp == mp ) 
+  if ( rp == mp )
     {
       /* RES and MOD are identical.  Allocate temporary space for MOD.*/
       gcry_assert (!mp_marker);
@@ -165,7 +165,7 @@ gcry_mpi_powm (gcry_mpi_t res,
   MPN_COPY ( rp, bp, bsize );
   rsize = bsize;
   rsign = bsign;
-  
+
   /* Main processing.  */
   {
     mpi_size_t i;
@@ -174,13 +174,13 @@ gcry_mpi_powm (gcry_mpi_t res,
     mpi_limb_t e;
     mpi_limb_t carry_limb;
     struct karatsuba_ctx karactx;
-    
+
     xp_nlimbs = msec? (2 * (msize + 1)):0;
     xp = xp_marker = mpi_alloc_limb_space( 2 * (msize + 1), msec );
-    
+
     memset( &karactx, 0, sizeof karactx );
     negative_result = (ep[0] & 1) && base->sign;
-    
+
     i = esize - 1;
     e = ep[i];
     count_leading_zeros (c, e);
@@ -188,7 +188,7 @@ gcry_mpi_powm (gcry_mpi_t res,
     c = BITS_PER_MPI_LIMB - 1 - c;
 
     /* Main loop.
-     
+
        Make the result be pointed to alternately by XP and RP.  This
        helps us avoid block copying, which would otherwise be
        necessary with the overlap restrictions of
@@ -197,17 +197,17 @@ gcry_mpi_powm (gcry_mpi_t res,
        and with 50% probability in the area originally pointed to by XP. */
     for (;;)
       {
-        while (c) 
+        while (c)
           {
             mpi_ptr_t tp;
             mpi_size_t xsize;
-            
+
             /*mpih_mul_n(xp, rp, rp, rsize);*/
             if ( rsize < KARATSUBA_THRESHOLD )
               _gcry_mpih_sqr_n_basecase( xp, rp, rsize );
-            else 
+            else
               {
-                if ( !tspace ) 
+                if ( !tspace )
                   {
                     tsize = 2 * rsize;
                     tspace = mpi_alloc_limb_space( tsize, 0 );
@@ -234,19 +234,19 @@ gcry_mpi_powm (gcry_mpi_t res,
             if ( (mpi_limb_signed_t)e < 0 )
               {
                 /*mpih_mul( xp, rp, rsize, bp, bsize );*/
-                if( bsize < KARATSUBA_THRESHOLD ) 
+                if( bsize < KARATSUBA_THRESHOLD )
                   _gcry_mpih_mul ( xp, rp, rsize, bp, bsize );
-                else 
+                else
                   _gcry_mpih_mul_karatsuba_case (xp, rp, rsize, bp, bsize,
                                                  &karactx);
-                
+
                 xsize = rsize + bsize;
-                if ( xsize > msize ) 
+                if ( xsize > msize )
                   {
                     _gcry_mpih_divrem(xp + msize, 0, xp, xsize, mp, msize);
                     xsize = msize;
                   }
-                
+
                 tp = rp; rp = xp; xp = tp;
                 rsize = xsize;
               }
@@ -267,7 +267,7 @@ gcry_mpi_powm (gcry_mpi_t res,
 
        Also make sure the result is put in RES->d (where it already
        might be, see above).  */
-    if ( mod_shift_cnt ) 
+    if ( mod_shift_cnt )
       {
         carry_limb = _gcry_mpih_lshift( res->d, rp, rsize, mod_shift_cnt);
         rp = res->d;
@@ -283,7 +283,7 @@ gcry_mpi_powm (gcry_mpi_t res,
         rp = res->d;
       }
 
-    if ( rsize >= msize ) 
+    if ( rsize >= msize )
       {
         _gcry_mpih_divrem(rp + msize, 0, rp, rsize, mp, msize);
         rsize = msize;
@@ -293,7 +293,7 @@ gcry_mpi_powm (gcry_mpi_t res,
     if ( mod_shift_cnt )
       _gcry_mpih_rshift( rp, rp, rsize, mod_shift_cnt);
     MPN_NORMALIZE (rp, rsize);
-    
+
     _gcry_mpih_release_karatsuba_ctx (&karactx );
   }
 
@@ -310,7 +310,7 @@ gcry_mpi_powm (gcry_mpi_t res,
   gcry_assert (res->d == rp);
   res->nlimbs = rsize;
   res->sign = rsign;
-  
+
  leave:
   if (mp_marker)
     _gcry_mpi_free_limb_space( mp_marker, mp_nlimbs );
@@ -323,4 +323,3 @@ gcry_mpi_powm (gcry_mpi_t res,
   if (tspace)
     _gcry_mpi_free_limb_space( tspace, 0 );
 }
-

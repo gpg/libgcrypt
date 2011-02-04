@@ -23,14 +23,14 @@
 #ifndef G10_CIPHER_PROTO_H
 #define G10_CIPHER_PROTO_H
 
-/* Definition of a function used to report selftest failures. 
+/* Definition of a function used to report selftest failures.
    DOMAIN is a string describing the function block:
           "cipher", "digest", "pubkey or "random",
    ALGO   is the algorithm under test,
    WHAT   is a string describing what has been tested,
    DESC   is a string describing the error. */
 typedef void (*selftest_report_func_t)(const char *domain,
-                                       int algo, 
+                                       int algo,
                                        const char *what,
                                        const char *errdesc);
 
@@ -110,7 +110,7 @@ gcry_error_t _gcry_pk_register (gcry_pk_spec_t *cipher,
                                 gcry_module_t *module);
 
 /* The selftest functions.  */
-gcry_error_t _gcry_cipher_selftest (int algo, int extended, 
+gcry_error_t _gcry_cipher_selftest (int algo, int extended,
                                     selftest_report_func_t report);
 gcry_error_t _gcry_md_selftest (int algo, int extended,
                                 selftest_report_func_t report);

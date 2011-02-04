@@ -64,14 +64,14 @@
 2008-09-15  Werner Koch  <wk@g10code.com>
 
 	* random.c (_gcry_random_init_external_test): New.
-	(_gcry_random_run_external_test): New. 
+	(_gcry_random_run_external_test): New.
 	(_gcry_random_deinit_external_test): New.
 	* random-fips.c (struct rng_context): Turn TEST_DT_COUNTER into a
 	32 bit integer.
 	(x931_get_dt): Ditto.
 	(selftest_kat): Intialize it accordingly.
 	(_gcry_rngfips_init_external_test): New.
-	(_gcry_rngfips_run_external_test): New. 
+	(_gcry_rngfips_run_external_test): New.
 	(_gcry_rngfips_deinit_external_test): New.
 
 2008-09-05  Werner Koch  <wk@g10code.com>
@@ -173,4 +173,3 @@
  This file is distributed in the hope that it will be useful, but
  WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-

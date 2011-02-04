@@ -25,12 +25,12 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-random-daemon \
 DIST_SUBDIRS = m4 compat mpi cipher random src doc tests
 SUBDIRS =         compat mpi cipher random src doc tests
 EXTRA_DIST = autogen.sh README.SVN
-DISTCLEANFILES = 
+DISTCLEANFILES =
 
 
 # Add all the files listed in "distfiles" files to the distribution,
 # apply version number s to some files and create a VERSION file which
-# we need for the Prereq: patch file trick. 
+# we need for the Prereq: patch file trick.
 dist-hook:
 	@set -e; \
 	 for file in `cd $(top_srcdir); \
@@ -44,10 +44,5 @@ dist-hook:
 	@set -e; \
 	echo "$(VERSION)" > $(distdir)/VERSION
 
-stowinstall: 
+stowinstall:
 	$(MAKE) $(AM_MAKEFLAGS) install prefix=/usr/local/stow/libgcrypt
-
-
-
-
-

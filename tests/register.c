@@ -96,7 +96,7 @@ check_list (int algorithm)
   list = malloc (sizeof (int) * list_length);
   assert (list);
   err = gcry_cipher_list (list, &list_length);
-  
+
   for (i = 0; i < list_length && (! ret); i++)
     if (list[i] == algorithm)
       ret = 1;
@@ -183,5 +183,5 @@ main (int argc, char **argv)
 
   /* In fips mode we let the Makefile skip this test because a PASS
      would not make much sense with all egistering disabled. */
-  return in_fips_mode? 77:0; 
+  return in_fips_mode? 77:0;
 }

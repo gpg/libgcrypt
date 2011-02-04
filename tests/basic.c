@@ -84,7 +84,7 @@ progress_handler (void *cb_data, const char *what, int printchar,
   (void)what;
   (void)current;
   (void)total;
-  
+
   if (printchar == '\n')
     fputs ( "<LF>", stdout);
   else
@@ -182,7 +182,7 @@ check_cbc_mac_cipher (void)
 	}
 
       if (verbose)
-	fprintf (stderr, "    checking CBC MAC for %s [%i]\n", 
+	fprintf (stderr, "    checking CBC MAC for %s [%i]\n",
 		 gcry_cipher_algo_name (tv[i].algo),
 		 tv[i].algo);
       err = gcry_cipher_encrypt (hd,
@@ -460,7 +460,7 @@ check_ctr_cipher (void)
 	}
 
       if (verbose)
-	fprintf (stderr, "    checking CTR mode for %s [%i]\n", 
+	fprintf (stderr, "    checking CTR mode for %s [%i]\n",
 		 gcry_cipher_algo_name (tv[i].algo),
 		 tv[i].algo);
       for (j = 0; tv[i].data[j].inlen; j++)
@@ -496,38 +496,38 @@ check_ctr_cipher (void)
 	    fail ("aes-ctr, decrypt mismatch entry %d:%d\n", i, j);
 
         }
-          
+
       /* Now check that we get valid return codes back for good and
          bad inputs.  */
       err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
                                  "1234567890123456", 16);
       if (err)
         fail ("aes-ctr, encryption failed for valid input");
-      
+
       err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
                                  "1234567890123456", 15);
       if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
         fail ("aes-ctr, too short input returned wrong error: %s\n",
               gpg_strerror (err));
-      
+
       err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
                                  "12345678901234567", 17);
       if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
         fail ("aes-ctr, too long input returned wrong error: %s\n",
               gpg_strerror (err));
-      
+
       err = gcry_cipher_encrypt (hde, out, 15,
                                  "1234567890123456", 16);
       if (gpg_err_code (err) != GPG_ERR_BUFFER_TOO_SHORT)
         fail ("aes-ctr, too short output buffer returned wrong error: %s\n",
               gpg_strerror (err));
-      
+
       err = gcry_cipher_encrypt (hde, out, 0,
                                  "1234567890123456", 16);
       if (gpg_err_code (err) != GPG_ERR_BUFFER_TOO_SHORT)
         fail ("aes-ctr, 0 length output buffer returned wrong error: %s\n",
               gpg_strerror (err));
-      
+
       err = gcry_cipher_encrypt (hde, out, 16,
                                  "1234567890123456", 16);
       if (err)
@@ -539,37 +539,37 @@ check_ctr_cipher (void)
                                  "1234567890123456", 16);
       if (err)
         fail ("aes-ctr, decryption failed for valid input");
-      
+
       err = gcry_cipher_decrypt (hde, out, MAX_DATA_LEN,
                                  "1234567890123456", 15);
       if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
         fail ("aes-ctr, too short input returned wrong error: %s\n",
               gpg_strerror (err));
-      
+
       err = gcry_cipher_decrypt (hde, out, MAX_DATA_LEN,
                                  "12345678901234567", 17);
       if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
         fail ("aes-ctr, too long input returned wrong error: %s\n",
               gpg_strerror (err));
-      
+
       err = gcry_cipher_decrypt (hde, out, 15,
                                  "1234567890123456", 16);
       if (gpg_err_code (err) != GPG_ERR_BUFFER_TOO_SHORT)
         fail ("aes-ctr, too short output buffer returned wrong error: %s\n",
               gpg_strerror (err));
-      
+
       err = gcry_cipher_decrypt (hde, out, 0,
                                  "1234567890123456", 16);
       if (gpg_err_code (err) != GPG_ERR_BUFFER_TOO_SHORT)
         fail ("aes-ctr, 0 length output buffer returned wrong error: %s\n",
               gpg_strerror (err));
-      
+
       err = gcry_cipher_decrypt (hde, out, 16,
                                  "1234567890123456", 16);
       if (err)
         fail ("aes-ctr, correct length output buffer returned error: %s\n",
               gpg_strerror (err));
-      
+
       gcry_cipher_close (hde);
       gcry_cipher_close (hdd);
     }
@@ -656,11 +656,11 @@ check_cfb_cipher (void)
 
   if (verbose)
     fprintf (stderr, "  Starting CFB checks.\n");
-    
+
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
       if (verbose)
-        fprintf (stderr, "    checking CFB mode for %s [%i]\n", 
+        fprintf (stderr, "    checking CFB mode for %s [%i]\n",
 		 gcry_cipher_algo_name (tv[i].algo),
 		 tv[i].algo);
       err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_CFB, 0);
@@ -827,11 +827,11 @@ check_ofb_cipher (void)
 
   if (verbose)
     fprintf (stderr, "  Starting OFB checks.\n");
-    
+
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
       if (verbose)
-        fprintf (stderr, "    checking OFB mode for %s [%i]\n", 
+        fprintf (stderr, "    checking OFB mode for %s [%i]\n",
 		 gcry_cipher_algo_name (tv[i].algo),
 		 tv[i].algo);
       err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_OFB, 0);
@@ -941,7 +941,7 @@ check_ofb_cipher (void)
       for (j = 0; tv[i].data[j].inlen; j++)
         {
 	  int byteNum;
-	  for (byteNum = 0; byteNum < tv[i].data[j].inlen; ++byteNum) 
+	  for (byteNum = 0; byteNum < tv[i].data[j].inlen; ++byteNum)
 	    {
 	      err = gcry_cipher_encrypt (hde, out+byteNum, 1,
 					 (tv[i].data[j].plaintext) + byteNum,
@@ -959,7 +959,7 @@ check_ofb_cipher (void)
           if (memcmp (tv[i].data[j].out, out, tv[i].data[j].inlen))
             fail ("aes-ofb, encrypt mismatch entry %d:%d\n", i, j);
 
-	  for (byteNum = 0; byteNum < tv[i].data[j].inlen; ++byteNum) 
+	  for (byteNum = 0; byteNum < tv[i].data[j].inlen; ++byteNum)
 	    {
 	      err = gcry_cipher_decrypt (hdd, out+byteNum, 1, NULL, 0);
 	      if (err)
@@ -1181,16 +1181,16 @@ check_ciphers (void)
 
 static void
 check_cipher_modes(void)
-{  
+{
   if (verbose)
     fprintf (stderr, "Starting Cipher Mode checks.\n");
-      
+
   check_aes128_cbc_cts_cipher ();
   check_cbc_mac_cipher ();
   check_ctr_cipher ();
   check_cfb_cipher ();
   check_ofb_cipher ();
-      
+
   if (verbose)
     fprintf (stderr, "Completed Cipher Mode checks.\n");
 }
@@ -1405,16 +1405,16 @@ check_digests (void)
       {	GCRY_MD_TIGER1, "abcdefghijklmnopqrstuvwxyz",
 	"\x17\x14\xA4\x72\xEE\xE5\x7D\x30\x04\x04\x12\xBF"
         "\xCC\x55\x03\x2A\x0B\x11\x60\x2F\xF3\x7B\xEE\xE9" },
-      {	GCRY_MD_TIGER1, 
+      {	GCRY_MD_TIGER1,
         "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
 	"\x0F\x7B\xF9\xA1\x9B\x9C\x58\xF2\xB7\x61\x0D\xF7"
         "\xE8\x4F\x0A\xC3\xA7\x1C\x63\x1E\x7B\x53\xF7\x8E" },
-      {	GCRY_MD_TIGER1, 
+      {	GCRY_MD_TIGER1,
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz" "0123456789",
         "\x8D\xCE\xA6\x80\xA1\x75\x83\xEE\x50\x2B\xA3\x8A"
         "\x3C\x36\x86\x51\x89\x0F\xFB\xCC\xDC\x49\xA8\xCC" },
-      {	GCRY_MD_TIGER1, 
+      {	GCRY_MD_TIGER1,
         "1234567890" "1234567890" "1234567890" "1234567890"
         "1234567890" "1234567890" "1234567890" "1234567890",
         "\x1C\x14\x79\x55\x29\xFD\x9F\x20\x7A\x95\x8F\x84"
@@ -1438,16 +1438,16 @@ check_digests (void)
       {	GCRY_MD_TIGER2, "abcdefghijklmnopqrstuvwxyz",
         "\xF5\xB6\xB6\xA7\x8C\x40\x5C\x85\x47\xE9\x1C\xD8"
         "\x62\x4C\xB8\xBE\x83\xFC\x80\x4A\x47\x44\x88\xFD" },
-      {	GCRY_MD_TIGER2, 
+      {	GCRY_MD_TIGER2,
         "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
         "\xA6\x73\x7F\x39\x97\xE8\xFB\xB6\x3D\x20\xD2\xDF"
         "\x88\xF8\x63\x76\xB5\xFE\x2D\x5C\xE3\x66\x46\xA9" },
-      {	GCRY_MD_TIGER2, 
+      {	GCRY_MD_TIGER2,
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz" "0123456789",
         "\xEA\x9A\xB6\x22\x8C\xEE\x7B\x51\xB7\x75\x44\xFC"
         "\xA6\x06\x6C\x8C\xBB\x5B\xBA\xE6\x31\x95\x05\xCD" },
-      {	GCRY_MD_TIGER2, 
+      {	GCRY_MD_TIGER2,
         "1234567890" "1234567890" "1234567890" "1234567890"
         "1234567890" "1234567890" "1234567890" "1234567890",
         "\xD8\x52\x78\x11\x53\x29\xEB\xAA\x0E\xEC\x85\xEC"
@@ -1501,10 +1501,10 @@ check_digests (void)
           continue;
         }
       if (verbose)
-	fprintf (stderr, "  checking %s [%i] for length %zi\n", 
+	fprintf (stderr, "  checking %s [%i] for length %zi\n",
 		 gcry_md_algo_name (algos[i].md),
 		 algos[i].md,
-                 !strcmp (algos[i].data, "!")? 
+                 !strcmp (algos[i].data, "!")?
                  1000000 : strlen(algos[i].data));
 
       check_one_md (algos[i].md, algos[i].data, strlen (algos[i].data),
@@ -1516,7 +1516,7 @@ check_digests (void)
 }
 
 static void
-check_one_hmac (int algo, const char *data, int datalen, 
+check_one_hmac (int algo, const char *data, int datalen,
 		const char *key, int keylen, const char *expect)
 {
   gcry_md_hd_t hd, hd2;
@@ -1650,7 +1650,7 @@ check_hmac (void)
 	"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19",
 	"\x82\x55\x8a\x38\x9a\x44\x3c\x0e\xa4\xcc\x81\x98\x99\xf2\x08"
 	"\x3a\x85\xf0\xfa\xa3\xe5\x78\xf8\x07\x7a\x2e\x3f\xf4\x67\x29\x66\x5b" },
-      { GCRY_MD_SHA256, 
+      { GCRY_MD_SHA256,
 	"Test Using Larger Than Block-Size Key - Hash Key First",
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -1663,7 +1663,7 @@ check_hmac (void)
 	"\xaa\xaa\xaa",
 	"\x60\xe4\x31\x59\x1e\xe0\xb6\x7f\x0d\x8a\x26\xaa\xcb\xf5\xb7\x7f"
 	"\x8e\x0b\xc6\x21\x37\x28\xc5\x14\x05\x46\x04\x0f\x0e\xe3\x7f\x54" },
-      { GCRY_MD_SHA256, 
+      { GCRY_MD_SHA256,
 	"This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm.",
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -1703,7 +1703,7 @@ check_hmac (void)
 	"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19",
 	"\x6c\x11\x50\x68\x74\x01\x3c\xac\x6a\x2a\xbc\x1b\xb3\x82\x62"
 	"\x7c\xec\x6a\x90\xd8\x6e\xfc\x01\x2d\xe7\xaf\xec\x5a" },
-      { GCRY_MD_SHA224, 
+      { GCRY_MD_SHA224,
 	"Test Using Larger Than Block-Size Key - Hash Key First",
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -1716,7 +1716,7 @@ check_hmac (void)
 	"\xaa\xaa\xaa",
 	"\x95\xe9\xa0\xdb\x96\x20\x95\xad\xae\xbe\x9b\x2d\x6f\x0d\xbc\xe2"
 	"\xd4\x99\xf1\x12\xf2\xd2\xb7\x27\x3f\xa6\x87\x0e" },
-      { GCRY_MD_SHA224, 
+      { GCRY_MD_SHA224,
 	"This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm.",
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -1760,7 +1760,7 @@ check_hmac (void)
 	"\x3e\x8a\x69\xb7\x78\x3c\x25\x85\x19\x33\xab\x62\x90\xaf\x6c\xa7"
 	"\x7a\x99\x81\x48\x08\x50\x00\x9c\xc5\x57\x7c\x6e\x1f\x57\x3b\x4e"
 	"\x68\x01\xdd\x23\xc4\xa7\xd6\x79\xcc\xf8\xa3\x86\xc6\x74\xcf\xfb" },
-      { GCRY_MD_SHA384, 
+      { GCRY_MD_SHA384,
 	"Test Using Larger Than Block-Size Key - Hash Key First",
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -1774,7 +1774,7 @@ check_hmac (void)
 	"\x4e\xce\x08\x44\x85\x81\x3e\x90\x88\xd2\xc6\x3a\x04\x1b\xc5\xb4"
 	"\x4f\x9e\xf1\x01\x2a\x2b\x58\x8f\x3c\xd1\x1f\x05\x03\x3a\xc4\xc6"
 	"\x0c\x2e\xf6\xab\x40\x30\xfe\x82\x96\x24\x8d\xf1\x63\xf4\x49\x52" },
-      { GCRY_MD_SHA384, 
+      { GCRY_MD_SHA384,
 	"This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm.",
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -1823,7 +1823,7 @@ check_hmac (void)
 	"\xe5\x76\xd9\x7f\xf9\x4b\x87\x2d\xe7\x6f\x80\x50\x36\x1e\xe3\xdb"
 	"\xa9\x1c\xa5\xc1\x1a\xa2\x5e\xb4\xd6\x79\x27\x5c\xc5\x78\x80\x63"
 	"\xa5\xf1\x97\x41\x12\x0c\x4f\x2d\xe2\xad\xeb\xeb\x10\xa2\x98\xdd" },
-      { GCRY_MD_SHA512, 
+      { GCRY_MD_SHA512,
 	"Test Using Larger Than Block-Size Key - Hash Key First",
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -1838,7 +1838,7 @@ check_hmac (void)
 	"\x9b\x46\xd1\xf4\x1b\x4a\xee\xc1\x12\x1b\x01\x37\x83\xf8\xf3\x52"
 	"\x6b\x56\xd0\x37\xe0\x5f\x25\x98\xbd\x0f\xd2\x21\x5d\x6a\x1e\x52"
 	"\x95\xe6\x4f\x73\xf6\x3f\x0a\xec\x8b\x91\x5a\x98\x5d\x78\x65\x98" },
-      { GCRY_MD_SHA512, 
+      { GCRY_MD_SHA512,
 	"This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm.",
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
 	"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
@@ -1871,8 +1871,8 @@ check_hmac (void)
           continue;
         }
       if (verbose)
-	fprintf (stderr, 
-                 "  checking %s [%i] for %zi byte key and %zi byte data\n", 
+	fprintf (stderr,
+                 "  checking %s [%i] for %zi byte key and %zi byte data\n",
 		 gcry_md_algo_name (algos[i].md),
 		 algos[i].md,
 		 strlen(algos[i].key), strlen(algos[i].data));
@@ -2026,7 +2026,7 @@ check_one_pubkey (int n, test_spec_pubkey_t spec)
 
   do_check_one_pubkey (n, skey, pkey,
                        (const unsigned char*)spec.key.grip, spec.flags);
- 
+
   gcry_sexp_release (skey);
   gcry_sexp_release (pkey);
 }
@@ -2037,10 +2037,10 @@ get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
   if (verbose)
-    fprintf (stderr, "  generating RSA key:");  
+    fprintf (stderr, "  generating RSA key:");
   rc = gcry_sexp_new (&key_spec,
 		      in_fips_mode ? "(genkey (rsa (nbits 4:1024)))"
-                      : "(genkey (rsa (nbits 4:1024)(transient-key)))", 
+                      : "(genkey (rsa (nbits 4:1024)(transient-key)))",
                       0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
@@ -2048,7 +2048,7 @@ get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_release (key_spec);
   if (rc)
     die ("error generating RSA key: %s\n", gpg_strerror (rc));
-    
+
   pub_key = gcry_sexp_find_token (key, "public-key", 0);
   if (! pub_key)
     die ("public part missing in key\n");
@@ -2219,7 +2219,7 @@ check_pubkey (void)
 
 int
 main (int argc, char **argv)
-{ 
+{
   gpg_error_t err;
   int last_argc = -1;
   int debug = 0;
@@ -2258,7 +2258,7 @@ main (int argc, char **argv)
           verbose += 2;
           argc--; argv++;
         }
-    }          
+    }
 
   gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
 
@@ -2302,7 +2302,7 @@ main (int argc, char **argv)
       gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
       if (!gcry_control (GCRYCTL_OPERATIONAL_P, 0))
         fail ("not in operational state after self-test\n");
-      
+
       /* Get us into the error state.  */
       err = gcry_md_open (&md, GCRY_MD_SHA1, 0);
       if (err)
@@ -2335,7 +2335,7 @@ main (int argc, char **argv)
                 }
             }
         }
-      
+
     }
   else
     {

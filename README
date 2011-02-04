@@ -1,7 +1,7 @@
 		    Libgcrypt - The GNU Crypto Library
 		   ------------------------------------
                             Version 1.5.x
- 
+
       WARNING: THIS VERSION OF LIBGCRYPT IS UNDER DEVELOPMENT.
                THE STABLE VERSION IS THE 1.4.
 
@@ -34,7 +34,7 @@
     The download canonical location for libgcrypt is:
 
       ftp://ftp.gnupg.org/gcrypt/libgcrypt/
-     
+
     To build libgcrypt you need libgpg-error:
 
       ftp://ftp.gnupg.org/gcrypt/libgpg-error/
@@ -62,7 +62,7 @@
       ./autogen.sh --build-w32
       make
       make install
-      
+
     By default this command sequences expectsd a libgpg-error
     installed below $HOME/w32root and installs libgcrypt to that
     directory too.  See the autogen.sh code for details.
@@ -73,7 +73,7 @@
       cd doc
       make pdf
 
-      
+
 
     Mailing List
     ------------
@@ -84,9 +84,9 @@
     list is available at http://lists.gnupg.org .
 
 
-    Configure options 
+    Configure options
     -----------------
-    Here is a list of configure options which are sometimes useful 
+    Here is a list of configure options which are sometimes useful
     for installation.
 
      --enable-m-guard
@@ -96,9 +96,9 @@
                      you a bus error.
 
      --disable-asm
-                     Do not use assembler modules.  It is not possible 
+                     Do not use assembler modules.  It is not possible
                      to use this on some CPU types.
-                    
+
      --enable-ld-version-script
                      Libgcrypt tries to build a library where internal
                      symbols are not exported.  This requires support
@@ -110,7 +110,7 @@
                      option to disable the use of version scripts.
                      Note, that you should never ever use an
                      undocumented symbol or one which is prefixed with
-                     an underscore. 
+                     an underscore.
 
      --enable-ciphers=list
      --enable-pubkey-ciphers=list
@@ -144,7 +144,7 @@
                      Take care: The generated library may crash on
                      non-compatible CPUs.
 
-     --enable-random=NAME 
+     --enable-random=NAME
                      Force the use of the random gathering module
 		     NAME.  Default is either to use /dev/random or
 		     the auto mode.  Possible values for NAME are:
@@ -156,9 +156,9 @@
 		     linux - Use the module which accesses /dev/random.
 			     This is the first choice and the default one
 			     for GNU/Linux or *BSD.
-                      auto - Compile linux, egd and unix in and 
+                      auto - Compile linux, egd and unix in and
                              automagically select at runtime.
-  
+
      --enable-hmac-binary-check
                      Include support to check the binary at runtime
                      against a HMAC checksum.  This works only in FIPS
@@ -180,7 +180,7 @@
                      the feature under the assumption that either good
                      CFLAGS are given or the compiler can grok the code.
 
-                      
+
 
 
     Build Problems
@@ -218,7 +218,7 @@
             CFLAGS="-O -K pentium" ./configure --disable-asm
 
       * SunOS 4.1.4
-      
+
          ./configure ac_cv_sys_symbol_underscore=yes
 
       * Sparc64 CPUs
@@ -230,7 +230,7 @@
 
     License
     -------
-    
+
     The library is distributed under the terms of the GNU Lesser
     General Public License (LGPL); see the file COPYING.LIB for the
     actual terms.  The helper programs (e.g. gcryptrnd and getrandom)
@@ -270,4 +270,3 @@
   distributed in the hope that it will be useful, but WITHOUT ANY
   WARRANTY, to the extent permitted by law; without even the implied
   warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-

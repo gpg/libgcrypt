@@ -18,7 +18,7 @@
 #include <windows.h>
 #include <sys/types.h>
 
-pid_t 
+pid_t
 _gcry_getpid (void)
 {
   return GetCurrentProcessId ();

@@ -82,7 +82,7 @@ _gcry_rndw32ce_gather_random (void (*add)(const void*, size_t,
   if (length+8 < buflen)
     buflen = length+8;  /* Return a bit more than requested.  */
 
-  if (!CryptAcquireContext (&prov, NULL, NULL, PROV_RSA_FULL, 
+  if (!CryptAcquireContext (&prov, NULL, NULL, PROV_RSA_FULL,
                            (CRYPT_VERIFYCONTEXT|CRYPT_SILENT)) )
     log_debug ("CryptAcquireContext failed: rc=%d\n", (int)GetLastError ());
   else
@@ -184,16 +184,16 @@ _gcry_rndw32ce_gather_random_fast (void (*add)(const void*, size_t,
     (*add) ( &userTime, sizeof (userTime), origin );
 
   }
-  
+
 
   /* In case the OEM provides a high precision timer get this.  If
      none is available the default implementation returns the
      GetTickCount.  */
   {
     LARGE_INTEGER performanceCount;
-    
+
     if (QueryPerformanceCounter (&performanceCount))
       (*add) (&performanceCount, sizeof (performanceCount), origin);
   }
-  
+
 }

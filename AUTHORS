@@ -81,7 +81,7 @@ Assigns Past and Future Changes
 perky@freebsd.org
 (SEED cipher)
 
-LIBGCRYPT       Werner Dittmann  2009-05-20  
+LIBGCRYPT       Werner Dittmann  2009-05-20
 Assigns Past and Future Changes
 werner.dittmann@t-online.de
 (mpi/amd64, tests/mpitests.c)
@@ -132,5 +132,3 @@ security corporation.  See the file for details.
  This file is distributed in the hope that it will be useful, but
  WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-

@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, 
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
  */
 
@@ -91,7 +91,7 @@ static char *
 mpi2bitstr (gcry_mpi_t a, size_t length)
 {
   char *p, *buf;
-  
+
   buf = p = xmalloc (length+1);
   while (length--)
     *p++ = gcry_mpi_test_bit (a, length) ? '1':'0';
@@ -147,7 +147,7 @@ lshiftbitstring (const char *string, size_t n)
 
   if (len+n+1 < len)
     die ("internal overflow\n");
-  /* Allocate enough space. */ 
+  /* Allocate enough space. */
   result = xmalloc (len+n+1);
   for (; *string == '0' && string[1]; string++, len--)
     ;
@@ -282,7 +282,7 @@ test_lshift (int pass)
       for (i=0; i < 75; i++)
         {
           gcry_mpi_lshift (b, a, i);
-          
+
           result = mpi2bitstr_nlz (b);
           tmpstr = mpi2bitstr_nlz (a);
           result2 = lshiftbitstring (tmpstr, i);
@@ -296,11 +296,11 @@ test_lshift (int pass)
           xfree (result);
           xfree (result2);
         }
-      
+
       /* Again. This time using in-place operation. */
       gcry_mpi_randomize (a, size_list[size_idx], GCRY_WEAK_RANDOM);
       gcry_mpi_clear_highbit (a, size_list[size_idx]);
-      
+
       for (i=0; i < 75; i++)
         {
           gcry_mpi_release (b);
@@ -355,7 +355,7 @@ main (int argc, char **argv)
 
   for (i=0; i < 5; i++)
     test_lshift (i); /* Run several times due to random initializations. */
-  
+
   show ("All tests completed. Errors: %d\n", error_count);
   return error_count ? 1 : 0;
 }

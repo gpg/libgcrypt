@@ -49,6 +49,3 @@ gcry_mpi_gcd( gcry_mpi_t g, gcry_mpi_t xa, gcry_mpi_t xb )
     mpi_free(b);
     return !gcry_mpi_cmp_ui( g, 1);
 }
-
-
-

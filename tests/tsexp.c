@@ -81,7 +81,7 @@ basic (void)
     { NULL }
   };
 
-  info ("doing some pretty pointless tests\n"); 
+  info ("doing some pretty pointless tests\n");
 
   secure_buffer_len = 99;
   secure_buffer = gcry_xmalloc_secure (secure_buffer_len);
@@ -94,7 +94,7 @@ basic (void)
         case 0:
           string = ("(public-key (dsa (p #41424344#) (y this_is_y) "
                     "(q #61626364656667#) (g %m)))");
-          
+
           if ( gcry_sexp_build (&sexp, NULL, string,
                                 gcry_mpi_set_ui (NULL, 42)) )
             {
@@ -102,12 +102,12 @@ basic (void)
               return;
             }
           break;
-          
+
         case 1:
           string = ("(public-key (dsa (p #41424344#) (y this_is_y) "
                     "(q %b) (g %m)))");
-      
-          if ( gcry_sexp_build (&sexp, NULL, string, 
+
+          if ( gcry_sexp_build (&sexp, NULL, string,
                                 15, "foo\0\x01\0x02789012345",
                                 gcry_mpi_set_ui (NULL, 42)) )
             {
@@ -119,8 +119,8 @@ basic (void)
         case 2:
           string = ("(public-key (dsa (p #41424344#) (y silly_y_value) "
                     "(q %b) (g %m)))");
-      
-          if ( gcry_sexp_build (&sexp, NULL, string, 
+
+          if ( gcry_sexp_build (&sexp, NULL, string,
                                 secure_buffer_len, secure_buffer,
                                 gcry_mpi_set_ui (NULL, 17)) )
             {
@@ -154,8 +154,8 @@ basic (void)
             gcry_sexp_release (help_sexp);
           }
           break;
-          
-          
+
+
         default:
           return; /* Ready. */
         }
@@ -187,7 +187,7 @@ basic (void)
           info ("car=`%.*s'\n", (int)n, p);
 
           s2 = gcry_sexp_cdr (s1);
-          if (!s2) 
+          if (!s2)
             {
               fail ("no cdr for `%s'\n", token);
               continue;
@@ -209,20 +209,20 @@ basic (void)
                   continue;
                 }
               p = gcry_sexp_nth_data (s2, 0, &n);
-              if (!p) 
+              if (!p)
                 {
                   fail("no car for `%s'\n", parm );
                   continue;
                 }
               info ("car=`%.*s'\n", (int)n, p);
               p = gcry_sexp_nth_data (s2, 1, &n);
-              if (!p) 
+              if (!p)
                 {
                   fail("no cdr for `%s'\n", parm );
                   continue;
                 }
               info ("cdr=`%.*s'\n", (int)n, p);
-          
+
               a = gcry_sexp_nth_mpi (s2, 0, GCRYMPI_FMT_USG);
               if (!a)
                 {
@@ -231,7 +231,7 @@ basic (void)
                 }
             }
         }
-     
+
       gcry_sexp_release (sexp);
       sexp = NULL;
     }
@@ -247,7 +247,7 @@ canon_len (void)
     size_t expected;/* expected length or 0 on error and then ... */
     size_t erroff;  /* ... and at this offset */
     gcry_error_t errcode;    /* ... with this error code */
-    const char *text; 
+    const char *text;
   } values[] = {
     { 14, 13, 0, GPG_ERR_NO_ERROR, "(9:abcdefghi) " },
     { 16, 15, 0, GPG_ERR_NO_ERROR, "(10:abcdefghix)" },
@@ -274,9 +274,9 @@ canon_len (void)
   for (idx=0; values[idx].text; idx++)
     {
       n = gcry_sexp_canon_len ((const unsigned char*)values[idx].text,
-                               values[idx].textlen, 
+                               values[idx].textlen,
                                &erroff, &errcode);
-      
+
       if (n && n == values[idx].expected)
         ; /* success */
       else if (!n && !values[idx].expected)
@@ -356,7 +356,7 @@ back_and_forth_one (int testno, const char *buffer, size_t length)
   if (*p1 != '\x55' || p1[n1+1] != '\xaa')
     fail ("baf %d: memory corrupted (3)\n", testno);
   gcry_free (p1);
-  
+
   /* FIXME: we need a lot more tests */
 
   gcry_sexp_release (se);
@@ -396,7 +396,7 @@ check_sscan (void)
 {
   static struct {
     const char *text;
-    gcry_error_t expected_err;  
+    gcry_error_t expected_err;
   } values[] = {
     /* Bug reported by Olivier L'Heureux 2003-10-07 */
     { "(7:sig-val(3:dsa"
@@ -451,6 +451,6 @@ main (int argc, char **argv)
   canon_len ();
   back_and_forth ();
   check_sscan ();
-  
+
   return error_count? 1:0;
 }

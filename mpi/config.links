@@ -310,7 +310,7 @@ fi
 mpi_required_modules=$mpi_standard_modules
 if test "$mpi_extra_modules" != ""; then
   for fn in $mpi_extra_modules; do
-      for i in $mpi_optional_modules; do 
+      for i in $mpi_optional_modules; do
           if test "$fn" = "$i" ; then
              mpi_required_modules="$mpi_required_modules $fn"
           fi
@@ -358,4 +358,3 @@ for dir in $path ; do
         break;
     fi
 done
-

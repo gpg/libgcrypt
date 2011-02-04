@@ -41,14 +41,14 @@ arch_gpg_error_cflags = $(GPG_ERROR_CFLAGS)
 arch_gpg_error_libs   = $(GPG_ERROR_LIBS)
 else
 arch_gpg_error_cflags =
-arch_gpg_error_libs   = 
+arch_gpg_error_libs   =
 endif
 
 
 if HAVE_LD_VERSION_SCRIPT
   libgcrypt_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt.vers
 else
-  libgcrypt_version_script_cmd = 
+  libgcrypt_version_script_cmd =
 endif
 
 libgcrypt_la_CFLAGS = $(GPG_ERROR_CFLAGS)
@@ -105,7 +105,7 @@ libgcrypt_la_DEPENDENCIES = \
 	../random/librandom.la \
 	../mpi/libmpi.la \
 	../compat/libcompat.la \
-	$(srcdir)/libgcrypt.vers $(gcrypt_deps) 
+	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
 libgcrypt_la_LIBADD = $(gcrypt_res) \
 	../cipher/libcipher.la \
 	../random/librandom.la \
@@ -141,4 +141,3 @@ uninstall-local: uninstall-def-file
 #	./hmac256 "What am I, a doctor or a moonshuttle conductor?" \
 #          < $(DESTDIR)$(libdir)/libgcrypt.so.11.5.0 \
 #          > $(DESTDIR)$(libdir)/.libgcrypt.so.11.5.0.hmac
-

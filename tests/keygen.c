@@ -95,7 +95,7 @@ check_generated_rsa_key (gcry_sexp_t key, unsigned long expected_e)
           if (verbose)
             print_mpi ("e", e);
         }
-      else if ( gcry_mpi_cmp_ui (e, expected_e)) 
+      else if ( gcry_mpi_cmp_ui (e, expected_e))
         {
           print_mpi ("e", e);
           fail ("public exponent is not %lu\n", expected_e);
@@ -104,7 +104,7 @@ check_generated_rsa_key (gcry_sexp_t key, unsigned long expected_e)
       gcry_mpi_release (e);
       gcry_sexp_release (pkey);
     }
- 
+
   skey = gcry_sexp_find_token (key, "private-key", 0);
   if (!skey)
     fail ("private part missing in return value\n");
@@ -131,7 +131,7 @@ check_rsa_keys (void)
     fprintf (stderr, "creating 5 1024 bit DSA keys\n");
   for (i=0; i < 5; i++)
     {
-      rc = gcry_sexp_new (&keyparm, 
+      rc = gcry_sexp_new (&keyparm,
                           "(genkey\n"
                           " (dsa\n"
                           "  (nbits 4:1024)\n"
@@ -149,7 +149,7 @@ check_rsa_keys (void)
 
   if (verbose)
     fprintf (stderr, "creating 1536 bit DSA key\n");
-  rc = gcry_sexp_new (&keyparm, 
+  rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (dsa\n"
                       "  (nbits 4:1536)\n"
@@ -173,7 +173,7 @@ check_rsa_keys (void)
 
   if (verbose)
     fprintf (stderr, "creating 1024 bit RSA key\n");
-  rc = gcry_sexp_new (&keyparm, 
+  rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (rsa\n"
                       "  (nbits 4:1024)\n"
@@ -191,7 +191,7 @@ check_rsa_keys (void)
 
   if (verbose)
     fprintf (stderr, "creating 512 bit RSA key with e=257\n");
-  rc = gcry_sexp_new (&keyparm, 
+  rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (rsa\n"
                       "  (nbits 3:512)\n"
@@ -209,7 +209,7 @@ check_rsa_keys (void)
 
   if (verbose)
     fprintf (stderr, "creating 512 bit RSA key with default e\n");
-  rc = gcry_sexp_new (&keyparm, 
+  rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (rsa\n"
                       "  (nbits 3:512)\n"
@@ -275,7 +275,7 @@ progress_cb (void *cb_data, const char *what, int printchar,
   (void)what;
   (void)current;
   (void)total;
-  
+
   if (printchar == '\n')
     fputs ( "<LF>", stdout);
   else
@@ -305,7 +305,6 @@ main (int argc, char **argv)
 
   check_rsa_keys ();
   check_nonce ();
-  
+
   return error_count? 1:0;
 }
-

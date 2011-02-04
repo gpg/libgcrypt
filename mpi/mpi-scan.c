@@ -128,5 +128,3 @@ _gcry_mpi_trailing_zeros( gcry_mpi_t a )
     return count;
 
 }
-
-

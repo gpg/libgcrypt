@@ -100,7 +100,7 @@ _gcry_mpi_free_limb_space( mpi_ptr_t a, unsigned int nlimbs)
   if (a)
     {
       size_t len = nlimbs * sizeof(mpi_limb_t);
-      
+
       /* If we have information on the number of allocated limbs, we
          better wipe that space out.  This is a failsafe feature if
          secure memory has been disabled or was not properly
@@ -137,7 +137,7 @@ _gcry_mpi_resize (gcry_mpi_t a, unsigned nlimbs)
          limb space is already of the correct size. */
       for (i=a->nlimbs; i < a->alloced; i++)
         a->d[i] = 0;
-      return; 
+      return;
     }
 
   /* Actually resize the limb space.  */
@@ -207,12 +207,12 @@ mpi_set_secure( gcry_mpi_t a )
 gcry_mpi_t
 gcry_mpi_set_opaque( gcry_mpi_t a, void *p, unsigned int nbits )
 {
-  if (!a) 
+  if (!a)
     a = mpi_alloc(0);
-    
+
   if( a->flags & 4 )
     gcry_free( a->d );
-  else 
+  else
     _gcry_mpi_free_limb_space (a->d, a->alloced);
 
   a->d = p;
@@ -302,7 +302,7 @@ gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u)
   mpi_ptr_t wp, up;
   mpi_size_t usize = u->nlimbs;
   int usign = u->sign;
-  
+
   if (!w)
     w = _gcry_mpi_alloc( mpi_get_nlimbs(u) );
   RESIZE_IF_NEEDED(w, usize);
@@ -346,7 +346,7 @@ _gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u)
 
   if (! err)
     *u = x;
-  
+
   return err;
 }
 
@@ -356,7 +356,7 @@ gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u)
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
   err = _gcry_mpi_get_ui (w, u);
-  
+
   return gcry_error (err);
 }
 
@@ -406,7 +406,7 @@ gcry_mpi_randomize( gcry_mpi_t w,
 {
   unsigned char *p;
   size_t nbytes = (nbits+7)/8;
-  
+
   if (level == GCRY_WEAK_RANDOM)
     {
       p = mpi_is_secure(w) ? gcry_xmalloc_secure (nbytes)
@@ -458,4 +458,3 @@ gcry_mpi_get_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
   /*NOTREACHED*/
   return 0;
 }
-

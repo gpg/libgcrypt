@@ -127,7 +127,7 @@ _gcry_module_drop (gcry_module_t entry)
 
 /* Lookup a module specification by it's ID.  After a successful
    lookup, the module has it's resource counter incremented.  */
-gcry_module_t 
+gcry_module_t
 _gcry_module_lookup_id (gcry_module_t entries, unsigned int mod_id)
 {
   gcry_module_t entry;
@@ -146,7 +146,7 @@ _gcry_module_lookup_id (gcry_module_t entries, unsigned int mod_id)
    module has it's resource counter incremented.  FUNC is a function
    provided by the caller, which is responsible for identifying the
    wanted module.  */
-gcry_module_t 
+gcry_module_t
 _gcry_module_lookup (gcry_module_t entries, void *data,
 		     gcry_module_lookup_t func)
 {

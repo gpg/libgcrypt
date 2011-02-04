@@ -48,7 +48,7 @@ detect_ia32_gnuc (void)
      build it if that support has been disabled.  */
   int has_cpuid = 0;
   char vendor_id[12+1];
-  
+
   /* Detect the CPUID feature by testing some undefined behaviour (16
      vs 32 bit pushf/popf). */
   asm volatile
@@ -56,9 +56,9 @@ detect_ia32_gnuc (void)
      "popl %%eax\n\t"
      "movl %%eax, %%ecx\n\t"     /* Save flags into ECX.  */
      "xorl $0x200000, %%eax\n\t" /* Toggle ID bit and copy it to the flags.  */
-     "pushl %%eax\n\t"            
-     "popf\n\t"                
-     "pushf\n\t"                 /* Copy changed flags again to EAX.  */    
+     "pushl %%eax\n\t"
+     "popf\n\t"
+     "pushf\n\t"                 /* Copy changed flags again to EAX.  */
      "popl %%eax\n\t"
      "pushl %%ecx\n\t"           /* Restore flags from ECX.  */
      "popf\n\t"
@@ -70,10 +70,10 @@ detect_ia32_gnuc (void)
      :
      : "%eax", "%ecx", "cc"
      );
-  
+
   if (!has_cpuid)
     return;  /* No way.  */
-           
+
   asm volatile
     ("pushl %%ebx\n\t"           /* Save GOT register.  */
      "xorl  %%eax, %%eax\n\t"    /* 0 -> EAX.  */
@@ -90,11 +90,11 @@ detect_ia32_gnuc (void)
 
   if (0)
     ; /* Just to make "else if" and ifdef macros look pretty.  */
-#ifdef ENABLE_PADLOCK_SUPPORT  
+#ifdef ENABLE_PADLOCK_SUPPORT
   else if (!strcmp (vendor_id, "CentaurHauls"))
     {
       /* This is a VIA CPU.  Check what PadLock features we have.  */
-      asm volatile 
+      asm volatile
         ("pushl %%ebx\n\t"	        /* Save GOT register.  */
          "movl $0xC0000000, %%eax\n\t"  /* Check for extended centaur  */
          "cpuid\n\t"                    /* feature flags.              */
@@ -144,7 +144,7 @@ detect_ia32_gnuc (void)
   else if (!strcmp (vendor_id, "GenuineIntel"))
     {
       /* This is an Intel CPU.  */
-      asm volatile 
+      asm volatile
         ("pushl %%ebx\n\t"	        /* Save GOT register.  */
          "movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
          "cpuid\n"
@@ -177,14 +177,14 @@ _gcry_detect_hw_features (void)
   hw_features = 0;
 
   if (fips_mode ())
-    return; /* Hardware support is not to be evaluated.  */ 
+    return; /* Hardware support is not to be evaluated.  */
 
 #if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4
-#ifdef __GNUC__  
+#ifdef __GNUC__
   detect_ia32_gnuc ();
 #endif
 #elif defined (__i386__) && SIZEOF_UNSIGNED_LONG == 8
-#ifdef __GNUC__  
+#ifdef __GNUC__
 #endif
 #endif
 }

@@ -20,7 +20,7 @@
 
 # Need to include ../src in addition to top_srcdir because gcrypt.h is
 # a built header.
-AM_CPPFLAGS = -I../src -I$(top_srcdir)/src 
+AM_CPPFLAGS = -I../src -I$(top_srcdir)/src
 AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 noinst_LTLIBRARIES = librandom.la
@@ -38,7 +38,7 @@ random-fips.c \
 rndhw.c
 
 if USE_RANDOM_DAEMON
-librandom_la_SOURCES += random-daemon.c 
+librandom_la_SOURCES += random-daemon.c
 endif USE_RANDOM_DAEMON
 
 

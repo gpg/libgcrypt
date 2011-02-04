@@ -161,10 +161,10 @@ gcry_random_add_bytes (const void *buf, size_t buflen, int quality)
     return 0; /* No need for this in fips mode.  */
   else
     return _gcry_rngcsprng_add_bytes (buf, buflen, quality);
-}   
+}
 
-  
-/* Helper function.  */ 
+
+/* Helper function.  */
 static void
 do_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {
@@ -288,7 +288,7 @@ _gcry_random_selftest (selftest_report_func_t report)
    success the test context is stored at R_CONTEXT; on failure NULL is
    stored at R_CONTEXT and an error code is returned.  */
 gcry_err_code_t
-_gcry_random_init_external_test (void **r_context, 
+_gcry_random_init_external_test (void **r_context,
                                  unsigned int flags,
                                  const void *key, size_t keylen,
                                  const void *seed, size_t seedlen,

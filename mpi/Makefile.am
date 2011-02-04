@@ -65,7 +65,7 @@ else
 if MPI_MOD_C_MPIH_ADD1
 mpih_add1 = mpih-add1.c
 else
-mpih_add1 = 
+mpih_add1 =
 endif
 endif
 
@@ -75,7 +75,7 @@ else
 if MPI_MOD_C_MPIH_SUB1
 mpih_sub1 = mpih-sub1.c
 else
-mpih_sub1 = 
+mpih_sub1 =
 endif
 endif
 
@@ -85,7 +85,7 @@ else
 if MPI_MOD_C_MPIH_MUL1
 mpih_mul1 = mpih-mul1.c
 else
-mpih_mul1 = 
+mpih_mul1 =
 endif
 endif
 
@@ -95,7 +95,7 @@ else
 if MPI_MOD_C_MPIH_MUL2
 mpih_mul2 = mpih-mul2.c
 else
-mpih_mul2 = 
+mpih_mul2 =
 endif
 endif
 
@@ -105,7 +105,7 @@ else
 if MPI_MOD_C_MPIH_MUL3
 mpih_mul3 = mpih-mul3.c
 else
-mpih_mul3 = 
+mpih_mul3 =
 endif
 endif
 
@@ -115,7 +115,7 @@ else
 if MPI_MOD_C_MPIH_LSHIFT
 mpih_lshift = mpih-lshift.c
 else
-mpih_lshift = 
+mpih_lshift =
 endif
 endif
 
@@ -125,7 +125,7 @@ else
 if MPI_MOD_C_MPIH_RSHIFT
 mpih_rshift = mpih-rshift.c
 else
-mpih_rshift = 
+mpih_rshift =
 endif
 endif
 
@@ -135,7 +135,7 @@ else
 if MPI_MOD_C_UDIV
 udiv = udiv.c
 else
-udiv = 
+udiv =
 endif
 endif
 
@@ -145,7 +145,7 @@ else
 if MPI_MOD_C_UDIV_QRNND
 udiv_qrnnd = udiv-qrnnd.c
 else
-udiv_qrnnd = 
+udiv_qrnnd =
 endif
 endif
 

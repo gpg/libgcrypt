@@ -2,17 +2,17 @@
    Copyright (C) 2008 Free Software Foundation, Inc.
 
    This file is part of Libgcrypt.
-  
+
    Libgcrypt is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as
    published by the Free Software Foundation; either version 2.1 of
    the License, or (at your option) any later version.
-  
+
    Libgcrypt is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Lesser General Public License for more details.
-  
+
    You should have received a copy of the GNU Lesser General Public
    License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
@@ -129,14 +129,14 @@ enum
 };
 
 /* ASN.1 Parser object.  */
-struct tag_info 
+struct tag_info
 {
   int class;             /* Object class.  */
   unsigned long tag;     /* The tag of the object.  */
   unsigned long length;  /* Length of the values.  */
   int nhdr;              /* Length of the header (TL).  */
   unsigned int ndef:1;   /* The object has an indefinite length.  */
-  unsigned int cons:1;   /* This is a constructed object.  */ 
+  unsigned int cons:1;   /* This is a constructed object.  */
 };
 
 
@@ -249,7 +249,7 @@ read_textline (FILE *fp)
   /* Read line but skip over initial empty lines.  */
   do
     {
-      do 
+      do
         {
           if (!fgets (line, sizeof line, fp))
             {
@@ -330,14 +330,14 @@ read_file (FILE *fp, int decode, size_t *r_length)
 #endif
   buffer = NULL;
   buflen = 0;
-  do 
+  do
     {
       bufsize += NCHUNK;
       if (!buffer)
         buffer = gcry_xmalloc (bufsize);
       else
         buffer = gcry_xrealloc (buffer, bufsize);
-      
+
       nread = fread (buffer + buflen, 1, NCHUNK, fp);
       if (nread < NCHUNK && ferror (fp))
         {
@@ -379,7 +379,7 @@ read_file (FILE *fp, int decode, size_t *r_length)
 static size_t
 base64_decode (char *buffer, size_t length)
 {
-  static unsigned char const asctobin[128] = 
+  static unsigned char const asctobin[128] =
     {
       0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
       0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -391,7 +391,7 @@ base64_decode (char *buffer, size_t length)
       0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0xff, 0xff, 0xff, 0xff, 0xff,
       0xff, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24,
       0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30,
-      0x31, 0x32, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff 
+      0x31, 0x32, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff
     };
 
   int idx = 0;
@@ -408,7 +408,7 @@ base64_decode (char *buffer, size_t length)
           for (; length && *s != '\n'; length--, s++)
             ;
           break;
-        } 
+        }
       lfseen = (*s == '\n');
     }
 
@@ -463,7 +463,7 @@ base64_decode (char *buffer, size_t length)
    from the TLV triplet.  Update BUFFER and BUFLEN on success.  Checks
    that the encoded length does not exhaust the length of the provided
    buffer. */
-static int 
+static int
 parse_tag (unsigned char const **buffer, size_t *buflen, struct tag_info *ti)
 {
   int c;
@@ -529,13 +529,13 @@ parse_tag (unsigned char const **buffer, size_t *buflen, struct tag_info *ti)
         }
       ti->length = len;
     }
-  
+
   if (ti->class == UNIVERSAL && !ti->tag)
     ti->length = 0;
 
   if (ti->length > length)
     return -1; /* Data larger than buffer.  */
-  
+
   *buffer = buf;
   *buflen = length;
   return 0;
@@ -569,7 +569,7 @@ read_private_key_file (const char *fname, int show)
   fclose (fp);
 
   buflen = base64_decode (buffer, buflen);
-  
+
   /* Parse the ASN.1 structure.  */
   der = (const unsigned char*)buffer;
   derlen = buflen;
@@ -607,13 +607,13 @@ read_private_key_file (const char *fname, int show)
   gcry_free (buffer);
 
   /* Convert from OpenSSL parameter ordering to the OpenPGP order. */
-  /* First check that p < q; if not swap p and q and recompute u.  */ 
+  /* First check that p < q; if not swap p and q and recompute u.  */
   if (gcry_mpi_cmp (keyparms[3], keyparms[4]) > 0)
     {
       gcry_mpi_swap (keyparms[3], keyparms[4]);
       gcry_mpi_invm (keyparms[7], keyparms[3], keyparms[4]);
     }
-  
+
   /* Build the S-expression.  */
   err = gcry_sexp_build (&s_key, NULL,
                          "(private-key(rsa(n%m)(e%m)"
@@ -622,12 +622,12 @@ read_private_key_file (const char *fname, int show)
                          keyparms[3], keyparms[4], keyparms[7] );
   if (err)
     die ("error building S-expression: %s\n", gpg_strerror (err));
-  
+
   for (idx=0; idx < n_keyparms; idx++)
     gcry_mpi_release (keyparms[idx]);
-  
+
   return s_key;
-  
+
  bad_asn1:
   die ("invalid ASN.1 structure in `%s'\n", fname);
   return NULL; /*NOTREACHED*/
@@ -661,7 +661,7 @@ read_public_key_file (const char *fname, int show)
   fclose (fp);
 
   buflen = base64_decode (buffer, buflen);
-  
+
   /* Parse the ASN.1 structure.  */
   der = (const unsigned char*)buffer;
   derlen = buflen;
@@ -673,7 +673,7 @@ read_public_key_file (const char *fname, int show)
     goto bad_asn1;
   /* We skip the description of the key parameters and assume it is RSA.  */
   der += ti.length; derlen -= ti.length;
-  
+
   if ( parse_tag (&der, &derlen, &ti)
        || ti.tag != TAG_BIT_STRING || ti.class || ti.cons || ti.ndef)
     goto bad_asn1;
@@ -715,12 +715,12 @@ read_public_key_file (const char *fname, int show)
                          keyparms[0], keyparms[1] );
   if (err)
     die ("error building S-expression: %s\n", gpg_strerror (err));
-  
+
   for (idx=0; idx < n_keyparms; idx++)
     gcry_mpi_release (keyparms[idx]);
-  
+
   return s_key;
-  
+
  bad_asn1:
   die ("invalid ASN.1 structure in `%s'\n", fname);
   return NULL; /*NOTREACHED*/
@@ -796,10 +796,10 @@ print_buffer (const void *buffer, size_t length)
 
   if (base64_output)
     {
-      static const unsigned char bintoasc[64+1] = 
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ" 
-        "abcdefghijklmnopqrstuvwxyz" 
-        "0123456789+/"; 
+      static const unsigned char bintoasc[64+1] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789+/";
       const unsigned char *p;
       unsigned char inbuf[4];
       char outbuf[4];
@@ -820,7 +820,7 @@ print_buffer (const void *buffer, size_t length)
               if (fwrite (outbuf, 4, 1, stdout) != 1)
                 writerr = 1;
               idx = 0;
-              if (++quads >= (64/4)) 
+              if (++quads >= (64/4))
                 {
                   if (fwrite ("\n", 1, 1, stdout) != 1)
                     writerr = 1;
@@ -836,8 +836,8 @@ print_buffer (const void *buffer, size_t length)
               outbuf[1] = bintoasc[((*inbuf<<4)&060)&077];
               outbuf[2] = outbuf[3] = '=';
             }
-          else 
-            { 
+          else
+            {
               outbuf[1] = bintoasc[(((*inbuf<<4)&060)
                                     |((inbuf[1]>>4)&017))&077];
               outbuf[2] = bintoasc[((inbuf[1]<<2)&074)&077];
@@ -858,7 +858,7 @@ print_buffer (const void *buffer, size_t length)
   else
     {
       const unsigned char *p = buffer;
-      
+
       if (verbose > 1)
         showhex ("sent line", buffer, length);
       while (length-- && !ferror (stdout) )
@@ -895,7 +895,7 @@ print_mpi_line (gcry_mpi_t a, int no_lz)
   p = buf;
   if (no_lz && p[0] == '0' && p[1] == '0' && p[2])
     p += 2;
-    
+
   printf ("%s\n", p);
   if (ferror (stdout))
     writerr++;
@@ -913,7 +913,7 @@ print_data_line (const void *data, size_t datalen)
 {
   const unsigned char *p = data;
   int writerr = 0;
-      
+
   while (data && datalen-- && !ferror (stdout) )
     printf ("%02X", *p++);
   putchar ('\n');
@@ -944,13 +944,13 @@ print_sexp (gcry_sexp_t a, FILE *fp)
 
 
 static gcry_error_t
-init_external_rng_test (void **r_context, 
+init_external_rng_test (void **r_context,
                     unsigned int flags,
                     const void *key, size_t keylen,
                     const void *seed, size_t seedlen,
                     const void *dt, size_t dtlen)
 {
-  return gcry_control (PRIV_CTL_INIT_EXTRNG_TEST, 
+  return gcry_control (PRIV_CTL_INIT_EXTRNG_TEST,
                        r_context, flags,
                        key, keylen,
                        seed, seedlen,
@@ -973,14 +973,14 @@ deinit_external_rng_test (void *context)
 /* Given an OpenSSL cipher name NAME, return the Libgcrypt algirithm
    identified and store the libgcrypt mode at R_MODE.  Returns 0 on
    error.  */
-static int 
+static int
 map_openssl_cipher_name (const char *name, int *r_mode)
 {
   static struct {
     const char *name;
     int algo;
     int mode;
-  } table[] = 
+  } table[] =
     {
       { "bf-cbc",       GCRY_CIPHER_BLOWFISH, GCRY_CIPHER_MODE_CBC },
       { "bf",           GCRY_CIPHER_BLOWFISH, GCRY_CIPHER_MODE_CBC },
@@ -1020,7 +1020,7 @@ map_openssl_cipher_name (const char *name, int *r_mode)
       { "aes-192-cfb",  GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_CFB },
       { "aes-192-ecb",  GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_ECB },
       { "aes-192-ofb",  GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_OFB },
-      
+
       { "aes-256-cbc",  GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CBC },
       { "aes-256",      GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CBC },
       { "aes-256-cfb",  GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CFB },
@@ -1048,7 +1048,7 @@ map_openssl_cipher_name (const char *name, int *r_mode)
    processes it and writes it out until EOF.  */
 static void
 run_encrypt_decrypt (int encrypt_mode,
-                     int cipher_algo, int cipher_mode, 
+                     int cipher_algo, int cipher_mode,
                      const void *iv_buffer, size_t iv_buflen,
                      const void *key_buffer, size_t key_buflen,
                      const void *data, size_t datalen, FILE *fp)
@@ -1063,7 +1063,7 @@ run_encrypt_decrypt (int encrypt_mode,
 
   err = gcry_cipher_open (&hd, cipher_algo, cipher_mode, 0);
   if (err)
-    die ("gcry_cipher_open failed for algo %d, mode %d: %s\n", 
+    die ("gcry_cipher_open failed for algo %d, mode %d: %s\n",
          cipher_algo, cipher_mode, gpg_strerror (err));
 
   blocklen = gcry_cipher_get_algo_blklen (cipher_algo);
@@ -1108,7 +1108,7 @@ run_encrypt_decrypt (int encrypt_mode,
       if (err)
         die ("gcry_cipher_%scrypt failed: %s\n",
              encrypt_mode? "en":"de", gpg_strerror (err));
-      
+
       print_buffer (outbuf, outbuflen);
     }
   while (inbuf);
@@ -1133,7 +1133,7 @@ get_current_iv (gcry_cipher_hd_t hd, void *buffer, size_t buflen)
 
 /* Run the inner loop of the CAVS monte carlo test.  */
 static void
-run_cipher_mct_loop (int encrypt_mode, int cipher_algo, int cipher_mode, 
+run_cipher_mct_loop (int encrypt_mode, int cipher_algo, int cipher_mode,
                      const void *iv_buffer, size_t iv_buflen,
                      const void *key_buffer, size_t key_buflen,
                      const void *data, size_t datalen, int iterations)
@@ -1146,12 +1146,12 @@ run_cipher_mct_loop (int encrypt_mode, int cipher_algo, int cipher_mode,
   char output[16];
   char last_output[16];
   char last_last_output[16];
-  char last_iv[16]; 
+  char last_iv[16];
 
 
   err = gcry_cipher_open (&hd, cipher_algo, cipher_mode, 0);
   if (err)
-    die ("gcry_cipher_open failed for algo %d, mode %d: %s\n", 
+    die ("gcry_cipher_open failed for algo %d, mode %d: %s\n",
          cipher_algo, cipher_mode, gpg_strerror (err));
 
   blocklen = gcry_cipher_get_algo_blklen (cipher_algo);
@@ -1175,7 +1175,7 @@ run_cipher_mct_loop (int encrypt_mode, int cipher_algo, int cipher_mode,
     }
 
   if (datalen != blocklen)
-    die ("length of input (%u) does not match block length (%u)\n", 
+    die ("length of input (%u) does not match block length (%u)\n",
          (unsigned int)datalen, (unsigned int)blocklen);
   memcpy (input, data, datalen);
   memset (output, 0, sizeof output);
@@ -1194,7 +1194,7 @@ run_cipher_mct_loop (int encrypt_mode, int cipher_algo, int cipher_mode,
         die ("gcry_cipher_%scrypt failed: %s\n",
              encrypt_mode? "en":"de", gpg_strerror (err));
 
-  
+
       if (encrypt_mode && (cipher_mode == GCRY_CIPHER_MODE_CFB
                            || cipher_mode == GCRY_CIPHER_MODE_CBC))
         memcpy (input, last_iv, blocklen);
@@ -1243,7 +1243,7 @@ run_digest (int digest_algo,  const void *data, size_t datalen)
 
   err = gcry_md_open (&hd, digest_algo, 0);
   if (err)
-    die ("gcry_md_open failed for algo %d: %s\n", 
+    die ("gcry_md_open failed for algo %d: %s\n",
          digest_algo,  gpg_strerror (err));
 
   gcry_md_write (hd, data, datalen);
@@ -1256,7 +1256,7 @@ run_digest (int digest_algo,  const void *data, size_t datalen)
 
 /* Run a HMAC operation.  */
 static void
-run_hmac (int digest_algo, const void *key, size_t keylen, 
+run_hmac (int digest_algo, const void *key, size_t keylen,
           const void *data, size_t datalen)
 {
   gpg_error_t err;
@@ -1266,12 +1266,12 @@ run_hmac (int digest_algo, const void *key, size_t keylen,
 
   err = gcry_md_open (&hd, digest_algo, GCRY_MD_FLAG_HMAC);
   if (err)
-    die ("gcry_md_open failed for HMAC algo %d: %s\n", 
+    die ("gcry_md_open failed for HMAC algo %d: %s\n",
          digest_algo,  gpg_strerror (err));
 
   gcry_md_setkey (hd, key, keylen);
   if (err)
-    die ("gcry_md_setkey failed for HMAC algo %d: %s\n", 
+    die ("gcry_md_setkey failed for HMAC algo %d: %s\n",
          digest_algo,  gpg_strerror (err));
 
   gcry_md_write (hd, data, datalen);
@@ -1349,7 +1349,7 @@ run_rsa_derive (const void *data, size_t datalen)
 
 static size_t
 compute_tag_length (size_t n)
-{     
+{
   int needed = 0;
 
   if (n < 128)
@@ -1366,7 +1366,7 @@ compute_tag_length (size_t n)
 
 static unsigned char *
 store_tag_length (unsigned char *p, int tag, size_t n)
-{     
+{
   if (tag == TAG_SEQUENCE)
     tag |= 0x20; /* constructed */
 
@@ -1394,11 +1394,11 @@ store_tag_length (unsigned char *p, int tag, size_t n)
    is:
 
        SEQUENCE {
-         INTEGER (0)  -- Unknown constant. 
+         INTEGER (0)  -- Unknown constant.
          INTEGER      -- n
          INTEGER      -- e
          INTEGER      -- d
-         INTEGER      -- p     
+         INTEGER      -- p
          INTEGER      -- q      (with p < q)
          INTEGER      -- dmp1 = d mod (p-1)
          INTEGER      -- dmq1 = d mod (q-1)
@@ -1418,7 +1418,7 @@ run_rsa_gen (int keysize, int pubexp)
   size_t derlen, needed, n;
   unsigned char *derbuf, *der;
 
-  err = gcry_sexp_build (&keyspec, NULL, 
+  err = gcry_sexp_build (&keyspec, NULL,
                          "(genkey (rsa (nbits %d)(rsa-use-e %d)))",
                          keysize, pubexp);
   if (err)
@@ -1428,7 +1428,7 @@ run_rsa_gen (int keysize, int pubexp)
   err = gcry_pk_genkey (&key, keyspec);
   if (err)
     die ("gcry_pk_genkey failed for RSA: %s\n", gpg_strerror (err));
-  
+
   gcry_sexp_release (keyspec);
 
   l1 = gcry_sexp_find_token (key, "private-key", 0);
@@ -1445,7 +1445,7 @@ run_rsa_gen (int keysize, int pubexp)
 
   /* Extract the parameters from the S-expression and store them in a
      well defined order in KEYPARMS.  */
-  for (idx=0; idx < DIM(keyparms); idx++) 
+  for (idx=0; idx < DIM(keyparms); idx++)
     {
       if (keyelems[idx] == '.')
         {
@@ -1464,7 +1464,7 @@ run_rsa_gen (int keysize, int pubexp)
 
   gcry_sexp_release (key);
 
-  /* Check that p < q; if not swap p and q and recompute u.  */ 
+  /* Check that p < q; if not swap p and q and recompute u.  */
   if (gcry_mpi_cmp (keyparms[3], keyparms[4]) > 0)
     {
       gcry_mpi_swap (keyparms[3], keyparms[4]);
@@ -1478,8 +1478,8 @@ run_rsa_gen (int keysize, int pubexp)
   gcry_mpi_mod (keyparms[6], keyparms[2], keyparms[6]);
 
   /* Compute the length of the DER encoding.  */
-  needed = compute_tag_length (1) + 1;  
-  for (idx=0; idx < DIM(keyparms); idx++) 
+  needed = compute_tag_length (1) + 1;
+  for (idx=0; idx < DIM(keyparms); idx++)
     {
       err = gcry_mpi_print (GCRYMPI_FMT_STD, NULL, 0, &n, keyparms[idx]);
       if (err)
@@ -1487,7 +1487,7 @@ run_rsa_gen (int keysize, int pubexp)
       keyparmslen[idx] = n;
       needed += compute_tag_length (n) + n;
     }
-  
+
   /* Store the key parameters. */
   derlen = compute_tag_length (needed) + needed;
   der = derbuf = gcry_xmalloc (derlen);
@@ -1495,10 +1495,10 @@ run_rsa_gen (int keysize, int pubexp)
   der = store_tag_length (der, TAG_SEQUENCE, needed);
   der = store_tag_length (der, TAG_INTEGER, 1);
   *der++ = 0;
-  for (idx=0; idx < DIM(keyparms); idx++) 
+  for (idx=0; idx < DIM(keyparms); idx++)
     {
       der = store_tag_length (der, TAG_INTEGER, keyparmslen[idx]);
-      err = gcry_mpi_print (GCRYMPI_FMT_STD, der, 
+      err = gcry_mpi_print (GCRYMPI_FMT_STD, der,
                            keyparmslen[idx], NULL, keyparms[idx]);
       if (err)
         die ("error formatting parameter: %s\n", gpg_strerror (err));
@@ -1506,7 +1506,7 @@ run_rsa_gen (int keysize, int pubexp)
     }
 
   /* Print the stuff.  */
-  for (idx=0; idx < DIM(keyparms); idx++) 
+  for (idx=0; idx < DIM(keyparms); idx++)
     gcry_mpi_release (keyparms[idx]);
 
   assert (der - derbuf == derlen);
@@ -1534,7 +1534,7 @@ run_rsa_sign (const void *data, size_t datalen,
   gcry_mpi_t sig_mpi = NULL;
   unsigned char *outbuf;
   size_t outlen;
-  
+
 /*   showhex ("D", data, datalen); */
   if (pkcs1)
     {
@@ -1598,7 +1598,7 @@ run_rsa_sign (const void *data, size_t datalen,
         }
     }
   gcry_sexp_release (s_sig);
-              
+
   if (!sig_mpi)
     die ("no value in returned S-expression\n");
   err = gcry_mpi_aprint (GCRYMPI_FMT_STD, &outbuf, &outlen, sig_mpi);
@@ -1622,7 +1622,7 @@ run_rsa_verify (const void *data, size_t datalen, int hashalgo, int pkcs1,
 {
   gpg_error_t err;
   gcry_sexp_t s_data, s_key, s_sig;
-  
+
   if (pkcs1)
     {
       unsigned char hash[64];
@@ -1680,7 +1680,7 @@ dsa_gen (int keysize)
   gpg_error_t err;
   gcry_sexp_t keyspec, key;
 
-  err = gcry_sexp_build (&keyspec, NULL, 
+  err = gcry_sexp_build (&keyspec, NULL,
                          "(genkey (dsa (nbits %d)(use-fips186-2)))",
                          keysize);
   if (err)
@@ -1690,7 +1690,7 @@ dsa_gen (int keysize)
   err = gcry_pk_genkey (&key, keyspec);
   if (err)
     die ("gcry_pk_genkey failed for DSA: %s\n", gpg_strerror (err));
-  
+
   gcry_sexp_release (keyspec);
 
   return key;
@@ -1705,7 +1705,7 @@ dsa_gen_with_seed (int keysize, const void *seed, size_t seedlen)
   gpg_error_t err;
   gcry_sexp_t keyspec, key;
 
-  err = gcry_sexp_build (&keyspec, NULL, 
+  err = gcry_sexp_build (&keyspec, NULL,
                          "(genkey"
                          "  (dsa"
                          "    (nbits %d)"
@@ -1720,7 +1720,7 @@ dsa_gen_with_seed (int keysize, const void *seed, size_t seedlen)
   err = gcry_pk_genkey (&key, keyspec);
   if (err)
     die ("gcry_pk_genkey failed for DSA: %s\n", gpg_strerror (err));
-  
+
   gcry_sexp_release (keyspec);
 
   return key;
@@ -1731,7 +1731,7 @@ dsa_gen_with_seed (int keysize, const void *seed, size_t seedlen)
    is the complete key as returned by dsa_gen.  We print to stdout
    with one parameter per line in hex format using this order: p, q,
    g, seed, counter, h. */
-static void 
+static void
 print_dsa_domain_parameters (gcry_sexp_t key)
 {
   gcry_sexp_t l1, l2;
@@ -1752,7 +1752,7 @@ print_dsa_domain_parameters (gcry_sexp_t key)
   l1 = l2;
 
   /* Extract the parameters from the S-expression and print them to stdout.  */
-  for (idx=0; "pqg"[idx]; idx++) 
+  for (idx=0; "pqg"[idx]; idx++)
     {
       l2 = gcry_sexp_find_token (l1, "pqg"+idx, 1);
       if (!l2)
@@ -1940,7 +1940,7 @@ run_dsa_sign (const void *data, size_t datalen, const char *keyfile)
   print_mpi_line (tmpmpi, 1);
   gcry_mpi_release (tmpmpi);
   gcry_sexp_release (s_tmp);
-    
+
   s_tmp = gcry_sexp_find_token (s_sig, "s", 0);
   tmpmpi = gcry_sexp_nth_mpi (s_tmp, 1, GCRYMPI_FMT_USG);
   if (!tmpmpi)
@@ -2005,7 +2005,7 @@ usage (int show_help)
 {
   if (!show_help)
     {
-      fputs ("usage: " PGM 
+      fputs ("usage: " PGM
              " [OPTION] [FILE] (try --help for more information)\n", stderr);
       exit (2);
     }
@@ -2175,7 +2175,7 @@ main (int argc, char **argv)
           standalone_mode = 1;
           argc--; argv++;
         }
-    }          
+    }
 
   if (!argc || argc > 2)
     usage (0);
@@ -2223,7 +2223,7 @@ main (int argc, char **argv)
       if (!data)
         die ("error reading%s input\n", binary_input?"":" and decoding");
       if (verbose)
-        fprintf (stderr, PGM ": %u bytes of input data\n", 
+        fprintf (stderr, PGM ": %u bytes of input data\n",
                  (unsigned int)datalen);
     }
   else
@@ -2274,7 +2274,7 @@ main (int argc, char **argv)
               if (!(data = read_hexline (input, &datalen)))
                 die ("no data in input\n");
               skip_to_empty_line (input);
-              
+
               run_cipher_mct_loop ((*mode_string == 'e'),
                                    cipher_algo, cipher_mode,
                                    iv_buffer, iv_buflen,
@@ -2348,7 +2348,7 @@ main (int argc, char **argv)
       if (err)
         die ("init external RNG test failed: %s\n", gpg_strerror (err));
 
-      do 
+      do
         {
           err = run_external_rng_test (context, buffer, sizeof buffer);
           if (err)
@@ -2357,12 +2357,12 @@ main (int argc, char **argv)
           if (progress)
             {
               if (!(++count % 1000))
-                fprintf (stderr, PGM ": %lu random bytes so far\n", 
+                fprintf (stderr, PGM ": %lu random bytes so far\n",
                          (unsigned long int)count * sizeof buffer);
             }
         }
       while (loop_mode);
-      
+
       if (progress)
         fprintf (stderr, PGM ": %lu random bytes\n",
                          (unsigned long int)count * sizeof buffer);
@@ -2409,7 +2409,7 @@ main (int argc, char **argv)
   else if (!strcmp (mode_string, "rsa-gen"))
     {
       int keysize;
-      
+
       if (!binary_output)
         base64_output = 1;
 
@@ -2464,7 +2464,7 @@ main (int argc, char **argv)
   else if (!strcmp (mode_string, "dsa-pqg-gen"))
     {
       int keysize;
-      
+
       keysize = keysize_string? atoi (keysize_string) : 0;
       if (keysize < 1024 || keysize > 3072)
         die ("invalid keysize specified; needs to be 1024 .. 3072\n");
@@ -2473,7 +2473,7 @@ main (int argc, char **argv)
   else if (!strcmp (mode_string, "dsa-gen"))
     {
       int keysize;
-      
+
       keysize = keysize_string? atoi (keysize_string) : 0;
       if (keysize < 1024 || keysize > 3072)
         die ("invalid keysize specified; needs to be 1024 .. 3072\n");
@@ -2523,4 +2523,3 @@ main (int argc, char **argv)
 
   return 0;
 }
-

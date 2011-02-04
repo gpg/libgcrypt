@@ -41,16 +41,16 @@ void _gcry_sha1_hash_buffer (void *outbuf,
                              const void *buffer, size_t length);
 
 /*-- rijndael.c --*/
-void _gcry_aes_cfb_enc (void *context, unsigned char *iv, 
+void _gcry_aes_cfb_enc (void *context, unsigned char *iv,
                         void *outbuf, const void *inbuf,
                         unsigned int nblocks);
-void _gcry_aes_cfb_dec (void *context, unsigned char *iv, 
+void _gcry_aes_cfb_dec (void *context, unsigned char *iv,
                         void *outbuf_arg, const void *inbuf_arg,
                         unsigned int nblocks);
-void _gcry_aes_cbc_enc (void *context, unsigned char *iv, 
+void _gcry_aes_cbc_enc (void *context, unsigned char *iv,
                         void *outbuf_arg, const void *inbuf_arg,
                         unsigned int nblocks, int cbc_mac);
-void _gcry_aes_cbc_dec (void *context, unsigned char *iv, 
+void _gcry_aes_cbc_dec (void *context, unsigned char *iv,
                         void *outbuf_arg, const void *inbuf_arg,
                         unsigned int nblocks);
 
@@ -131,10 +131,10 @@ extern gcry_pk_spec_t _gcry_pubkey_spec_dsa;
 extern gcry_pk_spec_t _gcry_pubkey_spec_ecdsa;
 extern gcry_pk_spec_t _gcry_pubkey_spec_ecdh;
 
-extern pk_extra_spec_t _gcry_pubkey_extraspec_rsa; 
-extern pk_extra_spec_t _gcry_pubkey_extraspec_dsa; 
-extern pk_extra_spec_t _gcry_pubkey_extraspec_elg; 
-extern pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa; 
+extern pk_extra_spec_t _gcry_pubkey_extraspec_rsa;
+extern pk_extra_spec_t _gcry_pubkey_extraspec_dsa;
+extern pk_extra_spec_t _gcry_pubkey_extraspec_elg;
+extern pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa;
 
 
 #endif /*G10_CIPHER_H*/

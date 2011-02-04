@@ -74,7 +74,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#ifdef __GNUC__  
+#ifdef __GNUC__
 #include <stdint.h>
 #endif
 
@@ -141,22 +141,22 @@ typedef DWORD (WINAPI *NTPOWERINFORMATION)
 /* Type definitions for function pointers to call CryptoAPI functions. */
 typedef BOOL (WINAPI *CRYPTACQUIRECONTEXT)(HCRYPTPROV *phProv,
                                            LPCTSTR pszContainer,
-                                           LPCTSTR pszProvider, 
+                                           LPCTSTR pszProvider,
                                            DWORD dwProvType,
                                            DWORD dwFlags);
 typedef BOOL (WINAPI *CRYPTGENRANDOM)(HCRYPTPROV hProv, DWORD dwLen,
                                       BYTE *pbBuffer);
 typedef BOOL (WINAPI *CRYPTRELEASECONTEXT)(HCRYPTPROV hProv, DWORD dwFlags);
 
-/* Somewhat alternative functionality available as a direct call, for 
+/* Somewhat alternative functionality available as a direct call, for
    Windows XP and newer.  This is the CryptoAPI RNG, which isn't anywhere
    near as good as the HW RNG, but we use it if it's present on the basis
-   that at least it can't make things any worse.  This direct access version 
+   that at least it can't make things any worse.  This direct access version
    is only available under Windows XP, we don't go out of our way to access
-   the more general CryptoAPI one since the main purpose of using it is to 
-   take advantage of any possible future hardware RNGs that may be added, 
+   the more general CryptoAPI one since the main purpose of using it is to
+   take advantage of any possible future hardware RNGs that may be added,
    for example via TCPA devices.  */
-typedef BOOL (WINAPI *RTLGENRANDOM)(PVOID RandomBuffer, 
+typedef BOOL (WINAPI *RTLGENRANDOM)(PVOID RandomBuffer,
                                     ULONG RandomBufferLength);
 
 
@@ -167,13 +167,13 @@ typedef BOOL (WINAPI *RTLGENRANDOM)(PVOID RandomBuffer,
 #define SMBType         char
 #define SensorType      char
 
-typedef struct 
+typedef struct
 {
   SensorType iType;               /* Type of sensor.  */
   int Count;                      /* Number of sensor for that type.  */
 } SharedIndex;
 
-typedef struct 
+typedef struct
 {
   SensorType ssType;              /* Type of sensor */
   unsigned char ssName[12];       /* Name of sensor */
@@ -252,7 +252,7 @@ static int system_is_w2000;     /* True if running on W2000.  */
 
 
 /* Try and connect to the system RNG if there's one present. */
-static void 
+static void
 init_system_rng (void)
 {
   system_rng_available = 0;
@@ -268,16 +268,16 @@ init_system_rng (void)
     GetProcAddress (hAdvAPI32, "CryptGenRandom");
   pCryptReleaseContext = (CRYPTRELEASECONTEXT)
     GetProcAddress (hAdvAPI32, "CryptReleaseContext");
-  
-  /* Get a pointer to the native randomness function if it's available.  
+
+  /* Get a pointer to the native randomness function if it's available.
      This isn't exported by name, so we have to get it by ordinal.  */
   pRtlGenRandom = (RTLGENRANDOM)
     GetProcAddress (hAdvAPI32, "SystemFunction036");
 
-  /* Try and connect to the PIII RNG CSP.  The AMD 768 southbridge (from 
-     the 760 MP chipset) also has a hardware RNG, but there doesn't appear 
-     to be any driver support for this as there is for the Intel RNG so we 
-     can't do much with it.  OTOH the Intel RNG is also effectively dead 
+  /* Try and connect to the PIII RNG CSP.  The AMD 768 southbridge (from
+     the 760 MP chipset) also has a hardware RNG, but there doesn't appear
+     to be any driver support for this as there is for the Intel RNG so we
+     can't do much with it.  OTOH the Intel RNG is also effectively dead
      as well, mostly due to virtually nonexistent support/marketing by
      Intel, it's included here mostly for form's sake.  */
   if ( (!pCryptAcquireContext || !pCryptGenRandom || !pCryptReleaseContext
@@ -293,7 +293,7 @@ init_system_rng (void)
 
 
 /* Read data from the system RNG if availavle.  */
-static void 
+static void
 read_system_rng (void (*add)(const void*, size_t, enum random_origins),
                  enum random_origins requester)
 {
@@ -330,7 +330,7 @@ read_system_rng (void (*add)(const void*, size_t, enum random_origins),
 /* Read data from MBM.  This communicates via shared memory, so all we
    need to do is map a file and read the data out.  */
 static void
-read_mbm_data (void (*add)(const void*, size_t, enum random_origins), 
+read_mbm_data (void (*add)(const void*, size_t, enum random_origins),
                enum random_origins requester)
 {
   HANDLE hMBMData;
@@ -355,7 +355,7 @@ read_mbm_data (void (*add)(const void*, size_t, enum random_origins),
 
 /* Fallback method using the registry to poll the statistics.  */
 static void
-registry_poll (void (*add)(const void*, size_t, enum random_origins), 
+registry_poll (void (*add)(const void*, size_t, enum random_origins),
                enum random_origins requester)
 {
   static int cbPerfData = PERFORMANCE_BUFFER_SIZE;
@@ -421,7 +421,7 @@ registry_poll (void (*add)(const void*, size_t, enum random_origins),
   if (getenv ("GNUPG_RNDW32_NOPERF"))
     {
       static int shown;
-      
+
       if (!shown)
         {
           shown = 1;
@@ -436,7 +436,7 @@ registry_poll (void (*add)(const void*, size_t, enum random_origins),
           dwSize = cbPerfData;
           if ( debug_me )
             log_debug ("rndw32#slow_gatherer_nt: get perf data\n" );
-          
+
           status = RegQueryValueEx (HKEY_PERFORMANCE_DATA, "Global", NULL,
                                     NULL, (LPBYTE) pPerfData, &dwSize);
           if (status == ERROR_SUCCESS)
@@ -455,7 +455,7 @@ registry_poll (void (*add)(const void*, size_t, enum random_origins),
           else
             {
               static int been_here;
-              
+
               /* Silence the error message.  In particular under Wine (as
                  of 2008) we would get swamped with such diagnotiscs.  One
                  such diagnotiscs should be enough.  */
@@ -481,7 +481,7 @@ registry_poll (void (*add)(const void*, size_t, enum random_origins),
 
 
 static void
-slow_gatherer ( void (*add)(const void*, size_t, enum random_origins), 
+slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
                 enum random_origins requester )
 {
   static int is_initialized = 0;
@@ -568,7 +568,7 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
 
       is_initialized = 1;
     }
-  
+
   read_system_rng ( add, requester );
   read_mbm_data ( add, requester );
 
@@ -579,7 +579,7 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
      In any case the network statistics return almost no randomness.  */
   {
     LPBYTE lpBuffer;
-    
+
     if (hNetAPI32
         && !pNetStatisticsGet (NULL,
                                is_workstation ? L"LanmanWorkstation" :
@@ -599,7 +599,7 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
     {
       char diskPerformance[SIZEOF_DISK_PERFORMANCE_STRUCT + 8];
       char szDevice[50];
-      
+
       /* Check whether we can access this device.  */
       snprintf (szDevice, sizeof szDevice, "\\\\.\\PhysicalDrive%d",
                 drive_no);
@@ -607,7 +607,7 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
                             NULL, OPEN_EXISTING, 0, NULL);
       if (hDevice == INVALID_HANDLE_VALUE)
         break; /* No more drives.  */
-        
+
       /* Note: This only works if you have turned on the disk performance
          counters with 'diskperf -y'.  These counters are off by default. */
       dwSize = sizeof diskPerformance;
@@ -949,7 +949,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
      shouldn't really be a problem.  Under WinCE it's completely platform-
      dependant, if there's no hardware performance counter available, it
      uses the 1ms system timer.
-     
+
      Another feature of the TSC (although it doesn't really affect us here)
      is that mobile CPUs will turn off the TSC when they idle, Pentiums
      will change the rate of the counter when they clock-throttle (to
@@ -957,11 +957,11 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
      it off when both threads are idle (this more or less makes sense,
      since the CPU will be in the halted state and not executing any
      instructions to count).
-     
+
      To make things unambiguous, we detect a CPU new enough to call RDTSC
      directly by checking for CPUID capabilities, and fall back to QPC if
      this isn't present.  */
-#ifdef __GNUC__  
+#ifdef __GNUC__
 /*   FIXME: We would need to implement the CPU feature tests first.  */
 /*   if (cpu_has_feature_rdtsc) */
 /*     { */
@@ -975,7 +975,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
 #endif /*!__GNUC__*/
     {
       LARGE_INTEGER performanceCount;
-      
+
       if (QueryPerformanceCounter (&performanceCount))
         {
           if ( debug_me )

@@ -25,7 +25,7 @@
 const char *
 _gcry_compat_identification (void)
 {
-  static const char blurb[] = 
+  static const char blurb[] =
     "\n\n"
     "This is Libgcrypt - The GNU Crypto Library\n"
     "Copyright 2000, 2002, 2003, 2004, 2007, 2008, 2009,\n"
@@ -33,4 +33,3 @@ _gcry_compat_identification (void)
     "\n\n";
   return blurb;
 }
-

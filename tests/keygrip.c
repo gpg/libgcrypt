@@ -87,7 +87,7 @@ static struct
       "  (g #44370CEE0FE8609994183DBFEBA7EEA97D466838BCF65EFF506E35616DA93FA4E572A2F08886B74977BC00CA8CD3DBEA7AEB7DB8CBB180E6975E0D2CA76E023E6DE9F8CCD8826EBA2F72B8516532F6001DEFFAE76AA5E59E0FA33DBA3999B4E92D1703098CDEDCC416CF008801964084CDE1980132B2B78CB4CE9C15A559528B#)"
       "  (y #3D5DD14AFA2BF24A791E285B90232213D0E3BA74AB1109E768AED19639A322F84BB7D959E2BA92EF73DE4C7F381AA9F4053CFA3CD4527EF9043E304E5B95ED0A3A5A9D590AA641C13DB2B6E32B9B964A6A2C730DD3EA7C8E13F7A140AFF1A91CE375E9B9B960384779DC4EA180FA1F827C52288F366C0770A220F50D6D8FD6F6#)))",
       "\x04\xA3\x4F\xA0\x2B\x03\x94\xD7\x32\xAD\xD5\x9B\x50\xAF\xDB\x5D\x57\x22\xA6\x10"
-      
+
     },
     {
       GCRY_PK_DSA,
@@ -100,7 +100,7 @@ static struct
       "  (x #0087F9E91BFBCC1163DE71ED86D557708E32F8ADDE#)))",
       "\x04\xA3\x4F\xA0\x2B\x03\x94\xD7\x32\xAD\xD5\x9B\x50\xAF\xDB\x5D\x57\x22\xA6\x10"
     },
-    {   
+    {
       GCRY_PK_ECDSA,
       "(public-key"
       " (ecdsa"
@@ -112,7 +112,7 @@ static struct
       " (q #04C8A4CEC2E9A9BC8E173531A67B0840DF345C32E261ADD780E6D83D56EFADFD5DE872F8B854819B59543CE0B7F822330464FBC4E6324DADDCD9D059554F63B344#)))",
       "\xE6\xDF\x94\x2D\xBD\x8C\x77\x05\xA3\xDD\x41\x6E\xFC\x04\x01\xDB\x31\x0E\x99\xB6"
     },
-    {   
+    {
       GCRY_PK_ECDSA,
       "(public-key"
       " (ecdsa"
@@ -124,7 +124,7 @@ static struct
       " (q #04C8A4CEC2E9A9BC8E173531A67B0840DF345C32E261ADD780E6D83D56EFADFD5DE872F8B854819B59543CE0B7F822330464FBC4E6324DADDCD9D059554F63B344#)))",
       "\xE6\xDF\x94\x2D\xBD\x8C\x77\x05\xA3\xDD\x41\x6E\xFC\x04\x01\xDB\x31\x0E\x99\xB6"
     },
-    {   
+    {
       GCRY_PK_ECDSA,
       "(public-key"
       " (ecdsa"
@@ -149,7 +149,7 @@ check (void)
       if (gcry_pk_test_algo (key_grips[i].algo))
         {
           if (verbose)
-            fprintf (stderr, "algo %d not available; test skipped\n", 
+            fprintf (stderr, "algo %d not available; test skipped\n",
                      key_grips[i].algo);
           continue;
         }
@@ -160,11 +160,11 @@ check (void)
       ret = gcry_pk_get_keygrip (sexp, buf);
       if (!ret)
         die ("gcry_pk_get_keygrip failed for %d\n", i);
-        
+
       if ( memcmp (key_grips[i].grip, buf, sizeof (buf)) )
         {
           print_hex ("keygrip: ", buf, sizeof buf);
-          die ("keygrip for %d does not match\n", i); 
+          die ("keygrip for %d does not match\n", i);
         }
 
       gcry_sexp_release (sexp);
@@ -199,7 +199,7 @@ main (int argc, char **argv)
     die ("version mismatch\n");
 
   gcry_set_progress_handler (progress_handler, NULL);
-  
+
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
 
   check ();

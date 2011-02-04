@@ -114,7 +114,7 @@ check_one (gcry_mpi_t x)
     err = gcry_ac_data_get_index (data, 0, 0, &label, &y);
     assert (! err);
     gcry_mpi_add_ui (y, y, 1);
-    
+
     err = gcry_ac_data_verify (handle, key_pub, x, data);
     assert (gcry_err_code (err) == GPG_ERR_BAD_SIGNATURE);
   }
@@ -157,6 +157,6 @@ main (int argc, char **argv)
 
   for (; i > 0; i--)
     check_run ();
-  
+
   return 0;
 }

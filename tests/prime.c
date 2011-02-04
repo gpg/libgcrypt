@@ -82,7 +82,7 @@ check_primes (void)
       err = gcry_prime_group_generator (&g, prime, factors, NULL);
       assert (!err);
       gcry_prime_release_factors (factors); factors = NULL;
-      
+
       if (verbose)
         {
           fprintf (stderr, "     %d: g = ", i);

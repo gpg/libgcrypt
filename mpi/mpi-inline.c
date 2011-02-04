@@ -33,4 +33,3 @@
  * of the macro allows us to do so
  */
 #include "mpi-inline.h"
-

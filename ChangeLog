@@ -1,3 +1,7 @@
+2011-02-04  Werner Koch  <wk@g10code.com>
+
+	* autogen.sh: Install the git pre-commit if not yet done.
+
 2010-12-23  Werner Koch  <wk@g10code.com>
 
 	* configure.ac (BUILD_REVISION): Use git_revision.
@@ -120,7 +124,7 @@
 2008-08-19  Werner Koch  <wk@g10code.com>
 
 	Release 1.4.2rc1.
-	
+
 	* configure.ac: Bump LT version to C16/A5/R0.
 
 2008-08-18  Werner Koch  <wk@g10code.com>
@@ -140,7 +144,7 @@
 2008-04-25  Werner Koch  <wk@g10code.com>
 
 	Release 1.4.1.
-	
+
 	* configure.ac: Bump LT version to C15/A4/R4.
 
 2008-04-22  Werner Koch  <wk@g10code.com>
@@ -178,7 +182,7 @@
 2007-12-10  Werner Koch  <wk@g10code.com>
 
 	Released 1.4.0.
-	
+
 	* configure.ac: Set LT to C15/A4/R3.
 
 2007-12-05  Werner Koch  <wk@g10code.com>
@@ -218,7 +222,7 @@
 	in the test program which lurked there for 4 years.  Adjusted name
 	of libtools global_system_pipe variable and add extra cut stage.
 	Reported by Gregor Riepl.
-	
+
 2007-06-15  Werner Koch  <wk@g10code.com>
 
 	* autogen.sh (FORCE): Use = and not == in test to be POSIXly correct.
@@ -255,7 +259,7 @@
 	Released 1.3.0.
 
 	* configure.ac: Set LT to C15/A4/R0.
-	
+
 	* configure.ac: Require automake 1.10
 	(AM_PROG_CC_C_O): New.
 
@@ -265,7 +269,7 @@
 
 2007-05-02  Werner Koch  <wk@g10code.com>
 
-	* configure.ac (LIBGCRYPT_DIGESTS, LIBGCRYPT_CIPHERS) 
+	* configure.ac (LIBGCRYPT_DIGESTS, LIBGCRYPT_CIPHERS)
 	(LIBGCRYPT_PUBKEY_CIPHERS): Ac_define lists of algorithms.
 	(default_ciphers): Don't make camellia a default.
 
@@ -309,7 +313,7 @@
 
 	* configure.ac: Bump LT version to C14/A3/R0 in preparation for a
 	release.
-	
+
 	* autogen.sh: Add option --force.
 	* configure.ac: New option --disable-endian-check.  Use a real
 	noexecstack test instead of requiring an option.  Add SVN version
@@ -362,7 +366,7 @@
 2006-07-26  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: New options --enable-noexecstack and
-	--disable-optimization. 
+	--disable-optimization.
 
 2006-07-04  Marcus Brinkmann  <marcus@g10code.de>
 
@@ -404,7 +408,7 @@
 	* configure.ac: Move detection of basic stuff to the top.  For
 	example we need to know whether gcc is used before testing for it.
 	Reported by Ralf Fassel.
-	
+
 2005-04-23  Moritz Schulte  <moritz@g10code.com>
 
 	* acinclude.m4 (TYPE_SOCKLEN_T): New type definition test;
@@ -426,8 +430,8 @@
 2005-01-04  Werner Koch  <wk@g10code.com>
 
 	Updated to automake 1.9.
-	
-	* acinclude.m4: Updated for use with automake 1.9. 
+
+	* acinclude.m4: Updated for use with automake 1.9.
 
 	* configure.ac: Require libgpg-error 1.0; not really needed but
 	that is the first stable version.
@@ -462,7 +466,7 @@
 2004-04-15  Werner Koch  <wk@gnupg.org>
 
 	Released 1.2.0.
-	
+
 	* configure.ac: Set LT to C12/A1/R1.
 
 2004-04-06  Werner Koch  <wk@gnupg.org>
@@ -487,7 +491,7 @@
 
 	Released 1.1.93.
 
-	* configure.ac (LIBGCRYPT_CONFIG_SONAME_NUMBER): Replaced by 
+	* configure.ac (LIBGCRYPT_CONFIG_SONAME_NUMBER): Replaced by
 	LIBGCRYPT_CONPIG_API_VERSION.  Set it to 1.  Set LT to C11/A0/R1.
 
 2004-03-05  Werner Koch  <wk@gnupg.org>
@@ -497,7 +501,7 @@
 2004-02-20  Werner Koch  <wk@gnupg.org>
 
         Released 1.1.92.
-	
+
 	* configure.ac: Set LT to C11/A0/R0.
 
 2004-02-11  Werner Koch  <wk@gnupg.org>
@@ -515,7 +519,7 @@
 2003-12-19  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.91.
-	
+
 	* configure.ac: Bumbed LT version to C10/A3/R1.
 
 2003-12-08  Werner Koch  <wk@gnupg.org>
@@ -533,9 +537,9 @@
 2003-11-14  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.90.
-	
+
 	* configure.ac: Bumbed LT version to C10/A3/R0.
-	
+
 	* configure.ac (have_ld_version_script): Set the default in
 	a separate test.
 	(PRINTABLE_OS_NAME): Don't handle the Hurd extra, this leads to
@@ -553,7 +557,7 @@
 	development
 
 	Released 1.1.44.
-	
+
 	* acinclude.m4 (AC_CHECK_PTH): Added.
 	* configure.ac: Use it here instead of the generic lib test.
 	Bumbed LT vesion to C9/A2/R0.
@@ -596,7 +600,7 @@
 2003-07-31  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.42.
-	
+
 	* configure.ac: Set LT version to 7/0/0.
 
 2003-07-30  Werner Koch  <wk@gnupg.org>
@@ -620,7 +624,7 @@
 2003-07-05  Moritz Schulte  <moritz@g10code.com>
 
 	* README: Few changes, mention libgpg-error.
-	
+
 2003-06-18  Moritz Schulte  <moritz@g10code.com>
 
 	* configure.ac (available_ciphers): Removed Serpent, hrrm.
@@ -633,7 +637,7 @@
 	GNUPG_SYS_SYMBOL_UNDERSCORE, GNUPG_FUNC_MKDIR_TAKES_ONE_ARG,
 	GPH_PROG_DB2ANY.
 	Added macro definitions: AM_PATH_GPG_ERROR.
-	
+
 	* configure.ac: Use alternative approach for building based on
 	conditional sources, which does not make automake eat all your
 	memory, etc.
@@ -708,7 +712,7 @@
 	* configure.ac: Removed code for generating contruct.c.
 	Remove digest modules from the static_modules list, only handle
 	random module selection.
-	
+
 
 2003-03-24  Moritz Schulte  <moritz@g10code.com>
 
@@ -725,7 +729,7 @@
 
 2003-01-21  Werner Koch  <wk@gnupg.org>
 
-	* README (Configure options): New. 
+	* README (Configure options): New.
 	* configure.ac (have_ld_version_script): New option
 	--enable-ld-version-script.
 
@@ -736,13 +740,13 @@
 2003-01-20  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.12.
-	
+
 	* configure.ac (LIBGCRYPT_LT_REVISION): Bumbed up.
 
 2002-12-21  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.11.
-	
+
 	* configure.ac (LIBGCRYPT_LT_CURRENT: Bumbed to 6/5/0 due to a new
 	interface
 
@@ -767,7 +771,7 @@
 2002-09-18  Timo Schulz  <ts@winpt.org>
 
 	* configure.ac: Added makefile for the W32 DLL.
-	
+
 2002-09-17  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac: Check for Pth and Pthreads.
@@ -775,7 +779,7 @@
 2002-08-23  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.9.
-	
+
 	* configure.ac (LIBGCRYPT_CONFIG_CFLAGS): Renamed from
 	LIBGCRYPT_CFLAGS and removed the libpath because it is set by the
 	config script.
@@ -784,13 +788,13 @@
 2002-06-25  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.8.
-	
-	* configure.ac: Set LT version to 5/4/0. 
+
+	* configure.ac: Set LT version to 5/4/0.
 
 2002-05-21  Werner Koch  <wk@gnupg.org>
 
 	Released 1.1.7.
-	
+
 	* configure.ac: Set LT version to 4/3/0.
 
 2002-05-17  Werner Koch  <wk@gnupg.org>
@@ -816,7 +820,7 @@
 	* configure.ac (jnlib/Makefile): Removed.
 
 	* configure.ac: Define _REENTRANT.
-	
+
 2002-02-18  Werner Koch  <wk@gnupg.org>
 
 	* configure.ac (MPI_EXTRA_ASM_OBJS): Use .lo suffix.
@@ -824,7 +828,7 @@
 
 2002-02-07  Werner Koch  <wk@gnupg.org>
 
-	Released 1.1.6. 
+	Released 1.1.6.
 
 2002-01-24  Werner Koch  <wk@gnupg.org>
 
@@ -853,7 +857,7 @@
 	Released 1.1.4.
 
 	* acinclude.m4 (GNUPG_CHECK_TYPEDEF): Define GNU Source.
-	
+
         Migrated to autoconf 2.52.
 	* acinclude.m4: Removed GNUPG_LINK_FILES and converted.
 	* acconfig.h: Removed
@@ -864,7 +868,7 @@
 
 	* tests/: New.
 	* Makefile.am: Included tests directory
-	
+
 	* configure.in (DYNLINK_MOD_CFLAGS): Use -shared with dec-osf.
 	Reported by Chris Adams.  Merged some cases.
 
@@ -1414,7 +1418,7 @@ Fri Feb 13 19:43:41 1998  Werner Koch  (wk@isil.d.shuttle.de)
 	* configure.in : Fixed zlib stuff
 	* Makefile.am: Likewise
 
-	
+
  Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
 	   2007, 2008, 2009 Free Software Foundation, Inc.
 
@@ -1425,4 +1429,3 @@ Fri Feb 13 19:43:41 1998  Werner Koch  (wk@isil.d.shuttle.de)
  This file is distributed in the hope that it will be useful, but
  WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-		

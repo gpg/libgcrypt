@@ -62,7 +62,7 @@
 
 static const char *selftest(void);
 
-typedef struct 
+typedef struct
 {
   int   ROUNDS;             /* Key-length-dependent number of rounds.  */
   int decryption_prepared;  /* The decryption key schedule is available.  */
@@ -79,7 +79,7 @@ typedef struct
   union
   {
     PROPERLY_ALIGNED_TYPE dummy;
-    byte keyschedule[MAXROUNDS+1][4][4];	
+    byte keyschedule[MAXROUNDS+1][4][4];
   } u2;
 } RIJNDAEL_context;
 
@@ -90,7 +90,7 @@ typedef struct
 #include "rijndael-tables.h"
 
 
-/* Perform the key setup.  */  
+/* Perform the key setup.  */
 static gcry_err_code_t
 do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 {
@@ -110,12 +110,12 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     PROPERLY_ALIGNED_TYPE dummy;
     byte tk[MAXKC][4];
   } tk;
-#define tk tk.tk  
+#define tk tk.tk
 
   /* The on-the-fly self tests are only run in non-fips mode. In fips
      mode explicit self-tests are required.  Actually the on-the-fly
      self-tests are not fully thread-safe and it might happen that a
-     failed self-test won't get noticed in another thread.  
+     failed self-test won't get noticed in another thread.
 
      FIXME: We might want to have a central registry of succeeded
      self-tests. */
@@ -171,12 +171,12 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 #endif /*USE_PADLOCK*/
     {
 #define W (ctx->keySched)
-      for (i = 0; i < keylen; i++) 
+      for (i = 0; i < keylen; i++)
         {
-          k[i >> 2][i & 3] = key[i]; 
+          k[i >> 2][i & 3] = key[i];
         }
-      
-      for (j = KC-1; j >= 0; j--) 
+
+      for (j = KC-1; j >= 0; j--)
         {
           *((u32*)tk[j]) = *((u32*)k[j]);
         }
@@ -195,7 +195,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
               t = 0;
             }
         }
-      
+
       while (r < ROUNDS + 1)
         {
           /* While not enough round key material calculated calculate
@@ -205,15 +205,15 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
           tk[0][2] ^= S[tk[KC-1][3]];
           tk[0][3] ^= S[tk[KC-1][0]];
           tk[0][0] ^= rcon[rconpointer++];
-          
+
           if (KC != 8)
             {
-              for (j = 1; j < KC; j++) 
+              for (j = 1; j < KC; j++)
                 {
                   *((u32*)tk[j]) ^= *((u32*)tk[j-1]);
                 }
-            } 
-          else 
+            }
+          else
             {
               for (j = 1; j < KC/2; j++)
                 {
@@ -228,7 +228,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
                   *((u32*)tk[j]) ^= *((u32*)tk[j-1]);
                 }
             }
-          
+
           /* Copy values into round key array.  */
           for (j = 0; (j < KC) && (r < ROUNDS + 1); )
             {
@@ -242,8 +242,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
                   t = 0;
                 }
             }
-        }		
-#undef W    
+        }
+#undef W
     }
 
   return 0;
@@ -288,29 +288,29 @@ prepare_decryption( RIJNDAEL_context *ctx )
       w = W[r][0];
       *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
         ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
-       
+
       w = W[r][1];
       *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
         ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
-        
+
       w = W[r][2];
       *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
         ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
-        
+
       w = W[r][3];
       *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
         ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
     }
 #undef W
 #undef w
-}	
+}
 
 
 
 /* Encrypt one block.  A and B need to be aligned on a 4 byte
    boundary.  A and B may be the same. */
 static void
-do_encrypt_aligned (const RIJNDAEL_context *ctx, 
+do_encrypt_aligned (const RIJNDAEL_context *ctx,
                     unsigned char *b, const unsigned char *a)
 {
 #define rk (ctx->keySched)
@@ -328,19 +328,19 @@ do_encrypt_aligned (const RIJNDAEL_context *ctx,
   *((u32*)u.temp[3]) = *((u32*)(a+12)) ^ *((u32*)rk[0][3]);
   *((u32*)(b    ))   = (*((u32*)T1[u.temp[0][0]])
                         ^ *((u32*)T2[u.temp[1][1]])
-                        ^ *((u32*)T3[u.temp[2][2]]) 
+                        ^ *((u32*)T3[u.temp[2][2]])
                         ^ *((u32*)T4[u.temp[3][3]]));
   *((u32*)(b + 4))   = (*((u32*)T1[u.temp[1][0]])
                         ^ *((u32*)T2[u.temp[2][1]])
-                        ^ *((u32*)T3[u.temp[3][2]]) 
+                        ^ *((u32*)T3[u.temp[3][2]])
                         ^ *((u32*)T4[u.temp[0][3]]));
   *((u32*)(b + 8))   = (*((u32*)T1[u.temp[2][0]])
                         ^ *((u32*)T2[u.temp[3][1]])
-                        ^ *((u32*)T3[u.temp[0][2]]) 
+                        ^ *((u32*)T3[u.temp[0][2]])
                         ^ *((u32*)T4[u.temp[1][3]]));
   *((u32*)(b +12))   = (*((u32*)T1[u.temp[3][0]])
                         ^ *((u32*)T2[u.temp[0][1]])
-                        ^ *((u32*)T3[u.temp[1][2]]) 
+                        ^ *((u32*)T3[u.temp[1][2]])
                         ^ *((u32*)T4[u.temp[2][3]]));
 
   for (r = 1; r < ROUNDS-1; r++)
@@ -352,23 +352,23 @@ do_encrypt_aligned (const RIJNDAEL_context *ctx,
 
       *((u32*)(b    ))   = (*((u32*)T1[u.temp[0][0]])
                             ^ *((u32*)T2[u.temp[1][1]])
-                            ^ *((u32*)T3[u.temp[2][2]]) 
+                            ^ *((u32*)T3[u.temp[2][2]])
                             ^ *((u32*)T4[u.temp[3][3]]));
       *((u32*)(b + 4))   = (*((u32*)T1[u.temp[1][0]])
                             ^ *((u32*)T2[u.temp[2][1]])
-                            ^ *((u32*)T3[u.temp[3][2]]) 
+                            ^ *((u32*)T3[u.temp[3][2]])
                             ^ *((u32*)T4[u.temp[0][3]]));
       *((u32*)(b + 8))   = (*((u32*)T1[u.temp[2][0]])
                             ^ *((u32*)T2[u.temp[3][1]])
-                            ^ *((u32*)T3[u.temp[0][2]]) 
+                            ^ *((u32*)T3[u.temp[0][2]])
                             ^ *((u32*)T4[u.temp[1][3]]));
       *((u32*)(b +12))   = (*((u32*)T1[u.temp[3][0]])
                             ^ *((u32*)T2[u.temp[0][1]])
-                            ^ *((u32*)T3[u.temp[1][2]]) 
+                            ^ *((u32*)T3[u.temp[1][2]])
                             ^ *((u32*)T4[u.temp[2][3]]));
     }
 
-  /* Last round is special. */   
+  /* Last round is special. */
   *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[ROUNDS-1][0]);
   *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[ROUNDS-1][1]);
   *((u32*)u.temp[2]) = *((u32*)(b+ 8)) ^ *((u32*)rk[ROUNDS-1][2]);
@@ -405,12 +405,12 @@ do_encrypt (const RIJNDAEL_context *ctx,
      copy them here. */
   union
   {
-    u32  dummy[4]; 
+    u32  dummy[4];
     byte a[16];
   } a;
   union
   {
-    u32  dummy[4]; 
+    u32  dummy[4];
     byte b[16];
   } b;
 
@@ -444,9 +444,9 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
     cword[0] |= 0x00000200;
 
   memcpy (a, ax, 16);
-   
-  asm volatile 
-    ("pushfl\n\t"          /* Force key reload.  */            
+
+  asm volatile
+    ("pushfl\n\t"          /* Force key reload.  */
      "popfl\n\t"
      "xchg %3, %%ebx\n\t"  /* Load key.  */
      "movl $1, %%ecx\n\t"  /* Init counter for just one block.  */
@@ -488,7 +488,7 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
    function is only intended for the bulk encryption feature of
    cipher.c. */
 void
-_gcry_aes_cfb_enc (void *context, unsigned char *iv, 
+_gcry_aes_cfb_enc (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
                    unsigned int nblocks)
 {
@@ -533,7 +533,7 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
    function is only intended for the bulk encryption feature of
    cipher.c. */
 void
-_gcry_aes_cbc_enc (void *context, unsigned char *iv, 
+_gcry_aes_cbc_enc (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
                    unsigned int nblocks, int cbc_mac)
 {
@@ -570,13 +570,13 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
    and the decryption must have been prepared.  A and B may be the
    same. */
 static void
-do_decrypt_aligned (RIJNDAEL_context *ctx, 
+do_decrypt_aligned (RIJNDAEL_context *ctx,
                     unsigned char *b, const unsigned char *a)
 {
 #define rk  (ctx->keySched2)
-  int ROUNDS = ctx->ROUNDS; 
+  int ROUNDS = ctx->ROUNDS;
   int r;
-  union 
+  union
   {
     u32  tempu32[4];  /* Force correct alignment. */
     byte temp[4][4];
@@ -587,22 +587,22 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
   *((u32*)u.temp[1]) = *((u32*)(a+ 4)) ^ *((u32*)rk[ROUNDS][1]);
   *((u32*)u.temp[2]) = *((u32*)(a+ 8)) ^ *((u32*)rk[ROUNDS][2]);
   *((u32*)u.temp[3]) = *((u32*)(a+12)) ^ *((u32*)rk[ROUNDS][3]);
-  
+
   *((u32*)(b   ))    = (*((u32*)T5[u.temp[0][0]])
                         ^ *((u32*)T6[u.temp[3][1]])
-                        ^ *((u32*)T7[u.temp[2][2]]) 
+                        ^ *((u32*)T7[u.temp[2][2]])
                         ^ *((u32*)T8[u.temp[1][3]]));
   *((u32*)(b+ 4))    = (*((u32*)T5[u.temp[1][0]])
                         ^ *((u32*)T6[u.temp[0][1]])
-                        ^ *((u32*)T7[u.temp[3][2]]) 
+                        ^ *((u32*)T7[u.temp[3][2]])
                         ^ *((u32*)T8[u.temp[2][3]]));
   *((u32*)(b+ 8))    = (*((u32*)T5[u.temp[2][0]])
                         ^ *((u32*)T6[u.temp[1][1]])
-                        ^ *((u32*)T7[u.temp[0][2]]) 
+                        ^ *((u32*)T7[u.temp[0][2]])
                         ^ *((u32*)T8[u.temp[3][3]]));
   *((u32*)(b+12))    = (*((u32*)T5[u.temp[3][0]])
                         ^ *((u32*)T6[u.temp[2][1]])
-                        ^ *((u32*)T7[u.temp[1][2]]) 
+                        ^ *((u32*)T7[u.temp[1][2]])
                         ^ *((u32*)T8[u.temp[0][3]]));
 
   for (r = ROUNDS-1; r > 1; r--)
@@ -613,23 +613,23 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
       *((u32*)u.temp[3]) = *((u32*)(b+12)) ^ *((u32*)rk[r][3]);
       *((u32*)(b   ))    = (*((u32*)T5[u.temp[0][0]])
                             ^ *((u32*)T6[u.temp[3][1]])
-                            ^ *((u32*)T7[u.temp[2][2]]) 
+                            ^ *((u32*)T7[u.temp[2][2]])
                             ^ *((u32*)T8[u.temp[1][3]]));
       *((u32*)(b+ 4))    = (*((u32*)T5[u.temp[1][0]])
                             ^ *((u32*)T6[u.temp[0][1]])
-                            ^ *((u32*)T7[u.temp[3][2]]) 
+                            ^ *((u32*)T7[u.temp[3][2]])
                             ^ *((u32*)T8[u.temp[2][3]]));
       *((u32*)(b+ 8))    = (*((u32*)T5[u.temp[2][0]])
                             ^ *((u32*)T6[u.temp[1][1]])
-                            ^ *((u32*)T7[u.temp[0][2]]) 
+                            ^ *((u32*)T7[u.temp[0][2]])
                             ^ *((u32*)T8[u.temp[3][3]]));
       *((u32*)(b+12))    = (*((u32*)T5[u.temp[3][0]])
                             ^ *((u32*)T6[u.temp[2][1]])
-                            ^ *((u32*)T7[u.temp[1][2]]) 
+                            ^ *((u32*)T7[u.temp[1][2]])
                             ^ *((u32*)T8[u.temp[0][3]]));
     }
 
-  /* Last round is special. */   
+  /* Last round is special. */
   *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[1][0]);
   *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[1][1]);
   *((u32*)u.temp[2]) = *((u32*)(b+ 8)) ^ *((u32*)rk[1][2]);
@@ -666,12 +666,12 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
      copy them here. */
   union
   {
-    u32  dummy[4]; 
+    u32  dummy[4];
     byte a[16];
   } a;
   union
   {
-    u32  dummy[4]; 
+    u32  dummy[4];
     byte b[16];
   } b;
 
@@ -687,7 +687,7 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
   memcpy (bx, b.b, 16);
 #undef rk
 }
-    
+
 
 
 
@@ -716,7 +716,7 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
    function is only intended for the bulk encryption feature of
    cipher.c. */
 void
-_gcry_aes_cfb_dec (void *context, unsigned char *iv, 
+_gcry_aes_cfb_dec (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
                    unsigned int nblocks)
 {
@@ -766,7 +766,7 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
    function is only intended for the bulk encryption feature of
    cipher.c. */
 void
-_gcry_aes_cbc_dec (void *context, unsigned char *iv, 
+_gcry_aes_cbc_dec (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
                    unsigned int nblocks)
 {
@@ -808,11 +808,11 @@ static const char*
 selftest_basic_128 (void)
 {
   RIJNDAEL_context ctx;
-  unsigned char scratch[16];	   
+  unsigned char scratch[16];
 
   /* The test vectors are from the AES supplied ones; more or less
      randomly taken from ecb_tbl.txt (I=42,81,14) */
-  static const unsigned char plaintext_128[16] = 
+  static const unsigned char plaintext_128[16] =
     {
       0x01,0x4B,0xAF,0x22,0x78,0xA6,0x9D,0x33,
       0x1D,0x51,0x80,0x10,0x36,0x43,0xE9,0x9A
@@ -827,7 +827,7 @@ selftest_basic_128 (void)
       0x67,0x43,0xC3,0xD1,0x51,0x9A,0xB4,0xF2,
       0xCD,0x9A,0x78,0xAB,0x09,0xA5,0x11,0xBD
     };
-  
+
   rijndael_setkey (&ctx, key_128, sizeof (key_128));
   rijndael_encrypt (&ctx, scratch, plaintext_128);
   if (memcmp (scratch, ciphertext_128, sizeof (ciphertext_128)))
@@ -835,7 +835,7 @@ selftest_basic_128 (void)
   rijndael_decrypt (&ctx, scratch, scratch);
   if (memcmp (scratch, plaintext_128, sizeof (plaintext_128)))
     return "AES-128 test decryption failed.";
-  
+
   return NULL;
 }
 
@@ -844,14 +844,14 @@ static const char*
 selftest_basic_192 (void)
 {
   RIJNDAEL_context ctx;
-  unsigned char scratch[16];	   
-  
-  static unsigned char plaintext_192[16] = 
+  unsigned char scratch[16];
+
+  static unsigned char plaintext_192[16] =
     {
       0x76,0x77,0x74,0x75,0xF1,0xF2,0xF3,0xF4,
       0xF8,0xF9,0xE6,0xE7,0x77,0x70,0x71,0x72
     };
-  static unsigned char key_192[24] = 
+  static unsigned char key_192[24] =
     {
       0x04,0x05,0x06,0x07,0x09,0x0A,0x0B,0x0C,
       0x0E,0x0F,0x10,0x11,0x13,0x14,0x15,0x16,
@@ -862,7 +862,7 @@ selftest_basic_192 (void)
       0x5D,0x1E,0xF2,0x0D,0xCE,0xD6,0xBC,0xBC,
       0x12,0x13,0x1A,0xC7,0xC5,0x47,0x88,0xAA
     };
-    
+
   rijndael_setkey (&ctx, key_192, sizeof(key_192));
   rijndael_encrypt (&ctx, scratch, plaintext_192);
   if (memcmp (scratch, ciphertext_192, sizeof (ciphertext_192)))
@@ -870,7 +870,7 @@ selftest_basic_192 (void)
   rijndael_decrypt (&ctx, scratch, scratch);
   if (memcmp (scratch, plaintext_192, sizeof (plaintext_192)))
     return "AES-192 test decryption failed.";
-  
+
   return NULL;
 }
 
@@ -880,21 +880,21 @@ static const char*
 selftest_basic_256 (void)
 {
   RIJNDAEL_context ctx;
-  unsigned char scratch[16];	   
+  unsigned char scratch[16];
 
-  static unsigned char plaintext_256[16] = 
+  static unsigned char plaintext_256[16] =
     {
       0x06,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
       0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x21
     };
-  static unsigned char key_256[32] = 
+  static unsigned char key_256[32] =
     {
       0x08,0x09,0x0A,0x0B,0x0D,0x0E,0x0F,0x10,
       0x12,0x13,0x14,0x15,0x17,0x18,0x19,0x1A,
       0x1C,0x1D,0x1E,0x1F,0x21,0x22,0x23,0x24,
       0x26,0x27,0x28,0x29,0x2B,0x2C,0x2D,0x2E
     };
-  static const unsigned char ciphertext_256[16] = 
+  static const unsigned char ciphertext_256[16] =
     {
       0x08,0x0E,0x95,0x17,0xEB,0x16,0x77,0x71,
       0x9A,0xCF,0x72,0x80,0x86,0x04,0x0A,0xE3
@@ -907,7 +907,7 @@ selftest_basic_256 (void)
   rijndael_decrypt (&ctx, scratch, scratch);
   if (memcmp (scratch, plaintext_256, sizeof (plaintext_256)))
     return "AES-256 test decryption failed.";
-    
+
   return NULL;
 }
 
@@ -936,7 +936,7 @@ selftest_fips_128_38a (int requested_mode)
     int mode;
     const unsigned char key[16];
     const unsigned char iv[16];
-    struct 
+    struct
     {
       const unsigned char input[16];
       const unsigned char output[16];
@@ -947,24 +947,24 @@ selftest_fips_128_38a (int requested_mode)
         GCRY_CIPHER_MODE_CFB,  /* F.3.13, CFB128-AES128 */
         { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
           0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c },
-        { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
+        { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
           0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f },
         {
           { { 0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96,
               0xe9, 0x3d, 0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a },
             { 0x3b, 0x3f, 0xd9, 0x2e, 0xb7, 0x2d, 0xad, 0x20,
               0x33, 0x34, 0x49, 0xf8, 0xe8, 0x3c, 0xfb, 0x4a } },
-          
+
           { { 0xae, 0x2d, 0x8a, 0x57, 0x1e, 0x03, 0xac, 0x9c,
               0x9e, 0xb7, 0x6f, 0xac, 0x45, 0xaf, 0x8e, 0x51 },
             { 0xc8, 0xa6, 0x45, 0x37, 0xa0, 0xb3, 0xa9, 0x3f,
               0xcd, 0xe3, 0xcd, 0xad, 0x9f, 0x1c, 0xe5, 0x8b } },
-          
-          { { 0x30, 0xc8, 0x1c, 0x46, 0xa3, 0x5c, 0xe4, 0x11, 
+
+          { { 0x30, 0xc8, 0x1c, 0x46, 0xa3, 0x5c, 0xe4, 0x11,
               0xe5, 0xfb, 0xc1, 0x19, 0x1a, 0x0a, 0x52, 0xef },
             { 0x26, 0x75, 0x1f, 0x67, 0xa3, 0xcb, 0xb1, 0x40,
               0xb1, 0x80, 0x8c, 0xf1, 0x87, 0xa4, 0xf4, 0xdf } },
-          
+
           { { 0xf6, 0x9f, 0x24, 0x45, 0xdf, 0x4f, 0x9b, 0x17,
               0xad, 0x2b, 0x41, 0x7b, 0xe6, 0x6c, 0x37, 0x10 },
             { 0xc0, 0x4b, 0x05, 0x35, 0x7c, 0x5d, 0x1c, 0x0e,
@@ -975,7 +975,7 @@ selftest_fips_128_38a (int requested_mode)
         GCRY_CIPHER_MODE_OFB,
         { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6,
           0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c },
-        { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
+        { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
           0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f },
         {
           { { 0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96,
@@ -987,7 +987,7 @@ selftest_fips_128_38a (int requested_mode)
               0x9e, 0xb7, 0x6f, 0xac, 0x45, 0xaf, 0x8e, 0x51 },
             { 0x77, 0x89, 0x50, 0x8d, 0x16, 0x91, 0x8f, 0x03,
               0xf5, 0x3c, 0x52, 0xda, 0xc5, 0x4e, 0xd8, 0x25 } },
-          
+
           { { 0x30, 0xc8, 0x1c, 0x46, 0xa3, 0x5c, 0xe4, 0x11,
               0xe5, 0xfb, 0xc1, 0x19, 0x1a, 0x0a, 0x52, 0xef },
             { 0x97, 0x40, 0x05, 0x1e, 0x9c, 0x5f, 0xec, 0xf6,
@@ -1057,7 +1057,7 @@ selftest_fips_128_38a (int requested_mode)
 
 #undef Fail
   _gcry_cipher_close (hdenc);
-  _gcry_cipher_close (hddec); 
+  _gcry_cipher_close (hddec);
   return NULL;
 }
 
@@ -1068,7 +1068,7 @@ selftest_fips_128 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
-  
+
   what = "low-level";
   errtxt = selftest_basic_128 ();
   if (errtxt)
@@ -1080,7 +1080,7 @@ selftest_fips_128 (int extended, selftest_report_func_t report)
       errtxt = selftest_fips_128_38a (GCRY_CIPHER_MODE_CFB);
       if (errtxt)
         goto failed;
-      
+
       what = "ofb";
       errtxt = selftest_fips_128_38a (GCRY_CIPHER_MODE_OFB);
       if (errtxt)
@@ -1125,7 +1125,7 @@ selftest_fips_256 (int extended, selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
-  
+
   (void)extended; /* No extended tests available.  */
 
   what = "low-level";
@@ -1163,7 +1163,7 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
     default:
       ec = GPG_ERR_CIPHER_ALGO;
       break;
-        
+
     }
   return ec;
 }
@@ -1193,7 +1193,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_aes =
     "AES", rijndael_names, rijndael_oids, 16, 128, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt
   };
-cipher_extra_spec_t _gcry_cipher_extraspec_aes = 
+cipher_extra_spec_t _gcry_cipher_extraspec_aes =
   {
     run_selftests
   };
@@ -1219,7 +1219,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_aes192 =
     "AES192", rijndael192_names, rijndael192_oids, 16, 192, sizeof (RIJNDAEL_context),
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt
   };
-cipher_extra_spec_t _gcry_cipher_extraspec_aes192 = 
+cipher_extra_spec_t _gcry_cipher_extraspec_aes192 =
   {
     run_selftests
   };
@@ -1247,7 +1247,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_aes256 =
     rijndael_setkey, rijndael_encrypt, rijndael_decrypt
   };
 
-cipher_extra_spec_t _gcry_cipher_extraspec_aes256 = 
+cipher_extra_spec_t _gcry_cipher_extraspec_aes256 =
   {
     run_selftests
   };

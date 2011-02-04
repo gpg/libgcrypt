@@ -37,14 +37,12 @@ AM_CPPFLAGS = -I../src -I$(top_srcdir)/src $(GPG_ERROR_CFLAGS)
 noinst_LTLIBRARIES = libcompat.la
 
 # We only need one file so that the library is guaranteed to have at
-# least one member. 
+# least one member.
 libcompat_la_SOURCES = compat.c libcompat.h
-libcompat_la_DEPENDENCIES = @LTLIBOBJS@ 
-libcompat_la_LIBADD =       @LTLIBOBJS@ 
+libcompat_la_DEPENDENCIES = @LTLIBOBJS@
+libcompat_la_LIBADD =       @LTLIBOBJS@
 
 # AC_LIBOBJ files are:
 #    getpid.c
 #    clock.c
 #
-
-

@@ -275,4 +275,3 @@ mpi_limb_t _gcry_mpih_rshift( mpi_ptr_t wp, mpi_ptr_t up, mpi_size_t usize,
 #endif
 
 #endif /*G10_MPI_INTERNAL_H*/
-

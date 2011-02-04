@@ -102,14 +102,14 @@ read_file (const char *fname, size_t *r_length)
   struct stat st;
   char *buf;
   size_t buflen;
-  
+
   fp = fopen (fname, "rb");
   if (!fp)
     {
       fail ("can't open `%s': %s\n", fname, strerror (errno));
       return NULL;
     }
-  
+
   if (fstat (fileno(fp), &st))
     {
       fail ("can't stat `%s': %s\n", fname, strerror (errno));
@@ -209,7 +209,7 @@ work_decrypt (context_t context, unsigned int final)
   else
     {
       gcry_sexp_t data_decrypted = NULL;
-      
+
       err = gcry_pk_decrypt (&data_decrypted,
 			     context->data_encrypted,
 			     context->key_secret);
@@ -279,7 +279,7 @@ work_verify (context_t context, unsigned int final)
       gcry_sexp_release (context->data_signed);
       context->data_signed = NULL;
     }
-    
+
   return ret;
 }
 
@@ -468,7 +468,7 @@ main (int argc, char **argv)
           fips_mode = 1;
           argc--; argv++;
         }
-    }          
+    }
 
   gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
 
@@ -486,12 +486,12 @@ main (int argc, char **argv)
     {
       /* No valuable keys are create, so we can speed up our RNG. */
       gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-    } 
+    }
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
-  
+
   if (genkey_mode && argc == 2)
     {
       generate_key (argv[0], argv[1]);
@@ -499,7 +499,7 @@ main (int argc, char **argv)
   else if (!genkey_mode && argc)
     {
       int i;
-      
+
       for (i = 0; i < argc; i++)
 	process_key_pair_file (argv[i]);
     }
@@ -509,6 +509,6 @@ main (int argc, char **argv)
                " [OPTIONS] [FILES] (try --help for more information)\n");
       exit (1);
     }
-  
+
   return error_count ? 1 : 0;
 }

@@ -14,7 +14,7 @@
 #
 # 1. Cd to the libgcrypt/tests directory
 #
-# 2. Unpack the test vector tarball into subdirectory named "cavs". 
+# 2. Unpack the test vector tarball into subdirectory named "cavs".
 #    An example directory layout after unpacking might be:
 #      libgcrypt/tests/cavs/AES/req/CBCGFSbox128.req
 #      libgcrypt/tests/cavs/AES/req/CFB128MCT128.req
@@ -39,7 +39,7 @@ continue_mode=no
 [ "$1" = "--continue" ] && continue_mode=yes
 
 
-# Function to run one test.  
+# Function to run one test.
 # The argument is the request file name.
 function run_one_test () {
     local reqfile="$1"
@@ -57,12 +57,12 @@ function run_one_test () {
 
     if echo "$reqfile" | grep '/DSA/req/' >/dev/null 2>/dev/null; then
         dflag="-D"
-    fi 
-    
+    fi
+
     if ./cavs_driver.pl -I libgcrypt $dflag "$reqfile"; then
       if [ -f "$tmprspfile" ]; then
           mv "$tmprspfile" "$rspfile"
-      else 
+      else
           echo "failed test: $reqfile" >&2
           : >"$errors_seen_file"
       fi

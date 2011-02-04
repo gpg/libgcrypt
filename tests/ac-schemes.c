@@ -81,7 +81,7 @@ scheme_get_opts (scheme_spec_t specs, void **opts)
     case GCRY_AC_SSA_PKCS_V1_5:
       {
 	gcry_ac_ssa_pkcs_v1_5_t *opts_pkcs_v1_5 = NULL;
-	
+
 	opts_new = gcry_malloc (sizeof (gcry_ac_ssa_pkcs_v1_5_t));
 	if (! opts_new)
 	  err = gpg_err_code_from_errno (ENOMEM);
@@ -123,7 +123,7 @@ es_check (gcry_ac_handle_t handle, scheme_spec_t spec,
   gcry_ac_io_t io_m;
   gcry_ac_io_t io_c;
   gcry_ac_io_t io_m2;
-  
+
   if (spec.flags & SCHEME_SPEC_FLAG_GET_OPTS)
     err = scheme_get_opts (spec, &opts);
   if (! err)
@@ -173,7 +173,7 @@ ssa_check (gcry_ac_handle_t handle, scheme_spec_t spec,
   void *opts = NULL;
   gcry_ac_io_t io_m;
   gcry_ac_io_t io_s;
-  
+
   if (spec.flags & SCHEME_SPEC_FLAG_GET_OPTS)
     err = scheme_get_opts (spec, &opts);
   if (! err)
@@ -295,7 +295,7 @@ key_init (gcry_ac_key_type_t type, gcry_ac_key_t *key)
 
   if (key_data)
     gcry_ac_data_destroy (key_data);
-  
+
   if (! err)
     *key = key_new;
 
@@ -312,7 +312,7 @@ check_run (void)
   err = key_init (GCRY_AC_KEY_PUBLIC, &key_public);
   if (! err)
     err = key_init (GCRY_AC_KEY_SECRET, &key_secret);
-  
+
   if (! err)
     err = gcry_ac_open (&handle, GCRY_AC_RSA, 0);
   if (! err)
@@ -320,7 +320,7 @@ check_run (void)
       es_checks (handle, key_public, key_secret);
       ssa_checks (handle, key_public, key_secret);
     }
-  
+
   assert (! err);
 }
 
@@ -342,6 +342,6 @@ main (int argc, char **argv)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
 
   check_run ();
-  
+
   return 0;
 }

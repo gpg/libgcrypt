@@ -51,32 +51,32 @@
  Subject: Re: LGPL for the windows entropy gatherer
  To: wk@gnupg.org
  Date: Wed, 22 Aug 2007 03:05:42 +1200
- 
+
  Hi,
- 
+
  >As of now libgcrypt is GPL under Windows due to that module and some people
  >would really like to see it under LGPL too.  Can you do such a license change
  >to LGPL version 2?  Note that LGPL give the user the option to relicense it
  >under GPL, so the change would be pretty easy and backwar compatible.
- 
+
  Sure.  I assumed that since GPG was GPLd, you'd prefer the GPL for the entropy
  code as well, but Ian asked for LGPL as an option so as of the next release
  I'll have LGPL in there.  You can consider it to be retroactive, so your
  current version will be LGPLd as well.
- 
+
  Peter.
  ==========
  From: pgut001 <pgut001@cs.auckland.ac.nz>
  Subject: Re: LGPL for the windows entropy gatherer
  To: wk@gnupg.org
  Date: Wed, 22 Aug 2007 20:50:08 +1200
- 
+
  >Would you mind to extend this also to the Unix entropy gatherer which is
  >still used on systems without /dev/random and when EGD is not installed? That
  >would be the last GPLed piece in Libgcrypt.
- 
+
  Sure, it covers the entire entropy-gathering subsystem.
- 
+
  Peter.
  =========
 */
@@ -325,10 +325,10 @@ static struct RI {
     /* This is a complex and screwball program.  Some systems have things
      * like rX_dmn, x = integer, for RAID systems, but the statistics are
      * pretty dodgy */
-#ifdef __QNXNTO__                                                             
+#ifdef __QNXNTO__
     { "/bin/pidin", "-F%A%B%c%d%E%I%J%K%m%M%n%N%p%P%S%s%T", SC(0.3),
              NULL, 0, 0, 0, 0       },
-#endif     
+#endif
 #if 0
     /* The following aren't enabled since they're somewhat slow and not very
      * unpredictable, however they give an indication of the sort of sources
@@ -591,19 +591,19 @@ slow_poll(FILE *dbgfp, int dbgall, size_t *nbytes )
           {
             /* FIXME: Because we run several tools at once it is
                unlikely that we will see a block in select at all. */
-            if (!any_need_entropy 
+            if (!any_need_entropy
                 || last_so_far != (gather_buffer_size - bufPos) )
               {
                 last_so_far = gather_buffer_size - bufPos;
                 _gcry_random_progress ("need_entropy", 'X',
-                                       last_so_far, 
+                                       last_so_far,
                                        gather_buffer_size);
                 any_need_entropy = 1;
               }
             delay = 10; /* Use 10 seconds henceforth.  */
             /* Note that the fd_set is setup again at the end of this loop.  */
           }
-        
+
 	/* One of the sources has data available, read it into the buffer */
 	for (i = 0; dataSources[i].path != NULL; i++) {
 	    if( dataSources[i].pipe && FD_ISSET(dataSources[i].pipeFD, &fds)) {

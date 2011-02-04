@@ -68,7 +68,7 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 #undef whitespacep
 static GPG_ERR_INLINE int
 whitespacep (const char *p)
-{ 
+{
   switch (*p)
     {
     case ' ': case '\t': case '\v': case '\f': case '\r': case '\n': return 1;
@@ -98,7 +98,7 @@ dump_string (const byte *p, size_t n, int delim )
 {
   for (; n; n--, p++ )
     {
-      if ((*p & 0x80) || iscntrl( *p ) || *p == delim ) 
+      if ((*p & 0x80) || iscntrl( *p ) || *p == delim )
         {
           if( *p == '\n' )
             log_printf ("\\n");
@@ -110,7 +110,7 @@ dump_string (const byte *p, size_t n, int delim )
             log_printf ("\\v");
 	    else if( *p == '\b' )
               log_printf ("\\b");
-          else if( !*p )       
+          else if( !*p )
             log_printf ("\\0");
           else
             log_printf ("\\x%02x", *p );
@@ -178,7 +178,7 @@ normalize ( gcry_sexp_t list )
   if ( !list )
     return NULL;
   p = list->d;
-  if ( *p == ST_STOP ) 
+  if ( *p == ST_STOP )
     {
       /* this is "" */
       gcry_sexp_release ( list );
@@ -190,7 +190,7 @@ normalize ( gcry_sexp_t list )
       gcry_sexp_release ( list );
       return NULL;
     }
-  
+
   return list;
 }
 
@@ -200,13 +200,13 @@ normalize ( gcry_sexp_t list )
    the buffer is transferred to the newly created object.  FREEFNC
    should be the freefnc used to release BUFFER; there is no guarantee
    at which point this function is called; most likey you want to use
-   free() or gcry_free(). 
- 
+   free() or gcry_free().
+
    Passing LENGTH and AUTODETECT as 0 is allowed to indicate that
    BUFFER points to a valid canonical encoded S-expression.  A LENGTH
    of 0 and AUTODETECT 1 indicates that buffer points to a
    null-terminated string.
-  
+
    This function returns 0 and and the pointer to the new object in
    RETSEXP or an error code in which case RETSEXP is set to NULL.  */
 gcry_error_t
@@ -283,7 +283,7 @@ gcry_sexp_release( gcry_sexp_t sexp )
                   break;
                 case ST_CLOSE:
                   break;
-                case ST_DATA: 
+                case ST_DATA:
                   {
                     DATALEN n;
                     memcpy ( &n, p, sizeof n );
@@ -386,7 +386,7 @@ gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
 {
   const byte *p;
   DATALEN n;
-  
+
   if ( !list )
     return NULL;
 
@@ -396,7 +396,7 @@ gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
   p = list->d;
   while ( *p != ST_STOP )
     {
-      if ( *p == ST_OPEN && p[1] == ST_DATA ) 
+      if ( *p == ST_OPEN && p[1] == ST_DATA )
         {
           const byte *head = p;
 
@@ -410,7 +410,7 @@ gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
               int level = 1;
 
               /* Look for the end of the list.  */
-              for ( p += n; level; p++ ) 
+              for ( p += n; level; p++ )
                 {
                   if ( *p == ST_DATA )
                     {
@@ -418,15 +418,15 @@ gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
 			p += sizeof n + n;
 			p--; /* Compensate for later increment. */
 		    }
-                  else if ( *p == ST_OPEN ) 
+                  else if ( *p == ST_OPEN )
                     {
                       level++;
 		    }
-                  else if ( *p == ST_CLOSE ) 
+                  else if ( *p == ST_CLOSE )
                     {
                       level--;
 		    }
-                  else if ( *p == ST_STOP ) 
+                  else if ( *p == ST_STOP )
                     {
                       BUG ();
 		    }
@@ -505,15 +505,15 @@ get_internal_buffer (const gcry_sexp_t list, size_t *r_off)
   DATALEN n;
   int type;
   int level = 0;
-  
+
   *r_off = 0;
   if (list)
     {
       p = list->d;
-      while ( (type=*p) != ST_STOP ) 
+      while ( (type=*p) != ST_STOP )
         {
           p++;
-          if (type == ST_DATA) 
+          if (type == ST_DATA)
             {
               memcpy (&n, p, sizeof n);
               p += sizeof n + n;
@@ -635,9 +635,9 @@ sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
   const byte *p;
   DATALEN n;
   int level = 0;
-  
+
   *datalen = 0;
-  if ( !list ) 
+  if ( !list )
     return NULL;
 
   p = list->d;
@@ -647,9 +647,9 @@ sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
     return NULL;     /* Not a list but N > 0 requested. */
 
   /* Skip over N elements. */
-  while ( number > 0 ) 
+  while ( number > 0 )
     {
-      if ( *p == ST_DATA ) 
+      if ( *p == ST_DATA )
         {
           memcpy ( &n, ++p, sizeof n );
           p += sizeof n + n;
@@ -657,17 +657,17 @@ sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
           if ( !level )
             number--;
 	}
-      else if ( *p == ST_OPEN ) 
+      else if ( *p == ST_OPEN )
         {
           level++;
 	}
-      else if ( *p == ST_CLOSE ) 
+      else if ( *p == ST_CLOSE )
         {
           level--;
           if ( !level )
             number--;
 	}
-      else if ( *p == ST_STOP ) 
+      else if ( *p == ST_STOP )
         {
           return NULL;
 	}
@@ -681,7 +681,7 @@ sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
       *datalen = n;
       return (const char*)p + sizeof n;
     }
-  
+
   return NULL;
 }
 
@@ -859,13 +859,13 @@ static gpg_err_code_t
 make_space ( struct make_space_ctx *c, size_t n )
 {
   size_t used = c->pos - c->sexp->d;
-  
+
   if ( used + n + sizeof(DATALEN) + 1 >= c->allocated )
     {
       gcry_sexp_t newsexp;
       byte *newhead;
       size_t newsize;
-      
+
       newsize = c->allocated + 2*(n+sizeof(DATALEN)+1);
       if (newsize <= c->allocated)
         return GPG_ERR_TOO_LARGE;
@@ -914,7 +914,7 @@ unquote_string (const char *string, size_t length, unsigned char *buf)
                   s++; n--;
                 }
               break;
-              
+
             case '\n':  /* ignore LF[,CR] */
               if (n>1 && s[1] == '\r')
                 {
@@ -946,7 +946,7 @@ unquote_string (const char *string, size_t length, unsigned char *buf)
         esc = 1;
       else
         *d++ = *s;
-    } 
+    }
 
   return d - buf;
 }
@@ -961,10 +961,10 @@ unquote_string (const char *string, size_t length, unsigned char *buf)
  *	%m - MPI
  *	%s - string (no autoswitch to secure allocation)
  *	%d - integer stored as string (no autoswitch to secure allocation)
- *      %b - memory buffer; this takes _two_ arguments: an integer with the 
+ *      %b - memory buffer; this takes _two_ arguments: an integer with the
  *           length of the buffer and a pointer to the buffer.
  *      %S - Copy an gcry_sexp_t here.  The S-expression needs to be a
- *           regular one, starting with a parenthesis. 
+ *           regular one, starting with a parenthesis.
  *           (no autoswitch to secure allocation)
  *  all other format elements are currently not defined and return an error.
  *  this includes the "%%" sequence becauce the percent sign is not an
@@ -1100,7 +1100,7 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		  n -= 2;
 		  quoted_esc = 0;
 		  break;
-		  
+
 		case 'x':
 		  if (!((n > 2) && hexdigitp (p+1) && hexdigitp (p+2)))
 		    {
@@ -1149,7 +1149,7 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		 never be larger. */
 	      unsigned char *save;
 	      size_t len;
-	      
+
 	      quoted++; /* Skip leading quote.  */
 	      MAKE_SPACE (p - quoted);
 	      *c.pos++ = ST_DATA;
@@ -1256,7 +1256,7 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      size_t nm = 0;
 
 	      ARG_NEXT (m, gcry_mpi_t);
-	      
+
               if (gcry_mpi_get_flag (m, GCRYMPI_FLAG_OPAQUE))
                 {
                   void *mp;
@@ -1336,7 +1336,7 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 	      ARG_NEXT (astr, const char *);
 	      alen = strlen (astr);
-	      
+
 	      MAKE_SPACE (alen);
 	      *c.pos++ = ST_DATA;
 	      STORE_LEN (c.pos, alen);
@@ -1351,7 +1351,7 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 	      ARG_NEXT (alen, int);
 	      ARG_NEXT (astr, const char *);
-	      
+
 	      MAKE_SPACE (alen);
 	      if (alen
                   && !gcry_is_secure (c.sexp->d)
@@ -1386,7 +1386,7 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      int aint;
 	      size_t alen;
 	      char buf[20];
-	      
+
 	      ARG_NEXT (aint, int);
 	      sprintf (buf, "%d", aint);
 	      alen = strlen (buf);
@@ -1559,12 +1559,12 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 {
   gcry_error_t rc;
   va_list arg_ptr;
-  
+
   va_start (arg_ptr, arg_list);
   rc = vsexp_sscan (retsexp, erroff, buffer, length, argflag,
 		    arg_list, arg_ptr);
   va_end (arg_ptr);
-  
+
   return rc;
 }
 
@@ -1574,18 +1574,18 @@ gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff, const char *format, ...)
 {
   gcry_error_t rc;
   va_list arg_ptr;
-  
+
   va_start (arg_ptr, format);
   rc = vsexp_sscan (retsexp, erroff, format, strlen(format), 1,
 		    NULL, arg_ptr);
   va_end (arg_ptr);
-  
+
   return rc;
 }
 
 
 gcry_error_t
-_gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff, 
+_gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff,
                    const char *format, va_list arg_ptr)
 {
   return vsexp_sscan (retsexp, erroff, format, strlen(format), 1,
@@ -1624,7 +1624,7 @@ suitable_encoding (const unsigned char *buffer, size_t length)
 
   if (!length)
     return 1;
-  
+
   for (s=buffer; length; s++, length--)
     {
       if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0))
@@ -1676,10 +1676,10 @@ convert_to_string (const unsigned char *s, size_t len, char *dest)
             case '\"': *p++ = '\\'; *p++ = '\"';  break;
             case '\'': *p++ = '\\'; *p++ = '\'';  break;
             case '\\': *p++ = '\\'; *p++ = '\\';  break;
-            default: 
+            default:
               if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0)))
                 {
-                  sprintf (p, "\\x%02x", *s); 
+                  sprintf (p, "\\x%02x", *s);
                   p += 4;
                 }
               else
@@ -1696,16 +1696,16 @@ convert_to_string (const unsigned char *s, size_t len, char *dest)
         {
           switch (*s)
             {
-            case '\b': 
-            case '\t': 
-            case '\v': 
-            case '\n': 
-            case '\f': 
-            case '\r': 
+            case '\b':
+            case '\t':
+            case '\v':
+            case '\n':
+            case '\f':
+            case '\r':
             case '\"':
             case '\'':
             case '\\': count += 2; break;
-            default: 
+            default:
               if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0)))
                 count += 4;
               else
@@ -1744,7 +1744,7 @@ gcry_sexp_sprint (const gcry_sexp_t list, int mode,
   char numbuf[20];
   size_t len = 0;
   int i, indent = 0;
-  
+
   s = list? list->d : empty;
   d = buffer;
   while ( *s != ST_STOP )
@@ -1756,18 +1756,18 @@ gcry_sexp_sprint (const gcry_sexp_t list, int mode,
           if ( mode != GCRYSEXP_FMT_CANON )
             {
               if (indent)
-                len++; 
+                len++;
               len += indent;
             }
           len++;
-          if ( buffer ) 
+          if ( buffer )
             {
               if ( len >= maxlength )
                 return 0;
               if ( mode != GCRYSEXP_FMT_CANON )
                 {
                   if (indent)
-                    *d++ = '\n'; 
+                    *d++ = '\n';
                   for (i=0; i < indent; i++)
                     *d++ = ' ';
                 }
@@ -1778,7 +1778,7 @@ gcry_sexp_sprint (const gcry_sexp_t list, int mode,
         case ST_CLOSE:
           s++;
           len++;
-          if ( buffer ) 
+          if ( buffer )
             {
               if ( len >= maxlength )
                 return 0;
@@ -1841,7 +1841,7 @@ gcry_sexp_sprint (const gcry_sexp_t list, int mode,
             {
               sprintf (numbuf, "%u:", (unsigned int)n );
               len += strlen (numbuf) + n;
-              if ( buffer ) 
+              if ( buffer )
                 {
                   if ( len >= maxlength )
 		    return 0;
@@ -1862,10 +1862,10 @@ gcry_sexp_sprint (const gcry_sexp_t list, int mode,
         {
           if ( len >= maxlength )
             return 0;
-          *d++ = '\n'; 
+          *d++ = '\n';
         }
     }
-  if (buffer) 
+  if (buffer)
     {
       if ( len >= maxlength )
         return 0;
@@ -1885,7 +1885,7 @@ gcry_sexp_sprint (const gcry_sexp_t list, int mode,
    data passed from outside. errorcode and erroff may both be passed as
    NULL.  */
 size_t
-gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
+gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
                      size_t *erroff, gcry_error_t *errcode)
 {
   const unsigned char *p;
@@ -1919,7 +1919,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           *errcode = gcry_error (GPG_ERR_SEXP_STRING_TOO_LONG);
           return 0;
         }
-      
+
       if (datalen)
         {
           if (*p == ':')
@@ -1936,7 +1936,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 	    }
           else if (digitp(p))
             datalen = datalen*10 + atoi_1(p);
-          else 
+          else
             {
               *erroff = count;
               *errcode = gcry_error (GPG_ERR_SEXP_INV_LEN_SPEC);
@@ -1972,7 +1972,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 	}
       else if (*p == '[')
         {
-          if (disphint) 
+          if (disphint)
             {
               *erroff = count;
               *errcode = gcry_error (GPG_ERR_SEXP_NESTED_DH);
@@ -1982,7 +1982,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 	}
       else if (*p == ']')
         {
-          if ( !disphint ) 
+          if ( !disphint )
             {
               *erroff = count;
               *errcode = gcry_error (GPG_ERR_SEXP_UNMATCHED_DH);
@@ -1993,7 +1993,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
       else if (digitp (p) )
         {
           if (*p == '0')
-            { 
+            {
               *erroff = count;
               *errcode = gcry_error (GPG_ERR_SEXP_ZERO_PREFIX);
               return 0;
@@ -2007,7 +2007,7 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
           return 0;
 	}
       else
-        { 
+        {
           *erroff = count;
           *errcode = gcry_error (GPG_ERR_SEXP_BAD_CHARACTER);
           return 0;

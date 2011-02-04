@@ -2,17 +2,17 @@
    Copyright (C) 2002, 2003, 2004 Free Software Foundation, Inc.
 
    This file is part of Libgcrypt.
- 
+
    Libgcrypt is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as
    published by the Free Software Foundation; either version 2.1 of
    the License, or (at your option) any later version.
- 
+
    Libgcrypt is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
- 
+
    You should have received a copy of the GNU Lesser General Public
    License along with Libgcrypt; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
@@ -77,7 +77,7 @@ enum ath_thread_option
 struct ath_ops
 {
   /* The OPTION field encodes the thread model and the version number
-     of this structure.   
+     of this structure.
        Bits  7 - 0  are used for the thread model
        Bits 15 - 8  are used for the version number.
   */
@@ -142,6 +142,6 @@ int ath_accept (int s, struct sockaddr *addr, socklen_t *length_ptr);
 int ath_connect (int s, struct sockaddr *addr, socklen_t length);
 int ath_sendmsg (int s, const struct msghdr *msg, int flags);
 int ath_recvmsg (int s, struct msghdr *msg, int flags);
-#endif 
+#endif
 
 #endif	/* ATH_H */

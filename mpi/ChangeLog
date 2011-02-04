@@ -74,7 +74,7 @@
 2007-10-29  Werner Koch  <wk@g10code.com>
 
 	* config.links: No Candadian Cross here, thus use $host instead of
-	$target.  
+	$target.
 
 2007-10-26  Werner Koch  <wk@g10code.com>
 
@@ -95,7 +95,7 @@
 
 2007-05-04  Werner Koch  <wk@g10code.com>
 
-	* config.links (path): Allowthe sue of colons as delimiters. 
+	* config.links (path): Allowthe sue of colons as delimiters.
 
 2007-05-03  Werner Koch  <wk@g10code.com>
 
@@ -449,7 +449,7 @@
 	with _gcry_ or gcry_.  Renamed also all mpihelp_ to just mpih_ so
 	that functions names are not getting to long an unreadable and for
 	better matching with the filenames.
-	
+
 2001-05-28  Werner Koch  <wk@gnupg.org>
 
 	* mpicoder.c (mpi_fromstr): Made static and assume that all input
@@ -479,14 +479,14 @@
 
  	Major change:
 	Removed all GnuPG stuff and renamed this piece of software
-	to gcrypt. 
+	to gcrypt.
 
 2000-11-14  Werner Koch  <wk@gnupg.org>
 
 	* mpi-internal.h, mpi.h: Changed the way they are called and
 	introduced DID_MPI_LIMP_TYPEDEF hack.  Very ugly, should all be
 	revamped.
-	
+
 	* Makefile.am (OMIT_DEPENDENCIES): Hack to work around dependency
 	problems.
 

@@ -149,7 +149,7 @@
 	* cipher-proto.h (pk_ext_generate_t): Add field EXTRAINFO  changed
 	all implementors.
 
-	* cipher-proto.h (pk_ext_generate_t): Simplify. 
+	* cipher-proto.h (pk_ext_generate_t): Simplify.
 	(pk_get_param): New.
 	(pk_extra_spec_t): Add field GET_PARAM.
 	* cipher.h (PUBKEY_FLAG_TRANSIENT_KEY): Remove.
@@ -169,7 +169,7 @@
 
 2008-10-24  Werner Koch  <wk@g10code.com>
 
-	* global.c (inactive_fips_mode): Move to fips.c. 
+	* global.c (inactive_fips_mode): Move to fips.c.
 	(gcry_set_allocation_handler): Factor code out to ...
 	* fips.c (_gcry_inactivate_fips_mode): New.
 	(_gcry_is_fips_mode_inactive): New.
@@ -242,7 +242,7 @@
 2008-09-12  Werner Koch  <wk@g10code.com>
 
 	* fips.c (_gcry_fips_run_selftests): Add arg EXTENDED.
-	(run_cipher_selftests, run_digest_selftests, run_hmac_selftests) 
+	(run_cipher_selftests, run_digest_selftests, run_hmac_selftests)
 	(run_pubkey_selftests): Ditto.
 	* cipher-proto.h (selftest_func_t): Add arg EXTENDED
 
@@ -334,17 +334,17 @@
 	* gcrypt.h.in (gcry_cipher_setkey): Replace macro by function.
 	(gcry_cipher_setiv):  Ditto.
 	(gcry_cipher_setctr): Ditto.
-	* visibility.c (gcry_cipher_setkey, gcry_cipher_setiv) 
+	* visibility.c (gcry_cipher_setkey, gcry_cipher_setiv)
 	(gcry_cipher_setctr): New.
-	* visibility.h (gcry_cipher_setkey, gcry_cipher_setiv) 
+	* visibility.h (gcry_cipher_setkey, gcry_cipher_setiv)
 	(gcry_cipher_setctr): New.
 	* libgcrypt.vers (gcry_cipher_setkey, gcry_cipher_setiv)
 	(gcry_cipher_setctr): New.
-	* libgcrypt.def (gcry_cipher_setkey, gcry_cipher_setiv) 
+	* libgcrypt.def (gcry_cipher_setkey, gcry_cipher_setiv)
 	(gcry_cipher_setctr): New.
 
 	* hmac256.h, hmac256.c: New.
-	* Makefile.am (hmac256_SOURCES): New. 
+	* Makefile.am (hmac256_SOURCES): New.
 	* Makefile.am (bin_PROGRAMS): Add hmac256.
 
 	* gcrypt.h.in (struct gcry_thread_cbs): Change type of OPTION to
@@ -352,13 +352,13 @@
 	difference.
 	* ath.c (ath_install): Take the version of the option field in
 	account.
-	
+
 	* visibility.c (gcry_pk_encrypt, gcry_pk_decrypt, gcry_pk_sign)
 	(gcry_pk_verify, gcry_pk_testkey, gcry_pk_genkey)
 	(gcry_pk_get_nbits, gcry_pk_get_keygrip)
-	(gcry_md_open, gcry_md_copy, gcry_md_enable) 
-	(gcry_md_write, md_final, gcry_md_ctl, gcry_md_setkey) 
-	(gcry_md_hash_buffer, gcry_md_get_algo, gcry_md_info) 
+	(gcry_md_open, gcry_md_copy, gcry_md_enable)
+	(gcry_md_write, md_final, gcry_md_ctl, gcry_md_setkey)
+	(gcry_md_hash_buffer, gcry_md_get_algo, gcry_md_info)
 	(gcry_md_is_enabled)
 	(gcry_cipher_open, gcry_cipher_encrypt)
 	(gcry_cipher_decrypt, gcry_cipher_ctl)
@@ -368,7 +368,7 @@
 	* cipher.h: Include cipher-proto.h.
 	* visibility.h: Remove duplicate macro definitions.  Remove
 	gcry_cipher_register, gcry_md_register,	gcry_pk_register macros.
-	* visibility.c: Include cipher-proto.h. 
+	* visibility.c: Include cipher-proto.h.
 	(gcry_cipher_register): Pass dummy extra args to the internal
 	register function.
 	(gcry_md_register, gcry_pk_register): Ditto.
@@ -401,7 +401,7 @@
 
 	* gcrypt.h.in (gcry_ac_em_t, gcry_ac_scheme_t): Remove trailing
 	comma for full C-89 compatibility.
-	
+
 2008-01-21  Marcus Brinkmann  <marcus@g10code.de>
 
 	* hwfeatures.c (detect_ia32_gnuc): Fix inline asm.
@@ -517,7 +517,7 @@
 
 	* secmem.c (init_pool): Use sysconf() if available to determine
 	page size.
-	
+
 2007-03-22  Werner Koch  <wk@g10code.com>
 
 	* mpi.h (mpi_mod): New.
@@ -670,7 +670,7 @@
 	[_WIN32 || __WIN32__]: Do not include <sys/socket.h>, but
 	<winsock2.h> and <ws2tcpip.h>.
 	Suggested by Simon Josefsson <jas@extundo.com>.
-	
+
 	* Makefile.am (install-data-local, uninstall-local, %.lo,
 	(install-def-file, uninstall-def-file): New targets.
 	(LTRCCOMPILE, gcrypt_res, gcrypt_res_ldflag, no_undefined,
@@ -690,8 +690,8 @@
 	(sexp_sscan): Remove all xmalloc style calls and return proper
 	error codes on allocation failures.
 	(gcry_sexp_find_token): Ditto.
-	(gcry_sexp_nth): 
-	
+	(gcry_sexp_nth):
+
 	* sexp.c (gcry_sexp_find_token): Re-indented and removed a cruft
 	"while(level);" which fortunately had no effect.
 
@@ -704,7 +704,7 @@
 2006-04-22  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.h (gcry_ctl_cmds): New commands:
-	GCRYCTL_SET_RANDOM_DAEMON_SOCKET, GCRYCTL_USE_RANDOM_DAEMON.  
+	GCRYCTL_SET_RANDOM_DAEMON_SOCKET, GCRYCTL_USE_RANDOM_DAEMON.
 	* global.c (gcry_control): Handle new commands, calling
 	_gcry_set_random_daemon_socket() and _gcry_use_random_daemon().
 
@@ -754,7 +754,7 @@
 	GnuPG relict (Libgcrypt does not define this symbol anywhere).
 	(FLAG_MODULE_DISABLED): Don't forget parantheses around shifted
 	value.
-	
+
 	Removed GCC_ATTR_PURE macro definitions, since gcrypt.h does
 	already contain such a macro named _GCRY_GCC_ATTR_PURE, which we
 	can use here as well.
@@ -861,7 +861,7 @@
 
 2004-08-23  Moritz Schulte  <moritz@g10code.com>
 
-	* global.c: Do not include <assert.h>. 
+	* global.c: Do not include <assert.h>.
 	* sexp.c: Likewise.
 	* module.c: Likewise.
 	* misc.c: Likewise.
@@ -945,7 +945,7 @@
 	(libgcrypt_la_DEPENDENCIES): ... this.
 	(libgcrypt_real_la_LIBADD): Merge with ...
 	(libgcrypt_la_LIBADD): ... this.
-	* libgcrypt-config.in (libs_pthread, libs_pth, cflags_pth) 
+	* libgcrypt-config.in (libs_pthread, libs_pth, cflags_pth)
 	(cflags_pthread, thread_module, thread_modules): Removed.
 	(Options): Remove --thread option from help output.  If the option
 	is specified, output an error and exit.
@@ -980,7 +980,7 @@
 	$(ath_pthread_src).
 	* ath-compat.c, ath-pth-compat.c, ath-pthread-compat.c: Files
 	removed.
-	
+
 2004-02-20  Werner Koch  <wk@gnupg.org>
 
 	* gcrypt.h (GCRY_PRIME_CHECK_AT_GOT_PRIME)
@@ -1023,7 +1023,7 @@
 	gcry_ac_key_get_nbits, gcry_ac_key_get_grip.
 
 	* gcrypt.h (GCRY_AC_FLAG_DATA_NO_BLINDING): Removed symbol.
-	(GCRY_AC_FLAG_DEALLOC, GCRY_AC_FLAG_COPY) 
+	(GCRY_AC_FLAG_DEALLOC, GCRY_AC_FLAG_COPY)
 	(GCRY_AC_FLAG_NO_BLINDING): New symbols.
 
 	* global.c (gcry_strdup): Removed function.
@@ -1278,7 +1278,7 @@
 	* gcrypt.h (enum gcry_md_flags): Removed, used define instead,
 	since that is more common than an enumeration list when it comes
 	to flags that can be bitwise ORed.
-	
+
 2003-07-08  Moritz Schulte  <moritz@g10code.com>
 
 	* global.c: Use new types for handlers.
@@ -1291,7 +1291,7 @@
 	Thanks to Simon Josefsson <jas@extunde.com>.
 
 	* gcrypt.h: Declare: gcry_cipher_list, gcry_pk_list, gcry_md_list.
-	
+
 2003-07-05  Moritz Schulte  <moritz@g10code.com>
 
 	* gcrypt.h: Declare: gcry_cipher_register, gcry_cipher_unregister,
@@ -1423,7 +1423,7 @@
 
 	* g10lib.h: Declare: _gcry_cipher_init, _gcry_md_init,
 	_gcry_pk_init.
-	
+
 	* global.c (gcry_strerror): Remove compatibility code.
 
 	* Makefile.am: Remove support libgpg-error special handling.
@@ -1445,7 +1445,7 @@
 	GPG_ERR_SOURCE_DEFAULT, so that libgpg-error still works despite
 	the use of the old gcrypt error codes.
 	(gcry_md_copy): Swapped arguments.
-	
+
 2003-06-09  Moritz Schulte  <moritz@g10code.com>
 
 	* Makefile.am: Support for libgpg-error.
@@ -1464,7 +1464,7 @@
 	before the '#'.  This is not required by C89, but there are some
 	compilers out there that don't like it.  Replaced any occurence of
 	the now deprecated type names with the new ones.
-	
+
 	* gcrypt.h: Re-organized checking for gcc features; New macro:
 	_GCRY_GCC_ATTR_DEPRECATED.
 	Include copy of libgpg-error's gpg-error.h in order to make it
@@ -1509,7 +1509,7 @@
 	* gcrypt.h: Changed declarations for: gcry_pk_algo_info,
 	gcry_md_open, gcry_md_copy, gcry_md_algo_info, gcry_md_info,
 	gcry_md_get_algo, gcry_random_add_bytes.
-	
+
 	(gcry_md_is_secure): Adjust macro for new API.
 
 2003-05-29  Moritz Schulte  <moritz@g10code.com>
@@ -1634,10 +1634,10 @@
 	gcry_digest_register, gcry_digest_unregister,
 	gcry_pubkey_register, gcry_pubkey_unregister): Function
 	declarations removed - for now.
-	
+
 	* gcrypt.h (GcryModule): Declaration removed.
 	* gcrypt.h (GcryPubkeySpec, GcryDigestSpec, GcryCipherSpec):
-	Types Moved... 
+	Types Moved...
 	* cipher.h: ... here.
 
 2003-04-17  Moritz Schulte  <moritz@g10code.com>
@@ -1727,7 +1727,7 @@
 	values.
 	* secmem.c (_gcry_secmem_set_flags): Likewise.
 	* secmem.c (_gcry_secmem_get_flags): Likewise.
-	
+
 2003-03-03  Moritz Schulte  <moritz@g10code.com>
 
 	* misc.c: Removed old FIXME, since there is already a function to
@@ -1766,7 +1766,7 @@
 
 2003-01-23  Werner Koch  <wk@gnupg.org>
 
-	* gcrypt.h (GCRY_ENABLE_QUICK_RANDOM): New. 
+	* gcrypt.h (GCRY_ENABLE_QUICK_RANDOM): New.
 	* global.c (gcry_control): Make use of it.
 
 2003-01-21  Werner Koch  <wk@gnupg.org>
@@ -1776,7 +1776,7 @@
 2003-01-21  Timo Schulz  <twoaday@freakmail.de>
 
 	* gcrypt.h (gcry_random_add_bytes): New.
-	
+
 2003-01-20  Simon Josefsson  <jas@extundo.com>
 
 	* gcrypt.h (gcry_md_algos): Add GCRY_MD_CRC32,
@@ -1800,13 +1800,13 @@
 2003-01-02  Werner Koch  <wk@gnupg.org>
 
 	* libgcrypt.vers: Temporary export _gcry_generate_elg_prime for
-	use by GNUTLS. 
+	use by GNUTLS.
 
 2002-12-21  Werner Koch  <wk@gnupg.org>
 
-	* gcrypt.h: Make use of gcc's pure and malloc attributes 
+	* gcrypt.h: Make use of gcc's pure and malloc attributes
 	(gcry_md_putc): Use a helper variable to avoid multiple
-	evaluation of H. 
+	evaluation of H.
 	* g10lib.h, stdmem.h, secmem.h: Use gcc attributes pure and malloc.
 
 	* stdmem.c (use_m_guard): Don't default to yes.
@@ -1815,7 +1815,7 @@
 
 	* global.c (global_init): The meat was never run due to a faulty
 	check. Thanks to Nikos for pointing this out.
-	
+
 	* global.c (gcry_control): Return 1 and not -1 for the
 	initialization tests.
 
@@ -1829,7 +1829,7 @@
 2002-12-09  Werner Koch  <wk@gnupg.org>
 
 	* global.c (gcry_calloc,gcry_calloc_secure): Check for overflow.
-	Noted by Florian Weimer. 
+	Noted by Florian Weimer.
 
 2002-11-10  Simon Josefsson  <jas@extundo.com>
 
@@ -1839,7 +1839,7 @@
 
 2002-11-10  Werner Koch  <wk@gnupg.org>
 
-	* gcrypt.h (GCRY_MD_MD4): New.  We use a non OpenPGP value here. 
+	* gcrypt.h (GCRY_MD_MD4): New.  We use a non OpenPGP value here.
 
 2002-09-20  Werner Koch  <wk@gnupg.org>
 
@@ -2057,11 +2057,11 @@
 	* gcrypt.h, mpi.h: Made some mpi functions public.
 
 	* wrapper.c: Removed.
-	* global.c: Renamed all g10_ prefixed functions which had wrappers 
+	* global.c: Renamed all g10_ prefixed functions which had wrappers
 	to gcry_xxx. So we now use the exported memory functions inernally.
 
 	Renamed all g10_ prefixed functions to _gcry_ prefixed ones.
-	
+
 	* g10lib.h (_GCRYPT_IN_LIBGCRYPT): Replace defintion by a test on it.
 
 2001-05-28  Werner Koch  <wk@gnupg.org>
@@ -2080,7 +2080,7 @@
 
  	Major change:
 	Removed all GnuPG stuff and renamed this piece of software
-	to gcrypt. 
+	to gcrypt.
 
 2000-11-14  Werner Koch  <wk@gnupg.org>
 

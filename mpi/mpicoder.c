@@ -37,7 +37,7 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
   unsigned int nbits, nbytes, nlimbs, nread=0;
   mpi_limb_t a;
   gcry_mpi_t val = MPI_NULL;
-  
+
   if ( *ret_nread < 2 )
     goto leave;
   nbits = buffer[0] << 8 | buffer[1];
@@ -59,7 +59,7 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
   for ( ; j > 0; j-- )
     {
       a = 0;
-      for (; i < BYTES_PER_MPI_LIMB; i++ ) 
+      for (; i < BYTES_PER_MPI_LIMB; i++ )
         {
           if ( ++nread > *ret_nread )
             {
@@ -74,7 +74,7 @@ mpi_read_from_buffer (const unsigned char *buffer, unsigned *ret_nread,
       i = 0;
       val->d[j-1] = a;
     }
-  
+
  leave:
   *ret_nread = nread;
   return val;
@@ -159,7 +159,7 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
             c |= c2 - 'a' + 10;
           else if( c2 >= 'A' && c2 <= 'F' )
             c |= c2 - 'A' + 10;
-          else 
+          else
             {
               mpi_clear(val);
               return 1;  /* Error. */
@@ -170,7 +170,7 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
       i = 0;
       val->d[j-1] = a;
     }
-  
+
   return 0;  /* Okay.  */
 }
 
@@ -179,7 +179,7 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
    Libgcrypt's logging stream.  Note that one leading space but no
    trailing space or linefeed will be printed.  It is okay to pass
    NULL for A. */
-void 
+void
 gcry_mpi_dump (const gcry_mpi_t a)
 {
   int i;
@@ -187,7 +187,7 @@ gcry_mpi_dump (const gcry_mpi_t a)
   log_printf (" ");
   if (!a)
     log_printf ("[MPI_NULL]");
-  else 
+  else
     {
       if (a->sign)
         log_printf ( "-");
@@ -235,7 +235,7 @@ do_get_buffer (gcry_mpi_t a, unsigned int *nbytes, int *sign, int force_secure)
   mpi_limb_t alimb;
   int i;
   size_t n;
-  
+
   if (sign)
     *sign = a->sign;
 
@@ -304,12 +304,12 @@ _gcry_mpi_set_buffer (gcry_mpi_t a, const void *buffer_arg,
   mpi_limb_t alimb;
   int nlimbs;
   int i;
-  
+
   nlimbs = (nbytes + BYTES_PER_MPI_LIMB - 1) / BYTES_PER_MPI_LIMB;
   RESIZE_IF_NEEDED(a, nlimbs);
   a->sign = sign;
-  
-  for (i=0, p = buffer+nbytes-1; p >= buffer+BYTES_PER_MPI_LIMB; ) 
+
+  for (i=0, p = buffer+nbytes-1; p >= buffer+BYTES_PER_MPI_LIMB; )
     {
 #if BYTES_PER_MPI_LIMB == 4
       alimb  = *p--	    ;
@@ -383,7 +383,7 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
     len = 0;
   else
     len = buflen;
-  
+
   if (format == GCRYMPI_FMT_STD)
     {
       const unsigned char *s = buffer;
@@ -392,7 +392,7 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
                                     /BYTES_PER_MPI_LIMB)
                 : mpi_alloc ((len+BYTES_PER_MPI_LIMB-1)/BYTES_PER_MPI_LIMB);
       if (len)
-        { 
+        {
           a->sign = !!(*s & 0x80);
           if (a->sign)
             {
@@ -450,7 +450,7 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
     {
       const unsigned char *s = buffer;
       size_t n;
-      
+
       /* This test is not strictly necessary and an assert (!len)
          would be sufficient.  We keep this test in case we later
          allow the BUFLEN argument to act as a sanitiy check.  Same
@@ -459,7 +459,7 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
         return gcry_error (GPG_ERR_TOO_SHORT);
 
       n = (s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3]);
-      s += 4; 
+      s += 4;
       if (len)
         len -= 4;
       if (len && n > len)
@@ -495,7 +495,7 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
     {
       /* We can only handle C strings for now.  */
       if (buflen)
-        return gcry_error (GPG_ERR_INV_ARG); 
+        return gcry_error (GPG_ERR_INV_ARG);
 
       a = secure? mpi_alloc_secure (0) : mpi_alloc(0);
       if (mpi_fromstr (a, (const char *)buffer))
@@ -503,7 +503,7 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
           mpi_free (a);
           return gcry_error (GPG_ERR_INV_OBJ);
         }
-      if (ret_mpi) 
+      if (ret_mpi)
         {
           mpi_normalize ( a );
           *ret_mpi = a;
@@ -531,18 +531,18 @@ gcry_mpi_print (enum gcry_mpi_format format,
   unsigned int nbits = mpi_get_nbits (a);
   size_t len;
   size_t dummy_nwritten;
-  
+
   if (!nwritten)
     nwritten = &dummy_nwritten;
 
   len = buflen;
   *nwritten = 0;
-  if (format == GCRYMPI_FMT_STD) 
+  if (format == GCRYMPI_FMT_STD)
     {
       unsigned char *tmp;
       int extra = 0;
       unsigned int n;
-      
+
       if (a->sign)
         return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
 
@@ -554,12 +554,12 @@ gcry_mpi_print (enum gcry_mpi_format format,
           n++;
           extra=1;
 	}
-      
+
       if (buffer && n > len)
         {
           /* The provided buffer is too short. */
           gcry_free (tmp);
-          return gcry_error (GPG_ERR_TOO_SHORT);  
+          return gcry_error (GPG_ERR_TOO_SHORT);
 	}
       if (buffer)
         {
@@ -598,10 +598,10 @@ gcry_mpi_print (enum gcry_mpi_format format,
   else if (format == GCRYMPI_FMT_PGP)
     {
       unsigned int n = (nbits + 7)/8;
-      
+
       /* The PGP format can only handle unsigned integers.  */
       if( a->sign )
-        return gcry_error (GPG_ERR_INV_ARG); 
+        return gcry_error (GPG_ERR_INV_ARG);
 
       if (buffer && n+2 > len)
         return gcry_error (GPG_ERR_TOO_SHORT);
@@ -613,7 +613,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
 
           s[0] = nbits >> 8;
           s[1] = nbits;
-          
+
           tmp = _gcry_mpi_get_buffer (a, &n, NULL);
           if (!tmp)
             return gpg_error_from_syserror ();
@@ -628,10 +628,10 @@ gcry_mpi_print (enum gcry_mpi_format format,
       unsigned char *tmp;
       int extra = 0;
       unsigned int n;
-      
+
       if (a->sign)
         return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet.  */
-      
+
       tmp = _gcry_mpi_get_buffer (a, &n, NULL);
       if (!tmp)
         return gpg_error_from_syserror ();
@@ -650,14 +650,14 @@ gcry_mpi_print (enum gcry_mpi_format format,
       if (buffer)
         {
           unsigned char *s = buffer;
-          
+
           *s++ = n >> 24;
           *s++ = n >> 16;
           *s++ = n >> 8;
           *s++ = n;
           if (extra)
             *s++ = 0;
-          
+
           memcpy (s, tmp, n-extra);
 	}
       gcry_free (tmp);
@@ -670,7 +670,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       int i;
       int extra = 0;
       unsigned int n = 0;
-      
+
       tmp = _gcry_mpi_get_buffer (a, &n, NULL);
       if (!tmp)
         return gpg_error_from_syserror ();
@@ -693,7 +693,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
               *s++ = '0';
               *s++ = '0';
 	    }
-          
+
           for (i=0; i < n; i++)
             {
               unsigned int c = tmp[i];
@@ -705,7 +705,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
           *s++ = 0;
           *nwritten = s - buffer;
 	}
-      else 
+      else
         {
           *nwritten = 2*n + extra + !!a->sign + 1;
 	}
@@ -729,7 +729,7 @@ gcry_mpi_aprint (enum gcry_mpi_format format,
 {
   size_t n;
   gcry_error_t rc;
-  
+
   *buffer = NULL;
   rc = gcry_mpi_print (format, NULL, 0, &n, a);
   if (rc)
@@ -748,4 +748,3 @@ gcry_mpi_aprint (enum gcry_mpi_format format,
     *nwritten = n;
   return rc;
 }
-

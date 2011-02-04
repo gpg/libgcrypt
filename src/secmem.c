@@ -136,7 +136,7 @@ mb_get_next (memblock_t *mb)
   memblock_t *mb_next;
 
   mb_next = (memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE + mb->size);
-  
+
   if (! ptr_into_pool_p (mb_next))
     mb_next = NULL;
 
@@ -192,7 +192,7 @@ static memblock_t *
 mb_get_new (memblock_t *block, size_t size)
 {
   memblock_t *mb, *mb_split;
-  
+
   for (mb = block; ptr_into_pool_p (mb); mb = mb_get_next (mb))
     if (! (mb->flags & MB_FLAG_ACTIVE) && mb->size >= size)
       {
@@ -202,7 +202,7 @@ mb_get_new (memblock_t *block, size_t size)
 	if (mb->size - size > BLOCK_HEAD_SIZE)
 	  {
 	    /* Split block.  */
-	  
+
 	    mb_split = (memblock_t *) (((char *) mb) + BLOCK_HEAD_SIZE + size);
 	    mb_split->size = mb->size - size - BLOCK_HEAD_SIZE;
 	    mb_split->flags = 0;
@@ -271,7 +271,7 @@ lock_pool (void *p, size_t n)
   /* Under HP/UX mlock segfaults if called by non-root.  Note, we have
      noch checked whether mlock does really work under AIX where we
      also detected a broken nlock.  Note further, that using plock ()
-     is not a good idea under AIX. */ 
+     is not a good idea under AIX. */
   if (uid)
     {
       errno = EPERM;
@@ -323,7 +323,7 @@ lock_pool (void *p, size_t n)
   (void)p;
   (void)n;
 #elif defined (HAVE_DOSISH_SYSTEM) || defined (__CYGWIN__)
-    /* It does not make sense to print such a warning, given the fact that 
+    /* It does not make sense to print such a warning, given the fact that
      * this whole Windows !@#$% and their user base are inherently insecure. */
   (void)p;
   (void)n;
@@ -548,7 +548,7 @@ _gcry_secmem_malloc (size_t size)
   SECMEM_LOCK;
   p = _gcry_secmem_malloc_internal (size);
   SECMEM_UNLOCK;
-  
+
   return p;
 }
 
@@ -666,7 +666,7 @@ _gcry_secmem_term ()
 void
 _gcry_secmem_dump_stats ()
 {
-#if 1 
+#if 1
   SECMEM_LOCK;
 
  if (pool_okay)

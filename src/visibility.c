@@ -20,7 +20,7 @@
 #include <config.h>
 #include <stdarg.h>
 
-#define _GCRY_INCLUDED_BY_VISIBILITY_C 
+#define _GCRY_INCLUDED_BY_VISIBILITY_C
 #include "g10lib.h"
 #include "cipher-proto.h"
 
@@ -38,7 +38,7 @@ gcry_strsource (gcry_error_t err)
   return _gcry_strsource (err);
 }
 
-gcry_err_code_t 
+gcry_err_code_t
 gcry_err_code_from_errno (int err)
 {
   return _gcry_err_code_from_errno (err);
@@ -50,13 +50,13 @@ gcry_err_code_to_errno (gcry_err_code_t code)
   return _gcry_err_code_to_errno (code);
 }
 
-gcry_error_t 
+gcry_error_t
 gcry_err_make_from_errno (gcry_err_source_t source, int err)
 {
   return _gcry_err_make_from_errno (source, err);
 }
 
-gcry_err_code_t 
+gcry_err_code_t
 gcry_error_from_errno (int err)
 {
   return _gcry_error_from_errno (err);
@@ -68,19 +68,19 @@ gcry_check_version (const char *req_version)
   return _gcry_check_version (req_version);
 }
 
-gcry_error_t 
+gcry_error_t
 gcry_control (enum gcry_ctl_cmds cmd, ...)
 {
   gcry_error_t err;
   va_list arg_ptr;
-  
+
   va_start (arg_ptr, cmd);
   err = _gcry_vcontrol (cmd, arg_ptr);
   va_end(arg_ptr);
   return err;
 }
 
-gcry_error_t 
+gcry_error_t
 gcry_sexp_new (gcry_sexp_t *retsexp,
                const void *buffer, size_t length,
                int autodetect)
@@ -88,7 +88,7 @@ gcry_sexp_new (gcry_sexp_t *retsexp,
   return _gcry_sexp_new (retsexp, buffer, length, autodetect);
 }
 
-gcry_error_t 
+gcry_error_t
 gcry_sexp_create (gcry_sexp_t *retsexp,
                   void *buffer, size_t length,
                   int autodetect, void (*freefnc) (void *))
@@ -97,53 +97,53 @@ gcry_sexp_create (gcry_sexp_t *retsexp,
                             autodetect, freefnc);
 }
 
-gcry_error_t 
+gcry_error_t
 gcry_sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                  const char *buffer, size_t length)
 {
   return _gcry_sexp_sscan (retsexp, erroff, buffer, length);
 }
 
-gcry_error_t 
+gcry_error_t
 gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff,
                  const char *format, ...)
 {
   gcry_error_t err;
   va_list arg_ptr;
-  
+
   va_start (arg_ptr, format);
   err = _gcry_sexp_vbuild (retsexp, erroff, format, arg_ptr);
   va_end (arg_ptr);
   return err;
 }
 
-gcry_error_t 
+gcry_error_t
 gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
                        const char *format, void **arg_list)
 {
   return _gcry_sexp_build_array (retsexp, erroff, format, arg_list);
 }
 
-void 
+void
 gcry_sexp_release (gcry_sexp_t sexp)
 {
   _gcry_sexp_release (sexp);
 }
 
-size_t 
-gcry_sexp_canon_len (const unsigned char *buffer, size_t length, 
+size_t
+gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
                      size_t *erroff, gcry_error_t *errcode)
 {
   return _gcry_sexp_canon_len (buffer, length, erroff, errcode);
 }
 
-size_t 
+size_t
 gcry_sexp_sprint (gcry_sexp_t sexp, int mode, void *buffer, size_t maxlength)
 {
   return _gcry_sexp_sprint (sexp, mode, buffer, maxlength);
 }
 
-void 
+void
 gcry_sexp_dump (const gcry_sexp_t a)
 {
   _gcry_sexp_dump (a);
@@ -249,7 +249,7 @@ gcry_mpi_snew (unsigned int nbits)
   return _gcry_mpi_snew (nbits);
 }
 
-void 
+void
 gcry_mpi_release (gcry_mpi_t a)
 {
   _gcry_mpi_release (a);
@@ -293,7 +293,7 @@ gcry_mpi_cmp_ui (const gcry_mpi_t u, unsigned long v)
 
 gcry_error_t
 gcry_mpi_scan (gcry_mpi_t *ret_mpi, enum gcry_mpi_format format,
-               const void *buffer, size_t buflen, 
+               const void *buffer, size_t buflen,
                size_t *nscanned)
 {
   return _gcry_mpi_scan (ret_mpi, format, buffer, buflen, nscanned);
@@ -591,7 +591,7 @@ gcry_cipher_encrypt (gcry_cipher_hd_t h,
     {
       /* Make sure that the plaintext will never make it to OUT. */
       if (out)
-        memset (out, 0x42, outsize); 
+        memset (out, 0x42, outsize);
       return gpg_error (fips_not_operational ());
     }
 
@@ -777,7 +777,7 @@ gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
   return _gcry_md_open (h, algo, flags);
 }
 
-void 
+void
 gcry_md_close (gcry_md_hd_t hd)
 {
   _gcry_md_close (hd);
@@ -833,7 +833,7 @@ gcry_md_read (gcry_md_hd_t hd, int algo)
   return _gcry_md_read (hd, algo);
 }
 
-void 
+void
 gcry_md_hash_buffer (int algo, void *digest,
                      const void *buffer, size_t length)
 {
@@ -1105,7 +1105,7 @@ gcry_ac_data_encrypt (gcry_ac_handle_t handle,
                       gcry_mpi_t data_plain,
                       gcry_ac_data_t *data_encrypted)
 {
-  return _gcry_ac_data_encrypt (handle, flags, key, 
+  return _gcry_ac_data_encrypt (handle, flags, key,
                                 data_plain, data_encrypted);
 }
 
@@ -1187,7 +1187,7 @@ gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
 }
 
 gcry_error_t
-gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name) 
+gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name)
 {
   /* This function is deprecated.  We implement it in terms of the
      suggested replacement.  */
@@ -1217,7 +1217,7 @@ gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
     {
       (void)fips_not_operational ();
       fips_signal_fatal_error ("called in non-operational state");
-      fips_noreturn (); 
+      fips_noreturn ();
     }
   _gcry_randomize (buffer, length, level);
 }
@@ -1237,7 +1237,7 @@ gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
     {
       (void)fips_not_operational ();
       fips_signal_fatal_error ("called in non-operational state");
-      fips_noreturn (); 
+      fips_noreturn ();
     }
 
   return _gcry_random_bytes (nbytes,level);
@@ -1250,7 +1250,7 @@ gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
     {
       (void)fips_not_operational ();
       fips_signal_fatal_error ("called in non-operational state");
-      fips_noreturn (); 
+      fips_noreturn ();
     }
 
   return _gcry_random_bytes_secure (nbytes, level);
@@ -1270,7 +1270,7 @@ gcry_create_nonce (void *buffer, size_t length)
     {
       (void)fips_not_operational ();
       fips_signal_fatal_error ("called in non-operational state");
-      fips_noreturn (); 
+      fips_noreturn ();
     }
   _gcry_create_nonce (buffer, length);
 }

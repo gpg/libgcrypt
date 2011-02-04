@@ -1,5 +1,5 @@
 /* misc.c
- * Copyright (C) 1999, 2001, 2002, 2003, 2007, 
+ * Copyright (C) 1999, 2001, 2002, 2003, 2007,
  *               2008 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
@@ -118,9 +118,9 @@ _gcry_logv( int level, const char *fmt, va_list arg_ptr )
 {
   if (log_handler)
     log_handler (log_handler_value, level, fmt, arg_ptr);
-  else 
+  else
     {
-      switch (level) 
+      switch (level)
         {
         case GCRY_LOG_CONT:  break;
         case GCRY_LOG_INFO:  break;
@@ -133,7 +133,7 @@ _gcry_logv( int level, const char *fmt, va_list arg_ptr )
 	}
       vfprintf(stderr,fmt,arg_ptr) ;
     }
-  
+
   if ( level == GCRY_LOG_FATAL || level == GCRY_LOG_BUG )
     {
       fips_signal_fatal_error ("internal error (fatal or bug)");
@@ -257,8 +257,8 @@ void
 _gcry_log_printf (const char *fmt, ...)
 {
   va_list arg_ptr;
-  
-  if (fmt) 
+
+  if (fmt)
     {
       va_start( arg_ptr, fmt ) ;
       _gcry_logv (GCRY_LOG_CONT, fmt, arg_ptr);
@@ -290,7 +290,7 @@ void
 _gcry_burn_stack (int bytes)
 {
     char buf[64];
-    
+
     wipememory (buf, sizeof buf);
     bytes -= sizeof buf;
     if (bytes > 0)

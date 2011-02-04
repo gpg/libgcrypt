@@ -120,7 +120,7 @@ gcry_mpi_set_bit( gcry_mpi_t a, unsigned int n )
   limbno = n / BITS_PER_MPI_LIMB;
   bitno  = n % BITS_PER_MPI_LIMB;
 
-  if ( limbno >= a->nlimbs ) 
+  if ( limbno >= a->nlimbs )
     {
       mpi_resize (a, limbno+1 );
       a->nlimbs = limbno+1;
@@ -135,12 +135,12 @@ void
 gcry_mpi_set_highbit( gcry_mpi_t a, unsigned int n )
 {
   unsigned int limbno, bitno;
-  
+
   limbno = n / BITS_PER_MPI_LIMB;
   bitno  = n % BITS_PER_MPI_LIMB;
-  
-  if ( limbno >= a->nlimbs ) 
-    { 
+
+  if ( limbno >= a->nlimbs )
+    {
       mpi_resize (a, limbno+1 );
       a->nlimbs = limbno+1;
     }
@@ -276,7 +276,7 @@ gcry_mpi_rshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
       x->sign = a->sign;
       RESIZE_IF_NEEDED (x, xsize);
       x->nlimbs = xsize;
-      
+
       if ( xsize )
         {
           if (nbits )
@@ -362,4 +362,3 @@ gcry_mpi_lshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
 
   MPN_NORMALIZE (x->d, x->nlimbs);
 }
-

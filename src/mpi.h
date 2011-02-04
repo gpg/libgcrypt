@@ -62,7 +62,7 @@
 
 #define DBG_MPI     _gcry_get_debug_flag( 2 );
 
-struct gcry_mpi 
+struct gcry_mpi
 {
   int alloced;         /* Array size (# of allocated limbs). */
   int nlimbs;          /* Number of valid limbs. */
@@ -107,13 +107,13 @@ struct gcry_mpi
 #define mpi_is_opaque(a) ((a) && ((a)->flags&4))
 #define mpi_is_secure(a) ((a) && ((a)->flags&1))
 #define mpi_clear(a)          _gcry_mpi_clear ((a))
-#define mpi_alloc_like(a)     _gcry_mpi_alloc_like((a))  
-#define mpi_set(a,b)          _gcry_mpi_set ((a),(b))        
-#define mpi_set_ui(a,b)       _gcry_mpi_set_ui ((a),(b))      
+#define mpi_alloc_like(a)     _gcry_mpi_alloc_like((a))
+#define mpi_set(a,b)          _gcry_mpi_set ((a),(b))
+#define mpi_set_ui(a,b)       _gcry_mpi_set_ui ((a),(b))
 #define mpi_get_ui(a,b)       _gcry_mpi_get_ui ((a),(b))
 #define mpi_alloc_set_ui(a)   _gcry_mpi_alloc_set_ui ((a))
-#define mpi_m_check(a)        _gcry_mpi_m_check ((a))     
-#define mpi_swap(a,b)         _gcry_mpi_swap ((a),(b))       
+#define mpi_m_check(a)        _gcry_mpi_m_check ((a))
+#define mpi_swap(a,b)         _gcry_mpi_swap ((a),(b))
 #define mpi_new(n)            _gcry_mpi_new ((n))
 #define mpi_snew(n)           _gcry_mpi_snew ((n))
 
@@ -131,7 +131,7 @@ void  _gcry_log_mpidump( const char *text, gcry_mpi_t a );
 u32   _gcry_mpi_get_keyid( gcry_mpi_t a, u32 *keyid );
 byte *_gcry_mpi_get_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign );
 byte *_gcry_mpi_get_secure_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign );
-void  _gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer, 
+void  _gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer,
                              unsigned int nbytes, int sign );
 
 #define log_mpidump _gcry_log_mpidump
@@ -249,10 +249,10 @@ mpi_ec_t _gcry_mpi_ec_init (gcry_mpi_t p, gcry_mpi_t a);
 void _gcry_mpi_ec_free (mpi_ec_t ctx);
 int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t *point,
                              mpi_ec_t ctx);
-void _gcry_mpi_ec_dup_point (mpi_point_t *result, 
+void _gcry_mpi_ec_dup_point (mpi_point_t *result,
                              mpi_point_t *point, mpi_ec_t ctx);
 void _gcry_mpi_ec_add_points (mpi_point_t *result,
-                              mpi_point_t *p1, mpi_point_t *p2, 
+                              mpi_point_t *p1, mpi_point_t *p2,
                               mpi_ec_t ctx);
 void _gcry_mpi_ec_mul_point (mpi_point_t *result,
                              gcry_mpi_t scalar, mpi_point_t *point,

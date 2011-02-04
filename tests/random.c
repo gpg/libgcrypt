@@ -61,7 +61,7 @@ writen (int fd, const void *buf, size_t nbytes)
 {
   size_t nleft = nbytes;
   int nwritten;
-  
+
   while (nleft > 0)
     {
       nwritten = write (fd, buf, nleft);
@@ -69,13 +69,13 @@ writen (int fd, const void *buf, size_t nbytes)
         {
           if (errno == EINTR)
             nwritten = 0;
-          else 
+          else
             return -1;
         }
       nleft -= nwritten;
       buf = (const char*)buf + nwritten;
     }
-    
+
   return 0;
 }
 
@@ -85,7 +85,7 @@ readn (int fd, void *buf, size_t buflen, size_t *ret_nread)
   size_t nleft = buflen;
   int nread;
   char *p;
-  
+
   p = buf;
   while ( nleft > 0 )
     {
@@ -94,7 +94,7 @@ readn (int fd, void *buf, size_t buflen, size_t *ret_nread)
         {
           if (nread == EINTR)
             nread = 0;
-          else 
+          else
             return -1;
         }
       else if (!nread)
@@ -118,7 +118,7 @@ check_forking (void)
   int i, status;
   size_t nread;
   char tmp1[16], tmp1c[16], tmp1p[16];
-  
+
   /* We better make sure that the RNG has been initialzied. */
   gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
   if (verbose)
@@ -148,7 +148,7 @@ check_forking (void)
 
   close (rp[1]);
   if (readn (rp[0], tmp1c, sizeof tmp1c, &nread))
-    die ("read failed: %s\n", strerror (errno)); 
+    die ("read failed: %s\n", strerror (errno));
   if (nread != sizeof tmp1c)
     die ("read too short\n");
 
@@ -175,7 +175,7 @@ check_nonce_forking (void)
   int i, status;
   size_t nread;
   char nonce1[10], nonce1c[10], nonce1p[10];
-  
+
   /* We won't get the same nonce back if we never initialized the
      nonce subsystem, thus we get one nonce here and forget about
      it. */
@@ -207,7 +207,7 @@ check_nonce_forking (void)
 
   close (rp[1]);
   if (readn (rp[0], nonce1c, sizeof nonce1c, &nread))
-    die ("read failed: %s\n", strerror (errno)); 
+    die ("read failed: %s\n", strerror (errno));
   if (nread != sizeof nonce1c)
     die ("read too short\n");
 

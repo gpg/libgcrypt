@@ -101,11 +101,11 @@
    up.  Its allocated size is POOLSIZE+BLOCKLEN.  Note that this is
    also an indication on whether the module has been fully
    initialized. */
-static unsigned char *rndpool;	
+static unsigned char *rndpool;
 
 /* KEYPOOL is used as a scratch copy to read out random from RNDPOOL.
    Its allocated size is also POOLSIZE+BLOCKLEN.  */
-static unsigned char *keypool;	
+static unsigned char *keypool;
 
 /* This is the offset into RNDPOOL where the next random bytes are to
    be mixed in.  */
@@ -221,7 +221,7 @@ static struct
    test this flag in a locked state because a wrong value does not
    harm and the trhead will find out itself that the daemon does not
    work and set it (again) to false.  */
-static int allow_daemon;       
+static int allow_daemon;
 
 /* During initialization, the user may set a non-default socket name
    for accessing the random daemon.  If this value is NULL, the
@@ -234,12 +234,12 @@ static char *daemon_socket_name;
 
 /* ---  Prototypes  --- */
 static void read_pool (byte *buffer, size_t length, int level );
-static void add_randomness (const void *buffer, size_t length, 
+static void add_randomness (const void *buffer, size_t length,
                             enum random_origins origin);
 static void random_poll (void);
 static void do_fast_random_poll (void);
-static int (*getfnc_gather_random (void))(void (*)(const void*, size_t, 
-                                                   enum random_origins), 
+static int (*getfnc_gather_random (void))(void (*)(const void*, size_t,
+                                                   enum random_origins),
                                           enum random_origins, size_t, int);
 static void (*getfnc_fast_random_poll (void))(void (*)(const void*, size_t,
                                                        enum random_origins),
@@ -271,7 +271,7 @@ initialize_basics(void)
       err = ath_mutex_init (&pool_lock);
       if (err)
         log_fatal ("failed to create the pool lock: %s\n", strerror (err) );
-      
+
       err = ath_mutex_init (&nonce_buffer_lock);
       if (err)
         log_fatal ("failed to create the nonce buffer lock: %s\n",
@@ -283,7 +283,7 @@ initialize_basics(void)
 
       /* Make sure that we are still using the values we have
          traditionally used for the random levels.  */
-      gcry_assert (GCRY_WEAK_RANDOM == 0 
+      gcry_assert (GCRY_WEAK_RANDOM == 0
                    && GCRY_STRONG_RANDOM == 1
                    && GCRY_VERY_STRONG_RANDOM == 2);
     }
@@ -293,7 +293,7 @@ initialize_basics(void)
 static void
 lock_pool (void)
 {
-  int err; 
+  int err;
 
   err = ath_mutex_lock (&pool_lock);
   if (err)
@@ -305,7 +305,7 @@ lock_pool (void)
 static void
 unlock_pool (void)
 {
-  int err; 
+  int err;
 
   pool_is_locked = 0;
   err = ath_mutex_unlock (&pool_lock);
@@ -345,7 +345,7 @@ initialize(void)
           faked_rng = 1;
           slow_gather_fnc = gather_faked;
 	}
-      
+
       /* Setup the fast entropy gathering function.  */
       fast_gather_fnc = getfnc_fast_random_poll ();
 
@@ -427,7 +427,7 @@ _gcry_rngcsprng_use_daemon (int onoff)
 {
 #ifdef USE_RANDOM_DAEMON
   int last;
-  
+
   /* This is not really thread safe.  However it is expected that this
      function is being called during initialization and at that point
      we are for other reasons not really thread safe.  We do not want
@@ -472,7 +472,7 @@ _gcry_rngcsprng_add_bytes (const void *buf, size_t buflen, int quality)
     quality = 100;
   else if (quality < 0)
     quality = 0;
-      
+
   if (!buf)
     return gpg_error (GPG_ERR_INV_ARG);
 
@@ -496,9 +496,9 @@ _gcry_rngcsprng_add_bytes (const void *buf, size_t buflen, int quality)
       buflen -= nbytes;
     }
   return 0;
-}   
+}
 
-    
+
 /* Public function to fill the buffer with LENGTH bytes of
    cryptographically strong random bytes.  Level GCRY_WEAK_RANDOM is
    not very strong, GCRY_STRONG_RANDOM is strong enough for most
@@ -564,13 +564,13 @@ _gcry_rngcsprng_randomize (void *buffer, size_t length,
    Mix the pool:
 
    |........blocks*20byte........|20byte|..44byte..|
-   <..44byte..>           <20byte> 
+   <..44byte..>           <20byte>
         |                    |
         |                    +------+
         +---------------------------|----------+
                                     v          v
    |........blocks*20byte........|20byte|..44byte..|
-                                 <.....64bytes.....>   
+                                 <.....64bytes.....>
                                          |
       +----------------------------------+
      Hash
@@ -590,7 +590,7 @@ _gcry_rngcsprng_randomize (void *buffer, size_t length,
    |.............................|20byte|..44byte..|
    <20byte><20byte><..44byte..>
 
-   and so on until we did this for all blocks. 
+   and so on until we did this for all blocks.
 
    To better protect against implementation errors in this code, we
    xor a digest of the entire pool into the pool before mixing.
@@ -627,7 +627,7 @@ mix_pool(unsigned char *pool)
       for (i=0; i < 20; i++)
         pool[i] ^= failsafe_digest[i];
     }
-  
+
   p = pool;
   for (n=1; n < POOLBLOCKS; n++)
     {
@@ -636,10 +636,10 @@ mix_pool(unsigned char *pool)
       p += DIGESTLEN;
       if (p+DIGESTLEN+BLOCKLEN < pend)
         memcpy (hashbuf+DIGESTLEN, p+DIGESTLEN, BLOCKLEN-DIGESTLEN);
-      else 
+      else
         {
           unsigned char *pp = p + DIGESTLEN;
-          
+
           for (i=DIGESTLEN; i < BLOCKLEN; i++ )
             {
               if ( pp >= pend )
@@ -647,7 +647,7 @@ mix_pool(unsigned char *pool)
               hashbuf[i] = *pp++;
 	    }
 	}
-      
+
       _gcry_rmd160_mixblock ( &md, hashbuf);
       memcpy(p, hashbuf, 20 );
     }
@@ -705,7 +705,7 @@ lock_seed_file (int fd, const char *fname, int for_write)
 
       if (backoff > 2) /* Show the first message after ~2.25 seconds. */
         log_info( _("waiting for lock on `%s'...\n"), fname);
-      
+
       tv.tv_sec = backoff;
       tv.tv_usec = 250000;
       select (0, NULL, NULL, NULL, &tv);
@@ -744,7 +744,7 @@ read_seed_file (void)
 
   if (!seed_file_name)
     return 0;
-  
+
 #ifdef HAVE_DOSISH_SYSTEM
   fd = open( seed_file_name, O_RDONLY | O_BINARY );
 #else
@@ -785,7 +785,7 @@ read_seed_file (void)
       allow_seed_file_update = 1;
       return 0;
     }
-  if (sb.st_size != POOLSIZE ) 
+  if (sb.st_size != POOLSIZE )
     {
       log_info(_("warning: invalid size of random_seed file - not used\n") );
       close(fd);
@@ -795,7 +795,7 @@ read_seed_file (void)
   do
     {
       n = read( fd, buffer, POOLSIZE );
-    } 
+    }
   while (n == -1 && errno == EINTR );
 
   if (n != POOLSIZE)
@@ -804,12 +804,12 @@ read_seed_file (void)
       close(fd);/*NOTREACHED*/
       return 0;
     }
-  
+
   close(fd);
 
   add_randomness( buffer, POOLSIZE, RANDOM_ORIGIN_INIT );
   /* add some minor entropy to the pool now (this will also force a mixing) */
-  {	
+  {
     pid_t x = getpid();
     add_randomness( &x, sizeof(x), RANDOM_ORIGIN_INIT );
   }
@@ -817,7 +817,7 @@ read_seed_file (void)
     time_t x = time(NULL);
     add_randomness( &x, sizeof(x), RANDOM_ORIGIN_INIT );
   }
-  {	
+  {
     clock_t x = clock();
     add_randomness( &x, sizeof(x), RANDOM_ORIGIN_INIT );
   }
@@ -865,7 +865,7 @@ _gcry_rngcsprng_update_seed_file (void)
 
   /* Copy the entropy pool to a scratch pool and mix both of them. */
   for (i=0,dp=(unsigned long*)keypool, sp=(unsigned long*)rndpool;
-       i < POOLWORDS; i++, dp++, sp++ ) 
+       i < POOLWORDS; i++, dp++, sp++ )
     {
       *dp = *sp + ADD_VALUE;
     }
@@ -896,19 +896,19 @@ _gcry_rngcsprng_update_seed_file (void)
       close (fd);
     }
 #endif /*LOCK_SEED_FILE*/
-  else 
+  else
     {
       do
         {
           i = write (fd, keypool, POOLSIZE );
-        } 
+        }
       while (i == -1 && errno == EINTR);
-      if (i != POOLSIZE) 
+      if (i != POOLSIZE)
         log_info (_("can't write `%s': %s\n"),seed_file_name, strerror(errno));
       if (close(fd))
         log_info (_("can't close `%s': %s\n"),seed_file_name, strerror(errno));
     }
-  
+
   unlock_pool ();
 }
 
@@ -928,7 +928,7 @@ read_pool (byte *buffer, size_t length, int level)
      Note that we keep a pid in a static variable as well as in a
      stack based one; the latter is to detect ill behaving thread
      libraries, ignoring the pool mutexes. */
-  static volatile pid_t my_pid = (pid_t)(-1); 
+  static volatile pid_t my_pid = (pid_t)(-1);
   volatile pid_t my_pid2;
 
   gcry_assert (pool_is_locked);
@@ -936,7 +936,7 @@ read_pool (byte *buffer, size_t length, int level)
  retry:
   /* Get our own pid, so that we can detect a fork. */
   my_pid2 = getpid ();
-  if (my_pid == (pid_t)(-1))                                
+  if (my_pid == (pid_t)(-1))
     my_pid = my_pid2;
   if ( my_pid != my_pid2 )
     {
@@ -987,7 +987,7 @@ read_pool (byte *buffer, size_t length, int level)
   if (level == GCRY_VERY_STRONG_RANDOM && pool_balance < length)
     {
       size_t needed;
-      
+
       if (pool_balance < 0)
         pool_balance = 0;
       needed = length - pool_balance;
@@ -1004,7 +1004,7 @@ read_pool (byte *buffer, size_t length, int level)
 
   /* Always do a fast random poll (we have to use the unlocked version). */
   do_fast_random_poll();
-  
+
   /* Mix the pid in so that we for sure won't deliver the same random
      after a fork. */
   {
@@ -1037,7 +1037,7 @@ read_pool (byte *buffer, size_t length, int level)
         pool_readpos = 0;
       pool_balance--;
     }
- 
+
   if (pool_balance < 0)
     pool_balance = 0;
 
@@ -1112,13 +1112,13 @@ random_poll()
 
 /* Runtime determination of the slow entropy gathering module.  */
 static int (*
-getfnc_gather_random (void))(void (*)(const void*, size_t, 
-                                      enum random_origins), 
+getfnc_gather_random (void))(void (*)(const void*, size_t,
+                                      enum random_origins),
                              enum random_origins, size_t, int)
 {
-  int (*fnc)(void (*)(const void*, size_t, enum random_origins), 
+  int (*fnc)(void (*)(const void*, size_t, enum random_origins),
              enum random_origins, size_t, int);
-  
+
 #if USE_RNDLINUX
   if ( !access (NAME_OF_DEV_RANDOM, R_OK)
        && !access (NAME_OF_DEV_URANDOM, R_OK))
@@ -1186,13 +1186,13 @@ do_fast_random_poll (void)
 
   /* Continue with the generic functions. */
 #if HAVE_GETHRTIME
-  {	
+  {
     hrtime_t tv;
     tv = gethrtime();
     add_randomness( &tv, sizeof(tv), RANDOM_ORIGIN_FASTPOLL );
   }
 #elif HAVE_GETTIMEOFDAY
-  {	
+  {
     struct timeval tv;
     if( gettimeofday( &tv, NULL ) )
       BUG();
@@ -1217,7 +1217,7 @@ do_fast_random_poll (void)
 
 #ifdef HAVE_GETRUSAGE
 # ifdef RUSAGE_SELF
-  {	
+  {
     struct rusage buf;
     /* QNX/Neutrino does return ENOSYS - so we just ignore it and add
        whatever is in buf.  In a chroot environment it might not work
@@ -1240,7 +1240,7 @@ do_fast_random_poll (void)
     time_t x = time(NULL);
     add_randomness( &x, sizeof(x), RANDOM_ORIGIN_FASTPOLL );
   }
-  {	
+  {
     clock_t x = clock();
     add_randomness( &x, sizeof(x), RANDOM_ORIGIN_FASTPOLL );
   }
@@ -1292,10 +1292,10 @@ gather_faked (void (*add)(const void*, size_t, enum random_origins),
   static int initialized=0;
   size_t n;
   char *buffer, *p;
-  
+
   (void)add;
   (void)level;
-  
+
   if ( !initialized )
     {
       log_info(_("WARNING: using insecure random number generator!!\n"));
@@ -1371,7 +1371,7 @@ _gcry_rngcsprng_create_nonce (void *buffer, size_t length)
       p = nonce_buffer;
       memcpy (p, &xpid, sizeof xpid);
       p += sizeof xpid;
-      memcpy (p, &atime, sizeof atime); 
+      memcpy (p, &atime, sizeof atime);
 
       /* Initialize the never changing private part of 64 bits. */
       gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);

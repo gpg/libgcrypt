@@ -352,7 +352,7 @@ memory is not a problem, you should initialize Libgcrypt this way:
       fputs ("libgcrypt version mismatch\n", stderr);
       exit (2);
     @}
-        
+
   /* Disable secure memory.  */
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
 
@@ -383,7 +383,7 @@ and freed memory, you need to initialize Libgcrypt this way:
   gcry_control (GCRYCTL_SUSPEND_SECMEM_WARN);
 
   /* ... If required, other initialization goes here.  Note that the
-     process might still be running with increased privileges and that 
+     process might still be running with increased privileges and that
      the secure memory has not been intialized.  */
 
   /* Allocate a pool of 16k secure memory.  This make the secure memory
@@ -410,7 +410,7 @@ want to check for finished initialization using:
     @{
       fputs ("libgcrypt has not been initialized\n", stderr);
       abort ();
-    @}       
+    @}
 @end example
 
 Instead of terminating the process, the library may instead print a
@@ -422,7 +422,7 @@ multi-threading below for more pitfalls.
 @node Multi-Threading
 @section Multi-Threading
 
-As mentioned earlier, the Libgcrypt library is 
+As mentioned earlier, the Libgcrypt library is
 thread-safe if you adhere to the following requirements:
 
 @itemize @bullet
@@ -544,18 +544,18 @@ explicitly.  Three alternative mechanisms are provided to switch
 Libgcrypt into this mode:
 
 @itemize
-@item 
+@item
 If the file @file{/proc/sys/crypto/fips_enabled} exists and contains a
 numeric value other than @code{0}, Libgcrypt is put into FIPS mode at
 initialization time.  Obviously this works only on systems with a
 @code{proc} file system (i.e. GNU/Linux).
 
-@item 
+@item
 If the file @file{/etc/gcrypt/fips_enabled} exists, Libgcrypt is put
 into FIPS mode at initialization time.  Note that this filename is
 hardwired and does not depend on any configuration options.
 
-@item 
+@item
 If the application requests FIPS mode using the control command
 @code{GCRYCTL_FORCE_FIPS_MODE}.  This must be done prior to any
 initialization (i.e. before @code{gcry_check_version}).
@@ -645,7 +645,7 @@ mode this command has no effect at all.
 
 Many applications do not require secure memory, so they should disable
 it right away.  This command should be executed right after
-@code{gcry_check_version}. 
+@code{gcry_check_version}.
 
 @item GCRYCTL_INIT_SECMEM; Arguments: int nbytes
 This command is used to allocate a pool of secure memory and thus
@@ -671,9 +671,9 @@ subsystem. This command should be run right after
 @code{gcry_check_version}.
 
 @item GCRYCTL_SUSPEND_SECMEM_WARN; Arguments: none
-Postpone warning messages from the secure memory subsystem. 
+Postpone warning messages from the secure memory subsystem.
 @xref{sample-use-suspend-secmem,,the initialization example}, on how to
-use it. 
+use it.
 
 @item GCRYCTL_RESUME_SECMEM_WARN; Arguments: none
 Resume warning messages from the secure memory subsystem.
@@ -1202,7 +1202,7 @@ above:
   gcry_cipher_hd_t handle;
   gcry_error_t err = 0;
 
-  err = gcry_cipher_open (&handle, GCRY_CIPHER_AES, 
+  err = gcry_cipher_open (&handle, GCRY_CIPHER_AES,
                           GCRY_CIPHER_MODE_CBC, 0);
   if (err)
     @{
@@ -1220,7 +1220,7 @@ above:
 @chapter Handler Functions
 
 Libgcrypt makes it possible to install so called `handler functions',
-which get called by Libgcrypt in case of certain events. 
+which get called by Libgcrypt in case of certain events.
 
 @menu
 * Progress handler::            Using a progress handler function.
@@ -1423,7 +1423,7 @@ are ignored.
 @item GCRY_CIPHER_CAST5
 @cindex CAST5
 CAST128-5 block cipher algorithm.  The key size is 128 bits.
-	
+
 @item GCRY_CIPHER_BLOWFISH
 @cindex Blowfish
 The blowfish algorithm. The current implementation allows only for a key
@@ -1432,10 +1432,10 @@ size of 128 bits.
 @item GCRY_CIPHER_SAFER_SK128
 Reserved and not currently implemented.
 
-@item GCRY_CIPHER_DES_SK	  
+@item GCRY_CIPHER_DES_SK
 Reserved and not currently implemented.
- 
-@item  GCRY_CIPHER_AES        
+
+@item  GCRY_CIPHER_AES
 @itemx GCRY_CIPHER_AES128
 @itemx GCRY_CIPHER_RIJNDAEL
 @itemx GCRY_CIPHER_RIJNDAEL128
@@ -1444,27 +1444,27 @@ Reserved and not currently implemented.
 @cindex Advanced Encryption Standard
 AES (Rijndael) with a 128 bit key.
 
-@item  GCRY_CIPHER_AES192     
+@item  GCRY_CIPHER_AES192
 @itemx GCRY_CIPHER_RIJNDAEL192
 AES (Rijndael) with a 192 bit key.
 
-@item  GCRY_CIPHER_AES256 
+@item  GCRY_CIPHER_AES256
 @itemx GCRY_CIPHER_RIJNDAEL256
 AES (Rijndael) with a 256 bit key.
-    
+
 @item  GCRY_CIPHER_TWOFISH
 @cindex Twofish
 The Twofish algorithm with a 256 bit key.
-    
+
 @item  GCRY_CIPHER_TWOFISH128
 The Twofish algorithm with a 128 bit key.
-    
-@item  GCRY_CIPHER_ARCFOUR   
+
+@item  GCRY_CIPHER_ARCFOUR
 @cindex Arcfour
 @cindex RC4
 An algorithm which is 100% compatible with RSA Inc.'s RC4 algorithm.
 Note that this is a stream cipher and must be used very carefully to
-avoid a couple of weaknesses. 
+avoid a couple of weaknesses.
 
 @item  GCRY_CIPHER_DES
 @cindex DES
@@ -1622,7 +1622,7 @@ set, this mode may be used to bypass the actual encryption.
 
 @item GCRY_CIPHER_MODE_ECB
 @cindex ECB, Electronic Codebook mode
-Electronic Codebook mode.  
+Electronic Codebook mode.
 
 @item GCRY_CIPHER_MODE_CFB
 @cindex CFB, Cipher Feedback mode
@@ -1700,7 +1700,7 @@ useful when the key material is highly confidential.
 @item GCRY_CIPHER_ENABLE_SYNC
 @cindex sync mode (OpenPGP)
 This flag enables the CFB sync mode, which is a special feature of
-Libgcrypt's CFB mode implementation to allow for OpenPGP's CFB variant. 
+Libgcrypt's CFB mode implementation to allow for OpenPGP's CFB variant.
 See @code{gcry_cipher_sync}.
 @item GCRY_CIPHER_CBC_CTS
 @cindex cipher text stealing
@@ -1714,7 +1714,7 @@ Compute CBC-MAC keyed checksums.  This is the same as CBC mode, but
 only output the last block.  Cannot be used simultaneous as
 GCRY_CIPHER_CBC_CTS.
 @end table
-@end deftypefun 
+@end deftypefun
 
 Use the following function to release an existing handle:
 
@@ -1860,7 +1860,7 @@ information requested as @var{what}. The result is either returned as
 the return code of the function or copied to the provided @var{buffer}
 whose allocated length must be available in an integer variable with the
 address passed in @var{nbytes}.  This variable will also receive the
-actual used length of the buffer. 
+actual used length of the buffer.
 
 Here is a list of supported codes for @var{what}:
 
@@ -1879,8 +1879,8 @@ number of octets in @var{nbytes}; @var{buffer} must be zero.
 @item GCRYCTL_TEST_ALGO:
 Returns @code{0} when the specified algorithm is available for use.
 @var{buffer} and @var{nbytes} must be zero.
- 
-@end table  
+
+@end table
 @c end constants for gcry_cipher_algo_info
 
 @end deftypefun
@@ -2032,7 +2032,7 @@ but greatly improve the performance.  Either all of these optional
 parameters must be given or none of them.  They are mandatory for
 gcry_pk_testkey.
 
-Note that OpenSSL uses slighly different parameters: @math{q < p} and 
+Note that OpenSSL uses slighly different parameters: @math{q < p} and
  @math{u = q^{-1} \bmod p}.  To use these parameters you will need to
 swap the values and recompute @math{u}.  Here is example code to do this:
 
@@ -2304,7 +2304,7 @@ number.
 @noindent
 Note that we will in future allow to use keys without p,q and u
 specified and may also support other parameters for performance
-reasons. 
+reasons.
 
 @noindent
 
@@ -2341,7 +2341,7 @@ operation, like e.g. padding rules.
 If you don't want to let Libgcrypt handle the padding, you must pass an
 appropriate MPI using this expression for @var{data}:
 
-@example 
+@example
 (data
   (flags raw)
   (value @var{mpi}))
@@ -2353,7 +2353,7 @@ the actual data, already padded appropriate for your protocol.  Most
 systems however use PKCS#1 padding and so you can use this S-expression
 for @var{data}:
 
-@example 
+@example
 (data
   (flags pkcs1)
   (value @var{block}))
@@ -2448,7 +2448,7 @@ private key @var{skey} and place it into the variable at the address of
 with just one MPI or a modern and more versatile S-expression which
 allows to let Libgcrypt handle padding:
 
-@example 
+@example
  (data
   (flags pkcs1)
   (hash @var{hash-algo} @var{block}))
@@ -2597,9 +2597,9 @@ algorithm. This may be 0 for "don't care" or the bit-wise OR of these
 flags:
 
 @table @code
-@item GCRY_PK_USAGE_SIGN 
+@item GCRY_PK_USAGE_SIGN
 Algorithm is usable for signing.
-@item GCRY_PK_USAGE_ENCR 
+@item GCRY_PK_USAGE_ENCR
 Algorithm is usable for encryption.
 @end table
 
@@ -2717,7 +2717,7 @@ If this parameter is not used, Libgcrypt uses for historic reasons
 
 @item qbits
 This is only meanigful for DSA keys.  If it is given the DSA key is
-generated with a Q parameyer of this size.  If it is not given or zero 
+generated with a Q parameyer of this size.  If it is not given or zero
 Q is deduced from NBITS in this way:
 @table @samp
 @item 512 <= N <= 1024
@@ -2857,7 +2857,7 @@ Note that the order of the elements is not defined, e.g. the private
 key may be stored before the public key. @var{n1 n2 ... nn} is a list
 of prime numbers used to composite @var{p-mpi}; this is in general not
 a very useful information and only available if the key generation
-algorithm provides them.  
+algorithm provides them.
 @end deftypefun
 @c end gcry_pk_genkey
 
@@ -3739,7 +3739,7 @@ function should be used for large blocks of data.
 
 Pass the byte in @var{c} to the digest object with handle @var{h} to
 update the digest value.  This is an efficient function, implemented as
-a macro to buffer the data before an actual update. 
+a macro to buffer the data before an actual update.
 @end deftypefun
 
 The semantics of the hash functions do not provide for reading out intermediate
@@ -3773,7 +3773,7 @@ been enabled.
 @end deftypefun
 
 Because it is often necessary to get the message digest of one block of
-memory, a fast convenience function is available for this task: 
+memory, a fast convenience function is available for this task:
 
 @deftypefun void gcry_md_hash_buffer (int @var{algo}, void *@var{digest}, const void *@var{buffer}, size_t @var{length});
 
@@ -3834,7 +3834,7 @@ returns 0 on success.
 To test whether an algorithm is actually available for use, the
 following macro should be used:
 
-@deftypefun gcry_error_t gcry_md_test_algo (int @var{algo}) 
+@deftypefun gcry_error_t gcry_md_test_algo (int @var{algo})
 
 The macro returns 0 if the algorithm @var{algo} is available for use.
 @end deftypefun
@@ -4026,7 +4026,7 @@ the external formats:
 
 This is the generic function to create an new S-expression object from
 its external representation in @var{buffer} of @var{length} bytes.  On
-success the result is stored at the address given by @var{r_sexp}. 
+success the result is stored at the address given by @var{r_sexp}.
 With @var{autodetect} set to 0, the data in @var{buffer} is expected to
 be in canonized format, with @var{autodetect} set to 1 the parses any of
 the defined external formats.  If @var{buffer} does not hold a valid
@@ -4263,7 +4263,7 @@ can't be converted to an MPI, @code{NULL} is returned.
 Public key cryptography is based on mathematics with large numbers.  To
 implement the public key functions, a library for handling these large
 numbers is required.  Because of the general usefulness of such a
-library, its interface is exposed by Libgcrypt. 
+library, its interface is exposed by Libgcrypt.
 In the context of Libgcrypt and in most other applications, these large
 numbers are called MPIs (multi-precision-integers).
 
@@ -4485,7 +4485,7 @@ as @code{NULL}.  @var{round} should be negative or 0.
 
 @deftypefun int gcry_mpi_gcd (@w{gcry_mpi_t @var{g}}, @w{gcry_mpi_t @var{a}}, @w{gcry_mpi_t @var{b}})
 
-Set @var{g} to the greatest common divisor of @var{a} and @var{b}.  
+Set @var{g} to the greatest common divisor of @var{a} and @var{b}.
 Return true if the @var{g} is 1.
 @end deftypefun
 
@@ -4804,13 +4804,13 @@ following main functions are available:
 
 @table @code
 
-@item gcry_pk_encrypt 
+@item gcry_pk_encrypt
 Encrypt data using a public key.
 
-@item gcry_pk_decrypt 
+@item gcry_pk_decrypt
 Decrypt data using a private key.
 
-@item gcry_pk_sign 
+@item gcry_pk_sign
 Sign data using a private key.
 
 @item gcry_pk_verify
@@ -4878,13 +4878,13 @@ algorithm and mode.
 Release an instance.
 
 @item gcry_cipher_setkey
-Set a key to be used for encryption or decryption. 
+Set a key to be used for encryption or decryption.
 
 @item gcry_cipher_setiv
 Set an initialization vector to be used for encryption or decryption.
 
 @item gcry_cipher_encrypt
-@itemx gcry_cipher_decrypt 
+@itemx gcry_cipher_decrypt
 Encrypt or decrypt data.  These functions may be called with arbitrary
 amounts of data and as often as needed to encrypt or decrypt all data.
 
@@ -4966,7 +4966,7 @@ Major features of Libgcrypt's multi-precision-integer code compared to
 GMP are:
 
 @itemize
-@item 
+@item
 Avoidance of stack based allocations to allow protection against
 swapping out of sensitive data and for easy zeroing of sensitive
 intermediate results.
@@ -5053,10 +5053,10 @@ for weaker usages like nonces.  There is also a level
 multi-precision-integer using the @code{gcry_create_nonce} function.
 
 @noindent
-There are two distinct random generators available: 
+There are two distinct random generators available:
 
 @itemize
-@item 
+@item
 The Continuously Seeded Pseudo Random Number Generator (CSPRNG), which
 is based on the classic GnuPG derived big pool implementation.
 Implemented in @code{random/random-csprng.c} and used by default.
@@ -5183,19 +5183,19 @@ incremented on each use.
 
 @c @node Helper Subsystems Architecture
 @c @section Helper Subsystems Architecture
-@c 
+@c
 @c There are a few smaller subsystems which are mainly used internally by
 @c Libgcrypt but also available to applications.
-@c 
+@c
 @c @menu
 @c * S-expression Subsystem Architecture::   Details about the S-expression architecture.
 @c * Memory Subsystem Architecture::         Details about the memory allocation architecture.
 @c * Miscellaneous Subsystems Architecture:: Details about other subsystems.
 @c @end menu
-@c 
+@c
 @c @node S-expression Subsystem Architecture
 @c @subsection S-expression Subsystem Architecture
-@c 
+@c
 @c Libgcrypt provides an interface to S-expression to create and parse
 @c them.  To use an S-expression with Libgcrypt it needs first be
 @c converted into the internal representation used by Libgcrypt (the type
@@ -5203,25 +5203,25 @@ incremented on each use.
 @c of the S-expression specification and further fature a printf like
 @c function to convert a list of big integers or other binary data into
 @c an S-expression.
-@c 
+@c
 @c Libgcrypt currently implements S-expressions using a tagged linked
 @c list.  However this is not exposed to an application and may be
 @c changed in future releases to reduce overhead when already working
 @c with canonically encoded S-expressions.  Secure memory is supported by
 @c this S-expressions implementation.
-@c 
-@c @node Memory Subsystem Architecture 
-@c @subsection Memory Subsystem Architecture 
-@c 
+@c
+@c @node Memory Subsystem Architecture
+@c @subsection Memory Subsystem Architecture
+@c
 @c TBD.
-@c 
-@c 
+@c
+@c
 @c @node Miscellaneous Subsystems Architecture
 @c @subsection Miscellaneous Subsystems Architecture
-@c 
+@c
 @c TBD.
-@c 
-@c 
+@c
+@c
 
 
 
@@ -5250,7 +5250,7 @@ the library into the ``Error'' state.
 @c --------------------------------
 @section Power-Up Tests
 
-Power-up tests are only performed if Libgcrypt is in FIPS mode.  
+Power-up tests are only performed if Libgcrypt is in FIPS mode.
 
 @subsection Symmetric Cipher Algorithm Power-Up Tests
 
@@ -5339,7 +5339,7 @@ A known answer test using 28 byte of data and a 4 byte key is run.
 The DRNG is tested during power-up this way:
 
 @enumerate
-@item 
+@item
 Requesting one block of random using the public interface to check
 general working and the duplicated block detection.
 @item
@@ -5357,10 +5357,10 @@ The public key algorithms are tested during power-up:
 A pre-defined 1024 bit RSA key is used and these tests are run
 in turn:
 @enumerate
-@item 
-Conversion of S-expression to internal format. 
+@item
+Conversion of S-expression to internal format.
 (@code{cipher/@/rsa.c:@/selftests_rsa})
-@item 
+@item
 Private key consistency check.
 (@code{cipher/@/rsa.c:@/selftests_rsa})
 @item
@@ -5501,7 +5501,7 @@ using the high level functions is run for block modes CFB and OFB.
 
 @subsection Hash Algorithm Tests
 
-The following hash algorithm tests are run in addition to the 
+The following hash algorithm tests are run in addition to the
 power-up tests:
 
 @table @asis
@@ -5511,7 +5511,7 @@ power-up tests:
 @enumerate
 @item
 A known answer test using a 56 byte string is run.
-@item 
+@item
 A known answer test using a string of one million letters "a" is run.
 @end enumerate
 (@code{cipher/@/sha1.c:@/selftests_sha1},
@@ -5522,7 +5522,7 @@ A known answer test using a string of one million letters "a" is run.
 @enumerate
 @item
 A known answer test using a 112 byte string is run.
-@item 
+@item
 A known answer test using a string of one million letters "a" is run.
 @end enumerate
 (@code{cipher/@/sha512.c:@/selftests_sha384},
@@ -5617,7 +5617,7 @@ HMAC using a SHA-384 message digest.
 @item GCRY_MD_SHA512,GCRY_MD_FLAG_HMAC
 HMAC using a SHA-512 message digest.
 @item GCRY_PK_RSA
-RSA encryption and signing.         
+RSA encryption and signing.
 @item GCRY_PK_DSA
 DSA signing.
 @end table
@@ -5627,7 +5627,7 @@ and thus are in addition available.
 
 @item
 RSA key generation refuses to create a key with a keysize of
-less than 1024 bits.  
+less than 1024 bits.
 
 @item
 DSA key generation refuses to create a key with a keysize other
@@ -5639,7 +5639,7 @@ The @code{transient-key} flag for RSA and DSA key generation is ignored.
 @item
 Support for the VIA Padlock engine is disabled.
 
-@item 
+@item
 FIPS mode may only be used on systems with a /dev/random device.
 Switching into FIPS mode on other systems will fail at runtime.
 
@@ -5660,13 +5660,13 @@ supported and all API calls return an error.
 @item
 Registration of external modules is not supported.
 
-@item 
+@item
 Message digest debugging is disabled.
 
 @item
 All debug output related to cryptographic data is suppressed.
 
-@item 
+@item
 On-the-fly self-tests are not performed, instead self-tests are run
 before entering operational state.
 
@@ -5680,7 +5680,7 @@ The digest algorithm MD5 may not be used.  If it is used Libgcrypt
 disables FIPS mode unless Enforced FIPS mode is enabled, in which case
 Libgcrypt will enter the error state.
 
-@item 
+@item
 In Enforced FIPS mode the command @code{GCRYCTL_DISABLE_SECMEM} is
 ignored.  In standard FIPS mode it disables FIPS mode.
 
@@ -5713,7 +5713,7 @@ transitions (@pxref{tbl:fips-state-transitions}) may happen.
 States used by the FIPS FSM:
 @table @asis
 
-@item Power-Off 
+@item Power-Off
 Libgcrypt is not runtime linked to another application.  This usually
 means that the library is not loaded into main memory.  This state is
 documentation only.
@@ -5729,7 +5729,7 @@ The Libgcrypt initialization functions are performed and the library has
 not yet run any self-test.
 
 @item Self-Test
-Libgcrypt is performing self-tests.               
+Libgcrypt is performing self-tests.
 
 @item Operational
 Libgcrypt is in the operational state and all interfaces may be used.
@@ -5737,11 +5737,11 @@ Libgcrypt is in the operational state and all interfaces may be used.
 @item Error
 Libgrypt is in the error state.  When calling any FIPS relevant
 interfaces they either return an error (@code{GPG_ERR_NOT_OPERATIONAL})
-or put Libgcrypt into the Fatal-Error state and won't return.  
+or put Libgcrypt into the Fatal-Error state and won't return.
 
 @item Fatal-Error
-Libgcrypt is in a non-recoverable error state and 
-will automatically transit into the  Shutdown state.        
+Libgcrypt is in a non-recoverable error state and
+will automatically transit into the  Shutdown state.
 
 @item Shutdown
 Libgcrypt is about to be terminated and removed from the memory. The
@@ -5756,7 +5756,7 @@ application may at this point still runing cleanup handlers.
 @noindent
 The valid state transitions (@pxref{fig:fips-fsm}) are:
 @table @code
-@item 1 
+@item 1
 Power-Off to Power-On is implicitly done by the OS loading Libgcrypt as
 a shared library and having it linked to an application.
 
@@ -5768,9 +5768,9 @@ Libgcrypt intialization function @code{gcry_check_version}.
 Init to Self-Test is either triggred by a dedicated API call or implicit
 by invoking a libgrypt service conrolled by the FSM.
 
-@item 4 
+@item 4
 Self-Test to Operational is triggered after all self-tests passed
-successfully.  
+successfully.
 
 @item 5
 Operational to Shutdown is an artifical state without any direct action
@@ -5798,7 +5798,7 @@ Error to Fatal-Error is triggred if Libgrypt detects an fatal error
 while already being in Error state.
 
 @item 10
-Fatal-Error to Shutdown is automatically entered by Libgcrypt 
+Fatal-Error to Shutdown is automatically entered by Libgcrypt
 after having reported the error.
 
 @item 11
@@ -5900,7 +5900,3 @@ these functions are not really thread safe.
 
 
 @c  LocalWords:  int HD
-
-
-
-

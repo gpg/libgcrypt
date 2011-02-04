@@ -54,7 +54,7 @@ typedef struct serpent_context
 
 /* A prototype.  */
 static const char *serpent_test (void);
-      
+
 
 #define byte_swap_32(x) \
   (0 \
@@ -684,7 +684,7 @@ serpent_setkey (void *ctx,
   static const char *serpent_test_ret;
   static int serpent_init_done;
   gcry_err_code_t ret = GPG_ERR_NO_ERROR;
-  
+
   if (! serpent_init_done)
     {
       /* Execute a self-test the first time, Serpent is used.  */

@@ -144,7 +144,7 @@ gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
     wsize = usize + vsize;
     if ( !mpi_is_secure (w) && (mpi_is_secure (u) || mpi_is_secure (v)) ) {
         /* w is not allocated in secure space but u or v is.  To make sure
-         * that no temporray results are stored in w, we temporary use 
+         * that no temporray results are stored in w, we temporary use
          * a newly allocated limb space for w */
         wp = mpi_alloc_limb_space( wsize, 1 );
         assign_wp = 2; /* mark it as 2 so that we can later copy it back to
@@ -210,4 +210,3 @@ gcry_mpi_mulm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
     gcry_mpi_mul(w, u, v);
     _gcry_mpi_fdiv_r( w, w, m );
 }
-

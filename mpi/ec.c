@@ -2,17 +2,17 @@
    Copyright (C) 2007 Free Software Foundation, Inc.
 
    This file is part of Libgcrypt.
-  
+
    Libgcrypt is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as
    published by the Free Software Foundation; either version 2.1 of
    the License, or (at your option) any later version.
-  
+
    Libgcrypt is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Lesser General Public License for more details.
-  
+
    You should have received a copy of the GNU Lesser General Public
    License along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
@@ -54,7 +54,7 @@ struct mpi_ec_ctx_s
 
   /* Scratch variables.  */
   gcry_mpi_t scratch[11];
-  
+
   /* Helper for fast reduction.  */
 /*   int nist_nbits; /\* If this is a NIST curve, the number of bits.  *\/ */
 /*   gcry_mpi_t s[10]; */
@@ -177,7 +177,7 @@ ec_mulm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
                      i = 0; } while (0)
 #define X(a) do { sp[i++] = wp[(a)];} while (0)
 #define X0(a) do { sp[i++] = 0; } while (0)
-      NEXT(0); 
+      NEXT(0);
       X(0);X(1);X(2);X(3);X(4);X(5);X(6);X(7);X(8);X(9);X(10);X(11);
       NEXT(1);
       X0();X0();X0();X0();X(21);X(22);X(23);X0();X0();X0();X0();X0();
@@ -239,10 +239,10 @@ ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
 
 /* This function returns a new context for elliptic curve based on the
    field GF(p).  P is the prime specifying thuis field, A is the first
-   coefficient. 
+   coefficient.
 
    This context needs to be released using _gcry_mpi_ec_free.  */
-mpi_ec_t 
+mpi_ec_t
 _gcry_mpi_ec_init (gcry_mpi_t p, gcry_mpi_t a)
 {
   int i;
@@ -392,7 +392,7 @@ _gcry_mpi_ec_dup_point (mpi_point_t *result, mpi_point_t *point, mpi_ec_t ctx)
 #define l3 (ctx->scratch[5])
 
   if (!mpi_cmp_ui (point->y, 0) || !mpi_cmp_ui (point->z, 0))
-    {                      
+    {
       /* P_y == 0 || P_z == 0 => [1:1:0] */
       mpi_set_ui (x3, 1);
       mpi_set_ui (y3, 1);
@@ -401,29 +401,29 @@ _gcry_mpi_ec_dup_point (mpi_point_t *result, mpi_point_t *point, mpi_ec_t ctx)
   else
     {
       if (ctx->a_is_pminus3)  /* Use the faster case.  */
-        {               
+        {
           /* L1 = 3(X - Z^2)(X + Z^2) */
           /*                          T1: used for Z^2. */
           /*                          T2: used for the right term.  */
-          ec_powm (t1, point->z, ctx->two, ctx);   
-          ec_subm (l1, point->x, t1, ctx);   
+          ec_powm (t1, point->z, ctx->two, ctx);
+          ec_subm (l1, point->x, t1, ctx);
           ec_mulm (l1, l1, ctx->three, ctx);
-          ec_addm (t2, point->x, t1, ctx);   
-          ec_mulm (l1, l1, t2, ctx);   
+          ec_addm (t2, point->x, t1, ctx);
+          ec_mulm (l1, l1, t2, ctx);
         }
       else /* Standard case. */
         {
           /* L1 = 3X^2 + aZ^4 */
           /*                          T1: used for aZ^4. */
-          ec_powm (l1, point->x, ctx->two, ctx); 
-          ec_mulm (l1, l1, ctx->three, ctx);  
-          ec_powm (t1, point->z, ctx->four, ctx); 
-          ec_mulm (t1, t1, ctx->a, ctx);    
-          ec_addm (l1, l1, t1, ctx); 
+          ec_powm (l1, point->x, ctx->two, ctx);
+          ec_mulm (l1, l1, ctx->three, ctx);
+          ec_powm (t1, point->z, ctx->four, ctx);
+          ec_mulm (t1, t1, ctx->a, ctx);
+          ec_addm (l1, l1, t1, ctx);
         }
       /* Z3 = 2YZ */
       ec_mulm (z3, point->y, point->z, ctx);
-      ec_mulm (z3, z3, ctx->two, ctx);       
+      ec_mulm (z3, z3, ctx->two, ctx);
 
       /* L2 = 4XY^2 */
       /*                              T2: used for Y2; required later. */
@@ -436,10 +436,10 @@ _gcry_mpi_ec_dup_point (mpi_point_t *result, mpi_point_t *point, mpi_ec_t ctx)
       ec_powm (x3, l1, ctx->two, ctx);
       ec_mulm (t1, l2, ctx->two, ctx);
       ec_subm (x3, x3, t1, ctx);
-      
+
       /* L3 = 8Y^4 */
       /*                              T2: taken from above. */
-      ec_powm (t2, t2, ctx->two, ctx); 
+      ec_powm (t2, t2, ctx->two, ctx);
       ec_mulm (l3, t2, ctx->eight, ctx);
 
       /* Y3 = L1(L2 - X3) - L3 */
@@ -463,8 +463,8 @@ _gcry_mpi_ec_dup_point (mpi_point_t *result, mpi_point_t *point, mpi_ec_t ctx)
 
 /* RESULT = P1 + P2 */
 void
-_gcry_mpi_ec_add_points (mpi_point_t *result, 
-                         mpi_point_t *p1, mpi_point_t *p2, 
+_gcry_mpi_ec_add_points (mpi_point_t *result,
+                         mpi_point_t *p1, mpi_point_t *p2,
                          mpi_ec_t ctx)
 {
 #define x1 (p1->x    )
@@ -518,14 +518,14 @@ _gcry_mpi_ec_add_points (mpi_point_t *result,
         mpi_set (l1, x1);
       else
         {
-          ec_powm (l1, z2, ctx->two, ctx); 
+          ec_powm (l1, z2, ctx->two, ctx);
           ec_mulm (l1, l1, x1, ctx);
         }
       if (z1_is_one)
         mpi_set (l2, x1);
       else
         {
-          ec_powm (l2, z1, ctx->two, ctx); 
+          ec_powm (l2, z1, ctx->two, ctx);
           ec_mulm (l2, l2, x2, ctx);
         }
       /* l3 = l1 - l2 */
@@ -620,16 +620,16 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
   nbits = mpi_get_nbits (scalar);
   mpi_set_ui (result->x, 1);
   mpi_set_ui (result->y, 1);
-  mpi_set_ui (result->z, 0); 
+  mpi_set_ui (result->z, 0);
 
   for (i=nbits-1; i >= 0; i--)
     {
       _gcry_mpi_ec_dup_point (result, result, ctx);
       if (mpi_test_bit (scalar, i) == 1)
-        _gcry_mpi_ec_add_points (result, result, point, ctx); 
+        _gcry_mpi_ec_add_points (result, result, point, ctx);
     }
 
-#else 
+#else
   gcry_mpi_t x1, y1, z1, k, h, yy;
   unsigned int i, loops;
   mpi_point_t p1, p2, p1inv;
@@ -638,16 +638,16 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
   y1 = mpi_alloc_like (ctx->p);
   h  = mpi_alloc_like (ctx->p);
   k  = mpi_copy (scalar);
-  yy = mpi_copy (point->y); 
+  yy = mpi_copy (point->y);
 
   if ( mpi_is_neg (k) )
-    {                          
+    {
       k->sign = 0;
       ec_invm (yy, yy, ctx);
     }
 
   if (!mpi_cmp_ui (point->z, 1))
-    {                           
+    {
       mpi_set (x1, point->x);
       mpi_set (y1, yy);
     }
@@ -657,12 +657,12 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
 
       z2 = mpi_alloc_like (ctx->p);
       z3 = mpi_alloc_like (ctx->p);
-      ec_mulm (z2, point->z, point->z, ctx);      
-      ec_mulm (z3, point->z, z2, ctx);      
-      ec_invm (z2, z2, ctx);          
+      ec_mulm (z2, point->z, point->z, ctx);
+      ec_mulm (z3, point->z, z2, ctx);
+      ec_invm (z2, z2, ctx);
       ec_mulm (x1, point->x, z2, ctx);
-      ec_invm (z3, z3, ctx);          
-      ec_mulm (y1, yy, z3, ctx);      
+      ec_invm (z3, z3, ctx);
+      ec_mulm (y1, yy, z3, ctx);
       mpi_free (z2);
       mpi_free (z3);
     }
@@ -673,7 +673,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
 
   mpi_set (result->x, point->x);
   mpi_set (result->y, yy); mpi_free (yy); yy = NULL;
-  mpi_set (result->z, point->z); 
+  mpi_set (result->z, point->z);
 
   p1.x = x1; x1 = NULL;
   p1.y = y1; y1 = NULL;
@@ -682,12 +682,12 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
   point_init (&p1inv);
 
   for (i=loops-2; i > 0; i--)
-    { 
+    {
       _gcry_mpi_ec_dup_point (result, result, ctx);
       if (mpi_test_bit (h, i) == 1 && mpi_test_bit (k, i) == 0)
-        { 
+        {
           point_set (&p2, result);
-          _gcry_mpi_ec_add_points (result, &p2, &p1, ctx); 
+          _gcry_mpi_ec_add_points (result, &p2, &p1, ctx);
         }
       if (mpi_test_bit (h, i) == 0 && mpi_test_bit (k, i) == 1)
         {
@@ -695,7 +695,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
           /* Invert point: y = p - y mod p  */
           point_set (&p1inv, &p1);
           ec_subm (p1inv.y, ctx->p, p1inv.y, ctx);
-          _gcry_mpi_ec_add_points (result, &p2, &p1inv, ctx); 
+          _gcry_mpi_ec_add_points (result, &p2, &p1inv, ctx);
         }
     }
 
@@ -706,4 +706,3 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
   mpi_free (k);
 #endif
 }
-

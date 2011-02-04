@@ -11,7 +11,7 @@
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions: 
+# furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
@@ -255,7 +255,7 @@ my $dsa_verify;
 
 # generate a new DSA key with the following properties:
 #	PEM format
-# $1 keyfile name 
+# $1 keyfile name
 # return: file created, hash with keys of P, Q, G in hex format
 my $gen_dsakey;
 
@@ -497,7 +497,7 @@ sub libgcrypt_hmac($$$$) {
 	my $hashtype = shift;
 
 	my $program = "fipsdrv --key $key --algo $hashtype hmac-sha";
-	return pipe_through_program($msg, $program);	
+	return pipe_through_program($msg, $program);
 }
 
 sub libgcrypt_dsa_pqggen($) {
@@ -623,7 +623,7 @@ sub pipe_through_program($@) {
 
 	my ($CO, $CI);
 	my $pid = open2($CO, $CI, @args);
-	
+
 	my $out = "";
 	my $len = length($in);
 	my $first = 1;
@@ -659,7 +659,7 @@ sub pipe_through_program($@) {
 	}
 	close $CO or die "broken pipe: $!";
 	waitpid $pid, 0;
-	
+
 	return $out;
 }
 
@@ -881,7 +881,7 @@ sub der_pos_bigint($) {
 # returns number as signed DER integer encoding
 sub der_int($) {
 	my $n = shift;
-	
+
 	return der_bigint(int_base256_signed($n));
 }
 
@@ -958,11 +958,11 @@ sub der_unit_test {
 # OpenSSL missing functionality workarounds
 
 ## Format of an RSA public key:
-#    0:d=0  hl=3 l= 159 cons: SEQUENCE          
-#    3:d=1  hl=2 l=  13 cons:  SEQUENCE          
+#    0:d=0  hl=3 l= 159 cons: SEQUENCE
+#    3:d=1  hl=2 l=  13 cons:  SEQUENCE
 #    5:d=2  hl=2 l=   9 prim:   OBJECT            :rsaEncryption
-#   16:d=2  hl=2 l=   0 prim:   NULL              
-#   18:d=1  hl=3 l= 141 prim:  BIT STRING        
+#   16:d=2  hl=2 l=   0 prim:   NULL
+#   18:d=1  hl=3 l= 141 prim:  BIT STRING
 #                              [ sequence: INTEGER (n), INTEGER (e) ]
 
 # generate RSA pub key in PEM format
@@ -1073,7 +1073,7 @@ sub kat($$$$$$$$) {
 		$out .= "KEY3 = $key3\n";
 		$key1= $key1 . $key3;
 	}
-	
+
 	$out .= "IV = $iv\n" if (defined($iv) && $iv ne "");
 	if ($enc) {
 		$out .= "PLAINTEXT = $pt\n";
@@ -1250,7 +1250,7 @@ sub crypto_mct($$$$$$$$) {
 				#print STDERR "calc_data=", bin2hex($calc_data), "\n";
 
 				if ( (!$enc && $ciph =~ /des/) ||
-				     $ciph =~ /rc4/ || 
+				     $ciph =~ /rc4/ ||
 				     $cipher =~ /ecb/ ) {
 					#TDES in decryption mode, RC4 and ECB mode
 					#have a special rule
@@ -1269,7 +1269,7 @@ sub crypto_mct($$$$$$$$) {
                 } else {
                         $out .= "PLAINTEXT = ". bin2hex($calc_data). "\n\n";
                 }
-		
+
 		if ( $ciph =~ /aes/ ) {
 	                $key1 ^= substr($old_calc_data . $calc_data, -$keylen);
 			#print STDERR bin2hex($key1)."\n";
@@ -1445,20 +1445,20 @@ sub rsa_keygen($$$$$$$$) {
 
 	my ($P, $Q, $N, $D) = split(/\n/, $ret);
 
-	$out .= "e = $e\n";	
-	$out .= "xp1 = $xp1\n";	
-	$out .= "xp2 = $xp2\n";	
-	$out .= "Xp = $Xp\n";	
+	$out .= "e = $e\n";
+	$out .= "xp1 = $xp1\n";
+	$out .= "xp2 = $xp2\n";
+	$out .= "Xp = $Xp\n";
 	$out .= "p = $P\n";
-	$out .= "xq1 = $xq1\n";	
-	$out .= "xq2 = $xq2\n";	
-	$out .= "Xq = $Xq\n";	
+	$out .= "xq1 = $xq1\n";
+	$out .= "xq2 = $xq2\n";
+	$out .= "Xq = $Xq\n";
 	$out .= "q = $Q\n";
 	$out .= "n = $N\n";
 	$out .= "d = $D\n\n";
 
 	return $out;
-	
+
 }
 
 # X9.31 RNG test
@@ -1693,7 +1693,7 @@ sub parse($$) {
 		# '# "SigVer PKCS#1 Ver 1.5" information for "IBMRHEL5"'
 		# '# "SigGen PKCS#1 Ver 1.5" information for "IBMRHEL5"'
 		# '#RC4VS MCT test data'
-		
+
 		# avoid false positives from user specified 'for "PRODUCT"' strings
 		my $tmpline = $line;
 		$tmpline =~ s/ for ".*"//;

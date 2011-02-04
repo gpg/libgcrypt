@@ -2,17 +2,17 @@
    Copyright (C) 2009 Free Software Foundation, Inc.
 
    This file is part of Libgcrypt.
-  
+
    Libgcrypt is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as
    published by the Free Software Foundation; either version 2.1 of
    the License, or (at your option) any later version.
-  
+
    Libgcrypt is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Lesser General Public License for more details.
-  
+
    You should have received a copy of the GNU Lesser General Public
    License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
@@ -25,7 +25,7 @@ e861b700e17e8afe68[...]f1
 f7a7ca5367c661f8e6[...]61
 10001
 
-# After an empty line another input block may follow. 
+# After an empty line another input block may follow.
 7861b700e17e8afe68[...]f3
 e7a7ca5367c661f8e6[...]71
 3
@@ -81,7 +81,7 @@ static int verbose;
 static int with_labels;
 
 /* Do not suppress leading zeroes.  */
-static int keep_lz; 
+static int keep_lz;
 
 /* Create parameters as specified by OpenPGP (rfc4880).  That is we
    don't store dmp1 and dmp1 but d and make sure that p is less than  q.  */
@@ -112,7 +112,7 @@ read_textline (FILE *fp)
   /* Read line but skip over initial empty lines.  */
   do
     {
-      do 
+      do
         {
           if (!fgets (line, sizeof line, fp))
             {
@@ -201,7 +201,7 @@ print_mpi_line (const char *label, gcry_mpi_t a)
   p = buf;
   if (!keep_lz && p[0] == '0' && p[1] == '0' && p[2])
     p += 2;
-    
+
   printf ("%s\n", p);
   if (ferror (stdout))
     writerr++;
@@ -230,7 +230,7 @@ compute_missing (gcry_mpi_t rsa_p, gcry_mpi_t rsa_q, gcry_mpi_t rsa_e)
   tmp_f = gcry_mpi_new (0);
   tmp_g = gcry_mpi_new (0);
 
-  /* Check that p < q; if not swap p and q.  */ 
+  /* Check that p < q; if not swap p and q.  */
   if (openpgp_mode && gcry_mpi_cmp (rsa_p, rsa_q) > 0)
     {
       fprintf (stderr, PGM ": swapping p and q\n");
@@ -238,7 +238,7 @@ compute_missing (gcry_mpi_t rsa_p, gcry_mpi_t rsa_q, gcry_mpi_t rsa_e)
     }
 
   gcry_mpi_mul (rsa_n, rsa_p, rsa_q);
-  
+
 
   /* Compute the Euler totient:  phi = (p-1)(q-1)  */
   gcry_mpi_sub_ui (rsa_pm1, rsa_p, 1);
@@ -259,7 +259,7 @@ compute_missing (gcry_mpi_t rsa_p, gcry_mpi_t rsa_q, gcry_mpi_t rsa_e)
   gcry_mpi_mod (rsa_pm1, rsa_d, rsa_pm1);
   gcry_mpi_mod (rsa_qm1, rsa_d, rsa_qm1);
 
-  /* Compute the CRT value:   OpenPGP:    u = p^{-1} mod q 
+  /* Compute the CRT value:   OpenPGP:    u = p^{-1} mod q
                              Standard: iqmp = q^{-1} mod p */
   if (openpgp_mode)
     gcry_mpi_invm (rsa_u, rsa_p, rsa_q);
@@ -300,7 +300,7 @@ usage (int show_help)
 {
   if (!show_help)
     {
-      fputs ("usage: " PGM 
+      fputs ("usage: " PGM
              " [OPTION] [FILE] (try --help for more information)\n", stderr);
       exit (2);
     }
@@ -370,7 +370,7 @@ main (int argc, char **argv)
           openpgp_mode = 1;
           argc--; argv++;
         }
-    }          
+    }
 
   if (argc > 1)
     usage (0);
@@ -408,12 +408,12 @@ main (int argc, char **argv)
       if (!rsa_e)
         die ("RSA parameter 'e' missing or not properly hex encoded\n");
       got_eof = skip_to_empty_line (input);
-      
+
       if (any)
         putchar ('\n');
 
       compute_missing (rsa_p, rsa_q, rsa_e);
-      
+
       gcry_mpi_release (rsa_p);
       gcry_mpi_release (rsa_q);
       gcry_mpi_release (rsa_e);
@@ -421,7 +421,6 @@ main (int argc, char **argv)
       any = 1;
     }
   while (!got_eof);
-  
+
   return 0;
 }
-

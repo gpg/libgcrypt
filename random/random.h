@@ -39,13 +39,13 @@ void _gcry_update_random_seed_file (void);
 byte *_gcry_get_random_bits( size_t nbits, int level, int secure );
 void _gcry_fast_random_poll( void );
 
-gcry_err_code_t _gcry_random_init_external_test (void **r_context, 
+gcry_err_code_t _gcry_random_init_external_test (void **r_context,
                                                  unsigned int flags,
                                                  const void *key,
                                                  size_t keylen,
                                                  const void *seed,
                                                  size_t seedlen,
-                                                 const void *dt, 
+                                                 const void *dt,
                                                  size_t dtlen);
 gcry_err_code_t _gcry_random_run_external_test (void *context,
                                                 char *buffer, size_t buflen);
@@ -66,7 +66,3 @@ int _gcry_daemon_create_nonce (const char *socketname,
 #endif /*USE_RANDOM_DAEMON*/
 
 #endif /*G10_RANDOM_H*/
-
-
-
-

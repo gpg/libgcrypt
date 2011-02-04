@@ -360,7 +360,7 @@ progress_cb (void *cb_data, const char *what, int printchar,
              int current, int total)
 {
   (void)cb_data;
-  
+
   fprintf (stderr, PGM ": progress (%s %c %d %d)\n",
            what, printchar, current, total);
   fflush (stderr);
@@ -606,10 +606,10 @@ cipher_bench ( const char *algoname )
           fprintf (stderr, PGM ": error opening cipher `%s'\n", algoname);
           exit (1);
         }
-      
+
       err = gcry_cipher_setkey (hd, key, keylen);
       if (err)
-      { 
+      {
           fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
 		   gpg_strerror (err));
           gcry_cipher_close (hd);
@@ -619,7 +619,7 @@ cipher_bench ( const char *algoname )
       buflen = allocated_buflen;
       if (modes[modeidx].blocked)
         buflen = (buflen / blklen) * blklen;
-      
+
       start_timer ();
       for (i=err=0; !err && i < repetitions; i++)
         err = gcry_cipher_encrypt ( hd, outbuf, buflen, buf, buflen);
@@ -629,7 +629,7 @@ cipher_bench ( const char *algoname )
       fflush (stdout);
       gcry_cipher_close (hd);
       if (err)
-        { 
+        {
           fprintf (stderr, "gcry_cipher_encrypt failed: %s\n",
                    gpg_strerror (err) );
           exit (1);
@@ -641,10 +641,10 @@ cipher_bench ( const char *algoname )
           fprintf (stderr, PGM ": error opening cipher `%s'/n", algoname);
           exit (1);
         }
-      
+
       err = gcry_cipher_setkey (hd, key, keylen);
       if (err)
-        { 
+        {
           fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
                    gpg_strerror (err));
           gcry_cipher_close (hd);
@@ -659,7 +659,7 @@ cipher_bench ( const char *algoname )
       fflush (stdout);
       gcry_cipher_close (hd);
       if (err)
-        { 
+        {
           fprintf (stderr, "gcry_cipher_decrypt failed: %s\n",
                    gpg_strerror (err) );
           exit (1);
@@ -1032,17 +1032,17 @@ mpi_bench (void)
 
   do_powm (
 "20A94417D4D5EF2B2DA99165C7DC87DADB3979B72961AF90D09D59BA24CB9A10166FDCCC9C659F2B9626EC23F3FA425F564A072BA941B03FA81767CC289E4",
-           "29", 
+           "29",
 "B870187A323F1ECD5B8A0B4249507335A1C4CE8394F38FD76B08C78A42C58F6EA136ACF90DFE8603697B1694A3D81114D6117AC1811979C51C4DD013D52F8"
            );
   do_powm (
            "20A94417D4D5EF2B2DA99165C7DC87DADB3979B72961AF90D09D59BA24CB9A10166FDCCC9C659F2B9626EC23F3FA425F564A072BA941B03FA81767CC289E41071F0246879A442658FBD18C1771571E7073EEEB2160BA0CBFB3404D627069A6CFBD53867AD2D9D40231648000787B5C84176B4336144644AE71A403CA40716",
-           "29", 
+           "29",
            "B870187A323F1ECD5B8A0B4249507335A1C4CE8394F38FD76B08C78A42C58F6EA136ACF90DFE8603697B1694A3D81114D6117AC1811979C51C4DD013D52F8FC4EE4BB446B83E48ABED7DB81CBF5E81DE4759E8D68AC985846D999F96B0D8A80E5C69D272C766AB8A23B40D50A4FA889FBC2BD2624222D8EB297F4BAEF8593847"
            );
   do_powm (
            "20A94417D4D5EF2B2DA99165C7DC87DADB3979B72961AF90D09D59BA24CB9A10166FDCCC9C659F2B9626EC23F3FA425F564A072BA941B03FA81767CC289E41071F0246879A442658FBD18C1771571E7073EEEB2160BA0CBFB3404D627069A6CFBD53867AD2D9D40231648000787B5C84176B4336144644AE71A403CA4071620A94417D4D5EF2B2DA99165C7DC87DADB3979B72961AF90D09D59BA24CB9A10166FDCCC9C659F2B9626EC23F3FA425F564A072BA941B03FA81767CC289E41071F0246879A442658FBD18C1771571E7073EEEB2160BA0CBFB3404D627069A6CFBD53867AD2D9D40231648000787B5C84176B4336144644AE71A403CA40716",
-           "29", 
+           "29",
            "B870187A323F1ECD5B8A0B4249507335A1C4CE8394F38FD76B08C78A42C58F6EA136ACF90DFE8603697B1694A3D81114D6117AC1811979C51C4DD013D52F8FC4EE4BB446B83E48ABED7DB81CBF5E81DE4759E8D68AC985846D999F96B0D8A80E5C69D272C766AB8A23B40D50A4FA889FBC2BD2624222D8EB297F4BAEF8593847B870187A323F1ECD5B8A0B4249507335A1C4CE8394F38FD76B08C78A42C58F6EA136ACF90DFE8603697B1694A3D81114D6117AC1811979C51C4DD013D52F8FC4EE4BB446B83E48ABED7DB81CBF5E81DE4759E8D68AC985846D999F96B0D8A80E5C69D272C766AB8A23B40D50A4FA889FBC2BD2624222D8EB297F4BAEF8593847"
            );
 
@@ -1127,7 +1127,7 @@ main( int argc, char **argv )
           argc--; argv++;
           with_progress = 1;
         }
-    }          
+    }
 
   gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
 
@@ -1154,7 +1154,7 @@ main( int argc, char **argv )
     cipher_repetitions = 1;
   if (hash_repetitions < 1)
     hash_repetitions = 1;
-  
+
   if ( !argc )
     {
       gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
@@ -1227,7 +1227,6 @@ main( int argc, char **argv )
 
   if (in_fips_mode && !gcry_fips_mode_active ())
     fprintf (stderr, PGM ": FIPS mode is not anymore active\n");
-  
+
   return 0;
 }
-

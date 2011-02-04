@@ -2,17 +2,17 @@
    Copyright (C) 2008 Free Software Foundation, Inc.
 
    This file is part of Libgcrypt.
-  
+
    Libgcrypt is free software; you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as
    published by the Free Software Foundation; either version 2.1 of
    the License, or (at your option) any later version.
-  
+
    Libgcrypt is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU Lesser General Public License for more details.
-  
+
    You should have received a copy of the GNU Lesser General Public
    License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
@@ -89,13 +89,13 @@ hex2bin (const char *string, void *buffer, size_t length)
 
 
 static gcry_error_t
-init_external_test (void **r_context, 
+init_external_test (void **r_context,
                     unsigned int flags,
                     const void *key, size_t keylen,
                     const void *seed, size_t seedlen,
                     const void *dt, size_t dtlen)
 {
-  return gcry_control (58, 
+  return gcry_control (58,
                        r_context, flags,
                        key, keylen,
                        seed, seedlen,
@@ -152,7 +152,7 @@ main (int argc, char **argv)
         }
       else if (!strcmp (*argv, "--help"))
         {
-          fputs ("usage: " PGM 
+          fputs ("usage: " PGM
                  " [--verbose] [--binary] [--loop] [--progress] KEY V DT\n",
                  stdout);
           exit (0);
@@ -182,8 +182,8 @@ main (int argc, char **argv)
           progress = 1;
           argc--; argv++;
         }
-    }          
-  
+    }
+
   if (!argc)
     {
       memcpy (key,  "1234567890123456", 16);
@@ -222,7 +222,7 @@ main (int argc, char **argv)
   if (err)
     die ("init external test failed: %s\n", gpg_strerror (err));
 
-  do 
+  do
     {
       int writerr = 0;
 
@@ -269,4 +269,3 @@ main (int argc, char **argv)
 
   return 0;
 }
-

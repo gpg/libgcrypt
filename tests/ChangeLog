@@ -196,7 +196,7 @@
 	(run_rsa_gen, run_rsa_sign): New.
 	(main): Add modes rsa-gen, rsa-sign and rsa-verify.
 
-	
+
 2008-09-29  Werner Koch  <wk@g10code.com>
 
 	* fipsdrv.c: Merge code from fipsrngdrv.c
@@ -205,7 +205,7 @@
 2008-09-26  Werner Koch  <wk@g10code.com>
 
 	* Makefile.am: Distribute cavs_driver.pl.
-	* cavs_tests.sh: New. 
+	* cavs_tests.sh: New.
 	* fipsdrv.c: New.
 
 2008-09-18  Werner Koch  <wk@g10code.com>
@@ -250,7 +250,7 @@
 
 2008-08-26  Werner Koch  <wk@g10code.com>
 
-	* basic.c (get_keys_new): Use transient-key flag. 
+	* basic.c (get_keys_new): Use transient-key flag.
 	* benchmark.c (main): First check options then do the libgcrypt
 	initialization.
 	(rsa_bench): Use transient-key flag if not in fips mode.
@@ -343,7 +343,7 @@
 2007-04-12  Marcus Brinkmann  <marcus@g10code.de>
 
 	* ac-schemes.c (scheme_spec): Revert last change.
-	
+
 	* ac-schemes.c (scheme_spec): Remove const qualifier from member M.
 	(es_check): Remove const qualifier from C and M2.
 
@@ -375,7 +375,7 @@
 
 2007-02-23  Werner Koch  <wk@g10code.com>
 
-	* Makefile.am (TEST): Run benchmark as last. 
+	* Makefile.am (TEST): Run benchmark as last.
 
 	* ac-data.c (check_sexp_conversion): Print label only in verbose
 	mode.
@@ -456,7 +456,7 @@
 2006-01-18  Brad Hards  <bradh@frogmouth.net> (wk 2006-03-07)
 
 	* basic.c: Added test cases for OFB and CFB modes. Fixed some
-	compiler warnings for signedness. 
+	compiler warnings for signedness.
 
 2005-11-12  Moritz Schulte  <moritz@g10code.com>
 
@@ -545,7 +545,7 @@
 2003-11-11  Werner Koch  <wk@gnupg.org>
 
 	* tsexp.c (basic): Add pass structure and a test for the %b
-	format. 
+	format.
 
 2003-11-04  Werner Koch  <wk@gnupg.org>
 
@@ -685,7 +685,7 @@
 
 	* basic.c, keygen.c, pubkey.c, register.c, tsexp.c: Changed to use
 	new API.
-	
+
 2003-06-01  Moritz Schulte  <moritz@g10code.com>
 
 	* tsexp.c (canon_len): Adjust for new gcry_sexp_canon_len API.
@@ -754,7 +754,7 @@
 
 2003-01-23  Werner Koch  <wk@gnupg.org>
 
-	* keygen.c: New. 
+	* keygen.c: New.
 
 2003-01-20  Simon Josefsson  <jas@extundo.com>
 
@@ -817,7 +817,7 @@
 
 	* tsexp.c: New.
 
-	
+
  Copyright 2001, 2002, 2003, 2008 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives

@@ -71,8 +71,8 @@ open_device ( const char *name )
 
   /* We used to do the following check, however it turned out that this
      is not portable since more OSes provide a random device which is
-     sometimes implemented as another device type. 
-     
+     sometimes implemented as another device type.
+
      struct stat sb;
 
      if( fstat( fd, &sb ) )
@@ -133,7 +133,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
       fd_set rfds;
       struct timeval tv;
       int rc;
-      
+
       FD_ZERO(&rfds);
       FD_SET(fd, &rfds);
       tv.tv_sec = delay;
@@ -159,16 +159,16 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
           continue;
         }
 
-      do 
+      do
         {
           int nbytes = length < sizeof(buffer)? length : sizeof(buffer);
           n = read(fd, buffer, nbytes );
-          if( n >= 0 && n > nbytes ) 
+          if( n >= 0 && n > nbytes )
             {
               log_error("bogus read from random device (n=%d)\n", n );
               n = nbytes;
             }
-        } 
+        }
       while( n == -1 && errno == EINTR );
       if ( n == -1 )
         log_fatal("read error on random device: %s\n", strerror(errno));
@@ -176,9 +176,9 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
       length -= n;
     }
   memset(buffer, 0, sizeof(buffer) );
-  
+
   if (any_need_entropy)
     _gcry_random_progress ("need_entropy", 'X', (int)want, (int)want);
-  
+
   return 0; /* success */
 }

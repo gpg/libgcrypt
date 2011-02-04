@@ -531,5 +531,3 @@ _gcry_mpih_divmod_1( mpi_ptr_t quot_ptr,
 	return r;
     }
 }
-
-

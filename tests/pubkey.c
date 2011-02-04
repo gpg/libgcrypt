@@ -196,11 +196,11 @@ check_keys (gcry_sexp_t pkey, gcry_sexp_t skey, unsigned int nbits_data,
   gcry_sexp_t plain;
   gcry_mpi_t x;
   int rc;
-  
+
   /* Create plain text.  */
   x = gcry_mpi_new (nbits_data);
   gcry_mpi_randomize (x, nbits_data, GCRY_WEAK_RANDOM);
-  
+
   rc = gcry_sexp_build (&plain, NULL, "(data (flags raw) (value %m))", x);
   if (rc)
     die ("converting data for encryption failed: %s\n",
@@ -213,8 +213,8 @@ check_keys (gcry_sexp_t pkey, gcry_sexp_t skey, unsigned int nbits_data,
   /* Create plain text.  */
   x = gcry_mpi_new (nbits_data);
   gcry_mpi_randomize (x, nbits_data, GCRY_WEAK_RANDOM);
-  
-  rc = gcry_sexp_build (&plain, NULL, 
+
+  rc = gcry_sexp_build (&plain, NULL,
                         "(data (flags raw no-blinding) (value %m))", x);
   if (rc)
     die ("converting data for encryption failed: %s\n",
@@ -256,7 +256,7 @@ get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
 {
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
-  
+
   rc = gcry_sexp_new (&key_spec,
 		      "(genkey (rsa (nbits 4:1024)))", 0, 1);
   if (rc)
@@ -265,7 +265,7 @@ get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_release (key_spec);
   if (rc)
     die ("error generating RSA key: %s\n", gcry_strerror (rc));
-    
+
   if (verbose > 1)
     show_sexp ("generated RSA key:\n", key);
 
@@ -288,7 +288,7 @@ get_keys_x931_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
 {
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
-  
+
   rc = gcry_sexp_new (&key_spec,
 		      "(genkey (rsa (nbits 4:1024)(use-x931)))", 0, 1);
   if (rc)
@@ -297,7 +297,7 @@ get_keys_x931_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_release (key_spec);
   if (rc)
     die ("error generating RSA key: %s\n", gcry_strerror (rc));
-    
+
   if (verbose > 1)
     show_sexp ("generated RSA (X9.31) key:\n", key);
 
@@ -321,8 +321,8 @@ get_elg_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int fixed_x)
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
 
-  rc = gcry_sexp_new 
-    (&key_spec, 
+  rc = gcry_sexp_new
+    (&key_spec,
      (fixed_x
       ? "(genkey (elg (nbits 4:1024)(xvalue my.not-so-secret.key)))"
       : "(genkey (elg (nbits 3:512)))"),
@@ -334,7 +334,7 @@ get_elg_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int fixed_x)
   gcry_sexp_release (key_spec);
   if (rc)
     die ("error generating Elgamal key: %s\n", gcry_strerror (rc));
-    
+
   if (verbose > 1)
     show_sexp ("generated ELG key:\n", key);
 
@@ -358,7 +358,7 @@ get_dsa_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int transient_key)
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
 
-  rc = gcry_sexp_new (&key_spec, 
+  rc = gcry_sexp_new (&key_spec,
                       transient_key
                       ? "(genkey (dsa (nbits 4:1024)(transient-key)))"
                       : "(genkey (dsa (nbits 4:1024)))",
@@ -369,7 +369,7 @@ get_dsa_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int transient_key)
   gcry_sexp_release (key_spec);
   if (rc)
     die ("error generating DSA key: %s\n", gcry_strerror (rc));
-    
+
   if (verbose > 1)
     show_sexp ("generated DSA key:\n", key);
 
@@ -393,7 +393,7 @@ get_dsa_key_fips186_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
 
-  rc = gcry_sexp_new 
+  rc = gcry_sexp_new
     (&key_spec, "(genkey (dsa (nbits 4:1024)(use-fips186)))",  0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));
@@ -401,7 +401,7 @@ get_dsa_key_fips186_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_release (key_spec);
   if (rc)
     die ("error generating DSA key: %s\n", gcry_strerror (rc));
-    
+
   if (verbose > 1)
     show_sexp ("generated DSA key (fips 186):\n", key);
 
@@ -425,8 +425,8 @@ get_dsa_key_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
 
-  rc = gcry_sexp_new 
-    (&key_spec, 
+  rc = gcry_sexp_new
+    (&key_spec,
      "(genkey (dsa (transient-key)(domain"
      "(p #d3aed1876054db831d0c1348fbb1ada72507e5fbf9a62cbd47a63aeb7859d6921"
      "4adeb9146a6ec3f43520f0fd8e3125dd8bbc5d87405d1ac5f82073cd762a3f8d7"
@@ -444,7 +444,7 @@ get_dsa_key_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_release (key_spec);
   if (rc)
     die ("error generating DSA key: %s\n", gcry_strerror (rc));
-    
+
   if (verbose > 1)
     show_sexp ("generated DSA key:\n", key);
 
@@ -467,8 +467,8 @@ get_dsa_key_fips186_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
 
-  rc = gcry_sexp_new 
-    (&key_spec, 
+  rc = gcry_sexp_new
+    (&key_spec,
      "(genkey (dsa (transient-key)(use-fips186)(domain"
      "(p #d3aed1876054db831d0c1348fbb1ada72507e5fbf9a62cbd47a63aeb7859d6921"
      "4adeb9146a6ec3f43520f0fd8e3125dd8bbc5d87405d1ac5f82073cd762a3f8d7"
@@ -486,7 +486,7 @@ get_dsa_key_fips186_with_domain_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_release (key_spec);
   if (rc)
     die ("error generating DSA key: %s\n", gcry_strerror (rc));
-    
+
   if (verbose > 1)
     show_sexp ("generated DSA key:\n", key);
 
@@ -510,10 +510,10 @@ get_dsa_key_fips186_with_seed_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_t key_spec, key, pub_key, sec_key;
   int rc;
 
-  rc = gcry_sexp_new 
+  rc = gcry_sexp_new
     (&key_spec,
      "(genkey"
-     "  (dsa" 
+     "  (dsa"
      "    (nbits 4:1024)"
      "    (use-fips186)"
      "    (transient-key)"
@@ -526,7 +526,7 @@ get_dsa_key_fips186_with_seed_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   gcry_sexp_release (key_spec);
   if (rc)
     die ("error generating DSA key: %s\n", gcry_strerror (rc));
-    
+
   if (verbose > 1)
     show_sexp ("generated DSA key (fips 186 with seed):\n", key);
 
@@ -698,7 +698,7 @@ check_x931_derived_key (int what)
       "B93BCA16B541B33F80C933A3B769285C462ED5677BFE89DF07BED5C127FD13"
       "241D3C4B"
     },
-    
+
     { /* Second example from X9.31 (D.2.1).  */
       "(genkey\n"
       "  (rsa\n"
@@ -734,12 +734,12 @@ check_x931_derived_key (int what)
         "DE30F38728FE7C8635E324E2CD5D8EBCAA1C51993315FD73B38904E107D7A7"
         "B7B10EDCA3896906FCF87BE367BB858CA1B27E2FC3C8674ECC8B0F92C0E270"
         "BA2ECA3701311F68AFCE208DCC499B4B3DB30FF0605CE055D893BC1461D342"
-        "EF32E7D9720B" 
+        "EF32E7D9720B"
 
         This is a bug in X9.31, obviously introduced by using
 
            d = e^{-1} mod (p-1)(q-1)
-          
+
          instead of using the universal exponent as required by 4.1.3:
 
            d = e^{-1} mod lcm(p-1,q-1)
@@ -750,7 +750,7 @@ check_x931_derived_key (int what)
          me several hours to figure out that the bugs are in the
          document and not in my code.
        */
-    },  
+    },
 
     { /* First example from NIST RSAVS (B.1.1).  */
       "(genkey\n"
@@ -821,7 +821,7 @@ check_x931_derived_key (int what)
   gcry_sexp_release (key_spec);
   if (err)
     die ("error generating RSA key [%d]: %s\n", what, gpg_strerror (err));
-    
+
   pub_key = gcry_sexp_find_token (key, "public-key", 0);
   if (!pub_key)
     die ("public part missing in key [%d]\n", what);
@@ -830,7 +830,7 @@ check_x931_derived_key (int what)
   if (!sec_key)
     die ("private part missing in key [%d]\n", what);
 
-  err = gcry_mpi_scan 
+  err = gcry_mpi_scan
     (&d_expected, GCRYMPI_FMT_HEX, testtable[what].expected_d, 0, NULL);
   if (err)
     die ("error converting string [%d]\n", what);
@@ -844,7 +844,7 @@ check_x931_derived_key (int what)
   if (gcry_mpi_cmp (d_expected, d_have))
     {
       show_sexp (NULL, sec_key);
-      die ("parameter d does match expected value [%d]\n", what); 
+      die ("parameter d does match expected value [%d]\n", what);
     }
   gcry_mpi_release (d_expected);
   gcry_mpi_release (d_have);
@@ -885,6 +885,6 @@ main (int argc, char **argv)
 
   for (i=0; i < 4; i++)
     check_x931_derived_key (i);
-  
+
   return 0;
 }

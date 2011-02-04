@@ -353,6 +353,3 @@ gcry_mpi_div (gcry_mpi_t quot, gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t d
   else
     log_bug ("mpi rounding to ceiling not yet implemented\n");
 }
-
-
-
