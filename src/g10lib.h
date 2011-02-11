@@ -1,6 +1,6 @@
 /* g10lib.h - Internal definitions for libgcrypt
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2005
- *               2007 Free Software Foundation, Inc.
+ *               2007, 2011 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -148,7 +148,7 @@ int _gcry_log_verbosity( int level );
 #define HWF_PADLOCK_SHA  4
 #define HWF_PADLOCK_MMUL 8
 
-#define HWF_INTEL_AES    256
+#define HWF_INTEL_AESNI  256
 
 
 unsigned int _gcry_get_hw_features (void);

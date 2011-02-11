@@ -265,7 +265,7 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
     { HWF_PADLOCK_RNG, "padlock-rng" },
     { HWF_PADLOCK_AES, "padlock-aes" },
     { HWF_PADLOCK_SHA, "padlock-sha" },
-    { HWF_INTEL_AES,   "intel-aes" },
+    { HWF_INTEL_AESNI, "intel-aesni" },
     { 0, NULL}
   };
   int i;

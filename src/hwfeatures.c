@@ -150,7 +150,7 @@ detect_ia32_gnuc (void)
          "cpuid\n"
          "popl %%ebx\n\t"	        /* Restore GOT register. */
          "cmpl $0x02000000, %%ecx\n\t"  /* Test bit 25.  */
-         "jnz .Lno_aes%=\n\t"           /* No AES support.  */
+         "jz .Lno_aes%=\n\t"            /* No AES support.  */
          "orl $256, %0\n"               /* Set our HWF_INTEL_AES bit.  */
 
          ".Lno_aes%=:\n"

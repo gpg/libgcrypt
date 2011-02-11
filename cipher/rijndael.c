@@ -60,6 +60,16 @@
 # endif
 #endif /*ENABLE_PADLOCK_SUPPORT*/
 
+
+/* USE_AESNI inidicates whether to compile with Intel AES-NI code.  */
+#undef USE_AESNI
+#ifdef ENABLE_AESNI_SUPPORT
+# if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
+#  define USE_AESNI
+# endif
+#endif /* ENABLE_AESNI_SUPPORT */
+
+
 static const char *selftest(void);
 
 typedef struct

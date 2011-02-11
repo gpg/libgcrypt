@@ -1,3 +1,7 @@
+2011-02-11  Werner Koch  <wk@g10code.com>
+
+	* g10lib.h (HWF_INTEL_AES): Rename to HWF_INTEL_AESNI.
+
 2011-02-01  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (gcry_pk_get_curve, gcry_pk_get_param): New.
