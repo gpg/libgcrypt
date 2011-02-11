@@ -760,10 +760,10 @@ pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
     {
       log_debug ("pubkey_verify: algo=%d\n", algorithm);
       for (i = 0; i < pubkey_get_npkey (algorithm); i++)
-	log_mpidump ("  pkey:", pkey[i]);
+	log_mpidump ("  pkey", pkey[i]);
       for (i = 0; i < pubkey_get_nsig (algorithm); i++)
-	log_mpidump ("   sig:", data[i]);
-      log_mpidump ("  hash:", hash);
+	log_mpidump ("   sig", data[i]);
+      log_mpidump ("  hash", hash);
     }
 
   ath_mutex_lock (&pubkeys_registered_lock);
