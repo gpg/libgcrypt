@@ -33,7 +33,7 @@ m4_define([svn_revision], m4_esyscmd([printf "%d" $(svn info 2>/dev/null \
           | sed -n '/^Revision:/ s/[^0-9]//gp'|head -1)]))
 m4_define([git_revision], m4_esyscmd([git branch -v 2>/dev/null \
           | awk '/^\* / {printf "%s",$3}']))
-AC_INIT([libgcrypt], 
+AC_INIT([libgcrypt],
         [my_version[]m4_if(my_issvn,[yes],
         [m4_if(git_revision,[],[-svn[]svn_revision],[-git[]git_revision])])],
         [bug-libgcrypt@gnupg.org])
@@ -90,7 +90,7 @@ AH_BOTTOM([
 # endif
 #endif /*DISABLED_ENDIAN_CHECK*/
 
-/* We basically use the original Camellia source.  Make sure the symbols 
+/* We basically use the original Camellia source.  Make sure the symbols
    properly prefixed.  */
 #define CAMELLIA_EXT_SYM_PREFIX _gcry_
 
@@ -186,7 +186,7 @@ case "${host}" in
     *-*-mingw32*)
       ac_cv_have_dev_random=no
       have_w32_system=yes
-      case "${host}" in 
+      case "${host}" in
         *-mingw32ce*)
             have_w32ce_system=yes
             available_random_modules="w32ce"
@@ -200,7 +200,7 @@ case "${host}" in
       AC_DEFINE(HAVE_DRIVE_LETTERS,1,
                 [defined if we must run on a stupid file system])
       AC_DEFINE(HAVE_DOSISH_SYSTEM,1,
-                [defined if we run on some of the PCDOS like systems 
+                [defined if we run on some of the PCDOS like systems
                  (DOS, Windoze. OS/2) with special properties like
                   no file modes])
       ;;
@@ -331,7 +331,7 @@ else
 fi
 
 # If not specified otherwise, all available algorithms will be
-# included.  
+# included.
 default_ciphers="$available_ciphers"
 default_pubkey_ciphers="$available_pubkey_ciphers"
 default_digests="$available_digests"
@@ -503,6 +503,18 @@ if test x"$padlocksupport" = xyes ; then
             [Enable support for the PadLock engine.])
 fi
 
+# Implementation of the --disable-aesni-support switch.
+AC_MSG_CHECKING([whether AESNI support is requested])
+AC_ARG_ENABLE(aesni-support,
+              AC_HELP_STRING([--disable-aesni-support],
+                 [Disable support for the Intel AES-NI instructions]),
+	      aesnisupport=$enableval,aesnisupport=yes)
+AC_MSG_RESULT($aesnisupport)
+if test x"$aesnisupport" = xyes ; then
+  AC_DEFINE(ENABLE_AESNI_SUPPORT, 1,
+            [Enable support for Intel AES-NI instructions.])
+fi
+
 # Implementation of the --disable-O-flag-munging switch.
 AC_MSG_CHECKING([whether a -O flag munging is requested])
 AC_ARG_ENABLE([O-flag-munging],
@@ -518,7 +530,7 @@ AM_CONDITIONAL(ENABLE_O_FLAG_MUNGING, test "$enable_o_flag_munging" = "yes")
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
                    [A human readable text with the name of the OS])
 
-# For some systems we know that we have ld_version scripts.  
+# For some systems we know that we have ld_version scripts.
 # Use it then as default.
 have_ld_version_script=no
 case "${host}" in
@@ -560,7 +572,7 @@ AC_DEFINE(GPG_ERR_SOURCE_DEFAULT, GPG_ERR_SOURCE_GCRYPT,
           [The default error source for libgcrypt.])
 
 #
-# Check whether the GNU Pth library is available.  We require this 
+# Check whether the GNU Pth library is available.  We require this
 # to build the optional gcryptrnd program.
 #
 AC_ARG_WITH(pth-prefix,
@@ -578,12 +590,12 @@ if test "$use_random_daemon" = "yes"; then
 *** To build the Libgcrypt's random number daemon
 *** we need the support of the GNU Portable Threads Library.
 *** Download it from ftp://ftp.gnu.org/gnu/pth/
-*** On a Debian GNU/Linux system you might want to try 
+*** On a Debian GNU/Linux system you might want to try
 ***   apt-get install libpth-dev
 ***]])
   else
     GNUPG_PTH_VERSION_CHECK([1.3.7])
-    if test $have_pth = yes; then      
+    if test $have_pth = yes; then
        PTH_CFLAGS=`$PTH_CONFIG --cflags`
        PTH_LIBS=`$PTH_CONFIG --ldflags`
        PTH_LIBS="$PTH_LIBS `$PTH_CONFIG --libs --all`"
@@ -650,8 +662,8 @@ case "${host}" in
     fi
 esac
 AC_SUBST(FALLBACK_SOCKLEN_T)
-            
-#            
+
+#
 # Check for ELF visibility support.
 #
 AC_CACHE_CHECK(whether the visibility attribute is supported,
@@ -661,15 +673,15 @@ AC_CACHE_CHECK(whether the visibility attribute is supported,
           [[int foo __attribute__ ((visibility ("hidden"))) = 1;
             int bar __attribute__ ((visibility ("protected"))) = 1;
           ]])])
-        
+
         if ${CC-cc} -Werror -S conftest.c -o conftest.s \
                   1>&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD ; then
             if grep '\.hidden.*foo' conftest.s >/dev/null 2>&1 ; then
                 if grep '\.protected.*bar' conftest.s >/dev/null 2>&1; then
                     gcry_cv_visibility_attribute=yes
                 fi
-            fi  
-        fi  
+            fi
+        fi
        ])
 if test "$gcry_cv_visibility_attribute" = "yes"; then
     AC_CACHE_CHECK(for broken visibility attribute,
@@ -681,7 +693,7 @@ if test "$gcry_cv_visibility_attribute" = "yes"; then
                             __attribute__ ((visibility ("hidden")));
             int bar (int x) { return x; }
           ]])])
-                  
+
         if ${CC-cc} -Werror -S conftest.c -o conftest.s \
                   1>&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD ; then
            if grep '\.hidden@<:@ 	_@:>@foo' conftest.s >/dev/null 2>&1;
@@ -727,7 +739,7 @@ fi
 if test "$gcry_cv_visibility_attribute" = "yes" \
    && test "$gcry_cv_broken_visibility_attribute" != "yes" \
    && test "$gcry_cv_broken_alias_attribute" != "yes" \
-   && test "$gcry_cv_gcc_has_f_visibility" = "yes"  
+   && test "$gcry_cv_gcc_has_f_visibility" = "yes"
  then
    AC_DEFINE(GCRY_USE_VISIBILITY, 1,
                [Define to use the GNU C visibility attribute.])
@@ -837,7 +849,7 @@ if test "$random" = "default"; then
           # Build everything, allow to select at runtime.
           random_modules="$auto_random_modules"
           ;;
-        esac    
+        esac
     fi
 else
     if test "$random" = "auto"; then
@@ -914,7 +926,7 @@ if test "$GCC" = yes; then
         CFLAGS="$CFLAGS -Wcast-align -Wshadow -Wstrict-prototypes"
         CFLAGS="$CFLAGS -Wformat -Wno-format-y2k -Wformat-security"
 
-        # If -Wno-missing-field-initializers is supported we can enable a 
+        # If -Wno-missing-field-initializers is supported we can enable a
         # a bunch of really useful warnings.
         AC_MSG_CHECKING([if gcc supports -Wno-missing-field-initializers])
         _gcc_cflags_save=$CFLAGS
@@ -982,7 +994,7 @@ DATADIRNAME=$DATADIRNAME
 # selected ciphers, pubkey-ciphers, digests and random modules.
 
 LIST_MEMBER(arcfour, $enabled_ciphers)
-if test "$found" = "1"; then 
+if test "$found" = "1"; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS arcfour.lo"
    AC_DEFINE(USE_ARCFOUR, 1, [Defined if this module should be included])
 fi
@@ -1134,14 +1146,14 @@ fi
 LIST_MEMBER(w32, $random_modules)
 if test "$found" = "1" ; then
    GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32.lo"
-   AC_DEFINE(USE_RNDW32, 1, 
+   AC_DEFINE(USE_RNDW32, 1,
              [Defined if the Windows specific RNG should be used.])
 fi
 
 LIST_MEMBER(w32ce, $random_modules)
 if test "$found" = "1" ; then
    GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32ce.lo"
-   AC_DEFINE(USE_RNDW32CE, 1, 
+   AC_DEFINE(USE_RNDW32CE, 1,
              [Defined if the WindowsCE specific RNG should be used.])
 fi
 
@@ -1157,13 +1169,13 @@ AC_SUBST(LIBGCRYPT_DIGESTS, $enabled_digests)
 # For printing the configuration we need a colon separated list of
 # algorithm names.
 tmp=`echo "$enabled_ciphers" | tr ' ' : `
-AC_DEFINE_UNQUOTED(LIBGCRYPT_CIPHERS, "$tmp", 
+AC_DEFINE_UNQUOTED(LIBGCRYPT_CIPHERS, "$tmp",
                    [List of available cipher algorithms])
 tmp=`echo "$enabled_pubkey_ciphers" | tr ' ' : `
-AC_DEFINE_UNQUOTED(LIBGCRYPT_PUBKEY_CIPHERS, "$tmp", 
+AC_DEFINE_UNQUOTED(LIBGCRYPT_PUBKEY_CIPHERS, "$tmp",
                    [List of available public key cipher algorithms])
 tmp=`echo "$enabled_digests" | tr ' ' : `
-AC_DEFINE_UNQUOTED(LIBGCRYPT_DIGESTS, "$tmp", 
+AC_DEFINE_UNQUOTED(LIBGCRYPT_DIGESTS, "$tmp",
                    [List of available digest algorithms])
 
 
@@ -1171,7 +1183,7 @@ AC_DEFINE_UNQUOTED(LIBGCRYPT_DIGESTS, "$tmp",
 # Generate extended version information for W32.
 if test "$have_w32_system" = yes; then
    BUILD_TIMESTAMP=`date --iso-8601=minutes`
-   changequote(,)dnl 
+   changequote(,)dnl
    BUILD_FILEVERSION=`echo "$VERSION" | sed 's/\([0-9.]*\).*/\1./;s/\./,/g'`
    changequote([,])dnl
    BUILD_FILEVERSION="${BUILD_FILEVERSION}${BUILD_REVISION}"
@@ -1179,7 +1191,7 @@ fi
 AC_SUBST(BUILD_REVISION)
 AC_SUBST(BUILD_TIMESTAMP)
 AC_SUBST(BUILD_FILEVERSION)
-AC_DEFINE_UNQUOTED(BUILD_REVISION, "$BUILD_REVISION", 
+AC_DEFINE_UNQUOTED(BUILD_REVISION, "$BUILD_REVISION",
                    [Subversion revision used to build this package])
 
 
@@ -1209,7 +1221,7 @@ AC_OUTPUT
 # Give some feedback
 echo "
         Libgcrypt v${VERSION} has been configured as follows:
-        
+
         Platform:                  $PRINTABLE_OS_NAME ($host)
         Enabled cipher algorithms: $enabled_ciphers
         Enabled digest algorithms: $enabled_digests
@@ -1220,19 +1232,19 @@ echo "
 
 if test "$print_egd_notice" = "yes"; then
 cat <<G10EOF
-  
+
    The performance of the Unix random gatherer module (rndunix) is not
    very good and it does not keep the entropy pool over multiple
    invocations of Libgcrypt base applications.  The suggested way to
    overcome this problem is to use the
-  
+
                  Entropy Gathering Daemon (EGD)
-  
+
    which provides a entropy source for the whole system.  It is written
    in Perl and available at the GnuPG FTP servers.  To enable EGD you
    should rerun configure with the option "--enable-static-rnd=egd".
    For more information consult the GnuPG webpages:
-  
+
              http://www.gnupg.org/download.html#egd
 
 G10EOF
@@ -1244,4 +1256,3 @@ if test -n "$gpl"; then
   echo "included.  These parts are licensed under the GPL and thus the"
   echo "use of this library has to comply with the conditions of the GPL."
 fi
-

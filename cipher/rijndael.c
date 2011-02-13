@@ -1,6 +1,6 @@
 /* Rijndael (AES) for GnuPG
  * Copyright (C) 2000, 2001, 2002, 2003, 2007,
- *               2008 Free Software Foundation, Inc.
+ *               2008, 2011 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -37,6 +37,27 @@
  *
  */
 
+/* FIXME:
+
+   Most important:
+   For AES-NI we should use a prepare and depreparse function which
+   can take care of clearing registers we used for sensitive stuff
+   etc.  Need to read the Intel ABI specs to see how to handel SSE
+   registers.
+
+   Furuture stuff:
+
+   - Do the AES-NI code all in asm to avoid extra register loads and
+     unloads.
+
+   - Make use of aligned move instructions.  This requires that we
+     align the keyschedule filed in the context.
+
+   - Use AESKEYGENASSIST.
+
+   - Make better use of the CPU pipelines.
+*/
+
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,19 +77,23 @@
 #undef USE_PADLOCK
 #ifdef ENABLE_PADLOCK_SUPPORT
 # if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
-# define USE_PADLOCK
+#  define USE_PADLOCK 1
 # endif
 #endif /*ENABLE_PADLOCK_SUPPORT*/
 
-
-/* USE_AESNI inidicates whether to compile with Intel AES-NI code.  */
+/* USE_AESNI inidicates whether to compile with Intel AES-NI code.  We
+   need the vector-size attribute which seems to be available since
+   gcc 3.  However, to be on the safe side we require at least gcc 4.  */
 #undef USE_AESNI
 #ifdef ENABLE_AESNI_SUPPORT
-# if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
-#  define USE_AESNI
+# if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ >= 4
+#  define USE_AESNI 1
 # endif
 #endif /* ENABLE_AESNI_SUPPORT */
 
+#ifdef USE_AESNI
+  typedef int m128i_t __attribute__ ((__vector_size__ (16)));
+#endif /*USE_AESNI*/
 
 static const char *selftest(void);
 
@@ -80,7 +105,10 @@ typedef struct
   int use_padlock;          /* Padlock shall be used.  */
   /* The key as passed to the padlock engine.  */
   unsigned char padlock_key[16] __attribute__ ((aligned (16)));
-#endif
+#endif /*USE_PADLOCK*/
+#ifdef USE_AESNI
+  int use_aesni;           /* AES-NI shall be used.  */
+#endif /*USE_AESNI*/
   union
   {
     PROPERLY_ALIGNED_TYPE dummy;
@@ -143,16 +171,28 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 #ifdef USE_PADLOCK
   ctx->use_padlock = 0;
 #endif
+#ifdef USE_AESNI
+  ctx->use_aesni = 0;
+#endif
 
   if( keylen == 128/8 )
     {
       ROUNDS = 10;
       KC = 4;
+
+      if (0)
+        ;
 #ifdef USE_PADLOCK
-      if ((_gcry_get_hw_features () & HWF_PADLOCK_AES))
+      else if ((_gcry_get_hw_features () & HWF_PADLOCK_AES))
         {
           ctx->use_padlock = 1;
           memcpy (ctx->padlock_key, key, keylen);
+        }
+#endif
+#ifdef USE_AESNI
+      else if ((_gcry_get_hw_features () & HWF_INTEL_AESNI))
+        {
+          ctx->use_aesni = 1;
         }
 #endif
     }
@@ -160,11 +200,29 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     {
       ROUNDS = 12;
       KC = 6;
+
+      if (0)
+        ;
+#ifdef USE_AESNI
+      else if ((_gcry_get_hw_features () & HWF_INTEL_AESNI))
+        {
+          ctx->use_aesni = 1;
+        }
+#endif
     }
   else if ( keylen == 256/8 )
     {
       ROUNDS = 14;
       KC = 8;
+
+      if (0)
+        ;
+#ifdef USE_AESNI
+      else if ((_gcry_get_hw_features () & HWF_INTEL_AESNI))
+        {
+          ctx->use_aesni = 1;
+        }
+#endif
     }
   else
     return GPG_ERR_INV_KEYLEN;
@@ -278,43 +336,70 @@ static void
 prepare_decryption( RIJNDAEL_context *ctx )
 {
   int r;
-  union
-  {
-    PROPERLY_ALIGNED_TYPE dummy;
-    byte *w;
-  } w;
+
+#ifdef USE_AESNI
+  if (ctx->use_aesni)
+    {
+      /* The AES-NI decrypt instructions use the Equivalent Inverse
+         Cipher, thus we can't use the the standard decrypt key
+         preparation.  */
+        m128i_t *ekey = (m128i_t*)ctx->keySched;
+        m128i_t *dkey = (m128i_t*)ctx->keySched2;
+        int rr;
+
+        dkey[0] = ekey[ctx->ROUNDS];
+        for (r=1, rr=ctx->ROUNDS-1; r < ctx->ROUNDS; r++, rr--)
+          {
+            asm volatile
+              ("movdqu %[ekey], %%xmm1\n\t"
+               /*"aesimc %%xmm1, %%xmm1\n\t"*/
+               ".byte 0x66, 0x0f, 0x38, 0xdb, 0xc9\n\t"
+               "movdqu %%xmm1, %[dkey]"
+               : [dkey] "=m" (dkey[r])
+               : [ekey] "m" (ekey[rr]) );
+          }
+        dkey[r] = ekey[0];
+    }
+  else
+#endif /*USE_AESNI*/
+    {
+      union
+      {
+        PROPERLY_ALIGNED_TYPE dummy;
+        byte *w;
+      } w;
 #define w w.w
 
-  for (r=0; r < MAXROUNDS+1; r++ )
-    {
-      *((u32*)ctx->keySched2[r][0]) = *((u32*)ctx->keySched[r][0]);
-      *((u32*)ctx->keySched2[r][1]) = *((u32*)ctx->keySched[r][1]);
-      *((u32*)ctx->keySched2[r][2]) = *((u32*)ctx->keySched[r][2]);
-      *((u32*)ctx->keySched2[r][3]) = *((u32*)ctx->keySched[r][3]);
-    }
+      for (r=0; r < MAXROUNDS+1; r++ )
+        {
+          *((u32*)ctx->keySched2[r][0]) = *((u32*)ctx->keySched[r][0]);
+          *((u32*)ctx->keySched2[r][1]) = *((u32*)ctx->keySched[r][1]);
+          *((u32*)ctx->keySched2[r][2]) = *((u32*)ctx->keySched[r][2]);
+          *((u32*)ctx->keySched2[r][3]) = *((u32*)ctx->keySched[r][3]);
+        }
 #define W (ctx->keySched2)
-  for (r = 1; r < ctx->ROUNDS; r++)
-    {
-      w = W[r][0];
-      *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
+      for (r = 1; r < ctx->ROUNDS; r++)
+        {
+          w = W[r][0];
+          *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
+            ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
+
+          w = W[r][1];
+          *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
+            ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
+
+          w = W[r][2];
+          *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
         ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
 
-      w = W[r][1];
-      *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
-        ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
-
-      w = W[r][2];
-      *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
-        ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
-
-      w = W[r][3];
-      *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
-        ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
-    }
+          w = W[r][3];
+          *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
+            ^ *((u32*)U3[w[2]]) ^ *((u32*)U4[w[3]]);
+        }
 #undef W
 #undef w
+    }
 }
-
 
 
 /* Encrypt one block.  A and B need to be aligned on a 4 byte
@@ -473,19 +558,130 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
 #endif /*USE_PADLOCK*/
 
 
+/* Encrypt one block using the Intel AES-NI instructions.  A and B may
+   be the same; then need to be properly aligned to 16 bytes.
+
+   Our problem here is that gcc does not allow the "x" constraint for
+   SSE registers in asm unless you compile with -msse.  The common
+   wisdom is to use a separate file for SSE instructions and build it
+   separately.  This would require a lot of extra build system stuff,
+   similar to what we do in mpi/ for the asm stuff.  What we do
+   instead is to use standard registers and a bit more of plain asm
+   which copies the data and key stuff to the SSE registers and later
+   back.  If we decide to implement some block modes with parallelized
+   aES instructions, it might indeed be better to use plain asm ala
+   mpi/.  */
+#ifdef USE_AESNI
+static void
+do_aesni_enc_aligned (const RIJNDAEL_context *ctx,
+                      unsigned char *b, const unsigned char *a)
+{
+  int r;
+  m128i_t *key;
+
+  key = (m128i_t*)ctx->keySched;
+
+  asm volatile ("movdqu %[src], %%xmm0\n\t" /* xmm0 := *a     */
+                "movdqu %[key], %%xmm1\n\t"
+                "pxor   %%xmm1, %%xmm0"     /* xmm0 ^= key[0] */
+                : : [src] "m" (*a), [key] "m" (*key));
+
+  key++;
+  for (r = 1; r < ctx->ROUNDS; r++)
+    {
+      asm volatile ("movdqu %[key], %%xmm1\n\t"
+                    /*"aesenc %%xmm1, %%xmm0"*/
+                    ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1"
+                    : : [key] "m" (*key) );
+      key++;
+    }
+  asm volatile ("movdqu %[key], %%xmm1\n\t"
+                /*"aesenclast %%xmm1, %%xmm0"*/
+                ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1"
+                : : [key] "m" (*key) );
+
+  asm volatile ("movdqu %%xmm0, %[dst]"
+                : [dst] "=m" (*b));
+}
+
+static void
+do_aesni_dec_aligned (const RIJNDAEL_context *ctx,
+                      unsigned char *b, const unsigned char *a)
+{
+  int r;
+  m128i_t *key;
+
+  key = (m128i_t*)ctx->keySched2;
+
+  asm volatile ("movdqu %[src], %%xmm0\n\t" /* xmm0 := *a     */
+                "movdqu %[key], %%xmm1\n\t"
+                "pxor   %%xmm1, %%xmm0"     /* xmm0 ^= key[0] */
+                : : [src] "m" (*a), [key] "m" (key[0]));
+
+  for (r = 1; r < ctx->ROUNDS; r++)
+    {
+      asm volatile ("movdqu %[key], %%xmm1\n\t"
+                    /*"aesdec %%xmm1, %%xmm0"*/
+                    ".byte 0x66, 0x0f, 0x38, 0xde, 0xc1"
+                    : : [key] "m" (key[r]) );
+    }
+  asm volatile ("movdqu %[key], %%xmm1\n\t"
+                /*"aesdeclast %%xmm1, %%xmm0"*/
+                ".byte 0x66, 0x0f, 0x38, 0xdf, 0xc1"
+                : : [key] "m" (key[r]) );
+
+  asm volatile ("movdqu %%xmm0, %[dst]"
+                : [dst] "=m" (*b));
+}
+
+static void
+do_aesni (RIJNDAEL_context *ctx, int decrypt_flag,
+          unsigned char *bx, const unsigned char *ax)
+{
+  /* BX and AX are not necessary correctly aligned.  Thus we need to
+     copy them here. */
+  unsigned char a[16] __attribute__ ((aligned (16)));
+  unsigned char b[16] __attribute__ ((aligned (16)));
+
+  memcpy (a, ax, 16);
+  if (decrypt_flag)
+    {
+      if ( !ctx->decryption_prepared )
+        {
+          prepare_decryption ( ctx );
+          ctx->decryption_prepared = 1;
+        }
+      do_aesni_dec_aligned (ctx, b, a);
+    }
+  else
+    do_aesni_enc_aligned (ctx, b, a);
+  memcpy (bx, b, 16);
+}
+#endif /*USE_AESNI*/
+
+
 static void
 rijndael_encrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
 
+  if (0)
+    ;
 #ifdef USE_PADLOCK
-  if (ctx->use_padlock)
+  else if (ctx->use_padlock)
     {
       do_padlock (ctx, 0, b, a);
       _gcry_burn_stack (48 + 15 /* possible padding for alignment */);
     }
-  else
 #endif /*USE_PADLOCK*/
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    {
+      do_aesni (ctx, 0, b, a);
+      _gcry_burn_stack (48 + 15 /* possible padding for alignment */);
+    }
+#endif /*USE_AESNI*/
+  else
     {
       do_encrypt (ctx, b, a);
       _gcry_burn_stack (48 + 2*sizeof(int));
@@ -508,8 +704,10 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
   unsigned char *ivp;
   int i;
 
+  if (0)
+    ;
 #ifdef USE_PADLOCK
-  if (ctx->use_padlock)
+  else if (ctx->use_padlock)
     {
       /* Fixme: Let Padlock do the CFBing.  */
       for ( ;nblocks; nblocks-- )
@@ -521,8 +719,21 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
             *outbuf++ = (*ivp++ ^= *inbuf++);
         }
     }
+#endif /*USE_PADLOCK*/
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    {
+      for ( ;nblocks; nblocks-- )
+        {
+          /* Encrypt the IV. */
+          do_aesni_enc_aligned (ctx, iv, iv);
+          /* XOR the input with the IV and store input into IV.  */
+          for (ivp=iv,i=0; i < BLOCKSIZE; i++ )
+            *outbuf++ = (*ivp++ ^= *inbuf++);
+        }
+    }
+#endif /*USE_AESNI*/
   else
-#endif /* USE_PADLOCK*/
     {
       for ( ;nblocks; nblocks-- )
         {
@@ -558,11 +769,17 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
       for (ivp=iv, i=0; i < BLOCKSIZE; i++ )
         outbuf[i] = inbuf[i] ^ *ivp++;
 
+      if (0)
+        ;
 #ifdef USE_PADLOCK
-      if (ctx->use_padlock)
+      else if (ctx->use_padlock)
         do_padlock (ctx, 0, outbuf, outbuf);
-      else
 #endif /*USE_PADLOCK*/
+#ifdef USE_AESNI
+      else if (ctx->use_aesni)
+        do_aesni (ctx, 0, outbuf, outbuf);
+#endif /*USE_AESNI*/
+      else
         do_encrypt (ctx, outbuf, outbuf );
 
       memcpy (iv, outbuf, BLOCKSIZE);
@@ -706,14 +923,23 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
 
+  if (0)
+    ;
 #ifdef USE_PADLOCK
-  if (ctx->use_padlock)
+  else if (ctx->use_padlock)
     {
       do_padlock (ctx, 1, b, a);
       _gcry_burn_stack (48 + 2*sizeof(int) /* FIXME */);
     }
-  else
 #endif /*USE_PADLOCK*/
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    {
+      do_aesni (ctx, 1, b, a);
+      _gcry_burn_stack (48 + 2*sizeof(int) /* FIXME */);
+    }
+#endif /*USE_AESNI*/
+  else
     {
       do_decrypt (ctx, b, a);
       _gcry_burn_stack (48+2*sizeof(int));
@@ -737,8 +963,10 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
   unsigned char temp;
   int i;
 
+  if (0)
+    ;
 #ifdef USE_PADLOCK
-  if (ctx->use_padlock)
+  else if (ctx->use_padlock)
     {
       /* Fixme:  Let Padlock do the CFBing.  */
       for ( ;nblocks; nblocks-- )
@@ -752,8 +980,23 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
             }
         }
     }
-  else
 #endif /*USE_PADLOCK*/
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    {
+      for ( ;nblocks; nblocks-- )
+        {
+          do_aesni_enc_aligned (ctx, iv, iv);
+          for (ivp=iv,i=0; i < BLOCKSIZE; i++ )
+            {
+              temp = *inbuf++;
+              *outbuf++ = *ivp ^ temp;
+              *ivp++ = temp;
+            }
+        }
+    }
+#endif /*USE_AESNI*/
+  else
     {
       for ( ;nblocks; nblocks-- )
         {
@@ -793,11 +1036,17 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
          OUTBUF.  */
       memcpy (savebuf, inbuf, BLOCKSIZE);
 
+      if (0)
+        ;
 #ifdef USE_PADLOCK
-      if (ctx->use_padlock)
+      else if (ctx->use_padlock)
         do_padlock (ctx, 1, outbuf, inbuf);
-      else
 #endif /*USE_PADLOCK*/
+#ifdef USE_AESNI
+      else if (ctx->use_aesni)
+        do_aesni (ctx, 1, outbuf, inbuf);
+#endif /*USE_AESNI*/
+      else
         do_decrypt (ctx, outbuf, inbuf);
 
       for (ivp=iv, i=0; i < BLOCKSIZE; i++ )
@@ -837,6 +1086,22 @@ selftest_basic_128 (void)
       0x67,0x43,0xC3,0xD1,0x51,0x9A,0xB4,0xF2,
       0xCD,0x9A,0x78,0xAB,0x09,0xA5,0x11,0xBD
     };
+  /* /\* Test vectors from fips-197, appendix C.  *\/ */
+  /* static const unsigned char plaintext_128[16] = */
+  /*   { */
+  /*     0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77, */
+  /*     0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff */
+  /*   }; */
+  /* static const unsigned char key_128[16] = */
+  /*   { */
+  /*     0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07, */
+  /*     0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f */
+  /*   }; */
+  /* static const unsigned char ciphertext_128[16] = */
+  /*   { */
+  /*     0x69,0xc4,0xe0,0xd8,0x6a,0x7b,0x04,0x30, */
+  /*     0xd8,0xcd,0xb7,0x80,0x70,0xb4,0xc5,0x5a */
+  /*   }; */
 
   rijndael_setkey (&ctx, key_128, sizeof (key_128));
   rijndael_encrypt (&ctx, scratch, plaintext_128);

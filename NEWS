@@ -27,6 +27,8 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * gcry_mpi_cmp applied to opaque values has a defined semantic now.
 
+ * Uses the Intel AES-NI instructions if available.
+
  * Interface changes relative to the 1.4.2 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  GCRY_CIPHER_MODE_AESWRAP   NEW.

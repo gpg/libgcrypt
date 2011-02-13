@@ -137,13 +137,14 @@ static int default_ciphers_registered;
   while (0)
 
 
-/* A VIA processor with the Padlock engine requires an alignment of
-   most data on a 16 byte boundary.  Because we trick out the compiler
-   while allocating the context, the align attribute as used in
-   rijndael.c does not work on its own.  Thus we need to make sure
-   that the entire context structure is a aligned on that boundary.
-   We achieve this by defining a new type and use that instead of our
-   usual alignment type.  */
+/* A VIA processor with the Padlock engine as well as the Intel AES_NI
+   instructions require an alignment of most data on a 16 byte
+   boundary.  Because we trick out the compiler while allocating the
+   context, the align attribute as used in rijndael.c does not work on
+   its own.  Thus we need to make sure that the entire context
+   structure is a aligned on that boundary.  We achieve this by
+   defining a new type and use that instead of our usual alignment
+   type.  */
 typedef union
 {
   PROPERLY_ALIGNED_TYPE foo;

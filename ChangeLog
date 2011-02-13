@@ -1,3 +1,8 @@
+2011-02-11  Werner Koch  <wk@g10code.com>
+
+	* configure.ac: Add option --disbale-aesni-support.
+	(ENABLE_AESNI_SUPPORT): New macro.
+
 2011-02-04  Werner Koch  <wk@g10code.com>
 
 	* autogen.sh: Install the git pre-commit if not yet done.

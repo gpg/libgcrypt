@@ -170,6 +170,12 @@
                      available.  Try this if you get problems with
                      assembler code.
 
+     --disable-aesni-support
+                     Disable support for the AES-NI instructions of
+                     newer Intel CPUs.  The default is to use AES-NI
+                     if available.  Try this if you get problems with
+                     assembler code.
+
      --disable-O-flag-munging
                      Some code is too complex for some compilers while
                      in higher optimization modes, thus the compiler

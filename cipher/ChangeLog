@@ -1,3 +1,16 @@
+2011-02-13  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (USE_AESNI): New.  Define for ia32 and gcc >= 4.
+	(m128i_t) [USE_AESNI]: New.
+	(RIJNDAEL_context) [USE_AESNI]: Add field use_aesni.
+	(do_setkey): Set USE_AESNI for all key lengths.
+	(prepare_decryption) [USE_AESNI]: Use aesimc instn if requested.
+	(do_aesni_enc_aligned, do_aesni_dec_aligned)
+	(do_aesni) [USE_AESNI]: New.
+	(rijndael_encrypt, _gcry_aes_cfb_enc, _gcry_aes_cbc_enc)
+	(rijndael_decrypt, _gcry_aes_cfb_dec)
+	(_gcry_aes_cbc_dec) [USE_AESNI]: Use do_aesni.
+
 2011-02-01  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (gcry_pk_get_curve): New.

@@ -1,6 +1,7 @@
 2011-02-11  Werner Koch  <wk@g10code.com>
 
 	* g10lib.h (HWF_INTEL_AES): Rename to HWF_INTEL_AESNI.
+	* hwfeatures.c (detect_ia32_gnuc): Fix setting of this flag.
 
 2011-02-01  Werner Koch  <wk@g10code.com>
 
