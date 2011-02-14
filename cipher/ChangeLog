@@ -1,5 +1,10 @@
 2011-02-14  Werner Koch  <wk@g10code.com>
 
+	* rijndael.c (ATTR_ALIGNED_16): New
+	(do_aesni): Do not copy if already aligned.
+	(do_encrypt, do_decrypt): Ditto.
+	(rijndael_decrypt, rijndael_encrypt): Increase stack burning amount.
+
 	* rijndael.c (RIJNDAEL_context): Reorder fields.  Chnage filedname
 	ROUNDS to rounds.  Move padlock_key into u1.
 	(keySched, keySched2): Rename macros to keyscherr and keyschdec

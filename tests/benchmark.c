@@ -51,6 +51,9 @@ static int cipher_repetitions;
 /* Number of hash repetitions.  */
 static int hash_repetitions;
 
+/* Alignment of the buffers.  */
+static int buffer_alignment;
+
 /* Whether fips mode was active at startup.  */
 static int in_fips_mode;
 
@@ -502,6 +505,7 @@ cipher_bench ( const char *algoname )
   int keylen, blklen;
   char key[128];
   char *outbuf, *buf;
+  char *raw_outbuf, *raw_buf;
   size_t allocated_buflen, buflen;
   int repetitions;
   static struct { int mode; const char *name; int blocked; } modes[] = {
@@ -537,8 +541,16 @@ cipher_bench ( const char *algoname )
     }
   repetitions *= cipher_repetitions;
 
-  buf = gcry_xmalloc (allocated_buflen);
-  outbuf = gcry_xmalloc (allocated_buflen);
+  buf = raw_buf = gcry_xmalloc (allocated_buflen+15);
+  if (buffer_alignment)
+    while (((size_t)buf & 0x0f))
+      buf++;
+
+  outbuf = raw_outbuf = gcry_xmalloc (allocated_buflen+15);
+  if (buffer_alignment)
+    while (((size_t)outbuf & 0x0f))
+      outbuf++;
+
 
   if (!header_printed)
     {
@@ -667,8 +679,8 @@ cipher_bench ( const char *algoname )
     }
 
   putchar ('\n');
-  gcry_free (buf);
-  gcry_free (outbuf);
+  gcry_free (raw_buf);
+  gcry_free (raw_outbuf);
 }
 
 
@@ -1116,6 +1128,15 @@ main( int argc, char **argv )
               argc--; argv++;
             }
         }
+      else if (!strcmp (*argv, "--alignment"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              buffer_alignment = atoi(*argv);
+              argc--; argv++;
+            }
+        }
       else if (!strcmp (*argv, "--fips"))
         {
           argc--; argv++;
@@ -1127,6 +1148,15 @@ main( int argc, char **argv )
           argc--; argv++;
           with_progress = 1;
         }
+    }
+
+  switch (buffer_alignment)
+    {
+    case 0:
+    case 16:
+      break;
+    default:
+      die ("option --alignment not used with a value of 0 or 16\n");
     }
 
   gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);

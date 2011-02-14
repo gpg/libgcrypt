@@ -72,6 +72,14 @@
 #define BLOCKSIZE               (128/8)
 
 
+/* Helper macro to force alignment to 16 bytes.  */
+#ifdef __GNUC__
+# define ATTR_ALIGNED_16  __attribute__ ((aligned (16)))
+#else
+# define ATTR_ALIGNED_16
+#endif
+
+
 /* USE_PADLOCK indicates whether to compile the padlock specific
    code.  */
 #undef USE_PADLOCK
@@ -510,22 +518,29 @@ static void
 do_encrypt (const RIJNDAEL_context *ctx,
             unsigned char *bx, const unsigned char *ax)
 {
-  /* BX and AX are not necessary correctly aligned.  Thus we need to
-     copy them here. */
-  union
-  {
-    u32  dummy[4];
-    byte a[16];
-  } a;
-  union
-  {
-    u32  dummy[4];
-    byte b[16];
-  } b;
+  /* BX and AX are not necessary correctly aligned.  Thus we might
+     need to copy them here.  We try to align to a 16 bytes.  */
+  if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
+    {
+      union
+      {
+        u32  dummy[4];
+        byte a[16] ATTR_ALIGNED_16;
+      } a;
+      union
+      {
+        u32  dummy[4];
+        byte b[16] ATTR_ALIGNED_16;
+      } b;
 
-  memcpy (a.a, ax, 16);
-  do_encrypt_aligned (ctx, b.b, a.a);
-  memcpy (bx, b.b, 16);
+      memcpy (a.a, ax, 16);
+      do_encrypt_aligned (ctx, b.b, a.a);
+      memcpy (bx, b.b, 16);
+    }
+  else
+    {
+      do_encrypt_aligned (ctx, bx, ax);
+    }
 }
 
 
@@ -652,24 +667,33 @@ static void
 do_aesni (RIJNDAEL_context *ctx, int decrypt_flag,
           unsigned char *bx, const unsigned char *ax)
 {
-  /* BX and AX are not necessary correctly aligned.  Thus we need to
-     copy them here. */
-  unsigned char a[16] __attribute__ ((aligned (16)));
-  unsigned char b[16] __attribute__ ((aligned (16)));
-
-  memcpy (a, ax, 16);
-  if (decrypt_flag)
+  if (decrypt_flag && !ctx->decryption_prepared )
     {
-      if ( !ctx->decryption_prepared )
-        {
-          prepare_decryption ( ctx );
-          ctx->decryption_prepared = 1;
-        }
-      do_aesni_dec_aligned (ctx, b, a);
+      prepare_decryption ( ctx );
+      ctx->decryption_prepared = 1;
+    }
+
+  /* BX and AX are not necessary correctly aligned.  Thus we might
+     need to copy them here.  */
+  if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
+    {
+      unsigned char a[16] __attribute__ ((aligned (16)));
+      unsigned char b[16] __attribute__ ((aligned (16)));
+
+      memcpy (a, ax, 16);
+      if (decrypt_flag)
+        do_aesni_dec_aligned (ctx, b, a);
+      else
+        do_aesni_enc_aligned (ctx, b, a);
+      memcpy (bx, b, 16);
     }
   else
-    do_aesni_enc_aligned (ctx, b, a);
-  memcpy (bx, b, 16);
+    {
+      if (decrypt_flag)
+        do_aesni_dec_aligned (ctx, bx, ax);
+      else
+        do_aesni_enc_aligned (ctx, bx, ax);
+    }
 }
 #endif /*USE_AESNI*/
 
@@ -698,7 +722,7 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
   else
     {
       do_encrypt (ctx, b, a);
-      _gcry_burn_stack (48 + 2*sizeof(int));
+      _gcry_burn_stack (56 + 2*sizeof(int));
     }
 }
 
@@ -903,19 +927,6 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
 static void
 do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
 {
-  /* BX and AX are not necessary correctly aligned.  Thus we need to
-     copy them here. */
-  union
-  {
-    u32  dummy[4];
-    byte a[16];
-  } a;
-  union
-  {
-    u32  dummy[4];
-    byte b[16];
-  } b;
-
   if ( !ctx->decryption_prepared )
     {
       prepare_decryption ( ctx );
@@ -923,10 +934,29 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
       ctx->decryption_prepared = 1;
     }
 
-  memcpy (a.a, ax, 16);
-  do_decrypt_aligned (ctx, b.b, a.a);
-  memcpy (bx, b.b, 16);
-#undef rk
+  /* BX and AX are not necessary correctly aligned.  Thus we might
+     need to copy them here.  We try to align to a 16 bytes. */
+  if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
+    {
+      union
+      {
+        u32  dummy[4];
+        byte a[16] ATTR_ALIGNED_16;
+      } a;
+      union
+      {
+        u32  dummy[4];
+        byte b[16] ATTR_ALIGNED_16;
+      } b;
+
+      memcpy (a.a, ax, 16);
+      do_decrypt_aligned (ctx, b.b, a.a);
+      memcpy (bx, b.b, 16);
+    }
+  else
+    {
+      do_decrypt_aligned (ctx, bx, ax);
+    }
 }
 
 
@@ -956,7 +986,7 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
   else
     {
       do_decrypt (ctx, b, a);
-      _gcry_burn_stack (48+2*sizeof(int));
+      _gcry_burn_stack (56+2*sizeof(int));
     }
 }
 
