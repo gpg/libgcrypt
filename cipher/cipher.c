@@ -33,9 +33,12 @@
 #define CTX_MAGIC_NORMAL 0x24091964
 #define CTX_MAGIC_SECURE 0x46919042
 
+/* Try to use 16 byte aligned cipher context for better performance.
+   We use the aligned attribute, thus it is only possible to implement
+   this with gcc.  */
 #undef NEED_16BYTE_ALIGNED_CONTEXT
-#if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
-#define NEED_16BYTE_ALIGNED_CONTEXT 1
+#if defined (__GNUC__)
+# define NEED_16BYTE_ALIGNED_CONTEXT 1
 #endif
 
 /* A dummy extraspec so that we do not need to tests the extraspec
@@ -198,11 +201,11 @@ struct gcry_cipher_handle
     unsigned int iv:1;  /* Set to 1 if a IV has been set.  */
   } marks;
 
-  /* The initialization vector.  To help code optimization we make
-     sure that it is aligned on an unsigned long and u32 boundary.  */
+  /* The initialization vector.  For best performance we make sure
+     that it is properly aligned.  In particular some implementations
+     of bulk operations expect an 16 byte aligned IV.  */
   union {
-    unsigned long dummy_iv;
-    u32 dummy_u32_iv;
+    cipher_context_alignment_t iv_align;
     unsigned char iv[MAX_BLOCKSIZE];
   } u_iv;
 

@@ -1,3 +1,13 @@
+2011-02-14  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (RIJNDAEL_context): Reorder fields.  Chnage filedname
+	ROUNDS to rounds.  Move padlock_key into u1.
+	(keySched, keySched2): Rename macros to keyscherr and keyschdec
+	and change all users.
+	(padlockkey): New macro.  Change all users of padlock_key.
+	* cipher.c (NEED_16BYTE_ALIGNED_CONTEXT): Always define if using gcc.
+	(struct gcry_cipher_handle): Align U_IV to at least 16 byte.
+
 2011-02-13  Werner Koch  <wk@g10code.com>
 
 	* rijndael.c (USE_AESNI): New.  Define for ia32 and gcc >= 4.

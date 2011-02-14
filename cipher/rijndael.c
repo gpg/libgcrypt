@@ -97,32 +97,46 @@
 
 static const char *selftest(void);
 
+
+/* Our context object.  */
 typedef struct
 {
-  int   ROUNDS;             /* Key-length-dependent number of rounds.  */
-  int decryption_prepared;  /* The decryption key schedule is available.  */
-#ifdef USE_PADLOCK
-  int use_padlock;          /* Padlock shall be used.  */
-  /* The key as passed to the padlock engine.  */
-  unsigned char padlock_key[16] __attribute__ ((aligned (16)));
-#endif /*USE_PADLOCK*/
-#ifdef USE_AESNI
-  int use_aesni;           /* AES-NI shall be used.  */
-#endif /*USE_AESNI*/
+  /* The first fields are the keyschedule arrays.  This is so that
+     they are aligned on a 16 byte boundary if using gcc.  This
+     alignment is required for the AES-NI code and a good idea in any
+     case.  The alignment is guaranteed due to the way cipher.c
+     allocates the space for the context.  The PROPERLY_ALIGNED_TYPE
+     hack is used to force a minimal alignment if not using gcc of if
+     the alignment requirement is higher that 16 bytes.  */
   union
   {
     PROPERLY_ALIGNED_TYPE dummy;
     byte keyschedule[MAXROUNDS+1][4][4];
+#ifdef USE_PADLOCK
+    /* The key as passed to the padlock engine.  It is only used if
+       the padlock engine is used (USE_PADLOCK, below).  */
+    unsigned char padlock_key[16] __attribute__ ((aligned (16)));
+#endif /*USE_PADLOCK*/
   } u1;
   union
   {
     PROPERLY_ALIGNED_TYPE dummy;
     byte keyschedule[MAXROUNDS+1][4][4];
   } u2;
+  int rounds;               /* Key-length-dependent number of rounds.  */
+  int decryption_prepared;  /* The decryption key schedule is available.  */
+#ifdef USE_PADLOCK
+  int use_padlock;          /* Padlock shall be used.  */
+#endif /*USE_PADLOCK*/
+#ifdef USE_AESNI
+  int use_aesni;            /* AES-NI shall be used.  */
+#endif /*USE_AESNI*/
 } RIJNDAEL_context;
 
-#define keySched  u1.keyschedule
-#define keySched2 u2.keyschedule
+/* Macros defining alias for the keyschedules.  */
+#define keyschenc  u1.keyschedule
+#define keyschdec  u2.keyschedule
+#define padlockkey u1.padlock_key
 
 /* All the numbers.  */
 #include "rijndael-tables.h"
@@ -134,7 +148,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 {
   static int initialized = 0;
   static const char *selftest_failed=0;
-  int ROUNDS;
+  int rounds;
   int i,j, r, t, rconpointer = 0;
   int KC;
   union
@@ -177,7 +191,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 
   if( keylen == 128/8 )
     {
-      ROUNDS = 10;
+      rounds = 10;
       KC = 4;
 
       if (0)
@@ -186,7 +200,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
       else if ((_gcry_get_hw_features () & HWF_PADLOCK_AES))
         {
           ctx->use_padlock = 1;
-          memcpy (ctx->padlock_key, key, keylen);
+          memcpy (ctx->padlockkey, key, keylen);
         }
 #endif
 #ifdef USE_AESNI
@@ -198,7 +212,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     }
   else if ( keylen == 192/8 )
     {
-      ROUNDS = 12;
+      rounds = 12;
       KC = 6;
 
       if (0)
@@ -212,7 +226,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     }
   else if ( keylen == 256/8 )
     {
-      ROUNDS = 14;
+      rounds = 14;
       KC = 8;
 
       if (0)
@@ -227,7 +241,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   else
     return GPG_ERR_INV_KEYLEN;
 
-  ctx->ROUNDS = ROUNDS;
+  ctx->rounds = rounds;
 
 #ifdef USE_PADLOCK
   if (ctx->use_padlock)
@@ -238,7 +252,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   else
 #endif /*USE_PADLOCK*/
     {
-#define W (ctx->keySched)
+#define W (ctx->keyschenc)
       for (i = 0; i < keylen; i++)
         {
           k[i >> 2][i & 3] = key[i];
@@ -251,7 +265,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
       r = 0;
       t = 0;
       /* Copy values into round key array.  */
-      for (j = 0; (j < KC) && (r < ROUNDS + 1); )
+      for (j = 0; (j < KC) && (r < rounds + 1); )
         {
           for (; (j < KC) && (t < 4); j++, t++)
             {
@@ -264,7 +278,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
             }
         }
 
-      while (r < ROUNDS + 1)
+      while (r < rounds + 1)
         {
           /* While not enough round key material calculated calculate
              new values.  */
@@ -298,7 +312,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
             }
 
           /* Copy values into round key array.  */
-          for (j = 0; (j < KC) && (r < ROUNDS + 1); )
+          for (j = 0; (j < KC) && (r < rounds + 1); )
             {
               for (; (j < KC) && (t < 4); j++, t++)
                 {
@@ -343,12 +357,12 @@ prepare_decryption( RIJNDAEL_context *ctx )
       /* The AES-NI decrypt instructions use the Equivalent Inverse
          Cipher, thus we can't use the the standard decrypt key
          preparation.  */
-        m128i_t *ekey = (m128i_t*)ctx->keySched;
-        m128i_t *dkey = (m128i_t*)ctx->keySched2;
+        m128i_t *ekey = (m128i_t*)ctx->keyschenc;
+        m128i_t *dkey = (m128i_t*)ctx->keyschdec;
         int rr;
 
-        dkey[0] = ekey[ctx->ROUNDS];
-        for (r=1, rr=ctx->ROUNDS-1; r < ctx->ROUNDS; r++, rr--)
+        dkey[0] = ekey[ctx->rounds];
+        for (r=1, rr=ctx->rounds-1; r < ctx->rounds; r++, rr--)
           {
             asm volatile
               ("movdqu %[ekey], %%xmm1\n\t"
@@ -372,13 +386,13 @@ prepare_decryption( RIJNDAEL_context *ctx )
 
       for (r=0; r < MAXROUNDS+1; r++ )
         {
-          *((u32*)ctx->keySched2[r][0]) = *((u32*)ctx->keySched[r][0]);
-          *((u32*)ctx->keySched2[r][1]) = *((u32*)ctx->keySched[r][1]);
-          *((u32*)ctx->keySched2[r][2]) = *((u32*)ctx->keySched[r][2]);
-          *((u32*)ctx->keySched2[r][3]) = *((u32*)ctx->keySched[r][3]);
+          *((u32*)ctx->keyschdec[r][0]) = *((u32*)ctx->keyschenc[r][0]);
+          *((u32*)ctx->keyschdec[r][1]) = *((u32*)ctx->keyschenc[r][1]);
+          *((u32*)ctx->keyschdec[r][2]) = *((u32*)ctx->keyschenc[r][2]);
+          *((u32*)ctx->keyschdec[r][3]) = *((u32*)ctx->keyschenc[r][3]);
         }
-#define W (ctx->keySched2)
-      for (r = 1; r < ctx->ROUNDS; r++)
+#define W (ctx->keyschdec)
+      for (r = 1; r < ctx->rounds; r++)
         {
           w = W[r][0];
           *((u32*)w) = *((u32*)U1[w[0]]) ^ *((u32*)U2[w[1]])
@@ -408,8 +422,8 @@ static void
 do_encrypt_aligned (const RIJNDAEL_context *ctx,
                     unsigned char *b, const unsigned char *a)
 {
-#define rk (ctx->keySched)
-  int ROUNDS = ctx->ROUNDS;
+#define rk (ctx->keyschenc)
+  int rounds = ctx->rounds;
   int r;
   union
   {
@@ -438,7 +452,7 @@ do_encrypt_aligned (const RIJNDAEL_context *ctx,
                         ^ *((u32*)T3[u.temp[1][2]])
                         ^ *((u32*)T4[u.temp[2][3]]));
 
-  for (r = 1; r < ROUNDS-1; r++)
+  for (r = 1; r < rounds-1; r++)
     {
       *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[r][0]);
       *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[r][1]);
@@ -464,10 +478,10 @@ do_encrypt_aligned (const RIJNDAEL_context *ctx,
     }
 
   /* Last round is special. */
-  *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[ROUNDS-1][0]);
-  *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[ROUNDS-1][1]);
-  *((u32*)u.temp[2]) = *((u32*)(b+ 8)) ^ *((u32*)rk[ROUNDS-1][2]);
-  *((u32*)u.temp[3]) = *((u32*)(b+12)) ^ *((u32*)rk[ROUNDS-1][3]);
+  *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[rounds-1][0]);
+  *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[rounds-1][1]);
+  *((u32*)u.temp[2]) = *((u32*)(b+ 8)) ^ *((u32*)rk[rounds-1][2]);
+  *((u32*)u.temp[3]) = *((u32*)(b+12)) ^ *((u32*)rk[rounds-1][3]);
   b[ 0] = T1[u.temp[0][0]][1];
   b[ 1] = T1[u.temp[1][1]][1];
   b[ 2] = T1[u.temp[2][2]][1];
@@ -484,10 +498,10 @@ do_encrypt_aligned (const RIJNDAEL_context *ctx,
   b[13] = T1[u.temp[0][1]][1];
   b[14] = T1[u.temp[1][2]][1];
   b[15] = T1[u.temp[2][3]][1];
-  *((u32*)(b   )) ^= *((u32*)rk[ROUNDS][0]);
-  *((u32*)(b+ 4)) ^= *((u32*)rk[ROUNDS][1]);
-  *((u32*)(b+ 8)) ^= *((u32*)rk[ROUNDS][2]);
-  *((u32*)(b+12)) ^= *((u32*)rk[ROUNDS][3]);
+  *((u32*)(b   )) ^= *((u32*)rk[rounds][0]);
+  *((u32*)(b+ 4)) ^= *((u32*)rk[rounds][1]);
+  *((u32*)(b+ 8)) ^= *((u32*)rk[rounds][2]);
+  *((u32*)(b+12)) ^= *((u32*)rk[rounds][3]);
 #undef rk
 }
 
@@ -531,7 +545,7 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
   /* The control word fields are:
       127:12   11:10 9     8     7     6     5     4     3:0
       RESERVED KSIZE CRYPT INTER KEYGN CIPHR ALIGN DGEST ROUND  */
-  cword[0] = (ctx->ROUNDS & 15);  /* (The mask is just a safeguard.)  */
+  cword[0] = (ctx->rounds & 15);  /* (The mask is just a safeguard.)  */
   cword[1] = 0;
   cword[2] = 0;
   cword[3] = 0;
@@ -548,7 +562,7 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
      ".byte 0xf3, 0x0f, 0xa7, 0xc8\n\t" /* REP XSTORE ECB. */
      "xchg %3, %%ebx\n"    /* Restore GOT register.  */
      : /* No output */
-     : "S" (a), "D" (b), "d" (cword), "r" (ctx->padlock_key)
+     : "S" (a), "D" (b), "d" (cword), "r" (ctx->padlockkey)
      : "%ecx", "cc", "memory"
      );
 
@@ -579,7 +593,7 @@ do_aesni_enc_aligned (const RIJNDAEL_context *ctx,
   int r;
   m128i_t *key;
 
-  key = (m128i_t*)ctx->keySched;
+  key = (m128i_t*)ctx->keyschenc;
 
   asm volatile ("movdqu %[src], %%xmm0\n\t" /* xmm0 := *a     */
                 "movdqu %[key], %%xmm1\n\t"
@@ -587,7 +601,7 @@ do_aesni_enc_aligned (const RIJNDAEL_context *ctx,
                 : : [src] "m" (*a), [key] "m" (*key));
 
   key++;
-  for (r = 1; r < ctx->ROUNDS; r++)
+  for (r = 1; r < ctx->rounds; r++)
     {
       asm volatile ("movdqu %[key], %%xmm1\n\t"
                     /*"aesenc %%xmm1, %%xmm0"*/
@@ -611,14 +625,14 @@ do_aesni_dec_aligned (const RIJNDAEL_context *ctx,
   int r;
   m128i_t *key;
 
-  key = (m128i_t*)ctx->keySched2;
+  key = (m128i_t*)ctx->keyschdec;
 
   asm volatile ("movdqu %[src], %%xmm0\n\t" /* xmm0 := *a     */
                 "movdqu %[key], %%xmm1\n\t"
                 "pxor   %%xmm1, %%xmm0"     /* xmm0 ^= key[0] */
                 : : [src] "m" (*a), [key] "m" (key[0]));
 
-  for (r = 1; r < ctx->ROUNDS; r++)
+  for (r = 1; r < ctx->rounds; r++)
     {
       asm volatile ("movdqu %[key], %%xmm1\n\t"
                     /*"aesdec %%xmm1, %%xmm0"*/
@@ -800,8 +814,8 @@ static void
 do_decrypt_aligned (RIJNDAEL_context *ctx,
                     unsigned char *b, const unsigned char *a)
 {
-#define rk  (ctx->keySched2)
-  int ROUNDS = ctx->ROUNDS;
+#define rk  (ctx->keyschdec)
+  int rounds = ctx->rounds;
   int r;
   union
   {
@@ -810,10 +824,10 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
   } u;
 
 
-  *((u32*)u.temp[0]) = *((u32*)(a   )) ^ *((u32*)rk[ROUNDS][0]);
-  *((u32*)u.temp[1]) = *((u32*)(a+ 4)) ^ *((u32*)rk[ROUNDS][1]);
-  *((u32*)u.temp[2]) = *((u32*)(a+ 8)) ^ *((u32*)rk[ROUNDS][2]);
-  *((u32*)u.temp[3]) = *((u32*)(a+12)) ^ *((u32*)rk[ROUNDS][3]);
+  *((u32*)u.temp[0]) = *((u32*)(a   )) ^ *((u32*)rk[rounds][0]);
+  *((u32*)u.temp[1]) = *((u32*)(a+ 4)) ^ *((u32*)rk[rounds][1]);
+  *((u32*)u.temp[2]) = *((u32*)(a+ 8)) ^ *((u32*)rk[rounds][2]);
+  *((u32*)u.temp[3]) = *((u32*)(a+12)) ^ *((u32*)rk[rounds][3]);
 
   *((u32*)(b   ))    = (*((u32*)T5[u.temp[0][0]])
                         ^ *((u32*)T6[u.temp[3][1]])
@@ -832,7 +846,7 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
                         ^ *((u32*)T7[u.temp[1][2]])
                         ^ *((u32*)T8[u.temp[0][3]]));
 
-  for (r = ROUNDS-1; r > 1; r--)
+  for (r = rounds-1; r > 1; r--)
     {
       *((u32*)u.temp[0]) = *((u32*)(b   )) ^ *((u32*)rk[r][0]);
       *((u32*)u.temp[1]) = *((u32*)(b+ 4)) ^ *((u32*)rk[r][1]);
