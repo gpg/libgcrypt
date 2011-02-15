@@ -1,3 +1,13 @@
+2011-02-15  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (do_aesni_enc_aligned, do_aesni_dec_aligned): Use
+	movdqa for the key but keep using movdqu for the data.
+	(do_aesni): Remove alignment detection.  Don't burn the stack.
+	(aesni_prepare, aesni_cleanup): New macros.
+	(rijndael_encrypt, _gcry_aes_cfb_enc, _gcry_aes_cbc_enc)
+	(rijndael_decrypt, _gcry_aes_cfb_dec, _gcry_aes_cbc_dec): Use
+	these macros.  Don't burn the stack in the USE_AESNI case.
+
 2011-02-14  Werner Koch  <wk@g10code.com>
 
 	* rijndael.c (ATTR_ALIGNED_16): New
@@ -5,7 +15,7 @@
 	(do_encrypt, do_decrypt): Ditto.
 	(rijndael_decrypt, rijndael_encrypt): Increase stack burning amount.
 
-	* rijndael.c (RIJNDAEL_context): Reorder fields.  Chnage filedname
+	* rijndael.c (RIJNDAEL_context): Reorder fields.  Change fieldname
 	ROUNDS to rounds.  Move padlock_key into u1.
 	(keySched, keySched2): Rename macros to keyscherr and keyschdec
 	and change all users.
