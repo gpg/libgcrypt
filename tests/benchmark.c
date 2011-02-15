@@ -54,6 +54,9 @@ static int hash_repetitions;
 /* Alignment of the buffers.  */
 static int buffer_alignment;
 
+/* Whether to include the keysetup in the cipher timings.  */
+static int cipher_with_keysetup;
+
 /* Whether fips mode was active at startup.  */
 static int in_fips_mode;
 
@@ -619,13 +622,16 @@ cipher_bench ( const char *algoname )
           exit (1);
         }
 
-      err = gcry_cipher_setkey (hd, key, keylen);
-      if (err)
-      {
-          fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
-		   gpg_strerror (err));
-          gcry_cipher_close (hd);
-          exit (1);
+      if (!cipher_with_keysetup)
+        {
+          err = gcry_cipher_setkey (hd, key, keylen);
+          if (err)
+            {
+              fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
+                       gpg_strerror (err));
+              gcry_cipher_close (hd);
+              exit (1);
+            }
         }
 
       buflen = allocated_buflen;
@@ -634,7 +640,20 @@ cipher_bench ( const char *algoname )
 
       start_timer ();
       for (i=err=0; !err && i < repetitions; i++)
-        err = gcry_cipher_encrypt ( hd, outbuf, buflen, buf, buflen);
+        {
+          if (cipher_with_keysetup)
+            {
+              err = gcry_cipher_setkey (hd, key, keylen);
+              if (err)
+                {
+                  fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
+                           gpg_strerror (err));
+                  gcry_cipher_close (hd);
+                  exit (1);
+                }
+            }
+          err = gcry_cipher_encrypt ( hd, outbuf, buflen, buf, buflen);
+        }
       stop_timer ();
 
       printf (" %s", elapsed_time ());
@@ -654,18 +673,34 @@ cipher_bench ( const char *algoname )
           exit (1);
         }
 
-      err = gcry_cipher_setkey (hd, key, keylen);
-      if (err)
+      if (!cipher_with_keysetup)
         {
-          fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
-                   gpg_strerror (err));
-          gcry_cipher_close (hd);
-          exit (1);
+          err = gcry_cipher_setkey (hd, key, keylen);
+          if (err)
+            {
+              fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
+                       gpg_strerror (err));
+              gcry_cipher_close (hd);
+              exit (1);
+            }
         }
 
       start_timer ();
       for (i=err=0; !err && i < repetitions; i++)
-        err = gcry_cipher_decrypt ( hd, outbuf, buflen,  buf, buflen);
+        {
+          if (cipher_with_keysetup)
+            {
+              err = gcry_cipher_setkey (hd, key, keylen);
+              if (err)
+                {
+                  fprintf (stderr, "gcry_cipher_setkey failed: %s\n",
+                           gpg_strerror (err));
+                  gcry_cipher_close (hd);
+                  exit (1);
+                }
+            }
+          err = gcry_cipher_decrypt ( hd, outbuf, buflen,  buf, buflen);
+        }
       stop_timer ();
       printf (" %s", elapsed_time ());
       fflush (stdout);
@@ -1118,6 +1153,11 @@ main( int argc, char **argv )
               cipher_repetitions = atoi(*argv);
               argc--; argv++;
             }
+        }
+      else if (!strcmp (*argv, "--cipher-with-keysetup"))
+        {
+          cipher_with_keysetup = 1;
+          argc--; argv++;
         }
       else if (!strcmp (*argv, "--hash-repetitions"))
         {

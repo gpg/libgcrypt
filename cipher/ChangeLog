@@ -7,6 +7,7 @@
 	(rijndael_encrypt, _gcry_aes_cfb_enc, _gcry_aes_cbc_enc)
 	(rijndael_decrypt, _gcry_aes_cfb_dec, _gcry_aes_cbc_dec): Use
 	these macros.  Don't burn the stack in the USE_AESNI case.
+	(do_setkey): Add disabled code to use aeskeygenassis.
 
 2011-02-14  Werner Koch  <wk@g10code.com>
 

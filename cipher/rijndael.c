@@ -37,21 +37,6 @@
  *
  */
 
-/* FIXME:
-
-   Most important:
-   For AES-NI we should use a prepare and depreparse function which
-   can take care of clearing registers we used for sensitive stuff
-   etc.  Need to read the Intel ABI specs to see how to handel SSE
-   registers.
-
-   Future stuff:
-
-   - Use AESKEYGENASSIST.
-
-   - Make better use of the CPU pipelines.
-*/
-
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -262,14 +247,80 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 
   ctx->rounds = rounds;
 
+  if (0)
+    ;
 #ifdef USE_PADLOCK
-  if (ctx->use_padlock)
+  else if (ctx->use_padlock)
     {
       /* Nothing to do as we support only hardware key generation for
          now.  */
     }
-  else
 #endif /*USE_PADLOCK*/
+#ifdef USE_AESNI_is_disabled_here
+  else if (ctx->use_aesni && ctx->rounds == 10)
+    {
+      /* Note: This code works for AES-128 but it is not much better
+         than than using the standard key schedule.  We disable it for
+         now and don't put any effort into implementing this for
+         AES-192 and AES-256.  */
+      asm volatile ("movl   %[key], %%esi\n\t"
+                    "movdqu (%%esi), %%xmm1\n\t"     /* xmm1 := key   */
+                    "movl   %[ksch], %%esi\n\t"
+                    "movdqa %%xmm1, (%%esi)\n\t"     /* ksch[0] := xmm1  */
+                    "aeskeygenassist $0x01, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0x10(%%esi)\n\t" /* ksch[1] := xmm1  */
+                    "aeskeygenassist $0x02, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0x20(%%esi)\n\t" /* ksch[2] := xmm1  */
+                    "aeskeygenassist $0x04, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0x30(%%esi)\n\t" /* ksch[3] := xmm1  */
+                    "aeskeygenassist $0x08, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0x40(%%esi)\n\t" /* ksch[4] := xmm1  */
+                    "aeskeygenassist $0x10, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0x50(%%esi)\n\t" /* ksch[5] := xmm1  */
+                    "aeskeygenassist $0x20, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0x60(%%esi)\n\t" /* ksch[6] := xmm1  */
+                    "aeskeygenassist $0x40, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0x70(%%esi)\n\t" /* ksch[7] := xmm1  */
+                    "aeskeygenassist $0x80, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0x80(%%esi)\n\t" /* ksch[8] := xmm1  */
+                    "aeskeygenassist $0x1b, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0x90(%%esi)\n\t" /* ksch[9] := xmm1  */
+                    "aeskeygenassist $0x36, %%xmm1, %%xmm2\n\t"
+                    "call .Lexpand128_%=\n\t"
+                    "movdqa %%xmm1, 0xa0(%%esi)\n\t" /* ksch[10] := xmm1  */
+                    "jmp .Lleave%=\n"
+
+                    ".Lexpand128_%=:\n\t"
+                    "pshufd $0xff, %%xmm2, %%xmm2\n\t"
+                    "movdqa %%xmm1, %%xmm3\n\t"
+                    "pslldq $4, %%xmm3\n\t"
+                    "pxor   %%xmm3, %%xmm1\n\t"
+                    "pslldq $4, %%xmm3\n\t"
+                    "pxor   %%xmm3, %%xmm1\n\t"
+                    "pslldq $4, %%xmm3\n\t"
+                    "pxor   %%xmm3, %%xmm2\n\t"
+                    "pxor   %%xmm2, %%xmm1\n\t"
+                    "ret\n"
+
+                    ".Lleave%=:\n\t"
+                    "pxor %%xmm1, %%xmm1\n\t"
+                    "pxor %%xmm2, %%xmm2\n\t"
+                    "pxor %%xmm3, %%xmm3\n"
+                    :
+                    : [key] "g" (key), [ksch] "g" (ctx->keyschenc)
+                    : "%esi", "cc", "memory" );
+    }
+#endif /*USE_AESNI*/
+  else
     {
 #define W (ctx->keyschenc)
       for (i = 0; i < keylen; i++)
@@ -1202,6 +1253,8 @@ selftest_basic_128 (void)
     {
       0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,
       0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f
+      /* 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, */
+      /* 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c */
     };
   static const unsigned char ciphertext_128[16] =
     {

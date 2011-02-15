@@ -1,3 +1,8 @@
+2011-02-15  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c: Add option --cipher-with-keysetup.
+	(cipher_bench): Implement this option.
+
 2011-02-14  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c: Add option --alignment.
