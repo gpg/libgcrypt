@@ -814,6 +814,15 @@ This may be used at anytime to have the library run all implemented
 self-tests.  It works in standard and in FIPS mode.  Returns 0 on
 success or an error code on failure.
 
+@item GCRYCTL_DISABLE_HWF; Arguments: const char *name
+
+Libgcrypt detects certain features of the CPU at startup time.  For
+performace tests it is sometimes required not to use such a feature.
+This option may be used to disabale a certain feature; i.e. Libgcrypt
+behaves as if this feature has not been detected.  Note that the
+detection code might be run if the feature has been disabled.  This
+command must be used at initialization time; i.e. before calling
+@code{gcry_check_version}.
 
 @end table
 

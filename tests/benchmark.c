@@ -1177,6 +1177,17 @@ main( int argc, char **argv )
               argc--; argv++;
             }
         }
+      else if (!strcmp (*argv, "--disable-hwf"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              if (gcry_control (GCRYCTL_DISABLE_HWF, *argv, NULL))
+                fprintf (stderr, PGM ": unknown hardware feature `%s'"
+                         " - option ignored\n", *argv);
+              argc--; argv++;
+            }
+        }
       else if (!strcmp (*argv, "--fips"))
         {
           argc--; argv++;

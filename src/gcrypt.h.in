@@ -414,8 +414,9 @@ enum gcry_ctl_cmds
     GCRYCTL_OPERATIONAL_P = 54,
     GCRYCTL_FIPS_MODE_P = 55,
     GCRYCTL_FORCE_FIPS_MODE = 56,
-    GCRYCTL_SELFTEST = 57
+    GCRYCTL_SELFTEST = 57,
     /* Note: 58 .. 62 are used internally.  */
+    GCRYCTL_DISABLE_HWF = 63
   };
 
 /* Perform various operations defined by CMD. */

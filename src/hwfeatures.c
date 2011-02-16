@@ -1,5 +1,5 @@
 /* hwfeatures.c - Detect hardware features.
- * Copyright (C) 2007  Free Software Foundation, Inc.
+ * Copyright (C) 2007, 2011  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -172,7 +172,7 @@ detect_ia32_gnuc (void)
    once right at startup and we assume that no other threads are
    running.  */
 void
-_gcry_detect_hw_features (void)
+_gcry_detect_hw_features (unsigned int disabled_features)
 {
   hw_features = 0;
 
@@ -187,4 +187,6 @@ _gcry_detect_hw_features (void)
 #ifdef __GNUC__
 #endif
 #endif
+
+  hw_features &= ~disabled_features;
 }

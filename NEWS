@@ -37,6 +37,7 @@ Noteworthy changes in version 1.5.x (unreleased)
  GCRY_MD_TIGER2             NEW.
  gcry_pk_get_curve          NEW.
  gcry_pk_get_param          NEW.
+ GCRYCTL_DISABLE_HWF        NEW.
 
 
 Noteworthy changes in version 1.4.4 (2009-01-22)

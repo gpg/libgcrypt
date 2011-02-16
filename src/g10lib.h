@@ -152,7 +152,7 @@ int _gcry_log_verbosity( int level );
 
 
 unsigned int _gcry_get_hw_features (void);
-void _gcry_detect_hw_features (void);
+void _gcry_detect_hw_features (unsigned int);
 
 
 /*-- mpi/mpiutil.c --*/

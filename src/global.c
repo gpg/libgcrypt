@@ -1,6 +1,6 @@
 /* global.c  -	global control functions
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
- *               2004, 2005, 2006, 2008  Free Software Foundation, Inc.
+ *               2004, 2005, 2006, 2008, 2011  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -53,6 +53,24 @@ static int force_fips_mode;
 /* Controlled by global_init().  */
 static int any_init_done;
 
+/* A table to map hardware features to a string.  */
+static struct
+{
+  unsigned int flag;
+  const char *desc;
+} hwflist[] =
+  {
+    { HWF_PADLOCK_RNG, "padlock-rng" },
+    { HWF_PADLOCK_AES, "padlock-aes" },
+    { HWF_PADLOCK_SHA, "padlock-sha" },
+    { HWF_PADLOCK_MMUL,"padlock-mmul"},
+    { HWF_INTEL_AESNI, "intel-aesni" },
+    { 0, NULL}
+  };
+
+/* A bit vector with the hardware features which shall not be used.
+   This variable must be set prior to any initialization.  */
+static unsigned int disabled_hw_features;
 
 
 /* Memory management. */
@@ -94,7 +112,7 @@ global_init (void)
 
   /* Before we do any other initialization we need to test available
      hardware features.  */
-  _gcry_detect_hw_features ();
+  _gcry_detect_hw_features (disabled_hw_features);
 
   err = _gcry_cipher_init ();
   if (err)
@@ -258,16 +276,6 @@ static void
 print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
 {
   unsigned int hwf;
-  struct {
-    unsigned int flag;
-    const char *desc;
-  } hwflist[] = {
-    { HWF_PADLOCK_RNG, "padlock-rng" },
-    { HWF_PADLOCK_AES, "padlock-aes" },
-    { HWF_PADLOCK_SHA, "padlock-sha" },
-    { HWF_INTEL_AESNI, "intel-aesni" },
-    { 0, NULL}
-  };
   int i;
 
   fnc (fp, "version:%s:\n", VERSION);
@@ -292,8 +300,8 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
   hwf = _gcry_get_hw_features ();
   fnc (fp, "hwflist:");
   for (i=0; hwflist[i].desc; i++)
-  if ( (hwf & hwflist[i].flag) )
-    fnc (fp, "%s:", hwflist[i].desc);
+    if ( (hwf & hwflist[i].flag) )
+      fnc (fp, "%s:", hwflist[i].desc);
   fnc (fp, "\n");
   /* We use y/n instead of 1/0 for the simple reason that Emacsen's
      compile error parser would accidently flag that line when printed
@@ -565,6 +573,21 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       }
       break;
 
+    case GCRYCTL_DISABLE_HWF:
+      {
+        const char *name = va_arg (arg_ptr, const char *);
+        int i;
+
+        for (i=0; hwflist[i].desc; i++)
+          if (!strcmp (hwflist[i].desc, name))
+            {
+              disabled_hw_features |= hwflist[i].flag;
+              break;
+            }
+        if (!hwflist[i].desc)
+          err = GPG_ERR_INV_NAME;
+      }
+      break;
 
     default:
       /* A call to make sure that the dummy code is linked in.  */

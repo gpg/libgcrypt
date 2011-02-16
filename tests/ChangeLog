@@ -1,5 +1,7 @@
 2011-02-16  Werner Koch  <wk@g10code.com>
 
+	* benchmark.c (main): Add option --disable-hwf.
+
 	* basic.c (DIM): New.
 	(check_bulk_cipher_modes): New.
 	(main): Run new test.
