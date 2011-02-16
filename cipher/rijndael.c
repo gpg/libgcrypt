@@ -220,7 +220,9 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
       KC = 6;
 
       if (0)
-        ;
+        {
+          ;
+        }
 #ifdef USE_AESNI
       else if ((_gcry_get_hw_features () & HWF_INTEL_AESNI))
         {
@@ -234,7 +236,9 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
       KC = 8;
 
       if (0)
-        ;
+        {
+          ;
+        }
 #ifdef USE_AESNI
       else if ((_gcry_get_hw_features () & HWF_INTEL_AESNI))
         {
@@ -778,6 +782,77 @@ do_aesni_dec_aligned (const RIJNDAEL_context *ctx,
 #undef aesdeclast_xmm1_xmm0
 }
 
+
+/* Perform a CFB encryption or decryption round using the
+   initialization vector IV and the input block A.  Write the result
+   to the output block B and update IV.  IV needs to be 16 byte
+   aligned.  */
+static void
+do_aesni_cfb (const RIJNDAEL_context *ctx, int decrypt_flag,
+              unsigned char *iv, unsigned char *b, const unsigned char *a)
+{
+#define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
+#define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
+  asm volatile ("movdqa %[iv], %%xmm0\n\t"      /* xmm0 := IV     */
+                "movl   %[key], %%esi\n\t"      /* esi  := keyschenc */
+                "movdqa (%%esi), %%xmm1\n\t"    /* xmm1 := key[0] */
+                "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0] */
+                "movdqa 0x10(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x20(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x30(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x40(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x50(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x60(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x70(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x80(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x90(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xa0(%%esi), %%xmm1\n\t"
+                "cmp $10, %[rounds]\n\t"
+                "jz .Lenclast%=\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xb0(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xc0(%%esi), %%xmm1\n\t"
+                "cmp $12, %[rounds]\n\t"
+                "jz .Lenclast%=\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xd0(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xe0(%%esi), %%xmm1\n"
+
+                ".Lenclast%=:\n\t"
+                aesenclast_xmm1_xmm0
+                "movdqu %[src], %%xmm1\n\t"      /* Save input.  */
+                "pxor %%xmm1, %%xmm0\n\t"        /* xmm0 = input ^ IV  */
+
+                "cmp $1, %[decrypt]\n\t"
+                "jz .Ldecrypt_%=\n\t"
+                "movdqa %%xmm0, %[iv]\n\t"       /* [encrypt] Store IV.  */
+                "jmp .Lleave_%=\n"
+                ".Ldecrypt_%=:\n\t"
+                "movdqa %%xmm1, %[iv]\n"         /* [decrypt] Store IV.  */
+                ".Lleave_%=:\n\t"
+                "movdqu %%xmm0, %[dst]\n"        /* Store output.   */
+                : [iv] "+m" (*iv), [dst] "=m" (*b)
+                : [src] "m" (*a),
+                  [key] "g" (ctx->keyschenc),
+                  [rounds] "g" (ctx->rounds),
+                  [decrypt] "m" (decrypt_flag)
+                : "%esi", "cc", "memory");
+#undef aesenc_xmm1_xmm0
+#undef aesenclast_xmm1_xmm0
+}
+
+
 static void
 do_aesni (RIJNDAEL_context *ctx, int decrypt_flag,
           unsigned char *bx, const unsigned char *ax)
@@ -865,11 +940,9 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
       aesni_prepare ();
       for ( ;nblocks; nblocks-- )
         {
-          /* Encrypt the IV. */
-          do_aesni_enc_aligned (ctx, iv, iv);
-          /* XOR the input with the IV and store input into IV.  */
-          for (ivp=iv,i=0; i < BLOCKSIZE; i++ )
-            *outbuf++ = (*ivp++ ^= *inbuf++);
+          do_aesni_cfb (ctx, 0, iv, outbuf, inbuf);
+          outbuf += BLOCKSIZE;
+          inbuf  += BLOCKSIZE;
         }
       aesni_cleanup ();
     }
@@ -1137,13 +1210,9 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
       aesni_prepare ();
       for ( ;nblocks; nblocks-- )
         {
-          do_aesni_enc_aligned (ctx, iv, iv);
-          for (ivp=iv,i=0; i < BLOCKSIZE; i++ )
-            {
-              temp = *inbuf++;
-              *outbuf++ = *ivp ^ temp;
-              *ivp++ = temp;
-            }
+          do_aesni_cfb (ctx, 1, iv, outbuf, inbuf);
+          outbuf += BLOCKSIZE;
+          inbuf  += BLOCKSIZE;
         }
       aesni_cleanup ();
     }

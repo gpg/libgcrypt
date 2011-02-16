@@ -1,3 +1,9 @@
+2011-02-16  Werner Koch  <wk@g10code.com>
+
+	* basic.c (DIM): New.
+	(check_bulk_cipher_modes): New.
+	(main): Run new test.
+
 2011-02-15  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c: Add option --cipher-with-keysetup.

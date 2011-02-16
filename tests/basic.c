@@ -28,6 +28,11 @@
 
 #include "../src/gcrypt.h"
 
+#ifndef DIM
+# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
+#endif
+
+
 typedef struct test_spec_pubkey_key
 {
   const char *secret;
@@ -982,6 +987,245 @@ check_ofb_cipher (void)
   if (verbose)
     fprintf (stderr, "  Completed OFB checks.\n");
 }
+
+
+/* Check that our bulk encryption fucntions work properly.  */
+static void
+check_bulk_cipher_modes (void)
+{
+  struct
+  {
+    int algo;
+    int mode;
+    const char *key;
+    int  keylen;
+    const char *iv;
+    int ivlen;
+    char t1_hash[20];
+  } tv[] = {
+    { GCRY_CIPHER_AES, GCRY_CIPHER_MODE_CFB,
+      "abcdefghijklmnop", 16,
+      "1234567890123456", 16,
+/*[0]*/
+      { 0x53, 0xda, 0x27, 0x3c, 0x78, 0x3d, 0x54, 0x66, 0x19, 0x63,
+        0xd7, 0xe6, 0x20, 0x10, 0xcd, 0xc0, 0x5a, 0x0b, 0x06, 0xcc }
+    },
+    { GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_CFB,
+      "abcdefghijklmnopABCDEFG", 24,
+      "1234567890123456", 16,
+/*[1]*/
+      { 0xc7, 0xb1, 0xd0, 0x09, 0x95, 0x04, 0x34, 0x61, 0x2b, 0xd9,
+        0xcb, 0xb3, 0xc7, 0xcb, 0xef, 0xea, 0x16, 0x19, 0x9b, 0x3e }
+    },
+    { GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CFB,
+      "abcdefghijklmnopABCDEFGHIJKLMNOP", 32,
+      "1234567890123456", 16,
+/*[2]*/
+      { 0x31, 0xe1, 0x1f, 0x63, 0x65, 0x47, 0x8c, 0x3f, 0x53, 0xdb,
+        0xd9, 0x4d, 0x91, 0x1d, 0x02, 0x9c, 0x05, 0x25, 0x58, 0x29 }
+    },
+    { GCRY_CIPHER_AES, GCRY_CIPHER_MODE_CBC,
+      "abcdefghijklmnop", 16,
+      "1234567890123456", 16,
+/*[3]*/
+      { 0xdc, 0x0c, 0xc2, 0xd9, 0x6b, 0x47, 0xf9, 0xeb, 0x06, 0xb4,
+        0x2f, 0x6e, 0xec, 0x72, 0xbf, 0x55, 0x26, 0x7f, 0xa9, 0x97 }
+    },
+    { GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_CBC,
+      "abcdefghijklmnopABCDEFG", 24,
+      "1234567890123456", 16,
+/*[4]*/
+      { 0x2b, 0x90, 0x9b, 0xe6, 0x40, 0xab, 0x6e, 0xc2, 0xc5, 0xb1,
+        0x87, 0xf5, 0x43, 0x84, 0x7b, 0x04, 0x06, 0x47, 0xd1, 0x8f }
+    },
+    { GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CBC,
+      "abcdefghijklmnopABCDEFGHIJKLMNOP", 32,
+      "1234567890123456", 16,
+/*[5]*/
+      { 0xaa, 0xa8, 0xdf, 0x03, 0xb0, 0xba, 0xc4, 0xe3, 0xc1, 0x02,
+        0x38, 0x31, 0x8d, 0x86, 0xcb, 0x49, 0x6d, 0xad, 0xae, 0x01 }
+    },
+    { GCRY_CIPHER_AES, GCRY_CIPHER_MODE_OFB,
+      "abcdefghijklmnop", 16,
+      "1234567890123456", 16,
+/*[6]*/
+      { 0x65, 0xfe, 0xde, 0x48, 0xd0, 0xa1, 0xa6, 0xf9, 0x24, 0x6b,
+        0x52, 0x5f, 0x21, 0x8a, 0x6f, 0xc7, 0x70, 0x3b, 0xd8, 0x4a }
+    },
+    { GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_OFB,
+      "abcdefghijklmnopABCDEFG", 24,
+      "1234567890123456", 16,
+/*[7]*/
+      { 0x59, 0x5b, 0x02, 0xa2, 0x88, 0xc0, 0xbe, 0x94, 0x43, 0xaa,
+        0x39, 0xf6, 0xbd, 0xcc, 0x83, 0x99, 0xee, 0x00, 0xa1, 0x91 }
+    },
+    { GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_OFB,
+      "abcdefghijklmnopABCDEFGHIJKLMNOP", 32,
+      "1234567890123456", 16,
+/*[8]*/
+      { 0x38, 0x8c, 0xe1, 0xe2, 0xbe, 0x67, 0x60, 0xe8, 0xeb, 0xce,
+        0xd0, 0xc6, 0xaa, 0xd6, 0xf6, 0x26, 0x15, 0x56, 0xd0, 0x2b }
+    },
+    { GCRY_CIPHER_AES, GCRY_CIPHER_MODE_CTR,
+      "abcdefghijklmnop", 16,
+      "1234567890123456", 16,
+/*[9]*/
+      { 0x9a, 0x48, 0x94, 0xd6, 0x50, 0x46, 0x81, 0xdb, 0x68, 0x34,
+        0x3b, 0xc5, 0x9e, 0x66, 0x94, 0x81, 0x98, 0xa0, 0xf9, 0xff }
+    },
+    { GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_CTR,
+      "abcdefghijklmnopABCDEFG", 24,
+      "1234567890123456", 16,
+/*[10]*/
+      { 0x2c, 0x2c, 0xd3, 0x75, 0x81, 0x2a, 0x59, 0x07, 0xeb, 0x08,
+        0xce, 0x28, 0x4c, 0x0c, 0x6a, 0xa8, 0x8f, 0xa3, 0x98, 0x7e }
+    },
+    { GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_CTR,
+      "abcdefghijklmnopABCDEFGHIJKLMNOP", 32,
+      "1234567890123456", 16,
+/*[11]*/
+      { 0x64, 0xce, 0x73, 0x03, 0xc7, 0x89, 0x99, 0x1f, 0xf1, 0xce,
+        0xfe, 0xfb, 0xb9, 0x42, 0x30, 0xdf, 0xbb, 0x68, 0x6f, 0xd3 }
+    },
+    { GCRY_CIPHER_AES, GCRY_CIPHER_MODE_ECB,
+      "abcdefghijklmnop", 16,
+      "1234567890123456", 16,
+/*[12]*/
+      { 0x51, 0xae, 0xf5, 0xac, 0x22, 0xa0, 0xba, 0x11, 0xc5, 0xaa,
+        0xb4, 0x70, 0x99, 0xce, 0x18, 0x08, 0x12, 0x9b, 0xb1, 0xc5 }
+    },
+    { GCRY_CIPHER_AES192, GCRY_CIPHER_MODE_ECB,
+      "abcdefghijklmnopABCDEFG", 24,
+      "1234567890123456", 16,
+/*[13]*/
+      { 0x57, 0x91, 0xea, 0x48, 0xd8, 0xbf, 0x9e, 0xc1, 0xae, 0x33,
+        0xb3, 0xfd, 0xf7, 0x7a, 0xeb, 0x30, 0xb1, 0x62, 0x0d, 0x82 }
+    },
+    { GCRY_CIPHER_AES256, GCRY_CIPHER_MODE_ECB,
+      "abcdefghijklmnopABCDEFGHIJKLMNOP", 32,
+      "1234567890123456", 16,
+/*[14]*/
+      { 0x2d, 0x71, 0x54, 0xb9, 0xc5, 0x28, 0x76, 0xff, 0x76, 0xb5,
+        0x99, 0x37, 0x99, 0x9d, 0xf7, 0x10, 0x6d, 0x86, 0x4f, 0x3f }
+    }
+  };
+  gcry_cipher_hd_t hde = NULL;
+  gcry_cipher_hd_t hdd = NULL;
+  unsigned char *buffer_base, *outbuf_base; /* Allocated buffers.  */
+  unsigned char *buffer, *outbuf;           /* Aligned buffers.  */
+  size_t buflen;
+  unsigned char hash[20];
+  int i, j, keylen, blklen;
+  gcry_error_t err = 0;
+
+  if (verbose)
+    fprintf (stderr, "Starting bulk cipher checks.\n");
+
+  buflen = 16*100;  /* We check a 1600 byte buffer.  */
+  buffer_base = gcry_xmalloc (buflen+15);
+  buffer = buffer_base + (16 - ((size_t)buffer_base & 0x0f));
+  outbuf_base = gcry_xmalloc (buflen+15);
+  outbuf = outbuf_base + (16 - ((size_t)outbuf_base & 0x0f));
+
+
+  for (i = 0; i < DIM (tv); i++)
+    {
+      if (verbose)
+        fprintf (stderr, "    checking bulk encryption for %s [%i], mode %d\n",
+		 gcry_cipher_algo_name (tv[i].algo),
+		 tv[i].algo, tv[i].mode);
+      err = gcry_cipher_open (&hde, tv[i].algo, tv[i].mode, 0);
+      if (!err)
+        err = gcry_cipher_open (&hdd, tv[i].algo, tv[i].mode, 0);
+      if (err)
+        {
+          fail ("gcry_cipher_open failed: %s\n", gpg_strerror (err));
+          goto leave;
+        }
+
+      keylen = gcry_cipher_get_algo_keylen(tv[i].algo);
+      if (!keylen)
+        {
+          fail ("gcry_cipher_get_algo_keylen failed\n");
+          goto leave;
+        }
+
+      err = gcry_cipher_setkey (hde, tv[i].key, tv[i].keylen);
+      if (!err)
+        err = gcry_cipher_setkey (hdd, tv[i].key, tv[i].keylen);
+      if (err)
+        {
+          fail ("gcry_cipher_setkey failed: %s\n", gpg_strerror (err));
+          goto leave;
+        }
+
+      blklen = gcry_cipher_get_algo_blklen(tv[i].algo);
+      if (!blklen)
+        {
+          fail ("gcry_cipher_get_algo_blklen failed\n");
+          goto leave;
+        }
+
+      err = gcry_cipher_setiv (hde, tv[i].iv, tv[i].ivlen);
+      if (!err)
+        err = gcry_cipher_setiv (hdd, tv[i].iv,  tv[i].ivlen);
+      if (err)
+        {
+          fail ("gcry_cipher_setiv failed: %s\n", gpg_strerror (err));
+          goto leave;
+        }
+
+      /* Fill the buffer with our test pattern.  */
+      for (j=0; j < buflen; j++)
+        buffer[j] = ((j & 0xff) ^ ((j >> 8) & 0xff));
+
+      err = gcry_cipher_encrypt (hde, outbuf, buflen, buffer, buflen);
+      if (err)
+        {
+          fail ("gcry_cipher_encrypt (algo %d, mode %d) failed: %s\n",
+                tv[i].algo, tv[i].mode, gpg_strerror (err));
+          goto leave;
+        }
+
+      gcry_md_hash_buffer (GCRY_MD_SHA1, hash, outbuf, buflen);
+#if 0
+      printf ("/*[%d]*/\n", i);
+      fputs ("      {", stdout);
+      for (j=0; j < 20; j++)
+        printf (" 0x%02x%c%s", hash[j], j==19? ' ':',', j == 9? "\n       ":"");
+      puts ("}");
+#endif
+
+      if (memcmp (hash, tv[i].t1_hash, 20))
+        fail ("encrypt mismatch (algo %d, mode %d)\n",
+              tv[i].algo, tv[i].mode);
+
+      err = gcry_cipher_decrypt (hdd, outbuf, buflen, NULL, 0);
+      if (err)
+        {
+          fail ("gcry_cipher_decrypt (algo %d, mode %d) failed: %s\n",
+                tv[i].algo, tv[i].mode, gpg_strerror (err));
+          goto leave;
+        }
+
+      if (memcmp (buffer, outbuf, buflen))
+        fail ("decrypt mismatch (algo %d, mode %d)\n",
+              tv[i].algo, tv[i].mode);
+
+      gcry_cipher_close (hde); hde = NULL;
+      gcry_cipher_close (hdd); hdd = NULL;
+    }
+
+  if (verbose)
+    fprintf (stderr, "Completed bulk cipher checks.\n");
+ leave:
+  gcry_cipher_close (hde);
+  gcry_cipher_close (hdd);
+  gcry_free (buffer_base);
+  gcry_free (outbuf_base);
+}
+
+
 
 static void
 check_one_cipher (int algo, int mode, int flags)
@@ -2287,6 +2531,7 @@ main (int argc, char **argv)
     {
       check_ciphers ();
       check_cipher_modes ();
+      check_bulk_cipher_modes ();
       check_digests ();
       check_hmac ();
       check_pubkey ();

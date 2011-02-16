@@ -1,3 +1,8 @@
+2011-02-16  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (do_aesni_cfb) [USE_AESNI]: New.
+	(_gcry_aes_cfb_enc, _gcry_aes_cfb_dec) [USE_AESNI]: Use new fucntion.
+
 2011-02-15  Werner Koch  <wk@g10code.com>
 
 	* rijndael.c (do_aesni_enc_aligned, do_aesni_dec_aligned): Use
@@ -7,7 +12,7 @@
 	(rijndael_encrypt, _gcry_aes_cfb_enc, _gcry_aes_cbc_enc)
 	(rijndael_decrypt, _gcry_aes_cfb_dec, _gcry_aes_cbc_dec): Use
 	these macros.  Don't burn the stack in the USE_AESNI case.
-	(do_setkey): Add disabled code to use aeskeygenassis.
+	(do_setkey): Add disabled code to use aeskeygenassist.
 
 2011-02-14  Werner Koch  <wk@g10code.com>
 
