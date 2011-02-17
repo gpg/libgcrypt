@@ -239,6 +239,97 @@
      deprecated attribute.  */
 # define GCRYPT_NO_DEPRECATED
 # include "gcrypt.h"
+/* The algorithm IDs. */
+  gcry_error_t gcry_ac_data_new (gcry_ac_data_t *data);
+  void gcry_ac_data_destroy (gcry_ac_data_t data);
+  gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *data_cp,
+                                  gcry_ac_data_t data);
+  unsigned int gcry_ac_data_length (gcry_ac_data_t data);
+  void gcry_ac_data_clear (gcry_ac_data_t data);
+  gcry_error_t gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
+                                 const char *name, gcry_mpi_t mpi);
+  gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
+                                      const char *name, gcry_mpi_t *mpi);
+  gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
+                                       unsigned int idx,
+                                       const char **name, gcry_mpi_t *mpi);
+  gcry_error_t gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
+                                   const char **identifiers);
+  gcry_error_t gcry_ac_data_from_sexp (gcry_ac_data_t *data, gcry_sexp_t sexp,
+                                     const char **identifiers);
+  void gcry_ac_io_init (gcry_ac_io_t *ac_io, gcry_ac_io_mode_t mode,
+                      gcry_ac_io_type_t type, ...);
+  void gcry_ac_io_init_va (gcry_ac_io_t *ac_io, gcry_ac_io_mode_t mode,
+                         gcry_ac_io_type_t type, va_list ap);
+  gcry_error_t gcry_ac_open (gcry_ac_handle_t *handle,
+                             gcry_ac_id_t algorithm, unsigned int flags);
+  void gcry_ac_close (gcry_ac_handle_t handle);
+  gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key, gcry_ac_handle_t handle,
+                                 gcry_ac_key_type_t type, gcry_ac_data_t data);
+  gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
+                                          unsigned int nbits, void *spec,
+                                          gcry_ac_key_pair_t *key_pair,
+                                          gcry_mpi_t **misc_data);
+  gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
+                                          gcry_ac_key_type_t which);
+  gcry_ac_data_t gcry_ac_key_data_get (gcry_ac_key_t key);
+  gcry_error_t gcry_ac_key_test (gcry_ac_handle_t handle, gcry_ac_key_t key);
+  gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
+                                      gcry_ac_key_t key, unsigned int *nbits);
+  gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t handle, gcry_ac_key_t key,
+                                     unsigned char *key_grip);
+  void gcry_ac_key_destroy (gcry_ac_key_t key);
+  void gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair);
+  gcry_error_t gcry_ac_data_encode (gcry_ac_em_t method,
+                                  unsigned int flags, void *options,
+                                  gcry_ac_io_t *io_read,
+                                  gcry_ac_io_t *io_write);
+  gcry_error_t gcry_ac_data_decode (gcry_ac_em_t method,
+                                  unsigned int flags, void *options,
+                                  gcry_ac_io_t *io_read,
+                                  gcry_ac_io_t *io_write);
+  gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t handle,
+                                     unsigned int flags,
+                                     gcry_ac_key_t key,
+                                     gcry_mpi_t data_plain,
+                                     gcry_ac_data_t *data_encrypted);
+  gcry_error_t gcry_ac_data_decrypt (gcry_ac_handle_t handle,
+                                     unsigned int flags,
+                                     gcry_ac_key_t key,
+                                     gcry_mpi_t *data_plain,
+                                     gcry_ac_data_t data_encrypted);
+  gcry_error_t gcry_ac_data_sign (gcry_ac_handle_t handle,
+                                  gcry_ac_key_t key,
+                                  gcry_mpi_t data,
+                                  gcry_ac_data_t *data_signature);
+  gcry_error_t gcry_ac_data_verify (gcry_ac_handle_t handle,
+                                    gcry_ac_key_t key,
+                                    gcry_mpi_t data,
+                                    gcry_ac_data_t data_signature);
+  gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
+                                          gcry_ac_scheme_t scheme,
+                                          unsigned int flags, void *opts,
+                                          gcry_ac_key_t key,
+                                          gcry_ac_io_t *io_message,
+                                          gcry_ac_io_t *io_cipher);
+  gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
+                                          gcry_ac_scheme_t scheme,
+                                          unsigned int flags, void *opts,
+                                          gcry_ac_key_t key,
+                                          gcry_ac_io_t *io_cipher,
+                                          gcry_ac_io_t *io_message);
+  gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
+                                       gcry_ac_scheme_t scheme,
+                                       unsigned int flags, void *opts,
+                                       gcry_ac_key_t key,
+                                       gcry_ac_io_t *io_message,
+                                       gcry_ac_io_t *io_signature);
+  gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
+                                         gcry_ac_scheme_t scheme,
+                                         unsigned int flags, void *opts,
+                                         gcry_ac_key_t key,
+                                         gcry_ac_io_t *io_message,
+                                         gcry_ac_io_t *io_signature);
   gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name);
   gcry_error_t gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm);
 #else

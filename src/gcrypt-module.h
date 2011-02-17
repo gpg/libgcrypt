@@ -98,11 +98,14 @@ typedef struct gcry_cipher_spec
    and a pointer representing this module is stored in MODULE.  */
 gcry_error_t gcry_cipher_register (gcry_cipher_spec_t *cipher,
 				   int *algorithm_id,
-				   gcry_module_t *module);
+				   gcry_module_t *module)
+  /* */  _GCRY_ATTR_INTERNAL;
+
 
 /* Unregister the cipher identified by MODULE, which must have been
    registered with gcry_cipher_register.  */
-void gcry_cipher_unregister (gcry_module_t module);
+void gcry_cipher_unregister (gcry_module_t module)
+  /* */  _GCRY_ATTR_INTERNAL;
 
 /* ********************** */
 
@@ -173,11 +176,13 @@ typedef struct gcry_pk_spec
    and a pointer representhing this module is stored in MODULE.  */
 gcry_error_t gcry_pk_register (gcry_pk_spec_t *pubkey,
 			       unsigned int *algorithm_id,
-			       gcry_module_t *module);
+			       gcry_module_t *module)
+  /* */  _GCRY_ATTR_INTERNAL;
 
 /* Unregister the pubkey identified by ID, which must have been
    registered with gcry_pk_register.  */
-void gcry_pk_unregister (gcry_module_t module);
+void gcry_pk_unregister (gcry_module_t module)
+  /* */  _GCRY_ATTR_INTERNAL;
 
 /* ********************** */
 
@@ -218,11 +223,13 @@ typedef struct gcry_md_spec
    and a pointer representhing this module is stored in MODULE.  */
 gcry_error_t gcry_md_register (gcry_md_spec_t *digest,
 			       unsigned int *algorithm_id,
-			       gcry_module_t *module);
+			       gcry_module_t *module)
+  /* */  _GCRY_ATTR_INTERNAL;
 
 /* Unregister the digest identified by ID, which must have been
    registered with gcry_digest_register.  */
-void gcry_md_unregister (gcry_module_t module);
+void gcry_md_unregister (gcry_module_t module)
+  /* */  _GCRY_ATTR_INTERNAL;
 
 #if 0 /* keep Emacsens's auto-indent happy */
 {

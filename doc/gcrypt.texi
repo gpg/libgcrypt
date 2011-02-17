@@ -219,7 +219,7 @@ Certain parts of gcrypt.h may be excluded by defining these macros:
 Do not define the shorthand macros @code{mpi_*} for @code{gcry_mpi_*}.
 
 @item GCRYPT_NO_DEPRECATED
-Do not include defintions for deprecated features.  This is useful to
+Do not include definitions for deprecated features.  This is useful to
 make sure that no deprecated features are used.
 @end table
 
@@ -1602,7 +1602,8 @@ unsigned char *, unsigned int n)
 Register a new cipher module whose specification can be found in
 @var{cipher}.  On success, a new algorithm ID is stored in
 @var{algorithm_id} and a pointer representing this module is stored
-in @var{module}.
+in @var{module}.  Deprecated; the module register interface will be
+removed in a future version.
 @end deftypefun
 
 @deftypefun void gcry_cipher_unregister (gcry_module_t @var{module})
@@ -2288,8 +2289,10 @@ Type for the `get_nbits' function, defined as: unsigned
 
 Register a new public key module whose specification can be found in
 @var{pubkey}.  On success, a new algorithm ID is stored in
-@var{algorithm_id} and a pointer representing this module is stored
-in @var{module}.
+@var{algorithm_id} and a pointer representing this module is stored in
+@var{module}.  Deprecated; the module register interface will be
+removed in a future version.
+
 @end deftypefun
 
 @deftypefun void gcry_pk_unregister (gcry_module_t @var{module})
@@ -3610,7 +3613,8 @@ Type for the `read' function, defined as: unsigned char
 Register a new digest module whose specification can be found in
 @var{digest}.  On success, a new algorithm ID is stored in
 @var{algorithm_id} and a pointer representing this module is stored
-in @var{module}.
+in @var{module}.  Deprecated; the module register interface will be
+removed in a future version.
 @end deftypefun
 
 @deftypefun void gcry_md_unregister (gcry_module_t @var{module})

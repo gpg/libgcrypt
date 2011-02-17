@@ -1,5 +1,13 @@
 2011-02-17  Werner Koch  <wk@g10code.com>
 
+	* gcrypt-module.h (gcry_cipher_register, gcry_cipher_unregister)
+	(gcry_pk_register, gcry_pk_unregister, gcry_md_register)
+	(gcry_md_unregister): Mark as deprecated by the API; in a future
+	version the module register feature will be removed.
+
+	* gcrypt.h.in: Attribute all _ac_ functions and types as
+	deprecated by the API.
+
 	* hwfeatures.c (detect_ia32_gnuc): Fix AES-NI detection.  Use AND
 	instead of SUB for bit testing.
 

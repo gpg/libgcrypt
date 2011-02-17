@@ -29,6 +29,16 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * Uses the Intel AES-NI instructions if available.
 
+ * The use of the deprecated Alternative Public Key Interface
+   (gcry_ac_*) will now print compile time warnings.
+
+ * The module register subsystem has been deprecated.  This subsystem
+   is not flexible enough and would always require ABI changes to
+   extend the internal interfaces.  It will eventually be removed.
+   Please contact us on the gcrypt-devel mailing list to discuss
+   whether you really need this feature or how it can be replaced by
+   an internal plugin mechanism.
+
  * Interface changes relative to the 1.4.2 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  GCRY_CIPHER_MODE_AESWRAP   NEW.
