@@ -1,3 +1,8 @@
+2011-02-17  Werner Koch  <wk@g10code.com>
+
+	* hwfeatures.c (detect_ia32_gnuc): Fix AES-NI detection.  Use AND
+	instead of SUB for bit testing.
+
 2011-02-16  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (GCRYCTL_DISABLE_HWF): New.
