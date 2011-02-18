@@ -951,17 +951,6 @@ if test "$GCC" = yes; then
         if test x"$_gcc_wopt" = xyes ; then
           CFLAGS="$CFLAGS -Wpointer-arith"
         fi
-
-        AC_MSG_CHECKING([if gcc supports -fno-strict-aliasing])
-        _gcc_cflags_save=$CFLAGS
-        CFLAGS="-fno-strict-aliasing"
-        AC_COMPILE_IFELSE(AC_LANG_PROGRAM([]),_gcc_wopt=yes,_gcc_wopt=no)
-        AC_MSG_RESULT($_gcc_wopt)
-        CFLAGS=$_gcc_cflags_save;
-        if test x"$_gcc_wopt" = xyes ; then
-          CFLAGS="$CFLAGS -fno-strict-aliasing"
-        fi
-
     fi
 
 fi
@@ -1228,6 +1217,8 @@ echo "
         Enabled pubkey algorithms: $enabled_pubkey_ciphers
         Random number generator:   $random
         Using linux capabilities:  $use_capabilities
+        Try using Padlock crypto:  $padlocksupport
+        Try using AES-NI crypto:   $aesnisupport
 "
 
 if test "$print_egd_notice" = "yes"; then
