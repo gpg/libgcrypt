@@ -234,7 +234,7 @@ gcry_check_version( const char *req_version )
     const char *ver = VERSION;
     int my_major, my_minor, my_micro;
     int rq_major, rq_minor, rq_micro;
-    const char *my_plvl, *rq_plvl;
+    const char *my_plvl;
 
     /* Initialize library.  */
     global_init ();
@@ -250,23 +250,19 @@ gcry_check_version( const char *req_version )
 	   assert() here and bail out in case this happens?  -mo.  */
 	return NULL;
 
-  /* Parse requested version number.  */
-    rq_plvl = parse_version_string( req_version, &rq_major, &rq_minor,
-								&rq_micro );
-    if ( !rq_plvl )
-        /* req version string is invalid, this can happen.  */
-	return NULL;
+    /* Parse requested version number.  */
+    if (!parse_version_string (req_version, &rq_major, &rq_minor, &rq_micro))
+      return NULL;  /* req version string is invalid, this can happen.  */
 
     /* Compare version numbers.  */
     if ( my_major > rq_major
 	|| (my_major == rq_major && my_minor > rq_minor)
+	|| (my_major == rq_major && my_minor == rq_minor		                           		 && my_micro > rq_micro)
 	|| (my_major == rq_major && my_minor == rq_minor
-				 && my_micro > rq_micro)
-	|| (my_major == rq_major && my_minor == rq_minor
-				 && my_micro == rq_micro
-				 && strcmp( my_plvl, rq_plvl ) >= 0) ) {
+                                 && my_micro == rq_micro))
+      {
 	return ver;
-    }
+      }
 
     return NULL;
 }

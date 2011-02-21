@@ -472,7 +472,7 @@ md_bench ( const char *algoname )
   start_timer ();
   for (repcount=0; repcount < hash_repetitions; repcount++)
     for (i=0; i < 1000000; i++)
-      gcry_md_write (hd, buf[0], 1);
+      gcry_md_write (hd, buf, 1);
   gcry_md_final (hd);
   stop_timer ();
   printf (" %s", elapsed_time ());
@@ -1224,7 +1224,8 @@ main( int argc, char **argv )
 
   if (!gcry_check_version (GCRYPT_VERSION))
     {
-      fprintf (stderr, PGM ": version mismatch\n");
+      fprintf (stderr, PGM ": version mismatch; pgm=%s, library=%s\n",
+               GCRYPT_VERSION, gcry_check_version (NULL));
       exit (1);
     }
 

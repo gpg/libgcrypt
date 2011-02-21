@@ -2509,8 +2509,10 @@ main (int argc, char **argv)
   if (use_fips)
     gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
 
-  if (!gcry_check_version (GCRYPT_VERSION))
-    die ("version mismatch\n");
+  /* Check that we test exactly our version - including the patchlevel.  */
+  if (strcmp (GCRYPT_VERSION, gcry_check_version (NULL)))
+    die ("version mismatch; pgm=%s, library=%s\n",
+         GCRYPT_VERSION,gcry_check_version (NULL));
 
   if ( gcry_fips_mode_active () )
     in_fips_mode = 1;

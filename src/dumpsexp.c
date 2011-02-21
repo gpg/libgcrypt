@@ -273,11 +273,11 @@ printchr (int c)
   putchar (c);
 }
 
-static void
-printhex (int c)
-{
-  printf ("\\x%02x", c);
-}
+/* static void */
+/* printhex (int c) */
+/* { */
+/*   printf ("\\x%02x", c); */
+/* } */
 
 
 #if 0

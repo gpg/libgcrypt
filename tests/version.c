@@ -45,10 +45,13 @@ main (int argc, char **argv)
   (void)argv;
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  if (!gcry_check_version (GCRYPT_VERSION))
+  if (strcmp (GCRYPT_VERSION, gcry_check_version (NULL)))
     {
-      fprintf (stderr, PGM ": version mismatch\n");
-      exit (1);
+      int oops = !gcry_check_version (GCRYPT_VERSION);
+      fprintf (stderr, PGM ": %sversion mismatch; pgm=%s, library=%s\n",
+               oops? "":"warning: ", GCRYPT_VERSION, gcry_check_version (NULL));
+      if (oops)
+        exit (1);
     }
 
   gcry_control (GCRYCTL_PRINT_CONFIG, NULL);
