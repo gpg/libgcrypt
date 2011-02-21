@@ -1,3 +1,8 @@
+2011-02-21  Werner Koch  <wk@g10code.com>
+
+	* benchmark.c (md_bench): Allow for rthe --alignment option.
+	(main):  Allow alignments between 1 and 16.
+
 2011-02-16  Werner Koch  <wk@g10code.com>
 
 	* benchmark.c (main): Add option --disable-hwf.

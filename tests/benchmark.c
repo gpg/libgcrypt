@@ -409,8 +409,11 @@ md_bench ( const char *algoname )
 {
   int algo;
   gcry_md_hd_t hd;
-  int i, repcount;
-  char buf[1000];
+  int i, j, repcount;
+  char buf_base[1000+15];
+  size_t bufsize = 1000;
+  char *buf;
+  char *largebuf_base;
   char *largebuf;
   char digest[512/8];
   gcry_error_t err = GPG_ERR_NO_ERROR;
@@ -424,6 +427,8 @@ md_bench ( const char *algoname )
           md_bench (gcry_md_algo_name (i));
       return;
     }
+
+  buf = buf_base + ((16 - ((size_t)buf_base & 0x0f)) % buffer_alignment);
 
   algo = gcry_md_map_name (algoname);
   if (!algo)
@@ -439,7 +444,7 @@ md_bench ( const char *algoname )
       exit (1);
     }
 
-  for (i=0; i < sizeof buf; i++)
+  for (i=0; i < bufsize; i++)
     buf[i] = i;
 
   printf ("%-12s", gcry_md_algo_name (algo));
@@ -447,7 +452,7 @@ md_bench ( const char *algoname )
   start_timer ();
   for (repcount=0; repcount < hash_repetitions; repcount++)
     for (i=0; i < 1000; i++)
-      gcry_md_write (hd, buf, sizeof buf);
+      gcry_md_write (hd, buf, bufsize);
   gcry_md_final (hd);
   stop_timer ();
   printf (" %s", elapsed_time ());
@@ -457,7 +462,7 @@ md_bench ( const char *algoname )
   start_timer ();
   for (repcount=0; repcount < hash_repetitions; repcount++)
     for (i=0; i < 10000; i++)
-      gcry_md_write (hd, buf, sizeof buf/10);
+      gcry_md_write (hd, buf, bufsize/10);
   gcry_md_final (hd);
   stop_timer ();
   printf (" %s", elapsed_time ());
@@ -467,7 +472,17 @@ md_bench ( const char *algoname )
   start_timer ();
   for (repcount=0; repcount < hash_repetitions; repcount++)
     for (i=0; i < 1000000; i++)
-      gcry_md_write (hd, "", 1);
+      gcry_md_write (hd, buf[0], 1);
+  gcry_md_final (hd);
+  stop_timer ();
+  printf (" %s", elapsed_time ());
+  fflush (stdout);
+
+  start_timer ();
+  for (repcount=0; repcount < hash_repetitions; repcount++)
+    for (i=0; i < 1000; i++)
+      for (j=0; j < bufsize; j++)
+        gcry_md_putc (hd, buf[j]);
   gcry_md_final (hd);
   stop_timer ();
   printf (" %s", elapsed_time ());
@@ -481,9 +496,12 @@ md_bench ( const char *algoname )
   if (gcry_md_get_algo_dlen (algo) > sizeof digest)
     die ("digest buffer too short\n");
 
-  largebuf = malloc (10000);
-  if (!largebuf)
+  largebuf_base = malloc (10000+15);
+  if (!largebuf_base)
     die ("out of core\n");
+  largebuf = (largebuf_base
+              + ((16 - ((size_t)largebuf_base & 0x0f)) % buffer_alignment));
+
   for (i=0; i < 10000; i++)
     largebuf[i] = i;
   start_timer ();
@@ -492,7 +510,7 @@ md_bench ( const char *algoname )
       gcry_md_hash_buffer (algo, digest, largebuf, 10000);
   stop_timer ();
   printf (" %s", elapsed_time ());
-  free (largebuf);
+  free (largebuf_base);
 
   putchar ('\n');
   fflush (stdout);
@@ -544,16 +562,12 @@ cipher_bench ( const char *algoname )
     }
   repetitions *= cipher_repetitions;
 
-  buf = raw_buf = gcry_xmalloc (allocated_buflen+15);
-  if (buffer_alignment)
-    while (((size_t)buf & 0x0f))
-      buf++;
-
+  raw_buf = gcry_xmalloc (allocated_buflen+15);
+  buf = (raw_buf
+         + ((16 - ((size_t)raw_buf & 0x0f)) % buffer_alignment));
   outbuf = raw_outbuf = gcry_xmalloc (allocated_buflen+15);
-  if (buffer_alignment)
-    while (((size_t)outbuf & 0x0f))
-      outbuf++;
-
+  outbuf = (raw_outbuf
+            + ((16 - ((size_t)raw_outbuf & 0x0f)) % buffer_alignment));
 
   if (!header_printed)
     {
@@ -1107,6 +1121,8 @@ main( int argc, char **argv )
   int use_random_daemon = 0;
   int with_progress = 0;
 
+  buffer_alignment = 1;
+
   if (argc)
     { argc--; argv++; }
 
@@ -1201,14 +1217,8 @@ main( int argc, char **argv )
         }
     }
 
-  switch (buffer_alignment)
-    {
-    case 0:
-    case 16:
-      break;
-    default:
-      die ("option --alignment not used with a value of 0 or 16\n");
-    }
+  if (buffer_alignment < 1 || buffer_alignment > 16)
+    die ("value for --alignment must be in the range 1 to 16\n");
 
   gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
 
