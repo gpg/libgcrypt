@@ -1,3 +1,13 @@
+2011-02-22  Werner Koch  <wk@g10code.com>
+
+	* rijndael.c (aesni_cleanup_2_4): New.
+	(aesenc_xmm1_xmm0, do_aesni_ctr_4): New.
+	(_gcry_aes_ctr_enc): New.
+	* cipher.c (struct gcry_cipher_handle): Add CTR_ENC.  Move field
+	CTR into an u_ctr union and adjust all users.
+	(gcry_cipher_open): Use _gcry_aes_ctr_enc.
+	(do_ctr_encrypt): Use bulk mode.
+
 2011-02-18  Werner Koch  <wk@g10code.com>
 
 	* rijndael.c (u32_a_t): New.

@@ -53,6 +53,9 @@ void _gcry_aes_cbc_enc (void *context, unsigned char *iv,
 void _gcry_aes_cbc_dec (void *context, unsigned char *iv,
                         void *outbuf_arg, const void *inbuf_arg,
                         unsigned int nblocks);
+void _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
+                        void *outbuf_arg, const void *inbuf_arg,
+                        unsigned int nblocks);
 
 
 /*-- dsa.c --*/

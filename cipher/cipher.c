@@ -190,6 +190,9 @@ struct gcry_cipher_handle
     void (*cbc_dec)(void *context, unsigned char *iv,
                     void *outbuf_arg, const void *inbuf_arg,
                     unsigned int nblocks);
+    void (*ctr_enc)(void *context, unsigned char *iv,
+                    void *outbuf_arg, const void *inbuf_arg,
+                    unsigned int nblocks);
   } bulk;
 
 
@@ -209,11 +212,15 @@ struct gcry_cipher_handle
     unsigned char iv[MAX_BLOCKSIZE];
   } u_iv;
 
+  /* The counter for CTR mode.  This field is also used by AESWRAP and
+     thus we can't use the U_IV union.  */
+  union {
+    cipher_context_alignment_t iv_align;
+    unsigned char ctr[MAX_BLOCKSIZE];
+  } u_ctr;
+
   unsigned char lastiv[MAX_BLOCKSIZE];
   int unused;  /* Number of unused bytes in the IV. */
-
-  unsigned char ctr[MAX_BLOCKSIZE];     /* For Counter (CTR) mode. */
-
 
   /* What follows are two contexts of the cipher in use.  The first
      one needs to be aligned well enough for the cipher operation
@@ -814,6 +821,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
               h->bulk.cfb_dec = _gcry_aes_cfb_dec;
               h->bulk.cbc_enc = _gcry_aes_cbc_enc;
               h->bulk.cbc_dec = _gcry_aes_cbc_dec;
+              h->bulk.ctr_enc = _gcry_aes_ctr_enc;
               break;
 #endif /*USE_AES*/
 
@@ -936,7 +944,7 @@ cipher_reset (gcry_cipher_hd_t c)
   memset (&c->marks, 0, sizeof c->marks);
   memset (c->u_iv.iv, 0, c->cipher->blocksize);
   memset (c->lastiv, 0, c->cipher->blocksize);
-  memset (c->ctr, 0, c->cipher->blocksize);
+  memset (c->u_ctr.ctr, 0, c->cipher->blocksize);
 }
 
 
@@ -1441,9 +1449,11 @@ do_ctr_encrypt (gcry_cipher_hd_t c,
                 const unsigned char *inbuf, unsigned int inbuflen)
 {
   unsigned int n;
-  unsigned char tmp[MAX_BLOCKSIZE];
   int i;
   unsigned int blocksize = c->cipher->blocksize;
+  unsigned int nblocks;
+
+  /* FIXME: This code does only work on complete blocks.  */
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
@@ -1451,25 +1461,38 @@ do_ctr_encrypt (gcry_cipher_hd_t c,
   if ((inbuflen % blocksize))
     return GPG_ERR_INV_LENGTH;
 
-  for (n=0; n < inbuflen; n++)
+  nblocks = inbuflen / blocksize;
+  if (nblocks && c->bulk.ctr_enc)
     {
-      if ((n % blocksize) == 0)
-	{
-	  c->cipher->encrypt (&c->context.c, tmp, c->ctr);
+      c->bulk.ctr_enc (&c->context.c, c->u_ctr.ctr, outbuf, inbuf, nblocks);
+      inbuf  += nblocks * blocksize;
+      outbuf += nblocks * blocksize;
+    }
+  else
+    {
+      unsigned char tmp[MAX_BLOCKSIZE];
 
-	  for (i = blocksize; i > 0; i--)
-	    {
-	      c->ctr[i-1]++;
-	      if (c->ctr[i-1] != 0)
-		break;
-	    }
-	}
+      for (n=0; n < inbuflen; n++)
+        {
+          if ((n % blocksize) == 0)
+            {
+              c->cipher->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
 
-      /* XOR input with encrypted counter and store in output.  */
-      outbuf[n] = inbuf[n] ^ tmp[n % blocksize];
+              for (i = blocksize; i > 0; i--)
+                {
+                  c->u_ctr.ctr[i-1]++;
+                  if (c->u_ctr.ctr[i-1] != 0)
+                    break;
+                }
+            }
+
+          /* XOR input with encrypted counter and store in output.  */
+          outbuf[n] = inbuf[n] ^ tmp[n % blocksize];
+        }
+
+      wipememory (tmp, sizeof tmp);
     }
 
-  wipememory (tmp, sizeof tmp);
   return 0;
 }
 
@@ -1517,7 +1540,7 @@ do_aeswrap_encrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
 
   r = outbuf;
   a = outbuf;  /* We store A directly in OUTBUF.  */
-  b = c->ctr;  /* B is also used to concatenate stuff.  */
+  b = c->u_ctr.ctr;  /* B is also used to concatenate stuff.  */
 
   /* If an IV has been set we use that IV as the Alternative Initial
      Value; if it has not been set we use the standard value.  */
@@ -1593,7 +1616,7 @@ do_aeswrap_decrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
 
   r = outbuf;
   a = c->lastiv;  /* We use c->LASTIV as buffer for A.  */
-  b = c->ctr;     /* B is also used to concatenate stuff.  */
+  b = c->u_ctr.ctr;     /* B is also used to concatenate stuff.  */
 
   /* Copy the inbuf to the outbuf and save A. */
   memcpy (a, inbuf, 8);
@@ -1861,9 +1884,9 @@ gpg_error_t
 _gcry_cipher_setctr (gcry_cipher_hd_t hd, const void *ctr, size_t ctrlen)
 {
   if (ctr && ctrlen == hd->cipher->blocksize)
-    memcpy (hd->ctr, ctr, hd->cipher->blocksize);
+    memcpy (hd->u_ctr.ctr, ctr, hd->cipher->blocksize);
   else if (!ctr || !ctrlen)
-    memset (hd->ctr, 0, hd->cipher->blocksize);
+    memset (hd->u_ctr.ctr, 0, hd->cipher->blocksize);
   else
     return gpg_error (GPG_ERR_INV_ARG);
   return 0;
@@ -1923,9 +1946,9 @@ gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
 
     case GCRYCTL_SET_CTR: /* Deprecated; use gcry_cipher_setctr.  */
       if (buffer && buflen == h->cipher->blocksize)
-	memcpy (h->ctr, buffer, h->cipher->blocksize);
+	memcpy (h->u_ctr.ctr, buffer, h->cipher->blocksize);
       else if (buffer == NULL || buflen == 0)
-	memset (h->ctr, 0, h->cipher->blocksize);
+	memset (h->u_ctr.ctr, 0, h->cipher->blocksize);
       else
 	rc = GPG_ERR_INV_ARG;
       break;

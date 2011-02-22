@@ -40,15 +40,18 @@ Noteworthy changes in version 1.5.x (unreleased)
  * Boosted SHA-512 performance by 30% on ia32 boxes and gcc 4.3;
    SHA-256 went up by 25%.  [also in 1.4.5]
 
- * Interface changes relative to the 1.4.2 release:
+ * Interface changes relative to the 1.4.6 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  GCRY_PK_ECDH               NEW.
  gcry_pk_get_curve          NEW.
  gcry_pk_get_param          NEW.
  GCRYCTL_DISABLE_HWF        NEW.
- GCRY_CIPHER_MODE_AESWRAP   NEW. [also in 1.4.6]
- GCRY_MD_TIGER1             NEW. [also in 1.4.6]
- GCRY_MD_TIGER2             NEW. [also in 1.4.6]
+
+ * Interface changes relative to the 1.4.2 release:
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ GCRY_CIPHER_MODE_AESWRAP   NEW.
+ GCRY_MD_TIGER1             NEW.
+ GCRY_MD_TIGER2             NEW.
 
 
 Noteworthy changes in version 1.4.4 (2009-01-22)

@@ -90,9 +90,7 @@ typedef u32           u32_a_t;
 #endif
 
 
-static const char *selftest(void);
-
-
+
 /* Our context object.  */
 typedef struct
 {
@@ -144,6 +142,11 @@ typedef struct
   do { asm volatile ("pxor %%xmm0, %%xmm0\n\t"                          \
                      "pxor %%xmm1, %%xmm1\n" :: );                      \
   } while (0)
+# define aesni_cleanup_2_4()                                            \
+  do { asm volatile ("pxor %%xmm2, %%xmm2\n\t"                          \
+                     "pxor %%xmm3, %%xmm3\n"                            \
+                     "pxor %%xmm4, %%xmm4\n":: );                       \
+  } while (0)
 #else
 # define aesni_prepare() do { } while (0)
 # define aesni_cleanup() do { } while (0)
@@ -154,6 +157,23 @@ typedef struct
 #include "rijndael-tables.h"
 
 
+
+/* Function prototypes.  */
+#ifdef USE_AESNI
+/* We don't want to inline these functions to help gcc allocate enough
+   registers.  */
+static void do_aesni_ctr (const RIJNDAEL_context *ctx, unsigned char *ctr,
+                          unsigned char *b, const unsigned char *a)
+  __attribute__ ((__noinline__));
+static void do_aesni_ctr_4 (const RIJNDAEL_context *ctx, unsigned char *ctr,
+                            unsigned char *b, const unsigned char *a)
+  __attribute__ ((__noinline__));
+#endif /*USE_AESNI*/
+
+static const char *selftest(void);
+
+
+
 /* Perform the key setup.  */
 static gcry_err_code_t
 do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
@@ -272,7 +292,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   else if (ctx->use_aesni && ctx->rounds == 10)
     {
       /* Note: This code works for AES-128 but it is not much better
-         than than using the standard key schedule.  We disable it for
+         than using the standard key schedule.  We disable it for
          now and don't put any effort into implementing this for
          AES-192 and AES-256.  */
       asm volatile ("movl   %[key], %%esi\n\t"
@@ -860,6 +880,239 @@ do_aesni_cfb (const RIJNDAEL_context *ctx, int decrypt_flag,
 #undef aesenclast_xmm1_xmm0
 }
 
+/* Perform a CTR encryption round using the counter CTR and the input
+   block A.  Write the result to the output block B and update CTR.
+   CTR needs to be a 16 byte aligned little-endian value.  */
+static void
+do_aesni_ctr (const RIJNDAEL_context *ctx,
+              unsigned char *ctr, unsigned char *b, const unsigned char *a)
+{
+#define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
+#define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
+  static unsigned char be_mask[16] __attribute__ ((aligned (16))) =
+    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+
+  asm volatile ("movdqa %[ctr], %%xmm0\n\t"     /* xmm0, xmm2 := CTR   */
+                "movaps %%xmm0, %%xmm2\n\t"
+                "mov    $1, %%esi\n\t"          /* xmm2++ (big-endian) */
+                "movd   %%esi, %%xmm1\n\t"
+                "pshufb %[mask], %%xmm2\n\t"
+                "paddq  %%xmm1, %%xmm2\n\t"
+                "pshufb %[mask], %%xmm2\n\t"
+                "movdqa %%xmm2, %[ctr]\n"       /* Update CTR.         */
+
+                "movl   %[key], %%esi\n\t"      /* esi  := keyschenc */
+                "movdqa (%%esi), %%xmm1\n\t"    /* xmm1 := key[0]    */
+                "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
+                "movdqa 0x10(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x20(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x30(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x40(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x50(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x60(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x70(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x80(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0x90(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xa0(%%esi), %%xmm1\n\t"
+                "cmp $10, %[rounds]\n\t"
+                "jz .Lenclast%=\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xb0(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xc0(%%esi), %%xmm1\n\t"
+                "cmp $12, %[rounds]\n\t"
+                "jz .Lenclast%=\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xd0(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                "movdqa 0xe0(%%esi), %%xmm1\n"
+
+                ".Lenclast%=:\n\t"
+                aesenclast_xmm1_xmm0
+                "movdqu %[src], %%xmm1\n\t"      /* xmm1 := input   */
+                "pxor %%xmm1, %%xmm0\n\t"        /* EncCTR ^= input  */
+                "movdqu %%xmm0, %[dst]"          /* Store EncCTR.    */
+
+                : [ctr] "+m" (*ctr), [dst] "=m" (*b)
+                : [src] "m" (*a),
+                  [key] "g" (ctx->keyschenc),
+                  [rounds] "g" (ctx->rounds),
+                  [mask] "m" (*be_mask)
+                : "%esi", "cc", "memory");
+#undef aesenc_xmm1_xmm0
+#undef aesenclast_xmm1_xmm0
+}
+
+
+/* Four blocks at a time variant of do_aesni_ctr.  */
+static void
+do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
+                unsigned char *ctr, unsigned char *b, const unsigned char *a)
+{
+#define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
+#define aesenc_xmm1_xmm2      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xd1\n\t"
+#define aesenc_xmm1_xmm3      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xd9\n\t"
+#define aesenc_xmm1_xmm4      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xe1\n\t"
+#define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
+#define aesenclast_xmm1_xmm2  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xd1\n\t"
+#define aesenclast_xmm1_xmm3  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xd9\n\t"
+#define aesenclast_xmm1_xmm4  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xe1\n\t"
+
+  static unsigned char be_mask[16] __attribute__ ((aligned (16))) =
+    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+
+  /* Register usage:
+      esi   keyschedule
+      xmm0  CTR-0
+      xmm1  temp / round key
+      xmm2  CTR-1
+      xmm3  CTR-2
+      xmm4  CTR-3
+      xmm5  temp
+   */
+
+  asm volatile ("movdqa %[ctr], %%xmm0\n\t"     /* xmm0, xmm2 := CTR   */
+                "movaps %%xmm0, %%xmm2\n\t"
+                "mov    $1, %%esi\n\t"          /* xmm1 := 1 */
+                "movd   %%esi, %%xmm1\n\t"
+                "pshufb %[mask], %%xmm2\n\t"    /* xmm2 := le(xmm2) */
+                "paddq  %%xmm1, %%xmm2\n\t"     /* xmm2++           */
+                "movaps %%xmm2, %%xmm3\n\t"     /* xmm3 := xmm2     */
+                "paddq  %%xmm1, %%xmm3\n\t"     /* xmm3++           */
+                "movaps %%xmm3, %%xmm4\n\t"     /* xmm4 := xmm3     */
+                "paddq  %%xmm1, %%xmm4\n\t"     /* xmm4++           */
+                "movaps %%xmm4, %%xmm5\n\t"     /* xmm5 := xmm4     */
+                "paddq  %%xmm1, %%xmm5\n\t"     /* xmm5++           */
+                "pshufb %[mask], %%xmm2\n\t"    /* xmm2 := be(xmm2) */
+                "pshufb %[mask], %%xmm3\n\t"    /* xmm3 := be(xmm3) */
+                "pshufb %[mask], %%xmm4\n\t"    /* xmm4 := be(xmm4) */
+                "pshufb %[mask], %%xmm5\n\t"    /* xmm5 := be(xmm5) */
+                "movdqa %%xmm5, %[ctr]\n"       /* Update CTR.      */
+
+                "movl   %[key], %%esi\n\t"      /* esi  := keyschenc */
+                "movdqa (%%esi), %%xmm1\n\t"    /* xmm1 := key[0]    */
+                "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm2\n\t"     /* xmm2 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm3\n\t"     /* xmm3 ^= key[0]    */
+                "pxor   %%xmm1, %%xmm4\n\t"     /* xmm4 ^= key[0]    */
+                "movdqa 0x10(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0x20(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0x30(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0x40(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0x50(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0x60(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0x70(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0x80(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0x90(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0xa0(%%esi), %%xmm1\n\t"
+                "cmp $10, %[rounds]\n\t"
+                "jz .Lenclast%=\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0xb0(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0xc0(%%esi), %%xmm1\n\t"
+                "cmp $12, %[rounds]\n\t"
+                "jz .Lenclast%=\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0xd0(%%esi), %%xmm1\n\t"
+                aesenc_xmm1_xmm0
+                aesenc_xmm1_xmm2
+                aesenc_xmm1_xmm3
+                aesenc_xmm1_xmm4
+                "movdqa 0xe0(%%esi), %%xmm1\n"
+
+                ".Lenclast%=:\n\t"
+                aesenclast_xmm1_xmm0
+                aesenclast_xmm1_xmm2
+                aesenclast_xmm1_xmm3
+                aesenclast_xmm1_xmm4
+
+                "movdqu %[src], %%xmm1\n\t"      /* Get block 1.      */
+                "pxor %%xmm1, %%xmm0\n\t"        /* EncCTR-1 ^= input */
+                "movdqu %%xmm0, %[dst]\n\t"      /* Store block 1     */
+
+                "movdqu (16)%[src], %%xmm1\n\t"  /* Get block 2.      */
+                "pxor %%xmm1, %%xmm2\n\t"        /* EncCTR-2 ^= input */
+                "movdqu %%xmm2, (16)%[dst]\n\t"  /* Store block 2.    */
+
+                "movdqu (32)%[src], %%xmm1\n\t"  /* Get block 3.      */
+                "pxor %%xmm1, %%xmm3\n\t"        /* EncCTR-3 ^= input */
+                "movdqu %%xmm3, (32)%[dst]\n\t"  /* Store block 3.    */
+
+                "movdqu (48)%[src], %%xmm1\n\t"  /* Get block 4.      */
+                "pxor %%xmm1, %%xmm4\n\t"        /* EncCTR-4 ^= input */
+                "movdqu %%xmm4, (48)%[dst]"      /* Store block 4.   */
+
+                : [ctr] "+m" (*ctr), [dst] "=m" (*b)
+                : [src] "m" (*a),
+                  [key] "g" (ctx->keyschenc),
+                  [rounds] "g" (ctx->rounds),
+                  [mask] "m" (*be_mask)
+                : "%esi", "cc", "memory");
+#undef aesenc_xmm1_xmm0
+#undef aesenc_xmm1_xmm2
+#undef aesenc_xmm1_xmm3
+#undef aesenc_xmm1_xmm4
+#undef aesenclast_xmm1_xmm0
+#undef aesenclast_xmm1_xmm2
+#undef aesenclast_xmm1_xmm3
+#undef aesenclast_xmm1_xmm4
+}
+
 
 static void
 do_aesni (RIJNDAEL_context *ctx, int decrypt_flag,
@@ -1011,6 +1264,69 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
         outbuf += BLOCKSIZE;
     }
   aesni_cleanup ();
+
+  _gcry_burn_stack (48 + 2*sizeof(int));
+}
+
+
+/* Bulk encryption of complete blocks in CTR mode.  Caller needs to
+   make sure that CTR is aligned on a 16 byte boundary if AESNI; the
+   minimum alignment is for an u32.  This function is only intended
+   for the bulk encryption feature of cipher.c.  CTR is expected to be
+   of size BLOCKSIZE. */
+void
+_gcry_aes_ctr_enc (void *context, unsigned char *ctr,
+                   void *outbuf_arg, const void *inbuf_arg,
+                   unsigned int nblocks)
+{
+  RIJNDAEL_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char *p;
+  int i;
+
+  if (0)
+    ;
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    {
+      aesni_prepare ();
+      for ( ;nblocks > 3 ; nblocks -= 4 )
+        {
+          do_aesni_ctr_4 (ctx, ctr, outbuf, inbuf);
+          outbuf += 4*BLOCKSIZE;
+          inbuf  += 4*BLOCKSIZE;
+        }
+      for ( ;nblocks; nblocks-- )
+        {
+          do_aesni_ctr (ctx, ctr, outbuf, inbuf);
+          outbuf += BLOCKSIZE;
+          inbuf  += BLOCKSIZE;
+        }
+      aesni_cleanup ();
+      aesni_cleanup_2_4 ();
+    }
+#endif /*USE_AESNI*/
+  else
+    {
+      union { unsigned char x1[16]; u32 x32[4]; } tmp;
+
+      for ( ;nblocks; nblocks-- )
+        {
+          /* Encrypt the counter. */
+          do_encrypt_aligned (ctx, tmp.x1, ctr);
+          /* XOR the input with the encrypted counter and store in output.  */
+          for (p=tmp.x1, i=0; i < BLOCKSIZE; i++)
+            *outbuf++ = (*p++ ^= *inbuf++);
+          /* Increment the counter.  */
+          for (i = BLOCKSIZE; i > 0; i--)
+            {
+              ctr[i-1]++;
+              if (ctr[i-1])
+                break;
+            }
+        }
+    }
 
   _gcry_burn_stack (48 + 2*sizeof(int));
 }
