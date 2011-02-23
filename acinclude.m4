@@ -194,7 +194,7 @@ int main()
 #if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
     pgsize = sysconf (_SC_PAGESIZE);
 #elif defined (HAVE_GETPAGESIZE)
-    pgsize = getpagesize();       
+    pgsize = getpagesize();
 #else
     pgsize = -1;
 #endif
@@ -256,62 +256,6 @@ for n in $list; do
 done
 ])
 
-dnl AM_PATH_GPG_ERROR([MINIMUM-VERSION,
-dnl                   [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]]])
-dnl Test for libgpg-error and define GPG_ERROR_CFLAGS and GPG_ERROR_LIBS
-dnl
-AC_DEFUN([AM_PATH_GPG_ERROR],
-[ AC_ARG_WITH(gpg-error-prefix,
-            AC_HELP_STRING([--with-gpg-error-prefix=PFX],
-                           [prefix where GPG Error is installed (optional)]),
-     gpg_error_config_prefix="$withval", gpg_error_config_prefix="")
-  if test x$gpg_error_config_prefix != x ; then
-     if test x${GPG_ERROR_CONFIG+set} != xset ; then
-        GPG_ERROR_CONFIG=$gpg_error_config_prefix/bin/gpg-error-config
-     fi
-  fi
-
-  AC_PATH_PROG(GPG_ERROR_CONFIG, gpg-error-config, no)
-  min_gpg_error_version=ifelse([$1], ,0.0,$1)
-  AC_MSG_CHECKING(for GPG Error - version >= $min_gpg_error_version)
-  ok=no
-  if test "$GPG_ERROR_CONFIG" != "no" ; then
-    req_major=`echo $min_gpg_error_version | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\)/\1/'`
-    req_minor=`echo $min_gpg_error_version | \
-               sed 's/\([[0-9]]*\)\.\([[0-9]]*\)/\2/'`
-    gpg_error_config_version=`$GPG_ERROR_CONFIG $gpg_error_config_args --version`
-    if test "$gpg_error_config_version"; then
-      major=`echo $gpg_error_config_version | \
-                 sed 's/\([[0-9]]*\)\.\([[0-9]]*\).*/\1/'`
-      minor=`echo $gpg_error_config_version | \
-                 sed 's/\([[0-9]]*\)\.\([[0-9]]*\).*/\2/'`
-      if test "$major" -gt "$req_major"; then
-          ok=yes
-      else 
-          if test "$major" -eq "$req_major"; then
-              if test "$minor" -ge "$req_minor"; then
-                 ok=yes
-              fi
-          fi
-      fi
-    fi
-  fi
-  if test $ok = yes; then
-    GPG_ERROR_CFLAGS=`$GPG_ERROR_CONFIG $gpg_error_config_args --cflags`
-    GPG_ERROR_LIBS=`$GPG_ERROR_CONFIG $gpg_error_config_args --libs`
-    AC_MSG_RESULT(yes)
-    ifelse([$2], , :, [$2])
-  else
-    GPG_ERROR_CFLAGS=""
-    GPG_ERROR_LIBS=""
-    AC_MSG_RESULT(no)
-    ifelse([$3], , :, [$3])
-  fi
-  AC_SUBST(GPG_ERROR_CFLAGS)
-  AC_SUBST(GPG_ERROR_LIBS)
-])
-
 
 dnl Check for socklen_t: historically on BSD it is an int, and in
 dnl POSIX 1g it is a type of its own, but some platforms use different
@@ -356,7 +300,7 @@ int getpeername (int, $arg2 *, $t *);
 
 
 # GNUPG_PTH_VERSION_CHECK(REQUIRED)
-# 
+#
 # If the version is sufficient, HAVE_PTH will be set to yes.
 #
 # Taken form the m4 macros which come with Pth
@@ -414,7 +358,5 @@ AC_DEFUN([GNUPG_PTH_VERSION_CHECK],
        AC_MSG_RESULT($gnupg_cv_pth_is_sane)
     else
        AC_MSG_RESULT(no)
-    fi    
+    fi
   ])
-
-

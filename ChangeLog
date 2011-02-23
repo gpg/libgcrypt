@@ -1,3 +1,7 @@
+2011-02-23  Werner Koch  <wk@g10code.com>
+
+	* acinclude.m4 (AM_PATH_GPG_ERROR): Remove.
+
 2011-02-21  Werner Koch  <wk@g10code.com>
 
 	Release 1.5.0-beta1.
