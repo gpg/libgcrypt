@@ -1,3 +1,9 @@
+2011-02-23  Werner Koch  <wk@g10code.com>
+
+	* libgcrypt-config.in: Add option --host.
+	* libgcrypt.m4: Use AC_PROG_TOOL to find the config script.  Print
+	a warning is the config scripts does not match the configure host.
+
 2011-02-21  Werner Koch  <wk@g10code.com>
 
 	* global.c (gcry_check_version): Do not take the patchlevel in

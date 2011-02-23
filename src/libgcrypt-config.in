@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 1999, 2002, 2003, 2004 Free Software Foundation, Inc.
+# Copyright (C) 1999, 2002, 2003, 2004, 2011 Free Software Foundation, Inc.
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -27,6 +27,9 @@ cflags="@LIBGCRYPT_CONFIG_CFLAGS@"
 # API info
 api_version="@LIBGCRYPT_CONFIG_API_VERSION@"
 
+# Configured for host
+my_host="@LIBGCRYPT_CONFIG_HOST@"
+
 # Misc information.
 symmetric_ciphers="@LIBGCRYPT_CIPHERS@"
 asymmetric_ciphers="@LIBGCRYPT_PUBKEY_CIPHERS@"
@@ -40,6 +43,7 @@ echo_algorithms=no
 echo_exec_prefix=no
 echo_version=no
 echo_api_version=no
+echo_host=no
 
 # Prints usage information.
 usage()
@@ -54,6 +58,7 @@ Options:
 	[--libs]
 	[--cflags]
 	[--algorithms]
+        [--host]
 EOF
     exit $1
 }
@@ -106,6 +111,9 @@ while test $# -gt 0; do
 	--algorithms)
 	    echo_algorithms=yes
 	    ;;
+        --host)
+            echo_host=yes
+            ;;
 	*)
 	    usage 1 1>&2
 	    ;;
@@ -168,6 +176,10 @@ fi
 
 if test "$echo_api_version" = "yes"; then
     echo "$api_version"
+fi
+
+if test "$echo_host" = "yes"; then
+    echo "$my_host"
 fi
 
 if test "$echo_algorithms" = "yes"; then

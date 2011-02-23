@@ -31,7 +31,7 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
      fi
   fi
 
-  AC_PATH_PROG(LIBGCRYPT_CONFIG, libgcrypt-config, no)
+  AC_PATH_TOOL(LIBGCRYPT_CONFIG, libgcrypt-config, no)
   tmp=ifelse([$1], ,1:1.2.0,$1)
   if echo "$tmp" | grep ':' >/dev/null 2>/dev/null ; then
      req_libgcrypt_api=`echo "$tmp"     | sed 's/\(.*\):\(.*\)/\1/'`
@@ -98,6 +98,21 @@ AC_DEFUN([AM_PATH_LIBGCRYPT],
     LIBGCRYPT_CFLAGS=`$LIBGCRYPT_CONFIG --cflags`
     LIBGCRYPT_LIBS=`$LIBGCRYPT_CONFIG --libs`
     ifelse([$2], , :, [$2])
+    if test x"$host" != x ; then
+      libgcrypt_config_host=`$LIBGCRYPT_CONFIG --host 2>/dev/null || echo none`
+      if test x"$libgcrypt_config_host" != xnone ; then
+        if test x"$libgcrypt_config_host" != x"$host" ; then
+  AC_MSG_WARN([[
+***
+*** The config script $LIBGCRYPT_CONFIG was
+*** built for $libgcrypt_config_host and thus may not match the
+*** used host $host.
+*** You may want to use the configure option --with-libgcrypt-prefix
+*** to specify a matching config script.
+***]])
+        fi
+      fi
+    fi
   else
     LIBGCRYPT_CFLAGS=""
     LIBGCRYPT_LIBS=""

@@ -154,6 +154,7 @@ LT_LANG([Windows Resource])
 # Used by libgcrypt-config
 LIBGCRYPT_CONFIG_LIBS="-lgcrypt"
 LIBGCRYPT_CONFIG_CFLAGS=""
+LIBGCRYPT_CONFIG_HOST="$host"
 
 # Definitions for symmetric ciphers.
 available_ciphers="arcfour blowfish cast5 des aes twofish serpent rfc2268 seed"
@@ -963,6 +964,7 @@ CL_AS_NOEXECSTACK
 AC_SUBST(LIBGCRYPT_CONFIG_API_VERSION)
 AC_SUBST(LIBGCRYPT_CONFIG_LIBS)
 AC_SUBST(LIBGCRYPT_CONFIG_CFLAGS)
+AC_SUBST(LIBGCRYPT_CONFIG_HOST)
 AC_SUBST(LIBGCRYPT_THREAD_MODULES)
 
 AC_CONFIG_COMMANDS([gcrypt-conf],[[
