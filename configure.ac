@@ -197,6 +197,8 @@ LIBGCRYPT_THREAD_MODULES=""
 print_egd_notice=no
 have_w32_system=no
 have_w32ce_system=no
+have_pthread=no
+
 
 # Setup some stuff depending on host.
 case "${host}" in
@@ -630,6 +632,14 @@ if test "$use_random_daemon" = "yes"; then
 fi
 AC_SUBST(PTH_CFLAGS)
 AC_SUBST(PTH_LIBS)
+
+#
+# Check whether pthreads is available
+#
+AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
+if test "$have_pthread" = yes; then
+   AC_DEFINE(HAVE_PTHREAD, ,[Define if we have pthread.])
+fi
 
 
 # Solaris needs -lsocket and -lnsl. Unisys system includes

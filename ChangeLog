@@ -33,6 +33,8 @@
 
 2011-02-23  Werner Koch  <wk@g10code.com>
 
+	* configure.ac (HAVE_PTHREAD): New.
+
 	* configure.ac (LIBGCRYPT_CONFIG_HOST): New.
 
 	* acinclude.m4 (AM_PATH_GPG_ERROR): Remove.
