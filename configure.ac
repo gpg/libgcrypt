@@ -55,7 +55,8 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 NEED_GPG_ERROR_VERSION=1.8
 
 is_development_version=my_issvn
-BUILD_REVISION=m4_if(git_revision,[],[svn_revision],[git_revision])
+m4_define([git_brevis],m4_esyscmd(printf "%u" 0x[]m4_substr(git_revision,0,4)))
+BUILD_REVISION=m4_if(git_revision,[],[svn_revision],[git_brevis])
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
