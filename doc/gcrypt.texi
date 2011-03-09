@@ -12,7 +12,7 @@ This manual is for Libgcrypt
 (version @value{VERSION}, @value{UPDATED}),
 which is GNU's library of cryptographic building blocks.
 
-Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2011 Free Software Foundation, Inc.
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -68,6 +68,7 @@ section entitled ``GNU General Public License''.
 * Symmetric cryptography::       How to use symmetric cryptography.
 * Public Key cryptography::      How to use public key cryptography.
 * Hashing::                      How to use hash and MAC algorithms.
+* Key Derivation::               How to derive keys from strings
 * Random Numbers::               How to work with random numbers.
 * S-expressions::                How to manage S-expressions.
 * MPI library::                  How to work with multi-precision-integers.
@@ -3927,6 +3928,65 @@ file is the raw data as passed to @code{gcry_md_write} or
 Stop debugging on handle @var{h}.  @var{reserved} should be specified as
 0.  This function is usually not required because @code{gcry_md_close}
 does implicitly stop debugging.
+@end deftypefun
+
+
+@c *******************************************************
+@c *******************  KDF  *****************************
+@c *******************************************************
+@node Key Derivation
+@chapter Key Derivation
+
+@acronym{Libgcypt} provides a general purpose function to derive keys
+from strings.
+
+@deftypefun gpg_error_t gcry_kdf_derive ( @
+            @w{const void *@var{passphrase}}, @w{size_t @var{passphraselen}}, @
+            @w{int @var{algo}}, @w{int @var{subalgo}}, @
+            @w{const void *@var{salt}}, @w{size_t @var{saltlen}}, @
+            @w{unsigned long @var{iterations}}, @
+            @w{size_t @var{keysize}}, @w{void *@var{keybuffer}} )
+
+
+Derive a key from a passphrase.  @var{keysize} gives the requested
+size of the keys in octets.  @var{keybuffer} is a caller provided
+buffer filled on success with the derived key.  The input passphrase
+is taken from @var{passphrase} which is an arbitrary memory buffer of
+@var{passphraselen} octets.  @var{algo} specifies the KDF algorithm to
+use; see below.  @var{subalgo} specifies an algorithm used internally
+by the KDF algorithms; this is usually a hash algorithm but certain
+KDF algorithms may use it differently.  @var{salt} is a salt of length
+@var{saltlen} octets, as needed by most KDF algorithms.
+@var{iterations} is a positive integer parameter to most KDFs.
+
+@noindent
+On success 0 is returned; on failure an error code.
+
+@noindent
+Currently supported KDFs (parameter @var{algo}):
+
+@table @code
+@item GCRY_KDF_SIMPLE_S2K
+The OpenPGP simple S2K algorithm (cf. RFC4880).  Its use is strongly
+deprecated.  @var{salt} and @var{iterations} are not needed and may be
+passed as @code{NULL}/@code{0}.
+
+@item GCRY_KDF_SALTED_S2K
+The OpenPGP salted S2K algorithm (cf. RFC4880).  Usually not used.
+@var{iterations} is not needed and may be passed as @code{0}.  @var{saltlen}
+must be given as 8.
+
+@item GCRY_KDF_ITERSALTED_S2K
+The OpenPGP iterated+salted S2K algorithm (cf. RFC4880).  This is the
+default for most OpenPGP applications.  @var{saltlen} must be given as
+8.  Note that OpenPGP defines a special encoding of the
+@var{iterations}; however this function takes the plain decoded
+iteration count.
+
+@item GCRY_KDF_PBKDF2
+The PKCS#5 Passphrase Based Key Derivation Function number 2.
+
+@end table
 @end deftypefun
 
 

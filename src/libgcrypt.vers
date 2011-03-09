@@ -75,6 +75,8 @@ GCRYPT_1.2 {
     gcry_ac_data_to_sexp; gcry_ac_data_from_sexp;
     gcry_ac_io_init; gcry_ac_io_init_va;
 
+    gcry_kdf_derive;
+
     gcry_prime_check; gcry_prime_generate;
     gcry_prime_group_generator; gcry_prime_release_factors;
 

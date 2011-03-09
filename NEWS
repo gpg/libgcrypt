@@ -1,6 +1,9 @@
 Noteworthy changes in version 1.5.x (unreleased)
 ------------------------------------------------
 
+ * New function gcry_kdf_derive implementing OpenPGP S2K algorithms
+   and PBKDF2.
+
  * Support for WindowsCE.
 
  * Support ECDH.
@@ -46,6 +49,7 @@ Noteworthy changes in version 1.5.x (unreleased)
  gcry_pk_get_curve          NEW.
  gcry_pk_get_param          NEW.
  GCRYCTL_DISABLE_HWF        NEW.
+ gcry_kdf_derive            NEW.
 
  * Interface changes relative to the 1.4.2 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

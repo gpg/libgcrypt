@@ -1210,6 +1210,17 @@ gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm)
   return 0;
 }
 
+gpg_error_t
+gcry_kdf_derive (const void *passphrase, size_t passphraselen,
+                 int algo, int hashalgo,
+                 const void *salt, size_t saltlen,
+                 unsigned long iterations,
+                 size_t keysize, void *keybuffer)
+{
+  return _gcry_kdf_derive (passphrase, passphraselen, algo, hashalgo,
+                           salt, saltlen, iterations, keysize, keybuffer);
+}
+
 void
 gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {

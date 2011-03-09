@@ -235,3 +235,5 @@ EXPORTS
 
       gcry_pk_get_curve     @192
       gcry_pk_get_param     @193
+
+      gcry_kdf_derive       @194

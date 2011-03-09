@@ -153,6 +153,8 @@
 #define gcry_ac_io_init             _gcry_ac_io_init
 #define gcry_ac_io_init_va          _gcry_ac_io_init_va
 
+#define gcry_kdf_derive             _gcry_kdf_derive
+
 #define gcry_prime_check            _gcry_prime_check
 #define gcry_prime_generate         _gcry_prime_generate
 #define gcry_prime_group_generator  _gcry_prime_group_generator
@@ -501,6 +503,8 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 #undef gcry_ac_io_init
 #undef gcry_ac_io_init_va
 
+#undef gcry_kdf_derive
+
 #undef gcry_prime_check
 #undef gcry_prime_generate
 #undef gcry_prime_group_generator
@@ -714,6 +718,8 @@ MARK_VISIBLE (gcry_ac_data_to_sexp)
 MARK_VISIBLE (gcry_ac_data_from_sexp)
 MARK_VISIBLE (gcry_ac_io_init)
 MARK_VISIBLE (gcry_ac_io_init_va)
+
+MARK_VISIBLE (gcry_kdf_derive)
 
 MARK_VISIBLE (gcry_prime_check)
 MARK_VISIBLE (gcry_prime_generate)

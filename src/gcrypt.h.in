@@ -1658,6 +1658,33 @@ gcry_error_t gcry_ac_name_to_id (const char *name,
 #endif /*GCRYPT_NO_DEPRECATED*/
 
 
+/******************************
+ *                            *
+ *  Key Derivation Functions  *
+ *                            *
+ ******************************/
+
+/* Algorithm IDs for the KDFs.  */
+enum gcry_kdf_algos
+  {
+    GCRY_KDF_NONE = 0,
+    GCRY_KDF_SIMPLE_S2K = 16,
+    GCRY_KDF_SALTED_S2K = 17,
+    GCRY_KDF_ITERSALTED_S2K = 19,
+    GCRY_KDF_PBKDF1 = 33,
+    GCRY_KDF_PBKDF2 = 34
+  };
+
+/* Derive a key from a passphrase.  */
+gpg_error_t gcry_kdf_derive (const void *passphrase, size_t passphraselen,
+                             int algo, int subalgo,
+                             const void *salt, size_t saltlen,
+                             unsigned long iterations,
+                             size_t keysize, void *keybuffer);
+
+
+
+
 /************************************
  *                                  *
  *   Random Generating Functions    *

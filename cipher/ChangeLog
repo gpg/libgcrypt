@@ -1,3 +1,7 @@
+2011-03-09  Werner Koch  <wk@g10code.com>
+
+	* kdf.c: New.
+
 2011-02-22  Werner Koch  <wk@g10code.com>
 
 	* rijndael.c (aesni_cleanup_2_4): New.
