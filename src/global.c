@@ -534,6 +534,10 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       err = _gcry_fips_run_selftests (1);
       break;
 
+#if _GCRY_GCC_VERSION >= 40600
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wswitch"
+#endif
     case 58:  /* Init external random test.  */
       {
         void **rctx        = va_arg (arg_ptr, void **);
@@ -568,6 +572,13 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
         _gcry_random_deinit_external_test (ctx);
       }
       break;
+    case 61:  /* RFU */
+      break;
+    case 62:  /* RFU */
+      break;
+#if _GCRY_GCC_VERSION >= 40600
+# pragma GCC diagnostic pop
+#endif
 
     case GCRYCTL_DISABLE_HWF:
       {

@@ -1232,6 +1232,7 @@ md_stop_debug( gcry_md_hd_t md )
     volatile u64 b = 42;
     volatile u64 c;
     c = a * b;
+    (void)c;
   }
 #endif
 }

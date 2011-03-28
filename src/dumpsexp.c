@@ -378,7 +378,7 @@ init_data (void)
 static void
 push_data (int c)
 {
-
+  (void)c;
 }
 
 /* Flush and thus print the current data chunk.  */

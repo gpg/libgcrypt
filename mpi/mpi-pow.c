@@ -45,7 +45,7 @@ gcry_mpi_powm (gcry_mpi_t res,
   mpi_size_t esize, msize, bsize, rsize;
   int               msign, bsign, rsign;
   /* Flags telling the secure allocation status of the arguments.  */
-  int        esec,  msec,  bsec,  rsec;
+  int        esec,  msec,  bsec;
   /* Size of the result including space for temporary values.  */
   mpi_size_t size;
   /* Helper.  */
@@ -71,7 +71,6 @@ gcry_mpi_powm (gcry_mpi_t res,
   esec = mpi_is_secure(expo);
   msec = mpi_is_secure(mod);
   bsec = mpi_is_secure(base);
-  rsec = mpi_is_secure(res);
 
   rp = res->d;
   ep = expo->d;

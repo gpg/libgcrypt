@@ -1,3 +1,10 @@
+2011-03-28  Werner Koch  <wk@g10code.com>
+
+	* primegen.c (_gcry_generate_elg_prime): Make sure that PRIME is
+	NULL if the called func ever returns an error.
+
+	* pubkey.c (gcry_pk_decrypt): Remove unused var PUBKEY.
+
 2011-03-09  Werner Koch  <wk@g10code.com>
 
 	* kdf.c: New.

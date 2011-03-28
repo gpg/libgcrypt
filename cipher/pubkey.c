@@ -1755,7 +1755,6 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   int modern, want_pkcs1, flags;
   gcry_err_code_t rc;
   gcry_module_t module_enc = NULL, module_key = NULL;
-  gcry_pk_spec_t *pubkey = NULL;
 
   *r_plain = NULL;
 
@@ -1774,8 +1773,6 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
       rc = GPG_ERR_CONFLICT; /* Key algo does not match data algo. */
       goto leave;
     }
-
-  pubkey = (gcry_pk_spec_t *) module_key->spec;
 
   rc = pubkey_decrypt (module_key->mod_id, &plain, data, skey, flags);
   if (rc)

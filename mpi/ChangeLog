@@ -1,3 +1,7 @@
+2011-03-28  Werner Koch  <wk@g10code.com>
+
+	* mpi-pow.c (gcry_mpi_powm): Remove unused var RSEC.
+
 2011-02-01  Werner Koch  <wk@g10code.com>
 
 	* mpi-cmp.c (gcry_mpi_cmp): Allow comparing of opaque MPIs.

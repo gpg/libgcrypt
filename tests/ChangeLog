@@ -1,3 +1,7 @@
+2011-03-28  Werner Koch  <wk@g10code.com>
+
+	* random.c (readn): Remove used var P.
+
 2011-02-21  Werner Koch  <wk@g10code.com>
 
 	* version.c (main): Do a verbatim check of the version string.

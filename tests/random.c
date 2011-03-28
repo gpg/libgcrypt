@@ -84,9 +84,7 @@ readn (int fd, void *buf, size_t buflen, size_t *ret_nread)
 {
   size_t nleft = buflen;
   int nread;
-  char *p;
 
-  p = buf;
   while ( nleft > 0 )
     {
       nread = read ( fd, buf, nleft );

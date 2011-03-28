@@ -738,12 +738,12 @@ gcry_mpi_t
 _gcry_generate_elg_prime (int mode, unsigned pbits, unsigned qbits,
 			  gcry_mpi_t g, gcry_mpi_t **ret_factors)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
   gcry_mpi_t prime = NULL;
 
-  err = prime_generate_internal ((mode == 1), &prime, pbits, qbits, g,
-				 ret_factors, GCRY_WEAK_RANDOM, 0, 0,
-                                 NULL, NULL);
+  if (prime_generate_internal ((mode == 1), &prime, pbits, qbits, g,
+                               ret_factors, GCRY_WEAK_RANDOM, 0, 0,
+                               NULL, NULL))
+    prime = NULL; /* (Should be NULL in the error case anyway.)  */
 
   return prime;
 }
