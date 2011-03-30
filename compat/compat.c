@@ -27,7 +27,7 @@ _gcry_compat_identification (void)
 {
   static const char blurb[] =
     "\n\n"
-    "This is Libgcrypt - The GNU Crypto Library\n"
+    "This is Libgcrypt " PACKAGE_VERSION " - The GNU Crypto Library\n"
     "Copyright 2000, 2002, 2003, 2004, 2007, 2008, 2009,\n"
     "          2010, 2011 Free Software Foundation, Inc.\n"
     "\n\n";

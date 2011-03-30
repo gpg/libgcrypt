@@ -1,3 +1,7 @@
+2011-03-30  Werner Koch  <wk@g10code.com>
+
+	* compat/compat.c (_gcry_compat_identification): Add version string.
+
 2011-03-08  Werner Koch  <wk@g10code.com>
 
 	* configure.ac (BUILD_REVISION): Use new git_brevis macro.
