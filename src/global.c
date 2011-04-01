@@ -833,6 +833,16 @@ gcry_realloc (void *a, size_t n)
 {
   void *p;
 
+  /* To avoid problems with non-standard realloc implementations and
+     our own secmem_realloc, we divert to malloc and free here.  */
+  if (!a)
+    return gcry_malloc (n);
+  if (!n)
+    {
+      gcry_free (a);
+      return NULL;
+    }
+
   if (realloc_func)
     p = realloc_func (a, n);
   else

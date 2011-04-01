@@ -1,3 +1,7 @@
+2011-04-01  Werner Koch  <wk@g10code.com>
+
+	* global.c (gcry_realloc): Divert to gcry_malloc or gcry_free.
+
 2011-03-09  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in (gcry_kdf_algos): New.
