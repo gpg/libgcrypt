@@ -1620,6 +1620,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
         tmpvalues[idx] = NULL;
 
       curve = _gcry_sexp_nth_string (l1, 1);
+      gcry_sexp_release (l1);
       if (!curve)
         {
           ec = GPG_ERR_INV_OBJ; /* Name missing or out of core. */

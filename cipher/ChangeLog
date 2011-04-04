@@ -1,3 +1,10 @@
+2011-04-04  Werner Koch  <wk@g10code.com>
+
+	* ecc.c (compute_keygrip): Release L1 while parsing "curve".
+
+	* pubkey.c (gcry_pk_get_keygrip): Always release NAME and L2.
+	Reported by Ben Kibbey.
+
 2011-03-28  Werner Koch  <wk@g10code.com>
 
 	* primegen.c (_gcry_generate_elg_prime): Make sure that PRIME is

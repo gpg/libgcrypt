@@ -2401,6 +2401,7 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   int idx;
   const char *elems;
   gcry_md_hd_t md = NULL;
+  int okay = 0;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -2479,16 +2480,14 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
     }
 
   memcpy (array, gcry_md_read (md, GCRY_MD_SHA1), 20);
-  gcry_md_close (md);
-  gcry_sexp_release (list);
-  return array;
+  okay = 1;
 
  fail:
   gcry_free (name);
   gcry_sexp_release (l2);
   gcry_md_close (md);
   gcry_sexp_release (list);
-  return NULL;
+  return okay? array : NULL;
 }
 
 
