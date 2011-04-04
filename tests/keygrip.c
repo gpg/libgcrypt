@@ -31,6 +31,7 @@
 #include "../src/gcrypt.h"
 
 static int verbose;
+static int repetitions;
 
 
 
@@ -143,6 +144,7 @@ check (void)
   gcry_error_t err;
   gcry_sexp_t sexp;
   unsigned int i;
+  int repn;
 
   for (i = 0; i < (sizeof (key_grips) / sizeof (*key_grips)); i++)
     {
@@ -157,14 +159,18 @@ check (void)
 			     strlen (key_grips[i].key));
       if (err)
         die ("scanning data %d failed: %s\n", i, gpg_strerror (err));
-      ret = gcry_pk_get_keygrip (sexp, buf);
-      if (!ret)
-        die ("gcry_pk_get_keygrip failed for %d\n", i);
 
-      if ( memcmp (key_grips[i].grip, buf, sizeof (buf)) )
+      for (repn=0; repn < repetitions; repn++)
         {
-          print_hex ("keygrip: ", buf, sizeof buf);
-          die ("keygrip for %d does not match\n", i);
+          ret = gcry_pk_get_keygrip (sexp, buf);
+          if (!ret)
+            die ("gcry_pk_get_keygrip failed for %d\n", i);
+
+          if ( memcmp (key_grips[i].grip, buf, sizeof (buf)) )
+            {
+              print_hex ("keygrip: ", buf, sizeof buf);
+              die ("keygrip for %d does not match\n", i);
+            }
         }
 
       gcry_sexp_release (sexp);
@@ -188,12 +194,44 @@ progress_handler (void *cb_data, const char *what, int printchar,
 int
 main (int argc, char **argv)
 {
+  int last_argc = -1;
   int debug = 0;
 
-  if (argc > 1 && !strcmp (argv[1], "--verbose"))
-    verbose = 1;
-  else if (argc > 1 && !strcmp (argv[1], "--debug"))
-    verbose = debug = 1;
+  if (argc)
+    { argc--; argv++; }
+
+  while (argc && last_argc != argc )
+    {
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--verbose"))
+        {
+          verbose = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--debug"))
+        {
+          verbose = 1;
+          debug = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--repetitions"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              repetitions = atoi(*argv);
+              argc--; argv++;
+            }
+        }
+    }
+
+  if (repetitions < 1)
+    repetitions = 1;
 
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
