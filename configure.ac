@@ -338,6 +338,11 @@ default_ciphers="$available_ciphers"
 default_pubkey_ciphers="$available_pubkey_ciphers"
 default_digests="$available_digests"
 
+# Substitutions to set generated files in a Emacs buffer to read-only.
+AC_SUBST(emacs_local_vars_begin, ['Local Variables:'])
+AC_SUBST(emacs_local_vars_read_only, ['buffer-read-only: t'])
+AC_SUBST(emacs_local_vars_end, ['End:'])
+
 ############################
 ## Command line switches. ##
 ############################
@@ -1186,11 +1191,6 @@ AC_SUBST(BUILD_FILEVERSION)
 AC_DEFINE_UNQUOTED(BUILD_REVISION, "$BUILD_REVISION",
                    [Subversion revision used to build this package])
 
-
-# Substitutions to set generated files in a Emacs buffer to read-only.
-AC_SUBST(emacs_local_vars_begin, ['Local Variables:'])
-AC_SUBST(emacs_local_vars_read_only, ['buffer-read-only: t'])
-AC_SUBST(emacs_local_vars_end, ['End:'])
 
 
 # And create the files.

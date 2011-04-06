@@ -1,3 +1,8 @@
+2011-04-06  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (emacs_local_vars_begin): Move more to the top to
+	avoid Emacs warnings.
+
 2011-03-30  Werner Koch  <wk@g10code.com>
 
 	* compat/compat.c (_gcry_compat_identification): Add version string.
