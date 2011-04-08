@@ -141,6 +141,11 @@ gen_k( gcry_mpi_t q )
   unsigned int nbytes = (nbits+7)/8;
   char *rndbuf = NULL;
 
+  /* To learn why we don't use mpi_mod to get the requested bit size,
+     read the paper: "The Insecurity of the Digital Signature
+     Algorithm with Partially Known Nonces" by Nguyen and Shparlinski.
+     Journal of Cryptology, New York. Vol 15, nr 3 (2003)  */
+
   if ( DBG_CIPHER )
     log_debug("choosing a random k ");
   for (;;)
@@ -156,13 +161,20 @@ gen_k( gcry_mpi_t q )
       else
         { /* Change only some of the higher bits.  We could improve
 	     this by directly requesting more memory at the first call
-	     to get_random_bytes() and use this the here maybe it is
-	     easier to do this directly in random.c. */
+	     to get_random_bytes() and use these extra bytes here.
+	     However the required management code is more complex and
+	     thus we better use this simple method.  */
           char *pp = gcry_random_bytes_secure( 4, GCRY_STRONG_RANDOM );
           memcpy( rndbuf,pp, 4 );
           gcry_free(pp);
 	}
       _gcry_mpi_set_buffer( k, rndbuf, nbytes, 0 );
+
+      /* Make sure we have the requested number of bits.  This code
+         looks a bit funny but it is easy to understand if you
+         consider that mpi_set_highbit clears all higher bits.  We
+         don't have a clear_highbit, thus we first set the high bit
+         and then clear it again.  */
       if ( mpi_test_bit( k, nbits-1 ) )
         mpi_set_highbit( k, nbits-1 );
       else
