@@ -1,5 +1,7 @@
 2011-04-11  Werner Koch  <wk@g10code.com>
 
+	* pubkey.c (gcry_pk_get_keygrip): Avoid double free of L2.
+
 	* cipher.c (_gcry_cipher_setctr): Clear unused lastiv info.
 	(gcry_cipher_ctl) <GCRYCTL_SET_CTR>: Implement by calling
 	_gcry_cipher_setctr.

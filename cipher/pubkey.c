@@ -2468,6 +2468,7 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
           gcry_md_write (md, buf, strlen (buf));
           gcry_md_write (md, data, datalen);
           gcry_sexp_release (l2);
+          l2 = NULL;
           gcry_md_write (md, ")", 1);
         }
     }
