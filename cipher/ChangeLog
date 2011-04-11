@@ -1,5 +1,10 @@
 2011-04-11  Werner Koch  <wk@g10code.com>
 
+	* cipher.c (_gcry_cipher_setctr): Clear unused lastiv info.
+	(gcry_cipher_ctl) <GCRYCTL_SET_CTR>: Implement by calling
+	_gcry_cipher_setctr.
+	(do_ctr_encrypt): Save last counter and reuse it.
+
 	* cipher.c (do_ctr_encrypt): Allow arbitrary length inputs to
 	match the 1.4 behaviour.
 

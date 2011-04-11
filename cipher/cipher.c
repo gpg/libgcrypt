@@ -219,8 +219,9 @@ struct gcry_cipher_handle
     unsigned char ctr[MAX_BLOCKSIZE];
   } u_ctr;
 
+  /* Space to save an IV or CTR for chaining operations.  */
   unsigned char lastiv[MAX_BLOCKSIZE];
-  int unused;  /* Number of unused bytes in the IV. */
+  int unused;  /* Number of unused bytes in LASTIV. */
 
   /* What follows are two contexts of the cipher in use.  The first
      one needs to be aligned well enough for the cipher operation
@@ -1456,6 +1457,22 @@ do_ctr_encrypt (gcry_cipher_hd_t c,
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
 
+  /* First process a left over encrypted counter.  */
+  if (c->unused)
+    {
+      gcry_assert (c->unused < blocksize);
+      i = blocksize - c->unused;
+      for (n=0; c->unused && n < inbuflen; c->unused--, n++, i++)
+        {
+          /* XOR input with encrypted counter and store in output.  */
+          outbuf[n] = inbuf[n] ^ c->lastiv[i];
+        }
+      inbuf  += n;
+      outbuf += n;
+      inbuflen -= n;
+    }
+
+
   /* Use a bulk method if available.  */
   nblocks = inbuflen / blocksize;
   if (nblocks && c->bulk.ctr_enc)
@@ -1489,6 +1506,12 @@ do_ctr_encrypt (gcry_cipher_hd_t c,
           /* XOR input with encrypted counter and store in output.  */
           outbuf[n] = inbuf[n] ^ tmp[n % blocksize];
         }
+
+      /* Save the unused bytes of the counter.  */
+      n %= blocksize;
+      c->unused = (blocksize - n) % blocksize;
+      if (c->unused)
+        memcpy (c->lastiv+n, tmp+n, c->unused);
 
       wipememory (tmp, sizeof tmp);
     }
@@ -1884,9 +1907,15 @@ gpg_error_t
 _gcry_cipher_setctr (gcry_cipher_hd_t hd, const void *ctr, size_t ctrlen)
 {
   if (ctr && ctrlen == hd->cipher->blocksize)
-    memcpy (hd->u_ctr.ctr, ctr, hd->cipher->blocksize);
+    {
+      memcpy (hd->u_ctr.ctr, ctr, hd->cipher->blocksize);
+      hd->unused = 0;
+    }
   else if (!ctr || !ctrlen)
-    memset (hd->u_ctr.ctr, 0, hd->cipher->blocksize);
+    {
+      memset (hd->u_ctr.ctr, 0, hd->cipher->blocksize);
+      hd->unused = 0;
+    }
   else
     return gpg_error (GPG_ERR_INV_ARG);
   return 0;
@@ -1945,12 +1974,7 @@ gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
       break;
 
     case GCRYCTL_SET_CTR: /* Deprecated; use gcry_cipher_setctr.  */
-      if (buffer && buflen == h->cipher->blocksize)
-	memcpy (h->u_ctr.ctr, buffer, h->cipher->blocksize);
-      else if (buffer == NULL || buflen == 0)
-	memset (h->u_ctr.ctr, 0, h->cipher->blocksize);
-      else
-	rc = GPG_ERR_INV_ARG;
+      rc = gpg_err_code (_gcry_cipher_setctr (h, buffer, buflen));
       break;
 
     case 61:  /* Disable weak key detection (private).  */

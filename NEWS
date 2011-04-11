@@ -31,6 +31,8 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * New cipher algorithm mode for AES-WRAP.  [also in 1.4.6]
 
+ * CTR mode may now be used with data chunks of arbitrary length.
+
  * Fixed minor memory leak in DSA key generation.  [also in 1.4.5]
 
  * No more switching to FIPS mode if /proc/version is not
