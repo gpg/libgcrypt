@@ -1,3 +1,9 @@
+2011-04-11  Werner Koch  <wk@g10code.com>
+
+	* basic.c (mismatch): New.
+	(check_ctr_cipher): Remove length error code checks.  Add
+	truncation checks.
+
 2011-04-04  Werner Koch  <wk@g10code.com>
 
 	* keygrip.c (main): Add option --repetitions.

@@ -1,3 +1,8 @@
+2011-04-11  Werner Koch  <wk@g10code.com>
+
+	* cipher.c (do_ctr_encrypt): Allow arbitrary length inputs to
+	match the 1.4 behaviour.
+
 2011-04-04  Werner Koch  <wk@g10code.com>
 
 	* ecc.c (compute_keygrip): Release L1 while parsing "curve".

@@ -1453,22 +1453,22 @@ do_ctr_encrypt (gcry_cipher_hd_t c,
   unsigned int blocksize = c->cipher->blocksize;
   unsigned int nblocks;
 
-  /* FIXME: This code does only work on complete blocks.  */
-
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
 
-  if ((inbuflen % blocksize))
-    return GPG_ERR_INV_LENGTH;
-
+  /* Use a bulk method if available.  */
   nblocks = inbuflen / blocksize;
   if (nblocks && c->bulk.ctr_enc)
     {
       c->bulk.ctr_enc (&c->context.c, c->u_ctr.ctr, outbuf, inbuf, nblocks);
       inbuf  += nblocks * blocksize;
       outbuf += nblocks * blocksize;
+      inbuflen -= nblocks * blocksize;
     }
-  else
+
+  /* If we don't have a bulk method use the standard method.  We also
+     use this method for the a remaining partial block.  */
+  if (inbuflen)
     {
       unsigned char tmp[MAX_BLOCKSIZE];
 

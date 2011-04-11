@@ -69,6 +69,22 @@ fail (const char *format, ...)
 }
 
 static void
+mismatch (const void *expected, size_t expectedlen,
+          const void *computed, size_t computedlen)
+{
+  const unsigned char *p;
+
+  fprintf (stderr, "expected:");
+  for (p = expected; expectedlen; p++, expectedlen--)
+    fprintf (stderr, " %02x", *p);
+  fprintf (stderr, "\ncomputed:");
+  for (p = computed; computedlen; p++, computedlen--)
+    fprintf (stderr, " %02x", *p);
+  fprintf (stderr, "\n");
+}
+
+
+static void
 die (const char *format, ...)
 {
   va_list arg_ptr;
@@ -349,8 +365,7 @@ check_ctr_cipher (void)
       unsigned char plaintext[MAX_DATA_LEN];
       int inlen;
       char out[MAX_DATA_LEN];
-    }
-    data[MAX_DATA_LEN];
+    } data[5];
   } tv[] =
     {
       /* http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf */
@@ -369,6 +384,8 @@ check_ctr_cipher (void)
 	  { "\xf6\x9f\x24\x45\xdf\x4f\x9b\x17\xad\x2b\x41\x7b\xe6\x6c\x37\x10",
 	    16,
 	    "\x1e\x03\x1d\xda\x2f\xbe\x03\xd1\x79\x21\x70\xa0\xf3\x00\x9c\xee" },
+
+          { "", 0, "" }
 	}
       },
       {	GCRY_CIPHER_AES192,
@@ -387,6 +404,7 @@ check_ctr_cipher (void)
 	  { "\xf6\x9f\x24\x45\xdf\x4f\x9b\x17\xad\x2b\x41\x7b\xe6\x6c\x37\x10",
 	    16,
 	    "\x4f\x78\xa7\xf6\xd2\x98\x09\x58\x5a\x97\xda\xec\x58\xc6\xb0\x50" },
+          { "", 0, "" }
 	}
       },
       {	GCRY_CIPHER_AES256,
@@ -404,7 +422,80 @@ check_ctr_cipher (void)
 	    "\x2b\x09\x30\xda\xa2\x3d\xe9\x4c\xe8\x70\x17\xba\x2d\x84\x98\x8d" },
 	  { "\xf6\x9f\x24\x45\xdf\x4f\x9b\x17\xad\x2b\x41\x7b\xe6\x6c\x37\x10",
 	    16,
-	    "\xdf\xc9\xc5\x8d\xb6\x7a\xad\xa6\x13\xc2\xdd\x08\x45\x79\x41\xa6" }
+	    "\xdf\xc9\xc5\x8d\xb6\x7a\xad\xa6\x13\xc2\xdd\x08\x45\x79\x41\xa6" },
+          { "", 0, "" }
+	}
+      },
+      /* Some truncation tests.  With a truncated second block and
+         also with a single truncated block.  */
+      {	GCRY_CIPHER_AES,
+	"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+	{{"\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a",
+          16,
+          "\x87\x4d\x61\x91\xb6\x20\xe3\x26\x1b\xef\x68\x64\x99\x0d\xb6\xce" },
+         {"\xae\x2d\x8a\x57\x1e\x03\xac\x9c\x9e\xb7\x6f\xac\x45\xaf\x8e",
+          15,
+          "\x98\x06\xf6\x6b\x79\x70\xfd\xff\x86\x17\x18\x7b\xb9\xff\xfd" },
+         {"", 0, "" }
+	}
+      },
+      {	GCRY_CIPHER_AES,
+	"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+	{{"\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a",
+          16,
+          "\x87\x4d\x61\x91\xb6\x20\xe3\x26\x1b\xef\x68\x64\x99\x0d\xb6\xce" },
+         {"\xae",
+          1,
+          "\x98" },
+         {"", 0, "" }
+	}
+      },
+      {	GCRY_CIPHER_AES,
+	"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+	{{"\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17",
+          15,
+          "\x87\x4d\x61\x91\xb6\x20\xe3\x26\x1b\xef\x68\x64\x99\x0d\xb6" },
+         {"", 0, "" }
+	}
+      },
+      {	GCRY_CIPHER_AES,
+	"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff",
+	{{"\x6b",
+          1,
+          "\x87" },
+         {"", 0, "" }
+	}
+      },
+#if USE_CAST5
+      /* A selfmade test vector using an 64 bit block cipher.  */
+      {	GCRY_CIPHER_CAST5,
+	"\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
+	"\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8",
+        {{"\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a",
+          16,
+          "\xe8\xa7\xac\x68\xca\xca\xa0\x20\x10\xcb\x1b\xcc\x79\x2c\xc4\x48" },
+         {"\xae\x2d\x8a\x57\x1e\x03\xac\x9c",
+          8,
+          "\x16\xe8\x72\x77\xb0\x98\x29\x68" },
+         {"\x9e\xb7\x6f\xac\x45\xaf\x8e\x51",
+          8,
+          "\x9a\xb3\xa8\x03\x3b\xb4\x14\xba" },
+         {"\xae\x2d\x8a\x57\x1e\x03\xac\x9c\xa1\x00",
+          10,
+          "\x31\x5e\xd3\xfb\x1b\x8d\xd1\xf9\xb0\x83" },
+         { "", 0, "" }
+	}
+      },
+#endif /*USE_CAST5*/
+      {	0,
+	"",
+	"",
+	{
+         {"", 0, "" }
 	}
       }
     };
@@ -417,6 +508,9 @@ check_ctr_cipher (void)
     fprintf (stderr, "  Starting CTR cipher checks.\n");
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (!tv[i].algo)
+        continue;
+
       err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
       if (!err)
 	err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
@@ -485,7 +579,11 @@ check_ctr_cipher (void)
 	    }
 
 	  if (memcmp (tv[i].data[j].out, out, tv[i].data[j].inlen))
-	    fail ("aes-ctr, encrypt mismatch entry %d:%d\n", i, j);
+            {
+              fail ("aes-ctr, encrypt mismatch entry %d:%d\n", i, j);
+              mismatch (tv[i].data[j].out, tv[i].data[j].inlen,
+                        out, tv[i].data[j].inlen);
+            }
 
 	  err = gcry_cipher_decrypt (hdd, out, tv[i].data[j].inlen, NULL, 0);
 	  if (err)
@@ -498,7 +596,11 @@ check_ctr_cipher (void)
 	    }
 
 	  if (memcmp (tv[i].data[j].plaintext, out, tv[i].data[j].inlen))
-	    fail ("aes-ctr, decrypt mismatch entry %d:%d\n", i, j);
+            {
+              fail ("aes-ctr, decrypt mismatch entry %d:%d\n", i, j);
+              mismatch (tv[i].data[j].plaintext, tv[i].data[j].inlen,
+                        out, tv[i].data[j].inlen);
+            }
 
         }
 
@@ -508,18 +610,6 @@ check_ctr_cipher (void)
                                  "1234567890123456", 16);
       if (err)
         fail ("aes-ctr, encryption failed for valid input");
-
-      err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
-                                 "1234567890123456", 15);
-      if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
-        fail ("aes-ctr, too short input returned wrong error: %s\n",
-              gpg_strerror (err));
-
-      err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
-                                 "12345678901234567", 17);
-      if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
-        fail ("aes-ctr, too long input returned wrong error: %s\n",
-              gpg_strerror (err));
 
       err = gcry_cipher_encrypt (hde, out, 15,
                                  "1234567890123456", 16);
@@ -544,18 +634,6 @@ check_ctr_cipher (void)
                                  "1234567890123456", 16);
       if (err)
         fail ("aes-ctr, decryption failed for valid input");
-
-      err = gcry_cipher_decrypt (hde, out, MAX_DATA_LEN,
-                                 "1234567890123456", 15);
-      if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
-        fail ("aes-ctr, too short input returned wrong error: %s\n",
-              gpg_strerror (err));
-
-      err = gcry_cipher_decrypt (hde, out, MAX_DATA_LEN,
-                                 "12345678901234567", 17);
-      if (gpg_err_code (err) != GPG_ERR_INV_LENGTH)
-        fail ("aes-ctr, too long input returned wrong error: %s\n",
-              gpg_strerror (err));
 
       err = gcry_cipher_decrypt (hde, out, 15,
                                  "1234567890123456", 16);
