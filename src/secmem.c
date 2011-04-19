@@ -217,7 +217,10 @@ mb_get_new (memblock_t *block, size_t size)
       }
 
   if (! ptr_into_pool_p (mb))
-    mb = NULL;
+    {
+      gpg_err_set_errno (ENOMEM);
+      mb = NULL;
+    }
 
   return mb;
 }
@@ -516,12 +519,14 @@ _gcry_secmem_malloc_internal (size_t size)
         {
           log_info (_("operation is not possible without "
                       "initialized secure memory\n"));
+          gpg_err_set_errno (ENOMEM);
           return NULL;
         }
     }
   if (not_locked && fips_mode ())
     {
       log_info (_("secure memory pool is not locked while in FIPS mode\n"));
+      gpg_err_set_errno (ENOMEM);
       return NULL;
     }
   if (show_warning && !suspend_warning)

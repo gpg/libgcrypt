@@ -1,3 +1,10 @@
+2011-04-19  Werner Koch  <wk@g10code.com>
+
+	* stdmem.c (_gcry_private_malloc_secure, _gcry_private_malloc):
+	Set ERRNO on failure.
+	* secmem.c (mb_get_new): Set ERRNO on failure.
+	(_gcry_secmem_malloc_internal): Ditto.
+
 2011-04-01  Werner Koch  <wk@g10code.com>
 
 	* global.c (gcry_realloc): Divert to gcry_malloc or gcry_free.

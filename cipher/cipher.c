@@ -786,7 +786,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 	h = gcry_calloc (1, size);
 
       if (! h)
-	err = gpg_err_code_from_errno (errno);
+	err = gpg_err_code_from_syserror ();
       else
 	{
           size_t off = 0;

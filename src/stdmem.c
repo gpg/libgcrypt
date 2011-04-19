@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <errno.h>
 
 #include "g10lib.h"
 #include "stdmem.h"
@@ -88,8 +89,12 @@ void *
 _gcry_private_malloc (size_t n)
 {
   if (!n)
-    return NULL; /* Allocating 0 bytes is undefined - we better return
-                    an error to detect such coding errors.  */
+    {
+      gpg_err_set_errno (EINVAL);
+      return NULL; /* Allocating 0 bytes is undefined - we better return
+                      an error to detect such coding errors.  */
+    }
+
   if (use_m_guard)
     {
       char *p;
@@ -118,8 +123,12 @@ void *
 _gcry_private_malloc_secure (size_t n)
 {
   if (!n)
-    return NULL; /* Allocating 0 bytes is undefined - better return an
-                    error to detect such coding errors.  */
+    {
+      gpg_err_set_errno (EINVAL);
+      return NULL; /* Allocating 0 bytes is undefined - better return an
+                      error to detect such coding errors.  */
+    }
+
   if (use_m_guard)
     {
       char *p;
