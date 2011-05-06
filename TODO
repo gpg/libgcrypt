@@ -36,8 +36,6 @@
   collectros need to run that bunch of Unix utilities we don't waste
   their precious results.
 
-* Add OAEP
-
 * gcryptrnd.c
   Requires a test for pth [done] as well as some other tests.
 

@@ -1,5 +1,5 @@
 /* cipher.h
- *	Copyright (C) 1998, 2002, 2003 Free Software Foundation, Inc.
+ *	Copyright (C) 1998, 2002, 2003, 2009 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -27,6 +27,23 @@
 #include "../random/random.h"
 
 #define PUBKEY_FLAG_NO_BLINDING    (1 << 0)
+#define PUBKEY_FLAG_UNPAD          (1 << 1)
+
+enum pk_encoding
+  {
+    PUBKEY_ENC_RAW,
+    PUBKEY_ENC_PKCS1,
+    PUBKEY_ENC_OAEP,
+    PUBKEY_ENC_UNKNOWN
+  };
+
+struct pk_encoding_ctx
+{
+  enum pk_encoding encoding;
+  int hash_algo;
+  unsigned char *label;
+  size_t labellen;
+};
 
 #define CIPHER_INFO_NO_WEAK_KEY    1
 

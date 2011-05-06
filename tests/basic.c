@@ -2295,6 +2295,9 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
       { "(data\n (flags pkcs1)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	0 },
+      { "(data\n (flags oaep)\n"
+	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	GPG_ERR_CONFLICT },
       /* This test is to see whether hash algorithms not hard wired in
          pubkey.c are detected:  */
       { "(data\n (flags pkcs1)\n"
@@ -2355,6 +2358,151 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 }
 
 static void
+check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
+{
+  gcry_error_t rc;
+  gcry_sexp_t plain, ciph, data;
+  int dataidx;
+  static struct
+  {
+    const char *data;
+    const char *hint;
+    int unpadded;
+    int expected_rc;
+  } datas[] =
+    {
+      {	"(data\n (flags pkcs1)\n"
+	" (value #11223344556677889900AA#))\n",
+	NULL,
+	0,
+	0 },
+      { "(data\n (flags oaep)\n"
+	" (value #11223344556677889900AA#))\n",
+	"(flags oaep unpad)",
+	1,
+	0 },
+      { "(data\n (flags oaep)\n (hash-algo sha1)\n"
+	" (value #11223344556677889900AA#))\n",
+	"(flags oaep unpad)(hash-algo sha1)",
+	1,
+	0 },
+      { "(data\n (flags oaep)\n (hash-algo sha1)\n (label \"test\")\n"
+	" (value #11223344556677889900AA#))\n",
+	"(flags oaep unpad)(hash-algo sha1)(label \"test\")",
+	1,
+	0 },
+      {	"(data\n (flags )\n" " (value #11223344556677889900AA#))\n",
+	NULL,
+	1,
+	0 },
+      {	"(data\n (flags )\n" " (value #0090223344556677889900AA#))\n",
+	NULL,
+	1,
+	0 },
+      { "(data\n (flags raw)\n" " (value #11223344556677889900AA#))\n",
+	NULL,
+	1,
+	0 },
+      { "(data\n (flags pkcs1)\n"
+	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	NULL,
+	0,
+	GPG_ERR_CONFLICT },
+      { "(data\n (flags raw foo)\n"
+	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	NULL,
+	0,
+	GPG_ERR_INV_FLAG },
+      { NULL }
+    };
+
+  (void)n;
+
+  for (dataidx = 0; datas[dataidx].data; dataidx++)
+    {
+      if (verbose)
+	fprintf (stderr, "  encryption/decryption test %d\n", dataidx);
+
+      rc = gcry_sexp_sscan (&data, NULL, datas[dataidx].data,
+			    strlen (datas[dataidx].data));
+      if (rc)
+	die ("converting data failed: %s\n", gpg_strerror (rc));
+
+      rc = gcry_pk_encrypt (&ciph, data, pkey);
+      if (gcry_err_code (rc) != datas[dataidx].expected_rc)
+	fail ("gcry_pk_encrypt failed: %s\n", gpg_strerror (rc));
+
+      if (!rc)
+	{
+	  /* Insert decoding hint to CIPH. */
+	  if (datas[dataidx].hint)
+	    {
+	      size_t hint_len, len;
+	      char *hint, *buf;
+	      gcry_sexp_t list;
+
+	      /* Convert decoding hint into canonical sexp. */
+	      hint_len = gcry_sexp_new (&list, datas[dataidx].hint,
+					strlen (datas[dataidx].hint), 1);
+	      hint_len = gcry_sexp_sprint (list, GCRYSEXP_FMT_CANON, NULL, 0);
+	      hint = gcry_malloc (hint_len);
+	      if (!hint)
+		die ("can't allocate memory\n");
+	      hint_len = gcry_sexp_sprint (list, GCRYSEXP_FMT_CANON, hint,
+					   hint_len);
+	      gcry_sexp_release (list);
+
+	      /* Convert CIPH into canonical sexp. */
+	      len = gcry_sexp_sprint (ciph, GCRYSEXP_FMT_CANON, NULL, 0);
+	      buf = gcry_malloc (len + hint_len);
+	      if (!buf)
+		die ("can't allocate memory\n");
+	      len = gcry_sexp_sprint (ciph, GCRYSEXP_FMT_CANON, buf, len);
+	      /* assert (!strcmp (buf, "(7:enc-val", 10)); */
+
+	      /* Copy decoding hint into CIPH. */
+	      memmove (buf + 10 + hint_len, buf + 10, len - 10);
+	      memcpy (buf + 10, hint, hint_len);
+	      gcry_free (hint);
+	      gcry_sexp_new (&list, buf, len + hint_len, 1);
+	      gcry_free (buf);
+	      gcry_sexp_release (ciph);
+	      ciph = list;
+	    }
+	  rc = gcry_pk_decrypt (&plain, ciph, skey);
+	  if (rc)
+	    fail ("gcry_pk_decrypt failed: %s\n", gpg_strerror (rc));
+	  else if (datas[dataidx].unpadded)
+	    {
+	      gcry_sexp_t p1, p2;
+
+	      p1 = gcry_sexp_find_token (data, "value", 0);
+	      p2 = gcry_sexp_find_token (plain, "value", 0);
+	      if (p1 && p2)
+		{
+		  const char *s1, *s2;
+		  size_t n1, n2;
+
+		  s1 = gcry_sexp_nth_data (p1, 1, &n1);
+		  s2 = gcry_sexp_nth_data (p2, 1, &n2);
+		  if (n1 != n2 || memcmp (s1, s2, n1))
+		    fail ("gcry_pk_encrypt/gcry_pk_decrypt do not roundtrip\n");
+		}
+	      gcry_sexp_release (p1);
+	      gcry_sexp_release (p2);
+	    }
+	}
+
+      gcry_sexp_release (plain);
+      plain = NULL;
+      gcry_sexp_release (ciph);
+      ciph = NULL;
+      gcry_sexp_release (data);
+      data = NULL;
+    }
+}
+
+static void
 check_pubkey_grip (int n, const unsigned char *grip,
 		   gcry_sexp_t skey, gcry_sexp_t pkey)
 {
@@ -2376,6 +2524,8 @@ do_check_one_pubkey (int n, gcry_sexp_t skey, gcry_sexp_t pkey,
 {
  if (flags & FLAG_SIGN)
     check_pubkey_sign (n, skey, pkey);
+ if (flags & FLAG_CRYPT)
+   check_pubkey_crypt (n, skey, pkey);
  if (grip && (flags & FLAG_GRIP))
    check_pubkey_grip (n, grip, skey, pkey);
 }
@@ -2439,6 +2589,8 @@ check_one_pubkey_new (int n)
 
   get_keys_new (&pkey, &skey);
   do_check_one_pubkey (n, skey, pkey, NULL, FLAG_SIGN | FLAG_CRYPT);
+  gcry_sexp_release (pkey);
+  gcry_sexp_release (skey);
 }
 
 /* Run all tests for the public key functions. */

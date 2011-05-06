@@ -783,6 +783,205 @@ pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
   return rc;
 }
 
+static gcry_err_code_t
+mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
+      int algo)
+{
+  size_t dlen;
+  int idx;
+  gcry_md_hd_t hd;
+  gcry_error_t err;
+  unsigned char *p;
+
+  err = gcry_md_test_algo (algo);
+  if (err)
+    return gpg_err_code (err);
+
+  memset (output, 0, outlen);
+  dlen = gcry_md_get_algo_dlen (algo);
+  for (idx = 0, p = output; idx < (outlen + dlen - 1) / dlen; idx++, p += dlen)
+    {
+      unsigned char c[4], *digest;
+
+      c[0] = (idx >> 24) & 0xFF;
+      c[1] = (idx >> 16) & 0xFF;
+      c[2] = (idx >> 8) & 0xFF;
+      c[3] = idx & 0xFF;
+
+      err = gcry_md_open (&hd, algo, 0);
+      if (err)
+	return gpg_err_code (err);
+
+      gcry_md_write (hd, seed, seedlen);
+      gcry_md_write (hd, c, 4);
+      digest = gcry_md_read (hd, 0);
+      if (outlen - (p - output) >= dlen)
+	memcpy (p, digest, dlen);
+      else
+	memcpy (p, digest, outlen - (p - output));
+      gcry_md_close (hd);
+    }
+  return GPG_ERR_NO_ERROR;
+}
+
+static gcry_err_code_t
+oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
+             const unsigned char *value, size_t valuelen,
+             const unsigned char *label, size_t labellen)
+{
+  gcry_err_code_t rc = 0;
+  gcry_error_t err;
+  unsigned char *frame = NULL;
+  size_t nframe = (nbits+7) / 8;
+  unsigned char *dmask, *smask, *p;
+  size_t dlen;
+  gcry_md_hd_t hd;
+  size_t n;
+
+  dlen = gcry_md_get_algo_dlen (algo);
+  if (valuelen > nframe - 2 * dlen - 1 || !nframe)
+    /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
+    return GPG_ERR_TOO_SHORT; /* the key is too short */
+  if ( !(frame = gcry_malloc_secure (nframe)))
+    return gpg_err_code_from_errno (errno);
+
+  /* FRAME = 00 || SEED || DB */
+  memset (frame, 0, nframe);
+  n = 0;
+  frame[n++] = 0;
+  gcry_randomize (&frame[n], dlen, GCRY_STRONG_RANDOM);
+
+  n += dlen;
+  gcry_md_open (&hd, algo, 0);
+  gcry_md_write (hd, label, labellen);
+  memcpy (&frame[n], gcry_md_read (hd, 0), dlen);
+  gcry_md_close (hd);
+  n = nframe - valuelen - 1;
+  frame[n++] = 1;
+  memcpy (&frame[n], value, valuelen);
+
+  if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
+    {
+      rc = gpg_err_code_from_errno (errno);
+      gcry_free (frame);
+      return rc;
+    }
+  mgf1 (dmask, nframe - dlen - 1, &frame[1], dlen, algo);
+  for (n = 1 + dlen, p = dmask; n < nframe; n++)
+    frame[n] ^= *p++;
+  gcry_free (dmask);
+  n += valuelen;
+
+  if ( !(smask = gcry_malloc_secure (dlen)))
+    {
+      rc = gpg_err_code_from_errno (errno);
+      gcry_free (frame);
+      return rc;
+    }
+  mgf1 (smask, dlen, &frame[1 + dlen], nframe - dlen - 1, algo);
+  for (n = 1, p = smask; n < 1 + dlen; n++)
+    frame[n] ^= *p++;
+  gcry_free (smask);
+  n = nframe;
+
+  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, frame, n, &nframe);
+  if (err)
+    rc = gcry_err_code (err);
+  else if (DBG_CIPHER)
+    log_mpidump ("OAEP encoded data", *r_result);
+  gcry_free (frame);
+
+  return rc;
+}
+
+static gcry_err_code_t
+oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
+             gcry_mpi_t value, const unsigned char *label, size_t labellen)
+{
+  gcry_err_code_t rc = 0;
+  gcry_error_t err;
+  unsigned char *frame = NULL, *dmask, *smask, *p;
+  size_t nframe = (nbits+7) / 8;
+  size_t dlen;
+  gcry_md_hd_t hd;
+  size_t n;
+
+  if ( !(frame = gcry_malloc_secure (nframe)))
+    return gpg_err_code_from_errno (errno);
+
+  err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, value);
+  if (err)
+    return gcry_err_code (err);
+  if (n < nframe)
+    {
+      memmove (frame + (nframe - n), frame, n);
+      memset (frame, 0, (nframe - n));
+    }
+
+  /* FRAME = 00 || MASKED_SEED || MASKED_DB */
+  if (frame[0])
+    {
+      gcry_free (frame);
+      return GPG_ERR_ENCODING_PROBLEM;
+    }
+
+  dlen = gcry_md_get_algo_dlen (algo);
+  if (nframe < 1 + 2 * dlen + 1)
+    {
+      gcry_free (frame);
+      return GPG_ERR_TOO_SHORT;
+    }
+  if ( !(smask = gcry_malloc_secure (dlen)))
+    {
+      rc = gpg_err_code_from_errno (errno);
+      gcry_free (frame);
+      return rc;
+    }
+  mgf1 (smask, dlen, &frame[1 + dlen], nframe - dlen - 1, algo);
+  for (n = 1, p = smask; n < 1 + dlen; n++)
+    frame[n] ^= *p++;
+  gcry_free (smask);
+
+  if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
+    {
+      rc = gpg_err_code_from_errno (errno);
+      gcry_free (frame);
+      return rc;
+    }
+  mgf1 (dmask, nframe - dlen - 1, &frame[1], dlen, algo);
+  for (n = 1 + dlen, p = dmask; n < nframe; n++)
+    frame[n] ^= *p++;
+  gcry_free (dmask);
+
+  gcry_md_open (&hd, algo, 0);
+  gcry_md_write (hd, label, labellen);
+  memcpy (&frame[1], gcry_md_read (hd, 0), dlen);
+  gcry_md_close (hd);
+
+  if (memcmp (&frame[1], &frame[1 + dlen], dlen))
+    {
+      gcry_free (frame);
+      return GPG_ERR_ENCODING_PROBLEM;
+    }
+
+  for (n = 1 + dlen * 2; n < nframe && !frame[n]; n++)
+    ;
+  if (n < nframe && frame[n] != 1)
+    {
+      gcry_free (frame);
+      return GPG_ERR_ENCODING_PROBLEM;
+    }
+
+  n++;
+  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, &frame[n], nframe - n, NULL);
+  if (err)
+    rc = gcry_err_code (err);
+  else if (DBG_CIPHER)
+    log_mpidump ("value extracted from OAEP encoded data", *r_result);
+  gcry_free (frame);
+
+  return rc;
+}
 
 /* Internal function.   */
 static gcry_err_code_t
@@ -1161,22 +1360,76 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
   return err;
 }
 
+static inline int
+get_hash_algo (const char *s, size_t n)
+{
+  static const struct { const char *name; int algo; } hashnames[] = {
+    { "sha1",   GCRY_MD_SHA1 },
+    { "md5",    GCRY_MD_MD5 },
+    { "sha256", GCRY_MD_SHA256 },
+    { "ripemd160", GCRY_MD_RMD160 },
+    { "rmd160", GCRY_MD_RMD160 },
+    { "sha384", GCRY_MD_SHA384 },
+    { "sha512", GCRY_MD_SHA512 },
+    { "sha224", GCRY_MD_SHA224 },
+    { "md2",    GCRY_MD_MD2 },
+    { "md4",    GCRY_MD_MD4 },
+    { "tiger",  GCRY_MD_TIGER },
+    { "haval",  GCRY_MD_HAVAL },
+    { NULL, 0 }
+  };
+  int algo;
+  int i;
+
+  for (i=0; hashnames[i].name; i++)
+    {
+      if ( strlen (hashnames[i].name) == n
+	   && !memcmp (hashnames[i].name, s, n))
+	break;
+    }
+  if (hashnames[i].name)
+    algo = hashnames[i].algo;
+  else
+    {
+      /* In case of not listed or dynamically allocated hash
+	 algorithm we fall back to this somewhat slower
+	 method.  Further, it also allows to use OIDs as
+	 algorithm names. */
+      char *tmpname;
+
+      tmpname = gcry_malloc (n+1);
+      if (!tmpname)
+	algo = 0;  /* Out of core - silently give up.  */
+      else
+	{
+	  memcpy (tmpname, s, n);
+	  tmpname[n] = 0;
+	  algo = gcry_md_map_name (tmpname);
+	  gcry_free (tmpname);
+	}
+    }
+  return algo;
+}
+
 
 /****************
  * Take sexp and return an array of MPI as used for our internal decrypt
  * function.
  * s_data = (enc-val
- *           [(flags [pkcs1])]
+ *           [(flags [raw, pkcs1, oaep, no-blinding, unpad])]
+ *           [(hash-algo <algo>)]
+ *           [(label <label>)]
  *	      (<algo>
  *		(<param_name1> <mpi>)
  *		...
  *		(<param_namen> <mpi>)
  *	      ))
+ * HASH-ALGO and LABEL are specific to OAEP.
  * RET_MODERN is set to true when at least an empty flags list has been found.
  */
 static gcry_err_code_t
 sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
-             int *ret_modern, int *ret_want_pkcs1, int *flags)
+             int *ret_modern, int *flags, struct pk_encoding_ctx *ctx)
 {
   gcry_err_code_t err = 0;
   gcry_sexp_t list = NULL, l2 = NULL;
@@ -1187,9 +1440,16 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
   int parsed_flags = 0;
   const char *elems;
   gcry_mpi_t *array = NULL;
+  struct pk_encoding_ctx dummy_ctx;
 
-  *ret_want_pkcs1 = 0;
   *ret_modern = 0;
+
+  if (!ctx)
+    ctx = &dummy_ctx;
+  ctx->encoding = PUBKEY_ENC_RAW;
+  ctx->hash_algo = GCRY_MD_SHA1;
+  ctx->label = NULL;
+  ctx->labellen = 0;
 
   /* Check that the first element is valid.  */
   list = gcry_sexp_find_token (sexp, "enc-val" , 0);
@@ -1229,19 +1489,76 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
           else if (n == 3 && !memcmp (s, "raw", 3))
             ; /* This is just a dummy as it is the default.  */
           else if (n == 5 && !memcmp (s, "pkcs1", 5))
-            *ret_want_pkcs1 = 1;
+            ctx->encoding = PUBKEY_ENC_PKCS1;
+          else if (n == 4 && !memcmp (s, "oaep", 4))
+            ctx->encoding = PUBKEY_ENC_OAEP;
           else if (n == 11 && ! memcmp (s, "no-blinding", 11))
             parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
+	  else if (n == 5 && !memcmp (s, "unpad", 5))
+	    parsed_flags |= PUBKEY_FLAG_UNPAD;
           else
             {
               err = GPG_ERR_INV_FLAG;
               goto leave;
             }
         }
-
-      /* Get the next which has the actual data. */
       gcry_sexp_release (l2);
-      l2 = gcry_sexp_nth (list, 2);
+
+      /* Get the OAEP parameters HASH-ALGO and LABEL, if any. */
+      if (ctx->encoding == PUBKEY_ENC_OAEP)
+	{
+	  /* Get HASH-ALGO. */
+	  l2 = gcry_sexp_find_token (list, "hash-algo", 0);
+	  if (l2)
+	    {
+	      s = gcry_sexp_nth_data (l2, 1, &n);
+	      if (!s)
+		err = GPG_ERR_NO_OBJ;
+	      else
+		{
+		  ctx->hash_algo = get_hash_algo (s, n);
+		  if (!ctx->hash_algo)
+		    err = GPG_ERR_DIGEST_ALGO;
+		}
+	      gcry_sexp_release (l2);
+	      if (err)
+		goto leave;
+	    }
+
+	  /* Get LABEL. */
+	  l2 = gcry_sexp_find_token (list, "label", 0);
+	  if (l2)
+	    {
+	      s = gcry_sexp_nth_data (l2, 1, &n);
+	      if (!s)
+		err = GPG_ERR_NO_OBJ;
+	      else if (n > 0)
+		{
+		  ctx->label = gcry_malloc (n);
+		  if (!ctx->label)
+		    err = gpg_err_code_from_errno (errno);
+		  else
+		    {
+		      memcpy (ctx->label, s, n);
+		      ctx->labellen = n;
+		    }
+		}
+	      gcry_sexp_release (l2);
+	      if (err)
+		goto leave;
+	    }
+	}
+
+      /* Get the next which has the actual data - skip HASH-ALGO and LABEL. */
+      for (i = 2; (l2 = gcry_sexp_nth (list, i)) != NULL; i++)
+	{
+	  s = gcry_sexp_nth_data (l2, 0, &n);
+	  if (!(n == 9 && !memcmp (s, "hash-algo", 9))
+	      && !(n == 5 && !memcmp (s, "label", 5)))
+	    break;
+	  gcry_sexp_release (l2);
+	}
+
       if (!l2)
         {
           err = GPG_ERR_NO_OBJ; /* No cdr for the data object. */
@@ -1294,6 +1611,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
       _gcry_module_release (module);
       ath_mutex_unlock (&pubkeys_registered_lock);
       gcry_free (array);
+      gcry_free (ctx->label);
     }
   else
     {
@@ -1314,31 +1632,44 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
    (<mpi>)
    or
    (data
-    [(flags [pkcs1])]
+    [(flags [raw, pkcs1, oaep, no-blinding])]
     [(hash <algo> <value>)]
     [(value <text>)]
+    [(hash-algo <algo>)]
+    [(label <label>)]
    )
 
    Either the VALUE or the HASH element must be present for use
    with signatures.  VALUE is used for encryption.
+
+   HASH-ALGO and LABEL are specific to OAEP.
 
    NBITS is the length of the key in bits.
 
 */
 static gcry_err_code_t
 sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
-                  int for_encryption, int *flags)
+                  int for_encryption, int *flags, struct pk_encoding_ctx *ctx)
 {
   gcry_err_code_t rc = 0;
   gcry_sexp_t ldata, lhash, lvalue;
   int i;
   size_t n;
   const char *s;
-  int is_raw = 0, is_pkcs1 = 0, unknown_flag=0;
+  int unknown_flag=0;
   int parsed_flags = 0, dummy_flags;
+  struct pk_encoding_ctx dummy_ctx;
 
   if (! flags)
     flags = &dummy_flags;
+
+  if (! ctx)
+    ctx = &dummy_ctx;
+
+  ctx->encoding = PUBKEY_ENC_UNKNOWN;
+  ctx->hash_algo = GCRY_MD_SHA1;
+  ctx->label = NULL;
+  ctx->labellen = 0;
 
   *ret_mpi = NULL;
   ldata = gcry_sexp_find_token (input, "data", 0);
@@ -1359,9 +1690,11 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
             if (!s)
               ; /* not a data element*/
             else if ( n == 3 && !memcmp (s, "raw", 3))
-              is_raw = 1;
+              ctx->encoding = PUBKEY_ENC_RAW;
             else if ( n == 5 && !memcmp (s, "pkcs1", 5))
-              is_pkcs1 = 1;
+              ctx->encoding = PUBKEY_ENC_PKCS1;
+            else if ( n == 4 && !memcmp (s, "oaep", 4))
+              ctx->encoding = PUBKEY_ENC_OAEP;
 	    else if (n == 11 && ! memcmp (s, "no-blinding", 11))
 	      parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
             else
@@ -1371,8 +1704,8 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
       }
   }
 
-  if (!is_pkcs1 && !is_raw)
-    is_raw = 1; /* default to raw */
+  if (ctx->encoding == PUBKEY_ENC_UNKNOWN)
+    ctx->encoding = PUBKEY_ENC_RAW; /* default to raw */
 
   /* Get HASH or MPI */
   lhash = gcry_sexp_find_token (ldata, "hash", 0);
@@ -1382,15 +1715,13 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
     rc = GPG_ERR_INV_OBJ; /* none or both given */
   else if (unknown_flag)
     rc = GPG_ERR_INV_FLAG;
-  else if (is_raw && is_pkcs1 && !for_encryption)
-    rc = GPG_ERR_CONFLICT;
-  else if (is_raw && lvalue)
+  else if (ctx->encoding == PUBKEY_ENC_RAW && lvalue)
     {
       *ret_mpi = gcry_sexp_nth_mpi (lvalue, 1, 0);
       if (!*ret_mpi)
         rc = GPG_ERR_INV_OBJ;
     }
-  else if (is_pkcs1 && lvalue && for_encryption)
+  else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lvalue && for_encryption)
     {
       /* Create pkcs#1 block type 2 padding. */
       unsigned char *frame = NULL;
@@ -1457,7 +1788,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
 
       gcry_free(frame);
     }
-  else if (is_pkcs1 && lhash && !for_encryption)
+  else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lhash && !for_encryption)
     {
       /* Create pkcs#1 block type 1 padding. */
       if (gcry_sexp_length (lhash) != 3)
@@ -1466,21 +1797,6 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
         rc = GPG_ERR_INV_OBJ;
       else
         {
-          static struct { const char *name; int algo; } hashnames[] =
-          { { "sha1",   GCRY_MD_SHA1 },
-            { "md5",    GCRY_MD_MD5 },
-            { "sha256", GCRY_MD_SHA256 },
-            { "ripemd160", GCRY_MD_RMD160 },
-            { "rmd160", GCRY_MD_RMD160 },
-            { "sha384", GCRY_MD_SHA384 },
-            { "sha512", GCRY_MD_SHA512 },
-            { "sha224", GCRY_MD_SHA224 },
-            { "md2",    GCRY_MD_MD2 },
-            { "md4",    GCRY_MD_MD4 },
-            { "tiger",  GCRY_MD_TIGER },
-            { "haval",  GCRY_MD_HAVAL },
-            { NULL, 0 }
-          };
           int algo;
           byte asn[100];
           byte *frame = NULL;
@@ -1489,34 +1805,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
           size_t valuelen;
           size_t asnlen, dlen;
 
-          for (i=0; hashnames[i].name; i++)
-            {
-              if ( strlen (hashnames[i].name) == n
-                   && !memcmp (hashnames[i].name, s, n))
-                break;
-            }
-          if (hashnames[i].name)
-            algo = hashnames[i].algo;
-          else
-            {
-              /* In case of not listed or dynamically allocated hash
-                 algorithm we fall back to this somewhat slower
-                 method.  Further, it also allows to use OIDs as
-                 algorithm names. */
-              char *tmpname;
-
-              tmpname = gcry_malloc (n+1);
-              if (!tmpname)
-                algo = 0;  /* Out of core - silently give up.  */
-              else
-                {
-                  memcpy (tmpname, s, n);
-                  tmpname[n] = 0;
-                  algo = gcry_md_map_name (tmpname);
-                  gcry_free (tmpname);
-                }
-            }
-
+	  algo = get_hash_algo (s, n);
           asnlen = DIM(asn);
           dlen = gcry_md_get_algo_dlen (algo);
 
@@ -1567,15 +1856,74 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
           gcry_free (frame);
         }
     }
+  else if (ctx->encoding == PUBKEY_ENC_OAEP && lvalue && for_encryption)
+    {
+      const void * value;
+      size_t valuelen;
+
+      if ( !(value=gcry_sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
+	rc = GPG_ERR_INV_OBJ;
+      else
+	{
+	  gcry_sexp_t list;
+
+	  /* Get HASH-ALGO. */
+	  list = gcry_sexp_find_token (ldata, "hash-algo", 0);
+	  if (list)
+	    {
+	      s = gcry_sexp_nth_data (list, 1, &n);
+	      if (!s)
+		rc = GPG_ERR_NO_OBJ;
+	      else
+		{
+		  ctx->hash_algo = get_hash_algo (s, n);
+		  if (!ctx->hash_algo)
+		    rc = GPG_ERR_DIGEST_ALGO;
+		}
+	      gcry_sexp_release (list);
+	      if (rc)
+		goto leave;
+	    }
+
+	  /* Get LABEL. */
+	  list = gcry_sexp_find_token (ldata, "label", 0);
+	  if (list)
+	    {
+	      s = gcry_sexp_nth_data (list, 1, &n);
+	      if (!s)
+		rc = GPG_ERR_NO_OBJ;
+	      else if (n > 0)
+		{
+		  ctx->label = gcry_malloc (n);
+		  if (!ctx->label)
+		    rc = gpg_err_code_from_errno (errno);
+		  else
+		    {
+		      memcpy (ctx->label, s, n);
+		      ctx->labellen = n;
+		    }
+		}
+	      gcry_sexp_release (list);
+	      if (rc)
+		goto leave;
+	    }
+
+	  rc = oaep_encode (ret_mpi, nbits, ctx->hash_algo, value, valuelen,
+			    ctx->label, ctx->labellen);
+	}
+    }
   else
     rc = GPG_ERR_CONFLICT;
 
+ leave:
   gcry_sexp_release (ldata);
   gcry_sexp_release (lhash);
   gcry_sexp_release (lvalue);
 
   if (!rc)
     *flags = parsed_flags;
+  else
+    gcry_free (ctx->label);
 
   return rc;
 }
@@ -1609,6 +1957,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   gcry_mpi_t *pkey = NULL, data = NULL, *ciph = NULL;
   const char *algo_name, *algo_elems;
   int flags;
+  struct pk_encoding_ctx ctx;
   gcry_err_code_t rc;
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
@@ -1617,6 +1966,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 
   REGISTER_DEFAULT_PUBKEYS;
 
+  memset (&ctx, 0, sizeof(struct pk_encoding_ctx));
   /* Get the key. */
   rc = sexp_to_key (s_pkey, 0, NULL, &pkey, &module);
   if (rc)
@@ -1638,7 +1988,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 
   /* Get the stuff we want to encrypt. */
   rc = sexp_data_to_mpi (s_data, gcry_pk_get_nbits (s_pkey), &data, 1,
-                         &flags);
+                         &flags, &ctx);
   if (rc)
     goto leave;
 
@@ -1721,6 +2071,8 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
       ath_mutex_unlock (&pubkeys_registered_lock);
     }
 
+  gcry_free (ctx.label);
+
   return gcry_error (rc);
 }
 
@@ -1751,12 +2103,14 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 gcry_error_t
 gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 {
-  gcry_mpi_t *skey = NULL, *data = NULL, plain = NULL;
-  int modern, want_pkcs1, flags;
+  gcry_mpi_t *skey = NULL, *data = NULL, plain = NULL, unpad = NULL;
+  int modern, flags;
+  struct pk_encoding_ctx ctx;
   gcry_err_code_t rc;
   gcry_module_t module_enc = NULL, module_key = NULL;
 
   *r_plain = NULL;
+  ctx.label = NULL;
 
   REGISTER_DEFAULT_PUBKEYS;
 
@@ -1764,7 +2118,7 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  rc = sexp_to_enc (s_data, &data, &module_enc, &modern, &want_pkcs1, &flags);
+  rc = sexp_to_enc (s_data, &data, &module_enc, &modern, &flags, &ctx);
   if (rc)
     goto leave;
 
@@ -1777,6 +2131,18 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   rc = pubkey_decrypt (module_key->mod_id, &plain, data, skey, flags);
   if (rc)
     goto leave;
+
+  /* Do un-padding. */
+  /* FIXME: Currently only OAEP is supported. */
+  if ((flags & PUBKEY_FLAG_UNPAD) && ctx.encoding == PUBKEY_ENC_OAEP)
+    {
+      rc = oaep_decode (&unpad, gcry_pk_get_nbits (s_skey), ctx.hash_algo,
+			plain, ctx.label, ctx.labellen);
+      mpi_free (plain);
+      if (rc)
+	goto leave;
+      plain = unpad;
+    }
 
   if (gcry_sexp_build (r_plain, NULL, modern? "(value %m)" : "%m", plain))
     BUG ();
@@ -1806,6 +2172,8 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 	_gcry_module_release (module_enc);
       ath_mutex_unlock (&pubkeys_registered_lock);
     }
+
+  gcry_free (ctx.label);
 
   return gcry_error (rc);
 }
@@ -1869,7 +2237,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   /* Get the stuff we want to sign.  Note that pk_get_nbits does also
       work on a private key. */
   rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_skey),
-                             &hash, 0, NULL);
+                             &hash, 0, NULL, NULL);
   if (rc)
     goto leave;
 
@@ -1980,7 +2348,7 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
       goto leave;
     }
 
-  rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_pkey), &hash, 0, 0);
+  rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_pkey), &hash, 0, 0, NULL);
   if (rc)
     goto leave;
 
