@@ -843,7 +843,7 @@ oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
     /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
     return GPG_ERR_TOO_SHORT; /* the key is too short */
   if ( !(frame = gcry_malloc_secure (nframe)))
-    return gpg_err_code_from_errno (errno);
+    return gpg_err_code_from_syserror ();
 
   /* FRAME = 00 || SEED || DB */
   memset (frame, 0, nframe);
@@ -862,7 +862,7 @@ oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 
   if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
     {
-      rc = gpg_err_code_from_errno (errno);
+      rc = gpg_err_code_from_syserror ();
       gcry_free (frame);
       return rc;
     }
@@ -874,7 +874,7 @@ oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 
   if ( !(smask = gcry_malloc_secure (dlen)))
     {
-      rc = gpg_err_code_from_errno (errno);
+      rc = gpg_err_code_from_syserror ();
       gcry_free (frame);
       return rc;
     }
@@ -907,7 +907,7 @@ oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   size_t n;
 
   if ( !(frame = gcry_malloc_secure (nframe)))
-    return gpg_err_code_from_errno (errno);
+    return gpg_err_code_from_syserror ();
 
   err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, value);
   if (err)
@@ -933,7 +933,7 @@ oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
     }
   if ( !(smask = gcry_malloc_secure (dlen)))
     {
-      rc = gpg_err_code_from_errno (errno);
+      rc = gpg_err_code_from_syserror ();
       gcry_free (frame);
       return rc;
     }
@@ -944,7 +944,7 @@ oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 
   if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
     {
-      rc = gpg_err_code_from_errno (errno);
+      rc = gpg_err_code_from_syserror ();
       gcry_free (frame);
       return rc;
     }
@@ -1243,7 +1243,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, const char *override_elems,
     elems = pubkey->elements_pkey;
   array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
   if (!array)
-    err = gpg_err_code_from_errno (errno);
+    err = gpg_err_code_from_syserror ();
   if (!err)
     {
       if (is_ecc)
@@ -1335,7 +1335,7 @@ sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
   elems = pubkey->elements_sig;
   array = gcry_calloc (strlen (elems) + 1 , sizeof *array );
   if (!array)
-    err = gpg_err_code_from_errno (errno);
+    err = gpg_err_code_from_syserror ();
 
   if (!err)
     err = sexp_elements_extract (list, elems, array, NULL);
@@ -1426,6 +1426,8 @@ get_hash_algo (const char *s, size_t n)
  *	      ))
  * HASH-ALGO and LABEL are specific to OAEP.
  * RET_MODERN is set to true when at least an empty flags list has been found.
+ * CTX is used to return encoding information; it may be NULL in which
+ * case raw encoding is used.
  */
 static gcry_err_code_t
 sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
@@ -1486,11 +1488,14 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
           s = gcry_sexp_nth_data (l2, i, &n);
           if (! s)
             ; /* Not a data element - ignore.  */
-          else if (n == 3 && !memcmp (s, "raw", 3))
+          else if (n == 3 && !memcmp (s, "raw", 3)
+                   && ctx->encoding == PUBKEY_ENC_RAW)
             ; /* This is just a dummy as it is the default.  */
-          else if (n == 5 && !memcmp (s, "pkcs1", 5))
+          else if (n == 5 && !memcmp (s, "pkcs1", 5)
+                   && ctx->encoding == PUBKEY_ENC_RAW)
             ctx->encoding = PUBKEY_ENC_PKCS1;
-          else if (n == 4 && !memcmp (s, "oaep", 4))
+          else if (n == 4 && !memcmp (s, "oaep", 4)
+                   && ctx->encoding == PUBKEY_ENC_RAW)
             ctx->encoding = PUBKEY_ENC_OAEP;
           else if (n == 11 && ! memcmp (s, "no-blinding", 11))
             parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
@@ -1536,7 +1541,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
 		{
 		  ctx->label = gcry_malloc (n);
 		  if (!ctx->label)
-		    err = gpg_err_code_from_errno (errno);
+		    err = gpg_err_code_from_syserror ();
 		  else
 		    {
 		      memcpy (ctx->label, s, n);
@@ -1594,7 +1599,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
   array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
   if (!array)
     {
-      err = gpg_err_code_from_errno (errno);
+      err = gpg_err_code_from_syserror ();
       goto leave;
     }
 
@@ -1612,6 +1617,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
       ath_mutex_unlock (&pubkeys_registered_lock);
       gcry_free (array);
       gcry_free (ctx->label);
+      ctx->label = NULL;
     }
   else
     {
@@ -1689,11 +1695,14 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
             s = gcry_sexp_nth_data (lflags, i, &n);
             if (!s)
               ; /* not a data element*/
-            else if ( n == 3 && !memcmp (s, "raw", 3))
+            else if ( n == 3 && !memcmp (s, "raw", 3)
+                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
               ctx->encoding = PUBKEY_ENC_RAW;
-            else if ( n == 5 && !memcmp (s, "pkcs1", 5))
+            else if ( n == 5 && !memcmp (s, "pkcs1", 5)
+                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
               ctx->encoding = PUBKEY_ENC_PKCS1;
-            else if ( n == 4 && !memcmp (s, "oaep", 4))
+            else if ( n == 4 && !memcmp (s, "oaep", 4)
+                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
               ctx->encoding = PUBKEY_ENC_OAEP;
 	    else if (n == 11 && ! memcmp (s, "no-blinding", 11))
 	      parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
@@ -1738,7 +1747,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
           rc = GPG_ERR_TOO_SHORT; /* the key is too short */
         }
       else if ( !(frame = gcry_malloc_secure (nframe)))
-        rc = gpg_err_code_from_errno (errno);
+        rc = gpg_err_code_from_syserror ();
       else
         {
           n = 0;
@@ -1832,7 +1841,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
               rc = GPG_ERR_TOO_SHORT;
             }
           else if ( !(frame = gcry_malloc (nframe)) )
-            rc = gpg_err_code_from_errno (errno);
+            rc = gpg_err_code_from_syserror ();
           else
             { /* Assemble the pkcs#1 block type 1. */
               n = 0;
@@ -1896,7 +1905,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
 		{
 		  ctx->label = gcry_malloc (n);
 		  if (!ctx->label)
-		    rc = gpg_err_code_from_errno (errno);
+		    rc = gpg_err_code_from_syserror ();
 		  else
 		    {
 		      memcpy (ctx->label, s, n);
@@ -1923,7 +1932,10 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
   if (!rc)
     *flags = parsed_flags;
   else
-    gcry_free (ctx->label);
+    {
+      gcry_free (ctx->label);
+      ctx->label = NULL;
+    }
 
   return rc;
 }
@@ -1996,7 +2008,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   ciph = gcry_calloc (strlen (algo_elems) + 1, sizeof (*ciph));
   if (!ciph)
     {
-      rc = gpg_err_code_from_errno (errno);
+      rc = gpg_err_code_from_syserror ();
       goto leave;
     }
   rc = pubkey_encrypt (module->mod_id, ciph, data, pkey, flags);
@@ -2017,7 +2029,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     string = p = gcry_malloc (needed);
     if (!string)
       {
-        rc = gpg_err_code_from_errno (errno);
+        rc = gpg_err_code_from_syserror ();
         goto leave;
       }
     p = stpcpy ( p, "(enc-val(" );
@@ -2037,7 +2049,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     arg_list = malloc (nelem * sizeof *arg_list);
     if (!arg_list)
       {
-        rc = gpg_err_code_from_errno (errno);
+        rc = gpg_err_code_from_syserror ();
         goto leave;
       }
 
@@ -2244,7 +2256,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   result = gcry_calloc (strlen (algo_elems) + 1, sizeof (*result));
   if (!result)
     {
-      rc = gpg_err_code_from_errno (errno);
+      rc = gpg_err_code_from_syserror ();
       goto leave;
     }
   rc = pubkey_sign (module->mod_id, result, hash, skey);
@@ -2265,7 +2277,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
     string = p = gcry_malloc (needed);
     if (!string)
       {
-        rc = gpg_err_code_from_errno (errno);
+        rc = gpg_err_code_from_syserror ();
         goto leave;
       }
     p = stpcpy (p, "(sig-val(");
@@ -2281,7 +2293,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
     arg_list = malloc (nelem * sizeof *arg_list);
     if (!arg_list)
       {
-        rc = gpg_err_code_from_errno (errno);
+        rc = gpg_err_code_from_syserror ();
         goto leave;
       }
 
@@ -2596,7 +2608,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     string = p = gcry_malloc (needed);
     if (!string)
       {
-        rc = gpg_err_code_from_errno (errno);
+        rc = gpg_err_code_from_syserror ();
         goto leave;
       }
     p = stpcpy (p, "(key-data");
@@ -2660,7 +2672,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       arg_list = gcry_calloc (nelem_cp+1, sizeof *arg_list);
       if (!arg_list)
         {
-          rc = gpg_err_code_from_errno (errno);
+          rc = gpg_err_code_from_syserror ();
           goto leave;
         }
       for (i = j = 0; i < elem_n; i++)
@@ -3219,7 +3231,7 @@ _gcry_pk_get_elements (int algo, char **enc, char **sig)
       enc_cp = strdup (spec->elements_enc);
       if (! enc_cp)
 	{
-	  err = gpg_err_code_from_errno (errno);
+	  err = gpg_err_code_from_syserror ();
 	  goto out;
 	}
     }
@@ -3229,7 +3241,7 @@ _gcry_pk_get_elements (int algo, char **enc, char **sig)
       sig_cp = strdup (spec->elements_sig);
       if (! sig_cp)
 	{
-	  err = gpg_err_code_from_errno (errno);
+	  err = gpg_err_code_from_syserror ();
 	  goto out;
 	}
     }

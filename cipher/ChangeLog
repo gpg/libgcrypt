@@ -1,3 +1,14 @@
+2011-05-11  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (sexp_to_enc, sexp_data_to_mpi): Set LABEL to NULL
+	after free.
+	(sexp_to_enc, sexp_data_to_mpi): Do not allow multiple encoding
+	flags.
+	(oaep_encode, oaep_decode, sexp_to_key, sexp_to_sig)
+	(sexp_to_enc, sexp_data_to_mpi, gcry_pk_encrypt, gcry_pk_sign)
+	(gcry_pk_genkey, _gcry_pk_get_elements): Replace access to ERRNO
+	by gpg_err_code_from_syserror.
+
 2011-05-11  Daiki Ueno  <ueno@unixuser.org>
 
 	* pubkey.c (sexp_data_to_mpi): Factor some code out to ...
