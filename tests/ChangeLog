@@ -1,3 +1,10 @@
+2011-05-11  Daiki Ueno  <ueno@unixuser.org>
+
+	* basic.c (check_pubkey_sign): Add an OAEP flag parsing test case.
+	(check_pubkey_crypt): New.
+	(do_check_one_pubkey): Call it.
+	(check_one_pubkey): Free SKEY and PKEY.
+
 2011-04-11  Werner Koch  <wk@g10code.com>
 
 	* basic.c (mismatch): New.

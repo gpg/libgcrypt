@@ -1,3 +1,17 @@
+2011-05-11  Daiki Ueno  <ueno@unixuser.org>
+
+	* pubkey.c (sexp_data_to_mpi): Factor some code out to ...
+	(get_hash_algo): .. new.
+	(mgf1, oaep_encode, oaep_decode): New.
+	(sexp_to_enc): Add arg CTX.  Remove arg RET_WANT_PKCS1.  Support
+	OAEP.
+	(sexp_data_to_mpi): Add arg CTX.  Support OAEP.
+	(gcry_pk_encrypt): Pass a CTX to sexp_data_to_mpi.
+	(gcry_pk_decrypt): Pass a CTX tp sexp_to_enc and replace
+	WANT_PKCS1.  Implement unpadding for OAEP.
+	(gcry_pk_sign): Pass NULL for CTX arg of sexp_data_to_mpi.
+	(gcry_pk_verify): Ditto.
+
 2011-04-19  Werner Koch  <wk@g10code.com>
 
 	* cipher.c (gcry_cipher_open): Replace gpg_err_code_from_errno by

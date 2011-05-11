@@ -8,6 +8,8 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * Support ECDH.
 
+ * Support OAEP.
+
  * gcry_sexp_build does now support opaque MPIs with "%m".
 
  * New functions gcry_pk_get_curve and gcry_pk_get_param to map ECC
@@ -52,6 +54,8 @@ Noteworthy changes in version 1.5.x (unreleased)
  gcry_pk_get_param          NEW.
  GCRYCTL_DISABLE_HWF        NEW.
  gcry_kdf_derive            NEW.
+ gcry_pk_encrypt            EXTENDED:  Support OAEP
+ gcry_pk_decrypt            EXTENDED:  Support OAEP
 
  * Interface changes relative to the 1.4.2 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
