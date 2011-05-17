@@ -2328,6 +2328,8 @@ sub-S-expression named `flags'; the following flags are known:
 @table @code
 @item pkcs1
 Use PKCS#1 block type 2 padding.
+@item oaep
+Use RSA-OAEP padding.
 @item no-blinding
 Do not use a technique called `blinding', which is used by default in
 order to prevent leaking of secret information.  Blinding is only
@@ -2429,8 +2431,17 @@ element:
 @end example
 
 @noindent
-Note that this function currently does not know of any padding
-methods and the caller must do any un-padding on his own.
+This function does not remove padding from the data by default.  To
+let Libgcrypt remove padding, give a hint in `flags' telling which
+padding method was used when encrypting:
+
+@example
+(flags @var{padding-method})
+@end example
+
+@noindent
+Currently @var{padding-method} is either @code{pkcs1} for PKCS#1 block
+type 2 padding, or @code{oaep} for RSA-OAEP padding.
 
 @noindent
 The function returns 0 on success or an error code.  The variable at the

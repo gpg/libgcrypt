@@ -2376,19 +2376,24 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 	NULL,
 	0,
 	0 },
+      {	"(data\n (flags pkcs1)\n"
+	" (value #11223344556677889900AA#))\n",
+	"(flags pkcs1)",
+	1,
+	0 },
       { "(data\n (flags oaep)\n"
 	" (value #11223344556677889900AA#))\n",
-	"(flags oaep unpad)",
+	"(flags oaep)",
 	1,
 	0 },
       { "(data\n (flags oaep)\n (hash-algo sha1)\n"
 	" (value #11223344556677889900AA#))\n",
-	"(flags oaep unpad)(hash-algo sha1)",
+	"(flags oaep)(hash-algo sha1)",
 	1,
 	0 },
       { "(data\n (flags oaep)\n (hash-algo sha1)\n (label \"test\")\n"
 	" (value #11223344556677889900AA#))\n",
-	"(flags oaep unpad)(hash-algo sha1)(label \"test\")",
+	"(flags oaep)(hash-algo sha1)(label \"test\")",
 	1,
 	0 },
       {	"(data\n (flags )\n" " (value #11223344556677889900AA#))\n",

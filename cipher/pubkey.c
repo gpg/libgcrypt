@@ -784,6 +784,187 @@ pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
 }
 
 static gcry_err_code_t
+pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
+			     const unsigned char *value, size_t valuelen)
+{
+  /* Create pkcs#1 block type 2 padding. */
+  gcry_err_code_t rc = 0;
+  gcry_error_t err;
+  unsigned char *frame = NULL;
+  size_t nframe = (nbits+7) / 8;
+  int i;
+  size_t n;
+  unsigned char *p;
+
+  if (valuelen + 7 > nframe || !nframe)
+    /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
+    return GPG_ERR_TOO_SHORT; /* the key is too short */
+  if ( !(frame = gcry_malloc_secure (nframe)))
+    return gpg_err_code_from_syserror ();
+
+  n = 0;
+  frame[n++] = 0;
+  frame[n++] = 2; /* block type */
+  i = nframe - 3 - valuelen;
+  gcry_assert (i > 0);
+  p = gcry_random_bytes_secure (i, GCRY_STRONG_RANDOM);
+  /* Replace zero bytes by new values. */
+  for (;;)
+    {
+      int j, k;
+      unsigned char *pp;
+
+      /* Count the zero bytes. */
+      for (j=k=0; j < i; j++)
+	{
+	  if (!p[j])
+	    k++;
+	}
+      if (!k)
+	break; /* Okay: no (more) zero bytes. */
+
+      k += k/128 + 3; /* Better get some more. */
+      pp = gcry_random_bytes_secure (k, GCRY_STRONG_RANDOM);
+      for (j=0; j < i && k; )
+	{
+	  if (!p[j])
+	    p[j] = pp[--k];
+	  if (p[j])
+	    j++;
+	}
+      gcry_free (pp);
+    }
+  memcpy (frame+n, p, i);
+  n += i;
+  gcry_free (p);
+
+  frame[n++] = 0;
+  memcpy (frame+n, value, valuelen);
+  n += valuelen;
+  gcry_assert (n == nframe);
+
+  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, frame, n, &nframe);
+  if (err)
+    rc = gcry_err_code (err);
+  else if (DBG_CIPHER)
+    log_mpidump ("PKCS#1 block type 2 encoded data", *r_result);
+  gcry_free (frame);
+
+  return rc;
+}
+
+static gcry_err_code_t
+pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
+			     gcry_mpi_t value)
+{
+  gcry_err_code_t rc = 0;
+  gcry_error_t err;
+  unsigned char *frame = NULL;
+  size_t nframe = (nbits+7) / 8;
+  size_t n;
+
+  if ( !(frame = gcry_malloc_secure (nframe)))
+    return gpg_err_code_from_syserror ();
+
+  err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, value);
+  if (err)
+    return gcry_err_code (err);
+  if (n < nframe)
+    {
+      memmove (frame + (nframe - n), frame, n);
+      memset (frame, 0, (nframe - n));
+    }
+
+  /* FRAME = 0x00 || 0x02 || PS || 0x00 || M */
+  n = 0;
+  if (frame[n++] != 0x00 || frame[n++] != 0x02)
+    {
+      gcry_free (frame);
+      return GPG_ERR_ENCODING_PROBLEM;
+    }
+
+  for (; frame[n] != 0x00 && n < nframe; n++)
+    ;
+  if (n == nframe)
+    {
+      gcry_free (frame);
+      return GPG_ERR_ENCODING_PROBLEM;
+    }
+
+  n++;
+  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, &frame[n], nframe - n, NULL);
+  if (err)
+    rc = gcry_err_code (err);
+  else if (DBG_CIPHER)
+    log_mpidump ("value extracted from PKCS#1 block type 2 encoded data",
+		 *r_result);
+  gcry_free (frame);
+
+  return rc;
+}
+
+static gcry_err_code_t
+pkcs1_encode_for_signature (gcry_mpi_t *r_result, unsigned int nbits,
+			    const unsigned char *value, size_t valuelen,
+			    int algo)
+{
+  /* Create pkcs#1 block type 1 padding. */
+  gcry_err_code_t rc = 0;
+  gcry_error_t err;
+  byte asn[100];
+  byte *frame = NULL;
+  size_t nframe = (nbits+7) / 8;
+  int i;
+  size_t n;
+  size_t asnlen, dlen;
+
+  asnlen = DIM(asn);
+  dlen = gcry_md_get_algo_dlen (algo);
+
+  if (gcry_md_algo_info (algo, GCRYCTL_GET_ASNOID, asn, &asnlen))
+    /* We don't have yet all of the above algorithms.  */
+    return GPG_ERR_NOT_IMPLEMENTED;
+
+  if ( valuelen != dlen )
+    /* Hash value does not match the length of digest for
+       the given algorithm. */
+    return GPG_ERR_CONFLICT;
+
+  if( !dlen || dlen + asnlen + 4 > nframe)
+    /* Can't encode an DLEN byte digest MD into a NFRAME
+       byte frame. */
+    return GPG_ERR_TOO_SHORT;
+
+  if ( !(frame = gcry_malloc (nframe)) )
+    return gpg_err_code_from_syserror ();
+
+  /* Assemble the pkcs#1 block type 1. */
+  n = 0;
+  frame[n++] = 0;
+  frame[n++] = 1; /* block type */
+  i = nframe - valuelen - asnlen - 3 ;
+  gcry_assert (i > 1);
+  memset (frame+n, 0xff, i );
+  n += i;
+  frame[n++] = 0;
+  memcpy (frame+n, asn, asnlen);
+  n += asnlen;
+  memcpy (frame+n, value, valuelen );
+  n += valuelen;
+  gcry_assert (n == nframe);
+
+  /* Convert it into an MPI. */
+  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, frame, n, &nframe);
+  if (err)
+    rc = gcry_err_code (err);
+  else if (DBG_CIPHER)
+    log_mpidump ("PKCS#1 block type 1 encoded data", *r_result);
+  gcry_free (frame);
+
+  return rc;
+}
+
+static gcry_err_code_t
 mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
       int algo)
 {
@@ -1416,7 +1597,7 @@ get_hash_algo (const char *s, size_t n)
  * Take sexp and return an array of MPI as used for our internal decrypt
  * function.
  * s_data = (enc-val
- *           [(flags [raw, pkcs1, oaep, no-blinding, unpad])]
+ *           [(flags [raw, pkcs1, oaep, no-blinding])]
  *           [(hash-algo <algo>)]
  *           [(label <label>)]
  *	      (<algo>
@@ -1493,14 +1674,12 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
             ; /* This is just a dummy as it is the default.  */
           else if (n == 5 && !memcmp (s, "pkcs1", 5)
                    && ctx->encoding == PUBKEY_ENC_RAW)
-            ctx->encoding = PUBKEY_ENC_PKCS1;
+	    ctx->encoding = PUBKEY_ENC_PKCS1;
           else if (n == 4 && !memcmp (s, "oaep", 4)
                    && ctx->encoding == PUBKEY_ENC_RAW)
-            ctx->encoding = PUBKEY_ENC_OAEP;
+	    ctx->encoding = PUBKEY_ENC_OAEP;
           else if (n == 11 && ! memcmp (s, "no-blinding", 11))
             parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
-	  else if (n == 5 && !memcmp (s, "unpad", 5))
-	    parsed_flags |= PUBKEY_FLAG_UNPAD;
           else
             {
               err = GPG_ERR_INV_FLAG;
@@ -1732,74 +1911,16 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
     }
   else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lvalue && for_encryption)
     {
-      /* Create pkcs#1 block type 2 padding. */
-      unsigned char *frame = NULL;
-      size_t nframe = (nbits+7) / 8;
       const void * value;
       size_t valuelen;
-      unsigned char *p;
 
       if ( !(value=gcry_sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
         rc = GPG_ERR_INV_OBJ;
-      else if (valuelen + 7 > nframe || !nframe)
-        {
-          /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
-          rc = GPG_ERR_TOO_SHORT; /* the key is too short */
-        }
-      else if ( !(frame = gcry_malloc_secure (nframe)))
-        rc = gpg_err_code_from_syserror ();
       else
-        {
-          n = 0;
-          frame[n++] = 0;
-          frame[n++] = 2; /* block type */
-          i = nframe - 3 - valuelen;
-          gcry_assert (i > 0);
-          p = gcry_random_bytes_secure (i, GCRY_STRONG_RANDOM);
-          /* Replace zero bytes by new values. */
-          for (;;)
-            {
-              int j, k;
-              unsigned char *pp;
-
-              /* Count the zero bytes. */
-              for (j=k=0; j < i; j++)
-                {
-                  if (!p[j])
-                    k++;
-                }
-              if (!k)
-                break; /* Okay: no (more) zero bytes. */
-
-              k += k/128 + 3; /* Better get some more. */
-              pp = gcry_random_bytes_secure (k, GCRY_STRONG_RANDOM);
-              for (j=0; j < i && k; )
-                {
-                  if (!p[j])
-                    p[j] = pp[--k];
-                  if (p[j])
-                    j++;
-                }
-              gcry_free (pp);
-            }
-          memcpy (frame+n, p, i);
-          n += i;
-          gcry_free (p);
-
-          frame[n++] = 0;
-          memcpy (frame+n, value, valuelen);
-          n += valuelen;
-          gcry_assert (n == nframe);
-
-	  /* FIXME, error checking?  */
-          gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, n, &nframe);
-        }
-
-      gcry_free(frame);
+	rc = pkcs1_encode_for_encryption (ret_mpi, nbits, value, valuelen);
     }
   else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lhash && !for_encryption)
     {
-      /* Create pkcs#1 block type 1 padding. */
       if (gcry_sexp_length (lhash) != 3)
         rc = GPG_ERR_INV_OBJ;
       else if ( !(s=gcry_sexp_nth_data (lhash, 1, &n)) || !n )
@@ -1807,62 +1928,19 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
       else
         {
           int algo;
-          byte asn[100];
-          byte *frame = NULL;
-          size_t nframe = (nbits+7) / 8;
           const void * value;
           size_t valuelen;
-          size_t asnlen, dlen;
 
 	  algo = get_hash_algo (s, n);
-          asnlen = DIM(asn);
-          dlen = gcry_md_get_algo_dlen (algo);
 
           if (!algo)
             rc = GPG_ERR_DIGEST_ALGO;
           else if ( !(value=gcry_sexp_nth_data (lhash, 2, &valuelen))
                     || !valuelen )
             rc = GPG_ERR_INV_OBJ;
-          else if (gcry_md_algo_info (algo, GCRYCTL_GET_ASNOID, asn, &asnlen))
-            {
-              /* We don't have yet all of the above algorithms.  */
-              rc = GPG_ERR_NOT_IMPLEMENTED;
-            }
-          else if ( valuelen != dlen )
-            {
-              /* Hash value does not match the length of digest for
-                 the given algorithm. */
-              rc = GPG_ERR_CONFLICT;
-            }
-          else if( !dlen || dlen + asnlen + 4 > nframe)
-            {
-              /* Can't encode an DLEN byte digest MD into a NFRAME
-                 byte frame. */
-              rc = GPG_ERR_TOO_SHORT;
-            }
-          else if ( !(frame = gcry_malloc (nframe)) )
-            rc = gpg_err_code_from_syserror ();
           else
-            { /* Assemble the pkcs#1 block type 1. */
-              n = 0;
-              frame[n++] = 0;
-              frame[n++] = 1; /* block type */
-              i = nframe - valuelen - asnlen - 3 ;
-              gcry_assert (i > 1);
-              memset (frame+n, 0xff, i );
-              n += i;
-              frame[n++] = 0;
-              memcpy (frame+n, asn, asnlen);
-              n += asnlen;
-              memcpy (frame+n, value, valuelen );
-              n += valuelen;
-              gcry_assert (n == nframe);
-
-              /* Convert it into an MPI.  FIXME: error checking?  */
-              gcry_mpi_scan (ret_mpi, GCRYMPI_FMT_USG, frame, n, &nframe);
-            }
-
-          gcry_free (frame);
+	    rc = pkcs1_encode_for_signature (ret_mpi, nbits, value, valuelen,
+					     algo);
         }
     }
   else if (ctx->encoding == PUBKEY_ENC_OAEP && lvalue && for_encryption)
@@ -2101,7 +2179,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
    Returns: 0 or an errorcode.
 
    s_data = (enc-val
-              [(flags)]
+              [(flags [raw, pkcs1, oaep])]
               (<algo>
                 (<param_name1> <mpi>)
                 ...
@@ -2144,16 +2222,27 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  /* Do un-padding. */
-  /* FIXME: Currently only OAEP is supported. */
-  if ((flags & PUBKEY_FLAG_UNPAD) && ctx.encoding == PUBKEY_ENC_OAEP)
+  /* Do un-padding if necessary. */
+  switch (ctx.encoding)
     {
+    case PUBKEY_ENC_PKCS1:
+      rc = pkcs1_decode_for_encryption (&unpad, gcry_pk_get_nbits (s_skey),
+					plain);
+      mpi_free (plain);
+      if (rc)
+	goto leave;
+      plain = unpad;
+      break;
+    case PUBKEY_ENC_OAEP:
       rc = oaep_decode (&unpad, gcry_pk_get_nbits (s_skey), ctx.hash_algo,
 			plain, ctx.label, ctx.labellen);
       mpi_free (plain);
       if (rc)
 	goto leave;
       plain = unpad;
+      break;
+    default:
+      break;
     }
 
   if (gcry_sexp_build (r_plain, NULL, modern? "(value %m)" : "%m", plain))

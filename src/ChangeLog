@@ -1,3 +1,7 @@
+2011-05-18  Daiki Ueno  <ueno@unixuser.org>
+
+	* cipher.h: Remove PUBKEY_FLAG_UNPAD.
+
 2011-05-11  Daiki Ueno  <ueno@unixuser.org>
 
 	* cipher.h (PUBKEY_FLAG_UNPAD): New.

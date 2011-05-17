@@ -1,3 +1,13 @@
+2011-05-18  Daiki Ueno  <ueno@unixuser.org>
+
+	* pubkey.c (sexp_data_to_mpi): Factor some code out to ...
+	(pkcs1_encode_for_encryption): .. new,
+	(pkcs1_encode_for_signature): .. new.
+	(pkcs1_decode_for_encryption): New.
+	(gcry_pk_decrypt): Do un-padding for PKCS#1 as well as OAEP.
+	(sexp_to_enc): Abolish "unpad" flag, which is not necessary since
+	we can do un-padding implicitly when "pkcs1" or "oaep" is given.
+
 2011-05-11  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (sexp_to_enc, sexp_data_to_mpi): Set LABEL to NULL
