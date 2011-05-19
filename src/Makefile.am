@@ -124,7 +124,7 @@ hmac256_LDADD = $(arch_gpg_error_libs)
 if USE_RANDOM_DAEMON
 gcryptrnd_SOURCES = gcryptrnd.c
 gcryptrnd_CFLAGS = $(GPG_ERROR_CFLAGS) $(PTH_CFLAGS)
-gcryptrnd_LDADD = libgcrypt.la $(PTH_LIBS)
+gcryptrnd_LDADD = libgcrypt.la $(GPG_ERROR_LIBS) $(PTH_LIBS)
 
 getrandom_SOURCES = getrandom.c
 endif USE_RANDOM_DAEMON
