@@ -783,11 +783,14 @@ pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
   return rc;
 }
 
+
+/* Encode {VALUE,VALUELEN} for an NBITS keys using the pkcs#1 block
+   type 2 padding.  On sucess the result is stored as a new MPI at
+   R_RESULT.  On error the value at R_RESULT is undefined.  */
 static gcry_err_code_t
 pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 			     const unsigned char *value, size_t valuelen)
 {
-  /* Create pkcs#1 block type 2 padding. */
   gcry_err_code_t rc = 0;
   gcry_error_t err;
   unsigned char *frame = NULL;
@@ -797,8 +800,11 @@ pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
   unsigned char *p;
 
   if (valuelen + 7 > nframe || !nframe)
-    /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
-    return GPG_ERR_TOO_SHORT; /* the key is too short */
+    {
+      /* Can't encode a VALUELEN value in a NFRAME bytes frame.  */
+      return GPG_ERR_TOO_SHORT; /* The key is too short.  */
+    }
+
   if ( !(frame = gcry_malloc_secure (nframe)))
     return gpg_err_code_from_syserror ();
 
@@ -853,6 +859,11 @@ pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
   return rc;
 }
 
+
+/* Decode a plaintext in VALUE assuming pkcs#1 block type 2 padding.
+   NBITS is the size of the secret key.  On sucess the result is
+   stored as a new MPI at R_RESULT.  On error the value at R_RESULT is
+   undefined.  */
 static gcry_err_code_t
 pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 			     gcry_mpi_t value)
@@ -868,7 +879,11 @@ pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 
   err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, value);
   if (err)
-    return gcry_err_code (err);
+    {
+      gcry_free (frame);
+      return gcry_err_code (err);
+    }
+
   if (n < nframe)
     {
       memmove (frame + (nframe - n), frame, n);
@@ -903,12 +918,16 @@ pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
   return rc;
 }
 
+
+/* Encode {VALUE,VALUELEN} for an NBITS keys and hash algorith ALGO
+   using the pkcs#1 block type 1 padding.  On sucess the result is
+   stored as a new MPI at R_RESULT.  On error the value at R_RESULT is
+   undefined.  */
 static gcry_err_code_t
 pkcs1_encode_for_signature (gcry_mpi_t *r_result, unsigned int nbits,
 			    const unsigned char *value, size_t valuelen,
 			    int algo)
 {
-  /* Create pkcs#1 block type 1 padding. */
   gcry_err_code_t rc = 0;
   gcry_error_t err;
   byte asn[100];
@@ -922,18 +941,24 @@ pkcs1_encode_for_signature (gcry_mpi_t *r_result, unsigned int nbits,
   dlen = gcry_md_get_algo_dlen (algo);
 
   if (gcry_md_algo_info (algo, GCRYCTL_GET_ASNOID, asn, &asnlen))
-    /* We don't have yet all of the above algorithms.  */
-    return GPG_ERR_NOT_IMPLEMENTED;
+    {
+      /* We don't have yet all of the above algorithms.  */
+      return GPG_ERR_NOT_IMPLEMENTED;
+    }
 
   if ( valuelen != dlen )
-    /* Hash value does not match the length of digest for
-       the given algorithm. */
-    return GPG_ERR_CONFLICT;
+    {
+      /* Hash value does not match the length of digest for
+         the given algorithm.  */
+      return GPG_ERR_CONFLICT;
+    }
 
-  if( !dlen || dlen + asnlen + 4 > nframe)
-    /* Can't encode an DLEN byte digest MD into a NFRAME
-       byte frame. */
-    return GPG_ERR_TOO_SHORT;
+  if ( !dlen || dlen + asnlen + 4 > nframe)
+    {
+      /* Can't encode an DLEN byte digest MD into an NFRAME byte
+         frame.  */
+      return GPG_ERR_TOO_SHORT;
+    }
 
   if ( !(frame = gcry_malloc (nframe)) )
     return gpg_err_code_from_syserror ();
@@ -963,6 +988,7 @@ pkcs1_encode_for_signature (gcry_mpi_t *r_result, unsigned int nbits,
 
   return rc;
 }
+
 
 static gcry_err_code_t
 mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
