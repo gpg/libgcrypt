@@ -868,7 +868,10 @@ pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 
   err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, value);
   if (err)
-    return gcry_err_code (err);
+    {
+      gcry_free (frame);
+      return gcry_err_code (err);
+    }
   if (n < nframe)
     {
       memmove (frame + (nframe - n), frame, n);
@@ -1092,7 +1095,10 @@ oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 
   err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, value);
   if (err)
-    return gcry_err_code (err);
+    {
+      gcry_free (frame);
+      return gcry_err_code (err);
+    }
   if (n < nframe)
     {
       memmove (frame + (nframe - n), frame, n);
