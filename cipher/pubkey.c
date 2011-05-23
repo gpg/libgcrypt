@@ -1118,7 +1118,10 @@ oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 
   err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, value);
   if (err)
-    return gcry_err_code (err);
+    {
+      gcry_free (frame);
+      return gcry_err_code (err);
+    }
   if (n < nframe)
     {
       memmove (frame + (nframe - n), frame, n);
