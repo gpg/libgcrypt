@@ -41,6 +41,7 @@ enum pk_encoding
     PUBKEY_ENC_RAW,
     PUBKEY_ENC_PKCS1,
     PUBKEY_ENC_OAEP,
+    PUBKEY_ENC_PSS,
     PUBKEY_ENC_UNKNOWN
   };
 
@@ -57,6 +58,9 @@ struct pk_encoding_ctx
   /* for OAEP */
   unsigned char *label;
   size_t labellen;
+
+  /* for PSS */
+  size_t saltlen;
 
   int (* verify_cmp) (void *opaque, gcry_mpi_t tmp);
   void *verify_arg;

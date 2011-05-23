@@ -1190,6 +1190,263 @@ oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   return rc;
 }
 
+
+/* Encode {VALUE,VALUELEN} for an NBITS keys using the PSS padding.
+   ALGO is a hash algorithm and SALTLEN is a length of salt used
+   internally.  On sucess the result is stored as a new MPI at
+   R_RESULT.  On error the value at R_RESULT is undefined.  */
+static gcry_err_code_t
+pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
+	    const unsigned char *value, size_t valuelen,
+	    int saltlen)
+{
+  gcry_err_code_t rc = 0;
+  gcry_error_t err;
+  unsigned char *frame = NULL, *buf = NULL, *dmask = NULL, *h = NULL, *salt, *p;
+  size_t nframe = (nbits+7) / 8;
+  size_t dlen;
+  gcry_md_hd_t hd = NULL;
+  size_t n;
+
+  err = gcry_md_open (&hd, algo, 0);
+  if (err)
+    {
+      rc = gpg_err_code (err);
+      goto leave;
+    }
+  dlen = gcry_md_get_algo_dlen (algo);
+
+  if (nframe < dlen + saltlen + 2)
+    {
+      /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
+      rc = GPG_ERR_TOO_SHORT; /* the key is too short */
+      goto leave;
+    }
+
+  if ( !(frame = gcry_calloc_secure (nframe, sizeof *frame)))
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+
+  if ( !(buf = gcry_calloc_secure (8 + dlen + saltlen, sizeof *buf)))
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+
+  /* M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt */
+  n = 8;
+  gcry_md_reset (hd);
+  gcry_md_write (hd, value, valuelen);
+  memcpy (&buf[n], gcry_md_read (hd, 0), dlen);
+  n += dlen;
+  salt = &buf[n];
+  gcry_randomize (salt, saltlen, GCRY_STRONG_RANDOM);
+  n += saltlen;
+
+  /* H = Hash(M') */
+  if ( !(h = gcry_malloc_secure (dlen)))
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+  gcry_md_reset (hd);
+  gcry_md_write (hd, buf, n);
+  memcpy (h, gcry_md_read (hd, 0), dlen);
+
+  /* DB = PS || 0x01 || salt */
+  n = nframe - saltlen - dlen - 2;
+  frame[n++] = 1;
+  memcpy (&frame[n], salt, saltlen);
+  n += saltlen;
+
+  if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+
+  /* DMASK = MGF(H, NFRAME - DLEN - 1) */
+  mgf1 (dmask, nframe - dlen - 1, h, dlen, algo);
+
+  /* FRAME = DB xor DMASK || H || 0xbc */
+  for (n = 0, p = dmask; n < nframe - dlen - 1; n++)
+    frame[n] ^= *p++;
+
+  memcpy (&frame[n], h, dlen);
+  n += dlen;
+  frame[n++] = 0xbc;
+  gcry_assert (n == nframe);
+
+  frame[0] &= 0xFF >> (8 * nframe - nbits);
+
+  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, frame, nframe, NULL);
+  if (err)
+    rc = gcry_err_code (err);
+  else if (DBG_CIPHER)
+    log_mpidump ("PSS encoded data", *r_result);
+
+ leave:
+  gcry_md_close (hd);
+  gcry_free (frame);
+  gcry_free (buf);
+  gcry_free (dmask);
+  gcry_free (h);
+  return rc;
+}
+
+
+/* Verify a signature in VALUE assuming PSS padding.  NBITS is the
+   size of the secret key.  ALGO is a hash algorithm and SALTLEN is a
+   length of salt used internally.  On sucess it returns
+   GPG_ERR_NO_ERROR; on error otherwise.  */
+static gcry_err_code_t
+pss_verify (gcry_mpi_t value, gcry_mpi_t encoded, unsigned int nbits, int algo,
+	    size_t saltlen)
+{
+  gcry_err_code_t rc = 0;
+  gcry_error_t err;
+  unsigned char *frame = NULL, *mhash = NULL, *buf = NULL, *dmask = NULL;
+  unsigned char *h = NULL, *salt;
+  size_t nframe = (nbits+7) / 8, valuelen;
+  size_t dlen;
+  gcry_md_hd_t hd = NULL;
+  size_t n;
+
+  if ( !(frame = gcry_malloc_secure (nframe)))
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+
+  err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &valuelen, value);
+  if (err)
+    {
+      rc = gcry_err_code (err);
+      goto leave;
+    }
+
+  err = gcry_md_open (&hd, algo, 0);
+  if (err)
+    {
+      rc = gpg_err_code (err);
+      goto leave;
+    }
+  dlen = gcry_md_get_algo_dlen (algo);
+
+  if ( !(mhash = gcry_malloc_secure (dlen)))
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+
+  gcry_md_write (hd, frame, valuelen);
+  memcpy (mhash, gcry_md_read (hd, 0), dlen);
+
+  err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, encoded);
+  if (err)
+    {
+      rc = gcry_err_code (err);
+      goto leave;
+    }
+  if (n < nframe)
+    {
+      memmove (frame + (nframe - n), frame, n);
+      memset (frame, 0, (nframe - n));
+    }
+
+  if (nframe < dlen + saltlen + 2)
+    {
+      /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
+      rc = GPG_ERR_TOO_SHORT; /* the sig is too short */
+      goto leave;
+    }
+
+  if (frame[nframe - 1] != 0xbc)
+    {
+      rc = GPG_ERR_BAD_SIGNATURE;
+      goto leave;
+    }
+
+  if ( !(buf = gcry_malloc_secure (nframe - dlen - 1)))
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+  memcpy (buf, frame, nframe - dlen - 1);
+
+  if ((buf[0] & ~(0xFF >> (8 * nframe - nbits))) != 0)
+    {
+      rc = GPG_ERR_BAD_SIGNATURE;
+      goto leave;
+    }
+
+  if ( !(h = gcry_malloc_secure (dlen)))
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+  memcpy (h, &frame[nframe - dlen - 1], dlen);
+
+  if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+
+  /* DMASK = MGF(H, NFRAME - DLEN - 1) */
+  mgf1 (dmask, nframe - dlen - 1, h, dlen, algo);
+
+  for (n = 0; n < nframe - dlen - 1; n++)
+    buf[n] ^= dmask[n];
+
+  buf[0] &= 0xFF >> (8 * nframe - nbits);
+
+  for (n = 0; n < nframe - dlen - saltlen - 2 && buf[n] == 0; n++)
+    ;
+  if (n != nframe - dlen - saltlen - 2 || buf[n++] != 1)
+    {
+      rc = GPG_ERR_BAD_SIGNATURE;
+      goto leave;
+    }
+  salt = &buf[n];
+
+  /* M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt */
+  n = 0;
+  memset (frame, 0, 8);
+  n += 8;
+  memcpy (&frame[n], mhash, dlen);
+  n += dlen;
+  memcpy (&frame[n], salt, saltlen);
+  n += saltlen;
+
+  /* H' = Hash(M') */
+  gcry_md_reset (hd);
+  gcry_md_write (hd, frame, n);
+  memcpy (buf, gcry_md_read (hd, 0), dlen);
+
+  rc = memcmp (buf, h, dlen) ? GPG_ERR_BAD_SIGNATURE : GPG_ERR_NO_ERROR;
+
+ leave:
+  gcry_md_close (hd);
+  gcry_free (frame);
+  gcry_free (buf);
+  gcry_free (dmask);
+  gcry_free (mhash);
+  gcry_free (h);
+  return rc;
+}
+
+static int
+pss_verify_cmp (void *opaque, gcry_mpi_t tmp)
+{
+  struct pk_encoding_ctx *ctx = opaque;
+  gcry_mpi_t hash = ctx->verify_arg;
+
+  return pss_verify (hash, tmp, ctx->nbits - 1, ctx->hash_algo, ctx->saltlen);
+}
+
 /* Internal function.   */
 static gcry_err_code_t
 sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
@@ -1696,6 +1953,12 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
           else if (n == 4 && !memcmp (s, "oaep", 4)
                    && ctx->encoding == PUBKEY_ENC_UNKNOWN)
 	    ctx->encoding = PUBKEY_ENC_OAEP;
+          else if (n == 3 && !memcmp (s, "pss", 3)
+                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
+	    {
+	      err = GPG_ERR_CONFLICT;
+	      goto leave;
+	    }
           else if (n == 11 && ! memcmp (s, "no-blinding", 11))
             parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
           else
@@ -1835,11 +2098,12 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
    (<mpi>)
    or
    (data
-    [(flags [raw, pkcs1, oaep, no-blinding])]
+    [(flags [raw, pkcs1, oaep, pss, no-blinding])]
     [(hash <algo> <value>)]
     [(value <text>)]
     [(hash-algo <algo>)]
     [(label <label>)]
+    [(salt-length <length>)]
    )
 
    Either the VALUE or the HASH element must be present for use
@@ -1847,12 +2111,12 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
 
    HASH-ALGO and LABEL are specific to OAEP.
 
-   NBITS is the length of the key in bits.
+   SALT-LENGTH is for PSS.
 
 */
 static gcry_err_code_t
 sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
-                  struct pk_encoding_ctx *ctx)
+		  struct pk_encoding_ctx *ctx)
 {
   gcry_err_code_t rc = 0;
   gcry_sexp_t ldata, lhash, lvalue;
@@ -1889,6 +2153,9 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
             else if ( n == 4 && !memcmp (s, "oaep", 4)
                       && ctx->encoding == PUBKEY_ENC_UNKNOWN)
               ctx->encoding = PUBKEY_ENC_OAEP;
+            else if ( n == 3 && !memcmp (s, "pss", 3)
+                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
+              ctx->encoding = PUBKEY_ENC_PSS;
 	    else if (n == 11 && ! memcmp (s, "no-blinding", 11))
 	      parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
             else
@@ -2009,6 +2276,71 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
 			    ctx->label, ctx->labellen);
 	}
     }
+  else if (ctx->encoding == PUBKEY_ENC_PSS && lhash
+	   && ctx->op == PUBKEY_OP_SIGN)
+    {
+      if (gcry_sexp_length (lhash) != 3)
+        rc = GPG_ERR_INV_OBJ;
+      else if ( !(s=gcry_sexp_nth_data (lhash, 1, &n)) || !n )
+        rc = GPG_ERR_INV_OBJ;
+      else
+        {
+          const void * value;
+          size_t valuelen;
+
+	  ctx->hash_algo = get_hash_algo (s, n);
+
+          if (!ctx->hash_algo)
+            rc = GPG_ERR_DIGEST_ALGO;
+          else if ( !(value=gcry_sexp_nth_data (lhash, 2, &valuelen))
+                    || !valuelen )
+            rc = GPG_ERR_INV_OBJ;
+          else
+	    {
+	      gcry_sexp_t list;
+
+	      /* Get SALT-LENGTH. */
+	      list = gcry_sexp_find_token (ldata, "salt-length", 0);
+	      if (list)
+		{
+		  s = gcry_sexp_nth_data (list, 1, &n);
+		  if (!s)
+		    {
+		      rc = GPG_ERR_NO_OBJ;
+		      goto leave;
+		    }
+		  ctx->saltlen = (unsigned int)strtoul (s, NULL, 10);
+		  gcry_sexp_release (list);
+		}
+	      rc = pss_encode (ret_mpi, ctx->nbits - 1, ctx->hash_algo,
+			       value, valuelen,
+			       ctx->saltlen);
+	    }
+        }
+    }
+  else if (ctx->encoding == PUBKEY_ENC_PSS && lhash
+	   && ctx->op == PUBKEY_OP_VERIFY)
+    {
+      if (gcry_sexp_length (lhash) != 3)
+        rc = GPG_ERR_INV_OBJ;
+      else if ( !(s=gcry_sexp_nth_data (lhash, 1, &n)) || !n )
+        rc = GPG_ERR_INV_OBJ;
+      else
+        {
+	  ctx->hash_algo = get_hash_algo (s, n);
+
+          if (!ctx->hash_algo)
+            rc = GPG_ERR_DIGEST_ALGO;
+	  else
+	    {
+	      *ret_mpi = gcry_sexp_nth_mpi (lhash, 2, 0);
+	      if (!*ret_mpi)
+		rc = GPG_ERR_INV_OBJ;
+	      ctx->verify_cmp = pss_verify_cmp;
+	      ctx->verify_arg = *ret_mpi;
+	    }
+	}
+    }
   else
     rc = GPG_ERR_CONFLICT;
 
@@ -2039,6 +2371,7 @@ init_encoding_ctx (struct pk_encoding_ctx *ctx, enum pk_operation op,
   ctx->hash_algo = GCRY_MD_SHA1;
   ctx->label = NULL;
   ctx->labellen = 0;
+  ctx->saltlen = 20;
   ctx->verify_cmp = NULL;
   ctx->verify_arg = NULL;
 }

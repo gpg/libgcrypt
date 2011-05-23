@@ -2333,6 +2333,10 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	" (value #11223344556677889900AA#))\n",
 	0,
 	GPG_ERR_INV_FLAG },
+      { "(data\n (flags pss)\n"
+	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	GCRY_PK_RSA,
+	0 },
       { NULL }
     };
 
@@ -2432,6 +2436,11 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	NULL,
 	0,
 	GPG_ERR_INV_FLAG },
+      {	"(data\n (flags pss)\n"
+	" (value #11223344556677889900AA#))\n",
+	NULL,
+	0,
+	GPG_ERR_CONFLICT },
       { NULL }
     };
 

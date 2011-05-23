@@ -2327,9 +2327,12 @@ sub-S-expression named `flags'; the following flags are known:
 
 @table @code
 @item pkcs1
-Use PKCS#1 block type 2 padding.
+Use PKCS#1 block type 2 padding for encryption, block type 1 padding
+for signing.
 @item oaep
-Use RSA-OAEP padding.
+Use RSA-OAEP padding for encryption.
+@item pss
+Use RSA-PSS padding for signing.
 @item no-blinding
 Do not use a technique called `blinding', which is used by default in
 order to prevent leaking of secret information.  Blinding is only
