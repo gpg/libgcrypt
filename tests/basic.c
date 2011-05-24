@@ -2278,7 +2278,7 @@ verify_one_signature (gcry_sexp_t pkey, gcry_sexp_t hash,
 /* Test the public key sign function using the private ket SKEY. PKEY
    is used for verification. */
 static void
-check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
+check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 {
   gcry_error_t rc;
   gcry_sexp_t sig, badhash, hash;
@@ -2289,38 +2289,49 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
   static struct
   {
     const char *data;
+    int algo;
     int expected_rc;
   } datas[] =
     {
       { "(data\n (flags pkcs1)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	0,
 	0 },
       { "(data\n (flags oaep)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	0,
 	GPG_ERR_CONFLICT },
       /* This test is to see whether hash algorithms not hard wired in
          pubkey.c are detected:  */
       { "(data\n (flags pkcs1)\n"
 	" (hash oid.1.3.14.3.2.29 "
         "       #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	0,
 	0 },
       {	"(data\n (flags )\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	0,
 	GPG_ERR_CONFLICT },
       {	"(data\n (flags pkcs1)\n"
 	" (hash foo #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	0,
 	GPG_ERR_DIGEST_ALGO },
       {	"(data\n (flags )\n" " (value #11223344556677889900AA#))\n",
+	0,
 	0 },
       {	"(data\n (flags )\n" " (value #0090223344556677889900AA#))\n",
+	0,
 	0 },
       { "(data\n (flags raw)\n" " (value #11223344556677889900AA#))\n",
+	0,
 	0 },
       {	"(data\n (flags pkcs1)\n"
 	" (value #11223344556677889900AA#))\n",
+	0,
 	GPG_ERR_CONFLICT },
       { "(data\n (flags raw foo)\n"
 	" (value #11223344556677889900AA#))\n",
+	0,
 	GPG_ERR_INV_FLAG },
       { NULL }
     };
@@ -2333,6 +2344,9 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 
   for (dataidx = 0; datas[dataidx].data; dataidx++)
     {
+      if (datas[dataidx].algo && datas[dataidx].algo != algo)
+	continue;
+
       if (verbose)
 	fprintf (stderr, "  signature test %d\n", dataidx);
 
@@ -2358,7 +2372,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 }
 
 static void
-check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
+check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 {
   gcry_error_t rc;
   gcry_sexp_t plain, ciph, data;
@@ -2509,7 +2523,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
 
 static void
 check_pubkey_grip (int n, const unsigned char *grip,
-		   gcry_sexp_t skey, gcry_sexp_t pkey)
+		   gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 {
   unsigned char sgrip[20], pgrip[20];
 
@@ -2525,14 +2539,14 @@ check_pubkey_grip (int n, const unsigned char *grip,
 
 static void
 do_check_one_pubkey (int n, gcry_sexp_t skey, gcry_sexp_t pkey,
-		     const unsigned char *grip, int flags)
+		     const unsigned char *grip, int algo, int flags)
 {
  if (flags & FLAG_SIGN)
-    check_pubkey_sign (n, skey, pkey);
+   check_pubkey_sign (n, skey, pkey, algo);
  if (flags & FLAG_CRYPT)
-   check_pubkey_crypt (n, skey, pkey);
+   check_pubkey_crypt (n, skey, pkey, algo);
  if (grip && (flags & FLAG_GRIP))
-   check_pubkey_grip (n, grip, skey, pkey);
+   check_pubkey_grip (n, grip, skey, pkey, algo);
 }
 
 static void
@@ -2550,7 +2564,8 @@ check_one_pubkey (int n, test_spec_pubkey_t spec)
     die ("converting sample key failed: %s\n", gpg_strerror (err));
 
   do_check_one_pubkey (n, skey, pkey,
-                       (const unsigned char*)spec.key.grip, spec.flags);
+                       (const unsigned char*)spec.key.grip,
+		       spec.id, spec.flags);
 
   gcry_sexp_release (skey);
   gcry_sexp_release (pkey);
@@ -2593,7 +2608,8 @@ check_one_pubkey_new (int n)
   gcry_sexp_t skey, pkey;
 
   get_keys_new (&pkey, &skey);
-  do_check_one_pubkey (n, skey, pkey, NULL, FLAG_SIGN | FLAG_CRYPT);
+  do_check_one_pubkey (n, skey, pkey, NULL,
+		       GCRY_PK_RSA, FLAG_SIGN | FLAG_CRYPT);
   gcry_sexp_release (pkey);
   gcry_sexp_release (skey);
 }
