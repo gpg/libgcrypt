@@ -28,6 +28,14 @@
 
 #define PUBKEY_FLAG_NO_BLINDING    (1 << 0)
 
+enum pk_operation
+  {
+    PUBKEY_OP_ENCRYPT,
+    PUBKEY_OP_DECRYPT,
+    PUBKEY_OP_SIGN,
+    PUBKEY_OP_VERIFY
+  };
+
 enum pk_encoding
   {
     PUBKEY_ENC_RAW,
@@ -38,10 +46,20 @@ enum pk_encoding
 
 struct pk_encoding_ctx
 {
+  enum pk_operation op;
+  unsigned int nbits;
+
   enum pk_encoding encoding;
+  int flags;
+
   int hash_algo;
+
+  /* for OAEP */
   unsigned char *label;
   size_t labellen;
+
+  int (* verify_cmp) (void *opaque, gcry_mpi_t tmp);
+  void *verify_arg;
 };
 
 #define CIPHER_INFO_NO_WEAK_KEY    1

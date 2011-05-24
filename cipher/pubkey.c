@@ -1649,16 +1649,8 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
   int parsed_flags = 0;
   const char *elems;
   gcry_mpi_t *array = NULL;
-  struct pk_encoding_ctx dummy_ctx;
 
   *ret_modern = 0;
-
-  if (!ctx)
-    ctx = &dummy_ctx;
-  ctx->encoding = PUBKEY_ENC_RAW;
-  ctx->hash_algo = GCRY_MD_SHA1;
-  ctx->label = NULL;
-  ctx->labellen = 0;
 
   /* Check that the first element is valid.  */
   list = gcry_sexp_find_token (sexp, "enc-val" , 0);
@@ -1696,13 +1688,13 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
           if (! s)
             ; /* Not a data element - ignore.  */
           else if (n == 3 && !memcmp (s, "raw", 3)
-                   && ctx->encoding == PUBKEY_ENC_RAW)
-            ; /* This is just a dummy as it is the default.  */
+                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
+            ctx->encoding = PUBKEY_ENC_RAW;
           else if (n == 5 && !memcmp (s, "pkcs1", 5)
-                   && ctx->encoding == PUBKEY_ENC_RAW)
+                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
 	    ctx->encoding = PUBKEY_ENC_PKCS1;
           else if (n == 4 && !memcmp (s, "oaep", 4)
-                   && ctx->encoding == PUBKEY_ENC_RAW)
+                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
 	    ctx->encoding = PUBKEY_ENC_OAEP;
           else if (n == 11 && ! memcmp (s, "no-blinding", 11))
             parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
@@ -1859,8 +1851,8 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
 
 */
 static gcry_err_code_t
-sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
-                  int for_encryption, int *flags, struct pk_encoding_ctx *ctx)
+sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
+                  struct pk_encoding_ctx *ctx)
 {
   gcry_err_code_t rc = 0;
   gcry_sexp_t ldata, lhash, lvalue;
@@ -1868,19 +1860,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
   size_t n;
   const char *s;
   int unknown_flag=0;
-  int parsed_flags = 0, dummy_flags;
-  struct pk_encoding_ctx dummy_ctx;
-
-  if (! flags)
-    flags = &dummy_flags;
-
-  if (! ctx)
-    ctx = &dummy_ctx;
-
-  ctx->encoding = PUBKEY_ENC_UNKNOWN;
-  ctx->hash_algo = GCRY_MD_SHA1;
-  ctx->label = NULL;
-  ctx->labellen = 0;
+  int parsed_flags = 0;
 
   *ret_mpi = NULL;
   ldata = gcry_sexp_find_token (input, "data", 0);
@@ -1935,7 +1915,8 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
       if (!*ret_mpi)
         rc = GPG_ERR_INV_OBJ;
     }
-  else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lvalue && for_encryption)
+  else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lvalue
+	   && ctx->op == PUBKEY_OP_ENCRYPT)
     {
       const void * value;
       size_t valuelen;
@@ -1943,9 +1924,10 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
       if ( !(value=gcry_sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
         rc = GPG_ERR_INV_OBJ;
       else
-	rc = pkcs1_encode_for_encryption (ret_mpi, nbits, value, valuelen);
+	rc = pkcs1_encode_for_encryption (ret_mpi, ctx->nbits, value, valuelen);
     }
-  else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lhash && !for_encryption)
+  else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lhash
+	   && (ctx->op == PUBKEY_OP_SIGN || ctx->op == PUBKEY_OP_VERIFY))
     {
       if (gcry_sexp_length (lhash) != 3)
         rc = GPG_ERR_INV_OBJ;
@@ -1953,23 +1935,24 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
         rc = GPG_ERR_INV_OBJ;
       else
         {
-          int algo;
           const void * value;
           size_t valuelen;
 
-	  algo = get_hash_algo (s, n);
+	  ctx->hash_algo = get_hash_algo (s, n);
 
-          if (!algo)
+          if (!ctx->hash_algo)
             rc = GPG_ERR_DIGEST_ALGO;
           else if ( !(value=gcry_sexp_nth_data (lhash, 2, &valuelen))
                     || !valuelen )
             rc = GPG_ERR_INV_OBJ;
           else
-	    rc = pkcs1_encode_for_signature (ret_mpi, nbits, value, valuelen,
-					     algo);
+	    rc = pkcs1_encode_for_signature (ret_mpi, ctx->nbits,
+					     value, valuelen,
+					     ctx->hash_algo);
         }
     }
-  else if (ctx->encoding == PUBKEY_ENC_OAEP && lvalue && for_encryption)
+  else if (ctx->encoding == PUBKEY_ENC_OAEP && lvalue
+	   && ctx->op == PUBKEY_OP_ENCRYPT)
     {
       const void * value;
       size_t valuelen;
@@ -2021,7 +2004,8 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
 		goto leave;
 	    }
 
-	  rc = oaep_encode (ret_mpi, nbits, ctx->hash_algo, value, valuelen,
+	  rc = oaep_encode (ret_mpi, ctx->nbits, ctx->hash_algo,
+			    value, valuelen,
 			    ctx->label, ctx->labellen);
 	}
     }
@@ -2034,7 +2018,7 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
   gcry_sexp_release (lvalue);
 
   if (!rc)
-    *flags = parsed_flags;
+    ctx->flags = parsed_flags;
   else
     {
       gcry_free (ctx->label);
@@ -2042,6 +2026,21 @@ sexp_data_to_mpi (gcry_sexp_t input, unsigned int nbits, gcry_mpi_t *ret_mpi,
     }
 
   return rc;
+}
+
+static void
+init_encoding_ctx (struct pk_encoding_ctx *ctx, enum pk_operation op,
+		   unsigned int nbits)
+{
+  ctx->op = op;
+  ctx->nbits = nbits;
+  ctx->encoding = PUBKEY_ENC_UNKNOWN;
+  ctx->flags = 0;
+  ctx->hash_algo = GCRY_MD_SHA1;
+  ctx->label = NULL;
+  ctx->labellen = 0;
+  ctx->verify_cmp = NULL;
+  ctx->verify_arg = NULL;
 }
 
 
@@ -2072,7 +2071,6 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 {
   gcry_mpi_t *pkey = NULL, data = NULL, *ciph = NULL;
   const char *algo_name, *algo_elems;
-  int flags;
   struct pk_encoding_ctx ctx;
   gcry_err_code_t rc;
   gcry_pk_spec_t *pubkey = NULL;
@@ -2082,7 +2080,6 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 
   REGISTER_DEFAULT_PUBKEYS;
 
-  memset (&ctx, 0, sizeof(struct pk_encoding_ctx));
   /* Get the key. */
   rc = sexp_to_key (s_pkey, 0, NULL, &pkey, &module);
   if (rc)
@@ -2103,8 +2100,8 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   algo_elems = pubkey->elements_enc;
 
   /* Get the stuff we want to encrypt. */
-  rc = sexp_data_to_mpi (s_data, gcry_pk_get_nbits (s_pkey), &data, 1,
-                         &flags, &ctx);
+  init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT, gcry_pk_get_nbits (s_pkey));
+  rc = sexp_data_to_mpi (s_data, &data, &ctx);
   if (rc)
     goto leave;
 
@@ -2115,7 +2112,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
       rc = gpg_err_code_from_syserror ();
       goto leave;
     }
-  rc = pubkey_encrypt (module->mod_id, ciph, data, pkey, flags);
+  rc = pubkey_encrypt (module->mod_id, ciph, data, pkey, ctx.flags);
   mpi_free (data);
   data = NULL;
   if (rc)
@@ -2234,6 +2231,7 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
+  init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT, gcry_pk_get_nbits (s_skey));
   rc = sexp_to_enc (s_data, &data, &module_enc, &modern, &flags, &ctx);
   if (rc)
     goto leave;
@@ -2342,6 +2340,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
   const char *algo_name, *algo_elems;
+  struct pk_encoding_ctx ctx;
   int i;
   gcry_err_code_t rc;
 
@@ -2363,8 +2362,8 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 
   /* Get the stuff we want to sign.  Note that pk_get_nbits does also
       work on a private key. */
-  rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_skey),
-                             &hash, 0, NULL, NULL);
+  init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, gcry_pk_get_nbits (s_skey));
+  rc = sexp_data_to_mpi (s_hash, &hash, &ctx);
   if (rc)
     goto leave;
 
@@ -2454,6 +2453,7 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 {
   gcry_module_t module_key = NULL, module_sig = NULL;
   gcry_mpi_t *pkey = NULL, hash = NULL, *sig = NULL;
+  struct pk_encoding_ctx ctx;
   gcry_err_code_t rc;
 
   REGISTER_DEFAULT_PUBKEYS;
@@ -2475,11 +2475,14 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
       goto leave;
     }
 
-  rc = sexp_data_to_mpi (s_hash, gcry_pk_get_nbits (s_pkey), &hash, 0, 0, NULL);
+  /* Get the stuff we want to verify. */
+  init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY, gcry_pk_get_nbits (s_pkey));
+  rc = sexp_data_to_mpi (s_hash, &hash, &ctx);
   if (rc)
     goto leave;
 
-  rc = pubkey_verify (module_key->mod_id, hash, sig, pkey, NULL, NULL);
+  rc = pubkey_verify (module_key->mod_id, hash, sig, pkey,
+		      ctx.verify_cmp, &ctx);
 
  leave:
   if (pkey)

@@ -1,3 +1,9 @@
+2011-05-24  Daiki Ueno  <ueno@unixuser.org>
+
+	* cipher.h (pk_operation): New.
+	(pk_encoding_ctx): Add new fields: op, nbits, flags, verify_cmp,
+	and verify_arg.
+
 2011-05-19  Daiki Ueno  <ueno@unixuser.org>
 
 	* Makefile.am (gcryptrnd_LDADD): Supply $(GPG_ERROR_LIBS) for

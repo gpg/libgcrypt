@@ -1,5 +1,15 @@
 2011-05-24  Daiki Ueno  <ueno@unixuser.org>
 
+	* rsa.c (rsa_verify): Use CMP if given, to check the decrypted
+	sig.
+
+	* pubkey.c (sexp_to_enc, sexp_data_to_mpi): Factor out
+	CTX initialization to ...
+	(init_encoding_ctx): .. new.
+	(gcry_pk_verify): Pass verify func and the arg to pubkey_verify.
+
+2011-05-24  Daiki Ueno  <ueno@unixuser.org>
+
 	* pubkey.c (mgf1): Simplify initializing MD handle.
 
 2011-05-23  Daiki Ueno  <ueno@unixuser.org>
