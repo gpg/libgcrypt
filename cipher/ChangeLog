@@ -1,3 +1,7 @@
+2011-05-24  Daiki Ueno  <ueno@unixuser.org>
+
+	* pubkey.c (mgf1): Simplify initializing MD handle.
+
 2011-05-23  Daiki Ueno  <ueno@unixuser.org>
 
 	* pubkey.c (pkcs1_decode_for_encryption, oaep_decode): Fix memleak

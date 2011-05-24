@@ -1000,7 +1000,7 @@ mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
   gcry_error_t err;
   unsigned char *p;
 
-  err = gcry_md_test_algo (algo);
+  err = gcry_md_open (&hd, algo, 0);
   if (err)
     return gpg_err_code (err);
 
@@ -1015,10 +1015,7 @@ mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
       c[2] = (idx >> 8) & 0xFF;
       c[3] = idx & 0xFF;
 
-      err = gcry_md_open (&hd, algo, 0);
-      if (err)
-	return gpg_err_code (err);
-
+      gcry_md_reset (hd);
       gcry_md_write (hd, seed, seedlen);
       gcry_md_write (hd, c, 4);
       digest = gcry_md_read (hd, 0);
@@ -1026,8 +1023,8 @@ mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
 	memcpy (p, digest, dlen);
       else
 	memcpy (p, digest, outlen - (p - output));
-      gcry_md_close (hd);
     }
+  gcry_md_close (hd);
   return GPG_ERR_NO_ERROR;
 }
 
