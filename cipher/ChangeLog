@@ -1,3 +1,8 @@
+2011-05-27  Daiki Ueno  <ueno@unixuser.org>
+
+	* pubkey.c (gcry_pk_decrypt): Fix double-free when un-padding
+	invalid data.  Thanks to Tom Ritter.
+
 2011-05-23  Daiki Ueno  <ueno@unixuser.org>
 
 	* pubkey.c (pkcs1_decode_for_encryption, oaep_decode): Fix memleak

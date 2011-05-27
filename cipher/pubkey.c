@@ -2257,17 +2257,17 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
     case PUBKEY_ENC_PKCS1:
       rc = pkcs1_decode_for_encryption (&unpad, gcry_pk_get_nbits (s_skey),
 					plain);
-      mpi_free (plain);
       if (rc)
 	goto leave;
+      mpi_free (plain);
       plain = unpad;
       break;
     case PUBKEY_ENC_OAEP:
       rc = oaep_decode (&unpad, gcry_pk_get_nbits (s_skey), ctx.hash_algo,
 			plain, ctx.label, ctx.labellen);
-      mpi_free (plain);
       if (rc)
 	goto leave;
+      mpi_free (plain);
       plain = unpad;
       break;
     default:
