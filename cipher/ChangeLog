@@ -1,3 +1,8 @@
+2011-05-30  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (pkcs1_decode_for_encryption): Change handling of
+	leading zero byte.
+
 2011-05-27  Daiki Ueno  <ueno@unixuser.org>
 
 	* pubkey.c (gcry_pk_decrypt): Fix double-free when un-padding

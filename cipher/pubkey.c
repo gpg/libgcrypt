@@ -786,7 +786,20 @@ pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
 
 /* Encode {VALUE,VALUELEN} for an NBITS keys using the pkcs#1 block
    type 2 padding.  On sucess the result is stored as a new MPI at
-   R_RESULT.  On error the value at R_RESULT is undefined.  */
+   R_RESULT.  On error the value at R_RESULT is undefined.
+
+   We encode the value in this way:
+
+     0  2  RND(n bytes)  0  VALUE
+
+   0   is a marker we unfortunately can't encode because we return an
+       MPI which strips all leading zeroes.
+   2   is the block type.
+   RND are non-zero random bytes.
+
+   (Note that OpenPGP includes the cipher algorithm and a checksum in
+   VALUE; the caller needs to prepare the value accordingly.)
+  */
 static gcry_err_code_t
 pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 			     const unsigned char *value, size_t valuelen)
@@ -861,7 +874,7 @@ pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 
 
 /* Decode a plaintext in VALUE assuming pkcs#1 block type 2 padding.
-   NBITS is the size of the secret key.  On sucess the result is
+   NBITS is the size of the secret key.  On success the result is
    stored as a new MPI at R_RESULT.  On error the value at R_RESULT is
    undefined.  */
 static gcry_err_code_t
@@ -884,29 +897,39 @@ pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
       return gcry_err_code (err);
     }
 
-  if (n < nframe)
-    {
-      memmove (frame + (nframe - n), frame, n);
-      memset (frame, 0, (nframe - n));
-    }
+  nframe = n; /* Set NFRAME to the actual length.  */
 
-  /* FRAME = 0x00 || 0x02 || PS || 0x00 || M */
+  /* FRAME = 0x00 || 0x02 || PS || 0x00 || M
+
+     pkcs#1 requires that the first byte is zero.  Our MPIs usually
+     strip leading zero bytes; thus we are not able to detect them.
+     However due to the way gcry_mpi_print is implemented we may see
+     leading zero bytes nevertheless.  We handle this by making the
+     first zero byte optional.  */
+  if (nframe < 4)
+    {
+      gcry_free (frame);
+      return GPG_ERR_ENCODING_PROBLEM;  /* Too short.  */
+    }
   n = 0;
-  if (frame[n++] != 0x00 || frame[n++] != 0x02)
+  if (!frame[0])
+    n++;
+  if (frame[n++] != 0x02)
     {
       gcry_free (frame);
-      return GPG_ERR_ENCODING_PROBLEM;
+      return GPG_ERR_ENCODING_PROBLEM;  /* Wrong block type.  */
     }
 
-  for (; frame[n] != 0x00 && n < nframe; n++)
+  /* Skip the non-zero random bytes and the terminating zero byte.  */
+  for (; n < nframe && frame[n] != 0x00; n++)
     ;
-  if (n == nframe)
+  if (n+1 >= nframe)
     {
       gcry_free (frame);
-      return GPG_ERR_ENCODING_PROBLEM;
+      return GPG_ERR_ENCODING_PROBLEM; /* No zero byte.  */
     }
+  n++; /* Skip the zero byte.  */
 
-  n++;
   err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, &frame[n], nframe - n, NULL);
   if (err)
     rc = gcry_err_code (err);
@@ -920,9 +943,28 @@ pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 
 
 /* Encode {VALUE,VALUELEN} for an NBITS keys and hash algorith ALGO
-   using the pkcs#1 block type 1 padding.  On sucess the result is
+   using the pkcs#1 block type 1 padding.  On success the result is
    stored as a new MPI at R_RESULT.  On error the value at R_RESULT is
-   undefined.  */
+   undefined.
+
+   We encode the value in this way:
+
+     0  1  PAD(n bytes)  0  ASN(asnlen bytes) VALUE(valuelen bytes)
+
+   0   is a marker we unfortunately can't encode because we return an
+       MPI which strips all leading zeroes.
+   1   is the block type.
+   PAD consists of 0xff bytes.
+   0   marks the end of the padding.
+   ASN is the DER encoding of the hash algorithm; along with the VALUE
+       it yields a valid DER encoding.
+
+   (Note that PGP prior to version 2.3 encoded the message digest as:
+      0   1   MD(16 bytes)   0   PAD(n bytes)   1
+    The MD is always 16 bytes here because it's always MD5.  GnuPG
+    does not not support pre-v2.3 signatures, but I'm including this
+    comment so the information is easily found if needed.)
+*/
 static gcry_err_code_t
 pkcs1_encode_for_signature (gcry_mpi_t *r_result, unsigned int nbits,
 			    const unsigned char *value, size_t valuelen,
