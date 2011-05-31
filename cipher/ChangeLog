@@ -1,3 +1,9 @@
+2011-05-31  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (pkcs1_encode_for_signature, oaep_decode): Change
+	return value from one MPI to a buffer.
+	(gcry_pk_decrypt): Adjust for this change.
+
 2011-05-30  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (pkcs1_decode_for_encryption): Change handling of

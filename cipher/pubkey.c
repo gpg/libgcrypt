@@ -875,17 +875,18 @@ pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 
 /* Decode a plaintext in VALUE assuming pkcs#1 block type 2 padding.
    NBITS is the size of the secret key.  On success the result is
-   stored as a new MPI at R_RESULT.  On error the value at R_RESULT is
-   undefined.  */
+   stored as a newly allocated buffer at R_RESULT and its valid length at
+   R_RESULTLEN.  On error NULL is stored at R_RESULT.  */
 static gcry_err_code_t
-pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
-			     gcry_mpi_t value)
+pkcs1_decode_for_encryption (unsigned char **r_result, size_t *r_resultlen,
+                             unsigned int nbits, gcry_mpi_t value)
 {
-  gcry_err_code_t rc = 0;
   gcry_error_t err;
   unsigned char *frame = NULL;
   size_t nframe = (nbits+7) / 8;
   size_t n;
+
+  *r_result = NULL;
 
   if ( !(frame = gcry_malloc_secure (nframe)))
     return gpg_err_code_from_syserror ();
@@ -930,15 +931,17 @@ pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
     }
   n++; /* Skip the zero byte.  */
 
-  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, &frame[n], nframe - n, NULL);
-  if (err)
-    rc = gcry_err_code (err);
-  else if (DBG_CIPHER)
-    log_mpidump ("value extracted from PKCS#1 block type 2 encoded data",
-		 *r_result);
-  gcry_free (frame);
+  /* To avoid an extra allocation we reuse the frame buffer.  The only
+     caller of this function will anyway free the result soon.  */
+  memmove (frame, frame + n, nframe - n);
+  *r_result = frame;
+  *r_resultlen = nframe - n;
 
-  return rc;
+  if (DBG_CIPHER)
+    log_printhex ("value extracted from PKCS#1 block type 2 encoded data:",
+                  *r_result, *r_resultlen);
+
+  return 0;
 }
 
 
@@ -1144,7 +1147,8 @@ oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 }
 
 static gcry_err_code_t
-oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
+oaep_decode (unsigned char **r_result, size_t *r_resultlen,
+             unsigned int nbits, int algo,
              gcry_mpi_t value, const unsigned char *label, size_t labellen)
 {
   gcry_err_code_t rc = 0;
@@ -1154,6 +1158,8 @@ oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   size_t dlen;
   gcry_md_hd_t hd;
   size_t n;
+
+  *r_result = NULL;
 
   if ( !(frame = gcry_malloc_secure (nframe)))
     return gpg_err_code_from_syserror ();
@@ -1225,14 +1231,18 @@ oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
     }
 
   n++;
-  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, &frame[n], nframe - n, NULL);
-  if (err)
-    rc = gcry_err_code (err);
-  else if (DBG_CIPHER)
-    log_mpidump ("value extracted from OAEP encoded data", *r_result);
-  gcry_free (frame);
 
-  return rc;
+  /* To avoid an extra allocation we reuse the frame buffer.  The only
+     caller of this function will anyway free the result soon.  */
+  memmove (frame, frame + n, nframe - n);
+  *r_result = frame;
+  *r_resultlen = nframe - n;
+
+  if (DBG_CIPHER)
+    log_printhex ("value extracted from OAEP encoded data:",
+                  *r_result, *r_resultlen);
+
+  return 0;
 }
 
 /* Internal function.   */
@@ -2259,12 +2269,18 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
    s_skey = <key-as-defined-in-sexp_to_key>
    r_plain= Either an incomplete S-expression without the parentheses
             or if the flags list is used (even if empty) a real S-expression:
-            (value PLAIN).
+            (value PLAIN).  In raw mode (or no flags given) the returned value
+            is to be interpreted as a signed MPI, thus it may have an extra
+            leading zero octet even if not included in the original data.
+            With pkcs1 or oaep decoding enabled the returned value is a
+            verbatim octet string.
  */
 gcry_error_t
 gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 {
-  gcry_mpi_t *skey = NULL, *data = NULL, plain = NULL, unpad = NULL;
+  gcry_mpi_t *skey = NULL, *data = NULL, plain = NULL;
+  unsigned char *unpad = NULL;
+  size_t unpadlen = 0;
   int modern, flags;
   struct pk_encoding_ctx ctx;
   gcry_err_code_t rc;
@@ -2297,37 +2313,44 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   switch (ctx.encoding)
     {
     case PUBKEY_ENC_PKCS1:
-      rc = pkcs1_decode_for_encryption (&unpad, gcry_pk_get_nbits (s_skey),
-					plain);
-      if (rc)
-	goto leave;
+      rc = pkcs1_decode_for_encryption (&unpad, &unpadlen,
+                                        gcry_pk_get_nbits (s_skey), plain);
       mpi_free (plain);
-      plain = unpad;
+      plain = NULL;
+      if (!rc)
+        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
+                                             (int)unpadlen, unpad));
       break;
+
     case PUBKEY_ENC_OAEP:
-      rc = oaep_decode (&unpad, gcry_pk_get_nbits (s_skey), ctx.hash_algo,
+      rc = oaep_decode (&unpad, &unpadlen,
+                        gcry_pk_get_nbits (s_skey), ctx.hash_algo,
 			plain, ctx.label, ctx.labellen);
-      if (rc)
-	goto leave;
       mpi_free (plain);
-      plain = unpad;
+      plain = NULL;
+      if (!rc)
+        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
+                                             (int)unpadlen, unpad));
       break;
+
     default:
+      /* Raw format.  For backward compatibility we need to assume a
+         signed mpi by using the sexp format string "%m".  */
+      rc = gcry_err_code (gcry_sexp_build
+                          (r_plain, NULL, modern? "(value %m)" : "%m", plain));
       break;
     }
 
-  if (gcry_sexp_build (r_plain, NULL, modern? "(value %m)" : "%m", plain))
-    BUG ();
-
  leave:
+  gcry_free (unpad);
+
   if (skey)
     {
       release_mpi_array (skey);
       gcry_free (skey);
     }
 
-  if (plain)
-    mpi_free (plain);
+  mpi_free (plain);
 
   if (data)
     {
