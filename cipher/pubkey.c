@@ -1035,46 +1035,54 @@ pkcs1_encode_for_signature (gcry_mpi_t *r_result, unsigned int nbits,
 }
 
 
+/* Mask generation function for OAEP.  See RFC-3447 B.2.1.  */
 static gcry_err_code_t
 mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
       int algo)
 {
-  size_t dlen;
+  size_t dlen, nbytes, n;
   int idx;
   gcry_md_hd_t hd;
   gcry_error_t err;
-  unsigned char *p;
 
-  err = gcry_md_test_algo (algo);
+  err = gcry_md_open (&hd, algo, 0);
   if (err)
     return gpg_err_code (err);
 
-  memset (output, 0, outlen);
   dlen = gcry_md_get_algo_dlen (algo);
-  for (idx = 0, p = output; idx < (outlen + dlen - 1) / dlen; idx++, p += dlen)
+
+  /* We skip step 1 which would be assert(OUTLEN <= 2^32).  The loop
+     in step 3 is merged with step 4 by concatenating no more octets
+     than what would fit into OUTPUT.  The ceiling for the counter IDX
+     is implemented indirectly.  */
+  nbytes = 0;  /* Step 2.  */
+  idx = 0;
+  while ( nbytes < outlen )
     {
       unsigned char c[4], *digest;
+
+      if (idx)
+        gcry_md_reset (hd);
 
       c[0] = (idx >> 24) & 0xFF;
       c[1] = (idx >> 16) & 0xFF;
       c[2] = (idx >> 8) & 0xFF;
       c[3] = idx & 0xFF;
-
-      err = gcry_md_open (&hd, algo, 0);
-      if (err)
-	return gpg_err_code (err);
+      idx++;
 
       gcry_md_write (hd, seed, seedlen);
       gcry_md_write (hd, c, 4);
       digest = gcry_md_read (hd, 0);
-      if (outlen - (p - output) >= dlen)
-	memcpy (p, digest, dlen);
-      else
-	memcpy (p, digest, outlen - (p - output));
-      gcry_md_close (hd);
+
+      n = (outlen - nbytes < dlen)? (outlen - nbytes) : dlen;
+      memcpy (output+nbytes, digest, n);
+      nbytes += n;
     }
+
+  gcry_md_close (hd);
   return GPG_ERR_NO_ERROR;
 }
+
 
 static gcry_err_code_t
 oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
