@@ -2,6 +2,8 @@
 
 	* pubkey.c (mgf1): Optimize by using gcry_md_reset.  Re-implement
 	for easier readability.
+	(oaep_encode): Add more comments and restructure to match the
+	description in RFC-3447.
 
 	* pubkey.c (pkcs1_encode_for_signature, oaep_decode): Change
 	return value from one MPI to a buffer.
