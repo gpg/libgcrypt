@@ -1,3 +1,9 @@
+2011-06-03  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (oaep_decode): Add more comments and restructure to
+	match the description in RFC-3447.
+	(oaep_encode): Check for mgf1 error.  s/dlen/hlen/.
+
 2011-05-31  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (mgf1): Optimize by using gcry_md_reset.  Re-implement
