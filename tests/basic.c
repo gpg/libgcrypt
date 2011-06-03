@@ -56,6 +56,7 @@ test_spec_pubkey_t;
 static int verbose;
 static int error_count;
 static int in_fips_mode;
+static int die_on_error;
 
 static void
 fail (const char *format, ...)
@@ -66,6 +67,8 @@ fail (const char *format, ...)
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
   error_count++;
+  if (die_on_error)
+    exit (1);
 }
 
 static void
@@ -2807,6 +2810,11 @@ main (int argc, char **argv)
         {
           selftest_only = 1;
           verbose += 2;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--die"))
+        {
+          die_on_error = 1;
           argc--; argv++;
         }
     }
