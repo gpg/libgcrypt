@@ -1191,10 +1191,40 @@ oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 }
 
 
-/* Encode {VALUE,VALUELEN} for an NBITS keys using the PSS padding.
-   ALGO is a hash algorithm and SALTLEN is a length of salt used
-   internally.  On sucess the result is stored as a new MPI at
-   R_RESULT.  On error the value at R_RESULT is undefined.  */
+/* RFC-3447 (pkcs#1 v2.1) PSS encoding.  Encode {VALUE,VALUELEN} for
+   an NBITS key.  ALGO is a valid hash algorithm and SALTLEN is the
+   length of salt to be used.  On success the result is stored as a
+   new MPI at R_RESULT.  On error the value at R_RESULT is undefined.
+
+   Here is figure 2 from the RFC (errata 595 applied) depicting the
+   process:
+
+                                  +-----------+
+                                  |     M     |
+                                  +-----------+
+                                        |
+                                        V
+                                      Hash
+                                        |
+                                        V
+                          +--------+----------+----------+
+                     M' = |Padding1|  mHash   |   salt   |
+                          +--------+----------+----------+
+                                         |
+               +--------+----------+     V
+         DB =  |Padding2| salt     |   Hash
+               +--------+----------+     |
+                         |               |
+                         V               |    +----+
+                        xor <--- MGF <---|    |0xbc|
+                         |               |    +----+
+                         |               |      |
+                         V               V      V
+               +-------------------+----------+----+
+         EM =  |    maskedDB       |     H    |0xbc|
+               +-------------------+----------+----+
+
+  */
 static gcry_err_code_t
 pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 	    const unsigned char *value, size_t valuelen,
@@ -1202,97 +1232,102 @@ pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 {
   gcry_err_code_t rc = 0;
   gcry_error_t err;
-  unsigned char *frame = NULL, *buf = NULL, *dmask = NULL, *h = NULL, *salt, *p;
-  size_t nframe = (nbits+7) / 8;
-  size_t dlen;
-  gcry_md_hd_t hd = NULL;
+  size_t hlen;                 /* Length of the hash digest.  */
+  unsigned char *em = NULL;    /* Encoded message.  */
+  size_t emlen = (nbits+7)/8;  /* Length in bytes of EM.  */
+  unsigned char *h;            /* Points into EM.  */
+  unsigned char *buf = NULL;   /* Help buffer.  */
+  size_t buflen;               /* Length of BUF.  */
+  unsigned char *mhash;        /* Points into BUF.  */
+  unsigned char *salt;         /* Points into BUF.  */
+  unsigned char *dbmask;       /* Points into BUF.  */
+  unsigned char *p;
   size_t n;
 
-  err = gcry_md_open (&hd, algo, 0);
-  if (err)
-    {
-      rc = gpg_err_code (err);
-      goto leave;
-    }
-  dlen = gcry_md_get_algo_dlen (algo);
+  /* This code is implemented as described by rfc-3447 9.1.1.  */
 
-  if (nframe < dlen + saltlen + 2)
-    {
-      /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
-      rc = GPG_ERR_TOO_SHORT; /* the key is too short */
-      goto leave;
-    }
+  /* Get the length of the digest.  */
+  hlen = gcry_md_get_algo_dlen (algo);
+  gcry_assert (hlen);  /* We expect a valid ALGO here.  */
 
-  if ( !(frame = gcry_calloc_secure (nframe, sizeof *frame)))
+  /* Allocate a help buffer and setup some pointers.  */
+  buflen = 8 + hlen + saltlen + (emlen - hlen - 1);
+  buf = gcry_malloc (buflen);
+  if (!buf)
     {
       rc = gpg_err_code_from_syserror ();
       goto leave;
     }
+  mhash = buf + 8;
+  salt  = mhash + hlen;
+  dbmask= salt + saltlen;
 
-  if ( !(buf = gcry_calloc_secure (8 + dlen + saltlen, sizeof *buf)))
+  /* Step 2: mHash = Hash(M).  */
+  /* Fixme: We should not do that but use VALUE directly as the hash.  */
+  gcry_md_hash_buffer (algo, mhash, value, valuelen);
+
+  /* Step 3: Check length constraints.  */
+  if (emlen < hlen + saltlen + 2)
+    {
+      rc = GPG_ERR_TOO_SHORT;
+      goto leave;
+    }
+
+  /* Allocate space for EM.  */
+  em = gcry_malloc (emlen);
+  if (!em)
     {
       rc = gpg_err_code_from_syserror ();
       goto leave;
     }
+  h = em + emlen - 1 - hlen;
 
-  /* M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt */
-  n = 8;
-  gcry_md_reset (hd);
-  gcry_md_write (hd, value, valuelen);
-  memcpy (&buf[n], gcry_md_read (hd, 0), dlen);
-  n += dlen;
-  salt = &buf[n];
-  gcry_randomize (salt, saltlen, GCRY_STRONG_RANDOM);
-  n += saltlen;
+  /* Step 4: Create a salt.  */
+  if (saltlen)
+    gcry_randomize (salt, saltlen, GCRY_STRONG_RANDOM);
 
-  /* H = Hash(M') */
-  if ( !(h = gcry_malloc_secure (dlen)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
-  gcry_md_reset (hd);
-  gcry_md_write (hd, buf, n);
-  memcpy (h, gcry_md_read (hd, 0), dlen);
+  /* Step 5 and 6: M' = Hash(Padding1 || mHash || salt).  */
+  memset (buf, 0, 8);  /* Padding.  */
+  gcry_md_hash_buffer (algo, h, buf, 8 + hlen + saltlen);
 
-  /* DB = PS || 0x01 || salt */
-  n = nframe - saltlen - dlen - 2;
-  frame[n++] = 1;
-  memcpy (&frame[n], salt, saltlen);
-  n += saltlen;
+  /* Step 7 and 8: DB = PS || 0x01 || salt.  */
+  /* Note that we use EM to store DB and later Xor in-place.  */
+  p = em + emlen - 1 - hlen - saltlen - 1;
+  memset (em, 0, p - em);
+  *p++ = 0x01;
+  memcpy (p, salt, saltlen);
 
-  if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
+  /* Step 9: dbmask = MGF(H, emlen - hlen - 1).  */
+  mgf1 (dbmask, emlen - hlen - 1, h, hlen, algo);
 
-  /* DMASK = MGF(H, NFRAME - DLEN - 1) */
-  mgf1 (dmask, nframe - dlen - 1, h, dlen, algo);
+  /* Step 10: maskedDB = DB ^ dbMask */
+  for (n = 0, p = dbmask; n < emlen - hlen - 1; n++, p++)
+    em[n] ^= *p;
 
-  /* FRAME = DB xor DMASK || H || 0xbc */
-  for (n = 0, p = dmask; n < nframe - dlen - 1; n++)
-    frame[n] ^= *p++;
+  /* Step 11: Set the leftmost bits to zero.  */
+  em[0] &= 0xFF >> (8 * emlen - nbits);
 
-  memcpy (&frame[n], h, dlen);
-  n += dlen;
-  frame[n++] = 0xbc;
-  gcry_assert (n == nframe);
+  /* Step 12: EM = maskedDB || H || 0xbc.  */
+  em[emlen-1] = 0xbc;
 
-  frame[0] &= 0xFF >> (8 * nframe - nbits);
-
-  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, frame, nframe, NULL);
+  /* Convert EM into an MPI.  */
+  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, em, emlen, NULL);
   if (err)
     rc = gcry_err_code (err);
   else if (DBG_CIPHER)
     log_mpidump ("PSS encoded data", *r_result);
 
  leave:
-  gcry_md_close (hd);
-  gcry_free (frame);
-  gcry_free (buf);
-  gcry_free (dmask);
-  gcry_free (h);
+  if (em)
+    {
+      wipememory (em, emlen);
+      gcry_free (em);
+    }
+  if (buf)
+    {
+      wipememory (buf, buflen);
+      gcry_free (buf);
+    }
   return rc;
 }
 

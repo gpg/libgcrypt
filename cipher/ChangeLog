@@ -1,3 +1,9 @@
+2011-06-08  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (pss_encode): Restructure and comment code to macth
+	rfc-3447.  Replace secure allocs by plain allocs and wipememory.
+	Use gcry_md_hash_buffer.
+
 2011-05-24  Daiki Ueno  <ueno@unixuser.org>
 
 	* rsa.c (rsa_verify): Use CMP if given, to check the decrypted
