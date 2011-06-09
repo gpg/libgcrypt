@@ -1332,147 +1332,210 @@ pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 }
 
 
-/* Verify a signature in VALUE assuming PSS padding.  NBITS is the
-   size of the secret key.  ALGO is a hash algorithm and SALTLEN is a
-   length of salt used internally.  On sucess it returns
-   GPG_ERR_NO_ERROR; on error otherwise.  */
+/* Turn VALUE into an octet string and store that at R_FRAME.  If that
+   octet string is shorter than NBYTES pad it to the left with zeroes.
+   If VALUE does not fit into NBYTES return an error code. */
+static gpg_err_code_t
+octet_string_from_mpi (unsigned char **r_frame, gcry_mpi_t value, size_t nbytes)
+{
+  gpg_err_code_t rc;
+  size_t nframe, noff, n;
+  unsigned char *frame;
+
+  *r_frame = NULL;
+
+  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      NULL, 0, &nframe, value));
+  if (rc)
+    return rc;
+  if (nframe > nbytes)
+    return GPG_ERR_TOO_LARGE; /* Value too long to fit into NBYTES.  */
+
+  noff = (nframe < nbytes)? nbytes - nframe : 0;
+  n = nframe + noff;
+  frame = mpi_is_secure (value)? gcry_malloc_secure (n) : gcry_malloc (n);
+  if (!frame)
+    {
+      rc = gpg_err_code_from_syserror ();
+      return rc;
+    }
+  if (noff)
+    memset (frame, 0, noff);
+  nframe += noff;
+  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      frame+noff, nframe-noff, NULL, value));
+  if (rc)
+    {
+      gcry_free (frame);
+      return rc;
+    }
+
+  *r_frame = frame;
+  return 0;
+}
+
+
+/* Verify a signature assuming PSS padding.  VALUE is the hash of the
+   message.  ENCODED is the output of the RSA public key function.
+   NBITS is the size of the secret key.  ALGO is a hash algorithm and
+   SALTLEN is the length of the used salt.  The function returns 0 on
+   success or on error code otherwise.  */
 static gcry_err_code_t
 pss_verify (gcry_mpi_t value, gcry_mpi_t encoded, unsigned int nbits, int algo,
 	    size_t saltlen)
 {
   gcry_err_code_t rc = 0;
-  gcry_error_t err;
-  unsigned char *frame = NULL, *mhash = NULL, *buf = NULL, *dmask = NULL;
-  unsigned char *h = NULL, *salt;
-  size_t nframe = (nbits+7) / 8, valuelen;
-  size_t dlen;
-  gcry_md_hd_t hd = NULL;
+  size_t hlen;                 /* Length of the hash digest.  */
+  unsigned char *em = NULL;    /* Encoded message.  */
+  size_t emlen = (nbits+7)/8;  /* Length in bytes of EM.  */
+  unsigned char *salt;         /* Points into EM.  */
+  unsigned char *h;            /* Points into EM.  */
+  unsigned char *buf = NULL;   /* Help buffer.  */
+  size_t buflen;               /* Length of BUF.  */
+  unsigned char *dbmask;       /* Points into BUF.  */
+  unsigned char *mhash;        /* Points into BUF.  */
+  unsigned char *p;
   size_t n;
 
-  if ( !(frame = gcry_malloc_secure (nframe)))
+  /* This code is implemented as described by rfc-3447 9.1.2.  */
+
+  /* Get the length of the digest.  */
+  hlen = gcry_md_get_algo_dlen (algo);
+  gcry_assert (hlen);  /* We expect a valid ALGO here.  */
+
+  /* Allocate a help buffer and setup some pointers.
+     This buffer is used for two purposes:
+        +------------------------------+-------+
+     1. | dbmask                       | mHash |
+        +------------------------------+-------+
+           emlen - hlen - 1              hlen
+
+        +----------+-------+---------+-+-------+
+     2. | padding1 | mHash | salt    | | mHash |
+        +----------+-------+---------+-+-------+
+             8       hlen    saltlen     hlen
+  */
+  buflen = 8 + hlen + saltlen;
+  if (buflen < emlen - hlen - 1)
+    buflen = emlen - hlen - 1;
+  buflen += hlen;
+  buf = gcry_malloc (buflen);
+  if (!buf)
     {
       rc = gpg_err_code_from_syserror ();
       goto leave;
     }
+  dbmask = buf;
+  mhash = buf + buflen - hlen;
 
-  err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &valuelen, value);
-  if (err)
-    {
-      rc = gcry_err_code (err);
-      goto leave;
-    }
+  /* Convert the value into an octet string.  */
+  /* rc = octet_string_from_mpi (&em, value, emlen); */
+  /* if (rc) */
+  /*   goto leave; */
 
-  err = gcry_md_open (&hd, algo, 0);
-  if (err)
-    {
-      rc = gpg_err_code (err);
-      goto leave;
-    }
-  dlen = gcry_md_get_algo_dlen (algo);
-
-  if ( !(mhash = gcry_malloc_secure (dlen)))
+  em = gcry_malloc (emlen);
+  if (!em)
     {
       rc = gpg_err_code_from_syserror ();
       goto leave;
     }
+  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG, em, emlen, &n, value));
+  if (rc)
+    goto leave;
 
-  gcry_md_write (hd, frame, valuelen);
-  memcpy (mhash, gcry_md_read (hd, 0), dlen);
+  /* Step 2: mHash = Hash(M).  */
+  /* Fixme: We should not do that but use VALUE directly as the hash.  */
+  gcry_md_hash_buffer (algo, mhash, em, n);
+  gcry_free (em);
+  em = NULL;
 
-  err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, encoded);
-  if (err)
+  /* Convert the signature into an octet string.  */
+  rc = octet_string_from_mpi (&em, encoded, emlen);
+  if (rc)
+    goto leave;
+
+  /* Step 3: Check length of EM.  Because we internally use MPI
+     functions we can't do this properly; EMLEN is always the length
+     of the key because octet_string_from_mpi needs to left pad the
+     result with zero to cope with the fact that our MPIs suppress all
+     leading zeroes.  Thus what we test here are merely the digest and
+     salt lengths to the key.  */
+  if (emlen < hlen + saltlen + 2)
     {
-      rc = gcry_err_code (err);
+      rc = GPG_ERR_TOO_SHORT; /* For the hash and saltlen.  */
       goto leave;
     }
-  if (n < nframe)
-    {
-      memmove (frame + (nframe - n), frame, n);
-      memset (frame, 0, (nframe - n));
-    }
 
-  if (nframe < dlen + saltlen + 2)
-    {
-      /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
-      rc = GPG_ERR_TOO_SHORT; /* the sig is too short */
-      goto leave;
-    }
-
-  if (frame[nframe - 1] != 0xbc)
+  /* Step 4: Check last octet.  */
+  if (em[emlen - 1] != 0xbc)
     {
       rc = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
 
-  if ( !(buf = gcry_malloc_secure (nframe - dlen - 1)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
-  memcpy (buf, frame, nframe - dlen - 1);
+  /* Step 5: Split EM.  */
+  h = em + emlen - 1 - hlen;
 
-  if ((buf[0] & ~(0xFF >> (8 * nframe - nbits))) != 0)
+  /* Step 6: Check the leftmost bits.  */
+  if ((em[0] & ~(0xFF >> (8 * emlen - nbits))))
     {
       rc = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
 
-  if ( !(h = gcry_malloc_secure (dlen)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
-  memcpy (h, &frame[nframe - dlen - 1], dlen);
+  /* Step 7: dbmask = MGF(H, emlen - hlen - 1).  */
+  mgf1 (dbmask, emlen - hlen - 1, h, hlen, algo);
 
-  if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
+  /* Step 8: maskedDB = DB ^ dbMask.  */
+  for (n = 0, p = dbmask; n < emlen - hlen - 1; n++, p++)
+    em[n] ^= *p;
 
-  /* DMASK = MGF(H, NFRAME - DLEN - 1) */
-  mgf1 (dmask, nframe - dlen - 1, h, dlen, algo);
+  /* Step 9: Set leftmost bits in DB to zero.  */
+  em[0] &= 0xFF >> (8 * emlen - nbits);
 
-  for (n = 0; n < nframe - dlen - 1; n++)
-    buf[n] ^= dmask[n];
-
-  buf[0] &= 0xFF >> (8 * nframe - nbits);
-
-  for (n = 0; n < nframe - dlen - saltlen - 2 && buf[n] == 0; n++)
+  /* Step 10: Check the padding of DB.  */
+  for (n = 0; n < emlen - hlen - saltlen - 2 && !em[n]; n++)
     ;
-  if (n != nframe - dlen - saltlen - 2 || buf[n++] != 1)
+  if (n != emlen - hlen - saltlen - 2 || em[n++] != 1)
     {
       rc = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
-  salt = &buf[n];
 
-  /* M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt */
-  n = 0;
-  memset (frame, 0, 8);
-  n += 8;
-  memcpy (&frame[n], mhash, dlen);
-  n += dlen;
-  memcpy (&frame[n], salt, saltlen);
-  n += saltlen;
+  /* Step 11: Extract salt from DB.  */
+  salt = em + n;
 
-  /* H' = Hash(M') */
-  gcry_md_reset (hd);
-  gcry_md_write (hd, frame, n);
-  memcpy (buf, gcry_md_read (hd, 0), dlen);
+  /* Step 12:  M' = (0x)00 00 00 00 00 00 00 00 || mHash || salt */
+  memset (buf, 0, 8);
+  memcpy (buf+8, mhash, hlen);
+  memcpy (buf+8+hlen, salt, saltlen);
 
-  rc = memcmp (buf, h, dlen) ? GPG_ERR_BAD_SIGNATURE : GPG_ERR_NO_ERROR;
+  /* Step 13:  H' = Hash(M').  */
+  gcry_md_hash_buffer (algo, buf, buf, 8 + hlen + saltlen);
+
+  /* Step 14:  Check H == H'.   */
+  rc = memcmp (h, buf, hlen) ? GPG_ERR_BAD_SIGNATURE : GPG_ERR_NO_ERROR;
 
  leave:
-  gcry_md_close (hd);
-  gcry_free (frame);
-  gcry_free (buf);
-  gcry_free (dmask);
-  gcry_free (mhash);
-  gcry_free (h);
+  if (em)
+    {
+      wipememory (em, emlen);
+      gcry_free (em);
+    }
+  if (buf)
+    {
+      wipememory (buf, buflen);
+      gcry_free (buf);
+    }
   return rc;
 }
 
+
+/* Callback for the pubkey algorithm code to verify PSS signatures.
+   OPAQUE is the data provided by the actual caller.  The meaning of
+   TMP depends on the actual algorithm (but there is only RSA); now
+   for RSA it is the output of running the public key function on the
+   input.  */
 static int
 pss_verify_cmp (void *opaque, gcry_mpi_t tmp)
 {
@@ -1481,6 +1544,7 @@ pss_verify_cmp (void *opaque, gcry_mpi_t tmp)
 
   return pss_verify (hash, tmp, ctx->nbits - 1, ctx->hash_algo, ctx->saltlen);
 }
+
 
 /* Internal function.   */
 static gcry_err_code_t

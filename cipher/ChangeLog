@@ -1,8 +1,9 @@
 2011-06-08  Werner Koch  <wk@g10code.com>
 
-	* pubkey.c (pss_encode): Restructure and comment code to macth
-	rfc-3447.  Replace secure allocs by plain allocs and wipememory.
-	Use gcry_md_hash_buffer.
+	* pubkey.c (pss_encode, pss_verify): Restructure and comment code
+	to match rfc-3447.  Replace secure allocs by plain allocs and
+	wipememory.  Use gcry_md_hash_buffer.
+	(octet_string_from_mpi): New.
 
 2011-05-24  Daiki Ueno  <ueno@unixuser.org>
 
