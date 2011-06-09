@@ -1,3 +1,8 @@
+2011-06-09  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (pss_encode, pss_verify): Use VALUE verbatim for MHASH.
+	(octet_string_from_mpi): Add arg SPACE.
+
 2011-06-08  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (pss_encode, pss_verify): Restructure and comment code

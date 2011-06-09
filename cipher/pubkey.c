@@ -1394,7 +1394,8 @@ oaep_decode (unsigned char **r_result, size_t *r_resultlen,
 
 
 /* RFC-3447 (pkcs#1 v2.1) PSS encoding.  Encode {VALUE,VALUELEN} for
-   an NBITS key.  ALGO is a valid hash algorithm and SALTLEN is the
+   an NBITS key.  Note that VALUE is already the mHash from the
+   picture below.  ALGO is a valid hash algorithm and SALTLEN is the
    length of salt to be used.  On success the result is stored as a
    new MPI at R_RESULT.  On error the value at R_RESULT is undefined.
 
@@ -1464,9 +1465,14 @@ pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   salt  = mhash + hlen;
   dbmask= salt + saltlen;
 
-  /* Step 2: mHash = Hash(M).  */
-  /* Fixme: We should not do that but use VALUE directly as the hash.  */
-  gcry_md_hash_buffer (algo, mhash, value, valuelen);
+  /* Step 2: That would be: mHash = Hash(M) but our input is already
+     mHash thus we do only a consistency check and copy to MHASH.  */
+  if (valuelen != hlen)
+    {
+      rc = GPG_ERR_INV_LENGTH;
+      goto leave;
+    }
+  memcpy (mhash, value, hlen);
 
   /* Step 3: Check length constraints.  */
   if (emlen < hlen + saltlen + 2)
@@ -1534,17 +1540,26 @@ pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 }
 
 
-/* Turn VALUE into an octet string and store that at R_FRAME.  If that
-   octet string is shorter than NBYTES pad it to the left with zeroes.
-   If VALUE does not fit into NBYTES return an error code. */
+/* Turn VALUE into an octet string and store it in an allocated buffer
+   at R_FRAME or - if R_RAME is NULL - copy it into the caller
+   provided buffer SPACE; either SPACE or R_FRAME may be used.  If
+   SPACE if not NULL, the caller must provide a buffer of at least
+   NBYTES.  If the resulting octet string is shorter than NBYTES pad
+   it to the left with zeroes.  If VALUE does not fit into NBYTES
+   return an error code.  */
 static gpg_err_code_t
-octet_string_from_mpi (unsigned char **r_frame, gcry_mpi_t value, size_t nbytes)
+octet_string_from_mpi (unsigned char **r_frame, void *space,
+                       gcry_mpi_t value, size_t nbytes)
 {
   gpg_err_code_t rc;
   size_t nframe, noff, n;
   unsigned char *frame;
 
-  *r_frame = NULL;
+  if (!r_frame == !space)
+    return GPG_ERR_INV_ARG;  /* Only one may be used.  */
+
+  if (r_frame)
+    *r_frame = NULL;
 
   rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG,
                                       NULL, 0, &nframe, value));
@@ -1555,11 +1570,16 @@ octet_string_from_mpi (unsigned char **r_frame, gcry_mpi_t value, size_t nbytes)
 
   noff = (nframe < nbytes)? nbytes - nframe : 0;
   n = nframe + noff;
-  frame = mpi_is_secure (value)? gcry_malloc_secure (n) : gcry_malloc (n);
-  if (!frame)
+  if (space)
+    frame = space;
+  else
     {
-      rc = gpg_err_code_from_syserror ();
-      return rc;
+      frame = mpi_is_secure (value)? gcry_malloc_secure (n) : gcry_malloc (n);
+      if (!frame)
+        {
+          rc = gpg_err_code_from_syserror ();
+          return rc;
+        }
     }
   if (noff)
     memset (frame, 0, noff);
@@ -1572,19 +1592,21 @@ octet_string_from_mpi (unsigned char **r_frame, gcry_mpi_t value, size_t nbytes)
       return rc;
     }
 
-  *r_frame = frame;
+  if (r_frame)
+    *r_frame = frame;
   return 0;
 }
 
 
 /* Verify a signature assuming PSS padding.  VALUE is the hash of the
-   message.  ENCODED is the output of the RSA public key function.
-   NBITS is the size of the secret key.  ALGO is a hash algorithm and
-   SALTLEN is the length of the used salt.  The function returns 0 on
-   success or on error code otherwise.  */
+   message (mHash) encoded as an MPI; its length must match the digest
+   length of ALGO.  ENCODED is the output of the RSA public key
+   function (EM).  NBITS is the size of the public key.  ALGO is the
+   hash algorithm and SALTLEN is the length of the used salt.  The
+   function returns 0 on success or on error code.  */
 static gcry_err_code_t
 pss_verify (gcry_mpi_t value, gcry_mpi_t encoded, unsigned int nbits, int algo,
-	    size_t saltlen)
+            size_t saltlen)
 {
   gcry_err_code_t rc = 0;
   size_t hlen;                 /* Length of the hash digest.  */
@@ -1630,29 +1652,14 @@ pss_verify (gcry_mpi_t value, gcry_mpi_t encoded, unsigned int nbits, int algo,
   dbmask = buf;
   mhash = buf + buflen - hlen;
 
-  /* Convert the value into an octet string.  */
-  /* rc = octet_string_from_mpi (&em, value, emlen); */
-  /* if (rc) */
-  /*   goto leave; */
-
-  em = gcry_malloc (emlen);
-  if (!em)
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
-  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG, em, emlen, &n, value));
+  /* Step 2: That would be: mHash = Hash(M) but our input is already
+     mHash thus we only need to convert VALUE into MHASH.  */
+  rc = octet_string_from_mpi (NULL, mhash, value, hlen);
   if (rc)
     goto leave;
 
-  /* Step 2: mHash = Hash(M).  */
-  /* Fixme: We should not do that but use VALUE directly as the hash.  */
-  gcry_md_hash_buffer (algo, mhash, em, n);
-  gcry_free (em);
-  em = NULL;
-
   /* Convert the signature into an octet string.  */
-  rc = octet_string_from_mpi (&em, encoded, emlen);
+  rc = octet_string_from_mpi (&em, NULL, encoded, emlen);
   if (rc)
     goto leave;
 
