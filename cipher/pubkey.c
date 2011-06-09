@@ -2338,7 +2338,8 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
 	{
 	  s = gcry_sexp_nth_data (l2, 0, &n);
 	  if (!(n == 9 && !memcmp (s, "hash-algo", 9))
-	      && !(n == 5 && !memcmp (s, "label", 5)))
+	      && !(n == 5 && !memcmp (s, "label", 5))
+	      && !(n == 15 && !memcmp (s, "random-override", 15)))
 	    break;
 	  gcry_sexp_release (l2);
 	}

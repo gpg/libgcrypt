@@ -20,7 +20,7 @@
 
 TESTS = version t-mpi-bit prime register ac ac-schemes ac-data basic \
         mpitests tsexp keygen pubkey hmac keygrip fips186-dsa aeswrap \
-	curves t-kdf
+	curves t-kdf pkcs1v2
 
 
 # random.c uses fork() thus a test for W32 does not make any sense.

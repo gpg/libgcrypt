@@ -1,6 +1,7 @@
 2011-06-09  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (oaep_decode): Make use of octet_string_from_mpi.
+	(sexp_to_enc): Skip "random-override".
 
 	* pubkey.c (oaep_encode, pss_encode): Add args RANDOM_OVERRIDE and
 	RANDOM_OVERRIDE_LEN.
