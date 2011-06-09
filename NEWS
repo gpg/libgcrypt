@@ -6,9 +6,9 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * Support for WindowsCE.
 
- * Support ECDH.
+ * Support for ECDH.
 
- * Support OAEP.
+ * Support for OAEP and PSS methods as described by RFC-3447.
 
  * gcry_sexp_build does now support opaque MPIs with "%m".
 

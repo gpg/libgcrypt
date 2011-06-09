@@ -2340,6 +2340,11 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	GCRY_PK_RSA,
 	0 },
+      { "(data\n (flags pss)\n"
+	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#)\n"
+        " (random-override #4253647587980912233445566778899019283747#))\n",
+	GCRY_PK_RSA,
+	0 },
       { NULL }
     };
 
@@ -2423,6 +2428,13 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	1,
 	0,
 	0 },
+      { "(data\n (flags oaep)\n (hash-algo sha1)\n (label \"test\")\n"
+	" (value #11223344556677889900AA#)\n"
+        " (random-override #4253647587980912233445566778899019283747#))\n",
+	"(flags oaep)(hash-algo sha1)(label \"test\")",
+	1,
+	0,
+	0 },
       {	"(data\n (flags )\n" " (value #11223344556677889900AA#))\n",
 	NULL,
 	1,
@@ -2475,7 +2487,8 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
   for (dataidx = 0; datas[dataidx].data; dataidx++)
     {
       if (verbose)
-	fprintf (stderr, "  encryption/decryption test %d\n", dataidx);
+	fprintf (stderr, "  encryption/decryption test %d (algo %d)\n",
+                 dataidx, algo);
 
       rc = gcry_sexp_sscan (&data, NULL, datas[dataidx].data,
 			    strlen (datas[dataidx].data));
@@ -2562,6 +2575,8 @@ check_pubkey_grip (int n, const unsigned char *grip,
 		   gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 {
   unsigned char sgrip[20], pgrip[20];
+
+  (void)algo;
 
   if (!gcry_pk_get_keygrip (skey, sgrip))
     die ("get keygrip for private RSA key failed\n");

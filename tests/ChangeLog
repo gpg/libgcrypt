@@ -1,3 +1,9 @@
+2011-06-09  Werner Koch  <wk@g10code.com>
+
+	* basic.c (check_pubkey_sign): Add a test using random-override.
+	(check_pubkey_crypt): Ditto.  Print ALGO in verbose mode.
+	(check_pubkey_grip): Silence unused parameter warning.
+
 2011-06-03  Werner Koch  <wk@g10code.com>
 
 	* basic.c (main): Add option --die.

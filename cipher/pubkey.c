@@ -1092,6 +1092,10 @@ mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
    string as label.  On success the encoded ciphertext is returned at
    R_RESULT.
 
+   If {RANDOM_OVERRIDE, RANDOM_OVERRIDE_LEN} is given it is used as
+   the seed instead of using a random string for it.  This feature is
+   only useful for regression tests.
+
    Here is figure 1 from the RFC depicting the process:
 
                              +----------+---------+-------+
@@ -1114,7 +1118,8 @@ mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
 static gcry_err_code_t
 oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
              const unsigned char *value, size_t valuelen,
-             const unsigned char *label, size_t labellen)
+             const unsigned char *label, size_t labellen,
+             const void *random_override, size_t random_override_len)
 {
   gcry_err_code_t rc = 0;
   gcry_error_t err;
@@ -1165,7 +1170,17 @@ oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 
   /* Step 3d: Generate seed.  We store it where the maskedSeed will go
      later. */
-  gcry_randomize (frame + 1, hlen, GCRY_STRONG_RANDOM);
+  if (random_override)
+    {
+      if (random_override_len != hlen)
+        {
+          gcry_free (frame);
+          return GPG_ERR_INV_ARG;
+        }
+      memcpy (frame + 1, random_override, hlen);
+    }
+  else
+    gcry_randomize (frame + 1, hlen, GCRY_STRONG_RANDOM);
 
   /* Step 2e and 2f: Create maskedDB.  */
   {
@@ -1399,6 +1414,10 @@ oaep_decode (unsigned char **r_result, size_t *r_resultlen,
    length of salt to be used.  On success the result is stored as a
    new MPI at R_RESULT.  On error the value at R_RESULT is undefined.
 
+   If {RANDOM_OVERRIDE, RANDOM_OVERRIDE_LEN} is given it is used as
+   the salt instead of using a random string for the salt.  This
+   feature is only useful for regression tests.
+
    Here is figure 2 from the RFC (errata 595 applied) depicting the
    process:
 
@@ -1430,8 +1449,8 @@ oaep_decode (unsigned char **r_result, size_t *r_resultlen,
   */
 static gcry_err_code_t
 pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
-	    const unsigned char *value, size_t valuelen,
-	    int saltlen)
+	    const unsigned char *value, size_t valuelen, int saltlen,
+            const void *random_override, size_t random_override_len)
 {
   gcry_err_code_t rc = 0;
   gcry_error_t err;
@@ -1492,7 +1511,19 @@ pss_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
 
   /* Step 4: Create a salt.  */
   if (saltlen)
-    gcry_randomize (salt, saltlen, GCRY_STRONG_RANDOM);
+    {
+      if (random_override)
+        {
+          if (random_override_len != saltlen)
+            {
+              rc = GPG_ERR_INV_ARG;
+              goto leave;
+            }
+          memcpy (salt, random_override, saltlen);
+        }
+      else
+        gcry_randomize (salt, saltlen, GCRY_STRONG_RANDOM);
+    }
 
   /* Step 5 and 6: M' = Hash(Padding1 || mHash || salt).  */
   memset (buf, 0, 8);  /* Padding.  */
@@ -2412,6 +2443,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
     [(hash-algo <algo>)]
     [(label <label>)]
     [(salt-length <length>)]
+    [(random-override <data>)]
    )
 
    Either the VALUE or the HASH element must be present for use
@@ -2421,6 +2453,8 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
 
    SALT-LENGTH is for PSS.
 
+   RANDOM-OVERRIDE is used to replace random nonces in PSS for
+   regression testing.
 */
 static gcry_err_code_t
 sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
@@ -2537,6 +2571,8 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
       else
 	{
 	  gcry_sexp_t list;
+          void *random_override = NULL;
+          size_t random_override_len = 0;
 
 	  /* Get HASH-ALGO. */
 	  list = gcry_sexp_find_token (ldata, "hash-algo", 0);
@@ -2578,10 +2614,35 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
 	      if (rc)
 		goto leave;
 	    }
+          /* Get optional RANDOM-OVERRIDE.  */
+          list = gcry_sexp_find_token (ldata, "random-override", 0);
+          if (list)
+            {
+              s = gcry_sexp_nth_data (list, 1, &n);
+              if (!s)
+                rc = GPG_ERR_NO_OBJ;
+              else if (n > 0)
+                {
+                  random_override = gcry_malloc (n);
+                  if (!random_override)
+                    rc = gpg_err_code_from_syserror ();
+                  else
+                    {
+                      memcpy (random_override, s, n);
+                      random_override_len = n;
+                    }
+                }
+              gcry_sexp_release (list);
+              if (rc)
+                goto leave;
+            }
 
 	  rc = oaep_encode (ret_mpi, ctx->nbits, ctx->hash_algo,
 			    value, valuelen,
-			    ctx->label, ctx->labellen);
+			    ctx->label, ctx->labellen,
+                            random_override, random_override_len);
+
+          gcry_free (random_override);
 	}
     }
   else if (ctx->encoding == PUBKEY_ENC_PSS && lhash
@@ -2595,6 +2656,8 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
         {
           const void * value;
           size_t valuelen;
+          void *random_override = NULL;
+          size_t random_override_len = 0;
 
 	  ctx->hash_algo = get_hash_algo (s, n);
 
@@ -2620,9 +2683,36 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
 		  ctx->saltlen = (unsigned int)strtoul (s, NULL, 10);
 		  gcry_sexp_release (list);
 		}
+
+              /* Get optional RANDOM-OVERRIDE.  */
+              list = gcry_sexp_find_token (ldata, "random-override", 0);
+              if (list)
+                {
+                  s = gcry_sexp_nth_data (list, 1, &n);
+                  if (!s)
+                    rc = GPG_ERR_NO_OBJ;
+                  else if (n > 0)
+                    {
+                      random_override = gcry_malloc (n);
+                      if (!random_override)
+                        rc = gpg_err_code_from_syserror ();
+                      else
+                        {
+                          memcpy (random_override, s, n);
+                          random_override_len = n;
+                        }
+                    }
+                  gcry_sexp_release (list);
+                  if (rc)
+                    goto leave;
+                }
+
+              /* Encode the data.  */
 	      rc = pss_encode (ret_mpi, ctx->nbits - 1, ctx->hash_algo,
-			       value, valuelen,
-			       ctx->saltlen);
+			       value, valuelen, ctx->saltlen,
+                               random_override, random_override_len);
+
+              gcry_free (random_override);
 	    }
         }
     }
