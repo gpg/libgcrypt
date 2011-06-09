@@ -786,7 +786,20 @@ pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
 
 /* Encode {VALUE,VALUELEN} for an NBITS keys using the pkcs#1 block
    type 2 padding.  On sucess the result is stored as a new MPI at
-   R_RESULT.  On error the value at R_RESULT is undefined.  */
+   R_RESULT.  On error the value at R_RESULT is undefined.
+
+   We encode the value in this way:
+
+     0  2  RND(n bytes)  0  VALUE
+
+   0   is a marker we unfortunately can't encode because we return an
+       MPI which strips all leading zeroes.
+   2   is the block type.
+   RND are non-zero random bytes.
+
+   (Note that OpenPGP includes the cipher algorithm and a checksum in
+   VALUE; the caller needs to prepare the value accordingly.)
+  */
 static gcry_err_code_t
 pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 			     const unsigned char *value, size_t valuelen)
@@ -861,18 +874,19 @@ pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
 
 
 /* Decode a plaintext in VALUE assuming pkcs#1 block type 2 padding.
-   NBITS is the size of the secret key.  On sucess the result is
-   stored as a new MPI at R_RESULT.  On error the value at R_RESULT is
-   undefined.  */
+   NBITS is the size of the secret key.  On success the result is
+   stored as a newly allocated buffer at R_RESULT and its valid length at
+   R_RESULTLEN.  On error NULL is stored at R_RESULT.  */
 static gcry_err_code_t
-pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
-			     gcry_mpi_t value)
+pkcs1_decode_for_encryption (unsigned char **r_result, size_t *r_resultlen,
+                             unsigned int nbits, gcry_mpi_t value)
 {
-  gcry_err_code_t rc = 0;
   gcry_error_t err;
   unsigned char *frame = NULL;
   size_t nframe = (nbits+7) / 8;
   size_t n;
+
+  *r_result = NULL;
 
   if ( !(frame = gcry_malloc_secure (nframe)))
     return gpg_err_code_from_syserror ();
@@ -884,45 +898,76 @@ pkcs1_decode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
       return gcry_err_code (err);
     }
 
-  if (n < nframe)
-    {
-      memmove (frame + (nframe - n), frame, n);
-      memset (frame, 0, (nframe - n));
-    }
+  nframe = n; /* Set NFRAME to the actual length.  */
 
-  /* FRAME = 0x00 || 0x02 || PS || 0x00 || M */
+  /* FRAME = 0x00 || 0x02 || PS || 0x00 || M
+
+     pkcs#1 requires that the first byte is zero.  Our MPIs usually
+     strip leading zero bytes; thus we are not able to detect them.
+     However due to the way gcry_mpi_print is implemented we may see
+     leading zero bytes nevertheless.  We handle this by making the
+     first zero byte optional.  */
+  if (nframe < 4)
+    {
+      gcry_free (frame);
+      return GPG_ERR_ENCODING_PROBLEM;  /* Too short.  */
+    }
   n = 0;
-  if (frame[n++] != 0x00 || frame[n++] != 0x02)
+  if (!frame[0])
+    n++;
+  if (frame[n++] != 0x02)
     {
       gcry_free (frame);
-      return GPG_ERR_ENCODING_PROBLEM;
+      return GPG_ERR_ENCODING_PROBLEM;  /* Wrong block type.  */
     }
 
-  for (; frame[n] != 0x00 && n < nframe; n++)
+  /* Skip the non-zero random bytes and the terminating zero byte.  */
+  for (; n < nframe && frame[n] != 0x00; n++)
     ;
-  if (n == nframe)
+  if (n+1 >= nframe)
     {
       gcry_free (frame);
-      return GPG_ERR_ENCODING_PROBLEM;
+      return GPG_ERR_ENCODING_PROBLEM; /* No zero byte.  */
     }
+  n++; /* Skip the zero byte.  */
 
-  n++;
-  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, &frame[n], nframe - n, NULL);
-  if (err)
-    rc = gcry_err_code (err);
-  else if (DBG_CIPHER)
-    log_mpidump ("value extracted from PKCS#1 block type 2 encoded data",
-		 *r_result);
-  gcry_free (frame);
+  /* To avoid an extra allocation we reuse the frame buffer.  The only
+     caller of this function will anyway free the result soon.  */
+  memmove (frame, frame + n, nframe - n);
+  *r_result = frame;
+  *r_resultlen = nframe - n;
 
-  return rc;
+  if (DBG_CIPHER)
+    log_printhex ("value extracted from PKCS#1 block type 2 encoded data:",
+                  *r_result, *r_resultlen);
+
+  return 0;
 }
 
 
 /* Encode {VALUE,VALUELEN} for an NBITS keys and hash algorith ALGO
-   using the pkcs#1 block type 1 padding.  On sucess the result is
+   using the pkcs#1 block type 1 padding.  On success the result is
    stored as a new MPI at R_RESULT.  On error the value at R_RESULT is
-   undefined.  */
+   undefined.
+
+   We encode the value in this way:
+
+     0  1  PAD(n bytes)  0  ASN(asnlen bytes) VALUE(valuelen bytes)
+
+   0   is a marker we unfortunately can't encode because we return an
+       MPI which strips all leading zeroes.
+   1   is the block type.
+   PAD consists of 0xff bytes.
+   0   marks the end of the padding.
+   ASN is the DER encoding of the hash algorithm; along with the VALUE
+       it yields a valid DER encoding.
+
+   (Note that PGP prior to version 2.3 encoded the message digest as:
+      0   1   MD(16 bytes)   0   PAD(n bytes)   1
+    The MD is always 16 bytes here because it's always MD5.  GnuPG
+    does not not support pre-v2.3 signatures, but I'm including this
+    comment so the information is easily found if needed.)
+*/
 static gcry_err_code_t
 pkcs1_encode_for_signature (gcry_mpi_t *r_result, unsigned int nbits,
 			    const unsigned char *value, size_t valuelen,
@@ -990,44 +1035,82 @@ pkcs1_encode_for_signature (gcry_mpi_t *r_result, unsigned int nbits,
 }
 
 
+/* Mask generation function for OAEP.  See RFC-3447 B.2.1.  */
 static gcry_err_code_t
 mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
       int algo)
 {
-  size_t dlen;
+  size_t dlen, nbytes, n;
   int idx;
   gcry_md_hd_t hd;
   gcry_error_t err;
-  unsigned char *p;
 
   err = gcry_md_open (&hd, algo, 0);
   if (err)
     return gpg_err_code (err);
 
-  memset (output, 0, outlen);
   dlen = gcry_md_get_algo_dlen (algo);
-  for (idx = 0, p = output; idx < (outlen + dlen - 1) / dlen; idx++, p += dlen)
+
+  /* We skip step 1 which would be assert(OUTLEN <= 2^32).  The loop
+     in step 3 is merged with step 4 by concatenating no more octets
+     than what would fit into OUTPUT.  The ceiling for the counter IDX
+     is implemented indirectly.  */
+  nbytes = 0;  /* Step 2.  */
+  idx = 0;
+  while ( nbytes < outlen )
     {
       unsigned char c[4], *digest;
+
+      if (idx)
+        gcry_md_reset (hd);
 
       c[0] = (idx >> 24) & 0xFF;
       c[1] = (idx >> 16) & 0xFF;
       c[2] = (idx >> 8) & 0xFF;
       c[3] = idx & 0xFF;
+      idx++;
 
-      gcry_md_reset (hd);
       gcry_md_write (hd, seed, seedlen);
       gcry_md_write (hd, c, 4);
       digest = gcry_md_read (hd, 0);
-      if (outlen - (p - output) >= dlen)
-	memcpy (p, digest, dlen);
-      else
-	memcpy (p, digest, outlen - (p - output));
+
+      n = (outlen - nbytes < dlen)? (outlen - nbytes) : dlen;
+      memcpy (output+nbytes, digest, n);
+      nbytes += n;
     }
+
   gcry_md_close (hd);
   return GPG_ERR_NO_ERROR;
 }
 
+
+/* RFC-3447 (pkcs#1 v2.1) OAEP encoding.  NBITS is the length of the
+   key measured in bits.  ALGO is the hash function; it must be a
+   valid and usable algorithm.  {VALUE,VALUELEN} is the message to
+   encrypt.  {LABEL,LABELLEN} is the optional label to be associated
+   with the message, if LABEL is NULL the default is to use the empty
+   string as label.  On success the encoded ciphertext is returned at
+   R_RESULT.
+
+   Here is figure 1 from the RFC depicting the process:
+
+                             +----------+---------+-------+
+                        DB = |  lHash   |    PS   |   M   |
+                             +----------+---------+-------+
+                                            |
+                  +----------+              V
+                  |   seed   |--> MGF ---> xor
+                  +----------+              |
+                        |                   |
+               +--+     V                   |
+               |00|    xor <----- MGF <-----|
+               +--+     |                   |
+                 |      |                   |
+                 V      V                   V
+               +--+----------+----------------------------+
+         EM =  |00|maskedSeed|          maskedDB          |
+               +--+----------+----------------------------+
+  */
 static gcry_err_code_t
 oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
              const unsigned char *value, size_t valuelen,
@@ -1037,58 +1120,104 @@ oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   gcry_error_t err;
   unsigned char *frame = NULL;
   size_t nframe = (nbits+7) / 8;
-  unsigned char *dmask, *smask, *p;
-  size_t dlen;
-  gcry_md_hd_t hd;
+  unsigned char *p;
+  size_t hlen;
   size_t n;
 
-  dlen = gcry_md_get_algo_dlen (algo);
-  if (valuelen > nframe - 2 * dlen - 1 || !nframe)
-    /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
-    return GPG_ERR_TOO_SHORT; /* the key is too short */
-  if ( !(frame = gcry_malloc_secure (nframe)))
+  *r_result = NULL;
+
+  /* Set defaults for LABEL.  */
+  if (!label || !labellen)
+    {
+      label = (const unsigned char*)"";
+      labellen = 0;
+    }
+
+  hlen = gcry_md_get_algo_dlen (algo);
+
+  /* We skip step 1a which would be to check that LABELLEN is not
+     greater than 2^61-1.  See rfc-3447 7.1.1. */
+
+  /* Step 1b.  Note that the obsolete rfc-2437 uses the check:
+     valuelen > nframe - 2 * hlen - 1 .  */
+  if (valuelen > nframe - 2 * hlen - 2 || !nframe)
+    {
+      /* Can't encode a VALUELEN value in a NFRAME bytes frame. */
+      return GPG_ERR_TOO_SHORT; /* The key is too short.  */
+    }
+
+  /* Allocate the frame.  */
+  frame = gcry_calloc_secure (1, nframe);
+  if (!frame)
     return gpg_err_code_from_syserror ();
 
-  /* FRAME = 00 || SEED || DB */
-  memset (frame, 0, nframe);
-  n = 0;
-  frame[n++] = 0;
-  gcry_randomize (&frame[n], dlen, GCRY_STRONG_RANDOM);
+  /* Step 2a: Compute the hash of the label.  We store it in the frame
+     where later the maskedDB will commence.  */
+  gcry_md_hash_buffer (algo, frame + 1 + hlen, label, labellen);
 
-  n += dlen;
-  gcry_md_open (&hd, algo, 0);
-  gcry_md_write (hd, label, labellen);
-  memcpy (&frame[n], gcry_md_read (hd, 0), dlen);
-  gcry_md_close (hd);
+  /* Step 2b: Set octet string to zero.  */
+  /* This has already been done while allocating FRAME.  */
+
+  /* Step 2c: Create DB by concatenating lHash, PS, 0x01 and M.  */
   n = nframe - valuelen - 1;
-  frame[n++] = 1;
-  memcpy (&frame[n], value, valuelen);
+  frame[n] = 0x01;
+  memcpy (frame + n + 1, value, valuelen);
 
-  if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      gcry_free (frame);
-      return rc;
-    }
-  mgf1 (dmask, nframe - dlen - 1, &frame[1], dlen, algo);
-  for (n = 1 + dlen, p = dmask; n < nframe; n++)
-    frame[n] ^= *p++;
-  gcry_free (dmask);
-  n += valuelen;
+  /* Step 3d: Generate seed.  We store it where the maskedSeed will go
+     later. */
+  gcry_randomize (frame + 1, hlen, GCRY_STRONG_RANDOM);
 
-  if ( !(smask = gcry_malloc_secure (dlen)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      gcry_free (frame);
-      return rc;
-    }
-  mgf1 (smask, dlen, &frame[1 + dlen], nframe - dlen - 1, algo);
-  for (n = 1, p = smask; n < 1 + dlen; n++)
-    frame[n] ^= *p++;
-  gcry_free (smask);
-  n = nframe;
+  /* Step 2e and 2f: Create maskedDB.  */
+  {
+    unsigned char *dmask;
 
-  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, frame, n, &nframe);
+    dmask = gcry_malloc_secure (nframe - hlen - 1);
+    if (!dmask)
+      {
+        rc = gpg_err_code_from_syserror ();
+        gcry_free (frame);
+        return rc;
+      }
+    rc = mgf1 (dmask, nframe - hlen - 1, frame+1, hlen, algo);
+    if (rc)
+      {
+        gcry_free (dmask);
+        gcry_free (frame);
+        return rc;
+      }
+    for (n = 1 + hlen, p = dmask; n < nframe; n++)
+      frame[n] ^= *p++;
+    gcry_free (dmask);
+  }
+
+  /* Step 2g and 2h: Create maskedSeed.  */
+  {
+    unsigned char *smask;
+
+    smask = gcry_malloc_secure (hlen);
+    if (!smask)
+      {
+        rc = gpg_err_code_from_syserror ();
+        gcry_free (frame);
+        return rc;
+      }
+    rc = mgf1 (smask, hlen, frame + 1 + hlen, nframe - hlen - 1, algo);
+    if (rc)
+      {
+        gcry_free (smask);
+        gcry_free (frame);
+        return rc;
+      }
+    for (n = 1, p = smask; n < 1 + hlen; n++)
+      frame[n] ^= *p++;
+    gcry_free (smask);
+  }
+
+  /* Step 2i: Concatenate 0x00, maskedSeed and maskedDB.  */
+  /* This has already been done by using in-place operations.  */
+
+  /* Convert the stuff into an MPI as expected by the caller.  */
+  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, frame, nframe, NULL);
   if (err)
     rc = gcry_err_code (err);
   else if (DBG_CIPHER)
@@ -1098,96 +1227,169 @@ oaep_encode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
   return rc;
 }
 
+
+/* RFC-3447 (pkcs#1 v2.1) OAEP decoding.  NBITS is the length of the
+   key measured in bits.  ALGO is the hash function; it must be a
+   valid and usable algorithm.  VALUE is the raw decrypted message
+   {LABEL,LABELLEN} is the optional label to be associated with the
+   message, if LABEL is NULL the default is to use the empty string as
+   label.  On success the plaintext is returned as a newly allocated
+   buffer at R_RESULT; its valid length is stored at R_RESULTLEN.  On
+   error NULL is stored at R_RESULT.  */
 static gcry_err_code_t
-oaep_decode (gcry_mpi_t *r_result, unsigned int nbits, int algo,
+oaep_decode (unsigned char **r_result, size_t *r_resultlen,
+             unsigned int nbits, int algo,
              gcry_mpi_t value, const unsigned char *label, size_t labellen)
 {
-  gcry_err_code_t rc = 0;
-  gcry_error_t err;
-  unsigned char *frame = NULL, *dmask, *smask, *p;
-  size_t nframe = (nbits+7) / 8;
-  size_t dlen;
-  gcry_md_hd_t hd;
-  size_t n;
+  gcry_err_code_t rc;
+  unsigned char *frame = NULL; /* Encoded messages (EM).  */
+  unsigned char *masked_seed;  /* Points into FRAME.  */
+  unsigned char *masked_db;    /* Points into FRAME.  */
+  unsigned char *seed = NULL;  /* Allocated space for the seed and DB.  */
+  unsigned char *db;           /* Points into SEED.  */
+  unsigned char *lhash = NULL; /* Hash of the label.  */
+  size_t nframe;               /* Length of the ciphertext (EM).  */
+  size_t hlen;                 /* Length of the hash digest.  */
+  size_t db_len;               /* Length of DB and masked_db.  */
+  size_t nkey = (nbits+7)/8;   /* Length of the key in bytes.  */
+  int failed = 0;              /* Error indicator.  */
+  size_t noff, n;
 
-  if ( !(frame = gcry_malloc_secure (nframe)))
+  *r_result = NULL;
+
+  /* This code is implemented as described by rfc-3447 7.1.2.  */
+
+  /* Set defaults for LABEL.  */
+  if (!label || !labellen)
+    {
+      label = (const unsigned char*)"";
+      labellen = 0;
+    }
+
+  /* Get the length of the digest.  */
+  hlen = gcry_md_get_algo_dlen (algo);
+
+  /* Hash the label right away.  */
+  lhash = gcry_malloc (hlen);
+  if (!lhash)
     return gpg_err_code_from_syserror ();
+  gcry_md_hash_buffer (algo, lhash, label, labellen);
 
-  err = gcry_mpi_print (GCRYMPI_FMT_USG, frame, nframe, &n, value);
-  if (err)
+  /* Turn the MPI into an octet string.  If the octet string is
+     shorter than the key we pad it to the left with zeroes.  This may
+     happen due to the leading zero in OAEP frames and due to the
+     following random octets (seed^mask) which may have leading zero
+     bytes.  This all is needed to cope with our leading zeroes
+     suppressing MPI implementation.  The code implictly implements
+     Step 1b (bail out if NFRAME != N).  */
+  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      NULL, 0, &nframe, value));
+  if (rc || nframe > nkey)
+    {
+      gcry_free (lhash);
+      return GPG_ERR_ENCODING_PROBLEM;
+    }
+  noff = (nframe < nkey)? nkey - nframe : 0;
+  n = nframe + noff;
+  frame = mpi_is_secure (value)? gcry_malloc_secure (n) : gcry_malloc (n);
+  if (!frame)
+    {
+      rc = gpg_error_from_syserror ();
+      gcry_free (lhash);
+      return rc;
+    }
+  if (noff)
+    memset (frame, 0, noff);
+  nframe += noff;
+  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      frame+noff, nframe-noff, NULL, value));
+  if (rc)
     {
       gcry_free (frame);
-      return gcry_err_code (err);
-    }
-  if (n < nframe)
-    {
-      memmove (frame + (nframe - n), frame, n);
-      memset (frame, 0, (nframe - n));
+      gcry_free (lhash);
+      return rc;
     }
 
-  /* FRAME = 00 || MASKED_SEED || MASKED_DB */
+  /* Step 1c: Check that the key is long enough.  */
+  if ( nframe < 2 * hlen + 2 )
+    {
+      gcry_free (frame);
+      gcry_free (lhash);
+      return GPG_ERR_ENCODING_PROBLEM;
+    }
+
+  /* Step 2 has already been done by the caller and the
+     gcry_mpi_aprint above.  */
+
+  /* Allocate space for SEED and DB.  */
+  seed = gcry_malloc_secure (nframe - 1);
+  if (!seed)
+    {
+      rc = gpg_err_code_from_syserror ();
+      gcry_free (frame);
+      gcry_free (lhash);
+      return rc;
+    }
+  db = seed + hlen;
+
+  /* To avoid choosen ciphertext attacks from now on we make sure to
+     run all code even in the error case; this avoids possible timing
+     attacks as described by Manger.  */
+
+  /* Step 3a: Hash the label.  */
+  /* This has already been done.  */
+
+  /* Step 3b: Separate the encoded message.  */
+  masked_seed = frame + 1;
+  masked_db   = frame + 1 + hlen;
+  db_len      = nframe - 1 - hlen;
+
+  /* Step 3c and 3d: seed = maskedSeed ^ mgf(maskedDB, hlen).  */
+  if (mgf1 (seed, hlen, masked_db, db_len, algo))
+    failed = 1;
+  for (n = 0; n < hlen; n++)
+    seed[n] ^= masked_seed[n];
+
+  /* Step 3e and 3f: db = maskedDB ^ mgf(seed, db_len).  */
+  if (mgf1 (db, db_len, seed, hlen, algo))
+    failed = 1;
+  for (n = 0; n < db_len; n++)
+    db[n] ^= masked_db[n];
+
+  /* Step 3g: Check lhash, an possible empty padding string terminated
+     by 0x01 and the first byte of EM being 0.  */
+  if (memcmp (lhash, db, hlen))
+    failed = 1;
+  for (n = hlen; n < db_len; n++)
+    if (db[n] == 0x01)
+      break;
+  if (n == db_len)
+    failed = 1;
   if (frame[0])
-    {
-      gcry_free (frame);
-      return GPG_ERR_ENCODING_PROBLEM;
-    }
+    failed = 1;
 
-  dlen = gcry_md_get_algo_dlen (algo);
-  if (nframe < 1 + 2 * dlen + 1)
-    {
-      gcry_free (frame);
-      return GPG_ERR_TOO_SHORT;
-    }
-  if ( !(smask = gcry_malloc_secure (dlen)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      gcry_free (frame);
-      return rc;
-    }
-  mgf1 (smask, dlen, &frame[1 + dlen], nframe - dlen - 1, algo);
-  for (n = 1, p = smask; n < 1 + dlen; n++)
-    frame[n] ^= *p++;
-  gcry_free (smask);
-
-  if ( !(dmask = gcry_malloc_secure (nframe - dlen - 1)))
-    {
-      rc = gpg_err_code_from_syserror ();
-      gcry_free (frame);
-      return rc;
-    }
-  mgf1 (dmask, nframe - dlen - 1, &frame[1], dlen, algo);
-  for (n = 1 + dlen, p = dmask; n < nframe; n++)
-    frame[n] ^= *p++;
-  gcry_free (dmask);
-
-  gcry_md_open (&hd, algo, 0);
-  gcry_md_write (hd, label, labellen);
-  memcpy (&frame[1], gcry_md_read (hd, 0), dlen);
-  gcry_md_close (hd);
-
-  if (memcmp (&frame[1], &frame[1 + dlen], dlen))
-    {
-      gcry_free (frame);
-      return GPG_ERR_ENCODING_PROBLEM;
-    }
-
-  for (n = 1 + dlen * 2; n < nframe && !frame[n]; n++)
-    ;
-  if (n < nframe && frame[n] != 1)
-    {
-      gcry_free (frame);
-      return GPG_ERR_ENCODING_PROBLEM;
-    }
-
-  n++;
-  err = gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, &frame[n], nframe - n, NULL);
-  if (err)
-    rc = gcry_err_code (err);
-  else if (DBG_CIPHER)
-    log_mpidump ("value extracted from OAEP encoded data", *r_result);
+  gcry_free (lhash);
   gcry_free (frame);
+  if (failed)
+    {
+      gcry_free (seed);
+      return GPG_ERR_ENCODING_PROBLEM;
+    }
 
-  return rc;
+  /* Step 4: Output M.  */
+  /* To avoid an extra allocation we reuse the seed buffer.  The only
+     caller of this function will anyway free the result soon.  */
+  n++;
+  memmove (seed, db + n, db_len - n);
+  *r_result = seed;
+  *r_resultlen = db_len - n;
+  seed = NULL;
+
+  if (DBG_CIPHER)
+    log_printhex ("value extracted from OAEP encoded data:",
+                  *r_result, *r_resultlen);
+
+  return 0;
 }
 
 
@@ -2643,12 +2845,18 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
    s_skey = <key-as-defined-in-sexp_to_key>
    r_plain= Either an incomplete S-expression without the parentheses
             or if the flags list is used (even if empty) a real S-expression:
-            (value PLAIN).
+            (value PLAIN).  In raw mode (or no flags given) the returned value
+            is to be interpreted as a signed MPI, thus it may have an extra
+            leading zero octet even if not included in the original data.
+            With pkcs1 or oaep decoding enabled the returned value is a
+            verbatim octet string.
  */
 gcry_error_t
 gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 {
-  gcry_mpi_t *skey = NULL, *data = NULL, plain = NULL, unpad = NULL;
+  gcry_mpi_t *skey = NULL, *data = NULL, plain = NULL;
+  unsigned char *unpad = NULL;
+  size_t unpadlen = 0;
   int modern, flags;
   struct pk_encoding_ctx ctx;
   gcry_err_code_t rc;
@@ -2682,37 +2890,44 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   switch (ctx.encoding)
     {
     case PUBKEY_ENC_PKCS1:
-      rc = pkcs1_decode_for_encryption (&unpad, gcry_pk_get_nbits (s_skey),
-					plain);
+      rc = pkcs1_decode_for_encryption (&unpad, &unpadlen,
+                                        gcry_pk_get_nbits (s_skey), plain);
       mpi_free (plain);
-      if (rc)
-	goto leave;
-      plain = unpad;
+      plain = NULL;
+      if (!rc)
+        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
+                                             (int)unpadlen, unpad));
       break;
+
     case PUBKEY_ENC_OAEP:
-      rc = oaep_decode (&unpad, gcry_pk_get_nbits (s_skey), ctx.hash_algo,
+      rc = oaep_decode (&unpad, &unpadlen,
+                        gcry_pk_get_nbits (s_skey), ctx.hash_algo,
 			plain, ctx.label, ctx.labellen);
       mpi_free (plain);
-      if (rc)
-	goto leave;
-      plain = unpad;
+      plain = NULL;
+      if (!rc)
+        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
+                                             (int)unpadlen, unpad));
       break;
+
     default:
+      /* Raw format.  For backward compatibility we need to assume a
+         signed mpi by using the sexp format string "%m".  */
+      rc = gcry_err_code (gcry_sexp_build
+                          (r_plain, NULL, modern? "(value %m)" : "%m", plain));
       break;
     }
 
-  if (gcry_sexp_build (r_plain, NULL, modern? "(value %m)" : "%m", plain))
-    BUG ();
-
  leave:
+  gcry_free (unpad);
+
   if (skey)
     {
       release_mpi_array (skey);
       gcry_free (skey);
     }
 
-  if (plain)
-    mpi_free (plain);
+  mpi_free (plain);
 
   if (data)
     {

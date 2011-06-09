@@ -56,6 +56,7 @@ test_spec_pubkey_t;
 static int verbose;
 static int error_count;
 static int in_fips_mode;
+static int die_on_error;
 
 static void
 fail (const char *format, ...)
@@ -66,6 +67,8 @@ fail (const char *format, ...)
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
   error_count++;
+  if (die_on_error)
+    exit (1);
 }
 
 static void
@@ -2386,56 +2389,79 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
     const char *data;
     const char *hint;
     int unpadded;
-    int expected_rc;
+    int encrypt_expected_rc;
+    int decrypt_expected_rc;
   } datas[] =
     {
       {	"(data\n (flags pkcs1)\n"
 	" (value #11223344556677889900AA#))\n",
 	NULL,
 	0,
+	0,
 	0 },
       {	"(data\n (flags pkcs1)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags pkcs1)",
 	1,
+	0,
 	0 },
       { "(data\n (flags oaep)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags oaep)",
 	1,
+	0,
 	0 },
       { "(data\n (flags oaep)\n (hash-algo sha1)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags oaep)(hash-algo sha1)",
 	1,
+	0,
 	0 },
       { "(data\n (flags oaep)\n (hash-algo sha1)\n (label \"test\")\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags oaep)(hash-algo sha1)(label \"test\")",
 	1,
+	0,
 	0 },
       {	"(data\n (flags )\n" " (value #11223344556677889900AA#))\n",
 	NULL,
 	1,
+	0,
 	0 },
       {	"(data\n (flags )\n" " (value #0090223344556677889900AA#))\n",
 	NULL,
 	1,
+	0,
 	0 },
       { "(data\n (flags raw)\n" " (value #11223344556677889900AA#))\n",
 	NULL,
 	1,
+	0,
 	0 },
       { "(data\n (flags pkcs1)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	NULL,
 	0,
-	GPG_ERR_CONFLICT },
+	GPG_ERR_CONFLICT,
+	0},
       { "(data\n (flags raw foo)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	NULL,
 	0,
-	GPG_ERR_INV_FLAG },
+	GPG_ERR_INV_FLAG,
+	0},
+      { "(data\n (flags raw)\n"
+	" (value #11223344556677889900AA#))\n",
+	"(flags oaep)",
+	1,
+	0,
+	GPG_ERR_ENCODING_PROBLEM },
+      { "(data\n (flags oaep)\n"
+	" (value #11223344556677889900AA#))\n",
+	"(flags pkcs1)",
+	1,
+	0,
+	GPG_ERR_ENCODING_PROBLEM },
       {	"(data\n (flags pss)\n"
 	" (value #11223344556677889900AA#))\n",
 	NULL,
@@ -2457,7 +2483,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	die ("converting data failed: %s\n", gpg_strerror (rc));
 
       rc = gcry_pk_encrypt (&ciph, data, pkey);
-      if (gcry_err_code (rc) != datas[dataidx].expected_rc)
+      if (gcry_err_code (rc) != datas[dataidx].encrypt_expected_rc)
 	fail ("gcry_pk_encrypt failed: %s\n", gpg_strerror (rc));
 
       if (!rc)
@@ -2498,9 +2524,10 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	      ciph = list;
 	    }
 	  rc = gcry_pk_decrypt (&plain, ciph, skey);
-	  if (rc)
+	  if (gcry_err_code (rc) != datas[dataidx].decrypt_expected_rc)
 	    fail ("gcry_pk_decrypt failed: %s\n", gpg_strerror (rc));
-	  else if (datas[dataidx].unpadded)
+
+	  if (!rc && datas[dataidx].unpadded)
 	    {
 	      gcry_sexp_t p1, p2;
 
@@ -2808,6 +2835,11 @@ main (int argc, char **argv)
         {
           selftest_only = 1;
           verbose += 2;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--die"))
+        {
+          die_on_error = 1;
           argc--; argv++;
         }
     }

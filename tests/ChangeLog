@@ -1,3 +1,11 @@
+2011-06-03  Werner Koch  <wk@g10code.com>
+
+	* basic.c (main): Add option --die.
+
+2011-05-27  Daiki Ueno  <ueno@unixuser.org>
+
+	* basic.c (check_pubkey_crypt): Add test data with invalid padding.
+
 2011-05-24  Daiki Ueno  <ueno@unixuser.org>
 
 	* basic.c (do_check_one_pubkey): Add new arg ALGO to tell which PK

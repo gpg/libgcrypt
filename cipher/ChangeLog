@@ -5,6 +5,33 @@
 	wipememory.  Use gcry_md_hash_buffer.
 	(octet_string_from_mpi): New.
 
+2011-06-03  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (oaep_decode): Add more comments and restructure to
+	match the description in RFC-3447.
+	(oaep_encode): Check for mgf1 error.  s/dlen/hlen/.
+
+2011-05-31  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (mgf1): Optimize by using gcry_md_reset.  Re-implement
+	for easier readability.
+	(oaep_encode): Add more comments and restructure to match the
+	description in RFC-3447.
+
+	* pubkey.c (pkcs1_encode_for_signature, oaep_decode): Change
+	return value from one MPI to a buffer.
+	(gcry_pk_decrypt): Adjust for this change.
+
+2011-05-30  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (pkcs1_decode_for_encryption): Change handling of
+	leading zero byte.
+
+2011-05-27  Daiki Ueno  <ueno@unixuser.org>
+
+	* pubkey.c (gcry_pk_decrypt): Fix double-free when un-padding
+	invalid data.  Thanks to Tom Ritter.
+
 2011-05-24  Daiki Ueno  <ueno@unixuser.org>
 
 	* rsa.c (rsa_verify): Use CMP if given, to check the decrypted
@@ -14,10 +41,7 @@
 	CTX initialization to ...
 	(init_encoding_ctx): .. new.
 	(gcry_pk_verify): Pass verify func and the arg to pubkey_verify.
-
-2011-05-24  Daiki Ueno  <ueno@unixuser.org>
-
-	* pubkey.c (mgf1): Simplify initializing MD handle.
+	(pss_encode, pss_verify, pss_verify_cmp): New.
 
 2011-05-23  Daiki Ueno  <ueno@unixuser.org>
 
