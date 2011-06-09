@@ -2687,7 +2687,7 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
                     goto leave;
                 }
 
-              /* Encode the data.  */
+              /* Encode the data.  (NBITS-1 is due to 8.1.1, step 1.) */
 	      rc = pss_encode (ret_mpi, ctx->nbits - 1, ctx->hash_algo,
 			       value, valuelen, ctx->saltlen,
                                random_override, random_override_len);
