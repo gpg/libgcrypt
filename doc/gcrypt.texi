@@ -4155,13 +4155,21 @@ expects arguments for some of these escape sequences right after
 @table @samp
 @item %m
 The next argument is expected to be of type @code{gcry_mpi_t} and a copy of
-its value is inserted into the resulting S-expression.
+its value is inserted into the resulting S-expression.  The MPI is
+stored as a signed integer.
+@item %M
+The next argument is expected to be of type @code{gcry_mpi_t} and a copy of
+its value is inserted into the resulting S-expression.  The MPI is
+stored as an unsigned integer.
 @item %s
 The next argument is expected to be of type @code{char *} and that
 string is inserted into the resulting S-expression.
 @item %d
 The next argument is expected to be of type @code{int} and its value is
 inserted into the resulting S-expression.
+@item %u
+The next argument is expected to be of type @code{unsigned int} and
+its value is inserted into the resulting S-expression.
 @item %b
 The next argument is expected to be of type @code{int} directly
 followed by an argument of type @code{char *}.  This represents a

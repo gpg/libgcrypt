@@ -2391,6 +2391,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
   int dataidx;
   static struct
   {
+    int algo;    /* If not 0 run test only if ALGO matches.  */
     const char *data;
     const char *hint;
     int unpadded;
@@ -2398,94 +2399,111 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
     int decrypt_expected_rc;
   } datas[] =
     {
-      {	"(data\n (flags pkcs1)\n"
+      {	0,
+        "(data\n (flags pkcs1)\n"
 	" (value #11223344556677889900AA#))\n",
 	NULL,
 	0,
 	0,
 	0 },
-      {	"(data\n (flags pkcs1)\n"
+      {	0,
+        "(data\n (flags pkcs1)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags pkcs1)",
 	1,
 	0,
 	0 },
-      { "(data\n (flags oaep)\n"
+      { GCRY_PK_RSA,
+        "(data\n (flags oaep)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags oaep)",
 	1,
 	0,
 	0 },
-      { "(data\n (flags oaep)\n (hash-algo sha1)\n"
+      { GCRY_PK_RSA,
+        "(data\n (flags oaep)\n (hash-algo sha1)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags oaep)(hash-algo sha1)",
 	1,
 	0,
 	0 },
-      { "(data\n (flags oaep)\n (hash-algo sha1)\n (label \"test\")\n"
+      { GCRY_PK_RSA,
+        "(data\n (flags oaep)\n (hash-algo sha1)\n (label \"test\")\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags oaep)(hash-algo sha1)(label \"test\")",
 	1,
 	0,
 	0 },
-      { "(data\n (flags oaep)\n (hash-algo sha1)\n (label \"test\")\n"
+      { GCRY_PK_RSA,
+        "(data\n (flags oaep)\n (hash-algo sha1)\n (label \"test\")\n"
 	" (value #11223344556677889900AA#)\n"
         " (random-override #4253647587980912233445566778899019283747#))\n",
 	"(flags oaep)(hash-algo sha1)(label \"test\")",
 	1,
 	0,
 	0 },
-      {	"(data\n (flags )\n" " (value #11223344556677889900AA#))\n",
+      {	0,
+        "(data\n (flags )\n" " (value #11223344556677889900AA#))\n",
 	NULL,
 	1,
 	0,
 	0 },
-      {	"(data\n (flags )\n" " (value #0090223344556677889900AA#))\n",
+      {	0,
+        "(data\n (flags )\n" " (value #0090223344556677889900AA#))\n",
 	NULL,
 	1,
 	0,
 	0 },
-      { "(data\n (flags raw)\n" " (value #11223344556677889900AA#))\n",
+      { 0,
+        "(data\n (flags raw)\n" " (value #11223344556677889900AA#))\n",
 	NULL,
 	1,
 	0,
 	0 },
-      { "(data\n (flags pkcs1)\n"
+      { 0,
+        "(data\n (flags pkcs1)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	NULL,
 	0,
 	GPG_ERR_CONFLICT,
 	0},
-      { "(data\n (flags raw foo)\n"
+      { 0,
+        "(data\n (flags raw foo)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	NULL,
 	0,
 	GPG_ERR_INV_FLAG,
 	0},
-      { "(data\n (flags raw)\n"
+      { 0,
+        "(data\n (flags raw)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags oaep)",
 	1,
 	0,
 	GPG_ERR_ENCODING_PROBLEM },
-      { "(data\n (flags oaep)\n"
+      { GCRY_PK_RSA,
+        "(data\n (flags oaep)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags pkcs1)",
 	1,
 	0,
 	GPG_ERR_ENCODING_PROBLEM },
-      {	"(data\n (flags pss)\n"
+      {	0,
+        "(data\n (flags pss)\n"
 	" (value #11223344556677889900AA#))\n",
 	NULL,
 	0,
 	GPG_ERR_CONFLICT },
-      { NULL }
+      { 0, NULL }
     };
 
   (void)n;
 
   for (dataidx = 0; datas[dataidx].data; dataidx++)
     {
+      if (datas[dataidx].algo && datas[dataidx].algo != algo)
+	continue;
+
       if (verbose)
 	fprintf (stderr, "  encryption/decryption test %d (algo %d)\n",
                  dataidx, algo);

@@ -1,6 +1,6 @@
 /* sexp.c  -  S-Expression handling
  * Copyright (C) 1999, 2000, 2001, 2002, 2003,
- *               2004, 2006, 2007, 2008  Free Software Foundation, Inc.
+ *               2004, 2006, 2007, 2008, 2011  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -1249,11 +1249,12 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	}
       else if (percent)
 	{
-	  if (*p == 'm')
+	  if (*p == 'm' || *p == 'M')
 	    {
 	      /* Insert an MPI.  */
 	      gcry_mpi_t m;
 	      size_t nm = 0;
+              int mpifmt = *p == 'm'? GCRYMPI_FMT_STD: GCRYMPI_FMT_USG;
 
 	      ARG_NEXT (m, gcry_mpi_t);
 
@@ -1296,7 +1297,7 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                 }
               else
                 {
-                  if (gcry_mpi_print (GCRYMPI_FMT_STD, NULL, 0, &nm, m))
+                  if (gcry_mpi_print (mpifmt, NULL, 0, &nm, m))
                     BUG ();
 
                   MAKE_SPACE (nm);
@@ -1323,7 +1324,7 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
                   *c.pos++ = ST_DATA;
                   STORE_LEN (c.pos, nm);
-                  if (gcry_mpi_print (GCRYMPI_FMT_STD, c.pos, nm, &nm, m))
+                  if (gcry_mpi_print (mpifmt, c.pos, nm, &nm, m))
                     BUG ();
                   c.pos += nm;
                 }
@@ -1385,10 +1386,26 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      /* Insert an integer as string.  */
 	      int aint;
 	      size_t alen;
-	      char buf[20];
+	      char buf[35];
 
 	      ARG_NEXT (aint, int);
 	      sprintf (buf, "%d", aint);
+	      alen = strlen (buf);
+	      MAKE_SPACE (alen);
+	      *c.pos++ = ST_DATA;
+	      STORE_LEN (c.pos, alen);
+	      memcpy (c.pos, buf, alen);
+	      c.pos += alen;
+	    }
+	  else if (*p == 'u')
+	    {
+	      /* Insert an unsigned integer as string.  */
+	      unsigned int aint;
+	      size_t alen;
+	      char buf[35];
+
+	      ARG_NEXT (aint, unsigned int);
+	      sprintf (buf, "%u", aint);
 	      alen = strlen (buf);
 	      MAKE_SPACE (alen);
 	      *c.pos++ = ST_DATA;

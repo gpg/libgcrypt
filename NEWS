@@ -10,7 +10,9 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * Support for OAEP and PSS methods as described by RFC-3447.
 
- * gcry_sexp_build does now support opaque MPIs with "%m".
+ * New format specifiers "%M" and "%u" for gcry_sexp_build.
+
+ * gcry_sexp_build does now support opaque MPIs with "%m" and "%M".
 
  * New functions gcry_pk_get_curve and gcry_pk_get_param to map ECC
    parameters to a curve name and to retrieve parameter values.
@@ -54,8 +56,10 @@ Noteworthy changes in version 1.5.x (unreleased)
  gcry_pk_get_param          NEW.
  GCRYCTL_DISABLE_HWF        NEW.
  gcry_kdf_derive            NEW.
- gcry_pk_encrypt            EXTENDED:  Support OAEP
- gcry_pk_decrypt            EXTENDED:  Support OAEP
+ gcry_pk_encrypt            EXTENDED: Support OAEP
+ gcry_pk_decrypt            EXTENDED: Support OAEP
+ gcry_sexp_build            EXTENDED: Add format specifiers M and u.
+
 
  * Interface changes relative to the 1.4.2 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

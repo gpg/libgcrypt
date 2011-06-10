@@ -2712,7 +2712,7 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
             rc = GPG_ERR_DIGEST_ALGO;
 	  else
 	    {
-	      *ret_mpi = gcry_sexp_nth_mpi (lhash, 2, 0);
+	      *ret_mpi = gcry_sexp_nth_mpi (lhash, 2, GCRYMPI_FMT_USG);
 	      if (!*ret_mpi)
 		rc = GPG_ERR_INV_OBJ;
 	      ctx->verify_cmp = pss_verify_cmp;
@@ -2831,50 +2831,70 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     goto leave;
 
   /* We did it.  Now build the return list */
-  {
-    char *string, *p;
-    int i;
-    size_t nelem = strlen (algo_elems);
-    size_t needed = 19 + strlen (algo_name) + (nelem * 5);
-    void **arg_list;
+  if (ctx.encoding == PUBKEY_ENC_OAEP)
+    {
+      /* We need to make sure to return the correct length to avoid
+         problems with missing leading zeroes.  We know that this
+         encoding does only make sense with RSA thus we don't need to
+         build the S-expression on the fly.  */
+      unsigned char *em;
+      size_t emlen = (ctx.nbits+7)/8;
 
-    /* Build the string.  */
-    string = p = gcry_malloc (needed);
-    if (!string)
-      {
-        rc = gpg_err_code_from_syserror ();
+      rc = octet_string_from_mpi (&em, NULL, ciph[0], emlen);
+      if (rc)
         goto leave;
-      }
-    p = stpcpy ( p, "(enc-val(" );
-    p = stpcpy ( p, algo_name );
-    for (i=0; algo_elems[i]; i++ )
-      {
-        *p++ = '(';
-        *p++ = algo_elems[i];
-        p = stpcpy ( p, "%m)" );
-      }
-    strcpy ( p, "))" );
-
-    /* And now the ugly part: We don't have a function to pass an
-     * array to a format string, so we have to do it this way :-(.  */
-    /* FIXME: There is now such a format specifier, so we can
-       change the code to be more clear. */
-    arg_list = malloc (nelem * sizeof *arg_list);
-    if (!arg_list)
-      {
-        rc = gpg_err_code_from_syserror ();
+      rc = gcry_err_code (gcry_sexp_build (r_ciph, NULL,
+                                           "(enc-val(%s(a%b)))",
+                                           algo_name, (int)emlen, em));
+      gcry_free (em);
+      if (rc)
         goto leave;
-      }
+    }
+  else
+    {
+      char *string, *p;
+      int i;
+      size_t nelem = strlen (algo_elems);
+      size_t needed = 19 + strlen (algo_name) + (nelem * 5);
+      void **arg_list;
 
-    for (i = 0; i < nelem; i++)
-      arg_list[i] = ciph + i;
+      /* Build the string.  */
+      string = p = gcry_malloc (needed);
+      if (!string)
+        {
+          rc = gpg_err_code_from_syserror ();
+          goto leave;
+        }
+      p = stpcpy ( p, "(enc-val(" );
+      p = stpcpy ( p, algo_name );
+      for (i=0; algo_elems[i]; i++ )
+        {
+          *p++ = '(';
+          *p++ = algo_elems[i];
+          p = stpcpy ( p, "%m)" );
+        }
+      strcpy ( p, "))" );
 
-    rc = gcry_sexp_build_array (r_ciph, NULL, string, arg_list);
-    free (arg_list);
-    if (rc)
-      BUG ();
-    gcry_free (string);
-  }
+      /* And now the ugly part: We don't have a function to pass an
+       * array to a format string, so we have to do it this way :-(.  */
+      /* FIXME: There is now such a format specifier, so we can
+         change the code to be more clear. */
+      arg_list = malloc (nelem * sizeof *arg_list);
+      if (!arg_list)
+        {
+          rc = gpg_err_code_from_syserror ();
+          goto leave;
+        }
+
+      for (i = 0; i < nelem; i++)
+        arg_list[i] = ciph + i;
+
+      rc = gcry_sexp_build_array (r_ciph, NULL, string, arg_list);
+      free (arg_list);
+      if (rc)
+        BUG ();
+      gcry_free (string);
+    }
 
  leave:
   if (pkey)
@@ -3102,49 +3122,71 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  {
-    char *string, *p;
-    size_t nelem, needed = strlen (algo_name) + 20;
-    void **arg_list;
+  /* FIXME:  Shall we do such a special case also for pkcs#1 encoding?  */
+  if (ctx.encoding == PUBKEY_ENC_PSS)
+    {
+      /* We need to make sure to return the correct length to avoid
+         problems with missing leading zeroes.  We know that this
+         encoding does only make sense with RSA thus we don't need to
+         build the S-expression on the fly.  */
+      unsigned char *em;
+      size_t emlen = (ctx.nbits+7)/8;
 
-    nelem = strlen (algo_elems);
-
-    /* Count elements, so that we can allocate enough space. */
-    needed += 10 * nelem;
-
-    /* Build the string. */
-    string = p = gcry_malloc (needed);
-    if (!string)
-      {
-        rc = gpg_err_code_from_syserror ();
+      rc = octet_string_from_mpi (&em, NULL, result[0], emlen);
+      if (rc)
         goto leave;
-      }
-    p = stpcpy (p, "(sig-val(");
-    p = stpcpy (p, algo_name);
-    for (i = 0; algo_elems[i]; i++)
-      {
-        *p++ = '(';
-        *p++ = algo_elems[i];
-        p = stpcpy (p, "%m)");
-      }
-    strcpy (p, "))");
-
-    arg_list = malloc (nelem * sizeof *arg_list);
-    if (!arg_list)
-      {
-        rc = gpg_err_code_from_syserror ();
+      rc = gcry_err_code (gcry_sexp_build (r_sig, NULL,
+                                           "(sig-val(%s(s%b)))",
+                                           algo_name, (int)emlen, em));
+      gcry_free (em);
+      if (rc)
         goto leave;
-      }
+    }
+  else
+    {
+      /* General purpose output encoding.  Do it on the fly.  */
+      char *string, *p;
+      size_t nelem, needed = strlen (algo_name) + 20;
+      void **arg_list;
 
-    for (i = 0; i < nelem; i++)
-      arg_list[i] = result + i;
+      nelem = strlen (algo_elems);
 
-    rc = gcry_sexp_build_array (r_sig, NULL, string, arg_list);
-    free (arg_list);
-    if (rc)
-      BUG ();
-    gcry_free (string);
-  }
+      /* Count elements, so that we can allocate enough space. */
+      needed += 10 * nelem;
+
+      /* Build the string. */
+      string = p = gcry_malloc (needed);
+      if (!string)
+        {
+          rc = gpg_err_code_from_syserror ();
+          goto leave;
+        }
+      p = stpcpy (p, "(sig-val(");
+      p = stpcpy (p, algo_name);
+      for (i = 0; algo_elems[i]; i++)
+        {
+          *p++ = '(';
+          *p++ = algo_elems[i];
+          p = stpcpy (p, "%M)");
+        }
+      strcpy (p, "))");
+
+      arg_list = malloc (nelem * sizeof *arg_list);
+      if (!arg_list)
+        {
+          rc = gpg_err_code_from_syserror ();
+          goto leave;
+        }
+
+      for (i = 0; i < nelem; i++)
+        arg_list[i] = result + i;
+
+      rc = gcry_sexp_build_array (r_sig, NULL, string, arg_list);
+      free (arg_list);
+      if (rc)
+        BUG ();
+      gcry_free (string);
+    }
 
  leave:
   if (skey)

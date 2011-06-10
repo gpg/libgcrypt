@@ -44,7 +44,9 @@
 #define DIMof(type,member)   DIM(((type *)0)->member)
 
 static int verbose;
+static int die_on_error;
 static int error_count;
+
 
 static void
 info (const char *format, ...)
@@ -65,6 +67,8 @@ fail (const char *format, ...)
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
   error_count++;
+  if (die_on_error)
+    exit (1);
 }
 
 static void
@@ -136,12 +140,12 @@ extract_cmp_data (gcry_sexp_t sexp, const char *name, const char *expected,
   b = data_from_hex (expected, &blen);
   if (!a)
     {
-      fail ("%s: parameter \"%s\" missing in key\n", description, name);
+      info ("%s: parameter \"%s\" missing in key\n", description, name);
       rc = 1;
     }
   else if ( alen != blen || memcmp (a, b, alen) )
     {
-      fail ("%s: parameter \"%s\" does not match expected value\n",
+      info ("%s: parameter \"%s\" does not match expected value\n",
             description, name);
       rc = 1;
     }
@@ -856,7 +860,7 @@ check_oaep (void)
           "adf4cced1057cb758fc26aeefa441255ed4e64c199ee075e7f16646182fdb464"
           "739b68ab5daff0e63e9552016824f054bf4d3c8c90a97bb6b6553284eb429fcc"
         },{
-          "OAEPxample 10.2",
+          "OAEP Example 10.2",
           "e6ad181f053b58a904f2457510373e57",
           "6d17f5b4c1ffac351d195bf7b09d09f09a4079cf",
           "a2b1a430a9d657e2fa1c2bb5ed43ffb25c05a308fe9093c01031795f58744001"
@@ -930,7 +934,7 @@ check_oaep (void)
       size_t rsa_n_len, rsa_e_len, rsa_d_len;
       gcry_sexp_t sec_key, pub_key;
 
-      if (verbose)
+      if (verbose > 1)
         info ("(%s)\n", tbl[tno].desc);
 
       rsa_n = data_from_hex (tbl[tno].n, &rsa_n_len);
@@ -978,14 +982,17 @@ check_oaep (void)
           err = gcry_pk_encrypt (&ciph, plain, pub_key);
           if (err)
             {
-              fail ("gcry_pk_encrypt failed: %s\n", gpg_strerror (err));
               show_sexp ("plain:\n", ciph);
+              fail ("gcry_pk_encrypt failed: %s\n", gpg_strerror (err));
             }
           else
             {
               if (extract_cmp_data (ciph, "a", tbl[tno].m[mno].encr,
                                     tbl[tno].m[mno].desc))
-                show_sexp ("encrypt result:\n", ciph);
+                {
+                  show_sexp ("encrypt result:\n", ciph);
+                  fail ("mismatch in gcry_pk_encrypt\n");
+                }
               gcry_sexp_release (ciph);
               ciph = NULL;
             }
@@ -1010,14 +1017,17 @@ check_oaep (void)
           err = gcry_pk_decrypt (&plain, ciph, sec_key);
           if (err)
             {
-              fail ("gcry_pk_decrypt failed: %s\n", gpg_strerror (err));
               show_sexp ("ciph:\n", ciph);
+              fail ("gcry_pk_decrypt failed: %s\n", gpg_strerror (err));
             }
           else
             {
               if (extract_cmp_data (plain, "value", tbl[tno].m[mno].mesg,
                                     tbl[tno].m[mno].desc))
-                show_sexp ("decrypt result:\n", plain);
+                {
+                  show_sexp ("decrypt result:\n", plain);
+                  fail ("mismatch in gcry_pk_decrypt\n");
+                }
               gcry_sexp_release (plain);
               plain = NULL;
             }
@@ -1996,7 +2006,7 @@ check_pss (void)
       size_t rsa_n_len, rsa_e_len, rsa_d_len;
       gcry_sexp_t sec_key, pub_key;
 
-      if (verbose)
+      if (verbose > 1)
         info ("(%s)\n", tbl[tno].desc);
 
       rsa_n = data_from_hex (tbl[tno].n, &rsa_n_len);
@@ -2047,14 +2057,17 @@ check_pss (void)
           err = gcry_pk_sign (&sig, sigtmpl, sec_key);
           if (err)
             {
-              fail ("gcry_pk_sign failed: %s\n", gpg_strerror (err));
               show_sexp ("sigtmpl:\n", sigtmpl);
+              fail ("gcry_pk_sign failed: %s\n", gpg_strerror (err));
             }
           else
             {
               if (extract_cmp_data (sig, "s", tbl[tno].m[mno].sign,
                                     tbl[tno].m[mno].desc))
-                show_sexp ("encrypt result:\n", sig);
+                {
+                  show_sexp ("sign result:\n", sig);
+                  fail ("mismatch in gcry_pk_sign\n");
+                }
               gcry_sexp_release (sig);
               sig = NULL;
             }
@@ -2084,9 +2097,9 @@ check_pss (void)
           err = gcry_pk_verify (sig, sigtmpl, pub_key);
           if (err)
             {
-              fail ("gcry_pk_verify failed: %s\n", gpg_strerror (err));
               show_sexp ("sig:\n", sig);
               show_sexp ("sigtmpl:\n", sigtmpl);
+              fail ("gcry_pk_verify failed: %s\n", gpg_strerror (err));
             }
           gcry_sexp_release (sig);
           sig = NULL;
@@ -2099,19 +2112,58 @@ check_pss (void)
     }
 }
 
+
 int
 main (int argc, char **argv)
 {
+  int last_argc = -1;
   int debug = 0;
+  int run_oaep = 0;
+  int run_pss = 0;
 
-  if (argc > 1 && !strcmp (argv[1], "--verbose"))
-    verbose = 1;
-  else if (argc > 1 && !strcmp (argv[1], "--debug"))
+  if (argc)
+    { argc--; argv++; }
+
+  while (argc && last_argc != argc )
     {
-      verbose = 2;
-      debug = 1;
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--verbose"))
+        {
+          verbose++;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--debug"))
+        {
+          verbose = 2;
+          debug = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--die"))
+        {
+          die_on_error = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--oaep"))
+        {
+          run_oaep = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--pss"))
+        {
+          run_pss = 1;
+          argc--; argv++;
+        }
     }
 
+  if (!run_oaep && !run_pss)
+    run_oaep = run_pss = 1;
+
+  gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version ("1.5.0"))
     die ("version mismatch\n");
@@ -2121,12 +2173,13 @@ main (int argc, char **argv)
   /* No valuable keys are create, so we can speed up our RNG. */
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 
-
-  check_oaep ();
-  check_pss ();
+  if (run_oaep)
+    check_oaep ();
+  if (run_pss)
+    check_pss ();
 
   if (verbose)
-    fprintf (stderr, "\nAll tests completed. Errors: %i\n", error_count);
+    fprintf (stderr, "\nAll tests completed.  Errors: %i\n", error_count);
 
   return error_count ? 1 : 0;
 }

@@ -1,3 +1,10 @@
+2011-06-10  Werner Koch  <wk@g10code.com>
+
+	* pubkey.c (gcry_pk_sign): Use format specifier '%M' to avoid
+	leading zeroes.  Special case output generation for PSS.
+	(gcry_pk_encrypt): Special case output generation for OAEP.
+	(sexp_data_to_mpi): Use GCRYMPI_FMT_USG for PSS verify.
+
 2011-06-09  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (oaep_decode): Make use of octet_string_from_mpi.
