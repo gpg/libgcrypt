@@ -846,6 +846,11 @@ octet_string_from_mpi (unsigned char **r_frame, void *space,
    type 2 padding.  On sucess the result is stored as a new MPI at
    R_RESULT.  On error the value at R_RESULT is undefined.
 
+   If {RANDOM_OVERRIDE, RANDOM_OVERRIDE_LEN} is given it is used as
+   the seed instead of using a random string for it.  This feature is
+   only useful for regression tests.  Note that this value may not
+   contain zero bytes.
+
    We encode the value in this way:
 
      0  2  RND(n bytes)  0  VALUE
@@ -860,7 +865,9 @@ octet_string_from_mpi (unsigned char **r_frame, void *space,
   */
 static gcry_err_code_t
 pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
-			     const unsigned char *value, size_t valuelen)
+			     const unsigned char *value, size_t valuelen,
+                             const unsigned char *random_override,
+                             size_t random_override_len)
 {
   gcry_err_code_t rc = 0;
   gcry_error_t err;
@@ -884,36 +891,59 @@ pkcs1_encode_for_encryption (gcry_mpi_t *r_result, unsigned int nbits,
   frame[n++] = 2; /* block type */
   i = nframe - 3 - valuelen;
   gcry_assert (i > 0);
-  p = gcry_random_bytes_secure (i, GCRY_STRONG_RANDOM);
-  /* Replace zero bytes by new values. */
-  for (;;)
+
+  if (random_override)
     {
-      int j, k;
-      unsigned char *pp;
+      int j;
 
-      /* Count the zero bytes. */
-      for (j=k=0; j < i; j++)
-	{
-	  if (!p[j])
-	    k++;
-	}
-      if (!k)
-	break; /* Okay: no (more) zero bytes. */
-
-      k += k/128 + 3; /* Better get some more. */
-      pp = gcry_random_bytes_secure (k, GCRY_STRONG_RANDOM);
-      for (j=0; j < i && k; )
-	{
-	  if (!p[j])
-	    p[j] = pp[--k];
-	  if (p[j])
-	    j++;
-	}
-      gcry_free (pp);
+      if (random_override_len != i)
+        {
+          gcry_free (frame);
+          return GPG_ERR_INV_ARG;
+        }
+      /* Check that random does not include a zero byte.  */
+      for (j=0; j < random_override_len; j++)
+        if (!random_override[j])
+          {
+            gcry_free (frame);
+            return GPG_ERR_INV_ARG;
+          }
+      memcpy (frame + n, random_override, random_override_len);
+      n += random_override_len;
     }
-  memcpy (frame+n, p, i);
-  n += i;
-  gcry_free (p);
+  else
+    {
+      p = gcry_random_bytes_secure (i, GCRY_STRONG_RANDOM);
+      /* Replace zero bytes by new values. */
+      for (;;)
+        {
+          int j, k;
+          unsigned char *pp;
+
+          /* Count the zero bytes. */
+          for (j=k=0; j < i; j++)
+            {
+              if (!p[j])
+                k++;
+            }
+          if (!k)
+            break; /* Okay: no (more) zero bytes. */
+
+          k += k/128 + 3; /* Better get some more. */
+          pp = gcry_random_bytes_secure (k, GCRY_STRONG_RANDOM);
+          for (j=0; j < i && k; )
+            {
+              if (!p[j])
+                p[j] = pp[--k];
+              if (p[j])
+                j++;
+            }
+          gcry_free (pp);
+        }
+      memcpy (frame+n, p, i);
+      n += i;
+      gcry_free (p);
+    }
 
   frame[n++] = 0;
   memcpy (frame+n, value, valuelen);
@@ -2434,9 +2464,8 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
 
    SALT-LENGTH is for PSS.
 
-   RANDOM-OVERRIDE is used to replace random nonces in PSS for
-   regression testing.
-*/
+   RANDOM-OVERRIDE is used to replace random nonces for regression
+   testing.  */
 static gcry_err_code_t
 sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
 		  struct pk_encoding_ctx *ctx)
@@ -2501,7 +2530,7 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
     rc = GPG_ERR_INV_FLAG;
   else if (ctx->encoding == PUBKEY_ENC_RAW && lvalue)
     {
-      *ret_mpi = gcry_sexp_nth_mpi (lvalue, 1, 0);
+      *ret_mpi = gcry_sexp_nth_mpi (lvalue, 1, GCRYMPI_FMT_USG);
       if (!*ret_mpi)
         rc = GPG_ERR_INV_OBJ;
     }
@@ -2510,11 +2539,43 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
     {
       const void * value;
       size_t valuelen;
+      gcry_sexp_t list;
+      void *random_override = NULL;
+      size_t random_override_len = 0;
 
       if ( !(value=gcry_sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
         rc = GPG_ERR_INV_OBJ;
       else
-	rc = pkcs1_encode_for_encryption (ret_mpi, ctx->nbits, value, valuelen);
+        {
+          /* Get optional RANDOM-OVERRIDE.  */
+          list = gcry_sexp_find_token (ldata, "random-override", 0);
+          if (list)
+            {
+              s = gcry_sexp_nth_data (list, 1, &n);
+              if (!s)
+                rc = GPG_ERR_NO_OBJ;
+              else if (n > 0)
+                {
+                  random_override = gcry_malloc (n);
+                  if (!random_override)
+                    rc = gpg_err_code_from_syserror ();
+                  else
+                    {
+                      memcpy (random_override, s, n);
+                      random_override_len = n;
+                    }
+                }
+              gcry_sexp_release (list);
+              if (rc)
+                goto leave;
+            }
+
+          rc = pkcs1_encode_for_encryption (ret_mpi, ctx->nbits,
+                                            value, valuelen,
+                                            random_override,
+                                            random_override_len);
+          gcry_free (random_override);
+        }
     }
   else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lhash
 	   && (ctx->op == PUBKEY_OP_SIGN || ctx->op == PUBKEY_OP_VERIFY))
@@ -2763,7 +2824,7 @@ init_encoding_ctx (struct pk_encoding_ctx *ctx, enum pk_operation op,
    SEXP with just one MPI in it. Alternatively S_DATA might be a
    complex S-Expression, similar to the one used for signature
    verification.  This provides a flag which allows to handle PKCS#1
-   block type 2 padding.  The function returns a a sexp which may be
+   block type 2 padding.  The function returns a sexp which may be
    passed to to pk_decrypt.
 
    Returns: 0 or an errorcode.
@@ -2831,7 +2892,8 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
     goto leave;
 
   /* We did it.  Now build the return list */
-  if (ctx.encoding == PUBKEY_ENC_OAEP)
+  if (ctx.encoding == PUBKEY_ENC_OAEP
+      || ctx.encoding == PUBKEY_ENC_PKCS1)
     {
       /* We need to make sure to return the correct length to avoid
          problems with missing leading zeroes.  We know that this
@@ -3057,8 +3119,8 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
    expressed as a SEXP list hash with only one element which should
    instantly be available as a MPI. Alternatively the structure given
    below may be used for S_HASH, it provides the abiliy to pass flags
-   to the operation; the only flag defined by now is "pkcs1" which
-   does PKCS#1 block type 1 style padding.
+   to the operation; the flags defined by now are "pkcs1" which does
+   PKCS#1 block type 1 style padding and "pss" for PSS encoding.
 
    Returns: 0 or an errorcode.
             In case of 0 the function returns a new SEXP with the
@@ -3122,8 +3184,8 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  /* FIXME:  Shall we do such a special case also for pkcs#1 encoding?  */
-  if (ctx.encoding == PUBKEY_ENC_PSS)
+  if (ctx.encoding == PUBKEY_ENC_PSS
+      || ctx.encoding == PUBKEY_ENC_PKCS1)
     {
       /* We need to make sure to return the correct length to avoid
          problems with missing leading zeroes.  We know that this

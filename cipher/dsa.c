@@ -1043,11 +1043,11 @@ static const char *
 selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
 {
   static const char sample_data[] =
-    "(data (flags pkcs1)"
-    " (hash sha1 #a0b1c2d3e4f500102030405060708090a1b2c3d4#))";
+    "(data (flags raw)"
+    " (value #a0b1c2d3e4f500102030405060708090a1b2c3d4#))";
   static const char sample_data_bad[] =
-    "(data (flags pkcs1)"
-    " (hash sha1 #a0b1c2d3e4f510102030405060708090a1b2c3d4#))";
+    "(data (flags raw)"
+    " (value #a0b1c2d3e4f510102030405060708090a1b2c3d4#))";
 
   const char *errtxt = NULL;
   gcry_error_t err;

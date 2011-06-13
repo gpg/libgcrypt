@@ -10,9 +10,11 @@ Noteworthy changes in version 1.5.x (unreleased)
 
  * Support for OAEP and PSS methods as described by RFC-3447.
 
+ * Fixed PKCS v1.5 code to always return the leading zero.
+
  * New format specifiers "%M" and "%u" for gcry_sexp_build.
 
- * gcry_sexp_build does now support opaque MPIs with "%m" and "%M".
+ * Support opaque MPIs with "%m" and "%M" in gcry_sexp_build.
 
  * New functions gcry_pk_get_curve and gcry_pk_get_param to map ECC
    parameters to a curve name and to retrieve parameter values.

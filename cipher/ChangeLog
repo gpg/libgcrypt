@@ -1,3 +1,14 @@
+2011-06-13  Werner Koch  <wk@g10code.com>
+
+	* dsa.c (selftest_sign_1024): Use the raw and not the pkcs1 flag.
+
+	* pubkey.c (gcry_pk_sign): Special case output generation for PKCS1.
+	(sexp_data_to_mpi): Parse "random-override" for pkcs1 encryption.
+	(pkcs1_encode_for_encryption): Add args RANDOM_OVERRIDE and
+	RANDOM_OVERRIDE_LEN.
+	(gcry_pk_encrypt): Special case output generation for PKCS1.
+	(sexp_data_to_mpi): Use GCRYMPI_FMT_USG for raw encoding.
+
 2011-06-10  Werner Koch  <wk@g10code.com>
 
 	* pubkey.c (gcry_pk_sign): Use format specifier '%M' to avoid
