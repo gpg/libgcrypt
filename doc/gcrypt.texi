@@ -2366,10 +2366,10 @@ appropriate MPI using this expression for @var{data}:
 @end example
 
 @noindent
-This has the same semantics as the old style MPI only way.  @var{MPI} is
-the actual data, already padded appropriate for your protocol.  Most
-systems however use PKCS#1 padding and so you can use this S-expression
-for @var{data}:
+This has the same semantics as the old style MPI only way.  @var{MPI}
+is the actual data, already padded appropriate for your protocol.
+Most RSA based systems however use PKCS#1 padding and so you can use
+this S-expression for @var{data}:
 
 @example
 (data
@@ -4335,7 +4335,9 @@ data is assumed to be an MPI stored in the format described by
 @var{mpifmt} and returned as a standard Libgcrypt MPI.  The caller must
 release this returned value using @code{gcry_mpi_release}.  If there is
 no data at the given index, the index represents a list or the value
-can't be converted to an MPI, @code{NULL} is returned.
+can't be converted to an MPI, @code{NULL} is returned.  If you use
+this function to parse results of a public key function, you most
+likely want to use @code{GCRYMPI_FMT_USG}.
 @end deftypefun
 
 
