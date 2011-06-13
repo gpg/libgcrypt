@@ -42,4 +42,5 @@ LDADD = ../src/libgcrypt.la $(DL_LIBS) ../compat/libcompat.la $(GPG_ERROR_LIBS)
 EXTRA_PROGRAMS = testapi pkbench
 noinst_PROGRAMS = $(TESTS) fipsdrv rsacvt
 
-EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl
+EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
+	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h

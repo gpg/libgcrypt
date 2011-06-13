@@ -2298,7 +2298,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
     {
       { "(data\n (flags pkcs1)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
-	0,
+	GCRY_PK_RSA,
 	0 },
       { "(data\n (flags oaep)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
@@ -2309,7 +2309,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
       { "(data\n (flags pkcs1)\n"
 	" (hash oid.1.3.14.3.2.29 "
         "       #11223344556677889900AABBCCDDEEFF10203040#))\n",
-	0,
+	GCRY_PK_RSA,
 	0 },
       {	"(data\n (flags )\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
@@ -2317,7 +2317,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	GPG_ERR_CONFLICT },
       {	"(data\n (flags pkcs1)\n"
 	" (hash foo #11223344556677889900AABBCCDDEEFF10203040#))\n",
-	0,
+	GCRY_PK_RSA,
 	GPG_ERR_DIGEST_ALGO },
       {	"(data\n (flags )\n" " (value #11223344556677889900AA#))\n",
 	0,
@@ -2330,7 +2330,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	0 },
       {	"(data\n (flags pkcs1)\n"
 	" (value #11223344556677889900AA#))\n",
-	0,
+	GCRY_PK_RSA,
 	GPG_ERR_CONFLICT },
       { "(data\n (flags raw foo)\n"
 	" (value #11223344556677889900AA#))\n",
@@ -2399,14 +2399,14 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
     int decrypt_expected_rc;
   } datas[] =
     {
-      {	0,
+      {	GCRY_PK_RSA,
         "(data\n (flags pkcs1)\n"
 	" (value #11223344556677889900AA#))\n",
 	NULL,
 	0,
 	0,
 	0 },
-      {	0,
+      {	GCRY_PK_RSA,
         "(data\n (flags pkcs1)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags pkcs1)",
@@ -2460,7 +2460,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	1,
 	0,
 	0 },
-      { 0,
+      { GCRY_PK_RSA,
         "(data\n (flags pkcs1)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	NULL,

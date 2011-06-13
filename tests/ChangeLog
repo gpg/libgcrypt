@@ -1,3 +1,12 @@
+2011-06-13  Werner Koch  <wk@g10code.com>
+
+	* basic.c (check_pubkey_sign): Run PKCS1 tests only for RSA.
+	(check_pubkey_crypt): Ditto.
+
+	* pkcs1v2-pss.h, pkcs1v2-oaep.h, pkcs1v2-v15s.h, pkcs1v2-v15c.h: New.
+	* pkcs1v2.c: (check_pss, check_v15crypt): New.
+	(check_pss, check_pss): Factor test vector tables out.
+
 2011-06-10  Werner Koch  <wk@g10code.com>
 
 	* basic.c (check_pubkey_crypt): Run OAEP tests only for RSA.
