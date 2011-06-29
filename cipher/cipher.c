@@ -1,6 +1,6 @@
 /* cipher.c  -	cipher dispatcher
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
- *               2005, 2007, 2008, 2009 Free Software Foundation, Inc.
+ *               2005, 2007, 2008, 2009, 2011 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -610,10 +610,8 @@ check_cipher_algo (int algorithm)
 }
 
 
-/* Return the standard length of the key for the cipher algorithm with
-   the identifier ALGORITHM.  This function expects a valid algorithm
-   and will abort if the algorithm is not available or the length of
-   the key is not known. */
+/* Return the standard length in bits of the key for the cipher
+   algorithm with the identifier ALGORITHM.  */
 static unsigned int
 cipher_get_keylen (int algorithm)
 {
@@ -631,17 +629,13 @@ cipher_get_keylen (int algorithm)
 	log_bug ("cipher %d w/o key length\n", algorithm);
       _gcry_module_release (cipher);
     }
-  else
-    log_bug ("cipher %d not found\n", algorithm);
   ath_mutex_unlock (&ciphers_registered_lock);
 
   return len;
 }
 
 /* Return the block length of the cipher algorithm with the identifier
-   ALGORITHM.  This function expects a valid algorithm and will abort
-   if the algorithm is not available or the length of the key is not
-   known. */
+   ALGORITHM.  This function return 0 for an invalid algorithm.  */
 static unsigned int
 cipher_get_blocksize (int algorithm)
 {
@@ -659,8 +653,6 @@ cipher_get_blocksize (int algorithm)
 	  log_bug ("cipher %d w/o blocksize\n", algorithm);
       _gcry_module_release (cipher);
     }
-  else
-    log_bug ("cipher %d not found\n", algorithm);
   ath_mutex_unlock (&ciphers_registered_lock);
 
   return len;
@@ -2084,8 +2076,7 @@ gcry_cipher_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 	  if ((ui > 0) && (ui <= 512))
 	    *nbytes = (size_t) ui / 8;
 	  else
-	    /* The only reason is an invalid algo or a strange
-	       blocksize.  */
+	    /* The only reason for an error is an invalid algo.  */
 	    err = GPG_ERR_CIPHER_ALGO;
 	}
       break;
