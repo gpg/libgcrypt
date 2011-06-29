@@ -41,6 +41,8 @@ AC_INIT([libgcrypt],
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
+# NOTE: This is a stable branch, thus you may only bump up REVISION
+# unless you coordinate with the development branch.
 LIBGCRYPT_LT_CURRENT=18
 LIBGCRYPT_LT_AGE=7
 LIBGCRYPT_LT_REVISION=0
