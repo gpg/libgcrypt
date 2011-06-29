@@ -1,3 +1,12 @@
+2011-06-29  Werner Koch  <wk@g10code.com>
+
+	Release 1.5.0.
+
+	* configure.ac: Keep LT version at C18/A7/R0 because it has
+	already been bumped up at 2010-07-09.
+
+	* config.guess, config.sub: Update to 2011-06-03.
+
 2011-04-06  Werner Koch  <wk@g10code.com>
 
 	* configure.ac (emacs_local_vars_begin): Move more to the top to
@@ -1452,7 +1461,7 @@ Fri Feb 13 19:43:41 1998  Werner Koch  (wk@isil.d.shuttle.de)
 
 
  Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
-	   2007, 2008, 2009 Free Software Foundation, Inc.
+	   2007, 2008, 2009, 2011 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without

@@ -455,8 +455,18 @@ both such libraries are then linked into the same application.  To
 make it a bit simpler for you, this will probably work, but only if
 both libraries have the same requirement for the thread package.  This
 is currently only supported for the non-threaded case, GNU Pth and
-pthread.  Support for more thread packages is easy to add, so contact
-us if you require it.
+pthread.
+
+If you use pthread and your applications forks and does not directly
+call exec (even calling stdio functions), all kind of problems may
+occur.  Future versions of Libgcrypt will try to cleanup using
+pthread_atfork but even that may lead to problems.  This is a common
+problem with almost all applications using pthread and fork.
+
+Note that future versions of Libgcrypt will drop this flexible thread
+support and instead only support the platforms standard thread
+implementation.
+
 
 @item
 The function @code{gcry_check_version} must be called before any other
