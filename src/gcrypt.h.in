@@ -941,7 +941,7 @@ gcry_error_t gcry_cipher_setiv (gcry_cipher_hd_t hd,
 gpg_error_t gcry_cipher_setctr (gcry_cipher_hd_t hd,
                                 const void *ctr, size_t ctrlen);
 
-/* Retrieved the key length in bytes used with algorithm A. */
+/* Retrieve the key length in bytes used with algorithm A. */
 size_t gcry_cipher_get_algo_keylen (int algo);
 
 /* Retrieve the block length in bytes used with algorithm A. */

@@ -1891,11 +1891,15 @@ Here is a list of supported codes for @var{what}:
 Return the length of the key. If the algorithm supports multiple key
 lengths, the maximum supported value is returned.  The length is
 returned as number of octets (bytes) and not as number of bits in
-@var{nbytes}; @var{buffer} must be zero.
+@var{nbytes}; @var{buffer} must be zero.  Note that it is usually
+better to use the convenience function
+@code{gcry_cipher_get_algo_keylen}.
 
 @item GCRYCTL_GET_BLKLEN:
 Return the block length of the algorithm.  The length is returned as a
-number of octets in @var{nbytes}; @var{buffer} must be zero.
+number of octets in @var{nbytes}; @var{buffer} must be zero.  Note
+that it is usually better to use the convenience function
+@code{gcry_cipher_get_algo_blklen}.
 
 @item GCRYCTL_TEST_ALGO:
 Returns @code{0} when the specified algorithm is available for use.
@@ -1906,6 +1910,31 @@ Returns @code{0} when the specified algorithm is available for use.
 
 @end deftypefun
 @c end gcry_cipher_algo_info
+
+@deftypefun size_t gcry_cipher_get_algo_keylen (@var{algo})
+
+This function returns length of the key for algorithm @var{algo}.  If
+the algorithm supports multiple key lengths, the maximum supported key
+length is returned.  On error @code{0} is returned.  The key length is
+returned as number of octets.
+
+This is a convenience functions which should be preferred over
+@code{gcry_cipher_algo_info} because it allows for proper type
+checking.
+@end deftypefun
+@c end gcry_cipher_get_algo_keylen
+
+@deftypefun size_t gcry_cipher_get_algo_blklen (int @var{algo})
+
+This functions returns the blocklength of the algorithm @var{algo}
+counted in octets.  On error @code{0} is returned.
+
+This is a convenience functions which should be preferred over
+@code{gcry_cipher_algo_info} because it allows for proper type
+checking.
+@end deftypefun
+@c end gcry_cipher_get_algo_blklen
+
 
 @deftypefun {const char *} gcry_cipher_algo_name (int @var{algo})
 

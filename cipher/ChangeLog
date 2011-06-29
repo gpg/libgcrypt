@@ -1,3 +1,8 @@
+2011-06-29  Werner Koch  <wk@g10code.com>
+
+	* cipher.c (cipher_get_keylen): Return zero for an invalid algorithm.
+	(cipher_get_blocksize): Ditto.
+
 2011-06-13  Werner Koch  <wk@g10code.com>
 
 	* dsa.c (selftest_sign_1024): Use the raw and not the pkcs1 flag.
