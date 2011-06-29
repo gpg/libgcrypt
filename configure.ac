@@ -26,7 +26,7 @@ min_automake_version="1.10"
 # Remember to change the version number immediately *after* a release.
 # Set my_issvn to "yes" for non-released code.  Remember to run an
 # "svn up" and "autogen.sh" right before creating a distribution.
-m4_define([my_version], [1.5.1])
+m4_define([my_version], [1.6.0])
 m4_define([my_issvn], [yes])
 
 m4_define([svn_revision], m4_esyscmd([printf "%d" $(svn info 2>/dev/null \
@@ -41,6 +41,8 @@ AC_INIT([libgcrypt],
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
+# Note: To avoid LT version number clashes with the 1.5 branch please
+# make sure to update current and age beore releasing anything.
 LIBGCRYPT_LT_CURRENT=18
 LIBGCRYPT_LT_AGE=7
 LIBGCRYPT_LT_REVISION=0
