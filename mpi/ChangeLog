@@ -1,3 +1,8 @@
+2011-07-04  Werner Koch  <wk@g10code.com>
+
+	* longlong.h (add_ssaaaa) [__arm__]: Do no use asm if thumb code
+	generation is enabled.  This is bug#1202.  Reported for gpg 1.4.
+
 2011-03-28  Werner Koch  <wk@g10code.com>
 
 	* mpi-pow.c (gcry_mpi_powm): Remove unused var RSEC.
