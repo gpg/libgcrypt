@@ -551,7 +551,8 @@ slow_poll(FILE *dbgfp, int dbgall, size_t *nbytes )
 #else
 #error O_NONBLOCK is missing
 #endif
-
+            /* FIXME: We need to make sure that the fd is less than
+               FD_SETSIZE.  */
 	    FD_SET(dataSources[i].pipeFD, &fds);
 	    dataSources[i].length = 0;
 
