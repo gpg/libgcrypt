@@ -1249,6 +1249,7 @@ void gcry_md_debug (gcry_md_hd_t hd, const char *suffix);
 gcry_error_t gcry_md_list (int *list, int *list_length);
 
 
+#if !defined(GCRYPT_NO_DEPRECATED) || defined(_GCRYPT_IN_LIBGCRYPT)
 /* Alternative interface for asymmetric cryptography.  This interface
    is deprecated.  */
 
@@ -1400,6 +1401,7 @@ typedef struct gcry_ac_ssa_pkcs_v1_5
 {
   gcry_md_algo_t md;
 } gcry_ac_ssa_pkcs_v1_5_t _GCRY_ATTR_INTERNAL;
+#endif /* !GCRYPT_NO_DEPRECATED || !_GCRYPT_IN_LIBGCRYPT */
 
 
 #ifndef GCRYPT_NO_DEPRECATED

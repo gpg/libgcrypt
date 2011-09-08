@@ -1,3 +1,7 @@
+2011-09-08  Werner Koch  <wk@g10code.com>
+
+	* gcrypt.h.in [GCRYPT_NO_DEPRECATED]: Exclude gcry_ac structures.
+
 2011-06-10  Werner Koch  <wk@g10code.com>
 
 	* sexp.c (vsexp_sscan): Add new format specifiers 'M' and 'u'.
