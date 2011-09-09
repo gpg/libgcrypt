@@ -81,3 +81,6 @@ tests/rsacvt
 tests/t-mpi-bit
 tests/tsexp
 tests/version
+tests/curves
+tests/pkcs1v2
+tests/t-kdf
