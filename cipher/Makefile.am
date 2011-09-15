@@ -35,7 +35,7 @@ libcipher_la_DEPENDENCIES = $(GCRYPT_MODULES)
 libcipher_la_LIBADD = $(GCRYPT_MODULES)
 
 libcipher_la_SOURCES = \
-cipher.c pubkey.c ac.c md.c kdf.c \
+cipher.c pubkey.c md.c kdf.c \
 hmac-tests.c \
 bithelp.h  \
 primegen.c  \

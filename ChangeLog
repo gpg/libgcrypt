@@ -1,5 +1,7 @@
 2011-09-15  Werner Koch  <wk@g10code.com>
 
+	* configure.ac: Bump LT version at C19/A0/R0 due to the ABI change.
+
 	* configure.ac (CC_FOR_BUILD): New.
 
 2011-06-29  Werner Koch  <wk@g10code.com>

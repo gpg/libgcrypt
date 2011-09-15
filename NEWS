@@ -1,8 +1,13 @@
 Noteworthy changes in version 1.6.0 (unreleased)
 ------------------------------------------------
 
+ * Removed the long deprecated gcry_ac interface.  Thus Libgcrypt is
+   not anymore ABI compatible too previous versions.
+
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ gcry_ac_*             REMOVED.
+ GCRY_AC_*             REMOVED.
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)

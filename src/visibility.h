@@ -114,45 +114,6 @@
 #define gcry_pk_testkey             _gcry_pk_testkey
 #define gcry_pk_verify              _gcry_pk_verify
 
-#define gcry_ac_data_new            _gcry_ac_data_new
-#define gcry_ac_data_destroy        _gcry_ac_data_destroy
-#define gcry_ac_data_copy           _gcry_ac_data_copy
-#define gcry_ac_data_length         _gcry_ac_data_length
-#define gcry_ac_data_clear          _gcry_ac_data_clear
-#define gcry_ac_data_set            _gcry_ac_data_set
-#define gcry_ac_data_get_name       _gcry_ac_data_get_name
-#define gcry_ac_data_get_index      _gcry_ac_data_get_index
-#define gcry_ac_open                _gcry_ac_open
-#define gcry_ac_close               _gcry_ac_close
-#define gcry_ac_key_init            _gcry_ac_key_init
-#define gcry_ac_key_pair_generate   _gcry_ac_key_pair_generate
-#define gcry_ac_key_pair_extract    _gcry_ac_key_pair_extract
-#define gcry_ac_key_data_get        _gcry_ac_key_data_get
-#define gcry_ac_key_test            _gcry_ac_key_test
-#define gcry_ac_key_get_nbits       _gcry_ac_key_get_nbits
-#define gcry_ac_key_get_grip        _gcry_ac_key_get_grip
-#define gcry_ac_key_destroy         _gcry_ac_key_destroy
-#define gcry_ac_key_pair_destroy    _gcry_ac_key_pair_destroy
-#define gcry_ac_data_encrypt        _gcry_ac_data_encrypt
-#define gcry_ac_data_decrypt        _gcry_ac_data_decrypt
-#define gcry_ac_data_sign           _gcry_ac_data_sign
-#define gcry_ac_data_verify         _gcry_ac_data_verify
-#define gcry_ac_id_to_name          _gcry_ac_id_to_name
-#define gcry_ac_name_to_id          _gcry_ac_name_to_id
-#define gcry_ac_data_encode         _gcry_ac_data_encode
-#define gcry_ac_data_decode         _gcry_ac_data_decode
-#define gcry_ac_mpi_to_os           _gcry_ac_mpi_to_os
-#define gcry_ac_mpi_to_os_alloc     _gcry_ac_mpi_to_os_alloc
-#define gcry_ac_os_to_mpi           _gcry_ac_os_to_mpi
-#define gcry_ac_data_encrypt_scheme _gcry_ac_data_encrypt_scheme
-#define gcry_ac_data_decrypt_scheme _gcry_ac_data_decrypt_scheme
-#define gcry_ac_data_sign_scheme    _gcry_ac_data_sign_scheme
-#define gcry_ac_data_verify_scheme  _gcry_ac_data_verify_scheme
-#define gcry_ac_data_to_sexp        _gcry_ac_data_to_sexp
-#define gcry_ac_data_from_sexp      _gcry_ac_data_from_sexp
-#define gcry_ac_io_init             _gcry_ac_io_init
-#define gcry_ac_io_init_va          _gcry_ac_io_init_va
-
 #define gcry_kdf_derive             _gcry_kdf_derive
 
 #define gcry_prime_check            _gcry_prime_check
@@ -241,99 +202,7 @@
      deprecated attribute.  */
 # define GCRYPT_NO_DEPRECATED
 # include "gcrypt.h"
-/* The algorithm IDs. */
-  gcry_error_t gcry_ac_data_new (gcry_ac_data_t *data);
-  void gcry_ac_data_destroy (gcry_ac_data_t data);
-  gcry_error_t gcry_ac_data_copy (gcry_ac_data_t *data_cp,
-                                  gcry_ac_data_t data);
-  unsigned int gcry_ac_data_length (gcry_ac_data_t data);
-  void gcry_ac_data_clear (gcry_ac_data_t data);
-  gcry_error_t gcry_ac_data_set (gcry_ac_data_t data, unsigned int flags,
-                                 const char *name, gcry_mpi_t mpi);
-  gcry_error_t gcry_ac_data_get_name (gcry_ac_data_t data, unsigned int flags,
-                                      const char *name, gcry_mpi_t *mpi);
-  gcry_error_t gcry_ac_data_get_index (gcry_ac_data_t data, unsigned int flags,
-                                       unsigned int idx,
-                                       const char **name, gcry_mpi_t *mpi);
-  gcry_error_t gcry_ac_data_to_sexp (gcry_ac_data_t data, gcry_sexp_t *sexp,
-                                   const char **identifiers);
-  gcry_error_t gcry_ac_data_from_sexp (gcry_ac_data_t *data, gcry_sexp_t sexp,
-                                     const char **identifiers);
-  void gcry_ac_io_init (gcry_ac_io_t *ac_io, gcry_ac_io_mode_t mode,
-                      gcry_ac_io_type_t type, ...);
-  void gcry_ac_io_init_va (gcry_ac_io_t *ac_io, gcry_ac_io_mode_t mode,
-                         gcry_ac_io_type_t type, va_list ap);
-  gcry_error_t gcry_ac_open (gcry_ac_handle_t *handle,
-                             gcry_ac_id_t algorithm, unsigned int flags);
-  void gcry_ac_close (gcry_ac_handle_t handle);
-  gcry_error_t gcry_ac_key_init (gcry_ac_key_t *key, gcry_ac_handle_t handle,
-                                 gcry_ac_key_type_t type, gcry_ac_data_t data);
-  gcry_error_t gcry_ac_key_pair_generate (gcry_ac_handle_t handle,
-                                          unsigned int nbits, void *spec,
-                                          gcry_ac_key_pair_t *key_pair,
-                                          gcry_mpi_t **misc_data);
-  gcry_ac_key_t gcry_ac_key_pair_extract (gcry_ac_key_pair_t key_pair,
-                                          gcry_ac_key_type_t which);
-  gcry_ac_data_t gcry_ac_key_data_get (gcry_ac_key_t key);
-  gcry_error_t gcry_ac_key_test (gcry_ac_handle_t handle, gcry_ac_key_t key);
-  gcry_error_t gcry_ac_key_get_nbits (gcry_ac_handle_t handle,
-                                      gcry_ac_key_t key, unsigned int *nbits);
-  gcry_error_t gcry_ac_key_get_grip (gcry_ac_handle_t handle, gcry_ac_key_t key,
-                                     unsigned char *key_grip);
-  void gcry_ac_key_destroy (gcry_ac_key_t key);
-  void gcry_ac_key_pair_destroy (gcry_ac_key_pair_t key_pair);
-  gcry_error_t gcry_ac_data_encode (gcry_ac_em_t method,
-                                  unsigned int flags, void *options,
-                                  gcry_ac_io_t *io_read,
-                                  gcry_ac_io_t *io_write);
-  gcry_error_t gcry_ac_data_decode (gcry_ac_em_t method,
-                                  unsigned int flags, void *options,
-                                  gcry_ac_io_t *io_read,
-                                  gcry_ac_io_t *io_write);
-  gcry_error_t gcry_ac_data_encrypt (gcry_ac_handle_t handle,
-                                     unsigned int flags,
-                                     gcry_ac_key_t key,
-                                     gcry_mpi_t data_plain,
-                                     gcry_ac_data_t *data_encrypted);
-  gcry_error_t gcry_ac_data_decrypt (gcry_ac_handle_t handle,
-                                     unsigned int flags,
-                                     gcry_ac_key_t key,
-                                     gcry_mpi_t *data_plain,
-                                     gcry_ac_data_t data_encrypted);
-  gcry_error_t gcry_ac_data_sign (gcry_ac_handle_t handle,
-                                  gcry_ac_key_t key,
-                                  gcry_mpi_t data,
-                                  gcry_ac_data_t *data_signature);
-  gcry_error_t gcry_ac_data_verify (gcry_ac_handle_t handle,
-                                    gcry_ac_key_t key,
-                                    gcry_mpi_t data,
-                                    gcry_ac_data_t data_signature);
-  gcry_error_t gcry_ac_data_encrypt_scheme (gcry_ac_handle_t handle,
-                                          gcry_ac_scheme_t scheme,
-                                          unsigned int flags, void *opts,
-                                          gcry_ac_key_t key,
-                                          gcry_ac_io_t *io_message,
-                                          gcry_ac_io_t *io_cipher);
-  gcry_error_t gcry_ac_data_decrypt_scheme (gcry_ac_handle_t handle,
-                                          gcry_ac_scheme_t scheme,
-                                          unsigned int flags, void *opts,
-                                          gcry_ac_key_t key,
-                                          gcry_ac_io_t *io_cipher,
-                                          gcry_ac_io_t *io_message);
-  gcry_error_t gcry_ac_data_sign_scheme (gcry_ac_handle_t handle,
-                                       gcry_ac_scheme_t scheme,
-                                       unsigned int flags, void *opts,
-                                       gcry_ac_key_t key,
-                                       gcry_ac_io_t *io_message,
-                                       gcry_ac_io_t *io_signature);
-  gcry_error_t gcry_ac_data_verify_scheme (gcry_ac_handle_t handle,
-                                         gcry_ac_scheme_t scheme,
-                                         unsigned int flags, void *opts,
-                                         gcry_ac_key_t key,
-                                         gcry_ac_io_t *io_message,
-                                         gcry_ac_io_t *io_signature);
-  gcry_error_t gcry_ac_id_to_name (gcry_ac_id_t algorithm, const char **name);
-  gcry_error_t gcry_ac_name_to_id (const char *name, gcry_ac_id_t *algorithm);
+  /* None in this version.  */
 #else
 # include "gcrypt.h"
 #endif
@@ -341,11 +210,6 @@
 /* Prototypes of functions exported but not ready for use.  */
 gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
                              unsigned char *buffer, int buflen);
-void gcry_ac_mpi_to_os (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
-gcry_error_t gcry_ac_mpi_to_os_alloc (gcry_mpi_t mpi, unsigned char **os,
-                                       size_t *os_n);
-void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
-
 
 
 /* Our use of the ELF visibility feature works by passing
@@ -463,45 +327,6 @@ void gcry_ac_os_to_mpi (gcry_mpi_t mpi, unsigned char *os, size_t os_n);
 #undef gcry_pk_sign
 #undef gcry_pk_testkey
 #undef gcry_pk_verify
-
-#undef gcry_ac_data_new
-#undef gcry_ac_data_destroy
-#undef gcry_ac_data_copy
-#undef gcry_ac_data_length
-#undef gcry_ac_data_clear
-#undef gcry_ac_data_set
-#undef gcry_ac_data_get_name
-#undef gcry_ac_data_get_index
-#undef gcry_ac_open
-#undef gcry_ac_close
-#undef gcry_ac_key_init
-#undef gcry_ac_key_pair_generate
-#undef gcry_ac_key_pair_extract
-#undef gcry_ac_key_data_get
-#undef gcry_ac_key_test
-#undef gcry_ac_key_get_nbits
-#undef gcry_ac_key_get_grip
-#undef gcry_ac_key_destroy
-#undef gcry_ac_key_pair_destroy
-#undef gcry_ac_data_encrypt
-#undef gcry_ac_data_decrypt
-#undef gcry_ac_data_sign
-#undef gcry_ac_data_verify
-#undef gcry_ac_id_to_name
-#undef gcry_ac_name_to_id
-#undef gcry_ac_data_encode
-#undef gcry_ac_data_decode
-#undef gcry_ac_mpi_to_os
-#undef gcry_ac_mpi_to_os_alloc
-#undef gcry_ac_os_to_mpi
-#undef gcry_ac_data_encrypt_scheme
-#undef gcry_ac_data_decrypt_scheme
-#undef gcry_ac_data_sign_scheme
-#undef gcry_ac_data_verify_scheme
-#undef gcry_ac_data_to_sexp
-#undef gcry_ac_data_from_sexp
-#undef gcry_ac_io_init
-#undef gcry_ac_io_init_va
 
 #undef gcry_kdf_derive
 
@@ -677,47 +502,6 @@ MARK_VISIBLE (gcry_pk_sign)
 MARK_VISIBLE (gcry_pk_testkey)
 MARK_VISIBLE (gcry_pk_unregister)
 MARK_VISIBLE (gcry_pk_verify)
-
-MARK_VISIBLE (gcry_ac_data_new)
-MARK_VISIBLE (gcry_ac_data_destroy)
-MARK_VISIBLE (gcry_ac_data_copy)
-MARK_VISIBLE (gcry_ac_data_length)
-MARK_VISIBLE (gcry_ac_data_clear)
-MARK_VISIBLE (gcry_ac_data_set)
-MARK_VISIBLE (gcry_ac_data_get_name)
-MARK_VISIBLE (gcry_ac_data_get_index)
-MARK_VISIBLE (gcry_ac_open)
-MARK_VISIBLE (gcry_ac_close)
-MARK_VISIBLE (gcry_ac_key_init)
-MARK_VISIBLE (gcry_ac_key_pair_generate)
-MARK_VISIBLE (gcry_ac_key_pair_extract)
-MARK_VISIBLE (gcry_ac_key_data_get)
-MARK_VISIBLE (gcry_ac_key_test)
-MARK_VISIBLE (gcry_ac_key_get_nbits)
-MARK_VISIBLE (gcry_ac_key_get_grip)
-MARK_VISIBLE (gcry_ac_key_destroy)
-MARK_VISIBLE (gcry_ac_key_pair_destroy)
-MARK_VISIBLE (gcry_ac_data_encrypt)
-MARK_VISIBLE (gcry_ac_data_decrypt)
-MARK_VISIBLE (gcry_ac_data_sign)
-MARK_VISIBLE (gcry_ac_data_verify)
-MARK_VISIBLE (gcry_ac_id_to_name)
-MARK_VISIBLE (gcry_ac_name_to_id)
-/* MARK_VISIBLE (gcry_ac_list) Not defined although it is in
-        libgcrypt.vers. */
-MARK_VISIBLE (gcry_ac_data_encode)
-MARK_VISIBLE (gcry_ac_data_decode)
-MARK_VISIBLE (gcry_ac_mpi_to_os)
-MARK_VISIBLE (gcry_ac_mpi_to_os_alloc)
-MARK_VISIBLE (gcry_ac_os_to_mpi)
-MARK_VISIBLE (gcry_ac_data_encrypt_scheme)
-MARK_VISIBLE (gcry_ac_data_decrypt_scheme)
-MARK_VISIBLE (gcry_ac_data_sign_scheme)
-MARK_VISIBLE (gcry_ac_data_verify_scheme)
-MARK_VISIBLE (gcry_ac_data_to_sexp)
-MARK_VISIBLE (gcry_ac_data_from_sexp)
-MARK_VISIBLE (gcry_ac_io_init)
-MARK_VISIBLE (gcry_ac_io_init_va)
 
 MARK_VISIBLE (gcry_kdf_derive)
 

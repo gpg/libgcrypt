@@ -41,10 +41,11 @@ AC_INIT([libgcrypt],
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-# Note: To avoid LT version number clashes with the 1.5 branch please
-# make sure to update current and age beore releasing anything.
-LIBGCRYPT_LT_CURRENT=18
-LIBGCRYPT_LT_AGE=7
+# CAUTION: Due to the ABI change in 1.6 the LT version numbers below have
+# already been set for the next release.  Thus don't update them for
+# the 1.6.0 release.
+LIBGCRYPT_LT_CURRENT=19
+LIBGCRYPT_LT_AGE=0
 LIBGCRYPT_LT_REVISION=0
 
 

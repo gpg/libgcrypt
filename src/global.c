@@ -123,15 +123,6 @@ global_init (void)
   err = _gcry_pk_init ();
   if (err)
     goto fail;
-#if 0
-  /* Hmmm, as of now ac_init does nothing. */
-  if ( !fips_mode () )
-    {
-      err = _gcry_ac_init ();
-      if (err)
-        goto fail;
-    }
-#endif
 
   return;
 

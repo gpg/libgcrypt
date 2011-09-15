@@ -1,5 +1,16 @@
 2011-09-15  Werner Koch  <wk@g10code.com>
 
+	* gcrypt.h.in: Remove all gcry_ac symbols.
+	* visibility.h: Remove all gcry_ac symbols.
+	* visibility.c: Remove all gcry_ac wrappers.
+	* libgcrypt.vers: Remove all gcry_ac symbols.
+	(GCRYPT_1.2): Rename to GCRYPT_1.6.
+	* libgcrypt.def: Remove all gcry_ac symbols.
+	* global.c (global_init): Remove comment code with a call to
+	_gcry_ac_init.
+
+2011-09-15  Werner Koch  <wk@g10code.com>
+
 	* hmac256.c (main): Fix endless loop when using pipe input and
 	option --binary.
 
