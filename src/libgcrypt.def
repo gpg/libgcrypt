@@ -132,7 +132,8 @@ EXPORTS
       gcry_cipher_decrypt  @101
       gcry_cipher_get_algo_keylen  @102
       gcry_cipher_get_algo_blklen  @103
-      gcry_cipher_list  @104
+
+;; @104 used to be part of the module register interface
 
       gcry_pk_encrypt  @105
       gcry_pk_decrypt  @106
@@ -146,7 +147,8 @@ EXPORTS
       gcry_pk_map_name  @114
       gcry_pk_get_nbits  @115
       gcry_pk_get_keygrip  @116
-      gcry_pk_list  @117
+
+;; @117 used to be part of the module register interface
 
 ;;
 ;; 118 to 142 were used in previous Libgcrypt versions for the gcry_ac
@@ -171,8 +173,7 @@ EXPORTS
       gcry_md_algo_name  @158
       gcry_md_map_name  @159
       gcry_md_setkey  @160
-      gcry_md_list  @161
-
+;; @161 used to be part of the module register interface
       gcry_randomize  @162
       gcry_random_add_bytes  @163
       gcry_random_bytes  @164
@@ -188,16 +189,14 @@ EXPORTS
 
       gcry_md_debug  @172
 
-      gcry_cipher_register  @173
-      gcry_cipher_unregister @174
-      gcry_md_register  @175
-      gcry_md_unregister @176
-      gcry_pk_register  @177
-      gcry_pk_unregister @178
-
+;; @173 used to be part of the module register interface
+;; @174 used to be part of the module register interface
+;; @175 used to be part of the module register interface
+;; @176 used to be part of the module register interface
+;; @177 used to be part of the module register interface
+;; @178 used to be part of the module register interface
 ;;
-;; 179 to 186 were used in previous Libgcrypt versions for the gcry_ac
-;; interface
+;; @179 to @186 used to be part of the removed gcry_ac interface
 ;;
 
       gcry_sexp_nth_string  @187

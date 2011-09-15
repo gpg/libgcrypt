@@ -40,23 +40,22 @@ GCRYPT_1.6 {
     gcry_md_copy; gcry_md_ctl; gcry_md_enable; gcry_md_get;
     gcry_md_get_algo; gcry_md_get_algo_dlen; gcry_md_hash_buffer;
     gcry_md_info; gcry_md_is_enabled; gcry_md_is_secure;
-    gcry_md_list; gcry_md_map_name; gcry_md_open; gcry_md_read;
-    gcry_md_register; gcry_md_reset; gcry_md_setkey;
-    gcry_md_unregister; gcry_md_write; gcry_md_debug;
+    gcry_md_map_name; gcry_md_open; gcry_md_read;
+    gcry_md_reset; gcry_md_setkey;
+    gcry_md_write; gcry_md_debug;
 
     gcry_cipher_algo_info; gcry_cipher_algo_name; gcry_cipher_close;
     gcry_cipher_ctl; gcry_cipher_decrypt; gcry_cipher_encrypt;
     gcry_cipher_get_algo_blklen; gcry_cipher_get_algo_keylen;
-    gcry_cipher_info; gcry_cipher_list; gcry_cipher_map_name;
+    gcry_cipher_info; gcry_cipher_map_name;
     gcry_cipher_mode_from_oid; gcry_cipher_open;
-    gcry_cipher_register; gcry_cipher_unregister;
     gcry_cipher_setkey; gcry_cipher_setiv; gcry_cipher_setctr;
 
     gcry_pk_algo_info; gcry_pk_algo_name; gcry_pk_ctl;
     gcry_pk_decrypt; gcry_pk_encrypt; gcry_pk_genkey;
-    gcry_pk_get_keygrip; gcry_pk_get_nbits; gcry_pk_list;
+    gcry_pk_get_keygrip; gcry_pk_get_nbits;
     gcry_pk_map_name; gcry_pk_register; gcry_pk_sign;
-    gcry_pk_testkey; gcry_pk_unregister; gcry_pk_verify;
+    gcry_pk_testkey; gcry_pk_verify;
     gcry_pk_get_curve; gcry_pk_get_param;
 
     gcry_kdf_derive;

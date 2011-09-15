@@ -4,10 +4,22 @@ Noteworthy changes in version 1.6.0 (unreleased)
  * Removed the long deprecated gcry_ac interface.  Thus Libgcrypt is
    not anymore ABI compatible too previous versions.
 
+ * Removed the module register subsystem.
+
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- gcry_ac_*             REMOVED.
- GCRY_AC_*             REMOVED.
+ gcry_ac_*              REMOVED.
+ GCRY_AC_*              REMOVED.
+ gcry_module_t          REMOVED.
+ gcry_cipher_register   REMOVED.
+ gcry_cipher_unregister REMOVED.
+ gcry_cipher_list       REMOVED.
+ gcry_pk_register       REMOVED.
+ gcry_pk_unregister     REMOVED.
+ gcry_pk_list           REMOVED.
+ gcry_md_register       REMOVED.
+ gcry_md_unregister     REMOVED.
+ gcry_md_list           REMOVED.
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)

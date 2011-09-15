@@ -622,12 +622,6 @@ gcry_cipher_get_algo_blklen (int algo)
 }
 
 gcry_error_t
-gcry_cipher_list (int *list, int *list_length)
-{
-  return _gcry_cipher_list (list, list_length);
-}
-
-gcry_error_t
 gcry_pk_encrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t pkey)
 {
   if (!fips_is_operational ())
@@ -757,12 +751,6 @@ gcry_pk_get_param (int algo, const char *name)
       return NULL;
     }
   return _gcry_pk_get_param (algo, name);
-}
-
-gcry_error_t
-gcry_pk_list (int *list, int *list_length)
-{
-  return _gcry_pk_list (list, list_length);
 }
 
 gcry_error_t
@@ -921,13 +909,6 @@ gcry_md_debug (gcry_md_hd_t hd, const char *suffix)
 {
   _gcry_md_debug (hd, suffix);
 }
-
-gcry_error_t
-gcry_md_list (int *list, int *list_length)
-{
-  return _gcry_md_list (list, list_length);
-}
-
 
 gpg_error_t
 gcry_kdf_derive (const void *passphrase, size_t passphraselen,
@@ -1162,44 +1143,4 @@ int
 gcry_is_secure (const void *a)
 {
   return _gcry_is_secure (a);
-}
-
-
-gcry_error_t
-gcry_cipher_register (gcry_cipher_spec_t *cipher, int *algorithm_id,
-                      gcry_module_t *module)
-{
-  return _gcry_cipher_register (cipher, NULL, algorithm_id, module);
-}
-
-void
-gcry_cipher_unregister (gcry_module_t module)
-{
-  _gcry_cipher_unregister (module);
-}
-
-gcry_error_t
-gcry_pk_register (gcry_pk_spec_t *pubkey, unsigned int *algorithm_id,
-                  gcry_module_t *module)
-{
-  return _gcry_pk_register (pubkey, NULL, algorithm_id, module);
-}
-
-void
-gcry_pk_unregister (gcry_module_t module)
-{
-  _gcry_pk_unregister (module);
-}
-
-gcry_error_t
-gcry_md_register (gcry_md_spec_t *digest, unsigned int *algorithm_id,
-                  gcry_module_t *module)
-{
-  return _gcry_md_register (digest, NULL, algorithm_id, module);
-}
-
-void
-gcry_md_unregister (gcry_module_t module)
-{
-  _gcry_md_unregister (module);
 }

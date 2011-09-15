@@ -288,7 +288,7 @@ _gcry_pk_register (gcry_pk_spec_t *pubkey,
 /* Unregister the pubkey identified by ID, which must have been
    registered with gcry_pk_register.  */
 void
-gcry_pk_unregister (gcry_module_t module)
+_gcry_pk_unregister (gcry_module_t module)
 {
   ath_mutex_lock (&pubkeys_registered_lock);
   _gcry_module_release (module);
@@ -4090,24 +4090,6 @@ _gcry_pk_module_release (gcry_module_t module)
   ath_mutex_lock (&pubkeys_registered_lock);
   _gcry_module_release (module);
   ath_mutex_unlock (&pubkeys_registered_lock);
-}
-
-/* Get a list consisting of the IDs of the loaded pubkey modules.  If
-   LIST is zero, write the number of loaded pubkey modules to
-   LIST_LENGTH and return.  If LIST is non-zero, the first
-   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
-   according size.  In case there are less pubkey modules than
-   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
-gcry_error_t
-gcry_pk_list (int *list, int *list_length)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-
-  ath_mutex_lock (&pubkeys_registered_lock);
-  err = _gcry_module_list (pubkeys_registered, list, list_length);
-  ath_mutex_unlock (&pubkeys_registered_lock);
-
-  return err;
 }
 
 

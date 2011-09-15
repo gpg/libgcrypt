@@ -66,12 +66,9 @@
 #define gcry_md_info                _gcry_md_info
 #define gcry_md_is_enabled          _gcry_md_is_enabled
 #define gcry_md_is_secure           _gcry_md_is_secure
-#define gcry_md_list                _gcry_md_list
 #define gcry_md_map_name            _gcry_md_map_name
 #define gcry_md_open                _gcry_md_open
 #define gcry_md_read                _gcry_md_read
-/* gcry_md_register and _gcry_md_register differ.  */
-#define gcry_md_unregister          _gcry_md_unregister
 #define gcry_md_reset               _gcry_md_reset
 #define gcry_md_setkey              _gcry_md_setkey
 #define gcry_md_write               _gcry_md_write
@@ -89,12 +86,9 @@
 #define gcry_cipher_get_algo_blklen _gcry_cipher_get_algo_blklen
 #define gcry_cipher_get_algo_keylen _gcry_cipher_get_algo_keylen
 #define gcry_cipher_info            _gcry_cipher_info
-#define gcry_cipher_list            _gcry_cipher_list
 #define gcry_cipher_map_name        _gcry_cipher_map_name
 #define gcry_cipher_mode_from_oid   _gcry_cipher_mode_from_oid
 #define gcry_cipher_open            _gcry_cipher_open
-/* gcry_cipher_register and  _gcry_cipher_register differ.  */
-#define gcry_cipher_unregister      _gcry_cipher_unregister
 
 #define gcry_pk_algo_info           _gcry_pk_algo_info
 #define gcry_pk_algo_name           _gcry_pk_algo_name
@@ -106,10 +100,7 @@
 #define gcry_pk_get_curve           _gcry_pk_get_curve
 #define gcry_pk_get_param           _gcry_pk_get_param
 #define gcry_pk_get_nbits           _gcry_pk_get_nbits
-#define gcry_pk_list                _gcry_pk_list
 #define gcry_pk_map_name            _gcry_pk_map_name
-/* gcry_pk_register and _gcry_pk_register differ.  */
-#define gcry_pk_unregister          _gcry_pk_unregister
 #define gcry_pk_sign                _gcry_pk_sign
 #define gcry_pk_testkey             _gcry_pk_testkey
 #define gcry_pk_verify              _gcry_pk_verify
@@ -206,6 +197,7 @@
 #else
 # include "gcrypt.h"
 #endif
+#include "gcrypt-module.h"
 
 /* Prototypes of functions exported but not ready for use.  */
 gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
@@ -280,12 +272,9 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_md_info
 #undef gcry_md_is_enabled
 #undef gcry_md_is_secure
-#undef gcry_md_list
 #undef gcry_md_map_name
 #undef gcry_md_open
 #undef gcry_md_read
-/* gcry_md_register is not anymore a macro.  */
-#undef gcry_md_unregister
 #undef gcry_md_reset
 #undef gcry_md_setkey
 #undef gcry_md_write
@@ -303,12 +292,9 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_cipher_get_algo_blklen
 #undef gcry_cipher_get_algo_keylen
 #undef gcry_cipher_info
-#undef gcry_cipher_list
 #undef gcry_cipher_map_name
 #undef gcry_cipher_mode_from_oid
 #undef gcry_cipher_open
-/* gcry_cipher_register is not anymore a macro.  */
-#undef gcry_cipher_unregister
 
 #undef gcry_pk_algo_info
 #undef gcry_pk_algo_name
@@ -320,10 +306,7 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_pk_get_curve
 #undef gcry_pk_get_param
 #undef gcry_pk_get_nbits
-#undef gcry_pk_list
 #undef gcry_pk_map_name
-/* gcry_pk_register is not anymore a macro.  */
-#undef gcry_pk_unregister
 #undef gcry_pk_sign
 #undef gcry_pk_testkey
 #undef gcry_pk_verify
@@ -455,14 +438,11 @@ MARK_VISIBLE (gcry_md_hash_buffer)
 MARK_VISIBLE (gcry_md_info)
 MARK_VISIBLE (gcry_md_is_enabled)
 MARK_VISIBLE (gcry_md_is_secure)
-MARK_VISIBLE (gcry_md_list)
 MARK_VISIBLE (gcry_md_map_name)
 MARK_VISIBLE (gcry_md_open)
 MARK_VISIBLE (gcry_md_read)
-MARK_VISIBLEX(gcry_md_register)
 MARK_VISIBLE (gcry_md_reset)
 MARK_VISIBLE (gcry_md_setkey)
-MARK_VISIBLE (gcry_md_unregister)
 MARK_VISIBLE (gcry_md_write)
 MARK_VISIBLE (gcry_md_debug)
 
@@ -478,12 +458,9 @@ MARK_VISIBLE (gcry_cipher_encrypt)
 MARK_VISIBLE (gcry_cipher_get_algo_blklen)
 MARK_VISIBLE (gcry_cipher_get_algo_keylen)
 MARK_VISIBLE (gcry_cipher_info)
-MARK_VISIBLE (gcry_cipher_list)
 MARK_VISIBLE (gcry_cipher_map_name)
 MARK_VISIBLE (gcry_cipher_mode_from_oid)
 MARK_VISIBLE (gcry_cipher_open)
-MARK_VISIBLEX(gcry_cipher_register)
-MARK_VISIBLE (gcry_cipher_unregister)
 
 MARK_VISIBLE (gcry_pk_algo_info)
 MARK_VISIBLE (gcry_pk_algo_name)
@@ -495,12 +472,9 @@ MARK_VISIBLE (gcry_pk_get_keygrip)
 MARK_VISIBLE (gcry_pk_get_curve)
 MARK_VISIBLE (gcry_pk_get_param)
 MARK_VISIBLE (gcry_pk_get_nbits)
-MARK_VISIBLE (gcry_pk_list)
 MARK_VISIBLE (gcry_pk_map_name)
-MARK_VISIBLEX(gcry_pk_register)
 MARK_VISIBLE (gcry_pk_sign)
 MARK_VISIBLE (gcry_pk_testkey)
-MARK_VISIBLE (gcry_pk_unregister)
 MARK_VISIBLE (gcry_pk_verify)
 
 MARK_VISIBLE (gcry_kdf_derive)

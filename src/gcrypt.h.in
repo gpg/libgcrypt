@@ -951,14 +951,6 @@ size_t gcry_cipher_get_algo_blklen (int algo);
 #define gcry_cipher_test_algo(a) \
             gcry_cipher_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
-/* Get a list consisting of the IDs of the loaded cipher modules.  If
-   LIST is zero, write the number of loaded cipher modules to
-   LIST_LENGTH and return.  If LIST is non-zero, the first
-   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
-   according size.  In case there are less cipher modules than
-   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
-gcry_error_t gcry_cipher_list (int *list, int *list_length);
-
 
 /************************************
  *                                  *
@@ -1049,13 +1041,6 @@ gcry_sexp_t gcry_pk_get_param (int algo, const char *name);
 #define gcry_pk_test_algo(a) \
             gcry_pk_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
-/* Get a list consisting of the IDs of the loaded pubkey modules.  If
-   LIST is zero, write the number of loaded pubkey modules to
-   LIST_LENGTH and return.  If LIST is non-zero, the first
-   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
-   according size.  In case there are less pubkey modules than
-   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
-gcry_error_t gcry_pk_list (int *list, int *list_length);
 
 
 
@@ -1238,15 +1223,6 @@ void gcry_md_debug (gcry_md_hd_t hd, const char *suffix);
 #define gcry_md_stop_debug(a,b) \
             gcry_md_ctl( (a), GCRYCTL_STOP_DUMP, (b), 0 )
 #endif
-
-/* Get a list consisting of the IDs of the loaded message digest
-   modules.  If LIST is zero, write the number of loaded message
-   digest modules to LIST_LENGTH and return.  If LIST is non-zero, the
-   first *LIST_LENGTH algorithm IDs are stored in LIST, which must be
-   of according size.  In case there are less message digest modules
-   than *LIST_LENGTH, *LIST_LENGTH is updated to the correct
-   number.  */
-gcry_error_t gcry_md_list (int *list, int *list_length);
 
 
 
@@ -1489,9 +1465,6 @@ int gcry_is_secure (const void *a) _GCRY_GCC_ATTR_PURE;
 /* Return true if Libgcrypt is in FIPS mode.  */
 #define gcry_fips_mode_active()  !!gcry_control (GCRYCTL_FIPS_MODE_P, 0)
 
-
-/* Include support for Libgcrypt modules.  */
-#include <gcrypt-module.h>
 
 #if 0 /* (Keep Emacsens' auto-indent happy.) */
 {

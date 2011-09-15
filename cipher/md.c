@@ -285,16 +285,6 @@ _gcry_md_register (gcry_md_spec_t *digest,
   return gcry_error (err);
 }
 
-/* Unregister the digest identified by ID, which must have been
-   registered with gcry_digest_register.  */
-void
-gcry_md_unregister (gcry_module_t module)
-{
-  ath_mutex_lock (&digests_registered_lock);
-  _gcry_module_release (module);
-  ath_mutex_unlock (&digests_registered_lock);
-}
-
 
 static int
 search_oid (const char *oid, int *algorithm, gcry_md_oid_spec_t *oid_spec)
@@ -1323,25 +1313,6 @@ gcry_md_is_enabled (gcry_md_hd_t a, int algo)
   if (gcry_md_info (a, GCRYCTL_IS_ALGO_ENABLED, &algo, &value))
     value = 0;
   return value;
-}
-
-/* Get a list consisting of the IDs of the loaded message digest
-   modules.  If LIST is zero, write the number of loaded message
-   digest modules to LIST_LENGTH and return.  If LIST is non-zero, the
-   first *LIST_LENGTH algorithm IDs are stored in LIST, which must be
-   of according size.  In case there are less message digest modules
-   than *LIST_LENGTH, *LIST_LENGTH is updated to the correct
-   number.  */
-gcry_error_t
-gcry_md_list (int *list, int *list_length)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-
-  ath_mutex_lock (&digests_registered_lock);
-  err = _gcry_module_list (digests_registered, list, list_length);
-  ath_mutex_unlock (&digests_registered_lock);
-
-  return err;
 }
 
 

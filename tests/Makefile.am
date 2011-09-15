@@ -18,7 +18,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-TESTS = version t-mpi-bit prime register basic \
+TESTS = version t-mpi-bit prime basic \
         mpitests tsexp keygen pubkey hmac keygrip fips186-dsa aeswrap \
 	curves t-kdf pkcs1v2
 

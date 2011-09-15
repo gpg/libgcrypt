@@ -418,7 +418,7 @@ _gcry_cipher_register (gcry_cipher_spec_t *cipher,
 /* Unregister the cipher identified by MODULE, which must have been
    registered with gcry_cipher_register.  */
 void
-gcry_cipher_unregister (gcry_module_t module)
+_gcry_cipher_unregister (gcry_module_t module)
 {
   ath_mutex_lock (&ciphers_registered_lock);
   _gcry_module_release (module);
@@ -2152,24 +2152,6 @@ _gcry_cipher_init (void)
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
 
   REGISTER_DEFAULT_CIPHERS;
-
-  return err;
-}
-
-/* Get a list consisting of the IDs of the loaded cipher modules.  If
-   LIST is zero, write the number of loaded cipher modules to
-   LIST_LENGTH and return.  If LIST is non-zero, the first
-   *LIST_LENGTH algorithm IDs are stored in LIST, which must be of
-   according size.  In case there are less cipher modules than
-   *LIST_LENGTH, *LIST_LENGTH is updated to the correct number.  */
-gcry_error_t
-gcry_cipher_list (int *list, int *list_length)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-
-  ath_mutex_lock (&ciphers_registered_lock);
-  err = _gcry_module_list (ciphers_registered, list, list_length);
-  ath_mutex_unlock (&ciphers_registered_lock);
 
   return err;
 }
