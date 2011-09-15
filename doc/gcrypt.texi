@@ -1208,7 +1208,7 @@ diagnostic message to the user.
 
 
 @deftypefun {const char *} gcry_strsource (@w{gcry_error_t @var{err}})
-The function @code{gcry_strerror} returns a pointer to a statically
+The function @code{gcry_strsource} returns a pointer to a statically
 allocated string containing a description of the error source
 contained in the error value @var{err}.  This string can be used to
 output a diagnostic message to the user.
@@ -2586,7 +2586,7 @@ the function in @var{sig}.
 
 @noindent
 The result is 0 for success (i.e. the data matches the signature), or an
-error code where the most relevant code is @code{GCRYERR_BAD_SIGNATURE}
+error code where the most relevant code is @code{GCRY_ERR_BAD_SIGNATURE}
 to indicate that the signature does not match the provided data.
 
 @end deftypefun
