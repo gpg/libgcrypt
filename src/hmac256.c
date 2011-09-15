@@ -766,6 +766,8 @@ main (int argc, char **argv)
                        pgm, strerror (errno));
               exit (1);
             }
+          if (use_stdin)
+            break;
         }
       else
         {
