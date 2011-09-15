@@ -28,6 +28,23 @@ section entitled ``GNU General Public License''.
 * libgcrypt: (gcrypt).  Cryptographic function library.
 @end direntry
 
+@c A couple of macros with no effect on texinfo
+@c but used by the yat2m processor.
+@macro manpage {a}
+@end macro
+@macro mansect {a}
+@end macro
+@macro manpause
+@end macro
+@macro mancont
+@end macro
+
+@c
+@c Printing stuff taken from gcc.
+@c
+@macro gnupgtabopt{body}
+@code{\body\}
+@end macro
 
 
 @c
@@ -74,6 +91,7 @@ section entitled ``GNU General Public License''.
 * MPI library::                  How to work with multi-precision-integers.
 * Prime numbers::                How to use the Prime number related functions.
 * Utilities::                    Utility functions.
+* Tools::                        Utility tools
 * Architecture::                 How Libgcrypt works internally.
 
 Appendices
@@ -4854,6 +4872,75 @@ gcry_realloc tries to use secure memory as well.
 @deftypefun void gcry_free (void *@var{p})
 Release the memory area pointed to by @var{p}.
 @end deftypefun
+
+@c **********************************************************
+@c *********************  Tools  ****************************
+@c **********************************************************
+@node Tools
+@chapter Tools
+
+@menu
+* hmac256:: A standalone HMAC-SHA-256 implementation
+@end menu
+
+@manpage hmac256.1
+@node hmac256
+@section A HMAC-SHA-256 tool
+@ifset manverb
+.B hmac256
+\- Compute an HMAC-SHA-256 MAC
+@end ifset
+
+@mansect synopsis
+@ifset manverb
+.B  hmac256
+.RB [ \-\-binary ]
+.I key
+.I [FILENAME]
+@end ifset
+
+@mansect description
+This is a standalone HMAC-SHA-256 implementation used to compute an
+HMAC-SHA-256 message authentication code.  The tool has originally
+been developed as a second implementation for Libgcrypt to allow
+comparing against the primary implementation and to be used for
+internal consistency checks.  It should not be used for sensitive data
+because no mechanisms to clear the stack etc are used.
+
+The code has been written in a highly portable manner and requires
+only a few standard definitions to be provided in a config.h file.
+
+@noindent
+@command{hmac256} is commonly invoked as
+
+@example
+hmac256 "This is my key" foo.txt
+@end example
+
+@noindent
+This compute the MAC on the file @file{foo.txt} using the key given on
+the command line.
+
+@mansect options
+@noindent
+@command{hmac256} understands these options:
+
+@table @gnupgtabopt
+
+@item --binary
+Print the MAC as a binary string.  The default is to print the MAC
+encoded has lower case hex digits.
+
+@item --version
+Print version of the program and exit.
+
+@end table
+
+@mansect see also
+@ifset isman
+@command{sha256sum}(1)
+@end ifset
+@manpause
 
 @c **********************************************************
 @c *****************  Architecure Overview  *****************
