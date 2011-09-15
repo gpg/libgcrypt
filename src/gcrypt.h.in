@@ -174,14 +174,6 @@ gcry_error_t gcry_err_make_from_errno (gcry_err_source_t source, int err);
 gcry_err_code_t gcry_error_from_errno (int err);
 
 
-/* This enum is deprecated; it is only declared for the sake of
-   complete API compatibility.  */
-enum gcry_thread_option
-  {
-    _GCRY_THREAD_OPTION_DUMMY
-  } _GCRY_GCC_ATTR_DEPRECATED;
-
-
 /* Constants defining the thread model to use.  Used with the OPTION
    field of the struct gcry_thread_cbs.  */
 #define GCRY_THREAD_OPTION_DEFAULT  0
@@ -1210,19 +1202,6 @@ void gcry_md_debug (gcry_md_hd_t hd, const char *suffix);
    OID. */
 #define gcry_md_get_asnoid(a,b,n) \
             gcry_md_algo_info((a), GCRYCTL_GET_ASNOID, (b), (n))
-
-/* Enable debugging for digest object A; i.e. create files named
-   dbgmd-<n>.<string> while hashing.  B is a string used as the suffix
-   for the filename.  This macro is deprecated, use gcry_md_debug. */
-#ifndef GCRYPT_NO_DEPRECATED
-#define gcry_md_start_debug(a,b) \
-            gcry_md_ctl( (a), GCRYCTL_START_DUMP, (b), 0 )
-
-/* Disable the debugging of A.  This macro is deprecated, use
-   gcry_md_debug.  */
-#define gcry_md_stop_debug(a,b) \
-            gcry_md_ctl( (a), GCRYCTL_STOP_DUMP, (b), 0 )
-#endif
 
 
 

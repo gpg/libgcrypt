@@ -3071,28 +3071,6 @@ because @code{gcry_md_close} implicitly stops debugging.
 @end deftypefun
 
 
-The following two deprecated macros are used for debugging by old code.
-They shopuld be replaced by @code{gcry_md_debug}.
-
-@deftypefun void gcry_md_start_debug (gcry_md_hd_t @var{h}, const char *@var{suffix})
-
-Enable debugging for the digest object with handle @var{h}.  This
-creates create files named @file{dbgmd-<n>.<string>} while doing the
-actual hashing.  @var{suffix} is the string part in the filename.  The
-number is a counter incremented for each new hashing.  The data in the
-file is the raw data as passed to @code{gcry_md_write} or
-@code{gcry_md_putc}.
-@end deftypefun
-
-
-@deftypefun void gcry_md_stop_debug (gcry_md_hd_t @var{h}, int @var{reserved})
-
-Stop debugging on handle @var{h}.  @var{reserved} should be specified as
-0.  This function is usually not required because @code{gcry_md_close}
-does implicitly stop debugging.
-@end deftypefun
-
-
 @c *******************************************************
 @c *******************  KDF  *****************************
 @c *******************************************************

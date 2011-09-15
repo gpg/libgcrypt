@@ -1,5 +1,11 @@
 2011-09-15  Werner Koch  <wk@g10code.com>
 
+	* gcrypt.h.in (enum gcry_thread_option): Remove deprecated enum.
+	(gcry_md_start_debug, gcry_md_stop_debug): Remove deprecated these
+	macros.
+
+2011-09-15  Werner Koch  <wk@g10code.com>
+
 	Removal of the gcry_ac and the module register interfaces.
 
 	* Makefile.am (include_HEADERS): Remove gcrypt-module.h.

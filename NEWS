@@ -6,6 +6,9 @@ Noteworthy changes in version 1.6.0 (unreleased)
 
  * Removed the module register subsystem.
 
+ * The deprecated message digest debug macros have been removed.  Use
+   gcry_md_debug instead.
+
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_ac_*              REMOVED.
@@ -20,6 +23,8 @@ Noteworthy changes in version 1.6.0 (unreleased)
  gcry_md_register       REMOVED.
  gcry_md_unregister     REMOVED.
  gcry_md_list           REMOVED.
+ gcry_md_start_debug    REMOVED (macro).
+ gcry_md_stop_debug     REMOVED (macro).
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)
