@@ -1,3 +1,10 @@
+2011-11-11  Jim Meyering  <meyering@redhat.com>
+
+	tests: avoid write-beyond-end-of-heap buffer
+	* basic.c (check_bulk_cipher_modes): Allocate one more byte in
+	each of the two test buffers.  Otherwise, running
+	"env -i MALLOC_CHECK_=3 ./basic" would abort.
+
 2011-09-15  Werner Koch  <wk@g10code.com>
 
 	* register.c: Remove.

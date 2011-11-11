@@ -1251,9 +1251,9 @@ check_bulk_cipher_modes (void)
     fprintf (stderr, "Starting bulk cipher checks.\n");
 
   buflen = 16*100;  /* We check a 1600 byte buffer.  */
-  buffer_base = gcry_xmalloc (buflen+15);
+  buffer_base = gcry_xmalloc (buflen+16);
   buffer = buffer_base + (16 - ((size_t)buffer_base & 0x0f));
-  outbuf_base = gcry_xmalloc (buflen+15);
+  outbuf_base = gcry_xmalloc (buflen+16);
   outbuf = outbuf_base + (16 - ((size_t)outbuf_base & 0x0f));
 
 
