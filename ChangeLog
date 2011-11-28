@@ -1,3 +1,8 @@
+2011-11-28  Jim Meyering  <meyering@redhat.com>
+
+	accept --with-libgpg-error-prefix as well as --with-gpg-error-prefix
+	* m4/gpg-error.m4: Update from git master.
+
 2011-09-15  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Bump LT version at C19/A0/R0 due to the ABI change.
