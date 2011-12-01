@@ -19,7 +19,7 @@
 
 ACLOCAL_AMFLAGS = -I m4
 AUTOMAKE_OPTIONS = dist-bzip2
-DISTCHECK_CONFIGURE_FLAGS = --enable-random-daemon \
+DISTCHECK_CONFIGURE_FLAGS = --disable-random-daemon \
   --enable-ciphers=arcfour:blowfish:cast5:des:aes:twofish:serpent:rfc2268:seed:camellia
 
 DIST_SUBDIRS = m4 compat mpi cipher random src doc tests
