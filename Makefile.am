@@ -24,14 +24,20 @@ DISTCHECK_CONFIGURE_FLAGS = --enable-random-daemon \
 
 DIST_SUBDIRS = m4 compat mpi cipher random src doc tests
 SUBDIRS =         compat mpi cipher random src doc tests
-EXTRA_DIST = autogen.sh README.SVN
+EXTRA_DIST = autogen.sh README.SVN 					\
+             ChangeLog-2011 scripts/ChangeLog-2011 doc/ChangeLog-2011 	\
+             m4/ChangeLog-2011 cipher/ChangeLog-2011 src/ChangeLog-2011 \
+             random/ChangeLog-2011 tests/ChangeLog-2011 mpi/ChangeLog-2011 \
+             scripts/gitlog-to-changelog scripts/git-log-footer 	\
+             scripts/git-log-fix
+
 DISTCLEANFILES =
 
 
 # Add all the files listed in "distfiles" files to the distribution,
 # apply version number s to some files and create a VERSION file which
 # we need for the Prereq: patch file trick.
-dist-hook:
+dist-hook: gen-ChangeLog
 	@set -e; \
 	 for file in `cd $(top_srcdir); \
 	      find mpi -type f -name distfiles`; do \
@@ -43,6 +49,22 @@ dist-hook:
 	done
 	@set -e; \
 	echo "$(VERSION)" > $(distdir)/VERSION
+
+
+gen_start_date = 2011-12-01T14:00:00
+.PHONY: gen-ChangeLog
+gen-ChangeLog:
+	if test -d $(top_srcdir)/.git; then				\
+	  (cd $(top_srcdir) &&                      			\
+	    ./scripts/gitlog-to-changelog				\
+	    --amend=scripts/git-log-fix	 				\
+	    --since=$(gen_start_date) ) > $(distdir)/cl-t;		\
+          cat $(top_srcdir)/scripts/git-log-footer >> $(distdir)/cl-t;  \
+	  rm -f $(distdir)/ChangeLog;					\
+	  mv $(distdir)/cl-t $(distdir)/ChangeLog;			\
+	fi
+
+
 
 stowinstall:
 	$(MAKE) $(AM_MAKEFLAGS) install prefix=/usr/local/stow/libgcrypt
