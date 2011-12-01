@@ -104,16 +104,21 @@ global_init (void)
   /* Initialize our portable thread/mutex wrapper.  */
   err = ath_init ();
   if (err)
-    goto fail;
+    {
+      err = gpg_error_from_errno (err);
+      goto fail;
+    }
 
   /* See whether the system is in FIPS mode.  This needs to come as
-     early as possible put after the ATH has been initialized.  */
+     early as possible but after ATH has been initialized.  */
   _gcry_initialize_fips_mode (force_fips_mode);
 
   /* Before we do any other initialization we need to test available
      hardware features.  */
   _gcry_detect_hw_features (disabled_hw_features);
 
+  /* Initialize the modules - this is mainly allocating some memory and
+     creating mutexes.  */
   err = _gcry_cipher_init ();
   if (err)
     goto fail;
@@ -121,6 +126,9 @@ global_init (void)
   if (err)
     goto fail;
   err = _gcry_pk_init ();
+  if (err)
+    goto fail;
+  err = _gcry_primegen_init ();
   if (err)
     goto fail;
 
@@ -284,6 +292,7 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
 #endif
        "\n");
   fnc (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
+  fnc (fp, "threads:%s:\n", ath_get_model (NULL));
   hwf = _gcry_get_hw_features ();
   fnc (fp, "hwflist:");
   for (i=0; hwflist[i].desc; i++)
@@ -435,8 +444,8 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_SET_THREAD_CBS:
-      err = ath_install (va_arg (arg_ptr, void *), any_init_done);
-      if (! err)
+      err = ath_install (va_arg (arg_ptr, void *));
+      if (!err)
 	global_init ();
       break;
 

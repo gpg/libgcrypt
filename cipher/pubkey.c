@@ -85,7 +85,7 @@ static struct pubkey_table_entry
 static gcry_module_t pubkeys_registered;
 
 /* This is the lock protecting PUBKEYS_REGISTERED.  */
-static ath_mutex_t pubkeys_registered_lock = ATH_MUTEX_INITIALIZER;;
+static ath_mutex_t pubkeys_registered_lock;
 
 /* Flag to check whether the default pubkeys have already been
    registered.  */
@@ -4056,7 +4056,11 @@ gcry_pk_algo_info (int algorithm, int what, void *buffer, size_t *nbytes)
 gcry_err_code_t
 _gcry_pk_init (void)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err;
+
+  err = ath_mutex_init (&pubkeys_registered_lock);
+  if (err)
+    return gpg_err_code_from_errno (err);
 
   REGISTER_DEFAULT_PUBKEYS;
 

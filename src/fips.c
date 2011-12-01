@@ -69,7 +69,7 @@ static int enforced_fips_mode;
 static int inactive_fips_mode;
 
 /* This is the lock we use to protect the FSM.  */
-static ath_mutex_t fsm_lock = ATH_MUTEX_INITIALIZER;
+static ath_mutex_t fsm_lock;
 
 /* The current state of the FSM.  The whole state machinery is only
    used while in fips mode. Change this only while holding fsm_lock. */

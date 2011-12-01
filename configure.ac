@@ -641,6 +641,11 @@ if test "$have_pthread" = yes; then
    AC_DEFINE(HAVE_PTHREAD, ,[Define if we have pthread.])
 fi
 
+#
+# See which thread system we have
+# FIXME: Thus duplicates the above check.
+#
+gl_LOCK
 
 # Solaris needs -lsocket and -lnsl. Unisys system includes
 # gethostbyname in libsocket but needs libnsl for socket.

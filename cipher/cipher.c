@@ -106,8 +106,9 @@ static struct cipher_table_entry
 /* List of registered ciphers.  */
 static gcry_module_t ciphers_registered;
 
-/* This is the lock protecting CIPHERS_REGISTERED.  */
-static ath_mutex_t ciphers_registered_lock = ATH_MUTEX_INITIALIZER;
+/* This is the lock protecting CIPHERS_REGISTERED.  It is initialized
+   by _gcry_cipher_init.  */
+static ath_mutex_t ciphers_registered_lock;
 
 /* Flag to check whether the default ciphers have already been
    registered.  */
@@ -1353,7 +1354,11 @@ gcry_cipher_get_algo_blklen (int algo)
 gcry_err_code_t
 _gcry_cipher_init (void)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err;
+
+  err = ath_mutex_init (&ciphers_registered_lock);
+  if (err)
+    return gpg_err_code_from_errno (err);
 
   REGISTER_DEFAULT_CIPHERS;
 

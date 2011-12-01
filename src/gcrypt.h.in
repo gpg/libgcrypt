@@ -174,6 +174,10 @@ gcry_error_t gcry_err_make_from_errno (gcry_err_source_t source, int err);
 gcry_err_code_t gcry_error_from_errno (int err);
 
 
+/* NOTE: Since Libgcrypt 1.6 the thread callbacks are not anymore
+   used.  However we keep it to allow for some source code
+   compatibility if used in the standard way.  */
+
 /* Constants defining the thread model to use.  Used with the OPTION
    field of the struct gcry_thread_cbs.  */
 #define GCRY_THREAD_OPTION_DEFAULT  0
@@ -183,7 +187,7 @@ gcry_err_code_t gcry_error_from_errno (int err);
 
 /* The version number encoded in the OPTION field of the struct
    gcry_thread_cbs.  */
-#define GCRY_THREAD_OPTION_VERSION  0
+#define GCRY_THREAD_OPTION_VERSION  1
 
 /* Wrapper for struct ath_ops.  */
 struct gcry_thread_cbs
@@ -191,144 +195,18 @@ struct gcry_thread_cbs
   /* The OPTION field encodes the thread model and the version number
      of this structure.
        Bits  7 - 0  are used for the thread model
-       Bits 15 - 8  are used for the version number.
-  */
+       Bits 15 - 8  are used for the version number.  */
   unsigned int option;
+} _GCRY_ATTR_INTERNAL;
 
-  int (*init) (void);
-  int (*mutex_init) (void **priv);
-  int (*mutex_destroy) (void **priv);
-  int (*mutex_lock) (void **priv);
-  int (*mutex_unlock) (void **priv);
-  ssize_t (*read) (int fd, void *buf, size_t nbytes);
-  ssize_t (*write) (int fd, const void *buf, size_t nbytes);
-#ifdef _WIN32
-  ssize_t (*select) (int nfd, void *rset, void *wset, void *eset,
-		     struct timeval *timeout);
-  ssize_t (*waitpid) (pid_t pid, int *status, int options);
-  int (*accept) (int s, void  *addr, int *length_ptr);
-  int (*connect) (int s, void *addr, gcry_socklen_t length);
-  int (*sendmsg) (int s, const void *msg, int flags);
-  int (*recvmsg) (int s, void *msg, int flags);
-#else
-  ssize_t (*select) (int nfd, fd_set *rset, fd_set *wset, fd_set *eset,
-		     struct timeval *timeout);
-  ssize_t (*waitpid) (pid_t pid, int *status, int options);
-  int (*accept) (int s, struct sockaddr *addr, gcry_socklen_t *length_ptr);
-  int (*connect) (int s, struct sockaddr *addr, gcry_socklen_t length);
-  int (*sendmsg) (int s, const struct msghdr *msg, int flags);
-  int (*recvmsg) (int s, struct msghdr *msg, int flags);
-#endif
-};
+#define GCRY_THREAD_OPTION_PTH_IMPL                                     \
+  static struct gcry_thread_cbs gcry_threads_pth = {                    \
+    (GCRY_THREAD_OPTION_PTH | (GCRY_THREAD_OPTION_VERSION << 8))}
 
-#ifdef _WIN32
-# define _GCRY_THREAD_OPTION_PTH_IMPL_NET				      \
-static ssize_t gcry_pth_select (int nfd, void *rset, void *wset,	      \
-				void *eset, struct timeval *timeout)	      \
-  { return pth_select (nfd, rset, wset, eset, timeout); }		      \
-static ssize_t gcry_pth_waitpid (pid_t pid, int *status, int options)	      \
-  { return pth_waitpid (pid, status, options); }			      \
-static int gcry_pth_accept (int s, void *addr,                                \
-			    gcry_socklen_t *length_ptr)			      \
-  { return pth_accept (s, addr, length_ptr); }				      \
-static int gcry_pth_connect (int s, void *addr,		                      \
-			     gcry_socklen_t length)			      \
-  { return pth_connect (s, addr, length); }
-#else /*!_WIN32*/
-# define _GCRY_THREAD_OPTION_PTH_IMPL_NET				      \
-static ssize_t gcry_pth_select (int nfd, fd_set *rset, fd_set *wset,	      \
-				fd_set *eset, struct timeval *timeout)	      \
-  { return pth_select (nfd, rset, wset, eset, timeout); }		      \
-static ssize_t gcry_pth_waitpid (pid_t pid, int *status, int options)	      \
-  { return pth_waitpid (pid, status, options); }			      \
-static int gcry_pth_accept (int s, struct sockaddr *addr,		      \
-			    gcry_socklen_t *length_ptr)			      \
-  { return pth_accept (s, addr, length_ptr); }				      \
-static int gcry_pth_connect (int s, struct sockaddr *addr,		      \
-			     gcry_socklen_t length)			      \
-  { return pth_connect (s, addr, length); }
-#endif /*!_WIN32*/
+#define GCRY_THREAD_OPTION_PTHREAD_IMPL                                 \
+  static struct gcry_thread_cbs gcry_threads_pthread = {                \
+    (GCRY_THREAD_OPTION_PTHREAD | (GCRY_THREAD_OPTION_VERSION << 8))}
 
-
-
-#define GCRY_THREAD_OPTION_PTH_IMPL					      \
-static int gcry_pth_init (void)						      \
-{ return (pth_init () == FALSE) ? errno : 0; }				      \
-static int gcry_pth_mutex_init (void **priv)				      \
-{									      \
-  int err = 0;								      \
-  pth_mutex_t *lock = malloc (sizeof (pth_mutex_t));			      \
-									      \
-  if (!lock)								      \
-    err = ENOMEM;							      \
-  if (!err)								      \
-    {									      \
-      err = pth_mutex_init (lock);					      \
-      if (err == FALSE)							      \
-	err = errno;							      \
-      else								      \
-	err = 0;							      \
-      if (err)								      \
-	free (lock);							      \
-      else								      \
-	*priv = lock;							      \
-    }									      \
-  return err;								      \
-}									      \
-static int gcry_pth_mutex_destroy (void **lock)				      \
-  { /* GNU Pth has no destructor function.  */ free (*lock); return 0; }      \
-static int gcry_pth_mutex_lock (void **lock)				      \
-  { return ((pth_mutex_acquire (*lock, 0, NULL)) == FALSE)		      \
-      ? errno : 0; }							      \
-static int gcry_pth_mutex_unlock (void **lock)				      \
-  { return ((pth_mutex_release (*lock)) == FALSE)			      \
-      ? errno : 0; }							      \
-static ssize_t gcry_pth_read (int fd, void *buf, size_t nbytes)		      \
-  { return pth_read (fd, buf, nbytes); }				      \
-static ssize_t gcry_pth_write (int fd, const void *buf, size_t nbytes)	      \
-  { return pth_write (fd, buf, nbytes); }				      \
-_GCRY_THREAD_OPTION_PTH_IMPL_NET                                              \
-									      \
-/* Note: GNU Pth is missing pth_sendmsg and pth_recvmsg.  */		      \
-static struct gcry_thread_cbs gcry_threads_pth = {                            \
-  (GCRY_THREAD_OPTION_PTH | (GCRY_THREAD_OPTION_VERSION << 8)),               \
-  gcry_pth_init, gcry_pth_mutex_init, gcry_pth_mutex_destroy,		      \
-  gcry_pth_mutex_lock, gcry_pth_mutex_unlock, gcry_pth_read, gcry_pth_write,  \
-  gcry_pth_select, gcry_pth_waitpid, gcry_pth_accept, gcry_pth_connect,       \
-  NULL, NULL }
-
-
-#define GCRY_THREAD_OPTION_PTHREAD_IMPL					      \
-static int gcry_pthread_mutex_init (void **priv)			      \
-{									      \
-  int err = 0;								      \
-  pthread_mutex_t *lock = (pthread_mutex_t*)malloc (sizeof (pthread_mutex_t));\
-									      \
-  if (!lock)								      \
-    err = ENOMEM;							      \
-  if (!err)								      \
-    {									      \
-      err = pthread_mutex_init (lock, NULL);				      \
-      if (err)								      \
-	free (lock);							      \
-      else								      \
-	*priv = lock;							      \
-    }									      \
-  return err;								      \
-}									      \
-static int gcry_pthread_mutex_destroy (void **lock)			      \
-  { int err = pthread_mutex_destroy ((pthread_mutex_t*)*lock);                \
-    free (*lock); return err; }                                               \
-static int gcry_pthread_mutex_lock (void **lock)			      \
-  { return pthread_mutex_lock ((pthread_mutex_t*)*lock); }		      \
-static int gcry_pthread_mutex_unlock (void **lock)			      \
-  { return pthread_mutex_unlock ((pthread_mutex_t*)*lock); }		      \
-									      \
-static struct gcry_thread_cbs gcry_threads_pthread = {			      \
-  (GCRY_THREAD_OPTION_PTHREAD | (GCRY_THREAD_OPTION_VERSION << 8)),           \
-  NULL, gcry_pthread_mutex_init, gcry_pthread_mutex_destroy,		      \
-  gcry_pthread_mutex_lock, gcry_pthread_mutex_unlock,                         \
-  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 
 
 /* The data object used to hold a multi precision integer.  */

@@ -141,8 +141,19 @@ struct primepool_s
 };
 struct primepool_s *primepool;
 /* Mutex used to protect access to the primepool.  */
-static ath_mutex_t primepool_lock = ATH_MUTEX_INITIALIZER;
+static ath_mutex_t primepool_lock;
 
+
+gcry_err_code_t
+_gcry_primegen_init (void)
+{
+  gcry_err_code_t ec;
+
+  ec = ath_mutex_init (&primepool_lock);
+  if (ec)
+    return gpg_err_code_from_errno (ec);
+  return ec;
+}
 
 
 /* Save PRIME which has been generated at RANDOMLEVEL for later
@@ -195,7 +206,7 @@ save_pool_prime (gcry_mpi_t prime, gcry_random_level_t randomlevel)
 
 /* Return a prime for the prime pool or NULL if none has been found.
    The prime needs to match NBITS and randomlevel. This function needs
-   to be called why the primepool_look is being hold. */
+   to be called with the primepool_look is being hold. */
 static gcry_mpi_t
 get_pool_prime (unsigned int nbits, gcry_random_level_t randomlevel)
 {

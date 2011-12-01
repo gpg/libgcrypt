@@ -3,6 +3,10 @@
 	accept --with-libgpg-error-prefix as well as --with-gpg-error-prefix
 	* m4/gpg-error.m4: Update from git master.
 
+2011-09-16  Werner Koch  <wk@g10code.com>
+
+	* configure.ac (HAVE_PTHREAD): New.
+
 2011-09-15  Werner Koch  <wk@g10code.com>
 
 	* configure.ac: Bump LT version at C19/A0/R0 due to the ABI change.
@@ -32,8 +36,6 @@
 	* configure.ac (BUILD_REVISION): Use new git_brevis macro.
 
 2011-02-23  Werner Koch  <wk@g10code.com>
-
-	* configure.ac (HAVE_PTHREAD): New.
 
 	* configure.ac (LIBGCRYPT_CONFIG_HOST): New.
 

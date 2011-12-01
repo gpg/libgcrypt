@@ -167,6 +167,7 @@ const char *_gcry_mpi_get_hw_config (void);
 #endif
 
 /*-- primegen.c --*/
+gcry_err_code_t _gcry_primegen_init (void);
 gcry_mpi_t _gcry_generate_secret_prime (unsigned int nbits,
                                  gcry_random_level_t random_level,
                                  int (*extra_check)(void*, gcry_mpi_t),

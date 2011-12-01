@@ -28,6 +28,7 @@
    sensitive data.
  */
 
+#error This dameon needs to be fixed due to the ath changes
 
 #include <config.h>
 #include <stdio.h>

@@ -103,7 +103,7 @@ static struct digest_table_entry
 static gcry_module_t digests_registered;
 
 /* This is the lock protecting DIGESTS_REGISTERED.  */
-static ath_mutex_t digests_registered_lock = ATH_MUTEX_INITIALIZER;
+static ath_mutex_t digests_registered_lock;
 
 /* Flag to check whether the default ciphers have already been
    registered.  */
@@ -1284,7 +1284,11 @@ gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
 gcry_err_code_t
 _gcry_md_init (void)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t err;
+
+  err = ath_mutex_init (&digests_registered_lock);
+  if (err)
+    return gpg_err_code_from_errno (err);
 
   REGISTER_DEFAULT_DIGESTS;
 

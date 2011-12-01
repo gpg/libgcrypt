@@ -181,7 +181,7 @@ static int quick_test;
 static int faked_rng;
 
 /* This is the lock we use to protect all pool operations.  */
-static ath_mutex_t pool_lock = ATH_MUTEX_INITIALIZER;
+static ath_mutex_t pool_lock;
 
 /* This is a helper for assert calls.  These calls are used to assert
    that functions are called in a locked state.  It is not meant to be
@@ -191,7 +191,7 @@ static int pool_is_locked;
 
 /* This is the lock we use to protect the buffer used by the nonce
    generation.  */
-static ath_mutex_t nonce_buffer_lock = ATH_MUTEX_INITIALIZER;
+static ath_mutex_t nonce_buffer_lock;
 
 
 /* We keep some counters in this structure for the sake of the

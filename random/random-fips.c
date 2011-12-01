@@ -72,7 +72,7 @@
    integer variable is only used to check the locking state; that is,
    it is not meant to be thread-safe but merely as a failsafe feature
    to assert proper locking.  */
-static ath_mutex_t fips_rng_lock = ATH_MUTEX_INITIALIZER;
+static ath_mutex_t fips_rng_lock;
 static int fips_rng_is_locked;
 
 
