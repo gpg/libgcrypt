@@ -98,15 +98,143 @@ check_primes (void)
     }
 }
 
+
+/* Print an MPI S-expression.  */
+static void
+print_mpi (const char *name, gcry_mpi_t a)
+{
+  gcry_error_t err;
+  unsigned char *buf;
+  int writerr = 0;
+
+  err = gcry_mpi_aprint (GCRYMPI_FMT_HEX, &buf, NULL, a);
+  if (err)
+    die ("gcry_mpi_aprint failed: %s\n", gcry_strerror (err));
+
+  printf ("  (%s #%s#)\n", name, buf);
+  if (ferror (stdout))
+    writerr++;
+  if (!writerr && fflush (stdout) == EOF)
+    writerr++;
+  if (writerr)
+    die ("writing output failed\n");
+  gcry_free (buf);
+}
+
+
+/* Create the key for our public standard dummy CA.  */
+static void
+create_42prime (void)
+{
+  gcry_error_t err;
+  char string[128*2+1];
+  int i;
+  gcry_mpi_t start = NULL;
+  gcry_mpi_t p, q, n, t1, t2, phi, f, g, e, d, u;
+
+
+  /* Our start value is a string of 0x42 values, with the exception
+     that the two high order bits are set.  This is to resemble the
+     way Lingcrypt generates RSA primes.  */
+  for (i=0; i < 128;)
+    {
+      string[i++] = '4';
+      string[i++] = '2';
+    }
+  string[i] = 0;
+  string[0] = 'C';
+
+  err = gcry_mpi_scan (&start, GCRYMPI_FMT_HEX, string, 0, NULL);
+  if (err)
+    die ("gcry_mpi_scan failed: %s\n", gcry_strerror (err));
+  fputs ("start:", stderr); gcry_mpi_dump (start); putc ('\n', stderr);
+
+  /* Generate two primes with p < q.  We take the first primes below
+     and above a start value. */
+  p = gcry_mpi_copy (start);
+  gcry_mpi_sub_ui (p, p, 1);
+  while (gcry_prime_check (p, 0))
+    gcry_mpi_sub_ui (p, p, 2);
+  fputs ("    p:", stderr); gcry_mpi_dump (p); putc ('\n', stderr);
+  q = gcry_mpi_copy (start);
+  gcry_mpi_add_ui (q, q, 1);
+  while (gcry_prime_check (q, 0))
+    gcry_mpi_add_ui (q, q, 2);
+  fputs ("    q:", stderr); gcry_mpi_dump (q); putc ('\n', stderr);
+
+  /* Compute the modulus.  */
+  n = gcry_mpi_new (1024);
+  gcry_mpi_mul (n, p, q);
+  fputs ("    n:", stderr); gcry_mpi_dump (n); putc ('\n', stderr);
+  if (gcry_mpi_get_nbits (n) != 1024)
+    die ("Oops: the size of N is not 1024 but %u\n", gcry_mpi_get_nbits (n));
+
+  /* Calculate Euler totient: phi = (p-1)(q-1) */
+  t1 = gcry_mpi_new (0);
+  t2 = gcry_mpi_new (0);
+  phi = gcry_mpi_new (0);
+  g   = gcry_mpi_new (0);
+  f   = gcry_mpi_new (0);
+  gcry_mpi_sub_ui (t1, p, 1);
+  gcry_mpi_sub_ui (t2, q, 1);
+  gcry_mpi_mul (phi, t1, t2);
+  gcry_mpi_gcd (g, t1, t2);
+  gcry_mpi_div (f, NULL, phi, g, -1);
+
+  /* Check the public exponent.  */
+  e = gcry_mpi_set_ui (NULL, 65537);
+  if (!gcry_mpi_gcd (t1, e, phi))
+    die ("Oops: E is not a generator\n");
+  fputs ("    e:", stderr); gcry_mpi_dump (e); putc ('\n', stderr);
+
+  /* Compute the secret key:  d = e^-1 mod phi */
+  d = gcry_mpi_new (0);
+  gcry_mpi_invm (d, e, f );
+  fputs ("    d:", stderr); gcry_mpi_dump (d); putc ('\n', stderr);
+
+  /* Compute the inverse of p and q. */
+  u = gcry_mpi_new (0);
+  gcry_mpi_invm (u, p, q);
+  fputs ("    u:", stderr); gcry_mpi_dump (u); putc ('\n', stderr);
+
+  /* Print the S-expression.  */
+  fputs ("(private-key\n (rsa\n", stdout);
+  print_mpi ("n", n);
+  print_mpi ("e", e);
+  print_mpi ("d", d);
+  print_mpi ("p", p);
+  print_mpi ("q", q);
+  print_mpi ("u", u);
+  fputs ("))\n", stdout);
+
+  gcry_mpi_release (p);
+  gcry_mpi_release (q);
+  gcry_mpi_release (n);
+  gcry_mpi_release (t1);
+  gcry_mpi_release (t2);
+  gcry_mpi_release (phi);
+  gcry_mpi_release (f);
+  gcry_mpi_release (g);
+  gcry_mpi_release (e);
+  gcry_mpi_release (d);
+  gcry_mpi_release (u);
+}
+
+
+
+
 int
 main (int argc, char **argv)
 {
   int debug = 0;
+  int mode42 = 0;
 
   if ((argc > 1) && (! strcmp (argv[1], "--verbose")))
     verbose = 1;
   else if ((argc > 1) && (! strcmp (argv[1], "--debug")))
     verbose = debug = 1;
+  else if ((argc > 1) && (! strcmp (argv[1], "--42")))
+    verbose = debug = mode42 = 1;
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (! gcry_check_version (GCRYPT_VERSION))
@@ -116,7 +244,10 @@ main (int argc, char **argv)
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
 
-  check_primes ();
+  if (mode42)
+    create_42prime ();
+  else
+    check_primes ();
 
   return 0;
 }
