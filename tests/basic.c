@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <assert.h>
 
 #include "../src/gcrypt.h"
 
@@ -1355,57 +1356,84 @@ check_bulk_cipher_modes (void)
 }
 
 
-
-static void
-check_one_cipher (int algo, int mode, int flags)
+/* The core of the cipher check.  In addition to the parameters passed
+   to check_one_cipher it also receives the KEY and the plain data.
+   PASS is printed with error messages.  The function returns 0 on
+   success.  */
+static int
+check_one_cipher_core (int algo, int mode, int flags,
+                       const char *key, size_t nkey,
+                       const unsigned char *plain, size_t nplain,
+                       int bufshift, int pass)
 {
   gcry_cipher_hd_t hd;
-  char key[32];
-  unsigned char plain[16], in[16], out[16];
+  unsigned char in_buffer[17], out_buffer[17];
+  unsigned char *in, *out;
   int keylen;
   gcry_error_t err = 0;
 
-  memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF", 32);
-  memcpy (plain, "foobar42FOOBAR17", 16);
+  assert (nkey == 32);
+  assert (nplain == 16);
+
+  if (!bufshift)
+    {
+      in = in_buffer;
+      out = out_buffer;
+    }
+  else if (bufshift == 1)
+    {
+      in = in_buffer+1;
+      out = out_buffer;
+    }
+  else if (bufshift == 2)
+    {
+      in = in_buffer+1;
+      out = out_buffer+1;
+    }
+  else
+    {
+      in = in_buffer;
+      out = out_buffer+1;
+    }
 
   keylen = gcry_cipher_get_algo_keylen (algo);
   if (!keylen)
     {
-      fail ("algo %d, mode %d, gcry_cipher_get_algo_keylen failed\n",
-	    algo, mode);
-      return;
+      fail ("pass %d, algo %d, mode %d, gcry_cipher_get_algo_keylen failed\n",
+	    pass, algo, mode);
+      return -1;
     }
 
   if (keylen < 40 / 8 || keylen > 32)
     {
-      fail ("algo %d, mode %d, keylength problem (%d)\n", algo, mode, keylen);
-      return;
+      fail ("pass %d, algo %d, mode %d, keylength problem (%d)\n", pass, algo, mode, keylen);
+      return -1;
     }
 
   err = gcry_cipher_open (&hd, algo, mode, flags);
   if (err)
     {
-      fail ("algo %d, mode %d, gcry_cipher_open failed: %s\n",
-	    algo, mode, gpg_strerror (err));
-      return;
+      fail ("pass %d, algo %d, mode %d, gcry_cipher_open failed: %s\n",
+	    pass, algo, mode, gpg_strerror (err));
+      return -1;
     }
 
   err = gcry_cipher_setkey (hd, key, keylen);
   if (err)
     {
-      fail ("algo %d, mode %d, gcry_cipher_setkey failed: %s\n",
-	    algo, mode, gpg_strerror (err));
+      fail ("pass %d, algo %d, mode %d, gcry_cipher_setkey failed: %s\n",
+	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return;
+      return -1;
     }
 
   err = gcry_cipher_encrypt (hd, out, 16, plain, 16);
   if (err)
     {
-      fail ("algo %d, mode %d, gcry_cipher_encrypt failed: %s\n",
-	    algo, mode, gpg_strerror (err));
+      fail ("pass %d, algo %d, mode %d, gcry_cipher_encrypt failed: %s\n",
+	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return;
+      return -1;
     }
 
   gcry_cipher_reset (hd);
@@ -1413,14 +1441,15 @@ check_one_cipher (int algo, int mode, int flags)
   err = gcry_cipher_decrypt (hd, in, 16, out, 16);
   if (err)
     {
-      fail ("algo %d, mode %d, gcry_cipher_decrypt failed: %s\n",
-	    algo, mode, gpg_strerror (err));
+      fail ("pass %d, algo %d, mode %d, gcry_cipher_decrypt failed: %s\n",
+	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return;
+      return -1;
     }
 
   if (memcmp (plain, in, 16))
-    fail ("algo %d, mode %d, encrypt-decrypt mismatch\n", algo, mode);
+    fail ("pass %d, algo %d, mode %d, encrypt-decrypt mismatch\n",
+          pass, algo, mode);
 
   /* Again, using in-place encryption.  */
   gcry_cipher_reset (hd);
@@ -1429,10 +1458,11 @@ check_one_cipher (int algo, int mode, int flags)
   err = gcry_cipher_encrypt (hd, out, 16, NULL, 0);
   if (err)
     {
-      fail ("algo %d, mode %d, in-place, gcry_cipher_encrypt failed: %s\n",
-	    algo, mode, gpg_strerror (err));
+      fail ("pass %d, algo %d, mode %d, in-place, gcry_cipher_encrypt failed:"
+            " %s\n",
+	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return;
+      return -1;
     }
 
   gcry_cipher_reset (hd);
@@ -1440,19 +1470,63 @@ check_one_cipher (int algo, int mode, int flags)
   err = gcry_cipher_decrypt (hd, out, 16, NULL, 0);
   if (err)
     {
-      fail ("algo %d, mode %d, in-place, gcry_cipher_decrypt failed: %s\n",
-	    algo, mode, gpg_strerror (err));
+      fail ("pass %d, algo %d, mode %d, in-place, gcry_cipher_decrypt failed:"
+            " %s\n",
+	    pass, algo, mode, gpg_strerror (err));
       gcry_cipher_close (hd);
-      return;
+      return -1;
     }
 
   if (memcmp (plain, out, 16))
-    fail ("algo %d, mode %d, in-place, encrypt-decrypt mismatch\n",algo, mode);
+    fail ("pass %d, algo %d, mode %d, in-place, encrypt-decrypt mismatch\n",
+          pass, algo, mode);
 
 
   gcry_cipher_close (hd);
 
+  return 0;
 }
+
+
+
+static void
+check_one_cipher (int algo, int mode, int flags)
+{
+  char key[33];
+  unsigned char plain[17];
+  int bufshift;
+
+  for (bufshift=0; bufshift < 4; bufshift++)
+    {
+      /* Pass 0: Standard test.  */
+      memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF", 32);
+      memcpy (plain, "foobar42FOOBAR17", 16);
+      if (check_one_cipher_core (algo, mode, flags, key, 32, plain, 16,
+                                 bufshift, 0+10*bufshift))
+        return;
+
+      /* Pass 1: Key not aligned.  */
+      memmove (key+1, key, 32);
+      if (check_one_cipher_core (algo, mode, flags, key+1, 32, plain, 16,
+                                 bufshift, 1+10*bufshift))
+        return;
+
+      /* Pass 2: Key not aligned and data not aligned.  */
+      memmove (plain+1, plain, 16);
+      if (check_one_cipher_core (algo, mode, flags, key+1, 32, plain+1, 16,
+                                 bufshift, 2+10*bufshift))
+        return;
+
+      /* Pass 3: Key aligned and data not aligned.  */
+      memmove (key, key+1, 32);
+      if (check_one_cipher_core (algo, mode, flags, key, 32, plain+1, 16,
+                                 bufshift, 3+10*bufshift))
+        return;
+    }
+
+  return;
+}
+
 
 
 static void
