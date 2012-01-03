@@ -21,6 +21,7 @@
 #include <config.h>
 #endif
 
+#include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -46,11 +47,7 @@
 #endif
 
 /* For the dummy interface.  The MUTEX_NOTINIT value is used to check
-   that a mutex has been initialized.  Because its value is there is
-   no need to explicit initialized a mutex variable because it is
-   anyway static and we store a pointer to allocated memory there
-   after initialization.  The same thing works with other thread
-   models. */
+   that a mutex has been initialized.  */
 #define MUTEX_NOTINIT	((ath_mutex_t) 0)
 #define MUTEX_UNLOCKED	((ath_mutex_t) 1)
 #define MUTEX_LOCKED	((ath_mutex_t) 2)
@@ -231,7 +228,7 @@ ath_mutex_destroy (ath_mutex_t *lock)
 #if USE_POSIX_THREADS_WEAK
     case ath_model_pthreads_weak:
       {
-        pthread_mutex_t *plck = (pthread_mutex_t*)lock;
+        pthread_mutex_t *plck = (pthread_mutex_t*) (*lock);
 
         err = pthread_mutex_destroy (plck);
         if (!err)
@@ -263,7 +260,7 @@ ath_mutex_lock (ath_mutex_t *lock)
     {
     case ath_model_none:
       if (*lock == MUTEX_NOTINIT)
-        err = EINVAL;
+	err = EINVAL;
       else if (*lock == MUTEX_UNLOCKED)
         {
           *lock = MUTEX_LOCKED;
@@ -275,7 +272,7 @@ ath_mutex_lock (ath_mutex_t *lock)
 
 #if USE_POSIX_THREADS_WEAK
     case ath_model_pthreads_weak:
-      err = pthread_mutex_lock ((pthread_mutex_t*)lock);
+      err = pthread_mutex_lock ((pthread_mutex_t*)(*lock));
       break;
 #endif /*USE_POSIX_THREADS_WEAK*/
 
@@ -298,7 +295,7 @@ ath_mutex_unlock (ath_mutex_t *lock)
     {
     case ath_model_none:
       if (*lock == MUTEX_NOTINIT)
-        err = EINVAL;
+	err = EINVAL;
       else if (*lock == MUTEX_LOCKED)
         {
           *lock = MUTEX_UNLOCKED;
@@ -310,7 +307,7 @@ ath_mutex_unlock (ath_mutex_t *lock)
 
 #if USE_POSIX_THREADS_WEAK
     case ath_model_pthreads_weak:
-      err = pthread_mutex_unlock ((pthread_mutex_t*)lock);
+      err = pthread_mutex_unlock ((pthread_mutex_t*)(*lock));
       break;
 #endif /*USE_POSIX_THREADS_WEAK*/
 

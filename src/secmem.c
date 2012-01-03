@@ -506,6 +506,19 @@ _gcry_secmem_init (size_t n)
 }
 
 
+gcry_err_code_t
+_gcry_secmem_module_init ()
+{
+  int err;
+
+  err = ath_mutex_init (&secmem_lock);
+  if (err)
+    log_fatal ("could not allocate secmem lock\n");
+
+  return 0;
+}
+
+
 static void *
 _gcry_secmem_malloc_internal (size_t size)
 {
