@@ -112,6 +112,10 @@ static struct cipher_table_entry
     { &_gcry_cipher_spec_camellia256,
       &dummy_extra_spec,                  GCRY_CIPHER_CAMELLIA256 },
 #endif
+#ifdef USE_IDEA
+    { &_gcry_cipher_spec_idea,
+      &dummy_extra_spec,                  GCRY_CIPHER_IDEA },
+#endif
     { NULL                    }
   };
 
