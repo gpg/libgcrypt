@@ -1568,6 +1568,9 @@ check_ciphers (void)
     GCRY_CIPHER_CAMELLIA192,
     GCRY_CIPHER_CAMELLIA256,
 #endif
+#if USE_IDEA
+    GCRY_CIPHER_IDEA,
+#endif
     0
   };
   static int algos2[] = {
