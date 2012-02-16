@@ -63,6 +63,8 @@ typedef struct {
     int have_dk;
 } IDEA_context;
 
+static const char *selftest(void);
+
 
 static u16
 mul_inv( u16 x )
@@ -236,14 +238,18 @@ cipher( byte *outbuf, const byte *inbuf, u16 *key )
 static int
 do_setkey( IDEA_context *c, const byte *key, unsigned int keylen )
 {
-#if 0
     static int initialized = 0;
+    static const char *selftest_failed = 0;
 
     if( !initialized ) {
 	initialized = 1;
-	selftest(0);
+	selftest_failed = selftest();
+	if( selftest_failed )
+	    log_error( "%s\n", selftest_failed );
     }
-#endif
+    if( selftest_failed )
+	return GPG_ERR_SELFTEST_FAILED;
+
     assert(keylen == 16);
     c->have_dk = 0;
     expand_key( key, c->ek );
@@ -277,14 +283,6 @@ idea_encrypt (void *context, byte *out, const byte *in)
 static void
 decrypt_block( IDEA_context *c, byte *outbuf, const byte *inbuf )
 {
-#if 0
-    static int initialized;
-
-    if( !initialized ) {
-	initialized = 1;
-	selftest(1);
-    }
-#endif
     if( !c->have_dk ) {
        c->have_dk = 1;
        invert_key( c->ek, c->dk );
@@ -301,9 +299,8 @@ idea_decrypt (void *context, byte *out, const byte *in)
 }
 
 
-#if 0
-static void
-selftest( int check_decrypt )
+static const char *
+selftest( void )
 {
 static struct {
     byte key[16];
@@ -361,19 +358,16 @@ static struct {
 
     for(i=0; i < DIM(test_vectors); i++ ) {
 	do_setkey( &c, test_vectors[i].key, 16 );
-	if( !check_decrypt ) {
-	    encrypt_block( &c, buffer, test_vectors[i].plain );
-	    if( memcmp( buffer, test_vectors[i].cipher, 8 ) )
-		g10_log_fatal("idea encryption (%d) failed\n", i);
-	}
-	else {
-	    decrypt_block( &c, buffer, test_vectors[i].cipher );
-	    if( memcmp( buffer, test_vectors[i].plain, 8 ) )
-		g10_log_fatal("idea decryption (%d) failed\n", i);
-	}
+	encrypt_block( &c, buffer, test_vectors[i].plain );
+	if( memcmp( buffer, test_vectors[i].cipher, 8 ) )
+	    return "IDEA test encryption failed.";
+	decrypt_block( &c, buffer, test_vectors[i].cipher );
+	if( memcmp( buffer, test_vectors[i].plain, 8 ) )
+	    return "IDEA test decryption failed.";
     }
+
+    return NULL;
 }
-#endif
 
 
 gcry_cipher_spec_t _gcry_cipher_spec_idea =
