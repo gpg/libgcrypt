@@ -85,7 +85,6 @@ _gcry_rndos2_gather_random( void ( *add )( const void *, size_t,
     {
         CHAR szFail[ 260 ];
 
-        hmodTcpIp32 = NULLHANDLE;
         if( !DosLoadModule( szFail, sizeof( szFail ), "tcpip32",
                             &hmodTcpIp32 ))
         {
@@ -107,8 +106,9 @@ _gcry_rndos2_gather_random( void ( *add )( const void *, size_t,
                 hmodTcpIp32 = NULLHANDLE;
             }
         }
+        else
+            hmodTcpIp32 = NULLHANDLE;
 
-        hmodNetApi32 = NULLHANDLE;
         if( !DosLoadModule( szFail, sizeof( szFail ), "netapi32",
                             &hmodNetApi32 ))
         {
@@ -120,6 +120,8 @@ _gcry_rndos2_gather_random( void ( *add )( const void *, size_t,
                 hmodNetApi32 = NULLHANDLE;
             }
         }
+        else
+            hmodNetApi32 = NULLHANDLE;
 
         pfnDosPerfSysCall   = NULL;
         pfnDosQuerySysState = NULL;
