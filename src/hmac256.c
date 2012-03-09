@@ -52,7 +52,10 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#if defined(__WIN32) && defined(STANDALONE)
+#if (defined(__WIN32) || defined(__OS2__)) && defined(STANDALONE)
+# ifdef __OS2__
+#  include <io.h>
+# endif
 # include <fcntl.h> /* We need setmode().  */
 #endif
 
@@ -658,7 +661,7 @@ main (int argc, char **argv)
   int use_binary = 0;
 
   assert (sizeof (u32) == 4);
-#ifdef __WIN32
+#if defined(__WIN32) || defined(__OS2__)
   setmode (fileno (stdin), O_BINARY);
 #endif
 
@@ -707,7 +710,7 @@ main (int argc, char **argv)
       exit (1);
     }
 
-#ifdef __WIN32
+#if defined(__WIN32) || defined(__OS2__)
   if (use_binary)
     setmode (fileno (stdout), O_BINARY);
 #endif

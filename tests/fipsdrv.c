@@ -29,6 +29,10 @@
 #ifdef HAVE_W32_SYSTEM
 # include <fcntl.h> /* We need setmode().  */
 #else
+# ifdef HAVE_DOSISH_SYSTEM
+#  include <io.h>       /* We need setmode().   */
+#  include <fcntl.h>    /* We need O_BINARY     */
+# endif
 # include <signal.h>
 #endif
 #include <assert.h>

@@ -24,7 +24,7 @@ EXTRA_DIST = README.apichanges HACKING \
 	     yat2m.c
 
 DISTCLEANFILES = gcrypt.cps yat2m-stamp.tmp yat2m-stamp $(myman_pages)
-CLEANFILES = yat2m
+CLEANFILES = yat2m$(EXEEXT)
 
 BUILT_SOURCES = libgcrypt-modules.eps fips-fsm.eps \
                 libgcrypt-modules.png fips-fsm.png \
@@ -41,7 +41,7 @@ myman_pages   = hmac256.1
 
 man_MANS = $(myman_pages)
 
-yat2m: yat2m.c
+yat2m$(EXEEXT): yat2m.c
 	$(CC_FOR_BUILD) -o $@ $(srcdir)/yat2m.c
 
 .fig.png:
@@ -64,7 +64,7 @@ yat2m-stamp: $(myman_sources)
 	          `test -f '$$file' || echo '$(srcdir)/'`$$file ; done
 	@mv -f yat2m-stamp.tmp $@
 
-yat2m-stamp: yat2m
+yat2m-stamp: yat2m$(EXEEXT)
 
 $(myman_pages) : yat2m-stamp
 	@if test -f $@; then :; else \

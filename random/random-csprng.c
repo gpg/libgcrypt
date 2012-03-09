@@ -1151,6 +1151,11 @@ getfnc_gather_random (void))(void (*)(const void*, size_t,
   return fnc;
 #endif
 
+#if USE_RNDOS2
+  fnc = _gcry_rndos2_gather_random;
+  return fnc;
+#endif
+
   log_fatal (_("no entropy gathering module detected\n"));
 
   return NULL; /*NOTREACHED*/

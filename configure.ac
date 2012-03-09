@@ -197,6 +197,7 @@ LIBGCRYPT_THREAD_MODULES=""
 print_egd_notice=no
 have_w32_system=no
 have_w32ce_system=no
+have_os2_system=no
 have_pthread=no
 
 
@@ -227,8 +228,10 @@ case "${host}" in
     i?86-emx-os2 | i?86-*-os2*emx)
         # OS/2 with the EMX environment
         ac_cv_have_dev_random=no
+        have_os2_system=yes
         AC_DEFINE(HAVE_DRIVE_LETTERS)
         AC_DEFINE(HAVE_DOSISH_SYSTEM)
+        LDFLAGS="$LDFLAGS -no-undefined -Zbin-files"
         ;;
 
     i?86-*-msdosdjgpp*)
@@ -270,6 +273,11 @@ if test "$have_w32_system" = yes; then
 fi
 AM_CONDITIONAL(HAVE_W32_SYSTEM, test "$have_w32_system" = yes)
 AM_CONDITIONAL(HAVE_W32CE_SYSTEM, test "$have_w32ce_system" = yes)
+
+if test "$have_os2_system" = yes; then
+   AC_DEFINE(HAVE_OS2_SYSTEM,1, [Defined if we run on an OS/2 API based system])
+fi
+AM_CONDITIONAL(HAVE_OS2_SYSTEM, test "$have_os2_system" = yes)
 
 
 
@@ -882,6 +890,11 @@ if test "$random" = "default"; then
           # Windows random device.
           random_modules="w32"
           ;;
+
+        *-emx-os2 | *-*-os2*emx)
+          # OS/2 random device.
+          random_modules="os2"
+          ;;
         *)
           # Build everything, allow to select at runtime.
           random_modules="$auto_random_modules"
@@ -1188,6 +1201,13 @@ if test "$found" = "1" ; then
    GCRYPT_RANDOM="$GCRYPT_RANDOM rndw32ce.lo"
    AC_DEFINE(USE_RNDW32CE, 1,
              [Defined if the WindowsCE specific RNG should be used.])
+fi
+
+LIST_MEMBER(os2, $random_modules)
+if test "$found" = "1" ; then
+   GCRYPT_RANDOM="$GCRYPT_RANDOM rndos2.lo"
+   AC_DEFINE(USE_RNDOS2, 1,
+             [Defined if the OS/2 specific RNG should be used.])
 fi
 
 AC_SUBST([GCRYPT_CIPHERS])
