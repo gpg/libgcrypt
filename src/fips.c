@@ -274,9 +274,17 @@ _gcry_fips_mode (void)
 int
 _gcry_enforced_fips_mode (void)
 {
+  if (!_gcry_fips_mode ())
+    return 0;
   return enforced_fips_mode;
 }
 
+/* Set a flag telling whether we are in the enforced fips mode.  */
+void
+_gcry_set_enforced_fips_mode (void)
+{
+  enforced_fips_mode = 1;
+}
 
 /* If we do not want to enforce the fips mode, we can set a flag so
    that the application may check whether it is still in fips mode.

@@ -596,6 +596,16 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       }
       break;
 
+    case GCRYCTL_SET_ENFORCED_FIPS_FLAG:
+      if (!any_init_done)
+        {
+          /* Not yet intialized at all.  Set the enforced fips mode flag */
+          _gcry_set_enforced_fips_mode ();
+        }
+      else
+        err = GPG_ERR_GENERAL;
+      break;
+
     default:
       /* A call to make sure that the dummy code is linked in.  */
       _gcry_compat_identification ();

@@ -415,7 +415,8 @@ enum gcry_ctl_cmds
     GCRYCTL_FORCE_FIPS_MODE = 56,
     GCRYCTL_SELFTEST = 57,
     /* Note: 58 .. 62 are used internally.  */
-    GCRYCTL_DISABLE_HWF = 63
+    GCRYCTL_DISABLE_HWF = 63,
+    GCRYCTL_SET_ENFORCED_FIPS_FLAG = 64
   };
 
 /* Perform various operations defined by CMD. */

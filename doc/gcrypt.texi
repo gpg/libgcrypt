@@ -577,8 +577,10 @@ initialization (i.e. before @code{gcry_check_version}).
 
 In addition to the standard FIPS mode, Libgcrypt may also be put into
 an Enforced FIPS mode by writing a non-zero value into the file
-@file{/etc/gcrypt/fips_enabled}.  The Enforced FIPS mode helps to
-detect applications which don't fulfill all requirements for using
+@file{/etc/gcrypt/fips_enabled} or by using the control command
+@code{GCRYCTL_SET_ENFORCED_FIPS_FLAG} before any other calls to
+libgcrypt.  The Enforced FIPS mode helps to detect applications
+which don't fulfill all requirements for using
 Libgcrypt in FIPS mode (@pxref{FIPS Mode}).
 
 Once Libgcrypt has been put into FIPS mode, it is not possible to
@@ -787,20 +789,20 @@ proper random device.
 This command dumps information pertaining to the configuration of the
 library to the given stream.  If NULL is given for @var{stream}, the log
 system is used.  This command may be used before the intialization has
-been finished but not before a gcry_version_check.
+been finished but not before a @code{gcry_check_version}.
 
 @item GCRYCTL_OPERATIONAL_P; Arguments: none
 This command returns true if the library is in an operational state.
 This information makes only sense in FIPS mode.  In contrast to other
 functions, this is a pure test function and won't put the library into
 FIPS mode or change the internal state.  This command may be used before
-the intialization has been finished but not before a gcry_version_check.
+the intialization has been finished but not before a @code{gcry_check_version}.
 
 @item GCRYCTL_FIPS_MODE_P; Arguments: none
 This command returns true if the library is in FIPS mode.  Note, that
 this is no indication about the current state of the library.  This
 command may be used before the intialization has been finished but not
-before a gcry_version_check.  An application may use this command or
+before a @code{gcry_check_version}.  An application may use this command or
 the convenience macro below to check whether FIPS mode is actually
 active.
 
@@ -816,9 +818,18 @@ implemented as a macro.
 Running this command puts the library into FIPS mode.  If the library is
 already in FIPS mode, a self-test is triggered and thus the library will
 be put into operational state.  This command may be used before a call
-to gcry_check_version and that is actually the recommended way to let an
+to @code{gcry_check_version} and that is actually the recommended way to let an
 application switch the library into FIPS mode.  Note that Libgcrypt will
 reject an attempt to switch to fips mode during or after the intialization.
+
+@item GCRYCTL_SET_ENFORCED_FIPS_FLAG; Arguments: none
+Running this command sets the internal flag that puts the library into
+the enforced FIPS mode during the FIPS mode initialization.  This command
+does not affect the library if the library is not put into the FIPS mode and
+it must be used before any other libgcrypt library calls that initialize
+the library such as @code{gcry_check_version}. Note that Libgcrypt will
+reject an attempt to switch to the enforced fips mode during or after
+the intialization.
 
 @item GCRYCTL_SELFTEST; Arguments: none
 This may be used at anytime to have the library run all implemented
