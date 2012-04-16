@@ -1,33 +1,86 @@
-                        Various hacking notes                  -*- text -*-
-                       =======================
+# HACKING                                                       -*- org -*-
+#+TITLE: Hacking notes for Libgcrypt
+#+STARTUP: showall
 
-No more ChangeLog files
------------------------
+* How to contribute
 
-Do not modify any of the ChangeLog files in Libgcrypt.  Starting on
-December 1st, 2011 we put change information only in the GIT commit
-log, and generate a top-level ChangeLog file from logs at "make dist"
-time.  As such, there are strict requirements on the form of the
-commit log messages.  The old ChangeLog files have all be renamed to
-ChangeLog-2011
+  The following stuff explains some basic procedures you need to
+  follow if you want to contribute code or documentation.
+
+** No more ChangeLog files
+
+  Do not modify any of the ChangeLog files in Libgcrypt.  Starting on
+  December 1st, 2011 we put change information only in the GIT commit
+  log, and generate a top-level ChangeLog file from logs at "make
+  dist" time.  As such, there are strict requirements on the form of
+  the commit log messages.  The old ChangeLog files have all be
+  renamed to ChangeLog-2011
+
+** Commit log requirements
+
+  Your commit log should always start with a one-line summary, the
+  second line should be blank, and the remaining lines are usually
+  ChangeLog-style entries for all affected files.  However, it's fine
+  -- even recommended -- to write a few lines of prose describing the
+  change, when the summary and ChangeLog entries don't give enough of
+  the big picture.  Omit the leading TABs that you're used to seeing
+  in a "real" ChangeLog file, but keep the maximum line length at 72
+  or smaller, so that the generated ChangeLog lines, each with its
+  leading TAB, will not exceed 80 columns.
+
+** License policy
+
+  Libgcrypt is currently licensed under the LGPLv2+ with tools and the
+  manual being under the GPLv2+.  We may eventually update to a newer
+  version of the licenses or a combination of them.  It is thus
+  important, that all contributed code allows for an update of the
+  license; for example we can't accept code under the LGPLv2(only).
+
+  Libgcrypt used to have a strict policy of requiring copyright
+  assignments to the FSF.  To avoid this major organizational overhead
+  and to allow inclusion of code, not copyrighted by the FSF, this
+  policy has been relaxed.  It is now also possible to contribute code
+  by asserting that the contribution is in accordance to the
+  "Libgcrypt Developer's Certificate of Origin" as found in the file
+  "DCO".  (Except for a slight wording change, this DCO is identical
+  to the one used by the Linux kernel.)
+
+  If your want to contribute code or documentation to Libgcrypt and
+  you didn't signed a copyright assignment with the FSF in the past,
+  you need to take these simple steps:
+
+  - Decide which mail address you want to use.  Please have your real
+    name in the address and not a pseudonym.  Anonymous contributions
+    can only be done if you find a proxy who certifies for you.
+
+  - If your employer or school might claim ownership of code written
+    by you; you need to talk to them to make sure that you have the
+    right to contribute under the DCO.
+
+  - Send an OpenPGP signed mail to the gcrypt-devel@gnupg.org mailing
+    list from your mail address.  Include a copy of the DCO as found
+    in the official master branch.  Insert your name and email address
+    into the DCO in the same way you want to use it later.  Example:
+
+      Signed-off-by: Joe R. Hacker <joe@example.org>
+
+    (If you really need it, you may perform simple transformations of
+    the mail address: Replacing "@" by " at " or "." by " dot ".)
+
+  - That's it.  From now on you only need to add a "Signed-off-by:"
+    line with your name and mail address to the commit message.  It is
+    recommended to send the patches using a PGP/MIME signed mail.
+
+** Coding standards
+
+  Please follow the GNU coding standards.  If you are in doubt consult
+  the existing code as an example.  Do no re-indent code without a
+  need.  If you really need to do it, use a separate commit for such a
+  change.
 
 
-Commit log requirements
------------------------
-
-Your commit log should always start with a one-line summary, the second
-line should be blank, and the remaining lines are usually ChangeLog-style
-entries for all affected files.  However, it's fine -- even recommended --
-to write a few lines of prose describing the change, when the summary
-and ChangeLog entries don't give enough of the big picture.  Omit the
-leading TABs that you're used to seeing in a "real" ChangeLog file, but
-keep the maximum line length at 72 or smaller, so that the generated
-ChangeLog lines, each with its leading TAB, will not exceed 80 columns.
-
-
-
-Taking optimized MPI code out of GMP:
--------------------------------------
+* Porting hints
+** Taking optimized MPI code out of GMP:
 
   I generated the pentium4/* files by glueing the existing assembler
   prologues to the GMP 4.2.1 assembler files generated with the m4
@@ -42,8 +95,9 @@ Taking optimized MPI code out of GMP:
   tedious work.
 
 
-Debugging math stuff:
----------------------
+* Debug hints
+
+** Debugging math stuff:
 
   While debugging the ECC code in libgcrypt, I was in need for some
   computer algebra system which would allow me to verify the numbers
