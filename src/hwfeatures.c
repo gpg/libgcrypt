@@ -40,6 +40,99 @@ _gcry_get_hw_features (void)
 }
 
 
+#if defined (__x86_64__) && defined (__GNUC__)
+static void
+detect_x86_64_gnuc (void)
+{
+  /* The code here is only useful for the PadLock engine thus we don't
+     build it if that support has been disabled.  */
+  char vendor_id[12+1];
+
+  asm volatile
+    ("xorl  %%eax, %%eax\n\t"    /* 0 -> EAX.  */
+     "cpuid\n\t"                 /* Get vendor ID.  */
+     "movl  %%ebx, (%0)\n\t"     /* EBX,EDX,ECX -> VENDOR_ID.  */
+     "movl  %%edx, 4(%0)\n\t"
+     "movl  %%ecx, 8(%0)\n\t"
+     :
+     : "S" (&vendor_id[0])
+     : "%eax", "%ecx", "%edx", "cc"
+     );
+  vendor_id[12] = 0;
+
+  if (0)
+    ; /* Just to make "else if" and ifdef macros look pretty.  */
+#ifdef ENABLE_PADLOCK_SUPPORT
+  else if (!strcmp (vendor_id, "CentaurHauls"))
+    {
+      /* This is a VIA CPU.  Check what PadLock features we have.  */
+      asm volatile
+        ("movl $0xC0000000, %%eax\n\t"  /* Check for extended centaur  */
+         "cpuid\n\t"                    /* feature flags.              */
+         "cmpl $0xC0000001, %%eax\n\t"
+         "jb .Lready%=\n\t"             /* EAX < 0xC0000000 => no padlock.  */
+
+         "movl $0xC0000001, %%eax\n\t"  /* Ask for the extended */
+         "cpuid\n\t"                    /* feature flags.       */
+
+         "movl %%edx, %%eax\n\t"        /* Take copy of feature flags.  */
+         "andl $0x0C, %%eax\n\t"        /* Test bits 2 and 3 to see whether */
+         "cmpl $0x0C, %%eax\n\t"        /* the RNG exists and is enabled.   */
+         "jnz .Lno_rng%=\n\t"
+         "orl $1, %0\n"                 /* Set our HWF_PADLOCK_RNG bit.  */
+
+         ".Lno_rng%=:\n\t"
+         "movl %%edx, %%eax\n\t"        /* Take copy of feature flags.  */
+         "andl $0xC0, %%eax\n\t"        /* Test bits 6 and 7 to see whether */
+         "cmpl $0xC0, %%eax\n\t"        /* the ACE exists and is enabled.   */
+         "jnz .Lno_ace%=\n\t"
+         "orl $2, %0\n"                 /* Set our HWF_PADLOCK_AES bit.  */
+
+         ".Lno_ace%=:\n\t"
+         "movl %%edx, %%eax\n\t"        /* Take copy of feature flags.  */
+         "andl $0xC00, %%eax\n\t"       /* Test bits 10, 11 to see whether  */
+         "cmpl $0xC00, %%eax\n\t"       /* the PHE exists and is enabled.   */
+         "jnz .Lno_phe%=\n\t"
+         "orl $4, %0\n"                 /* Set our HWF_PADLOCK_SHA bit.  */
+
+         ".Lno_phe%=:\n\t"
+         "movl %%edx, %%eax\n\t"        /* Take copy of feature flags.  */
+         "andl $0x3000, %%eax\n\t"      /* Test bits 12, 13 to see whether  */
+         "cmpl $0x3000, %%eax\n\t"      /* MONTMUL exists and is enabled.   */
+         "jnz .Lready%=\n\t"
+         "orl $8, %0\n"                 /* Set our HWF_PADLOCK_MMUL bit.  */
+
+         ".Lready%=:\n"
+         : "+r" (hw_features)
+         :
+         : "%eax", "%edx", "cc"
+         );
+    }
+#endif /*ENABLE_PADLOCK_SUPPORT*/
+  else if (!strcmp (vendor_id, "GenuineIntel"))
+    {
+      /* This is an Intel CPU.  */
+      asm volatile
+        ("movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
+         "cpuid\n"
+         "testl $0x02000000, %%ecx\n\t" /* Test bit 25.  */
+         "jz .Lno_aes%=\n\t"            /* No AES support.  */
+         "orl $256, %0\n"               /* Set our HWF_INTEL_AES bit.  */
+
+         ".Lno_aes%=:\n"
+         : "+r" (hw_features)
+         :
+         : "%eax", "%ecx", "%edx", "cc"
+         );
+    }
+  else if (!strcmp (vendor_id, "AuthenticAMD"))
+    {
+      /* This is an AMD CPU.  */
+
+    }
+}
+#endif /* __x86_64__ && __GNUC__ */
+
 #if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
 static void
 detect_ia32_gnuc (void)
@@ -185,6 +278,10 @@ _gcry_detect_hw_features (unsigned int disabled_features)
 #endif
 #elif defined (__i386__) && SIZEOF_UNSIGNED_LONG == 8
 #ifdef __GNUC__
+#endif
+#elif defined (__x86_64__)
+#ifdef __GNUC__
+  detect_x86_64_gnuc ();
 #endif
 #endif
 

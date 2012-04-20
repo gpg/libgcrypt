@@ -27,7 +27,7 @@
 
 #undef USE_PADLOCK
 #ifdef ENABLE_PADLOCK_SUPPORT
-# if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
+# if ( (defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__) ) && defined (__GNUC__)
 # define USE_PADLOCK
 # endif
 #endif /*ENABLE_PADLOCK_SUPPORT*/
@@ -55,6 +55,16 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
   nbytes = 0;
   while (nbytes < 64)
     {
+#ifdef __x86_64__
+      asm volatile
+        ("movq %1, %%rdi\n\t"         /* Set buffer.  */
+         "xorq %%rdx, %%rdx\n\t"      /* Request up to 8 bytes.  */
+         ".byte 0x0f, 0xa7, 0xc0\n\t" /* XSTORE RNG. */
+         : "=a" (status)
+         : "g" (p)
+         : "%rdx", "%rdi", "cc"
+         );
+#else
       asm volatile
         ("movl %1, %%edi\n\t"         /* Set buffer.  */
          "xorl %%edx, %%edx\n\t"      /* Request up to 8 bytes.  */
@@ -63,6 +73,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
          : "g" (p)
          : "%edx", "%edi", "cc"
          );
+#endif
       if ((status & (1<<6))         /* RNG still enabled.  */
           && !(status & (1<<13))    /* von Neumann corrector is enabled.  */
           && !(status & (1<<14))    /* String filter is disabled.  */

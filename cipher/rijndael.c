@@ -63,7 +63,7 @@
    code.  */
 #undef USE_PADLOCK
 #ifdef ENABLE_PADLOCK_SUPPORT
-# if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && defined (__GNUC__)
+# if ( ( defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 ) || defined(__x86_64__) ) && defined (__GNUC__)
 #  define USE_PADLOCK 1
 # endif
 #endif /*ENABLE_PADLOCK_SUPPORT*/
@@ -663,17 +663,28 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
 
   memcpy (a, ax, 16);
 
+  int blocks = 1; /* Init counter for just one block.  */
+#ifdef __x86_64__
+  asm volatile
+    ("pushfq\n\t"          /* Force key reload.  */
+     "popfq\n\t"
+     ".byte 0xf3, 0x0f, 0xa7, 0xc8\n\t" /* REP XCRYPT ECB. */
+     : /* No output */
+     : "S" (a), "D" (b), "d" (cword), "b" (ctx->padlockkey), "c" (blocks)
+     : "cc", "memory"
+     );
+#else
   asm volatile
     ("pushfl\n\t"          /* Force key reload.  */
      "popfl\n\t"
      "xchg %3, %%ebx\n\t"  /* Load key.  */
-     "movl $1, %%ecx\n\t"  /* Init counter for just one block.  */
-     ".byte 0xf3, 0x0f, 0xa7, 0xc8\n\t" /* REP XSTORE ECB. */
+     ".byte 0xf3, 0x0f, 0xa7, 0xc8\n\t" /* REP XCRYPT ECB. */
      "xchg %3, %%ebx\n"    /* Restore GOT register.  */
      : /* No output */
-     : "S" (a), "D" (b), "d" (cword), "r" (ctx->padlockkey)
-     : "%ecx", "cc", "memory"
+     : "S" (a), "D" (b), "d" (cword), "r" (ctx->padlockkey), "c" (blocks)
+     : "cc", "memory"
      );
+#endif
 
   memcpy (bx, b, 16);
 
