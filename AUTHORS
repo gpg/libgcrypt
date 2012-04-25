@@ -37,7 +37,7 @@ Disclaims changes.
 nh@df.lth.se
 Weak key patches.
 
-GNUPG	R�mi Guyomarch		1999-05-25
+GNUPG	Rémi Guyomarch		1999-05-25
 Assigns past and future changes. (g10/compress.c, g10/encr-data.c,
 g10/free-packet.c, g10/mdfilter.c, g10/plaintext.c, util/iobuf.c)
 rguyom@mail.dotcom.fr
@@ -96,10 +96,17 @@ Assigns Past and Future Changes
 openpgp@brainhub.org
 (cipher/ecc.c and related files)
 
-LIBGCRYPT       Ulrich M�ller    2012-02-15
+LIBGCRYPT       Ulrich Müller    2012-02-15
 Assigns Past and Future Changes
 ulm@gentoo.org
 (Changes to cipher/idea.c and related files)
+
+
+Authors with a DCO
+==================
+
+DCO:2012-04-16:Tomáš Mráz <tm@t8m.info>
+DCO:2012-04-20:Rafaël Carré <funman@videolan.org>
 
 
 More credits
