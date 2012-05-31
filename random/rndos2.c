@@ -208,8 +208,8 @@ _gcry_rndos2_gather_random( void ( *add )( const void *, size_t,
             do
             {
                 /* Query all the system information supported by OS */
-                rc = DosQuerySysState( QS_SUPPORTED, 0, 0, 0, ( PCHAR )buf,
-                                       bufSize );
+                rc = pfnDosQuerySysState( QS_SUPPORTED, 0, 0, 0, ( PCHAR )buf,
+                                          bufSize );
                 if( rc == ERROR_BUFFER_OVERFLOW )
                 {
                     bufSize += BUF_SIZE_SYS_STATE_DELTA;
