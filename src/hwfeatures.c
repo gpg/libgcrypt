@@ -273,16 +273,22 @@ _gcry_detect_hw_features (unsigned int disabled_features)
     return; /* Hardware support is not to be evaluated.  */
 
 #if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4
-#ifdef __GNUC__
-  detect_ia32_gnuc ();
-#endif
+# ifdef __GNUC__
+  {
+    detect_ia32_gnuc ();
+  }
+# endif
 #elif defined (__i386__) && SIZEOF_UNSIGNED_LONG == 8
-#ifdef __GNUC__
-#endif
+# ifdef __GNUC__
+  {
+  }
+# endif
 #elif defined (__x86_64__)
-#ifdef __GNUC__
-  detect_x86_64_gnuc ();
-#endif
+# ifdef __GNUC__
+  {
+    detect_x86_64_gnuc ();
+  }
+# endif
 #endif
 
   hw_features &= ~disabled_features;

@@ -63,8 +63,10 @@
    code.  */
 #undef USE_PADLOCK
 #ifdef ENABLE_PADLOCK_SUPPORT
-# if ( ( defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 ) || defined(__x86_64__) ) && defined (__GNUC__)
-#  define USE_PADLOCK 1
+# ifdef __GNUC__
+#  if (defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__)
+#   define USE_PADLOCK 1
+#  endif
 # endif
 #endif /*ENABLE_PADLOCK_SUPPORT*/
 
@@ -650,6 +652,7 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
   unsigned char a[16] __attribute__ ((aligned (16)));
   unsigned char b[16] __attribute__ ((aligned (16)));
   unsigned int cword[4] __attribute__ ((aligned (16)));
+  int blocks;
 
   /* The control word fields are:
       127:12   11:10 9     8     7     6     5     4     3:0
@@ -663,7 +666,7 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
 
   memcpy (a, ax, 16);
 
-  int blocks = 1; /* Init counter for just one block.  */
+  blocks = 1; /* Init counter for just one block.  */
 #ifdef __x86_64__
   asm volatile
     ("pushfq\n\t"          /* Force key reload.  */
