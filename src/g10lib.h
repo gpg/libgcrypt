@@ -101,6 +101,8 @@ void _gcry_bug (const char *file, int line);
 void _gcry_assert_failed (const char *expr, const char *file, int line);
 #endif
 
+void _gcry_divide_by_zero (void) JNLIB_GCC_A_NR;
+
 const char *_gcry_gettext (const char *key) GCC_ATTR_FORMAT_ARG(1);
 void _gcry_fatal_error(int rc, const char *text ) JNLIB_GCC_A_NR;
 void _gcry_log( int level, const char *fmt, ... ) JNLIB_GCC_A_PRINTF(2,3);
