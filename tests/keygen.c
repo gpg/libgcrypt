@@ -1,5 +1,5 @@
 /* keygen.c  -  key generation regression tests
- *	Copyright (C) 2003, 2005 Free Software Foundation, Inc.
+ * Copyright (C) 2003, 2005, 2012 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -229,6 +229,69 @@ check_rsa_keys (void)
 
 
 static void
+check_generated_ecc_key (gcry_sexp_t key)
+{
+  gcry_sexp_t skey, pkey;
+
+  pkey = gcry_sexp_find_token (key, "public-key", 0);
+  if (!pkey)
+    fail ("public part missing in return value\n");
+  else
+    {
+      /* Fixme: Check more stuff.  */
+      gcry_sexp_release (pkey);
+    }
+
+  skey = gcry_sexp_find_token (key, "private-key", 0);
+  if (!skey)
+    fail ("private part missing in return value\n");
+  else
+    {
+      int rc = gcry_pk_testkey (skey);
+      if (rc)
+        fail ("gcry_pk_testkey failed: %s\n", gpg_strerror (rc));
+      gcry_sexp_release (skey);
+    }
+
+  /* Finally check that gcry_pk_testkey also works on the entire
+     S-expression.  */
+  {
+    int rc = gcry_pk_testkey (key);
+    if (rc)
+      fail ("gcry_pk_testkey failed on key pair: %s\n", gpg_strerror (rc));
+  }
+}
+
+
+static void
+check_ecc_keys (void)
+{
+  const char *curves[] = { "NIST P-521", "NIST P-384", "NIST P-256", NULL };
+  int testno;
+  gcry_sexp_t keyparm, key;
+  int rc;
+
+  for (testno=0; curves[testno]; testno++)
+    {
+      if (verbose)
+        fprintf (stderr, "creating ECC key using curve %s\n", curves[testno]);
+      rc = gcry_sexp_build (&keyparm, NULL,
+                            "(genkey(ecc(curve %s)))", curves[testno]);
+      if (rc)
+        die ("error creating S-expression: %s\n", gpg_strerror (rc));
+      rc = gcry_pk_genkey (&key, keyparm);
+      gcry_sexp_release (keyparm);
+      if (rc)
+        die ("error generating ECC key using curve %s: %s\n",
+             curves[testno], gpg_strerror (rc));
+
+      check_generated_ecc_key (key);
+      gcry_sexp_release (key);
+    }
+}
+
+
+static void
 check_nonce (void)
 {
   char a[32], b[32];
@@ -304,6 +367,7 @@ main (int argc, char **argv)
     gcry_set_progress_handler ( progress_cb, NULL );
 
   check_rsa_keys ();
+  check_ecc_keys ();
   check_nonce ();
 
   return error_count? 1:0;
