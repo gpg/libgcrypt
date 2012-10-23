@@ -462,36 +462,40 @@ gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
  * Return the length of the given list
  */
 int
-gcry_sexp_length( const gcry_sexp_t list )
+gcry_sexp_length (const gcry_sexp_t list)
 {
-    const byte *p;
-    DATALEN n;
-    int type;
-    int length = 0;
-    int level = 0;
+  const byte *p;
+  DATALEN n;
+  int type;
+  int length = 0;
+  int level = 0;
 
-    if ( !list )
-	return 0;
+  if (!list)
+    return 0;
 
-    p = list->d;
-    while ( (type=*p) != ST_STOP ) {
-	p++;
-	if ( type == ST_DATA ) {
-	    memcpy ( &n, p, sizeof n );
-	    p += sizeof n + n;
-	    if ( level == 1 )
-		length++;
+  p = list->d;
+  while ((type=*p) != ST_STOP)
+    {
+      p++;
+      if (type == ST_DATA)
+        {
+          memcpy (&n, p, sizeof n);
+          p += sizeof n + n;
+          if (level == 1)
+            length++;
 	}
-	else if ( type == ST_OPEN ) {
-	    if ( level == 1 )
-		length++;
-	    level++;
+      else if (type == ST_OPEN)
+        {
+          if (level == 1)
+            length++;
+          level++;
 	}
-	else if ( type == ST_CLOSE ) {
-	    level--;
+      else if (type == ST_CLOSE)
+        {
+          level--;
 	}
     }
-    return length;
+  return length;
 }
 
 
@@ -540,90 +544,104 @@ get_internal_buffer (const gcry_sexp_t list, size_t *r_off)
 /* Extract the CAR of the given list.  May return NULL for bad lists
    or memory failure.  */
 gcry_sexp_t
-gcry_sexp_nth( const gcry_sexp_t list, int number )
+gcry_sexp_nth (const gcry_sexp_t list, int number)
 {
-    const byte *p;
-    DATALEN n;
-    gcry_sexp_t newlist;
-    byte *d;
-    int level = 0;
+  const byte *p;
+  DATALEN n;
+  gcry_sexp_t newlist;
+  byte *d;
+  int level = 0;
 
-    if ( !list || list->d[0] != ST_OPEN )
-	return NULL;
-    p = list->d;
+  if (!list || list->d[0] != ST_OPEN)
+    return NULL;
+  p = list->d;
 
-    while ( number > 0 ) {
-	p++;
-	if ( *p == ST_DATA ) {
-	    memcpy ( &n, ++p, sizeof n );
-	    p += sizeof n + n;
-	    p--;
-	    if ( !level )
-		number--;
+  while (number > 0)
+    {
+      p++;
+      if (*p == ST_DATA)
+        {
+          memcpy (&n, ++p, sizeof n);
+          p += sizeof n + n;
+          p--;
+          if (!level)
+            number--;
 	}
-	else if ( *p == ST_OPEN ) {
-	    level++;
+      else if (*p == ST_OPEN)
+        {
+          level++;
 	}
-	else if ( *p == ST_CLOSE ) {
-	    level--;
-	    if ( !level )
-		number--;
+      else if (*p == ST_CLOSE)
+        {
+          level--;
+          if ( !level )
+            number--;
 	}
-	else if ( *p == ST_STOP ) {
-	    return NULL;
-	}
-    }
-    p++;
-
-    if ( *p == ST_DATA ) {
-	memcpy ( &n, p, sizeof n ); p += sizeof n;
-	newlist = gcry_malloc ( sizeof *newlist + n + 1 );
-        if (!newlist)
+      else if (*p == ST_STOP)
+        {
           return NULL;
-	d = newlist->d;
-	memcpy ( d, p, n ); d += n;
-	*d++ = ST_STOP;
+	}
     }
-    else if ( *p == ST_OPEN ) {
-	const byte *head = p;
+  p++;
 
-	level = 1;
-	do {
-	    p++;
-	    if ( *p == ST_DATA ) {
-		memcpy ( &n, ++p, sizeof n );
-		p += sizeof n + n;
-		p--;
-	    }
-	    else if ( *p == ST_OPEN ) {
-		level++;
-	    }
-	    else if ( *p == ST_CLOSE ) {
-		level--;
-	    }
-	    else if ( *p == ST_STOP ) {
-		BUG ();
-	    }
-	} while ( level );
-	n = p + 1 - head;
-
-	newlist = gcry_malloc ( sizeof *newlist + n );
-        if (!newlist)
-          return NULL;
-	d = newlist->d;
-	memcpy ( d, head, n ); d += n;
-	*d++ = ST_STOP;
+  if (*p == ST_DATA)
+    {
+      memcpy (&n, p, sizeof n);
+      p += sizeof n;
+      newlist = gcry_malloc (sizeof *newlist + n + 1);
+      if (!newlist)
+        return NULL;
+      d = newlist->d;
+      memcpy (d, p, n);
+      d += n;
+      *d++ = ST_STOP;
     }
-    else
-	newlist = NULL;
+  else if (*p == ST_OPEN)
+    {
+      const byte *head = p;
 
-    return normalize (newlist);
+      level = 1;
+      do {
+        p++;
+        if (*p == ST_DATA)
+          {
+            memcpy (&n, ++p, sizeof n);
+            p += sizeof n + n;
+            p--;
+          }
+        else if (*p == ST_OPEN)
+          {
+            level++;
+          }
+        else if (*p == ST_CLOSE)
+          {
+            level--;
+          }
+        else if (*p == ST_STOP)
+          {
+            BUG ();
+          }
+      } while (level);
+      n = p + 1 - head;
+
+      newlist = gcry_malloc (sizeof *newlist + n);
+      if (!newlist)
+        return NULL;
+      d = newlist->d;
+      memcpy (d, head, n);
+      d += n;
+      *d++ = ST_STOP;
+    }
+  else
+    newlist = NULL;
+
+  return normalize (newlist);
 }
 
 gcry_sexp_t
-gcry_sexp_car( const gcry_sexp_t list )
+gcry_sexp_car (const gcry_sexp_t list)
 {
-    return gcry_sexp_nth ( list, 0 );
+  return gcry_sexp_nth (list, 0);
 }
 
 
@@ -647,9 +665,9 @@ sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
     return NULL;     /* Not a list but N > 0 requested. */
 
   /* Skip over N elements. */
-  while ( number > 0 )
+  while (number > 0)
     {
-      if ( *p == ST_DATA )
+      if (*p == ST_DATA)
         {
           memcpy ( &n, ++p, sizeof n );
           p += sizeof n + n;
@@ -657,17 +675,17 @@ sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
           if ( !level )
             number--;
 	}
-      else if ( *p == ST_OPEN )
+      else if (*p == ST_OPEN)
         {
           level++;
 	}
-      else if ( *p == ST_CLOSE )
+      else if (*p == ST_CLOSE)
         {
           level--;
           if ( !level )
             number--;
 	}
-      else if ( *p == ST_STOP )
+      else if (*p == ST_STOP)
         {
           return NULL;
 	}
@@ -675,7 +693,7 @@ sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
     }
 
   /* If this is data, return it.  */
-  if ( *p == ST_DATA )
+  if (*p == ST_DATA)
     {
       memcpy ( &n, ++p, sizeof n );
       *datalen = n;
@@ -719,7 +737,7 @@ gcry_sexp_nth_string (const gcry_sexp_t list, int number)
  * Get a MPI from the car
  */
 gcry_mpi_t
-gcry_sexp_nth_mpi( gcry_sexp_t list, int number, int mpifmt )
+gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt)
 {
   const char *s;
   size_t n;
@@ -743,117 +761,130 @@ gcry_sexp_nth_mpi( gcry_sexp_t list, int number, int mpifmt )
  * Get the CDR
  */
 gcry_sexp_t
-gcry_sexp_cdr( const gcry_sexp_t list )
+gcry_sexp_cdr(const gcry_sexp_t list)
 {
-    const byte *p;
-    const byte *head;
-    DATALEN n;
-    gcry_sexp_t newlist;
-    byte *d;
-    int level = 0;
-    int skip = 1;
+  const byte *p;
+  const byte *head;
+  DATALEN n;
+  gcry_sexp_t newlist;
+  byte *d;
+  int level = 0;
+  int skip = 1;
 
-    if ( !list || list->d[0] != ST_OPEN )
-	return NULL;
-    p = list->d;
+  if (!list || list->d[0] != ST_OPEN)
+    return NULL;
+  p = list->d;
 
-    while ( skip > 0 ) {
-	p++;
-	if ( *p == ST_DATA ) {
-	    memcpy ( &n, ++p, sizeof n );
-	    p += sizeof n + n;
-	    p--;
-	    if ( !level )
-		skip--;
+  while (skip > 0)
+    {
+      p++;
+      if (*p == ST_DATA)
+        {
+          memcpy ( &n, ++p, sizeof n );
+          p += sizeof n + n;
+          p--;
+          if ( !level )
+            skip--;
 	}
-	else if ( *p == ST_OPEN ) {
-	    level++;
+      else if (*p == ST_OPEN)
+        {
+          level++;
 	}
-	else if ( *p == ST_CLOSE ) {
-	    level--;
-	    if ( !level )
-		skip--;
+      else if (*p == ST_CLOSE)
+        {
+          level--;
+          if ( !level )
+            skip--;
 	}
-	else if ( *p == ST_STOP ) {
-	    return NULL;
+      else if (*p == ST_STOP)
+        {
+          return NULL;
 	}
     }
+  p++;
+
+  head = p;
+  level = 0;
+  do {
+    if (*p == ST_DATA)
+      {
+        memcpy ( &n, ++p, sizeof n );
+        p += sizeof n + n;
+        p--;
+      }
+    else if (*p == ST_OPEN)
+      {
+        level++;
+      }
+    else if (*p == ST_CLOSE)
+      {
+        level--;
+      }
+    else if (*p == ST_STOP)
+      {
+        return NULL;
+      }
     p++;
+  } while (level);
+  n = p - head;
 
-    head = p;
-    level = 0;
-    do {
-	if ( *p == ST_DATA ) {
-	    memcpy ( &n, ++p, sizeof n );
-	    p += sizeof n + n;
-	    p--;
-	}
-	else if ( *p == ST_OPEN ) {
-	    level++;
-	}
-	else if ( *p == ST_CLOSE ) {
-	    level--;
-	}
-	else if ( *p == ST_STOP ) {
-	    return NULL;
-	}
-	p++;
-    } while ( level );
-    n = p - head;
+  newlist = gcry_malloc (sizeof *newlist + n + 2);
+  if (!newlist)
+    return NULL;
+  d = newlist->d;
+  *d++ = ST_OPEN;
+  memcpy (d, head, n);
+  d += n;
+  *d++ = ST_CLOSE;
+  *d++ = ST_STOP;
 
-    newlist = gcry_malloc ( sizeof *newlist + n + 2 );
-    if (!newlist)
-      return NULL;
-    d = newlist->d;
-    *d++ = ST_OPEN;
-    memcpy ( d, head, n ); d += n;
-    *d++ = ST_CLOSE;
-    *d++ = ST_STOP;
-
-    return normalize (newlist);
+  return normalize (newlist);
 }
+
 
 gcry_sexp_t
 gcry_sexp_cadr ( const gcry_sexp_t list )
 {
-    gcry_sexp_t a, b;
+  gcry_sexp_t a, b;
 
-    a = gcry_sexp_cdr ( list );
-    b = gcry_sexp_car ( a );
-    gcry_sexp_release ( a );
-    return b;
+  a = gcry_sexp_cdr (list);
+  b = gcry_sexp_car (a);
+  gcry_sexp_release (a);
+  return b;
 }
-
 
 
 static int
 hextobyte( const byte *s )
 {
-    int c=0;
+  int c=0;
 
-    if( *s >= '0' && *s <= '9' )
-	c = 16 * (*s - '0');
-    else if( *s >= 'A' && *s <= 'F' )
-	c = 16 * (10 + *s - 'A');
-    else if( *s >= 'a' && *s <= 'f' ) {
-	c = 16 * (10 + *s - 'a');
-    }
-    s++;
-    if( *s >= '0' && *s <= '9' )
-	c += *s - '0';
-    else if( *s >= 'A' && *s <= 'F' )
-	c += 10 + *s - 'A';
-    else if( *s >= 'a' && *s <= 'f' ) {
-	c += 10 + *s - 'a';
-    }
-    return c;
+  if( *s >= '0' && *s <= '9' )
+    c = 16 * (*s - '0');
+  else if( *s >= 'A' && *s <= 'F' )
+    c = 16 * (10 + *s - 'A');
+  else if( *s >= 'a' && *s <= 'f' ) {
+    c = 16 * (10 + *s - 'a');
+  }
+  s++;
+  if( *s >= '0' && *s <= '9' )
+    c += *s - '0';
+  else if( *s >= 'A' && *s <= 'F' )
+    c += 10 + *s - 'A';
+  else if( *s >= 'a' && *s <= 'f' ) {
+    c += 10 + *s - 'a';
+  }
+  return c;
 }
 
-struct make_space_ctx {
-    gcry_sexp_t sexp;
-    size_t allocated;
-    byte *pos;
+
+struct make_space_ctx
+{
+  gcry_sexp_t sexp;
+  size_t allocated;
+  byte *pos;
 };
+
 
 static gpg_err_code_t
 make_space ( struct make_space_ctx *c, size_t n )
