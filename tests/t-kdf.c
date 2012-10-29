@@ -917,7 +917,15 @@ check_pbkdf2 (void)
       16,
       "\x56\xfa\x6a\xa7\x55\x48\x09\x9d\xcc\x37"
       "\xd7\xf0\x34\x25\xe0\xc3"
-    }
+    },
+    { /* empty password test, not in RFC-6070 */
+      "", 0,
+      "salt", 4,
+      2,
+      20,
+      "\x13\x3a\x4c\xe8\x37\xb4\xd2\x52\x1e\xe2"
+      "\xbf\x03\xe1\x1c\x71\xca\x79\x4e\x07\x97"
+    },
   };
   int tvidx;
   gpg_error_t err;

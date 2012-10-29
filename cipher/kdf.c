@@ -238,7 +238,7 @@ gcry_kdf_derive (const void *passphrase, size_t passphraselen,
 {
   gpg_err_code_t ec;
 
-  if (!passphrase || !passphraselen)
+  if (!passphrase || (!passphraselen && algo != GCRY_KDF_PBKDF2))
     {
       ec = GPG_ERR_INV_DATA;
       goto leave;
