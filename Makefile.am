@@ -22,14 +22,16 @@ AUTOMAKE_OPTIONS = dist-bzip2
 DISTCHECK_CONFIGURE_FLAGS = --disable-random-daemon \
   --enable-ciphers=arcfour:blowfish:cast5:des:aes:twofish:serpent:rfc2268:seed:camellia
 
+# (A suitable gitlog-to-changelog script can be found in GnuPG master.)
+GITLOG_TO_CHANGELOG=gitlog-to-changelog
+
 DIST_SUBDIRS = m4 compat mpi cipher random src doc tests
 SUBDIRS =         compat mpi cipher random src doc tests
-EXTRA_DIST = autogen.sh README.SVN 					\
+EXTRA_DIST = autogen.sh README.GIT 					\
              ChangeLog-2011 scripts/ChangeLog-2011 doc/ChangeLog-2011 	\
              m4/ChangeLog-2011 cipher/ChangeLog-2011 src/ChangeLog-2011 \
              random/ChangeLog-2011 tests/ChangeLog-2011 mpi/ChangeLog-2011 \
-             scripts/gitlog-to-changelog scripts/git-log-footer 	\
-             scripts/git-log-fix
+             scripts/git-log-footer scripts/git-log-fix
 
 DISTCLEANFILES =
 
@@ -56,7 +58,7 @@ gen_start_date = 2011-12-01T14:00:00
 gen-ChangeLog:
 	if test -d $(top_srcdir)/.git; then				\
 	  (cd $(top_srcdir) &&                      			\
-	    ./scripts/gitlog-to-changelog				\
+	    $(GITLOG_TO_CHANGELOG) --append-dot --tear-off		\
 	    --amend=scripts/git-log-fix	 				\
 	    --since=$(gen_start_date) ) > $(distdir)/cl-t;		\
           cat $(top_srcdir)/scripts/git-log-footer >> $(distdir)/cl-t;  \
