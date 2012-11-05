@@ -22,21 +22,29 @@ AC_REVISION($Revision$)
 AC_PREREQ(2.60)
 min_automake_version="1.10"
 
+# To build a release you need to create a tag with the version number
+# (git tag -s libgcrypt-n.m.k) and run "./autogen.sh --force".  Please
+# bump the version number immediately after the release and do another
+# commit and push so that the git magic is able to work.  See below
+# for the LT versions.
+m4_define(mym4_version, [1.6.0])
 
-# Remember to change the version number immediately *after* a release.
-# Set my_issvn to "yes" for non-released code.  Remember to run an
-# "svn up" and "autogen.sh" right before creating a distribution.
-m4_define([my_version], [1.6.0])
-m4_define([my_issvn], [yes])
-
-m4_define([svn_revision], m4_esyscmd([printf "%d" $(svn info 2>/dev/null \
-          | sed -n '/^Revision:/ s/[^0-9]//gp'|head -1)]))
-m4_define([git_revision], m4_esyscmd([git branch -v 2>/dev/null \
+# Below is m4 magic to extract and compute the revision number, the
+# decimalized short revision number, a beta version string, and a flag
+# indicating a development version (mym4_isgit). Note that the m4
+# processing is done by autoconf and not during the configure run.
+m4_define([mym4_revision], m4_esyscmd([git branch -v 2>/dev/null \
           | awk '/^\* / {printf "%s",$3}']))
-AC_INIT([libgcrypt],
-        [my_version[]m4_if(my_issvn,[yes],
-        [m4_if(git_revision,[],[-svn[]svn_revision],[-git[]git_revision])])],
-        [bug-libgcrypt@gnupg.org])
+m4_define([mym4_revision_dec],
+          m4_esyscmd_s([echo $((0x$(echo ]mym4_revision[|head -c 4)))]))
+m4_define([mym4_betastring],
+          m4_esyscmd_s([git describe --match 'libgcrypt-[0-9].*[0-9]' --long|\
+                        awk -F- '$3!=0{print"-beta"$3}']))
+m4_define([mym4_isgit],m4_if(mym4_betastring,[],[no],[yes]))
+m4_define([mym4_full_version],[mym4_version[]mym4_betastring])
+
+AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
+
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
@@ -54,9 +62,6 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 
 NEED_GPG_ERROR_VERSION=1.8
 
-is_development_version=my_issvn
-m4_define([git_brevis],m4_esyscmd(printf "%u" 0x[]m4_substr(git_revision,0,4)))
-BUILD_REVISION=m4_if(git_revision,[],[svn_revision],[git_brevis])
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
@@ -938,7 +943,7 @@ AM_CONDITIONAL(MPI_MOD_C_MPIH_RSHIFT, test "$mpi_mod_c_mpih_rshift" = yes)
 AM_CONDITIONAL(MPI_MOD_C_UDIV, test "$mpi_mod_c_udiv" = yes)
 AM_CONDITIONAL(MPI_MOD_C_UDIV_QRNND, test "$mpi_mod_c_udiv_qrnnd" = yes)
 
-if test "$is_development_version" = "yes"; then
+if test mym4_isgit = "yes"; then
     AC_DEFINE(IS_DEVELOPMENT_VERSION,1,
               [Defined if this is not a regular release])
 fi
@@ -1219,13 +1224,14 @@ if test "$have_w32_system" = yes; then
    changequote(,)dnl
    BUILD_FILEVERSION=`echo "$VERSION" | sed 's/\([0-9.]*\).*/\1./;s/\./,/g'`
    changequote([,])dnl
-   BUILD_FILEVERSION="${BUILD_FILEVERSION}${BUILD_REVISION}"
+   BUILD_FILEVERSION="${BUILD_FILEVERSION}mym4_revision_dec"
 fi
+BUILD_REVISION="mym4_revision"
 AC_SUBST(BUILD_REVISION)
 AC_SUBST(BUILD_TIMESTAMP)
 AC_SUBST(BUILD_FILEVERSION)
 AC_DEFINE_UNQUOTED(BUILD_REVISION, "$BUILD_REVISION",
-                   [Subversion revision used to build this package])
+                   [GIT commit id revision used to build this package])
 
 
 
