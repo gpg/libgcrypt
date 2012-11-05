@@ -20,24 +20,35 @@
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
 AC_PREREQ(2.60)
-min_automake_version="1.10"
+min_automake_version="1.11"
 
+# To build a release you need to create a tag with the version number
+# (git tag -s libgcrypt-n.m.k) and run "./autogen.sh --force".  Please
+# bump the version number immediately after the release and do another
+# commit and push so that the git magic is able to work.  See below
+# for the LT versions.
+m4_define(mym4_version_major, [1])
+m4_define(mym4_version_minor, [5])
+m4_define(mym4_version_micro, [1])
 
-# Remember to change the version number immediately *after* a release.
-# Set my_issvn to "yes" for non-released code.  Remember to run an
-# "svn up" and "autogen.sh" right before creating a distribution.
-m4_define([my_version], [1.5.1])
-m4_define([my_issvn], [yes])
-
-m4_define([svn_revision], m4_esyscmd([printf "%d" $(svn info 2>/dev/null \
-          | sed -n '/^Revision:/ s/[^0-9]//gp'|head -1)]))
-m4_define([git_revision],
+# Below is m4 magic to extract and compute the revision number, the
+# decimalized short revision number, a beta version string, and a flag
+# indicating a development version (mym4_isgit). Note that the m4
+# processing is done by autoconf and not during the configure run.
+m4_define(mym4_version,
+          [mym4_version_major.mym4_version_minor.mym4_version_micro])
+m4_define([mym4_revision],
           m4_esyscmd([git rev-parse --short HEAD | tr -d '\n\r']))
+m4_define([mym4_revision_dec],
+          m4_esyscmd_s([echo $((0x$(echo ]mym4_revision[|head -c 4)))]))
+m4_define([mym4_betastring],
+          m4_esyscmd_s([git describe --match 'libgcrypt-[0-9].*[0-9]' --long|\
+                        awk -F- '$3!=0{print"-beta"$3}']))
+m4_define([mym4_isgit],m4_if(mym4_betastring,[],[no],[yes]))
+m4_define([mym4_full_version],[mym4_version[]mym4_betastring])
 
-AC_INIT([libgcrypt],
-        [my_version[]m4_if(my_issvn,[yes],
-        [m4_if(git_revision,[],[-svn[]svn_revision],[-git[]git_revision])])],
-        [bug-libgcrypt@gnupg.org])
+AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
+
 # LT Version numbers, remember to change them just *before* a release.
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
@@ -54,14 +65,11 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 
 NEED_GPG_ERROR_VERSION=1.8
 
-is_development_version=my_issvn
-m4_define([git_brevis],m4_esyscmd(printf "%u" 0x[]m4_substr(git_revision,0,4)))
-BUILD_REVISION=m4_if(git_revision,[],[svn_revision],[git_brevis])
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])
-AM_INIT_AUTOMAKE([])
+AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_LIBOBJ_DIR([compat])
@@ -732,7 +740,7 @@ if test "$gcry_cv_visibility_attribute" = "yes"; then
        [gcry_cv_gcc_has_f_visibility=no
         _gcc_cflags_save=$CFLAGS
         CFLAGS="-fvisibility=hidden"
-        AC_COMPILE_IFELSE(AC_LANG_PROGRAM([]),
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[])],
                           gcry_cv_gcc_has_f_visibility=yes)
         CFLAGS=$_gcc_cflags_save;
        ])
@@ -902,7 +910,7 @@ AM_CONDITIONAL(MPI_MOD_C_MPIH_RSHIFT, test "$mpi_mod_c_mpih_rshift" = yes)
 AM_CONDITIONAL(MPI_MOD_C_UDIV, test "$mpi_mod_c_udiv" = yes)
 AM_CONDITIONAL(MPI_MOD_C_UDIV_QRNND, test "$mpi_mod_c_udiv_qrnnd" = yes)
 
-if test "$is_development_version" = "yes"; then
+if test mym4_isgit = "yes"; then
     AC_DEFINE(IS_DEVELOPMENT_VERSION,1,
               [Defined if this is not a regular release])
 fi
@@ -932,7 +940,7 @@ if test "$GCC" = yes; then
         AC_MSG_CHECKING([if gcc supports -Wno-missing-field-initializers])
         _gcc_cflags_save=$CFLAGS
         CFLAGS="-Wno-missing-field-initializers"
-        AC_COMPILE_IFELSE(AC_LANG_PROGRAM([]),_gcc_wopt=yes,_gcc_wopt=no)
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[])],_gcc_wopt=yes,_gcc_wopt=no)
         AC_MSG_RESULT($_gcc_wopt)
         CFLAGS=$_gcc_cflags_save;
         if test x"$_gcc_wopt" = xyes ; then
@@ -946,7 +954,7 @@ if test "$GCC" = yes; then
         AC_MSG_CHECKING([if gcc supports -Wpointer-arith])
         _gcc_cflags_save=$CFLAGS
         CFLAGS="-Wpointer-arith"
-        AC_COMPILE_IFELSE(AC_LANG_PROGRAM([]),_gcc_wopt=yes,_gcc_wopt=no)
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[])],_gcc_wopt=yes,_gcc_wopt=no)
         AC_MSG_RESULT($_gcc_wopt)
         CFLAGS=$_gcc_cflags_save;
         if test x"$_gcc_wopt" = xyes ; then
@@ -1171,20 +1179,24 @@ AC_DEFINE_UNQUOTED(LIBGCRYPT_DIGESTS, "$tmp",
 
 
 
-# Generate extended version information for W32.
-if test "$have_w32_system" = yes; then
-   BUILD_TIMESTAMP=`date --iso-8601=minutes`
-   changequote(,)dnl
-   BUILD_FILEVERSION=`echo "$VERSION" | sed 's/\([0-9.]*\).*/\1./;s/\./,/g'`
-   changequote([,])dnl
-   BUILD_FILEVERSION="${BUILD_FILEVERSION}${BUILD_REVISION}"
-fi
+#
+# Provide information about the build.
+#
+BUILD_REVISION="mym4_revision"
 AC_SUBST(BUILD_REVISION)
-AC_SUBST(BUILD_TIMESTAMP)
-AC_SUBST(BUILD_FILEVERSION)
 AC_DEFINE_UNQUOTED(BUILD_REVISION, "$BUILD_REVISION",
-                   [Subversion revision used to build this package])
+                   [GIT commit id revision used to build this package])
 
+changequote(,)dnl
+BUILD_FILEVERSION=`echo "$VERSION" | sed 's/\([0-9.]*\).*/\1./;s/\./,/g'`
+changequote([,])dnl
+BUILD_FILEVERSION="${BUILD_FILEVERSION}mym4_revision_dec"
+AC_SUBST(BUILD_FILEVERSION)
+
+BUILD_TIMESTAMP=`date -u +%Y-%m-%dT%H:%M+0000 2>/dev/null || date`
+AC_SUBST(BUILD_TIMESTAMP)
+AC_DEFINE_UNQUOTED(BUILD_TIMESTAMP, "$BUILD_TIMESTAMP",
+                   [The time this package was configured for a build])
 
 
 # And create the files.
@@ -1208,6 +1220,7 @@ AC_OUTPUT
 echo "
         Libgcrypt v${VERSION} has been configured as follows:
 
+        Revision:                  mym4_revision  (mym4_revision_dec)
         Platform:                  $PRINTABLE_OS_NAME ($host)
         Enabled cipher algorithms: $enabled_ciphers
         Enabled digest algorithms: $enabled_digests
