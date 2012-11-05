@@ -65,6 +65,10 @@ case "$1" in
         myhost="w32"
         myhostsub="ce"
         ;;
+    --build-w64)
+        myhost="w32"
+        myhostsub="64"
+        ;;
     --build-amd64)
         myhost="amd64"
         ;;
@@ -95,9 +99,15 @@ if [ "$myhost" = "w32" ]; then
           [ -z "$w32root" ] && w32root="$HOME/w32ce_root"
           toolprefixes="arm-mingw32ce"
           ;;
+        64)
+          w32root="$w64root"
+          [ -z "$w32root" ] && w32root="$HOME/w64root"
+          toolprefixes="amd64-mingw32msvc"
+          ;;
         *)
           [ -z "$w32root" ] && w32root="$HOME/w32root"
           toolprefixes="i586-mingw32msvc i386-mingw32msvc"
+          toolprefixes="i586-mingw32msvc i386-mingw32msvc i686-w64-mingw32"
           ;;
     esac
     echo "Using $w32root as standard install directory" >&2
@@ -250,7 +260,7 @@ if [ -d .git ]; then
     and .git/hooks/pre-commit.sample out of the way.
 EOF
       cp -av .git/hooks/pre-commit.sample .git/hooks/pre-commit
-      chmod -c +x  .git/hooks/pre-commit
+      chmod +x  .git/hooks/pre-commit
   fi
 fi
 
