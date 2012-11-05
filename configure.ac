@@ -52,7 +52,7 @@ AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 # CAUTION: Due to the ABI change in 1.6 the LT version numbers below have
 # already been set for the next release.  Thus don't update them for
 # the 1.6.0 release.
-LIBGCRYPT_LT_CURRENT=19
+LIBGCRYPT_LT_CURRENT=20
 LIBGCRYPT_LT_AGE=0
 LIBGCRYPT_LT_REVISION=0
 
