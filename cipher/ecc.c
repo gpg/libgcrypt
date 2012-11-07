@@ -642,47 +642,48 @@ test_keys (ECC_secret_key *sk, unsigned int nbits)
 static int
 check_secret_key (ECC_secret_key * sk)
 {
+  int rc = 1;
   mpi_point_t Q;
-  gcry_mpi_t y_2, y2 = mpi_alloc (0);
-  mpi_ec_t ctx;
+  gcry_mpi_t y_2, y2;
+  mpi_ec_t ctx = NULL;
+
+  point_init (&Q);
 
   /* ?primarity test of 'p' */
   /*  (...) //!! */
   /* G in E(F_p) */
   y_2 = gen_y_2 (sk->E.G.x, &sk->E);   /*  y^2=x^3+a*x+b */
+  y2 = mpi_alloc (0);
   mpi_mulm (y2, sk->E.G.y, sk->E.G.y, sk->E.p);      /*  y^2=y*y */
   if (mpi_cmp (y_2, y2))
     {
       if (DBG_CIPHER)
         log_debug ("Bad check: Point 'G' does not belong to curve 'E'!\n");
-      return (1);
+      goto leave;
     }
   /* G != PaI */
   if (!mpi_cmp_ui (sk->E.G.z, 0))
     {
       if (DBG_CIPHER)
         log_debug ("Bad check: 'G' cannot be Point at Infinity!\n");
-      return (1);
+      goto leave;
     }
 
-  point_init (&Q);
   ctx = _gcry_mpi_ec_init (sk->E.p, sk->E.a);
+
   _gcry_mpi_ec_mul_point (&Q, sk->E.n, &sk->E.G, ctx);
   if (mpi_cmp_ui (Q.z, 0))
     {
       if (DBG_CIPHER)
         log_debug ("check_secret_key: E is not a curve of order n\n");
-      point_free (&Q);
-      _gcry_mpi_ec_free (ctx);
-      return 1;
+      goto leave;
     }
   /* pubkey cannot be PaI */
   if (!mpi_cmp_ui (sk->Q.z, 0))
     {
       if (DBG_CIPHER)
         log_debug ("Bad check: Q can not be a Point at Infinity!\n");
-      _gcry_mpi_ec_free (ctx);
-      return (1);
+      goto leave;
     }
   /* pubkey = [d]G over E */
   _gcry_mpi_ec_mul_point (&Q, sk->d, &sk->E.G, ctx);
@@ -691,12 +692,16 @@ check_secret_key (ECC_secret_key * sk)
       if (DBG_CIPHER)
         log_debug
           ("Bad check: There is NO correspondence between 'd' and 'Q'!\n");
-      _gcry_mpi_ec_free (ctx);
-      return (1);
+      goto leave;
     }
+  rc = 0; /* Okay.  */
+
+ leave:
   _gcry_mpi_ec_free (ctx);
+  mpi_free (y2);
+  mpi_free (y_2);
   point_free (&Q);
-  return 0;
+  return rc;
 }
 
 
