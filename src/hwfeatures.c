@@ -112,24 +112,26 @@ detect_x86_64_gnuc (void)
   else if (!strcmp (vendor_id, "GenuineIntel"))
     {
       /* This is an Intel CPU.  */
-      asm volatile
-        ("movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
-         "cpuid\n"
-         "testl $0x02000000, %%ecx\n\t" /* Test bit 25.  */
-         "jz .Lno_aes%=\n\t"            /* No AES support.  */
-         "orl $256, %0\n"               /* Set our HWF_INTEL_AES bit.  */
-
-         ".Lno_aes%=:\n"
-         : "+r" (hw_features)
-         :
-         : "%eax", "%ebx", "%ecx", "%edx", "cc"
-         );
     }
   else if (!strcmp (vendor_id, "AuthenticAMD"))
     {
       /* This is an AMD CPU.  */
-
     }
+
+  /* Detect Intel features, that might be supported also by other vendors
+   * also. */
+  asm volatile
+    ("movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
+     "cpuid\n"
+     "testl $0x02000000, %%ecx\n\t" /* Test bit 25.  */
+     "jz .Lno_aes%=\n\t"            /* No AES support.  */
+     "orl $256, %0\n"               /* Set our HWF_INTEL_AES bit.  */
+
+     ".Lno_aes%=:\n"
+     : "+r" (hw_features)
+     :
+     : "%eax", "%ebx", "%ecx", "%edx", "cc"
+     );
 }
 #endif /* __x86_64__ && __GNUC__ */
 
@@ -237,26 +239,29 @@ detect_ia32_gnuc (void)
   else if (!strcmp (vendor_id, "GenuineIntel"))
     {
       /* This is an Intel CPU.  */
-      asm volatile
-        ("pushl %%ebx\n\t"	        /* Save GOT register.  */
-         "movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
-         "cpuid\n"
-         "popl %%ebx\n\t"	        /* Restore GOT register. */
-         "testl $0x02000000, %%ecx\n\t" /* Test bit 25.  */
-         "jz .Lno_aes%=\n\t"            /* No AES support.  */
-         "orl $256, %0\n"               /* Set our HWF_INTEL_AES bit.  */
-
-         ".Lno_aes%=:\n"
-         : "+r" (hw_features)
-         :
-         : "%eax", "%ecx", "%edx", "cc"
-         );
     }
   else if (!strcmp (vendor_id, "AuthenticAMD"))
     {
       /* This is an AMD CPU.  */
 
     }
+
+  /* Detect Intel features, that might be supported also by other vendors
+   * also. */
+  asm volatile
+    ("pushl %%ebx\n\t"	        /* Save GOT register.  */
+     "movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
+     "cpuid\n"
+     "popl %%ebx\n\t"	        /* Restore GOT register. */
+     "testl $0x02000000, %%ecx\n\t" /* Test bit 25.  */
+     "jz .Lno_aes%=\n\t"            /* No AES support.  */
+     "orl $256, %0\n"               /* Set our HWF_INTEL_AES bit.  */
+
+     ".Lno_aes%=:\n"
+     : "+r" (hw_features)
+     :
+     : "%eax", "%ecx", "%edx", "cc"
+     );
 }
 #endif /* __i386__ && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ */
 
