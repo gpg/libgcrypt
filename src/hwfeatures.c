@@ -56,7 +56,7 @@ detect_x86_64_gnuc (void)
      "movl  %%ecx, 8(%0)\n\t"
      :
      : "S" (&vendor_id[0])
-     : "%eax", "%ecx", "%edx", "cc"
+     : "%eax", "%ebx", "%ecx", "%edx", "cc"
      );
   vendor_id[12] = 0;
 
@@ -105,7 +105,7 @@ detect_x86_64_gnuc (void)
          ".Lready%=:\n"
          : "+r" (hw_features)
          :
-         : "%eax", "%edx", "cc"
+         : "%eax", "%ebx", "%ecx", "%edx", "cc"
          );
     }
 #endif /*ENABLE_PADLOCK_SUPPORT*/
@@ -122,7 +122,7 @@ detect_x86_64_gnuc (void)
          ".Lno_aes%=:\n"
          : "+r" (hw_features)
          :
-         : "%eax", "%ecx", "%edx", "cc"
+         : "%eax", "%ebx", "%ecx", "%edx", "cc"
          );
     }
   else if (!strcmp (vendor_id, "AuthenticAMD"))
@@ -230,7 +230,7 @@ detect_ia32_gnuc (void)
          ".Lready%=:\n"
          : "+r" (hw_features)
          :
-         : "%eax", "%edx", "cc"
+         : "%eax", "%ecx", "%edx", "cc"
          );
     }
 #endif /*ENABLE_PADLOCK_SUPPORT*/
