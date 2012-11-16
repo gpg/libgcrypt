@@ -111,7 +111,7 @@ camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
 
   Camellia_EncryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
   _gcry_burn_stack
-    (sizeof(int)+2*sizeof(unsigned char *)+sizeof(KEY_TABLE_TYPE)
+    (sizeof(int)+2*sizeof(unsigned char *)+sizeof(void*/*KEY_TABLE_TYPE*/)
      +4*sizeof(u32)
      +2*sizeof(u32*)+4*sizeof(u32)
      +2*2*sizeof(void*) /* Function calls.  */
@@ -125,7 +125,7 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
 
   Camellia_DecryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
   _gcry_burn_stack
-    (sizeof(int)+2*sizeof(unsigned char *)+sizeof(KEY_TABLE_TYPE)
+    (sizeof(int)+2*sizeof(unsigned char *)+sizeof(void*/*KEY_TABLE_TYPE*/)
      +4*sizeof(u32)
      +2*sizeof(u32*)+4*sizeof(u32)
      +2*2*sizeof(void*) /* Function calls.  */
