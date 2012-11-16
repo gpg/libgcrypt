@@ -75,7 +75,7 @@
    gcc 3.  However, to be on the safe side we require at least gcc 4.  */
 #undef USE_AESNI
 #ifdef ENABLE_AESNI_SUPPORT
-# if defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ >= 4
+# if ((defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__)) && __GNUC__ >= 4
 #  define USE_AESNI 1
 # endif
 #endif /* ENABLE_AESNI_SUPPORT */
@@ -297,40 +297,38 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
          than using the standard key schedule.  We disable it for
          now and don't put any effort into implementing this for
          AES-192 and AES-256.  */
-      asm volatile ("movl   %[key], %%esi\n\t"
-                    "movdqu (%%esi), %%xmm1\n\t"     /* xmm1 := key   */
-                    "movl   %[ksch], %%esi\n\t"
-                    "movdqa %%xmm1, (%%esi)\n\t"     /* ksch[0] := xmm1  */
+      asm volatile ("movdqu (%[key]), %%xmm1\n\t"     /* xmm1 := key   */
+                    "movdqa %%xmm1, (%[ksch])\n\t"     /* ksch[0] := xmm1  */
                     "aeskeygenassist $0x01, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x10(%%esi)\n\t" /* ksch[1] := xmm1  */
+                    "movdqa %%xmm1, 0x10(%[ksch])\n\t" /* ksch[1] := xmm1  */
                     "aeskeygenassist $0x02, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x20(%%esi)\n\t" /* ksch[2] := xmm1  */
+                    "movdqa %%xmm1, 0x20(%[ksch])\n\t" /* ksch[2] := xmm1  */
                     "aeskeygenassist $0x04, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x30(%%esi)\n\t" /* ksch[3] := xmm1  */
+                    "movdqa %%xmm1, 0x30(%[ksch])\n\t" /* ksch[3] := xmm1  */
                     "aeskeygenassist $0x08, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x40(%%esi)\n\t" /* ksch[4] := xmm1  */
+                    "movdqa %%xmm1, 0x40(%[ksch])\n\t" /* ksch[4] := xmm1  */
                     "aeskeygenassist $0x10, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x50(%%esi)\n\t" /* ksch[5] := xmm1  */
+                    "movdqa %%xmm1, 0x50(%[ksch])\n\t" /* ksch[5] := xmm1  */
                     "aeskeygenassist $0x20, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x60(%%esi)\n\t" /* ksch[6] := xmm1  */
+                    "movdqa %%xmm1, 0x60(%[ksch])\n\t" /* ksch[6] := xmm1  */
                     "aeskeygenassist $0x40, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x70(%%esi)\n\t" /* ksch[7] := xmm1  */
+                    "movdqa %%xmm1, 0x70(%[ksch])\n\t" /* ksch[7] := xmm1  */
                     "aeskeygenassist $0x80, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x80(%%esi)\n\t" /* ksch[8] := xmm1  */
+                    "movdqa %%xmm1, 0x80(%[ksch])\n\t" /* ksch[8] := xmm1  */
                     "aeskeygenassist $0x1b, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x90(%%esi)\n\t" /* ksch[9] := xmm1  */
+                    "movdqa %%xmm1, 0x90(%[ksch])\n\t" /* ksch[9] := xmm1  */
                     "aeskeygenassist $0x36, %%xmm1, %%xmm2\n\t"
                     "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0xa0(%%esi)\n\t" /* ksch[10] := xmm1  */
+                    "movdqa %%xmm1, 0xa0(%[ksch])\n\t" /* ksch[10] := xmm1  */
                     "jmp .Lleave%=\n"
 
                     ".Lexpand128_%=:\n\t"
@@ -350,8 +348,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
                     "pxor %%xmm2, %%xmm2\n\t"
                     "pxor %%xmm3, %%xmm3\n"
                     :
-                    : [key] "g" (key), [ksch] "g" (ctx->keyschenc)
-                    : "%esi", "cc", "memory" );
+                    : [key] "r" (key), [ksch] "r" (ctx->keyschenc)
+                    : "cc", "memory" );
     }
 #endif /*USE_AESNI*/
   else
@@ -722,40 +720,39 @@ do_aesni_enc_aligned (const RIJNDAEL_context *ctx,
      aligned but that is a special case.  We should better implement
      CFB direct in asm.  */
   asm volatile ("movdqu %[src], %%xmm0\n\t"     /* xmm0 := *a     */
-                "movl   %[key], %%esi\n\t"      /* esi  := keyschenc */
-                "movdqa (%%esi), %%xmm1\n\t"    /* xmm1 := key[0] */
+                "movdqa (%[key]), %%xmm1\n\t"    /* xmm1 := key[0] */
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0] */
-                "movdqa 0x10(%%esi), %%xmm1\n\t"
+                "movdqa 0x10(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x20(%%esi), %%xmm1\n\t"
+                "movdqa 0x20(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x30(%%esi), %%xmm1\n\t"
+                "movdqa 0x30(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x40(%%esi), %%xmm1\n\t"
+                "movdqa 0x40(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x50(%%esi), %%xmm1\n\t"
+                "movdqa 0x50(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x60(%%esi), %%xmm1\n\t"
+                "movdqa 0x60(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x70(%%esi), %%xmm1\n\t"
+                "movdqa 0x70(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x80(%%esi), %%xmm1\n\t"
+                "movdqa 0x80(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x90(%%esi), %%xmm1\n\t"
+                "movdqa 0x90(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xa0(%%esi), %%xmm1\n\t"
+                "movdqa 0xa0(%[key]), %%xmm1\n\t"
                 "cmp $10, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xb0(%%esi), %%xmm1\n\t"
+                "movdqa 0xb0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xc0(%%esi), %%xmm1\n\t"
+                "movdqa 0xc0(%[key]), %%xmm1\n\t"
                 "cmp $12, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xd0(%%esi), %%xmm1\n\t"
+                "movdqa 0xd0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xe0(%%esi), %%xmm1\n"
+                "movdqa 0xe0(%[key]), %%xmm1\n"
 
                 ".Lenclast%=:\n\t"
                 aesenclast_xmm1_xmm0
@@ -764,7 +761,7 @@ do_aesni_enc_aligned (const RIJNDAEL_context *ctx,
                 : [src] "m" (*a),
                   [key] "r" (ctx->keyschenc),
                   [rounds] "r" (ctx->rounds)
-                : "%esi", "cc", "memory");
+                : "cc", "memory");
 #undef aesenc_xmm1_xmm0
 #undef aesenclast_xmm1_xmm0
 }
@@ -777,40 +774,39 @@ do_aesni_dec_aligned (const RIJNDAEL_context *ctx,
 #define aesdec_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xde, 0xc1\n\t"
 #define aesdeclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdf, 0xc1\n\t"
   asm volatile ("movdqu %[src], %%xmm0\n\t"     /* xmm0 := *a     */
-                "movl   %[key], %%esi\n\t"
-                "movdqa (%%esi), %%xmm1\n\t"
+                "movdqa (%[key]), %%xmm1\n\t"
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0] */
-                "movdqa 0x10(%%esi), %%xmm1\n\t"
+                "movdqa 0x10(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0x20(%%esi), %%xmm1\n\t"
+                "movdqa 0x20(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0x30(%%esi), %%xmm1\n\t"
+                "movdqa 0x30(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0x40(%%esi), %%xmm1\n\t"
+                "movdqa 0x40(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0x50(%%esi), %%xmm1\n\t"
+                "movdqa 0x50(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0x60(%%esi), %%xmm1\n\t"
+                "movdqa 0x60(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0x70(%%esi), %%xmm1\n\t"
+                "movdqa 0x70(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0x80(%%esi), %%xmm1\n\t"
+                "movdqa 0x80(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0x90(%%esi), %%xmm1\n\t"
+                "movdqa 0x90(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0xa0(%%esi), %%xmm1\n\t"
+                "movdqa 0xa0(%[key]), %%xmm1\n\t"
                 "cmp $10, %[rounds]\n\t"
                 "jz .Ldeclast%=\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0xb0(%%esi), %%xmm1\n\t"
+                "movdqa 0xb0(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0xc0(%%esi), %%xmm1\n\t"
+                "movdqa 0xc0(%[key]), %%xmm1\n\t"
                 "cmp $12, %[rounds]\n\t"
                 "jz .Ldeclast%=\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0xd0(%%esi), %%xmm1\n\t"
+                "movdqa 0xd0(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
-                "movdqa 0xe0(%%esi), %%xmm1\n"
+                "movdqa 0xe0(%[key]), %%xmm1\n"
 
                 ".Ldeclast%=:\n\t"
                 aesdeclast_xmm1_xmm0
@@ -819,7 +815,7 @@ do_aesni_dec_aligned (const RIJNDAEL_context *ctx,
                 : [src] "m" (*a),
                   [key] "r" (ctx->keyschdec),
                   [rounds] "r" (ctx->rounds)
-                : "%esi", "cc", "memory");
+                : "cc", "memory");
 #undef aesdec_xmm1_xmm0
 #undef aesdeclast_xmm1_xmm0
 }
@@ -836,40 +832,39 @@ do_aesni_cfb (const RIJNDAEL_context *ctx, int decrypt_flag,
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
 #define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
   asm volatile ("movdqa %[iv], %%xmm0\n\t"      /* xmm0 := IV     */
-                "movl   %[key], %%esi\n\t"      /* esi  := keyschenc */
-                "movdqa (%%esi), %%xmm1\n\t"    /* xmm1 := key[0] */
+                "movdqa (%[key]), %%xmm1\n\t"    /* xmm1 := key[0] */
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0] */
-                "movdqa 0x10(%%esi), %%xmm1\n\t"
+                "movdqa 0x10(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x20(%%esi), %%xmm1\n\t"
+                "movdqa 0x20(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x30(%%esi), %%xmm1\n\t"
+                "movdqa 0x30(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x40(%%esi), %%xmm1\n\t"
+                "movdqa 0x40(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x50(%%esi), %%xmm1\n\t"
+                "movdqa 0x50(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x60(%%esi), %%xmm1\n\t"
+                "movdqa 0x60(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x70(%%esi), %%xmm1\n\t"
+                "movdqa 0x70(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x80(%%esi), %%xmm1\n\t"
+                "movdqa 0x80(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x90(%%esi), %%xmm1\n\t"
+                "movdqa 0x90(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xa0(%%esi), %%xmm1\n\t"
+                "movdqa 0xa0(%[key]), %%xmm1\n\t"
                 "cmp $10, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xb0(%%esi), %%xmm1\n\t"
+                "movdqa 0xb0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xc0(%%esi), %%xmm1\n\t"
+                "movdqa 0xc0(%[key]), %%xmm1\n\t"
                 "cmp $12, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xd0(%%esi), %%xmm1\n\t"
+                "movdqa 0xd0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xe0(%%esi), %%xmm1\n"
+                "movdqa 0xe0(%[key]), %%xmm1\n"
 
                 ".Lenclast%=:\n\t"
                 aesenclast_xmm1_xmm0
@@ -886,10 +881,10 @@ do_aesni_cfb (const RIJNDAEL_context *ctx, int decrypt_flag,
                 "movdqu %%xmm0, %[dst]\n"        /* Store output.   */
                 : [iv] "+m" (*iv), [dst] "=m" (*b)
                 : [src] "m" (*a),
-                  [key] "g" (ctx->keyschenc),
+                  [key] "r" (ctx->keyschenc),
                   [rounds] "g" (ctx->rounds),
                   [decrypt] "m" (decrypt_flag)
-                : "%esi", "cc", "memory");
+                : "cc", "memory");
 #undef aesenc_xmm1_xmm0
 #undef aesenclast_xmm1_xmm0
 }
@@ -915,40 +910,39 @@ do_aesni_ctr (const RIJNDAEL_context *ctx,
                 "pshufb %[mask], %%xmm2\n\t"
                 "movdqa %%xmm2, %[ctr]\n"       /* Update CTR.         */
 
-                "movl   %[key], %%esi\n\t"      /* esi  := keyschenc */
-                "movdqa (%%esi), %%xmm1\n\t"    /* xmm1 := key[0]    */
+                "movdqa (%[key]), %%xmm1\n\t"    /* xmm1 := key[0]    */
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
-                "movdqa 0x10(%%esi), %%xmm1\n\t"
+                "movdqa 0x10(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x20(%%esi), %%xmm1\n\t"
+                "movdqa 0x20(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x30(%%esi), %%xmm1\n\t"
+                "movdqa 0x30(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x40(%%esi), %%xmm1\n\t"
+                "movdqa 0x40(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x50(%%esi), %%xmm1\n\t"
+                "movdqa 0x50(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x60(%%esi), %%xmm1\n\t"
+                "movdqa 0x60(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x70(%%esi), %%xmm1\n\t"
+                "movdqa 0x70(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x80(%%esi), %%xmm1\n\t"
+                "movdqa 0x80(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0x90(%%esi), %%xmm1\n\t"
+                "movdqa 0x90(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xa0(%%esi), %%xmm1\n\t"
+                "movdqa 0xa0(%[key]), %%xmm1\n\t"
                 "cmp $10, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xb0(%%esi), %%xmm1\n\t"
+                "movdqa 0xb0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xc0(%%esi), %%xmm1\n\t"
+                "movdqa 0xc0(%[key]), %%xmm1\n\t"
                 "cmp $12, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xd0(%%esi), %%xmm1\n\t"
+                "movdqa 0xd0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
-                "movdqa 0xe0(%%esi), %%xmm1\n"
+                "movdqa 0xe0(%[key]), %%xmm1\n"
 
                 ".Lenclast%=:\n\t"
                 aesenclast_xmm1_xmm0
@@ -958,7 +952,7 @@ do_aesni_ctr (const RIJNDAEL_context *ctx,
 
                 : [ctr] "+m" (*ctr), [dst] "=m" (*b)
                 : [src] "m" (*a),
-                  [key] "g" (ctx->keyschenc),
+                  [key] "r" (ctx->keyschenc),
                   [rounds] "g" (ctx->rounds),
                   [mask] "m" (*be_mask)
                 : "%esi", "cc", "memory");
@@ -1012,82 +1006,81 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 "pshufb %[mask], %%xmm5\n\t"    /* xmm5 := be(xmm5) */
                 "movdqa %%xmm5, %[ctr]\n"       /* Update CTR.      */
 
-                "movl   %[key], %%esi\n\t"      /* esi  := keyschenc */
-                "movdqa (%%esi), %%xmm1\n\t"    /* xmm1 := key[0]    */
+                "movdqa (%[key]), %%xmm1\n\t"    /* xmm1 := key[0]    */
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm2\n\t"     /* xmm2 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm3\n\t"     /* xmm3 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm4\n\t"     /* xmm4 ^= key[0]    */
-                "movdqa 0x10(%%esi), %%xmm1\n\t"
+                "movdqa 0x10(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0x20(%%esi), %%xmm1\n\t"
+                "movdqa 0x20(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0x30(%%esi), %%xmm1\n\t"
+                "movdqa 0x30(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0x40(%%esi), %%xmm1\n\t"
+                "movdqa 0x40(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0x50(%%esi), %%xmm1\n\t"
+                "movdqa 0x50(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0x60(%%esi), %%xmm1\n\t"
+                "movdqa 0x60(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0x70(%%esi), %%xmm1\n\t"
+                "movdqa 0x70(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0x80(%%esi), %%xmm1\n\t"
+                "movdqa 0x80(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0x90(%%esi), %%xmm1\n\t"
+                "movdqa 0x90(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0xa0(%%esi), %%xmm1\n\t"
+                "movdqa 0xa0(%[key]), %%xmm1\n\t"
                 "cmp $10, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0xb0(%%esi), %%xmm1\n\t"
+                "movdqa 0xb0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0xc0(%%esi), %%xmm1\n\t"
+                "movdqa 0xc0(%[key]), %%xmm1\n\t"
                 "cmp $12, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0xd0(%%esi), %%xmm1\n\t"
+                "movdqa 0xd0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
-                "movdqa 0xe0(%%esi), %%xmm1\n"
+                "movdqa 0xe0(%[key]), %%xmm1\n"
 
                 ".Lenclast%=:\n\t"
                 aesenclast_xmm1_xmm0
@@ -1113,7 +1106,7 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
 
                 : [ctr] "+m" (*ctr), [dst] "=m" (*b)
                 : [src] "m" (*a),
-                  [key] "g" (ctx->keyschenc),
+                  [key] "r" (ctx->keyschenc),
                   [rounds] "g" (ctx->rounds),
                   [mask] "m" (*be_mask)
                 : "%esi", "cc", "memory");

@@ -292,9 +292,6 @@ _gcry_detect_hw_features (unsigned int disabled_features)
 # ifdef __GNUC__
   {
     detect_x86_64_gnuc ();
-    /* We don't have AESNI support for 64 bit yet.  Thus we should not
-       announce it.  */
-    hw_features &= ~HWF_INTEL_AESNI;
   }
 # endif
 #endif
