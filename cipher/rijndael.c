@@ -52,7 +52,7 @@
 
 
 /* Helper macro to force alignment to 16 bytes.  */
-#ifdef __GNUC__
+#ifdef HAVE_GCC_ATTRIBUTE_ALIGNED
 # define ATTR_ALIGNED_16  __attribute__ ((aligned (16)))
 #else
 # define ATTR_ALIGNED_16
@@ -63,7 +63,7 @@
    code.  */
 #undef USE_PADLOCK
 #ifdef ENABLE_PADLOCK_SUPPORT
-# ifdef __GNUC__
+# ifdef HAVE_GCC_ATTRIBUTE_ALIGNED
 #  if (defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__)
 #   define USE_PADLOCK 1
 #  endif

@@ -31,7 +31,7 @@
    We use the aligned attribute, thus it is only possible to implement
    this with gcc.  */
 #undef NEED_16BYTE_ALIGNED_CONTEXT
-#if defined (__GNUC__)
+#ifdef HAVE_GCC_ATTRIBUTE_ALIGNED
 # define NEED_16BYTE_ALIGNED_CONTEXT 1
 #endif
 

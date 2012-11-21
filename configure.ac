@@ -789,6 +789,21 @@ if test "$gcry_cv_visibility_attribute" = "yes" \
 fi
 
 
+#
+# Check whether the compiler supports the GCC style aligned attribute
+#
+AC_CACHE_CHECK([whether the GCC style aligned attribute is supported],
+       [gcry_cv_gcc_attribute_aligned],
+       [gcry_cv_gcc_attribute_aligned=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[struct { int a; } foo __attribute__ ((aligned (16)));]])],
+          [gcry_cv_gcc_attribute_aligned=yes])])
+if test "$gcry_cv_gcc_attribute_aligned" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ATTRIBUTE_ALIGNED,1,
+     [Defined if a GCC style "__attribute__ ((aligned (n))" is supported])
+fi
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################
@@ -1282,6 +1297,15 @@ cat <<G10EOF
    For more information consult the GnuPG webpages:
 
              http://www.gnupg.org/download.html#egd
+
+G10EOF
+fi
+
+if test "$gcry_cv_gcc_attribute_aligned" != "yes" ; then
+cat <<G10EOF
+
+   Please not that your compiler does not support the GCC style
+   aligned attribute. Using this software may evoke bus errors.
 
 G10EOF
 fi

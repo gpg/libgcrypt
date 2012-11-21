@@ -27,7 +27,7 @@
 
 #undef USE_PADLOCK
 #ifdef ENABLE_PADLOCK_SUPPORT
-# ifdef __GNUC__
+# ifdef HAVE_GCC_ATTRIBUTE_ALIGNED
 #  if (defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__)
 #   define USE_PADLOCK 1
 #  endif
