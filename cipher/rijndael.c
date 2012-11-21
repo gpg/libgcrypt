@@ -124,7 +124,7 @@ typedef struct
 #ifdef USE_AESNI
   int use_aesni;            /* AES-NI shall be used.  */
 #endif /*USE_AESNI*/
-} RIJNDAEL_context;
+} RIJNDAEL_context ATTR_ALIGNED_16;
 
 /* Macros defining alias for the keyschedules.  */
 #define keyschenc  u1.keyschedule
