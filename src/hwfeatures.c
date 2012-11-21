@@ -118,8 +118,9 @@ detect_x86_64_gnuc (void)
       /* This is an AMD CPU.  */
     }
 
-  /* Detect Intel features, that might be supported also by other vendors
-   * also. */
+  /* Detect Intel features, that might also be supported by other
+     vendors.  */
+#ifdef ENABLE_AESNI_SUPPORT
   asm volatile
     ("movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
      "cpuid\n"
@@ -132,6 +133,8 @@ detect_x86_64_gnuc (void)
      :
      : "%eax", "%ebx", "%ecx", "%edx", "cc"
      );
+#endif /*#ifdef ENABLE_AESNI_SUPPORT*/
+
 }
 #endif /* __x86_64__ && __GNUC__ */
 
@@ -246,8 +249,9 @@ detect_ia32_gnuc (void)
 
     }
 
-  /* Detect Intel features, that might be supported also by other vendors
-   * also. */
+  /* Detect Intel features, that might also be supported by other
+     vendors.  */
+#ifdef ENABLE_AESNI_SUPPORT
   asm volatile
     ("pushl %%ebx\n\t"	        /* Save GOT register.  */
      "movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
@@ -262,6 +266,8 @@ detect_ia32_gnuc (void)
      :
      : "%eax", "%ecx", "%edx", "cc"
      );
+#endif /*ENABLE_AESNI_SUPPORT*/
+
 }
 #endif /* __i386__ && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ */
 
