@@ -1582,33 +1582,86 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
   int i;
   unsigned char savebuf[BLOCKSIZE];
 
-  aesni_prepare ();
-  for ( ;nblocks; nblocks-- )
-    {
-      /* We need to save INBUF away because it may be identical to
-         OUTBUF.  */
-      memcpy (savebuf, inbuf, BLOCKSIZE);
-
-      if (0)
-        ;
-#ifdef USE_PADLOCK
-      else if (ctx->use_padlock)
-        do_padlock (ctx, 1, outbuf, inbuf);
-#endif /*USE_PADLOCK*/
+  if (0)
+    ;
 #ifdef USE_AESNI
-      else if (ctx->use_aesni)
-        do_aesni (ctx, 1, outbuf, inbuf);
-#endif /*USE_AESNI*/
-      else
-        do_decrypt (ctx, outbuf, inbuf);
+  else if (ctx->use_aesni)
+    {
+      aesni_prepare ();
 
-      for (ivp=iv, i=0; i < BLOCKSIZE; i++ )
-        outbuf[i] ^= *ivp++;
-      memcpy (iv, savebuf, BLOCKSIZE);
-      inbuf += BLOCKSIZE;
-      outbuf += BLOCKSIZE;
+      if (!ctx->decryption_prepared )
+        {
+          prepare_decryption ( ctx );
+          ctx->decryption_prepared = 1;
+        }
+
+      /* As we avoid memcpy to/from stack by using xmm2 and xmm3 for temporary
+         storage, out-of-order CPUs see parallellism even over loop iterations
+         and see 2.5x to 2.9x speed up on Intel Sandy-Bridge. Further
+         improvements are possible with do_aesni_cbc_dec_4() when implemented.
+       */
+      asm volatile
+        ("movdqu %[iv], %%xmm3\n\t"	/* use xmm3 as fast IV storage */
+         : /* No output */
+         : [iv] "m" (*iv)
+         : "memory");
+
+      for ( ;nblocks; nblocks-- )
+        {
+          asm volatile
+            ("movdqu %[inbuf], %%xmm2\n\t"	/* use xmm2 as savebuf */
+             : /* No output */
+             : [inbuf] "m" (*inbuf)
+             : "memory");
+
+          /* uses only xmm0 and xmm1 */
+          do_aesni_dec_aligned (ctx, outbuf, inbuf);
+
+          asm volatile
+            ("movdqu %[outbuf], %%xmm0\n\t"
+             "pxor %%xmm3, %%xmm0\n\t"		/* xor IV with output */
+             "movdqu %%xmm0, %[outbuf]\n\t"
+             "movdqu %%xmm2, %%xmm3\n\t"	/* store savebuf as new IV */
+             : /* No output */
+             : [outbuf] "m" (*outbuf)
+             : "memory");
+
+          outbuf += BLOCKSIZE;
+          inbuf  += BLOCKSIZE;
+        }
+
+      asm volatile
+        ("movdqu %%xmm3, %[iv]\n\t"	/* store IV */
+         : /* No output */
+         : [iv] "m" (*iv)
+         : "memory");
+
+      aesni_cleanup ();
+      aesni_cleanup_2_4 ();
     }
-  aesni_cleanup ();
+#endif /*USE_AESNI*/
+  else
+    for ( ;nblocks; nblocks-- )
+      {
+        /* We need to save INBUF away because it may be identical to
+           OUTBUF.  */
+        memcpy (savebuf, inbuf, BLOCKSIZE);
+
+        if (0)
+          ;
+#ifdef USE_PADLOCK
+        else if (ctx->use_padlock)
+          do_padlock (ctx, 1, outbuf, inbuf);
+#endif /*USE_PADLOCK*/
+        else
+          do_decrypt (ctx, outbuf, inbuf);
+
+        for (ivp=iv, i=0; i < BLOCKSIZE; i++ )
+          outbuf[i] ^= *ivp++;
+        memcpy (iv, savebuf, BLOCKSIZE);
+        inbuf += BLOCKSIZE;
+        outbuf += BLOCKSIZE;
+      }
 
   _gcry_burn_stack (48 + 2*sizeof(int) + BLOCKSIZE + 4*sizeof (char*));
 }
