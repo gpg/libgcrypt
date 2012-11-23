@@ -1249,23 +1249,50 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
   aesni_prepare ();
   for ( ;nblocks; nblocks-- )
     {
-      for (ivp=iv, i=0; i < BLOCKSIZE; i++ )
-        outbuf[i] = inbuf[i] ^ *ivp++;
-
       if (0)
         ;
-#ifdef USE_PADLOCK
-      else if (ctx->use_padlock)
-        do_padlock (ctx, 0, outbuf, outbuf);
-#endif /*USE_PADLOCK*/
 #ifdef USE_AESNI
       else if (ctx->use_aesni)
-        do_aesni (ctx, 0, outbuf, outbuf);
+        {
+          /* ~35% speed up on Sandy-Bridge when doing xoring and copying with
+             SSE registers.  */
+          asm volatile ("movdqu %[iv], %%xmm0\n\t"
+                        "movdqu %[inbuf], %%xmm1\n\t"
+                        "pxor %%xmm0, %%xmm1\n\t"
+                        "movdqu %%xmm1, %[outbuf]\n\t"
+                        : /* No output */
+                        : [iv] "m" (*iv),
+                          [inbuf] "m" (*inbuf),
+                          [outbuf] "m" (*outbuf)
+                        : "memory" );
+
+          do_aesni (ctx, 0, outbuf, outbuf);
+
+          asm volatile ("movdqu %[outbuf], %%xmm0\n\t"
+                        "movdqu %%xmm0, %[iv]\n\t"
+                        : /* No output */
+                        : [outbuf] "m" (*outbuf),
+                          [iv] "m" (*iv)
+                        : "memory" );
+        }
 #endif /*USE_AESNI*/
       else
-        do_encrypt (ctx, outbuf, outbuf );
+        {
+          for (ivp=iv, i=0; i < BLOCKSIZE; i++ )
+            outbuf[i] = inbuf[i] ^ *ivp++;
 
-      memcpy (iv, outbuf, BLOCKSIZE);
+          if (0)
+            ;
+#ifdef USE_PADLOCK
+          else if (ctx->use_padlock)
+            do_padlock (ctx, 0, outbuf, outbuf);
+#endif /*USE_PADLOCK*/
+          else
+            do_encrypt (ctx, outbuf, outbuf );
+
+          memcpy (iv, outbuf, BLOCKSIZE);
+        }
+
       inbuf += BLOCKSIZE;
       if (!cbc_mac)
         outbuf += BLOCKSIZE;
