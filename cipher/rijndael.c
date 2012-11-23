@@ -144,10 +144,11 @@ typedef struct
   do { asm volatile ("pxor %%xmm0, %%xmm0\n\t"                          \
                      "pxor %%xmm1, %%xmm1\n" :: );                      \
   } while (0)
-# define aesni_cleanup_2_4()                                            \
+# define aesni_cleanup_2_5()                                            \
   do { asm volatile ("pxor %%xmm2, %%xmm2\n\t"                          \
                      "pxor %%xmm3, %%xmm3\n"                            \
-                     "pxor %%xmm4, %%xmm4\n":: );                       \
+                     "pxor %%xmm4, %%xmm4\n"                            \
+                     "pxor %%xmm5, %%xmm5\n":: );                       \
   } while (0)
 #else
 # define aesni_prepare() do { } while (0)
@@ -1338,7 +1339,7 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
           inbuf  += BLOCKSIZE;
         }
       aesni_cleanup ();
-      aesni_cleanup_2_4 ();
+      aesni_cleanup_2_5 ();
     }
 #endif /*USE_AESNI*/
   else
@@ -1664,7 +1665,7 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
          : "memory");
 
       aesni_cleanup ();
-      aesni_cleanup_2_4 ();
+      aesni_cleanup_2_5 ();
     }
 #endif /*USE_AESNI*/
   else
