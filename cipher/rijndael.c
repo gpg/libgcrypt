@@ -822,6 +822,115 @@ do_aesni_dec_aligned (const RIJNDAEL_context *ctx,
 }
 
 
+/* Decrypt four blocks using the Intel AES-NI instructions.  Blocks are input
+ * and output through SSE registers xmm1 to xmm4.  */
+static void
+do_aesni_dec_vec4 (const RIJNDAEL_context *ctx)
+{
+#define aesdec_xmm0_xmm1 ".byte 0x66, 0x0f, 0x38, 0xde, 0xc8\n\t"
+#define aesdec_xmm0_xmm2 ".byte 0x66, 0x0f, 0x38, 0xde, 0xd0\n\t"
+#define aesdec_xmm0_xmm3 ".byte 0x66, 0x0f, 0x38, 0xde, 0xd8\n\t"
+#define aesdec_xmm0_xmm4 ".byte 0x66, 0x0f, 0x38, 0xde, 0xe0\n\t"
+#define aesdeclast_xmm0_xmm1 ".byte 0x66, 0x0f, 0x38, 0xdf, 0xc8\n\t"
+#define aesdeclast_xmm0_xmm2 ".byte 0x66, 0x0f, 0x38, 0xdf, 0xd0\n\t"
+#define aesdeclast_xmm0_xmm3 ".byte 0x66, 0x0f, 0x38, 0xdf, 0xd8\n\t"
+#define aesdeclast_xmm0_xmm4 ".byte 0x66, 0x0f, 0x38, 0xdf, 0xe0\n\t"
+  asm volatile ("movdqa (%[key]), %%xmm0\n\t"
+                "pxor   %%xmm0, %%xmm1\n\t"     /* xmm1 ^= key[0] */
+                "pxor   %%xmm0, %%xmm2\n\t"     /* xmm2 ^= key[0] */
+                "pxor   %%xmm0, %%xmm3\n\t"     /* xmm3 ^= key[0] */
+                "pxor   %%xmm0, %%xmm4\n\t"     /* xmm4 ^= key[0] */
+                "movdqa 0x10(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0x20(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0x30(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0x40(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0x50(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0x60(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0x70(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0x80(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0x90(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0xa0(%[key]), %%xmm0\n\t"
+                "cmp $10, %[rounds]\n\t"
+                "jz .Ldeclast%=\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0xb0(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0xc0(%[key]), %%xmm0\n\t"
+                "cmp $12, %[rounds]\n\t"
+                "jz .Ldeclast%=\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0xd0(%[key]), %%xmm0\n\t"
+                aesdec_xmm0_xmm1
+                aesdec_xmm0_xmm2
+                aesdec_xmm0_xmm3
+                aesdec_xmm0_xmm4
+                "movdqa 0xe0(%[key]), %%xmm0\n"
+
+                ".Ldeclast%=:\n\t"
+                aesdeclast_xmm0_xmm1
+                aesdeclast_xmm0_xmm2
+                aesdeclast_xmm0_xmm3
+                aesdeclast_xmm0_xmm4
+                : /* no output */
+                : [key] "r" (ctx->keyschdec),
+                  [rounds] "r" (ctx->rounds)
+                : "cc", "memory");
+#undef aesdec_xmm0_xmm1
+#undef aesdec_xmm0_xmm2
+#undef aesdec_xmm0_xmm3
+#undef aesdec_xmm0_xmm4
+#undef aesdeclast_xmm0_xmm1
+#undef aesdeclast_xmm0_xmm2
+#undef aesdeclast_xmm0_xmm3
+#undef aesdeclast_xmm0_xmm4
+}
+
+
 /* Perform a CFB encryption or decryption round using the
    initialization vector IV and the input block A.  Write the result
    to the output block B and update IV.  IV needs to be 16 byte
@@ -1623,16 +1732,50 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
           ctx->decryption_prepared = 1;
         }
 
-      /* As we avoid memcpy to/from stack by using xmm2 and xmm3 for temporary
-         storage, out-of-order CPUs see parallellism even over loop iterations
-         and see 2.5x to 2.9x speed up on Intel Sandy-Bridge. Further
-         improvements are possible with do_aesni_cbc_dec_4() when implemented.
-       */
       asm volatile
-        ("movdqu %[iv], %%xmm3\n\t"	/* use xmm3 as fast IV storage */
+        ("movdqu %[iv], %%xmm5\n\t"	/* use xmm5 as fast IV storage */
          : /* No output */
          : [iv] "m" (*iv)
          : "memory");
+
+      for ( ;nblocks > 3 ; nblocks -= 4 )
+        {
+          asm volatile
+            ("movdqu 0*16(%[inbuf]), %%xmm1\n\t"	/* load input blocks */
+             "movdqu 1*16(%[inbuf]), %%xmm2\n\t"
+             "movdqu 2*16(%[inbuf]), %%xmm3\n\t"
+             "movdqu 3*16(%[inbuf]), %%xmm4\n\t"
+             : /* No output */
+             : [inbuf] "r" (inbuf)
+             : "memory");
+
+          do_aesni_dec_vec4 (ctx);
+
+          asm volatile
+            ("pxor %%xmm5, %%xmm1\n\t"			/* xor IV with output */
+             "movdqu 0*16(%[inbuf]), %%xmm5\n\t"	/* load new IV */
+             "movdqu %%xmm1, 0*16(%[outbuf])\n\t"
+
+             "pxor %%xmm5, %%xmm2\n\t"			/* xor IV with output */
+             "movdqu 1*16(%[inbuf]), %%xmm5\n\t"	/* load new IV */
+             "movdqu %%xmm2, 1*16(%[outbuf])\n\t"
+
+             "pxor %%xmm5, %%xmm3\n\t"			/* xor IV with output */
+             "movdqu 2*16(%[inbuf]), %%xmm5\n\t"	/* load new IV */
+             "movdqu %%xmm3, 2*16(%[outbuf])\n\t"
+
+             "pxor %%xmm5, %%xmm4\n\t"			/* xor IV with output */
+             "movdqu 3*16(%[inbuf]), %%xmm5\n\t"	/* load new IV */
+             "movdqu %%xmm4, 3*16(%[outbuf])\n\t"
+
+             : /* No output */
+             : [inbuf] "r" (inbuf),
+               [outbuf] "r" (outbuf)
+             : "memory");
+
+          outbuf += 4*BLOCKSIZE;
+          inbuf  += 4*BLOCKSIZE;
+        }
 
       for ( ;nblocks; nblocks-- )
         {
@@ -1647,9 +1790,9 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 
           asm volatile
             ("movdqu %[outbuf], %%xmm0\n\t"
-             "pxor %%xmm3, %%xmm0\n\t"		/* xor IV with output */
+             "pxor %%xmm5, %%xmm0\n\t"		/* xor IV with output */
              "movdqu %%xmm0, %[outbuf]\n\t"
-             "movdqu %%xmm2, %%xmm3\n\t"	/* store savebuf as new IV */
+             "movdqu %%xmm2, %%xmm5\n\t"	/* store savebuf as new IV */
              : /* No output */
              : [outbuf] "m" (*outbuf)
              : "memory");
@@ -1659,7 +1802,7 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
         }
 
       asm volatile
-        ("movdqu %%xmm3, %[iv]\n\t"	/* store IV */
+        ("movdqu %%xmm5, %[iv]\n\t"	/* store IV */
          : /* No output */
          : [iv] "m" (*iv)
          : "memory");
