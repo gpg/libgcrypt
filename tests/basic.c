@@ -1367,13 +1367,15 @@ check_one_cipher_core (int algo, int mode, int flags,
                        int bufshift, int pass)
 {
   gcry_cipher_hd_t hd;
-  unsigned char in_buffer[17], out_buffer[17];
+  unsigned char in_buffer[1040+1], out_buffer[1040+1];
   unsigned char *in, *out;
   int keylen;
   gcry_error_t err = 0;
 
   assert (nkey == 32);
-  assert (nplain == 16);
+  assert (nplain == 1040);
+  assert (sizeof(in_buffer) == nplain + 1);
+  assert (sizeof(out_buffer) == sizeof(in_buffer));
 
   if (!bufshift)
     {
@@ -1427,7 +1429,7 @@ check_one_cipher_core (int algo, int mode, int flags,
       return -1;
     }
 
-  err = gcry_cipher_encrypt (hd, out, 16, plain, 16);
+  err = gcry_cipher_encrypt (hd, out, nplain, plain, nplain);
   if (err)
     {
       fail ("pass %d, algo %d, mode %d, gcry_cipher_encrypt failed: %s\n",
@@ -1438,7 +1440,7 @@ check_one_cipher_core (int algo, int mode, int flags,
 
   gcry_cipher_reset (hd);
 
-  err = gcry_cipher_decrypt (hd, in, 16, out, 16);
+  err = gcry_cipher_decrypt (hd, in, nplain, out, nplain);
   if (err)
     {
       fail ("pass %d, algo %d, mode %d, gcry_cipher_decrypt failed: %s\n",
@@ -1447,15 +1449,15 @@ check_one_cipher_core (int algo, int mode, int flags,
       return -1;
     }
 
-  if (memcmp (plain, in, 16))
+  if (memcmp (plain, in, nplain))
     fail ("pass %d, algo %d, mode %d, encrypt-decrypt mismatch\n",
           pass, algo, mode);
 
   /* Again, using in-place encryption.  */
   gcry_cipher_reset (hd);
 
-  memcpy (out, plain, 16);
-  err = gcry_cipher_encrypt (hd, out, 16, NULL, 0);
+  memcpy (out, plain, nplain);
+  err = gcry_cipher_encrypt (hd, out, nplain, NULL, 0);
   if (err)
     {
       fail ("pass %d, algo %d, mode %d, in-place, gcry_cipher_encrypt failed:"
@@ -1467,7 +1469,7 @@ check_one_cipher_core (int algo, int mode, int flags,
 
   gcry_cipher_reset (hd);
 
-  err = gcry_cipher_decrypt (hd, out, 16, NULL, 0);
+  err = gcry_cipher_decrypt (hd, out, nplain, NULL, 0);
   if (err)
     {
       fail ("pass %d, algo %d, mode %d, in-place, gcry_cipher_decrypt failed:"
@@ -1477,7 +1479,7 @@ check_one_cipher_core (int algo, int mode, int flags,
       return -1;
     }
 
-  if (memcmp (plain, out, 16))
+  if (memcmp (plain, out, nplain))
     fail ("pass %d, algo %d, mode %d, in-place, encrypt-decrypt mismatch\n",
           pass, algo, mode);
 
@@ -1492,34 +1494,43 @@ check_one_cipher_core (int algo, int mode, int flags,
 static void
 check_one_cipher (int algo, int mode, int flags)
 {
-  char key[33];
-  unsigned char plain[17];
-  int bufshift;
+  char key[32+1];
+  unsigned char plain[1040+1];
+  int bufshift, i;
 
   for (bufshift=0; bufshift < 4; bufshift++)
     {
       /* Pass 0: Standard test.  */
       memcpy (key, "0123456789abcdef.,;/[]{}-=ABCDEF", 32);
       memcpy (plain, "foobar42FOOBAR17", 16);
-      if (check_one_cipher_core (algo, mode, flags, key, 32, plain, 16,
+      for (i = 16; i < 1040; i += 16)
+        {
+          memcpy (&plain[i], &plain[i-16], 16);
+          if (!++plain[i+7])
+            plain[i+6]++;
+          if (!++plain[i+15])
+            plain[i+14]++;
+        }
+
+      if (check_one_cipher_core (algo, mode, flags, key, 32, plain, 1040,
                                  bufshift, 0+10*bufshift))
         return;
 
       /* Pass 1: Key not aligned.  */
       memmove (key+1, key, 32);
-      if (check_one_cipher_core (algo, mode, flags, key+1, 32, plain, 16,
+      if (check_one_cipher_core (algo, mode, flags, key+1, 32, plain, 1040,
                                  bufshift, 1+10*bufshift))
         return;
 
       /* Pass 2: Key not aligned and data not aligned.  */
-      memmove (plain+1, plain, 16);
-      if (check_one_cipher_core (algo, mode, flags, key+1, 32, plain+1, 16,
+      memmove (plain+1, plain, 1024);
+      if (check_one_cipher_core (algo, mode, flags, key+1, 32, plain+1, 1040,
                                  bufshift, 2+10*bufshift))
         return;
 
       /* Pass 3: Key aligned and data not aligned.  */
       memmove (key, key+1, 32);
-      if (check_one_cipher_core (algo, mode, flags, key, 32, plain+1, 16,
+      if (check_one_cipher_core (algo, mode, flags, key, 32, plain+1, 1040,
                                  bufshift, 3+10*bufshift))
         return;
     }
