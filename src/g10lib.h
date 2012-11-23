@@ -238,10 +238,51 @@ void _gcry_burn_stack (int bytes);
 #define wipememory2(_ptr,_set,_len) do { \
               volatile char *_vptr=(volatile char *)(_ptr); \
               size_t _vlen=(_len); \
-              while(_vlen) { *_vptr=(_set); _vptr++; _vlen--; } \
+              unsigned char _vset=(_set); \
+              fast_wipememory2(_vptr,_vset,_vlen); \
+              while(_vlen) { *_vptr=(_vset); _vptr++; _vlen--; } \
                   } while(0)
 #define wipememory(_ptr,_len) wipememory2(_ptr,0,_len)
 
+
+/* Optimized fast_wipememory2 for i386 and x86-64 architechtures.  Maybe leave
+   tail bytes unhandled, in which case tail bytes are handled by wipememory2.
+ */
+#if defined(__x86_64__) && __GNUC__ >= 4
+#define fast_wipememory2(_vptr,_vset,_vlen) do { \
+              unsigned long long int _vset8 = _vset; \
+              if (_vlen < 8) \
+                break; \
+              _vset8 *= 0x0101010101010101ULL; \
+              do { \
+                asm volatile("movq %[set], %[ptr]\n\t" \
+                             : /**/ \
+                             : [set] "Cr" (_vset8), \
+                               [ptr] "m" (*_vptr) \
+                             : "memory"); \
+                _vlen -= 8; \
+                _vptr += 8; \
+              } while (_vlen >= 8); \
+                  } while (0)
+#elif defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ >= 4
+#define fast_wipememory2(_ptr,_set,_len) do { \
+              unsigned long _vset4 = _vset; \
+              if (_vlen < 4) \
+                break; \
+              _vset4 *= 0x01010101; \
+              do { \
+                asm volatile("movl %[set], %[ptr]\n\t" \
+                             : /**/ \
+                             : [set] "Cr" (_vset4), \
+                               [ptr] "m" (*_vptr) \
+                             : "memory"); \
+                _vlen -= 4; \
+                _vptr += 4; \
+              } while (_vlen >= 4); \
+                  } while (0)
+#else
+#define fast_wipememory2(_ptr,_set,_len)
+#endif
 
 
 /* Digit predicates.  */
