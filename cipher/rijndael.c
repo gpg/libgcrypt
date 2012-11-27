@@ -742,13 +742,13 @@ do_aesni_enc_aligned (const RIJNDAEL_context *ctx,
                 "movdqa 0x90(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xa0(%[key]), %%xmm1\n\t"
-                "cmp $10, %[rounds]\n\t"
+                "cmpl $10, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xb0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xc0(%[key]), %%xmm1\n\t"
-                "cmp $12, %[rounds]\n\t"
+                "cmpl $12, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xd0(%[key]), %%xmm1\n\t"
@@ -796,13 +796,13 @@ do_aesni_dec_aligned (const RIJNDAEL_context *ctx,
                 "movdqa 0x90(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
                 "movdqa 0xa0(%[key]), %%xmm1\n\t"
-                "cmp $10, %[rounds]\n\t"
+                "cmpl $10, %[rounds]\n\t"
                 "jz .Ldeclast%=\n\t"
                 aesdec_xmm1_xmm0
                 "movdqa 0xb0(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
                 "movdqa 0xc0(%[key]), %%xmm1\n\t"
-                "cmp $12, %[rounds]\n\t"
+                "cmpl $12, %[rounds]\n\t"
                 "jz .Ldeclast%=\n\t"
                 aesdec_xmm1_xmm0
                 "movdqa 0xd0(%[key]), %%xmm1\n\t"
@@ -886,7 +886,7 @@ do_aesni_dec_vec4 (const RIJNDAEL_context *ctx)
                 aesdec_xmm0_xmm3
                 aesdec_xmm0_xmm4
                 "movdqa 0xa0(%[key]), %%xmm0\n\t"
-                "cmp $10, %[rounds]\n\t"
+                "cmpl $10, %[rounds]\n\t"
                 "jz .Ldeclast%=\n\t"
                 aesdec_xmm0_xmm1
                 aesdec_xmm0_xmm2
@@ -898,7 +898,7 @@ do_aesni_dec_vec4 (const RIJNDAEL_context *ctx)
                 aesdec_xmm0_xmm3
                 aesdec_xmm0_xmm4
                 "movdqa 0xc0(%[key]), %%xmm0\n\t"
-                "cmp $12, %[rounds]\n\t"
+                "cmpl $12, %[rounds]\n\t"
                 "jz .Ldeclast%=\n\t"
                 aesdec_xmm0_xmm1
                 aesdec_xmm0_xmm2
@@ -963,13 +963,13 @@ do_aesni_cfb (const RIJNDAEL_context *ctx, int decrypt_flag,
                 "movdqa 0x90(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xa0(%[key]), %%xmm1\n\t"
-                "cmp $10, %[rounds]\n\t"
+                "cmpl $10, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xb0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xc0(%[key]), %%xmm1\n\t"
-                "cmp $12, %[rounds]\n\t"
+                "cmpl $12, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xd0(%[key]), %%xmm1\n\t"
@@ -981,7 +981,7 @@ do_aesni_cfb (const RIJNDAEL_context *ctx, int decrypt_flag,
                 "movdqu %[src], %%xmm1\n\t"      /* Save input.  */
                 "pxor %%xmm1, %%xmm0\n\t"        /* xmm0 = input ^ IV  */
 
-                "cmp $1, %[decrypt]\n\t"
+                "cmpl $1, %[decrypt]\n\t"
                 "jz .Ldecrypt_%=\n\t"
                 "movdqa %%xmm0, %[iv]\n\t"       /* [encrypt] Store IV.  */
                 "jmp .Lleave_%=\n"
@@ -1058,13 +1058,13 @@ do_aesni_ctr (const RIJNDAEL_context *ctx,
                 "movdqa 0x90(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xa0(%[key]), %%xmm1\n\t"
-                "cmp $10, %[rounds]\n\t"
+                "cmpl $10, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xb0(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xc0(%[key]), %%xmm1\n\t"
-                "cmp $12, %[rounds]\n\t"
+                "cmpl $12, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 "movdqa 0xd0(%[key]), %%xmm1\n\t"
@@ -1219,7 +1219,7 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
                 "movdqa 0xa0(%[key]), %%xmm1\n\t"
-                "cmp $10, %[rounds]\n\t"
+                "cmpl $10, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
@@ -1231,7 +1231,7 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
                 "movdqa 0xc0(%[key]), %%xmm1\n\t"
-                "cmp $12, %[rounds]\n\t"
+                "cmpl $12, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
