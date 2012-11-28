@@ -1,6 +1,6 @@
 /* Rijndael (AES) for GnuPG
  * Copyright (C) 2000, 2001, 2002, 2003, 2007,
- *               2008, 2011 Free Software Foundation, Inc.
+ *               2008, 2011, 2012 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -75,8 +75,10 @@
    gcc 3.  However, to be on the safe side we require at least gcc 4.  */
 #undef USE_AESNI
 #ifdef ENABLE_AESNI_SUPPORT
-# if ((defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__)) && __GNUC__ >= 4
-#  define USE_AESNI 1
+# if ((defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__))
+#  if __GNUC__ >= 4
+#   define USE_AESNI 1
+#  endif
 # endif
 #endif /* ENABLE_AESNI_SUPPORT */
 
