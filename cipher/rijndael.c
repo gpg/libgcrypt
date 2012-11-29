@@ -45,6 +45,7 @@
 #include "types.h"  /* for byte and u32 typedefs */
 #include "g10lib.h"
 #include "cipher.h"
+#include "bufhelp.h"
 
 #define MAXKC			(256/32)
 #define MAXROUNDS		14
@@ -1337,8 +1338,6 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char *ivp;
-  int i;
 
   if (0)
     ;
@@ -1351,8 +1350,9 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
           /* Encrypt the IV. */
           do_padlock (ctx, 0, iv, iv);
           /* XOR the input with the IV and store input into IV.  */
-          for (ivp=iv,i=0; i < BLOCKSIZE; i++ )
-            *outbuf++ = (*ivp++ ^= *inbuf++);
+          buf_xor_2dst(outbuf, iv, inbuf, BLOCKSIZE);
+          outbuf += BLOCKSIZE;
+          inbuf  += BLOCKSIZE;
         }
     }
 #endif /*USE_PADLOCK*/
@@ -1376,8 +1376,9 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
           /* Encrypt the IV. */
           do_encrypt_aligned (ctx, iv, iv);
           /* XOR the input with the IV and store input into IV.  */
-          for (ivp=iv,i=0; i < BLOCKSIZE; i++ )
-            *outbuf++ = (*ivp++ ^= *inbuf++);
+          buf_xor_2dst(outbuf, iv, inbuf, BLOCKSIZE);
+          outbuf += BLOCKSIZE;
+          inbuf  += BLOCKSIZE;
         }
     }
 
@@ -1397,8 +1398,6 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char *ivp;
-  int i;
 
   aesni_prepare ();
   for ( ;nblocks; nblocks-- )
@@ -1432,8 +1431,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
 #endif /*USE_AESNI*/
       else
         {
-          for (ivp=iv, i=0; i < BLOCKSIZE; i++ )
-            outbuf[i] = inbuf[i] ^ *ivp++;
+          buf_xor(outbuf, inbuf, iv, BLOCKSIZE);
 
           if (0)
             ;
@@ -1470,7 +1468,6 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char *p;
   int i;
 
   if (0)
@@ -1504,8 +1501,9 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
           /* Encrypt the counter. */
           do_encrypt_aligned (ctx, tmp.x1, ctr);
           /* XOR the input with the encrypted counter and store in output.  */
-          for (p=tmp.x1, i=0; i < BLOCKSIZE; i++)
-            *outbuf++ = (*p++ ^= *inbuf++);
+          buf_xor(outbuf, tmp.x1, inbuf, BLOCKSIZE);
+          outbuf += BLOCKSIZE;
+          inbuf  += BLOCKSIZE;
           /* Increment the counter.  */
           for (i = BLOCKSIZE; i > 0; i--)
             {
@@ -1694,9 +1692,6 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char *ivp;
-  unsigned char temp;
-  int i;
 
   if (0)
     ;
@@ -1707,12 +1702,9 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
       for ( ;nblocks; nblocks-- )
         {
           do_padlock (ctx, 0, iv, iv);
-          for (ivp=iv,i=0; i < BLOCKSIZE; i++ )
-            {
-              temp = *inbuf++;
-              *outbuf++ = *ivp ^ temp;
-              *ivp++ = temp;
-            }
+          buf_xor_n_copy(outbuf, iv, inbuf, BLOCKSIZE);
+          outbuf += BLOCKSIZE;
+          inbuf  += BLOCKSIZE;
         }
     }
 #endif /*USE_PADLOCK*/
@@ -1734,12 +1726,9 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
       for ( ;nblocks; nblocks-- )
         {
           do_encrypt_aligned (ctx, iv, iv);
-          for (ivp=iv,i=0; i < BLOCKSIZE; i++ )
-            {
-              temp = *inbuf++;
-              *outbuf++ = *ivp ^ temp;
-              *ivp++ = temp;
-            }
+          buf_xor_n_copy(outbuf, iv, inbuf, BLOCKSIZE);
+          outbuf += BLOCKSIZE;
+          inbuf  += BLOCKSIZE;
         }
     }
 
@@ -1759,8 +1748,6 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char *ivp;
-  int i;
   unsigned char savebuf[BLOCKSIZE];
 
   if (0)
@@ -1871,8 +1858,7 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
         else
           do_decrypt (ctx, outbuf, inbuf);
 
-        for (ivp=iv, i=0; i < BLOCKSIZE; i++ )
-          outbuf[i] ^= *ivp++;
+        buf_xor(outbuf, outbuf, iv, BLOCKSIZE);
         memcpy (iv, savebuf, BLOCKSIZE);
         inbuf += BLOCKSIZE;
         outbuf += BLOCKSIZE;

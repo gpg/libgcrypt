@@ -28,6 +28,7 @@
 #include "cipher.h"
 #include "ath.h"
 #include "./cipher-internal.h"
+#include "bufhelp.h"
 
 
 
@@ -68,8 +69,7 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
     {
       for (n=0; n < nblocks; n++ )
         {
-          for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
-            outbuf[i] = inbuf[i] ^ *ivp++;
+          buf_xor(outbuf, inbuf, c->u_iv.iv, blocksize);
           c->cipher->encrypt ( &c->context.c, outbuf, outbuf );
           memcpy (c->u_iv.iv, outbuf, blocksize );
           inbuf  += blocksize;
@@ -114,7 +114,6 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
                           const unsigned char *inbuf, unsigned int inbuflen)
 {
   unsigned int n;
-  unsigned char *ivp;
   int i;
   size_t blocksize = c->cipher->blocksize;
   unsigned int nblocks = inbuflen / blocksize;
@@ -150,8 +149,7 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
            * this here because it is not used otherwise. */
           memcpy (c->lastiv, inbuf, blocksize);
           c->cipher->decrypt ( &c->context.c, outbuf, inbuf );
-          for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
-	    outbuf[i] ^= *ivp++;
+          buf_xor(outbuf, outbuf, c->u_iv.iv, blocksize);
           memcpy(c->u_iv.iv, c->lastiv, blocksize );
           inbuf  += c->cipher->blocksize;
           outbuf += c->cipher->blocksize;
@@ -171,15 +169,13 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
       memcpy (c->u_iv.iv, inbuf + blocksize, restbytes ); /* Save Cn. */
 
       c->cipher->decrypt ( &c->context.c, outbuf, inbuf );
-      for (ivp=c->u_iv.iv,i=0; i < restbytes; i++ )
-        outbuf[i] ^= *ivp++;
+      buf_xor(outbuf, outbuf, c->u_iv.iv, restbytes);
 
       memcpy(outbuf + blocksize, outbuf, restbytes);
       for(i=restbytes; i < blocksize; i++)
         c->u_iv.iv[i] = outbuf[i];
       c->cipher->decrypt (&c->context.c, outbuf, c->u_iv.iv);
-      for(ivp=c->lastiv,i=0; i < blocksize; i++ )
-        outbuf[i] ^= *ivp++;
+      buf_xor(outbuf, outbuf, c->lastiv, blocksize);
       /* c->lastiv is now really lastlastiv, does this matter? */
     }
 

@@ -26,6 +26,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "ath.h"
+#include "bufhelp.h"
 #include "./cipher-internal.h"
 
 
@@ -95,8 +96,7 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
 		break;
 	    }
           /* A := MSB_64(B) ^ t */
-          for (x=0; x < 8; x++)
-            a[x] = b[x] ^ t[x];
+	  buf_xor(a, b, t, 8);
           /* R[i] := LSB_64(B) */
           memcpy (r+i*8, b+8, 8);
         }
@@ -161,8 +161,7 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
       for (i = n; i >= 1; i--)
         {
           /* B := AES_k^1( (A ^ t)| R[i] ) */
-          for (x = 0; x < 8; x++)
-            b[x] = a[x] ^ t[x];
+	  buf_xor(b, a, t, 8);
           memcpy (b+8, r+(i-1)*8, 8);
           c->cipher->decrypt (&c->context.c, b, b);
           /* t := t - 1  */

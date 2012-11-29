@@ -27,6 +27,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "ath.h"
+#include "bufhelp.h"
 #include "./cipher-internal.h"
 
 
@@ -46,10 +47,9 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
     {
       /* Short enough to be encoded by the remaining XOR mask. */
       /* XOR the input with the IV and store input into IV. */
-      for (ivp=c->u_iv.iv+c->cipher->blocksize - c->unused;
-           inbuflen;
-           inbuflen--, c->unused-- )
-        *outbuf++ = (*ivp++ ^= *inbuf++);
+      ivp = c->u_iv.iv + c->cipher->blocksize - c->unused;
+      buf_xor_2dst(outbuf, ivp, inbuf, inbuflen);
+      c->unused -= inbuflen;
       return 0;
     }
 
@@ -57,8 +57,11 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
     {
       /* XOR the input with the IV and store input into IV */
       inbuflen -= c->unused;
-      for(ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
-        *outbuf++ = (*ivp++ ^= *inbuf++);
+      ivp = c->u_iv.iv + blocksize - c->unused;
+      buf_xor_2dst(outbuf, ivp, inbuf, c->unused);
+      outbuf += c->unused;
+      inbuf += c->unused;
+      c->unused = 0;
     }
 
   /* Now we can process complete blocks.  We use a loop as long as we
@@ -76,25 +79,25 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
     {
       while ( inbuflen >= blocksize_x_2 )
         {
-          int i;
           /* Encrypt the IV. */
           c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
           /* XOR the input with the IV and store input into IV.  */
-          for(ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
-            *outbuf++ = (*ivp++ ^= *inbuf++);
+          buf_xor_2dst(outbuf, c->u_iv.iv, inbuf, blocksize);
+          outbuf += blocksize;
+          inbuf += blocksize;
           inbuflen -= blocksize;
         }
     }
 
   if ( inbuflen >= blocksize )
     {
-      int i;
       /* Save the current IV and then encrypt the IV. */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       /* XOR the input with the IV and store input into IV */
-      for(ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
-        *outbuf++ = (*ivp++ ^= *inbuf++);
+      buf_xor_2dst(outbuf, c->u_iv.iv, inbuf, blocksize);
+      outbuf += blocksize;
+      inbuf += blocksize;
       inbuflen -= blocksize;
     }
   if ( inbuflen )
@@ -105,8 +108,10 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
       c->unused = blocksize;
       /* Apply the XOR. */
       c->unused -= inbuflen;
-      for(ivp=c->u_iv.iv; inbuflen; inbuflen-- )
-        *outbuf++ = (*ivp++ ^= *inbuf++);
+      buf_xor_2dst(outbuf, c->u_iv.iv, inbuf, inbuflen);
+      outbuf += inbuflen;
+      inbuf += inbuflen;
+      inbuflen = 0;
     }
   return 0;
 }
@@ -118,8 +123,6 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
                           const unsigned char *inbuf, unsigned int inbuflen)
 {
   unsigned char *ivp;
-  unsigned long temp;
-  int i;
   size_t blocksize = c->cipher->blocksize;
   size_t blocksize_x_2 = blocksize + blocksize;
 
@@ -130,14 +133,9 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
     {
       /* Short enough to be encoded by the remaining XOR mask. */
       /* XOR the input with the IV and store input into IV. */
-      for (ivp=c->u_iv.iv+blocksize - c->unused;
-           inbuflen;
-           inbuflen--, c->unused--)
-        {
-          temp = *inbuf++;
-          *outbuf++ = *ivp ^ temp;
-          *ivp++ = temp;
-        }
+      ivp = c->u_iv.iv + blocksize - c->unused;
+      buf_xor_n_copy(outbuf, ivp, inbuf, inbuflen);
+      c->unused -= inbuflen;
       return 0;
     }
 
@@ -145,12 +143,11 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
     {
       /* XOR the input with the IV and store input into IV. */
       inbuflen -= c->unused;
-      for (ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
-        {
-          temp = *inbuf++;
-          *outbuf++ = *ivp ^ temp;
-          *ivp++ = temp;
-        }
+      ivp = c->u_iv.iv + blocksize - c->unused;
+      buf_xor_n_copy(outbuf, ivp, inbuf, c->unused);
+      outbuf += c->unused;
+      inbuf += c->unused;
+      c->unused = 0;
     }
 
   /* Now we can process complete blocks.  We use a loop as long as we
@@ -171,12 +168,9 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
           /* Encrypt the IV. */
           c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
           /* XOR the input with the IV and store input into IV. */
-          for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
-            {
-              temp = *inbuf++;
-              *outbuf++ = *ivp ^ temp;
-              *ivp++ = temp;
-            }
+          buf_xor_n_copy(outbuf, c->u_iv.iv, inbuf, blocksize);
+          outbuf += blocksize;
+          inbuf += blocksize;
           inbuflen -= blocksize;
         }
     }
@@ -187,12 +181,9 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
       memcpy ( c->lastiv, c->u_iv.iv, blocksize);
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       /* XOR the input with the IV and store input into IV */
-      for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
-        {
-          temp = *inbuf++;
-          *outbuf++ = *ivp ^ temp;
-          *ivp++ = temp;
-        }
+      buf_xor_n_copy(outbuf, c->u_iv.iv, inbuf, blocksize);
+      outbuf += blocksize;
+      inbuf += blocksize;
       inbuflen -= blocksize;
     }
 
@@ -204,12 +195,10 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
       c->unused = blocksize;
       /* Apply the XOR. */
       c->unused -= inbuflen;
-      for (ivp=c->u_iv.iv; inbuflen; inbuflen-- )
-        {
-          temp = *inbuf++;
-          *outbuf++ = *ivp ^ temp;
-          *ivp++ = temp;
-        }
+      buf_xor_n_copy(outbuf, c->u_iv.iv, inbuf, inbuflen);
+      outbuf += inbuflen;
+      inbuf += inbuflen;
+      inbuflen = 0;
     }
   return 0;
 }

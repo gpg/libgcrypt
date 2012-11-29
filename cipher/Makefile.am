@@ -40,6 +40,7 @@ cipher-cbc.c cipher-cfb.c cipher-ofb.c cipher-ctr.c cipher-aeswrap.c \
 pubkey.c md.c kdf.c \
 hmac-tests.c \
 bithelp.h  \
+bufhelp.h  \
 primegen.c  \
 hash-common.c hash-common.h \
 rmd.h

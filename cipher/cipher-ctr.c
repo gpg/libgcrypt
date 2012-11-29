@@ -27,6 +27,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "ath.h"
+#include "bufhelp.h"
 #include "./cipher-internal.h"
 
 
@@ -48,11 +49,9 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
     {
       gcry_assert (c->unused < blocksize);
       i = blocksize - c->unused;
-      for (n=0; c->unused && n < inbuflen; c->unused--, n++, i++)
-        {
-          /* XOR input with encrypted counter and store in output.  */
-          outbuf[n] = inbuf[n] ^ c->lastiv[i];
-        }
+      n = c->unused > inbuflen ? inbuflen : c->unused;
+      buf_xor(outbuf, inbuf, &c->lastiv[i], n);
+      c->unused -= n;
       inbuf  += n;
       outbuf += n;
       inbuflen -= n;
@@ -75,27 +74,26 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
     {
       unsigned char tmp[MAX_BLOCKSIZE];
 
-      for (n=0; n < inbuflen; n++)
-        {
-          if ((n % blocksize) == 0)
-            {
-              c->cipher->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
+      do {
+        c->cipher->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
 
-              for (i = blocksize; i > 0; i--)
-                {
-                  c->u_ctr.ctr[i-1]++;
-                  if (c->u_ctr.ctr[i-1] != 0)
-                    break;
-                }
-            }
+        for (i = blocksize; i > 0; i--)
+          {
+            c->u_ctr.ctr[i-1]++;
+            if (c->u_ctr.ctr[i-1] != 0)
+              break;
+          }
 
-          /* XOR input with encrypted counter and store in output.  */
-          outbuf[n] = inbuf[n] ^ tmp[n % blocksize];
-        }
+        n = blocksize < inbuflen ? blocksize : inbuflen;
+        buf_xor(outbuf, inbuf, tmp, n);
+
+        inbuflen -= n;
+        outbuf += n;
+        inbuf += n;
+      } while (inbuflen);
 
       /* Save the unused bytes of the counter.  */
-      n %= blocksize;
-      c->unused = (blocksize - n) % blocksize;
+      c->unused = blocksize - n;
       if (c->unused)
         memcpy (c->lastiv+n, tmp+n, c->unused);
 

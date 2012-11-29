@@ -27,6 +27,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "ath.h"
+#include "bufhelp.h"
 #include "./cipher-internal.h"
 
 
@@ -45,30 +46,31 @@ _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
     {
       /* Short enough to be encoded by the remaining XOR mask. */
       /* XOR the input with the IV */
-      for (ivp=c->u_iv.iv+c->cipher->blocksize - c->unused;
-           inbuflen;
-           inbuflen--, c->unused-- )
-        *outbuf++ = (*ivp++ ^ *inbuf++);
+      ivp = c->u_iv.iv + c->cipher->blocksize - c->unused;
+      buf_xor(outbuf, ivp, inbuf, inbuflen);
+      c->unused -= inbuflen;
       return 0;
     }
 
   if( c->unused )
     {
       inbuflen -= c->unused;
-      for(ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
-        *outbuf++ = (*ivp++ ^ *inbuf++);
+      ivp = c->u_iv.iv + blocksize - c->unused;
+      buf_xor(outbuf, ivp, inbuf, c->unused);
+      outbuf += c->unused;
+      inbuf += c->unused;
+      c->unused = 0;
     }
 
   /* Now we can process complete blocks. */
   while ( inbuflen >= blocksize )
     {
-      int i;
       /* Encrypt the IV (and save the current one). */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
-
-      for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
-        *outbuf++ = (*ivp++ ^ *inbuf++);
+      buf_xor(outbuf, c->u_iv.iv, inbuf, blocksize);
+      outbuf += blocksize;
+      inbuf += blocksize;
       inbuflen -= blocksize;
     }
   if ( inbuflen )
@@ -77,8 +79,10 @@ _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       c->unused = blocksize;
       c->unused -= inbuflen;
-      for(ivp=c->u_iv.iv; inbuflen; inbuflen-- )
-        *outbuf++ = (*ivp++ ^ *inbuf++);
+      buf_xor(outbuf, c->u_iv.iv, inbuf, inbuflen);
+      outbuf += inbuflen;
+      inbuf += inbuflen;
+      inbuflen = 0;
     }
   return 0;
 }
@@ -98,27 +102,31 @@ _gcry_cipher_ofb_decrypt (gcry_cipher_hd_t c,
   if( inbuflen <= c->unused )
     {
       /* Short enough to be encoded by the remaining XOR mask. */
-      for (ivp=c->u_iv.iv+blocksize - c->unused; inbuflen; inbuflen--,c->unused--)
-        *outbuf++ = *ivp++ ^ *inbuf++;
+      ivp = c->u_iv.iv + blocksize - c->unused;
+      buf_xor(outbuf, ivp, inbuf, inbuflen);
+      c->unused -= inbuflen;
       return 0;
     }
 
   if ( c->unused )
     {
       inbuflen -= c->unused;
-      for (ivp=c->u_iv.iv+blocksize - c->unused; c->unused; c->unused-- )
-        *outbuf++ = *ivp++ ^ *inbuf++;
+      ivp = c->u_iv.iv + blocksize - c->unused;
+      buf_xor(outbuf, ivp, inbuf, c->unused);
+      outbuf += c->unused;
+      inbuf += c->unused;
+      c->unused = 0;
     }
 
   /* Now we can process complete blocks. */
   while ( inbuflen >= blocksize )
     {
-      int i;
       /* Encrypt the IV (and save the current one). */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
-      for (ivp=c->u_iv.iv,i=0; i < blocksize; i++ )
-        *outbuf++ = *ivp++ ^ *inbuf++;
+      buf_xor(outbuf, c->u_iv.iv, inbuf, blocksize);
+      outbuf += blocksize;
+      inbuf += blocksize;
       inbuflen -= blocksize;
     }
   if ( inbuflen )
@@ -128,8 +136,10 @@ _gcry_cipher_ofb_decrypt (gcry_cipher_hd_t c,
       c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
       c->unused = blocksize;
       c->unused -= inbuflen;
-      for (ivp=c->u_iv.iv; inbuflen; inbuflen-- )
-        *outbuf++ = *ivp++ ^ *inbuf++;
+      buf_xor(outbuf, c->u_iv.iv, inbuf, inbuflen);
+      outbuf += inbuflen;
+      inbuf += inbuflen;
+      inbuflen = 0;
     }
   return 0;
 }
