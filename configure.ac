@@ -804,6 +804,31 @@ if test "$gcry_cv_gcc_attribute_aligned" = "yes" ; then
 fi
 
 
+#
+# Check whether the compiler supports 'asm' or '__asm__' keyword for
+# assembler blocks
+#
+AC_CACHE_CHECK([whether 'asm' assembler keyword is supported],
+       [gcry_cv_have_asm],
+       [gcry_cv_have_asm=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) { asm("":::"memory"); }]])],
+          [gcry_cv_have_asm=yes])])
+AC_CACHE_CHECK([whether '__asm__' assembler keyword is supported],
+       [gcry_cv_have___asm__],
+       [gcry_cv_have___asm__=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) { __asm__("":::"memory"); }]])],
+          [gcry_cv_have___asm__=yes])])
+if test "$gcry_cv_have_asm" = "no" ; then
+   if test "$gcry_cv_have___asm__" = "yes" ; then
+      AC_DEFINE(asm,__asm__,
+        [Define to supported assembler block keyword, if plain 'asm' was not
+         supported])
+   fi
+fi
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################
