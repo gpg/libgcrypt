@@ -1015,24 +1015,20 @@ do_aesni_ctr (const RIJNDAEL_context *ctx,
 
   asm volatile ("movdqa (%[ctr]), %%xmm0\n\t"   /* xmm0, xmm2 := CTR   */
                 "movaps %%xmm0, %%xmm2\n\t"
-                "mov    $1, %%esi\n\t"          /* xmm2++ (big-endian) */
-                "movd   %%esi, %%xmm1\n\t"
-
-                "movl   12(%[ctr]), %%esi\n\t"  /* load lower parts of CTR */
-                "bswapl %%esi\n\t"
-                "movl   8(%[ctr]), %%edi\n\t"
-                "bswapl %%edi\n\t"
+                "pcmpeqd %%xmm1, %%xmm1\n\t"
+                "psrldq $8, %%xmm1\n\t"         /* xmm1 = -1 */
 
                 "pshufb %[mask], %%xmm2\n\t"
-                "paddq  %%xmm1, %%xmm2\n\t"
+                "psubq  %%xmm1, %%xmm2\n\t"     /* xmm2++ (big endian) */
 
-                "addl   $1, %%esi\n\t"
-                "adcl   $0, %%edi\n\t"          /* detect 64bit overflow */
-                "jnc    .Lno_carry%=\n\t"
+                /* detect if 64-bit carry handling is needed */
+                "cmpl   $0xffffffff, 8(%[ctr])\n\t"
+                "jne    .Lno_carry%=\n\t"
+                "cmpl   $0xffffffff, 12(%[ctr])\n\t"
+                "jne    .Lno_carry%=\n\t"
 
-                /* swap upper and lower halfs */
-                "pshufd $0x4e, %%xmm1, %%xmm1\n\t"
-                "paddq   %%xmm1, %%xmm2\n\t"	/* add carry to upper 64bits */
+                "pslldq $8, %%xmm1\n\t"         /* move lower 64-bit to high */
+                "psubq   %%xmm1, %%xmm2\n\t"    /* add carry to upper 64bits */
 
                 ".Lno_carry%=:\n\t"
 
@@ -1085,7 +1081,7 @@ do_aesni_ctr (const RIJNDAEL_context *ctx,
                   [key] "r" (ctx->keyschenc),
                   [rounds] "g" (ctx->rounds),
                   [mask] "m" (*be_mask)
-                : "%esi", "%edi", "cc", "memory");
+                : "cc", "memory");
 #undef aesenc_xmm1_xmm0
 #undef aesenclast_xmm1_xmm0
 }
@@ -1120,48 +1116,40 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
 
   asm volatile ("movdqa (%[ctr]), %%xmm0\n\t"   /* xmm0, xmm2 := CTR   */
                 "movaps %%xmm0, %%xmm2\n\t"
-                "mov    $1, %%esi\n\t"          /* xmm1 := 1 */
-                "movd   %%esi, %%xmm1\n\t"
-
-                "movl   12(%[ctr]), %%esi\n\t"  /* load lower parts of CTR */
-                "bswapl %%esi\n\t"
-                "movl   8(%[ctr]), %%edi\n\t"
-                "bswapl %%edi\n\t"
+                "pcmpeqd %%xmm1, %%xmm1\n\t"
+                "psrldq $8, %%xmm1\n\t"         /* xmm1 = -1 */
 
                 "pshufb %[mask], %%xmm2\n\t"    /* xmm2 := le(xmm2) */
-                "paddq  %%xmm1, %%xmm2\n\t"     /* xmm2++           */
+                "psubq  %%xmm1, %%xmm2\n\t"     /* xmm2++           */
                 "movaps %%xmm2, %%xmm3\n\t"     /* xmm3 := xmm2     */
-                "paddq  %%xmm1, %%xmm3\n\t"     /* xmm3++           */
+                "psubq  %%xmm1, %%xmm3\n\t"     /* xmm3++           */
                 "movaps %%xmm3, %%xmm4\n\t"     /* xmm4 := xmm3     */
-                "paddq  %%xmm1, %%xmm4\n\t"     /* xmm4++           */
+                "psubq  %%xmm1, %%xmm4\n\t"     /* xmm4++           */
                 "movaps %%xmm4, %%xmm5\n\t"     /* xmm5 := xmm4     */
-                "paddq  %%xmm1, %%xmm5\n\t"     /* xmm5++           */
+                "psubq  %%xmm1, %%xmm5\n\t"     /* xmm5++           */
 
-                /* swap upper and lower halfs */
-                "pshufd $0x4e, %%xmm1, %%xmm1\n\t"
+                /* detect if 64-bit carry handling is needed */
+                "cmpl   $0xffffffff, 8(%[ctr])\n\t"
+                "jne    .Lno_carry%=\n\t"
+                "movl   12(%[ctr]), %%esi\n\t"
+                "bswapl %%esi\n\t"
+                "cmpl   $0xfffffffc, %%esi\n\t"
+                "jb     .Lno_carry%=\n\t"       /* no carry */
 
-                "addl   $1, %%esi\n\t"
-                "adcl   $0, %%edi\n\t"          /* detect 64bit overflow */
-                "jc     .Lcarry_xmm2%=\n\t"
-                "addl   $1, %%esi\n\t"
-                "adcl   $0, %%edi\n\t"          /* detect 64bit overflow */
-                "jc     .Lcarry_xmm3%=\n\t"
-                "addl   $1, %%esi\n\t"
-                "adcl   $0, %%edi\n\t"          /* detect 64bit overflow */
-                "jc     .Lcarry_xmm4%=\n\t"
-                "addl   $1, %%esi\n\t"
-                "adcl   $0, %%edi\n\t"          /* detect 64bit overflow */
-                "jc     .Lcarry_xmm5%=\n\t"
-                "jmp    .Lno_carry%=\n\t"
+                "pslldq $8, %%xmm1\n\t"         /* move lower 64-bit to high */
+                "je     .Lcarry_xmm5%=\n\t"     /* esi == 0xfffffffc */
+                "cmpl   $0xfffffffe, %%esi\n\t"
+                "jb     .Lcarry_xmm4%=\n\t"     /* esi == 0xfffffffd */
+                "je     .Lcarry_xmm3%=\n\t"     /* esi == 0xfffffffe */
+                /* esi == 0xffffffff */
 
-                ".Lcarry_xmm2%=:\n\t"
-                "paddq   %%xmm1, %%xmm2\n\t"
+                "psubq   %%xmm1, %%xmm2\n\t"
                 ".Lcarry_xmm3%=:\n\t"
-                "paddq   %%xmm1, %%xmm3\n\t"
+                "psubq   %%xmm1, %%xmm3\n\t"
                 ".Lcarry_xmm4%=:\n\t"
-                "paddq   %%xmm1, %%xmm4\n\t"
+                "psubq   %%xmm1, %%xmm4\n\t"
                 ".Lcarry_xmm5%=:\n\t"
-                "paddq   %%xmm1, %%xmm5\n\t"
+                "psubq   %%xmm1, %%xmm5\n\t"
 
                 ".Lno_carry%=:\n\t"
                 "pshufb %[mask], %%xmm2\n\t"    /* xmm2 := be(xmm2) */
@@ -1170,7 +1158,7 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 "pshufb %[mask], %%xmm5\n\t"    /* xmm5 := be(xmm5) */
                 "movdqa %%xmm5, (%[ctr])\n"     /* Update CTR.      */
 
-                "movdqa (%[key]), %%xmm1\n\t"    /* xmm1 := key[0]    */
+                "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0]    */
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm2\n\t"     /* xmm2 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm3\n\t"     /* xmm3 ^= key[0]    */
@@ -1275,7 +1263,7 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                   [key] "r" (ctx->keyschenc),
                   [rounds] "g" (ctx->rounds),
                   [mask] "m" (*be_mask)
-                : "%esi", "%edi", "cc", "memory");
+                : "%esi", "cc", "memory");
 #undef aesenc_xmm1_xmm0
 #undef aesenc_xmm1_xmm2
 #undef aesenc_xmm1_xmm3
