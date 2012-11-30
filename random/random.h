@@ -61,8 +61,6 @@ void _gcry_daemon_initialize_basics (void);
 int _gcry_daemon_randomize (const char *socketname,
                             void *buffer, size_t length,
                             enum gcry_random_level level);
-int _gcry_daemon_create_nonce (const char *socketname,
-                               void *buffer, size_t length);
 #endif /*USE_RANDOM_DAEMON*/
 
 #endif /*G10_RANDOM_H*/

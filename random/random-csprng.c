@@ -1,6 +1,6 @@
 /* random-csprng.c - CSPRNG style random number generator (libgcrypt classic)
  * Copyright (C) 1998, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
- *               2007, 2008, 2010  Free Software Foundation, Inc.
+ *               2007, 2008, 2010, 2012  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -189,10 +189,6 @@ static ath_mutex_t pool_lock;
    test suite.  */
 static int pool_is_locked;
 
-/* This is the lock we use to protect the buffer used by the nonce
-   generation.  */
-static ath_mutex_t nonce_buffer_lock;
-
 
 /* We keep some counters in this structure for the sake of the
    _gcry_random_dump_stats () function.  */
@@ -271,11 +267,6 @@ initialize_basics(void)
       err = ath_mutex_init (&pool_lock);
       if (err)
         log_fatal ("failed to create the pool lock: %s\n", strerror (err) );
-
-      err = ath_mutex_init (&nonce_buffer_lock);
-      if (err)
-        log_fatal ("failed to create the nonce buffer lock: %s\n",
-                   strerror (err) );
 
 #ifdef USE_RANDOM_DAEMON
       _gcry_daemon_initialize_basics ();
@@ -1319,90 +1310,4 @@ gather_faked (void (*add)(const void*, size_t, enum random_origins),
   add_randomness ( buffer, length, origin );
   gcry_free (buffer);
   return 0; /* okay */
-}
-
-
-/* Create an unpredicable nonce of LENGTH bytes in BUFFER. */
-void
-_gcry_rngcsprng_create_nonce (void *buffer, size_t length)
-{
-  static unsigned char nonce_buffer[20+8];
-  static int nonce_buffer_initialized = 0;
-  static volatile pid_t my_pid; /* The volatile is there to make sure the
-                                   compiler does not optimize the code away
-                                   in case the getpid function is badly
-                                   attributed. */
-  volatile pid_t apid;
-  unsigned char *p;
-  size_t n;
-  int err;
-
-  /* Make sure we are initialized. */
-  initialize ();
-
-#ifdef USE_RANDOM_DAEMON
-  if (allow_daemon
-      && !_gcry_daemon_create_nonce (daemon_socket_name, buffer, length))
-    return; /* The daemon succeeded. */
-  allow_daemon = 0; /* Daemon failed - switch off. */
-#endif /*USE_RANDOM_DAEMON*/
-
-  /* Acquire the nonce buffer lock. */
-  err = ath_mutex_lock (&nonce_buffer_lock);
-  if (err)
-    log_fatal ("failed to acquire the nonce buffer lock: %s\n",
-               strerror (err));
-
-  apid = getpid ();
-  /* The first time initialize our buffer. */
-  if (!nonce_buffer_initialized)
-    {
-      time_t atime = time (NULL);
-      pid_t xpid = apid;
-
-      my_pid = apid;
-
-      if ((sizeof apid + sizeof atime) > sizeof nonce_buffer)
-        BUG ();
-
-      /* Initialize the first 20 bytes with a reasonable value so that
-         a failure of gcry_randomize won't affect us too much.  Don't
-         care about the uninitialized remaining bytes. */
-      p = nonce_buffer;
-      memcpy (p, &xpid, sizeof xpid);
-      p += sizeof xpid;
-      memcpy (p, &atime, sizeof atime);
-
-      /* Initialize the never changing private part of 64 bits. */
-      gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
-
-      nonce_buffer_initialized = 1;
-    }
-  else if ( my_pid != apid )
-    {
-      /* We forked. Need to reseed the buffer - doing this for the
-         private part should be sufficient. */
-      gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
-      /* Update the pid so that we won't run into here again and
-         again. */
-      my_pid = apid;
-    }
-
-  /* Create the nonce by hashing the entire buffer, returning the hash
-     and updating the first 20 bytes of the buffer with this hash. */
-  for (p = buffer; length > 0; length -= n, p += n)
-    {
-      _gcry_sha1_hash_buffer (nonce_buffer,
-                              nonce_buffer, sizeof nonce_buffer);
-      n = length > 20? 20 : length;
-      memcpy (p, nonce_buffer, n);
-    }
-
-
-  /* Release the nonce buffer lock. */
-  err = ath_mutex_unlock (&nonce_buffer_lock);
-  if (err)
-    log_fatal ("failed to release the nonce buffer lock: %s\n",
-               strerror (err));
-
 }

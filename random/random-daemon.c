@@ -345,17 +345,4 @@ _gcry_daemon_randomize (const char *socketname,
   return err ? -1 : 0;
 }
 
-
-/* Internal function to fill BUFFER with NBYTES of data usable for a
-   nonce.  Returns 0 on success. */
-int
-_gcry_daemon_create_nonce (const char *socketname, void *buffer, size_t length)
-{
-  gcry_error_t err;
-
-  err = call_daemon (socketname, buffer, length, 1, 0);
-
-  return err ? -1 : 0;
-}
-
 /* END */

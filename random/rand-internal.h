@@ -61,18 +61,13 @@ void _gcry_rngcsprng_randomize (void *buffer, size_t length,
 void _gcry_rngcsprng_set_seed_file (const char *name);
 void _gcry_rngcsprng_update_seed_file (void);
 void _gcry_rngcsprng_fast_poll (void);
-void _gcry_rngcsprng_create_nonce (void *buffer, size_t length);
 
-/*-- random-rngcsprng.c --*/
+/*-- random-fips.c --*/
 void _gcry_rngfips_initialize (int full);
 void _gcry_rngfips_dump_stats (void);
 int  _gcry_rngfips_is_faked (void);
 gcry_error_t _gcry_rngfips_add_bytes (const void *buf, size_t buflen,
                                         int quality);
-void *_gcry_rngfips_get_bytes (size_t nbytes,
-                               enum gcry_random_level level);
-void *_gcry_rngfips_get_bytes_secure (size_t nbytes,
-                                      enum gcry_random_level level);
 void _gcry_rngfips_randomize (void *buffer, size_t length,
                                 enum gcry_random_level level);
 void _gcry_rngfips_create_nonce (void *buffer, size_t length);

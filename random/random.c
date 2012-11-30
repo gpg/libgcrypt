@@ -1,5 +1,5 @@
 /* random.c - Random number switch
- * Copyright (C) 2008  Free Software Foundation, Inc.
+ * Copyright (C) 2003, 2006, 2008, 2012  Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
  *
@@ -26,10 +26,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "g10lib.h"
 #include "random.h"
 #include "rand-internal.h"
+#include "cipher.h"         /* For _gcry_sha1_hash_buffer().  */
 #include "ath.h"
 
 
@@ -39,6 +43,9 @@
 static void (*progress_cb) (void *,const char*,int,int, int );
 static void *progress_cb_data;
 
+/* This is the lock we use to protect the buffer used by the nonce
+   generation.  */
+static ath_mutex_t nonce_buffer_lock;
 
 
 
@@ -75,6 +82,18 @@ _gcry_random_progress (const char *what, int printchar, int current, int total)
 void
 _gcry_random_initialize (int full)
 {
+  static int nonce_initialized;
+  int err;
+
+  if (!nonce_initialized)
+    {
+      nonce_initialized = 1;
+      err = ath_mutex_init (&nonce_buffer_lock);
+      if (err)
+        log_fatal ("failed to create the nonce buffer lock: %s\n",
+                   strerror (err) );
+    }
+
   if (fips_mode ())
     _gcry_rngfips_initialize (full);
   else
@@ -265,10 +284,90 @@ _gcry_fast_random_poll (void)
 void
 gcry_create_nonce (void *buffer, size_t length)
 {
+  static unsigned char nonce_buffer[20+8];
+  static int nonce_buffer_initialized = 0;
+  static volatile pid_t my_pid; /* The volatile is there to make sure the
+                                   compiler does not optimize the code away
+                                   in case the getpid function is badly
+                                   attributed. */
+  volatile pid_t apid;
+  unsigned char *p;
+  size_t n;
+  int err;
+
+  /* First check whether we shall use the FIPS nonce generator.  This
+     is only done in FIPS mode, in all other modes, we use our own
+     nonce generator which is seeded by the RNG actual in use.  */
   if (fips_mode ())
-    _gcry_rngfips_create_nonce (buffer, length);
-  else
-    _gcry_rngcsprng_create_nonce (buffer, length);
+    {
+      _gcry_rngfips_create_nonce (buffer, length);
+      return;
+    }
+
+  /* This is the nonce generator, which formerly lived in
+     random-csprng.c.  It is now used by all RNG types except when in
+     FIPS mode (not that this means it is also used if the FIPS RNG
+     has been selected but we are not in fips mode).  */
+
+  /* Make sure we are initialized. */
+  _gcry_random_initialize (1);
+
+  /* Acquire the nonce buffer lock. */
+  err = ath_mutex_lock (&nonce_buffer_lock);
+  if (err)
+    log_fatal ("failed to acquire the nonce buffer lock: %s\n",
+               strerror (err));
+
+  apid = getpid ();
+  /* The first time initialize our buffer. */
+  if (!nonce_buffer_initialized)
+    {
+      time_t atime = time (NULL);
+      pid_t xpid = apid;
+
+      my_pid = apid;
+
+      if ((sizeof apid + sizeof atime) > sizeof nonce_buffer)
+        BUG ();
+
+      /* Initialize the first 20 bytes with a reasonable value so that
+         a failure of gcry_randomize won't affect us too much.  Don't
+         care about the uninitialized remaining bytes. */
+      p = nonce_buffer;
+      memcpy (p, &xpid, sizeof xpid);
+      p += sizeof xpid;
+      memcpy (p, &atime, sizeof atime);
+
+      /* Initialize the never changing private part of 64 bits. */
+      gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
+
+      nonce_buffer_initialized = 1;
+    }
+  else if ( my_pid != apid )
+    {
+      /* We forked. Need to reseed the buffer - doing this for the
+         private part should be sufficient. */
+      do_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
+      /* Update the pid so that we won't run into here again and
+         again. */
+      my_pid = apid;
+    }
+
+  /* Create the nonce by hashing the entire buffer, returning the hash
+     and updating the first 20 bytes of the buffer with this hash. */
+  for (p = buffer; length > 0; length -= n, p += n)
+    {
+      _gcry_sha1_hash_buffer (nonce_buffer,
+                              nonce_buffer, sizeof nonce_buffer);
+      n = length > 20? 20 : length;
+      memcpy (p, nonce_buffer, n);
+    }
+
+  /* Release the nonce buffer lock. */
+  err = ath_mutex_unlock (&nonce_buffer_lock);
+  if (err)
+    log_fatal ("failed to release the nonce buffer lock: %s\n",
+               strerror (err));
 }
 
 
