@@ -1151,6 +1151,23 @@ main( int argc, char **argv )
           use_random_daemon = 1;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--prefer-standard-rng"))
+        {
+          /* This is anyway the default, but we may want to use it for
+             debugging. */
+          gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD);
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--prefer-fips-rng"))
+        {
+          gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS);
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--prefer-system-rng"))
+        {
+          gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
+          argc--; argv++;
+        }
       else if (!strcmp (*argv, "--no-blinding"))
         {
           no_blinding = 1;

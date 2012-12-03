@@ -32,7 +32,12 @@
 
 #include "../src/gcrypt.h"
 
+#define PGM "random"
+
+
 static int verbose;
+static int debug;
+static int with_progress;
 
 static void
 die (const char *format, ...)
@@ -40,6 +45,7 @@ die (const char *format, ...)
   va_list arg_ptr;
 
   va_start (arg_ptr, format);
+  fputs ( PGM ": ", stderr);
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
   exit (1);
@@ -52,6 +58,7 @@ inf (const char *format, ...)
   va_list arg_ptr;
 
   va_start (arg_ptr, format);
+  fputs ( PGM ": ", stderr);
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
 }
@@ -62,11 +69,23 @@ print_hex (const char *text, const void *buf, size_t n)
 {
   const unsigned char *p = buf;
 
-  fputs (text, stdout);
+  inf ("%s", text);
   for (; n; n--, p++)
-    printf ("%02X", *p);
-  putchar ('\n');
+    fprintf (stderr, "%02X", *p);
+  putc ('\n', stderr);
 }
+
+
+static void
+progress_cb (void *cb_data, const char *what, int printchar,
+             int current, int total)
+{
+  (void)cb_data;
+
+  inf ("progress (%s %c %d %d)\n", what, printchar, current, total);
+  fflush (stderr);
+}
+
 
 
 static int
@@ -251,34 +270,270 @@ check_nonce_forking (void)
 }
 
 
+static int
+rng_type (void)
+{
+  int rngtype;
+  if (gcry_control (GCRYCTL_GET_CURRENT_RNG_TYPE, &rngtype))
+    die ("retrieving RNG type failed\n");
+  return rngtype;
+}
 
 
+static void
+check_rng_type_switching (void)
+{
+  int rngtype, initial;
+  char tmp1[4];
 
+  if (verbose)
+    inf ("checking whether RNG type switching works\n");
+
+  rngtype = rng_type ();
+  if (debug)
+    inf ("rng type: %d\n", rngtype);
+  initial = rngtype;
+  gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
+  if (debug)
+    print_hex ("  sample: ", tmp1, sizeof tmp1);
+  if (rngtype != rng_type ())
+    die ("RNG type unexpectedly changed\n");
+
+  gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
+
+  rngtype = rng_type ();
+  if (debug)
+    inf ("rng type: %d\n", rngtype);
+  if (rngtype != initial)
+    die ("switching to System RNG unexpectedly succeeded\n");
+  gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
+  if (debug)
+    print_hex ("  sample: ", tmp1, sizeof tmp1);
+  if (rngtype != rng_type ())
+    die ("RNG type unexpectedly changed\n");
+
+  gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS);
+
+  rngtype = rng_type ();
+  if (debug)
+    inf ("rng type: %d\n", rngtype);
+  if (rngtype != initial)
+    die ("switching to FIPS RNG unexpectedly succeeded\n");
+  gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
+  if (debug)
+    print_hex ("  sample: ", tmp1, sizeof tmp1);
+  if (rngtype != rng_type ())
+    die ("RNG type unexpectedly changed\n");
+
+  gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD);
+
+  rngtype = rng_type ();
+  if (debug)
+    inf ("rng type: %d\n", rngtype);
+  if (rngtype != GCRY_RNG_TYPE_STANDARD)
+    die ("switching to standard RNG failed\n");
+  gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
+  if (debug)
+    print_hex ("  sample: ", tmp1, sizeof tmp1);
+  if (rngtype != rng_type ())
+    die ("RNG type unexpectedly changed\n");
+}
+
+
+static void
+check_early_rng_type_switching (void)
+{
+  int rngtype, initial;
+
+  if (verbose)
+    inf ("checking whether RNG type switching works in the early stage\n");
+
+  rngtype = rng_type ();
+  if (debug)
+    inf ("rng type: %d\n", rngtype);
+  initial = rngtype;
+
+  gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
+
+  rngtype = rng_type ();
+  if (debug)
+    inf ("rng type: %d\n", rngtype);
+  if (initial >= GCRY_RNG_TYPE_SYSTEM && rngtype != GCRY_RNG_TYPE_SYSTEM)
+    die ("switching to System RNG failed\n");
+
+  gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS);
+
+  rngtype = rng_type ();
+  if (debug)
+    inf ("rng type: %d\n", rngtype);
+  if (initial >= GCRY_RNG_TYPE_FIPS && rngtype != GCRY_RNG_TYPE_FIPS)
+    die ("switching to FIPS RNG failed\n");
+
+  gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD);
+
+  rngtype = rng_type ();
+  if (debug)
+    inf ("rng type: %d\n", rngtype);
+  if (rngtype != GCRY_RNG_TYPE_STANDARD)
+    die ("switching to standard RNG failed\n");
+}
+
+
+/* Because we want to check initialization behaviour, we need to
+   fork/exec this program with several command line arguments.  We use
+   system, so that these tests work also on Windows.  */
+static void
+run_all_rng_tests (const char *program)
+{
+  static const char *options[] = {
+    "--early-rng-check",
+    "--early-rng-check --prefer-standard-rng",
+    "--early-rng-check --prefer-fips-rng",
+    "--early-rng-check --prefer-system-rng",
+    "--prefer-standard-rng",
+    "--prefer-fips-rng",
+    "--prefer-system-rng",
+    NULL
+  };
+  int idx;
+  size_t len, maxlen;
+  char *cmdline;
+
+  maxlen = 0;
+  for (idx=0; options[idx]; idx++)
+    {
+      len = strlen (options[idx]);
+      if (len > maxlen)
+        maxlen = len;
+    }
+  maxlen += strlen (program);
+  maxlen += strlen (" --in-recursion --verbose --debug --progress");
+  maxlen++;
+  cmdline = malloc (maxlen + 1);
+  if (!cmdline)
+    die ("out of core\n");
+
+  for (idx=0; options[idx]; idx++)
+    {
+      if (verbose)
+        inf ("now running with options '%s'\n", options[idx]);
+      strcpy (cmdline, program);
+      strcat (cmdline, " --in-recursion");
+      if (verbose)
+        strcat (cmdline, " --verbose");
+      if (debug)
+        strcat (cmdline, " --debug");
+      if (with_progress)
+        strcat (cmdline, " --progress");
+      strcat (cmdline, " ");
+      strcat (cmdline, options[idx]);
+      if (system (cmdline))
+        die ("running '%s' failed\n", cmdline);
+    }
+
+  free (cmdline);
+}
 
 int
 main (int argc, char **argv)
 {
-  int debug = 0;
+  int last_argc = -1;
+  int early_rng = 0;
+  int in_recursion = 0;
+  const char *program = NULL;
 
-  if ((argc > 1) && (! strcmp (argv[1], "--verbose")))
-    verbose = 1;
-  else if ((argc > 1) && (! strcmp (argv[1], "--debug")))
-    verbose = debug = 1;
+  if (argc)
+    {
+      program = *argv;
+      argc--; argv++;
+    }
+  else
+    die ("argv[0] missing\n");
+
+  while (argc && last_argc != argc )
+    {
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--help"))
+        {
+          fputs ("usage: random [options]\n", stdout);
+          exit (0);
+        }
+      else if (!strcmp (*argv, "--verbose"))
+        {
+          verbose = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--debug"))
+        {
+          debug = verbose = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--progress"))
+        {
+          argc--; argv++;
+          with_progress = 1;
+        }
+      else if (!strcmp (*argv, "--in-recursion"))
+        {
+          in_recursion = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--early-rng-check"))
+        {
+          early_rng = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--prefer-standard-rng"))
+        {
+          /* This is anyway the default, but we may want to use it for
+             debugging. */
+          gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_STANDARD);
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--prefer-fips-rng"))
+        {
+          gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_FIPS);
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--prefer-system-rng"))
+        {
+          gcry_control (GCRYCTL_SET_PREFERRED_RNG_TYPE, GCRY_RNG_TYPE_SYSTEM);
+          argc--; argv++;
+        }
+    }
 
 #ifndef HAVE_W32_SYSTEM
   signal (SIGPIPE, SIG_IGN);
 #endif
 
+  if (early_rng)
+    check_early_rng_type_switching ();
+
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
+
+  if (with_progress)
+    gcry_set_progress_handler (progress_cb, NULL);
 
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
 
-  check_forking ();
-  check_nonce_forking ();
+  if (!in_recursion)
+    {
+      check_forking ();
+      check_nonce_forking ();
+    }
+  check_rng_type_switching ();
+
+  if (!in_recursion)
+    run_all_rng_tests (program);
 
   return 0;
 }

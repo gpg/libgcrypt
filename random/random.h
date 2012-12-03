@@ -26,7 +26,9 @@
 void _gcry_register_random_progress (void (*cb)(void *,const char*,int,int,int),
                                      void *cb_data );
 
+void _gcry_set_preferred_rng_type (int type);
 void _gcry_random_initialize (int full);
+int  _gcry_get_rng_type (int ignore_fips_mode);
 void _gcry_random_dump_stats(void);
 void _gcry_secure_random_alloc(void);
 void _gcry_enable_quick_random_gen (void);

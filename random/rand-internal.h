@@ -87,6 +87,14 @@ gcry_err_code_t _gcry_rngfips_run_external_test (void *context,
 void _gcry_rngfips_deinit_external_test (void *context);
 
 
+/*-- random-system.c --*/
+void _gcry_rngsystem_initialize (int full);
+void _gcry_rngsystem_dump_stats (void);
+int  _gcry_rngsystem_is_faked (void);
+gcry_error_t _gcry_rngsystem_add_bytes (const void *buf, size_t buflen,
+                                        int quality);
+void _gcry_rngsystem_randomize (void *buffer, size_t length,
+                                enum gcry_random_level level);
 
 
 

@@ -849,6 +849,37 @@ the library such as @code{gcry_check_version}. Note that Libgcrypt will
 reject an attempt to switch to the enforced fips mode during or after
 the intialization.
 
+@item GCRYCTL_SET_PREFERRED_RNG_TYPE; Arguments: int
+These are advisory commands to select a certain random number
+generator.  They are only advisory because libraries may not know what
+an application actually wants or vice versa.  Thus Libgcrypt employs a
+priority check to select the actually used RNG.  If an applications
+selects a lower priority RNG but a library requests a higher priority
+RNG Libgcrypt will switch to the higher priority RNG.  Applications
+and libaries should use these control codes before
+@code{gcry_check_version}.  The available generators are:
+@table @code
+@item GCRY_RNG_TYPE_STANDARD
+A conservative standard generator based on the ``Continuously Seeded
+Pseudo Random Number Generator'' designed by Peter Gutmann.
+@item GCRY_RNG_TYPE_FIPS
+A deterministic random number generator conforming to he document
+``NIST-Recommended Random Number Generator Based on ANSI X9.31
+Appendix A.2.4 Using the 3-Key Triple DES and AES Algorithms''
+(2005-01-31).  This implementation uses the AES variant.
+@item GCRY_RNG_TYPE_SYSTEM
+A wrapper around the system's native RNG.  On Unix system these are
+usually the /dev/random and /dev/urandom devices.
+@end table
+The default is @code{GCRY_RNG_TYPE_STANDARD} unless FIPS mode as been
+enabled; in which case @code{GCRY_RNG_TYPE_FIPS} is used and locked
+against further changes.
+
+@item GCRYCTL_GETT_CURRENT_RNG_TYPE; Arguments: int *
+This command stores the type of the currently used RNG as an integer
+value at the provided address.
+
+
 @item GCRYCTL_SELFTEST; Arguments: none
 This may be used at anytime to have the library run all implemented
 self-tests.  It works in standard and in FIPS mode.  Returns 0 on
