@@ -24,9 +24,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <signal.h>
-#include <unistd.h>
-#include <sys/wait.h>
+#ifndef HAVE_W32_SYSTEM
+# include <signal.h>
+# include <unistd.h>
+# include <sys/wait.h>
+#endif
 
 #include "../src/gcrypt.h"
 
@@ -41,6 +43,17 @@ die (const char *format, ...)
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
   exit (1);
+}
+
+
+static void
+inf (const char *format, ...)
+{
+  va_list arg_ptr;
+
+  va_start (arg_ptr, format);
+  vfprintf (stderr, format, arg_ptr);
+  va_end (arg_ptr);
 }
 
 
@@ -111,11 +124,18 @@ readn (int fd, void *buf, size_t buflen, size_t *ret_nread)
 static void
 check_forking (void)
 {
+#ifdef HAVE_W32_SYSTEM
+  if (verbose)
+    inf ("check_forking skipped: not applicable on Windows\n");
+#else /*!HAVE_W32_SYSTEM*/
   pid_t pid;
   int rp[2];
   int i, status;
   size_t nread;
   char tmp1[16], tmp1c[16], tmp1p[16];
+
+  if (verbose)
+    inf ("checking that a fork won't cause the same random output\n");
 
   /* We better make sure that the RNG has been initialzied. */
   gcry_randomize (tmp1, sizeof tmp1, GCRY_STRONG_RANDOM);
@@ -160,6 +180,7 @@ check_forking (void)
 
   if (!memcmp (tmp1p, tmp1c, sizeof tmp1c))
     die ("parent and child got the same random number\n");
+#endif  /*!HAVE_W32_SYSTEM*/
 }
 
 
@@ -168,11 +189,18 @@ check_forking (void)
 static void
 check_nonce_forking (void)
 {
+#ifdef HAVE_W32_SYSTEM
+  if (verbose)
+    inf ("check_nonce_forking skipped: not applicable on Windows\n");
+#else /*!HAVE_W32_SYSTEM*/
   pid_t pid;
   int rp[2];
   int i, status;
   size_t nread;
   char nonce1[10], nonce1c[10], nonce1p[10];
+
+  if (verbose)
+    inf ("checking that a fork won't cause the same nonce output\n");
 
   /* We won't get the same nonce back if we never initialized the
      nonce subsystem, thus we get one nonce here and forget about
@@ -219,6 +247,7 @@ check_nonce_forking (void)
 
   if (!memcmp (nonce1p, nonce1c, sizeof nonce1c))
     die ("parent and child got the same nonce\n");
+#endif  /*!HAVE_W32_SYSTEM*/
 }
 
 
@@ -236,7 +265,9 @@ main (int argc, char **argv)
   else if ((argc > 1) && (! strcmp (argv[1], "--debug")))
     verbose = debug = 1;
 
+#ifndef HAVE_W32_SYSTEM
   signal (SIGPIPE, SIG_IGN);
+#endif
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))

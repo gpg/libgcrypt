@@ -20,13 +20,8 @@
 
 TESTS = version t-mpi-bit prime basic \
         mpitests tsexp keygen pubkey hmac keygrip fips186-dsa aeswrap \
-	curves t-kdf pkcs1v2
+	curves t-kdf pkcs1v2 random
 
-
-# random.c uses fork() thus a test for W32 does not make any sense.
-if !HAVE_W32_SYSTEM
-TESTS += random
-endif
 
 # The last test to run.
 TESTS += benchmark
