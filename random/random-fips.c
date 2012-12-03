@@ -192,7 +192,7 @@ basic_initialization (void)
   static int initialized;
   int my_errno;
 
-  if (!initialized)
+  if (initialized)
     return;
   initialized = 1;
 
