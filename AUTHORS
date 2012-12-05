@@ -10,13 +10,14 @@ Libgcrypt used to be part of GnuPG but has been taken out into its own
 package on 2000-12-21.
 
 
-Authors of Libgcrypt
-====================
+Authors with a FSF copyright assignment
+=======================================
 
-GNUPG	Werner Koch		  1998-02-23
-Assigns GNU Privacy Guard and future changes.
+LIBGCRYPT       Werner Koch    2001-06-07
+Assigns past and future changes.
+Assignment for future changes terminated on 2012-12-04.
 wk@gnupg.org
-Designed and implemented GnuPG.
+Designed and implemented Libgcrypt.
 
 GNUPG	Matthew Skala		   1998-08-10
 Disclaims changes.
@@ -43,6 +44,7 @@ g10/free-packet.c, g10/mdfilter.c, g10/plaintext.c, util/iobuf.c)
 rguyom@mail.dotcom.fr
 
 ANY     g10 Code GmbH           2001-06-07
+Assignment for future changes terminated on 2012-12-04.
 Code marked with ChangeLog entries of g10 Code employees.
 
 LIBGCRYPT Timo Schulz           2001-08-31
@@ -108,6 +110,7 @@ Authors with a DCO
 DCO:2012-04-16:Tomáš Mráz <tm@t8m.info>
 DCO:2012-04-20:Rafaël Carré <funman@videolan.org>
 DCO:2012-11-14:Jussi Kivilinna <jussi.kivilinna@mbnet.fi>
+DCO:2012-12-05:Werner Koch <wk@gnupg.org>
 
 
 More credits
