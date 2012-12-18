@@ -544,6 +544,18 @@ if test x"$aesnisupport" = xyes ; then
             [Enable support for Intel AES-NI instructions.])
 fi
 
+# Implementation of the --disable-drng-support switch.
+AC_MSG_CHECKING([whether DRNG support is requested])
+AC_ARG_ENABLE(drng-support,
+              AC_HELP_STRING([--disable-drng-support],
+                 [Disable support for the Intel DRNG (RDRAND instruction)]),
+	      drngsupport=$enableval,drngsupport=yes)
+AC_MSG_RESULT($drngsupport)
+if test x"$drngsupport" = xyes ; then
+  AC_DEFINE(ENABLE_DRNG_SUPPORT, 1,
+            [Enable support for Intel DRNG (RDRAND instruction).])
+fi
+
 # Implementation of the --disable-O-flag-munging switch.
 AC_MSG_CHECKING([whether a -O flag munging is requested])
 AC_ARG_ENABLE([O-flag-munging],
@@ -1304,6 +1316,7 @@ echo "
         Using linux capabilities:  $use_capabilities
         Try using Padlock crypto:  $padlocksupport
         Try using AES-NI crypto:   $aesnisupport
+        Try using DRNG (RDRAND):   $drngsupport
 "
 
 if test "$print_egd_notice" = "yes"; then

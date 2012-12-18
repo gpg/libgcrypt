@@ -134,6 +134,20 @@ detect_x86_64_gnuc (void)
      : "%eax", "%ebx", "%ecx", "%edx", "cc"
      );
 #endif /*#ifdef ENABLE_AESNI_SUPPORT*/
+#ifdef ENABLE_DRNG_SUPPORT
+  asm volatile
+    ("movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
+     "cpuid\n"
+     "testl $0x40000000, %%ecx\n\t" /* Test bit 30.  */
+     "jz .Lno_rdrand%=\n\t"         /* No RDRAND support.  */
+     "orl $512, %0\n"               /* Set our HWF_INTEL_RDRAND bit.  */
+
+     ".Lno_rdrand%=:\n"
+     : "+r" (hw_features)
+     :
+     : "%eax", "%ebx", "%ecx", "%edx", "cc"
+     );
+#endif /* #ifdef ENABLE_DRNG_SUPPORT */
 
 }
 #endif /* __x86_64__ && __GNUC__ */
@@ -267,6 +281,22 @@ detect_ia32_gnuc (void)
      : "%eax", "%ecx", "%edx", "cc"
      );
 #endif /*ENABLE_AESNI_SUPPORT*/
+#ifdef ENABLE_DRNG_SUPPORT
+  asm volatile
+    ("pushl %%ebx\n\t"	        /* Save GOT register.  */
+     "movl $1, %%eax\n\t"           /* Get CPU info and feature flags.  */
+     "cpuid\n"
+     "popl %%ebx\n\t"	        /* Restore GOT register. */
+     "testl $0x40000000, %%ecx\n\t" /* Test bit 30.  */
+     "jz .Lno_rdrand%=\n\t"         /* No RDRAND support.  */
+     "orl $512, %0\n"               /* Set our HWF_INTEL_RDRAND bit.  */
+
+     ".Lno_rdrand%=:\n"
+     : "+r" (hw_features)
+     :
+     : "%eax", "%ecx", "%edx", "cc"
+     );
+#endif /*ENABLE_DRNG_SUPPORT*/
 
 }
 #endif /* __i386__ && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ */
