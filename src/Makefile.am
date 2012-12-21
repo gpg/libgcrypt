@@ -54,11 +54,15 @@ endif
 libgcrypt_la_CFLAGS = $(GPG_ERROR_CFLAGS)
 libgcrypt_la_SOURCES = g10lib.h visibility.c visibility.h types.h \
 	cipher.h cipher-proto.h gcrypt-module.h \
-	misc.c global.c sexp.c hwfeatures.c \
+	misc.c global.c sexp.c hwfeatures.c hwf-common.h \
 	stdmem.c stdmem.h secmem.c secmem.h \
 	mpi.h missing-string.c module.c fips.c \
 	hmac256.c hmac256.h \
 	ath.h ath.c
+
+EXTRA_libgcrypt_la_SOURCES = hwf-x86.c
+gcrypt_hwf_modules = @GCRYPT_HWF_MODULES@
+
 
 if HAVE_W32_SYSTEM
 
@@ -101,12 +105,14 @@ libgcrypt_la_LDFLAGS = $(no_undefined) $(export_symbols) \
 	$(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_la_DEPENDENCIES = \
+         $(gcrypt_hwf_modules)
 	../cipher/libcipher.la \
 	../random/librandom.la \
 	../mpi/libmpi.la \
 	../compat/libcompat.la \
 	$(srcdir)/libgcrypt.vers $(gcrypt_deps)
 libgcrypt_la_LIBADD = $(gcrypt_res) \
+        $(gcrypt_hwf_modules) \
 	../cipher/libcipher.la \
 	../random/librandom.la \
 	../mpi/libmpi.la \

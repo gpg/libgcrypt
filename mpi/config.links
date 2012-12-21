@@ -1,5 +1,6 @@
 # config.links - helper for ../configure             -*- mode: sh -*-
 # Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
+# Copyright (C) 2012  g10 Code GmbH
 #
 # This file is part of Libgcrypt.
 #
@@ -23,6 +24,7 @@
 
 mpi_sflags=
 mpi_extra_modules=
+mpi_cpu_arch=
 
 test -d ./mpi || mkdir ./mpi
 
@@ -44,6 +46,7 @@ case "${host}" in
     i[34567]86*-*-openbsd3.[0123]*)
        echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
        path=""
+       mpi_cpu_arch="x86"
        ;;
     i[3467]86*-*-openbsd*      | \
     i[3467]86*-*-freebsd*-elf  | \
@@ -54,6 +57,7 @@ case "${host}" in
        echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
        cat  $srcdir/mpi/i386/syntax.h	   >>./mpi/asm-syntax.h
        path="i386"
+       mpi_cpu_arch="x86"
        ;;
     i586*-*-openbsd*         | \
     i586*-*-freebsd*-elf     | \
@@ -66,11 +70,13 @@ case "${host}" in
        echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
        cat  $srcdir/mpi/i386/syntax.h	   >>./mpi/asm-syntax.h
        path="i586 i386"
+       mpi_cpu_arch="x86"
        ;;
     i[34]86*-*-bsdi4*)
        echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
        cat  $srcdir/mpi/i386/syntax.h	 >>./mpi/asm-syntax.h
        path="i386"
+       mpi_cpu_arch="x86"
        ;;
     i[3467]86*-*-linuxaout*  | \
     i[3467]86*-*-linuxoldld* | \
@@ -79,6 +85,7 @@ case "${host}" in
 	echo '#define X86_BROKEN_ALIGN' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
 	path="i386"
+        mpi_cpu_arch="x86"
 	;;
     i586*-*-linuxaout*  | \
     i586*-*-linuxoldld* | \
@@ -87,23 +94,27 @@ case "${host}" in
 	echo '#define X86_BROKEN_ALIGN' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
 	path="i586 i386"
+        mpi_cpu_arch="x86"
 	;;
     i[3467]86*-msdosdjgpp* | \
     i[34]86*-apple-darwin*)
 	echo '#define BSD_SYNTAX'        >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	 >>./mpi/asm-syntax.h
 	path="i386"
+        mpi_cpu_arch="x86"
 	;;
     i586*-msdosdjgpp* | \
     i[567]86*-apple-darwin*)
 	echo '#define BSD_SYNTAX'        >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	 >>./mpi/asm-syntax.h
 	path="i586 i386"
+        mpi_cpu_arch="x86"
 	;;
     i[3467]86*-*-*)
 	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
 	path="i386"
+        mpi_cpu_arch="x86"
 	;;
     i586*-*-*  | \
     pentium-*-*   | \
@@ -111,16 +122,19 @@ case "${host}" in
 	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
 	path="i586 i386"
+        mpi_cpu_arch="x86"
 	;;
     x86_64-*-*)
 	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
 	path="amd64"
+        mpi_cpu_arch="x86"
 	;;
     alpha*-*-*)
 	echo '/* configured for alpha */' >>./mpi/asm-syntax.h
 	path="alpha"
 	mpi_extra_modules="udiv-qrnnd"
+        mpi_cpu_arch="alpha"
 	;;
     hppa7000*-*-*)
 	echo '/* configured for HPPA (pa7000) */' >>./mpi/asm-syntax.h
@@ -140,49 +154,59 @@ case "${host}" in
     sparc64-*-linux-gnu)
         echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
 	path=""
+        mpi_cpu_arch="sparc"
 	;;
     sparc64-sun-solaris2*)
         echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
 	path=""
+        mpi_cpu_arch="sparc"
         ;;
     sparc64-*-netbsd* | sparc64-*-freebsd* | sparc64-*-openbsd*)
        # There are no sparc64 assembler modules that work on the
        # *BSDs, so use the generic C functions.
        echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
        path=""
+       mpi_cpu_arch="sparc"
        ;;
     sparc64*-*-*)
        echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
        path=""
+       mpi_cpu_arch="sparc"
        ;;
     sparc9*-*-*     | \
     ultrasparc*-*-* )
 	echo '/* configured for sparc9 or higher */' >>./mpi/asm-syntax.h
 	path="sparc32v8 sparc32"
+        mpi_cpu_arch="sparc"
 	;;
     sparc8*-*-*     | \
     microsparc*-*-*)
 	echo '/* configured for sparc8 */' >>./mpi/asm-syntax.h
 	path="sparc32v8 sparc32"
+        mpi_cpu_arch="sparc"
 	;;
     supersparc*-*-*)
 	echo '/* configured for supersparc */' >>./mpi/asm-syntax.h
 	path="supersparc sparc32v8 sparc32"
 	mpi_extra_modules="udiv"
+        mpi_cpu_arch="sparc"
 	;;
     sparc*-*-*)
 	echo '/* configured for sparc */' >>./mpi/asm-syntax.h
 	path="sparc32"
 	mpi_extra_modules="udiv"
+        mpi_cpu_arch="sparc"
 	;;
     mips[34]*-*-* | \
     mips*-*-irix6*)
        echo '/* configured for MIPS3 */' >>./mpi/asm-syntax.h
        path="mips3"
+       mpi_cpu_arch="mips"
        ;;
     mips*-*-*)
        echo '/* configured for MIPS2 */' >>./mpi/asm-syntax.h
        path="mips2"
+       mpi_cpu_arch="mips"
        ;;
 
     # Motorola 68k configurations.  Let m68k mean 68020-68040.
@@ -192,38 +216,45 @@ case "${host}" in
 	echo '#define MIT_SYNTAX'           >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/m68k/syntax.h	    >>./mpi/asm-syntax.h
 	path="m68k/mc68020 m68k"
+        mpi_cpu_arch="m68k"
 	;;
     m68060*-*-linuxaout*)
 	echo '#define MIT_SYNTAX'           >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/m68k/syntax.h	    >>./mpi/asm-syntax.h
 	path="m68k"
+        mpi_cpu_arch="m68k"
 	;;
     m680[234]0*-*-linux* | \
     m68k*-*-linux*)
 	echo '#define ELF_SYNTAX'           >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/m68k/syntax.h	    >>./mpi/asm-syntax.h
+        mpi_cpu_arch="m68k"
 	;;
     m68060*-*-linux*)
 	echo '#define ELF_SYNTAX'           >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/m68k/syntax.h	    >>./mpi/asm-syntax.h
 	path="m68k"
+        mpi_cpu_arch="m68k"
 	;;
     m68k-atari-mint)
 	echo '#define MIT_SYNTAX'           >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/m68k/syntax.h	    >>./mpi/asm-syntax.h
 	path="m68k/mc68020 m68k"
+        mpi_cpu_arch="m68k"
 	;;
     m68000*-*-* | \
     m68060*-*-*)
 	echo '#define MIT_SYNTAX'           >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/m68k/syntax.h	    >>./mpi/asm-syntax.h
 	path="m68k/mc68000"
+        mpi_cpu_arch="m68k"
 	;;
     m680[234]0*-*-* | \
     m68k*-*-*)
 	echo '#define MIT_SYNTAX'           >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/m68k/syntax.h	    >>./mpi/asm-syntax.h
 	path="m68k/mc68020 m68k"
+        mpi_cpu_arch="m68k"
 	;;
 
     powerpc*-*-netbsd* | powerpc*-*-openbsd*)
@@ -232,18 +263,21 @@ case "${host}" in
        cat   $srcdir/mpi/powerpc32/syntax.h	 >>./mpi/asm-syntax.h
        mpi_sflags="-Wa,-mppc"
        path="powerpc32"
+       mpi_cpu_arch="ppc"
        ;;
 
     ppc620-*-*	    | \
     powerpc64*-*-*)
 	mpi_sflags="-Wa,-mppc"
 	path="powerpc64"
+        mpi_cpu_arch="ppc"
 	;;
     powerpc*-*-linux*)
 	echo '/* configured for powerpc/ELF */' >>./mpi/asm-syntax.h
 	echo '#define ELF_SYNTAX'               >>./mpi/asm-syntax.h
 	cat   $srcdir/mpi/powerpc32/syntax.h	>>./mpi/asm-syntax.h
 	path="powerpc32"
+       mpi_cpu_arch="ppc"
 	;;
 
     rs6000-*-aix[456789]*    | \
@@ -258,6 +292,7 @@ case "${host}" in
 	mpi_sflags="-Wa,-mppc"
 	path="power"
 	mpi_extra_modules="udiv-w-sdiv"
+        mpi_cpu_arch="ppc"
 	;;
     powerpc-ibm-aix4.2.* )
 	# I am not sure about this one but a machine identified by
@@ -265,18 +300,22 @@ case "${host}" in
 	mpi_sflags="-Wa,-mpwr"
 	path="power"
 	mpi_extra_modules="udiv-w-sdiv"
+        mpi_cpu_arch="ppc"
 	;;
     ppc601-*-*)
 	mpi_sflags="-Wa,-mppc"
 	path="power powerpc32"
+        mpi_cpu_arch="ppc"
 	;;
     ppc60[234]*-*-*)
 	mpi_sflags="-Wa,-mppc"
 	path="powerpc32"
+        mpi_cpu_arch="ppc"
 	;;
     powerpc*-*-*)
 	mpi_sflags="-Wa,-mppc"
 	path="powerpc32"
+        mpi_cpu_arch="ppc"
 	;;
     *)
 	echo '/* No assembler modules configured */' >>./mpi/asm-syntax.h

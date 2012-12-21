@@ -1,6 +1,7 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
 #               2007, 2008, 2009, 2011 Free Software Foundation, Inc.
+# Copyright (C) 2012  g10 Code GmbH
 #
 # This file is part of Libgcrypt.
 #
@@ -958,6 +959,9 @@ fi
 #
 # Setup assembler stuff.
 #
+# Note that config.links also defines mpi_cpu_arch, which is required
+# later on.
+#
 GNUPG_SYS_SYMBOL_UNDERSCORE()
 AC_ARG_ENABLE(mpi-path,
               AC_HELP_STRING([--enable-mpi-path=EXTRA_PATH],
@@ -1269,6 +1273,38 @@ AC_DEFINE_UNQUOTED(LIBGCRYPT_DIGESTS, "$tmp",
                    [List of available digest algorithms])
 
 
+#
+# Define conditional sources depending on the used hardware platform.
+# Note that all possible modules must also be listed in
+# src/Makefile.am (EXTRA_libgcrypt_la_SOURCES).
+#
+GCRYPT_HWF_MODULES=
+case "$mpi_cpu_arch" in
+     x86)
+        AC_DEFINE(HAVE_CPU_ARCH_X86, 1,   [Defined for the x86 platforms])
+        GCRYPT_HWF_MODULES="hwf-x86.lo"
+        ;;
+     alpha)
+        AC_DEFINE(HAVE_CPU_ARCH_ALPHA, 1, [Defined for Alpha platforms])
+        ;;
+     sparc)
+        AC_DEFINE(HAVE_CPU_ARCH_SPARC, 1, [Defined for SPARC platforms])
+        ;;
+     mips)
+        AC_DEFINE(HAVE_CPU_ARCH_MIPS, 1,  [Defined for MIPS platforms])
+        ;;
+     m68k)
+        AC_DEFINE(HAVE_CPU_ARCH_M68K, 1,  [Defined for M68k platforms])
+        ;;
+     ppc)
+        AC_DEFINE(HAVE_CPU_ARCH_PPC, 1,   [Defined for PPC platforms])
+        ;;
+     arm)
+        AC_DEFINE(HAVE_CPU_ARCH_ARM, 1,   [Defined for ARM platforms])
+        ;;
+esac
+AC_SUBST([GCRYPT_HWF_MODULES])
+
 
 # Generate extended version information for W32.
 if test "$have_w32_system" = yes; then
@@ -1304,11 +1340,16 @@ tests/Makefile
 ])
 AC_OUTPUT
 
+
+detection_module="${GCRYPT_HWF_MODULES%.lo}"
+test -n "$detection_module" || detection_module="none"
+
 # Give some feedback
 echo "
         Libgcrypt v${VERSION} has been configured as follows:
 
         Platform:                  $PRINTABLE_OS_NAME ($host)
+        Hardware detection module: $detection_module
         Enabled cipher algorithms: $enabled_ciphers
         Enabled digest algorithms: $enabled_digests
         Enabled pubkey algorithms: $enabled_pubkey_ciphers

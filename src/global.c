@@ -299,6 +299,23 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
                 "w32:"
 #endif
        "\n");
+  fnc (fp, "cpu-arch:"
+#if defined(HAVE_CPU_ARCH_X86)
+       "x86"
+#elif defined(HAVE_CPU_ARCH_ALPHA)
+       "alpha"
+#elif defined(HAVE_CPU_ARCH_SPARC)
+       "sparc"
+#elif defined(HAVE_CPU_ARCH_MIPS)
+       "mips"
+#elif defined(HAVE_CPU_ARCH_M68K)
+       "m68k"
+#elif defined(HAVE_CPU_ARCH_PPC)
+       "ppc"
+#elif defined(HAVE_CPU_ARCH_ARM)
+       "arm"
+#endif
+       ":\n");
   fnc (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
   fnc (fp, "threads:%s:\n", ath_get_model (NULL));
   hwf = _gcry_get_hw_features ();
