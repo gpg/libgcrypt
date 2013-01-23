@@ -62,6 +62,14 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "camellia.h"
+#include "bufhelp.h"
+
+/* Helper macro to force alignment to 16 bytes.  */
+#ifdef HAVE_GCC_ATTRIBUTE_ALIGNED
+# define ATTR_ALIGNED_16  __attribute__ ((aligned (16)))
+#else
+# define ATTR_ALIGNED_16
+#endif
 
 typedef struct
 {
@@ -110,12 +118,15 @@ camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
   CAMELLIA_context *ctx=c;
 
   Camellia_EncryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
-  _gcry_burn_stack
-    (sizeof(int)+2*sizeof(unsigned char *)+sizeof(void*/*KEY_TABLE_TYPE*/)
-     +4*sizeof(u32)
-     +2*sizeof(u32*)+4*sizeof(u32)
-     +2*2*sizeof(void*) /* Function calls.  */
-    );
+
+#define CAMELLIA_encrypt_stack_burn_size \
+  (sizeof(int)+2*sizeof(unsigned char *)+sizeof(void*/*KEY_TABLE_TYPE*/) \
+     +4*sizeof(u32) \
+     +2*sizeof(u32*)+4*sizeof(u32) \
+     +2*2*sizeof(void*) /* Function calls.  */ \
+    )
+
+  _gcry_burn_stack(CAMELLIA_encrypt_stack_burn_size);
 }
 
 static void
@@ -124,12 +135,175 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
   CAMELLIA_context *ctx=c;
 
   Camellia_DecryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
-  _gcry_burn_stack
-    (sizeof(int)+2*sizeof(unsigned char *)+sizeof(void*/*KEY_TABLE_TYPE*/)
-     +4*sizeof(u32)
-     +2*sizeof(u32*)+4*sizeof(u32)
-     +2*2*sizeof(void*) /* Function calls.  */
-    );
+
+#define CAMELLIA_decrypt_stack_burn_size \
+    (sizeof(int)+2*sizeof(unsigned char *)+sizeof(void*/*KEY_TABLE_TYPE*/) \
+     +4*sizeof(u32) \
+     +2*sizeof(u32*)+4*sizeof(u32) \
+     +2*2*sizeof(void*) /* Function calls.  */ \
+    )
+
+  _gcry_burn_stack(CAMELLIA_decrypt_stack_burn_size);
+}
+
+/* Bulk encryption of complete blocks in CTR mode.  This function is only
+   intended for the bulk encryption feature of cipher.c.  CTR is expected to be
+   of size CAMELLIA_BLOCK_SIZE. */
+void
+_gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
+                       void *outbuf_arg, const void *inbuf_arg,
+                       unsigned int nblocks)
+{
+  CAMELLIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char tmpbuf[CAMELLIA_BLOCK_SIZE];
+  int i;
+
+  for ( ;nblocks; nblocks-- )
+    {
+      /* Encrypt the counter. */
+      Camellia_EncryptBlock(ctx->keybitlength, ctr, ctx->keytable, tmpbuf);
+      /* XOR the input with the encrypted counter and store in output.  */
+      buf_xor(outbuf, tmpbuf, inbuf, CAMELLIA_BLOCK_SIZE);
+      outbuf += CAMELLIA_BLOCK_SIZE;
+      inbuf  += CAMELLIA_BLOCK_SIZE;
+      /* Increment the counter.  */
+      for (i = CAMELLIA_BLOCK_SIZE; i > 0; i--)
+        {
+          ctr[i-1]++;
+          if (ctr[i-1])
+            break;
+        }
+    }
+
+  wipememory(tmpbuf, sizeof(tmpbuf));
+  _gcry_burn_stack(CAMELLIA_encrypt_stack_burn_size);
+}
+
+/* Bulk decryption of complete blocks in CBC mode.  This function is only
+   intended for the bulk encryption feature of cipher.c. */
+void
+_gcry_camellia_cbc_dec(void *context, unsigned char *iv,
+                       void *outbuf_arg, const void *inbuf_arg,
+                       unsigned int nblocks)
+{
+  CAMELLIA_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char savebuf[CAMELLIA_BLOCK_SIZE];
+
+  for ( ;nblocks; nblocks-- )
+    {
+      /* We need to save INBUF away because it may be identical to
+         OUTBUF.  */
+      memcpy(savebuf, inbuf, CAMELLIA_BLOCK_SIZE);
+
+      Camellia_DecryptBlock(ctx->keybitlength, inbuf, ctx->keytable, outbuf);
+
+      buf_xor(outbuf, outbuf, iv, CAMELLIA_BLOCK_SIZE);
+      memcpy(iv, savebuf, CAMELLIA_BLOCK_SIZE);
+      inbuf += CAMELLIA_BLOCK_SIZE;
+      outbuf += CAMELLIA_BLOCK_SIZE;
+    }
+
+  wipememory(savebuf, sizeof(savebuf));
+  _gcry_burn_stack(CAMELLIA_decrypt_stack_burn_size);
+}
+
+/* Run the self-tests for CAMELLIA-CTR-128, tests IV increment of bulk CTR
+   encryption.  Returns NULL on success. */
+static const char*
+selftest_ctr_128 (void)
+{
+  const int nblocks = 16+1;
+  CAMELLIA_context ctx ATTR_ALIGNED_16;
+  unsigned char plaintext[nblocks*16] ATTR_ALIGNED_16;
+  unsigned char ciphertext[nblocks*16] ATTR_ALIGNED_16;
+  unsigned char plaintext2[nblocks*16] ATTR_ALIGNED_16;
+  unsigned char iv[16] ATTR_ALIGNED_16;
+  unsigned char iv2[16] ATTR_ALIGNED_16;
+  int i, j, diff;
+
+  static const unsigned char key[16] ATTR_ALIGNED_16 = {
+      0x06,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x21
+    };
+  static char error_str[128];
+
+  camellia_setkey (&ctx, key, sizeof (key));
+
+  /* Test single block code path */
+  memset(iv, 0xff, sizeof(iv));
+  for (i = 0; i < 16; i++)
+    plaintext[i] = i;
+
+  /* CTR manually.  */
+  camellia_encrypt (&ctx, ciphertext, iv);
+  for (i = 0; i < 16; i++)
+    ciphertext[i] ^= plaintext[i];
+  for (i = 16; i > 0; i--)
+    {
+      iv[i-1]++;
+      if (iv[i-1])
+        break;
+    }
+
+  memset(iv2, 0xff, sizeof(iv2));
+  _gcry_camellia_ctr_enc (&ctx, iv2, plaintext2, ciphertext, 1);
+
+  if (memcmp(plaintext2, plaintext, 16))
+    return "CAMELLIA-128-CTR test failed (plaintext mismatch)";
+
+  if (memcmp(iv2, iv, 16))
+    return "CAMELLIA-128-CTR test failed (IV mismatch)";
+
+  /* Test parallelized code paths */
+  for (diff = 0; diff < nblocks; diff++) {
+    memset(iv, 0xff, sizeof(iv));
+    iv[15] -= diff;
+
+    for (i = 0; i < sizeof(plaintext); i++)
+      plaintext[i] = i;
+
+    /* Create CTR ciphertext manually.  */
+    for (i = 0; i < sizeof(plaintext); i+=16)
+      {
+        camellia_encrypt (&ctx, &ciphertext[i], iv);
+        for (j = 0; j < 16; j++)
+          ciphertext[i+j] ^= plaintext[i+j];
+        for (j = 16; j > 0; j--)
+          {
+            iv[j-1]++;
+            if (iv[j-1])
+              break;
+          }
+      }
+
+    /* Decrypt using bulk CTR and compare result.  */
+    memset(iv2, 0xff, sizeof(iv2));
+    iv2[15] -= diff;
+
+    _gcry_camellia_ctr_enc (&ctx, iv2, plaintext2, ciphertext,
+                            sizeof(ciphertext) / CAMELLIA_BLOCK_SIZE);
+
+    if (memcmp(plaintext2, plaintext, sizeof(plaintext)))
+      {
+        snprintf(error_str, sizeof(error_str),
+                 "CAMELLIA-128-CTR test failed (plaintext mismatch, diff: %d)",
+                 diff);
+        return error_str;
+      }
+    if (memcmp(iv2, iv, sizeof(iv)))
+      {
+        snprintf(error_str, sizeof(error_str),
+                 "CAMELLIA-128-CTR test failed (IV mismatch, diff: %d)",
+                 diff);
+        return error_str;
+      }
+  }
+
+  return NULL;
 }
 
 static const char *
@@ -137,6 +311,7 @@ selftest(void)
 {
   CAMELLIA_context ctx;
   byte scratch[16];
+  const char *r;
 
   /* These test vectors are from RFC-3713 */
   const byte plaintext[]=
@@ -199,6 +374,9 @@ selftest(void)
   camellia_decrypt(&ctx,scratch,scratch);
   if(memcmp(scratch,plaintext,sizeof(plaintext))!=0)
     return "CAMELLIA-256 test decryption failed.";
+
+  if ( (r = selftest_ctr_128 ()) )
+    return r;
 
   return NULL;
 }
