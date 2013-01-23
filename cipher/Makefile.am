@@ -26,6 +26,8 @@ EXTRA_DIST = Manifest
 AM_CPPFLAGS = -I../src -I$(top_srcdir)/src
 AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
+AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
+
 
 noinst_LTLIBRARIES = libcipher.la
 
@@ -69,7 +71,7 @@ tiger.c \
 whirlpool.c \
 twofish.c \
 rfc2268.c \
-camellia.c camellia.h camellia-glue.c
+camellia.c camellia.h camellia-glue.c camellia_aesni_avx_x86-64.S
 
 if ENABLE_O_FLAG_MUNGING
 o_flag_munging = sed -e 's/-O[2-9s]*/-O1/g'

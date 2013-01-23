@@ -204,6 +204,11 @@ detect_x86_gnuc (void)
   if (features & 0x02000000)
      result |= HWF_INTEL_AESNI;
 #endif /*ENABLE_AESNI_SUPPORT*/
+#ifdef ENABLE_AVX_SUPPORT
+  /* Test bit 28 for AVX.  */
+  if (features & 0x10000000)
+     result |= HWF_INTEL_AVX;
+#endif /*ENABLE_AVX_SUPPORT*/
 #ifdef ENABLE_DRNG_SUPPORT
   /* Test bit 30 for RDRAND.  */
   if (features & 0x40000000)

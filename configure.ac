@@ -557,6 +557,14 @@ if test x"$drngsupport" = xyes ; then
             [Enable support for Intel DRNG (RDRAND instruction).])
 fi
 
+# Implementation of the --disable-avx-support switch.
+AC_MSG_CHECKING([whether AVX support is requested])
+AC_ARG_ENABLE(avx-support,
+              AC_HELP_STRING([--disable-avx-support],
+                 [Disable support for the Intel AVX instructions]),
+	      avxsupport=$enableval,avxsupport=yes)
+AC_MSG_RESULT($avxsupport)
+
 # Implementation of the --disable-O-flag-munging switch.
 AC_MSG_CHECKING([whether a -O flag munging is requested])
 AC_ARG_ENABLE([O-flag-munging],
@@ -838,6 +846,32 @@ if test "$gcry_cv_have_asm" = "no" ; then
       AC_DEFINE(asm,__asm__,
         [Define to supported assembler block keyword, if plain 'asm' was not
          supported])
+   fi
+fi
+
+
+#
+# Check whether GCC inline assembler supports AVX instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AVX instructions],
+       [gcry_cv_gcc_inline_asm_avx],
+       [gcry_cv_gcc_inline_asm_avx=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) {
+              __asm__("vaesdeclast (%[mem]),%%xmm0,%%xmm7\n\t"::[mem]"r"(0):);
+            }]])],
+          [gcry_cv_gcc_inline_asm_avx=yes])])
+if test "$gcry_cv_gcc_inline_asm_avx" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AVX,1,
+     [Defined if inline assembler supports AVX instructions])
+
+   if test x"$avxsupport" = xyes ; then
+      AC_DEFINE(ENABLE_AVX_SUPPORT,1,
+        [Enable support for Intel AVX instructions.])
+   fi
+else
+   if test x"$avxsupport" = xyes ; then
+      avxsupport="no (unsupported by compiler)"
    fi
 fi
 
@@ -1139,6 +1173,13 @@ LIST_MEMBER(camellia, $enabled_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia.lo camellia-glue.lo"
    AC_DEFINE(USE_CAMELLIA, 1, [Defined if this module should be included])
+
+   if test x"$avxsupport" = xyes ; then
+      if test x"$aesnisupport" = xyes ; then
+        # Build with the AES-NI/AVX implementation
+        GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia_aesni_avx_x86-64.lo"
+      fi
+   fi
 fi
 
 LIST_MEMBER(idea, $enabled_ciphers)
@@ -1358,6 +1399,7 @@ echo "
         Try using Padlock crypto:  $padlocksupport
         Try using AES-NI crypto:   $aesnisupport
         Try using DRNG (RDRAND):   $drngsupport
+        Try using Intel AVX:       $avxsupport
 "
 
 if test "$print_egd_notice" = "yes"; then

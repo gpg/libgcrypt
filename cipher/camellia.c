@@ -14,8 +14,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -985,7 +984,7 @@ void camellia_decrypt128(const u32 *subkey, u32 *blocks)
     io[1] = blocks[1];
     io[2] = blocks[2];
     io[3] = blocks[3];
- 
+
     /* pre whitening but absorb kw2*/
     io[0] ^= CamelliaSubkeyL(24);
     io[1] ^= CamelliaSubkeyR(24);

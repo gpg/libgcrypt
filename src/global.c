@@ -67,6 +67,7 @@ static struct
     { HWF_PADLOCK_MMUL,"padlock-mmul"},
     { HWF_INTEL_AESNI, "intel-aesni" },
     { HWF_INTEL_RDRAND,"intel-rdrand" },
+    { HWF_INTEL_AVX,   "intel-avx" },
     { 0, NULL}
   };
 
