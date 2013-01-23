@@ -121,7 +121,7 @@ camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
 
 #define CAMELLIA_encrypt_stack_burn_size \
   (sizeof(int)+2*sizeof(unsigned char *)+sizeof(void*/*KEY_TABLE_TYPE*/) \
-     +4*sizeof(u32) \
+     +4*sizeof(u32)+4*sizeof(u32) \
      +2*sizeof(u32*)+4*sizeof(u32) \
      +2*2*sizeof(void*) /* Function calls.  */ \
     )
@@ -138,7 +138,7 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
 
 #define CAMELLIA_decrypt_stack_burn_size \
     (sizeof(int)+2*sizeof(unsigned char *)+sizeof(void*/*KEY_TABLE_TYPE*/) \
-     +4*sizeof(u32) \
+     +4*sizeof(u32)+4*sizeof(u32) \
      +2*sizeof(u32*)+4*sizeof(u32) \
      +2*2*sizeof(void*) /* Function calls.  */ \
     )
