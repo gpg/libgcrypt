@@ -1239,7 +1239,11 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
   unsigned char *ivp;
   int i;
 
-  aesni_prepare ();
+#ifdef USE_AESNI
+  if (ctx->use_aesni)
+    aesni_prepare ();
+#endif /*USE_AESNI*/
+
   for ( ;nblocks; nblocks-- )
     {
       for (ivp=iv, i=0; i < BLOCKSIZE; i++ )
@@ -1263,7 +1267,11 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
       if (!cbc_mac)
         outbuf += BLOCKSIZE;
     }
-  aesni_cleanup ();
+
+#ifdef USE_AESNI
+  if (ctx->use_aesni)
+    aesni_cleanup ();
+#endif /*USE_AESNI*/
 
   _gcry_burn_stack (48 + 2*sizeof(int));
 }
@@ -1575,7 +1583,11 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
   int i;
   unsigned char savebuf[BLOCKSIZE];
 
-  aesni_prepare ();
+#ifdef USE_AESNI
+  if (ctx->use_aesni)
+    aesni_prepare ();
+#endif /*USE_AESNI*/
+
   for ( ;nblocks; nblocks-- )
     {
       /* We need to save INBUF away because it may be identical to
@@ -1601,7 +1613,11 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
       inbuf += BLOCKSIZE;
       outbuf += BLOCKSIZE;
     }
-  aesni_cleanup ();
+
+#ifdef USE_AESNI
+  if (ctx->use_aesni)
+    aesni_cleanup ();
+#endif /*USE_AESNI*/
 
   _gcry_burn_stack (48 + 2*sizeof(int) + BLOCKSIZE + 4*sizeof (char*));
 }
