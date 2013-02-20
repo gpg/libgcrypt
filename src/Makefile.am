@@ -44,6 +44,8 @@ arch_gpg_error_cflags =
 arch_gpg_error_libs   =
 endif
 
+AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
 if HAVE_LD_VERSION_SCRIPT
   libgcrypt_version_script_cmd = -Wl,--version-script=$(srcdir)/libgcrypt.vers
