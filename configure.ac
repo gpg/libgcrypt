@@ -244,12 +244,6 @@ case "${host}" in
         AC_DEFINE(HAVE_DOSISH_SYSTEM)
         ;;
 
-    *-*-freebsd*)
-       # FreeBSD
-       CPPFLAGS="$CPPFLAGS -I/usr/local/include"
-       LDFLAGS="$LDFLAGS -L/usr/local/lib"
-       ;;
-
     *-*-hpux*)
         if test -z "$GCC" ; then
             CFLAGS="$CFLAGS -Ae -D_HPUX_SOURCE"
