@@ -1,6 +1,7 @@
 dnl macros to configure Libgcrypt
 dnl Copyright (C) 1998, 1999, 2000, 2001, 2002,
 dnl               2003 Free Software Foundation, Inc.
+dnl Copyright (C) 2013 g10 Code GmbH
 dnl
 dnl This file is part of Libgcrypt.
 dnl
@@ -18,12 +19,42 @@ dnl You should have received a copy of the GNU Lesser General Public
 dnl License along with this program; if not, write to the Free Software
 dnl Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
-dnl GNUPG_MSG_PRINT(STRING)
-dnl print a message
+dnl GCRY_MSG_SHOW(PREFIX,STRING)
+dnl Print a message with a prefix.
 dnl
-define([GNUPG_MSG_PRINT],
-  [ echo $ac_n "$1"" $ac_c" 1>&AS_MESSAGE_FD([])
+define([GCRY_MSG_SHOW],
+  [
+     echo "        $1 $2" 1>&AS_MESSAGE_FD([])
   ])
+
+dnl GCRY_MSG_WRAP(PREFIX, ALGOLIST)
+dnl Print a nicely formatted list of algorithms
+dnl with an approriate line wrap.
+dnl
+define([GCRY_MSG_WRAP],
+  [
+    tmp="        $1"
+    tmpi="abc"
+    if test "${#tmpi}" -ne 3 >/dev/null 2>&1 ; then
+      dnl Without a POSIX shell, we don't botter to wrap it
+      echo "$tmp $2" 1>&AS_MESSAGE_FD([])
+    else
+      tmpi=`echo "$tmp"| sed 's/./ /g'`
+      echo $2 EOF | tr ' ' '\n' | \
+        while read word; do
+          if test "${#tmp}" -gt 70 ; then
+            echo "$tmp" 1>&AS_MESSAGE_FD([])
+            tmp="$tmpi"
+          fi
+          if test "$word" = "EOF" ; then
+            echo "$tmp" 1>&AS_MESSAGE_FD([])
+          else
+            tmp="$tmp $word"
+          fi
+        done
+    fi
+  ])
+
 
 dnl GNUPG_CHECK_TYPEDEF(TYPE, HAVE_NAME)
 dnl Check whether a typedef exists and create a #define $2 if it exists

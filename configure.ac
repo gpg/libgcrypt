@@ -1380,21 +1380,21 @@ detection_module="${GCRYPT_HWF_MODULES%.lo}"
 test -n "$detection_module" || detection_module="none"
 
 # Give some feedback
-echo "
-        Libgcrypt v${VERSION} has been configured as follows:
-
-        Platform:                  $PRINTABLE_OS_NAME ($host)
-        Hardware detection module: $detection_module
-        Enabled cipher algorithms: $enabled_ciphers
-        Enabled digest algorithms: $enabled_digests
-        Enabled pubkey algorithms: $enabled_pubkey_ciphers
-        Random number generator:   $random
-        Using linux capabilities:  $use_capabilities
-        Try using Padlock crypto:  $padlocksupport
-        Try using AES-NI crypto:   $aesnisupport
-        Try using DRNG (RDRAND):   $drngsupport
-        Try using Intel AVX:       $avxsupport
-"
+GCRY_MSG_SHOW([],[])
+GCRY_MSG_SHOW([Libgcrypt],[v${VERSION} has been configured as follows:])
+GCRY_MSG_SHOW([],[])
+GCRY_MSG_SHOW([Platform:                 ],[$PRINTABLE_OS_NAME ($host)])
+GCRY_MSG_SHOW([Hardware detection module:],[$detection_module])
+GCRY_MSG_WRAP([Enabled cipher algorithms:],[$enabled_ciphers])
+GCRY_MSG_WRAP([Enabled digest algorithms:],[$enabled_digests])
+GCRY_MSG_WRAP([Enabled pubkey algorithms:],[$enabled_pubkey_ciphers])
+GCRY_MSG_SHOW([Random number generator:  ],[$random])
+GCRY_MSG_SHOW([Using linux capabilities: ],[$use_capabilities])
+GCRY_MSG_SHOW([Try using Padlock crypto: ],[$padlocksupport])
+GCRY_MSG_SHOW([Try using AES-NI crypto:  ],[$aesnisupport])
+GCRY_MSG_SHOW([Try using DRNG (RDRAND):  ],[$drngsupport])
+GCRY_MSG_SHOW([Try using Intel AVX:      ],[$avxsupport])
+GCRY_MSG_SHOW([],[])
 
 if test "$print_egd_notice" = "yes"; then
 cat <<G10EOF
