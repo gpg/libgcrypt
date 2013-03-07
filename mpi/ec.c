@@ -1,23 +1,22 @@
 /* ec.c -  Elliptic Curve functions
-   Copyright (C) 2007 Free Software Foundation, Inc.
-
-   This file is part of Libgcrypt.
-
-   Libgcrypt is free software; you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of
-   the License, or (at your option) any later version.
-
-   Libgcrypt is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public
-   License along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-   USA.  */
-
+ * Copyright (C) 2007 Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH
+ *
+ * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <config.h>
 #include <stdio.h>
@@ -28,8 +27,8 @@
 #include "g10lib.h"
 
 
-#define point_init(a)  _gcry_mpi_ec_point_init ((a))
-#define point_free(a)  _gcry_mpi_ec_point_free ((a))
+#define point_init(a)  _gcry_mpi_point_init ((a))
+#define point_free(a)  _gcry_mpi_point_free_parts ((a))
 
 
 /* Object to represent a point in projective coordinates. */
@@ -64,10 +63,10 @@ struct mpi_ec_ctx_s
 
 
 
-/* Initialized a point object.  gcry_mpi_ec_point_free shall be used
-   to release this object.  */
+/* Initialize the fields of a point object.  gcry_mpi_point_free_parts
+   may be used to release the fields.  */
 void
-_gcry_mpi_ec_point_init (mpi_point_t *p)
+_gcry_mpi_point_init (mpi_point_t p)
 {
   p->x = mpi_new (0);
   p->y = mpi_new (0);
@@ -75,18 +74,19 @@ _gcry_mpi_ec_point_init (mpi_point_t *p)
 }
 
 
-/* Release a point object. */
+/* Release the parts of a point object. */
 void
-_gcry_mpi_ec_point_free (mpi_point_t *p)
+_gcry_mpi_point_free_parts (mpi_point_t p)
 {
   mpi_free (p->x); p->x = NULL;
   mpi_free (p->y); p->y = NULL;
   mpi_free (p->z); p->z = NULL;
 }
 
+
 /* Set the value from S into D.  */
 static void
-point_set (mpi_point_t *d, mpi_point_t *s)
+point_set (mpi_point_t d, mpi_point_t s)
 {
   mpi_set (d->x, s->x);
   mpi_set (d->y, s->y);
@@ -339,12 +339,13 @@ _gcry_mpi_ec_free (mpi_ec_t ctx)
   gcry_free (ctx);
 }
 
+
 /* Compute the affine coordinates from the projective coordinates in
    POINT.  Set them into X and Y.  If one coordinate is not required,
    X or Y may be passed as NULL.  CTX is the usual context. Returns: 0
    on success or !0 if POINT is at infinity.  */
 int
-_gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t *point,
+_gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
                          mpi_ec_t ctx)
 {
   gcry_mpi_t z1, z2, z3;
@@ -374,12 +375,10 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t *point,
 }
 
 
-
-
 
 /*  RESULT = 2 * POINT  */
 void
-_gcry_mpi_ec_dup_point (mpi_point_t *result, mpi_point_t *point, mpi_ec_t ctx)
+_gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 {
 #define x3 (result->x)
 #define y3 (result->y)
@@ -463,8 +462,8 @@ _gcry_mpi_ec_dup_point (mpi_point_t *result, mpi_point_t *point, mpi_ec_t ctx)
 
 /* RESULT = P1 + P2 */
 void
-_gcry_mpi_ec_add_points (mpi_point_t *result,
-                         mpi_point_t *p1, mpi_point_t *p2,
+_gcry_mpi_ec_add_points (mpi_point_t result,
+                         mpi_point_t p1, mpi_point_t p2,
                          mpi_ec_t ctx)
 {
 #define x1 (p1->x    )
@@ -608,8 +607,8 @@ _gcry_mpi_ec_add_points (mpi_point_t *result,
    an integer SCALAR and a POINT as well as the usual context CTX.
    RESULT will be set to the resulting point. */
 void
-_gcry_mpi_ec_mul_point (mpi_point_t *result,
-                        gcry_mpi_t scalar, mpi_point_t *point,
+_gcry_mpi_ec_mul_point (mpi_point_t result,
+                        gcry_mpi_t scalar, mpi_point_t point,
                         mpi_ec_t ctx)
 {
 #if 0
@@ -632,7 +631,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t *result,
 #else
   gcry_mpi_t x1, y1, z1, k, h, yy;
   unsigned int i, loops;
-  mpi_point_t p1, p2, p1inv;
+  mpi_point_struct p1, p2, p1inv;
 
   x1 = mpi_alloc_like (ctx->p);
   y1 = mpi_alloc_like (ctx->p);

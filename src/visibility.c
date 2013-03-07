@@ -1,5 +1,6 @@
 /* visibility.c - Wrapper for all public functions.
  * Copyright (C) 2007, 2008, 2011  Free Software Foundation, Inc.
+ * Copyright (C) 2013  g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -259,6 +260,12 @@ gcry_mpi_t
 gcry_mpi_copy (const gcry_mpi_t a)
 {
   return _gcry_mpi_copy (a);
+}
+
+void
+gcry_mpi_snatch (gcry_mpi_t w, const gcry_mpi_t u)
+{
+  return _gcry_mpi_snatch (w, u);
 }
 
 gcry_mpi_t

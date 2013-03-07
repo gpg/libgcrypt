@@ -3600,6 +3600,13 @@ small values (usually up to the word size of the CPU).
 Swap the values of @var{a} and @var{b}.
 @end deftypefun
 
+@deftypefun void gcry_mpi_snatch (@w{gcry_mpi_t @var{w}}, @
+                                  @w{const gcry_mpi_t @var{u}})
+
+Set @var{u} into @var{w} and release @var{u}.  If @var{w} is
+@code{NULL} only @var{u} will be released.
+@end deftypefun
+
 @node MPI formats
 @section MPI formats
 

@@ -211,3 +211,5 @@ EXPORTS
       gcry_pk_get_param     @193
 
       gcry_kdf_derive       @194
+
+      gcry_mpi_snatch       @195

@@ -1,22 +1,22 @@
 /* ecc.c  -  Elliptic Curve Cryptography
-   Copyright (C) 2007, 2008, 2010, 2011 Free Software Foundation, Inc.
-
-   This file is part of Libgcrypt.
-
-   Libgcrypt is free software; you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of
-   the License, or (at your option) any later version.
-
-   Libgcrypt is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public
-   License along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-   USA.  */
+ * Copyright (C) 2007, 2008, 2010, 2011 Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH
+ *
+ * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ */
 
 /* This code is originally based on the Patch 0.1.6 for the gnupg
    1.4.x branch as retrieved on 2007-03-21 from
@@ -46,8 +46,6 @@
 
   - In mpi/ec.c we use mpi_powm for x^2 mod p: Either implement a
     special case in mpi_powm or check whether mpi_mulm is faster.
-
-  - Decide whether we should hide the mpi_point_t definition.
 */
 
 
@@ -63,25 +61,25 @@
 /* Definition of a curve.  */
 typedef struct
 {
-  gcry_mpi_t p;   /* Prime specifying the field GF(p).  */
-  gcry_mpi_t a;   /* First coefficient of the Weierstrass equation.  */
-  gcry_mpi_t b;   /* Second coefficient of the Weierstrass equation.  */
-  mpi_point_t G;  /* Base point (generator).  */
-  gcry_mpi_t n;   /* Order of G.  */
-  const char *name;  /* Name of curve or NULL.  */
+  gcry_mpi_t p;         /* Prime specifying the field GF(p).  */
+  gcry_mpi_t a;         /* First coefficient of the Weierstrass equation.  */
+  gcry_mpi_t b;         /* Second coefficient of the Weierstrass equation.  */
+  mpi_point_struct G;   /* Base point (generator).  */
+  gcry_mpi_t n;         /* Order of G.  */
+  const char *name;     /* Name of the curve or NULL.  */
 } elliptic_curve_t;
 
 
 typedef struct
 {
   elliptic_curve_t E;
-  mpi_point_t Q;  /* Q = [d]G  */
+  mpi_point_struct Q; /* Q = [d]G  */
 } ECC_public_key;
 
 typedef struct
 {
   elliptic_curve_t E;
-  mpi_point_t Q;
+  mpi_point_struct Q;
   gcry_mpi_t d;
 } ECC_secret_key;
 
@@ -292,8 +290,8 @@ static void (*progress_cb) (void *, const char*, int, int, int);
 static void *progress_cb_data;
 
 
-#define point_init(a)  _gcry_mpi_ec_point_init ((a))
-#define point_free(a)  _gcry_mpi_ec_point_free ((a))
+#define point_init(a)  _gcry_mpi_point_init ((a))
+#define point_free(a)  _gcry_mpi_point_free_parts ((a))
 
 
 
@@ -333,7 +331,7 @@ _gcry_register_pk_ecc_progress (void (*cb) (void *, const char *,
 
 /* Set the value from S into D.  */
 static void
-point_set (mpi_point_t *d, mpi_point_t *s)
+point_set (mpi_point_t d, mpi_point_t s)
 {
   mpi_set (d->x, s->x);
   mpi_set (d->y, s->y);
@@ -521,7 +519,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
   gpg_err_code_t err;
   elliptic_curve_t E;
   gcry_mpi_t d;
-  mpi_point_t Q;
+  mpi_point_struct Q;
   mpi_ec_t ctx;
   gcry_random_level_t random_level;
 
@@ -600,7 +598,7 @@ test_keys (ECC_secret_key *sk, unsigned int nbits)
 {
   ECC_public_key pk;
   gcry_mpi_t test = mpi_new (nbits);
-  mpi_point_t R_;
+  mpi_point_struct R_;
   gcry_mpi_t c = mpi_new (nbits);
   gcry_mpi_t out = mpi_new (nbits);
   gcry_mpi_t r = mpi_new (nbits);
@@ -648,7 +646,7 @@ static int
 check_secret_key (ECC_secret_key * sk)
 {
   int rc = 1;
-  mpi_point_t Q;
+  mpi_point_struct Q;
   gcry_mpi_t y_2, y2;
   mpi_ec_t ctx = NULL;
 
@@ -719,7 +717,7 @@ sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
 {
   gpg_err_code_t err = 0;
   gcry_mpi_t k, dr, sum, k_1, x;
-  mpi_point_t I;
+  mpi_point_struct I;
   mpi_ec_t ctx;
 
   if (DBG_CIPHER)
@@ -790,7 +788,7 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
 {
   gpg_err_code_t err = 0;
   gcry_mpi_t h, h1, h2, x, y;
-  mpi_point_t Q, Q1, Q2;
+  mpi_point_struct Q, Q1, Q2;
   mpi_ec_t ctx;
 
   if( !(mpi_cmp_ui (r, 0) > 0 && mpi_cmp (r, pkey->E.n) < 0) )
@@ -925,7 +923,7 @@ ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
 /* RESULT must have been initialized and is set on success to the
    point given by VALUE.  */
 static gcry_error_t
-os2ec (mpi_point_t *result, gcry_mpi_t value)
+os2ec (mpi_point_t result, gcry_mpi_t value)
 {
   gcry_error_t err;
   size_t n;
@@ -1430,7 +1428,7 @@ ecc_encrypt_raw (int algo, gcry_mpi_t *resarr, gcry_mpi_t k,
 
   /* The following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so */
   {
-    mpi_point_t R;	/* Result that we return.  */
+    mpi_point_struct R;  /* Result that we return.  */
     gcry_mpi_t x, y;
 
     x = mpi_new (0);
@@ -1490,8 +1488,8 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
                  gcry_mpi_t *skey, int flags)
 {
   ECC_secret_key sk;
-  mpi_point_t R;	/* Result that we return.  */
-  mpi_point_t kG;
+  mpi_point_struct R;	/* Result that we return.  */
+  mpi_point_struct kG;
   mpi_ec_t ctx;
   gcry_mpi_t r;
   int err;

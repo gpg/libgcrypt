@@ -172,6 +172,7 @@
 #define gcry_mpi_rshift             _gcry_mpi_rshift
 #define gcry_mpi_lshift             _gcry_mpi_lshift
 #define gcry_mpi_scan               _gcry_mpi_scan
+#define gcry_mpi_snatch             _gcry_mpi_snatch
 #define gcry_mpi_set                _gcry_mpi_set
 #define gcry_mpi_set_bit            _gcry_mpi_set_bit
 #define gcry_mpi_set_flag           _gcry_mpi_set_flag
@@ -378,6 +379,7 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_mpi_rshift
 #undef gcry_mpi_lshift
 #undef gcry_mpi_scan
+#undef gcry_mpi_snatch
 #undef gcry_mpi_set
 #undef gcry_mpi_set_bit
 #undef gcry_mpi_set_flag
@@ -544,6 +546,7 @@ MARK_VISIBLE (gcry_mpi_release)
 MARK_VISIBLE (gcry_mpi_rshift)
 MARK_VISIBLE (gcry_mpi_lshift)
 MARK_VISIBLE (gcry_mpi_scan)
+MARK_VISIBLE (gcry_mpi_snatch)
 MARK_VISIBLE (gcry_mpi_set)
 MARK_VISIBLE (gcry_mpi_set_bit)
 MARK_VISIBLE (gcry_mpi_set_flag)

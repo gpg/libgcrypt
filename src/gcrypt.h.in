@@ -2,6 +2,7 @@
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004,
  *               2006, 2007, 2008, 2009, 2010, 2011,
  *               2012  Free Software Foundation, Inc.
+ * Copyright (C) 2012, 2013  g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -466,6 +467,9 @@ void gcry_mpi_release (gcry_mpi_t a);
 /* Create a new number with the same value as A. */
 gcry_mpi_t gcry_mpi_copy (const gcry_mpi_t a);
 
+/* Store the big integer value U in W and release U.  */
+void gcry_mpi_snatch (gcry_mpi_t w, gcry_mpi_t u);
+
 /* Store the big integer value U in W. */
 gcry_mpi_t gcry_mpi_set (gcry_mpi_t w, const gcry_mpi_t u);
 
@@ -629,6 +633,7 @@ int gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
   while (0)
 
 #define mpi_copy( a )          gcry_mpi_copy( (a) )
+#define mpi_snatch( w, u)      gcry_mpi_snatch( (w), (u) )
 #define mpi_set( w, u)         gcry_mpi_set( (w), (u) )
 #define mpi_set_ui( w, u)      gcry_mpi_set_ui( (w), (u) )
 #define mpi_cmp( u, v )        gcry_mpi_cmp( (u), (v) )

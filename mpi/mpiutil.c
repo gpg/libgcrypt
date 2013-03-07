@@ -1,6 +1,7 @@
 /* mpiutil.ac  -  Utility functions for MPI
  * Copyright (C) 1998, 2000, 2001, 2002, 2003,
  *               2007  Free Software Foundation, Inc.
+ * Copyright (C) 2013  g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -293,6 +294,24 @@ _gcry_mpi_alloc_like( gcry_mpi_t a )
     else
 	b = NULL;
     return b;
+}
+
+
+/* Set U into W and release U.  If W is NULL only U will be released. */
+void
+gcry_mpi_snatch (gcry_mpi_t w, gcry_mpi_t u)
+{
+  if (w)
+    {
+      _gcry_mpi_assign_limb_space (w, u->d, u->alloced);
+      w->nlimbs = u->nlimbs;
+      w->sign   = u->sign;
+      w->flags  = u->flags;
+      u->alloced = 0;
+      u->nlimbs = 0;
+      u->d = NULL;
+    }
+  _gcry_mpi_free (u);
 }
 
 

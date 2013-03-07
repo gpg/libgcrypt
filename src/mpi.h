@@ -108,6 +108,7 @@ struct gcry_mpi
 #define mpi_is_secure(a) ((a) && ((a)->flags&1))
 #define mpi_clear(a)          _gcry_mpi_clear ((a))
 #define mpi_alloc_like(a)     _gcry_mpi_alloc_like((a))
+#define mpi_snatch(a,b)       _gcry_mpi_snatch ((a),(b))
 #define mpi_set(a,b)          _gcry_mpi_set ((a),(b))
 #define mpi_set_ui(a,b)       _gcry_mpi_set_ui ((a),(b))
 #define mpi_get_ui(a,b)       _gcry_mpi_get_ui ((a),(b))
@@ -230,32 +231,37 @@ void _gcry_mpi_normalize( gcry_mpi_t a );
 /*-- ec.c --*/
 
 /* Object to represent a point in projective coordinates. */
-struct mpi_point_s;
-typedef struct mpi_point_s mpi_point_t;
-struct mpi_point_s
+struct gcry_mpi_point
 {
   gcry_mpi_t x;
   gcry_mpi_t y;
   gcry_mpi_t z;
 };
+typedef struct gcry_mpi_point mpi_point_struct;
+typedef struct gcry_mpi_point *mpi_point_t;
+
+void _gcry_mpi_point_init (mpi_point_t p);
+void _gcry_mpi_point_free_parts (mpi_point_t p);
+void _gcry_mpi_get_point (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
+                          mpi_point_t point);
+void _gcry_mpi_snatch_point (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
+                             mpi_point_t point);
 
 /* Context used with elliptic curve functions.  */
 struct mpi_ec_ctx_s;
 typedef struct mpi_ec_ctx_s *mpi_ec_t;
 
-void _gcry_mpi_ec_point_init (mpi_point_t *p);
-void _gcry_mpi_ec_point_free (mpi_point_t *p);
 mpi_ec_t _gcry_mpi_ec_init (gcry_mpi_t p, gcry_mpi_t a);
 void _gcry_mpi_ec_free (mpi_ec_t ctx);
-int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t *point,
+int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
                              mpi_ec_t ctx);
-void _gcry_mpi_ec_dup_point (mpi_point_t *result,
-                             mpi_point_t *point, mpi_ec_t ctx);
-void _gcry_mpi_ec_add_points (mpi_point_t *result,
-                              mpi_point_t *p1, mpi_point_t *p2,
+void _gcry_mpi_ec_dup_point (mpi_point_t result,
+                             mpi_point_t point, mpi_ec_t ctx);
+void _gcry_mpi_ec_add_points (mpi_point_t result,
+                              mpi_point_t p1, mpi_point_t p2,
                               mpi_ec_t ctx);
-void _gcry_mpi_ec_mul_point (mpi_point_t *result,
-                             gcry_mpi_t scalar, mpi_point_t *point,
+void _gcry_mpi_ec_mul_point (mpi_point_t result,
+                             gcry_mpi_t scalar, mpi_point_t point,
                              mpi_ec_t ctx);
 
 
