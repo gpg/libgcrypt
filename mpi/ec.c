@@ -21,10 +21,12 @@
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "mpi-internal.h"
 #include "longlong.h"
 #include "g10lib.h"
+#include "context.h"
 
 
 #define point_init(a)  _gcry_mpi_point_init ((a))
@@ -348,16 +350,13 @@ ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
 
 
 
-/* This function returns a new context for elliptic curve based on the
-   field GF(p).  P is the prime specifying thuis field, A is the first
-   coefficient.
-
-   This context needs to be released using _gcry_mpi_ec_free.  */
-mpi_ec_t
-_gcry_mpi_ec_init (gcry_mpi_t p, gcry_mpi_t a)
+/* This function initialized a context for elliptic curve based on the
+   field GF(p).  P is the prime specifying this field, A is the first
+   coefficient.  CTX is expected to be zeroized.  */
+static void
+ec_p_init (mpi_ec_t ctx, gcry_mpi_t p, gcry_mpi_t a)
 {
   int i;
-  mpi_ec_t ctx;
   gcry_mpi_t tmp;
 
   mpi_normalize (p);
@@ -366,8 +365,6 @@ _gcry_mpi_ec_init (gcry_mpi_t p, gcry_mpi_t a)
   /* Fixme: Do we want to check some constraints? e.g.
      a < p
   */
-
-  ctx = gcry_xcalloc (1, sizeof *ctx);
 
   ctx->p = mpi_copy (p);
   ctx->a = mpi_copy (a);
@@ -408,17 +405,14 @@ _gcry_mpi_ec_init (gcry_mpi_t p, gcry_mpi_t a)
 /*         ctx->s[i] = mpi_new (384); */
 /*       ctx->c    = mpi_new (384*2); */
 /*     } */
-
-  return ctx;
 }
 
-void
-_gcry_mpi_ec_free (mpi_ec_t ctx)
-{
-  int i;
 
-  if (!ctx)
-    return;
+static void
+ec_deinit (void *opaque)
+{
+  mpi_ec_t ctx = opaque;
+  int i;
 
   mpi_free (ctx->p);
   mpi_free (ctx->a);
@@ -446,8 +440,62 @@ _gcry_mpi_ec_free (mpi_ec_t ctx)
 /*         mpi_free (ctx->s[i]); */
 /*       mpi_free (ctx->c); */
 /*     } */
+}
 
-  gcry_free (ctx);
+
+/* This function returns a new context for elliptic curve based on the
+   field GF(p).  P is the prime specifying this field, A is the first
+   coefficient.  This function is only used within Libgcrypt and not
+   part of the public API.
+
+   This context needs to be released using _gcry_mpi_ec_free.  */
+mpi_ec_t
+_gcry_mpi_ec_p_internal_new (gcry_mpi_t p, gcry_mpi_t a)
+{
+  mpi_ec_t ctx;
+
+  ctx = gcry_xcalloc (1, sizeof *ctx);
+  ec_p_init (ctx, p, a);
+
+  return ctx;
+}
+
+
+void
+_gcry_mpi_ec_free (mpi_ec_t ctx)
+{
+  if (ctx)
+    {
+      ec_deinit (ctx);
+      gcry_free (ctx);
+    }
+}
+
+
+/* This function returns a new context for elliptic curve operations
+   based on the field GF(p).  P is the prime specifying this field, A
+   is the first coefficient.  This function is part of the public API.
+   On error this function returns NULL and sets ERRNO.
+   The context needs to be released using gcry_ctx_release.  */
+gcry_ctx_t
+gcry_mpi_ec_p_new (gcry_mpi_t p, gcry_mpi_t a)
+{
+  gcry_ctx_t ctx;
+  mpi_ec_t ec;
+
+  if (!p || !a || !mpi_cmp_ui (a, 0))
+    {
+      gpg_err_set_errno (EINVAL);
+      return NULL;
+    }
+
+  ctx = _gcry_ctx_alloc (CONTEXT_TYPE_EC, sizeof *ec, ec_deinit);
+  if (!ctx)
+    return NULL;
+  ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
+  ec_p_init (ec, p, a);
+
+  return ctx;
 }
 
 

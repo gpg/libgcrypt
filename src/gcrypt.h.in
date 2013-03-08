@@ -212,6 +212,10 @@ struct gcry_thread_cbs
 
 
 
+/* A generic context object as used by some functions.  */
+struct gcry_context;
+typedef struct gcry_context *gcry_ctx_t;
+
 /* The data objects used to hold multi precision integers.  */
 struct gcry_mpi;
 typedef struct gcry_mpi *gcry_mpi_t;
@@ -598,6 +602,26 @@ gcry_mpi_point_t gcry_mpi_point_set (gcry_mpi_point_t point,
 gcry_mpi_point_t gcry_mpi_point_snatch_set (gcry_mpi_point_t point,
                                             gcry_mpi_t x, gcry_mpi_t y,
                                             gcry_mpi_t z);
+
+/* Allocate a new context for elliptic curve operations based on the
+   field GF(p).  P is the prime specifying this field, A is the first
+   coefficient.  Returns NULL on error.  */
+gcry_ctx_t gcry_mpi_ec_p_new (gcry_mpi_t p, gcry_mpi_t a);
+
+/* Store the affine coordinates of POINT into X and Y.  */
+int gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_point_t point,
+                            gcry_ctx_t ctx);
+
+/* W = 2 * U.  */
+void gcry_mpi_ec_dup (gcry_mpi_point_t w, gcry_mpi_point_t u, gcry_ctx_t ctx);
+
+/* W = U + V.  */
+void gcry_mpi_ec_add (gcry_mpi_point_t w,
+                      gcry_mpi_point_t u, gcry_mpi_point_t v, gcry_ctx_t ctx);
+
+/* W = N * U.  */
+void gcry_mpi_ec_mul (gcry_mpi_point_t w, gcry_mpi_t n, gcry_mpi_point_t u,
+                      gcry_ctx_t ctx);
 
 
 /* Return the number of bits required to represent A. */
@@ -1293,6 +1317,9 @@ gcry_error_t gcry_prime_check (gcry_mpi_t x, unsigned int flags);
  *     Miscellaneous Stuff          *
  *                                  *
  ************************************/
+
+/* Release the context object CTX.  */
+void gcry_ctx_release (gcry_ctx_t ctx);
 
 /* Log levels used by the internal logging facility. */
 enum gcry_log_levels

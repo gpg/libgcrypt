@@ -251,7 +251,7 @@ void _gcry_mpi_snatch_point (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
 struct mpi_ec_ctx_s;
 typedef struct mpi_ec_ctx_s *mpi_ec_t;
 
-mpi_ec_t _gcry_mpi_ec_init (gcry_mpi_t p, gcry_mpi_t a);
+mpi_ec_t _gcry_mpi_ec_p_internal_new (gcry_mpi_t p, gcry_mpi_t a);
 void _gcry_mpi_ec_free (mpi_ec_t ctx);
 int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
                              mpi_ec_t ctx);

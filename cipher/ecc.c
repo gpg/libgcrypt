@@ -547,7 +547,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
 
   /* Compute Q.  */
   point_init (&Q);
-  ctx = _gcry_mpi_ec_init (E.p, E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (E.p, E.a);
   _gcry_mpi_ec_mul_point (&Q, d, &E.G, ctx);
 
   /* Copy the stuff to the key structures. */
@@ -672,7 +672,7 @@ check_secret_key (ECC_secret_key * sk)
       goto leave;
     }
 
-  ctx = _gcry_mpi_ec_init (sk->E.p, sk->E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (sk->E.p, sk->E.a);
 
   _gcry_mpi_ec_mul_point (&Q, sk->E.n, &sk->E.G, ctx);
   if (mpi_cmp_ui (Q.z, 0))
@@ -733,7 +733,7 @@ sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
   mpi_set_ui (s, 0);
   mpi_set_ui (r, 0);
 
-  ctx = _gcry_mpi_ec_init (skey->E.p, skey->E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (skey->E.p, skey->E.a);
 
   while (!mpi_cmp_ui (s, 0)) /* s == 0 */
     {
@@ -805,7 +805,7 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
   point_init (&Q1);
   point_init (&Q2);
 
-  ctx = _gcry_mpi_ec_init (pkey->E.p, pkey->E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (pkey->E.p, pkey->E.a);
 
   /* h  = s^(-1) (mod n) */
   mpi_invm (h, s, pkey->E.n);
@@ -1095,7 +1095,7 @@ ecc_get_param (const char *name, gcry_mpi_t *pkey)
 
   g_x = mpi_new (0);
   g_y = mpi_new (0);
-  ctx = _gcry_mpi_ec_init (E.p, E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (E.p, E.a);
   if (_gcry_mpi_ec_get_affine (g_x, g_y, &E.G, ctx))
     log_fatal ("ecc get param: Failed to get affine coordinates\n");
   _gcry_mpi_ec_free (ctx);
@@ -1424,7 +1424,7 @@ ecc_encrypt_raw (int algo, gcry_mpi_t *resarr, gcry_mpi_t k,
       return err;
     }
 
-  ctx = _gcry_mpi_ec_init (pk.E.p, pk.E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (pk.E.p, pk.E.a);
 
   /* The following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so */
   {
@@ -1536,7 +1536,7 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
     }
   sk.d = skey[6];
 
-  ctx = _gcry_mpi_ec_init (sk.E.p, sk.E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (sk.E.p, sk.E.a);
 
   /* R = dkG */
   point_init (&R);

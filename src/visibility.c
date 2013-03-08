@@ -24,8 +24,8 @@
 #define _GCRY_INCLUDED_BY_VISIBILITY_C
 #include "g10lib.h"
 #include "cipher-proto.h"
-
-
+#include "context.h"
+#include "mpi.h"
 
 const char *
 gcry_strerror (gcry_error_t err)
@@ -459,6 +459,42 @@ gcry_mpi_point_snatch_set (gcry_mpi_point_t point,
                            gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z)
 {
   return _gcry_mpi_point_snatch_set (point, x, y, z);
+}
+
+gcry_ctx_t
+gcry_mpi_ec_p_new (gcry_mpi_t p, gcry_mpi_t a)
+{
+  return _gcry_mpi_ec_p_new (p, a);
+}
+
+int
+gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_point_t point,
+                        gcry_ctx_t ctx)
+{
+  return _gcry_mpi_ec_get_affine (x, y, point,
+                                  _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
+}
+
+void
+gcry_mpi_ec_dup (gcry_mpi_point_t w, gcry_mpi_point_t u, gcry_ctx_t ctx)
+{
+  _gcry_mpi_ec_dup_point (w, u, _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
+}
+
+void
+gcry_mpi_ec_add (gcry_mpi_point_t w,
+                 gcry_mpi_point_t u, gcry_mpi_point_t v, gcry_ctx_t ctx)
+{
+  _gcry_mpi_ec_add_points (w, u, v,
+                           _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
+}
+
+void
+gcry_mpi_ec_mul (gcry_mpi_point_t w, gcry_mpi_t n, gcry_mpi_point_t u,
+                 gcry_ctx_t ctx)
+{
+  _gcry_mpi_ec_mul_point (w, n, u,
+                          _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
 }
 
 unsigned int
@@ -1064,6 +1100,12 @@ gcry_error_t
 gcry_prime_check (gcry_mpi_t x, unsigned int flags)
 {
   return _gcry_prime_check (x, flags);
+}
+
+void
+gcry_ctx_release (gcry_ctx_t ctx)
+{
+  _gcry_ctx_release (ctx);
 }
 
 void

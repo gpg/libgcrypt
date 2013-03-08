@@ -154,6 +154,7 @@
 #define gcry_mpi_copy               _gcry_mpi_copy
 #define gcry_mpi_div                _gcry_mpi_div
 #define gcry_mpi_dump               _gcry_mpi_dump
+#define gcry_mpi_ec_p_new           _gcry_mpi_ec_p_new
 #define gcry_mpi_gcd                _gcry_mpi_gcd
 #define gcry_mpi_get_flag           _gcry_mpi_get_flag
 #define gcry_mpi_get_nbits          _gcry_mpi_get_nbits
@@ -191,6 +192,8 @@
 #define gcry_mpi_subm               _gcry_mpi_subm
 #define gcry_mpi_swap               _gcry_mpi_swap
 #define gcry_mpi_test_bit           _gcry_mpi_test_bit
+
+#define gcry_ctx_release            _gcry_ctx_release
 
 
 /* Include the main header here so that public symbols are mapped to
@@ -367,6 +370,7 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_mpi_copy
 #undef gcry_mpi_div
 #undef gcry_mpi_dump
+#undef gcry_mpi_ec_p_new
 #undef gcry_mpi_gcd
 #undef gcry_mpi_get_flag
 #undef gcry_mpi_get_nbits
@@ -404,6 +408,8 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_mpi_subm
 #undef gcry_mpi_swap
 #undef gcry_mpi_test_bit
+
+#undef gcry_ctx_release
 
 
 /* Now mark all symbols.  */
@@ -540,6 +546,11 @@ MARK_VISIBLE (gcry_mpi_cmp_ui)
 MARK_VISIBLE (gcry_mpi_copy)
 MARK_VISIBLE (gcry_mpi_div)
 MARK_VISIBLE (gcry_mpi_dump)
+MARK_VISIBLEX(gcry_mpi_ec_add)
+MARK_VISIBLEX(gcry_mpi_ec_dup)
+MARK_VISIBLEX(gcry_mpi_ec_get_affine)
+MARK_VISIBLEX(gcry_mpi_ec_mul)
+MARK_VISIBLE (gcry_mpi_ec_p_new)
 MARK_VISIBLE (gcry_mpi_gcd)
 MARK_VISIBLE (gcry_mpi_get_flag)
 MARK_VISIBLE (gcry_mpi_get_nbits)
@@ -578,6 +589,7 @@ MARK_VISIBLE (gcry_mpi_subm)
 MARK_VISIBLE (gcry_mpi_swap)
 MARK_VISIBLE (gcry_mpi_test_bit)
 
+MARK_VISIBLE (gcry_ctx_release)
 
 
 #undef MARK_VISIBLE
