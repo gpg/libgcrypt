@@ -421,6 +421,45 @@ gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t m)
   return _gcry_mpi_invm (x, a, m);
 }
 
+gcry_mpi_point_t
+gcry_mpi_point_new (unsigned int nbits)
+{
+  return _gcry_mpi_point_new (nbits);
+}
+
+void
+gcry_mpi_point_release (gcry_mpi_point_t point)
+{
+  _gcry_mpi_point_release (point);
+}
+
+void
+gcry_mpi_point_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
+                    gcry_mpi_point_t point)
+{
+  _gcry_mpi_point_get (x, y, z, point);
+}
+
+void
+gcry_mpi_point_snatch_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
+                           gcry_mpi_point_t point)
+{
+  _gcry_mpi_point_snatch_get (x, y, z, point);
+}
+
+gcry_mpi_point_t
+gcry_mpi_point_set (gcry_mpi_point_t point,
+                    gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z)
+{
+  return _gcry_mpi_point_set (point, x, y, z);
+}
+
+gcry_mpi_point_t
+gcry_mpi_point_snatch_set (gcry_mpi_point_t point,
+                           gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z)
+{
+  return _gcry_mpi_point_snatch_set (point, x, y, z);
+}
 
 unsigned int
 gcry_mpi_get_nbits (gcry_mpi_t a)

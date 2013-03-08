@@ -37,6 +37,13 @@ Noteworthy changes in version 1.6.0 (unreleased)
  GCRY_RNG_TYPE_FIPS              NEW.
  GCRY_RNG_TYPE_SYSTEM            NEW.
  gcry_mpi_snatch                 NEW.
+ gcry_mpi_point_t                NEW.
+ gcry_mpi_point_new              NEW.
+ gcry_mpi_point_release          NEW.
+ gcry_mpi_point_get              NEW.
+ gcry_mpi_point_snatch_get       NEW.
+ gcry_mpi_point_set              NEW.
+ gcry_mpi_point_snatch_set       NEW.
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)

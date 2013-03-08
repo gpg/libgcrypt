@@ -165,6 +165,12 @@
 #define gcry_mpi_mul_ui             _gcry_mpi_mul_ui
 #define gcry_mpi_mulm               _gcry_mpi_mulm
 #define gcry_mpi_new                _gcry_mpi_new
+#define gcry_mpi_point_get          _gcry_mpi_point_get
+#define gcry_mpi_point_new          _gcry_mpi_point_new
+#define gcry_mpi_point_release      _gcry_mpi_point_release
+#define gcry_mpi_point_set          _gcry_mpi_point_set
+#define gcry_mpi_point_snatch_get   _gcry_mpi_point_snatch_get
+#define gcry_mpi_point_snatch_set   _gcry_mpi_point_snatch_set
 #define gcry_mpi_powm               _gcry_mpi_powm
 #define gcry_mpi_print              _gcry_mpi_print
 #define gcry_mpi_randomize          _gcry_mpi_randomize
@@ -172,13 +178,13 @@
 #define gcry_mpi_rshift             _gcry_mpi_rshift
 #define gcry_mpi_lshift             _gcry_mpi_lshift
 #define gcry_mpi_scan               _gcry_mpi_scan
-#define gcry_mpi_snatch             _gcry_mpi_snatch
 #define gcry_mpi_set                _gcry_mpi_set
 #define gcry_mpi_set_bit            _gcry_mpi_set_bit
 #define gcry_mpi_set_flag           _gcry_mpi_set_flag
 #define gcry_mpi_set_highbit        _gcry_mpi_set_highbit
 #define gcry_mpi_set_opaque         _gcry_mpi_set_opaque
 #define gcry_mpi_set_ui             _gcry_mpi_set_ui
+#define gcry_mpi_snatch             _gcry_mpi_snatch
 #define gcry_mpi_snew               _gcry_mpi_snew
 #define gcry_mpi_sub                _gcry_mpi_sub
 #define gcry_mpi_sub_ui             _gcry_mpi_sub_ui
@@ -372,6 +378,12 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_mpi_mul_ui
 #undef gcry_mpi_mulm
 #undef gcry_mpi_new
+#undef gcry_mpi_point_get
+#undef gcry_mpi_point_new
+#undef gcry_mpi_point_release
+#undef gcry_mpi_point_set
+#undef gcry_mpi_point_snatch_get
+#undef gcry_mpi_point_snatch_set
 #undef gcry_mpi_powm
 #undef gcry_mpi_print
 #undef gcry_mpi_randomize
@@ -539,6 +551,12 @@ MARK_VISIBLE (gcry_mpi_mul_2exp)
 MARK_VISIBLE (gcry_mpi_mul_ui)
 MARK_VISIBLE (gcry_mpi_mulm)
 MARK_VISIBLE (gcry_mpi_new)
+MARK_VISIBLE (gcry_mpi_point_get)
+MARK_VISIBLE (gcry_mpi_point_new)
+MARK_VISIBLE (gcry_mpi_point_release)
+MARK_VISIBLE (gcry_mpi_point_set)
+MARK_VISIBLE (gcry_mpi_point_snatch_get)
+MARK_VISIBLE (gcry_mpi_point_snatch_set)
 MARK_VISIBLE (gcry_mpi_powm)
 MARK_VISIBLE (gcry_mpi_print)
 MARK_VISIBLE (gcry_mpi_randomize)

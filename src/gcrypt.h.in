@@ -212,9 +212,11 @@ struct gcry_thread_cbs
 
 
 
-/* The data object used to hold a multi precision integer.  */
+/* The data objects used to hold multi precision integers.  */
 struct gcry_mpi;
 typedef struct gcry_mpi *gcry_mpi_t;
+struct gcry_mpi_point;
+typedef struct gcry_mpi_point *gcry_mpi_point_t;
 
 #ifndef GCRYPT_NO_DEPRECATED
 typedef struct gcry_mpi *GCRY_MPI _GCRY_GCC_ATTR_DEPRECATED;
@@ -572,6 +574,31 @@ int gcry_mpi_gcd (gcry_mpi_t g, gcry_mpi_t a, gcry_mpi_t b);
    Return true if the value exists. */
 int gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t m);
 
+/* Create a new point object.  NBITS is usually 0.  */
+gcry_mpi_point_t gcry_mpi_point_new (unsigned int nbits);
+
+/* Release the object POINT.  POINT may be NULL. */
+void gcry_mpi_point_release (gcry_mpi_point_t point);
+
+/* Store the projective coordinates from POINT into X, Y, and Z.  */
+void gcry_mpi_point_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
+                         gcry_mpi_point_t point);
+
+/* Store the projective coordinates from POINT into X, Y, and Z and
+   release POINT.  */
+void gcry_mpi_point_snatch_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
+                                gcry_mpi_point_t point);
+
+/* Store the projective coordinates X, Y, and Z into POINT.  */
+gcry_mpi_point_t gcry_mpi_point_set (gcry_mpi_point_t point,
+                                     gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z);
+
+/* Store the projective coordinates X, Y, and Z into POINT and release
+   X, Y, and Z.  */
+gcry_mpi_point_t gcry_mpi_point_snatch_set (gcry_mpi_point_t point,
+                                            gcry_mpi_t x, gcry_mpi_t y,
+                                            gcry_mpi_t z);
+
 
 /* Return the number of bits required to represent A. */
 unsigned int gcry_mpi_get_nbits (gcry_mpi_t a);
@@ -655,6 +682,19 @@ int gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 #define mpi_mod(r,a,m)         gcry_mpi_mod ((r), (a), (m))
 #define mpi_gcd(g,a,b)         gcry_mpi_gcd ( (g), (a), (b) )
 #define mpi_invm(g,a,b)        gcry_mpi_invm ( (g), (a), (b) )
+
+#define mpi_point_new(n)              gcry_mpi_point_new((n))
+#define mpi_point_release(p)                    \
+  do                                            \
+    {                                           \
+      gcry_mpi_point_release ((p));             \
+      (p) = NULL;                               \
+    }                                           \
+  while (0)
+#define mpi_point_get(x,y,z,p)        gcry_mpi_point_get((x),(y),(z),(p))
+#define mpi_point_snatch_get(x,y,z,p) gcry_mpi_point_snatch_get((x),(y),(z),(p))
+#define mpi_point_set(p,x,y,z)        gcry_mpi_point_set((p),(x),(y),(z))
+#define mpi_point_snatch_set(p,x,y,z) gcry_mpi_point_snatch_set((p),(x),(y),(z))
 
 #define mpi_get_nbits(a)       gcry_mpi_get_nbits ((a))
 #define mpi_test_bit(a,b)      gcry_mpi_test_bit ((a),(b))

@@ -62,6 +62,33 @@ struct mpi_ec_ctx_s
 };
 
 
+/* Create a new point option.  NBITS gives the size in bits of one
+   coordinate; it is only used to pre-allocate some resources and
+   might also be passed as 0 to use a default value.  */
+mpi_point_t
+gcry_mpi_point_new (unsigned int nbits)
+{
+  mpi_point_t p;
+
+  (void)nbits;  /* Currently not used.  */
+
+  p = gcry_xmalloc (sizeof *p);
+  _gcry_mpi_point_init (p);
+  return p;
+}
+
+
+/* Release the point object P.  P may be NULL. */
+void
+gcry_mpi_point_release (mpi_point_t p)
+{
+  if (p)
+    {
+      _gcry_mpi_point_free_parts (p);
+      gcry_free (p);
+    }
+}
+
 
 /* Initialize the fields of a point object.  gcry_mpi_point_free_parts
    may be used to release the fields.  */
@@ -93,6 +120,90 @@ point_set (mpi_point_t d, mpi_point_t s)
   mpi_set (d->z, s->z);
 }
 
+/* Set the projective coordinates from POINT into X, Y, and Z.  If a
+   coordinate is not required, X, Y, or Z may be passed as NULL.  */
+void
+gcry_mpi_point_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
+                    mpi_point_t point)
+{
+  if (x)
+    mpi_set (x, point->x);
+  if (y)
+    mpi_set (y, point->y);
+  if (z)
+    mpi_set (z, point->z);
+}
+
+
+/* Set the projective coordinates from POINT into X, Y, and Z and
+   release POINT.  If a coordinate is not required, X, Y, or Z may be
+   passed as NULL.  */
+void
+gcry_mpi_point_snatch_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
+                           mpi_point_t point)
+{
+  mpi_snatch (x, point->x);
+  mpi_snatch (y, point->y);
+  mpi_snatch (z, point->z);
+  gcry_free (point);
+}
+
+
+/* Set the projective coordinates from X, Y, and Z into POINT.  If a
+   coordinate is given as NULL, the value 0 is stored into point.  If
+   POINT is given as NULL a new point object is allocated.  Returns
+   POINT or the newly allocated point object. */
+mpi_point_t
+gcry_mpi_point_set (mpi_point_t point,
+                    gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z)
+{
+  if (!point)
+    point = gcry_mpi_point_new (0);
+
+  if (x)
+    mpi_set (point->x, x);
+  else
+    mpi_clear (point->x);
+  if (y)
+    mpi_set (point->y, y);
+  else
+    mpi_clear (point->y);
+  if (z)
+    mpi_set (point->z, z);
+  else
+    mpi_clear (point->z);
+
+  return point;
+}
+
+
+/* Set the projective coordinates from X, Y, and Z into POINT.  If a
+   coordinate is given as NULL, the value 0 is stored into point.  If
+   POINT is given as NULL a new point object is allocated.  The
+   coordinates X, Y, and Z are released.  Returns POINT or the newly
+   allocated point object. */
+mpi_point_t
+gcry_mpi_point_snatch_set (mpi_point_t point,
+                           gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z)
+{
+  if (!point)
+    point = gcry_mpi_point_new (0);
+
+  if (x)
+    mpi_snatch (point->x, x);
+  else
+    mpi_clear (point->x);
+  if (y)
+    mpi_snatch (point->y, y);
+  else
+    mpi_clear (point->y);
+  if (z)
+    mpi_snatch (point->z, z);
+  else
+    mpi_clear (point->z);
+
+  return point;
+}
 
 
 static void

@@ -213,3 +213,10 @@ EXPORTS
       gcry_kdf_derive       @194
 
       gcry_mpi_snatch       @195
+
+      gcry_mpi_point_new        @196
+      gcry_mpi_point_release    @197
+      gcry_mpi_point_get        @198
+      gcry_mpi_point_snatch_get @199
+      gcry_mpi_point_set        @200
+      gcry_mpi_point_snatch_set @201
