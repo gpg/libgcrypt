@@ -12,8 +12,9 @@ This manual is for Libgcrypt
 (version @value{VERSION}, @value{UPDATED}),
 which is GNU's library of cryptographic building blocks.
 
-Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008, 2009,
-2011, 2012 Free Software Foundation, Inc.
+@noindent
+Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2011, 2012 Free Software Foundation, Inc. @*
+Copyright @copyright{} 2012, 2013 g10 Code GmbH
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -91,7 +92,7 @@ section entitled ``GNU General Public License''.
 * S-expressions::                How to manage S-expressions.
 * MPI library::                  How to work with multi-precision-integers.
 * Prime numbers::                How to use the Prime number related functions.
-* Utilities::                    Utility functions.
+* Utilities::                   Utility functions.
 * Tools::                        Utility tools
 * Architecture::                 How Libgcrypt works internally.
 
@@ -3523,6 +3524,7 @@ likely want to use @code{GCRYMPI_FMT_USG}.
 * Calculations::                Performing MPI calculations.
 * Comparisons::                 How to compare MPI values.
 * Bit manipulations::           How to access single bits of MPI values.
+* EC functions::                Elliptic curve related functions.
 * Miscellaneous::               Miscellaneous MPI functions.
 @end menu
 
@@ -3538,6 +3540,10 @@ numbers are called MPIs (multi-precision-integers).
 
 @deftp {Data type} {gcry_mpi_t}
 This type represents an object to hold an MPI.
+@end deftp
+
+@deftp {Data type} {gcry_mpi_point_t}
+This type represents an object to hold a point for elliptic curve math.
 @end deftp
 
 @node Basic functions
@@ -3843,6 +3849,124 @@ Shift the value of @var{a} by @var{n} bits to the left and store the
 result in @var{x}.
 @end deftypefun
 
+@node EC functions
+@section EC functions
+
+@noindent
+Libgcrypt provides an API to access low level functions used by its
+elliptic curve implementation.  These functions allow to implement
+elliptic curve methods for which no explicit support is available.
+
+@deftypefun gcry_mpi_point_t gcry_mpi_point_new (@w{unsigned int @var{nbits}})
+
+Allocate a new point object, initialize it to 0, and allocate enough
+memory for a points of at least @var{nbits}.  This pre-allocation
+yields only a small performance win and is not really necessary
+because Libgcrypt automatically re-allocates the required memory.
+Using 0 for @var{nbits} is usually the right thing to do.
+@end deftypefun
+
+@deftypefun void gcry_mpi_point_release (@w{gcry_mpi_point_t @var{point}})
+
+Release @var{point} and free all associated resources.  Passing
+@code{NULL} is allowed and ignored.
+@end deftypefun
+
+@deftypefun void gcry_mpi_point_get (@w{gcry_mpi_t @var{x}}, @
+ @w{gcry_mpi_t @var{y}}, @w{gcry_mpi_t @var{z}}, @
+ @w{gcry_mpi_point_t @var{point}})
+
+Store the projective coordinates from @var{point} into the MPIs
+@var{x}, @var{y}, and @var{z}.  If a coordinate is not required,
+@code{NULL} may be used for @var{x}, @var{y}, or @var{z}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_point_snatch_get (@w{gcry_mpi_t @var{x}}, @
+ @w{gcry_mpi_t @var{y}}, @w{gcry_mpi_t @var{z}}, @
+ @w{gcry_mpi_point_t @var{point}})
+
+Store the projective coordinates from @var{point} into the MPIs
+@var{x}, @var{y}, and @var{z}.  If a coordinate is not required,
+@code{NULL} may be used for @var{x}, @var{y}, or @var{z}.  The object
+@var{point} is then released.  Using this function instead of
+@code{gcry_mpi_point_get} and @code{gcry_mpi_point_release} has the
+advantage of avoiding some extra memory allocations and copies.
+@end deftypefun
+
+@deftypefun gcry_mpi_point_t gcry_mpi_point_set ( @
+ @w{gcry_mpi_point_t @var{point}}, @
+ @w{gcry_mpi_t @var{x}}, @w{gcry_mpi_t @var{y}}, @w{gcry_mpi_t @var{z}})
+
+Store the projective coordinates from @var{x}, @var{y}, and @var{z}
+into @var{point}.  If a coordinate is given as @code{NULL}, the value
+0 is used.  If @code{NULL} is used for @var{point} a new point object
+is allocated and returned.  Returns @var{point} or the newly allocated
+point object.
+@end deftypefun
+
+@deftypefun gcry_mpi_point_t gcry_mpi_point_snatch_set ( @
+ @w{gcry_mpi_point_t @var{point}}, @
+ @w{gcry_mpi_t @var{x}}, @w{gcry_mpi_t @var{y}}, @w{gcry_mpi_t @var{z}})
+
+Store the projective coordinates from @var{x}, @var{y}, and @var{z}
+into @var{point}.  If a coordinate is given as @code{NULL}, the value
+0 is used.  If @code{NULL} is used for @var{point} a new point object
+is allocated and returned.  The MPIs @var{x}, @var{y}, and @var{z} are
+released.  Using this function instead of @code{gcry_mpi_point_set}
+and 3 calls to @code{gcry_mpi_release} has the advantage of avoiding
+some extra memory allocations and copies.  Returns @var{point} or the
+newly allocated point object.
+@end deftypefun
+
+@anchor{gcry_mpi_ec_p_new}
+@deftypefun gcry_ctx_t gcry_mpi_ec_p_new (@w{gcry_mpi_t @var{p}}, @
+ @w{gcry_mpi_t @var{a}}
+
+Allocate a new context for elliptic curve operations based on the
+field GF(p).  @var{p} is the prime specifying this field, @var{a} is
+the first coefficient of the Weierstrass equation.  The function
+returns a context object which eventually needs to be released using
+@ref{gcry_ctx_release}.  On error this function returns @code{NULL}
+and sets @code{errno}.
+@end deftypefun
+
+@deftypefun int gcry_mpi_ec_get_affine ( @
+ @w{gcry_mpi_t @var{x}}, @w{gcry_mpi_t @var{y}}, @
+ @w{gcry_mpi_point_t @var{point}}, @w{gcry_ctx_t @var{ctx}})
+
+Compute the affine coordinates from the projective coordinates in
+@var{point} and store them into @var{x} and @var{y}.  If one
+coordinate is not required, @code{NULL} may be passed to @var{x} or
+@var{y}.  @var{ctx} is the context object which for example may have
+been created using @ref{gcry_mpi_ec_p_new}. Returns 0 on success or
+not 0 if @var{point} is at infinity.
+@end deftypefun
+
+@deftypefun void gcry_mpi_ec_dup ( @
+ @w{gcry_mpi_point_t @var{w}}, @w{gcry_mpi_point_t @var{u}}, @
+ @w{gcry_ctx_t @var{ctx}})
+
+Double the point @var{u} of the elliptic curve described by @var{ctx}
+and store the result into @var{w}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_ec_add ( @
+ @w{gcry_mpi_point_t @var{w}}, @w{gcry_mpi_point_t @var{u}}, @
+ @w{gcry_mpi_point_t @var{v}}, @w{gcry_ctx_t @var{ctx}})
+
+Add the points @var{u} and @var{v} of the elliptic curve described by
+@var{ctx} and store the result into @var{w}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_ec_mul ( @
+ @w{gcry_mpi_point_t @var{w}}, @w{gcry_mpi_t @var{n}}, @
+ @w{gcry_mpi_point_t @var{u}}, @w{gcry_ctx_t @var{ctx}})
+
+Multiply the point @var{u} of the elliptic curve described by
+@var{ctx} by @var{n} and store the result into @var{w}.
+@end deftypefun
+
+
 @node Miscellaneous
 @section Miscellaneous
 
@@ -3950,7 +4074,8 @@ wrong.
 @chapter Utilities
 
 @menu
-* Memory allocation:: Functions related with memory allocation.
+* Memory allocation::   Functions related with memory allocation.
+* Context management::  Functions related with context management.
 @end menu
 
 @node Memory allocation
@@ -3991,6 +4116,25 @@ gcry_realloc tries to use secure memory as well.
 @deftypefun void gcry_free (void *@var{p})
 Release the memory area pointed to by @var{p}.
 @end deftypefun
+
+
+@node Context management
+@section Context management
+
+Some function make use of a context object.  As of now there are only
+a few math functions. However, future versions of Libgcrypt may make
+more use of this context object.
+
+@deftp {Data type} {gcry_ctx_t}
+This type is used to refer to the general purpose context object.
+@end deftp
+
+@anchor{gcry_ctx_release}
+@deftypefun void gcry_ctx_release (gcry_ctx_t @var{ctx})
+Release the context object @var{ctx} and all associated resources.  A
+@code{NULL} passed as @var{ctx} is ignored.
+@end deftypefun
+
 
 @c **********************************************************
 @c *********************  Tools  ****************************
