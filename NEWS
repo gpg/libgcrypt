@@ -50,6 +50,7 @@ Noteworthy changes in version 1.6.0 (unreleased)
  gcry_mpi_ec_dup                 NEW.
  gcry_mpi_ec_add                 NEW.
  gcry_mpi_ec_mul                 NEW.
+ GCRYMPI_FLAG_IMMUTABLE          NEW.
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)

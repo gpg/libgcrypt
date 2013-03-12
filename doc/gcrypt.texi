@@ -3970,6 +3970,9 @@ Multiply the point @var{u} of the elliptic curve described by
 @node Miscellaneous
 @section Miscellaneous
 
+An MPI data type is allowed to be ``misused'' to store an arbitrary
+value.  Two functions implement this kludge:
+
 @deftypefun gcry_mpi_t gcry_mpi_set_opaque (@w{gcry_mpi_t @var{a}}, @w{void *@var{p}}, @w{unsigned int @var{nbits}})
 
 Store @var{nbits} of the value @var{p} points to in @var{a} and mark
@@ -3980,7 +3983,6 @@ math calculation and is only used to store an arbitrary bit pattern in
 WARNING: Never use an opaque MPI for actual math operations.  The only
 valid functions are gcry_mpi_get_opaque and gcry_mpi_release.  Use
 gcry_mpi_scan to convert a string of arbitrary bytes into an MPI.
-
 @end deftypefun
 
 @deftypefun {void *} gcry_mpi_get_opaque (@w{gcry_mpi_t @var{a}}, @w{unsigned int *@var{nbits}})
@@ -3991,23 +3993,46 @@ size in @var{nbits}.  Note that the returned pointer is still owned by
 MPI.
 @end deftypefun
 
-@deftypefun void gcry_mpi_set_flag (@w{gcry_mpi_t @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
+Each MPI has an associated set of flags for special purposes.  The
+currently defined flags are:
 
-Set the @var{flag} for the MPI @var{a}.  Currently only the flag
-@code{GCRYMPI_FLAG_SECURE} is allowed to convert @var{a} into an MPI
-stored in "secure memory".
+@table @code
+@item GCRYMPI_FLAG_SECURE
+Setting this flag converts @var{a} into an MPI stored in "secure
+memory".  Clearing this flag is not allowed.
+@item GCRYMPI_FLAG_OPAQUE
+This is an interanl flag, indicating the an opaque valuue and not an
+integer is stored.  This is an read-only flag; it may not be set or
+cleared.
+@item GCRYMPI_FLAG_IMMUTABLE
+If this flag is set, the MPI is marked as immutable.  Setting or
+changing the value of that MPI is ignored and an error message is
+logged.  The flag is sometimes useful for debugging.
+@end table
+
+@deftypefun void gcry_mpi_set_flag (@w{gcry_mpi_t @var{a}}, @
+ @w{enum gcry_mpi_flag @var{flag}})
+
+Set the @var{flag} for the MPI @var{a}.  The only allowed flags are
+@code{GCRYMPI_FLAG_SECURE} and @code{GCRYMPI_FLAG_IMMUTABLE}.
 @end deftypefun
 
-@deftypefun void gcry_mpi_clear_flag (@w{gcry_mpi_t @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
+@deftypefun void gcry_mpi_clear_flag (@w{gcry_mpi_t @var{a}}, @
+ @w{enum gcry_mpi_flag @var{flag}})
 
-Clear @var{flag} for the multi-precision-integers @var{a}.  Note that
-this function is currently useless as no flags are allowed.
+Clear @var{flag} for the multi-precision-integers @var{a}.  The only
+allowed flag is @code{GCRYMPI_FLAG_IMMUTABLE}.
+@end deftypefun
+o
+@deftypefun int gcry_mpi_get_flag (@w{gcry_mpi_t @var{a}}, @
+ @w{enum gcry_mpi_flag @var{flag}})
+
+Return true if @var{flag} is set for @var{a}.
 @end deftypefun
 
-@deftypefun int gcry_mpi_get_flag (@w{gcry_mpi_t @var{a}}, @w{enum gcry_mpi_flag @var{flag}})
 
-Return true when the @var{flag} is set for @var{a}.
-@end deftypefun
+To put a random value into an MPI, the following convenience function
+may be used:
 
 @deftypefun void gcry_mpi_randomize (@w{gcry_mpi_t @var{w}}, @w{unsigned int @var{nbits}}, @w{enum gcry_random_level @var{level}})
 

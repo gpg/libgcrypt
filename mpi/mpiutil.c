@@ -163,8 +163,13 @@ _gcry_mpi_resize (gcry_mpi_t a, unsigned nlimbs)
 void
 _gcry_mpi_clear( gcry_mpi_t a )
 {
-    a->nlimbs = 0;
-    a->flags = 0;
+  if (mpi_is_immutable (a))
+    {
+      mpi_immutable_failed ();
+      return;
+    }
+  a->nlimbs = 0;
+  a->flags = 0;
 }
 
 
@@ -179,10 +184,20 @@ _gcry_mpi_free( gcry_mpi_t a )
     {
       _gcry_mpi_free_limb_space(a->d, a->alloced);
     }
-  if ((a->flags & ~7))
-    log_bug("invalid flag value in mpi\n");
+  /* Check that the flags makes sense.  We better allow for bit 1
+     (value 2) for backward ABI compatibility.  */
+  if ((a->flags & ~(1|2|4|16)))
+    log_bug("invalid flag value in mpi_free\n");
   gcry_free(a);
 }
+
+
+void
+_gcry_mpi_immutable_failed (void)
+{
+  log_info ("Warning: trying to change immutable MPI\n");
+}
+
 
 static void
 mpi_set_secure( gcry_mpi_t a )
@@ -303,6 +318,11 @@ gcry_mpi_snatch (gcry_mpi_t w, gcry_mpi_t u)
 {
   if (w)
     {
+      if (mpi_is_immutable (w))
+        {
+          mpi_immutable_failed ();
+          return;
+        }
       _gcry_mpi_assign_limb_space (w, u->d, u->alloced);
       w->nlimbs = u->nlimbs;
       w->sign   = u->sign;
@@ -324,6 +344,11 @@ gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u)
 
   if (!w)
     w = _gcry_mpi_alloc( mpi_get_nlimbs(u) );
+  if (mpi_is_immutable (w))
+    {
+      mpi_immutable_failed ();
+      return w;
+    }
   RESIZE_IF_NEEDED(w, usize);
   wp = w->d;
   up = u->d;
@@ -342,6 +367,11 @@ gcry_mpi_set_ui( gcry_mpi_t w, unsigned long u)
     w = _gcry_mpi_alloc (1);
   /* FIXME: If U is 0 we have no need to resize and thus possible
      allocating the the limbs. */
+  if (mpi_is_immutable (w))
+    {
+      mpi_immutable_failed ();
+      return w;
+    }
   RESIZE_IF_NEEDED(w, 1);
   w->d[0] = u;
   w->nlimbs = u? 1:0;
@@ -426,6 +456,11 @@ gcry_mpi_randomize( gcry_mpi_t w,
   unsigned char *p;
   size_t nbytes = (nbits+7)/8;
 
+  if (mpi_is_immutable (w))
+    {
+      mpi_immutable_failed ();
+      return;
+    }
   if (level == GCRY_WEAK_RANDOM)
     {
       p = mpi_is_secure(w) ? gcry_xmalloc_secure (nbytes)
@@ -446,7 +481,8 @@ void
 gcry_mpi_set_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 {
     switch( flag ) {
-      case GCRYMPI_FLAG_SECURE:  mpi_set_secure(a); break;
+      case GCRYMPI_FLAG_SECURE: mpi_set_secure(a); break;
+      case GCRYMPI_FLAG_IMMUTABLE:  a->flags |= 16; break;
       case GCRYMPI_FLAG_OPAQUE:
       default: log_bug("invalid flag value\n");
     }
@@ -459,6 +495,7 @@ gcry_mpi_clear_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 
   switch (flag)
     {
+    case GCRYMPI_FLAG_IMMUTABLE: a->flags &= ~16; break;
     case GCRYMPI_FLAG_SECURE:
     case GCRYMPI_FLAG_OPAQUE:
     default: log_bug("invalid flag value\n");
@@ -472,6 +509,7 @@ gcry_mpi_get_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
     {
     case GCRYMPI_FLAG_SECURE: return (a->flags & 1);
     case GCRYMPI_FLAG_OPAQUE: return (a->flags & 4);
+    case GCRYMPI_FLAG_IMMUTABLE:  return (a->flags & 16);
     default: log_bug("invalid flag value\n");
     }
   /*NOTREACHED*/

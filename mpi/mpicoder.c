@@ -305,6 +305,12 @@ _gcry_mpi_set_buffer (gcry_mpi_t a, const void *buffer_arg,
   int nlimbs;
   int i;
 
+  if (mpi_is_immutable (a))
+    {
+      mpi_immutable_failed ();
+      return;
+    }
+
   nlimbs = (nbytes + BYTES_PER_MPI_LIMB - 1) / BYTES_PER_MPI_LIMB;
   RESIZE_IF_NEEDED(a, nlimbs);
   a->sign = sign;

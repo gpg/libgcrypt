@@ -69,7 +69,8 @@ struct gcry_mpi
   int sign;	       /* Indicates a negative number and is also used
 		          for opaque MPIs to store the length.  */
   unsigned int flags; /* Bit 0: Array to be allocated in secure memory space.*/
-                      /* Bit 2: the limb is a pointer to some m_alloced data.*/
+                      /* Bit 2: The limb is a pointer to some m_alloced data.*/
+                      /* Bit 4: Const MPI - the MPI may not be modified.  */
   mpi_limb_t *d;      /* Array with the limbs */
 };
 
@@ -104,8 +105,12 @@ struct gcry_mpi
   gcry_mpi_t  _gcry_mpi_copy( gcry_mpi_t a );
 #endif
 
-#define mpi_is_opaque(a) ((a) && ((a)->flags&4))
-#define mpi_is_secure(a) ((a) && ((a)->flags&1))
+void _gcry_mpi_immutable_failed (void);
+#define mpi_immutable_failed() _gcry_mpi_immutable_failed ()
+
+#define mpi_is_immutable(a)   ((a) && ((a)->flags&16))
+#define mpi_is_opaque(a)      ((a) && ((a)->flags&4))
+#define mpi_is_secure(a)      ((a) && ((a)->flags&1))
 #define mpi_clear(a)          _gcry_mpi_clear ((a))
 #define mpi_alloc_like(a)     _gcry_mpi_alloc_like((a))
 #define mpi_snatch(a,b)       _gcry_mpi_snatch ((a),(b))

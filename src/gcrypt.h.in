@@ -454,9 +454,10 @@ enum gcry_mpi_format
 enum gcry_mpi_flag
   {
     GCRYMPI_FLAG_SECURE = 1,  /* Allocate the number in "secure" memory.  */
-    GCRYMPI_FLAG_OPAQUE = 2   /* The number is not a real one but just
+    GCRYMPI_FLAG_OPAQUE = 2,  /* The number is not a real one but just
                                  a way to store some bytes.  This is
                                  useful for encrypted big integers.  */
+    GCRYMPI_FLAG_IMMUTABLE = 4  /* Mark the MPI as immutable.  */
   };
 
 
