@@ -348,6 +348,7 @@ gcry_err_code_t _gcry_cipher_init (void);
 gcry_err_code_t _gcry_md_init (void);
 gcry_err_code_t _gcry_pk_init (void);
 gcry_err_code_t _gcry_secmem_module_init (void);
+gcry_err_code_t _gcry_mpi_init (void);
 
 gcry_err_code_t _gcry_pk_module_lookup (int id, gcry_module_t *module);
 void _gcry_pk_module_release (gcry_module_t module);

@@ -3571,7 +3571,8 @@ confidential data like private key parameters.
 
 @deftypefun gcry_mpi_t gcry_mpi_copy (@w{const gcry_mpi_t @var{a}})
 
-Create a new MPI as the exact copy of @var{a}.
+Create a new MPI as the exact copy of @var{a} but with the constant
+and immutable flags cleared.
 @end deftypefun
 
 
@@ -4008,20 +4009,29 @@ cleared.
 If this flag is set, the MPI is marked as immutable.  Setting or
 changing the value of that MPI is ignored and an error message is
 logged.  The flag is sometimes useful for debugging.
+@item GCRYMPI_FLAG_CONST
+If this flag is set, the MPI is marked as a constant and as immutable
+Setting or changing the value of that MPI is ignored and an error
+message is logged.  Such an MPI will never be deallocated and may thus
+be used without copying.  Note that using gcry_mpi_copy will return a
+copy of that constant with this and the immutable flag cleared.
 @end table
 
 @deftypefun void gcry_mpi_set_flag (@w{gcry_mpi_t @var{a}}, @
  @w{enum gcry_mpi_flag @var{flag}})
 
 Set the @var{flag} for the MPI @var{a}.  The only allowed flags are
-@code{GCRYMPI_FLAG_SECURE} and @code{GCRYMPI_FLAG_IMMUTABLE}.
+@code{GCRYMPI_FLAG_SECURE}, @code{GCRYMPI_FLAG_IMMUTABLE}, and
+@code{GCRYMPI_FLAG_CONST}.
 @end deftypefun
 
 @deftypefun void gcry_mpi_clear_flag (@w{gcry_mpi_t @var{a}}, @
  @w{enum gcry_mpi_flag @var{flag}})
 
 Clear @var{flag} for the multi-precision-integers @var{a}.  The only
-allowed flag is @code{GCRYMPI_FLAG_IMMUTABLE}.
+allowed flag is @code{GCRYMPI_FLAG_IMMUTABLE} but only if
+@code{GCRYMPI_FLAG_CONST} is not set.  If @code{GCRYMPI_FLAG_CONST} is
+set, clearing @code{GCRYMPI_FLAG_IMMUTABLE} will simply be ignored.
 @end deftypefun
 o
 @deftypefun int gcry_mpi_get_flag (@w{gcry_mpi_t @var{a}}, @

@@ -88,6 +88,67 @@ unsigned char manyff[] = {
 };
 
 
+static int
+test_const_and_immutable (void)
+{
+  gcry_mpi_t one, second_one;
+
+  one = gcry_mpi_set_ui (NULL, 1);
+  if (gcry_mpi_get_flag (one, GCRYMPI_FLAG_IMMUTABLE)
+      || gcry_mpi_get_flag (one, GCRYMPI_FLAG_CONST))
+    die ("immutable or const flag initially set\n");
+
+  second_one = gcry_mpi_copy (one);
+  if (gcry_mpi_get_flag (second_one, GCRYMPI_FLAG_IMMUTABLE))
+    die ("immutable flag set after copy\n");
+  if (gcry_mpi_get_flag (second_one, GCRYMPI_FLAG_CONST))
+    die ("const flag set after copy\n");
+  gcry_mpi_release (second_one);
+
+  gcry_mpi_set_flag (one, GCRYMPI_FLAG_IMMUTABLE);
+  if (!gcry_mpi_get_flag (one, GCRYMPI_FLAG_IMMUTABLE))
+    die ("failed to set immutable flag\n");
+  if (gcry_mpi_get_flag (one, GCRYMPI_FLAG_CONST))
+    die ("const flag unexpectly set\n");
+
+  second_one = gcry_mpi_copy (one);
+  if (gcry_mpi_get_flag (second_one, GCRYMPI_FLAG_IMMUTABLE))
+    die ("immutable flag not cleared after copy\n");
+  if (gcry_mpi_get_flag (second_one, GCRYMPI_FLAG_CONST))
+    die ("const flag unexpectly set after copy\n");
+  gcry_mpi_release (second_one);
+
+  gcry_mpi_clear_flag (one, GCRYMPI_FLAG_IMMUTABLE);
+  if (gcry_mpi_get_flag (one, GCRYMPI_FLAG_IMMUTABLE))
+    die ("failed to clear immutable flag\n");
+  if (gcry_mpi_get_flag (one, GCRYMPI_FLAG_CONST))
+    die ("const flag unexpectly set\n");
+
+  gcry_mpi_set_flag (one, GCRYMPI_FLAG_CONST);
+  if (!gcry_mpi_get_flag (one, GCRYMPI_FLAG_CONST))
+    die ("failed to set const flag\n");
+  if (!gcry_mpi_get_flag (one, GCRYMPI_FLAG_IMMUTABLE))
+    die ("failed to set immutable flag with const flag\n");
+
+  second_one = gcry_mpi_copy (one);
+  if (gcry_mpi_get_flag (second_one, GCRYMPI_FLAG_IMMUTABLE))
+    die ("immutable flag not cleared after copy\n");
+  if (gcry_mpi_get_flag (second_one, GCRYMPI_FLAG_CONST))
+    die ("const flag not cleared after copy\n");
+  gcry_mpi_release (second_one);
+
+  gcry_mpi_clear_flag (one, GCRYMPI_FLAG_IMMUTABLE);
+  if (!gcry_mpi_get_flag (one, GCRYMPI_FLAG_IMMUTABLE))
+    die ("clearing immutable flag not ignored for a constant MPI\n");
+  if (!gcry_mpi_get_flag (one, GCRYMPI_FLAG_CONST))
+    die ("const flag unexpectly cleared\n");
+
+  /* Due to the the constant flag the release below should be a NOP
+     and will leak memory.  */
+  gcry_mpi_release (one);
+  return 1;
+}
+
 
 static int
 test_add (void)
@@ -292,6 +353,7 @@ main (int argc, char* argv[])
     }
   gcry_control(GCRYCTL_DISABLE_SECMEM);
 
+  test_const_and_immutable ();
   test_add ();
   test_sub ();
   test_mul ();

@@ -28,11 +28,43 @@
 #include "mpi-internal.h"
 #include "mod-source-info.h"
 
+/* Constatns allocated right away at strtartup.  */
+static gcry_mpi_t constants[MPI_NUMBER_OF_CONSTANTS];
+
+
 
 const char *
 _gcry_mpi_get_hw_config (void)
 {
   return mod_source_info + 1;
+}
+
+
+/* Initialize the MPI subsystem.  This is called early and allows to
+   do some initialization without taking care of threading issues.  */
+gcry_err_code_t
+_gcry_mpi_init (void)
+{
+  int idx;
+  unsigned long value;
+
+  for (idx=0; idx < MPI_NUMBER_OF_CONSTANTS; idx++)
+    {
+      switch (idx)
+        {
+        case MPI_C_ZERO:  value = 0; break;
+        case MPI_C_ONE:   value = 1; break;
+        case MPI_C_TWO:   value = 2; break;
+        case MPI_C_THREE: value = 3; break;
+        case MPI_C_FOUR:  value = 4; break;
+        case MPI_C_EIGHT: value = 8; break;
+        default: log_bug ("invalid mpi_const selector %d\n", idx);
+        }
+      constants[idx] = mpi_alloc_set_ui (value);
+      constants[idx]->flags = (16|32);
+    }
+
+  return 0;
 }
 
 
@@ -178,6 +210,8 @@ _gcry_mpi_free( gcry_mpi_t a )
 {
   if (!a )
     return;
+  if ((a->flags & 32))
+    return; /* Never release a constant. */
   if ((a->flags & 4))
     gcry_free( a->d );
   else
@@ -195,7 +229,7 @@ _gcry_mpi_free( gcry_mpi_t a )
 void
 _gcry_mpi_immutable_failed (void)
 {
-  log_info ("Warning: trying to change immutable MPI\n");
+  log_info ("Warning: trying to change an immutable MPI\n");
 }
 
 
@@ -225,6 +259,12 @@ gcry_mpi_set_opaque( gcry_mpi_t a, void *p, unsigned int nbits )
 {
   if (!a)
     a = mpi_alloc(0);
+
+  if (mpi_is_immutable (a))
+    {
+      mpi_immutable_failed ();
+      return a;
+    }
 
   if( a->flags & 4 )
     gcry_free( a->d );
@@ -266,6 +306,7 @@ gcry_mpi_copy( gcry_mpi_t a )
 				     : gcry_xmalloc( (a->sign+7)/8 );
 	memcpy( p, a->d, (a->sign+7)/8 );
 	b = gcry_mpi_set_opaque( NULL, p, a->sign );
+        b->flags &= ~(16|32); /* Reset the immutable and constant flags.  */
     }
     else if( a ) {
 	b = mpi_is_secure(a)? mpi_alloc_secure( a->nlimbs )
@@ -273,6 +314,7 @@ gcry_mpi_copy( gcry_mpi_t a )
 	b->nlimbs = a->nlimbs;
 	b->sign = a->sign;
 	b->flags  = a->flags;
+        b->flags &= ~(16|32); /* Reset the immutable and constant flags.  */
 	for(i=0; i < b->nlimbs; i++ )
 	    b->d[i] = a->d[i];
     }
@@ -478,24 +520,30 @@ gcry_mpi_randomize( gcry_mpi_t w,
 
 
 void
-gcry_mpi_set_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
+gcry_mpi_set_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 {
-    switch( flag ) {
-      case GCRYMPI_FLAG_SECURE: mpi_set_secure(a); break;
-      case GCRYMPI_FLAG_IMMUTABLE:  a->flags |= 16; break;
-      case GCRYMPI_FLAG_OPAQUE:
-      default: log_bug("invalid flag value\n");
+  switch (flag)
+    {
+    case GCRYMPI_FLAG_SECURE:     mpi_set_secure(a); break;
+    case GCRYMPI_FLAG_CONST:      a->flags |= (16|32); break;
+    case GCRYMPI_FLAG_IMMUTABLE:  a->flags |= 16; break;
+    case GCRYMPI_FLAG_OPAQUE:
+    default: log_bug("invalid flag value\n");
     }
 }
 
 void
-gcry_mpi_clear_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
+gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 {
   (void)a; /* Not yet used. */
 
   switch (flag)
     {
-    case GCRYMPI_FLAG_IMMUTABLE: a->flags &= ~16; break;
+    case GCRYMPI_FLAG_IMMUTABLE:
+      if (!(a->flags & 32))
+        a->flags &= ~16;
+      break;
+    case GCRYMPI_FLAG_CONST:
     case GCRYMPI_FLAG_SECURE:
     case GCRYMPI_FLAG_OPAQUE:
     default: log_bug("invalid flag value\n");
@@ -503,15 +551,30 @@ gcry_mpi_clear_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
 }
 
 int
-gcry_mpi_get_flag( gcry_mpi_t a, enum gcry_mpi_flag flag )
+gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 {
   switch (flag)
     {
-    case GCRYMPI_FLAG_SECURE: return (a->flags & 1);
-    case GCRYMPI_FLAG_OPAQUE: return (a->flags & 4);
-    case GCRYMPI_FLAG_IMMUTABLE:  return (a->flags & 16);
+    case GCRYMPI_FLAG_SECURE:    return !!(a->flags & 1);
+    case GCRYMPI_FLAG_OPAQUE:    return !!(a->flags & 4);
+    case GCRYMPI_FLAG_IMMUTABLE: return !!(a->flags & 16);
+    case GCRYMPI_FLAG_CONST:     return !!(a->flags & 32);
     default: log_bug("invalid flag value\n");
     }
   /*NOTREACHED*/
   return 0;
+}
+
+
+/* Return a constant MPI descripbed by NO which is one of the
+   MPI_C_xxx macros.  There is no need to copy this returned value; it
+   may be used directly.  */
+gcry_mpi_t
+_gcry_mpi_const (enum gcry_mpi_constants no)
+{
+  if ((int)no < 0 || no > MPI_NUMBER_OF_CONSTANTS)
+    log_bug("invalid mpi_const selector %d\n", no);
+  if (!constants[no])
+    log_bug("MPI subsystem not initialized\n");
+  return constants[no];
 }

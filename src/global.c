@@ -140,6 +140,9 @@ global_init (void)
   err = _gcry_secmem_module_init ();
   if (err)
     goto fail;
+  err = _gcry_mpi_init ();
+  if (err)
+    goto fail;
 
   return;
 

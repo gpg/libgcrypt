@@ -70,7 +70,8 @@ struct gcry_mpi
 		          for opaque MPIs to store the length.  */
   unsigned int flags; /* Bit 0: Array to be allocated in secure memory space.*/
                       /* Bit 2: The limb is a pointer to some m_alloced data.*/
-                      /* Bit 4: Const MPI - the MPI may not be modified.  */
+                      /* Bit 4: Immutable MPI - the MPI may not be modified.  */
+                      /* Bit 5: Constant MPI - the MPI will not be freed.  */
   mpi_limb_t *d;      /* Array with the limbs */
 };
 
@@ -108,6 +109,7 @@ struct gcry_mpi
 void _gcry_mpi_immutable_failed (void);
 #define mpi_immutable_failed() _gcry_mpi_immutable_failed ()
 
+#define mpi_is_const(a)       ((a) && ((a)->flags&32))
 #define mpi_is_immutable(a)   ((a) && ((a)->flags&16))
 #define mpi_is_opaque(a)      ((a) && ((a)->flags&4))
 #define mpi_is_secure(a)      ((a) && ((a)->flags&1))
@@ -122,6 +124,7 @@ void _gcry_mpi_immutable_failed (void);
 #define mpi_swap(a,b)         _gcry_mpi_swap ((a),(b))
 #define mpi_new(n)            _gcry_mpi_new ((n))
 #define mpi_snew(n)           _gcry_mpi_snew ((n))
+#define mpi_const(n)          _gcry_mpi_const ((n))
 
 void _gcry_mpi_clear( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_like( gcry_mpi_t a );
@@ -131,6 +134,23 @@ void _gcry_mpi_m_check( gcry_mpi_t a );
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
 gcry_mpi_t _gcry_mpi_new (unsigned int nbits);
 gcry_mpi_t _gcry_mpi_snew (unsigned int nbits);
+
+/* Constants used to return constant MPIs.  See _gcry_mpi_init if you
+   want to add more constants. */
+#define MPI_NUMBER_OF_CONSTANTS 6
+enum gcry_mpi_constants
+  {
+    MPI_C_ZERO,
+    MPI_C_ONE,
+    MPI_C_TWO,
+    MPI_C_THREE,
+    MPI_C_FOUR,
+    MPI_C_EIGHT
+  };
+
+
+gcry_mpi_t _gcry_mpi_const (enum gcry_mpi_constants no);
+
 
 /*-- mpicoder.c --*/
 void  _gcry_log_mpidump( const char *text, gcry_mpi_t a );

@@ -457,7 +457,8 @@ enum gcry_mpi_flag
     GCRYMPI_FLAG_OPAQUE = 2,  /* The number is not a real one but just
                                  a way to store some bytes.  This is
                                  useful for encrypted big integers.  */
-    GCRYMPI_FLAG_IMMUTABLE = 4  /* Mark the MPI as immutable.  */
+    GCRYMPI_FLAG_IMMUTABLE = 4, /* Mark the MPI as immutable.  */
+    GCRYMPI_FLAG_CONST     = 8  /* Mark the MPI as a constant.  */
   };
 
 

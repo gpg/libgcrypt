@@ -45,12 +45,6 @@ struct mpi_ec_ctx_s
 
   int a_is_pminus3;  /* True if A = P - 3. */
 
-  /* Some often used constants.  */
-  gcry_mpi_t one;
-  gcry_mpi_t two;
-  gcry_mpi_t three;
-  gcry_mpi_t four;
-  gcry_mpi_t eight;
   gcry_mpi_t two_inv_p;
 
   /* Scratch variables.  */
@@ -374,15 +368,8 @@ ec_p_init (mpi_ec_t ctx, gcry_mpi_t p, gcry_mpi_t a)
   ctx->a_is_pminus3 = !mpi_cmp (ctx->a, tmp);
   mpi_free (tmp);
 
-
-  /* Allocate constants.  */
-  ctx->one   = mpi_alloc_set_ui (1);
-  ctx->two   = mpi_alloc_set_ui (2);
-  ctx->three = mpi_alloc_set_ui (3);
-  ctx->four  = mpi_alloc_set_ui (4);
-  ctx->eight = mpi_alloc_set_ui (8);
   ctx->two_inv_p = mpi_alloc (0);
-  ec_invm (ctx->two_inv_p, ctx->two, ctx);
+  ec_invm (ctx->two_inv_p, mpi_const (MPI_C_TWO), ctx);
 
   /* Allocate scratch variables.  */
   for (i=0; i< DIM(ctx->scratch); i++)
@@ -416,12 +403,6 @@ ec_deinit (void *opaque)
 
   mpi_free (ctx->p);
   mpi_free (ctx->a);
-
-  mpi_free (ctx->one);
-  mpi_free (ctx->two);
-  mpi_free (ctx->three);
-  mpi_free (ctx->four);
-  mpi_free (ctx->eight);
 
   mpi_free (ctx->two_inv_p);
 
@@ -563,9 +544,9 @@ _gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
           /* L1 = 3(X - Z^2)(X + Z^2) */
           /*                          T1: used for Z^2. */
           /*                          T2: used for the right term.  */
-          ec_powm (t1, point->z, ctx->two, ctx);
+          ec_powm (t1, point->z, mpi_const (MPI_C_TWO), ctx);
           ec_subm (l1, point->x, t1, ctx);
-          ec_mulm (l1, l1, ctx->three, ctx);
+          ec_mulm (l1, l1, mpi_const (MPI_C_THREE), ctx);
           ec_addm (t2, point->x, t1, ctx);
           ec_mulm (l1, l1, t2, ctx);
         }
@@ -573,32 +554,32 @@ _gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
         {
           /* L1 = 3X^2 + aZ^4 */
           /*                          T1: used for aZ^4. */
-          ec_powm (l1, point->x, ctx->two, ctx);
-          ec_mulm (l1, l1, ctx->three, ctx);
-          ec_powm (t1, point->z, ctx->four, ctx);
+          ec_powm (l1, point->x, mpi_const (MPI_C_TWO), ctx);
+          ec_mulm (l1, l1, mpi_const (MPI_C_THREE), ctx);
+          ec_powm (t1, point->z, mpi_const (MPI_C_FOUR), ctx);
           ec_mulm (t1, t1, ctx->a, ctx);
           ec_addm (l1, l1, t1, ctx);
         }
       /* Z3 = 2YZ */
       ec_mulm (z3, point->y, point->z, ctx);
-      ec_mulm (z3, z3, ctx->two, ctx);
+      ec_mulm (z3, z3, mpi_const (MPI_C_TWO), ctx);
 
       /* L2 = 4XY^2 */
       /*                              T2: used for Y2; required later. */
-      ec_powm (t2, point->y, ctx->two, ctx);
+      ec_powm (t2, point->y, mpi_const (MPI_C_TWO), ctx);
       ec_mulm (l2, t2, point->x, ctx);
-      ec_mulm (l2, l2, ctx->four, ctx);
+      ec_mulm (l2, l2, mpi_const (MPI_C_FOUR), ctx);
 
       /* X3 = L1^2 - 2L2 */
       /*                              T1: used for L2^2. */
-      ec_powm (x3, l1, ctx->two, ctx);
-      ec_mulm (t1, l2, ctx->two, ctx);
+      ec_powm (x3, l1, mpi_const (MPI_C_TWO), ctx);
+      ec_mulm (t1, l2, mpi_const (MPI_C_TWO), ctx);
       ec_subm (x3, x3, t1, ctx);
 
       /* L3 = 8Y^4 */
       /*                              T2: taken from above. */
-      ec_powm (t2, t2, ctx->two, ctx);
-      ec_mulm (l3, t2, ctx->eight, ctx);
+      ec_powm (t2, t2, mpi_const (MPI_C_TWO), ctx);
+      ec_mulm (l3, t2, mpi_const (MPI_C_EIGHT), ctx);
 
       /* Y3 = L1(L2 - X3) - L3 */
       ec_subm (y3, l2, x3, ctx);
@@ -676,23 +657,23 @@ _gcry_mpi_ec_add_points (mpi_point_t result,
         mpi_set (l1, x1);
       else
         {
-          ec_powm (l1, z2, ctx->two, ctx);
+          ec_powm (l1, z2, mpi_const (MPI_C_TWO), ctx);
           ec_mulm (l1, l1, x1, ctx);
         }
       if (z1_is_one)
         mpi_set (l2, x1);
       else
         {
-          ec_powm (l2, z1, ctx->two, ctx);
+          ec_powm (l2, z1, mpi_const (MPI_C_TWO), ctx);
           ec_mulm (l2, l2, x2, ctx);
         }
       /* l3 = l1 - l2 */
       ec_subm (l3, l1, l2, ctx);
       /* l4 = y1 z2^3  */
-      ec_powm (l4, z2, ctx->three, ctx);
+      ec_powm (l4, z2, mpi_const (MPI_C_THREE), ctx);
       ec_mulm (l4, l4, y1, ctx);
       /* l5 = y2 z1^3  */
-      ec_powm (l5, z1, ctx->three, ctx);
+      ec_powm (l5, z1, mpi_const (MPI_C_THREE), ctx);
       ec_mulm (l5, l5, y2, ctx);
       /* l6 = l4 - l5  */
       ec_subm (l6, l4, l5, ctx);
@@ -722,16 +703,16 @@ _gcry_mpi_ec_add_points (mpi_point_t result,
           ec_mulm (z3, z1, z2, ctx);
           ec_mulm (z3, z3, l3, ctx);
           /* x3 = l6^2 - l7 l3^2  */
-          ec_powm (t1, l6, ctx->two, ctx);
-          ec_powm (t2, l3, ctx->two, ctx);
+          ec_powm (t1, l6, mpi_const (MPI_C_TWO), ctx);
+          ec_powm (t2, l3, mpi_const (MPI_C_TWO), ctx);
           ec_mulm (t2, t2, l7, ctx);
           ec_subm (x3, t1, t2, ctx);
           /* l9 = l7 l3^2 - 2 x3  */
-          ec_mulm (t1, x3, ctx->two, ctx);
+          ec_mulm (t1, x3, mpi_const (MPI_C_TWO), ctx);
           ec_subm (l9, t2, t1, ctx);
           /* y3 = (l9 l6 - l8 l3^3)/2  */
           ec_mulm (l9, l9, l6, ctx);
-          ec_powm (t1, l3, ctx->three, ctx); /* fixme: Use saved value*/
+          ec_powm (t1, l3, mpi_const (MPI_C_THREE), ctx); /* fixme: Use saved value*/
           ec_mulm (t1, t1, l8, ctx);
           ec_subm (y3, l9, t1, ctx);
           ec_mulm (y3, y3, ctx->two_inv_p, ctx);
@@ -824,9 +805,9 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       mpi_free (z2);
       mpi_free (z3);
     }
-  z1 = mpi_copy (ctx->one);
+  z1 = mpi_copy (mpi_const (MPI_C_ONE));
 
-  mpi_mul (h, k, ctx->three); /* h = 3k */
+  mpi_mul (h, k, mpi_const (MPI_C_THREE)); /* h = 3k */
   loops = mpi_get_nbits (h);
 
   mpi_set (result->x, point->x);
