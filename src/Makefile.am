@@ -60,6 +60,7 @@ libgcrypt_la_SOURCES = g10lib.h visibility.c visibility.h types.h \
 	stdmem.c stdmem.h secmem.c secmem.h \
 	mpi.h missing-string.c module.c fips.c \
 	hmac256.c hmac256.h context.c context.h \
+	ec-context.h \
 	ath.h ath.c
 
 EXTRA_libgcrypt_la_SOURCES = hwf-x86.c

@@ -86,7 +86,7 @@ _gcry_ctx_alloc (int type, size_t length, void (*deinit)(void*))
 void *
 _gcry_ctx_get_pointer (gcry_ctx_t ctx, int type)
 {
-  if (memcmp (ctx->magic, CTX_MAGIC, CTX_MAGIC_LEN))
+  if (!ctx || memcmp (ctx->magic, CTX_MAGIC, CTX_MAGIC_LEN))
     log_fatal ("bad pointer %p passed to _gcry_ctx_get_pointer\n", ctx);
   if (ctx->type != type)
     log_fatal ("wrong context type %d request for context %p of type %d\n",

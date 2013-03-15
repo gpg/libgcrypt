@@ -46,7 +46,12 @@ Noteworthy changes in version 1.6.0 (unreleased)
  gcry_mpi_point_snatch_set       NEW.
  gcry_ctx_t                      NEW.
  gcry_ctx_release                NEW.
- gcry_mpi_ec_p_new               NEW.
+ gcry_mpi_ec_new                 NEW.
+ gcry_mpi_ec_get_mpi             NEW.
+ gcry_mpi_ec_get_point           NEW.
+ gcry_mpi_ec_set_mpi             NEW.
+ gcry_mpi_ec_set_point           NEW.
+ gcry_mpi_ec_get_affine          NEW.
  gcry_mpi_ec_dup                 NEW.
  gcry_mpi_ec_add                 NEW.
  gcry_mpi_ec_mul                 NEW.

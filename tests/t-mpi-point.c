@@ -41,6 +41,84 @@ static int error_count;
 #define xfree(a)      gcry_free ((a))
 #define pass() do { ; } while (0)
 
+
+static struct
+{
+  const char *desc;           /* Description of the curve.  */
+  const char *p;              /* Order of the prime field.  */
+  const char *a, *b;          /* The coefficients. */
+  const char *n;              /* The order of the base point.  */
+  const char *g_x, *g_y;      /* Base point.  */
+} test_curve[] =
+  {
+    {
+      "NIST P-192",
+      "0xfffffffffffffffffffffffffffffffeffffffffffffffff",
+      "0xfffffffffffffffffffffffffffffffefffffffffffffffc",
+      "0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1",
+      "0xffffffffffffffffffffffff99def836146bc9b1b4d22831",
+
+      "0x188da80eb03090f67cbf20eb43a18800f4ff0afd82ff1012",
+      "0x07192b95ffc8da78631011ed6b24cdd573f977a11e794811"
+    },
+    {
+      "NIST P-224",
+      "0xffffffffffffffffffffffffffffffff000000000000000000000001",
+      "0xfffffffffffffffffffffffffffffffefffffffffffffffffffffffe",
+      "0xb4050a850c04b3abf54132565044b0b7d7bfd8ba270b39432355ffb4",
+      "0xffffffffffffffffffffffffffff16a2e0b8f03e13dd29455c5c2a3d" ,
+
+      "0xb70e0cbd6bb4bf7f321390b94a03c1d356c21122343280d6115c1d21",
+      "0xbd376388b5f723fb4c22dfe6cd4375a05a07476444d5819985007e34"
+    },
+    {
+      "NIST P-256",
+      "0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
+      "0xffffffff00000001000000000000000000000000fffffffffffffffffffffffc",
+      "0x5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b",
+      "0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
+
+      "0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296",
+      "0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5"
+    },
+    {
+      "NIST P-384",
+      "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
+      "ffffffff0000000000000000ffffffff",
+      "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
+      "ffffffff0000000000000000fffffffc",
+      "0xb3312fa7e23ee7e4988e056be3f82d19181d9c6efe8141120314088f5013875a"
+      "c656398d8a2ed19d2a85c8edd3ec2aef",
+      "0xffffffffffffffffffffffffffffffffffffffffffffffffc7634d81f4372ddf"
+      "581a0db248b0a77aecec196accc52973",
+
+      "0xaa87ca22be8b05378eb1c71ef320ad746e1d3b628ba79b9859f741e082542a38"
+      "5502f25dbf55296c3a545e3872760ab7",
+      "0x3617de4a96262c6f5d9e98bf9292dc29f8f41dbd289a147ce9da3113b5f0b8c0"
+      "0a60b1ce1d7e819d7a431d7c90ea0e5f"
+    },
+    {
+      "NIST P-521",
+      "0x01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "0x01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
+      "0x051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef10"
+      "9e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00",
+      "0x1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "ffa51868783bf2f966b7fcc0148f709a5d03bb5c9b8899c47aebb6fb71e91386409",
+
+      "0xc6858e06b70404e9cd9e3ecb662395b4429c648139053fb521f828af606b4d3d"
+      "baa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66",
+      "0x11839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e6"
+      "62c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650"
+    },
+    { NULL, NULL, NULL, NULL, NULL }
+  };
+
+
+
+
 static void
 show (const char *format, ...)
 {
@@ -131,6 +209,30 @@ cmp_mpihex (gcry_mpi_t a, const char *b)
 }
 
 
+/* Wrapper to emulate the libgcrypt internal EC context allocation
+   function.  */
+static gpg_error_t
+ec_p_new (gcry_ctx_t *r_ctx, gcry_mpi_t p, gcry_mpi_t a)
+{
+  gpg_error_t err;
+  gcry_sexp_t sexp;
+
+  if (p && a)
+    err = gcry_sexp_build (&sexp, NULL, "(ecdsa (p %m)(a %m))", p, a);
+  else if (p)
+    err = gcry_sexp_build (&sexp, NULL, "(ecdsa (p %m))", p);
+  else if (a)
+    err = gcry_sexp_build (&sexp, NULL, "(ecdsa (a %m))", a);
+  else
+    err = gcry_sexp_build (&sexp, NULL, "(ecdsa)");
+  if (err)
+    return err;
+  err = gcry_mpi_ec_new (r_ctx, sexp, NULL);
+  gcry_sexp_release (sexp);
+  return err;
+}
+
+
 
 static void
 set_get_point (void)
@@ -189,6 +291,7 @@ set_get_point (void)
 static void
 context_alloc (void)
 {
+  gpg_error_t err;
   gcry_ctx_t ctx;
   gcry_mpi_t p, a;
 
@@ -197,38 +300,151 @@ context_alloc (void)
 
   p = gcry_mpi_set_ui (NULL, 1);
   a = gcry_mpi_set_ui (NULL, 1);
-  ctx = gcry_mpi_ec_p_new (p, a);
-  if (!ctx)
-    die ("gcry_mpi_ec_p_new returned an error: %s\n",
-         gpg_strerror (gpg_error_from_syserror ()));
+  err = ec_p_new (&ctx, p, a);
+  if (err)
+    die ("ec_p_new returned an error: %s\n", gpg_strerror (err));
   gcry_mpi_release (p);
   gcry_mpi_release (a);
   gcry_ctx_release (ctx);
 
   p = gcry_mpi_set_ui (NULL, 0);
   a = gcry_mpi_set_ui (NULL, 0);
-  ctx = gcry_mpi_ec_p_new (p, a);
-  if (ctx || gpg_err_code_from_syserror () != GPG_ERR_EINVAL)
-    fail ("gcry_mpi_ec_p_new: bad parameter detection failed (1)\n");
+  err = ec_p_new (&ctx, p, a);
+  if (!err || gpg_err_code (err) != GPG_ERR_EINVAL)
+    fail ("ec_p_new: bad parameter detection failed (1)\n");
 
   gcry_mpi_set_ui (p, 1);
-  ctx = gcry_mpi_ec_p_new (p, a);
-  if (ctx || gpg_err_code_from_syserror () != GPG_ERR_EINVAL)
-    fail ("gcry_mpi_ec_p_new: bad parameter detection failed (2)\n");
+  err = ec_p_new (&ctx, p, a);
+  if (!err || gpg_err_code (err) != GPG_ERR_EINVAL)
+    fail ("ec_p_new: bad parameter detection failed (2)\n");
 
   gcry_mpi_release (p);
   p = NULL;
-  ctx = gcry_mpi_ec_p_new (p, a);
-  if (ctx || gpg_err_code_from_syserror () != GPG_ERR_EINVAL)
-    fail ("gcry_mpi_ec_p_new: bad parameter detection failed (3)\n");
+  err = ec_p_new (&ctx, p, a);
+  if (!err || gpg_err_code (err) != GPG_ERR_EINVAL)
+    fail ("ec_p_new: bad parameter detection failed (3)\n");
 
   gcry_mpi_release (a);
   a = NULL;
-  ctx = gcry_mpi_ec_p_new (p, a);
-  if (ctx || gpg_err_code_from_syserror () != GPG_ERR_EINVAL)
-    fail ("gcry_mpi_ec_p_new: bad parameter detection failed (4)\n");
+  err = ec_p_new (&ctx, p, a);
+  if (!err || gpg_err_code (err) != GPG_ERR_EINVAL)
+    fail ("ec_p_new: bad parameter detection failed (4)\n");
 
 }
+
+
+static int
+get_and_cmp_mpi (const char *name, const char *mpistring, const char *desc,
+                 gcry_ctx_t ctx)
+{
+  gcry_mpi_t mpi;
+
+  mpi = gcry_mpi_ec_get_mpi (name, ctx, 1);
+  if (!mpi)
+    {
+      fail ("error getting parameter '%s' of curve '%s'\n", name, desc);
+      return 1;
+    }
+  if (cmp_mpihex (mpi, mpistring))
+    {
+      fail ("parameter '%s' of curve '%s' does not match\n", name, desc);
+      gcry_mpi_release (mpi);
+      return 1;
+    }
+  gcry_mpi_release (mpi);
+  return 0;
+}
+
+
+static int
+get_and_cmp_point (const char *name,
+                   const char *mpi_x_string, const char *mpi_y_string,
+                   const char *desc, gcry_ctx_t ctx)
+{
+  gcry_mpi_point_t point;
+  gcry_mpi_t x, y, z;
+  int result = 0;
+
+  point = gcry_mpi_ec_get_point (name, ctx, 1);
+  if (!point)
+    {
+      fail ("error getting point parameter '%s' of curve '%s'\n", name, desc);
+      return 1;
+    }
+
+  x = gcry_mpi_new (0);
+  y = gcry_mpi_new (0);
+  z = gcry_mpi_new (0);
+  gcry_mpi_point_snatch_get (x, y, z, point);
+  if (cmp_mpihex (x, mpi_x_string))
+    {
+      fail ("x coordinate of '%s' of curve '%s' does not match\n", name, desc);
+      result = 1;
+    }
+  if (cmp_mpihex (y, mpi_y_string))
+    {
+      fail ("y coordinate of '%s' of curve '%s' does not match\n", name, desc);
+      result = 1;
+    }
+  if (cmp_mpihex (z, "01"))
+    {
+      fail ("z coordinate of '%s' of curve '%s' is not 1\n", name, desc);
+      result = 1;
+    }
+  gcry_mpi_release (x);
+  gcry_mpi_release (y);
+  gcry_mpi_release (z);
+  return result;
+}
+
+
+static void
+context_param (void)
+{
+  gpg_error_t err;
+  int idx;
+  gcry_ctx_t ctx = NULL;
+
+  wherestr = "context_param";
+
+  for (idx=0; test_curve[idx].desc; idx++)
+    {
+      show ("checking curve '%s'\n", test_curve[idx].desc);
+      gcry_ctx_release (ctx);
+      err = gcry_mpi_ec_new (&ctx, NULL, test_curve[idx].desc);
+      if (err)
+        {
+          fail ("can't create context for curve '%s': %s\n",
+                test_curve[idx].desc, gpg_strerror (err));
+          continue;
+        }
+      if (get_and_cmp_mpi ("p", test_curve[idx].p, test_curve[idx].desc, ctx))
+        continue;
+      if (get_and_cmp_mpi ("a", test_curve[idx].a, test_curve[idx].desc, ctx))
+        continue;
+      if (get_and_cmp_mpi ("b", test_curve[idx].b, test_curve[idx].desc, ctx))
+        continue;
+      if (get_and_cmp_mpi ("g.x",test_curve[idx].g_x, test_curve[idx].desc,ctx))
+        continue;
+      if (get_and_cmp_mpi ("g.y",test_curve[idx].g_y, test_curve[idx].desc,ctx))
+        continue;
+      if (get_and_cmp_mpi ("n", test_curve[idx].n, test_curve[idx].desc, ctx))
+        continue;
+      if (get_and_cmp_point ("g", test_curve[idx].g_x, test_curve[idx].g_y,
+                             test_curve[idx].desc, ctx))
+        continue;
+
+    }
+  gcry_ctx_release (ctx);
+
+  /* FIXME: Add tests for Q and d.  */
+
+  /* FIXME: Add test sor the set functions.  */
+
+
+}
+
+
 
 
 /* Create a new point from (X,Y,Z) given as hex strings.  */
@@ -244,9 +460,13 @@ make_point (const char *x, const char *y, const char *z)
 }
 
 
+/* This tests checks that the low-level EC API yields the same result
+   as using the high level API.  The values have been taken from a
+   test run using the high level API.  */
 static void
 basic_ec_math (void)
 {
+  gpg_error_t err;
   gcry_ctx_t ctx;
   gcry_mpi_t P, A;
   gcry_mpi_point_t G, Q;
@@ -264,7 +484,9 @@ basic_ec_math (void)
   d = hex2mpi ("D4EF27E32F8AD8E2A1C6DDEBB1D235A69E3CEF9BCE90273D");
   Q = gcry_mpi_point_new (0);
 
-  ctx = gcry_mpi_ec_p_new (P, A);
+  err = ec_p_new (&ctx, P, A);
+  if (err)
+    die ("ec_p_new failed: %s\n", gpg_strerror (err));
   gcry_mpi_ec_mul (Q, d, G, ctx);
 
   x = gcry_mpi_new (0);
@@ -304,6 +526,66 @@ basic_ec_math (void)
 }
 
 
+/* This is the same as basic_ec_math but uses more advanced
+   features.  */
+static void
+basic_ec_math_simplified (void)
+{
+  gpg_error_t err;
+  gcry_ctx_t ctx;
+  gcry_mpi_point_t G, Q;
+  gcry_mpi_t d;
+  gcry_mpi_t x, y, z;
+
+  wherestr = "set_get_point";
+  show ("checking basic math functions for EC (variant)\n");
+
+  d = hex2mpi ("D4EF27E32F8AD8E2A1C6DDEBB1D235A69E3CEF9BCE90273D");
+  Q = gcry_mpi_point_new (0);
+
+  err = gcry_mpi_ec_new (&ctx, NULL, "NIST P-192");
+  if (err)
+    die ("gcry_mpi_ec_new failed: %s\n", gpg_strerror (err));
+  G = gcry_mpi_ec_get_point ("g", ctx, 1);
+  if (!G)
+    die ("gcry_mpi_ec_get_point(G) failed\n");
+  gcry_mpi_ec_mul (Q, d, G, ctx);
+
+  x = gcry_mpi_new (0);
+  y = gcry_mpi_new (0);
+  z = gcry_mpi_new (0);
+  gcry_mpi_point_get (x, y, z, Q);
+  if (cmp_mpihex (x, "222D9EC717C89D047E0898C9185B033CD11C0A981EE6DC66")
+      || cmp_mpihex (y, "605DE0A82D70D3E0F84A127D0739ED33D657DF0D054BFDE8")
+      || cmp_mpihex (z, "00B06B519071BC536999AC8F2D3934B3C1FC9EACCD0A31F88F"))
+    fail ("computed public key does not match\n");
+  if (debug)
+    {
+      print_mpi ("Q.x", x);
+      print_mpi ("Q.y", y);
+      print_mpi ("Q.z", z);
+    }
+
+  if (gcry_mpi_ec_get_affine (x, y, Q, ctx))
+    fail ("failed to get affine coordinates\n");
+  if (cmp_mpihex (x, "008532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE")
+      || cmp_mpihex (y, "00C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966"))
+    fail ("computed affine coordinates of public key do not match\n");
+  if (debug)
+    {
+      print_mpi ("q.x", x);
+      print_mpi ("q.y", y);
+    }
+
+  gcry_mpi_release (z);
+  gcry_mpi_release (y);
+  gcry_mpi_release (x);
+  gcry_mpi_point_release (Q);
+  gcry_mpi_release (d);
+  gcry_mpi_point_release (G);
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -324,7 +606,9 @@ main (int argc, char **argv)
 
   set_get_point ();
   context_alloc ();
+  context_param ();
   basic_ec_math ();
+  basic_ec_math_simplified ();
 
   show ("All tests completed. Errors: %d\n", error_count);
   return error_count ? 1 : 0;

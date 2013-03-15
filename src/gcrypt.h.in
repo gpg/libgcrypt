@@ -606,9 +606,24 @@ gcry_mpi_point_t gcry_mpi_point_snatch_set (gcry_mpi_point_t point,
                                             gcry_mpi_t z);
 
 /* Allocate a new context for elliptic curve operations based on the
-   field GF(p).  P is the prime specifying this field, A is the first
-   coefficient.  Returns NULL on error.  */
-gcry_ctx_t gcry_mpi_ec_p_new (gcry_mpi_t p, gcry_mpi_t a);
+   parameters given by KEYPARAM or using CURVENAME.  */
+gpg_error_t gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
+                             gcry_sexp_t keyparam, const char *curvename);
+
+/* Get a named MPI from an elliptic curve context.  */
+gcry_mpi_t gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy);
+
+/* Get a named point from an elliptic curve context.  */
+gcry_mpi_point_t gcry_mpi_ec_get_point (const char *name,
+                                        gcry_ctx_t ctx, int copy);
+
+/* Store a named MPI into an elliptic curve context.  */
+gpg_error_t gcry_mpi_ec_set_mpi (const char *name, gcry_mpi_t newvalue,
+                                 gcry_ctx_t ctx);
+
+/* Store a named point into an elliptic curve context.  */
+gpg_error_t gcry_mpi_ec_set_point (const char *name, gcry_mpi_point_t newvalue,
+                                   gcry_ctx_t ctx);
 
 /* Store the affine coordinates of POINT into X and Y.  */
 int gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_point_t point,

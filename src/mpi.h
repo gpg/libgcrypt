@@ -289,6 +289,19 @@ void _gcry_mpi_ec_mul_point (mpi_point_t result,
                              gcry_mpi_t scalar, mpi_point_t point,
                              mpi_ec_t ctx);
 
+gpg_err_code_t _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
+                                   gcry_mpi_t p, gcry_mpi_t a);
+gpg_err_code_t _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
+                                 gcry_sexp_t keyparam, const char *curvename);
+gcry_mpi_t _gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy);
+gcry_mpi_point_t _gcry_mpi_ec_get_point (const char *name,
+                                         gcry_ctx_t ctx, int copy);
+gpg_err_code_t _gcry_mpi_ec_set_mpi (const char *name, gcry_mpi_t newvalue,
+                                     gcry_ctx_t ctx);
+gpg_err_code_t _gcry_mpi_ec_set_point (const char *name,
+                                       gcry_mpi_point_t newvalue,
+                                       gcry_ctx_t ctx);
+
 
 
 #endif /*G10_MPI_H*/

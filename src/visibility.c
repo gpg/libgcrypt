@@ -461,10 +461,36 @@ gcry_mpi_point_snatch_set (gcry_mpi_point_t point,
   return _gcry_mpi_point_snatch_set (point, x, y, z);
 }
 
-gcry_ctx_t
-gcry_mpi_ec_p_new (gcry_mpi_t p, gcry_mpi_t a)
+gpg_error_t
+gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
+                 gcry_sexp_t keyparam, const char *curvename)
 {
-  return _gcry_mpi_ec_p_new (p, a);
+  return gpg_error (_gcry_mpi_ec_new (r_ctx, keyparam, curvename));
+}
+
+gcry_mpi_t
+gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy)
+{
+  return _gcry_mpi_ec_get_mpi (name, ctx, copy);
+}
+
+gcry_mpi_point_t
+gcry_mpi_ec_get_point (const char *name, gcry_ctx_t ctx, int copy)
+{
+  return _gcry_mpi_ec_get_point (name, ctx, copy);
+}
+
+gpg_error_t
+gcry_mpi_ec_set_mpi (const char *name, gcry_mpi_t newvalue, gcry_ctx_t ctx)
+{
+  return gpg_error (_gcry_mpi_ec_set_mpi (name, newvalue, ctx));
+}
+
+gpg_error_t
+gcry_mpi_ec_set_point (const char *name, gcry_mpi_point_t newvalue,
+                        gcry_ctx_t ctx)
+{
+  return gpg_error (_gcry_mpi_ec_set_point (name, newvalue, ctx));
 }
 
 int

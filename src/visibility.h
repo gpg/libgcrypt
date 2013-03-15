@@ -154,7 +154,6 @@
 #define gcry_mpi_copy               _gcry_mpi_copy
 #define gcry_mpi_div                _gcry_mpi_div
 #define gcry_mpi_dump               _gcry_mpi_dump
-#define gcry_mpi_ec_p_new           _gcry_mpi_ec_p_new
 #define gcry_mpi_gcd                _gcry_mpi_gcd
 #define gcry_mpi_get_flag           _gcry_mpi_get_flag
 #define gcry_mpi_get_nbits          _gcry_mpi_get_nbits
@@ -370,7 +369,6 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_mpi_copy
 #undef gcry_mpi_div
 #undef gcry_mpi_dump
-#undef gcry_mpi_ec_p_new
 #undef gcry_mpi_gcd
 #undef gcry_mpi_get_flag
 #undef gcry_mpi_get_nbits
@@ -550,7 +548,11 @@ MARK_VISIBLEX(gcry_mpi_ec_add)
 MARK_VISIBLEX(gcry_mpi_ec_dup)
 MARK_VISIBLEX(gcry_mpi_ec_get_affine)
 MARK_VISIBLEX(gcry_mpi_ec_mul)
-MARK_VISIBLE (gcry_mpi_ec_p_new)
+MARK_VISIBLEX(gcry_mpi_ec_new)
+MARK_VISIBLEX(gcry_mpi_ec_get_mpi)
+MARK_VISIBLEX(gcry_mpi_ec_get_point)
+MARK_VISIBLEX(gcry_mpi_ec_set_mpi)
+MARK_VISIBLEX(gcry_mpi_ec_set_point)
 MARK_VISIBLE (gcry_mpi_gcd)
 MARK_VISIBLE (gcry_mpi_get_flag)
 MARK_VISIBLE (gcry_mpi_get_nbits)

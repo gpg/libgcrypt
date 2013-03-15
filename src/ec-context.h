@@ -1,0 +1,57 @@
+/* ec-context.h - Private definitions for CONTEXT_TYPE_EC.
+ * Copyright (C) 2013  g10 Code GmbH
+ *
+ * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser general Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifndef GCRY_EC_CONTEXT_H
+#define GCRY_EC_CONTEXT_H
+
+/* This context is used with all our EC functions. */
+struct mpi_ec_ctx_s
+{
+  /* Domain parameters.  Note that they may not all be set and if set
+     the MPIs may be flaged as constant.*/
+  gcry_mpi_t p;         /* Prime specifying the field GF(p).  */
+  gcry_mpi_t a;         /* First coefficient of the Weierstrass equation.  */
+  gcry_mpi_t b;         /* Second coefficient of the Weierstrass equation.  */
+  gcry_mpi_point_t G;   /* Base point (generator).  */
+  gcry_mpi_t n;         /* Order of G.  */
+
+  /* The actual key.  May not be set.  */
+  gcry_mpi_point_t Q;   /* Public key.   */
+  gcry_mpi_t d;         /* Private key.  */
+
+
+  /* This structure is private to mpi/ec.c! */
+  struct {
+    int a_is_pminus3;  /* True if A = P - 3. */
+
+    gcry_mpi_t two_inv_p;
+
+    /* Scratch variables.  */
+    gcry_mpi_t scratch[11];
+
+    /* Helper for fast reduction.  */
+    /*   int nist_nbits; /\* If this is a NIST curve, the # of bits.  *\/ */
+    /*   gcry_mpi_t s[10]; */
+    /*   gcry_mpi_t c; */
+  } t;
+};
+
+
+
+#endif /*GCRY_EC_CONTEXT_H*/

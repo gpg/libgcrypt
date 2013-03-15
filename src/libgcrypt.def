@@ -223,8 +223,12 @@ EXPORTS
 
       gcry_ctx_release          @202
 
-      gcry_mpi_ec_p_new         @203
-      gcry_mpi_ec_get_affine    @204
-      gcry_mpi_ec_dup           @205
-      gcry_mpi_ec_add           @206
-      gcry_mpi_ec_mul           @207
+      gcry_mpi_ec_new           @203
+      gcry_mpi_ec_get_mpi       @204
+      gcry_mpi_ec_get_point     @205
+      gcry_mpi_ec_set_mpi       @206
+      gcry_mpi_ec_set_point     @207
+      gcry_mpi_ec_get_affine    @208
+      gcry_mpi_ec_dup           @209
+      gcry_mpi_ec_add           @210
+      gcry_mpi_ec_mul           @211

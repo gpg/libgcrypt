@@ -2058,6 +2058,7 @@ and no @var{x-mpi}.
 @node ECC key parameters
 @subsection ECC key parameters
 
+@anchor{ecc_keyparam}
 @noindent
 An ECC private key is described by this S-expression:
 
@@ -2084,7 +2085,7 @@ Base point @math{g}.
 @item n-mpi
 Order of @math{g}
 @item q-point
-The point representing the public key @math{Q = dP}.
+The point representing the public key @math{Q = dG}.
 @item d-mpi
 The private key @math{d}
 @end table
@@ -3919,16 +3920,71 @@ some extra memory allocations and copies.  Returns @var{point} or the
 newly allocated point object.
 @end deftypefun
 
-@anchor{gcry_mpi_ec_p_new}
-@deftypefun gcry_ctx_t gcry_mpi_ec_p_new (@w{gcry_mpi_t @var{p}}, @
- @w{gcry_mpi_t @var{a}}
+@anchor{gcry_mpi_ec_new}
+@deftypefun gpg_error_t gcry_mpi_ec_p_new (@w{gpg_ctx_t *@var{r_ctx}}, @
+ @w{gcry_sexp_t @var{keyparam}}, @w{const char *@var{curvename}})
 
-Allocate a new context for elliptic curve operations based on the
-field GF(p).  @var{p} is the prime specifying this field, @var{a} is
-the first coefficient of the Weierstrass equation.  The function
-returns a context object which eventually needs to be released using
-@ref{gcry_ctx_release}.  On error this function returns @code{NULL}
-and sets @code{errno}.
+Allocate a new context for elliptic curve operations.  If
+@var{keyparam} is given it specifies the parameters of the curve
+(@pxref{ecc_keyparam}).  If @var{curvename} is given in addition to
+@var{keyparam} and the key parameters do not include a named curve
+reference, the string @var{curvename} is used to fill in missing
+parameters.  If only @var{curvename} is given, the context is
+initialized for this named curve.
+
+If a parameter specifying a point (e.g. @code{g} or @code{q}) is not
+found, the parser looks for a non-encoded point by appending
+@code{.x}, @code{.y}, and @code{.z} to the parameter name and looking
+them all up to create a point.  A parameter with the suffix @code{.z}
+is optional and defaults to 1.
+
+On success the function returns 0 and stores the new context object at
+@var{r_ctx}; this object eventually needs to be released
+(@pxref{gcry_ctx_release}).  On error the function stores @code{NULL} at
+@var{r_ctx} and returns an error code.
+@end deftypefun
+
+@deftypefun gcry_mpi_t gcry_mpi_ec_get_mpi ( @
+ @w{const char *@var{name}}, @w{gcry_ctx_t @var{ctx}}, @w{int @var{copy}})
+
+Return the MPI with @var{name} from the context @var{ctx}.  If not
+found @code{NULL} is returned.  If the returned MPI may later be
+modified, it is suggested to pass @code{1} to @var{copy}, so that the
+function guarantees that a modifiable copy of the MPI is returned.  If
+@code{0} is used for @var{copy}, this function may return a constant
+flagged MPI.  In any case @code{gcry_mpi_release} needs to be called
+to release the result.  For valid names @ref{ecc_keyparam}.
+@end deftypefun
+
+@deftypefun gcry_mpi_point_t gcry_mpi_ec_get_point ( @
+ @w{const char *@var{name}}, @w{gcry_ctx_t @var{ctx}}, @w{int @var{copy}})
+
+Return the point with @var{name} from the context @var{ctx}.  If not
+found @code{NULL} is returned.  If the returned MPI may later be
+modified, it is suggested to pass @code{1} to @var{copy}, so that the
+function guarantees that a modifiable copy of the MPI is returned.  If
+@code{0} is used for @var{copy}, this function may return a constant
+flagged point.  In any case @code{gcry_mpi_point_release} needs to be
+called to release the result.
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_mpi_ec_set_mpi ( @
+ @w{const char *@var{name}}, @w{gcry_mpi_t @var{newvalue}}, @
+ @w{gcry_ctx_t @var{ctx}})
+
+Store the MPI @var{newvalue} at @var{name} into the context @var{ctx}.
+On success @code{0} is returned; on error an error code.  Valid names
+are the MPI parameters of an elliptic curve (@pxref{ecc_keyparam}).
+@end deftypefun
+
+@deftypefun gpg_error_t gcry_mpi_ec_set_point ( @
+ @w{const char *@var{name}}, @w{gcry_mpi_point_t @var{newvalue}}, @
+ @w{gcry_ctx_t @var{ctx}})
+
+Store the point @var{newvalue} at @var{name} into the context
+@var{ctx}.  On success @code{0} is returned; on error an error code.
+Valid names are the point parameters of an elliptic curve
+(@pxref{ecc_keyparam}).
 @end deftypefun
 
 @deftypefun int gcry_mpi_ec_get_affine ( @
@@ -3938,9 +3994,9 @@ and sets @code{errno}.
 Compute the affine coordinates from the projective coordinates in
 @var{point} and store them into @var{x} and @var{y}.  If one
 coordinate is not required, @code{NULL} may be passed to @var{x} or
-@var{y}.  @var{ctx} is the context object which for example may have
-been created using @ref{gcry_mpi_ec_p_new}. Returns 0 on success or
-not 0 if @var{point} is at infinity.
+@var{y}.  @var{ctx} is the context object which has been created using
+@code{gcry_mpi_ec_new}. Returns 0 on success or not 0 if @var{point}
+is at infinity.
 @end deftypefun
 
 @deftypefun void gcry_mpi_ec_dup ( @

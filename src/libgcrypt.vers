@@ -90,7 +90,9 @@ GCRYPT_1.6 {
     gcry_mpi_point_new; gcry_mpi_point_release;
     gcry_mpi_point_get; gcry_mpi_point_snatch_get;
     gcry_mpi_point_set; gcry_mpi_point_snatch_set;
-    gcry_mpi_ec_p_new;
+    gcry_mpi_ec_new;
+    gcry_mpi_ec_get_mpi; gcry_mpi_ec_get_point;
+    gcry_mpi_ec_set_mpi; gcry_mpi_ec_set_point;
     gcry_mpi_ec_get_affine;
     gcry_mpi_ec_dup; gcry_mpi_ec_add; gcry_mpi_ec_mul;
 

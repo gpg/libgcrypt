@@ -46,6 +46,12 @@
 
   - In mpi/ec.c we use mpi_powm for x^2 mod p: Either implement a
     special case in mpi_powm or check whether mpi_mulm is faster.
+
+  - Split this up into several files.  For example the curve
+    management and gcry_mpi_ec_new are independent of the actual ECDSA
+    implementation.  This will also help to support optimized versions
+    of some curves.
+
 */
 
 
@@ -53,10 +59,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
+#include "context.h"
+#include "ec-context.h"
 
 /* Definition of a curve.  */
 typedef struct
@@ -440,8 +449,8 @@ gen_k (gcry_mpi_t p, int security_level)
 
 /* Generate the crypto system setup.  This function takes the NAME of
    a curve or the desired number of bits and stores at R_CURVE the
-   parameters of the named curve or those of a suitable curve.  The
-   chosen number of bits is stored on R_NBITS.  */
+   parameters of the named curve or those of a suitable curve.  If
+   R_NBITS is not NULL, the chosen number of bits is stored there.  */
 static gpg_err_code_t
 fill_in_curve (unsigned int nbits, const char *name,
                elliptic_curve_t *curve, unsigned int *r_nbits)
@@ -491,7 +500,8 @@ fill_in_curve (unsigned int nbits, const char *name,
   if (fips_mode () && !domain_parms[idx].fips )
     return GPG_ERR_NOT_SUPPORTED;
 
-  *r_nbits = domain_parms[idx].nbits;
+  if (r_nbits)
+    *r_nbits = domain_parms[idx].nbits;
   curve->p = scanval (domain_parms[idx].p);
   curve->a = scanval (domain_parms[idx].a);
   curve->b = scanval (domain_parms[idx].b);
@@ -1689,6 +1699,277 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
 }
 
 
+
+/*
+   Low-level API helper functions.
+ */
+
+/* Helper to extract an MPI from key parameters.  */
+static gpg_err_code_t
+mpi_from_keyparam (gcry_mpi_t *r_a, gcry_sexp_t keyparam, const char *name)
+{
+  gcry_err_code_t ec = 0;
+  gcry_sexp_t l1;
+
+  l1 = gcry_sexp_find_token (keyparam, name, 0);
+  if (l1)
+    {
+      *r_a = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      gcry_sexp_release (l1);
+      if (!*r_a)
+        ec = GPG_ERR_INV_OBJ;
+    }
+  return ec;
+}
+
+/* Helper to extract a point from key parameters.  If no parameter
+   with NAME is found, the functions tries to find a non-encoded point
+   by appending ".x", ".y" and ".z" to NAME.  ".z" is in this case
+   optional and defaults to 1.  */
+static gpg_err_code_t
+point_from_keyparam (gcry_mpi_point_t *r_a,
+                     gcry_sexp_t keyparam, const char *name)
+{
+  gcry_err_code_t ec;
+  gcry_mpi_t a = NULL;
+  gcry_mpi_point_t point;
+
+  ec = mpi_from_keyparam (&a, keyparam, name);
+  if (ec)
+    return ec;
+
+  if (a)
+    {
+      point = gcry_mpi_point_new (0);
+      ec = os2ec (point, a);
+      if (ec)
+        {
+          gcry_mpi_point_release (point);
+          mpi_free (a);
+          return ec;
+        }
+    }
+  else
+    {
+      char *tmpname;
+      gcry_mpi_t x = NULL;
+      gcry_mpi_t y = NULL;
+      gcry_mpi_t z = NULL;
+
+      tmpname = gcry_malloc (strlen (name) + 2 + 1);
+      if (!tmpname)
+        return gpg_err_code_from_syserror ();
+      strcpy (stpcpy (tmpname, name), ".x");
+      ec = mpi_from_keyparam (&x, keyparam, tmpname);
+      if (ec)
+        {
+          gcry_free (tmpname);
+          return ec;
+        }
+      strcpy (stpcpy (tmpname, name), ".y");
+      ec = mpi_from_keyparam (&y, keyparam, tmpname);
+      if (ec)
+        {
+          mpi_free (x);
+          gcry_free (tmpname);
+          return ec;
+        }
+      strcpy (stpcpy (tmpname, name), ".z");
+      ec = mpi_from_keyparam (&z, keyparam, tmpname);
+      if (ec)
+        {
+          mpi_free (y);
+          mpi_free (x);
+          gcry_free (tmpname);
+          return ec;
+        }
+      if (!z)
+        z = mpi_set_ui (NULL, 1);
+      if (x && y)
+        point = gcry_mpi_point_snatch_set (NULL, x, y, z);
+      else
+        {
+          mpi_free (x);
+          mpi_free (y);
+          mpi_free (z);
+          point = NULL;
+        }
+      gcry_free (tmpname);
+    }
+
+  if (point)
+    *r_a = point;
+  return 0;
+}
+
+
+/* This function creates a new context for elliptic curve operations.
+   Either KEYPARAM or CURVENAME must be given.  If both are given and
+   KEYPARAM has no curve parameter CURVENAME is used to add missing
+   parameters.  On success 0 is returned and the new context stored at
+   R_CTX.  On error NULL is stored at R_CTX and an error code is
+   returned.  The context needs to be released using
+   gcry_ctx_release.  */
+gpg_err_code_t
+_gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
+                  gcry_sexp_t keyparam, const char *curvename)
+{
+  gpg_err_code_t errc;
+  gcry_ctx_t ctx = NULL;
+  gcry_mpi_t p = NULL;
+  gcry_mpi_t a = NULL;
+  gcry_mpi_t b = NULL;
+  gcry_mpi_point_t G = NULL;
+  gcry_mpi_t n = NULL;
+  gcry_mpi_point_t Q = NULL;
+  gcry_mpi_t d = NULL;
+  gcry_sexp_t l1;
+
+  *r_ctx = NULL;
+
+  if (keyparam)
+    {
+      errc = mpi_from_keyparam (&p, keyparam, "p");
+      if (errc)
+        goto leave;
+      errc = mpi_from_keyparam (&a, keyparam, "a");
+      if (errc)
+        goto leave;
+      errc = mpi_from_keyparam (&b, keyparam, "b");
+      if (errc)
+        goto leave;
+      errc = point_from_keyparam (&G, keyparam, "G");
+      if (errc)
+        goto leave;
+      errc = mpi_from_keyparam (&n, keyparam, "n");
+      if (errc)
+        goto leave;
+      errc = point_from_keyparam (&Q, keyparam, "Q");
+      if (errc)
+        goto leave;
+      errc = mpi_from_keyparam (&d, keyparam, "d");
+      if (errc)
+        goto leave;
+    }
+
+
+  /* Check whether a curve parameter is available and use that to fill
+     in missing values.  If no curve parameter is available try an
+     optional provided curvename.  If only the curvename has been
+     given use that one. */
+  if (keyparam)
+    l1 = gcry_sexp_find_token (keyparam, "curve", 5);
+  else
+    l1 = NULL;
+  if (l1 || curvename)
+    {
+      char *name;
+      elliptic_curve_t *E;
+
+      if (l1)
+        {
+          name = _gcry_sexp_nth_string (l1, 1);
+          gcry_sexp_release (l1);
+          if (!name)
+            {
+              errc = GPG_ERR_INV_OBJ; /* Name missing or out of core. */
+              goto leave;
+            }
+        }
+      else
+        name = NULL;
+
+      E = gcry_calloc (1, sizeof *E);
+      if (!E)
+        {
+          errc = gpg_err_code_from_syserror ();
+          gcry_free (name);
+          goto leave;
+        }
+
+      errc = fill_in_curve (0, name? name : curvename, E, NULL);
+      gcry_free (name);
+      if (errc)
+        {
+          gcry_free (E);
+          goto leave;
+        }
+
+      if (!p)
+        {
+          p = E->p;
+          E->p = NULL;
+        }
+      if (!a)
+        {
+          a = E->a;
+          E->a = NULL;
+        }
+      if (!b)
+        {
+          b = E->b;
+          E->b = NULL;
+        }
+      if (!G)
+        {
+          G = gcry_mpi_point_snatch_set (NULL, E->G.x, E->G.y, E->G.z);
+          E->G.x = NULL;
+          E->G.y = NULL;
+          E->G.z = NULL;
+        }
+      if (!n)
+        {
+          n = E->n;
+          E->n = NULL;
+        }
+      curve_free (E);
+      gcry_free (E);
+    }
+
+  errc = _gcry_mpi_ec_p_new (&ctx, p, a);
+  if (!errc)
+    {
+      mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
+
+      if (b)
+        {
+          ec->b = b;
+          b = NULL;
+        }
+      if (G)
+        {
+          ec->G = G;
+          G = NULL;
+        }
+      if (n)
+        {
+          ec->n = n;
+          n = NULL;
+        }
+      if (Q)
+        {
+          ec->Q = Q;
+          Q = NULL;
+        }
+      if (d)
+        {
+          ec->d = d;
+          d = NULL;
+        }
+
+      *r_ctx = ctx;
+    }
+
+ leave:
+  mpi_free (p);
+  mpi_free (a);
+  mpi_free (b);
+  gcry_mpi_point_release (G);
+  mpi_free (n);
+  gcry_mpi_point_release (Q);
+  mpi_free (d);
+  return errc;
+}
 
 
 
