@@ -1,3 +1,10 @@
+2011-12-01  Werner Koch  <wk@g10code.com>
+
+        NB: ChangeLog files are no longer manually maintained.  Starting
+        on December 1st, 2011 we put change information only in the GIT
+        commit log, and generate a top-level ChangeLog file from logs at
+        "make dist".  See doc/HACKING for details.
+
 2011-09-08  Werner Koch  <wk@g10code.com>
 
 	* gcrypt.h.in [GCRYPT_NO_DEPRECATED]: Exclude gcry_ac structures.
@@ -2165,7 +2172,7 @@
 
 	* types.h: Moved from ../include to here.
 
- 	Major change:
+	Major change:
 	Removed all GnuPG stuff and renamed this piece of software
 	to gcrypt.
 
