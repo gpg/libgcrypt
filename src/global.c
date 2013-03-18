@@ -247,6 +247,9 @@ gcry_check_version( const char *req_version )
     int rq_major, rq_minor, rq_micro;
     const char *my_plvl;
 
+    if (req_version && req_version[0] == 1 && req_version[1] == 1)
+        return _gcry_compat_identification ();
+
     /* Initialize library.  */
     global_init ();
 
@@ -686,8 +689,6 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     default:
       _gcry_set_preferred_rng_type (0);
-      /* A call to make sure that the dummy code is linked in.  */
-      _gcry_compat_identification ();
       err = GPG_ERR_INV_OP;
     }
 
