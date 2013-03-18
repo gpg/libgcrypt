@@ -127,6 +127,9 @@ AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of this package])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version of this package])
+VERSION_NUMBER=m4_esyscmd(printf "0x%02x%02x%02x" mym4_version_major \
+                          mym4_version_minor mym4_version_micro)
+AC_SUBST(VERSION_NUMBER)
 
 
 ######################

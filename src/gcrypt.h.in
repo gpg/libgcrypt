@@ -63,6 +63,11 @@ extern "C" {
    matches the installed library.  */
 #define GCRYPT_VERSION "@VERSION@"
 
+/* The version number of this header.  It may be used to handle minor
+   API incompatibilities.  */
+#define GCRYPT_VERSION_NUMBER @VERSION_NUMBER@
+
+
 /* Internal: We can't use the convenience macros for the multi
    precision integer functions when building this library. */
 #ifdef _GCRYPT_IN_LIBGCRYPT
