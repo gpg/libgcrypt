@@ -55,8 +55,9 @@ AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 #   (No interfaces changed:                   REVISION++)
 # NOTE: This is a stable branch, thus you may only bump up REVISION
 # unless you coordinate with the development branch.
-LIBGCRYPT_LT_CURRENT=18
-LIBGCRYPT_LT_AGE=7
+#
+LIBGCRYPT_LT_CURRENT=19
+LIBGCRYPT_LT_AGE=8
 LIBGCRYPT_LT_REVISION=0
 
 
