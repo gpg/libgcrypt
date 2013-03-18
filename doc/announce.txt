@@ -2,76 +2,72 @@ To: gnupg-announce@gnupg.org, info-gnu@gnu.org
 Cc: gcrypt-devel@gnupg.org
 
 
-Hello! 
+Hello!
 
 The GNU project is pleased to announce the availability of Libgcrypt
-version 1.4.3.
+version 1.5.1.  This is a maintenance release for the stable branch.
 
 Libgcrypt is a general purpose library of cryptographic building
 blocks.  It is originally based on code used by GnuPG.  It does not
 provide any implementation of OpenPGP or other protocols.  Thorough
 understanding of applied cryptography is required to use Libgcrypt.
 
-Noteworthy changes in version 1.4.3:
+Noteworthy changes in version 1.5.1:
 
- * Try to auto-initialize Libgcrypt to minimize the effect of
-   applications not doing that correctly.  This is not a perfect
-   solution but given that many applicationion would totally fail
-   without such a hack, we try to help at least with the most common
-   cases.  Folks, please read the manual to learn how to properly
-   initialize Libgcrypt!
+ * Allow empty passphrase with PBKDF2.
 
- * Auto-initialize the secure memory to 32k instead of aborting the
-   process.
+ * Do not abort on an invalid algorithm number in
+   gcry_cipher_get_algo_keylen and gcry_cipher_get_algo_blklen.
 
- * Log fatal errors via syslog.
+ * Fixed some Valgrind warnings.
 
- * Changed the name and the semantics of the fips mode config file.
+ * Fixed a problem with select and high fd numbers.
 
- * Add convenience macro gcry_fips_mode_active.
+ * Improved the build system
 
- * More self-tests.
+ * Various minor bug fixes.
 
- * Documentation cleanups.
+ * Interface changes relative to the 1.5.0 release:
+ GCRYCTL_SET_ENFORCED_FIPS_FLAG         NEW.
+ GCRYPT_VERSION_NUMBER                  NEW.
 
 
 Source code is hosted at the GnuPG FTP server and its mirrors as
 listed at http://www.gnupg.org/download/mirrors.html .  On the primary
 server the source file and its digital signatures is:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.bz2 (1062k)
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.bz2.sig
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.1.tar.bz2 (1.5M)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.1.tar.bz2.sig
 
 This file is bzip2 compressed.  A gzip compressed version is also
 available:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.gz (1325k)
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.3.tar.gz.sig
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.1.tar.gz (1.7M)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.1.tar.gz.sig
 
-Alternativley you may upgrade version 1.4.2 using this patch file:
+Alternativley you may upgrade version 1.5.0 using this patch file:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.4.2-1.4.3.diff.bz2 (42k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.0-1.5.1.diff.bz2 (255k)
 
 The SHA-1 checksums are:
 
-bdc67c1fdcec464a94dca691615f2335a12db5ce  libgcrypt-1.4.3.tar.bz2
-3d9d583501ce951596fa7dd3667afd357ac7d056  libgcrypt-1.4.3.tar.gz
-e28b74c5824364e20ae7f147f1b89925f5426669  libgcrypt-1.4.2-1.4.3.diff.bz2
+8b60a26b7eae1a727d58932d6b1efeb5716648ed  libgcrypt-1.5.1.tar.bz2
+f1ab9ce6ac8c7370d455c77c96b36bf18e2d9c95  libgcrypt-1.5.1.tar.gz
+e1b2f59a8771e8a0358dbd9a8eaa3250015cf49e  libgcrypt-1.5.0-1.5.1.diff.bz2
 
 
 For help on developing with Libgcrypt you should read the included
-manual and optional ask on the gcrypt-devel mailing list [1].
+manual and optional ask on the gcrypt-devel mailing list [1].  A
+listing with commercial support offers for Libgcrypt and related
+software is available at the GnuPG web site [2].
 
-Improving Libgcrypt is costly, but you can help!  We are looking for
-organizations that find Libgcrypt useful and wish to contribute back.
-You can contribute by reporting bugs, improve the software [2], order
-extensions or support or more general by donating money to the Free
-Software movement [3].
+The driving force behind the development of Libgcrypt is my company
+g10 Code.  Maintenance and improvement of Libgcrypt and related
+software takes up most of our resources.  To allow us to continue our
+work on free software, we ask to either purchase a support contract,
+engage us for custom enhancements, or to donate money:
 
-Commercial support contracts for Libgcrypt are available [4], and they
-help finance continued maintenance.  g10 Code GmbH, a Duesseldorf
-based company, is currently funding Libgcrypt development.  We are
-always looking for interesting development projects.
+  http://g10code.com/gnupg-donation.html
 
 Many thanks to all who contributed to Libgcrypt development, be it bug
 fixes, code, documentation, testing or helping users.
@@ -83,9 +79,5 @@ Happy hacking,
 
 
 
-
 [1] See http://www.gnupg.org/documentation/mailing-lists.html .
-[2] Note that copyright assignments to the FSF are required.
-[3] For example see http://donate.fsf.org .
-[4] See the service directory at http://www.gnupg.org/service.html .
-
+[2] See http://www.gnupg.org/service.html
