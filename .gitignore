@@ -84,3 +84,5 @@ tests/version
 tests/curves
 tests/pkcs1v2
 tests/t-kdf
+/doc/gcrypt.info-1
+/doc/gcrypt.info-2
