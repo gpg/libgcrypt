@@ -930,6 +930,27 @@ ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
 }
 
 
+/* Convert POINT into affine coordinates using the context CTX and
+   return a newly allocated MPI.  If the conversion is not possible
+   NULL is returned.  This function won't print an error message.  */
+gcry_mpi_t
+_gcry_mpi_ec_ec2os (gcry_mpi_point_t point, mpi_ec_t ectx)
+{
+  gcry_mpi_t g_x, g_y, result;
+
+  g_x = mpi_new (0);
+  g_y = mpi_new (0);
+  if (_gcry_mpi_ec_get_affine (g_x, g_y, point, ectx))
+    result = NULL;
+  else
+    result = ec2os (g_x, g_y, ectx->p);
+  mpi_free (g_x);
+  mpi_free (g_y);
+
+  return result;
+}
+
+
 /* RESULT must have been initialized and is set on success to the
    point given by VALUE.  */
 static gcry_error_t
@@ -1838,13 +1859,13 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
       errc = mpi_from_keyparam (&b, keyparam, "b");
       if (errc)
         goto leave;
-      errc = point_from_keyparam (&G, keyparam, "G");
+      errc = point_from_keyparam (&G, keyparam, "g");
       if (errc)
         goto leave;
       errc = mpi_from_keyparam (&n, keyparam, "n");
       if (errc)
         goto leave;
-      errc = point_from_keyparam (&Q, keyparam, "Q");
+      errc = point_from_keyparam (&Q, keyparam, "q");
       if (errc)
         goto leave;
       errc = mpi_from_keyparam (&d, keyparam, "d");

@@ -289,6 +289,8 @@ void _gcry_mpi_ec_mul_point (mpi_point_t result,
                              gcry_mpi_t scalar, mpi_point_t point,
                              mpi_ec_t ctx);
 
+gcry_mpi_t _gcry_mpi_ec_ec2os (gcry_mpi_point_t point, mpi_ec_t ectx);
+
 gpg_err_code_t _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
                                    gcry_mpi_t p, gcry_mpi_t a);
 gpg_err_code_t _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,

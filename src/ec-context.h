@@ -38,6 +38,8 @@ struct mpi_ec_ctx_s
 
   /* This structure is private to mpi/ec.c! */
   struct {
+    int need_sync;     /* Helper for ec_p_sync.  */
+
     int a_is_pminus3;  /* True if A = P - 3. */
 
     gcry_mpi_t two_inv_p;

@@ -337,6 +337,25 @@ ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
 }
 
 
+/* Sync changed data in the context.  */
+static void
+ec_p_sync (mpi_ec_t ec)
+{
+  gcry_mpi_t tmp;
+
+  if (!ec->t.need_sync)
+    return;
+
+  tmp = mpi_alloc_like (ec->p);
+  mpi_sub_ui (tmp, ec->p, 3);
+  ec->t.a_is_pminus3 = !mpi_cmp (ec->a, tmp);
+  mpi_free (tmp);
+
+  ec_invm (ec->t.two_inv_p, mpi_const (MPI_C_TWO), ec);
+  ec->t.need_sync = 0;
+}
+
+
 
 /* This function initialized a context for elliptic curve based on the
    field GF(p).  P is the prime specifying this field, A is the first
@@ -345,20 +364,14 @@ static void
 ec_p_init (mpi_ec_t ctx, gcry_mpi_t p, gcry_mpi_t a)
 {
   int i;
-  gcry_mpi_t tmp;
 
   /* Fixme: Do we want to check some constraints? e.g.  a < p  */
 
   ctx->p = mpi_copy (p);
   ctx->a = mpi_copy (a);
 
-  tmp = mpi_alloc_like (ctx->p);
-  mpi_sub_ui (tmp, ctx->p, 3);
-  ctx->t.a_is_pminus3 = !mpi_cmp (ctx->a, tmp);
-  mpi_free (tmp);
-
+  ctx->t.need_sync = 1;
   ctx->t.two_inv_p = mpi_alloc (0);
-  ec_invm (ctx->t.two_inv_p, mpi_const (MPI_C_TWO), ctx);
 
   /* Allocate scratch variables.  */
   for (i=0; i< DIM(ctx->t.scratch); i++)
@@ -492,10 +505,29 @@ _gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy)
     return mpi_is_const (ec->n) && !copy? ec->n : mpi_copy (ec->n);
   if (!strcmp (name, "d") && ec->d)
     return mpi_is_const (ec->d) && !copy? ec->d : mpi_copy (ec->d);
+
+  /* Return a requested point coordinate.  */
   if (!strcmp (name, "g.x") && ec->G && ec->G->x)
     return mpi_is_const (ec->G->x) && !copy? ec->G->x : mpi_copy (ec->G->x);
   if (!strcmp (name, "g.y") && ec->G && ec->G->y)
     return mpi_is_const (ec->G->y) && !copy? ec->G->y : mpi_copy (ec->G->y);
+  if (!strcmp (name, "q.x") && ec->Q && ec->Q->x)
+    return mpi_is_const (ec->Q->x) && !copy? ec->Q->x : mpi_copy (ec->Q->x);
+  if (!strcmp (name, "q.y") && ec->Q && ec->Q->y)
+    return mpi_is_const (ec->G->y) && !copy? ec->Q->y : mpi_copy (ec->Q->y);
+
+  /* If a point has been requested, return it in standard encoding.  */
+  if (!strcmp (name, "g") && ec->G)
+    return _gcry_mpi_ec_ec2os (ec->G, ec);
+  if (!strcmp (name, "q"))
+    {
+      /* If only the private key is given, compute the public key.  */
+      if (!ec->Q && ec->d && ec->G && ec->p && ec->a)
+        _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
+
+      if (ec->Q)
+        return _gcry_mpi_ec_ec2os (ec->Q, ec);
+    }
 
   return NULL;
 }
@@ -510,8 +542,15 @@ _gcry_mpi_ec_get_point (const char *name, gcry_ctx_t ctx, int copy)
 
   if (!strcmp (name, "g") && ec->G)
     return point_copy (ec->G);
-  if (!strcmp (name, "q") && ec->Q)
-    return point_copy (ec->Q);
+  if (!strcmp (name, "q"))
+    {
+      /* If only the private key is given, compute the public key.  */
+      if (!ec->Q && ec->d && ec->G && ec->p && ec->a)
+        _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
+
+      if (ec->Q)
+        return point_copy (ec->Q);
+    }
 
   return NULL;
 }
@@ -527,11 +566,13 @@ _gcry_mpi_ec_set_mpi (const char *name, gcry_mpi_t newvalue,
     {
       mpi_free (ec->p);
       ec->p = mpi_copy (newvalue);
+      ec->t.need_sync = 1;
     }
   else if (!strcmp (name, "a"))
     {
       mpi_free (ec->a);
       ec->a = mpi_copy (newvalue);
+      ec->t.need_sync = 1;
     }
   else if (!strcmp (name, "b"))
     {
@@ -627,6 +668,8 @@ _gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 #define l1 (ctx->t.scratch[3])
 #define l2 (ctx->t.scratch[4])
 #define l3 (ctx->t.scratch[5])
+
+  ec_p_sync (ctx);
 
   if (!mpi_cmp_ui (point->y, 0) || !mpi_cmp_ui (point->z, 0))
     {
@@ -724,6 +767,8 @@ _gcry_mpi_ec_add_points (mpi_point_t result,
 #define l9 (ctx->t.scratch[8])
 #define t1 (ctx->t.scratch[9])
 #define t2 (ctx->t.scratch[10])
+
+  ec_p_sync (ctx);
 
   if ( (!mpi_cmp (x1, x2)) && (!mpi_cmp (y1, y2)) && (!mpi_cmp (z1, z2)) )
     {
@@ -854,6 +899,8 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   unsigned int nbits;
   int i;
 
+  ec_p_sync (ctx);
+
   nbits = mpi_get_nbits (scalar);
   mpi_set_ui (result->x, 1);
   mpi_set_ui (result->y, 1);
@@ -870,6 +917,8 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   gcry_mpi_t x1, y1, z1, k, h, yy;
   unsigned int i, loops;
   mpi_point_struct p1, p2, p1inv;
+
+  ec_p_sync (ctx);
 
   x1 = mpi_alloc_like (ctx->p);
   y1 = mpi_alloc_like (ctx->p);

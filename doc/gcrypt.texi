@@ -3953,7 +3953,10 @@ modified, it is suggested to pass @code{1} to @var{copy}, so that the
 function guarantees that a modifiable copy of the MPI is returned.  If
 @code{0} is used for @var{copy}, this function may return a constant
 flagged MPI.  In any case @code{gcry_mpi_release} needs to be called
-to release the result.  For valid names @ref{ecc_keyparam}.
+to release the result.  For valid names @ref{ecc_keyparam}.  If a
+point parameter is requested it is returned as an uncompressed encoded
+point.  If the public key @code{q} is requested but only the private
+key @code{d} is available, @code{q} will be recomputed on the fly.
 @end deftypefun
 
 @deftypefun gcry_mpi_point_t gcry_mpi_ec_get_point ( @
@@ -3965,7 +3968,9 @@ modified, it is suggested to pass @code{1} to @var{copy}, so that the
 function guarantees that a modifiable copy of the MPI is returned.  If
 @code{0} is used for @var{copy}, this function may return a constant
 flagged point.  In any case @code{gcry_mpi_point_release} needs to be
-called to release the result.
+called to release the result.  If the public key @code{q} is requested
+but only the private key @code{d} is available, @code{q} will be
+recomputed on the fly.
 @end deftypefun
 
 @deftypefun gpg_error_t gcry_mpi_ec_set_mpi ( @

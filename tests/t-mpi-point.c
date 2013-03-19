@@ -116,6 +116,15 @@ static struct
     { NULL, NULL, NULL, NULL, NULL }
   };
 
+/* A sample public key for NIST P-256.  */
+static const char sample_p256_q[] =
+  "04"
+  "42B927242237639A36CE9221B340DB1A9AB76DF2FE3E171277F6A4023DED146E"
+  "E86525E38CCECFF3FB8D152CC6334F70D23A525175C1BCBDDE6E023B2228770E";
+static const char sample_p256_q_x[] =
+  "42B927242237639A36CE9221B340DB1A9AB76DF2FE3E171277F6A4023DED146E";
+static const char sample_p256_q_y[] =
+  "00E86525E38CCECFF3FB8D152CC6334F70D23A525175C1BCBDDE6E023B2228770E";
 
 
 
@@ -164,7 +173,7 @@ die (const char *format, ...)
 
 
 static void
-print_mpi (const char *text, gcry_mpi_t a)
+print_mpi_2 (const char *text, const char *text2, gcry_mpi_t a)
 {
   gcry_error_t err;
   char *buf;
@@ -172,13 +181,38 @@ print_mpi (const char *text, gcry_mpi_t a)
 
   err = gcry_mpi_aprint (GCRYMPI_FMT_HEX, bufaddr, NULL, a);
   if (err)
-    fprintf (stderr, "%s: [error printing number: %s]\n",
-             text, gpg_strerror (err));
+    fprintf (stderr, "%s%s: [error printing number: %s]\n",
+             text, text2? text2:"", gpg_strerror (err));
   else
     {
-      fprintf (stderr, "%s: %s\n", text, buf);
+      fprintf (stderr, "%s%s: %s\n", text, text2? text2:"", buf);
       gcry_free (buf);
     }
+}
+
+
+static void
+print_mpi (const char *text, gcry_mpi_t a)
+{
+  print_mpi_2 (text, NULL, a);
+}
+
+
+static void
+print_point (const char *text, gcry_mpi_point_t a)
+{
+  gcry_mpi_t x, y, z;
+
+  x = gcry_mpi_new (0);
+  y = gcry_mpi_new (0);
+  z = gcry_mpi_new (0);
+  gcry_mpi_point_get (x, y, z, a);
+  print_mpi_2 (text, ".x", x);
+  print_mpi_2 (text, ".y", y);
+  print_mpi_2 (text, ".z", z);
+  gcry_mpi_release (x);
+  gcry_mpi_release (y);
+  gcry_mpi_release (z);
 }
 
 
@@ -345,6 +379,8 @@ get_and_cmp_mpi (const char *name, const char *mpistring, const char *desc,
       fail ("error getting parameter '%s' of curve '%s'\n", name, desc);
       return 1;
     }
+  if (debug)
+    print_mpi (name, mpi);
   if (cmp_mpihex (mpi, mpistring))
     {
       fail ("parameter '%s' of curve '%s' does not match\n", name, desc);
@@ -371,6 +407,8 @@ get_and_cmp_point (const char *name,
       fail ("error getting point parameter '%s' of curve '%s'\n", name, desc);
       return 1;
     }
+  if (debug)
+    print_point (name, point);
 
   x = gcry_mpi_new (0);
   y = gcry_mpi_new (0);
@@ -404,12 +442,14 @@ context_param (void)
   gpg_error_t err;
   int idx;
   gcry_ctx_t ctx = NULL;
+  gcry_mpi_t q;
+  gcry_sexp_t keyparam;
 
   wherestr = "context_param";
 
+  show ("checking standard curves\n");
   for (idx=0; test_curve[idx].desc; idx++)
     {
-      show ("checking curve '%s'\n", test_curve[idx].desc);
       gcry_ctx_release (ctx);
       err = gcry_mpi_ec_new (&ctx, NULL, test_curve[idx].desc);
       if (err)
@@ -437,11 +477,35 @@ context_param (void)
     }
   gcry_ctx_release (ctx);
 
-  /* FIXME: Add tests for Q and d.  */
 
-  /* FIXME: Add test sor the set functions.  */
+  show ("checking sample public key\n");
+  q = hex2mpi (sample_p256_q);
+  err = gcry_sexp_build (&keyparam, NULL,
+                        "(public-key(ecdsa(curve %s)(q %m)))",
+                        "NIST P-256", q);
+  if (err)
+    die ("gcry_sexp_build failed: %s\n", gpg_strerror (err));
+  gcry_mpi_release (q);
 
+  /* We can't call gcry_pk_testkey because it is only implemented for
+     private keys.  */
+  /* err = gcry_pk_testkey (keyparam); */
+  /* if (err) */
+  /*   fail ("gcry_pk_testkey failed for sample public key: %s\n", */
+  /*         gpg_strerror (err)); */
 
+  err = gcry_mpi_ec_new (&ctx, keyparam, NULL);
+  if (err)
+    fail ("gcry_mpi_ec_new failed for sample public key: %s\n",
+          gpg_strerror (err));
+  else
+    {
+      get_and_cmp_mpi ("q", sample_p256_q, "NIST P-256", ctx);
+      get_and_cmp_point ("q", sample_p256_q_x, sample_p256_q_y, "NIST P-256",
+                         ctx);
+    }
+
+  gcry_sexp_release (keyparam);
 }
 
 
