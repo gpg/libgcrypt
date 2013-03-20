@@ -337,22 +337,46 @@ ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
 }
 
 
-/* Sync changed data in the context.  */
+/* Force recomputation of all helper variables.  */
 static void
-ec_p_sync (mpi_ec_t ec)
+ec_get_reset (mpi_ec_t ec)
+{
+  ec->t.valid.a_is_pminus3 = 0;
+  ec->t.valid.two_inv_p = 0;
+}
+
+
+/* Accessor for helper variable.  */
+static int
+ec_get_a_is_pminus3 (mpi_ec_t ec)
 {
   gcry_mpi_t tmp;
 
-  if (!ec->t.need_sync)
-    return;
+  if (!ec->t.valid.a_is_pminus3)
+    {
+      ec->t.valid.a_is_pminus3 = 1;
+      tmp = mpi_alloc_like (ec->p);
+      mpi_sub_ui (tmp, ec->p, 3);
+      ec->t.a_is_pminus3 = !mpi_cmp (ec->a, tmp);
+      mpi_free (tmp);
+    }
 
-  tmp = mpi_alloc_like (ec->p);
-  mpi_sub_ui (tmp, ec->p, 3);
-  ec->t.a_is_pminus3 = !mpi_cmp (ec->a, tmp);
-  mpi_free (tmp);
+  return ec->t.a_is_pminus3;
+}
 
-  ec_invm (ec->t.two_inv_p, mpi_const (MPI_C_TWO), ec);
-  ec->t.need_sync = 0;
+
+/* Accessor for helper variable.  */
+static gcry_mpi_t
+ec_get_two_inv_p (mpi_ec_t ec)
+{
+  if (!ec->t.valid.two_inv_p)
+    {
+      ec->t.valid.two_inv_p = 1;
+      if (!ec->t.two_inv_p)
+        ec->t.two_inv_p = mpi_alloc (0);
+      ec_invm (ec->t.two_inv_p, mpi_const (MPI_C_TWO), ec);
+    }
+  return ec->t.two_inv_p;
 }
 
 
@@ -370,8 +394,7 @@ ec_p_init (mpi_ec_t ctx, gcry_mpi_t p, gcry_mpi_t a)
   ctx->p = mpi_copy (p);
   ctx->a = mpi_copy (a);
 
-  ctx->t.need_sync = 1;
-  ctx->t.two_inv_p = mpi_alloc (0);
+  ec_get_reset (ctx);
 
   /* Allocate scratch variables.  */
   for (i=0; i< DIM(ctx->t.scratch); i++)
@@ -566,13 +589,13 @@ _gcry_mpi_ec_set_mpi (const char *name, gcry_mpi_t newvalue,
     {
       mpi_free (ec->p);
       ec->p = mpi_copy (newvalue);
-      ec->t.need_sync = 1;
+      ec_get_reset (ec);
     }
   else if (!strcmp (name, "a"))
     {
       mpi_free (ec->a);
       ec->a = mpi_copy (newvalue);
-      ec->t.need_sync = 1;
+      ec_get_reset (ec);
     }
   else if (!strcmp (name, "b"))
     {
@@ -669,8 +692,6 @@ _gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 #define l2 (ctx->t.scratch[4])
 #define l3 (ctx->t.scratch[5])
 
-  ec_p_sync (ctx);
-
   if (!mpi_cmp_ui (point->y, 0) || !mpi_cmp_ui (point->z, 0))
     {
       /* P_y == 0 || P_z == 0 => [1:1:0] */
@@ -680,7 +701,7 @@ _gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
     }
   else
     {
-      if (ctx->t.a_is_pminus3)  /* Use the faster case.  */
+      if (ec_get_a_is_pminus3 (ctx))  /* Use the faster case.  */
         {
           /* L1 = 3(X - Z^2)(X + Z^2) */
           /*                          T1: used for Z^2. */
@@ -767,8 +788,6 @@ _gcry_mpi_ec_add_points (mpi_point_t result,
 #define l9 (ctx->t.scratch[8])
 #define t1 (ctx->t.scratch[9])
 #define t2 (ctx->t.scratch[10])
-
-  ec_p_sync (ctx);
 
   if ( (!mpi_cmp (x1, x2)) && (!mpi_cmp (y1, y2)) && (!mpi_cmp (z1, z2)) )
     {
@@ -858,7 +877,7 @@ _gcry_mpi_ec_add_points (mpi_point_t result,
           ec_powm (t1, l3, mpi_const (MPI_C_THREE), ctx); /* fixme: Use saved value*/
           ec_mulm (t1, t1, l8, ctx);
           ec_subm (y3, l9, t1, ctx);
-          ec_mulm (y3, y3, ctx->t.two_inv_p, ctx);
+          ec_mulm (y3, y3, ec_get_two_inv_p (ctx), ctx);
         }
     }
 
@@ -899,8 +918,6 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   unsigned int nbits;
   int i;
 
-  ec_p_sync (ctx);
-
   nbits = mpi_get_nbits (scalar);
   mpi_set_ui (result->x, 1);
   mpi_set_ui (result->y, 1);
@@ -917,8 +934,6 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   gcry_mpi_t x1, y1, z1, k, h, yy;
   unsigned int i, loops;
   mpi_point_struct p1, p2, p1inv;
-
-  ec_p_sync (ctx);
 
   x1 = mpi_alloc_like (ctx->p);
   y1 = mpi_alloc_like (ctx->p);
