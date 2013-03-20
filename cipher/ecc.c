@@ -1763,10 +1763,10 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
     {
       point = gcry_mpi_point_new (0);
       ec = os2ec (point, a);
+      mpi_free (a);
       if (ec)
         {
           gcry_mpi_point_release (point);
-          mpi_free (a);
           return ec;
         }
     }
