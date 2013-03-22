@@ -541,10 +541,6 @@ AC_ARG_ENABLE(aesni-support,
                  [Disable support for the Intel AES-NI instructions]),
 	      aesnisupport=$enableval,aesnisupport=yes)
 AC_MSG_RESULT($aesnisupport)
-if test x"$aesnisupport" = xyes ; then
-  AC_DEFINE(ENABLE_AESNI_SUPPORT, 1,
-            [Enable support for Intel AES-NI instructions.])
-fi
 
 # Implementation of the --disable-drng-support switch.
 AC_MSG_CHECKING([whether DRNG support is requested])
@@ -852,6 +848,26 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports SSSE3 instructions
+# This is required for the AES-NI instructions.
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports SSSE3 instructions],
+       [gcry_cv_gcc_inline_asm_ssse3],
+       [gcry_cv_gcc_inline_asm_ssse3=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[static unsigned char be_mask[16] __attribute__ ((aligned (16))) =
+              { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+            void a(void) {
+              __asm__("pshufb %[mask], %%xmm2\n\t"::[mask]"m"(*be_mask):);
+            }]])],
+          [gcry_cv_gcc_inline_asm_ssse3=yes])])
+if test "$gcry_cv_gcc_inline_asm_ssse3" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_SSSE3,1,
+     [Defined if inline assembler supports SSSE3 instructions])
+fi
+
+
+#
 # Check whether GCC inline assembler supports AVX instructions
 #
 AC_CACHE_CHECK([whether GCC inline assembler supports AVX instructions],
@@ -865,15 +881,6 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AVX instructions],
 if test "$gcry_cv_gcc_inline_asm_avx" = "yes" ; then
    AC_DEFINE(HAVE_GCC_INLINE_ASM_AVX,1,
      [Defined if inline assembler supports AVX instructions])
-
-   if test x"$avxsupport" = xyes ; then
-      AC_DEFINE(ENABLE_AVX_SUPPORT,1,
-        [Enable support for Intel AVX instructions.])
-   fi
-else
-   if test x"$avxsupport" = xyes ; then
-      avxsupport="no (unsupported by compiler)"
-   fi
 fi
 
 
@@ -1112,6 +1119,30 @@ DATADIRNAME=$DATADIRNAME
 #####################
 #### Conclusion. ####
 #####################
+
+# Check that requested feature can actually be used and define
+# ENABLE_foo_SUPPORT macros.
+
+if test x"$aesnisupport" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_ssse3" != "yes" ; then
+    aesnisupport="no (unsupported by compiler)"
+  fi
+fi
+if test x"$avxsupport" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_avx" != "yes" ; then
+    avxsupport="no (unsupported by compiler)"
+  fi
+fi
+
+if test x"$aesnisupport" = xyes ; then
+  AC_DEFINE(ENABLE_AESNI_SUPPORT, 1,
+            [Enable support for Intel AES-NI instructions.])
+fi
+if test x"$avxsupport" = xyes ; then
+  AC_DEFINE(ENABLE_AVX_SUPPORT,1,
+            [Enable support for Intel AVX instructions.])
+fi
+
 
 # Define conditional sources and config.h symbols depending on the
 # selected ciphers, pubkey-ciphers, digests and random modules.
