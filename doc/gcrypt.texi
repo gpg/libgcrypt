@@ -2359,7 +2359,8 @@ S-expression returned is:
 Where @var{r-mpi} and @var{s-mpi} are the result of the DSA sign
 operation.  For Elgamal signing (which is slow, yields large numbers
 and probably is not as secure as the other algorithms), the same format is
-used with "elg" replacing "dsa".
+used with "elg" replacing "dsa"; for ECDSA signing, the same format is used
+with "ecdsa" replacing "dsa".
 @end deftypefun
 @c end gcry_pk_sign
 
