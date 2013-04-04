@@ -39,7 +39,7 @@ libcipher_la_LIBADD = $(GCRYPT_MODULES)
 libcipher_la_SOURCES = \
 cipher.c cipher-internal.h \
 cipher-cbc.c cipher-cfb.c cipher-ofb.c cipher-ctr.c cipher-aeswrap.c \
-pubkey.c md.c kdf.c \
+pubkey.c md.c kdf.c scrypt.c memxor.c \
 hmac-tests.c \
 bithelp.h  \
 bufhelp.h  \

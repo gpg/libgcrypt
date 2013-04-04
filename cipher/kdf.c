@@ -26,6 +26,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "ath.h"
+#include "scrypt.h"
 
 
 /* Transform a passphrase into a suitable key of length KEYSIZE and
@@ -267,6 +268,9 @@ gcry_kdf_derive (const void *passphrase, size_t passphraselen,
       ec = pkdf2 (passphrase, passphraselen, subalgo,
                   salt, saltlen, iterations, keysize, keybuffer);
       break;
+    case GCRY_KDF_SCRYPT:
+      ec = scrypt (passphrase, passphraselen, subalgo,
+                   salt, saltlen, iterations, keysize, keybuffer);
 
     default:
       ec = GPG_ERR_UNKNOWN_ALGORITHM;
