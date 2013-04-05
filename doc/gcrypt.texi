@@ -3174,7 +3174,7 @@ The PKCS#5 Passphrase Based Key Derivation Function number 2.
 
 @item GCRY_KDF_SCRYPT
 The SCRYPT Key Derivation Function.  The subalgorithm is used to specify
-the CPU/memory cost paramter N, and the number of iterations
+the CPU/memory cost parameter N, and the number of iterations
 is used for the parallelization parameter p.  The block size is fixed
 at 8 in the current implementation.
 

@@ -199,6 +199,11 @@ available_digests="crc md4 md5 rmd160 sha1 sha256"
 available_digests_64="sha512 tiger whirlpool"
 enabled_digests=""
 
+# Definitions for kdfs (optional ones)
+available_kdfs="s2k pkdf2"
+available_kdfs_64="scrypt"
+enabled_kdfs=""
+
 # Definitions for random modules.
 available_random_modules="linux egd unix"
 auto_random_modules="$available_random_modules"
@@ -351,9 +356,11 @@ if test "$ac_cv_sizeof_unsigned_int" != "8" \
    && test "$ac_cv_sizeof_unsigned_long" != "8" \
    && test "$ac_cv_sizeof_unsigned_long_long" != "8" \
    && test "$ac_cv_sizeof_uint64_t" != "8"; then
-    AC_MSG_WARN([No 64-bit types.  Disabling TIGER/192, SHA-384, and SHA-512])
+    AC_MSG_WARN([No 64-bit types.  Disabling TIGER/192, SCRYPT, SHA-384, \
+ and SHA-512])
 else
   available_digests="$available_digests $available_digests_64"
+  available_kdfs="$available_kdfs $available_kdfs_64"
 fi
 
 # If not specified otherwise, all available algorithms will be
@@ -361,6 +368,7 @@ fi
 default_ciphers="$available_ciphers"
 default_pubkey_ciphers="$available_pubkey_ciphers"
 default_digests="$available_digests"
+default_kdfs="$available_kdfs"
 
 # Substitutions to set generated files in a Emacs buffer to read-only.
 AC_SUBST(emacs_local_vars_begin, ['Local Variables:'])
@@ -430,6 +438,26 @@ for digest in $enabled_digests; do
     fi
 done
 AC_MSG_RESULT([$enabled_digests])
+
+# Implementation of the --enable-kdfs switch.
+AC_ARG_ENABLE(kdfs,
+      AC_HELP_STRING([--enable-kfds=kdfs],
+		     [select the KDFs to include]),
+      [enabled_kdfs=`echo $enableval | tr ',:' '  ' | tr '[A-Z]' '[a-z]'`],
+      [enabled_kdfs=""])
+if test "x$enabled_kdfs" = "x" \
+   -o "$enabled_kdfs" = "yes"  \
+   -o "$enabled_kdfs" = "no"; then
+   enabled_kdfs=$default_kdfs
+fi
+AC_MSG_CHECKING([which key derivation functions to include])
+for kdf in $enabled_kdfs; do
+    LIST_MEMBER($kdf, $available_kdfs)
+    if test "$found" = "0"; then
+       AC_MSG_ERROR([unsupported key derivation function specified])
+    fi
+done
+AC_MSG_RESULT([$enabled_kdfs])
 
 # Implementation of the --enable-random switch.
 AC_ARG_ENABLE(random,
@@ -1145,7 +1173,7 @@ fi
 
 
 # Define conditional sources and config.h symbols depending on the
-# selected ciphers, pubkey-ciphers, digests and random modules.
+# selected ciphers, pubkey-ciphers, digests, kdfs, and random modules.
 
 LIST_MEMBER(arcfour, $enabled_ciphers)
 if test "$found" = "1"; then
@@ -1291,6 +1319,12 @@ GCRYPT_DIGESTS="$GCRYPT_DIGESTS rmd160.lo sha1.lo"
 AC_DEFINE(USE_RMD160, 1, [Defined if this module should be included])
 AC_DEFINE(USE_SHA1, 1,   [Defined if this module should be included])
 
+LIST_MEMBER(scrypt, $enabled_kdfs)
+if test "$found" = "1" ; then
+   GCRYPT_KDFS="$GCRYPT_KDFS scrypt.lo"
+   AC_DEFINE(USE_SCRYPT, 1, [Defined if this module should be included])
+fi
+
 LIST_MEMBER(linux, $random_modules)
 if test "$found" = "1" ; then
    GCRYPT_RANDOM="$GCRYPT_RANDOM rndlinux.lo"
@@ -1327,6 +1361,7 @@ fi
 AC_SUBST([GCRYPT_CIPHERS])
 AC_SUBST([GCRYPT_PUBKEY_CIPHERS])
 AC_SUBST([GCRYPT_DIGESTS])
+AC_SUBST([GCRYPT_KDFS])
 AC_SUBST([GCRYPT_RANDOM])
 
 AC_SUBST(LIBGCRYPT_CIPHERS, $enabled_ciphers)
@@ -1344,6 +1379,9 @@ AC_DEFINE_UNQUOTED(LIBGCRYPT_PUBKEY_CIPHERS, "$tmp",
 tmp=`echo "$enabled_digests" | tr ' ' : `
 AC_DEFINE_UNQUOTED(LIBGCRYPT_DIGESTS, "$tmp",
                    [List of available digest algorithms])
+tmp=`echo "$enabled_kdfs" | tr ' ' : `
+AC_DEFINE_UNQUOTED(LIBGCRYPT_KDFS, "$tmp",
+                   [List of available KDF algorithms])
 
 
 #
@@ -1428,6 +1466,7 @@ GCRY_MSG_SHOW([Platform:                 ],[$PRINTABLE_OS_NAME ($host)])
 GCRY_MSG_SHOW([Hardware detection module:],[$detection_module])
 GCRY_MSG_WRAP([Enabled cipher algorithms:],[$enabled_ciphers])
 GCRY_MSG_WRAP([Enabled digest algorithms:],[$enabled_digests])
+GCRY_MSG_WRAP([Enabled kdf algorithms:   ],[$enabled_kdfs])
 GCRY_MSG_WRAP([Enabled pubkey algorithms:],[$enabled_pubkey_ciphers])
 GCRY_MSG_SHOW([Random number generator:  ],[$random])
 GCRY_MSG_SHOW([Using linux capabilities: ],[$use_capabilities])

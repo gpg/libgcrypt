@@ -1194,7 +1194,7 @@ enum gcry_kdf_algos
     GCRY_KDF_ITERSALTED_S2K = 19,
     GCRY_KDF_PBKDF1 = 33,
     GCRY_KDF_PBKDF2 = 34,
-    GCRY_KDF_SCRYPT = 35
+    GCRY_KDF_SCRYPT = 48
   };
 
 /* Derive a key from a passphrase.  */

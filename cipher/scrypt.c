@@ -1,6 +1,22 @@
 /* scrypt.c - Scrypt password-based key derivation function.
+ * Copyright (C) 2012 Simon Josefsson
+ * Copyright (C) 2013 Christian Grothoff
+ * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
+ *
+ * Libgcrypt is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser general Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * Libgcrypt is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /* Adapted from the nettle, low-level cryptographics library for
@@ -30,39 +46,40 @@
 #include <string.h>
 
 #include "g10lib.h"
-#include "scrypt.h"
-#include "memxor.h"
+#include "kdf-internal.h"
+#include "bufhelp.h"
 
+/* We really need a 64 bit type for this code.  */
+#ifdef HAVE_U64_TYPEDEF
 
-
-#define _SALSA20_INPUT_LENGTH 16
+#define SALSA20_INPUT_LENGTH 16
 
 #define ROTL32(n,x) (((x)<<(n)) | ((x)>>(32-(n))))
 
 
 /* Reads a 64-bit integer, in network, big-endian, byte order */
 #define READ_UINT64(p)                          \
-(  (((uint64_t) (p)[0]) << 56)                  \
- | (((uint64_t) (p)[1]) << 48)                  \
- | (((uint64_t) (p)[2]) << 40)                  \
- | (((uint64_t) (p)[3]) << 32)                  \
- | (((uint64_t) (p)[4]) << 24)                  \
- | (((uint64_t) (p)[5]) << 16)                  \
- | (((uint64_t) (p)[6]) << 8)                   \
- |  ((uint64_t) (p)[7]))
+(  (((u64) (p)[0]) << 56)                  \
+ | (((u64) (p)[1]) << 48)                  \
+ | (((u64) (p)[2]) << 40)                  \
+ | (((u64) (p)[3]) << 32)                  \
+ | (((u64) (p)[4]) << 24)                  \
+ | (((u64) (p)[5]) << 16)                  \
+ | (((u64) (p)[6]) << 8)                   \
+ |  ((u64) (p)[7]))
 
 
 
 /* And the other, little-endian, byteorder */
 #define LE_READ_UINT64(p)                       \
-(  (((uint64_t) (p)[7]) << 56)                  \
- | (((uint64_t) (p)[6]) << 48)                  \
- | (((uint64_t) (p)[5]) << 40)                  \
- | (((uint64_t) (p)[4]) << 32)                  \
- | (((uint64_t) (p)[3]) << 24)                  \
- | (((uint64_t) (p)[2]) << 16)                  \
- | (((uint64_t) (p)[1]) << 8)                   \
- |  ((uint64_t) (p)[0]))
+(  (((u64) (p)[7]) << 56)                  \
+ | (((u64) (p)[6]) << 48)                  \
+ | (((u64) (p)[5]) << 40)                  \
+ | (((u64) (p)[4]) << 32)                  \
+ | (((u64) (p)[3]) << 24)                  \
+ | (((u64) (p)[2]) << 16)                  \
+ | (((u64) (p)[1]) << 8)                   \
+ |  ((u64) (p)[0]))
 
 
 
@@ -83,9 +100,9 @@
 
 
 static void
-_salsa20_core(uint32_t *dst, const uint32_t *src, unsigned rounds)
+_salsa20_core(u32 *dst, const u32 *src, unsigned rounds)
 {
-  uint32_t x[_SALSA20_INPUT_LENGTH];
+  u32 x[SALSA20_INPUT_LENGTH];
   unsigned i;
 
   assert ( (rounds & 1) == 0);
@@ -104,33 +121,36 @@ _salsa20_core(uint32_t *dst, const uint32_t *src, unsigned rounds)
       QROUND(x[15], x[12], x[13], x[14]);
     }
 
-  for (i = 0; i < _SALSA20_INPUT_LENGTH; i++)
+  for (i = 0; i < SALSA20_INPUT_LENGTH; i++)
     {
-      uint32_t t = x[i] + src[i];
+      u32 t = x[i] + src[i];
       dst[i] = LE_SWAP32 (t);
     }
 }
 
 
 static void
-_scryptBlockMix (uint32_t r, uint8_t *B, uint8_t *tmp2)
+_scryptBlockMix (u32 r, unsigned char *B, unsigned char *tmp2)
 {
-  uint64_t i;
-  uint8_t *X = tmp2;
-  uint8_t *Y = tmp2 + 64;
+  u64 i;
+  unsigned char *X = tmp2;
+  unsigned char *Y = tmp2 + 64;
 
 #if 0
-  for (i = 0; i < 2 * r; i++)
+  if (r == 1)
     {
-      size_t j;
-      printf ("B[%d]: ", i);
-      for (j = 0; j < 64; j++)
-	{
-	  if (j % 4 == 0)
-	    printf (" ");
-	  printf ("%02x", B[i * 64 + j]);
-	}
-      printf ("\n");
+      for (i = 0; i < 2 * r; i++)
+        {
+          size_t j;
+          printf ("B[%d] = ", (int)i);
+          for (j = 0; j < 64; j++)
+            {
+              if (j && !(j % 16))
+                printf ("\n       ");
+              printf (" %02x", B[i * 64 + j]);
+            }
+          putchar ('\n');
+        }
     }
 #endif
 
@@ -141,10 +161,10 @@ _scryptBlockMix (uint32_t r, uint8_t *B, uint8_t *tmp2)
   for (i = 0; i <= 2 * r - 1; i++)
     {
       /* T = X xor B[i] */
-      memxor(X, &B[i * 64], 64);
+      buf_xor(X, X, &B[i * 64], 64);
 
       /* X = Salsa (T) */
-      _salsa20_core (X, X, 8);
+      _salsa20_core ((u32*)X, (u32*)X, 8);
 
       /* Y[i] = X */
       memcpy (&Y[i * 64], X, 64);
@@ -157,38 +177,43 @@ _scryptBlockMix (uint32_t r, uint8_t *B, uint8_t *tmp2)
     }
 
 #if 0
-  for (i = 0; i < 2 * r; i++)
+  if (r==1)
     {
-      size_t j;
-      printf ("B'[%d]: ", i);
-      for (j = 0; j < 64; j++)
-	{
-	  if (j % 4 == 0)
-	    printf (" ");
-	  printf ("%02x", B[i * 64 + j]);
-	}
-      printf ("\n");
+      for (i = 0; i < 2 * r; i++)
+        {
+          size_t j;
+          printf ("B'[%d] =", (int)i);
+          for (j = 0; j < 64; j++)
+            {
+              if (j && !(j % 16))
+                printf ("\n       ");
+              printf (" %02x", B[i * 64 + j]);
+            }
+          putchar ('\n');
+        }
     }
 #endif
 }
 
 static void
-_scryptROMix (uint32_t r, uint8_t *B, uint64_t N,
-	      uint8_t *tmp1, uint8_t *tmp2)
+_scryptROMix (u32 r, unsigned char *B, u64 N,
+	      unsigned char *tmp1, unsigned char *tmp2)
 {
-  uint8_t *X = B, *T = B;
-  uint64_t i;
+  unsigned char *X = B, *T = B;
+  u64 i;
 
 #if 0
-  printf ("B: ");
-  for (i = 0; i < 128 * r; i++)
+  if (r == 1)
     {
-      size_t j;
-      if (i % 4 == 0)
-	printf (" ");
-      printf ("%02x", B[i]);
+      printf ("B = ");
+      for (i = 0; i < 128 * r; i++)
+        {
+          if (i && !(i % 16))
+            printf ("\n    ");
+          printf (" %02x", B[i]);
+        }
+      putchar ('\n');
     }
-  printf ("\n");
 #endif
 
   /* for i = 0 to N - 1 do */
@@ -204,81 +229,118 @@ _scryptROMix (uint32_t r, uint8_t *B, uint64_t N,
   /* for i = 0 to N - 1 do */
   for (i = 0; i <= N - 1; i++)
     {
-      uint64_t j;
+      u64 j;
 
       /* j = Integerify (X) mod N */
       j = LE_READ_UINT64 (&X[128 * r - 64]) % N;
 
       /* T = X xor V[j] */
-      memxor (T, &tmp1[j * 128 * r], 128 * r);
+      buf_xor (T, T, &tmp1[j * 128 * r], 128 * r);
 
       /* X = scryptBlockMix (T) */
       _scryptBlockMix (r, T, tmp2);
     }
 
 #if 0
-  printf ("B': ");
-  for (i = 0; i < 128 * r; i++)
+  if (r == 1)
     {
-      size_t j;
-      if (i % 4 == 0)
-	printf (" ");
-      printf ("%02x", B[i]);
+      printf ("B' =");
+      for (i = 0; i < 128 * r; i++)
+        {
+          if (i && !(i % 16))
+            printf ("\n    ");
+          printf (" %02x", B[i]);
+        }
+      putchar ('\n');
     }
-  printf ("\n");
 #endif
 }
 
 /**
  */
 gcry_err_code_t
-scrypt (const uint8_t * passwd, size_t passwdlen,
-	int subalgo,
-	const uint8_t * salt, size_t saltlen,
-	unsigned long iterations,
-	size_t dkLen, uint8_t * DK)
+_gcry_kdf_scrypt (const unsigned char *passwd, size_t passwdlen,
+                  int algo, int subalgo,
+                  const unsigned char *salt, size_t saltlen,
+                  unsigned long iterations,
+                  size_t dkLen, unsigned char *DK)
 {
-  /* XXX sanity-check parameters */
-  uint64_t N = subalgo; /* CPU/memory cost paramter */
-  uint32_t r = 8; /* block size, should be sane enough */
-  uint32_t p = iterations; /* parallelization parameter */
+  u64 N = subalgo;    /* CPU/memory cost paramter.  */
+  u32 r;              /* Block size.  */
+  u32 p = iterations; /* Parallelization parameter.  */
 
-  uint32_t i;
-  uint8_t *B;
-  uint8_t *tmp1;
-  uint8_t *tmp2;
+  gpg_err_code_t ec;
+  u32 i;
+  unsigned char *B = NULL;
+  unsigned char *tmp1 = NULL;
+  unsigned char *tmp2 = NULL;
+  size_t r128;
+  size_t nbytes;
 
+  if (subalgo < 1 || !iterations)
+    return GPG_ERR_INV_VALUE;
 
-  B = malloc (p * 128 * r);
-  if (B == NULL)
+  if (algo == GCRY_KDF_SCRYPT)
+    r = 8;
+  else if (algo == 41) /* Hack to allow the use of all test vectors.  */
+    r = 1;
+  else
+    return GPG_ERR_UNKNOWN_ALGORITHM;
+
+  r128 = r * 128;
+  if (r128 / 128 != r)
     return GPG_ERR_ENOMEM;
 
-  tmp1 = malloc (N * 128 * r);
-  if (tmp1 == NULL)
-  {
-    free (B);
+  nbytes = p * r128;
+  if (r128 && nbytes / r128 != p)
     return GPG_ERR_ENOMEM;
-  }
 
-  tmp2 = malloc (64 + 128 * r);
-  if (tmp2 == NULL)
-  {
-    free (B);
-    free (tmp1);
+  nbytes = N * r128;
+  if (r128 && nbytes / r128 != N)
     return GPG_ERR_ENOMEM;
-  }
 
-  pkdf2 (passwd, passwdlen, GCRY_MD_SHA256, salt, saltlen, 1 /* iterations */, p * 128 * r, B);
+  nbytes = 64 + r128;
+  if (nbytes < r128)
+    return GPG_ERR_ENOMEM;
 
-  for (i = 0; i < p; i++)
-    _scryptROMix (r, &B[i * 128 * r], N, tmp1, tmp2);
+  B = gcry_malloc (p * r128);
+  if (!B)
+    {
+      ec = gpg_err_code_from_syserror ();
+      goto leave;
+    }
 
-  for (i = 0; i < p; i++)
-    pkdf2 (passwd, passwdlen, GCRY_MD_SHA256, B, p * 128 * r, 1 /* iterations */, dkLen, DK);
+  tmp1 = gcry_malloc (N * r128);
+  if (!tmp1)
+    {
+      ec = gpg_err_code_from_syserror ();
+      goto leave;
+    }
 
-  free (tmp2);
-  free (tmp1);
-  free (B);
+  tmp2 = gcry_malloc (64 + r128);
+  if (!tmp2)
+    {
+      ec = gpg_err_code_from_syserror ();
+      goto leave;
+    }
 
-  return 0;
+  ec = _gcry_kdf_pkdf2 (passwd, passwdlen, GCRY_MD_SHA256, salt, saltlen,
+                        1 /* iterations */, p * r128, B);
+
+  for (i = 0; !ec && i < p; i++)
+    _scryptROMix (r, &B[i * r128], N, tmp1, tmp2);
+
+  for (i = 0; !ec && i < p; i++)
+    ec = _gcry_kdf_pkdf2 (passwd, passwdlen, GCRY_MD_SHA256, B, p * r128,
+                          1 /* iterations */, dkLen, DK);
+
+ leave:
+  gcry_free (tmp2);
+  gcry_free (tmp1);
+  gcry_free (B);
+
+  return ec;
 }
+
+
+#endif /* HAVE_U64_TYPEDEF */

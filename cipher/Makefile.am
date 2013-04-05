@@ -31,7 +31,8 @@ AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
 noinst_LTLIBRARIES = libcipher.la
 
-GCRYPT_MODULES = @GCRYPT_CIPHERS@ @GCRYPT_PUBKEY_CIPHERS@ @GCRYPT_DIGESTS@
+GCRYPT_MODULES = @GCRYPT_CIPHERS@ @GCRYPT_PUBKEY_CIPHERS@ \
+                 @GCRYPT_DIGESTS@ @GCRYPT_KDFS@
 
 libcipher_la_DEPENDENCIES = $(GCRYPT_MODULES)
 libcipher_la_LIBADD = $(GCRYPT_MODULES)
@@ -39,7 +40,8 @@ libcipher_la_LIBADD = $(GCRYPT_MODULES)
 libcipher_la_SOURCES = \
 cipher.c cipher-internal.h \
 cipher-cbc.c cipher-cfb.c cipher-ofb.c cipher-ctr.c cipher-aeswrap.c \
-pubkey.c md.c kdf.c scrypt.c memxor.c \
+pubkey.c md.c \
+kdf.c kdf-internal.h \
 hmac-tests.c \
 bithelp.h  \
 bufhelp.h  \
@@ -62,6 +64,7 @@ md5.c \
 rijndael.c rijndael-tables.h \
 rmd160.c \
 rsa.c \
+scrypt.c \
 seed.c \
 serpent.c \
 sha1.c \
