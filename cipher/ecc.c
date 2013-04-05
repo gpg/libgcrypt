@@ -1309,7 +1309,7 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
   (void)algo;
 
   if (!data || !skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4]
-      || !skey[5] || !skey[6] )
+      || !skey[6] )
     return GPG_ERR_BAD_MPI;
 
   sk.E.p = skey[0];
@@ -1323,14 +1323,7 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
       return err;
     }
   sk.E.n = skey[4];
-  point_init (&sk.Q);
-  err = os2ec (&sk.Q, skey[5]);
-  if (err)
-    {
-      point_free (&sk.E.G);
-      point_free (&sk.Q);
-      return err;
-    }
+  /* Note: We don't have any need for Q here.  */
   sk.d = skey[6];
 
   resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.E.p));
@@ -1343,7 +1336,6 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
       resarr[0] = NULL; /* Mark array as released.  */
     }
   point_free (&sk.E.G);
-  point_free (&sk.Q);
   return err;
 }
 

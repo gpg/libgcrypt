@@ -1858,7 +1858,8 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
    of its intimate knowledge about the ECC parameters from ecc.c. */
 static gcry_err_code_t
 sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
-                           gcry_mpi_t *elements, pk_extra_spec_t *extraspec)
+                           gcry_mpi_t *elements, pk_extra_spec_t *extraspec,
+                           int want_private)
 
 {
   gcry_err_code_t err = 0;
@@ -1939,8 +1940,13 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
   for (name = element_names, idx = 0; *name; name++, idx++)
     if (!elements[idx])
       {
-        err = GPG_ERR_NO_OBJ;
-        goto leave;
+        if (want_private && *name == 'q')
+          ; /* Q is optional.  */
+        else
+          {
+            err = GPG_ERR_NO_OBJ;
+            goto leave;
+          }
       }
 
  leave:
@@ -1994,7 +2000,7 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
  */
 static gcry_err_code_t
 sexp_to_key (gcry_sexp_t sexp, int want_private, const char *override_elems,
-             gcry_mpi_t **retarray, gcry_module_t *retalgo)
+             gcry_mpi_t **retarray, gcry_module_t *retalgo, int *r_is_ecc)
 {
   gcry_err_code_t err = 0;
   gcry_sexp_t list, l2;
@@ -2060,7 +2066,8 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, const char *override_elems,
   if (!err)
     {
       if (is_ecc)
-        err = sexp_elements_extract_ecc (list, elems, array, extraspec);
+        err = sexp_elements_extract_ecc (list, elems, array, extraspec,
+                                         want_private);
       else
         err = sexp_elements_extract (list, elems, array, pubkey->name);
     }
@@ -2079,6 +2086,8 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, const char *override_elems,
     {
       *retarray = array;
       *retalgo = module;
+      if (r_is_ecc)
+        *r_is_ecc = is_ecc;
     }
 
   return err;
@@ -2854,7 +2863,7 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   REGISTER_DEFAULT_PUBKEYS;
 
   /* Get the key. */
-  rc = sexp_to_key (s_pkey, 0, NULL, &pkey, &module);
+  rc = sexp_to_key (s_pkey, 0, NULL, &pkey, &module, NULL);
   if (rc)
     goto leave;
 
@@ -3027,7 +3036,7 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 
   REGISTER_DEFAULT_PUBKEYS;
 
-  rc = sexp_to_key (s_skey, 1, NULL, &skey, &module_key);
+  rc = sexp_to_key (s_skey, 1, NULL, &skey, &module_key, NULL);
   if (rc)
     goto leave;
 
@@ -3149,13 +3158,14 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   const char *algo_name, *algo_elems;
   struct pk_encoding_ctx ctx;
   int i;
+  int is_ecc;
   gcry_err_code_t rc;
 
   *r_sig = NULL;
 
   REGISTER_DEFAULT_PUBKEYS;
 
-  rc = sexp_to_key (s_skey, 1, NULL, &skey, &module);
+  rc = sexp_to_key (s_skey, 1, NULL, &skey, &module, &is_ecc);
   if (rc)
     goto leave;
 
@@ -3168,8 +3178,10 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   algo_elems = pubkey->elements_sig;
 
   /* Get the stuff we want to sign.  Note that pk_get_nbits does also
-      work on a private key. */
-  init_encoding_ctx (&ctx, PUBKEY_OP_SIGN, gcry_pk_get_nbits (s_skey));
+     work on a private key.  We don't need the number of bits for ECC
+     here, thus set it to 0 so that we don't need to parse it.  */
+  init_encoding_ctx (&ctx, PUBKEY_OP_SIGN,
+                     is_ecc? 0 : gcry_pk_get_nbits (s_skey));
   rc = sexp_data_to_mpi (s_hash, &hash, &ctx);
   if (rc)
     goto leave;
@@ -3287,7 +3299,7 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 
   REGISTER_DEFAULT_PUBKEYS;
 
-  rc = sexp_to_key (s_pkey, 0, NULL, &pkey, &module_key);
+  rc = sexp_to_key (s_pkey, 0, NULL, &pkey, &module_key, NULL);
   if (rc)
     goto leave;
 
@@ -3360,7 +3372,7 @@ gcry_pk_testkey (gcry_sexp_t s_key)
   REGISTER_DEFAULT_PUBKEYS;
 
   /* Note we currently support only secret key checking. */
-  rc = sexp_to_key (s_key, 1, NULL, &key, &module);
+  rc = sexp_to_key (s_key, 1, NULL, &key, &module, NULL);
   if (! rc)
     {
       rc = pubkey_check_secret_key (module->mod_id, key);
@@ -3689,9 +3701,13 @@ gcry_pk_get_nbits (gcry_sexp_t key)
 
   REGISTER_DEFAULT_PUBKEYS;
 
-  rc = sexp_to_key (key, 0, NULL, &keyarr, &module);
+  /* FIXME: Parsing KEY is often too much overhead.  For example for
+     ECC we would only need to look at P and stop parsing right
+     away.  */
+
+  rc = sexp_to_key (key, 0, NULL, &keyarr, &module, NULL);
   if (rc == GPG_ERR_INV_OBJ)
-    rc = sexp_to_key (key, 1, NULL, &keyarr, &module);
+    rc = sexp_to_key (key, 1, NULL, &keyarr, &module, NULL);
   if (rc)
     return 0; /* Error - 0 is a suitable indication for that. */
 
@@ -3862,7 +3878,7 @@ gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
       /* Get the key.  We pass the names of the parameters for
          override_elems; this allows to call this function without the
          actual public key parameter.  */
-      if (sexp_to_key (key, want_private, "pabgn", &pkey, &module))
+      if (sexp_to_key (key, want_private, "pabgn", &pkey, &module, NULL))
         goto leave;
     }
   else

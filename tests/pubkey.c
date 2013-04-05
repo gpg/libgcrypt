@@ -110,6 +110,8 @@ die (const char *format, ...)
   va_start( arg_ptr, format ) ;
   vfprintf (stderr, format, arg_ptr );
   va_end(arg_ptr);
+  if (*format && format[strlen(format)-1] != '\n')
+    putc ('\n', stderr);
   exit (1);
 }
 
@@ -856,6 +858,79 @@ check_x931_derived_key (int what)
 
 
 
+static void
+check_ecc_sample_key (void)
+{
+  static const char ecc_private_key[] =
+    "(private-key\n"
+    " (ecdsa\n"
+    "  (curve \"NIST P-256\")\n"
+    "  (q #04D4F6A6738D9B8D3A7075C1E4EE95015FC0C9B7E4272D2BEB6644D3609FC781"
+    "B71F9A8072F58CB66AE2F89BB12451873ABF7D91F9E1FBF96BF2F70E73AAC9A283#)\n"
+    "  (d #5A1EF0035118F19F3110FB81813D3547BCE1E5BCE77D1F744715E1D5BBE70378#)"
+    "))";
+  static const char ecc_private_key_wo_q[] =
+    "(private-key\n"
+    " (ecdsa\n"
+    "  (curve \"NIST P-256\")\n"
+    "  (d #5A1EF0035118F19F3110FB81813D3547BCE1E5BCE77D1F744715E1D5BBE70378#)"
+    "))";
+  static const char ecc_public_key[] =
+    "(public-key\n"
+    " (ecdsa\n"
+    "  (curve \"NIST P-256\")\n"
+    "  (q #04D4F6A6738D9B8D3A7075C1E4EE95015FC0C9B7E4272D2BEB6644D3609FC781"
+    "B71F9A8072F58CB66AE2F89BB12451873ABF7D91F9E1FBF96BF2F70E73AAC9A283#)"
+    "))";
+  static const char hash_string[] =
+    "(data (flags raw)\n"
+    " (value #00112233445566778899AABBCCDDEEFF"
+    /* */    "000102030405060708090A0B0C0D0E0F#))";
+
+  gpg_error_t err;
+  gcry_sexp_t key, hash, sig;
+
+  if (verbose)
+    fprintf (stderr, "Checking sample ECC key.\n");
+
+  if ((err = gcry_sexp_new (&hash, hash_string, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+
+  if ((err = gcry_sexp_new (&key, ecc_private_key, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+
+  if ((err = gcry_pk_sign (&sig, hash, key)))
+    die ("gcry_pk_sign failed: %s", gpg_strerror (err));
+
+  gcry_sexp_release (key);
+  if ((err = gcry_sexp_new (&key, ecc_public_key, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+
+  if ((err = gcry_pk_verify (sig, hash, key)))
+    die ("gcry_pk_verify failed: %s", gpg_strerror (err));
+
+  /* Now try signing without the Q parameter.  */
+
+  gcry_sexp_release (key);
+  if ((err = gcry_sexp_new (&key, ecc_private_key_wo_q, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+
+  gcry_sexp_release (sig);
+  if ((err = gcry_pk_sign (&sig, hash, key)))
+    die ("gcry_pk_sign without Q failed: %s", gpg_strerror (err));
+
+  gcry_sexp_release (key);
+  if ((err = gcry_sexp_new (&key, ecc_public_key, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+
+  if ((err = gcry_pk_verify (sig, hash, key)))
+    die ("gcry_pk_verify signed without Q failed: %s", gpg_strerror (err));
+
+  gcry_sexp_release (sig);
+  gcry_sexp_release (key);
+  gcry_sexp_release (hash);
+}
+
 
 int
 main (int argc, char **argv)
@@ -885,6 +960,8 @@ main (int argc, char **argv)
 
   for (i=0; i < 4; i++)
     check_x931_derived_key (i);
+
+  check_ecc_sample_key ();
 
   return 0;
 }

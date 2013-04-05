@@ -2108,7 +2108,8 @@ used.  For example
     (d @var{d-mpi})))
 @end example
 
-The @code{curve} parameter may be given in any case and is used to replace
+Note that @var{q-point} is optional for a private key.  The
+@code{curve} parameter may be given in any case and is used to replace
 missing parameters.
 
 @noindent
