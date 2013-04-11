@@ -4084,35 +4084,6 @@ _gcry_pk_init (void)
 }
 
 
-gcry_err_code_t
-_gcry_pk_module_lookup (int algorithm, gcry_module_t *module)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  gcry_module_t pubkey;
-
-  REGISTER_DEFAULT_PUBKEYS;
-
-  ath_mutex_lock (&pubkeys_registered_lock);
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
-  if (pubkey)
-    *module = pubkey;
-  else
-    err = GPG_ERR_PUBKEY_ALGO;
-  ath_mutex_unlock (&pubkeys_registered_lock);
-
-  return err;
-}
-
-
-void
-_gcry_pk_module_release (gcry_module_t module)
-{
-  ath_mutex_lock (&pubkeys_registered_lock);
-  _gcry_module_release (module);
-  ath_mutex_unlock (&pubkeys_registered_lock);
-}
-
-
 /* Run the selftests for pubkey algorithm ALGO with optional reporting
    function REPORT.  */
 gpg_error_t
@@ -4148,67 +4119,4 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
       ath_mutex_unlock (&pubkeys_registered_lock);
     }
   return gpg_error (ec);
-}
-
-
-/* This function is only used by ac.c!  */
-gcry_err_code_t
-_gcry_pk_get_elements (int algo, char **enc, char **sig)
-{
-  gcry_module_t pubkey;
-  gcry_pk_spec_t *spec;
-  gcry_err_code_t err;
-  char *enc_cp;
-  char *sig_cp;
-
-  REGISTER_DEFAULT_PUBKEYS;
-
-  enc_cp = NULL;
-  sig_cp = NULL;
-  spec = NULL;
-
-  pubkey = _gcry_module_lookup_id (pubkeys_registered, algo);
-  if (! pubkey)
-    {
-      err = GPG_ERR_INTERNAL;
-      goto out;
-    }
-  spec = pubkey->spec;
-
-  if (enc)
-    {
-      enc_cp = strdup (spec->elements_enc);
-      if (! enc_cp)
-	{
-	  err = gpg_err_code_from_syserror ();
-	  goto out;
-	}
-    }
-
-  if (sig)
-    {
-      sig_cp = strdup (spec->elements_sig);
-      if (! sig_cp)
-	{
-	  err = gpg_err_code_from_syserror ();
-	  goto out;
-	}
-    }
-
-  if (enc)
-    *enc = enc_cp;
-  if (sig)
-    *sig = sig_cp;
-  err = 0;
-
- out:
-
-  _gcry_module_release (pubkey);
-  if (err)
-    {
-      free (enc_cp);
-      free (sig_cp);
-    }
-
-  return err;
 }

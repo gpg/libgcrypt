@@ -350,10 +350,6 @@ gcry_err_code_t _gcry_pk_init (void);
 gcry_err_code_t _gcry_secmem_module_init (void);
 gcry_err_code_t _gcry_mpi_init (void);
 
-gcry_err_code_t _gcry_pk_module_lookup (int id, gcry_module_t *module);
-void _gcry_pk_module_release (gcry_module_t module);
-gcry_err_code_t _gcry_pk_get_elements (int algo, char **enc, char **sig);
-
 /* Memory management.  */
 #define GCRY_ALLOC_FLAG_SECURE (1 << 0)
 
