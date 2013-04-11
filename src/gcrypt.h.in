@@ -991,8 +991,8 @@ int gcry_pk_map_name (const char* name) _GCRY_GCC_ATTR_PURE;
    public or private KEY.  */
 unsigned int gcry_pk_get_nbits (gcry_sexp_t key) _GCRY_GCC_ATTR_PURE;
 
-/* Please note that keygrip is still experimental and should not be
-   used without contacting the author. */
+/* Return the so called KEYGRIP which is the SHA-1 hash of the public
+   key parameters expressed in a way depending on the algorithm.  */
 unsigned char *gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array);
 
 /* Return the name of the curve matching KEY.  */
