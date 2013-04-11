@@ -216,6 +216,23 @@ print_point (const char *text, gcry_mpi_point_t a)
 }
 
 
+static void
+print_sexp (const char *prefix, gcry_sexp_t a)
+{
+  char *buf;
+  size_t size;
+
+  if (prefix)
+    fputs (prefix, stderr);
+  size = gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, NULL, 0);
+  buf = gcry_xmalloc (size);
+
+  gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, buf, size);
+  fprintf (stderr, "%.*s", (int)size, buf);
+  gcry_free (buf);
+}
+
+
 static gcry_mpi_t
 hex2mpi (const char *string)
 {
@@ -500,9 +517,34 @@ context_param (void)
           gpg_strerror (err));
   else
     {
+      gcry_sexp_t sexp;
+
       get_and_cmp_mpi ("q", sample_p256_q, "NIST P-256", ctx);
       get_and_cmp_point ("q", sample_p256_q_x, sample_p256_q_y, "NIST P-256",
                          ctx);
+
+      err = gcry_pubkey_get_sexp (&sexp, 0, ctx);
+      if (err)
+        fail ("gcry_pubkey_get_sexp(0) failed: %s\n", gpg_strerror (err));
+      else if (debug)
+        print_sexp ("Result of gcry_pubkey_get_sexp (0):\n", sexp);
+      gcry_sexp_release (sexp);
+
+      err = gcry_pubkey_get_sexp (&sexp, GCRY_PK_GET_PUBKEY, ctx);
+      if (err)
+        fail ("gcry_pubkey_get_sexp(GET_PUBKEY) failed: %s\n",
+              gpg_strerror (err));
+      else if (debug)
+        print_sexp ("Result of gcry_pubkey_get_sexp (GET_PUBKEY):\n", sexp);
+      gcry_sexp_release (sexp);
+
+      err = gcry_pubkey_get_sexp (&sexp, GCRY_PK_GET_SECKEY, ctx);
+      if (gpg_err_code (err) != GPG_ERR_NO_SECKEY)
+        fail ("gcry_pubkey_get_sexp(GET_SECKEY) returned wrong error: %s\n",
+              gpg_strerror (err));
+      gcry_sexp_release (sexp);
+
+      gcry_ctx_release (ctx);
     }
 
   gcry_sexp_release (keyparam);
@@ -537,7 +579,7 @@ basic_ec_math (void)
   gcry_mpi_t d;
   gcry_mpi_t x, y, z;
 
-  wherestr = "set_get_point";
+  wherestr = "basic_ec_math";
   show ("checking basic math functions for EC\n");
 
   P = hex2mpi ("0xfffffffffffffffffffffffffffffffeffffffffffffffff");
@@ -600,8 +642,9 @@ basic_ec_math_simplified (void)
   gcry_mpi_point_t G, Q;
   gcry_mpi_t d;
   gcry_mpi_t x, y, z;
+  gcry_sexp_t sexp;
 
-  wherestr = "set_get_point";
+  wherestr = "basic_ec_math_simplified";
   show ("checking basic math functions for EC (variant)\n");
 
   d = hex2mpi ("D4EF27E32F8AD8E2A1C6DDEBB1D235A69E3CEF9BCE90273D");
@@ -644,6 +687,63 @@ basic_ec_math_simplified (void)
   gcry_mpi_release (z);
   gcry_mpi_release (y);
   gcry_mpi_release (x);
+
+  /* Let us also check wheer we can update the context.  */
+  err = gcry_mpi_ec_set_point ("g", G, ctx);
+  if (err)
+    die ("gcry_mpi_ec_set_point(G) failed\n");
+  err = gcry_mpi_ec_set_mpi ("d", d, ctx);
+  if (err)
+    die ("gcry_mpi_ec_set_mpi(d) failed\n");
+
+  /* FIXME: Below we need to check that the returned S-expression is
+     as requested.  For now we use manual inspection using --debug.  */
+
+  /* Does get_sexp return the private key?  */
+  err = gcry_pubkey_get_sexp (&sexp, 0, ctx);
+  if (err)
+    fail ("gcry_pubkey_get_sexp(0) failed: %s\n", gpg_strerror (err));
+  else if (verbose)
+    print_sexp ("Result of gcry_pubkey_get_sexp (0):\n", sexp);
+  gcry_sexp_release (sexp);
+
+  /* Does get_sexp return the public key if requested?  */
+  err = gcry_pubkey_get_sexp (&sexp, GCRY_PK_GET_PUBKEY, ctx);
+  if (err)
+    fail ("gcry_pubkey_get_sexp(GET_PUBKEY) failed: %s\n", gpg_strerror (err));
+  else if (verbose)
+    print_sexp ("Result of gcry_pubkey_get_sexp (GET_PUBKEY):\n", sexp);
+  gcry_sexp_release (sexp);
+
+  /* Does get_sexp return the public key if after d has been deleted?  */
+  err = gcry_mpi_ec_set_mpi ("d", NULL, ctx);
+  if (err)
+    die ("gcry_mpi_ec_set_mpi(d=NULL) failed\n");
+  err = gcry_pubkey_get_sexp (&sexp, 0, ctx);
+  if (err)
+    fail ("gcry_pubkey_get_sexp(0 w/o d) failed: %s\n", gpg_strerror (err));
+  else if (verbose)
+    print_sexp ("Result of gcry_pubkey_get_sexp (0 w/o d):\n", sexp);
+  gcry_sexp_release (sexp);
+
+  /* Does get_sexp return an error after d has been deleted?  */
+  err = gcry_pubkey_get_sexp (&sexp, GCRY_PK_GET_SECKEY, ctx);
+  if (gpg_err_code (err) != GPG_ERR_NO_SECKEY)
+    fail ("gcry_pubkey_get_sexp(GET_SECKEY) returned wrong error: %s\n",
+          gpg_strerror (err));
+  gcry_sexp_release (sexp);
+
+  /* Does get_sexp return an error after d and Q have been deleted?  */
+  err = gcry_mpi_ec_set_point ("q", NULL, ctx);
+  if (err)
+    die ("gcry_mpi_ec_set_point(q=NULL) failed\n");
+  err = gcry_pubkey_get_sexp (&sexp, 0, ctx);
+  if (gpg_err_code (err) != GPG_ERR_BAD_CRYPT_CTX)
+    fail ("gcry_pubkey_get_sexp(0 w/o Q,d) returned wrong error: %s\n",
+          gpg_strerror (err));
+  gcry_sexp_release (sexp);
+
+
   gcry_mpi_point_release (Q);
   gcry_mpi_release (d);
   gcry_mpi_point_release (G);

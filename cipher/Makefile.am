@@ -40,7 +40,8 @@ libcipher_la_LIBADD = $(GCRYPT_MODULES)
 libcipher_la_SOURCES = \
 cipher.c cipher-internal.h \
 cipher-cbc.c cipher-cfb.c cipher-ofb.c cipher-ctr.c cipher-aeswrap.c \
-pubkey.c md.c \
+pubkey.c pubkey-internal.h \
+md.c \
 kdf.c kdf-internal.h \
 hmac-tests.c \
 bithelp.h  \

@@ -1,5 +1,5 @@
-/* context.h - Declarations for the context management
- * Copyright (C) 2013  g10 Code GmbH
+/* pubkey-internal.h  - Internal defs for pubkey.c
+ * Copyright (C) 2013 g10 code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -17,16 +17,13 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef GCRY_CONTEXT_H
-#define GCRY_CONTEXT_H
-
-/* Context types as used in struct gcry_context.  */
-#define CONTEXT_TYPE_EC 1  /* The context is used with EC functions.  */
+#ifndef GCRY_PUBKEY_INTERNAL_H
+#define GCRY_PUBKEY_INTERNAL_H
 
 
-gcry_ctx_t _gcry_ctx_alloc (int type, size_t length, void (*deinit)(void*));
-void *_gcry_ctx_get_pointer (gcry_ctx_t ctx, int type);
-void *_gcry_ctx_find_pointer (gcry_ctx_t ctx, int type);
+/*-- ecc.c --*/
+gpg_err_code_t _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode,
+                                      mpi_ec_t ec);
 
 
-#endif /*GCRY_CONTEXT_H*/
+#endif /*GCRY_PUBKEY_INTERNAL_H*/

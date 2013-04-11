@@ -394,7 +394,7 @@ void _gcry_fips_signal_error (const char *srcfile,
 
 int _gcry_fips_is_operational (void);
 #define fips_is_operational()   (_gcry_global_is_operational ())
-#define fips_not_operational()  (GCRY_GPG_ERR_NOT_OPERATIONAL)
+#define fips_not_operational()  (GPG_ERR_NOT_OPERATIONAL)
 
 int _gcry_fips_test_operational (void);
 int _gcry_fips_test_error_or_operational (void);

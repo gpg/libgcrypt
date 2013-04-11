@@ -944,6 +944,10 @@ enum gcry_pk_algos
 #define GCRY_PK_USAGE_AUTH 8   /* Good for authentication. */
 #define GCRY_PK_USAGE_UNKN 128 /* Unknown usage flag. */
 
+/* Modes used with gcry_pubkey_get_sexp.  */
+#define GCRY_PK_GET_PUBKEY 1
+#define GCRY_PK_GET_SECKEY 2
+
 /* Encrypt the DATA using the public key PKEY and store the result as
    a newly created S-expression at RESULT. */
 gcry_error_t gcry_pk_encrypt (gcry_sexp_t *result,
@@ -1007,6 +1011,9 @@ gcry_sexp_t gcry_pk_get_param (int algo, const char *name);
 #define gcry_pk_test_algo(a) \
             gcry_pk_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
+/* Return an S-expression representing the context CTX.  */
+gcry_error_t gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp,
+                                   int mode, gcry_ctx_t ctx);
 
 
 

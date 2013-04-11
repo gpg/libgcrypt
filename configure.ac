@@ -1,7 +1,7 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
 #               2007, 2008, 2009, 2011 Free Software Foundation, Inc.
-# Copyright (C) 2012  g10 Code GmbH
+# Copyright (C) 2012, 2013  g10 Code GmbH
 #
 # This file is part of Libgcrypt.
 #
@@ -65,7 +65,7 @@ LIBGCRYPT_LT_REVISION=0
 # If the API is changed in an incompatible way: increment the next counter.
 LIBGCRYPT_CONFIG_API_VERSION=1
 
-NEED_GPG_ERROR_VERSION=1.8
+NEED_GPG_ERROR_VERSION=1.11
 
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
@@ -105,10 +105,14 @@ AH_BOTTOM([
    properly prefixed.  */
 #define CAMELLIA_EXT_SYM_PREFIX _gcry_
 
-/* This error code is only available with gpg-error 1.7.  Thus
-   we define it here with the usual gcry prefix.  */
-#define GCRY_GPG_ERR_NOT_OPERATIONAL  176
-
+/* These error codes are used but not defined in the required
+   libgpg-error 1.11.  Define them here. */
+#define GPG_ERR_NO_CRYPT_CTX	   191
+#define GPG_ERR_WRONG_CRYPT_CTX    192
+#define GPG_ERR_BAD_CRYPT_CTX	   193
+#define GPG_ERR_CRYPT_CTX_CONFLICT 194
+#define GPG_ERR_BROKEN_PUBKEY      195
+#define GPG_ERR_BROKEN_SECKEY      196
 
 #endif /*_GCRYPT_CONFIG_H_INCLUDED*/
 ])

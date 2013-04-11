@@ -58,6 +58,8 @@ GCRYPT_1.6 {
     gcry_pk_testkey; gcry_pk_verify;
     gcry_pk_get_curve; gcry_pk_get_param;
 
+    gcry_pubkey_get_sexp;
+
     gcry_kdf_derive;
 
     gcry_prime_check; gcry_prime_generate;

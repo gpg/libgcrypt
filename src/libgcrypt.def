@@ -232,3 +232,5 @@ EXPORTS
       gcry_mpi_ec_dup           @209
       gcry_mpi_ec_add           @210
       gcry_mpi_ec_mul           @211
+
+      gcry_pubkey_get_sexp      @212

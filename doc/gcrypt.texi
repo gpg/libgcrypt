@@ -2722,6 +2722,50 @@ algorithm provides them.
 @end deftypefun
 @c end gcry_pk_genkey
 
+
+@noindent
+Future versions of Libgcrypt will have extended versions of the public
+key interfaced which will take an additional context to allow for
+pre-computations, special operations, and other optimization.  As a
+first step a new function is introduced to help using the ECC
+algorithms in new ways:
+
+@deftypefun gcry_error_t gcry_pubkey_get_sexp (@w{gcry_sexp_t *@var{r_sexp}}, @
+ w{int @var{mode}}, @w{gcry_ctx_t @var{ctx}})
+
+Return an S-expression representing the context @var{ctx}.  Depending
+on the state of that context, the S-expression may either be a public
+key, a private key or any other object used with public key
+operations.  On success 0 is returned and a new S-expression is stored
+at @var{r_sexp}; on error an error code is returned and NULL is stored
+at @var{r_sexp}.  @var{mode} must be one of:
+
+@table @code
+@item 0
+Decide what to return depending on the context.  For example if the
+private key parameter is available a private key is returned, if not a
+public key is returned.
+
+@item GCRY_PK_GET_PUBKEY
+Return the public key even if the context has the private key
+parameter.
+
+@item GCRY_PK_GET_SECKEY
+Return the private key or the error @code{GPG_ERR_NO_SECKEY} if it is
+not possible.
+@end table
+
+As of now this function supports only certain ECC operations because a
+context object is right now only defined for ECC.  Over time this
+function will be extended to cover more algorithms.
+
+@end deftypefun
+@c end gcry_pubkey_get_sexp
+
+
+
+
+
 @c **********************************************************
 @c *******************  Hash Functions  *********************
 @c **********************************************************

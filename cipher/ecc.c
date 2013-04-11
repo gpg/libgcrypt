@@ -66,6 +66,7 @@
 #include "cipher.h"
 #include "context.h"
 #include "ec-context.h"
+#include "pubkey-internal.h"
 
 /* Definition of a curve.  */
 typedef struct
@@ -1982,6 +1983,79 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
   gcry_mpi_point_release (Q);
   mpi_free (d);
   return errc;
+}
+
+
+/* This is the wroker function for gcry_pubkey_get_sexp for ECC
+   algorithms.  Note that the caller has already stored NULL at
+   R_SEXP.  */
+gpg_err_code_t
+_gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
+{
+  gpg_err_code_t rc;
+  gcry_mpi_t mpi_G = NULL;
+  gcry_mpi_t mpi_Q = NULL;
+
+  if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n)
+    return GPG_ERR_BAD_CRYPT_CTX;
+
+  if (mode == GCRY_PK_GET_SECKEY && !ec->d)
+    return GPG_ERR_NO_SECKEY;
+
+  /* Compute the public point if it is missing.  */
+  if (!ec->Q && ec->d)
+    {
+      ec->Q = gcry_mpi_point_new (0);
+      _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
+    }
+
+  /* Encode G and Q.  */
+  mpi_G = _gcry_mpi_ec_ec2os (ec->G, ec);
+  if (!mpi_G)
+    {
+      rc = GPG_ERR_BROKEN_PUBKEY;
+      goto leave;
+    }
+  if (!ec->Q)
+    {
+      rc = GPG_ERR_BAD_CRYPT_CTX;
+      goto leave;
+    }
+  mpi_Q = _gcry_mpi_ec_ec2os (ec->Q, ec);
+  if (!mpi_Q)
+    {
+      rc = GPG_ERR_BROKEN_PUBKEY;
+      goto leave;
+    }
+
+  /* Fixme: We should return a curve name instead of the parameters if
+     if know that they match a curve.  */
+
+  if (ec->d && (!mode || mode == GCRY_PK_GET_SECKEY))
+    {
+      /* Let's return a private key. */
+      rc = gpg_err_code
+        (gcry_sexp_build
+         (r_sexp, NULL,
+          "(private-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))",
+          ec->p, ec->a, ec->b, mpi_G, ec->n, mpi_Q, ec->d));
+    }
+  else if (ec->Q)
+    {
+      /* Let's return a public key.  */
+      rc = gpg_err_code
+        (gcry_sexp_build
+         (r_sexp, NULL,
+          "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))",
+          ec->p, ec->a, ec->b, mpi_G, ec->n, mpi_Q));
+    }
+  else
+    rc = GPG_ERR_BAD_CRYPT_CTX;
+
+ leave:
+  mpi_free (mpi_Q);
+  mpi_free (mpi_G);
+  return rc;
 }
 
 

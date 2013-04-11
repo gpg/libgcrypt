@@ -94,6 +94,25 @@ _gcry_ctx_get_pointer (gcry_ctx_t ctx, int type)
   return &ctx->u;
 }
 
+/* Return a pointer to the private part of the context CTX.  TYPE is
+   the requested context type.  Using an explicit type allows to cross
+   check the type and eventually allows to store several private
+   contexts in one context object.  In contrast to
+   _gcry_ctx_get_pointer, this function returns NULL if no context for
+   the given type was found.  If CTX is NULL the function does not
+   abort but returns NULL.  */
+void *
+_gcry_ctx_find_pointer (gcry_ctx_t ctx, int type)
+{
+  if (!ctx)
+    return NULL;
+  if (memcmp (ctx->magic, CTX_MAGIC, CTX_MAGIC_LEN))
+    log_fatal ("bad pointer %p passed to _gcry_ctx_get_pointer\n", ctx);
+  if (ctx->type != type)
+    return NULL;
+  return &ctx->u;
+}
+
 
 /* Release the generic context CTX.  */
 void

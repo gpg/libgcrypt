@@ -121,4 +121,10 @@ gcry_error_t _gcry_hmac_selftest (int algo, int extended,
 
 gcry_error_t _gcry_random_selftest (selftest_report_func_t report);
 
+
+/*-- pubkey.c --*/
+gcry_err_code_t _gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp,
+                                       int reserved, gcry_ctx_t ctx);
+
+
 #endif /*G10_CIPHER_PROTO_H*/

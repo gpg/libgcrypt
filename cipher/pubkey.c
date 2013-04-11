@@ -1,6 +1,7 @@
 /* pubkey.c  -	pubkey dispatcher
  * Copyright (C) 1998, 1999, 2000, 2002, 2003, 2005,
  *               2007, 2008, 2011 Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -28,6 +29,8 @@
 #include "mpi.h"
 #include "cipher.h"
 #include "ath.h"
+#include "context.h"
+#include "pubkey-internal.h"
 
 
 static gcry_err_code_t pubkey_decrypt (int algo, gcry_mpi_t *result,
@@ -4068,6 +4071,48 @@ gcry_pk_algo_info (int algorithm, int what, void *buffer, size_t *nbytes)
 }
 
 
+/* Return an S-expression representing the context CTX.  Depending on
+   the state of that context, the S-expression may either be a public
+   key, a private key or any other object used with public key
+   operations.  On success a new S-expression is stored at R_SEXP and
+   0 is returned, on error NULL is store there and an error code is
+   returned.  MODE is either 0 or one of the GCRY_PK_GET_xxx values.
+
+   As of now it only support certain ECC operations because a context
+   object is right now only defined for ECC.  Over time this function
+   will be extended to cover more algorithms.  Note also that the name
+   of the function is gcry_pubkey_xxx and not gcry_pk_xxx.  The idea
+   is that we will eventually provide variants of the existing
+   gcry_pk_xxx functions which will take a context parameter.   */
+gcry_err_code_t
+_gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp, int mode, gcry_ctx_t ctx)
+{
+  mpi_ec_t ec;
+
+  if (!r_sexp)
+    return GPG_ERR_INV_VALUE;
+  *r_sexp = NULL;
+  switch (mode)
+    {
+    case 0:
+    case GCRY_PK_GET_PUBKEY:
+    case GCRY_PK_GET_SECKEY:
+      break;
+    default:
+      return GPG_ERR_INV_VALUE;
+    }
+  if (!ctx)
+    return GPG_ERR_NO_CRYPT_CTX;
+
+  ec = _gcry_ctx_find_pointer (ctx, CONTEXT_TYPE_EC);
+  if (ec)
+    return _gcry_pk_ecc_get_sexp (r_sexp, mode, ec);
+
+  return GPG_ERR_WRONG_CRYPT_CTX;
+}
+
+
+
 /* Explicitly initialize this module.  */
 gcry_err_code_t
 _gcry_pk_init (void)

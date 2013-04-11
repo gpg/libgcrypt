@@ -546,7 +546,10 @@ _gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy)
     {
       /* If only the private key is given, compute the public key.  */
       if (!ec->Q && ec->d && ec->G && ec->p && ec->a)
-        _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
+        {
+          ec->Q = gcry_mpi_point_new (0);
+          _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
+        }
 
       if (ec->Q)
         return _gcry_mpi_ec_ec2os (ec->Q, ec);
@@ -569,7 +572,10 @@ _gcry_mpi_ec_get_point (const char *name, gcry_ctx_t ctx, int copy)
     {
       /* If only the private key is given, compute the public key.  */
       if (!ec->Q && ec->d && ec->G && ec->p && ec->a)
-        _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
+        {
+          ec->Q = gcry_mpi_point_new (0);
+          _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
+        }
 
       if (ec->Q)
         return point_copy (ec->Q);
