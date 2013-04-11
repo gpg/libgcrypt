@@ -2731,7 +2731,7 @@ first step a new function is introduced to help using the ECC
 algorithms in new ways:
 
 @deftypefun gcry_error_t gcry_pubkey_get_sexp (@w{gcry_sexp_t *@var{r_sexp}}, @
- w{int @var{mode}}, @w{gcry_ctx_t @var{ctx}})
+ @w{int @var{mode}}, @w{gcry_ctx_t @var{ctx}})
 
 Return an S-expression representing the context @var{ctx}.  Depending
 on the state of that context, the S-expression may either be a public

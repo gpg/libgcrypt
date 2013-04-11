@@ -99,6 +99,24 @@ die (const char *format, ...)
   exit (1);
 }
 
+
+static void
+show_sexp (const char *prefix, gcry_sexp_t a)
+{
+  char *buf;
+  size_t size;
+
+  if (prefix)
+    fputs (prefix, stderr);
+  size = gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, NULL, 0);
+  buf = gcry_xmalloc (size);
+
+  gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, buf, size);
+  fprintf (stderr, "%.*s", (int)size, buf);
+  gcry_free (buf);
+}
+
+
 #define MAX_DATA_LEN 100
 
 void
@@ -2348,8 +2366,8 @@ check_hmac (void)
  }
 
 /* Check that the signature SIG matches the hash HASH. PKEY is the
-   public key used for the verification. BADHASH is a hasvalue which
-   should; result in a bad signature status. */
+   public key used for the verification. BADHASH is a hash value which
+   should result in a bad signature status. */
 static void
 verify_one_signature (gcry_sexp_t pkey, gcry_sexp_t hash,
 		      gcry_sexp_t badhash, gcry_sexp_t sig)
@@ -2436,8 +2454,6 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
       { NULL }
     };
 
-  (void)n;
-
   rc = gcry_sexp_sscan (&badhash, NULL, baddata, strlen (baddata));
   if (rc)
     die ("converting data failed: %s\n", gpg_strerror (rc));
@@ -2448,7 +2464,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	continue;
 
       if (verbose)
-	fprintf (stderr, "  signature test %d\n", dataidx);
+	fprintf (stderr, "  test %d, signature test %d\n", n, dataidx);
 
       rc = gcry_sexp_sscan (&hash, NULL, datas[dataidx].data,
 			    strlen (datas[dataidx].data));
@@ -2470,6 +2486,86 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 
   gcry_sexp_release (badhash);
 }
+
+
+/* Test the public key sign function using the private ket SKEY. PKEY
+   is used for verification.  This variant is only used for ECDSA.  */
+static void
+check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
+{
+  gcry_error_t rc;
+  gcry_sexp_t sig, badhash, hash;
+  unsigned int nbits;
+  int dataidx;
+  static struct
+  {
+    unsigned int nbits;
+    const char *data;
+    int expected_rc;
+    const char *baddata;
+    int dummy;
+  } datas[] =
+    {
+      { 256,
+        "(data (flags raw)\n"
+        " (value #00112233445566778899AABBCCDDEEFF"
+        /* */    "000102030405060708090A0B0C0D0E0F#))",
+        0,
+        "(data (flags raw)\n"
+        " (value #80112233445566778899AABBCCDDEEFF"
+        /* */    "000102030405060708090A0B0C0D0E0F#))",
+        0
+      },
+      { 192,
+        "(data (flags raw)\n"
+        " (value #00112233445566778899AABBCCDDEEFF0001020304050607#))",
+        0,
+        "(data (flags raw)\n"
+        " (value #80112233445566778899AABBCCDDEEFF0001020304050607#))",
+        0
+      },
+      { 0, NULL }
+    };
+
+  nbits = gcry_pk_get_nbits (skey);
+
+  for (dataidx = 0; datas[dataidx].data; dataidx++)
+    {
+      if (datas[dataidx].nbits != nbits)
+	continue;
+
+      if (verbose)
+	fprintf (stderr, "  test %d, signature test %d (%u bit ecdsa)\n",
+                 n, dataidx, nbits);
+
+      rc = gcry_sexp_sscan (&hash, NULL, datas[dataidx].data,
+			    strlen (datas[dataidx].data));
+      if (rc)
+	die ("converting data failed: %s\n", gpg_strerror (rc));
+      rc = gcry_sexp_sscan (&badhash, NULL, datas[dataidx].baddata,
+                            strlen (datas[dataidx].baddata));
+      if (rc)
+        die ("converting data failed: %s\n", gpg_strerror (rc));
+
+      rc = gcry_pk_sign (&sig, hash, skey);
+      if (gcry_err_code (rc) != datas[dataidx].expected_rc)
+	fail ("gcry_pk_sign failed: %s\n", gpg_strerror (rc));
+
+      if (!rc && verbose > 1)
+        show_sexp ("ECDSA signature:\n", sig);
+
+      if (!rc)
+        verify_one_signature (pkey, hash, badhash, sig);
+
+      gcry_sexp_release (sig);
+      sig = NULL;
+      gcry_sexp_release (badhash);
+      badhash = NULL;
+      gcry_sexp_release (hash);
+      hash = NULL;
+    }
+}
+
 
 static void
 check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
@@ -2699,7 +2795,12 @@ do_check_one_pubkey (int n, gcry_sexp_t skey, gcry_sexp_t pkey,
 		     const unsigned char *grip, int algo, int flags)
 {
  if (flags & FLAG_SIGN)
-   check_pubkey_sign (n, skey, pkey, algo);
+   {
+     if (algo == GCRY_PK_ECDSA)
+       check_pubkey_sign_ecdsa (n, skey, pkey);
+     else
+       check_pubkey_sign (n, skey, pkey, algo);
+   }
  if (flags & FLAG_CRYPT)
    check_pubkey_crypt (n, skey, pkey, algo);
  if (grip && (flags & FLAG_GRIP))
@@ -2775,112 +2876,227 @@ check_one_pubkey_new (int n)
 static void
 check_pubkey (void)
 {
-  test_spec_pubkey_t pubkeys[] =
+  test_spec_pubkey_t pubkeys[] = {
+  {
+    GCRY_PK_RSA, FLAG_CRYPT | FLAG_SIGN,
     {
-      {
-	GCRY_PK_RSA, FLAG_CRYPT | FLAG_SIGN,
+      "(private-key\n"
+      " (rsa\n"
+      "  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
+      "      2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
+      "      ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
+      "      891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea2"
+      "      51#)\n"
+      "  (e #010001#)\n"
+      "  (d #046129F2489D71579BE0A75FE029BD6CDB574EBF57EA8A5B0FDA942CAB943B11"
+      "      7D7BB95E5D28875E0F9FC5FCC06A72F6D502464DABDED78EF6B716177B83D5BD"
+      "      C543DC5D3FED932E59F5897E92E6F58A0F33424106A3B6FA2CBF877510E4AC21"
+      "      C3EE47851E97D12996222AC3566D4CCB0B83D164074ABF7DE655FC2446DA1781"
+      "      #)\n"
+      "  (p #00e861b700e17e8afe6837e7512e35b6ca11d0ae47d8b85161c67baf64377213"
+      "      fe52d772f2035b3ca830af41d8a4120e1c1c70d12cc22f00d28d31dd48a8d424"
+      "      f1#)\n"
+      "  (q #00f7a7ca5367c661f8e62df34f0d05c10c88e5492348dd7bddc942c9a8f369f9"
+      "      35a07785d2db805215ed786e4285df1658eed3ce84f469b81b50d358407b4ad3"
+      "      61#)\n"
+      "  (u #304559a9ead56d2309d203811a641bb1a09626bc8eb36fffa23c968ec5bd891e"
+      "      ebbafc73ae666e01ba7c8990bae06cc2bbe10b75e69fcacb353a6473079d8e9b"
+      "      #)))\n",
 
-	{ "(private-key\n"
-	  " (rsa\n"
-	  "  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
-	  "      2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
-	  "      ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
-	  "      891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea251#)\n"
-	  "  (e #010001#)\n"
-	  "  (d #046129F2489D71579BE0A75FE029BD6CDB574EBF57EA8A5B0FDA942CAB943B11"
-	  "      7D7BB95E5D28875E0F9FC5FCC06A72F6D502464DABDED78EF6B716177B83D5BD"
-	  "      C543DC5D3FED932E59F5897E92E6F58A0F33424106A3B6FA2CBF877510E4AC21"
-	  "      C3EE47851E97D12996222AC3566D4CCB0B83D164074ABF7DE655FC2446DA1781#)\n"
-	  "  (p #00e861b700e17e8afe6837e7512e35b6ca11d0ae47d8b85161c67baf64377213"
-	  "      fe52d772f2035b3ca830af41d8a4120e1c1c70d12cc22f00d28d31dd48a8d424f1#)\n"
-	  "  (q #00f7a7ca5367c661f8e62df34f0d05c10c88e5492348dd7bddc942c9a8f369f9"
-	  "      35a07785d2db805215ed786e4285df1658eed3ce84f469b81b50d358407b4ad361#)\n"
-	  "  (u #304559a9ead56d2309d203811a641bb1a09626bc8eb36fffa23c968ec5bd891e"
-	  "      ebbafc73ae666e01ba7c8990bae06cc2bbe10b75e69fcacb353a6473079d8e9b#)))\n",
+      "(public-key\n"
+      " (rsa\n"
+      "  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
+      "      2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
+      "      ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
+      "      891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea2"
+      "      51#)\n"
+      "  (e #010001#)))\n",
 
-	  "(public-key\n"
-	  " (rsa\n"
-	  "  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
-	  "      2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
-	  "      ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
-	  "      891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea251#)\n"
-	  "  (e #010001#)))\n",
+      "\x32\x10\x0c\x27\x17\x3e\xf6\xe9\xc4\xe9"
+      "\xa2\x5d\x3d\x69\xf8\x6d\x37\xa4\xf9\x39"}
+  },
+  {
+    GCRY_PK_DSA, FLAG_SIGN,
+    {
+      "(private-key\n"
+      " (DSA\n"
+      "  (p #00AD7C0025BA1A15F775F3F2D673718391D00456978D347B33D7B49E7F32EDAB"
+      "      96273899DD8B2BB46CD6ECA263FAF04A28903503D59062A8865D2AE8ADFB5191"
+      "      CF36FFB562D0E2F5809801A1F675DAE59698A9E01EFE8D7DCFCA084F4C6F5A44"
+      "      44D499A06FFAEA5E8EF5E01F2FD20A7B7EF3F6968AFBA1FB8D91F1559D52D877"
+      "      7B#)\n"
+      "  (q #00EB7B5751D25EBBB7BD59D920315FD840E19AEBF9#)\n"
+      "  (g #1574363387FDFD1DDF38F4FBE135BB20C7EE4772FB94C337AF86EA8E49666503"
+      "      AE04B6BE81A2F8DD095311E0217ACA698A11E6C5D33CCDAE71498ED35D13991E"
+      "      B02F09AB40BD8F4C5ED8C75DA779D0AE104BC34C960B002377068AB4B5A1F984"
+      "      3FBA91F537F1B7CAC4D8DD6D89B0D863AF7025D549F9C765D2FC07EE208F8D15"
+      "      #)\n"
+      "  (y #64B11EF8871BE4AB572AA810D5D3CA11A6CDBC637A8014602C72960DB135BF46"
+      "      A1816A724C34F87330FC9E187C5D66897A04535CC2AC9164A7150ABFA8179827"
+      "      6E45831AB811EEE848EBB24D9F5F2883B6E5DDC4C659DEF944DCFD80BF4D0A20"
+      "      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB"
+      "      #)\n"
+      "  (x #11D54E4ADBD3034160F2CED4B7CD292A4EBF3EC0#)))\n",
 
-	  "\x32\x10\x0c\x27\x17\x3e\xf6\xe9\xc4\xe9"
-	  "\xa2\x5d\x3d\x69\xf8\x6d\x37\xa4\xf9\x39"}
-      },
-      {
-	GCRY_PK_DSA, FLAG_SIGN,
+      "(public-key\n"
+      " (DSA\n"
+      "  (p #00AD7C0025BA1A15F775F3F2D673718391D00456978D347B33D7B49E7F32EDAB"
+      "      96273899DD8B2BB46CD6ECA263FAF04A28903503D59062A8865D2AE8ADFB5191"
+      "      CF36FFB562D0E2F5809801A1F675DAE59698A9E01EFE8D7DCFCA084F4C6F5A44"
+      "      44D499A06FFAEA5E8EF5E01F2FD20A7B7EF3F6968AFBA1FB8D91F1559D52D877"
+      "      7B#)\n"
+      "  (q #00EB7B5751D25EBBB7BD59D920315FD840E19AEBF9#)\n"
+      "  (g #1574363387FDFD1DDF38F4FBE135BB20C7EE4772FB94C337AF86EA8E49666503"
+      "      AE04B6BE81A2F8DD095311E0217ACA698A11E6C5D33CCDAE71498ED35D13991E"
+      "      B02F09AB40BD8F4C5ED8C75DA779D0AE104BC34C960B002377068AB4B5A1F984"
+      "      3FBA91F537F1B7CAC4D8DD6D89B0D863AF7025D549F9C765D2FC07EE208F8D15"
+      "      #)\n"
+      "  (y #64B11EF8871BE4AB572AA810D5D3CA11A6CDBC637A8014602C72960DB135BF46"
+      "      A1816A724C34F87330FC9E187C5D66897A04535CC2AC9164A7150ABFA8179827"
+      "      6E45831AB811EEE848EBB24D9F5F2883B6E5DDC4C659DEF944DCFD80BF4D0A20"
+      "      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB"
+      "      #)))\n",
 
-	{ "(private-key\n"
-	  " (DSA\n"
-	  "  (p #00AD7C0025BA1A15F775F3F2D673718391D00456978D347B33D7B49E7F32EDAB"
-	  "      96273899DD8B2BB46CD6ECA263FAF04A28903503D59062A8865D2AE8ADFB5191"
-	  "      CF36FFB562D0E2F5809801A1F675DAE59698A9E01EFE8D7DCFCA084F4C6F5A44"
-	  "      44D499A06FFAEA5E8EF5E01F2FD20A7B7EF3F6968AFBA1FB8D91F1559D52D8777B#)\n"
-	  "  (q #00EB7B5751D25EBBB7BD59D920315FD840E19AEBF9#)\n"
-	  "  (g #1574363387FDFD1DDF38F4FBE135BB20C7EE4772FB94C337AF86EA8E49666503"
-	  "      AE04B6BE81A2F8DD095311E0217ACA698A11E6C5D33CCDAE71498ED35D13991E"
-	  "      B02F09AB40BD8F4C5ED8C75DA779D0AE104BC34C960B002377068AB4B5A1F984"
-	  "      3FBA91F537F1B7CAC4D8DD6D89B0D863AF7025D549F9C765D2FC07EE208F8D15#)\n"
-	  "  (y #64B11EF8871BE4AB572AA810D5D3CA11A6CDBC637A8014602C72960DB135BF46"
-	  "      A1816A724C34F87330FC9E187C5D66897A04535CC2AC9164A7150ABFA8179827"
-	  "      6E45831AB811EEE848EBB24D9F5F2883B6E5DDC4C659DEF944DCFD80BF4D0A20"
-	  "      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB#)\n"
-	  "  (x #11D54E4ADBD3034160F2CED4B7CD292A4EBF3EC0#)))\n",
+      "\xc6\x39\x83\x1a\x43\xe5\x05\x5d\xc6\xd8"
+      "\x4a\xa6\xf9\xeb\x23\xbf\xa9\x12\x2d\x5b" }
+  },
+  {
+    GCRY_PK_ELG, FLAG_SIGN | FLAG_CRYPT,
+    {
+      "(private-key\n"
+      " (ELG\n"
+      "  (p #00B93B93386375F06C2D38560F3B9C6D6D7B7506B20C1773F73F8DE56E6CD65D"
+      "      F48DFAAA1E93F57A2789B168362A0F787320499F0B2461D3A4268757A7B27517"
+      "      B7D203654A0CD484DEC6AF60C85FEB84AAC382EAF2047061FE5DAB81A20A0797"
+      "      6E87359889BAE3B3600ED718BE61D4FC993CC8098A703DD0DC942E965E8F18D2"
+      "      A7#)\n"
+      "  (g #05#)\n"
+      "  (y #72DAB3E83C9F7DD9A931FDECDC6522C0D36A6F0A0FEC955C5AC3C09175BBFF2B"
+      "      E588DB593DC2E420201BEB3AC17536918417C497AC0F8657855380C1FCF11C5B"
+      "      D20DB4BEE9BDF916648DE6D6E419FA446C513AAB81C30CB7B34D6007637BE675"
+      "      56CE6473E9F9EE9B9FADD275D001563336F2186F424DEC6199A0F758F6A00FF4"
+      "      #)\n"
+      "  (x #03C28900087B38DABF4A0AB98ACEA39BB674D6557096C01D72E31C16BDD32214"
+      "      #)))\n",
 
-	  "(public-key\n"
-	  " (DSA\n"
-	  "  (p #00AD7C0025BA1A15F775F3F2D673718391D00456978D347B33D7B49E7F32EDAB"
-	  "      96273899DD8B2BB46CD6ECA263FAF04A28903503D59062A8865D2AE8ADFB5191"
-	  "      CF36FFB562D0E2F5809801A1F675DAE59698A9E01EFE8D7DCFCA084F4C6F5A44"
-	  "      44D499A06FFAEA5E8EF5E01F2FD20A7B7EF3F6968AFBA1FB8D91F1559D52D8777B#)\n"
-	  "  (q #00EB7B5751D25EBBB7BD59D920315FD840E19AEBF9#)\n"
-	  "  (g #1574363387FDFD1DDF38F4FBE135BB20C7EE4772FB94C337AF86EA8E49666503"
-	  "      AE04B6BE81A2F8DD095311E0217ACA698A11E6C5D33CCDAE71498ED35D13991E"
-	  "      B02F09AB40BD8F4C5ED8C75DA779D0AE104BC34C960B002377068AB4B5A1F984"
-	  "      3FBA91F537F1B7CAC4D8DD6D89B0D863AF7025D549F9C765D2FC07EE208F8D15#)\n"
-	  "  (y #64B11EF8871BE4AB572AA810D5D3CA11A6CDBC637A8014602C72960DB135BF46"
-	  "      A1816A724C34F87330FC9E187C5D66897A04535CC2AC9164A7150ABFA8179827"
-	  "      6E45831AB811EEE848EBB24D9F5F2883B6E5DDC4C659DEF944DCFD80BF4D0A20"
-	  "      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB#)))\n",
+      "(public-key\n"
+      " (ELG\n"
+      "  (p #00B93B93386375F06C2D38560F3B9C6D6D7B7506B20C1773F73F8DE56E6CD65D"
+      "      F48DFAAA1E93F57A2789B168362A0F787320499F0B2461D3A4268757A7B27517"
+      "      B7D203654A0CD484DEC6AF60C85FEB84AAC382EAF2047061FE5DAB81A20A0797"
+      "      6E87359889BAE3B3600ED718BE61D4FC993CC8098A703DD0DC942E965E8F18D2"
+      "      A7#)\n"
+      "  (g #05#)\n"
+      "  (y #72DAB3E83C9F7DD9A931FDECDC6522C0D36A6F0A0FEC955C5AC3C09175BBFF2B"
+      "      E588DB593DC2E420201BEB3AC17536918417C497AC0F8657855380C1FCF11C5B"
+      "      D20DB4BEE9BDF916648DE6D6E419FA446C513AAB81C30CB7B34D6007637BE675"
+      "      56CE6473E9F9EE9B9FADD275D001563336F2186F424DEC6199A0F758F6A00FF4"
+      "      #)))\n",
 
-	  "\xc6\x39\x83\x1a\x43\xe5\x05\x5d\xc6\xd8"
-	  "\x4a\xa6\xf9\xeb\x23\xbf\xa9\x12\x2d\x5b" }
-      },
-      {
-	GCRY_PK_ELG, FLAG_SIGN | FLAG_CRYPT,
+      "\xa7\x99\x61\xeb\x88\x83\xd2\xf4\x05\xc8"
+      "\x4f\xba\x06\xf8\x78\x09\xbc\x1e\x20\xe5" }
+  },
+  { /* ECDSA test.  */
+    GCRY_PK_ECDSA, FLAG_SIGN,
+    {
+      "(private-key\n"
+      " (ecdsa\n"
+      "  (curve nistp192)\n"
+      "  (q #048532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE"
+      "        C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966#)\n"
+      "  (d #00D4EF27E32F8AD8E2A1C6DDEBB1D235A69E3CEF9BCE90273D#)))\n",
 
-	{ "(private-key\n"
-	  " (ELG\n"
-	  "  (p #00B93B93386375F06C2D38560F3B9C6D6D7B7506B20C1773F73F8DE56E6CD65D"
-	  "      F48DFAAA1E93F57A2789B168362A0F787320499F0B2461D3A4268757A7B27517"
-	  "      B7D203654A0CD484DEC6AF60C85FEB84AAC382EAF2047061FE5DAB81A20A0797"
-	  "      6E87359889BAE3B3600ED718BE61D4FC993CC8098A703DD0DC942E965E8F18D2A7#)\n"
-	  "  (g #05#)\n"
-	  "  (y #72DAB3E83C9F7DD9A931FDECDC6522C0D36A6F0A0FEC955C5AC3C09175BBFF2B"
-	  "      E588DB593DC2E420201BEB3AC17536918417C497AC0F8657855380C1FCF11C5B"
-	  "      D20DB4BEE9BDF916648DE6D6E419FA446C513AAB81C30CB7B34D6007637BE675"
-	  "      56CE6473E9F9EE9B9FADD275D001563336F2186F424DEC6199A0F758F6A00FF4#)\n"
-	  "  (x #03C28900087B38DABF4A0AB98ACEA39BB674D6557096C01D72E31C16BDD32214#)))\n",
+      "(public-key\n"
+      " (ecdsa\n"
+      "  (curve nistp192)\n"
+      "  (q #048532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE"
+      "        C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966#)))\n",
 
-	  "(public-key\n"
-	  " (ELG\n"
-	  "  (p #00B93B93386375F06C2D38560F3B9C6D6D7B7506B20C1773F73F8DE56E6CD65D"
-	  "      F48DFAAA1E93F57A2789B168362A0F787320499F0B2461D3A4268757A7B27517"
-	  "      B7D203654A0CD484DEC6AF60C85FEB84AAC382EAF2047061FE5DAB81A20A0797"
-	  "      6E87359889BAE3B3600ED718BE61D4FC993CC8098A703DD0DC942E965E8F18D2A7#)\n"
-	  "  (g #05#)\n"
-	  "  (y #72DAB3E83C9F7DD9A931FDECDC6522C0D36A6F0A0FEC955C5AC3C09175BBFF2B"
-	  "      E588DB593DC2E420201BEB3AC17536918417C497AC0F8657855380C1FCF11C5B"
-	  "      D20DB4BEE9BDF916648DE6D6E419FA446C513AAB81C30CB7B34D6007637BE675"
-	  "      56CE6473E9F9EE9B9FADD275D001563336F2186F424DEC6199A0F758F6A00FF4#)))\n",
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
+  },
+  { /* ECDSA test with the public key algorithm given as "ecc".  */
+    GCRY_PK_ECDSA, FLAG_SIGN,
+    {
+      "(private-key\n"
+      " (ecdsa\n"
+      "  (curve nistp192)\n"
+      "  (q #048532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE"
+      "        C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966#)\n"
+      "  (d #00D4EF27E32F8AD8E2A1C6DDEBB1D235A69E3CEF9BCE90273D#)))\n",
 
-	  "\xa7\x99\x61\xeb\x88\x83\xd2\xf4\x05\xc8"
-	  "\x4f\xba\x06\xf8\x78\x09\xbc\x1e\x20\xe5" }
-      },
-    };
+      "(public-key\n"
+      " (ecc\n"
+      "  (curve nistp192)\n"
+      "  (q #048532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE"
+      "        C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966#)))\n",
+
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
+  },
+  { /* ECDSA test with the private key algorithm given as "ecc".  */
+    GCRY_PK_ECDSA, FLAG_SIGN,
+    {
+      "(private-key\n"
+      " (ecc\n"
+      "  (curve nistp192)\n"
+      "  (q #048532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE"
+      "        C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966#)\n"
+      "  (d #00D4EF27E32F8AD8E2A1C6DDEBB1D235A69E3CEF9BCE90273D#)))\n",
+
+      "(public-key\n"
+      " (ecdsa\n"
+      "  (curve nistp192)\n"
+      "  (q #048532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE"
+      "        C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966#)))\n",
+
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
+  },
+  { /* ECDSA test with the key algorithms given as "ecc".  */
+    GCRY_PK_ECDSA, FLAG_SIGN,
+    {
+      "(private-key\n"
+      " (ecc\n"
+      "  (curve nistp192)\n"
+      "  (q #048532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE"
+      "        C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966#)\n"
+      "  (d #00D4EF27E32F8AD8E2A1C6DDEBB1D235A69E3CEF9BCE90273D#)))\n",
+
+      "(public-key\n"
+      " (ecc\n"
+      "  (curve nistp192)\n"
+      "  (q #048532093BA023F4D55C0424FA3AF9367E05F309DC34CDC3FE"
+      "        C13CA9E617C6C8487BFF6A726E3C4F277913D97117939966#)))\n",
+
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
+  },
+  { /* ECDSA test 256 bit.  */
+    GCRY_PK_ECDSA, FLAG_SIGN,
+    {
+      "(private-key\n"
+      " (ecc\n"
+      "  (curve nistp256)\n"
+      "  (q #04D4F6A6738D9B8D3A7075C1E4EE95015FC0C9B7E4272D2B"
+      "      EB6644D3609FC781B71F9A8072F58CB66AE2F89BB1245187"
+      "      3ABF7D91F9E1FBF96BF2F70E73AAC9A283#)\n"
+      "  (d #5A1EF0035118F19F3110FB81813D3547BCE1E5BCE77D1F74"
+      "      4715E1D5BBE70378#)))\n",
+
+      "(public-key\n"
+      " (ecc\n"
+      "  (curve nistp256)\n"
+      "  (q #04D4F6A6738D9B8D3A7075C1E4EE95015FC0C9B7E4272D2B"
+      "      EB6644D3609FC781B71F9A8072F58CB66AE2F89BB1245187"
+      "      3ABF7D91F9E1FBF96BF2F70E73AAC9A283#)))\n"
+
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
+    }
+  };
   int i;
+
   if (verbose)
     fprintf (stderr, "Starting public key checks.\n");
   for (i = 0; i < sizeof (pubkeys) / sizeof (*pubkeys); i++)
