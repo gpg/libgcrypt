@@ -522,7 +522,7 @@ _gcry_mpi_ec_add_points (mpi_point_t *result,
           ec_mulm (l1, l1, x1, ctx);
         }
       if (z1_is_one)
-        mpi_set (l2, x1);
+        mpi_set (l2, x2);
       else
         {
           ec_powm (l2, z1, ctx->two, ctx);
