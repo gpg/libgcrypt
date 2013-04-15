@@ -60,6 +60,11 @@ Noteworthy changes in version 1.6.0 (unreleased)
  gcry_mpi_ec_mul                 NEW.
  GCRYMPI_FLAG_IMMUTABLE          NEW.
  GCRYMPI_FLAG_CONST              NEW.
+ GCRYMPI_CONST_ONE               NEW.
+ GCRYMPI_CONST_TWO               NEW.
+ GCRYMPI_CONST_THREE             NEW.
+ GCRYMPI_CONST_FOUR              NEW.
+ GCRYMPI_CONST_EIGHT             NEW.
  GCRYPT_VERSION_NUMBER           NEW.
  GCRY_KDF_SCRYPT                 NEW.
  gcry_pubkey_get_sexp            NEW.

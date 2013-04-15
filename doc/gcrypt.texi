@@ -4054,6 +4054,11 @@ coordinate is not required, @code{NULL} may be passed to @var{x} or
 @var{y}.  @var{ctx} is the context object which has been created using
 @code{gcry_mpi_ec_new}. Returns 0 on success or not 0 if @var{point}
 is at infinity.
+
+Note that you can use @code{gcry_mpi_ec_set_point} with the value
+@code{GCRYMPI_CONST_ONE} for @var{z} to convert affine coordinates
+back into projective coordinates.
+
 @end deftypefun
 
 @deftypefun void gcry_mpi_ec_dup ( @
@@ -4127,7 +4132,11 @@ If this flag is set, the MPI is marked as a constant and as immutable
 Setting or changing the value of that MPI is ignored and an error
 message is logged.  Such an MPI will never be deallocated and may thus
 be used without copying.  Note that using gcry_mpi_copy will return a
-copy of that constant with this and the immutable flag cleared.
+copy of that constant with this and the immutable flag cleared.  A few
+commonly used constants are pre-defined and accessible using the
+macros @code{GCRYMPI_CONST_ONE}, @code{GCRYMPI_CONST_TWO},
+@code{GCRYMPI_CONST_THREE}, @code{GCRYMPI_CONST_FOUR}, and
+@code{GCRYMPI_CONST_EIGHT}.
 @end table
 
 @deftypefun void gcry_mpi_set_flag (@w{gcry_mpi_t @var{a}}, @

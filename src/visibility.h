@@ -594,6 +594,10 @@ MARK_VISIBLE (gcry_mpi_test_bit)
 
 MARK_VISIBLE (gcry_ctx_release)
 
+/* Functions used to implement macros.  */
+MARK_VISIBLEX(_gcry_mpi_get_const)
+
+
 
 #undef MARK_VISIBLE
 #endif /*_GCRY_INCLUDED_BY_VISIBILITY_C*/

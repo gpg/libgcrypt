@@ -467,6 +467,13 @@ enum gcry_mpi_flag
   };
 
 
+/* Macros to return pre-defined MPI constants.  */
+#define GCRYMPI_CONST_ONE   (_gcry_mpi_get_const (1))
+#define GCRYMPI_CONST_TWO   (_gcry_mpi_get_const (2))
+#define GCRYMPI_CONST_THREE (_gcry_mpi_get_const (3))
+#define GCRYMPI_CONST_FOUR  (_gcry_mpi_get_const (4))
+#define GCRYMPI_CONST_EIGHT (_gcry_mpi_get_const (8))
+
 /* Allocate a new big integer object, initialize it with 0 and
    initially allocate memory for a number of at least NBITS. */
 gcry_mpi_t gcry_mpi_new (unsigned int nbits);
@@ -691,6 +698,9 @@ void gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 
 /* Return true when the FLAG is set for A. */
 int gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
+
+/* Private function - do not use.  */
+gcry_mpi_t _gcry_mpi_get_const (int no);
 
 /* Unless the GCRYPT_NO_MPI_MACROS is used, provide a couple of
    convenience macros for the big integer functions. */

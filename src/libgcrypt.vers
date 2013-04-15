@@ -98,6 +98,8 @@ GCRYPT_1.6 {
     gcry_mpi_ec_get_affine;
     gcry_mpi_ec_dup; gcry_mpi_ec_add; gcry_mpi_ec_mul;
 
+    _gcry_mpi_get_const;
+
     gcry_ctx_release;
 
   local:

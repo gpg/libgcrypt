@@ -601,6 +601,20 @@ gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
   return _gcry_mpi_get_flag (a, flag);
 }
 
+gcry_mpi_t
+_gcry_mpi_get_const (int no)
+{
+  switch (no)
+    {
+    case 1: return _gcry_mpi_const (MPI_C_ONE);
+    case 2: return _gcry_mpi_const (MPI_C_TWO);
+    case 3: return _gcry_mpi_const (MPI_C_THREE);
+    case 4: return _gcry_mpi_const (MPI_C_FOUR);
+    case 8: return _gcry_mpi_const (MPI_C_EIGHT);
+    default: log_bug("unsupported GCRYMPI_CONST_ macro used\n");
+    }
+}
+
 gcry_error_t
 gcry_cipher_open (gcry_cipher_hd_t *handle,
                   int algo, int mode, unsigned int flags)

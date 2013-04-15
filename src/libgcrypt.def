@@ -234,3 +234,5 @@ EXPORTS
       gcry_mpi_ec_mul           @211
 
       gcry_pubkey_get_sexp      @212
+
+      _gcry_mpi_get_const       @213
