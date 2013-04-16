@@ -593,11 +593,25 @@ basic_ec_math (void)
   err = ec_p_new (&ctx, P, A);
   if (err)
     die ("ec_p_new failed: %s\n", gpg_strerror (err));
-  gcry_mpi_ec_mul (Q, d, G, ctx);
 
   x = gcry_mpi_new (0);
   y = gcry_mpi_new (0);
   z = gcry_mpi_new (0);
+
+  {
+    /* A quick check that multiply by zero works.  */
+    gcry_mpi_t tmp;
+
+    tmp = gcry_mpi_new (0);
+    gcry_mpi_ec_mul (Q, tmp, G, ctx);
+    gcry_mpi_release (tmp);
+    gcry_mpi_point_get (x, y, z, Q);
+    if (gcry_mpi_cmp_ui (x, 0) || gcry_mpi_cmp_ui (y, 0)
+        || gcry_mpi_cmp_ui (z, 0))
+      fail ("multiply a point by zero failed\n");
+  }
+
+  gcry_mpi_ec_mul (Q, d, G, ctx);
   gcry_mpi_point_get (x, y, z, Q);
   if (cmp_mpihex (x, "222D9EC717C89D047E0898C9185B033CD11C0A981EE6DC66")
       || cmp_mpihex (y, "605DE0A82D70D3E0F84A127D0739ED33D657DF0D054BFDE8")
