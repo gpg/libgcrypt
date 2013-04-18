@@ -1,5 +1,6 @@
 /* idea.c  -  IDEA function
- *	Copyright (c) 1997, 1998, 1999, 2001 by Werner Koch (dd9jn)
+ * Copyright 1997, 1998, 1999, 2001 Werner Koch (dd9jn)
+ * Copyright 2013 g10 Code GmbH
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -48,9 +49,6 @@
 #include "g10lib.h"
 #include "cipher.h"
 
-
-#define FNCCAST_SETKEY(f)  ((int(*)(void*, byte*, unsigned int))(f))
-#define FNCCAST_CRYPT(f)   ((void(*)(void*, byte*, byte*))(f))
 
 #define IDEA_KEYSIZE 16
 #define IDEA_BLOCKSIZE 8
@@ -161,10 +159,14 @@ invert_key( u16 *ek, u16 dk[IDEA_KEYLEN] )
 static void
 cipher( byte *outbuf, const byte *inbuf, u16 *key )
 {
-    u16 x1, x2, x3,x4, s2, s3;
-    u16 *in, *out;
+    u16 s2, s3;
+    u16 in[4];
     int r = IDEA_ROUNDS;
-  #define MUL(x,y) \
+#define x1 (in[0])
+#define x2 (in[1])
+#define x3 (in[2])
+#define x4 (in[3])
+#define MUL(x,y) \
 	do {u16 _t16; u32 _t32; 		    \
 	    if( (_t16 = (y)) ) {		    \
 		if( (x = (x)&0xffff) ) {	    \
@@ -182,17 +184,13 @@ cipher( byte *outbuf, const byte *inbuf, u16 *key )
 	    }					    \
 	} while(0)
 
-    in = (u16*)inbuf;
-    x1 = *in++;
-    x2 = *in++;
-    x3 = *in++;
-    x4 = *in;
-  #ifndef WORDS_BIGENDIAN
+    memcpy (in, inbuf, sizeof in);
+#ifndef WORDS_BIGENDIAN
     x1 = (x1>>8) | (x1<<8);
     x2 = (x2>>8) | (x2<<8);
     x3 = (x3>>8) | (x3<<8);
     x4 = (x4>>8) | (x4<<8);
-  #endif
+#endif
     do {
 	MUL(x1, *key++);
 	x2 += *key++;
@@ -219,19 +217,21 @@ cipher( byte *outbuf, const byte *inbuf, u16 *key )
     x2 += *key++;
     MUL(x4, *key);
 
-    out = (u16*)outbuf;
-  #ifndef WORDS_BIGENDIAN
-    *out++ = (x1>>8) | (x1<<8);
-    *out++ = (x3>>8) | (x3<<8);
-    *out++ = (x2>>8) | (x2<<8);
-    *out   = (x4>>8) | (x4<<8);
-  #else
-    *out++ = x1;
-    *out++ = x3;
-    *out++ = x2;
-    *out   = x4;
-  #endif
-  #undef MUL
+#ifndef WORDS_BIGENDIAN
+    x1 = (x1>>8) | (x1<<8);
+    x2 = (x2>>8) | (x2<<8);
+    x3 = (x3>>8) | (x3<<8);
+    x4 = (x4>>8) | (x4<<8);
+#endif
+    memcpy (outbuf+0, &x1, 2);
+    memcpy (outbuf+2, &x3, 2);
+    memcpy (outbuf+4, &x2, 2);
+    memcpy (outbuf+6, &x4, 2);
+#undef MUL
+#undef x1
+#undef x2
+#undef x3
+#undef x4
 }
 
 
