@@ -1,5 +1,13 @@
-Noteworthy changes in version 1.5.2 (unreleased)
+Noteworthy changes in version 1.5.2 (2013-04-18)
 ------------------------------------------------
+
+ * Added support for IDEA.
+
+ * Made the Padlock code work again (regression since 1.5.0).
+
+ * Fixed alignment problems for Serpent.
+
+ * Fixed two bugs in ECC computations.
 
 
 Noteworthy changes in version 1.5.1 (2013-03-18)
