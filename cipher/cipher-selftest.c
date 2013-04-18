@@ -47,7 +47,8 @@
 /* Run the self-tests for <block cipher>-CBC-128, tests bulk CBC
    decryption.  Returns NULL on success. */
 const char *
-_gcry_selftest_helper_cbc_128 (const char *cipher, gcry_cipher_setkey_t setkey,
+_gcry_selftest_helper_cbc_128 (const char *cipher,
+                               gcry_cipher_setkey_t setkey_func,
 			       gcry_cipher_encrypt_t encrypt_one,
 			       gcry_cipher_bulk_cbc_dec_t bulk_cbc_dec,
 			       const int nblocks, const int blocksize,
@@ -81,7 +82,7 @@ _gcry_selftest_helper_cbc_128 (const char *cipher, gcry_cipher_setkey_t setkey,
   ciphertext = plaintext2 + nblocks * blocksize;
 
   /* Initialize ctx */
-  setkey (ctx, key, sizeof(key));
+  setkey_func (ctx, key, sizeof(key));
 
   /* Test single block code path */
   memset (iv, 0x4e, blocksize);
@@ -162,7 +163,8 @@ _gcry_selftest_helper_cbc_128 (const char *cipher, gcry_cipher_setkey_t setkey,
 /* Run the self-tests for <block cipher>-CTR-128, tests IV increment of bulk CTR
    encryption.  Returns NULL on success. */
 const char *
-_gcry_selftest_helper_ctr_128 (const char *cipher, gcry_cipher_setkey_t setkey,
+_gcry_selftest_helper_ctr_128 (const char *cipher,
+                               gcry_cipher_setkey_t setkey_func,
 			       gcry_cipher_encrypt_t encrypt_one,
 			       gcry_cipher_bulk_ctr_enc_t bulk_ctr_enc,
 			       const int nblocks, const int blocksize,
@@ -196,7 +198,7 @@ _gcry_selftest_helper_ctr_128 (const char *cipher, gcry_cipher_setkey_t setkey,
   ciphertext = plaintext2 + nblocks * blocksize;
 
   /* Initialize ctx */
-  setkey (ctx, key, sizeof(key));
+  setkey_func (ctx, key, sizeof(key));
 
   /* Test single block code path */
   memset (iv, 0xff, blocksize);
