@@ -2,6 +2,7 @@
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
  *               2004, 2005, 2006, 2008, 2011,
  *               2012  Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -685,6 +686,18 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
         if (ip)
           *ip = _gcry_get_rng_type (!any_init_done);
       }
+      break;
+
+    case GCRYCTL_DISABLE_LOCKED_SECMEM:
+      _gcry_set_preferred_rng_type (0);
+      _gcry_secmem_set_flags ((_gcry_secmem_get_flags ()
+			       | GCRY_SECMEM_FLAG_NO_MLOCK));
+      break;
+
+    case GCRYCTL_DISABLE_PRIV_DROP:
+      _gcry_set_preferred_rng_type (0);
+      _gcry_secmem_set_flags ((_gcry_secmem_get_flags ()
+			       | GCRY_SECMEM_FLAG_NO_PRIV_DROP));
       break;
 
     default:

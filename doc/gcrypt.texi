@@ -679,6 +679,24 @@ Many applications do not require secure memory, so they should disable
 it right away.  This command should be executed right after
 @code{gcry_check_version}.
 
+@item GCRYCTL_DISABLE_LOCKED_SECMEM; Arguments: none
+This command disables the use of the mlock call for secure memory.
+Disabling the use of mlock may for example be done if an encrypted
+swap space is in use.  This command should be executed right after
+@code{gcry_check_version}.
+
+@item GCRYCTL_DISABLE_PRIV_DROP; Arguments: none
+This command sets a global flag to tell the secure memory subsystem
+that it shall not drop privileges after secure memory has been
+allocated.  This command is commonly used right after
+@code{gcry_check_version} but may also be used right away at program
+startup.  It won't have an effect after the secure memory pool has
+been initialized.  WARNING: A process running setuid(root) is a severe
+security risk.  Processes making use of Libgcrypt or other complex
+code should drop these extra privileges as soon as possible.  If this
+command has been used the caller is responsible for dropping the
+privileges.
+
 @item GCRYCTL_INIT_SECMEM; Arguments: int nbytes
 This command is used to allocate a pool of secure memory and thus
 enabling the use of secure memory.  It also drops all extra privileges

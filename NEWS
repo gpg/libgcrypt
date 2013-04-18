@@ -68,6 +68,8 @@ Noteworthy changes in version 1.6.0 (unreleased)
  GCRYPT_VERSION_NUMBER           NEW.
  GCRY_KDF_SCRYPT                 NEW.
  gcry_pubkey_get_sexp            NEW.
+ GCRYCTL_DISABLE_LOCKED_SECMEM   NEW.
+ GCRYCTL_DISABLE_PRIV_DROP       NEW.
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)
