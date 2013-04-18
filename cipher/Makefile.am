@@ -69,7 +69,7 @@ rfc2268.c \
 camellia.c camellia.h camellia-glue.c
 
 if ENABLE_O_FLAG_MUNGING
-o_flag_munging = sed -e 's/-O([2-9s]|fast)*/-O1/g'
+o_flag_munging = sed -e 's/-O\([2-9s][2-9s]*\)/-O1/' -e 's/-Ofast/-O1/g'
 else
 o_flag_munging = cat
 endif
