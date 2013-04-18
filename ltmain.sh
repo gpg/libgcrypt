@@ -411,6 +411,10 @@ sed_make_literal_regex='s,[].[^$\\*\/],\\&,g'
 # (escaped) backslashes.  A very naive implementation.
 lt_sed_naive_backslashify='s|\\\\*|\\|g;s|/|\\|g;s|\\|\\\\|g'
 
+# Sed substitution to remove simple comments and empty
+# lines from a Windows .def file.
+sed_uncomment_deffile='/^;/d; /^[ ]*$/d'
+
 # Re-`\' parameter expansions in output of double_quote_subst that were
 # `\'-ed in input to the same.  If an odd number of `\' preceded a '$'
 # in input to double_quote_subst, that '$' was protected from expansion.
@@ -8143,7 +8147,7 @@ EOF
 	cygwin* | mingw* | cegcc*)
 	  if test -n "$export_symbols" && test -z "$export_symbols_regex"; then
 	    # exporting using user supplied symfile
-	    if test "x`$SED 1q $export_symbols`" != xEXPORTS; then
+	    if test "x`$SED "$sed_uncomment_deffile" $export_symbols | $SED 1q`" != xEXPORTS; then
 	      # and it's NOT already a .def file. Must figure out
 	      # which of the given symbols are data symbols and tag
 	      # them as such. So, trigger use of export_symbols_cmds.
