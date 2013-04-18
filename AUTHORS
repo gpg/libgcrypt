@@ -103,6 +103,11 @@ Assigns Past and Future Changes
 ulm@gentoo.org
 (Changes to cipher/idea.c and related files)
 
+LIBGCRYPT       Vladimir Serbinenko  2012-04-26
+Assigns Past and Future Changes
+phcoder@gmail.com
+(cipher/serpent.c)
+
 
 Authors with a DCO
 ==================
