@@ -285,15 +285,10 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 
   ctx->rounds = rounds;
 
+  /* NB: We don't yet support Padlock hardware key generation.  */
+
   if (0)
     ;
-#ifdef USE_PADLOCK
-  else if (ctx->use_padlock)
-    {
-      /* Nothing to do as we support only hardware key generation for
-         now.  */
-    }
-#endif /*USE_PADLOCK*/
 #ifdef USE_AESNI_is_disabled_here
   else if (ctx->use_aesni && ctx->rounds == 10)
     {
