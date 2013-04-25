@@ -570,54 +570,56 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
   sk->E.n = mpi_copy (E.n);
   point_init (&sk->Q);
 
-  /* We want the Q=(x,y) be a "compliant key" in terms of the http://tools.ietf.org/html/draft-jivsov-ecc-compact,
-   * which simply means that we choose either Q=(x,y) or -Q=(x,p-y) such that we end up with the min(y,p-y) as the y coordinate.
-   * Such a public key allows the most efficient compression: y can simply be dropped because we know that it's a minimum of the two
-   * possibilities without any loss of security.
-   */
+  /* We want the Q=(x,y) be a "compliant key" in terms of the
+   * http://tools.ietf.org/html/draft-jivsov-ecc-compact, which simply
+   * means that we choose either Q=(x,y) or -Q=(x,p-y) such that we
+   * end up with the min(y,p-y) as the y coordinate.  Such a public
+   * key allows the most efficient compression: y can simply be
+   * dropped because we know that it's a minimum of the two
+   * possibilities without any loss of security.  */
   {
-      gcry_mpi_t x, p_y, y;
-      const unsigned int nbits = mpi_get_nbits (E.p);
+    gcry_mpi_t x, p_y, y;
+    const unsigned int nbits = mpi_get_nbits (E.p);
 
-      x = mpi_new (nbits);
-      p_y = mpi_new (nbits);
-      y = mpi_new (nbits);
+    x = mpi_new (nbits);
+    p_y = mpi_new (nbits);
+    y = mpi_new (nbits);
 
-      if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
-        log_fatal ("ecgen: Failed to get affine coordinates for Q\n");
+    if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
+      log_fatal ("ecgen: Failed to get affine coordinates for Q\n");
 
-      mpi_sub( p_y, E.p, y );	/* p_y = p-y */
+    mpi_sub( p_y, E.p, y );	/* p_y = p-y */
 
-      if( mpi_cmp( p_y /*p-y*/, y ) < 0 )  {	/* is p-y < p ? */
-        gcry_mpi_t z = mpi_copy( mpi_const (MPI_C_ONE) );
-        /*log_mpidump ("ecgen p-y", p_y);
-        log_mpidump ("ecgen y  ", y);
-        log_debug   ("ecgen will replace y with p-y\n"); */
+    if (mpi_cmp( p_y /*p-y*/, y ) < 0) /* is p-y < p ? */
+      {
+        gcry_mpi_t z = mpi_copy (mpi_const (MPI_C_ONE));
+
+        /* log_mpidump ("ecgen p-y", p_y); */
+        /* log_mpidump ("ecgen y  ", y); */
+        /* log_debug   ("ecgen will replace y with p-y\n"); */
         /* log_mpidump ("ecgen d before", d); */
-        /* we need to end up with -Q; this assures that new Q's y is the smallest one */
+
+        /* We need to end up with -Q; this assures that new Q's y is
+           the smallest one */
         sk->d = mpi_new (nbits);
-        mpi_sub( sk->d, E.n, d );	/* d = order-d */
+        mpi_sub (sk->d, E.n, d);  /* d = order-d */
         /* log_mpidump ("ecgen d after ", sk->d); */
 	gcry_mpi_point_set (&sk->Q, x, p_y/*p-y*/, z);	/* Q = -Q */
         if (DBG_CIPHER)
-        {
-          log_debug   ("ecgen converted Q to a compliant point\n");
-        }
+          log_debug ("ecgen converted Q to a compliant point\n");
         mpi_free (z);
       }
-      else
+    else
       {
-        /* no change is needed exactly 50% of the time: just copy */
+        /* No change is needed exactly 50% of the time: just copy. */
         sk->d = mpi_copy (d);
 	point_set (&sk->Q, &Q);
         if (DBG_CIPHER)
-        {
-          log_debug   ("ecgen didn't need to convert Q to a compliant point\n");
-        }
+          log_debug ("ecgen didn't need to convert Q to a compliant point\n");
       }
-      mpi_free (x);
-      mpi_free (p_y);
-      mpi_free (y);
+    mpi_free (x);
+    mpi_free (p_y);
+    mpi_free (y);
   }
 
   /* We also return copies of G and Q in affine coordinates if
@@ -625,12 +627,12 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
   if (g_x && g_y)
     {
       if (_gcry_mpi_ec_get_affine (g_x, g_y, &sk->E.G, ctx))
-        log_fatal ("ecgen: Failed to get affine coordinates for G\n");
+        log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "G");
     }
   if (q_x && q_y)
     {
       if (_gcry_mpi_ec_get_affine (q_x, q_y, &sk->Q, ctx))
-        log_fatal ("ecgen: Failed to get affine coordinates for Q\n");
+        log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
     }
   _gcry_mpi_ec_free (ctx);
 
