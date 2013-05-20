@@ -576,8 +576,9 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
    * possibilities without any loss of security.
    */
   {
-      gcry_mpi_t x, p_y, y, z = mpi_copy(mpi_const (MPI_C_ONE));
+      gcry_mpi_t x, p_y, y;
       const unsigned int nbits = mpi_get_nbits (E.p);
+
       x = mpi_new (nbits);
       p_y = mpi_new (nbits);
       y = mpi_new (nbits);
@@ -588,11 +589,13 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
       mpi_sub( p_y, E.p, y );	/* p_y = p-y */
 
       if( mpi_cmp( p_y /*p-y*/, y ) < 0 )  {	/* is p-y < p ? */
-        log_mpidump ("ecgen p-y", p_y);
+        gcry_mpi_t z = mpi_copy( mpi_const (MPI_C_ONE) );
+        /*log_mpidump ("ecgen p-y", p_y);
         log_mpidump ("ecgen y  ", y);
-        log_debug   ("ecgen will replace y with p-y\n");
+        log_debug   ("ecgen will replace y with p-y\n"); */
         /* log_mpidump ("ecgen d before", d); */
         /* we need to end up with -Q; this assures that new Q's y is the smallest one */
+        sk->d = mpi_new (nbits);
         mpi_sub( sk->d, E.n, d );	/* d = order-d */
         /* log_mpidump ("ecgen d after ", sk->d); */
 	gcry_mpi_point_set (&sk->Q, x, p_y/*p-y*/, z);	/* Q = -Q */
@@ -600,8 +603,10 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
         {
           log_debug   ("ecgen converted Q to a compliant point\n");
         }
-       }
-      else  {
+        mpi_free (z);
+      }
+      else
+      {
         /* no change is needed exactly 50% of the time: just copy */
         sk->d = mpi_copy (d);
 	point_set (&sk->Q, &Q);
@@ -613,7 +618,6 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
       mpi_free (x);
       mpi_free (p_y);
       mpi_free (y);
-      mpi_free (z);
   }
 
   /* We also return copies of G and Q in affine coordinates if
