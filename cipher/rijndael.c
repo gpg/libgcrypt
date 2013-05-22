@@ -2020,6 +2020,21 @@ selftest_ctr_128 (void)
 }
 
 
+/* Run the self-tests for AES-CBC-128, tests bulk CBC decryption.
+   Returns NULL on success. */
+static const char*
+selftest_cbc_128 (void)
+{
+  const int nblocks = 8+2;
+  const int blocksize = BLOCKSIZE;
+  const int context_size = sizeof(RIJNDAEL_context);
+
+  return _gcry_selftest_helper_cbc_128("AES", &rijndael_setkey,
+           &rijndael_encrypt, &_gcry_aes_cbc_dec, nblocks, blocksize,
+	   context_size);
+}
+
+
 /* Run all the self-tests and return NULL on success.  This function
    is used for the on-the-fly self-tests. */
 static const char *
@@ -2033,6 +2048,9 @@ selftest (void)
     return r;
 
   if ( (r = selftest_ctr_128 ()) )
+    return r;
+
+  if ( (r = selftest_cbc_128 ()) )
     return r;
 
   return r;
