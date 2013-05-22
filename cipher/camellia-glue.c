@@ -402,6 +402,86 @@ selftest_ctr_128 (void)
   return NULL;
 }
 
+/* Run the self-tests for CAMELLIA-CBC-128, tests bulk CBC decryption.
+   Returns NULL on success. */
+static const char*
+selftest_cbc_128 (void)
+{
+  const int nblocks = 16+2;
+  CAMELLIA_context ctx ATTR_ALIGNED_16;
+  unsigned char plaintext[nblocks*16] ATTR_ALIGNED_16;
+  unsigned char ciphertext[nblocks*16] ATTR_ALIGNED_16;
+  unsigned char plaintext2[nblocks*16] ATTR_ALIGNED_16;
+  unsigned char iv[16] ATTR_ALIGNED_16;
+  unsigned char iv2[16] ATTR_ALIGNED_16;
+  int i, j;
+
+  static const unsigned char key[16] ATTR_ALIGNED_16 = {
+      0x66,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
+      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x22
+    };
+  static char error_str[128];
+
+  camellia_setkey (&ctx, key, sizeof (key));
+
+  /* Test single block code path */
+  memset(iv, 0x4e, sizeof(iv));
+  memset(iv2, 0x4e, sizeof(iv2));
+  for (i = 0; i < 16; i++)
+    plaintext[i] = i;
+
+  /* CBC manually.  */
+  for (i = 0; i < 16; i++)
+    ciphertext[i] = iv[i] ^ plaintext[i];
+  camellia_encrypt (&ctx, ciphertext, ciphertext);
+  memcpy(iv, ciphertext, sizeof(iv));
+
+  /* CBC decrypt.  */
+  _gcry_camellia_cbc_dec (&ctx, iv2, plaintext2, ciphertext, 1);
+
+  if (memcmp(plaintext2, plaintext, 16))
+    return "CAMELLIA-128-CBC test failed (plaintext mismatch)";
+
+  if (memcmp(iv2, iv, 16))
+    return "CAMELLIA-128-CBC test failed (IV mismatch)";
+
+  /* Test parallelized code paths */
+  memset(iv, 0x5f, sizeof(iv));
+  memset(iv2, 0x5f, sizeof(iv2));
+
+  for (i = 0; i < sizeof(plaintext); i++)
+    plaintext[i] = i;
+
+  /* Create CBC ciphertext manually.  */
+  for (i = 0; i < sizeof(plaintext); i+=16)
+    {
+      for (j = 0; j < 16; j++)
+        ciphertext[i+j] = iv[j] ^ plaintext[i+j];
+      camellia_encrypt (&ctx, &ciphertext[i], &ciphertext[i]);
+      memcpy(iv, &ciphertext[i], sizeof(iv));
+    }
+
+  /* Decrypt using bulk CBC and compare result.  */
+  _gcry_camellia_cbc_dec (&ctx, iv2, plaintext2, ciphertext,
+                          sizeof(ciphertext) / CAMELLIA_BLOCK_SIZE);
+
+  if (memcmp(plaintext2, plaintext, sizeof(plaintext)))
+    {
+      snprintf(error_str, sizeof(error_str),
+               "CAMELLIA-128-CBC test failed (plaintext mismatch, "
+	       "parallel path)");
+      return error_str;
+    }
+  if (memcmp(iv2, iv, sizeof(iv)))
+    {
+      snprintf(error_str, sizeof(error_str),
+               "CAMELLIA-128-CBC test failed (IV mismatch, parallel path)");
+      return error_str;
+    }
+
+  return NULL;
+}
+
 static const char *
 selftest(void)
 {
@@ -472,6 +552,9 @@ selftest(void)
     return "CAMELLIA-256 test decryption failed.";
 
   if ( (r = selftest_ctr_128 ()) )
+    return r;
+
+  if ( (r = selftest_cbc_128 ()) )
     return r;
 
   return NULL;
