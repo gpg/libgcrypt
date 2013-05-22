@@ -1241,7 +1241,7 @@ if test "$found" = "1" ; then
    if test x"$avxsupport" = xyes ; then
       if test x"$aesnisupport" = xyes ; then
         # Build with the AES-NI/AVX implementation
-        GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia_aesni_avx_x86-64.lo"
+        GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-aesni-avx-amd64.lo"
       fi
    fi
 fi
