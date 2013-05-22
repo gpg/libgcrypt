@@ -46,6 +46,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bufhelp.h"
+#include "cipher-selftest.h"
 
 #define MAXKC			(256/32)
 #define MAXROUNDS		14
@@ -2009,93 +2010,13 @@ selftest_basic_256 (void)
 static const char*
 selftest_ctr_128 (void)
 {
-  RIJNDAEL_context ctx ATTR_ALIGNED_16;
-  unsigned char plaintext[7*16] ATTR_ALIGNED_16;
-  unsigned char ciphertext[7*16] ATTR_ALIGNED_16;
-  unsigned char plaintext2[7*16] ATTR_ALIGNED_16;
-  unsigned char iv[16] ATTR_ALIGNED_16;
-  unsigned char iv2[16] ATTR_ALIGNED_16;
-  int i, j, diff;
+  const int nblocks = 8+1;
+  const int blocksize = BLOCKSIZE;
+  const int context_size = sizeof(RIJNDAEL_context);
 
-  static const unsigned char key[16] ATTR_ALIGNED_16 = {
-      0x06,0x9A,0x00,0x7F,0xC7,0x6A,0x45,0x9F,
-      0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x21
-    };
-  static char error_str[128];
-
-  rijndael_setkey (&ctx, key, sizeof (key));
-
-  /* Test single block code path */
-  memset(iv, 0xff, sizeof(iv));
-  for (i = 0; i < 16; i++)
-    plaintext[i] = i;
-
-  /* CTR manually.  */
-  rijndael_encrypt (&ctx, ciphertext, iv);
-  for (i = 0; i < 16; i++)
-    ciphertext[i] ^= plaintext[i];
-  for (i = 16; i > 0; i--)
-    {
-      iv[i-1]++;
-      if (iv[i-1])
-        break;
-    }
-
-  memset(iv2, 0xff, sizeof(iv2));
-  _gcry_aes_ctr_enc (&ctx, iv2, plaintext2, ciphertext, 1);
-
-  if (memcmp(plaintext2, plaintext, 16))
-    return "AES-128-CTR test failed (plaintext mismatch)";
-
-  if (memcmp(iv2, iv, 16))
-    return "AES-128-CTR test failed (IV mismatch)";
-
-  /* Test parallelized code paths */
-  for (diff = 0; diff < 7; diff++) {
-    memset(iv, 0xff, sizeof(iv));
-    iv[15] -= diff;
-
-    for (i = 0; i < sizeof(plaintext); i++)
-      plaintext[i] = i;
-
-    /* Create CTR ciphertext manually.  */
-    for (i = 0; i < sizeof(plaintext); i+=16)
-      {
-        rijndael_encrypt (&ctx, &ciphertext[i], iv);
-        for (j = 0; j < 16; j++)
-          ciphertext[i+j] ^= plaintext[i+j];
-        for (j = 16; j > 0; j--)
-          {
-            iv[j-1]++;
-            if (iv[j-1])
-              break;
-          }
-      }
-
-    /* Decrypt using bulk CTR and compare result.  */
-    memset(iv2, 0xff, sizeof(iv2));
-    iv2[15] -= diff;
-
-    _gcry_aes_ctr_enc (&ctx, iv2, plaintext2, ciphertext,
-                       sizeof(ciphertext) / BLOCKSIZE);
-
-    if (memcmp(plaintext2, plaintext, sizeof(plaintext)))
-      {
-        snprintf(error_str, sizeof(error_str),
-                 "AES-128-CTR test failed (plaintext mismatch, diff: %d)",
-                 diff);
-        return error_str;
-      }
-    if (memcmp(iv2, iv, sizeof(iv)))
-      {
-        snprintf(error_str, sizeof(error_str),
-                 "AES-128-CTR test failed (IV mismatch, diff: %d)",
-                 diff);
-        return error_str;
-      }
-  }
-
-  return NULL;
+  return _gcry_selftest_helper_ctr_128("AES", &rijndael_setkey,
+           &rijndael_encrypt, &_gcry_aes_ctr_enc, nblocks, blocksize,
+	   context_size);
 }
 
 
