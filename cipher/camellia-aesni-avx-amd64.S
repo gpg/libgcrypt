@@ -1116,5 +1116,70 @@ _gcry_camellia_aesni_avx_cbc_dec:
 	ret;
 .size _gcry_camellia_aesni_avx_cbc_dec,.-_gcry_camellia_aesni_avx_cbc_dec;
 
+.align 8
+.global _gcry_camellia_aesni_avx_cfb_dec
+.type   _gcry_camellia_aesni_avx_cfb_dec,@function;
+
+_gcry_camellia_aesni_avx_cfb_dec:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (16 blocks)
+	 *	%rdx: src (16 blocks)
+	 *	%rcx: iv
+	 */
+
+	subq $(16 * 16), %rsp;
+	movq %rsp, %rax;
+
+	/* inpack16_pre: */
+	vmovq (key_table)(CTX), %xmm0;
+	vpshufb .Lpack_bswap RIP, %xmm0, %xmm0;
+	vpxor (%rcx), %xmm0, %xmm15;
+	vmovdqu 15 * 16(%rdx), %xmm1;
+	vmovdqu %xmm1, (%rcx); /* store new IV */
+	vpxor 0 * 16(%rdx), %xmm0, %xmm14;
+	vpxor 1 * 16(%rdx), %xmm0, %xmm13;
+	vpxor 2 * 16(%rdx), %xmm0, %xmm12;
+	vpxor 3 * 16(%rdx), %xmm0, %xmm11;
+	vpxor 4 * 16(%rdx), %xmm0, %xmm10;
+	vpxor 5 * 16(%rdx), %xmm0, %xmm9;
+	vpxor 6 * 16(%rdx), %xmm0, %xmm8;
+	vpxor 7 * 16(%rdx), %xmm0, %xmm7;
+	vpxor 8 * 16(%rdx), %xmm0, %xmm6;
+	vpxor 9 * 16(%rdx), %xmm0, %xmm5;
+	vpxor 10 * 16(%rdx), %xmm0, %xmm4;
+	vpxor 11 * 16(%rdx), %xmm0, %xmm3;
+	vpxor 12 * 16(%rdx), %xmm0, %xmm2;
+	vpxor 13 * 16(%rdx), %xmm0, %xmm1;
+	vpxor 14 * 16(%rdx), %xmm0, %xmm0;
+
+	call __camellia_enc_blk16;
+
+	addq $(16 * 16), %rsp;
+
+	vpxor 0 * 16(%rdx), %xmm7, %xmm7;
+	vpxor 1 * 16(%rdx), %xmm6, %xmm6;
+	vpxor 2 * 16(%rdx), %xmm5, %xmm5;
+	vpxor 3 * 16(%rdx), %xmm4, %xmm4;
+	vpxor 4 * 16(%rdx), %xmm3, %xmm3;
+	vpxor 5 * 16(%rdx), %xmm2, %xmm2;
+	vpxor 6 * 16(%rdx), %xmm1, %xmm1;
+	vpxor 7 * 16(%rdx), %xmm0, %xmm0;
+	vpxor 8 * 16(%rdx), %xmm15, %xmm15;
+	vpxor 9 * 16(%rdx), %xmm14, %xmm14;
+	vpxor 10 * 16(%rdx), %xmm13, %xmm13;
+	vpxor 11 * 16(%rdx), %xmm12, %xmm12;
+	vpxor 12 * 16(%rdx), %xmm11, %xmm11;
+	vpxor 13 * 16(%rdx), %xmm10, %xmm10;
+	vpxor 14 * 16(%rdx), %xmm9, %xmm9;
+	vpxor 15 * 16(%rdx), %xmm8, %xmm8;
+
+	write_output(%xmm7, %xmm6, %xmm5, %xmm4, %xmm3, %xmm2, %xmm1, %xmm0,
+		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
+		     %xmm8, %rsi);
+
+	ret;
+.size _gcry_camellia_aesni_avx_cfb_dec,.-_gcry_camellia_aesni_avx_cfb_dec;
+
 #endif /*defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX_SUPPORT)*/
 #endif /*__x86_64*/

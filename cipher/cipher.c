@@ -723,6 +723,7 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
 	    case GCRY_CIPHER_CAMELLIA192:
 	    case GCRY_CIPHER_CAMELLIA256:
               h->bulk.cbc_dec = _gcry_camellia_cbc_dec;
+              h->bulk.cfb_dec = _gcry_camellia_cfb_dec;
               h->bulk.ctr_enc = _gcry_camellia_ctr_enc;
               break;
 #endif /*USE_CAMELLIA*/
