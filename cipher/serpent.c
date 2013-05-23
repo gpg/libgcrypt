@@ -28,6 +28,15 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bithelp.h"
+#include "bufhelp.h"
+#include "cipher-selftest.h"
+
+
+/* USE_SSE2 indicates whether to compile with AMD64 SSE2 code. */
+#undef USE_SSE2
+#if defined(__x86_64__)
+# define USE_SSE2 1
+#endif
 
 /* Number of rounds per Serpent encrypt/decrypt operation.  */
 #define ROUNDS 32
@@ -51,6 +60,21 @@ typedef struct serpent_context
   serpent_subkeys_t keys;	/* Generated subkeys.  */
 } serpent_context_t;
 
+
+#ifdef USE_SSE2
+/* Assembler implementations of Serpent using SSE2.  Process 8 block in
+   parallel.
+ */
+extern void _gcry_serpent_sse2_ctr_enc(serpent_context_t *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *ctr);
+
+extern void _gcry_serpent_sse2_cbc_dec(serpent_context_t *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *iv);
+#endif
 
 /* A prototype.  */
 static const char *serpent_test (void);
@@ -191,7 +215,7 @@ static const char *serpent_test (void);
     r4 &= r0; r1 ^= r3; \
     r4 ^= r2; r1 |= r0; \
     r1 ^= r2; r0 ^= r3; \
-    r2  = r1; r1 |= r3; \
+    r2 =  r1; r1 |= r3; \
     r1 ^= r0; \
     \
     w = r1; x = r2; y = r3; z = r4; \
@@ -587,10 +611,10 @@ serpent_setkey (void *ctx,
   if (! serpent_init_done)
     {
       /* Execute a self-test the first time, Serpent is used.  */
+      serpent_init_done = 1;
       serpent_test_ret = serpent_test ();
       if (serpent_test_ret)
 	log_error ("Serpent test failure: %s\n", serpent_test_ret);
-      serpent_init_done = 1;
     }
 
   if (serpent_test_ret)
@@ -740,6 +764,190 @@ serpent_decrypt (void *ctx, byte *buffer_out, const byte *buffer_in)
 
 
 
+/* Bulk encryption of complete blocks in CTR mode.  This function is only
+   intended for the bulk encryption feature of cipher.c.  CTR is expected to be
+   of size sizeof(serpent_block_t). */
+void
+_gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
+                      void *outbuf_arg, const void *inbuf_arg,
+                      unsigned int nblocks)
+{
+  serpent_context_t *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char tmpbuf[sizeof(serpent_block_t)];
+  int burn_stack_depth = 2 * sizeof (serpent_block_t);
+  int i;
+
+#ifdef USE_SSE2
+  {
+    int did_use_sse2 = 0;
+
+    /* Process data in 8 block chunks. */
+    while (nblocks >= 8)
+      {
+        _gcry_serpent_sse2_ctr_enc(ctx, outbuf, inbuf, ctr);
+
+        nblocks -= 8;
+        outbuf += 8 * sizeof(serpent_block_t);
+        inbuf  += 8 * sizeof(serpent_block_t);
+        did_use_sse2 = 1;
+      }
+
+    if (did_use_sse2)
+      {
+        /* clear SSE2 registers used by serpent-sse2 */
+        asm volatile (
+          "pxor %%xmm0, %%xmm0;\n"
+          "pxor %%xmm1, %%xmm1;\n"
+          "pxor %%xmm2, %%xmm2;\n"
+          "pxor %%xmm3, %%xmm3;\n"
+          "pxor %%xmm4, %%xmm4;\n"
+          "pxor %%xmm5, %%xmm5;\n"
+          "pxor %%xmm6, %%xmm6;\n"
+          "pxor %%xmm7, %%xmm7;\n"
+          "pxor %%xmm10, %%xmm10;\n"
+          "pxor %%xmm11, %%xmm11;\n"
+          "pxor %%xmm12, %%xmm12;\n"
+          "pxor %%xmm13, %%xmm13;\n"
+          :::);
+
+        /* serpent-sse2 assembly code does not use stack */
+        if (nblocks == 0)
+          burn_stack_depth = 0;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+    /* TODO: use caching instead? */
+  }
+#endif
+
+  for ( ;nblocks; nblocks-- )
+    {
+      /* Encrypt the counter. */
+      serpent_encrypt_internal(ctx, ctr, tmpbuf);
+      /* XOR the input with the encrypted counter and store in output.  */
+      buf_xor(outbuf, tmpbuf, inbuf, sizeof(serpent_block_t));
+      outbuf += sizeof(serpent_block_t);
+      inbuf  += sizeof(serpent_block_t);
+      /* Increment the counter.  */
+      for (i = sizeof(serpent_block_t); i > 0; i--)
+        {
+          ctr[i-1]++;
+          if (ctr[i-1])
+            break;
+        }
+    }
+
+  wipememory(tmpbuf, sizeof(tmpbuf));
+  _gcry_burn_stack(burn_stack_depth);
+}
+
+/* Bulk decryption of complete blocks in CBC mode.  This function is only
+   intended for the bulk encryption feature of cipher.c. */
+void
+_gcry_serpent_cbc_dec(void *context, unsigned char *iv,
+                       void *outbuf_arg, const void *inbuf_arg,
+                       unsigned int nblocks)
+{
+  serpent_context_t *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char savebuf[sizeof(serpent_block_t)];
+  int burn_stack_depth = 2 * sizeof (serpent_block_t);
+
+#ifdef USE_SSE2
+  {
+    int did_use_sse2 = 0;
+
+    /* Process data in 8 block chunks. */
+    while (nblocks >= 8)
+      {
+        _gcry_serpent_sse2_cbc_dec(ctx, outbuf, inbuf, iv);
+
+        nblocks -= 8;
+        outbuf += 8 * sizeof(serpent_block_t);
+        inbuf  += 8 * sizeof(serpent_block_t);
+        did_use_sse2 = 1;
+      }
+
+    if (did_use_sse2)
+      {
+        /* clear SSE2 registers used by serpent-sse2 */
+        asm volatile (
+          "pxor %%xmm0, %%xmm0;\n"
+          "pxor %%xmm1, %%xmm1;\n"
+          "pxor %%xmm2, %%xmm2;\n"
+          "pxor %%xmm3, %%xmm3;\n"
+          "pxor %%xmm4, %%xmm4;\n"
+          "pxor %%xmm5, %%xmm5;\n"
+          "pxor %%xmm6, %%xmm6;\n"
+          "pxor %%xmm7, %%xmm7;\n"
+          "pxor %%xmm10, %%xmm10;\n"
+          "pxor %%xmm11, %%xmm11;\n"
+          "pxor %%xmm12, %%xmm12;\n"
+          "pxor %%xmm13, %%xmm13;\n"
+          :::);
+
+        /* serpent-sse2 assembly code does not use stack */
+        if (nblocks == 0)
+          burn_stack_depth = 0;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+  }
+#endif
+
+  for ( ;nblocks; nblocks-- )
+    {
+      /* We need to save INBUF away because it may be identical to
+         OUTBUF.  */
+      memcpy(savebuf, inbuf, sizeof(serpent_block_t));
+
+      serpent_decrypt_internal (ctx, inbuf, outbuf);
+
+      buf_xor(outbuf, outbuf, iv, sizeof(serpent_block_t));
+      memcpy(iv, savebuf, sizeof(serpent_block_t));
+      inbuf += sizeof(serpent_block_t);
+      outbuf += sizeof(serpent_block_t);
+    }
+
+  wipememory(savebuf, sizeof(savebuf));
+  _gcry_burn_stack(burn_stack_depth);
+}
+
+
+
+/* Run the self-tests for SERPENT-CTR-128, tests IV increment of bulk CTR
+   encryption.  Returns NULL on success. */
+static const char*
+selftest_ctr_128 (void)
+{
+  const int nblocks = 8+1;
+  const int blocksize = sizeof(serpent_block_t);
+  const int context_size = sizeof(serpent_context_t);
+
+  return _gcry_selftest_helper_ctr_128("SERPENT", &serpent_setkey,
+           &serpent_encrypt, &_gcry_serpent_ctr_enc, nblocks, blocksize,
+	   context_size);
+}
+
+
+/* Run the self-tests for SERPENT-CBC-128, tests bulk CBC decryption.
+   Returns NULL on success. */
+static const char*
+selftest_cbc_128 (void)
+{
+  const int nblocks = 8+2;
+  const int blocksize = sizeof(serpent_block_t);
+  const int context_size = sizeof(serpent_context_t);
+
+  return _gcry_selftest_helper_cbc_128("SERPENT", &serpent_setkey,
+           &serpent_encrypt, &_gcry_serpent_cbc_dec, nblocks, blocksize,
+	   context_size);
+}
+
+
 /* Serpent test.  */
 
 static const char *
@@ -748,6 +956,7 @@ serpent_test (void)
   serpent_context_t context;
   unsigned char scratch[16];
   unsigned int i;
+  const char *r;
 
   static struct test
   {
@@ -818,6 +1027,12 @@ serpent_test (void)
 	  return "Serpent-256 test decryption failed.";
 	}
     }
+
+  if ( (r = selftest_ctr_128 ()) )
+    return r;
+
+  if ( (r = selftest_cbc_128 ()) )
+    return r;
 
   return NULL;
 }

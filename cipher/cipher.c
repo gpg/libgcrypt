@@ -726,6 +726,14 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
               h->bulk.ctr_enc = _gcry_camellia_ctr_enc;
               break;
 #endif /*USE_CAMELLIA*/
+#ifdef USE_SERPENT
+	    case GCRY_CIPHER_SERPENT128:
+	    case GCRY_CIPHER_SERPENT192:
+	    case GCRY_CIPHER_SERPENT256:
+              h->bulk.cbc_dec = _gcry_serpent_cbc_dec;
+              h->bulk.ctr_enc = _gcry_serpent_ctr_enc;
+              break;
+#endif /*USE_SERPENT*/
 
             default:
               break;

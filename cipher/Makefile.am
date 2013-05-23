@@ -68,7 +68,7 @@ rmd160.c \
 rsa.c \
 scrypt.c \
 seed.c \
-serpent.c \
+serpent.c serpent-sse2-amd64.S \
 sha1.c \
 sha256.c \
 sha512.c \

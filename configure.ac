@@ -1219,6 +1219,13 @@ LIST_MEMBER(serpent, $enabled_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS serpent.lo"
    AC_DEFINE(USE_SERPENT, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the SSE2 implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS serpent-sse2-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(rfc2268, $enabled_ciphers)
