@@ -61,403 +61,303 @@ static const char *serpent_test (void);
    | (((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) \
    | (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
 
-/* These are the S-Boxes of Serpent.  They are copied from Serpents
-   reference implementation (the optimized one, contained in
-   `floppy2') and are therefore:
+/*
+ * These are the S-Boxes of Serpent from following research paper.
+ *
+ *  D. A. Osvik, “Speeding up Serpent,” in Third AES Candidate Conference,
+ *   (New York, New York, USA), p. 317–329, National Institute of Standards and
+ *   Technology, 2000.
+ *
+ * Paper is also available at: http://www.ii.uib.no/~osvik/pub/aes3.pdf
+ *
+ */
 
-     Copyright (C) 1998 Ross Anderson, Eli Biham, Lars Knudsen.
-
-  To quote the Serpent homepage
-  (http://www.cl.cam.ac.uk/~rja14/serpent.html):
-
-  "Serpent is now completely in the public domain, and we impose no
-   restrictions on its use.  This was announced on the 21st August at
-   the First AES Candidate Conference. The optimised implementations
-   in the submission package are now under the GNU PUBLIC LICENSE
-   (GPL), although some comments in the code still say otherwise. You
-   are welcome to use Serpent for any application."  */
-
-#define SBOX0(a, b, c, d, w, x, y, z) \
+#define SBOX0(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t05, t06, t07, t08, t09; \
-    u32 t11, t12, t13, t14, t15, t17, t01; \
-    t01 = b   ^ c  ; \
-    t02 = a   | d  ; \
-    t03 = a   ^ b  ; \
-    z   = t02 ^ t01; \
-    t05 = c   | z  ; \
-    t06 = a   ^ d  ; \
-    t07 = b   | c  ; \
-    t08 = d   & t05; \
-    t09 = t03 & t07; \
-    y   = t09 ^ t08; \
-    t11 = t09 & y  ; \
-    t12 = c   ^ d  ; \
-    t13 = t07 ^ t11; \
-    t14 = b   & t06; \
-    t15 = t06 ^ t13; \
-    w   =     ~ t15; \
-    t17 = w   ^ t14; \
-    x   = t12 ^ t17; \
+    u32 r4; \
+    \
+    r3 ^= r0; r4 =  r1; \
+    r1 &= r3; r4 ^= r2; \
+    r1 ^= r0; r0 |= r3; \
+    r0 ^= r4; r4 ^= r3; \
+    r3 ^= r2; r2 |= r1; \
+    r2 ^= r4; r4 = ~r4; \
+    r4 |= r1; r1 ^= r3; \
+    r1 ^= r4; r3 |= r0; \
+    r1 ^= r3; r4 ^= r3; \
+    \
+    w = r1; x = r4; y = r2; z = r0; \
   }
 
-#define SBOX0_INVERSE(a, b, c, d, w, x, y, z) \
+#define SBOX0_INVERSE(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t06, t08, t09, t10; \
-    u32 t12, t13, t14, t15, t17, t18, t01; \
-    t01 = c   ^ d  ; \
-    t02 = a   | b  ; \
-    t03 = b   | c  ; \
-    t04 = c   & t01; \
-    t05 = t02 ^ t01; \
-    t06 = a   | t04; \
-    y   =     ~ t05; \
-    t08 = b   ^ d  ; \
-    t09 = t03 & t08; \
-    t10 = d   | y  ; \
-    x   = t09 ^ t06; \
-    t12 = a   | t05; \
-    t13 = x   ^ t12; \
-    t14 = t03 ^ t10; \
-    t15 = a   ^ c  ; \
-    z   = t14 ^ t13; \
-    t17 = t05 & t13; \
-    t18 = t14 | t17; \
-    w   = t15 ^ t18; \
+    u32 r4; \
+    \
+    r2 = ~r2; r4 =  r1; \
+    r1 |= r0; r4 = ~r4; \
+    r1 ^= r2; r2 |= r4; \
+    r1 ^= r3; r0 ^= r4; \
+    r2 ^= r0; r0 &= r3; \
+    r4 ^= r0; r0 |= r1; \
+    r0 ^= r2; r3 ^= r4; \
+    r2 ^= r1; r3 ^= r0; \
+    r3 ^= r1; \
+    r2 &= r3; \
+    r4 ^= r2; \
+    \
+    w = r0; x = r4; y = r1; z = r3; \
   }
 
-#define SBOX1(a, b, c, d, w, x, y, z) \
+#define SBOX1(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t06, t07, t08; \
-    u32 t10, t11, t12, t13, t16, t17, t01; \
-    t01 = a   | d  ; \
-    t02 = c   ^ d  ; \
-    t03 =     ~ b  ; \
-    t04 = a   ^ c  ; \
-    t05 = a   | t03; \
-    t06 = d   & t04; \
-    t07 = t01 & t02; \
-    t08 = b   | t06; \
-    y   = t02 ^ t05; \
-    t10 = t07 ^ t08; \
-    t11 = t01 ^ t10; \
-    t12 = y   ^ t11; \
-    t13 = b   & d  ; \
-    z   =     ~ t10; \
-    x   = t13 ^ t12; \
-    t16 = t10 | x  ; \
-    t17 = t05 & t16; \
-    w   = c   ^ t17; \
+    u32 r4; \
+    \
+    r0 = ~r0; r2 = ~r2; \
+    r4 =  r0; r0 &= r1; \
+    r2 ^= r0; r0 |= r3; \
+    r3 ^= r2; r1 ^= r0; \
+    r0 ^= r4; r4 |= r1; \
+    r1 ^= r3; r2 |= r0; \
+    r2 &= r4; r0 ^= r1; \
+    r1 &= r2; \
+    r1 ^= r0; r0 &= r2; \
+    r0 ^= r4; \
+    \
+    w = r2; x = r0; y = r3; z = r1; \
   }
 
-#define SBOX1_INVERSE(a, b, c, d, w, x, y, z) \
+#define SBOX1_INVERSE(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t06, t07, t08; \
-    u32 t09, t10, t11, t14, t15, t17, t01; \
-    t01 = a   ^ b  ; \
-    t02 = b   | d  ; \
-    t03 = a   & c  ; \
-    t04 = c   ^ t02; \
-    t05 = a   | t04; \
-    t06 = t01 & t05; \
-    t07 = d   | t03; \
-    t08 = b   ^ t06; \
-    t09 = t07 ^ t06; \
-    t10 = t04 | t03; \
-    t11 = d   & t08; \
-    y   =     ~ t09; \
-    x   = t10 ^ t11; \
-    t14 = a   | y  ; \
-    t15 = t06 ^ x  ; \
-    z   = t01 ^ t04; \
-    t17 = c   ^ t15; \
-    w   = t14 ^ t17; \
+    u32 r4; \
+    \
+    r4 =  r1; r1 ^= r3; \
+    r3 &= r1; r4 ^= r2; \
+    r3 ^= r0; r0 |= r1; \
+    r2 ^= r3; r0 ^= r4; \
+    r0 |= r2; r1 ^= r3; \
+    r0 ^= r1; r1 |= r3; \
+    r1 ^= r0; r4 = ~r4; \
+    r4 ^= r1; r1 |= r0; \
+    r1 ^= r0; \
+    r1 |= r4; \
+    r3 ^= r1; \
+    \
+    w = r4; x = r0; y = r3; z = r2; \
   }
 
-#define SBOX2(a, b, c, d, w, x, y, z) \
+#define SBOX2(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t05, t06, t07, t08; \
-    u32 t09, t10, t12, t13, t14, t01; \
-    t01 = a   | c  ; \
-    t02 = a   ^ b  ; \
-    t03 = d   ^ t01; \
-    w   = t02 ^ t03; \
-    t05 = c   ^ w  ; \
-    t06 = b   ^ t05; \
-    t07 = b   | t05; \
-    t08 = t01 & t06; \
-    t09 = t03 ^ t07; \
-    t10 = t02 | t09; \
-    x   = t10 ^ t08; \
-    t12 = a   | d  ; \
-    t13 = t09 ^ x  ; \
-    t14 = b   ^ t13; \
-    z   =     ~ t09; \
-    y   = t12 ^ t14; \
+    u32 r4; \
+    \
+    r4 =  r0; r0 &= r2; \
+    r0 ^= r3; r2 ^= r1; \
+    r2 ^= r0; r3 |= r4; \
+    r3 ^= r1; r4 ^= r2; \
+    r1 =  r3; r3 |= r4; \
+    r3 ^= r0; r0 &= r1; \
+    r4 ^= r0; r1 ^= r3; \
+    r1 ^= r4; r4 = ~r4; \
+    \
+    w = r2; x = r3; y = r1; z = r4; \
   }
 
-#define SBOX2_INVERSE(a, b, c, d, w, x, y, z) \
+#define SBOX2_INVERSE(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t06, t07, t08, t09; \
-    u32 t10, t11, t12, t15, t16, t17, t01; \
-    t01 = a   ^ d  ; \
-    t02 = c   ^ d  ; \
-    t03 = a   & c  ; \
-    t04 = b   | t02; \
-    w   = t01 ^ t04; \
-    t06 = a   | c  ; \
-    t07 = d   | w  ; \
-    t08 =     ~ d  ; \
-    t09 = b   & t06; \
-    t10 = t08 | t03; \
-    t11 = b   & t07; \
-    t12 = t06 & t02; \
-    z   = t09 ^ t10; \
-    x   = t12 ^ t11; \
-    t15 = c   & z  ; \
-    t16 = w   ^ x  ; \
-    t17 = t10 ^ t15; \
-    y   = t16 ^ t17; \
+    u32 r4; \
+    \
+    r2 ^= r3; r3 ^= r0; \
+    r4 =  r3; r3 &= r2; \
+    r3 ^= r1; r1 |= r2; \
+    r1 ^= r4; r4 &= r3; \
+    r2 ^= r3; r4 &= r0; \
+    r4 ^= r2; r2 &= r1; \
+    r2 |= r0; r3 = ~r3; \
+    r2 ^= r3; r0 ^= r3; \
+    r0 &= r1; r3 ^= r4; \
+    r3 ^= r0; \
+    \
+    w = r1; x = r4; y = r2; z = r3; \
   }
 
-#define SBOX3(a, b, c, d, w, x, y, z) \
+#define SBOX3(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t06, t07, t08; \
-    u32 t09, t10, t11, t13, t14, t15, t01; \
-    t01 = a   ^ c  ; \
-    t02 = a   | d  ; \
-    t03 = a   & d  ; \
-    t04 = t01 & t02; \
-    t05 = b   | t03; \
-    t06 = a   & b  ; \
-    t07 = d   ^ t04; \
-    t08 = c   | t06; \
-    t09 = b   ^ t07; \
-    t10 = d   & t05; \
-    t11 = t02 ^ t10; \
-    z   = t08 ^ t09; \
-    t13 = d   | z  ; \
-    t14 = a   | t07; \
-    t15 = b   & t13; \
-    y   = t08 ^ t11; \
-    w   = t14 ^ t15; \
-    x   = t05 ^ t04; \
+    u32 r4; \
+    \
+    r4 =  r0; r0 |= r3; \
+    r3 ^= r1; r1 &= r4; \
+    r4 ^= r2; r2 ^= r3; \
+    r3 &= r0; r4 |= r1; \
+    r3 ^= r4; r0 ^= r1; \
+    r4 &= r0; r1 ^= r3; \
+    r4 ^= r2; r1 |= r0; \
+    r1 ^= r2; r0 ^= r3; \
+    r2  = r1; r1 |= r3; \
+    r1 ^= r0; \
+    \
+    w = r1; x = r2; y = r3; z = r4; \
   }
 
-#define SBOX3_INVERSE(a, b, c, d, w, x, y, z) \
+#define SBOX3_INVERSE(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t06, t07, t09; \
-    u32 t11, t12, t13, t14, t16, t01; \
-    t01 = c   | d  ; \
-    t02 = a   | d  ; \
-    t03 = c   ^ t02; \
-    t04 = b   ^ t02; \
-    t05 = a   ^ d  ; \
-    t06 = t04 & t03; \
-    t07 = b   & t01; \
-    y   = t05 ^ t06; \
-    t09 = a   ^ t03; \
-    w   = t07 ^ t03; \
-    t11 = w   | t05; \
-    t12 = t09 & t11; \
-    t13 = a   & y  ; \
-    t14 = t01 ^ t05; \
-    x   = b   ^ t12; \
-    t16 = b   | t13; \
-    z   = t14 ^ t16; \
+    u32 r4; \
+    \
+    r4 =  r2; r2 ^= r1; \
+    r0 ^= r2; r4 &= r2; \
+    r4 ^= r0; r0 &= r1; \
+    r1 ^= r3; r3 |= r4; \
+    r2 ^= r3; r0 ^= r3; \
+    r1 ^= r4; r3 &= r2; \
+    r3 ^= r1; r1 ^= r0; \
+    r1 |= r2; r0 ^= r3; \
+    r1 ^= r4; \
+    r0 ^= r1; \
+    \
+    w = r2; x = r1; y = r3; z = r0; \
   }
 
-#define SBOX4(a, b, c, d, w, x, y, z) \
+#define SBOX4(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t06, t08, t09; \
-    u32 t10, t11, t12, t13, t14, t15, t16, t01; \
-    t01 = a   | b  ; \
-    t02 = b   | c  ; \
-    t03 = a   ^ t02; \
-    t04 = b   ^ d  ; \
-    t05 = d   | t03; \
-    t06 = d   & t01; \
-    z   = t03 ^ t06; \
-    t08 = z   & t04; \
-    t09 = t04 & t05; \
-    t10 = c   ^ t06; \
-    t11 = b   & c  ; \
-    t12 = t04 ^ t08; \
-    t13 = t11 | t03; \
-    t14 = t10 ^ t09; \
-    t15 = a   & t05; \
-    t16 = t11 | t12; \
-    y   = t13 ^ t08; \
-    x   = t15 ^ t16; \
-    w   =     ~ t14; \
+    u32 r4; \
+    \
+    r1 ^= r3; r3 = ~r3; \
+    r2 ^= r3; r3 ^= r0; \
+    r4 =  r1; r1 &= r3; \
+    r1 ^= r2; r4 ^= r3; \
+    r0 ^= r4; r2 &= r4; \
+    r2 ^= r0; r0 &= r1; \
+    r3 ^= r0; r4 |= r1; \
+    r4 ^= r0; r0 |= r3; \
+    r0 ^= r2; r2 &= r3; \
+    r0 = ~r0; r4 ^= r2; \
+    \
+    w = r1; x = r4; y = r0; z = r3; \
   }
 
-#define SBOX4_INVERSE(a, b, c, d, w, x, y, z) \
+#define SBOX4_INVERSE(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t06, t07, t09; \
-    u32 t10, t11, t12, t13, t15, t01; \
-    t01 = b   | d  ; \
-    t02 = c   | d  ; \
-    t03 = a   & t01; \
-    t04 = b   ^ t02; \
-    t05 = c   ^ d  ; \
-    t06 =     ~ t03; \
-    t07 = a   & t04; \
-    x   = t05 ^ t07; \
-    t09 = x   | t06; \
-    t10 = a   ^ t07; \
-    t11 = t01 ^ t09; \
-    t12 = d   ^ t04; \
-    t13 = c   | t10; \
-    z   = t03 ^ t12; \
-    t15 = a   ^ t04; \
-    y   = t11 ^ t13; \
-    w   = t15 ^ t09; \
+    u32 r4; \
+    \
+    r4 =  r2; r2 &= r3; \
+    r2 ^= r1; r1 |= r3; \
+    r1 &= r0; r4 ^= r2; \
+    r4 ^= r1; r1 &= r2; \
+    r0 = ~r0; r3 ^= r4; \
+    r1 ^= r3; r3 &= r0; \
+    r3 ^= r2; r0 ^= r1; \
+    r2 &= r0; r3 ^= r0; \
+    r2 ^= r4; \
+    r2 |= r3; r3 ^= r0; \
+    r2 ^= r1; \
+    \
+    w = r0; x = r3; y = r2; z = r4; \
   }
 
-#define SBOX5(a, b, c, d, w, x, y, z) \
+#define SBOX5(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t07, t08, t09; \
-    u32 t10, t11, t12, t13, t14, t01; \
-    t01 = b   ^ d  ; \
-    t02 = b   | d  ; \
-    t03 = a   & t01; \
-    t04 = c   ^ t02; \
-    t05 = t03 ^ t04; \
-    w   =     ~ t05; \
-    t07 = a   ^ t01; \
-    t08 = d   | w  ; \
-    t09 = b   | t05; \
-    t10 = d   ^ t08; \
-    t11 = b   | t07; \
-    t12 = t03 | w  ; \
-    t13 = t07 | t10; \
-    t14 = t01 ^ t11; \
-    y   = t09 ^ t13; \
-    x   = t07 ^ t08; \
-    z   = t12 ^ t14; \
+    u32 r4; \
+    \
+    r0 ^= r1; r1 ^= r3; \
+    r3 = ~r3; r4 =  r1; \
+    r1 &= r0; r2 ^= r3; \
+    r1 ^= r2; r2 |= r4; \
+    r4 ^= r3; r3 &= r1; \
+    r3 ^= r0; r4 ^= r1; \
+    r4 ^= r2; r2 ^= r0; \
+    r0 &= r3; r2 = ~r2; \
+    r0 ^= r4; r4 |= r3; \
+    r2 ^= r4; \
+    \
+    w = r1; x = r3; y = r0; z = r2; \
   }
 
-#define SBOX5_INVERSE(a, b, c, d, w, x, y, z) \
+#define SBOX5_INVERSE(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t07, t08, t09; \
-    u32 t10, t12, t13, t15, t16, t01; \
-    t01 = a   & d  ; \
-    t02 = c   ^ t01; \
-    t03 = a   ^ d  ; \
-    t04 = b   & t02; \
-    t05 = a   & c  ; \
-    w   = t03 ^ t04; \
-    t07 = a   & w  ; \
-    t08 = t01 ^ w  ; \
-    t09 = b   | t05; \
-    t10 =     ~ b  ; \
-    x   = t08 ^ t09; \
-    t12 = t10 | t07; \
-    t13 = w   | x  ; \
-    z   = t02 ^ t12; \
-    t15 = t02 ^ t13; \
-    t16 = b   ^ d  ; \
-    y   = t16 ^ t15; \
+    u32 r4; \
+    \
+    r1 = ~r1; r4 =  r3; \
+    r2 ^= r1; r3 |= r0; \
+    r3 ^= r2; r2 |= r1; \
+    r2 &= r0; r4 ^= r3; \
+    r2 ^= r4; r4 |= r0; \
+    r4 ^= r1; r1 &= r2; \
+    r1 ^= r3; r4 ^= r2; \
+    r3 &= r4; r4 ^= r1; \
+    r3 ^= r4; r4 = ~r4; \
+    r3 ^= r0; \
+    \
+    w = r1; x = r4; y = r3; z = r2; \
   }
 
-#define SBOX6(a, b, c, d, w, x, y, z) \
+#define SBOX6(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t07, t08, t09, t10; \
-    u32 t11, t12, t13, t15, t17, t18, t01; \
-    t01 = a   & d  ; \
-    t02 = b   ^ c  ; \
-    t03 = a   ^ d  ; \
-    t04 = t01 ^ t02; \
-    t05 = b   | c  ; \
-    x   =     ~ t04; \
-    t07 = t03 & t05; \
-    t08 = b   & x  ; \
-    t09 = a   | c  ; \
-    t10 = t07 ^ t08; \
-    t11 = b   | d  ; \
-    t12 = c   ^ t11; \
-    t13 = t09 ^ t10; \
-    y   =     ~ t13; \
-    t15 = x   & t03; \
-    z   = t12 ^ t07; \
-    t17 = a   ^ b  ; \
-    t18 = y   ^ t15; \
-    w   = t17 ^ t18; \
+    u32 r4; \
+    \
+    r2 = ~r2; r4 =  r3; \
+    r3 &= r0; r0 ^= r4; \
+    r3 ^= r2; r2 |= r4; \
+    r1 ^= r3; r2 ^= r0; \
+    r0 |= r1; r2 ^= r1; \
+    r4 ^= r0; r0 |= r3; \
+    r0 ^= r2; r4 ^= r3; \
+    r4 ^= r0; r3 = ~r3; \
+    r2 &= r4; \
+    r2 ^= r3; \
+    \
+    w = r0; x = r1; y = r4; z = r2; \
   }
 
-#define SBOX6_INVERSE(a, b, c, d, w, x, y, z) \
+#define SBOX6_INVERSE(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t06, t07, t08, t09; \
-    u32 t12, t13, t14, t15, t16, t17, t01; \
-    t01 = a   ^ c  ; \
-    t02 =     ~ c  ; \
-    t03 = b   & t01; \
-    t04 = b   | t02; \
-    t05 = d   | t03; \
-    t06 = b   ^ d  ; \
-    t07 = a   & t04; \
-    t08 = a   | t02; \
-    t09 = t07 ^ t05; \
-    x   = t06 ^ t08; \
-    w   =     ~ t09; \
-    t12 = b   & w  ; \
-    t13 = t01 & t05; \
-    t14 = t01 ^ t12; \
-    t15 = t07 ^ t13; \
-    t16 = d   | t02; \
-    t17 = a   ^ x  ; \
-    z   = t17 ^ t15; \
-    y   = t16 ^ t14; \
+    u32 r4; \
+    \
+    r0 ^= r2; r4 =  r2; \
+    r2 &= r0; r4 ^= r3; \
+    r2 = ~r2; r3 ^= r1; \
+    r2 ^= r3; r4 |= r0; \
+    r0 ^= r2; r3 ^= r4; \
+    r4 ^= r1; r1 &= r3; \
+    r1 ^= r0; r0 ^= r3; \
+    r0 |= r2; r3 ^= r1; \
+    r4 ^= r0; \
+    \
+    w = r1; x = r2; y = r4; z = r3; \
   }
 
-#define SBOX7(a, b, c, d, w, x, y, z) \
+#define SBOX7(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t05, t06, t08, t09, t10; \
-    u32 t11, t13, t14, t15, t16, t17, t01; \
-    t01 = a   & c  ; \
-    t02 =     ~ d  ; \
-    t03 = a   & t02; \
-    t04 = b   | t01; \
-    t05 = a   & b  ; \
-    t06 = c   ^ t04; \
-    z   = t03 ^ t06; \
-    t08 = c   | z  ; \
-    t09 = d   | t05; \
-    t10 = a   ^ t08; \
-    t11 = t04 & z  ; \
-    x   = t09 ^ t10; \
-    t13 = b   ^ x  ; \
-    t14 = t01 ^ x  ; \
-    t15 = c   ^ t05; \
-    t16 = t11 | t13; \
-    t17 = t02 | t14; \
-    w   = t15 ^ t17; \
-    y   = a   ^ t16; \
+    u32 r4; \
+    \
+    r4 =  r1; r1 |= r2; \
+    r1 ^= r3; r4 ^= r2; \
+    r2 ^= r1; r3 |= r4; \
+    r3 &= r0; r4 ^= r2; \
+    r3 ^= r1; r1 |= r4; \
+    r1 ^= r0; r0 |= r4; \
+    r0 ^= r2; r1 ^= r4; \
+    r2 ^= r1; r1 &= r0; \
+    r1 ^= r4; r2 = ~r2; \
+    r2 |= r0; \
+    r4 ^= r2; \
+    \
+    w = r4; x = r3; y = r1; z = r0; \
   }
 
-#define SBOX7_INVERSE(a, b, c, d, w, x, y, z) \
+#define SBOX7_INVERSE(r0, r1, r2, r3, w, x, y, z) \
   { \
-    u32 t02, t03, t04, t06, t07, t08, t09; \
-    u32 t10, t11, t13, t14, t15, t16, t01; \
-    t01 = a   & b  ; \
-    t02 = a   | b  ; \
-    t03 = c   | t01; \
-    t04 = d   & t02; \
-    z   = t03 ^ t04; \
-    t06 = b   ^ t04; \
-    t07 = d   ^ z  ; \
-    t08 =     ~ t07; \
-    t09 = t06 | t08; \
-    t10 = b   ^ d  ; \
-    t11 = a   | d  ; \
-    x   = a   ^ t09; \
-    t13 = c   ^ t06; \
-    t14 = c   & t11; \
-    t15 = d   | x  ; \
-    t16 = t01 | t10; \
-    w   = t13 ^ t15; \
-    y   = t14 ^ t16; \
+    u32 r4; \
+    \
+    r4 =  r2; r2 ^= r0; \
+    r0 &= r3; r4 |= r3; \
+    r2 = ~r2; r3 ^= r1; \
+    r1 |= r0; r0 ^= r2; \
+    r2 &= r4; r3 &= r4; \
+    r1 ^= r2; r2 ^= r0; \
+    r0 |= r2; r4 ^= r1; \
+    r0 ^= r3; r3 ^= r4; \
+    r4 |= r0; r3 ^= r2; \
+    r4 ^= r2; \
+    \
+    w = r3; x = r0; y = r1; z = r4; \
   }
 
 /* XOR BLOCK1 into BLOCK0.  */
