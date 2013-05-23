@@ -30,6 +30,11 @@ typedef void (*gcry_cipher_bulk_cbc_dec_t)(void *context, unsigned char *iv,
 					   const void *inbuf_arg,
 					   unsigned int nblocks);
 
+typedef void (*gcry_cipher_bulk_cfb_dec_t)(void *context, unsigned char *iv,
+					   void *outbuf_arg,
+					   const void *inbuf_arg,
+					   unsigned int nblocks);
+
 typedef void (*gcry_cipher_bulk_ctr_enc_t)(void *context, unsigned char *iv,
 					   void *outbuf_arg,
 					   const void *inbuf_arg,
@@ -40,6 +45,14 @@ const char *
 _gcry_selftest_helper_cbc_128 (const char *cipher, gcry_cipher_setkey_t setkey,
 			       gcry_cipher_encrypt_t encrypt_one,
 			       gcry_cipher_bulk_cbc_dec_t bulk_cbc_dec,
+			       const int nblocks, const int blocksize,
+			       const int context_size);
+
+/* Helper function for bulk CFB decryption selftest */
+const char *
+_gcry_selftest_helper_cfb_128 (const char *cipher, gcry_cipher_setkey_t setkey,
+			       gcry_cipher_encrypt_t encrypt_one,
+			       gcry_cipher_bulk_cfb_dec_t bulk_cfb_dec,
 			       const int nblocks, const int blocksize,
 			       const int context_size);
 
