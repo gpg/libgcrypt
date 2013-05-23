@@ -822,5 +822,71 @@ _gcry_serpent_sse2_cbc_dec:
 	ret
 .size _gcry_serpent_sse2_cbc_dec,.-_gcry_serpent_sse2_cbc_dec;
 
+.align 8
+.global _gcry_serpent_sse2_cfb_dec
+.type   _gcry_serpent_sse2_cfb_dec,@function;
+_gcry_serpent_sse2_cfb_dec:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (8 blocks)
+	 *	%rdx: src (8 blocks)
+	 *	%rcx: iv
+	 */
+
+	.set RA0, enc_in_a0
+	.set RA1, enc_in_a1
+	.set RA2, enc_in_a2
+	.set RA3, enc_in_a3
+	.set RB0, enc_in_b0
+	.set RB1, enc_in_b1
+	.set RB2, enc_in_b2
+	.set RB3, enc_in_b3
+
+	/* Load input */
+	movdqu (%rcx), RA0;
+	movdqu 0 * 16(%rdx), RA1;
+	movdqu 1 * 16(%rdx), RA2;
+	movdqu 2 * 16(%rdx), RA3;
+	movdqu 3 * 16(%rdx), RB0;
+	movdqu 4 * 16(%rdx), RB1;
+	movdqu 5 * 16(%rdx), RB2;
+	movdqu 6 * 16(%rdx), RB3;
+
+	/* Update IV */
+	movdqu 7 * 16(%rdx), RNOT;
+	movdqu RNOT, (%rcx);
+
+	call __serpent_enc_blk8;
+
+	.set RA0, enc_out_a0
+	.set RA1, enc_out_a1
+	.set RA2, enc_out_a2
+	.set RA3, enc_out_a3
+	.set RB0, enc_out_b0
+	.set RB1, enc_out_b1
+	.set RB2, enc_out_b2
+	.set RB3, enc_out_b3
+
+	pxor_u((0 * 16)(%rdx), RA0, RTMP0);
+	pxor_u((1 * 16)(%rdx), RA1, RTMP0);
+	pxor_u((2 * 16)(%rdx), RA2, RTMP0);
+	pxor_u((3 * 16)(%rdx), RA3, RTMP0);
+	pxor_u((4 * 16)(%rdx), RB0, RTMP0);
+	pxor_u((5 * 16)(%rdx), RB1, RTMP0);
+	pxor_u((6 * 16)(%rdx), RB2, RTMP0);
+	pxor_u((7 * 16)(%rdx), RB3, RTMP0);
+
+	movdqu RA0, (0 * 16)(%rsi);
+	movdqu RA1, (1 * 16)(%rsi);
+	movdqu RA2, (2 * 16)(%rsi);
+	movdqu RA3, (3 * 16)(%rsi);
+	movdqu RB0, (4 * 16)(%rsi);
+	movdqu RB1, (5 * 16)(%rsi);
+	movdqu RB2, (6 * 16)(%rsi);
+	movdqu RB3, (7 * 16)(%rsi);
+
+	ret
+.size _gcry_serpent_sse2_cfb_dec,.-_gcry_serpent_sse2_cfb_dec;
+
 #endif /*defined(USE_SERPENT)*/
 #endif /*__x86_64*/

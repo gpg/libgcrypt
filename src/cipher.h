@@ -113,6 +113,9 @@ void _gcry_serpent_ctr_enc (void *context, unsigned char *ctr,
 void _gcry_serpent_cbc_dec (void *context, unsigned char *iv,
                             void *outbuf_arg, const void *inbuf_arg,
                             unsigned int nblocks);
+void _gcry_serpent_cfb_dec (void *context, unsigned char *iv,
+                            void *outbuf_arg, const void *inbuf_arg,
+                            unsigned int nblocks);
 
 /*-- dsa.c --*/
 void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data);
