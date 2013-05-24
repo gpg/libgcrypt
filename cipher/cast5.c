@@ -42,6 +42,14 @@
 #include "g10lib.h"
 #include "types.h"
 #include "cipher.h"
+#include "bufhelp.h"
+#include "cipher-selftest.h"
+
+/* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
+#undef USE_AMD64_ASM
+#if defined(__x86_64__)
+# define USE_AMD64_ASM 1
+#endif
 
 #define CAST5_BLOCKSIZE 8
 
@@ -56,8 +64,12 @@ static void decrypt_block (void *c, byte *outbuf, const byte *inbuf);
 
 
 
+#define s1 _gcry_cast5_s1to4[0]
+#define s2 _gcry_cast5_s1to4[1]
+#define s3 _gcry_cast5_s1to4[2]
+#define s4 _gcry_cast5_s1to4[3]
 
-static const u32 s1[256] = {
+const u32 _gcry_cast5_s1to4[4][256] = { {
 0x30fb40d4, 0x9fa0ff0b, 0x6beccd2f, 0x3f258c7a, 0x1e213f2f, 0x9c004dd3, 0x6003e540, 0xcf9fc949,
 0xbfd4af27, 0x88bbbdb5, 0xe2034090, 0x98d09675, 0x6e63a0e0, 0x15c361d2, 0xc2e7661d, 0x22d4ff8e,
 0x28683b6f, 0xc07fd059, 0xff2379c8, 0x775f50e2, 0x43c340d3, 0xdf2f8656, 0x887ca41a, 0xa2d2bd2d,
@@ -90,8 +102,7 @@ static const u32 s1[256] = {
 0x474d6ad7, 0x7c0c5e5c, 0xd1231959, 0x381b7298, 0xf5d2f4db, 0xab838653, 0x6e2f1e23, 0x83719c9e,
 0xbd91e046, 0x9a56456e, 0xdc39200c, 0x20c8c571, 0x962bda1c, 0xe1e696ff, 0xb141ab08, 0x7cca89b9,
 0x1a69e783, 0x02cc4843, 0xa2f7c579, 0x429ef47d, 0x427b169c, 0x5ac9f049, 0xdd8f0f00, 0x5c8165bf
-};
-static const u32 s2[256] = {
+}, {
 0x1f201094, 0xef0ba75b, 0x69e3cf7e, 0x393f4380, 0xfe61cf7a, 0xeec5207a, 0x55889c94, 0x72fc0651,
 0xada7ef79, 0x4e1d7235, 0xd55a63ce, 0xde0436ba, 0x99c430ef, 0x5f0c0794, 0x18dcdb7d, 0xa1d6eff3,
 0xa0b52f7b, 0x59e83605, 0xee15b094, 0xe9ffd909, 0xdc440086, 0xef944459, 0xba83ccb3, 0xe0c3cdfb,
@@ -124,8 +135,7 @@ static const u32 s2[256] = {
 0xb284600c, 0xd835731d, 0xdcb1c647, 0xac4c56ea, 0x3ebd81b3, 0x230eabb0, 0x6438bc87, 0xf0b5b1fa,
 0x8f5ea2b3, 0xfc184642, 0x0a036b7a, 0x4fb089bd, 0x649da589, 0xa345415e, 0x5c038323, 0x3e5d3bb9,
 0x43d79572, 0x7e6dd07c, 0x06dfdf1e, 0x6c6cc4ef, 0x7160a539, 0x73bfbe70, 0x83877605, 0x4523ecf1
-};
-static const u32 s3[256] = {
+}, {
 0x8defc240, 0x25fa5d9f, 0xeb903dbf, 0xe810c907, 0x47607fff, 0x369fe44b, 0x8c1fc644, 0xaececa90,
 0xbeb1f9bf, 0xeefbcaea, 0xe8cf1950, 0x51df07ae, 0x920e8806, 0xf0ad0548, 0xe13c8d83, 0x927010d5,
 0x11107d9f, 0x07647db9, 0xb2e3e4d4, 0x3d4f285e, 0xb9afa820, 0xfade82e0, 0xa067268b, 0x8272792e,
@@ -158,8 +168,7 @@ static const u32 s3[256] = {
 0x5727c148, 0x2be98a1d, 0x8ab41738, 0x20e1be24, 0xaf96da0f, 0x68458425, 0x99833be5, 0x600d457d,
 0x282f9350, 0x8334b362, 0xd91d1120, 0x2b6d8da0, 0x642b1e31, 0x9c305a00, 0x52bce688, 0x1b03588a,
 0xf7baefd5, 0x4142ed9c, 0xa4315c11, 0x83323ec5, 0xdfef4636, 0xa133c501, 0xe9d3531c, 0xee353783
-};
-static const u32 s4[256] = {
+}, {
 0x9db30420, 0x1fb6e9de, 0xa7be7bef, 0xd273a298, 0x4a4f7bdb, 0x64ad8c57, 0x85510443, 0xfa020ed1,
 0x7e287aff, 0xe60fb663, 0x095f35a1, 0x79ebf120, 0xfd059d43, 0x6497b7b1, 0xf3641f63, 0x241e4adf,
 0x28147f5f, 0x4fa2b8cd, 0xc9430040, 0x0cc32220, 0xfdd30b30, 0xc0a5374f, 0x1d2d00d9, 0x24147b15,
@@ -192,7 +201,7 @@ static const u32 s4[256] = {
 0xb5676e69, 0x9bd3ddda, 0xdf7e052f, 0xdb25701c, 0x1b5e51ee, 0xf65324e6, 0x6afce36c, 0x0316cc04,
 0x8644213e, 0xb7dc59d0, 0x7965291f, 0xccd6fd43, 0x41823979, 0x932bcdf6, 0xb657c34d, 0x4edfd282,
 0x7ae5290c, 0x3cb9536b, 0x851e20fe, 0x9833557e, 0x13ecf0b0, 0xd3ffb372, 0x3f85c5c1, 0x0aef7ed2
-};
+} };
 static const u32 s5[256] = {
 0x7ec90c04, 0x2c6e74b9, 0x9b0e66df, 0xa6337911, 0xb86a7fff, 0x1dd358f5, 0x44dd9d44, 0x1731167f,
 0x08fbf1fa, 0xe7f511cc, 0xd2051b00, 0x735aba00, 0x2ab722d8, 0x386381cb, 0xacf6243a, 0x69befd7a,
@@ -331,6 +340,53 @@ static const u32 s8[256] = {
 };
 
 
+#ifdef USE_AMD64_ASM
+
+/* Assembly implementations of CAST5. */
+extern void _gcry_cast5_amd64_encrypt_block(CAST5_context *c, byte *outbuf,
+					    const byte *inbuf);
+
+extern void _gcry_cast5_amd64_decrypt_block(CAST5_context *c, byte *outbuf,
+					    const byte *inbuf);
+
+/* These assembly implementations process four blocks in parallel. */
+extern void _gcry_cast5_amd64_ctr_enc(CAST5_context *ctx, byte *out,
+				      const byte *in, byte *ctr);
+
+extern void _gcry_cast5_amd64_cbc_dec(CAST5_context *ctx, byte *out,
+				      const byte *in, byte *iv);
+
+extern void _gcry_cast5_amd64_cfb_dec(CAST5_context *ctx, byte *out,
+				      const byte *in, byte *iv);
+
+static void
+do_encrypt_block (CAST5_context *context, byte *outbuf, const byte *inbuf)
+{
+  _gcry_cast5_amd64_encrypt_block (context, outbuf, inbuf);
+}
+
+static void
+do_decrypt_block (CAST5_context *context, byte *outbuf, const byte *inbuf)
+{
+  _gcry_cast5_amd64_decrypt_block (context, outbuf, inbuf);
+}
+
+static void encrypt_block (void *context , byte *outbuf, const byte *inbuf)
+{
+  CAST5_context *c = (CAST5_context *) context;
+  do_encrypt_block (c, outbuf, inbuf);
+  _gcry_burn_stack (2*8);
+}
+
+static void decrypt_block (void *context, byte *outbuf, const byte *inbuf)
+{
+  CAST5_context *c = (CAST5_context *) context;
+  _gcry_cast5_amd64_decrypt_block (c, outbuf, inbuf);
+  _gcry_burn_stack (2*8);
+}
+
+#else /*USE_AMD64_ASM*/
+
 #if defined(__GNUC__) && defined(__i386__)
 static inline u32
 rol(int n, u32 x)
@@ -463,6 +519,201 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
   _gcry_burn_stack (20+4*sizeof(void*));
 }
 
+#endif /*!USE_AMD64_ASM*/
+
+
+/* Bulk encryption of complete blocks in CTR mode.  This function is only
+   intended for the bulk encryption feature of cipher.c.  CTR is expected to be
+   of size CAST5_BLOCKSIZE. */
+void
+_gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
+		    const void *inbuf_arg, unsigned int nblocks)
+{
+  CAST5_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char tmpbuf[CAST5_BLOCKSIZE];
+  int burn_stack_depth = (20 + 4 * sizeof(void*)) + 2 * CAST5_BLOCKSIZE;
+
+  int i;
+
+#ifdef USE_AMD64_ASM
+  {
+    if (nblocks >= 4)
+      burn_stack_depth += 8 * sizeof(void*);
+
+    /* Process data in 4 block chunks. */
+    while (nblocks >= 4)
+      {
+        _gcry_cast5_amd64_ctr_enc(ctx, outbuf, inbuf, ctr);
+
+        nblocks -= 4;
+        outbuf += 4 * CAST5_BLOCKSIZE;
+        inbuf  += 4 * CAST5_BLOCKSIZE;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+    /* TODO: use caching instead? */
+  }
+#endif
+
+  for ( ;nblocks; nblocks-- )
+    {
+      /* Encrypt the counter. */
+      do_encrypt_block(ctx, tmpbuf, ctr);
+      /* XOR the input with the encrypted counter and store in output.  */
+      buf_xor(outbuf, tmpbuf, inbuf, CAST5_BLOCKSIZE);
+      outbuf += CAST5_BLOCKSIZE;
+      inbuf  += CAST5_BLOCKSIZE;
+      /* Increment the counter.  */
+      for (i = CAST5_BLOCKSIZE; i > 0; i--)
+        {
+          ctr[i-1]++;
+          if (ctr[i-1])
+            break;
+        }
+    }
+
+  wipememory(tmpbuf, sizeof(tmpbuf));
+  _gcry_burn_stack(burn_stack_depth);
+}
+
+
+/* Bulk decryption of complete blocks in CBC mode.  This function is only
+   intended for the bulk encryption feature of cipher.c. */
+void
+_gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
+		    const void *inbuf_arg, unsigned int nblocks)
+{
+  CAST5_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char savebuf[CAST5_BLOCKSIZE];
+  int burn_stack_depth = (20 + 4 * sizeof(void*)) + 2 * CAST5_BLOCKSIZE;
+
+#ifdef USE_AMD64_ASM
+  {
+    if (nblocks >= 4)
+      burn_stack_depth += 8 * sizeof(void*);
+
+    /* Process data in 4 block chunks. */
+    while (nblocks >= 4)
+      {
+        _gcry_cast5_amd64_cbc_dec(ctx, outbuf, inbuf, iv);
+
+        nblocks -= 4;
+        outbuf += 4 * CAST5_BLOCKSIZE;
+        inbuf  += 4 * CAST5_BLOCKSIZE;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+  }
+#endif
+
+  for ( ;nblocks; nblocks-- )
+    {
+      /* We need to save INBUF away because it may be identical to
+         OUTBUF.  */
+      memcpy(savebuf, inbuf, CAST5_BLOCKSIZE);
+
+      do_decrypt_block (ctx, outbuf, inbuf);
+
+      buf_xor(outbuf, outbuf, iv, CAST5_BLOCKSIZE);
+      memcpy(iv, savebuf, CAST5_BLOCKSIZE);
+      inbuf += CAST5_BLOCKSIZE;
+      outbuf += CAST5_BLOCKSIZE;
+    }
+
+  wipememory(savebuf, sizeof(savebuf));
+  _gcry_burn_stack(burn_stack_depth);
+}
+
+/* Bulk decryption of complete blocks in CFB mode.  This function is only
+   intended for the bulk encryption feature of cipher.c. */
+void
+_gcry_cast5_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
+		    const void *inbuf_arg, unsigned int nblocks)
+{
+  CAST5_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = (20 + 4 * sizeof(void*)) + 2 * CAST5_BLOCKSIZE;
+
+#ifdef USE_AMD64_ASM
+  {
+    if (nblocks >= 4)
+      burn_stack_depth += 8 * sizeof(void*);
+
+    /* Process data in 4 block chunks. */
+    while (nblocks >= 4)
+      {
+        _gcry_cast5_amd64_cfb_dec(ctx, outbuf, inbuf, iv);
+
+        nblocks -= 4;
+        outbuf += 4 * CAST5_BLOCKSIZE;
+        inbuf  += 4 * CAST5_BLOCKSIZE;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+  }
+#endif
+
+  for ( ;nblocks; nblocks-- )
+    {
+      do_encrypt_block(ctx, iv, iv);
+      buf_xor_n_copy(outbuf, iv, inbuf, CAST5_BLOCKSIZE);
+      outbuf += CAST5_BLOCKSIZE;
+      inbuf  += CAST5_BLOCKSIZE;
+    }
+
+  _gcry_burn_stack(burn_stack_depth);
+}
+
+
+/* Run the self-tests for CAST5-CTR, tests IV increment of bulk CTR
+   encryption.  Returns NULL on success. */
+static const char *
+selftest_ctr (void)
+{
+  const int nblocks = 4+1;
+  const int blocksize = CAST5_BLOCKSIZE;
+  const int context_size = sizeof(CAST5_context);
+
+  return _gcry_selftest_helper_ctr("CAST5", &cast_setkey,
+           &encrypt_block, &_gcry_cast5_ctr_enc, nblocks, blocksize,
+	   context_size);
+}
+
+
+/* Run the self-tests for CAST5-CBC, tests bulk CBC decryption.
+   Returns NULL on success. */
+static const char *
+selftest_cbc (void)
+{
+  const int nblocks = 4+2;
+  const int blocksize = CAST5_BLOCKSIZE;
+  const int context_size = sizeof(CAST5_context);
+
+  return _gcry_selftest_helper_cbc("CAST5", &cast_setkey,
+           &encrypt_block, &_gcry_cast5_cbc_dec, nblocks, blocksize,
+	   context_size);
+}
+
+
+/* Run the self-tests for CAST5-CFB, tests bulk CBC decryption.
+   Returns NULL on success. */
+static const char *
+selftest_cfb (void)
+{
+  const int nblocks = 4+2;
+  const int blocksize = CAST5_BLOCKSIZE;
+  const int context_size = sizeof(CAST5_context);
+
+  return _gcry_selftest_helper_cfb("CAST5", &cast_setkey,
+           &encrypt_block, &_gcry_cast5_cfb_dec, nblocks, blocksize,
+	   context_size);
+}
+
 
 static const char*
 selftest(void)
@@ -473,6 +724,7 @@ selftest(void)
     byte plain[8] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF };
     byte cipher[8]= { 0x23, 0x8B, 0x4F, 0xE5, 0x84, 0x7E, 0x44, 0xB2 };
     byte buffer[8];
+    const char *r;
 
     cast_setkey( &c, key, 16 );
     encrypt_block( &c, buffer, plain );
@@ -507,6 +759,16 @@ selftest(void)
 
     }
 #endif
+
+    if ( (r = selftest_cbc ()) )
+      return r;
+
+    if ( (r = selftest_cfb ()) )
+      return r;
+
+    if ( (r = selftest_ctr ()) )
+      return r;
+
     return NULL;
 }
 
