@@ -504,7 +504,6 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
 {
   gpg_err_code_t err;
   elliptic_curve_t E;
-  gcry_mpi_t d;
   mpi_point_struct Q;
   mpi_ec_t ctx;
   gcry_random_level_t random_level;
@@ -529,12 +528,12 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
     }
 
   random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
-  d = _gcry_dsa_gen_k (E.n, random_level);
+  sk->d = _gcry_dsa_gen_k (E.n, random_level);
 
   /* Compute Q.  */
   point_init (&Q);
   ctx = _gcry_mpi_ec_p_internal_new (E.p, E.a);
-  _gcry_mpi_ec_mul_point (&Q, d, &E.G, ctx);
+  _gcry_mpi_ec_mul_point (&Q, sk->d, &E.G, ctx);
 
   /* Copy the stuff to the key structures. */
   sk->E.p = mpi_copy (E.p);
@@ -553,47 +552,38 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
    * dropped because we know that it's a minimum of the two
    * possibilities without any loss of security.  */
   {
-    gcry_mpi_t x, p_y, y;
-    const unsigned int nbits = mpi_get_nbits (E.p);
+    gcry_mpi_t x, y, p_y;
+    const unsigned int pbits = mpi_get_nbits (E.p);
 
-    x = mpi_new (nbits);
-    p_y = mpi_new (nbits);
-    y = mpi_new (nbits);
+    x = mpi_new (pbits);
+    y = mpi_new (pbits);
+    p_y = mpi_new (pbits);
 
     if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
-      log_fatal ("ecgen: Failed to get affine coordinates for Q\n");
+      log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
 
-    mpi_sub( p_y, E.p, y );	/* p_y = p-y */
+    mpi_sub (p_y, E.p, y);	/* p_y = p - y */
 
-    if (mpi_cmp( p_y /*p-y*/, y ) < 0) /* is p-y < p ? */
+    if (mpi_cmp (p_y, y) < 0)   /* p - y < p */
       {
-        gcry_mpi_t z = mpi_copy (mpi_const (MPI_C_ONE));
-
-        /* log_mpidump ("ecgen p-y", p_y); */
-        /* log_mpidump ("ecgen y  ", y); */
-        /* log_debug   ("ecgen will replace y with p-y\n"); */
-        /* log_mpidump ("ecgen d before", d); */
-
         /* We need to end up with -Q; this assures that new Q's y is
            the smallest one */
-        sk->d = mpi_new (nbits);
-        mpi_sub (sk->d, E.n, d);  /* d = order-d */
-        /* log_mpidump ("ecgen d after ", sk->d); */
-	gcry_mpi_point_set (&sk->Q, x, p_y/*p-y*/, z);	/* Q = -Q */
+        mpi_sub (sk->d, E.n, sk->d);   /* d = order - d */
+	gcry_mpi_point_snatch_set (&sk->Q, x, p_y, mpi_alloc_set_ui (1));
+
         if (DBG_CIPHER)
           log_debug ("ecgen converted Q to a compliant point\n");
-        mpi_free (z);
       }
-    else
+    else /* p - y >= p */
       {
         /* No change is needed exactly 50% of the time: just copy. */
-        sk->d = mpi_copy (d);
 	point_set (&sk->Q, &Q);
         if (DBG_CIPHER)
           log_debug ("ecgen didn't need to convert Q to a compliant point\n");
+
+        mpi_free (p_y);
+        mpi_free (x);
       }
-    mpi_free (x);
-    mpi_free (p_y);
     mpi_free (y);
   }
 
@@ -612,7 +602,6 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
   _gcry_mpi_ec_free (ctx);
 
   point_free (&Q);
-  mpi_free (d);
 
   *r_usedcurve = E.name;
   curve_free (&E);
