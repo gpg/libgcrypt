@@ -42,26 +42,26 @@ typedef void (*gcry_cipher_bulk_ctr_enc_t)(void *context, unsigned char *iv,
 
 /* Helper function for bulk CBC decryption selftest */
 const char *
-_gcry_selftest_helper_cbc_128 (const char *cipher, gcry_cipher_setkey_t setkey,
-			       gcry_cipher_encrypt_t encrypt_one,
-			       gcry_cipher_bulk_cbc_dec_t bulk_cbc_dec,
-			       const int nblocks, const int blocksize,
-			       const int context_size);
+_gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey,
+			   gcry_cipher_encrypt_t encrypt_one,
+			   gcry_cipher_bulk_cbc_dec_t bulk_cbc_dec,
+			   const int nblocks, const int blocksize,
+			   const int context_size);
 
 /* Helper function for bulk CFB decryption selftest */
 const char *
-_gcry_selftest_helper_cfb_128 (const char *cipher, gcry_cipher_setkey_t setkey,
-			       gcry_cipher_encrypt_t encrypt_one,
-			       gcry_cipher_bulk_cfb_dec_t bulk_cfb_dec,
-			       const int nblocks, const int blocksize,
-			       const int context_size);
+_gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey,
+			   gcry_cipher_encrypt_t encrypt_one,
+			   gcry_cipher_bulk_cfb_dec_t bulk_cfb_dec,
+			   const int nblocks, const int blocksize,
+			   const int context_size);
 
 /* Helper function for bulk CTR encryption selftest */
 const char *
-_gcry_selftest_helper_ctr_128 (const char *cipher, gcry_cipher_setkey_t setkey,
-			       gcry_cipher_encrypt_t encrypt_one,
-			       gcry_cipher_bulk_ctr_enc_t bulk_ctr_enc,
-			       const int nblocks, const int blocksize,
-			       const int context_size);
+_gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey,
+			   gcry_cipher_encrypt_t encrypt_one,
+			   gcry_cipher_bulk_ctr_enc_t bulk_ctr_enc,
+			   const int nblocks, const int blocksize,
+			   const int context_size);
 
 #endif /*G10_SELFTEST_HELP_H*/

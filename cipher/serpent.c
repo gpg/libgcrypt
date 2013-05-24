@@ -997,7 +997,7 @@ selftest_ctr_128 (void)
   const int blocksize = sizeof(serpent_block_t);
   const int context_size = sizeof(serpent_context_t);
 
-  return _gcry_selftest_helper_ctr_128("SERPENT", &serpent_setkey,
+  return _gcry_selftest_helper_ctr("SERPENT", &serpent_setkey,
            &serpent_encrypt, &_gcry_serpent_ctr_enc, nblocks, blocksize,
 	   context_size);
 }
@@ -1012,7 +1012,7 @@ selftest_cbc_128 (void)
   const int blocksize = sizeof(serpent_block_t);
   const int context_size = sizeof(serpent_context_t);
 
-  return _gcry_selftest_helper_cbc_128("SERPENT", &serpent_setkey,
+  return _gcry_selftest_helper_cbc("SERPENT", &serpent_setkey,
            &serpent_encrypt, &_gcry_serpent_cbc_dec, nblocks, blocksize,
 	   context_size);
 }
@@ -1027,7 +1027,7 @@ selftest_cfb_128 (void)
   const int blocksize = sizeof(serpent_block_t);
   const int context_size = sizeof(serpent_context_t);
 
-  return _gcry_selftest_helper_cfb_128("SERPENT", &serpent_setkey,
+  return _gcry_selftest_helper_cfb("SERPENT", &serpent_setkey,
            &serpent_encrypt, &_gcry_serpent_cfb_dec, nblocks, blocksize,
 	   context_size);
 }

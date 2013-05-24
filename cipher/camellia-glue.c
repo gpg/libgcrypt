@@ -374,7 +374,7 @@ selftest_ctr_128 (void)
   const int blocksize = CAMELLIA_BLOCK_SIZE;
   const int context_size = sizeof(CAMELLIA_context);
 
-  return _gcry_selftest_helper_ctr_128("CAMELLIA", &camellia_setkey,
+  return _gcry_selftest_helper_ctr("CAMELLIA", &camellia_setkey,
            &camellia_encrypt, &_gcry_camellia_ctr_enc, nblocks, blocksize,
 	   context_size);
 }
@@ -388,7 +388,7 @@ selftest_cbc_128 (void)
   const int blocksize = CAMELLIA_BLOCK_SIZE;
   const int context_size = sizeof(CAMELLIA_context);
 
-  return _gcry_selftest_helper_cbc_128("CAMELLIA", &camellia_setkey,
+  return _gcry_selftest_helper_cbc("CAMELLIA", &camellia_setkey,
            &camellia_encrypt, &_gcry_camellia_cbc_dec, nblocks, blocksize,
 	   context_size);
 }
@@ -402,7 +402,7 @@ selftest_cfb_128 (void)
   const int blocksize = CAMELLIA_BLOCK_SIZE;
   const int context_size = sizeof(CAMELLIA_context);
 
-  return _gcry_selftest_helper_cfb_128("CAMELLIA", &camellia_setkey,
+  return _gcry_selftest_helper_cfb("CAMELLIA", &camellia_setkey,
            &camellia_encrypt, &_gcry_camellia_cfb_dec, nblocks, blocksize,
 	   context_size);
 }

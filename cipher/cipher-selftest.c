@@ -44,15 +44,14 @@
 #endif
 
 
-/* Run the self-tests for <block cipher>-CBC-128, tests bulk CBC
+/* Run the self-tests for <block cipher>-CBC-<block size>, tests bulk CBC
    decryption.  Returns NULL on success. */
 const char *
-_gcry_selftest_helper_cbc_128 (const char *cipher,
-                               gcry_cipher_setkey_t setkey_func,
-			       gcry_cipher_encrypt_t encrypt_one,
-			       gcry_cipher_bulk_cbc_dec_t bulk_cbc_dec,
-			       const int nblocks, const int blocksize,
-			       const int context_size)
+_gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
+			   gcry_cipher_encrypt_t encrypt_one,
+			   gcry_cipher_bulk_cbc_dec_t bulk_cbc_dec,
+			   const int nblocks, const int blocksize,
+			   const int context_size)
 {
   int i, offs;
   unsigned char *ctx, *plaintext, *plaintext2, *ciphertext, *iv, *iv2, *mem;
@@ -63,7 +62,8 @@ _gcry_selftest_helper_cbc_128 (const char *cipher,
       0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x22
     };
 
-  /* Allocate buffers, align elements to 16 bytes.  */
+  /* Allocate buffers, align first two elements to 16 bytes and latter to
+     block size.  */
   ctx_aligned_size = context_size + 15;
   ctx_aligned_size -= ctx_aligned_size & 0xf;
 
@@ -97,24 +97,25 @@ _gcry_selftest_helper_cbc_128 (const char *cipher,
 
   /* CBC decrypt.  */
   bulk_cbc_dec (ctx, iv2, plaintext2, ciphertext, 1);
-  if (memcmp (plaintext2, plaintext, 16))
+  if (memcmp (plaintext2, plaintext, blocksize))
     {
       gcry_free (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CBC test failed (plaintext mismatch)", cipher);
+              "%s-CBC-%d test failed (plaintext mismatch)", cipher,
+	      blocksize * 8);
 #endif
-      return "selftest for 128 bit CBC failed - see syslog for details";
+      return "selftest for CBC failed - see syslog for details";
     }
 
-  if (memcmp (iv2, iv, 16))
+  if (memcmp (iv2, iv, blocksize))
     {
       gcry_free (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CBC test failed (IV mismatch)", cipher);
+              "%s-CBC-%d test failed (IV mismatch)", cipher, blocksize * 8);
 #endif
-      return "selftest for 128 bit CBC failed - see syslog for details";
+      return "selftest for CBC failed - see syslog for details";
     }
 
   /* Test parallelized code paths */
@@ -140,35 +141,34 @@ _gcry_selftest_helper_cbc_128 (const char *cipher,
       gcry_free (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CBC test failed (plaintext mismatch, parallel path)",
-	      cipher);
+              "%s-CBC-%d test failed (plaintext mismatch, parallel path)",
+	      cipher, blocksize * 8);
 #endif
-      return "selftest for 128 bit CBC failed - see syslog for details";
+      return "selftest for CBC failed - see syslog for details";
     }
   if (memcmp (iv2, iv, blocksize))
     {
       gcry_free (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CBC test failed (IV mismatch, parallel path)",
-	      cipher);
+              "%s-CBC-%d test failed (IV mismatch, parallel path)",
+	      cipher, blocksize * 8);
 #endif
-      return "selftest for 128 bit CBC failed - see syslog for details";
+      return "selftest for CBC failed - see syslog for details";
     }
 
   gcry_free (mem);
   return NULL;
 }
 
-/* Run the self-tests for <block cipher>-CFB-128, tests bulk CFB
+/* Run the self-tests for <block cipher>-CFB-<block size>, tests bulk CFB
    decryption.  Returns NULL on success. */
 const char *
-_gcry_selftest_helper_cfb_128 (const char *cipher,
-			       gcry_cipher_setkey_t setkey_func,
-			       gcry_cipher_encrypt_t encrypt_one,
-			       gcry_cipher_bulk_cfb_dec_t bulk_cfb_dec,
-			       const int nblocks, const int blocksize,
-			       const int context_size)
+_gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
+			   gcry_cipher_encrypt_t encrypt_one,
+			   gcry_cipher_bulk_cfb_dec_t bulk_cfb_dec,
+			   const int nblocks, const int blocksize,
+			   const int context_size)
 {
   int i, offs;
   unsigned char *ctx, *plaintext, *plaintext2, *ciphertext, *iv, *iv2, *mem;
@@ -179,7 +179,8 @@ _gcry_selftest_helper_cfb_128 (const char *cipher,
       0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x33
     };
 
-  /* Allocate buffers, align elements to 16 bytes.  */
+  /* Allocate buffers, align first two elements to 16 bytes and latter to
+     block size.  */
   ctx_aligned_size = context_size + 15;
   ctx_aligned_size -= ctx_aligned_size & 0xf;
 
@@ -217,9 +218,10 @@ _gcry_selftest_helper_cfb_128 (const char *cipher,
       gcry_free(mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CFB test failed (plaintext mismatch)", cipher);
+              "%s-CFB-%d test failed (plaintext mismatch)", cipher,
+	      blocksize * 8);
 #endif
-      return "selftest for 128 bit CFB failed - see syslog for details";
+      return "selftest for CFB failed - see syslog for details";
     }
 
   if (memcmp(iv2, iv, blocksize))
@@ -227,9 +229,9 @@ _gcry_selftest_helper_cfb_128 (const char *cipher,
       gcry_free(mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CFB test failed (IV mismatch)", cipher);
+              "%s-CFB-%d test failed (IV mismatch)", cipher, blocksize * 8);
 #endif
-      return "selftest for 128 bit CFB failed - see syslog for details";
+      return "selftest for CFB failed - see syslog for details";
     }
 
   /* Test parallelized code paths */
@@ -254,34 +256,34 @@ _gcry_selftest_helper_cfb_128 (const char *cipher,
       gcry_free(mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CFB test failed (plaintext mismatch, parallel path)",
-              cipher);
+              "%s-CFB-%d test failed (plaintext mismatch, parallel path)",
+              cipher, blocksize * 8);
 #endif
-      return "selftest for 128 bit CFB failed - see syslog for details";
+      return "selftest for CFB failed - see syslog for details";
     }
   if (memcmp(iv2, iv, blocksize))
     {
       gcry_free(mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CFB test failed (IV mismatch, parallel path)", cipher);
+              "%s-CFB-%d test failed (IV mismatch, parallel path)", cipher,
+	      blocksize * 8);
 #endif
-      return "selftest for 128 bit CFB failed - see syslog for details";
+      return "selftest for CFB failed - see syslog for details";
     }
 
   gcry_free(mem);
   return NULL;
 }
 
-/* Run the self-tests for <block cipher>-CTR-128, tests IV increment of bulk CTR
-   encryption.  Returns NULL on success. */
+/* Run the self-tests for <block cipher>-CTR-<block size>, tests IV increment
+   of bulk CTR encryption.  Returns NULL on success. */
 const char *
-_gcry_selftest_helper_ctr_128 (const char *cipher,
-                               gcry_cipher_setkey_t setkey_func,
-			       gcry_cipher_encrypt_t encrypt_one,
-			       gcry_cipher_bulk_ctr_enc_t bulk_ctr_enc,
-			       const int nblocks, const int blocksize,
-			       const int context_size)
+_gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
+			   gcry_cipher_encrypt_t encrypt_one,
+			   gcry_cipher_bulk_ctr_enc_t bulk_ctr_enc,
+			   const int nblocks, const int blocksize,
+			   const int context_size)
 {
   int i, j, offs, diff;
   unsigned char *ctx, *plaintext, *plaintext2, *ciphertext, *iv, *iv2, *mem;
@@ -292,7 +294,8 @@ _gcry_selftest_helper_ctr_128 (const char *cipher,
       0x98,0xBA,0xF9,0x17,0xFE,0xDF,0x95,0x21
     };
 
-  /* Allocate buffers, align elements to 16 bytes.  */
+  /* Allocate buffers, align first two elements to 16 bytes and latter to
+     block size.  */
   ctx_aligned_size = context_size + 15;
   ctx_aligned_size -= ctx_aligned_size & 0xf;
 
@@ -337,9 +340,10 @@ _gcry_selftest_helper_ctr_128 (const char *cipher,
       gcry_free (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CTR test failed (plaintext mismatch)", cipher);
+              "%s-CTR-%d test failed (plaintext mismatch)", cipher,
+	      blocksize * 8);
 #endif
-      return "selftest for 128 bit CTR failed - see syslog for details";
+      return "selftest for CTR failed - see syslog for details";
     }
 
   if (memcmp (iv2, iv, blocksize))
@@ -347,9 +351,10 @@ _gcry_selftest_helper_ctr_128 (const char *cipher,
       gcry_free (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-128-CTR test failed (IV mismatch)", cipher);
+              "%s-CTR-%d test failed (IV mismatch)", cipher,
+	      blocksize * 8);
 #endif
-      return "selftest for 128 bit CTR failed - see syslog for details";
+      return "selftest for CTR failed - see syslog for details";
     }
 
   /* Test parallelized code paths */
@@ -385,19 +390,20 @@ _gcry_selftest_helper_ctr_128 (const char *cipher,
         gcry_free (mem);
 #ifdef HAVE_SYSLOG
         syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-                "%s-128-CTR test failed (plaintext mismatch, diff: %d)", cipher,
-		diff);
+                "%s-CTR-%d test failed (plaintext mismatch, diff: %d)", cipher,
+		blocksize * 8, diff);
 #endif
-        return "selftest for 128 bit CTR failed - see syslog for details";
+        return "selftest for CTR failed - see syslog for details";
       }
     if (memcmp(iv2, iv, blocksize))
       {
         gcry_free (mem);
 #ifdef HAVE_SYSLOG
         syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-                "%s-128-CTR test failed (IV mismatch, diff: %d)", cipher, diff);
+                "%s-CTR-%d test failed (IV mismatch, diff: %d)", cipher,
+		blocksize * 8, diff);
 #endif
-        return "selftest for 128 bit CTR failed - see syslog for details";
+        return "selftest for CTR failed - see syslog for details";
       }
   }
 
