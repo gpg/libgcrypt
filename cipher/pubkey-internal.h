@@ -20,6 +20,9 @@
 #ifndef GCRY_PUBKEY_INTERNAL_H
 #define GCRY_PUBKEY_INTERNAL_H
 
+/*-- dsa-common.h --*/
+gcry_mpi_t _gcry_dsa_gen_k (gcry_mpi_t q, int security_level);
+
 
 /*-- ecc.c --*/
 gpg_err_code_t _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode,

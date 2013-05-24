@@ -26,6 +26,8 @@
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
+#include "pubkey-internal.h"
+
 
 typedef struct
 {
@@ -94,7 +96,6 @@ static const char sample_public_key[] =
 
 
 
-static gcry_mpi_t gen_k (gcry_mpi_t q);
 static int test_keys (DSA_secret_key *sk, unsigned int qbits);
 static int check_secret_key (DSA_secret_key *sk);
 static gpg_err_code_t generate (DSA_secret_key *sk,
@@ -127,81 +128,6 @@ progress (int c)
 {
   if (progress_cb)
     progress_cb (progress_cb_data, "pk_dsa", c, 0, 0);
-}
-
-
-/*
- * Generate a random secret exponent k less than q.
- */
-static gcry_mpi_t
-gen_k( gcry_mpi_t q )
-{
-  gcry_mpi_t k = mpi_alloc_secure( mpi_get_nlimbs(q) );
-  unsigned int nbits = mpi_get_nbits(q);
-  unsigned int nbytes = (nbits+7)/8;
-  char *rndbuf = NULL;
-
-  /* To learn why we don't use mpi_mod to get the requested bit size,
-     read the paper: "The Insecurity of the Digital Signature
-     Algorithm with Partially Known Nonces" by Nguyen and Shparlinski.
-     Journal of Cryptology, New York. Vol 15, nr 3 (2003)  */
-
-  if ( DBG_CIPHER )
-    log_debug("choosing a random k ");
-  for (;;)
-    {
-      if( DBG_CIPHER )
-        progress('.');
-
-      if ( !rndbuf || nbits < 32 )
-        {
-          gcry_free(rndbuf);
-          rndbuf = gcry_random_bytes_secure( (nbits+7)/8, GCRY_STRONG_RANDOM );
-	}
-      else
-        { /* Change only some of the higher bits.  We could improve
-	     this by directly requesting more memory at the first call
-	     to get_random_bytes() and use these extra bytes here.
-	     However the required management code is more complex and
-	     thus we better use this simple method.  */
-          char *pp = gcry_random_bytes_secure( 4, GCRY_STRONG_RANDOM );
-          memcpy( rndbuf,pp, 4 );
-          gcry_free(pp);
-	}
-      _gcry_mpi_set_buffer( k, rndbuf, nbytes, 0 );
-
-      /* Make sure we have the requested number of bits.  This code
-         looks a bit funny but it is easy to understand if you
-         consider that mpi_set_highbit clears all higher bits.  We
-         don't have a clear_highbit, thus we first set the high bit
-         and then clear it again.  */
-      if ( mpi_test_bit( k, nbits-1 ) )
-        mpi_set_highbit( k, nbits-1 );
-      else
-        {
-          mpi_set_highbit( k, nbits-1 );
-          mpi_clear_bit( k, nbits-1 );
-	}
-
-      if( !(mpi_cmp( k, q ) < 0) ) /* check: k < q */
-        {
-          if( DBG_CIPHER )
-            progress('+');
-          continue; /* no  */
-        }
-      if( !(mpi_cmp_ui( k, 0 ) > 0) )  /* check: k > 0 */
-        {
-          if( DBG_CIPHER )
-            progress('-');
-          continue; /* no */
-        }
-      break;	/* okay */
-    }
-  gcry_free(rndbuf);
-  if( DBG_CIPHER )
-    progress('\n');
-
-  return k;
 }
 
 
@@ -333,6 +259,13 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
 
   /* Select a random number X with the property:
    *	 0 < x < q-1
+   *
+   * FIXME: Why do we use the requirement x < q-1 ? It should be
+   * sufficient to test for x < q.  FIPS-186-3 check x < q-1 but it
+   * does not check for 0 < x because it makes sure that Q is unsigned
+   * and finally adds one to the result so that 0 will never be
+   * returned.  We should replace the code below with _gcry_dsa_gen_k.
+   *
    * This must be a very good random number because this is the secret
    * part.  The random quality depends on the transient_key flag.  */
   random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
@@ -613,7 +546,7 @@ sign(gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_secret_key *skey )
   gcry_mpi_t tmp;
 
   /* Select a random k with 0 < k < q */
-  k = gen_k( skey->q );
+  k = _gcry_dsa_gen_k (skey->q, GCRY_STRONG_RANDOM);
 
   /* r = (a^k mod p) mod q */
   gcry_mpi_powm( r, skey->g, k, skey->p );

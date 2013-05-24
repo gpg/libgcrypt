@@ -306,7 +306,6 @@ static void *progress_cb_data;
 
 
 /* Local prototypes. */
-static gcry_mpi_t gen_k (gcry_mpi_t p, int security_level);
 static void test_keys (ECC_secret_key * sk, unsigned int nbits);
 static int check_secret_key (ECC_secret_key * sk);
 static gpg_err_code_t sign (gcry_mpi_t input, ECC_secret_key *skey,
@@ -424,30 +423,6 @@ gen_y_2 (gcry_mpi_t x, elliptic_curve_t *base)
 }
 
 
-/* Generate a random secret scalar k with an order of p
-
-   At the beginning this was identical to the code is in elgamal.c.
-   Later imporved by mmr.   Further simplified by wk.  */
-static gcry_mpi_t
-gen_k (gcry_mpi_t p, int security_level)
-{
-  gcry_mpi_t k;
-  unsigned int nbits;
-
-  nbits = mpi_get_nbits (p);
-  k = mpi_snew (nbits);
-  if (DBG_CIPHER)
-    log_debug ("choosing a random k of %u bits at seclevel %d\n",
-               nbits, security_level);
-
-  gcry_mpi_randomize (k, nbits, security_level);
-
-  mpi_mod (k, k, p);  /*  k = k mod p  */
-
-  return k;
-}
-
-
 /* Generate the crypto system setup.  This function takes the NAME of
    a curve or the desired number of bits and stores at R_CURVE the
    parameters of the named curve or those of a suitable curve.  If
@@ -554,7 +529,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
     }
 
   random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
-  d = gen_k (E.n, random_level);
+  d = _gcry_dsa_gen_k (E.n, random_level);
 
   /* Compute Q.  */
   point_init (&Q);
@@ -806,7 +781,7 @@ sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
              do_while because we want to keep the value of R even if S
              has to be recomputed.  */
           mpi_free (k);
-          k = gen_k (skey->E.n, GCRY_STRONG_RANDOM);
+          k = _gcry_dsa_gen_k (skey->E.n, GCRY_STRONG_RANDOM);
           _gcry_mpi_ec_mul_point (&I, k, &skey->E.G, ctx);
           if (_gcry_mpi_ec_get_affine (x, NULL, &I, ctx))
             {
