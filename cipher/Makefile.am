@@ -64,7 +64,7 @@ ecc.c \
 idea.c \
 md4.c \
 md5.c \
-rijndael.c rijndael-tables.h \
+rijndael.c rijndael-tables.h rijndael-amd64.S \
 rmd160.c \
 rsa.c \
 scrypt.c \

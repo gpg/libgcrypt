@@ -61,6 +61,12 @@
 #endif
 
 
+/* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
+#undef USE_AMD64_ASM
+#if defined(__x86_64__)
+# define USE_AMD64_ASM 1
+#endif
+
 /* USE_PADLOCK indicates whether to compile the padlock specific
    code.  */
 #undef USE_PADLOCK
@@ -94,6 +100,20 @@ typedef u32           __attribute__ ((__may_alias__)) u32_a_t;
 #else
 typedef u32           u32_a_t;
 #endif
+
+
+#ifdef USE_AMD64_ASM
+/* AMD64 assembly implementations of AES */
+extern void _gcry_aes_amd64_encrypt_block(const void *keysched_enc,
+					  unsigned char *out,
+					  const unsigned char *in,
+					  int rounds);
+
+extern void _gcry_aes_amd64_decrypt_block(const void *keysched_dec,
+					  unsigned char *out,
+					  const unsigned char *in,
+					  int rounds);
+#endif /*USE_AMD64_ASM*/
 
 
 
@@ -524,6 +544,9 @@ static void
 do_encrypt_aligned (const RIJNDAEL_context *ctx,
                     unsigned char *b, const unsigned char *a)
 {
+#ifdef USE_AMD64_ASM
+  _gcry_aes_amd64_encrypt_block(ctx->keyschenc, b, a, ctx->rounds);
+#else /*!USE_AMD64_ASM*/
 #define rk (ctx->keyschenc)
   int rounds = ctx->rounds;
   int r;
@@ -605,6 +628,7 @@ do_encrypt_aligned (const RIJNDAEL_context *ctx,
   *((u32_a_t*)(b+ 8)) ^= *((u32_a_t*)rk[rounds][2]);
   *((u32_a_t*)(b+12)) ^= *((u32_a_t*)rk[rounds][3]);
 #undef rk
+#endif /*!USE_AMD64_ASM*/
 }
 
 
@@ -612,6 +636,7 @@ static void
 do_encrypt (const RIJNDAEL_context *ctx,
             unsigned char *bx, const unsigned char *ax)
 {
+#ifndef USE_AMD64_ASM
   /* BX and AX are not necessary correctly aligned.  Thus we might
      need to copy them here.  We try to align to a 16 bytes.  */
   if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
@@ -632,6 +657,7 @@ do_encrypt (const RIJNDAEL_context *ctx,
       memcpy (bx, b.b, 16);
     }
   else
+#endif /*!USE_AMD64_ASM*/
     {
       do_encrypt_aligned (ctx, bx, ax);
     }
@@ -1639,6 +1665,9 @@ static void
 do_decrypt_aligned (RIJNDAEL_context *ctx,
                     unsigned char *b, const unsigned char *a)
 {
+#ifdef USE_AMD64_ASM
+  _gcry_aes_amd64_decrypt_block(ctx->keyschdec, b, a, ctx->rounds);
+#else /*!USE_AMD64_ASM*/
 #define rk  (ctx->keyschdec)
   int rounds = ctx->rounds;
   int r;
@@ -1721,6 +1750,7 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
   *((u32_a_t*)(b+ 8)) ^= *((u32_a_t*)rk[0][2]);
   *((u32_a_t*)(b+12)) ^= *((u32_a_t*)rk[0][3]);
 #undef rk
+#endif /*!USE_AMD64_ASM*/
 }
 
 
@@ -1735,6 +1765,7 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
       ctx->decryption_prepared = 1;
     }
 
+#ifndef USE_AMD64_ASM
   /* BX and AX are not necessary correctly aligned.  Thus we might
      need to copy them here.  We try to align to a 16 bytes. */
   if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
@@ -1755,6 +1786,7 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
       memcpy (bx, b.b, 16);
     }
   else
+#endif /*!USE_AMD64_ASM*/
     {
       do_decrypt_aligned (ctx, bx, ax);
     }

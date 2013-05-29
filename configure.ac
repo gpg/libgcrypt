@@ -1221,6 +1221,13 @@ LIST_MEMBER(aes, $enabled_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael.lo"
    AC_DEFINE(USE_AES, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(twofish, $enabled_ciphers)
