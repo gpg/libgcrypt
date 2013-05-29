@@ -36,9 +36,19 @@
 #include "types.h"
 #include "g10lib.h"
 #include "cipher.h"
+#include "bufhelp.h"
+#include "cipher-selftest.h"
 
 #define BLOWFISH_BLOCKSIZE 8
 #define BLOWFISH_ROUNDS 16
+
+
+/* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
+#undef USE_AMD64_ASM
+#if defined(__x86_64__) && (BLOWFISH_ROUNDS == 16)
+# define USE_AMD64_ASM 1
+#endif
+
 
 typedef struct {
     u32 s0[256];
@@ -240,6 +250,61 @@ static const u32 ps[BLOWFISH_ROUNDS+2] = {
     0xC0AC29B7,0xC97C50DD,0x3F84D5B5,0xB5470917,0x9216D5D9,0x8979FB1B };
 
 
+#ifdef USE_AMD64_ASM
+
+/* Assembly implementations of Blowfish. */
+extern void _gcry_blowfish_amd64_do_encrypt(BLOWFISH_context *c, u32 *ret_xl,
+					    u32 *ret_xr);
+
+extern void _gcry_blowfish_amd64_encrypt_block(BLOWFISH_context *c, byte *out,
+					       const byte *in);
+
+extern void _gcry_blowfish_amd64_decrypt_block(BLOWFISH_context *c, byte *out,
+					       const byte *in);
+
+/* These assembly implementations process four blocks in parallel. */
+extern void _gcry_blowfish_amd64_ctr_enc(BLOWFISH_context *ctx, byte *out,
+					 const byte *in, byte *ctr);
+
+extern void _gcry_blowfish_amd64_cbc_dec(BLOWFISH_context *ctx, byte *out,
+					 const byte *in, byte *iv);
+
+extern void _gcry_blowfish_amd64_cfb_dec(BLOWFISH_context *ctx, byte *out,
+					 const byte *in, byte *iv);
+
+static void
+do_encrypt ( BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
+{
+  _gcry_blowfish_amd64_do_encrypt (bc, ret_xl, ret_xr);
+}
+
+static void
+do_encrypt_block (BLOWFISH_context *context, byte *outbuf, const byte *inbuf)
+{
+  _gcry_blowfish_amd64_encrypt_block (context, outbuf, inbuf);
+}
+
+static void
+do_decrypt_block (BLOWFISH_context *context, byte *outbuf, const byte *inbuf)
+{
+  _gcry_blowfish_amd64_decrypt_block (context, outbuf, inbuf);
+}
+
+static void encrypt_block (void *context , byte *outbuf, const byte *inbuf)
+{
+  BLOWFISH_context *c = (BLOWFISH_context *) context;
+  do_encrypt_block (c, outbuf, inbuf);
+  _gcry_burn_stack (2*8);
+}
+
+static void decrypt_block (void *context, byte *outbuf, const byte *inbuf)
+{
+  BLOWFISH_context *c = (BLOWFISH_context *) context;
+  do_decrypt_block (c, outbuf, inbuf);
+  _gcry_burn_stack (2*8);
+}
+
+#else /*USE_AMD64_ASM*/
 
 #if BLOWFISH_ROUNDS != 16
 static inline u32
@@ -461,6 +526,201 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
   _gcry_burn_stack (64);
 }
 
+#endif /*!USE_AMD64_ASM*/
+
+
+/* Bulk encryption of complete blocks in CTR mode.  This function is only
+   intended for the bulk encryption feature of cipher.c.  CTR is expected to be
+   of size BLOWFISH_BLOCKSIZE. */
+void
+_gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
+		    const void *inbuf_arg, unsigned int nblocks)
+{
+  BLOWFISH_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char tmpbuf[BLOWFISH_BLOCKSIZE];
+  int burn_stack_depth = (64) + 2 * BLOWFISH_BLOCKSIZE;
+  int i;
+
+#ifdef USE_AMD64_ASM
+  {
+    if (nblocks >= 4)
+      burn_stack_depth += 5 * sizeof(void*);
+
+    /* Process data in 4 block chunks. */
+    while (nblocks >= 4)
+      {
+        _gcry_blowfish_amd64_ctr_enc(ctx, outbuf, inbuf, ctr);
+
+        nblocks -= 4;
+        outbuf += 4 * BLOWFISH_BLOCKSIZE;
+        inbuf  += 4 * BLOWFISH_BLOCKSIZE;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+    /* TODO: use caching instead? */
+  }
+#endif
+
+  for ( ;nblocks; nblocks-- )
+    {
+      /* Encrypt the counter. */
+      do_encrypt_block(ctx, tmpbuf, ctr);
+      /* XOR the input with the encrypted counter and store in output.  */
+      buf_xor(outbuf, tmpbuf, inbuf, BLOWFISH_BLOCKSIZE);
+      outbuf += BLOWFISH_BLOCKSIZE;
+      inbuf  += BLOWFISH_BLOCKSIZE;
+      /* Increment the counter.  */
+      for (i = BLOWFISH_BLOCKSIZE; i > 0; i--)
+        {
+          ctr[i-1]++;
+          if (ctr[i-1])
+            break;
+        }
+    }
+
+  wipememory(tmpbuf, sizeof(tmpbuf));
+  _gcry_burn_stack(burn_stack_depth);
+}
+
+
+/* Bulk decryption of complete blocks in CBC mode.  This function is only
+   intended for the bulk encryption feature of cipher.c. */
+void
+_gcry_blowfish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
+		    const void *inbuf_arg, unsigned int nblocks)
+{
+  BLOWFISH_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char savebuf[BLOWFISH_BLOCKSIZE];
+  int burn_stack_depth = (64) + 2 * BLOWFISH_BLOCKSIZE;
+
+#ifdef USE_AMD64_ASM
+  {
+    if (nblocks >= 4)
+      burn_stack_depth += 5 * sizeof(void*);
+
+    /* Process data in 4 block chunks. */
+    while (nblocks >= 4)
+      {
+        _gcry_blowfish_amd64_cbc_dec(ctx, outbuf, inbuf, iv);
+
+        nblocks -= 4;
+        outbuf += 4 * BLOWFISH_BLOCKSIZE;
+        inbuf  += 4 * BLOWFISH_BLOCKSIZE;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+  }
+#endif
+
+  for ( ;nblocks; nblocks-- )
+    {
+      /* We need to save INBUF away because it may be identical to
+         OUTBUF.  */
+      memcpy(savebuf, inbuf, BLOWFISH_BLOCKSIZE);
+
+      do_decrypt_block (ctx, outbuf, inbuf);
+
+      buf_xor(outbuf, outbuf, iv, BLOWFISH_BLOCKSIZE);
+      memcpy(iv, savebuf, BLOWFISH_BLOCKSIZE);
+      inbuf += BLOWFISH_BLOCKSIZE;
+      outbuf += BLOWFISH_BLOCKSIZE;
+    }
+
+  wipememory(savebuf, sizeof(savebuf));
+  _gcry_burn_stack(burn_stack_depth);
+}
+
+
+/* Bulk decryption of complete blocks in CFB mode.  This function is only
+   intended for the bulk encryption feature of cipher.c. */
+void
+_gcry_blowfish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
+		    const void *inbuf_arg, unsigned int nblocks)
+{
+  BLOWFISH_context *ctx = context;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  int burn_stack_depth = (64) + 2 * BLOWFISH_BLOCKSIZE;
+
+#ifdef USE_AMD64_ASM
+  {
+    if (nblocks >= 4)
+      burn_stack_depth += 5 * sizeof(void*);
+
+    /* Process data in 4 block chunks. */
+    while (nblocks >= 4)
+      {
+        _gcry_blowfish_amd64_cfb_dec(ctx, outbuf, inbuf, iv);
+
+        nblocks -= 4;
+        outbuf += 4 * BLOWFISH_BLOCKSIZE;
+        inbuf  += 4 * BLOWFISH_BLOCKSIZE;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+  }
+#endif
+
+  for ( ;nblocks; nblocks-- )
+    {
+      do_encrypt_block(ctx, iv, iv);
+      buf_xor_n_copy(outbuf, iv, inbuf, BLOWFISH_BLOCKSIZE);
+      outbuf += BLOWFISH_BLOCKSIZE;
+      inbuf  += BLOWFISH_BLOCKSIZE;
+    }
+
+  _gcry_burn_stack(burn_stack_depth);
+}
+
+
+/* Run the self-tests for BLOWFISH-CTR, tests IV increment of bulk CTR
+   encryption.  Returns NULL on success. */
+static const char *
+selftest_ctr (void)
+{
+  const int nblocks = 4+1;
+  const int blocksize = BLOWFISH_BLOCKSIZE;
+  const int context_size = sizeof(BLOWFISH_context);
+
+  return _gcry_selftest_helper_ctr("BLOWFISH", &bf_setkey,
+           &encrypt_block, &_gcry_blowfish_ctr_enc, nblocks, blocksize,
+	   context_size);
+}
+
+
+/* Run the self-tests for BLOWFISH-CBC, tests bulk CBC decryption.
+   Returns NULL on success. */
+static const char *
+selftest_cbc (void)
+{
+  const int nblocks = 4+2;
+  const int blocksize = BLOWFISH_BLOCKSIZE;
+  const int context_size = sizeof(BLOWFISH_context);
+
+  return _gcry_selftest_helper_cbc("BLOWFISH", &bf_setkey,
+           &encrypt_block, &_gcry_blowfish_cbc_dec, nblocks, blocksize,
+	   context_size);
+}
+
+
+/* Run the self-tests for BLOWFISH-CFB, tests bulk CBC decryption.
+   Returns NULL on success. */
+static const char *
+selftest_cfb (void)
+{
+  const int nblocks = 4+2;
+  const int blocksize = BLOWFISH_BLOCKSIZE;
+  const int context_size = sizeof(BLOWFISH_context);
+
+  return _gcry_selftest_helper_cfb("BLOWFISH", &bf_setkey,
+           &encrypt_block, &_gcry_blowfish_cfb_dec, nblocks, blocksize,
+	   context_size);
+}
+
 
 static const char*
 selftest(void)
@@ -471,6 +731,7 @@ selftest(void)
   byte plain3[] = { 0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10 };
   byte key3[] = { 0x41, 0x79, 0x6E, 0xA0, 0x52, 0x61, 0x6E, 0xE4 };
   byte cipher3[] = { 0xE1, 0x13, 0xF4, 0x10, 0x2C, 0xFC, 0xCE, 0x43 };
+  const char *r;
 
   bf_setkey( (void *) &c,
              (const unsigned char*)"abcdefghijklmnopqrstuvwxyz", 26 );
@@ -488,6 +749,16 @@ selftest(void)
   decrypt_block( (void *) &c, buffer, buffer );
   if( memcmp( buffer, plain3, 8 ) )
     return "Blowfish selftest failed (4).";
+
+  if ( (r = selftest_cbc ()) )
+    return r;
+
+  if ( (r = selftest_cfb ()) )
+    return r;
+
+  if ( (r = selftest_ctr ()) )
+    return r;
+
   return NULL;
 }
 

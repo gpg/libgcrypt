@@ -1189,6 +1189,13 @@ LIST_MEMBER(blowfish, $enabled_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS blowfish.lo"
    AC_DEFINE(USE_BLOWFISH, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS blowfish-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(cast5, $enabled_ciphers)

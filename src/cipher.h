@@ -95,6 +95,19 @@ void _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
                         void *outbuf_arg, const void *inbuf_arg,
                         unsigned int nblocks);
 
+/*-- blowfish.c --*/
+void _gcry_blowfish_cfb_dec (void *context, unsigned char *iv,
+			     void *outbuf_arg, const void *inbuf_arg,
+			     unsigned int nblocks);
+
+void _gcry_blowfish_cbc_dec (void *context, unsigned char *iv,
+			     void *outbuf_arg, const void *inbuf_arg,
+			     unsigned int nblocks);
+
+void _gcry_blowfish_ctr_enc (void *context, unsigned char *ctr,
+			     void *outbuf_arg, const void *inbuf_arg,
+			     unsigned int nblocks);
+
 /*-- cast5.c --*/
 void _gcry_cast5_cfb_dec (void *context, unsigned char *iv,
 			  void *outbuf_arg, const void *inbuf_arg,

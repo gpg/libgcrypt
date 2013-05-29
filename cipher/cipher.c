@@ -718,6 +718,13 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
               h->bulk.ctr_enc = _gcry_aes_ctr_enc;
               break;
 #endif /*USE_AES*/
+#ifdef USE_BLOWFISH
+	    case GCRY_CIPHER_BLOWFISH:
+              h->bulk.cfb_dec = _gcry_blowfish_cfb_dec;
+              h->bulk.cbc_dec = _gcry_blowfish_cbc_dec;
+              h->bulk.ctr_enc = _gcry_blowfish_ctr_enc;
+              break;
+#endif /*USE_BLOWFISH*/
 #ifdef USE_CAST5
 	    case GCRY_CIPHER_CAST5:
               h->bulk.cfb_dec = _gcry_cast5_cfb_dec;
