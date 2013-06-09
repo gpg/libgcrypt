@@ -77,11 +77,12 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
 
   asm volatile
     ("pushl %%ebx\n\t"           /* Save GOT register.  */
+     "movl %1, %%ebx\n\t"
      "cpuid\n\t"
      "movl %%ebx, %1\n\t"
      "popl %%ebx\n\t"            /* Restore GOT register. */
      : "=a" (regs[0]), "=r" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
-     : "0" (in)
+     : "0" (in), "1" (0), "2" (0), "3" (0)
      : "cc"
      );
 
@@ -115,7 +116,7 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
   asm volatile
     ("cpuid\n\t"
      : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
-     : "0" (in)
+     : "0" (in), "1" (0), "2" (0), "3" (0)
      : "cc"
      );
 
@@ -137,12 +138,13 @@ detect_x86_gnuc (void)
 {
   char vendor_id[12+1];
   unsigned int features;
+  unsigned int max_cpuid_level;
   unsigned int result = 0;
 
   if (!is_cpuid_available())
     return 0;
 
-  get_cpuid(0, NULL,
+  get_cpuid(0, &max_cpuid_level,
             (unsigned int *)&vendor_id[0],
             (unsigned int *)&vendor_id[8],
             (unsigned int *)&vendor_id[4]);
@@ -214,6 +216,22 @@ detect_x86_gnuc (void)
   if (features & 0x40000000)
      result |= HWF_INTEL_RDRAND;
 #endif /*ENABLE_DRNG_SUPPORT*/
+
+  /* Check additional Intel feature flags.  Early Intel P5 processors report
+   * too high max_cpuid_level, so don't check level 7 if processor does not
+   * support SSE3 (as cpuid:7 contains only features for newer processors).
+   * Source: http://www.sandpile.org/x86/cpuid.htm  */
+  if (max_cpuid_level >= 7 && (features & 0x00000001))
+    {
+#ifdef ENABLE_AVX2_SUPPORT
+      /* Get CPUID:7 contains further Intel feature flags. */
+      get_cpuid(7, NULL, &features, NULL, NULL);
+
+      /* Test bit 5 for AVX2.  */
+      if (features & 0x00000020)
+          result |= HWF_INTEL_AVX2;
+#endif /*ENABLE_AVX_SUPPORT*/
+    }
 
   return result;
 }

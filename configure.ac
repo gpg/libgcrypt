@@ -594,6 +594,14 @@ AC_ARG_ENABLE(avx-support,
 	      avxsupport=$enableval,avxsupport=yes)
 AC_MSG_RESULT($avxsupport)
 
+# Implementation of the --disable-avx2-support switch.
+AC_MSG_CHECKING([whether AVX2 support is requested])
+AC_ARG_ENABLE(avx2-support,
+              AC_HELP_STRING([--disable-avx2-support],
+                 [Disable support for the Intel AVX2 instructions]),
+	      avx2support=$enableval,avx2support=yes)
+AC_MSG_RESULT($avx2support)
+
 # Implementation of the --disable-O-flag-munging switch.
 AC_MSG_CHECKING([whether a -O flag munging is requested])
 AC_ARG_ENABLE([O-flag-munging],
@@ -916,6 +924,23 @@ if test "$gcry_cv_gcc_inline_asm_avx" = "yes" ; then
 fi
 
 
+#
+# Check whether GCC inline assembler supports AVX2 instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AVX2 instructions],
+       [gcry_cv_gcc_inline_asm_avx2],
+       [gcry_cv_gcc_inline_asm_avx2=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) {
+              __asm__("vpbroadcastb %%xmm7,%%ymm1\n\t":::);
+            }]])],
+          [gcry_cv_gcc_inline_asm_avx2=yes])])
+if test "$gcry_cv_gcc_inline_asm_avx2" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AVX2,1,
+     [Defined if inline assembler supports AVX2 instructions])
+fi
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################
@@ -1165,6 +1190,11 @@ if test x"$avxsupport" = xyes ; then
     avxsupport="no (unsupported by compiler)"
   fi
 fi
+if test x"$avx2support" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_avx2" != "yes" ; then
+    avx2support="no (unsupported by compiler)"
+  fi
+fi
 
 if test x"$aesnisupport" = xyes ; then
   AC_DEFINE(ENABLE_AESNI_SUPPORT, 1,
@@ -1173,6 +1203,10 @@ fi
 if test x"$avxsupport" = xyes ; then
   AC_DEFINE(ENABLE_AVX_SUPPORT,1,
             [Enable support for Intel AVX instructions.])
+fi
+if test x"$avx2support" = xyes ; then
+  AC_DEFINE(ENABLE_AVX2_SUPPORT,1,
+            [Enable support for Intel AVX2 instructions.])
 fi
 
 
@@ -1513,6 +1547,7 @@ GCRY_MSG_SHOW([Try using Padlock crypto: ],[$padlocksupport])
 GCRY_MSG_SHOW([Try using AES-NI crypto:  ],[$aesnisupport])
 GCRY_MSG_SHOW([Try using DRNG (RDRAND):  ],[$drngsupport])
 GCRY_MSG_SHOW([Try using Intel AVX:      ],[$avxsupport])
+GCRY_MSG_SHOW([Try using Intel AVX2:     ],[$avx2support])
 GCRY_MSG_SHOW([],[])
 
 if test "$print_egd_notice" = "yes"; then

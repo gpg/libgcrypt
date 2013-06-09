@@ -153,6 +153,7 @@ int _gcry_log_verbosity( int level );
 #define HWF_INTEL_AESNI  256
 #define HWF_INTEL_RDRAND 512
 #define HWF_INTEL_AVX    1024
+#define HWF_INTEL_AVX2   2048
 
 
 unsigned int _gcry_get_hw_features (void);
