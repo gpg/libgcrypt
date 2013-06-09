@@ -1318,6 +1318,13 @@ if test "$found" = "1" ; then
         GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-aesni-avx-amd64.lo"
       fi
    fi
+
+   if test x"$avx2support" = xyes ; then
+      if test x"$aesnisupport" = xyes ; then
+        # Build with the AES-NI/AVX2 implementation
+        GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-aesni-avx2-amd64.lo"
+      fi
+   fi
 fi
 
 LIST_MEMBER(idea, $enabled_ciphers)
