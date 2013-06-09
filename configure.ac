@@ -1288,6 +1288,11 @@ if test "$found" = "1" ; then
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS serpent-sse2-amd64.lo"
       ;;
    esac
+
+   if test x"$avx2support" = xyes ; then
+      # Build with the AVX2 implementation
+      GCRYPT_CIPHERS="$GCRYPT_CIPHERS serpent-avx2-amd64.lo"
+   fi
 fi
 
 LIST_MEMBER(rfc2268, $enabled_ciphers)

@@ -38,6 +38,15 @@
 # define USE_SSE2 1
 #endif
 
+/* USE_AVX2 indicates whether to compile with AMD64 AVX2 code. */
+#undef USE_AVX2
+#if defined(__x86_64__)
+# if defined(ENABLE_AVX2_SUPPORT)
+#  define USE_AVX2 1
+# endif
+#endif
+
+
 /* Number of rounds per Serpent encrypt/decrypt operation.  */
 #define ROUNDS 32
 
@@ -58,6 +67,10 @@ typedef u32 serpent_subkeys_t[ROUNDS + 1][4];
 typedef struct serpent_context
 {
   serpent_subkeys_t keys;	/* Generated subkeys.  */
+
+#ifdef USE_AVX2
+  int use_avx2;
+#endif
 } serpent_context_t;
 
 
@@ -80,6 +93,27 @@ extern void _gcry_serpent_sse2_cfb_dec(serpent_context_t *ctx,
 				       const unsigned char *in,
 				       unsigned char *iv);
 #endif
+
+#ifdef USE_AVX2
+/* Assembler implementations of Serpent using SSE2.  Process 16 block in
+   parallel.
+ */
+extern void _gcry_serpent_avx2_ctr_enc(serpent_context_t *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *ctr);
+
+extern void _gcry_serpent_avx2_cbc_dec(serpent_context_t *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *iv);
+
+extern void _gcry_serpent_avx2_cfb_dec(serpent_context_t *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *iv);
+#endif
+
 
 /* A prototype.  */
 static const char *serpent_test (void);
@@ -600,6 +634,15 @@ serpent_setkey_internal (serpent_context_t *context,
 
   serpent_key_prepare (key, key_length, key_prepared);
   serpent_subkeys_generate (key_prepared, context->keys);
+
+#ifdef USE_AVX2
+  context->use_avx2 = 0;
+  if ((_gcry_get_hw_features () & HWF_INTEL_AVX2))
+    {
+      context->use_avx2 = 1;
+    }
+#endif
+
   _gcry_burn_stack (272 * sizeof (u32));
 }
 
@@ -784,6 +827,37 @@ _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
   int burn_stack_depth = 2 * sizeof (serpent_block_t);
   int i;
 
+#ifdef USE_AVX2
+  if (ctx->use_avx2)
+    {
+      int did_use_avx2 = 0;
+
+      /* Process data in 16 block chunks. */
+      while (nblocks >= 16)
+        {
+          _gcry_serpent_avx2_ctr_enc(ctx, outbuf, inbuf, ctr);
+
+          nblocks -= 16;
+          outbuf += 16 * sizeof(serpent_block_t);
+          inbuf  += 16 * sizeof(serpent_block_t);
+          did_use_avx2 = 1;
+        }
+
+      if (did_use_avx2)
+        {
+          /* clear avx2 registers used by serpent-sse2 */
+          asm volatile ("vzeroall;\n":::);
+
+          /* serpent-avx2 assembly code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+
+      /* Use generic/sse2 code to handle smaller chunks... */
+      /* TODO: use caching instead? */
+    }
+#endif
+
 #ifdef USE_SSE2
   {
     int did_use_sse2 = 0;
@@ -861,6 +935,36 @@ _gcry_serpent_cbc_dec(void *context, unsigned char *iv,
   unsigned char savebuf[sizeof(serpent_block_t)];
   int burn_stack_depth = 2 * sizeof (serpent_block_t);
 
+#ifdef USE_AVX2
+  if (ctx->use_avx2)
+    {
+      int did_use_avx2 = 0;
+
+      /* Process data in 16 block chunks. */
+      while (nblocks >= 16)
+        {
+          _gcry_serpent_avx2_cbc_dec(ctx, outbuf, inbuf, iv);
+
+          nblocks -= 16;
+          outbuf += 16 * sizeof(serpent_block_t);
+          inbuf  += 16 * sizeof(serpent_block_t);
+          did_use_avx2 = 1;
+        }
+
+      if (did_use_avx2)
+        {
+          /* clear avx2 registers used by serpent-sse2 */
+          asm volatile ("vzeroall;\n":::);
+
+          /* serpent-avx2 assembly code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+
+      /* Use generic/sse2 code to handle smaller chunks... */
+    }
+#endif
+
 #ifdef USE_SSE2
   {
     int did_use_sse2 = 0;
@@ -933,6 +1037,36 @@ _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
   const unsigned char *inbuf = inbuf_arg;
   int burn_stack_depth = 2 * sizeof (serpent_block_t);
 
+#ifdef USE_AVX2
+  if (ctx->use_avx2)
+    {
+      int did_use_avx2 = 0;
+
+      /* Process data in 16 block chunks. */
+      while (nblocks >= 16)
+        {
+          _gcry_serpent_avx2_cfb_dec(ctx, outbuf, inbuf, iv);
+
+          nblocks -= 16;
+          outbuf += 16 * sizeof(serpent_block_t);
+          inbuf  += 16 * sizeof(serpent_block_t);
+          did_use_avx2 = 1;
+        }
+
+      if (did_use_avx2)
+        {
+          /* clear avx2 registers used by serpent-sse2 */
+          asm volatile ("vzeroall;\n":::);
+
+          /* serpent-avx2 assembly code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+
+      /* Use generic/sse2 code to handle smaller chunks... */
+    }
+#endif
+
 #ifdef USE_SSE2
   {
     int did_use_sse2 = 0;
@@ -993,7 +1127,7 @@ _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
 static const char*
 selftest_ctr_128 (void)
 {
-  const int nblocks = 8+1;
+  const int nblocks = 16+1;
   const int blocksize = sizeof(serpent_block_t);
   const int context_size = sizeof(serpent_context_t);
 
@@ -1008,7 +1142,7 @@ selftest_ctr_128 (void)
 static const char*
 selftest_cbc_128 (void)
 {
-  const int nblocks = 8+2;
+  const int nblocks = 16+2;
   const int blocksize = sizeof(serpent_block_t);
   const int context_size = sizeof(serpent_context_t);
 
@@ -1023,7 +1157,7 @@ selftest_cbc_128 (void)
 static const char*
 selftest_cfb_128 (void)
 {
-  const int nblocks = 8+2;
+  const int nblocks = 16+2;
   const int blocksize = sizeof(serpent_block_t);
   const int context_size = sizeof(serpent_context_t);
 
