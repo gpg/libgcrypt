@@ -750,6 +750,14 @@ gcry_cipher_open (gcry_cipher_hd_t *handle,
               h->bulk.ctr_enc = _gcry_serpent_ctr_enc;
               break;
 #endif /*USE_SERPENT*/
+#ifdef USE_TWOFISH
+	    case GCRY_CIPHER_TWOFISH:
+	    case GCRY_CIPHER_TWOFISH128:
+              h->bulk.cbc_dec = _gcry_twofish_cbc_dec;
+              h->bulk.cfb_dec = _gcry_twofish_cfb_dec;
+              h->bulk.ctr_enc = _gcry_twofish_ctr_enc;
+              break;
+#endif /*USE_TWOFISH*/
 
             default:
               break;

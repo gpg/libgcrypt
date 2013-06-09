@@ -75,7 +75,7 @@ sha256.c \
 sha512.c \
 tiger.c \
 whirlpool.c \
-twofish.c \
+twofish.c twofish-amd64.S \
 rfc2268.c \
 camellia.c camellia.h camellia-glue.c camellia-aesni-avx-amd64.S
 
