@@ -75,7 +75,7 @@
 /* USE_AESNI inidicates whether to compile with Intel AES-NI/AVX code. */
 #undef USE_AESNI_AVX
 #if defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX_SUPPORT)
-# if defined(__x86_64__)
+# if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
 #  define USE_AESNI_AVX 1
 # endif
 #endif
@@ -83,7 +83,7 @@
 /* USE_AESNI_AVX2 inidicates whether to compile with Intel AES-NI/AVX2 code. */
 #undef USE_AESNI_AVX2
 #if defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX2_SUPPORT)
-# if defined(__x86_64__)
+# if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
 #  define USE_AESNI_AVX2 1
 # endif
 #endif

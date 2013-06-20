@@ -45,7 +45,8 @@
 
 /* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
 #undef USE_AMD64_ASM
-#if defined(__x86_64__) && (BLOWFISH_ROUNDS == 16)
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    (BLOWFISH_ROUNDS == 16)
 # define USE_AMD64_ASM 1
 #endif
 

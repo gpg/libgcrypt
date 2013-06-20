@@ -20,7 +20,8 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX_SUPPORT)
+#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX_SUPPORT)
 
 #ifdef __PIC__
 #  define RIP (%rip)

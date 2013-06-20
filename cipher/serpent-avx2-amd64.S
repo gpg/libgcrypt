@@ -20,7 +20,8 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(USE_SERPENT) && defined(ENABLE_AVX2_SUPPORT)
+#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && defined(USE_SERPENT) && \
+    defined(ENABLE_AVX2_SUPPORT)
 
 #ifdef __PIC__
 #  define RIP (%rip)

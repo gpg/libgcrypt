@@ -20,7 +20,7 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(USE_CAST5)
+#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && defined(USE_CAST5)
 
 #ifdef __PIC__
 #  define RIP %rip

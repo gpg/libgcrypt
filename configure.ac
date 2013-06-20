@@ -941,6 +941,36 @@ if test "$gcry_cv_gcc_inline_asm_avx2" = "yes" ; then
 fi
 
 
+#
+# Check whether GCC assembler supports features needed for our amd64
+# implementations
+#
+AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implementations],
+       [gcry_cv_gcc_amd64_platform_as_ok],
+       [gcry_cv_gcc_amd64_platform_as_ok=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                /* Test if '.set' is supported by underlying assembler.  */
+                ".set a0, %rax\n\t"
+                ".set b0, %rdx\n\t"
+                "asmfunc:\n\t"
+                "movq a0, b0;\n\t" /* Fails here if .set ignored by as.  */
+
+                /* Test if '.type' and '.size' are supported.  */
+                /* These work only on ELF targets. */
+		/* TODO: add COFF (mingw64, cygwin64) support to assembly
+                 * implementations.  Mingw64/cygwin64 also require additional
+                 * work because they use different calling convention. */
+                ".size asmfunc,.-asmfunc;\n\t"
+                ".type asmfunc,@function;\n\t"
+            );]])],
+          [gcry_cv_gcc_amd64_platform_as_ok=yes])])
+if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
+   AC_DEFINE(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS,1,
+     [Defined if underlying assembler is compatible with amd64 assembly implementations])
+fi
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################

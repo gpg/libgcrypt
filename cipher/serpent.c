@@ -34,13 +34,13 @@
 
 /* USE_SSE2 indicates whether to compile with AMD64 SSE2 code. */
 #undef USE_SSE2
-#if defined(__x86_64__)
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
 # define USE_SSE2 1
 #endif
 
 /* USE_AVX2 indicates whether to compile with AMD64 AVX2 code. */
 #undef USE_AVX2
-#if defined(__x86_64__)
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
 # if defined(ENABLE_AVX2_SUPPORT)
 #  define USE_AVX2 1
 # endif
