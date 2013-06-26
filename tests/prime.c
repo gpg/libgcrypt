@@ -24,7 +24,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "../src/gcrypt.h"
+#include "../src/gcrypt-int.h"
 
 static int verbose;
 

@@ -28,7 +28,7 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include "../src/gcrypt.h"
+#include "../src/gcrypt-int.h"
 
 static int verbose;
 static int repetitions;

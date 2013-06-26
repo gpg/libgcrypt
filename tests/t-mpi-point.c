@@ -26,7 +26,7 @@
 #include <assert.h>
 #include <stdarg.h>
 
-#include "../src/gcrypt.h"
+#include "../src/gcrypt-int.h"
 
 #define PGM "t-mpi-point"
 

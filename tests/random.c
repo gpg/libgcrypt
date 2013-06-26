@@ -30,7 +30,7 @@
 # include <sys/wait.h>
 #endif
 
-#include "../src/gcrypt.h"
+#include "../src/gcrypt-int.h"
 
 #define PGM "random"
 

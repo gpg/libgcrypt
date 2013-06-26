@@ -27,7 +27,7 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include "../src/gcrypt.h"
+#include "../src/gcrypt-int.h"
 
 #ifndef DIM
 # define DIM(v)		     (sizeof(v)/sizeof((v)[0]))

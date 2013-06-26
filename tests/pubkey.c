@@ -26,7 +26,7 @@
 #include <string.h>
 
 
-#include "../src/gcrypt.h"
+#include "../src/gcrypt-int.h"
 
 /* Sample RSA keys, taken from basic.c.  */
 

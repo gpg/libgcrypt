@@ -26,7 +26,7 @@
 #include <stdarg.h>
 
 #ifdef _GCRYPT_IN_LIBGCRYPT
-# include "../src/gcrypt.h"
+# include "../src/gcrypt-int.h"
 #else
 # include <gcrypt.h>
 #endif

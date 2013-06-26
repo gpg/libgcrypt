@@ -54,7 +54,8 @@ else
 endif
 
 libgcrypt_la_CFLAGS = $(GPG_ERROR_CFLAGS)
-libgcrypt_la_SOURCES = g10lib.h visibility.c visibility.h types.h \
+libgcrypt_la_SOURCES = \
+        gcrypt-int.h g10lib.h visibility.c visibility.h types.h \
 	cipher.h cipher-proto.h gcrypt-module.h \
 	misc.c global.c sexp.c hwfeatures.c hwf-common.h \
 	stdmem.c stdmem.h secmem.c secmem.h \

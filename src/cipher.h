@@ -20,7 +20,7 @@
 #ifndef G10_CIPHER_H
 #define G10_CIPHER_H
 
-#include <gcrypt.h>
+#include "gcrypt-int.h"
 
 #define DBG_CIPHER _gcry_get_debug_flag( 1 )
 

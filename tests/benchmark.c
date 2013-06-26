@@ -31,7 +31,7 @@
 #endif
 
 #ifdef _GCRYPT_IN_LIBGCRYPT
-# include "../src/gcrypt.h"
+# include "../src/gcrypt-int.h"
 # include "../compat/libcompat.h"
 #else
 # include <gcrypt.h>

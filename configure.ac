@@ -65,6 +65,8 @@ LIBGCRYPT_LT_REVISION=0
 # If the API is changed in an incompatible way: increment the next counter.
 LIBGCRYPT_CONFIG_API_VERSION=1
 
+# If you change the required gpg-error version, please remove
+# unnecessary error code defines in src/gcrypt-int.h.
 NEED_GPG_ERROR_VERSION=1.11
 
 PACKAGE=$PACKAGE_NAME
@@ -104,15 +106,6 @@ AH_BOTTOM([
 /* We basically use the original Camellia source.  Make sure the symbols
    properly prefixed.  */
 #define CAMELLIA_EXT_SYM_PREFIX _gcry_
-
-/* These error codes are used but not defined in the required
-   libgpg-error 1.11.  Define them here. */
-#define GPG_ERR_NO_CRYPT_CTX	   191
-#define GPG_ERR_WRONG_CRYPT_CTX    192
-#define GPG_ERR_BAD_CRYPT_CTX	   193
-#define GPG_ERR_CRYPT_CTX_CONFLICT 194
-#define GPG_ERR_BROKEN_PUBKEY      195
-#define GPG_ERR_BROKEN_SECKEY      196
 
 #endif /*_GCRYPT_CONFIG_H_INCLUDED*/
 ])

@@ -201,10 +201,10 @@
   /* We need to redeclare the deprecated functions without the
      deprecated attribute.  */
 # define GCRYPT_NO_DEPRECATED
-# include "gcrypt.h"
+# include "gcrypt-int.h"
   /* None in this version.  */
 #else
-# include "gcrypt.h"
+# include "gcrypt-int.h"
 #endif
 #include "gcrypt-module.h"
 

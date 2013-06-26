@@ -35,7 +35,7 @@
 #include <unistd.h>
 
 #ifdef _GCRYPT_IN_LIBGCRYPT
-# include "../src/gcrypt.h"
+# include "../src/gcrypt-int.h"
 #else
 # include <gcrypt.h>
 # define PACKAGE_BUGREPORT "devnull@example.org"

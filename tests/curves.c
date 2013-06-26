@@ -26,7 +26,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "../src/gcrypt.h"
+#include "../src/gcrypt-int.h"
 
 /* Number of curves defined in ../cipger/ecc.c */
 #define N_CURVES 12

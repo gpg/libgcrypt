@@ -26,7 +26,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "../src/gcrypt.h"
+#include "../src/gcrypt-int.h"
 
 static int verbose;
 static int error_count;
