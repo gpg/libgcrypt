@@ -138,7 +138,8 @@ rdrand_long (unsigned long *v)
                 "jnz 1b\n\t"
                 "2:"
                 : "=r" (ok), "=a" (*v)
-                : "0" (RDRAND_RETRY_LOOPS));
+                : "0" (RDRAND_RETRY_LOOPS)
+                : "cc");
   return ok;
 }
 

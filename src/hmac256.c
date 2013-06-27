@@ -104,7 +104,8 @@ ror(u32 x, int n)
 {
 	__asm__("rorl %%cl,%0"
 		:"=r" (x)
-		:"0" (x),"c" (n));
+		:"0" (x),"c" (n)
+		:"cc");
 	return x;
 }
 #else

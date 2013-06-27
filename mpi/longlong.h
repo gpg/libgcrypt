@@ -473,7 +473,8 @@ extern USItype __udiv_qrnnd ();
 	   : "%0" ((USItype)(ah)),                                      \
 	     "g" ((USItype)(bh)),                                       \
 	     "%1" ((USItype)(al)),                                      \
-	     "g" ((USItype)(bl)))
+	     "g" ((USItype)(bl))                                        \
+	   __CLOBBER_CC)
 #define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subl %5,%1\n"                                               \
 	   "sbbl %3,%0"                                                 \
@@ -482,29 +483,33 @@ extern USItype __udiv_qrnnd ();
 	   : "0" ((USItype)(ah)),                                       \
 	     "g" ((USItype)(bh)),                                       \
 	     "1" ((USItype)(al)),                                       \
-	     "g" ((USItype)(bl)))
+	     "g" ((USItype)(bl))                                        \
+	   __CLOBBER_CC)
 #define umul_ppmm(w1, w0, u, v) \
   __asm__ ("mull %3"                                                    \
 	   : "=a" ((USItype)(w0)),                                      \
 	     "=d" ((USItype)(w1))                                       \
 	   : "%0" ((USItype)(u)),                                       \
-	     "rm" ((USItype)(v)))
+	     "rm" ((USItype)(v))                                        \
+	   __CLOBBER_CC)
 #define udiv_qrnnd(q, r, n1, n0, d) \
   __asm__ ("divl %4"                                                    \
 	   : "=a" ((USItype)(q)),                                       \
 	     "=d" ((USItype)(r))                                        \
 	   : "0" ((USItype)(n0)),                                       \
 	     "1" ((USItype)(n1)),                                       \
-	     "rm" ((USItype)(d)))
+	     "rm" ((USItype)(d))                                        \
+	   __CLOBBER_CC)
 #define count_leading_zeros(count, x) \
   do {									\
     USItype __cbtmp;							\
     __asm__ ("bsrl %1,%0"                                               \
-	     : "=r" (__cbtmp) : "rm" ((USItype)(x)));                   \
+	     : "=r" (__cbtmp) : "rm" ((USItype)(x))                     \
+	     __CLOBBER_CC);						\
     (count) = __cbtmp ^ 31;						\
   } while (0)
 #define count_trailing_zeros(count, x) \
-  __asm__ ("bsfl %1,%0" : "=r" (count) : "rm" ((USItype)(x)))
+  __asm__ ("bsfl %1,%0" : "=r" (count) : "rm" ((USItype)(x)) __CLOBBER_CC)
 #ifndef UMUL_TIME
 #define UMUL_TIME 40
 #endif

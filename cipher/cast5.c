@@ -393,7 +393,8 @@ rol(int n, u32 x)
 {
 	__asm__("roll %%cl,%0"
 		:"=r" (x)
-		:"0" (x),"c" (n));
+		:"0" (x),"c" (n)
+		:"cc");
 	return x;
 }
 #else
