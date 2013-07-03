@@ -30,7 +30,7 @@
 
 
 #if defined(__i386__) || defined(__x86_64__)
-/* These architechtures are able of unaligned memory accesses and can
+/* These architectures are able of unaligned memory accesses and can
    handle those fast.
  */
 # define BUFHELP_FAST_UNALIGNED_ACCESS 1
@@ -59,9 +59,9 @@ buf_xor(void *_dst, const void *_src1, const void *_src2, size_t len)
       *dst++ = *src1++ ^ *src2++;
 #endif
 
-  ldst = (uintptr_t *)dst;
-  lsrc1 = (const uintptr_t *)src1;
-  lsrc2 = (const uintptr_t *)src2;
+  ldst = (uintptr_t *)(void *)dst;
+  lsrc1 = (const uintptr_t *)(const void *)src1;
+  lsrc2 = (const uintptr_t *)(const void *)src2;
 
   for (; len >= sizeof(uintptr_t); len -= sizeof(uintptr_t))
     *ldst++ = *lsrc1++ ^ *lsrc2++;
@@ -102,9 +102,9 @@ buf_xor_2dst(void *_dst1, void *_dst2, const void *_src, size_t len)
     *dst1++ = (*dst2++ ^= *src++);
 #endif
 
-  ldst1 = (uintptr_t *)dst1;
-  ldst2 = (uintptr_t *)dst2;
-  lsrc = (const uintptr_t *)src;
+  ldst1 = (uintptr_t *)(void *)dst1;
+  ldst2 = (uintptr_t *)(void *)dst2;
+  lsrc = (const uintptr_t *)(const void *)src;
 
   for (; len >= sizeof(uintptr_t); len -= sizeof(uintptr_t))
     *ldst1++ = (*ldst2++ ^= *lsrc++);
@@ -151,9 +151,9 @@ buf_xor_n_copy(void *_dst_xor, void *_srcdst_cpy, const void *_src, size_t len)
     }
 #endif
 
-  ldst_xor = (uintptr_t *)dst_xor;
-  lsrcdst_cpy = (uintptr_t *)srcdst_cpy;
-  lsrc = (const uintptr_t *)src;
+  ldst_xor = (uintptr_t *)(void *)dst_xor;
+  lsrcdst_cpy = (uintptr_t *)(void *)srcdst_cpy;
+  lsrc = (const uintptr_t *)(const void *)src;
 
   for (; len >= sizeof(uintptr_t); len -= sizeof(uintptr_t))
     {
