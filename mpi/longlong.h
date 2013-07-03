@@ -186,6 +186,30 @@ extern UDItype __udiv_qrnnd ();
  ***************************************/
 #if defined (__arm__) && W_TYPE_SIZE == 32 && \
     (!defined (__thumb__) || defined (__thumb2__))
+/* The __ARM_ARCH define is provided by gcc 4.8.  Construct it otherwise.  */
+#ifndef __ARM_ARCH
+# ifdef __ARM_ARCH_2__
+#  define __ARM_ARCH 2
+# elif defined (__ARM_ARCH_3__) || defined (__ARM_ARCH_3M__)
+#  define __ARM_ARCH 3
+# elif defined (__ARM_ARCH_4__) || defined (__ARM_ARCH_4T__)
+#  define __ARM_ARCH 4
+# elif defined (__ARM_ARCH_5__) || defined (__ARM_ARCH_5E__) \
+       || defined(__ARM_ARCH_5T__) || defined(__ARM_ARCH_5TE__) \
+       || defined(__ARM_ARCH_5TEJ__)
+#  define __ARM_ARCH 5
+# elif defined (__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
+       || defined (__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
+       || defined (__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__)
+#  define __ARM_ARCH 6
+# elif defined (__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
+       || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
+       || defined(__ARM_ARCH_7EM__)
+#  define __ARM_ARCH 7
+# else
+   /* could not detect? */
+# endif
+#endif
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("adds %1, %4, %5\n"                                          \
 	   "adc  %0, %2, %3"                                            \
@@ -204,9 +228,7 @@ extern UDItype __udiv_qrnnd ();
 	     "rI" ((USItype)(bh)),                                      \
 	     "r" ((USItype)(al)),                                       \
 	     "rI" ((USItype)(bl)) __CLOBBER_CC)
-/* The __ARM_ARCH define is provided by gcc 4.8 */
-#if (defined __ARM_ARCH && __ARM_ARCH <= 3) || \
-    defined __ARM_ARCH_2__ || defined __ARM_ARCH_3__
+#if (defined __ARM_ARCH && __ARM_ARCH <= 3)
 #define umul_ppmm(xh, xl, a, b) \
   __asm__ ("%@ Inlined umul_ppmm\n"                                     \
 	"mov	%|r0, %2, lsr #16		@ AAAA\n"               \
@@ -238,10 +260,7 @@ extern UDItype __udiv_qrnnd ();
 #endif /* __ARM_ARCH >= 4 */
 #define UMUL_TIME 20
 #define UDIV_TIME 100
-/* The __ARM_ARCH define is provided by gcc 4.8 */
-#if (defined __ARM_ARCH && __ARM_ARCH >= 5) || !(defined __ARM_ARCH_2__ || \
-    defined __ARM_ARCH_3__ || defined __ARM_ARCH_3M__ || __ARM_ARCH_4__ || \
-    __ARM_ARCH_4T__)
+#if (defined __ARM_ARCH && __ARM_ARCH >= 5)
 #define count_leading_zeros(count, x) \
   __asm__ ("clz %0, %1"                                                 \
 		   : "=r" ((USItype)(count))                            \
