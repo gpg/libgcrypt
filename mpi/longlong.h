@@ -194,7 +194,7 @@ extern UDItype __udiv_qrnnd ();
 	   : "%r" ((USItype)(ah)),                                      \
 	     "rI" ((USItype)(bh)),                                      \
 	     "%r" ((USItype)(al)),                                      \
-	     "rI" ((USItype)(bl)))
+	     "rI" ((USItype)(bl)) __CLOBBER_CC)
 #define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subs %1, %4, %5\n"                                          \
 	   "sbc  %0, %2, %3"                                            \
@@ -203,7 +203,7 @@ extern UDItype __udiv_qrnnd ();
 	   : "r" ((USItype)(ah)),                                       \
 	     "rI" ((USItype)(bh)),                                      \
 	     "r" ((USItype)(al)),                                       \
-	     "rI" ((USItype)(bl)))
+	     "rI" ((USItype)(bl)) __CLOBBER_CC)
 /* The __ARM_ARCH define is provided by gcc 4.8 */
 #if (defined __ARM_ARCH && __ARM_ARCH <= 3) || \
     defined __ARM_ARCH_2__ || defined __ARM_ARCH_3__
@@ -225,7 +225,7 @@ extern UDItype __udiv_qrnnd ();
 	     "=r" ((USItype)(xl))                                       \
 	   : "r" ((USItype)(a)),                                        \
 	     "r" ((USItype)(b))                                         \
-	   : "r0", "r1", "r2")
+	   : "r0", "r1", "r2" __CLOBBER_CC)
 #else /* __ARM_ARCH >= 4 */
 #define umul_ppmm(xh, xl, a, b)                                         \
   __asm__ ("%@ Inlined umul_ppmm\n"                                     \
