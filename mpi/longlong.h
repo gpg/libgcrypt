@@ -184,7 +184,8 @@ extern UDItype __udiv_qrnnd ();
 /***************************************
  **************  ARM  ******************
  ***************************************/
-#if defined (__arm__) && W_TYPE_SIZE == 32 && !defined (__thumb__)
+#if defined (__arm__) && W_TYPE_SIZE == 32 && \
+    (!defined (__thumb__) || defined (__thumb2__))
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("adds %1, %4, %5\n"                                          \
 	   "adc  %0, %2, %3"                                            \
@@ -203,7 +204,9 @@ extern UDItype __udiv_qrnnd ();
 	     "rI" ((USItype)(bh)),                                      \
 	     "r" ((USItype)(al)),                                       \
 	     "rI" ((USItype)(bl)))
-#if defined __ARM_ARCH_2__ || defined __ARM_ARCH_3__
+/* The __ARM_ARCH define is provided by gcc 4.8 */
+#if (defined __ARM_ARCH && __ARM_ARCH <= 3) || \
+    defined __ARM_ARCH_2__ || defined __ARM_ARCH_3__
 #define umul_ppmm(xh, xl, a, b) \
   __asm__ ("%@ Inlined umul_ppmm\n"                                     \
 	"mov	%|r0, %2, lsr #16		@ AAAA\n"               \
@@ -223,7 +226,7 @@ extern UDItype __udiv_qrnnd ();
 	   : "r" ((USItype)(a)),                                        \
 	     "r" ((USItype)(b))                                         \
 	   : "r0", "r1", "r2")
-#else
+#else /* __ARM_ARCH >= 4 */
 #define umul_ppmm(xh, xl, a, b)                                         \
   __asm__ ("%@ Inlined umul_ppmm\n"                                     \
 	   "umull %r1, %r0, %r2, %r3"                                   \
@@ -232,9 +235,18 @@ extern UDItype __udiv_qrnnd ();
 		   : "r" ((USItype)(a)),                                \
 		     "r" ((USItype)(b))                                 \
 		   : "r0", "r1")
-#endif
+#endif /* __ARM_ARCH >= 4 */
 #define UMUL_TIME 20
 #define UDIV_TIME 100
+/* The __ARM_ARCH define is provided by gcc 4.8 */
+#if (defined __ARM_ARCH && __ARM_ARCH >= 5) || !(defined __ARM_ARCH_2__ || \
+    defined __ARM_ARCH_3__ || defined __ARM_ARCH_3M__ || __ARM_ARCH_4__ || \
+    __ARM_ARCH_4T__)
+#define count_leading_zeros(count, x) \
+  __asm__ ("clz %0, %1"                                                 \
+		   : "=r" ((USItype)(count))                            \
+		   : "r" ((USItype)(x)))
+#endif /* __ARM_ARCH >= 5 */
 #endif /* __arm__ */
 
 /***************************************
