@@ -643,6 +643,7 @@ basic_ec_math (void)
   gcry_mpi_point_release (G);
   gcry_mpi_release (A);
   gcry_mpi_release (P);
+  gcry_ctx_release (ctx);
 }
 
 
@@ -761,6 +762,7 @@ basic_ec_math_simplified (void)
   gcry_mpi_point_release (Q);
   gcry_mpi_release (d);
   gcry_mpi_point_release (G);
+  gcry_ctx_release (ctx);
 }
 
 
