@@ -753,12 +753,15 @@ elg_decrypt (int algo, gcry_mpi_t *result,
 
 
 static gcry_err_code_t
-elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
+elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
+          int flags, int hashalgo)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_secret_key sk;
 
   (void)algo;
+  (void)flags;
+  (void)hashalgo;
 
   if ((! data)
       || (! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))

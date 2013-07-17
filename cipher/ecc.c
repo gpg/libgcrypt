@@ -1317,12 +1317,15 @@ ecc_check_secret_key (int algo, gcry_mpi_t *skey)
 
 
 static gcry_err_code_t
-ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
+ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
+          int flags, int hashalgo)
 {
   gpg_err_code_t err;
   ECC_secret_key sk;
 
   (void)algo;
+  (void)flags;
+  (void)hashalgo;
 
   if (!data || !skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4]
       || !skey[6] )

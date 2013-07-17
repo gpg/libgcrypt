@@ -993,11 +993,14 @@ rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
 
 
 static gcry_err_code_t
-rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey)
+rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
+          int flags, int hashalgo)
 {
   RSA_secret_key sk;
 
   (void)algo;
+  (void)flags;
+  (void)hashalgo;
 
   sk.n = skey[0];
   sk.e = skey[1];

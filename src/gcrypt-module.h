@@ -127,7 +127,9 @@ typedef gcry_err_code_t (*gcry_pk_decrypt_t) (int algo,
 typedef gcry_err_code_t (*gcry_pk_sign_t) (int algo,
 					   gcry_mpi_t *resarr,
 					   gcry_mpi_t data,
-					   gcry_mpi_t *skey);
+					   gcry_mpi_t *skey,
+                                           int flags,
+                                           int hashalgo);
 
 /* Type for the pk_verify function.  */
 typedef gcry_err_code_t (*gcry_pk_verify_t) (int algo,
