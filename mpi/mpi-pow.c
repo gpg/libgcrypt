@@ -81,9 +81,14 @@ gcry_mpi_powm (gcry_mpi_t res,
   if (!esize)
     {
       /* Exponent is zero, result is 1 mod MOD, i.e., 1 or 0 depending
-        on if MOD equals 1.  */
-      rp[0] = 1;
+         on if MOD equals 1.  */
       res->nlimbs = (msize == 1 && mod->d[0] == 1) ? 0 : 1;
+      if (res->nlimbs)
+        {
+          RESIZE_IF_NEEDED (res, 1);
+          rp = res->d;
+          rp[0] = 1;
+        }
       res->sign = 0;
       goto leave;
     }
