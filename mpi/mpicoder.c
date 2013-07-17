@@ -187,6 +187,17 @@ gcry_mpi_dump (const gcry_mpi_t a)
   log_printf (" ");
   if (!a)
     log_printf ("[MPI_NULL]");
+  else if (mpi_is_opaque (a))
+    {
+      unsigned int nbits;
+      const unsigned char *p;
+
+      p = gcry_mpi_get_opaque (a, &nbits);
+      log_printf ("[%u bit: ", nbits);
+      for (i=0; i < (nbits + 7)/8; i++)
+        log_printf ("%02x", p[i]);
+      log_printf ("]");
+    }
   else
     {
       if (a->sign)
