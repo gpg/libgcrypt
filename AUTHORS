@@ -164,9 +164,9 @@ a part of libgcrypt proper.  We distribute it merely for convenience.
 It has a permissive license and is copyrighted by atsec information
 security corporation.  See the file for details.
 
+The file salsa20.c is based on D.J. Bernstein's public domain code and
+taken from Nettle.  Copyright 2007 Simon Josefsson and Niels Möller.
 
- Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2006,
-           2007, 2008, 2009, 2011, 2012 Free Software Foundation, Inc.
 
  This file is free software; as a special exception the author gives
  unlimited permission to copy and/or distribute it, with or without
