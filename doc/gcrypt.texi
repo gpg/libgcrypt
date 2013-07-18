@@ -1487,8 +1487,7 @@ The value always evaluates to false.
 
 @item GCRY_CIPHER_IDEA
 @cindex IDEA
-This is the IDEA algorithm.  The constant is provided but there is
-currently no implementation for it because the algorithm is patented.
+This is the IDEA algorithm.
 
 @item GCRY_CIPHER_3DES
 @cindex 3DES
@@ -1575,6 +1574,10 @@ A 128 bit cipher as described by RFC4269.
 @cindex Camellia
 The Camellia cipher by NTT.  See
 @uref{http://info.isl.ntt.co.jp/@/crypt/@/eng/@/camellia/@/specifications.html}.
+
+@item GCRY_CIPHER_SALSA20
+@cindex Salsa20
+This is the Salsa20 stream cipher.
 
 @end table
 
@@ -1717,6 +1720,10 @@ Set the initialization vector used for encryption or decryption. The
 vector is passed as the buffer @var{K} of length @var{l} bytes and
 copied to internal data structures.  The function checks that the IV
 matches the requirement of the selected algorithm and mode.
+
+This function is also used with the Salsa20 stream cipher to set or
+update the required nonce.  In this case it needs to be called after
+setting the key.
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_cipher_setctr (gcry_cipher_hd_t @var{h}, const void *@var{c}, size_t @var{l})
@@ -2356,6 +2363,34 @@ format should be used:
 Here, the data to be signed is directly given as an @var{MPI}.
 
 @noindent
+For DSA the input data is expected in this format:
+@example
+(data
+  (flags raw)
+  (value @var{mpi}))
+@end example
+
+@noindent
+Here, the data to be signed is directly given as an @var{MPI}.  It is
+expect that this MPI is the the hash value.  For the standard DSA
+using a MPI is not a problem in regard to leading zeroes because the
+hash value is directly used as an MPI.  For better standard
+conformance it would be better to explicit use a memory string (like
+with pkcs1) but that is currently not supported.  However, for
+deterministic DSA as specified in RFC6979 this can't be used.  Instead
+the following input is expected.
+
+@example
+(data
+  (flags rfc6979)
+  (hash @var{hash-algo} @var{block}))
+@end example
+
+Note that the provided hash-algo is used for the internal HMAC; it
+should match the hash-algo used to create @var{block}.
+
+
+@noindent
 The signature is returned as a newly allocated S-expression in
 @var{r_sig} using this format for RSA:
 
@@ -2380,6 +2415,7 @@ operation.  For Elgamal signing (which is slow, yields large numbers
 and probably is not as secure as the other algorithms), the same format is
 used with "elg" replacing "dsa"; for ECDSA signing, the same format is used
 with "ecdsa" replacing "dsa".
+
 @end deftypefun
 @c end gcry_pk_sign
 
@@ -4115,7 +4151,10 @@ value.  Two functions implement this kludge:
 Store @var{nbits} of the value @var{p} points to in @var{a} and mark
 @var{a} as an opaque value (i.e. an value that can't be used for any
 math calculation and is only used to store an arbitrary bit pattern in
-@var{a}).
+@var{a}).  Ownership of @var{p} is taken by this function and thus the
+user may not use dereference the passed value anymore.  It is required
+that them memory referenced by @var{p} has been allocated in a way
+that @code{gcry_free} is able to release it.
 
 WARNING: Never use an opaque MPI for actual math operations.  The only
 valid functions are gcry_mpi_get_opaque and gcry_mpi_release.  Use

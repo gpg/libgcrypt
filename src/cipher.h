@@ -27,6 +27,7 @@
 #include "../random/random.h"
 
 #define PUBKEY_FLAG_NO_BLINDING    (1 << 0)
+#define PUBKEY_FLAG_RFC6979        (1 << 1)
 
 enum pk_operation
   {
@@ -194,12 +195,13 @@ extern gcry_cipher_spec_t _gcry_cipher_spec_camellia128;
 extern gcry_cipher_spec_t _gcry_cipher_spec_camellia192;
 extern gcry_cipher_spec_t _gcry_cipher_spec_camellia256;
 extern gcry_cipher_spec_t _gcry_cipher_spec_idea;
+extern gcry_cipher_spec_t _gcry_cipher_spec_salsa20;
 
 extern cipher_extra_spec_t _gcry_cipher_extraspec_tripledes;
 extern cipher_extra_spec_t _gcry_cipher_extraspec_aes;
 extern cipher_extra_spec_t _gcry_cipher_extraspec_aes192;
 extern cipher_extra_spec_t _gcry_cipher_extraspec_aes256;
-
+extern cipher_extra_spec_t _gcry_cipher_extraspec_salsa20;
 
 /* Declarations for the digest specifications.  */
 extern gcry_md_spec_t _gcry_digest_spec_crc32;

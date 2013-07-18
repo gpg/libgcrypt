@@ -1,6 +1,7 @@
 /* basic.c  -  basic regression tests
  * Copyright (C) 2001, 2002, 2003, 2005, 2008,
  *               2009 Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -1137,6 +1138,567 @@ check_ofb_cipher (void)
 }
 
 
+static void
+check_stream_cipher (void)
+{
+  struct tv
+  {
+    const char *name;
+    int algo;
+    int keylen;
+    int ivlen;
+    const char *key;
+    const char *iv;
+    struct data
+    {
+      int inlen;
+      const char *plaintext;
+      const char *out;
+    } data[MAX_DATA_LEN];
+  } tv[] = {
+#ifdef USE_SALSA20
+    {
+      "Salsa20 128 bit, test 1",
+      GCRY_CIPHER_SALSA20, 16, 8,
+      "\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+      "\x00\x00\x00\x00\x00\x00\x00\x00",
+      {
+        { 8,
+          "\x00\x00\x00\x00\x00\x00\x00\x00",
+          "\x4D\xFA\x5E\x48\x1D\xA2\x3E\xA0"
+        }
+      }
+    },
+    {
+      "Salsa20 128 bit, test 2",
+      GCRY_CIPHER_SALSA20, 16, 8,
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+      "\x80\x00\x00\x00\x00\x00\x00\x00",
+      {
+        { 8,
+          "\x00\x00\x00\x00\x00\x00\x00\x00",
+          "\xB6\x6C\x1E\x44\x46\xDD\x95\x57"
+        }
+      }
+    },
+    {
+      "Salsa20 128 bit, test 3",
+      GCRY_CIPHER_SALSA20, 16, 8,
+      "\x00\x53\xA6\xF9\x4C\x9F\xF2\x45\x98\xEB\x3E\x91\xE4\x37\x8A\xDD",
+      "\x0D\x74\xDB\x42\xA9\x10\x77\xDE",
+      {
+        { 8,
+          "\x00\x00\x00\x00\x00\x00\x00\x00",
+          "\x05\xE1\xE7\xBE\xB6\x97\xD9\x99"
+        }
+      }
+    },
+    {
+      "Salsa20 256 bit, test 1",
+      GCRY_CIPHER_SALSA20, 32, 8,
+      "\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+      "\x00\x00\x00\x00\x00\x00\x00\x00",
+      {
+        { 8,
+          "\x00\x00\x00\x00\x00\x00\x00\x00",
+          "\xE3\xBE\x8F\xDD\x8B\xEC\xA2\xE3"
+        }
+      }
+    },
+    {
+      "Salsa20 256 bit, test 2",
+      GCRY_CIPHER_SALSA20, 32, 8,
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+      "\x80\x00\x00\x00\x00\x00\x00\x00",
+      {
+        { 8,
+          "\x00\x00\x00\x00\x00\x00\x00\x00",
+          "\x2A\xBA\x3D\xC4\x5B\x49\x47\x00"
+        }
+      }
+    },
+    {
+      "Salsa20 256 bit, ecrypt verified, set 6, vector 0",
+      GCRY_CIPHER_SALSA20, 32, 8,
+      "\x00\x53\xA6\xF9\x4C\x9F\xF2\x45\x98\xEB\x3E\x91\xE4\x37\x8A\xDD"
+      "\x30\x83\xD6\x29\x7C\xCF\x22\x75\xC8\x1B\x6E\xC1\x14\x67\xBA\x0D",
+      "\x0D\x74\xDB\x42\xA9\x10\x77\xDE",
+      {
+        { 8,
+          "\x00\x00\x00\x00\x00\x00\x00\x00",
+          "\xF5\xFA\xD5\x3F\x79\xF9\xDF\x58"
+        },
+        { 64,
+          "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+          "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+          "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+          "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+          "\xF5\xFA\xD5\x3F\x79\xF9\xDF\x58\xC4\xAE\xA0\xD0\xED\x9A\x96\x01"
+          "\xF2\x78\x11\x2C\xA7\x18\x0D\x56\x5B\x42\x0A\x48\x01\x96\x70\xEA"
+          "\xF2\x4C\xE4\x93\xA8\x62\x63\xF6\x77\xB4\x6A\xCE\x19\x24\x77\x3D"
+          "\x2B\xB2\x55\x71\xE1\xAA\x85\x93\x75\x8F\xC3\x82\xB1\x28\x0B\x71"
+        }
+      }
+    }
+#endif /*USE_SALSA20*/
+  };
+
+  gcry_cipher_hd_t hde, hdd;
+  unsigned char out[MAX_DATA_LEN];
+  int i, j;
+  gcry_error_t err = 0;
+
+
+  if (verbose)
+    fprintf (stderr, "  Starting stream cipher checks.\n");
+
+  for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
+    {
+      if (verbose)
+        fprintf (stderr, "    checking stream mode for %s [%i] (%s)\n",
+		 gcry_cipher_algo_name (tv[i].algo), tv[i].algo, tv[i].name);
+
+      if (gcry_cipher_get_algo_blklen(tv[i].algo) != 1)
+        {
+          fail ("stream, gcry_cipher_get_algo_blklen: bad block length\n");
+          continue;
+        }
+
+      err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_STREAM, 0);
+      if (!err)
+        err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_STREAM, 0);
+      if (err)
+        {
+          fail ("stream, gcry_cipher_open for stream mode failed: %s\n",
+                gpg_strerror (err));
+          continue;
+        }
+
+      /* Now loop over all the data samples.  */
+      for (j = 0; tv[i].data[j].inlen; j++)
+        {
+          err = gcry_cipher_setkey (hde, tv[i].key, tv[i].keylen);
+          if (!err)
+            err = gcry_cipher_setkey (hdd, tv[i].key, tv[i].keylen);
+          if (err)
+            {
+              fail ("stream, gcry_cipher_setkey failed: %s\n",
+                    gpg_strerror (err));
+              goto next;
+            }
+
+          err = gcry_cipher_setiv (hde, tv[i].iv, tv[i].ivlen);
+          if (!err)
+            err = gcry_cipher_setiv (hdd, tv[i].iv, tv[i].ivlen);
+          if (err)
+            {
+              fail ("stream, gcry_cipher_setiv failed: %s\n",
+                    gpg_strerror (err));
+              goto next;
+            }
+
+          err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+                                     tv[i].data[j].plaintext,
+                                     tv[i].data[j].inlen);
+          if (err)
+            {
+              fail ("stream, gcry_cipher_encrypt (%d, %d) failed: %s\n",
+                    i, j, gpg_strerror (err));
+              goto next;
+            }
+
+          if (memcmp (tv[i].data[j].out, out, tv[i].data[j].inlen))
+            {
+              fail ("stream, encrypt mismatch entry %d:%d\n", i, j);
+              mismatch (tv[i].data[j].out, tv[i].data[j].inlen,
+                        out, tv[i].data[j].inlen);
+            }
+
+          err = gcry_cipher_decrypt (hdd, out, tv[i].data[j].inlen, NULL, 0);
+          if (err)
+            {
+              fail ("stream, gcry_cipher_decrypt (%d, %d) failed: %s\n",
+                    i, j, gpg_strerror (err));
+              goto next;
+            }
+
+          if (memcmp (tv[i].data[j].plaintext, out, tv[i].data[j].inlen))
+            fail ("stream, decrypt mismatch entry %d:%d\n", i, j);
+        }
+
+
+      /* This time we encrypt and decrypt one byte at a time */
+      for (j = 0; tv[i].data[j].inlen; j++)
+        {
+          int byteNum;
+
+          err = gcry_cipher_setkey (hde, tv[i].key, tv[i].keylen);
+          if (!err)
+            err = gcry_cipher_setkey (hdd, tv[i].key, tv[i].keylen);
+          if (err)
+            {
+              fail ("stream, gcry_cipher_setkey failed: %s\n",
+                    gpg_strerror (err));
+              goto next;
+            }
+
+          err = gcry_cipher_setiv (hde, tv[i].iv, tv[i].ivlen);
+          if (!err)
+            err = gcry_cipher_setiv (hdd, tv[i].iv, tv[i].ivlen);
+          if (err)
+            {
+              fail ("stream, gcry_cipher_setiv failed: %s\n",
+                    gpg_strerror (err));
+              goto next;
+            }
+
+          for (byteNum = 0; byteNum < tv[i].data[j].inlen; ++byteNum)
+            {
+              err = gcry_cipher_encrypt (hde, out+byteNum, 1,
+                                         (tv[i].data[j].plaintext) + byteNum,
+                                         1);
+              if (err)
+                {
+                  fail ("stream, gcry_cipher_encrypt (%d, %d) failed: %s\n",
+                        i, j, gpg_strerror (err));
+                  goto next;
+                }
+            }
+
+          if (memcmp (tv[i].data[j].out, out, tv[i].data[j].inlen))
+            fail ("stream, encrypt mismatch entry %d:%d (byte-wise)\n", i, j);
+
+          for (byteNum = 0; byteNum < tv[i].data[j].inlen; ++byteNum)
+            {
+              err = gcry_cipher_decrypt (hdd, out+byteNum, 1, NULL, 0);
+              if (err)
+                {
+                  fail ("stream, gcry_cipher_decrypt (%d, %d) failed: %s\n",
+                        i, j, gpg_strerror (err));
+                  goto next;
+                }
+            }
+
+          if (memcmp (tv[i].data[j].plaintext, out, tv[i].data[j].inlen))
+            fail ("stream, decrypt mismatch entry %d:%d (byte-wise)\n", i, j);
+        }
+
+    next:
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+    }
+  if (verbose)
+    fprintf (stderr, "  Completed stream cipher checks.\n");
+}
+
+
+static void
+check_stream_cipher_large_block (void)
+{
+  struct tv
+  {
+    const char *name;
+    int algo;
+    int keylen;
+    int ivlen;
+    const char *key;
+    const char *iv;
+    struct data
+    {
+      int offset, length;
+      const char *result;
+    } data[MAX_DATA_LEN];
+  } tv[] = {
+#ifdef USE_SALSA20
+    {
+      "Salsa20 256 bit, ecrypt verified, set 6, vector 0",
+      GCRY_CIPHER_SALSA20, 32, 8,
+      "\x00\x53\xA6\xF9\x4C\x9F\xF2\x45\x98\xEB\x3E\x91\xE4\x37\x8A\xDD"
+      "\x30\x83\xD6\x29\x7C\xCF\x22\x75\xC8\x1B\x6E\xC1\x14\x67\xBA\x0D",
+      "\x0D\x74\xDB\x42\xA9\x10\x77\xDE",
+      {
+        { 0, 64,
+          "\xF5\xFA\xD5\x3F\x79\xF9\xDF\x58\xC4\xAE\xA0\xD0\xED\x9A\x96\x01"
+          "\xF2\x78\x11\x2C\xA7\x18\x0D\x56\x5B\x42\x0A\x48\x01\x96\x70\xEA"
+          "\xF2\x4C\xE4\x93\xA8\x62\x63\xF6\x77\xB4\x6A\xCE\x19\x24\x77\x3D"
+          "\x2B\xB2\x55\x71\xE1\xAA\x85\x93\x75\x8F\xC3\x82\xB1\x28\x0B\x71"
+        },
+        { 65472, 64,
+         "\xB7\x0C\x50\x13\x9C\x63\x33\x2E\xF6\xE7\x7A\xC5\x43\x38\xA4\x07"
+         "\x9B\x82\xBE\xC9\xF9\xA4\x03\xDF\xEA\x82\x1B\x83\xF7\x86\x07\x91"
+         "\x65\x0E\xF1\xB2\x48\x9D\x05\x90\xB1\xDE\x77\x2E\xED\xA4\xE3\xBC"
+         "\xD6\x0F\xA7\xCE\x9C\xD6\x23\xD9\xD2\xFD\x57\x58\xB8\x65\x3E\x70"
+        },
+        { 65536, 64,
+         "\x81\x58\x2C\x65\xD7\x56\x2B\x80\xAE\xC2\xF1\xA6\x73\xA9\xD0\x1C"
+         "\x9F\x89\x2A\x23\xD4\x91\x9F\x6A\xB4\x7B\x91\x54\xE0\x8E\x69\x9B"
+         "\x41\x17\xD7\xC6\x66\x47\x7B\x60\xF8\x39\x14\x81\x68\x2F\x5D\x95"
+         "\xD9\x66\x23\xDB\xC4\x89\xD8\x8D\xAA\x69\x56\xB9\xF0\x64\x6B\x6E"
+        },
+        { 131008, 64,
+         "\xA1\x3F\xFA\x12\x08\xF8\xBF\x50\x90\x08\x86\xFA\xAB\x40\xFD\x10"
+         "\xE8\xCA\xA3\x06\xE6\x3D\xF3\x95\x36\xA1\x56\x4F\xB7\x60\xB2\x42"
+         "\xA9\xD6\xA4\x62\x8C\xDC\x87\x87\x62\x83\x4E\x27\xA5\x41\xDA\x2A"
+         "\x5E\x3B\x34\x45\x98\x9C\x76\xF6\x11\xE0\xFE\xC6\xD9\x1A\xCA\xCC"
+        }
+      }
+    },
+    {
+      "Salsa20 256 bit, ecrypt verified, set 6, vector 1",
+      GCRY_CIPHER_SALSA20, 32, 8,
+      "\x05\x58\xAB\xFE\x51\xA4\xF7\x4A\x9D\xF0\x43\x96\xE9\x3C\x8F\xE2"
+      "\x35\x88\xDB\x2E\x81\xD4\x27\x7A\xCD\x20\x73\xC6\x19\x6C\xBF\x12",
+      "\x16\x7D\xE4\x4B\xB2\x19\x80\xE7",
+      {
+        { 0, 64,
+          "\x39\x44\xF6\xDC\x9F\x85\xB1\x28\x08\x38\x79\xFD\xF1\x90\xF7\xDE"
+          "\xE4\x05\x3A\x07\xBC\x09\x89\x6D\x51\xD0\x69\x0B\xD4\xDA\x4A\xC1"
+          "\x06\x2F\x1E\x47\xD3\xD0\x71\x6F\x80\xA9\xB4\xD8\x5E\x6D\x60\x85"
+          "\xEE\x06\x94\x76\x01\xC8\x5F\x1A\x27\xA2\xF7\x6E\x45\xA6\xAA\x87"
+        },
+        { 65472, 64,
+          "\x36\xE0\x3B\x4B\x54\xB0\xB2\xE0\x4D\x06\x9E\x69\x00\x82\xC8\xC5"
+          "\x92\xDF\x56\xE6\x33\xF5\xD8\xC7\x68\x2A\x02\xA6\x5E\xCD\x13\x71"
+          "\x8C\xA4\x35\x2A\xAC\xCB\x0D\xA2\x0E\xD6\xBB\xBA\x62\xE1\x77\xF2"
+          "\x10\xE3\x56\x0E\x63\xBB\x82\x2C\x41\x58\xCA\xA8\x06\xA8\x8C\x82"
+        },
+        { 65536, 64,
+          "\x1B\x77\x9E\x7A\x91\x7C\x8C\x26\x03\x9F\xFB\x23\xCF\x0E\xF8\xE0"
+          "\x8A\x1A\x13\xB4\x3A\xCD\xD9\x40\x2C\xF5\xDF\x38\x50\x10\x98\xDF"
+          "\xC9\x45\xA6\xCC\x69\xA6\xA1\x73\x67\xBC\x03\x43\x1A\x86\xB3\xED"
+          "\x04\xB0\x24\x5B\x56\x37\x9B\xF9\x97\xE2\x58\x00\xAD\x83\x7D\x7D"
+        },
+        { 131008, 64,
+          "\x7E\xC6\xDA\xE8\x1A\x10\x5E\x67\x17\x2A\x0B\x8C\x4B\xBE\x7D\x06"
+          "\xA7\xA8\x75\x9F\x91\x4F\xBE\xB1\xAF\x62\xC8\xA5\x52\xEF\x4A\x4F"
+          "\x56\x96\x7E\xA2\x9C\x74\x71\xF4\x6F\x3B\x07\xF7\xA3\x74\x6E\x95"
+          "\x3D\x31\x58\x21\xB8\x5B\x6E\x8C\xB4\x01\x22\xB9\x66\x35\x31\x3C"
+        }
+      }
+    },
+    {
+      "Salsa20 256 bit, ecrypt verified, set 6, vector 2",
+      GCRY_CIPHER_SALSA20, 32, 8,
+      "\x0A\x5D\xB0\x03\x56\xA9\xFC\x4F\xA2\xF5\x48\x9B\xEE\x41\x94\xE7"
+      "\x3A\x8D\xE0\x33\x86\xD9\x2C\x7F\xD2\x25\x78\xCB\x1E\x71\xC4\x17",
+      "\x1F\x86\xED\x54\xBB\x22\x89\xF0",
+      {
+        { 0, 64,
+          "\x3F\xE8\x5D\x5B\xB1\x96\x0A\x82\x48\x0B\x5E\x6F\x4E\x96\x5A\x44"
+          "\x60\xD7\xA5\x45\x01\x66\x4F\x7D\x60\xB5\x4B\x06\x10\x0A\x37\xFF"
+          "\xDC\xF6\xBD\xE5\xCE\x3F\x48\x86\xBA\x77\xDD\x5B\x44\xE9\x56\x44"
+          "\xE4\x0A\x8A\xC6\x58\x01\x15\x5D\xB9\x0F\x02\x52\x2B\x64\x40\x23"
+        },
+        { 65472, 64,
+          "\xC8\xD6\xE5\x4C\x29\xCA\x20\x40\x18\xA8\x30\xE2\x66\xCE\xEE\x0D"
+          "\x03\x7D\xC4\x7E\x92\x19\x47\x30\x2A\xCE\x40\xD1\xB9\x96\xA6\xD8"
+          "\x0B\x59\x86\x77\xF3\x35\x2F\x1D\xAA\x6D\x98\x88\xF8\x91\xAD\x95"
+          "\xA1\xC3\x2F\xFE\xB7\x1B\xB8\x61\xE8\xB0\x70\x58\x51\x51\x71\xC9"
+        },
+        { 65536, 64,
+          "\xB7\x9F\xD7\x76\x54\x2B\x46\x20\xEF\xCB\x88\x44\x95\x99\xF2\x34"
+          "\x03\xE7\x4A\x6E\x91\xCA\xCC\x50\xA0\x5A\x8F\x8F\x3C\x0D\xEA\x8B"
+          "\x00\xE1\xA5\xE6\x08\x1F\x55\x26\xAE\x97\x5B\x3B\xC0\x45\x0F\x1A"
+          "\x0C\x8B\x66\xF8\x08\xF1\x90\x4B\x97\x13\x61\x13\x7C\x93\x15\x6F"
+        },
+        { 131008, 64,
+          "\x79\x98\x20\x4F\xED\x70\xCE\x8E\x0D\x02\x7B\x20\x66\x35\xC0\x8C"
+          "\x8B\xC4\x43\x62\x26\x08\x97\x0E\x40\xE3\xAE\xDF\x3C\xE7\x90\xAE"
+          "\xED\xF8\x9F\x92\x26\x71\xB4\x53\x78\xE2\xCD\x03\xF6\xF6\x23\x56"
+          "\x52\x9C\x41\x58\xB7\xFF\x41\xEE\x85\x4B\x12\x35\x37\x39\x88\xC8"
+        }
+      }
+    },
+    {
+      "Salsa20 256 bit, ecrypt verified, set 6, vector 3",
+      GCRY_CIPHER_SALSA20, 32, 8,
+      "\x0F\x62\xB5\x08\x5B\xAE\x01\x54\xA7\xFA\x4D\xA0\xF3\x46\x99\xEC"
+      "\x3F\x92\xE5\x38\x8B\xDE\x31\x84\xD7\x2A\x7D\xD0\x23\x76\xC9\x1C",
+      "\x28\x8F\xF6\x5D\xC4\x2B\x92\xF9",
+      {
+        { 0, 64,
+          "\x5E\x5E\x71\xF9\x01\x99\x34\x03\x04\xAB\xB2\x2A\x37\xB6\x62\x5B"
+          "\xF8\x83\xFB\x89\xCE\x3B\x21\xF5\x4A\x10\xB8\x10\x66\xEF\x87\xDA"
+          "\x30\xB7\x76\x99\xAA\x73\x79\xDA\x59\x5C\x77\xDD\x59\x54\x2D\xA2"
+          "\x08\xE5\x95\x4F\x89\xE4\x0E\xB7\xAA\x80\xA8\x4A\x61\x76\x66\x3F"
+        },
+        { 65472, 64,
+          "\x2D\xA2\x17\x4B\xD1\x50\xA1\xDF\xEC\x17\x96\xE9\x21\xE9\xD6\xE2"
+          "\x4E\xCF\x02\x09\xBC\xBE\xA4\xF9\x83\x70\xFC\xE6\x29\x05\x6F\x64"
+          "\x91\x72\x83\x43\x6E\x2D\x3F\x45\x55\x62\x25\x30\x7D\x5C\xC5\xA5"
+          "\x65\x32\x5D\x89\x93\xB3\x7F\x16\x54\x19\x5C\x24\x0B\xF7\x5B\x16"
+        },
+        { 65536, 64,
+          "\xAB\xF3\x9A\x21\x0E\xEE\x89\x59\x8B\x71\x33\x37\x70\x56\xC2\xFE"
+          "\xF4\x2D\xA7\x31\x32\x75\x63\xFB\x67\xC7\xBE\xDB\x27\xF3\x8C\x7C"
+          "\x5A\x3F\xC2\x18\x3A\x4C\x6B\x27\x7F\x90\x11\x52\x47\x2C\x6B\x2A"
+          "\xBC\xF5\xE3\x4C\xBE\x31\x5E\x81\xFD\x3D\x18\x0B\x5D\x66\xCB\x6C"
+        },
+        { 131008, 64,
+          "\x1B\xA8\x9D\xBD\x3F\x98\x83\x97\x28\xF5\x67\x91\xD5\xB7\xCE\x23"
+          "\x50\x36\xDE\x84\x3C\xCC\xAB\x03\x90\xB8\xB5\x86\x2F\x1E\x45\x96"
+          "\xAE\x8A\x16\xFB\x23\xDA\x99\x7F\x37\x1F\x4E\x0A\xAC\xC2\x6D\xB8"
+          "\xEB\x31\x4E\xD4\x70\xB1\xAF\x6B\x9F\x8D\x69\xDD\x79\xA9\xD7\x50"
+        }
+      }
+    }
+#endif /*USE_SALSA20*/
+  };
+
+
+  char zeroes[512];
+  gcry_cipher_hd_t hde;
+  unsigned char *buffer;
+  unsigned char *p;
+  size_t buffersize;
+  unsigned int n;
+  int i, j;
+  gcry_error_t err = 0;
+
+  if (verbose)
+    fprintf (stderr, "  Starting large block stream cipher checks.\n");
+
+  memset (zeroes, 0, 512);
+
+  buffersize = 128 * 1024;
+  buffer = gcry_xmalloc (buffersize+1024);
+  memset (buffer+buffersize, 0x5a, 1024);
+
+  for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
+    {
+      if (verbose)
+        fprintf (stderr, "    checking large block stream for %s [%i] (%s)\n",
+		 gcry_cipher_algo_name (tv[i].algo), tv[i].algo, tv[i].name);
+
+      err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_STREAM, 0);
+      if (err)
+        {
+          fail ("large stream, gcry_cipher_open for stream mode failed: %s\n",
+                gpg_strerror (err));
+          continue;
+        }
+
+      err = gcry_cipher_setkey (hde, tv[i].key, tv[i].keylen);
+      if (err)
+        {
+          fail ("large stream, gcry_cipher_setkey failed: %s\n",
+                gpg_strerror (err));
+          goto next;
+        }
+
+      err = gcry_cipher_setiv (hde, tv[i].iv, tv[i].ivlen);
+      if (err)
+        {
+          fail ("large stream, gcry_cipher_setiv failed: %s\n",
+                gpg_strerror (err));
+          goto next;
+        }
+
+      for (j=0, p=buffer; j < buffersize/512; j++, p += 512)
+        {
+          err = gcry_cipher_encrypt (hde, p, 512, zeroes, 512);
+          if (err)
+            {
+              fail ("large stream, "
+                    "gcry_cipher_encrypt (%d) block %d failed: %s\n",
+                    i, j, gpg_strerror (err));
+              goto next;
+            }
+        }
+      for (j=0, p=buffer+buffersize; j < 1024; j++, p++)
+        if (*p != 0x5a)
+          die ("large stream, buffer corrupted at j=%d\n", j);
+
+      /* Now loop over all the data samples.  */
+      for (j = 0; tv[i].data[j].length; j++)
+        {
+          assert (tv[i].data[j].offset + tv[i].data[j].length <= buffersize);
+
+          if (memcmp (tv[i].data[j].result,
+                      buffer + tv[i].data[j].offset, tv[i].data[j].length))
+            {
+              fail ("large stream, encrypt mismatch entry %d:%d\n", i, j);
+              mismatch (tv[i].data[j].result, tv[i].data[j].length,
+                        buffer + tv[i].data[j].offset, tv[i].data[j].length);
+            }
+        }
+
+      /*
+       *  Let's do the same thing again but using changing block sizes.
+       */
+      err = gcry_cipher_setkey (hde, tv[i].key, tv[i].keylen);
+      if (err)
+        {
+          fail ("large stream, gcry_cipher_setkey failed: %s\n",
+                gpg_strerror (err));
+          goto next;
+        }
+
+      err = gcry_cipher_setiv (hde, tv[i].iv, tv[i].ivlen);
+      if (err)
+        {
+          fail ("large stream, gcry_cipher_setiv failed: %s\n",
+                gpg_strerror (err));
+          goto next;
+        }
+
+      for (n=0, p=buffer, j = 0; n < buffersize; n += j, p += j)
+        {
+          switch (j)
+            {
+            case   0: j =   1;  break;
+            case   1: j =  64; break;
+            case  64: j=  384; break;
+            case 384: j =  63; break;
+            case  63: j = 512; break;
+            case 512: j =  32; break;
+            case  32: j = 503; break;
+            default:  j = 509; break;
+            }
+          if ( n + j >= buffersize )
+            j = buffersize - n;
+          assert (j <= 512);
+          err = gcry_cipher_encrypt (hde, p, j, zeroes, j);
+          if (err)
+            {
+              fail ("large stream, "
+                    "gcry_cipher_encrypt (%d) offset %u failed: %s\n",
+                    i, n, gpg_strerror (err));
+              goto next;
+            }
+        }
+      for (j=0, p=buffer+buffersize; j < 1024; j++, p++)
+        if (*p != 0x5a)
+          die ("large stream, buffer corrupted at j=%d (line %d)\n",
+               j, __LINE__);
+
+      /* Now loop over all the data samples.  */
+      for (j = 0; tv[i].data[j].length; j++)
+        {
+          assert (tv[i].data[j].offset + tv[i].data[j].length <= buffersize);
+
+          if (memcmp (tv[i].data[j].result,
+                      buffer + tv[i].data[j].offset, tv[i].data[j].length))
+            {
+              fail ("large stream var, encrypt mismatch entry %d:%d\n", i, j);
+              mismatch (tv[i].data[j].result, tv[i].data[j].length,
+                        buffer + tv[i].data[j].offset, tv[i].data[j].length);
+            }
+        }
+
+    next:
+      gcry_cipher_close (hde);
+    }
+
+  gcry_free (buffer);
+  if (verbose)
+    fprintf (stderr, "  Completed large block stream cipher checks.\n");
+}
+
+
+
 /* Check that our bulk encryption fucntions work properly.  */
 static void
 check_bulk_cipher_modes (void)
@@ -1606,6 +2168,9 @@ check_ciphers (void)
 #if USE_ARCFOUR
     GCRY_CIPHER_ARCFOUR,
 #endif
+#if USE_SALSA20
+    GCRY_CIPHER_SALSA20,
+#endif
     0
   };
   int i;
@@ -1644,7 +2209,7 @@ check_ciphers (void)
           continue;
         }
       if (verbose)
-	fprintf (stderr, "  checking `%s'\n",
+	fprintf (stderr, "  checking %s\n",
 		 gcry_cipher_algo_name (algos2[i]));
 
       check_one_cipher (algos2[i], GCRY_CIPHER_MODE_STREAM, 0);
@@ -1669,6 +2234,8 @@ check_cipher_modes(void)
   check_ctr_cipher ();
   check_cfb_cipher ();
   check_ofb_cipher ();
+  check_stream_cipher ();
+  check_stream_cipher_large_block ();
 
   if (verbose)
     fprintf (stderr, "Completed Cipher Mode checks.\n");

@@ -67,6 +67,7 @@ md5.c \
 rijndael.c rijndael-tables.h rijndael-amd64.S \
 rmd160.c \
 rsa.c \
+salsa20.c \
 scrypt.c \
 seed.c \
 serpent.c serpent-sse2-amd64.S serpent-avx2-amd64.S \

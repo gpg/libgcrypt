@@ -68,6 +68,9 @@ typedef gcry_sexp_t (*pk_get_curve_param_t)(const char *name);
 typedef gpg_err_code_t (*cipher_set_extra_info_t)
      (void *c, int what, const void *buffer, size_t buflen);
 
+/* The type used to set an IV directly in the algorithm module.  */
+typedef void (*cipher_setiv_func_t)(void *c,
+                                    const byte *iv, unsigned int ivlen);
 
 /* Extra module specification structures.  These are used for internal
    modules which provide more functions than available through the
@@ -76,6 +79,7 @@ typedef struct cipher_extra_spec
 {
   selftest_func_t selftest;
   cipher_set_extra_info_t set_extra_info;
+  cipher_setiv_func_t setiv;
 } cipher_extra_spec_t;
 
 typedef struct md_extra_spec

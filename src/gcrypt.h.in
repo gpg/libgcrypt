@@ -812,7 +812,8 @@ enum gcry_cipher_algos
     GCRY_CIPHER_SEED        = 309,  /* 128 bit cipher described in RFC4269. */
     GCRY_CIPHER_CAMELLIA128 = 310,
     GCRY_CIPHER_CAMELLIA192 = 311,
-    GCRY_CIPHER_CAMELLIA256 = 312
+    GCRY_CIPHER_CAMELLIA256 = 312,
+    GCRY_CIPHER_SALSA20     = 313
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */

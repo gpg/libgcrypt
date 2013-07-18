@@ -104,6 +104,10 @@ static struct cipher_table_entry
     { &_gcry_cipher_spec_idea,
       &dummy_extra_spec,                  GCRY_CIPHER_IDEA },
 #endif
+#if USE_SALSA20
+    { &_gcry_cipher_spec_salsa20,
+      &_gcry_cipher_extraspec_salsa20,    GCRY_CIPHER_SALSA20 },
+#endif
     { NULL                    }
   };
 
@@ -845,8 +849,16 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, unsigned int keylen)
 /* Set the IV to be used for the encryption context C to IV with
    length IVLEN.  The length should match the required length. */
 static void
-cipher_setiv( gcry_cipher_hd_t c, const byte *iv, unsigned ivlen )
+cipher_setiv (gcry_cipher_hd_t c, const byte *iv, unsigned ivlen)
 {
+  /* If the cipher has its own IV handler, we use only this one.  This
+     is currently used for stream ciphers requiring a nonce.  */
+  if (c->extraspec && c->extraspec->setiv)
+    {
+      c->extraspec->setiv (&c->context.c, iv, ivlen);
+      return;
+    }
+
   memset (c->u_iv.iv, 0, c->cipher->blocksize);
   if (iv)
     {
