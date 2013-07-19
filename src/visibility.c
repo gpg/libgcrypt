@@ -226,6 +226,12 @@ gcry_sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
   return _gcry_sexp_nth_data (list, number, datalen);
 }
 
+void *
+gcry_sexp_nth_buffer (const gcry_sexp_t list, int number, size_t *rlength)
+{
+  return _gcry_sexp_nth_buffer (list, number, rlength);
+}
+
 char *
 gcry_sexp_nth_string (gcry_sexp_t list, int number)
 {

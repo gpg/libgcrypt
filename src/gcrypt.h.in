@@ -423,6 +423,13 @@ gcry_sexp_t gcry_sexp_cadr (const gcry_sexp_t list);
 const char *gcry_sexp_nth_data (const gcry_sexp_t list, int number,
                                 size_t *datalen);
 
+/* This function is used to get data from a LIST.  A malloced buffer to the
+   data with index NUMBER is returned and the length of this
+   data will be stored to RLENGTH.  If there is no data at the given
+   index or the index represents another list, `NULL' is returned.  */
+void *gcry_sexp_nth_buffer (const gcry_sexp_t list, int number,
+                            size_t *rlength);
+
 /* This function is used to get and convert data from a LIST.  The
    data is assumed to be a Nul terminated string.  The caller must
    release the returned value using `gcry_free'.  If there is no data

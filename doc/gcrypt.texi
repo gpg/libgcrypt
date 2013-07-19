@@ -3596,6 +3596,30 @@ printf ("my name is %.*s\n", (int)len, name);
 @end example
 @end deftypefun
 
+@deftypefun {void *} gcry_sexp_nth_buffer (@w{const gcry_sexp_t @var{list}}, @w{int @var{number}}, @w{size_t *@var{rlength}})
+
+This function is used to get data from a @var{list}.  A malloced
+buffer with the actual data at list index @var{number} is returned and
+the length of this buffer will be stored to @var{rlength}.  If there
+is no data at the given index or the index represents another list,
+@code{NULL} is returned.  The caller must release the result using
+@code{gcry_free}.
+
+@noindent
+Here is an example on how to extract and print the CRC value from the
+S-expression @samp{(hash crc32 #23ed00d7)}:
+
+@example
+size_t len;
+char *value;
+
+value = gcry_sexp_nth_buffer (list, 2, &len);
+if (value)
+  fwrite (value, len, 1, stdout);
+gcry_free (value);
+@end example
+@end deftypefun
+
 @deftypefun {char *} gcry_sexp_nth_string (@w{gcry_sexp_t @var{list}}, @w{int @var{number}})
 
 This function is used to get and convert data from a @var{list}. The

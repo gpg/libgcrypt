@@ -236,3 +236,8 @@ EXPORTS
       gcry_pubkey_get_sexp      @212
 
       _gcry_mpi_get_const       @213
+
+      gcry_sexp_get_buffer      @214
+
+
+;; end of file with public symbols for Windows.

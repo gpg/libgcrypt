@@ -133,14 +133,15 @@
 #define gcry_sexp_length            _gcry_sexp_length
 #define gcry_sexp_new               _gcry_sexp_new
 #define gcry_sexp_nth               _gcry_sexp_nth
+#define gcry_sexp_nth_buffer        _gcry_sexp_nth_buffer
 #define gcry_sexp_nth_data          _gcry_sexp_nth_data
 #define gcry_sexp_nth_mpi           _gcry_sexp_nth_mpi
+#define gcry_sexp_nth_string        _gcry_sexp_nth_string
 #define gcry_sexp_prepend           _gcry_sexp_prepend
 #define gcry_sexp_release           _gcry_sexp_release
 #define gcry_sexp_sprint            _gcry_sexp_sprint
 #define gcry_sexp_sscan             _gcry_sexp_sscan
 #define gcry_sexp_vlist             _gcry_sexp_vlist
-#define gcry_sexp_nth_string        _gcry_sexp_nth_string
 
 #define gcry_mpi_add                _gcry_mpi_add
 #define gcry_mpi_add_ui             _gcry_mpi_add_ui
@@ -348,14 +349,15 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_sexp_length
 #undef gcry_sexp_new
 #undef gcry_sexp_nth
+#undef gcry_sexp_nth_buffer
 #undef gcry_sexp_nth_data
 #undef gcry_sexp_nth_mpi
+#undef gcry_sexp_nth_string
 #undef gcry_sexp_prepend
 #undef gcry_sexp_release
 #undef gcry_sexp_sprint
 #undef gcry_sexp_sscan
 #undef gcry_sexp_vlist
-#undef gcry_sexp_nth_string
 
 #undef gcry_mpi_add
 #undef gcry_mpi_add_ui
@@ -524,14 +526,15 @@ MARK_VISIBLE (gcry_sexp_find_token)
 MARK_VISIBLE (gcry_sexp_length)
 MARK_VISIBLE (gcry_sexp_new)
 MARK_VISIBLE (gcry_sexp_nth)
+MARK_VISIBLE (gcry_sexp_nth_buffer)
 MARK_VISIBLE (gcry_sexp_nth_data)
 MARK_VISIBLE (gcry_sexp_nth_mpi)
+MARK_VISIBLE (gcry_sexp_nth_string)
 MARK_VISIBLE (gcry_sexp_prepend)
 MARK_VISIBLE (gcry_sexp_release)
 MARK_VISIBLE (gcry_sexp_sprint)
 MARK_VISIBLE (gcry_sexp_sscan)
 MARK_VISIBLE (gcry_sexp_vlist)
-MARK_VISIBLE (gcry_sexp_nth_string)
 
 MARK_VISIBLE (gcry_mpi_add)
 MARK_VISIBLE (gcry_mpi_add_ui)

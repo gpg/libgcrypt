@@ -72,7 +72,7 @@ GCRYPT_1.6 {
     gcry_sexp_build_array; gcry_sexp_cadr; gcry_sexp_canon_len;
     gcry_sexp_car; gcry_sexp_cdr; gcry_sexp_cons; gcry_sexp_create;
     gcry_sexp_dump; gcry_sexp_find_token; gcry_sexp_length;
-    gcry_sexp_new; gcry_sexp_nth; gcry_sexp_nth_data;
+    gcry_sexp_new; gcry_sexp_nth; gcry_sexp_nth_buffer; gcry_sexp_nth_data;
     gcry_sexp_nth_mpi; gcry_sexp_prepend; gcry_sexp_release;
     gcry_sexp_sprint; gcry_sexp_sscan; gcry_sexp_vlist;
     gcry_sexp_nth_string;

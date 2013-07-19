@@ -73,6 +73,7 @@ Noteworthy changes in version 1.6.0 (unreleased)
  GCRYCTL_DISABLE_LOCKED_SECMEM   NEW.
  GCRYCTL_DISABLE_PRIV_DROP       NEW.
  GCRY_CIPHER_SALSA20             NEW.
+ gcry_sexp_nth_buffer            NEW.
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)
