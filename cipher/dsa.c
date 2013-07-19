@@ -1,6 +1,7 @@
 /* dsa.c - DSA signature algorithm
  * Copyright (C) 1998, 2000, 2001, 2002, 2003,
  *               2006, 2008  Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH.
  *
  * This file is part of Libgcrypt.
  *
@@ -539,7 +540,7 @@ check_secret_key( DSA_secret_key *sk )
    Make a DSA signature from HASH and put it into r and s.
  */
 static void
-sign(gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_secret_key *skey )
+sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_secret_key *skey )
 {
   gcry_mpi_t k;
   gcry_mpi_t kinv;
@@ -929,7 +930,22 @@ dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
       sk.x = skey[4];
       resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.p));
       resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.p));
-      sign (resarr[0], resarr[1], data, &sk);
+      if (mpi_is_opaque (data))
+        {
+          const void *abuf;
+          unsigned int abits;
+          gcry_mpi_t a;
+
+          abuf = gcry_mpi_get_opaque (data, &abits);
+          err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, abits/8, NULL);
+          if (!err)
+            {
+              sign (resarr[0], resarr[1], a, &sk);
+              gcry_mpi_release (a);
+            }
+        }
+      else
+        sign (resarr[0], resarr[1], data, &sk);
     }
   return err;
 }
@@ -954,8 +970,26 @@ dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
       pk.q = pkey[1];
       pk.g = pkey[2];
       pk.y = pkey[3];
-      if (! verify (data[0], data[1], hash, &pk))
-	err = GPG_ERR_BAD_SIGNATURE;
+      if (mpi_is_opaque (hash))
+        {
+          const void *abuf;
+          unsigned int abits;
+          gcry_mpi_t a;
+
+          abuf = gcry_mpi_get_opaque (hash, &abits);
+          err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, abits/8, NULL);
+          if (!err)
+            {
+              if (!verify (data[0], data[1], a, &pk))
+                err = GPG_ERR_BAD_SIGNATURE;
+              gcry_mpi_release (a);
+            }
+        }
+      else
+        {
+          if (!verify (data[0], data[1], hash, &pk))
+            err = GPG_ERR_BAD_SIGNATURE;
+        }
     }
   return err;
 }

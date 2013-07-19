@@ -1347,7 +1347,24 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
 
   resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.E.p));
   resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.E.p));
-  err = sign (data, &sk, resarr[0], resarr[1]);
+
+  if (mpi_is_opaque (data))
+    {
+      const void *abuf;
+      unsigned int abits;
+      gcry_mpi_t a;
+
+      abuf = gcry_mpi_get_opaque (data, &abits);
+      err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, abits/8, NULL);
+      if (!err)
+        {
+          err = sign (a, &sk, resarr[0], resarr[1]);
+          gcry_mpi_release (a);
+        }
+    }
+  else
+    err = sign (data, &sk, resarr[0], resarr[1]);
+
   if (err)
     {
       mpi_free (resarr[0]);
@@ -1394,7 +1411,22 @@ ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
       return err;
     }
 
-  err = verify (hash, &pk, data[0], data[1]);
+  if (mpi_is_opaque (hash))
+    {
+      const void *abuf;
+      unsigned int abits;
+      gcry_mpi_t a;
+
+      abuf = gcry_mpi_get_opaque (hash, &abits);
+      err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, abits/8, NULL);
+      if (!err)
+        {
+          err = verify (a, &pk, data[0], data[1]);
+          gcry_mpi_release (a);
+        }
+    }
+  else
+    err = verify (hash, &pk, data[0], data[1]);
 
   point_free (&pk.E.G);
   point_free (&pk.Q);

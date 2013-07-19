@@ -3073,6 +3073,14 @@ check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
     int dummy;
   } datas[] =
     {
+      { 192,
+        "(data (flags raw)\n"
+        " (value #00112233445566778899AABBCCDDEEFF0001020304050607#))",
+        0,
+        "(data (flags raw)\n"
+        " (value #80112233445566778899AABBCCDDEEFF0001020304050607#))",
+        0
+      },
       { 256,
         "(data (flags raw)\n"
         " (value #00112233445566778899AABBCCDDEEFF"
@@ -3083,12 +3091,14 @@ check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
         /* */    "000102030405060708090A0B0C0D0E0F#))",
         0
       },
-      { 192,
+      { 256,
         "(data (flags raw)\n"
-        " (value #00112233445566778899AABBCCDDEEFF0001020304050607#))",
+        " (hash sha256 #00112233445566778899AABBCCDDEEFF"
+        /* */          "000102030405060708090A0B0C0D0E0F#))",
         0,
         "(data (flags raw)\n"
-        " (value #80112233445566778899AABBCCDDEEFF0001020304050607#))",
+        " (hash sha256 #80112233445566778899AABBCCDDEEFF"
+        /* */          "000102030405060708090A0B0C0D0E0F#))",
         0
       },
       { 0, NULL }
