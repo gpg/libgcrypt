@@ -4,47 +4,41 @@ Cc: gcrypt-devel@gnupg.org
 
 Hello!
 
-The GNU project is pleased to announce the availability of Libgcrypt
-version 1.5.2.  This is a maintenance release for the stable branch.
+I am pleased to announce the availability of Libgcrypt version 1.5.3.
+This is a *security fix* release for the stable branch.
 
 Libgcrypt is a general purpose library of cryptographic building
 blocks.  It is originally based on code used by GnuPG.  It does not
 provide any implementation of OpenPGP or other protocols.  Thorough
 understanding of applied cryptography is required to use Libgcrypt.
 
-Noteworthy changes in version 1.5.2:
+Noteworthy changes in version 1.5.3:
 
- * Added support for IDEA.
-
- * Made the Padlock code work again (regression since 1.5.0).
-
- * Fixed alignment problems for Serpent.
-
- * Fixed two bugs in ECC computations.
-
+ * Mitigate the Yarom/Falkner flush+reload side-channel attack on
+   RSA secret keys.  See <http://eprint.iacr.org/2013/448>.
 
 Source code is hosted at the GnuPG FTP server and its mirrors as
 listed at http://www.gnupg.org/download/mirrors.html .  On the primary
 server the source file and its digital signatures is:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.2.tar.bz2 (1.5M)
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.2.tar.bz2.sig
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.3.tar.bz2 (1.5M)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.3.tar.bz2.sig
 
 This file is bzip2 compressed.  A gzip compressed version is also
 available:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.2.tar.gz (1.8M)
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.2.tar.gz.sig
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.3.tar.gz (1.8M)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.3.tar.gz.sig
 
-Alternativley you may upgrade version 1.5.1 using this patch file:
+Alternativley you may upgrade version 1.5.2 using this patch file:
 
- ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.1-1.5.2.diff.bz2 (12k)
+ ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.5.2-1.5.3.diff.bz2 (4k)
 
 The SHA-1 checksums are:
 
-c9998383532ba3e8bcaf690f2f0d65e814b48d2f  libgcrypt-1.5.2.tar.bz2
-fb54bfea3e276a366009c5a6296eb83cf5e7c14b  libgcrypt-1.5.2.tar.gz
-086ac76cf91987f66666872cc7d5d5d33c68967e  libgcrypt-1.5.1-1.5.2.diff.bz2
+2c6553cc17f2a1616d512d6870fe95edf6b0e26e  libgcrypt-1.5.3.tar.bz2
+184405c91d1ab4877caefb1a6458767e5f0b639e  libgcrypt-1.5.3.tar.gz
+b711fe3ddf534bb6f11823542036eb4a32e0c914  libgcrypt-1.5.2-1.5.3.diff.bz2
 
 
 For help on developing with Libgcrypt you should read the included
