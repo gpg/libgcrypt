@@ -1,5 +1,8 @@
-Noteworthy changes in version 1.5.3 (unreleased)
+Noteworthy changes in version 1.5.3 (2013-07-25)
 ------------------------------------------------
+
+ * Mitigate the Yarom/Falkner flush+reload side-channel attack on
+   RSA secret keys.  See <http://eprint.iacr.org/2013/448>.
 
 
 Noteworthy changes in version 1.5.2 (2013-04-18)
