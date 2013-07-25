@@ -1,6 +1,7 @@
 /* mpi-pow.c  -  MPI functions for exponentiation
  * Copyright (C) 1994, 1996, 1998, 2000, 2002
  *               2003  Free Software Foundation, Inc.
+ *               2013  g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -235,7 +236,13 @@ gcry_mpi_powm (gcry_mpi_t res,
             tp = rp; rp = xp; xp = tp;
             rsize = xsize;
 
-            if ( (mpi_limb_signed_t)e < 0 )
+            /* To mitigate the Yarom/Falkner flush+reload cache
+             * side-channel attack on the RSA secret exponent, we do
+             * the multiplication regardless of the value of the
+             * high-bit of E.  But to avoid this performance penalty
+             * we do it only if the exponent has been stored in secure
+             * memory and we can thus assume it is a secret exponent.  */
+            if (esec || (mpi_limb_signed_t)e < 0)
               {
                 /*mpih_mul( xp, rp, rsize, bp, bsize );*/
                 if( bsize < KARATSUBA_THRESHOLD )
@@ -250,7 +257,9 @@ gcry_mpi_powm (gcry_mpi_t res,
                     _gcry_mpih_divrem(xp + msize, 0, xp, xsize, mp, msize);
                     xsize = msize;
                   }
-
+              }
+            if ( (mpi_limb_signed_t)e < 0 )
+              {
                 tp = rp; rp = xp; xp = tp;
                 rsize = xsize;
               }
