@@ -2022,9 +2022,14 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, int use,
   pk_extra_spec_t *extraspec;
   int is_ecc;
 
-  /* Check that the first element is valid.  */
+  /* Check that the first element is valid.  If we are looking for a
+     public key but a private key was supplied, we allow the use of
+     the private key anyway.  The rationale for this is that the
+     private key is a superset of the public key. */
   list = gcry_sexp_find_token (sexp,
                                want_private? "private-key":"public-key", 0);
+  if (!list && !want_private)
+    list = gcry_sexp_find_token (sexp, "private-key", 0);
   if (!list)
     return GPG_ERR_INV_OBJ; /* Does not contain a key object.  */
 
