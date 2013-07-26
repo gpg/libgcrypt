@@ -22,6 +22,12 @@
 
 /*-- dsa-common.h --*/
 gcry_mpi_t _gcry_dsa_gen_k (gcry_mpi_t q, int security_level);
+gpg_err_code_t _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
+                                        gcry_mpi_t dsa_q, gcry_mpi_t dsa_x,
+                                        const unsigned char *h1,
+                                        unsigned int h1len,
+                                        int halgo,
+                                        unsigned int extraloops);
 
 
 /*-- ecc.c --*/

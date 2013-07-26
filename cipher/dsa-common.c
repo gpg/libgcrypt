@@ -84,13 +84,13 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
       if (!(mpi_cmp (k, q) < 0))    /* check: k < q */
         {
           if (DBG_CIPHER)
-            log_debug ("\tk too large - again");
+            log_debug ("\tk too large - again\n");
           continue; /* no  */
         }
       if (!(mpi_cmp_ui (k, 0) > 0)) /* check: k > 0 */
         {
           if (DBG_CIPHER)
-            log_debug ("\tk is zero - again");
+            log_debug ("\tk is zero - again\n");
           continue; /* no */
         }
       break;	/* okay */
@@ -98,4 +98,268 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
   gcry_free (rndbuf);
 
   return k;
+}
+
+
+/* Turn VALUE into an octet string and store it in an allocated buffer
+   at R_FRAME.  If the resulting octet string is shorter than NBYTES
+   the result will be left padded with zeroes.  If VALUE does not fit
+   into NBYTES an error code is returned.  */
+static gpg_err_code_t
+int2octets (unsigned char **r_frame, gcry_mpi_t value, size_t nbytes)
+{
+  gpg_err_code_t rc;
+  size_t nframe, noff, n;
+  unsigned char *frame;
+
+  rc = gpg_err_code (gcry_mpi_print (GCRYMPI_FMT_USG, NULL, 0,
+                                      &nframe, value));
+  if (rc)
+    return rc;
+  if (nframe > nbytes)
+    return GPG_ERR_TOO_LARGE; /* Value too long to fit into NBYTES.  */
+
+  noff = (nframe < nbytes)? nbytes - nframe : 0;
+  n = nframe + noff;
+  frame = mpi_is_secure (value)? gcry_malloc_secure (n) : gcry_malloc (n);
+  if (!frame)
+    return gpg_err_code_from_syserror ();
+  if (noff)
+    memset (frame, 0, noff);
+  nframe += noff;
+  rc = gpg_err_code (gcry_mpi_print (GCRYMPI_FMT_USG, frame+noff, nframe-noff,
+                                      NULL, value));
+  if (rc)
+    {
+      gcry_free (frame);
+      return rc;
+    }
+
+  *r_frame = frame;
+  return 0;
+}
+
+
+/* Connert the bit string BITS of length NBITS into an octet string
+   with a length of (QBITS+7)/8 bytes.  On success store the result at
+   R_FRAME.  */
+static gpg_err_code_t
+bits2octets (unsigned char **r_frame,
+             const void *bits, unsigned int nbits,
+             gcry_mpi_t q, unsigned int qbits)
+{
+  gpg_err_code_t rc;
+  gcry_mpi_t z1;
+
+  /* z1 = bits2int (b) */
+  rc = gpg_err_code (gcry_mpi_scan (&z1, GCRYMPI_FMT_USG,
+                                    bits, (nbits+7)/8, NULL));
+  if (rc)
+    return rc;
+  if (nbits > qbits)
+    gcry_mpi_rshift (z1, z1, nbits - qbits);
+
+  /* z2 - z1 mod q */
+  if (mpi_cmp (z1, q) >= 0)
+    mpi_sub (z1, z1, q);
+
+  /* Convert to an octet string.  */
+  rc = int2octets (r_frame, z1, (qbits+7)/8);
+
+  mpi_free (z1);
+  return rc;
+}
+
+
+/*
+ * Generate a deterministic secret exponent K less than DSA_Q.  H1 is
+ * the to be signed digest with a length of HLEN bytes.  HALGO is the
+ * algorithm used to create the hash.  On success the value for K is
+ * stored at R_K.
+ */
+gpg_err_code_t
+_gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
+                         gcry_mpi_t dsa_q, gcry_mpi_t dsa_x,
+                         const unsigned char *h1, unsigned int hlen,
+                         int halgo, unsigned int extraloops)
+{
+  gpg_err_code_t rc;
+  unsigned char *V = NULL;
+  unsigned char *K = NULL;
+  unsigned char *x_buf = NULL;
+  unsigned char *h1_buf = NULL;
+  gcry_md_hd_t hd = NULL;
+  unsigned char *t = NULL;
+  gcry_mpi_t k = NULL;
+  unsigned int tbits, qbits;
+  int i;
+
+  qbits = mpi_get_nbits (dsa_q);
+
+  if (!qbits || !h1 || !hlen)
+    return GPG_ERR_EINVAL;
+
+  if (gcry_md_get_algo_dlen (halgo) != hlen)
+    return GPG_ERR_DIGEST_ALGO;
+
+  /* Step b:  V = 0x01 0x01 0x01 ... 0x01 */
+  V = gcry_malloc (hlen);
+  if (!V)
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+  for (i=0; i < hlen; i++)
+    V[i] = 1;
+
+  /* Step c:  K = 0x00 0x00 0x00 ... 0x00 */
+  K = gcry_calloc (1, hlen);
+  if (!K)
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+
+  rc = int2octets (&x_buf, dsa_x, (qbits+7)/8);
+  if (rc)
+    goto leave;
+
+  rc = bits2octets (&h1_buf, h1, hlen*8, dsa_q, qbits);
+  if (rc)
+    goto leave;
+
+  /* Create a handle to compute the HMACs.  */
+  rc = gpg_err_code (gcry_md_open (&hd, halgo,
+                                   (GCRY_MD_FLAG_SECURE | GCRY_MD_FLAG_HMAC)));
+  if (rc)
+    goto leave;
+
+  /* Step d:  K = HMAC_K(V || 0x00 || int2octets(x) || bits2octets(h1) */
+  rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+  if (rc)
+    goto leave;
+  gcry_md_write (hd, V, hlen);
+  gcry_md_write (hd, "", 1);
+  gcry_md_write (hd, x_buf, (qbits+7)/8);
+  gcry_md_write (hd, h1_buf, (qbits+7)/8);
+  memcpy (K, gcry_md_read (hd, 0), hlen);
+
+  /* Step e:  V = HMAC_K(V) */
+  rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+  if (rc)
+    goto leave;
+  gcry_md_write (hd, V, hlen);
+  memcpy (V, gcry_md_read (hd, 0), hlen);
+
+  /* Step f:  K = HMAC_K(V || 0x01 || int2octets(x) || bits2octets(h1) */
+  rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+  if (rc)
+    goto leave;
+  gcry_md_write (hd, V, hlen);
+  gcry_md_write (hd, "\x01", 1);
+  gcry_md_write (hd, x_buf, (qbits+7)/8);
+  gcry_md_write (hd, h1_buf, (qbits+7)/8);
+  memcpy (K, gcry_md_read (hd, 0), hlen);
+
+  /* Step g:  V = HMAC_K(V) */
+  rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+  if (rc)
+    goto leave;
+  gcry_md_write (hd, V, hlen);
+  memcpy (V, gcry_md_read (hd, 0), hlen);
+
+  /* Step h. */
+  t = gcry_malloc ((qbits+7)/8+hlen);
+  if (!t)
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+
+ again:
+  for (tbits = 0; tbits < qbits;)
+    {
+      /* V = HMAC_K(V) */
+      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      if (rc)
+        goto leave;
+      gcry_md_write (hd, V, hlen);
+      memcpy (V, gcry_md_read (hd, 0), hlen);
+
+      /* T = T || V */
+      memcpy (t+(tbits+7)/8, V, hlen);
+      tbits += 8*hlen;
+    }
+
+  /* k = bits2int (T) */
+  mpi_free (k);
+  k = NULL;
+  rc = gpg_err_code (gcry_mpi_scan (&k, GCRYMPI_FMT_USG, t, (tbits+7)/8, NULL));
+  if (rc)
+    goto leave;
+  if (tbits > qbits)
+    gcry_mpi_rshift (k, k, tbits - qbits);
+
+  /* Check: k < q and k > 1 */
+  if (!(mpi_cmp (k, dsa_q) < 0 && mpi_cmp_ui (k, 0) > 0))
+    {
+      /* K = HMAC_K(V || 0x00) */
+      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      if (rc)
+        goto leave;
+      gcry_md_write (hd, V, hlen);
+      gcry_md_write (hd, "", 1);
+      memcpy (K, gcry_md_read (hd, 0), hlen);
+
+      /* V = HMAC_K(V) */
+      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      if (rc)
+        goto leave;
+      gcry_md_write (hd, V, hlen);
+      memcpy (V, gcry_md_read (hd, 0), hlen);
+
+      goto again;
+    }
+
+  /* The caller may have requested that we introduce some extra loops.
+     This is for example useful if the caller wants another value for
+     K because the last returned one yielded an R of 0.  Becuase this
+     is very unlikely we implement it in a straightforward way.  */
+  if (extraloops)
+    {
+      extraloops--;
+
+      /* K = HMAC_K(V || 0x00) */
+      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      if (rc)
+        goto leave;
+      gcry_md_write (hd, V, hlen);
+      gcry_md_write (hd, "", 1);
+      memcpy (K, gcry_md_read (hd, 0), hlen);
+
+      /* V = HMAC_K(V) */
+      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      if (rc)
+        goto leave;
+      gcry_md_write (hd, V, hlen);
+      memcpy (V, gcry_md_read (hd, 0), hlen);
+
+      goto again;
+    }
+
+  /* log_mpidump ("  k", k); */
+
+ leave:
+  gcry_free (t);
+  gcry_md_close (hd);
+  gcry_free (h1_buf);
+  gcry_free (x_buf);
+  gcry_free (K);
+  gcry_free (V);
+
+  if (rc)
+    mpi_free (k);
+  else
+    *r_k = k;
+  return rc;
 }

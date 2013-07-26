@@ -105,8 +105,8 @@ static gpg_err_code_t generate (DSA_secret_key *sk,
                                 int transient_key,
                                 dsa_domain_t *domain,
                                 gcry_mpi_t **ret_factors);
-static void sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
-                  DSA_secret_key *skey);
+static gpg_err_code_t sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
+                            DSA_secret_key *skey, int flags, int hashalgo);
 static int verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                    DSA_public_key *pkey);
 
@@ -152,7 +152,7 @@ test_keys (DSA_secret_key *sk, unsigned int qbits)
   gcry_mpi_randomize (data, qbits, GCRY_WEAK_RANDOM);
 
   /* Sign DATA using the secret key.  */
-  sign (sig_a, sig_b, data, sk);
+  sign (sig_a, sig_b, data, sk, 0, 0);
 
   /* Verify the signature using the public key.  */
   if ( !verify (sig_a, sig_b, data, &pk) )
@@ -537,17 +537,69 @@ check_secret_key( DSA_secret_key *sk )
 
 
 /*
-   Make a DSA signature from HASH and put it into r and s.
+   Make a DSA signature from INPUT and put it into r and s.
+
+   INPUT may either be a plain MPI or an opaque MPI which is then
+   internally converted to a plain MPI.  FLAGS and HASHALGO may both
+   be 0 for standard operation mode.
+
+   The return value is 0 on success or an error code.  Note that for
+   backward compatibility the function will not return any error if
+   FLAGS and HASHALGO are both 0 and INPUT is a plain MPI.
  */
-static void
-sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_secret_key *skey )
+static gpg_err_code_t
+sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
+      int flags, int hashalgo)
 {
+  gpg_err_code_t rc;
+  gcry_mpi_t hash;
   gcry_mpi_t k;
   gcry_mpi_t kinv;
   gcry_mpi_t tmp;
+  const void *abuf;
+  unsigned int abits, qbits;
+  int extraloops = 0;
 
-  /* Select a random k with 0 < k < q */
-  k = _gcry_dsa_gen_k (skey->q, GCRY_STRONG_RANDOM);
+  qbits = mpi_get_nbits (skey->q);
+
+  /* Convert the INPUT into an MPI.  */
+  if (mpi_is_opaque (input))
+    {
+      abuf = gcry_mpi_get_opaque (input, &abits);
+      rc = gpg_err_code (gcry_mpi_scan (&hash, GCRYMPI_FMT_USG,
+                                        abuf, (abits+7)/8, NULL));
+      if (rc)
+        return rc;
+      if (abits > qbits)
+        gcry_mpi_rshift (hash, hash, abits - qbits);
+    }
+  else
+    hash = input;
+
+ again:
+  /* Create the K value.  */
+  if ((flags & PUBKEY_FLAG_RFC6979) && hashalgo)
+    {
+      /* Use Pornin's method for deterministic DSA.  If this flag is
+         set, it is expected that HASH is an opaque MPI with the to be
+         signed hash.  That hash is also used as h1 from 3.2.a.  */
+      if (!mpi_is_opaque (input))
+        {
+          rc = GPG_ERR_CONFLICT;
+          goto leave;
+        }
+
+      abuf = gcry_mpi_get_opaque (input, &abits);
+      rc = _gcry_dsa_gen_rfc6979_k (&k, skey->q, skey->x,
+                                    abuf, (abits+7)/8, hashalgo, extraloops);
+      if (rc)
+        goto leave;
+    }
+  else
+    {
+      /* Select a random k with 0 < k < q */
+      k = _gcry_dsa_gen_k (skey->q, GCRY_STRONG_RANDOM);
+    }
 
   /* r = (a^k mod p) mod q */
   gcry_mpi_powm( r, skey->g, k, skey->p );
@@ -566,6 +618,21 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_secret_key *skey )
   mpi_free(k);
   mpi_free(kinv);
   mpi_free(tmp);
+
+  if (!mpi_cmp_ui (r, 0))
+    {
+      /* This is a highly unlikely code path.  */
+      extraloops++;
+      goto again;
+    }
+
+  rc = 0;
+
+ leave:
+  if (hash != input)
+    mpi_free (hash);
+
+  return rc;
 }
 
 
@@ -910,7 +977,7 @@ static gcry_err_code_t
 dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
           int flags, int hashalgo)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t rc;
   DSA_secret_key sk;
 
   (void)algo;
@@ -920,7 +987,7 @@ dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
   if ((! data)
       || (! skey[0]) || (! skey[1]) || (! skey[2])
       || (! skey[3]) || (! skey[4]))
-    err = GPG_ERR_BAD_MPI;
+    rc = GPG_ERR_BAD_MPI;
   else
     {
       sk.p = skey[0];
@@ -930,24 +997,9 @@ dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
       sk.x = skey[4];
       resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.p));
       resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.p));
-      if (mpi_is_opaque (data))
-        {
-          const void *abuf;
-          unsigned int abits;
-          gcry_mpi_t a;
-
-          abuf = gcry_mpi_get_opaque (data, &abits);
-          err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, abits/8, NULL);
-          if (!err)
-            {
-              sign (resarr[0], resarr[1], a, &sk);
-              gcry_mpi_release (a);
-            }
-        }
-      else
-        sign (resarr[0], resarr[1], data, &sk);
+      rc = sign (resarr[0], resarr[1], data, &sk, flags, hashalgo);
     }
-  return err;
+  return rc;
 }
 
 static gcry_err_code_t
@@ -973,13 +1025,18 @@ dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
       if (mpi_is_opaque (hash))
         {
           const void *abuf;
-          unsigned int abits;
+          unsigned int abits, qbits;
           gcry_mpi_t a;
 
+          qbits = mpi_get_nbits (pk.q);
+
           abuf = gcry_mpi_get_opaque (hash, &abits);
-          err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, abits/8, NULL);
+          err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
           if (!err)
             {
+              if (abits > qbits)
+                gcry_mpi_rshift (a, a, abits - qbits);
+
               if (!verify (data[0], data[1], a, &pk))
                 err = GPG_ERR_BAD_SIGNATURE;
               gcry_mpi_release (a);

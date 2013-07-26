@@ -20,7 +20,7 @@
 
 TESTS = version t-mpi-bit t-mpi-point prime basic \
         mpitests tsexp keygen pubkey hmac keygrip fips186-dsa aeswrap \
-	curves t-kdf pkcs1v2 random
+	curves t-kdf pkcs1v2 random dsa-rfc6979
 
 
 # The last test to run.
