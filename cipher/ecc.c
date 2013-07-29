@@ -309,7 +309,8 @@ static void *progress_cb_data;
 static void test_keys (ECC_secret_key * sk, unsigned int nbits);
 static int check_secret_key (ECC_secret_key * sk);
 static gpg_err_code_t sign (gcry_mpi_t input, ECC_secret_key *skey,
-                            gcry_mpi_t r, gcry_mpi_t s);
+                            gcry_mpi_t r, gcry_mpi_t s,
+                            int flags, int hashalgo);
 static gpg_err_code_t verify (gcry_mpi_t input, ECC_public_key *pkey,
                               gcry_mpi_t r, gcry_mpi_t s);
 
@@ -641,7 +642,7 @@ test_keys (ECC_secret_key *sk, unsigned int nbits)
 
   gcry_mpi_randomize (test, nbits, GCRY_WEAK_RANDOM);
 
-  if (sign (test, sk, r, s) )
+  if (sign (test, sk, r, s, 0, 0) )
     log_fatal ("ECDSA operation: sign failed\n");
 
   if (verify (test, &pk, r, s))
@@ -739,15 +740,37 @@ check_secret_key (ECC_secret_key * sk)
  * must have allocated R and S.
  */
 static gpg_err_code_t
-sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
+sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s,
+      int flags, int hashalgo)
 {
   gpg_err_code_t err = 0;
+  int extraloops = 0;
   gcry_mpi_t k, dr, sum, k_1, x;
   mpi_point_struct I;
+  gcry_mpi_t hash;
+  const void *abuf;
+  unsigned int abits, qbits;
   mpi_ec_t ctx;
 
   if (DBG_CIPHER)
     log_mpidump ("ecdsa sign hash  ", input );
+
+  qbits = mpi_get_nbits (skey->E.n);
+
+  /* Convert the INPUT into an MPI if needed.  */
+  if (mpi_is_opaque (input))
+    {
+      abuf = gcry_mpi_get_opaque (input, &abits);
+      err = gpg_err_code (gcry_mpi_scan (&hash, GCRYMPI_FMT_USG,
+                                         abuf, (abits+7)/8, NULL));
+      if (err)
+        return err;
+      if (abits > qbits)
+        gcry_mpi_rshift (hash, hash, abits - qbits);
+    }
+  else
+    hash = input;
+
 
   k = NULL;
   dr = mpi_alloc (0);
@@ -769,8 +792,32 @@ sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
              once because r has been intialized to 0.  We can't use a
              do_while because we want to keep the value of R even if S
              has to be recomputed.  */
+
           mpi_free (k);
-          k = _gcry_dsa_gen_k (skey->E.n, GCRY_STRONG_RANDOM);
+          k = NULL;
+          if ((flags & PUBKEY_FLAG_RFC6979) && hashalgo)
+            {
+              /* Use Pornin's method for deterministic DSA.  If this
+                 flag is set, it is expected that HASH is an opaque
+                 MPI with the to be signed hash.  That hash is also
+                 used as h1 from 3.2.a.  */
+              if (!mpi_is_opaque (input))
+                {
+                  err = GPG_ERR_CONFLICT;
+                  goto leave;
+                }
+
+              abuf = gcry_mpi_get_opaque (input, &abits);
+              err = _gcry_dsa_gen_rfc6979_k (&k, skey->E.n, skey->d,
+                                             abuf, (abits+7)/8,
+                                             hashalgo, extraloops);
+              if (err)
+                goto leave;
+              extraloops++;
+            }
+          else
+            k = _gcry_dsa_gen_k (skey->E.n, GCRY_STRONG_RANDOM);
+
           _gcry_mpi_ec_mul_point (&I, k, &skey->E.G, ctx);
           if (_gcry_mpi_ec_get_affine (x, NULL, &I, ctx))
             {
@@ -782,7 +829,7 @@ sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
           mpi_mod (r, x, skey->E.n);  /* r = x mod n */
         }
       mpi_mulm (dr, skey->d, r, skey->E.n); /* dr = d*r mod n  */
-      mpi_addm (sum, input, dr, skey->E.n); /* sum = hash + (d*r) mod n  */
+      mpi_addm (sum, hash, dr, skey->E.n);  /* sum = hash + (d*r) mod n  */
       mpi_invm (k_1, k, skey->E.n);         /* k_1 = k^(-1) mod n  */
       mpi_mulm (s, k_1, sum, skey->E.n);    /* s = k^(-1)*(hash+(d*r)) mod n */
     }
@@ -802,6 +849,9 @@ sign (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s)
   mpi_free (dr);
   mpi_free (k);
 
+  if (hash != input)
+    mpi_free (hash);
+
   return err;
 }
 
@@ -813,7 +863,7 @@ static gpg_err_code_t
 verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
 {
   gpg_err_code_t err = 0;
-  gcry_mpi_t h, h1, h2, x, y;
+  gcry_mpi_t h, h1, h2, x;
   mpi_point_struct Q, Q1, Q2;
   mpi_ec_t ctx;
 
@@ -826,7 +876,6 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
   h1 = mpi_alloc (0);
   h2 = mpi_alloc (0);
   x = mpi_alloc (0);
-  y = mpi_alloc (0);
   point_init (&Q);
   point_init (&Q1);
   point_init (&Q2);
@@ -835,28 +884,16 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
 
   /* h  = s^(-1) (mod n) */
   mpi_invm (h, s, pkey->E.n);
-/*   log_mpidump ("   h", h); */
   /* h1 = hash * s^(-1) (mod n) */
   mpi_mulm (h1, input, h, pkey->E.n);
-/*   log_mpidump ("  h1", h1); */
   /* Q1 = [ hash * s^(-1) ]G  */
   _gcry_mpi_ec_mul_point (&Q1, h1, &pkey->E.G, ctx);
-/*   log_mpidump ("Q1.x", Q1.x); */
-/*   log_mpidump ("Q1.y", Q1.y); */
-/*   log_mpidump ("Q1.z", Q1.z); */
   /* h2 = r * s^(-1) (mod n) */
   mpi_mulm (h2, r, h, pkey->E.n);
-/*   log_mpidump ("  h2", h2); */
   /* Q2 = [ r * s^(-1) ]Q */
   _gcry_mpi_ec_mul_point (&Q2, h2, &pkey->Q, ctx);
-/*   log_mpidump ("Q2.x", Q2.x); */
-/*   log_mpidump ("Q2.y", Q2.y); */
-/*   log_mpidump ("Q2.z", Q2.z); */
   /* Q  = ([hash * s^(-1)]G) + ([r * s^(-1)]Q) */
   _gcry_mpi_ec_add_points (&Q, &Q1, &Q2, ctx);
-/*   log_mpidump (" Q.x", Q.x); */
-/*   log_mpidump (" Q.y", Q.y); */
-/*   log_mpidump (" Q.z", Q.z); */
 
   if (!mpi_cmp_ui (Q.z, 0))
     {
@@ -865,7 +902,7 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
       err = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
-  if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
+  if (_gcry_mpi_ec_get_affine (x, NULL, &Q, ctx))
     {
       if (DBG_CIPHER)
         log_debug ("ecc verify: Failed to get affine coordinates\n");
@@ -878,7 +915,6 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
       if (DBG_CIPHER)
         {
           log_mpidump ("     x", x);
-          log_mpidump ("     y", y);
           log_mpidump ("     r", r);
           log_mpidump ("     s", s);
           log_debug ("ecc verify: Not verified\n");
@@ -894,7 +930,6 @@ verify (gcry_mpi_t input, ECC_public_key *pkey, gcry_mpi_t r, gcry_mpi_t s)
   point_free (&Q2);
   point_free (&Q1);
   point_free (&Q);
-  mpi_free (y);
   mpi_free (x);
   mpi_free (h2);
   mpi_free (h1);
@@ -1324,8 +1359,6 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
   ECC_secret_key sk;
 
   (void)algo;
-  (void)flags;
-  (void)hashalgo;
 
   if (!data || !skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4]
       || !skey[6] )
@@ -1347,24 +1380,7 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
 
   resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.E.p));
   resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.E.p));
-
-  if (mpi_is_opaque (data))
-    {
-      const void *abuf;
-      unsigned int abits;
-      gcry_mpi_t a;
-
-      abuf = gcry_mpi_get_opaque (data, &abits);
-      err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, abits/8, NULL);
-      if (!err)
-        {
-          err = sign (a, &sk, resarr[0], resarr[1]);
-          gcry_mpi_release (a);
-        }
-    }
-  else
-    err = sign (data, &sk, resarr[0], resarr[1]);
-
+  err = sign (data, &sk, resarr[0], resarr[1], flags, hashalgo);
   if (err)
     {
       mpi_free (resarr[0]);
@@ -1414,13 +1430,18 @@ ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   if (mpi_is_opaque (hash))
     {
       const void *abuf;
-      unsigned int abits;
+      unsigned int abits, qbits;
       gcry_mpi_t a;
 
+      qbits = mpi_get_nbits (pk.E.n);
+
       abuf = gcry_mpi_get_opaque (hash, &abits);
-      err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, abits/8, NULL);
+      err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
       if (!err)
         {
+          if (abits > qbits)
+            gcry_mpi_rshift (a, a, abits - qbits);
+
           err = verify (a, &pk, data[0], data[1]);
           gcry_mpi_release (a);
         }

@@ -19,6 +19,11 @@ Noteworthy changes in version 1.6.0 (unreleased)
 
  * Added support for the SCRYPT algorithm.
 
+ * Mitigate the Yarom/Falkner flush+reload side-channel attack on RSA
+   secret keys.  See <http://eprint.iacr.org/2013/448> [CVE-2013-4242].
+
+ * Support Deterministic DSA as per RFC-6969.
+
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_ac_*              REMOVED.
