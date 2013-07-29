@@ -880,27 +880,17 @@ gcry_sexp_cadr ( const gcry_sexp_t list )
 }
 
 
-static int
-hextobyte( const byte *s )
+static GPG_ERR_INLINE int
+hextonibble (int s)
 {
-  int c=0;
-
-  if( *s >= '0' && *s <= '9' )
-    c = 16 * (*s - '0');
-  else if( *s >= 'A' && *s <= 'F' )
-    c = 16 * (10 + *s - 'A');
-  else if( *s >= 'a' && *s <= 'f' ) {
-    c = 16 * (10 + *s - 'a');
-  }
-  s++;
-  if( *s >= '0' && *s <= '9' )
-    c += *s - '0';
-  else if( *s >= 'A' && *s <= 'F' )
-    c += 10 + *s - 'A';
-  else if( *s >= 'a' && *s <= 'f' ) {
-    c += 10 + *s - 'a';
-  }
-  return c;
+  if (s >= '0' && s <= '9')
+    return s - '0';
+  else if (s >= 'A' && s <= 'F')
+    return 10 + s - 'A';
+  else if (s >= 'a' && s <= 'f')
+    return 10 + s - 'a';
+  else
+    return 0;
 }
 
 
@@ -1237,10 +1227,19 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      STORE_LEN (c.pos, datalen);
 	      for (hexfmt++; hexfmt < p; hexfmt++)
 		{
+                  int tmpc;
+
 		  if (whitespacep (hexfmt))
 		    continue;
-		  *c.pos++ = hextobyte ((const unsigned char*)hexfmt);
-		  hexfmt++;
+		  tmpc = hextonibble (*(const unsigned char*)hexfmt);
+                  for (hexfmt++; hexfmt < p && whitespacep (hexfmt); hexfmt++)
+		    ;
+                  if (hexfmt < p)
+                    {
+                      tmpc *= 16;
+                      tmpc += hextonibble (*(const unsigned char*)hexfmt);
+                    }
+                  *c.pos++ = tmpc;
 		}
 	      hexfmt = NULL;
 	    }
