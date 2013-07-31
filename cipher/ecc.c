@@ -675,6 +675,7 @@ check_secret_key (ECC_secret_key * sk)
   int rc = 1;
   mpi_point_struct Q;
   gcry_mpi_t y_2, y2;
+  gcry_mpi_t x1, x2;
   mpi_ec_t ctx = NULL;
 
   point_init (&Q);
@@ -684,6 +685,8 @@ check_secret_key (ECC_secret_key * sk)
   /* G in E(F_p) */
   y_2 = gen_y_2 (sk->E.G.x, &sk->E);   /*  y^2=x^3+a*x+b */
   y2 = mpi_alloc (0);
+  x1 = mpi_alloc (0);
+  x2 = mpi_alloc (0);
   mpi_mulm (y2, sk->E.G.y, sk->E.G.y, sk->E.p);      /*  y^2=y*y */
   if (mpi_cmp (y_2, y2))
     {
@@ -717,17 +720,48 @@ check_secret_key (ECC_secret_key * sk)
     }
   /* pubkey = [d]G over E */
   _gcry_mpi_ec_mul_point (&Q, sk->d, &sk->E.G, ctx);
-  if ((Q.x == sk->Q.x) && (Q.y == sk->Q.y) && (Q.z == sk->Q.z))
+
+  if (_gcry_mpi_ec_get_affine (x1, y_2, &Q, ctx))
     {
       if (DBG_CIPHER)
-        log_debug
-          ("Bad check: There is NO correspondence between 'd' and 'Q'!\n");
+        log_debug ("Bad check: Q can not be a Point at Infinity!\n");
       goto leave;
+    }
+
+  /* Fast path for loaded secret keys - sk->Q is already in affine coordinates */
+  if (!mpi_cmp_ui (sk->Q.z, 1))
+    {
+      if (mpi_cmp (x1, sk->Q.x) || mpi_cmp (y_2, sk->Q.y))
+        {
+          if (DBG_CIPHER)
+            log_debug
+              ("Bad check: There is NO correspondence between 'd' and 'Q'!\n");
+          goto leave;
+        }
+    }
+  else
+    {
+      if (_gcry_mpi_ec_get_affine (x2, y2, &sk->Q, ctx))
+        {
+          if (DBG_CIPHER)
+            log_debug ("Bad check: Q can not be a Point at Infinity!\n");
+          goto leave;
+        }
+
+      if (mpi_cmp (x1, x2) || mpi_cmp (y_2, y2))
+        {
+          if (DBG_CIPHER)
+            log_debug
+              ("Bad check: There is NO correspondence between 'd' and 'Q'!\n");
+          goto leave;
+        }
     }
   rc = 0; /* Okay.  */
 
  leave:
   _gcry_mpi_ec_free (ctx);
+  mpi_free (x2);
+  mpi_free (x1);
   mpi_free (y2);
   mpi_free (y_2);
   point_free (&Q);
