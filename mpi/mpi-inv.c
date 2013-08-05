@@ -165,6 +165,11 @@ gcry_mpi_invm( gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n )
     int sign;
     int odd ;
 
+    if (!mpi_cmp_ui (a, 0))
+        return 0; /* Inverse does not exists.  */
+    if (!mpi_cmp_ui (n, 1))
+        return 0; /* Inverse does not exists.  */
+
     u = mpi_copy(a);
     v = mpi_copy(n);
 
