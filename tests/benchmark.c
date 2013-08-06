@@ -864,7 +864,7 @@ dsa_bench (int iterations, int print_header)
   int p_sizes[3] = { 1024, 2048, 3072 };
   int q_sizes[3] = { 160, 224, 256 };
   gcry_sexp_t data;
-  gcry_sexp_t sig;
+  gcry_sexp_t sig = NULL;
   int i, j;
 
   err = gcry_sexp_sscan (pub_key+0, NULL, sample_public_dsa_key_1024,
@@ -916,6 +916,7 @@ dsa_bench (int iterations, int print_header)
       start_timer ();
       for (j=0; j < iterations; j++)
         {
+          gcry_sexp_release (sig);
           err = gcry_pk_sign (&sig, data, sec_key[i]);
           if (err)
             {
@@ -947,6 +948,7 @@ dsa_bench (int iterations, int print_header)
 
       gcry_sexp_release (sig);
       gcry_sexp_release (data);
+      sig = NULL;
     }
 
 

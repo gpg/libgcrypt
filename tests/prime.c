@@ -95,6 +95,7 @@ check_primes (void)
       gcry_mpi_add_ui (prime, prime, 1);
       err = gcry_prime_check (prime, 0);
       assert (err);
+      gcry_mpi_release (prime); prime = NULL;
     }
 }
 

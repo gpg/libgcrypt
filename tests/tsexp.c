@@ -89,44 +89,52 @@ basic (void)
 
   for (pass=0;;pass++)
     {
+      gcry_mpi_t m;
+
       switch (pass)
         {
         case 0:
           string = ("(public-key (dsa (p #41424344#) (y this_is_y) "
                     "(q #61626364656667#) (g %m)))");
 
-          if ( gcry_sexp_build (&sexp, NULL, string,
-                                gcry_mpi_set_ui (NULL, 42)) )
+          m = gcry_mpi_set_ui (NULL, 42);
+          if ( gcry_sexp_build (&sexp, NULL, string, m ) )
             {
+              gcry_mpi_release (m);
               fail (" scanning `%s' failed\n", string);
               return;
             }
+          gcry_mpi_release (m);
           break;
 
         case 1:
           string = ("(public-key (dsa (p #41424344#) (y this_is_y) "
                     "(q %b) (g %m)))");
 
+          m = gcry_mpi_set_ui (NULL, 42);
           if ( gcry_sexp_build (&sexp, NULL, string,
-                                15, "foo\0\x01\0x02789012345",
-                                gcry_mpi_set_ui (NULL, 42)) )
+                                15, "foo\0\x01\0x02789012345", m) )
             {
+              gcry_mpi_release (m);
               fail (" scanning `%s' failed\n", string);
               return;
             }
+          gcry_mpi_release (m);
           break;
 
         case 2:
           string = ("(public-key (dsa (p #41424344#) (y silly_y_value) "
                     "(q %b) (g %m)))");
 
+          m = gcry_mpi_set_ui (NULL, 17);
           if ( gcry_sexp_build (&sexp, NULL, string,
-                                secure_buffer_len, secure_buffer,
-                                gcry_mpi_set_ui (NULL, 17)) )
+                                secure_buffer_len, secure_buffer, m) )
             {
+              gcry_mpi_release (m);
               fail (" scanning `%s' failed\n", string);
               return;
             }
+          gcry_mpi_release (m);
           if (!gcry_is_secure (sexp))
             fail ("gcry_sexp_build did not switch to secure memory\n");
           break;
@@ -144,13 +152,15 @@ basic (void)
 
             string = ("(public-key (dsa (p #41424344#) (parm %S) "
                       "(y dummy)(q %b) (g %m)))");
+            m = gcry_mpi_set_ui (NULL, 17);
             if ( gcry_sexp_build (&sexp, NULL, string, help_sexp,
-                                  secure_buffer_len, secure_buffer,
-                                  gcry_mpi_set_ui (NULL, 17)) )
+                                  secure_buffer_len, secure_buffer, m) )
               {
+                gcry_mpi_release (m);
                 fail (" scanning `%s' failed\n", string);
                 return;
               }
+            gcry_mpi_release (m);
             gcry_sexp_release (help_sexp);
           }
           break;
@@ -181,6 +191,7 @@ basic (void)
           p = gcry_sexp_nth_data (s1, 0, &n);
           if (!p)
             {
+              gcry_sexp_release (s1);
               fail ("no car for `%s'\n", token);
               continue;
             }
@@ -189,13 +200,16 @@ basic (void)
           s2 = gcry_sexp_cdr (s1);
           if (!s2)
             {
+              gcry_sexp_release (s1);
               fail ("no cdr for `%s'\n", token);
               continue;
             }
 
           p = gcry_sexp_nth_data (s2, 0, &n);
+          gcry_sexp_release (s2);
           if (p)
             {
+              gcry_sexp_release (s1);
               fail ("data at car of `%s'\n", token);
               continue;
             }
@@ -203,6 +217,7 @@ basic (void)
           if (parm)
             {
               s2 = gcry_sexp_find_token (s1, parm, strlen (parm));
+              gcry_sexp_release (s1);
               if (!s2)
                 {
                   fail ("didn't found `%s'\n", parm);
@@ -211,6 +226,7 @@ basic (void)
               p = gcry_sexp_nth_data (s2, 0, &n);
               if (!p)
                 {
+                  gcry_sexp_release (s2);
                   fail("no car for `%s'\n", parm );
                   continue;
                 }
@@ -218,18 +234,23 @@ basic (void)
               p = gcry_sexp_nth_data (s2, 1, &n);
               if (!p)
                 {
+                  gcry_sexp_release (s2);
                   fail("no cdr for `%s'\n", parm );
                   continue;
                 }
               info ("cdr=`%.*s'\n", (int)n, p);
 
               a = gcry_sexp_nth_mpi (s2, 0, GCRYMPI_FMT_USG);
+              gcry_sexp_release (s2);
               if (!a)
                 {
                   fail("failed to cdr the mpi for `%s'\n", parm);
                   continue;
                 }
+              gcry_mpi_release (a);
             }
+          else
+            gcry_sexp_release (s1);
         }
 
       gcry_sexp_release (sexp);

@@ -362,6 +362,10 @@ test_powm (void)
   if (gcry_mpi_cmp (res, base))
     die ("test_powm failed at %d\n", __LINE__);
 
+  gcry_mpi_release (base);
+  gcry_mpi_release (exp);
+  gcry_mpi_release (mod);
+  gcry_mpi_release (res);
   /* Fixme: We should add the rest of the cases of course.  */
 
 
