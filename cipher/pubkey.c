@@ -1832,8 +1832,8 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
   if (!err)
     {
       /* Check that all elements are available.  */
-      for (name = element_names, idx = 0; *name; name++, idx++)
-        if (!elements[idx])
+      for (name = element_names, i = 0; *name; name++, i++)
+        if (!elements[i])
           break;
       if (*name)
         {
@@ -1857,7 +1857,7 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
     {
       for (i = 0; i < idx; i++)
         if (elements[i])
-          gcry_free (elements[i]);
+          mpi_free (elements[i]);
     }
   return err;
 }
@@ -1963,7 +1963,7 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
     {
       for (name = element_names, idx = 0; *name; name++, idx++)
         if (elements[idx])
-          gcry_free (elements[idx]);
+          mpi_free (elements[idx]);
     }
   return err;
 }

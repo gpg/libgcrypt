@@ -641,7 +641,10 @@ elg_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
     }
 
   if (xvalue)
-    ec = generate_using_x (&sk, nbits, xvalue, retfactors);
+    {
+      ec = generate_using_x (&sk, nbits, xvalue, retfactors);
+      mpi_free (xvalue);
+    }
   else
     {
       generate (&sk, nbits, retfactors);
