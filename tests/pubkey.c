@@ -144,6 +144,7 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
   /* Extract data from plaintext.  */
   l = gcry_sexp_find_token (plain0, "value", 0);
   x0 = gcry_sexp_nth_mpi (l, 1, GCRYMPI_FMT_USG);
+  gcry_sexp_release (l);
 
   /* Encrypt data.  */
   rc = gcry_pk_encrypt (&cipher, plain0, pkey);
@@ -160,7 +161,10 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
   if (rc)
     {
       if (decrypt_fail_code && gpg_err_code (rc) == decrypt_fail_code)
-        return; /* This is the expected failure code.  */
+	{
+	  gcry_mpi_release (x0);
+	  return; /* This is the expected failure code.  */
+	}
       die ("decryption failed: %s\n", gcry_strerror (rc));
     }
 
@@ -189,6 +193,8 @@ check_keys_crypt (gcry_sexp_t pkey, gcry_sexp_t skey,
   /* Compare.  */
   if (gcry_mpi_cmp (x0, x1))
     die ("data corrupted\n");
+  gcry_mpi_release (x0);
+  gcry_mpi_release (x1);
 }
 
 static void
@@ -218,6 +224,7 @@ check_keys (gcry_sexp_t pkey, gcry_sexp_t skey, unsigned int nbits_data,
 
   rc = gcry_sexp_build (&plain, NULL,
                         "(data (flags raw no-blinding) (value %m))", x);
+  gcry_mpi_release (x);
   if (rc)
     die ("converting data for encryption failed: %s\n",
 	 gcry_strerror (rc));
