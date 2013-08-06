@@ -1319,6 +1319,7 @@ ecc_get_curve (gcry_mpi_t *pkey, int iterator, unsigned int *r_nbits)
                           tmp = scanval (domain_parms[idx].g_y);
                           if (!mpi_cmp (tmp, E.G.y))
                             {
+                              mpi_free (tmp);
                               result = domain_parms[idx].desc;
                               if (r_nbits)
                                 *r_nbits = domain_parms[idx].nbits;
