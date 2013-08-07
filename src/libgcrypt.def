@@ -237,7 +237,7 @@ EXPORTS
 
       _gcry_mpi_get_const       @213
 
-      gcry_sexp_get_buffer      @214
+      gcry_sexp_nth_buffer      @214
 
 
 ;; end of file with public symbols for Windows.
