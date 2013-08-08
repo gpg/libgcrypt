@@ -397,6 +397,7 @@ gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u)
   MPN_COPY( wp, up, usize );
   w->nlimbs = usize;
   w->flags = u->flags;
+  w->flags &= ~(16|32); /* Reset the immutable and constant flags.  */
   w->sign = usign;
   return w;
 }
