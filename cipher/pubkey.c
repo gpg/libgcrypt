@@ -3339,7 +3339,16 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
  leave:
   if (skey)
     {
-      release_mpi_array (skey);
+      if (is_ecc)
+        /* Q is optional and may be NULL, while there is D after Q.  */
+        for (i = 0; i < 7; i++)
+          {
+            if (skey[i])
+              mpi_free (skey[i]);
+            skey[i] = NULL;
+          }
+      else
+        release_mpi_array (skey);
       gcry_free (skey);
     }
 
