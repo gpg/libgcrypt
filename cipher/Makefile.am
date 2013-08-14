@@ -55,7 +55,7 @@ rmd.h
 EXTRA_libcipher_la_SOURCES = \
 arcfour.c \
 blowfish.c blowfish-amd64.S \
-cast5.c cast5-amd64.S \
+cast5.c cast5-amd64.S cast5-armv6.S \
 crc.c \
 des.c \
 dsa.c \

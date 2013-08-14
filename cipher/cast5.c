@@ -51,11 +51,30 @@
 # define USE_AMD64_ASM 1
 #endif
 
+/* USE_ARMV6_ASM indicates whether to use ARMv6 assembly code. */
+#undef USE_ARMV6_ASM
+#if defined(__arm__) && defined(__ARMEL__) && \
+	 ((defined(__ARM_ARCH) && __ARM_ARCH >= 6) \
+	|| defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
+	|| defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
+	|| defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) \
+	|| defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
+	|| defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
+	|| defined(__ARM_ARCH_7EM__))
+# ifdef HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS
+#  define USE_ARMV6_ASM 1
+# endif
+#endif
+
 #define CAST5_BLOCKSIZE 8
 
 typedef struct {
     u32  Km[16];
     byte Kr[16];
+#ifdef USE_ARMV6_ASM
+    u32 Kr_arm_enc[16 / sizeof(u32)];
+    u32 Kr_arm_dec[16 / sizeof(u32)];
+#endif
 } CAST5_context;
 
 static gcry_err_code_t cast_setkey (void *c, const byte *key, unsigned keylen);
@@ -385,7 +404,52 @@ static void decrypt_block (void *context, byte *outbuf, const byte *inbuf)
   _gcry_burn_stack (2*8);
 }
 
-#else /*USE_AMD64_ASM*/
+#elif defined(USE_ARMV6_ASM)
+
+/* ARMv6 assembly implementations of CAST5. */
+extern void _gcry_cast5_armv6_encrypt_block(CAST5_context *c, byte *outbuf,
+					    const byte *inbuf);
+
+extern void _gcry_cast5_armv6_decrypt_block(CAST5_context *c, byte *outbuf,
+					    const byte *inbuf);
+
+/* These assembly implementations process two blocks in parallel. */
+extern void _gcry_cast5_armv6_ctr_enc(CAST5_context *ctx, byte *out,
+				      const byte *in, byte *ctr);
+
+extern void _gcry_cast5_armv6_cbc_dec(CAST5_context *ctx, byte *out,
+				      const byte *in, byte *iv);
+
+extern void _gcry_cast5_armv6_cfb_dec(CAST5_context *ctx, byte *out,
+				      const byte *in, byte *iv);
+
+static void
+do_encrypt_block (CAST5_context *context, byte *outbuf, const byte *inbuf)
+{
+  _gcry_cast5_armv6_encrypt_block (context, outbuf, inbuf);
+}
+
+static void
+do_decrypt_block (CAST5_context *context, byte *outbuf, const byte *inbuf)
+{
+  _gcry_cast5_armv6_decrypt_block (context, outbuf, inbuf);
+}
+
+static void encrypt_block (void *context , byte *outbuf, const byte *inbuf)
+{
+  CAST5_context *c = (CAST5_context *) context;
+  do_encrypt_block (c, outbuf, inbuf);
+  _gcry_burn_stack (10*4);
+}
+
+static void decrypt_block (void *context, byte *outbuf, const byte *inbuf)
+{
+  CAST5_context *c = (CAST5_context *) context;
+  do_decrypt_block (c, outbuf, inbuf);
+  _gcry_burn_stack (10*4);
+}
+
+#else /*USE_ARMV6_ASM*/
 
 #if defined(__GNUC__) && defined(__i386__)
 static inline u32
@@ -520,7 +584,7 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
   _gcry_burn_stack (20+4*sizeof(void*));
 }
 
-#endif /*!USE_AMD64_ASM*/
+#endif /*!USE_ARMV6_ASM*/
 
 
 /* Bulk encryption of complete blocks in CTR mode.  This function is only
@@ -551,6 +615,21 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
         nblocks -= 4;
         outbuf += 4 * CAST5_BLOCKSIZE;
         inbuf  += 4 * CAST5_BLOCKSIZE;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+    /* TODO: use caching instead? */
+  }
+#elif defined(USE_ARMV6_ASM)
+  {
+    /* Process data in 2 block chunks. */
+    while (nblocks >= 2)
+      {
+        _gcry_cast5_armv6_ctr_enc(ctx, outbuf, inbuf, ctr);
+
+        nblocks -= 2;
+        outbuf += 2 * CAST5_BLOCKSIZE;
+        inbuf  += 2 * CAST5_BLOCKSIZE;
       }
 
     /* Use generic code to handle smaller chunks... */
@@ -609,6 +688,20 @@ _gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 
     /* Use generic code to handle smaller chunks... */
   }
+#elif defined(USE_ARMV6_ASM)
+  {
+    /* Process data in 2 block chunks. */
+    while (nblocks >= 2)
+      {
+        _gcry_cast5_armv6_cbc_dec(ctx, outbuf, inbuf, iv);
+
+        nblocks -= 2;
+        outbuf += 2 * CAST5_BLOCKSIZE;
+        inbuf  += 2 * CAST5_BLOCKSIZE;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+  }
 #endif
 
   for ( ;nblocks; nblocks-- )
@@ -653,6 +746,20 @@ _gcry_cast5_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
         nblocks -= 4;
         outbuf += 4 * CAST5_BLOCKSIZE;
         inbuf  += 4 * CAST5_BLOCKSIZE;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+  }
+#elif defined(USE_ARMV6_ASM)
+  {
+    /* Process data in 2 block chunks. */
+    while (nblocks >= 2)
+      {
+        _gcry_cast5_armv6_cfb_dec(ctx, outbuf, inbuf, iv);
+
+        nblocks -= 2;
+        outbuf += 2 * CAST5_BLOCKSIZE;
+        inbuf  += 2 * CAST5_BLOCKSIZE;
       }
 
     /* Use generic code to handle smaller chunks... */
@@ -856,6 +963,32 @@ do_cast_setkey( CAST5_context *c, const byte *key, unsigned keylen )
   key_schedule( x, z, k );
   for(i=0; i < 16; i++ )
     c->Kr[i] = k[i] & 0x1f;
+
+#ifdef USE_ARMV6_ASM
+  for (i = 0; i < 4; i++)
+    {
+      byte Kr_arm[4];
+
+      /* Convert rotate left to rotate right and add shift left
+       * by 2.  */
+      Kr_arm[0] = ((32 - c->Kr[4 * i + 0]) - 2) & 0x1f;
+      Kr_arm[1] = ((32 - c->Kr[4 * i + 1]) - 2) & 0x1f;
+      Kr_arm[2] = ((32 - c->Kr[4 * i + 2]) - 2) & 0x1f;
+      Kr_arm[3] = ((32 - c->Kr[4 * i + 3]) - 2) & 0x1f;
+
+      /* Endian friendly store.  */
+      c->Kr_arm_enc[i] = Kr_arm[0] |
+                        (Kr_arm[1] << 8) |
+                        (Kr_arm[2] << 16) |
+                        (Kr_arm[3] << 24);
+      c->Kr_arm_dec[i] = Kr_arm[3] |
+                        (Kr_arm[2] << 8) |
+                        (Kr_arm[1] << 16) |
+                        (Kr_arm[0] << 24);
+
+      wipememory(Kr_arm, sizeof(Kr_arm));
+    }
+#endif
 
   memset(&x,0, sizeof x);
   memset(&z,0, sizeof z);
