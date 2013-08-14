@@ -64,7 +64,7 @@ ecc.c \
 idea.c \
 md4.c \
 md5.c \
-rijndael.c rijndael-tables.h rijndael-amd64.S \
+rijndael.c rijndael-tables.h rijndael-amd64.S rijndael-armv6.S \
 rmd160.c \
 rsa.c \
 salsa20.c \

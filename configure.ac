@@ -964,6 +964,34 @@ if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
 fi
 
 
+#
+# Check whether GCC assembler supports features needed for our ARM
+# implementations
+#
+AC_CACHE_CHECK([whether GCC assembler is compatible for ARM assembly implementations],
+       [gcry_cv_gcc_arm_platform_as_ok],
+       [gcry_cv_gcc_arm_platform_as_ok=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                /* Test if assembler supports UAL syntax.  */
+                ".syntax unified\n\t"
+                ".thumb\n\t" /* thumb-2 in UAL, thumb-1 otherwise.  */
+                ".code 16\n\t"
+                /* Following causes error if assembler ignored '.syntax unified'.  */
+                "asmfunc:\n\t"
+                "add.w %r0, %r4, %r8, ror #12;\n\t"
+
+                /* Test if '.type' and '.size' are supported.  */
+                ".size asmfunc,.-asmfunc;\n\t"
+                ".type asmfunc,%function;\n\t"
+            );]])],
+          [gcry_cv_gcc_arm_platform_as_ok=yes])])
+if test "$gcry_cv_gcc_arm_platform_as_ok" = "yes" ; then
+   AC_DEFINE(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS,1,
+     [Defined if underlying assembler is compatible with ARM assembly implementations])
+fi
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################
@@ -1283,6 +1311,10 @@ if test "$found" = "1" ; then
       x86_64-*-*)
          # Build with the assembly implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-amd64.lo"
+      ;;
+      arm*-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv6.lo"
       ;;
    esac
 fi

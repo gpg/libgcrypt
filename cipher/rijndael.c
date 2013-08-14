@@ -67,6 +67,21 @@
 # define USE_AMD64_ASM 1
 #endif
 
+/* USE_ARMV6_ASM indicates whether to use ARMv6 assembly code. */
+#undef USE_ARMV6_ASM
+#if defined(__arm__) && defined(__ARMEL__) && \
+	 ((defined(__ARM_ARCH) && __ARM_ARCH >= 6) \
+	|| defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
+	|| defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
+	|| defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) \
+	|| defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
+	|| defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
+	|| defined(__ARM_ARCH_7EM__))
+# ifdef HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS
+#  define USE_ARMV6_ASM 1
+# endif
+#endif
+
 /* USE_PADLOCK indicates whether to compile the padlock specific
    code.  */
 #undef USE_PADLOCK
@@ -114,6 +129,19 @@ extern void _gcry_aes_amd64_decrypt_block(const void *keysched_dec,
 					  const unsigned char *in,
 					  int rounds);
 #endif /*USE_AMD64_ASM*/
+
+#ifdef USE_ARMV6_ASM
+/* ARMv6 assembly implementations of AES */
+extern void _gcry_aes_armv6_encrypt_block(const void *keysched_enc,
+					  unsigned char *out,
+					  const unsigned char *in,
+					  int rounds);
+
+extern void _gcry_aes_armv6_decrypt_block(const void *keysched_dec,
+					  unsigned char *out,
+					  const unsigned char *in,
+					  int rounds);
+#endif /*USE_ARMV6_ASM*/
 
 
 
@@ -546,7 +574,9 @@ do_encrypt_aligned (const RIJNDAEL_context *ctx,
 {
 #ifdef USE_AMD64_ASM
   _gcry_aes_amd64_encrypt_block(ctx->keyschenc, b, a, ctx->rounds);
-#else /*!USE_AMD64_ASM*/
+#elif defined(USE_ARMV6_ASM)
+  _gcry_aes_armv6_encrypt_block(ctx->keyschenc, b, a, ctx->rounds);
+#else
 #define rk (ctx->keyschenc)
   int rounds = ctx->rounds;
   int r;
@@ -628,7 +658,7 @@ do_encrypt_aligned (const RIJNDAEL_context *ctx,
   *((u32_a_t*)(b+ 8)) ^= *((u32_a_t*)rk[rounds][2]);
   *((u32_a_t*)(b+12)) ^= *((u32_a_t*)rk[rounds][3]);
 #undef rk
-#endif /*!USE_AMD64_ASM*/
+#endif /*!USE_AMD64_ASM && !USE_ARMV6_ASM*/
 }
 
 
@@ -636,7 +666,7 @@ static void
 do_encrypt (const RIJNDAEL_context *ctx,
             unsigned char *bx, const unsigned char *ax)
 {
-#ifndef USE_AMD64_ASM
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARMV6_ASM)
   /* BX and AX are not necessary correctly aligned.  Thus we might
      need to copy them here.  We try to align to a 16 bytes.  */
   if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
@@ -657,7 +687,7 @@ do_encrypt (const RIJNDAEL_context *ctx,
       memcpy (bx, b.b, 16);
     }
   else
-#endif /*!USE_AMD64_ASM*/
+#endif /*!USE_AMD64_ASM && !USE_ARMV6_ASM*/
     {
       do_encrypt_aligned (ctx, bx, ax);
     }
@@ -1667,7 +1697,9 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
 {
 #ifdef USE_AMD64_ASM
   _gcry_aes_amd64_decrypt_block(ctx->keyschdec, b, a, ctx->rounds);
-#else /*!USE_AMD64_ASM*/
+#elif defined(USE_ARMV6_ASM)
+  _gcry_aes_armv6_decrypt_block(ctx->keyschdec, b, a, ctx->rounds);
+#else
 #define rk  (ctx->keyschdec)
   int rounds = ctx->rounds;
   int r;
@@ -1750,7 +1782,7 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
   *((u32_a_t*)(b+ 8)) ^= *((u32_a_t*)rk[0][2]);
   *((u32_a_t*)(b+12)) ^= *((u32_a_t*)rk[0][3]);
 #undef rk
-#endif /*!USE_AMD64_ASM*/
+#endif /*!USE_AMD64_ASM && !USE_ARMV6_ASM*/
 }
 
 
@@ -1765,7 +1797,7 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
       ctx->decryption_prepared = 1;
     }
 
-#ifndef USE_AMD64_ASM
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARMV6_ASM)
   /* BX and AX are not necessary correctly aligned.  Thus we might
      need to copy them here.  We try to align to a 16 bytes. */
   if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
@@ -1786,7 +1818,7 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
       memcpy (bx, b.b, 16);
     }
   else
-#endif /*!USE_AMD64_ASM*/
+#endif /*!USE_AMD64_ASM && !USE_ARMV6_ASM*/
     {
       do_decrypt_aligned (ctx, bx, ax);
     }
