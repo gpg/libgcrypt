@@ -30,6 +30,20 @@
  */
 #ifdef HAVE_CONFIG_H
 #include <config.h>
+/* USE_ARMV6_ASM indicates whether to use ARMv6 assembly code. */
+# undef USE_ARMV6_ASM
+# if defined(__arm__) && defined(__ARMEL__) && \
+	 ((defined(__ARM_ARCH) && __ARM_ARCH >= 6) \
+	|| defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
+	|| defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
+	|| defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) \
+	|| defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
+	|| defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
+	|| defined(__ARM_ARCH_7EM__))
+#  ifdef HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS
+#   define USE_ARMV6_ASM 1
+#  endif
+# endif
 #endif
 #ifdef CAMELLIA_EXT_SYM_PREFIX
 #define CAMELLIA_PREFIX1(x,y) x ## y
@@ -63,6 +77,7 @@ void Camellia_Ekeygen(const int keyBitLength,
 		      const unsigned char *rawKey,
 		      KEY_TABLE_TYPE keyTable);
 
+#ifndef USE_ARMV6_ASM
 void Camellia_EncryptBlock(const int keyBitLength,
 			   const unsigned char *plaintext,
 			   const KEY_TABLE_TYPE keyTable,
@@ -72,6 +87,7 @@ void Camellia_DecryptBlock(const int keyBitLength,
 			   const unsigned char *cipherText,
 			   const KEY_TABLE_TYPE keyTable,
 			   unsigned char *plaintext);
+#endif /*!USE_ARMV6_ASM*/
 
 
 #ifdef  __cplusplus

@@ -79,7 +79,7 @@ whirlpool.c \
 twofish.c twofish-amd64.S \
 rfc2268.c \
 camellia.c camellia.h camellia-glue.c camellia-aesni-avx-amd64.S \
-  camellia-aesni-avx2-amd64.S
+  camellia-aesni-avx2-amd64.S camellia-armv6.S
 
 if ENABLE_O_FLAG_MUNGING
 o_flag_munging = sed -e 's/-O\([2-9s][2-9s]*\)/-O1/' -e 's/-Ofast/-O1/g'

@@ -869,6 +869,7 @@ void camellia_setup192(const unsigned char *key, u32 *subkey)
 }
 
 
+#ifndef USE_ARMV6_ASM
 /**
  * Stuff related to camellia encryption/decryption
  *
@@ -1328,6 +1329,8 @@ void camellia_decrypt256(const u32 *subkey, u32 *blocks)
 
     return;
 }
+#endif /*!USE_ARMV6_ASM*/
+
 
 /***
  *
@@ -1354,6 +1357,7 @@ void Camellia_Ekeygen(const int keyBitLength,
 }
 
 
+#ifndef USE_ARMV6_ASM
 void Camellia_EncryptBlock(const int keyBitLength,
 			   const unsigned char *plaintext,
 			   const KEY_TABLE_TYPE keyTable,
@@ -1414,3 +1418,4 @@ void Camellia_DecryptBlock(const int keyBitLength,
     PUTU32(plaintext + 8, tmp[2]);
     PUTU32(plaintext + 12, tmp[3]);
 }
+#endif /*!USE_ARMV6_ASM*/

@@ -1375,6 +1375,13 @@ if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia.lo camellia-glue.lo"
    AC_DEFINE(USE_CAMELLIA, 1, [Defined if this module should be included])
 
+   case "${host}" in
+      arm*-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-armv6.lo"
+      ;;
+   esac
+
    if test x"$avxsupport" = xyes ; then
       if test x"$aesnisupport" = xyes ; then
         # Build with the AES-NI/AVX implementation
