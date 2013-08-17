@@ -290,35 +290,10 @@ _gcry_log_printhex (const char *text, const void *buffer, size_t length)
 void
 _gcry_burn_stack (int bytes)
 {
-#if SIZEOF_UNSIGNED_LONG == 4 || SIZEOF_UNSIGNED_LONG == 8
-    /* Optimized burn_stack for 32-bit and 64-bit architectures.  In addition
-       to loop unrolling, compiler sees that writes are within 'buf' and
-       generation of stack-protection code is avoided.  */
-    volatile unsigned long buf[64 / SIZEOF_UNSIGNED_LONG];
-
-    buf[0] = 0;
-    buf[1] = 0;
-    buf[2] = 0;
-    buf[3] = 0;
-    buf[4] = 0;
-    buf[5] = 0;
-    buf[6] = 0;
-    buf[7] = 0;
-# if SIZEOF_UNSIGNED_LONG == 4
-    buf[8] = 0;
-    buf[9] = 0;
-    buf[10] = 0;
-    buf[11] = 0;
-    buf[12] = 0;
-    buf[13] = 0;
-    buf[14] = 0;
-    buf[15] = 0;
-# endif
-#else
     char buf[64];
 
     wipememory (buf, sizeof buf);
-#endif
+
     bytes -= sizeof buf;
     if (bytes > 0)
         _gcry_burn_stack (bytes);
