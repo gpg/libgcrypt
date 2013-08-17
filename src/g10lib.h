@@ -248,7 +248,7 @@ void _gcry_burn_stack (int bytes);
 #define wipememory(_ptr,_len) wipememory2(_ptr,0,_len)
 
 
-/* Optimized fast_wipememory2 for i386 and x86-64 architechtures.  Maybe leave
+/* Optimized fast_wipememory2 for i386, x86-64 and arm architectures.  May leave
    tail bytes unhandled, in which case tail bytes are handled by wipememory2.
  */
 #if defined(__x86_64__) && __GNUC__ >= 4
@@ -282,6 +282,38 @@ void _gcry_burn_stack (int bytes);
                 _vlen -= 4; \
                 _vptr += 4; \
               } while (_vlen >= 4); \
+                  } while (0)
+#elif defined (__arm__) && (defined (__thumb2__) || !defined (__thumb__)) && \
+	__GNUC__ >= 4
+
+#ifdef __ARM_FEATURE_UNALIGNED
+#define fast_wipememory2_unaligned_head(_ptr,_set,_len) /*do nothing*/
+#else
+#define fast_wipememory2_unaligned_head(_vptr,_vset,_vlen) do { \
+              while((size_t)(_vptr)&3 && _vlen) \
+	        { *_vptr=(_vset); _vptr++; _vlen--; } \
+                  } while(0)
+#endif
+
+#define fast_wipememory2(_vptr,_vset,_vlen) do { \
+              unsigned long _vset4 = _vset; \
+              fast_wipememory2_unaligned_head(_vptr,_vset,_vlen); \
+              if (_vlen < 8) \
+                break; \
+              _vset4 *= 0x01010101; \
+              asm volatile( \
+                "mov %%r4, %[set];\n\t" \
+                "mov %%r5, %[set];\n\t" \
+                "1:;\n\t" \
+                "stm %[ptr]!, {%%r4, %%r5};\n\t" \
+                "cmp %[end], %[ptr];\n\t" \
+                "bne 1b;\n\t" \
+                : [ptr] "=r" (_vptr) \
+                : [set] "r" (_vset4), \
+                  [end] "r" (_vptr+(_vlen&(~0x7))), \
+                  "0" (_vptr) \
+                : "memory", "r4", "r5", "cc"); \
+              _vlen &= 0x7; \
                   } while (0)
 #else
 #define fast_wipememory2(_ptr,_set,_len)
