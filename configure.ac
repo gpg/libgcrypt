@@ -965,6 +965,29 @@ fi
 
 
 #
+# Check whether compiler is configured for ARMv6 or newer architecture
+#
+AC_CACHE_CHECK([whether compiler is configured for ARMv6 or newer architecture],
+       [gcry_cv_cc_arm_arch_is_v6],
+       [AC_EGREP_CPP(yes,
+          [#if defined(__arm__) && \
+             ((defined(__ARM_ARCH) && __ARM_ARCH >= 6) \
+             || defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
+             || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
+             || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) \
+             || defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
+             || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
+             || defined(__ARM_ARCH_7EM__))
+            yes
+           #endif
+          ], gcry_cv_cc_arm_arch_is_v6=yes, gcry_cv_cc_arm_arch_is_v6=no)])
+if test "$gcry_cv_cc_arm_arch_is_v6" = "yes" ; then
+   AC_DEFINE(HAVE_ARM_ARCH_V6,1,
+     [Defined if ARM architecture is v6 or newer])
+fi
+
+
+#
 # Check whether GCC assembler supports features needed for our ARM
 # implementations
 #
