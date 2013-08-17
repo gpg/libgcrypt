@@ -136,6 +136,21 @@ case "${host}" in
 	mpi_extra_modules="udiv-qrnnd"
         mpi_cpu_arch="alpha"
 	;;
+    arm*-*-*)
+	if test "$gcry_cv_gcc_arm_platform_as_ok" = "yes" ; then
+	  if test "$gcry_cv_cc_arm_arch_is_v6" = "yes" ; then
+	    echo '/* configured for armv6 */' >>./mpi/asm-syntax.h
+	    path="armv6"
+	    mpi_cpu_arch="armv6"
+	  else
+	    echo '/* No assembler modules configured */' >>./mpi/asm-syntax.h
+	    path=""
+	  fi
+	else
+	  echo '/* No assembler modules configured */' >>./mpi/asm-syntax.h
+	  path=""
+	fi
+	;;
     hppa7000*-*-*)
 	echo '/* configured for HPPA (pa7000) */' >>./mpi/asm-syntax.h
 	path="hppa1.1 hppa"
