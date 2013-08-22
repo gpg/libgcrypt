@@ -756,6 +756,20 @@ _gcry_serpent_sse2_ctr_enc:
 	movdqu RB2, (6 * 16)(%rsi);
 	movdqu RB3, (7 * 16)(%rsi);
 
+	/* clear the used registers */
+	pxor RA0, RA0;
+	pxor RA1, RA1;
+	pxor RA2, RA2;
+	pxor RA3, RA3;
+	pxor RB0, RB0;
+	pxor RB1, RB1;
+	pxor RB2, RB2;
+	pxor RB3, RB3;
+	pxor RTMP0, RTMP0;
+	pxor RTMP1, RTMP1;
+	pxor RTMP2, RTMP2;
+	pxor RNOT, RNOT;
+
 	ret
 .size _gcry_serpent_sse2_ctr_enc,.-_gcry_serpent_sse2_ctr_enc;
 
@@ -818,6 +832,20 @@ _gcry_serpent_sse2_cbc_dec:
 	movdqu RB1, (5 * 16)(%rsi);
 	movdqu RB2, (6 * 16)(%rsi);
 	movdqu RB3, (7 * 16)(%rsi);
+
+	/* clear the used registers */
+	pxor RA0, RA0;
+	pxor RA1, RA1;
+	pxor RA2, RA2;
+	pxor RA3, RA3;
+	pxor RB0, RB0;
+	pxor RB1, RB1;
+	pxor RB2, RB2;
+	pxor RB3, RB3;
+	pxor RTMP0, RTMP0;
+	pxor RTMP1, RTMP1;
+	pxor RTMP2, RTMP2;
+	pxor RNOT, RNOT;
 
 	ret
 .size _gcry_serpent_sse2_cbc_dec,.-_gcry_serpent_sse2_cbc_dec;
@@ -884,6 +912,20 @@ _gcry_serpent_sse2_cfb_dec:
 	movdqu RB1, (5 * 16)(%rsi);
 	movdqu RB2, (6 * 16)(%rsi);
 	movdqu RB3, (7 * 16)(%rsi);
+
+	/* clear the used registers */
+	pxor RA0, RA0;
+	pxor RA1, RA1;
+	pxor RA2, RA2;
+	pxor RA3, RA3;
+	pxor RB0, RB0;
+	pxor RB1, RB1;
+	pxor RB2, RB2;
+	pxor RB3, RB3;
+	pxor RTMP0, RTMP0;
+	pxor RTMP1, RTMP1;
+	pxor RTMP2, RTMP2;
+	pxor RNOT, RNOT;
 
 	ret
 .size _gcry_serpent_sse2_cfb_dec,.-_gcry_serpent_sse2_cfb_dec;
