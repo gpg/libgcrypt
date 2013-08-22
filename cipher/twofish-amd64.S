@@ -488,7 +488,7 @@ __twofish_enc_blk3:
 .size __twofish_enc_blk3,.-__twofish_enc_blk3;
 
 .align 8
-.global __twofish_dec_blk3
+.type  __twofish_dec_blk3,@function;
 
 __twofish_dec_blk3:
 	/* input:
