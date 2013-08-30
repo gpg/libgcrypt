@@ -1,6 +1,7 @@
 /* mpicoder.c  -  Coder for the external representation of MPIs
  * Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003
  *               2008 Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -178,7 +179,8 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
 /* Dump the value of A in a format suitable for debugging to
    Libgcrypt's logging stream.  Note that one leading space but no
    trailing space or linefeed will be printed.  It is okay to pass
-   NULL for A. */
+   NULL for A.  Note that this function prints the sign as it is used
+   internally and won't map -0 to 0. */
 void
 gcry_mpi_dump (const gcry_mpi_t a)
 {
@@ -548,9 +550,20 @@ gcry_mpi_print (enum gcry_mpi_format format,
   unsigned int nbits = mpi_get_nbits (a);
   size_t len;
   size_t dummy_nwritten;
+  int negative;
 
   if (!nwritten)
     nwritten = &dummy_nwritten;
+
+  /* Libgcrypt does no always care to set clear the sign if the value
+     is 0.  For printing this is a bit of a surprise, in particular
+     because if some of the formats don't support negative numbers but
+     should be able to print a zero.  Thus we need this extra test
+     for a negative number.  */
+  if (a->sign && _gcry_mpi_cmp_ui (a, 0))
+    negative = 1;
+  else
+    negative = 0;
 
   len = buflen;
   *nwritten = 0;
@@ -560,16 +573,20 @@ gcry_mpi_print (enum gcry_mpi_format format,
       int extra = 0;
       unsigned int n;
 
-      if (a->sign)
+      if (negative)
         return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
 
       tmp = _gcry_mpi_get_buffer (a, &n, NULL);
       if (!tmp)
         return gpg_error_from_syserror ();
+
+      /* If the high bit of the returned buffer is set, we need to
+         print an extra leading 0x00 so that the output is interpreted
+         as a positive number.  */
       if (n && (*tmp & 0x80))
         {
           n++;
-          extra=1;
+          extra = 1;
 	}
 
       if (buffer && n > len)
@@ -597,6 +614,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       /* Note:  We ignore the sign for this format.  */
       /* FIXME: for performance reasons we should put this into
 	 mpi_aprint because we can then use the buffer directly.  */
+
       if (buffer && n > len)
         return gcry_error (GPG_ERR_TOO_SHORT);
       if (buffer)
@@ -617,7 +635,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       unsigned int n = (nbits + 7)/8;
 
       /* The PGP format can only handle unsigned integers.  */
-      if( a->sign )
+      if (negative)
         return gcry_error (GPG_ERR_INV_ARG);
 
       if (buffer && n+2 > len)
@@ -646,7 +664,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       int extra = 0;
       unsigned int n;
 
-      if (a->sign)
+      if (negative)
         return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet.  */
 
       tmp = _gcry_mpi_get_buffer (a, &n, NULL);
@@ -694,7 +712,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       if (!n || (*tmp & 0x80))
         extra = 2;
 
-      if (buffer && 2*n + extra + !!a->sign + 1 > len)
+      if (buffer && 2*n + extra + negative + 1 > len)
         {
           gcry_free(tmp);
           return gcry_error (GPG_ERR_TOO_SHORT);
@@ -703,7 +721,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
         {
           unsigned char *s = buffer;
 
-          if (a->sign)
+          if (negative)
             *s++ = '-';
           if (extra)
             {
@@ -724,7 +742,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
 	}
       else
         {
-          *nwritten = 2*n + extra + !!a->sign + 1;
+          *nwritten = 2*n + extra + negative + 1;
 	}
       gcry_free (tmp);
       return 0;
@@ -752,7 +770,7 @@ gcry_mpi_aprint (enum gcry_mpi_format format,
   if (rc)
     return rc;
 
-  *buffer = mpi_is_secure(a) ? gcry_malloc_secure (n) : gcry_malloc (n);
+  *buffer = mpi_is_secure(a) ? gcry_malloc_secure (n?n:1) : gcry_malloc (n?n:1);
   if (!*buffer)
     return gpg_error_from_syserror ();
   rc = gcry_mpi_print( format, *buffer, n, &n, a );
