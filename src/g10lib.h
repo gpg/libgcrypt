@@ -67,6 +67,13 @@
 #endif
 
 
+#if __GNUC__ > 2 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 5 )
+#define GCC_ATTR_UNUSED  __attribute__ ((unused))
+#else
+#define GCC_ATTR_UNUSED
+#endif
+
+
 /* Gettext macros.  */
 
 #define _(a)  _gcry_gettext(a)

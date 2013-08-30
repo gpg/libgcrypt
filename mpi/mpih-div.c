@@ -48,7 +48,7 @@ _gcry_mpih_mod_1(mpi_ptr_t dividend_ptr, mpi_size_t dividend_size,
 {
     mpi_size_t i;
     mpi_limb_t n1, n0, r;
-    int dummy;
+    int dummy GCC_ATTR_UNUSED;
 
     /* Botch: Should this be handled at all?  Rely on callers?	*/
     if( !dividend_size )
@@ -396,7 +396,7 @@ _gcry_mpih_divmod_1( mpi_ptr_t quot_ptr,
 {
     mpi_size_t i;
     mpi_limb_t n1, n0, r;
-    int dummy;
+    int dummy GCC_ATTR_UNUSED;
 
     if( !dividend_size )
 	return 0;
