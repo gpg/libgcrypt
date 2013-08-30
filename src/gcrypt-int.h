@@ -28,7 +28,7 @@
 
 /* These error codes are used but not defined in the required
    libgpg-error 1.11.  Define them here. */
-#ifndef GPG_ERR_NO_CRYPT_CTX
+#if GPG_ERROR_VERSION_NUMBER < 0x010c00  /* 1.12 */
 # define GPG_ERR_NO_CRYPT_CTX	    191
 # define GPG_ERR_WRONG_CRYPT_CTX    192
 # define GPG_ERR_BAD_CRYPT_CTX	    193
