@@ -155,6 +155,8 @@ int _gcry_log_verbosity( int level );
 #define HWF_INTEL_AVX    1024
 #define HWF_INTEL_AVX2   2048
 
+#define HWF_ARM_NEON     4096
+
 
 unsigned int _gcry_get_hw_features (void);
 void _gcry_detect_hw_features (unsigned int);

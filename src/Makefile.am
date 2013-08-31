@@ -64,7 +64,7 @@ libgcrypt_la_SOURCES = \
 	ec-context.h \
 	ath.h ath.c
 
-EXTRA_libgcrypt_la_SOURCES = hwf-x86.c
+EXTRA_libgcrypt_la_SOURCES = hwf-x86.c hwf-arm.c
 gcrypt_hwf_modules = @GCRYPT_HWF_MODULES@
 
 

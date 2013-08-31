@@ -595,6 +595,14 @@ AC_ARG_ENABLE(avx2-support,
 	      avx2support=$enableval,avx2support=yes)
 AC_MSG_RESULT($avx2support)
 
+# Implementation of the --disable-neon-support switch.
+AC_MSG_CHECKING([whether NEON support is requested])
+AC_ARG_ENABLE(neon-support,
+              AC_HELP_STRING([--disable-neon-support],
+                 [Disable support for the ARM NEON instructions]),
+	      neonsupport=$enableval,neonsupport=yes)
+AC_MSG_RESULT($neonsupport)
+
 # Implementation of the --disable-O-flag-munging switch.
 AC_MSG_CHECKING([whether a -O flag munging is requested])
 AC_ARG_ENABLE([O-flag-munging],
@@ -988,6 +996,30 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports NEON instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports NEON instructions],
+       [gcry_cv_gcc_inline_asm_neon],
+       [gcry_cv_gcc_inline_asm_neon=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                ".syntax unified\n\t"
+                ".thumb\n\t"
+                ".fpu neon\n\t"
+                "vld1.64 {%q0-%q1}, [%r0]!;\n\t"
+                "vrev64.8 %q0, %q3;\n\t"
+                "vadd.u64 %q0, %q1;\n\t"
+                "vadd.s64 %d3, %d2, %d3;\n\t"
+                );
+            ]])],
+          [gcry_cv_gcc_inline_asm_neon=yes])])
+if test "$gcry_cv_gcc_inline_asm_neon" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_NEON,1,
+     [Defined if inline assembler supports NEON instructions])
+fi
+
+
+#
 # Check whether GCC assembler supports features needed for our ARM
 # implementations
 #
@@ -1269,6 +1301,11 @@ if test x"$avx2support" = xyes ; then
     avx2support="no (unsupported by compiler)"
   fi
 fi
+if test x"$neonsupport" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_neon" != "yes" ; then
+    neonsupport="no (unsupported by compiler)"
+  fi
+fi
 
 if test x"$aesnisupport" = xyes ; then
   AC_DEFINE(ENABLE_AESNI_SUPPORT, 1,
@@ -1281,6 +1318,10 @@ fi
 if test x"$avx2support" = xyes ; then
   AC_DEFINE(ENABLE_AVX2_SUPPORT,1,
             [Enable support for Intel AVX2 instructions.])
+fi
+if test x"$neonsupport" = xyes ; then
+  AC_DEFINE(ENABLE_NEON_SUPPORT,1,
+            [Enable support for ARM NEON instructions.])
 fi
 
 
@@ -1597,6 +1638,7 @@ case "$mpi_cpu_arch" in
         ;;
      arm)
         AC_DEFINE(HAVE_CPU_ARCH_ARM, 1,   [Defined for ARM platforms])
+        GCRYPT_HWF_MODULES="hwf-arm.lo"
         ;;
 esac
 AC_SUBST([GCRYPT_HWF_MODULES])
@@ -1660,6 +1702,7 @@ GCRY_MSG_SHOW([Try using AES-NI crypto:  ],[$aesnisupport])
 GCRY_MSG_SHOW([Try using DRNG (RDRAND):  ],[$drngsupport])
 GCRY_MSG_SHOW([Try using Intel AVX:      ],[$avxsupport])
 GCRY_MSG_SHOW([Try using Intel AVX2:     ],[$avx2support])
+GCRY_MSG_SHOW([Try using ARM NEON:       ],[$neonsupport])
 GCRY_MSG_SHOW([],[])
 
 if test "$print_egd_notice" = "yes"; then

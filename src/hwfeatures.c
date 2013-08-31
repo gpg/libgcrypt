@@ -59,6 +59,11 @@ _gcry_detect_hw_features (unsigned int disabled_features)
     hw_features = _gcry_hwf_detect_x86 ();
   }
 #endif /* HAVE_CPU_ARCH_X86 */
+#if defined (HAVE_CPU_ARCH_ARM)
+  {
+    hw_features = _gcry_hwf_detect_arm ();
+  }
+#endif /* HAVE_CPU_ARCH_ARM */
 
   hw_features &= ~disabled_features;
 }

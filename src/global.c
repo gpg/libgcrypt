@@ -70,6 +70,7 @@ static struct
     { HWF_INTEL_RDRAND,"intel-rdrand" },
     { HWF_INTEL_AVX,   "intel-avx" },
     { HWF_INTEL_AVX2,  "intel-avx2" },
+    { HWF_ARM_NEON,    "arm-neon" },
     { 0, NULL}
   };
 
