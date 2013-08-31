@@ -135,7 +135,7 @@ static void
 transform (SHA512_CONTEXT *hd, const unsigned char *data)
 {
   u64 a, b, c, d, e, f, g, h;
-  u64 w[80];
+  u64 w[16];
   int t;
   static const u64 k[] =
     {
@@ -215,11 +215,8 @@ transform (SHA512_CONTEXT *hd, const unsigned char *data)
 #define S0(x) (ROTR((x),1) ^ ROTR((x),8) ^ ((x)>>7))
 #define S1(x) (ROTR((x),19) ^ ROTR((x),61) ^ ((x)>>6))
 
-  for (t = 16; t < 80; t++)
-    w[t] = S1 (w[t - 2]) + w[t - 7] + S0 (w[t - 15]) + w[t - 16];
 
-
-  for (t = 0; t < 80; )
+  for (t = 0; t < 80 - 16; )
     {
       u64 t1, t2;
 
@@ -232,7 +229,8 @@ transform (SHA512_CONTEXT *hd, const unsigned char *data)
          Unrolled with inline:      330ms
       */
 #if 0 /* Not unrolled.  */
-      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[t];
+      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[t%16];
+      w[t%16] += S1 (w[(t - 2)%16]) + w[(t - 7)%16] + S0 (w[(t - 15)%16]);
       t2 = Sum0 (a) + Maj (a, b, c);
       h = g;
       g = f;
@@ -244,47 +242,204 @@ transform (SHA512_CONTEXT *hd, const unsigned char *data)
       a = t1 + t2;
       t++;
 #else /* Unrolled to interweave the chain variables.  */
-      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[t];
+      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[0];
+      w[0] += S1 (w[14]) + w[9] + S0 (w[1]);
       t2 = Sum0 (a) + Maj (a, b, c);
       d += t1;
-      h  = t1 + t2;
+      h = t1 + t2;
 
-      t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+1] + w[t+1];
+      t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+1] + w[1];
+      w[1] += S1 (w[15]) + w[10] + S0 (w[2]);
       t2 = Sum0 (h) + Maj (h, a, b);
       c += t1;
       g  = t1 + t2;
 
-      t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+2] + w[t+2];
+      t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+2] + w[2];
+      w[2] += S1 (w[0]) + w[11] + S0 (w[3]);
       t2 = Sum0 (g) + Maj (g, h, a);
       b += t1;
       f  = t1 + t2;
 
-      t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+3] + w[t+3];
+      t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+3] + w[3];
+      w[3] += S1 (w[1]) + w[12] + S0 (w[4]);
       t2 = Sum0 (f) + Maj (f, g, h);
       a += t1;
       e  = t1 + t2;
 
-      t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+4] + w[t+4];
+      t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+4] + w[4];
+      w[4] += S1 (w[2]) + w[13] + S0 (w[5]);
       t2 = Sum0 (e) + Maj (e, f, g);
       h += t1;
       d  = t1 + t2;
 
-      t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+5] + w[t+5];
+      t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+5] + w[5];
+      w[5] += S1 (w[3]) + w[14] + S0 (w[6]);
       t2 = Sum0 (d) + Maj (d, e, f);
       g += t1;
       c  = t1 + t2;
 
-      t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+6] + w[t+6];
+      t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+6] + w[6];
+      w[6] += S1 (w[4]) + w[15] + S0 (w[7]);
       t2 = Sum0 (c) + Maj (c, d, e);
       f += t1;
       b  = t1 + t2;
 
-      t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+7] + w[t+7];
+      t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+7] + w[7];
+      w[7] += S1 (w[5]) + w[0] + S0 (w[8]);
       t2 = Sum0 (b) + Maj (b, c, d);
       e += t1;
       a  = t1 + t2;
 
-      t += 8;
+      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t+8] + w[8];
+      w[8] += S1 (w[6]) + w[1] + S0 (w[9]);
+      t2 = Sum0 (a) + Maj (a, b, c);
+      d += t1;
+      h  = t1 + t2;
+
+      t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+9] + w[9];
+      w[9] += S1 (w[7]) + w[2] + S0 (w[10]);
+      t2 = Sum0 (h) + Maj (h, a, b);
+      c += t1;
+      g  = t1 + t2;
+
+      t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+10] + w[10];
+      w[10] += S1 (w[8]) + w[3] + S0 (w[11]);
+      t2 = Sum0 (g) + Maj (g, h, a);
+      b += t1;
+      f  = t1 + t2;
+
+      t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+11] + w[11];
+      w[11] += S1 (w[9]) + w[4] + S0 (w[12]);
+      t2 = Sum0 (f) + Maj (f, g, h);
+      a += t1;
+      e  = t1 + t2;
+
+      t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+12] + w[12];
+      w[12] += S1 (w[10]) + w[5] + S0 (w[13]);
+      t2 = Sum0 (e) + Maj (e, f, g);
+      h += t1;
+      d  = t1 + t2;
+
+      t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+13] + w[13];
+      w[13] += S1 (w[11]) + w[6] + S0 (w[14]);
+      t2 = Sum0 (d) + Maj (d, e, f);
+      g += t1;
+      c  = t1 + t2;
+
+      t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+14] + w[14];
+      w[14] += S1 (w[12]) + w[7] + S0 (w[15]);
+      t2 = Sum0 (c) + Maj (c, d, e);
+      f += t1;
+      b  = t1 + t2;
+
+      t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+15] + w[15];
+      w[15] += S1 (w[13]) + w[8] + S0 (w[0]);
+      t2 = Sum0 (b) + Maj (b, c, d);
+      e += t1;
+      a  = t1 + t2;
+
+      t += 16;
+#endif
+    }
+
+  for (; t < 80; )
+    {
+      u64 t1, t2;
+
+#if 0 /* Not unrolled.  */
+      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[t%16];
+      t2 = Sum0 (a) + Maj (a, b, c);
+      h = g;
+      g = f;
+      f = e;
+      e = d + t1;
+      d = c;
+      c = b;
+      b = a;
+      a = t1 + t2;
+      t++;
+#else /* Unrolled to interweave the chain variables.  */
+      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[0];
+      t2 = Sum0 (a) + Maj (a, b, c);
+      d += t1;
+      h  = t1 + t2;
+
+      t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+1] + w[1];
+      t2 = Sum0 (h) + Maj (h, a, b);
+      c += t1;
+      g  = t1 + t2;
+
+      t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+2] + w[2];
+      t2 = Sum0 (g) + Maj (g, h, a);
+      b += t1;
+      f  = t1 + t2;
+
+      t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+3] + w[3];
+      t2 = Sum0 (f) + Maj (f, g, h);
+      a += t1;
+      e  = t1 + t2;
+
+      t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+4] + w[4];
+      t2 = Sum0 (e) + Maj (e, f, g);
+      h += t1;
+      d  = t1 + t2;
+
+      t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+5] + w[5];
+      t2 = Sum0 (d) + Maj (d, e, f);
+      g += t1;
+      c  = t1 + t2;
+
+      t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+6] + w[6];
+      t2 = Sum0 (c) + Maj (c, d, e);
+      f += t1;
+      b  = t1 + t2;
+
+      t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+7] + w[7];
+      t2 = Sum0 (b) + Maj (b, c, d);
+      e += t1;
+      a  = t1 + t2;
+
+      t1 = h + Sum1 (e) + Ch (e, f, g) + k[t+8] + w[8];
+      t2 = Sum0 (a) + Maj (a, b, c);
+      d += t1;
+      h  = t1 + t2;
+
+      t1 = g + Sum1 (d) + Ch (d, e, f) + k[t+9] + w[9];
+      t2 = Sum0 (h) + Maj (h, a, b);
+      c += t1;
+      g  = t1 + t2;
+
+      t1 = f + Sum1 (c) + Ch (c, d, e) + k[t+10] + w[10];
+      t2 = Sum0 (g) + Maj (g, h, a);
+      b += t1;
+      f  = t1 + t2;
+
+      t1 = e + Sum1 (b) + Ch (b, c, d) + k[t+11] + w[11];
+      t2 = Sum0 (f) + Maj (f, g, h);
+      a += t1;
+      e  = t1 + t2;
+
+      t1 = d + Sum1 (a) + Ch (a, b, c) + k[t+12] + w[12];
+      t2 = Sum0 (e) + Maj (e, f, g);
+      h += t1;
+      d  = t1 + t2;
+
+      t1 = c + Sum1 (h) + Ch (h, a, b) + k[t+13] + w[13];
+      t2 = Sum0 (d) + Maj (d, e, f);
+      g += t1;
+      c  = t1 + t2;
+
+      t1 = b + Sum1 (g) + Ch (g, h, a) + k[t+14] + w[14];
+      t2 = Sum0 (c) + Maj (c, d, e);
+      f += t1;
+      b  = t1 + t2;
+
+      t1 = a + Sum1 (f) + Ch (f, g, h) + k[t+15] + w[15];
+      t2 = Sum0 (b) + Maj (b, c, d);
+      e += t1;
+      a  = t1 + t2;
+
+      t += 16;
 #endif
     }
 
@@ -312,7 +467,7 @@ sha512_write (void *context, const void *inbuf_arg, size_t inlen)
   if (hd->count == 128)
     {				/* flush the buffer */
       transform (hd, hd->buf);
-      _gcry_burn_stack (768);
+      _gcry_burn_stack (256);
       hd->count = 0;
       hd->nblocks++;
     }
@@ -335,7 +490,7 @@ sha512_write (void *context, const void *inbuf_arg, size_t inlen)
       inlen -= 128;
       inbuf += 128;
     }
-  _gcry_burn_stack (768);
+  _gcry_burn_stack (256);
   for (; inlen && hd->count < 128; inlen--)
     hd->buf[hd->count++] = *inbuf++;
 }
@@ -405,7 +560,7 @@ sha512_final (void *context)
   hd->buf[126] = lsb >> 8;
   hd->buf[127] = lsb;
   transform (hd, hd->buf);
-  _gcry_burn_stack (768);
+  _gcry_burn_stack (256);
 
   p = hd->buf;
 #ifdef WORDS_BIGENDIAN
