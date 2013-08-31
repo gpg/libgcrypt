@@ -73,7 +73,7 @@ seed.c \
 serpent.c serpent-sse2-amd64.S serpent-avx2-amd64.S \
 sha1.c \
 sha256.c \
-sha512.c \
+sha512.c sha512-armv7-neon.S \
 tiger.c \
 whirlpool.c \
 twofish.c twofish-amd64.S \

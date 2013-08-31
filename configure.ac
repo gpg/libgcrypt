@@ -1526,6 +1526,11 @@ LIST_MEMBER(sha512, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512.lo"
    AC_DEFINE(USE_SHA512, 1, [Defined if this module should be included])
+
+   if test x"$neonsupport" = xyes ; then
+     # Build with the NEON implementation
+     GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-armv7-neon.lo"
+   fi
 fi
 
 LIST_MEMBER(tiger, $enabled_digests)

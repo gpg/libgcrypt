@@ -53,12 +53,26 @@
 #include "cipher.h"
 #include "hash-common.h"
 
+
+/* USE_ARM_NEON_ASM indicates whether to enable ARM NEON assembly code. */
+#undef USE_ARM_NEON_ASM
+#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+# if defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
+     defined(HAVE_GCC_INLINE_ASM_NEON)
+#  define USE_ARM_NEON_ASM 1
+# endif
+#endif
+
+
 typedef struct
 {
   u64 h0, h1, h2, h3, h4, h5, h6, h7;
   u64 nblocks;
   byte buf[128];
   int count;
+#ifdef USE_ARM_NEON_ASM
+  int use_neon;
+#endif
 } SHA512_CONTEXT;
 
 static void
@@ -77,6 +91,9 @@ sha512_init (void *context)
 
   hd->nblocks = 0;
   hd->count = 0;
+#ifdef USE_ARM_NEON_ASM
+  hd->use_neon = (_gcry_get_hw_features () & HWF_ARM_NEON) != 0;
+#endif
 }
 
 static void
@@ -95,6 +112,9 @@ sha384_init (void *context)
 
   hd->nblocks = 0;
   hd->count = 0;
+#ifdef USE_ARM_NEON_ASM
+  hd->use_neon = (_gcry_get_hw_features () & HWF_ARM_NEON) != 0;
+#endif
 }
 
 
@@ -128,58 +148,59 @@ Sum1 (u64 x)
   return (ROTR (x, 14) ^ ROTR (x, 18) ^ ROTR (x, 41));
 }
 
+static const u64 k[] =
+  {
+    U64_C(0x428a2f98d728ae22), U64_C(0x7137449123ef65cd),
+    U64_C(0xb5c0fbcfec4d3b2f), U64_C(0xe9b5dba58189dbbc),
+    U64_C(0x3956c25bf348b538), U64_C(0x59f111f1b605d019),
+    U64_C(0x923f82a4af194f9b), U64_C(0xab1c5ed5da6d8118),
+    U64_C(0xd807aa98a3030242), U64_C(0x12835b0145706fbe),
+    U64_C(0x243185be4ee4b28c), U64_C(0x550c7dc3d5ffb4e2),
+    U64_C(0x72be5d74f27b896f), U64_C(0x80deb1fe3b1696b1),
+    U64_C(0x9bdc06a725c71235), U64_C(0xc19bf174cf692694),
+    U64_C(0xe49b69c19ef14ad2), U64_C(0xefbe4786384f25e3),
+    U64_C(0x0fc19dc68b8cd5b5), U64_C(0x240ca1cc77ac9c65),
+    U64_C(0x2de92c6f592b0275), U64_C(0x4a7484aa6ea6e483),
+    U64_C(0x5cb0a9dcbd41fbd4), U64_C(0x76f988da831153b5),
+    U64_C(0x983e5152ee66dfab), U64_C(0xa831c66d2db43210),
+    U64_C(0xb00327c898fb213f), U64_C(0xbf597fc7beef0ee4),
+    U64_C(0xc6e00bf33da88fc2), U64_C(0xd5a79147930aa725),
+    U64_C(0x06ca6351e003826f), U64_C(0x142929670a0e6e70),
+    U64_C(0x27b70a8546d22ffc), U64_C(0x2e1b21385c26c926),
+    U64_C(0x4d2c6dfc5ac42aed), U64_C(0x53380d139d95b3df),
+    U64_C(0x650a73548baf63de), U64_C(0x766a0abb3c77b2a8),
+    U64_C(0x81c2c92e47edaee6), U64_C(0x92722c851482353b),
+    U64_C(0xa2bfe8a14cf10364), U64_C(0xa81a664bbc423001),
+    U64_C(0xc24b8b70d0f89791), U64_C(0xc76c51a30654be30),
+    U64_C(0xd192e819d6ef5218), U64_C(0xd69906245565a910),
+    U64_C(0xf40e35855771202a), U64_C(0x106aa07032bbd1b8),
+    U64_C(0x19a4c116b8d2d0c8), U64_C(0x1e376c085141ab53),
+    U64_C(0x2748774cdf8eeb99), U64_C(0x34b0bcb5e19b48a8),
+    U64_C(0x391c0cb3c5c95a63), U64_C(0x4ed8aa4ae3418acb),
+    U64_C(0x5b9cca4f7763e373), U64_C(0x682e6ff3d6b2b8a3),
+    U64_C(0x748f82ee5defb2fc), U64_C(0x78a5636f43172f60),
+    U64_C(0x84c87814a1f0ab72), U64_C(0x8cc702081a6439ec),
+    U64_C(0x90befffa23631e28), U64_C(0xa4506cebde82bde9),
+    U64_C(0xbef9a3f7b2c67915), U64_C(0xc67178f2e372532b),
+    U64_C(0xca273eceea26619c), U64_C(0xd186b8c721c0c207),
+    U64_C(0xeada7dd6cde0eb1e), U64_C(0xf57d4f7fee6ed178),
+    U64_C(0x06f067aa72176fba), U64_C(0x0a637dc5a2c898a6),
+    U64_C(0x113f9804bef90dae), U64_C(0x1b710b35131c471b),
+    U64_C(0x28db77f523047d84), U64_C(0x32caab7b40c72493),
+    U64_C(0x3c9ebe0a15c9bebc), U64_C(0x431d67c49c100d4c),
+    U64_C(0x4cc5d4becb3e42b6), U64_C(0x597f299cfc657e2a),
+    U64_C(0x5fcb6fab3ad6faec), U64_C(0x6c44198c4a475817)
+  };
+
 /****************
  * Transform the message W which consists of 16 64-bit-words
  */
 static void
-transform (SHA512_CONTEXT *hd, const unsigned char *data)
+__transform (SHA512_CONTEXT *hd, const unsigned char *data)
 {
   u64 a, b, c, d, e, f, g, h;
   u64 w[16];
   int t;
-  static const u64 k[] =
-    {
-      U64_C(0x428a2f98d728ae22), U64_C(0x7137449123ef65cd),
-      U64_C(0xb5c0fbcfec4d3b2f), U64_C(0xe9b5dba58189dbbc),
-      U64_C(0x3956c25bf348b538), U64_C(0x59f111f1b605d019),
-      U64_C(0x923f82a4af194f9b), U64_C(0xab1c5ed5da6d8118),
-      U64_C(0xd807aa98a3030242), U64_C(0x12835b0145706fbe),
-      U64_C(0x243185be4ee4b28c), U64_C(0x550c7dc3d5ffb4e2),
-      U64_C(0x72be5d74f27b896f), U64_C(0x80deb1fe3b1696b1),
-      U64_C(0x9bdc06a725c71235), U64_C(0xc19bf174cf692694),
-      U64_C(0xe49b69c19ef14ad2), U64_C(0xefbe4786384f25e3),
-      U64_C(0x0fc19dc68b8cd5b5), U64_C(0x240ca1cc77ac9c65),
-      U64_C(0x2de92c6f592b0275), U64_C(0x4a7484aa6ea6e483),
-      U64_C(0x5cb0a9dcbd41fbd4), U64_C(0x76f988da831153b5),
-      U64_C(0x983e5152ee66dfab), U64_C(0xa831c66d2db43210),
-      U64_C(0xb00327c898fb213f), U64_C(0xbf597fc7beef0ee4),
-      U64_C(0xc6e00bf33da88fc2), U64_C(0xd5a79147930aa725),
-      U64_C(0x06ca6351e003826f), U64_C(0x142929670a0e6e70),
-      U64_C(0x27b70a8546d22ffc), U64_C(0x2e1b21385c26c926),
-      U64_C(0x4d2c6dfc5ac42aed), U64_C(0x53380d139d95b3df),
-      U64_C(0x650a73548baf63de), U64_C(0x766a0abb3c77b2a8),
-      U64_C(0x81c2c92e47edaee6), U64_C(0x92722c851482353b),
-      U64_C(0xa2bfe8a14cf10364), U64_C(0xa81a664bbc423001),
-      U64_C(0xc24b8b70d0f89791), U64_C(0xc76c51a30654be30),
-      U64_C(0xd192e819d6ef5218), U64_C(0xd69906245565a910),
-      U64_C(0xf40e35855771202a), U64_C(0x106aa07032bbd1b8),
-      U64_C(0x19a4c116b8d2d0c8), U64_C(0x1e376c085141ab53),
-      U64_C(0x2748774cdf8eeb99), U64_C(0x34b0bcb5e19b48a8),
-      U64_C(0x391c0cb3c5c95a63), U64_C(0x4ed8aa4ae3418acb),
-      U64_C(0x5b9cca4f7763e373), U64_C(0x682e6ff3d6b2b8a3),
-      U64_C(0x748f82ee5defb2fc), U64_C(0x78a5636f43172f60),
-      U64_C(0x84c87814a1f0ab72), U64_C(0x8cc702081a6439ec),
-      U64_C(0x90befffa23631e28), U64_C(0xa4506cebde82bde9),
-      U64_C(0xbef9a3f7b2c67915), U64_C(0xc67178f2e372532b),
-      U64_C(0xca273eceea26619c), U64_C(0xd186b8c721c0c207),
-      U64_C(0xeada7dd6cde0eb1e), U64_C(0xf57d4f7fee6ed178),
-      U64_C(0x06f067aa72176fba), U64_C(0x0a637dc5a2c898a6),
-      U64_C(0x113f9804bef90dae), U64_C(0x1b710b35131c471b),
-      U64_C(0x28db77f523047d84), U64_C(0x32caab7b40c72493),
-      U64_C(0x3c9ebe0a15c9bebc), U64_C(0x431d67c49c100d4c),
-      U64_C(0x4cc5d4becb3e42b6), U64_C(0x597f299cfc657e2a),
-      U64_C(0x5fcb6fab3ad6faec), U64_C(0x6c44198c4a475817)
-    };
 
   /* get values from the chaining vars */
   a = hd->h0;
@@ -455,6 +476,33 @@ transform (SHA512_CONTEXT *hd, const unsigned char *data)
 }
 
 
+#ifdef USE_ARM_NEON_ASM
+void _gcry_sha512_transform_armv7_neon (SHA512_CONTEXT *hd,
+					const unsigned char *data,
+					const u64 k[]);
+#endif
+
+
+static unsigned int
+transform (SHA512_CONTEXT *hd, const unsigned char *data)
+{
+#ifdef USE_ARM_NEON_ASM
+  if (hd->use_neon)
+    {
+      _gcry_sha512_transform_armv7_neon(hd, data, k);
+
+      /* return stack burn depth */
+      return (sizeof(void *) * 3);
+    }
+#endif
+
+  __transform (hd, data);
+
+  /* return stack burn depth */
+  return 256;
+}
+
+
 /* Update the message digest with the contents
  * of INBUF with length INLEN.
  */
@@ -463,11 +511,12 @@ sha512_write (void *context, const void *inbuf_arg, size_t inlen)
 {
   const unsigned char *inbuf = inbuf_arg;
   SHA512_CONTEXT *hd = context;
+  unsigned int stack_burn_depth = 0;
 
   if (hd->count == 128)
     {				/* flush the buffer */
-      transform (hd, hd->buf);
-      _gcry_burn_stack (256);
+      stack_burn_depth = transform (hd, hd->buf);
+      _gcry_burn_stack (stack_burn_depth);
       hd->count = 0;
       hd->nblocks++;
     }
@@ -484,13 +533,13 @@ sha512_write (void *context, const void *inbuf_arg, size_t inlen)
 
   while (inlen >= 128)
     {
-      transform (hd, inbuf);
+      stack_burn_depth = transform (hd, inbuf);
       hd->count = 0;
       hd->nblocks++;
       inlen -= 128;
       inbuf += 128;
     }
-  _gcry_burn_stack (256);
+  _gcry_burn_stack (stack_burn_depth);
   for (; inlen && hd->count < 128; inlen--)
     hd->buf[hd->count++] = *inbuf++;
 }
@@ -508,6 +557,7 @@ static void
 sha512_final (void *context)
 {
   SHA512_CONTEXT *hd = context;
+  unsigned int stack_burn_depth;
   u64 t, msb, lsb;
   byte *p;
 
@@ -559,8 +609,8 @@ sha512_final (void *context)
   hd->buf[125] = lsb >> 16;
   hd->buf[126] = lsb >> 8;
   hd->buf[127] = lsb;
-  transform (hd, hd->buf);
-  _gcry_burn_stack (256);
+  stack_burn_depth = transform (hd, hd->buf);
+  _gcry_burn_stack (stack_burn_depth);
 
   p = hd->buf;
 #ifdef WORDS_BIGENDIAN
