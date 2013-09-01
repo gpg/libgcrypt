@@ -314,9 +314,6 @@ _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
           int avx2_burn_stack_depth = 32 * CAMELLIA_BLOCK_SIZE + 16 +
                                         2 * sizeof(void *);
 
-          /* clear AVX registers */
-          asm volatile ("vzeroall;\n":::);
-
           if (burn_stack_depth < avx2_burn_stack_depth)
             burn_stack_depth = avx2_burn_stack_depth;
         }
@@ -408,9 +405,6 @@ _gcry_camellia_cbc_dec(void *context, unsigned char *iv,
           int avx2_burn_stack_depth = 32 * CAMELLIA_BLOCK_SIZE + 16 +
                                         2 * sizeof(void *);
 
-          /* clear AVX registers */
-          asm volatile ("vzeroall;\n":::);
-
           if (burn_stack_depth < avx2_burn_stack_depth)
             burn_stack_depth = avx2_burn_stack_depth;
         }
@@ -495,9 +489,6 @@ _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
         {
           int avx2_burn_stack_depth = 32 * CAMELLIA_BLOCK_SIZE + 16 +
                                         2 * sizeof(void *);
-
-          /* clear AVX registers */
-          asm volatile ("vzeroall;\n":::);
 
           if (burn_stack_depth < avx2_burn_stack_depth)
             burn_stack_depth = avx2_burn_stack_depth;

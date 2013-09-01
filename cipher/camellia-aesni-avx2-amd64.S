@@ -1104,6 +1104,8 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 		     %ymm15, %ymm14, %ymm13, %ymm12, %ymm11, %ymm10, %ymm9,
 		     %ymm8, %rsi);
 
+	vzeroall;
+
 	ret;
 .size _gcry_camellia_aesni_avx2_ctr_enc,.-_gcry_camellia_aesni_avx2_ctr_enc;
 
@@ -1118,6 +1120,8 @@ _gcry_camellia_aesni_avx2_cbc_dec:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv
 	 */
+
+	vzeroupper;
 
 	movq %rcx, %r9;
 
@@ -1171,6 +1175,8 @@ _gcry_camellia_aesni_avx2_cbc_dec:
 	movq %rax, (0)(%r9);
 	movq %rcx, (8)(%r9);
 
+	vzeroall;
+
 	ret;
 .size _gcry_camellia_aesni_avx2_cbc_dec,.-_gcry_camellia_aesni_avx2_cbc_dec;
 
@@ -1185,6 +1191,8 @@ _gcry_camellia_aesni_avx2_cfb_dec:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv
 	 */
+
+	vzeroupper;
 
 	movq %rsp, %r10;
 	subq $(16 * 32), %rsp;
@@ -1239,6 +1247,8 @@ _gcry_camellia_aesni_avx2_cfb_dec:
 	write_output(%ymm7, %ymm6, %ymm5, %ymm4, %ymm3, %ymm2, %ymm1, %ymm0,
 		     %ymm15, %ymm14, %ymm13, %ymm12, %ymm11, %ymm10, %ymm9,
 		     %ymm8, %rsi);
+
+	vzeroall;
 
 	ret;
 .size _gcry_camellia_aesni_avx2_cfb_dec,.-_gcry_camellia_aesni_avx2_cfb_dec;
