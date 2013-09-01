@@ -845,9 +845,6 @@ _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
 
       if (did_use_avx2)
         {
-          /* clear avx2 registers used by serpent-sse2 */
-          asm volatile ("vzeroall;\n":::);
-
           /* serpent-avx2 assembly code does not use stack */
           if (nblocks == 0)
             burn_stack_depth = 0;
@@ -937,9 +934,6 @@ _gcry_serpent_cbc_dec(void *context, unsigned char *iv,
 
       if (did_use_avx2)
         {
-          /* clear avx2 registers used by serpent-sse2 */
-          asm volatile ("vzeroall;\n":::);
-
           /* serpent-avx2 assembly code does not use stack */
           if (nblocks == 0)
             burn_stack_depth = 0;
@@ -1023,9 +1017,6 @@ _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
 
       if (did_use_avx2)
         {
-          /* clear avx2 registers used by serpent-sse2 */
-          asm volatile ("vzeroall;\n":::);
-
           /* serpent-avx2 assembly code does not use stack */
           if (nblocks == 0)
             burn_stack_depth = 0;

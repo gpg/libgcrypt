@@ -730,7 +730,7 @@ _gcry_serpent_avx2_ctr_enc:
 	vmovdqu RB2, (6 * 32)(%rsi);
 	vmovdqu RB3, (7 * 32)(%rsi);
 
-	vzeroupper;
+	vzeroall;
 
 	ret
 .size _gcry_serpent_avx2_ctr_enc,.-_gcry_serpent_avx2_ctr_enc;
@@ -799,7 +799,7 @@ _gcry_serpent_avx2_cbc_dec:
 	vmovdqu RB2, (6 * 32)(%rsi);
 	vmovdqu RB3, (7 * 32)(%rsi);
 
-	vzeroupper;
+	vzeroall;
 
 	ret
 .size _gcry_serpent_avx2_cbc_dec,.-_gcry_serpent_avx2_cbc_dec;
@@ -870,7 +870,7 @@ _gcry_serpent_avx2_cfb_dec:
 	vmovdqu RB2, (6 * 32)(%rsi);
 	vmovdqu RB3, (7 * 32)(%rsi);
 
-	vzeroupper;
+	vzeroall;
 
 	ret
 .size _gcry_serpent_avx2_cfb_dec,.-_gcry_serpent_avx2_cfb_dec;
