@@ -958,6 +958,8 @@ _gcry_camellia_aesni_avx_ctr_enc:
 	 *	%rcx: iv (big endian, 128bit)
 	 */
 
+	vzeroupper;
+
 	subq $(16 * 16), %rsp;
 	movq %rsp, %rax;
 
@@ -1054,6 +1056,8 @@ _gcry_camellia_aesni_avx_ctr_enc:
 		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
 		     %xmm8, %rsi);
 
+	vzeroall;
+
 	ret;
 .size _gcry_camellia_aesni_avx_ctr_enc,.-_gcry_camellia_aesni_avx_ctr_enc;
 
@@ -1068,6 +1072,8 @@ _gcry_camellia_aesni_avx_cbc_dec:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv
 	 */
+
+	vzeroupper;
 
 	movq %rcx, %r9;
 
@@ -1114,6 +1120,8 @@ _gcry_camellia_aesni_avx_cbc_dec:
 	movq %r10, (0)(%r9);
 	movq %r11, (8)(%r9);
 
+	vzeroall;
+
 	ret;
 .size _gcry_camellia_aesni_avx_cbc_dec,.-_gcry_camellia_aesni_avx_cbc_dec;
 
@@ -1128,6 +1136,8 @@ _gcry_camellia_aesni_avx_cfb_dec:
 	 *	%rdx: src (16 blocks)
 	 *	%rcx: iv
 	 */
+
+	vzeroupper;
 
 	subq $(16 * 16), %rsp;
 	movq %rsp, %rax;
@@ -1178,6 +1188,8 @@ _gcry_camellia_aesni_avx_cfb_dec:
 	write_output(%xmm7, %xmm6, %xmm5, %xmm4, %xmm3, %xmm2, %xmm1, %xmm0,
 		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
 		     %xmm8, %rsi);
+
+	vzeroall;
 
 	ret;
 .size _gcry_camellia_aesni_avx_cfb_dec,.-_gcry_camellia_aesni_avx_cfb_dec;
