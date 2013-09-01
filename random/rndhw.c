@@ -69,7 +69,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
   nbytes = 0;
   while (nbytes < 64)
     {
-#ifdef __x86_64__
+#if defined(__x86_64__) && defined(__LP64__)
       asm volatile
         ("movq %1, %%rdi\n\t"         /* Set buffer.  */
          "xorq %%rdx, %%rdx\n\t"      /* Request up to 8 bytes.  */
@@ -123,7 +123,7 @@ poll_padlock (void (*add)(const void*, size_t, enum random_origins),
 #ifdef USE_DRNG
 # define RDRAND_RETRY_LOOPS	10
 # define RDRAND_INT	".byte 0x0f,0xc7,0xf0"
-# ifdef __x86_64__
+# if defined(__x86_64__) && defined(__LP64__)
 #  define RDRAND_LONG	".byte 0x48,0x0f,0xc7,0xf0"
 # else
 #  define RDRAND_LONG	RDRAND_INT
