@@ -1583,6 +1583,11 @@ This is the Salsa20 stream cipher.
 @cindex Salsa20/12
 This is the Salsa20/12 - reduced round version of Salsa20 stream cipher.
 
+@item GCRY_CIPHER_GOST28147
+@cindex GOST 28147-89
+The GOST 28147-89 cipher, defined in the respective GOST standard.
+Translation of this GOST into English is provided in the RFC-5830.
+
 @end table
 
 @node Available cipher modes

@@ -2379,6 +2379,9 @@ check_ciphers (void)
 #if USE_IDEA
     GCRY_CIPHER_IDEA,
 #endif
+#if USE_GOST28147
+    GCRY_CIPHER_GOST28147,
+#endif
     0
   };
   static int algos2[] = {

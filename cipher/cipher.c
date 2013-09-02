@@ -110,6 +110,10 @@ static struct cipher_table_entry
     { &_gcry_cipher_spec_salsa20r12,
       &_gcry_cipher_extraspec_salsa20,    GCRY_CIPHER_SALSA20R12 },
 #endif
+#if USE_GOST28147
+    { &_gcry_cipher_spec_gost28147,
+      &dummy_extra_spec,                  GCRY_CIPHER_GOST28147 },
+#endif
     { NULL                    }
   };
 
