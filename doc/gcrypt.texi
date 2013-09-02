@@ -1960,7 +1960,7 @@ with contexts as most of the other building blocks of Libgcrypt do.
 @noindent
 The following information are stored in S-expressions:
 
-@itemize @asis
+@itemize
 @item keys
 
 @item plain text data
