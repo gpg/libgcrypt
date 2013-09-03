@@ -272,6 +272,18 @@ void _gcry_mpi_get_point (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
 void _gcry_mpi_snatch_point (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
                              mpi_point_t point);
 
+/* Models describing an elliptic curve.  */
+enum gcry_mpi_ec_models
+  {
+
+    MPI_EC_WEIERSTRASS = 0,
+    MPI_EC_MONTGOMERY,
+    MPI_EC_TWISTEDEDWARDS
+    /* The equation for Twisted Edwards curves is
+          ax^2 + y^2 = 1 + bx^2y^2
+       Note that we use 'b' instead of the commonly used 'd'.  */
+  };
+
 /* Context used with elliptic curve functions.  */
 struct mpi_ec_ctx_s;
 typedef struct mpi_ec_ctx_s *mpi_ec_t;

@@ -23,9 +23,11 @@
 /* Definition of a curve.  */
 typedef struct
 {
+  enum gcry_mpi_ec_models model;/* The model descrinbing this curve.  */
   gcry_mpi_t p;         /* Prime specifying the field GF(p).  */
   gcry_mpi_t a;         /* First coefficient of the Weierstrass equation.  */
-  gcry_mpi_t b;         /* Second coefficient of the Weierstrass equation.  */
+  gcry_mpi_t b;         /* Second coefficient of the Weierstrass equation.
+                           or d as used by Twisted Edwards curves.  */
   mpi_point_struct G;   /* Base point (generator).  */
   gcry_mpi_t n;         /* Order of G.  */
   const char *name;     /* Name of the curve or NULL.  */
@@ -73,6 +75,7 @@ gcry_sexp_t     _gcry_ecc_get_param_sexp (const char *name);
 /*-- ecc-misc.c --*/
 void _gcry_ecc_curve_free (elliptic_curve_t *E);
 elliptic_curve_t _gcry_ecc_curve_copy (elliptic_curve_t E);
+const char *_gcry_ecc_model2str (enum gcry_mpi_ec_models model);
 gcry_mpi_t   _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p);
 gcry_error_t _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value);
 

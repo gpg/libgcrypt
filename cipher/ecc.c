@@ -108,8 +108,8 @@ _gcry_register_pk_ecc_progress (void (*cb) (void *, const char *,
 
 
 
-/****************
- * Solve the right side of the equation that defines a curve.
+/*
+ * Solve the right side of the Weierstrass equation.
  */
 static gcry_mpi_t
 gen_y_2 (gcry_mpi_t x, elliptic_curve_t *base)
@@ -158,6 +158,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
 
   if (DBG_CIPHER)
     {
+      log_debug ("ecgen curve model: %s\n", _gcry_ecc_model2str (E.model));
       log_mpidump ("ecgen curve  p", E.p);
       log_mpidump ("ecgen curve  a", E.a);
       log_mpidump ("ecgen curve  b", E.b);
@@ -166,7 +167,7 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
       log_mpidump ("ecgen curve Gy", E.G.y);
       log_mpidump ("ecgen curve Gz", E.G.z);
       if (E.name)
-        log_debug   ("ecgen curve used: %s\n", E.name);
+        log_debug ("ecgen curve used: %s\n", E.name);
     }
 
   random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
@@ -696,6 +697,7 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
 
   if (DBG_CIPHER)
     {
+      log_debug ("ecgen result model: %s\n", _gcry_ecc_model2str (sk.E.model));
       log_mpidump ("ecgen result p", skey[0]);
       log_mpidump ("ecgen result a", skey[1]);
       log_mpidump ("ecgen result b", skey[2]);

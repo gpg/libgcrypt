@@ -18,9 +18,10 @@
 
 ## Process this file with automake to produce Makefile.in
 
-TESTS = version t-convert t-mpi-bit t-mpi-point prime basic \
-        mpitests tsexp keygen pubkey hmac keygrip fips186-dsa aeswrap \
-	curves t-kdf pkcs1v2 random dsa-rfc6979
+TESTS = version mpitests tsexp t-convert \
+	t-mpi-bit t-mpi-point curves \
+	prime basic keygen pubkey hmac t-kdf keygrip \
+	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979
 
 
 # The last test to run.

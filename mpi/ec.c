@@ -684,9 +684,9 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
 
 
 
-/*  RESULT = 2 * POINT  */
-void
-_gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
+/*  RESULT = 2 * POINT  (Weierstrass version). */
+static void
+dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 {
 #define x3 (result->x)
 #define y3 (result->y)
@@ -767,12 +767,48 @@ _gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 }
 
 
+/*  RESULT = 2 * POINT  (Montgomery version). */
+static void
+dup_point_montgomery (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
+{
+  log_fatal ("%s: %s not yet supported\n",
+             "_gcry_mpi_ec_dup_point", "Montgomery");
+}
 
-/* RESULT = P1 + P2 */
+
+/*  RESULT = 2 * POINT  (Twisted Edwards version). */
+static void
+dup_point_twistededwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
+{
+  log_fatal ("%s: %s not yet supported\n",
+             "_gcry_mpi_ec_dup_point", "Twisted Edwards");
+}
+
+
+/*  RESULT = 2 * POINT  */
 void
-_gcry_mpi_ec_add_points (mpi_point_t result,
-                         mpi_point_t p1, mpi_point_t p2,
-                         mpi_ec_t ctx)
+_gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
+{
+  switch (ctx->model)
+    {
+    case MPI_EC_WEIERSTRASS:
+      dup_point_weierstrass (result, point, ctx);
+      break;
+    case MPI_EC_MONTGOMERY:
+      dup_point_montgomery (result, point, ctx);
+      break;
+    case MPI_EC_TWISTEDEDWARDS:
+      dup_point_twistededwards (result, point, ctx);
+      break;
+    }
+}
+
+
+/* RESULT = P1 + P2  (Weierstrass version).*/
+static void
+add_points_weierstrass (mpi_point_t result,
+                        mpi_point_t p1, mpi_point_t p2,
+                        mpi_ec_t ctx)
 {
 #define x1 (p1->x    )
 #define y1 (p1->y    )
@@ -909,6 +945,48 @@ _gcry_mpi_ec_add_points (mpi_point_t result,
 #undef t2
 }
 
+
+/* RESULT = P1 + P2  (Montgomery version).*/
+static void
+add_points_montgomery (mpi_point_t result,
+                       mpi_point_t p1, mpi_point_t p2,
+                       mpi_ec_t ctx)
+{
+  log_fatal ("%s: %s not yet supported\n",
+             "_gcry_mpi_ec_add_points", "Montgomery");
+}
+
+
+/* RESULT = P1 + P2  (Twisted Edwards version).*/
+static void
+add_points_twistededwards (mpi_point_t result,
+                           mpi_point_t p1, mpi_point_t p2,
+                           mpi_ec_t ctx)
+{
+  log_fatal ("%s: %s not yet supported\n",
+             "_gcry_mpi_ec_add_points", "Twisted Edwards");
+}
+
+
+/* RESULT = P1 + P2 */
+void
+_gcry_mpi_ec_add_points (mpi_point_t result,
+                         mpi_point_t p1, mpi_point_t p2,
+                         mpi_ec_t ctx)
+{
+  switch (ctx->model)
+    {
+    case MPI_EC_WEIERSTRASS:
+      add_points_weierstrass (result, p1, p2, ctx);
+      break;
+    case MPI_EC_MONTGOMERY:
+      add_points_montgomery (result, p1, p2, ctx);
+      break;
+    case MPI_EC_TWISTEDEDWARDS:
+      add_points_twistededwards (result, p1, p2, ctx);
+      break;
+    }
+}
 
 
 /* Scalar point multiplication - the main function for ECC.  If takes

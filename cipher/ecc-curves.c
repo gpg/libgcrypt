@@ -77,8 +77,12 @@ typedef struct
   const char *desc;           /* Description of the curve.  */
   unsigned int nbits;         /* Number of bits.  */
   unsigned int fips:1;        /* True if this is a FIPS140-2 approved curve. */
+
+  enum gcry_mpi_ec_models model;/* The model describing this curve.  */
+
   const char *p;              /* Order of the prime field.  */
-  const char *a, *b;          /* The coefficients. */
+  const char *a, *b;          /* The coefficients.  For Twisted Edwards
+                                 Curves b is used for d.  */
   const char *n;              /* The order of the base point.  */
   const char *g_x, *g_y;      /* Base point.  */
 } ecc_domain_parms_t;
@@ -89,6 +93,7 @@ static const ecc_domain_parms_t domain_parms[] =
   {
     {
       "NIST P-192", 192, 1,
+      MPI_EC_WEIERSTRASS,
       "0xfffffffffffffffffffffffffffffffeffffffffffffffff",
       "0xfffffffffffffffffffffffffffffffefffffffffffffffc",
       "0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1",
@@ -99,6 +104,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
     {
       "NIST P-224", 224, 1,
+      MPI_EC_WEIERSTRASS,
       "0xffffffffffffffffffffffffffffffff000000000000000000000001",
       "0xfffffffffffffffffffffffffffffffefffffffffffffffffffffffe",
       "0xb4050a850c04b3abf54132565044b0b7d7bfd8ba270b39432355ffb4",
@@ -109,6 +115,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
     {
       "NIST P-256", 256, 1,
+      MPI_EC_WEIERSTRASS,
       "0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
       "0xffffffff00000001000000000000000000000000fffffffffffffffffffffffc",
       "0x5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b",
@@ -119,6 +126,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
     {
       "NIST P-384", 384, 1,
+      MPI_EC_WEIERSTRASS,
       "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
       "ffffffff0000000000000000ffffffff",
       "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
@@ -135,6 +143,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
     {
       "NIST P-521", 521, 1,
+      MPI_EC_WEIERSTRASS,
       "0x01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "0x01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -151,6 +160,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
 
     { "brainpoolP160r1", 160, 0,
+      MPI_EC_WEIERSTRASS,
       "0xe95e4a5f737059dc60dfc7ad95b3d8139515620f",
       "0x340e7be2a280eb74e2be61bada745d97e8f7c300",
       "0x1e589a8595423412134faa2dbdec95c8d8675e58",
@@ -160,6 +170,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
 
     { "brainpoolP192r1", 192, 0,
+      MPI_EC_WEIERSTRASS,
       "0xc302f41d932a36cda7a3463093d18db78fce476de1a86297",
       "0x6a91174076b1e0e19c39c031fe8685c1cae040e5c69a28ef",
       "0x469a28ef7c28cca3dc721d044f4496bcca7ef4146fbf25c9",
@@ -169,6 +180,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
 
     { "brainpoolP224r1", 224, 0,
+      MPI_EC_WEIERSTRASS,
       "0xd7c134aa264366862a18302575d1d787b09f075797da89f57ec8c0ff",
       "0x68a5e62ca9ce6c1c299803a6c1530b514e182ad8b0042a59cad29f43",
       "0x2580f63ccfe44138870713b1a92369e33e2135d266dbb372386c400b",
@@ -178,6 +190,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
 
     { "brainpoolP256r1", 256, 0,
+      MPI_EC_WEIERSTRASS,
       "0xa9fb57dba1eea9bc3e660a909d838d726e3bf623d52620282013481d1f6e5377",
       "0x7d5a0975fc2c3057eef67530417affe7fb8055c126dc5c6ce94a4b44f330b5d9",
       "0x26dc5c6ce94a4b44f330b5d9bbd77cbf958416295cf7e1ce6bccdc18ff8c07b6",
@@ -187,6 +200,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
 
     { "brainpoolP320r1", 320, 0,
+      MPI_EC_WEIERSTRASS,
       "0xd35e472036bc4fb7e13c785ed201e065f98fcfa6f6f40def4f92b9ec7893ec28"
       "fcd412b1f1b32e27",
       "0x3ee30b568fbab0f883ccebd46d3f3bb8a2a73513f5eb79da66190eb085ffa9f4"
@@ -202,6 +216,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
 
     { "brainpoolP384r1", 384, 0,
+      MPI_EC_WEIERSTRASS,
       "0x8cb91e82a3386d280f5d6f7e50e641df152f7109ed5456b412b1da197fb71123"
       "acd3a729901d1a71874700133107ec53",
       "0x7bc382c63d8c150c3c72080ace05afa0c2bea28e4fb22787139165efba91f90f"
@@ -217,6 +232,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
 
     { "brainpoolP512r1", 512, 0,
+      MPI_EC_WEIERSTRASS,
       "0xaadd9db8dbe9c48b3fd4e6ae33c9fc07cb308db3b3c9d20ed6639cca70330871"
       "7d4d9b009bc66842aecda12ae6a380e62881ff2f2d82c68528aa6056583a48f3",
       "0x7830a3318b603b89e2327145ac234cc594cbdd8d3df91610a83441caea9863bc"
@@ -231,7 +247,7 @@ static const ecc_domain_parms_t domain_parms[] =
       "b2dcde494a5f485e5bca4bd88a2763aed1ca2b2fa8f0540678cd1e0f3ad80892"
     },
 
-    { NULL, 0, 0, NULL, NULL, NULL, NULL }
+    { NULL, 0, 0, 0, NULL, NULL, NULL, NULL }
   };
 
 
@@ -302,10 +318,23 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
      possible to bypass this check by specifying the curve parameters
      directly.  */
   if (fips_mode () && !domain_parms[idx].fips )
+
     return GPG_ERR_NOT_SUPPORTED;
+
+  switch (domain_parms[idx].model)
+    {
+    case MPI_EC_WEIERSTRASS:
+      break;
+    case MPI_EC_TWISTEDEDWARDS:
+    case MPI_EC_MONTGOMERY:
+      return GPG_ERR_NOT_SUPPORTED;
+    default:
+      return GPG_ERR_BUG;
+    }
 
   if (r_nbits)
     *r_nbits = domain_parms[idx].nbits;
+
   curve->p = scanval (domain_parms[idx].p);
   curve->a = scanval (domain_parms[idx].a);
   curve->b = scanval (domain_parms[idx].b);
@@ -319,7 +348,8 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
 }
 
 
-/* Return the name matching the parameters in PKEY.  */
+/* Return the name matching the parameters in PKEY.  This works only
+   with curves described by the Weierstrass equation. */
 const char *
 _gcry_ecc_get_curve (gcry_mpi_t *pkey, int iterator, unsigned int *r_nbits)
 {
@@ -347,6 +377,7 @@ _gcry_ecc_get_curve (gcry_mpi_t *pkey, int iterator, unsigned int *r_nbits)
   if (!pkey[0] || !pkey[1] || !pkey[2] || !pkey[3] || !pkey[4])
     return NULL;
 
+  E.model = MPI_EC_WEIERSTRASS;
   E.p = pkey[0];
   E.a = pkey[1];
   E.b = pkey[2];
@@ -505,7 +536,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
 
 /* This function creates a new context for elliptic curve operations.
    Either KEYPARAM or CURVENAME must be given.  If both are given and
-   KEYPARAM has no curve parameter CURVENAME is used to add missing
+   KEYPARAM has no curve parameter, CURVENAME is used to add missing
    parameters.  On success 0 is returned and the new context stored at
    R_CTX.  On error NULL is stored at R_CTX and an error code is
    returned.  The context needs to be released using
