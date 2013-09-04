@@ -1054,21 +1054,21 @@ do_tripledes_set_extra_info (void *context, int what,
 }
 
 
-static void
+static unsigned int
 do_tripledes_encrypt( void *context, byte *outbuf, const byte *inbuf )
 {
   struct _tripledes_ctx *ctx = (struct _tripledes_ctx *) context;
 
   tripledes_ecb_encrypt ( ctx, inbuf, outbuf );
-  _gcry_burn_stack (32);
+  return /*burn_stack*/ (32);
 }
 
-static void
+static unsigned int
 do_tripledes_decrypt( void *context, byte *outbuf, const byte *inbuf )
 {
   struct _tripledes_ctx *ctx = (struct _tripledes_ctx *) context;
   tripledes_ecb_decrypt ( ctx, inbuf, outbuf );
-  _gcry_burn_stack (32);
+  return /*burn_stack*/ (32);
 }
 
 static gcry_err_code_t
@@ -1091,22 +1091,22 @@ do_des_setkey (void *context, const byte *key, unsigned keylen)
 }
 
 
-static void
+static unsigned int
 do_des_encrypt( void *context, byte *outbuf, const byte *inbuf )
 {
   struct _des_ctx *ctx = (struct _des_ctx *) context;
 
   des_ecb_encrypt ( ctx, inbuf, outbuf );
-  _gcry_burn_stack (32);
+  return /*burn_stack*/ (32);
 }
 
-static void
+static unsigned int
 do_des_decrypt( void *context, byte *outbuf, const byte *inbuf )
 {
   struct _des_ctx *ctx = (struct _des_ctx *) context;
 
   des_ecb_decrypt ( ctx, inbuf, outbuf );
-  _gcry_burn_stack (32);
+  return /*burn_stack*/ (32);
 }
 
 

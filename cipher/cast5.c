@@ -71,8 +71,8 @@ typedef struct {
 } CAST5_context;
 
 static gcry_err_code_t cast_setkey (void *c, const byte *key, unsigned keylen);
-static void encrypt_block (void *c, byte *outbuf, const byte *inbuf);
-static void decrypt_block (void *c, byte *outbuf, const byte *inbuf);
+static unsigned int encrypt_block (void *c, byte *outbuf, const byte *inbuf);
+static unsigned int decrypt_block (void *c, byte *outbuf, const byte *inbuf);
 
 
 
@@ -383,18 +383,20 @@ do_decrypt_block (CAST5_context *context, byte *outbuf, const byte *inbuf)
   _gcry_cast5_amd64_decrypt_block (context, outbuf, inbuf);
 }
 
-static void encrypt_block (void *context , byte *outbuf, const byte *inbuf)
+static unsigned int
+encrypt_block (void *context , byte *outbuf, const byte *inbuf)
 {
   CAST5_context *c = (CAST5_context *) context;
   do_encrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (2*8);
+  return /*burn_stack*/ (2*8);
 }
 
-static void decrypt_block (void *context, byte *outbuf, const byte *inbuf)
+static unsigned int
+decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
   CAST5_context *c = (CAST5_context *) context;
   _gcry_cast5_amd64_decrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (2*8);
+  return /*burn_stack*/ (2*8);
 }
 
 #elif defined(USE_ARMV6_ASM)
@@ -428,18 +430,20 @@ do_decrypt_block (CAST5_context *context, byte *outbuf, const byte *inbuf)
   _gcry_cast5_armv6_decrypt_block (context, outbuf, inbuf);
 }
 
-static void encrypt_block (void *context , byte *outbuf, const byte *inbuf)
+static unsigned int
+encrypt_block (void *context , byte *outbuf, const byte *inbuf)
 {
   CAST5_context *c = (CAST5_context *) context;
   do_encrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (10*4);
+  return /*burn_stack*/ (10*4);
 }
 
-static void decrypt_block (void *context, byte *outbuf, const byte *inbuf)
+static unsigned int
+decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
   CAST5_context *c = (CAST5_context *) context;
   do_decrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (10*4);
+  return /*burn_stack*/ (10*4);
 }
 
 #else /*USE_ARMV6_ASM*/
@@ -519,12 +523,12 @@ do_encrypt_block( CAST5_context *c, byte *outbuf, const byte *inbuf )
     outbuf[7] =  l	  & 0xff;
 }
 
-static void
+static unsigned int
 encrypt_block (void *context , byte *outbuf, const byte *inbuf)
 {
   CAST5_context *c = (CAST5_context *) context;
   do_encrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (20+4*sizeof(void*));
+  return /*burn_stack*/ (20+4*sizeof(void*));
 }
 
 
@@ -569,12 +573,12 @@ do_decrypt_block (CAST5_context *c, byte *outbuf, const byte *inbuf )
     outbuf[7] =  l	  & 0xff;
 }
 
-static void
+static unsigned int
 decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
   CAST5_context *c = (CAST5_context *) context;
   do_decrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (20+4*sizeof(void*));
+  return /*burn_stack*/ (20+4*sizeof(void*));
 }
 
 #endif /*!USE_ARMV6_ASM*/

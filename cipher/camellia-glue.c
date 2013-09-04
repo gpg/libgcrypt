@@ -222,27 +222,27 @@ static void Camellia_DecryptBlock(const int keyBitLength,
 				     keyBitLength);
 }
 
-static void
+static unsigned int
 camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
 {
   CAMELLIA_context *ctx = c;
   Camellia_EncryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
 #define CAMELLIA_encrypt_stack_burn_size (15*4)
-  _gcry_burn_stack(CAMELLIA_encrypt_stack_burn_size);
+  return /*burn_stack*/ (CAMELLIA_encrypt_stack_burn_size);
 }
 
-static void
+static unsigned int
 camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
 {
   CAMELLIA_context *ctx=c;
   Camellia_DecryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
 #define CAMELLIA_decrypt_stack_burn_size (15*4)
-  _gcry_burn_stack(CAMELLIA_decrypt_stack_burn_size);
+  return /*burn_stack*/ (CAMELLIA_decrypt_stack_burn_size);
 }
 
 #else /*USE_ARMV6_ASM*/
 
-static void
+static unsigned int
 camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
 {
   CAMELLIA_context *ctx=c;
@@ -256,10 +256,10 @@ camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
      +2*2*sizeof(void*) /* Function calls.  */ \
     )
 
-  _gcry_burn_stack(CAMELLIA_encrypt_stack_burn_size);
+  return /*burn_stack*/ (CAMELLIA_encrypt_stack_burn_size);
 }
 
-static void
+static unsigned int
 camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
 {
   CAMELLIA_context *ctx=c;
@@ -273,7 +273,7 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
      +2*2*sizeof(void*) /* Function calls.  */ \
     )
 
-  _gcry_burn_stack(CAMELLIA_decrypt_stack_burn_size);
+  return /*burn_stack*/ (CAMELLIA_decrypt_stack_burn_size);
 }
 
 #endif /*!USE_ARMV6_ASM*/

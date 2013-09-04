@@ -792,22 +792,22 @@ serpent_decrypt_internal (serpent_context_t *context,
   memcpy (output, b_next, sizeof (b_next));
 }
 
-static void
+static unsigned int
 serpent_encrypt (void *ctx, byte *buffer_out, const byte *buffer_in)
 {
   serpent_context_t *context = ctx;
 
   serpent_encrypt_internal (context, buffer_in, buffer_out);
-  _gcry_burn_stack (2 * sizeof (serpent_block_t));
+  return /*burn_stack*/ (2 * sizeof (serpent_block_t));
 }
 
-static void
+static unsigned int
 serpent_decrypt (void *ctx, byte *buffer_out, const byte *buffer_in)
 {
   serpent_context_t *context = ctx;
 
   serpent_decrypt_internal (context, buffer_in, buffer_out);
-  _gcry_burn_stack (2 * sizeof (serpent_block_t));
+  return /*burn_stack*/ (2 * sizeof (serpent_block_t));
 }
 
 

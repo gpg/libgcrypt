@@ -38,6 +38,7 @@ _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
 {
   unsigned char *ivp;
   size_t blocksize = c->cipher->blocksize;
+  unsigned int burn, nburn;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
@@ -51,6 +52,8 @@ _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
       c->unused -= inbuflen;
       return 0;
     }
+
+  burn = 0;
 
   if( c->unused )
     {
@@ -67,7 +70,8 @@ _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
     {
       /* Encrypt the IV (and save the current one). */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
       buf_xor(outbuf, c->u_iv.iv, inbuf, blocksize);
       outbuf += blocksize;
       inbuf += blocksize;
@@ -76,7 +80,8 @@ _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
   if ( inbuflen )
     { /* process the remaining bytes */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
       c->unused = blocksize;
       c->unused -= inbuflen;
       buf_xor(outbuf, c->u_iv.iv, inbuf, inbuflen);
@@ -84,6 +89,10 @@ _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
       inbuf += inbuflen;
       inbuflen = 0;
     }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
+
   return 0;
 }
 
@@ -95,6 +104,7 @@ _gcry_cipher_ofb_decrypt (gcry_cipher_hd_t c,
 {
   unsigned char *ivp;
   size_t blocksize = c->cipher->blocksize;
+  unsigned int burn, nburn;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
@@ -107,6 +117,8 @@ _gcry_cipher_ofb_decrypt (gcry_cipher_hd_t c,
       c->unused -= inbuflen;
       return 0;
     }
+
+  burn = 0;
 
   if ( c->unused )
     {
@@ -123,7 +135,8 @@ _gcry_cipher_ofb_decrypt (gcry_cipher_hd_t c,
     {
       /* Encrypt the IV (and save the current one). */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
       buf_xor(outbuf, c->u_iv.iv, inbuf, blocksize);
       outbuf += blocksize;
       inbuf += blocksize;
@@ -133,7 +146,8 @@ _gcry_cipher_ofb_decrypt (gcry_cipher_hd_t c,
     { /* Process the remaining bytes. */
       /* Encrypt the IV (and save the current one). */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
       c->unused = blocksize;
       c->unused -= inbuflen;
       buf_xor(outbuf, c->u_iv.iv, inbuf, inbuflen);
@@ -141,5 +155,9 @@ _gcry_cipher_ofb_decrypt (gcry_cipher_hd_t c,
       inbuf += inbuflen;
       inbuflen = 0;
     }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
+
   return 0;
 }

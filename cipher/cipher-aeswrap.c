@@ -42,6 +42,7 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
   unsigned int n, i;
   unsigned char *r, *a, *b;
   unsigned char t[8];
+  unsigned int burn, nburn;
 
 #if MAX_BLOCKSIZE < 8
 #error Invalid block size
@@ -63,6 +64,8 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
   /* We need at least two 64 bit blocks.  */
   if (n < 2)
     return GPG_ERR_INV_ARG;
+
+  burn = 0;
 
   r = outbuf;
   a = outbuf;  /* We store A directly in OUTBUF.  */
@@ -87,7 +90,8 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
           /* B := AES_k( A | R[i] ) */
           memcpy (b, a, 8);
           memcpy (b+8, r+i*8, 8);
-          c->cipher->encrypt (&c->context.c, b, b);
+          nburn = c->cipher->encrypt (&c->context.c, b, b);
+          burn = nburn > burn ? nburn : burn;
           /* t := t + 1  */
 	  for (x = 7; x >= 0; x--)
 	    {
@@ -101,6 +105,9 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
           memcpy (r+i*8, b+8, 8);
         }
    }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
 
   return 0;
 }
@@ -117,6 +124,7 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
   unsigned int n, i;
   unsigned char *r, *a, *b;
   unsigned char t[8];
+  unsigned int burn, nburn;
 
 #if MAX_BLOCKSIZE < 8
 #error Invalid block size
@@ -139,6 +147,8 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
   /* We need at least three 64 bit blocks.  */
   if (n < 3)
     return GPG_ERR_INV_ARG;
+
+  burn = 0;
 
   r = outbuf;
   a = c->lastiv;  /* We use c->LASTIV as buffer for A.  */
@@ -163,7 +173,8 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
           /* B := AES_k^1( (A ^ t)| R[i] ) */
 	  buf_xor(b, a, t, 8);
           memcpy (b+8, r+(i-1)*8, 8);
-          c->cipher->decrypt (&c->context.c, b, b);
+          nburn = c->cipher->decrypt (&c->context.c, b, b);
+          burn = nburn > burn ? nburn : burn;
           /* t := t - 1  */
 	  for (x = 7; x >= 0; x--)
 	    {
@@ -191,5 +202,9 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
             break;
           }
     }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
+
   return j? GPG_ERR_CHECKSUM : 0;
 }

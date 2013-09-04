@@ -136,6 +136,13 @@ do_encrypt (void *context, unsigned char *outbuf, const unsigned char *inbuf)
   outbuf[7] = word3 >> 8;
 }
 
+static unsigned int
+encrypt_block (void *context, unsigned char *outbuf, const unsigned char *inbuf)
+{
+  do_encrypt (context, outbuf, inbuf);
+  return /*burn_stack*/ (4 * sizeof(void *) + sizeof(void *) + sizeof(u32) * 4);
+}
+
 static void
 do_decrypt (void *context, unsigned char *outbuf, const unsigned char *inbuf)
 {
@@ -186,6 +193,13 @@ do_decrypt (void *context, unsigned char *outbuf, const unsigned char *inbuf)
   outbuf[5] = word2 >> 8;
   outbuf[6] = word3 & 255;
   outbuf[7] = word3 >> 8;
+}
+
+static unsigned int
+decrypt_block (void *context, unsigned char *outbuf, const unsigned char *inbuf)
+{
+  do_decrypt (context, outbuf, inbuf);
+  return /*burn_stack*/ (4 * sizeof(void *) + sizeof(void *) + sizeof(u32) * 4);
 }
 
 
@@ -340,5 +354,5 @@ static gcry_cipher_oid_spec_t oids_rfc2268_40[] =
 gcry_cipher_spec_t _gcry_cipher_spec_rfc2268_40 = {
   "RFC2268_40", NULL, oids_rfc2268_40,
   RFC2268_BLOCKSIZE, 40, sizeof(RFC2268_context),
-  do_setkey, do_encrypt, do_decrypt
+  do_setkey, encrypt_block, decrypt_block
 };

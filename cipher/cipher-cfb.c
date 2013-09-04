@@ -39,6 +39,7 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
   unsigned char *ivp;
   size_t blocksize = c->cipher->blocksize;
   size_t blocksize_x_2 = blocksize + blocksize;
+  unsigned int burn, nburn;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
@@ -52,6 +53,8 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
       c->unused -= inbuflen;
       return 0;
     }
+
+  burn = 0;
 
   if ( c->unused )
     {
@@ -80,7 +83,8 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
       while ( inbuflen >= blocksize_x_2 )
         {
           /* Encrypt the IV. */
-          c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+          nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+          burn = nburn > burn ? nburn : burn;
           /* XOR the input with the IV and store input into IV.  */
           buf_xor_2dst(outbuf, c->u_iv.iv, inbuf, blocksize);
           outbuf += blocksize;
@@ -93,7 +97,8 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
     {
       /* Save the current IV and then encrypt the IV. */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
       /* XOR the input with the IV and store input into IV */
       buf_xor_2dst(outbuf, c->u_iv.iv, inbuf, blocksize);
       outbuf += blocksize;
@@ -104,7 +109,8 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
     {
       /* Save the current IV and then encrypt the IV. */
       memcpy( c->lastiv, c->u_iv.iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
       c->unused = blocksize;
       /* Apply the XOR. */
       c->unused -= inbuflen;
@@ -113,6 +119,10 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
       inbuf += inbuflen;
       inbuflen = 0;
     }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
+
   return 0;
 }
 
@@ -125,6 +135,7 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
   unsigned char *ivp;
   size_t blocksize = c->cipher->blocksize;
   size_t blocksize_x_2 = blocksize + blocksize;
+  unsigned int burn, nburn;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
@@ -138,6 +149,8 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
       c->unused -= inbuflen;
       return 0;
     }
+
+  burn = 0;
 
   if (c->unused)
     {
@@ -166,7 +179,8 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
       while (inbuflen >= blocksize_x_2 )
         {
           /* Encrypt the IV. */
-          c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+          nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+          burn = nburn > burn ? nburn : burn;
           /* XOR the input with the IV and store input into IV. */
           buf_xor_n_copy(outbuf, c->u_iv.iv, inbuf, blocksize);
           outbuf += blocksize;
@@ -179,7 +193,8 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
     {
       /* Save the current IV and then encrypt the IV. */
       memcpy ( c->lastiv, c->u_iv.iv, blocksize);
-      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
       /* XOR the input with the IV and store input into IV */
       buf_xor_n_copy(outbuf, c->u_iv.iv, inbuf, blocksize);
       outbuf += blocksize;
@@ -191,7 +206,8 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
     {
       /* Save the current IV and then encrypt the IV. */
       memcpy ( c->lastiv, c->u_iv.iv, blocksize );
-      c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      nburn = c->cipher->encrypt ( &c->context.c, c->u_iv.iv, c->u_iv.iv );
+      burn = nburn > burn ? nburn : burn;
       c->unused = blocksize;
       /* Apply the XOR. */
       c->unused -= inbuflen;
@@ -200,5 +216,9 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
       inbuf += inbuflen;
       inbuflen = 0;
     }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
+
   return 0;
 }

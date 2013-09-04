@@ -67,8 +67,8 @@ typedef struct {
 } BLOWFISH_context;
 
 static gcry_err_code_t bf_setkey (void *c, const byte *key, unsigned keylen);
-static void encrypt_block (void *bc, byte *outbuf, const byte *inbuf);
-static void decrypt_block (void *bc, byte *outbuf, const byte *inbuf);
+static unsigned int encrypt_block (void *bc, byte *outbuf, const byte *inbuf);
+static unsigned int decrypt_block (void *bc, byte *outbuf, const byte *inbuf);
 
 
 /* precomputed S boxes */
@@ -298,18 +298,20 @@ do_decrypt_block (BLOWFISH_context *context, byte *outbuf, const byte *inbuf)
   _gcry_blowfish_amd64_decrypt_block (context, outbuf, inbuf);
 }
 
-static void encrypt_block (void *context , byte *outbuf, const byte *inbuf)
+static unsigned int
+encrypt_block (void *context , byte *outbuf, const byte *inbuf)
 {
   BLOWFISH_context *c = (BLOWFISH_context *) context;
   do_encrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (2*8);
+  return /*burn_stack*/ (2*8);
 }
 
-static void decrypt_block (void *context, byte *outbuf, const byte *inbuf)
+static unsigned int
+decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
   BLOWFISH_context *c = (BLOWFISH_context *) context;
   do_decrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (2*8);
+  return /*burn_stack*/ (2*8);
 }
 
 #elif defined(USE_ARMV6_ASM)
@@ -352,18 +354,20 @@ do_decrypt_block (BLOWFISH_context *context, byte *outbuf, const byte *inbuf)
   _gcry_blowfish_armv6_decrypt_block (context, outbuf, inbuf);
 }
 
-static void encrypt_block (void *context , byte *outbuf, const byte *inbuf)
+static unsigned int
+encrypt_block (void *context , byte *outbuf, const byte *inbuf)
 {
   BLOWFISH_context *c = (BLOWFISH_context *) context;
   do_encrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (10*4);
+  return /*burn_stack*/ (10*4);
 }
 
-static void decrypt_block (void *context, byte *outbuf, const byte *inbuf)
+static unsigned int
+decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
   BLOWFISH_context *c = (BLOWFISH_context *) context;
   do_decrypt_block (c, outbuf, inbuf);
-  _gcry_burn_stack (10*4);
+  return /*burn_stack*/ (10*4);
 }
 
 #else /*USE_ARMV6_ASM*/
@@ -553,12 +557,12 @@ do_encrypt_block ( BLOWFISH_context *bc, byte *outbuf, const byte *inbuf )
   outbuf[7] =  d2	   & 0xff;
 }
 
-static void
+static unsigned int
 encrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
   BLOWFISH_context *bc = (BLOWFISH_context *) context;
   do_encrypt_block (bc, outbuf, inbuf);
-  _gcry_burn_stack (64);
+  return /*burn_stack*/ (64);
 }
 
 
@@ -580,12 +584,12 @@ do_decrypt_block (BLOWFISH_context *bc, byte *outbuf, const byte *inbuf)
   outbuf[7] =  d2	   & 0xff;
 }
 
-static void
+static unsigned int
 decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 {
   BLOWFISH_context *bc = (BLOWFISH_context *) context;
   do_decrypt_block (bc, outbuf, inbuf);
-  _gcry_burn_stack (64);
+  return /*burn_stack*/ (64);
 }
 
 #endif /*!USE_AMD64_ASM&&!USE_ARMV6_ASM*/

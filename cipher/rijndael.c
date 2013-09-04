@@ -1450,10 +1450,11 @@ do_aesni (RIJNDAEL_context *ctx, int decrypt_flag,
 #endif /*USE_AESNI*/
 
 
-static void
+static unsigned int
 rijndael_encrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
+  unsigned int burn_stack;
 
   if (0)
     ;
@@ -1461,7 +1462,7 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
   else if (ctx->use_padlock)
     {
       do_padlock (ctx, 0, b, a);
-      _gcry_burn_stack (48 + 15 /* possible padding for alignment */);
+      burn_stack = (48 + 15 /* possible padding for alignment */);
     }
 #endif /*USE_PADLOCK*/
 #ifdef USE_AESNI
@@ -1470,13 +1471,16 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
       aesni_prepare ();
       do_aesni (ctx, 0, b, a);
       aesni_cleanup ();
+      burn_stack = 0;
     }
 #endif /*USE_AESNI*/
   else
     {
       do_encrypt (ctx, b, a);
-      _gcry_burn_stack (56 + 2*sizeof(int));
+      burn_stack = (56 + 2*sizeof(int));
     }
+
+  return burn_stack;
 }
 
 
@@ -1820,10 +1824,11 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
 
 
 
-static void
+static unsigned int
 rijndael_decrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
+  unsigned int burn_stack;
 
   if (0)
     ;
@@ -1831,7 +1836,7 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
   else if (ctx->use_padlock)
     {
       do_padlock (ctx, 1, b, a);
-      _gcry_burn_stack (48 + 2*sizeof(int) /* FIXME */);
+      burn_stack = (48 + 2*sizeof(int) /* FIXME */);
     }
 #endif /*USE_PADLOCK*/
 #ifdef USE_AESNI
@@ -1840,13 +1845,16 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
       aesni_prepare ();
       do_aesni (ctx, 1, b, a);
       aesni_cleanup ();
+      burn_stack = 0;
     }
 #endif /*USE_AESNI*/
   else
     {
       do_decrypt (ctx, b, a);
-      _gcry_burn_stack (56+2*sizeof(int));
+      burn_stack = (56+2*sizeof(int));
     }
+
+  return burn_stack;
 }
 
 

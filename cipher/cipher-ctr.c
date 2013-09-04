@@ -40,9 +40,12 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
   int i;
   unsigned int blocksize = c->cipher->blocksize;
   unsigned int nblocks;
+  unsigned int burn, nburn;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
+
+  burn = 0;
 
   /* First process a left over encrypted counter.  */
   if (c->unused)
@@ -56,7 +59,6 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
       outbuf += n;
       inbuflen -= n;
     }
-
 
   /* Use a bulk method if available.  */
   nblocks = inbuflen / blocksize;
@@ -75,7 +77,8 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
       unsigned char tmp[MAX_BLOCKSIZE];
 
       do {
-        c->cipher->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
+        nburn = c->cipher->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
+        burn = nburn > burn ? nburn : burn;
 
         for (i = blocksize; i > 0; i--)
           {
@@ -99,6 +102,9 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
 
       wipememory (tmp, sizeof tmp);
     }
+
+  if (burn > 0)
+    _gcry_burn_stack (burn + 4 * sizeof(void *));
 
   return 0;
 }

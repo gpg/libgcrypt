@@ -819,12 +819,12 @@ do_twofish_encrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
   _gcry_twofish_amd64_encrypt_block(ctx, out, in);
 }
 
-static void
+static unsigned int
 twofish_encrypt (void *context, byte *out, const byte *in)
 {
   TWOFISH_context *ctx = context;
   _gcry_twofish_amd64_encrypt_block(ctx, out, in);
-  _gcry_burn_stack (4*sizeof (void*));
+  return /*burn_stack*/ (4*sizeof (void*));
 }
 
 #else /*!USE_AMD64_ASM*/
@@ -861,12 +861,12 @@ do_twofish_encrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
   OUTUNPACK (3, b, 7);
 }
 
-static void
+static unsigned int
 twofish_encrypt (void *context, byte *out, const byte *in)
 {
   TWOFISH_context *ctx = context;
   do_twofish_encrypt (ctx, out, in);
-  _gcry_burn_stack (24+3*sizeof (void*));
+  return /*burn_stack*/ (24+3*sizeof (void*));
 }
 
 #endif /*!USE_AMD64_ASM*/
@@ -882,12 +882,12 @@ do_twofish_decrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
   _gcry_twofish_amd64_decrypt_block(ctx, out, in);
 }
 
-static void
+static unsigned int
 twofish_decrypt (void *context, byte *out, const byte *in)
 {
   TWOFISH_context *ctx = context;
   _gcry_twofish_amd64_decrypt_block(ctx, out, in);
-  _gcry_burn_stack (4*sizeof (void*));
+  return /*burn_stack*/ (4*sizeof (void*));
 }
 
 #else /*!USE_AMD64_ASM*/
@@ -924,13 +924,13 @@ do_twofish_decrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
   OUTUNPACK (3, d, 3);
 }
 
-static void
+static unsigned int
 twofish_decrypt (void *context, byte *out, const byte *in)
 {
   TWOFISH_context *ctx = context;
 
   do_twofish_decrypt (ctx, out, in);
-  _gcry_burn_stack (24+3*sizeof (void*));
+  return /*burn_stack*/ (24+3*sizeof (void*));
 }
 
 #endif /*!USE_AMD64_ASM*/

@@ -272,12 +272,12 @@ encrypt_block( IDEA_context *c, byte *outbuf, const byte *inbuf )
     cipher( outbuf, inbuf, c->ek );
 }
 
-static void
+static unsigned int
 idea_encrypt (void *context, byte *out, const byte *in)
 {
     IDEA_context *ctx = context;
     encrypt_block (ctx, out, in);
-    _gcry_burn_stack (24+3*sizeof (void*));
+    return /*burn_stack*/ (24+3*sizeof (void*));
 }
 
 static void
@@ -290,12 +290,12 @@ decrypt_block( IDEA_context *c, byte *outbuf, const byte *inbuf )
     cipher( outbuf, inbuf, c->dk );
 }
 
-static void
+static unsigned int
 idea_decrypt (void *context, byte *out, const byte *in)
 {
     IDEA_context *ctx = context;
     decrypt_block (ctx, out, in);
-    _gcry_burn_stack (24+3*sizeof (void*));
+    return /*burn_stack*/ (24+3*sizeof (void*));
 }
 
 

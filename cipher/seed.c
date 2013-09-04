@@ -371,13 +371,13 @@ do_encrypt (const SEED_context *ctx, byte *outbuf, const byte *inbuf)
   PUTU32 (outbuf+12, x2);
 }
 
-static void
+static unsigned int
 seed_encrypt (void *context, byte *outbuf, const byte *inbuf)
 {
   SEED_context *ctx = context;
 
   do_encrypt (ctx, outbuf, inbuf);
-  _gcry_burn_stack (4*6);
+  return /*burn_stack*/ (4*6);
 }
 
 
@@ -417,13 +417,13 @@ do_decrypt (SEED_context *ctx, byte *outbuf, const byte *inbuf)
   PUTU32 (outbuf+12, x2);
 }
 
-static void
+static unsigned int
 seed_decrypt (void *context, byte *outbuf, const byte *inbuf)
 {
   SEED_context *ctx = context;
 
   do_decrypt (ctx, outbuf, inbuf);
-  _gcry_burn_stack (4*6);
+  return /*burn_stack*/ (4*6);
 }
 
 
