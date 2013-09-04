@@ -28,6 +28,7 @@
 
 #define PUBKEY_FLAG_NO_BLINDING    (1 << 0)
 #define PUBKEY_FLAG_RFC6979        (1 << 1)
+#define PUBKEY_FLAG_EDDSA          (1 << 2)
 
 enum pk_operation
   {

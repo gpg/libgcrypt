@@ -41,8 +41,7 @@ static gcry_err_code_t pubkey_sign (int algo, gcry_mpi_t *resarr,
                                     struct pk_encoding_ctx *ctx);
 static gcry_err_code_t pubkey_verify (int algo, gcry_mpi_t hash,
                                       gcry_mpi_t *data, gcry_mpi_t *pkey,
-				     int (*cmp) (void *, gcry_mpi_t),
-                                      void *opaque);
+                                      struct pk_encoding_ctx *ctx);
 
 
 /* A dummy extraspec so that we do not need to tests the extraspec
@@ -179,7 +178,8 @@ dummy_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
 static gcry_err_code_t
 dummy_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
               gcry_mpi_t *pkey,
-	      int (*cmp) (void *, gcry_mpi_t), void *opaquev)
+	      int (*cmp) (void *, gcry_mpi_t), void *opaquev,
+              int flags, int hashalgo)
 {
   (void)algorithm;
   (void)hash;
@@ -187,6 +187,8 @@ dummy_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
   (void)pkey;
   (void)cmp;
   (void)opaquev;
+  (void)flags;
+  (void)hashalgo;
   fips_signal_error ("using dummy public key function");
   return GPG_ERR_NOT_IMPLEMENTED;
 }
@@ -757,8 +759,7 @@ pubkey_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
  */
 static gcry_err_code_t
 pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
-               gcry_mpi_t *pkey,
-	       int (*cmp)(void *, gcry_mpi_t), void *opaquev)
+               gcry_mpi_t *pkey, struct pk_encoding_ctx *ctx)
 {
   gcry_pk_spec_t *pubkey;
   gcry_module_t module;
@@ -780,7 +781,9 @@ pubkey_verify (int algorithm, gcry_mpi_t hash, gcry_mpi_t *data,
   if (module)
     {
       pubkey = (gcry_pk_spec_t *) module->spec;
-      rc = pubkey->verify (algorithm, hash, data, pkey, cmp, opaquev);
+      rc = pubkey->verify (algorithm, hash, data, pkey,
+                           ctx->verify_cmp, ctx,
+                           ctx->flags, ctx->hash_algo);
       _gcry_module_release (module);
       goto ready;
     }
@@ -2484,7 +2487,7 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
    (<mpi>)
    or
    (data
-    [(flags [raw, direct, pkcs1, oaep, pss, no-blinding, rfc6979])]
+    [(flags [raw, direct, pkcs1, oaep, pss, no-blinding, rfc6979, eddsa])]
     [(hash <algo> <value>)]
     [(value <text>)]
     [(hash-algo <algo>)]
@@ -2496,7 +2499,9 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_module_t *retalgo,
    Either the VALUE or the HASH element must be present for use
    with signatures.  VALUE is used for encryption.
 
-   HASH-ALGO and LABEL are specific to OAEP.
+   HASH-ALGO is specific to OAEP and EDDSA.
+
+   LABEL is specific to OAEP.
 
    SALT-LENGTH is for PSS.
 
@@ -2533,8 +2538,13 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
             s = gcry_sexp_nth_data (lflags, i, &n);
             if (!s)
               ; /* not a data element*/
-	    else if (n == 7 && ! memcmp (s, "rfc6979", 7))
+	    else if (n == 7 && !memcmp (s, "rfc6979", 7))
 	      parsed_flags |= PUBKEY_FLAG_RFC6979;
+	    else if (n == 5 && !memcmp (s, "eddsa", 5))
+              {
+                ctx->encoding = PUBKEY_ENC_RAW;
+                parsed_flags |= PUBKEY_FLAG_EDDSA;
+              }
             else if ( n == 3 && !memcmp (s, "raw", 3)
                       && ctx->encoding == PUBKEY_ENC_UNKNOWN)
               {
@@ -2570,6 +2580,54 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
     rc = GPG_ERR_INV_OBJ; /* none or both given */
   else if (unknown_flag)
     rc = GPG_ERR_INV_FLAG;
+  else if (ctx->encoding == PUBKEY_ENC_RAW
+           && (parsed_flags & PUBKEY_FLAG_EDDSA))
+    {
+      /* Prepare for EdDSA.  */
+      gcry_sexp_t list;
+      void *value;
+      size_t valuelen;
+
+      if (lvalue)
+        {
+          rc = GPG_ERR_INV_OBJ;
+          goto leave;
+        }
+      /* Get HASH-ALGO. */
+      list = gcry_sexp_find_token (ldata, "hash-algo", 0);
+      if (list)
+        {
+          s = gcry_sexp_nth_data (list, 1, &n);
+          if (!s)
+            rc = GPG_ERR_NO_OBJ;
+          else
+            {
+              ctx->hash_algo = get_hash_algo (s, n);
+              if (!ctx->hash_algo)
+                rc = GPG_ERR_DIGEST_ALGO;
+            }
+          gcry_sexp_release (list);
+        }
+      else
+        rc = GPG_ERR_INV_OBJ;
+      if (rc)
+        goto leave;
+
+      /* Get VALUE.  */
+      value = gcry_sexp_nth_buffer (lvalue, 1, &valuelen);
+      if (!value)
+        rc = GPG_ERR_INV_OBJ;
+      else if ((valuelen * 8) < valuelen)
+        {
+          gcry_free (value);
+          rc = GPG_ERR_TOO_LARGE;
+        }
+      if (rc)
+        goto leave;
+
+      /* Note that mpi_set_opaque takes ownership of VALUE.  */
+      *ret_mpi = gcry_mpi_set_opaque (NULL, value, valuelen*8);
+    }
   else if (ctx->encoding == PUBKEY_ENC_RAW && lhash
            && (explicit_raw || (parsed_flags & PUBKEY_FLAG_RFC6979)))
     {
@@ -3406,8 +3464,7 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
   if (rc)
     goto leave;
 
-  rc = pubkey_verify (module_key->mod_id, hash, sig, pkey,
-		      ctx.verify_cmp, &ctx);
+  rc = pubkey_verify (module_key->mod_id, hash, sig, pkey, &ctx);
 
  leave:
   if (pkey)

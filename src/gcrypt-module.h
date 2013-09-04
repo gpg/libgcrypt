@@ -137,7 +137,9 @@ typedef gcry_err_code_t (*gcry_pk_verify_t) (int algo,
 					     gcry_mpi_t *data,
 					     gcry_mpi_t *pkey,
 					     int (*cmp) (void *, gcry_mpi_t),
-					     void *opaquev);
+					     void *opaquev,
+                                             int flags,
+                                             int hashalgo);
 
 /* Type for the pk_get_nbits function.  */
 typedef unsigned (*gcry_pk_get_nbits_t) (int algo, gcry_mpi_t *pkey);

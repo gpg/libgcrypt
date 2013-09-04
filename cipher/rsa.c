@@ -1020,8 +1020,8 @@ rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
 
 static gcry_err_code_t
 rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
-		  int (*cmp) (void *opaque, gcry_mpi_t tmp),
-		  void *opaquev)
+            int (*cmp) (void *opaque, gcry_mpi_t tmp), void *opaquev,
+            int flags, int hashalgo)
 {
   RSA_public_key pk;
   gcry_mpi_t result;
@@ -1030,6 +1030,8 @@ rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   (void)algo;
   (void)cmp;
   (void)opaquev;
+  (void)flags;
+  (void)hashalgo;
 
   if (mpi_is_opaque (hash))
     return GPG_ERR_INV_DATA;

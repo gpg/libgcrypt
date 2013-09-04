@@ -2364,6 +2364,7 @@ Here, the data to be signed is directly given as an @var{MPI}.
 
 @noindent
 For DSA the input data is expected in this format:
+
 @example
 (data
   (flags raw)
@@ -2411,10 +2412,27 @@ S-expression returned is:
 @end example
 
 Where @var{r-mpi} and @var{s-mpi} are the result of the DSA sign
-operation.  For Elgamal signing (which is slow, yields large numbers
-and probably is not as secure as the other algorithms), the same format is
-used with "elg" replacing "dsa"; for ECDSA signing, the same format is used
+operation.
+
+For Elgamal signing (which is slow, yields large numbers and probably
+is not as secure as the other algorithms), the same format is used
+with "elg" replacing "dsa"; for ECDSA signing, the same format is used
 with "ecdsa" replacing "dsa".
+
+For the EdDSA algorithm (cf. Ed25515) the required input parameters are:
+
+@example
+(data
+  (flags eddsa)
+  (hash-algo sha-512)
+  (value @var{message}))
+@end example
+
+Note that the @var{message} may be of any length; hashing is part of
+the algorithm.  Using a large data block for @var{message} is not
+suggested; in that case the used protocol should better require that a
+hash of the message is used as input to the EdDSA algorithm.
+
 
 @end deftypefun
 @c end gcry_pk_sign

@@ -1004,7 +1004,8 @@ dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
 
 static gcry_err_code_t
 dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
-            int (*cmp) (void *, gcry_mpi_t), void *opaquev)
+            int (*cmp) (void *, gcry_mpi_t), void *opaquev,
+            int flags, int hashalgo)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   DSA_public_key pk;
@@ -1012,6 +1013,8 @@ dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   (void)algo;
   (void)cmp;
   (void)opaquev;
+  (void)flags;
+  (void)hashalgo;
 
   if ((! data[0]) || (! data[1]) || (! hash)
       || (! pkey[0]) || (! pkey[1]) || (! pkey[2]) || (! pkey[3]))

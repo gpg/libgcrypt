@@ -789,7 +789,8 @@ elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
 
 static gcry_err_code_t
 elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
-            int (*cmp) (void *, gcry_mpi_t), void *opaquev)
+            int (*cmp) (void *, gcry_mpi_t), void *opaquev,
+            int flags, int hashalgo)
 {
   gcry_err_code_t err = GPG_ERR_NO_ERROR;
   ELG_public_key pk;
@@ -797,6 +798,8 @@ elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
   (void)algo;
   (void)cmp;
   (void)opaquev;
+  (void)flags;
+  (void)hashalgo;
 
   if (mpi_is_opaque (hash))
     return GPG_ERR_INV_DATA;
