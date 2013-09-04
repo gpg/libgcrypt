@@ -29,7 +29,7 @@ m4data_DATA = libgcrypt.m4
 include_HEADERS = gcrypt.h
 
 lib_LTLIBRARIES = libgcrypt.la
-bin_PROGRAMS = dumpsexp hmac256
+bin_PROGRAMS = dumpsexp hmac256 mpicalc
 if USE_RANDOM_DAEMON
 sbin_PROGRAMS = gcryptrnd
 bin_PROGRAMS += getrandom
@@ -127,6 +127,10 @@ libgcrypt_la_LIBADD = $(gcrypt_res) \
 dumpsexp_SOURCES = dumpsexp.c
 dumpsexp_CFLAGS = $(arch_gpg_error_cflags)
 dumpsexp_LDADD = $(arch_gpg_error_libs)
+
+mpicalc_SOURCES = mpicalc.c
+mpicalc_CFLAGS = $(arch_gpg_error_cflags)
+mpicalc_LDADD = ../src/libgcrypt.la $(arch_gpg_error_libs)
 
 hmac256_SOURCES = hmac256.c
 hmac256_CFLAGS = -DSTANDALONE $(arch_gpg_error_cflags)

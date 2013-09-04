@@ -21,53 +21,64 @@
    hex.  Operation is like dc(1) except that the input/output radix is
    always 16 and you can use a '-' to prefix a negative number.
    Addition operators: ++ and --.  All operators must be delimited by
-   a blank
+   a blank.
  */
 
-#include <config.h>
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 
-#include "util.h"
-#include "mpi.h"
+#ifdef _GCRYPT_IN_LIBGCRYPT
+# undef _GCRYPT_IN_LIBGCRYPT
+# include "gcrypt.h"
+#else
+# include <gcrypt.h>
+#endif
 
+
+#define MPICALC_VERSION "2.0"
 
 #define STACKSIZE  500
 static gcry_mpi_t stack[STACKSIZE];
 static int stackidx;
 
 
-const char *
-strusage (int level)
+static int
+scan_mpi (gcry_mpi_t retval, const char *string)
 {
-  const char *p;
-  switch (level)
+  gpg_error_t err;
+  gcry_mpi_t val;
+
+  err = gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
+  if (err)
     {
-    case 10:
-    case 0:
-      p = "mpicalc - v" VERSION "; " "Copyright 1997 Werner Koch (dd9jn)";
-      break;
-    case 13:
-      p = "mpicalc";
-      break;
-    case 14:
-      p = VERSION;
-      break;
-    case 1:
-    case 11:
-      p = "Usage: mpicalc (-h for help)";
-      break;
-    case 2:
-    case 12:
-      p =
-	"\nSyntax: mpicalc [options] [files]\n"
-	"Simple big integer RPN calculator\n";
-      break;
-    default:
-      p = default_strusage (level);
+      fprintf (stderr, "scanning input failed: %s\n", gpg_strerror (err));
+      return -1;
     }
-  return p;
+  mpi_set (retval, val);
+  mpi_release (val);
+  return 0;
+}
+
+
+static void
+print_mpi (gcry_mpi_t a)
+{
+  gpg_error_t err;
+  char *buf;
+  void *bufaddr = &buf;
+
+  err = gcry_mpi_aprint (GCRYMPI_FMT_HEX, bufaddr, NULL, a);
+  if (err)
+    fprintf (stderr, "[error printing number: %s]\n", gpg_strerror (err));
+  else
+    {
+      fputs (buf, stdout);
+      gcry_free (buf);
+    }
 }
 
 
@@ -151,7 +162,8 @@ do_div (void)
       fputs ("stack underflow\n", stderr);
       return;
     }
-  mpi_fdiv_q (stack[stackidx - 2], stack[stackidx - 2], stack[stackidx - 1]);
+  mpi_fdiv (stack[stackidx - 2], NULL,
+            stack[stackidx - 2], stack[stackidx - 1]);
   stackidx--;
 }
 
@@ -163,22 +175,23 @@ do_rem (void)
       fputs ("stack underflow\n", stderr);
       return;
     }
-  mpi_fdiv_r (stack[stackidx - 2], stack[stackidx - 2], stack[stackidx - 1]);
+  mpi_mod (stack[stackidx - 2],
+           stack[stackidx - 2], stack[stackidx - 1]);
   stackidx--;
 }
 
 static void
 do_powm (void)
 {
-  MPI a;
+  gcry_mpi_t a;
   if (stackidx < 3)
     {
       fputs ("stack underflow\n", stderr);
       return;
     }
-  a = mpi_alloc (10);
+  a = mpi_new (0);
   mpi_powm (a, stack[stackidx - 3], stack[stackidx - 2], stack[stackidx - 1]);
-  mpi_free (stack[stackidx - 3]);
+  mpi_release (stack[stackidx - 3]);
   stack[stackidx - 3] = a;
   stackidx -= 2;
 }
@@ -186,7 +199,7 @@ do_powm (void)
 static void
 do_inv (void)
 {
-  MPI a = mpi_alloc (40);
+  gcry_mpi_t a = mpi_new (0);
   if (stackidx < 2)
     {
       fputs ("stack underflow\n", stderr);
@@ -194,14 +207,14 @@ do_inv (void)
     }
   mpi_invm (a, stack[stackidx - 2], stack[stackidx - 1]);
   mpi_set (stack[stackidx - 2], a);
-  mpi_free (a);
+  mpi_release (a);
   stackidx--;
 }
 
 static void
 do_gcd (void)
 {
-  MPI a = mpi_alloc (40);
+  gcry_mpi_t a = mpi_new (0);
   if (stackidx < 2)
     {
       fputs ("stack underflow\n", stderr);
@@ -209,7 +222,7 @@ do_gcd (void)
     }
   mpi_gcd (a, stack[stackidx - 2], stack[stackidx - 1]);
   mpi_set (stack[stackidx - 2], a);
-  mpi_free (a);
+  mpi_release (a);
   stackidx--;
 }
 
@@ -225,43 +238,123 @@ do_rshift (void)
 }
 
 
+
+static int
+my_getc (void)
+{
+  static int shown;
+  int c;
+
+  for (;;)
+    {
+      if ((c = getc (stdin)) == EOF)
+        return EOF;
+      if (!(c & 0x80))
+        return c;
+
+      if (!shown)
+        {
+          shown = 1;
+          fputs ("note: Non ASCII characters are ignored\n", stderr);
+        }
+    }
+}
+
+
+static void
+print_help (void)
+{
+  fputs ("+   add           [0] := [1] + [0]          {-1}\n"
+         "-   subtract      [0] := [1] - [0]          {-1}\n"
+         "*   multiply      [0] := [1] * [0]          {-1}\n"
+         "/   divide        [0] := [1] - [0]          {-1}\n"
+         "%   modulo        [0] := [1] % [0]          {-1}\n"
+         ">   right shift   [0] := [0] >> 1           {0}\n"
+         "++  increment     [0] := [0]++              {0}\n"
+         "--  decrement     [0] := [0]--              {0}\n"
+         "m   multiply mod  [0] := [2] * [1] mod [0]  {-2}\n"
+         "^   power mod     [0] := [2] ^ [1] mod [0]  {-2}\n"
+         "I   inverse mod   [0] := [1]^-1 mod [0]     {-1}\n"
+         "G   gcd           [0] := gcd([1],[0])       {-1}\n"
+         "i   remove item   [0] := [1]                {-1}\n"
+         "d   dup item      [-1] := [0]               {+1}\n"
+         "r   reverse       [0] := [1], [1] := [0]    {0}\n"
+         "c   clear stack\n"
+         "p   print top item\n"
+         "f   print the stack\n"
+         "#   ignore until end of line\n"
+         "?   print this help\n"
+         , stdout);
+}
+
+
+
 int
 main (int argc, char **argv)
 {
-  static ARGPARSE_OPTS opts[] = {
-    {0}
-  };
-  ARGPARSE_ARGS pargs;
+  const char *pgm;
+  int last_argc = -1;
   int i, c;
   int state = 0;
   char strbuf[1000];
   int stridx = 0;
 
-  pargs.argc = &argc;
-  pargs.argv = &argv;
-  pargs.flags = 0;
-
-  while (arg_parse (&pargs, opts))
-    {
-      switch (pargs.r_opt)
-	{
-	default:
-	  pargs.err = 2;
-	  break;
-	}
-    }
   if (argc)
-    usage (1);
+    {
+      pgm = strrchr (*argv, '/');
+      if (pgm)
+        pgm++;
+      else
+        pgm = *argv;
+      argc--; argv++;
+    }
+  else
+    pgm = "?";
 
+  while (argc && last_argc != argc )
+    {
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--version")
+               || !strcmp (*argv, "--help"))
+        {
+          printf ("%s " MPICALC_VERSION "\n"
+                  "libgcrypt %s\n"
+                  "Copyright (C) 1997, 2013  Werner Koch\n"
+                  "License LGPLv2.1+: GNU LGPL version 2.1 or later "
+                  "<http://gnu.org/licenses/old-licenses/lgpl-2.1.html>\n"
+                  "This is free software: you are free to change and "
+                  "redistribute it.\n"
+                  "There is NO WARRANTY, to the extent permitted by law.\n"
+                  "\n"
+                  "Syntax: mpicalc [options]\n"
+                  "Simple interactive big integer RPN calculator\n"
+                  "\n"
+                  "Options:\n"
+                  "  --version  print version information\n",
+                  pgm, gcry_check_version (NULL));
+          exit (0);
+        }
+    }
+
+  if (argc)
+    {
+      fprintf (stderr, "usage: %s [options]  (--help for help)\n", pgm);
+      exit (1);
+    }
 
   for (i = 0; i < STACKSIZE; i++)
     stack[i] = NULL;
   stackidx = 0;
 
-  while ((c = getc (stdin)) != EOF)
+  while ((c = my_getc ()) != EOF)
     {
-      if (!state)
-	{			/* waiting */
+      if (!state) /* waiting */
+	{
 	  if (isdigit (c))
 	    {
 	      state = 1;
@@ -276,8 +369,11 @@ main (int argc, char **argv)
 	    {
 	      switch (c)
 		{
+                case '#':
+                  state = 2;
+                  break;
 		case '+':
-		  if ((c = getc (stdin)) == '+')
+		  if ((c = my_getc ()) == '+')
 		    do_inc ();
 		  else
 		    {
@@ -286,7 +382,7 @@ main (int argc, char **argv)
 		    }
 		  break;
 		case '-':
-		  if ((c = getc (stdin)) == '-')
+		  if ((c = my_getc ()) == '-')
 		    do_dec ();
 		  else if (isdigit (c) || (c >= 'A' && c <= 'F'))
 		    {
@@ -318,21 +414,21 @@ main (int argc, char **argv)
 		case '^':
 		  do_powm ();
 		  break;
+		case '>':
+		  do_rshift ();
+		  break;
 		case 'I':
 		  do_inv ();
 		  break;
 		case 'G':
 		  do_gcd ();
 		  break;
-		case '>':
-		  do_rshift ();
-		  break;
 		case 'i':	/* dummy */
 		  if (!stackidx)
 		    fputs ("stack underflow\n", stderr);
 		  else
 		    {
-		      mpi_free (stack[stackidx - 1]);
+		      mpi_release (stack[stackidx - 1]);
 		      stackidx--;
 		    }
 		  break;
@@ -341,16 +437,28 @@ main (int argc, char **argv)
 		    fputs ("stack underflow\n", stderr);
 		  else if (stackidx < STACKSIZE)
 		    {
-		      mpi_free (stack[stackidx]);
+		      mpi_release (stack[stackidx]);
 		      stack[stackidx] = mpi_copy (stack[stackidx - 1]);
 		      stackidx++;
 		    }
 		  else
 		    fputs ("stack overflow\n", stderr);
 		  break;
+		case 'r':	/* swap top elements */
+		  if (stackidx < 2)
+		    fputs ("stack underflow\n", stderr);
+		  else if (stackidx < STACKSIZE)
+		    {
+		      gcry_mpi_t tmp = stack[stackidx-1];
+                      stack[stackidx-1] = stack[stackidx - 2];
+                      stack[stackidx-2] = tmp;
+		    }
+		  break;
 		case 'c':
 		  for (i = 0; i < stackidx; i++)
-		    mpi_free (stack[i]), stack[i] = NULL;
+                    {
+                      mpi_release (stack[i]); stack[i] = NULL;
+                    }
 		  stackidx = 0;
 		  break;
 		case 'p':	/* print the tos */
@@ -358,7 +466,7 @@ main (int argc, char **argv)
 		    puts ("stack is empty");
 		  else
 		    {
-		      mpi_print (stdout, stack[stackidx - 1], 1);
+		      print_mpi (stack[stackidx - 1]);
 		      putchar ('\n');
 		    }
 		  break;
@@ -366,29 +474,33 @@ main (int argc, char **argv)
 		  for (i = stackidx - 1; i >= 0; i--)
 		    {
 		      printf ("[%2d]: ", i);
-		      mpi_print (stdout, stack[i], 1);
+		      print_mpi (stack[i]);
 		      putchar ('\n');
 		    }
 		  break;
+                case '?':
+                  print_help ();
+                  break;
 		default:
 		  fputs ("invalid operator\n", stderr);
 		}
 	    }
 	}
-      else if (state == 1)
-	{			/* in a number */
+      else if (state == 1) /* In a number. */
+	{
 	  if (!isxdigit (c))
-	    {			/* store the number */
+	    {
+              /* Store the number */
 	      state = 0;
 	      ungetc (c, stdin);
-	      if (stridx < 1000)
+	      if (stridx < sizeof strbuf)
 		strbuf[stridx] = 0;
 
 	      if (stackidx < STACKSIZE)
 		{
 		  if (!stack[stackidx])
-		    stack[stackidx] = mpi_alloc (10);
-		  if (mpi_fromstr (stack[stackidx], strbuf))
+		    stack[stackidx] = mpi_new (0);
+		  if (scan_mpi (stack[stackidx], strbuf))
 		    fputs ("invalid number\n", stderr);
 		  else
 		    stackidx++;
@@ -397,20 +509,26 @@ main (int argc, char **argv)
 		fputs ("stack overflow\n", stderr);
 	    }
 	  else
-	    {			/* store digit */
-	      if (stridx < 999)
+	    { /* Store a digit.  */
+	      if (stridx < sizeof strbuf - 1)
 		strbuf[stridx++] = c;
-	      else if (stridx == 999)
+	      else if (stridx == sizeof strbuf - 1)
 		{
 		  strbuf[stridx] = 0;
-		  fputs ("string too large - truncated\n", stderr);
+		  fputs ("input too large - truncated\n", stderr);
 		  stridx++;
 		}
 	    }
 	}
+      else if (state == 2) /* In a comment. */
+        {
+          if (c == '\n')
+            state = 0;
+        }
 
     }
+
   for (i = 0; i < stackidx; i++)
-    mpi_free (stack[i]);
+    mpi_release (stack[i]);
   return 0;
 }
