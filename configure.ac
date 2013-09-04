@@ -764,6 +764,24 @@ case "${host}" in
 esac
 AC_SUBST(FALLBACK_SOCKLEN_T)
 
+
+#
+# Check for VLA support (variable length arrays).
+#
+AC_CACHE_CHECK(whether the variable length arrays are supported,
+       [gcry_cv_have_vla],
+       [gcry_cv_have_vla=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void f1(char *, int);
+            char foo(int i) {
+              char b[(i < 0 ? 0 : i) + 1];
+              f1(b, sizeof b); return b[0];}]])],
+          [gcry_cv_have_vla=yes])])
+if test "$gcry_cv_have_vla" = "yes" ; then
+   AC_DEFINE(HAVE_VLA,1, [Defined if variable length arrays are supported])
+fi
+
+
 #
 # Check for ELF visibility support.
 #
