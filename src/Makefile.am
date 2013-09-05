@@ -129,8 +129,8 @@ dumpsexp_CFLAGS = $(arch_gpg_error_cflags)
 dumpsexp_LDADD = $(arch_gpg_error_libs)
 
 mpicalc_SOURCES = mpicalc.c
-mpicalc_CFLAGS = $(arch_gpg_error_cflags)
-mpicalc_LDADD = ../src/libgcrypt.la $(arch_gpg_error_libs)
+mpicalc_CFLAGS = $(GPG_ERROR_CFLAGS)
+mpicalc_LDADD = libgcrypt.la $(GPG_ERROR_LIBS)
 
 hmac256_SOURCES = hmac256.c
 hmac256_CFLAGS = -DSTANDALONE $(arch_gpg_error_cflags)
