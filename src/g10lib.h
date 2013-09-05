@@ -242,7 +242,7 @@ int strcasecmp (const char *a, const char *b) _GCRY_GCC_ATTR_PURE;
 
 /* Stack burning.  */
 
-void _gcry_burn_stack (int bytes);
+void _gcry_burn_stack (unsigned int bytes);
 
 
 /* To avoid that a compiler optimizes certain memset calls away, these

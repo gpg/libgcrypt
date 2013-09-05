@@ -288,10 +288,11 @@ _gcry_log_printhex (const char *text, const void *buffer, size_t length)
 
 
 void
-_gcry_burn_stack (int bytes)
+_gcry_burn_stack (unsigned int bytes)
 {
 #ifdef HAVE_VLA
-    int buflen = (((bytes <= 0) ? 1 : bytes) + 63) & ~63;
+    /* (bytes == 0 ? 1 : bytes) == (!bytes + bytes) */
+    unsigned int buflen = ((!bytes + bytes) + 63) & ~63;
     volatile char buf[buflen];
 
     wipememory (buf, sizeof buf);
@@ -300,9 +301,8 @@ _gcry_burn_stack (int bytes)
 
     wipememory (buf, sizeof buf);
 
-    bytes -= sizeof buf;
-    if (bytes > 0)
-        _gcry_burn_stack (bytes);
+    if (bytes > sizeof buf)
+        _gcry_burn_stack (bytes - sizeof buf);
 #endif
 }
 
