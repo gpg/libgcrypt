@@ -107,6 +107,8 @@ static struct cipher_table_entry
 #if USE_SALSA20
     { &_gcry_cipher_spec_salsa20,
       &_gcry_cipher_extraspec_salsa20,    GCRY_CIPHER_SALSA20 },
+    { &_gcry_cipher_spec_salsa20r12,
+      &_gcry_cipher_extraspec_salsa20,    GCRY_CIPHER_SALSA20R12 },
 #endif
     { NULL                    }
   };

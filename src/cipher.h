@@ -197,6 +197,7 @@ extern gcry_cipher_spec_t _gcry_cipher_spec_camellia192;
 extern gcry_cipher_spec_t _gcry_cipher_spec_camellia256;
 extern gcry_cipher_spec_t _gcry_cipher_spec_idea;
 extern gcry_cipher_spec_t _gcry_cipher_spec_salsa20;
+extern gcry_cipher_spec_t _gcry_cipher_spec_salsa20r12;
 
 extern cipher_extra_spec_t _gcry_cipher_extraspec_tripledes;
 extern cipher_extra_spec_t _gcry_cipher_extraspec_aes;

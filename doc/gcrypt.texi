@@ -1579,6 +1579,10 @@ The Camellia cipher by NTT.  See
 @cindex Salsa20
 This is the Salsa20 stream cipher.
 
+@item GCRY_CIPHER_SALSA20R12
+@cindex Salsa20/12
+This is the Salsa20/12 - reduced round version of Salsa20 stream cipher.
+
 @end table
 
 @node Available cipher modes

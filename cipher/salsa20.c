@@ -49,6 +49,7 @@
 /* Number of rounds.  The standard uses 20 rounds.  In any case the
    number of rounds must be even.  */
 #define SALSA20_ROUNDS       20
+#define SALSA20R12_ROUNDS    12
 
 
 typedef struct
@@ -120,13 +121,13 @@ static const char *selftest (void);
   } while(0)
 
 static void
-salsa20_core (u32 *dst, const u32 *src)
+salsa20_core (u32 *dst, const u32 *src, unsigned rounds)
 {
   u32 pad[SALSA20_INPUT_LENGTH];
   unsigned int i;
 
   memcpy (pad, src, sizeof(pad));
-  for (i = 0; i < SALSA20_ROUNDS; i += 2)
+  for (i = 0; i < rounds; i += 2)
     {
       SALSA20_CORE_DEBUG (i);
       QROUND (pad[0],  pad[4],  pad[8],  pad[12]);
@@ -253,7 +254,7 @@ salsa20_setiv (void *context, const byte *iv, unsigned int ivlen)
 static void
 salsa20_do_encrypt_stream (SALSA20_context_t *ctx,
                            byte *outbuf, const byte *inbuf,
-                           unsigned int length)
+                           unsigned int length, unsigned rounds)
 {
   if (ctx->unused)
     {
@@ -280,7 +281,7 @@ salsa20_do_encrypt_stream (SALSA20_context_t *ctx,
       /* Create the next pad and bump the block counter.  Note that it
          is the user's duty to change to another nonce not later than
          after 2^70 processed bytes.  */
-      salsa20_core (ctx->pad, ctx->input);
+      salsa20_core (ctx->pad, ctx->input, rounds);
       if (!++ctx->input[8])
         ctx->input[9]++;
 
@@ -306,7 +307,30 @@ salsa20_encrypt_stream (void *context,
 
   if (length)
     {
-      salsa20_do_encrypt_stream (ctx, outbuf, inbuf, length);
+      salsa20_do_encrypt_stream (ctx, outbuf, inbuf, length, SALSA20_ROUNDS);
+      _gcry_burn_stack (/* salsa20_do_encrypt_stream: */
+                        2*sizeof (void*)
+                        + 3*sizeof (void*) + sizeof (unsigned int)
+                        /* salsa20_core: */
+                        + 2*sizeof (void*)
+                        + 2*sizeof (void*)
+                        + 64
+                        + sizeof (unsigned int)
+                        + sizeof (u32)
+                        );
+    }
+}
+
+
+static void
+salsa20r12_encrypt_stream (void *context,
+                           byte *outbuf, const byte *inbuf, unsigned int length)
+{
+  SALSA20_context_t *ctx = (SALSA20_context_t *)context;
+
+  if (length)
+    {
+      salsa20_do_encrypt_stream (ctx, outbuf, inbuf, length, SALSA20R12_ROUNDS);
       _gcry_burn_stack (/* salsa20_do_encrypt_stream: */
                         2*sizeof (void*)
                         + 3*sizeof (void*) + sizeof (unsigned int)
@@ -370,6 +394,21 @@ gcry_cipher_spec_t _gcry_cipher_spec_salsa20 =
     NULL,
     salsa20_encrypt_stream,
     salsa20_encrypt_stream
+  };
+
+gcry_cipher_spec_t _gcry_cipher_spec_salsa20r12 =
+  {
+    "SALSA20R12",  /* name */
+    NULL,       /* aliases */
+    NULL,       /* oids */
+    1,          /* blocksize in bytes. */
+    SALSA20_MAX_KEY_SIZE*8,  /* standard key length in bits. */
+    sizeof (SALSA20_context_t),
+    salsa20_setkey,
+    NULL,
+    NULL,
+    salsa20r12_encrypt_stream,
+    salsa20r12_encrypt_stream
   };
 
 cipher_extra_spec_t _gcry_cipher_extraspec_salsa20 =
