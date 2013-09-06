@@ -77,6 +77,7 @@ GCRYPT_1.6 {
     gcry_sexp_sprint; gcry_sexp_sscan; gcry_sexp_vlist;
     gcry_sexp_nth_string;
 
+    gcry_mpi_is_neg; gcry_mpi_neg; gcry_mpi_abs;
     gcry_mpi_add; gcry_mpi_add_ui; gcry_mpi_addm; gcry_mpi_aprint;
     gcry_mpi_clear_bit; gcry_mpi_clear_flag; gcry_mpi_clear_highbit;
     gcry_mpi_cmp; gcry_mpi_cmp_ui; gcry_mpi_copy; gcry_mpi_div;
@@ -96,7 +97,7 @@ GCRYPT_1.6 {
     gcry_mpi_ec_get_mpi; gcry_mpi_ec_get_point;
     gcry_mpi_ec_set_mpi; gcry_mpi_ec_set_point;
     gcry_mpi_ec_get_affine;
-    gcry_mpi_ec_dup; gcry_mpi_ec_add; gcry_mpi_ec_mul;
+    gcry_mpi_ec_dup; gcry_mpi_ec_add; gcry_mpi_ec_mul; gcry_mpi_ec_curve_point;
 
     _gcry_mpi_get_const;
 

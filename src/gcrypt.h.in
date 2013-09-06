@@ -508,6 +508,15 @@ gcry_mpi_t gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u);
 /* Swap the values of A and B. */
 void gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b);
 
+/* Return 1 if A is negative; 0 if zero or positive.  */
+int gcry_mpi_is_neg (gcry_mpi_t a);
+
+/* W = - U */
+void gcry_mpi_neg (gcry_mpi_t w, gcry_mpi_t u);
+
+/* W = [W] */
+void gcry_mpi_abs (gcry_mpi_t w);
+
 /* Compare the big integer number U and V returning 0 for equality, a
    positive value for U > V and a negative for U < V. */
 int gcry_mpi_cmp (const gcry_mpi_t u, const gcry_mpi_t v);
@@ -661,6 +670,8 @@ void gcry_mpi_ec_add (gcry_mpi_point_t w,
 void gcry_mpi_ec_mul (gcry_mpi_point_t w, gcry_mpi_t n, gcry_mpi_point_t u,
                       gcry_ctx_t ctx);
 
+/* Return true if POINT is on the curve described by CTX.  */
+int gcry_mpi_ec_curve_point (gcry_mpi_point_t w, gcry_ctx_t ctx);
 
 /* Return the number of bits required to represent A. */
 unsigned int gcry_mpi_get_nbits (gcry_mpi_t a);
@@ -728,8 +739,11 @@ gcry_mpi_t _gcry_mpi_get_const (int no);
 #define mpi_snatch( w, u)      gcry_mpi_snatch( (w), (u) )
 #define mpi_set( w, u)         gcry_mpi_set( (w), (u) )
 #define mpi_set_ui( w, u)      gcry_mpi_set_ui( (w), (u) )
+#define mpi_abs( w )           gcry_mpi_abs( (w) )
+#define mpi_neg( w, u)         gcry_mpi_neg( (w), (u) )
 #define mpi_cmp( u, v )        gcry_mpi_cmp( (u), (v) )
 #define mpi_cmp_ui( u, v )     gcry_mpi_cmp_ui( (u), (v) )
+#define mpi_is_neg( a )        gcry_mpi_is_new ((a))
 
 #define mpi_add_ui(w,u,v)      gcry_mpi_add_ui((w),(u),(v))
 #define mpi_add(w,u,v)         gcry_mpi_add ((w),(u),(v))

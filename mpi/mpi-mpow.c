@@ -204,7 +204,7 @@ calc_barrett( gcry_mpi_t r, gcry_mpi_t x, gcry_mpi_t m, gcry_mpi_t y, int k, gcr
 	r2->nlimbs = k+1;
     mpi_sub( r, r1, r2 );
 
-    if( mpi_is_neg( r ) ) {
+    if( mpi_has_sign (r) ) {
 	gcry_mpi_t tmp;
 
 	tmp = mpi_alloc( k + 2 );

@@ -78,7 +78,7 @@ struct gcry_mpi
 #define MPI_NULL NULL
 
 #define mpi_get_nlimbs(a)     ((a)->nlimbs)
-#define mpi_is_neg(a)	      ((a)->sign)
+#define mpi_has_sign(a)	      ((a)->sign)
 
 /*-- mpiutil.c --*/
 
@@ -134,6 +134,9 @@ void _gcry_mpi_m_check( gcry_mpi_t a );
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
 gcry_mpi_t _gcry_mpi_new (unsigned int nbits);
 gcry_mpi_t _gcry_mpi_snew (unsigned int nbits);
+int _gcry_mpi_is_neg (gcry_mpi_t a);
+void _gcry_mpi_neg (gcry_mpi_t w, gcry_mpi_t u);
+void _gcry_mpi_abs (gcry_mpi_t w);
 
 /* Constants used to return constant MPIs.  See _gcry_mpi_init if you
    want to add more constants. */

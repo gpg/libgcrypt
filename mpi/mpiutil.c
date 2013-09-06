@@ -324,6 +324,45 @@ gcry_mpi_copy( gcry_mpi_t a )
 }
 
 
+/* Return true if A is negative.  */
+int
+_gcry_mpi_is_neg (gcry_mpi_t a)
+{
+  if (a->sign && _gcry_mpi_cmp_ui (a, 0))
+    return 1;
+  else
+    return 0;
+}
+
+
+/* W = - U */
+void
+_gcry_mpi_neg (gcry_mpi_t w, gcry_mpi_t u)
+{
+  if (mpi_is_immutable (w))
+    {
+      mpi_immutable_failed ();
+      return;
+    }
+
+  w->sign = !u->sign;
+}
+
+
+/* W = [W] */
+void
+_gcry_mpi_abs (gcry_mpi_t w)
+{
+  if (mpi_is_immutable (w))
+    {
+      mpi_immutable_failed ();
+      return;
+    }
+
+  w->sign = 0;
+}
+
+
 /****************
  * This function allocates an MPI which is optimized to hold
  * a value as large as the one given in the argument and allocates it

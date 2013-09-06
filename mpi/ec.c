@@ -1025,7 +1025,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   k  = mpi_copy (scalar);
   yy = mpi_copy (point->y);
 
-  if ( mpi_is_neg (k) )
+  if ( mpi_has_sign (k) )
     {
       k->sign = 0;
       ec_invm (yy, yy, ctx);

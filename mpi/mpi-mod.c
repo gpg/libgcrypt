@@ -157,7 +157,7 @@ _gcry_mpi_mod_barrett (gcry_mpi_t r, gcry_mpi_t x, mpi_barrett_t ctx)
     r2->nlimbs = k+1;
   mpi_sub ( r, r1, r2 );
 
-  if ( mpi_is_neg( r ) )
+  if ( mpi_has_sign ( r ) )
     {
       if (!ctx->r3)
         {

@@ -722,7 +722,7 @@ secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
       mpi_powm( m2, input, h, skey->q );
       /* h = u * ( m2 - m1 ) mod q */
       mpi_sub( h, m2, m1 );
-      if ( mpi_is_neg( h ) )
+      if ( mpi_has_sign ( h ) )
         mpi_add ( h, h, skey->q );
       mpi_mulm( h, skey->u, h, skey->q );
       /* m = m2 + h * p */

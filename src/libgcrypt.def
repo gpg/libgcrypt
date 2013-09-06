@@ -239,5 +239,11 @@ EXPORTS
 
       gcry_sexp_nth_buffer      @214
 
+      gcry_mpi_ec_curve_point   @215
+
+      gcry_mpi_is_neg           @216
+      gcry_mpi_neg              @217
+      gcry_mpi_abs              @218
+
 
 ;; end of file with public symbols for Windows.

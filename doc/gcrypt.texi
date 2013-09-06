@@ -2424,7 +2424,7 @@ For the EdDSA algorithm (cf. Ed25515) the required input parameters are:
 @example
 (data
   (flags eddsa)
-  (hash-algo sha-512)
+  (hash-algo sha512)
   (value @var{message}))
 @end example
 
@@ -3763,6 +3763,17 @@ Set @var{u} into @var{w} and release @var{u}.  If @var{w} is
 @code{NULL} only @var{u} will be released.
 @end deftypefun
 
+@deftypefun void gcry_mpi_neg (@w{gcry_mpi_t @var{w}}, @w{gcry_mpi_t @var{u}})
+
+Set the sign of @var{w} to the negative of @var{u}.
+@end deftypefun
+
+@deftypefun void gcry_mpi_abs (@w{gcry_mpi_t @var{w}})
+
+Clear the sign of @var{w}.
+@end deftypefun
+
+
 @node MPI formats
 @section MPI formats
 
@@ -3947,6 +3958,11 @@ value is less than the other number.
 Compare the multi-precision-integers number @var{u} with the unsigned
 integer @var{v} returning 0 for equality, a positive value for @var{u} >
 @var{v} and a negative for @var{u} < @var{v}.
+@end deftypefun
+
+@deftypefun int gcry_mpi_is_neg (@w{const gcry_mpi_t @var{a}})
+
+Return 1 if @var{a} is less than zero; return 0 if zero or positive.
 @end deftypefun
 
 

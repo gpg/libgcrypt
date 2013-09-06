@@ -1351,7 +1351,7 @@ _gcry_derive_x931_prime (const gcry_mpi_t xp,
     mpi_sub (r1, r1, tmp);
 
     /* Fixup a negative value.  */
-    if (mpi_is_neg (r1))
+    if (mpi_has_sign (r1))
       mpi_add (r1, r1, p1p2);
 
     /* yp0 = xp + (r1 - xp mod p1*p2)  */
