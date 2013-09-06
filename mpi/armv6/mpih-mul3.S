@@ -63,20 +63,23 @@ _gcry_mpih_submul_1:
 
 .Large_loop:
 	ldr	%r5, [%r1], #4;
-	ldm	%r0, {%r4, %r6, %r8, %r10};
-
 	mov	%r9, #0;
+	ldr	%r4, [%r0, #0];
+
 	umlal	%lr, %r9, %r5, %r3;
+	ldr	%r6, [%r0, #4];
 	ldr	%r5, [%r1], #4;
 	sbcs	%r4, %r4, %lr;
 
 	mov	%lr, #0;
 	umlal	%r9, %lr, %r5, %r3;
+	ldr	%r8, [%r0, #8];
 	ldr	%r5, [%r1], #4;
 	sbcs	%r6, %r6, %r9;
 
 	mov	%r9, #0;
 	umlal	%lr, %r9, %r5, %r3;
+	ldr	%r10, [%r0, #12];
 	ldr	%r5, [%r1], #4;
 	sbcs	%r8, %r8, %lr;
 

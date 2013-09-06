@@ -60,18 +60,18 @@ _gcry_mpih_mul_1:
 	beq	.Lend;
 
 .Large_loop:
-	mov	%r9, #0;
 	ldm	%r1!, {%r5, %r6, %r7, %r8};
+	mov	%r9, #0;
 	mov	%r10, #0;
 	umlal	%r4, %r9, %r5, %r3;
 	mov	%r11, #0;
 	umlal	%r9, %r10, %r6, %r3;
-	mov	%lr, #0;
+	str	%r4, [%r0], #4;
+	mov	%r4, #0;
 	umlal	%r10, %r11, %r7, %r3;
 	subs	%r2, #4;
-	umlal	%r11, %lr, %r8, %r3;
-	stm	%r0!, {%r4, %r9, %r10, %r11};
-	mov	%r4, %lr;
+	umlal	%r11, %r4, %r8, %r3;
+	stm	%r0!, {%r9, %r10, %r11};
 	bne	.Large_loop;
 
 .Lend:

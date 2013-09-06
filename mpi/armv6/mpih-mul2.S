@@ -61,8 +61,8 @@ _gcry_mpih_addmul_1:
 	beq	.Lend;
 
 .Large_loop:
-	ldm	%r0, {%r4, %r6, %r8, %r10};
 	ldr	%r5, [%r1], #4;
+	ldm	%r0, {%r4, %r6, %r8, %r10};
 
 	sub	%r2, #4;
 	adcs	%r4, %lr;
