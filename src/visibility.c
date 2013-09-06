@@ -547,6 +547,13 @@ gcry_mpi_ec_mul (gcry_mpi_point_t w, gcry_mpi_t n, gcry_mpi_point_t u,
                           _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
 }
 
+int
+gcry_mpi_ec_curve_point (gcry_mpi_point_t point, gcry_ctx_t ctx)
+{
+  return _gcry_mpi_ec_curve_point
+    (point, _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
+}
+
 unsigned int
 gcry_mpi_get_nbits (gcry_mpi_t a)
 {

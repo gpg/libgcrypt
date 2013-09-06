@@ -328,6 +328,7 @@ ec_powm (gcry_mpi_t w, const gcry_mpi_t b, const gcry_mpi_t e,
          mpi_ec_t ctx)
 {
   mpi_powm (w, b, e, ctx->p);
+  _gcry_mpi_abs (w);
 }
 
 static void
@@ -1103,4 +1104,53 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   mpi_free (h);
   mpi_free (k);
 #endif
+}
+
+
+/* Return true if POINT is on the curve described by CTX.  */
+int
+_gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
+{
+  int res = 0;
+  gcry_mpi_t x, y, w;
+
+  x = mpi_new (0);
+  y = mpi_new (0);
+  w = mpi_new (0);
+
+  if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
+    return 0;
+
+  switch (ctx->model)
+    {
+    case MPI_EC_WEIERSTRASS:
+      log_fatal ("%s: %s not yet supported\n",
+                 "_gcry_mpi_ec_curve_point", "Weierstrass");
+      break;
+    case MPI_EC_MONTGOMERY:
+      log_fatal ("%s: %s not yet supported\n",
+                 "_gcry_mpi_ec_curve_point", "Montgomery");
+      break;
+    case MPI_EC_TWISTEDEDWARDS:
+      {
+        /* a · x^2 + y^2 - 1 - b · x^2 · y^2 == 0 */
+        ec_powm (x, x, mpi_const (MPI_C_TWO), ctx);
+        ec_powm (y, y, mpi_const (MPI_C_TWO), ctx);
+        ec_mulm (w, ctx->a, x, ctx);
+        ec_addm (w, w, y, ctx);
+        ec_subm (w, w, mpi_const (MPI_C_ONE), ctx);
+        ec_mulm (x, x, y, ctx);
+        ec_mulm (x, x, ctx->b, ctx);
+        ec_subm (w, w, x, ctx);
+        if (!mpi_cmp_ui (w, 0))
+          res = 1;
+      }
+      break;
+    }
+
+  gcry_mpi_release (w);
+  gcry_mpi_release (x);
+  gcry_mpi_release (y);
+
+  return res;
 }

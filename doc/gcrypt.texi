@@ -4197,6 +4197,13 @@ Multiply the point @var{u} of the elliptic curve described by
 @var{ctx} by @var{n} and store the result into @var{w}.
 @end deftypefun
 
+@deftypefun int gcry_mpi_ec_curve_point ( @
+ @w{gcry_mpi_point_t @var{point}}, @w{gcry_ctx_t @var{ctx}})
+
+Return true if @var{point} is on the elliptic curve described by
+@var{ctx}.
+@end deftypefun
+
 
 @node Miscellaneous
 @section Miscellaneous
