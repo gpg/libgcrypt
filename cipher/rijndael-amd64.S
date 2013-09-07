@@ -23,7 +23,7 @@
 #if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && defined(USE_AES)
 
 #ifdef __PIC__
-#  define RIP %rip
+#  define RIP (%rip)
 #else
 #  define RIP
 #endif
@@ -177,7 +177,7 @@ _gcry_aes_amd64_encrypt_block:
 	movq %rbx, (3 * 8)(%rsp);
 	movq %r12, (4 * 8)(%rsp);
 
-	leaq .LtableE0(RIP), RTAB;
+	leaq .LtableE0 RIP, RTAB;
 
 	/* read input block */
 	movl 0 * 4(%rdx), RAd;
@@ -298,7 +298,7 @@ _gcry_aes_amd64_decrypt_block:
 	movq %rbx, (3 * 8)(%rsp);
 	movq %r12, (4 * 8)(%rsp);
 
-	leaq .LtableD0(RIP), RTAB;
+	leaq .LtableD0 RIP, RTAB;
 
 	/* read input block */
 	movl 0 * 4(%rdx), RAd;
