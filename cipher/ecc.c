@@ -408,21 +408,16 @@ sign_ecdsa (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s,
   x = mpi_alloc (0);
   point_init (&I);
 
-  mpi_set_ui (s, 0);
-  mpi_set_ui (r, 0);
-
   ctx = _gcry_mpi_ec_p_internal_new (skey->E.model, skey->E.dialect,
                                      skey->E.p, skey->E.a, skey->E.b);
 
-  while (!mpi_cmp_ui (s, 0)) /* s == 0 */
+  /* Two loops to avoid R or S are zero.  This is more of a joke than
+     a real demand because the probability of them being zero is less
+     than any hardware failure.  Some specs however require it.  */
+  do
     {
-      while (!mpi_cmp_ui (r, 0)) /* r == 0 */
+      do
         {
-          /* Note, that we are guaranteed to enter this loop at least
-             once because r has been intialized to 0.  We can't use a
-             do_while because we want to keep the value of R even if S
-             has to be recomputed.  */
-
           mpi_free (k);
           k = NULL;
           if ((flags & PUBKEY_FLAG_RFC6979) && hashalgo)
@@ -458,11 +453,14 @@ sign_ecdsa (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s,
             }
           mpi_mod (r, x, skey->E.n);  /* r = x mod n */
         }
+      while (!mpi_cmp_ui (r, 0));
+
       mpi_mulm (dr, skey->d, r, skey->E.n); /* dr = d*r mod n  */
       mpi_addm (sum, hash, dr, skey->E.n);  /* sum = hash + (d*r) mod n  */
       mpi_invm (k_1, k, skey->E.n);         /* k_1 = k^(-1) mod n  */
       mpi_mulm (s, k_1, sum, skey->E.n);    /* s = k^(-1)*(hash+(d*r)) mod n */
     }
+  while (!mpi_cmp_ui (s, 0));
 
   if (DBG_CIPHER)
     {
