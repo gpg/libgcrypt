@@ -247,39 +247,6 @@ pubkey_get_nenc (int algo)
 }
 
 
-/* Generate a new public key with algorithm ALGO of size NBITS
-   and return it at SKEY.  USE_E depends on the ALGORITHM.  GENPARMS
-   is passed to the algorithm module if it features an extended
-   generation function.  RETFACTOR is used by some algorithms to
-   return certain additional information which are in general not
-   required.
-
-   The function returns the error code number or 0 on success. */
-static gcry_err_code_t
-pubkey_generate (int algo,
-                 unsigned int nbits,
-                 unsigned long use_e,
-                 gcry_sexp_t genparms,
-                 gcry_mpi_t *skey, gcry_mpi_t **retfactors,
-                 gcry_sexp_t *r_extrainfo)
-{
-  gcry_err_code_t rc;
-  gcry_pk_spec_t *spec = spec_from_algo (algo);
-
-  if (spec && spec->ext_generate)
-    rc = spec->ext_generate (algo, nbits, use_e, genparms,
-                             skey, retfactors, r_extrainfo);
-  else if (spec && spec->generate)
-    rc = spec->generate (algo, nbits, use_e, skey, retfactors);
-  else if (spec)
-    rc = GPG_ERR_NOT_IMPLEMENTED;
-  else
-    rc = GPG_ERR_PUBKEY_ALGO;
-
-  return rc;
-}
-
-
 static gcry_err_code_t
 pubkey_check_secret_key (int algo, gcry_mpi_t *skey)
 {
@@ -1942,16 +1909,9 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   char *name = NULL;
   size_t n;
   gcry_err_code_t rc = GPG_ERR_NO_ERROR;
-  int i, j;
-  const char *algo_name = NULL;
-  const char *sec_elems = NULL, *pub_elems = NULL;
-  gcry_mpi_t skey[12];
-  gcry_mpi_t *factors = NULL;
-  gcry_sexp_t extrainfo = NULL;
   unsigned int nbits = 0;
   unsigned long use_e = 0;
 
-  skey[0] = NULL;
   *r_key = NULL;
 
   list = gcry_sexp_find_token (s_parms, "genkey", 0);
@@ -1986,14 +1946,6 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       rc = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm.  */
       goto leave;
     }
-
-  algo_name = spec->aliases? *spec->aliases : NULL;
-  if (!algo_name || !*algo_name)
-    algo_name = spec->name;
-  pub_elems = spec->elements_pkey;
-  sec_elems = spec->elements_skey;
-  if (strlen (sec_elems) >= DIM(skey))
-    BUG ();
 
   /* Handle the optional rsa-use-e element.  Actually this belong into
      the algorithm module but we have this parameter in the public
@@ -2041,164 +1993,14 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
   else
     nbits = 0;
 
-  /* Pass control to the algorithm module. */
-  rc = pubkey_generate (spec->algo, nbits, use_e, list, skey,
-                        &factors, &extrainfo);
-  gcry_sexp_release (list); list = NULL;
-  if (rc)
-    goto leave;
-
-  /* Key generation succeeded: Build an S-expression.  */
-  {
-    char *string, *p;
-    size_t nelem=0, nelem_cp = 0, needed=0;
-    gcry_mpi_t mpis[30];
-    int percent_s_idx = -1;
-    int percent_s_idx2 = -1;
-
-    /* Estimate size of format string.  */
-    nelem = strlen (pub_elems) + strlen (sec_elems);
-    if (factors)
-      {
-        for (i = 0; factors[i]; i++)
-          nelem++;
-      }
-    if (extrainfo)
-      nelem += 2;
-    nelem_cp = nelem;
-
-    needed += nelem * 10;
-    /* (+10 for two times EXTRAINFO ("%S")).  */
-    needed += 2 * strlen (algo_name) + 300 + 10;
-    if (nelem > DIM (mpis))
-      BUG ();
-
-    /* Build the string. */
-    nelem = 0;
-    string = p = gcry_malloc (needed);
-    if (!string)
-      {
-        rc = gpg_err_code_from_syserror ();
-        goto leave;
-      }
-    p = stpcpy (p, "(key-data");
-    p = stpcpy (p, "(public-key(");
-    p = stpcpy (p, algo_name);
-    for(i = 0; pub_elems[i]; i++)
-      {
-        *p++ = '(';
-        *p++ = pub_elems[i];
-        p = stpcpy (p, "%m)");
-        mpis[nelem++] = skey[i];
-      }
-    if (extrainfo
-        && (spec->algo == GCRY_PK_ECDSA || spec->algo == GCRY_PK_ECDH))
-      {
-        /* Very ugly hack to insert the used curve parameter into the
-           list of public key parameters.  */
-        percent_s_idx = nelem++;
-        p = stpcpy (p, "%S");
-      }
-    p = stpcpy (p, "))");
-    p = stpcpy (p, "(private-key(");
-    p = stpcpy (p, algo_name);
-    for (i = 0; sec_elems[i]; i++)
-      {
-        *p++ = '(';
-        *p++ = sec_elems[i];
-        p = stpcpy (p, "%m)");
-        mpis[nelem++] = skey[i];
-      }
-    if (extrainfo
-        && (spec->algo == GCRY_PK_ECDSA || spec->algo == GCRY_PK_ECDH))
-      {
-        percent_s_idx2 = nelem++;
-        p = stpcpy (p, "%S");
-      }
-    p = stpcpy (p, "))");
-
-    /* Hack to make release_mpi_array() work.  */
-    skey[i] = NULL;
-
-    if (extrainfo)
-      {
-        /* If we have extrainfo we should not have any factors.  */
-        if (percent_s_idx == -1)
-          {
-            percent_s_idx = nelem++;
-            p = stpcpy (p, "%S");
-          }
-      }
-    else if (factors && factors[0])
-      {
-        p = stpcpy (p, "(misc-key-info(pm1-factors");
-        for(i = 0; factors[i]; i++)
-          {
-            p = stpcpy (p, "%m");
-            mpis[nelem++] = factors[i];
-          }
-        p = stpcpy (p, "))");
-      }
-    strcpy (p, ")");
-    gcry_assert (p - string < needed);
-
-    while (nelem < DIM (mpis))
-      mpis[nelem++] = NULL;
-
-    {
-      int elem_n = strlen (pub_elems) + strlen (sec_elems);
-      void **arg_list;
-
-      if (percent_s_idx != -1)
-        elem_n++;
-      if (percent_s_idx2 != -1)
-        elem_n++;
-
-      arg_list = gcry_calloc (nelem_cp, sizeof *arg_list);
-      if (!arg_list)
-        {
-          rc = gpg_err_code_from_syserror ();
-          goto leave;
-        }
-      for (i = j = 0; i < elem_n; i++)
-        {
-          if (i == percent_s_idx)
-            arg_list[j++] = &extrainfo;
-          else if (i == percent_s_idx2)
-            arg_list[j++] = &extrainfo;
-          else
-            arg_list[j++] = mpis + i;
-        }
-      if (extrainfo)
-        ;
-      else if (factors && factors[0])
-        {
-          for (; i < nelem_cp; i++)
-            arg_list[j++] = factors + i - elem_n;
-        }
-      rc = gcry_sexp_build_array (r_key, NULL, string, arg_list);
-      gcry_free (arg_list);
-      if (rc)
-	BUG ();
-      gcry_assert (DIM (mpis) == 30); /* Reminder to make sure that
-                                         the array gets increased if
-                                         new parameters are added. */
-    }
-    gcry_free (string);
-  }
+  if (spec->generate)
+    rc = spec->generate (spec->algo, nbits, use_e, list, r_key);
+  else
+    rc = GPG_ERR_NOT_IMPLEMENTED;
 
  leave:
+  gcry_sexp_release (list); list = NULL;
   gcry_free (name);
-  gcry_sexp_release (extrainfo);
-  release_mpi_array (skey);
-  /* Don't free SKEY itself, it is an stack allocated array. */
-
-  if (factors)
-    {
-      release_mpi_array ( factors );
-      gcry_free (factors);
-    }
-
   gcry_sexp_release (l3);
   gcry_sexp_release (l2);
   gcry_sexp_release (list);

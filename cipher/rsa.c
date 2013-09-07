@@ -783,10 +783,8 @@ rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
  *********************************************/
 
 static gcry_err_code_t
-rsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
-                  const gcry_sexp_t genparms,
-                  gcry_mpi_t *skey, gcry_mpi_t **retfactors,
-                  gcry_sexp_t *r_extrainfo)
+rsa_generate (int algo, unsigned int nbits, unsigned long evalue,
+              const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 {
   RSA_secret_key sk;
   gpg_err_code_t ec;
@@ -794,10 +792,11 @@ rsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   int transient_key = 0;
   int use_x931 = 0;
   gcry_sexp_t l1;
+  gcry_sexp_t swap_info = NULL;
 
   (void)algo;
 
-  *retfactors = NULL; /* We don't return them.  */
+  memset (&sk, 0, sizeof sk);
 
   deriveparms = (genparms?
                  gcry_sexp_find_token (genparms, "derive-parms", 0) : NULL);
@@ -817,20 +816,8 @@ rsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
       int swapped;
       ec = generate_x931 (&sk, nbits, evalue, deriveparms, &swapped);
       gcry_sexp_release (deriveparms);
-      if (!ec && r_extrainfo && swapped)
-        {
-          ec = gcry_sexp_new (r_extrainfo,
-                              "(misc-key-info(p-q-swapped))", 0, 1);
-          if (ec)
-            {
-              gcry_mpi_release (sk.n); sk.n = NULL;
-              gcry_mpi_release (sk.e); sk.e = NULL;
-              gcry_mpi_release (sk.p); sk.p = NULL;
-              gcry_mpi_release (sk.q); sk.q = NULL;
-              gcry_mpi_release (sk.d); sk.d = NULL;
-              gcry_mpi_release (sk.u); sk.u = NULL;
-            }
-        }
+      if (!ec && swapped)
+        ec = gcry_sexp_new (&swap_info, "(misc-key-info(p-q-swapped))", 0, 1);
     }
   else
     {
@@ -847,23 +834,28 @@ rsa_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
 
   if (!ec)
     {
-      skey[0] = sk.n;
-      skey[1] = sk.e;
-      skey[2] = sk.d;
-      skey[3] = sk.p;
-      skey[4] = sk.q;
-      skey[5] = sk.u;
+      ec = gcry_err_code (gcry_sexp_build
+                          (r_skey, NULL,
+                           "(key-data"
+                           " (public-key"
+                           "  (rsa(n%m)(e%m)))"
+                           " (private-key"
+                           "  (rsa(n%m)(e%m)(d%m)(p%m)(q%m)(u%m)))"
+                           " %S)",
+                           sk.n, sk.e,
+                           sk.n, sk.e, sk.d, sk.p, sk.q, sk.u,
+                           swap_info));
     }
 
+  mpi_free (sk.n);
+  mpi_free (sk.e);
+  mpi_free (sk.p);
+  mpi_free (sk.q);
+  mpi_free (sk.d);
+  mpi_free (sk.u);
+  gcry_sexp_release (swap_info);
+
   return ec;
-}
-
-
-static gcry_err_code_t
-rsa_generate (int algo, unsigned int nbits, unsigned long evalue,
-              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
-{
-  return rsa_generate_ext (algo, nbits, evalue, NULL, skey, retfactors, NULL);
 }
 
 
@@ -1440,6 +1432,5 @@ gcry_pk_spec_t _gcry_pubkey_spec_rsa =
     rsa_verify,
     rsa_get_nbits,
     run_selftests,
-    rsa_generate_ext,
     compute_keygrip
   };

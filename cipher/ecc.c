@@ -1152,12 +1152,9 @@ verify_eddsa (gcry_mpi_t input, ECC_public_key *pkey,
  **************  interface  ******************
  *********************************************/
 
-/* Extended version of ecc_generate.  */
 static gcry_err_code_t
-ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
-                  const gcry_sexp_t genparms,
-                  gcry_mpi_t *skey, gcry_mpi_t **retfactors,
-                  gcry_sexp_t *r_extrainfo)
+ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
+              const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 {
   gpg_err_code_t rc;
   elliptic_curve_t E;
@@ -1169,9 +1166,16 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   int transient_key = 0;
   gcry_random_level_t random_level;
   mpi_ec_t ctx = NULL;
+  gcry_sexp_t curve_info = NULL;
+  gcry_mpi_t base = NULL;
+  gcry_mpi_t public = NULL;
+  gcry_mpi_t secret = NULL;
 
   (void)algo;
   (void)evalue;
+
+  memset (&E, 0, sizeof E);
+  memset (&sk, 0, sizeof sk);
 
   if (genparms)
     {
@@ -1240,7 +1244,7 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
   /* Copy data to the result.  */
   if (_gcry_mpi_ec_get_affine (x, y, &sk.E.G, ctx))
     log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "G");
-  skey[3] = _gcry_ecc_ec2os (x, y, sk.E.p);
+  base = _gcry_ecc_ec2os (x, y, sk.E.p);
   if (sk.E.dialect == ECC_DIALECT_ED25519)
     {
       unsigned char *encpk;
@@ -1249,64 +1253,65 @@ ecc_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
       rc = eddsa_encodepoint (&sk.Q, 256/8, ctx, x, y, &encpk, &encpklen);
       if (rc)
         return rc;
-      skey[5] = mpi_new (0);
-      gcry_mpi_set_opaque (skey[5], encpk, encpklen*8);
+      public = mpi_new (0);
+      gcry_mpi_set_opaque (public, encpk, encpklen*8);
       encpk = NULL;
-      if (DBG_CIPHER)
-        log_printmpi ("ecgen      e_pk", skey[5]);
     }
   else
     {
       if (_gcry_mpi_ec_get_affine (x, y, &sk.Q, ctx))
         log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
-      skey[5] = _gcry_ecc_ec2os (x, y, sk.E.p);
+      public = _gcry_ecc_ec2os (x, y, sk.E.p);
     }
-  skey[0] = sk.E.p; sk.E.p = NULL;
-  skey[1] = sk.E.a; sk.E.a = NULL;
-  skey[2] = sk.E.b; sk.E.b = NULL;
-  skey[4] = sk.E.n; sk.E.n = NULL;
-  skey[6] = sk.d; sk.d = NULL;
-
-  if (E.name)  /* Fixme: No error return checking.  */
-    gcry_sexp_build (r_extrainfo, NULL, "(curve %s)", E.name);
-
-  /* Make an dummy list of factors.  */
-  *retfactors = gcry_calloc ( 1, sizeof **retfactors );
-  if (!*retfactors)
+  secret = sk.d; sk.d = NULL;
+  if (E.name)
     {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
+      rc = gcry_sexp_build (&curve_info, NULL, "(curve %s)", E.name);
+      if (rc)
+        goto leave;
     }
+
+  rc = gcry_err_code (gcry_sexp_build
+                      (r_skey, NULL,
+                       "(key-data"
+                       " (public-key"
+                       "  (ecc%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))"
+                       " (private-key"
+                       "  (ecc%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))"
+                       " )",
+                       curve_info,
+                       sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public,
+                       curve_info,
+                       sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public, secret));
+  if (rc)
+    goto leave;
 
   if (DBG_CIPHER)
     {
-      log_printmpi ("ecgen result  p", skey[0]);
-      log_printmpi ("ecgen result  a", skey[1]);
-      log_printmpi ("ecgen result  b", skey[2]);
-      log_printmpi ("ecgen result  G", skey[3]);
-      log_printmpi ("ecgen result  n", skey[4]);
-      log_printmpi ("ecgen result  Q", skey[5]);
-      log_printmpi ("ecgen result  d", skey[6]);
+      log_printmpi ("ecgen result  p", sk.E.p);
+      log_printmpi ("ecgen result  a", sk.E.a);
+      log_printmpi ("ecgen result  b", sk.E.b);
+      log_printmpi ("ecgen result  G", base);
+      log_printmpi ("ecgen result  n", sk.E.n);
+      log_printmpi ("ecgen result  Q", public);
+      log_printmpi ("ecgen result  d", secret);
     }
-  rc = 0;
 
  leave:
-  point_free (&sk.E.G);
-  point_free (&sk.Q);
-  _gcry_mpi_ec_free (ctx);
+  mpi_free (secret);
+  mpi_free (public);
+  mpi_free (base);
+  {
+    _gcry_ecc_curve_free (&sk.E);
+    point_free (&sk.Q);
+    mpi_free (sk.d);
+  }
   _gcry_ecc_curve_free (&E);
-  gcry_mpi_release (x);
-  gcry_mpi_release (y);
+  mpi_free (x);
+  mpi_free (y);
+  _gcry_mpi_ec_free (ctx);
+  gcry_sexp_release (curve_info);
   return rc;
-}
-
-
-static gcry_err_code_t
-ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
-              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
-{
-  (void)evalue;
-  return ecc_generate_ext (algo, nbits, 0, NULL, skey, retfactors, NULL);
 }
 
 
@@ -2020,7 +2025,6 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
     ecc_verify,
     ecc_get_nbits,
     run_selftests,
-    ecc_generate_ext,
     compute_keygrip,
     _gcry_ecc_get_param,
     _gcry_ecc_get_curve,
@@ -2041,7 +2045,6 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdh =
     NULL,
     ecc_get_nbits,
     run_selftests,
-    ecc_generate_ext,
     compute_keygrip,
     _gcry_ecc_get_param,
     _gcry_ecc_get_curve,

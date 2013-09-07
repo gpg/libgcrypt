@@ -1,6 +1,7 @@
 /* Elgamal.c  -  Elgamal Public Key encryption
  * Copyright (C) 1998, 2000, 2001, 2002, 2003,
  *               2008  Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -197,7 +198,7 @@ gen_k( gcry_mpi_t p, int small_k )
 
   nbytes = (nbits+7)/8;
   if( DBG_CIPHER )
-    log_debug("choosing a random k ");
+    log_debug("choosing a random k\n");
   mpi_sub_ui( p_1, p, 1);
   for(;;)
     {
@@ -292,7 +293,7 @@ generate ( ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t **ret_factors )
     BUG();
   x = gcry_mpi_snew ( xbits );
   if( DBG_CIPHER )
-    log_debug("choosing a random x of size %u", xbits );
+    log_debug("choosing a random x of size %u\n", xbits );
   rndbuf = NULL;
   do
     {
@@ -330,11 +331,11 @@ generate ( ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t **ret_factors )
 
   if( DBG_CIPHER )
     {
-      progress('\n');
-      log_mpidump("elg  p= ", p );
-      log_mpidump("elg  g= ", g );
-      log_mpidump("elg  y= ", y );
-      log_mpidump("elg  x= ", x );
+      progress ('\n');
+      log_mpidump ("elg  p", p );
+      log_mpidump ("elg  g", g );
+      log_mpidump ("elg  y", y );
+      log_mpidump ("elg  x", x );
     }
 
   /* Copy the stuff to the key structures */
@@ -402,10 +403,10 @@ generate_using_x (ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t x,
   if ( DBG_CIPHER )
     {
       progress ('\n');
-      log_mpidump ("elg  p= ", p );
-      log_mpidump ("elg  g= ", g );
-      log_mpidump ("elg  y= ", y );
-      log_mpidump ("elg  x= ", x );
+      log_mpidump ("elg  p", p );
+      log_mpidump ("elg  g", g );
+      log_mpidump ("elg  y", y );
+      log_mpidump ("elg  x", x );
     }
 
   /* Copy the stuff to the key structures */
@@ -469,12 +470,12 @@ do_encrypt(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
 #if 0
   if( DBG_CIPHER )
     {
-      log_mpidump("elg encrypted y= ", pkey->y);
-      log_mpidump("elg encrypted p= ", pkey->p);
-      log_mpidump("elg encrypted k= ", k);
-      log_mpidump("elg encrypted M= ", input);
-      log_mpidump("elg encrypted a= ", a);
-      log_mpidump("elg encrypted b= ", b);
+      log_mpidump("elg encrypted y", pkey->y);
+      log_mpidump("elg encrypted p", pkey->p);
+      log_mpidump("elg encrypted k", k);
+      log_mpidump("elg encrypted M", input);
+      log_mpidump("elg encrypted a", a);
+      log_mpidump("elg encrypted b", b);
     }
 #endif
   mpi_free(k);
@@ -495,11 +496,11 @@ decrypt(gcry_mpi_t output, gcry_mpi_t a, gcry_mpi_t b, ELG_secret_key *skey )
 #if 0
   if( DBG_CIPHER )
     {
-      log_mpidump("elg decrypted x= ", skey->x);
-      log_mpidump("elg decrypted p= ", skey->p);
-      log_mpidump("elg decrypted a= ", a);
-      log_mpidump("elg decrypted b= ", b);
-      log_mpidump("elg decrypted M= ", output);
+      log_mpidump ("elg decrypted x", skey->x);
+      log_mpidump ("elg decrypted p", skey->p);
+      log_mpidump ("elg decrypted a", a);
+      log_mpidump ("elg decrypted b", b);
+      log_mpidump ("elg decrypted M", output);
     }
 #endif
   mpi_free(t1);
@@ -535,14 +536,14 @@ sign(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_secret_key *skey )
 #if 0
     if( DBG_CIPHER )
       {
-	log_mpidump("elg sign p= ", skey->p);
-	log_mpidump("elg sign g= ", skey->g);
-	log_mpidump("elg sign y= ", skey->y);
-	log_mpidump("elg sign x= ", skey->x);
-	log_mpidump("elg sign k= ", k);
-	log_mpidump("elg sign M= ", input);
-	log_mpidump("elg sign a= ", a);
-	log_mpidump("elg sign b= ", b);
+	log_mpidump ("elg sign p", skey->p);
+	log_mpidump ("elg sign g", skey->g);
+	log_mpidump ("elg sign y", skey->y);
+	log_mpidump ("elg sign x", skey->x);
+	log_mpidump ("elg sign k", k);
+	log_mpidump ("elg sign M", input);
+	log_mpidump ("elg sign a", a);
+	log_mpidump ("elg sign b", b);
       }
 #endif
     mpi_free(k);
@@ -613,19 +614,20 @@ verify(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
  *********************************************/
 
 static gpg_err_code_t
-elg_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
-                  const gcry_sexp_t genparms,
-                  gcry_mpi_t *skey, gcry_mpi_t **retfactors,
-                  gcry_sexp_t *r_extrainfo)
+elg_generate (int algo, unsigned int nbits, unsigned long evalue,
+              const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 {
-  gpg_err_code_t ec;
+  gpg_err_code_t rc;
   ELG_secret_key sk;
   gcry_mpi_t xvalue = NULL;
   gcry_sexp_t l1;
+  gcry_mpi_t *factors = NULL;
+  gcry_sexp_t misc_info = NULL;
 
   (void)algo;
   (void)evalue;
-  (void)r_extrainfo;
+
+  memset (&sk, 0, sizeof sk);
 
   if (genparms)
     {
@@ -642,40 +644,79 @@ elg_generate_ext (int algo, unsigned int nbits, unsigned long evalue,
 
   if (xvalue)
     {
-      ec = generate_using_x (&sk, nbits, xvalue, retfactors);
+      rc = generate_using_x (&sk, nbits, xvalue, &factors);
       mpi_free (xvalue);
     }
   else
     {
-      generate (&sk, nbits, retfactors);
-      ec = 0;
+      generate (&sk, nbits, &factors);
+      rc = 0;
+    }
+  if (rc)
+    goto leave;
+
+  if (factors && factors[0])
+    {
+      int nfac;
+      void **arg_list;
+      char *buffer, *p;
+
+      for (nfac = 0; factors[nfac]; nfac++)
+        ;
+      arg_list = gcry_calloc (nfac+1, sizeof *arg_list);
+      if (!arg_list)
+        {
+          rc = gpg_err_code_from_syserror ();
+          goto leave;
+        }
+      buffer = gcry_malloc (30 + nfac*2 + 2 + 1);
+      if (!buffer)
+        {
+          rc = gpg_err_code_from_syserror ();
+          gcry_free (arg_list);
+          goto leave;
+        }
+      p = stpcpy (buffer, "(misc-key-info(pm1-factors");
+      for(nfac = 0; factors[nfac]; nfac++)
+        {
+          p = stpcpy (p, "%m");
+          arg_list[nfac] = factors + nfac;
+        }
+      p = stpcpy (p, "))");
+      rc = gcry_sexp_build_array (&misc_info, NULL, buffer, arg_list);
+      gcry_free (arg_list);
+      gcry_free (buffer);
+      if (rc)
+        goto leave;
     }
 
-  skey[0] = sk.p;
-  skey[1] = sk.g;
-  skey[2] = sk.y;
-  skey[3] = sk.x;
+  rc = gcry_err_code (gcry_sexp_build
+                      (r_skey, NULL,
+                       "(key-data"
+                       " (public-key"
+                       "  (elg(p%m)(g%m)(y%m)))"
+                       " (private-key"
+                       "  (elg(p%m)(g%m)(y%m)(x%m)))"
+                       " %S)",
+                       sk.p, sk.g, sk.y,
+                       sk.p, sk.g, sk.y, sk.x,
+                       misc_info));
 
-  return ec;
-}
+ leave:
+  mpi_free (sk.p);
+  mpi_free (sk.g);
+  mpi_free (sk.y);
+  mpi_free (sk.x);
+  gcry_sexp_release (misc_info);
+  if (factors)
+    {
+      gcry_mpi_t *mp;
+      for (mp = factors; *mp; mp++)
+        mpi_free (*mp);
+      gcry_free (factors);
+    }
 
-
-static gcry_err_code_t
-elg_generate (int algo, unsigned int nbits, unsigned long evalue,
-              gcry_mpi_t *skey, gcry_mpi_t **retfactors)
-{
-  ELG_secret_key sk;
-
-  (void)algo;
-  (void)evalue;
-
-  generate (&sk, nbits, retfactors);
-  skey[0] = sk.p;
-  skey[1] = sk.g;
-  skey[2] = sk.y;
-  skey[3] = sk.x;
-
-  return GPG_ERR_NO_ERROR;
+  return rc;
 }
 
 
@@ -863,8 +904,6 @@ gcry_pk_spec_t _gcry_pubkey_spec_elg =
     elg_sign,
     elg_verify,
     elg_get_nbits,
-    NULL,
-    elg_generate_ext
   };
 
 gcry_pk_spec_t _gcry_pubkey_spec_elg_e =
@@ -879,7 +918,5 @@ gcry_pk_spec_t _gcry_pubkey_spec_elg_e =
     elg_decrypt,
     elg_sign,
     elg_verify,
-    elg_get_nbits,
-    NULL,
-    elg_generate_ext
+    elg_get_nbits
   };

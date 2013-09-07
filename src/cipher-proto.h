@@ -49,18 +49,10 @@ typedef gpg_err_code_t (*selftest_func_t)
 
 /* Type for the pk_generate function.  */
 typedef gcry_err_code_t (*gcry_pk_generate_t) (int algo,
-					       unsigned int nbits,
-					       unsigned long use_e,
-					       gcry_mpi_t *skey,
-					       gcry_mpi_t **retfactors);
-/* Type for the extended generate function.  */
-typedef gcry_err_code_t (*pk_ext_generate_t) (int algo,
-                                              unsigned int nbits,
-                                              unsigned long evalue,
-                                              gcry_sexp_t genparms,
-                                              gcry_mpi_t *skey,
-                                              gcry_mpi_t **retfactors,
-                                              gcry_sexp_t *extrainfo);
+                                               unsigned int nbits,
+                                               unsigned long evalue,
+                                               gcry_sexp_t genparms,
+                                               gcry_sexp_t *r_skey);
 
 /* Type for the pk_check_secret_key function.  */
 typedef gcry_err_code_t (*gcry_pk_check_secret_key_t) (int algo,
@@ -143,7 +135,6 @@ typedef struct gcry_pk_spec
   gcry_pk_verify_t verify;
   gcry_pk_get_nbits_t get_nbits;
   selftest_func_t selftest;
-  pk_ext_generate_t ext_generate;
   pk_comp_keygrip_t comp_keygrip;
   pk_get_param_t get_param;
   pk_get_curve_t get_curve;
