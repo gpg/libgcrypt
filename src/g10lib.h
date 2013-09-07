@@ -67,7 +67,10 @@
 #endif
 
 
-#if __GNUC__ > 2 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 5 )
+/* I am not sure since when the unused attribute is really supported.
+   In any case it it only needed for gcc versions which print a
+   warning.  Thus let us require gcc >= 3.5.  */
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 5 )
 #define GCC_ATTR_UNUSED  __attribute__ ((unused))
 #else
 #define GCC_ATTR_UNUSED
