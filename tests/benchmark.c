@@ -22,14 +22,7 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <stdarg.h>
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#else
-#include <sys/times.h>
-#endif
 
 #ifdef _GCRYPT_IN_LIBGCRYPT
 # include "../src/gcrypt-int.h"
@@ -37,6 +30,8 @@
 #else
 # include <gcrypt.h>
 #endif
+
+#include "stopwatch.h"
 
 
 #define PGM "benchmark"
@@ -255,15 +250,6 @@ static const char sample_public_dsa_key_3072[] =
 		  exit(2);} while(0)
 
 
-/* Helper for the start and stop timer. */
-#ifdef _WIN32
-struct {
-  FILETIME creation_time, exit_time, kernel_time, user_time;
-} started_at, stopped_at;
-#else
-static clock_t started_at, stopped_at;
-#endif
-
 static void
 die (const char *format, ...)
 {
@@ -291,74 +277,6 @@ show_sexp (const char *prefix, gcry_sexp_t a)
 
   gcry_sexp_sprint (a, GCRYSEXP_FMT_ADVANCED, buf, size);
   fprintf (stderr, "%.*s", (int)size, buf);
-}
-
-
-static void
-start_timer (void)
-{
-#ifdef _WIN32
-#ifdef __MINGW32CE__
-  GetThreadTimes (GetCurrentThread (),
-                   &started_at.creation_time, &started_at.exit_time,
-                   &started_at.kernel_time, &started_at.user_time);
-#else
-  GetProcessTimes (GetCurrentProcess (),
-                   &started_at.creation_time, &started_at.exit_time,
-                   &started_at.kernel_time, &started_at.user_time);
-#endif
-  stopped_at = started_at;
-#else
-  struct tms tmp;
-
-  times (&tmp);
-  started_at = stopped_at = tmp.tms_utime;
-#endif
-}
-
-static void
-stop_timer (void)
-{
-#ifdef _WIN32
-#ifdef __MINGW32CE__
-  GetThreadTimes (GetCurrentThread (),
-                   &stopped_at.creation_time, &stopped_at.exit_time,
-                   &stopped_at.kernel_time, &stopped_at.user_time);
-#else
-  GetProcessTimes (GetCurrentProcess (),
-                   &stopped_at.creation_time, &stopped_at.exit_time,
-                   &stopped_at.kernel_time, &stopped_at.user_time);
-#endif
-#else
-  struct tms tmp;
-
-  times (&tmp);
-  stopped_at = tmp.tms_utime;
-#endif
-}
-
-static const char *
-elapsed_time (void)
-{
-  static char buf[50];
-#if _WIN32
-  unsigned long long t1, t2, t;
-
-  t1 = (((unsigned long long)started_at.kernel_time.dwHighDateTime << 32)
-        + started_at.kernel_time.dwLowDateTime);
-  t1 += (((unsigned long long)started_at.user_time.dwHighDateTime << 32)
-        + started_at.user_time.dwLowDateTime);
-  t2 = (((unsigned long long)stopped_at.kernel_time.dwHighDateTime << 32)
-        + stopped_at.kernel_time.dwLowDateTime);
-  t2 += (((unsigned long long)stopped_at.user_time.dwHighDateTime << 32)
-        + stopped_at.user_time.dwLowDateTime);
-  t = (t2 - t1)/10000;
-  snprintf (buf, sizeof buf, "%5.0fms", (double)t );
-#else
-  snprintf (buf, sizeof buf, "%5.0fms",
-            (((double) (stopped_at - started_at))/CLOCKS_PER_SEC)*10000000);
-#endif
-  return buf;
 }
 
 
