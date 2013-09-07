@@ -367,8 +367,21 @@ ec_powm (gcry_mpi_t w, const gcry_mpi_t b, const gcry_mpi_t e,
          mpi_ec_t ctx)
 {
   mpi_powm (w, b, e, ctx->p);
-  _gcry_mpi_abs (w);
+  /* _gcry_mpi_abs (w); */
 }
+
+
+/* Shortcut for
+     ec_powm (B, B, mpi_const (MPI_C_TWO), ctx);
+   for easier optimization.  */
+static void
+ec_pow2 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
+{
+  /* Using mpi_mul is slightly faster (at least on amd64).  */
+  /* mpi_powm (w, b, mpi_const (MPI_C_TWO), ctx->p); */
+  mpi_mulm (w, b, b, ctx->p);
+}
+
 
 static void
 ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
@@ -803,7 +816,7 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
           /* L1 = 3(X - Z^2)(X + Z^2) */
           /*                          T1: used for Z^2. */
           /*                          T2: used for the right term.  */
-          ec_powm (t1, point->z, mpi_const (MPI_C_TWO), ctx);
+          ec_pow2 (t1, point->z, ctx);
           ec_subm (l1, point->x, t1, ctx);
           ec_mulm (l1, l1, mpi_const (MPI_C_THREE), ctx);
           ec_addm (t2, point->x, t1, ctx);
@@ -813,7 +826,7 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
         {
           /* L1 = 3X^2 + aZ^4 */
           /*                          T1: used for aZ^4. */
-          ec_powm (l1, point->x, mpi_const (MPI_C_TWO), ctx);
+          ec_pow2 (l1, point->x, ctx);
           ec_mulm (l1, l1, mpi_const (MPI_C_THREE), ctx);
           ec_powm (t1, point->z, mpi_const (MPI_C_FOUR), ctx);
           ec_mulm (t1, t1, ctx->a, ctx);
@@ -825,19 +838,19 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 
       /* L2 = 4XY^2 */
       /*                              T2: used for Y2; required later. */
-      ec_powm (t2, point->y, mpi_const (MPI_C_TWO), ctx);
+      ec_pow2 (t2, point->y, ctx);
       ec_mulm (l2, t2, point->x, ctx);
       ec_mulm (l2, l2, mpi_const (MPI_C_FOUR), ctx);
 
       /* X3 = L1^2 - 2L2 */
       /*                              T1: used for L2^2. */
-      ec_powm (x3, l1, mpi_const (MPI_C_TWO), ctx);
+      ec_pow2 (x3, l1, ctx);
       ec_mulm (t1, l2, mpi_const (MPI_C_TWO), ctx);
       ec_subm (x3, x3, t1, ctx);
 
       /* L3 = 8Y^4 */
       /*                              T2: taken from above. */
-      ec_powm (t2, t2, mpi_const (MPI_C_TWO), ctx);
+      ec_pow2 (t2, t2, ctx);
       ec_mulm (l3, t2, mpi_const (MPI_C_EIGHT), ctx);
 
       /* Y3 = L1(L2 - X3) - L3 */
@@ -892,12 +905,12 @@ dup_point_twistededwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 
   /* B = (X_1 + Y_1)^2  */
   ec_addm (B, X1, Y1, ctx);
-  ec_powm (B, B, mpi_const (MPI_C_TWO), ctx);
+  ec_pow2 (B, B, ctx);
 
   /* C = X_1^2 */
   /* D = Y_1^2 */
-  ec_powm (C, X1, mpi_const (MPI_C_TWO), ctx);
-  ec_powm (D, Y1, mpi_const (MPI_C_TWO), ctx);
+  ec_pow2 (C, X1, ctx);
+  ec_pow2 (D, Y1, ctx);
 
   /* E = aC */
   ec_mulm (E, ctx->a, C, ctx);
@@ -906,7 +919,7 @@ dup_point_twistededwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
   ec_addm (F, E, D, ctx);
 
   /* H = Z_1^2 */
-  ec_powm (H, Z1, mpi_const (MPI_C_TWO), ctx);
+  ec_pow2 (H, Z1, ctx);
 
   /* J = F - 2H */
   ec_mulm (J, H, mpi_const (MPI_C_TWO), ctx);
@@ -1016,14 +1029,14 @@ add_points_weierstrass (mpi_point_t result,
         mpi_set (l1, x1);
       else
         {
-          ec_powm (l1, z2, mpi_const (MPI_C_TWO), ctx);
+          ec_pow2 (l1, z2, ctx);
           ec_mulm (l1, l1, x1, ctx);
         }
       if (z1_is_one)
         mpi_set (l2, x2);
       else
         {
-          ec_powm (l2, z1, mpi_const (MPI_C_TWO), ctx);
+          ec_pow2 (l2, z1, ctx);
           ec_mulm (l2, l2, x2, ctx);
         }
       /* l3 = l1 - l2 */
@@ -1062,8 +1075,8 @@ add_points_weierstrass (mpi_point_t result,
           ec_mulm (z3, z1, z2, ctx);
           ec_mulm (z3, z3, l3, ctx);
           /* x3 = l6^2 - l7 l3^2  */
-          ec_powm (t1, l6, mpi_const (MPI_C_TWO), ctx);
-          ec_powm (t2, l3, mpi_const (MPI_C_TWO), ctx);
+          ec_pow2 (t1, l6, ctx);
+          ec_pow2 (t2, l3, ctx);
           ec_mulm (t2, t2, l7, ctx);
           ec_subm (x3, t1, t2, ctx);
           /* l9 = l7 l3^2 - 2 x3  */
@@ -1146,7 +1159,7 @@ add_points_twistededwards (mpi_point_t result,
   ec_mulm (A, Z1, Z2, ctx);
 
   /* B = A^2 */
-  ec_powm (B, A, mpi_const (MPI_C_TWO), ctx);
+  ec_pow2 (B, A, ctx);
 
   /* C = X1 · X2 */
   ec_mulm (C, X1, X2, ctx);
@@ -1369,8 +1382,8 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
     case MPI_EC_TWISTEDEDWARDS:
       {
         /* a · x^2 + y^2 - 1 - b · x^2 · y^2 == 0 */
-        ec_powm (x, x, mpi_const (MPI_C_TWO), ctx);
-        ec_powm (y, y, mpi_const (MPI_C_TWO), ctx);
+        ec_pow2 (x, x, ctx);
+        ec_pow2 (y, y, ctx);
         ec_mulm (w, ctx->a, x, ctx);
         ec_addm (w, w, y, ctx);
         ec_subm (w, w, mpi_const (MPI_C_ONE), ctx);

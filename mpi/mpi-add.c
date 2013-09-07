@@ -224,12 +224,12 @@ void
 gcry_mpi_addm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
 {
     gcry_mpi_add(w, u, v);
-    _gcry_mpi_fdiv_r( w, w, m );
+    _gcry_mpi_mod (w, w, m);
 }
 
 void
 gcry_mpi_subm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
 {
     gcry_mpi_sub(w, u, v);
-    _gcry_mpi_fdiv_r( w, w, m );
+    _gcry_mpi_mod (w, w, m);
 }

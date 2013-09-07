@@ -205,8 +205,8 @@ gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 
 
 void
-gcry_mpi_mulm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
+gcry_mpi_mulm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
 {
-    gcry_mpi_mul(w, u, v);
-    _gcry_mpi_fdiv_r( w, w, m );
+  gcry_mpi_mul (w, u, v);
+  _gcry_mpi_mod (w, w, m);
 }
