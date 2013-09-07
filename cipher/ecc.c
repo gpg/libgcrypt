@@ -1965,7 +1965,7 @@ selftests_ecdsa (selftest_report_func_t report)
 
  failed:
   if (report)
-    report ("pubkey", GCRY_PK_ECDSA, what, errtxt);
+    report ("pubkey", GCRY_PK_ECC, what, errtxt);
   return GPG_ERR_SELFTEST_FAILED;
 }
 
@@ -1974,72 +1974,38 @@ selftests_ecdsa (selftest_report_func_t report)
 static gpg_err_code_t
 run_selftests (int algo, int extended, selftest_report_func_t report)
 {
-  gpg_err_code_t ec;
-
   (void)extended;
 
-  switch (algo)
-    {
-    case GCRY_PK_ECDSA:
-      ec = selftests_ecdsa (report);
-      break;
-    default:
-      ec = GPG_ERR_PUBKEY_ALGO;
-      break;
+  if (algo != GCRY_PK_ECC)
+    return GPG_ERR_PUBKEY_ALGO;
 
-    }
-  return ec;
+  return selftests_ecdsa (report);
 }
 
 
 
 
-static const char *ecdsa_names[] =
+static const char *ecc_names[] =
   {
+    "ecc",
     "ecdsa",
-    "eddsa",
-    "ecc",
-    NULL,
-  };
-static const char *ecdh_names[] =
-  {
     "ecdh",
-    "ecc",
+    "eddsa",
     NULL,
   };
 
-gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
+gcry_pk_spec_t _gcry_pubkey_spec_ecc =
   {
-    GCRY_PK_ECDSA, { 0, 0 },
-    GCRY_PK_USAGE_SIGN,
-    "ECDSA", ecdsa_names,
-    "pabgnq", "pabgnqd", "", "rs", "pabgnq",
-    ecc_generate,
-    ecc_check_secret_key,
-    NULL,
-    NULL,
-    ecc_sign,
-    ecc_verify,
-    ecc_get_nbits,
-    run_selftests,
-    compute_keygrip,
-    _gcry_ecc_get_param,
-    _gcry_ecc_get_curve,
-    _gcry_ecc_get_param_sexp
-  };
-
-gcry_pk_spec_t _gcry_pubkey_spec_ecdh =
-  {
-    GCRY_PK_ECDH, { 0, 0 },
-    GCRY_PK_USAGE_ENCR,
-    "ECDH", ecdh_names,
-    "pabgnq", "pabgnqd", "se", "", "pabgnq",
+    GCRY_PK_ECC, { 0, 0 },
+    (GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR),
+    "ECC", ecc_names,
+    "pabgnq", "pabgnqd", "sw", "rs", "pabgnq",
     ecc_generate,
     ecc_check_secret_key,
     ecc_encrypt_raw,
     ecc_decrypt_raw,
-    NULL,
-    NULL,
+    ecc_sign,
+    ecc_verify,
     ecc_get_nbits,
     run_selftests,
     compute_keygrip,

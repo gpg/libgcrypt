@@ -2124,9 +2124,10 @@ The point representing the public key @math{Q = dG}.
 The private key @math{d}
 @end table
 
-All point values are encoded in standard format; Libgcrypt does
-currently only support uncompressed points, thus the first byte needs to
-be @code{0x04}.
+All point values are encoded in standard format; Libgcrypt does in
+general only support uncompressed points, thus the first byte needs to
+be @code{0x04}.  However ``EdDSA'' describes its own compression
+scheme which is used by default.
 
 The public key is similar with "private-key" replaced by "public-key"
 and no @var{d-mpi}.
@@ -2200,6 +2201,10 @@ for signing.
 Use RSA-OAEP padding for encryption.
 @item pss
 Use RSA-PSS padding for signing.
+@item eddsa
+Use the EdDSA scheme instead of ECDSA.
+@item rfc6979
+For DSA and ECDSA use a deterministic scheme for the k parameter.
 @item no-blinding
 Do not use a technique called `blinding', which is used by default in
 order to prevent leaking of secret information.  Blinding is only
@@ -2680,11 +2685,11 @@ are allowed.  When specifying Q all values of N in the range 512 to
 15680 are valid as long as they are multiples of 8.
 
 @item transient-key
-This is only meaningful for RSA, DSA, ECDSA, and ECDH keys.  This is a flag
+This is only meaningful for RSA, DSA, and ECC keys.  This is a flag
 with no value.  If given the key is created using a faster and a
-somewhat less secure random number generator.  This flag may be used for
-keys which are only used for a short time or per-message and do not require full
-cryptographic strength.
+somewhat less secure random number generator.  This flag may be used
+for keys which are only used for a short time or per-message and do
+not require full cryptographic strength.
 
 @item domain
 This is only meaningful for DLP algorithms.  If specified keys are

@@ -36,6 +36,9 @@ Noteworthy changes in version 1.6.0 (unreleased)
  * Added support for negative numbers to gcry_mpi_print,
    gcry_mpi_aprint and gcry_mpi_scan.
 
+ * The algorithm ids GCRY_PK_ECDSA and GCRY_PK_ECDH are now
+   deprecated.  Use GCRY_PK_ECC instead.
+
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_ac_*              REMOVED.
@@ -103,6 +106,7 @@ Noteworthy changes in version 1.6.0 (unreleased)
  GCRY_MD_STRIBOG256              NEW.
  GCRY_MD_STRIBOG512              NEW.
  GCRYCTL_DISABLE_ALGO            CHANGED: Not anymore thread-safe.
+ GCRY_PK_ECC                     NEW.
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)

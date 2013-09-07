@@ -38,8 +38,7 @@
 static gcry_pk_spec_t *pubkey_list[] =
   {
 #if USE_ECC
-    &_gcry_pubkey_spec_ecdsa,
-    &_gcry_pubkey_spec_ecdh,
+    &_gcry_pubkey_spec_ecc,
 #endif
 #if USE_RSA
     &_gcry_pubkey_spec_rsa,
@@ -55,6 +54,21 @@ static gcry_pk_spec_t *pubkey_list[] =
   };
 
 
+static int
+map_algo (int algo)
+{
+ switch (algo)
+   {
+   case GCRY_PK_ECDSA:
+   case GCRY_PK_ECDH:
+     return GCRY_PK_ECC;
+   default:
+     return algo;
+   }
+}
+
+
+
 /* Return the spec structure for the public key algorithm ALGO.  For
    an unknown algorithm NULL is returned.  */
 static gcry_pk_spec_t *
@@ -62,6 +76,8 @@ spec_from_algo (int algo)
 {
   int idx;
   gcry_pk_spec_t *spec;
+
+  algo = map_algo (algo);
 
   for (idx = 0; (spec = pubkey_list[idx]); idx++)
     if (algo == spec->algo)
@@ -2156,7 +2172,9 @@ gcry_pk_get_param (int algo, const char *name)
   gcry_sexp_t result = NULL;
   gcry_pk_spec_t *spec = NULL;
 
-  if (algo != GCRY_PK_ECDSA && algo != GCRY_PK_ECDH)
+  algo = map_algo (algo);
+
+  if (algo != GCRY_PK_ECC)
     return NULL;
 
   spec = spec_from_name ("ecc");
@@ -2334,13 +2352,17 @@ gpg_error_t
 _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 {
   gcry_err_code_t ec;
-  gcry_pk_spec_t *spec = spec_from_algo (algo);
+  gcry_pk_spec_t *spec;
 
+  algo = map_algo (algo);
+  spec = spec_from_algo (algo);
   if (spec && spec->selftest)
     ec = spec->selftest (algo, extended, report);
   else
     {
       ec = GPG_ERR_PUBKEY_ALGO;
+      /* Fixme: We need to change the report fucntion to allow passing
+         of an encryption mode (e.g. pkcs1, ecdsa, or ecdh).  */
       if (report)
         report ("pubkey", algo, "module",
                 spec && !spec->flags.disabled?
