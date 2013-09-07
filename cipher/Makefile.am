@@ -49,7 +49,7 @@ bithelp.h  \
 bufhelp.h  \
 primegen.c  \
 hash-common.c hash-common.h \
-dsa-common.c \
+dsa-common.c rsa-common.c \
 rmd.h
 
 EXTRA_libcipher_la_SOURCES = \
