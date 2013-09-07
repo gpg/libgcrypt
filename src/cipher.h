@@ -241,10 +241,5 @@ extern gcry_pk_spec_t _gcry_pubkey_spec_dsa;
 extern gcry_pk_spec_t _gcry_pubkey_spec_ecdsa;
 extern gcry_pk_spec_t _gcry_pubkey_spec_ecdh;
 
-extern pk_extra_spec_t _gcry_pubkey_extraspec_rsa;
-extern pk_extra_spec_t _gcry_pubkey_extraspec_dsa;
-extern pk_extra_spec_t _gcry_pubkey_extraspec_elg;
-extern pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa;
-
 
 #endif /*G10_CIPHER_H*/

@@ -23,6 +23,8 @@
 #ifndef G10_CIPHER_PROTO_H
 #define G10_CIPHER_PROTO_H
 
+
+
 /* Definition of a function used to report selftest failures.
    DOMAIN is a string describing the function block:
           "cipher", "digest", "pubkey or "random",
@@ -38,24 +40,76 @@ typedef void (*selftest_report_func_t)(const char *domain,
 typedef gpg_err_code_t (*selftest_func_t)
      (int algo, int extended, selftest_report_func_t report);
 
+
+/*
+ *
+ * Public key related definitions.
+ *
+ */
 
-/* An extended type of the generate function.  */
-typedef gcry_err_code_t (*pk_ext_generate_t)
-     (int algo,
-      unsigned int nbits,
-      unsigned long evalue,
-      gcry_sexp_t genparms,
-      gcry_mpi_t *skey,
-      gcry_mpi_t **retfactors,
-      gcry_sexp_t *extrainfo);
+/* Type for the pk_generate function.  */
+typedef gcry_err_code_t (*gcry_pk_generate_t) (int algo,
+					       unsigned int nbits,
+					       unsigned long use_e,
+					       gcry_mpi_t *skey,
+					       gcry_mpi_t **retfactors);
+/* Type for the extended generate function.  */
+typedef gcry_err_code_t (*pk_ext_generate_t) (int algo,
+                                              unsigned int nbits,
+                                              unsigned long evalue,
+                                              gcry_sexp_t genparms,
+                                              gcry_mpi_t *skey,
+                                              gcry_mpi_t **retfactors,
+                                              gcry_sexp_t *extrainfo);
+
+/* Type for the pk_check_secret_key function.  */
+typedef gcry_err_code_t (*gcry_pk_check_secret_key_t) (int algo,
+						       gcry_mpi_t *skey);
+
+/* Type for the pk_encrypt function.  */
+typedef gcry_err_code_t (*gcry_pk_encrypt_t) (int algo,
+					      gcry_mpi_t *resarr,
+					      gcry_mpi_t data,
+					      gcry_mpi_t *pkey,
+					      int flags);
+
+/* Type for the pk_decrypt function.  */
+typedef gcry_err_code_t (*gcry_pk_decrypt_t) (int algo,
+					      gcry_mpi_t *result,
+					      gcry_mpi_t *data,
+					      gcry_mpi_t *skey,
+					      int flags);
+
+/* Type for the pk_sign function.  */
+typedef gcry_err_code_t (*gcry_pk_sign_t) (int algo,
+					   gcry_mpi_t *resarr,
+					   gcry_mpi_t data,
+					   gcry_mpi_t *skey,
+                                           int flags,
+                                           int hashalgo);
+
+/* Type for the pk_verify function.  */
+typedef gcry_err_code_t (*gcry_pk_verify_t) (int algo,
+					     gcry_mpi_t hash,
+					     gcry_mpi_t *data,
+					     gcry_mpi_t *pkey,
+					     int (*cmp) (void *, gcry_mpi_t),
+					     void *opaquev,
+                                             int flags,
+                                             int hashalgo);
+
+/* Type for the pk_get_nbits function.  */
+typedef unsigned (*gcry_pk_get_nbits_t) (int algo,
+                                         gcry_mpi_t *pkey);
+
 
 /* The type used to compute the keygrip.  */
-typedef gpg_err_code_t (*pk_comp_keygrip_t)
-     (gcry_md_hd_t md, gcry_sexp_t keyparm);
+typedef gpg_err_code_t (*pk_comp_keygrip_t) (gcry_md_hd_t md,
+                                             gcry_sexp_t keyparm);
 
 /* The type used to query ECC curve parameters.  */
-typedef gcry_err_code_t (*pk_get_param_t)
-     (const char *name, gcry_mpi_t *pkey);
+typedef gcry_err_code_t (*pk_get_param_t) (const char *name,
+                                           gcry_mpi_t *pkey);
 
 /* The type used to query an ECC curve name.  */
 typedef const char *(*pk_get_curve_t)(gcry_mpi_t *pkey, int iterator,
@@ -64,6 +118,35 @@ typedef const char *(*pk_get_curve_t)(gcry_mpi_t *pkey, int iterator,
 /* The type used to query ECC curve parameters by name.  */
 typedef gcry_sexp_t (*pk_get_curve_param_t)(const char *name);
 
+
+/* Module specification structure for public key algoritms.  */
+typedef struct gcry_pk_spec
+{
+  const char *name;
+  const char **aliases;
+  const char *elements_pkey;
+  const char *elements_skey;
+  const char *elements_enc;
+  const char *elements_sig;
+  const char *elements_grip;
+  int use;
+  gcry_pk_generate_t generate;
+  gcry_pk_check_secret_key_t check_secret_key;
+  gcry_pk_encrypt_t encrypt;
+  gcry_pk_decrypt_t decrypt;
+  gcry_pk_sign_t sign;
+  gcry_pk_verify_t verify;
+  gcry_pk_get_nbits_t get_nbits;
+  selftest_func_t selftest;
+  pk_ext_generate_t ext_generate;
+  pk_comp_keygrip_t comp_keygrip;
+  pk_get_param_t get_param;
+  pk_get_curve_t get_curve;
+  pk_get_curve_param_t get_curve_param;
+} gcry_pk_spec_t;
+
+
+
 /* The type used to convey additional information to a cipher.  */
 typedef gpg_err_code_t (*cipher_set_extra_info_t)
      (void *c, int what, const void *buffer, size_t buflen);
@@ -87,16 +170,6 @@ typedef struct md_extra_spec
   selftest_func_t selftest;
 } md_extra_spec_t;
 
-typedef struct pk_extra_spec
-{
-  selftest_func_t selftest;
-  pk_ext_generate_t ext_generate;
-  pk_comp_keygrip_t comp_keygrip;
-  pk_get_param_t get_param;
-  pk_get_curve_t get_curve;
-  pk_get_curve_param_t get_curve_param;
-} pk_extra_spec_t;
-
 
 
 /* The private register functions. */
@@ -109,7 +182,6 @@ gcry_error_t _gcry_md_register (gcry_md_spec_t *cipher,
                                 unsigned int *algorithm_id,
                                 gcry_module_t *module);
 gcry_error_t _gcry_pk_register (gcry_pk_spec_t *cipher,
-                                pk_extra_spec_t *extraspec,
                                 unsigned int *algorithm_id,
                                 gcry_module_t *module);
 

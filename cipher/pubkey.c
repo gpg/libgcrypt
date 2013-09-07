@@ -44,44 +44,31 @@ static gcry_err_code_t pubkey_verify (int algo, gcry_mpi_t hash,
                                       struct pk_encoding_ctx *ctx);
 
 
-/* A dummy extraspec so that we do not need to tests the extraspec
-   field from the module specification against NULL and instead
-   directly test the respective fields of extraspecs.  */
-static pk_extra_spec_t dummy_extra_spec;
-
-
 /* This is the list of the default public-key ciphers included in
    libgcrypt.  FIPS_ALLOWED indicated whether the algorithm is used in
    FIPS mode. */
 static struct pubkey_table_entry
 {
   gcry_pk_spec_t *pubkey;
-  pk_extra_spec_t *extraspec;
   unsigned int algorithm;
   int fips_allowed;
 } pubkey_table[] =
   {
 #if USE_RSA
-    { &_gcry_pubkey_spec_rsa,
-      &_gcry_pubkey_extraspec_rsa,   GCRY_PK_RSA, 1},
+    { &_gcry_pubkey_spec_rsa,       GCRY_PK_RSA, 1},
 #endif
 #if USE_ELGAMAL
-    { &_gcry_pubkey_spec_elg,
-      &_gcry_pubkey_extraspec_elg,    GCRY_PK_ELG   },
-    { &_gcry_pubkey_spec_elg,
-      &_gcry_pubkey_extraspec_elg,    GCRY_PK_ELG_E },
+    { &_gcry_pubkey_spec_elg,       GCRY_PK_ELG   },
+    { &_gcry_pubkey_spec_elg,       GCRY_PK_ELG_E },
 #endif
 #if USE_DSA
-    { &_gcry_pubkey_spec_dsa,
-      &_gcry_pubkey_extraspec_dsa,   GCRY_PK_DSA, 1   },
+    { &_gcry_pubkey_spec_dsa,       GCRY_PK_DSA, 1   },
 #endif
 #if USE_ECC
-    { &_gcry_pubkey_spec_ecdsa,
-      &_gcry_pubkey_extraspec_ecdsa, GCRY_PK_ECDSA, 0 },
-    { &_gcry_pubkey_spec_ecdh,
-      &_gcry_pubkey_extraspec_ecdsa, GCRY_PK_ECDH, 0 },
+    { &_gcry_pubkey_spec_ecdsa,      GCRY_PK_ECDSA, 0 },
+    { &_gcry_pubkey_spec_ecdh,       GCRY_PK_ECDH, 0 },
 #endif
-    { NULL, 0 },
+    { NULL, 0 }
   };
 
 /* List of registered ciphers.  */
@@ -228,7 +215,7 @@ pk_register_default (void)
       err = _gcry_module_add (&pubkeys_registered,
 			      pubkey_table[i].algorithm,
 			      (void *) pubkey_table[i].pubkey,
-			      (void *) pubkey_table[i].extraspec,
+                              NULL,
                               NULL);
     }
 
@@ -268,7 +255,6 @@ gcry_pk_lookup_name (const char *name)
    and a pointer representhing this module is stored in MODULE.  */
 gcry_error_t
 _gcry_pk_register (gcry_pk_spec_t *pubkey,
-                   pk_extra_spec_t *extraspec,
                    unsigned int *algorithm_id,
                    gcry_module_t *module)
 {
@@ -282,7 +268,7 @@ _gcry_pk_register (gcry_pk_spec_t *pubkey,
   ath_mutex_lock (&pubkeys_registered_lock);
   err = _gcry_module_add (&pubkeys_registered, 0,
 			  (void *) pubkey,
-			  (void *)(extraspec? extraspec : &dummy_extra_spec),
+                          NULL,
                           &mod);
   ath_mutex_unlock (&pubkeys_registered_lock);
 
@@ -566,12 +552,11 @@ pubkey_generate (int algorithm,
   pubkey = _gcry_module_lookup_id (pubkeys_registered, algorithm);
   if (pubkey)
     {
-      pk_extra_spec_t *extraspec = pubkey->extraspec;
-
-      if (extraspec && extraspec->ext_generate)
+      if (((gcry_pk_spec_t *) pubkey->spec)->ext_generate)
         {
+
           /* Use the extended generate function.  */
-          ec = extraspec->ext_generate
+          ec = ((gcry_pk_spec_t *) pubkey->spec)->ext_generate
             (algorithm, nbits, use_e, genparms, skey, retfactors, r_extrainfo);
         }
       else
@@ -1877,7 +1862,7 @@ sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
    of its intimate knowledge about the ECC parameters from ecc.c. */
 static gcry_err_code_t
 sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
-                           gcry_mpi_t *elements, pk_extra_spec_t *extraspec,
+                           gcry_mpi_t *elements, gcry_pk_spec_t *spec,
                            int want_private)
 
 {
@@ -1927,7 +1912,7 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
   list = gcry_sexp_find_token (key_sexp, "curve", 5);
   if (list)
     {
-      if (extraspec->get_param)
+      if (spec->get_param)
         {
           char *curve;
           gcry_mpi_t params[6];
@@ -1943,7 +1928,7 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
               err = GPG_ERR_INV_OBJ;
               goto leave;
             }
-          err = extraspec->get_param (curve, params);
+          err = spec->get_param (curve, params);
           gcry_free (curve);
           if (err)
             goto leave;
@@ -2038,7 +2023,6 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, int use,
   gcry_mpi_t *array;
   gcry_module_t module;
   gcry_pk_spec_t *pubkey;
-  pk_extra_spec_t *extraspec;
   int is_ecc;
 
   /* Check that the first element is valid.  If we are looking for a
@@ -2097,7 +2081,6 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, int use,
   else
     {
       pubkey = (gcry_pk_spec_t *) module->spec;
-      extraspec = module->extraspec;
     }
 
   if (override_elems)
@@ -2112,7 +2095,7 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, int use,
   if (!err)
     {
       if (is_ecc)
-        err = sexp_elements_extract_ecc (list, elems, array, extraspec,
+        err = sexp_elements_extract_ecc (list, elems, array, pubkey,
                                          want_private);
       else
         err = sexp_elements_extract (list, elems, array, pubkey->name, 0);
@@ -3926,7 +3909,6 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   gcry_sexp_t list = NULL, l2 = NULL;
   gcry_pk_spec_t *pubkey = NULL;
   gcry_module_t module = NULL;
-  pk_extra_spec_t *extraspec;
   const char *s;
   char *name = NULL;
   int idx;
@@ -3964,7 +3946,6 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
     goto fail; /* Unknown algorithm.  */
 
   pubkey = (gcry_pk_spec_t *) module->spec;
-  extraspec = module->extraspec;
 
   elems = pubkey->elements_grip;
   if (!elems)
@@ -3973,10 +3954,10 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   if (gcry_md_open (&md, GCRY_MD_SHA1, 0))
     goto fail;
 
-  if (extraspec && extraspec->comp_keygrip)
+  if (pubkey->comp_keygrip)
     {
       /* Module specific method to compute a keygrip.  */
-      if (extraspec->comp_keygrip (md, list))
+      if (pubkey->comp_keygrip (md, list))
         goto fail;
     }
   else
@@ -4031,10 +4012,10 @@ gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
   gcry_sexp_t list = NULL;
   gcry_sexp_t l2;
   gcry_module_t module = NULL;
-  pk_extra_spec_t *extraspec;
   char *name = NULL;
   const char *result = NULL;
   int want_private = 1;
+  gcry_pk_spec_t *spec;
 
   if (r_nbits)
     *r_nbits = 0;
@@ -4078,11 +4059,11 @@ gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
         goto leave;
     }
 
-  extraspec = module->extraspec;
-  if (!extraspec || !extraspec->get_curve)
+  spec = module->spec;
+  if (!spec || !spec->get_curve)
     goto leave;
 
-  result = extraspec->get_curve (pkey, iterator, r_nbits);
+  result = spec->get_curve (pkey, iterator, r_nbits);
 
  leave:
   if (pkey)
@@ -4107,8 +4088,8 @@ gcry_sexp_t
 gcry_pk_get_param (int algo, const char *name)
 {
   gcry_module_t module = NULL;
-  pk_extra_spec_t *extraspec;
   gcry_sexp_t result = NULL;
+  gcry_pk_spec_t *spec;
 
   if (algo != GCRY_PK_ECDSA && algo != GCRY_PK_ECDH)
     return NULL;
@@ -4120,9 +4101,9 @@ gcry_pk_get_param (int algo, const char *name)
   ath_mutex_unlock (&pubkeys_registered_lock);
   if (module)
     {
-      extraspec = module->extraspec;
-      if (extraspec && extraspec->get_curve_param)
-        result = extraspec->get_curve_param (name);
+      spec = module->spec;
+      if (spec && spec->get_curve_param)
+        result = spec->get_curve_param (name);
 
       ath_mutex_lock (&pubkeys_registered_lock);
       _gcry_module_release (module);
@@ -4320,18 +4301,19 @@ gpg_error_t
 _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 {
   gcry_module_t module = NULL;
-  pk_extra_spec_t *extraspec = NULL;
   gcry_err_code_t ec = 0;
+  gcry_pk_spec_t *spec = NULL;
 
   REGISTER_DEFAULT_PUBKEYS;
 
   ath_mutex_lock (&pubkeys_registered_lock);
   module = _gcry_module_lookup_id (pubkeys_registered, algo);
   if (module && !(module->flags & FLAG_MODULE_DISABLED))
-    extraspec = module->extraspec;
+    spec = module->spec;
+
   ath_mutex_unlock (&pubkeys_registered_lock);
-  if (extraspec && extraspec->selftest)
-    ec = extraspec->selftest (algo, extended, report);
+  if (spec && spec->selftest)
+    ec = spec->selftest (algo, extended, report);
   else
     {
       ec = GPG_ERR_PUBKEY_ALGO;

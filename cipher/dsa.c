@@ -1214,10 +1214,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_dsa =
     NULL,
     dsa_sign,
     dsa_verify,
-    dsa_get_nbits
-  };
-pk_extra_spec_t _gcry_pubkey_extraspec_dsa =
-  {
+    dsa_get_nbits,
     run_selftests,
     dsa_generate_ext
   };

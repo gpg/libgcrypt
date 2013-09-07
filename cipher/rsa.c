@@ -1392,9 +1392,6 @@ gcry_pk_spec_t _gcry_pubkey_spec_rsa =
     rsa_sign,
     rsa_verify,
     rsa_get_nbits,
-  };
-pk_extra_spec_t _gcry_pubkey_extraspec_rsa =
-  {
     run_selftests,
     rsa_generate_ext,
     compute_keygrip

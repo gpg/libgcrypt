@@ -2012,7 +2012,13 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
     NULL,
     ecc_sign,
     ecc_verify,
-    ecc_get_nbits
+    ecc_get_nbits,
+    run_selftests,
+    ecc_generate_ext,
+    compute_keygrip,
+    _gcry_ecc_get_param,
+    _gcry_ecc_get_curve,
+    _gcry_ecc_get_param_sexp
   };
 
 gcry_pk_spec_t _gcry_pubkey_spec_ecdh =
@@ -2026,12 +2032,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdh =
     ecc_decrypt_raw,
     NULL,
     NULL,
-    ecc_get_nbits
-  };
-
-
-pk_extra_spec_t _gcry_pubkey_extraspec_ecdsa =
-  {
+    ecc_get_nbits,
     run_selftests,
     ecc_generate_ext,
     compute_keygrip,

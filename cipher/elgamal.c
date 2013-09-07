@@ -849,12 +849,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_elg =
     elg_decrypt,
     elg_sign,
     elg_verify,
-    elg_get_nbits
-  };
-
-pk_extra_spec_t _gcry_pubkey_extraspec_elg =
-  {
+    elg_get_nbits,
     NULL,
-    elg_generate_ext,
-    NULL
+    elg_generate_ext
   };
