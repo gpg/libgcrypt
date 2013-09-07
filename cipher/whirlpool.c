@@ -1315,9 +1315,6 @@ whirlpool_add (whirlpool_context_t *context,
 	  buffer_n--;
 	}
       whirlpool_add (context, NULL, 0);
-      if (!buffer_n)
-	/* Done.  */
-        return;
     }
   /*_gcry_burn_stack (80+6*sizeof(void*));*/ /* FIXME */
 
