@@ -613,6 +613,14 @@ AC_ARG_ENABLE([O-flag-munging],
 AC_MSG_RESULT($enable_o_flag_munging)
 AM_CONDITIONAL(ENABLE_O_FLAG_MUNGING, test "$enable_o_flag_munging" = "yes")
 
+# Implementation of the --disable-amd64-as-feature-detection switch.
+AC_MSG_CHECKING([whether to enable AMD64 as(1) feature detection])
+AC_ARG_ENABLE(amd64-as-feature-detection,
+              AC_HELP_STRING([--disable-amd64-as-feature-detection],
+                 [Disable the auto-detection of AMD64 as(1) features]),
+	      amd64_as_feature_detection=$enableval,
+              amd64_as_feature_detection=yes)
+AC_MSG_RESULT($amd64_as_feature_detection)
 
 
 AC_DEFINE_UNQUOTED(PRINTABLE_OS_NAME, "$PRINTABLE_OS_NAME",
@@ -964,7 +972,8 @@ fi
 # Check whether GCC assembler supports features needed for our amd64
 # implementations
 #
-AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implementations],
+if test $amd64_as_feature_detection = yes; then
+    AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implementations],
        [gcry_cv_gcc_amd64_platform_as_ok],
        [gcry_cv_gcc_amd64_platform_as_ok=no
         AC_COMPILE_IFELSE([AC_LANG_SOURCE(
@@ -984,9 +993,10 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implement
                 ".type asmfunc,@function;\n\t"
             );]])],
           [gcry_cv_gcc_amd64_platform_as_ok=yes])])
-if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
-   AC_DEFINE(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS,1,
-     [Defined if underlying assembler is compatible with amd64 assembly implementations])
+  if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
+     AC_DEFINE(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS,1,
+              [Defined if underlying assembler is compatible with amd64 assembly implementations])
+  fi
 fi
 
 
