@@ -373,6 +373,20 @@ _gcry_sha1_hash_buffer (void *outbuf, const void *buffer, size_t length)
 }
 
 
+/* Variant of the above shortcut function using a multiple buffers.  */
+void
+_gcry_sha1_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
+{
+  SHA1_CONTEXT hd;
+
+  sha1_init (&hd);
+  for (;iovcnt > 0; iov++, iovcnt--)
+    sha1_write (&hd, (const char*)iov[0].data + iov[0].off, iov[0].len);
+  sha1_final (&hd);
+  memcpy (outbuf, hd.buf, 20);
+}
+
+
 
 /*
      Self-test section.

@@ -79,6 +79,8 @@ void _gcry_rmd160_hash_buffer (void *outbuf,
 /*-- sha1.c --*/
 void _gcry_sha1_hash_buffer (void *outbuf,
                              const void *buffer, size_t length);
+void _gcry_sha1_hash_buffers (void *outbuf,
+                              const gcry_buffer_t *iov, int iovcnt);
 
 /*-- rijndael.c --*/
 void _gcry_aes_cfb_enc (void *context, unsigned char *iv,

@@ -2522,6 +2522,72 @@ check_one_md (int algo, const char *data, int len, const char *expect)
 
 
 static void
+check_one_md_multi (int algo, const char *data, int len, const char *expect)
+{
+  gpg_error_t err;
+  gcry_buffer_t iov[3];
+  int iovcnt;
+  char digest[64];
+  int mdlen;
+  int i;
+
+  mdlen = gcry_md_get_algo_dlen (algo);
+  if (mdlen < 1 || mdlen > 64)
+    {
+      fail ("check_one_md_multi: algo %d, gcry_md_get_algo_dlen failed: %d\n",
+            algo, mdlen);
+      return;
+    }
+
+  if (*data == '!' && !data[1])
+    return;  /* We can't do that here.  */
+
+  memset (iov, 0, sizeof iov);
+
+  iov[0].data = (void*)data;
+  if (len)
+    {
+      iov[0].len = 1;
+      len--;
+      data++;
+    }
+  iovcnt = 1;
+  if (len >= 4)
+    {
+      iov[iovcnt].data = (void*)data;
+      iov[iovcnt].len = 4;
+      iovcnt++;
+      data += 4;
+      len  -= 4;
+    }
+  iov[iovcnt].data = (void*)data;
+  iov[iovcnt].len = len;
+  iovcnt++;
+  assert (iovcnt <= DIM (iov));
+
+  err = gcry_md_hash_buffers (algo, 0, digest, iov, iovcnt);
+  if (err)
+    {
+      fail ("check_one_md_multi: algo %d, gcry_hash_buffers failed: %s\n",
+            algo, gpg_strerror (err));
+      return;
+    }
+  if (memcmp (digest, expect, mdlen))
+    {
+      printf ("computed: ");
+      for (i = 0; i < mdlen; i++)
+	printf ("%02x ", digest[i] & 0xFF);
+      printf ("\nexpected: ");
+      for (i = 0; i < mdlen; i++)
+	printf ("%02x ", expect[i] & 0xFF);
+      printf ("\n");
+
+      fail ("check_one_md_multi: algo %d, digest mismatch\n", algo);
+    }
+}
+
+
+static void
 check_digests (void)
 {
   static struct algos
@@ -2742,11 +2808,11 @@ check_digests (void)
 	"\x08\xEB\xA2\x66\x29\x12\x9D\x8F\xB7\xCB\x57\x21\x1B\x92\x81\xA6"
 	"\x55\x17\xCC\x87\x9D\x7B\x96\x21\x42\xC6\x5F\x5A\x7A\xF0\x14\x67" },
       { GCRY_MD_WHIRLPOOL,
-	"!",
-	"\x0C\x99\x00\x5B\xEB\x57\xEF\xF5\x0A\x7C\xF0\x05\x56\x0D\xDF\x5D"
-	"\x29\x05\x7F\xD8\x6B\x20\xBF\xD6\x2D\xEC\xA0\xF1\xCC\xEA\x4A\xF5"
-	"\x1F\xC1\x54\x90\xED\xDC\x47\xAF\x32\xBB\x2B\x66\xC3\x4F\xF9\xAD"
-	"\x8C\x60\x08\xAD\x67\x7F\x77\x12\x69\x53\xB2\x26\xE4\xED\x8B\x01" },
+        "!",
+        "\x0C\x99\x00\x5B\xEB\x57\xEF\xF5\x0A\x7C\xF0\x05\x56\x0D\xDF\x5D"
+        "\x29\x05\x7F\xD8\x6B\x20\xBF\xD6\x2D\xEC\xA0\xF1\xCC\xEA\x4A\xF5"
+        "\x1F\xC1\x54\x90\xED\xDC\x47\xAF\x32\xBB\x2B\x66\xC3\x4F\xF9\xAD"
+        "\x8C\x60\x08\xAD\x67\x7F\x77\x12\x69\x53\xB2\x26\xE4\xED\x8B\x01" },
       {	0 },
     };
   int i;
@@ -2773,6 +2839,8 @@ check_digests (void)
 
       check_one_md (algos[i].md, algos[i].data, strlen (algos[i].data),
 		    algos[i].expect);
+      check_one_md_multi (algos[i].md, algos[i].data, strlen (algos[i].data),
+                          algos[i].expect);
     }
 
   if (verbose)

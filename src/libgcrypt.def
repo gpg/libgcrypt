@@ -245,6 +245,7 @@ EXPORTS
 
       gcry_mpi_ec_curve_point   @218
 
+      gcry_md_hash_buffers      @219
 
 
 ;; end of file with public symbols for Windows.

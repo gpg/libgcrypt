@@ -232,6 +232,16 @@ typedef struct gcry_mpi *GCRY_MPI _GCRY_GCC_ATTR_DEPRECATED;
 typedef struct gcry_mpi *GcryMPI _GCRY_GCC_ATTR_DEPRECATED;
 #endif
 
+/* A structure used for scatter gather hashing.  */
+typedef struct
+{
+  size_t size;  /* The allocated size of the buffer or 0.  */
+  size_t off;   /* Offset into the buffer.  */
+  size_t len;   /* The used length of the buffer.  */
+  void *data;   /* The buffer.  */
+} gcry_buffer_t;
+
+
 
 
 /* Check that the library fulfills the version requirement.  */
@@ -1150,6 +1160,10 @@ unsigned char *gcry_md_read (gcry_md_hd_t hd, int algo);
    algorithm. */
 void gcry_md_hash_buffer (int algo, void *digest,
                           const void *buffer, size_t length);
+
+/* Convenience function to hash multiple buffers.  */
+gpg_error_t gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
+                                  const gcry_buffer_t *iov, int iovcnt);
 
 /* Retrieve the algorithm used with HD.  This does not work reliable
    if more than one algorithm is enabled in HD. */

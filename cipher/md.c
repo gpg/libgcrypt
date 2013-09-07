@@ -1,6 +1,7 @@
 /* md.c  -  message digest dispatcher
  * Copyright (C) 1998, 1999, 2002, 2003, 2006,
  *               2008 Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -1034,6 +1035,83 @@ gcry_md_hash_buffer (int algo, void *digest,
       md_close (h);
     }
 }
+
+
+/* Shortcut function to hash multiple buffers with a given algo.  In
+   contrast to gcry_md_hash_buffer, this function returns an error on
+   invalid arguments or on other problems; disabled algorithms are
+   _not_ ignored but flagged as an error.
+
+   The data to sign is taken from the array IOV which has IOVCNT items.
+
+   The only supported flag in FLAGS is GCRY_MD_FLAG_HMAC which turns
+   this function into a HMAC function; the first item in IOV is then
+   used as the key.
+
+   On success 0 is returned and resulting hash or HMAC is stored at
+   DIGEST which must have been provided by the caller with an
+   appropriate length.  */
+gpg_err_code_t
+gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
+                      const gcry_buffer_t *iov, int iovcnt)
+{
+  int hmac;
+
+  if (!iov || iovcnt < 0)
+    return GPG_ERR_INV_ARG;
+  if (flags & ~(GCRY_MD_FLAG_HMAC))
+    return GPG_ERR_INV_ARG;
+
+  hmac = !!(flags & GCRY_MD_FLAG_HMAC);
+  if (hmac && iovcnt < 1)
+    return GPG_ERR_INV_ARG;
+
+  if (algo == GCRY_MD_SHA1 && !hmac)
+    _gcry_sha1_hash_buffers (digest, iov, iovcnt);
+  else
+    {
+      /* For the others we do not have a fast function, so we use the
+	 normal functions. */
+      gcry_md_hd_t h;
+      gpg_err_code_t rc;
+
+      if (algo == GCRY_MD_MD5 && fips_mode ())
+        {
+          _gcry_inactivate_fips_mode ("MD5 used");
+          if (_gcry_enforced_fips_mode () )
+            {
+              /* We should never get to here because we do not register
+                 MD5 in enforced fips mode.  */
+              _gcry_fips_noreturn ();
+            }
+        }
+
+      rc = md_open (&h, algo, 0, hmac);
+      if (rc)
+        return rc;
+
+      if (hmac)
+        {
+          rc = gcry_err_code
+            (gcry_md_setkey (h, (const char*)iov[0].data + iov[0].off,
+                             iov[0].len));
+          if (rc)
+            {
+              md_close (h);
+              return rc;
+            }
+          iov++; iovcnt--;
+        }
+      for (;iovcnt; iov++, iovcnt--)
+        md_write (h, (const char*)iov[0].data + iov[0].off, iov[0].len);
+      md_final (h);
+      memcpy (digest, md_read (h, algo), md_digest_length (algo));
+      md_close (h);
+    }
+
+  return 0;
+}
+
 
 static int
 md_get_algo (gcry_md_hd_t a)

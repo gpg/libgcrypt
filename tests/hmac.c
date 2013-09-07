@@ -148,6 +148,63 @@ check_hmac (void)
 
 }
 
+
+static void
+check_hmac_multi (void)
+{
+  gpg_error_t err;
+  unsigned char key[128];
+  const char msg[] = "Sample #1";
+  const char mac[] = ("\x4f\x4c\xa3\xd5\xd6\x8b\xa7\xcc\x0a\x12"
+                      "\x08\xc9\xc6\x1e\x9c\x5d\xa0\x40\x3c\x0a");
+  gcry_buffer_t iov[4];
+  char digest[64];
+  int i;
+  int algo;
+  int maclen;
+
+  if (verbose)
+    fprintf (stderr, "checking HMAC using multiple buffers\n");
+  for (i=0; i < 64; i++)
+    key[i] = i;
+
+  memset (iov, 0, sizeof iov);
+  iov[0].data = key;
+  iov[0].len = 64;
+  iov[1].data = (void*)msg;
+  iov[1].off = 0;
+  iov[1].len = 3;
+  iov[2].data = (void*)msg;
+  iov[2].off = 3;
+  iov[2].len = 1;
+  iov[3].data = (void*)msg;
+  iov[3].off = 4;
+  iov[3].len = 5;
+
+  algo = GCRY_MD_SHA1;
+  maclen = gcry_md_get_algo_dlen (algo);
+  err = gcry_md_hash_buffers (algo, GCRY_MD_FLAG_HMAC, digest, iov, 4);
+  if (err)
+    {
+      fail ("gcry_md_hash_buffers failed: %s\n", algo, gpg_strerror (err));
+      return;
+    }
+
+  if (memcmp (digest, mac, maclen))
+    {
+      printf ("computed: ");
+      for (i = 0; i < maclen; i++)
+	printf ("%02x ", digest[i] & 0xFF);
+      printf ("\nexpected: ");
+      for (i = 0; i < maclen; i++)
+	printf ("%02x ", mac[i] & 0xFF);
+      printf ("\n");
+
+      fail ("gcry_md_hash_buffers, algo %d, MAC does not match\n", algo);
+    }
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -166,6 +223,7 @@ main (int argc, char **argv)
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
   check_hmac ();
+  check_hmac_multi ();
 
   return error_count ? 1 : 0;
 }

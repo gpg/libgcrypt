@@ -63,6 +63,7 @@
 #define gcry_md_get_algo            _gcry_md_get_algo
 #define gcry_md_get_algo_dlen       _gcry_md_get_algo_dlen
 #define gcry_md_hash_buffer         _gcry_md_hash_buffer
+#define gcry_md_hash_buffers        _gcry_md_hash_buffers
 #define gcry_md_info                _gcry_md_info
 #define gcry_md_is_enabled          _gcry_md_is_enabled
 #define gcry_md_is_secure           _gcry_md_is_secure
@@ -279,6 +280,7 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_md_get_algo
 #undef gcry_md_get_algo_dlen
 #undef gcry_md_hash_buffer
+#undef gcry_md_hash_buffers
 #undef gcry_md_info
 #undef gcry_md_is_enabled
 #undef gcry_md_is_secure
@@ -455,6 +457,7 @@ MARK_VISIBLE (gcry_md_get)
 MARK_VISIBLE (gcry_md_get_algo)
 MARK_VISIBLE (gcry_md_get_algo_dlen)
 MARK_VISIBLE (gcry_md_hash_buffer)
+MARK_VISIBLE (gcry_md_hash_buffers)
 MARK_VISIBLE (gcry_md_info)
 MARK_VISIBLE (gcry_md_is_enabled)
 MARK_VISIBLE (gcry_md_is_secure)

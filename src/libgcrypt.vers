@@ -39,6 +39,7 @@ GCRYPT_1.6 {
     gcry_md_algo_info; gcry_md_algo_name; gcry_md_close;
     gcry_md_copy; gcry_md_ctl; gcry_md_enable; gcry_md_get;
     gcry_md_get_algo; gcry_md_get_algo_dlen; gcry_md_hash_buffer;
+    gcry_md_hash_buffers;
     gcry_md_info; gcry_md_is_enabled; gcry_md_is_secure;
     gcry_md_map_name; gcry_md_open; gcry_md_read;
     gcry_md_reset; gcry_md_setkey;

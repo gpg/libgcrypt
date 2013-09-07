@@ -24,6 +24,10 @@ Noteworthy changes in version 1.6.0 (unreleased)
 
  * Support Deterministic DSA as per RFC-6969.
 
+ * Added a scatter gather hash convenience function.
+
+ * Added several MPI helper functions.
+
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_ac_*              REMOVED.
@@ -40,6 +44,8 @@ Noteworthy changes in version 1.6.0 (unreleased)
  gcry_md_list           REMOVED.
  gcry_md_start_debug    REMOVED (macro).
  gcry_md_stop_debug     REMOVED (macro).
+ gcry_md_hash_buffers            NEW.
+ gcry_buffer_t                   NEW.
  GCRYCTL_SET_ENFORCED_FIPS_FLAG  NEW.
  GCRYCTL_SET_PREFERRED_RNG_TYPE  NEW.
  GCRYCTL_GET_CURRENT_RNG_TYPE    NEW.

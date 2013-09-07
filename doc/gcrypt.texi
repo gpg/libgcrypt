@@ -3115,8 +3115,36 @@ The function does return @code{NULL} if the requested algorithm has not
 been enabled.
 @end deftypefun
 
-Because it is often necessary to get the message digest of one block of
-memory, a fast convenience function is available for this task:
+Because it is often necessary to get the message digest of blocks of
+memory, two fast convenience function are available for this task:
+
+@deftypefun gpg_err_code_t gcry_md_hash_buffers ( @
+  @w{int @var{algo}}, @w{unsigned int @var{flags}}, @
+  @w{void *@var{digest}}, @
+  @w{const gcry_buffer_t *@var{iov}}, @w{int @var{iovcnt}} )
+
+@code{gcry_md_hash_buffers} is a shortcut function to calculate a
+message digest from several buffers.  This function does not require a
+context and immediately returns the message digest of of the data
+described by @var{iov} and @var{iovcnt}.  @var{digest} must be
+allocated by the caller, large enough to hold the message digest
+yielded by the the specified algorithm @var{algo}.  This required size
+may be obtained by using the function @code{gcry_md_get_algo_dlen}.
+
+@var{iov} is an array of buffer descriptions with @var{iovcnt} items.
+The caller should zero out the structures in this array and for each
+array item set the fields @code{.data} to the address of the data to
+be hashed, @code{.len} to number of bytes to be hashed.  If @var{.off}
+is also set, the data is taken starting at @var{.off} bytes from the
+begin of the buffer.  The field @code{.size} is not used.
+
+The only supported flag value for @var{flags} is
+@var{GCRY_MD_FLAG_HMAC} which turns this function into a HMAC
+function; the first item in @var{iov} is then used as the key.
+
+On success the function returns 0 and stores the resulting hash or MAC
+at @var{digest}.
+@end deftypefun
 
 @deftypefun void gcry_md_hash_buffer (int @var{algo}, void *@var{digest}, const void *@var{buffer}, size_t @var{length});
 
@@ -3128,8 +3156,8 @@ enough to hold the message digest yielded by the the specified algorithm
 @var{algo}.  This required size may be obtained by using the function
 @code{gcry_md_get_algo_dlen}.
 
-Note that this function will abort the process if an unavailable
-algorithm is used.
+Note that in contrast to @code{gcry_md_hash_buffers} this function
+will abort the process if an unavailable algorithm is used.
 @end deftypefun
 
 @c ***********************************
@@ -4359,7 +4387,9 @@ wrong.
 @menu
 * Memory allocation::   Functions related with memory allocation.
 * Context management::  Functions related with context management.
+* Buffer description::  A data type to describe buffers.
 @end menu
+
 
 @node Memory allocation
 @section Memory allocation
@@ -4417,6 +4447,31 @@ This type is used to refer to the general purpose context object.
 Release the context object @var{ctx} and all associated resources.  A
 @code{NULL} passed as @var{ctx} is ignored.
 @end deftypefun
+
+@node Buffer description
+@section Buffer description
+
+To help hashing non-contiguous areas of memory a general purpose data
+type is defined:
+
+@deftp {Data type} {gcry_buffer_t}
+This type is a structure to describe a buffer.  The user should make
+sure that this structure is initialized to zero.  The available fields
+of this structure are:
+
+@table @code
+  @item .size
+  This is either 0 for no information available or indicates the
+  allocated length of the buffer.
+  @item .off
+  This is the offset into the buffer.
+  @item .len
+  This is the valid length of the buffer starting at @code{.off}.
+  @item .data
+  This is the address of the buffer.
+  @end table
+@end deftp
+
 
 
 @c **********************************************************
