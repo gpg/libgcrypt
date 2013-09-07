@@ -3826,7 +3826,8 @@ bytes actually scanned unless @var{nscanned} was given as
 
 @table @code
 @item GCRYMPI_FMT_STD
-2-complement stored without a length header.
+2-complement stored without a length header.  Note that
+@code{gcry_mpi_print} stores a @code{0} as a string of zero length.
 
 @item GCRYMPI_FMT_PGP
 As used by OpenPGP (only defined as unsigned). This is basically
@@ -3837,8 +3838,10 @@ As used in the Secure Shell protocol.  This is @code{GCRYMPI_FMT_STD}
 with a 4 byte big endian header.
 
 @item GCRYMPI_FMT_HEX
-Stored as a C style string with each byte of the MPI encoded as 2 hex
-digits.  When using this format, @var{buflen} must be zero.
+Stored as a string with each byte of the MPI encoded as 2 hex digits.
+Negative numbers are prefix with a minus sign and in addition the
+high bit is always zero to make clear that an explicit sign ist used.
+When using this format, @var{buflen} must be zero.
 
 @item GCRYMPI_FMT_USG
 Simple unsigned integer.
@@ -3866,6 +3869,12 @@ Convert the MPI @var{a} into an external representation described by
 address will be stored in the variable @var{buffer} points to.  The
 number of bytes stored in this buffer will be stored in the variable
 @var{nbytes} points to, unless @var{nbytes} is @code{NULL}.
+
+Even if @var{nbytes} is zero, the function allocates at least one byte
+and store a zero there.  Thus with formats @code{GCRYMPI_FMT_STD} and
+@code{GCRYMPI_FMT_USG} the caller may safely set a returned length of
+0 to 1 to represent a zero as a 1 byte string.
+
 @end deftypefun
 
 @deftypefun void gcry_mpi_dump (@w{const gcry_mpi_t @var{a}})

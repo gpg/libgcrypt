@@ -28,6 +28,9 @@ Noteworthy changes in version 1.6.0 (unreleased)
 
  * Added several MPI helper functions.
 
+ * Added support for negative numbers to gcry_mpi_print,
+   gcry_mpi_aprint and gcry_mpi_scan.
+
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_ac_*              REMOVED.
