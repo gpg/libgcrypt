@@ -232,3 +232,24 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
 
   return 0;
 }
+
+
+/* Compute the public key from the the context EC.  Obviously a
+   requirement is that the secret key is available in EC.  On success
+   Q is returned; on error NULL.  If Q is NULL a newly allocated pint
+   is returned.  */
+mpi_point_t
+_gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec)
+{
+  if (!ec->d || !ec->G || !ec->p || !ec->a)
+    return NULL;
+  if (ec->model == MPI_EC_TWISTEDEDWARDS && !ec->b)
+    return NULL;
+
+  if (!Q)
+    Q = gcry_mpi_point_new (0);
+  if (!Q)
+    return NULL;
+  _gcry_mpi_ec_mul_point (Q, ec->d, ec->G, ec);
+  return Q;
+}

@@ -82,5 +82,7 @@ const char *_gcry_ecc_dialect2str (enum ecc_dialects dialect);
 gcry_mpi_t   _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p);
 gcry_error_t _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value);
 
+mpi_point_t  _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec);
+
 
 #endif /*GCRY_ECC_COMMON_H*/

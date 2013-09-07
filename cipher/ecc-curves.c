@@ -270,6 +270,23 @@ static const ecc_domain_parms_t domain_parms[] =
 
 
 
+/* Return a copy of POINT.  */
+static gcry_mpi_point_t
+point_copy (gcry_mpi_point_t point)
+{
+  gcry_mpi_point_t newpoint;
+
+  if (point)
+    {
+      newpoint = gcry_mpi_point_new (0);
+      point_set (newpoint, point);
+    }
+  else
+    newpoint = NULL;
+  return newpoint;
+}
+
+
 /* Helper to scan a hex string. */
 static gcry_mpi_t
 scanval (const char *string)
@@ -786,4 +803,127 @@ _gcry_ecc_get_param_sexp (const char *name)
     gcry_mpi_release (pkey[i]);
 
   return result;
+}
+
+
+/* Return an MPI (or opaque MPI) described by NAME and the context EC.
+   If COPY is true a copy is returned, if not a const MPI may be
+   returned.  In any case mpi_free must be used.  */
+gcry_mpi_t
+_gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
+{
+  if (!strcmp (name, "p") && ec->p)
+    return mpi_is_const (ec->p) && !copy? ec->p : mpi_copy (ec->p);
+  if (!strcmp (name, "a") && ec->a)
+    return mpi_is_const (ec->a) && !copy? ec->a : mpi_copy (ec->a);
+  if (!strcmp (name, "b") && ec->b)
+    return mpi_is_const (ec->b) && !copy? ec->b : mpi_copy (ec->b);
+  if (!strcmp (name, "n") && ec->n)
+    return mpi_is_const (ec->n) && !copy? ec->n : mpi_copy (ec->n);
+  if (!strcmp (name, "d") && ec->d)
+    return mpi_is_const (ec->d) && !copy? ec->d : mpi_copy (ec->d);
+
+  /* Return a requested point coordinate.  */
+  if (!strcmp (name, "g.x") && ec->G && ec->G->x)
+    return mpi_is_const (ec->G->x) && !copy? ec->G->x : mpi_copy (ec->G->x);
+  if (!strcmp (name, "g.y") && ec->G && ec->G->y)
+    return mpi_is_const (ec->G->y) && !copy? ec->G->y : mpi_copy (ec->G->y);
+  if (!strcmp (name, "q.x") && ec->Q && ec->Q->x)
+    return mpi_is_const (ec->Q->x) && !copy? ec->Q->x : mpi_copy (ec->Q->x);
+  if (!strcmp (name, "q.y") && ec->Q && ec->Q->y)
+    return mpi_is_const (ec->G->y) && !copy? ec->Q->y : mpi_copy (ec->Q->y);
+
+  /* If a point has been requested, return it in standard encoding.  */
+  if (!strcmp (name, "g") && ec->G)
+    return _gcry_mpi_ec_ec2os (ec->G, ec);
+  if (!strcmp (name, "q"))
+    {
+      /* If only the private key is given, compute the public key.  */
+      if (!ec->Q)
+        ec->Q = _gcry_ecc_compute_public (NULL, ec);
+
+      if (ec->Q)
+        return _gcry_mpi_ec_ec2os (ec->Q, ec);
+    }
+
+  return NULL;
+}
+
+
+/* Return a point described by NAME and the context EC.  */
+gcry_mpi_point_t
+_gcry_ecc_get_point (const char *name, mpi_ec_t ec)
+{
+  if (!strcmp (name, "g") && ec->G)
+    return point_copy (ec->G);
+  if (!strcmp (name, "q"))
+    {
+      /* If only the private key is given, compute the public key.  */
+      if (!ec->Q)
+        ec->Q = _gcry_ecc_compute_public (NULL, ec);
+
+      if (ec->Q)
+        return point_copy (ec->Q);
+    }
+
+  return NULL;
+}
+
+
+/* Store the MPI NEWVALUE into the context EC under NAME. */
+gpg_err_code_t
+_gcry_ecc_set_mpi (const char *name, gcry_mpi_t newvalue, mpi_ec_t ec)
+{
+  if (!strcmp (name, "p"))
+    {
+      mpi_free (ec->p);
+      ec->p = mpi_copy (newvalue);
+      _gcry_mpi_ec_get_reset (ec);
+    }
+  else if (!strcmp (name, "a"))
+    {
+      mpi_free (ec->a);
+      ec->a = mpi_copy (newvalue);
+      _gcry_mpi_ec_get_reset (ec);
+    }
+  else if (!strcmp (name, "b"))
+    {
+      mpi_free (ec->b);
+      ec->b = mpi_copy (newvalue);
+    }
+  else if (!strcmp (name, "n"))
+    {
+      mpi_free (ec->n);
+      ec->n = mpi_copy (newvalue);
+    }
+  else if (!strcmp (name, "d"))
+    {
+      mpi_free (ec->d);
+      ec->d = mpi_copy (newvalue);
+    }
+  else
+    return GPG_ERR_UNKNOWN_NAME;
+
+  return 0;
+}
+
+
+/* Store the point NEWVALUE into the context EC under NAME.  */
+gpg_err_code_t
+_gcry_ecc_set_point (const char *name, gcry_mpi_point_t newvalue, mpi_ec_t ec)
+{
+  if (!strcmp (name, "g"))
+    {
+      gcry_mpi_point_release (ec->G);
+      ec->G = point_copy (newvalue);
+    }
+  else if (!strcmp (name, "q"))
+    {
+      gcry_mpi_point_release (ec->Q);
+      ec->Q = point_copy (newvalue);
+    }
+  else
+    return GPG_ERR_UNKNOWN_NAME;
+
+  return 0;
 }

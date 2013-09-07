@@ -333,8 +333,6 @@ int  _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx);
 
 gcry_mpi_t _gcry_mpi_ec_ec2os (gcry_mpi_point_t point, mpi_ec_t ectx);
 
-gpg_err_code_t _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
-                                 gcry_sexp_t keyparam, const char *curvename);
 gcry_mpi_t _gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy);
 gcry_mpi_point_t _gcry_mpi_ec_get_point (const char *name,
                                          gcry_ctx_t ctx, int copy);

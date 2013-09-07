@@ -132,23 +132,6 @@ point_set (mpi_point_t d, mpi_point_t s)
 }
 
 
-/* Return a copy of POINT.  */
-static gcry_mpi_point_t
-point_copy (gcry_mpi_point_t point)
-{
-  gcry_mpi_point_t newpoint;
-
-  if (point)
-    {
-      newpoint = gcry_mpi_point_new (0);
-      point_set (newpoint, point);
-    }
-  else
-    newpoint = NULL;
-  return newpoint;
-}
-
-
 /* Set the projective coordinates from POINT into X, Y, and Z.  If a
    coordinate is not required, X, Y, or Z may be passed as NULL.  */
 void
@@ -396,8 +379,8 @@ ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
 
 
 /* Force recomputation of all helper variables.  */
-static void
-ec_get_reset (mpi_ec_t ec)
+void
+_gcry_mpi_ec_get_reset (mpi_ec_t ec)
 {
   ec->t.valid.a_is_pminus3 = 0;
   ec->t.valid.two_inv_p = 0;
@@ -458,7 +441,7 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
   if (b && model == MPI_EC_TWISTEDEDWARDS)
     ctx->b = mpi_copy (b);
 
-  ec_get_reset (ctx);
+  _gcry_mpi_ec_get_reset (ctx);
 
   /* Allocate scratch variables.  */
   for (i=0; i< DIM(ctx->t.scratch); i++)
@@ -590,44 +573,7 @@ _gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy)
 {
   mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
 
-  if (!strcmp (name, "p") && ec->p)
-    return mpi_is_const (ec->p) && !copy? ec->p : mpi_copy (ec->p);
-  if (!strcmp (name, "a") && ec->a)
-    return mpi_is_const (ec->a) && !copy? ec->a : mpi_copy (ec->a);
-  if (!strcmp (name, "b") && ec->b)
-    return mpi_is_const (ec->b) && !copy? ec->b : mpi_copy (ec->b);
-  if (!strcmp (name, "n") && ec->n)
-    return mpi_is_const (ec->n) && !copy? ec->n : mpi_copy (ec->n);
-  if (!strcmp (name, "d") && ec->d)
-    return mpi_is_const (ec->d) && !copy? ec->d : mpi_copy (ec->d);
-
-  /* Return a requested point coordinate.  */
-  if (!strcmp (name, "g.x") && ec->G && ec->G->x)
-    return mpi_is_const (ec->G->x) && !copy? ec->G->x : mpi_copy (ec->G->x);
-  if (!strcmp (name, "g.y") && ec->G && ec->G->y)
-    return mpi_is_const (ec->G->y) && !copy? ec->G->y : mpi_copy (ec->G->y);
-  if (!strcmp (name, "q.x") && ec->Q && ec->Q->x)
-    return mpi_is_const (ec->Q->x) && !copy? ec->Q->x : mpi_copy (ec->Q->x);
-  if (!strcmp (name, "q.y") && ec->Q && ec->Q->y)
-    return mpi_is_const (ec->G->y) && !copy? ec->Q->y : mpi_copy (ec->Q->y);
-
-  /* If a point has been requested, return it in standard encoding.  */
-  if (!strcmp (name, "g") && ec->G)
-    return _gcry_mpi_ec_ec2os (ec->G, ec);
-  if (!strcmp (name, "q"))
-    {
-      /* If only the private key is given, compute the public key.  */
-      if (!ec->Q && ec->d && ec->G && ec->p && ec->a)
-        {
-          ec->Q = gcry_mpi_point_new (0);
-          _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
-        }
-
-      if (ec->Q)
-        return _gcry_mpi_ec_ec2os (ec->Q, ec);
-    }
-
-  return NULL;
+  return _gcry_ecc_get_mpi (name, ec, copy);
 }
 
 
@@ -638,22 +584,7 @@ _gcry_mpi_ec_get_point (const char *name, gcry_ctx_t ctx, int copy)
 
   (void)copy;  /* Not used.  */
 
-  if (!strcmp (name, "g") && ec->G)
-    return point_copy (ec->G);
-  if (!strcmp (name, "q"))
-    {
-      /* If only the private key is given, compute the public key.  */
-      if (!ec->Q && ec->d && ec->G && ec->p && ec->a)
-        {
-          ec->Q = gcry_mpi_point_new (0);
-          _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
-        }
-
-      if (ec->Q)
-        return point_copy (ec->Q);
-    }
-
-  return NULL;
+  return _gcry_ecc_get_point (name, ec);
 }
 
 
@@ -663,37 +594,7 @@ _gcry_mpi_ec_set_mpi (const char *name, gcry_mpi_t newvalue,
 {
   mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
 
-  if (!strcmp (name, "p"))
-    {
-      mpi_free (ec->p);
-      ec->p = mpi_copy (newvalue);
-      ec_get_reset (ec);
-    }
-  else if (!strcmp (name, "a"))
-    {
-      mpi_free (ec->a);
-      ec->a = mpi_copy (newvalue);
-      ec_get_reset (ec);
-    }
-  else if (!strcmp (name, "b"))
-    {
-      mpi_free (ec->b);
-      ec->b = mpi_copy (newvalue);
-    }
-  else if (!strcmp (name, "n"))
-    {
-      mpi_free (ec->n);
-      ec->n = mpi_copy (newvalue);
-    }
-  else if (!strcmp (name, "d"))
-    {
-      mpi_free (ec->d);
-      ec->d = mpi_copy (newvalue);
-    }
-  else
-    return GPG_ERR_UNKNOWN_NAME;
-
-  return 0;
+  return _gcry_ecc_set_mpi (name, newvalue, ec);
 }
 
 
@@ -703,20 +604,7 @@ _gcry_mpi_ec_set_point (const char *name, gcry_mpi_point_t newvalue,
 {
   mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
 
-  if (!strcmp (name, "g"))
-    {
-      gcry_mpi_point_release (ec->G);
-      ec->G = point_copy (newvalue);
-    }
-  else if (!strcmp (name, "q"))
-    {
-      gcry_mpi_point_release (ec->Q);
-      ec->Q = point_copy (newvalue);
-    }
-  else
-    return GPG_ERR_UNKNOWN_NAME;
-
-  return 0;
+  return _gcry_ecc_set_point (name, newvalue, ec);
 }
 
 
