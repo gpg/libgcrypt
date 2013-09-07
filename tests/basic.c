@@ -3654,7 +3654,18 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	    }
 	  rc = gcry_pk_decrypt (&plain, ciph, skey);
 	  if (gcry_err_code (rc) != datas[dataidx].decrypt_expected_rc)
-	    fail ("gcry_pk_decrypt failed: %s\n", gpg_strerror (rc));
+            {
+              if (verbose)
+                {
+                  show_sexp ("  data:\n", data);
+                  show_sexp ("  ciph:\n", ciph);
+                  show_sexp ("   key:\n", skey);
+                }
+              fail ("gcry_pk_decrypt failed: expected %d (%s), got %d (%s)\n",
+                    datas[dataidx].decrypt_expected_rc,
+                    gpg_strerror (datas[dataidx].decrypt_expected_rc),
+                    rc, gpg_strerror (rc));
+            }
 
 	  if (!rc && datas[dataidx].unpadded)
 	    {

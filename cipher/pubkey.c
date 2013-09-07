@@ -714,7 +714,7 @@ get_hash_algo (const char *s, size_t n)
  */
 static gcry_err_code_t
 sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_pk_spec_t **r_spec,
-             int *ret_modern, int *flags, struct pk_encoding_ctx *ctx)
+             int *flags, struct pk_encoding_ctx *ctx)
 {
   gcry_err_code_t err = 0;
   gcry_sexp_t list = NULL;
@@ -725,8 +725,6 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_pk_spec_t **r_spec,
   int parsed_flags = 0;
   const char *elems;
   gcry_mpi_t *array = NULL;
-
-  *ret_modern = 0;
 
   /* Check that the first element is valid.  */
   list = gcry_sexp_find_token (sexp, "enc-val" , 0);
@@ -757,7 +755,6 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_pk_spec_t **r_spec,
       const char *s;
       int i;
 
-      *ret_modern = 1;
       for (i = gcry_sexp_length (l2) - 1; i > 0; i--)
         {
           s = gcry_sexp_nth_data (l2, i, &n);
@@ -863,6 +860,8 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_pk_spec_t **r_spec,
       list = l2;
       l2 = NULL;
     }
+  else
+    parsed_flags |= PUBKEY_FLAG_LEGACYRESULT;
 
   spec = spec_from_name (name);
   if (!spec)
@@ -1533,11 +1532,8 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   gcry_err_code_t rc;
   gcry_mpi_t *skey = NULL;
   gcry_mpi_t *data = NULL;
-  gcry_mpi_t plain = NULL;
-  unsigned char *unpad = NULL;
-  size_t unpadlen = 0;
   int i;
-  int modern, flags;
+  int flags;
   struct pk_encoding_ctx ctx;
   gcry_pk_spec_t *spec = NULL;
   gcry_pk_spec_t *spec_enc = NULL;
@@ -1551,7 +1547,7 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
     goto leave;
 
   init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT, gcry_pk_get_nbits (s_skey));
-  rc = sexp_to_enc (s_data, &data, &spec_enc, &modern, &flags, &ctx);
+  rc = sexp_to_enc (s_data, &data, &spec_enc, &flags, &ctx);
   if (rc)
     goto leave;
 
@@ -1571,58 +1567,24 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
     }
 
   if (spec->decrypt)
-    rc = spec->decrypt (spec->algo, &plain, data, skey, flags);
+    rc = spec->decrypt (spec->algo, r_plain, data, skey, flags,
+                        ctx.encoding, ctx.hash_algo,
+                        ctx.label, ctx.labellen);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
   if (rc)
     goto leave;
 
-  if (DBG_CIPHER && !fips_mode ())
-    log_mpidump (" plain", plain);
+  /* if (DBG_CIPHER && !fips_mode ()) */
+  /*   log_mpidump (" plain", plain); */
 
-  /* Do un-padding if necessary. */
-  switch (ctx.encoding)
-    {
-    case PUBKEY_ENC_PKCS1:
-      rc = _gcry_rsa_pkcs1_decode_for_enc (&unpad, &unpadlen,
-                                           gcry_pk_get_nbits (s_skey),
-                                           plain);
-      mpi_free (plain);
-      plain = NULL;
-      if (!rc)
-        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
-                                             (int)unpadlen, unpad));
-      break;
-
-    case PUBKEY_ENC_OAEP:
-      rc = _gcry_rsa_oaep_decode (&unpad, &unpadlen,
-                                  gcry_pk_get_nbits (s_skey), ctx.hash_algo,
-                                  plain, ctx.label, ctx.labellen);
-      mpi_free (plain);
-      plain = NULL;
-      if (!rc)
-        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
-                                             (int)unpadlen, unpad));
-      break;
-
-    default:
-      /* Raw format.  For backward compatibility we need to assume a
-         signed mpi by using the sexp format string "%m".  */
-      rc = gcry_err_code (gcry_sexp_build
-                          (r_plain, NULL, modern? "(value %m)" : "%m", plain));
-      break;
-    }
 
  leave:
-  gcry_free (unpad);
-
   if (skey)
     {
       release_mpi_array (skey);
       gcry_free (skey);
     }
-
-  mpi_free (plain);
 
   if (data)
     {

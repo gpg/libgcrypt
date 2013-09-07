@@ -67,10 +67,14 @@ typedef gcry_err_code_t (*gcry_pk_encrypt_t) (int algo,
 
 /* Type for the pk_decrypt function.  */
 typedef gcry_err_code_t (*gcry_pk_decrypt_t) (int algo,
-					      gcry_mpi_t *result,
+					      gcry_sexp_t *r_result,
 					      gcry_mpi_t *data,
 					      gcry_mpi_t *skey,
-					      int flags);
+					      int flags,
+                                              enum pk_encoding encoding,
+                                              int hash_algo,
+                                              unsigned char *label,
+                                              size_t labellen);
 
 /* Type for the pk_sign function.  */
 typedef gcry_err_code_t (*gcry_pk_sign_t) (int algo,

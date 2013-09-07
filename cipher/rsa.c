@@ -32,6 +32,7 @@
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
+#include "pubkey-internal.h"
 
 
 typedef struct
@@ -737,47 +738,6 @@ secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
 
 
 
-/* Perform RSA blinding.  */
-static gcry_mpi_t
-rsa_blind (gcry_mpi_t x, gcry_mpi_t r, gcry_mpi_t e, gcry_mpi_t n)
-{
-  /* A helper.  */
-  gcry_mpi_t a;
-
-  /* Result.  */
-  gcry_mpi_t y;
-
-  a = gcry_mpi_snew (gcry_mpi_get_nbits (n));
-  y = gcry_mpi_snew (gcry_mpi_get_nbits (n));
-
-  /* Now we calculate: y = (x * r^e) mod n, where r is the random
-     number, e is the public exponent, x is the non-blinded data and n
-     is the RSA modulus.  */
-  gcry_mpi_powm (a, r, e, n);
-  gcry_mpi_mulm (y, a, x, n);
-
-  gcry_mpi_release (a);
-
-  return y;
-}
-
-/* Undo RSA blinding.  */
-static gcry_mpi_t
-rsa_unblind (gcry_mpi_t x, gcry_mpi_t ri, gcry_mpi_t n)
-{
-  gcry_mpi_t y;
-
-  y = gcry_mpi_snew (gcry_mpi_get_nbits (n));
-
-  /* Here we calculate: y = (x * r^-1) mod n, where x is the blinded
-     decrypted data, ri is the modular multiplicative inverse of r and
-     n is the RSA modulus.  */
-
-  gcry_mpi_mulm (y, ri, x, n);
-
-  return y;
-}
-
 /*********************************************
  **************  interface  ******************
  *********************************************/
@@ -926,15 +886,18 @@ rsa_encrypt (int algo, gcry_sexp_t *r_result, gcry_mpi_t data,
 
 
 static gcry_err_code_t
-rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
-             gcry_mpi_t *skey, int flags)
+rsa_decrypt (int algo, gcry_sexp_t *r_plain, gcry_mpi_t *data,
+             gcry_mpi_t *skey, int flags,
+             enum pk_encoding encoding, int hash_algo,
+             unsigned char *label, size_t labellen)
+
 {
+  gpg_err_code_t rc;
   RSA_secret_key sk;
-  gcry_mpi_t r = MPI_NULL;	/* Random number needed for blinding.  */
-  gcry_mpi_t ri = MPI_NULL;	/* Modular multiplicative inverse of
-				   r.  */
-  gcry_mpi_t x = MPI_NULL;	/* Data to decrypt.  */
-  gcry_mpi_t y;			/* Result.  */
+  gcry_mpi_t plain;		/* Decrypted data.  */
+  unsigned char *unpad = NULL;
+  size_t unpadlen = 0;
+  unsigned int nbits;
 
   (void)algo;
 
@@ -946,24 +909,29 @@ rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
   sk.q = skey[4]; /* Optional. */
   sk.u = skey[5]; /* Optional. */
 
-  y = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
+  nbits = gcry_mpi_get_nbits (sk.n);
+
+  plain = gcry_mpi_snew (nbits);
 
   /* We use blinding by default to mitigate timing attacks which can
      be practically mounted over the network as shown by Brumley and
      Boney in 2003.  */
   if (! (flags & PUBKEY_FLAG_NO_BLINDING))
     {
-      /* Initialize blinding.  */
+      gcry_mpi_t r;	/* Random number needed for blinding.  */
+      gcry_mpi_t ri;	/* Modular multiplicative inverse of r.  */
+      gcry_mpi_t ciph;	/* Blinded data to decrypt.  */
 
       /* First, we need a random number r between 0 and n - 1, which
 	 is relatively prime to n (i.e. it is neither p nor q).  The
 	 random number needs to be only unpredictable, thus we employ
 	 the gcry_create_nonce function by using GCRY_WEAK_RANDOM with
 	 gcry_mpi_randomize.  */
-      r = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
-      ri = gcry_mpi_snew (gcry_mpi_get_nbits (sk.n));
+      r = gcry_mpi_snew (nbits);
+      ri = gcry_mpi_snew (nbits);
+      ciph = gcry_mpi_snew (nbits);
 
-      gcry_mpi_randomize (r, gcry_mpi_get_nbits (sk.n), GCRY_WEAK_RANDOM);
+      gcry_mpi_randomize (r, nbits, GCRY_WEAK_RANDOM);
       gcry_mpi_mod (r, r, sk.n);
 
       /* Calculate inverse of r.  It practically impossible that the
@@ -971,39 +939,64 @@ rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
          allocated resources.  */
       if (!gcry_mpi_invm (ri, r, sk.n))
 	return GPG_ERR_INTERNAL;
-    }
 
-  if (! (flags & PUBKEY_FLAG_NO_BLINDING))
-    x = rsa_blind (data[0], r, sk.e, sk.n);
-  else
-    x = data[0];
+      /* Do blinding.  We calculate: y = (x * r^e) mod n, where r is
+         the random number, e is the public exponent, x is the
+         non-blinded data and n is the RSA modulus.  */
+      gcry_mpi_powm (ciph, r, sk.e, sk.n);
+      gcry_mpi_mulm (ciph, ciph, data[0], sk.n);
 
-  /* Do the encryption.  */
-  secret (y, x, &sk);
+      /* Perform decryption.  */
+      secret (plain, ciph, &sk);
 
-  if (! (flags & PUBKEY_FLAG_NO_BLINDING))
-    {
-      /* Undo blinding.  */
-      gcry_mpi_t a = gcry_mpi_copy (y);
+      /* Undo blinding.  Here we calculate: y = (x * r^-1) mod n,
+         where x is the blinded decrypted data, ri is the modular
+         multiplicative inverse of r and n is the RSA modulus.  */
+      gcry_mpi_mulm (plain, plain, ri, sk.n);
 
-      gcry_mpi_release (y);
-      y = rsa_unblind (a, ri, sk.n);
-
-      gcry_mpi_release (a);
-    }
-
-  if (! (flags & PUBKEY_FLAG_NO_BLINDING))
-    {
-      /* Deallocate resources needed for blinding.  */
-      gcry_mpi_release (x);
+      gcry_mpi_release (ciph);
       gcry_mpi_release (r);
       gcry_mpi_release (ri);
     }
+  else
+    secret (plain, data[0], &sk);
 
-  /* Copy out result.  */
-  *result = y;
+  /* Reverse the encoding and build the s-expression.  */
+  switch (encoding)
+    {
+    case PUBKEY_ENC_PKCS1:
+      rc = _gcry_rsa_pkcs1_decode_for_enc (&unpad, &unpadlen, nbits, plain);
+      mpi_free (plain);
+      plain = NULL;
+      if (!rc)
+        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
+                                             (int)unpadlen, unpad));
+      break;
 
-  return GPG_ERR_NO_ERROR;
+    case PUBKEY_ENC_OAEP:
+      rc = _gcry_rsa_oaep_decode (&unpad, &unpadlen,
+                                  nbits, hash_algo, plain, label, labellen);
+      mpi_free (plain);
+      plain = NULL;
+      if (!rc)
+        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
+                                             (int)unpadlen, unpad));
+      break;
+
+    default:
+      /* Raw format.  For backward compatibility we need to assume a
+         signed mpi by using the sexp format string "%m".  */
+      rc = gcry_err_code
+        (gcry_sexp_build (r_plain, NULL,
+                          (flags & PUBKEY_FLAG_LEGACYRESULT)? "%m":"(value %m)",
+                          plain));
+      break;
+    }
+
+  gcry_free (unpad);
+  mpi_free (plain);
+
+  return rc;
 }
 
 

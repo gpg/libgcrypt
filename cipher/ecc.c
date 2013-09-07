@@ -1661,20 +1661,24 @@ ecc_encrypt_raw (int algo, gcry_sexp_t *r_result, gcry_mpi_t k,
  *  see ecc_encrypt_raw for details.
  */
 static gcry_err_code_t
-ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
-                 gcry_mpi_t *skey, int flags)
+ecc_decrypt_raw (int algo, gcry_sexp_t *r_plain, gcry_mpi_t *data,
+                 gcry_mpi_t *skey, int flags,
+                 enum pk_encoding encoding, int hash_algo,
+                 unsigned char *label, size_t labellen)
 {
+  gpg_err_code_t rc;
   ECC_secret_key sk;
   mpi_point_struct R;	/* Result that we return.  */
   mpi_point_struct kG;
   mpi_ec_t ctx;
   gcry_mpi_t r;
-  int err;
 
   (void)algo;
   (void)flags;
-
-  *result = NULL;
+  (void)encoding;
+  (void)hash_algo;
+  (void)label;
+  (void)labellen;
 
   if (!data || !data[0]
       || !skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4]
@@ -1682,11 +1686,11 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
     return GPG_ERR_BAD_MPI;
 
   point_init (&kG);
-  err = _gcry_ecc_os2ec (&kG, data[0]);
-  if (err)
+  rc = _gcry_ecc_os2ec (&kG, data[0]);
+  if (rc)
     {
       point_free (&kG);
-      return err;
+      return rc;
     }
 
   sk.E.model = MPI_EC_WEIERSTRASS;
@@ -1694,22 +1698,22 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
   sk.E.a = skey[1];
   sk.E.b = skey[2];
   point_init (&sk.E.G);
-  err = _gcry_ecc_os2ec (&sk.E.G, skey[3]);
-  if (err)
+  rc = _gcry_ecc_os2ec (&sk.E.G, skey[3]);
+  if (rc)
     {
       point_free (&kG);
       point_free (&sk.E.G);
-      return err;
+      return rc;
     }
   sk.E.n = skey[4];
   point_init (&sk.Q);
-  err = _gcry_ecc_os2ec (&sk.Q, skey[5]);
-  if (err)
+  rc = _gcry_ecc_os2ec (&sk.Q, skey[5]);
+  if (rc)
     {
       point_free (&kG);
       point_free (&sk.E.G);
       point_free (&sk.Q);
-      return err;
+      return rc;
     }
   sk.d = skey[6];
 
@@ -1733,6 +1737,10 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
       log_fatal ("ecdh: Failed to get affine coordinates\n");
 
     r = _gcry_ecc_ec2os (x, y, sk.E.p);
+    if (!r)
+      rc = gpg_err_code_from_syserror ();
+    else
+      rc = 0;
     mpi_free (x);
     mpi_free (y);
   }
@@ -1743,14 +1751,10 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
   point_free (&sk.E.G);
   point_free (&sk.Q);
 
-  if (!r)
-    return GPG_ERR_ENOMEM;
-
-  /* Success.  */
-
-  *result = r;
-
-  return 0;
+  if (!rc)
+    rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %m)", r));
+  mpi_free (r);
+  return rc;
 }
 
 
