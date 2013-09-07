@@ -54,6 +54,7 @@ _gcry_ecc_curve_copy (elliptic_curve_t E)
   elliptic_curve_t R;
 
   R.model = E.model;
+  R.dialect = E.dialect;
   R.p = mpi_copy (E.p);
   R.a = mpi_copy (E.a);
   R.b = mpi_copy (E.b);
@@ -82,6 +83,20 @@ _gcry_ecc_model2str (enum gcry_mpi_ec_models model)
 }
 
 
+/*
+ * Return a description of the curve dialect.
+ */
+const char *
+_gcry_ecc_dialect2str (enum ecc_dialects dialect)
+{
+  const char *str = "?";
+  switch (dialect)
+    {
+    case ECC_DIALECT_STANDARD:  str = "Standard"; break;
+    case ECC_DIALECT_ED25519:   str = "Ed25519"; break;
+    }
+  return str;
+}
 
 
 gcry_mpi_t
@@ -151,41 +166,57 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
 {
   gcry_error_t err;
   size_t n;
-  unsigned char *buf;
+  const unsigned char *buf;
+  unsigned char *buf_memory;
   gcry_mpi_t x, y;
 
-  n = (mpi_get_nbits (value)+7)/8;
-  buf = gcry_xmalloc (n);
-  err = gcry_mpi_print (GCRYMPI_FMT_USG, buf, n, &n, value);
-  if (err)
+  if (mpi_is_opaque (value))
     {
-      gcry_free (buf);
-      return err;
+      unsigned int nbits;
+
+      buf = gcry_mpi_get_opaque (value, &nbits);
+      if (!buf)
+        return GPG_ERR_INV_OBJ;
+      n = (nbits + 7)/8;
+      buf_memory = NULL;
     }
+  else
+    {
+      n = (mpi_get_nbits (value)+7)/8;
+      buf_memory= gcry_xmalloc (n);
+      err = gcry_mpi_print (GCRYMPI_FMT_USG, buf_memory, n, &n, value);
+      if (err)
+        {
+          gcry_free (buf_memory);
+          return err;
+        }
+      buf = buf_memory;
+    }
+
   if (n < 1)
     {
-      gcry_free (buf);
+      gcry_free (buf_memory);
       return GPG_ERR_INV_OBJ;
     }
   if (*buf != 4)
     {
-      gcry_free (buf);
+      gcry_free (buf_memory);
       return GPG_ERR_NOT_IMPLEMENTED; /* No support for point compression.  */
     }
   if ( ((n-1)%2) )
     {
-      gcry_free (buf);
+      gcry_free (buf_memory);
       return GPG_ERR_INV_OBJ;
     }
   n = (n-1)/2;
   err = gcry_mpi_scan (&x, GCRYMPI_FMT_USG, buf+1, n, NULL);
   if (err)
     {
-      gcry_free (buf);
+      gcry_free (buf_memory);
       return err;
     }
   err = gcry_mpi_scan (&y, GCRYMPI_FMT_USG, buf+1+n, n, NULL);
-  gcry_free (buf);
+  gcry_free (buf_memory);
   if (err)
     {
       mpi_free (x);

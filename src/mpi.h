@@ -134,6 +134,8 @@ void _gcry_mpi_m_check( gcry_mpi_t a );
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
 gcry_mpi_t _gcry_mpi_new (unsigned int nbits);
 gcry_mpi_t _gcry_mpi_snew (unsigned int nbits);
+gcry_mpi_t _gcry_mpi_set_opaque_copy (gcry_mpi_t a,
+                                      void *p, unsigned int nbits);
 void *_gcry_mpi_get_opaque_copy (gcry_mpi_t a, unsigned int *nbits);
 int _gcry_mpi_is_neg (gcry_mpi_t a);
 void _gcry_mpi_neg (gcry_mpi_t w, gcry_mpi_t u);
@@ -289,6 +291,15 @@ enum gcry_mpi_ec_models
        Note that we use 'b' instead of the commonly used 'd'.  */
   };
 
+/* Dialects used with elliptic curves.  It is easier to keep the
+   definition here than in ecc-common.h. */
+enum ecc_dialects
+  {
+    ECC_DIALECT_STANDARD = 0,
+    ECC_DIALECT_ED25519
+  };
+
+
 /* Context used with elliptic curve functions.  */
 struct mpi_ec_ctx_s;
 typedef struct mpi_ec_ctx_s *mpi_ec_t;
@@ -297,9 +308,11 @@ void _gcry_mpi_point_log (const char *name, mpi_point_t point, mpi_ec_t ctx);
 #define log_printpnt(a,p,c) _gcry_mpi_point_log ((a), (p), (c))
 
 mpi_ec_t _gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
+                                      enum ecc_dialects dialect,
                                       gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b);
 gpg_err_code_t _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
                                    enum gcry_mpi_ec_models model,
+                                   enum ecc_dialects dialect,
                                    gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b);
 void _gcry_mpi_ec_free (mpi_ec_t ctx);
 

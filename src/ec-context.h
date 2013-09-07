@@ -25,6 +25,8 @@ struct mpi_ec_ctx_s
 {
   enum gcry_mpi_ec_models model; /* The model describing this curve.  */
 
+  enum ecc_dialects dialect;     /* The ECC dialect used with the curve.  */
+
   /* Domain parameters.  Note that they may not all be set and if set
      the MPIs may be flaged as constant. */
   gcry_mpi_t p;         /* Prime specifying the field GF(p).  */

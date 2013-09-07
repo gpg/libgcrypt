@@ -1903,7 +1903,16 @@ sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
 	elements[idx] = NULL;
       else
 	{
-	  elements[idx] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_USG);
+          switch (idx)
+            {
+            case 5: /* The public and */
+            case 6: /* the secret key must to be passed opaque.  */
+              elements[idx] = _gcry_sexp_nth_opaque_mpi (list, 1);
+              break;
+            default:
+              elements[idx] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_STD);
+              break;
+            }
 	  gcry_sexp_release (list);
 	  if (!elements[idx])
             {
@@ -3706,6 +3715,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     size_t nelem=0, nelem_cp = 0, needed=0;
     gcry_mpi_t mpis[30];
     int percent_s_idx = -1;
+    int percent_s_idx2 = -1;
 
     /* Estimate size of format string.  */
     nelem = strlen (pub_elems) + strlen (sec_elems);
@@ -3714,11 +3724,13 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
         for (i = 0; factors[i]; i++)
           nelem++;
       }
+    if (extrainfo)
+      nelem += 2;
     nelem_cp = nelem;
 
     needed += nelem * 10;
-    /* (+5 is for EXTRAINFO ("%S")).  */
-    needed += 2 * strlen (algo_name) + 300 + 5;
+    /* (+10 for two times EXTRAINFO ("%S")).  */
+    needed += 2 * strlen (algo_name) + 300 + 10;
     if (nelem > DIM (mpis))
       BUG ();
 
@@ -3744,7 +3756,7 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       {
         /* Very ugly hack to insert the used curve parameter into the
            list of public key parameters.  */
-        percent_s_idx = nelem;
+        percent_s_idx = nelem++;
         p = stpcpy (p, "%S");
       }
     p = stpcpy (p, "))");
@@ -3757,15 +3769,24 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
         p = stpcpy (p, "%m)");
         mpis[nelem++] = skey[i];
       }
+    if (extrainfo && (algo == GCRY_PK_ECDSA || algo == GCRY_PK_ECDH))
+      {
+        percent_s_idx2 = nelem++;
+        p = stpcpy (p, "%S");
+      }
     p = stpcpy (p, "))");
 
     /* Hack to make release_mpi_array() work.  */
     skey[i] = NULL;
 
-    if (extrainfo && percent_s_idx == -1)
+    if (extrainfo)
       {
         /* If we have extrainfo we should not have any factors.  */
-        p = stpcpy (p, "%S");
+        if (percent_s_idx == -1)
+          {
+            percent_s_idx = nelem++;
+            p = stpcpy (p, "%S");
+          }
       }
     else if (factors && factors[0])
       {
@@ -3787,8 +3808,12 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
       int elem_n = strlen (pub_elems) + strlen (sec_elems);
       void **arg_list;
 
-      /* Allocate one extra for EXTRAINFO ("%S").  */
-      arg_list = gcry_calloc (nelem_cp+1, sizeof *arg_list);
+      if (percent_s_idx != -1)
+        elem_n++;
+      if (percent_s_idx2 != -1)
+        elem_n++;
+
+      arg_list = gcry_calloc (nelem_cp, sizeof *arg_list);
       if (!arg_list)
         {
           rc = gpg_err_code_from_syserror ();
@@ -3798,10 +3823,13 @@ gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
         {
           if (i == percent_s_idx)
             arg_list[j++] = &extrainfo;
-          arg_list[j++] = mpis + i;
+          else if (i == percent_s_idx2)
+            arg_list[j++] = &extrainfo;
+          else
+            arg_list[j++] = mpis + i;
         }
-      if (extrainfo && percent_s_idx == -1)
-        arg_list[j] = &extrainfo;
+      if (extrainfo)
+        ;
       else if (factors && factors[0])
         {
           for (; i < nelem_cp; i++)

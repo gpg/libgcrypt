@@ -431,6 +431,7 @@ ec_get_two_inv_p (mpi_ec_t ec)
    coefficient.  CTX is expected to be zeroized.  */
 static void
 ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
+           enum ecc_dialects dialect,
            gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
 {
   int i;
@@ -438,6 +439,7 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
   /* Fixme: Do we want to check some constraints? e.g.  a < p  */
 
   ctx->model = model;
+  ctx->dialect = dialect;
   ctx->p = mpi_copy (p);
   ctx->a = mpi_copy (a);
   if (b && model == MPI_EC_TWISTEDEDWARDS)
@@ -516,12 +518,13 @@ ec_deinit (void *opaque)
    This context needs to be released using _gcry_mpi_ec_free.  */
 mpi_ec_t
 _gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
+                             enum ecc_dialects dialect,
                              gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
 {
   mpi_ec_t ctx;
 
   ctx = gcry_xcalloc (1, sizeof *ctx);
-  ec_p_init (ctx, model, p, a, b);
+  ec_p_init (ctx, model, dialect, p, a, b);
 
   return ctx;
 }
@@ -537,6 +540,7 @@ _gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
 gpg_err_code_t
 _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
                     enum gcry_mpi_ec_models model,
+                    enum ecc_dialects dialect,
                     gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
 {
   gcry_ctx_t ctx;
@@ -550,7 +554,7 @@ _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
   if (!ctx)
     return gpg_err_code_from_syserror ();
   ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
-  ec_p_init (ec, model, p, a, b);
+  ec_p_init (ec, model, dialect, p, a, b);
 
   *r_ctx = ctx;
   return 0;

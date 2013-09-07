@@ -51,12 +51,12 @@ static unsigned int sample_key_1_nbits = 256;
 static char const sample_key_2[] =
 "(public-key\n"
 " (ecdh\n"
-"  (p #e95e4a5f737059dc60dfc7ad95b3d8139515620f#)\n"
+"  (p #00e95e4a5f737059dc60dfc7ad95b3d8139515620f#)\n"
 "  (a #340e7be2a280eb74e2be61bada745d97e8f7c300#)\n"
 "  (b #1e589a8595423412134faa2dbdec95c8d8675e58#)\n"
 "  (g #04bed5af16ea3f6a4f62938c4631eb5af7bdbcdbc3"
         "1667cb477a1a8ec338f94741669c976316da6321#)\n"
-"  (n #e95e4a5f737059dc60df5991d45029409e60fc09#)\n"
+"  (n #00e95e4a5f737059dc60df5991d45029409e60fc09#)\n"
 "  (q #041111111111111111111111111111111111111111"
         "2222222222222222222222222222222222222222#)\n"
 "  ))";

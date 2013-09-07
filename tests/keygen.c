@@ -34,6 +34,16 @@ static int debug;
 static int error_count;
 
 static void
+show ( const char *format, ... )
+{
+    va_list arg_ptr ;
+
+    va_start( arg_ptr, format ) ;
+    vfprintf (stderr, format, arg_ptr );
+    va_end(arg_ptr);
+}
+
+static void
 fail ( const char *format, ... )
 {
     va_list arg_ptr ;
@@ -266,7 +276,8 @@ check_generated_ecc_key (gcry_sexp_t key)
 static void
 check_ecc_keys (void)
 {
-  const char *curves[] = { "NIST P-521", "NIST P-384", "NIST P-256", NULL };
+  const char *curves[] = { "NIST P-521", "NIST P-384", "NIST P-256",
+                           "Ed25519", NULL };
   int testno;
   gcry_sexp_t keyparm, key;
   int rc;
@@ -285,7 +296,11 @@ check_ecc_keys (void)
         die ("error generating ECC key using curve %s: %s\n",
              curves[testno], gpg_strerror (rc));
 
-      check_generated_ecc_key (key);
+      if (!strcmp (curves[testno], "Ed25519"))
+        show ("Note: gcry_pk_testkey does not yet work for Ed25519\n");
+      else
+        check_generated_ecc_key (key);
+
       gcry_sexp_release (key);
     }
 }
@@ -306,13 +321,13 @@ check_nonce (void)
     {
       gcry_create_nonce (b, sizeof b);
       if (!memcmp (a, b, sizeof a))
-        die ("identical nounce found\n");
+        die ("identical nonce found\n");
     }
   for (i=0; i < 10; i++)
     {
       gcry_create_nonce (a, sizeof a);
       if (!memcmp (a, b, sizeof a))
-        die ("identical nounce found\n");
+        die ("identical nonce found\n");
     }
 
  again:

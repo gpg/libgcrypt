@@ -883,7 +883,7 @@ ecc_bench (int iterations, int print_header)
 {
 #if USE_ECC
   gpg_error_t err;
-  int p_sizes[] = { 192, 224, 256, 384, 521 };
+  const char *p_sizes[] = { "192", "224", "256", "384", "521", "Ed25519" };
   int testno;
 
   if (print_header)
@@ -897,12 +897,29 @@ ecc_bench (int iterations, int print_header)
       gcry_sexp_t data;
       gcry_sexp_t sig = NULL;
       int count;
+      int p_size;
+      int is_ed25519;
 
-      printf ("ECDSA %3d bit ", p_sizes[testno]);
+      is_ed25519 = !strcmp (p_sizes[testno], "Ed25519");
+      if (is_ed25519)
+        {
+          p_size = 256;
+          printf ("EdDSA Ed25519 ");
+          fflush (stdout);
+        }
+      else
+        {
+          p_size = atoi (p_sizes[testno]);
+          printf ("ECDSA %3d bit ", p_size);
+        }
       fflush (stdout);
 
-      err = gcry_sexp_build (&key_spec, NULL,
-                             "(genkey (ECDSA (nbits %d)))", p_sizes[testno]);
+      if (is_ed25519)
+        err = gcry_sexp_build (&key_spec, NULL,
+                               "(genkey (ecdsa (curve \"Ed25519\")))");
+      else
+        err = gcry_sexp_build (&key_spec, NULL,
+                               "(genkey (ECDSA (nbits %d)))", p_size);
       if (err)
         die ("creating S-expression failed: %s\n", gcry_strerror (err));
 
@@ -910,7 +927,7 @@ ecc_bench (int iterations, int print_header)
       err = gcry_pk_genkey (&key_pair, key_spec);
       if (err)
         die ("creating %d bit ECC key failed: %s\n",
-             p_sizes[testno], gcry_strerror (err));
+             p_size, gcry_strerror (err));
 
       pub_key = gcry_sexp_find_token (key_pair, "public-key", 0);
       if (! pub_key)
@@ -925,10 +942,16 @@ ecc_bench (int iterations, int print_header)
       printf ("     %s", elapsed_time ());
       fflush (stdout);
 
-      x = gcry_mpi_new (p_sizes[testno]);
-      gcry_mpi_randomize (x, p_sizes[testno], GCRY_WEAK_RANDOM);
-      err = gcry_sexp_build (&data, NULL, "(data (flags raw) (value %m))", x);
+      x = gcry_mpi_new (p_size);
+      gcry_mpi_randomize (x, p_size, GCRY_WEAK_RANDOM);
+      if (is_ed25519)
+        err = gcry_sexp_build (&data, NULL,
+                               "(data (flags eddsa)(hash-algo sha512)"
+                               " (value %m))", x);
+      else
+        err = gcry_sexp_build (&data, NULL, "(data (flags raw) (value %m))", x);
       gcry_mpi_release (x);
+
       if (err)
         die ("converting data failed: %s\n", gcry_strerror (err));
 
@@ -1041,6 +1064,7 @@ main( int argc, char **argv )
   int no_blinding = 0;
   int use_random_daemon = 0;
   int with_progress = 0;
+  int debug = 0;
 
   buffer_alignment = 1;
 
@@ -1065,6 +1089,12 @@ main( int argc, char **argv )
       else if (!strcmp (*argv, "--verbose"))
         {
           verbose++;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--debug"))
+        {
+          verbose += 2;
+          debug++;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--use-random-daemon"))
@@ -1166,6 +1196,9 @@ main( int argc, char **argv )
                GCRYPT_VERSION, gcry_check_version (NULL));
       exit (1);
     }
+
+  if (debug)
+    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
 
   if (gcry_fips_mode_active ())
     in_fips_mode = 1;
