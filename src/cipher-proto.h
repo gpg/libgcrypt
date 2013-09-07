@@ -68,7 +68,7 @@ typedef gcry_err_code_t (*gcry_pk_check_secret_key_t) (int algo,
 
 /* Type for the pk_encrypt function.  */
 typedef gcry_err_code_t (*gcry_pk_encrypt_t) (int algo,
-					      gcry_mpi_t *resarr,
+					      gcry_sexp_t *r_result,
 					      gcry_mpi_t data,
 					      gcry_mpi_t *pkey,
 					      int flags);
@@ -82,7 +82,7 @@ typedef gcry_err_code_t (*gcry_pk_decrypt_t) (int algo,
 
 /* Type for the pk_sign function.  */
 typedef gcry_err_code_t (*gcry_pk_sign_t) (int algo,
-					   gcry_mpi_t *resarr,
+					   gcry_sexp_t *r_result,
 					   gcry_mpi_t data,
 					   gcry_mpi_t *skey,
                                            int flags,

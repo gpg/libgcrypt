@@ -326,7 +326,7 @@ one_test (int testno, const char *sk, const char *pk,
   if (s_tmp)
     {
       s_tmp2 = s_tmp;
-      s_tmp = gcry_sexp_find_token (s_tmp2, "ecdsa", 0);
+      s_tmp = gcry_sexp_find_token (s_tmp2, "eddsa", 0);
       if (s_tmp)
         {
           gcry_sexp_release (s_tmp2);

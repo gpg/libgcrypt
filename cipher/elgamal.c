@@ -705,27 +705,33 @@ elg_check_secret_key (int algo, gcry_mpi_t *skey)
 
 
 static gcry_err_code_t
-elg_encrypt (int algo, gcry_mpi_t *resarr,
+elg_encrypt (int algo, gcry_sexp_t *r_result,
              gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t rc;
   ELG_public_key pk;
+  gcry_mpi_t a, b;
 
   (void)algo;
   (void)flags;
 
   if ((! data) || (! pkey[0]) || (! pkey[1]) || (! pkey[2]))
-    err = GPG_ERR_BAD_MPI;
+    rc = GPG_ERR_BAD_MPI;
   else
     {
       pk.p = pkey[0];
       pk.g = pkey[1];
       pk.y = pkey[2];
-      resarr[0] = mpi_alloc (mpi_get_nlimbs (pk.p));
-      resarr[1] = mpi_alloc (mpi_get_nlimbs (pk.p));
-      do_encrypt (resarr[0], resarr[1], data, &pk);
+      a = mpi_alloc (mpi_get_nlimbs (pk.p));
+      b = mpi_alloc (mpi_get_nlimbs (pk.p));
+      do_encrypt (a, b, data, &pk);
+      rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
+                                           "(enc-val(elg(a%m)(b%m)))",
+                                           a, b));
+      mpi_free (a);
+      mpi_free (b);
     }
-  return err;
+  return rc;
 }
 
 
@@ -756,11 +762,12 @@ elg_decrypt (int algo, gcry_mpi_t *result,
 
 
 static gcry_err_code_t
-elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
+elg_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
           int flags, int hashalgo)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t rc;
   ELG_secret_key sk;
+  gcry_mpi_t r, s;
 
   (void)algo;
   (void)flags;
@@ -771,19 +778,24 @@ elg_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
 
   if ((! data)
       || (! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
-    err = GPG_ERR_BAD_MPI;
+    rc = GPG_ERR_BAD_MPI;
   else
     {
       sk.p = skey[0];
       sk.g = skey[1];
       sk.y = skey[2];
       sk.x = skey[3];
-      resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.p));
-      resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.p));
-      sign (resarr[0], resarr[1], data, &sk);
+      r = mpi_alloc (mpi_get_nlimbs (sk.p));
+      s = mpi_alloc (mpi_get_nlimbs (sk.p));
+      sign (r, s, data, &sk);
+      rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
+                                           "(sig-val(elg(r%M)(s%M)))",
+                                           r, s));
+      mpi_free (r);
+      mpi_free (s);
     }
 
-  return err;
+  return rc;
 }
 
 

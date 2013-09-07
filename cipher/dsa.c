@@ -974,11 +974,12 @@ dsa_check_secret_key (int algo, gcry_mpi_t *skey)
 
 
 static gcry_err_code_t
-dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
+dsa_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
           int flags, int hashalgo)
 {
   gcry_err_code_t rc;
   DSA_secret_key sk;
+  gcry_mpi_t r, s;
 
   (void)algo;
   (void)flags;
@@ -995,9 +996,15 @@ dsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
       sk.g = skey[2];
       sk.y = skey[3];
       sk.x = skey[4];
-      resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.p));
-      resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.p));
-      rc = sign (resarr[0], resarr[1], data, &sk, flags, hashalgo);
+      r = mpi_alloc (mpi_get_nlimbs (sk.p));
+      s = mpi_alloc (mpi_get_nlimbs (sk.p));
+      rc = sign (r, s, data, &sk, flags, hashalgo);
+      if (!rc)
+        rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
+                                             "(sig-val(dsa(r%M)(s%M)))",
+                                             r, s));
+      mpi_free (r);
+      mpi_free (s);
     }
   return rc;
 }

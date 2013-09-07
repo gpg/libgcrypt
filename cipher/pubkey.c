@@ -33,17 +33,6 @@
 #include "pubkey-internal.h"
 
 
-static gcry_err_code_t pubkey_decrypt (int algo, gcry_mpi_t *result,
-                                       gcry_mpi_t *data, gcry_mpi_t *skey,
-                                       int flags);
-static gcry_err_code_t pubkey_sign (int algo, gcry_mpi_t *resarr,
-                                    gcry_mpi_t hash, gcry_mpi_t *skey,
-                                    struct pk_encoding_ctx *ctx);
-static gcry_err_code_t pubkey_verify (int algo, gcry_mpi_t hash,
-                                      gcry_mpi_t *data, gcry_mpi_t *pkey,
-                                      struct pk_encoding_ctx *ctx);
-
-
 /* This is the list of the public-key algorithms included in
    Libgcrypt.  */
 static gcry_pk_spec_t *pubkey_list[] =
@@ -308,161 +297,6 @@ pubkey_check_secret_key (int algo, gcry_mpi_t *skey)
 }
 
 
-/****************
- * This is the interface to the public key encryption.  Encrypt DATA
- * with PKEY and put it into RESARR which should be an array of MPIs
- * of size PUBKEY_MAX_NENC (or less if the algorithm allows this -
- * check with pubkey_get_nenc() )
- */
-static gcry_err_code_t
-pubkey_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data,
-                gcry_mpi_t *pkey, int flags)
-{
-  gcry_err_code_t rc;
-  gcry_pk_spec_t *spec;
-  int i;
-
-  /* Note: In fips mode DBG_CIPHER will enver evaluate to true but as
-     an extra failsafe protection we explicitly test for fips mode
-     here. */
-  if (DBG_CIPHER && !fips_mode ())
-    {
-      log_debug ("pubkey_encrypt: algo=%d\n", algo);
-      for(i = 0; i < pubkey_get_npkey (algo); i++)
-	log_mpidump ("  pkey", pkey[i]);
-      log_mpidump ("  data", data);
-    }
-
-  spec = spec_from_algo (algo);
-  if (spec && spec->encrypt)
-    rc = spec->encrypt (algo, resarr, data, pkey, flags);
-  else if (spec)
-    rc = GPG_ERR_NOT_IMPLEMENTED;
-  else
-    rc = GPG_ERR_PUBKEY_ALGO;
-
-  if (!rc && DBG_CIPHER && !fips_mode ())
-    {
-      for(i = 0; i < pubkey_get_nenc (algo); i++)
-	log_mpidump("  encr", resarr[i] );
-    }
-  return rc;
-}
-
-
-/****************
- * This is the interface to the public key decryption.
- * ALGO gives the algorithm to use and this implicitly determines
- * the size of the arrays.
- * result is a pointer to a mpi variable which will receive a
- * newly allocated mpi or NULL in case of an error.
- */
-static gcry_err_code_t
-pubkey_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
-                gcry_mpi_t *skey, int flags)
-{
-  gcry_err_code_t rc;
-  gcry_pk_spec_t *spec;
-  int i;
-
-  *result = NULL; /* So the caller can always do a mpi_free.  */
-  if (DBG_CIPHER && !fips_mode ())
-    {
-      log_debug ("pubkey_decrypt: algo=%d\n", algo);
-      for(i = 0; i < pubkey_get_nskey (algo); i++)
-	log_mpidump ("  skey", skey[i]);
-      for(i = 0; i < pubkey_get_nenc (algo); i++)
-	log_mpidump ("  data", data[i]);
-    }
-
-  spec = spec_from_algo (algo);
-  if (spec && spec->decrypt)
-    rc = spec->decrypt (algo, result, data, skey, flags);
-  else if (spec)
-    rc = GPG_ERR_NOT_IMPLEMENTED;
-  else
-    rc = GPG_ERR_PUBKEY_ALGO;
-
-  if (!rc && DBG_CIPHER && !fips_mode ())
-    log_mpidump (" plain", *result);
-
-  return rc;
-}
-
-
-/****************
- * This is the interface to the public key signing.
- * Sign data with skey and put the result into resarr which
- * should be an array of MPIs of size PUBKEY_MAX_NSIG (or less if the
- * algorithm allows this - check with pubkey_get_nsig() )
- */
-static gcry_err_code_t
-pubkey_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data,
-             gcry_mpi_t *skey, struct pk_encoding_ctx *ctx)
-{
-  gcry_err_code_t rc;
-  gcry_pk_spec_t *spec;
-  int i;
-
-  if (DBG_CIPHER && !fips_mode ())
-    {
-      log_debug ("pubkey_sign: algo=%d\n", algo);
-      for(i = 0; i < pubkey_get_nskey (algo); i++)
-	log_mpidump ("  skey", skey[i]);
-      log_mpidump("  data", data );
-    }
-
-  spec = spec_from_algo (algo);
-  if (spec && spec->sign)
-    rc = spec->sign (algo, resarr, data, skey, ctx->flags, ctx->hash_algo);
-  else if (spec)
-    rc = GPG_ERR_NOT_IMPLEMENTED;
-  else
-    rc = GPG_ERR_PUBKEY_ALGO;
-
-  if (!rc && DBG_CIPHER && !fips_mode ())
-    for (i = 0; i < pubkey_get_nsig (algo); i++)
-      log_mpidump ("   sig", resarr[i]);
-
-  return rc;
-}
-
-
-/****************
- * Verify a public key signature.
- * Return 0 if the signature is good
- */
-static gcry_err_code_t
-pubkey_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data,
-               gcry_mpi_t *pkey, struct pk_encoding_ctx *ctx)
-{
-  gcry_err_code_t rc;
-  gcry_pk_spec_t *spec;
-  int i;
-
-  if (DBG_CIPHER && !fips_mode ())
-    {
-      log_debug ("pubkey_verify: algo=%d\n", algo);
-      for (i = 0; i < pubkey_get_npkey (algo); i++)
-	log_mpidump ("  pkey", pkey[i]);
-      for (i = 0; i < pubkey_get_nsig (algo); i++)
-	log_mpidump ("   sig", data[i]);
-      log_mpidump ("  hash", hash);
-    }
-
-  spec = spec_from_algo (algo);
-  if (spec && spec->verify)
-    rc = spec->verify (algo, hash, data, pkey,
-                       ctx->verify_cmp, ctx, ctx->flags, ctx->hash_algo);
-  else if (spec)
-    rc = GPG_ERR_NOT_IMPLEMENTED;
-  else
-    rc = GPG_ERR_PUBKEY_ALGO;
-
-  return rc;
-}
-
-
 /* Turn VALUE into an octet string and store it in an allocated buffer
    at R_FRAME or - if R_RAME is NULL - copy it into the caller
    provided buffer SPACE; either SPACE or R_FRAME may be used.  If
@@ -474,50 +308,7 @@ static gpg_err_code_t
 octet_string_from_mpi (unsigned char **r_frame, void *space,
                        gcry_mpi_t value, size_t nbytes)
 {
-  gpg_err_code_t rc;
-  size_t nframe, noff, n;
-  unsigned char *frame;
-
-  if (!r_frame == !space)
-    return GPG_ERR_INV_ARG;  /* Only one may be used.  */
-
-  if (r_frame)
-    *r_frame = NULL;
-
-  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG,
-                                      NULL, 0, &nframe, value));
-  if (rc)
-    return rc;
-  if (nframe > nbytes)
-    return GPG_ERR_TOO_LARGE; /* Value too long to fit into NBYTES.  */
-
-  noff = (nframe < nbytes)? nbytes - nframe : 0;
-  n = nframe + noff;
-  if (space)
-    frame = space;
-  else
-    {
-      frame = mpi_is_secure (value)? gcry_malloc_secure (n) : gcry_malloc (n);
-      if (!frame)
-        {
-          rc = gpg_err_code_from_syserror ();
-          return rc;
-        }
-    }
-  if (noff)
-    memset (frame, 0, noff);
-  nframe += noff;
-  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG,
-                                      frame+noff, nframe-noff, NULL, value));
-  if (rc)
-    {
-      gcry_free (frame);
-      return rc;
-    }
-
-  if (r_frame)
-    *r_frame = frame;
-  return 0;
+  return _gcry_mpi_to_octet_string (r_frame, space, value, nbytes);
 }
 
 
@@ -2210,13 +2001,22 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
               }
             else if ( n == 5 && !memcmp (s, "pkcs1", 5)
                       && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              ctx->encoding = PUBKEY_ENC_PKCS1;
+              {
+                ctx->encoding = PUBKEY_ENC_PKCS1;
+                parsed_flags |= PUBKEY_FLAG_FIXEDLEN;
+              }
             else if ( n == 4 && !memcmp (s, "oaep", 4)
                       && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              ctx->encoding = PUBKEY_ENC_OAEP;
+              {
+                ctx->encoding = PUBKEY_ENC_OAEP;
+                parsed_flags |= PUBKEY_FLAG_FIXEDLEN;
+              }
             else if ( n == 3 && !memcmp (s, "pss", 3)
                       && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              ctx->encoding = PUBKEY_ENC_PSS;
+              {
+                ctx->encoding = PUBKEY_ENC_PSS;
+                parsed_flags |= PUBKEY_FLAG_FIXEDLEN;
+              }
 	    else if (n == 11 && ! memcmp (s, "no-blinding", 11))
 	      parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
             else
@@ -2646,11 +2446,12 @@ init_encoding_ctx (struct pk_encoding_ctx *ctx, enum pk_operation op,
 gcry_error_t
 gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 {
-  gcry_mpi_t *pkey = NULL, data = NULL, *ciph = NULL;
-  const char *algo_name, *algo_elems;
-  struct pk_encoding_ctx ctx;
   gcry_err_code_t rc;
+  gcry_mpi_t *pkey = NULL;
+  gcry_mpi_t data = NULL;
+  struct pk_encoding_ctx ctx;
   gcry_pk_spec_t *spec = NULL;
+  int i;
 
   *r_ciph = NULL;
 
@@ -2661,114 +2462,41 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 
   gcry_assert (spec);
 
-  /* If aliases for the algorithm name exists, take the first one
-     instead of the regular name to adhere to SPKI conventions.  We
-     assume that the first alias name is the lowercase version of the
-     regular one.  This change is required for compatibility with
-     1.1.12 generated S-expressions. */
-  algo_name = spec->aliases? *spec->aliases : NULL;
-  if (!algo_name || !*algo_name)
-    algo_name = spec->name;
-
-  algo_elems = spec->elements_enc;
-
   /* Get the stuff we want to encrypt. */
   init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT, gcry_pk_get_nbits (s_pkey));
   rc = sexp_data_to_mpi (s_data, &data, &ctx);
   if (rc)
     goto leave;
 
-  /* Now we can encrypt DATA to CIPH. */
-  ciph = gcry_calloc (strlen (algo_elems) + 1, sizeof (*ciph));
-  if (!ciph)
+  /* In fips mode DBG_CIPHER will never evaluate to true but as an
+     extra failsafe protection we explicitly test for fips mode
+     here. */
+  if (DBG_CIPHER && !fips_mode ())
     {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
+      log_debug ("pubkey_encrypt: algo=%d\n", spec->algo);
+      for(i = 0; i < pubkey_get_npkey (spec->algo); i++)
+	log_mpidump ("  pkey", pkey[i]);
+      log_mpidump ("  data", data);
     }
-  rc = pubkey_encrypt (spec->algo, ciph, data, pkey, ctx.flags);
-  mpi_free (data);
-  data = NULL;
-  if (rc)
-    goto leave;
 
-  /* We did it.  Now build the return list */
-  if (ctx.encoding == PUBKEY_ENC_OAEP
-      || ctx.encoding == PUBKEY_ENC_PKCS1)
-    {
-      /* We need to make sure to return the correct length to avoid
-         problems with missing leading zeroes.  We know that this
-         encoding does only make sense with RSA thus we don't need to
-         build the S-expression on the fly.  */
-      unsigned char *em;
-      size_t emlen = (ctx.nbits+7)/8;
-
-      rc = octet_string_from_mpi (&em, NULL, ciph[0], emlen);
-      if (rc)
-        goto leave;
-      rc = gcry_err_code (gcry_sexp_build (r_ciph, NULL,
-                                           "(enc-val(%s(a%b)))",
-                                           algo_name, (int)emlen, em));
-      gcry_free (em);
-      if (rc)
-        goto leave;
-    }
+  if (spec->encrypt)
+    rc = spec->encrypt (spec->algo, r_ciph, data, pkey, ctx.flags);
   else
-    {
-      char *string, *p;
-      int i;
-      size_t nelem = strlen (algo_elems);
-      size_t needed = 19 + strlen (algo_name) + (nelem * 5);
-      void **arg_list;
+    rc = GPG_ERR_NOT_IMPLEMENTED;
 
-      /* Build the string.  */
-      string = p = gcry_malloc (needed);
-      if (!string)
-        {
-          rc = gpg_err_code_from_syserror ();
-          goto leave;
-        }
-      p = stpcpy ( p, "(enc-val(" );
-      p = stpcpy ( p, algo_name );
-      for (i=0; algo_elems[i]; i++ )
-        {
-          *p++ = '(';
-          *p++ = algo_elems[i];
-          p = stpcpy ( p, "%m)" );
-        }
-      strcpy ( p, "))" );
 
-      /* And now the ugly part: We don't have a function to pass an
-       * array to a format string, so we have to do it this way :-(.  */
-      /* FIXME: There is now such a format specifier, so we can
-         change the code to be more clear. */
-      arg_list = malloc (nelem * sizeof *arg_list);
-      if (!arg_list)
-        {
-          rc = gpg_err_code_from_syserror ();
-          goto leave;
-        }
-
-      for (i = 0; i < nelem; i++)
-        arg_list[i] = ciph + i;
-
-      rc = gcry_sexp_build_array (r_ciph, NULL, string, arg_list);
-      free (arg_list);
-      if (rc)
-        BUG ();
-      gcry_free (string);
-    }
+  /* if (DBG_CIPHER && !fips_mode ()) */
+  /*   { */
+  /*     for (i = 0; i < pubkey_get_nenc (spec->algo); i++) */
+  /*       log_mpidump ("  encr", ciph[i]); */
+  /*   } */
 
  leave:
+  mpi_free (data);
   if (pkey)
     {
       release_mpi_array (pkey);
       gcry_free (pkey);
-    }
-
-  if (ciph)
-    {
-      release_mpi_array (ciph);
-      gcry_free (ciph);
     }
 
   gcry_free (ctx.label);
@@ -2814,16 +2542,17 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   gcry_mpi_t plain = NULL;
   unsigned char *unpad = NULL;
   size_t unpadlen = 0;
+  int i;
   int modern, flags;
   struct pk_encoding_ctx ctx;
+  gcry_pk_spec_t *spec = NULL;
   gcry_pk_spec_t *spec_enc = NULL;
-  gcry_pk_spec_t *spec_key = NULL;
 
   *r_plain = NULL;
   ctx.label = NULL;
 
   rc = sexp_to_key (s_skey, 1, GCRY_PK_USAGE_ENCR, NULL,
-                    &skey, &spec_key, NULL);
+                    &skey, &spec, NULL);
   if (rc)
     goto leave;
 
@@ -2832,15 +2561,30 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  if (spec_key->algo != spec_enc->algo)
+  if (spec->algo != spec_enc->algo)
     {
       rc = GPG_ERR_CONFLICT; /* Key algo does not match data algo. */
       goto leave;
     }
 
-  rc = pubkey_decrypt (spec_key->algo, &plain, data, skey, flags);
+  if (DBG_CIPHER && !fips_mode ())
+    {
+      log_debug ("gcry_pk_decrypt: algo=%d\n", spec->algo);
+      for(i = 0; i < pubkey_get_nskey (spec->algo); i++)
+	log_mpidump ("  skey", skey[i]);
+      for(i = 0; i < pubkey_get_nenc (spec->algo); i++)
+	log_mpidump ("  data", data[i]);
+    }
+
+  if (spec->decrypt)
+    rc = spec->decrypt (spec->algo, &plain, data, skey, flags);
+  else
+    rc = GPG_ERR_NOT_IMPLEMENTED;
   if (rc)
     goto leave;
+
+  if (DBG_CIPHER && !fips_mode ())
+    log_mpidump (" plain", plain);
 
   /* Do un-padding if necessary. */
   switch (ctx.encoding)
@@ -2931,9 +2675,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 {
   gcry_mpi_t *skey = NULL;
   gcry_mpi_t hash = NULL;
-  gcry_mpi_t *result = NULL;
   gcry_pk_spec_t *spec = NULL;
-  const char *algo_name, *algo_elems;
   struct pk_encoding_ctx ctx;
   int i;
   int is_ecc;
@@ -2947,11 +2689,6 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
     goto leave;
 
   gcry_assert (spec);
-  algo_name = spec->aliases? *spec->aliases : NULL;
-  if (!algo_name || !*algo_name)
-    algo_name = spec->name;
-
-  algo_elems = spec->elements_sig;
 
   /* Get the stuff we want to sign.  Note that pk_get_nbits does also
      work on a private key.  We don't need the number of bits for ECC
@@ -2962,81 +2699,26 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  result = gcry_calloc (strlen (algo_elems) + 1, sizeof (*result));
-  if (!result)
+  if (DBG_CIPHER && !fips_mode ())
     {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
+      log_debug ("gcry_pk_sign: algo=%d\n", spec->algo);
+      for(i = 0; i < pubkey_get_nskey (spec->algo); i++)
+        log_mpidump ("  skey", skey[i]);
+      log_mpidump("  data", hash);
     }
-  rc = pubkey_sign (spec->algo, result, hash, skey, &ctx);
+
+  if (spec->sign)
+    rc = spec->sign (spec->algo, r_sig, hash, skey, ctx.flags, ctx.hash_algo);
+  else
+    rc = GPG_ERR_NOT_IMPLEMENTED;
+
   if (rc)
     goto leave;
 
-  if (ctx.encoding == PUBKEY_ENC_PSS
-      || ctx.encoding == PUBKEY_ENC_PKCS1)
-    {
-      /* We need to make sure to return the correct length to avoid
-         problems with missing leading zeroes.  We know that this
-         encoding does only make sense with RSA thus we don't need to
-         build the S-expression on the fly.  */
-      unsigned char *em;
-      size_t emlen = (ctx.nbits+7)/8;
-
-      rc = octet_string_from_mpi (&em, NULL, result[0], emlen);
-      if (rc)
-        goto leave;
-      rc = gcry_err_code (gcry_sexp_build (r_sig, NULL,
-                                           "(sig-val(%s(s%b)))",
-                                           algo_name, (int)emlen, em));
-      gcry_free (em);
-      if (rc)
-        goto leave;
-    }
-  else
-    {
-      /* General purpose output encoding.  Do it on the fly.  */
-      char *string, *p;
-      size_t nelem, needed = strlen (algo_name) + 20;
-      void **arg_list;
-
-      nelem = strlen (algo_elems);
-
-      /* Count elements, so that we can allocate enough space. */
-      needed += 10 * nelem;
-
-      /* Build the string. */
-      string = p = gcry_malloc (needed);
-      if (!string)
-        {
-          rc = gpg_err_code_from_syserror ();
-          goto leave;
-        }
-      p = stpcpy (p, "(sig-val(");
-      p = stpcpy (p, algo_name);
-      for (i = 0; algo_elems[i]; i++)
-        {
-          *p++ = '(';
-          *p++ = algo_elems[i];
-          p = stpcpy (p, "%M)");
-        }
-      strcpy (p, "))");
-
-      arg_list = malloc (nelem * sizeof *arg_list);
-      if (!arg_list)
-        {
-          rc = gpg_err_code_from_syserror ();
-          goto leave;
-        }
-
-      for (i = 0; i < nelem; i++)
-        arg_list[i] = result + i;
-
-      rc = gcry_sexp_build_array (r_sig, NULL, string, arg_list);
-      free (arg_list);
-      if (rc)
-        BUG ();
-      gcry_free (string);
-    }
+  /* Fixme: To print the result we need to print an sexp.  */
+  /* if (!rc && DBG_CIPHER && !fips_mode ()) */
+  /*   for (i = 0; i < pubkey_get_nsig (algo); i++) */
+  /*     log_mpidump ("   sig", resarr[i]); */
 
  leave:
   if (skey)
@@ -3054,14 +2736,7 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
       gcry_free (skey);
     }
 
-  if (hash)
-    mpi_free (hash);
-
-  if (result)
-    {
-      release_mpi_array (result);
-      gcry_free (result);
-    }
+  mpi_free (hash);
 
   return gcry_error (rc);
 }
@@ -3078,15 +2753,16 @@ gcry_error_t
 gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 {
   gcry_err_code_t rc;
-  gcry_pk_spec_t *spec_key = NULL;
+  gcry_pk_spec_t *spec = NULL;
   gcry_pk_spec_t *spec_sig = NULL;
   gcry_mpi_t *pkey = NULL;
   gcry_mpi_t hash = NULL;
   gcry_mpi_t *sig = NULL;
   struct pk_encoding_ctx ctx;
+  int i;
 
   rc = sexp_to_key (s_pkey, 0, GCRY_PK_USAGE_SIGN, NULL,
-                    &pkey, &spec_key, NULL);
+                    &pkey, &spec, NULL);
   if (rc)
     goto leave;
 
@@ -3104,13 +2780,28 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
   /* Fixme: Check that the algorithm of S_SIG is compatible to the one
      of S_PKEY.  */
 
-  if (spec_key->algo != spec_sig->algo)
+  if (spec->algo != spec_sig->algo)
     {
       rc = GPG_ERR_CONFLICT;
       goto leave;
     }
 
-  rc = pubkey_verify (spec_key->algo, hash, sig, pkey, &ctx);
+  if (DBG_CIPHER && !fips_mode ())
+    {
+      log_debug ("gcry_pk_verify: algo=%d\n", spec->algo);
+      for (i = 0; i < pubkey_get_npkey (spec->algo); i++)
+        log_mpidump ("  pkey", pkey[i]);
+      for (i = 0; i < pubkey_get_nsig (spec->algo); i++)
+        log_mpidump ("   sig", sig[i]);
+      log_mpidump ("  hash", hash);
+      }
+
+  if (spec->verify)
+    rc = spec->verify (spec->algo, hash, sig, pkey,
+                       ctx.verify_cmp, &ctx, ctx.flags, ctx.hash_algo);
+  else
+    rc = GPG_ERR_NOT_IMPLEMENTED;
+
 
  leave:
   if (pkey)

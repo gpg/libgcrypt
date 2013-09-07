@@ -893,20 +893,43 @@ rsa_check_secret_key (int algo, gcry_mpi_t *skey)
 
 
 static gcry_err_code_t
-rsa_encrypt (int algo, gcry_mpi_t *resarr, gcry_mpi_t data,
+rsa_encrypt (int algo, gcry_sexp_t *r_result, gcry_mpi_t data,
              gcry_mpi_t *pkey, int flags)
 {
+  gpg_err_code_t rc;
   RSA_public_key pk;
+  gcry_mpi_t result;
 
   (void)algo;
   (void)flags;
 
   pk.n = pkey[0];
   pk.e = pkey[1];
-  resarr[0] = mpi_alloc (mpi_get_nlimbs (pk.n));
-  public (resarr[0], data, &pk);
+  result = mpi_alloc (mpi_get_nlimbs (pk.n));
+  public (result, data, &pk);
+  if ((flags & PUBKEY_FLAG_FIXEDLEN))
+    {
+      /* We need to make sure to return the correct length to avoid
+         problems with missing leading zeroes.  */
+      unsigned char *em;
+      size_t emlen = (mpi_get_nbits (pk.n)+7)/8;
 
-  return GPG_ERR_NO_ERROR;
+      rc = _gcry_mpi_to_octet_string (&em, NULL, result, emlen);
+      if (!rc)
+        {
+          rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
+                                               "(enc-val(rsa(a%b)))",
+                                               (int)emlen, em));
+          gcry_free (em);
+        }
+    }
+  else
+    rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
+                                         "(enc-val(rsa(a%m)))",
+                                         result));
+
+  mpi_free (result);
+  return rc;
 }
 
 
@@ -993,10 +1016,12 @@ rsa_decrypt (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
 
 
 static gcry_err_code_t
-rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
+rsa_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
           int flags, int hashalgo)
 {
+  gpg_err_code_t rc;
   RSA_secret_key sk;
+  gcry_mpi_t result;
 
   (void)algo;
   (void)flags;
@@ -1011,10 +1036,31 @@ rsa_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
   sk.p = skey[3];
   sk.q = skey[4];
   sk.u = skey[5];
-  resarr[0] = mpi_alloc( mpi_get_nlimbs (sk.n));
-  secret (resarr[0], data, &sk);
+  result = mpi_alloc (mpi_get_nlimbs (sk.n));
+  secret (result, data, &sk);
+  if ((flags & PUBKEY_FLAG_FIXEDLEN))
+    {
+      /* We need to make sure to return the correct length to avoid
+         problems with missing leading zeroes.  */
+      unsigned char *em;
+      size_t emlen = (mpi_get_nbits (sk.n)+7)/8;
 
-  return GPG_ERR_NO_ERROR;
+      rc = _gcry_mpi_to_octet_string (&em, NULL, result, emlen);
+      if (!rc)
+        {
+          rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
+                                               "(sig-val(rsa(s%b)))",
+                                               (int)emlen, em));
+          gcry_free (em);
+        }
+    }
+  else
+    rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
+                                         "(sig-val(rsa(s%M)))",
+                                         result));
+  mpi_free (result);
+
+  return rc;
 }
 
 

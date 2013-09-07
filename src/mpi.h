@@ -167,6 +167,9 @@ byte *_gcry_mpi_get_secure_buffer (gcry_mpi_t a, unsigned int fill_le,
                                    unsigned *r_nbytes, int *sign);
 void  _gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer,
                              unsigned int nbytes, int sign );
+gpg_err_code_t _gcry_mpi_to_octet_string (unsigned char **r_frame,
+                                          void *space,
+                                          gcry_mpi_t value, size_t nbytes);
 
 /*-- mpi-add.c --*/
 #define mpi_add_ui(w,u,v) gcry_mpi_add_ui((w),(u),(v))
