@@ -291,6 +291,22 @@ gcry_mpi_get_opaque( gcry_mpi_t a, unsigned int *nbits )
 }
 
 
+void *
+_gcry_mpi_get_opaque_copy (gcry_mpi_t a, unsigned int *nbits)
+{
+  const void *s;
+  void *d;
+  unsigned int n;
+
+  s = gcry_mpi_get_opaque (a, nbits);
+  if (!s && nbits)
+    return NULL;
+  n = (*nbits+7)/8;
+  d = gcry_is_secure (s)? gcry_malloc_secure (n) : gcry_malloc (n);
+  memcpy (d, s, n);
+  return d;
+}
+
 /****************
  * Note: This copy function should not interpret the MPI
  *	 but copy it transparently.

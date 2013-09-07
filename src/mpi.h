@@ -134,6 +134,7 @@ void _gcry_mpi_m_check( gcry_mpi_t a );
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
 gcry_mpi_t _gcry_mpi_new (unsigned int nbits);
 gcry_mpi_t _gcry_mpi_snew (unsigned int nbits);
+void *_gcry_mpi_get_opaque_copy (gcry_mpi_t a, unsigned int *nbits);
 int _gcry_mpi_is_neg (gcry_mpi_t a);
 void _gcry_mpi_neg (gcry_mpi_t w, gcry_mpi_t u);
 void _gcry_mpi_abs (gcry_mpi_t w);
