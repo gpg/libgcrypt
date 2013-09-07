@@ -283,13 +283,15 @@ gcry_mpi_set_opaque( gcry_mpi_t a, void *p, unsigned int nbits )
 
 
 gcry_mpi_t
-_gcry_mpi_set_opaque_copy (gcry_mpi_t a, void *p, unsigned int nbits)
+_gcry_mpi_set_opaque_copy (gcry_mpi_t a, const void *p, unsigned int nbits)
 {
   void *d;
   unsigned int n;
 
   n = (nbits+7)/8;
   d = gcry_is_secure (p)? gcry_malloc_secure (n) : gcry_malloc (n);
+  if (!d)
+    return NULL;
   memcpy (d, p, n);
   return gcry_mpi_set_opaque (a, d, nbits);
 }
@@ -318,7 +320,8 @@ _gcry_mpi_get_opaque_copy (gcry_mpi_t a, unsigned int *nbits)
     return NULL;
   n = (*nbits+7)/8;
   d = gcry_is_secure (s)? gcry_malloc_secure (n) : gcry_malloc (n);
-  memcpy (d, s, n);
+  if (d)
+    memcpy (d, s, n);
   return d;
 }
 
