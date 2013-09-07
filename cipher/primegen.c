@@ -586,19 +586,19 @@ prime_generate_internal (int need_q_factor,
   if (DBG_CIPHER)
     {
       progress ('\n');
-      log_mpidump ("prime    : ", prime);
-      log_mpidump ("factor  q: ", q);
+      log_mpidump ("prime    ", prime);
+      log_mpidump ("factor  q", q);
       if (need_q_factor)
-        log_mpidump ("factor q0: ", q_factor);
+        log_mpidump ("factor q0", q_factor);
       for (i = 0; i < n; i++)
-        log_mpidump ("factor pi: ", factors[i]);
+        log_mpidump ("factor pi", factors[i]);
       log_debug ("bit sizes: prime=%u, q=%u",
                  mpi_get_nbits (prime), mpi_get_nbits (q));
       if (need_q_factor)
-        log_debug (", q0=%u", mpi_get_nbits (q_factor));
+        log_printf (", q0=%u", mpi_get_nbits (q_factor));
       for (i = 0; i < n; i++)
-        log_debug (", p%d=%u", i, mpi_get_nbits (factors[i]));
-      progress('\n');
+        log_printf (", p%d=%u", i, mpi_get_nbits (factors[i]));
+      log_printf ("\n");
     }
 
   if (ret_factors)
