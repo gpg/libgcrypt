@@ -352,7 +352,10 @@ _gcry_log_printmpi (const char *text, gcry_mpi_t mpi)
         do_printhex (text? text:" ", " [out of core]", NULL, 0);
       else
         {
-          do_printhex (text, sign? "-":"+", rawmpi, rawmpilen);
+          if (!rawmpilen)
+            do_printhex (text, sign? "-":"+", "", 1);
+          else
+            do_printhex (text, sign? "-":"+", rawmpi, rawmpilen);
           gcry_free (rawmpi);
         }
     }
