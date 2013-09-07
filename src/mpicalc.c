@@ -238,6 +238,20 @@ do_rshift (void)
 }
 
 
+static void
+do_nbits (void)
+{
+  unsigned int n;
+
+  if (stackidx < 1)
+    {
+      fputs ("stack underflow\n", stderr);
+      return;
+    }
+  n = mpi_get_nbits (stack[stackidx - 1]);
+  mpi_set_ui (stack[stackidx - 1], n);
+}
+
 
 static int
 my_getc (void)
@@ -279,6 +293,7 @@ print_help (void)
          "i   remove item   [0] := [1]                {-1}\n"
          "d   dup item      [-1] := [0]               {+1}\n"
          "r   reverse       [0] := [1], [1] := [0]    {0}\n"
+         "b   # of bits     [0] := nbits([0])         {0}\n"
          "c   clear stack\n"
          "p   print top item\n"
          "f   print the stack\n"
@@ -381,7 +396,7 @@ main (int argc, char **argv)
 		      do_add ();
 		    }
 		  break;
-		case '-':
+                case '-':
 		  if ((c = my_getc ()) == '-')
 		    do_dec ();
 		  else if (isdigit (c) || (c >= 'A' && c <= 'F'))
@@ -454,6 +469,9 @@ main (int argc, char **argv)
                       stack[stackidx-2] = tmp;
 		    }
 		  break;
+                case 'b':
+                  do_nbits ();
+                  break;
 		case 'c':
 		  for (i = 0; i < stackidx; i++)
                     {
