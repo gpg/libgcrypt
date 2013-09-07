@@ -177,7 +177,6 @@ void _gcry_register_primegen_progress (gcry_handler_progress_t cb,
                                        void *cb_data);
 
 /*-- pubkey.c --*/
-const char * _gcry_pk_aliased_algo_name (int algorithm);
 
 /* Declarations for the cipher specifications.  */
 extern gcry_cipher_spec_t _gcry_cipher_spec_blowfish;

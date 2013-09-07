@@ -153,28 +153,6 @@ gcry_pk_algo_name (int algo)
 }
 
 
-/* A special version of gcry_pk_algo name to return the first aliased
-   name of the algorithm.  This is required to adhere to the spki
-   specs where the algorithm names are lowercase. */
-const char *
-_gcry_pk_aliased_algo_name (int algo)
-{
-  gcry_pk_spec_t *spec;
-  const char *name;
-
-  spec = spec_from_algo (algo);
-  if (spec)
-    {
-      name = spec->aliases? *spec->aliases : NULL;
-      if (!name || !*name)
-        name = spec->name;
-    }
-  else
-    name = NULL;
-  return name;
-}
-
-
 /****************
  * A USE of 0 means: don't care.
  */
