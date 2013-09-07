@@ -27,6 +27,8 @@ struct mpi_ec_ctx_s
 
   enum ecc_dialects dialect;     /* The ECC dialect used with the curve.  */
 
+  unsigned int nbits;            /* Number of bits.  */
+
   /* Domain parameters.  Note that they may not all be set and if set
      the MPIs may be flaged as constant. */
   gcry_mpi_t p;         /* Prime specifying the field GF(p).  */

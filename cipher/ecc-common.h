@@ -84,5 +84,15 @@ gcry_error_t _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value);
 
 mpi_point_t  _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec);
 
+/*-- ecc.c --*/
+gpg_err_code_t _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ctx,
+                                            gcry_mpi_t x, gcry_mpi_t y,
+                                            unsigned char **r_buffer,
+                                            unsigned int *r_buflen);
+gpg_err_code_t _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx,
+                                            mpi_point_t result,
+                                            unsigned char **r_encpk,
+                                            unsigned int *r_encpklen);
+
 
 #endif /*GCRY_ECC_COMMON_H*/

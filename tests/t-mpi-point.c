@@ -36,6 +36,14 @@ static int debug;
 static int error_count;
 
 
+#define my_isascii(c) (!((c) & 0x80))
+#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
+#define hexdigitp(a) (digitp (a)                     \
+                      || (*(a) >= 'A' && *(a) <= 'F')  \
+                      || (*(a) >= 'a' && *(a) <= 'f'))
+#define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): \
+                     *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
+#define xtoi_2(p)   ((xtoi_1(p) * 16) + xtoi_1((p)+1))
 #define xmalloc(a)    gcry_xmalloc ((a))
 #define xcalloc(a,b)  gcry_xcalloc ((a),(b))
 #define xfree(a)      gcry_free ((a))
@@ -113,6 +121,15 @@ static struct
       "0x11839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e6"
       "62c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650"
     },
+    {
+      "Ed25519",
+      "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
+      "-0x01",
+      "-0x98412DFC9311D490018C7338BF8688861767FF8FF5B2BEBE27548A14B235EC8FEDA4",
+      "0x1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
+      "0x216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A",
+      "0x6666666666666666666666666666666666666666666666666666666666666658"
+    },
     { NULL, NULL, NULL, NULL, NULL }
   };
 
@@ -126,6 +143,20 @@ static const char sample_p256_q_x[] =
 static const char sample_p256_q_y[] =
   "00E86525E38CCECFF3FB8D152CC6334F70D23A525175C1BCBDDE6E023B2228770E";
 
+
+/* A sample public key for Ed25519.  */
+static const char sample_ed25519_q[] =
+  "04"
+  "55d0e09a2b9d34292297e08d60d0f620c513d47253187c24b12786bd777645ce"
+  "1a5107f7681a02af2523a6daf372e10e3a0764c9d3fe4bd5b70ab18201985ad7";
+static const char sample_ed25519_q_x[] =
+  "55d0e09a2b9d34292297e08d60d0f620c513d47253187c24b12786bd777645ce";
+static const char sample_ed25519_q_y[] =
+  "1a5107f7681a02af2523a6daf372e10e3a0764c9d3fe4bd5b70ab18201985ad7";
+static const char sample_ed25519_q_eddsa[] =
+  "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
+static const char sample_ed25519_d[] =
+  "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
 
 
 static void
@@ -241,7 +272,49 @@ hex2mpi (const char *string)
 
   err = gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
   if (err)
-    die ("hex2mpi '%s' failed: %s\n", gpg_strerror (err));
+    die ("hex2mpi '%s' failed: %s\n", string, gpg_strerror (err));
+  return val;
+}
+
+
+/* Convert STRING consisting of hex characters into its binary
+   representation and return it as an allocated buffer. The valid
+   length of the buffer is returned at R_LENGTH.  The string is
+   delimited by end of string.  The function returns NULL on
+   error.  */
+static void *
+hex2buffer (const char *string, size_t *r_length)
+{
+  const char *s;
+  unsigned char *buffer;
+  size_t length;
+
+  buffer = xmalloc (strlen(string)/2+1);
+  length = 0;
+  for (s=string; *s; s +=2 )
+    {
+      if (!hexdigitp (s) || !hexdigitp (s+1))
+        return NULL;           /* Invalid hex digits. */
+      ((unsigned char*)buffer)[length++] = xtoi_2 (s);
+    }
+  *r_length = length;
+  return buffer;
+}
+
+
+static gcry_mpi_t
+hex2mpiopa (const char *string)
+{
+  char *buffer;
+  size_t buflen;
+  gcry_mpi_t val;
+
+  buffer = hex2buffer (string, &buflen);
+  if (!buffer)
+    die ("hex2mpiopa '%s' failed: parser error\n", string);
+  val = gcry_mpi_set_opaque (NULL, buffer, buflen*8);
+  if (!buffer)
+    die ("hex2mpiopa '%s' failed: set_opaque error%s\n", string);
   return val;
 }
 
@@ -253,7 +326,10 @@ cmp_mpihex (gcry_mpi_t a, const char *b)
   gcry_mpi_t bval;
   int res;
 
-  bval = hex2mpi (b);
+  if (gcry_mpi_get_flag (a, GCRYMPI_FLAG_OPAQUE))
+    bval = hex2mpiopa (b);
+  else
+    bval = hex2mpi (b);
   res = gcry_mpi_cmp (a, bval);
   gcry_mpi_release (bval);
   return res;
@@ -459,7 +535,7 @@ context_param (void)
   gpg_error_t err;
   int idx;
   gcry_ctx_t ctx = NULL;
-  gcry_mpi_t q;
+  gcry_mpi_t q, d;
   gcry_sexp_t keyparam;
 
   wherestr = "context_param";
@@ -492,13 +568,11 @@ context_param (void)
         continue;
 
     }
-  gcry_ctx_release (ctx);
 
-
-  show ("checking sample public key\n");
+  show ("checking sample public key (nistp256)\n");
   q = hex2mpi (sample_p256_q);
   err = gcry_sexp_build (&keyparam, NULL,
-                        "(public-key(ecdsa(curve %s)(q %m)))",
+                        "(public-key(ecc(curve %s)(q %m)))",
                         "NIST P-256", q);
   if (err)
     die ("gcry_sexp_build failed: %s\n", gpg_strerror (err));
@@ -511,6 +585,74 @@ context_param (void)
   /*   fail ("gcry_pk_testkey failed for sample public key: %s\n", */
   /*         gpg_strerror (err)); */
 
+  gcry_ctx_release (ctx);
+  err = gcry_mpi_ec_new (&ctx, keyparam, NULL);
+  if (err)
+    fail ("gcry_mpi_ec_new failed for sample public key (nistp256): %s\n",
+          gpg_strerror (err));
+  else
+    {
+      gcry_sexp_t sexp;
+
+      get_and_cmp_mpi ("q", sample_p256_q, "nistp256", ctx);
+      get_and_cmp_point ("q", sample_p256_q_x, sample_p256_q_y, "nistp256",
+                         ctx);
+
+      /* Delete Q.  */
+      err = gcry_mpi_ec_set_mpi ("q", NULL, ctx);
+      if (err)
+        fail ("clearing Q for nistp256 failed: %s\n", gpg_strerror (err));
+      if (gcry_mpi_ec_get_mpi ("q", ctx, 0))
+        fail ("clearing Q for nistp256 did not work\n");
+
+      /* Set Q again.  */
+      q = hex2mpi (sample_p256_q);
+      err = gcry_mpi_ec_set_mpi ("q", q, ctx);
+      if (err)
+        fail ("setting Q for nistp256 failed: %s\n", gpg_strerror (err));
+      get_and_cmp_mpi ("q", sample_p256_q, "nistp256(2)", ctx);
+
+      /* Get as s-expression.  */
+      err = gcry_pubkey_get_sexp (&sexp, 0, ctx);
+      if (err)
+        fail ("gcry_pubkey_get_sexp(0) failed: %s\n", gpg_strerror (err));
+      else if (debug)
+        print_sexp ("Result of gcry_pubkey_get_sexp (0):\n", sexp);
+      gcry_sexp_release (sexp);
+
+      err = gcry_pubkey_get_sexp (&sexp, GCRY_PK_GET_PUBKEY, ctx);
+      if (err)
+        fail ("gcry_pubkey_get_sexp(GET_PUBKEY) failed: %s\n",
+              gpg_strerror (err));
+      else if (debug)
+        print_sexp ("Result of gcry_pubkey_get_sexp (GET_PUBKEY):\n", sexp);
+      gcry_sexp_release (sexp);
+
+      err = gcry_pubkey_get_sexp (&sexp, GCRY_PK_GET_SECKEY, ctx);
+      if (gpg_err_code (err) != GPG_ERR_NO_SECKEY)
+        fail ("gcry_pubkey_get_sexp(GET_SECKEY) returned wrong error: %s\n",
+              gpg_strerror (err));
+      gcry_sexp_release (sexp);
+    }
+
+  show ("checking sample public key (Ed25519)\n");
+  q = hex2mpi (sample_ed25519_q);
+  gcry_sexp_release (keyparam);
+  err = gcry_sexp_build (&keyparam, NULL,
+                        "(public-key(ecc(curve %s)(q %m)))",
+                        "Ed25519", q);
+  if (err)
+    die ("gcry_sexp_build failed: %s\n", gpg_strerror (err));
+  gcry_mpi_release (q);
+
+  /* We can't call gcry_pk_testkey because it is only implemented for
+     private keys.  */
+  /* err = gcry_pk_testkey (keyparam); */
+  /* if (err) */
+  /*   fail ("gcry_pk_testkey failed for sample public key: %s\n", */
+  /*         gpg_strerror (err)); */
+
+  gcry_ctx_release (ctx);
   err = gcry_mpi_ec_new (&ctx, keyparam, NULL);
   if (err)
     fail ("gcry_mpi_ec_new failed for sample public key: %s\n",
@@ -519,10 +661,36 @@ context_param (void)
     {
       gcry_sexp_t sexp;
 
-      get_and_cmp_mpi ("q", sample_p256_q, "NIST P-256", ctx);
-      get_and_cmp_point ("q", sample_p256_q_x, sample_p256_q_y, "NIST P-256",
-                         ctx);
+      get_and_cmp_mpi ("q", sample_ed25519_q, "Ed25519", ctx);
+      get_and_cmp_point ("q", sample_ed25519_q_x, sample_ed25519_q_y,
+                         "Ed25519", ctx);
+      get_and_cmp_mpi ("q@eddsa", sample_ed25519_q_eddsa, "Ed25519", ctx);
 
+      /* Delete Q by setting d and the clearing d.  The clearing is
+         required so that we can check whether Q has been cleared and
+         because further tests only expect a public key. */
+      d = hex2mpi (sample_ed25519_d);
+      err = gcry_mpi_ec_set_mpi ("d", d, ctx);
+      if (err)
+        fail ("setting d for Ed25519 failed: %s\n", gpg_strerror (err));
+      gcry_mpi_release (d);
+      err = gcry_mpi_ec_set_mpi ("d", NULL, ctx);
+      if (err)
+        fail ("setting d for Ed25519 failed(2): %s\n", gpg_strerror (err));
+      if (gcry_mpi_ec_get_mpi ("q", ctx, 0))
+        fail ("setting d for Ed25519 did not reset Q\n");
+
+      /* Set Q again.  We need to use an opaque MPI here because
+         sample_ed25519_q is in uncompressed format which can only be
+         auto-detected if passed opaque.  */
+      q = hex2mpiopa (sample_ed25519_q);
+      err = gcry_mpi_ec_set_mpi ("q", q, ctx);
+      if (err)
+        fail ("setting Q for Ed25519 failed: %s\n", gpg_strerror (err));
+      gcry_mpi_release (q);
+      get_and_cmp_mpi ("q", sample_ed25519_q, "Ed25519(2)", ctx);
+
+      /* Get as s-expression.  */
       err = gcry_pubkey_get_sexp (&sexp, 0, ctx);
       if (err)
         fail ("gcry_pubkey_get_sexp(0) failed: %s\n", gpg_strerror (err));
@@ -544,9 +712,9 @@ context_param (void)
               gpg_strerror (err));
       gcry_sexp_release (sexp);
 
-      gcry_ctx_release (ctx);
     }
 
+  gcry_ctx_release (ctx);
   gcry_sexp_release (keyparam);
 }
 
@@ -730,7 +898,7 @@ basic_ec_math_simplified (void)
     print_sexp ("Result of gcry_pubkey_get_sexp (GET_PUBKEY):\n", sexp);
   gcry_sexp_release (sexp);
 
-  /* Does get_sexp return the public key if after d has been deleted?  */
+  /* Does get_sexp return the public key after d has been deleted?  */
   err = gcry_mpi_ec_set_mpi ("d", NULL, ctx);
   if (err)
     die ("gcry_mpi_ec_set_mpi(d=NULL) failed\n");

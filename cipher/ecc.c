@@ -626,36 +626,47 @@ eddsa_encode_x_y (gcry_mpi_t x, gcry_mpi_t y, unsigned int minlen,
   return 0;
 }
 
-/* Encode POINT using the EdDSA scheme.  X and Y are scratch variables
-   supplied by the caller and CTX is the usual context.  MINLEN is the
-   required length in bytes for the result. On success 0 is returned
-   and a malloced buffer with the encoded point is stored at R_BUFFER;
-   the length of this buffer is stored at R_BUFLEN.  */
-static gpg_err_code_t
-eddsa_encodepoint (mpi_point_t point, unsigned int minlen, mpi_ec_t ctx,
-                   gcry_mpi_t x, gcry_mpi_t y,
-                   unsigned char **r_buffer, unsigned int *r_buflen)
+/* Encode POINT using the EdDSA scheme.  X and Y are either scratch
+   variables supplied by the caller or NULL.  CTX is the usual
+   context.  On success 0 is returned and a malloced buffer with the
+   encoded point is stored at R_BUFFER; the length of this buffer is
+   stored at R_BUFLEN.  */
+gpg_err_code_t
+_gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ec,
+                             gcry_mpi_t x_in, gcry_mpi_t y_in,
+                             unsigned char **r_buffer, unsigned int *r_buflen)
 {
-  if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
+  gpg_err_code_t rc;
+  gcry_mpi_t x, y;
+
+  x = x_in? x_in : mpi_new (0);
+  y = y_in? y_in : mpi_new (0);
+
+  if (_gcry_mpi_ec_get_affine (x, y, point, ec))
     {
       log_error ("eddsa_encodepoint: Failed to get affine coordinates\n");
-      return GPG_ERR_INTERNAL;
+      rc = GPG_ERR_INTERNAL;
     }
-  return eddsa_encode_x_y (x, y, minlen, r_buffer, r_buflen);
+  else
+    rc = eddsa_encode_x_y (x, y, ec->nbits/8, r_buffer, r_buflen);
+
+  if (!x_in)
+    mpi_free (x);
+  if (!y_in)
+    mpi_free (y);
+  return rc;
 }
 
 
-/* Decode the EdDSA style encoded PK and set it into RESULT.  LEN is
-   the expected length in bytes of the encoded key and CTX the usual
-   curve context.  If R_ENCPK is not NULL, the encoded PK is stored at
-   that address; this is a new copy to be released by the caller.  In
-   contrast to the supplied PK, this is not an MPI and thus guarnateed
-   to be properly padded.  R_ENCPKLEN received the length of that
-   encoded key.  */
-static gpg_err_code_t
-eddsa_decodepoint (gcry_mpi_t pk, unsigned int len, mpi_ec_t ctx,
-                   mpi_point_t result,
-                   unsigned char **r_encpk, unsigned int *r_encpklen)
+/* Decode the EdDSA style encoded PK and set it into RESULT.  CTX is
+   the usual curve context.  If R_ENCPK is not NULL, the encoded PK is
+   stored at that address; this is a new copy to be released by the
+   caller.  In contrast to the supplied PK, this is not an MPI and
+   thus guarnateed to be properly padded.  R_ENCPKLEN received the
+   length of that encoded key.  */
+gpg_err_code_t
+_gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
+                             unsigned char **r_encpk, unsigned int *r_encpklen)
 {
   gpg_err_code_t rc;
   unsigned char *rawmpi;
@@ -694,7 +705,7 @@ eddsa_decodepoint (gcry_mpi_t pk, unsigned int len, mpi_ec_t ctx,
 
           if (r_encpk)
             {
-              rc = eddsa_encode_x_y (x, y, len, r_encpk, r_encpklen);
+              rc = eddsa_encode_x_y (x, y, ctx->nbits/8, r_encpk, r_encpklen);
               if (rc)
                 {
                   mpi_free (x);
@@ -720,7 +731,7 @@ eddsa_decodepoint (gcry_mpi_t pk, unsigned int len, mpi_ec_t ctx,
       /* Note: Without using an opaque MPI it is not reliable possible
          to find out whether the public key has been given in
          uncompressed format.  Thus we expect EdDSA format here.  */
-      rawmpi = _gcry_mpi_get_buffer (pk, len, &rawmpilen, NULL);
+      rawmpi = _gcry_mpi_get_buffer (pk, ctx->nbits/8, &rawmpilen, NULL);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
     }
@@ -896,7 +907,7 @@ sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
 {
   int rc;
   mpi_ec_t ctx = NULL;
-  int b = 256/8;             /* The only size we currently support.  */
+  int b;
   unsigned int tmp;
   unsigned char hash_d[64];  /* Fixme: malloc in secure memory */
   unsigned char digest[64];
@@ -927,6 +938,10 @@ sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
   r = mpi_new (0);
   ctx = _gcry_mpi_ec_p_internal_new (skey->E.model, skey->E.dialect,
                                      skey->E.p, skey->E.a, skey->E.b);
+  b = ctx->nbits/8;
+  if (b != 256/8)
+    return GPG_ERR_INTERNAL; /* We only support 256 bit. */
+
 
   /* Hash the secret key.  We clear DIGEST so we can use it to left
      pad the key with zeroes for hashing.  */
@@ -959,7 +974,7 @@ sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
      parameter.  */
   if (pk)
     {
-      rc = eddsa_decodepoint (pk, b, ctx, &Q,  &encpk, &encpklen);
+      rc = _gcry_ecc_eddsa_decodepoint (pk, ctx, &Q,  &encpk, &encpklen);
       if (rc)
         goto leave;
       if (DBG_CIPHER)
@@ -973,7 +988,7 @@ sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
   else
     {
       _gcry_mpi_ec_mul_point (&Q, a, &skey->E.G, ctx);
-      rc = eddsa_encodepoint (&Q, b, ctx, x, y, &encpk, &encpklen);
+      rc = _gcry_ecc_eddsa_encodepoint (&Q, ctx, x, y, &encpk, &encpklen);
       if (rc)
         goto leave;
       if (DBG_CIPHER)
@@ -1003,7 +1018,7 @@ sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
     log_printpnt ("   r", &I, ctx);
 
   /* Convert R into affine coordinates and apply encoding.  */
-  rc = eddsa_encodepoint (&I, b, ctx, x, y, &rawmpi, &rawmpilen);
+  rc = _gcry_ecc_eddsa_encodepoint (&I, ctx, x, y, &rawmpi, &rawmpilen);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1067,7 +1082,7 @@ verify_eddsa (gcry_mpi_t input, ECC_public_key *pkey,
 {
   int rc;
   mpi_ec_t ctx = NULL;
-  int b = 256/8;               /* The only size we currently support.  */
+  int b;
   unsigned int tmp;
   mpi_point_struct Q;          /* Public key.  */
   unsigned char *encpk = NULL; /* Encoded public key.  */
@@ -1094,9 +1109,12 @@ verify_eddsa (gcry_mpi_t input, ECC_public_key *pkey,
 
   ctx = _gcry_mpi_ec_p_internal_new (pkey->E.model, pkey->E.dialect,
                                      pkey->E.p, pkey->E.a, pkey->E.b);
+  b = ctx->nbits/8;
+  if (b != 256/8)
+    return GPG_ERR_INTERNAL; /* We only support 256 bit. */
 
   /* Decode and check the public key.  */
-  rc = eddsa_decodepoint (pk, b, ctx, &Q, &encpk, &encpklen);
+  rc = _gcry_ecc_eddsa_decodepoint (pk, ctx, &Q, &encpk, &encpklen);
   if (rc)
     goto leave;
   if (!_gcry_mpi_ec_curve_point (&Q, ctx))
@@ -1170,7 +1188,7 @@ verify_eddsa (gcry_mpi_t input, ECC_public_key *pkey,
   _gcry_mpi_ec_mul_point (&Ib, h, &Q, ctx);
   _gcry_mpi_neg (Ib.x, Ib.x);
   _gcry_mpi_ec_add_points (&Ia, &Ia, &Ib, ctx);
-  rc = eddsa_encodepoint (&Ia, b, ctx, s, h, &tbuf, &tlen);
+  rc = _gcry_ecc_eddsa_encodepoint (&Ia, ctx, s, h, &tbuf, &tlen);
   if (rc)
     goto leave;
   if (tlen != rlen || memcmp (tbuf, rbuf, tlen))
@@ -1301,7 +1319,7 @@ ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
       unsigned char *encpk;
       unsigned int encpklen;
 
-      rc = eddsa_encodepoint (&sk.Q, 256/8, ctx, x, y, &encpk, &encpklen);
+      rc = _gcry_ecc_eddsa_encodepoint (&sk.Q, ctx, x, y, &encpk, &encpklen);
       if (rc)
         return rc;
       public = mpi_new (0);
@@ -1443,9 +1461,15 @@ ecc_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
       || !skey[6] )
     return GPG_ERR_BAD_MPI;
 
+  /* FIXME: The setting of model and dialect are crude hacks.  We will
+     fix that by moving the s-expression parsing from pubkey.c to
+     here.  */
   sk.E.model = ((flags & PUBKEY_FLAG_EDDSA)
                 ? MPI_EC_TWISTEDEDWARDS
                 : MPI_EC_WEIERSTRASS);
+  sk.E.dialect = ((flags & PUBKEY_FLAG_EDDSA)
+                  ? ECC_DIALECT_ED25519
+                  : ECC_DIALECT_STANDARD);
   sk.E.p = skey[0];
   sk.E.a = skey[1];
   sk.E.b = skey[2];
@@ -1525,9 +1549,15 @@ ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
       || !pkey[3] || !pkey[4] || !pkey[5] )
     return GPG_ERR_BAD_MPI;
 
+  /* FIXME: The setting of model and dialect are crude hacks.  We will
+     fix that by moving the s-expression parsing from pubkey.c to
+     here.  */
   pk.E.model = ((flags & PUBKEY_FLAG_EDDSA)
                 ? MPI_EC_TWISTEDEDWARDS
                 : MPI_EC_WEIERSTRASS);
+  pk.E.dialect = ((flags & PUBKEY_FLAG_EDDSA)
+                  ? ECC_DIALECT_ED25519
+                  : ECC_DIALECT_STANDARD);
   pk.E.p = pkey[0];
   pk.E.a = pkey[1];
   pk.E.b = pkey[2];
@@ -1922,7 +1952,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
    Low-level API helper functions.
  */
 
-/* This is the wroker function for gcry_pubkey_get_sexp for ECC
+/* This is the worker function for gcry_pubkey_get_sexp for ECC
    algorithms.  Note that the caller has already stored NULL at
    R_SEXP.  */
 gpg_err_code_t
@@ -1940,10 +1970,7 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
 
   /* Compute the public point if it is missing.  */
   if (!ec->Q && ec->d)
-    {
-      ec->Q = gcry_mpi_point_new (0);
-      _gcry_mpi_ec_mul_point (ec->Q, ec->d, ec->G, ec);
-    }
+    ec->Q = _gcry_ecc_compute_public (NULL, ec);
 
   /* Encode G and Q.  */
   mpi_G = _gcry_mpi_ec_ec2os (ec->G, ec);
@@ -1957,7 +1984,23 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
       rc = GPG_ERR_BAD_CRYPT_CTX;
       goto leave;
     }
-  mpi_Q = _gcry_mpi_ec_ec2os (ec->Q, ec);
+
+  if (ec->dialect == ECC_DIALECT_ED25519)
+    {
+      unsigned char *encpk;
+      unsigned int encpklen;
+
+      rc = _gcry_ecc_eddsa_encodepoint (ec->Q, ec, NULL, NULL,
+                                        &encpk, &encpklen);
+      if (rc)
+        goto leave;
+      mpi_Q = gcry_mpi_set_opaque (NULL, encpk, encpklen*8);
+      encpk = NULL;
+    }
+  else
+    {
+      mpi_Q = _gcry_mpi_ec_ec2os (ec->Q, ec);
+    }
   if (!mpi_Q)
     {
       rc = GPG_ERR_BROKEN_PUBKEY;

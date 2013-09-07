@@ -812,6 +812,9 @@ _gcry_ecc_get_param_sexp (const char *name)
 gcry_mpi_t
 _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
 {
+  if (!*name)
+    return NULL;
+
   if (!strcmp (name, "p") && ec->p)
     return mpi_is_const (ec->p) && !copy? ec->p : mpi_copy (ec->p);
   if (!strcmp (name, "a") && ec->a)
@@ -833,17 +836,35 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
   if (!strcmp (name, "q.y") && ec->Q && ec->Q->y)
     return mpi_is_const (ec->G->y) && !copy? ec->Q->y : mpi_copy (ec->Q->y);
 
-  /* If a point has been requested, return it in standard encoding.  */
+  /* If the base point has been requested, return it in standard
+     encoding.  */
   if (!strcmp (name, "g") && ec->G)
     return _gcry_mpi_ec_ec2os (ec->G, ec);
-  if (!strcmp (name, "q"))
+
+  /* If the public key has been requested, return it by default in
+     standard uncompressed encoding or if requested in other
+     encodings.  */
+  if (*name == 'q' && (!name[1] || name[1] == '@'))
     {
       /* If only the private key is given, compute the public key.  */
       if (!ec->Q)
         ec->Q = _gcry_ecc_compute_public (NULL, ec);
 
-      if (ec->Q)
+      if (!ec->Q)
+        return NULL;
+
+      if (name[1] != '@')
         return _gcry_mpi_ec_ec2os (ec->Q, ec);
+
+      if (!strcmp (name+2, "eddsa") && ec->model == MPI_EC_TWISTEDEDWARDS)
+        {
+          unsigned char *encpk;
+          unsigned int encpklen;
+
+          if (!_gcry_ecc_eddsa_encodepoint (ec->Q, ec, NULL, NULL,
+                                            &encpk, &encpklen))
+            return gcry_mpi_set_opaque (NULL, encpk, encpklen*8);
+        }
     }
 
   return NULL;
@@ -874,7 +895,11 @@ _gcry_ecc_get_point (const char *name, mpi_ec_t ec)
 gpg_err_code_t
 _gcry_ecc_set_mpi (const char *name, gcry_mpi_t newvalue, mpi_ec_t ec)
 {
-  if (!strcmp (name, "p"))
+  gpg_err_code_t rc = 0;
+
+  if (!*name)
+    ;
+  else if (!strcmp (name, "p"))
     {
       mpi_free (ec->p);
       ec->p = mpi_copy (newvalue);
@@ -896,15 +921,40 @@ _gcry_ecc_set_mpi (const char *name, gcry_mpi_t newvalue, mpi_ec_t ec)
       mpi_free (ec->n);
       ec->n = mpi_copy (newvalue);
     }
+  else if (*name == 'q' && (!name[1] || name[1] == '@'))
+    {
+      if (newvalue)
+        {
+          if (!ec->Q)
+            ec->Q = gcry_mpi_point_new (0);
+          if (ec->dialect == ECC_DIALECT_ED25519)
+            rc = _gcry_ecc_eddsa_decodepoint (newvalue, ec, ec->Q, NULL, NULL);
+          else
+            rc = _gcry_ecc_os2ec (ec->Q, newvalue);
+        }
+      if (rc || !newvalue)
+        {
+          gcry_mpi_point_release (ec->Q);
+          ec->Q = NULL;
+        }
+      /* Note: We assume that Q matches d and thus do not reset d.  */
+    }
   else if (!strcmp (name, "d"))
     {
       mpi_free (ec->d);
       ec->d = mpi_copy (newvalue);
+      if (ec->d)
+        {
+          /* We need to reset the public key because it may not
+             anymore match.  */
+          gcry_mpi_point_release (ec->Q);
+          ec->Q = NULL;
+        }
     }
   else
-    return GPG_ERR_UNKNOWN_NAME;
+   rc = GPG_ERR_UNKNOWN_NAME;
 
-  return 0;
+  return rc;
 }
 
 

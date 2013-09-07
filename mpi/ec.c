@@ -436,6 +436,10 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
 
   ctx->model = model;
   ctx->dialect = dialect;
+  if (dialect == ECC_DIALECT_ED25519)
+    ctx->nbits = 256;
+  else
+    ctx->nbits = mpi_get_nbits (p);
   ctx->p = mpi_copy (p);
   ctx->a = mpi_copy (a);
   if (b && model == MPI_EC_TWISTEDEDWARDS)

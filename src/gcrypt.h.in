@@ -726,7 +726,7 @@ void gcry_mpi_set_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
    currently useless as no flags are allowed. */
 void gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 
-/* Return true when the FLAG is set for A. */
+/* Return true if the FLAG is set for A. */
 int gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 
 /* Private function - do not use.  */
