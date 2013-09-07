@@ -373,7 +373,12 @@ ec_powm (gcry_mpi_t w, const gcry_mpi_t b, const gcry_mpi_t e,
 static void
 ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
 {
-  mpi_invm (x, a, ctx->p);
+  if (!mpi_invm (x, a, ctx->p))
+    {
+      log_error ("ec_invm: inverse does not exist:\n");
+      log_mpidump ("  a", a);
+      log_mpidump ("  p", ctx->p);
+    }
 }
 
 
@@ -706,30 +711,62 @@ int
 _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
                          mpi_ec_t ctx)
 {
-  gcry_mpi_t z1, z2, z3;
-
   if (!mpi_cmp_ui (point->z, 0))
     return -1;
 
-  z1 = mpi_new (0);
-  z2 = mpi_new (0);
-  ec_invm (z1, point->z, ctx);  /* z1 = z^(-1) mod p  */
-  ec_mulm (z2, z1, z1, ctx);    /* z2 = z^(-2) mod p  */
-
-  if (x)
-    ec_mulm (x, point->x, z2, ctx);
-
-  if (y)
+  switch (ctx->model)
     {
-      z3 = mpi_new (0);
-      ec_mulm (z3, z2, z1, ctx);      /* z3 = z^(-3) mod p  */
-      ec_mulm (y, point->y, z3, ctx);
-      mpi_free (z3);
-    }
+    case MPI_EC_WEIERSTRASS: /* Using Jacobian coordinates.  */
+      {
+        gcry_mpi_t z1, z2, z3;
 
-  mpi_free (z2);
-  mpi_free (z1);
-  return 0;
+        z1 = mpi_new (0);
+        z2 = mpi_new (0);
+        ec_invm (z1, point->z, ctx);  /* z1 = z^(-1) mod p  */
+        ec_mulm (z2, z1, z1, ctx);    /* z2 = z^(-2) mod p  */
+
+        if (x)
+          ec_mulm (x, point->x, z2, ctx);
+
+        if (y)
+          {
+            z3 = mpi_new (0);
+            ec_mulm (z3, z2, z1, ctx);      /* z3 = z^(-3) mod p  */
+            ec_mulm (y, point->y, z3, ctx);
+            mpi_free (z3);
+          }
+
+        mpi_free (z2);
+        mpi_free (z1);
+      }
+      return 0;
+
+    case MPI_EC_MONTGOMERY:
+      {
+        log_fatal ("%s: %s not yet supported\n",
+                   "_gcry_mpi_ec_get_affine", "Montgomery");
+      }
+      return -1;
+
+    case MPI_EC_TWISTEDEDWARDS:
+      {
+        gcry_mpi_t z;
+
+        z = mpi_new (0);
+        ec_invm (z, point->z, ctx);
+
+        if (x)
+          ec_mulm (x, point->x, z, ctx);
+        if (y)
+          ec_mulm (y, point->y, z, ctx);
+
+        gcry_mpi_release (z);
+      }
+      return 0;
+
+    default:
+      return -1;
+    }
 }
 
 
@@ -833,8 +870,69 @@ dup_point_montgomery (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 static void
 dup_point_twistededwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 {
-  log_fatal ("%s: %s not yet supported\n",
-             "_gcry_mpi_ec_dup_point", "Twisted Edwards");
+#define X1 (point->x)
+#define Y1 (point->y)
+#define Z1 (point->z)
+#define X3 (result->x)
+#define Y3 (result->y)
+#define Z3 (result->z)
+#define B (ctx->t.scratch[0])
+#define C (ctx->t.scratch[1])
+#define D (ctx->t.scratch[2])
+#define E (ctx->t.scratch[3])
+#define F (ctx->t.scratch[4])
+#define H (ctx->t.scratch[5])
+#define J (ctx->t.scratch[6])
+
+  /* Compute: (X_3 : Y_3 : Z_3) = 2( X_1 : Y_1 : Z_1 ) */
+
+  /* B = (X_1 + Y_1)^2  */
+  ec_addm (B, X1, Y1, ctx);
+  ec_powm (B, B, mpi_const (MPI_C_TWO), ctx);
+
+  /* C = X_1^2 */
+  /* D = Y_1^2 */
+  ec_powm (C, X1, mpi_const (MPI_C_TWO), ctx);
+  ec_powm (D, Y1, mpi_const (MPI_C_TWO), ctx);
+
+  /* E = aC */
+  ec_mulm (E, ctx->a, C, ctx);
+
+  /* F = E + D */
+  ec_addm (F, E, D, ctx);
+
+  /* H = Z_1^2 */
+  ec_powm (H, Z1, mpi_const (MPI_C_TWO), ctx);
+
+  /* J = F - 2H */
+  ec_mulm (J, H, mpi_const (MPI_C_TWO), ctx);
+  ec_subm (J, F, J, ctx);
+
+  /* X_3 = (B - C - D) · J */
+  ec_subm (X3, B, C, ctx);
+  ec_subm (X3, X3, D, ctx);
+  ec_mulm (X3, X3, J, ctx);
+
+  /* Y_3 = F · (E - D) */
+  ec_subm (Y3, E, D, ctx);
+  ec_mulm (Y3, Y3, F, ctx);
+
+  /* Z_3 = F · J */
+  ec_mulm (Z3, F, J, ctx);
+
+#undef X1
+#undef Y1
+#undef Z1
+#undef X3
+#undef Y3
+#undef Z3
+#undef B
+#undef C
+#undef D
+#undef E
+#undef F
+#undef H
+#undef J
 }
 
 
@@ -1020,8 +1118,84 @@ add_points_twistededwards (mpi_point_t result,
                            mpi_point_t p1, mpi_point_t p2,
                            mpi_ec_t ctx)
 {
-  log_fatal ("%s: %s not yet supported\n",
-             "_gcry_mpi_ec_add_points", "Twisted Edwards");
+#define X1 (p1->x)
+#define Y1 (p1->y)
+#define Z1 (p1->z)
+#define X2 (p2->x)
+#define Y2 (p2->y)
+#define Z2 (p2->z)
+#define X3 (result->x)
+#define Y3 (result->y)
+#define Z3 (result->z)
+#define A (ctx->t.scratch[0])
+#define B (ctx->t.scratch[1])
+#define C (ctx->t.scratch[2])
+#define D (ctx->t.scratch[3])
+#define E (ctx->t.scratch[4])
+#define F (ctx->t.scratch[5])
+#define G (ctx->t.scratch[6])
+#define tmp (ctx->t.scratch[7])
+
+  /* Compute: (X_3 : Y_3 : Z_3) = (X_1 : Y_1 : Z_1) + (X_2 : Y_2 : Z_3)  */
+
+  /* A = Z1 · Z2 */
+  ec_mulm (A, Z1, Z2, ctx);
+
+  /* B = A^2 */
+  ec_powm (B, A, mpi_const (MPI_C_TWO), ctx);
+
+  /* C = X1 · X2 */
+  ec_mulm (C, X1, X2, ctx);
+
+  /* D = Y1 · Y2 */
+  ec_mulm (D, Y1, Y2, ctx);
+
+  /* E = d · C · D */
+  ec_mulm (E, ctx->b, C, ctx);
+  ec_mulm (E, E, D, ctx);
+
+  /* F = B - E */
+  ec_subm (F, B, E, ctx);
+
+  /* G = B + E */
+  ec_addm (G, B, E, ctx);
+
+  /* X_3 = A · F · ((X_1 + Y_1) · (X_2 + Y_2) - C - D) */
+  ec_addm (tmp, X1, Y1, ctx);
+  ec_addm (X3, X2, Y2, ctx);
+  ec_mulm (X3, X3, tmp, ctx);
+  ec_subm (X3, X3, C, ctx);
+  ec_subm (X3, X3, D, ctx);
+  ec_mulm (X3, X3, F, ctx);
+  ec_mulm (X3, X3, A, ctx);
+
+  /* Y_3 = A · G · (D - aC) */
+  ec_mulm (Y3, ctx->a, C, ctx);
+  ec_subm (Y3, D, Y3, ctx);
+  ec_mulm (Y3, Y3, G, ctx);
+  ec_mulm (Y3, Y3, A, ctx);
+
+  /* Z_3 = F · G */
+  ec_mulm (Z3, F, G, ctx);
+
+
+#undef X1
+#undef Y1
+#undef Z1
+#undef X2
+#undef Y2
+#undef Z2
+#undef X3
+#undef Y3
+#undef Z3
+#undef A
+#undef B
+#undef C
+#undef D
+#undef E
+#undef F
+#undef G
+#undef tmp
 }
 
 
@@ -1054,27 +1228,29 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
                         gcry_mpi_t scalar, mpi_point_t point,
                         mpi_ec_t ctx)
 {
-#if 0
-  /* Simple left to right binary method.  GECC Algorithm 3.27 */
-  unsigned int nbits;
-  int i;
-
-  nbits = mpi_get_nbits (scalar);
-  mpi_set_ui (result->x, 1);
-  mpi_set_ui (result->y, 1);
-  mpi_set_ui (result->z, 0);
-
-  for (i=nbits-1; i >= 0; i--)
-    {
-      _gcry_mpi_ec_dup_point (result, result, ctx);
-      if (mpi_test_bit (scalar, i) == 1)
-        _gcry_mpi_ec_add_points (result, result, point, ctx);
-    }
-
-#else
   gcry_mpi_t x1, y1, z1, k, h, yy;
   unsigned int i, loops;
   mpi_point_struct p1, p2, p1inv;
+
+  if (ctx->model == MPI_EC_TWISTEDEDWARDS)
+    {
+      /* Simple left to right binary method.  GECC Algorithm 3.27 */
+      unsigned int nbits;
+      int j;
+
+      nbits = mpi_get_nbits (scalar);
+      mpi_set_ui (result->x, 0);
+      mpi_set_ui (result->y, 1);
+      mpi_set_ui (result->z, 1);
+
+      for (j=nbits-1; j >= 0; j--)
+        {
+          _gcry_mpi_ec_dup_point (result, result, ctx);
+          if (mpi_test_bit (scalar, j) == 1)
+            _gcry_mpi_ec_add_points (result, result, point, ctx);
+        }
+      return;
+    }
 
   x1 = mpi_alloc_like (ctx->p);
   y1 = mpi_alloc_like (ctx->p);
@@ -1159,7 +1335,6 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   point_free (&p1inv);
   mpi_free (h);
   mpi_free (k);
-#endif
 }
 
 

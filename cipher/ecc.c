@@ -618,6 +618,169 @@ verify_ecdsa (gcry_mpi_t input, ECC_public_key *pkey,
 
 
 
+static void
+reverse_buffer (unsigned char *buffer, unsigned int length)
+{
+  unsigned int tmp, i;
+
+  for (i=0; i < length/2; i++)
+    {
+      tmp = buffer[i];
+      buffer[i] = buffer[length-1-i];
+      buffer[length-1-i] = tmp;
+    }
+}
+
+
+/* Encode MPI using the EdDSA scheme.  MINLEN specifies the required
+   length of the buffer in bytes.  On success 0 is returned an a
+   malloced buffer with the encoded point is stored at R_BUFFER; the
+   length of this buffer is stored at R_BUFLEN.  */
+static gpg_err_code_t
+eddsa_encodempi (gcry_mpi_t mpi, unsigned int minlen,
+                 unsigned char **r_buffer, unsigned int *r_buflen)
+{
+  unsigned char *rawmpi;
+  unsigned int rawmpilen;
+
+  rawmpi = _gcry_mpi_get_buffer (mpi, minlen, &rawmpilen, NULL);
+  if (!rawmpi)
+    return gpg_err_code_from_syserror ();
+
+  *r_buffer = rawmpi;
+  *r_buflen = rawmpilen;
+  return 0;
+}
+
+
+/* Encode POINT using the EdDSA scheme.  X and Y are scratch variables
+   supplied by the caller and CTX is the usual context.  MINLEN is the
+   required length in bytes for the result. On success 0 is returned
+   an a malloced buffer with the encoded point is stored at R_BUFFER;
+   the length of this buffer is stored at R_BUFLEN.  */
+static gpg_err_code_t
+eddsa_encodepoint (mpi_point_t point, unsigned int minlen, mpi_ec_t ctx,
+                   gcry_mpi_t x, gcry_mpi_t y,
+                   unsigned char **r_buffer, unsigned int *r_buflen)
+{
+  unsigned char *rawmpi;
+  unsigned int rawmpilen;
+
+  if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
+    {
+      log_error ("eddsa_encodepoint: Failed to get affine coordinates\n");
+      return GPG_ERR_INTERNAL;
+    }
+  rawmpi = _gcry_mpi_get_buffer (y, minlen, &rawmpilen, NULL);
+  if (!rawmpi)
+    return gpg_err_code_from_syserror ();
+  if (mpi_test_bit (x, 0) && rawmpilen)
+    rawmpi[rawmpilen - 1] |= 0x80;  /* Set sign bit.  */
+
+  *r_buffer = rawmpi;
+  *r_buflen = rawmpilen;
+  return 0;
+}
+
+
+/* Decode the EdDSA style encoded PK and set it into RESULT.  LEN is
+   the expected length in bytes of the encoded key and CTX the usual
+   curve context.  If R_ENCPK is not NULL, the encoded PK is stored at
+   that address; this is a new copy to be release by the caller.  In
+   contrast to the supplied PK, this is not an MPI and thus guarnteed
+   to be properly padded.  R_ENCPKLEN received the length of that
+   encoded key.  */
+static gpg_err_code_t
+eddsa_decodepoint (gcry_mpi_t pk, unsigned int len, mpi_ec_t ctx,
+                   mpi_point_t result,
+                   unsigned char **r_encpk, unsigned int *r_encpklen)
+{
+  unsigned char *rawmpi;
+  unsigned int rawmpilen;
+  gcry_mpi_t yy, t, x, p1, p2, p3;
+  int sign;
+
+  rawmpi = _gcry_mpi_get_buffer (pk, len, &rawmpilen, NULL);
+  if (!rawmpi)
+    return gpg_err_code_from_syserror ();
+  if (rawmpilen)
+    {
+      sign = !!(rawmpi[0] & 0x80);
+      rawmpi[0] &= 0x7f;
+    }
+  else
+    sign = 0;
+  _gcry_mpi_set_buffer (result->y, rawmpi, rawmpilen, 0);
+  if (r_encpk)
+    {
+      /* Revert to little endian.  */
+      if (sign && rawmpilen)
+        rawmpi[0] |= 0x80;
+      reverse_buffer (rawmpi, rawmpilen);
+      *r_encpk = rawmpi;
+      if (r_encpklen)
+        *r_encpklen = rawmpilen;
+    }
+  else
+    gcry_free (rawmpi);
+
+  /* Now recover X.  */
+  /* t = (y^2-1) · ((b*y^2+1)^{p-2} mod p) */
+  x = mpi_new (0);
+  yy = mpi_new (0);
+  mpi_mul (yy, result->y, result->y);
+  t = mpi_copy (yy);
+  mpi_mul (t, t, ctx->b);
+  mpi_add_ui (t, t, 1);
+  p2 = mpi_copy (ctx->p);
+  mpi_sub_ui (p2, p2, 2);
+  mpi_powm (t, t, p2, ctx->p);
+
+  mpi_sub_ui (yy, yy, 1);
+  mpi_mul (t, yy, t);
+
+  /* x = t^{(p+3)/8} mod p */
+  p3 = mpi_copy (ctx->p);
+  mpi_add_ui (p3, p3, 3);
+  mpi_fdiv_q (p3, p3, mpi_const (MPI_C_EIGHT));
+  mpi_powm (x, t, p3, ctx->p);
+
+  /* (x^2 - t) % p != 0 ? x = (x*(2^{(p-1)/4} mod p)) % p */
+  mpi_mul (yy, x, x);
+  mpi_subm (yy, yy, t, ctx->p);
+  if (mpi_cmp_ui (yy, 0))
+    {
+      p1 = mpi_copy (ctx->p);
+      mpi_sub_ui (p1, p1, 1);
+      mpi_fdiv_q (p1, p1, mpi_const (MPI_C_FOUR));
+      mpi_powm (yy, mpi_const (MPI_C_TWO), p1, ctx->p);
+      mpi_mulm (x, x, yy, ctx->p);
+    }
+  else
+    p1 = NULL;
+
+  /* is_odd(x) ? x = p-x */
+  if (mpi_test_bit (x, 0))
+    mpi_sub (x, ctx->p, x);
+
+  /* lowbit(x) != highbit(input) ?  x = p-x */
+  if (mpi_test_bit (x, 0) != sign)
+    mpi_sub (x, ctx->p, x);
+
+  mpi_set (result->x, x);
+  mpi_set_ui (result->z, 1);
+
+  gcry_mpi_release (x);
+  gcry_mpi_release (yy);
+  gcry_mpi_release (t);
+  gcry_mpi_release (p3);
+  gcry_mpi_release (p2);
+  gcry_mpi_release (p1);
+
+  return 0;
+}
+
+
 /* Compute an EdDSA signature. See:
  *   [ed25519] 23pp. (PDF) Daniel J. Bernstein, Niels Duif, Tanja
  *   Lange, Peter Schwabe, Bo-Yin Yang. High-speed high-security
@@ -631,42 +794,313 @@ verify_ecdsa (gcry_mpi_t input, ECC_public_key *pkey,
  * curve; the user is responsible to use Ed25519.
  *
  * Return the signature struct (r,s) from the message hash.  The caller
- * must have allocated R and S.
+ * must have allocated R_R and S.
  */
 static gpg_err_code_t
 sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
-            gcry_mpi_t r, gcry_mpi_t s, int hashalgo)
+            gcry_mpi_t r_r, gcry_mpi_t s, int hashalgo, gcry_mpi_t pk)
 {
-  (void)skey;
-  (void)r;
-  (void)s;
+  int rc;
+  mpi_ec_t ctx = NULL;
+  int b = 256/8;             /* The only size we currently support.  */
+  unsigned int tmp;
+  unsigned char hash_d[64];  /* Fixme: malloc in secure memory */
+  unsigned char digest[64];
+  gcry_buffer_t hvec[3];
+  const void *mbuf;
+  size_t mlen;
+  unsigned char *rawmpi = NULL;
+  unsigned int rawmpilen;
+  unsigned char *encpk = NULL; /* Encoded public key.  */
+  unsigned int encpklen;
+  mpi_point_struct I;          /* Intermediate value.  */
+  mpi_point_struct Q;          /* Public key.  */
+  gcry_mpi_t a, x, y, r;
+
+  memset (hvec, 0, sizeof hvec);
 
   if (!mpi_is_opaque (input))
     return GPG_ERR_INV_DATA;
   if (hashalgo != GCRY_MD_SHA512)
     return GPG_ERR_DIGEST_ALGO;
 
-  return GPG_ERR_NOT_IMPLEMENTED;
+  /* Initialize some helpers.  */
+  point_init (&I);
+  point_init (&Q);
+  a = mpi_snew (0);
+  x = mpi_new (0);
+  y = mpi_new (0);
+  r = mpi_new (0);
+  ctx = _gcry_mpi_ec_p_internal_new (skey->E.model,
+                                     skey->E.p, skey->E.a, skey->E.b);
+
+  /* Hash the secret key.  We clear DIGEST so we can use it to left
+     pad the key with zeroes for hashing.  */
+  rawmpi = _gcry_mpi_get_buffer (skey->d, 0, &rawmpilen, NULL);
+  if (!rawmpi)
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
+  memset (digest, 0, b);
+  hvec[0].data = digest;
+  hvec[0].off = 0;
+  hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
+  hvec[1].data = rawmpi;
+  hvec[1].off = 0;
+  hvec[1].len = rawmpilen;
+  rc = _gcry_md_hash_buffers (hashalgo, 0, hash_d, hvec, 2);
+  gcry_free (rawmpi); rawmpi = NULL;
+  if (rc)
+    goto leave;
+
+  /* Compute the A value (this modifies hash_d).  */
+  reverse_buffer (hash_d, 32);  /* Only the first half of the hash.  */
+  hash_d[0] = (hash_d[0] & 0x7f) | 0x40;
+  hash_d[31] &= 0xf8;
+  _gcry_mpi_set_buffer (a, hash_d, 32, 0);
+  /* log_printmpi ("     a", a); */
+
+  /* Compute the public key if it has not been supplied as optional
+     parameter.  */
+  if (pk)
+    {
+      rc = eddsa_decodepoint (pk, b, ctx, &Q,  &encpk, &encpklen);
+      if (rc)
+        goto leave;
+      if (DBG_CIPHER)
+        log_printhex ("* e_pk", encpk, encpklen);
+      if (!_gcry_mpi_ec_curve_point (&Q, ctx))
+        {
+          rc = GPG_ERR_BROKEN_PUBKEY;
+          goto leave;
+        }
+    }
+  else
+    {
+      _gcry_mpi_ec_mul_point (&Q, a, &skey->E.G, ctx);
+      rc = eddsa_encodepoint (&Q, b, ctx, x, y, &encpk, &encpklen);
+      if (rc)
+        goto leave;
+      if (DBG_CIPHER)
+        log_printhex ("  e_pk", encpk, encpklen);
+    }
+
+  /* Compute R.  */
+  mbuf = gcry_mpi_get_opaque (input, &tmp);
+  mlen = (tmp +7)/8;
+  if (DBG_CIPHER)
+    log_printhex ("     m", mbuf, mlen);
+
+  hvec[0].data = hash_d;
+  hvec[0].off  = 32;
+  hvec[0].len  = 32;
+  hvec[1].data = (char*)mbuf;
+  hvec[1].len  = mlen;
+  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
+  if (rc)
+    goto leave;
+  reverse_buffer (digest, 64);
+  if (DBG_CIPHER)
+    log_printhex ("     r", digest, 64);
+  _gcry_mpi_set_buffer (r, digest, 64, 0);
+  _gcry_mpi_ec_mul_point (&I, r, &skey->E.G, ctx);
+  if (DBG_CIPHER)
+    log_printpnt ("   r", &I, ctx);
+
+  /* Convert R into affine coordinates and apply encoding.  */
+  rc = eddsa_encodepoint (&I, b, ctx, x, y, &rawmpi, &rawmpilen);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_printhex ("   e_r", rawmpi, rawmpilen);
+
+  /* S = r + a * H(encodepoint(R) + encodepoint(pk) + m) mod n  */
+  hvec[0].data = rawmpi;  /* (this is R) */
+  hvec[0].off  = 0;
+  hvec[0].len  = rawmpilen;
+  hvec[1].data = encpk;
+  hvec[1].off  = 0;
+  hvec[1].len  = encpklen;
+  hvec[2].data = (char*)mbuf;
+  hvec[2].off  = 0;
+  hvec[2].len  = mlen;
+  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 3);
+  if (rc)
+    goto leave;
+
+  /* No more need for RAWMPI thus we now transfer it to R_R.  */
+  gcry_mpi_set_opaque (r_r, rawmpi, rawmpilen*8);
+  rawmpi = NULL;
+
+  reverse_buffer (digest, 64);
+  if (DBG_CIPHER)
+    log_printhex (" H(R+)", digest, 64);
+  _gcry_mpi_set_buffer (s, digest, 64, 0);
+  mpi_mulm (s, s, a, skey->E.n);
+  mpi_addm (s, s, r, skey->E.n);
+  rc = eddsa_encodempi (s, b, &rawmpi, &rawmpilen);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_printhex ("   e_s", rawmpi, rawmpilen);
+  gcry_mpi_set_opaque (s, rawmpi, rawmpilen*8);
+  rawmpi = NULL;
+
+  rc = 0;
+
+ leave:
+  gcry_mpi_release (a);
+  gcry_mpi_release (x);
+  gcry_mpi_release (y);
+  gcry_mpi_release (r);
+  _gcry_mpi_ec_free (ctx);
+  point_free (&I);
+  point_free (&Q);
+  gcry_free (encpk);
+  gcry_free (rawmpi);
+  return rc;
 }
 
 
 /* Verify an EdDSA signature.  See sign_eddsa for the reference.
- * Check if R and S verifies INPUT.
+ * Check if R_IN and S_IN verifies INPUT.  PKEY has the curve
+ * parameters and PK is the EdDSA style encoded public key.
  */
 static gpg_err_code_t
 verify_eddsa (gcry_mpi_t input, ECC_public_key *pkey,
-              gcry_mpi_t r, gcry_mpi_t s, int hashalgo)
+              gcry_mpi_t r_in, gcry_mpi_t s_in, int hashalgo, gcry_mpi_t pk)
 {
-  (void)pkey;
-  (void)r;
-  (void)s;
+  int rc;
+  mpi_ec_t ctx = NULL;
+  int b = 256/8;               /* The only size we currently support.  */
+  unsigned int tmp;
+  mpi_point_struct Q;          /* Public key.  */
+  unsigned char *encpk = NULL; /* Encoded public key.  */
+  unsigned int encpklen;
+  const void *mbuf, *rbuf;
+  unsigned char *tbuf = NULL;
+  size_t mlen, rlen;
+  unsigned int tlen;
+  unsigned char digest[64];
+  gcry_buffer_t hvec[3];
+  gcry_mpi_t h, s;
+  mpi_point_struct Ia, Ib;
 
-  if (!mpi_is_opaque (input))
+  if (!mpi_is_opaque (input) || !mpi_is_opaque (r_in) || !mpi_is_opaque (s_in))
     return GPG_ERR_INV_DATA;
   if (hashalgo != GCRY_MD_SHA512)
     return GPG_ERR_DIGEST_ALGO;
 
-  return GPG_ERR_NOT_IMPLEMENTED;
+  point_init (&Q);
+  point_init (&Ia);
+  point_init (&Ib);
+  h = mpi_new (0);
+  s = mpi_new (0);
+
+  ctx = _gcry_mpi_ec_p_internal_new (pkey->E.model,
+                                     pkey->E.p, pkey->E.a, pkey->E.b);
+
+  /* Decode and check the public key.  */
+  rc = eddsa_decodepoint (pk, b, ctx, &Q, &encpk, &encpklen);
+  if (rc)
+    goto leave;
+  if (!_gcry_mpi_ec_curve_point (&Q, ctx))
+    {
+      rc = GPG_ERR_BROKEN_PUBKEY;
+      goto leave;
+    }
+  if (DBG_CIPHER)
+    log_printhex ("  e_pk", encpk, encpklen);
+  if (encpklen != b)
+    {
+      rc = GPG_ERR_INV_LENGTH;
+      goto leave;
+    }
+
+  /* Convert the other input parameters.  */
+  mbuf = gcry_mpi_get_opaque (input, &tmp);
+  mlen = (tmp +7)/8;
+  if (DBG_CIPHER)
+    log_printhex ("     m", mbuf, mlen);
+  rbuf = gcry_mpi_get_opaque (r_in, &tmp);
+  rlen = (tmp +7)/8;
+  if (DBG_CIPHER)
+    log_printhex ("     r", rbuf, rlen);
+  if (rlen != b)
+    {
+      rc = GPG_ERR_INV_LENGTH;
+      goto leave;
+    }
+
+  /* h = H(encodepoint(R) + encodepoint(pk) + m)  */
+  hvec[0].data = (char*)rbuf;
+  hvec[0].off  = 0;
+  hvec[0].len  = rlen;
+  hvec[1].data = encpk;
+  hvec[1].off  = 0;
+  hvec[1].len  = encpklen;
+  hvec[2].data = (char*)mbuf;
+  hvec[2].off  = 0;
+  hvec[2].len  = mlen;
+  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 3);
+  if (rc)
+    goto leave;
+  reverse_buffer (digest, 64);
+  if (DBG_CIPHER)
+    log_printhex (" H(R+)", digest, 64);
+  _gcry_mpi_set_buffer (h, digest, 64, 0);
+
+  /* According to the paper the best way for verification is:
+         encodepoint(sG - h·Q) = encodepoint(r)
+     because we don't need to decode R. */
+  {
+    void *sbuf;
+    unsigned int slen;
+
+    sbuf = _gcry_mpi_get_opaque_copy (s_in, &tmp);
+    slen = (tmp +7)/8;
+    reverse_buffer (sbuf, slen);
+    if (DBG_CIPHER)
+      log_printhex ("     s", sbuf, slen);
+    _gcry_mpi_set_buffer (s, sbuf, slen, 0);
+    gcry_free (sbuf);
+    if (slen != b)
+      {
+        rc = GPG_ERR_INV_LENGTH;
+        goto leave;
+      }
+  }
+
+  _gcry_mpi_ec_mul_point (&Ia, s, &pkey->E.G, ctx);
+  _gcry_mpi_ec_mul_point (&Ib, h, &Q, ctx);
+  _gcry_mpi_neg (Ib.x, Ib.x);
+  _gcry_mpi_ec_add_points (&Ia, &Ia, &Ib, ctx);
+  rc = eddsa_encodepoint (&Ia, b, ctx, s, h, &tbuf, &tlen);
+  if (rc)
+    goto leave;
+  if (tlen != rlen || memcmp (tbuf, rbuf, tlen))
+    {
+      if (DBG_CIPHER)
+        log_debug ("eddsa verify: Not verified\n");
+      rc = GPG_ERR_BAD_SIGNATURE;
+      goto leave;
+    }
+
+  if (DBG_CIPHER)
+    log_debug ("eddsa verify: Accepted\n");
+  rc = 0;
+
+ leave:
+  gcry_free (encpk);
+  gcry_free (tbuf);
+  _gcry_mpi_ec_free (ctx);
+  gcry_mpi_release (s);
+  gcry_mpi_release (h);
+  point_free (&Ia);
+  point_free (&Ib);
+  point_free (&Q);
+  return rc;
 }
 
 
@@ -844,6 +1278,9 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
   sk.E.a = skey[1];
   sk.E.b = skey[2];
   point_init (&sk.E.G);
+  sk.Q.x = NULL;
+  sk.Q.y = NULL;
+  sk.Q.z = NULL;
   err = _gcry_ecc_os2ec (&sk.E.G, skey[3]);
   if (err)
     {
@@ -851,13 +1288,12 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
       return err;
     }
   sk.E.n = skey[4];
-  /* Note: We don't have any need for Q here.  */
   sk.d = skey[6];
 
   resarr[0] = mpi_alloc (mpi_get_nlimbs (sk.E.p));
   resarr[1] = mpi_alloc (mpi_get_nlimbs (sk.E.p));
   if ((flags & PUBKEY_FLAG_EDDSA))
-    err = sign_eddsa (data, &sk, resarr[0], resarr[1], hashalgo);
+    err = sign_eddsa (data, &sk, resarr[0], resarr[1], hashalgo, skey[5]);
   else
     err = sign_ecdsa (data, &sk, resarr[0], resarr[1], flags, hashalgo);
   if (err)
@@ -867,6 +1303,8 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
       resarr[0] = NULL; /* Mark array as released.  */
     }
   point_free (&sk.E.G);
+  if (sk.Q.x)
+    point_free (&sk.Q);
   return err;
 }
 
@@ -901,40 +1339,48 @@ ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
       return err;
     }
   pk.E.n = pkey[4];
-  point_init (&pk.Q);
-  err = _gcry_ecc_os2ec (&pk.Q, pkey[5]);
-  if (err)
-    {
-      point_free (&pk.E.G);
-      point_free (&pk.Q);
-      return err;
-    }
 
   if ((flags & PUBKEY_FLAG_EDDSA))
     {
-      err = verify_eddsa (hash, &pk, data[0], data[1], hashalgo);
-    }
-  else if (mpi_is_opaque (hash))
-    {
-      const void *abuf;
-      unsigned int abits, qbits;
-      gcry_mpi_t a;
+      pk.Q.x = NULL;
+      pk.Q.y = NULL;
+      pk.Q.z = NULL;
 
-      qbits = mpi_get_nbits (pk.E.n);
-
-      abuf = gcry_mpi_get_opaque (hash, &abits);
-      err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
-      if (!err)
-        {
-          if (abits > qbits)
-            gcry_mpi_rshift (a, a, abits - qbits);
-
-          err = verify_ecdsa (a, &pk, data[0], data[1]);
-          gcry_mpi_release (a);
-        }
+      err = verify_eddsa (hash, &pk, data[0], data[1], hashalgo, pkey[5]);
     }
   else
-    err = verify_ecdsa (hash, &pk, data[0], data[1]);
+    {
+      point_init (&pk.Q);
+      err = _gcry_ecc_os2ec (&pk.Q, pkey[5]);
+      if (err)
+        {
+          point_free (&pk.E.G);
+          point_free (&pk.Q);
+          return err;
+        }
+
+      if (mpi_is_opaque (hash))
+        {
+          const void *abuf;
+          unsigned int abits, qbits;
+          gcry_mpi_t a;
+
+          qbits = mpi_get_nbits (pk.E.n);
+
+          abuf = gcry_mpi_get_opaque (hash, &abits);
+          err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
+          if (!err)
+            {
+              if (abits > qbits)
+                gcry_mpi_rshift (a, a, abits - qbits);
+
+              err = verify_ecdsa (a, &pk, data[0], data[1]);
+              gcry_mpi_release (a);
+            }
+        }
+      else
+        err = verify_ecdsa (hash, &pk, data[0], data[1]);
+    }
 
   point_free (&pk.E.G);
   point_free (&pk.Q);
@@ -1250,7 +1696,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
       unsigned char *rawmpi;
       unsigned int rawmpilen;
 
-      rawmpi = _gcry_mpi_get_buffer (values[idx], &rawmpilen, NULL);
+      rawmpi = _gcry_mpi_get_buffer (values[idx], 0, &rawmpilen, NULL);
       if (!rawmpi)
         {
           ec = gpg_err_code_from_syserror ();

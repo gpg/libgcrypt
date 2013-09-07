@@ -159,8 +159,10 @@ gcry_mpi_t _gcry_mpi_const (enum gcry_mpi_constants no);
 /*-- mpicoder.c --*/
 void  _gcry_log_mpidump( const char *text, gcry_mpi_t a );
 u32   _gcry_mpi_get_keyid( gcry_mpi_t a, u32 *keyid );
-byte *_gcry_mpi_get_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign );
-byte *_gcry_mpi_get_secure_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign );
+byte *_gcry_mpi_get_buffer (gcry_mpi_t a, unsigned int fill_le,
+                            unsigned int *r_nbytes, int *sign);
+byte *_gcry_mpi_get_secure_buffer (gcry_mpi_t a, unsigned int fill_le,
+                                   unsigned *r_nbytes, int *sign);
 void  _gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer,
                              unsigned int nbytes, int sign );
 
@@ -273,6 +275,7 @@ void _gcry_mpi_get_point (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
                           mpi_point_t point);
 void _gcry_mpi_snatch_point (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
                              mpi_point_t point);
+
 
 /* Models describing an elliptic curve.  */
 enum gcry_mpi_ec_models

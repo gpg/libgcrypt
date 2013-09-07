@@ -21,7 +21,7 @@
 TESTS = version mpitests tsexp t-convert \
 	t-mpi-bit t-mpi-point curves \
 	prime basic keygen pubkey hmac t-kdf keygrip \
-	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979
+	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979 t-ed25519
 
 
 # The last test to run.
@@ -39,4 +39,5 @@ EXTRA_PROGRAMS = testapi pkbench
 noinst_PROGRAMS = $(TESTS) fipsdrv rsacvt
 
 EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
-	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h
+	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h \
+	     t-ed25519.inp stopwatch.h

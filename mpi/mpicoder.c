@@ -177,15 +177,20 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
 
 
 /* Return an allocated buffer with the MPI (msb first).  NBYTES
-   receives the length of this buffer.  Caller must free the return
-   string.  This function returns an allocated buffer with NBYTES set
-   to zero if the value of A is zero.  If sign is not NULL, it will be
-   set to the sign of the A.  On error NULL is returned and ERRNO set
-   appropriately.  */
+   receives the length of this buffer.  If FILL_LE is not 0, the
+   returned value is stored as little endian and right padded with
+   zeroes so that the returned buffer has at least LILL_LE bytes.
+
+   Caller must free the return string.  This function returns an
+   allocated buffer with NBYTES set to zero if the value of A is zero.
+   If sign is not NULL, it will be set to the sign of the A.  On error
+   NULL is returned and ERRNO set appropriately.  */
 static unsigned char *
-do_get_buffer (gcry_mpi_t a, unsigned int *nbytes, int *sign, int force_secure)
+do_get_buffer (gcry_mpi_t a, unsigned int fill_le,
+               unsigned int *nbytes, int *sign, int force_secure)
 {
   unsigned char *p, *buffer;
+  unsigned int length, tmp;
   mpi_limb_t alimb;
   int i;
   size_t n;
@@ -195,6 +200,8 @@ do_get_buffer (gcry_mpi_t a, unsigned int *nbytes, int *sign, int force_secure)
 
   *nbytes = a->nlimbs * BYTES_PER_MPI_LIMB;
   n = *nbytes? *nbytes:1; /* Allocate at least one byte.  */
+  if (n < fill_le)
+    n = fill_le;
   p = buffer = (force_secure || mpi_is_secure(a))? gcry_malloc_secure (n)
 						 : gcry_malloc (n);
   if (!buffer)
@@ -222,6 +229,24 @@ do_get_buffer (gcry_mpi_t a, unsigned int *nbytes, int *sign, int force_secure)
 #endif
     }
 
+  if (fill_le)
+    {
+      length = *nbytes;
+      /* Reverse buffer and pad with zeroes.  */
+      for (i=0; i < length/2; i++)
+        {
+          tmp = buffer[i];
+          buffer[i] = buffer[length-1-i];
+          buffer[length-1-i] = tmp;
+        }
+      /* Pad with zeroes.  */
+      for (p = buffer + length; length < fill_le; length++)
+        *p++ = 0;
+      *nbytes = length;
+
+      return buffer;
+    }
+
   /* This is sub-optimal but we need to do the shift operation because
      the caller has to free the returned buffer.  */
   for (p=buffer; *nbytes && !*p; p++, --*nbytes)
@@ -233,15 +258,17 @@ do_get_buffer (gcry_mpi_t a, unsigned int *nbytes, int *sign, int force_secure)
 
 
 byte *
-_gcry_mpi_get_buffer (gcry_mpi_t a, unsigned int *nbytes, int *sign)
+_gcry_mpi_get_buffer (gcry_mpi_t a, unsigned int fill_le,
+                      unsigned int *r_nbytes, int *sign)
 {
-  return do_get_buffer (a, nbytes, sign, 0);
+  return do_get_buffer (a, fill_le, r_nbytes, sign, 0);
 }
 
 byte *
-_gcry_mpi_get_secure_buffer (gcry_mpi_t a, unsigned *nbytes, int *sign)
+_gcry_mpi_get_secure_buffer (gcry_mpi_t a, unsigned int fill_le,
+                             unsigned int *r_nbytes, int *sign)
 {
-  return do_get_buffer (a, nbytes, sign, 1);
+  return do_get_buffer (a, fill_le, r_nbytes, sign, 1);
 }
 
 
@@ -517,7 +544,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       if (negative)
         return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
 
-      tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+      tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
       if (!tmp)
         return gpg_error_from_syserror ();
 
@@ -562,7 +589,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
         {
           unsigned char *tmp;
 
-          tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+          tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
           if (!tmp)
             return gpg_error_from_syserror ();
           memcpy (buffer, tmp, n);
@@ -590,7 +617,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
           s[0] = nbits >> 8;
           s[1] = nbits;
 
-          tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+          tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
           if (!tmp)
             return gpg_error_from_syserror ();
           memcpy (s+2, tmp, n);
@@ -608,7 +635,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       if (negative)
         return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet.  */
 
-      tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+      tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
       if (!tmp)
         return gpg_error_from_syserror ();
       if (n && (*tmp & 0x80))
@@ -647,7 +674,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       int extra = 0;
       unsigned int n = 0;
 
-      tmp = _gcry_mpi_get_buffer (a, &n, NULL);
+      tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
       if (!tmp)
         return gpg_error_from_syserror ();
       if (!n || (*tmp & 0x80))

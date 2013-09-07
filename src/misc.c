@@ -347,7 +347,7 @@ _gcry_log_printmpi (const char *text, gcry_mpi_t mpi)
     }
   else
     {
-      rawmpi = _gcry_mpi_get_buffer (mpi, &rawmpilen, &sign);
+      rawmpi = _gcry_mpi_get_buffer (mpi, 0, &rawmpilen, &sign);
       if (!rawmpi)
         do_printhex (text? text:" ", " [out of core]", NULL, 0);
       else

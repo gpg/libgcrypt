@@ -80,7 +80,7 @@ typedef struct
 
   enum gcry_mpi_ec_models model;/* The model describing this curve.  */
 
-  const char *p;              /* Order of the prime field.  */
+  const char *p;              /* The prime defining the field.  */
   const char *a, *b;          /* The coefficients.  For Twisted Edwards
                                  Curves b is used for d.  */
   const char *n;              /* The order of the base point.  */
@@ -91,6 +91,17 @@ typedef struct
 /* This static table defines all available curves.  */
 static const ecc_domain_parms_t domain_parms[] =
   {
+    {
+      /* (-x^2 + y^2 = 1 + dx^2y^2) */
+      "Ed25519", 256, 0,
+      MPI_EC_TWISTEDEDWARDS,
+      "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
+      "-0x01",
+      "-0x98412DFC9311D490018C7338BF8688861767FF8FF5B2BEBE27548A14B235EC8FEDA4",
+      "0x1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
+      "0x216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A",
+      "0x6666666666666666666666666666666666666666666666666666666666666658"
+    },
     {
       "NIST P-192", 192, 1,
       MPI_EC_WEIERSTRASS,
@@ -308,7 +319,8 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
   else
     {
       for (idx = 0; domain_parms[idx].desc; idx++)
-        if (nbits == domain_parms[idx].nbits)
+        if (nbits == domain_parms[idx].nbits
+            && domain_parms[idx].model == MPI_EC_WEIERSTRASS)
           break;
     }
   if (!domain_parms[idx].desc)
