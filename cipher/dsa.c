@@ -817,10 +817,9 @@ dsa_generate (int algo, unsigned int nbits, unsigned long evalue,
         {
           /* Format the seed-values unless domain parameters are used
              for which a H_VALUE of NULL is an indication.  */
-          rc = gpg_err_code (gcry_sexp_build
-                             (&seedinfo, NULL,
-                              "(seed-values(counter %d)(seed %b)(h %m))",
-                              counter, (int)seedlen, seed, h_value));
+          rc = gcry_sexp_build (&seedinfo, NULL,
+                                "(seed-values(counter %d)(seed %b)(h %m))",
+                                counter, (int)seedlen, seed, h_value);
           gcry_free (seed);
           gcry_mpi_release (h_value);
         }
@@ -876,8 +875,7 @@ dsa_generate (int algo, unsigned int nbits, unsigned long evalue,
                 arg_list[i++] = factors + j;
               arg_list[i] = NULL;
 
-              rc = gpg_err_code (gcry_sexp_build_array
-                                 (&misc_info, NULL, format, arg_list));
+              rc = gcry_sexp_build_array (&misc_info, NULL, format, arg_list);
             }
         }
 
@@ -886,17 +884,16 @@ dsa_generate (int algo, unsigned int nbits, unsigned long evalue,
     }
 
   if (!rc)
-    rc = gcry_err_code (gcry_sexp_build
-                        (r_skey, NULL,
-                         "(key-data"
-                         " (public-key"
-                         "  (dsa(p%m)(q%m)(g%m)(y%m)))"
-                         " (private-key"
-                         "  (dsa(p%m)(q%m)(g%m)(y%m)(x%m)))"
-                         " %S)",
-                         sk.p, sk.q, sk.g, sk.y,
-                         sk.p, sk.q, sk.g, sk.y, sk.x,
-                         misc_info));
+    rc = gcry_sexp_build (r_skey, NULL,
+                          "(key-data"
+                          " (public-key"
+                          "  (dsa(p%m)(q%m)(g%m)(y%m)))"
+                          " (private-key"
+                          "  (dsa(p%m)(q%m)(g%m)(y%m)(x%m)))"
+                          " %S)",
+                          sk.p, sk.q, sk.g, sk.y,
+                          sk.p, sk.q, sk.g, sk.y, sk.x,
+                          misc_info);
 
 
   gcry_mpi_release (sk.p);
@@ -976,9 +973,7 @@ dsa_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
       s = mpi_alloc (mpi_get_nlimbs (sk.p));
       rc = sign (r, s, data, &sk, flags, hashalgo);
       if (!rc)
-        rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
-                                             "(sig-val(dsa(r%M)(s%M)))",
-                                             r, s));
+        rc = gcry_sexp_build (r_result, NULL, "(sig-val(dsa(r%M)(s%M)))", r, s);
       mpi_free (r);
       mpi_free (s);
     }

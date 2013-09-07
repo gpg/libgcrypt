@@ -24,6 +24,8 @@
 #define G10_CIPHER_PROTO_H
 
 
+enum pk_encoding;
+
 
 /* Definition of a function used to report selftest failures.
    DOMAIN is a string describing the function block:

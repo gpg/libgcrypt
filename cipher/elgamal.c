@@ -692,17 +692,16 @@ elg_generate (int algo, unsigned int nbits, unsigned long evalue,
         goto leave;
     }
 
-  rc = gcry_err_code (gcry_sexp_build
-                      (r_skey, NULL,
-                       "(key-data"
-                       " (public-key"
-                       "  (elg(p%m)(g%m)(y%m)))"
-                       " (private-key"
+  rc = gcry_sexp_build (r_skey, NULL,
+                        "(key-data"
+                        " (public-key"
+                        "  (elg(p%m)(g%m)(y%m)))"
+                        " (private-key"
                        "  (elg(p%m)(g%m)(y%m)(x%m)))"
-                       " %S)",
-                       sk.p, sk.g, sk.y,
-                       sk.p, sk.g, sk.y, sk.x,
-                       misc_info));
+                        " %S)",
+                        sk.p, sk.g, sk.y,
+                        sk.p, sk.g, sk.y, sk.x,
+                        misc_info);
 
  leave:
   mpi_free (sk.p);
@@ -768,9 +767,7 @@ elg_encrypt (int algo, gcry_sexp_t *r_result,
       a = mpi_alloc (mpi_get_nlimbs (pk.p));
       b = mpi_alloc (mpi_get_nlimbs (pk.p));
       do_encrypt (a, b, data, &pk);
-      rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
-                                           "(enc-val(elg(a%m)(b%m)))",
-                                           a, b));
+      rc = gcry_sexp_build (r_result, NULL, "(enc-val(elg(a%m)(b%m)))", a, b);
       mpi_free (a);
       mpi_free (b);
     }
@@ -817,8 +814,8 @@ elg_decrypt (int algo, gcry_sexp_t *r_plain,
           mpi_free (plain);
           plain = NULL;
           if (!rc)
-            rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
-                                                 (int)unpadlen, unpad));
+            rc = gcry_sexp_build (r_plain, NULL, "(value %b)",
+                                  (int)unpadlen, unpad);
           break;
 
         case PUBKEY_ENC_OAEP:
@@ -827,18 +824,17 @@ elg_decrypt (int algo, gcry_sexp_t *r_plain,
           mpi_free (plain);
           plain = NULL;
           if (!rc)
-            rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
-                                             (int)unpadlen, unpad));
+            rc = gcry_sexp_build (r_plain, NULL, "(value %b)",
+                                  (int)unpadlen, unpad);
           break;
 
         default:
           /* Raw format.  For backward compatibility we need to assume a
              signed mpi by using the sexp format string "%m".  */
-          rc = gcry_err_code
-            (gcry_sexp_build (r_plain, NULL,
-                              (flags & PUBKEY_FLAG_LEGACYRESULT)
-                              ? "%m" : "(value %m)",
-                              plain));
+          rc = gcry_sexp_build (r_plain, NULL,
+                                (flags & PUBKEY_FLAG_LEGACYRESULT)
+                                ? "%m" : "(value %m)",
+                                plain);
           break;
         }
 
@@ -876,9 +872,7 @@ elg_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
       r = mpi_alloc (mpi_get_nlimbs (sk.p));
       s = mpi_alloc (mpi_get_nlimbs (sk.p));
       sign (r, s, data, &sk);
-      rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
-                                           "(sig-val(elg(r%M)(s%M)))",
-                                           r, s));
+      rc = gcry_sexp_build (r_result, NULL, "(sig-val(elg(r%M)(s%M)))", r, s);
       mpi_free (r);
       mpi_free (s);
     }

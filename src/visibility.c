@@ -86,7 +86,7 @@ gcry_sexp_new (gcry_sexp_t *retsexp,
                const void *buffer, size_t length,
                int autodetect)
 {
-  return _gcry_sexp_new (retsexp, buffer, length, autodetect);
+  return gpg_error (_gcry_sexp_new (retsexp, buffer, length, autodetect));
 }
 
 gcry_error_t
@@ -94,35 +94,35 @@ gcry_sexp_create (gcry_sexp_t *retsexp,
                   void *buffer, size_t length,
                   int autodetect, void (*freefnc) (void *))
 {
-  return _gcry_sexp_create (retsexp, buffer, length,
-                            autodetect, freefnc);
+  return gpg_error (_gcry_sexp_create (retsexp, buffer, length,
+                                       autodetect, freefnc));
 }
 
 gcry_error_t
 gcry_sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                  const char *buffer, size_t length)
 {
-  return _gcry_sexp_sscan (retsexp, erroff, buffer, length);
+  return gpg_error (_gcry_sexp_sscan (retsexp, erroff, buffer, length));
 }
 
 gcry_error_t
 gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff,
                  const char *format, ...)
 {
-  gcry_error_t err;
+  gcry_err_code_t rc;
   va_list arg_ptr;
 
   va_start (arg_ptr, format);
-  err = _gcry_sexp_vbuild (retsexp, erroff, format, arg_ptr);
+  rc = _gcry_sexp_vbuild (retsexp, erroff, format, arg_ptr);
   va_end (arg_ptr);
-  return err;
+  return gpg_error (rc);
 }
 
 gcry_error_t
 gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
                        const char *format, void **arg_list)
 {
-  return _gcry_sexp_build_array (retsexp, erroff, format, arg_list);
+  return gpg_error (_gcry_sexp_build_array (retsexp, erroff, format, arg_list));
 }
 
 void
@@ -135,7 +135,13 @@ size_t
 gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
                      size_t *erroff, gcry_error_t *errcode)
 {
-  return _gcry_sexp_canon_len (buffer, length, erroff, errcode);
+  size_t n;
+  gpg_err_code_t rc;
+
+  n = _gcry_sexp_canon_len (buffer, length, erroff, &rc);
+  if (errcode)
+    *errcode = gpg_error (rc);
+  return n;
 }
 
 size_t

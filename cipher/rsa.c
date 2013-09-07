@@ -794,17 +794,16 @@ rsa_generate (int algo, unsigned int nbits, unsigned long evalue,
 
   if (!ec)
     {
-      ec = gcry_err_code (gcry_sexp_build
-                          (r_skey, NULL,
-                           "(key-data"
-                           " (public-key"
-                           "  (rsa(n%m)(e%m)))"
-                           " (private-key"
-                           "  (rsa(n%m)(e%m)(d%m)(p%m)(q%m)(u%m)))"
-                           " %S)",
-                           sk.n, sk.e,
-                           sk.n, sk.e, sk.d, sk.p, sk.q, sk.u,
-                           swap_info));
+      ec = gcry_sexp_build (r_skey, NULL,
+                            "(key-data"
+                            " (public-key"
+                            "  (rsa(n%m)(e%m)))"
+                            " (private-key"
+                            "  (rsa(n%m)(e%m)(d%m)(p%m)(q%m)(u%m)))"
+                            " %S)",
+                            sk.n, sk.e,
+                            sk.n, sk.e, sk.d, sk.p, sk.q, sk.u,
+                            swap_info);
     }
 
   mpi_free (sk.n);
@@ -869,16 +868,13 @@ rsa_encrypt (int algo, gcry_sexp_t *r_result, gcry_mpi_t data,
       rc = _gcry_mpi_to_octet_string (&em, NULL, result, emlen);
       if (!rc)
         {
-          rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
-                                               "(enc-val(rsa(a%b)))",
-                                               (int)emlen, em));
+          rc = gcry_sexp_build (r_result, NULL,
+                                "(enc-val(rsa(a%b)))", (int)emlen, em);
           gcry_free (em);
         }
     }
   else
-    rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
-                                         "(enc-val(rsa(a%m)))",
-                                         result));
+    rc = gcry_sexp_build (r_result, NULL, "(enc-val(rsa(a%m)))", result);
 
   mpi_free (result);
   return rc;
@@ -969,8 +965,8 @@ rsa_decrypt (int algo, gcry_sexp_t *r_plain, gcry_mpi_t *data,
       mpi_free (plain);
       plain = NULL;
       if (!rc)
-        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
-                                             (int)unpadlen, unpad));
+        rc = gcry_sexp_build (r_plain, NULL,
+                              "(value %b)", (int)unpadlen, unpad);
       break;
 
     case PUBKEY_ENC_OAEP:
@@ -979,17 +975,16 @@ rsa_decrypt (int algo, gcry_sexp_t *r_plain, gcry_mpi_t *data,
       mpi_free (plain);
       plain = NULL;
       if (!rc)
-        rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %b)",
-                                             (int)unpadlen, unpad));
+        rc = gcry_sexp_build (r_plain, NULL,
+                              "(value %b)", (int)unpadlen, unpad);
       break;
 
     default:
       /* Raw format.  For backward compatibility we need to assume a
          signed mpi by using the sexp format string "%m".  */
-      rc = gcry_err_code
-        (gcry_sexp_build (r_plain, NULL,
-                          (flags & PUBKEY_FLAG_LEGACYRESULT)? "%m":"(value %m)",
-                          plain));
+      rc = gcry_sexp_build (r_plain, NULL,
+                            (flags & PUBKEY_FLAG_LEGACYRESULT)
+                            ? "%m":"(value %m)", plain);
       break;
     }
 
@@ -1033,16 +1028,13 @@ rsa_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
       rc = _gcry_mpi_to_octet_string (&em, NULL, result, emlen);
       if (!rc)
         {
-          rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
-                                               "(sig-val(rsa(s%b)))",
-                                               (int)emlen, em));
+          rc = gcry_sexp_build (r_result, NULL,
+                                "(sig-val(rsa(s%b)))", (int)emlen, em);
           gcry_free (em);
         }
     }
   else
-    rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
-                                         "(sig-val(rsa(s%M)))",
-                                         result));
+    rc = gcry_sexp_build (r_result, NULL, "(sig-val(rsa(s%M)))",  result);
   mpi_free (result);
 
   return rc;

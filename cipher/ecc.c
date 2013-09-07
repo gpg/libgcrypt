@@ -1271,18 +1271,17 @@ ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
         goto leave;
     }
 
-  rc = gcry_err_code (gcry_sexp_build
-                      (r_skey, NULL,
-                       "(key-data"
-                       " (public-key"
-                       "  (ecc%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))"
-                       " (private-key"
-                       "  (ecc%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))"
-                       " )",
-                       curve_info,
-                       sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public,
-                       curve_info,
-                       sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public, secret));
+  rc = gcry_sexp_build (r_skey, NULL,
+                        "(key-data"
+                        " (public-key"
+                        "  (ecc%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))"
+                        " (private-key"
+                        "  (ecc%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))"
+                        " )",
+                        curve_info,
+                        sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public,
+                        curve_info,
+                        sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public, secret);
   if (rc)
     goto leave;
 
@@ -1434,17 +1433,15 @@ ecc_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
               {
                 rc = sign_eddsa (data, &sk, r, s, hashalgo, skey[5]);
                 if (!rc)
-                  rc = gcry_err_code (gcry_sexp_build
-                                      (r_result, NULL,
-                                       "(sig-val(eddsa(r%M)(s%M)))", r, s));
+                  rc = gcry_sexp_build (r_result, NULL,
+                                        "(sig-val(eddsa(r%M)(s%M)))", r, s);
               }
             else
               {
                 rc = sign_ecdsa (data, &sk, r, s, flags, hashalgo);
                 if (!rc)
-                  rc = gcry_err_code (gcry_sexp_build
-                                      (r_result, NULL,
-                                       "(sig-val(ecdsa(r%M)(s%M)))", r, s));
+                  rc = gcry_sexp_build (r_result, NULL,
+                                        "(sig-val(ecdsa(r%M)(s%M)))", r, s);
               }
             gcry_mpi_release (sk.d);
             sk.d = NULL;
@@ -1644,9 +1641,7 @@ ecc_encrypt_raw (int algo, gcry_sexp_t *r_result, gcry_mpi_t k,
   point_free (&pk.E.G);
   point_free (&pk.Q);
 
-  rc = gcry_err_code (gcry_sexp_build (r_result, NULL,
-                                       "(enc-val(ecdh(s%m)(e%m)))",
-                                       s, e));
+  rc = gcry_sexp_build (r_result, NULL, "(enc-val(ecdh(s%m)(e%m)))", s, e);
   mpi_free (s);
   mpi_free (e);
 
@@ -1752,7 +1747,7 @@ ecc_decrypt_raw (int algo, gcry_sexp_t *r_plain, gcry_mpi_t *data,
   point_free (&sk.Q);
 
   if (!rc)
-    rc = gcry_err_code (gcry_sexp_build (r_plain, NULL, "(value %m)", r));
+    rc = gcry_sexp_build (r_plain, NULL, "(value %m)", r);
   mpi_free (r);
   return rc;
 }
@@ -1924,20 +1919,18 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
   if (ec->d && (!mode || mode == GCRY_PK_GET_SECKEY))
     {
       /* Let's return a private key. */
-      rc = gpg_err_code
-        (gcry_sexp_build
-         (r_sexp, NULL,
-          "(private-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))",
-          ec->p, ec->a, ec->b, mpi_G, ec->n, mpi_Q, ec->d));
+      rc = gcry_sexp_build
+        (r_sexp, NULL,
+         "(private-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))",
+         ec->p, ec->a, ec->b, mpi_G, ec->n, mpi_Q, ec->d);
     }
   else if (ec->Q)
     {
       /* Let's return a public key.  */
-      rc = gpg_err_code
-        (gcry_sexp_build
-         (r_sexp, NULL,
-          "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))",
-          ec->p, ec->a, ec->b, mpi_G, ec->n, mpi_Q));
+      rc = gcry_sexp_build
+        (r_sexp, NULL,
+         "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))",
+         ec->p, ec->a, ec->b, mpi_G, ec->n, mpi_Q);
     }
   else
     rc = GPG_ERR_BAD_CRYPT_CTX;
