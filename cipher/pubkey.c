@@ -632,8 +632,8 @@ pubkey_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
     {
       log_debug ("pubkey_encrypt: algo=%d\n", algorithm);
       for(i = 0; i < pubkey_get_npkey (algorithm); i++)
-	log_mpidump ("  pkey:", pkey[i]);
-      log_mpidump ("  data:", data);
+	log_mpidump ("  pkey", pkey[i]);
+      log_mpidump ("  data", data);
     }
 
   ath_mutex_lock (&pubkeys_registered_lock);
@@ -653,7 +653,7 @@ pubkey_encrypt (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
   if (!rc && DBG_CIPHER && !fips_mode ())
     {
       for(i = 0; i < pubkey_get_nenc (algorithm); i++)
-	log_mpidump("  encr:", resarr[i] );
+	log_mpidump("  encr", resarr[i] );
     }
   return rc;
 }
@@ -680,9 +680,9 @@ pubkey_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data,
     {
       log_debug ("pubkey_decrypt: algo=%d\n", algorithm);
       for(i = 0; i < pubkey_get_nskey (algorithm); i++)
-	log_mpidump ("  skey:", skey[i]);
+	log_mpidump ("  skey", skey[i]);
       for(i = 0; i < pubkey_get_nenc (algorithm); i++)
-	log_mpidump ("  data:", data[i]);
+	log_mpidump ("  data", data[i]);
     }
 
   ath_mutex_lock (&pubkeys_registered_lock);
@@ -701,7 +701,7 @@ pubkey_decrypt (int algorithm, gcry_mpi_t *result, gcry_mpi_t *data,
   ath_mutex_unlock (&pubkeys_registered_lock);
 
   if (!rc && DBG_CIPHER && !fips_mode ())
-    log_mpidump (" plain:", *result);
+    log_mpidump (" plain", *result);
 
   return rc;
 }
@@ -726,8 +726,8 @@ pubkey_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
     {
       log_debug ("pubkey_sign: algo=%d\n", algorithm);
       for(i = 0; i < pubkey_get_nskey (algorithm); i++)
-	log_mpidump ("  skey:", skey[i]);
-      log_mpidump("  data:", data );
+	log_mpidump ("  skey", skey[i]);
+      log_mpidump("  data", data );
     }
 
   ath_mutex_lock (&pubkeys_registered_lock);
@@ -748,7 +748,7 @@ pubkey_sign (int algorithm, gcry_mpi_t *resarr, gcry_mpi_t data,
 
   if (!rc && DBG_CIPHER && !fips_mode ())
     for (i = 0; i < pubkey_get_nsig (algorithm); i++)
-      log_mpidump ("   sig:", resarr[i]);
+      log_mpidump ("   sig", resarr[i]);
 
   return rc;
 }
@@ -1038,7 +1038,7 @@ pkcs1_decode_for_encryption (unsigned char **r_result, size_t *r_resultlen,
   *r_resultlen = nframe - n;
 
   if (DBG_CIPHER)
-    log_printhex ("value extracted from PKCS#1 block type 2 encoded data:",
+    log_printhex ("value extracted from PKCS#1 block type 2 encoded data",
                   *r_result, *r_resultlen);
 
   return 0;
@@ -1481,7 +1481,7 @@ oaep_decode (unsigned char **r_result, size_t *r_resultlen,
   seed = NULL;
 
   if (DBG_CIPHER)
-    log_printhex ("value extracted from OAEP encoded data:",
+    log_printhex ("value extracted from OAEP encoded data",
                   *r_result, *r_resultlen);
 
   return 0;

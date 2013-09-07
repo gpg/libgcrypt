@@ -125,6 +125,7 @@ int  _gcry_log_info_with_dummy_fp (FILE *fp, const char *fmt, ... )
 void _gcry_log_debug( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 void _gcry_log_printf ( const char *fmt, ... ) JNLIB_GCC_A_PRINTF(1,2);
 void _gcry_log_printhex (const char *text, const void *buffer, size_t length);
+void _gcry_log_printmpi (const char *text, gcry_mpi_t mpi);
 
 void _gcry_set_log_verbosity( int level );
 int _gcry_log_verbosity( int level );
@@ -151,6 +152,10 @@ int _gcry_log_verbosity( int level );
 #define log_debug   _gcry_log_debug
 #define log_printf  _gcry_log_printf
 #define log_printhex _gcry_log_printhex
+#define log_printmpi _gcry_log_printmpi
+
+/* Compatibility macro.  */
+#define log_mpidump _gcry_log_printmpi
 
 
 /*-- src/hwfeatures.c --*/

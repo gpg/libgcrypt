@@ -176,65 +176,6 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
 }
 
 
-/* Dump the value of A in a format suitable for debugging to
-   Libgcrypt's logging stream.  Note that one leading space but no
-   trailing space or linefeed will be printed.  It is okay to pass
-   NULL for A.  Note that this function prints the sign as it is used
-   internally and won't map -0 to 0. */
-void
-gcry_mpi_dump (const gcry_mpi_t a)
-{
-  int i;
-
-  log_printf (" ");
-  if (!a)
-    log_printf ("[MPI_NULL]");
-  else if (mpi_is_opaque (a))
-    {
-      unsigned int nbits;
-      const unsigned char *p;
-
-      p = gcry_mpi_get_opaque (a, &nbits);
-      log_printf ("[%u bit: ", nbits);
-      for (i=0; i < (nbits + 7)/8; i++)
-        log_printf ("%02x", p[i]);
-      log_printf ("]");
-    }
-  else
-    {
-      if (a->sign)
-        log_printf ( "-");
-#if BYTES_PER_MPI_LIMB == 2
-# define X "4"
-#elif BYTES_PER_MPI_LIMB == 4
-# define X "8"
-#elif BYTES_PER_MPI_LIMB == 8
-# define X "16"
-#elif BYTES_PER_MPI_LIMB == 16
-# define X "32"
-#else
-# error please define the format here
-#endif
-      for (i=a->nlimbs; i > 0 ; i-- )
-        {
-          log_printf (i != a->nlimbs? "%0" X "lX":"%lX", (ulong)a->d[i-1]);
-        }
-#undef X
-      if (!a->nlimbs)
-        log_printf ("0");
-    }
-}
-
-/* Convience function used internally. */
-void
-_gcry_log_mpidump (const char *text, gcry_mpi_t a)
-{
-  log_printf ("%s:", text);
-  gcry_mpi_dump (a);
-  log_printf ("\n");
-}
-
-
 /* Return an allocated buffer with the MPI (msb first).  NBYTES
    receives the length of this buffer.  Caller must free the return
    string.  This function returns an allocated buffer with NBYTES set

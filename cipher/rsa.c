@@ -662,7 +662,7 @@ stronger_key_check ( RSA_secret_key *skey )
       {
         log_info ( "RSA Oops: d is wrong - fixed\n");
         mpi_set (skey->d, t);
-        _gcry_log_mpidump ("  fixed d", skey->d);
+        log_printmpi ("  fixed d", skey->d);
       }
 
     /* check for correctness of u */
@@ -671,7 +671,7 @@ stronger_key_check ( RSA_secret_key *skey )
       {
         log_info ( "RSA Oops: u is wrong - fixed\n");
         mpi_set (skey->u, t);
-        _gcry_log_mpidump ("  fixed u", skey->u);
+        log_printmpi ("  fixed u", skey->u);
       }
 
     log_info ( "RSA secret key check finished\n");
@@ -1043,8 +1043,8 @@ rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 #ifdef IS_DEVELOPMENT_VERSION
   if (DBG_CIPHER)
     {
-      log_mpidump ("rsa verify result:", result );
-      log_mpidump ("             hash:", hash );
+      log_mpidump ("rsa verify result", result );
+      log_mpidump ("             hash", hash );
     }
 #endif /*IS_DEVELOPMENT_VERSION*/
   if (cmp)

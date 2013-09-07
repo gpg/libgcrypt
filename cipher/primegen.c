@@ -655,11 +655,7 @@ prime_generate_internal (int need_q_factor,
             {
               mpi_add_ui (g, g, 1);
               if (DBG_CIPHER)
-                {
-                  log_debug ("checking g:");
-                  gcry_mpi_dump (g);
-                  log_printf ("\n");
-                }
+                log_printmpi ("checking g", g);
               else
                 progress('^');
               for (i = 0; i < n + 2; i++)
@@ -1242,11 +1238,7 @@ gcry_prime_group_generator (gcry_mpi_t *r_g,
         gcry_mpi_add_ui (g, g, 1);
 
       if (DBG_CIPHER)
-        {
-          log_debug ("checking g:");
-          gcry_mpi_dump (g);
-          log_debug ("\n");
-        }
+        log_printmpi ("checking g", g);
       else
         progress('^');
 
@@ -1835,9 +1827,9 @@ _gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
   /* Step 12:  Save p, q, counter and seed.  */
   log_debug ("fips186-3 pbits p=%u q=%u counter=%d\n",
              mpi_get_nbits (prime_p), mpi_get_nbits (prime_q), counter);
-  log_printhex("fips186-3 seed:", seed, seedlen);
-  log_mpidump ("fips186-3 prime p", prime_p);
-  log_mpidump ("fips186-3 prime q", prime_q);
+  log_printhex ("fips186-3 seed", seed, seedlen);
+  log_printmpi ("fips186-3    p", prime_p);
+  log_printmpi ("fips186-3    q", prime_q);
   if (r_q)
     {
       *r_q = prime_q;

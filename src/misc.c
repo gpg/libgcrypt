@@ -28,6 +28,7 @@
 
 #include "g10lib.h"
 #include "secmem.h"
+#include "mpi.h"
 
 static int verbosity_level = 0;
 
@@ -267,23 +268,94 @@ _gcry_log_printf (const char *fmt, ...)
     }
 }
 
-/* Print a hexdump of BUFFER.  With TEXT of NULL print just the raw
-   dump, with TEXT an empty string, print a trailing linefeed,
-   otherwise print an entire debug line. */
-void
-_gcry_log_printhex (const char *text, const void *buffer, size_t length)
+
+/* Helper for _gcry_log_printhex and _gcry_log_printmpi.  */
+static void
+do_printhex (const char *text, const char *text2,
+             const void *buffer, size_t length)
 {
+  int wrap = 0;
+  int cnt = 0;
+
   if (text && *text)
-    log_debug ("%s ", text);
+    {
+      wrap = 1;
+      log_debug ("%s:%s", text, text2);
+      if (text2[1] == '[' && length && buffer)
+        {
+          /* Start with a new line so that we get nice output for
+             opaque MPIS:
+               "value: [31 bit]"
+               "        01020300"  */
+          log_printf ("\n");
+          text2 = " ";
+          log_debug ("%*s  ", (int)strlen(text), "");
+        }
+    }
   if (length)
     {
       const unsigned char *p = buffer;
-      log_printf ("%02X", *p);
-      for (length--, p++; length--; p++)
-        log_printf (" %02X", *p);
+      for (; length--; p++)
+        {
+          log_printf ("%02x", *p);
+          if (wrap && ++cnt == 32 && length)
+            {
+              cnt = 0;
+              log_printf (" \\\n");
+              log_debug ("%*s %*s",
+                         (int)strlen(text), "", (int)strlen(text2), "");
+            }
+        }
     }
   if (text)
     log_printf ("\n");
+}
+
+
+/* Print a hexdump of BUFFER.  With TEXT of NULL print just the raw
+   dump without any wrappping, with TEXT an empty string, print a
+   trailing linefeed, otherwise print an entire debug line. */
+void
+_gcry_log_printhex (const char *text, const void *buffer, size_t length)
+{
+  do_printhex (text, " ", buffer, length);
+}
+
+
+/* Print MPI in hex notation.  To make clear that the output is an MPI
+   a sign is always printed. With TEXT of NULL print just the raw dump
+   without any wrapping, with TEXT an empty string, print a trailing
+   linefeed, otherwise print an entire debug line. */
+void
+_gcry_log_printmpi (const char *text, gcry_mpi_t mpi)
+{
+  unsigned char *rawmpi;
+  unsigned int rawmpilen;
+  int sign;
+
+  if (!mpi)
+    do_printhex (text? text:" ", " (null)", NULL, 0);
+  else if (mpi_is_opaque (mpi))
+    {
+      unsigned int nbits;
+      const unsigned char *p;
+      char prefix[30];
+
+      p = gcry_mpi_get_opaque (mpi, &nbits);
+      snprintf (prefix, sizeof prefix, " [%u bit]", nbits);
+      do_printhex (text? text:" ", prefix, p, (nbits+7)/8);
+    }
+  else
+    {
+      rawmpi = _gcry_mpi_get_buffer (mpi, &rawmpilen, &sign);
+      if (!rawmpi)
+        do_printhex (text? text:" ", " [out of core]", NULL, 0);
+      else
+        {
+          do_printhex (text, sign? "-":"+", rawmpi, rawmpilen);
+          gcry_free (rawmpi);
+        }
+    }
 }
 
 

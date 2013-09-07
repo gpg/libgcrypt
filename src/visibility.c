@@ -350,7 +350,7 @@ gcry_mpi_aprint (enum gcry_mpi_format format,
 void
 gcry_mpi_dump (const gcry_mpi_t a)
 {
-  _gcry_mpi_dump (a);
+  _gcry_log_printmpi (NULL, a);
 }
 
 void

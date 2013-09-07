@@ -163,8 +163,6 @@ byte *_gcry_mpi_get_secure_buffer( gcry_mpi_t a, unsigned *nbytes, int *sign );
 void  _gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer,
                              unsigned int nbytes, int sign );
 
-#define log_mpidump _gcry_log_mpidump
-
 /*-- mpi-add.c --*/
 #define mpi_add_ui(w,u,v) gcry_mpi_add_ui((w),(u),(v))
 #define mpi_add(w,u,v)    gcry_mpi_add ((w),(u),(v))
