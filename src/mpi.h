@@ -289,6 +289,9 @@ enum gcry_mpi_ec_models
 struct mpi_ec_ctx_s;
 typedef struct mpi_ec_ctx_s *mpi_ec_t;
 
+void _gcry_mpi_point_log (const char *name, mpi_point_t point, mpi_ec_t ctx);
+#define log_printpnt(a,p,c) _gcry_mpi_point_log ((a), (p), (c))
+
 mpi_ec_t _gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
                                       gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b);
 gpg_err_code_t _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,

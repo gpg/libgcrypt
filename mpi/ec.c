@@ -34,6 +34,45 @@
 #define point_free(a)  _gcry_mpi_point_free_parts ((a))
 
 
+/* Print a point using the log fucntions.  If CTX is not NULL affine
+   coordinates will be printed.  */
+void
+_gcry_mpi_point_log (const char *name, mpi_point_t point, mpi_ec_t ctx)
+{
+  gcry_mpi_t x, y;
+  char buf[100];
+
+  snprintf (buf, sizeof buf - 1, "%s.X", name);
+
+  if (ctx)
+    {
+      x = gcry_mpi_new (0);
+      y = gcry_mpi_new (0);
+    }
+  if (!ctx || _gcry_mpi_ec_get_affine (x, y, point, ctx))
+    {
+      log_mpidump (buf, point->x);
+      buf[strlen(buf)-1] = 'Y';
+      log_mpidump (buf, point->y);
+      buf[strlen(buf)-1] = 'Z';
+      log_mpidump (buf, point->z);
+    }
+  else
+    {
+      buf[strlen(buf)-1] = 'x';
+      log_mpidump (buf, x);
+      buf[strlen(buf)-1] = 'y';
+      log_mpidump (buf, y);
+
+    }
+  if (ctx)
+    {
+      gcry_mpi_release (x);
+      gcry_mpi_release (y);
+    }
+}
+
+
 /* Create a new point option.  NBITS gives the size in bits of one
    coordinate; it is only used to pre-allocate some resources and
    might also be passed as 0 to use a default value.  */
