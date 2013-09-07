@@ -32,6 +32,7 @@
 #include "stopwatch.h"
 
 #define PGM "t-ed25519"
+#define N_TESTS 1024
 
 #define my_isascii(c) (!((c) & 0x80))
 #define digitp(p)   (*(p) >= '0' && *(p) <= '9')
@@ -83,7 +84,7 @@ fail (const char *format, ...)
   if (*format && format[strlen(format)-1] != '\n')
     putc ('\n', stderr);
   error_count++;
-  if (error_count)
+  if (error_count >= 50)
     die ("stopped after 50 errors.");
 }
 
@@ -95,6 +96,23 @@ show (const char *format, ...)
   if (!verbose)
     return;
   fprintf (stderr, "%s: ", PGM);
+  va_start (arg_ptr, format);
+  vfprintf (stderr, format, arg_ptr);
+  if (*format && format[strlen(format)-1] != '\n')
+    putc ('\n', stderr);
+  va_end (arg_ptr);
+}
+
+
+static void
+show_note (const char *format, ...)
+{
+  va_list arg_ptr;
+
+  if (!verbose && getenv ("srcdir"))
+    fputs ("      ", stderr);  /* To align above "PASS: ".  */
+  else
+    fprintf (stderr, "%s: ", PGM);
   va_start (arg_ptr, format);
   vfprintf (stderr, format, arg_ptr);
   if (*format && format[strlen(format)-1] != '\n')
@@ -427,6 +445,8 @@ check_ed25519 (void)
           hexdowncase (sig);
           one_test (testno, sk, pk, msg, sig);
           ntests++;
+          if (!(ntests % 256))
+            show_note ("%d of %d tests done\n", ntests, N_TESTS);
           xfree (pk);  pk = NULL;
           xfree (sk);  sk = NULL;
           xfree (msg); msg = NULL;
@@ -439,8 +459,8 @@ check_ed25519 (void)
   xfree (msg);
   xfree (sig);
 
-  if (ntests != 1024)
-    fail ("did %d tests but expected 1024", ntests);
+  if (ntests != N_TESTS)
+    fail ("did %d tests but expected %s", ntests, N_TESTS);
 
   fclose (fp);
   xfree (fname);

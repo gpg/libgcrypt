@@ -928,6 +928,8 @@ ecc_bench (int iterations, int print_header)
       if (err)
         die ("creating %d bit ECC key failed: %s\n",
              p_size, gcry_strerror (err));
+      if (verbose > 2)
+        show_sexp ("ECC key:\n", key_pair);
 
       pub_key = gcry_sexp_find_token (key_pair, "public-key", 0);
       if (! pub_key)
@@ -961,7 +963,15 @@ ecc_bench (int iterations, int print_header)
           gcry_sexp_release (sig);
           err = gcry_pk_sign (&sig, data, sec_key);
           if (err)
-            die ("signing failed: %s\n", gpg_strerror (err));
+            {
+              if (verbose)
+                {
+                  putc ('\n', stderr);
+                  show_sexp ("signing key:\n", sec_key);
+                  show_sexp ("signed data:\n", data);
+                }
+              die ("signing failed: %s\n", gpg_strerror (err));
+            }
         }
       stop_timer ();
       printf ("   %s", elapsed_time ());
@@ -1065,6 +1075,7 @@ main( int argc, char **argv )
   int use_random_daemon = 0;
   int with_progress = 0;
   int debug = 0;
+  int pk_count = 100;
 
   buffer_alignment = 1;
 
@@ -1152,6 +1163,15 @@ main( int argc, char **argv )
               argc--; argv++;
             }
         }
+      else if (!strcmp (*argv, "--pk-count"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              pk_count = atoi(*argv);
+              argc--; argv++;
+            }
+        }
       else if (!strcmp (*argv, "--alignment"))
         {
           argc--; argv++;
@@ -1225,9 +1245,9 @@ main( int argc, char **argv )
       putchar ('\n');
       cipher_bench (NULL);
       putchar ('\n');
-      rsa_bench (100, 1, no_blinding);
-      dsa_bench (100, 0);
-      ecc_bench (100, 0);
+      rsa_bench (pk_count, 1, no_blinding);
+      dsa_bench (pk_count, 0);
+      ecc_bench (pk_count, 0);
       putchar ('\n');
       mpi_bench ();
       putchar ('\n');
@@ -1269,17 +1289,17 @@ main( int argc, char **argv )
   else if ( !strcmp (*argv, "rsa"))
     {
         gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-        rsa_bench (100, 1, no_blinding);
+        rsa_bench (pk_count, 1, no_blinding);
     }
   else if ( !strcmp (*argv, "dsa"))
     {
         gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-        dsa_bench (100, 1);
+        dsa_bench (pk_count, 1);
     }
   else if ( !strcmp (*argv, "ecc"))
     {
         gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
-        ecc_bench (100, 1);
+        ecc_bench (pk_count, 1);
     }
   else
     {
