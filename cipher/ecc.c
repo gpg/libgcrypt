@@ -174,10 +174,11 @@ generate_key (ECC_secret_key *sk, unsigned int nbits, const char *name,
 
   /* Compute Q.  */
   point_init (&Q);
-  ctx = _gcry_mpi_ec_p_internal_new (E.p, E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (E.model, E.p, E.a, E.b);
   _gcry_mpi_ec_mul_point (&Q, sk->d, &E.G, ctx);
 
   /* Copy the stuff to the key structures. */
+  sk->E.model = E.model;
   sk->E.p = mpi_copy (E.p);
   sk->E.a = mpi_copy (E.a);
   sk->E.b = mpi_copy (E.b);
@@ -343,7 +344,7 @@ check_secret_key (ECC_secret_key * sk)
       goto leave;
     }
 
-  ctx = _gcry_mpi_ec_p_internal_new (sk->E.p, sk->E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (sk->E.model, sk->E.p, sk->E.a, sk->E.b);
 
   _gcry_mpi_ec_mul_point (&Q, sk->E.n, &sk->E.G, ctx);
   if (mpi_cmp_ui (Q.z, 0))
@@ -457,7 +458,8 @@ sign_ecdsa (gcry_mpi_t input, ECC_secret_key *skey, gcry_mpi_t r, gcry_mpi_t s,
   mpi_set_ui (s, 0);
   mpi_set_ui (r, 0);
 
-  ctx = _gcry_mpi_ec_p_internal_new (skey->E.p, skey->E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (skey->E.model,
+                                     skey->E.p, skey->E.a, skey->E.b);
 
   while (!mpi_cmp_ui (s, 0)) /* s == 0 */
     {
@@ -556,7 +558,8 @@ verify_ecdsa (gcry_mpi_t input, ECC_public_key *pkey,
   point_init (&Q1);
   point_init (&Q2);
 
-  ctx = _gcry_mpi_ec_p_internal_new (pkey->E.p, pkey->E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (pkey->E.model,
+                                     pkey->E.p, pkey->E.a, pkey->E.b);
 
   /* h  = s^(-1) (mod n) */
   mpi_invm (h, s, pkey->E.n);
@@ -786,6 +789,7 @@ ecc_check_secret_key (int algo, gcry_mpi_t *skey)
       || !skey[6])
     return GPG_ERR_BAD_MPI;
 
+  sk.E.model = MPI_EC_WEIERSTRASS;
   sk.E.p = skey[0];
   sk.E.a = skey[1];
   sk.E.b = skey[2];
@@ -833,6 +837,9 @@ ecc_sign (int algo, gcry_mpi_t *resarr, gcry_mpi_t data, gcry_mpi_t *skey,
       || !skey[6] )
     return GPG_ERR_BAD_MPI;
 
+  sk.E.model = ((flags & PUBKEY_FLAG_EDDSA)
+                ? MPI_EC_TWISTEDEDWARDS
+                : MPI_EC_WEIERSTRASS);
   sk.E.p = skey[0];
   sk.E.a = skey[1];
   sk.E.b = skey[2];
@@ -880,6 +887,9 @@ ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
       || !pkey[3] || !pkey[4] || !pkey[5] )
     return GPG_ERR_BAD_MPI;
 
+  pk.E.model = ((flags & PUBKEY_FLAG_EDDSA)
+                ? MPI_EC_TWISTEDEDWARDS
+                : MPI_EC_WEIERSTRASS);
   pk.E.p = pkey[0];
   pk.E.a = pkey[1];
   pk.E.b = pkey[2];
@@ -976,6 +986,7 @@ ecc_encrypt_raw (int algo, gcry_mpi_t *resarr, gcry_mpi_t k,
       || !pkey[0] || !pkey[1] || !pkey[2] || !pkey[3] || !pkey[4] || !pkey[5])
     return GPG_ERR_BAD_MPI;
 
+  pk.E.model = MPI_EC_WEIERSTRASS;
   pk.E.p = pkey[0];
   pk.E.a = pkey[1];
   pk.E.b = pkey[2];
@@ -996,7 +1007,7 @@ ecc_encrypt_raw (int algo, gcry_mpi_t *resarr, gcry_mpi_t k,
       return err;
     }
 
-  ctx = _gcry_mpi_ec_p_internal_new (pk.E.p, pk.E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.p, pk.E.a, pk.E.b);
 
   /* The following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so */
   {
@@ -1084,7 +1095,7 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
       return err;
     }
 
-
+  sk.E.model = MPI_EC_WEIERSTRASS;
   sk.E.p = skey[0];
   sk.E.a = skey[1];
   sk.E.b = skey[2];
@@ -1108,7 +1119,7 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
     }
   sk.d = skey[6];
 
-  ctx = _gcry_mpi_ec_p_internal_new (sk.E.p, sk.E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.p, sk.E.a, sk.E.b);
 
   /* R = dkG */
   point_init (&R);

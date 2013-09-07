@@ -291,8 +291,13 @@ enum gcry_mpi_ec_models
 struct mpi_ec_ctx_s;
 typedef struct mpi_ec_ctx_s *mpi_ec_t;
 
-mpi_ec_t _gcry_mpi_ec_p_internal_new (gcry_mpi_t p, gcry_mpi_t a);
+mpi_ec_t _gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
+                                      gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b);
+gpg_err_code_t _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
+                                   enum gcry_mpi_ec_models model,
+                                   gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b);
 void _gcry_mpi_ec_free (mpi_ec_t ctx);
+
 int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
                              mpi_ec_t ctx);
 void _gcry_mpi_ec_dup_point (mpi_point_t result,
@@ -303,11 +308,10 @@ void _gcry_mpi_ec_add_points (mpi_point_t result,
 void _gcry_mpi_ec_mul_point (mpi_point_t result,
                              gcry_mpi_t scalar, mpi_point_t point,
                              mpi_ec_t ctx);
+int  _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx);
 
 gcry_mpi_t _gcry_mpi_ec_ec2os (gcry_mpi_point_t point, mpi_ec_t ectx);
 
-gpg_err_code_t _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
-                                   gcry_mpi_t p, gcry_mpi_t a);
 gpg_err_code_t _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
                                  gcry_sexp_t keyparam, const char *curvename);
 gcry_mpi_t _gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy);

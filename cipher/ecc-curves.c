@@ -312,29 +312,30 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
           break;
     }
   if (!domain_parms[idx].desc)
-    return GPG_ERR_INV_VALUE;
+    return GPG_ERR_UNKNOWN_CURVE;
 
   /* In fips mode we only support NIST curves.  Note that it is
      possible to bypass this check by specifying the curve parameters
      directly.  */
   if (fips_mode () && !domain_parms[idx].fips )
-
     return GPG_ERR_NOT_SUPPORTED;
 
   switch (domain_parms[idx].model)
     {
     case MPI_EC_WEIERSTRASS:
-      break;
     case MPI_EC_TWISTEDEDWARDS:
+      break;
     case MPI_EC_MONTGOMERY:
       return GPG_ERR_NOT_SUPPORTED;
     default:
       return GPG_ERR_BUG;
     }
 
+
   if (r_nbits)
     *r_nbits = domain_parms[idx].nbits;
 
+  curve->model = domain_parms[idx].model;
   curve->p = scanval (domain_parms[idx].p);
   curve->a = scanval (domain_parms[idx].a);
   curve->b = scanval (domain_parms[idx].b);
@@ -547,6 +548,7 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
 {
   gpg_err_code_t errc;
   gcry_ctx_t ctx = NULL;
+  enum gcry_mpi_ec_models model = MPI_EC_WEIERSTRASS;
   gcry_mpi_t p = NULL;
   gcry_mpi_t a = NULL;
   gcry_mpi_t b = NULL;
@@ -626,6 +628,8 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
           goto leave;
         }
 
+      model = E->model;
+
       if (!p)
         {
           p = E->p;
@@ -657,7 +661,7 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
       gcry_free (E);
     }
 
-  errc = _gcry_mpi_ec_p_new (&ctx, p, a);
+  errc = _gcry_mpi_ec_p_new (&ctx, model, p, a, b);
   if (!errc)
     {
       mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
@@ -719,7 +723,7 @@ _gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey)
 
   g_x = mpi_new (0);
   g_y = mpi_new (0);
-  ctx = _gcry_mpi_ec_p_internal_new (E.p, E.a);
+  ctx = _gcry_mpi_ec_p_internal_new (0, E.p, E.a, NULL);
   if (_gcry_mpi_ec_get_affine (g_x, g_y, &E.G, ctx))
     log_fatal ("ecc get param: Failed to get affine coordinates\n");
   _gcry_mpi_ec_free (ctx);

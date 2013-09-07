@@ -2588,7 +2588,7 @@ sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
       void *value;
       size_t valuelen;
 
-      if (lvalue)
+      if (!lvalue)
         {
           rc = GPG_ERR_INV_OBJ;
           goto leave;

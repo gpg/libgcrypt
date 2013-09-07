@@ -53,6 +53,7 @@ _gcry_ecc_curve_copy (elliptic_curve_t E)
 {
   elliptic_curve_t R;
 
+  R.model = E.model;
   R.p = mpi_copy (E.p);
   R.a = mpi_copy (E.a);
   R.b = mpi_copy (E.b);

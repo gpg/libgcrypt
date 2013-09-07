@@ -386,14 +386,18 @@ ec_get_two_inv_p (mpi_ec_t ec)
    field GF(p).  P is the prime specifying this field, A is the first
    coefficient.  CTX is expected to be zeroized.  */
 static void
-ec_p_init (mpi_ec_t ctx, gcry_mpi_t p, gcry_mpi_t a)
+ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
+           gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
 {
   int i;
 
   /* Fixme: Do we want to check some constraints? e.g.  a < p  */
 
+  ctx->model = model;
   ctx->p = mpi_copy (p);
   ctx->a = mpi_copy (a);
+  if (b && model == MPI_EC_TWISTEDEDWARDS)
+    ctx->b = mpi_copy (b);
 
   ec_get_reset (ctx);
 
@@ -461,19 +465,51 @@ ec_deinit (void *opaque)
 
 /* This function returns a new context for elliptic curve based on the
    field GF(p).  P is the prime specifying this field, A is the first
-   coefficient.  This function is only used within Libgcrypt and not
+   coefficient, B is the second coefficient, and MODEL is the model
+   for the curve.  This function is only used within Libgcrypt and not
    part of the public API.
 
    This context needs to be released using _gcry_mpi_ec_free.  */
 mpi_ec_t
-_gcry_mpi_ec_p_internal_new (gcry_mpi_t p, gcry_mpi_t a)
+_gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
+                             gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
 {
   mpi_ec_t ctx;
 
   ctx = gcry_xcalloc (1, sizeof *ctx);
-  ec_p_init (ctx, p, a);
+  ec_p_init (ctx, model, p, a, b);
 
   return ctx;
+}
+
+
+/* This is a variant of _gcry_mpi_ec_p_internal_new which returns an
+   public contect and does some error checking on the supplied
+   arguments.  On success the new context is stored at R_CTX and 0 is
+   returned; on error NULL is stored at R_CTX and an error code is
+   returned.
+
+   The context needs to be released using gcry_ctx_release.  */
+gpg_err_code_t
+_gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
+                    enum gcry_mpi_ec_models model,
+                    gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
+{
+  gcry_ctx_t ctx;
+  mpi_ec_t ec;
+
+  *r_ctx = NULL;
+  if (!p || !a || !mpi_cmp_ui (a, 0))
+    return GPG_ERR_EINVAL;
+
+  ctx = _gcry_ctx_alloc (CONTEXT_TYPE_EC, sizeof *ec, ec_deinit);
+  if (!ctx)
+    return gpg_err_code_from_syserror ();
+  ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
+  ec_p_init (ec, model, p, a, b);
+
+  *r_ctx = ctx;
+  return 0;
 }
 
 
@@ -487,32 +523,6 @@ _gcry_mpi_ec_free (mpi_ec_t ctx)
     }
 }
 
-
-/* This function returns a new context for elliptic curve operations
-   based on the field GF(p).  P is the prime specifying this field, A
-   is the first coefficient.  On success the new context is stored at
-   R_CTX and 0 is returned; on error NULL is stored at R_CTX and an
-   error code is returned.  The context needs to be released using
-   gcry_ctx_release.  This is an internal fucntions.  */
-gpg_err_code_t
-_gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx, gcry_mpi_t p, gcry_mpi_t a)
-{
-  gcry_ctx_t ctx;
-  mpi_ec_t ec;
-
-  *r_ctx = NULL;
-  if (!p || !a || !mpi_cmp_ui (a, 0))
-    return GPG_ERR_EINVAL;
-
-  ctx = _gcry_ctx_alloc (CONTEXT_TYPE_EC, sizeof *ec, ec_deinit);
-  if (!ctx)
-    return gpg_err_code_from_syserror ();
-  ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
-  ec_p_init (ec, p, a);
-
-  *r_ctx = ctx;
-  return 0;
-}
 
 gcry_mpi_t
 _gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy)
@@ -772,6 +782,9 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 static void
 dup_point_montgomery (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 {
+  (void)result;
+  (void)point;
+  (void)ctx;
   log_fatal ("%s: %s not yet supported\n",
              "_gcry_mpi_ec_dup_point", "Montgomery");
 }
@@ -953,6 +966,10 @@ add_points_montgomery (mpi_point_t result,
                        mpi_point_t p1, mpi_point_t p2,
                        mpi_ec_t ctx)
 {
+  (void)result;
+  (void)p1;
+  (void)p2;
+  (void)ctx;
   log_fatal ("%s: %s not yet supported\n",
              "_gcry_mpi_ec_add_points", "Montgomery");
 }
