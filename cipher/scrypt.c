@@ -107,7 +107,9 @@ _salsa20_core(u32 *dst, const u32 *src, unsigned rounds)
 
   assert ( (rounds & 1) == 0);
 
-  memcpy (x, src, sizeof(x));
+  for (i = 0; i < SALSA20_INPUT_LENGTH; i++)
+    x[i] = LE_SWAP32(src[i]);
+
   for (i = 0; i < rounds;i += 2)
     {
       QROUND(x[0], x[4], x[8], x[12]);
@@ -123,8 +125,8 @@ _salsa20_core(u32 *dst, const u32 *src, unsigned rounds)
 
   for (i = 0; i < SALSA20_INPUT_LENGTH; i++)
     {
-      u32 t = x[i] + src[i];
-      dst[i] = LE_SWAP32 (t);
+      u32 t = x[i] + LE_SWAP32(src[i]);
+      dst[i] = LE_SWAP32(t);
     }
 }
 
