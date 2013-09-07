@@ -1722,6 +1722,10 @@ suitable_encoding (const unsigned char *buffer, size_t length)
   if (!length)
     return 1;
 
+  if (*buffer & 0x80)
+    return 0; /* If the MSB is set we assume that buffer represents a
+                 negative number.  */
+
   for (s=buffer; length; s++, length--)
     {
       if ( (*s < 0x20 || (*s >= 0x7f && *s <= 0xa0))
