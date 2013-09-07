@@ -102,6 +102,7 @@ Noteworthy changes in version 1.6.0 (unreleased)
  GCRY_MD_GOSTR3411_94            NEW.
  GCRY_MD_STRIBOG256              NEW.
  GCRY_MD_STRIBOG512              NEW.
+ GCRYCTL_DISABLE_ALGO            CHANGED: Not anymore thread-safe.
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)

@@ -1382,9 +1382,10 @@ static const char *rsa_names[] =
 
 gcry_pk_spec_t _gcry_pubkey_spec_rsa =
   {
+    GCRY_PK_RSA, { 0, 1 },
+    (GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR),
     "RSA", rsa_names,
     "ne", "nedpqu", "a", "s", "n",
-    GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR,
     rsa_generate,
     rsa_check_secret_key,
     rsa_encrypt,

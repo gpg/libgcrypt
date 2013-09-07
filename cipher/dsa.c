@@ -1205,9 +1205,10 @@ static const char *dsa_names[] =
 
 gcry_pk_spec_t _gcry_pubkey_spec_dsa =
   {
+    GCRY_PK_DSA, { 0, 1 },
+    GCRY_PK_USAGE_SIGN,
     "DSA", dsa_names,
     "pqgy", "pqgyx", "", "rs", "pqgy",
-    GCRY_PK_USAGE_SIGN,
     dsa_generate,
     dsa_check_secret_key,
     NULL,

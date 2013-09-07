@@ -122,6 +122,12 @@ typedef gcry_sexp_t (*pk_get_curve_param_t)(const char *name);
 /* Module specification structure for public key algoritms.  */
 typedef struct gcry_pk_spec
 {
+  int algo;
+  struct {
+    unsigned int disabled:1;
+    unsigned int fips:1;
+  } flags;
+  int use;
   const char *name;
   const char **aliases;
   const char *elements_pkey;
@@ -129,7 +135,6 @@ typedef struct gcry_pk_spec
   const char *elements_enc;
   const char *elements_sig;
   const char *elements_grip;
-  int use;
   gcry_pk_generate_t generate;
   gcry_pk_check_secret_key_t check_secret_key;
   gcry_pk_encrypt_t encrypt;
@@ -179,9 +184,6 @@ gcry_error_t _gcry_cipher_register (gcry_cipher_spec_t *cipher,
                                     gcry_module_t *module);
 gcry_error_t _gcry_md_register (gcry_md_spec_t *cipher,
                                 md_extra_spec_t *extraspec,
-                                unsigned int *algorithm_id,
-                                gcry_module_t *module);
-gcry_error_t _gcry_pk_register (gcry_pk_spec_t *cipher,
                                 unsigned int *algorithm_id,
                                 gcry_module_t *module);
 

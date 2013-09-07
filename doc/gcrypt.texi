@@ -2589,8 +2589,10 @@ operations.  @var{cmd} controls what is to be done. The return value is
 @table @code
 @item GCRYCTL_DISABLE_ALGO
 Disable the algorithm given as an algorithm id in @var{buffer}.
-@var{buffer} must point to an @code{int} variable with the algorithm id
-and @var{buflen} must have the value @code{sizeof (int)}.
+@var{buffer} must point to an @code{int} variable with the algorithm
+id and @var{buflen} must have the value @code{sizeof (int)}.  This
+fucntion is not thread safe and should thus be used before any other
+threads are started.
 
 @end table
 @end deftypefun

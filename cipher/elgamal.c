@@ -840,9 +840,27 @@ static const char *elg_names[] =
 
 gcry_pk_spec_t _gcry_pubkey_spec_elg =
   {
+    GCRY_PK_ELG, { 0, 0 },
+    (GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR),
     "ELG", elg_names,
     "pgy", "pgyx", "ab", "rs", "pgy",
-    GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR,
+    elg_generate,
+    elg_check_secret_key,
+    elg_encrypt,
+    elg_decrypt,
+    elg_sign,
+    elg_verify,
+    elg_get_nbits,
+    NULL,
+    elg_generate_ext
+  };
+
+gcry_pk_spec_t _gcry_pubkey_spec_elg_e =
+  {
+    GCRY_PK_ELG_E, { 0, 0 },
+    (GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR),
+    "ELG", elg_names,
+    "pgy", "pgyx", "ab", "rs", "pgy",
     elg_generate,
     elg_check_secret_key,
     elg_encrypt,

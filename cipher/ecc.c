@@ -2003,9 +2003,10 @@ static const char *ecdh_names[] =
 
 gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
   {
+    GCRY_PK_ECDSA, { 0, 0 },
+    GCRY_PK_USAGE_SIGN,
     "ECDSA", ecdsa_names,
     "pabgnq", "pabgnqd", "", "rs", "pabgnq",
-    GCRY_PK_USAGE_SIGN,
     ecc_generate,
     ecc_check_secret_key,
     NULL,
@@ -2023,9 +2024,10 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecdsa =
 
 gcry_pk_spec_t _gcry_pubkey_spec_ecdh =
   {
+    GCRY_PK_ECDH, { 0, 0 },
+    GCRY_PK_USAGE_ENCR,
     "ECDH", ecdh_names,
     "pabgnq", "pabgnqd", "se", "", "pabgnq",
-    GCRY_PK_USAGE_ENCR,
     ecc_generate,
     ecc_check_secret_key,
     ecc_encrypt_raw,
