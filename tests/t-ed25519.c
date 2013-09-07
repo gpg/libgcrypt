@@ -32,7 +32,7 @@
 #include "stopwatch.h"
 
 #define PGM "t-ed25519"
-#define N_TESTS 1024
+#define N_TESTS 1025
 
 #define my_isascii(c) (!((c) & 0x80))
 #define digitp(p)   (*(p) >= '0' && *(p) <= '9')
@@ -460,7 +460,9 @@ check_ed25519 (void)
   xfree (sig);
 
   if (ntests != N_TESTS)
-    fail ("did %d tests but expected %s", ntests, N_TESTS);
+    fail ("did %d tests but expected %d", ntests, N_TESTS);
+  else if ((ntests % 256))
+    show_note ("%d tests done\n", ntests);
 
   fclose (fp);
   xfree (fname);

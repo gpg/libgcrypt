@@ -606,24 +606,17 @@ eddsa_encodempi (gcry_mpi_t mpi, unsigned int minlen,
 }
 
 
-/* Encode POINT using the EdDSA scheme.  X and Y are scratch variables
-   supplied by the caller and CTX is the usual context.  MINLEN is the
-   required length in bytes for the result. On success 0 is returned
-   an a malloced buffer with the encoded point is stored at R_BUFFER;
-   the length of this buffer is stored at R_BUFLEN.  */
+/* Encode (X,Y) using the EdDSA scheme.  MINLEN is the required length
+   in bytes for the result.  On success 0 is returned and a malloced
+   buffer with the encoded point is stored at R_BUFFER; the length of
+   this buffer is stored at R_BUFLEN.  */
 static gpg_err_code_t
-eddsa_encodepoint (mpi_point_t point, unsigned int minlen, mpi_ec_t ctx,
-                   gcry_mpi_t x, gcry_mpi_t y,
-                   unsigned char **r_buffer, unsigned int *r_buflen)
+eddsa_encode_x_y (gcry_mpi_t x, gcry_mpi_t y, unsigned int minlen,
+                  unsigned char **r_buffer, unsigned int *r_buflen)
 {
   unsigned char *rawmpi;
   unsigned int rawmpilen;
 
-  if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
-    {
-      log_error ("eddsa_encodepoint: Failed to get affine coordinates\n");
-      return GPG_ERR_INTERNAL;
-    }
   rawmpi = _gcry_mpi_get_buffer (y, minlen, &rawmpilen, NULL);
   if (!rawmpi)
     return gpg_err_code_from_syserror ();
@@ -635,12 +628,30 @@ eddsa_encodepoint (mpi_point_t point, unsigned int minlen, mpi_ec_t ctx,
   return 0;
 }
 
+/* Encode POINT using the EdDSA scheme.  X and Y are scratch variables
+   supplied by the caller and CTX is the usual context.  MINLEN is the
+   required length in bytes for the result. On success 0 is returned
+   and a malloced buffer with the encoded point is stored at R_BUFFER;
+   the length of this buffer is stored at R_BUFLEN.  */
+static gpg_err_code_t
+eddsa_encodepoint (mpi_point_t point, unsigned int minlen, mpi_ec_t ctx,
+                   gcry_mpi_t x, gcry_mpi_t y,
+                   unsigned char **r_buffer, unsigned int *r_buflen)
+{
+  if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
+    {
+      log_error ("eddsa_encodepoint: Failed to get affine coordinates\n");
+      return GPG_ERR_INTERNAL;
+    }
+  return eddsa_encode_x_y (x, y, minlen, r_buffer, r_buflen);
+}
+
 
 /* Decode the EdDSA style encoded PK and set it into RESULT.  LEN is
    the expected length in bytes of the encoded key and CTX the usual
    curve context.  If R_ENCPK is not NULL, the encoded PK is stored at
-   that address; this is a new copy to be release by the caller.  In
-   contrast to the supplied PK, this is not an MPI and thus guarnteed
+   that address; this is a new copy to be released by the caller.  In
+   contrast to the supplied PK, this is not an MPI and thus guarnateed
    to be properly padded.  R_ENCPKLEN received the length of that
    encoded key.  */
 static gpg_err_code_t
@@ -648,6 +659,7 @@ eddsa_decodepoint (gcry_mpi_t pk, unsigned int len, mpi_ec_t ctx,
                    mpi_point_t result,
                    unsigned char **r_encpk, unsigned int *r_encpklen)
 {
+  gpg_err_code_t rc;
   unsigned char *rawmpi;
   unsigned int rawmpilen;
   gcry_mpi_t yy, t, x, p1, p2, p3;
@@ -655,12 +667,50 @@ eddsa_decodepoint (gcry_mpi_t pk, unsigned int len, mpi_ec_t ctx,
 
   if (mpi_is_opaque (pk))
     {
-      const void *buf;
+      const unsigned char *buf;
 
       buf = gcry_mpi_get_opaque (pk, &rawmpilen);
       if (!buf)
         return GPG_ERR_INV_OBJ;
       rawmpilen = (rawmpilen + 7)/8;
+
+      /* First check whether the public key has been given in standard
+         uncompressed format.  No need to recover x in this case.
+         Detection is easy: The size of the buffer will be odd and the
+         first byte be 0x04.  */
+      if (rawmpilen > 1 && buf[0] == 0x04 && (rawmpilen%2))
+        {
+          gcry_mpi_t y;
+
+          rc = gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
+                              buf+1, (rawmpilen-1)/2, NULL);
+          if (rc)
+            return rc;
+          rc = gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
+                              buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
+          if (rc)
+            {
+              mpi_free (x);
+              return rc;
+            }
+
+          if (r_encpk)
+            {
+              rc = eddsa_encode_x_y (x, y, len, r_encpk, r_encpklen);
+              if (rc)
+                {
+                  mpi_free (x);
+                  mpi_free (y);
+                  return rc;
+                }
+            }
+          mpi_snatch (result->x, x);
+          mpi_snatch (result->y, y);
+          mpi_set_ui (result->z, 1);
+          return 0;
+        }
+
+      /* EdDSA compressed point.  */
       rawmpi = gcry_malloc (rawmpilen? rawmpilen:1);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
@@ -669,6 +719,9 @@ eddsa_decodepoint (gcry_mpi_t pk, unsigned int len, mpi_ec_t ctx,
     }
   else
     {
+      /* Note: Without using an opaque MPI it is not reliable possible
+         to find out whether the public key has been given in
+         uncompressed format.  Thus we expect EdDSA format here.  */
       rawmpi = _gcry_mpi_get_buffer (pk, len, &rawmpilen, NULL);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
