@@ -1394,6 +1394,21 @@ stribog_final (void *context)
 
   g (hd->h, hd->N, Z);
   g (hd->h, hd->Sigma, Z);
+
+#ifdef WORDS_BIGENDIAN
+  for (i = 0; i < 8; i++)
+    {
+      u64 T = hd->h[i];
+      T = ((T & U64_C(0x00ff00ff00ff00ff)) << 8) |
+          ((T & U64_C(0xff00ff00ff00ff00)) >> 8);
+      T = ((T & U64_C(0x0000ffff0000ffff)) << 16) |
+          ((T & U64_C(0xffff0000ffff0000)) >> 16);
+      T = ((T & U64_C(0x00000000ffffffff)) << 32) |
+          ((T & U64_C(0xffffffff00000000)) >> 32);
+      hd->h[i] = T;
+    }
+#endif
+
   _gcry_burn_stack (768);
 }
 
