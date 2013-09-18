@@ -63,6 +63,7 @@ elgamal.c \
 ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
 idea.c \
 gost28147.c gost.h \
+gostr3411-94.c \
 md4.c \
 md5.c \
 rijndael.c rijndael-tables.h rijndael-amd64.S rijndael-armv6.S \

@@ -212,6 +212,7 @@ extern cipher_extra_spec_t _gcry_cipher_extraspec_salsa20;
 extern gcry_md_spec_t _gcry_digest_spec_crc32;
 extern gcry_md_spec_t _gcry_digest_spec_crc32_rfc1510;
 extern gcry_md_spec_t _gcry_digest_spec_crc24_rfc2440;
+extern gcry_md_spec_t _gcry_digest_spec_gost3411_94;
 extern gcry_md_spec_t _gcry_digest_spec_md4;
 extern gcry_md_spec_t _gcry_digest_spec_md5;
 extern gcry_md_spec_t _gcry_digest_spec_rmd160;
