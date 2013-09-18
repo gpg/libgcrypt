@@ -26,8 +26,21 @@ const char * _gcry_hash_selftest_check_one
               int datamode, const void *data, size_t datalen,
               const void *expect, size_t expectlen);
 
+/* Type for the md_write helper function.  */
+typedef void (*_gcry_md_block_write_t) (void *c, const unsigned char *buf);
+
+typedef struct gcry_md_block_ctx
+{
+    u32  nblocks;
+    int  count;
+    byte buf[64];
+    size_t blocksize;
+    _gcry_md_block_write_t bwrite;
+    size_t stack_burn;
+} gcry_md_block_ctx_t;
 
 
-
+void
+_gcry_md_block_write( void *context, const void *inbuf_arg, size_t inlen);
 
 #endif /*GCRY_HASH_COMMON_H*/

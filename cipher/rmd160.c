@@ -139,6 +139,8 @@
  * 1 million times "a"   52783243c1697bdbe16d37f97f68f08325dc1528
  */
 
+static void
+transform ( void *ctx, const unsigned char *data );
 
 void
 _gcry_rmd160_init (void *context)
@@ -150,8 +152,11 @@ _gcry_rmd160_init (void *context)
   hd->h2 = 0x98BADCFE;
   hd->h3 = 0x10325476;
   hd->h4 = 0xC3D2E1F0;
-  hd->nblocks = 0;
-  hd->count = 0;
+  hd->bctx.nblocks = 0;
+  hd->bctx.count = 0;
+  hd->bctx.blocksize = 64;
+  hd->bctx.stack_burn = 108+5*sizeof(void*);
+  hd->bctx.bwrite = transform;
 }
 
 
@@ -160,8 +165,9 @@ _gcry_rmd160_init (void *context)
  * Transform the message X which consists of 16 32-bit-words
  */
 static void
-transform ( RMD160_CONTEXT *hd, const unsigned char *data )
+transform ( void *ctx, const unsigned char *data )
 {
+  RMD160_CONTEXT *hd = ctx;
   register u32 a,b,c,d,e;
   u32 aa,bb,cc,dd,ee,t;
 #ifdef WORDS_BIGENDIAN
@@ -397,46 +403,6 @@ transform ( RMD160_CONTEXT *hd, const unsigned char *data )
 }
 
 
-/* Update the message digest with the contents
- * of INBUF with length INLEN.
- */
-static void
-rmd160_write ( void *context, const void *inbuf_arg, size_t inlen)
-{
-  const unsigned char *inbuf = inbuf_arg;
-  RMD160_CONTEXT *hd = context;
-
-  if( hd->count == 64 )  /* flush the buffer */
-    {
-      transform( hd, hd->buf );
-      _gcry_burn_stack (108+5*sizeof(void*));
-      hd->count = 0;
-      hd->nblocks++;
-    }
-  if( !inbuf )
-    return;
-  if( hd->count )
-    {
-      for( ; inlen && hd->count < 64; inlen-- )
-        hd->buf[hd->count++] = *inbuf++;
-      rmd160_write( hd, NULL, 0 );
-      if( !inlen )
-        return;
-    }
-
-  while( inlen >= 64 )
-    {
-      transform( hd, inbuf );
-      hd->count = 0;
-      hd->nblocks++;
-      inlen -= 64;
-      inbuf += 64;
-    }
-  _gcry_burn_stack (108+5*sizeof(void*));
-  for( ; inlen && hd->count < 64; inlen-- )
-    hd->buf[hd->count++] = *inbuf++;
-}
-
 /****************
  * Apply the rmd160 transform function on the buffer which must have
  * a length 64 bytes. Do not use this function together with the
@@ -469,15 +435,15 @@ rmd160_final( void *context )
   u32 t, msb, lsb;
   byte *p;
 
-  rmd160_write(hd, NULL, 0); /* flush */;
+  _gcry_md_block_write(hd, NULL, 0); /* flush */;
 
-  t = hd->nblocks;
+  t = hd->bctx.nblocks;
   /* multiply by 64 to make a byte count */
   lsb = t << 6;
   msb = t >> 26;
   /* add the count */
   t = lsb;
-  if( (lsb += hd->count) < t )
+  if( (lsb += hd->bctx.count) < t )
     msb++;
   /* multiply by 8 to make a bit count */
   t = lsb;
@@ -485,33 +451,33 @@ rmd160_final( void *context )
   msb <<= 3;
   msb |= t >> 29;
 
-  if( hd->count < 56 )  /* enough room */
+  if( hd->bctx.count < 56 )  /* enough room */
     {
-      hd->buf[hd->count++] = 0x80; /* pad */
-      while( hd->count < 56 )
-        hd->buf[hd->count++] = 0;  /* pad */
+      hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad */
+      while( hd->bctx.count < 56 )
+        hd->bctx.buf[hd->bctx.count++] = 0;  /* pad */
     }
   else  /* need one extra block */
     {
-      hd->buf[hd->count++] = 0x80; /* pad character */
-      while( hd->count < 64 )
-        hd->buf[hd->count++] = 0;
-      rmd160_write(hd, NULL, 0);  /* flush */;
-      memset(hd->buf, 0, 56 ); /* fill next block with zeroes */
+      hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad character */
+      while( hd->bctx.count < 64 )
+        hd->bctx.buf[hd->bctx.count++] = 0;
+      _gcry_md_block_write(hd, NULL, 0);  /* flush */;
+      memset(hd->bctx.buf, 0, 56 ); /* fill next block with zeroes */
     }
   /* append the 64 bit count */
-  hd->buf[56] = lsb	   ;
-  hd->buf[57] = lsb >>  8;
-  hd->buf[58] = lsb >> 16;
-  hd->buf[59] = lsb >> 24;
-  hd->buf[60] = msb	   ;
-  hd->buf[61] = msb >>  8;
-  hd->buf[62] = msb >> 16;
-  hd->buf[63] = msb >> 24;
-  transform( hd, hd->buf );
+  hd->bctx.buf[56] = lsb	   ;
+  hd->bctx.buf[57] = lsb >>  8;
+  hd->bctx.buf[58] = lsb >> 16;
+  hd->bctx.buf[59] = lsb >> 24;
+  hd->bctx.buf[60] = msb	   ;
+  hd->bctx.buf[61] = msb >>  8;
+  hd->bctx.buf[62] = msb >> 16;
+  hd->bctx.buf[63] = msb >> 24;
+  transform( hd, hd->bctx.buf );
   _gcry_burn_stack (108+5*sizeof(void*));
 
-  p = hd->buf;
+  p = hd->bctx.buf;
 #ifdef WORDS_BIGENDIAN
 #define X(a) do { *p++ = hd->h##a	   ; *p++ = hd->h##a >> 8;	\
 	          *p++ = hd->h##a >> 16; *p++ = hd->h##a >> 24; } while(0)
@@ -531,7 +497,7 @@ rmd160_read( void *context )
 {
   RMD160_CONTEXT *hd = context;
 
-  return hd->buf;
+  return hd->bctx.buf;
 }
 
 
@@ -546,9 +512,9 @@ _gcry_rmd160_hash_buffer (void *outbuf, const void *buffer, size_t length )
   RMD160_CONTEXT hd;
 
   _gcry_rmd160_init ( &hd );
-  rmd160_write ( &hd, buffer, length );
+  _gcry_md_block_write ( &hd, buffer, length );
   rmd160_final ( &hd );
-  memcpy ( outbuf, hd.buf, 20 );
+  memcpy ( outbuf, hd.bctx.buf, 20 );
 }
 
 static byte asn[15] = /* Object ID is 1.3.36.3.2.1 */
@@ -567,6 +533,6 @@ static gcry_md_oid_spec_t oid_spec_rmd160[] =
 gcry_md_spec_t _gcry_digest_spec_rmd160 =
   {
     "RIPEMD160", asn, DIM (asn), oid_spec_rmd160, 20,
-    _gcry_rmd160_init, rmd160_write, rmd160_final, rmd160_read,
+    _gcry_rmd160_init, _gcry_md_block_write, rmd160_final, rmd160_read,
     sizeof (RMD160_CONTEXT)
   };

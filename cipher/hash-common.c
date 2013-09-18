@@ -91,3 +91,48 @@ _gcry_hash_selftest_check_one (int algo,
 
   return result;
 }
+
+
+/* Common function to write a chunk of data to the transform function
+   of a hash algorithm.  Note that the use of the term "block" does
+   not imply a fixed size block.  */
+void
+_gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
+{
+  const unsigned char *inbuf = inbuf_arg;
+  gcry_md_block_ctx_t *hd = context;
+
+  if ( hd->buf == NULL || hd->bwrite == NULL)
+    return;
+
+  if (hd->count == hd->blocksize)  /* Flush the buffer. */
+    {
+      hd->bwrite (hd, hd->buf);
+      _gcry_burn_stack (hd->stack_burn);
+      hd->count = 0;
+      hd->nblocks++;
+    }
+  if (!inbuf)
+    return;
+
+  if (hd->count)
+    {
+      for (; inlen && hd->count < hd->blocksize; inlen--)
+        hd->buf[hd->count++] = *inbuf++;
+      _gcry_md_block_write (hd, NULL, 0);
+      if (!inlen)
+        return;
+    }
+
+  while (inlen >= hd->blocksize)
+    {
+      hd->bwrite (hd, inbuf);
+      hd->count = 0;
+      hd->nblocks++;
+      inlen -= hd->blocksize;
+      inbuf += hd->blocksize;
+    }
+  _gcry_burn_stack (hd->stack_burn);
+  for (; inlen && hd->count < hd->blocksize; inlen--)
+    hd->buf[hd->count++] = *inbuf++;
+}

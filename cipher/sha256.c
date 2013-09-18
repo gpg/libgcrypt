@@ -46,12 +46,12 @@
 #include "hash-common.h"
 
 typedef struct {
+  gcry_md_block_ctx_t bctx;
   u32  h0,h1,h2,h3,h4,h5,h6,h7;
-  u32  nblocks;
-  byte buf[64];
-  int  count;
 } SHA256_CONTEXT;
 
+static void
+transform (void *c, const unsigned char *data);
 
 static void
 sha256_init (void *context)
@@ -67,8 +67,11 @@ sha256_init (void *context)
   hd->h6 = 0x1f83d9ab;
   hd->h7 = 0x5be0cd19;
 
-  hd->nblocks = 0;
-  hd->count = 0;
+  hd->bctx.nblocks = 0;
+  hd->bctx.count = 0;
+  hd->bctx.blocksize = 64;
+  hd->bctx.stack_burn = 74*4+32;
+  hd->bctx.bwrite = transform;
 }
 
 
@@ -86,8 +89,11 @@ sha224_init (void *context)
   hd->h6 = 0x64f98fa7;
   hd->h7 = 0xbefa4fa4;
 
-  hd->nblocks = 0;
-  hd->count = 0;
+  hd->bctx.nblocks = 0;
+  hd->bctx.count = 0;
+  hd->bctx.blocksize = 64;
+  hd->bctx.stack_burn = 74*4+32;
+  hd->bctx.bwrite = transform;
 }
 
 
@@ -140,8 +146,9 @@ Sum1 (u32 x)
 
 
 static void
-transform (SHA256_CONTEXT *hd, const unsigned char *data)
+transform (void *ctx, const unsigned char *data)
 {
+  SHA256_CONTEXT *hd = ctx;
   static const u32 K[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
     0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -260,46 +267,6 @@ transform (SHA256_CONTEXT *hd, const unsigned char *data)
 #undef R
 
 
-/* Update the message digest with the contents of INBUF with length
-  INLEN.  */
-static void
-sha256_write (void *context, const void *inbuf_arg, size_t inlen)
-{
-  const unsigned char *inbuf = inbuf_arg;
-  SHA256_CONTEXT *hd = context;
-
-  if (hd->count == 64)
-    { /* flush the buffer */
-      transform (hd, hd->buf);
-      _gcry_burn_stack (74*4+32);
-      hd->count = 0;
-      hd->nblocks++;
-    }
-  if (!inbuf)
-    return;
-  if (hd->count)
-    {
-      for (; inlen && hd->count < 64; inlen--)
-        hd->buf[hd->count++] = *inbuf++;
-      sha256_write (hd, NULL, 0);
-      if (!inlen)
-        return;
-    }
-
-  while (inlen >= 64)
-    {
-      transform (hd, inbuf);
-      hd->count = 0;
-      hd->nblocks++;
-      inlen -= 64;
-      inbuf += 64;
-    }
-  _gcry_burn_stack (74*4+32);
-  for (; inlen && hd->count < 64; inlen--)
-    hd->buf[hd->count++] = *inbuf++;
-}
-
-
 /*
    The routine finally terminates the computation and returns the
    digest.  The handle is prepared for a new cycle, but adding bytes
@@ -312,15 +279,15 @@ sha256_final(void *context)
   u32 t, msb, lsb;
   byte *p;
 
-  sha256_write (hd, NULL, 0); /* flush */;
+  _gcry_md_block_write (hd, NULL, 0); /* flush */;
 
-  t = hd->nblocks;
+  t = hd->bctx.nblocks;
   /* multiply by 64 to make a byte count */
   lsb = t << 6;
   msb = t >> 26;
   /* add the count */
   t = lsb;
-  if ((lsb += hd->count) < t)
+  if ((lsb += hd->bctx.count) < t)
     msb++;
   /* multiply by 8 to make a bit count */
   t = lsb;
@@ -328,33 +295,33 @@ sha256_final(void *context)
   msb <<= 3;
   msb |= t >> 29;
 
-  if (hd->count < 56)
+  if (hd->bctx.count < 56)
     { /* enough room */
-      hd->buf[hd->count++] = 0x80; /* pad */
-      while (hd->count < 56)
-        hd->buf[hd->count++] = 0;  /* pad */
+      hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad */
+      while (hd->bctx.count < 56)
+        hd->bctx.buf[hd->bctx.count++] = 0;  /* pad */
     }
   else
     { /* need one extra block */
-      hd->buf[hd->count++] = 0x80; /* pad character */
-      while (hd->count < 64)
-        hd->buf[hd->count++] = 0;
-      sha256_write (hd, NULL, 0);  /* flush */;
-      memset (hd->buf, 0, 56 ); /* fill next block with zeroes */
+      hd->bctx.buf[hd->bctx.count++] = 0x80; /* pad character */
+      while (hd->bctx.count < 64)
+        hd->bctx.buf[hd->bctx.count++] = 0;
+      _gcry_md_block_write (hd, NULL, 0);  /* flush */;
+      memset (hd->bctx.buf, 0, 56 ); /* fill next block with zeroes */
     }
   /* append the 64 bit count */
-  hd->buf[56] = msb >> 24;
-  hd->buf[57] = msb >> 16;
-  hd->buf[58] = msb >>  8;
-  hd->buf[59] = msb;
-  hd->buf[60] = lsb >> 24;
-  hd->buf[61] = lsb >> 16;
-  hd->buf[62] = lsb >>  8;
-  hd->buf[63] = lsb;
-  transform (hd, hd->buf);
+  hd->bctx.buf[56] = msb >> 24;
+  hd->bctx.buf[57] = msb >> 16;
+  hd->bctx.buf[58] = msb >>  8;
+  hd->bctx.buf[59] = msb;
+  hd->bctx.buf[60] = lsb >> 24;
+  hd->bctx.buf[61] = lsb >> 16;
+  hd->bctx.buf[62] = lsb >>  8;
+  hd->bctx.buf[63] = lsb;
+  transform (hd, hd->bctx.buf);
   _gcry_burn_stack (74*4+32);
 
-  p = hd->buf;
+  p = hd->bctx.buf;
 #ifdef WORDS_BIGENDIAN
 #define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
 #else /* little endian */
@@ -377,7 +344,7 @@ sha256_read (void *context)
 {
   SHA256_CONTEXT *hd = context;
 
-  return hd->buf;
+  return hd->bctx.buf;
 }
 
 
@@ -534,7 +501,7 @@ static gcry_md_oid_spec_t oid_spec_sha256[] =
 gcry_md_spec_t _gcry_digest_spec_sha224 =
   {
     "SHA224", asn224, DIM (asn224), oid_spec_sha224, 28,
-    sha224_init, sha256_write, sha256_final, sha256_read,
+    sha224_init, _gcry_md_block_write, sha256_final, sha256_read,
     sizeof (SHA256_CONTEXT)
   };
 md_extra_spec_t _gcry_digest_extraspec_sha224 =
@@ -545,7 +512,7 @@ md_extra_spec_t _gcry_digest_extraspec_sha224 =
 gcry_md_spec_t _gcry_digest_spec_sha256 =
   {
     "SHA256", asn256, DIM (asn256), oid_spec_sha256, 32,
-    sha256_init, sha256_write, sha256_final, sha256_read,
+    sha256_init, _gcry_md_block_write, sha256_final, sha256_read,
     sizeof (SHA256_CONTEXT)
   };
 md_extra_spec_t _gcry_digest_extraspec_sha256 =
