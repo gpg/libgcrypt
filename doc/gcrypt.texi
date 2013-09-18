@@ -2968,6 +2968,14 @@ bytes.
 This is the hash algorithm described in GOST R 34.11-94. It yields
 message digest of 32 bytes.
 
+@item GCRY_MD_GOSTR3411_12_256
+This is the 256-bit version of hash algorithm described in GOST R 34.11-2012
+which yields message digests of 32 bytes.
+
+@item GCRY_MD_GOSTR3411_12_512
+This is the 512-bit version of hash algorithm described in GOST R 34.11-2012
+which yields message digests of 64 bytes.
+
 @end table
 @c end table of hash algorithms
 

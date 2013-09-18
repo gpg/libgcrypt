@@ -61,6 +61,12 @@ static struct digest_table_entry
     { &_gcry_digest_spec_gost3411_94,
       &dummy_extra_spec,                 GCRY_MD_GOSTR3411_94 },
 #endif
+#ifdef USE_GOST_R_3411_12
+    { &_gcry_digest_spec_stribog_256,
+      &dummy_extra_spec,                 GCRY_MD_GOSTR3411_12_256 },
+    { &_gcry_digest_spec_stribog_512,
+      &dummy_extra_spec,                 GCRY_MD_GOSTR3411_12_512 },
+#endif
 #if USE_MD4
     { &_gcry_digest_spec_md4,
       &dummy_extra_spec,                 GCRY_MD_MD4 },

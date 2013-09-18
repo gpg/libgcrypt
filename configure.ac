@@ -193,7 +193,7 @@ enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
 available_digests="crc gostr3411-94 md4 md5 rmd160 sha1 sha256"
-available_digests_64="sha512 tiger whirlpool"
+available_digests_64="sha512 tiger whirlpool stribog"
 enabled_digests=""
 
 # Definitions for kdfs (optional ones)
@@ -354,7 +354,7 @@ if test "$ac_cv_sizeof_unsigned_int" != "8" \
    && test "$ac_cv_sizeof_unsigned_long_long" != "8" \
    && test "$ac_cv_sizeof_uint64_t" != "8"; then
     AC_MSG_WARN([No 64-bit types.  Disabling TIGER/192, SCRYPT, SHA-384, \
- and SHA-512])
+ SHA-512 and GOST R 34.11-12])
 else
   available_digests="$available_digests $available_digests_64"
   available_kdfs="$available_kdfs $available_kdfs_64"
@@ -1546,6 +1546,12 @@ if test "$found" = "1" ; then
       GCRYPT_DIGESTS="$GCRYPT_DIGESTS gostr3411-94.lo"
       AC_DEFINE(USE_GOST_R_3411_94, 1, [Defined if this module should be included])
    fi
+fi
+
+LIST_MEMBER(stribog, $enabled_digests)
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS stribog.lo"
+   AC_DEFINE(USE_GOST_R_3411_12, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(md4, $enabled_digests)
