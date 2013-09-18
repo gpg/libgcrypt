@@ -35,6 +35,9 @@
 #include "cipher.h"
 
 
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
+
 /* This is an s-box from RFC4357, named GostR3411-94-TestParamSet
  * For now it is the only s-box supported, as libgcrypt lacks mechanism
  * for passing parameters to cipher in a usefull way. */
@@ -107,7 +110,7 @@ gost_val (GOST28147_context *ctx, u32 cm1, int subkey)
   return (cm1 << 11) | (cm1 >> 21);
 }
 
-static void
+static unsigned int
 gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
 {
   GOST28147_context *ctx = c;
@@ -153,16 +156,22 @@ gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
   outbuf[1 + 4] = (n1 >> (1 * 8)) & 0xff;
   outbuf[2 + 4] = (n1 >> (2 * 8)) & 0xff;
   outbuf[3 + 4] = (n1 >> (3 * 8)) & 0xff;
+
+  return /* burn_stack */ 4*sizeof(void*) /* func call */ +
+                          3*sizeof(void*) /* stack */ +
+                          max( 4*sizeof(void*) /* gost_val call */,
+                               3*sizeof(void*) /* gost_set_subst call */ +
+                               2*sizeof(void*) /* gost_set subst stack*/ );
 }
 
-void _gcry_gost_enc_one (GOST28147_context *c, const byte *key,
+unsigned int _gcry_gost_enc_one (GOST28147_context *c, const byte *key,
     byte *out, byte *in)
 {
   gost_setkey (c, key, 32);
-  gost_encrypt_block (c, out, in);
+  return gost_encrypt_block (c, out, in);
 }
 
-static void
+static unsigned int
 gost_decrypt_block (void *c, byte *outbuf, const byte *inbuf)
 {
   GOST28147_context *ctx = c;
@@ -208,6 +217,12 @@ gost_decrypt_block (void *c, byte *outbuf, const byte *inbuf)
   outbuf[1 + 4] = (n1 >> (1 * 8)) & 0xff;
   outbuf[2 + 4] = (n1 >> (2 * 8)) & 0xff;
   outbuf[3 + 4] = (n1 >> (3 * 8)) & 0xff;
+
+  return /* burn_stack */ 4*sizeof(void*) /* func call */ +
+                          3*sizeof(void*) /* stack */ +
+                          max( 4*sizeof(void*) /* gost_val call */,
+                               3*sizeof(void*) /* gost_set_subst call */ +
+                               2*sizeof(void*) /* gost_set subst stack*/ );
 }
 
 gcry_cipher_spec_t _gcry_cipher_spec_gost28147 =
