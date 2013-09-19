@@ -862,22 +862,22 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
   do {									\
     if (__builtin_constant_p (bh) && (bh) == 0) 			\
       __asm__ ("{a%I4|add%I4c} %1,%3,%4\n\t{aze|addze} %0,%2"           \
-	     : "=r" ((USItype)(sh)),                                    \
-	       "=&r" ((USItype)(sl))                                    \
+	     : "=r" ((sh)),                                             \
+	       "=&r" ((sl))                                             \
 	     : "%r" ((USItype)(ah)),                                    \
 	       "%r" ((USItype)(al)),                                    \
 	       "rI" ((USItype)(bl)));                                   \
     else if (__builtin_constant_p (bh) && (bh) ==~(USItype) 0)		\
       __asm__ ("{a%I4|add%I4c} %1,%3,%4\n\t{ame|addme} %0,%2"           \
-	     : "=r" ((USItype)(sh)),                                    \
-	       "=&r" ((USItype)(sl))                                    \
+	     : "=r" ((sh)),                                             \
+	       "=&r" ((sl))                                             \
 	     : "%r" ((USItype)(ah)),                                    \
 	       "%r" ((USItype)(al)),                                    \
 	       "rI" ((USItype)(bl)));                                   \
     else								\
       __asm__ ("{a%I5|add%I5c} %1,%4,%5\n\t{ae|adde} %0,%2,%3"          \
-	     : "=r" ((USItype)(sh)),                                    \
-	       "=&r" ((USItype)(sl))                                    \
+	     : "=r" ((sh)),                                             \
+	       "=&r" ((sl))                                             \
 	     : "%r" ((USItype)(ah)),                                    \
 	       "r" ((USItype)(bh)),                                     \
 	       "%r" ((USItype)(al)),                                    \
@@ -887,36 +887,36 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
   do {									\
     if (__builtin_constant_p (ah) && (ah) == 0) 			\
       __asm__ ("{sf%I3|subf%I3c} %1,%4,%3\n\t{sfze|subfze} %0,%2"       \
-	       : "=r" ((USItype)(sh)),                                  \
-		 "=&r" ((USItype)(sl))                                  \
+	       : "=r" ((sh)),                                           \
+		 "=&r" ((sl))                                           \
 	       : "r" ((USItype)(bh)),                                   \
 		 "rI" ((USItype)(al)),                                  \
 		 "r" ((USItype)(bl)));                                  \
     else if (__builtin_constant_p (ah) && (ah) ==~(USItype) 0)		\
       __asm__ ("{sf%I3|subf%I3c} %1,%4,%3\n\t{sfme|subfme} %0,%2"       \
-	       : "=r" ((USItype)(sh)),                                  \
-		 "=&r" ((USItype)(sl))                                  \
+	       : "=r" ((sh)),                                  \
+		 "=&r" ((sl))                                  \
 	       : "r" ((USItype)(bh)),                                   \
 		 "rI" ((USItype)(al)),                                  \
 		 "r" ((USItype)(bl)));                                  \
     else if (__builtin_constant_p (bh) && (bh) == 0)			\
       __asm__ ("{sf%I3|subf%I3c} %1,%4,%3\n\t{ame|addme} %0,%2"         \
-	       : "=r" ((USItype)(sh)),                                  \
-		 "=&r" ((USItype)(sl))                                  \
+	       : "=r" ((sh)),                                           \
+		 "=&r" ((sl))                                           \
 	       : "r" ((USItype)(ah)),                                   \
 		 "rI" ((USItype)(al)),                                  \
 		 "r" ((USItype)(bl)));                                  \
     else if (__builtin_constant_p (bh) && (bh) ==~(USItype) 0)		\
       __asm__ ("{sf%I3|subf%I3c} %1,%4,%3\n\t{aze|addze} %0,%2"         \
-	       : "=r" ((USItype)(sh)),                                  \
-		 "=&r" ((USItype)(sl))                                  \
+	       : "=r" ((sh)),                                           \
+		 "=&r" ((sl))                                           \
 	       : "r" ((USItype)(ah)),                                   \
 		 "rI" ((USItype)(al)),                                  \
 		 "r" ((USItype)(bl)));                                  \
     else								\
       __asm__ ("{sf%I4|subf%I4c} %1,%5,%4\n\t{sfe|subfe} %0,%3,%2"      \
-	       : "=r" ((USItype)(sh)),                                  \
-		 "=&r" ((USItype)(sl))                                  \
+	       : "=r" ((sh)),                                           \
+		 "=&r" ((sl))                                           \
 	       : "r" ((USItype)(ah)),                                   \
 		 "r" ((USItype)(bh)),                                   \
 		 "rI" ((USItype)(al)),                                  \
@@ -924,7 +924,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
   } while (0)
 #define count_leading_zeros(count, x) \
   __asm__ ("{cntlz|cntlzw} %0,%1"                                       \
-	   : "=r" ((USItype)(count))                                    \
+	   : "=r" ((count))                                             \
 	   : "r" ((USItype)(x)))
 #define COUNT_LEADING_ZEROS_0 32
 #if defined (_ARCH_PPC)
@@ -932,7 +932,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
   do {									\
     USItype __m0 = (m0), __m1 = (m1);					\
     __asm__ ("mulhwu %0,%1,%2"                                          \
-	     : "=r" ((USItype) ph)                                      \
+	     : "=r" (ph)                                                \
 	     : "%r" (__m0),                                             \
 	       "r" (__m1));                                             \
     (pl) = __m0 * __m1; 						\
@@ -954,8 +954,8 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
   do {									\
     USItype __m0 = (m0), __m1 = (m1);					\
     __asm__ ("mul %0,%2,%3"                                             \
-	     : "=r" ((USItype)(xh)),                                    \
-	       "=q" ((USItype)(xl))                                     \
+	     : "=r" ((xh)),                                             \
+	       "=q" ((xl))                                              \
 	     : "r" (__m0),                                              \
 	       "r" (__m1));                                             \
     (xh) += ((((SItype) __m0 >> 31) & __m1)				\
