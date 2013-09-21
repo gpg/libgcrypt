@@ -75,19 +75,9 @@ typedef struct
 #define ROTL32(n,x) (((x)<<(n)) | ((x)>>((-(n)&31))))
 
 
-#ifdef WORDS_BIGENDIAN
-# define LE_SWAP32(v)              \
-  ( (ROTL32( 8, v) & 0x00FF00FFul) \
-   |(ROTL32(24, v) & 0xFF00FF00ul))
-#else
-# define LE_SWAP32(v) (v)
-#endif
+#define LE_SWAP32(v) le_bswap32(v)
 
-#define LE_READ_UINT32(p)                 \
-  (  (((u32)(p)[3]) << 24)                \
-   | (((u32)(p)[2]) << 16)                \
-   | (((u32)(p)[1]) << 8)                 \
-   |  ((u32)(p)[0]))
+#define LE_READ_UINT32(p) buf_get_le32(p)
 
 
 static void salsa20_setiv (void *context, const byte *iv, unsigned int ivlen);

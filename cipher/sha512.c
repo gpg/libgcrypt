@@ -50,6 +50,7 @@
 #include <string.h>
 #include "g10lib.h"
 #include "bithelp.h"
+#include "bufhelp.h"
 #include "cipher.h"
 #include "hash-common.h"
 
@@ -225,26 +226,8 @@ __transform (SHA512_STATE *hd, const unsigned char *data)
   g = hd->h6;
   h = hd->h7;
 
-#ifdef WORDS_BIGENDIAN
-  memcpy (w, data, 128);
-#else
-  {
-    int i;
-    byte *p2;
-
-    for (i = 0, p2 = (byte *) w; i < 16; i++, p2 += 8)
-      {
-	p2[7] = *data++;
-	p2[6] = *data++;
-	p2[5] = *data++;
-	p2[4] = *data++;
-	p2[3] = *data++;
-	p2[2] = *data++;
-	p2[1] = *data++;
-	p2[0] = *data++;
-      }
-  }
-#endif
+  for ( t = 0; t < 16; t++ )
+    w[t] = buf_get_be64(data + t * 8);
 
 #define S0(x) (ROTR((x),1) ^ ROTR((x),8) ^ ((x)>>7))
 #define S1(x) (ROTR((x),19) ^ ROTR((x),61) ^ ((x)>>6))
@@ -566,35 +549,13 @@ sha512_final (void *context)
       memset (hd->bctx.buf, 0, 112);	/* fill next block with zeroes */
     }
   /* append the 128 bit count */
-  hd->bctx.buf[112] = msb >> 56;
-  hd->bctx.buf[113] = msb >> 48;
-  hd->bctx.buf[114] = msb >> 40;
-  hd->bctx.buf[115] = msb >> 32;
-  hd->bctx.buf[116] = msb >> 24;
-  hd->bctx.buf[117] = msb >> 16;
-  hd->bctx.buf[118] = msb >> 8;
-  hd->bctx.buf[119] = msb;
-
-  hd->bctx.buf[120] = lsb >> 56;
-  hd->bctx.buf[121] = lsb >> 48;
-  hd->bctx.buf[122] = lsb >> 40;
-  hd->bctx.buf[123] = lsb >> 32;
-  hd->bctx.buf[124] = lsb >> 24;
-  hd->bctx.buf[125] = lsb >> 16;
-  hd->bctx.buf[126] = lsb >> 8;
-  hd->bctx.buf[127] = lsb;
+  buf_put_be64(hd->bctx.buf + 112, msb);
+  buf_put_be64(hd->bctx.buf + 120, lsb);
   stack_burn_depth = transform (hd, hd->bctx.buf);
   _gcry_burn_stack (stack_burn_depth);
 
   p = hd->bctx.buf;
-#ifdef WORDS_BIGENDIAN
-#define X(a) do { *(u64*)p = hd->state.h##a ; p += 8; } while (0)
-#else /* little endian */
-#define X(a) do { *p++ = hd->state.h##a >> 56; *p++ = hd->state.h##a >> 48;    \
-                  *p++ = hd->state.h##a >> 40; *p++ = hd->state.h##a >> 32;    \
-                  *p++ = hd->state.h##a >> 24; *p++ = hd->state.h##a >> 16;    \
-                  *p++ = hd->state.h##a >> 8;  *p++ = hd->state.h##a; } while(0)
-#endif
+#define X(a) do { *(u64*)p = be_bswap64(hd->state.h##a) ; p += 8; } while (0)
   X (0);
   X (1);
   X (2);

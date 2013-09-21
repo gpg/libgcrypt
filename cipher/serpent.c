@@ -119,11 +119,6 @@ extern void _gcry_serpent_avx2_cfb_dec(serpent_context_t *ctx,
 static const char *serpent_test (void);
 
 
-#define byte_swap_32(x) \
-  (0 \
-   | (((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) \
-   | (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
-
 /*
  * These are the S-Boxes of Serpent from following research paper.
  *
@@ -548,14 +543,10 @@ serpent_key_prepare (const byte *key, unsigned int key_length,
   int i;
 
   /* Copy key.  */
-  memcpy (key_prepared, key, key_length);
   key_length /= 4;
-#ifdef WORDS_BIGENDIAN
   for (i = 0; i < key_length; i++)
-    key_prepared[i] = byte_swap_32 (key_prepared[i]);
-#else
-  i = key_length;
-#endif
+    key_prepared[i] = buf_get_le32 (key + i * 4);
+
   if (i < 8)
     {
       /* Key must be padded according to the Serpent
@@ -683,13 +674,10 @@ serpent_encrypt_internal (serpent_context_t *context,
   serpent_block_t b, b_next;
   int round = 0;
 
-  memcpy (b, input, sizeof (b));
-#ifdef WORDS_BIGENDIAN
-  b[0] = byte_swap_32 (b[0]);
-  b[1] = byte_swap_32 (b[1]);
-  b[2] = byte_swap_32 (b[2]);
-  b[3] = byte_swap_32 (b[3]);
-#endif
+  b[0] = buf_get_le32 (input + 0);
+  b[1] = buf_get_le32 (input + 4);
+  b[2] = buf_get_le32 (input + 8);
+  b[3] = buf_get_le32 (input + 12);
 
   ROUND (0, context->keys, b, b_next);
   ROUND (1, context->keys, b, b_next);
@@ -725,13 +713,10 @@ serpent_encrypt_internal (serpent_context_t *context,
 
   ROUND_LAST (7, context->keys, b, b_next);
 
-#ifdef WORDS_BIGENDIAN
-  b_next[0] = byte_swap_32 (b_next[0]);
-  b_next[1] = byte_swap_32 (b_next[1]);
-  b_next[2] = byte_swap_32 (b_next[2]);
-  b_next[3] = byte_swap_32 (b_next[3]);
-#endif
-  memcpy (output, b_next, sizeof (b_next));
+  buf_put_le32 (output + 0, b_next[0]);
+  buf_put_le32 (output + 4, b_next[1]);
+  buf_put_le32 (output + 8, b_next[2]);
+  buf_put_le32 (output + 12, b_next[3]);
 }
 
 static void
@@ -741,13 +726,10 @@ serpent_decrypt_internal (serpent_context_t *context,
   serpent_block_t b, b_next;
   int round = ROUNDS;
 
-  memcpy (b_next, input, sizeof (b));
-#ifdef WORDS_BIGENDIAN
-  b_next[0] = byte_swap_32 (b_next[0]);
-  b_next[1] = byte_swap_32 (b_next[1]);
-  b_next[2] = byte_swap_32 (b_next[2]);
-  b_next[3] = byte_swap_32 (b_next[3]);
-#endif
+  b_next[0] = buf_get_le32 (input + 0);
+  b_next[1] = buf_get_le32 (input + 4);
+  b_next[2] = buf_get_le32 (input + 8);
+  b_next[3] = buf_get_le32 (input + 12);
 
   ROUND_FIRST_INVERSE (7, context->keys, b_next, b);
 
@@ -783,13 +765,10 @@ serpent_decrypt_internal (serpent_context_t *context,
   ROUND_INVERSE (1, context->keys, b, b_next);
   ROUND_INVERSE (0, context->keys, b, b_next);
 
-#ifdef WORDS_BIGENDIAN
-  b_next[0] = byte_swap_32 (b_next[0]);
-  b_next[1] = byte_swap_32 (b_next[1]);
-  b_next[2] = byte_swap_32 (b_next[2]);
-  b_next[3] = byte_swap_32 (b_next[3]);
-#endif
-  memcpy (output, b_next, sizeof (b_next));
+  buf_put_le32 (output + 0, b_next[0]);
+  buf_put_le32 (output + 4, b_next[1]);
+  buf_put_le32 (output + 8, b_next[2]);
+  buf_put_le32 (output + 12, b_next[3]);
 }
 
 static unsigned int

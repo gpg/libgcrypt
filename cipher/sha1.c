@@ -38,6 +38,7 @@
 
 #include "g10lib.h"
 #include "bithelp.h"
+#include "bufhelp.h"
 #include "cipher.h"
 #include "hash-common.h"
 
@@ -108,27 +109,13 @@ static unsigned int
 transform (void *ctx, const unsigned char *data)
 {
   SHA1_CONTEXT *hd = ctx;
+  const u32 *idata = (const void *)data;
   register u32 a, b, c, d, e; /* Local copies of the chaining variables.  */
   register u32 tm;            /* Helper.  */
   u32 x[16];                  /* The array we work on. */
 
-#ifdef WORDS_BIGENDIAN
-      memcpy (x, data, 64);
-      data += 64;
-#else
-      {
-        int i;
-        unsigned char *p;
+#define I(i) (x[i] = buf_get_be32(idata + i))
 
-        for(i=0, p=(unsigned char*)x; i < 16; i++, p += 4 )
-          {
-            p[3] = *data++;
-            p[2] = *data++;
-            p[1] = *data++;
-            p[0] = *data++;
-          }
-      }
-#endif
       /* Get the values of the chaining variables. */
       a = hd->h0;
       b = hd->h1;
@@ -137,22 +124,22 @@ transform (void *ctx, const unsigned char *data)
       e = hd->h4;
 
       /* Transform. */
-      R( a, b, c, d, e, F1, K1, x[ 0] );
-      R( e, a, b, c, d, F1, K1, x[ 1] );
-      R( d, e, a, b, c, F1, K1, x[ 2] );
-      R( c, d, e, a, b, F1, K1, x[ 3] );
-      R( b, c, d, e, a, F1, K1, x[ 4] );
-      R( a, b, c, d, e, F1, K1, x[ 5] );
-      R( e, a, b, c, d, F1, K1, x[ 6] );
-      R( d, e, a, b, c, F1, K1, x[ 7] );
-      R( c, d, e, a, b, F1, K1, x[ 8] );
-      R( b, c, d, e, a, F1, K1, x[ 9] );
-      R( a, b, c, d, e, F1, K1, x[10] );
-      R( e, a, b, c, d, F1, K1, x[11] );
-      R( d, e, a, b, c, F1, K1, x[12] );
-      R( c, d, e, a, b, F1, K1, x[13] );
-      R( b, c, d, e, a, F1, K1, x[14] );
-      R( a, b, c, d, e, F1, K1, x[15] );
+      R( a, b, c, d, e, F1, K1, I( 0) );
+      R( e, a, b, c, d, F1, K1, I( 1) );
+      R( d, e, a, b, c, F1, K1, I( 2) );
+      R( c, d, e, a, b, F1, K1, I( 3) );
+      R( b, c, d, e, a, F1, K1, I( 4) );
+      R( a, b, c, d, e, F1, K1, I( 5) );
+      R( e, a, b, c, d, F1, K1, I( 6) );
+      R( d, e, a, b, c, F1, K1, I( 7) );
+      R( c, d, e, a, b, F1, K1, I( 8) );
+      R( b, c, d, e, a, F1, K1, I( 9) );
+      R( a, b, c, d, e, F1, K1, I(10) );
+      R( e, a, b, c, d, F1, K1, I(11) );
+      R( d, e, a, b, c, F1, K1, I(12) );
+      R( c, d, e, a, b, F1, K1, I(13) );
+      R( b, c, d, e, a, F1, K1, I(14) );
+      R( a, b, c, d, e, F1, K1, I(15) );
       R( e, a, b, c, d, F1, K1, M(16) );
       R( d, e, a, b, c, F1, K1, M(17) );
       R( c, d, e, a, b, F1, K1, M(18) );
@@ -275,24 +262,13 @@ sha1_final(void *context)
       memset(hd->bctx.buf, 0, 56 ); /* fill next block with zeroes */
     }
   /* append the 64 bit count */
-  hd->bctx.buf[56] = msb >> 24;
-  hd->bctx.buf[57] = msb >> 16;
-  hd->bctx.buf[58] = msb >>  8;
-  hd->bctx.buf[59] = msb	   ;
-  hd->bctx.buf[60] = lsb >> 24;
-  hd->bctx.buf[61] = lsb >> 16;
-  hd->bctx.buf[62] = lsb >>  8;
-  hd->bctx.buf[63] = lsb	   ;
+  buf_put_be32(hd->bctx.buf + 56, msb);
+  buf_put_be32(hd->bctx.buf + 60, lsb);
   burn = transform( hd, hd->bctx.buf );
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
-#ifdef WORDS_BIGENDIAN
-#define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
-#else /* little endian */
-#define X(a) do { *p++ = hd->h##a >> 24; *p++ = hd->h##a >> 16;	 \
-                  *p++ = hd->h##a >> 8; *p++ = hd->h##a; } while(0)
-#endif
+#define X(a) do { *(u32*)p = be_bswap32(hd->h##a) ; p += 4; } while(0)
   X(0);
   X(1);
   X(2);

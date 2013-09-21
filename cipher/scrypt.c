@@ -58,38 +58,14 @@
 
 
 /* Reads a 64-bit integer, in network, big-endian, byte order */
-#define READ_UINT64(p)                          \
-(  (((u64) (p)[0]) << 56)                  \
- | (((u64) (p)[1]) << 48)                  \
- | (((u64) (p)[2]) << 40)                  \
- | (((u64) (p)[3]) << 32)                  \
- | (((u64) (p)[4]) << 24)                  \
- | (((u64) (p)[5]) << 16)                  \
- | (((u64) (p)[6]) << 8)                   \
- |  ((u64) (p)[7]))
-
+#define READ_UINT64(p) buf_get_be64(p)
 
 
 /* And the other, little-endian, byteorder */
-#define LE_READ_UINT64(p)                       \
-(  (((u64) (p)[7]) << 56)                  \
- | (((u64) (p)[6]) << 48)                  \
- | (((u64) (p)[5]) << 40)                  \
- | (((u64) (p)[4]) << 32)                  \
- | (((u64) (p)[3]) << 24)                  \
- | (((u64) (p)[2]) << 16)                  \
- | (((u64) (p)[1]) << 8)                   \
- |  ((u64) (p)[0]))
+#define LE_READ_UINT64(p) buf_get_le64(p)
 
+#define LE_SWAP32(v) le_bswap32(v)
 
-
-#ifdef WORDS_BIGENDIAN
-#define LE_SWAP32(v)				\
-  ((ROTL32(8,  v) & 0x00FF00FFUL) |		\
-   (ROTL32(24, v) & 0xFF00FF00UL))
-#else
-#define LE_SWAP32(v) (v)
-#endif
 
 #define QROUND(x0, x1, x2, x3) do { \
   x1 ^= ROTL32(7, x0 + x3);	    \

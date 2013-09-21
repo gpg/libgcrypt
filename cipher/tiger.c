@@ -28,6 +28,8 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "hash-common.h"
+#include "bithelp.h"
+#include "bufhelp.h"
 
 /* We really need a 64 bit type for this code.  */
 #ifdef HAVE_U64_TYPEDEF
@@ -697,24 +699,10 @@ transform ( void *ctx, const unsigned char *data )
   TIGER_CONTEXT *hd = ctx;
   u64 a,b,c,aa,bb,cc;
   u64 x[8];
-#ifdef WORDS_BIGENDIAN
-#define MKWORD(d,n) \
-		(  ((u64)(d)[8*(n)+7]) << 56 | ((u64)(d)[8*(n)+6]) << 48  \
-		 | ((u64)(d)[8*(n)+5]) << 40 | ((u64)(d)[8*(n)+4]) << 32  \
-		 | ((u64)(d)[8*(n)+3]) << 24 | ((u64)(d)[8*(n)+2]) << 16  \
-		 | ((u64)(d)[8*(n)+1]) << 8  | ((u64)(d)[8*(n)	])	 )
-  x[0] = MKWORD(data, 0);
-  x[1] = MKWORD(data, 1);
-  x[2] = MKWORD(data, 2);
-  x[3] = MKWORD(data, 3);
-  x[4] = MKWORD(data, 4);
-  x[5] = MKWORD(data, 5);
-  x[6] = MKWORD(data, 6);
-  x[7] = MKWORD(data, 7);
-#undef MKWORD
-#else
-  memcpy( &x[0], data, 64 );
-#endif
+  int i;
+
+  for ( i = 0; i < 8; i++ )
+    x[i] = buf_get_le64(data + i * 8);
 
   /* save */
   a = aa = hd->a;
@@ -783,30 +771,14 @@ tiger_final( void *context )
       memset(hd->bctx.buf, 0, 56 ); /* fill next block with zeroes */
     }
   /* append the 64 bit count */
-  hd->bctx.buf[56] = lsb	   ;
-  hd->bctx.buf[57] = lsb >>  8;
-  hd->bctx.buf[58] = lsb >> 16;
-  hd->bctx.buf[59] = lsb >> 24;
-  hd->bctx.buf[60] = msb	   ;
-  hd->bctx.buf[61] = msb >>  8;
-  hd->bctx.buf[62] = msb >> 16;
-  hd->bctx.buf[63] = msb >> 24;
+  buf_put_le32(hd->bctx.buf + 56, lsb);
+  buf_put_le32(hd->bctx.buf + 60, msb);
   burn = transform( hd, hd->bctx.buf );
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
-#ifdef WORDS_BIGENDIAN
-#define X(a) do { *(u64*)p = hd->a ; p += 8; } while(0)
-#else /* little endian */
-#define X(a) do { *p++ = hd->a >> 56; *p++ = hd->a >> 48; \
-	          *p++ = hd->a >> 40; *p++ = hd->a >> 32; \
-	          *p++ = hd->a >> 24; *p++ = hd->a >> 16; \
-	          *p++ = hd->a >>  8; *p++ = hd->a;       } while(0)
-#endif
-#define Y(a) do { *p++ = hd->a      ; *p++ = hd->a >> 8;  \
-	          *p++ = hd->a >> 16; *p++ = hd->a >> 24; \
-	          *p++ = hd->a >> 32; *p++ = hd->a >> 40; \
-	          *p++ = hd->a >> 48; *p++ = hd->a >> 56; } while(0)
+#define X(a) do { *(u64*)p = be_bswap64(hd->a); p += 8; } while(0)
+#define Y(a) do { *(u64*)p = le_bswap64(hd->a); p += 8; } while(0)
   if (hd->variant == 0)
     {
       X(a);

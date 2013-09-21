@@ -27,6 +27,7 @@
 
 #include "g10lib.h"
 #include "bithelp.h"
+#include "bufhelp.h"
 #include "cipher.h"
 #include "hash-common.h"
 
@@ -1304,25 +1305,8 @@ transform (STRIBOG_CONTEXT *hd, const unsigned char *data, unsigned count)
   u64 l;
   int i;
 
-#ifndef WORDS_BIGENDIAN
-  memcpy (M, data, 64);
-#else
-  {
-    byte *p2;
-
-    for (i = 0, p2 = (byte *) M; i < 8; i++, p2 += 8)
-      {
-          p2[7] = *data++;
-          p2[6] = *data++;
-          p2[5] = *data++;
-          p2[4] = *data++;
-          p2[3] = *data++;
-          p2[2] = *data++;
-          p2[1] = *data++;
-          p2[0] = *data++;
-        }
-    }
-#endif
+  for (i = 0; i < 8; i++)
+    M[i] = buf_get_le64(data + i * 8);
 
   g (hd->h, M, hd->N);
   l = hd->N[0];
@@ -1379,19 +1363,8 @@ stribog_final (void *context)
   g (hd->h, hd->N, Z);
   g (hd->h, hd->Sigma, Z);
 
-#ifdef WORDS_BIGENDIAN
   for (i = 0; i < 8; i++)
-    {
-      u64 T = hd->h[i];
-      T = ((T & U64_C(0x00ff00ff00ff00ff)) << 8) |
-          ((T & U64_C(0xff00ff00ff00ff00)) >> 8);
-      T = ((T & U64_C(0x0000ffff0000ffff)) << 16) |
-          ((T & U64_C(0xffff0000ffff0000)) >> 16);
-      T = ((T & U64_C(0x00000000ffffffff)) << 32) |
-          ((T & U64_C(0xffffffff00000000)) >> 32);
-      hd->h[i] = T;
-    }
-#endif
+    hd->h[i] = le_bswap64(hd->h[i]);
 
   _gcry_burn_stack (768);
 }

@@ -37,7 +37,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 
-#include "bithelp.h"
+#include "bufhelp.h"
 
 /* Size of a whirlpool block (in bytes).  */
 #define BLOCK_SIZE 64
@@ -65,30 +65,13 @@ typedef struct {
    counter.  */
 #define buffer_to_block(buffer, block, i) \
   for (i = 0; i < 8; i++) \
-    (block)[i] = ((u64) (0 \
-                         | (((u64) (buffer)[i * 8 + 0]) << 56) \
-                         | (((u64) (buffer)[i * 8 + 1]) << 48) \
-                         | (((u64) (buffer)[i * 8 + 2]) << 40) \
-                         | (((u64) (buffer)[i * 8 + 3]) << 32) \
-                         | (((u64) (buffer)[i * 8 + 4]) << 24) \
-                         | (((u64) (buffer)[i * 8 + 5]) << 16) \
-                         | (((u64) (buffer)[i * 8 + 6]) <<  8) \
-                         | (((u64) (buffer)[i * 8 + 7]) <<  0)));
+    (block)[i] = buf_get_be64((buffer) + i * 8);
 
 /* Convert the block BLOCK into a buffer BUFFER, using I as
    counter.  */
 #define block_to_buffer(buffer, block, i) \
   for (i = 0; i < 8; i++) \
-    { \
-      (buffer)[i * 8 + 0] = (block[i] >> 56) & 0xFF; \
-      (buffer)[i * 8 + 1] = (block[i] >> 48) & 0xFF; \
-      (buffer)[i * 8 + 2] = (block[i] >> 40) & 0xFF; \
-      (buffer)[i * 8 + 3] = (block[i] >> 32) & 0xFF; \
-      (buffer)[i * 8 + 4] = (block[i] >> 24) & 0xFF; \
-      (buffer)[i * 8 + 5] = (block[i] >> 16) & 0xFF; \
-      (buffer)[i * 8 + 6] = (block[i] >>  8) & 0xFF; \
-      (buffer)[i * 8 + 7] = (block[i] >>  0) & 0xFF; \
-    }
+    buf_put_be64((buffer) + i * 8, (block)[i]);
 
 /* Copy the block BLOCK_SRC to BLOCK_DST, using I as counter.  */
 #define block_copy(block_dst, block_src, i) \

@@ -774,6 +774,36 @@ AC_SUBST(FALLBACK_SOCKLEN_T)
 
 
 #
+# Check for __builtin_bswap32 intrinsic.
+#
+AC_CACHE_CHECK(for __builtin_bswap32,
+       [gcry_cv_have_builtin_bswap32],
+       [gcry_cv_have_builtin_bswap32=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[int foo(int x) { return __builtin_bswap32(x); }]])],
+          [gcry_cv_have_builtin_bswap32=yes])])
+if test "$gcry_cv_have_builtin_bswap32" = "yes" ; then
+   AC_DEFINE(HAVE_BUILTIN_BSWAP32,1,
+             [Defined if compiler has '__builtin_bswap32' intrinsic])
+fi
+
+
+#
+# Check for __builtin_bswap64 intrinsic.
+#
+AC_CACHE_CHECK(for __builtin_bswap64,
+       [gcry_cv_have_builtin_bswap64],
+       [gcry_cv_have_builtin_bswap64=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[int foo(int x) { return __builtin_bswap64(x); }]])],
+          [gcry_cv_have_builtin_bswap64=yes])])
+if test "$gcry_cv_have_builtin_bswap64" = "yes" ; then
+   AC_DEFINE(HAVE_BUILTIN_BSWAP64,1,
+             [Defined if compiler has '__builtin_bswap64' intrinsic])
+fi
+
+
+#
 # Check for VLA support (variable length arrays).
 #
 AC_CACHE_CHECK(whether the variable length arrays are supported,

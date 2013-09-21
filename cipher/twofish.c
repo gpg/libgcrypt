@@ -798,13 +798,12 @@ extern void _gcry_twofish_amd64_cfb_dec(const TWOFISH_context *c, byte *out,
  * whitening subkey number m. */
 
 #define INPACK(n, x, m) \
-   x = in[4 * (n)] ^ (in[4 * (n) + 1] << 8) \
-     ^ (in[4 * (n) + 2] << 16) ^ (in[4 * (n) + 3] << 24) ^ ctx->w[m]
+   x = buf_get_le32(in + (n) * 4); \
+   x ^= ctx->w[m]
 
 #define OUTUNPACK(n, x, m) \
    x ^= ctx->w[m]; \
-   out[4 * (n)] = x; out[4 * (n) + 1] = x >> 8; \
-   out[4 * (n) + 2] = x >> 16; out[4 * (n) + 3] = x >> 24
+   buf_put_le32(out + (n) * 4, x)
 
 #endif /*!USE_AMD64_ASM*/
 

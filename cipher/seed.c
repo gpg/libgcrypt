@@ -29,15 +29,12 @@
 #include "types.h"  /* for byte and u32 typedefs */
 #include "g10lib.h"
 #include "cipher.h"
+#include "bufhelp.h"
 
 #define NUMKC	16
 
-#define GETU32(pt) (((u32)(pt)[0] << 24) ^ ((u32)(pt)[1] << 16) ^ \
-		    ((u32)(pt)[2] <<  8) ^ ((u32)(pt)[3]))
-#define PUTU32(ct, st) { (ct)[0] = (byte)((st) >> 24); \
-			 (ct)[1] = (byte)((st) >> 16); \
-			 (ct)[2] = (byte)((st) >>  8); \
-			 (ct)[3] = (byte)(st); }
+#define GETU32(pt) buf_get_be32(pt)
+#define PUTU32(ct, st) buf_put_be32(ct, st)
 
 union wordbuf
 {

@@ -118,6 +118,7 @@
 #include "types.h"             /* for byte and u32 typedefs */
 #include "g10lib.h"
 #include "cipher.h"
+#include "bufhelp.h"
 
 #if defined(__GNUC__) && defined(__GNU_LIBRARY__)
 #define working_memcmp memcmp
@@ -455,14 +456,12 @@ static unsigned char weak_keys_chksum[20] = {
  * Macros to convert 8 bytes from/to 32bit words.
  */
 #define READ_64BIT_DATA(data, left, right)				   \
-    left  = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];  \
-    right = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
+    left = buf_get_be32(data + 0);					   \
+    right = buf_get_be32(data + 4);
 
 #define WRITE_64BIT_DATA(data, left, right)				   \
-    data[0] = (left >> 24) &0xff; data[1] = (left >> 16) &0xff; 	   \
-    data[2] = (left >> 8) &0xff; data[3] = left &0xff;			   \
-    data[4] = (right >> 24) &0xff; data[5] = (right >> 16) &0xff;	   \
-    data[6] = (right >> 8) &0xff; data[7] = right &0xff;
+    buf_put_be32(data + 0, left);					   \
+    buf_put_be32(data + 4, right);
 
 /*
  * Handy macros for encryption and decryption of data

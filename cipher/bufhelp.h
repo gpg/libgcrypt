@@ -20,6 +20,8 @@
 #ifndef G10_BUFHELP_H
 #define G10_BUFHELP_H
 
+#include <config.h>
+
 #ifdef HAVE_STDINT_H
 # include <stdint.h> /* uintptr_t */
 #elif defined(HAVE_INTTYPES_H)
@@ -27,6 +29,8 @@
 #else
 /* In this case, uintptr_t is provided by config.h. */
 #endif
+
+#include "bithelp.h"
 
 
 #if defined(__i386__) || defined(__x86_64__) || \
@@ -178,5 +182,144 @@ do_bytes:
       *srcdst_cpy++ = temp;
     }
 }
+
+
+#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
+
+/* Functions for loading and storing unaligned u32 values of different
+   endianness.  */
+static inline u32 buf_get_be32(const void *_buf)
+{
+  const byte *in = _buf;
+  return ((u32)in[0] << 24) | ((u32)in[1] << 16) | \
+         ((u32)in[2] << 8) | (u32)in[3];
+}
+
+static inline u32 buf_get_le32(const void *_buf)
+{
+  const byte *in = _buf;
+  return ((u32)in[3] << 24) | ((u32)in[2] << 16) | \
+         ((u32)in[1] << 8) | (u32)in[0];
+}
+
+static inline void buf_put_be32(void *_buf, u32 val)
+{
+  byte *out = _buf;
+  out[0] = val >> 24;
+  out[1] = val >> 16;
+  out[2] = val >> 8;
+  out[3] = val;
+}
+
+static inline void buf_put_le32(void *_buf, u32 val)
+{
+  byte *out = _buf;
+  out[3] = val >> 24;
+  out[2] = val >> 16;
+  out[1] = val >> 8;
+  out[0] = val;
+}
+
+#ifdef HAVE_U64_TYPEDEF
+/* Functions for loading and storing unaligned u64 values of different
+   endianness.  */
+static inline u64 buf_get_be64(const void *_buf)
+{
+  const byte *in = _buf;
+  return ((u64)in[0] << 56) | ((u64)in[1] << 48) | \
+         ((u64)in[2] << 40) | ((u64)in[3] << 32) | \
+         ((u64)in[4] << 24) | ((u64)in[5] << 16) | \
+         ((u64)in[6] << 8) | (u64)in[7];
+}
+
+static inline u64 buf_get_le64(const void *_buf)
+{
+  const byte *in = _buf;
+  return ((u64)in[7] << 56) | ((u64)in[6] << 48) | \
+         ((u64)in[5] << 40) | ((u64)in[4] << 32) | \
+         ((u64)in[3] << 24) | ((u64)in[2] << 16) | \
+         ((u64)in[1] << 8) | (u64)in[0];
+}
+
+static inline void buf_put_be64(void *_buf, u64 val)
+{
+  byte *out = _buf;
+  out[0] = val >> 56;
+  out[1] = val >> 48;
+  out[2] = val >> 40;
+  out[3] = val >> 32;
+  out[4] = val >> 24;
+  out[5] = val >> 16;
+  out[6] = val >> 8;
+  out[7] = val;
+}
+
+static inline void buf_put_le64(void *_buf, u64 val)
+{
+  byte *out = _buf;
+  out[7] = val >> 56;
+  out[6] = val >> 48;
+  out[5] = val >> 40;
+  out[4] = val >> 32;
+  out[3] = val >> 24;
+  out[2] = val >> 16;
+  out[1] = val >> 8;
+  out[0] = val;
+}
+#endif /*HAVE_U64_TYPEDEF*/
+
+#else /*BUFHELP_FAST_UNALIGNED_ACCESS*/
+
+/* Functions for loading and storing unaligned u32 values of different
+   endianness.  */
+static inline u32 buf_get_be32(const void *_buf)
+{
+  return be_bswap32(*(const u32 *)_buf);
+}
+
+static inline u32 buf_get_le32(const void *_buf)
+{
+  return le_bswap32(*(const u32 *)_buf);
+}
+
+static inline void buf_put_be32(void *_buf, u32 val)
+{
+  u32 *out = _buf;
+  *out = be_bswap32(val);
+}
+
+static inline void buf_put_le32(void *_buf, u32 val)
+{
+  u32 *out = _buf;
+  *out = le_bswap32(val);
+}
+
+#ifdef HAVE_U64_TYPEDEF
+/* Functions for loading and storing unaligned u64 values of different
+   endianness.  */
+static inline u64 buf_get_be64(const void *_buf)
+{
+  return be_bswap64(*(const u64 *)_buf);
+}
+
+static inline u64 buf_get_le64(const void *_buf)
+{
+  return le_bswap64(*(const u64 *)_buf);
+}
+
+static inline void buf_put_be64(void *_buf, u64 val)
+{
+  u64 *out = _buf;
+  *out = be_bswap64(val);
+}
+
+static inline void buf_put_le64(void *_buf, u64 val)
+{
+  u64 *out = _buf;
+  *out = le_bswap64(val);
+}
+#endif /*HAVE_U64_TYPEDEF*/
+
+#endif /*BUFHELP_FAST_UNALIGNED_ACCESS*/
 
 #endif /*G10_BITHELP_H*/

@@ -25,6 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "bufhelp.h"
 #include "camellia.h"
 
 /* u32 must be 32bit word */
@@ -59,17 +60,8 @@ typedef unsigned char u8;
 
 #else /* not MS-VC */
 
-# define GETU32(pt)				\
-    (((u32)(pt)[0] << 24)			\
-     ^ ((u32)(pt)[1] << 16)			\
-     ^ ((u32)(pt)[2] <<  8)			\
-     ^ ((u32)(pt)[3]))
-
-# define PUTU32(ct, st)  {			\
-	(ct)[0] = (u8)((st) >> 24);		\
-	(ct)[1] = (u8)((st) >> 16);		\
-	(ct)[2] = (u8)((st) >>  8);		\
-	(ct)[3] = (u8)(st); }
+# define GETU32(pt) buf_get_be32(pt)
+# define PUTU32(ct, st) buf_put_be32(ct, st)
 
 #endif
 

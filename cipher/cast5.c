@@ -42,6 +42,7 @@
 #include "g10lib.h"
 #include "types.h"
 #include "cipher.h"
+#include "bithelp.h"
 #include "bufhelp.h"
 #include "cipher-selftest.h"
 
@@ -448,25 +449,11 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
 
 #else /*USE_ARMV6_ASM*/
 
-#if defined(__GNUC__) && defined(__i386__)
-static inline u32
-rol(int n, u32 x)
-{
-	__asm__("roll %%cl,%0"
-		:"=r" (x)
-		:"0" (x),"c" (n)
-		:"cc");
-	return x;
-}
-#else
-#define rol(n,x) ( ((x) << (n)) | ((x) >> (32-(n))) )
-#endif
-
-#define F1(D,m,r)  (  (I = ((m) + (D))), (I=rol((r),I)),   \
+#define F1(D,m,r)  (  (I = ((m) + (D))), (I=rol(I,(r))),   \
     (((s1[I >> 24] ^ s2[(I>>16)&0xff]) - s3[(I>>8)&0xff]) + s4[I&0xff]) )
-#define F2(D,m,r)  (  (I = ((m) ^ (D))), (I=rol((r),I)),   \
+#define F2(D,m,r)  (  (I = ((m) ^ (D))), (I=rol(I,(r))),   \
     (((s1[I >> 24] - s2[(I>>16)&0xff]) + s3[(I>>8)&0xff]) ^ s4[I&0xff]) )
-#define F3(D,m,r)  (  (I = ((m) - (D))), (I=rol((r),I)),   \
+#define F3(D,m,r)  (  (I = ((m) - (D))), (I=rol(I,(r))),   \
     (((s1[I >> 24] + s2[(I>>16)&0xff]) ^ s3[(I>>8)&0xff]) - s4[I&0xff]) )
 
 static void
@@ -483,8 +470,8 @@ do_encrypt_block( CAST5_context *c, byte *outbuf, const byte *inbuf )
     /* (L0,R0) <-- (m1...m64).	(Split the plaintext into left and
      * right 32-bit halves L0 = m1...m32 and R0 = m33...m64.)
      */
-    l = inbuf[0] << 24 | inbuf[1] << 16 | inbuf[2] << 8 | inbuf[3];
-    r = inbuf[4] << 24 | inbuf[5] << 16 | inbuf[6] << 8 | inbuf[7];
+    l = buf_get_be32(inbuf + 0);
+    r = buf_get_be32(inbuf + 4);
 
     /* (16 rounds) for i from 1 to 16, compute Li and Ri as follows:
      *	Li = Ri-1;
@@ -513,14 +500,8 @@ do_encrypt_block( CAST5_context *c, byte *outbuf, const byte *inbuf )
 
     /* c1...c64 <-- (R16,L16).	(Exchange final blocks L16, R16 and
      *	concatenate to form the ciphertext.) */
-    outbuf[0] = (r >> 24) & 0xff;
-    outbuf[1] = (r >> 16) & 0xff;
-    outbuf[2] = (r >>  8) & 0xff;
-    outbuf[3] =  r	  & 0xff;
-    outbuf[4] = (l >> 24) & 0xff;
-    outbuf[5] = (l >> 16) & 0xff;
-    outbuf[6] = (l >>  8) & 0xff;
-    outbuf[7] =  l	  & 0xff;
+    buf_put_be32(outbuf + 0, r);
+    buf_put_be32(outbuf + 4, l);
 }
 
 static unsigned int
@@ -543,8 +524,8 @@ do_decrypt_block (CAST5_context *c, byte *outbuf, const byte *inbuf )
     Km = c->Km;
     Kr = c->Kr;
 
-    l = inbuf[0] << 24 | inbuf[1] << 16 | inbuf[2] << 8 | inbuf[3];
-    r = inbuf[4] << 24 | inbuf[5] << 16 | inbuf[6] << 8 | inbuf[7];
+    l = buf_get_be32(inbuf + 0);
+    r = buf_get_be32(inbuf + 4);
 
     t = l; l = r; r = t ^ F1(r, Km[15], Kr[15]);
     t = l; l = r; r = t ^ F3(r, Km[14], Kr[14]);
@@ -563,14 +544,8 @@ do_decrypt_block (CAST5_context *c, byte *outbuf, const byte *inbuf )
     t = l; l = r; r = t ^ F2(r, Km[ 1], Kr[ 1]);
     t = l; l = r; r = t ^ F1(r, Km[ 0], Kr[ 0]);
 
-    outbuf[0] = (r >> 24) & 0xff;
-    outbuf[1] = (r >> 16) & 0xff;
-    outbuf[2] = (r >>  8) & 0xff;
-    outbuf[3] =  r	  & 0xff;
-    outbuf[4] = (l >> 24) & 0xff;
-    outbuf[5] = (l >> 16) & 0xff;
-    outbuf[6] = (l >>  8) & 0xff;
-    outbuf[7] =  l	  & 0xff;
+    buf_put_be32(outbuf + 0, r);
+    buf_put_be32(outbuf + 4, l);
 }
 
 static unsigned int
@@ -949,10 +924,10 @@ do_cast_setkey( CAST5_context *c, const byte *key, unsigned keylen )
   if( keylen != 16 )
     return GPG_ERR_INV_KEYLEN;
 
-  x[0] = key[0]  << 24 | key[1]  << 16 | key[2]  << 8 | key[3];
-  x[1] = key[4]  << 24 | key[5]  << 16 | key[6]  << 8 | key[7];
-  x[2] = key[8]  << 24 | key[9]  << 16 | key[10] << 8 | key[11];
-  x[3] = key[12] << 24 | key[13] << 16 | key[14] << 8 | key[15];
+  x[0] = buf_get_be32(key + 0);
+  x[1] = buf_get_be32(key + 4);
+  x[2] = buf_get_be32(key + 8);
+  x[3] = buf_get_be32(key + 12);
 
   key_schedule( x, z, k );
   for(i=0; i < 16; i++ )
