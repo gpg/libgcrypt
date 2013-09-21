@@ -1173,7 +1173,7 @@ whirlpool_init (void *ctx)
 /*
  * Transform block.
  */
-static void
+static unsigned int
 whirlpool_transform (whirlpool_context_t *context, const unsigned char *data)
 {
   whirlpool_block_t data_block;
@@ -1267,6 +1267,9 @@ whirlpool_transform (whirlpool_context_t *context, const unsigned char *data)
 
   block_xor (context->hash_state, data_block, i);
   block_xor (context->hash_state, state, i);
+
+  return /*burn_stack*/ 4 * sizeof(whirlpool_block_t) + 2 * sizeof(int) +
+                        3 * sizeof(void*);
 }
 
 static void
@@ -1274,12 +1277,14 @@ whirlpool_add (whirlpool_context_t *context,
 	       const void *buffer_arg, size_t buffer_n)
 {
   const unsigned char *buffer = buffer_arg;
+  unsigned int burn = 0;
 
   if (context->count == BLOCK_SIZE)
     {
       /* Flush the buffer.  */
-      whirlpool_transform (context, context->buffer);
-      /*_gcry_burn_stack (80+6*sizeof(void*));*/ /* FIXME */
+      burn = whirlpool_transform (context, context->buffer);
+      _gcry_burn_stack (burn);
+      burn = 0;
       context->count = 0;
       context->nblocks++;
     }
@@ -1298,11 +1303,10 @@ whirlpool_add (whirlpool_context_t *context,
       if (!buffer_n)
         return;
     }
-  /*_gcry_burn_stack (80+6*sizeof(void*));*/ /* FIXME */
 
   while (buffer_n >= BLOCK_SIZE)
     {
-      whirlpool_transform (context, buffer);
+      burn = whirlpool_transform (context, buffer);
       context->count = 0;
       context->nblocks++;
       buffer_n -= BLOCK_SIZE;
@@ -1313,6 +1317,8 @@ whirlpool_add (whirlpool_context_t *context,
       context->buffer[context->count++] = *buffer++;
       buffer_n--;
     }
+
+  _gcry_burn_stack (burn);
 }
 
 static void
