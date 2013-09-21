@@ -98,19 +98,10 @@ struct hmac256_context
 
 
 /* Rotate a 32 bit word.  */
-#if defined(__GNUC__) && defined(__i386__)
-static inline u32
-ror(u32 x, int n)
+static inline u32 ror(u32 x, int n)
 {
-	__asm__("rorl %%cl,%0"
-		:"=r" (x)
-		:"0" (x),"c" (n)
-		:"cc");
-	return x;
+	return ( ((x) >> (n)) | ((x) << (32-(n))) );
 }
-#else
-#define ror(x,n) ( ((x) >> (n)) | ((x) << (32-(n))) )
-#endif
 
 #define my_wipememory2(_ptr,_set,_len) do { \
               volatile char *_vptr=(volatile char *)(_ptr); \

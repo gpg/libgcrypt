@@ -26,33 +26,15 @@
 /****************
  * Rotate the 32 bit unsigned integer X by N bits left/right
  */
-#if defined(__GNUC__) && defined(__i386__)
-static inline u32
-rol( u32 x, int n)
+static inline u32 rol( u32 x, int n)
 {
-	__asm__("roll %%cl,%0"
-		:"=r" (x)
-		:"0" (x),"c" (n)
-		:"cc");
-	return x;
+	return ( (x << n) | (x >> (32-n)) );
 }
-#else
-#define rol(x,n) ( ((x) << (n)) | ((x) >> (32-(n))) )
-#endif
 
-#if defined(__GNUC__) && defined(__i386__)
-static inline u32
-ror(u32 x, int n)
+static inline u32 ror(u32 x, int n)
 {
-	__asm__("rorl %%cl,%0"
-		:"=r" (x)
-		:"0" (x),"c" (n)
-		:"cc");
-	return x;
+	return ( (x >> n) | (x << (32-n)) );
 }
-#else
-#define ror(x,n) ( ((x) >> (n)) | ((x) << (32-(n))) )
-#endif
 
 /* Byte swap for 32-bit and 64-bit integers.  If available, use compiler
    provided helpers.  */
