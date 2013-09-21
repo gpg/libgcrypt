@@ -102,7 +102,10 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
   const unsigned char *inbuf = inbuf_arg;
   gcry_md_block_ctx_t *hd = context;
 
-  if ( hd->buf == NULL || hd->bwrite == NULL)
+  if (sizeof(hd->buf) < hd->blocksize)
+    BUG();
+
+  if (hd->buf == NULL || hd->bwrite == NULL)
     return;
 
   if (hd->count == hd->blocksize)  /* Flush the buffer. */
