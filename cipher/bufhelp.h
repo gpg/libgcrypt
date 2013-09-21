@@ -34,6 +34,7 @@
 
 
 #if defined(__i386__) || defined(__x86_64__) || \
+    defined(__powerpc__) || defined(__powerpc64__) || \
     (defined(__arm__) && defined(__ARM_FEATURE_UNALIGNED))
 /* These architectures are able of unaligned memory accesses and can
    handle those fast.
