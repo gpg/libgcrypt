@@ -468,8 +468,8 @@ extern USItype __udiv_qrnnd ();
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("addl %5,%1\n"                                               \
 	   "adcl %3,%0"                                                 \
-	   : "=r" ((USItype)(sh)),                                      \
-	     "=&r" ((USItype)(sl))                                      \
+	   : "=r" ((sh)),                                               \
+	     "=&r" ((sl))                                               \
 	   : "%0" ((USItype)(ah)),                                      \
 	     "g" ((USItype)(bh)),                                       \
 	     "%1" ((USItype)(al)),                                      \
@@ -478,8 +478,8 @@ extern USItype __udiv_qrnnd ();
 #define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subl %5,%1\n"                                               \
 	   "sbbl %3,%0"                                                 \
-	   : "=r" ((USItype)(sh)),                                      \
-	     "=&r" ((USItype)(sl))                                      \
+	   : "=r" ((sh)),                                               \
+	     "=&r" ((sl))                                               \
 	   : "0" ((USItype)(ah)),                                       \
 	     "g" ((USItype)(bh)),                                       \
 	     "1" ((USItype)(al)),                                       \
@@ -487,15 +487,15 @@ extern USItype __udiv_qrnnd ();
 	   __CLOBBER_CC)
 #define umul_ppmm(w1, w0, u, v) \
   __asm__ ("mull %3"                                                    \
-	   : "=a" ((USItype)(w0)),                                      \
-	     "=d" ((USItype)(w1))                                       \
+	   : "=a" ((w0)),                                               \
+	     "=d" ((w1))                                                \
 	   : "%0" ((USItype)(u)),                                       \
 	     "rm" ((USItype)(v))                                        \
 	   __CLOBBER_CC)
 #define udiv_qrnnd(q, r, n1, n0, d) \
   __asm__ ("divl %4"                                                    \
-	   : "=a" ((USItype)(q)),                                       \
-	     "=d" ((USItype)(r))                                        \
+	   : "=a" ((q)),                                                \
+	     "=d" ((r))                                                 \
 	   : "0" ((USItype)(n0)),                                       \
 	     "1" ((USItype)(n1)),                                       \
 	     "rm" ((USItype)(d))                                        \
