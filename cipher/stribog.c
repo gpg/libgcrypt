@@ -32,6 +32,7 @@
 
 typedef struct
 {
+  gcry_md_block_ctx_t bctx;
   union
   {
     u64 h[8];
@@ -39,8 +40,6 @@ typedef struct
   };
   u64 N[8];
   u64 Sigma[8];
-  byte buf[64];
-  int count;
 } STRIBOG_CONTEXT;
 
 static const byte Pi[256] =
@@ -1276,11 +1275,19 @@ static void g (u64 *h, u64 *m, u64 *N)
 
 
 static void
+transform64 (void *context, const unsigned char *inbuf_arg);
+
+
+static void
 stribog_init_512 (void *context)
 {
   STRIBOG_CONTEXT *hd = context;
 
   memset (hd, 0, sizeof (*hd));
+
+  hd->bctx.blocksize = 64;
+  hd->bctx.bwrite = transform64;
+  hd->bctx.stack_burn = 768;
 }
 
 static void
@@ -1340,35 +1347,11 @@ transform (STRIBOG_CONTEXT *hd, const unsigned char *data, unsigned count)
 }
 
 static void
-stribog_write (void *context, const void *inbuf_arg, size_t inlen)
+transform64 (void *context, const unsigned char *inbuf_arg)
 {
   STRIBOG_CONTEXT *hd = context;
-  const unsigned char *inbuf = inbuf_arg;
-  if (hd->count == 64)
-    {
-      transform (hd, hd->buf, hd->count * 8);
-      hd->count = 0;
-      _gcry_burn_stack (768);
-    }
-  if (!inbuf)
-    return;
-  if (hd->count)
-    {
-      for (; inlen && hd->count < 64; inlen--)
-        hd->buf[hd->count++] = *inbuf++;
-      stribog_write (context, NULL, 0);
-      if (!inlen)
-        return;
-    }
-  while (inlen >= 64)
-    {
-      transform (hd, inbuf, 64 * 8);
-      inlen -= 64;
-      inbuf += 64;
-    }
-  _gcry_burn_stack (768);
-  for (; inlen && hd->count < 64; inlen--)
-    hd->buf[hd->count++] = *inbuf++;
+
+  transform (hd, inbuf_arg, 64 * 8);
 }
 
 /*
@@ -1383,14 +1366,14 @@ stribog_final (void *context)
   u64 Z[8] = {};
   int i;
 
-  stribog_write (context, NULL, 0); /* flush */ ;
+  _gcry_md_block_write (context, NULL, 0); /* flush */ ;
   /* PAD. It does not count towards message length */
-  i = hd->count;
+  i = hd->bctx.count;
   /* After flush we have at least one byte free) */
-  hd->buf[i++] = 1;
+  hd->bctx.buf[i++] = 1;
   while (i < 64)
-    hd->buf[i++] = 0;
-  transform (hd, hd->buf, hd->count * 8);
+    hd->bctx.buf[i++] = 0;
+  transform (hd, hd->bctx.buf, hd->bctx.count * 8);
 
   g (hd->h, hd->N, Z);
   g (hd->h, hd->Sigma, Z);
@@ -1431,13 +1414,13 @@ stribog_read_256 (void *context)
 gcry_md_spec_t _gcry_digest_spec_stribog_256 =
   {
     "STRIBOG256", NULL, 0, NULL, 32,
-    stribog_init_256, stribog_write, stribog_final, stribog_read_256,
+    stribog_init_256, _gcry_md_block_write, stribog_final, stribog_read_256,
     sizeof (STRIBOG_CONTEXT)
   };
 
 gcry_md_spec_t _gcry_digest_spec_stribog_512 =
   {
     "STRIBOG512", NULL, 0, NULL, 64,
-    stribog_init_512, stribog_write, stribog_final, stribog_read_512,
+    stribog_init_512, _gcry_md_block_write, stribog_final, stribog_read_512,
     sizeof (STRIBOG_CONTEXT)
   };
