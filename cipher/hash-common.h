@@ -32,8 +32,8 @@ const char * _gcry_hash_selftest_check_one
 typedef unsigned int (*_gcry_md_block_write_t) (void *c,
 						const unsigned char *buf);
 
-#if defined(HAVE_U64_TYPEDEF) && defined(USE_SHA512)
-/* SHA-512 needs u64 and larger buffer. */
+#if defined(HAVE_U64_TYPEDEF) && (defined(USE_SHA512) || defined(USE_WHIRLPOOL))
+/* SHA-512 needs u64 and larger buffer. Whirlpool needs u64. */
 # define MD_BLOCK_MAX_BLOCKSIZE 128
 # define MD_NBLOCKS_TYPE u64
 #else
