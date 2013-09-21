@@ -50,8 +50,9 @@ typedef struct {
   u32  h0,h1,h2,h3,h4,h5,h6,h7;
 } SHA256_CONTEXT;
 
-static void
+static unsigned int
 transform (void *c, const unsigned char *data);
+
 
 static void
 sha256_init (void *context)
@@ -70,7 +71,6 @@ sha256_init (void *context)
   hd->bctx.nblocks = 0;
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
-  hd->bctx.stack_burn = 74*4+32;
   hd->bctx.bwrite = transform;
 }
 
@@ -92,7 +92,6 @@ sha224_init (void *context)
   hd->bctx.nblocks = 0;
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
-  hd->bctx.stack_burn = 74*4+32;
   hd->bctx.bwrite = transform;
 }
 
@@ -145,7 +144,7 @@ Sum1 (u32 x)
 }
 
 
-static void
+static unsigned int
 transform (void *ctx, const unsigned char *data)
 {
   SHA256_CONTEXT *hd = ctx;
@@ -261,6 +260,8 @@ transform (void *ctx, const unsigned char *data)
   hd->h5 += f;
   hd->h6 += g;
   hd->h7 += h;
+
+  return /*burn_stack*/ 74*4+32;
 }
 #undef S0
 #undef S1
@@ -278,6 +279,7 @@ sha256_final(void *context)
   SHA256_CONTEXT *hd = context;
   u32 t, msb, lsb;
   byte *p;
+  unsigned int burn;
 
   _gcry_md_block_write (hd, NULL, 0); /* flush */;
 
@@ -318,8 +320,8 @@ sha256_final(void *context)
   hd->bctx.buf[61] = lsb >> 16;
   hd->bctx.buf[62] = lsb >>  8;
   hd->bctx.buf[63] = lsb;
-  transform (hd, hd->bctx.buf);
-  _gcry_burn_stack (74*4+32);
+  burn = transform (hd, hd->bctx.buf);
+  _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
 #ifdef WORDS_BIGENDIAN

@@ -29,7 +29,8 @@ const char * _gcry_hash_selftest_check_one
               const void *expect, size_t expectlen);
 
 /* Type for the md_write helper function.  */
-typedef void (*_gcry_md_block_write_t) (void *c, const unsigned char *buf);
+typedef unsigned int (*_gcry_md_block_write_t) (void *c,
+						const unsigned char *buf);
 
 #if defined(HAVE_U64_TYPEDEF) && defined(USE_SHA512)
 /* SHA-512 needs u64 and larger buffer. */
@@ -47,7 +48,6 @@ typedef struct gcry_md_block_ctx
     int count;
     size_t blocksize;
     _gcry_md_block_write_t bwrite;
-    size_t stack_burn;
 } gcry_md_block_ctx_t;
 
 

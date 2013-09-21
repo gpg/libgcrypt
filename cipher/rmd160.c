@@ -139,7 +139,7 @@
  * 1 million times "a"   52783243c1697bdbe16d37f97f68f08325dc1528
  */
 
-static void
+static unsigned int
 transform ( void *ctx, const unsigned char *data );
 
 void
@@ -152,10 +152,10 @@ _gcry_rmd160_init (void *context)
   hd->h2 = 0x98BADCFE;
   hd->h3 = 0x10325476;
   hd->h4 = 0xC3D2E1F0;
+
   hd->bctx.nblocks = 0;
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
-  hd->bctx.stack_burn = 108+5*sizeof(void*);
   hd->bctx.bwrite = transform;
 }
 
@@ -164,7 +164,7 @@ _gcry_rmd160_init (void *context)
 /****************
  * Transform the message X which consists of 16 32-bit-words
  */
-static void
+static unsigned int
 transform ( void *ctx, const unsigned char *data )
 {
   RMD160_CONTEXT *hd = ctx;
@@ -400,6 +400,8 @@ transform ( void *ctx, const unsigned char *data )
   hd->h3 = hd->h4 + b + aa;
   hd->h4 = hd->h0 + c + bb;
   hd->h0 = t;
+
+  return /*burn_stack*/ 108+5*sizeof(void*);
 }
 
 
@@ -434,6 +436,7 @@ rmd160_final( void *context )
   RMD160_CONTEXT *hd = context;
   u32 t, msb, lsb;
   byte *p;
+  unsigned int burn;
 
   _gcry_md_block_write(hd, NULL, 0); /* flush */;
 
@@ -474,8 +477,8 @@ rmd160_final( void *context )
   hd->bctx.buf[61] = msb >>  8;
   hd->bctx.buf[62] = msb >> 16;
   hd->bctx.buf[63] = msb >> 24;
-  transform( hd, hd->bctx.buf );
-  _gcry_burn_stack (108+5*sizeof(void*));
+  burn = transform( hd, hd->bctx.buf );
+  _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
 #ifdef WORDS_BIGENDIAN

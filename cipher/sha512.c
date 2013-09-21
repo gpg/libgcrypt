@@ -63,7 +63,6 @@
 # endif
 #endif
 
-
 typedef struct
 {
   u64 h0, h1, h2, h3, h4, h5, h6, h7;
@@ -78,7 +77,7 @@ typedef struct
 #endif
 } SHA512_CONTEXT;
 
-static void
+static unsigned int
 transform (void *context, const unsigned char *data);
 
 static void
@@ -100,7 +99,6 @@ sha512_init (void *context)
   ctx->bctx.count = 0;
   ctx->bctx.blocksize = 128;
   ctx->bctx.bwrite = transform;
-  ctx->bctx.stack_burn = 256;
 
 #ifdef USE_ARM_NEON_ASM
   ctx->use_neon = (_gcry_get_hw_features () & HWF_ARM_NEON) != 0;
@@ -126,7 +124,6 @@ sha384_init (void *context)
   ctx->bctx.count = 0;
   ctx->bctx.blocksize = 128;
   ctx->bctx.bwrite = transform;
-  ctx->bctx.stack_burn = 256;
 
 #ifdef USE_ARM_NEON_ASM
   ctx->use_neon = (_gcry_get_hw_features () & HWF_ARM_NEON) != 0;
@@ -211,7 +208,7 @@ static const u64 k[] =
 /****************
  * Transform the message W which consists of 16 64-bit-words
  */
-static void
+static unsigned int
 __transform (SHA512_STATE *hd, const unsigned char *data)
 {
   u64 a, b, c, d, e, f, g, h;
@@ -489,6 +486,9 @@ __transform (SHA512_STATE *hd, const unsigned char *data)
   hd->h5 += f;
   hd->h6 += g;
   hd->h7 += h;
+
+  return /* burn_stack */ (8 + 16) * sizeof(u64) + sizeof(u32) +
+                          3 * sizeof(void*);
 }
 
 
@@ -499,7 +499,7 @@ void _gcry_sha512_transform_armv7_neon (SHA512_STATE *hd,
 #endif
 
 
-static void
+static unsigned int
 transform (void *context, const unsigned char *data)
 {
   SHA512_CONTEXT *ctx = context;
@@ -509,17 +509,13 @@ transform (void *context, const unsigned char *data)
     {
       _gcry_sha512_transform_armv7_neon(&ctx->state, data, k);
 
-      /* TODO: return burn stack to md_block_write */
-      /* return stack burn depth */
-      return /*(sizeof(void *) * 3)*/;
+      /* _gcry_sha512_transform_armv7_neon does not store sensitive data
+       * to stack.  */
+      return /* no burn_stack */ 0;
     }
 #endif
 
-  __transform (&ctx->state, data);
-
-  /* TODO: return burn stack to md_block_write */
-  /* return stack burn depth */
-  return /*256*/;
+  return __transform (&ctx->state, data) + 3 * sizeof(void*);
 }
 
 
@@ -587,8 +583,7 @@ sha512_final (void *context)
   hd->bctx.buf[125] = lsb >> 16;
   hd->bctx.buf[126] = lsb >> 8;
   hd->bctx.buf[127] = lsb;
-  transform (hd, hd->bctx.buf);
-  stack_burn_depth = hd->bctx.stack_burn;
+  stack_burn_depth = transform (hd, hd->bctx.buf);
   _gcry_burn_stack (stack_burn_depth);
 
   p = hd->bctx.buf;

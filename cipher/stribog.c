@@ -1274,7 +1274,7 @@ static void g (u64 *h, u64 *m, u64 *N)
 }
 
 
-static void
+static unsigned int
 transform64 (void *context, const unsigned char *inbuf_arg);
 
 
@@ -1287,7 +1287,6 @@ stribog_init_512 (void *context)
 
   hd->bctx.blocksize = 64;
   hd->bctx.bwrite = transform64;
-  hd->bctx.stack_burn = 768;
 }
 
 static void
@@ -1346,12 +1345,14 @@ transform (STRIBOG_CONTEXT *hd, const unsigned char *data, unsigned count)
       hd->Sigma[i] += M[i];
 }
 
-static void
+static unsigned int
 transform64 (void *context, const unsigned char *inbuf_arg)
 {
   STRIBOG_CONTEXT *hd = context;
 
   transform (hd, inbuf_arg, 64 * 8);
+
+  return /* burn_stack */ 768;
 }
 
 /*

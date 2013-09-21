@@ -57,9 +57,9 @@ typedef struct
   u32           h0,h1,h2,h3,h4;
 } SHA1_CONTEXT;
 
-
-static void
+static unsigned int
 transform (void *c, const unsigned char *data);
+
 
 static void
 sha1_init (void *context)
@@ -71,10 +71,10 @@ sha1_init (void *context)
   hd->h2 = 0x98badcfe;
   hd->h3 = 0x10325476;
   hd->h4 = 0xc3d2e1f0;
+
   hd->bctx.nblocks = 0;
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
-  hd->bctx.stack_burn = 88+4*sizeof(void*);
   hd->bctx.bwrite = transform;
 }
 
@@ -104,7 +104,7 @@ sha1_init (void *context)
 /*
  * Transform NBLOCKS of each 64 bytes (16 32-bit words) at DATA.
  */
-static void
+static unsigned int
 transform (void *ctx, const unsigned char *data)
 {
   SHA1_CONTEXT *hd = ctx;
@@ -224,6 +224,8 @@ transform (void *ctx, const unsigned char *data)
       hd->h2 += c;
       hd->h3 += d;
       hd->h4 += e;
+
+  return /* burn_stack */ 88+4*sizeof(void*);
 }
 
 
@@ -238,9 +240,9 @@ static void
 sha1_final(void *context)
 {
   SHA1_CONTEXT *hd = context;
-
   u32 t, msb, lsb;
   unsigned char *p;
+  unsigned int burn;
 
   _gcry_md_block_write (hd, NULL, 0); /* flush */;
 
@@ -281,8 +283,8 @@ sha1_final(void *context)
   hd->bctx.buf[61] = lsb >> 16;
   hd->bctx.buf[62] = lsb >>  8;
   hd->bctx.buf[63] = lsb	   ;
-  transform( hd, hd->bctx.buf );
-  _gcry_burn_stack (88+4*sizeof(void*));
+  burn = transform( hd, hd->bctx.buf );
+  _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
 #ifdef WORDS_BIGENDIAN

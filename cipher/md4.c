@@ -64,7 +64,7 @@ typedef struct {
     u32 A,B,C,D;	  /* chaining variables */
 } MD4_CONTEXT;
 
-static void
+static unsigned int
 transform ( void *c, const unsigned char *data );
 
 static void
@@ -80,7 +80,6 @@ md4_init( void *context )
   ctx->bctx.nblocks = 0;
   ctx->bctx.count = 0;
   ctx->bctx.blocksize = 64;
-  ctx->bctx.stack_burn = 80+6*sizeof(void*);
   ctx->bctx.bwrite = transform;
 }
 
@@ -92,7 +91,7 @@ md4_init( void *context )
 /****************
  * transform 64 bytes
  */
-static void
+static unsigned int
 transform ( void *c, const unsigned char *data )
 {
   MD4_CONTEXT *ctx = c;
@@ -188,6 +187,8 @@ transform ( void *c, const unsigned char *data )
   ctx->B += B;
   ctx->C += C;
   ctx->D += D;
+
+  return /*burn_stack*/ 80+6*sizeof(void*);
 }
 
 
@@ -204,6 +205,7 @@ md4_final( void *context )
   MD4_CONTEXT *hd = context;
   u32 t, msb, lsb;
   byte *p;
+  unsigned int burn;
 
   _gcry_md_block_write(hd, NULL, 0); /* flush */;
 
@@ -244,8 +246,8 @@ md4_final( void *context )
   hd->bctx.buf[61] = msb >>  8;
   hd->bctx.buf[62] = msb >> 16;
   hd->bctx.buf[63] = msb >> 24;
-  transform( hd, hd->bctx.buf );
-  _gcry_burn_stack (80+6*sizeof(void*));
+  burn = transform( hd, hd->bctx.buf );
+  _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
 #ifdef WORDS_BIGENDIAN

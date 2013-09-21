@@ -38,7 +38,7 @@ typedef struct {
   u32 len;
 } GOSTR3411_CONTEXT;
 
-static void
+static unsigned int
 transform (void *c, const unsigned char *data);
 
 static void
@@ -53,8 +53,6 @@ gost3411_init (void *context)
   hd->bctx.nblocks = 0;
   hd->bctx.count = 0;
   hd->bctx.blocksize = 32;
-  /* FIXME: Fix this arbitrary value for the stack_burn size.  -wk */
-  hd->bctx.stack_burn = 200;
   hd->bctx.bwrite = transform;
 }
 
@@ -203,7 +201,7 @@ do_hash_step (GOST28147_context *hd, unsigned char *h, unsigned char *m)
 }
 
 
-static void
+static unsigned int
 transform (void *ctx, const unsigned char *data)
 {
   GOSTR3411_CONTEXT *hd = ctx;
@@ -212,6 +210,9 @@ transform (void *ctx, const unsigned char *data)
   memcpy (m, data, 32);
   do_hash_step (&hd->hd, hd->h, m);
   do_add (hd->sigma, m);
+
+/* FIXME: Fix this arbitrary value for the stack_burn size.  -wk */
+  return /* stack_burn */ 200;
 }
 
 /*

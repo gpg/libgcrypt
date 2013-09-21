@@ -587,7 +587,7 @@ static u64 sbox4[256] = {
   U64_C(0xc83223f1720aef96) /* 1022 */, U64_C(0xc3a0396f7363a51f) /* 1023 */
 };
 
-static void
+static unsigned int
 transform ( void *ctx, const unsigned char *data );
 
 static void
@@ -598,10 +598,10 @@ do_init (void *context, int variant)
   hd->a = 0x0123456789abcdefLL;
   hd->b = 0xfedcba9876543210LL;
   hd->c = 0xf096a5b4c3b2e187LL;
+
   hd->bctx.nblocks = 0;
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
-  hd->bctx.stack_burn = 21*8+11*sizeof(void*);
   hd->bctx.bwrite = transform;
   hd->variant = variant;
 }
@@ -691,7 +691,7 @@ key_schedule( u64 *x )
 /****************
  * Transform the message DATA which consists of 512 bytes (8 words)
  */
-static void
+static unsigned int
 transform ( void *ctx, const unsigned char *data )
 {
   TIGER_CONTEXT *hd = ctx;
@@ -735,6 +735,8 @@ transform ( void *ctx, const unsigned char *data )
   hd->a = a;
   hd->b = b;
   hd->c = c;
+
+  return /*burn_stack*/ 21*8+11*sizeof(void*);
 }
 
 
@@ -747,6 +749,7 @@ tiger_final( void *context )
   TIGER_CONTEXT *hd = context;
   u32 t, msb, lsb;
   byte *p;
+  unsigned int burn;
   byte pad = hd->variant == 2? 0x80 : 0x01;
 
   _gcry_md_block_write(hd, NULL, 0); /* flush */;
@@ -788,8 +791,8 @@ tiger_final( void *context )
   hd->bctx.buf[61] = msb >>  8;
   hd->bctx.buf[62] = msb >> 16;
   hd->bctx.buf[63] = msb >> 24;
-  transform( hd, hd->bctx.buf );
-  _gcry_burn_stack (21*8+11*sizeof(void*));
+  burn = transform( hd, hd->bctx.buf );
+  _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
 #ifdef WORDS_BIGENDIAN

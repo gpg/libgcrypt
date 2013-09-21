@@ -101,6 +101,7 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
 {
   const unsigned char *inbuf = inbuf_arg;
   gcry_md_block_ctx_t *hd = context;
+  unsigned int stack_burn = 0;
 
   if (sizeof(hd->buf) < hd->blocksize)
     BUG();
@@ -110,8 +111,9 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
 
   if (hd->count == hd->blocksize)  /* Flush the buffer. */
     {
-      hd->bwrite (hd, hd->buf);
-      _gcry_burn_stack (hd->stack_burn);
+      stack_burn = hd->bwrite (hd, hd->buf);
+      _gcry_burn_stack (stack_burn);
+      stack_burn = 0;
       hd->count = 0;
       hd->nblocks++;
     }
@@ -129,13 +131,13 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
 
   while (inlen >= hd->blocksize)
     {
-      hd->bwrite (hd, inbuf);
+      stack_burn = hd->bwrite (hd, inbuf);
       hd->count = 0;
       hd->nblocks++;
       inlen -= hd->blocksize;
       inbuf += hd->blocksize;
     }
-  _gcry_burn_stack (hd->stack_burn);
+  _gcry_burn_stack (stack_burn);
   for (; inlen && hd->count < hd->blocksize; inlen--)
     hd->buf[hd->count++] = *inbuf++;
 }
