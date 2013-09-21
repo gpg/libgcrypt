@@ -168,7 +168,7 @@ unsigned int _gcry_gost_enc_one (GOST28147_context *c, const byte *key,
     byte *out, byte *in)
 {
   gost_setkey (c, key, 32);
-  return gost_encrypt_block (c, out, in);
+  return gost_encrypt_block (c, out, in) + 5 * sizeof(void *);
 }
 
 static unsigned int
