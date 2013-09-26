@@ -87,6 +87,8 @@ static struct cipher_table_entry
 #if USE_RFC2268
     { &_gcry_cipher_spec_rfc2268_40,
       &dummy_extra_spec,                  GCRY_CIPHER_RFC2268_40 },
+    { &_gcry_cipher_spec_rfc2268_128,
+      &dummy_extra_spec,                  GCRY_CIPHER_RFC2268_128 },
 #endif
 #if USE_SEED
     { &_gcry_cipher_spec_seed,

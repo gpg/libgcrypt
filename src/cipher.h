@@ -194,6 +194,7 @@ extern gcry_cipher_spec_t _gcry_cipher_spec_serpent128;
 extern gcry_cipher_spec_t _gcry_cipher_spec_serpent192;
 extern gcry_cipher_spec_t _gcry_cipher_spec_serpent256;
 extern gcry_cipher_spec_t _gcry_cipher_spec_rfc2268_40;
+extern gcry_cipher_spec_t _gcry_cipher_spec_rfc2268_128;
 extern gcry_cipher_spec_t _gcry_cipher_spec_seed;
 extern gcry_cipher_spec_t _gcry_cipher_spec_camellia128;
 extern gcry_cipher_spec_t _gcry_cipher_spec_camellia192;
