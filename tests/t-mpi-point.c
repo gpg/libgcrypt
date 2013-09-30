@@ -666,9 +666,17 @@ context_param (void)
                          "Ed25519", ctx);
       get_and_cmp_mpi ("q@eddsa", sample_ed25519_q_eddsa, "Ed25519", ctx);
 
-      /* Delete Q by setting d and the clearing d.  The clearing is
+      /* Set d tosee whether Q is correctly re-computed.  */
+      d = hex2mpi (sample_ed25519_d);
+      err = gcry_mpi_ec_set_mpi ("d", d, ctx);
+      if (err)
+        fail ("setting d for Ed25519 failed: %s\n", gpg_strerror (err));
+      gcry_mpi_release (d);
+      get_and_cmp_mpi ("q", sample_ed25519_q, "Ed25519(recompute Q)", ctx);
+
+      /* Delete Q by setting d and then clearing d.  The clearing is
          required so that we can check whether Q has been cleared and
-         because further tests only expect a public key. */
+         because further tests only expect a public key.  */
       d = hex2mpi (sample_ed25519_d);
       err = gcry_mpi_ec_set_mpi ("d", d, ctx);
       if (err)

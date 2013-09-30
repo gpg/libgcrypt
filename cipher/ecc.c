@@ -909,8 +909,7 @@ sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
   mpi_ec_t ctx = NULL;
   int b;
   unsigned int tmp;
-  unsigned char hash_d[64];  /* Fixme: malloc in secure memory */
-  unsigned char digest[64];
+  unsigned char *digest;
   gcry_buffer_t hvec[3];
   const void *mbuf;
   size_t mlen;
@@ -938,37 +937,41 @@ sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
   r = mpi_new (0);
   ctx = _gcry_mpi_ec_p_internal_new (skey->E.model, skey->E.dialect,
                                      skey->E.p, skey->E.a, skey->E.b);
-  b = ctx->nbits/8;
+  b = (ctx->nbits+7)/8;
   if (b != 256/8)
     return GPG_ERR_INTERNAL; /* We only support 256 bit. */
 
+  digest = gcry_calloc_secure (2, b);
+  if (!digest)
+    {
+      rc = gpg_err_code_from_syserror ();
+      goto leave;
+    }
 
-  /* Hash the secret key.  We clear DIGEST so we can use it to left
-     pad the key with zeroes for hashing.  */
+  /* Hash the secret key.  We clear DIGEST so we can use it as input
+     to left pad the key with zeroes for hashing.  */
   rawmpi = _gcry_mpi_get_buffer (skey->d, 0, &rawmpilen, NULL);
   if (!rawmpi)
     {
       rc = gpg_err_code_from_syserror ();
       goto leave;
     }
-  memset (digest, 0, b);
   hvec[0].data = digest;
   hvec[0].off = 0;
   hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
   hvec[1].data = rawmpi;
   hvec[1].off = 0;
   hvec[1].len = rawmpilen;
-  rc = _gcry_md_hash_buffers (hashalgo, 0, hash_d, hvec, 2);
+  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
   gcry_free (rawmpi); rawmpi = NULL;
   if (rc)
     goto leave;
 
-  /* Compute the A value (this modifies hash_d).  */
-  reverse_buffer (hash_d, 32);  /* Only the first half of the hash.  */
-  hash_d[0] = (hash_d[0] & 0x7f) | 0x40;
-  hash_d[31] &= 0xf8;
-  _gcry_mpi_set_buffer (a, hash_d, 32, 0);
-  /* log_printmpi ("     a", a); */
+  /* Compute the A value (this modifies DIGEST).  */
+  reverse_buffer (digest, 32);  /* Only the first half of the hash.  */
+  digest[0] = (digest[0] & 0x7f) | 0x40;
+  digest[31] &= 0xf8;
+  _gcry_mpi_set_buffer (a, digest, 32, 0);
 
   /* Compute the public key if it has not been supplied as optional
      parameter.  */
@@ -1001,7 +1004,7 @@ sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
   if (DBG_CIPHER)
     log_printhex ("     m", mbuf, mlen);
 
-  hvec[0].data = hash_d;
+  hvec[0].data = digest;
   hvec[0].off  = 32;
   hvec[0].len  = 32;
   hvec[1].data = (char*)mbuf;
@@ -1063,6 +1066,7 @@ sign_eddsa (gcry_mpi_t input, ECC_secret_key *skey,
   gcry_mpi_release (x);
   gcry_mpi_release (y);
   gcry_mpi_release (r);
+  gcry_free (digest);
   _gcry_mpi_ec_free (ctx);
   point_free (&I);
   point_free (&Q);
