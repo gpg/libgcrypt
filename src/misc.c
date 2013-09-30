@@ -361,6 +361,22 @@ _gcry_log_printmpi (const char *text, gcry_mpi_t mpi)
     }
 }
 
+
+static int
+count_closing_parens (const char *p)
+{
+  int count = 0;
+
+  for (; *p; p++)
+    if (*p == ')')
+      count++;
+    else if (!strchr ("\n \t", *p))
+      return 0;
+
+  return count;
+}
+
+
 /* Print SEXP in human readabale format.  With TEXT of NULL print just the raw
    dump without any wrappping, with TEXT an empty string, print a
    trailing linefeed, otherwise print the full debug output. */
@@ -371,7 +387,7 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
 
   if (text && *text)
     {
-      if ((with_lf = strchr (text, '\n')))
+      if ((with_lf = !!strchr (text, '\n')))
         log_debug ("%s", text);
       else
         log_debug ("%s: ", text);
@@ -379,6 +395,7 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
   if (sexp)
     {
       int any = 0;
+      int n_closing;
       char *buf, *p, *pend;
       size_t size;
 
@@ -395,18 +412,26 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
           pend = strchr (p, '\n');
           size = pend? (pend - p) : strlen (p);
           if (with_lf)
-            log_debug ("%.*s\n", (int)size, p);
+            log_debug ("%.*s", (int)size, p);
           else
-            log_printf ("%.*s\n", (int)size, p);
+            log_printf ("%.*s", (int)size, p);
           if (pend)
             p = pend + 1;
           else
             p += size;
+          n_closing = count_closing_parens (p);
+          if (n_closing)
+            {
+              while (n_closing--)
+                log_printf (")");
+              p = "";
+            }
+          log_printf ("\n");
         }
       while (*p);
       gcry_free (buf);
     }
-  if (text)
+  else if (text)
     log_printf ("\n");
 }
 
