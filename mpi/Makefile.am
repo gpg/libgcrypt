@@ -174,4 +174,4 @@ libmpi_la_SOURCES = longlong.h	   \
 	      mpih-div.c     \
 	      mpih-mul.c     \
 	      mpiutil.c      \
-              ec.c
+              ec.c ec-internal.h ec-ed25519.c

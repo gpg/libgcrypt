@@ -53,6 +53,8 @@ struct mpi_ec_ctx_s
 
     gcry_mpi_t two_inv_p;
 
+    mpi_barrett_t p_barrett;
+
     /* Scratch variables.  */
     gcry_mpi_t scratch[11];
 

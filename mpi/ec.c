@@ -28,6 +28,7 @@
 #include "g10lib.h"
 #include "context.h"
 #include "ec-context.h"
+#include "ec-internal.h"
 
 
 #define point_init(a)  _gcry_mpi_point_init ((a))
@@ -224,131 +225,46 @@ gcry_mpi_point_snatch_set (mpi_point_t point,
 }
 
 
+/* W = W mod P.  */
 static void
-ec_addm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
+ec_mod (gcry_mpi_t w, mpi_ec_t ec)
 {
-  mpi_addm (w, u, v, ctx->p);
+  if (0 && ec->dialect == ECC_DIALECT_ED25519)
+    _gcry_mpi_ec_ed25519_mod (w);
+  else if (ec->t.p_barrett)
+    _gcry_mpi_mod_barrett (w, w, ec->t.p_barrett);
+  else
+    _gcry_mpi_mod (w, w, ec->p);
 }
 
 static void
-ec_subm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
+ec_addm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 {
-  mpi_subm (w, u, v, ctx->p);
+  gcry_mpi_add (w, u, v);
+  ec_mod (w, ctx);
+}
+
+static void
+ec_subm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ec)
+{
+  (void)ec;
+  gcry_mpi_sub (w, u, v);
+  /*ec_mod (w, ec);*/
 }
 
 static void
 ec_mulm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 {
-#if 0
-  /* NOTE: This code works only for limb sizes of 32 bit.  */
-  mpi_limb_t *wp, *sp;
+  mpi_mul (w, u, v);
+  ec_mod (w, ctx);
+}
 
-  if (ctx->nist_nbits == 192)
-    {
-      mpi_mul (w, u, v);
-      mpi_resize (w, 12);
-      wp = w->d;
-
-      sp = ctx->s[0]->d;
-      sp[0*2+0] = wp[0*2+0];
-      sp[0*2+1] = wp[0*2+1];
-      sp[1*2+0] = wp[1*2+0];
-      sp[1*2+1] = wp[1*2+1];
-      sp[2*2+0] = wp[2*2+0];
-      sp[2*2+1] = wp[2*2+1];
-
-      sp = ctx->s[1]->d;
-      sp[0*2+0] = wp[3*2+0];
-      sp[0*2+1] = wp[3*2+1];
-      sp[1*2+0] = wp[3*2+0];
-      sp[1*2+1] = wp[3*2+1];
-      sp[2*2+0] = 0;
-      sp[2*2+1] = 0;
-
-      sp = ctx->s[2]->d;
-      sp[0*2+0] = 0;
-      sp[0*2+1] = 0;
-      sp[1*2+0] = wp[4*2+0];
-      sp[1*2+1] = wp[4*2+1];
-      sp[2*2+0] = wp[4*2+0];
-      sp[2*2+1] = wp[4*2+1];
-
-      sp = ctx->s[3]->d;
-      sp[0*2+0] = wp[5*2+0];
-      sp[0*2+1] = wp[5*2+1];
-      sp[1*2+0] = wp[5*2+0];
-      sp[1*2+1] = wp[5*2+1];
-      sp[2*2+0] = wp[5*2+0];
-      sp[2*2+1] = wp[5*2+1];
-
-      ctx->s[0]->nlimbs = 6;
-      ctx->s[1]->nlimbs = 6;
-      ctx->s[2]->nlimbs = 6;
-      ctx->s[3]->nlimbs = 6;
-
-      mpi_add (ctx->c, ctx->s[0], ctx->s[1]);
-      mpi_add (ctx->c, ctx->c, ctx->s[2]);
-      mpi_add (ctx->c, ctx->c, ctx->s[3]);
-
-      while ( mpi_cmp (ctx->c, ctx->p ) >= 0 )
-        mpi_sub ( ctx->c, ctx->c, ctx->p );
-      mpi_set (w, ctx->c);
-    }
-  else if (ctx->nist_nbits == 384)
-    {
-      int i;
-      mpi_mul (w, u, v);
-      mpi_resize (w, 24);
-      wp = w->d;
-
-#define NEXT(a) do { ctx->s[(a)]->nlimbs = 12; \
-                     sp = ctx->s[(a)]->d; \
-                     i = 0; } while (0)
-#define X(a) do { sp[i++] = wp[(a)];} while (0)
-#define X0(a) do { sp[i++] = 0; } while (0)
-      NEXT(0);
-      X(0);X(1);X(2);X(3);X(4);X(5);X(6);X(7);X(8);X(9);X(10);X(11);
-      NEXT(1);
-      X0();X0();X0();X0();X(21);X(22);X(23);X0();X0();X0();X0();X0();
-      NEXT(2);
-      X(12);X(13);X(14);X(15);X(16);X(17);X(18);X(19);X(20);X(21);X(22);X(23);
-      NEXT(3);
-      X(21);X(22);X(23);X(12);X(13);X(14);X(15);X(16);X(17);X(18);X(19);X(20);
-      NEXT(4);
-      X0();X(23);X0();X(20);X(12);X(13);X(14);X(15);X(16);X(17);X(18);X(19);
-      NEXT(5);
-      X0();X0();X0();X0();X(20);X(21);X(22);X(23);X0();X0();X0();X0();
-      NEXT(6);
-      X(20);X0();X0();X(21);X(22);X(23);X0();X0();X0();X0();X0();X0();
-      NEXT(7);
-      X(23);X(12);X(13);X(14);X(15);X(16);X(17);X(18);X(19);X(20);X(21);X(22);
-      NEXT(8);
-      X0();X(20);X(21);X(22);X(23);X0();X0();X0();X0();X0();X0();X0();
-      NEXT(9);
-      X0();X0();X0();X(23);X(23);X0();X0();X0();X0();X0();X0();X0();
-#undef X0
-#undef X
-#undef NEXT
-      mpi_add (ctx->c, ctx->s[0], ctx->s[1]);
-      mpi_add (ctx->c, ctx->c, ctx->s[1]);
-      mpi_add (ctx->c, ctx->c, ctx->s[2]);
-      mpi_add (ctx->c, ctx->c, ctx->s[3]);
-      mpi_add (ctx->c, ctx->c, ctx->s[4]);
-      mpi_add (ctx->c, ctx->c, ctx->s[5]);
-      mpi_add (ctx->c, ctx->c, ctx->s[6]);
-      mpi_sub (ctx->c, ctx->c, ctx->s[7]);
-      mpi_sub (ctx->c, ctx->c, ctx->s[8]);
-      mpi_sub (ctx->c, ctx->c, ctx->s[9]);
-
-      while ( mpi_cmp (ctx->c, ctx->p ) >= 0 )
-        mpi_sub ( ctx->c, ctx->c, ctx->p );
-      while ( ctx->c->sign )
-        mpi_add ( ctx->c, ctx->c, ctx->p );
-      mpi_set (w, ctx->c);
-    }
-  else
-#endif /*0*/
-    mpi_mulm (w, u, v, ctx->p);
+/* W = 2 * U mod P.  */
+static void
+ec_mul2 (gcry_mpi_t w, gcry_mpi_t u, mpi_ec_t ctx)
+{
+  mpi_lshift (w, u, 1);
+  ec_mod (w, ctx);
 }
 
 static void
@@ -368,7 +284,7 @@ ec_pow2 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
 {
   /* Using mpi_mul is slightly faster (at least on amd64).  */
   /* mpi_powm (w, b, mpi_const (MPI_C_TWO), ctx->p); */
-  mpi_mulm (w, b, b, ctx->p);
+  ec_mulm (w, b, b, ctx);
 }
 
 
@@ -437,6 +353,15 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
            gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
 {
   int i;
+  static int use_barrett;
+
+  if (!use_barrett)
+    {
+      if (getenv ("GCRYPT_BARRETT"))
+        use_barrett = 1;
+      else
+        use_barrett = -1;
+    }
 
   /* Fixme: Do we want to check some constraints? e.g.  a < p  */
 
@@ -450,6 +375,8 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
   ctx->a = mpi_copy (a);
   if (b && model == MPI_EC_TWISTEDEDWARDS)
     ctx->b = mpi_copy (b);
+
+  ctx->t.p_barrett = use_barrett > 0? _gcry_mpi_barrett_init (ctx->p, 0):NULL;
 
   _gcry_mpi_ec_get_reset (ctx);
 
@@ -482,6 +409,8 @@ ec_deinit (void *opaque)
 {
   mpi_ec_t ctx = opaque;
   int i;
+
+  _gcry_mpi_barrett_free (ctx->t.p_barrett);
 
   /* Domain parameter.  */
   mpi_free (ctx->p);
@@ -732,7 +661,7 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
         }
       /* Z3 = 2YZ */
       ec_mulm (z3, point->y, point->z, ctx);
-      ec_mulm (z3, z3, mpi_const (MPI_C_TWO), ctx);
+      ec_mul2 (z3, z3, ctx);
 
       /* L2 = 4XY^2 */
       /*                              T2: used for Y2; required later. */
@@ -743,7 +672,7 @@ dup_point_weierstrass (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
       /* X3 = L1^2 - 2L2 */
       /*                              T1: used for L2^2. */
       ec_pow2 (x3, l1, ctx);
-      ec_mulm (t1, l2, mpi_const (MPI_C_TWO), ctx);
+      ec_mul2 (t1, l2, ctx);
       ec_subm (x3, x3, t1, ctx);
 
       /* L3 = 8Y^4 */
@@ -811,7 +740,13 @@ dup_point_twistededwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
   ec_pow2 (D, Y1, ctx);
 
   /* E = aC */
-  ec_mulm (E, ctx->a, C, ctx);
+  if (ctx->dialect == ECC_DIALECT_ED25519)
+    {
+      mpi_set (E, C);
+      _gcry_mpi_neg (E, E);
+    }
+  else
+    ec_mulm (E, ctx->a, C, ctx);
 
   /* F = E + D */
   ec_addm (F, E, D, ctx);
@@ -820,7 +755,7 @@ dup_point_twistededwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
   ec_pow2 (H, Z1, ctx);
 
   /* J = F - 2H */
-  ec_mulm (J, H, mpi_const (MPI_C_TWO), ctx);
+  ec_mul2 (J, H, ctx);
   ec_subm (J, F, J, ctx);
 
   /* X_3 = (B - C - D) · J */
@@ -978,7 +913,7 @@ add_points_weierstrass (mpi_point_t result,
           ec_mulm (t2, t2, l7, ctx);
           ec_subm (x3, t1, t2, ctx);
           /* l9 = l7 l3^2 - 2 x3  */
-          ec_mulm (t1, x3, mpi_const (MPI_C_TWO), ctx);
+          ec_mul2 (t1, x3, ctx);
           ec_subm (l9, t2, t1, ctx);
           /* y3 = (l9 l6 - l8 l3^3)/2  */
           ec_mulm (l9, l9, l6, ctx);
@@ -1085,8 +1020,19 @@ add_points_twistededwards (mpi_point_t result,
   ec_mulm (X3, X3, A, ctx);
 
   /* Y_3 = A · G · (D - aC) */
-  ec_mulm (Y3, ctx->a, C, ctx);
-  ec_subm (Y3, D, Y3, ctx);
+  if (ctx->dialect == ECC_DIALECT_ED25519)
+    {
+      /* Using ec_addm (Y3, D, C, ctx) is possible but a litte bit
+         slower because a subm does currently skip the mod step.  */
+      mpi_set (Y3, C);
+      _gcry_mpi_neg (Y3, Y3);
+      ec_subm (Y3, D, Y3, ctx);
+    }
+  else
+    {
+      ec_mulm (Y3, ctx->a, C, ctx);
+      ec_subm (Y3, D, Y3, ctx);
+    }
   ec_mulm (Y3, Y3, G, ctx);
   ec_mulm (Y3, Y3, A, ctx);
 
@@ -1282,7 +1228,13 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
         /* a · x^2 + y^2 - 1 - b · x^2 · y^2 == 0 */
         ec_pow2 (x, x, ctx);
         ec_pow2 (y, y, ctx);
-        ec_mulm (w, ctx->a, x, ctx);
+        if (ctx->dialect == ECC_DIALECT_ED25519)
+          {
+            mpi_set (w, x);
+            _gcry_mpi_neg (w, w);
+          }
+        else
+          ec_mulm (w, ctx->a, x, ctx);
         ec_addm (w, w, y, ctx);
         ec_subm (w, w, mpi_const (MPI_C_ONE), ctx);
         ec_mulm (x, x, y, ctx);
