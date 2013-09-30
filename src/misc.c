@@ -115,7 +115,7 @@ _gcry_log_verbosity( int level )
  * This is our log function which prints all log messages to stderr or
  * using the function defined with gcry_set_log_handler().
  */
-static void
+void
 _gcry_logv( int level, const char *fmt, va_list arg_ptr )
 {
   if (log_handler)
@@ -359,6 +359,55 @@ _gcry_log_printmpi (const char *text, gcry_mpi_t mpi)
           gcry_free (rawmpi);
         }
     }
+}
+
+/* Print SEXP in human readabale format.  With TEXT of NULL print just the raw
+   dump without any wrappping, with TEXT an empty string, print a
+   trailing linefeed, otherwise print the full debug output. */
+void
+_gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
+{
+  int with_lf = 0;
+
+  if (text && *text)
+    {
+      if ((with_lf = strchr (text, '\n')))
+        log_debug ("%s", text);
+      else
+        log_debug ("%s: ", text);
+    }
+  if (sexp)
+    {
+      int any = 0;
+      char *buf, *p, *pend;
+      size_t size;
+
+      size = gcry_sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, NULL, 0);
+      p = buf = gcry_xmalloc (size);
+      gcry_sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, buf, size);
+
+      do
+        {
+          if (any && !with_lf)
+            log_debug ("%*s  ", (int)strlen(text), "");
+          else
+            any = 1;
+          pend = strchr (p, '\n');
+          size = pend? (pend - p) : strlen (p);
+          if (with_lf)
+            log_debug ("%.*s\n", (int)size, p);
+          else
+            log_printf ("%.*s\n", (int)size, p);
+          if (pend)
+            p = pend + 1;
+          else
+            p += size;
+        }
+      while (*p);
+      gcry_free (buf);
+    }
+  if (text)
+    log_printf ("\n");
 }
 
 

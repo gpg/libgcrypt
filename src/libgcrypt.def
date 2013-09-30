@@ -247,5 +247,11 @@ EXPORTS
 
       gcry_md_hash_buffers      @219
 
+      gcry_log_debug            @220
+      gcry_log_debughex         @221
+      gcry_log_debugmpi         @222
+      gcry_log_debugpnt         @223
+      gcry_log_debugsxp         @224
+
 
 ;; end of file with public symbols for Windows.

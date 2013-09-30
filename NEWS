@@ -107,6 +107,10 @@ Noteworthy changes in version 1.6.0 (unreleased)
  GCRY_MD_STRIBOG512              NEW.
  GCRYCTL_DISABLE_ALGO            CHANGED: Not anymore thread-safe.
  GCRY_PK_ECC                     NEW.
+ gcry_log_debug                  NEW.
+ gcry_log_debughex               NEW.
+ gcry_log_debugmpi               NEW.
+ gcry_log_debugpnt               NEW.
 
 
 Noteworthy changes in version 1.5.0 (2011-06-29)

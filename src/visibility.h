@@ -604,6 +604,12 @@ MARK_VISIBLE (gcry_mpi_test_bit)
 
 MARK_VISIBLE (gcry_ctx_release)
 
+MARK_VISIBLEX(gcry_log_debug)
+MARK_VISIBLEX(gcry_log_debughex)
+MARK_VISIBLEX(gcry_log_debugmpi)
+MARK_VISIBLEX(gcry_log_debugpnt)
+MARK_VISIBLEX(gcry_log_debugsxp)
+
 /* Functions used to implement macros.  */
 MARK_VISIBLEX(_gcry_mpi_get_const)
 

@@ -1209,6 +1209,42 @@ gcry_ctx_release (gcry_ctx_t ctx)
 }
 
 void
+gcry_log_debug (const char *fmt, ...)
+{
+  va_list arg_ptr ;
+
+  va_start( arg_ptr, fmt ) ;
+  _gcry_logv (GCRY_LOG_DEBUG, fmt, arg_ptr);
+  va_end (arg_ptr);
+}
+
+void
+gcry_log_debughex (const char *text, const void *buffer, size_t length)
+{
+  _gcry_log_printhex (text, buffer, length);
+}
+
+void
+gcry_log_debugmpi (const char *text, gcry_mpi_t mpi)
+{
+  _gcry_log_printmpi (text, mpi);
+}
+
+void
+gcry_log_debugpnt (const char *text, mpi_point_t point, gcry_ctx_t ctx)
+{
+  mpi_ec_t ec = ctx? _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC) : NULL;
+
+  _gcry_mpi_point_log (text, point, ec);
+}
+
+void
+gcry_log_debugsxp (const char *text, gcry_sexp_t sexp)
+{
+  _gcry_log_printsxp (text, sexp);
+}
+
+void
 gcry_set_progress_handler (gcry_handler_progress_t cb, void *cb_data)
 {
   _gcry_set_progress_handler (cb, cb_data);

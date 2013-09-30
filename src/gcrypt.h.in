@@ -100,6 +100,8 @@ extern "C" {
 #define _GCRY_GCC_ATTR_MALLOC  __attribute__ ((__malloc__))
 #endif
 
+#define _GCRY_GCC_ATTR_PRINTF(f,a)  __attribute__ ((format (printf,f,a)))
+
 #endif /*__GNUC__*/
 
 #ifndef _GCRY_GCC_ATTR_DEPRECATED
@@ -110,6 +112,9 @@ extern "C" {
 #endif
 #ifndef _GCRY_GCC_ATTR_MALLOC
 #define _GCRY_GCC_ATTR_MALLOC
+#endif
+#ifndef _GCRY_GCC_ATTR_PRINTF
+#define _GCRY_GCC_ATTR_PRINTF
 #endif
 
 /* Make up an attribute to mark functions and types as deprecated but
@@ -1404,6 +1409,15 @@ gcry_error_t gcry_prime_check (gcry_mpi_t x, unsigned int flags);
 
 /* Release the context object CTX.  */
 void gcry_ctx_release (gcry_ctx_t ctx);
+
+/* Log data using Libgcrypt's own log interface.  */
+void gcry_log_debug (const char *fmt, ...) _GCRY_GCC_ATTR_PRINTF(1,2);
+void gcry_log_debughex (const char *text, const void *buffer, size_t length);
+void gcry_log_debugmpi (const char *text, gcry_mpi_t mpi);
+void gcry_log_debugpnt (const char *text,
+                        gcry_mpi_point_t point, gcry_ctx_t ctx);
+void gcry_log_debugsxp (const char *text, gcry_sexp_t sexp);
+
 
 /* Log levels used by the internal logging facility. */
 enum gcry_log_levels
