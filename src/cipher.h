@@ -204,12 +204,6 @@ extern gcry_cipher_spec_t _gcry_cipher_spec_salsa20;
 extern gcry_cipher_spec_t _gcry_cipher_spec_salsa20r12;
 extern gcry_cipher_spec_t _gcry_cipher_spec_gost28147;
 
-extern cipher_extra_spec_t _gcry_cipher_extraspec_tripledes;
-extern cipher_extra_spec_t _gcry_cipher_extraspec_aes;
-extern cipher_extra_spec_t _gcry_cipher_extraspec_aes192;
-extern cipher_extra_spec_t _gcry_cipher_extraspec_aes256;
-extern cipher_extra_spec_t _gcry_cipher_extraspec_salsa20;
-
 /* Declarations for the digest specifications.  */
 extern gcry_md_spec_t _gcry_digest_spec_crc32;
 extern gcry_md_spec_t _gcry_digest_spec_crc32_rfc1510;

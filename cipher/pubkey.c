@@ -2356,7 +2356,7 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
 
   algo = map_algo (algo);
   spec = spec_from_algo (algo);
-  if (spec && spec->selftest)
+  if (spec && !spec->flags.disabled && spec->selftest)
     ec = spec->selftest (algo, extended, report);
   else
     {

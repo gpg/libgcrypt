@@ -1168,6 +1168,7 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 gcry_cipher_spec_t _gcry_cipher_spec_des =
   {
+    GCRY_CIPHER_DES, {0, 0},
     "DES", NULL, NULL, 8, 64, sizeof (struct _des_ctx),
     do_des_setkey, do_des_encrypt, do_des_decrypt
   };
@@ -1184,12 +1185,10 @@ static gcry_cipher_oid_spec_t oids_tripledes[] =
 
 gcry_cipher_spec_t _gcry_cipher_spec_tripledes =
   {
+    GCRY_CIPHER_3DES, {0, 1},
     "3DES", NULL, oids_tripledes, 8, 192, sizeof (struct _tripledes_ctx),
-    do_tripledes_setkey, do_tripledes_encrypt, do_tripledes_decrypt
-  };
-
-cipher_extra_spec_t _gcry_cipher_extraspec_tripledes =
-  {
+    do_tripledes_setkey, do_tripledes_encrypt, do_tripledes_decrypt,
+    NULL, NULL,
     run_selftests,
     do_tripledes_set_extra_info
   };

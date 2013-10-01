@@ -44,59 +44,6 @@ extern "C" {
 /* This type represents a `module'.  */
 typedef struct gcry_module *gcry_module_t;
 
-/* Check that the library fulfills the version requirement.  */
-
-/* Type for the cipher_setkey function.  */
-typedef gcry_err_code_t (*gcry_cipher_setkey_t) (void *c,
-						 const unsigned char *key,
-						 unsigned keylen);
-
-/* Type for the cipher_encrypt function.  */
-typedef unsigned int (*gcry_cipher_encrypt_t) (void *c,
-					       unsigned char *outbuf,
-					       const unsigned char *inbuf);
-
-/* Type for the cipher_decrypt function.  */
-typedef unsigned int (*gcry_cipher_decrypt_t) (void *c,
-					       unsigned char *outbuf,
-					       const unsigned char *inbuf);
-
-/* Type for the cipher_stencrypt function.  */
-typedef void (*gcry_cipher_stencrypt_t) (void *c,
-					 unsigned char *outbuf,
-					 const unsigned char *inbuf,
-					 unsigned int n);
-
-/* Type for the cipher_stdecrypt function.  */
-typedef void (*gcry_cipher_stdecrypt_t) (void *c,
-					 unsigned char *outbuf,
-					 const unsigned char *inbuf,
-					 unsigned int n);
-
-typedef struct gcry_cipher_oid_spec
-{
-  const char *oid;
-  int mode;
-} gcry_cipher_oid_spec_t;
-
-/* Module specification structure for ciphers.  */
-typedef struct gcry_cipher_spec
-{
-  const char *name;
-  const char **aliases;
-  gcry_cipher_oid_spec_t *oids;
-  size_t blocksize;
-  size_t keylen;
-  size_t contextsize;
-  gcry_cipher_setkey_t setkey;
-  gcry_cipher_encrypt_t encrypt;
-  gcry_cipher_decrypt_t decrypt;
-  gcry_cipher_stencrypt_t stencrypt;
-  gcry_cipher_stdecrypt_t stdecrypt;
-} gcry_cipher_spec_t;
-
-
-/* ********************** */
 
 /* ********************** */
 

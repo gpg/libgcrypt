@@ -1192,6 +1192,7 @@ static const char *cipher_spec_serpent128_aliases[] =
 
 gcry_cipher_spec_t _gcry_cipher_spec_serpent128 =
   {
+    GCRY_CIPHER_SERPENT128, {0, 0},
     "SERPENT128", cipher_spec_serpent128_aliases, NULL, 16, 128,
     sizeof (serpent_context_t),
     serpent_setkey, serpent_encrypt, serpent_decrypt
@@ -1199,6 +1200,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_serpent128 =
 
 gcry_cipher_spec_t _gcry_cipher_spec_serpent192 =
   {
+    GCRY_CIPHER_SERPENT192, {0, 0},
     "SERPENT192", NULL, NULL, 16, 192,
     sizeof (serpent_context_t),
     serpent_setkey, serpent_encrypt, serpent_decrypt
@@ -1206,6 +1208,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_serpent192 =
 
 gcry_cipher_spec_t _gcry_cipher_spec_serpent256 =
   {
+    GCRY_CIPHER_SERPENT256, {0, 0},
     "SERPENT256", NULL, NULL, 16, 256,
     sizeof (serpent_context_t),
     serpent_setkey, serpent_encrypt, serpent_decrypt

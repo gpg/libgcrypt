@@ -1414,7 +1414,7 @@ gpg_error_t
 _gcry_md_selftest (int algo, int extended, selftest_report_func_t report)
 {
   gcry_module_t module = NULL;
-  cipher_extra_spec_t *extraspec = NULL;
+  md_extra_spec_t *extraspec = NULL;
   gcry_err_code_t ec = 0;
 
   REGISTER_DEFAULT_DIGESTS;

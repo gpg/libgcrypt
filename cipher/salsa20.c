@@ -373,6 +373,8 @@ selftest (void)
 
 gcry_cipher_spec_t _gcry_cipher_spec_salsa20 =
   {
+    GCRY_CIPHER_SALSA20,
+    {0, 0},     /* flags */
     "SALSA20",  /* name */
     NULL,       /* aliases */
     NULL,       /* oids */
@@ -383,11 +385,16 @@ gcry_cipher_spec_t _gcry_cipher_spec_salsa20 =
     NULL,
     NULL,
     salsa20_encrypt_stream,
-    salsa20_encrypt_stream
+    salsa20_encrypt_stream,
+    NULL,
+    NULL,
+    salsa20_setiv
   };
 
 gcry_cipher_spec_t _gcry_cipher_spec_salsa20r12 =
   {
+    GCRY_CIPHER_SALSA20R12,
+    {0, 0},     /* flags */
     "SALSA20R12",  /* name */
     NULL,       /* aliases */
     NULL,       /* oids */
@@ -398,11 +405,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_salsa20r12 =
     NULL,
     NULL,
     salsa20r12_encrypt_stream,
-    salsa20r12_encrypt_stream
-  };
-
-cipher_extra_spec_t _gcry_cipher_extraspec_salsa20 =
-  {
+    salsa20r12_encrypt_stream,
     NULL,
     NULL,
     salsa20_setiv

@@ -150,6 +150,7 @@ selftest(void)
 
 gcry_cipher_spec_t _gcry_cipher_spec_arcfour =
   {
+    GCRY_CIPHER_ARCFOUR, {0, 0},
     "ARCFOUR", NULL, NULL, 1, 128, sizeof (ARCFOUR_context),
     arcfour_setkey, NULL, NULL, encrypt_stream, encrypt_stream,
   };

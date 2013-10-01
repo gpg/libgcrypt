@@ -48,7 +48,7 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
 #error Invalid block size
 #endif
   /* We require a cipher with a 128 bit block length.  */
-  if (c->cipher->blocksize != 16)
+  if (c->spec->blocksize != 16)
     return GPG_ERR_INV_LENGTH;
 
   /* The output buffer must be able to hold the input data plus one
@@ -90,7 +90,7 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
           /* B := AES_k( A | R[i] ) */
           memcpy (b, a, 8);
           memcpy (b+8, r+i*8, 8);
-          nburn = c->cipher->encrypt (&c->context.c, b, b);
+          nburn = c->spec->encrypt (&c->context.c, b, b);
           burn = nburn > burn ? nburn : burn;
           /* t := t + 1  */
 	  for (x = 7; x >= 0; x--)
@@ -130,7 +130,7 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
 #error Invalid block size
 #endif
   /* We require a cipher with a 128 bit block length.  */
-  if (c->cipher->blocksize != 16)
+  if (c->spec->blocksize != 16)
     return GPG_ERR_INV_LENGTH;
 
   /* The output buffer must be able to hold the input data minus one
@@ -173,7 +173,7 @@ _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
           /* B := AES_k^1( (A ^ t)| R[i] ) */
 	  buf_xor(b, a, t, 8);
           memcpy (b+8, r+(i-1)*8, 8);
-          nburn = c->cipher->decrypt (&c->context.c, b, b);
+          nburn = c->spec->decrypt (&c->context.c, b, b);
           burn = nburn > burn ? nburn : burn;
           /* t := t - 1  */
 	  for (x = 7; x >= 0; x--)

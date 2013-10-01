@@ -691,18 +691,21 @@ static gcry_cipher_oid_spec_t camellia256_oids[] =
 
 gcry_cipher_spec_t _gcry_cipher_spec_camellia128 =
   {
+    GCRY_CIPHER_CAMELLIA128, {0, 0},
     "CAMELLIA128",NULL,camellia128_oids,CAMELLIA_BLOCK_SIZE,128,
     sizeof(CAMELLIA_context),camellia_setkey,camellia_encrypt,camellia_decrypt
   };
 
 gcry_cipher_spec_t _gcry_cipher_spec_camellia192 =
   {
+    GCRY_CIPHER_CAMELLIA192, {0, 0},
     "CAMELLIA192",NULL,camellia192_oids,CAMELLIA_BLOCK_SIZE,192,
     sizeof(CAMELLIA_context),camellia_setkey,camellia_encrypt,camellia_decrypt
   };
 
 gcry_cipher_spec_t _gcry_cipher_spec_camellia256 =
   {
+    GCRY_CIPHER_CAMELLIA256, {0, 0},
     "CAMELLIA256",NULL,camellia256_oids,CAMELLIA_BLOCK_SIZE,256,
     sizeof(CAMELLIA_context),camellia_setkey,camellia_encrypt,camellia_decrypt
   };

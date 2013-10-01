@@ -470,6 +470,7 @@ static gcry_cipher_oid_spec_t seed_oids[] =
 
 gcry_cipher_spec_t _gcry_cipher_spec_seed =
   {
+    GCRY_CIPHER_SEED, {0, 0},
     "SEED", NULL, seed_oids, 16, 128, sizeof (SEED_context),
     seed_setkey, seed_encrypt, seed_decrypt,
   };

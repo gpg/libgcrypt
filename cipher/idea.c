@@ -371,8 +371,9 @@ static struct {
 
 
 gcry_cipher_spec_t _gcry_cipher_spec_idea =
-{
+  {
+    GCRY_CIPHER_IDEA, {0, 0},
     "IDEA", NULL, NULL, IDEA_BLOCKSIZE, 128,
     sizeof (IDEA_context),
     idea_setkey, idea_encrypt, idea_decrypt
-};
+  };

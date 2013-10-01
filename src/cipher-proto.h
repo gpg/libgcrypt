@@ -149,6 +149,39 @@ typedef struct gcry_pk_spec
 
 
 
+/*
+ *
+ * Symmetric cipher related definitions.
+ *
+ */
+
+/* Type for the cipher_setkey function.  */
+typedef gcry_err_code_t (*gcry_cipher_setkey_t) (void *c,
+						 const unsigned char *key,
+						 unsigned keylen);
+
+/* Type for the cipher_encrypt function.  */
+typedef unsigned int (*gcry_cipher_encrypt_t) (void *c,
+					       unsigned char *outbuf,
+					       const unsigned char *inbuf);
+
+/* Type for the cipher_decrypt function.  */
+typedef unsigned int (*gcry_cipher_decrypt_t) (void *c,
+					       unsigned char *outbuf,
+					       const unsigned char *inbuf);
+
+/* Type for the cipher_stencrypt function.  */
+typedef void (*gcry_cipher_stencrypt_t) (void *c,
+					 unsigned char *outbuf,
+					 const unsigned char *inbuf,
+					 unsigned int n);
+
+/* Type for the cipher_stdecrypt function.  */
+typedef void (*gcry_cipher_stdecrypt_t) (void *c,
+					 unsigned char *outbuf,
+					 const unsigned char *inbuf,
+					 unsigned int n);
+
 /* The type used to convey additional information to a cipher.  */
 typedef gpg_err_code_t (*cipher_set_extra_info_t)
      (void *c, int what, const void *buffer, size_t buflen);
@@ -157,15 +190,45 @@ typedef gpg_err_code_t (*cipher_set_extra_info_t)
 typedef void (*cipher_setiv_func_t)(void *c,
                                     const byte *iv, unsigned int ivlen);
 
-/* Extra module specification structures.  These are used for internal
-   modules which provide more functions than available through the
-   public algorithm register APIs.  */
-typedef struct cipher_extra_spec
+/* A structure to map OIDs to encryption modes.  */
+typedef struct gcry_cipher_oid_spec
 {
+  const char *oid;
+  int mode;
+} gcry_cipher_oid_spec_t;
+
+
+/* Module specification structure for ciphers.  */
+typedef struct gcry_cipher_spec
+{
+  int algo;
+  struct {
+    unsigned int disabled:1;
+    unsigned int fips:1;
+  } flags;
+  const char *name;
+  const char **aliases;
+  gcry_cipher_oid_spec_t *oids;
+  size_t blocksize;
+  size_t keylen;
+  size_t contextsize;
+  gcry_cipher_setkey_t setkey;
+  gcry_cipher_encrypt_t encrypt;
+  gcry_cipher_decrypt_t decrypt;
+  gcry_cipher_stencrypt_t stencrypt;
+  gcry_cipher_stdecrypt_t stdecrypt;
   selftest_func_t selftest;
   cipher_set_extra_info_t set_extra_info;
   cipher_setiv_func_t setiv;
-} cipher_extra_spec_t;
+} gcry_cipher_spec_t;
+
+
+
+/*
+ *
+ * Message digest related definitions.
+ *
+ */
 
 typedef struct md_extra_spec
 {
@@ -174,11 +237,8 @@ typedef struct md_extra_spec
 
 
 
+
 /* The private register functions. */
-gcry_error_t _gcry_cipher_register (gcry_cipher_spec_t *cipher,
-                                    cipher_extra_spec_t *extraspec,
-                                    int *algorithm_id,
-                                    gcry_module_t *module);
 gcry_error_t _gcry_md_register (gcry_md_spec_t *cipher,
                                 md_extra_spec_t *extraspec,
                                 unsigned int *algorithm_id,

@@ -60,8 +60,7 @@ struct gcry_cipher_handle
   int magic;
   size_t actual_handle_size;     /* Allocated size of this handle. */
   size_t handle_offset;          /* Offset to the malloced block.  */
-  gcry_cipher_spec_t *cipher;
-  cipher_extra_spec_t *extraspec;
+  gcry_cipher_spec_t *spec;
   gcry_module_t module;
 
   /* The algorithm id.  This is a hack required because the module

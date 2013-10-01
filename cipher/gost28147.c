@@ -227,6 +227,7 @@ gost_decrypt_block (void *c, byte *outbuf, const byte *inbuf)
 
 gcry_cipher_spec_t _gcry_cipher_spec_gost28147 =
   {
+    GCRY_CIPHER_GOST28147, {0, 0},
     "GOST28147", NULL, NULL, 8, 256,
     sizeof (GOST28147_context),
     gost_setkey,

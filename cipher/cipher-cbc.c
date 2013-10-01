@@ -40,15 +40,15 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
   unsigned int n;
   unsigned char *ivp;
   int i;
-  size_t blocksize = c->cipher->blocksize;
+  size_t blocksize = c->spec->blocksize;
   unsigned nblocks = inbuflen / blocksize;
   unsigned int burn, nburn;
 
   if (outbuflen < ((c->flags & GCRY_CIPHER_CBC_MAC)? blocksize : inbuflen))
     return GPG_ERR_BUFFER_TOO_SHORT;
 
-  if ((inbuflen % c->cipher->blocksize)
-      && !(inbuflen > c->cipher->blocksize
+  if ((inbuflen % c->spec->blocksize)
+      && !(inbuflen > c->spec->blocksize
            && (c->flags & GCRY_CIPHER_CBC_CTS)))
     return GPG_ERR_INV_LENGTH;
 
@@ -73,7 +73,7 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
       for (n=0; n < nblocks; n++ )
         {
           buf_xor(outbuf, inbuf, c->u_iv.iv, blocksize);
-          nburn = c->cipher->encrypt ( &c->context.c, outbuf, outbuf );
+          nburn = c->spec->encrypt ( &c->context.c, outbuf, outbuf );
           burn = nburn > burn ? nburn : burn;
           memcpy (c->u_iv.iv, outbuf, blocksize );
           inbuf  += blocksize;
@@ -104,7 +104,7 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
       for (; i < blocksize; i++)
         outbuf[i] = 0 ^ *ivp++;
 
-      nburn = c->cipher->encrypt (&c->context.c, outbuf, outbuf);
+      nburn = c->spec->encrypt (&c->context.c, outbuf, outbuf);
       burn = nburn > burn ? nburn : burn;
       memcpy (c->u_iv.iv, outbuf, blocksize);
     }
@@ -123,15 +123,15 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
 {
   unsigned int n;
   int i;
-  size_t blocksize = c->cipher->blocksize;
+  size_t blocksize = c->spec->blocksize;
   unsigned int nblocks = inbuflen / blocksize;
   unsigned int burn, nburn;
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
 
-  if ((inbuflen % c->cipher->blocksize)
-      && !(inbuflen > c->cipher->blocksize
+  if ((inbuflen % c->spec->blocksize)
+      && !(inbuflen > c->spec->blocksize
            && (c->flags & GCRY_CIPHER_CBC_CTS)))
     return GPG_ERR_INV_LENGTH;
 
@@ -159,12 +159,12 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
            * save the original ciphertext block.  We use LASTIV for
            * this here because it is not used otherwise. */
           memcpy (c->lastiv, inbuf, blocksize);
-          nburn = c->cipher->decrypt ( &c->context.c, outbuf, inbuf );
+          nburn = c->spec->decrypt ( &c->context.c, outbuf, inbuf );
           burn = nburn > burn ? nburn : burn;
           buf_xor(outbuf, outbuf, c->u_iv.iv, blocksize);
           memcpy(c->u_iv.iv, c->lastiv, blocksize );
-          inbuf  += c->cipher->blocksize;
-          outbuf += c->cipher->blocksize;
+          inbuf  += c->spec->blocksize;
+          outbuf += c->spec->blocksize;
         }
     }
 
@@ -180,14 +180,14 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
       memcpy (c->lastiv, c->u_iv.iv, blocksize );         /* Save Cn-2. */
       memcpy (c->u_iv.iv, inbuf + blocksize, restbytes ); /* Save Cn. */
 
-      nburn = c->cipher->decrypt ( &c->context.c, outbuf, inbuf );
+      nburn = c->spec->decrypt ( &c->context.c, outbuf, inbuf );
       burn = nburn > burn ? nburn : burn;
       buf_xor(outbuf, outbuf, c->u_iv.iv, restbytes);
 
       memcpy(outbuf + blocksize, outbuf, restbytes);
       for(i=restbytes; i < blocksize; i++)
         c->u_iv.iv[i] = outbuf[i];
-      nburn = c->cipher->decrypt (&c->context.c, outbuf, c->u_iv.iv);
+      nburn = c->spec->decrypt (&c->context.c, outbuf, c->u_iv.iv);
       burn = nburn > burn ? nburn : burn;
       buf_xor(outbuf, outbuf, c->lastiv, blocksize);
       /* c->lastiv is now really lastlastiv, does this matter? */

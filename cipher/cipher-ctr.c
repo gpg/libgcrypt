@@ -38,7 +38,7 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
 {
   unsigned int n;
   int i;
-  unsigned int blocksize = c->cipher->blocksize;
+  unsigned int blocksize = c->spec->blocksize;
   unsigned int nblocks;
   unsigned int burn, nburn;
 
@@ -77,7 +77,7 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
       unsigned char tmp[MAX_BLOCKSIZE];
 
       do {
-        nburn = c->cipher->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
+        nburn = c->spec->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
         burn = nburn > burn ? nburn : burn;
 
         for (i = blocksize; i > 0; i--)
