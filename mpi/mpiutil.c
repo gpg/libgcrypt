@@ -373,7 +373,9 @@ _gcry_mpi_is_neg (gcry_mpi_t a)
 void
 _gcry_mpi_neg (gcry_mpi_t w, gcry_mpi_t u)
 {
-  if (mpi_is_immutable (w))
+  if (w != u)
+    mpi_set (w, u);
+  else if (mpi_is_immutable (w))
     {
       mpi_immutable_failed ();
       return;
