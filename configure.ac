@@ -921,7 +921,7 @@ fi
 
 #
 # Check whether the compiler supports 'asm' or '__asm__' keyword for
-# assembler blocks
+# assembler blocks.
 #
 AC_CACHE_CHECK([whether 'asm' assembler keyword is supported],
        [gcry_cv_have_asm],
@@ -941,6 +941,32 @@ if test "$gcry_cv_have_asm" = "no" ; then
         [Define to supported assembler block keyword, if plain 'asm' was not
          supported])
    fi
+fi
+
+
+#
+# Check whether the compiler supports inline assembly memory barrier.
+#
+if test "$gcry_cv_have_asm" = "no" ; then
+   if test "$gcry_cv_have___asm__" = "yes" ; then
+      AC_CACHE_CHECK([whether inline assembly memory barrier is supported],
+          [gcry_cv_have_asm_volatile_memory],
+          [gcry_cv_have_asm_volatile_memory=no
+           AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+             [[void a(void) { __asm__ volatile("":::"memory"); }]])],
+             [gcry_cv_have_asm_volatile_memory=yes])])
+   fi
+else
+   AC_CACHE_CHECK([whether inline assembly memory barrier is supported],
+       [gcry_cv_have_asm_volatile_memory],
+       [gcry_cv_have_asm_volatile_memory=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) { asm volatile("":::"memory"); }]])],
+          [gcry_cv_have_asm_volatile_memory=yes])])
+fi
+if test "$gcry_cv_have_asm_volatile_memory" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ASM_VOLATILE_MEMORY,1,
+     [Define if inline asm memory barrier is supported])
 fi
 
 

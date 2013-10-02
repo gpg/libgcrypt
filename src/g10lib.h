@@ -259,7 +259,16 @@ int strcasecmp (const char *a, const char *b) _GCRY_GCC_ATTR_PURE;
 
 /* Stack burning.  */
 
-void _gcry_burn_stack (unsigned int bytes);
+#ifdef HAVE_GCC_ASM_VOLATILE_MEMORY
+#define  __gcry_burn_stack_dummy() asm volatile ("":::"memory")
+#else
+void __gcry_burn_stack_dummy (void);
+#endif
+
+void __gcry_burn_stack (unsigned int bytes);
+#define _gcry_burn_stack(bytes) \
+	do { __gcry_burn_stack (bytes); \
+	     __gcry_burn_stack_dummy (); } while(0)
 
 
 /* To avoid that a compiler optimizes certain memset calls away, these

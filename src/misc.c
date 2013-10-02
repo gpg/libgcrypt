@@ -438,7 +438,7 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
 
 
 void
-_gcry_burn_stack (unsigned int bytes)
+__gcry_burn_stack (unsigned int bytes)
 {
 #ifdef HAVE_VLA
     /* (bytes == 0 ? 1 : bytes) == (!bytes + bytes) */
@@ -455,6 +455,13 @@ _gcry_burn_stack (unsigned int bytes)
         _gcry_burn_stack (bytes - sizeof buf);
 #endif
 }
+
+#ifndef HAVE_GCC_ASM_VOLATILE_MEMORY
+void
+__gcry_burn_stack_dummy (void)
+{
+}
+#endif
 
 void
 _gcry_divide_by_zero (void)
