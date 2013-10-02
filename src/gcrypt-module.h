@@ -47,37 +47,6 @@ typedef struct gcry_module *gcry_module_t;
 
 /* ********************** */
 
-/* Type for the md_init function.  */
-typedef void (*gcry_md_init_t) (void *c);
-
-/* Type for the md_write function.  */
-typedef void (*gcry_md_write_t) (void *c, const void *buf, size_t nbytes);
-
-/* Type for the md_final function.  */
-typedef void (*gcry_md_final_t) (void *c);
-
-/* Type for the md_read function.  */
-typedef unsigned char *(*gcry_md_read_t) (void *c);
-
-typedef struct gcry_md_oid_spec
-{
-  const char *oidstring;
-} gcry_md_oid_spec_t;
-
-/* Module specification structure for message digests.  */
-typedef struct gcry_md_spec
-{
-  const char *name;
-  unsigned char *asnoid;
-  int asnlen;
-  gcry_md_oid_spec_t *oids;
-  int mdlen;
-  gcry_md_init_t init;
-  gcry_md_write_t write;
-  gcry_md_final_t final;
-  gcry_md_read_t read;
-  size_t contextsize; /* allocate this amount of context */
-} gcry_md_spec_t;
 
 #if 0 /* keep Emacsens's auto-indent happy */
 {

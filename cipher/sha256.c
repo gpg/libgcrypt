@@ -475,22 +475,18 @@ static gcry_md_oid_spec_t oid_spec_sha256[] =
 
 gcry_md_spec_t _gcry_digest_spec_sha224 =
   {
+    GCRY_MD_SHA224, {0, 1},
     "SHA224", asn224, DIM (asn224), oid_spec_sha224, 28,
     sha224_init, _gcry_md_block_write, sha256_final, sha256_read,
-    sizeof (SHA256_CONTEXT)
-  };
-md_extra_spec_t _gcry_digest_extraspec_sha224 =
-  {
+    sizeof (SHA256_CONTEXT),
     run_selftests
   };
 
 gcry_md_spec_t _gcry_digest_spec_sha256 =
   {
+    GCRY_MD_SHA256, {0, 1},
     "SHA256", asn256, DIM (asn256), oid_spec_sha256, 32,
     sha256_init, _gcry_md_block_write, sha256_final, sha256_read,
-    sizeof (SHA256_CONTEXT)
-  };
-md_extra_spec_t _gcry_digest_extraspec_sha256 =
-  {
+    sizeof (SHA256_CONTEXT),
     run_selftests
   };

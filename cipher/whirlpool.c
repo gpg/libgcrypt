@@ -1351,6 +1351,7 @@ whirlpool_read (void *ctx)
 
 gcry_md_spec_t _gcry_digest_spec_whirlpool =
   {
+    GCRY_MD_WHIRLPOOL, {0, 0},
     "WHIRLPOOL", NULL, 0, NULL, 64,
     whirlpool_init, whirlpool_write, whirlpool_final, whirlpool_read,
     sizeof (whirlpool_context_t)

@@ -230,20 +230,46 @@ typedef struct gcry_cipher_spec
  *
  */
 
-typedef struct md_extra_spec
-{
-  selftest_func_t selftest;
-} md_extra_spec_t;
+/* Type for the md_init function.  */
+typedef void (*gcry_md_init_t) (void *c);
 
+/* Type for the md_write function.  */
+typedef void (*gcry_md_write_t) (void *c, const void *buf, size_t nbytes);
+
+/* Type for the md_final function.  */
+typedef void (*gcry_md_final_t) (void *c);
+
+/* Type for the md_read function.  */
+typedef unsigned char *(*gcry_md_read_t) (void *c);
+
+typedef struct gcry_md_oid_spec
+{
+  const char *oidstring;
+} gcry_md_oid_spec_t;
+
+/* Module specification structure for message digests.  */
+typedef struct gcry_md_spec
+{
+  int algo;
+  struct {
+    unsigned int disabled:1;
+    unsigned int fips:1;
+  } flags;
+  const char *name;
+  unsigned char *asnoid;
+  int asnlen;
+  gcry_md_oid_spec_t *oids;
+  int mdlen;
+  gcry_md_init_t init;
+  gcry_md_write_t write;
+  gcry_md_final_t final;
+  gcry_md_read_t read;
+  size_t contextsize; /* allocate this amount of context */
+  selftest_func_t selftest;
+} gcry_md_spec_t;
 
 
 
-/* The private register functions. */
-gcry_error_t _gcry_md_register (gcry_md_spec_t *cipher,
-                                md_extra_spec_t *extraspec,
-                                unsigned int *algorithm_id,
-                                gcry_module_t *module);
-
 /* The selftest functions.  */
 gcry_error_t _gcry_cipher_selftest (int algo, int extended,
                                     selftest_report_func_t report);

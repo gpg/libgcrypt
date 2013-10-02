@@ -731,12 +731,10 @@ static gcry_md_oid_spec_t oid_spec_sha512[] =
 
 gcry_md_spec_t _gcry_digest_spec_sha512 =
   {
+    GCRY_MD_SHA512, {0, 1},
     "SHA512", sha512_asn, DIM (sha512_asn), oid_spec_sha512, 64,
     sha512_init, _gcry_md_block_write, sha512_final, sha512_read,
     sizeof (SHA512_CONTEXT),
-  };
-md_extra_spec_t _gcry_digest_extraspec_sha512 =
-  {
     run_selftests
   };
 
@@ -759,11 +757,9 @@ static gcry_md_oid_spec_t oid_spec_sha384[] =
 
 gcry_md_spec_t _gcry_digest_spec_sha384 =
   {
+    GCRY_MD_SHA384, {0, 1},
     "SHA384", sha384_asn, DIM (sha384_asn), oid_spec_sha384, 48,
     sha384_init, _gcry_md_block_write, sha512_final, sha512_read,
     sizeof (SHA512_CONTEXT),
-  };
-md_extra_spec_t _gcry_digest_extraspec_sha384 =
-  {
     run_selftests
   };
