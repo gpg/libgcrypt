@@ -1560,9 +1560,7 @@ The Serpent cipher from the AES contest.
 @itemx GCRY_CIPHER_RFC2268_128
 @cindex rfc-2268
 @cindex RC2
-Ron's Cipher 2 in the 40 and 128 bit variants.  Note, that we currently
-only support the 40 bit variant.  The identifier for 128 is reserved for
-future use.
+Ron's Cipher 2 in the 40 and 128 bit variants.
 
 @item GCRY_CIPHER_SEED
 @cindex Seed (cipher)
