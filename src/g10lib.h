@@ -351,52 +351,7 @@ void _gcry_burn_stack (unsigned int bytes);
                       || (*(a) >= 'A' && *(a) <= 'F')  \
                       || (*(a) >= 'a' && *(a) <= 'f'))
 
-/* Management for ciphers/digests/pubkey-ciphers.  */
-
-/* Structure for each registered `module'.  */
-struct gcry_module
-{
-  struct gcry_module *next;     /* List pointers.      */
-  struct gcry_module **prevp;
-  void *spec;			/* Pointer to the subsystem-specific
-				   specification structure.  */
-  void *extraspec;		/* Pointer to the subsystem-specific
-				   extra specification structure.  */
-  int flags;			/* Associated flags.   */
-  int counter;			/* Use counter.        */
-  unsigned int mod_id;		/* ID of this module.  */
-};
-
-/* Flags for the `flags' member of gcry_module_t.  */
-#define FLAG_MODULE_DISABLED (1 << 0)
-
-gcry_err_code_t _gcry_module_add (gcry_module_t *entries,
-                                  unsigned int id,
-                                  void *spec,
-                                  void *extraspec,
-                                  gcry_module_t *module);
-
-typedef int (*gcry_module_lookup_t) (void *spec, void *data);
-
-/* Lookup a module specification by it's ID.  After a successful
-   lookup, the module has it's resource counter incremented.  */
-gcry_module_t _gcry_module_lookup_id (gcry_module_t entries,
-				       unsigned int id);
-
-/* Internal function.  Lookup a module specification.  */
-gcry_module_t _gcry_module_lookup (gcry_module_t entries, void *data,
-				    gcry_module_lookup_t func);
-
-/* Release a module.  In case the use-counter reaches zero, destroy
-   the module.  */
-void _gcry_module_release (gcry_module_t entry);
-
-/* Add a reference to a module.  */
-void _gcry_module_use (gcry_module_t module);
-
-/* Return a list of module IDs.  */
-gcry_err_code_t _gcry_module_list (gcry_module_t modules,
-				  int *list, int *list_length);
+/* Init functions.  */
 
 gcry_err_code_t _gcry_cipher_init (void);
 gcry_err_code_t _gcry_md_init (void);

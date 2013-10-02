@@ -208,7 +208,6 @@
 #else
 # include "gcrypt-int.h"
 #endif
-#include "gcrypt-module.h"
 
 /* Prototypes of functions exported but not ready for use.  */
 gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
