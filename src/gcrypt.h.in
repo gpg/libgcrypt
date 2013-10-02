@@ -257,8 +257,7 @@ const char *gcry_check_version (const char *req_version);
 /* Codes used with the gcry_control function. */
 enum gcry_ctl_cmds
   {
-    GCRYCTL_SET_KEY  = 1,
-    GCRYCTL_SET_IV   = 2,
+    /* Note: 1 .. 2 are not anymore used. */
     GCRYCTL_CFB_SYNC = 3,
     GCRYCTL_RESET    = 4,   /* e.g. for MDs */
     GCRYCTL_FINALIZE = 5,
@@ -298,7 +297,7 @@ enum gcry_ctl_cmds
     GCRYCTL_ANY_INITIALIZATION_P = 40,
     GCRYCTL_SET_CBC_CTS = 41,
     GCRYCTL_SET_CBC_MAC = 42,
-    GCRYCTL_SET_CTR = 43,
+    /* Note: 43 is not anymore used. */
     GCRYCTL_ENABLE_QUICK_RANDOM = 44,
     GCRYCTL_SET_RANDOM_SEED_FILE = 45,
     GCRYCTL_UPDATE_RANDOM_SEED_FILE = 46,

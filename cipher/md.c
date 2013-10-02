@@ -717,13 +717,12 @@ gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
 {
   gcry_err_code_t rc = 0;
 
+  (void)buflen; /* Currently not used.  */
+
   switch (cmd)
     {
     case GCRYCTL_FINALIZE:
       md_final (hd);
-      break;
-    case GCRYCTL_SET_KEY:
-      rc = gcry_err_code (gcry_md_setkey (hd, buffer, buflen));
       break;
     case GCRYCTL_START_DUMP:
       md_start_debug (hd, buffer);

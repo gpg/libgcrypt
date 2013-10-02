@@ -918,14 +918,6 @@ gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
 
   switch (cmd)
     {
-    case GCRYCTL_SET_KEY:  /* Deprecated; use gcry_cipher_setkey.  */
-      rc = cipher_setkey( h, buffer, buflen );
-      break;
-
-    case GCRYCTL_SET_IV:   /* Deprecated; use gcry_cipher_setiv.  */
-      cipher_setiv( h, buffer, buflen );
-      break;
-
     case GCRYCTL_RESET:
       cipher_reset (h);
       break;
@@ -960,10 +952,6 @@ gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
       if( h || !buffer || buflen != sizeof(int) )
 	return gcry_error (GPG_ERR_CIPHER_ALGO);
       disable_cipher_algo( *(int*)buffer );
-      break;
-
-    case GCRYCTL_SET_CTR: /* Deprecated; use gcry_cipher_setctr.  */
-      rc = gpg_err_code (_gcry_cipher_setctr (h, buffer, buflen));
       break;
 
     case 61:  /* Disable weak key detection (private).  */
