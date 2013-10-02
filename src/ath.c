@@ -134,7 +134,13 @@ ath_get_model (int *r_model)
 gpg_err_code_t
 ath_install (struct ath_ops *ath_ops)
 {
+  gpg_err_code_t rc;
   unsigned int thread_option;
+
+  /* Fist call ath_init so that we know our thread model.  */
+  rc = ath_init ();
+  if (rc)
+    return rc;
 
   /* Check if the requested thread option is compatible to the
      thread option we are already committed to.  */
@@ -149,8 +155,15 @@ ath_install (struct ath_ops *ath_ops)
     {
       if (thread_option == ATH_THREAD_OPTION_PTHREAD)
         return 0; /* Okay - compatible.  */
+      if (thread_option == ATH_THREAD_OPTION_PTH)
+        return 0; /* Okay - compatible.  */
     }
 #endif /*USE_POSIX_THREADS_WEAK*/
+  else if (thread_option == ATH_THREAD_OPTION_PTH)
+    {
+      if (thread_model == ath_model_none)
+        return 0; /* Okay - compatible.  */
+    }
   else if (thread_option == ATH_THREAD_OPTION_DEFAULT)
     return 0; /* No thread support requested.  */
 
