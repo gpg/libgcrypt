@@ -342,6 +342,10 @@ gpg_err_code_t _gcry_mpi_ec_set_point (const char *name,
                                        gcry_mpi_point_t newvalue,
                                        gcry_ctx_t ctx);
 
+/*-- ecc-curves.c --*/
+gpg_err_code_t _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
+                                 gcry_sexp_t keyparam, const char *curvename);
+
 
 
 #endif /*G10_MPI_H*/
