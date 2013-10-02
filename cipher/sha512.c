@@ -488,7 +488,7 @@ transform (void *context, const unsigned char *data)
   SHA512_CONTEXT *ctx = context;
 
 #ifdef USE_ARM_NEON_ASM
-  if (hd->use_neon)
+  if (ctx->use_neon)
     {
       _gcry_sha512_transform_armv7_neon(&ctx->state, data, k);
 
