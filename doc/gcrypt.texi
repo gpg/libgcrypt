@@ -2910,7 +2910,7 @@ non-cryptographic application.
 
 @item GCRY_MD_MD4
 This is the MD4 algorithm, which yields a message digest of 16 bytes.
-This algorithms ha severe weaknesses and should not be used.
+This algorithm has severe weaknesses and should not be used.
 
 @item GCRY_MD_MD2
 This is an reserved identifier for MD-2; there is no implementation yet.
