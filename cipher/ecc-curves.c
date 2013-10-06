@@ -38,6 +38,8 @@ static const struct
   const char *other; /* Other name. */
 } curve_aliases[] =
   {
+    { "Ed25519",    "1.3.6.1.4.1.3029.1.5.1" },
+
     { "NIST P-192", "1.2.840.10045.3.1.1" }, /* X9.62 OID  */
     { "NIST P-192", "prime192v1" },          /* X9.62 name.  */
     { "NIST P-192", "secp192r1"  },          /* SECP name.  */
