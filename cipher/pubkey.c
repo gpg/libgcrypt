@@ -109,6 +109,65 @@ spec_from_name (const char *name)
 }
 
 
+
+/* Given the s-expression SEXP with the first element be either
+ * "private-key" or "public-key" return the spec structure for it.  We
+ * look through the list to find a list beginning with "private-key"
+ * or "public-key" - the first one found is used.  If WANT_PRIVATE is
+ * set the function will only succeed if a private key has been given.
+ * On success the spec is stored at R_SPEC.  On error NULL is stored
+ * at R_SPEC and an error code returned.  If R_PARMS is not NULL and
+ * the fucntion returns success, the parameter list below
+ * "private-key" or "public-key" is stored there and the caller must
+ * call gcry_sexp_release on it.
+ */
+static gcry_err_code_t
+spec_from_sexp (gcry_sexp_t sexp, int want_private,
+                gcry_pk_spec_t **r_spec, gcry_sexp_t *r_parms)
+{
+  gcry_sexp_t list, l2;
+  char *name;
+  gcry_pk_spec_t *spec;
+
+  *r_spec = NULL;
+
+  /* Check that the first element is valid.  If we are looking for a
+     public key but a private key was supplied, we allow the use of
+     the private key anyway.  The rationale for this is that the
+     private key is a superset of the public key.  */
+  list = gcry_sexp_find_token (sexp,
+                               want_private? "private-key":"public-key", 0);
+  if (!list && !want_private)
+    list = gcry_sexp_find_token (sexp, "private-key", 0);
+  if (!list)
+    return GPG_ERR_INV_OBJ; /* Does not contain a key object.  */
+
+  l2 = gcry_sexp_cadr (list);
+  gcry_sexp_release (list);
+  list = l2;
+  name = _gcry_sexp_nth_string (list, 0);
+  if (!name)
+    {
+      gcry_sexp_release ( list );
+      return GPG_ERR_INV_OBJ;      /* Invalid structure of object. */
+    }
+  spec = spec_from_name (name);
+  gcry_free (name);
+  if (!spec)
+    {
+      gcry_sexp_release (list);
+      return GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm. */
+    }
+  *r_spec = spec;
+  if (r_parms)
+    *r_parms = list;
+  else
+    gcry_sexp_release (list);
+  return 0;
+}
+
+
+
 /* Disable the use of the algorithm ALGO.  This is not thread safe and
    should thus be called early.  */
 static void
@@ -1923,25 +1982,20 @@ unsigned int
 gcry_pk_get_nbits (gcry_sexp_t key)
 {
   gcry_pk_spec_t *spec;
-  gcry_mpi_t *keyarr = NULL;
-  unsigned int nbits = 0;
-  gcry_err_code_t rc;
+  gcry_sexp_t parms;
+  unsigned int nbits;
 
-  /* FIXME: Parsing KEY is often too much overhead.  For example for
-     ECC we would only need to look at P and stop parsing right
-     away.  */
+  /* Parsing KEY might be considered too much overhead.  For example
+     for RSA we would only need to look at P and stop parsing right
+     away.  However, with ECC things are more complicate in that only
+     a curve name might be specified.  Thus we need to tear the sexp
+     apart. */
 
-  rc = sexp_to_key (key, 0, 0, NULL, &keyarr, &spec, NULL);
-  if (rc == GPG_ERR_INV_OBJ)
-    rc = sexp_to_key (key, 1, 0, NULL, &keyarr, &spec, NULL);
-  if (rc)
-    return 0; /* Error - 0 is a suitable indication for that. */
+  if (spec_from_sexp (key, 0, &spec, &parms))
+    return 0; /* Error - 0 is a suitable indication for that.  */
 
-  nbits = spec->get_nbits (spec->algo, keyarr);
-
-  release_mpi_array (keyarr);
-  gcry_free (keyarr);
-
+  nbits = spec->get_nbits (parms);
+  gcry_sexp_release (parms);
   return nbits;
 }
 

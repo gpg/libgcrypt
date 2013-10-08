@@ -94,8 +94,7 @@ typedef gcry_err_code_t (*gcry_pk_verify_t) (int algo,
                                              int hashalgo);
 
 /* Type for the pk_get_nbits function.  */
-typedef unsigned (*gcry_pk_get_nbits_t) (int algo,
-                                         gcry_mpi_t *pkey);
+typedef unsigned (*gcry_pk_get_nbits_t) (gcry_sexp_t keyparms);
 
 
 /* The type used to compute the keygrip.  */

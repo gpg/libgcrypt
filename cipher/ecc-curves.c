@@ -306,7 +306,9 @@ scanval (const char *string)
 /* Generate the crypto system setup.  This function takes the NAME of
    a curve or the desired number of bits and stores at R_CURVE the
    parameters of the named curve or those of a suitable curve.  If
-   R_NBITS is not NULL, the chosen number of bits is stored there.  */
+   R_NBITS is not NULL, the chosen number of bits is stored there.
+   NULL may be given for R_CURVE, if the value is not required and for
+   example only a quick test for availability is desired.  */
 gpg_err_code_t
 _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
                          elliptic_curve_t *curve, unsigned int *r_nbits)
@@ -372,16 +374,19 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
   if (r_nbits)
     *r_nbits = domain_parms[idx].nbits;
 
-  curve->model = domain_parms[idx].model;
-  curve->dialect = domain_parms[idx].dialect;
-  curve->p = scanval (domain_parms[idx].p);
-  curve->a = scanval (domain_parms[idx].a);
-  curve->b = scanval (domain_parms[idx].b);
-  curve->n = scanval (domain_parms[idx].n);
-  curve->G.x = scanval (domain_parms[idx].g_x);
-  curve->G.y = scanval (domain_parms[idx].g_y);
-  curve->G.z = mpi_alloc_set_ui (1);
-  curve->name = resname;
+  if (curve)
+    {
+      curve->model = domain_parms[idx].model;
+      curve->dialect = domain_parms[idx].dialect;
+      curve->p = scanval (domain_parms[idx].p);
+      curve->a = scanval (domain_parms[idx].a);
+      curve->b = scanval (domain_parms[idx].b);
+      curve->n = scanval (domain_parms[idx].n);
+      curve->G.x = scanval (domain_parms[idx].g_x);
+      curve->G.y = scanval (domain_parms[idx].g_y);
+      curve->G.z = mpi_alloc_set_ui (1);
+      curve->name = resname;
+    }
 
   return 0;
 }

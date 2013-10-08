@@ -1087,12 +1087,33 @@ rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 }
 
 
-static unsigned int
-rsa_get_nbits (int algo, gcry_mpi_t *pkey)
-{
-  (void)algo;
 
-  return mpi_get_nbits (pkey[0]);
+/* Return the number of bits for the key described by PARMS.  On error
+ * 0 is returned.  The format of PARMS starts with the algorithm name;
+ * for example:
+ *
+ *   (rsa
+ *     (n <mpi>)
+ *     (e <mpi>))
+ *
+ * More parameters may be given but we only need N here.
+ */
+static unsigned int
+rsa_get_nbits (gcry_sexp_t parms)
+{
+  gcry_sexp_t l1;
+  gcry_mpi_t n;
+  unsigned int nbits;
+
+  l1 = gcry_sexp_find_token (parms, "n", 1);
+  if (!l1)
+    return 0; /* Parameter N not found.  */
+
+  n = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+  gcry_sexp_release (l1);
+  nbits = n? mpi_get_nbits (n) : 0;
+  gcry_mpi_release (n);
+  return nbits;
 }
 
 

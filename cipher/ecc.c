@@ -1836,12 +1836,56 @@ ecc_decrypt_raw (int algo, gcry_sexp_t *r_plain, gcry_mpi_t *data,
 }
 
 
+/* Return the number of bits for the key described by PARMS.  On error
+ * 0 is returned.  The format of PARMS starts with the algorithm name;
+ * for example:
+ *
+ *   (ecc
+ *     (p <mpi>)
+ *     (a <mpi>)
+ *     (b <mpi>)
+ *     (g <mpi>)
+ *     (n <mpi>)
+ *     (q <mpi>))
+ *
+ * More parameters may be given currently P is needed.  FIXME: We
+ * need allow for a "curve" parameter.
+ */
 static unsigned int
-ecc_get_nbits (int algo, gcry_mpi_t *pkey)
+ecc_get_nbits (gcry_sexp_t parms)
 {
-  (void)algo;
+  gcry_sexp_t l1;
+  gcry_mpi_t p;
+  unsigned int nbits = 0;
+  char *curve;
 
-  return mpi_get_nbits (pkey[0]);
+  l1 = gcry_sexp_find_token (parms, "p", 1);
+  if (!l1)
+    { /* Parameter P not found - check whether we have "curve".  */
+      l1 = gcry_sexp_find_token (parms, "curve", 5);
+      if (!l1)
+        return 0; /* Neither P nor CURVE found.  */
+
+      curve = _gcry_sexp_nth_string (l1, 1);
+      gcry_sexp_release (l1);
+      if (!curve)
+        return 0;  /* No curve name given (or out of core). */
+
+      if (_gcry_ecc_fill_in_curve (0, curve, NULL, &nbits))
+        nbits = 0;
+      gcry_free (curve);
+    }
+  else
+    {
+      p = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      gcry_sexp_release (l1);
+      if (p)
+        {
+          nbits = mpi_get_nbits (p);
+          gcry_mpi_release (p);
+        }
+    }
+  return nbits;
 }
 
 

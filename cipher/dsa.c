@@ -1029,12 +1029,34 @@ dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 }
 
 
+/* Return the number of bits for the key described by PARMS.  On error
+ * 0 is returned.  The format of PARMS starts with the algorithm name;
+ * for example:
+ *
+ *   (dsa
+ *     (p <mpi>)
+ *     (q <mpi>)
+ *     (g <mpi>)
+ *     (y <mpi>))
+ *
+ * More parameters may be given but we only need P here.
+ */
 static unsigned int
-dsa_get_nbits (int algo, gcry_mpi_t *pkey)
+dsa_get_nbits (gcry_sexp_t parms)
 {
-  (void)algo;
+  gcry_sexp_t l1;
+  gcry_mpi_t p;
+  unsigned int nbits;
 
-  return mpi_get_nbits (pkey[0]);
+  l1 = gcry_sexp_find_token (parms, "p", 1);
+  if (!l1)
+    return 0; /* Parameter P not found.  */
+
+  p = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+  gcry_sexp_release (l1);
+  nbits = p? mpi_get_nbits (p) : 0;
+  gcry_mpi_release (p);
+  return nbits;
 }
 
 
