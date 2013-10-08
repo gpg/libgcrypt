@@ -974,16 +974,16 @@ size_t gcry_cipher_get_algo_blklen (int algo);
  *                                  *
  ************************************/
 
-/* The algorithms and their IDs we support. */
+/* The algorithms and their IDs we support.  */
 enum gcry_pk_algos
   {
-    GCRY_PK_RSA   = 1,
-    GCRY_PK_RSA_E = 2,      /* (deprecated) */
-    GCRY_PK_RSA_S = 3,      /* (deprecated) */
-    GCRY_PK_ELG_E = 16,
-    GCRY_PK_DSA   = 17,
+    GCRY_PK_RSA   = 1,      /* RSA */
+    GCRY_PK_RSA_E = 2,      /* (deprecated: use 1).  */
+    GCRY_PK_RSA_S = 3,      /* (deprecated: use 1).  */
+    GCRY_PK_ELG_E = 16,     /* (deprecated: use 20). */
+    GCRY_PK_DSA   = 17,     /* Digital Signature Algorithm.  */
     GCRY_PK_ECC   = 18,     /* Generic ECC.  */
-    GCRY_PK_ELG   = 20,
+    GCRY_PK_ELG   = 20,     /* Elgamal       */
     GCRY_PK_ECDSA = 301,    /* (deprecated: use 18).  */
     GCRY_PK_ECDH  = 302     /* (deprecated: use 18).  */
   };
