@@ -1226,10 +1226,10 @@ verify_eddsa (gcry_mpi_t input, ECC_public_key *pkey,
  *********************************************/
 
 static gcry_err_code_t
-ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
-              const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
+ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 {
   gpg_err_code_t rc;
+  unsigned int nbits;
   elliptic_curve_t E;
   ECC_secret_key sk;
   gcry_mpi_t x = NULL;
@@ -1244,31 +1244,29 @@ ecc_generate (int algo, unsigned int nbits, unsigned long evalue,
   gcry_mpi_t public = NULL;
   gcry_mpi_t secret = NULL;
 
-  (void)algo;
-  (void)evalue;
-
   memset (&E, 0, sizeof E);
   memset (&sk, 0, sizeof sk);
 
-  if (genparms)
-    {
-      /* Parse the optional "curve" parameter. */
-      l1 = gcry_sexp_find_token (genparms, "curve", 0);
-      if (l1)
-        {
-          curve_name = _gcry_sexp_nth_string (l1, 1);
-          gcry_sexp_release (l1);
-          if (!curve_name)
-            return GPG_ERR_INV_OBJ; /* No curve name or value too large. */
-        }
+  rc = _gcry_pk_util_get_nbits (genparms, &nbits);
+  if (rc)
+    return rc;
 
-      /* Parse the optional transient-key flag.  */
-      l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
-      if (l1)
-        {
-          transient_key = 1;
-          gcry_sexp_release (l1);
-        }
+  /* Parse the optional "curve" parameter. */
+  l1 = gcry_sexp_find_token (genparms, "curve", 0);
+  if (l1)
+    {
+      curve_name = _gcry_sexp_nth_string (l1, 1);
+      gcry_sexp_release (l1);
+      if (!curve_name)
+        return GPG_ERR_INV_OBJ; /* No curve name or value too large. */
+    }
+
+  /* Parse the optional transient-key flag.  */
+  l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
+  if (l1)
+    {
+      transient_key = 1;
+      gcry_sexp_release (l1);
     }
 
   /* NBITS is required if no curve name has been given.  */

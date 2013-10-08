@@ -743,20 +743,27 @@ secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
  *********************************************/
 
 static gcry_err_code_t
-rsa_generate (int algo, unsigned int nbits, unsigned long evalue,
-              const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
+rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 {
-  RSA_secret_key sk;
   gpg_err_code_t ec;
+  unsigned int nbits;
+  unsigned long evalue;
+  RSA_secret_key sk;
   gcry_sexp_t deriveparms;
   int transient_key = 0;
   int use_x931 = 0;
   gcry_sexp_t l1;
   gcry_sexp_t swap_info = NULL;
 
-  (void)algo;
-
   memset (&sk, 0, sizeof sk);
+
+  ec = _gcry_pk_util_get_nbits (genparms, &nbits);
+  if (ec)
+    return ec;
+
+  ec = _gcry_pk_util_get_rsa_use_e (genparms, &evalue);
+  if (ec)
+    return ec;
 
   deriveparms = (genparms?
                  gcry_sexp_find_token (genparms, "derive-parms", 0) : NULL);

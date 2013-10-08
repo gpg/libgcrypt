@@ -50,10 +50,7 @@ typedef gpg_err_code_t (*selftest_func_t)
  */
 
 /* Type for the pk_generate function.  */
-typedef gcry_err_code_t (*gcry_pk_generate_t) (int algo,
-                                               unsigned int nbits,
-                                               unsigned long evalue,
-                                               gcry_sexp_t genparms,
+typedef gcry_err_code_t (*gcry_pk_generate_t) (gcry_sexp_t genparms,
                                                gcry_sexp_t *r_skey);
 
 /* Type for the pk_check_secret_key function.  */

@@ -616,32 +616,30 @@ verify(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
  *********************************************/
 
 static gpg_err_code_t
-elg_generate (int algo, unsigned int nbits, unsigned long evalue,
-              const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
+elg_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 {
   gpg_err_code_t rc;
+  unsigned int nbits;
   ELG_secret_key sk;
   gcry_mpi_t xvalue = NULL;
   gcry_sexp_t l1;
   gcry_mpi_t *factors = NULL;
   gcry_sexp_t misc_info = NULL;
 
-  (void)algo;
-  (void)evalue;
-
   memset (&sk, 0, sizeof sk);
 
-  if (genparms)
+  rc = _gcry_pk_util_get_nbits (genparms, &nbits);
+  if (rc)
+    return rc;
+
+  /* Parse the optional xvalue element. */
+  l1 = gcry_sexp_find_token (genparms, "xvalue", 0);
+  if (l1)
     {
-      /* Parse the optional xvalue element. */
-      l1 = gcry_sexp_find_token (genparms, "xvalue", 0);
-      if (l1)
-        {
-          xvalue = gcry_sexp_nth_mpi (l1, 1, 0);
-          gcry_sexp_release (l1);
-          if (!xvalue)
-            return GPG_ERR_BAD_MPI;
-        }
+      xvalue = gcry_sexp_nth_mpi (l1, 1, 0);
+      gcry_sexp_release (l1);
+      if (!xvalue)
+        return GPG_ERR_BAD_MPI;
     }
 
   if (xvalue)

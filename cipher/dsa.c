@@ -689,10 +689,11 @@ verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_public_key *pkey )
  *********************************************/
 
 static gcry_err_code_t
-dsa_generate (int algo, unsigned int nbits, unsigned long evalue,
-              const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
+dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 {
   gpg_err_code_t rc;
+  unsigned int nbits;
+  gcry_sexp_t domainsexp;
   DSA_secret_key sk;
   gcry_sexp_t l1;
   unsigned int qbits = 0;
@@ -705,102 +706,97 @@ dsa_generate (int algo, unsigned int nbits, unsigned long evalue,
   dsa_domain_t domain;
   gcry_mpi_t *factors = NULL;
 
-  (void)algo;    /* No need to check it.  */
-  (void)evalue;  /* Not required for DSA. */
-
   memset (&sk, 0, sizeof sk);
   memset (&domain, 0, sizeof domain);
 
-  if (genparms)
+  rc = _gcry_pk_util_get_nbits (genparms, &nbits);
+  if (rc)
+    return rc;
+
+  /* Parse the optional qbits element.  */
+  l1 = gcry_sexp_find_token (genparms, "qbits", 0);
+  if (l1)
     {
-      gcry_sexp_t domainsexp;
+      char buf[50];
+      const char *s;
+      size_t n;
 
-      /* Parse the optional qbits element.  */
-      l1 = gcry_sexp_find_token (genparms, "qbits", 0);
-      if (l1)
+      s = gcry_sexp_nth_data (l1, 1, &n);
+      if (!s || n >= DIM (buf) - 1 )
         {
-          char buf[50];
-          const char *s;
-          size_t n;
-
-          s = gcry_sexp_nth_data (l1, 1, &n);
-          if (!s || n >= DIM (buf) - 1 )
-            {
-              gcry_sexp_release (l1);
-              return GPG_ERR_INV_OBJ; /* No value or value too large.  */
-            }
-          memcpy (buf, s, n);
-          buf[n] = 0;
-          qbits = (unsigned int)strtoul (buf, NULL, 0);
           gcry_sexp_release (l1);
+          return GPG_ERR_INV_OBJ; /* No value or value too large.  */
         }
+      memcpy (buf, s, n);
+      buf[n] = 0;
+      qbits = (unsigned int)strtoul (buf, NULL, 0);
+      gcry_sexp_release (l1);
+    }
 
-      /* Parse the optional transient-key flag.  */
-      l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
-      if (l1)
+  /* Parse the optional transient-key flag.  */
+  l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
+  if (l1)
+    {
+      transient_key = 1;
+      gcry_sexp_release (l1);
+    }
+
+  /* Get the optional derive parameters.  */
+  deriveparms = gcry_sexp_find_token (genparms, "derive-parms", 0);
+
+  /* Parse the optional "use-fips186" flags.  */
+  l1 = gcry_sexp_find_token (genparms, "use-fips186", 0);
+  if (l1)
+    {
+      use_fips186 = 1;
+      gcry_sexp_release (l1);
+    }
+  l1 = gcry_sexp_find_token (genparms, "use-fips186-2", 0);
+  if (l1)
+    {
+      use_fips186_2 = 1;
+      gcry_sexp_release (l1);
+    }
+
+  /* Check whether domain parameters are given.  */
+  domainsexp = gcry_sexp_find_token (genparms, "domain", 0);
+  if (domainsexp)
+    {
+      /* DERIVEPARMS can't be used together with domain parameters.
+         NBITS abnd QBITS may not be specified because there values
+         are derived from the domain parameters.  */
+      if (deriveparms || qbits || nbits)
         {
-          transient_key = 1;
-          gcry_sexp_release (l1);
-        }
-
-      /* Get the optional derive parameters.  */
-      deriveparms = gcry_sexp_find_token (genparms, "derive-parms", 0);
-
-      /* Parse the optional "use-fips186" flags.  */
-      l1 = gcry_sexp_find_token (genparms, "use-fips186", 0);
-      if (l1)
-        {
-          use_fips186 = 1;
-          gcry_sexp_release (l1);
-        }
-      l1 = gcry_sexp_find_token (genparms, "use-fips186-2", 0);
-      if (l1)
-        {
-          use_fips186_2 = 1;
-          gcry_sexp_release (l1);
-        }
-
-      /* Check whether domain parameters are given.  */
-      domainsexp = gcry_sexp_find_token (genparms, "domain", 0);
-      if (domainsexp)
-        {
-          /* DERIVEPARMS can't be used together with domain
-             parameters.  NBITS abnd QBITS may not be specified
-             because there values are derived from the domain
-             parameters.  */
-          if (deriveparms || qbits || nbits)
-            {
-              gcry_sexp_release (domainsexp);
-              gcry_sexp_release (deriveparms);
-              return GPG_ERR_INV_VALUE;
-            }
-
-          /* Put all domain parameters into the domain object.  */
-          l1 = gcry_sexp_find_token (domainsexp, "p", 0);
-          domain.p = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-          gcry_sexp_release (l1);
-          l1 = gcry_sexp_find_token (domainsexp, "q", 0);
-          domain.q = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-          gcry_sexp_release (l1);
-          l1 = gcry_sexp_find_token (domainsexp, "g", 0);
-          domain.g = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-          gcry_sexp_release (l1);
           gcry_sexp_release (domainsexp);
-
-          /* Check that all domain parameters are available.  */
-          if (!domain.p || !domain.q || !domain.g)
-            {
-              gcry_mpi_release (domain.p);
-              gcry_mpi_release (domain.q);
-              gcry_mpi_release (domain.g);
-              gcry_sexp_release (deriveparms);
-              return GPG_ERR_MISSING_VALUE;
-            }
-
-          /* Get NBITS and QBITS from the domain parameters.  */
-          nbits = mpi_get_nbits (domain.p);
-          qbits = mpi_get_nbits (domain.q);
+          gcry_sexp_release (deriveparms);
+          return GPG_ERR_INV_VALUE;
         }
+
+      /* Put all domain parameters into the domain object.  */
+      l1 = gcry_sexp_find_token (domainsexp, "p", 0);
+      domain.p = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      gcry_sexp_release (l1);
+      l1 = gcry_sexp_find_token (domainsexp, "q", 0);
+      domain.q = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      gcry_sexp_release (l1);
+      l1 = gcry_sexp_find_token (domainsexp, "g", 0);
+      domain.g = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      gcry_sexp_release (l1);
+      gcry_sexp_release (domainsexp);
+
+      /* Check that all domain parameters are available.  */
+      if (!domain.p || !domain.q || !domain.g)
+        {
+          gcry_mpi_release (domain.p);
+          gcry_mpi_release (domain.q);
+          gcry_mpi_release (domain.g);
+          gcry_sexp_release (deriveparms);
+          return GPG_ERR_MISSING_VALUE;
+        }
+
+      /* Get NBITS and QBITS from the domain parameters.  */
+      nbits = mpi_get_nbits (domain.p);
+      qbits = mpi_get_nbits (domain.q);
     }
 
   if (deriveparms || use_fips186 || use_fips186_2 || fips_mode ())

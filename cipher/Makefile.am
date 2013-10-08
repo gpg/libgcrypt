@@ -41,7 +41,7 @@ libcipher_la_SOURCES = \
 cipher.c cipher-internal.h \
 cipher-cbc.c cipher-cfb.c cipher-ofb.c cipher-ctr.c cipher-aeswrap.c \
 cipher-selftest.c cipher-selftest.h \
-pubkey.c pubkey-internal.h \
+pubkey.c pubkey-internal.h pubkey-util.c \
 md.c \
 kdf.c kdf-internal.h \
 hmac-tests.c \

@@ -20,7 +20,15 @@
 #ifndef GCRY_PUBKEY_INTERNAL_H
 #define GCRY_PUBKEY_INTERNAL_H
 
-/*-- rsa-common.h --*/
+/*-- pubkey-util.c --*/
+gpg_err_code_t _gcry_pk_util_get_nbits (gcry_sexp_t list,
+                                        unsigned int *r_nbits);
+gpg_err_code_t _gcry_pk_util_get_rsa_use_e (gcry_sexp_t list,
+                                            unsigned long *r_e);
+
+
+
+/*-- rsa-common.c --*/
 gpg_err_code_t
 _gcry_rsa_pkcs1_encode_for_enc (gcry_mpi_t *r_result, unsigned int nbits,
                                 const unsigned char *value, size_t valuelen,
@@ -53,7 +61,7 @@ _gcry_rsa_pss_verify (gcry_mpi_t value, gcry_mpi_t encoded,
 
 
 
-/*-- dsa-common.h --*/
+/*-- dsa-common.c --*/
 gcry_mpi_t _gcry_dsa_gen_k (gcry_mpi_t q, int security_level);
 gpg_err_code_t _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
                                         gcry_mpi_t dsa_q, gcry_mpi_t dsa_x,
