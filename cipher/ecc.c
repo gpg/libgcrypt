@@ -65,6 +65,16 @@
 #include "ecc-common.h"
 
 
+static const char *ecc_names[] =
+  {
+    "ecc",
+    "ecdsa",
+    "ecdh",
+    "eddsa",
+    NULL,
+  };
+
+
 /* Registered progress function and its callback value. */
 static void (*progress_cb) (void *, const char*, int, int, int);
 static void *progress_cb_data;
@@ -84,6 +94,7 @@ static gpg_err_code_t verify_ecdsa (gcry_mpi_t input, ECC_public_key *pkey,
                                     gcry_mpi_t r, gcry_mpi_t s);
 
 static gcry_mpi_t gen_y_2 (gcry_mpi_t x, elliptic_curve_t * base);
+static unsigned int ecc_get_nbits (gcry_sexp_t parms);
 
 
 
@@ -1536,62 +1547,125 @@ ecc_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
 
 
 static gcry_err_code_t
-ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
-            int (*cmp)(void *, gcry_mpi_t), void *opaquev,
-            int flags, int hashalgo)
+ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
 {
-  gpg_err_code_t err;
+  gcry_err_code_t rc;
+  struct pk_encoding_ctx ctx;
+  gcry_sexp_t l1 = NULL;
+  char *curvename = NULL;
+  gcry_mpi_t mpi_g = NULL;
+  gcry_mpi_t mpi_q = NULL;
+  gcry_mpi_t sig_r = NULL;
+  gcry_mpi_t sig_s = NULL;
+  gcry_mpi_t data = NULL;
   ECC_public_key pk;
+  int sigflags;
 
-  (void)algo;
-  (void)cmp;
-  (void)opaquev;
+  memset (&pk, 0, sizeof pk);
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
+                                   ecc_get_nbits (s_keyparms));
 
-  if (!data[0] || !data[1] || !hash || !pkey[0] || !pkey[1] || !pkey[2]
-      || !pkey[3] || !pkey[4] || !pkey[5] )
-    return GPG_ERR_BAD_MPI;
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("ecc_verify data", data);
 
-  /* FIXME: The setting of model and dialect are crude hacks.  We will
-     fix that by moving the s-expression parsing from pubkey.c to
-     here.  */
-  pk.E.model = ((flags & PUBKEY_FLAG_EDDSA)
-                ? MPI_EC_TWISTEDEDWARDS
-                : MPI_EC_WEIERSTRASS);
-  pk.E.dialect = ((flags & PUBKEY_FLAG_EDDSA)
-                  ? ECC_DIALECT_ED25519
-                  : ECC_DIALECT_STANDARD);
-  pk.E.p = pkey[0];
-  pk.E.a = pkey[1];
-  pk.E.b = pkey[2];
-  point_init (&pk.E.G);
-  err = _gcry_ecc_os2ec (&pk.E.G, pkey[3]);
-  if (err)
+  /*
+   * Extract the signature value.
+   */
+  rc = _gcry_pk_util_preparse_sigval (s_sig, ecc_names, &l1, &sigflags);
+  if (rc)
+    goto leave;
+  rc = _gcry_pk_util_extract_mpis (l1,
+                                   (sigflags & PUBKEY_FLAG_EDDSA)? "/rs":"rs",
+                                   &sig_r, &sig_s, NULL);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
     {
-      point_free (&pk.E.G);
-      return err;
+      log_mpidump ("ecc_verify  s_r", sig_r);
+      log_mpidump ("ecc_verify  s_s", sig_s);
     }
-  pk.E.n = pkey[4];
-
-  if ((flags & PUBKEY_FLAG_EDDSA))
+  if ((ctx.flags & PUBKEY_FLAG_EDDSA) ^ (sigflags & PUBKEY_FLAG_EDDSA))
     {
-      pk.Q.x = NULL;
-      pk.Q.y = NULL;
-      pk.Q.z = NULL;
+      rc = GPG_ERR_CONFLICT; /* Inconsistent use of flag/algoname.  */
+      goto leave;
+    }
 
-      err = verify_eddsa (hash, &pk, data[0], data[1], hashalgo, pkey[5]);
+
+  /*
+   * Extract the key.
+   */
+  rc = _gcry_pk_util_extract_mpis (s_keyparms, "-p?a?b?g?n?/q?",
+                                   &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n,
+                                   &mpi_q, NULL);
+  if (rc)
+    goto leave;
+  if (mpi_g)
+    {
+      point_init (&pk.E.G);
+      rc = _gcry_ecc_os2ec (&pk.E.G, mpi_g);
+      if (rc)
+        goto leave;
+    }
+  /* Add missing parameters using the optional curve parameter.  */
+  gcry_sexp_release (l1);
+  l1 = gcry_sexp_find_token (s_keyparms, "curve", 5);
+  if (l1)
+    {
+      curvename = gcry_sexp_nth_string (l1, 1);
+      if (curvename)
+        {
+          rc = _gcry_ecc_fill_in_curve (0, curvename, &pk.E, NULL);
+          if (rc)
+            return rc;
+        }
+    }
+  /* Guess required fields if a curve parameter has not been given.
+     FIXME: This is a crude hacks.  We need to fix that.  */
+  if (!curvename)
+    {
+      pk.E.model = ((sigflags & PUBKEY_FLAG_EDDSA)
+                    ? MPI_EC_TWISTEDEDWARDS
+                    : MPI_EC_WEIERSTRASS);
+      pk.E.dialect = ((sigflags & PUBKEY_FLAG_EDDSA)
+                      ? ECC_DIALECT_ED25519
+                      : ECC_DIALECT_STANDARD);
+    }
+
+  if (DBG_CIPHER)
+    {
+      log_debug ("ecc_verify info: %s/%s\n",
+                 _gcry_ecc_model2str (pk.E.model),
+                 _gcry_ecc_dialect2str (pk.E.dialect));
+      if (pk.E.name)
+        log_debug  ("ecc_verify name: %s\n", pk.E.name);
+      log_printmpi ("ecc_verify    p", pk.E.p);
+      log_printmpi ("ecc_verify    a", pk.E.a);
+      log_printmpi ("ecc_verify    b", pk.E.b);
+      log_printpnt ("ecc_verify  g",   &pk.E.G, NULL);
+      log_printmpi ("ecc_verify    n", pk.E.n);
+      log_printmpi ("ecc_verify    q", mpi_q);
+    }
+
+
+  /*
+   * Verify the signature.
+   */
+  if ((sigflags & PUBKEY_FLAG_EDDSA))
+    {
+      rc = verify_eddsa (data, &pk, sig_r, sig_s, ctx.hash_algo, mpi_q);
     }
   else
     {
       point_init (&pk.Q);
-      err = _gcry_ecc_os2ec (&pk.Q, pkey[5]);
-      if (err)
-        {
-          point_free (&pk.E.G);
-          point_free (&pk.Q);
-          return err;
-        }
+      rc = _gcry_ecc_os2ec (&pk.Q, mpi_q);
+      if (rc)
+        goto leave;
 
-      if (mpi_is_opaque (hash))
+      if (mpi_is_opaque (data))
         {
           const void *abuf;
           unsigned int abits, qbits;
@@ -1599,24 +1673,39 @@ ecc_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
 
           qbits = mpi_get_nbits (pk.E.n);
 
-          abuf = gcry_mpi_get_opaque (hash, &abits);
-          err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
-          if (!err)
+          abuf = gcry_mpi_get_opaque (data, &abits);
+          rc = gpg_err_code (gcry_mpi_scan (&a, GCRYMPI_FMT_USG,
+                                            abuf, (abits+7)/8, NULL));
+          if (!rc)
             {
               if (abits > qbits)
                 gcry_mpi_rshift (a, a, abits - qbits);
 
-              err = verify_ecdsa (a, &pk, data[0], data[1]);
+              rc = verify_ecdsa (a, &pk, sig_r, sig_s);
               gcry_mpi_release (a);
             }
         }
       else
-        err = verify_ecdsa (hash, &pk, data[0], data[1]);
+        rc = verify_ecdsa (data, &pk, sig_r, sig_s);
     }
 
+ leave:
+  gcry_mpi_release (pk.E.p);
+  gcry_mpi_release (pk.E.a);
+  gcry_mpi_release (pk.E.b);
   point_free (&pk.E.G);
+  gcry_mpi_release (pk.E.n);
   point_free (&pk.Q);
-  return err;
+  gcry_mpi_release (mpi_g);
+  gcry_mpi_release (data);
+  gcry_mpi_release (sig_r);
+  gcry_mpi_release (sig_s);
+  gcry_free (curvename);
+  gcry_sexp_release (l1);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("ecc_verify    => %s\n", rc?gpg_strerror (rc):"good");
+  return rc;
 }
 
 
@@ -2125,15 +2214,6 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 
 
-static const char *ecc_names[] =
-  {
-    "ecc",
-    "ecdsa",
-    "ecdh",
-    "eddsa",
-    NULL,
-  };
-
 gcry_pk_spec_t _gcry_pubkey_spec_ecc =
   {
     GCRY_PK_ECC, { 0, 0 },

@@ -3368,7 +3368,8 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	continue;
 
       if (verbose)
-	fprintf (stderr, "  test %d, signature test %d\n", n, dataidx);
+	fprintf (stderr, "  test %d, signature test %d (%s)\n",
+                 n, dataidx, gcry_pk_algo_name (algo));
 
       rc = gcry_sexp_sscan (&hash, NULL, datas[dataidx].data,
 			    strlen (datas[dataidx].data));
@@ -4066,6 +4067,7 @@ main (int argc, char **argv)
   int debug = 0;
   int use_fips = 0;
   int selftest_only = 0;
+  int pubkey_only = 0;
 
   if (argc)
     { argc--; argv++; }
@@ -4096,6 +4098,12 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--selftest"))
         {
           selftest_only = 1;
+          verbose += 2;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--pubkey"))
+        {
+          pubkey_only = 1;
           verbose += 2;
           argc--; argv++;
         }
@@ -4131,7 +4139,9 @@ main (int argc, char **argv)
   /* No valuable keys are create, so we can speed up our RNG. */
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 
-  if (!selftest_only)
+  if (pubkey_only)
+    check_pubkey ();
+  else if (!selftest_only)
     {
       check_ciphers ();
       check_cipher_modes ();

@@ -308,7 +308,9 @@ scanval (const char *string)
    parameters of the named curve or those of a suitable curve.  If
    R_NBITS is not NULL, the chosen number of bits is stored there.
    NULL may be given for R_CURVE, if the value is not required and for
-   example only a quick test for availability is desired.  */
+   example only a quick test for availability is desired.  Note that
+   the curve fields should be initialized to zero because fields which
+   are not NULL are skipped.  */
 gpg_err_code_t
 _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
                          elliptic_curve_t *curve, unsigned int *r_nbits)
@@ -378,14 +380,22 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
     {
       curve->model = domain_parms[idx].model;
       curve->dialect = domain_parms[idx].dialect;
-      curve->p = scanval (domain_parms[idx].p);
-      curve->a = scanval (domain_parms[idx].a);
-      curve->b = scanval (domain_parms[idx].b);
-      curve->n = scanval (domain_parms[idx].n);
-      curve->G.x = scanval (domain_parms[idx].g_x);
-      curve->G.y = scanval (domain_parms[idx].g_y);
-      curve->G.z = mpi_alloc_set_ui (1);
-      curve->name = resname;
+      if (!curve->p)
+        curve->p = scanval (domain_parms[idx].p);
+      if (!curve->a)
+        curve->a = scanval (domain_parms[idx].a);
+      if (!curve->b)
+        curve->b = scanval (domain_parms[idx].b);
+      if (!curve->n)
+        curve->n = scanval (domain_parms[idx].n);
+      if (!curve->G.x)
+        curve->G.x = scanval (domain_parms[idx].g_x);
+      if (!curve->G.y)
+        curve->G.y = scanval (domain_parms[idx].g_y);
+      if (!curve->G.z)
+        curve->G.z = mpi_alloc_set_ui (1);
+      if (!curve->name)
+        curve->name = resname;
     }
 
   return 0;
@@ -764,6 +774,7 @@ _gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey)
   mpi_ec_t ctx;
   gcry_mpi_t g_x, g_y;
 
+  memset (&E, 0, sizeof E);
   err = _gcry_ecc_fill_in_curve (0, name, &E, &nbits);
   if (err)
     return err;

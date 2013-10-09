@@ -58,6 +58,14 @@ typedef struct
 } dsa_domain_t;
 
 
+static const char *dsa_names[] =
+  {
+    "dsa",
+    "openpgp-dsa",
+    NULL,
+  };
+
+
 /* A sample 1024 bit DSA key used for the selftests.  */
 static const char sample_secret_key[] =
 "(private-key"
@@ -109,6 +117,8 @@ static gpg_err_code_t sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                             DSA_secret_key *skey, int flags, int hashalgo);
 static int verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                    DSA_public_key *pkey);
+static unsigned int dsa_get_nbits (gcry_sexp_t parms);
+
 
 static void (*progress_cb) (void *,const char *, int, int, int );
 static void *progress_cb_data;
@@ -976,56 +986,95 @@ dsa_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
   return rc;
 }
 
+
 static gcry_err_code_t
-dsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
-            int (*cmp) (void *, gcry_mpi_t), void *opaquev,
-            int flags, int hashalgo)
+dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  DSA_public_key pk;
+  gcry_err_code_t rc;
+  struct pk_encoding_ctx ctx;
+  gcry_sexp_t l1 = NULL;
+  gcry_mpi_t sig_r = NULL;
+  gcry_mpi_t sig_s = NULL;
+  gcry_mpi_t data = NULL;
+  DSA_public_key pk = { NULL, NULL, NULL, NULL };
 
-  (void)algo;
-  (void)cmp;
-  (void)opaquev;
-  (void)flags;
-  (void)hashalgo;
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
+                                   dsa_get_nbits (s_keyparms));
 
-  if ((! data[0]) || (! data[1]) || (! hash)
-      || (! pkey[0]) || (! pkey[1]) || (! pkey[2]) || (! pkey[3]))
-    err = GPG_ERR_BAD_MPI;
-  else
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("dsa_verify data", data);
+
+  /* Extract the signature value.  */
+  rc = _gcry_pk_util_preparse_sigval (s_sig, dsa_names, &l1, NULL);
+  if (rc)
+    goto leave;
+  rc = _gcry_pk_util_extract_mpis (l1, "rs", &sig_r, &sig_s, NULL);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
     {
-      pk.p = pkey[0];
-      pk.q = pkey[1];
-      pk.g = pkey[2];
-      pk.y = pkey[3];
-      if (mpi_is_opaque (hash))
+      log_mpidump ("dsa_verify  s_r", sig_r);
+      log_mpidump ("dsa_verify  s_s", sig_s);
+    }
+
+  /* Extract the key.  */
+  rc = _gcry_pk_util_extract_mpis (s_keyparms, "pqgy",
+                                   &pk.p, &pk.q, &pk.g, &pk.y, NULL);
+  if (rc)
+    return rc;
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("dsa_verify    p", pk.p);
+      log_mpidump ("dsa_verify    q", pk.q);
+      log_mpidump ("dsa_verify    g", pk.g);
+      log_mpidump ("dsa_verify    y", pk.y);
+    }
+
+  /* Verify the signature.  */
+  if (mpi_is_opaque (data))
+    {
+      const void *abuf;
+      unsigned int abits, qbits;
+      gcry_mpi_t a;
+
+      qbits = mpi_get_nbits (pk.q);
+
+      abuf = gcry_mpi_get_opaque (data, &abits);
+      rc = gpg_err_code (gcry_mpi_scan (&a, GCRYMPI_FMT_USG,
+                                        abuf, (abits+7)/8, NULL));
+      if (!rc)
         {
-          const void *abuf;
-          unsigned int abits, qbits;
-          gcry_mpi_t a;
+          if (abits > qbits)
+            gcry_mpi_rshift (a, a, abits - qbits);
 
-          qbits = mpi_get_nbits (pk.q);
-
-          abuf = gcry_mpi_get_opaque (hash, &abits);
-          err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
-          if (!err)
-            {
-              if (abits > qbits)
-                gcry_mpi_rshift (a, a, abits - qbits);
-
-              if (!verify (data[0], data[1], a, &pk))
-                err = GPG_ERR_BAD_SIGNATURE;
-              gcry_mpi_release (a);
-            }
-        }
-      else
-        {
-          if (!verify (data[0], data[1], hash, &pk))
-            err = GPG_ERR_BAD_SIGNATURE;
+          if (!verify (sig_r, sig_s, a, &pk))
+            rc = GPG_ERR_BAD_SIGNATURE;
+          gcry_mpi_release (a);
         }
     }
-  return err;
+  else
+    {
+      if (!verify (sig_r, sig_s, data, &pk))
+        rc = GPG_ERR_BAD_SIGNATURE;
+    }
+
+ leave:
+  gcry_mpi_release (pk.p);
+  gcry_mpi_release (pk.q);
+  gcry_mpi_release (pk.g);
+  gcry_mpi_release (pk.y);
+  gcry_mpi_release (data);
+  gcry_mpi_release (sig_r);
+  gcry_mpi_release (sig_s);
+  gcry_sexp_release (l1);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("dsa_verify    => %s\n", rc?gpg_strerror (rc):"good");
+  return rc;
 }
 
 
@@ -1192,13 +1241,6 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 
 
-static const char *dsa_names[] =
-  {
-    "dsa",
-    "openpgp-dsa",
-    NULL,
-  };
-
 gcry_pk_spec_t _gcry_pubkey_spec_dsa =
   {
     GCRY_PK_DSA, { 0, 1 },

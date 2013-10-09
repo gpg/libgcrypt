@@ -50,6 +50,15 @@ typedef struct
 } ELG_secret_key;
 
 
+static const char *elg_names[] =
+  {
+    "elg",
+    "openpgp-elg",
+    "openpgp-elg-sig",
+    NULL,
+  };
+
+
 static int test_keys (ELG_secret_key *sk, unsigned int nbits, int nodie);
 static gcry_mpi_t gen_k (gcry_mpi_t p, int small_k);
 static void generate (ELG_secret_key *sk, unsigned nbits, gcry_mpi_t **factors);
@@ -62,6 +71,7 @@ static void sign (gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input,
                   ELG_secret_key *skey);
 static int  verify (gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input,
                     ELG_public_key *pkey);
+static unsigned int elg_get_nbits (gcry_sexp_t parms);
 
 
 static void (*progress_cb) (void *, const char *, int, int, int);
@@ -880,35 +890,72 @@ elg_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
 
 
 static gcry_err_code_t
-elg_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
-            int (*cmp) (void *, gcry_mpi_t), void *opaquev,
-            int flags, int hashalgo)
+elg_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  ELG_public_key pk;
+  gcry_err_code_t rc;
+  struct pk_encoding_ctx ctx;
+  gcry_sexp_t l1 = NULL;
+  gcry_mpi_t sig_r = NULL;
+  gcry_mpi_t sig_s = NULL;
+  gcry_mpi_t data = NULL;
+  ELG_public_key pk = { NULL, NULL, NULL };
 
-  (void)algo;
-  (void)cmp;
-  (void)opaquev;
-  (void)flags;
-  (void)hashalgo;
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
+                                   elg_get_nbits (s_keyparms));
 
-  if (mpi_is_opaque (hash))
-    return GPG_ERR_INV_DATA;
-
-  if ((! data[0]) || (! data[1]) || (! hash)
-      || (! pkey[0]) || (! pkey[1]) || (! pkey[2]))
-    err = GPG_ERR_BAD_MPI;
-  else
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("elg_verify data", data);
+  if (mpi_is_opaque (data))
     {
-      pk.p = pkey[0];
-      pk.g = pkey[1];
-      pk.y = pkey[2];
-      if (! verify (data[0], data[1], hash, &pk))
-	err = GPG_ERR_BAD_SIGNATURE;
+      rc = GPG_ERR_INV_DATA;
+      goto leave;
     }
 
-  return err;
+  /* Extract the signature value.  */
+  rc = _gcry_pk_util_preparse_sigval (s_sig, elg_names, &l1, NULL);
+  if (rc)
+    goto leave;
+  rc = _gcry_pk_util_extract_mpis (l1, "rs", &sig_r, &sig_s, NULL);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("elg_verify  s_r", sig_r);
+      log_mpidump ("elg_verify  s_s", sig_s);
+    }
+
+  /* Extract the key.  */
+  rc = _gcry_pk_util_extract_mpis (s_keyparms, "pgy",
+                                   &pk.p, &pk.g, &pk.y, NULL);
+  if (rc)
+    return rc;
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("elg_verify    p", pk.p);
+      log_mpidump ("elg_verify    g", pk.g);
+      log_mpidump ("elg_verify    y", pk.y);
+    }
+
+  /* Verify the signature.  */
+  if (!verify (sig_r, sig_s, data, &pk))
+    rc = GPG_ERR_BAD_SIGNATURE;
+
+ leave:
+  gcry_mpi_release (pk.p);
+  gcry_mpi_release (pk.g);
+  gcry_mpi_release (pk.y);
+  gcry_mpi_release (data);
+  gcry_mpi_release (sig_r);
+  gcry_mpi_release (sig_s);
+  gcry_sexp_release (l1);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("elg_verify    => %s\n", rc?gpg_strerror (rc):"good");
+  return rc;
 }
 
 
@@ -942,15 +989,7 @@ elg_get_nbits (gcry_sexp_t parms)
 }
 
 
-static const char *elg_names[] =
-  {
-    "elg",
-    "openpgp-elg",
-    "openpgp-elg-sig",
-    NULL,
-  };
-
-
+
 gcry_pk_spec_t _gcry_pubkey_spec_elg =
   {
     GCRY_PK_ELG, { 0, 0 },

@@ -66,7 +66,6 @@
 #define GCC_ATTR_FORMAT_ARG(a)
 #endif
 
-
 /* I am not sure since when the unused attribute is really supported.
    In any case it it only needed for gcc versions which print a
    warning.  Thus let us require gcc >= 3.5.  */
@@ -74,6 +73,12 @@
 #define GCC_ATTR_UNUSED  __attribute__ ((unused))
 #else
 #define GCC_ATTR_UNUSED
+#endif
+
+#if __GNUC__ >= 4
+# define GCC_ATTR_SENTINEL(a) __attribute__ ((sentinel(a)))
+#else
+# define GCC_ATTR_SENTINEL(a)
 #endif
 
 

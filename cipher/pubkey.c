@@ -130,6 +130,8 @@ spec_from_sexp (gcry_sexp_t sexp, int want_private,
   gcry_pk_spec_t *spec;
 
   *r_spec = NULL;
+  if (r_parms)
+    *r_parms = NULL;
 
   /* Check that the first element is valid.  If we are looking for a
      public key but a private key was supplied, we allow the use of
@@ -637,88 +639,8 @@ sexp_to_key (gcry_sexp_t sexp, int want_private, int use,
 }
 
 
-/* Parse SEXP and store the elements into a newly allocated array of
-   MPIs which will be stored at RETARRAY.  If OPAQUE is set, store the
-   MPI as opaque data.  */
-static gcry_err_code_t
-sexp_to_sig (gcry_sexp_t sexp, gcry_mpi_t **retarray,
-	     gcry_pk_spec_t **r_spec, int opaque)
-{
-  gcry_err_code_t err = 0;
-  gcry_sexp_t list, l2;
-  char *name;
-  const char *elems;
-  gcry_mpi_t *array;
-  gcry_pk_spec_t *spec;
 
-  /* Check that the first element is valid.  */
-  list = gcry_sexp_find_token( sexp, "sig-val" , 0 );
-  if (!list)
-    return GPG_ERR_INV_OBJ; /* Does not contain a signature value object.  */
-
-  l2 = gcry_sexp_nth (list, 1);
-  if (!l2)
-    {
-      gcry_sexp_release (list);
-      return GPG_ERR_NO_OBJ;   /* No cadr for the sig object.  */
-    }
-  name = _gcry_sexp_nth_string (l2, 0);
-  if (!name)
-    {
-      gcry_sexp_release (list);
-      gcry_sexp_release (l2);
-      return GPG_ERR_INV_OBJ;  /* Invalid structure of object.  */
-    }
-  else if (!strcmp (name, "flags"))
-    {
-      /* Skip flags, since they are not used but here just for the
-	 sake of consistent S-expressions.  */
-      gcry_free (name);
-      gcry_sexp_release (l2);
-      l2 = gcry_sexp_nth (list, 2);
-      if (!l2)
-	{
-	  gcry_sexp_release (list);
-	  return GPG_ERR_INV_OBJ;
-	}
-      name = _gcry_sexp_nth_string (l2, 0);
-    }
-
-  spec = spec_from_name (name);
-  gcry_free (name);
-  name = NULL;
-
-  if (!spec)
-    {
-      gcry_sexp_release (l2);
-      gcry_sexp_release (list);
-      return GPG_ERR_PUBKEY_ALGO;  /* Unknown algorithm. */
-    }
-
-  elems = spec->elements_sig;
-  array = gcry_calloc (strlen (elems) + 1 , sizeof *array );
-  if (!array)
-    err = gpg_err_code_from_syserror ();
-
-  if (!err)
-    err = sexp_elements_extract (list, elems, array, NULL, opaque);
-
-  gcry_sexp_release (l2);
-  gcry_sexp_release (list);
-
-  if (err)
-    {
-      gcry_free (array);
-    }
-  else
-    {
-      *retarray = array;
-      *r_spec = spec;
-    }
-
-  return err;
-}
-
+/* FIXME: This is a duplicate.  */
 static inline int
 get_hash_algo (const char *s, size_t n)
 {
@@ -978,518 +900,6 @@ sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_pk_spec_t **r_spec,
 }
 
 
-/* Callback for the pubkey algorithm code to verify PSS signatures.
-   OPAQUE is the data provided by the actual caller.  The meaning of
-   TMP depends on the actual algorithm (but there is only RSA); now
-   for RSA it is the output of running the public key function on the
-   input.  */
-static int
-pss_verify_cmp (void *opaque, gcry_mpi_t tmp)
-{
-  struct pk_encoding_ctx *ctx = opaque;
-  gcry_mpi_t hash = ctx->verify_arg;
-
-  return _gcry_rsa_pss_verify (hash, tmp, ctx->nbits - 1,
-                               ctx->hash_algo, ctx->saltlen);
-}
-
-
-/* Take the hash value and convert into an MPI, suitable for
-   passing to the low level functions.  We currently support the
-   old style way of passing just a MPI and the modern interface which
-   allows to pass flags so that we can choose between raw and pkcs1
-   padding - may be more padding options later.
-
-   (<mpi>)
-   or
-   (data
-    [(flags [raw, direct, pkcs1, oaep, pss, no-blinding, rfc6979, eddsa])]
-    [(hash <algo> <value>)]
-    [(value <text>)]
-    [(hash-algo <algo>)]
-    [(label <label>)]
-    [(salt-length <length>)]
-    [(random-override <data>)]
-   )
-
-   Either the VALUE or the HASH element must be present for use
-   with signatures.  VALUE is used for encryption.
-
-   HASH-ALGO is specific to OAEP and EDDSA.
-
-   LABEL is specific to OAEP.
-
-   SALT-LENGTH is for PSS.
-
-   RANDOM-OVERRIDE is used to replace random nonces for regression
-   testing.  */
-static gcry_err_code_t
-sexp_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
-		  struct pk_encoding_ctx *ctx)
-{
-  gcry_err_code_t rc = 0;
-  gcry_sexp_t ldata, lhash, lvalue;
-  int i;
-  size_t n;
-  const char *s;
-  int unknown_flag = 0;
-  int parsed_flags = 0;
-  int explicit_raw = 0;
-
-  *ret_mpi = NULL;
-  ldata = gcry_sexp_find_token (input, "data", 0);
-  if (!ldata)
-    { /* assume old style */
-      *ret_mpi = gcry_sexp_nth_mpi (input, 0, 0);
-      return *ret_mpi ? GPG_ERR_NO_ERROR : GPG_ERR_INV_OBJ;
-    }
-
-  /* see whether there is a flags object */
-  {
-    gcry_sexp_t lflags = gcry_sexp_find_token (ldata, "flags", 0);
-    if (lflags)
-      { /* parse the flags list. */
-        for (i=gcry_sexp_length (lflags)-1; i > 0; i--)
-          {
-            s = gcry_sexp_nth_data (lflags, i, &n);
-            if (!s)
-              ; /* not a data element*/
-	    else if (n == 7 && !memcmp (s, "rfc6979", 7))
-	      parsed_flags |= PUBKEY_FLAG_RFC6979;
-	    else if (n == 5 && !memcmp (s, "eddsa", 5))
-              {
-                ctx->encoding = PUBKEY_ENC_RAW;
-                parsed_flags |= PUBKEY_FLAG_EDDSA;
-              }
-            else if ( n == 3 && !memcmp (s, "raw", 3)
-                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              {
-                ctx->encoding = PUBKEY_ENC_RAW;
-                explicit_raw = 1;
-              }
-            else if ( n == 5 && !memcmp (s, "pkcs1", 5)
-                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              {
-                ctx->encoding = PUBKEY_ENC_PKCS1;
-                parsed_flags |= PUBKEY_FLAG_FIXEDLEN;
-              }
-            else if ( n == 4 && !memcmp (s, "oaep", 4)
-                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              {
-                ctx->encoding = PUBKEY_ENC_OAEP;
-                parsed_flags |= PUBKEY_FLAG_FIXEDLEN;
-              }
-            else if ( n == 3 && !memcmp (s, "pss", 3)
-                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              {
-                ctx->encoding = PUBKEY_ENC_PSS;
-                parsed_flags |= PUBKEY_FLAG_FIXEDLEN;
-              }
-	    else if (n == 11 && ! memcmp (s, "no-blinding", 11))
-	      parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
-            else
-              unknown_flag = 1;
-          }
-        gcry_sexp_release (lflags);
-      }
-  }
-
-  if (ctx->encoding == PUBKEY_ENC_UNKNOWN)
-    ctx->encoding = PUBKEY_ENC_RAW; /* default to raw */
-
-  /* Get HASH or MPI */
-  lhash = gcry_sexp_find_token (ldata, "hash", 0);
-  lvalue = lhash? NULL : gcry_sexp_find_token (ldata, "value", 0);
-
-  if (!(!lhash ^ !lvalue))
-    rc = GPG_ERR_INV_OBJ; /* none or both given */
-  else if (unknown_flag)
-    rc = GPG_ERR_INV_FLAG;
-  else if (ctx->encoding == PUBKEY_ENC_RAW
-           && (parsed_flags & PUBKEY_FLAG_EDDSA))
-    {
-      /* Prepare for EdDSA.  */
-      gcry_sexp_t list;
-      void *value;
-      size_t valuelen;
-
-      if (!lvalue)
-        {
-          rc = GPG_ERR_INV_OBJ;
-          goto leave;
-        }
-      /* Get HASH-ALGO. */
-      list = gcry_sexp_find_token (ldata, "hash-algo", 0);
-      if (list)
-        {
-          s = gcry_sexp_nth_data (list, 1, &n);
-          if (!s)
-            rc = GPG_ERR_NO_OBJ;
-          else
-            {
-              ctx->hash_algo = get_hash_algo (s, n);
-              if (!ctx->hash_algo)
-                rc = GPG_ERR_DIGEST_ALGO;
-            }
-          gcry_sexp_release (list);
-        }
-      else
-        rc = GPG_ERR_INV_OBJ;
-      if (rc)
-        goto leave;
-
-      /* Get VALUE.  */
-      value = gcry_sexp_nth_buffer (lvalue, 1, &valuelen);
-      if (!value)
-        {
-          /* We assume that a zero length message is meant by
-             "(value)".  This is commonly used by test vectors.  Note
-             that S-expression do not allow zero length items. */
-          valuelen = 0;
-          value = gcry_malloc (1);
-          if (!value)
-            rc = gpg_err_code_from_syserror ();
-        }
-      else if ((valuelen * 8) < valuelen)
-        {
-          gcry_free (value);
-          rc = GPG_ERR_TOO_LARGE;
-        }
-      if (rc)
-        goto leave;
-
-      /* Note that mpi_set_opaque takes ownership of VALUE.  */
-      *ret_mpi = gcry_mpi_set_opaque (NULL, value, valuelen*8);
-    }
-  else if (ctx->encoding == PUBKEY_ENC_RAW && lhash
-           && (explicit_raw || (parsed_flags & PUBKEY_FLAG_RFC6979)))
-    {
-      /* Raw encoding along with a hash element.  This is commonly
-         used for DSA.  For better backward error compatibility we
-         allow this only if either the rfc6979 flag has been given or
-         the raw flags was explicitly given.  */
-      if (gcry_sexp_length (lhash) != 3)
-        rc = GPG_ERR_INV_OBJ;
-      else if ( !(s=gcry_sexp_nth_data (lhash, 1, &n)) || !n )
-        rc = GPG_ERR_INV_OBJ;
-      else
-        {
-          void *value;
-          size_t valuelen;
-
-	  ctx->hash_algo = get_hash_algo (s, n);
-          if (!ctx->hash_algo)
-            rc = GPG_ERR_DIGEST_ALGO;
-          else if (!(value=gcry_sexp_nth_buffer (lhash, 2, &valuelen)))
-            rc = GPG_ERR_INV_OBJ;
-          else if ((valuelen * 8) < valuelen)
-            {
-              gcry_free (value);
-              rc = GPG_ERR_TOO_LARGE;
-            }
-          else
-            *ret_mpi = gcry_mpi_set_opaque (NULL, value, valuelen*8);
-        }
-    }
-  else if (ctx->encoding == PUBKEY_ENC_RAW && lvalue)
-    {
-      /* RFC6969 may only be used with the a hash value and not the
-         MPI based value.  */
-      if (parsed_flags & PUBKEY_FLAG_RFC6979)
-        {
-          rc = GPG_ERR_CONFLICT;
-          goto leave;
-        }
-
-      /* Get the value */
-      *ret_mpi = gcry_sexp_nth_mpi (lvalue, 1, GCRYMPI_FMT_USG);
-      if (!*ret_mpi)
-        rc = GPG_ERR_INV_OBJ;
-    }
-  else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lvalue
-	   && ctx->op == PUBKEY_OP_ENCRYPT)
-    {
-      const void * value;
-      size_t valuelen;
-      gcry_sexp_t list;
-      void *random_override = NULL;
-      size_t random_override_len = 0;
-
-      if ( !(value=gcry_sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
-        rc = GPG_ERR_INV_OBJ;
-      else
-        {
-          /* Get optional RANDOM-OVERRIDE.  */
-          list = gcry_sexp_find_token (ldata, "random-override", 0);
-          if (list)
-            {
-              s = gcry_sexp_nth_data (list, 1, &n);
-              if (!s)
-                rc = GPG_ERR_NO_OBJ;
-              else if (n > 0)
-                {
-                  random_override = gcry_malloc (n);
-                  if (!random_override)
-                    rc = gpg_err_code_from_syserror ();
-                  else
-                    {
-                      memcpy (random_override, s, n);
-                      random_override_len = n;
-                    }
-                }
-              gcry_sexp_release (list);
-              if (rc)
-                goto leave;
-            }
-
-          rc = _gcry_rsa_pkcs1_encode_for_enc (ret_mpi, ctx->nbits,
-                                               value, valuelen,
-                                               random_override,
-                                               random_override_len);
-          gcry_free (random_override);
-        }
-    }
-  else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lhash
-	   && (ctx->op == PUBKEY_OP_SIGN || ctx->op == PUBKEY_OP_VERIFY))
-    {
-      if (gcry_sexp_length (lhash) != 3)
-        rc = GPG_ERR_INV_OBJ;
-      else if ( !(s=gcry_sexp_nth_data (lhash, 1, &n)) || !n )
-        rc = GPG_ERR_INV_OBJ;
-      else
-        {
-          const void * value;
-          size_t valuelen;
-
-	  ctx->hash_algo = get_hash_algo (s, n);
-
-          if (!ctx->hash_algo)
-            rc = GPG_ERR_DIGEST_ALGO;
-          else if ( !(value=gcry_sexp_nth_data (lhash, 2, &valuelen))
-                    || !valuelen )
-            rc = GPG_ERR_INV_OBJ;
-          else
-	    rc = _gcry_rsa_pkcs1_encode_for_sig (ret_mpi, ctx->nbits,
-                                                 value, valuelen,
-                                                 ctx->hash_algo);
-        }
-    }
-  else if (ctx->encoding == PUBKEY_ENC_OAEP && lvalue
-	   && ctx->op == PUBKEY_OP_ENCRYPT)
-    {
-      const void * value;
-      size_t valuelen;
-
-      if ( !(value=gcry_sexp_nth_data (lvalue, 1, &valuelen)) || !valuelen )
-	rc = GPG_ERR_INV_OBJ;
-      else
-	{
-	  gcry_sexp_t list;
-          void *random_override = NULL;
-          size_t random_override_len = 0;
-
-	  /* Get HASH-ALGO. */
-	  list = gcry_sexp_find_token (ldata, "hash-algo", 0);
-	  if (list)
-	    {
-	      s = gcry_sexp_nth_data (list, 1, &n);
-	      if (!s)
-		rc = GPG_ERR_NO_OBJ;
-	      else
-		{
-		  ctx->hash_algo = get_hash_algo (s, n);
-		  if (!ctx->hash_algo)
-		    rc = GPG_ERR_DIGEST_ALGO;
-		}
-	      gcry_sexp_release (list);
-	      if (rc)
-		goto leave;
-	    }
-
-	  /* Get LABEL. */
-	  list = gcry_sexp_find_token (ldata, "label", 0);
-	  if (list)
-	    {
-	      s = gcry_sexp_nth_data (list, 1, &n);
-	      if (!s)
-		rc = GPG_ERR_NO_OBJ;
-	      else if (n > 0)
-		{
-		  ctx->label = gcry_malloc (n);
-		  if (!ctx->label)
-		    rc = gpg_err_code_from_syserror ();
-		  else
-		    {
-		      memcpy (ctx->label, s, n);
-		      ctx->labellen = n;
-		    }
-		}
-	      gcry_sexp_release (list);
-	      if (rc)
-		goto leave;
-	    }
-          /* Get optional RANDOM-OVERRIDE.  */
-          list = gcry_sexp_find_token (ldata, "random-override", 0);
-          if (list)
-            {
-              s = gcry_sexp_nth_data (list, 1, &n);
-              if (!s)
-                rc = GPG_ERR_NO_OBJ;
-              else if (n > 0)
-                {
-                  random_override = gcry_malloc (n);
-                  if (!random_override)
-                    rc = gpg_err_code_from_syserror ();
-                  else
-                    {
-                      memcpy (random_override, s, n);
-                      random_override_len = n;
-                    }
-                }
-              gcry_sexp_release (list);
-              if (rc)
-                goto leave;
-            }
-
-	  rc = _gcry_rsa_oaep_encode (ret_mpi, ctx->nbits, ctx->hash_algo,
-                                      value, valuelen,
-                                      ctx->label, ctx->labellen,
-                                      random_override, random_override_len);
-
-          gcry_free (random_override);
-	}
-    }
-  else if (ctx->encoding == PUBKEY_ENC_PSS && lhash
-	   && ctx->op == PUBKEY_OP_SIGN)
-    {
-      if (gcry_sexp_length (lhash) != 3)
-        rc = GPG_ERR_INV_OBJ;
-      else if ( !(s=gcry_sexp_nth_data (lhash, 1, &n)) || !n )
-        rc = GPG_ERR_INV_OBJ;
-      else
-        {
-          const void * value;
-          size_t valuelen;
-          void *random_override = NULL;
-          size_t random_override_len = 0;
-
-	  ctx->hash_algo = get_hash_algo (s, n);
-
-          if (!ctx->hash_algo)
-            rc = GPG_ERR_DIGEST_ALGO;
-          else if ( !(value=gcry_sexp_nth_data (lhash, 2, &valuelen))
-                    || !valuelen )
-            rc = GPG_ERR_INV_OBJ;
-          else
-	    {
-	      gcry_sexp_t list;
-
-	      /* Get SALT-LENGTH. */
-	      list = gcry_sexp_find_token (ldata, "salt-length", 0);
-	      if (list)
-		{
-		  s = gcry_sexp_nth_data (list, 1, &n);
-		  if (!s)
-		    {
-		      rc = GPG_ERR_NO_OBJ;
-		      goto leave;
-		    }
-		  ctx->saltlen = (unsigned int)strtoul (s, NULL, 10);
-		  gcry_sexp_release (list);
-		}
-
-              /* Get optional RANDOM-OVERRIDE.  */
-              list = gcry_sexp_find_token (ldata, "random-override", 0);
-              if (list)
-                {
-                  s = gcry_sexp_nth_data (list, 1, &n);
-                  if (!s)
-                    rc = GPG_ERR_NO_OBJ;
-                  else if (n > 0)
-                    {
-                      random_override = gcry_malloc (n);
-                      if (!random_override)
-                        rc = gpg_err_code_from_syserror ();
-                      else
-                        {
-                          memcpy (random_override, s, n);
-                          random_override_len = n;
-                        }
-                    }
-                  gcry_sexp_release (list);
-                  if (rc)
-                    goto leave;
-                }
-
-              /* Encode the data.  (NBITS-1 is due to 8.1.1, step 1.) */
-	      rc = _gcry_rsa_pss_encode (ret_mpi, ctx->nbits - 1,
-                                         ctx->hash_algo,
-                                         value, valuelen, ctx->saltlen,
-                                         random_override, random_override_len);
-
-              gcry_free (random_override);
-	    }
-        }
-    }
-  else if (ctx->encoding == PUBKEY_ENC_PSS && lhash
-	   && ctx->op == PUBKEY_OP_VERIFY)
-    {
-      if (gcry_sexp_length (lhash) != 3)
-        rc = GPG_ERR_INV_OBJ;
-      else if ( !(s=gcry_sexp_nth_data (lhash, 1, &n)) || !n )
-        rc = GPG_ERR_INV_OBJ;
-      else
-        {
-	  ctx->hash_algo = get_hash_algo (s, n);
-
-          if (!ctx->hash_algo)
-            rc = GPG_ERR_DIGEST_ALGO;
-	  else
-	    {
-	      *ret_mpi = gcry_sexp_nth_mpi (lhash, 2, GCRYMPI_FMT_USG);
-	      if (!*ret_mpi)
-		rc = GPG_ERR_INV_OBJ;
-	      ctx->verify_cmp = pss_verify_cmp;
-	      ctx->verify_arg = *ret_mpi;
-	    }
-	}
-    }
-  else
-    rc = GPG_ERR_CONFLICT;
-
- leave:
-  gcry_sexp_release (ldata);
-  gcry_sexp_release (lhash);
-  gcry_sexp_release (lvalue);
-
-  if (!rc)
-    ctx->flags = parsed_flags;
-  else
-    {
-      gcry_free (ctx->label);
-      ctx->label = NULL;
-    }
-
-  return rc;
-}
-
-static void
-init_encoding_ctx (struct pk_encoding_ctx *ctx, enum pk_operation op,
-		   unsigned int nbits)
-{
-  ctx->op = op;
-  ctx->nbits = nbits;
-  ctx->encoding = PUBKEY_ENC_UNKNOWN;
-  ctx->flags = 0;
-  ctx->hash_algo = GCRY_MD_SHA1;
-  ctx->label = NULL;
-  ctx->labellen = 0;
-  ctx->saltlen = 20;
-  ctx->verify_cmp = NULL;
-  ctx->verify_arg = NULL;
-}
-
-
 /*
    Do a PK encrypt operation
 
@@ -1502,7 +912,7 @@ init_encoding_ctx (struct pk_encoding_ctx *ctx, enum pk_operation op,
 
    Returns: 0 or an errorcode.
 
-   s_data = See comment for sexp_data_to_mpi
+   s_data = See comment for _gcry_pk_util_data_to_mpi
    s_pkey = <key-as-defined-in-sexp_to_key>
    r_ciph = (enc-val
                (<algo>
@@ -1532,8 +942,8 @@ gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
   gcry_assert (spec);
 
   /* Get the stuff we want to encrypt. */
-  init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT, gcry_pk_get_nbits (s_pkey));
-  rc = sexp_data_to_mpi (s_data, &data, &ctx);
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT, gcry_pk_get_nbits (s_pkey));
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
   if (rc)
     goto leave;
 
@@ -1622,7 +1032,7 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
   if (rc)
     goto leave;
 
-  init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT, gcry_pk_get_nbits (s_skey));
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT, gcry_pk_get_nbits (s_skey));
   rc = sexp_to_enc (s_data, &data, &spec_enc, &flags, &ctx);
   if (rc)
     goto leave;
@@ -1691,7 +1101,7 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
             other arguments but is always suitable to be passed to
             gcry_pk_verify
 
-   s_hash = See comment for sexp_data_to_mpi
+   s_hash = See comment for _gcry-pk_util_data_to_mpi
 
    s_skey = <key-as-defined-in-sexp_to_key>
    r_sig  = (sig-val
@@ -1726,9 +1136,9 @@ gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
   /* Get the stuff we want to sign.  Note that pk_get_nbits does also
      work on a private key.  We don't need the number of bits for ECC
      here, thus set it to 0 so that we don't need to parse it.  */
-  init_encoding_ctx (&ctx, PUBKEY_OP_SIGN,
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN,
                      is_ecc? 0 : gcry_pk_get_nbits (s_skey));
-  rc = sexp_data_to_mpi (s_hash, &hash, &ctx);
+  rc = _gcry_pk_util_data_to_mpi (s_hash, &hash, &ctx);
   if (rc)
     goto leave;
 
@@ -1786,70 +1196,20 @@ gcry_error_t
 gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 {
   gcry_err_code_t rc;
-  gcry_pk_spec_t *spec = NULL;
-  gcry_pk_spec_t *spec_sig = NULL;
-  gcry_mpi_t *pkey = NULL;
-  gcry_mpi_t hash = NULL;
-  gcry_mpi_t *sig = NULL;
-  struct pk_encoding_ctx ctx;
-  int i;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms;
 
-  rc = sexp_to_key (s_pkey, 0, GCRY_PK_USAGE_SIGN, NULL,
-                    &pkey, &spec, NULL);
+  rc = spec_from_sexp (s_pkey, 0, &spec, &keyparms);
   if (rc)
     goto leave;
-
-  /* Get the stuff we want to verify. */
-  init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY, gcry_pk_get_nbits (s_pkey));
-  rc = sexp_data_to_mpi (s_hash, &hash, &ctx);
-  if (rc)
-    goto leave;
-
-  /* Get the signature.  */
-  rc = sexp_to_sig (s_sig, &sig, &spec_sig,
-                    !!(ctx.flags & PUBKEY_FLAG_EDDSA));
-  if (rc)
-    goto leave;
-  /* Fixme: Check that the algorithm of S_SIG is compatible to the one
-     of S_PKEY.  */
-
-  if (spec->algo != spec_sig->algo)
-    {
-      rc = GPG_ERR_CONFLICT;
-      goto leave;
-    }
-
-  if (DBG_CIPHER && !fips_mode ())
-    {
-      log_debug ("gcry_pk_verify: algo=%d\n", spec->algo);
-      for (i = 0; i < pubkey_get_npkey (spec->algo); i++)
-        log_mpidump ("  pkey", pkey[i]);
-      for (i = 0; i < pubkey_get_nsig (spec->algo); i++)
-        log_mpidump ("   sig", sig[i]);
-      log_mpidump ("  hash", hash);
-      }
 
   if (spec->verify)
-    rc = spec->verify (spec->algo, hash, sig, pkey,
-                       ctx.verify_cmp, &ctx, ctx.flags, ctx.hash_algo);
+    rc = spec->verify (s_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
 
-
  leave:
-  if (pkey)
-    {
-      release_mpi_array (pkey);
-      gcry_free (pkey);
-    }
-  if (sig)
-    {
-      release_mpi_array (sig);
-      gcry_free (sig);
-    }
-  if (hash)
-    mpi_free (hash);
-
+  gcry_sexp_release (keyparms);
   return gcry_error (rc);
 }
 

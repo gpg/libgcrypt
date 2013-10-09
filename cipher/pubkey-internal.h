@@ -25,6 +25,20 @@ gpg_err_code_t _gcry_pk_util_get_nbits (gcry_sexp_t list,
                                         unsigned int *r_nbits);
 gpg_err_code_t _gcry_pk_util_get_rsa_use_e (gcry_sexp_t list,
                                             unsigned long *r_e);
+gpg_err_code_t _gcry_pk_util_extract_mpis (gcry_sexp_t sexp,
+                                           const char *list, ...)
+                                           GCC_ATTR_SENTINEL(0);
+gpg_err_code_t _gcry_pk_util_preparse_sigval (gcry_sexp_t s_sig,
+                                              const char **algo_names,
+                                              gcry_sexp_t *r_parms,
+                                              int *r_eccflags);
+void _gcry_pk_util_init_encoding_ctx (struct pk_encoding_ctx *ctx,
+                                      enum pk_operation op,
+                                      unsigned int nbits);
+void _gcry_pk_util_free_encoding_ctx (struct pk_encoding_ctx *ctx);
+gcry_err_code_t _gcry_pk_util_data_to_mpi (gcry_sexp_t input,
+                                           gcry_mpi_t *ret_mpi,
+                                           struct pk_encoding_ctx *ctx);
 
 
 

@@ -84,14 +84,9 @@ typedef gcry_err_code_t (*gcry_pk_sign_t) (int algo,
                                            int hashalgo);
 
 /* Type for the pk_verify function.  */
-typedef gcry_err_code_t (*gcry_pk_verify_t) (int algo,
-					     gcry_mpi_t hash,
-					     gcry_mpi_t *data,
-					     gcry_mpi_t *pkey,
-					     int (*cmp) (void *, gcry_mpi_t),
-					     void *opaquev,
-                                             int flags,
-                                             int hashalgo);
+typedef gcry_err_code_t (*gcry_pk_verify_t) (gcry_sexp_t s_sig,
+                                             gcry_sexp_t s_data,
+                                             gcry_sexp_t s_key);
 
 /* Type for the pk_get_nbits function.  */
 typedef unsigned (*gcry_pk_get_nbits_t) (gcry_sexp_t keyparms);

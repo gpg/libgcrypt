@@ -53,6 +53,15 @@ typedef struct
 } RSA_secret_key;
 
 
+static const char *rsa_names[] =
+  {
+    "rsa",
+    "openpgp-rsa",
+    "oid.1.2.840.113549.1.1.1",
+    NULL,
+  };
+
+
 /* A sample 1024 bit RSA key used for the selftests.  */
 static const char sample_secret_key[] =
 "(private-key"
@@ -89,6 +98,7 @@ static int test_keys (RSA_secret_key *sk, unsigned nbits);
 static int  check_secret_key (RSA_secret_key *sk);
 static void public (gcry_mpi_t output, gcry_mpi_t input, RSA_public_key *skey);
 static void secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey);
+static unsigned int rsa_get_nbits (gcry_sexp_t parms);
 
 
 /* Check that a freshly generated key actually works.  Returns 0 on success. */
@@ -1049,40 +1059,71 @@ rsa_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
 
 
 static gcry_err_code_t
-rsa_verify (int algo, gcry_mpi_t hash, gcry_mpi_t *data, gcry_mpi_t *pkey,
-            int (*cmp) (void *opaque, gcry_mpi_t tmp), void *opaquev,
-            int flags, int hashalgo)
+rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
 {
-  RSA_public_key pk;
-  gcry_mpi_t result;
   gcry_err_code_t rc;
+  struct pk_encoding_ctx ctx;
+  gcry_sexp_t l1 = NULL;
+  gcry_mpi_t sig = NULL;
+  gcry_mpi_t data = NULL;
+  RSA_public_key pk = { NULL, NULL };
+  gcry_mpi_t result = NULL;
 
-  (void)algo;
-  (void)cmp;
-  (void)opaquev;
-  (void)flags;
-  (void)hashalgo;
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
+                                   rsa_get_nbits (s_keyparms));
 
-  if (mpi_is_opaque (hash))
-    return GPG_ERR_INV_DATA;
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("rsa_verify data", data);
+  if (mpi_is_opaque (data))
+    {
+      rc = GPG_ERR_INV_DATA;
+      goto leave;
+    }
 
-  pk.n = pkey[0];
-  pk.e = pkey[1];
-  result = gcry_mpi_new ( 160 );
-  public( result, data[0], &pk );
-#ifdef IS_DEVELOPMENT_VERSION
+  /* Extract the signature value.  */
+  rc = _gcry_pk_util_preparse_sigval (s_sig, rsa_names, &l1, NULL);
+  if (rc)
+    goto leave;
+  rc = _gcry_pk_util_extract_mpis (l1, "s", &sig, NULL);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("rsa_verify  sig", sig);
+
+  /* Extract the key.  */
+  rc = _gcry_pk_util_extract_mpis (s_keyparms, "ne", &pk.n, &pk.e, NULL);
+  if (rc)
+    return rc;
   if (DBG_CIPHER)
     {
-      log_mpidump ("rsa verify result", result );
-      log_mpidump ("             hash", hash );
+      log_mpidump ("rsa_verify    n", pk.n);
+      log_mpidump ("rsa_verify    e", pk.e);
     }
-#endif /*IS_DEVELOPMENT_VERSION*/
-  if (cmp)
-    rc = (*cmp) (opaquev, result);
-  else
-    rc = mpi_cmp (result, hash) ? GPG_ERR_BAD_SIGNATURE : GPG_ERR_NO_ERROR;
-  gcry_mpi_release (result);
 
+  /* Do RSA computation and compare.  */
+  result = gcry_mpi_new (0);
+  public (result, sig, &pk);
+  if (DBG_CIPHER)
+    log_mpidump ("rsa_verify  cmp", result);
+  if (ctx.verify_cmp)
+    rc = ctx.verify_cmp (&ctx, result);
+  else
+    rc = mpi_cmp (result, data) ? GPG_ERR_BAD_SIGNATURE : 0;
+
+ leave:
+  gcry_mpi_release (result);
+  gcry_mpi_release (pk.n);
+  gcry_mpi_release (pk.e);
+  gcry_mpi_release (data);
+  gcry_mpi_release (sig);
+  gcry_sexp_release (l1);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("rsa_verify    => %s\n", rc?gpg_strerror (rc):"good");
   return rc;
 }
 
@@ -1423,14 +1464,6 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 
 
-static const char *rsa_names[] =
-  {
-    "rsa",
-    "openpgp-rsa",
-    "oid.1.2.840.113549.1.1.1",
-    NULL,
-  };
-
 gcry_pk_spec_t _gcry_pubkey_spec_rsa =
   {
     GCRY_PK_RSA, { 0, 1 },
