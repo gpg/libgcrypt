@@ -755,30 +755,57 @@ elg_check_secret_key (int algo, gcry_mpi_t *skey)
 
 
 static gcry_err_code_t
-elg_encrypt (int algo, gcry_sexp_t *r_result,
-             gcry_mpi_t data, gcry_mpi_t *pkey, int flags)
+elg_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
   gcry_err_code_t rc;
-  ELG_public_key pk;
-  gcry_mpi_t a, b;
+  struct pk_encoding_ctx ctx;
+  gcry_mpi_t mpi_a = NULL;
+  gcry_mpi_t mpi_b = NULL;
+  gcry_mpi_t data = NULL;
+  ELG_public_key pk = { NULL, NULL, NULL };
 
-  (void)algo;
-  (void)flags;
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT,
+                                   elg_get_nbits (keyparms));
 
-  if ((! data) || (! pkey[0]) || (! pkey[1]) || (! pkey[2]))
-    rc = GPG_ERR_BAD_MPI;
-  else
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("elg_encrypt data", data);
+  if (mpi_is_opaque (data))
     {
-      pk.p = pkey[0];
-      pk.g = pkey[1];
-      pk.y = pkey[2];
-      a = mpi_alloc (mpi_get_nlimbs (pk.p));
-      b = mpi_alloc (mpi_get_nlimbs (pk.p));
-      do_encrypt (a, b, data, &pk);
-      rc = gcry_sexp_build (r_result, NULL, "(enc-val(elg(a%m)(b%m)))", a, b);
-      mpi_free (a);
-      mpi_free (b);
+      rc = GPG_ERR_INV_DATA;
+      goto leave;
     }
+
+  /* Extract the key.  */
+  rc = _gcry_pk_util_extract_mpis (keyparms, "pgy", &pk.p, &pk.g, &pk.y, NULL);
+  if (rc)
+    return rc;
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("elg_encrypt  p", pk.p);
+      log_mpidump ("elg_encrypt  g", pk.g);
+      log_mpidump ("elg_encrypt  y", pk.y);
+    }
+
+  /* Do Elgamal computation and build result.  */
+  mpi_a = gcry_mpi_new (0);
+  mpi_b = gcry_mpi_new (0);
+  do_encrypt (mpi_a, mpi_b, data, &pk);
+  rc = gcry_sexp_build (r_ciph, NULL, "(enc-val(elg(a%m)(b%m)))", mpi_a, mpi_b);
+
+ leave:
+  gcry_mpi_release (mpi_a);
+  gcry_mpi_release (mpi_b);
+  gcry_mpi_release (pk.p);
+  gcry_mpi_release (pk.g);
+  gcry_mpi_release (pk.y);
+  gcry_mpi_release (data);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("elg_encrypt   => %s\n", gpg_strerror (rc));
   return rc;
 }
 

@@ -3486,7 +3486,9 @@ static void
 check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 {
   gcry_error_t rc;
-  gcry_sexp_t plain, ciph, data;
+  gcry_sexp_t plain = NULL;
+  gcry_sexp_t ciph = NULL;
+  gcry_sexp_t data = NULL;
   int dataidx;
   static struct
   {

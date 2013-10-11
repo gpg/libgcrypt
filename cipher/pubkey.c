@@ -926,60 +926,22 @@ gcry_error_t
 gcry_pk_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t s_pkey)
 {
   gcry_err_code_t rc;
-  gcry_mpi_t *pkey = NULL;
-  gcry_mpi_t data = NULL;
-  struct pk_encoding_ctx ctx;
-  gcry_pk_spec_t *spec = NULL;
-  int i;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms;
 
   *r_ciph = NULL;
 
-  /* Get the key. */
-  rc = sexp_to_key (s_pkey, 0, GCRY_PK_USAGE_ENCR, NULL, &pkey, &spec, NULL);
+  rc = spec_from_sexp (s_pkey, 0, &spec, &keyparms);
   if (rc)
     goto leave;
-
-  gcry_assert (spec);
-
-  /* Get the stuff we want to encrypt. */
-  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT, gcry_pk_get_nbits (s_pkey));
-  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
-  if (rc)
-    goto leave;
-
-  /* In fips mode DBG_CIPHER will never evaluate to true but as an
-     extra failsafe protection we explicitly test for fips mode
-     here. */
-  if (DBG_CIPHER && !fips_mode ())
-    {
-      log_debug ("pubkey_encrypt: algo=%d\n", spec->algo);
-      for(i = 0; i < pubkey_get_npkey (spec->algo); i++)
-	log_mpidump ("  pkey", pkey[i]);
-      log_mpidump ("  data", data);
-    }
 
   if (spec->encrypt)
-    rc = spec->encrypt (spec->algo, r_ciph, data, pkey, ctx.flags);
+    rc = spec->encrypt (r_ciph, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
 
-
-  /* if (DBG_CIPHER && !fips_mode ()) */
-  /*   { */
-  /*     for (i = 0; i < pubkey_get_nenc (spec->algo); i++) */
-  /*       log_mpidump ("  encr", ciph[i]); */
-  /*   } */
-
  leave:
-  mpi_free (data);
-  if (pkey)
-    {
-      release_mpi_array (pkey);
-      gcry_free (pkey);
-    }
-
-  gcry_free (ctx.label);
-
+  gcry_sexp_release (keyparms);
   return gcry_error (rc);
 }
 

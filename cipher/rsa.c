@@ -861,39 +861,68 @@ rsa_check_secret_key (int algo, gcry_mpi_t *skey)
 
 
 static gcry_err_code_t
-rsa_encrypt (int algo, gcry_sexp_t *r_result, gcry_mpi_t data,
-             gcry_mpi_t *pkey, int flags)
+rsa_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
-  gpg_err_code_t rc;
-  RSA_public_key pk;
-  gcry_mpi_t result;
+  gcry_err_code_t rc;
+  struct pk_encoding_ctx ctx;
+  gcry_mpi_t data = NULL;
+  RSA_public_key pk = {NULL, NULL};
+  gcry_mpi_t ciph = NULL;
 
-  (void)algo;
-  (void)flags;
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT,
+                                   rsa_get_nbits (keyparms));
 
-  pk.n = pkey[0];
-  pk.e = pkey[1];
-  result = mpi_alloc (mpi_get_nlimbs (pk.n));
-  public (result, data, &pk);
-  if ((flags & PUBKEY_FLAG_FIXEDLEN))
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("rsa_encrypt data", data);
+  if (mpi_is_opaque (data))
+    {
+      rc = GPG_ERR_INV_DATA;
+      goto leave;
+    }
+
+  /* Extract the key.  */
+  rc = _gcry_pk_util_extract_mpis (keyparms, "ne", &pk.n, &pk.e, NULL);
+  if (rc)
+    return rc;
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("rsa_encrypt  n", pk.n);
+      log_mpidump ("rsa_encrypt  e", pk.e);
+    }
+
+  /* Do RSA computation and build result.  */
+  ciph = gcry_mpi_new (0);
+  public (ciph, data, &pk);
+  if ((ctx.flags & PUBKEY_FLAG_FIXEDLEN))
     {
       /* We need to make sure to return the correct length to avoid
          problems with missing leading zeroes.  */
       unsigned char *em;
       size_t emlen = (mpi_get_nbits (pk.n)+7)/8;
 
-      rc = _gcry_mpi_to_octet_string (&em, NULL, result, emlen);
+      rc = _gcry_mpi_to_octet_string (&em, NULL, ciph, emlen);
       if (!rc)
         {
-          rc = gcry_sexp_build (r_result, NULL,
+          rc = gcry_sexp_build (r_ciph, NULL,
                                 "(enc-val(rsa(a%b)))", (int)emlen, em);
           gcry_free (em);
         }
     }
   else
-    rc = gcry_sexp_build (r_result, NULL, "(enc-val(rsa(a%m)))", result);
+    rc = gcry_sexp_build (r_ciph, NULL, "(enc-val(rsa(a%m)))", ciph);
 
-  mpi_free (result);
+ leave:
+  gcry_mpi_release (ciph);
+  gcry_mpi_release (pk.n);
+  gcry_mpi_release (pk.e);
+  gcry_mpi_release (data);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("rsa_encrypt   => %s\n", gpg_strerror (rc));
   return rc;
 }
 
