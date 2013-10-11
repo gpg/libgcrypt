@@ -854,37 +854,65 @@ elg_decrypt (int algo, gcry_sexp_t *r_plain,
 
 
 static gcry_err_code_t
-elg_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
-          int flags, int hashalgo)
+elg_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
   gcry_err_code_t rc;
-  ELG_secret_key sk;
-  gcry_mpi_t r, s;
+  struct pk_encoding_ctx ctx;
+  gcry_mpi_t data = NULL;
+  ELG_secret_key sk = {NULL, NULL, NULL, NULL};
+  gcry_mpi_t sig_r = NULL;
+  gcry_mpi_t sig_s = NULL;
 
-  (void)algo;
-  (void)flags;
-  (void)hashalgo;
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN,
+                                   elg_get_nbits (keyparms));
 
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("elg_sign   data", data);
   if (mpi_is_opaque (data))
-    return GPG_ERR_INV_DATA;
-
-  if ((! data)
-      || (! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
-    rc = GPG_ERR_BAD_MPI;
-  else
     {
-      sk.p = skey[0];
-      sk.g = skey[1];
-      sk.y = skey[2];
-      sk.x = skey[3];
-      r = mpi_alloc (mpi_get_nlimbs (sk.p));
-      s = mpi_alloc (mpi_get_nlimbs (sk.p));
-      sign (r, s, data, &sk);
-      rc = gcry_sexp_build (r_result, NULL, "(sig-val(elg(r%M)(s%M)))", r, s);
-      mpi_free (r);
-      mpi_free (s);
+      rc = GPG_ERR_INV_DATA;
+      goto leave;
     }
 
+  /* Extract the key.  */
+  rc = _gcry_pk_util_extract_mpis (keyparms, "pgyx",
+                                   &sk.p, &sk.g, &sk.y, &sk.x, NULL);
+  if (rc)
+    return rc;
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("elg_sign      p", sk.p);
+      log_mpidump ("elg_sign      g", sk.g);
+      log_mpidump ("elg_sign      y", sk.y);
+      if (!fips_mode ())
+        log_mpidump ("elg_sign      x", sk.x);
+    }
+
+  sig_r = gcry_mpi_new (0);
+  sig_s = gcry_mpi_new (0);
+  sign (sig_r, sig_s, data, &sk);
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("elg_sign  sig_r", sig_r);
+      log_mpidump ("elg_sign  sig_s", sig_s);
+    }
+  rc = gcry_sexp_build (r_sig, NULL, "(sig-val(elg(r%M)(s%M)))", sig_r, sig_s);
+
+ leave:
+  gcry_mpi_release (sig_r);
+  gcry_mpi_release (sig_s);
+  gcry_mpi_release (sk.p);
+  gcry_mpi_release (sk.g);
+  gcry_mpi_release (sk.y);
+  gcry_mpi_release (sk.x);
+  gcry_mpi_release (data);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("elg_sign      => %s\n", gpg_strerror (rc));
   return rc;
 }
 
@@ -954,7 +982,7 @@ elg_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   gcry_sexp_release (l1);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
-    log_debug ("elg_verify    => %s\n", rc?gpg_strerror (rc):"good");
+    log_debug ("elg_verify    => %s\n", rc?gpg_strerror (rc):"Good");
   return rc;
 }
 

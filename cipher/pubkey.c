@@ -1116,71 +1116,23 @@ gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 gcry_error_t
 gcry_pk_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_hash, gcry_sexp_t s_skey)
 {
-  gcry_mpi_t *skey = NULL;
-  gcry_mpi_t hash = NULL;
-  gcry_pk_spec_t *spec = NULL;
-  struct pk_encoding_ctx ctx;
-  int i;
-  int is_ecc;
   gcry_err_code_t rc;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms;
 
   *r_sig = NULL;
 
-  rc = sexp_to_key (s_skey, 1, GCRY_PK_USAGE_SIGN, NULL,
-                    &skey, &spec, &is_ecc);
+  rc = spec_from_sexp (s_skey, 1, &spec, &keyparms);
   if (rc)
     goto leave;
-
-  gcry_assert (spec);
-
-  /* Get the stuff we want to sign.  Note that pk_get_nbits does also
-     work on a private key.  We don't need the number of bits for ECC
-     here, thus set it to 0 so that we don't need to parse it.  */
-  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN,
-                     is_ecc? 0 : gcry_pk_get_nbits (s_skey));
-  rc = _gcry_pk_util_data_to_mpi (s_hash, &hash, &ctx);
-  if (rc)
-    goto leave;
-
-  if (DBG_CIPHER && !fips_mode ())
-    {
-      log_debug ("gcry_pk_sign: algo=%d\n", spec->algo);
-      for(i = 0; i < pubkey_get_nskey (spec->algo); i++)
-        log_mpidump ("  skey", skey[i]);
-      log_mpidump("  data", hash);
-    }
 
   if (spec->sign)
-    rc = spec->sign (spec->algo, r_sig, hash, skey, ctx.flags, ctx.hash_algo);
+    rc = spec->sign (r_sig, s_hash, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
 
-  if (rc)
-    goto leave;
-
-  /* Fixme: To print the result we need to print an sexp.  */
-  /* if (!rc && DBG_CIPHER && !fips_mode ()) */
-  /*   for (i = 0; i < pubkey_get_nsig (algo); i++) */
-  /*     log_mpidump ("   sig", resarr[i]); */
-
  leave:
-  if (skey)
-    {
-      if (is_ecc)
-        /* Q is optional and may be NULL, while there is D after Q.  */
-        for (i = 0; i < 7; i++)
-          {
-            if (skey[i])
-              mpi_free (skey[i]);
-            skey[i] = NULL;
-          }
-      else
-        release_mpi_array (skey);
-      gcry_free (skey);
-    }
-
-  mpi_free (hash);
-
+  gcry_sexp_release (keyparms);
   return gcry_error (rc);
 }
 

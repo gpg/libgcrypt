@@ -953,36 +953,64 @@ dsa_check_secret_key (int algo, gcry_mpi_t *skey)
 
 
 static gcry_err_code_t
-dsa_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
-          int flags, int hashalgo)
+dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
   gcry_err_code_t rc;
-  DSA_secret_key sk;
-  gcry_mpi_t r, s;
+  struct pk_encoding_ctx ctx;
+  gcry_mpi_t data = NULL;
+  DSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL};
+  gcry_mpi_t sig_r = NULL;
+  gcry_mpi_t sig_s = NULL;
 
-  (void)algo;
-  (void)flags;
-  (void)hashalgo;
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN,
+                                   dsa_get_nbits (keyparms));
 
-  if ((! data)
-      || (! skey[0]) || (! skey[1]) || (! skey[2])
-      || (! skey[3]) || (! skey[4]))
-    rc = GPG_ERR_BAD_MPI;
-  else
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("dsa_sign   data", data);
+
+  /* Extract the key.  */
+  rc = _gcry_pk_util_extract_mpis (keyparms, "pqgyx",
+                                   &sk.p, &sk.q, &sk.g, &sk.y, &sk.x, NULL);
+  if (rc)
+    return rc;
+  if (DBG_CIPHER)
     {
-      sk.p = skey[0];
-      sk.q = skey[1];
-      sk.g = skey[2];
-      sk.y = skey[3];
-      sk.x = skey[4];
-      r = mpi_alloc (mpi_get_nlimbs (sk.p));
-      s = mpi_alloc (mpi_get_nlimbs (sk.p));
-      rc = sign (r, s, data, &sk, flags, hashalgo);
-      if (!rc)
-        rc = gcry_sexp_build (r_result, NULL, "(sig-val(dsa(r%M)(s%M)))", r, s);
-      mpi_free (r);
-      mpi_free (s);
+      log_mpidump ("dsa_sign      p", sk.p);
+      log_mpidump ("dsa_sign      q", sk.q);
+      log_mpidump ("dsa_sign      g", sk.g);
+      log_mpidump ("dsa_sign      y", sk.y);
+      if (!fips_mode ())
+        log_mpidump ("dsa_sign      x", sk.x);
     }
+
+  sig_r = gcry_mpi_new (0);
+  sig_s = gcry_mpi_new (0);
+  rc = sign (sig_r, sig_s, data, &sk, ctx.flags, ctx.hash_algo);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("dsa_sign  sig_r", sig_r);
+      log_mpidump ("dsa_sign  sig_s", sig_s);
+    }
+  rc = gcry_sexp_build (r_sig, NULL, "(sig-val(dsa(r%M)(s%M)))", sig_r, sig_s);
+
+ leave:
+  gcry_mpi_release (sig_r);
+  gcry_mpi_release (sig_s);
+  gcry_mpi_release (sk.p);
+  gcry_mpi_release (sk.q);
+  gcry_mpi_release (sk.g);
+  gcry_mpi_release (sk.y);
+  gcry_mpi_release (sk.x);
+  gcry_mpi_release (data);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("dsa_sign      => %s\n", gpg_strerror (rc));
   return rc;
 }
 
@@ -1073,7 +1101,7 @@ dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   gcry_sexp_release (l1);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
-    log_debug ("dsa_verify    => %s\n", rc?gpg_strerror (rc):"good");
+    log_debug ("dsa_verify    => %s\n", rc?gpg_strerror (rc):"Good");
   return rc;
 }
 

@@ -1013,53 +1013,90 @@ rsa_decrypt (int algo, gcry_sexp_t *r_plain, gcry_mpi_t *data,
 
 
 static gcry_err_code_t
-rsa_sign (int algo, gcry_sexp_t *r_result, gcry_mpi_t data, gcry_mpi_t *skey,
-          int flags, int hashalgo)
+rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
   gpg_err_code_t rc;
-  RSA_secret_key sk;
-  gcry_mpi_t result;
+  struct pk_encoding_ctx ctx;
+  gcry_mpi_t data = NULL;
+  RSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL, NULL};
+  gcry_mpi_t sig = NULL;
 
-  (void)algo;
-  (void)flags;
-  (void)hashalgo;
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN,
+                                   rsa_get_nbits (keyparms));
 
+  /* Extract the data.  */
+  rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
+    log_mpidump ("rsa_sign   data", data);
   if (mpi_is_opaque (data))
-    return GPG_ERR_INV_DATA;
+    {
+      rc = GPG_ERR_INV_DATA;
+      goto leave;
+    }
 
-  sk.n = skey[0];
-  sk.e = skey[1];
-  sk.d = skey[2];
-  sk.p = skey[3];
-  sk.q = skey[4];
-  sk.u = skey[5];
-  result = mpi_alloc (mpi_get_nlimbs (sk.n));
-  secret (result, data, &sk);
-  if ((flags & PUBKEY_FLAG_FIXEDLEN))
+  /* Extract the key.  */
+  rc = _gcry_pk_util_extract_mpis (keyparms, "nedp?q?u?",
+                                   &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
+                                   NULL);
+  if (rc)
+    return rc;
+  if (DBG_CIPHER)
+    {
+      log_mpidump ("rsa_sign      n", sk.n);
+      log_mpidump ("rsa_sign      e", sk.e);
+      if (!fips_mode ())
+        {
+          log_mpidump ("rsa_sign      d", sk.d);
+          log_mpidump ("rsa_sign      p", sk.p);
+          log_mpidump ("rsa_sign      q", sk.q);
+          log_mpidump ("rsa_sign      u", sk.u);
+        }
+    }
+
+  /* Do RSA computation and build the result.  */
+  sig = gcry_mpi_new (0);
+  secret (sig, data, &sk);
+  if (DBG_CIPHER)
+    log_mpidump ("rsa_sign    sig", sig);
+  if ((ctx.flags & PUBKEY_FLAG_FIXEDLEN))
     {
       /* We need to make sure to return the correct length to avoid
          problems with missing leading zeroes.  */
       unsigned char *em;
       size_t emlen = (mpi_get_nbits (sk.n)+7)/8;
 
-      rc = _gcry_mpi_to_octet_string (&em, NULL, result, emlen);
+      rc = _gcry_mpi_to_octet_string (&em, NULL, sig, emlen);
       if (!rc)
         {
-          rc = gcry_sexp_build (r_result, NULL,
+          rc = gcry_sexp_build (r_sig, NULL,
                                 "(sig-val(rsa(s%b)))", (int)emlen, em);
           gcry_free (em);
         }
     }
   else
-    rc = gcry_sexp_build (r_result, NULL, "(sig-val(rsa(s%M)))",  result);
-  mpi_free (result);
+    rc = gcry_sexp_build (r_sig, NULL, "(sig-val(rsa(s%M)))", sig);
 
+
+ leave:
+  gcry_mpi_release (sig);
+  gcry_mpi_release (sk.n);
+  gcry_mpi_release (sk.e);
+  gcry_mpi_release (sk.d);
+  gcry_mpi_release (sk.p);
+  gcry_mpi_release (sk.q);
+  gcry_mpi_release (sk.u);
+  gcry_mpi_release (data);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("rsa_sign      => %s\n", gpg_strerror (rc));
   return rc;
 }
 
 
 static gcry_err_code_t
-rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
+rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
   gcry_err_code_t rc;
   struct pk_encoding_ctx ctx;
@@ -1070,7 +1107,7 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   gcry_mpi_t result = NULL;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_VERIFY,
-                                   rsa_get_nbits (s_keyparms));
+                                   rsa_get_nbits (keyparms));
 
   /* Extract the data.  */
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
@@ -1095,7 +1132,7 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
     log_mpidump ("rsa_verify  sig", sig);
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (s_keyparms, "ne", &pk.n, &pk.e, NULL);
+  rc = _gcry_pk_util_extract_mpis (keyparms, "ne", &pk.n, &pk.e, NULL);
   if (rc)
     return rc;
   if (DBG_CIPHER)
@@ -1123,7 +1160,7 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   gcry_sexp_release (l1);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
-    log_debug ("rsa_verify    => %s\n", rc?gpg_strerror (rc):"good");
+    log_debug ("rsa_verify    => %s\n", rc?gpg_strerror (rc):"Good");
   return rc;
 }
 
