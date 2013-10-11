@@ -46,6 +46,57 @@ pss_verify_cmp (void *opaque, gcry_mpi_t tmp)
 }
 
 
+static int
+get_hash_algo (const char *s, size_t n)
+{
+  static const struct { const char *name; int algo; } hashnames[] = {
+    { "sha1",   GCRY_MD_SHA1 },
+    { "md5",    GCRY_MD_MD5 },
+    { "sha256", GCRY_MD_SHA256 },
+    { "ripemd160", GCRY_MD_RMD160 },
+    { "rmd160", GCRY_MD_RMD160 },
+    { "sha384", GCRY_MD_SHA384 },
+    { "sha512", GCRY_MD_SHA512 },
+    { "sha224", GCRY_MD_SHA224 },
+    { "md2",    GCRY_MD_MD2 },
+    { "md4",    GCRY_MD_MD4 },
+    { "tiger",  GCRY_MD_TIGER },
+    { "haval",  GCRY_MD_HAVAL },
+    { NULL, 0 }
+  };
+  int algo;
+  int i;
+
+  for (i=0; hashnames[i].name; i++)
+    {
+      if ( strlen (hashnames[i].name) == n
+	   && !memcmp (hashnames[i].name, s, n))
+	break;
+    }
+  if (hashnames[i].name)
+    algo = hashnames[i].algo;
+  else
+    {
+      /* In case of not listed or dynamically allocated hash
+	 algorithm we fall back to this somewhat slower
+	 method.  Further, it also allows to use OIDs as
+	 algorithm names. */
+      char *tmpname;
+
+      tmpname = gcry_malloc (n+1);
+      if (!tmpname)
+	algo = 0;  /* Out of core - silently give up.  */
+      else
+	{
+	  memcpy (tmpname, s, n);
+	  tmpname[n] = 0;
+	  algo = gcry_md_map_name (tmpname);
+	  gcry_free (tmpname);
+	}
+    }
+  return algo;
+}
+
 
 /* Get the "nbits" parameter from an s-expression of the format:
  *
@@ -249,7 +300,7 @@ _gcry_pk_util_extract_mpis (gcry_sexp_t sexp, const char *list, ...)
 }
 
 
-/* Parse a "sig_val s-expression and store the inner parameter list at
+/* Parse a "sig-val" s-expression and store the inner parameter list at
    R_PARMS.  ALGO_NAMES is used to verify that the algorithm in
    "sig-val" is valid.  Returns 0 on success and stores a new list at
    R_PARMS which must be freed by the caller.  On error R_PARMS is set
@@ -336,6 +387,192 @@ _gcry_pk_util_preparse_sigval (gcry_sexp_t s_sig, const char **algo_names,
   return rc;
 }
 
+
+/* Parse a "enc-val" s-expression and store the inner parameter list
+   at R_PARMS.  ALGO_NAMES is used to verify that the algorithm in
+   "enc-val" is valid.  Returns 0 on success and stores a new list at
+   R_PARMS which must be freed by the caller.  On error R_PARMS is set
+   to NULL and an error code returned.  If R_ECCFLAGS is not NULL flag
+   values are set into it; as of now they are only used with ecc
+   algorithms.
+
+     (enc-val
+       [(flags [raw, pkcs1, oaep, no-blinding])]
+       [(hash-algo <algo>)]
+       [(label <label>)]
+        (<algo>
+          (<param_name1> <mpi>)
+          ...
+          (<param_namen> <mpi>)))
+
+   HASH-ALGO and LABEL are specific to OAEP.  CTX will be updated with
+   encoding information.  */
+gpg_err_code_t
+_gcry_pk_util_preparse_encval (gcry_sexp_t sexp, const char **algo_names,
+                               gcry_sexp_t *r_parms,
+                               struct pk_encoding_ctx *ctx)
+{
+  gcry_err_code_t rc = 0;
+  gcry_sexp_t l1 = NULL;
+  gcry_sexp_t l2 = NULL;
+  char *name = NULL;
+  size_t n;
+  int parsed_flags = 0;
+  int i;
+
+  *r_parms = NULL;
+
+  /* Check that the first element is valid.  */
+  l1 = gcry_sexp_find_token (sexp, "enc-val" , 0);
+  if (!l1)
+    {
+      rc = GPG_ERR_INV_OBJ; /* Does not contain an encrypted value object.  */
+      goto leave;
+    }
+
+  l2 = gcry_sexp_nth (l1, 1);
+  if (!l2)
+    {
+      rc = GPG_ERR_NO_OBJ;  /* No cadr for the data object.  */
+      goto leave;
+    }
+
+  /* Extract identifier of sublist.  */
+  name = _gcry_sexp_nth_string (l2, 0);
+  if (!name)
+    {
+      rc = GPG_ERR_INV_OBJ; /* Invalid structure of object.  */
+      goto leave;
+    }
+
+  if (!strcmp (name, "flags"))
+    {
+      /* There is a flags element - process it.  */
+      const char *s;
+
+      for (i = gcry_sexp_length (l2) - 1; i > 0; i--)
+        {
+          s = gcry_sexp_nth_data (l2, i, &n);
+          if (! s)
+            ; /* Not a data element - ignore.  */
+          else if (n == 3 && !memcmp (s, "raw", 3)
+                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
+            ctx->encoding = PUBKEY_ENC_RAW;
+          else if (n == 5 && !memcmp (s, "pkcs1", 5)
+                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
+	    ctx->encoding = PUBKEY_ENC_PKCS1;
+          else if (n == 4 && !memcmp (s, "oaep", 4)
+                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
+	    ctx->encoding = PUBKEY_ENC_OAEP;
+          else if (n == 3 && !memcmp (s, "pss", 3)
+                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
+	    {
+	      rc = GPG_ERR_CONFLICT;
+	      goto leave;
+	    }
+          else if (n == 11 && !memcmp (s, "no-blinding", 11))
+            parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
+          else
+            {
+              rc = GPG_ERR_INV_FLAG;
+              goto leave;
+            }
+        }
+
+      /* Get the OAEP parameters HASH-ALGO and LABEL, if any. */
+      if (ctx->encoding == PUBKEY_ENC_OAEP)
+	{
+	  /* Get HASH-ALGO. */
+          gcry_sexp_release (l2);
+	  l2 = gcry_sexp_find_token (l1, "hash-algo", 0);
+	  if (l2)
+	    {
+	      s = gcry_sexp_nth_data (l2, 1, &n);
+	      if (!s)
+		rc = GPG_ERR_NO_OBJ;
+	      else
+		{
+		  ctx->hash_algo = get_hash_algo (s, n);
+		  if (!ctx->hash_algo)
+		    rc = GPG_ERR_DIGEST_ALGO;
+		}
+	      if (rc)
+		goto leave;
+	    }
+
+	  /* Get LABEL. */
+          gcry_sexp_release (l2);
+	  l2 = gcry_sexp_find_token (l1, "label", 0);
+	  if (l2)
+	    {
+	      s = gcry_sexp_nth_data (l2, 1, &n);
+	      if (!s)
+		rc = GPG_ERR_NO_OBJ;
+	      else if (n > 0)
+		{
+		  ctx->label = gcry_malloc (n);
+		  if (!ctx->label)
+		    rc = gpg_err_code_from_syserror ();
+		  else
+		    {
+		      memcpy (ctx->label, s, n);
+		      ctx->labellen = n;
+		    }
+		}
+	      if (rc)
+		goto leave;
+	    }
+	}
+
+      /* Get the next which has the actual data - skip HASH-ALGO and LABEL. */
+      for (i = 2; (gcry_sexp_release (l2), l2 = gcry_sexp_nth (l1, i)); i++)
+	{
+	  s = gcry_sexp_nth_data (l2, 0, &n);
+	  if (!(n == 9 && !memcmp (s, "hash-algo", 9))
+	      && !(n == 5 && !memcmp (s, "label", 5))
+	      && !(n == 15 && !memcmp (s, "random-override", 15)))
+	    break;
+	}
+      if (!l2)
+        {
+          rc = GPG_ERR_NO_OBJ; /* No cadr for the data object. */
+          goto leave;
+        }
+
+      /* Extract sublist identifier.  */
+      gcry_free (name);
+      name = _gcry_sexp_nth_string (l2, 0);
+      if (!name)
+        {
+          rc = GPG_ERR_INV_OBJ; /* Invalid structure of object. */
+          goto leave;
+        }
+    }
+  else /* No flags - flag as legacy structure.  */
+    parsed_flags |= PUBKEY_FLAG_LEGACYRESULT;
+
+  for (i=0; algo_names[i]; i++)
+    if (!stricmp (name, algo_names[i]))
+      break;
+  if (!algo_names[i])
+    {
+      rc = GPG_ERR_CONFLICT; /* "enc-val" uses an unexpected algo. */
+      goto leave;
+    }
+
+  *r_parms = l2;
+  l2 = NULL;
+  ctx->flags |= parsed_flags;
+  rc = 0;
+
+ leave:
+  gcry_free (name);
+  gcry_sexp_release (l2);
+  gcry_sexp_release (l1);
+  return rc;
+}
+
+
 /* Initialize an encoding context.  */
 void
 _gcry_pk_util_init_encoding_ctx (struct pk_encoding_ctx *ctx,
@@ -359,58 +596,6 @@ void
 _gcry_pk_util_free_encoding_ctx (struct pk_encoding_ctx *ctx)
 {
   gcry_free (ctx->label);
-}
-
-
-static inline int
-get_hash_algo (const char *s, size_t n)
-{
-  static const struct { const char *name; int algo; } hashnames[] = {
-    { "sha1",   GCRY_MD_SHA1 },
-    { "md5",    GCRY_MD_MD5 },
-    { "sha256", GCRY_MD_SHA256 },
-    { "ripemd160", GCRY_MD_RMD160 },
-    { "rmd160", GCRY_MD_RMD160 },
-    { "sha384", GCRY_MD_SHA384 },
-    { "sha512", GCRY_MD_SHA512 },
-    { "sha224", GCRY_MD_SHA224 },
-    { "md2",    GCRY_MD_MD2 },
-    { "md4",    GCRY_MD_MD4 },
-    { "tiger",  GCRY_MD_TIGER },
-    { "haval",  GCRY_MD_HAVAL },
-    { NULL, 0 }
-  };
-  int algo;
-  int i;
-
-  for (i=0; hashnames[i].name; i++)
-    {
-      if ( strlen (hashnames[i].name) == n
-	   && !memcmp (hashnames[i].name, s, n))
-	break;
-    }
-  if (hashnames[i].name)
-    algo = hashnames[i].algo;
-  else
-    {
-      /* In case of not listed or dynamically allocated hash
-	 algorithm we fall back to this somewhat slower
-	 method.  Further, it also allows to use OIDs as
-	 algorithm names. */
-      char *tmpname;
-
-      tmpname = gcry_malloc (n+1);
-      if (!tmpname)
-	algo = 0;  /* Out of core - silently give up.  */
-      else
-	{
-	  memcpy (tmpname, s, n);
-	  tmpname[n] = 0;
-	  algo = gcry_md_map_name (tmpname);
-	  gcry_free (tmpname);
-	}
-    }
-  return algo;
 }
 
 

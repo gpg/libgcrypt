@@ -32,6 +32,10 @@ gpg_err_code_t _gcry_pk_util_preparse_sigval (gcry_sexp_t s_sig,
                                               const char **algo_names,
                                               gcry_sexp_t *r_parms,
                                               int *r_eccflags);
+gpg_err_code_t _gcry_pk_util_preparse_encval (gcry_sexp_t sexp,
+                                              const char **algo_names,
+                                              gcry_sexp_t *r_parms,
+                                              struct pk_encoding_ctx *ctx);
 void _gcry_pk_util_init_encoding_ctx (struct pk_encoding_ctx *ctx,
                                       enum pk_operation op,
                                       unsigned int nbits);

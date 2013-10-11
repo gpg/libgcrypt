@@ -693,213 +693,6 @@ get_hash_algo (const char *s, size_t n)
 }
 
 
-/****************
- * Take sexp and return an array of MPI as used for our internal decrypt
- * function.
- * s_data = (enc-val
- *           [(flags [raw, pkcs1, oaep, no-blinding])]
- *           [(hash-algo <algo>)]
- *           [(label <label>)]
- *	      (<algo>
- *		(<param_name1> <mpi>)
- *		...
- *		(<param_namen> <mpi>)
- *	      ))
- * HASH-ALGO and LABEL are specific to OAEP.
- * RET_MODERN is set to true when at least an empty flags list has been found.
- * CTX is used to return encoding information; it may be NULL in which
- * case raw encoding is used.
- */
-static gcry_err_code_t
-sexp_to_enc (gcry_sexp_t sexp, gcry_mpi_t **retarray, gcry_pk_spec_t **r_spec,
-             int *flags, struct pk_encoding_ctx *ctx)
-{
-  gcry_err_code_t err = 0;
-  gcry_sexp_t list = NULL;
-  gcry_sexp_t l2 = NULL;
-  gcry_pk_spec_t *spec = NULL;
-  char *name = NULL;
-  size_t n;
-  int parsed_flags = 0;
-  const char *elems;
-  gcry_mpi_t *array = NULL;
-
-  /* Check that the first element is valid.  */
-  list = gcry_sexp_find_token (sexp, "enc-val" , 0);
-  if (!list)
-    {
-      err = GPG_ERR_INV_OBJ; /* Does not contain an encrypted value object.  */
-      goto leave;
-    }
-
-  l2 = gcry_sexp_nth (list, 1);
-  if (!l2)
-    {
-      err = GPG_ERR_NO_OBJ; /* No cdr for the data object.  */
-      goto leave;
-    }
-
-  /* Extract identifier of sublist.  */
-  name = _gcry_sexp_nth_string (l2, 0);
-  if (!name)
-    {
-      err = GPG_ERR_INV_OBJ; /* Invalid structure of object.  */
-      goto leave;
-    }
-
-  if (!strcmp (name, "flags"))
-    {
-      /* There is a flags element - process it.  */
-      const char *s;
-      int i;
-
-      for (i = gcry_sexp_length (l2) - 1; i > 0; i--)
-        {
-          s = gcry_sexp_nth_data (l2, i, &n);
-          if (! s)
-            ; /* Not a data element - ignore.  */
-          else if (n == 3 && !memcmp (s, "raw", 3)
-                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-            ctx->encoding = PUBKEY_ENC_RAW;
-          else if (n == 5 && !memcmp (s, "pkcs1", 5)
-                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-	    ctx->encoding = PUBKEY_ENC_PKCS1;
-          else if (n == 4 && !memcmp (s, "oaep", 4)
-                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-	    ctx->encoding = PUBKEY_ENC_OAEP;
-          else if (n == 3 && !memcmp (s, "pss", 3)
-                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-	    {
-	      err = GPG_ERR_CONFLICT;
-	      goto leave;
-	    }
-          else if (n == 11 && ! memcmp (s, "no-blinding", 11))
-            parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
-          else
-            {
-              err = GPG_ERR_INV_FLAG;
-              goto leave;
-            }
-        }
-      gcry_sexp_release (l2);
-
-      /* Get the OAEP parameters HASH-ALGO and LABEL, if any. */
-      if (ctx->encoding == PUBKEY_ENC_OAEP)
-	{
-	  /* Get HASH-ALGO. */
-	  l2 = gcry_sexp_find_token (list, "hash-algo", 0);
-	  if (l2)
-	    {
-	      s = gcry_sexp_nth_data (l2, 1, &n);
-	      if (!s)
-		err = GPG_ERR_NO_OBJ;
-	      else
-		{
-		  ctx->hash_algo = get_hash_algo (s, n);
-		  if (!ctx->hash_algo)
-		    err = GPG_ERR_DIGEST_ALGO;
-		}
-	      gcry_sexp_release (l2);
-	      if (err)
-		goto leave;
-	    }
-
-	  /* Get LABEL. */
-	  l2 = gcry_sexp_find_token (list, "label", 0);
-	  if (l2)
-	    {
-	      s = gcry_sexp_nth_data (l2, 1, &n);
-	      if (!s)
-		err = GPG_ERR_NO_OBJ;
-	      else if (n > 0)
-		{
-		  ctx->label = gcry_malloc (n);
-		  if (!ctx->label)
-		    err = gpg_err_code_from_syserror ();
-		  else
-		    {
-		      memcpy (ctx->label, s, n);
-		      ctx->labellen = n;
-		    }
-		}
-	      gcry_sexp_release (l2);
-	      if (err)
-		goto leave;
-	    }
-	}
-
-      /* Get the next which has the actual data - skip HASH-ALGO and LABEL. */
-      for (i = 2; (l2 = gcry_sexp_nth (list, i)) != NULL; i++)
-	{
-	  s = gcry_sexp_nth_data (l2, 0, &n);
-	  if (!(n == 9 && !memcmp (s, "hash-algo", 9))
-	      && !(n == 5 && !memcmp (s, "label", 5))
-	      && !(n == 15 && !memcmp (s, "random-override", 15)))
-	    break;
-	  gcry_sexp_release (l2);
-	}
-
-      if (!l2)
-        {
-          err = GPG_ERR_NO_OBJ; /* No cdr for the data object. */
-          goto leave;
-        }
-
-      /* Extract sublist identifier.  */
-      gcry_free (name);
-      name = _gcry_sexp_nth_string (l2, 0);
-      if (!name)
-        {
-          err = GPG_ERR_INV_OBJ; /* Invalid structure of object. */
-          goto leave;
-        }
-
-      gcry_sexp_release (list);
-      list = l2;
-      l2 = NULL;
-    }
-  else
-    parsed_flags |= PUBKEY_FLAG_LEGACYRESULT;
-
-  spec = spec_from_name (name);
-  if (!spec)
-    {
-      err = GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm.  */
-      goto leave;
-    }
-
-  elems = spec->elements_enc;
-  array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
-  if (!array)
-    {
-      err = gpg_err_code_from_syserror ();
-      goto leave;
-    }
-
-  err = sexp_elements_extract (list, elems, array, NULL, 0);
-
- leave:
-  gcry_sexp_release (list);
-  gcry_sexp_release (l2);
-  gcry_free (name);
-
-  if (err)
-    {
-      gcry_free (array);
-      gcry_free (ctx->label);
-      ctx->label = NULL;
-    }
-  else
-    {
-      *retarray = array;
-      *r_spec = spec;
-      *flags = parsed_flags;
-    }
-
-  return err;
-}
-
-
 /*
    Do a PK encrypt operation
 
@@ -978,70 +771,22 @@ gcry_error_t
 gcry_pk_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t s_skey)
 {
   gcry_err_code_t rc;
-  gcry_mpi_t *skey = NULL;
-  gcry_mpi_t *data = NULL;
-  int i;
-  int flags;
-  struct pk_encoding_ctx ctx;
-  gcry_pk_spec_t *spec = NULL;
-  gcry_pk_spec_t *spec_enc = NULL;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms;
 
   *r_plain = NULL;
-  ctx.label = NULL;
 
-  rc = sexp_to_key (s_skey, 1, GCRY_PK_USAGE_ENCR, NULL,
-                    &skey, &spec, NULL);
+  rc = spec_from_sexp (s_skey, 1, &spec, &keyparms);
   if (rc)
     goto leave;
-
-  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT, gcry_pk_get_nbits (s_skey));
-  rc = sexp_to_enc (s_data, &data, &spec_enc, &flags, &ctx);
-  if (rc)
-    goto leave;
-
-  if (spec->algo != spec_enc->algo)
-    {
-      rc = GPG_ERR_CONFLICT; /* Key algo does not match data algo. */
-      goto leave;
-    }
-
-  if (DBG_CIPHER && !fips_mode ())
-    {
-      log_debug ("gcry_pk_decrypt: algo=%d\n", spec->algo);
-      for(i = 0; i < pubkey_get_nskey (spec->algo); i++)
-	log_mpidump ("  skey", skey[i]);
-      for(i = 0; i < pubkey_get_nenc (spec->algo); i++)
-	log_mpidump ("  data", data[i]);
-    }
 
   if (spec->decrypt)
-    rc = spec->decrypt (spec->algo, r_plain, data, skey, flags,
-                        ctx.encoding, ctx.hash_algo,
-                        ctx.label, ctx.labellen);
+    rc = spec->decrypt (r_plain, s_data, keyparms);
   else
     rc = GPG_ERR_NOT_IMPLEMENTED;
-  if (rc)
-    goto leave;
-
-  /* if (DBG_CIPHER && !fips_mode ()) */
-  /*   log_mpidump (" plain", plain); */
-
 
  leave:
-  if (skey)
-    {
-      release_mpi_array (skey);
-      gcry_free (skey);
-    }
-
-  if (data)
-    {
-      release_mpi_array (data);
-      gcry_free (data);
-    }
-
-  gcry_free (ctx.label);
-
+  gcry_sexp_release (keyparms);
   return gcry_error (rc);
 }
 

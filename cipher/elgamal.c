@@ -811,71 +811,104 @@ elg_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
 
 static gcry_err_code_t
-elg_decrypt (int algo, gcry_sexp_t *r_plain,
-             gcry_mpi_t *data, gcry_mpi_t *skey, int flags,
-             enum pk_encoding encoding, int hash_algo,
-             unsigned char *label, size_t labellen)
+elg_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 {
-  gcry_err_code_t rc;
-  ELG_secret_key sk;
-  gcry_mpi_t plain;
+  gpg_err_code_t rc;
+  struct pk_encoding_ctx ctx;
+  gcry_sexp_t l1 = NULL;
+  gcry_mpi_t data_a = NULL;
+  gcry_mpi_t data_b = NULL;
+  ELG_secret_key sk = {NULL, NULL, NULL, NULL};
+  gcry_mpi_t plain = NULL;
+  unsigned char *unpad = NULL;
+  size_t unpadlen = 0;
 
-  (void)algo;
+  _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT,
+                                   elg_get_nbits (keyparms));
 
-  if ((! data[0]) || (! data[1])
-      || (! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
-    rc = GPG_ERR_BAD_MPI;
-  else
+  /* Extract the data.  */
+  rc = _gcry_pk_util_preparse_encval (s_data, elg_names, &l1, &ctx);
+  if (rc)
+    goto leave;
+  rc = _gcry_pk_util_extract_mpis (l1, "ab", &data_a, &data_b, NULL);
+  if (rc)
+    goto leave;
+  if (DBG_CIPHER)
     {
-      unsigned char *unpad = NULL;
-      size_t unpadlen = 0;
-      unsigned int nbits;
-
-      sk.p = skey[0];
-      sk.g = skey[1];
-      sk.y = skey[2];
-      sk.x = skey[3];
-
-      nbits = gcry_mpi_get_nbits (sk.p);
-
-      plain = mpi_snew (nbits);
-      decrypt (plain, data[0], data[1], &sk);
-
-      /* Reverse the encoding and build the s-expression.  */
-      switch (encoding)
-        {
-        case PUBKEY_ENC_PKCS1:
-          rc = _gcry_rsa_pkcs1_decode_for_enc (&unpad, &unpadlen, nbits, plain);
-          mpi_free (plain);
-          plain = NULL;
-          if (!rc)
-            rc = gcry_sexp_build (r_plain, NULL, "(value %b)",
-                                  (int)unpadlen, unpad);
-          break;
-
-        case PUBKEY_ENC_OAEP:
-          rc = _gcry_rsa_oaep_decode (&unpad, &unpadlen,
-                                      nbits, hash_algo, plain, label, labellen);
-          mpi_free (plain);
-          plain = NULL;
-          if (!rc)
-            rc = gcry_sexp_build (r_plain, NULL, "(value %b)",
-                                  (int)unpadlen, unpad);
-          break;
-
-        default:
-          /* Raw format.  For backward compatibility we need to assume a
-             signed mpi by using the sexp format string "%m".  */
-          rc = gcry_sexp_build (r_plain, NULL,
-                                (flags & PUBKEY_FLAG_LEGACYRESULT)
-                                ? "%m" : "(value %m)",
-                                plain);
-          break;
-        }
-
-      gcry_free (unpad);
-      mpi_free (plain);
+      log_printmpi ("elg_decrypt  d_a", data_a);
+      log_printmpi ("elg_decrypt  d_b", data_b);
     }
+  if (mpi_is_opaque (data_a) || mpi_is_opaque (data_b))
+    {
+      rc = GPG_ERR_INV_DATA;
+      goto leave;
+    }
+
+  /* Extract the key.  */
+  rc = _gcry_pk_util_extract_mpis (keyparms, "pgyx",
+                                   &sk.p, &sk.g, &sk.y, &sk.x,
+                                   NULL);
+  if (rc)
+    return rc;
+  if (DBG_CIPHER)
+    {
+      log_printmpi ("elg_decrypt    p", sk.p);
+      log_printmpi ("elg_decrypt    g", sk.g);
+      log_printmpi ("elg_decrypt    y", sk.y);
+      if (!fips_mode ())
+        log_printmpi ("elg_decrypt    x", sk.x);
+    }
+
+  plain = gcry_mpi_snew (ctx.nbits);
+  decrypt (plain, data_a, data_b, &sk);
+  if (DBG_CIPHER)
+    log_printmpi ("elg_decrypt  res", plain);
+
+  /* Reverse the encoding and build the s-expression.  */
+  switch (ctx.encoding)
+    {
+    case PUBKEY_ENC_PKCS1:
+      rc = _gcry_rsa_pkcs1_decode_for_enc (&unpad, &unpadlen, ctx.nbits, plain);
+      mpi_free (plain); plain = NULL;
+      if (!rc)
+        rc = gcry_sexp_build (r_plain, NULL, "(value %b)",
+                              (int)unpadlen, unpad);
+      break;
+
+    case PUBKEY_ENC_OAEP:
+      rc = _gcry_rsa_oaep_decode (&unpad, &unpadlen,
+                                  ctx.nbits, ctx.hash_algo, plain,
+                                  ctx.label, ctx.labellen);
+      mpi_free (plain); plain = NULL;
+      if (!rc)
+        rc = gcry_sexp_build (r_plain, NULL, "(value %b)",
+                              (int)unpadlen, unpad);
+      break;
+
+    default:
+      /* Raw format.  For backward compatibility we need to assume a
+         signed mpi by using the sexp format string "%m".  */
+      rc = gcry_sexp_build (r_plain, NULL,
+                            (ctx.flags & PUBKEY_FLAG_LEGACYRESULT)
+                            ? "%m" : "(value %m)",
+                            plain);
+      break;
+    }
+
+
+ leave:
+  gcry_free (unpad);
+  gcry_mpi_release (plain);
+  gcry_mpi_release (sk.p);
+  gcry_mpi_release (sk.g);
+  gcry_mpi_release (sk.y);
+  gcry_mpi_release (sk.x);
+  gcry_mpi_release (data_a);
+  gcry_mpi_release (data_b);
+  gcry_sexp_release (l1);
+  _gcry_pk_util_free_encoding_ctx (&ctx);
+  if (DBG_CIPHER)
+    log_debug ("elg_decrypt    => %s\n", gpg_strerror (rc));
   return rc;
 }
 
