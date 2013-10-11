@@ -54,8 +54,7 @@ typedef gcry_err_code_t (*gcry_pk_generate_t) (gcry_sexp_t genparms,
                                                gcry_sexp_t *r_skey);
 
 /* Type for the pk_check_secret_key function.  */
-typedef gcry_err_code_t (*gcry_pk_check_secret_key_t) (int algo,
-						       gcry_mpi_t *skey);
+typedef gcry_err_code_t (*gcry_pk_check_secret_key_t) (gcry_sexp_t keyparms);
 
 /* Type for the pk_encrypt function.  */
 typedef gcry_err_code_t (*gcry_pk_encrypt_t) (gcry_sexp_t *r_ciph,
@@ -90,7 +89,7 @@ typedef gcry_err_code_t (*pk_get_param_t) (const char *name,
                                            gcry_mpi_t *pkey);
 
 /* The type used to query an ECC curve name.  */
-typedef const char *(*pk_get_curve_t)(gcry_mpi_t *pkey, int iterator,
+typedef const char *(*pk_get_curve_t)(gcry_sexp_t keyparms, int iterator,
                                       unsigned int *r_nbits);
 
 /* The type used to query ECC curve parameters by name.  */

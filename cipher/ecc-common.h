@@ -68,7 +68,7 @@ gpg_err_code_t _gcry_ecc_fill_in_curve (unsigned int nbits,
                                         elliptic_curve_t *curve,
                                         unsigned int *r_nbits);
 
-const char *_gcry_ecc_get_curve (gcry_mpi_t *pkey,
+const char *_gcry_ecc_get_curve (gcry_sexp_t keyparms,
                                  int iterator,
                                  unsigned int *r_nbits);
 gcry_err_code_t _gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey);

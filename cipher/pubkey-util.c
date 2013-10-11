@@ -213,7 +213,7 @@ _gcry_pk_util_get_rsa_use_e (gcry_sexp_t list, unsigned long *r_e)
  * parameter "E" again as an unsigned MPI into MPI_E.
  *
  * The function returns NULL on success.  On error an error code is
- * returned and and the passed MPIs have no defined value.
+ * returned and the passed MPIs are either unchanged or set to NULL.
  */
 gpg_err_code_t
 _gcry_pk_util_extract_mpis (gcry_sexp_t sexp, const char *list, ...)
@@ -275,7 +275,10 @@ _gcry_pk_util_extract_mpis (gcry_sexp_t sexp, const char *list, ...)
           else if (!l1)
             {
               while (idx--)
-                gcry_mpi_release (*array[idx]);
+                {
+                  gcry_mpi_release (*array[idx]);
+                  *array[idx] = NULL;
+                }
               return GPG_ERR_NO_OBJ;  /* List element not found.  */
             }
           else
@@ -288,7 +291,10 @@ _gcry_pk_util_extract_mpis (gcry_sexp_t sexp, const char *list, ...)
               if (!*array[idx])
                 {
                   while (idx--)
-                    gcry_mpi_release (*array[idx]);
+                    {
+                      gcry_mpi_release (*array[idx]);
+                      *array[idx] = NULL;
+                    }
                   return GPG_ERR_INV_OBJ;  /* Conversion failed.  */
                 }
             }

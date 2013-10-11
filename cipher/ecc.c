@@ -1397,66 +1397,106 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 
 
 static gcry_err_code_t
-ecc_check_secret_key (int algo, gcry_mpi_t *skey)
+ecc_check_secret_key (gcry_sexp_t keyparms)
 {
-  gpg_err_code_t err;
+  gcry_err_code_t rc;
+  gcry_sexp_t l1 = NULL;
+  char *curvename = NULL;
+  gcry_mpi_t mpi_g = NULL;
+  gcry_mpi_t mpi_q = NULL;
   ECC_secret_key sk;
 
-  (void)algo;
+  memset (&sk, 0, sizeof sk);
 
-  /* FIXME:  This check looks a bit fishy:  Now long is the array?  */
-  if (!skey[0] || !skey[1] || !skey[2] || !skey[3] || !skey[4] || !skey[5]
-      || !skey[6])
-    return GPG_ERR_BAD_MPI;
-
-  sk.E.model = MPI_EC_WEIERSTRASS;
-  sk.E.p = skey[0];
-  sk.E.a = skey[1];
-  sk.E.b = skey[2];
-  point_init (&sk.E.G);
-  err = _gcry_ecc_os2ec (&sk.E.G, skey[3]);
-  if (err)
+  /*
+   * Extract the key.
+   */
+  rc = _gcry_pk_util_extract_mpis (keyparms, "-p?a?b?g?n?/q?+d",
+                                   &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
+                                   &mpi_q, &sk.d, NULL);
+  if (rc)
+    goto leave;
+  if (mpi_g)
     {
-      point_free (&sk.E.G);
-      return err;
+      point_init (&sk.E.G);
+      rc = _gcry_ecc_os2ec (&sk.E.G, mpi_g);
+      if (rc)
+        goto leave;
     }
-  sk.E.n = skey[4];
-  point_init (&sk.Q);
-  err = _gcry_ecc_os2ec (&sk.Q, skey[5]);
-  if (err)
+  /* Add missing parameters using the optional curve parameter.  */
+  gcry_sexp_release (l1);
+  l1 = gcry_sexp_find_token (keyparms, "curve", 5);
+  if (l1)
     {
-      point_free (&sk.E.G);
-      point_free (&sk.Q);
-      return err;
+      curvename = gcry_sexp_nth_string (l1, 1);
+      if (curvename)
+        {
+          rc = _gcry_ecc_fill_in_curve (0, curvename, &sk.E, NULL);
+          if (rc)
+            return rc;
+        }
+    }
+  /* Guess required fields if a curve parameter has not been given.
+     FIXME: This is a crude hacks.  We need to fix that.  */
+  if (!curvename)
+    {
+      sk.E.model = MPI_EC_WEIERSTRASS;
+      sk.E.dialect = ECC_DIALECT_STANDARD;
+    }
+  if (DBG_CIPHER)
+    {
+      log_debug ("ecc_testkey inf: %s/%s\n",
+                 _gcry_ecc_model2str (sk.E.model),
+                 _gcry_ecc_dialect2str (sk.E.dialect));
+      if (sk.E.name)
+        log_debug  ("ecc_testkey nam: %s\n", sk.E.name);
+      log_printmpi ("ecc_testkey   p", sk.E.p);
+      log_printmpi ("ecc_testkey   a", sk.E.a);
+      log_printmpi ("ecc_testkey   b", sk.E.b);
+      log_printpnt ("ecc_testkey g",   &sk.E.G, NULL);
+      log_printmpi ("ecc_testkey   n", sk.E.n);
+      log_printmpi ("ecc_testkey   q", mpi_q);
+      if (!fips_mode ())
+        log_printmpi ("ecc_testkey   d", sk.d);
+    }
+  if (!sk.E.p || !sk.E.a || !sk.E.b || !sk.E.G.x || !sk.E.n || !sk.d)
+    {
+      rc = GPG_ERR_NO_OBJ;
+      goto leave;
     }
 
-  {
-    const unsigned char *buf;
-    unsigned int n;
+  if (mpi_q)
+    {
+      point_init (&sk.Q);
+      rc = _gcry_ecc_os2ec (&sk.Q, mpi_q);
+      if (rc)
+        goto leave;
+    }
+  else
+    {
+      /* The current test requires Q.  */
+      rc = GPG_ERR_NO_OBJ;
+      goto leave;
+    }
 
-    gcry_assert (mpi_is_opaque (skey[6]));
+  if (check_secret_key (&sk))
+    rc = GPG_ERR_BAD_SECKEY;
 
-    buf = gcry_mpi_get_opaque (skey[6], &n);
-    if (!buf)
-      err = GPG_ERR_INV_OBJ;
-    else
-      {
-        n = (n + 7)/8;
-        sk.d = NULL;
-        err = gcry_mpi_scan (&sk.d, GCRYMPI_FMT_USG, buf, n, NULL);
-        if (!err)
-          {
-            if (check_secret_key (&sk))
-              err = GPG_ERR_BAD_SECKEY;
-            gcry_mpi_release (sk.d);
-            sk.d = NULL;
-          }
-      }
-  }
-
+ leave:
+  gcry_mpi_release (sk.E.p);
+  gcry_mpi_release (sk.E.a);
+  gcry_mpi_release (sk.E.b);
+  gcry_mpi_release (mpi_g);
   point_free (&sk.E.G);
+  gcry_mpi_release (sk.E.n);
+  gcry_mpi_release (mpi_q);
   point_free (&sk.Q);
-  return err;
+  gcry_mpi_release (sk.d);
+  gcry_free (curvename);
+  gcry_sexp_release (l1);
+  if (DBG_CIPHER)
+    log_debug ("ecc_testkey   => %s\n", gpg_strerror (rc));
+  return rc;
 }
 
 

@@ -928,27 +928,29 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 
 
 static gcry_err_code_t
-dsa_check_secret_key (int algo, gcry_mpi_t *skey)
+dsa_check_secret_key (gcry_sexp_t keyparms)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  DSA_secret_key sk;
+  gcry_err_code_t rc;
+  DSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL};
 
-  (void)algo;
+  rc = _gcry_pk_util_extract_mpis (keyparms, "pqgyx",
+                                   &sk.p, &sk.q, &sk.g, &sk.y, &sk.x,
+                                   NULL);
+  if (rc)
+    goto leave;
 
-  if ((! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]) || (! skey[4]))
-    err = GPG_ERR_BAD_MPI;
-  else
-    {
-      sk.p = skey[0];
-      sk.q = skey[1];
-      sk.g = skey[2];
-      sk.y = skey[3];
-      sk.x = skey[4];
-      if (! check_secret_key (&sk))
-	err = GPG_ERR_BAD_SECKEY;
-    }
+  if (!check_secret_key (&sk))
+    rc = GPG_ERR_BAD_SECKEY;
 
-  return err;
+ leave:
+  gcry_mpi_release (sk.p);
+  gcry_mpi_release (sk.q);
+  gcry_mpi_release (sk.g);
+  gcry_mpi_release (sk.y);
+  gcry_mpi_release (sk.x);
+  if (DBG_CIPHER)
+    log_debug ("dsa_testkey    => %s\n", gpg_strerror (rc));
+  return rc;
 }
 
 
@@ -976,7 +978,7 @@ dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_extract_mpis (keyparms, "pqgyx",
                                    &sk.p, &sk.q, &sk.g, &sk.y, &sk.x, NULL);
   if (rc)
-    return rc;
+    goto leave;
   if (DBG_CIPHER)
     {
       log_mpidump ("dsa_sign      p", sk.p);
@@ -1053,7 +1055,7 @@ dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   rc = _gcry_pk_util_extract_mpis (s_keyparms, "pqgy",
                                    &pk.p, &pk.q, &pk.g, &pk.y, NULL);
   if (rc)
-    return rc;
+    goto leave;
   if (DBG_CIPHER)
     {
       log_mpidump ("dsa_verify    p", pk.p);

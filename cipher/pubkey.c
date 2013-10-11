@@ -183,20 +183,6 @@ disable_pubkey_algo (int algo)
 
 
 
-/* Free the MPIs stored in the NULL terminated ARRAY of MPIs and set
-   the slots to NULL.  */
-static void
-release_mpi_array (gcry_mpi_t *array)
-{
-  for (; *array; array++)
-    {
-      mpi_free(*array);
-      *array = NULL;
-    }
-}
-
-
-
 /*
  * Map a string to the pubkey algo
  */
@@ -303,396 +289,7 @@ pubkey_get_nenc (int algo)
 }
 
 
-static gcry_err_code_t
-pubkey_check_secret_key (int algo, gcry_mpi_t *skey)
-{
-  gcry_err_code_t rc;
-  gcry_pk_spec_t *spec = spec_from_algo (algo);
-
-  if (spec && spec->check_secret_key)
-    rc = spec->check_secret_key (algo, skey);
-  else if (spec)
-    rc = GPG_ERR_NOT_IMPLEMENTED;
-  else
-    rc = GPG_ERR_PUBKEY_ALGO;
-
-  return rc;
-}
-
-
-/* Internal function.   */
-static gcry_err_code_t
-sexp_elements_extract (gcry_sexp_t key_sexp, const char *element_names,
-		       gcry_mpi_t *elements, const char *algo_name, int opaque)
-{
-  gcry_err_code_t err = 0;
-  int i, idx;
-  const char *name;
-  gcry_sexp_t list;
-
-  for (name = element_names, idx = 0; *name && !err; name++, idx++)
-    {
-      list = gcry_sexp_find_token (key_sexp, name, 1);
-      if (!list)
-	elements[idx] = NULL;
-      else if (opaque)
-        {
-	  elements[idx] = _gcry_sexp_nth_opaque_mpi (list, 1);
-	  gcry_sexp_release (list);
-	  if (!elements[idx])
-	    err = GPG_ERR_INV_OBJ;
-        }
-      else
-	{
-	  elements[idx] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_USG);
-	  gcry_sexp_release (list);
-	  if (!elements[idx])
-	    err = GPG_ERR_INV_OBJ;
-	}
-    }
-
-  if (!err)
-    {
-      /* Check that all elements are available.  */
-      for (name = element_names, i = 0; *name; name++, i++)
-        if (!elements[i])
-          break;
-      if (*name)
-        {
-          err = GPG_ERR_NO_OBJ;
-          /* Some are missing.  Before bailing out we test for
-             optional parameters.  */
-          if (algo_name && !strcmp (algo_name, "RSA")
-              && !strcmp (element_names, "nedpqu") )
-            {
-              /* This is RSA.  Test whether we got N, E and D and that
-                 the optional P, Q and U are all missing.  */
-              if (elements[0] && elements[1] && elements[2]
-                  && !elements[3] && !elements[4] && !elements[5])
-                err = 0;
-            }
-        }
-    }
-
-
-  if (err)
-    {
-      for (i = 0; i < idx; i++)
-        if (elements[i])
-          mpi_free (elements[i]);
-    }
-  return err;
-}
-
-
-/* Internal function used for ecc.  Note, that this function makes use
-   of its intimate knowledge about the ECC parameters from ecc.c. */
-static gcry_err_code_t
-sexp_elements_extract_ecc (gcry_sexp_t key_sexp, const char *element_names,
-                           gcry_mpi_t *elements, gcry_pk_spec_t *spec,
-                           int want_private)
-
-{
-  gcry_err_code_t err = 0;
-  int idx;
-  const char *name;
-  gcry_sexp_t list;
-
-  /* Clear the array for easier error cleanup. */
-  for (name = element_names, idx = 0; *name; name++, idx++)
-    elements[idx] = NULL;
-  gcry_assert (idx >= 5); /* We know that ECC has at least 5 elements
-                             (params only) or 6 (full public key).  */
-  if (idx == 5)
-    elements[5] = NULL;   /* Extra clear for the params only case.  */
-
-
-  /* Init the array with the available curve parameters. */
-  for (name = element_names, idx = 0; *name && !err; name++, idx++)
-    {
-      list = gcry_sexp_find_token (key_sexp, name, 1);
-      if (!list)
-	elements[idx] = NULL;
-      else
-	{
-          switch (idx)
-            {
-            case 5: /* The public and */
-            case 6: /* the secret key must to be passed opaque.  */
-              elements[idx] = _gcry_sexp_nth_opaque_mpi (list, 1);
-              break;
-            default:
-              elements[idx] = gcry_sexp_nth_mpi (list, 1, GCRYMPI_FMT_STD);
-              break;
-            }
-	  gcry_sexp_release (list);
-	  if (!elements[idx])
-            {
-              err = GPG_ERR_INV_OBJ;
-              goto leave;
-            }
-	}
-    }
-
-  /* Check whether a curve parameter has been given and then fill any
-     missing elements.  */
-  list = gcry_sexp_find_token (key_sexp, "curve", 5);
-  if (list)
-    {
-      if (spec->get_param)
-        {
-          char *curve;
-          gcry_mpi_t params[6];
-
-          for (idx = 0; idx < DIM(params); idx++)
-            params[idx] = NULL;
-
-          curve = _gcry_sexp_nth_string (list, 1);
-          gcry_sexp_release (list);
-          if (!curve)
-            {
-              /* No curve name given (or out of core). */
-              err = GPG_ERR_INV_OBJ;
-              goto leave;
-            }
-          err = spec->get_param (curve, params);
-          gcry_free (curve);
-          if (err)
-            goto leave;
-
-          for (idx = 0; idx < DIM(params); idx++)
-            {
-              if (!elements[idx])
-                elements[idx] = params[idx];
-              else
-                mpi_free (params[idx]);
-            }
-        }
-      else
-        {
-          gcry_sexp_release (list);
-          err = GPG_ERR_INV_OBJ; /* "curve" given but ECC not supported. */
-          goto leave;
-        }
-    }
-
-  /* Check that all parameters are known.  */
-  for (name = element_names, idx = 0; *name; name++, idx++)
-    if (!elements[idx])
-      {
-        if (want_private && *name == 'q')
-          ; /* Q is optional.  */
-        else
-          {
-            err = GPG_ERR_NO_OBJ;
-            goto leave;
-          }
-      }
-
- leave:
-  if (err)
-    {
-      for (name = element_names, idx = 0; *name; name++, idx++)
-        if (elements[idx])
-          mpi_free (elements[idx]);
-    }
-  return err;
-}
-
-
-
-/****************
- * Convert a S-Exp with either a private or a public key to our
- * internal format. Currently we do only support the following
- * algorithms:
- *    dsa
- *    rsa
- *    openpgp-dsa
- *    openpgp-rsa
- *    openpgp-elg
- *    openpgp-elg-sig
- *    ecdsa
- *    ecdh
- * Provide a SE with the first element be either "private-key" or
- * or "public-key". It is followed by a list with its first element
- * be one of the above algorithm identifiers and the remaning
- * elements are pairs with parameter-id and value.
- * NOTE: we look through the list to find a list beginning with
- * "private-key" or "public-key" - the first one found is used.
- *
- * If OVERRIDE_ELEMS is not NULL those elems override the parameter
- * specification taken from the module.  This ise used by
- * gcry_pk_get_curve.
- *
- * Returns: A pointer to an allocated array of MPIs if the return value is
- *	    zero; the caller has to release this array.
- *
- * Example of a DSA public key:
- *  (private-key
- *    (dsa
- *	(p <mpi>)
- *	(g <mpi>)
- *	(y <mpi>)
- *	(x <mpi>)
- *    )
- *  )
- * The <mpi> are expected to be in GCRYMPI_FMT_USG
- */
-static gcry_err_code_t
-sexp_to_key (gcry_sexp_t sexp, int want_private, int use,
-             const char *override_elems,
-             gcry_mpi_t **retarray, gcry_pk_spec_t **r_spec, int *r_is_ecc)
-{
-  gcry_err_code_t err = 0;
-  gcry_sexp_t list, l2;
-  char *name;
-  const char *elems;
-  gcry_mpi_t *array;
-  gcry_pk_spec_t *spec;
-  int is_ecc;
-
-  /* Check that the first element is valid.  If we are looking for a
-     public key but a private key was supplied, we allow the use of
-     the private key anyway.  The rationale for this is that the
-     private key is a superset of the public key. */
-  list = gcry_sexp_find_token (sexp,
-                               want_private? "private-key":"public-key", 0);
-  if (!list && !want_private)
-    list = gcry_sexp_find_token (sexp, "private-key", 0);
-  if (!list)
-    return GPG_ERR_INV_OBJ; /* Does not contain a key object.  */
-
-  l2 = gcry_sexp_cadr( list );
-  gcry_sexp_release ( list );
-  list = l2;
-  name = _gcry_sexp_nth_string (list, 0);
-  if (!name)
-    {
-      gcry_sexp_release ( list );
-      return GPG_ERR_INV_OBJ;      /* Invalid structure of object. */
-    }
-
-  /* Fixme: We should make sure that an ECC key is always named "ecc"
-     and not "ecdsa".  "ecdsa" should be used for the signature
-     itself.  We need a function to test whether an algorithm given
-     with a key is compatible with an application of the key (signing,
-     encryption).  For RSA this is easy, but ECC is the first
-     algorithm which has many flavours.
-
-     We use an ugly hack here to decide whether to use ecdsa or ecdh.
-  */
-  if (!strcmp (name, "ecc"))
-    is_ecc = 2;
-  else if (!strcmp (name, "ecdsa") || !strcmp (name, "ecdh"))
-    is_ecc = 1;
-  else
-    is_ecc = 0;
-
-  if (is_ecc == 2 && (use & GCRY_PK_USAGE_SIGN))
-    spec = spec_from_name ("ecdsa");
-  else if (is_ecc == 2 && (use & GCRY_PK_USAGE_ENCR))
-    spec = spec_from_name ("ecdh");
-  else
-    spec = spec_from_name (name);
-
-  gcry_free (name);
-
-  if (!spec)
-    {
-      gcry_sexp_release (list);
-      return GPG_ERR_PUBKEY_ALGO; /* Unknown algorithm. */
-    }
-
-  if (override_elems)
-    elems = override_elems;
-  else if (want_private)
-    elems = spec->elements_skey;
-  else
-    elems = spec->elements_pkey;
-  array = gcry_calloc (strlen (elems) + 1, sizeof (*array));
-  if (!array)
-    err = gpg_err_code_from_syserror ();
-  if (!err)
-    {
-      if (is_ecc)
-        err = sexp_elements_extract_ecc (list, elems, array, spec,
-                                         want_private);
-      else
-        err = sexp_elements_extract (list, elems, array, spec->name, 0);
-    }
-
-  gcry_sexp_release (list);
-
-  if (err)
-    {
-      gcry_free (array);
-    }
-  else
-    {
-      *retarray = array;
-      *r_spec = spec;
-      if (r_is_ecc)
-        *r_is_ecc = is_ecc;
-    }
-
-  return err;
-}
-
-
-
-/* FIXME: This is a duplicate.  */
-static inline int
-get_hash_algo (const char *s, size_t n)
-{
-  static const struct { const char *name; int algo; } hashnames[] = {
-    { "sha1",   GCRY_MD_SHA1 },
-    { "md5",    GCRY_MD_MD5 },
-    { "sha256", GCRY_MD_SHA256 },
-    { "ripemd160", GCRY_MD_RMD160 },
-    { "rmd160", GCRY_MD_RMD160 },
-    { "sha384", GCRY_MD_SHA384 },
-    { "sha512", GCRY_MD_SHA512 },
-    { "sha224", GCRY_MD_SHA224 },
-    { "md2",    GCRY_MD_MD2 },
-    { "md4",    GCRY_MD_MD4 },
-    { "tiger",  GCRY_MD_TIGER },
-    { "haval",  GCRY_MD_HAVAL },
-    { NULL, 0 }
-  };
-  int algo;
-  int i;
-
-  for (i=0; hashnames[i].name; i++)
-    {
-      if ( strlen (hashnames[i].name) == n
-	   && !memcmp (hashnames[i].name, s, n))
-	break;
-    }
-  if (hashnames[i].name)
-    algo = hashnames[i].algo;
-  else
-    {
-      /* In case of not listed or dynamically allocated hash
-	 algorithm we fall back to this somewhat slower
-	 method.  Further, it also allows to use OIDs as
-	 algorithm names. */
-      char *tmpname;
-
-      tmpname = gcry_malloc (n+1);
-      if (!tmpname)
-	algo = 0;  /* Out of core - silently give up.  */
-      else
-	{
-	  memcpy (tmpname, s, n);
-	  tmpname[n] = 0;
-	  algo = gcry_md_map_name (tmpname);
-	  gcry_free (tmpname);
-	}
-    }
-  return algo;
-}
-
-
+
 /*
    Do a PK encrypt operation
 
@@ -881,22 +478,25 @@ gcry_pk_verify (gcry_sexp_t s_sig, gcry_sexp_t s_hash, gcry_sexp_t s_pkey)
 
    Returns: 0 or an errorcode.
 
-   s_key = <key-as-defined-in-sexp_to_key> */
+   NOTE: We currently support only secret key checking. */
 gcry_error_t
 gcry_pk_testkey (gcry_sexp_t s_key)
 {
-  gcry_pk_spec_t *spec = NULL;
-  gcry_mpi_t *key = NULL;
   gcry_err_code_t rc;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms;
 
-  /* Note we currently support only secret key checking. */
-  rc = sexp_to_key (s_key, 1, 0, NULL, &key, &spec, NULL);
-  if (!rc)
-    {
-      rc = pubkey_check_secret_key (spec->algo, key);
-      release_mpi_array (key);
-      gcry_free (key);
-    }
+  rc = spec_from_sexp (s_key, 1, &spec, &keyparms);
+  if (rc)
+    goto leave;
+
+  if (spec->check_secret_key)
+    rc = spec->check_secret_key (keyparms);
+  else
+    rc = GPG_ERR_NOT_IMPLEMENTED;
+
+ leave:
+  gcry_sexp_release (keyparms);
   return gcry_error (rc);
 }
 
@@ -1124,13 +724,9 @@ gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
 const char *
 gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
 {
-  gcry_mpi_t *pkey = NULL;
-  gcry_sexp_t list = NULL;
-  gcry_sexp_t l2;
-  char *name = NULL;
   const char *result = NULL;
-  int want_private = 1;
-  gcry_pk_spec_t *spec = NULL;
+  gcry_pk_spec_t *spec;
+  gcry_sexp_t keyparms = NULL;
 
   if (r_nbits)
     *r_nbits = 0;
@@ -1139,50 +735,20 @@ gcry_pk_get_curve (gcry_sexp_t key, int iterator, unsigned int *r_nbits)
     {
       iterator = 0;
 
-      /* Check that the first element is valid. */
-      list = gcry_sexp_find_token (key, "public-key", 0);
-      if (list)
-        want_private = 0;
-      if (!list)
-        list = gcry_sexp_find_token (key, "private-key", 0);
-      if (!list)
-        return NULL; /* No public- or private-key object. */
-
-      l2 = gcry_sexp_cadr (list);
-      gcry_sexp_release (list);
-      list = l2;
-      l2 = NULL;
-
-      name = _gcry_sexp_nth_string (list, 0);
-      if (!name)
-        goto leave; /* Invalid structure of object. */
-
-      /* Get the key.  We pass the names of the parameters for
-         override_elems; this allows to call this function without the
-         actual public key parameter.  */
-      if (sexp_to_key (key, want_private, 0, "pabgn", &pkey, &spec, NULL))
-        goto leave;
+      if (spec_from_sexp (key, 0, &spec, &keyparms))
+        return NULL;
     }
   else
     {
       spec = spec_from_name ("ecc");
       if (!spec)
-        goto leave;
+        return NULL;
     }
 
-  if (!spec || !spec->get_curve)
-    goto leave;
+  if (spec->get_curve)
+    result = spec->get_curve (keyparms, iterator, r_nbits);
 
-  result = spec->get_curve (pkey, iterator, r_nbits);
-
- leave:
-  if (pkey)
-    {
-      release_mpi_array (pkey);
-      gcry_free (pkey);
-    }
-  gcry_free (name);
-  gcry_sexp_release (list);
+   gcry_sexp_release (keyparms);
   return result;
 }
 

@@ -26,8 +26,10 @@
 
 #include "g10lib.h"
 #include "mpi.h"
+#include "cipher.h"
 #include "context.h"
 #include "ec-context.h"
+#include "pubkey-internal.h"
 #include "ecc-common.h"
 
 
@@ -405,18 +407,20 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
 /* Return the name matching the parameters in PKEY.  This works only
    with curves described by the Weierstrass equation. */
 const char *
-_gcry_ecc_get_curve (gcry_mpi_t *pkey, int iterator, unsigned int *r_nbits)
+_gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
 {
-  gpg_err_code_t err;
-  elliptic_curve_t E;
-  int idx;
-  gcry_mpi_t tmp;
   const char *result = NULL;
+  elliptic_curve_t E;
+  gcry_mpi_t mpi_g = NULL;
+  gcry_mpi_t tmp = NULL;
+  int idx;
+
+  memset (&E, 0, sizeof E);
 
   if (r_nbits)
     *r_nbits = 0;
 
-  if (!pkey)
+  if (!keyparms)
     {
       idx = iterator;
       if (idx >= 0 && idx < DIM (domain_parms))
@@ -428,23 +432,20 @@ _gcry_ecc_get_curve (gcry_mpi_t *pkey, int iterator, unsigned int *r_nbits)
       return result;
     }
 
-  if (!pkey[0] || !pkey[1] || !pkey[2] || !pkey[3] || !pkey[4])
-    return NULL;
 
-  E.model = MPI_EC_WEIERSTRASS;
-  E.dialect = ECC_DIALECT_STANDARD;
-  E.name = NULL;
-  E.p = pkey[0];
-  E.a = pkey[1];
-  E.b = pkey[2];
-  _gcry_mpi_point_init (&E.G);
-  err = _gcry_ecc_os2ec (&E.G, pkey[3]);
-  if (err)
+  /*
+   * Extract the curve parameters..
+   */
+  if (_gcry_pk_util_extract_mpis (keyparms, "-pabgn",
+                                  &E.p, &E.a, &E.b, &mpi_g, &E.n,
+                                  NULL))
+    goto leave;
+  if (mpi_g)
     {
-      _gcry_mpi_point_free_parts (&E.G);
-      return NULL;
+      _gcry_mpi_point_init (&E.G);
+      if (_gcry_ecc_os2ec (&E.G, mpi_g))
+        goto leave;
     }
-  E.n = pkey[4];
 
   for (idx = 0; domain_parms[idx].desc; idx++)
     {
@@ -471,22 +472,26 @@ _gcry_ecc_get_curve (gcry_mpi_t *pkey, int iterator, unsigned int *r_nbits)
                           tmp = scanval (domain_parms[idx].g_y);
                           if (!mpi_cmp (tmp, E.G.y))
                             {
-                              mpi_free (tmp);
                               result = domain_parms[idx].desc;
                               if (r_nbits)
                                 *r_nbits = domain_parms[idx].nbits;
-                              break;
+                              goto leave;
                             }
                         }
                     }
                 }
             }
         }
-      mpi_free (tmp);
     }
 
+ leave:
+  gcry_mpi_release (tmp);
+  gcry_mpi_release (E.p);
+  gcry_mpi_release (E.a);
+  gcry_mpi_release (E.b);
+  gcry_mpi_release (mpi_g);
   _gcry_mpi_point_free_parts (&E.G);
-
+  gcry_mpi_release (E.n);
   return result;
 }
 

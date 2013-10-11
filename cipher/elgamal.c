@@ -730,27 +730,28 @@ elg_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 
 
 static gcry_err_code_t
-elg_check_secret_key (int algo, gcry_mpi_t *skey)
+elg_check_secret_key (gcry_sexp_t keyparms)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-  ELG_secret_key sk;
+  gcry_err_code_t rc;
+  ELG_secret_key sk = {NULL, NULL, NULL, NULL};
 
-  (void)algo;
+  rc = _gcry_pk_util_extract_mpis (keyparms, "pgyx",
+                                   &sk.p, &sk.g, &sk.y, &sk.x,
+                                   NULL);
+  if (rc)
+    goto leave;
 
-  if ((! skey[0]) || (! skey[1]) || (! skey[2]) || (! skey[3]))
-    err = GPG_ERR_BAD_MPI;
-  else
-    {
-      sk.p = skey[0];
-      sk.g = skey[1];
-      sk.y = skey[2];
-      sk.x = skey[3];
+  if (!check_secret_key (&sk))
+    rc = GPG_ERR_BAD_SECKEY;
 
-      if (! check_secret_key (&sk))
-	err = GPG_ERR_BAD_SECKEY;
-    }
-
-  return err;
+ leave:
+  gcry_mpi_release (sk.p);
+  gcry_mpi_release (sk.g);
+  gcry_mpi_release (sk.y);
+  gcry_mpi_release (sk.x);
+  if (DBG_CIPHER)
+    log_debug ("elg_testkey    => %s\n", gpg_strerror (rc));
+  return rc;
 }
 
 
@@ -782,7 +783,7 @@ elg_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /* Extract the key.  */
   rc = _gcry_pk_util_extract_mpis (keyparms, "pgy", &pk.p, &pk.g, &pk.y, NULL);
   if (rc)
-    return rc;
+    goto leave;
   if (DBG_CIPHER)
     {
       log_mpidump ("elg_encrypt  p", pk.p);
@@ -849,7 +850,7 @@ elg_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
                                    &sk.p, &sk.g, &sk.y, &sk.x,
                                    NULL);
   if (rc)
-    return rc;
+    goto leave;
   if (DBG_CIPHER)
     {
       log_printmpi ("elg_decrypt    p", sk.p);
@@ -942,7 +943,7 @@ elg_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_extract_mpis (keyparms, "pgyx",
                                    &sk.p, &sk.g, &sk.y, &sk.x, NULL);
   if (rc)
-    return rc;
+    goto leave;
   if (DBG_CIPHER)
     {
       log_mpidump ("elg_sign      p", sk.p);
@@ -1020,7 +1021,7 @@ elg_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   rc = _gcry_pk_util_extract_mpis (s_keyparms, "pgy",
                                    &pk.p, &pk.g, &pk.y, NULL);
   if (rc)
-    return rc;
+    goto leave;
   if (DBG_CIPHER)
     {
       log_mpidump ("elg_verify    p", pk.p);
