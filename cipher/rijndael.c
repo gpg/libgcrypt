@@ -2308,7 +2308,7 @@ selftest (void)
 static const char *
 selftest_fips_128_38a (int requested_mode)
 {
-  struct tv
+  static const struct tv
   {
     int mode;
     const unsigned char key[16];

@@ -159,9 +159,9 @@ selftest(void)
 
   /* Test vector from Cryptlib labeled there: "from the
      State/Commerce Department". */
-  static byte key_1[] =
+  static const byte key_1[] =
     { 0x61, 0x8A, 0x63, 0xD2, 0xFB };
-  static byte plaintext_1[] =
+  static const byte plaintext_1[] =
     { 0xDC, 0xEE, 0x4C, 0xF9, 0x2C };
   static const byte ciphertext_1[] =
     { 0xF1, 0x38, 0x29, 0xC9, 0xDE };

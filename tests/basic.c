@@ -139,7 +139,7 @@ progress_handler (void *cb_data, const char *what, int printchar,
 static void
 check_cbc_mac_cipher (void)
 {
-  struct tv
+  static const struct tv
   {
     int algo;
     char key[MAX_DATA_LEN];
@@ -264,10 +264,10 @@ check_cbc_mac_cipher (void)
 static void
 check_aes128_cbc_cts_cipher (void)
 {
-  char key[128 / 8] = "chicken teriyaki";
-  unsigned char plaintext[] =
+  static const char key[128 / 8] = "chicken teriyaki";
+  static const unsigned char plaintext[] =
     "I would like the General Gau's Chicken, please, and wonton soup.";
-  struct tv
+  static const struct tv
   {
     unsigned char out[MAX_DATA_LEN];
     int inlen;
@@ -378,7 +378,7 @@ check_aes128_cbc_cts_cipher (void)
 static void
 check_ctr_cipher (void)
 {
-  struct tv
+  static const struct tv
   {
     int algo;
     char key[MAX_DATA_LEN];
@@ -734,7 +734,7 @@ check_ctr_cipher (void)
 static void
 check_cfb_cipher (void)
 {
-  struct tv
+  static const struct tv
   {
     int algo;
     char key[MAX_DATA_LEN];
@@ -905,7 +905,7 @@ check_cfb_cipher (void)
 static void
 check_ofb_cipher (void)
 {
-  struct tv
+  static const struct tv
   {
     int algo;
     char key[MAX_DATA_LEN];
@@ -1911,7 +1911,7 @@ check_ccm_cipher (void)
 static void
 check_stream_cipher (void)
 {
-  struct tv
+  static const struct tv
   {
     const char *name;
     int algo;
@@ -2252,7 +2252,7 @@ check_stream_cipher (void)
 static void
 check_stream_cipher_large_block (void)
 {
-  struct tv
+  static const struct tv
   {
     const char *name;
     int algo;
@@ -2690,7 +2690,7 @@ check_stream_cipher_large_block (void)
 static void
 check_bulk_cipher_modes (void)
 {
-  struct
+  static const struct
   {
     int algo;
     int mode;
@@ -3110,7 +3110,7 @@ check_one_cipher (int algo, int mode, int flags)
 static void
 check_ciphers (void)
 {
-  static int algos[] = {
+  static const int algos[] = {
 #if USE_BLOWFISH
     GCRY_CIPHER_BLOWFISH,
 #endif
@@ -3154,7 +3154,7 @@ check_ciphers (void)
 #endif
     0
   };
-  static int algos2[] = {
+  static const int algos2[] = {
 #if USE_ARCFOUR
     GCRY_CIPHER_ARCFOUR,
 #endif
@@ -3364,7 +3364,7 @@ check_one_md_multi (int algo, const char *data, int len, const char *expect)
 static void
 check_digests (void)
 {
-  static struct algos
+  static const struct algos
   {
     int md;
     const char *data;
@@ -3728,7 +3728,7 @@ check_one_hmac (int algo, const char *data, int datalen,
 static void
 check_hmac (void)
 {
-  static struct algos
+  static const struct algos
   {
     int md;
     const char *data;
@@ -4070,7 +4070,7 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
   static const char baddata[] =
     "(data\n (flags pkcs1)\n"
     " (hash sha1 #11223344556677889900AABBCCDDEEFF10203041#))\n";
-  static struct
+  static const struct
   {
     const char *data;
     int algo;
@@ -4173,7 +4173,7 @@ check_pubkey_sign_ecdsa (int n, gcry_sexp_t skey, gcry_sexp_t pkey)
   gcry_sexp_t sig, badhash, hash;
   unsigned int nbits;
   int dataidx;
-  static struct
+  static const struct
   {
     unsigned int nbits;
     const char *data;
@@ -4285,7 +4285,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
   gcry_sexp_t ciph = NULL;
   gcry_sexp_t data = NULL;
   int dataidx;
-  static struct
+  static const struct
   {
     int algo;    /* If not 0 run test only if ALGO matches.  */
     const char *data;
@@ -4599,7 +4599,7 @@ check_one_pubkey_new (int n)
 static void
 check_pubkey (void)
 {
-  test_spec_pubkey_t pubkeys[] = {
+  static const test_spec_pubkey_t pubkeys[] = {
   {
     GCRY_PK_RSA, FLAG_CRYPT | FLAG_SIGN,
     {
