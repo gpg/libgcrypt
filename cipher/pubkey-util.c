@@ -46,6 +46,74 @@ pss_verify_cmp (void *opaque, gcry_mpi_t tmp)
 }
 
 
+/* Parser for a flag list.  On return the encoding is stored at
+   R_ENCODING and the flags are stored at R_FLAGS.  if any of them is
+   not needed, NULL may be passed.  The function returns 0 on success
+   or an error code. */
+static gpg_err_code_t
+parse_flag_list (gcry_sexp_t list,
+                 int *r_flags, enum pk_encoding *r_encoding)
+{
+  gpg_err_code_t rc = 0;
+  const char *s;
+  size_t n;
+  int i;
+  int encoding = PUBKEY_ENC_UNKNOWN;
+  int flags = 0;
+
+  for (i=list?gcry_sexp_length (list)-1:0; i > 0; i--)
+    {
+      s = gcry_sexp_nth_data (list, i, &n);
+      if (!s)
+        ; /* not a data element*/
+      else if (n == 7 && !memcmp (s, "rfc6979", 7))
+        {
+          flags |= PUBKEY_FLAG_RFC6979;
+        }
+      else if (n == 5 && !memcmp (s, "eddsa", 5))
+        {
+          encoding = PUBKEY_ENC_RAW;
+          flags |= PUBKEY_FLAG_EDDSA;
+        }
+      else if (n == 3 && !memcmp (s, "raw", 3)
+               && encoding == PUBKEY_ENC_UNKNOWN)
+        {
+          encoding = PUBKEY_ENC_RAW;
+          flags |= PUBKEY_FLAG_RAW_FLAG; /* Explicitly given.  */
+        }
+      else if (n == 5 && !memcmp (s, "pkcs1", 5)
+               && encoding == PUBKEY_ENC_UNKNOWN)
+        {
+          encoding = PUBKEY_ENC_PKCS1;
+          flags |= PUBKEY_FLAG_FIXEDLEN;
+        }
+      else if (n == 4 && !memcmp (s, "oaep", 4)
+               && encoding == PUBKEY_ENC_UNKNOWN)
+        {
+          encoding = PUBKEY_ENC_OAEP;
+          flags |= PUBKEY_FLAG_FIXEDLEN;
+        }
+      else if (n == 3 && !memcmp (s, "pss", 3)
+               && encoding == PUBKEY_ENC_UNKNOWN)
+        {
+          encoding = PUBKEY_ENC_PSS;
+          flags |= PUBKEY_FLAG_FIXEDLEN;
+        }
+      else if (n == 11 && ! memcmp (s, "no-blinding", 11))
+        flags |= PUBKEY_FLAG_NO_BLINDING;
+      else
+        rc = GPG_ERR_INV_FLAG;
+    }
+
+  if (r_flags)
+    *r_flags = flags;
+  if (r_encoding)
+    *r_encoding = encoding;
+
+  return rc;
+}
+
+
 static int
 get_hash_algo (const char *s, size_t n)
 {
@@ -453,36 +521,16 @@ _gcry_pk_util_preparse_encval (gcry_sexp_t sexp, const char **algo_names,
 
   if (!strcmp (name, "flags"))
     {
-      /* There is a flags element - process it.  */
       const char *s;
 
-      for (i = gcry_sexp_length (l2) - 1; i > 0; i--)
+      /* There is a flags element - process it.  */
+      rc = parse_flag_list (l2, &parsed_flags, &ctx->encoding);
+      if (rc)
+        goto leave;
+      if (ctx->encoding == PUBKEY_ENC_PSS)
         {
-          s = gcry_sexp_nth_data (l2, i, &n);
-          if (! s)
-            ; /* Not a data element - ignore.  */
-          else if (n == 3 && !memcmp (s, "raw", 3)
-                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-            ctx->encoding = PUBKEY_ENC_RAW;
-          else if (n == 5 && !memcmp (s, "pkcs1", 5)
-                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-	    ctx->encoding = PUBKEY_ENC_PKCS1;
-          else if (n == 4 && !memcmp (s, "oaep", 4)
-                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-	    ctx->encoding = PUBKEY_ENC_OAEP;
-          else if (n == 3 && !memcmp (s, "pss", 3)
-                   && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-	    {
-	      rc = GPG_ERR_CONFLICT;
-	      goto leave;
-	    }
-          else if (n == 11 && !memcmp (s, "no-blinding", 11))
-            parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
-          else
-            {
-              rc = GPG_ERR_INV_FLAG;
-              goto leave;
-            }
+          rc = GPG_ERR_CONFLICT;
+          goto leave;
         }
 
       /* Get the OAEP parameters HASH-ALGO and LABEL, if any. */
@@ -640,12 +688,10 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
 {
   gcry_err_code_t rc = 0;
   gcry_sexp_t ldata, lhash, lvalue;
-  int i;
   size_t n;
   const char *s;
   int unknown_flag = 0;
   int parsed_flags = 0;
-  int explicit_raw = 0;
 
   *ret_mpi = NULL;
   ldata = gcry_sexp_find_token (input, "data", 0);
@@ -659,48 +705,9 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
   {
     gcry_sexp_t lflags = gcry_sexp_find_token (ldata, "flags", 0);
     if (lflags)
-      { /* parse the flags list. */
-        for (i=gcry_sexp_length (lflags)-1; i > 0; i--)
-          {
-            s = gcry_sexp_nth_data (lflags, i, &n);
-            if (!s)
-              ; /* not a data element*/
-	    else if (n == 7 && !memcmp (s, "rfc6979", 7))
-	      parsed_flags |= PUBKEY_FLAG_RFC6979;
-	    else if (n == 5 && !memcmp (s, "eddsa", 5))
-              {
-                ctx->encoding = PUBKEY_ENC_RAW;
-                parsed_flags |= PUBKEY_FLAG_EDDSA;
-              }
-            else if ( n == 3 && !memcmp (s, "raw", 3)
-                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              {
-                ctx->encoding = PUBKEY_ENC_RAW;
-                explicit_raw = 1;
-              }
-            else if ( n == 5 && !memcmp (s, "pkcs1", 5)
-                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              {
-                ctx->encoding = PUBKEY_ENC_PKCS1;
-                parsed_flags |= PUBKEY_FLAG_FIXEDLEN;
-              }
-            else if ( n == 4 && !memcmp (s, "oaep", 4)
-                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              {
-                ctx->encoding = PUBKEY_ENC_OAEP;
-                parsed_flags |= PUBKEY_FLAG_FIXEDLEN;
-              }
-            else if ( n == 3 && !memcmp (s, "pss", 3)
-                      && ctx->encoding == PUBKEY_ENC_UNKNOWN)
-              {
-                ctx->encoding = PUBKEY_ENC_PSS;
-                parsed_flags |= PUBKEY_FLAG_FIXEDLEN;
-              }
-	    else if (n == 11 && ! memcmp (s, "no-blinding", 11))
-	      parsed_flags |= PUBKEY_FLAG_NO_BLINDING;
-            else
-              unknown_flag = 1;
-          }
+      {
+        if (parse_flag_list (lflags, &parsed_flags, &ctx->encoding))
+          unknown_flag = 1;
         gcry_sexp_release (lflags);
       }
   }
@@ -773,7 +780,8 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
       *ret_mpi = gcry_mpi_set_opaque (NULL, value, valuelen*8);
     }
   else if (ctx->encoding == PUBKEY_ENC_RAW && lhash
-           && (explicit_raw || (parsed_flags & PUBKEY_FLAG_RFC6979)))
+           && ((parsed_flags & PUBKEY_FLAG_RAW_FLAG)
+               || (parsed_flags & PUBKEY_FLAG_RFC6979)))
     {
       /* Raw encoding along with a hash element.  This is commonly
          used for DSA.  For better backward error compatibility we

@@ -2181,33 +2181,78 @@ or @code{oid.}.
 @section Cryptographic Functions
 
 @noindent
-Note that we will in future allow to use keys without p,q and u
-specified and may also support other parameters for performance
-reasons.
-
-@noindent
-
-Some functions operating on S-expressions support `flags', that
-influence the operation.  These flags have to be listed in a
-sub-S-expression named `flags'; the following flags are known:
+Some functions operating on S-expressions support `flags' to influence
+the operation.  These flags have to be listed in a sub-S-expression
+named `flags'.  Flag names are case-sensitive.  The following flags
+are known:
 
 @table @code
 @item pkcs1
+@cindex PKCS1
 Use PKCS#1 block type 2 padding for encryption, block type 1 padding
 for signing.
+
 @item oaep
+@cindex OAEP
 Use RSA-OAEP padding for encryption.
+
 @item pss
+@cindex PSS
 Use RSA-PSS padding for signing.
+
+@item ecdsa
+@cindex ECDSA
+Create an ECDSA public key instead of using the default key generation
+of the specified curve.
+
 @item eddsa
-Use the EdDSA scheme instead of ECDSA.
+@cindex EdDSA
+Use the EdDSA scheme instead of the default signature algorithm of the
+used curve.
+
 @item rfc6979
+@cindex RFC6979
 For DSA and ECDSA use a deterministic scheme for the k parameter.
+
 @item no-blinding
+@cindex no-blinding
 Do not use a technique called `blinding', which is used by default in
 order to prevent leaking of secret information.  Blinding is only
 implemented by RSA, but it might be implemented by other algorithms in
 the future as well, when necessary.
+
+@item transient-key
+@cindex transient-key
+This flag is only meaningful for RSA, DSA, and ECC key generation.  If
+given the key is created using a faster and a somewhat less secure
+random number generator.  This flag may be used for keys which are
+only used for a short time or per-message and do not require full
+cryptographic strength.
+
+@item use-x931
+@cindex X9.31
+Force the use of the ANSI X9.31 key generation algorithm instead of
+the default algorithm. This flag is only meaningful for RSA key
+generation and usually not required.  Note that this algorithm is
+implicitly used if either @code{derive-parms} is given or Libgcrypt is
+in FIPS mode.
+
+@item use-fips186
+@cindex FIPS 186
+Force the use of the FIPS 186 key generation algorithm instead of the
+default algorithm.  This flag is only meaningful for DSA and usually
+not required.  Note that this algorithm is implicitly used if either
+@code{derive-parms} is given or Libgcrypt is in FIPS mode.  As of now
+FIPS 186-2 is implemented; after the approval of FIPS 186-3 the code
+will be changed to implement 186-3.
+
+@item use-fips186-2
+@cindex FIPS 186-2
+Force the use of the FIPS 186-2 key generation algorithm instead of
+the default algorithm.  This algorithm is slighlty different from
+FIPS 186-3 and allows only 1024 bit keys.  This flag is only meaningful
+for DSA and only required for FIPS testing backward compatibility.
+
 @end table
 
 @noindent
@@ -2641,10 +2686,10 @@ default selection Libgcrypt would have taken if @code{nbits} has been
 given.  The available names are listed with the description of the ECC
 public key parameters.
 
-@item rsa-use-e
+@item rsa-use-e @var{value}
 This is only used with RSA to give a hint for the public exponent. The
-value will be used as a base to test for a usable exponent. Some values
-are special:
+@var{value} will be used as a base to test for a usable exponent. Some
+values are special:
 
 @table @samp
 @item 0
@@ -2662,10 +2707,10 @@ Use the given value.
 If this parameter is not used, Libgcrypt uses for historic reasons
 65537.
 
-@item qbits
+@item qbits @var{n}
 This is only meanigful for DSA keys.  If it is given the DSA key is
-generated with a Q parameyer of this size.  If it is not given or zero
-Q is deduced from NBITS in this way:
+generated with a Q parameyer of size @var{n} bits.  If it is not given
+or zero Q is deduced from NBITS in this way:
 @table @samp
 @item 512 <= N <= 1024
 Q = 160
@@ -2682,14 +2727,7 @@ Note that in this case only the values for N, as given in the table,
 are allowed.  When specifying Q all values of N in the range 512 to
 15680 are valid as long as they are multiples of 8.
 
-@item transient-key
-This is only meaningful for RSA, DSA, and ECC keys.  This is a flag
-with no value.  If given the key is created using a faster and a
-somewhat less secure random number generator.  This flag may be used
-for keys which are only used for a short time or per-message and do
-not require full cryptographic strength.
-
-@item domain
+@item domain @var{list}
 This is only meaningful for DLP algorithms.  If specified keys are
 generated with domain parameters taken from this list.  The exact
 format of this parameter depends on the actual algorithm.  It is
@@ -2707,7 +2745,7 @@ currently only implemented for DSA using this format:
 @code{nbits} and @code{qbits} may not be specified because they are
 derived from the domain parameters.
 
-@item derive-parms
+@item derive-parms @var{list}
 This is currently only implemented for RSA and DSA keys.  It is not
 allowed to use this together with a @code{domain} specification.  If
 given, it is used to derive the keys using the given parameters.
@@ -2745,28 +2783,25 @@ FIPS 186 algorithm is used even if libgcrypt is not in FIPS mode.
 @end example
 
 
-@item use-x931
-@cindex X9.31
-Force the use of the ANSI X9.31 key generation algorithm instead of
-the default algorithm. This flag is only meaningful for RSA and
-usually not required.  Note that this algorithm is implicitly used if
-either @code{derive-parms} is given or Libgcrypt is in FIPS mode.
+@item flags @var{flaglist}
+This is preferred way to define flags.  @var{flaglist} may contain any
+number of flags.  See above for a specification of these flags.
 
-@item use-fips186
-@cindex FIPS 186
-Force the use of the FIPS 186 key generation algorithm instead of the
-default algorithm.  This flag is only meaningful for DSA and usually
-not required.  Note that this algorithm is implicitly used if either
-@code{derive-parms} is given or Libgcrypt is in FIPS mode.  As of now
-FIPS 186-2 is implemented; after the approval of FIPS 186-3 the code
-will be changed to implement 186-3.
+Here is an example on how to create a key using curve Ed25519 with the
+ECDSA signature algorithm.  Note that the use of ECDSA with that curve
+is in general not recommended.
+@example
+(genkey
+  (ecc
+    (flags transient-key ecdsa)))
+@end example
 
-
-@item use-fips186-2
-Force the use of the FIPS 186-2 key generation algorithm instead of
-the default algorithm.  This algorithm is slighlty different from
-FIPS 186-3 and allows only 1024 bit keys.  This flag is only meaningful
-for DSA and only required for FIPS testing backward compatibility.
+@item transient-key
+@itemx use-x931
+@itemx use-fips186
+@itemx use-fips186-2
+These are deprecated ways to set a flag with that name; see above for
+a description of each flag.
 
 
 @end table

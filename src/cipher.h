@@ -31,6 +31,7 @@
 #define PUBKEY_FLAG_EDDSA          (1 << 2)
 #define PUBKEY_FLAG_FIXEDLEN       (1 << 3)
 #define PUBKEY_FLAG_LEGACYRESULT   (1 << 4)
+#define PUBKEY_FLAG_RAW_FLAG       (1 << 5)
 
 enum pk_operation
   {
