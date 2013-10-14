@@ -399,7 +399,9 @@ main (int argc, char **argv)
                 case '-':
 		  if ((c = my_getc ()) == '-')
 		    do_dec ();
-		  else if (isdigit (c) || (c >= 'A' && c <= 'F'))
+		  else if (isdigit (c)
+                           || (c >= 'A' && c <= 'F')
+                           || (c >= 'a' && c <= 'f'))
 		    {
 		      state = 1;
 		      ungetc (c, stdin);
