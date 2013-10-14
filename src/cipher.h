@@ -32,6 +32,11 @@
 #define PUBKEY_FLAG_FIXEDLEN       (1 << 3)
 #define PUBKEY_FLAG_LEGACYRESULT   (1 << 4)
 #define PUBKEY_FLAG_RAW_FLAG       (1 << 5)
+#define PUBKEY_FLAG_TRANSIENT_KEY  (1 << 6)
+#define PUBKEY_FLAG_USE_X931       (1 << 7)
+#define PUBKEY_FLAG_USE_FIPS186    (1 << 8)
+#define PUBKEY_FLAG_USE_FIPS186_2  (1 << 9)
+
 
 enum pk_operation
   {

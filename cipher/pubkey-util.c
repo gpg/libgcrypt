@@ -50,9 +50,9 @@ pss_verify_cmp (void *opaque, gcry_mpi_t tmp)
    R_ENCODING and the flags are stored at R_FLAGS.  if any of them is
    not needed, NULL may be passed.  The function returns 0 on success
    or an error code. */
-static gpg_err_code_t
-parse_flag_list (gcry_sexp_t list,
-                 int *r_flags, enum pk_encoding *r_encoding)
+gpg_err_code_t
+_gcry_pk_util_parse_flaglist (gcry_sexp_t list,
+                              int *r_flags, enum pk_encoding *r_encoding)
 {
   gpg_err_code_t rc = 0;
   const char *s;
@@ -101,6 +101,14 @@ parse_flag_list (gcry_sexp_t list,
         }
       else if (n == 11 && ! memcmp (s, "no-blinding", 11))
         flags |= PUBKEY_FLAG_NO_BLINDING;
+      else if (n == 13 && ! memcmp (s, "transient-key", 13))
+        flags |= PUBKEY_FLAG_TRANSIENT_KEY;
+      else if (n == 8 && ! memcmp (s, "use-x931", 8))
+        flags |= PUBKEY_FLAG_USE_X931;
+      else if (n == 11 && ! memcmp (s, "use-fips186", 11))
+        flags |= PUBKEY_FLAG_USE_FIPS186;
+      else if (n == 13 && ! memcmp (s, "use-fips186-2", 13))
+        flags |= PUBKEY_FLAG_USE_FIPS186_2;
       else
         rc = GPG_ERR_INV_FLAG;
     }
@@ -524,7 +532,7 @@ _gcry_pk_util_preparse_encval (gcry_sexp_t sexp, const char **algo_names,
       const char *s;
 
       /* There is a flags element - process it.  */
-      rc = parse_flag_list (l2, &parsed_flags, &ctx->encoding);
+      rc = _gcry_pk_util_parse_flaglist (l2, &parsed_flags, &ctx->encoding);
       if (rc)
         goto leave;
       if (ctx->encoding == PUBKEY_ENC_PSS)
@@ -701,12 +709,13 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
       return *ret_mpi ? GPG_ERR_NO_ERROR : GPG_ERR_INV_OBJ;
     }
 
-  /* see whether there is a flags object */
+  /* See whether there is a flags list.  */
   {
     gcry_sexp_t lflags = gcry_sexp_find_token (ldata, "flags", 0);
     if (lflags)
       {
-        if (parse_flag_list (lflags, &parsed_flags, &ctx->encoding))
+        if (_gcry_pk_util_parse_flaglist (lflags,
+                                          &parsed_flags, &ctx->encoding))
           unknown_flag = 1;
         gcry_sexp_release (lflags);
       }

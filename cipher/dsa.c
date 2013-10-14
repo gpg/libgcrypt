@@ -710,9 +710,7 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   gcry_sexp_t deriveparms = NULL;
   gcry_sexp_t seedinfo = NULL;
   gcry_sexp_t misc_info = NULL;
-  int transient_key = 0;
-  int use_fips186_2 = 0;
-  int use_fips186 = 0;
+  int flags = 0;
   dsa_domain_t domain;
   gcry_mpi_t *factors = NULL;
 
@@ -722,6 +720,16 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   rc = _gcry_pk_util_get_nbits (genparms, &nbits);
   if (rc)
     return rc;
+
+  /* Parse the optional flags list.  */
+  l1 = gcry_sexp_find_token (genparms, "flags", 0);
+  if (l1)
+    {
+      rc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
+      gcry_sexp_release (l1);
+      if (rc)
+        return rc;\
+    }
 
   /* Parse the optional qbits element.  */
   l1 = gcry_sexp_find_token (genparms, "qbits", 0);
@@ -744,28 +752,37 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     }
 
   /* Parse the optional transient-key flag.  */
-  l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
-  if (l1)
+  if (!(flags & PUBKEY_FLAG_TRANSIENT_KEY))
     {
-      transient_key = 1;
-      gcry_sexp_release (l1);
+      l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
+      if (l1)
+        {
+          flags |= PUBKEY_FLAG_TRANSIENT_KEY;
+          gcry_sexp_release (l1);
+        }
     }
 
   /* Get the optional derive parameters.  */
   deriveparms = gcry_sexp_find_token (genparms, "derive-parms", 0);
 
   /* Parse the optional "use-fips186" flags.  */
-  l1 = gcry_sexp_find_token (genparms, "use-fips186", 0);
-  if (l1)
+  if (!(flags & PUBKEY_FLAG_USE_FIPS186))
     {
-      use_fips186 = 1;
-      gcry_sexp_release (l1);
+      l1 = gcry_sexp_find_token (genparms, "use-fips186", 0);
+      if (l1)
+        {
+          flags |= PUBKEY_FLAG_USE_FIPS186;
+          gcry_sexp_release (l1);
+        }
     }
-  l1 = gcry_sexp_find_token (genparms, "use-fips186-2", 0);
-  if (l1)
+  if (!(flags & PUBKEY_FLAG_USE_FIPS186_2))
     {
-      use_fips186_2 = 1;
-      gcry_sexp_release (l1);
+      l1 = gcry_sexp_find_token (genparms, "use-fips186-2", 0);
+      if (l1)
+        {
+          flags |= PUBKEY_FLAG_USE_FIPS186_2;
+          gcry_sexp_release (l1);
+        }
     }
 
   /* Check whether domain parameters are given.  */
@@ -809,14 +826,18 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       qbits = mpi_get_nbits (domain.q);
     }
 
-  if (deriveparms || use_fips186 || use_fips186_2 || fips_mode ())
+  if (deriveparms
+      || (flags & PUBKEY_FLAG_USE_FIPS186)
+      || (flags & PUBKEY_FLAG_USE_FIPS186_2)
+      || fips_mode ())
     {
       int counter;
       void *seed;
       size_t seedlen;
       gcry_mpi_t h_value;
 
-      rc = generate_fips186 (&sk, nbits, qbits, deriveparms, use_fips186_2,
+      rc = generate_fips186 (&sk, nbits, qbits, deriveparms,
+                             !!(flags & PUBKEY_FLAG_USE_FIPS186_2),
                              &domain,
                              &counter, &seed, &seedlen, &h_value);
       if (!rc && h_value)
@@ -832,7 +853,9 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     }
   else
     {
-      rc = generate (&sk, nbits, qbits, transient_key, &domain, &factors);
+      rc = generate (&sk, nbits, qbits,
+                     !!(flags & PUBKEY_FLAG_TRANSIENT_KEY),
+                     &domain, &factors);
     }
 
   if (!rc)

@@ -760,8 +760,7 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   unsigned long evalue;
   RSA_secret_key sk;
   gcry_sexp_t deriveparms;
-  int transient_key = 0;
-  int use_x931 = 0;
+  int flags = 0;
   gcry_sexp_t l1;
   gcry_sexp_t swap_info = NULL;
 
@@ -775,6 +774,16 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   if (ec)
     return ec;
 
+  /* Parse the optional flags list.  */
+  l1 = gcry_sexp_find_token (genparms, "flags", 0);
+  if (l1)
+    {
+      ec = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
+      gcry_sexp_release (l1);
+      if (ec)
+        return ec;
+    }
+
   deriveparms = (genparms?
                  gcry_sexp_find_token (genparms, "derive-parms", 0) : NULL);
   if (!deriveparms)
@@ -783,12 +792,12 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       l1 = gcry_sexp_find_token (genparms, "use-x931", 0);
       if (l1)
         {
-          use_x931 = 1;
+          flags |= PUBKEY_FLAG_USE_X931;
           gcry_sexp_release (l1);
         }
     }
 
-  if (deriveparms || use_x931 || fips_mode ())
+  if (deriveparms || (flags & PUBKEY_FLAG_USE_X931) || fips_mode ())
     {
       int swapped;
       ec = generate_x931 (&sk, nbits, evalue, deriveparms, &swapped);
@@ -799,14 +808,18 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   else
     {
       /* Parse the optional "transient-key" flag. */
-      l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
-      if (l1)
+      if (!(flags & PUBKEY_FLAG_TRANSIENT_KEY))
         {
-          transient_key = 1;
-          gcry_sexp_release (l1);
+          l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
+          if (l1)
+            {
+              flags |= PUBKEY_FLAG_TRANSIENT_KEY;
+              gcry_sexp_release (l1);
+            }
         }
       /* Generate.  */
-      ec = generate_std (&sk, nbits, evalue, transient_key);
+      ec = generate_std (&sk, nbits, evalue,
+                         !!(flags & PUBKEY_FLAG_TRANSIENT_KEY));
     }
 
   if (!ec)

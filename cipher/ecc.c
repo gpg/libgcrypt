@@ -1247,13 +1247,13 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   gcry_mpi_t y = NULL;
   char *curve_name = NULL;
   gcry_sexp_t l1;
-  int transient_key = 0;
   gcry_random_level_t random_level;
   mpi_ec_t ctx = NULL;
   gcry_sexp_t curve_info = NULL;
   gcry_mpi_t base = NULL;
   gcry_mpi_t public = NULL;
   gcry_mpi_t secret = NULL;
+  int flags = 0;
 
   memset (&E, 0, sizeof E);
   memset (&sk, 0, sizeof sk);
@@ -1276,8 +1276,18 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
   if (l1)
     {
-      transient_key = 1;
+      flags |= PUBKEY_FLAG_TRANSIENT_KEY;
       gcry_sexp_release (l1);
+    }
+
+  /* Parse the optional flags list.  */
+  l1 = gcry_sexp_find_token (genparms, "flags", 0);
+  if (l1)
+    {
+      rc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
+      gcry_sexp_release (l1);
+      if (rc)
+        goto leave;
     }
 
   /* NBITS is required if no curve name has been given.  */
@@ -1303,7 +1313,11 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       log_printpnt ("ecgen curve G", &E.G, NULL);
     }
 
-  random_level = transient_key ? GCRY_STRONG_RANDOM : GCRY_VERY_STRONG_RANDOM;
+  if ((flags & PUBKEY_FLAG_TRANSIENT_KEY))
+    random_level = GCRY_STRONG_RANDOM;
+  else
+    random_level = GCRY_VERY_STRONG_RANDOM;
+
   ctx = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, E.p, E.a, E.b);
   x = mpi_new (0);
   y = mpi_new (0);

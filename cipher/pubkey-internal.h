@@ -21,6 +21,9 @@
 #define GCRY_PUBKEY_INTERNAL_H
 
 /*-- pubkey-util.c --*/
+gpg_err_code_t _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
+                                             int *r_flags,
+                                             enum pk_encoding *r_encoding);
 gpg_err_code_t _gcry_pk_util_get_nbits (gcry_sexp_t list,
                                         unsigned int *r_nbits);
 gpg_err_code_t _gcry_pk_util_get_rsa_use_e (gcry_sexp_t list,
