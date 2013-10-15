@@ -883,7 +883,8 @@ ecc_bench (int iterations, int print_header)
 {
 #if USE_ECC
   gpg_error_t err;
-  const char *p_sizes[] = { "192", "224", "256", "384", "521", "Ed25519" };
+  const char *p_sizes[] = { "192", "224", "256", "384", "521", "Ed25519",
+              "gost256", "gost512" };
   int testno;
 
   if (print_header)
@@ -899,12 +900,20 @@ ecc_bench (int iterations, int print_header)
       int count;
       int p_size;
       int is_ed25519;
+      int is_gost;
 
       is_ed25519 = !strcmp (p_sizes[testno], "Ed25519");
+      is_gost = !strncmp (p_sizes[testno], "gost", 4);
       if (is_ed25519)
         {
           p_size = 256;
           printf ("EdDSA Ed25519 ");
+          fflush (stdout);
+        }
+      else if (is_gost)
+        {
+          p_size = atoi (p_sizes[testno] + 4);
+          printf ("GOST  %3d bit ", p_size);
           fflush (stdout);
         }
       else
@@ -917,6 +926,10 @@ ecc_bench (int iterations, int print_header)
       if (is_ed25519)
         err = gcry_sexp_build (&key_spec, NULL,
                                "(genkey (ecdsa (curve \"Ed25519\")))");
+      else if (is_gost)
+        err = gcry_sexp_build (&key_spec, NULL,
+                               "(genkey (ecdsa (curve %s)))",
+                               p_size == 256 ? "GOST2001-test" : "GOST2012-test");
       else
         err = gcry_sexp_build (&key_spec, NULL,
                                "(genkey (ECDSA (nbits %d)))", p_size);
@@ -950,6 +963,8 @@ ecc_bench (int iterations, int print_header)
         err = gcry_sexp_build (&data, NULL,
                                "(data (flags eddsa)(hash-algo sha512)"
                                " (value %m))", x);
+      else if (is_gost)
+        err = gcry_sexp_build (&data, NULL, "(data (flags gost) (value %m))", x);
       else
         err = gcry_sexp_build (&data, NULL, "(data (flags raw) (value %m))", x);
       gcry_mpi_release (x);

@@ -79,6 +79,11 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
         {
           flags |= PUBKEY_FLAG_ECDSA;
         }
+      else if (n == 4 && !memcmp (s, "gost", 4))
+        {
+          encoding = PUBKEY_ENC_RAW;
+          flags |= PUBKEY_FLAG_GOST;
+        }
       else if (n == 3 && !memcmp (s, "raw", 3)
                && encoding == PUBKEY_ENC_UNKNOWN)
         {
@@ -347,6 +352,8 @@ _gcry_pk_util_preparse_sigval (gcry_sexp_t s_sig, const char **algo_names,
     {
       if (!strcmp (name, "eddsa"))
         *r_eccflags = PUBKEY_FLAG_EDDSA;
+      if (!strcmp (name, "gost"))
+        *r_eccflags = PUBKEY_FLAG_GOST;
     }
 
   *r_parms = l2;

@@ -37,6 +37,7 @@
 #define PUBKEY_FLAG_USE_FIPS186_2  (1 << 8)
 #define PUBKEY_FLAG_ECDSA          (1 << 9)
 #define PUBKEY_FLAG_EDDSA          (1 << 10)
+#define PUBKEY_FLAG_GOST           (1 << 11)
 
 
 enum pk_operation
