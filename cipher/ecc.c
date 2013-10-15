@@ -558,13 +558,10 @@ verify_ecdsa (gcry_mpi_t input, ECC_public_key *pkey,
           log_mpidump ("     x", x);
           log_mpidump ("     r", r);
           log_mpidump ("     s", s);
-          log_debug ("ecc verify: Not verified\n");
         }
       err = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
-  if (DBG_CIPHER)
-    log_debug ("ecc verify: Accepted\n");
 
  leave:
   _gcry_mpi_ec_free (ctx);
@@ -1208,14 +1205,10 @@ verify_eddsa (gcry_mpi_t input, ECC_public_key *pkey,
     goto leave;
   if (tlen != rlen || memcmp (tbuf, rbuf, tlen))
     {
-      if (DBG_CIPHER)
-        log_debug ("eddsa verify: Not verified\n");
       rc = GPG_ERR_BAD_SIGNATURE;
       goto leave;
     }
 
-  if (DBG_CIPHER)
-    log_debug ("eddsa verify: Accepted\n");
   rc = 0;
 
  leave:
@@ -1250,10 +1243,12 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   gcry_random_level_t random_level;
   mpi_ec_t ctx = NULL;
   gcry_sexp_t curve_info = NULL;
+  gcry_sexp_t curve_flags = NULL;
   gcry_mpi_t base = NULL;
   gcry_mpi_t public = NULL;
   gcry_mpi_t secret = NULL;
   int flags = 0;
+  int ed25519_with_ecdsa = 0;
 
   memset (&E, 0, sizeof E);
   memset (&sk, 0, sizeof sk);
@@ -1328,7 +1323,13 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       rc = nist_generate_key (&sk, &E, ctx, random_level, nbits);
       break;
     case ECC_DIALECT_ED25519:
-      rc = eddsa_generate_key (&sk, &E, ctx, random_level);
+      if ((flags & PUBKEY_FLAG_ECDSA))
+        {
+          ed25519_with_ecdsa = 1;
+          rc = nist_generate_key (&sk, &E, ctx, random_level, nbits);
+        }
+      else
+        rc = eddsa_generate_key (&sk, &E, ctx, random_level);
       break;
     default:
       rc = GPG_ERR_INTERNAL;
@@ -1341,7 +1342,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   if (_gcry_mpi_ec_get_affine (x, y, &sk.E.G, ctx))
     log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "G");
   base = _gcry_ecc_ec2os (x, y, sk.E.p);
-  if (sk.E.dialect == ECC_DIALECT_ED25519)
+  if (sk.E.dialect == ECC_DIALECT_ED25519 && !ed25519_with_ecdsa)
     {
       unsigned char *encpk;
       unsigned int encpklen;
@@ -1367,16 +1368,23 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         goto leave;
     }
 
+  if (ed25519_with_ecdsa)
+    {
+      rc = gcry_sexp_build (&curve_info, NULL, "(flags ecdsa)");
+      if (rc)
+        goto leave;
+    }
+
   rc = gcry_sexp_build (r_skey, NULL,
                         "(key-data"
                         " (public-key"
-                        "  (ecc%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))"
+                        "  (ecc%S%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))"
                         " (private-key"
-                        "  (ecc%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))"
+                        "  (ecc%S%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))"
                         " )",
-                        curve_info,
+                        curve_info, curve_flags,
                         sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public,
-                        curve_info,
+                        curve_info, curve_flags,
                         sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public, secret);
   if (rc)
     goto leave;
@@ -1390,6 +1398,8 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       log_printmpi ("ecgen result  n", sk.E.n);
       log_printmpi ("ecgen result  Q", public);
       log_printmpi ("ecgen result  d", secret);
+      if (ed25519_with_ecdsa)
+        log_debug ("ecgen result  using Ed25519/ECDSA\n");
     }
 
  leave:
@@ -1580,9 +1590,11 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
   if (DBG_CIPHER)
     {
-      log_debug ("ecc_sign   info: %s/%s\n",
+      log_debug ("ecc_sign   info: %s/%s%s\n",
                  _gcry_ecc_model2str (sk.E.model),
-                 _gcry_ecc_dialect2str (sk.E.dialect));
+                 _gcry_ecc_dialect2str (sk.E.dialect),
+                 (sk.E.dialect == ECC_DIALECT_ED25519
+                  && (ctx.flags & PUBKEY_FLAG_ECDSA))? "ECDSA":"");
       if (sk.E.name)
         log_debug  ("ecc_sign   name: %s\n", sk.E.name);
       log_printmpi ("ecc_sign      p", sk.E.p);
@@ -1733,9 +1745,11 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
 
   if (DBG_CIPHER)
     {
-      log_debug ("ecc_verify info: %s/%s\n",
+      log_debug ("ecc_verify info: %s/%s%s\n",
                  _gcry_ecc_model2str (pk.E.model),
-                 _gcry_ecc_dialect2str (pk.E.dialect));
+                 _gcry_ecc_dialect2str (pk.E.dialect),
+                 (pk.E.dialect == ECC_DIALECT_ED25519
+                  && !(sigflags & PUBKEY_FLAG_EDDSA))? "/ECDSA":"");
       if (pk.E.name)
         log_debug  ("ecc_verify name: %s\n", pk.E.name);
       log_printmpi ("ecc_verify    p", pk.E.p);

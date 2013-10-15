@@ -75,6 +75,10 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
           encoding = PUBKEY_ENC_RAW;
           flags |= PUBKEY_FLAG_EDDSA;
         }
+      else if (n == 5 && !memcmp (s, "ecdsa", 5))
+        {
+          flags |= PUBKEY_FLAG_ECDSA;
+        }
       else if (n == 3 && !memcmp (s, "raw", 3)
                && encoding == PUBKEY_ENC_UNKNOWN)
         {
