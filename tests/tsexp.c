@@ -935,13 +935,14 @@ check_extract_param (void)
         fail ("gcry_sexp_extract_param/desc failed: A off changed");
       else if (ioarray[1].len != 1)
         fail ("gcry_sexp_extract_param/desc failed: A has wrong length");
-      else if (cmp_bufhex (ioarray[1].data + ioarray[1].off, ioarray[1].len,
-                           sample1_a))
+      else if (cmp_bufhex ((char *)ioarray[1].data + ioarray[1].off,
+                           ioarray[1].len, sample1_a))
         {
           fail ("gcry_sexp_extract_param/desc failed: A mismatch");
           gcry_log_debug    ("expected: %s\n", sample1_a);
           gcry_log_debughex ("     got",
-                             ioarray[1].data + ioarray[1].off, ioarray[1].len);
+                             (char *)ioarray[1].data + ioarray[1].off,
+                             ioarray[1].len);
         }
 
       if (!ioarray[2].data)
@@ -952,13 +953,14 @@ check_extract_param (void)
         fail ("gcry_sexp_extract_param/desc failed: B off changed");
       else if (ioarray[2].len != 32)
         fail ("gcry_sexp_extract_param/desc failed: B has wrong length");
-      else if (cmp_bufhex (ioarray[2].data + ioarray[2].off, ioarray[2].len,
-                           sample1_b))
+      else if (cmp_bufhex ((char *)ioarray[2].data + ioarray[2].off,
+                           ioarray[2].len, sample1_b))
         {
           fail ("gcry_sexp_extract_param/desc failed: B mismatch");
           gcry_log_debug    ("expected: %s\n", sample1_b);
           gcry_log_debughex ("     got",
-                             ioarray[2].data + ioarray[2].off, ioarray[2].len);
+                             (char *)ioarray[2].data + ioarray[2].off,
+                             ioarray[2].len);
         }
 
       xfree (ioarray[0].data);
