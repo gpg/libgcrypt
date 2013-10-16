@@ -75,13 +75,6 @@
 #define GCC_ATTR_UNUSED
 #endif
 
-#if __GNUC__ >= 4
-# define GCC_ATTR_SENTINEL(a) __attribute__ ((sentinel(a)))
-#else
-# define GCC_ATTR_SENTINEL(a)
-#endif
-
-
 /* Gettext macros.  */
 
 #define _(a)  _gcry_gettext(a)
@@ -382,6 +375,12 @@ gcry_err_code_t _gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff,
                                    const char *format, va_list arg_ptr);
 gcry_mpi_t _gcry_sexp_nth_opaque_mpi (gcry_sexp_t list, int number);
 char *_gcry_sexp_nth_string (const gcry_sexp_t list, int number);
+gpg_err_code_t _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
+                                          const char *list, va_list arg_ptr);
+gpg_err_code_t _gcry_sexp_extract_param (gcry_sexp_t sexp,
+                                         const char *path,
+                                         const char *list,
+                                         ...) _GCRY_GCC_ATTR_SENTINEL(0);
 
 
 /*-- fips.c --*/

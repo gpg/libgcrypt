@@ -1435,9 +1435,9 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "-p?a?b?g?n?/q?+d",
-                                   &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
-                                   &mpi_q, &sk.d, NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?/q?+d",
+                                 &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
+                                 &mpi_q, &sk.d, NULL);
   if (rc)
     goto leave;
   if (mpi_g)
@@ -1552,9 +1552,9 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "-p?a?b?g?n?/q?+d",
-                                   &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
-                                   &mpi_q, &sk.d, NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?/q?+d",
+                                 &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
+                                 &mpi_q, &sk.d, NULL);
   if (rc)
     goto leave;
   if (mpi_g)
@@ -1686,9 +1686,9 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   rc = _gcry_pk_util_preparse_sigval (s_sig, ecc_names, &l1, &sigflags);
   if (rc)
     goto leave;
-  rc = _gcry_pk_util_extract_mpis (l1,
-                                   (sigflags & PUBKEY_FLAG_EDDSA)? "/rs":"rs",
-                                   &sig_r, &sig_s, NULL);
+  rc = _gcry_sexp_extract_param (l1, NULL,
+                                 (sigflags & PUBKEY_FLAG_EDDSA)? "/rs":"rs",
+                                 &sig_r, &sig_s, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1706,9 +1706,9 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   /*
    * Extract the key.
    */
-  rc = _gcry_pk_util_extract_mpis (s_keyparms, "-p?a?b?g?n?/q?",
-                                   &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n,
-                                   &mpi_q, NULL);
+  rc = _gcry_sexp_extract_param (s_keyparms, NULL, "-p?a?b?g?n?/q?",
+                                 &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n,
+                                 &mpi_q, NULL);
   if (rc)
     goto leave;
   if (mpi_g)
@@ -1890,9 +1890,9 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "-p?a?b?g?n?+q",
-                                   &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n,
-                                   &mpi_q, NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?+q",
+                                 &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n,
+                                 &mpi_q, NULL);
   if (rc)
     goto leave;
   if (mpi_g)
@@ -2044,7 +2044,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_preparse_encval (s_data, ecc_names, &l1, &ctx);
   if (rc)
     goto leave;
-  rc = _gcry_pk_util_extract_mpis (l1, "e", &data_e, NULL);
+  rc = _gcry_sexp_extract_param (l1, NULL, "e", &data_e, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -2058,9 +2058,9 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "-p?a?b?g?n?+d",
-                                   &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
-                                   &sk.d, NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?+d",
+                                 &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
+                                 &sk.d, NULL);
   if (rc)
     goto leave;
   if (mpi_g)

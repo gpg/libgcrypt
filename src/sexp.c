@@ -2117,3 +2117,238 @@ gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 	}
     }
 }
+
+
+/* Extract MPIs from an s-expression using a list of one letter
+ * parameters.  The names of these parameters are given by the string
+ * LIST.  Some special characters may be given to control the
+ * conversion:
+ *
+ *    + :: Switch to unsigned integer format (default).
+ *    - :: Switch to standard signed format.
+ *    / :: Switch to opaque format.
+ *    & :: Switch to buffer descriptor mode - see below.
+ *    ? :: The previous parameter is optional.
+ *
+ * Unless in gcry_buffer_t mode for each parameter name a pointer to
+ * an MPI variable is expected and finally a NULL is expected.
+ * Example:
+ *
+ *   _gcry_sexp_extract_param (key, NULL, "n/x+ed",
+ *                             &mpi_n, &mpi_x, &mpi_e, NULL)
+ *
+ * This stores the parameter "N" from KEY as an unsigned MPI into
+ * MPI_N, the parameter "X" as an opaque MPI into MPI_X, and the
+ * parameter "E" again as an unsigned MPI into MPI_E.
+ *
+ * If in buffer descriptor mode a pointer to gcry_buffer_t descriptor
+ * is expected instead of a pointer to an MPI.  The caller may use two
+ * different operation modes: If the DATA field of the provided buffer
+ * descriptor is NULL, the function allocates a new buffer and stores
+ * it at DATA; the other fields are set accordingly with OFF being 0.
+ * If DATA is not NULL, the function assumes that DATA, SIZE, and OFF
+ * describe a buffer where to but the data; on return the LEN field
+ * receives the number of bytes copied to that buffer; if the buffer
+ * is too small, the function immediately returns with an error code
+ * (and LEN set to 0).
+ *
+ * PATH is an optional string used to locate a token.  The exclamation
+ * mark separated tokens are used to via gcry_sexp_find_token to find
+ * a start point inside SEXP.
+ *
+ * The function returns NULL on success.  On error an error code is
+ * returned and the passed MPIs are either unchanged or set to NULL.
+ */
+gpg_err_code_t
+_gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
+                           const char *list, va_list arg_ptr)
+{
+  gpg_err_code_t rc;
+  const char *s;
+  gcry_mpi_t *array[20];
+  char arrayisdesc[20];
+  int idx;
+  gcry_sexp_t l1;
+  int mode = '+'; /* Default to GCRYMPI_FMT_USG.  */
+  gcry_sexp_t freethis = NULL;
+
+  memset (arrayisdesc, 0, sizeof arrayisdesc);
+
+  /* First copy all the args into an array.  This is required so that
+     we are able to release already allocated MPIs if later an error
+     was found.  */
+  for (s=list, idx=0; *s && idx < DIM (array); s++)
+    {
+      if (*s == '&' || *s == '+' || *s == '-' || *s == '/' || *s == '?' )
+        ;
+      else
+        {
+          array[idx] = va_arg (arg_ptr, gcry_mpi_t *);
+          if (!array[idx])
+            return GPG_ERR_MISSING_VALUE; /* NULL pointer given.  */
+          idx++;
+        }
+    }
+  if (*s)
+    return GPG_ERR_LIMIT_REACHED;  /* Too many list elements.  */
+  if (va_arg (arg_ptr, gcry_mpi_t *))
+    return GPG_ERR_INV_ARG;  /* Not enough list elemends.  */
+
+  /* Drill down.  */
+  while (path && *path)
+    {
+      size_t n;
+
+      s = strchr (path, '!');
+      if (s == path)
+        {
+          rc = GPG_ERR_NOT_FOUND;
+          goto cleanup;
+        }
+      n = s? s - path : 0;
+      l1 = gcry_sexp_find_token (sexp, path, n);
+      if (!l1)
+        {
+          rc = GPG_ERR_NOT_FOUND;
+          goto cleanup;
+        }
+      sexp = l1; l1 = NULL;
+      gcry_sexp_release (freethis);
+      freethis = sexp;
+      if (n)
+        path += n + 1;
+      else
+        path = NULL;
+    }
+
+
+  /* Now extract all parameters.  */
+  for (s=list, idx=0; *s; s++)
+    {
+      if (*s == '&' || *s == '+' || *s == '-' || *s == '/')
+        mode = *s;
+      else if (*s == '?')
+        ; /* Only used via lookahead.  */
+      else
+        {
+          l1 = gcry_sexp_find_token (sexp, s, 1);
+          if (!l1 && s[1] == '?')
+            {
+              /* Optional element not found.  */
+              if (mode == '&')
+                {
+                  gcry_buffer_t *spec = (gcry_buffer_t*)array[idx];
+                  if (!spec->data)
+                    {
+                      spec->size = 0;
+                      spec->off = 0;
+                    }
+                  spec->len = 0;
+                }
+              else
+                *array[idx] = NULL;
+            }
+          else if (!l1)
+            {
+              rc = GPG_ERR_NO_OBJ;  /* List element not found.  */
+              goto cleanup;
+            }
+           else
+            {
+              if (mode == '&')
+                {
+                  gcry_buffer_t *spec = (gcry_buffer_t*)array[idx];
+
+                  if (spec->data)
+                    {
+                      const char *pbuf;
+                      size_t nbuf;
+
+                      pbuf = gcry_sexp_nth_data (l1, 1, &nbuf);
+                      if (!pbuf || !nbuf)
+                        {
+                          rc = GPG_ERR_INV_OBJ;
+                          goto cleanup;
+                        }
+                      if (spec->off + nbuf > spec->size)
+                        {
+                          rc = GPG_ERR_BUFFER_TOO_SHORT;
+                          goto cleanup;
+                        }
+                      memcpy ((char*)spec->data + spec->off, pbuf, nbuf);
+                      spec->len = nbuf;
+                      arrayisdesc[idx] = 1;
+                    }
+                  else
+                    {
+                      spec->data = gcry_sexp_nth_buffer (l1, 1, &spec->size);
+                      if (!spec->data)
+                        {
+                          rc = GPG_ERR_INV_OBJ; /* Or out of core.  */
+                          goto cleanup;
+                        }
+                      spec->len = spec->size;
+                      spec->off = 0;
+                      arrayisdesc[idx] = 2;
+                    }
+                }
+              else if (mode == '/')
+                *array[idx] = _gcry_sexp_nth_opaque_mpi (l1, 1);
+              else if (mode == '-')
+                *array[idx] = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_STD);
+              else
+                *array[idx] = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+              gcry_sexp_release (l1); l1 = NULL;
+              if (!*array[idx])
+                {
+                  rc = GPG_ERR_INV_OBJ;  /* Conversion failed.  */
+                  goto cleanup;
+                }
+            }
+          idx++;
+        }
+    }
+
+  gcry_sexp_release (freethis);
+  return 0;
+
+ cleanup:
+  gcry_sexp_release (freethis);
+  gcry_sexp_release (l1);
+  while (idx--)
+    {
+      if (!arrayisdesc[idx])
+        {
+          gcry_mpi_release (*array[idx]);
+          *array[idx] = NULL;
+        }
+      else if (!arrayisdesc[idx] == 1)
+        {
+          /* Caller provided buffer.  */
+          gcry_buffer_t *spec = (gcry_buffer_t*)array[idx];
+          spec->len = 0;
+        }
+      else
+        {
+          /* We might have allocated a buffer.  */
+          gcry_buffer_t *spec = (gcry_buffer_t*)array[idx];
+          gcry_free (spec->data);
+          spec->data = NULL;
+          spec->size = spec->off = spec->len = 0;
+        }
+     }
+  return rc;
+}
+
+gpg_error_t
+_gcry_sexp_extract_param (gcry_sexp_t sexp, const char *path,
+                          const char *list, ...)
+{
+  gcry_err_code_t rc;
+  va_list arg_ptr;
+
+  va_start (arg_ptr, list);
+  rc = _gcry_sexp_vextract_param (sexp, path, list, arg_ptr);
+  va_end (arg_ptr);
+  return gpg_error (rc);
+}

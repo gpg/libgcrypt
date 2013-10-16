@@ -855,9 +855,9 @@ rsa_check_secret_key (gcry_sexp_t keyparms)
   RSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL, NULL};
 
   /* To check the key we need the optional parameters. */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "nedpqu",
-                                   &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
-                                   NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "nedpqu",
+                                 &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
+                                 NULL);
   if (rc)
     goto leave;
 
@@ -902,7 +902,7 @@ rsa_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "ne", &pk.n, &pk.e, NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "ne", &pk.n, &pk.e, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -969,7 +969,7 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_preparse_encval (s_data, rsa_names, &l1, &ctx);
   if (rc)
     goto leave;
-  rc = _gcry_pk_util_extract_mpis (l1, "a", &data, NULL);
+  rc = _gcry_sexp_extract_param (l1, NULL, "a", &data, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -981,9 +981,9 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "nedp?q?u?",
-                                   &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
-                                   NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "nedp?q?u?",
+                                 &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
+                                 NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1125,9 +1125,9 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "nedp?q?u?",
-                                   &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
-                                   NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "nedp?q?u?",
+                                 &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
+                                 NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1213,14 +1213,14 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_preparse_sigval (s_sig, rsa_names, &l1, NULL);
   if (rc)
     goto leave;
-  rc = _gcry_pk_util_extract_mpis (l1, "s", &sig, NULL);
+  rc = _gcry_sexp_extract_param (l1, NULL, "s", &sig, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
     log_printmpi ("rsa_verify  sig", sig);
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "ne", &pk.n, &pk.e, NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "ne", &pk.n, &pk.e, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)

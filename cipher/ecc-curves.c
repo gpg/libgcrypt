@@ -436,9 +436,9 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   /*
    * Extract the curve parameters..
    */
-  if (_gcry_pk_util_extract_mpis (keyparms, "-pabgn",
-                                  &E.p, &E.a, &E.b, &mpi_g, &E.n,
-                                  NULL))
+  if (_gcry_sexp_extract_param (keyparms, NULL, "-pabgn",
+                                &E.p, &E.a, &E.b, &mpi_g, &E.n,
+                                NULL))
     goto leave;
   if (mpi_g)
     {

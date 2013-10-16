@@ -537,6 +537,7 @@ MARK_VISIBLE (gcry_sexp_release)
 MARK_VISIBLE (gcry_sexp_sprint)
 MARK_VISIBLE (gcry_sexp_sscan)
 MARK_VISIBLE (gcry_sexp_vlist)
+MARK_VISIBLEX(gcry_sexp_extract_param)
 
 MARK_VISIBLEX(gcry_mpi_abs)
 MARK_VISIBLE (gcry_mpi_add)
@@ -615,6 +616,16 @@ MARK_VISIBLEX(_gcry_mpi_get_const)
 
 
 #undef MARK_VISIBLE
-#endif /*_GCRY_INCLUDED_BY_VISIBILITY_C*/
+#else /*!_GCRY_INCLUDED_BY_VISIBILITY_C*/
+
+/* To avoid accidental use of the public functions inside Libgcrypt,
+   we redefine them to catch such errors.  The usual difference
+   between a public and an internal version is that the internal
+   version use gpg_err_code_t and the public version gpg_error_t.  */
+
+#define gcry_sexp_extract_param _gcry_USE_THE_UNDERSCORED_FUNCTION
+
+
+#endif /*!_GCRY_INCLUDED_BY_VISIBILITY_C*/
 
 #endif /*GCRY_VISIBILITY_H*/

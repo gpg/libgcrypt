@@ -253,5 +253,8 @@ EXPORTS
       gcry_log_debugpnt         @223
       gcry_log_debugsxp         @224
 
+      gcry_sexp_extract_param   @225
+
+
 
 ;; end of file with public symbols for Windows.

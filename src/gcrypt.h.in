@@ -102,6 +102,10 @@ extern "C" {
 
 #define _GCRY_GCC_ATTR_PRINTF(f,a)  __attribute__ ((format (printf,f,a)))
 
+#if _GCRT_GCC_VERSION >= 40000
+#define _GCRY_GCC_ATTR_SENTINEL(a) __attribute__ ((sentinel(a)))
+#endif
+
 #endif /*__GNUC__*/
 
 #ifndef _GCRY_GCC_ATTR_DEPRECATED
@@ -114,7 +118,10 @@ extern "C" {
 #define _GCRY_GCC_ATTR_MALLOC
 #endif
 #ifndef _GCRY_GCC_ATTR_PRINTF
-#define _GCRY_GCC_ATTR_PRINTF
+#define _GCRY_GCC_ATTR_PRINTF(f,a)
+#endif
+#ifndef _GCRY_GCC_ATTR_SENTINEL
+#define _GCRY_GCC_ATTR_SENTINEL(a)
 #endif
 
 /* Make up an attribute to mark functions and types as deprecated but
@@ -459,6 +466,12 @@ char *gcry_sexp_nth_string (gcry_sexp_t list, int number);
    value can't be converted to an MPI, `NULL' is returned.  */
 gcry_mpi_t gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt);
 
+/* Convenience fucntion to extract parameters from an S-expression
+ * using a list of single letter parameters.  */
+gpg_error_t gcry_sexp_extract_param (gcry_sexp_t sexp,
+                                     const char *path,
+                                     const char *list,
+                                     ...) _GCRY_GCC_ATTR_SENTINEL(0);
 
 
 /*******************************************

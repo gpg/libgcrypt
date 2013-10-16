@@ -735,9 +735,9 @@ elg_check_secret_key (gcry_sexp_t keyparms)
   gcry_err_code_t rc;
   ELG_secret_key sk = {NULL, NULL, NULL, NULL};
 
-  rc = _gcry_pk_util_extract_mpis (keyparms, "pgyx",
-                                   &sk.p, &sk.g, &sk.y, &sk.x,
-                                   NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "pgyx",
+                                 &sk.p, &sk.g, &sk.y, &sk.x,
+                                 NULL);
   if (rc)
     goto leave;
 
@@ -781,7 +781,8 @@ elg_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "pgy", &pk.p, &pk.g, &pk.y, NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "pgy",
+                                 &pk.p, &pk.g, &pk.y, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -831,7 +832,7 @@ elg_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_preparse_encval (s_data, elg_names, &l1, &ctx);
   if (rc)
     goto leave;
-  rc = _gcry_pk_util_extract_mpis (l1, "ab", &data_a, &data_b, NULL);
+  rc = _gcry_sexp_extract_param (l1, NULL, "ab", &data_a, &data_b, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -846,9 +847,9 @@ elg_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "pgyx",
-                                   &sk.p, &sk.g, &sk.y, &sk.x,
-                                   NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "pgyx",
+                                 &sk.p, &sk.g, &sk.y, &sk.x,
+                                 NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -940,8 +941,8 @@ elg_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "pgyx",
-                                   &sk.p, &sk.g, &sk.y, &sk.x, NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "pgyx",
+                                 &sk.p, &sk.g, &sk.y, &sk.x, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1008,7 +1009,7 @@ elg_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   rc = _gcry_pk_util_preparse_sigval (s_sig, elg_names, &l1, NULL);
   if (rc)
     goto leave;
-  rc = _gcry_pk_util_extract_mpis (l1, "rs", &sig_r, &sig_s, NULL);
+  rc = _gcry_sexp_extract_param (l1, NULL, "rs", &sig_r, &sig_s, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1018,8 +1019,8 @@ elg_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (s_keyparms, "pgy",
-                                   &pk.p, &pk.g, &pk.y, NULL);
+  rc = _gcry_sexp_extract_param (s_keyparms, NULL, "pgy",
+                                 &pk.p, &pk.g, &pk.y, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)

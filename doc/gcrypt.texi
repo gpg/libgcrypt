@@ -3748,6 +3748,66 @@ this function to parse results of a public key function, you most
 likely want to use @code{GCRYMPI_FMT_USG}.
 @end deftypefun
 
+@deftypefun gpg_error_t gcry_sexp_extract_param ( @
+  @w{gcry_sexp_t @var{sexp}}, @
+  @w{const char *@var{path}}, @
+  @w{const char *@var{list}}, ...)
+
+Extract parameters from an S-expression using a list of single letter
+parameter names.  The names of these parameters are specified in
+LIST.  Some special characters may be given to control the
+conversion:
+
+@table @samp
+@item +
+Switch to unsigned integer format (GCRYMPI_FMT_USG).  This is the
+default mode.
+@item -
+Switch to standard signed format (GCRYMPI_FMT_STD).
+@item /
+Switch to opaque MPI format.  The resulting MPIs may not be used for
+computations; see @code{gcry_mpi_get_opaque} for details.
+@item &
+Switch to buffer descriptor mode.  See below for details.
+@item ?
+If immediately following a parameter letter, that parameter is
+considered optional.
+@end table
+
+Unless in buffer descriptor mode for each parameter name a pointer to
+an @code{gcry_mpi_t} variable is expected finally followed by a @code{NULL}.
+For example
+@example
+  _gcry_sexp_extract_param (key, NULL, "n/x+ed",
+                            &mpi_n, &mpi_x, &mpi_e, NULL)
+@end example
+
+stores the parameter 'n' from @var{key} as an unsigned MPI into
+@var{mpi_n}, the parameter 'x' as an opaque MPI into @var{mpi_x}, and
+the parameter 'e' again as an unsigned MPI into @var{mpi_e}.
+
+@var{path} is an optional string used to locate a token.  The
+exclamation mark separated tokens are used via
+@code{gcry_sexp_find_token} to find a start point inside the
+S-expression.
+
+In buffer descriptor mode a pointer to a @code{gcry_buffer_t}
+descriptor is expected instead of a pointer to an MPI.  The caller may
+use two different operation modes here: If the @var{data} field of the
+provided descriptor is @code{NULL}, the function allocates a new
+buffer and stores it at @var{data}; the other fields are set
+accordingly with @var{off} set to 0.  If @var{data} is not
+@code{NULL}, the function assumes that the @var{data}, @var{size}, and
+@var{off} fields specify a buffer where to but the value of the
+respective parameter; on return the @var{len} field receives the
+number of bytes copied to that buffer; in case the buffer is too
+small, the function immediately returns with an error code (and
+@var{len} is set to 0).
+
+The function returns NULL on success.  On error an error code is
+returned and the passed MPIs are either unchanged or set to NULL.
+@end deftypefun
+
 
 @c **********************************************************
 @c *******************  MPIs ******** ***********************

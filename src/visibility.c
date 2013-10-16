@@ -250,6 +250,21 @@ gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt)
   return _gcry_sexp_nth_mpi (list, number, mpifmt);
 }
 
+gpg_error_t
+gcry_sexp_extract_param (gcry_sexp_t sexp, const char *path,
+                         const char *list, ...)
+{
+  gcry_err_code_t rc;
+  va_list arg_ptr;
+
+  va_start (arg_ptr, list);
+  rc = _gcry_sexp_vextract_param (sexp, path, list, arg_ptr);
+  va_end (arg_ptr);
+  return gpg_error (rc);
+}
+
+
+
 gcry_mpi_t
 gcry_mpi_new (unsigned int nbits)
 {

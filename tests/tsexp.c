@@ -25,12 +25,46 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <assert.h>
 #include "../src/gcrypt-int.h"
 
 #define PGMNAME "tsexp"
 
+#ifndef DIM
+# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
+#endif
+#define my_isascii(c) (!((c) & 0x80))
+#define digitp(p)     (*(p) >= '0' && *(p) <= '9')
+#define hexdigitp(a)  (digitp (a)                     \
+                       || (*(a) >= 'A' && *(a) <= 'F')  \
+                       || (*(a) >= 'a' && *(a) <= 'f'))
+#define xtoi_1(p)     (*(p) <= '9'? (*(p)- '0'): \
+                       *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
+#define xtoi_2(p)     ((xtoi_1(p) * 16) + xtoi_1((p)+1))
+#define xmalloc(a)    gcry_xmalloc ((a))
+#define xcalloc(a,b)  gcry_xcalloc ((a),(b))
+#define xstrdup(a)    gcry_xstrdup ((a))
+#define xfree(a)      gcry_free ((a))
+#define pass()        do { ; } while (0)
+
+
 static int verbose;
 static int error_count;
+
+static void
+die (const char *format, ...)
+{
+  va_list arg_ptr ;
+
+  fflush (stdout);
+  fprintf (stderr, "%s: ", PGMNAME);
+  va_start( arg_ptr, format ) ;
+  vfprintf (stderr, format, arg_ptr );
+  va_end(arg_ptr);
+  if (*format && format[strlen(format)-1] != '\n')
+    putc ('\n', stderr);
+  exit (1);
+}
 
 static void
 info (const char *format, ...)
@@ -42,6 +76,8 @@ info (const char *format, ...)
       va_start( arg_ptr, format ) ;
       vfprintf (stderr, format, arg_ptr );
       va_end(arg_ptr);
+      if (*format && format[strlen(format)-1] != '\n')
+        putc ('\n', stderr);
     }
 }
 
@@ -54,10 +90,110 @@ fail ( const char *format, ... )
     va_start( arg_ptr, format ) ;
     vfprintf (stderr, format, arg_ptr );
     va_end(arg_ptr);
+    if (*format && format[strlen(format)-1] != '\n')
+      putc ('\n', stderr);
     error_count++;
 }
 
 
+
+/* Convert STRING consisting of hex characters into its binary
+   representation and return it as an allocated buffer. The valid
+   length of the buffer is returned at R_LENGTH.  The string is
+   delimited by end of string.  The function returns NULL on
+   error.  */
+static void *
+hex2buffer (const char *string, size_t *r_length)
+{
+  const char *s;
+  unsigned char *buffer;
+  size_t length;
+
+  buffer = xmalloc (strlen(string)/2+1);
+  length = 0;
+  for (s=string; *s; s +=2 )
+    {
+      if (!hexdigitp (s) || !hexdigitp (s+1))
+        return NULL;           /* Invalid hex digits. */
+      ((unsigned char*)buffer)[length++] = xtoi_2 (s);
+    }
+  *r_length = length;
+  return buffer;
+}
+
+
+static gcry_mpi_t
+hex2mpi (const char *string)
+{
+  gpg_error_t err;
+  gcry_mpi_t val;
+
+  err = gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
+  if (err)
+    die ("hex2mpi '%s' failed: %s\n", string, gpg_strerror (err));
+  return val;
+}
+
+static gcry_mpi_t
+hex2mpiopa (const char *string)
+{
+  char *buffer;
+  size_t buflen;
+  gcry_mpi_t val;
+
+  buffer = hex2buffer (string, &buflen);
+  if (!buffer)
+    die ("hex2mpiopa '%s' failed: parser error\n", string);
+  val = gcry_mpi_set_opaque (NULL, buffer, buflen*8);
+  if (!buffer)
+    die ("hex2mpiopa '%s' failed: set_opaque error%s\n", string);
+  return val;
+}
+
+
+/* Compare A to B, where B is given as a hex string.  */
+static int
+cmp_mpihex (gcry_mpi_t a, const char *b)
+{
+  gcry_mpi_t bval;
+  int res;
+
+  if (gcry_mpi_get_flag (a, GCRYMPI_FLAG_OPAQUE))
+    bval = hex2mpiopa (b);
+  else
+    bval = hex2mpi (b);
+  res = gcry_mpi_cmp (a, bval);
+  gcry_mpi_release (bval);
+  return res;
+}
+
+/* Compare A to B, where A is a buffer and B a hex string.  */
+static int
+cmp_bufhex (const void *a, size_t alen, const char *b)
+{
+  void *bbuf;
+  size_t blen;
+  int res;
+
+  if (!a && !b)
+    return 0;
+  if (a && !b)
+    return 1;
+  if (!a && b)
+    return -1;
+
+  bbuf = hex2buffer (b, &blen);
+  if (!bbuf)
+    die ("cmp_bufhex: error converting hex string\n");
+  if (alen != blen)
+    return alen < blen? -1 : 1;
+  res = memcmp (a, bbuf, alen);
+  xfree (bbuf);
+  return res;
+}
+
+
+
 /* fixme: we need better tests */
 static void
 basic (void)
@@ -195,7 +331,7 @@ basic (void)
               fail ("no car for `%s'\n", token);
               continue;
             }
-          info ("car=`%.*s'\n", (int)n, p);
+          /* info ("car=`%.*s'\n", (int)n, p); */
 
           s2 = gcry_sexp_cdr (s1);
           if (!s2)
@@ -230,7 +366,7 @@ basic (void)
                   fail("no car for `%s'\n", parm );
                   continue;
                 }
-              info ("car=`%.*s'\n", (int)n, p);
+              /* info ("car=`%.*s'\n", (int)n, p); */
               p = gcry_sexp_nth_data (s2, 1, &n);
               if (!p)
                 {
@@ -238,7 +374,7 @@ basic (void)
                   fail("no cdr for `%s'\n", parm );
                   continue;
                 }
-              info ("cdr=`%.*s'\n", (int)n, p);
+              /* info ("cdr=`%.*s'\n", (int)n, p); */
 
               a = gcry_sexp_nth_mpi (s2, 0, GCRYMPI_FMT_USG);
               gcry_sexp_release (s2);
@@ -457,6 +593,379 @@ check_sscan (void)
 }
 
 
+static void
+check_extract_param (void)
+{
+  /* This sample data is a real key but with some parameters of the
+     public key modified.  */
+  static char sample1[] =
+    "(key-data"
+    " (public-key"
+    "  (ecc"
+    "   (curve Ed25519)"
+    "   (p #6FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED#)"
+    "   (a #EF#)"
+    "   (b #C2036CEE2B6FFE738CC740797779E89800700A4D4141D8AB75EB4DCA135978B6#)"
+    "   (g #14"
+    "       216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A"
+    "       6666666666666666666666666666666666666666666666666666666666666658#)"
+    "   (n #0000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED#)"
+    "   (q #20B37806015CA06B3AEB9423EE84A41D7F31AA65F4148553755206D679F8BF62#)"
+    "))"
+    " (private-key"
+    "  (ecc"
+    "   (curve Ed25519)"
+    "   (p #7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED#)"
+    "   (a #FF#)"
+    "   (b #D2036CEE2B6FFE738CC740797779E89800700A4D4141D8AB75EB4DCA135978B6#)"
+    "   (g #04"
+    "       216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A"
+    "       6666666666666666666666666666666666666666666666666666666666666658#)"
+    "   (n #1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED#)"
+    "   (q #30B37806015CA06B3AEB9423EE84A41D7F31AA65F4148553755206D679F8BF62#)"
+    "   (d #56BEA284A22F443A7AEA8CEFA24DA5055CDF1D490C94D8C568FE0802C9169276#)"
+    ")))";
+
+  static char sample1_p[] =
+    "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED";
+  static char sample1_px[] =
+    "6FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED";
+  static char sample1_a[] = "FF";
+  static char sample1_ax[] = "EF";
+  static char sample1_b[] =
+    "D2036CEE2B6FFE738CC740797779E89800700A4D4141D8AB75EB4DCA135978B6";
+  static char sample1_bx[] =
+    "C2036CEE2B6FFE738CC740797779E89800700A4D4141D8AB75EB4DCA135978B6";
+  static char sample1_g[] =
+    "04"
+    "216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A"
+    "6666666666666666666666666666666666666666666666666666666666666658";
+  static char sample1_gx[] =
+    "14"
+    "216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A"
+    "6666666666666666666666666666666666666666666666666666666666666658";
+  static char sample1_n[] =
+    "1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED";
+  static char sample1_nx[] =
+    "0000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED";
+  static char sample1_q[] =
+    "30B37806015CA06B3AEB9423EE84A41D7F31AA65F4148553755206D679F8BF62";
+  static char sample1_qx[] =
+    "20B37806015CA06B3AEB9423EE84A41D7F31AA65F4148553755206D679F8BF62";
+  static char sample1_d[] =
+    "56BEA284A22F443A7AEA8CEFA24DA5055CDF1D490C94D8C568FE0802C9169276";
+
+  static struct {
+    const char *sexp_str;
+    const char *path;
+    const char *list;
+    int nparam;
+    gpg_err_code_t expected_err;
+    const char *exp_p;
+    const char *exp_a;
+    const char *exp_b;
+    const char *exp_g;
+    const char *exp_n;
+    const char *exp_q;
+    const char *exp_d;
+  } tests[] = {
+    {
+      sample1,
+      NULL,
+      "pabgnqd", 6,
+      GPG_ERR_MISSING_VALUE,
+    },
+    {
+      sample1,
+      NULL,
+      "pabgnq", 7,
+      GPG_ERR_INV_ARG
+    },
+    {
+      sample1,
+      NULL,
+      "pabgnqd", 7,
+      0,
+      sample1_px, sample1_ax, sample1_bx, sample1_gx, sample1_nx,
+      sample1_qx, sample1_d
+    },
+    {
+      sample1,
+      NULL,
+      "abg", 3,
+      0,
+      sample1_ax, sample1_bx, sample1_gx
+    },
+    {
+      sample1,
+      NULL,
+      "x?abg", 4,
+      0,
+      NULL, sample1_ax, sample1_bx, sample1_gx
+    },
+    {
+      sample1,
+      NULL,
+      "p?abg", 4,
+      GPG_ERR_USER_1,
+      NULL, sample1_ax, sample1_bx, sample1_gx
+    },
+    {
+      sample1,
+      NULL,
+      "pax?gnqd", 7,
+      0,
+      sample1_px, sample1_ax, NULL, sample1_gx, sample1_nx,
+      sample1_qx, sample1_d
+    },
+    {
+      sample1,
+      "public-key",
+      "pabgnqd", 7,
+      GPG_ERR_NO_OBJ,  /* d is not in public key.  */
+      sample1_px, sample1_ax, sample1_bx, sample1_gx, sample1_nx,
+      sample1_qx, sample1_d
+    },
+    {
+      sample1,
+      "private-key",
+      "pabgnqd", 7,
+      0,
+      sample1_p, sample1_a, sample1_b, sample1_g, sample1_n,
+      sample1_q, sample1_d
+    },
+    {
+      sample1,
+      "public-key!ecc",
+      "pabgnq", 6,
+      0,
+      sample1_px, sample1_ax, sample1_bx, sample1_gx, sample1_nx,
+      sample1_qx
+    },
+    {
+      sample1,
+      "public-key!ecc!foo",
+      "pabgnq", 6,
+      GPG_ERR_NOT_FOUND
+    },
+    {
+      sample1,
+      "public-key!!ecc",
+      "pabgnq", 6,
+      GPG_ERR_NOT_FOUND
+    },
+    {
+      sample1,
+      "private-key",
+      "pa/bgnqd", 7,
+      0,
+      sample1_p, sample1_a, sample1_b, sample1_g, sample1_n,
+      sample1_q, sample1_d
+    },
+    {
+      sample1,
+      "private-key",
+      "p-a+bgnqd", 7,
+      0,
+      sample1_p, "-01", sample1_b, sample1_g, sample1_n,
+      sample1_q, sample1_d
+    },
+    {NULL}
+  };
+  int idx, i;
+  const char *paramstr;
+  int paramidx;
+  gpg_error_t err;
+  gcry_sexp_t sxp;
+  gcry_mpi_t mpis[7];
+  gcry_buffer_t ioarray[7];
+  char iobuffer[200];
+
+  info ("checking gcry_sexp_extract_param\n");
+  for (idx=0; tests[idx].sexp_str; idx++)
+    {
+      err = gcry_sexp_new (&sxp, tests[idx].sexp_str, 0, 1);
+      if (err)
+        die ("converting string to sexp failed: %s", gpg_strerror (err));
+
+      memset (mpis, 0, sizeof mpis);
+      switch (tests[idx].nparam)
+        {
+        case 0:
+          err = gcry_sexp_extract_param (sxp, tests[idx].path, tests[idx].list,
+                                         NULL);
+          break;
+        case 1:
+          err = gcry_sexp_extract_param (sxp, tests[idx].path, tests[idx].list,
+                                         mpis+0, NULL);
+          break;
+        case 2:
+          err = gcry_sexp_extract_param (sxp, tests[idx].path, tests[idx].list,
+                                         mpis+0, mpis+1, NULL);
+          break;
+        case 3:
+          err = gcry_sexp_extract_param (sxp, tests[idx].path, tests[idx].list,
+                                         mpis+0, mpis+1, mpis+2, NULL);
+          break;
+        case 4:
+          err = gcry_sexp_extract_param (sxp, tests[idx].path, tests[idx].list,
+                                         mpis+0, mpis+1, mpis+2, mpis+3, NULL);
+          break;
+        case 5:
+          err = gcry_sexp_extract_param (sxp, tests[idx].path, tests[idx].list,
+                                         mpis+0, mpis+1, mpis+2, mpis+3, mpis+4,
+                                         NULL);
+          break;
+        case 6:
+          err = gcry_sexp_extract_param (sxp, tests[idx].path, tests[idx].list,
+                                         mpis+0, mpis+1, mpis+2, mpis+3, mpis+4,
+                                         mpis+5, NULL);
+          break;
+        case 7:
+          err = gcry_sexp_extract_param (sxp, tests[idx].path, tests[idx].list,
+                                         mpis+0, mpis+1, mpis+2, mpis+3, mpis+4,
+                                         mpis+5, mpis+6, NULL);
+          break;
+        default:
+          die ("test %d: internal error", idx);
+        }
+
+      if (tests[idx].expected_err
+          && tests[idx].expected_err != GPG_ERR_USER_1)
+        {
+          if (tests[idx].expected_err != gpg_err_code (err))
+            fail ("gcry_sexp_extract_param test %d failed: "
+                  "expected error '%s' - got '%s'", idx,
+                  gpg_strerror (tests[idx].expected_err),gpg_strerror (err));
+
+        }
+      else if (err)
+        {
+          fail ("gcry_sexp_extract_param test %d failed: %s",
+                idx, gpg_strerror (err));
+        }
+      else /* No error - check the extracted values.  */
+        {
+          for (paramidx=0; paramidx < DIM (mpis); paramidx++)
+            {
+              switch (paramidx)
+                {
+                case 0: paramstr = tests[idx].exp_p; break;
+                case 1: paramstr = tests[idx].exp_a; break;
+                case 2: paramstr = tests[idx].exp_b; break;
+                case 3: paramstr = tests[idx].exp_g; break;
+                case 4: paramstr = tests[idx].exp_n; break;
+                case 5: paramstr = tests[idx].exp_q; break;
+                case 6: paramstr = tests[idx].exp_d; break;
+                default:
+                  die ("test %d: internal error: bad param %d",
+                       idx, paramidx);
+                }
+
+              if (tests[idx].expected_err == GPG_ERR_USER_1
+                  && mpis[paramidx] && !paramstr && paramidx == 0)
+                ; /* Okay  Special case error for param 0.  */
+              else if (!mpis[paramidx] && !paramstr)
+                ; /* Okay.  */
+              else if (!mpis[paramidx] && paramstr)
+                fail ("test %d: value for param %d expected but not returned",
+                      idx, paramidx);
+              else if (mpis[paramidx] && !paramstr)
+                fail ("test %d: value for param %d not expected",
+                      idx, paramidx);
+              else if (cmp_mpihex (mpis[paramidx], paramstr))
+                {
+                  fail ("test %d: param %d mismatch", idx, paramidx);
+                  gcry_log_debug    ("expected: %s\n", paramstr);
+                  gcry_log_debugmpi ("     got", mpis[paramidx]);
+                }
+              else if (tests[idx].expected_err && paramidx == 0)
+                fail ("test %d: param %d: expected error '%s' - got 'Success'",
+                      idx, paramidx, gpg_strerror (tests[idx].expected_err));
+            }
+
+        }
+
+      for (i=0; i < DIM (mpis); i++)
+        gcry_mpi_release (mpis[i]);
+      gcry_sexp_release (sxp);
+    }
+
+  info ("checking gcry_sexp_extract_param/desc\n");
+
+  memset (ioarray, 0, sizeof ioarray);
+
+  err = gcry_sexp_new (&sxp, sample1, 0, 1);
+  if (err)
+    die ("converting string to sexp failed: %s", gpg_strerror (err));
+
+  ioarray[1].size = sizeof iobuffer;
+  ioarray[1].data = iobuffer;
+  ioarray[1].off  = 0;
+  ioarray[2].size = sizeof iobuffer;
+  ioarray[2].data = iobuffer;
+  ioarray[2].off  = 50;
+  assert (ioarray[2].off < sizeof iobuffer);
+  err = gcry_sexp_extract_param (sxp, "key-data!private-key", "&pab",
+                                 ioarray+0, ioarray+1, ioarray+2, NULL);
+  if (err)
+    fail ("gcry_sexp_extract_param with desc failed: %s", gpg_strerror (err));
+  else
+    {
+      if (!ioarray[0].data)
+        fail ("gcry_sexp_extract_param/desc failed: no P");
+      else if (ioarray[0].size != 32)
+        fail ("gcry_sexp_extract_param/desc failed: P has wrong size");
+      else if (ioarray[0].len != 32)
+        fail ("gcry_sexp_extract_param/desc failed: P has wrong length");
+      else if (ioarray[0].off)
+        fail ("gcry_sexp_extract_param/desc failed: P has OFF set");
+      else if (cmp_bufhex (ioarray[0].data, ioarray[0].len, sample1_p))
+        {
+          fail ("gcry_sexp_extract_param/desc failed: P mismatch");
+          gcry_log_debug    ("expected: %s\n", sample1_p);
+          gcry_log_debughex ("     got", ioarray[0].data, ioarray[0].len);
+        }
+
+      if (!ioarray[1].data)
+        fail ("gcry_sexp_extract_param/desc failed: A buffer lost");
+      else if (ioarray[1].size != sizeof iobuffer)
+        fail ("gcry_sexp_extract_param/desc failed: A size changed");
+      else if (ioarray[1].off != 0)
+        fail ("gcry_sexp_extract_param/desc failed: A off changed");
+      else if (ioarray[1].len != 1)
+        fail ("gcry_sexp_extract_param/desc failed: A has wrong length");
+      else if (cmp_bufhex (ioarray[1].data + ioarray[1].off, ioarray[1].len,
+                           sample1_a))
+        {
+          fail ("gcry_sexp_extract_param/desc failed: A mismatch");
+          gcry_log_debug    ("expected: %s\n", sample1_a);
+          gcry_log_debughex ("     got",
+                             ioarray[1].data + ioarray[1].off, ioarray[1].len);
+        }
+
+      if (!ioarray[2].data)
+        fail ("gcry_sexp_extract_param/desc failed: B buffer lost");
+      else if (ioarray[2].size != sizeof iobuffer)
+        fail ("gcry_sexp_extract_param/desc failed: B size changed");
+      else if (ioarray[2].off != 50)
+        fail ("gcry_sexp_extract_param/desc failed: B off changed");
+      else if (ioarray[2].len != 32)
+        fail ("gcry_sexp_extract_param/desc failed: B has wrong length");
+      else if (cmp_bufhex (ioarray[2].data + ioarray[2].off, ioarray[2].len,
+                           sample1_b))
+        {
+          fail ("gcry_sexp_extract_param/desc failed: B mismatch");
+          gcry_log_debug    ("expected: %s\n", sample1_b);
+          gcry_log_debughex ("     got",
+                             ioarray[2].data + ioarray[2].off, ioarray[2].len);
+        }
+
+      xfree (ioarray[0].data);
+    }
+
+  gcry_sexp_release (sxp);
+}
 
 
 int
@@ -472,6 +981,7 @@ main (int argc, char **argv)
   canon_len ();
   back_and_forth ();
   check_sscan ();
+  check_extract_param ();
 
   return error_count? 1:0;
 }

@@ -956,9 +956,9 @@ dsa_check_secret_key (gcry_sexp_t keyparms)
   gcry_err_code_t rc;
   DSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL};
 
-  rc = _gcry_pk_util_extract_mpis (keyparms, "pqgyx",
-                                   &sk.p, &sk.q, &sk.g, &sk.y, &sk.x,
-                                   NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "pqgyx",
+                                 &sk.p, &sk.q, &sk.g, &sk.y, &sk.x,
+                                 NULL);
   if (rc)
     goto leave;
 
@@ -998,8 +998,8 @@ dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     log_mpidump ("dsa_sign   data", data);
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (keyparms, "pqgyx",
-                                   &sk.p, &sk.q, &sk.g, &sk.y, &sk.x, NULL);
+  rc = _gcry_sexp_extract_param (keyparms, NULL, "pqgyx",
+                                 &sk.p, &sk.q, &sk.g, &sk.y, &sk.x, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1065,7 +1065,7 @@ dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   rc = _gcry_pk_util_preparse_sigval (s_sig, dsa_names, &l1, NULL);
   if (rc)
     goto leave;
-  rc = _gcry_pk_util_extract_mpis (l1, "rs", &sig_r, &sig_s, NULL);
+  rc = _gcry_sexp_extract_param (l1, NULL, "rs", &sig_r, &sig_s, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1075,8 +1075,8 @@ dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_pk_util_extract_mpis (s_keyparms, "pqgy",
-                                   &pk.p, &pk.q, &pk.g, &pk.y, NULL);
+  rc = _gcry_sexp_extract_param (s_keyparms, NULL, "pqgy",
+                                 &pk.p, &pk.q, &pk.g, &pk.y, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)

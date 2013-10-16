@@ -35,13 +35,13 @@ Noteworthy changes in version 1.6.0 (unreleased)
 
  * Added a scatter gather hash convenience function.
 
- * Added several MPI helper functions.
+ * Added several MPI amd SEXP helper functions.
 
  * Added support for negative numbers to gcry_mpi_print,
    gcry_mpi_aprint and gcry_mpi_scan.
 
  * The algorithm ids GCRY_PK_ECDSA and GCRY_PK_ECDH are now
-   deprecated.  Use GCRY_PK_ECC instead.
+   deprecated.  Use GCRY_PK_ECC if you need an algorithm id.
 
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -108,6 +108,7 @@ Noteworthy changes in version 1.6.0 (unreleased)
  GCRYCTL_DISABLE_PRIV_DROP       NEW.
  GCRY_CIPHER_SALSA20             NEW.
  gcry_sexp_nth_buffer            NEW.
+ gcry_sexp_extract_param         NEW.
  GCRY_CIPHER_SALSA20R12          NEW.
  GCRY_CIPHER_GOST28147           NEW.
  GCRY_MD_GOSTR3411_94            NEW.
