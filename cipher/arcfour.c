@@ -34,14 +34,39 @@
 static const char *selftest(void);
 
 typedef struct {
-    int idx_i, idx_j;
     byte sbox[256];
+    int idx_i, idx_j;
 } ARCFOUR_context;
 
 static void
 do_encrypt_stream( ARCFOUR_context *ctx,
 		   byte *outbuf, const byte *inbuf, unsigned int length )
 {
+#ifndef __i386__
+  register unsigned int i = ctx->idx_i;
+  register byte j = ctx->idx_j;
+  register byte *sbox = ctx->sbox;
+  register byte t, u;
+
+  while ( length-- )
+    {
+      i++;
+      t = sbox[(byte)i];
+      j += t;
+      u = sbox[j];
+      sbox[(byte)i] = u;
+      u += t;
+      sbox[j] = t;
+      *outbuf++ = sbox[u] ^ *inbuf++;
+    }
+
+  ctx->idx_i = (byte)i;
+  ctx->idx_j = (byte)j;
+#else /*__i386__*/
+  /* Old implementation of arcfour is faster on i386 than the version above.
+   * This is because version above increases register pressure which on i386
+   * would push some of the variables to memory/stack.  Therefore keep this
+   * version for i386 to avoid regressing performance.  */
   register int i = ctx->idx_i;
   register int j = ctx->idx_j;
   register byte *sbox = ctx->sbox;
@@ -59,6 +84,7 @@ do_encrypt_stream( ARCFOUR_context *ctx,
 
   ctx->idx_i = i;
   ctx->idx_j = j;
+#endif
 }
 
 static void
@@ -96,17 +122,21 @@ do_arcfour_setkey (void *context, const byte *key, unsigned int keylen)
   ctx->idx_i = ctx->idx_j = 0;
   for (i=0; i < 256; i++ )
     ctx->sbox[i] = i;
-  for (i=0; i < 256; i++ )
-    karr[i] = key[i%keylen];
+  for (i=j=0; i < 256; i++,j++ )
+    {
+      if (j >= keylen)
+        j = 0;
+      karr[i] = key[j];
+    }
   for (i=j=0; i < 256; i++ )
     {
       int t;
-      j = (j + ctx->sbox[i] + karr[i]) % 256;
+      j = (j + ctx->sbox[i] + karr[i]) & 255;
       t = ctx->sbox[i];
       ctx->sbox[i] = ctx->sbox[j];
       ctx->sbox[j] = t;
     }
-  memset( karr, 0, 256 );
+  wipememory( karr, sizeof(karr) );
 
   return GPG_ERR_NO_ERROR;
 }
