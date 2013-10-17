@@ -47,7 +47,6 @@ void
 _gcry_mpi_mod (gcry_mpi_t rem, gcry_mpi_t dividend, gcry_mpi_t divisor)
 {
   _gcry_mpi_fdiv_r (rem, dividend, divisor);
-  rem->sign = 0;
 }
 
 
