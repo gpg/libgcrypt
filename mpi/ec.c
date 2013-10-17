@@ -1216,8 +1216,23 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
   switch (ctx->model)
     {
     case MPI_EC_WEIERSTRASS:
-      log_fatal ("%s: %s not yet supported\n",
-                 "_gcry_mpi_ec_curve_point", "Weierstrass");
+      {
+        gcry_mpi_t xx = mpi_new (0);
+
+        /* y^2 == x^3 + a·x^2 + b */
+        ec_pow2 (y, y, ctx);
+
+        ec_pow2 (xx, x, ctx);
+        ec_mulm (w, ctx->a, xx, ctx);
+        ec_addm (w, w, ctx->b, ctx);
+        ec_mulm (xx, xx, x, ctx);
+        ec_addm (w, w, xx, ctx);
+
+        if (!mpi_cmp (y, w))
+          res = 1;
+
+        gcry_mpi_release (xx);
+      }
       break;
     case MPI_EC_MONTGOMERY:
       log_fatal ("%s: %s not yet supported\n",
