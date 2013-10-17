@@ -1568,7 +1568,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 
   if (ed25519_with_ecdsa)
     {
-      rc = gcry_sexp_build (&curve_info, NULL, "(flags ecdsa)");
+      rc = gcry_sexp_build (&curve_flags, NULL, "(flags ecdsa)");
       if (rc)
         goto leave;
     }
@@ -1613,6 +1613,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   mpi_free (x);
   mpi_free (y);
   _gcry_mpi_ec_free (ctx);
+  gcry_sexp_release (curve_flags);
   gcry_sexp_release (curve_info);
   return rc;
 }
