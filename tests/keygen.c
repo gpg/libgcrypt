@@ -470,6 +470,19 @@ progress_cb (void *cb_data, const char *what, int printchar,
 }
 
 
+static void
+usage (int mode)
+{
+  fputs ("usage: " PGM " [options] [{rsa|elg|dsa|ecc|nonce}]\n"
+         "Options:\n"
+         "  --verbose       be verbose\n"
+         "  --debug         flyswatter\n"
+         "  --progress      print progress indicators\n",
+         mode? stderr : stdout);
+  if (mode)
+    exit (1);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -489,12 +502,7 @@ main (int argc, char **argv)
         }
       else if (!strcmp (*argv, "--help"))
         {
-          fputs ("usage: " PGM " [options]\n"
-                 "Options:\n"
-                 "  --verbose       be verbose\n"
-                 "  --debug         flyswatter\n"
-                 "  --progress      print progress indicators\n",
-                 stdout);
+          usage (0);
           exit (0);
         }
       else if (!strcmp (*argv, "--verbose"))
@@ -515,6 +523,8 @@ main (int argc, char **argv)
         }
       else if (!strncmp (*argv, "--", 2))
         die ("unknown option '%s'", *argv);
+      else
+        break;
     }
 
   if (!gcry_check_version (GCRYPT_VERSION))
@@ -528,11 +538,30 @@ main (int argc, char **argv)
   if (with_progress)
     gcry_set_progress_handler (progress_cb, NULL);
 
-  check_rsa_keys ();
-  check_elg_keys ();
-  check_dsa_keys ();
-  check_ecc_keys ();
-  check_nonce ();
+  if (!argc)
+    {
+      check_rsa_keys ();
+      check_elg_keys ();
+      check_dsa_keys ();
+      check_ecc_keys ();
+      check_nonce ();
+    }
+  else
+    {
+      for (; argc; argc--, argv++)
+        if (!strcmp (*argv, "rsa"))
+          check_rsa_keys ();
+        else if (!strcmp (*argv, "elg"))
+          check_elg_keys ();
+        else if (!strcmp (*argv, "dsa"))
+          check_dsa_keys ();
+        else if (!strcmp (*argv, "ecc"))
+          check_ecc_keys ();
+        else if (!strcmp (*argv, "nonce"))
+          check_nonce ();
+        else
+          usage (1);
+    }
 
   return error_count? 1:0;
 }
