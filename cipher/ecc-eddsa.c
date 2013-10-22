@@ -50,12 +50,12 @@ reverse_buffer (unsigned char *buffer, unsigned int length)
 static gcry_mpi_t
 scanval (const char *string)
 {
-  gpg_error_t err;
+  gpg_err_code_t rc;
   gcry_mpi_t val;
 
-  err = gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
-  if (err)
-    log_fatal ("scanning ECC parameter failed: %s\n", gpg_strerror (err));
+  rc = _gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
+  if (rc)
+    log_fatal ("scanning ECC parameter failed: %s\n", gpg_strerror (rc));
   return val;
 }
 
@@ -150,7 +150,7 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
 
   if (!mpi_is_opaque (value))
     return GPG_ERR_INV_OBJ;
-  buf = gcry_mpi_get_opaque (value, &rawmpilen);
+  buf = mpi_get_opaque (value, &rawmpilen);
   if (!buf)
     return GPG_ERR_INV_OBJ;
   rawmpilen = (rawmpilen + 7)/8;
@@ -159,12 +159,12 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
      uncompressed format.  In this case extract y and compress.  */
   if (rawmpilen > 1 && buf[0] == 0x04 && (rawmpilen%2))
     {
-      rc = gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
-                          buf+1, (rawmpilen-1)/2, NULL);
+      rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
+                           buf+1, (rawmpilen-1)/2, NULL);
       if (rc)
         return rc;
-      rc = gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
-                          buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
+      rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
+                           buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
       if (rc)
         {
           mpi_free (x);
@@ -177,7 +177,7 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
       if (rc)
         return rc;
 
-      gcry_mpi_set_opaque (value, enc, 8*enclen);
+      mpi_set_opaque (value, enc, 8*enclen);
     }
 
   return 0;
@@ -233,7 +233,7 @@ _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
   mpi_mulm (t, x, x, ec->p);
   mpi_mulm (t, t, v, ec->p);
   /* -t == u ? x = x * sqrt(-1) */
-  gcry_mpi_neg (t, t);
+  mpi_neg (t, t);
   if (!mpi_cmp (t, u))
     {
       static gcry_mpi_t m1;  /* Fixme: this is not thread-safe.  */
@@ -245,7 +245,7 @@ _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
       mpi_mulm (t, x, x, ec->p);
       mpi_mulm (t, t, v, ec->p);
       /* -t == u ? x = x * sqrt(-1) */
-      gcry_mpi_neg (t, t);
+      mpi_neg (t, t);
       if (!mpi_cmp (t, u))
         rc = GPG_ERR_INV_OBJ;
     }
@@ -282,7 +282,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
     {
       const unsigned char *buf;
 
-      buf = gcry_mpi_get_opaque (pk, &rawmpilen);
+      buf = mpi_get_opaque (pk, &rawmpilen);
       if (!buf)
         return GPG_ERR_INV_OBJ;
       rawmpilen = (rawmpilen + 7)/8;
@@ -295,12 +295,12 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
         {
           gcry_mpi_t x, y;
 
-          rc = gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
-                              buf+1, (rawmpilen-1)/2, NULL);
+          rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
+                               buf+1, (rawmpilen-1)/2, NULL);
           if (rc)
             return rc;
-          rc = gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
-                              buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
+          rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
+                               buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
           if (rc)
             {
               mpi_free (x);
@@ -397,7 +397,7 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
       goto leave;
     }
   dlen = b;
-  dbuf = gcry_random_bytes_secure (dlen, random_level);
+  dbuf = _gcry_random_bytes_secure (dlen, random_level);
 
   /* Compute the A value.  */
   hvec[0].data = dbuf;
@@ -433,9 +433,9 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
 
  leave:
   point_free (&Q);
-  gcry_mpi_release (a);
-  gcry_mpi_release (x);
-  gcry_mpi_release (y);
+  _gcry_mpi_release (a);
+  _gcry_mpi_release (x);
+  _gcry_mpi_release (y);
   gcry_free (hash_d);
   return rc;
 }
@@ -554,7 +554,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
     }
 
   /* Compute R.  */
-  mbuf = gcry_mpi_get_opaque (input, &tmp);
+  mbuf = mpi_get_opaque (input, &tmp);
   mlen = (tmp +7)/8;
   if (DBG_CIPHER)
     log_printhex ("     m", mbuf, mlen);
@@ -597,7 +597,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
     goto leave;
 
   /* No more need for RAWMPI thus we now transfer it to R_R.  */
-  gcry_mpi_set_opaque (r_r, rawmpi, rawmpilen*8);
+  mpi_set_opaque (r_r, rawmpi, rawmpilen*8);
   rawmpi = NULL;
 
   reverse_buffer (digest, 64);
@@ -611,16 +611,16 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
     goto leave;
   if (DBG_CIPHER)
     log_printhex ("   e_s", rawmpi, rawmpilen);
-  gcry_mpi_set_opaque (s, rawmpi, rawmpilen*8);
+  mpi_set_opaque (s, rawmpi, rawmpilen*8);
   rawmpi = NULL;
 
   rc = 0;
 
  leave:
-  gcry_mpi_release (a);
-  gcry_mpi_release (x);
-  gcry_mpi_release (y);
-  gcry_mpi_release (r);
+  _gcry_mpi_release (a);
+  _gcry_mpi_release (x);
+  _gcry_mpi_release (y);
+  _gcry_mpi_release (r);
   gcry_free (digest);
   _gcry_mpi_ec_free (ctx);
   point_free (&I);
@@ -691,11 +691,11 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
     }
 
   /* Convert the other input parameters.  */
-  mbuf = gcry_mpi_get_opaque (input, &tmp);
+  mbuf = mpi_get_opaque (input, &tmp);
   mlen = (tmp +7)/8;
   if (DBG_CIPHER)
     log_printhex ("     m", mbuf, mlen);
-  rbuf = gcry_mpi_get_opaque (r_in, &tmp);
+  rbuf = mpi_get_opaque (r_in, &tmp);
   rlen = (tmp +7)/8;
   if (DBG_CIPHER)
     log_printhex ("     r", rbuf, rlen);
@@ -763,8 +763,8 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
   gcry_free (encpk);
   gcry_free (tbuf);
   _gcry_mpi_ec_free (ctx);
-  gcry_mpi_release (s);
-  gcry_mpi_release (h);
+  _gcry_mpi_release (s);
+  _gcry_mpi_release (h);
   point_free (&Ia);
   point_free (&Ib);
   point_free (&Q);

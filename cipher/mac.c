@@ -140,7 +140,7 @@ spec_from_name (const char *name)
  * Map a string to the mac algo
  */
 int
-gcry_mac_map_name (const char *string)
+_gcry_mac_map_name (const char *string)
 {
   gcry_mac_spec_t *spec;
 
@@ -163,7 +163,7 @@ gcry_mac_map_name (const char *string)
  * is valid.
  */
 const char *
-gcry_mac_algo_name (int algorithm)
+_gcry_mac_algo_name (int algorithm)
 {
   gcry_mac_spec_t *spec;
 
@@ -310,87 +310,67 @@ mac_verify (gcry_mac_hd_t hd, const void *buf, size_t buflen)
 /* Create a MAC object for algorithm ALGO.  FLAGS may be
    given as an bitwise OR of the gcry_mac_flags values.
    H is guaranteed to be a valid handle or NULL on error.  */
-gcry_error_t
-gcry_mac_open (gcry_mac_hd_t * h, int algo, unsigned int flags,
-               gcry_ctx_t ctx)
+gpg_err_code_t
+_gcry_mac_open (gcry_mac_hd_t * h, int algo, unsigned int flags,
+                gcry_ctx_t ctx)
 {
-  gcry_err_code_t err;
+  gcry_err_code_t rc;
   gcry_mac_hd_t hd = NULL;
 
   if ((flags & ~GCRY_MAC_FLAG_SECURE))
-    err = GPG_ERR_INV_ARG;
+    rc = GPG_ERR_INV_ARG;
   else
-    err = mac_open (&hd, algo, !!(flags & GCRY_MAC_FLAG_SECURE), ctx);
+    rc = mac_open (&hd, algo, !!(flags & GCRY_MAC_FLAG_SECURE), ctx);
 
-  *h = err ? NULL : hd;
-  return gpg_error (err);
+  *h = rc ? NULL : hd;
+  return rc;
 }
 
 
 void
-gcry_mac_close (gcry_mac_hd_t hd)
+_gcry_mac_close (gcry_mac_hd_t hd)
 {
   mac_close (hd);
 }
 
 
-gcry_error_t
-gcry_mac_setkey (gcry_mac_hd_t hd, const void *key, size_t keylen)
+gcry_err_code_t
+_gcry_mac_setkey (gcry_mac_hd_t hd, const void *key, size_t keylen)
 {
-  gcry_error_t err;
-
-  err = mac_setkey (hd, key, keylen);
-
-  return gpg_error (err);
+  return mac_setkey (hd, key, keylen);
 }
 
 
-gcry_error_t
-gcry_mac_setiv (gcry_mac_hd_t hd, const void *iv, size_t ivlen)
+gcry_err_code_t
+_gcry_mac_setiv (gcry_mac_hd_t hd, const void *iv, size_t ivlen)
 {
-  gcry_error_t err;
-
-  err = mac_setiv (hd, iv, ivlen);
-
-  return gpg_error (err);
+  return mac_setiv (hd, iv, ivlen);
 }
 
 
-gcry_error_t
-gcry_mac_write (gcry_mac_hd_t hd, const void *inbuf, size_t inlen)
+gcry_err_code_t
+_gcry_mac_write (gcry_mac_hd_t hd, const void *inbuf, size_t inlen)
 {
-  gcry_err_code_t err;
-
-  err = mac_write (hd, inbuf, inlen);
-
-  return gpg_error (err);
+  return mac_write (hd, inbuf, inlen);
 }
 
 
-gcry_error_t
-gcry_mac_read (gcry_mac_hd_t hd, void *outbuf, size_t * outlen)
+gcry_err_code_t
+_gcry_mac_read (gcry_mac_hd_t hd, void *outbuf, size_t * outlen)
 {
-  gcry_error_t err;
-
-  err = mac_read (hd, outbuf, outlen);
-
-  return gpg_error (err);
+  return mac_read (hd, outbuf, outlen);
 }
 
 
-gcry_error_t
-gcry_mac_verify (gcry_mac_hd_t hd, const void *buf, size_t buflen)
+gcry_err_code_t
+_gcry_mac_verify (gcry_mac_hd_t hd, const void *buf, size_t buflen)
 {
-  gcry_err_code_t err;
-
-  err = mac_verify (hd, buf, buflen);
-
-  return gpg_error (err);
+  return mac_verify (hd, buf, buflen);
 }
 
 
 unsigned int
-gcry_mac_get_algo_maclen (int algo)
+_gcry_mac_get_algo_maclen (int algo)
 {
   gcry_mac_spec_t *spec;
 
@@ -403,7 +383,7 @@ gcry_mac_get_algo_maclen (int algo)
 
 
 unsigned int
-gcry_mac_get_algo_keylen (int algo)
+_gcry_mac_get_algo_keylen (int algo)
 {
   gcry_mac_spec_t *spec;
 
@@ -415,10 +395,10 @@ gcry_mac_get_algo_keylen (int algo)
 }
 
 
-gcry_error_t
-gcry_mac_ctl (gcry_mac_hd_t hd, int cmd, void *buffer, size_t buflen)
+gcry_err_code_t
+_gcry_mac_ctl (gcry_mac_hd_t hd, int cmd, void *buffer, size_t buflen)
 {
-  gcry_err_code_t rc = GPG_ERR_NO_ERROR;
+  gcry_err_code_t rc;
 
   /* Currently not used.  */
   (void) hd;
@@ -433,7 +413,7 @@ gcry_mac_ctl (gcry_mac_hd_t hd, int cmd, void *buffer, size_t buflen)
     default:
       rc = GPG_ERR_INV_OP;
     }
-  return gcry_error (rc);
+  return rc;
 }
 
 
@@ -449,37 +429,37 @@ gcry_mac_ctl (gcry_mac_hd_t hd, int cmd, void *buffer, size_t buflen)
    and thereby detecting whether a error occurred or not (i.e. while
    checking the block size)
  */
-gcry_error_t
-gcry_mac_algo_info (int algo, int what, void *buffer, size_t * nbytes)
+gcry_err_code_t
+_gcry_mac_algo_info (int algo, int what, void *buffer, size_t * nbytes)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t rc = 0;
   unsigned int ui;
 
   switch (what)
     {
     case GCRYCTL_GET_KEYLEN:
       if (buffer || (!nbytes))
-        err = GPG_ERR_INV_ARG;
+        rc = GPG_ERR_INV_ARG;
       else
         {
-          ui = gcry_mac_get_algo_keylen (algo);
+          ui = _gcry_mac_get_algo_keylen (algo);
           if (ui > 0)
             *nbytes = (size_t) ui;
           else
             /* The only reason for an error is an invalid algo.  */
-            err = GPG_ERR_MAC_ALGO;
+            rc = GPG_ERR_MAC_ALGO;
         }
       break;
     case GCRYCTL_TEST_ALGO:
       if (buffer || nbytes)
-        err = GPG_ERR_INV_ARG;
+        rc = GPG_ERR_INV_ARG;
       else
-        err = check_mac_algo (algo);
+        rc = check_mac_algo (algo);
       break;
 
     default:
-      err = GPG_ERR_INV_OP;
+      rc = GPG_ERR_INV_OP;
     }
 
-  return gcry_error (err);
+  return rc;
 }

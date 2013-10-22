@@ -115,21 +115,14 @@ void _gcry_mpi_immutable_failed (void);
 #define mpi_is_secure(a)      ((a) && ((a)->flags&1))
 #define mpi_clear(a)          _gcry_mpi_clear ((a))
 #define mpi_alloc_like(a)     _gcry_mpi_alloc_like((a))
-#define mpi_snatch(a,b)       _gcry_mpi_snatch ((a),(b))
-#define mpi_set(a,b)          _gcry_mpi_set ((a),(b))
-#define mpi_set_ui(a,b)       _gcry_mpi_set_ui ((a),(b))
-#define mpi_get_ui(a,b)       _gcry_mpi_get_ui ((a),(b))
+
 #define mpi_alloc_set_ui(a)   _gcry_mpi_alloc_set_ui ((a))
 #define mpi_m_check(a)        _gcry_mpi_m_check ((a))
-#define mpi_swap(a,b)         _gcry_mpi_swap ((a),(b))
-#define mpi_new(n)            _gcry_mpi_new ((n))
-#define mpi_snew(n)           _gcry_mpi_snew ((n))
 #define mpi_const(n)          _gcry_mpi_const ((n))
 
 void _gcry_mpi_clear( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_like( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_set_ui( unsigned long u);
-gcry_err_code_t _gcry_mpi_get_ui (gcry_mpi_t w, ulong *u);
 void _gcry_mpi_m_check( gcry_mpi_t a );
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
 gcry_mpi_t _gcry_mpi_new (unsigned int nbits);
@@ -171,22 +164,6 @@ gpg_err_code_t _gcry_mpi_to_octet_string (unsigned char **r_frame,
                                           void *space,
                                           gcry_mpi_t value, size_t nbytes);
 
-/*-- mpi-add.c --*/
-#define mpi_add_ui(w,u,v) gcry_mpi_add_ui((w),(u),(v))
-#define mpi_add(w,u,v)    gcry_mpi_add ((w),(u),(v))
-#define mpi_addm(w,u,v,m) gcry_mpi_addm ((w),(u),(v),(m))
-#define mpi_sub_ui(w,u,v) gcry_mpi_sub_ui ((w),(u),(v))
-#define mpi_sub(w,u,v)    gcry_mpi_sub ((w),(u),(v))
-#define mpi_subm(w,u,v,m) gcry_mpi_subm ((w),(u),(v),(m))
-
-
-/*-- mpi-mul.c --*/
-#define mpi_mul_ui(w,u,v)   gcry_mpi_mul_ui ((w),(u),(v))
-#define mpi_mul_2exp(w,u,v) gcry_mpi_mul_2exp ((w),(u),(v))
-#define mpi_mul(w,u,v)      gcry_mpi_mul ((w),(u),(v))
-#define mpi_mulm(w,u,v,m)   gcry_mpi_mulm ((w),(u),(v),(m))
-
-
 /*-- mpi-div.c --*/
 #define mpi_fdiv_r_ui(a,b,c)   _gcry_mpi_fdiv_r_ui((a),(b),(c))
 #define mpi_fdiv_r(a,b,c)      _gcry_mpi_fdiv_r((a),(b),(c))
@@ -208,13 +185,10 @@ int   _gcry_mpi_divisible_ui(gcry_mpi_t dividend, ulong divisor );
 
 
 /*-- mpi-mod.c --*/
-#define mpi_mod(r,a,m)            _gcry_mpi_mod ((r), (a), (m))
 #define mpi_barrett_init(m,f)     _gcry_mpi_barrett_init ((m),(f))
 #define mpi_barrett_free(c)       _gcry_mpi_barrett_free ((c))
 #define mpi_mod_barrett(r,a,c)    _gcry_mpi_mod_barrett ((r), (a), (c))
 #define mpi_mul_barrett(r,u,v,c)  _gcry_mpi_mul_barrett ((r), (u), (v), (c))
-
-void _gcry_mpi_mod (gcry_mpi_t r, gcry_mpi_t dividend, gcry_mpi_t divisor);
 
 /* Context used with Barrett reduction.  */
 struct barrett_ctx_s;
@@ -227,18 +201,9 @@ void _gcry_mpi_mul_barrett (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v,
                             mpi_barrett_t ctx);
 
 
-
-/*-- mpi-gcd.c --*/
-
 /*-- mpi-mpow.c --*/
 #define mpi_mulpowm(a,b,c,d) _gcry_mpi_mulpowm ((a),(b),(c),(d))
 void _gcry_mpi_mulpowm( gcry_mpi_t res, gcry_mpi_t *basearray, gcry_mpi_t *exparray, gcry_mpi_t mod);
-
-/*-- mpi-cmp.c --*/
-#define mpi_cmp_ui(a,b) gcry_mpi_cmp_ui ((a),(b))
-#define mpi_cmp(a,b)    gcry_mpi_cmp ((a),(b))
-int gcry_mpi_cmp_ui( gcry_mpi_t u, ulong v );
-int gcry_mpi_cmp( gcry_mpi_t u, gcry_mpi_t v );
 
 /*-- mpi-scan.c --*/
 #define mpi_trailing_zeros(a) _gcry_mpi_trailing_zeros ((a))
@@ -248,19 +213,8 @@ unsigned _gcry_mpi_trailing_zeros( gcry_mpi_t a );
 
 /*-- mpi-bit.c --*/
 #define mpi_normalize(a)       _gcry_mpi_normalize ((a))
-#define mpi_get_nbits(a)       gcry_mpi_get_nbits ((a))
-#define mpi_test_bit(a,b)      gcry_mpi_test_bit ((a),(b))
-#define mpi_set_bit(a,b)       gcry_mpi_set_bit ((a),(b))
-#define mpi_set_highbit(a,b)   gcry_mpi_set_highbit ((a),(b))
-#define mpi_clear_bit(a,b)     gcry_mpi_clear_bit ((a),(b))
-#define mpi_clear_highbit(a,b) gcry_mpi_clear_highbit ((a),(b))
-#define mpi_rshift(a,b,c)      gcry_mpi_rshift ((a),(b),(c))
-#define mpi_lshift(a,b,c)      gcry_mpi_lshift ((a),(b),(c))
 
 void _gcry_mpi_normalize( gcry_mpi_t a );
-
-/*-- mpi-inv.c --*/
-#define mpi_invm(a,b,c) _gcry_mpi_invm ((a),(b),(c))
 
 /*-- ec.c --*/
 
@@ -303,10 +257,6 @@ enum ecc_dialects
   };
 
 
-/* Context used with elliptic curve functions.  */
-struct mpi_ec_ctx_s;
-typedef struct mpi_ec_ctx_s *mpi_ec_t;
-
 void _gcry_mpi_point_log (const char *name, mpi_point_t point, mpi_ec_t ctx);
 #define log_printpnt(a,p,c) _gcry_mpi_point_log ((a), (p), (c))
 
@@ -321,8 +271,6 @@ gpg_err_code_t _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
                                    gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b);
 void _gcry_mpi_ec_free (mpi_ec_t ctx);
 
-int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
-                             mpi_ec_t ctx);
 void _gcry_mpi_ec_dup_point (mpi_point_t result,
                              mpi_point_t point, mpi_ec_t ctx);
 void _gcry_mpi_ec_add_points (mpi_point_t result,

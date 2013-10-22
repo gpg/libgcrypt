@@ -104,7 +104,7 @@ _gcry_ecc_dialect2str (enum ecc_dialects dialect)
 gcry_mpi_t
 _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
 {
-  gpg_error_t err;
+  gpg_err_code_t rc;
   int pbytes = (mpi_get_nbits (p)+7)/8;
   size_t n;
   unsigned char *buf, *ptr;
@@ -113,27 +113,27 @@ _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
   buf = gcry_xmalloc ( 1 + 2*pbytes );
   *buf = 04; /* Uncompressed point.  */
   ptr = buf+1;
-  err = gcry_mpi_print (GCRYMPI_FMT_USG, ptr, pbytes, &n, x);
-  if (err)
-    log_fatal ("mpi_print failed: %s\n", gpg_strerror (err));
+  rc = _gcry_mpi_print (GCRYMPI_FMT_USG, ptr, pbytes, &n, x);
+  if (rc)
+    log_fatal ("mpi_print failed: %s\n", gpg_strerror (rc));
   if (n < pbytes)
     {
       memmove (ptr+(pbytes-n), ptr, n);
       memset (ptr, 0, (pbytes-n));
     }
   ptr += pbytes;
-  err = gcry_mpi_print (GCRYMPI_FMT_USG, ptr, pbytes, &n, y);
-  if (err)
-    log_fatal ("mpi_print failed: %s\n", gpg_strerror (err));
+  rc = _gcry_mpi_print (GCRYMPI_FMT_USG, ptr, pbytes, &n, y);
+  if (rc)
+    log_fatal ("mpi_print failed: %s\n", gpg_strerror (rc));
   if (n < pbytes)
     {
       memmove (ptr+(pbytes-n), ptr, n);
       memset (ptr, 0, (pbytes-n));
     }
 
-  err = gcry_mpi_scan (&result, GCRYMPI_FMT_USG, buf, 1+2*pbytes, NULL);
-  if (err)
-    log_fatal ("mpi_scan failed: %s\n", gpg_strerror (err));
+  rc = _gcry_mpi_scan (&result, GCRYMPI_FMT_USG, buf, 1+2*pbytes, NULL);
+  if (rc)
+    log_fatal ("mpi_scan failed: %s\n", gpg_strerror (rc));
   gcry_free (buf);
 
   return result;
@@ -163,10 +163,10 @@ _gcry_mpi_ec_ec2os (gcry_mpi_point_t point, mpi_ec_t ectx)
 
 /* RESULT must have been initialized and is set on success to the
    point given by VALUE.  */
-gcry_error_t
+gcry_err_code_t
 _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
 {
-  gcry_error_t err;
+  gcry_err_code_t rc;
   size_t n;
   const unsigned char *buf;
   unsigned char *buf_memory;
@@ -176,7 +176,7 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
     {
       unsigned int nbits;
 
-      buf = gcry_mpi_get_opaque (value, &nbits);
+      buf = mpi_get_opaque (value, &nbits);
       if (!buf)
         return GPG_ERR_INV_OBJ;
       n = (nbits + 7)/8;
@@ -186,11 +186,11 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
     {
       n = (mpi_get_nbits (value)+7)/8;
       buf_memory= gcry_xmalloc (n);
-      err = gcry_mpi_print (GCRYMPI_FMT_USG, buf_memory, n, &n, value);
-      if (err)
+      rc = _gcry_mpi_print (GCRYMPI_FMT_USG, buf_memory, n, &n, value);
+      if (rc)
         {
           gcry_free (buf_memory);
-          return err;
+          return rc;
         }
       buf = buf_memory;
     }
@@ -211,18 +211,18 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
       return GPG_ERR_INV_OBJ;
     }
   n = (n-1)/2;
-  err = gcry_mpi_scan (&x, GCRYMPI_FMT_USG, buf+1, n, NULL);
-  if (err)
+  rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_USG, buf+1, n, NULL);
+  if (rc)
     {
       gcry_free (buf_memory);
-      return err;
+      return rc;
     }
-  err = gcry_mpi_scan (&y, GCRYMPI_FMT_USG, buf+1+n, n, NULL);
+  rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_USG, buf+1+n, n, NULL);
   gcry_free (buf_memory);
-  if (err)
+  if (rc)
     {
       mpi_free (x);
-      return err;
+      return rc;
     }
 
   mpi_set (result->x, x);
@@ -316,7 +316,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
 
       /* And finally the public key.  */
       if (!Q)
-        Q = gcry_mpi_point_new (0);
+        Q = mpi_point_new (0);
       if (Q)
         _gcry_mpi_ec_mul_point (Q, a, G, ec);
       mpi_free (a);
@@ -324,7 +324,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
   else
     {
       if (!Q)
-        Q = gcry_mpi_point_new (0);
+        Q = mpi_point_new (0);
       if (Q)
         _gcry_mpi_ec_mul_point (Q, d, G, ec);
     }

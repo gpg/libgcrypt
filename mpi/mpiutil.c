@@ -259,7 +259,7 @@ mpi_set_secure( gcry_mpi_t a )
 
 
 gcry_mpi_t
-gcry_mpi_set_opaque( gcry_mpi_t a, void *p, unsigned int nbits )
+_gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits)
 {
   if (!a)
     a = mpi_alloc(0);
@@ -298,12 +298,12 @@ _gcry_mpi_set_opaque_copy (gcry_mpi_t a, const void *p, unsigned int nbits)
   if (!d)
     return NULL;
   memcpy (d, p, n);
-  return gcry_mpi_set_opaque (a, d, nbits);
+  return mpi_set_opaque (a, d, nbits);
 }
 
 
 void *
-gcry_mpi_get_opaque( gcry_mpi_t a, unsigned int *nbits )
+_gcry_mpi_get_opaque (gcry_mpi_t a, unsigned int *nbits)
 {
     if( !(a->flags & 4) )
 	log_bug("mpi_get_opaque on normal mpi\n");
@@ -320,7 +320,7 @@ _gcry_mpi_get_opaque_copy (gcry_mpi_t a, unsigned int *nbits)
   void *d;
   unsigned int n;
 
-  s = gcry_mpi_get_opaque (a, nbits);
+  s = mpi_get_opaque (a, nbits);
   if (!s && nbits)
     return NULL;
   n = (*nbits+7)/8;
@@ -335,7 +335,7 @@ _gcry_mpi_get_opaque_copy (gcry_mpi_t a, unsigned int *nbits)
  *	 but copy it transparently.
  */
 gcry_mpi_t
-gcry_mpi_copy( gcry_mpi_t a )
+_gcry_mpi_copy (gcry_mpi_t a)
 {
     int i;
     gcry_mpi_t b;
@@ -344,7 +344,7 @@ gcry_mpi_copy( gcry_mpi_t a )
 	void *p = gcry_is_secure(a->d)? gcry_xmalloc_secure( (a->sign+7)/8 )
 				     : gcry_xmalloc( (a->sign+7)/8 );
 	memcpy( p, a->d, (a->sign+7)/8 );
-	b = gcry_mpi_set_opaque( NULL, p, a->sign );
+	b = mpi_set_opaque( NULL, p, a->sign );
         b->flags &= ~(16|32); /* Reset the immutable and constant flags.  */
     }
     else if( a ) {
@@ -419,7 +419,7 @@ _gcry_mpi_alloc_like( gcry_mpi_t a )
 	void *p = gcry_is_secure(a->d)? gcry_malloc_secure( n )
 				     : gcry_malloc( n );
 	memcpy( p, a->d, n );
-	b = gcry_mpi_set_opaque( NULL, p, a->sign );
+	b = mpi_set_opaque( NULL, p, a->sign );
     }
     else if( a ) {
 	b = mpi_is_secure(a)? mpi_alloc_secure( a->nlimbs )
@@ -436,7 +436,7 @@ _gcry_mpi_alloc_like( gcry_mpi_t a )
 
 /* Set U into W and release U.  If W is NULL only U will be released. */
 void
-gcry_mpi_snatch (gcry_mpi_t w, gcry_mpi_t u)
+_gcry_mpi_snatch (gcry_mpi_t w, gcry_mpi_t u)
 {
   if (w)
     {
@@ -458,7 +458,7 @@ gcry_mpi_snatch (gcry_mpi_t w, gcry_mpi_t u)
 
 
 gcry_mpi_t
-gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u)
+_gcry_mpi_set (gcry_mpi_t w, gcry_mpi_t u)
 {
   mpi_ptr_t wp, up;
   mpi_size_t usize = u->nlimbs;
@@ -484,7 +484,7 @@ gcry_mpi_set( gcry_mpi_t w, gcry_mpi_t u)
 
 
 gcry_mpi_t
-gcry_mpi_set_ui( gcry_mpi_t w, unsigned long u)
+_gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u)
 {
   if (!w)
     w = _gcry_mpi_alloc (1);
@@ -522,15 +522,6 @@ _gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u)
   return err;
 }
 
-gcry_error_t
-gcry_mpi_get_ui (gcry_mpi_t w, unsigned long *u)
-{
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
-
-  err = _gcry_mpi_get_ui (w, u);
-
-  return gcry_error (err);
-}
 
 gcry_mpi_t
 _gcry_mpi_alloc_set_ui( unsigned long u)
@@ -543,7 +534,7 @@ _gcry_mpi_alloc_set_ui( unsigned long u)
 }
 
 void
-gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b)
+_gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b)
 {
     struct gcry_mpi tmp;
 
@@ -552,7 +543,7 @@ gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b)
 
 
 gcry_mpi_t
-gcry_mpi_new( unsigned int nbits )
+_gcry_mpi_new (unsigned int nbits)
 {
     return _gcry_mpi_alloc ( (nbits+BITS_PER_MPI_LIMB-1)
                              / BITS_PER_MPI_LIMB );
@@ -560,21 +551,21 @@ gcry_mpi_new( unsigned int nbits )
 
 
 gcry_mpi_t
-gcry_mpi_snew( unsigned int nbits )
+_gcry_mpi_snew (unsigned int nbits)
 {
   return _gcry_mpi_alloc_secure ( (nbits+BITS_PER_MPI_LIMB-1)
                                   / BITS_PER_MPI_LIMB );
 }
 
 void
-gcry_mpi_release( gcry_mpi_t a )
+_gcry_mpi_release( gcry_mpi_t a )
 {
     _gcry_mpi_free( a );
 }
 
 void
-gcry_mpi_randomize( gcry_mpi_t w,
-		    unsigned int nbits, enum gcry_random_level level )
+_gcry_mpi_randomize (gcry_mpi_t w,
+                     unsigned int nbits, enum gcry_random_level level)
 {
   unsigned char *p;
   size_t nbytes = (nbits+7)/8;
@@ -588,12 +579,12 @@ gcry_mpi_randomize( gcry_mpi_t w,
     {
       p = mpi_is_secure(w) ? gcry_xmalloc_secure (nbytes)
                            : gcry_xmalloc (nbytes);
-      gcry_create_nonce (p, nbytes);
+      _gcry_create_nonce (p, nbytes);
     }
   else
     {
-      p = mpi_is_secure(w) ? gcry_random_bytes_secure (nbytes, level)
-                           : gcry_random_bytes (nbytes, level);
+      p = mpi_is_secure(w) ? _gcry_random_bytes_secure (nbytes, level)
+                           : _gcry_random_bytes (nbytes, level);
     }
   _gcry_mpi_set_buffer( w, p, nbytes, 0 );
   gcry_free (p);
@@ -601,7 +592,7 @@ gcry_mpi_randomize( gcry_mpi_t w,
 
 
 void
-gcry_mpi_set_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
+_gcry_mpi_set_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 {
   switch (flag)
     {
@@ -620,7 +611,7 @@ gcry_mpi_set_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 }
 
 void
-gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
+_gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 {
   (void)a; /* Not yet used. */
 
@@ -646,7 +637,7 @@ gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 }
 
 int
-gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
+_gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
 {
   switch (flag)
     {

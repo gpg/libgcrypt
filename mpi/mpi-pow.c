@@ -46,8 +46,8 @@
  * RES = BASE ^ EXPO mod MOD
  */
 void
-gcry_mpi_powm (gcry_mpi_t res,
-               gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
+_gcry_mpi_powm (gcry_mpi_t res,
+                gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
 {
   /* Pointer to the limbs of the arguments, their size and signs. */
   mpi_ptr_t  rp, ep, mp, bp;
@@ -395,8 +395,8 @@ mul_mod (mpi_ptr_t xp, mpi_size_t *xsize_p,
  *       Algorithm 14.83: Modified left-to-right k-ary exponentiation
  */
 void
-gcry_mpi_powm (gcry_mpi_t res,
-               gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
+_gcry_mpi_powm (gcry_mpi_t res,
+                gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
 {
   /* Pointer to the limbs of the arguments, their size and signs. */
   mpi_ptr_t  rp, ep, mp, bp;

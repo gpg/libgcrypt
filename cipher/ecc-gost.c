@@ -41,7 +41,7 @@ gpg_err_code_t
 _gcry_ecc_gost_sign (gcry_mpi_t input, ECC_secret_key *skey,
                      gcry_mpi_t r, gcry_mpi_t s)
 {
-  gpg_err_code_t err = 0;
+  gpg_err_code_t rc = 0;
   gcry_mpi_t k, dr, sum, ke, x, e;
   mpi_point_struct I;
   gcry_mpi_t hash;
@@ -57,13 +57,12 @@ _gcry_ecc_gost_sign (gcry_mpi_t input, ECC_secret_key *skey,
   /* Convert the INPUT into an MPI if needed.  */
   if (mpi_is_opaque (input))
     {
-      abuf = gcry_mpi_get_opaque (input, &abits);
-      err = gpg_err_code (gcry_mpi_scan (&hash, GCRYMPI_FMT_USG,
-                                         abuf, (abits+7)/8, NULL));
-      if (err)
-        return err;
+      abuf = mpi_get_opaque (input, &abits);
+      rc = _gcry_mpi_scan (&hash, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
+      if (rc)
+        return rc;
       if (abits > qbits)
-        gcry_mpi_rshift (hash, hash, abits - qbits);
+        mpi_rshift (hash, hash, abits - qbits);
     }
   else
     hash = input;
@@ -100,7 +99,7 @@ _gcry_ecc_gost_sign (gcry_mpi_t input, ECC_secret_key *skey,
             {
               if (DBG_CIPHER)
                 log_debug ("ecc sign: Failed to get affine coordinates\n");
-              err = GPG_ERR_BAD_SIGNATURE;
+              rc = GPG_ERR_BAD_SIGNATURE;
               goto leave;
             }
           mpi_mod (r, x, skey->E.n);  /* r = x mod n */
@@ -131,7 +130,7 @@ _gcry_ecc_gost_sign (gcry_mpi_t input, ECC_secret_key *skey,
   if (hash != input)
     mpi_free (hash);
 
-  return err;
+  return rc;
 }
 
 

@@ -197,7 +197,7 @@ search_oid (const char *oid, gcry_cipher_oid_spec_t *oid_spec)
    not known.  It is valid to pass NULL for STRING which results in a
    return value of 0. */
 int
-gcry_cipher_map_name (const char *string)
+_gcry_cipher_map_name (const char *string)
 {
   gcry_cipher_spec_t *spec;
 
@@ -225,7 +225,7 @@ gcry_cipher_map_name (const char *string)
    with that OID or 0 if no mode is known.  Passing NULL for string
    yields a return value of 0. */
 int
-gcry_cipher_mode_from_oid (const char *string)
+_gcry_cipher_mode_from_oid (const char *string)
 {
   gcry_cipher_spec_t *spec;
   gcry_cipher_oid_spec_t oid_spec;
@@ -246,7 +246,7 @@ gcry_cipher_mode_from_oid (const char *string)
    used by Libgcrypt.  A "?" is returned for an unknown algorithm.
    NULL is never returned. */
 const char *
-gcry_cipher_algo_name (int algorithm)
+_gcry_cipher_algo_name (int algorithm)
 {
   gcry_cipher_spec_t *spec;
 
@@ -340,21 +340,21 @@ cipher_get_blocksize (int algorithm)
 
    Values for these flags may be combined using OR.
  */
-gcry_error_t
-gcry_cipher_open (gcry_cipher_hd_t *handle,
-		  int algo, int mode, unsigned int flags)
+gcry_err_code_t
+_gcry_cipher_open (gcry_cipher_hd_t *handle,
+                   int algo, int mode, unsigned int flags)
 {
-  gcry_err_code_t err;
+  gcry_err_code_t rc;
   gcry_cipher_hd_t h = NULL;
 
   if (mode >= GCRY_CIPHER_MODE_INTERNAL)
-    err = GPG_ERR_INV_CIPHER_MODE;
+    rc = GPG_ERR_INV_CIPHER_MODE;
   else
-    err = _gcry_cipher_open_internal (&h, algo, mode, flags);
+    rc = _gcry_cipher_open_internal (&h, algo, mode, flags);
 
-  *handle = err ? NULL : h;
+  *handle = rc ? NULL : h;
 
-  return gcry_error (err);
+  return rc;
 }
 
 
@@ -545,7 +545,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 /* Release all resources associated with the cipher handle H. H may be
    NULL in which case this is a no-operation. */
 void
-gcry_cipher_close (gcry_cipher_hd_t h)
+_gcry_cipher_close (gcry_cipher_hd_t h)
 {
   size_t off;
 
@@ -574,13 +574,13 @@ gcry_cipher_close (gcry_cipher_hd_t h)
 
 /* Set the key to be used for the encryption context C to KEY with
    length KEYLEN.  The length should match the required length. */
-static gcry_error_t
+static gcry_err_code_t
 cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 {
-  gcry_err_code_t ret;
+  gcry_err_code_t rc;
 
-  ret = c->spec->setkey (&c->context.c, key, keylen);
-  if (!ret)
+  rc = c->spec->setkey (&c->context.c, key, keylen);
+  if (!rc)
     {
       /* Duplicate initial context.  */
       memcpy ((void *) ((char *) &c->context.c + c->spec->contextsize),
@@ -605,7 +605,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
   else
     c->marks.key = 0;
 
-  return gcry_error (ret);
+  return rc;
 }
 
 
@@ -830,11 +830,11 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
  * Encrypt IN and write it to OUT.  If IN is NULL, in-place encryption has
  * been requested.
  */
-gcry_error_t
-gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
-                     const void *in, size_t inlen)
+gcry_err_code_t
+_gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
+                      const void *in, size_t inlen)
 {
-  gcry_err_code_t err;
+  gcry_err_code_t rc;
 
   if (!in)  /* Caller requested in-place encryption.  */
     {
@@ -842,14 +842,14 @@ gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
       inlen = outsize;
     }
 
-  err = cipher_encrypt (h, out, outsize, in, inlen);
+  rc = cipher_encrypt (h, out, outsize, in, inlen);
 
   /* Failsafe: Make sure that the plaintext will never make it into
      OUT if the encryption returned an error.  */
-  if (err && out)
+  if (rc && out)
     memset (out, 0x42, outsize);
 
-  return gcry_error (err);
+  return rc;
 }
 
 
@@ -934,21 +934,17 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
 }
 
 
-gcry_error_t
-gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
-		     const void *in, size_t inlen)
+gcry_err_code_t
+_gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
+                      const void *in, size_t inlen)
 {
-  gcry_err_code_t err;
-
   if (!in) /* Caller requested in-place encryption. */
     {
       in = out;
       inlen = outsize;
     }
 
-  err = cipher_decrypt (h, out, outsize, in, inlen);
-
-  return gcry_error (err);
+  return cipher_decrypt (h, out, outsize, in, inlen);
 }
 
 
@@ -971,17 +967,17 @@ cipher_sync (gcry_cipher_hd_t c)
 }
 
 
-gcry_error_t
+gcry_err_code_t
 _gcry_cipher_setkey (gcry_cipher_hd_t hd, const void *key, size_t keylen)
 {
   return cipher_setkey (hd, (void*)key, keylen);
 }
 
 
-gcry_error_t
+gcry_err_code_t
 _gcry_cipher_setiv (gcry_cipher_hd_t hd, const void *iv, size_t ivlen)
 {
-  gcry_err_code_t rc = GPG_ERR_NO_ERROR;
+  gcry_err_code_t rc = 0;
 
   switch (hd->mode)
     {
@@ -993,13 +989,13 @@ _gcry_cipher_setiv (gcry_cipher_hd_t hd, const void *iv, size_t ivlen)
         rc = cipher_setiv (hd, iv, ivlen);
         break;
     }
-  return gpg_error (rc);
+  return rc;
 }
 
 /* Set counter for CTR mode.  (CTR,CTRLEN) must denote a buffer of
    block size length, or (NULL,0) to set the CTR to the all-zero
    block. */
-gpg_error_t
+gpg_err_code_t
 _gcry_cipher_setctr (gcry_cipher_hd_t hd, const void *ctr, size_t ctrlen)
 {
   if (ctr && ctrlen == hd->spec->blocksize)
@@ -1013,11 +1009,13 @@ _gcry_cipher_setctr (gcry_cipher_hd_t hd, const void *ctr, size_t ctrlen)
       hd->unused = 0;
     }
   else
-    return gpg_error (GPG_ERR_INV_ARG);
+    return GPG_ERR_INV_ARG;
+
   return 0;
 }
 
-gcry_error_t
+
+gcry_err_code_t
 _gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf,
                            size_t abuflen)
 {
@@ -1043,10 +1041,11 @@ _gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf,
       break;
     }
 
-  return gpg_error (rc);
+  return rc;
 }
 
-gcry_error_t
+
+gcry_err_code_t
 _gcry_cipher_gettag (gcry_cipher_hd_t hd, void *outtag, size_t taglen)
 {
   gcry_err_code_t rc;
@@ -1071,10 +1070,11 @@ _gcry_cipher_gettag (gcry_cipher_hd_t hd, void *outtag, size_t taglen)
       break;
     }
 
-  return gpg_error (rc);
+  return rc;
 }
 
-gcry_error_t
+
+gcry_err_code_t
 _gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag, size_t taglen)
 {
   gcry_err_code_t rc;
@@ -1099,14 +1099,14 @@ _gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag, size_t taglen)
       break;
     }
 
-  return gpg_error (rc);
+  return rc;
 }
 
 
-gcry_error_t
-gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
+gcry_err_code_t
+_gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
 {
-  gcry_err_code_t rc = GPG_ERR_NO_ERROR;
+  gcry_err_code_t rc = 0;
 
   switch (cmd)
     {
@@ -1206,7 +1206,7 @@ gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
       rc = GPG_ERR_INV_OP;
     }
 
-  return gcry_error (rc);
+  return rc;
 }
 
 
@@ -1218,10 +1218,10 @@ gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
    The function always returns GPG_ERR_INV_OP.
 
  */
-gcry_error_t
-gcry_cipher_info (gcry_cipher_hd_t h, int cmd, void *buffer, size_t *nbytes)
+gcry_err_code_t
+_gcry_cipher_info (gcry_cipher_hd_t h, int cmd, void *buffer, size_t *nbytes)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t rc = 0;
 
   (void)h;
   (void)buffer;
@@ -1230,10 +1230,10 @@ gcry_cipher_info (gcry_cipher_hd_t h, int cmd, void *buffer, size_t *nbytes)
   switch (cmd)
     {
     default:
-      err = GPG_ERR_INV_OP;
+      rc = GPG_ERR_INV_OP;
     }
 
-  return gcry_error (err);
+  return rc;
 }
 
 /* Return information about the given cipher algorithm ALGO.
@@ -1260,17 +1260,17 @@ gcry_cipher_info (gcry_cipher_hd_t h, int cmd, void *buffer, size_t *nbytes)
    and thereby detecting whether a error occurred or not (i.e. while
    checking the block size)
  */
-gcry_error_t
-gcry_cipher_algo_info (int algo, int what, void *buffer, size_t *nbytes)
+gcry_err_code_t
+_gcry_cipher_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 {
-  gcry_err_code_t err = GPG_ERR_NO_ERROR;
+  gcry_err_code_t rc = 0;
   unsigned int ui;
 
   switch (what)
     {
     case GCRYCTL_GET_KEYLEN:
       if (buffer || (! nbytes))
-	err = GPG_ERR_CIPHER_ALGO;
+	rc = GPG_ERR_CIPHER_ALGO;
       else
 	{
 	  ui = cipher_get_keylen (algo);
@@ -1278,37 +1278,39 @@ gcry_cipher_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 	    *nbytes = (size_t) ui / 8;
 	  else
 	    /* The only reason for an error is an invalid algo.  */
-	    err = GPG_ERR_CIPHER_ALGO;
+	    rc = GPG_ERR_CIPHER_ALGO;
 	}
       break;
 
     case GCRYCTL_GET_BLKLEN:
       if (buffer || (! nbytes))
-	err = GPG_ERR_CIPHER_ALGO;
+	rc = GPG_ERR_CIPHER_ALGO;
       else
 	{
 	  ui = cipher_get_blocksize (algo);
 	  if ((ui > 0) && (ui < 10000))
 	    *nbytes = ui;
 	  else
-	    /* The only reason is an invalid algo or a strange
-	       blocksize.  */
-	    err = GPG_ERR_CIPHER_ALGO;
+            {
+              /* The only reason is an invalid algo or a strange
+                 blocksize.  */
+              rc = GPG_ERR_CIPHER_ALGO;
+            }
 	}
       break;
 
     case GCRYCTL_TEST_ALGO:
       if (buffer || nbytes)
-	err = GPG_ERR_INV_ARG;
+	rc = GPG_ERR_INV_ARG;
       else
-	err = check_cipher_algo (algo);
+	rc = check_cipher_algo (algo);
       break;
 
       default:
-	err = GPG_ERR_INV_OP;
+	rc = GPG_ERR_INV_OP;
     }
 
-  return gcry_error (err);
+  return rc;
 }
 
 
@@ -1321,14 +1323,15 @@ gcry_cipher_algo_info (int algo, int what, void *buffer, size_t *nbytes)
    gcry_cipher_algo_info because it allows for proper type
    checking.  */
 size_t
-gcry_cipher_get_algo_keylen (int algo)
+_gcry_cipher_get_algo_keylen (int algo)
 {
   size_t n;
 
-  if (gcry_cipher_algo_info (algo, GCRYCTL_GET_KEYLEN, NULL, &n))
+  if (_gcry_cipher_algo_info (algo, GCRYCTL_GET_KEYLEN, NULL, &n))
     n = 0;
   return n;
 }
+
 
 /* This functions returns the blocklength of the algorithm ALGO
    counted in octets.  On error 0 is returned.
@@ -1337,14 +1340,15 @@ gcry_cipher_get_algo_keylen (int algo)
    gcry_cipher_algo_info because it allows for proper type
    checking.  */
 size_t
-gcry_cipher_get_algo_blklen (int algo)
+_gcry_cipher_get_algo_blklen (int algo)
 {
   size_t n;
 
-  if (gcry_cipher_algo_info( algo, GCRYCTL_GET_BLKLEN, NULL, &n))
+  if (_gcry_cipher_algo_info( algo, GCRYCTL_GET_BLKLEN, NULL, &n))
     n = 0;
   return n;
 }
+
 
 /* Explicitly initialize this module.  */
 gcry_err_code_t

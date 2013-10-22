@@ -68,7 +68,7 @@ _gcry_mpi_normalize( gcry_mpi_t a )
  * Return the number of bits in A.
  */
 unsigned int
-gcry_mpi_get_nbits( gcry_mpi_t a )
+_gcry_mpi_get_nbits (gcry_mpi_t a)
 {
     unsigned n;
 
@@ -95,7 +95,7 @@ gcry_mpi_get_nbits( gcry_mpi_t a )
  * Test whether bit N is set.
  */
 int
-gcry_mpi_test_bit( gcry_mpi_t a, unsigned int n )
+_gcry_mpi_test_bit( gcry_mpi_t a, unsigned int n )
 {
     unsigned int limbno, bitno;
     mpi_limb_t limb;
@@ -114,7 +114,7 @@ gcry_mpi_test_bit( gcry_mpi_t a, unsigned int n )
  * Set bit N of A.
  */
 void
-gcry_mpi_set_bit( gcry_mpi_t a, unsigned int n )
+_gcry_mpi_set_bit( gcry_mpi_t a, unsigned int n )
 {
   unsigned int limbno, bitno;
 
@@ -139,7 +139,7 @@ gcry_mpi_set_bit( gcry_mpi_t a, unsigned int n )
  * Set bit N of A. and clear all bits above
  */
 void
-gcry_mpi_set_highbit( gcry_mpi_t a, unsigned int n )
+_gcry_mpi_set_highbit( gcry_mpi_t a, unsigned int n )
 {
   unsigned int limbno, bitno;
 
@@ -167,7 +167,7 @@ gcry_mpi_set_highbit( gcry_mpi_t a, unsigned int n )
  * clear bit N of A and all bits above
  */
 void
-gcry_mpi_clear_highbit( gcry_mpi_t a, unsigned int n )
+_gcry_mpi_clear_highbit( gcry_mpi_t a, unsigned int n )
 {
   unsigned int limbno, bitno;
 
@@ -192,7 +192,7 @@ gcry_mpi_clear_highbit( gcry_mpi_t a, unsigned int n )
  * Clear bit N of A.
  */
 void
-gcry_mpi_clear_bit( gcry_mpi_t a, unsigned int n )
+_gcry_mpi_clear_bit( gcry_mpi_t a, unsigned int n )
 {
   unsigned int limbno, bitno;
 
@@ -245,7 +245,7 @@ _gcry_mpi_rshift_limbs( gcry_mpi_t a, unsigned int count )
  * Shift A by N bits to the right.
  */
 void
-gcry_mpi_rshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
+_gcry_mpi_rshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
 {
   mpi_size_t xsize;
   unsigned int i;
@@ -360,7 +360,7 @@ _gcry_mpi_lshift_limbs (gcry_mpi_t a, unsigned int count)
  * Shift A by N bits to the left.
  */
 void
-gcry_mpi_lshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
+_gcry_mpi_lshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
 {
   unsigned int nlimbs = (n/BITS_PER_MPI_LIMB);
   unsigned int nbits = (n%BITS_PER_MPI_LIMB);
@@ -400,7 +400,7 @@ gcry_mpi_lshift ( gcry_mpi_t x, gcry_mpi_t a, unsigned int n )
       /* We use a very dump approach: Shift left by the number of
          limbs plus one and than fix it up by an rshift.  */
       _gcry_mpi_lshift_limbs (x, nlimbs+1);
-      gcry_mpi_rshift (x, x, BITS_PER_MPI_LIMB - nbits);
+      mpi_rshift (x, x, BITS_PER_MPI_LIMB - nbits);
     }
 
   MPN_NORMALIZE (x->d, x->nlimbs);

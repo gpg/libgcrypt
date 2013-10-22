@@ -211,7 +211,7 @@ search_oid (const char *oid, gcry_md_oid_spec_t *oid_spec)
  * Map a string to the digest algo
  */
 int
-gcry_md_map_name (const char *string)
+_gcry_md_map_name (const char *string)
 {
   gcry_md_spec_t *spec;
 
@@ -241,7 +241,7 @@ gcry_md_map_name (const char *string)
  * is valid.
  */
 const char *
-gcry_md_algo_name (int algorithm)
+_gcry_md_algo_name (int algorithm)
 {
   gcry_md_spec_t *spec;
 
@@ -366,22 +366,22 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
    given as 0 if the algorithms to be used are later set using
    gcry_md_enable. H is guaranteed to be a valid handle or NULL on
    error.  */
-gcry_error_t
-gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
+gcry_err_code_t
+_gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 {
-  gcry_err_code_t err;
+  gcry_err_code_t rc;
   gcry_md_hd_t hd;
 
   if ((flags & ~(GCRY_MD_FLAG_SECURE | GCRY_MD_FLAG_HMAC)))
-    err = GPG_ERR_INV_ARG;
+    rc = GPG_ERR_INV_ARG;
   else
     {
-      err = md_open (&hd, algo, (flags & GCRY_MD_FLAG_SECURE),
-		     (flags & GCRY_MD_FLAG_HMAC));
+      rc = md_open (&hd, algo, (flags & GCRY_MD_FLAG_SECURE),
+                    (flags & GCRY_MD_FLAG_HMAC));
     }
 
-  *h = err? NULL : hd;
-  return gcry_error (err);
+  *h = rc? NULL : hd;
+  return rc;
 }
 
 
@@ -447,10 +447,10 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 }
 
 
-gcry_error_t
-gcry_md_enable (gcry_md_hd_t hd, int algorithm)
+gcry_err_code_t
+_gcry_md_enable (gcry_md_hd_t hd, int algorithm)
 {
-  return gcry_error (md_enable (hd, algorithm));
+  return md_enable (hd, algorithm);
 }
 
 
@@ -538,15 +538,15 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 }
 
 
-gcry_error_t
-gcry_md_copy (gcry_md_hd_t *handle, gcry_md_hd_t hd)
+gcry_err_code_t
+_gcry_md_copy (gcry_md_hd_t *handle, gcry_md_hd_t hd)
 {
-  gcry_err_code_t err;
+  gcry_err_code_t rc;
 
-  err = md_copy (hd, handle);
-  if (err)
+  rc = md_copy (hd, handle);
+  if (rc)
     *handle = NULL;
-  return gcry_error (err);
+  return rc;
 }
 
 
@@ -555,7 +555,7 @@ gcry_md_copy (gcry_md_hd_t *handle, gcry_md_hd_t hd)
  * instead of a md_close(); md_open().
  */
 void
-gcry_md_reset (gcry_md_hd_t a)
+_gcry_md_reset (gcry_md_hd_t a)
 {
   GcryDigestEntry *r;
 
@@ -601,7 +601,7 @@ md_close (gcry_md_hd_t a)
 
 
 void
-gcry_md_close (gcry_md_hd_t hd)
+_gcry_md_close (gcry_md_hd_t hd)
 {
   /* Note: We allow this even in fips non operational mode.  */
   md_close (hd);
@@ -632,7 +632,7 @@ md_write (gcry_md_hd_t a, const void *inbuf, size_t inlen)
 
 
 void
-gcry_md_write (gcry_md_hd_t hd, const void *inbuf, size_t inlen)
+_gcry_md_write (gcry_md_hd_t hd, const void *inbuf, size_t inlen)
 {
   md_write (hd, inbuf, inlen);
 }
@@ -693,7 +693,7 @@ prepare_macpads (gcry_md_hd_t hd, const unsigned char *key, size_t keylen)
       helpkey = gcry_malloc_secure (md_digest_length (algo));
       if (!helpkey)
         return gpg_err_code_from_errno (errno);
-      gcry_md_hash_buffer (algo, helpkey, key, keylen);
+      _gcry_md_hash_buffer (algo, helpkey, key, keylen);
       key = helpkey;
       keylen = md_digest_length (algo);
       gcry_assert ( keylen <= hd->ctx->macpads_Bsize );
@@ -715,8 +715,8 @@ prepare_macpads (gcry_md_hd_t hd, const unsigned char *key, size_t keylen)
 }
 
 
-gcry_error_t
-gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
+gcry_err_code_t
+_gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
 {
   gcry_err_code_t rc = 0;
 
@@ -736,12 +736,12 @@ gcry_md_ctl (gcry_md_hd_t hd, int cmd, void *buffer, size_t buflen)
     default:
       rc = GPG_ERR_INV_OP;
     }
-  return gcry_error (rc);
+  return rc;
 }
 
 
-gcry_error_t
-gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen)
+gcry_err_code_t
+_gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen)
 {
   gcry_err_code_t rc;
 
@@ -750,11 +750,11 @@ gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen)
   else
     {
       rc = prepare_macpads (hd, key, keylen);
-      if (! rc)
-	gcry_md_reset (hd);
+      if (!rc)
+	_gcry_md_reset (hd);
     }
 
-  return gcry_error (rc);
+  return rc;
 }
 
 
@@ -762,7 +762,7 @@ gcry_md_setkey (gcry_md_hd_t hd, const void *key, size_t keylen)
    file for the context HD.  IF suffix is NULL, the file is closed and
    debugging is stopped.  */
 void
-gcry_md_debug (gcry_md_hd_t hd, const char *suffix)
+_gcry_md_debug (gcry_md_hd_t hd, const char *suffix)
 {
   if (suffix)
     md_start_debug (hd, suffix);
@@ -806,12 +806,12 @@ md_read( gcry_md_hd_t a, int algo )
  * the hash.
  */
 byte *
-gcry_md_read (gcry_md_hd_t hd, int algo)
+_gcry_md_read (gcry_md_hd_t hd, int algo)
 {
   /* This function is expected to always return a digest, thus we
      can't return an error which we actually should do in
      non-operational state.  */
-  gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
+  _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
   return md_read (hd, algo);
 }
 
@@ -820,7 +820,7 @@ gcry_md_read (gcry_md_hd_t hd, int algo)
  * Read out an intermediate digest.  Not yet functional.
  */
 gcry_err_code_t
-gcry_md_get (gcry_md_hd_t hd, int algo, byte *buffer, int buflen)
+_gcry_md_get (gcry_md_hd_t hd, int algo, byte *buffer, int buflen)
 {
   (void)hd;
   (void)algo;
@@ -840,8 +840,8 @@ gcry_md_get (gcry_md_hd_t hd, int algo, byte *buffer, int buflen)
  * hash.  No error is returned, the function will abort on an invalid
  * algo.  DISABLED_ALGOS are ignored here.  */
 void
-gcry_md_hash_buffer (int algo, void *digest,
-                     const void *buffer, size_t length)
+_gcry_md_hash_buffer (int algo, void *digest,
+                      const void *buffer, size_t length)
 {
   if (algo == GCRY_MD_SHA1)
     _gcry_sha1_hash_buffer (digest, buffer, length);
@@ -892,8 +892,8 @@ gcry_md_hash_buffer (int algo, void *digest,
    DIGEST which must have been provided by the caller with an
    appropriate length.  */
 gpg_err_code_t
-gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
-                      const gcry_buffer_t *iov, int iovcnt)
+_gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
+                       const gcry_buffer_t *iov, int iovcnt)
 {
   int hmac;
 
@@ -932,9 +932,9 @@ gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
 
       if (hmac)
         {
-          rc = gcry_err_code
-            (gcry_md_setkey (h, (const char*)iov[0].data + iov[0].off,
-                             iov[0].len));
+          rc = _gcry_md_setkey (h,
+                                (const char*)iov[0].data + iov[0].off,
+                                iov[0].len);
           if (rc)
             {
               md_close (h);
@@ -968,7 +968,7 @@ md_get_algo (gcry_md_hd_t a)
 
 
 int
-gcry_md_get_algo (gcry_md_hd_t hd)
+_gcry_md_get_algo (gcry_md_hd_t hd)
 {
   return md_get_algo (hd);
 }
@@ -992,7 +992,7 @@ md_digest_length (int algorithm)
  * This function will return 0 in case of errors.
  */
 unsigned int
-gcry_md_get_algo_dlen (int algorithm)
+_gcry_md_get_algo_dlen (int algorithm)
 {
   return md_digest_length (algorithm);
 }
@@ -1040,25 +1040,25 @@ md_asn_oid (int algorithm, size_t *asnlen, size_t *mdlen)
  * and thereby detecting whether a error occurred or not (i.e. while checking
  * the block size)
  */
-gcry_error_t
-gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
+gcry_err_code_t
+_gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
 {
-  gcry_err_code_t err;
+  gcry_err_code_t rc;
 
   switch (what)
     {
     case GCRYCTL_TEST_ALGO:
       if (buffer || nbytes)
-	err = GPG_ERR_INV_ARG;
+	rc = GPG_ERR_INV_ARG;
       else
-	err = check_digest_algo (algo);
+	rc = check_digest_algo (algo);
       break;
 
     case GCRYCTL_GET_ASNOID:
       /* We need to check that the algo is available because
          md_asn_oid would otherwise raise an assertion. */
-      err = check_digest_algo (algo);
-      if (!err)
+      rc = check_digest_algo (algo);
+      if (!rc)
         {
           const char unsigned *asn;
           size_t asnlen;
@@ -1074,25 +1074,25 @@ gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
           else
             {
               if (buffer)
-                err = GPG_ERR_TOO_SHORT;
+                rc = GPG_ERR_TOO_SHORT;
               else
-                err = GPG_ERR_INV_ARG;
+                rc = GPG_ERR_INV_ARG;
             }
         }
       break;
 
     case GCRYCTL_SELFTEST:
       /* Helper function for the regression tests.  */
-      err = gpg_err_code (_gcry_md_selftest (algo, nbytes? (int)*nbytes : 0,
+      rc = gpg_err_code (_gcry_md_selftest (algo, nbytes? (int)*nbytes : 0,
                                              NULL));
       break;
 
     default:
-      err = GPG_ERR_INV_OP;
+      rc = GPG_ERR_INV_OP;
       break;
   }
 
-  return gcry_error (err);
+  return rc;
 }
 
 
@@ -1151,10 +1151,10 @@ md_stop_debug( gcry_md_hd_t md )
  *     Returns 1 if the algo is enabled for that handle.
  *     The algo must be passed as the address of an int.
  */
-gcry_error_t
-gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
+gcry_err_code_t
+_gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
 {
-  gcry_err_code_t err = 0;
+  gcry_err_code_t rc = 0;
 
   switch (cmd)
     {
@@ -1168,7 +1168,7 @@ gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
 	int algo;
 
 	if ( !buffer || (nbytes && (*nbytes != sizeof (int))))
-	  err = GPG_ERR_INV_ARG;
+	  rc = GPG_ERR_INV_ARG;
 	else
 	  {
 	    algo = *(int*)buffer;
@@ -1186,10 +1186,10 @@ gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
       }
 
   default:
-    err = GPG_ERR_INV_OP;
+    rc = GPG_ERR_INV_OP;
   }
 
-  return gcry_error (err);
+  return rc;
 }
 
 
@@ -1202,11 +1202,11 @@ _gcry_md_init (void)
 
 
 int
-gcry_md_is_secure (gcry_md_hd_t a)
+_gcry_md_is_secure (gcry_md_hd_t a)
 {
   size_t value;
 
-  if (gcry_md_info (a, GCRYCTL_IS_SECURE, NULL, &value))
+  if (_gcry_md_info (a, GCRYCTL_IS_SECURE, NULL, &value))
     value = 1; /* It seems to be better to assume secure memory on
                   error. */
   return value;
@@ -1214,12 +1214,12 @@ gcry_md_is_secure (gcry_md_hd_t a)
 
 
 int
-gcry_md_is_enabled (gcry_md_hd_t a, int algo)
+_gcry_md_is_enabled (gcry_md_hd_t a, int algo)
 {
   size_t value;
 
   value = sizeof algo;
-  if (gcry_md_info (a, GCRYCTL_IS_ALGO_ENABLED, &algo, &value))
+  if (_gcry_md_info (a, GCRYCTL_IS_ALGO_ENABLED, &algo, &value))
     value = 0;
   return value;
 }

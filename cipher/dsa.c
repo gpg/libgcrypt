@@ -148,9 +148,9 @@ test_keys (DSA_secret_key *sk, unsigned int qbits)
 {
   int result = -1;  /* Default to failure.  */
   DSA_public_key pk;
-  gcry_mpi_t data  = gcry_mpi_new (qbits);
-  gcry_mpi_t sig_a = gcry_mpi_new (qbits);
-  gcry_mpi_t sig_b = gcry_mpi_new (qbits);
+  gcry_mpi_t data  = mpi_new (qbits);
+  gcry_mpi_t sig_a = mpi_new (qbits);
+  gcry_mpi_t sig_b = mpi_new (qbits);
 
   /* Put the relevant parameters into a public key structure.  */
   pk.p = sk->p;
@@ -159,7 +159,7 @@ test_keys (DSA_secret_key *sk, unsigned int qbits)
   pk.y = sk->y;
 
   /* Create a random plaintext.  */
-  gcry_mpi_randomize (data, qbits, GCRY_WEAK_RANDOM);
+  _gcry_mpi_randomize (data, qbits, GCRY_WEAK_RANDOM);
 
   /* Sign DATA using the secret key.  */
   sign (sig_a, sig_b, data, sk, 0, 0);
@@ -169,16 +169,16 @@ test_keys (DSA_secret_key *sk, unsigned int qbits)
     goto leave; /* Signature does not match.  */
 
   /* Modify the data and check that the signing fails.  */
-  gcry_mpi_add_ui (data, data, 1);
+  mpi_add_ui (data, data, 1);
   if ( verify (sig_a, sig_b, data, &pk) )
     goto leave; /* Signature matches but should not.  */
 
   result = 0; /* The test succeeded.  */
 
  leave:
-  gcry_mpi_release (sig_b);
-  gcry_mpi_release (sig_a);
-  gcry_mpi_release (data);
+  _gcry_mpi_release (sig_b);
+  _gcry_mpi_release (sig_a);
+  _gcry_mpi_release (data);
   return result;
 }
 
@@ -263,7 +263,7 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
         {
           mpi_add_ui (h, h, 1);
           /* g = h^e mod p */
-          gcry_mpi_powm (g, h, e, p);
+          mpi_powm (g, h, e, p);
         }
       while (!mpi_cmp_ui (g, 1));  /* Continue until g != 1. */
     }
@@ -291,10 +291,10 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
       if( DBG_CIPHER )
         progress('.');
       if( !rndbuf )
-        rndbuf = gcry_random_bytes_secure ((qbits+7)/8, random_level);
+        rndbuf = _gcry_random_bytes_secure ((qbits+7)/8, random_level);
       else
         { /* Change only some of the higher bits (= 2 bytes)*/
-          char *r = gcry_random_bytes_secure (2, random_level);
+          char *r = _gcry_random_bytes_secure (2, random_level);
           memcpy(rndbuf, r, 2 );
           gcry_free(r);
         }
@@ -309,7 +309,7 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
 
   /* y = g^x mod p */
   y = mpi_alloc( mpi_get_nlimbs(p) );
-  gcry_mpi_powm( y, g, x, p );
+  mpi_powm (y, g, x, p);
 
   if( DBG_CIPHER )
     {
@@ -331,11 +331,11 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   /* Now we can test our keys (this should never fail!). */
   if ( test_keys (sk, qbits) )
     {
-      gcry_mpi_release (sk->p); sk->p = NULL;
-      gcry_mpi_release (sk->q); sk->q = NULL;
-      gcry_mpi_release (sk->g); sk->g = NULL;
-      gcry_mpi_release (sk->y); sk->y = NULL;
-      gcry_mpi_release (sk->x); sk->x = NULL;
+      _gcry_mpi_release (sk->p); sk->p = NULL;
+      _gcry_mpi_release (sk->q); sk->q = NULL;
+      _gcry_mpi_release (sk->g); sk->g = NULL;
+      _gcry_mpi_release (sk->y); sk->y = NULL;
+      _gcry_mpi_release (sk->x); sk->x = NULL;
       fips_signal_error ("self-test after key generation failed");
       return GPG_ERR_SELFTEST_FAILED;
     }
@@ -418,9 +418,9 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
       /* Get an initial seed value.  */
       if (deriveparms)
         {
-          initial_seed.sexp = gcry_sexp_find_token (deriveparms, "seed", 0);
+          initial_seed.sexp = sexp_find_token (deriveparms, "seed", 0);
           if (initial_seed.sexp)
-            initial_seed.seed = gcry_sexp_nth_data (initial_seed.sexp, 1,
+            initial_seed.seed = sexp_nth_data (initial_seed.sexp, 1,
                                                     &initial_seed.seedlen);
         }
 
@@ -439,7 +439,7 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
       /*                                          &prime_q, &prime_p, */
       /*                                          r_counter, */
       /*                                          r_seed, r_seedlen, NULL); */
-      gcry_sexp_release (initial_seed.sexp);
+      sexp_release (initial_seed.sexp);
       if (ec)
         goto leave;
 
@@ -461,19 +461,19 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
 
 
   /* Select a random number x with:  0 < x < q  */
-  value_x = gcry_mpi_snew (qbits);
+  value_x = mpi_snew (qbits);
   do
     {
       if( DBG_CIPHER )
         progress('.');
-      gcry_mpi_randomize (value_x, qbits, GCRY_VERY_STRONG_RANDOM);
+      _gcry_mpi_randomize (value_x, qbits, GCRY_VERY_STRONG_RANDOM);
       mpi_clear_highbit (value_x, qbits+1);
     }
   while (!(mpi_cmp_ui (value_x, 0) > 0 && mpi_cmp (value_x, prime_q) < 0));
 
   /* y = g^x mod p */
   value_y = mpi_alloc_like (prime_p);
-  gcry_mpi_powm (value_y, value_g, value_x, prime_p);
+  mpi_powm (value_y, value_g, value_x, prime_p);
 
   if (DBG_CIPHER)
     {
@@ -495,22 +495,22 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   *r_h = value_h; value_h = NULL;
 
  leave:
-  gcry_mpi_release (prime_p);
-  gcry_mpi_release (prime_q);
-  gcry_mpi_release (value_g);
-  gcry_mpi_release (value_y);
-  gcry_mpi_release (value_x);
-  gcry_mpi_release (value_h);
-  gcry_mpi_release (value_e);
+  _gcry_mpi_release (prime_p);
+  _gcry_mpi_release (prime_q);
+  _gcry_mpi_release (value_g);
+  _gcry_mpi_release (value_y);
+  _gcry_mpi_release (value_x);
+  _gcry_mpi_release (value_h);
+  _gcry_mpi_release (value_e);
 
   /* As a last step test this keys (this should never fail of course). */
   if (!ec && test_keys (sk, qbits) )
     {
-      gcry_mpi_release (sk->p); sk->p = NULL;
-      gcry_mpi_release (sk->q); sk->q = NULL;
-      gcry_mpi_release (sk->g); sk->g = NULL;
-      gcry_mpi_release (sk->y); sk->y = NULL;
-      gcry_mpi_release (sk->x); sk->x = NULL;
+      _gcry_mpi_release (sk->p); sk->p = NULL;
+      _gcry_mpi_release (sk->q); sk->q = NULL;
+      _gcry_mpi_release (sk->g); sk->g = NULL;
+      _gcry_mpi_release (sk->y); sk->y = NULL;
+      _gcry_mpi_release (sk->x); sk->x = NULL;
       fips_signal_error ("self-test after key generation failed");
       ec = GPG_ERR_SELFTEST_FAILED;
     }
@@ -520,7 +520,7 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
       *r_counter = 0;
       gcry_free (*r_seed); *r_seed = NULL;
       *r_seedlen = 0;
-      gcry_mpi_release (*r_h); *r_h = NULL;
+      _gcry_mpi_release (*r_h); *r_h = NULL;
     }
 
   return ec;
@@ -538,7 +538,7 @@ check_secret_key( DSA_secret_key *sk )
   int rc;
   gcry_mpi_t y = mpi_alloc( mpi_get_nlimbs(sk->y) );
 
-  gcry_mpi_powm( y, sk->g, sk->x, sk->p );
+  mpi_powm( y, sk->g, sk->x, sk->p );
   rc = !mpi_cmp( y, sk->y );
   mpi_free( y );
   return rc;
@@ -575,13 +575,12 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
   /* Convert the INPUT into an MPI.  */
   if (mpi_is_opaque (input))
     {
-      abuf = gcry_mpi_get_opaque (input, &abits);
-      rc = gpg_err_code (gcry_mpi_scan (&hash, GCRYMPI_FMT_USG,
-                                        abuf, (abits+7)/8, NULL));
+      abuf = mpi_get_opaque (input, &abits);
+      rc = _gcry_mpi_scan (&hash, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
       if (rc)
         return rc;
       if (abits > qbits)
-        gcry_mpi_rshift (hash, hash, abits - qbits);
+        mpi_rshift (hash, hash, abits - qbits);
     }
   else
     hash = input;
@@ -599,7 +598,7 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
           goto leave;
         }
 
-      abuf = gcry_mpi_get_opaque (input, &abits);
+      abuf = mpi_get_opaque (input, &abits);
       rc = _gcry_dsa_gen_rfc6979_k (&k, skey->q, skey->x,
                                     abuf, (abits+7)/8, hashalgo, extraloops);
       if (rc)
@@ -612,7 +611,7 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
     }
 
   /* r = (a^k mod p) mod q */
-  gcry_mpi_powm( r, skey->g, k, skey->p );
+  mpi_powm( r, skey->g, k, skey->p );
   mpi_fdiv_r( r, r, skey->q );
 
   /* kinv = k^(-1) mod q */
@@ -722,71 +721,71 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     return rc;
 
   /* Parse the optional flags list.  */
-  l1 = gcry_sexp_find_token (genparms, "flags", 0);
+  l1 = sexp_find_token (genparms, "flags", 0);
   if (l1)
     {
       rc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
-      gcry_sexp_release (l1);
+      sexp_release (l1);
       if (rc)
         return rc;\
     }
 
   /* Parse the optional qbits element.  */
-  l1 = gcry_sexp_find_token (genparms, "qbits", 0);
+  l1 = sexp_find_token (genparms, "qbits", 0);
   if (l1)
     {
       char buf[50];
       const char *s;
       size_t n;
 
-      s = gcry_sexp_nth_data (l1, 1, &n);
+      s = sexp_nth_data (l1, 1, &n);
       if (!s || n >= DIM (buf) - 1 )
         {
-          gcry_sexp_release (l1);
+          sexp_release (l1);
           return GPG_ERR_INV_OBJ; /* No value or value too large.  */
         }
       memcpy (buf, s, n);
       buf[n] = 0;
       qbits = (unsigned int)strtoul (buf, NULL, 0);
-      gcry_sexp_release (l1);
+      sexp_release (l1);
     }
 
   /* Parse the optional transient-key flag.  */
   if (!(flags & PUBKEY_FLAG_TRANSIENT_KEY))
     {
-      l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
+      l1 = sexp_find_token (genparms, "transient-key", 0);
       if (l1)
         {
           flags |= PUBKEY_FLAG_TRANSIENT_KEY;
-          gcry_sexp_release (l1);
+          sexp_release (l1);
         }
     }
 
   /* Get the optional derive parameters.  */
-  deriveparms = gcry_sexp_find_token (genparms, "derive-parms", 0);
+  deriveparms = sexp_find_token (genparms, "derive-parms", 0);
 
   /* Parse the optional "use-fips186" flags.  */
   if (!(flags & PUBKEY_FLAG_USE_FIPS186))
     {
-      l1 = gcry_sexp_find_token (genparms, "use-fips186", 0);
+      l1 = sexp_find_token (genparms, "use-fips186", 0);
       if (l1)
         {
           flags |= PUBKEY_FLAG_USE_FIPS186;
-          gcry_sexp_release (l1);
+          sexp_release (l1);
         }
     }
   if (!(flags & PUBKEY_FLAG_USE_FIPS186_2))
     {
-      l1 = gcry_sexp_find_token (genparms, "use-fips186-2", 0);
+      l1 = sexp_find_token (genparms, "use-fips186-2", 0);
       if (l1)
         {
           flags |= PUBKEY_FLAG_USE_FIPS186_2;
-          gcry_sexp_release (l1);
+          sexp_release (l1);
         }
     }
 
   /* Check whether domain parameters are given.  */
-  domainsexp = gcry_sexp_find_token (genparms, "domain", 0);
+  domainsexp = sexp_find_token (genparms, "domain", 0);
   if (domainsexp)
     {
       /* DERIVEPARMS can't be used together with domain parameters.
@@ -794,30 +793,30 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
          are derived from the domain parameters.  */
       if (deriveparms || qbits || nbits)
         {
-          gcry_sexp_release (domainsexp);
-          gcry_sexp_release (deriveparms);
+          sexp_release (domainsexp);
+          sexp_release (deriveparms);
           return GPG_ERR_INV_VALUE;
         }
 
       /* Put all domain parameters into the domain object.  */
-      l1 = gcry_sexp_find_token (domainsexp, "p", 0);
-      domain.p = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-      gcry_sexp_release (l1);
-      l1 = gcry_sexp_find_token (domainsexp, "q", 0);
-      domain.q = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-      gcry_sexp_release (l1);
-      l1 = gcry_sexp_find_token (domainsexp, "g", 0);
-      domain.g = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-      gcry_sexp_release (l1);
-      gcry_sexp_release (domainsexp);
+      l1 = sexp_find_token (domainsexp, "p", 0);
+      domain.p = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      sexp_release (l1);
+      l1 = sexp_find_token (domainsexp, "q", 0);
+      domain.q = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      sexp_release (l1);
+      l1 = sexp_find_token (domainsexp, "g", 0);
+      domain.g = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      sexp_release (l1);
+      sexp_release (domainsexp);
 
       /* Check that all domain parameters are available.  */
       if (!domain.p || !domain.q || !domain.g)
         {
-          gcry_mpi_release (domain.p);
-          gcry_mpi_release (domain.q);
-          gcry_mpi_release (domain.g);
-          gcry_sexp_release (deriveparms);
+          _gcry_mpi_release (domain.p);
+          _gcry_mpi_release (domain.q);
+          _gcry_mpi_release (domain.g);
+          sexp_release (deriveparms);
           return GPG_ERR_MISSING_VALUE;
         }
 
@@ -844,11 +843,11 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         {
           /* Format the seed-values unless domain parameters are used
              for which a H_VALUE of NULL is an indication.  */
-          rc = gcry_sexp_build (&seedinfo, NULL,
-                                "(seed-values(counter %d)(seed %b)(h %m))",
-                                counter, (int)seedlen, seed, h_value);
+          rc = sexp_build (&seedinfo, NULL,
+                           "(seed-values(counter %d)(seed %b)(h %m))",
+                           counter, (int)seedlen, seed, h_value);
           gcry_free (seed);
-          gcry_mpi_release (h_value);
+          _gcry_mpi_release (h_value);
         }
     }
   else
@@ -904,7 +903,7 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                 arg_list[i++] = factors + j;
               arg_list[i] = NULL;
 
-              rc = gcry_sexp_build_array (&misc_info, NULL, format, arg_list);
+              rc = sexp_build_array (&misc_info, NULL, format, arg_list);
             }
         }
 
@@ -913,31 +912,31 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     }
 
   if (!rc)
-    rc = gcry_sexp_build (r_skey, NULL,
-                          "(key-data"
-                          " (public-key"
-                          "  (dsa(p%m)(q%m)(g%m)(y%m)))"
-                          " (private-key"
-                          "  (dsa(p%m)(q%m)(g%m)(y%m)(x%m)))"
-                          " %S)",
-                          sk.p, sk.q, sk.g, sk.y,
-                          sk.p, sk.q, sk.g, sk.y, sk.x,
-                          misc_info);
+    rc = sexp_build (r_skey, NULL,
+                     "(key-data"
+                     " (public-key"
+                     "  (dsa(p%m)(q%m)(g%m)(y%m)))"
+                     " (private-key"
+                     "  (dsa(p%m)(q%m)(g%m)(y%m)(x%m)))"
+                     " %S)",
+                     sk.p, sk.q, sk.g, sk.y,
+                     sk.p, sk.q, sk.g, sk.y, sk.x,
+                     misc_info);
 
 
-  gcry_mpi_release (sk.p);
-  gcry_mpi_release (sk.q);
-  gcry_mpi_release (sk.g);
-  gcry_mpi_release (sk.y);
-  gcry_mpi_release (sk.x);
+  _gcry_mpi_release (sk.p);
+  _gcry_mpi_release (sk.q);
+  _gcry_mpi_release (sk.g);
+  _gcry_mpi_release (sk.y);
+  _gcry_mpi_release (sk.x);
 
-  gcry_mpi_release (domain.p);
-  gcry_mpi_release (domain.q);
-  gcry_mpi_release (domain.g);
+  _gcry_mpi_release (domain.p);
+  _gcry_mpi_release (domain.q);
+  _gcry_mpi_release (domain.g);
 
-  gcry_sexp_release (seedinfo);
-  gcry_sexp_release (misc_info);
-  gcry_sexp_release (deriveparms);
+  sexp_release (seedinfo);
+  sexp_release (misc_info);
+  sexp_release (deriveparms);
   if (factors)
     {
       gcry_mpi_t *mp;
@@ -966,11 +965,11 @@ dsa_check_secret_key (gcry_sexp_t keyparms)
     rc = GPG_ERR_BAD_SECKEY;
 
  leave:
-  gcry_mpi_release (sk.p);
-  gcry_mpi_release (sk.q);
-  gcry_mpi_release (sk.g);
-  gcry_mpi_release (sk.y);
-  gcry_mpi_release (sk.x);
+  _gcry_mpi_release (sk.p);
+  _gcry_mpi_release (sk.q);
+  _gcry_mpi_release (sk.g);
+  _gcry_mpi_release (sk.y);
+  _gcry_mpi_release (sk.x);
   if (DBG_CIPHER)
     log_debug ("dsa_testkey    => %s\n", gpg_strerror (rc));
   return rc;
@@ -1012,8 +1011,8 @@ dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         log_mpidump ("dsa_sign      x", sk.x);
     }
 
-  sig_r = gcry_mpi_new (0);
-  sig_s = gcry_mpi_new (0);
+  sig_r = mpi_new (0);
+  sig_s = mpi_new (0);
   rc = sign (sig_r, sig_s, data, &sk, ctx.flags, ctx.hash_algo);
   if (rc)
     goto leave;
@@ -1022,17 +1021,17 @@ dsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       log_mpidump ("dsa_sign  sig_r", sig_r);
       log_mpidump ("dsa_sign  sig_s", sig_s);
     }
-  rc = gcry_sexp_build (r_sig, NULL, "(sig-val(dsa(r%M)(s%M)))", sig_r, sig_s);
+  rc = sexp_build (r_sig, NULL, "(sig-val(dsa(r%M)(s%M)))", sig_r, sig_s);
 
  leave:
-  gcry_mpi_release (sig_r);
-  gcry_mpi_release (sig_s);
-  gcry_mpi_release (sk.p);
-  gcry_mpi_release (sk.q);
-  gcry_mpi_release (sk.g);
-  gcry_mpi_release (sk.y);
-  gcry_mpi_release (sk.x);
-  gcry_mpi_release (data);
+  _gcry_mpi_release (sig_r);
+  _gcry_mpi_release (sig_s);
+  _gcry_mpi_release (sk.p);
+  _gcry_mpi_release (sk.q);
+  _gcry_mpi_release (sk.g);
+  _gcry_mpi_release (sk.y);
+  _gcry_mpi_release (sk.x);
+  _gcry_mpi_release (data);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
     log_debug ("dsa_sign      => %s\n", gpg_strerror (rc));
@@ -1096,17 +1095,16 @@ dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
 
       qbits = mpi_get_nbits (pk.q);
 
-      abuf = gcry_mpi_get_opaque (data, &abits);
-      rc = gpg_err_code (gcry_mpi_scan (&a, GCRYMPI_FMT_USG,
-                                        abuf, (abits+7)/8, NULL));
+      abuf = mpi_get_opaque (data, &abits);
+      rc = _gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
       if (!rc)
         {
           if (abits > qbits)
-            gcry_mpi_rshift (a, a, abits - qbits);
+            mpi_rshift (a, a, abits - qbits);
 
           if (!verify (sig_r, sig_s, a, &pk))
             rc = GPG_ERR_BAD_SIGNATURE;
-          gcry_mpi_release (a);
+          _gcry_mpi_release (a);
         }
     }
   else
@@ -1116,14 +1114,14 @@ dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
     }
 
  leave:
-  gcry_mpi_release (pk.p);
-  gcry_mpi_release (pk.q);
-  gcry_mpi_release (pk.g);
-  gcry_mpi_release (pk.y);
-  gcry_mpi_release (data);
-  gcry_mpi_release (sig_r);
-  gcry_mpi_release (sig_s);
-  gcry_sexp_release (l1);
+  _gcry_mpi_release (pk.p);
+  _gcry_mpi_release (pk.q);
+  _gcry_mpi_release (pk.g);
+  _gcry_mpi_release (pk.y);
+  _gcry_mpi_release (data);
+  _gcry_mpi_release (sig_r);
+  _gcry_mpi_release (sig_s);
+  sexp_release (l1);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
     log_debug ("dsa_verify    => %s\n", rc?gpg_strerror (rc):"Good");
@@ -1150,14 +1148,14 @@ dsa_get_nbits (gcry_sexp_t parms)
   gcry_mpi_t p;
   unsigned int nbits;
 
-  l1 = gcry_sexp_find_token (parms, "p", 1);
+  l1 = sexp_find_token (parms, "p", 1);
   if (!l1)
     return 0; /* Parameter P not found.  */
 
-  p = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-  gcry_sexp_release (l1);
+  p = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+  sexp_release (l1);
   nbits = p? mpi_get_nbits (p) : 0;
-  gcry_mpi_release (p);
+  _gcry_mpi_release (p);
   return nbits;
 }
 
@@ -1183,30 +1181,29 @@ selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
   gcry_sexp_t data_bad = NULL;
   gcry_sexp_t sig = NULL;
 
-  err = gcry_sexp_sscan (&data, NULL,
-                         sample_data, strlen (sample_data));
+  err = sexp_sscan (&data, NULL, sample_data, strlen (sample_data));
   if (!err)
-    err = gcry_sexp_sscan (&data_bad, NULL,
-                           sample_data_bad, strlen (sample_data_bad));
+    err = sexp_sscan (&data_bad, NULL,
+                      sample_data_bad, strlen (sample_data_bad));
   if (err)
     {
       errtxt = "converting data failed";
       goto leave;
     }
 
-  err = gcry_pk_sign (&sig, data, skey);
+  err = _gcry_pk_sign (&sig, data, skey);
   if (err)
     {
       errtxt = "signing failed";
       goto leave;
     }
-  err = gcry_pk_verify (sig, data, pkey);
+  err = _gcry_pk_verify (sig, data, pkey);
   if (err)
     {
       errtxt = "verify failed";
       goto leave;
     }
-  err = gcry_pk_verify (sig, data_bad, pkey);
+  err = _gcry_pk_verify (sig, data_bad, pkey);
   if (gcry_err_code (err) != GPG_ERR_BAD_SIGNATURE)
     {
       errtxt = "bad signature not detected";
@@ -1215,9 +1212,9 @@ selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
 
 
  leave:
-  gcry_sexp_release (sig);
-  gcry_sexp_release (data_bad);
-  gcry_sexp_release (data);
+  sexp_release (sig);
+  sexp_release (data_bad);
+  sexp_release (data);
   return errtxt;
 }
 
@@ -1233,22 +1230,21 @@ selftests_dsa (selftest_report_func_t report)
 
   /* Convert the S-expressions into the internal representation.  */
   what = "convert";
-  err = gcry_sexp_sscan (&skey, NULL,
-                         sample_secret_key, strlen (sample_secret_key));
+  err = sexp_sscan (&skey, NULL, sample_secret_key, strlen (sample_secret_key));
   if (!err)
-    err = gcry_sexp_sscan (&pkey, NULL,
-                           sample_public_key, strlen (sample_public_key));
+    err = sexp_sscan (&pkey, NULL,
+                      sample_public_key, strlen (sample_public_key));
   if (err)
     {
-      errtxt = gcry_strerror (err);
+      errtxt = _gcry_strerror (err);
       goto failed;
     }
 
   what = "key consistency";
-  err = gcry_pk_testkey (skey);
+  err = _gcry_pk_testkey (skey);
   if (err)
     {
-      errtxt = gcry_strerror (err);
+      errtxt = _gcry_strerror (err);
       goto failed;
     }
 
@@ -1257,13 +1253,13 @@ selftests_dsa (selftest_report_func_t report)
   if (errtxt)
     goto failed;
 
-  gcry_sexp_release (pkey);
-  gcry_sexp_release (skey);
+  sexp_release (pkey);
+  sexp_release (skey);
   return 0; /* Succeeded. */
 
  failed:
-  gcry_sexp_release (pkey);
-  gcry_sexp_release (skey);
+  sexp_release (pkey);
+  sexp_release (skey);
   if (report)
     report ("pubkey", GCRY_PK_DSA, what, errtxt);
   return GPG_ERR_SELFTEST_FAILED;

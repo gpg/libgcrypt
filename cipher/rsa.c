@@ -107,56 +107,56 @@ test_keys (RSA_secret_key *sk, unsigned int nbits)
 {
   int result = -1; /* Default to failure.  */
   RSA_public_key pk;
-  gcry_mpi_t plaintext = gcry_mpi_new (nbits);
-  gcry_mpi_t ciphertext = gcry_mpi_new (nbits);
-  gcry_mpi_t decr_plaintext = gcry_mpi_new (nbits);
-  gcry_mpi_t signature = gcry_mpi_new (nbits);
+  gcry_mpi_t plaintext = mpi_new (nbits);
+  gcry_mpi_t ciphertext = mpi_new (nbits);
+  gcry_mpi_t decr_plaintext = mpi_new (nbits);
+  gcry_mpi_t signature = mpi_new (nbits);
 
   /* Put the relevant parameters into a public key structure.  */
   pk.n = sk->n;
   pk.e = sk->e;
 
   /* Create a random plaintext.  */
-  gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
+  _gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
 
   /* Encrypt using the public key.  */
   public (ciphertext, plaintext, &pk);
 
   /* Check that the cipher text does not match the plaintext.  */
-  if (!gcry_mpi_cmp (ciphertext, plaintext))
+  if (!mpi_cmp (ciphertext, plaintext))
     goto leave; /* Ciphertext is identical to the plaintext.  */
 
   /* Decrypt using the secret key.  */
   secret (decr_plaintext, ciphertext, sk);
 
   /* Check that the decrypted plaintext matches the original plaintext.  */
-  if (gcry_mpi_cmp (decr_plaintext, plaintext))
+  if (mpi_cmp (decr_plaintext, plaintext))
     goto leave; /* Plaintext does not match.  */
 
   /* Create another random plaintext as data for signature checking.  */
-  gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
+  _gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
 
   /* Use the RSA secret function to create a signature of the plaintext.  */
   secret (signature, plaintext, sk);
 
   /* Use the RSA public function to verify this signature.  */
   public (decr_plaintext, signature, &pk);
-  if (gcry_mpi_cmp (decr_plaintext, plaintext))
+  if (mpi_cmp (decr_plaintext, plaintext))
     goto leave; /* Signature does not match.  */
 
   /* Modify the signature and check that the signing fails.  */
-  gcry_mpi_add_ui (signature, signature, 1);
+  mpi_add_ui (signature, signature, 1);
   public (decr_plaintext, signature, &pk);
-  if (!gcry_mpi_cmp (decr_plaintext, plaintext))
+  if (!mpi_cmp (decr_plaintext, plaintext))
     goto leave; /* Signature matches but should not.  */
 
   result = 0; /* All tests succeeded.  */
 
  leave:
-  gcry_mpi_release (signature);
-  gcry_mpi_release (decr_plaintext);
-  gcry_mpi_release (ciphertext);
-  gcry_mpi_release (plaintext);
+  _gcry_mpi_release (signature);
+  _gcry_mpi_release (decr_plaintext);
+  _gcry_mpi_release (ciphertext);
+  _gcry_mpi_release (plaintext);
   return result;
 }
 
@@ -172,8 +172,8 @@ check_exponent (void *arg, gcry_mpi_t a)
 
   mpi_sub_ui (a, a, 1);
   tmp = _gcry_mpi_alloc_like (a);
-  result = !gcry_mpi_gcd(tmp, e, a); /* GCD is not 1. */
-  gcry_mpi_release (tmp);
+  result = !mpi_gcd(tmp, e, a); /* GCD is not 1. */
+  _gcry_mpi_release (tmp);
   mpi_add_ui (a, a, 1);
   return result;
 }
@@ -239,16 +239,16 @@ generate_std (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       mpi_set_ui (e, use_e);
     }
 
-  n = gcry_mpi_new (nbits);
+  n = mpi_new (nbits);
 
   p = q = NULL;
   do
     {
       /* select two (very secret) primes */
       if (p)
-        gcry_mpi_release (p);
+        _gcry_mpi_release (p);
       if (q)
-        gcry_mpi_release (q);
+        _gcry_mpi_release (q);
       if (use_e)
         { /* Do an extra test to ensure that the given exponent is
              suitable. */
@@ -272,16 +272,16 @@ generate_std (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
   /* calculate Euler totient: phi = (p-1)(q-1) */
   t1 = mpi_alloc_secure( mpi_get_nlimbs(p) );
   t2 = mpi_alloc_secure( mpi_get_nlimbs(p) );
-  phi = gcry_mpi_snew ( nbits );
-  g	= gcry_mpi_snew ( nbits );
-  f	= gcry_mpi_snew ( nbits );
+  phi   = mpi_snew ( nbits );
+  g	= mpi_snew ( nbits );
+  f	= mpi_snew ( nbits );
   mpi_sub_ui( t1, p, 1 );
   mpi_sub_ui( t2, q, 1 );
   mpi_mul( phi, t1, t2 );
-  gcry_mpi_gcd(g, t1, t2);
+  mpi_gcd (g, t1, t2);
   mpi_fdiv_q(f, phi, g);
 
-  while (!gcry_mpi_gcd(t1, e, phi)) /* (while gcd is not 1) */
+  while (!mpi_gcd(t1, e, phi)) /* (while gcd is not 1) */
     {
       if (use_e)
         BUG (); /* The prime generator already made sure that we
@@ -290,10 +290,10 @@ generate_std (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
     }
 
   /* calculate the secret key d = e^1 mod phi */
-  d = gcry_mpi_snew ( nbits );
-  mpi_invm(d, e, f );
+  d = mpi_snew ( nbits );
+  mpi_invm (d, e, f );
   /* calculate the inverse of p and q (used for chinese remainder theorem)*/
-  u = gcry_mpi_snew ( nbits );
+  u = mpi_snew ( nbits );
   mpi_invm(u, p, q );
 
   if( DBG_CIPHER )
@@ -309,11 +309,11 @@ generate_std (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
       log_mpidump("  u= ", u );
     }
 
-  gcry_mpi_release (t1);
-  gcry_mpi_release (t2);
-  gcry_mpi_release (phi);
-  gcry_mpi_release (f);
-  gcry_mpi_release (g);
+  _gcry_mpi_release (t1);
+  _gcry_mpi_release (t2);
+  _gcry_mpi_release (phi);
+  _gcry_mpi_release (f);
+  _gcry_mpi_release (g);
 
   sk->n = n;
   sk->e = e;
@@ -325,12 +325,12 @@ generate_std (RSA_secret_key *sk, unsigned int nbits, unsigned long use_e,
   /* Now we can test our keys. */
   if (test_keys (sk, nbits - 64))
     {
-      gcry_mpi_release (sk->n); sk->n = NULL;
-      gcry_mpi_release (sk->e); sk->e = NULL;
-      gcry_mpi_release (sk->p); sk->p = NULL;
-      gcry_mpi_release (sk->q); sk->q = NULL;
-      gcry_mpi_release (sk->d); sk->d = NULL;
-      gcry_mpi_release (sk->u); sk->u = NULL;
+      _gcry_mpi_release (sk->n); sk->n = NULL;
+      _gcry_mpi_release (sk->e); sk->e = NULL;
+      _gcry_mpi_release (sk->p); sk->p = NULL;
+      _gcry_mpi_release (sk->q); sk->q = NULL;
+      _gcry_mpi_release (sk->d); sk->d = NULL;
+      _gcry_mpi_release (sk->u); sk->u = NULL;
       fips_signal_error ("self-test after key generation failed");
       return GPG_ERR_SELFTEST_FAILED;
     }
@@ -345,8 +345,8 @@ gen_x931_parm_xp (unsigned int nbits)
 {
   gcry_mpi_t xp;
 
-  xp = gcry_mpi_snew (nbits);
-  gcry_mpi_randomize (xp, nbits, GCRY_VERY_STRONG_RANDOM);
+  xp = mpi_snew (nbits);
+  _gcry_mpi_randomize (xp, nbits, GCRY_VERY_STRONG_RANDOM);
 
   /* The requirement for Xp is:
 
@@ -369,8 +369,8 @@ gen_x931_parm_xi (void)
 {
   gcry_mpi_t xi;
 
-  xi = gcry_mpi_snew (101);
-  gcry_mpi_randomize (xi, 101, GCRY_VERY_STRONG_RANDOM);
+  xi = mpi_snew (101);
+  _gcry_mpi_randomize (xi, 101, GCRY_VERY_STRONG_RANDOM);
   mpi_set_highbit (xi, 100);
   gcry_assert ( mpi_get_nbits (xi) == 101 );
 
@@ -436,15 +436,15 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
         /* Not given: Generate them.  */
         xp = gen_x931_parm_xp (nbits/2);
         /* Make sure that |xp - xq| > 2^{nbits - 100} holds.  */
-        tmpval = gcry_mpi_snew (nbits/2);
+        tmpval = mpi_snew (nbits/2);
         do
           {
-            gcry_mpi_release (xq);
+            _gcry_mpi_release (xq);
             xq = gen_x931_parm_xp (nbits/2);
             mpi_sub (tmpval, xp, xq);
           }
         while (mpi_get_nbits (tmpval) <= (nbits/2 - 100));
-        gcry_mpi_release (tmpval);
+        _gcry_mpi_release (tmpval);
 
         xp1 = gen_x931_parm_xi ();
         xp2 = gen_x931_parm_xi ();
@@ -479,12 +479,11 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
 
         for (idx=0; tbl[idx].name; idx++)
           {
-            oneparm = gcry_sexp_find_token (deriveparms, tbl[idx].name, 0);
+            oneparm = sexp_find_token (deriveparms, tbl[idx].name, 0);
             if (oneparm)
               {
-                *tbl[idx].value = gcry_sexp_nth_mpi (oneparm, 1,
-                                                     GCRYMPI_FMT_USG);
-                gcry_sexp_release (oneparm);
+                *tbl[idx].value = sexp_nth_mpi (oneparm, 1, GCRYMPI_FMT_USG);
+                sexp_release (oneparm);
               }
           }
         for (idx=0; tbl[idx].name; idx++)
@@ -494,7 +493,7 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
           {
             /* At least one parameter is missing.  */
             for (idx=0; tbl[idx].name; idx++)
-              gcry_mpi_release (*tbl[idx].value);
+              _gcry_mpi_release (*tbl[idx].value);
             return GPG_ERR_MISSING_VALUE;
           }
       }
@@ -504,17 +503,17 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
     /* Find two prime numbers.  */
     p = _gcry_derive_x931_prime (xp, xp1, xp2, e, NULL, NULL);
     q = _gcry_derive_x931_prime (xq, xq1, xq2, e, NULL, NULL);
-    gcry_mpi_release (xp);  xp  = NULL;
-    gcry_mpi_release (xp1); xp1 = NULL;
-    gcry_mpi_release (xp2); xp2 = NULL;
-    gcry_mpi_release (xq);  xq  = NULL;
-    gcry_mpi_release (xq1); xq1 = NULL;
-    gcry_mpi_release (xq2); xq2 = NULL;
+    _gcry_mpi_release (xp);  xp  = NULL;
+    _gcry_mpi_release (xp1); xp1 = NULL;
+    _gcry_mpi_release (xp2); xp2 = NULL;
+    _gcry_mpi_release (xq);  xq  = NULL;
+    _gcry_mpi_release (xq1); xq1 = NULL;
+    _gcry_mpi_release (xq2); xq2 = NULL;
     if (!p || !q)
       {
-        gcry_mpi_release (p);
-        gcry_mpi_release (q);
-        gcry_mpi_release (e);
+        _gcry_mpi_release (p);
+        _gcry_mpi_release (q);
+        _gcry_mpi_release (e);
         return GPG_ERR_NO_PRIME;
       }
   }
@@ -527,26 +526,26 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
       mpi_swap (p, q);
       *swapped = 1;
     }
-  n = gcry_mpi_new (nbits);
+  n = mpi_new (nbits);
   mpi_mul (n, p, q);
 
   /* Compute the Euler totient:  phi = (p-1)(q-1)  */
-  pm1 = gcry_mpi_snew (nbits/2);
-  qm1 = gcry_mpi_snew (nbits/2);
-  phi = gcry_mpi_snew (nbits);
+  pm1 = mpi_snew (nbits/2);
+  qm1 = mpi_snew (nbits/2);
+  phi = mpi_snew (nbits);
   mpi_sub_ui (pm1, p, 1);
   mpi_sub_ui (qm1, q, 1);
   mpi_mul (phi, pm1, qm1);
 
-  g = gcry_mpi_snew (nbits);
-  gcry_assert (gcry_mpi_gcd (g, e, phi));
+  g = mpi_snew (nbits);
+  gcry_assert (mpi_gcd (g, e, phi));
 
   /* Compute: f = lcm(p-1,q-1) = phi / gcd(p-1,q-1) */
-  gcry_mpi_gcd (g, pm1, qm1);
+  mpi_gcd (g, pm1, qm1);
   f = pm1; pm1 = NULL;
-  gcry_mpi_release (qm1); qm1 = NULL;
+  _gcry_mpi_release (qm1); qm1 = NULL;
   mpi_fdiv_q (f, phi, g);
-  gcry_mpi_release (phi); phi = NULL;
+  _gcry_mpi_release (phi); phi = NULL;
   d = g; g = NULL;
   /* Compute the secret key:  d = e^{-1} mod lcm(p-1,q-1) */
   mpi_invm (d, e, f);
@@ -578,12 +577,12 @@ generate_x931 (RSA_secret_key *sk, unsigned int nbits, unsigned long e_value,
   /* Now we can test our keys. */
   if (test_keys (sk, nbits - 64))
     {
-      gcry_mpi_release (sk->n); sk->n = NULL;
-      gcry_mpi_release (sk->e); sk->e = NULL;
-      gcry_mpi_release (sk->p); sk->p = NULL;
-      gcry_mpi_release (sk->q); sk->q = NULL;
-      gcry_mpi_release (sk->d); sk->d = NULL;
-      gcry_mpi_release (sk->u); sk->u = NULL;
+      _gcry_mpi_release (sk->n); sk->n = NULL;
+      _gcry_mpi_release (sk->e); sk->e = NULL;
+      _gcry_mpi_release (sk->p); sk->p = NULL;
+      _gcry_mpi_release (sk->q); sk->q = NULL;
+      _gcry_mpi_release (sk->d); sk->d = NULL;
+      _gcry_mpi_release (sk->u); sk->u = NULL;
       fips_signal_error ("self-test after key generation failed");
       return GPG_ERR_SELFTEST_FAILED;
     }
@@ -775,25 +774,25 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     return ec;
 
   /* Parse the optional flags list.  */
-  l1 = gcry_sexp_find_token (genparms, "flags", 0);
+  l1 = sexp_find_token (genparms, "flags", 0);
   if (l1)
     {
       ec = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
-      gcry_sexp_release (l1);
+      sexp_release (l1);
       if (ec)
         return ec;
     }
 
   deriveparms = (genparms?
-                 gcry_sexp_find_token (genparms, "derive-parms", 0) : NULL);
+                 sexp_find_token (genparms, "derive-parms", 0) : NULL);
   if (!deriveparms)
     {
       /* Parse the optional "use-x931" flag. */
-      l1 = gcry_sexp_find_token (genparms, "use-x931", 0);
+      l1 = sexp_find_token (genparms, "use-x931", 0);
       if (l1)
         {
           flags |= PUBKEY_FLAG_USE_X931;
-          gcry_sexp_release (l1);
+          sexp_release (l1);
         }
     }
 
@@ -801,20 +800,20 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     {
       int swapped;
       ec = generate_x931 (&sk, nbits, evalue, deriveparms, &swapped);
-      gcry_sexp_release (deriveparms);
+      sexp_release (deriveparms);
       if (!ec && swapped)
-        ec = gcry_sexp_new (&swap_info, "(misc-key-info(p-q-swapped))", 0, 1);
+        ec = sexp_new (&swap_info, "(misc-key-info(p-q-swapped))", 0, 1);
     }
   else
     {
       /* Parse the optional "transient-key" flag. */
       if (!(flags & PUBKEY_FLAG_TRANSIENT_KEY))
         {
-          l1 = gcry_sexp_find_token (genparms, "transient-key", 0);
+          l1 = sexp_find_token (genparms, "transient-key", 0);
           if (l1)
             {
               flags |= PUBKEY_FLAG_TRANSIENT_KEY;
-              gcry_sexp_release (l1);
+              sexp_release (l1);
             }
         }
       /* Generate.  */
@@ -824,16 +823,16 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 
   if (!ec)
     {
-      ec = gcry_sexp_build (r_skey, NULL,
-                            "(key-data"
-                            " (public-key"
-                            "  (rsa(n%m)(e%m)))"
-                            " (private-key"
-                            "  (rsa(n%m)(e%m)(d%m)(p%m)(q%m)(u%m)))"
-                            " %S)",
-                            sk.n, sk.e,
-                            sk.n, sk.e, sk.d, sk.p, sk.q, sk.u,
-                            swap_info);
+      ec = sexp_build (r_skey, NULL,
+                       "(key-data"
+                       " (public-key"
+                       "  (rsa(n%m)(e%m)))"
+                       " (private-key"
+                       "  (rsa(n%m)(e%m)(d%m)(p%m)(q%m)(u%m)))"
+                       " %S)",
+                       sk.n, sk.e,
+                       sk.n, sk.e, sk.d, sk.p, sk.q, sk.u,
+                       swap_info);
     }
 
   mpi_free (sk.n);
@@ -842,7 +841,7 @@ rsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   mpi_free (sk.q);
   mpi_free (sk.d);
   mpi_free (sk.u);
-  gcry_sexp_release (swap_info);
+  sexp_release (swap_info);
 
   return ec;
 }
@@ -855,9 +854,9 @@ rsa_check_secret_key (gcry_sexp_t keyparms)
   RSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL, NULL};
 
   /* To check the key we need the optional parameters. */
-  rc = _gcry_sexp_extract_param (keyparms, NULL, "nedpqu",
-                                 &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
-                                 NULL);
+  rc = sexp_extract_param (keyparms, NULL, "nedpqu",
+                           &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
+                           NULL);
   if (rc)
     goto leave;
 
@@ -865,12 +864,12 @@ rsa_check_secret_key (gcry_sexp_t keyparms)
     rc = GPG_ERR_BAD_SECKEY;
 
  leave:
-  gcry_mpi_release (sk.n);
-  gcry_mpi_release (sk.e);
-  gcry_mpi_release (sk.d);
-  gcry_mpi_release (sk.p);
-  gcry_mpi_release (sk.q);
-  gcry_mpi_release (sk.u);
+  _gcry_mpi_release (sk.n);
+  _gcry_mpi_release (sk.e);
+  _gcry_mpi_release (sk.d);
+  _gcry_mpi_release (sk.p);
+  _gcry_mpi_release (sk.q);
+  _gcry_mpi_release (sk.u);
   if (DBG_CIPHER)
     log_debug ("rsa_testkey    => %s\n", gpg_strerror (rc));
   return rc;
@@ -902,7 +901,7 @@ rsa_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_sexp_extract_param (keyparms, NULL, "ne", &pk.n, &pk.e, NULL);
+  rc = sexp_extract_param (keyparms, NULL, "ne", &pk.n, &pk.e, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -912,7 +911,7 @@ rsa_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Do RSA computation and build result.  */
-  ciph = gcry_mpi_new (0);
+  ciph = mpi_new (0);
   public (ciph, data, &pk);
   if (DBG_CIPHER)
     log_mpidump ("rsa_encrypt  res", ciph);
@@ -926,19 +925,18 @@ rsa_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       rc = _gcry_mpi_to_octet_string (&em, NULL, ciph, emlen);
       if (!rc)
         {
-          rc = gcry_sexp_build (r_ciph, NULL,
-                                "(enc-val(rsa(a%b)))", (int)emlen, em);
+          rc = sexp_build (r_ciph, NULL, "(enc-val(rsa(a%b)))", (int)emlen, em);
           gcry_free (em);
         }
     }
   else
-    rc = gcry_sexp_build (r_ciph, NULL, "(enc-val(rsa(a%m)))", ciph);
+    rc = sexp_build (r_ciph, NULL, "(enc-val(rsa(a%m)))", ciph);
 
  leave:
-  gcry_mpi_release (ciph);
-  gcry_mpi_release (pk.n);
-  gcry_mpi_release (pk.e);
-  gcry_mpi_release (data);
+  _gcry_mpi_release (ciph);
+  _gcry_mpi_release (pk.n);
+  _gcry_mpi_release (pk.e);
+  _gcry_mpi_release (data);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
     log_debug ("rsa_encrypt    => %s\n", gpg_strerror (rc));
@@ -969,7 +967,7 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_preparse_encval (s_data, rsa_names, &l1, &ctx);
   if (rc)
     goto leave;
-  rc = _gcry_sexp_extract_param (l1, NULL, "a", &data, NULL);
+  rc = sexp_extract_param (l1, NULL, "a", &data, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -981,9 +979,9 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_sexp_extract_param (keyparms, NULL, "nedp?q?u?",
-                                 &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
-                                 NULL);
+  rc = sexp_extract_param (keyparms, NULL, "nedp?q?u?",
+                           &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
+                           NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -999,7 +997,7 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         }
     }
 
-  plain = gcry_mpi_snew (ctx.nbits);
+  plain = mpi_snew (ctx.nbits);
 
   /* We use blinding by default to mitigate timing attacks which can
      be practically mounted over the network as shown by Brumley and
@@ -1011,13 +1009,13 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 	 random number needs to be only unpredictable, thus we employ
 	 the gcry_create_nonce function by using GCRY_WEAK_RANDOM with
 	 gcry_mpi_randomize.  */
-      r = gcry_mpi_snew (ctx.nbits);
-      ri = gcry_mpi_snew (ctx.nbits);
-      bldata = gcry_mpi_snew (ctx.nbits);
+      r  = mpi_snew (ctx.nbits);
+      ri = mpi_snew (ctx.nbits);
+      bldata = mpi_snew (ctx.nbits);
 
-      gcry_mpi_randomize (r, ctx.nbits, GCRY_WEAK_RANDOM);
-      gcry_mpi_mod (r, r, sk.n);
-      if (!gcry_mpi_invm (ri, r, sk.n))
+      _gcry_mpi_randomize (r, ctx.nbits, GCRY_WEAK_RANDOM);
+      mpi_mod (r, r, sk.n);
+      if (!mpi_invm (ri, r, sk.n))
         {
           rc = GPG_ERR_INTERNAL;
           goto leave;
@@ -1026,20 +1024,20 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       /* Do blinding.  We calculate: y = (x * r^e) mod n, where r is
          the random number, e is the public exponent, x is the
          non-blinded data and n is the RSA modulus.  */
-      gcry_mpi_powm (bldata, r, sk.e, sk.n);
-      gcry_mpi_mulm (bldata, bldata, data, sk.n);
+      mpi_powm (bldata, r, sk.e, sk.n);
+      mpi_mulm (bldata, bldata, data, sk.n);
 
       /* Perform decryption.  */
       secret (plain, bldata, &sk);
-      gcry_mpi_release (bldata); bldata = NULL;
+      _gcry_mpi_release (bldata); bldata = NULL;
 
       /* Undo blinding.  Here we calculate: y = (x * r^-1) mod n,
          where x is the blinded decrypted data, ri is the modular
          multiplicative inverse of r and n is the RSA modulus.  */
-      gcry_mpi_mulm (plain, plain, ri, sk.n);
+      mpi_mulm (plain, plain, ri, sk.n);
 
-      gcry_mpi_release (r); r = NULL;
-      gcry_mpi_release (ri); ri = NULL;
+      _gcry_mpi_release (r); r = NULL;
+      _gcry_mpi_release (ri); ri = NULL;
     }
   else
     secret (plain, data, &sk);
@@ -1055,8 +1053,7 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_free (plain);
       plain = NULL;
       if (!rc)
-        rc = gcry_sexp_build (r_plain, NULL,
-                              "(value %b)", (int)unpadlen, unpad);
+        rc = sexp_build (r_plain, NULL, "(value %b)", (int)unpadlen, unpad);
       break;
 
     case PUBKEY_ENC_OAEP:
@@ -1066,33 +1063,32 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_free (plain);
       plain = NULL;
       if (!rc)
-        rc = gcry_sexp_build (r_plain, NULL,
-                              "(value %b)", (int)unpadlen, unpad);
+        rc = sexp_build (r_plain, NULL, "(value %b)", (int)unpadlen, unpad);
       break;
 
     default:
       /* Raw format.  For backward compatibility we need to assume a
          signed mpi by using the sexp format string "%m".  */
-      rc = gcry_sexp_build (r_plain, NULL,
-                            (ctx.flags & PUBKEY_FLAG_LEGACYRESULT)
-                            ? "%m":"(value %m)", plain);
+      rc = sexp_build (r_plain, NULL,
+                       (ctx.flags & PUBKEY_FLAG_LEGACYRESULT)
+                       ? "%m":"(value %m)", plain);
       break;
     }
 
  leave:
   gcry_free (unpad);
-  gcry_mpi_release (plain);
-  gcry_mpi_release (sk.n);
-  gcry_mpi_release (sk.e);
-  gcry_mpi_release (sk.d);
-  gcry_mpi_release (sk.p);
-  gcry_mpi_release (sk.q);
-  gcry_mpi_release (sk.u);
-  gcry_mpi_release (data);
-  gcry_mpi_release (r);
-  gcry_mpi_release (ri);
-  gcry_mpi_release (bldata);
-  gcry_sexp_release (l1);
+  _gcry_mpi_release (plain);
+  _gcry_mpi_release (sk.n);
+  _gcry_mpi_release (sk.e);
+  _gcry_mpi_release (sk.d);
+  _gcry_mpi_release (sk.p);
+  _gcry_mpi_release (sk.q);
+  _gcry_mpi_release (sk.u);
+  _gcry_mpi_release (data);
+  _gcry_mpi_release (r);
+  _gcry_mpi_release (ri);
+  _gcry_mpi_release (bldata);
+  sexp_release (l1);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
     log_debug ("rsa_decrypt    => %s\n", gpg_strerror (rc));
@@ -1125,9 +1121,9 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Extract the key.  */
-  rc = _gcry_sexp_extract_param (keyparms, NULL, "nedp?q?u?",
-                                 &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
-                                 NULL);
+  rc = sexp_extract_param (keyparms, NULL, "nedp?q?u?",
+                           &sk.n, &sk.e, &sk.d, &sk.p, &sk.q, &sk.u,
+                           NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1144,7 +1140,7 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Do RSA computation and build the result.  */
-  sig = gcry_mpi_new (0);
+  sig = mpi_new (0);
   secret (sig, data, &sk);
   if (DBG_CIPHER)
     log_printmpi ("rsa_sign    res", sig);
@@ -1158,24 +1154,23 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       rc = _gcry_mpi_to_octet_string (&em, NULL, sig, emlen);
       if (!rc)
         {
-          rc = gcry_sexp_build (r_sig, NULL,
-                                "(sig-val(rsa(s%b)))", (int)emlen, em);
+          rc = sexp_build (r_sig, NULL, "(sig-val(rsa(s%b)))", (int)emlen, em);
           gcry_free (em);
         }
     }
   else
-    rc = gcry_sexp_build (r_sig, NULL, "(sig-val(rsa(s%M)))", sig);
+    rc = sexp_build (r_sig, NULL, "(sig-val(rsa(s%M)))", sig);
 
 
  leave:
-  gcry_mpi_release (sig);
-  gcry_mpi_release (sk.n);
-  gcry_mpi_release (sk.e);
-  gcry_mpi_release (sk.d);
-  gcry_mpi_release (sk.p);
-  gcry_mpi_release (sk.q);
-  gcry_mpi_release (sk.u);
-  gcry_mpi_release (data);
+  _gcry_mpi_release (sig);
+  _gcry_mpi_release (sk.n);
+  _gcry_mpi_release (sk.e);
+  _gcry_mpi_release (sk.d);
+  _gcry_mpi_release (sk.p);
+  _gcry_mpi_release (sk.q);
+  _gcry_mpi_release (sk.u);
+  _gcry_mpi_release (data);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
     log_debug ("rsa_sign      => %s\n", gpg_strerror (rc));
@@ -1213,14 +1208,14 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_preparse_sigval (s_sig, rsa_names, &l1, NULL);
   if (rc)
     goto leave;
-  rc = _gcry_sexp_extract_param (l1, NULL, "s", &sig, NULL);
+  rc = sexp_extract_param (l1, NULL, "s", &sig, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
     log_printmpi ("rsa_verify  sig", sig);
 
   /* Extract the key.  */
-  rc = _gcry_sexp_extract_param (keyparms, NULL, "ne", &pk.n, &pk.e, NULL);
+  rc = sexp_extract_param (keyparms, NULL, "ne", &pk.n, &pk.e, NULL);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -1230,7 +1225,7 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Do RSA computation and compare.  */
-  result = gcry_mpi_new (0);
+  result = mpi_new (0);
   public (result, sig, &pk);
   if (DBG_CIPHER)
     log_printmpi ("rsa_verify  cmp", result);
@@ -1240,12 +1235,12 @@ rsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     rc = mpi_cmp (result, data) ? GPG_ERR_BAD_SIGNATURE : 0;
 
  leave:
-  gcry_mpi_release (result);
-  gcry_mpi_release (pk.n);
-  gcry_mpi_release (pk.e);
-  gcry_mpi_release (data);
-  gcry_mpi_release (sig);
-  gcry_sexp_release (l1);
+  _gcry_mpi_release (result);
+  _gcry_mpi_release (pk.n);
+  _gcry_mpi_release (pk.e);
+  _gcry_mpi_release (data);
+  _gcry_mpi_release (sig);
+  sexp_release (l1);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
     log_debug ("rsa_verify    => %s\n", rc?gpg_strerror (rc):"Good");
@@ -1271,14 +1266,14 @@ rsa_get_nbits (gcry_sexp_t parms)
   gcry_mpi_t n;
   unsigned int nbits;
 
-  l1 = gcry_sexp_find_token (parms, "n", 1);
+  l1 = sexp_find_token (parms, "n", 1);
   if (!l1)
     return 0; /* Parameter N not found.  */
 
-  n = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-  gcry_sexp_release (l1);
+  n = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+  sexp_release (l1);
   nbits = n? mpi_get_nbits (n) : 0;
-  gcry_mpi_release (n);
+  _gcry_mpi_release (n);
   return nbits;
 }
 
@@ -1303,19 +1298,19 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
   const char *data;
   size_t datalen;
 
-  l1 = gcry_sexp_find_token (keyparam, "n", 1);
+  l1 = sexp_find_token (keyparam, "n", 1);
   if (!l1)
     return GPG_ERR_NO_OBJ;
 
-  data = gcry_sexp_nth_data (l1, 1, &datalen);
+  data = sexp_nth_data (l1, 1, &datalen);
   if (!data)
     {
-      gcry_sexp_release (l1);
+      sexp_release (l1);
       return GPG_ERR_NO_OBJ;
     }
 
-  gcry_md_write (md, data, datalen);
-  gcry_sexp_release (l1);
+  _gcry_md_write (md, data, datalen);
+  sexp_release (l1);
 
   return 0;
 }
@@ -1343,30 +1338,29 @@ selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
   gcry_sexp_t data_bad = NULL;
   gcry_sexp_t sig = NULL;
 
-  err = gcry_sexp_sscan (&data, NULL,
-                         sample_data, strlen (sample_data));
+  err = sexp_sscan (&data, NULL, sample_data, strlen (sample_data));
   if (!err)
-    err = gcry_sexp_sscan (&data_bad, NULL,
-                           sample_data_bad, strlen (sample_data_bad));
+    err = sexp_sscan (&data_bad, NULL,
+                      sample_data_bad, strlen (sample_data_bad));
   if (err)
     {
       errtxt = "converting data failed";
       goto leave;
     }
 
-  err = gcry_pk_sign (&sig, data, skey);
+  err = _gcry_pk_sign (&sig, data, skey);
   if (err)
     {
       errtxt = "signing failed";
       goto leave;
     }
-  err = gcry_pk_verify (sig, data, pkey);
+  err = _gcry_pk_verify (sig, data, pkey);
   if (err)
     {
       errtxt = "verify failed";
       goto leave;
     }
-  err = gcry_pk_verify (sig, data_bad, pkey);
+  err = _gcry_pk_verify (sig, data_bad, pkey);
   if (gcry_err_code (err) != GPG_ERR_BAD_SIGNATURE)
     {
       errtxt = "bad signature not detected";
@@ -1375,9 +1369,9 @@ selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
 
 
  leave:
-  gcry_sexp_release (sig);
-  gcry_sexp_release (data_bad);
-  gcry_sexp_release (data);
+  sexp_release (sig);
+  sexp_release (data_bad);
+  sexp_release (data);
   return errtxt;
 }
 
@@ -1397,19 +1391,19 @@ extract_a_from_sexp (gcry_sexp_t encr_data)
   gcry_sexp_t l1, l2, l3;
   gcry_mpi_t a_value;
 
-  l1 = gcry_sexp_find_token (encr_data, "enc-val", 0);
+  l1 = sexp_find_token (encr_data, "enc-val", 0);
   if (!l1)
     return NULL;
-  l2 = gcry_sexp_find_token (l1, "rsa", 0);
-  gcry_sexp_release (l1);
+  l2 = sexp_find_token (l1, "rsa", 0);
+  sexp_release (l1);
   if (!l2)
     return NULL;
-  l3 = gcry_sexp_find_token (l2, "a", 0);
-  gcry_sexp_release (l2);
+  l3 = sexp_find_token (l2, "a", 0);
+  sexp_release (l2);
   if (!l3)
     return NULL;
-  a_value = gcry_sexp_nth_mpi (l3, 1, 0);
-  gcry_sexp_release (l3);
+  a_value = sexp_nth_mpi (l3, 1, 0);
+  sexp_release (l3);
 
   return a_value;
 }
@@ -1430,12 +1424,11 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
   gcry_sexp_t tmplist = NULL;
 
   /* Create plaintext.  The plaintext is actually a big integer number.  */
-  plaintext = gcry_mpi_new (nbits);
-  gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
+  plaintext = mpi_new (nbits);
+  _gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
 
   /* Put the plaintext into an S-expression.  */
-  err = gcry_sexp_build (&plain, NULL,
-                         "(data (flags raw) (value %m))", plaintext);
+  err = sexp_build (&plain, NULL, "(data (flags raw) (value %m))", plaintext);
   if (err)
     {
       errtxt = "converting data failed";
@@ -1443,7 +1436,7 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
     }
 
   /* Encrypt.  */
-  err = gcry_pk_encrypt (&encr, plain, pkey);
+  err = _gcry_pk_encrypt (&encr, plain, pkey);
   if (err)
     {
       errtxt = "encrypt failed";
@@ -1451,7 +1444,7 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
     }
 
   /* Extraxt the ciphertext from the returned S-expression.  */
-  /*gcry_sexp_dump (encr);*/
+  /*sexp_dump (encr);*/
   ciphertext = extract_a_from_sexp (encr);
   if (!ciphertext)
     {
@@ -1462,14 +1455,14 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
   /* Check that the ciphertext does no match the plaintext.  */
   /* _gcry_log_printmpi ("plaintext", plaintext); */
   /* _gcry_log_printmpi ("ciphertxt", ciphertext); */
-  if (!gcry_mpi_cmp (plaintext, ciphertext))
+  if (!mpi_cmp (plaintext, ciphertext))
     {
       errtxt = "ciphertext matches plaintext";
       goto leave;
     }
 
   /* Decrypt.  */
-  err = gcry_pk_decrypt (&decr, encr, skey);
+  err = _gcry_pk_decrypt (&decr, encr, skey);
   if (err)
     {
       errtxt = "decrypt failed";
@@ -1482,11 +1475,11 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
      gcry_pk_encrypt directly to gcry_pk_decrypt, such a flag value
      won't be there as of today.  To be prepared for future changes we
      take care of it anyway.  */
-  tmplist = gcry_sexp_find_token (decr, "value", 0);
+  tmplist = sexp_find_token (decr, "value", 0);
   if (tmplist)
-    decr_plaintext = gcry_sexp_nth_mpi (tmplist, 1, GCRYMPI_FMT_USG);
+    decr_plaintext = sexp_nth_mpi (tmplist, 1, GCRYMPI_FMT_USG);
   else
-    decr_plaintext = gcry_sexp_nth_mpi (decr, 0, GCRYMPI_FMT_USG);
+    decr_plaintext = sexp_nth_mpi (decr, 0, GCRYMPI_FMT_USG);
   if (!decr_plaintext)
     {
       errtxt = "decrypt returned no plaintext";
@@ -1494,20 +1487,20 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
     }
 
   /* Check that the decrypted plaintext matches the original  plaintext.  */
-  if (gcry_mpi_cmp (plaintext, decr_plaintext))
+  if (mpi_cmp (plaintext, decr_plaintext))
     {
       errtxt = "mismatch";
       goto leave;
     }
 
  leave:
-  gcry_sexp_release (tmplist);
-  gcry_mpi_release (decr_plaintext);
-  gcry_sexp_release (decr);
-  gcry_mpi_release (ciphertext);
-  gcry_sexp_release (encr);
-  gcry_sexp_release (plain);
-  gcry_mpi_release (plaintext);
+  sexp_release (tmplist);
+  _gcry_mpi_release (decr_plaintext);
+  sexp_release (decr);
+  _gcry_mpi_release (ciphertext);
+  sexp_release (encr);
+  sexp_release (plain);
+  _gcry_mpi_release (plaintext);
   return errtxt;
 }
 
@@ -1523,22 +1516,21 @@ selftests_rsa (selftest_report_func_t report)
 
   /* Convert the S-expressions into the internal representation.  */
   what = "convert";
-  err = gcry_sexp_sscan (&skey, NULL,
-                         sample_secret_key, strlen (sample_secret_key));
+  err = sexp_sscan (&skey, NULL, sample_secret_key, strlen (sample_secret_key));
   if (!err)
-    err = gcry_sexp_sscan (&pkey, NULL,
-                           sample_public_key, strlen (sample_public_key));
+    err = sexp_sscan (&pkey, NULL,
+                      sample_public_key, strlen (sample_public_key));
   if (err)
     {
-      errtxt = gcry_strerror (err);
+      errtxt = _gcry_strerror (err);
       goto failed;
     }
 
   what = "key consistency";
-  err = gcry_pk_testkey (skey);
+  err = _gcry_pk_testkey (skey);
   if (err)
     {
-      errtxt = gcry_strerror (err);
+      errtxt = _gcry_strerror (err);
       goto failed;
     }
 
@@ -1552,13 +1544,13 @@ selftests_rsa (selftest_report_func_t report)
   if (errtxt)
     goto failed;
 
-  gcry_sexp_release (pkey);
-  gcry_sexp_release (skey);
+  sexp_release (pkey);
+  sexp_release (skey);
   return 0; /* Succeeded. */
 
  failed:
-  gcry_sexp_release (pkey);
-  gcry_sexp_release (skey);
+  sexp_release (pkey);
+  sexp_release (skey);
   if (report)
     report ("pubkey", GCRY_PK_RSA, what, errtxt);
   return GPG_ERR_SELFTEST_FAILED;

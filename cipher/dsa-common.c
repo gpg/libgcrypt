@@ -54,7 +54,7 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
       if ( !rndbuf || nbits < 32 )
         {
           gcry_free (rndbuf);
-          rndbuf = gcry_random_bytes_secure (nbytes, security_level);
+          rndbuf = _gcry_random_bytes_secure (nbytes, security_level);
 	}
       else
         { /* Change only some of the higher bits.  We could improve
@@ -62,7 +62,7 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
 	     to get_random_bytes() and use these extra bytes here.
 	     However the required management code is more complex and
 	     thus we better use this simple method.  */
-          char *pp = gcry_random_bytes_secure (4, security_level);
+          char *pp = _gcry_random_bytes_secure (4, security_level);
           memcpy (rndbuf, pp, 4);
           gcry_free (pp);
 	}
@@ -112,8 +112,7 @@ int2octets (unsigned char **r_frame, gcry_mpi_t value, size_t nbytes)
   size_t nframe, noff, n;
   unsigned char *frame;
 
-  rc = gpg_err_code (gcry_mpi_print (GCRYMPI_FMT_USG, NULL, 0,
-                                      &nframe, value));
+  rc = _gcry_mpi_print (GCRYMPI_FMT_USG, NULL, 0, &nframe, value);
   if (rc)
     return rc;
   if (nframe > nbytes)
@@ -127,8 +126,7 @@ int2octets (unsigned char **r_frame, gcry_mpi_t value, size_t nbytes)
   if (noff)
     memset (frame, 0, noff);
   nframe += noff;
-  rc = gpg_err_code (gcry_mpi_print (GCRYMPI_FMT_USG, frame+noff, nframe-noff,
-                                      NULL, value));
+  rc = _gcry_mpi_print (GCRYMPI_FMT_USG, frame+noff, nframe-noff, NULL, value);
   if (rc)
     {
       gcry_free (frame);
@@ -152,12 +150,11 @@ bits2octets (unsigned char **r_frame,
   gcry_mpi_t z1;
 
   /* z1 = bits2int (b) */
-  rc = gpg_err_code (gcry_mpi_scan (&z1, GCRYMPI_FMT_USG,
-                                    bits, (nbits+7)/8, NULL));
+  rc = _gcry_mpi_scan (&z1, GCRYMPI_FMT_USG, bits, (nbits+7)/8, NULL);
   if (rc)
     return rc;
   if (nbits > qbits)
-    gcry_mpi_rshift (z1, z1, nbits - qbits);
+    mpi_rshift (z1, z1, nbits - qbits);
 
   /* z2 - z1 mod q */
   if (mpi_cmp (z1, q) >= 0)
@@ -199,7 +196,7 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
   if (!qbits || !h1 || !hlen)
     return GPG_ERR_EINVAL;
 
-  if (gcry_md_get_algo_dlen (halgo) != hlen)
+  if (_gcry_md_get_algo_dlen (halgo) != hlen)
     return GPG_ERR_DIGEST_ALGO;
 
   /* Step b:  V = 0x01 0x01 0x01 ... 0x01 */
@@ -229,44 +226,43 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
     goto leave;
 
   /* Create a handle to compute the HMACs.  */
-  rc = gpg_err_code (gcry_md_open (&hd, halgo,
-                                   (GCRY_MD_FLAG_SECURE | GCRY_MD_FLAG_HMAC)));
+  rc = _gcry_md_open (&hd, halgo, (GCRY_MD_FLAG_SECURE | GCRY_MD_FLAG_HMAC));
   if (rc)
     goto leave;
 
   /* Step d:  K = HMAC_K(V || 0x00 || int2octets(x) || bits2octets(h1) */
-  rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+  rc = _gcry_md_setkey (hd, K, hlen);
   if (rc)
     goto leave;
-  gcry_md_write (hd, V, hlen);
-  gcry_md_write (hd, "", 1);
-  gcry_md_write (hd, x_buf, (qbits+7)/8);
-  gcry_md_write (hd, h1_buf, (qbits+7)/8);
-  memcpy (K, gcry_md_read (hd, 0), hlen);
+  _gcry_md_write (hd, V, hlen);
+  _gcry_md_write (hd, "", 1);
+  _gcry_md_write (hd, x_buf, (qbits+7)/8);
+  _gcry_md_write (hd, h1_buf, (qbits+7)/8);
+  memcpy (K, _gcry_md_read (hd, 0), hlen);
 
   /* Step e:  V = HMAC_K(V) */
-  rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+  rc = _gcry_md_setkey (hd, K, hlen);
   if (rc)
     goto leave;
-  gcry_md_write (hd, V, hlen);
-  memcpy (V, gcry_md_read (hd, 0), hlen);
+  _gcry_md_write (hd, V, hlen);
+  memcpy (V, _gcry_md_read (hd, 0), hlen);
 
   /* Step f:  K = HMAC_K(V || 0x01 || int2octets(x) || bits2octets(h1) */
-  rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+  rc = _gcry_md_setkey (hd, K, hlen);
   if (rc)
     goto leave;
-  gcry_md_write (hd, V, hlen);
-  gcry_md_write (hd, "\x01", 1);
-  gcry_md_write (hd, x_buf, (qbits+7)/8);
-  gcry_md_write (hd, h1_buf, (qbits+7)/8);
-  memcpy (K, gcry_md_read (hd, 0), hlen);
+  _gcry_md_write (hd, V, hlen);
+  _gcry_md_write (hd, "\x01", 1);
+  _gcry_md_write (hd, x_buf, (qbits+7)/8);
+  _gcry_md_write (hd, h1_buf, (qbits+7)/8);
+  memcpy (K, _gcry_md_read (hd, 0), hlen);
 
   /* Step g:  V = HMAC_K(V) */
-  rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+  rc = _gcry_md_setkey (hd, K, hlen);
   if (rc)
     goto leave;
-  gcry_md_write (hd, V, hlen);
-  memcpy (V, gcry_md_read (hd, 0), hlen);
+  _gcry_md_write (hd, V, hlen);
+  memcpy (V, _gcry_md_read (hd, 0), hlen);
 
   /* Step h. */
   t = gcry_malloc ((qbits+7)/8+hlen);
@@ -280,11 +276,11 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
   for (tbits = 0; tbits < qbits;)
     {
       /* V = HMAC_K(V) */
-      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      rc = _gcry_md_setkey (hd, K, hlen);
       if (rc)
         goto leave;
-      gcry_md_write (hd, V, hlen);
-      memcpy (V, gcry_md_read (hd, 0), hlen);
+      _gcry_md_write (hd, V, hlen);
+      memcpy (V, _gcry_md_read (hd, 0), hlen);
 
       /* T = T || V */
       memcpy (t+(tbits+7)/8, V, hlen);
@@ -294,29 +290,29 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
   /* k = bits2int (T) */
   mpi_free (k);
   k = NULL;
-  rc = gpg_err_code (gcry_mpi_scan (&k, GCRYMPI_FMT_USG, t, (tbits+7)/8, NULL));
+  rc = _gcry_mpi_scan (&k, GCRYMPI_FMT_USG, t, (tbits+7)/8, NULL);
   if (rc)
     goto leave;
   if (tbits > qbits)
-    gcry_mpi_rshift (k, k, tbits - qbits);
+    mpi_rshift (k, k, tbits - qbits);
 
   /* Check: k < q and k > 1 */
   if (!(mpi_cmp (k, dsa_q) < 0 && mpi_cmp_ui (k, 0) > 0))
     {
       /* K = HMAC_K(V || 0x00) */
-      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      rc = _gcry_md_setkey (hd, K, hlen);
       if (rc)
         goto leave;
-      gcry_md_write (hd, V, hlen);
-      gcry_md_write (hd, "", 1);
-      memcpy (K, gcry_md_read (hd, 0), hlen);
+      _gcry_md_write (hd, V, hlen);
+      _gcry_md_write (hd, "", 1);
+      memcpy (K, _gcry_md_read (hd, 0), hlen);
 
       /* V = HMAC_K(V) */
-      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      rc = _gcry_md_setkey (hd, K, hlen);
       if (rc)
         goto leave;
-      gcry_md_write (hd, V, hlen);
-      memcpy (V, gcry_md_read (hd, 0), hlen);
+      _gcry_md_write (hd, V, hlen);
+      memcpy (V, _gcry_md_read (hd, 0), hlen);
 
       goto again;
     }
@@ -330,19 +326,19 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
       extraloops--;
 
       /* K = HMAC_K(V || 0x00) */
-      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      rc = _gcry_md_setkey (hd, K, hlen);
       if (rc)
         goto leave;
-      gcry_md_write (hd, V, hlen);
-      gcry_md_write (hd, "", 1);
-      memcpy (K, gcry_md_read (hd, 0), hlen);
+      _gcry_md_write (hd, V, hlen);
+      _gcry_md_write (hd, "", 1);
+      memcpy (K, _gcry_md_read (hd, 0), hlen);
 
       /* V = HMAC_K(V) */
-      rc = gpg_err_code (gcry_md_setkey (hd, K, hlen));
+      rc = _gcry_md_setkey (hd, K, hlen);
       if (rc)
         goto leave;
-      gcry_md_write (hd, V, hlen);
-      memcpy (V, gcry_md_read (hd, 0), hlen);
+      _gcry_md_write (hd, V, hlen);
+      memcpy (V, _gcry_md_read (hd, 0), hlen);
 
       goto again;
     }
@@ -351,7 +347,7 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
 
  leave:
   gcry_free (t);
-  gcry_md_close (hd);
+  _gcry_md_close (hd);
   gcry_free (h1_buf);
   gcry_free (x_buf);
   gcry_free (K);

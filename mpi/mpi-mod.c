@@ -183,6 +183,6 @@ void
 _gcry_mpi_mul_barrett (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v,
                        mpi_barrett_t ctx)
 {
-  gcry_mpi_mul (w, u, v);
+  mpi_mul (w, u, v);
   mpi_mod_barrett (w, w, ctx);
 }

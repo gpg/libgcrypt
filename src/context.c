@@ -116,7 +116,7 @@ _gcry_ctx_find_pointer (gcry_ctx_t ctx, int type)
 
 /* Release the generic context CTX.  */
 void
-gcry_ctx_release (gcry_ctx_t ctx)
+_gcry_ctx_release (gcry_ctx_t ctx)
 {
   if (!ctx)
     return;

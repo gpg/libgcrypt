@@ -39,7 +39,7 @@ static void barrett_mulm( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m
 static gcry_mpi_t init_barrett( gcry_mpi_t m, int *k, gcry_mpi_t *r1, gcry_mpi_t *r2 );
 static int calc_barrett( gcry_mpi_t r, gcry_mpi_t x, gcry_mpi_t m, gcry_mpi_t y, int k, gcry_mpi_t r1, gcry_mpi_t r2  );
 #else
-#define barrett_mulm( w, u, v, m, y, k, r1, r2 ) gcry_mpi_mulm( (w), (u), (v), (m) )
+#define barrett_mulm( w, u, v, m, y, k, r1, r2 ) _gcry_mpi_mulm( (w), (u), (v), (m) )
 #endif
 
 

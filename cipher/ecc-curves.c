@@ -310,7 +310,7 @@ point_copy (gcry_mpi_point_t point)
 
   if (point)
     {
-      newpoint = gcry_mpi_point_new (0);
+      newpoint = mpi_point_new (0);
       point_set (newpoint, point);
     }
   else
@@ -323,12 +323,12 @@ point_copy (gcry_mpi_point_t point)
 static gcry_mpi_t
 scanval (const char *string)
 {
-  gpg_error_t err;
+  gpg_err_code_t rc;
   gcry_mpi_t val;
 
-  err = gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
-  if (err)
-    log_fatal ("scanning ECC parameter failed: %s\n", gpg_strerror (err));
+  rc = _gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
+  if (rc)
+    log_fatal ("scanning ECC parameter failed: %s\n", gpg_strerror (rc));
   return val;
 }
 
@@ -524,9 +524,9 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   /*
    * Extract the curve parameters..
    */
-  rc = gpg_err_code (_gcry_sexp_extract_param (keyparms, NULL, "-pabgn",
-                                               &E.p, &E.a, &E.b, &mpi_g, &E.n,
-                                               NULL));
+  rc = gpg_err_code (sexp_extract_param (keyparms, NULL, "-pabgn",
+                                         &E.p, &E.a, &E.b, &mpi_g, &E.n,
+                                         NULL));
   if (rc == GPG_ERR_NO_OBJ)
     {
       /* This might be the second use case of checking whether a
@@ -534,12 +534,12 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
       gcry_sexp_t l1;
       char *name;
 
-      l1 = gcry_sexp_find_token (keyparms, "curve", 5);
+      l1 = sexp_find_token (keyparms, "curve", 5);
       if (!l1)
         goto leave;  /* No curve name parameter.  */
 
-      name = _gcry_sexp_nth_string (l1, 1);
-      gcry_sexp_release (l1);
+      name = sexp_nth_string (l1, 1);
+      sexp_release (l1);
       if (!name)
         goto leave;  /* Name missing or out of core. */
 
@@ -602,13 +602,13 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
     }
 
  leave:
-  gcry_mpi_release (tmp);
-  gcry_mpi_release (E.p);
-  gcry_mpi_release (E.a);
-  gcry_mpi_release (E.b);
-  gcry_mpi_release (mpi_g);
+  _gcry_mpi_release (tmp);
+  _gcry_mpi_release (E.p);
+  _gcry_mpi_release (E.a);
+  _gcry_mpi_release (E.b);
+  _gcry_mpi_release (mpi_g);
   _gcry_mpi_point_free_parts (&E.G);
-  gcry_mpi_release (E.n);
+  _gcry_mpi_release (E.n);
   return result;
 }
 
@@ -620,11 +620,11 @@ mpi_from_keyparam (gcry_mpi_t *r_a, gcry_sexp_t keyparam, const char *name)
   gcry_err_code_t ec = 0;
   gcry_sexp_t l1;
 
-  l1 = gcry_sexp_find_token (keyparam, name, 0);
+  l1 = sexp_find_token (keyparam, name, 0);
   if (l1)
     {
-      *r_a = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-      gcry_sexp_release (l1);
+      *r_a = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      sexp_release (l1);
       if (!*r_a)
         ec = GPG_ERR_INV_OBJ;
     }
@@ -644,17 +644,17 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
   gcry_sexp_t l1;
   gcry_mpi_point_t point;
 
-  l1 = gcry_sexp_find_token (keyparam, name, 0);
+  l1 = sexp_find_token (keyparam, name, 0);
   if (l1)
     {
       gcry_mpi_t a;
 
-      a = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_OPAQUE);
-      gcry_sexp_release (l1);
+      a = sexp_nth_mpi (l1, 1, GCRYMPI_FMT_OPAQUE);
+      sexp_release (l1);
       if (!a)
         return GPG_ERR_INV_OBJ;
 
-      point = gcry_mpi_point_new (0);
+      point = mpi_point_new (0);
       if (ec && ec->dialect == ECC_DIALECT_ED25519)
         rc = _gcry_ecc_eddsa_decodepoint (a, ec, point, NULL, NULL);
       else
@@ -662,7 +662,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
       mpi_free (a);
       if (rc)
         {
-          gcry_mpi_point_release (point);
+          mpi_point_release (point);
           return rc;
         }
     }
@@ -703,7 +703,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
       if (!z)
         z = mpi_set_ui (NULL, 1);
       if (x && y)
-        point = gcry_mpi_point_snatch_set (NULL, x, y, z);
+        point = mpi_point_snatch_set (NULL, x, y, z);
       else
         {
           mpi_free (x);
@@ -750,18 +750,18 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
   if (keyparam)
     {
       /* Parse an optional flags list.  */
-      l1 = gcry_sexp_find_token (keyparam, "flags", 0);
+      l1 = sexp_find_token (keyparam, "flags", 0);
       if (l1)
         {
           errc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
-          gcry_sexp_release (l1);
+          sexp_release (l1);
           l1 = NULL;
           if (errc)
             goto leave;
         }
 
       /* Check whether a curve name was given.  */
-      l1 = gcry_sexp_find_token (keyparam, "curve", 5);
+      l1 = sexp_find_token (keyparam, "curve", 5);
 
       /* If we don't have a curve name or if override parameters have
          explicitly been requested, parse them.  */
@@ -798,8 +798,8 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
 
       if (l1)
         {
-          name = _gcry_sexp_nth_string (l1, 1);
-          gcry_sexp_release (l1);
+          name = sexp_nth_string (l1, 1);
+          sexp_release (l1);
           if (!name)
             {
               errc = GPG_ERR_INV_OBJ; /* Name missing or out of core. */
@@ -845,7 +845,7 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
         }
       if (!G)
         {
-          G = gcry_mpi_point_snatch_set (NULL, E->G.x, E->G.y, E->G.z);
+          G = mpi_point_snatch_set (NULL, E->G.x, E->G.y, E->G.z);
           E->G.x = NULL;
           E->G.y = NULL;
           E->G.z = NULL;
@@ -913,13 +913,13 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
     }
 
  leave:
-  gcry_ctx_release (ctx);
+  _gcry_ctx_release (ctx);
   mpi_free (p);
   mpi_free (a);
   mpi_free (b);
-  gcry_mpi_point_release (G);
+  _gcry_mpi_point_release (G);
   mpi_free (n);
-  gcry_mpi_point_release (Q);
+  _gcry_mpi_point_release (Q);
   mpi_free (d);
   return errc;
 }
@@ -976,13 +976,13 @@ _gcry_ecc_get_param_sexp (const char *name)
   if (_gcry_ecc_get_param (name, pkey))
     return NULL;
 
-  if (gcry_sexp_build (&result, NULL,
-                       "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)))",
-                       pkey[0], pkey[1], pkey[2], pkey[3], pkey[4]))
+  if (sexp_build (&result, NULL,
+                  "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)))",
+                  pkey[0], pkey[1], pkey[2], pkey[3], pkey[4]))
     result = NULL;
 
   for (i=0; pkey[i]; i++)
-    gcry_mpi_release (pkey[i]);
+    _gcry_mpi_release (pkey[i]);
 
   return result;
 }
@@ -1045,7 +1045,7 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
 
           if (!_gcry_ecc_eddsa_encodepoint (ec->Q, ec, NULL, NULL,
                                             &encpk, &encpklen))
-            return gcry_mpi_set_opaque (NULL, encpk, encpklen*8);
+            return mpi_set_opaque (NULL, encpk, encpklen*8);
         }
     }
 
@@ -1108,7 +1108,7 @@ _gcry_ecc_set_mpi (const char *name, gcry_mpi_t newvalue, mpi_ec_t ec)
       if (newvalue)
         {
           if (!ec->Q)
-            ec->Q = gcry_mpi_point_new (0);
+            ec->Q = mpi_point_new (0);
           if (ec->dialect == ECC_DIALECT_ED25519)
             rc = _gcry_ecc_eddsa_decodepoint (newvalue, ec, ec->Q, NULL, NULL);
           else
@@ -1116,7 +1116,7 @@ _gcry_ecc_set_mpi (const char *name, gcry_mpi_t newvalue, mpi_ec_t ec)
         }
       if (rc || !newvalue)
         {
-          gcry_mpi_point_release (ec->Q);
+          _gcry_mpi_point_release (ec->Q);
           ec->Q = NULL;
         }
       /* Note: We assume that Q matches d and thus do not reset d.  */
@@ -1129,7 +1129,7 @@ _gcry_ecc_set_mpi (const char *name, gcry_mpi_t newvalue, mpi_ec_t ec)
         {
           /* We need to reset the public key because it may not
              anymore match.  */
-          gcry_mpi_point_release (ec->Q);
+          _gcry_mpi_point_release (ec->Q);
           ec->Q = NULL;
         }
     }
@@ -1146,12 +1146,12 @@ _gcry_ecc_set_point (const char *name, gcry_mpi_point_t newvalue, mpi_ec_t ec)
 {
   if (!strcmp (name, "g"))
     {
-      gcry_mpi_point_release (ec->G);
+      _gcry_mpi_point_release (ec->G);
       ec->G = point_copy (newvalue);
     }
   else if (!strcmp (name, "q"))
     {
-      gcry_mpi_point_release (ec->Q);
+      _gcry_mpi_point_release (ec->Q);
       ec->Q = point_copy (newvalue);
     }
   else

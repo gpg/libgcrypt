@@ -259,19 +259,19 @@ _gcry_random_is_faked (void)
 /* Add BUFLEN bytes from BUF to the internal random pool.  QUALITY
    should be in the range of 0..100 to indicate the goodness of the
    entropy added, or -1 for goodness not known.  */
-gcry_error_t
-gcry_random_add_bytes (const void *buf, size_t buflen, int quality)
+gcry_err_code_t
+_gcry_random_add_bytes (const void *buf, size_t buflen, int quality)
 {
   if (fips_mode ())
     return 0; /* No need for this in fips mode.  */
   else if (rng_types.standard)
-    return _gcry_rngcsprng_add_bytes (buf, buflen, quality);
+    return gpg_err_code (_gcry_rngcsprng_add_bytes (buf, buflen, quality));
   else if (rng_types.fips)
     return 0;
   else if (rng_types.system)
     return 0;
   else /* default */
-    return _gcry_rngcsprng_add_bytes (buf, buflen, quality);
+    return gpg_err_code (_gcry_rngcsprng_add_bytes (buf, buflen, quality));
 }
 
 
@@ -295,7 +295,7 @@ do_randomize (void *buffer, size_t length, enum gcry_random_level level)
    Returns a pointer to a newly allocated and randomized buffer of
    LEVEL and NBYTES length.  Caller must free the buffer.  */
 void *
-gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
+_gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
 {
   void *buffer;
 
@@ -309,7 +309,7 @@ gcry_random_bytes (size_t nbytes, enum gcry_random_level level)
    this version of the function returns the random in a buffer allocated
    in secure memory.  Caller must free the buffer. */
 void *
-gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
+_gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
 {
   void *buffer;
 
@@ -328,7 +328,7 @@ gcry_random_bytes_secure (size_t nbytes, enum gcry_random_level level)
    usage, GCRY_VERY_STRONG_RANDOM is good for key generation stuff but
    may be very slow.  */
 void
-gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
+_gcry_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {
   do_randomize (buffer, length, level);
 }
@@ -398,7 +398,7 @@ _gcry_fast_random_poll (void)
 
 /* Create an unpredicable nonce of LENGTH bytes in BUFFER. */
 void
-gcry_create_nonce (void *buffer, size_t length)
+_gcry_create_nonce (void *buffer, size_t length)
 {
   static unsigned char nonce_buffer[20+8];
   static int nonce_buffer_initialized = 0;
@@ -455,7 +455,7 @@ gcry_create_nonce (void *buffer, size_t length)
       memcpy (p, &atime, sizeof atime);
 
       /* Initialize the never changing private part of 64 bits. */
-      gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
+      _gcry_randomize (nonce_buffer+20, 8, GCRY_WEAK_RANDOM);
 
       nonce_buffer_initialized = 1;
     }

@@ -29,7 +29,7 @@
  *		1 = (a*x) mod n
  */
 int
-gcry_mpi_invm( gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n )
+_gcry_mpi_invm (gcry_mpi_t x, gcry_mpi_t a, gcry_mpi_t n)
 {
 #if 0
     gcry_mpi_t u, v, u1, u2, u3, v1, v2, v3, q, t1, t2, t3;

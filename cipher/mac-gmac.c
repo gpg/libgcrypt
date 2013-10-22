@@ -97,7 +97,7 @@ gmac_setiv (gcry_mac_hd_t h, const unsigned char *iv, size_t ivlen)
 static gcry_err_code_t
 gmac_reset (gcry_mac_hd_t h)
 {
-  return gcry_cipher_reset (h->u.gmac.ctx);
+  return _gcry_cipher_reset (h->u.gmac.ctx);
 }
 
 

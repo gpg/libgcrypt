@@ -270,7 +270,7 @@ call_daemon (const char *socketname,
       if (rc == -1)
 	{
 	  err = gcry_error_from_errno (errno);
-	  log_error ("read error: %s\n", gcry_strerror (err));
+	  log_error ("read error: %s\n", _gcry_strerror (err));
 	  break;
 	}
       if (nread && buf[0])
@@ -308,7 +308,7 @@ call_daemon (const char *socketname,
       if (rc == -1)
 	{
 	  err = gcry_error_from_errno (errno);
-	  log_error ("read error: %s\n", gcry_strerror (err));
+	  log_error ("read error: %s\n", _gcry_strerror (err));
 	  break;
 	}
 

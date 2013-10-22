@@ -40,7 +40,7 @@ static void *log_handler_value = 0;
 static const char *(*user_gettext_handler)( const char * ) = NULL;
 
 void
-gcry_set_gettext_handler( const char *(*f)(const char*) )
+_gcry_set_gettext_handler (const char *(*f)(const char*))
 {
     user_gettext_handler = f;
 }
@@ -56,7 +56,7 @@ _gcry_gettext( const char *key )
 }
 
 void
-gcry_set_fatalerror_handler( void (*fnc)(void*,int, const char*), void *value)
+_gcry_set_fatalerror_handler( void (*fnc)(void*,int, const char*), void *value)
 {
     fatal_error_handler_value = value;
     fatal_error_handler = fnc;
@@ -92,8 +92,7 @@ _gcry_fatal_error (int rc, const char *text)
 }
 
 void
-gcry_set_log_handler( void (*f)(void*,int, const char*, va_list ),
-							    void *opaque )
+_gcry_set_log_handler (void (*f)(void*,int, const char*, va_list), void *opaque)
 {
     log_handler = f;
     log_handler_value = opaque;
@@ -341,7 +340,7 @@ _gcry_log_printmpi (const char *text, gcry_mpi_t mpi)
       const unsigned char *p;
       char prefix[30];
 
-      p = gcry_mpi_get_opaque (mpi, &nbits);
+      p = mpi_get_opaque (mpi, &nbits);
       snprintf (prefix, sizeof prefix, " [%u bit]", nbits);
       do_printhex (text? text:" ", prefix, p, (nbits+7)/8);
     }
@@ -400,9 +399,9 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
       const char *p;
       size_t size;
 
-      size = gcry_sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, NULL, 0);
+      size = sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, NULL, 0);
       p = buf = gcry_xmalloc (size);
-      gcry_sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, buf, size);
+      sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, buf, size);
 
       do
         {

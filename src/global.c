@@ -244,7 +244,7 @@ parse_version_string( const char *s, int *major, int *minor, int *micro )
    If a NULL is passed to this function, no check is done, but the
    string representation of the library is simply returned.  */
 const char *
-gcry_check_version( const char *req_version )
+_gcry_check_version (const char *req_version)
 {
     const char *ver = VERSION;
     int my_major, my_minor, my_micro;
@@ -363,11 +363,11 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
 
 /* Command dispatcher function, acting as general control
    function.  */
-gcry_error_t
+gcry_err_code_t
 _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 {
   static int init_finished = 0;
-  gcry_err_code_t err = 0;
+  gcry_err_code_t rc = 0;
 
   switch (cmd)
     {
@@ -384,7 +384,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       /* Return an error if the RNG is faked one (e.g. enabled by
          ENABLE_QUICK_RANDOM. */
       if (_gcry_random_is_faked ())
-        err = GPG_ERR_GENERAL;  /* Use as TRUE value.  */
+        rc = GPG_ERR_GENERAL;  /* Use as TRUE value.  */
       break;
 
     case GCRYCTL_DUMP_RANDOM_STATS:
@@ -413,7 +413,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       global_init ();
       _gcry_secmem_init (va_arg (arg_ptr, unsigned int));
       if ((_gcry_secmem_get_flags () & GCRY_SECMEM_FLAG_NOT_LOCKED))
-        err = GPG_ERR_GENERAL;
+        rc = GPG_ERR_GENERAL;
       break;
 
     case GCRYCTL_TERM_SECMEM:
@@ -475,12 +475,12 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     case GCRYCTL_ANY_INITIALIZATION_P:
       if (any_init_done)
-	err = GPG_ERR_GENERAL;
+	rc = GPG_ERR_GENERAL;
       break;
 
     case GCRYCTL_INITIALIZATION_FINISHED_P:
       if (init_finished)
-	err = GPG_ERR_GENERAL; /* Yes.  */
+	rc = GPG_ERR_GENERAL; /* Yes.  */
       break;
 
     case GCRYCTL_INITIALIZATION_FINISHED:
@@ -503,8 +503,8 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     case GCRYCTL_SET_THREAD_CBS:
       _gcry_set_preferred_rng_type (0);
-      err = ath_install (va_arg (arg_ptr, void *));
-      if (!err)
+      rc = ath_install (va_arg (arg_ptr, void *));
+      if (!rc)
 	global_init ();
       break;
 
@@ -521,9 +521,9 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
     case GCRYCTL_SET_RNDEGD_SOCKET:
 #if USE_RNDEGD
       _gcry_set_preferred_rng_type (0);
-      err = _gcry_rndegd_set_socket_name (va_arg (arg_ptr, const char *));
+      rc = _gcry_rndegd_set_socket_name (va_arg (arg_ptr, const char *));
 #else
-      err = gpg_error (GPG_ERR_NOT_SUPPORTED);
+      rc = gpg_error (GPG_ERR_NOT_SUPPORTED);
 #endif
       break;
 
@@ -557,14 +557,14 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
          is always true for non-fips mode.  */
       _gcry_set_preferred_rng_type (0);
       if (_gcry_fips_test_operational ())
-        err = GPG_ERR_GENERAL; /* Used as TRUE value */
+        rc = GPG_ERR_GENERAL; /* Used as TRUE value */
       break;
 
     case GCRYCTL_FIPS_MODE_P:
       if (fips_mode ()
           && !_gcry_is_fips_mode_inactive ()
           && !no_secure_memory)
-	err = GPG_ERR_GENERAL; /* Used as TRUE value */
+	rc = GPG_ERR_GENERAL; /* Used as TRUE value */
       break;
 
     case GCRYCTL_FORCE_FIPS_MODE:
@@ -587,7 +587,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
           if (_gcry_fips_test_error_or_operational ())
             _gcry_fips_run_selftests (1);
           if (_gcry_fips_is_operational ())
-            err = GPG_ERR_GENERAL; /* Used as TRUE value */
+            rc = GPG_ERR_GENERAL; /* Used as TRUE value */
       }
       break;
 
@@ -597,7 +597,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
          extended version of the selftests. Returns 0 on success or an
          error code. */
       global_init ();
-      err = _gcry_fips_run_selftests (1);
+      rc = _gcry_fips_run_selftests (1);
       break;
 
 #if _GCRY_GCC_VERSION >= 40600
@@ -615,10 +615,10 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
         const void *dt     = va_arg (arg_ptr, const void *);
         size_t dtlen       = va_arg (arg_ptr, size_t);
         if (!fips_is_operational ())
-          err = fips_not_operational ();
+          rc = fips_not_operational ();
         else
-          err = _gcry_random_init_external_test (rctx, flags, key, keylen,
-                                                 seed, seedlen, dt, dtlen);
+          rc = _gcry_random_init_external_test (rctx, flags, key, keylen,
+                                                seed, seedlen, dt, dtlen);
       }
       break;
     case 59:  /* Run external random test.  */
@@ -627,9 +627,9 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
         void *buffer  = va_arg (arg_ptr, void *);
         size_t buflen = va_arg (arg_ptr, size_t);
         if (!fips_is_operational ())
-          err = fips_not_operational ();
+          rc = fips_not_operational ();
         else
-          err = _gcry_random_run_external_test (ctx, buffer, buflen);
+          rc = _gcry_random_run_external_test (ctx, buffer, buflen);
       }
       break;
     case 60:  /* Deinit external random test.  */
@@ -658,7 +658,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
               break;
             }
         if (!hwflist[i].desc)
-          err = GPG_ERR_INV_NAME;
+          rc = GPG_ERR_INV_NAME;
       }
       break;
 
@@ -670,7 +670,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
           _gcry_set_enforced_fips_mode ();
         }
       else
-        err = GPG_ERR_GENERAL;
+        rc = GPG_ERR_GENERAL;
       break;
 
     case GCRYCTL_SET_PREFERRED_RNG_TYPE:
@@ -705,79 +705,12 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     default:
       _gcry_set_preferred_rng_type (0);
-      err = GPG_ERR_INV_OP;
+      rc = GPG_ERR_INV_OP;
     }
 
-  return gcry_error (err);
+  return rc;
 }
 
-
-/* Command dispatcher function, acting as general control
-   function.  */
-gcry_error_t
-gcry_control (enum gcry_ctl_cmds cmd, ...)
-{
-  gcry_error_t err;
-  va_list arg_ptr;
-
-  va_start (arg_ptr, cmd);
-  err = _gcry_vcontrol (cmd, arg_ptr);
-  va_end(arg_ptr);
-  return err;
-}
-
-
-
-/* Return a pointer to a string containing a description of the error
-   code in the error value ERR.  */
-const char *
-gcry_strerror (gcry_error_t err)
-{
-  return gpg_strerror (err);
-}
-
-/* Return a pointer to a string containing a description of the error
-   source in the error value ERR.  */
-const char *
-gcry_strsource (gcry_error_t err)
-{
-  return gpg_strsource (err);
-}
-
-/* Retrieve the error code for the system error ERR.  This returns
-   GPG_ERR_UNKNOWN_ERRNO if the system error is not mapped (report
-   this).  */
-gcry_err_code_t
-gcry_err_code_from_errno (int err)
-{
-  return gpg_err_code_from_errno (err);
-}
-
-
-/* Retrieve the system error for the error code CODE.  This returns 0
-   if CODE is not a system error code.  */
-int
-gcry_err_code_to_errno (gcry_err_code_t code)
-{
-  return gpg_err_code_from_errno (code);
-}
-
-
-/* Return an error value with the error source SOURCE and the system
-   error ERR.  */
-gcry_error_t
-gcry_err_make_from_errno (gpg_err_source_t source, int err)
-{
-  return gpg_err_make_from_errno (source, err);
-}
-
-
-/* Return an error value with the system error ERR.  */
-gcry_err_code_t
-gcry_error_from_errno (int err)
-{
-  return gcry_error (gpg_err_code_from_errno (err));
-}
 
 
 /* Set custom allocation handlers.  This is in general not useful
@@ -785,11 +718,11 @@ gcry_error_from_errno (int err)
  * provide proper allocation handlers which zeroize memory if needed.
  * NOTE: All 5 functions should be set.  */
 void
-gcry_set_allocation_handler (gcry_handler_alloc_t new_alloc_func,
-			     gcry_handler_alloc_t new_alloc_secure_func,
-			     gcry_handler_secure_check_t new_is_secure_func,
-			     gcry_handler_realloc_t new_realloc_func,
-			     gcry_handler_free_t new_free_func)
+_gcry_set_allocation_handler (gcry_handler_alloc_t new_alloc_func,
+                              gcry_handler_alloc_t new_alloc_secure_func,
+                              gcry_handler_secure_check_t new_is_secure_func,
+                              gcry_handler_realloc_t new_realloc_func,
+                              gcry_handler_free_t new_free_func)
 {
   global_init ();
 
@@ -825,8 +758,7 @@ gcry_set_allocation_handler (gcry_handler_alloc_t new_alloc_func,
  *	bit 0 set = secure memory has been requested.
  */
 void
-gcry_set_outofcore_handler( int (*f)( void*, size_t, unsigned int ),
-							void *value )
+_gcry_set_outofcore_handler (int (*f)(void*, size_t, unsigned int), void *value)
 {
   global_init ();
 
@@ -1204,8 +1136,8 @@ _gcry_get_debug_flag (unsigned int mask)
             Only used in debugging mode.
 */
 void
-gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
-                           void *cb_data)
+_gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
+                            void *cb_data)
 {
 #if USE_DSA
   _gcry_register_pk_dsa_progress (cb, cb_data);

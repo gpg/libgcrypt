@@ -79,7 +79,7 @@ hmac_open (gcry_mac_hd_t h)
   flags = GCRY_MD_FLAG_HMAC;
   flags |= (secure ? GCRY_MD_FLAG_SECURE : 0);
 
-  err = gcry_md_open (&hd, md_algo, flags);
+  err = _gcry_md_open (&hd, md_algo, flags);
   if (err)
     return err;
 
@@ -92,7 +92,7 @@ hmac_open (gcry_mac_hd_t h)
 static void
 hmac_close (gcry_mac_hd_t h)
 {
-  gcry_md_close (h->u.hmac.md_ctx);
+  _gcry_md_close (h->u.hmac.md_ctx);
   h->u.hmac.md_ctx = NULL;
 }
 
@@ -100,14 +100,14 @@ hmac_close (gcry_mac_hd_t h)
 static gcry_err_code_t
 hmac_setkey (gcry_mac_hd_t h, const unsigned char *key, size_t keylen)
 {
-  return gcry_md_setkey (h->u.hmac.md_ctx, key, keylen);
+  return _gcry_md_setkey (h->u.hmac.md_ctx, key, keylen);
 }
 
 
 static gcry_err_code_t
 hmac_reset (gcry_mac_hd_t h)
 {
-  gcry_md_reset (h->u.hmac.md_ctx);
+  _gcry_md_reset (h->u.hmac.md_ctx);
   return 0;
 }
 
@@ -115,7 +115,7 @@ hmac_reset (gcry_mac_hd_t h)
 static gcry_err_code_t
 hmac_write (gcry_mac_hd_t h, const unsigned char *buf, size_t buflen)
 {
-  gcry_md_write (h->u.hmac.md_ctx, buf, buflen);
+  _gcry_md_write (h->u.hmac.md_ctx, buf, buflen);
   return 0;
 }
 
@@ -126,8 +126,8 @@ hmac_read (gcry_mac_hd_t h, unsigned char *outbuf, size_t * outlen)
   unsigned int dlen;
   const unsigned char *digest;
 
-  dlen = gcry_md_get_algo_dlen (h->u.hmac.md_algo);
-  digest = gcry_md_read (h->u.hmac.md_ctx, h->u.hmac.md_algo);
+  dlen = _gcry_md_get_algo_dlen (h->u.hmac.md_algo);
+  digest = _gcry_md_read (h->u.hmac.md_ctx, h->u.hmac.md_algo);
 
   if (*outlen <= dlen)
     buf_cpy (outbuf, digest, *outlen);
@@ -147,8 +147,8 @@ hmac_verify (gcry_mac_hd_t h, const unsigned char *buf, size_t buflen)
   unsigned int dlen;
   const unsigned char *digest;
 
-  dlen = gcry_md_get_algo_dlen (h->u.hmac.md_algo);
-  digest = gcry_md_read (h->u.hmac.md_ctx, h->u.hmac.md_algo);
+  dlen = _gcry_md_get_algo_dlen (h->u.hmac.md_algo);
+  digest = _gcry_md_read (h->u.hmac.md_ctx, h->u.hmac.md_algo);
 
   if (buflen > dlen)
     return GPG_ERR_INV_LENGTH;
@@ -160,7 +160,7 @@ hmac_verify (gcry_mac_hd_t h, const unsigned char *buf, size_t buflen)
 static unsigned int
 hmac_get_maclen (int algo)
 {
-  return gcry_md_get_algo_dlen (map_mac_algo_to_md (algo));
+  return _gcry_md_get_algo_dlen (map_mac_algo_to_md (algo));
 }
 
 

@@ -31,7 +31,7 @@
 
 
 void
-gcry_mpi_mul_ui( gcry_mpi_t prod, gcry_mpi_t mult, unsigned long small_mult )
+_gcry_mpi_mul_ui (gcry_mpi_t prod, gcry_mpi_t mult, unsigned long small_mult)
 {
     mpi_size_t size, prod_size;
     mpi_ptr_t  prod_ptr;
@@ -61,7 +61,7 @@ gcry_mpi_mul_ui( gcry_mpi_t prod, gcry_mpi_t mult, unsigned long small_mult )
 
 
 void
-gcry_mpi_mul_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt)
+_gcry_mpi_mul_2exp (gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt)
 {
     mpi_size_t usize, wsize, limb_cnt;
     mpi_ptr_t wp;
@@ -107,7 +107,7 @@ gcry_mpi_mul_2exp( gcry_mpi_t w, gcry_mpi_t u, unsigned long cnt)
 
 
 void
-gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
+_gcry_mpi_mul (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 {
     mpi_size_t usize, vsize, wsize;
     mpi_ptr_t up, vp, wp;
@@ -205,8 +205,8 @@ gcry_mpi_mul( gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v)
 
 
 void
-gcry_mpi_mulm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
+_gcry_mpi_mulm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, gcry_mpi_t m)
 {
-  gcry_mpi_mul (w, u, v);
+  mpi_mul (w, u, v);
   _gcry_mpi_tdiv_r (w, w, m);
 }

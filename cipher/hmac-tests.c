@@ -718,7 +718,7 @@ _gcry_hmac_selftest (int algo, int extended, selftest_report_func_t report)
 {
   gcry_err_code_t ec = 0;
 
-  if (!gcry_md_test_algo (algo))
+  if (!_gcry_md_test_algo (algo))
     {
       ec = run_selftests (algo, extended, report);
     }

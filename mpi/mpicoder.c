@@ -416,9 +416,9 @@ twocompl (unsigned char *p, unsigned int n)
    with a length of BUFLEN into a newly create MPI returned in
    RET_MPI.  If NBYTES is not NULL, it will receive the number of
    bytes actually scanned after a successful operation.  */
-gcry_error_t
-gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
-               const void *buffer_arg, size_t buflen, size_t *nscanned)
+gcry_err_code_t
+_gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
+                const void *buffer_arg, size_t buflen, size_t *nscanned)
 {
   const unsigned char *buffer = (const unsigned char*)buffer_arg;
   struct gcry_mpi *a = NULL;
@@ -493,7 +493,7 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
           mpi_free(a);
           a = NULL;
         }
-      return a? 0 : gcry_error (GPG_ERR_INV_OBJ);
+      return a? 0 : GPG_ERR_INV_OBJ;
     }
   else if (format == GCRYMPI_FMT_SSH)
     {
@@ -505,14 +505,14 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
          allow the BUFLEN argument to act as a sanitiy check.  Same
          below. */
       if (len && len < 4)
-        return gcry_error (GPG_ERR_TOO_SHORT);
+        return GPG_ERR_TOO_SHORT;
 
       n = (s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3]);
       s += 4;
       if (len)
         len -= 4;
       if (len && n > len)
-        return gcry_error (GPG_ERR_TOO_LARGE);
+        return GPG_ERR_TOO_LARGE;
 
       a = secure? mpi_alloc_secure ((n+BYTES_PER_MPI_LIMB-1)
                                     /BYTES_PER_MPI_LIMB)
@@ -543,13 +543,13 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
     {
       /* We can only handle C strings for now.  */
       if (buflen)
-        return gcry_error (GPG_ERR_INV_ARG);
+        return GPG_ERR_INV_ARG;
 
       a = secure? mpi_alloc_secure (0) : mpi_alloc(0);
       if (mpi_fromstr (a, (const char *)buffer))
         {
           mpi_free (a);
-          return gcry_error (GPG_ERR_INV_OBJ);
+          return GPG_ERR_INV_OBJ;
         }
       if (ret_mpi)
         {
@@ -563,7 +563,7 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
       return 0;
     }
   else
-    return gcry_error (GPG_ERR_INV_ARG);
+    return GPG_ERR_INV_ARG;
 }
 
 
@@ -573,10 +573,10 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
    receives the actual length of the external representation unless it
    has been passed as NULL.  BUFFER may be NULL to query the required
    length.  */
-gcry_error_t
-gcry_mpi_print (enum gcry_mpi_format format,
-                unsigned char *buffer, size_t buflen,
-                size_t *nwritten, struct gcry_mpi *a)
+gcry_err_code_t
+_gcry_mpi_print (enum gcry_mpi_format format,
+                 unsigned char *buffer, size_t buflen,
+                 size_t *nwritten, struct gcry_mpi *a)
 {
   unsigned int nbits = mpi_get_nbits (a);
   size_t len;
@@ -606,7 +606,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
 
       tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
       if (!tmp)
-        return gpg_error_from_syserror ();
+        return gpg_err_code_from_syserror ();
 
       if (negative)
         {
@@ -631,7 +631,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
         {
           /* The provided buffer is too short. */
           gcry_free (tmp);
-          return gcry_error (GPG_ERR_TOO_SHORT);
+          return GPG_ERR_TOO_SHORT;
 	}
       if (buffer)
         {
@@ -656,14 +656,14 @@ gcry_mpi_print (enum gcry_mpi_format format,
 	 mpi_aprint because we can then use the buffer directly.  */
 
       if (buffer && n > len)
-        return gcry_error (GPG_ERR_TOO_SHORT);
+        return GPG_ERR_TOO_SHORT;
       if (buffer)
         {
           unsigned char *tmp;
 
           tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
           if (!tmp)
-            return gpg_error_from_syserror ();
+            return gpg_err_code_from_syserror ();
           memcpy (buffer, tmp, n);
           gcry_free (tmp);
 	}
@@ -676,10 +676,10 @@ gcry_mpi_print (enum gcry_mpi_format format,
 
       /* The PGP format can only handle unsigned integers.  */
       if (negative)
-        return gcry_error (GPG_ERR_INV_ARG);
+        return GPG_ERR_INV_ARG;
 
       if (buffer && n+2 > len)
-        return gcry_error (GPG_ERR_TOO_SHORT);
+        return GPG_ERR_TOO_SHORT;
 
       if (buffer)
         {
@@ -691,7 +691,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
 
           tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
           if (!tmp)
-            return gpg_error_from_syserror ();
+            return gpg_err_code_from_syserror ();
           memcpy (s+2, tmp, n);
           gcry_free (tmp);
 	}
@@ -706,7 +706,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
 
       tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
       if (!tmp)
-        return gpg_error_from_syserror ();
+        return gpg_err_code_from_syserror ();
 
       if (negative)
         {
@@ -727,7 +727,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       if (buffer && n+4 > len)
         {
           gcry_free(tmp);
-          return gcry_error (GPG_ERR_TOO_SHORT);
+          return GPG_ERR_TOO_SHORT;
 	}
 
       if (buffer)
@@ -757,14 +757,14 @@ gcry_mpi_print (enum gcry_mpi_format format,
 
       tmp = _gcry_mpi_get_buffer (a, 0, &n, NULL);
       if (!tmp)
-        return gpg_error_from_syserror ();
+        return gpg_err_code_from_syserror ();
       if (!n || (*tmp & 0x80))
         extra = 2;
 
       if (buffer && 2*n + extra + negative + 1 > len)
         {
           gcry_free(tmp);
-          return gcry_error (GPG_ERR_TOO_SHORT);
+          return GPG_ERR_TOO_SHORT;
 	}
       if (buffer)
         {
@@ -797,7 +797,7 @@ gcry_mpi_print (enum gcry_mpi_format format,
       return 0;
     }
   else
-    return gcry_error (GPG_ERR_INV_ARG);
+    return GPG_ERR_INV_ARG;
 }
 
 
@@ -806,27 +806,27 @@ gcry_mpi_print (enum gcry_mpi_format format,
  * The caller has to supply the address of a pointer.  NWRITTEN may be
  * NULL.
  */
-gcry_error_t
-gcry_mpi_aprint (enum gcry_mpi_format format,
-                 unsigned char **buffer, size_t *nwritten,
-		 struct gcry_mpi *a)
+gcry_err_code_t
+_gcry_mpi_aprint (enum gcry_mpi_format format,
+                  unsigned char **buffer, size_t *nwritten,
+                  struct gcry_mpi *a)
 {
   size_t n;
-  gcry_error_t rc;
+  gcry_err_code_t rc;
 
   *buffer = NULL;
-  rc = gcry_mpi_print (format, NULL, 0, &n, a);
+  rc = _gcry_mpi_print (format, NULL, 0, &n, a);
   if (rc)
     return rc;
 
   *buffer = mpi_is_secure(a) ? gcry_malloc_secure (n?n:1) : gcry_malloc (n?n:1);
   if (!*buffer)
-    return gpg_error_from_syserror ();
+    return gpg_err_code_from_syserror ();
   /* If the returned buffer will have a length of 0, we nevertheless
      allocated 1 byte (malloc needs it anyway) and store a 0.  */
   if (!n)
     **buffer = 0;
-  rc = gcry_mpi_print( format, *buffer, n, &n, a );
+  rc = _gcry_mpi_print( format, *buffer, n, &n, a );
   if (rc)
     {
       gcry_free(*buffer);
@@ -859,8 +859,7 @@ _gcry_mpi_to_octet_string (unsigned char **r_frame, void *space,
   if (r_frame)
     *r_frame = NULL;
 
-  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG,
-                                      NULL, 0, &nframe, value));
+  rc = _gcry_mpi_print (GCRYMPI_FMT_USG, NULL, 0, &nframe, value);
   if (rc)
     return rc;
   if (nframe > nbytes)
@@ -882,8 +881,7 @@ _gcry_mpi_to_octet_string (unsigned char **r_frame, void *space,
   if (noff)
     memset (frame, 0, noff);
   nframe += noff;
-  rc = gcry_err_code (gcry_mpi_print (GCRYMPI_FMT_USG,
-                                      frame+noff, nframe-noff, NULL, value));
+  rc = _gcry_mpi_print (GCRYMPI_FMT_USG, frame+noff, nframe-noff, NULL, value);
   if (rc)
     {
       gcry_free (frame);

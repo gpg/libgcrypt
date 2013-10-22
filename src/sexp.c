@@ -55,14 +55,14 @@ struct gcry_sexp
 #define TOKEN_SPECIALS  "-./_:*+="
 
 static gcry_err_code_t
-vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
-	     const char *buffer, size_t length, int argflag,
-	     void **arg_list, va_list arg_ptr);
+do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
+                const char *buffer, size_t length, int argflag,
+                void **arg_list, va_list arg_ptr);
 
 static gcry_err_code_t
-sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
-	    const char *buffer, size_t length, int argflag,
-	    void **arg_list, ...);
+do_sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
+               const char *buffer, size_t length, int argflag,
+               void **arg_list, ...);
 
 /* Return true if P points to a byte containing a whitespace according
    to the S-expressions definition. */
@@ -123,7 +123,7 @@ dump_string (const byte *p, size_t n, int delim )
 
 
 void
-gcry_sexp_dump (const gcry_sexp_t a)
+_gcry_sexp_dump (const gcry_sexp_t a)
 {
   const byte *p;
   int indent = 0;
@@ -182,13 +182,13 @@ normalize ( gcry_sexp_t list )
   if ( *p == ST_STOP )
     {
       /* this is "" */
-      gcry_sexp_release ( list );
+      sexp_release ( list );
       return NULL;
     }
   if ( *p == ST_OPEN && p[1] == ST_CLOSE )
     {
       /* this is "()" */
-      gcry_sexp_release ( list );
+      sexp_release ( list );
       return NULL;
     }
 
@@ -211,7 +211,7 @@ normalize ( gcry_sexp_t list )
    This function returns 0 and and the pointer to the new object in
    RETSEXP or an error code in which case RETSEXP is set to NULL.  */
 gcry_err_code_t
-gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
+_gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
                   int autodetect, void (*freefnc)(void*) )
 {
   gcry_err_code_t errcode;
@@ -226,7 +226,7 @@ gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
   if (!length && !autodetect)
     { /* What a brave caller to assume that there is really a canonical
          encoded S-expression in buffer */
-      length = gcry_sexp_canon_len (buffer, 0, NULL, &errcode);
+      length = _gcry_sexp_canon_len (buffer, 0, NULL, &errcode);
       if (!length)
         return errcode;
     }
@@ -235,7 +235,7 @@ gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
       length = strlen ((char *)buffer);
     }
 
-  errcode = sexp_sscan (&se, NULL, buffer, length, 0, NULL);
+  errcode = do_sexp_sscan (&se, NULL, buffer, length, 0, NULL);
   if (errcode)
     return errcode;
 
@@ -254,10 +254,10 @@ gcry_sexp_create (gcry_sexp_t *retsexp, void *buffer, size_t length,
 
 /* Same as gcry_sexp_create but don't transfer ownership */
 gcry_err_code_t
-gcry_sexp_new (gcry_sexp_t *retsexp, const void *buffer, size_t length,
+_gcry_sexp_new (gcry_sexp_t *retsexp, const void *buffer, size_t length,
                int autodetect)
 {
-  return gcry_sexp_create (retsexp, (void *)buffer, length, autodetect, NULL);
+  return _gcry_sexp_create (retsexp, (void *)buffer, length, autodetect, NULL);
 }
 
 
@@ -265,7 +265,7 @@ gcry_sexp_new (gcry_sexp_t *retsexp, const void *buffer, size_t length,
  * Release resource of the given SEXP object.
  */
 void
-gcry_sexp_release( gcry_sexp_t sexp )
+_gcry_sexp_release( gcry_sexp_t sexp )
 {
   if (sexp)
     {
@@ -309,7 +309,7 @@ gcry_sexp_release( gcry_sexp_t sexp )
  * element straight into the new pair.
  */
 gcry_sexp_t
-gcry_sexp_cons( const gcry_sexp_t a, const gcry_sexp_t b )
+_gcry_sexp_cons( const gcry_sexp_t a, const gcry_sexp_t b )
 {
   (void)a;
   (void)b;
@@ -326,7 +326,7 @@ gcry_sexp_cons( const gcry_sexp_t a, const gcry_sexp_t b )
  * with a NULL.
  */
 gcry_sexp_t
-gcry_sexp_alist( const gcry_sexp_t *array )
+_gcry_sexp_alist( const gcry_sexp_t *array )
 {
   (void)array;
 
@@ -340,7 +340,7 @@ gcry_sexp_alist( const gcry_sexp_t *array )
  * Make a list from all items, the end of list is indicated by a NULL
  */
 gcry_sexp_t
-gcry_sexp_vlist( const gcry_sexp_t a, ... )
+_gcry_sexp_vlist( const gcry_sexp_t a, ... )
 {
   (void)a;
   /* NYI: Implementation should be quite easy with our new data
@@ -355,7 +355,7 @@ gcry_sexp_vlist( const gcry_sexp_t a, ... )
  * Returns: a new ist (which maybe a)
  */
 gcry_sexp_t
-gcry_sexp_append( const gcry_sexp_t a, const gcry_sexp_t n )
+_gcry_sexp_append( const gcry_sexp_t a, const gcry_sexp_t n )
 {
   (void)a;
   (void)n;
@@ -366,7 +366,7 @@ gcry_sexp_append( const gcry_sexp_t a, const gcry_sexp_t n )
 }
 
 gcry_sexp_t
-gcry_sexp_prepend( const gcry_sexp_t a, const gcry_sexp_t n )
+_gcry_sexp_prepend( const gcry_sexp_t a, const gcry_sexp_t n )
 {
   (void)a;
   (void)n;
@@ -383,7 +383,7 @@ gcry_sexp_prepend( const gcry_sexp_t a, const gcry_sexp_t n )
  * Returns: A new list with this sublist or NULL if not found.
  */
 gcry_sexp_t
-gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
+_gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
 {
   const byte *p;
   DATALEN n;
@@ -463,7 +463,7 @@ gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
  * Return the length of the given list
  */
 int
-gcry_sexp_length (const gcry_sexp_t list)
+_gcry_sexp_length (const gcry_sexp_t list)
 {
   const byte *p;
   DATALEN n;
@@ -545,7 +545,7 @@ get_internal_buffer (const gcry_sexp_t list, size_t *r_off)
 /* Extract the CAR of the given list.  May return NULL for bad lists
    or memory failure.  */
 gcry_sexp_t
-gcry_sexp_nth (const gcry_sexp_t list, int number)
+_gcry_sexp_nth (const gcry_sexp_t list, int number)
 {
   const byte *p;
   DATALEN n;
@@ -640,16 +640,16 @@ gcry_sexp_nth (const gcry_sexp_t list, int number)
 }
 
 gcry_sexp_t
-gcry_sexp_car (const gcry_sexp_t list)
+_gcry_sexp_car (const gcry_sexp_t list)
 {
-  return gcry_sexp_nth (list, 0);
+  return _gcry_sexp_nth (list, 0);
 }
 
 
 /* Helper to get data from the car.  The returned value is valid as
    long as the list is not modified. */
 static const char *
-sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
+do_sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
 {
   const byte *p;
   DATALEN n;
@@ -708,9 +708,9 @@ sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen)
 /* Get data from the car.  The returned value is valid as long as the
    list is not modified.  */
 const char *
-gcry_sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen )
+_gcry_sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen )
 {
-  return sexp_nth_data (list, number, datalen);
+  return do_sexp_nth_data (list, number, datalen);
 }
 
 
@@ -719,14 +719,14 @@ gcry_sexp_nth_data (const gcry_sexp_t list, int number, size_t *datalen )
    the caller.  This is basically the same as gcry_sexp_nth_data but
    with an allocated result. */
 void *
-gcry_sexp_nth_buffer (const gcry_sexp_t list, int number, size_t *rlength)
+_gcry_sexp_nth_buffer (const gcry_sexp_t list, int number, size_t *rlength)
 {
   const char *s;
   size_t n;
   char *buf;
 
   *rlength = 0;
-  s = sexp_nth_data (list, number, &n);
+  s = do_sexp_nth_data (list, number, &n);
   if (!s || !n)
     return NULL;
   buf = gcry_malloc (n);
@@ -741,13 +741,13 @@ gcry_sexp_nth_buffer (const gcry_sexp_t list, int number, size_t *rlength)
 /* Get a string from the car.  The returned value is a malloced string
    and needs to be freed by the caller.  */
 char *
-gcry_sexp_nth_string (const gcry_sexp_t list, int number)
+_gcry_sexp_nth_string (const gcry_sexp_t list, int number)
 {
   const char *s;
   size_t n;
   char *buf;
 
-  s = sexp_nth_data (list, number, &n);
+  s = do_sexp_nth_data (list, number, &n);
   if (!s || n < 1 || (n+1) < 1)
     return NULL;
   buf = gcry_malloc (n+1);
@@ -763,7 +763,7 @@ gcry_sexp_nth_string (const gcry_sexp_t list, int number)
  * Get a MPI from the car
  */
 gcry_mpi_t
-gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt)
+_gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt)
 {
   size_t n;
   gcry_mpi_t a;
@@ -772,13 +772,13 @@ gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt)
     {
       char *p;
 
-      p = gcry_sexp_nth_buffer (list, number, &n);
+      p = _gcry_sexp_nth_buffer (list, number, &n);
       if (!p)
         return NULL;
 
       a = gcry_is_secure (list)? _gcry_mpi_snew (0) : _gcry_mpi_new (0);
       if (a)
-        gcry_mpi_set_opaque (a, p, n*8);
+        mpi_set_opaque (a, p, n*8);
       else
         gcry_free (p);
     }
@@ -789,11 +789,11 @@ gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt)
       if (!mpifmt)
         mpifmt = GCRYMPI_FMT_STD;
 
-      s = sexp_nth_data (list, number, &n);
+      s = do_sexp_nth_data (list, number, &n);
       if (!s)
         return NULL;
 
-      if (gcry_mpi_scan (&a, mpifmt, s, n, NULL))
+      if (_gcry_mpi_scan (&a, mpifmt, s, n, NULL))
         return NULL;
     }
 
@@ -805,7 +805,7 @@ gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt)
  * Get the CDR
  */
 gcry_sexp_t
-gcry_sexp_cdr(const gcry_sexp_t list)
+_gcry_sexp_cdr(const gcry_sexp_t list)
 {
   const byte *p;
   const byte *head;
@@ -887,13 +887,13 @@ gcry_sexp_cdr(const gcry_sexp_t list)
 
 
 gcry_sexp_t
-gcry_sexp_cadr ( const gcry_sexp_t list )
+_gcry_sexp_cadr ( const gcry_sexp_t list )
 {
   gcry_sexp_t a, b;
 
-  a = gcry_sexp_cdr (list);
-  b = gcry_sexp_car (a);
-  gcry_sexp_release (a);
+  a = _gcry_sexp_cdr (list);
+  b = _gcry_sexp_car (a);
+  sexp_release (a);
   return b;
 }
 
@@ -1042,9 +1042,9 @@ unquote_string (const char *string, size_t length, unsigned char *buf)
  * regardless whether it is needed or not.
  */
 static gpg_err_code_t
-vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
-	     const char *buffer, size_t length, int argflag,
-	     void **arg_list, va_list arg_ptr)
+do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
+                const char *buffer, size_t length, int argflag,
+                void **arg_list, va_list arg_ptr)
 {
   gcry_err_code_t err = 0;
   static const char tokenchars[] =
@@ -1332,18 +1332,18 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 	      ARG_NEXT (m, gcry_mpi_t);
 
-              if (gcry_mpi_get_flag (m, GCRYMPI_FLAG_OPAQUE))
+              if (mpi_get_flag (m, GCRYMPI_FLAG_OPAQUE))
                 {
                   void *mp;
                   unsigned int nbits;
 
-                  mp = gcry_mpi_get_opaque (m, &nbits);
+                  mp = mpi_get_opaque (m, &nbits);
                   nm = (nbits+7)/8;
                   if (mp && nm)
                     {
                       MAKE_SPACE (nm);
                       if (!gcry_is_secure (c.sexp->d)
-                          && gcry_mpi_get_flag (m, GCRYMPI_FLAG_SECURE))
+                          && mpi_get_flag (m, GCRYMPI_FLAG_SECURE))
                         {
                           /* We have to switch to secure allocation.  */
                           gcry_sexp_t newsexp;
@@ -1371,12 +1371,12 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                 }
               else
                 {
-                  if (gcry_mpi_print (mpifmt, NULL, 0, &nm, m))
+                  if (_gcry_mpi_print (mpifmt, NULL, 0, &nm, m))
                     BUG ();
 
                   MAKE_SPACE (nm);
                   if (!gcry_is_secure (c.sexp->d)
-                      && gcry_mpi_get_flag ( m, GCRYMPI_FLAG_SECURE))
+                      && mpi_get_flag ( m, GCRYMPI_FLAG_SECURE))
                     {
                       /* We have to switch to secure allocation.  */
                       gcry_sexp_t newsexp;
@@ -1398,7 +1398,7 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
                   *c.pos++ = ST_DATA;
                   STORE_LEN (c.pos, nm);
-                  if (gcry_mpi_print (mpifmt, c.pos, nm, &nm, m))
+                  if (_gcry_mpi_print (mpifmt, c.pos, nm, &nm, m))
                     BUG ();
                   c.pos += nm;
                 }
@@ -1644,16 +1644,16 @@ vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 
 static gpg_err_code_t
-sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
-	    const char *buffer, size_t length, int argflag,
-	    void **arg_list, ...)
+do_sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
+               const char *buffer, size_t length, int argflag,
+               void **arg_list, ...)
 {
   gcry_err_code_t rc;
   va_list arg_ptr;
 
   va_start (arg_ptr, arg_list);
-  rc = vsexp_sscan (retsexp, erroff, buffer, length, argflag,
-		    arg_list, arg_ptr);
+  rc = do_vsexp_sscan (retsexp, erroff, buffer, length, argflag,
+                       arg_list, arg_ptr);
   va_end (arg_ptr);
 
   return rc;
@@ -1661,14 +1661,14 @@ sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 
 gpg_err_code_t
-gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff, const char *format, ...)
+_gcry_sexp_build (gcry_sexp_t *retsexp, size_t *erroff, const char *format, ...)
 {
   gcry_err_code_t rc;
   va_list arg_ptr;
 
   va_start (arg_ptr, format);
-  rc = vsexp_sscan (retsexp, erroff, format, strlen(format), 1,
-		    NULL, arg_ptr);
+  rc = do_vsexp_sscan (retsexp, erroff, format, strlen(format), 1,
+                       NULL, arg_ptr);
   va_end (arg_ptr);
 
   return rc;
@@ -1679,26 +1679,26 @@ gcry_err_code_t
 _gcry_sexp_vbuild (gcry_sexp_t *retsexp, size_t *erroff,
                    const char *format, va_list arg_ptr)
 {
-  return vsexp_sscan (retsexp, erroff, format, strlen(format), 1,
-		      NULL, arg_ptr);
+  return do_vsexp_sscan (retsexp, erroff, format, strlen(format), 1,
+                         NULL, arg_ptr);
 }
 
 
 /* Like gcry_sexp_build, but uses an array instead of variable
    function arguments.  */
 gcry_err_code_t
-gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
-		       const char *format, void **arg_list)
+_gcry_sexp_build_array (gcry_sexp_t *retsexp, size_t *erroff,
+                        const char *format, void **arg_list)
 {
-  return sexp_sscan (retsexp, erroff, format, strlen(format), 1, arg_list);
+  return do_sexp_sscan (retsexp, erroff, format, strlen(format), 1, arg_list);
 }
 
 
 gcry_err_code_t
-gcry_sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
-		 const char *buffer, size_t length)
+_gcry_sexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
+                  const char *buffer, size_t length)
 {
-  return sexp_sscan (retsexp, erroff, buffer, length, 0, NULL);
+  return do_sexp_sscan (retsexp, erroff, buffer, length, 0, NULL);
 }
 
 
@@ -1831,8 +1831,8 @@ convert_to_token (const unsigned char *src, size_t len, char *dest)
  * the required length is returned.
  */
 size_t
-gcry_sexp_sprint (const gcry_sexp_t list, int mode,
-                  void *buffer, size_t maxlength )
+_gcry_sexp_sprint (const gcry_sexp_t list, int mode,
+                   void *buffer, size_t maxlength )
 {
   static unsigned char empty[3] = { ST_OPEN, ST_CLOSE, ST_STOP };
   const unsigned char *s;
@@ -1982,8 +1982,8 @@ gcry_sexp_sprint (const gcry_sexp_t list, int mode,
    data passed from outside. errorcode and erroff may both be passed as
    NULL.  */
 size_t
-gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
-                     size_t *erroff, gcry_err_code_t *errcode)
+_gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
+                      size_t *erroff, gcry_err_code_t *errcode)
 {
   const unsigned char *p;
   const unsigned char *disphint = NULL;
@@ -2200,14 +2200,14 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
           goto cleanup;
         }
       n = s? s - path : 0;
-      l1 = gcry_sexp_find_token (sexp, path, n);
+      l1 = _gcry_sexp_find_token (sexp, path, n);
       if (!l1)
         {
           rc = GPG_ERR_NOT_FOUND;
           goto cleanup;
         }
       sexp = l1; l1 = NULL;
-      gcry_sexp_release (freethis);
+      sexp_release (freethis);
       freethis = sexp;
       if (n)
         path += n + 1;
@@ -2225,7 +2225,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
         ; /* Only used via lookahead.  */
       else
         {
-          l1 = gcry_sexp_find_token (sexp, s, 1);
+          l1 = _gcry_sexp_find_token (sexp, s, 1);
           if (!l1 && s[1] == '?')
             {
               /* Optional element not found.  */
@@ -2258,7 +2258,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
                       const char *pbuf;
                       size_t nbuf;
 
-                      pbuf = gcry_sexp_nth_data (l1, 1, &nbuf);
+                      pbuf = _gcry_sexp_nth_data (l1, 1, &nbuf);
                       if (!pbuf || !nbuf)
                         {
                           rc = GPG_ERR_INV_OBJ;
@@ -2275,7 +2275,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
                     }
                   else
                     {
-                      spec->data = gcry_sexp_nth_buffer (l1, 1, &spec->size);
+                      spec->data = _gcry_sexp_nth_buffer (l1, 1, &spec->size);
                       if (!spec->data)
                         {
                           rc = GPG_ERR_INV_OBJ; /* Or out of core.  */
@@ -2287,12 +2287,12 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
                     }
                 }
               else if (mode == '/')
-                *array[idx] = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_OPAQUE);
+                *array[idx] = _gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_OPAQUE);
               else if (mode == '-')
-                *array[idx] = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_STD);
+                *array[idx] = _gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_STD);
               else
-                *array[idx] = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-              gcry_sexp_release (l1); l1 = NULL;
+                *array[idx] = _gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+              sexp_release (l1); l1 = NULL;
               if (!*array[idx])
                 {
                   rc = GPG_ERR_INV_OBJ;  /* Conversion failed.  */
@@ -2303,17 +2303,17 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
         }
     }
 
-  gcry_sexp_release (freethis);
+  sexp_release (freethis);
   return 0;
 
  cleanup:
-  gcry_sexp_release (freethis);
-  gcry_sexp_release (l1);
+  sexp_release (freethis);
+  sexp_release (l1);
   while (idx--)
     {
       if (!arrayisdesc[idx])
         {
-          gcry_mpi_release (*array[idx]);
+          _gcry_mpi_release (*array[idx]);
           *array[idx] = NULL;
         }
       else if (!arrayisdesc[idx] == 1)

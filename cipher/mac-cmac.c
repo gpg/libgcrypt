@@ -103,7 +103,7 @@ cmac_setkey (gcry_mac_hd_t h, const unsigned char *key, size_t keylen)
 static gcry_err_code_t
 cmac_reset (gcry_mac_hd_t h)
 {
-  return gcry_cipher_reset (h->u.cmac.ctx);
+  return _gcry_cipher_reset (h->u.cmac.ctx);
 }
 
 
