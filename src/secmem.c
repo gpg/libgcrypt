@@ -252,7 +252,6 @@ lock_pool (void *p, size_t n)
     err = no_mlock? 0 : mlock (p, n);
     if (err && errno)
       err = errno;
-    cap_set_proc (cap_from_text ("cap_ipc_lock+p"));
     cap = cap_from_text ("cap_ipc_lock+p");
     cap_set_proc (cap);
     cap_free(cap);
