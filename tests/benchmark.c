@@ -59,6 +59,9 @@ static int cipher_with_keysetup;
 /* Whether fips mode was active at startup.  */
 static int in_fips_mode;
 
+/* Whether we are running as part of the regression test suite.  */
+static int in_regression_test;
+
 
 static const char sample_private_dsa_key_1024[] =
 "(private-key\n"
@@ -265,6 +268,7 @@ die (const char *format, ...)
   va_end(arg_ptr);
   exit (1);
 }
+
 
 static void
 show_sexp (const char *prefix, gcry_sexp_t a)
@@ -1301,6 +1305,12 @@ main( int argc, char **argv )
   if (!argc && getenv ("srcdir") && getenv ("GCRYPT_NO_BENCHMARKS"))
     exit (77);
 
+  if (getenv ("GCRYPT_IN_REGRESSION_TEST"))
+    {
+      in_regression_test = 1;
+      pk_count = 10;
+    }
+
   while (argc && last_argc != argc )
     {
       last_argc = argc;
@@ -1472,6 +1482,9 @@ main( int argc, char **argv )
     hash_repetitions = 1;
   if (mac_repetitions < 1)
     mac_repetitions = 1;
+
+  if (in_regression_test)
+    fputs ("Note: " PGM " running in quick regression test mode.\n", stdout);
 
   if ( !argc )
     {

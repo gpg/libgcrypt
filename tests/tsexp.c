@@ -1022,7 +1022,8 @@ check_extract_param (void)
     {
       fail ("gcry_sexp_extract_param long name failed: curve mismatch");
       gcry_log_debug ("expected: %s\n", "Ed25519");
-      gcry_log_debug ("     got: %.*s\n", (int)ioarray[0].len, ioarray[0].data);
+      gcry_log_debug ("     got: %.*s\n",
+                      (int)ioarray[0].len, (char*)ioarray[0].data);
     }
 
   if (!mpis[0])

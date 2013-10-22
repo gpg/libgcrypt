@@ -23,9 +23,10 @@ TESTS = version mpitests tsexp t-convert \
 	prime basic keygen pubkey hmac hashtest t-kdf keygrip \
 	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979 t-ed25519
 
-
 # The last tests to run.
 TESTS += benchmark bench-slope
+
+TESTS_ENVIRONMENT = GCRYPT_IN_REGRESSION_TEST=1
 
 
 # Need to include ../src in addition to top_srcdir because gcrypt.h is

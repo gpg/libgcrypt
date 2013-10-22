@@ -48,6 +48,9 @@ static int num_measurement_repetitions;
    results.  */
 static double cpu_ghz = -1;
 
+/* Whether we are running as part of the regression test suite.  */
+static int in_regression_test;
+
 /* The name of the currently printed section.  */
 static char *current_section_name;
 /* The name of the currently printed algorithm.  */
@@ -1453,8 +1456,6 @@ main (int argc, char **argv)
   int last_argc = -1;
   int debug = 0;
 
-  num_measurement_repetitions = NUM_MEASUREMENT_REPETITIONS;
-
   if (argc)
     {
       argc--;
@@ -1465,6 +1466,14 @@ main (int argc, char **argv)
      and srcdir defined) and GCRYPT_NO_BENCHMARKS is set.  */
   if (!argc && getenv ("srcdir") && getenv ("GCRYPT_NO_BENCHMARKS"))
     exit (77);
+
+  if (getenv ("GCRYPT_IN_REGRESSION_TEST"))
+    {
+      in_regression_test = 1;
+      num_measurement_repetitions = 2;
+    }
+  else
+    num_measurement_repetitions = NUM_MEASUREMENT_REPETITIONS;
 
   while (argc && last_argc != argc)
     {
@@ -1564,6 +1573,9 @@ main (int argc, char **argv)
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+
+  if (in_regression_test)
+    fputs ("Note: " PGM " running in quick regression test mode.\n", stdout);
 
   if (!argc)
     {
