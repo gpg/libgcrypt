@@ -684,6 +684,18 @@ check_extract_param (void)
     {
       sample1,
       NULL,
+      "pab'gnq", 7,
+      GPG_ERR_SYNTAX
+    },
+    {
+      sample1,
+      NULL,
+      "pab''gnq", 7,
+      GPG_ERR_SYNTAX
+    },
+    {
+      sample1,
+      NULL,
       "pabgnqd", 7,
       0,
       sample1_px, sample1_ax, sample1_bx, sample1_gx, sample1_nx,
@@ -692,7 +704,22 @@ check_extract_param (void)
     {
       sample1,
       NULL,
+      "  pab\tg nq\nd  ", 7,
+      0,
+      sample1_px, sample1_ax, sample1_bx, sample1_gx, sample1_nx,
+      sample1_qx, sample1_d
+    },
+    {
+      sample1,
+      NULL,
       "abg", 3,
+      0,
+      sample1_ax, sample1_bx, sample1_gx
+    },
+    {
+      sample1,
+      NULL,
+      "ab'g'", 3,
       0,
       sample1_ax, sample1_bx, sample1_gx
     },
@@ -967,6 +994,50 @@ check_extract_param (void)
     }
 
   gcry_sexp_release (sxp);
+
+  info ("checking gcry_sexp_extract_param long name\n");
+
+  memset (ioarray, 0, sizeof ioarray);
+  memset (mpis, 0, sizeof mpis);
+
+  err = gcry_sexp_new (&sxp, sample1, 0, 1);
+  if (err)
+    die ("converting string to sexp failed: %s", gpg_strerror (err));
+
+  err = gcry_sexp_extract_param (sxp, "key-data!private-key",
+                                 "&'curve'+p",
+                                 ioarray+0, mpis+0, NULL);
+  if (err)
+    fail ("gcry_sexp_extract_param long name failed: %s", gpg_strerror (err));
+
+  if (!ioarray[0].data)
+    fail ("gcry_sexp_extract_param long name failed: no curve");
+  else if (ioarray[0].size != 7)
+    fail ("gcry_sexp_extract_param long name failed: curve has wrong size");
+  else if (ioarray[0].len != 7)
+    fail ("gcry_sexp_extract_param long name failed: curve has wrong length");
+  else if (ioarray[0].off)
+    fail ("gcry_sexp_extract_param long name failed: curve has OFF set");
+  else if (strncmp (ioarray[0].data, "Ed25519", 7))
+    {
+      fail ("gcry_sexp_extract_param long name failed: curve mismatch");
+      gcry_log_debug ("expected: %s\n", "Ed25519");
+      gcry_log_debug ("     got: %.*s\n", (int)ioarray[0].len, ioarray[0].data);
+    }
+
+  if (!mpis[0])
+    fail ("gcry_sexp_extract_param long name failed: p not returned");
+  else if (cmp_mpihex (mpis[0], sample1_p))
+    {
+      fail ("gcry_sexp_extract_param long name failed: p mismatch");
+      gcry_log_debug    ("expected: %s\n", sample1_p);
+      gcry_log_debugmpi ("     got", mpis[0]);
+    }
+
+  gcry_mpi_release (mpis[0]);
+
+  gcry_sexp_release (sxp);
+
 }
 
 

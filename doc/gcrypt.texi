@@ -4145,10 +4145,10 @@ likely want to use @code{GCRYMPI_FMT_USG}.
   @w{const char *@var{path}}, @
   @w{const char *@var{list}}, ...)
 
-Extract parameters from an S-expression using a list of single letter
-parameter names.  The names of these parameters are specified in
-LIST.  Some special characters may be given to control the
-conversion:
+Extract parameters from an S-expression using a list of parameter
+names.  The names of these parameters are specified in LIST.  White
+space between the parameter names are ignored. Some special characters
+may be given to control the conversion:
 
 @table @samp
 @item +
@@ -4162,21 +4162,25 @@ computations; see @code{gcry_mpi_get_opaque} for details.
 @item &
 Switch to buffer descriptor mode.  See below for details.
 @item ?
-If immediately following a parameter letter, that parameter is
-considered optional.
+If immediately following a parameter letter (no white space allowed),
+that parameter is considered optional.
 @end table
+
+In general parameter names are single letters.  To use a string for a
+parameter name, enclose the name in single quotes.
 
 Unless in buffer descriptor mode for each parameter name a pointer to
 an @code{gcry_mpi_t} variable is expected finally followed by a @code{NULL}.
 For example
 @example
-  _gcry_sexp_extract_param (key, NULL, "n/x+ed",
-                            &mpi_n, &mpi_x, &mpi_e, NULL)
+  _gcry_sexp_extract_param (key, NULL, "n/x+e d-'foo'",
+                            &mpi_n, &mpi_x, &mpi_e, &mpi_foo, NULL)
 @end example
 
 stores the parameter 'n' from @var{key} as an unsigned MPI into
-@var{mpi_n}, the parameter 'x' as an opaque MPI into @var{mpi_x}, and
-the parameter 'e' again as an unsigned MPI into @var{mpi_e}.
+@var{mpi_n}, the parameter 'x' as an opaque MPI into @var{mpi_x}, the
+parameter 'e' again as an unsigned MPI into @var{mpi_e}, and the
+parameter 'foo' as a signed MPI.
 
 @var{path} is an optional string used to locate a token.  The
 exclamation mark separated tokens are used via

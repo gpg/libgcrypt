@@ -2113,16 +2113,18 @@ _gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
 }
 
 
-/* Extract MPIs from an s-expression using a list of one letter
- * parameters.  The names of these parameters are given by the string
- * LIST.  Some special characters may be given to control the
- * conversion:
+/* Extract MPIs from an s-expression using a list of parameters.  The
+ * names of these parameters are given by the string LIST.  Some
+ * special characters may be given to control the conversion:
  *
  *    + :: Switch to unsigned integer format (default).
  *    - :: Switch to standard signed format.
  *    / :: Switch to opaque format.
  *    & :: Switch to buffer descriptor mode - see below.
  *    ? :: The previous parameter is optional.
+ *
+ * In general parameter names are single letters.  To use a string for
+ * a parameter name, enclose the name in single quotes.
  *
  * Unless in gcry_buffer_t mode for each parameter name a pointer to
  * an MPI variable is expected and finally a NULL is expected.
@@ -2158,7 +2160,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
                            const char *list, va_list arg_ptr)
 {
   gpg_err_code_t rc;
-  const char *s;
+  const char *s, *s2;
   gcry_mpi_t *array[20];
   char arrayisdesc[20];
   int idx;
@@ -2173,10 +2175,23 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
      was found.  */
   for (s=list, idx=0; *s && idx < DIM (array); s++)
     {
-      if (*s == '&' || *s == '+' || *s == '-' || *s == '/' || *s == '?' )
+      if (*s == '&' || *s == '+' || *s == '-' || *s == '/' || *s == '?')
+        ;
+      else if (whitespacep (s))
         ;
       else
         {
+          if (*s == '\'')
+            {
+              s++;
+              s2 = strchr (s, '\'');
+              if (!s2 || s2 == s)
+                {
+                  /* Closing quote not found or empty string.  */
+                  return GPG_ERR_SYNTAX;
+                }
+              s = s2;
+            }
           array[idx] = va_arg (arg_ptr, gcry_mpi_t *);
           if (!array[idx])
             return GPG_ERR_MISSING_VALUE; /* NULL pointer given.  */
@@ -2221,11 +2236,29 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
     {
       if (*s == '&' || *s == '+' || *s == '-' || *s == '/')
         mode = *s;
+      else if (whitespacep (s))
+        ;
       else if (*s == '?')
         ; /* Only used via lookahead.  */
       else
         {
-          l1 = _gcry_sexp_find_token (sexp, s, 1);
+          if (*s == '\'')
+            {
+              /* Find closing quote, find token, set S to closing quote.  */
+              s++;
+              s2 = strchr (s, '\'');
+              if (!s2 || s2 == s)
+                {
+                  /* Closing quote not found or empty string.  */
+                  rc = GPG_ERR_SYNTAX;
+                  goto cleanup;
+                }
+              l1 = _gcry_sexp_find_token (sexp, s, s2 - s);
+              s = s2;
+            }
+          else
+            l1 = _gcry_sexp_find_token (sexp, s, 1);
+
           if (!l1 && s[1] == '?')
             {
               /* Optional element not found.  */
