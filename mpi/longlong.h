@@ -213,8 +213,8 @@ extern UDItype __udiv_qrnnd ();
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("adds %1, %4, %5\n"                                          \
 	   "adc  %0, %2, %3"                                            \
-	   : "=r" ((USItype)(sh)),                                      \
-	     "=&r" ((USItype)(sl))                                      \
+	   : "=r" ((sh)),                                               \
+	     "=&r" ((sl))                                               \
 	   : "%r" ((USItype)(ah)),                                      \
 	     "rI" ((USItype)(bh)),                                      \
 	     "%r" ((USItype)(al)),                                      \
@@ -222,15 +222,15 @@ extern UDItype __udiv_qrnnd ();
 #define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subs %1, %4, %5\n"                                          \
 	   "sbc  %0, %2, %3"                                            \
-	   : "=r" ((USItype)(sh)),                                      \
-	     "=&r" ((USItype)(sl))                                      \
+	   : "=r" ((sh)),                                               \
+	     "=&r" ((sl))                                               \
 	   : "r" ((USItype)(ah)),                                       \
 	     "rI" ((USItype)(bh)),                                      \
 	     "r" ((USItype)(al)),                                       \
 	     "rI" ((USItype)(bl)) __CLOBBER_CC)
 #if (defined __ARM_ARCH && __ARM_ARCH <= 3)
 #define umul_ppmm(xh, xl, a, b) \
-  __asm__ ("%@ Inlined umul_ppmm\n"                                     \
+  __asm__ ("@ Inlined umul_ppmm\n"                                      \
 	"mov	%|r0, %2, lsr #16		@ AAAA\n"               \
 	"mov	%|r2, %3, lsr #16		@ BBBB\n"               \
 	"bic	%|r1, %2, %|r0, lsl #16		@ aaaa\n"               \
@@ -243,27 +243,26 @@ extern UDItype __udiv_qrnnd ();
 	"addcs	%|r2, %|r2, #65536\n"                                   \
 	"adds	%1, %|r1, %|r0, lsl #16\n"                              \
 	"adc	%0, %|r2, %|r0, lsr #16"                                \
-	   : "=&r" ((USItype)(xh)),                                     \
-	     "=r" ((USItype)(xl))                                       \
+	   : "=&r" ((xh)),                                              \
+	     "=r" ((xl))                                                \
 	   : "r" ((USItype)(a)),                                        \
 	     "r" ((USItype)(b))                                         \
 	   : "r0", "r1", "r2" __CLOBBER_CC)
 #else /* __ARM_ARCH >= 4 */
 #define umul_ppmm(xh, xl, a, b)                                         \
-  __asm__ ("%@ Inlined umul_ppmm\n"                                     \
-	   "umull %r1, %r0, %r2, %r3"                                   \
-		   : "=&r" ((USItype)(xh)),                             \
-		     "=r" ((USItype)(xl))                               \
+  __asm__ ("@ Inlined umul_ppmm\n"                                      \
+	   "umull %1, %0, %2, %3"                                       \
+		   : "=&r" ((xh)),                                      \
+		     "=r" ((xl))                                        \
 		   : "r" ((USItype)(a)),                                \
-		     "r" ((USItype)(b))                                 \
-		   : "r0", "r1")
+		     "r" ((USItype)(b)))
 #endif /* __ARM_ARCH >= 4 */
 #define UMUL_TIME 20
 #define UDIV_TIME 100
 #if (defined __ARM_ARCH && __ARM_ARCH >= 5)
 #define count_leading_zeros(count, x) \
   __asm__ ("clz %0, %1"                                                 \
-		   : "=r" ((USItype)(count))                            \
+		   : "=r" ((count))                                     \
 		   : "r" ((USItype)(x)))
 #endif /* __ARM_ARCH >= 5 */
 #endif /* __arm__ */
