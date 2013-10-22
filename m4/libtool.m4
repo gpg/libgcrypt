@@ -2644,6 +2644,26 @@ linux*oldld* | linux*aout* | linux*coff*)
   dynamic_linker=no
   ;;
 
+linux*android*)
+  version_type=none # Android doesn't support versioned libraries.
+  need_lib_prefix=no
+  need_version=no
+  library_names_spec='$libname$release$shared_ext'
+  soname_spec='$libname$release$shared_ext'
+  finish_cmds=
+  shlibpath_var=LD_LIBRARY_PATH
+  shlibpath_overrides_runpath=yes
+
+  # This implies no fast_install, which is unacceptable.
+  # Some rework will be needed to allow for fast_install
+  # before this can be enabled.
+  hardcode_into_libs=yes
+
+  dynamic_linker='Android linker'
+  # Don't embed -rpath directories since the linker doesn't support them.
+  _LT_TAGVAR(hardcode_libdir_flag_spec, $1)='-L$libdir'
+  ;;
+
 # This must be glibc/ELF.
 linux* | k*bsd*-gnu | kopensolaris*-gnu)
   version_type=linux # correct to gnu/linux during the next big refactor
