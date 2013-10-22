@@ -36,50 +36,35 @@
 #define CTX %rdi
 
 /* vector registers */
-.set RA0, %ymm0
-.set RA1, %ymm1
-.set RA2, %ymm2
-.set RA3, %ymm3
-.set RA4, %ymm4
+#define RA0 %ymm0
+#define RA1 %ymm1
+#define RA2 %ymm2
+#define RA3 %ymm3
+#define RA4 %ymm4
 
-.set RB0, %ymm5
-.set RB1, %ymm6
-.set RB2, %ymm7
-.set RB3, %ymm8
-.set RB4, %ymm9
+#define RB0 %ymm5
+#define RB1 %ymm6
+#define RB2 %ymm7
+#define RB3 %ymm8
+#define RB4 %ymm9
 
-.set RNOT, %ymm10
-.set RTMP0, %ymm11
-.set RTMP1, %ymm12
-.set RTMP2, %ymm13
-.set RTMP3, %ymm14
-.set RTMP4, %ymm15
+#define RNOT %ymm10
+#define RTMP0 %ymm11
+#define RTMP1 %ymm12
+#define RTMP2 %ymm13
+#define RTMP3 %ymm14
+#define RTMP4 %ymm15
 
-.set RNOTx, %xmm10
-.set RTMP0x, %xmm11
-.set RTMP1x, %xmm12
-.set RTMP2x, %xmm13
-.set RTMP3x, %xmm14
-.set RTMP4x, %xmm15
+#define RNOTx %xmm10
+#define RTMP0x %xmm11
+#define RTMP1x %xmm12
+#define RTMP2x %xmm13
+#define RTMP3x %xmm14
+#define RTMP4x %xmm15
 
 /**********************************************************************
   helper macros
  **********************************************************************/
-
-/* preprocessor macro for renaming vector registers using GAS macros */
-#define sbox_reg_rename(r0, r1, r2, r3, r4, \
-			new_r0, new_r1, new_r2, new_r3, new_r4) \
-	.set rename_reg0, new_r0; \
-	.set rename_reg1, new_r1; \
-	.set rename_reg2, new_r2; \
-	.set rename_reg3, new_r3; \
-	.set rename_reg4, new_r4; \
-	\
-	.set r0, rename_reg0; \
-	.set r1, rename_reg1; \
-	.set r2, rename_reg2; \
-	.set r3, rename_reg3; \
-	.set r4, rename_reg4;
 
 /* vector 32-bit rotation to left */
 #define vec_rol(reg, nleft, tmp) \
@@ -128,9 +113,7 @@
 	vpxor	r4, r2, r2;		vpxor	RNOT, r4, r4;		\
 	vpor	r1, r4, r4;		vpxor	r3, r1, r1;		\
 	vpxor	r4, r1, r1;		vpor	r0, r3, r3;		\
-	vpxor	r3, r1, r1;		vpxor	r3, r4, r4;		\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r1,r4,r2,r0,r3);
+	vpxor	r3, r1, r1;		vpxor	r3, r4, r4;
 
 #define SBOX0_INVERSE(r0, r1, r2, r3, r4) \
 	vpxor	RNOT, r2, r2;		vmovdqa	r1, r4;			\
@@ -143,9 +126,7 @@
 	vpxor	r1, r2, r2;		vpxor	r0, r3, r3;		\
 	vpxor	r1, r3, r3;	\
 	vpand	r3, r2, r2;	\
-	vpxor	r2, r4, r4;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r0,r4,r1,r3,r2);
+	vpxor	r2, r4, r4;
 
 #define SBOX1(r0, r1, r2, r3, r4) \
 	vpxor	RNOT, r0, r0;		vpxor	RNOT, r2, r2;		\
@@ -157,9 +138,7 @@
 	vpand	r4, r2, r2;		vpxor	r1, r0, r0;		\
 	vpand	r2, r1, r1;	\
 	vpxor	r0, r1, r1;		vpand	r2, r0, r0;		\
-	vpxor	r4, r0, r0;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r2,r0,r3,r1,r4);
+	vpxor	r4, r0, r0;
 
 #define SBOX1_INVERSE(r0, r1, r2, r3, r4) \
 	vmovdqa	r1, r4;			vpxor	r3, r1, r1;		\
@@ -172,9 +151,7 @@
 	vpxor	r1, r4, r4;		vpor	r0, r1, r1;		\
 	vpxor	r0, r1, r1;	\
 	vpor	r4, r1, r1;	\
-	vpxor	r1, r3, r3;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r4,r0,r3,r2,r1);
+	vpxor	r1, r3, r3;
 
 #define SBOX2(r0, r1, r2, r3, r4) \
 	vmovdqa	r0, r4;			vpand	r2, r0, r0;		\
@@ -184,9 +161,7 @@
 	vmovdqa	r3, r1;			vpor	r4, r3, r3;		\
 	vpxor	r0, r3, r3;		vpand	r1, r0, r0;		\
 	vpxor	r0, r4, r4;		vpxor	r3, r1, r1;		\
-	vpxor	r4, r1, r1;		vpxor	RNOT, r4, r4;		\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r2,r3,r1,r4,r0);
+	vpxor	r4, r1, r1;		vpxor	RNOT, r4, r4;
 
 #define SBOX2_INVERSE(r0, r1, r2, r3, r4) \
 	vpxor	r3, r2, r2;		vpxor	r0, r3, r3;		\
@@ -198,9 +173,7 @@
 	vpor	r0, r2, r2;		vpxor	RNOT, r3, r3;		\
 	vpxor	r3, r2, r2;		vpxor	r3, r0, r0;		\
 	vpand	r1, r0, r0;		vpxor	r4, r3, r3;		\
-	vpxor	r0, r3, r3;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r1,r4,r2,r3,r0);
+	vpxor	r0, r3, r3;
 
 #define SBOX3(r0, r1, r2, r3, r4) \
 	vmovdqa	r0, r4;			vpor	r3, r0, r0;		\
@@ -212,9 +185,7 @@
 	vpxor	r2, r4, r4;		vpor	r0, r1, r1;		\
 	vpxor	r2, r1, r1;		vpxor	r3, r0, r0;		\
 	vmovdqa	r1, r2;			vpor	r3, r1, r1;		\
-	vpxor	r0, r1, r1;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r1,r2,r3,r4,r0);
+	vpxor	r0, r1, r1;
 
 #define SBOX3_INVERSE(r0, r1, r2, r3, r4) \
 	vmovdqa	r2, r4;			vpxor	r1, r2, r2;		\
@@ -226,9 +197,7 @@
 	vpxor	r1, r3, r3;		vpxor	r0, r1, r1;		\
 	vpor	r2, r1, r1;		vpxor	r3, r0, r0;		\
 	vpxor	r4, r1, r1;	\
-	vpxor	r1, r0, r0;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r2,r1,r3,r0,r4);
+	vpxor	r1, r0, r0;
 
 #define SBOX4(r0, r1, r2, r3, r4) \
 	vpxor	r3, r1, r1;		vpxor	RNOT, r3, r3;		\
@@ -240,9 +209,7 @@
 	vpxor	r0, r3, r3;		vpor	r1, r4, r4;		\
 	vpxor	r0, r4, r4;		vpor	r3, r0, r0;		\
 	vpxor	r2, r0, r0;		vpand	r3, r2, r2;		\
-	vpxor	RNOT, r0, r0;		vpxor	r2, r4, r4;		\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r1,r4,r0,r3,r2);
+	vpxor	RNOT, r0, r0;		vpxor	r2, r4, r4;
 
 #define SBOX4_INVERSE(r0, r1, r2, r3, r4) \
 	vmovdqa	r2, r4;			vpand	r3, r2, r2;		\
@@ -255,9 +222,7 @@
 	vpand	r0, r2, r2;		vpxor	r0, r3, r3;		\
 	vpxor	r4, r2, r2;	\
 	vpor	r3, r2, r2;		vpxor	r0, r3, r3;		\
-	vpxor	r1, r2, r2;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r0,r3,r2,r4,r1);
+	vpxor	r1, r2, r2;
 
 #define SBOX5(r0, r1, r2, r3, r4) \
 	vpxor	r1, r0, r0;		vpxor	r3, r1, r1;		\
@@ -269,9 +234,7 @@
 	vpxor	r2, r4, r4;		vpxor	r0, r2, r2;		\
 	vpand	r3, r0, r0;		vpxor	RNOT, r2, r2;		\
 	vpxor	r4, r0, r0;		vpor	r3, r4, r4;		\
-	vpxor	r4, r2, r2;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r1,r3,r0,r2,r4);
+	vpxor	r4, r2, r2;
 
 #define SBOX5_INVERSE(r0, r1, r2, r3, r4) \
 	vpxor	RNOT, r1, r1;		vmovdqa	r3, r4;			\
@@ -283,9 +246,7 @@
 	vpxor	r3, r1, r1;		vpxor	r2, r4, r4;		\
 	vpand	r4, r3, r3;		vpxor	r1, r4, r4;		\
 	vpxor	r4, r3, r3;		vpxor	RNOT, r4, r4;		\
-	vpxor	r0, r3, r3;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r1,r4,r3,r2,r0);
+	vpxor	r0, r3, r3;
 
 #define SBOX6(r0, r1, r2, r3, r4) \
 	vpxor	RNOT, r2, r2;		vmovdqa	r3, r4;			\
@@ -297,9 +258,7 @@
 	vpxor	r2, r0, r0;		vpxor	r3, r4, r4;		\
 	vpxor	r0, r4, r4;		vpxor	RNOT, r3, r3;		\
 	vpand	r4, r2, r2;	\
-	vpxor	r3, r2, r2;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r0,r1,r4,r2,r3);
+	vpxor	r3, r2, r2;
 
 #define SBOX6_INVERSE(r0, r1, r2, r3, r4) \
 	vpxor	r2, r0, r0;		vmovdqa	r2, r4;			\
@@ -310,9 +269,7 @@
 	vpxor	r1, r4, r4;		vpand	r3, r1, r1;		\
 	vpxor	r0, r1, r1;		vpxor	r3, r0, r0;		\
 	vpor	r2, r0, r0;		vpxor	r1, r3, r3;		\
-	vpxor	r0, r4, r4;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r1,r2,r4,r3,r0);
+	vpxor	r0, r4, r4;
 
 #define SBOX7(r0, r1, r2, r3, r4) \
 	vmovdqa	r1, r4;			vpor	r2, r1, r1;		\
@@ -325,9 +282,7 @@
 	vpxor	r1, r2, r2;		vpand	r0, r1, r1;		\
 	vpxor	r4, r1, r1;		vpxor	RNOT, r2, r2;		\
 	vpor	r0, r2, r2;	\
-	vpxor	r2, r4, r4;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r4,r3,r1,r0,r2);
+	vpxor	r2, r4, r4;
 
 #define SBOX7_INVERSE(r0, r1, r2, r3, r4) \
 	vmovdqa	r2, r4;			vpxor	r0, r2, r2;		\
@@ -339,9 +294,7 @@
 	vpor	r2, r0, r0;		vpxor	r1, r4, r4;		\
 	vpxor	r3, r0, r0;		vpxor	r4, r3, r3;		\
 	vpor	r0, r4, r4;		vpxor	r2, r3, r3;		\
-	vpxor	r2, r4, r4;	\
-	\
-	sbox_reg_rename(r0,r1,r2,r3,r4, r3,r0,r1,r4,r2);
+	vpxor	r2, r4, r4;
 
 /* Apply SBOX number WHICH to to the block.  */
 #define SBOX(which, r0, r1, r2, r3, r4) \
@@ -402,49 +355,51 @@
 
 /* Apply a Serpent round to sixteen parallel blocks.  This macro increments
    `round'.  */
-#define ROUND(which, a0, a1, a2, a3, a4, b0, b1, b2, b3, b4) \
-	BLOCK_XOR_KEY (a0, a1, a2, a3, a4, round);	\
-	SBOX (which, a0, a1, a2, a3, a4);		\
-		BLOCK_XOR_KEY (b0, b1, b2, b3, b4, round);	\
-		SBOX (which, b0, b1, b2, b3, b4);		\
-	LINEAR_TRANSFORMATION (a0, a1, a2, a3, a4);	\
-		LINEAR_TRANSFORMATION (b0, b1, b2, b3, b4);	\
-	.set round, (round + 1);
+#define ROUND(round, which, a0, a1, a2, a3, a4, na0, na1, na2, na3, na4, \
+			    b0, b1, b2, b3, b4, nb0, nb1, nb2, nb3, nb4) \
+	BLOCK_XOR_KEY (a0, a1, a2, a3, a4, round);		\
+	SBOX (which, a0, a1, a2, a3, a4);			\
+		BLOCK_XOR_KEY (b0, b1, b2, b3, b4, round);		\
+		SBOX (which, b0, b1, b2, b3, b4);			\
+	LINEAR_TRANSFORMATION (na0, na1, na2, na3, na4);	\
+		LINEAR_TRANSFORMATION (nb0, nb1, nb2, nb3, nb4);
 
 /* Apply the last Serpent round to sixteen parallel blocks.  This macro
    increments `round'.  */
-#define ROUND_LAST(which, a0, a1, a2, a3, a4, b0, b1, b2, b3, b4) \
-	BLOCK_XOR_KEY (a0, a1, a2, a3, a4, round);	\
-	SBOX (which, a0, a1, a2, a3, a4);		\
-		BLOCK_XOR_KEY (b0, b1, b2, b3, b4, round);	\
-		SBOX (which, b0, b1, b2, b3, b4);		\
-	.set round, (round + 1);			\
-	BLOCK_XOR_KEY (a0, a1, a2, a3, a4, round);	\
-		BLOCK_XOR_KEY (b0, b1, b2, b3, b4, round);	\
-	.set round, (round + 1);
+#define ROUND_LAST(round, which, a0, a1, a2, a3, a4, na0, na1, na2, na3, na4, \
+				 b0, b1, b2, b3, b4, nb0, nb1, nb2, nb3, nb4) \
+	BLOCK_XOR_KEY (a0, a1, a2, a3, a4, round);		\
+	SBOX (which, a0, a1, a2, a3, a4);			\
+		BLOCK_XOR_KEY (b0, b1, b2, b3, b4, round);		\
+		SBOX (which, b0, b1, b2, b3, b4);			\
+	BLOCK_XOR_KEY (na0, na1, na2, na3, na4, ((round) + 1));		\
+		BLOCK_XOR_KEY (nb0, nb1, nb2, nb3, nb4, ((round) + 1));
 
 /* Apply an inverse Serpent round to sixteen parallel blocks.  This macro
    increments `round'.  */
-#define ROUND_INVERSE(which, a0, a1, a2, a3, a4, b0, b1, b2, b3, b4) \
+#define ROUND_INVERSE(round, which, a0, a1, a2, a3, a4, \
+				    na0, na1, na2, na3, na4, \
+				    b0, b1, b2, b3, b4, \
+				    nb0, nb1, nb2, nb3, nb4) \
 	LINEAR_TRANSFORMATION_INVERSE (a0, a1, a2, a3, a4);	\
 		LINEAR_TRANSFORMATION_INVERSE (b0, b1, b2, b3, b4);	\
 	SBOX_INVERSE (which, a0, a1, a2, a3, a4);		\
-	BLOCK_XOR_KEY (a0, a1, a2, a3, a4, round);		\
+	BLOCK_XOR_KEY (na0, na1, na2, na3, na4, round);		\
 		SBOX_INVERSE (which, b0, b1, b2, b3, b4);		\
-		BLOCK_XOR_KEY (b0, b1, b2, b3, b4, round);		\
-	.set round, (round - 1);
+		BLOCK_XOR_KEY (nb0, nb1, nb2, nb3, nb4, round);
 
 /* Apply the first inverse Serpent round to sixteen parallel blocks.  This macro
    increments `round'.  */
-#define ROUND_FIRST_INVERSE(which, a0, a1, a2, a3, a4, b0, b1, b2, b3, b4) \
-	BLOCK_XOR_KEY (a0, a1, a2, a3, a4, round);	\
-		BLOCK_XOR_KEY (b0, b1, b2, b3, b4, round);	\
-	.set round, (round - 1);			\
+#define ROUND_FIRST_INVERSE(round, which, a0, a1, a2, a3, a4, \
+					  na0, na1, na2, na3, na4, \
+					  b0, b1, b2, b3, b4, \
+					  nb0, nb1, nb2, nb3, nb4) \
+	BLOCK_XOR_KEY (a0, a1, a2, a3, a4, ((round) + 1));	\
+		BLOCK_XOR_KEY (b0, b1, b2, b3, b4, ((round) + 1));	\
 	SBOX_INVERSE (which, a0, a1, a2, a3, a4); 	\
-	BLOCK_XOR_KEY (a0, a1, a2, a3, a4, round);	\
+	BLOCK_XOR_KEY (na0, na1, na2, na3, na4, round);	\
 		SBOX_INVERSE (which, b0, b1, b2, b3, b4); 	\
-		BLOCK_XOR_KEY (b0, b1, b2, b3, b4, round);	\
-	.set round, (round - 1);
+		BLOCK_XOR_KEY (nb0, nb1, nb2, nb3, nb4, round);
 
 .text
 
@@ -456,72 +411,82 @@ __serpent_enc_blk16:
 	 *	RA0, RA1, RA2, RA3, RB0, RB1, RB2, RB3: sixteen parallel
 	 *						plaintext blocks
 	 * output:
-	 *	RA0, RA1, RA2, RA3, RB0, RB1, RB2, RB3: sixteen parallel
+	 *	RA4, RA1, RA2, RA0, RB4, RB1, RB2, RB0: sixteen parallel
 	 * 						ciphertext blocks
 	 */
-
-	/* record input vector names for __serpent_enc_blk16 */
-	.set enc_in_a0, RA0
-	.set enc_in_a1, RA1
-	.set enc_in_a2, RA2
-	.set enc_in_a3, RA3
-	.set enc_in_b0, RB0
-	.set enc_in_b1, RB1
-	.set enc_in_b2, RB2
-	.set enc_in_b3, RB3
 
 	vpcmpeqd RNOT, RNOT, RNOT;
 
 	transpose_4x4(RA0, RA1, RA2, RA3, RA4, RTMP0, RTMP1);
 	transpose_4x4(RB0, RB1, RB2, RB3, RB4, RTMP0, RTMP1);
 
-	.set round, 0
-	ROUND (0, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (1, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (2, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (3, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (4, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (5, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (6, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (7, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (0, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (1, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (2, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (3, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (4, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (5, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (6, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (7, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (0, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (1, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (2, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (3, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (4, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (5, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (6, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (7, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (0, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (1, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (2, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (3, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (4, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (5, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND (6, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
+	ROUND (0, 0, RA0, RA1, RA2, RA3, RA4, RA1, RA4, RA2, RA0, RA3,
+		     RB0, RB1, RB2, RB3, RB4, RB1, RB4, RB2, RB0, RB3);
+	ROUND (1, 1, RA1, RA4, RA2, RA0, RA3, RA2, RA1, RA0, RA4, RA3,
+		     RB1, RB4, RB2, RB0, RB3, RB2, RB1, RB0, RB4, RB3);
+	ROUND (2, 2, RA2, RA1, RA0, RA4, RA3, RA0, RA4, RA1, RA3, RA2,
+		     RB2, RB1, RB0, RB4, RB3, RB0, RB4, RB1, RB3, RB2);
+	ROUND (3, 3, RA0, RA4, RA1, RA3, RA2, RA4, RA1, RA3, RA2, RA0,
+		     RB0, RB4, RB1, RB3, RB2, RB4, RB1, RB3, RB2, RB0);
+	ROUND (4, 4, RA4, RA1, RA3, RA2, RA0, RA1, RA0, RA4, RA2, RA3,
+		     RB4, RB1, RB3, RB2, RB0, RB1, RB0, RB4, RB2, RB3);
+	ROUND (5, 5, RA1, RA0, RA4, RA2, RA3, RA0, RA2, RA1, RA4, RA3,
+		     RB1, RB0, RB4, RB2, RB3, RB0, RB2, RB1, RB4, RB3);
+	ROUND (6, 6, RA0, RA2, RA1, RA4, RA3, RA0, RA2, RA3, RA1, RA4,
+		     RB0, RB2, RB1, RB4, RB3, RB0, RB2, RB3, RB1, RB4);
+	ROUND (7, 7, RA0, RA2, RA3, RA1, RA4, RA4, RA1, RA2, RA0, RA3,
+		     RB0, RB2, RB3, RB1, RB4, RB4, RB1, RB2, RB0, RB3);
+	ROUND (8, 0, RA4, RA1, RA2, RA0, RA3, RA1, RA3, RA2, RA4, RA0,
+		     RB4, RB1, RB2, RB0, RB3, RB1, RB3, RB2, RB4, RB0);
+	ROUND (9, 1, RA1, RA3, RA2, RA4, RA0, RA2, RA1, RA4, RA3, RA0,
+		     RB1, RB3, RB2, RB4, RB0, RB2, RB1, RB4, RB3, RB0);
+	ROUND (10, 2, RA2, RA1, RA4, RA3, RA0, RA4, RA3, RA1, RA0, RA2,
+		      RB2, RB1, RB4, RB3, RB0, RB4, RB3, RB1, RB0, RB2);
+	ROUND (11, 3, RA4, RA3, RA1, RA0, RA2, RA3, RA1, RA0, RA2, RA4,
+		      RB4, RB3, RB1, RB0, RB2, RB3, RB1, RB0, RB2, RB4);
+	ROUND (12, 4, RA3, RA1, RA0, RA2, RA4, RA1, RA4, RA3, RA2, RA0,
+		      RB3, RB1, RB0, RB2, RB4, RB1, RB4, RB3, RB2, RB0);
+	ROUND (13, 5, RA1, RA4, RA3, RA2, RA0, RA4, RA2, RA1, RA3, RA0,
+		      RB1, RB4, RB3, RB2, RB0, RB4, RB2, RB1, RB3, RB0);
+	ROUND (14, 6, RA4, RA2, RA1, RA3, RA0, RA4, RA2, RA0, RA1, RA3,
+		      RB4, RB2, RB1, RB3, RB0, RB4, RB2, RB0, RB1, RB3);
+	ROUND (15, 7, RA4, RA2, RA0, RA1, RA3, RA3, RA1, RA2, RA4, RA0,
+		      RB4, RB2, RB0, RB1, RB3, RB3, RB1, RB2, RB4, RB0);
+	ROUND (16, 0, RA3, RA1, RA2, RA4, RA0, RA1, RA0, RA2, RA3, RA4,
+		      RB3, RB1, RB2, RB4, RB0, RB1, RB0, RB2, RB3, RB4);
+	ROUND (17, 1, RA1, RA0, RA2, RA3, RA4, RA2, RA1, RA3, RA0, RA4,
+		      RB1, RB0, RB2, RB3, RB4, RB2, RB1, RB3, RB0, RB4);
+	ROUND (18, 2, RA2, RA1, RA3, RA0, RA4, RA3, RA0, RA1, RA4, RA2,
+		      RB2, RB1, RB3, RB0, RB4, RB3, RB0, RB1, RB4, RB2);
+	ROUND (19, 3, RA3, RA0, RA1, RA4, RA2, RA0, RA1, RA4, RA2, RA3,
+		      RB3, RB0, RB1, RB4, RB2, RB0, RB1, RB4, RB2, RB3);
+	ROUND (20, 4, RA0, RA1, RA4, RA2, RA3, RA1, RA3, RA0, RA2, RA4,
+		      RB0, RB1, RB4, RB2, RB3, RB1, RB3, RB0, RB2, RB4);
+	ROUND (21, 5, RA1, RA3, RA0, RA2, RA4, RA3, RA2, RA1, RA0, RA4,
+		      RB1, RB3, RB0, RB2, RB4, RB3, RB2, RB1, RB0, RB4);
+	ROUND (22, 6, RA3, RA2, RA1, RA0, RA4, RA3, RA2, RA4, RA1, RA0,
+		      RB3, RB2, RB1, RB0, RB4, RB3, RB2, RB4, RB1, RB0);
+	ROUND (23, 7, RA3, RA2, RA4, RA1, RA0, RA0, RA1, RA2, RA3, RA4,
+		      RB3, RB2, RB4, RB1, RB0, RB0, RB1, RB2, RB3, RB4);
+	ROUND (24, 0, RA0, RA1, RA2, RA3, RA4, RA1, RA4, RA2, RA0, RA3,
+		      RB0, RB1, RB2, RB3, RB4, RB1, RB4, RB2, RB0, RB3);
+	ROUND (25, 1, RA1, RA4, RA2, RA0, RA3, RA2, RA1, RA0, RA4, RA3,
+		      RB1, RB4, RB2, RB0, RB3, RB2, RB1, RB0, RB4, RB3);
+	ROUND (26, 2, RA2, RA1, RA0, RA4, RA3, RA0, RA4, RA1, RA3, RA2,
+		      RB2, RB1, RB0, RB4, RB3, RB0, RB4, RB1, RB3, RB2);
+	ROUND (27, 3, RA0, RA4, RA1, RA3, RA2, RA4, RA1, RA3, RA2, RA0,
+		      RB0, RB4, RB1, RB3, RB2, RB4, RB1, RB3, RB2, RB0);
+	ROUND (28, 4, RA4, RA1, RA3, RA2, RA0, RA1, RA0, RA4, RA2, RA3,
+		      RB4, RB1, RB3, RB2, RB0, RB1, RB0, RB4, RB2, RB3);
+	ROUND (29, 5, RA1, RA0, RA4, RA2, RA3, RA0, RA2, RA1, RA4, RA3,
+		      RB1, RB0, RB4, RB2, RB3, RB0, RB2, RB1, RB4, RB3);
+	ROUND (30, 6, RA0, RA2, RA1, RA4, RA3, RA0, RA2, RA3, RA1, RA4,
+		      RB0, RB2, RB1, RB4, RB3, RB0, RB2, RB3, RB1, RB4);
+	ROUND_LAST (31, 7, RA0, RA2, RA3, RA1, RA4, RA4, RA1, RA2, RA0, RA3,
+		           RB0, RB2, RB3, RB1, RB4, RB4, RB1, RB2, RB0, RB3);
 
-	ROUND_LAST (7, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-
-	transpose_4x4(RA0, RA1, RA2, RA3, RA4, RTMP0, RTMP1);
-	transpose_4x4(RB0, RB1, RB2, RB3, RB4, RTMP0, RTMP1);
-
-	/* record output vector names for __serpent_enc_blk16 */
-	.set enc_out_a0, RA0
-	.set enc_out_a1, RA1
-	.set enc_out_a2, RA2
-	.set enc_out_a3, RA3
-	.set enc_out_b0, RB0
-	.set enc_out_b1, RB1
-	.set enc_out_b2, RB2
-	.set enc_out_b3, RB3
+	transpose_4x4(RA4, RA1, RA2, RA0, RA3, RTMP0, RTMP1);
+	transpose_4x4(RB4, RB1, RB2, RB0, RB3, RTMP0, RTMP1);
 
 	ret;
 .size __serpent_enc_blk16,.-__serpent_enc_blk16;
@@ -538,68 +503,80 @@ __serpent_dec_blk16:
 	 *						plaintext blocks
 	 */
 
-	/* record input vector names for __serpent_dec_blk16 */
-	.set dec_in_a0, RA0
-	.set dec_in_a1, RA1
-	.set dec_in_a2, RA2
-	.set dec_in_a3, RA3
-	.set dec_in_b0, RB0
-	.set dec_in_b1, RB1
-	.set dec_in_b2, RB2
-	.set dec_in_b3, RB3
-
 	vpcmpeqd RNOT, RNOT, RNOT;
 
 	transpose_4x4(RA0, RA1, RA2, RA3, RA4, RTMP0, RTMP1);
 	transpose_4x4(RB0, RB1, RB2, RB3, RB4, RTMP0, RTMP1);
 
-	.set round, 32
-	ROUND_FIRST_INVERSE (7, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-
-	ROUND_INVERSE (6, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (5, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (4, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (3, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (2, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (1, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (0, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (7, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (6, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (5, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (4, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (3, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (2, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (1, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (0, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (7, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (6, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (5, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (4, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (3, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (2, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (1, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (0, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (7, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (6, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (5, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (4, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (3, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (2, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (1, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
-	ROUND_INVERSE (0, RA0, RA1, RA2, RA3, RA4, RB0, RB1, RB2, RB3, RB4);
+	ROUND_FIRST_INVERSE (31, 7, RA0, RA1, RA2, RA3, RA4,
+				    RA3, RA0, RA1, RA4, RA2,
+				    RB0, RB1, RB2, RB3, RB4,
+				    RB3, RB0, RB1, RB4, RB2);
+	ROUND_INVERSE (30, 6, RA3, RA0, RA1, RA4, RA2, RA0, RA1, RA2, RA4, RA3,
+		              RB3, RB0, RB1, RB4, RB2, RB0, RB1, RB2, RB4, RB3);
+	ROUND_INVERSE (29, 5, RA0, RA1, RA2, RA4, RA3, RA1, RA3, RA4, RA2, RA0,
+		              RB0, RB1, RB2, RB4, RB3, RB1, RB3, RB4, RB2, RB0);
+	ROUND_INVERSE (28, 4, RA1, RA3, RA4, RA2, RA0, RA1, RA2, RA4, RA0, RA3,
+		              RB1, RB3, RB4, RB2, RB0, RB1, RB2, RB4, RB0, RB3);
+	ROUND_INVERSE (27, 3, RA1, RA2, RA4, RA0, RA3, RA4, RA2, RA0, RA1, RA3,
+		              RB1, RB2, RB4, RB0, RB3, RB4, RB2, RB0, RB1, RB3);
+	ROUND_INVERSE (26, 2, RA4, RA2, RA0, RA1, RA3, RA2, RA3, RA0, RA1, RA4,
+		              RB4, RB2, RB0, RB1, RB3, RB2, RB3, RB0, RB1, RB4);
+	ROUND_INVERSE (25, 1, RA2, RA3, RA0, RA1, RA4, RA4, RA2, RA1, RA0, RA3,
+		              RB2, RB3, RB0, RB1, RB4, RB4, RB2, RB1, RB0, RB3);
+	ROUND_INVERSE (24, 0, RA4, RA2, RA1, RA0, RA3, RA4, RA3, RA2, RA0, RA1,
+		              RB4, RB2, RB1, RB0, RB3, RB4, RB3, RB2, RB0, RB1);
+	ROUND_INVERSE (23, 7, RA4, RA3, RA2, RA0, RA1, RA0, RA4, RA3, RA1, RA2,
+		              RB4, RB3, RB2, RB0, RB1, RB0, RB4, RB3, RB1, RB2);
+	ROUND_INVERSE (22, 6, RA0, RA4, RA3, RA1, RA2, RA4, RA3, RA2, RA1, RA0,
+		              RB0, RB4, RB3, RB1, RB2, RB4, RB3, RB2, RB1, RB0);
+	ROUND_INVERSE (21, 5, RA4, RA3, RA2, RA1, RA0, RA3, RA0, RA1, RA2, RA4,
+		              RB4, RB3, RB2, RB1, RB0, RB3, RB0, RB1, RB2, RB4);
+	ROUND_INVERSE (20, 4, RA3, RA0, RA1, RA2, RA4, RA3, RA2, RA1, RA4, RA0,
+		              RB3, RB0, RB1, RB2, RB4, RB3, RB2, RB1, RB4, RB0);
+	ROUND_INVERSE (19, 3, RA3, RA2, RA1, RA4, RA0, RA1, RA2, RA4, RA3, RA0,
+		              RB3, RB2, RB1, RB4, RB0, RB1, RB2, RB4, RB3, RB0);
+	ROUND_INVERSE (18, 2, RA1, RA2, RA4, RA3, RA0, RA2, RA0, RA4, RA3, RA1,
+		              RB1, RB2, RB4, RB3, RB0, RB2, RB0, RB4, RB3, RB1);
+	ROUND_INVERSE (17, 1, RA2, RA0, RA4, RA3, RA1, RA1, RA2, RA3, RA4, RA0,
+		              RB2, RB0, RB4, RB3, RB1, RB1, RB2, RB3, RB4, RB0);
+	ROUND_INVERSE (16, 0, RA1, RA2, RA3, RA4, RA0, RA1, RA0, RA2, RA4, RA3,
+		              RB1, RB2, RB3, RB4, RB0, RB1, RB0, RB2, RB4, RB3);
+	ROUND_INVERSE (15, 7, RA1, RA0, RA2, RA4, RA3, RA4, RA1, RA0, RA3, RA2,
+		              RB1, RB0, RB2, RB4, RB3, RB4, RB1, RB0, RB3, RB2);
+	ROUND_INVERSE (14, 6, RA4, RA1, RA0, RA3, RA2, RA1, RA0, RA2, RA3, RA4,
+		              RB4, RB1, RB0, RB3, RB2, RB1, RB0, RB2, RB3, RB4);
+	ROUND_INVERSE (13, 5, RA1, RA0, RA2, RA3, RA4, RA0, RA4, RA3, RA2, RA1,
+		              RB1, RB0, RB2, RB3, RB4, RB0, RB4, RB3, RB2, RB1);
+	ROUND_INVERSE (12, 4, RA0, RA4, RA3, RA2, RA1, RA0, RA2, RA3, RA1, RA4,
+		              RB0, RB4, RB3, RB2, RB1, RB0, RB2, RB3, RB1, RB4);
+	ROUND_INVERSE (11, 3, RA0, RA2, RA3, RA1, RA4, RA3, RA2, RA1, RA0, RA4,
+		              RB0, RB2, RB3, RB1, RB4, RB3, RB2, RB1, RB0, RB4);
+	ROUND_INVERSE (10, 2, RA3, RA2, RA1, RA0, RA4, RA2, RA4, RA1, RA0, RA3,
+		              RB3, RB2, RB1, RB0, RB4, RB2, RB4, RB1, RB0, RB3);
+	ROUND_INVERSE (9, 1, RA2, RA4, RA1, RA0, RA3, RA3, RA2, RA0, RA1, RA4,
+		             RB2, RB4, RB1, RB0, RB3, RB3, RB2, RB0, RB1, RB4);
+	ROUND_INVERSE (8, 0, RA3, RA2, RA0, RA1, RA4, RA3, RA4, RA2, RA1, RA0,
+		             RB3, RB2, RB0, RB1, RB4, RB3, RB4, RB2, RB1, RB0);
+	ROUND_INVERSE (7, 7, RA3, RA4, RA2, RA1, RA0, RA1, RA3, RA4, RA0, RA2,
+		             RB3, RB4, RB2, RB1, RB0, RB1, RB3, RB4, RB0, RB2);
+	ROUND_INVERSE (6, 6, RA1, RA3, RA4, RA0, RA2, RA3, RA4, RA2, RA0, RA1,
+		             RB1, RB3, RB4, RB0, RB2, RB3, RB4, RB2, RB0, RB1);
+	ROUND_INVERSE (5, 5, RA3, RA4, RA2, RA0, RA1, RA4, RA1, RA0, RA2, RA3,
+		             RB3, RB4, RB2, RB0, RB1, RB4, RB1, RB0, RB2, RB3);
+	ROUND_INVERSE (4, 4, RA4, RA1, RA0, RA2, RA3, RA4, RA2, RA0, RA3, RA1,
+		             RB4, RB1, RB0, RB2, RB3, RB4, RB2, RB0, RB3, RB1);
+	ROUND_INVERSE (3, 3, RA4, RA2, RA0, RA3, RA1, RA0, RA2, RA3, RA4, RA1,
+		             RB4, RB2, RB0, RB3, RB1, RB0, RB2, RB3, RB4, RB1);
+	ROUND_INVERSE (2, 2, RA0, RA2, RA3, RA4, RA1, RA2, RA1, RA3, RA4, RA0,
+		             RB0, RB2, RB3, RB4, RB1, RB2, RB1, RB3, RB4, RB0);
+	ROUND_INVERSE (1, 1, RA2, RA1, RA3, RA4, RA0, RA0, RA2, RA4, RA3, RA1,
+		             RB2, RB1, RB3, RB4, RB0, RB0, RB2, RB4, RB3, RB1);
+	ROUND_INVERSE (0, 0, RA0, RA2, RA4, RA3, RA1, RA0, RA1, RA2, RA3, RA4,
+		             RB0, RB2, RB4, RB3, RB1, RB0, RB1, RB2, RB3, RB4);
 
 	transpose_4x4(RA0, RA1, RA2, RA3, RA4, RTMP0, RTMP1);
 	transpose_4x4(RB0, RB1, RB2, RB3, RB4, RTMP0, RTMP1);
-
-	/* record output vector names for __serpent_dec_blk16 */
-	.set dec_out_a0, RA0
-	.set dec_out_a1, RA1
-	.set dec_out_a2, RA2
-	.set dec_out_a3, RA3
-	.set dec_out_b0, RB0
-	.set dec_out_b1, RB1
-	.set dec_out_b2, RB2
-	.set dec_out_b3, RB3
 
 	ret;
 .size __serpent_dec_blk16,.-__serpent_dec_blk16;
@@ -622,15 +599,6 @@ _gcry_serpent_avx2_ctr_enc:
 	 */
 
 	vzeroupper;
-
-	.set RA0, enc_in_a0
-	.set RA1, enc_in_a1
-	.set RA2, enc_in_a2
-	.set RA3, enc_in_a3
-	.set RB0, enc_in_b0
-	.set RB1, enc_in_b1
-	.set RB2, enc_in_b2
-	.set RB3, enc_in_b3
 
 	vbroadcasti128 .Lbswap128_mask RIP, RTMP3;
 	vpcmpeqd RNOT, RNOT, RNOT;
@@ -703,32 +671,23 @@ _gcry_serpent_avx2_ctr_enc:
 
 	call __serpent_enc_blk16;
 
-	.set RA0, enc_out_a0
-	.set RA1, enc_out_a1
-	.set RA2, enc_out_a2
-	.set RA3, enc_out_a3
-	.set RB0, enc_out_b0
-	.set RB1, enc_out_b1
-	.set RB2, enc_out_b2
-	.set RB3, enc_out_b3
-
-	vpxor (0 * 32)(%rdx), RA0, RA0;
+	vpxor (0 * 32)(%rdx), RA4, RA4;
 	vpxor (1 * 32)(%rdx), RA1, RA1;
 	vpxor (2 * 32)(%rdx), RA2, RA2;
-	vpxor (3 * 32)(%rdx), RA3, RA3;
-	vpxor (4 * 32)(%rdx), RB0, RB0;
+	vpxor (3 * 32)(%rdx), RA0, RA0;
+	vpxor (4 * 32)(%rdx), RB4, RB4;
 	vpxor (5 * 32)(%rdx), RB1, RB1;
 	vpxor (6 * 32)(%rdx), RB2, RB2;
-	vpxor (7 * 32)(%rdx), RB3, RB3;
+	vpxor (7 * 32)(%rdx), RB0, RB0;
 
-	vmovdqu RA0, (0 * 32)(%rsi);
+	vmovdqu RA4, (0 * 32)(%rsi);
 	vmovdqu RA1, (1 * 32)(%rsi);
 	vmovdqu RA2, (2 * 32)(%rsi);
-	vmovdqu RA3, (3 * 32)(%rsi);
-	vmovdqu RB0, (4 * 32)(%rsi);
+	vmovdqu RA0, (3 * 32)(%rsi);
+	vmovdqu RB4, (4 * 32)(%rsi);
 	vmovdqu RB1, (5 * 32)(%rsi);
 	vmovdqu RB2, (6 * 32)(%rsi);
-	vmovdqu RB3, (7 * 32)(%rsi);
+	vmovdqu RB0, (7 * 32)(%rsi);
 
 	vzeroall;
 
@@ -748,15 +707,6 @@ _gcry_serpent_avx2_cbc_dec:
 
 	vzeroupper;
 
-	.set RA0, dec_in_a0
-	.set RA1, dec_in_a1
-	.set RA2, dec_in_a2
-	.set RA3, dec_in_a3
-	.set RB0, dec_in_b0
-	.set RB1, dec_in_b1
-	.set RB2, dec_in_b2
-	.set RB3, dec_in_b3
-
 	vmovdqu (0 * 32)(%rdx), RA0;
 	vmovdqu (1 * 32)(%rdx), RA1;
 	vmovdqu (2 * 32)(%rdx), RA2;
@@ -767,15 +717,6 @@ _gcry_serpent_avx2_cbc_dec:
 	vmovdqu (7 * 32)(%rdx), RB3;
 
 	call __serpent_dec_blk16;
-
-	.set RA0, dec_out_a0
-	.set RA1, dec_out_a1
-	.set RA2, dec_out_a2
-	.set RA3, dec_out_a3
-	.set RB0, dec_out_b0
-	.set RB1, dec_out_b1
-	.set RB2, dec_out_b2
-	.set RB3, dec_out_b3
 
 	vmovdqu (%rcx), RNOTx;
 	vinserti128 $1, (%rdx), RNOT, RNOT;
@@ -817,15 +758,6 @@ _gcry_serpent_avx2_cfb_dec:
 
 	vzeroupper;
 
-	.set RA0, enc_in_a0
-	.set RA1, enc_in_a1
-	.set RA2, enc_in_a2
-	.set RA3, enc_in_a3
-	.set RB0, enc_in_b0
-	.set RB1, enc_in_b1
-	.set RB2, enc_in_b2
-	.set RB3, enc_in_b3
-
 	/* Load input */
 	vmovdqu (%rcx), RNOTx;
 	vinserti128 $1, (%rdx), RNOT, RA0;
@@ -843,32 +775,23 @@ _gcry_serpent_avx2_cfb_dec:
 
 	call __serpent_enc_blk16;
 
-	.set RA0, enc_out_a0
-	.set RA1, enc_out_a1
-	.set RA2, enc_out_a2
-	.set RA3, enc_out_a3
-	.set RB0, enc_out_b0
-	.set RB1, enc_out_b1
-	.set RB2, enc_out_b2
-	.set RB3, enc_out_b3
-
-	vpxor (0 * 32)(%rdx), RA0, RA0;
+	vpxor (0 * 32)(%rdx), RA4, RA4;
 	vpxor (1 * 32)(%rdx), RA1, RA1;
 	vpxor (2 * 32)(%rdx), RA2, RA2;
-	vpxor (3 * 32)(%rdx), RA3, RA3;
-	vpxor (4 * 32)(%rdx), RB0, RB0;
+	vpxor (3 * 32)(%rdx), RA0, RA0;
+	vpxor (4 * 32)(%rdx), RB4, RB4;
 	vpxor (5 * 32)(%rdx), RB1, RB1;
 	vpxor (6 * 32)(%rdx), RB2, RB2;
-	vpxor (7 * 32)(%rdx), RB3, RB3;
+	vpxor (7 * 32)(%rdx), RB0, RB0;
 
-	vmovdqu RA0, (0 * 32)(%rsi);
+	vmovdqu RA4, (0 * 32)(%rsi);
 	vmovdqu RA1, (1 * 32)(%rsi);
 	vmovdqu RA2, (2 * 32)(%rsi);
-	vmovdqu RA3, (3 * 32)(%rsi);
-	vmovdqu RB0, (4 * 32)(%rsi);
+	vmovdqu RA0, (3 * 32)(%rsi);
+	vmovdqu RB4, (4 * 32)(%rsi);
 	vmovdqu RB1, (5 * 32)(%rsi);
 	vmovdqu RB2, (6 * 32)(%rsi);
-	vmovdqu RB3, (7 * 32)(%rsi);
+	vmovdqu RB0, (7 * 32)(%rsi);
 
 	vzeroall;
 
