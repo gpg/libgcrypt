@@ -100,7 +100,8 @@ struct gcry_cipher_handle
 
   /* The initialization vector.  For best performance we make sure
      that it is properly aligned.  In particular some implementations
-     of bulk operations expect an 16 byte aligned IV.  */
+     of bulk operations expect an 16 byte aligned IV.  IV is also used
+     to store CBC-MAC in CCM mode; counter IV is stored in U_CTR.  */
   union {
     cipher_context_alignment_t iv_align;
     unsigned char iv[MAX_BLOCKSIZE];
@@ -116,6 +117,26 @@ struct gcry_cipher_handle
   /* Space to save an IV or CTR for chaining operations.  */
   unsigned char lastiv[MAX_BLOCKSIZE];
   int unused;  /* Number of unused bytes in LASTIV. */
+
+  union {
+    /* Mode specific storage for CCM mode. */
+    struct {
+      size_t encryptlen;
+      size_t aadlen;
+      unsigned int authlen;
+
+      /* Space to save partial input lengths for MAC. */
+      unsigned char macbuf[GCRY_CCM_BLOCK_LEN];
+      int mac_unused;  /* Number of unprocessed bytes in MACBUF. */
+
+      unsigned char s0[GCRY_CCM_BLOCK_LEN];
+
+      unsigned int nonce:1;/* Set to 1 if nonce has been set.  */
+      unsigned int lengths:1; /* Set to 1 if CCM length parameters has been
+                                 processed.  */
+      unsigned int tag:1; /* Set to 1 if tag has been finalized.  */
+    } ccm;
+  } u_mode;
 
   /* What follows are two contexts of the cipher in use.  The first
      one needs to be aligned well enough for the cipher operation
@@ -173,6 +194,31 @@ gcry_err_code_t _gcry_cipher_aeswrap_decrypt
 /*           */   (gcry_cipher_hd_t c,
                    byte *outbuf, unsigned int outbuflen,
                    const byte *inbuf, unsigned int inbuflen);
+
+
+/*-- cipher-ccm.c --*/
+gcry_err_code_t _gcry_cipher_ccm_encrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, unsigned int outbuflen,
+                 const unsigned char *inbuf, unsigned int inbuflen);
+gcry_err_code_t _gcry_cipher_ccm_decrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, unsigned int outbuflen,
+                 const unsigned char *inbuf, unsigned int inbuflen);
+gcry_err_code_t _gcry_cipher_ccm_set_nonce
+/*           */ (gcry_cipher_hd_t c, const unsigned char *nonce,
+                 size_t noncelen);
+gcry_err_code_t _gcry_cipher_ccm_authenticate
+/*           */ (gcry_cipher_hd_t c, const unsigned char *abuf, size_t abuflen);
+gcry_err_code_t _gcry_cipher_ccm_set_lengths
+/*           */ (gcry_cipher_hd_t c, size_t encryptedlen, size_t aadlen,
+                 size_t taglen);
+gcry_err_code_t _gcry_cipher_ccm_get_tag
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outtag, size_t taglen);
+gcry_err_code_t _gcry_cipher_ccm_check_tag
+/*           */ (gcry_cipher_hd_t c,
+                 const unsigned char *intag, size_t taglen);
 
 
 

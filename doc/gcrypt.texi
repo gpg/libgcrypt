@@ -1635,6 +1635,12 @@ may be specified 64 bit (8 byte) shorter than then input buffer.  As
 per specs the input length must be at least 128 bits and the length
 must be a multiple of 64 bits.
 
+@item  GCRY_CIPHER_MODE_CCM
+@cindex CCM, Counter with CBC-MAC mode
+Counter with CBC-MAC mode is an Authenticated Encryption with
+Associated Data (AEAD) block cipher mode, which is specified in
+'NIST Special Publication 800-38C' and RFC 3610.
+
 @end table
 
 @node Working with cipher handles
@@ -1661,11 +1667,13 @@ The cipher mode to use must be specified via @var{mode}.  See
 @xref{Available cipher modes}, for a list of supported cipher modes
 and the according constants.  Note that some modes are incompatible
 with some algorithms - in particular, stream mode
-(@code{GCRY_CIPHER_MODE_STREAM}) only works with stream ciphers. Any
-block cipher mode (@code{GCRY_CIPHER_MODE_ECB},
+(@code{GCRY_CIPHER_MODE_STREAM}) only works with stream ciphers. The
+block cipher modes (@code{GCRY_CIPHER_MODE_ECB},
 @code{GCRY_CIPHER_MODE_CBC}, @code{GCRY_CIPHER_MODE_CFB},
-@code{GCRY_CIPHER_MODE_OFB} or @code{GCRY_CIPHER_MODE_CTR}) will work
-with any block cipher algorithm.
+@code{GCRY_CIPHER_MODE_OFB} and @code{GCRY_CIPHER_MODE_CTR}) will work
+with any block cipher algorithm. The @code{GCRY_CIPHER_MODE_CCM} will
+only work with block cipher algorithms which have the block size of
+16 bytes.
 
 The third argument @var{flags} can either be passed as @code{0} or as
 the bit-wise OR of the following constants.

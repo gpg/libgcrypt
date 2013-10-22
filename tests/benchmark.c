@@ -435,6 +435,40 @@ md_bench ( const char *algoname )
   fflush (stdout);
 }
 
+
+static void ccm_aead_init(gcry_cipher_hd_t hd, size_t buflen, int authlen)
+{
+  const int _L = 4;
+  const int noncelen = 15 - _L;
+  char nonce[noncelen];
+  size_t params[3];
+  gcry_error_t err = GPG_ERR_NO_ERROR;
+
+  memset (nonce, 0x33, noncelen);
+
+  err = gcry_cipher_setiv (hd, nonce, noncelen);
+  if (err)
+    {
+      fprintf (stderr, "gcry_cipher_setiv failed: %s\n",
+               gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+
+  params[0] = buflen; /* encryptedlen */
+  params[1] = 0; /* aadlen */
+  params[2] = authlen; /* authtaglen */
+  err = gcry_cipher_ctl (hd, GCRYCTL_SET_CCM_LENGTHS, params, sizeof(params));
+  if (err)
+    {
+      fprintf (stderr, "gcry_cipher_setiv failed: %s\n",
+               gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+}
+
+
 static void
 cipher_bench ( const char *algoname )
 {
@@ -448,12 +482,21 @@ cipher_bench ( const char *algoname )
   char *raw_outbuf, *raw_buf;
   size_t allocated_buflen, buflen;
   int repetitions;
-  static struct { int mode; const char *name; int blocked; } modes[] = {
+  static const struct {
+    int mode;
+    const char *name;
+    int blocked;
+    void (* const aead_init)(gcry_cipher_hd_t hd, size_t buflen, int authlen);
+    int req_blocksize;
+    int authlen;
+  } modes[] = {
     { GCRY_CIPHER_MODE_ECB, "   ECB/Stream", 1 },
     { GCRY_CIPHER_MODE_CBC, "      CBC", 1 },
     { GCRY_CIPHER_MODE_CFB, "      CFB", 0 },
     { GCRY_CIPHER_MODE_OFB, "      OFB", 0 },
     { GCRY_CIPHER_MODE_CTR, "      CTR", 0 },
+    { GCRY_CIPHER_MODE_CCM, "      CCM", 0,
+      ccm_aead_init, GCRY_CCM_BLOCK_LEN, 8 },
     { GCRY_CIPHER_MODE_STREAM, "", 0 },
     {0}
   };
@@ -542,8 +585,15 @@ cipher_bench ( const char *algoname )
   for (modeidx=0; modes[modeidx].mode; modeidx++)
     {
       if ((blklen > 1 && modes[modeidx].mode == GCRY_CIPHER_MODE_STREAM)
-          | (blklen == 1 && modes[modeidx].mode != GCRY_CIPHER_MODE_STREAM))
+          || (blklen == 1 && modes[modeidx].mode != GCRY_CIPHER_MODE_STREAM))
         continue;
+
+      if (modes[modeidx].req_blocksize > 0
+          && blklen != modes[modeidx].req_blocksize)
+        {
+          printf (" %7s %7s", "-", "-" );
+          continue;
+        }
 
       for (i=0; i < sizeof buf; i++)
         buf[i] = i;
@@ -585,7 +635,18 @@ cipher_bench ( const char *algoname )
                   exit (1);
                 }
             }
-          err = gcry_cipher_encrypt ( hd, outbuf, buflen, buf, buflen);
+          if (modes[modeidx].aead_init)
+            {
+              (*modes[modeidx].aead_init) (hd, buflen, modes[modeidx].authlen);
+              err = gcry_cipher_encrypt (hd, outbuf, buflen, buf, buflen);
+              if (err)
+                break;
+              err = gcry_cipher_gettag (hd, outbuf, modes[modeidx].authlen);
+            }
+          else
+            {
+              err = gcry_cipher_encrypt (hd, outbuf, buflen, buf, buflen);
+            }
         }
       stop_timer ();
 
@@ -632,7 +693,18 @@ cipher_bench ( const char *algoname )
                   exit (1);
                 }
             }
-          err = gcry_cipher_decrypt ( hd, outbuf, buflen,  buf, buflen);
+          if (modes[modeidx].aead_init)
+            {
+              (*modes[modeidx].aead_init) (hd, buflen, modes[modeidx].authlen);
+              err = gcry_cipher_decrypt (hd, outbuf, buflen, buf, buflen);
+              if (err)
+                break;
+              err = gcry_cipher_checktag (hd, outbuf, modes[modeidx].authlen);
+              if (gpg_err_code (err) == GPG_ERR_CHECKSUM)
+                err = gpg_error (GPG_ERR_NO_ERROR);
+            }
+          else
+            err = gcry_cipher_decrypt (hd, outbuf, buflen, buf, buflen);
         }
       stop_timer ();
       printf (" %s", elapsed_time ());

@@ -325,7 +325,8 @@ enum gcry_ctl_cmds
     GCRYCTL_SET_PREFERRED_RNG_TYPE = 65,
     GCRYCTL_GET_CURRENT_RNG_TYPE = 66,
     GCRYCTL_DISABLE_LOCKED_SECMEM = 67,
-    GCRYCTL_DISABLE_PRIV_DROP = 68
+    GCRYCTL_DISABLE_PRIV_DROP = 68,
+    GCRYCTL_SET_CCM_LENGTHS = 69
   };
 
 /* Perform various operations defined by CMD. */
@@ -884,7 +885,8 @@ enum gcry_cipher_modes
     GCRY_CIPHER_MODE_STREAM = 4,  /* Used with stream ciphers. */
     GCRY_CIPHER_MODE_OFB    = 5,  /* Outer feedback. */
     GCRY_CIPHER_MODE_CTR    = 6,  /* Counter. */
-    GCRY_CIPHER_MODE_AESWRAP= 7   /* AES-WRAP algorithm.  */
+    GCRY_CIPHER_MODE_AESWRAP= 7,  /* AES-WRAP algorithm.  */
+    GCRY_CIPHER_MODE_CCM    = 8   /* Counter with CBC-MAC.  */
   };
 
 /* Flags used with the open function. */
@@ -896,6 +898,8 @@ enum gcry_cipher_flags
     GCRY_CIPHER_CBC_MAC     = 8   /* Enable CBC message auth. code (MAC). */
   };
 
+/* CCM works only with blocks of 128 bits.  */
+#define GCRY_CCM_BLOCK_LEN  (128 / 8)
 
 /* Create a handle for algorithm ALGO to be used in MODE.  FLAGS may
    be given as an bitwise OR of the gcry_cipher_flags values. */
