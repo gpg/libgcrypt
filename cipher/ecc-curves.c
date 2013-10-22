@@ -926,20 +926,21 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
 }
 
 
-/* Return the parameters of the curve NAME in an MPI array.  */
-gcry_err_code_t
-_gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey)
+/* Return the parameters of the curve NAME as an S-expression.  */
+gcry_sexp_t
+_gcry_ecc_get_param_sexp (const char *name)
 {
-  gpg_err_code_t err;
   unsigned int nbits;
   elliptic_curve_t E;
   mpi_ec_t ctx;
   gcry_mpi_t g_x, g_y;
+  gcry_mpi_t pkey[6];
+  gcry_sexp_t result;
+  int i;
 
   memset (&E, 0, sizeof E);
-  err = _gcry_ecc_fill_in_curve (0, name, &E, &nbits);
-  if (err)
-    return err;
+  if (_gcry_ecc_fill_in_curve (0, name, &E, &nbits))
+    return NULL;
 
   g_x = mpi_new (0);
   g_y = mpi_new (0);
@@ -961,21 +962,6 @@ _gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey)
 
   mpi_free (g_x);
   mpi_free (g_y);
-
-  return 0;
-}
-
-
-/* Return the parameters of the curve NAME as an S-expression.  */
-gcry_sexp_t
-_gcry_ecc_get_param_sexp (const char *name)
-{
-  gcry_mpi_t pkey[6];
-  gcry_sexp_t result;
-  int i;
-
-  if (_gcry_ecc_get_param (name, pkey))
-    return NULL;
 
   if (sexp_build (&result, NULL,
                   "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)))",

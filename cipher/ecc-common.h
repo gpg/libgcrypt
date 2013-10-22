@@ -80,8 +80,7 @@ gpg_err_code_t _gcry_ecc_update_curve_param (const char *name,
 const char *_gcry_ecc_get_curve (gcry_sexp_t keyparms,
                                  int iterator,
                                  unsigned int *r_nbits);
-gcry_err_code_t _gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey);
-gcry_sexp_t     _gcry_ecc_get_param_sexp (const char *name);
+gcry_sexp_t _gcry_ecc_get_param_sexp (const char *name);
 
 /*-- ecc-misc.c --*/
 void _gcry_ecc_curve_free (elliptic_curve_t *E);

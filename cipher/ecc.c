@@ -1755,7 +1755,6 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecc =
     ecc_get_nbits,
     run_selftests,
     compute_keygrip,
-    _gcry_ecc_get_param,
     _gcry_ecc_get_curve,
     _gcry_ecc_get_param_sexp
   };
