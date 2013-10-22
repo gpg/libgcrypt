@@ -1731,6 +1731,10 @@ matches the requirement of the selected algorithm and mode.
 This function is also used with the Salsa20 stream cipher to set or
 update the required nonce.  In this case it needs to be called after
 setting the key.
+
+This function is also used with the AEAD cipher modes to set or
+update the required nonce.
+
 @end deftypefun
 
 @deftypefun gcry_error_t gcry_cipher_setctr (gcry_cipher_hd_t @var{h}, const void *@var{c}, size_t @var{l})
@@ -1748,6 +1752,37 @@ Set the given handle's context back to the state it had after the last
 call to gcry_cipher_setkey and clear the initialization vector.
 
 Note that gcry_cipher_reset is implemented as a macro.
+@end deftypefun
+
+Authenticated Encryption with Associated Data (AEAD) block cipher
+modes require the handling of the authentication tag and the additional
+authenticated data, which can be done by using the following
+functions:
+
+@deftypefun gcry_error_t gcry_cipher_authenticate (gcry_cipher_hd_t @var{h}, const void *@var{abuf}, size_t @var{abuflen})
+
+Process the buffer @var{abuf} of length @var{abuflen} as the additional
+authenticated data (AAD) for AEAD cipher modes.
+
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_cipher_gettag (gcry_cipher_hd_t @var{h}, void *@var{tag}, size_t @var{taglen})
+
+This function is used to read the authentication tag after encryption.
+The function finalizes and outputs the authentication tag to the buffer
+@var{tag} of length @var{taglen} bytes.
+
+@end deftypefun
+
+@deftypefun gcry_error_t gcry_cipher_checktag (gcry_cipher_hd_t @var{h}, const void *@var{tag}, size_t @var{taglen})
+
+Check the authentication tag after decryption. The authentication
+tag is passed as the buffer @var{tag} of length @var{taglen} bytes
+and compared to internal authentication tag computed during
+decryption.  Error code @code{GPG_ERR_CHECKSUM} is returned if
+the authentication tag in the buffer @var{tag} does not match
+the authentication tag calculated during decryption.
+
 @end deftypefun
 
 The actual encryption and decryption is done by using one of the

@@ -255,6 +255,9 @@ EXPORTS
 
       gcry_sexp_extract_param   @225
 
+      gcry_cipher_authenticate  @226
+      gcry_cipher_gettag        @227
+      gcry_cipher_checktag      @228
 
 
 ;; end of file with public symbols for Windows.

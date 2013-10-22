@@ -81,6 +81,9 @@
 #define gcry_cipher_setkey          _gcry_cipher_setkey
 #define gcry_cipher_setiv           _gcry_cipher_setiv
 #define gcry_cipher_setctr          _gcry_cipher_setctr
+#define gcry_cipher_authenticate    _gcry_cipher_authenticate
+#define gcry_cipher_checktag        _gcry_cipher_checktag
+#define gcry_cipher_gettag          _gcry_cipher_gettag
 #define gcry_cipher_ctl             _gcry_cipher_ctl
 #define gcry_cipher_decrypt         _gcry_cipher_decrypt
 #define gcry_cipher_encrypt         _gcry_cipher_encrypt
@@ -297,6 +300,9 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 #undef gcry_cipher_setkey
 #undef gcry_cipher_setiv
 #undef gcry_cipher_setctr
+#undef gcry_cipher_authenticate
+#undef gcry_cipher_checktag
+#undef gcry_cipher_gettag
 #undef gcry_cipher_ctl
 #undef gcry_cipher_decrypt
 #undef gcry_cipher_encrypt
@@ -474,6 +480,9 @@ MARK_VISIBLE (gcry_cipher_close)
 MARK_VISIBLE (gcry_cipher_setkey)
 MARK_VISIBLE (gcry_cipher_setiv)
 MARK_VISIBLE (gcry_cipher_setctr)
+MARK_VISIBLE (gcry_cipher_authenticate)
+MARK_VISIBLE (gcry_cipher_checktag)
+MARK_VISIBLE (gcry_cipher_gettag)
 MARK_VISIBLE (gcry_cipher_ctl)
 MARK_VISIBLE (gcry_cipher_decrypt)
 MARK_VISIBLE (gcry_cipher_encrypt)

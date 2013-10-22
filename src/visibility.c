@@ -713,6 +713,33 @@ gcry_cipher_setctr (gcry_cipher_hd_t hd, const void *ctr, size_t ctrlen)
   return _gcry_cipher_setctr (hd, ctr, ctrlen);
 }
 
+gcry_error_t
+gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf, size_t abuflen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_cipher_authenticate (hd, abuf, abuflen);
+}
+
+gcry_error_t
+gcry_cipher_gettag (gcry_cipher_hd_t hd, void *outtag, size_t taglen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_cipher_gettag (hd, outtag, taglen);
+}
+
+gcry_error_t
+gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag, size_t taglen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_cipher_checktag (hd, intag, taglen);
+}
+
 
 gcry_error_t
 gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)

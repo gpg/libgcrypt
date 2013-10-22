@@ -51,6 +51,7 @@ GCRYPT_1.6 {
     gcry_cipher_info; gcry_cipher_map_name;
     gcry_cipher_mode_from_oid; gcry_cipher_open;
     gcry_cipher_setkey; gcry_cipher_setiv; gcry_cipher_setctr;
+    gcry_cipher_authenticate; gcry_cipher_gettag; gcry_cipher_checktag;
 
     gcry_pk_algo_info; gcry_pk_algo_name; gcry_pk_ctl;
     gcry_pk_decrypt; gcry_pk_encrypt; gcry_pk_genkey;

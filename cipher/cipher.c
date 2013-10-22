@@ -910,6 +910,40 @@ _gcry_cipher_setctr (gcry_cipher_hd_t hd, const void *ctr, size_t ctrlen)
   return 0;
 }
 
+gcry_error_t
+_gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf,
+                           size_t abuflen)
+{
+  log_error ("gcry_cipher_authenticate: invalid mode %d\n", hd->mode);
+
+  (void)abuf;
+  (void)abuflen;
+
+  return gpg_error (GPG_ERR_INV_CIPHER_MODE);
+}
+
+gcry_error_t
+_gcry_cipher_gettag (gcry_cipher_hd_t hd, void *outtag, size_t taglen)
+{
+  log_error ("gcry_cipher_gettag: invalid mode %d\n", hd->mode);
+
+  (void)outtag;
+  (void)taglen;
+
+  return gpg_error (GPG_ERR_INV_CIPHER_MODE);
+}
+
+gcry_error_t
+_gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag, size_t taglen)
+{
+  log_error ("gcry_cipher_checktag: invalid mode %d\n", hd->mode);
+
+  (void)intag;
+  (void)taglen;
+
+  return gpg_error (GPG_ERR_INV_CIPHER_MODE);
+}
+
 
 gcry_error_t
 gcry_cipher_ctl( gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
