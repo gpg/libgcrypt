@@ -115,6 +115,8 @@ gpg_err_code_t _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx,
                                             mpi_point_t result,
                                             unsigned char **r_encpk,
                                             unsigned int *r_encpklen);
+gpg_err_code_t _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
+                                            gcry_mpi_t d, mpi_ec_t ec);
 
 gpg_err_code_t _gcry_ecc_eddsa_genkey (ECC_secret_key *sk,
                                        elliptic_curve_t *E,

@@ -368,6 +368,71 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
 }
 
 
+/* Compute the A value as used by EdDSA.  The caller needs to provide
+   the context EC and the actual secret D as an MPI.  The function
+   returns a newly allocated 64 byte buffer at r_digest; the first 32
+   bytes represent the A value.  NULL is returned on error and NULL
+   stored at R_DIGEST.  */
+gpg_err_code_t
+_gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
+                             gcry_mpi_t d, mpi_ec_t ec)
+{
+  gpg_err_code_t rc;
+  unsigned char *rawmpi = NULL;
+  unsigned int rawmpilen;
+  unsigned char *digest;
+  gcry_buffer_t hvec[2];
+  int hashalgo, b;
+
+  *r_digest = NULL;
+
+  hashalgo = GCRY_MD_SHA512;
+  if (hashalgo != GCRY_MD_SHA512)
+    return GPG_ERR_DIGEST_ALGO;
+
+  b = (ec->nbits+7)/8;
+  if (b != 256/8)
+    return GPG_ERR_INTERNAL; /* We only support 256 bit. */
+
+  /* Note that we clear DIGEST so we can use it as input to left pad
+     the key with zeroes for hashing.  */
+  digest = gcry_calloc_secure (2, b);
+  if (!digest)
+    return gpg_err_code_from_syserror ();
+
+  memset (hvec, 0, sizeof hvec);
+
+  rawmpi = _gcry_mpi_get_buffer (d, 0, &rawmpilen, NULL);
+  if (!rawmpi)
+    {
+      gcry_free (digest);
+      return gpg_err_code_from_syserror ();
+    }
+
+  hvec[0].data = digest;
+  hvec[0].off = 0;
+  hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
+  hvec[1].data = rawmpi;
+  hvec[1].off = 0;
+  hvec[1].len = rawmpilen;
+  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
+  gcry_free (rawmpi);
+  if (rc)
+    {
+      gcry_free (digest);
+      return rc;
+    }
+
+  /* Compute the A value.  */
+  reverse_buffer (digest, 32);  /* Only the first half of the hash.  */
+  digest[0]   = (digest[0] & 0x7f) | 0x40;
+  digest[31] &= 0xf8;
+
+  *r_digest = digest;
+  return 0;
+}
+
+
 /* Ed25519 version of the key generation.  */
 gpg_err_code_t
 _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
@@ -480,8 +545,6 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
 
   if (!mpi_is_opaque (input))
     return GPG_ERR_INV_DATA;
-  if (hashalgo != GCRY_MD_SHA512)
-    return GPG_ERR_DIGEST_ALGO;
 
   /* Initialize some helpers.  */
   point_init (&I);
@@ -496,36 +559,9 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   if (b != 256/8)
     return GPG_ERR_INTERNAL; /* We only support 256 bit. */
 
-  digest = gcry_calloc_secure (2, b);
-  if (!digest)
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
-
-  /* Hash the secret key.  We clear DIGEST so we can use it as input
-     to left pad the key with zeroes for hashing.  */
-  rawmpi = _gcry_mpi_get_buffer (skey->d, 0, &rawmpilen, NULL);
-  if (!rawmpi)
-    {
-      rc = gpg_err_code_from_syserror ();
-      goto leave;
-    }
-  hvec[0].data = digest;
-  hvec[0].off = 0;
-  hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
-  hvec[1].data = rawmpi;
-  hvec[1].off = 0;
-  hvec[1].len = rawmpilen;
-  rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
-  gcry_free (rawmpi); rawmpi = NULL;
+  rc = _gcry_ecc_eddsa_compute_h_d (&digest, skey->d, ctx);
   if (rc)
     goto leave;
-
-  /* Compute the A value (this modifies DIGEST).  */
-  reverse_buffer (digest, 32);  /* Only the first half of the hash.  */
-  digest[0] = (digest[0] & 0x7f) | 0x40;
-  digest[31] &= 0xf8;
   _gcry_mpi_set_buffer (a, digest, 32, 0);
 
   /* Compute the public key if it has not been supplied as optional

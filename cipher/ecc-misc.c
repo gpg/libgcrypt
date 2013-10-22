@@ -236,20 +236,6 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
 }
 
 
-static void
-reverse_buffer (unsigned char *buffer, unsigned int length)
-{
-  unsigned int tmp, i;
-
-  for (i=0; i < length/2; i++)
-    {
-      tmp = buffer[i];
-      buffer[i] = buffer[length-1-i];
-      buffer[length-1-i] = tmp;
-    }
-}
-
-
 /* Compute the public key from the the context EC.  Obviously a
    requirement is that the secret key is available in EC.  On success
    Q is returned; on error NULL.  If Q is NULL a newly allocated point
@@ -259,8 +245,6 @@ mpi_point_t
 _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
                           mpi_point_t G, gcry_mpi_t d)
 {
-  int rc;
-
   if (!G)
     G = ec->G;
   if (!d)
@@ -275,41 +259,11 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
       && (ec->flags & PUBKEY_FLAG_EDDSA))
     {
       gcry_mpi_t a;
-      unsigned char *rawmpi = NULL;
-      unsigned int rawmpilen;
       unsigned char *digest;
-      gcry_buffer_t hvec[2];
-      int b = (ec->nbits+7)/8;
 
-      gcry_assert (b >= 32);
-      digest = gcry_calloc_secure (2, b);
-      if (!digest)
+      if (_gcry_ecc_eddsa_compute_h_d (&digest, d, ec))
         return NULL;
-      memset (hvec, 0, sizeof hvec);
 
-      rawmpi = _gcry_mpi_get_buffer (d, 0, &rawmpilen, NULL);
-      if (!rawmpi)
-        return NULL;
-      memset (digest, 0, b);
-      hvec[0].data = digest;
-      hvec[0].off = 0;
-      hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
-      hvec[1].data = rawmpi;
-      hvec[1].off = 0;
-      hvec[1].len = rawmpilen;
-      /* FIXME: Put and take the hash algo from the context.  */
-      rc = _gcry_md_hash_buffers (GCRY_MD_SHA512, 0, digest, hvec, 2);
-      gcry_free (rawmpi);
-      if (rc)
-        {
-          gcry_free (digest);
-          return NULL;
-        }
-
-      /* Compute the A value.  */
-      reverse_buffer (digest, 32);  /* Only the first half of the hash.  */
-      digest[0] = (digest[0] & 0x7f) | 0x40;
-      digest[31] &= 0xf8;
       a = mpi_snew (0);
       _gcry_mpi_set_buffer (a, digest, 32, 0);
       gcry_free (digest);
