@@ -1480,6 +1480,10 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS twofish-amd64.lo"
       ;;
+      arm*-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS twofish-armv6.lo"
+      ;;
    esac
 fi
 
