@@ -178,27 +178,33 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
    * dropped because we know that it's a minimum of the two
    * possibilities without any loss of security.  */
   {
-    gcry_mpi_t x, y, p_y;
+    gcry_mpi_t x, y, negative;
     const unsigned int pbits = mpi_get_nbits (E->p);
 
     x = mpi_new (pbits);
     y = mpi_new (pbits);
-    p_y = mpi_new (pbits);
+    negative = mpi_new (pbits);
 
     if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
       log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
 
-    mpi_sub (p_y, E->p, y);	/* p_y = p - y */
+    if (E->model == MPI_EC_WEIERSTRASS)
+      mpi_sub (negative, E->p, y);      /* negative = p - y */
+    else
+      mpi_sub (negative, E->p, x);      /* negative = p - x */
 
-    if (mpi_cmp (p_y, y) < 0)   /* p - y < p */
+    if (mpi_cmp (negative, y) < 0)   /* p - y < p */
       {
         /* We need to end up with -Q; this assures that new Q's y is
            the smallest one */
         mpi_sub (sk->d, E->n, sk->d);   /* d = order - d */
-        gcry_mpi_point_snatch_set (&sk->Q, x, p_y, mpi_alloc_set_ui (1));
+        if (E->model == MPI_EC_WEIERSTRASS)
+          gcry_mpi_point_snatch_set (&sk->Q, x, negative, mpi_alloc_set_ui (1));
+        else
+          gcry_mpi_point_snatch_set (&sk->Q, negative, y, mpi_alloc_set_ui (1));
 
-      if (DBG_CIPHER)
-        log_debug ("ecgen converted Q to a compliant point\n");
+        if (DBG_CIPHER)
+          log_debug ("ecgen converted Q to a compliant point\n");
       }
     else /* p - y >= p */
       {
@@ -207,10 +213,17 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
         if (DBG_CIPHER)
           log_debug ("ecgen didn't need to convert Q to a compliant point\n");
 
-        mpi_free (p_y);
-        mpi_free (x);
+        mpi_free (negative);
+        if (E->model == MPI_EC_WEIERSTRASS)
+          mpi_free (x);
+        else
+          mpi_free (y);
       }
-    mpi_free (y);
+
+    if (E->model == MPI_EC_WEIERSTRASS)
+      mpi_free (y);
+    else
+      mpi_free (x);
   }
 
   /* Now we can test our keys (this should never fail!).  */
