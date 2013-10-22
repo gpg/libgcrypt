@@ -1,5 +1,5 @@
 /* bench-slope.c - for libgcrypt
- * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -27,21 +27,33 @@
 #include <time.h>
 
 #ifdef _GCRYPT_IN_LIBGCRYPT
-#include "../src/gcrypt-int.h"
-#include "../compat/libcompat.h"
+# include "../src/gcrypt-int.h"
+# include "../compat/libcompat.h"
 #else
-#include <gcrypt.h>
+# include <gcrypt.h>
+#endif
+
+#ifndef STR
+#define STR(v) #v
+#define STR2(v) STR(v)
 #endif
 
 #define PGM "bench-slope"
 
 static int verbose;
-
+static int csv_mode;
+static int num_measurement_repetitions;
 
 /* CPU Ghz value provided by user, allows constructing cycles/byte and other
    results.  */
 static double cpu_ghz = -1;
 
+/* The name of the currently printed section.  */
+static char *current_section_name;
+/* The name of the currently printed algorithm.  */
+static char *current_algo_name;
+/* The name of the currently printed mode.  */
+static char *current_mode_name;
 
 
 /*************************************** Default parameters for measurements. */
@@ -463,7 +475,41 @@ double_to_str (char *out, size_t outlen, double value)
 }
 
 static void
-bench_print_result (double nsecs_per_byte)
+bench_print_result_csv (double nsecs_per_byte)
+{
+  double cycles_per_byte, mbytes_per_sec;
+  char nsecpbyte_buf[16];
+  char mbpsec_buf[16];
+  char cpbyte_buf[16];
+
+  *cpbyte_buf = 0;
+
+  double_to_str (nsecpbyte_buf, sizeof (nsecpbyte_buf), nsecs_per_byte);
+
+  /* If user didn't provide CPU speed, we cannot show cycles/byte results.  */
+  if (cpu_ghz > 0.0)
+    {
+      cycles_per_byte = nsecs_per_byte * cpu_ghz;
+      double_to_str (cpbyte_buf, sizeof (cpbyte_buf), cycles_per_byte);
+    }
+
+  mbytes_per_sec =
+    (1000.0 * 1000.0 * 1000.0) / (nsecs_per_byte * 1024 * 1024);
+  double_to_str (mbpsec_buf, sizeof (mbpsec_buf), mbytes_per_sec);
+
+  /* We print two empty fields to allow for future enhancements.  */
+  printf ("%s,%s,%s,,,%s,ns/B,%s,MiB/s,%s,c/B\n",
+          current_section_name,
+          current_algo_name? current_algo_name : "",
+          current_mode_name? current_mode_name : "",
+          nsecpbyte_buf,
+          mbpsec_buf,
+          cpbyte_buf);
+
+}
+
+static void
+bench_print_result_std (double nsecs_per_byte)
 {
   double cycles_per_byte, mbytes_per_sec;
   char nsecpbyte_buf[16];
@@ -493,17 +539,85 @@ bench_print_result (double nsecs_per_byte)
 }
 
 static void
+bench_print_result (double nsecs_per_byte)
+{
+  if (csv_mode)
+    bench_print_result_csv (nsecs_per_byte);
+  else
+    bench_print_result_std (nsecs_per_byte);
+}
+
+static void
+bench_print_section (const char *section_name, const char *print_name)
+{
+  if (csv_mode)
+    {
+      gcry_free (current_section_name);
+      current_section_name = gcry_xstrdup (section_name);
+    }
+  else
+    printf ("%s:\n", print_name);
+}
+
+static void
 bench_print_header (int algo_width, const char *algo_name)
 {
-  printf (" %-*s | ", algo_width, algo_name);
-  printf ("%14s %15s %13s\n", "nanosecs/byte", "mebibytes/sec",
-	  "cycles/byte");
+  if (csv_mode)
+    {
+      gcry_free (current_algo_name);
+      current_algo_name = gcry_xstrdup (algo_name);
+    }
+  else
+    {
+      if (algo_width < 0)
+        printf (" %-*s | ", -algo_width, algo_name);
+      else
+        printf (" %-*s | ", algo_width, algo_name);
+      printf ("%14s %15s %13s\n", "nanosecs/byte", "mebibytes/sec",
+              "cycles/byte");
+    }
+}
+
+static void
+bench_print_algo (int algo_width, const char *algo_name)
+{
+  if (csv_mode)
+    {
+      gcry_free (current_algo_name);
+      current_algo_name = gcry_xstrdup (algo_name);
+    }
+  else
+    {
+      if (algo_width < 0)
+        printf (" %-*s | ", -algo_width, algo_name);
+      else
+        printf (" %-*s | ", algo_width, algo_name);
+    }
+}
+
+static void
+bench_print_mode (int width, const char *mode_name)
+{
+  if (csv_mode)
+    {
+      gcry_free (current_mode_name);
+      current_mode_name = gcry_xstrdup (mode_name);
+    }
+  else
+    {
+      if (width < 0)
+        printf (" %-*s | ", -width, mode_name);
+      else
+        printf (" %*s | ", width, mode_name);
+      fflush (stdout);
+    }
 }
 
 static void
 bench_print_footer (int algo_width)
 {
-  printf (" %-*s =\n", algo_width, "");
+  if (!csv_mode)
+    printf (" %-*s =\n", algo_width, "");
 }
 
 
@@ -529,7 +643,7 @@ bench_encrypt_init (struct bench_obj *obj)
   obj->min_bufsize = BUF_START_SIZE;
   obj->max_bufsize = BUF_END_SIZE;
   obj->step_size = BUF_STEP_SIZE;
-  obj->num_measure_repetitions = NUM_MEASUREMENT_REPETITIONS;
+  obj->num_measure_repetitions = num_measurement_repetitions;
 
   err = gcry_cipher_open (&hd, mode->algo, mode->mode, 0);
   if (err)
@@ -962,8 +1076,7 @@ cipher_bench_one (int algo, struct bench_cipher_mode *pmode)
   if (mode.mode == GCRY_CIPHER_MODE_GCM && blklen != GCRY_GCM_BLOCK_LEN)
     return;
 
-  printf (" %14s | ", mode.name);
-  fflush (stdout);
+  bench_print_mode (14, mode.name);
 
   obj.ops = mode.ops;
   obj.priv = &mode;
@@ -996,7 +1109,7 @@ cipher_bench (char **argv, int argc)
 {
   int i, algo;
 
-  printf ("Cipher:\n");
+  bench_print_section ("cipher", "Cipher");
 
   if (argv && argc)
     {
@@ -1037,7 +1150,7 @@ bench_hash_init (struct bench_obj *obj)
   obj->min_bufsize = BUF_START_SIZE;
   obj->max_bufsize = BUF_END_SIZE;
   obj->step_size = BUF_STEP_SIZE;
-  obj->num_measure_repetitions = NUM_MEASUREMENT_REPETITIONS;
+  obj->num_measure_repetitions = num_measurement_repetitions;
 
   err = gcry_md_open (&hd, mode->algo, 0);
   if (err)
@@ -1093,10 +1206,9 @@ hash_bench_one (int algo, struct bench_hash_mode *pmode)
   mode.algo = algo;
 
   if (mode.name[0] == '\0')
-    printf (" %-14s | ", gcry_md_algo_name (algo));
+    bench_print_algo (-14, gcry_md_algo_name (algo));
   else
-    printf (" %14s | ", mode.name);
-  fflush (stdout);
+    bench_print_algo (14, mode.name);
 
   obj.ops = mode.ops;
   obj.priv = &mode;
@@ -1120,8 +1232,7 @@ hash_bench (char **argv, int argc)
 {
   int i, algo;
 
-  printf ("Hash:\n");
-
+  bench_print_section ("hash", "Hash");
   bench_print_header (14, "");
 
   if (argv && argc)
@@ -1167,7 +1278,7 @@ bench_mac_init (struct bench_obj *obj)
   obj->min_bufsize = BUF_START_SIZE;
   obj->max_bufsize = BUF_END_SIZE;
   obj->step_size = BUF_STEP_SIZE;
-  obj->num_measure_repetitions = NUM_MEASUREMENT_REPETITIONS;
+  obj->num_measure_repetitions = num_measurement_repetitions;
 
   keylen = gcry_mac_get_algo_keylen (mode->algo);
   if (keylen == 0)
@@ -1247,10 +1358,9 @@ mac_bench_one (int algo, struct bench_mac_mode *pmode)
   mode.algo = algo;
 
   if (mode.name[0] == '\0')
-    printf (" %-18s | ", gcry_mac_algo_name (algo));
+    bench_print_algo (-18, gcry_mac_algo_name (algo));
   else
-    printf (" %18s | ", mode.name);
-  fflush (stdout);
+    bench_print_algo (18, mode.name);
 
   obj.ops = mode.ops;
   obj.priv = &mode;
@@ -1274,8 +1384,7 @@ mac_bench (char **argv, int argc)
 {
   int i, algo;
 
-  printf ("MAC:\n");
-
+  bench_print_section ("mac", "MAC");
   bench_print_header (18, "");
 
   if (argv && argc)
@@ -1307,10 +1416,13 @@ print_help (void)
     "usage: bench-slope [options] [hash|mac|cipher [algonames]]",
     "",
     " options:",
-    "     --cpu-mhz <mhz>           Set CPU speed for calculating cycles per bytes",
-    "                               results.",
-    "     --disable-hwf <features>  Disable hardware acceleration feature(s) for",
-    "                               benchmarking.",
+    "   --cpu-mhz <mhz>           Set CPU speed for calculating cycles",
+    "                             per bytes results.",
+    "   --disable-hwf <features>  Disable hardware acceleration feature(s)",
+    "                             for benchmarking.",
+    "   --repetitions <n>         Use N repetitions (default "
+                                     STR2(NUM_MEASUREMENT_REPETITIONS) ")",
+    "   --csv                     Use CSV output format",
     NULL
   };
   const char **line;
@@ -1340,6 +1452,8 @@ main (int argc, char **argv)
 {
   int last_argc = -1;
   int debug = 0;
+
+  num_measurement_repetitions = NUM_MEASUREMENT_REPETITIONS;
 
   if (argc)
     {
@@ -1380,6 +1494,12 @@ main (int argc, char **argv)
 	  argc--;
 	  argv++;
 	}
+      else if (!strcmp (*argv, "--csv"))
+	{
+	  csv_mode = 1;
+	  argc--;
+	  argv++;
+	}
       else if (!strcmp (*argv, "--disable-hwf"))
 	{
 	  argc--;
@@ -1404,6 +1524,25 @@ main (int argc, char **argv)
 	      cpu_ghz = atof (*argv);
 	      cpu_ghz /= 1000;	/* Mhz => Ghz */
 
+	      argc--;
+	      argv++;
+	    }
+	}
+      else if (!strcmp (*argv, "--repetitions"))
+	{
+	  argc--;
+	  argv++;
+	  if (argc)
+	    {
+	      num_measurement_repetitions = atof (*argv);
+              if (num_measurement_repetitions < 2)
+                {
+                  fprintf (stderr,
+                           PGM
+                           ": value for --repetitions too small - using %d\n",
+                           NUM_MEASUREMENT_REPETITIONS);
+                  num_measurement_repetitions = NUM_MEASUREMENT_REPETITIONS;
+                }
 	      argc--;
 	      argv++;
 	    }
