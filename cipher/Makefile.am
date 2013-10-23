@@ -62,6 +62,7 @@ des.c \
 dsa.c \
 elgamal.c \
 ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
+ecc-ecdsa.c ecc-eddsa.c ecc-gost.c \
 idea.c \
 gost28147.c gost.h \
 gostr3411-94.c \

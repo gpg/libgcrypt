@@ -61,6 +61,9 @@ point_set (mpi_point_t d, mpi_point_t s)
   mpi_set (d->z, s->z);
 }
 
+#define point_init(a)  _gcry_mpi_point_init ((a))
+#define point_free(a)  _gcry_mpi_point_free_parts ((a))
+
 
 /*-- ecc-curves.c --*/
 gpg_err_code_t _gcry_ecc_fill_in_curve (unsigned int nbits,
@@ -85,6 +88,15 @@ gcry_error_t _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value);
 mpi_point_t  _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec);
 
 /*-- ecc.c --*/
+
+/*-- ecc-ecdsa.c --*/
+gpg_err_code_t _gcry_ecc_ecdsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
+                                     gcry_mpi_t r, gcry_mpi_t s,
+                                     int flags, int hashalgo);
+gpg_err_code_t _gcry_ecc_ecdsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
+                                       gcry_mpi_t r, gcry_mpi_t s);
+
+/*-- ecc-eddsa.c --*/
 gpg_err_code_t _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ctx,
                                             gcry_mpi_t x, gcry_mpi_t y,
                                             unsigned char **r_buffer,
@@ -93,6 +105,25 @@ gpg_err_code_t _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx,
                                             mpi_point_t result,
                                             unsigned char **r_encpk,
                                             unsigned int *r_encpklen);
+
+gpg_err_code_t _gcry_ecc_eddsa_genkey (ECC_secret_key *sk,
+                                       elliptic_curve_t *E,
+                                       mpi_ec_t ctx,
+                                       gcry_random_level_t random_level);
+gpg_err_code_t _gcry_ecc_eddsa_sign (gcry_mpi_t input,
+                                     ECC_secret_key *sk,
+                                     gcry_mpi_t r_r, gcry_mpi_t s,
+                                     int hashalgo, gcry_mpi_t pk);
+gpg_err_code_t _gcry_ecc_eddsa_verify (gcry_mpi_t input,
+                                       ECC_public_key *pk,
+                                       gcry_mpi_t r, gcry_mpi_t s,
+                                       int hashalgo, gcry_mpi_t pkmpi);
+
+/*-- ecc-gost.c --*/
+gpg_err_code_t _gcry_ecc_gost_sign (gcry_mpi_t input, ECC_secret_key *skey,
+                                    gcry_mpi_t r, gcry_mpi_t s);
+gpg_err_code_t _gcry_ecc_gost_verify (gcry_mpi_t input, ECC_public_key *pkey,
+                                      gcry_mpi_t r, gcry_mpi_t s);
 
 
 #endif /*GCRY_ECC_COMMON_H*/
