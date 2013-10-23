@@ -275,77 +275,42 @@ void __gcry_burn_stack (unsigned int bytes);
                   } while(0)
 #define wipememory(_ptr,_len) wipememory2(_ptr,0,_len)
 
+#ifdef HAVE_U64_TYPEDEF
+  #define FASTWIPE_T u64
+  #define FASTWIPE_MULT (U64_C(0x0101010101010101))
+#else
+  #define FASTWIPE_T u32
+  #define FASTWIPE_MULT (0x01010101U)
+#endif
 
-/* Optimized fast_wipememory2 for i386, x86-64 and arm architectures.  May leave
-   tail bytes unhandled, in which case tail bytes are handled by wipememory2.
- */
-#if defined(__x86_64__) && __GNUC__ >= 4
-#define fast_wipememory2(_vptr,_vset,_vlen) do { \
-              unsigned long long int _vset8 = _vset; \
-              if (_vlen < 8) \
-                break; \
-              _vset8 *= 0x0101010101010101ULL; \
-              do { \
-                asm volatile("movq %[set], %[ptr]\n\t" \
-                             : /**/ \
-                             : [set] "Cr" (_vset8), \
-                               [ptr] "m" (*_vptr) \
-                             : "memory"); \
-                _vlen -= 8; \
-                _vptr += 8; \
-              } while (_vlen >= 8); \
-                  } while (0)
-#elif defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4 && __GNUC__ >= 4
-#define fast_wipememory2(_ptr,_set,_len) do { \
-              unsigned long _vset4 = _vset; \
-              if (_vlen < 4) \
-                break; \
-              _vset4 *= 0x01010101; \
-              do { \
-                asm volatile("movl %[set], %[ptr]\n\t" \
-                             : /**/ \
-                             : [set] "Cr" (_vset4), \
-                               [ptr] "m" (*_vptr) \
-                             : "memory"); \
-                _vlen -= 4; \
-                _vptr += 4; \
-              } while (_vlen >= 4); \
-                  } while (0)
-#elif defined (__arm__) && (defined (__thumb2__) || !defined (__thumb__)) && \
-	__GNUC__ >= 4
-
-#ifdef __ARM_FEATURE_UNALIGNED
+/* Following architectures can handle unaligned accesses fast.  */
+#if defined(__i386__) || defined(__x86_64__) || \
+    defined(__powerpc__) || defined(__powerpc64__) || \
+    (defined(__arm__) && defined(__ARM_FEATURE_UNALIGNED)) || \
+    defined(__aarch64__)
 #define fast_wipememory2_unaligned_head(_ptr,_set,_len) /*do nothing*/
 #else
 #define fast_wipememory2_unaligned_head(_vptr,_vset,_vlen) do { \
-              while((size_t)(_vptr)&3 && _vlen) \
-	        { *_vptr=(_vset); _vptr++; _vlen--; } \
+              while((size_t)(_vptr)&(sizeof(FASTWIPE_T)-1) && _vlen) \
+                { *_vptr=(_vset); _vptr++; _vlen--; } \
                   } while(0)
 #endif
 
+/* fast_wipememory2 may leave tail bytes unhandled, in which case tail bytes
+   are handled by wipememory2. */
 #define fast_wipememory2(_vptr,_vset,_vlen) do { \
-              unsigned long _vset4 = _vset; \
+              FASTWIPE_T _vset_long = _vset; \
               fast_wipememory2_unaligned_head(_vptr,_vset,_vlen); \
-              if (_vlen < 8) \
+              if (_vlen < sizeof(FASTWIPE_T)) \
                 break; \
-              _vset4 *= 0x01010101; \
-              asm volatile( \
-                "mov %%r4, %[set];\n\t" \
-                "mov %%r5, %[set];\n\t" \
-                "1:;\n\t" \
-                "stm %[ptr]!, {%%r4, %%r5};\n\t" \
-                "cmp %[end], %[ptr];\n\t" \
-                "bne 1b;\n\t" \
-                : [ptr] "=r" (_vptr) \
-                : [set] "r" (_vset4), \
-                  [end] "r" (_vptr+(_vlen&(~0x7))), \
-                  "0" (_vptr) \
-                : "memory", "r4", "r5", "cc"); \
-              _vlen &= 0x7; \
+              _vset_long *= FASTWIPE_MULT; \
+              do { \
+                volatile FASTWIPE_T *_vptr_long = (volatile void *)_vptr; \
+                *_vptr_long = _vset_long; \
+                _vlen -= sizeof(FASTWIPE_T); \
+                _vptr += sizeof(FASTWIPE_T); \
+              } while (_vlen >= sizeof(FASTWIPE_T)); \
                   } while (0)
-#else
-#define fast_wipememory2(_ptr,_set,_len)
-#endif
 
 
 /* Digit predicates.  */
