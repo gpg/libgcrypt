@@ -153,14 +153,17 @@ negative_zero (void)
   void *bufaddr = &buf;
   struct { const char *name; enum gcry_mpi_format format; } fmts[] =
     {
-      /* { "STD", GCRYMPI_FMT_STD }, */
-      /* { "PGP", GCRYMPI_FMT_PGP }, */
-      /* { "SSH", GCRYMPI_FMT_SSH }, */
-      /* { "HEX", GCRYMPI_FMT_HEX }, */
+      { "STD", GCRYMPI_FMT_STD },
+      { "PGP", GCRYMPI_FMT_PGP },
+      { "SSH", GCRYMPI_FMT_SSH },
+      { "HEX", GCRYMPI_FMT_HEX },
       { "USG", GCRYMPI_FMT_USG },
       { NULL, 0 }
     };
   int i;
+
+  if (debug)
+    show ("negative zero printing\n");
 
   a = gcry_mpi_new (0);
   for (i=0; fmts[i].name; i++)
@@ -205,52 +208,63 @@ check_formats (void)
       const char *ssh;
       size_t usglen;
       const char *usg;
+      size_t pgplen;
+      const char *pgp;
     } a;
   } data[] = {
     {    0, { "00",
               0, "",
               4, "\x00\x00\x00\x00",
-              0, "" }
+              0, "",
+              2, "\x00\x00"}
     },
     {    1, { "01",
               1, "\x01",
               5, "\x00\x00\x00\x01\x01",
-              1, "\x01" }
+              1, "\x01",
+              3, "\x00\x01\x01" }
     },
     {    2, { "02",
               1, "\x02",
               5, "\x00\x00\x00\x01\x02",
-              1, "\x02",  }
+              1, "\x02",
+              3, "\x00\x02\x02" }
     },
     {  127, { "7F",
               1, "\x7f",
               5, "\x00\x00\x00\x01\x7f",
-              1, "\x7f"  }
+              1, "\x7f",
+              3, "\x00\x07\x7f" }
     },
     {  128, { "0080",
               2, "\x00\x80",
               6, "\x00\x00\x00\x02\x00\x80",
-              1, "\x80" }
+              1, "\x80",
+              3, "\x00\x08\x80" }
     },
     {  129, { "0081",
               2, "\x00\x81",
               6, "\x00\x00\x00\x02\x00\x81",
-              1, "\x81"  }
+              1, "\x81",
+              3, "\x00\x08\x81" }
     },
     {  255, { "00FF",
               2, "\x00\xff",
               6, "\x00\x00\x00\x02\x00\xff",
-              1, "\xff" }
+              1, "\xff",
+              3, "\x00\x08\xff" }
     },
     {  256, { "0100",
               2, "\x01\x00",
               6, "\x00\x00\x00\x02\x01\x00",
-              2, "\x01\x00" }
+              2, "\x01\x00",
+              4, "\x00\x09\x01\x00" }
     },
     {  257, { "0101",
               2, "\x01\x01",
               6, "\x00\x00\x00\x02\x01\x01",
-              2, "\x01\x01" }
+              2, "\x01\x01",
+              4, "\x00\x09\x01\x01" }
     },
     {   -1, { "-01",
               1, "\xff",
@@ -295,17 +309,20 @@ check_formats (void)
     {  65535, { "00FFFF",
                 3, "\x00\xff\xff",
                 7, "\x00\x00\x00\x03\x00\xff\xff",
-                2, "\xff\xff" }
+                2, "\xff\xff",
+                4, "\x00\x10\xff\xff" }
     },
     {  65536, { "010000",
                 3, "\x01\00\x00",
                 7, "\x00\x00\x00\x03\x01\x00\x00",
-                3, "\x01\x00\x00" }
+                3, "\x01\x00\x00",
+                5, "\x00\x11\x01\x00\x00 "}
     },
     {  65537, { "010001",
                 3, "\x01\00\x01",
                 7, "\x00\x00\x00\x03\x01\x00\x01",
-                3, "\x01\x00\x01" }
+                3, "\x01\x00\x01",
+                5, "\x00\x11\x01\x00\x01" }
     },
     { -65537, { "-010001",
                 3, "\xfe\xff\xff",
@@ -410,6 +427,29 @@ check_formats (void)
             }
           gcry_free (buf);
         }
+
+      err = gcry_mpi_aprint (GCRYMPI_FMT_PGP, bufaddr, &buflen, a);
+      if (gcry_mpi_is_neg (a))
+        {
+          if (gpg_err_code (err) != GPG_ERR_INV_ARG)
+            fail ("error printing value %d as %s: %s\n",
+                  data[idx].value, "PGP", "Expected error not returned");
+        }
+      else if (err)
+        fail ("error printing value %d as %s: %s\n",
+              data[idx].value, "PGP", gpg_strerror (err));
+      else
+        {
+          if (buflen != data[idx].a.pgplen
+              || memcmp (buf, data[idx].a.pgp, data[idx].a.pgplen))
+            {
+              fail ("error printing value %d as %s: %s\n",
+                    data[idx].value, "PGP", "wrong result");
+              showhex ("expected:", data[idx].a.pgp, data[idx].a.pgplen);
+              showhex ("     got:", buf, buflen);
+            }
+          gcry_free (buf);
+        }
     }
 
 
@@ -460,38 +500,62 @@ check_formats (void)
           gcry_mpi_release (b);
         }
 
-      err = gcry_mpi_aprint (GCRYMPI_FMT_SSH, bufaddr, &buflen, a);
+      err = gcry_mpi_scan (&b, GCRYMPI_FMT_SSH,
+                           data[idx].a.ssh, data[idx].a.sshlen, &buflen);
       if (err)
-        fail ("error printing value %d as %s: %s\n",
+        fail ("error scanning value %d as %s: %s\n",
               data[idx].value, "SSH", gpg_strerror (err));
       else
         {
-          if (buflen != data[idx].a.sshlen
-              || memcmp (buf, data[idx].a.ssh, data[idx].a.sshlen))
+          if (gcry_mpi_cmp (a, b) || data[idx].a.sshlen != buflen)
             {
-              fail ("error printing value %d as %s: %s\n",
-                    data[idx].value, "SSH", "wrong result");
-              showhex ("expected:", data[idx].a.ssh, data[idx].a.sshlen);
-              showhex ("     got:", buf, buflen);
+              fail ("error scanning value %d from %s: %s (%u)\n",
+                    data[idx].value, "SSH", "wrong result", buflen);
+              showmpi ("expected:", a);
+              showmpi ("     got:", b);
             }
-          gcry_free (buf);
+          gcry_mpi_release (b);
         }
 
-      err = gcry_mpi_aprint (GCRYMPI_FMT_USG, bufaddr, &buflen, a);
+      err = gcry_mpi_scan (&b, GCRYMPI_FMT_USG,
+                           data[idx].a.usg, data[idx].a.usglen, &buflen);
       if (err)
-        fail ("error printing value %d as %s: %s\n",
+        fail ("error scanning value %d as %s: %s\n",
               data[idx].value, "USG", gpg_strerror (err));
       else
         {
-          if (buflen != data[idx].a.usglen
-              || memcmp (buf, data[idx].a.usg, data[idx].a.usglen))
+          if (gcry_mpi_is_neg (a))
+            gcry_mpi_neg (b, b);
+          if (gcry_mpi_cmp (a, b) || data[idx].a.usglen != buflen)
             {
-              fail ("error printing value %d as %s: %s\n",
-                    data[idx].value, "USG", "wrong result");
-              showhex ("expected:", data[idx].a.usg, data[idx].a.usglen);
-              showhex ("     got:", buf, buflen);
+              fail ("error scanning value %d from %s: %s (%u)\n",
+                    data[idx].value, "USG", "wrong result", buflen);
+              showmpi ("expected:", a);
+              showmpi ("     got:", b);
             }
-          gcry_free (buf);
+          gcry_mpi_release (b);
+        }
+
+      /* Negative values are not supported by PGP, thus we don't have
+         an samples.  */
+      if (!gcry_mpi_is_neg (a))
+        {
+          err = gcry_mpi_scan (&b, GCRYMPI_FMT_PGP,
+                               data[idx].a.pgp, data[idx].a.pgplen, &buflen);
+          if (err)
+            fail ("error scanning value %d as %s: %s\n",
+                  data[idx].value, "PGP", gpg_strerror (err));
+          else
+            {
+              if (gcry_mpi_cmp (a, b) || data[idx].a.pgplen != buflen)
+                {
+                  fail ("error scanning value %d from %s: %s (%u)\n",
+                        data[idx].value, "PGP", "wrong result", buflen);
+                  showmpi ("expected:", a);
+                  showmpi ("     got:", b);
+                }
+              gcry_mpi_release (b);
+            }
         }
     }
 

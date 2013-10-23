@@ -771,7 +771,7 @@ gcry_mpi_t _gcry_mpi_get_const (int no);
 #define mpi_neg( w, u)         gcry_mpi_neg( (w), (u) )
 #define mpi_cmp( u, v )        gcry_mpi_cmp( (u), (v) )
 #define mpi_cmp_ui( u, v )     gcry_mpi_cmp_ui( (u), (v) )
-#define mpi_is_neg( a )        gcry_mpi_is_new ((a))
+#define mpi_is_neg( a )        gcry_mpi_is_neg ((a))
 
 #define mpi_add_ui(w,u,v)      gcry_mpi_add_ui((w),(u),(v))
 #define mpi_add(w,u,v)         gcry_mpi_add ((w),(u),(v))

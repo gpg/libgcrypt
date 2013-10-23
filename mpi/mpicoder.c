@@ -519,8 +519,8 @@ gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
                 : mpi_alloc ((n+BYTES_PER_MPI_LIMB-1)/BYTES_PER_MPI_LIMB);
       if (n)
         {
-          a->sign = !!(*s & 0x80);
           _gcry_mpi_set_buffer( a, s, n, 0 );
+          a->sign = !!(*s & 0x80);
           if (a->sign)
             {
               onecompl (a);
