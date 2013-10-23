@@ -1,5 +1,5 @@
-/* ARMv6 mul_2 -- Multiply a limb vector with a limb and add the result to
- *                a second limb vector.
+/* ARM mul_3 -- Multiply a limb vector with a limb and subtract the result
+ *              from a second limb vector.
  *
  *      Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
@@ -29,7 +29,7 @@
 
 /*******************
  * mpi_limb_t
- * _gcry_mpih_addmul_1( mpi_ptr_t res_ptr,	%r0
+ * _gcry_mpih_submul_1( mpi_ptr_t res_ptr,	%r0
  *		     mpi_ptr_t s1_ptr,		%r1
  *		     mpi_size_t s1_size,	%r2
  *		     mpi_limb_t s2_limb)	%r3
@@ -37,22 +37,23 @@
 
 .text
 
-.globl _gcry_mpih_addmul_1
-.type  _gcry_mpih_addmul_1,%function
-_gcry_mpih_addmul_1:
-	push	{%r4, %r5, %r6, %r8, %r10, %lr};
+.globl _gcry_mpih_submul_1
+.type  _gcry_mpih_submul_1,%function
+_gcry_mpih_submul_1:
+	push	{%r4, %r5, %r6, %r8, %r9, %r10, %lr};
 	mov	%lr, #0;
-	cmn	%r0, #0; /* clear carry flag */
+	cmp	%r0, #0; /* prepare carry flag for sbc */
 
 	tst	%r2, #3;
 	beq	.Large_loop;
 .Loop:
 	ldr	%r5, [%r1], #4;
-	ldr	%r4, [%r0];
-	sub	%r2, #1;
-	adcs	%r4, %lr;
+	mov	%r4, %lr;
 	mov	%lr, #0;
+	ldr	%r6, [%r0];
 	umlal	%r4, %lr, %r5, %r3;
+	sub	%r2, #1;
+	sbcs	%r4, %r6, %r4;
 	tst	%r2, #3;
 	str	%r4, [%r0], #4;
 	bne	.Loop;
@@ -62,33 +63,38 @@ _gcry_mpih_addmul_1:
 
 .Large_loop:
 	ldr	%r5, [%r1], #4;
-	ldm	%r0, {%r4, %r6, %r8, %r10};
+	mov	%r9, #0;
+	ldr	%r4, [%r0, #0];
 
+	umlal	%lr, %r9, %r5, %r3;
+	ldr	%r6, [%r0, #4];
+	ldr	%r5, [%r1], #4;
+	sbcs	%r4, %r4, %lr;
+
+	mov	%lr, #0;
+	umlal	%r9, %lr, %r5, %r3;
+	ldr	%r8, [%r0, #8];
+	ldr	%r5, [%r1], #4;
+	sbcs	%r6, %r6, %r9;
+
+	mov	%r9, #0;
+	umlal	%lr, %r9, %r5, %r3;
+	ldr	%r10, [%r0, #12];
+	ldr	%r5, [%r1], #4;
+	sbcs	%r8, %r8, %lr;
+
+	mov	%lr, #0;
+	umlal	%r9, %lr, %r5, %r3;
 	sub	%r2, #4;
-	adcs	%r4, %lr;
-	mov	%lr, #0;
-	umlal	%r4, %lr, %r5, %r3;
-
-	ldr	%r5, [%r1], #4;
-	adcs	%r6, %lr;
-	mov	%lr, #0;
-	umlal	%r6, %lr, %r5, %r3;
-
-	ldr	%r5, [%r1], #4;
-	adcs	%r8, %lr;
-	mov	%lr, #0;
-	umlal	%r8, %lr, %r5, %r3;
-
-	ldr	%r5, [%r1], #4;
-	adcs	%r10, %lr;
-	mov	%lr, #0;
-	umlal	%r10, %lr, %r5, %r3;
+	sbcs	%r10, %r10, %r9;
 
 	teq	%r2, #0;
 	stm	%r0!, {%r4, %r6, %r8, %r10};
 	bne	.Large_loop;
 
 .Lend:
-	adc	%r0, %lr, #0;
-	pop	{%r4, %r5, %r6, %r8, %r10, %pc};
-.size _gcry_mpih_addmul_1,.-_gcry_mpih_addmul_1;
+	it	cc
+	movcc	%r2, #1;
+	add	%r0, %lr, %r2;
+	pop	{%r4, %r5, %r6, %r8, %r9, %r10, %pc};
+.size _gcry_mpih_submul_1,.-_gcry_mpih_submul_1;

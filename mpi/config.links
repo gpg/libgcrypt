@@ -138,14 +138,9 @@ case "${host}" in
 	;;
     arm*-*-*)
 	if test "$gcry_cv_gcc_arm_platform_as_ok" = "yes" ; then
-	  if test "$gcry_cv_cc_arm_arch_is_v6" = "yes" ; then
-	    echo '/* configured for armv6 */' >>./mpi/asm-syntax.h
-	    path="armv6"
-	    mpi_cpu_arch="arm"
-	  else
-	    echo '/* No assembler modules configured */' >>./mpi/asm-syntax.h
-	    path=""
-	  fi
+	  echo '/* configured for arm */' >>./mpi/asm-syntax.h
+	  path="arm"
+	  mpi_cpu_arch="arm"
 	else
 	  echo '/* No assembler modules configured */' >>./mpi/asm-syntax.h
 	  path=""
