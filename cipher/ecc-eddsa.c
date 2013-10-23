@@ -122,6 +122,64 @@ _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ec,
 }
 
 
+/* Recover X from Y and SIGN .  */
+void
+_gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
+{
+  /* FIXME: This algorithm can be improved - see the paper.
+     sqrt(-1) mod ed255519_p:
+       2B8324804FC1DF0B2B4D00993DFBD7A72F431806AD2FE478C4EE1B274A0EA0B0 */
+  gcry_mpi_t yy, t, p1, p2, p3;
+
+  /* t = (y^2-1) · ((b*y^2+1)^{p-2} mod p) */
+  yy = mpi_new (0);
+  mpi_mul (yy, y, y);
+  t = mpi_copy (yy);
+  mpi_mul (t, t, ec->b);
+  mpi_add_ui (t, t, 1);
+  p2 = mpi_copy (ec->p);
+  mpi_sub_ui (p2, p2, 2);
+  mpi_powm (t, t, p2, ec->p);
+
+  mpi_sub_ui (yy, yy, 1);
+  mpi_mul (t, yy, t);
+
+  /* x = t^{(p+3)/8} mod p */
+  p3 = mpi_copy (ec->p);
+  mpi_add_ui (p3, p3, 3);
+  mpi_fdiv_q (p3, p3, mpi_const (MPI_C_EIGHT));
+  mpi_powm (x, t, p3, ec->p);
+
+  /* (x^2 - t) % p != 0 ? x = (x*(2^{(p-1)/4} mod p)) % p */
+  mpi_mul (yy, x, x);
+  mpi_subm (yy, yy, t, ec->p);
+  if (mpi_cmp_ui (yy, 0))
+    {
+      p1 = mpi_copy (ec->p);
+      mpi_sub_ui (p1, p1, 1);
+      mpi_fdiv_q (p1, p1, mpi_const (MPI_C_FOUR));
+      mpi_powm (yy, mpi_const (MPI_C_TWO), p1, ec->p);
+      mpi_mulm (x, x, yy, ec->p);
+    }
+  else
+    p1 = NULL;
+
+  /* is_odd(x) ? x = p-x */
+  if (mpi_test_bit (x, 0))
+    mpi_sub (x, ec->p, x);
+
+  /* lowbit(x) != sign ?  x = p-x */
+  if (mpi_test_bit (x, 0) != sign)
+    mpi_sub (x, ec->p, x);
+
+  gcry_mpi_release (yy);
+  gcry_mpi_release (t);
+  gcry_mpi_release (p3);
+  gcry_mpi_release (p2);
+  gcry_mpi_release (p1);
+}
+
+
 /* Decode the EdDSA style encoded PK and set it into RESULT.  CTX is
    the usual curve context.  If R_ENCPK is not NULL, the encoded PK is
    stored at that address; this is a new copy to be released by the
@@ -135,7 +193,6 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
   gpg_err_code_t rc;
   unsigned char *rawmpi;
   unsigned int rawmpilen;
-  gcry_mpi_t yy, t, x, p1, p2, p3;
   int sign;
 
   if (mpi_is_opaque (pk))
@@ -153,7 +210,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
          first byte be 0x04.  */
       if (rawmpilen > 1 && buf[0] == 0x04 && (rawmpilen%2))
         {
-          gcry_mpi_t y;
+          gcry_mpi_t x, y;
 
           rc = gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
                               buf+1, (rawmpilen-1)/2, NULL);
@@ -221,58 +278,8 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
   else
     gcry_free (rawmpi);
 
-  /* Now recover X.  */
-  /* t = (y^2-1) · ((b*y^2+1)^{p-2} mod p) */
-  x = mpi_new (0);
-  yy = mpi_new (0);
-  mpi_mul (yy, result->y, result->y);
-  t = mpi_copy (yy);
-  mpi_mul (t, t, ctx->b);
-  mpi_add_ui (t, t, 1);
-  p2 = mpi_copy (ctx->p);
-  mpi_sub_ui (p2, p2, 2);
-  mpi_powm (t, t, p2, ctx->p);
-
-  mpi_sub_ui (yy, yy, 1);
-  mpi_mul (t, yy, t);
-
-  /* x = t^{(p+3)/8} mod p */
-  p3 = mpi_copy (ctx->p);
-  mpi_add_ui (p3, p3, 3);
-  mpi_fdiv_q (p3, p3, mpi_const (MPI_C_EIGHT));
-  mpi_powm (x, t, p3, ctx->p);
-
-  /* (x^2 - t) % p != 0 ? x = (x*(2^{(p-1)/4} mod p)) % p */
-  mpi_mul (yy, x, x);
-  mpi_subm (yy, yy, t, ctx->p);
-  if (mpi_cmp_ui (yy, 0))
-    {
-      p1 = mpi_copy (ctx->p);
-      mpi_sub_ui (p1, p1, 1);
-      mpi_fdiv_q (p1, p1, mpi_const (MPI_C_FOUR));
-      mpi_powm (yy, mpi_const (MPI_C_TWO), p1, ctx->p);
-      mpi_mulm (x, x, yy, ctx->p);
-    }
-  else
-    p1 = NULL;
-
-  /* is_odd(x) ? x = p-x */
-  if (mpi_test_bit (x, 0))
-    mpi_sub (x, ctx->p, x);
-
-  /* lowbit(x) != highbit(input) ?  x = p-x */
-  if (mpi_test_bit (x, 0) != sign)
-    mpi_sub (x, ctx->p, x);
-
-  mpi_set (result->x, x);
+  _gcry_ecc_eddsa_recover_x (result->x, result->y, sign, ctx);
   mpi_set_ui (result->z, 1);
-
-  gcry_mpi_release (x);
-  gcry_mpi_release (yy);
-  gcry_mpi_release (t);
-  gcry_mpi_release (p3);
-  gcry_mpi_release (p2);
-  gcry_mpi_release (p1);
 
   return 0;
 }
