@@ -675,9 +675,9 @@ do_encrypt (const RIJNDAEL_context *ctx,
         byte b[16] ATTR_ALIGNED_16;
       } b;
 
-      memcpy (a.a, ax, 16);
+      buf_cpy (a.a, ax, 16);
       do_encrypt_aligned (ctx, b.b, a.a);
-      memcpy (bx, b.b, 16);
+      buf_cpy (bx, b.b, 16);
     }
   else
 #endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
@@ -1556,11 +1556,14 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
+  unsigned char *last_iv;
 
 #ifdef USE_AESNI
   if (ctx->use_aesni)
     aesni_prepare ();
 #endif /*USE_AESNI*/
+
+  last_iv = iv;
 
   for ( ;nblocks; nblocks-- )
     {
@@ -1576,24 +1579,17 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
                         "pxor %%xmm0, %%xmm1\n\t"
                         "movdqu %%xmm1, %[outbuf]\n\t"
                         : /* No output */
-                        : [iv] "m" (*iv),
+                        : [iv] "m" (*last_iv),
                           [inbuf] "m" (*inbuf),
                           [outbuf] "m" (*outbuf)
                         : "memory" );
 
           do_aesni (ctx, 0, outbuf, outbuf);
-
-          asm volatile ("movdqu %[outbuf], %%xmm0\n\t"
-                        "movdqu %%xmm0, %[iv]\n\t"
-                        : /* No output */
-                        : [outbuf] "m" (*outbuf),
-                          [iv] "m" (*iv)
-                        : "memory" );
         }
 #endif /*USE_AESNI*/
       else
         {
-          buf_xor(outbuf, inbuf, iv, BLOCKSIZE);
+          buf_xor(outbuf, inbuf, last_iv, BLOCKSIZE);
 
           if (0)
             ;
@@ -1603,18 +1599,34 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
 #endif /*USE_PADLOCK*/
           else
             do_encrypt (ctx, outbuf, outbuf );
-
-          memcpy (iv, outbuf, BLOCKSIZE);
         }
 
+      last_iv = outbuf;
       inbuf += BLOCKSIZE;
       if (!cbc_mac)
         outbuf += BLOCKSIZE;
     }
 
+  if (last_iv != iv)
+    {
+      if (0)
+        ;
 #ifdef USE_AESNI
-  if (ctx->use_aesni)
-    aesni_cleanup ();
+      else if (ctx->use_aesni)
+        asm volatile ("movdqu %[last], %%xmm0\n\t"
+                      "movdqu %%xmm0, %[iv]\n\t"
+                      : /* No output */
+                      : [last] "m" (*last_iv),
+                        [iv] "m" (*iv)
+                      : "memory" );
+#endif /*USE_AESNI*/
+      else
+        buf_cpy (iv, last_iv, BLOCKSIZE);
+    }
+
+#ifdef USE_AESNI
+   if (ctx->use_aesni)
+      aesni_cleanup ();
 #endif /*USE_AESNI*/
 
   _gcry_burn_stack (48 + 2*sizeof(int));
@@ -1810,9 +1822,9 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
         byte b[16] ATTR_ALIGNED_16;
       } b;
 
-      memcpy (a.a, ax, 16);
+      buf_cpy (a.a, ax, 16);
       do_decrypt_aligned (ctx, b.b, a.a);
-      memcpy (bx, b.b, 16);
+      buf_cpy (bx, b.b, 16);
     }
   else
 #endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
@@ -2068,21 +2080,19 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
   else
     for ( ;nblocks; nblocks-- )
       {
-        /* We need to save INBUF away because it may be identical to
-           OUTBUF.  */
-        memcpy (savebuf, inbuf, BLOCKSIZE);
+        /* INBUF is needed later and it may be identical to OUTBUF, so store
+           the intermediate result to SAVEBUF.  */
 
         if (0)
           ;
 #ifdef USE_PADLOCK
         else if (ctx->use_padlock)
-          do_padlock (ctx, 1, outbuf, inbuf);
+          do_padlock (ctx, 1, savebuf, inbuf);
 #endif /*USE_PADLOCK*/
         else
-          do_decrypt (ctx, outbuf, inbuf);
+          do_decrypt (ctx, savebuf, inbuf);
 
-        buf_xor(outbuf, outbuf, iv, BLOCKSIZE);
-        memcpy (iv, savebuf, BLOCKSIZE);
+        buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOCKSIZE);
         inbuf += BLOCKSIZE;
         outbuf += BLOCKSIZE;
       }

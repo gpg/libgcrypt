@@ -44,6 +44,45 @@
 #endif
 
 
+/* Optimized function for small buffer copying */
+static inline void
+buf_cpy(void *_dst, const void *_src, size_t len)
+{
+#if __GNUC__ >= 4 && (defined(__x86_64__) || defined(__i386__))
+  /* For AMD64 and i386, memcpy is faster.  */
+  memcpy(_dst, _src, len);
+#else
+  byte *dst = _dst;
+  const byte *src = _src;
+  uintptr_t *ldst;
+  const uintptr_t *lsrc;
+#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
+  const unsigned int longmask = sizeof(uintptr_t) - 1;
+
+  /* Skip fast processing if buffers are unaligned.  */
+  if (((uintptr_t)dst | (uintptr_t)src) & longmask)
+    goto do_bytes;
+#endif
+
+  ldst = (uintptr_t *)(void *)dst;
+  lsrc = (const uintptr_t *)(const void *)src;
+
+  for (; len >= sizeof(uintptr_t); len -= sizeof(uintptr_t))
+    *ldst++ = *lsrc++;
+
+  dst = (byte *)ldst;
+  src = (const byte *)lsrc;
+
+#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
+do_bytes:
+#endif
+  /* Handle tail.  */
+  for (; len; len--)
+    *dst++ = *src++;
+#endif /*__GNUC__ >= 4 && (__x86_64__ || __i386__)*/
+}
+
+
 /* Optimized function for buffer xoring */
 static inline void
 buf_xor(void *_dst, const void *_src1, const void *_src2, size_t len)
@@ -56,14 +95,9 @@ buf_xor(void *_dst, const void *_src1, const void *_src2, size_t len)
 #ifndef BUFHELP_FAST_UNALIGNED_ACCESS
   const unsigned int longmask = sizeof(uintptr_t) - 1;
 
-  /* Skip fast processing if alignment of buffers do not match.  */
-  if ((((uintptr_t)dst ^ (uintptr_t)src1) |
-       ((uintptr_t)dst ^ (uintptr_t)src2)) & longmask)
+  /* Skip fast processing if buffers are unaligned.  */
+  if (((uintptr_t)dst | (uintptr_t)src1 | (uintptr_t)src2) & longmask)
     goto do_bytes;
-
-  /* Handle unaligned head.  */
-  for (; len && ((uintptr_t)dst & longmask); len--)
-      *dst++ = *src1++ ^ *src2++;
 #endif
 
   ldst = (uintptr_t *)(void *)dst;
@@ -99,14 +133,9 @@ buf_xor_2dst(void *_dst1, void *_dst2, const void *_src, size_t len)
 #ifndef BUFHELP_FAST_UNALIGNED_ACCESS
   const unsigned int longmask = sizeof(uintptr_t) - 1;
 
-  /* Skip fast processing if alignment of buffers do not match.  */
-  if ((((uintptr_t)src ^ (uintptr_t)dst1) |
-       ((uintptr_t)src ^ (uintptr_t)dst2)) & longmask)
+  /* Skip fast processing if buffers are unaligned.  */
+  if (((uintptr_t)src | (uintptr_t)dst1 | (uintptr_t)dst2) & longmask)
     goto do_bytes;
-
-  /* Handle unaligned head.  */
-  for (; len && ((uintptr_t)src & longmask); len--)
-    *dst1++ = (*dst2++ ^= *src++);
 #endif
 
   ldst1 = (uintptr_t *)(void *)dst1;
@@ -130,48 +159,44 @@ do_bytes:
 
 
 /* Optimized function for combined buffer xoring and copying.  Used by mainly
-   CFB mode decryption.  */
+   CBC mode decryption.  */
 static inline void
-buf_xor_n_copy(void *_dst_xor, void *_srcdst_cpy, const void *_src, size_t len)
+buf_xor_n_copy_2(void *_dst_xor, const void *_src_xor, void *_srcdst_cpy,
+		 const void *_src_cpy, size_t len)
 {
   byte *dst_xor = _dst_xor;
   byte *srcdst_cpy = _srcdst_cpy;
+  const byte *src_xor = _src_xor;
+  const byte *src_cpy = _src_cpy;
   byte temp;
-  const byte *src = _src;
   uintptr_t *ldst_xor, *lsrcdst_cpy;
-  const uintptr_t *lsrc;
+  const uintptr_t *lsrc_cpy, *lsrc_xor;
   uintptr_t ltemp;
 #ifndef BUFHELP_FAST_UNALIGNED_ACCESS
   const unsigned int longmask = sizeof(uintptr_t) - 1;
 
-  /* Skip fast processing if alignment of buffers do not match.  */
-  if ((((uintptr_t)src ^ (uintptr_t)dst_xor) |
-       ((uintptr_t)src ^ (uintptr_t)srcdst_cpy)) & longmask)
+  /* Skip fast processing if buffers are unaligned.  */
+  if (((uintptr_t)src_cpy | (uintptr_t)src_xor | (uintptr_t)dst_xor |
+       (uintptr_t)srcdst_cpy) & longmask)
     goto do_bytes;
-
-  /* Handle unaligned head.  */
-  for (; len && ((uintptr_t)src & longmask); len--)
-    {
-      temp = *src++;
-      *dst_xor++ = *srcdst_cpy ^ temp;
-      *srcdst_cpy++ = temp;
-    }
 #endif
 
   ldst_xor = (uintptr_t *)(void *)dst_xor;
+  lsrc_xor = (const uintptr_t *)(void *)src_xor;
   lsrcdst_cpy = (uintptr_t *)(void *)srcdst_cpy;
-  lsrc = (const uintptr_t *)(const void *)src;
+  lsrc_cpy = (const uintptr_t *)(const void *)src_cpy;
 
   for (; len >= sizeof(uintptr_t); len -= sizeof(uintptr_t))
     {
-      ltemp = *lsrc++;
-      *ldst_xor++ = *lsrcdst_cpy ^ ltemp;
+      ltemp = *lsrc_cpy++;
+      *ldst_xor++ = *lsrcdst_cpy ^ *lsrc_xor++;
       *lsrcdst_cpy++ = ltemp;
     }
 
   dst_xor = (byte *)ldst_xor;
+  src_xor = (const byte *)lsrc_xor;
   srcdst_cpy = (byte *)lsrcdst_cpy;
-  src = (const byte *)lsrc;
+  src_cpy = (const byte *)lsrc_cpy;
 
 #ifndef BUFHELP_FAST_UNALIGNED_ACCESS
 do_bytes:
@@ -179,10 +204,19 @@ do_bytes:
   /* Handle tail.  */
   for (; len; len--)
     {
-      temp = *src++;
-      *dst_xor++ = *srcdst_cpy ^ temp;
+      temp = *src_cpy++;
+      *dst_xor++ = *srcdst_cpy ^ *src_xor++;
       *srcdst_cpy++ = temp;
     }
+}
+
+
+/* Optimized function for combined buffer xoring and copying.  Used by mainly
+   CFB mode decryption.  */
+static inline void
+buf_xor_n_copy(void *_dst_xor, void *_srcdst_cpy, const void *_src, size_t len)
+{
+  buf_xor_n_copy_2(_dst_xor, _src, _srcdst_cpy, _src, len);
 }
 
 

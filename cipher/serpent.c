@@ -950,14 +950,11 @@ _gcry_serpent_cbc_dec(void *context, unsigned char *iv,
 
   for ( ;nblocks; nblocks-- )
     {
-      /* We need to save INBUF away because it may be identical to
-         OUTBUF.  */
-      memcpy(savebuf, inbuf, sizeof(serpent_block_t));
+      /* INBUF is needed later and it may be identical to OUTBUF, so store
+         the intermediate result to SAVEBUF.  */
+      serpent_decrypt_internal (ctx, inbuf, savebuf);
 
-      serpent_decrypt_internal (ctx, inbuf, outbuf);
-
-      buf_xor(outbuf, outbuf, iv, sizeof(serpent_block_t));
-      memcpy(iv, savebuf, sizeof(serpent_block_t));
+      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, sizeof(serpent_block_t));
       inbuf += sizeof(serpent_block_t);
       outbuf += sizeof(serpent_block_t);
     }

@@ -1055,16 +1055,13 @@ _gcry_twofish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 
   for ( ;nblocks; nblocks-- )
     {
-      /* We need to save INBUF away because it may be identical to
-         OUTBUF.  */
-      memcpy(savebuf, inbuf, TWOFISH_BLOCKSIZE);
-
-      burn = twofish_decrypt (ctx, outbuf, inbuf);
+      /* INBUF is needed later and it may be identical to OUTBUF, so store
+         the intermediate result to SAVEBUF.  */
+      burn = twofish_decrypt (ctx, savebuf, inbuf);
       if (burn > burn_stack_depth)
         burn_stack_depth = burn;
 
-      buf_xor(outbuf, outbuf, iv, TWOFISH_BLOCKSIZE);
-      memcpy(iv, savebuf, TWOFISH_BLOCKSIZE);
+      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, TWOFISH_BLOCKSIZE);
       inbuf += TWOFISH_BLOCKSIZE;
       outbuf += TWOFISH_BLOCKSIZE;
     }

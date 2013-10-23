@@ -441,14 +441,11 @@ _gcry_camellia_cbc_dec(void *context, unsigned char *iv,
 
   for ( ;nblocks; nblocks-- )
     {
-      /* We need to save INBUF away because it may be identical to
-         OUTBUF.  */
-      memcpy(savebuf, inbuf, CAMELLIA_BLOCK_SIZE);
+      /* INBUF is needed later and it may be identical to OUTBUF, so store
+         the intermediate result to SAVEBUF.  */
+      Camellia_DecryptBlock(ctx->keybitlength, inbuf, ctx->keytable, savebuf);
 
-      Camellia_DecryptBlock(ctx->keybitlength, inbuf, ctx->keytable, outbuf);
-
-      buf_xor(outbuf, outbuf, iv, CAMELLIA_BLOCK_SIZE);
-      memcpy(iv, savebuf, CAMELLIA_BLOCK_SIZE);
+      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, CAMELLIA_BLOCK_SIZE);
       inbuf += CAMELLIA_BLOCK_SIZE;
       outbuf += CAMELLIA_BLOCK_SIZE;
     }

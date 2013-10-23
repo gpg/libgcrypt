@@ -678,14 +678,11 @@ _gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 
   for ( ;nblocks; nblocks-- )
     {
-      /* We need to save INBUF away because it may be identical to
-         OUTBUF.  */
-      memcpy(savebuf, inbuf, CAST5_BLOCKSIZE);
+      /* INBUF is needed later and it may be identical to OUTBUF, so store
+         the intermediate result to SAVEBUF.  */
+      do_decrypt_block (ctx, savebuf, inbuf);
 
-      do_decrypt_block (ctx, outbuf, inbuf);
-
-      buf_xor(outbuf, outbuf, iv, CAST5_BLOCKSIZE);
-      memcpy(iv, savebuf, CAST5_BLOCKSIZE);
+      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, CAST5_BLOCKSIZE);
       inbuf += CAST5_BLOCKSIZE;
       outbuf += CAST5_BLOCKSIZE;
     }

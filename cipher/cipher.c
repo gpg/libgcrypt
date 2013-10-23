@@ -631,6 +631,7 @@ do_ecb_encrypt (gcry_cipher_hd_t c,
                 unsigned char *outbuf, unsigned int outbuflen,
                 const unsigned char *inbuf, unsigned int inbuflen)
 {
+  gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
   unsigned int blocksize = c->spec->blocksize;
   unsigned int n, nblocks;
   unsigned int burn, nburn;
@@ -640,12 +641,12 @@ do_ecb_encrypt (gcry_cipher_hd_t c,
   if ((inbuflen % blocksize))
     return GPG_ERR_INV_LENGTH;
 
-  nblocks = inbuflen / c->spec->blocksize;
+  nblocks = inbuflen / blocksize;
   burn = 0;
 
   for (n=0; n < nblocks; n++ )
     {
-      nburn = c->spec->encrypt (&c->context.c, outbuf, (byte*)/*arggg*/inbuf);
+      nburn = enc_fn (&c->context.c, outbuf, (byte*)/*arggg*/inbuf);
       burn = nburn > burn ? nburn : burn;
       inbuf  += blocksize;
       outbuf += blocksize;
@@ -662,6 +663,7 @@ do_ecb_decrypt (gcry_cipher_hd_t c,
                 unsigned char *outbuf, unsigned int outbuflen,
                 const unsigned char *inbuf, unsigned int inbuflen)
 {
+  gcry_cipher_decrypt_t dec_fn = c->spec->decrypt;
   unsigned int blocksize = c->spec->blocksize;
   unsigned int n, nblocks;
   unsigned int burn, nburn;
@@ -671,12 +673,12 @@ do_ecb_decrypt (gcry_cipher_hd_t c,
   if ((inbuflen % blocksize))
     return GPG_ERR_INV_LENGTH;
 
-  nblocks = inbuflen / c->spec->blocksize;
+  nblocks = inbuflen / blocksize;
   burn = 0;
 
   for (n=0; n < nblocks; n++ )
     {
-      nburn = c->spec->decrypt (&c->context.c, outbuf, (byte*)/*arggg*/inbuf);
+      nburn = dec_fn (&c->context.c, outbuf, (byte*)/*arggg*/inbuf);
       burn = nburn > burn ? nburn : burn;
       inbuf  += blocksize;
       outbuf += blocksize;

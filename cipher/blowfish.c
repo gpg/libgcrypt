@@ -701,14 +701,11 @@ _gcry_blowfish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
 
   for ( ;nblocks; nblocks-- )
     {
-      /* We need to save INBUF away because it may be identical to
-         OUTBUF.  */
-      memcpy(savebuf, inbuf, BLOWFISH_BLOCKSIZE);
+      /* INBUF is needed later and it may be identical to OUTBUF, so store
+         the intermediate result to SAVEBUF.  */
+      do_decrypt_block (ctx, savebuf, inbuf);
 
-      do_decrypt_block (ctx, outbuf, inbuf);
-
-      buf_xor(outbuf, outbuf, iv, BLOWFISH_BLOCKSIZE);
-      memcpy(iv, savebuf, BLOWFISH_BLOCKSIZE);
+      buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOWFISH_BLOCKSIZE);
       inbuf += BLOWFISH_BLOCKSIZE;
       outbuf += BLOWFISH_BLOCKSIZE;
     }

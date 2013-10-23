@@ -38,6 +38,7 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
 {
   unsigned int n;
   int i;
+  gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
   unsigned int blocksize = c->spec->blocksize;
   unsigned int nblocks;
   unsigned int burn, nburn;
@@ -77,7 +78,7 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
       unsigned char tmp[MAX_BLOCKSIZE];
 
       do {
-        nburn = c->spec->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
+        nburn = enc_fn (&c->context.c, tmp, c->u_ctr.ctr);
         burn = nburn > burn ? nburn : burn;
 
         for (i = blocksize; i > 0; i--)
@@ -98,7 +99,7 @@ _gcry_cipher_ctr_encrypt (gcry_cipher_hd_t c,
       /* Save the unused bytes of the counter.  */
       c->unused = blocksize - n;
       if (c->unused)
-        memcpy (c->lastiv+n, tmp+n, c->unused);
+        buf_cpy (c->lastiv+n, tmp+n, c->unused);
 
       wipememory (tmp, sizeof tmp);
     }

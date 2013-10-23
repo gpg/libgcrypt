@@ -40,6 +40,7 @@ do_cbc_mac (gcry_cipher_hd_t c, const unsigned char *inbuf, size_t inlen,
             int do_padding)
 {
   const unsigned int blocksize = 16;
+  gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
   unsigned char tmp[blocksize];
   unsigned int burn = 0;
   unsigned int unused = c->u_mode.ccm.mac_unused;
@@ -68,8 +69,7 @@ do_cbc_mac (gcry_cipher_hd_t c, const unsigned char *inbuf, size_t inlen,
         {
           /* Process one block from macbuf.  */
           buf_xor(c->u_iv.iv, c->u_iv.iv, c->u_mode.ccm.macbuf, blocksize);
-          set_burn (burn, c->spec->encrypt ( &c->context.c, c->u_iv.iv,
-                                             c->u_iv.iv ));
+          set_burn (burn, enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv ));
 
           unused = 0;
         }
@@ -89,8 +89,7 @@ do_cbc_mac (gcry_cipher_hd_t c, const unsigned char *inbuf, size_t inlen,
             {
               buf_xor(c->u_iv.iv, c->u_iv.iv, inbuf, blocksize);
 
-              set_burn (burn, c->spec->encrypt ( &c->context.c, c->u_iv.iv,
-                                                 c->u_iv.iv ));
+              set_burn (burn, enc_fn ( &c->context.c, c->u_iv.iv, c->u_iv.iv ));
 
               inlen -= blocksize;
               inbuf += blocksize;
