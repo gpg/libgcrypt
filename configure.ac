@@ -1109,11 +1109,10 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for ARM assembly implementat
           [[__asm__(
                 /* Test if assembler supports UAL syntax.  */
                 ".syntax unified\n\t"
-                ".thumb\n\t" /* thumb-2 in UAL, thumb-1 otherwise.  */
-                ".code 16\n\t"
+                ".arm\n\t" /* our assembly code is in ARM mode  */
                 /* Following causes error if assembler ignored '.syntax unified'.  */
                 "asmfunc:\n\t"
-                "add.w %r0, %r4, %r8, ror #12;\n\t"
+                "add %r0, %r0, %r4, ror #12;\n\t"
 
                 /* Test if '.type' and '.size' are supported.  */
                 ".size asmfunc,.-asmfunc;\n\t"
