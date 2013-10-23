@@ -1,4 +1,4 @@
-/* cast5-armv6.S  -  ARM assembly implementation of CAST5 cipher
+/* cast5-arm.S  -  ARM assembly implementation of CAST5 cipher
  *
  * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
@@ -20,7 +20,7 @@
 
 #include <config.h>
 
-#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+#if defined(__ARMEL__)
 #ifdef HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS
 
 .text
@@ -99,20 +99,33 @@
 	#define str_unaligned_host str_unaligned_le
 
 	/* bswap on little-endian */
-	#define host_to_be(reg) \
+#ifdef HAVE_ARM_ARCH_V6
+	#define host_to_be(reg, rtmp) \
 		rev reg, reg;
-	#define be_to_host(reg) \
+	#define be_to_host(reg, rtmp) \
 		rev reg, reg;
+#else
+	#define host_to_be(reg, rtmp) \
+		eor	rtmp, reg, reg, ror #16; \
+		mov	rtmp, rtmp, lsr #8; \
+		bic	rtmp, rtmp, #65280; \
+		eor	reg, rtmp, reg, ror #8;
+	#define be_to_host(reg, rtmp) \
+		eor	rtmp, reg, reg, ror #16; \
+		mov	rtmp, rtmp, lsr #8; \
+		bic	rtmp, rtmp, #65280; \
+		eor	reg, rtmp, reg, ror #8;
+#endif
 #else
 	#define ldr_unaligned_host ldr_unaligned_be
 	#define str_unaligned_host str_unaligned_be
 
 	/* nop on big-endian */
-	#define host_to_be(reg) /*_*/
-	#define be_to_host(reg) /*_*/
+	#define host_to_be(reg, rtmp) /*_*/
+	#define be_to_host(reg, rtmp) /*_*/
 #endif
 
-#define host_to_host(x) /*_*/
+#define host_to_host(x, y) /*_*/
 
 /**********************************************************************
   1-way cast5
@@ -167,31 +180,31 @@
 #define dec_round(n, Fx, rl, rr, loadkm, shiftkr, loadkr) \
 	Fx(n, rl, rr, 1, loadkm, shiftkr, loadkr)
 
-#define read_block_aligned(rin, offs, l0, r0, convert) \
+#define read_block_aligned(rin, offs, l0, r0, convert, rtmp) \
 	ldr l0, [rin, #((offs) + 0)]; \
 	ldr r0, [rin, #((offs) + 4)]; \
-	convert(l0); \
-	convert(r0);
+	convert(l0, rtmp); \
+	convert(r0, rtmp);
 
-#define write_block_aligned(rout, offs, l0, r0, convert) \
-	convert(l0); \
-	convert(r0); \
+#define write_block_aligned(rout, offs, l0, r0, convert, rtmp) \
+	convert(l0, rtmp); \
+	convert(r0, rtmp); \
 	str l0, [rout, #((offs) + 0)]; \
 	str r0, [rout, #((offs) + 4)];
 
 #ifdef __ARM_FEATURE_UNALIGNED
 	/* unaligned word reads allowed */
 	#define read_block(rin, offs, l0, r0, rtmp0) \
-		read_block_aligned(rin, offs, l0, r0, host_to_be)
+		read_block_aligned(rin, offs, l0, r0, host_to_be, rtmp0)
 
 	#define write_block(rout, offs, r0, l0, rtmp0, rtmp1) \
-		write_block_aligned(rout, offs, r0, l0, be_to_host)
+		write_block_aligned(rout, offs, r0, l0, be_to_host, rtmp0)
 
 	#define read_block_host(rin, offs, l0, r0, rtmp0) \
-		read_block_aligned(rin, offs, l0, r0, host_to_host)
+		read_block_aligned(rin, offs, l0, r0, host_to_host, rtmp0)
 
 	#define write_block_host(rout, offs, r0, l0, rtmp0, rtmp1) \
-		write_block_aligned(rout, offs, r0, l0, host_to_host)
+		write_block_aligned(rout, offs, r0, l0, host_to_host, rtmp0)
 #else
 	/* need to handle unaligned reads by byte reads */
 	#define read_block(rin, offs, l0, r0, rtmp0) \
@@ -201,7 +214,7 @@
 			ldr_unaligned_be(r0, rin, (offs) + 4, rtmp0); \
 			b 2f; \
 		1:;\
-			read_block_aligned(rin, offs, l0, r0, host_to_be); \
+			read_block_aligned(rin, offs, l0, r0, host_to_be, rtmp0); \
 		2:;
 
 	#define write_block(rout, offs, l0, r0, rtmp0, rtmp1) \
@@ -211,7 +224,7 @@
 			str_unaligned_be(r0, rout, (offs) + 4, rtmp0, rtmp1); \
 			b 2f; \
 		1:;\
-			write_block_aligned(rout, offs, l0, r0, be_to_host); \
+			write_block_aligned(rout, offs, l0, r0, be_to_host, rtmp0); \
 		2:;
 
 	#define read_block_host(rin, offs, l0, r0, rtmp0) \
@@ -221,7 +234,7 @@
 			ldr_unaligned_host(r0, rin, (offs) + 4, rtmp0); \
 			b 2f; \
 		1:;\
-			read_block_aligned(rin, offs, l0, r0, host_to_host); \
+			read_block_aligned(rin, offs, l0, r0, host_to_host, rtmp0); \
 		2:;
 
 	#define write_block_host(rout, offs, l0, r0, rtmp0, rtmp1) \
@@ -231,15 +244,15 @@
 			str_unaligned_host(r0, rout, (offs) + 4, rtmp0, rtmp1); \
 			b 2f; \
 		1:;\
-			write_block_aligned(rout, offs, l0, r0, host_to_host); \
+			write_block_aligned(rout, offs, l0, r0, host_to_host, rtmp0); \
 		2:;
 #endif
 
 .align 3
-.globl _gcry_cast5_armv6_encrypt_block
-.type  _gcry_cast5_armv6_encrypt_block,%function;
+.globl _gcry_cast5_arm_encrypt_block
+.type  _gcry_cast5_arm_encrypt_block,%function;
 
-_gcry_cast5_armv6_encrypt_block:
+_gcry_cast5_arm_encrypt_block:
 	/* input:
 	 *	%r0: CTX
 	 *	%r1: dst
@@ -279,13 +292,13 @@ _gcry_cast5_armv6_encrypt_block:
 
 	pop {%r4-%r11, %ip, %pc};
 .ltorg
-.size _gcry_cast5_armv6_encrypt_block,.-_gcry_cast5_armv6_encrypt_block;
+.size _gcry_cast5_arm_encrypt_block,.-_gcry_cast5_arm_encrypt_block;
 
 .align 3
-.globl _gcry_cast5_armv6_decrypt_block
-.type  _gcry_cast5_armv6_decrypt_block,%function;
+.globl _gcry_cast5_arm_decrypt_block
+.type  _gcry_cast5_arm_decrypt_block,%function;
 
-_gcry_cast5_armv6_decrypt_block:
+_gcry_cast5_arm_decrypt_block:
 	/* input:
 	 *	%r0: CTX
 	 *	%r1: dst
@@ -325,7 +338,7 @@ _gcry_cast5_armv6_decrypt_block:
 
 	pop {%r4-%r11, %ip, %pc};
 .ltorg
-.size _gcry_cast5_armv6_decrypt_block,.-_gcry_cast5_armv6_decrypt_block;
+.size _gcry_cast5_arm_decrypt_block,.-_gcry_cast5_arm_decrypt_block;
 
 /**********************************************************************
   2-way cast5
@@ -391,22 +404,22 @@ _gcry_cast5_armv6_decrypt_block:
 #define dec_round2(n, Fx, rl, rr, loadkm, shiftkr, loadkr) \
 	Fx##_2w(n, rl##0, rr##0, rl##1, rr##1, 1, loadkm, shiftkr, loadkr)
 
-#define read_block2_aligned(rin, l0, r0, l1, r1, convert) \
+#define read_block2_aligned(rin, l0, r0, l1, r1, convert, rtmp) \
 	ldr l0, [rin, #(0)]; \
 	ldr r0, [rin, #(4)]; \
-	convert(l0); \
+	convert(l0, rtmp); \
 	ldr l1, [rin, #(8)]; \
-	convert(r0); \
+	convert(r0, rtmp); \
 	ldr r1, [rin, #(12)]; \
-	convert(l1); \
-	convert(r1);
+	convert(l1, rtmp); \
+	convert(r1, rtmp);
 
-#define write_block2_aligned(rout, l0, r0, l1, r1, convert) \
-	convert(l0); \
-	convert(r0); \
-	convert(l1); \
+#define write_block2_aligned(rout, l0, r0, l1, r1, convert, rtmp) \
+	convert(l0, rtmp); \
+	convert(r0, rtmp); \
+	convert(l1, rtmp); \
 	str l0, [rout, #(0)]; \
-	convert(r1); \
+	convert(r1, rtmp); \
 	str r0, [rout, #(4)]; \
 	str l1, [rout, #(8)]; \
 	str r1, [rout, #(12)];
@@ -414,16 +427,16 @@ _gcry_cast5_armv6_decrypt_block:
 #ifdef __ARM_FEATURE_UNALIGNED
 	/* unaligned word reads allowed */
 	#define read_block2(rin, l0, r0, l1, r1, rtmp0) \
-		read_block2_aligned(rin, l0, r0, l1, r1, host_to_be)
+		read_block2_aligned(rin, l0, r0, l1, r1, host_to_be, rtmp0)
 
 	#define write_block2(rout, l0, r0, l1, r1, rtmp0, rtmp1) \
-		write_block2_aligned(rout, l0, r0, l1, r1, be_to_host)
+		write_block2_aligned(rout, l0, r0, l1, r1, be_to_host, rtmp0)
 
 	#define read_block2_host(rin, l0, r0, l1, r1, rtmp0) \
-		read_block2_aligned(rin, l0, r0, l1, r1, host_to_host)
+		read_block2_aligned(rin, l0, r0, l1, r1, host_to_host, rtmp0)
 
 	#define write_block2_host(rout, l0, r0, l1, r1, rtmp0, rtmp1) \
-		write_block2_aligned(rout, l0, r0, l1, r1, host_to_host)
+		write_block2_aligned(rout, l0, r0, l1, r1, host_to_host, rtmp0)
 #else
 	/* need to handle unaligned reads by byte reads */
 	#define read_block2(rin, l0, r0, l1, r1, rtmp0) \
@@ -435,7 +448,7 @@ _gcry_cast5_armv6_decrypt_block:
 			ldr_unaligned_be(r1, rin, 12, rtmp0); \
 			b 2f; \
 		1:;\
-			read_block2_aligned(rin, l0, r0, l1, r1, host_to_be); \
+			read_block2_aligned(rin, l0, r0, l1, r1, host_to_be, rtmp0); \
 		2:;
 
 	#define write_block2(rout, l0, r0, l1, r1, rtmp0, rtmp1) \
@@ -447,7 +460,7 @@ _gcry_cast5_armv6_decrypt_block:
 			str_unaligned_be(r1, rout, 12, rtmp0, rtmp1); \
 			b 2f; \
 		1:;\
-			write_block2_aligned(rout, l0, r0, l1, r1, be_to_host); \
+			write_block2_aligned(rout, l0, r0, l1, r1, be_to_host, rtmp0); \
 		2:;
 
 	#define read_block2_host(rin, l0, r0, l1, r1, rtmp0) \
@@ -459,7 +472,7 @@ _gcry_cast5_armv6_decrypt_block:
 			ldr_unaligned_host(r1, rin, 12, rtmp0); \
 			b 2f; \
 		1:;\
-			read_block2_aligned(rin, l0, r0, l1, r1, host_to_host); \
+			read_block2_aligned(rin, l0, r0, l1, r1, host_to_host, rtmp0); \
 		2:;
 
 	#define write_block2_host(rout, l0, r0, l1, r1, rtmp0, rtmp1) \
@@ -471,14 +484,14 @@ _gcry_cast5_armv6_decrypt_block:
 			str_unaligned_host(r1, rout, 12, rtmp0, rtmp1); \
 			b 2f; \
 		1:;\
-			write_block2_aligned(rout, l0, r0, l1, r1, host_to_host); \
+			write_block2_aligned(rout, l0, r0, l1, r1, host_to_host, rtmp0); \
 		2:;
 #endif
 
 .align 3
-.type  _gcry_cast5_armv6_enc_blk2,%function;
+.type  _gcry_cast5_arm_enc_blk2,%function;
 
-_gcry_cast5_armv6_enc_blk2:
+_gcry_cast5_arm_enc_blk2:
 	/* input:
 	 *	preloaded: CTX
 	 *	[RL0, RR0], [RL1, RR1]: src
@@ -510,20 +523,20 @@ _gcry_cast5_armv6_enc_blk2:
 	enc_round2(14, F3, RL, RR, load_km, shift_kr, dummy);
 	enc_round2(15, F1, RR, RL, dummy, dummy, dummy);
 
-	host_to_be(RR0);
-	host_to_be(RL0);
-	host_to_be(RR1);
-	host_to_be(RL1);
+	host_to_be(RR0, RT0);
+	host_to_be(RL0, RT0);
+	host_to_be(RR1, RT0);
+	host_to_be(RL1, RT0);
 
 	pop {%pc};
 .ltorg
-.size _gcry_cast5_armv6_enc_blk2,.-_gcry_cast5_armv6_enc_blk2;
+.size _gcry_cast5_arm_enc_blk2,.-_gcry_cast5_arm_enc_blk2;
 
 .align 3
-.globl _gcry_cast5_armv6_cfb_dec;
-.type  _gcry_cast5_armv6_cfb_dec,%function;
+.globl _gcry_cast5_arm_cfb_dec;
+.type  _gcry_cast5_arm_cfb_dec,%function;
 
-_gcry_cast5_armv6_cfb_dec:
+_gcry_cast5_arm_cfb_dec:
 	/* input:
 	 *	%r0: CTX
 	 *	%r1: dst (2 blocks)
@@ -536,15 +549,15 @@ _gcry_cast5_armv6_cfb_dec:
 
 	/* Load input (iv/%r3 is aligned, src/%r2 might not be) */
 	ldm %r3, {RL0, RR0};
-	host_to_be(RL0);
-	host_to_be(RR0);
+	host_to_be(RL0, RT1);
+	host_to_be(RR0, RT1);
 	read_block(%r2, 0, RL1, RR1, %ip);
 
 	/* Update IV, load src[1] and save to iv[0] */
 	read_block_host(%r2, 8, %r5, %r6, %r7);
 	stm %lr, {%r5, %r6};
 
-	bl _gcry_cast5_armv6_enc_blk2;
+	bl _gcry_cast5_arm_enc_blk2;
 	/* result in RR0:RL0, RR1:RL1 = %r4:%r3, %r10:%r9 */
 
 	/* %r0: dst, %r1: %src */
@@ -560,13 +573,13 @@ _gcry_cast5_armv6_cfb_dec:
 
 	pop {%r4-%r11, %ip, %pc};
 .ltorg
-.size _gcry_cast5_armv6_cfb_dec,.-_gcry_cast5_armv6_cfb_dec;
+.size _gcry_cast5_arm_cfb_dec,.-_gcry_cast5_arm_cfb_dec;
 
 .align 3
-.globl _gcry_cast5_armv6_ctr_enc;
-.type  _gcry_cast5_armv6_ctr_enc,%function;
+.globl _gcry_cast5_arm_ctr_enc;
+.type  _gcry_cast5_arm_ctr_enc,%function;
 
-_gcry_cast5_armv6_ctr_enc:
+_gcry_cast5_arm_ctr_enc:
 	/* input:
 	 *	%r0: CTX
 	 *	%r1: dst (2 blocks)
@@ -578,7 +591,7 @@ _gcry_cast5_armv6_ctr_enc:
 	mov %lr, %r3;
 
 	/* Load IV (big => host endian) */
-	read_block_aligned(%lr, 0, RL0, RR0, be_to_host);
+	read_block_aligned(%lr, 0, RL0, RR0, be_to_host, RT1);
 
 	/* Construct IVs */
 	adds RR1, RR0, #1; /* +1 */
@@ -587,9 +600,9 @@ _gcry_cast5_armv6_ctr_enc:
 	adc %r5, RL1, #0;
 
 	/* Store new IV (host => big-endian) */
-	write_block_aligned(%lr, 0, %r5, %r6, host_to_be);
+	write_block_aligned(%lr, 0, %r5, %r6, host_to_be, RT1);
 
-	bl _gcry_cast5_armv6_enc_blk2;
+	bl _gcry_cast5_arm_enc_blk2;
 	/* result in RR0:RL0, RR1:RL1 = %r4:%r3, %r10:%r9 */
 
 	/* %r0: dst, %r1: %src */
@@ -605,12 +618,12 @@ _gcry_cast5_armv6_ctr_enc:
 
 	pop {%r4-%r11, %ip, %pc};
 .ltorg
-.size _gcry_cast5_armv6_ctr_enc,.-_gcry_cast5_armv6_ctr_enc;
+.size _gcry_cast5_arm_ctr_enc,.-_gcry_cast5_arm_ctr_enc;
 
 .align 3
-.type  _gcry_cast5_armv6_dec_blk2,%function;
+.type  _gcry_cast5_arm_dec_blk2,%function;
 
-_gcry_cast5_armv6_dec_blk2:
+_gcry_cast5_arm_dec_blk2:
 	/* input:
 	 *	preloaded: CTX
 	 *	[RL0, RR0], [RL1, RR1]: src
@@ -641,20 +654,20 @@ _gcry_cast5_armv6_dec_blk2:
 	dec_round2(1, F2, RL, RR, load_km, shift_kr, dummy);
 	dec_round2(0, F1, RR, RL, dummy, dummy, dummy);
 
-	host_to_be(RR0);
-	host_to_be(RL0);
-	host_to_be(RR1);
-	host_to_be(RL1);
+	host_to_be(RR0, RT0);
+	host_to_be(RL0, RT0);
+	host_to_be(RR1, RT0);
+	host_to_be(RL1, RT0);
 
 	b .Ldec_cbc_tail;
 .ltorg
-.size _gcry_cast5_armv6_dec_blk2,.-_gcry_cast5_armv6_dec_blk2;
+.size _gcry_cast5_arm_dec_blk2,.-_gcry_cast5_arm_dec_blk2;
 
 .align 3
-.globl _gcry_cast5_armv6_cbc_dec;
-.type  _gcry_cast5_armv6_cbc_dec,%function;
+.globl _gcry_cast5_arm_cbc_dec;
+.type  _gcry_cast5_arm_cbc_dec,%function;
 
-_gcry_cast5_armv6_cbc_dec:
+_gcry_cast5_arm_cbc_dec:
 	/* input:
 	 *	%r0: CTX
 	 *	%r1: dst (2 blocks)
@@ -667,7 +680,7 @@ _gcry_cast5_armv6_cbc_dec:
 
 	/* dec_blk2 is only used by cbc_dec, jump directly in/out instead
 	 * of function call. */
-	b _gcry_cast5_armv6_dec_blk2;
+	b _gcry_cast5_arm_dec_blk2;
 .Ldec_cbc_tail:
 	/* result in RR0:RL0, RR1:RL1 = %r4:%r3, %r10:%r9 */
 
@@ -696,7 +709,7 @@ _gcry_cast5_armv6_cbc_dec:
 
 	pop {%r4-%r11, %ip, %pc};
 .ltorg
-.size _gcry_cast5_armv6_cbc_dec,.-_gcry_cast5_armv6_cbc_dec;
+.size _gcry_cast5_arm_cbc_dec,.-_gcry_cast5_arm_cbc_dec;
 
 #endif /*HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS*/
 #endif /*__ARM_ARCH >= 6*/

@@ -1,4 +1,4 @@
-/* rijndael-armv6.S  -  ARM assembly implementation of AES cipher
+/* rijndael-arm.S  -  ARM assembly implementation of AES cipher
  *
  * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
@@ -20,7 +20,7 @@
 
 #include <config.h>
 
-#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+#if defined(__ARMEL__)
 #ifdef HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS
 
 .text
@@ -211,10 +211,10 @@
 	addroundkey(rna, rnb, rnc, rnd, ra, rb, rc, rd, dummy);
 
 .align 3
-.global _gcry_aes_armv6_encrypt_block
-.type   _gcry_aes_armv6_encrypt_block,%function;
+.global _gcry_aes_arm_encrypt_block
+.type   _gcry_aes_arm_encrypt_block,%function;
 
-_gcry_aes_armv6_encrypt_block:
+_gcry_aes_arm_encrypt_block:
 	/* input:
 	 *	%r0: keysched, CTX
 	 *	%r1: dst
@@ -324,7 +324,7 @@ _gcry_aes_armv6_encrypt_block:
 	lastencround(11, RNA, RNB, RNC, RND, RA, RB, RC, RD);
 
 	b .Lenc_done;
-.size _gcry_aes_armv6_encrypt_block,.-_gcry_aes_armv6_encrypt_block;
+.size _gcry_aes_arm_encrypt_block,.-_gcry_aes_arm_encrypt_block;
 
 #define addroundkey_dec(round, ra, rb, rc, rd, rna, rnb, rnc, rnd) \
 	ldr rna, [CTX, #(((round) * 16) + 0 * 4)]; \
@@ -465,10 +465,10 @@ _gcry_aes_armv6_encrypt_block:
 	addroundkey(rna, rnb, rnc, rnd, ra, rb, rc, rd, dummy);
 
 .align 3
-.global _gcry_aes_armv6_decrypt_block
-.type   _gcry_aes_armv6_decrypt_block,%function;
+.global _gcry_aes_arm_decrypt_block
+.type   _gcry_aes_arm_decrypt_block,%function;
 
-_gcry_aes_armv6_decrypt_block:
+_gcry_aes_arm_decrypt_block:
 	/* input:
 	 *	%r0: keysched, CTX
 	 *	%r1: dst
@@ -573,7 +573,7 @@ _gcry_aes_armv6_decrypt_block:
 	decround(9, RA, RB, RC, RD, RNA, RNB, RNC, RND, preload_first_key);
 
 	b .Ldec_tail;
-.size _gcry_aes_armv6_encrypt_block,.-_gcry_aes_armv6_encrypt_block;
+.size _gcry_aes_arm_encrypt_block,.-_gcry_aes_arm_encrypt_block;
 
 .data
 
@@ -850,4 +850,4 @@ _gcry_aes_armv6_decrypt_block:
 .long 0x745c6c48, 0x0000000c, 0x4257b8d0, 0x0000007d
 
 #endif /*HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS*/
-#endif /*__ARM_ARCH >= 6*/
+#endif /*__ARMEL__ */

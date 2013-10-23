@@ -1,4 +1,4 @@
-/* twofish-armv6.S  -  ARM assembly implementation of Twofish cipher
+/* twofish-arm.S  -  ARM assembly implementation of Twofish cipher
  *
  * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
@@ -20,7 +20,7 @@
 
 #include <config.h>
 
-#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+#if defined(__ARMEL__)
 #ifdef HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS
 
 .text
@@ -257,10 +257,10 @@
 	ror1(RD);
 
 .align 3
-.global _gcry_twofish_armv6_encrypt_block
-.type   _gcry_twofish_armv6_encrypt_block,%function;
+.global _gcry_twofish_arm_encrypt_block
+.type   _gcry_twofish_arm_encrypt_block,%function;
 
-_gcry_twofish_armv6_encrypt_block:
+_gcry_twofish_arm_encrypt_block:
 	/* input:
 	 *	%r0: ctx
 	 *	%r1: dst
@@ -303,16 +303,15 @@ _gcry_twofish_armv6_encrypt_block:
 
 	str_output_le(%r1, RC, RD, RA, RB, RT0, RT1);
 
-	pop {%r4-%r11, %ip, %lr};
-	bx %lr;
+	pop {%r4-%r11, %ip, %pc};
 .ltorg
-.size _gcry_twofish_armv6_encrypt_block,.-_gcry_twofish_armv6_encrypt_block;
+.size _gcry_twofish_arm_encrypt_block,.-_gcry_twofish_arm_encrypt_block;
 
 .align 3
-.global _gcry_twofish_armv6_decrypt_block
-.type   _gcry_twofish_armv6_decrypt_block,%function;
+.global _gcry_twofish_arm_decrypt_block
+.type   _gcry_twofish_arm_decrypt_block,%function;
 
-_gcry_twofish_armv6_decrypt_block:
+_gcry_twofish_arm_decrypt_block:
 	/* input:
 	 *	%r0: ctx
 	 *	%r1: dst
@@ -357,9 +356,8 @@ _gcry_twofish_armv6_decrypt_block:
 
 	str_output_le(%r1, RA, RB, RC, RD, RT0, RT1);
 
-	pop {%r4-%r11, %ip, %lr};
-	bx %lr;
-.size _gcry_twofish_armv6_decrypt_block,.-_gcry_twofish_armv6_decrypt_block;
+	pop {%r4-%r11, %ip, %pc};
+.size _gcry_twofish_arm_decrypt_block,.-_gcry_twofish_arm_decrypt_block;
 
 #endif /*HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS*/
-#endif /*__ARM_ARCH >= 6*/
+#endif /*__ARMEL__*/

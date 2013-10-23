@@ -1424,7 +1424,7 @@ if test "$found" = "1" ; then
       ;;
       arm*-*-*)
          # Build with the assembly implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS blowfish-armv6.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS blowfish-arm.lo"
       ;;
    esac
 fi
@@ -1441,7 +1441,7 @@ if test "$found" = "1" ; then
       ;;
       arm*-*-*)
          # Build with the assembly implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS cast5-armv6.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS cast5-arm.lo"
       ;;
    esac
 fi
@@ -1464,7 +1464,7 @@ if test "$found" = "1" ; then
       ;;
       arm*-*-*)
          # Build with the assembly implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv6.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-arm.lo"
       ;;
    esac
 fi
@@ -1481,7 +1481,7 @@ if test "$found" = "1" ; then
       ;;
       arm*-*-*)
          # Build with the assembly implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS twofish-armv6.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS twofish-arm.lo"
       ;;
    esac
 fi
@@ -1524,7 +1524,7 @@ if test "$found" = "1" ; then
    case "${host}" in
       arm*-*-*)
          # Build with the assembly implementation
-         GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-armv6.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-arm.lo"
       ;;
    esac
 

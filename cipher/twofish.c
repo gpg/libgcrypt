@@ -57,11 +57,11 @@
 # define USE_AMD64_ASM 1
 #endif
 
-/* USE_ARMV6_ASM indicates whether to use ARMv6 assembly code. */
-#undef USE_ARMV6_ASM
-#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+/* USE_ARM_ASM indicates whether to use ARM assembly code. */
+#undef USE_ARM_ASM
+#if defined(__ARMEL__)
 # if defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS)
-#  define USE_ARMV6_ASM 1
+#  define USE_ARM_ASM 1
 # endif
 #endif
 
@@ -754,16 +754,16 @@ extern void _gcry_twofish_amd64_cbc_dec(const TWOFISH_context *c, byte *out,
 extern void _gcry_twofish_amd64_cfb_dec(const TWOFISH_context *c, byte *out,
 					const byte *in, byte *iv);
 
-#elif defined(USE_ARMV6_ASM)
+#elif defined(USE_ARM_ASM)
 
 /* Assembly implementations of Twofish. */
-extern void _gcry_twofish_armv6_encrypt_block(const TWOFISH_context *c,
+extern void _gcry_twofish_arm_encrypt_block(const TWOFISH_context *c,
 					      byte *out, const byte *in);
 
-extern void _gcry_twofish_armv6_decrypt_block(const TWOFISH_context *c,
+extern void _gcry_twofish_arm_decrypt_block(const TWOFISH_context *c,
 					      byte *out, const byte *in);
 
-#else /*!USE_AMD64_ASM && !USE_ARMV6_ASM*/
+#else /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 
 /* Macros to compute the g() function in the encryption and decryption
  * rounds.  G1 is the straight g() function; G2 includes the 8-bit
@@ -837,17 +837,17 @@ twofish_encrypt (void *context, byte *out, const byte *in)
   return /*burn_stack*/ (4*sizeof (void*));
 }
 
-#elif defined(USE_ARMV6_ASM)
+#elif defined(USE_ARM_ASM)
 
 static unsigned int
 twofish_encrypt (void *context, byte *out, const byte *in)
 {
   TWOFISH_context *ctx = context;
-  _gcry_twofish_armv6_encrypt_block(ctx, out, in);
+  _gcry_twofish_arm_encrypt_block(ctx, out, in);
   return /*burn_stack*/ (4*sizeof (void*));
 }
 
-#else /*!USE_AMD64_ASM && !USE_ARMV6_ASM*/
+#else /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 
 static void
 do_twofish_encrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
@@ -889,7 +889,7 @@ twofish_encrypt (void *context, byte *out, const byte *in)
   return /*burn_stack*/ (24+3*sizeof (void*));
 }
 
-#endif /*!USE_AMD64_ASM && !USE_ARMV6_ASM*/
+#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 
 
 /* Decrypt one block.  in and out may be the same. */
@@ -904,17 +904,17 @@ twofish_decrypt (void *context, byte *out, const byte *in)
   return /*burn_stack*/ (4*sizeof (void*));
 }
 
-#elif defined(USE_ARMV6_ASM)
+#elif defined(USE_ARM_ASM)
 
 static unsigned int
 twofish_decrypt (void *context, byte *out, const byte *in)
 {
   TWOFISH_context *ctx = context;
-  _gcry_twofish_armv6_decrypt_block(ctx, out, in);
+  _gcry_twofish_arm_decrypt_block(ctx, out, in);
   return /*burn_stack*/ (4*sizeof (void*));
 }
 
-#else /*!USE_AMD64_ASM && !USE_ARMV6_ASM*/
+#else /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 
 static void
 do_twofish_decrypt (const TWOFISH_context *ctx, byte *out, const byte *in)
@@ -957,7 +957,7 @@ twofish_decrypt (void *context, byte *out, const byte *in)
   return /*burn_stack*/ (24+3*sizeof (void*));
 }
 
-#endif /*!USE_AMD64_ASM && !USE_ARMV6_ASM*/
+#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 
 
 

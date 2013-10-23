@@ -30,11 +30,11 @@
  */
 #ifdef HAVE_CONFIG_H
 #include <config.h>
-/* USE_ARMV6_ASM indicates whether to use ARMv6 assembly code. */
-# undef USE_ARMV6_ASM
-# if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+/* USE_ARM_ASM indicates whether to use ARM assembly code. */
+# undef USE_ARM_ASM
+# if defined(__ARMEL__)
 #  ifdef HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS
-#   define USE_ARMV6_ASM 1
+#   define USE_ARM_ASM 1
 #  endif
 # endif
 #endif
@@ -70,7 +70,7 @@ void Camellia_Ekeygen(const int keyBitLength,
 		      const unsigned char *rawKey,
 		      KEY_TABLE_TYPE keyTable);
 
-#ifndef USE_ARMV6_ASM
+#ifndef USE_ARM_ASM
 void Camellia_EncryptBlock(const int keyBitLength,
 			   const unsigned char *plaintext,
 			   const KEY_TABLE_TYPE keyTable,

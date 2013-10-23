@@ -193,14 +193,14 @@ camellia_setkey(void *c, const byte *key, unsigned keylen)
   return 0;
 }
 
-#ifdef USE_ARMV6_ASM
+#ifdef USE_ARM_ASM
 
 /* Assembly implementations of CAST5. */
-extern void _gcry_camellia_armv6_encrypt_block(const KEY_TABLE_TYPE keyTable,
+extern void _gcry_camellia_arm_encrypt_block(const KEY_TABLE_TYPE keyTable,
 					       byte *outbuf, const byte *inbuf,
 					       const int keybits);
 
-extern void _gcry_camellia_armv6_decrypt_block(const KEY_TABLE_TYPE keyTable,
+extern void _gcry_camellia_arm_decrypt_block(const KEY_TABLE_TYPE keyTable,
 					       byte *outbuf, const byte *inbuf,
 					       const int keybits);
 
@@ -209,7 +209,7 @@ static void Camellia_EncryptBlock(const int keyBitLength,
 				  const KEY_TABLE_TYPE keyTable,
 				  unsigned char *cipherText)
 {
-  _gcry_camellia_armv6_encrypt_block(keyTable, cipherText, plaintext,
+  _gcry_camellia_arm_encrypt_block(keyTable, cipherText, plaintext,
 				     keyBitLength);
 }
 
@@ -218,7 +218,7 @@ static void Camellia_DecryptBlock(const int keyBitLength,
 				  const KEY_TABLE_TYPE keyTable,
 				  unsigned char *plaintext)
 {
-  _gcry_camellia_armv6_decrypt_block(keyTable, plaintext, cipherText,
+  _gcry_camellia_arm_decrypt_block(keyTable, plaintext, cipherText,
 				     keyBitLength);
 }
 
@@ -240,7 +240,7 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
   return /*burn_stack*/ (CAMELLIA_decrypt_stack_burn_size);
 }
 
-#else /*USE_ARMV6_ASM*/
+#else /*USE_ARM_ASM*/
 
 static unsigned int
 camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
@@ -276,7 +276,7 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
   return /*burn_stack*/ (CAMELLIA_decrypt_stack_burn_size);
 }
 
-#endif /*!USE_ARMV6_ASM*/
+#endif /*!USE_ARM_ASM*/
 
 /* Bulk encryption of complete blocks in CTR mode.  This function is only
    intended for the bulk encryption feature of cipher.c.  CTR is expected to be

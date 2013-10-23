@@ -1,4 +1,4 @@
-/* camellia-armv6.S  -  ARM assembly implementation of Camellia cipher
+/* camellia-arm.S  -  ARM assembly implementation of Camellia cipher
  *
  * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
@@ -20,7 +20,7 @@
 
 #include <config.h>
 
-#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+#if defined(__ARMEL__)
 #ifdef HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS
 
 .text
@@ -73,44 +73,56 @@
 	strb rtmp0, [rdst, #((offs) + 0)];
 
 #ifdef __ARMEL__
-	/* bswap on little-endian */
-	#define host_to_be(reg) \
+#ifdef HAVE_ARM_ARCH_V6
+	#define host_to_be(reg, rtmp) \
 		rev reg, reg;
-	#define be_to_host(reg) \
+	#define be_to_host(reg, rtmp) \
 		rev reg, reg;
 #else
+	#define host_to_be(reg, rtmp) \
+		eor	rtmp, reg, reg, ror #16; \
+		mov	rtmp, rtmp, lsr #8; \
+		bic	rtmp, rtmp, #65280; \
+		eor	reg, rtmp, reg, ror #8;
+	#define be_to_host(reg, rtmp) \
+		eor	rtmp, reg, reg, ror #16; \
+		mov	rtmp, rtmp, lsr #8; \
+		bic	rtmp, rtmp, #65280; \
+		eor	reg, rtmp, reg, ror #8;
+#endif
+#else
 	/* nop on big-endian */
-	#define host_to_be(reg) /*_*/
-	#define be_to_host(reg) /*_*/
+	#define host_to_be(reg, rtmp) /*_*/
+	#define be_to_host(reg, rtmp) /*_*/
 #endif
 
-#define ldr_input_aligned_be(rin, a, b, c, d) \
+#define ldr_input_aligned_be(rin, a, b, c, d, rtmp) \
 	ldr a, [rin, #0]; \
 	ldr b, [rin, #4]; \
-	be_to_host(a); \
+	be_to_host(a, rtmp); \
 	ldr c, [rin, #8]; \
-	be_to_host(b); \
+	be_to_host(b, rtmp); \
 	ldr d, [rin, #12]; \
-	be_to_host(c); \
-	be_to_host(d);
+	be_to_host(c, rtmp); \
+	be_to_host(d, rtmp);
 
-#define str_output_aligned_be(rout, a, b, c, d) \
-	be_to_host(a); \
-	be_to_host(b); \
+#define str_output_aligned_be(rout, a, b, c, d, rtmp) \
+	be_to_host(a, rtmp); \
+	be_to_host(b, rtmp); \
 	str a, [rout, #0]; \
-	be_to_host(c); \
+	be_to_host(c, rtmp); \
 	str b, [rout, #4]; \
-	be_to_host(d); \
+	be_to_host(d, rtmp); \
 	str c, [rout, #8]; \
 	str d, [rout, #12];
 
 #ifdef __ARM_FEATURE_UNALIGNED
 	/* unaligned word reads/writes allowed */
 	#define ldr_input_be(rin, ra, rb, rc, rd, rtmp) \
-		ldr_input_aligned_be(rin, ra, rb, rc, rd)
+		ldr_input_aligned_be(rin, ra, rb, rc, rd, rtmp)
 
 	#define str_output_be(rout, ra, rb, rc, rd, rtmp0, rtmp1) \
-		str_output_aligned_be(rout, ra, rb, rc, rd)
+		str_output_aligned_be(rout, ra, rb, rc, rd, rtmp0)
 #else
 	/* need to handle unaligned reads/writes by byte reads */
 	#define ldr_input_be(rin, ra, rb, rc, rd, rtmp0) \
@@ -122,7 +134,7 @@
 			ldr_unaligned_be(rd, rin, 12, rtmp0); \
 			b 2f; \
 		1:;\
-			ldr_input_aligned_be(rin, ra, rb, rc, rd); \
+			ldr_input_aligned_be(rin, ra, rb, rc, rd, rtmp0); \
 		2:;
 
 	#define str_output_be(rout, ra, rb, rc, rd, rtmp0, rtmp1) \
@@ -134,7 +146,7 @@
 			str_unaligned_be(rd, rout, 12, rtmp0, rtmp1); \
 			b 2f; \
 		1:;\
-			str_output_aligned_be(rout, ra, rb, rc, rd); \
+			str_output_aligned_be(rout, ra, rb, rc, rd, rtmp0); \
 		2:;
 #endif
 
@@ -240,10 +252,10 @@
 	str_output_be(%r1, YL, YR, XL, XR, RT0, RT1);
 
 .align 3
-.global _gcry_camellia_armv6_encrypt_block
-.type   _gcry_camellia_armv6_encrypt_block,%function;
+.global _gcry_camellia_arm_encrypt_block
+.type   _gcry_camellia_arm_encrypt_block,%function;
 
-_gcry_camellia_armv6_encrypt_block:
+_gcry_camellia_arm_encrypt_block:
 	/* input:
 	 *	%r0: keytable
 	 *	%r1: dst
@@ -285,13 +297,13 @@ _gcry_camellia_armv6_encrypt_block:
 
 	pop {%r4-%r11, %ip, %pc};
 .ltorg
-.size _gcry_camellia_armv6_encrypt_block,.-_gcry_camellia_armv6_encrypt_block;
+.size _gcry_camellia_arm_encrypt_block,.-_gcry_camellia_arm_encrypt_block;
 
 .align 3
-.global _gcry_camellia_armv6_decrypt_block
-.type   _gcry_camellia_armv6_decrypt_block,%function;
+.global _gcry_camellia_arm_decrypt_block
+.type   _gcry_camellia_arm_decrypt_block,%function;
 
-_gcry_camellia_armv6_decrypt_block:
+_gcry_camellia_arm_decrypt_block:
 	/* input:
 	 *	%r0: keytable
 	 *	%r1: dst
@@ -330,7 +342,7 @@ _gcry_camellia_armv6_decrypt_block:
 
 	b .Ldec_128;
 .ltorg
-.size _gcry_camellia_armv6_decrypt_block,.-_gcry_camellia_armv6_decrypt_block;
+.size _gcry_camellia_arm_decrypt_block,.-_gcry_camellia_arm_decrypt_block;
 
 .data
 
