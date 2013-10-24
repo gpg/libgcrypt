@@ -30,6 +30,7 @@
 #include "context.h"
 #include "ec-context.h"
 #include "ecc-common.h"
+#include "pubkey-internal.h"
 
 
 /* Compute an GOST R 34.10-01/-12 signature.
