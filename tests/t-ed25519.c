@@ -53,6 +53,7 @@ static int debug;
 static int error_count;
 static int sign_with_pk;
 static int no_verify;
+static int custom_data_file;
 
 static void
 die (const char *format, ...)
@@ -405,9 +406,8 @@ one_test (int testno, const char *sk, const char *pk,
 
 
 static void
-check_ed25519 (void)
+check_ed25519 (const char *fname)
 {
-  char *fname;
   FILE *fp;
   int lineno, ntests;
   char *line;
@@ -416,7 +416,6 @@ check_ed25519 (void)
 
   show ("Checking Ed25519.\n");
 
-  fname = prepend_srcdir ("t-ed25519.inp");
   fp = fopen (fname, "r");
   if (!fp)
     die ("error opening '%s': %s\n", fname, strerror (errno));
@@ -459,13 +458,12 @@ check_ed25519 (void)
   xfree (msg);
   xfree (sig);
 
-  if (ntests != N_TESTS)
+  if (ntests != N_TESTS && !custom_data_file)
     fail ("did %d tests but expected %d", ntests, N_TESTS);
   else if ((ntests % 256))
     show_note ("%d tests done\n", ntests);
 
   fclose (fp);
-  xfree (fname);
 }
 
 
@@ -473,6 +471,7 @@ int
 main (int argc, char **argv)
 {
   int last_argc = -1;
+  char *fname = NULL;
 
   if (argc)
     { argc--; argv++; }
@@ -492,7 +491,8 @@ main (int argc, char **argv)
                  "  --verbose       print timings etc.\n"
                  "  --debug         flyswatter\n"
                  "  --sign-with-pk  also use the public key for signing\n"
-                 "  --no-verify     skip the verify test\n",
+                 "  --no-verify     skip the verify test\n"
+                 "  --data FNAME    take test data from file FNAME\n",
                  stdout);
           exit (0);
         }
@@ -517,11 +517,25 @@ main (int argc, char **argv)
           no_verify = 1;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--data"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              xfree (fname);
+              fname = xstrdup (*argv);
+              argc--; argv++;
+            }
+        }
       else if (!strncmp (*argv, "--", 2))
         die ("unknown option '%s'", *argv);
 
     }
 
+  if (!fname)
+    fname = prepend_srcdir ("t-ed25519.inp");
+  else
+    custom_data_file = 1;
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
@@ -532,8 +546,10 @@ main (int argc, char **argv)
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
   start_timer ();
-  check_ed25519 ();
+  check_ed25519 (fname);
   stop_timer ();
+
+  xfree (fname);
 
   show ("All tests completed in %s.  Errors: %d\n",
         elapsed_time (), error_count);

@@ -46,6 +46,20 @@ reverse_buffer (unsigned char *buffer, unsigned int length)
 }
 
 
+/* Helper to scan a hex string. */
+static gcry_mpi_t
+scanval (const char *string)
+{
+  gpg_error_t err;
+  gcry_mpi_t val;
+
+  err = gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
+  if (err)
+    log_fatal ("scanning ECC parameter failed: %s\n", gpg_strerror (err));
+  return val;
+}
+
+
 
 /* Encode MPI using the EdDSA scheme.  MINLEN specifies the required
    length of the buffer in bytes.  On success 0 is returned an a
@@ -122,61 +136,82 @@ _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ec,
 }
 
 
-/* Recover X from Y and SIGN .  */
-void
+/* Recover X from Y and SIGN (which actually is a parity bit).  */
+gpg_err_code_t
 _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
 {
-  /* FIXME: This algorithm can be improved - see the paper.
-     sqrt(-1) mod ed255519_p:
-       2B8324804FC1DF0B2B4D00993DFBD7A72F431806AD2FE478C4EE1B274A0EA0B0 */
-  gcry_mpi_t yy, t, p1, p2, p3;
+  gpg_err_code_t rc = 0;
+  gcry_mpi_t u, v, v3, t;
+  static gcry_mpi_t p58, seven;
 
-  /* t = (y^2-1) · ((b*y^2+1)^{p-2} mod p) */
-  yy = mpi_new (0);
-  mpi_mul (yy, y, y);
-  t = mpi_copy (yy);
-  mpi_mul (t, t, ec->b);
-  mpi_add_ui (t, t, 1);
-  p2 = mpi_copy (ec->p);
-  mpi_sub_ui (p2, p2, 2);
-  mpi_powm (t, t, p2, ec->p);
+  if (ec->dialect != ECC_DIALECT_ED25519)
+    return GPG_ERR_NOT_IMPLEMENTED;
 
-  mpi_sub_ui (yy, yy, 1);
-  mpi_mul (t, yy, t);
+  if (!p58)
+    p58 = scanval ("0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+                   "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD");
+  if (!seven)
+    seven = mpi_set_ui (NULL, 7);
 
-  /* x = t^{(p+3)/8} mod p */
-  p3 = mpi_copy (ec->p);
-  mpi_add_ui (p3, p3, 3);
-  mpi_fdiv_q (p3, p3, mpi_const (MPI_C_EIGHT));
-  mpi_powm (x, t, p3, ec->p);
+  u   = mpi_new (0);
+  v   = mpi_new (0);
+  v3  = mpi_new (0);
+  t   = mpi_new (0);
 
-  /* (x^2 - t) % p != 0 ? x = (x*(2^{(p-1)/4} mod p)) % p */
-  mpi_mul (yy, x, x);
-  mpi_subm (yy, yy, t, ec->p);
-  if (mpi_cmp_ui (yy, 0))
+  /* Compute u and v */
+  /* u = y^2    */
+  mpi_mulm (u, y, y, ec->p);
+  /* v = b*y^2   */
+  mpi_mulm (v, ec->b, u, ec->p);
+  /* u = y^2-1  */
+  mpi_sub_ui (u, u, 1);
+  /* v = b*y^2+1 */
+  mpi_add_ui (v, v, 1);
+
+  /* Compute sqrt(u/v) */
+  /* v3 = v^3 */
+  mpi_powm (v3, v, mpi_const (MPI_C_THREE), ec->p);
+  /* t = v3 * v3 * u * v = u * v^7 */
+  mpi_powm (t, v, seven, ec->p);
+  mpi_mulm (t, t, u, ec->p);
+  /* t = t^((p-5)/8) = (u * v^7)^((p-5)/8)  */
+  mpi_powm (t, t, p58, ec->p);
+  /* x = t * u * v^3 = (u * v^3) * (u * v^7)^((p-5)/8) */
+  mpi_mulm (t, t, u, ec->p);
+  mpi_mulm (x, t, v3, ec->p);
+
+  /* Adjust if needed.  */
+  /* t = v * x^2  */
+  mpi_mulm (t, x, x, ec->p);
+  mpi_mulm (t, t, v, ec->p);
+  /* -t == u ? x = x * sqrt(-1) */
+  gcry_mpi_neg (t, t);
+  if (!mpi_cmp (t, u))
     {
-      p1 = mpi_copy (ec->p);
-      mpi_sub_ui (p1, p1, 1);
-      mpi_fdiv_q (p1, p1, mpi_const (MPI_C_FOUR));
-      mpi_powm (yy, mpi_const (MPI_C_TWO), p1, ec->p);
-      mpi_mulm (x, x, yy, ec->p);
+      static gcry_mpi_t m1;  /* Fixme: this is not thread-safe.  */
+      if (!m1)
+        m1 = scanval ("2B8324804FC1DF0B2B4D00993DFBD7A7"
+                      "2F431806AD2FE478C4EE1B274A0EA0B0");
+      mpi_mulm (x, x, m1, ec->p);
+      /* t = v * x^2  */
+      mpi_mulm (t, x, x, ec->p);
+      mpi_mulm (t, t, v, ec->p);
+      /* -t == u ? x = x * sqrt(-1) */
+      gcry_mpi_neg (t, t);
+      if (!mpi_cmp (t, u))
+        rc = GPG_ERR_INV_OBJ;
     }
-  else
-    p1 = NULL;
 
-  /* is_odd(x) ? x = p-x */
-  if (mpi_test_bit (x, 0))
-    mpi_sub (x, ec->p, x);
+  /* Choose the desired square root according to parity */
+  if (mpi_test_bit (x, 0) != !!sign)
+    gcry_mpi_neg (x, x);
 
-  /* lowbit(x) != sign ?  x = p-x */
-  if (mpi_test_bit (x, 0) != sign)
-    mpi_sub (x, ec->p, x);
+  mpi_free (t);
+  mpi_free (v3);
+  mpi_free (v);
+  mpi_free (u);
 
-  gcry_mpi_release (yy);
-  gcry_mpi_release (t);
-  gcry_mpi_release (p3);
-  gcry_mpi_release (p2);
-  gcry_mpi_release (p1);
+  return rc;
 }
 
 
@@ -278,10 +313,10 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
   else
     gcry_free (rawmpi);
 
-  _gcry_ecc_eddsa_recover_x (result->x, result->y, sign, ctx);
+  rc = _gcry_ecc_eddsa_recover_x (result->x, result->y, sign, ctx);
   mpi_set_ui (result->z, 1);
 
-  return 0;
+  return rc;
 }
 
 
