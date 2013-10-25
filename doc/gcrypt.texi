@@ -2230,6 +2230,14 @@ named `flags'.  Flag names are case-sensitive.  The following flags
 are known:
 
 @table @code
+
+@item comp
+@cindex comp
+If supported and not yet the default return ECC points in compact
+(compressed) representation.  The compact representation requires a
+small overhead before a point can be used but halves the size of a to
+be conveyed public key.
+
 @item pkcs1
 @cindex PKCS1
 Use PKCS#1 block type 2 padding for encryption, block type 1 padding
@@ -2263,6 +2271,16 @@ Do not use a technique called `blinding', which is used by default in
 order to prevent leaking of secret information.  Blinding is only
 implemented by RSA, but it might be implemented by other algorithms in
 the future as well, when necessary.
+
+@item noparam
+@cindex noparam
+For ECC key generation do not return the domain parameters but only
+the name of the curve.  For ECC signing and verification ignore any
+provided domain parameters of the public or private key and use only
+the curve name.  It is more secure to rely on the curve name and thus
+use the curve parameters as known by Libgcrypt.  This option shouild
+have been the default but for backward compatibility reasons this is
+not possible.  It is best to always use this flag with ECC keys.
 
 @item transient-key
 @cindex transient-key
@@ -2836,7 +2854,7 @@ is in general not recommended.
 @example
 (genkey
   (ecc
-    (flags transient-key ecdsa)))
+    (flags noparam transient-key ecdsa)))
 @end example
 
 @item transient-key
@@ -2856,7 +2874,8 @@ private and public keys are returned in one container and may be
 accompanied by some miscellaneous information.
 
 @noindent
-As an example, here is what the Elgamal key generation returns:
+Here are two examples; the first for Elgamal and the second for
+elliptic curve key generation:
 
 @example
 (key-data
@@ -2873,6 +2892,21 @@ As an example, here is what the Elgamal key generation returns:
       (x @var{x-mpi})))
   (misc-key-info
     (pm1-factors @var{n1 n2 ... nn}))
+@end example
+
+@example
+(key-data
+  (public-key
+    (ecc
+      (curve Ed25519)
+      (flags noparam)
+      (q @var{q-value})))
+  (private-key
+    (ecc
+      (curve Ed25519)
+      (flags noparam)
+      (q @var{q-value})
+      (d @var{d-value}))))
 @end example
 
 @noindent

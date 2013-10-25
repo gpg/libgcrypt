@@ -47,7 +47,7 @@ pss_verify_cmp (void *opaque, gcry_mpi_t tmp)
 
 
 /* Parser for a flag list.  On return the encoding is stored at
-   R_ENCODING and the flags are stored at R_FLAGS.  if any of them is
+   R_ENCODING and the flags are stored at R_FLAGS.  If any of them is
    not needed, NULL may be passed.  The function returns 0 on success
    or an error code. */
 gpg_err_code_t
@@ -65,61 +65,99 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
     {
       s = gcry_sexp_nth_data (list, i, &n);
       if (!s)
-        ; /* not a data element*/
-      else if (n == 7 && !memcmp (s, "rfc6979", 7))
+        continue; /* Not a data element. */
+
+      switch (n)
         {
-          flags |= PUBKEY_FLAG_RFC6979;
+        case 3:
+          if (!memcmp (s, "pss", 3) && encoding == PUBKEY_ENC_UNKNOWN)
+            {
+              encoding = PUBKEY_ENC_PSS;
+              flags |= PUBKEY_FLAG_FIXEDLEN;
+            }
+          else if (!memcmp (s, "raw", 3) && encoding == PUBKEY_ENC_UNKNOWN)
+            {
+              encoding = PUBKEY_ENC_RAW;
+              flags |= PUBKEY_FLAG_RAW_FLAG; /* Explicitly given.  */
+            }
+          else
+            rc = GPG_ERR_INV_FLAG;
+          break;
+
+        case 4:
+          if (!memcmp (s, "comp", 4))
+            flags |= PUBKEY_FLAG_COMP;
+          else if (!memcmp (s, "oaep", 4) && encoding == PUBKEY_ENC_UNKNOWN)
+            {
+              encoding = PUBKEY_ENC_OAEP;
+              flags |= PUBKEY_FLAG_FIXEDLEN;
+            }
+          else if (!memcmp (s, "gost", 4))
+            {
+              encoding = PUBKEY_ENC_RAW;
+              flags |= PUBKEY_FLAG_GOST;
+            }
+          else
+            rc = GPG_ERR_INV_FLAG;
+          break;
+
+        case 5:
+          if (!memcmp (s, "eddsa", 5))
+            {
+              encoding = PUBKEY_ENC_RAW;
+              flags |= PUBKEY_FLAG_EDDSA;
+            }
+          else if (!memcmp (s, "ecdsa", 5))
+            {
+              flags |= PUBKEY_FLAG_ECDSA;
+            }
+          else if (!memcmp (s, "pkcs1", 5) && encoding == PUBKEY_ENC_UNKNOWN)
+            {
+              encoding = PUBKEY_ENC_PKCS1;
+              flags |= PUBKEY_FLAG_FIXEDLEN;
+            }
+          else
+            rc = GPG_ERR_INV_FLAG;
+          break;
+
+        case 7:
+          if (!memcmp (s, "rfc6979", 7))
+            flags |= PUBKEY_FLAG_RFC6979;
+          else if (!memcmp (s, "noparam", 7))
+            flags |= PUBKEY_FLAG_NOPARAM;
+          else
+            rc = GPG_ERR_INV_FLAG;
+          break;
+
+        case 8:
+          if (!memcmp (s, "use-x931", 8))
+            flags |= PUBKEY_FLAG_USE_X931;
+          else
+            rc = GPG_ERR_INV_FLAG;
+          break;
+
+        case 11:
+          if (!memcmp (s, "no-blinding", 11))
+            flags |= PUBKEY_FLAG_NO_BLINDING;
+          else if (!memcmp (s, "use-fips186", 11))
+            flags |= PUBKEY_FLAG_USE_FIPS186;
+          else
+            rc = GPG_ERR_INV_FLAG;
+          break;
+
+        case 13:
+          if (!memcmp (s, "use-fips186-2", 13))
+            flags |= PUBKEY_FLAG_USE_FIPS186_2;
+          else if (!memcmp (s, "transient-key", 13))
+            flags |= PUBKEY_FLAG_TRANSIENT_KEY;
+          else
+            rc = GPG_ERR_INV_FLAG;
+          break;
+
+        default:
+          rc = GPG_ERR_INV_FLAG;
+          break;
         }
-      else if (n == 5 && !memcmp (s, "eddsa", 5))
-        {
-          encoding = PUBKEY_ENC_RAW;
-          flags |= PUBKEY_FLAG_EDDSA;
-        }
-      else if (n == 5 && !memcmp (s, "ecdsa", 5))
-        {
-          flags |= PUBKEY_FLAG_ECDSA;
-        }
-      else if (n == 4 && !memcmp (s, "gost", 4))
-        {
-          encoding = PUBKEY_ENC_RAW;
-          flags |= PUBKEY_FLAG_GOST;
-        }
-      else if (n == 3 && !memcmp (s, "raw", 3)
-               && encoding == PUBKEY_ENC_UNKNOWN)
-        {
-          encoding = PUBKEY_ENC_RAW;
-          flags |= PUBKEY_FLAG_RAW_FLAG; /* Explicitly given.  */
-        }
-      else if (n == 5 && !memcmp (s, "pkcs1", 5)
-               && encoding == PUBKEY_ENC_UNKNOWN)
-        {
-          encoding = PUBKEY_ENC_PKCS1;
-          flags |= PUBKEY_FLAG_FIXEDLEN;
-        }
-      else if (n == 4 && !memcmp (s, "oaep", 4)
-               && encoding == PUBKEY_ENC_UNKNOWN)
-        {
-          encoding = PUBKEY_ENC_OAEP;
-          flags |= PUBKEY_FLAG_FIXEDLEN;
-        }
-      else if (n == 3 && !memcmp (s, "pss", 3)
-               && encoding == PUBKEY_ENC_UNKNOWN)
-        {
-          encoding = PUBKEY_ENC_PSS;
-          flags |= PUBKEY_FLAG_FIXEDLEN;
-        }
-      else if (n == 11 && ! memcmp (s, "no-blinding", 11))
-        flags |= PUBKEY_FLAG_NO_BLINDING;
-      else if (n == 13 && ! memcmp (s, "transient-key", 13))
-        flags |= PUBKEY_FLAG_TRANSIENT_KEY;
-      else if (n == 8 && ! memcmp (s, "use-x931", 8))
-        flags |= PUBKEY_FLAG_USE_X931;
-      else if (n == 11 && ! memcmp (s, "use-fips186", 11))
-        flags |= PUBKEY_FLAG_USE_FIPS186;
-      else if (n == 13 && ! memcmp (s, "use-fips186-2", 13))
-        flags |= PUBKEY_FLAG_USE_FIPS186_2;
-      else
-        rc = GPG_ERR_INV_FLAG;
     }
 
   if (r_flags)
