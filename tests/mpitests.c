@@ -1,5 +1,6 @@
 /* mpitests.c  -  basic mpi tests
  *	Copyright (C) 2001, 2002, 2003, 2006 Free Software Foundation, Inc.
+ * Copyright (C) 2013 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -14,9 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
- * USA.
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -33,21 +32,44 @@
 # include <gcrypt.h>
 #endif
 
+#define PGM "mpitests"
+
 static int verbose;
 static int debug;
+static int error_count;
 
 
 static void
 die (const char *format, ...)
 {
-  va_list arg_ptr;
+  va_list arg_ptr ;
 
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  va_end (arg_ptr);
+  fflush (stdout);
+  fprintf (stderr, "%s: ", PGM);
+  va_start (arg_ptr, format) ;
+  vfprintf (stderr, format, arg_ptr );
+  va_end(arg_ptr);
+  if (*format && format[strlen(format)-1] != '\n')
+    putc ('\n', stderr);
   exit (1);
 }
 
+static void
+fail (const char *format, ...)
+{
+  va_list arg_ptr;
+
+  fflush (stdout);
+  fprintf (stderr, "%s: ", PGM);
+  va_start (arg_ptr, format);
+  vfprintf (stderr, format, arg_ptr);
+  va_end (arg_ptr);
+  if (*format && format[strlen(format)-1] != '\n')
+    putc ('\n', stderr);
+  error_count++;
+  if (error_count >= 50)
+    die ("stopped after 50 errors.");
+}
 
 
 /* Set up some test patterns */
@@ -188,14 +210,115 @@ test_opaque (void)
   if (strcmp (p, "This is a test buffer"))
     die ("gcry_mpi_get_opaque returned a changed buffer\n");
 
-  if (verbose)
-    {
-      fprintf (stderr, "mpi: ");
-      gcry_mpi_dump (a);
-      putc ('\n', stderr);
-    }
+  if (debug)
+    gcry_log_debugmpi ("mpi", a);
 
   gcry_mpi_release (a);
+}
+
+
+static void
+test_cmp (void)
+{
+  gpg_error_t rc;
+  gcry_mpi_t zero, zero2;
+  gcry_mpi_t one;
+  gcry_mpi_t two;
+  gcry_mpi_t all_ones;
+  gcry_mpi_t opa1, opa2;
+  gcry_mpi_t opa1s, opa2s;
+  gcry_mpi_t opa0, opa02;
+
+  zero = gcry_mpi_new (0);
+  zero2= gcry_mpi_set_ui (NULL, 0);
+  one  = gcry_mpi_set_ui (NULL, 1);
+  two  = gcry_mpi_set_ui (NULL, 2);
+  rc = gcry_mpi_scan (&all_ones, GCRYMPI_FMT_USG, ones, sizeof(ones), NULL);
+  if (rc)
+    die ("scanning number failed at line %d", __LINE__);
+  opa0  = gcry_mpi_set_opaque (NULL, gcry_xstrdup ("a"), 0);
+  opa02 = gcry_mpi_set_opaque (NULL, gcry_xstrdup ("b"), 0);
+  opa1  = gcry_mpi_set_opaque (NULL, gcry_xstrdup ("aaaaaaaaaaaaaaaa"), 16*8);
+  opa1s = gcry_mpi_set_opaque (NULL, gcry_xstrdup ("a"), 1*8);
+  opa2  = gcry_mpi_set_opaque (NULL, gcry_xstrdup ("bbbbbbbbbbbbbbbb"), 16*8);
+  opa2s = gcry_mpi_set_opaque (NULL, gcry_xstrdup ("b"), 1*8);
+
+
+  /* Single limb test with cmp_ui */
+  if (gcry_mpi_cmp_ui (zero, 0))
+    fail ("mpi_cmp_ui failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp_ui (zero, 1) < 0))
+    fail ("mpi_cmp_ui failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp_ui (zero, (-1)) < 0))
+    fail ("mpi_cmp_ui failed at line %d", __LINE__);
+
+  if (gcry_mpi_cmp_ui (two, 2))
+    fail ("mpi_cmp_ui failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp_ui (two, 3) < 0))
+    fail ("mpi_cmp_ui failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp_ui (two, 1) > 0))
+    fail ("mpi_cmp_ui failed at line %d", __LINE__);
+
+  /* Multi limb tests with cmp_ui.  */
+  if (!(gcry_mpi_cmp_ui (all_ones, 0) > 0))
+    fail ("mpi_cmp_ui failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp_ui (all_ones, (-1)) > 0))
+    fail ("mpi_cmp_ui failed at line %d", __LINE__);
+
+  /* Single limb test with cmp */
+  if (gcry_mpi_cmp (zero, zero2))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (zero, one) < 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (one, zero) > 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+
+  gcry_mpi_neg (one, one);
+  if (!(gcry_mpi_cmp (zero, one) > 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (one, zero) < 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (one, two) < 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  gcry_mpi_neg (one, one);
+
+  if (!(gcry_mpi_cmp (one, two) < 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (two, one) > 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (one, all_ones) < 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+
+  /* Tests with opaque values.  */
+  if (!(gcry_mpi_cmp (opa1, one) < 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (one, opa1) > 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (opa0, opa02) == 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (opa1s, opa1) < 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (opa2, opa1s) > 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (opa1, opa2) < 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (opa2, opa1) > 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+  if (!(gcry_mpi_cmp (opa1, opa1) == 0))
+    fail ("mpi_cmp failed at line %d", __LINE__);
+
+
+  gcry_mpi_release(opa2s);
+  gcry_mpi_release(opa2);
+  gcry_mpi_release(opa1s);
+  gcry_mpi_release(opa1);
+  gcry_mpi_release(opa02);
+  gcry_mpi_release(opa0);
+  gcry_mpi_release(all_ones);
+  gcry_mpi_release(two);
+  gcry_mpi_release(one);
+  gcry_mpi_release(zero2);
+  gcry_mpi_release(zero);
 }
 
 
@@ -215,14 +338,14 @@ test_add (void)
 
   gcry_mpi_add(result, one, two);
   gcry_mpi_aprint(GCRYMPI_FMT_HEX, &pc, NULL, result);
-  if (verbose)
-    printf("Result of one plus two:\n%s\n", pc);
+  if (debug)
+    gcry_log_debug ("Result of one plus two:\n%s\n", pc);
   gcry_free(pc);
 
   gcry_mpi_add(result, ff, one);
   gcry_mpi_aprint(GCRYMPI_FMT_HEX, &pc, NULL, result);
-  if (verbose)
-    printf("Result of ff plus one:\n%s\n", pc);
+  if (debug)
+    gcry_log_debug ("Result of ff plus one:\n%s\n", pc);
   gcry_free(pc);
 
   gcry_mpi_release(one);
@@ -247,8 +370,8 @@ test_sub (void)
   gcry_mpi_sub(result, two, one);
 
   gcry_mpi_aprint(GCRYMPI_FMT_HEX, &pc, NULL, result);
-  if (verbose)
-    printf("Result of two minus one:\n%s\n", pc);
+  if (debug)
+    gcry_log_debug ("Result of two minus one:\n%s\n", pc);
   gcry_free(pc);
 
   gcry_mpi_release(one);
@@ -272,8 +395,8 @@ test_mul (void)
   gcry_mpi_mul(result, two, three);
 
   gcry_mpi_aprint(GCRYMPI_FMT_HEX, &pc, NULL, result);
-  if (verbose)
-    printf("Result of two mul three:\n%s\n", pc);
+  if (debug)
+    gcry_log_debug ("Result of two mul three:\n%s\n", pc);
   gcry_free(pc);
 
   gcry_mpi_release(two);
@@ -408,10 +531,11 @@ main (int argc, char* argv[])
 
   test_const_and_immutable ();
   test_opaque ();
+  test_cmp ();
   test_add ();
   test_sub ();
   test_mul ();
   test_powm ();
 
-  return 0;
+  return !!error_count;
 }
