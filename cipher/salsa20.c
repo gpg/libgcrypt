@@ -47,6 +47,15 @@
 # define USE_AMD64 1
 #endif
 
+/* USE_ARM_NEON_ASM indicates whether to enable ARM NEON assembly code. */
+#undef USE_ARM_NEON_ASM
+#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+# if defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
+     defined(HAVE_GCC_INLINE_ASM_NEON)
+#  define USE_ARM_NEON_ASM 1
+# endif
+#endif
+
 
 #define SALSA20_MIN_KEY_SIZE 16  /* Bytes.  */
 #define SALSA20_MAX_KEY_SIZE 32  /* Bytes.  */
@@ -60,7 +69,16 @@
 #define SALSA20R12_ROUNDS    12
 
 
-typedef struct
+struct SALSA20_context_s;
+
+typedef unsigned int (*salsa20_core_t) (u32 *dst, struct SALSA20_context_s *ctx,
+                                        unsigned int rounds);
+typedef void (* salsa20_keysetup_t)(struct SALSA20_context_s *ctx,
+                                    const byte *key, int keylen);
+typedef void (* salsa20_ivsetup_t)(struct SALSA20_context_s *ctx,
+                                   const byte *iv);
+
+typedef struct SALSA20_context_s
 {
   /* Indices 1-4 and 11-14 holds the key (two identical copies for the
      shorter key size), indices 0, 5, 10, 15 are constant, indices 6, 7
@@ -74,6 +92,12 @@ typedef struct
   u32 input[SALSA20_INPUT_LENGTH];
   u32 pad[SALSA20_INPUT_LENGTH];
   unsigned int unused; /* bytes in the pad.  */
+#ifdef USE_ARM_NEON_ASM
+  int use_neon;
+#endif
+  salsa20_keysetup_t keysetup;
+  salsa20_ivsetup_t ivsetup;
+  salsa20_core_t core;
 } SALSA20_context_t;
 
 
@@ -113,10 +137,10 @@ salsa20_ivsetup(SALSA20_context_t *ctx, const byte *iv)
 }
 
 static unsigned int
-salsa20_core (u32 *dst, u32 *src, unsigned int rounds)
+salsa20_core (u32 *dst, SALSA20_context_t *ctx, unsigned int rounds)
 {
   memset(dst, 0, SALSA20_BLOCK_SIZE);
-  return _gcry_salsa20_amd64_encrypt_blocks(src, dst, dst, 1, rounds);
+  return _gcry_salsa20_amd64_encrypt_blocks(ctx->input, dst, dst, 1, rounds);
 }
 
 #else /* USE_AMD64 */
@@ -149,9 +173,9 @@ salsa20_core (u32 *dst, u32 *src, unsigned int rounds)
   } while(0)
 
 static unsigned int
-salsa20_core (u32 *dst, u32 *src, unsigned int rounds)
+salsa20_core (u32 *dst, SALSA20_context_t *ctx, unsigned rounds)
 {
-  u32 pad[SALSA20_INPUT_LENGTH];
+  u32 pad[SALSA20_INPUT_LENGTH], *src = ctx->input;
   unsigned int i;
 
   memcpy (pad, src, sizeof(pad));
@@ -236,6 +260,49 @@ static void salsa20_ivsetup(SALSA20_context_t *ctx, const byte *iv)
 
 #endif /*!USE_AMD64*/
 
+#ifdef USE_ARM_NEON_ASM
+
+/* ARM NEON implementation of Salsa20. */
+unsigned int
+_gcry_arm_neon_salsa20_encrypt(void *c, const void *m, unsigned int nblks,
+                               void *k, unsigned int rounds);
+
+static unsigned int
+salsa20_core_neon (u32 *dst, SALSA20_context_t *ctx, unsigned int rounds)
+{
+  return _gcry_arm_neon_salsa20_encrypt(dst, NULL, 1, ctx->input, rounds);
+}
+
+static void salsa20_ivsetup_neon(SALSA20_context_t *ctx, const byte *iv)
+{
+  memcpy(ctx->input + 8, iv, 8);
+  /* Reset the block counter.  */
+  memset(ctx->input + 10, 0, 8);
+}
+
+static void
+salsa20_keysetup_neon(SALSA20_context_t *ctx, const byte *key, int klen)
+{
+  static const unsigned char sigma32[16] = "expand 32-byte k";
+  static const unsigned char sigma16[16] = "expand 16-byte k";
+
+  if (klen == 16)
+    {
+      memcpy (ctx->input, key, 16);
+      memcpy (ctx->input + 4, key, 16); /* Duplicate 128-bit key. */
+      memcpy (ctx->input + 12, sigma16, 16);
+    }
+  else
+    {
+      /* 32-byte key */
+      memcpy (ctx->input, key, 32);
+      memcpy (ctx->input + 12, sigma32, 16);
+    }
+}
+
+#endif /*USE_ARM_NEON_ASM*/
+
+
 static gcry_err_code_t
 salsa20_do_setkey (SALSA20_context_t *ctx,
                    const byte *key, unsigned int keylen)
@@ -257,7 +324,23 @@ salsa20_do_setkey (SALSA20_context_t *ctx,
       && keylen != SALSA20_MAX_KEY_SIZE)
     return GPG_ERR_INV_KEYLEN;
 
-  salsa20_keysetup (ctx, key, keylen);
+  /* Default ops. */
+  ctx->keysetup = salsa20_keysetup;
+  ctx->ivsetup = salsa20_ivsetup;
+  ctx->core = salsa20_core;
+
+#ifdef USE_ARM_NEON_ASM
+  ctx->use_neon = (_gcry_get_hw_features () & HWF_ARM_NEON) != 0;
+  if (ctx->use_neon)
+    {
+      /* Use ARM NEON ops instead. */
+      ctx->keysetup = salsa20_keysetup_neon;
+      ctx->ivsetup = salsa20_ivsetup_neon;
+      ctx->core = salsa20_core_neon;
+    }
+#endif
+
+  ctx->keysetup (ctx, key, keylen);
 
   /* We default to a zero nonce.  */
   salsa20_setiv (ctx, NULL, 0);
@@ -290,7 +373,7 @@ salsa20_setiv (void *context, const byte *iv, unsigned int ivlen)
   else
     memcpy (tmp, iv, SALSA20_IV_SIZE);
 
-  salsa20_ivsetup (ctx, tmp);
+  ctx->ivsetup (ctx, tmp);
 
   /* Reset the unused pad bytes counter.  */
   ctx->unused = 0;
@@ -340,12 +423,24 @@ salsa20_do_encrypt_stream (SALSA20_context_t *ctx,
     }
 #endif
 
+#ifdef USE_ARM_NEON_ASM
+  if (ctx->use_neon && length >= SALSA20_BLOCK_SIZE)
+    {
+      unsigned int nblocks = length / SALSA20_BLOCK_SIZE;
+      _gcry_arm_neon_salsa20_encrypt (outbuf, inbuf, nblocks, ctx->input,
+                                      rounds);
+      length -= SALSA20_BLOCK_SIZE * nblocks;
+      outbuf += SALSA20_BLOCK_SIZE * nblocks;
+      inbuf  += SALSA20_BLOCK_SIZE * nblocks;
+    }
+#endif
+
   while (length > 0)
     {
       /* Create the next pad and bump the block counter.  Note that it
          is the user's duty to change to another nonce not later than
          after 2^70 processed bytes.  */
-      nburn = salsa20_core (ctx->pad, ctx->input, rounds);
+      nburn = ctx->core (ctx->pad, ctx, rounds);
       burn = nburn > burn ? nburn : burn;
 
       if (length <= SALSA20_BLOCK_SIZE)
@@ -386,12 +481,13 @@ salsa20r12_encrypt_stream (void *context,
 }
 
 
-
 static const char*
 selftest (void)
 {
   SALSA20_context_t ctx;
   byte scratch[8+1];
+  byte buf[256+64+4];
+  int i;
 
   static byte key_1[] =
     { 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -418,6 +514,23 @@ selftest (void)
   salsa20_encrypt_stream (&ctx, scratch, scratch, sizeof plaintext_1);
   if (memcmp (scratch, plaintext_1, sizeof plaintext_1))
     return "Salsa20 decryption test 1 failed.";
+
+  for (i = 0; i < sizeof buf; i++)
+    buf[i] = i;
+  salsa20_setkey (&ctx, key_1, sizeof key_1);
+  salsa20_setiv (&ctx, nonce_1, sizeof nonce_1);
+  /*encrypt*/
+  salsa20_encrypt_stream (&ctx, buf, buf, sizeof buf);
+  /*decrypt*/
+  salsa20_setkey (&ctx, key_1, sizeof key_1);
+  salsa20_setiv (&ctx, nonce_1, sizeof nonce_1);
+  salsa20_encrypt_stream (&ctx, buf, buf, 1);
+  salsa20_encrypt_stream (&ctx, buf+1, buf+1, (sizeof buf)-1-1);
+  salsa20_encrypt_stream (&ctx, buf+(sizeof buf)-1, buf+(sizeof buf)-1, 1);
+  for (i = 0; i < sizeof buf; i++)
+    if (buf[i] != (byte)i)
+      return "Salsa20 encryption test 2 failed.";
+
   return NULL;
 }
 
