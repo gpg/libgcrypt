@@ -24,8 +24,8 @@ TESTS = version mpitests tsexp t-convert \
 	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979 t-ed25519
 
 
-# The last test to run.
-TESTS += benchmark
+# The last tests to run.
+TESTS += benchmark bench-slope
 
 
 # Need to include ../src in addition to top_srcdir because gcrypt.h is
