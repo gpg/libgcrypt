@@ -627,11 +627,11 @@ cipher_reset (gcry_cipher_hd_t c)
 
 
 static gcry_err_code_t
-do_ecb_encrypt (gcry_cipher_hd_t c,
-                unsigned char *outbuf, unsigned int outbuflen,
-                const unsigned char *inbuf, unsigned int inbuflen)
+do_ecb_crypt (gcry_cipher_hd_t c,
+              unsigned char *outbuf, unsigned int outbuflen,
+              const unsigned char *inbuf, unsigned int inbuflen,
+              gcry_cipher_encrypt_t crypt_fn)
 {
-  gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
   unsigned int blocksize = c->spec->blocksize;
   unsigned int n, nblocks;
   unsigned int burn, nburn;
@@ -646,7 +646,7 @@ do_ecb_encrypt (gcry_cipher_hd_t c,
 
   for (n=0; n < nblocks; n++ )
     {
-      nburn = enc_fn (&c->context.c, outbuf, (byte*)/*arggg*/inbuf);
+      nburn = crypt_fn (&c->context.c, outbuf, inbuf);
       burn = nburn > burn ? nburn : burn;
       inbuf  += blocksize;
       outbuf += blocksize;
@@ -659,35 +659,19 @@ do_ecb_encrypt (gcry_cipher_hd_t c,
 }
 
 static gcry_err_code_t
+do_ecb_encrypt (gcry_cipher_hd_t c,
+                unsigned char *outbuf, unsigned int outbuflen,
+                const unsigned char *inbuf, unsigned int inbuflen)
+{
+  return do_ecb_crypt (c, outbuf, outbuflen, inbuf, inbuflen, c->spec->encrypt);
+}
+
+static gcry_err_code_t
 do_ecb_decrypt (gcry_cipher_hd_t c,
                 unsigned char *outbuf, unsigned int outbuflen,
                 const unsigned char *inbuf, unsigned int inbuflen)
 {
-  gcry_cipher_decrypt_t dec_fn = c->spec->decrypt;
-  unsigned int blocksize = c->spec->blocksize;
-  unsigned int n, nblocks;
-  unsigned int burn, nburn;
-
-  if (outbuflen < inbuflen)
-    return GPG_ERR_BUFFER_TOO_SHORT;
-  if ((inbuflen % blocksize))
-    return GPG_ERR_INV_LENGTH;
-
-  nblocks = inbuflen / blocksize;
-  burn = 0;
-
-  for (n=0; n < nblocks; n++ )
-    {
-      nburn = dec_fn (&c->context.c, outbuf, (byte*)/*arggg*/inbuf);
-      burn = nburn > burn ? nburn : burn;
-      inbuf  += blocksize;
-      outbuf += blocksize;
-    }
-
-  if (burn > 0)
-    _gcry_burn_stack (burn + 4 * sizeof(void *));
-
-  return 0;
+  return do_ecb_crypt (c, outbuf, outbuflen, inbuf, inbuflen, c->spec->decrypt);
 }
 
 
