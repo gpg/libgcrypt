@@ -1553,6 +1553,13 @@ LIST_MEMBER(salsa20, $enabled_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS salsa20.lo"
    AC_DEFINE(USE_SALSA20, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS salsa20-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(gost28147, $enabled_ciphers)

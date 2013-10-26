@@ -40,6 +40,14 @@
 #include "cipher.h"
 #include "bufhelp.h"
 
+
+/* USE_AMD64 indicates whether to compile with AMD64 code. */
+#undef USE_AMD64
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+# define USE_AMD64 1
+#endif
+
+
 #define SALSA20_MIN_KEY_SIZE 16  /* Bytes.  */
 #define SALSA20_MAX_KEY_SIZE 32  /* Bytes.  */
 #define SALSA20_BLOCK_SIZE   64  /* Bytes.  */
@@ -83,6 +91,36 @@ typedef struct
 static void salsa20_setiv (void *context, const byte *iv, unsigned int ivlen);
 static const char *selftest (void);
 
+
+#ifdef USE_AMD64
+/* AMD64 assembly implementations of Salsa20. */
+void _gcry_salsa20_amd64_keysetup(u32 *ctxinput, const void *key, int keybits);
+void _gcry_salsa20_amd64_ivsetup(u32 *ctxinput, const void *iv);
+unsigned int
+_gcry_salsa20_amd64_encrypt_blocks(u32 *ctxinput, const void *src, void *dst,
+                                   size_t len, int rounds);
+
+static void
+salsa20_keysetup(SALSA20_context_t *ctx, const byte *key, int keylen)
+{
+  _gcry_salsa20_amd64_keysetup(ctx->input, key, keylen * 8);
+}
+
+static void
+salsa20_ivsetup(SALSA20_context_t *ctx, const byte *iv)
+{
+  _gcry_salsa20_amd64_ivsetup(ctx->input, iv);
+}
+
+static unsigned int
+salsa20_core (u32 *dst, u32 *src, unsigned int rounds)
+{
+  memset(dst, 0, SALSA20_BLOCK_SIZE);
+  return _gcry_salsa20_amd64_encrypt_blocks(src, dst, dst, 1, rounds);
+}
+
+#else /* USE_AMD64 */
+
 
 
 #if 0
@@ -110,8 +148,8 @@ static const char *selftest (void);
     x0 ^= ROTL32 (18, x3 + x2);	    \
   } while(0)
 
-static void
-salsa20_core (u32 *dst, const u32 *src, unsigned rounds)
+static unsigned int
+salsa20_core (u32 *dst, u32 *src, unsigned int rounds)
 {
   u32 pad[SALSA20_INPUT_LENGTH];
   unsigned int i;
@@ -138,31 +176,24 @@ salsa20_core (u32 *dst, const u32 *src, unsigned rounds)
       u32 t = pad[i] + src[i];
       dst[i] = LE_SWAP32 (t);
     }
+
+  /* Update counter. */
+  if (!++src[8])
+    src[9]++;
+
+  /* burn_stack */
+  return ( 3*sizeof (void*) \
+         + 2*sizeof (void*) \
+         + 64 \
+         + sizeof (unsigned int) \
+         + sizeof (u32) );
 }
 #undef QROUND
 #undef SALSA20_CORE_DEBUG
 
-static gcry_err_code_t
-salsa20_do_setkey (SALSA20_context_t *ctx,
-                   const byte *key, unsigned int keylen)
+static void
+salsa20_keysetup(SALSA20_context_t *ctx, const byte *key, int keylen)
 {
-  static int initialized;
-  static const char *selftest_failed;
-
-  if (!initialized )
-    {
-      initialized = 1;
-      selftest_failed = selftest ();
-      if (selftest_failed)
-        log_error ("SALSA20 selftest failed (%s)\n", selftest_failed );
-    }
-  if (selftest_failed)
-    return GPG_ERR_SELFTEST_FAILED;
-
-  if (keylen != SALSA20_MIN_KEY_SIZE
-      && keylen != SALSA20_MAX_KEY_SIZE)
-    return GPG_ERR_INV_KEYLEN;
-
   /* These constants are the little endian encoding of the string
      "expand 32-byte k".  For the 128 bit variant, the "32" in that
      string will be fixed up to "16".  */
@@ -192,6 +223,41 @@ salsa20_do_setkey (SALSA20_context_t *ctx,
       ctx->input[5]  -= 0x02000000; /* Change to "1 dn".  */
       ctx->input[10] += 0x00000004; /* Change to "yb-6".  */
     }
+}
+
+static void salsa20_ivsetup(SALSA20_context_t *ctx, const byte *iv)
+{
+  ctx->input[6] = LE_READ_UINT32(iv + 0);
+  ctx->input[7] = LE_READ_UINT32(iv + 4);
+  /* Reset the block counter.  */
+  ctx->input[8] = 0;
+  ctx->input[9] = 0;
+}
+
+#endif /*!USE_AMD64*/
+
+static gcry_err_code_t
+salsa20_do_setkey (SALSA20_context_t *ctx,
+                   const byte *key, unsigned int keylen)
+{
+  static int initialized;
+  static const char *selftest_failed;
+
+  if (!initialized )
+    {
+      initialized = 1;
+      selftest_failed = selftest ();
+      if (selftest_failed)
+        log_error ("SALSA20 selftest failed (%s)\n", selftest_failed );
+    }
+  if (selftest_failed)
+    return GPG_ERR_SELFTEST_FAILED;
+
+  if (keylen != SALSA20_MIN_KEY_SIZE
+      && keylen != SALSA20_MAX_KEY_SIZE)
+    return GPG_ERR_INV_KEYLEN;
+
+  salsa20_keysetup (ctx, key, keylen);
 
   /* We default to a zero nonce.  */
   salsa20_setiv (ctx, NULL, 0);
@@ -205,7 +271,7 @@ salsa20_setkey (void *context, const byte *key, unsigned int keylen)
 {
   SALSA20_context_t *ctx = (SALSA20_context_t *)context;
   gcry_err_code_t rc = salsa20_do_setkey (ctx, key, keylen);
-  _gcry_burn_stack (300/* FIXME*/);
+  _gcry_burn_stack (4 + sizeof (void *) + 4 * sizeof (void *));
   return rc;
 }
 
@@ -214,28 +280,22 @@ static void
 salsa20_setiv (void *context, const byte *iv, unsigned int ivlen)
 {
   SALSA20_context_t *ctx = (SALSA20_context_t *)context;
+  byte tmp[SALSA20_IV_SIZE];
 
-  if (!iv)
-    {
-      ctx->input[6] = 0;
-      ctx->input[7] = 0;
-    }
-  else if (ivlen == SALSA20_IV_SIZE)
-    {
-      ctx->input[6] = LE_READ_UINT32(iv + 0);
-      ctx->input[7] = LE_READ_UINT32(iv + 4);
-    }
+  if (iv && ivlen != SALSA20_IV_SIZE)
+    log_info ("WARNING: salsa20_setiv: bad ivlen=%u\n", ivlen);
+
+  if (!iv || ivlen != SALSA20_IV_SIZE)
+    memset (tmp, 0, sizeof(tmp));
   else
-    {
-      log_info ("WARNING: salsa20_setiv: bad ivlen=%u\n", ivlen);
-      ctx->input[6] = 0;
-      ctx->input[7] = 0;
-    }
-  /* Reset the block counter.  */
-  ctx->input[8] = 0;
-  ctx->input[9] = 0;
+    memcpy (tmp, iv, SALSA20_IV_SIZE);
+
+  salsa20_ivsetup (ctx, tmp);
+
   /* Reset the unused pad bytes counter.  */
   ctx->unused = 0;
+
+  wipememory (tmp, sizeof(tmp));
 }
 
 
@@ -246,6 +306,8 @@ salsa20_do_encrypt_stream (SALSA20_context_t *ctx,
                            byte *outbuf, const byte *inbuf,
                            unsigned int length, unsigned rounds)
 {
+  unsigned int nburn, burn = 0;
+
   if (ctx->unused)
     {
       unsigned char *p = (void*)ctx->pad;
@@ -266,26 +328,39 @@ salsa20_do_encrypt_stream (SALSA20_context_t *ctx,
       gcry_assert (!ctx->unused);
     }
 
-  for (;;)
+#ifdef USE_AMD64
+  if (length >= SALSA20_BLOCK_SIZE)
+    {
+      unsigned int nblocks = length / SALSA20_BLOCK_SIZE;
+      burn = _gcry_salsa20_amd64_encrypt_blocks(ctx->input, inbuf, outbuf,
+                                                nblocks, rounds);
+      length -= SALSA20_BLOCK_SIZE * nblocks;
+      outbuf += SALSA20_BLOCK_SIZE * nblocks;
+      inbuf  += SALSA20_BLOCK_SIZE * nblocks;
+    }
+#endif
+
+  while (length > 0)
     {
       /* Create the next pad and bump the block counter.  Note that it
          is the user's duty to change to another nonce not later than
          after 2^70 processed bytes.  */
-      salsa20_core (ctx->pad, ctx->input, rounds);
-      if (!++ctx->input[8])
-        ctx->input[9]++;
+      nburn = salsa20_core (ctx->pad, ctx->input, rounds);
+      burn = nburn > burn ? nburn : burn;
 
       if (length <= SALSA20_BLOCK_SIZE)
 	{
 	  buf_xor (outbuf, inbuf, ctx->pad, length);
           ctx->unused = SALSA20_BLOCK_SIZE - length;
-	  return;
+	  break;
 	}
       buf_xor (outbuf, inbuf, ctx->pad, SALSA20_BLOCK_SIZE);
       length -= SALSA20_BLOCK_SIZE;
       outbuf += SALSA20_BLOCK_SIZE;
       inbuf  += SALSA20_BLOCK_SIZE;
-  }
+    }
+
+  _gcry_burn_stack (burn);
 }
 
 
@@ -296,19 +371,7 @@ salsa20_encrypt_stream (void *context,
   SALSA20_context_t *ctx = (SALSA20_context_t *)context;
 
   if (length)
-    {
-      salsa20_do_encrypt_stream (ctx, outbuf, inbuf, length, SALSA20_ROUNDS);
-      _gcry_burn_stack (/* salsa20_do_encrypt_stream: */
-                        2*sizeof (void*)
-                        + 3*sizeof (void*) + sizeof (unsigned int)
-                        /* salsa20_core: */
-                        + 2*sizeof (void*)
-                        + 2*sizeof (void*)
-                        + 64
-                        + sizeof (unsigned int)
-                        + sizeof (u32)
-                        );
-    }
+    salsa20_do_encrypt_stream (ctx, outbuf, inbuf, length, SALSA20_ROUNDS);
 }
 
 
@@ -319,19 +382,7 @@ salsa20r12_encrypt_stream (void *context,
   SALSA20_context_t *ctx = (SALSA20_context_t *)context;
 
   if (length)
-    {
-      salsa20_do_encrypt_stream (ctx, outbuf, inbuf, length, SALSA20R12_ROUNDS);
-      _gcry_burn_stack (/* salsa20_do_encrypt_stream: */
-                        2*sizeof (void*)
-                        + 3*sizeof (void*) + sizeof (unsigned int)
-                        /* salsa20_core: */
-                        + 2*sizeof (void*)
-                        + 2*sizeof (void*)
-                        + 64
-                        + sizeof (unsigned int)
-                        + sizeof (u32)
-                        );
-    }
+    salsa20_do_encrypt_stream (ctx, outbuf, inbuf, length, SALSA20R12_ROUNDS);
 }
 
 
