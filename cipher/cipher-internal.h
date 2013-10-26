@@ -173,10 +173,6 @@ gcry_err_code_t _gcry_cipher_ofb_encrypt
 /*           */ (gcry_cipher_hd_t c,
                  unsigned char *outbuf, unsigned int outbuflen,
                  const unsigned char *inbuf, unsigned int inbuflen);
-gcry_err_code_t _gcry_cipher_ofb_decrypt
-/*           */ (gcry_cipher_hd_t c,
-                 unsigned char *outbuf, unsigned int outbuflen,
-                 const unsigned char *inbuf, unsigned int inbuflen);
 
 /*-- cipher-ctr.c --*/
 gcry_err_code_t _gcry_cipher_ctr_encrypt

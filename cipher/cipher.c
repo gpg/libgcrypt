@@ -814,7 +814,7 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
       break;
 
     case GCRY_CIPHER_MODE_OFB:
-      rc = _gcry_cipher_ofb_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
+      rc = _gcry_cipher_ofb_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_CTR:
