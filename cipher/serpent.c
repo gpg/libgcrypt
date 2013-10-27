@@ -46,6 +46,15 @@
 # endif
 #endif
 
+/* USE_NEON indicates whether to enable ARM NEON assembly code. */
+#undef USE_NEON
+#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+# if defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
+     defined(HAVE_GCC_INLINE_ASM_NEON)
+#  define USE_NEON 1
+# endif
+#endif
+
 
 /* Number of rounds per Serpent encrypt/decrypt operation.  */
 #define ROUNDS 32
@@ -70,6 +79,9 @@ typedef struct serpent_context
 
 #ifdef USE_AVX2
   int use_avx2;
+#endif
+#ifdef USE_NEON
+  int use_neon;
 #endif
 } serpent_context_t;
 
@@ -109,6 +121,26 @@ extern void _gcry_serpent_avx2_cbc_dec(serpent_context_t *ctx,
 				       unsigned char *iv);
 
 extern void _gcry_serpent_avx2_cfb_dec(serpent_context_t *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *iv);
+#endif
+
+#ifdef USE_NEON
+/* Assembler implementations of Serpent using ARM NEON.  Process 8 block in
+   parallel.
+ */
+extern void _gcry_serpent_neon_ctr_enc(serpent_context_t *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *ctr);
+
+extern void _gcry_serpent_neon_cbc_dec(serpent_context_t *ctx,
+				       unsigned char *out,
+				       const unsigned char *in,
+				       unsigned char *iv);
+
+extern void _gcry_serpent_neon_cfb_dec(serpent_context_t *ctx,
 				       unsigned char *out,
 				       const unsigned char *in,
 				       unsigned char *iv);
@@ -634,6 +666,14 @@ serpent_setkey_internal (serpent_context_t *context,
     }
 #endif
 
+#ifdef USE_NEON
+  context->use_neon = 0;
+  if ((_gcry_get_hw_features () & HWF_ARM_NEON))
+    {
+      context->use_neon = 1;
+    }
+#endif
+
   _gcry_burn_stack (272 * sizeof (u32));
 }
 
@@ -861,6 +901,34 @@ _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
   }
 #endif
 
+#ifdef USE_NEON
+  if (ctx->use_neon)
+    {
+      int did_use_neon = 0;
+
+      /* Process data in 8 block chunks. */
+      while (nblocks >= 8)
+        {
+          _gcry_serpent_neon_ctr_enc(ctx, outbuf, inbuf, ctr);
+
+          nblocks -= 8;
+          outbuf += 8 * sizeof(serpent_block_t);
+          inbuf  += 8 * sizeof(serpent_block_t);
+          did_use_neon = 1;
+        }
+
+      if (did_use_neon)
+        {
+          /* serpent-neon assembly code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+
+      /* Use generic code to handle smaller chunks... */
+      /* TODO: use caching instead? */
+    }
+#endif
+
   for ( ;nblocks; nblocks-- )
     {
       /* Encrypt the counter. */
@@ -948,6 +1016,33 @@ _gcry_serpent_cbc_dec(void *context, unsigned char *iv,
   }
 #endif
 
+#ifdef USE_NEON
+  if (ctx->use_neon)
+    {
+      int did_use_neon = 0;
+
+      /* Process data in 8 block chunks. */
+      while (nblocks >= 8)
+        {
+          _gcry_serpent_neon_cbc_dec(ctx, outbuf, inbuf, iv);
+
+          nblocks -= 8;
+          outbuf += 8 * sizeof(serpent_block_t);
+          inbuf  += 8 * sizeof(serpent_block_t);
+          did_use_neon = 1;
+        }
+
+      if (did_use_neon)
+        {
+          /* serpent-neon assembly code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+
+      /* Use generic code to handle smaller chunks... */
+    }
+#endif
+
   for ( ;nblocks; nblocks-- )
     {
       /* INBUF is needed later and it may be identical to OUTBUF, so store
@@ -1026,6 +1121,33 @@ _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
 
     /* Use generic code to handle smaller chunks... */
   }
+#endif
+
+#ifdef USE_NEON
+  if (ctx->use_neon)
+    {
+      int did_use_neon = 0;
+
+      /* Process data in 8 block chunks. */
+      while (nblocks >= 8)
+        {
+          _gcry_serpent_neon_cfb_dec(ctx, outbuf, inbuf, iv);
+
+          nblocks -= 8;
+          outbuf += 8 * sizeof(serpent_block_t);
+          inbuf  += 8 * sizeof(serpent_block_t);
+          did_use_neon = 1;
+        }
+
+      if (did_use_neon)
+        {
+          /* serpent-neon assembly code does not use stack */
+          if (nblocks == 0)
+            burn_stack_depth = 0;
+        }
+
+      /* Use generic code to handle smaller chunks... */
+    }
 #endif
 
   for ( ;nblocks; nblocks-- )

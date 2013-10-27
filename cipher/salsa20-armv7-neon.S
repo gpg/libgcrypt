@@ -36,7 +36,7 @@
 .text
 
 .align 2
-.global _gcry_arm_neon_salsa20_encrypt
+.globl _gcry_arm_neon_salsa20_encrypt
 .type  _gcry_arm_neon_salsa20_encrypt,%function;
 _gcry_arm_neon_salsa20_encrypt:
 	/* Modifications:
