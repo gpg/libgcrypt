@@ -390,7 +390,7 @@ and freed memory, you need to initialize Libgcrypt this way:
 
 @example
   /* Version check should be the very first call because it
-     makes sure that important subsystems are intialized. */
+     makes sure that important subsystems are initialized. */
   if (!gcry_check_version (GCRYPT_VERSION))
     @{
       fputs ("libgcrypt version mismatch\n", stderr);
@@ -405,7 +405,7 @@ and freed memory, you need to initialize Libgcrypt this way:
 
   /* ... If required, other initialization goes here.  Note that the
      process might still be running with increased privileges and that
-     the secure memory has not been intialized.  */
+     the secure memory has not been initialized.  */
 
   /* Allocate a pool of 16k secure memory.  This make the secure memory
      available and also drops privileges where needed.  */
@@ -642,9 +642,9 @@ callbacks.
 @item GCRYCTL_ENABLE_QUICK_RANDOM; Arguments: none
 This command inhibits the use the very secure random quality level
 (@code{GCRY_VERY_STRONG_RANDOM}) and degrades all request down to
-@code{GCRY_STRONG_RANDOM}.  In general this is not recommened.  However,
+@code{GCRY_STRONG_RANDOM}.  In general this is not recommended.  However,
 for some applications the extra quality random Libgcrypt tries to create
-is not justified and this option may help to get better performace.
+is not justified and this option may help to get better performance.
 Please check with a crypto expert whether this option can be used for
 your application.
 
@@ -652,19 +652,19 @@ This option can only be used at initialization time.
 
 
 @item GCRYCTL_DUMP_RANDOM_STATS; Arguments: none
-This command dumps randum number generator related statistics to the
+This command dumps random number generator related statistics to the
 library's logging stream.
 
 @item GCRYCTL_DUMP_MEMORY_STATS; Arguments: none
-This command dumps memory managment related statistics to the library's
+This command dumps memory management related statistics to the library's
 logging stream.
 
 @item GCRYCTL_DUMP_SECMEM_STATS; Arguments: none
-This command dumps secure memory manamgent related statistics to the
+This command dumps secure memory management related statistics to the
 library's logging stream.
 
 @item GCRYCTL_DROP_PRIVS; Arguments: none
-This command disables the use of secure memory and drops the priviliges
+This command disables the use of secure memory and drops the privileges
 of the current process.  This command has not much use; the suggested way
 to disable secure memory is to use @code{GCRYCTL_DISABLE_SECMEM} right
 after initialization.
@@ -758,7 +758,7 @@ these different instances is correlated to some extent.  In a perfect
 attack scenario, the attacker can control (or at least guess) the PID
 and clock of the application, and drain the system's entropy pool to
 reduce the "up to 16 bytes" above to 0.  Then the dependencies of the
-inital states of the pools are completely known.  Note that this is not
+initial states of the pools are completely known.  Note that this is not
 an issue if random of @code{GCRY_VERY_STRONG_RANDOM} quality is
 requested as in this case enough extra entropy gets mixed.  It is also
 not an issue when using Linux (rndlinux driver), because this one
@@ -795,11 +795,11 @@ This command does nothing.  It exists only for backward compatibility.
 This command returns true if the library has been basically initialized.
 Such a basic initialization happens implicitly with many commands to get
 certain internal subsystems running.  The common and suggested way to
-do this basic intialization is by calling gcry_check_version.
+do this basic initialization is by calling gcry_check_version.
 
 @item GCRYCTL_INITIALIZATION_FINISHED; Arguments: none
 This command tells the library that the application has finished the
-intialization.
+initialization.
 
 @item GCRYCTL_INITIALIZATION_FINISHED_P; Arguments: none
 This command returns true if the command@*
@@ -825,7 +825,7 @@ proper random device.
 @item GCRYCTL_PRINT_CONFIG; Arguments: FILE *stream
 This command dumps information pertaining to the configuration of the
 library to the given stream.  If NULL is given for @var{stream}, the log
-system is used.  This command may be used before the intialization has
+system is used.  This command may be used before the initialization has
 been finished but not before a @code{gcry_check_version}.
 
 @item GCRYCTL_OPERATIONAL_P; Arguments: none
@@ -833,12 +833,12 @@ This command returns true if the library is in an operational state.
 This information makes only sense in FIPS mode.  In contrast to other
 functions, this is a pure test function and won't put the library into
 FIPS mode or change the internal state.  This command may be used before
-the intialization has been finished but not before a @code{gcry_check_version}.
+the initialization has been finished but not before a @code{gcry_check_version}.
 
 @item GCRYCTL_FIPS_MODE_P; Arguments: none
 This command returns true if the library is in FIPS mode.  Note, that
 this is no indication about the current state of the library.  This
-command may be used before the intialization has been finished but not
+command may be used before the initialization has been finished but not
 before a @code{gcry_check_version}.  An application may use this command or
 the convenience macro below to check whether FIPS mode is actually
 active.
@@ -857,7 +857,7 @@ already in FIPS mode, a self-test is triggered and thus the library will
 be put into operational state.  This command may be used before a call
 to @code{gcry_check_version} and that is actually the recommended way to let an
 application switch the library into FIPS mode.  Note that Libgcrypt will
-reject an attempt to switch to fips mode during or after the intialization.
+reject an attempt to switch to fips mode during or after the initialization.
 
 @item GCRYCTL_SET_ENFORCED_FIPS_FLAG; Arguments: none
 Running this command sets the internal flag that puts the library into
@@ -866,7 +866,7 @@ does not affect the library if the library is not put into the FIPS mode and
 it must be used before any other libgcrypt library calls that initialize
 the library such as @code{gcry_check_version}. Note that Libgcrypt will
 reject an attempt to switch to the enforced fips mode during or after
-the intialization.
+the initialization.
 
 @item GCRYCTL_SET_PREFERRED_RNG_TYPE; Arguments: int
 These are advisory commands to select a certain random number
@@ -875,7 +875,7 @@ an application actually wants or vice versa.  Thus Libgcrypt employs a
 priority check to select the actually used RNG.  If an applications
 selects a lower priority RNG but a library requests a higher priority
 RNG Libgcrypt will switch to the higher priority RNG.  Applications
-and libaries should use these control codes before
+and libraries should use these control codes before
 @code{gcry_check_version}.  The available generators are:
 @table @code
 @item GCRY_RNG_TYPE_STANDARD
@@ -907,8 +907,8 @@ success or an error code on failure.
 @item GCRYCTL_DISABLE_HWF; Arguments: const char *name
 
 Libgcrypt detects certain features of the CPU at startup time.  For
-performace tests it is sometimes required not to use such a feature.
-This option may be used to disabale a certain feature; i.e. Libgcrypt
+performance tests it is sometimes required not to use such a feature.
+This option may be used to disable a certain feature; i.e. Libgcrypt
 behaves as if this feature has not been detected.  Note that the
 detection code might be run if the feature has been disabled.  This
 command must be used at initialization time; i.e. before calling
@@ -1929,7 +1929,7 @@ checking.
 
 @deftypefun size_t gcry_cipher_get_algo_blklen (int @var{algo})
 
-This functions returns the blocklength of the algorithm @var{algo}
+This functions returns the block-length of the algorithm @var{algo}
 counted in octets.  On error @code{0} is returned.
 
 This is a convenience functions which should be preferred over
@@ -2292,7 +2292,7 @@ will be changed to implement 186-3.
 @item use-fips186-2
 @cindex FIPS 186-2
 Force the use of the FIPS 186-2 key generation algorithm instead of
-the default algorithm.  This algorithm is slighlty different from
+the default algorithm.  This algorithm is slightly different from
 FIPS 186-3 and allows only 1024 bit keys.  This flag is only meaningful
 for DSA and only required for FIPS testing backward compatibility.
 
@@ -4547,7 +4547,7 @@ Convenience function to release the @var{factors} array.
 
 @deftypefun gcry_error_t gcry_prime_check (gcry_mpi_t @var{p}, unsigned int @var{flags})
 
-Check wether the number @var{p} is prime.  Returns zero in case @var{p}
+Check whether the number @var{p} is prime.  Returns zero in case @var{p}
 is indeed a prime, returns @code{GPG_ERR_NO_PRIME} in case @var{p} is
 not a prime and a different error code in case something went horribly
 wrong.
@@ -4988,7 +4988,7 @@ checking function is exported as well.
 
 The generation of random prime numbers is based on the Lim and Lee
 algorithm to create practically save primes.@footnote{Chae Hoon Lim
-and Pil Joong Lee. A key recovery attack on discrete log-based shemes
+and Pil Joong Lee. A key recovery attack on discrete log-based schemes
 using a prime order subgroup. In Burton S. Kaliski Jr., editor,
 Advances in Cryptology: Crypto '97, pages 249­-263, Berlin /
 Heidelberg / New York, 1997. Springer-Verlag.  Described on page 260.}
@@ -5147,7 +5147,7 @@ output blocks.
 
 On Unix like systems the @code{GCRY_VERY_STRONG_RANDOM} and
 @code{GCRY_STRONG_RANDOM} generators are keyed and seeded using the
-rndlinux module with the @file{/dev/radnom} device. Thus these
+rndlinux module with the @file{/dev/random} device. Thus these
 generators may block until the OS kernel has collected enough entropy.
 When used with Microsoft Windows the rndw32 module is used instead.
 
@@ -5162,7 +5162,7 @@ entropy for use by the ``real'' random generators.
 A self-test facility uses a separate context to check the
 functionality of the core X9.31 functions using a known answers test.
 During runtime each output block is compared to the previous one to
-detect a stucked generator.
+detect a stuck generator.
 
 The DT value for the generator is made up of the current time down to
 microseconds (if available) and a free running 64 bit counter.  When
@@ -5188,7 +5188,7 @@ incremented on each use.
 @c them.  To use an S-expression with Libgcrypt it needs first be
 @c converted into the internal representation used by Libgcrypt (the type
 @c @code{gcry_sexp_t}).  The conversion functions support a large subset
-@c of the S-expression specification and further fature a printf like
+@c of the S-expression specification and further feature a printf like
 @c function to convert a list of big integers or other binary data into
 @c an S-expression.
 @c
@@ -5357,8 +5357,8 @@ The result is verified using the public key against the original data
 and against modified data.  (@code{cipher/@/rsa.c:@/selftest_sign_1024})
 @item
 A 1000 bit random value is encrypted and checked that it does not
-match the orginal random value.  The encrtypted result is then
-decrypted and checked that it macthes the original random value.
+match the original random value.  The encrypted result is then
+decrypted and checked that it matches the original random value.
 (@code{cipher/@/rsa.c:@/selftest_encr_1024})
 @end enumerate
 
@@ -5401,7 +5401,7 @@ keys.  The table itself is protected using a SHA-1 hash.
 @c --------------------------------
 @section Conditional Tests
 
-The conditional tests are performed if a certain contidion is met.
+The conditional tests are performed if a certain condition is met.
 This may occur at any time; the library does not necessary enter the
 ``Self-Test'' state to run these tests but will transit to the
 ``Error'' state if a test failed.
@@ -5696,7 +5696,7 @@ documentation only.
 
 @item Power-On
 Libgcrypt is loaded into memory and API calls may be made.  Compiler
-introducted constructor functions may be run.  Note that Libgcrypt does
+introduced constructor functions may be run.  Note that Libgcrypt does
 not implement any arbitrary constructor functions to be called by the
 operating system
 
@@ -5721,7 +5721,7 @@ will automatically transit into the  Shutdown state.
 
 @item Shutdown
 Libgcrypt is about to be terminated and removed from the memory. The
-application may at this point still runing cleanup handlers.
+application may at this point still running cleanup handlers.
 
 @end table
 @end float
@@ -5738,18 +5738,18 @@ a shared library and having it linked to an application.
 
 @item 2
 Power-On to Init is triggered by the application calling the
-Libgcrypt intialization function @code{gcry_check_version}.
+Libgcrypt initialization function @code{gcry_check_version}.
 
 @item 3
-Init to Self-Test is either triggred by a dedicated API call or implicit
-by invoking a libgrypt service conrolled by the FSM.
+Init to Self-Test is either triggered by a dedicated API call or implicit
+by invoking a libgrypt service controlled by the FSM.
 
 @item 4
 Self-Test to Operational is triggered after all self-tests passed
 successfully.
 
 @item 5
-Operational to Shutdown is an artifical state without any direct action
+Operational to Shutdown is an artificial state without any direct action
 in Libgcrypt.  When reaching the Shutdown state the library is
 deinitialized and can't return to any other state again.
 
@@ -5770,7 +5770,7 @@ Error to Shutdown is similar to the Operational to Shutdown transition
 (5).
 
 @item 9
-Error to Fatal-Error is triggred if Libgrypt detects an fatal error
+Error to Fatal-Error is triggered if Libgrypt detects an fatal error
 while already being in Error state.
 
 @item 10
@@ -5778,26 +5778,26 @@ Fatal-Error to Shutdown is automatically entered by Libgcrypt
 after having reported the error.
 
 @item 11
-Power-On to Shutdown is an artifical state to document that Libgcrypt
-has not ye been initializaed but the process is about to terminate.
+Power-On to Shutdown is an artificial state to document that Libgcrypt
+has not ye been initialized but the process is about to terminate.
 
 @item 12
-Power-On to Fatal-Error will be triggerd if certain Libgcrypt functions
+Power-On to Fatal-Error will be triggered if certain Libgcrypt functions
 are used without having reached the Init state.
 
 @item 13
-Self-Test to Fatal-Error is triggred by severe errors in Libgcrypt while
+Self-Test to Fatal-Error is triggered by severe errors in Libgcrypt while
 running self-tests.
 
 @item 14
-Self-Test to Error is triggred by a failed self-test.
+Self-Test to Error is triggered by a failed self-test.
 
 @item 15
 Operational to Fatal-Error is triggered if Libcrypt encountered a
 non-recoverable error.
 
 @item 16
-Operational to Self-Test is triggred if the application requested to run
+Operational to Self-Test is triggered if the application requested to run
 the self-tests again.
 
 @item 17
@@ -5868,7 +5868,7 @@ memory and thus also the encryption contexts with these keys.
 
 GCRYCTL_SET_RANDOM_DAEMON_SOCKET
 GCRYCTL_USE_RANDOM_DAEMON
-The random damon is still a bit experimental, thus we do not document
+The random daemon is still a bit experimental, thus we do not document
 them.  Note that they should be used during initialization and that
 these functions are not really thread safe.
 
