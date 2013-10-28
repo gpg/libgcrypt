@@ -179,7 +179,7 @@
 	movq RLR0, 		(RIO);
 
 .align 8
-.global _gcry_cast5_amd64_encrypt_block
+.globl _gcry_cast5_amd64_encrypt_block
 .type   _gcry_cast5_amd64_encrypt_block,@function;
 
 _gcry_cast5_amd64_encrypt_block:
@@ -219,7 +219,7 @@ _gcry_cast5_amd64_encrypt_block:
 .size _gcry_cast5_amd64_encrypt_block,.-_gcry_cast5_amd64_encrypt_block;
 
 .align 8
-.global _gcry_cast5_amd64_decrypt_block
+.globl _gcry_cast5_amd64_decrypt_block
 .type   _gcry_cast5_amd64_decrypt_block,@function;
 
 _gcry_cast5_amd64_decrypt_block:
@@ -417,7 +417,7 @@ __cast5_dec_blk4:
 .size __cast5_dec_blk4,.-__cast5_dec_blk4;
 
 .align 8
-.global _gcry_cast5_amd64_ctr_enc
+.globl _gcry_cast5_amd64_ctr_enc
 .type   _gcry_cast5_amd64_ctr_enc,@function;
 _gcry_cast5_amd64_ctr_enc:
 	/* input:
@@ -475,7 +475,7 @@ _gcry_cast5_amd64_ctr_enc:
 .size _gcry_cast5_amd64_ctr_enc,.-_gcry_cast5_amd64_ctr_enc;
 
 .align 8
-.global _gcry_cast5_amd64_cbc_dec
+.globl _gcry_cast5_amd64_cbc_dec
 .type   _gcry_cast5_amd64_cbc_dec,@function;
 _gcry_cast5_amd64_cbc_dec:
 	/* input:
@@ -529,7 +529,7 @@ _gcry_cast5_amd64_cbc_dec:
 .size _gcry_cast5_amd64_cbc_dec,.-_gcry_cast5_amd64_cbc_dec;
 
 .align 8
-.global _gcry_cast5_amd64_cfb_dec
+.globl _gcry_cast5_amd64_cfb_dec
 .type   _gcry_cast5_amd64_cfb_dec,@function;
 _gcry_cast5_amd64_cfb_dec:
 	/* input:

@@ -296,7 +296,7 @@ _gcry_blowfish_arm_do_encrypt:
 .size _gcry_blowfish_arm_do_encrypt,.-_gcry_blowfish_arm_do_encrypt;
 
 .align 3
-.global _gcry_blowfish_arm_encrypt_block
+.globl _gcry_blowfish_arm_encrypt_block
 .type   _gcry_blowfish_arm_encrypt_block,%function;
 
 _gcry_blowfish_arm_encrypt_block:
@@ -317,7 +317,7 @@ _gcry_blowfish_arm_encrypt_block:
 .size _gcry_blowfish_arm_encrypt_block,.-_gcry_blowfish_arm_encrypt_block;
 
 .align 3
-.global _gcry_blowfish_arm_decrypt_block
+.globl _gcry_blowfish_arm_decrypt_block
 .type   _gcry_blowfish_arm_decrypt_block,%function;
 
 _gcry_blowfish_arm_decrypt_block:

@@ -160,7 +160,7 @@
 	addroundkey((round) + 1, RNA, RNB, RNC, RND);
 
 .align 8
-.global _gcry_aes_amd64_encrypt_block
+.globl _gcry_aes_amd64_encrypt_block
 .type   _gcry_aes_amd64_encrypt_block,@function;
 
 _gcry_aes_amd64_encrypt_block:
@@ -281,7 +281,7 @@ _gcry_aes_amd64_encrypt_block:
 	addroundkey(round, RNA, RNB, RNC, RND);
 
 .align 8
-.global _gcry_aes_amd64_decrypt_block
+.globl _gcry_aes_amd64_decrypt_block
 .type   _gcry_aes_amd64_decrypt_block,@function;
 
 _gcry_aes_amd64_decrypt_block:

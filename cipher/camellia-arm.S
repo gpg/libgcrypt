@@ -252,7 +252,7 @@
 	str_output_be(%r1, YL, YR, XL, XR, RT0, RT1);
 
 .align 3
-.global _gcry_camellia_arm_encrypt_block
+.globl _gcry_camellia_arm_encrypt_block
 .type   _gcry_camellia_arm_encrypt_block,%function;
 
 _gcry_camellia_arm_encrypt_block:
@@ -300,7 +300,7 @@ _gcry_camellia_arm_encrypt_block:
 .size _gcry_camellia_arm_encrypt_block,.-_gcry_camellia_arm_encrypt_block;
 
 .align 3
-.global _gcry_camellia_arm_decrypt_block
+.globl _gcry_camellia_arm_decrypt_block
 .type   _gcry_camellia_arm_decrypt_block,%function;
 
 _gcry_camellia_arm_decrypt_block:

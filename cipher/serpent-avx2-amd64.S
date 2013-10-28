@@ -588,7 +588,7 @@ __serpent_dec_blk16:
 	vpsubq tmp, x, x;
 
 .align 8
-.global _gcry_serpent_avx2_ctr_enc
+.globl _gcry_serpent_avx2_ctr_enc
 .type   _gcry_serpent_avx2_ctr_enc,@function;
 _gcry_serpent_avx2_ctr_enc:
 	/* input:
@@ -695,7 +695,7 @@ _gcry_serpent_avx2_ctr_enc:
 .size _gcry_serpent_avx2_ctr_enc,.-_gcry_serpent_avx2_ctr_enc;
 
 .align 8
-.global _gcry_serpent_avx2_cbc_dec
+.globl _gcry_serpent_avx2_cbc_dec
 .type   _gcry_serpent_avx2_cbc_dec,@function;
 _gcry_serpent_avx2_cbc_dec:
 	/* input:
@@ -746,7 +746,7 @@ _gcry_serpent_avx2_cbc_dec:
 .size _gcry_serpent_avx2_cbc_dec,.-_gcry_serpent_avx2_cbc_dec;
 
 .align 8
-.global _gcry_serpent_avx2_cfb_dec
+.globl _gcry_serpent_avx2_cfb_dec
 .type   _gcry_serpent_avx2_cfb_dec,@function;
 _gcry_serpent_avx2_cfb_dec:
 	/* input:

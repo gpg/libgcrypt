@@ -947,7 +947,7 @@ __camellia_dec_blk16:
 	vpsubq tmp, x, x;
 
 .align 8
-.global _gcry_camellia_aesni_avx_ctr_enc
+.globl _gcry_camellia_aesni_avx_ctr_enc
 .type   _gcry_camellia_aesni_avx_ctr_enc,@function;
 
 _gcry_camellia_aesni_avx_ctr_enc:
@@ -1062,7 +1062,7 @@ _gcry_camellia_aesni_avx_ctr_enc:
 .size _gcry_camellia_aesni_avx_ctr_enc,.-_gcry_camellia_aesni_avx_ctr_enc;
 
 .align 8
-.global _gcry_camellia_aesni_avx_cbc_dec
+.globl _gcry_camellia_aesni_avx_cbc_dec
 .type   _gcry_camellia_aesni_avx_cbc_dec,@function;
 
 _gcry_camellia_aesni_avx_cbc_dec:
@@ -1126,7 +1126,7 @@ _gcry_camellia_aesni_avx_cbc_dec:
 .size _gcry_camellia_aesni_avx_cbc_dec,.-_gcry_camellia_aesni_avx_cbc_dec;
 
 .align 8
-.global _gcry_camellia_aesni_avx_cfb_dec
+.globl _gcry_camellia_aesni_avx_cfb_dec
 .type   _gcry_camellia_aesni_avx_cfb_dec,@function;
 
 _gcry_camellia_aesni_avx_cfb_dec:

@@ -211,7 +211,7 @@
 	addroundkey(rna, rnb, rnc, rnd, ra, rb, rc, rd, dummy);
 
 .align 3
-.global _gcry_aes_arm_encrypt_block
+.globl _gcry_aes_arm_encrypt_block
 .type   _gcry_aes_arm_encrypt_block,%function;
 
 _gcry_aes_arm_encrypt_block:
@@ -465,7 +465,7 @@ _gcry_aes_arm_encrypt_block:
 	addroundkey(rna, rnb, rnc, rnd, ra, rb, rc, rd, dummy);
 
 .align 3
-.global _gcry_aes_arm_decrypt_block
+.globl _gcry_aes_arm_decrypt_block
 .type   _gcry_aes_arm_decrypt_block,%function;
 
 _gcry_aes_arm_decrypt_block:
