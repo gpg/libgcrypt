@@ -239,7 +239,7 @@ get_slope (double (*const get_x) (unsigned int idx, void *priv),
       sumx += x;
       sumy += y;
       sumx2 += x * x;
-      //sumy2 += y * y;
+      /*sumy2 += y * y;*/
       sumxy += x * y;
     }
 
@@ -275,12 +275,12 @@ get_num_measurements (struct bench_obj *obj)
 
 
 static int
-double_cmp (const void *__a, const void *__b)
+double_cmp (const void *_a, const void *_b)
 {
   const double *a, *b;
 
-  a = __a;
-  b = __b;
+  a = _a;
+  b = _b;
 
   if (*a > *b)
     return 1;
@@ -847,7 +847,7 @@ cipher_bench_one (int algo, struct bench_cipher_mode *pmode)
 
 
 static void
-__cipher_bench (int algo)
+_cipher_bench (int algo)
 {
   const char *algoname;
   int i;
@@ -876,14 +876,14 @@ cipher_bench (char **argv, int argc)
 	{
 	  algo = gcry_cipher_map_name (argv[i]);
 	  if (algo)
-	    __cipher_bench (algo);
+	    _cipher_bench (algo);
 	}
     }
   else
     {
       for (i = 1; i < 400; i++)
 	if (!gcry_cipher_test_algo (i))
-	  __cipher_bench (i);
+	  _cipher_bench (i);
     }
 }
 
@@ -978,7 +978,7 @@ hash_bench_one (int algo, struct bench_hash_mode *pmode)
 }
 
 static void
-__hash_bench (int algo)
+_hash_bench (int algo)
 {
   int i;
 
@@ -1001,14 +1001,14 @@ hash_bench (char **argv, int argc)
 	{
 	  algo = gcry_md_map_name (argv[i]);
 	  if (algo)
-	    __hash_bench (algo);
+	    _hash_bench (algo);
 	}
     }
   else
     {
       for (i = 1; i < 400; i++)
 	if (!gcry_md_test_algo (i))
-	  __hash_bench (i);
+	  _hash_bench (i);
     }
 
   bench_print_footer ();
@@ -1063,6 +1063,11 @@ main (int argc, char **argv)
       argc--;
       argv++;
     }
+
+  /* We skip this test if we are running under the test suite (no args
+     and srcdir defined) and GCRYPT_NO_BENCHMARKS is set.  */
+  if (!argc && getenv ("srcdir") && getenv ("GCRYPT_NO_BENCHMARKS"))
+    exit (77);
 
   while (argc && last_argc != argc)
     {

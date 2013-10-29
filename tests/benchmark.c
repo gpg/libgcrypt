@@ -1169,6 +1169,11 @@ main( int argc, char **argv )
   if (argc)
     { argc--; argv++; }
 
+  /* We skip this test if we are running under the test suite (no args
+     and srcdir defined) and GCRYPT_NO_BENCHMARKS is set.  */
+  if (!argc && getenv ("srcdir") && getenv ("GCRYPT_NO_BENCHMARKS"))
+    exit (77);
+
   while (argc && last_argc != argc )
     {
       last_argc = argc;
