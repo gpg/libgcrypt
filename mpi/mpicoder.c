@@ -179,7 +179,7 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
 /* Return an allocated buffer with the MPI (msb first).  NBYTES
    receives the length of this buffer.  If FILL_LE is not 0, the
    returned value is stored as little endian and right padded with
-   zeroes so that the returned buffer has at least LILL_LE bytes.
+   zeroes so that the returned buffer has at least FILL_LE bytes.
 
    Caller must free the return string.  This function returns an
    allocated buffer with NBYTES set to zero if the value of A is zero.
