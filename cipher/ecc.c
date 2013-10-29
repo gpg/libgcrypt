@@ -498,7 +498,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   if (_gcry_mpi_ec_get_affine (x, y, &sk.E.G, ctx))
     log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "G");
   base = _gcry_ecc_ec2os (x, y, sk.E.p);
-  if (sk.E.dialect == ECC_DIALECT_ED25519 && !ed25519_with_ecdsa)
+  if (sk.E.dialect == ECC_DIALECT_ED25519)
     {
       unsigned char *encpk;
       unsigned int encpklen;
@@ -978,7 +978,22 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   else
     {
       point_init (&pk.Q);
-      rc = _gcry_ecc_os2ec (&pk.Q, mpi_q);
+      if (pk.E.dialect == ECC_DIALECT_ED25519)
+        {
+          mpi_ec_t ec;
+
+          /* Fixme: Factor the curve context setup out of eddsa_verify
+             and ecdsa_verify. So that we don't do it twice.  */
+          ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect,
+                                            pk.E.p, pk.E.a, pk.E.b);
+
+          rc = _gcry_ecc_eddsa_decodepoint (mpi_q, ec, &pk.Q, NULL, NULL);
+          _gcry_mpi_ec_free (ec);
+        }
+      else
+        {
+          rc = _gcry_ecc_os2ec (&pk.Q, mpi_q);
+        }
       if (rc)
         goto leave;
 

@@ -1050,6 +1050,12 @@ check_ed25519ecdsa_sample_key (void)
     "  (q #044C056555BE4084BB3D8D8895FDF7C2893DFE0256251923053010977D12658321"
     "        156D1ADDC07987713A418783658B476358D48D582DB53233D9DED3C1C2577B04#)"
     "))";
+  static const char ecc_public_key_comp[] =
+    "(public-key\n"
+    " (ecc\n"
+    "  (curve \"Ed25519\")\n"
+    "  (q #047b57c2c1d3ded93332b52d588dd45863478b658387413a718779c0dd1a6d95#)"
+    "))";
   static const char hash_string[] =
     "(data (flags ecdsa rfc6979)\n"
     " (hash sha256 #00112233445566778899AABBCCDDEEFF"
@@ -1061,38 +1067,49 @@ check_ed25519ecdsa_sample_key (void)
   if (verbose)
     fprintf (stderr, "Checking sample Ed25519/ECDSA key.\n");
 
+  /* Sign.  */
   if ((err = gcry_sexp_new (&hash, hash_string, 0, 1)))
     die ("line %d: %s", __LINE__, gpg_strerror (err));
-
   if ((err = gcry_sexp_new (&key, ecc_private_key, 0, 1)))
     die ("line %d: %s", __LINE__, gpg_strerror (err));
-
   if ((err = gcry_pk_sign (&sig, hash, key)))
     die ("gcry_pk_sign failed: %s", gpg_strerror (err));
 
+  /* Verify.  */
   gcry_sexp_release (key);
   if ((err = gcry_sexp_new (&key, ecc_public_key, 0, 1)))
     die ("line %d: %s", __LINE__, gpg_strerror (err));
-
   if ((err = gcry_pk_verify (sig, hash, key)))
     die ("gcry_pk_verify failed: %s", gpg_strerror (err));
 
-  /* Now try signing without the Q parameter.  */
+  /* Verify again using a compressed public key.  */
+  gcry_sexp_release (key);
+  if ((err = gcry_sexp_new (&key, ecc_public_key_comp, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+  if ((err = gcry_pk_verify (sig, hash, key)))
+    die ("gcry_pk_verify failed (comp): %s", gpg_strerror (err));
 
+  /* Sign without a Q parameter.  */
   gcry_sexp_release (key);
   if ((err = gcry_sexp_new (&key, ecc_private_key_wo_q, 0, 1)))
     die ("line %d: %s", __LINE__, gpg_strerror (err));
-
   gcry_sexp_release (sig);
   if ((err = gcry_pk_sign (&sig, hash, key)))
-    die ("gcry_pk_sign without Q failed: %s", gpg_strerror (err));
+    die ("gcry_pk_sign w/o Q failed: %s", gpg_strerror (err));
 
+  /* Verify.  */
   gcry_sexp_release (key);
   if ((err = gcry_sexp_new (&key, ecc_public_key, 0, 1)))
     die ("line %d: %s", __LINE__, gpg_strerror (err));
-
   if ((err = gcry_pk_verify (sig, hash, key)))
-    die ("gcry_pk_verify signed without Q failed: %s", gpg_strerror (err));
+    die ("gcry_pk_verify signed w/o Q failed: %s", gpg_strerror (err));
+
+  /* Verify again using a compressed public key.  */
+  gcry_sexp_release (key);
+  if ((err = gcry_sexp_new (&key, ecc_public_key_comp, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+  if ((err = gcry_pk_verify (sig, hash, key)))
+    die ("gcry_pk_verify signed w/o Q failed (comp): %s", gpg_strerror (err));
 
   extract_cmp_data (sig, "r", ("a63123a783ef29b8276e08987daca4"
                                "655d0179e22199bf63691fd88eb64e15"));
