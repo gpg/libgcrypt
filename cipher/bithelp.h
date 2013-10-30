@@ -26,14 +26,14 @@
 /****************
  * Rotate the 32 bit unsigned integer X by N bits left/right
  */
-static inline u32 rol( u32 x, int n)
+static inline u32 rol(u32 x, int n)
 {
-	return ( (x << n) | (x >> (32-n)) );
+	return ( (x << (n&(32-1))) | (x >> ((32-n)&(32-1))) );
 }
 
 static inline u32 ror(u32 x, int n)
 {
-	return ( (x >> n) | (x << (32-n)) );
+	return ( (x >> (n&(32-1))) | (x << ((32-n)&(32-1))) );
 }
 
 /* Byte swap for 32-bit and 64-bit integers.  If available, use compiler
