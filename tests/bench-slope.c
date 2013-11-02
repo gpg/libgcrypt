@@ -55,12 +55,12 @@ static double cpu_ghz = -1;
  * (SUPERCOP). */
 #define BUF_END_SIZE			(BUF_START_SIZE + 4096)
 
-/* With 128 byte steps, we get (4096)/128 = 32 data points. */
-#define BUF_STEP_SIZE			128
+/* With 128 byte steps, we get (4096)/64 = 64 data points. */
+#define BUF_STEP_SIZE			64
 
 /* Number of repeated measurements at each data point. The median of these
  * measurements is selected as data point further analysis. */
-#define NUM_MEASUREMENT_REPETITIONS	32
+#define NUM_MEASUREMENT_REPETITIONS	64
 
 /**************************************************** High-resolution timers. */
 
