@@ -758,9 +758,12 @@ gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
   gcry_err_code_t err;
 
   if (!in)  /* Caller requested in-place encryption.  */
-    err = cipher_encrypt (h, out, outsize, out, outsize);
-  else
-    err = cipher_encrypt (h, out, outsize, in, inlen);
+    {
+      in = out;
+      inlen = outsize;
+    }
+
+  err = cipher_encrypt (h, out, outsize, in, inlen);
 
   /* Failsafe: Make sure that the plaintext will never make it into
      OUT if the encryption returned an error.  */
@@ -851,9 +854,12 @@ gcry_cipher_decrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
   gcry_err_code_t err;
 
   if (!in) /* Caller requested in-place encryption. */
-    err = cipher_decrypt (h, out, outsize, out, outsize);
-  else
-    err = cipher_decrypt (h, out, outsize, in, inlen);
+    {
+      in = out;
+      inlen = outsize;
+    }
+
+  err = cipher_decrypt (h, out, outsize, in, inlen);
 
   return gcry_error (err);
 }
