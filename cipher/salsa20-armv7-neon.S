@@ -117,8 +117,8 @@ _gcry_arm_neon_salsa20_encrypt:
 	strd r8,[sp,#88]
 	nop
 	cmp r0,#192
-	blo ._mlenlowbelow192
-._mlenatleast192:
+	blo .L_mlenlowbelow192
+.L_mlenatleast192:
 	ldrd r2,[sp,#48]
 	vext.32 d7,d6,d6,#1
 	vmov q8,q1
@@ -157,7 +157,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	ldrd r2,[sp,#56]
 	vst1.8 {d14-d15},[r6,: 128]
 	ldrd r6,[sp,#40]
-._mainloop2:
+.L_mainloop2:
 	str r12,[sp,#248]
 	vadd.i32 q4,q10,q8
 	vadd.i32 q9,q13,q11
@@ -505,7 +505,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	eor r9,r9,r14,ROR #14
 	veor q11,q9,q4
 	subs r12,r12,#4
-	bhi ._mainloop2
+	bhi .L_mainloop2
 	strd r8,[sp,#112]
 	ldrd r8,[sp,#64]
 	strd r2,[sp,#120]
@@ -526,7 +526,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	add r6,r6,r10
 	add r7,r7,r11
 	cmp r12,#0
-	beq ._nomessage1
+	beq .L_nomessage1
 	ldr r8,[r12,#0]
 	ldr r9,[r12,#4]
 	ldr r10,[r12,#8]
@@ -543,7 +543,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	eor r5,r5,r9
 	eor r6,r6,r10
 	eor r7,r7,r11
-._nomessage1:
+.L_nomessage1:
 	ldr r14,[sp,#232]
 	vadd.i32 q4,q8,q1
 	str r0,[r14,#0]
@@ -592,7 +592,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	add r5,r11,r5
 	add r8,r14,#64
 	cmp r12,#0
-	beq ._nomessage2
+	beq .L_nomessage2
 	ldr r9,[r12,#32]
 	ldr r10,[r12,#36]
 	ldr r11,[r12,#40]
@@ -618,7 +618,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	eor r1,r1,r14
 	vld1.8 {d20-d21},[r12]!
 	veor q9,q9,q10
-._nomessage2:
+.L_nomessage2:
 	vst1.8 {d8-d9},[r8]!
 	vst1.8 {d10-d11},[r8]!
 	vmov.i64 q4,#0xff
@@ -654,7 +654,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	vadd.i64 q3,q3,q4
 	sub r0,r0,#192
 	cmp r12,#0
-	beq ._nomessage21
+	beq .L_nomessage21
 	vld1.8 {d16-d17},[r12]!
 	veor q2,q2,q8
 	vld1.8 {d16-d17},[r12]!
@@ -663,7 +663,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	veor q6,q6,q8
 	vld1.8 {d16-d17},[r12]!
 	veor q7,q7,q8
-._nomessage21:
+.L_nomessage21:
 	vst1.8 {d4-d5},[r8]!
 	vst1.8 {d10-d11},[r8]!
 	vst1.8 {d12-d13},[r8]!
@@ -673,15 +673,15 @@ _gcry_arm_neon_salsa20_encrypt:
 	add r12,sp,#256
 	str r8,[sp,#232]
 	cmp r0,#192
-	bhs ._mlenatleast192
-._mlenlowbelow192:
+	bhs .L_mlenatleast192
+.L_mlenlowbelow192:
 	cmp r0,#0
-	beq ._done
-	b ._mlenatleast1
-._nextblock:
+	beq .L_done
+	b .L_mlenatleast1
+.L_nextblock:
 	sub r0,r0,#64
-._mlenatleast1:
-._handleblock:
+.L_mlenatleast1:
+.L_handleblock:
 	str r0,[sp,#248]
 	ldrd r2,[sp,#48]
 	ldrd r6,[sp,#32]
@@ -694,7 +694,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	ldrd r2,[sp,#56]
 	ldrd r6,[sp,#40]
 	ldr r12,[sp,#244]
-._mainloop1:
+.L_mainloop1:
 	str r12,[sp,#252]
 	add r12,r0,r2
 	add r14,r5,r1
@@ -778,7 +778,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	eor r9,r9,r14,ROR #14
 	ldr r12,[sp,#252]
 	subs r12,r12,#2
-	bhi ._mainloop1
+	bhi .L_mainloop1
 	strd r6,[sp,#128]
 	strd r2,[sp,#120]
 	strd r10,[sp,#112]
@@ -799,7 +799,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	add r7,r7,r11
 	ldr r12,[sp,#236]
 	cmp r12,#0
-	beq ._nomessage10
+	beq .L_nomessage10
 	ldr r8,[r12,#0]
 	ldr r9,[r12,#4]
 	ldr r10,[r12,#8]
@@ -816,7 +816,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	eor r5,r5,r9
 	eor r6,r6,r10
 	eor r7,r7,r11
-._nomessage10:
+.L_nomessage10:
 	ldr r14,[sp,#232]
 	str r0,[r14,#0]
 	str r1,[r14,#4]
@@ -846,7 +846,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	add r0,r8,r0
 	add r1,r9,r1
 	cmp r12,#0
-	beq ._nomessage11
+	beq .L_nomessage11
 	ldr r4,[r12,#32]
 	ldr r5,[r12,#36]
 	ldr r8,[r12,#40]
@@ -865,7 +865,7 @@ _gcry_arm_neon_salsa20_encrypt:
 	eor r1,r1,r9
 	add r4,r12,#64
 	str r4,[sp,#236]
-._nomessage11:
+.L_nomessage11:
 	str r6,[r14,#32]
 	str r7,[r14,#36]
 	str r10,[r14,#40]
@@ -878,8 +878,8 @@ _gcry_arm_neon_salsa20_encrypt:
 	str r0,[sp,#232]
 	ldr r0,[sp,#248]
 	cmp r0,#64
-	bhi ._nextblock
-._done:
+	bhi .L_nextblock
+.L_done:
 	ldr r2,[sp,#160]
 	ldrd r4,[sp,#0]
 	ldrd r6,[sp,#8]

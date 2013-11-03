@@ -42,8 +42,8 @@ _gcry_salsa20_amd64_keysetup:
 	movl   %eax,60(%rdi)
 	movl   %r10d,48(%rdi)
 	cmp  $256,%rdx
-	jb ._kbits128
-._kbits256:
+	jb .L_kbits128
+.L_kbits256:
 	movl   16(%rsi),%edx
 	movl   20(%rsi),%ecx
 	movl   24(%rsi),%r8d
@@ -60,8 +60,8 @@ _gcry_salsa20_amd64_keysetup:
 	movl   %edx,4(%rdi)
 	movl   %ecx,8(%rdi)
 	movl   %r8d,12(%rdi)
-	jmp ._keysetupdone
-._kbits128:
+	jmp .L_keysetupdone
+.L_kbits128:
 	movl   0(%rsi),%edx
 	movl   4(%rsi),%ecx
 	movl   8(%rsi),%r8d
@@ -78,7 +78,7 @@ _gcry_salsa20_amd64_keysetup:
 	movl   %edx,4(%rdi)
 	movl   %ecx,8(%rdi)
 	movl   %r8d,12(%rdi)
-._keysetupdone:
+.L_keysetupdone:
 	ret
 
 .align 8
@@ -117,10 +117,10 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	mov  %rdx,%rdi
 	mov  %rcx,%rdx
 	cmp  $0,%rdx
-	jbe ._done
-._start:
+	jbe .L_done
+.L_start:
 	cmp  $256,%rdx
-	jb ._bytes_are_64_128_or_192
+	jb .L_bytes_are_64_128_or_192
 	movdqa 0(%r8),%xmm0
 	pshufd $0x55,%xmm0,%xmm1
 	pshufd $0xaa,%xmm0,%xmm2
@@ -153,7 +153,7 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	movdqa %xmm1,176(%rsp)
 	movdqa %xmm2,192(%rsp)
 	movdqa %xmm0,208(%rsp)
-._bytesatleast256:
+.L_bytesatleast256:
 	movl   32(%r8),%ecx
 	movl   52(%r8),%r9d
 	movl %ecx,224(%rsp)
@@ -192,7 +192,7 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	movdqa 96(%rsp),%xmm13
 	movdqa 176(%rsp),%xmm14
 	movdqa 224(%rsp),%xmm15
-._mainloop1:
+.L_mainloop1:
 	movdqa %xmm1,256(%rsp)
 	movdqa %xmm2,272(%rsp)
 	movdqa %xmm13,%xmm1
@@ -434,7 +434,7 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	movdqa 256(%rsp),%xmm12
 	movdqa 272(%rsp),%xmm0
 	sub  $2,%rdx
-	ja ._mainloop1
+	ja .L_mainloop1
 	paddd 48(%rsp),%xmm12
 	paddd 112(%rsp),%xmm7
 	paddd 160(%rsp),%xmm10
@@ -696,10 +696,10 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	add  $256,%rsi
 	add  $256,%rdi
 	cmp  $256,%rdx
-	jae ._bytesatleast256
+	jae .L_bytesatleast256
 	cmp  $0,%rdx
-	jbe ._done
-._bytes_are_64_128_or_192:
+	jbe .L_done
+.L_bytes_are_64_128_or_192:
 	movq %rdx,288(%rsp)
 	movdqa 0(%r8),%xmm0
 	movdqa 16(%r8),%xmm1
@@ -707,7 +707,7 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	movdqa 48(%r8),%xmm3
 	movdqa %xmm1,%xmm4
 	mov  %rbx,%rdx
-._mainloop2:
+.L_mainloop2:
 	paddd %xmm0,%xmm4
 	movdqa %xmm0,%xmm5
 	movdqa %xmm4,%xmm6
@@ -834,7 +834,7 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	pxor  %xmm5,%xmm0
 	pshufd $0x39,%xmm3,%xmm3
 	pxor  %xmm6,%xmm0
-	ja ._mainloop2
+	ja .L_mainloop2
 	paddd 0(%r8),%xmm0
 	paddd 16(%r8),%xmm1
 	paddd 32(%r8),%xmm2
@@ -907,17 +907,17 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	movl   %ecx,32(%r8)
 	movl   %eax,52(%r8)
 	cmp  $64,%rdx
-	ja ._bytes_are_128_or_192
-._done:
+	ja .L_bytes_are_128_or_192
+.L_done:
 	add %r11,%rsp
 	mov %r11,%rax
 	pop %rbx
 	ret
-._bytes_are_128_or_192:
+.L_bytes_are_128_or_192:
 	sub  $64,%rdx
 	add  $64,%rdi
 	add  $64,%rsi
-	jmp ._bytes_are_64_128_or_192
+	jmp .L_bytes_are_64_128_or_192
 .size _gcry_salsa20_amd64_encrypt_blocks,.-_gcry_salsa20_amd64_encrypt_blocks;
 
 #endif /*defined(USE_SALSA20)*/
