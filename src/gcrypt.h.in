@@ -726,9 +726,17 @@ void     gcry_mpi_rshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n);
 void     gcry_mpi_lshift (gcry_mpi_t x, gcry_mpi_t a, unsigned int n);
 
 /* Store NBITS of the value P points to in A and mark A as an opaque
-   value.  WARNING: Never use an opaque MPI for anything thing else than
+   value.  On success A received the the ownership of the value P.
+   WARNING: Never use an opaque MPI for anything thing else than
    gcry_mpi_release, gcry_mpi_get_opaque. */
 gcry_mpi_t gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits);
+
+/* Store NBITS of the value P points to in A and mark A as an opaque
+   value.  The function takes a copy of the provided value P.
+   WARNING: Never use an opaque MPI for anything thing else than
+   gcry_mpi_release, gcry_mpi_get_opaque. */
+gcry_mpi_t gcry_mpi_set_opaque_copy (gcry_mpi_t a,
+                                     const void *p, unsigned int nbits);
 
 /* Return a pointer to an opaque value stored in A and return its size
    in NBITS.  Note that the returned pointer is still owned by A and

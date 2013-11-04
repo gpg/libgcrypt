@@ -629,6 +629,12 @@ gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits)
   return _gcry_mpi_set_opaque (a, p, nbits);
 }
 
+gcry_mpi_t
+gcry_mpi_set_opaque_copy (gcry_mpi_t a, const void *p, unsigned int nbits)
+{
+  return _gcry_mpi_set_opaque_copy (a, p, nbits);
+}
+
 void *
 gcry_mpi_get_opaque (gcry_mpi_t a, unsigned int *nbits)
 {

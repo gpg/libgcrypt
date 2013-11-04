@@ -88,7 +88,8 @@ GCRYPT_1.6 {
     gcry_mpi_mul_2exp; gcry_mpi_mul_ui; gcry_mpi_mulm; gcry_mpi_new;
     gcry_mpi_powm; gcry_mpi_print; gcry_mpi_randomize; gcry_mpi_release;
     gcry_mpi_rshift; gcry_mpi_scan; gcry_mpi_set; gcry_mpi_set_bit;
-    gcry_mpi_set_flag; gcry_mpi_set_highbit; gcry_mpi_set_opaque;
+    gcry_mpi_set_flag; gcry_mpi_set_highbit;
+    gcry_mpi_set_opaque; gcry_mpi_set_opaque_copy;
     gcry_mpi_set_ui; gcry_mpi_snew; gcry_mpi_sub; gcry_mpi_sub_ui;
     gcry_mpi_subm; gcry_mpi_swap; gcry_mpi_test_bit;
     gcry_mpi_lshift; gcry_mpi_snatch;

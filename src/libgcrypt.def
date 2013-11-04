@@ -259,5 +259,7 @@ EXPORTS
       gcry_cipher_gettag        @227
       gcry_cipher_checktag      @228
 
+      gcry_mpi_set_opaque_copy  @229
+
 
 ;; end of file with public symbols for Windows.

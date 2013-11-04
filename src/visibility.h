@@ -603,6 +603,7 @@ MARK_VISIBLE (gcry_mpi_set_bit)
 MARK_VISIBLE (gcry_mpi_set_flag)
 MARK_VISIBLE (gcry_mpi_set_highbit)
 MARK_VISIBLE (gcry_mpi_set_opaque)
+MARK_VISIBLEX(gcry_mpi_set_opaque_copy)
 MARK_VISIBLE (gcry_mpi_set_ui)
 MARK_VISIBLE (gcry_mpi_snew)
 MARK_VISIBLE (gcry_mpi_sub)
@@ -632,8 +633,8 @@ MARK_VISIBLEX(_gcry_mpi_get_const)
    between a public and an internal version is that the internal
    version use gpg_err_code_t and the public version gpg_error_t.  */
 
-#define gcry_sexp_extract_param _gcry_USE_THE_UNDERSCORED_FUNCTION
-
+#define gcry_sexp_extract_param   _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_mpi_set_opaque_copy  _gcry_USE_THE_UNDERSCORED_FUNCTION
 
 #endif /*!_GCRY_INCLUDED_BY_VISIBILITY_C*/
 

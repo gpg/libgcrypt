@@ -75,6 +75,7 @@ Noteworthy changes in version 1.6.0 (unreleased)
  gcry_mpi_neg                    NEW.
  gcry_mpi_abs                    NEW.
  gcry_mpi_snatch                 NEW.
+ gcry_mpi_set_opaque_copy        NEW.
  gcry_mpi_point_t                NEW.
  gcry_mpi_point_new              NEW.
  gcry_mpi_point_release          NEW.
