@@ -860,11 +860,67 @@ selftest(void)
 }
 
 
+struct hashset_elem {
+  u32 val;
+  short nidx;
+  char used;
+};
+
+static inline byte
+val_to_hidx(u32 val)
+{
+  /* bf sboxes are quite random already. */
+  return (val >> 24) ^ (val >> 16)  ^ (val >> 8) ^ val;
+}
+
+static inline int
+add_val(struct hashset_elem hset[256], u32 val, int *midx,
+	struct hashset_elem *mpool)
+{
+  struct hashset_elem *elem;
+  byte hidx;
+
+  hidx = val_to_hidx(val);
+  elem = &hset[hidx];
+
+  /* Check if first is in use. */
+  if (elem->used == 0)
+    {
+      elem->val = val;
+      elem->nidx = -1;
+      elem->used = 1;
+      return 0;
+    }
+
+  /* Check if first matches. */
+  if (elem->val == val)
+    return 1;
+
+  for (; elem->nidx >= 0; elem = &mpool[elem->nidx])
+    {
+      /* Check if elem matches. */
+      if (elem->val == val)
+        return 1;
+    }
+
+  elem->nidx = (*midx)++;
+  elem = &mpool[elem->nidx];
+
+  elem->val = val;
+  elem->nidx = -1;
+  elem->used = 1;
+
+  return 0;
+}
 
 static gcry_err_code_t
 do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
 {
-  int i, j;
+  struct hashset_elem mempool[4 * 255]; /* Enough entries for the worst case. */
+  struct hashset_elem hset[4][256];
+  int memidx = 0;
+  int weak = 0;
+  int i, j, ret;
   u32 data, datal, datar;
   static int initialized;
   static const char *selftest_failed;
@@ -878,6 +934,8 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
     }
   if( selftest_failed )
     return GPG_ERR_SELFTEST_FAILED;
+
+  memset(hset, 0, sizeof(hset));
 
   for(i=0; i < BLOWFISH_ROUNDS+2; i++ )
     c->p[i] = ps[i];
@@ -911,38 +969,60 @@ do_bf_setkey (BLOWFISH_context *c, const byte *key, unsigned keylen)
       do_encrypt( c, &datal, &datar );
       c->s0[i]   = datal;
       c->s0[i+1] = datar;
+
+      /* Add values to hashset, detect duplicates (weak keys). */
+      ret = add_val (hset[0], datal, &memidx, mempool);
+      weak = ret ? 1 : weak;
+      ret = add_val (hset[0], datar, &memidx, mempool);
+      weak = ret ? 1 : weak;
     }
   for(i=0; i < 256; i += 2 )
     {
       do_encrypt( c, &datal, &datar );
       c->s1[i]   = datal;
       c->s1[i+1] = datar;
+
+      /* Add values to hashset, detect duplicates (weak keys). */
+      ret = add_val (hset[1], datal, &memidx, mempool);
+      weak = ret ? 1 : weak;
+      ret = add_val (hset[1], datar, &memidx, mempool);
+      weak = ret ? 1 : weak;
     }
   for(i=0; i < 256; i += 2 )
     {
       do_encrypt( c, &datal, &datar );
       c->s2[i]   = datal;
       c->s2[i+1] = datar;
+
+      /* Add values to hashset, detect duplicates (weak keys). */
+      ret = add_val (hset[2], datal, &memidx, mempool);
+      weak = ret ? 1 : weak;
+      ret = add_val (hset[2], datar, &memidx, mempool);
+      weak = ret ? 1 : weak;
     }
   for(i=0; i < 256; i += 2 )
     {
       do_encrypt( c, &datal, &datar );
       c->s3[i]   = datal;
       c->s3[i+1] = datar;
+
+      /* Add values to hashset, detect duplicates (weak keys). */
+      ret = add_val (hset[3], datal, &memidx, mempool);
+      weak = ret ? 1 : weak;
+      ret = add_val (hset[3], datar, &memidx, mempool);
+      weak = ret ? 1 : weak;
     }
 
+  /* Clear stack. */
+  wipememory(hset, sizeof(hset));
+  wipememory(mempool, sizeof(mempool[0]) * memidx);
+
+  _gcry_burn_stack (64);
 
   /* Check for weak key.  A weak key is a key in which a value in
      the P-array (here c) occurs more than once per table.  */
-  for(i=0; i < 255; i++ )
-    {
-      for( j=i+1; j < 256; j++)
-        {
-          if( (c->s0[i] == c->s0[j]) || (c->s1[i] == c->s1[j]) ||
-              (c->s2[i] == c->s2[j]) || (c->s3[i] == c->s3[j]) )
-            return GPG_ERR_WEAK_KEY;
-        }
-    }
+  if (weak)
+    return GPG_ERR_WEAK_KEY;
 
   return GPG_ERR_NO_ERROR;
 }
@@ -953,7 +1033,6 @@ bf_setkey (void *context, const byte *key, unsigned keylen)
 {
   BLOWFISH_context *c = (BLOWFISH_context *) context;
   gcry_err_code_t rc = do_bf_setkey (c, key, keylen);
-  _gcry_burn_stack (64);
   return rc;
 }
 
