@@ -468,23 +468,17 @@ static const char *serpent_test (void);
     block_dst[3] = block_src[3];         \
   }
 
-/* Apply SBOX number WHICH to to the block found in ARRAY0 at index
-   INDEX, writing the output to the block found in ARRAY1 at index
-   INDEX.  */
-#define SBOX(which, array0, array1, index)            \
-  SBOX##which (array0[index + 0], array0[index + 1],  \
-               array0[index + 2], array0[index + 3],  \
-               array1[index + 0], array1[index + 1],  \
-               array1[index + 2], array1[index + 3]);
+/* Apply SBOX number WHICH to to the block found in ARRAY0, writing
+   the output to the block found in ARRAY1.  */
+#define SBOX(which, array0, array1)                         \
+  SBOX##which (array0[0], array0[1], array0[2], array0[3],  \
+               array1[0], array1[1], array1[2], array1[3]);
 
-/* Apply inverse SBOX number WHICH to to the block found in ARRAY0 at
-   index INDEX, writing the output to the block found in ARRAY1 at
-   index INDEX.  */
-#define SBOX_INVERSE(which, array0, array1, index)              \
-  SBOX##which##_INVERSE (array0[index + 0], array0[index + 1],  \
-                         array0[index + 2], array0[index + 3],  \
-                         array1[index + 0], array1[index + 1],  \
-                         array1[index + 2], array1[index + 3]);
+/* Apply inverse SBOX number WHICH to to the block found in ARRAY0, writing
+   the output to the block found in ARRAY1.  */
+#define SBOX_INVERSE(which, array0, array1)                           \
+  SBOX##which##_INVERSE (array0[0], array0[1], array0[2], array0[3],  \
+                         array1[0], array1[1], array1[2], array1[3]);
 
 /* Apply the linear transformation to BLOCK.  */
 #define LINEAR_TRANSFORMATION(block)                  \
@@ -523,7 +517,7 @@ static const char *serpent_test (void);
   {                                             \
     BLOCK_XOR (block, subkeys[round]);          \
     round++;                                    \
-    SBOX (which, block, block_tmp, 0);          \
+    SBOX (which, block, block_tmp);             \
     LINEAR_TRANSFORMATION (block_tmp);          \
     BLOCK_COPY (block, block_tmp);              \
   }
@@ -536,7 +530,7 @@ static const char *serpent_test (void);
   {                                                  \
     BLOCK_XOR (block, subkeys[round]);               \
     round++;                                         \
-    SBOX (which, block, block_tmp, 0);               \
+    SBOX (which, block, block_tmp);                  \
     BLOCK_XOR (block_tmp, subkeys[round]);           \
     round++;                                         \
   }
@@ -547,7 +541,7 @@ static const char *serpent_test (void);
 #define ROUND_INVERSE(which, subkey, block, block_tmp) \
   {                                                    \
     LINEAR_TRANSFORMATION_INVERSE (block);             \
-    SBOX_INVERSE (which, block, block_tmp, 0);         \
+    SBOX_INVERSE (which, block, block_tmp);            \
     BLOCK_XOR (block_tmp, subkey[round]);              \
     round--;                                           \
     BLOCK_COPY (block, block_tmp);                     \
@@ -561,7 +555,7 @@ static const char *serpent_test (void);
   {                                                           \
     BLOCK_XOR (block, subkeys[round]);                        \
     round--;                                                  \
-    SBOX_INVERSE (which, block, block_tmp, 0);                \
+    SBOX_INVERSE (which, block, block_tmp);                   \
     BLOCK_XOR (block_tmp, subkeys[round]);                    \
     round--;                                                  \
   }
@@ -594,58 +588,57 @@ serpent_key_prepare (const byte *key, unsigned int key_length,
 static void
 serpent_subkeys_generate (serpent_key_t key, serpent_subkeys_t subkeys)
 {
-  u32 w_real[140];		/* The `prekey'.  */
-  u32 k[132];
-  u32 *w = &w_real[8];
-  int i, j;
+  u32 w[8];		/* The `prekey'.  */
+  u32 ws[4];
+  u32 wt[4];
 
   /* Initialize with key values.  */
-  for (i = 0; i < 8; i++)
-    w[i - 8] = key[i];
+  w[0] = key[0];
+  w[1] = key[1];
+  w[2] = key[2];
+  w[3] = key[3];
+  w[4] = key[4];
+  w[5] = key[5];
+  w[6] = key[6];
+  w[7] = key[7];
 
   /* Expand to intermediate key using the affine recurrence.  */
-  for (i = 0; i < 132; i++)
-    w[i] = rol (w[i - 8] ^ w[i - 5] ^ w[i - 3] ^ w[i - 1] ^ PHI ^ i, 11);
+#define EXPAND_KEY4(wo, r)                                                     \
+  wo[0] = w[(r+0)%8] =                                                         \
+    rol (w[(r+0)%8] ^ w[(r+3)%8] ^ w[(r+5)%8] ^ w[(r+7)%8] ^ PHI ^ (r+0), 11); \
+  wo[1] = w[(r+1)%8] =                                                         \
+    rol (w[(r+1)%8] ^ w[(r+4)%8] ^ w[(r+6)%8] ^ w[(r+0)%8] ^ PHI ^ (r+1), 11); \
+  wo[2] = w[(r+2)%8] =                                                         \
+    rol (w[(r+2)%8] ^ w[(r+5)%8] ^ w[(r+7)%8] ^ w[(r+1)%8] ^ PHI ^ (r+2), 11); \
+  wo[3] = w[(r+3)%8] =                                                         \
+    rol (w[(r+3)%8] ^ w[(r+6)%8] ^ w[(r+0)%8] ^ w[(r+2)%8] ^ PHI ^ (r+3), 11);
+
+#define EXPAND_KEY(r)       \
+  EXPAND_KEY4(ws, (r));     \
+  EXPAND_KEY4(wt, (r + 4));
 
   /* Calculate subkeys via S-Boxes, in bitslice mode.  */
-  SBOX (3, w, k,   0);
-  SBOX (2, w, k,   4);
-  SBOX (1, w, k,   8);
-  SBOX (0, w, k,  12);
-  SBOX (7, w, k,  16);
-  SBOX (6, w, k,  20);
-  SBOX (5, w, k,  24);
-  SBOX (4, w, k,  28);
-  SBOX (3, w, k,  32);
-  SBOX (2, w, k,  36);
-  SBOX (1, w, k,  40);
-  SBOX (0, w, k,  44);
-  SBOX (7, w, k,  48);
-  SBOX (6, w, k,  52);
-  SBOX (5, w, k,  56);
-  SBOX (4, w, k,  60);
-  SBOX (3, w, k,  64);
-  SBOX (2, w, k,  68);
-  SBOX (1, w, k,  72);
-  SBOX (0, w, k,  76);
-  SBOX (7, w, k,  80);
-  SBOX (6, w, k,  84);
-  SBOX (5, w, k,  88);
-  SBOX (4, w, k,  92);
-  SBOX (3, w, k,  96);
-  SBOX (2, w, k, 100);
-  SBOX (1, w, k, 104);
-  SBOX (0, w, k, 108);
-  SBOX (7, w, k, 112);
-  SBOX (6, w, k, 116);
-  SBOX (5, w, k, 120);
-  SBOX (4, w, k, 124);
-  SBOX (3, w, k, 128);
+  EXPAND_KEY (0); SBOX (3, ws, subkeys[0]); SBOX (2, wt, subkeys[1]);
+  EXPAND_KEY (8); SBOX (1, ws, subkeys[2]); SBOX (0, wt, subkeys[3]);
+  EXPAND_KEY (16); SBOX (7, ws, subkeys[4]); SBOX (6, wt, subkeys[5]);
+  EXPAND_KEY (24); SBOX (5, ws, subkeys[6]); SBOX (4, wt, subkeys[7]);
+  EXPAND_KEY (32); SBOX (3, ws, subkeys[8]); SBOX (2, wt, subkeys[9]);
+  EXPAND_KEY (40); SBOX (1, ws, subkeys[10]); SBOX (0, wt, subkeys[11]);
+  EXPAND_KEY (48); SBOX (7, ws, subkeys[12]); SBOX (6, wt, subkeys[13]);
+  EXPAND_KEY (56); SBOX (5, ws, subkeys[14]); SBOX (4, wt, subkeys[15]);
+  EXPAND_KEY (64); SBOX (3, ws, subkeys[16]); SBOX (2, wt, subkeys[17]);
+  EXPAND_KEY (72); SBOX (1, ws, subkeys[18]); SBOX (0, wt, subkeys[19]);
+  EXPAND_KEY (80); SBOX (7, ws, subkeys[20]); SBOX (6, wt, subkeys[21]);
+  EXPAND_KEY (88); SBOX (5, ws, subkeys[22]); SBOX (4, wt, subkeys[23]);
+  EXPAND_KEY (96); SBOX (3, ws, subkeys[24]); SBOX (2, wt, subkeys[25]);
+  EXPAND_KEY (104); SBOX (1, ws, subkeys[26]); SBOX (0, wt, subkeys[27]);
+  EXPAND_KEY (112); SBOX (7, ws, subkeys[28]); SBOX (6, wt, subkeys[29]);
+  EXPAND_KEY (120); SBOX (5, ws, subkeys[30]); SBOX (4, wt, subkeys[31]);
+  EXPAND_KEY4 (ws, 128); SBOX (3, ws, subkeys[32]);
 
-  /* Renumber subkeys.  */
-  for (i = 0; i < ROUNDS + 1; i++)
-    for (j = 0; j < 4; j++)
-      subkeys[i][j] = k[4 * i + j];
+  wipememory (ws, sizeof (ws));
+  wipememory (wt, sizeof (wt));
+  wipememory (w, sizeof (w));
 }
 
 /* Initialize CONTEXT with the key KEY of KEY_LENGTH bits.  */
@@ -674,7 +667,7 @@ serpent_setkey_internal (serpent_context_t *context,
     }
 #endif
 
-  _gcry_burn_stack (272 * sizeof (u32));
+  wipememory (key_prepared, sizeof(key_prepared));
 }
 
 /* Initialize CTX with the key KEY of KEY_LENGTH bytes.  */
@@ -699,10 +692,7 @@ serpent_setkey (void *ctx,
   if (serpent_test_ret)
     ret = GPG_ERR_SELFTEST_FAILED;
   else
-    {
-      serpent_setkey_internal (context, key, key_length);
-      _gcry_burn_stack (sizeof (serpent_key_t));
-    }
+    serpent_setkey_internal (context, key, key_length);
 
   return ret;
 }
