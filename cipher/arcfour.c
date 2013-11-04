@@ -146,7 +146,6 @@ arcfour_setkey ( void *context, const byte *key, unsigned int keylen )
 {
   ARCFOUR_context *ctx = (ARCFOUR_context *) context;
   gcry_err_code_t rc = do_arcfour_setkey (ctx, key, keylen );
-  _gcry_burn_stack (300);
   return rc;
 }
 
