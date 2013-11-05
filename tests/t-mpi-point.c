@@ -639,7 +639,7 @@ context_param (void)
   q = hex2mpi (sample_ed25519_q);
   gcry_sexp_release (keyparam);
   err = gcry_sexp_build (&keyparam, NULL,
-                        "(public-key(ecc(curve %s)(q %m)))",
+                        "(public-key(ecc(curve %s)(flags eddsa)(q %m)))",
                         "Ed25519", q);
   if (err)
     die ("gcry_sexp_build failed: %s\n", gpg_strerror (err));
@@ -666,7 +666,7 @@ context_param (void)
                          "Ed25519", ctx);
       get_and_cmp_mpi ("q@eddsa", sample_ed25519_q_eddsa, "Ed25519", ctx);
 
-      /* Set d tosee whether Q is correctly re-computed.  */
+      /* Set d to see whether Q is correctly re-computed.  */
       d = hex2mpi (sample_ed25519_d);
       err = gcry_mpi_ec_set_mpi ("d", d, ctx);
       if (err)

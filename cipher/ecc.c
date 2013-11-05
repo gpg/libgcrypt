@@ -404,7 +404,6 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   gcry_mpi_t public = NULL;
   gcry_mpi_t secret = NULL;
   int flags = 0;
-  int ed25519_with_ecdsa = 0;
 
   memset (&E, 0, sizeof E);
   memset (&sk, 0, sizeof sk);
@@ -473,24 +472,10 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   x = mpi_new (0);
   y = mpi_new (0);
 
-  switch (E.dialect)
-    {
-    case ECC_DIALECT_STANDARD:
-      rc = nist_generate_key (&sk, &E, ctx, random_level, nbits);
-      break;
-    case ECC_DIALECT_ED25519:
-      if ((flags & PUBKEY_FLAG_ECDSA))
-        {
-          ed25519_with_ecdsa = 1;
-          rc = nist_generate_key (&sk, &E, ctx, random_level, nbits);
-        }
-      else
-        rc = _gcry_ecc_eddsa_genkey (&sk, &E, ctx, random_level);
-      break;
-    default:
-      rc = GPG_ERR_INTERNAL;
-      break;
-    }
+  if ((flags & PUBKEY_FLAG_EDDSA))
+    rc = _gcry_ecc_eddsa_genkey (&sk, &E, ctx, random_level);
+  else
+    rc = nist_generate_key (&sk, &E, ctx, random_level, nbits);
   if (rc)
     goto leave;
 
@@ -524,15 +509,15 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         goto leave;
     }
 
-  if ((flags & PUBKEY_FLAG_NOPARAM) || ed25519_with_ecdsa)
+  if ((flags & PUBKEY_FLAG_NOPARAM) || (flags & PUBKEY_FLAG_EDDSA))
     {
       rc = gcry_sexp_build
         (&curve_flags, NULL,
-         ((flags & PUBKEY_FLAG_NOPARAM) && ed25519_with_ecdsa)?
-         "(flags noparam ecdsa)" :
+         ((flags & PUBKEY_FLAG_NOPARAM) && (flags & PUBKEY_FLAG_EDDSA))?
+         "(flags noparam eddsa)" :
          ((flags & PUBKEY_FLAG_NOPARAM))?
          "(flags noparam)" :
-         "(flags ecdsa)");
+         "(flags eddsa)");
       if (rc)
         goto leave;
     }
@@ -573,8 +558,8 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       log_printmpi ("ecgen result  n", sk.E.n);
       log_printmpi ("ecgen result  Q", public);
       log_printmpi ("ecgen result  d", secret);
-      if (ed25519_with_ecdsa)
-        log_debug ("ecgen result  using Ed25519/ECDSA\n");
+      if ((flags & PUBKEY_FLAG_EDDSA))
+        log_debug ("ecgen result  using Ed25519+EdDSA\n");
     }
 
  leave:
@@ -773,8 +758,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       log_debug ("ecc_sign   info: %s/%s%s\n",
                  _gcry_ecc_model2str (sk.E.model),
                  _gcry_ecc_dialect2str (sk.E.dialect),
-                 (sk.E.dialect == ECC_DIALECT_ED25519
-                  && (ctx.flags & PUBKEY_FLAG_ECDSA))? "ECDSA":"");
+                 (ctx.flags & PUBKEY_FLAG_EDDSA)? "+EdDSA":"");
       if (sk.E.name)
         log_debug  ("ecc_sign   name: %s\n", sk.E.name);
       log_printmpi ("ecc_sign      p", sk.E.p);
@@ -940,8 +924,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
       log_debug ("ecc_verify info: %s/%s%s\n",
                  _gcry_ecc_model2str (pk.E.model),
                  _gcry_ecc_dialect2str (pk.E.dialect),
-                 (pk.E.dialect == ECC_DIALECT_ED25519
-                  && !(sigflags & PUBKEY_FLAG_EDDSA))? "/ECDSA":"");
+                 (sigflags & PUBKEY_FLAG_EDDSA)? "+EdDSA":"");
       if (pk.E.name)
         log_debug  ("ecc_verify name: %s\n", pk.E.name);
       log_printmpi ("ecc_verify    p", pk.E.p);

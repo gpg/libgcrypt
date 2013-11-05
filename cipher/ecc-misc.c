@@ -265,7 +265,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec)
     return NULL;
 
   if (ec->dialect == ECC_DIALECT_ED25519
-      && !(ec->flags & PUBKEY_FLAG_ECDSA))
+      && (ec->flags & PUBKEY_FLAG_EDDSA))
     {
       gcry_mpi_t a;
       unsigned char *rawmpi = NULL;

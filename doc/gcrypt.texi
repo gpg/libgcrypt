@@ -2251,15 +2251,10 @@ Use RSA-OAEP padding for encryption.
 @cindex PSS
 Use RSA-PSS padding for signing.
 
-@item ecdsa
-@cindex ECDSA
-Create an ECDSA public key instead of using the default key generation
-of the specified curve.
-
 @item eddsa
 @cindex EdDSA
-Use the EdDSA scheme instead of the default signature algorithm of the
-used curve.
+Use the EdDSA scheme signing instead of the default ECDSA algorithm.
+Note that the EdDSA uses a special form of the public key.
 
 @item rfc6979
 @cindex RFC6979
@@ -2854,7 +2849,7 @@ is in general not recommended.
 @example
 (genkey
   (ecc
-    (flags noparam transient-key ecdsa)))
+    (flags noparam transient-key)))
 @end example
 
 @item transient-key
@@ -2899,12 +2894,12 @@ elliptic curve key generation:
   (public-key
     (ecc
       (curve Ed25519)
-      (flags noparam)
+      (flags noparam eddsa)
       (q @var{q-value})))
   (private-key
     (ecc
       (curve Ed25519)
-      (flags noparam)
+      (flags noparam eddsa)
       (q @var{q-value})
       (d @var{d-value}))))
 @end example

@@ -1057,7 +1057,7 @@ check_ed25519ecdsa_sample_key (void)
     "  (q #047b57c2c1d3ded93332b52d588dd45863478b658387413a718779c0dd1a6d95#)"
     "))";
   static const char hash_string[] =
-    "(data (flags ecdsa rfc6979)\n"
+    "(data (flags rfc6979)\n"
     " (hash sha256 #00112233445566778899AABBCCDDEEFF"
     /* */          "000102030405060708090A0B0C0D0E0F#))";
 

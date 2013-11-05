@@ -107,10 +107,6 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
               encoding = PUBKEY_ENC_RAW;
               flags |= PUBKEY_FLAG_EDDSA;
             }
-          else if (!memcmp (s, "ecdsa", 5))
-            {
-              flags |= PUBKEY_FLAG_ECDSA;
-            }
           else if (!memcmp (s, "pkcs1", 5) && encoding == PUBKEY_ENC_UNKNOWN)
             {
               encoding = PUBKEY_ENC_PKCS1;

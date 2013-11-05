@@ -997,7 +997,8 @@ ecc_bench (int iterations, int print_header)
 
       if (is_ed25519)
         err = gcry_sexp_build (&key_spec, NULL,
-                               "(genkey (ecdsa (curve \"Ed25519\")))");
+                               "(genkey (ecdsa (curve \"Ed25519\")"
+                               "(flags eddsa)))");
       else if (is_gost)
         err = gcry_sexp_build (&key_spec, NULL,
                                "(genkey (ecdsa (curve %s)))",
