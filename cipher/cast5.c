@@ -962,9 +962,9 @@ do_cast_setkey( CAST5_context *c, const byte *key, unsigned keylen )
     }
 #endif
 
-  memset(&x,0, sizeof x);
-  memset(&z,0, sizeof z);
-  memset(&k,0, sizeof k);
+  wipememory(x, sizeof x);
+  wipememory(z, sizeof z);
+  wipememory(k, sizeof k);
 
 #undef xi
 #undef zi
@@ -976,7 +976,6 @@ cast_setkey (void *context, const byte *key, unsigned keylen )
 {
   CAST5_context *c = (CAST5_context *) context;
   gcry_err_code_t rc = do_cast_setkey (c, key, keylen);
-  _gcry_burn_stack (96+7*sizeof(void*));
   return rc;
 }
 
