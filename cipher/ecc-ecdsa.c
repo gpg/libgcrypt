@@ -78,7 +78,7 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   x = mpi_alloc (0);
   point_init (&I);
 
-  ctx = _gcry_mpi_ec_p_internal_new (skey->E.model, skey->E.dialect,
+  ctx = _gcry_mpi_ec_p_internal_new (skey->E.model, skey->E.dialect, 0,
                                      skey->E.p, skey->E.a, skey->E.b);
 
   /* Two loops to avoid R or S are zero.  This is more of a joke than
@@ -179,7 +179,7 @@ _gcry_ecc_ecdsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
   point_init (&Q1);
   point_init (&Q2);
 
-  ctx = _gcry_mpi_ec_p_internal_new (pkey->E.model, pkey->E.dialect,
+  ctx = _gcry_mpi_ec_p_internal_new (pkey->E.model, pkey->E.dialect, 0,
                                      pkey->E.p, pkey->E.a, pkey->E.b);
 
   /* h  = s^(-1) (mod n) */

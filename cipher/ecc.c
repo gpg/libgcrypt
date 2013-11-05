@@ -312,7 +312,7 @@ check_secret_key (ECC_secret_key * sk)
       goto leave;
     }
 
-  ctx = _gcry_mpi_ec_p_internal_new (sk->E.model, sk->E.dialect,
+  ctx = _gcry_mpi_ec_p_internal_new (sk->E.model, sk->E.dialect, 0,
                                      sk->E.p, sk->E.a, sk->E.b);
 
   _gcry_mpi_ec_mul_point (&Q, sk->E.n, &sk->E.G, ctx);
@@ -469,7 +469,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   else
     random_level = GCRY_VERY_STRONG_RANDOM;
 
-  ctx = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, E.p, E.a, E.b);
+  ctx = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, 0, E.p, E.a, E.b);
   x = mpi_new (0);
   y = mpi_new (0);
 
@@ -984,7 +984,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
 
           /* Fixme: Factor the curve context setup out of eddsa_verify
              and ecdsa_verify. So that we don't do it twice.  */
-          ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect,
+          ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, 0,
                                             pk.E.p, pk.E.a, pk.E.b);
 
           rc = _gcry_ecc_eddsa_decodepoint (mpi_q, ec, &pk.Q, NULL, NULL);
@@ -1169,7 +1169,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Compute the encrypted value.  */
-  ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect,
+  ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, 0,
                                     pk.E.p, pk.E.a, pk.E.b);
 
   /* The following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so */
@@ -1338,7 +1338,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       return rc;
     }
 
-  ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect,
+  ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, 0,
                                     sk.E.p, sk.E.a, sk.E.b);
 
   /* R = dkG */

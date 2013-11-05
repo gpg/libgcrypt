@@ -545,28 +545,36 @@ mpi_from_keyparam (gcry_mpi_t *r_a, gcry_sexp_t keyparam, const char *name)
 /* Helper to extract a point from key parameters.  If no parameter
    with NAME is found, the functions tries to find a non-encoded point
    by appending ".x", ".y" and ".z" to NAME.  ".z" is in this case
-   optional and defaults to 1.  */
+   optional and defaults to 1.  EC is the context which at this point
+   may not be fully initialized. */
 static gpg_err_code_t
 point_from_keyparam (gcry_mpi_point_t *r_a,
-                     gcry_sexp_t keyparam, const char *name)
+                     gcry_sexp_t keyparam, const char *name, mpi_ec_t ec)
 {
-  gcry_err_code_t ec;
-  gcry_mpi_t a = NULL;
+  gcry_err_code_t rc;
+  gcry_sexp_t l1;
   gcry_mpi_point_t point;
 
-  ec = mpi_from_keyparam (&a, keyparam, name);
-  if (ec)
-    return ec;
-
-  if (a)
+  l1 = gcry_sexp_find_token (keyparam, name, 0);
+  if (l1)
     {
+      gcry_mpi_t a;
+
+      a = _gcry_sexp_nth_opaque_mpi (l1, 1);
+      gcry_sexp_release (l1);
+      if (!a)
+        return GPG_ERR_INV_OBJ;
+
       point = gcry_mpi_point_new (0);
-      ec = _gcry_ecc_os2ec (point, a);
+      if (ec && ec->dialect == ECC_DIALECT_ED25519)
+        rc = _gcry_ecc_eddsa_decodepoint (a, ec, point, NULL, NULL);
+      else
+        rc = _gcry_ecc_os2ec (point, a);
       mpi_free (a);
-      if (ec)
+      if (rc)
         {
           gcry_mpi_point_release (point);
-          return ec;
+          return rc;
         }
     }
   else
@@ -580,28 +588,28 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
       if (!tmpname)
         return gpg_err_code_from_syserror ();
       strcpy (stpcpy (tmpname, name), ".x");
-      ec = mpi_from_keyparam (&x, keyparam, tmpname);
-      if (ec)
+      rc = mpi_from_keyparam (&x, keyparam, tmpname);
+      if (rc)
         {
           gcry_free (tmpname);
-          return ec;
+          return rc;
         }
       strcpy (stpcpy (tmpname, name), ".y");
-      ec = mpi_from_keyparam (&y, keyparam, tmpname);
-      if (ec)
+      rc = mpi_from_keyparam (&y, keyparam, tmpname);
+      if (rc)
         {
           mpi_free (x);
           gcry_free (tmpname);
-          return ec;
+          return rc;
         }
       strcpy (stpcpy (tmpname, name), ".z");
-      ec = mpi_from_keyparam (&z, keyparam, tmpname);
-      if (ec)
+      rc = mpi_from_keyparam (&z, keyparam, tmpname);
+      if (rc)
         {
           mpi_free (y);
           mpi_free (x);
           gcry_free (tmpname);
-          return ec;
+          return rc;
         }
       if (!z)
         z = mpi_set_ui (NULL, 1);
@@ -645,35 +653,43 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
   gcry_mpi_t n = NULL;
   gcry_mpi_point_t Q = NULL;
   gcry_mpi_t d = NULL;
+  int flags = 0;
   gcry_sexp_t l1;
 
   *r_ctx = NULL;
 
   if (keyparam)
     {
-      errc = mpi_from_keyparam (&p, keyparam, "p");
-      if (errc)
-        goto leave;
-      errc = mpi_from_keyparam (&a, keyparam, "a");
-      if (errc)
-        goto leave;
-      errc = mpi_from_keyparam (&b, keyparam, "b");
-      if (errc)
-        goto leave;
-      errc = point_from_keyparam (&G, keyparam, "g");
-      if (errc)
-        goto leave;
-      errc = mpi_from_keyparam (&n, keyparam, "n");
-      if (errc)
-        goto leave;
-      errc = point_from_keyparam (&Q, keyparam, "q");
-      if (errc)
-        goto leave;
-      errc = mpi_from_keyparam (&d, keyparam, "d");
-      if (errc)
-        goto leave;
-    }
+      /* Parse an optional flags list.  */
+      l1 = gcry_sexp_find_token (keyparam, "flags", 0);
+      if (l1)
+        {
+          errc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
+          gcry_sexp_release (l1);
+          l1 = NULL;
+          if (errc)
+            goto leave;
+        }
 
+      if (!(flags & PUBKEY_FLAG_NOPARAM))
+        {
+          errc = mpi_from_keyparam (&p, keyparam, "p");
+          if (errc)
+            goto leave;
+          errc = mpi_from_keyparam (&a, keyparam, "a");
+          if (errc)
+            goto leave;
+          errc = mpi_from_keyparam (&b, keyparam, "b");
+          if (errc)
+            goto leave;
+          errc = point_from_keyparam (&G, keyparam, "g", NULL);
+          if (errc)
+            goto leave;
+          errc = mpi_from_keyparam (&n, keyparam, "n");
+          if (errc)
+            goto leave;
+        }
+    }
 
   /* Check whether a curve parameter is available and use that to fill
      in missing values.  If no curve parameter is available try an
@@ -751,7 +767,8 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
       gcry_free (E);
     }
 
-  errc = _gcry_mpi_ec_p_new (&ctx, model, dialect, p, a, b);
+
+  errc = _gcry_mpi_ec_p_new (&ctx, model, dialect, flags, p, a, b);
   if (!errc)
     {
       mpi_ec_t ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
@@ -771,6 +788,22 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
           ec->n = n;
           n = NULL;
         }
+
+      /* Now that we now the curve name we can look for the public key
+         Q.  point_from_keyparam needs to know the curve parameters so
+         that it is able to use the correct decompression.  Parsing
+         the private key D could have been done earlier but it is less
+         surprising if we do it here as well.  */
+      if (keyparam)
+        {
+          errc = point_from_keyparam (&Q, keyparam, "q", ec);
+          if (errc)
+            goto leave;
+          errc = mpi_from_keyparam (&d, keyparam, "d");
+          if (errc)
+            goto leave;
+        }
+
       if (Q)
         {
           ec->Q = Q;
@@ -783,9 +816,11 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
         }
 
       *r_ctx = ctx;
+      ctx = NULL;
     }
 
  leave:
+  gcry_ctx_release (ctx);
   mpi_free (p);
   mpi_free (a);
   mpi_free (b);
@@ -814,7 +849,10 @@ _gcry_ecc_get_param (const char *name, gcry_mpi_t *pkey)
 
   g_x = mpi_new (0);
   g_y = mpi_new (0);
-  ctx = _gcry_mpi_ec_p_internal_new (0, ECC_DIALECT_STANDARD, E.p, E.a, NULL);
+  ctx = _gcry_mpi_ec_p_internal_new (MPI_EC_WEIERSTRASS,
+                                     ECC_DIALECT_STANDARD,
+                                     0,
+                                     E.p, E.a, NULL);
   if (_gcry_mpi_ec_get_affine (g_x, g_y, &E.G, ctx))
     log_fatal ("ecc get param: Failed to get affine coordinates\n");
   _gcry_mpi_ec_free (ctx);

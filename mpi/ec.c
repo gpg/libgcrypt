@@ -350,6 +350,7 @@ ec_get_two_inv_p (mpi_ec_t ec)
 static void
 ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
            enum ecc_dialects dialect,
+           int flags,
            gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
 {
   int i;
@@ -367,6 +368,7 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
 
   ctx->model = model;
   ctx->dialect = dialect;
+  ctx->flags = flags;
   if (dialect == ECC_DIALECT_ED25519)
     ctx->nbits = 256;
   else
@@ -454,12 +456,13 @@ ec_deinit (void *opaque)
 mpi_ec_t
 _gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
                              enum ecc_dialects dialect,
+                             int flags,
                              gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
 {
   mpi_ec_t ctx;
 
   ctx = gcry_xcalloc (1, sizeof *ctx);
-  ec_p_init (ctx, model, dialect, p, a, b);
+  ec_p_init (ctx, model, dialect, flags, p, a, b);
 
   return ctx;
 }
@@ -476,6 +479,7 @@ gpg_err_code_t
 _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
                     enum gcry_mpi_ec_models model,
                     enum ecc_dialects dialect,
+                    int flags,
                     gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b)
 {
   gcry_ctx_t ctx;
@@ -489,7 +493,7 @@ _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
   if (!ctx)
     return gpg_err_code_from_syserror ();
   ec = _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC);
-  ec_p_init (ec, model, dialect, p, a, b);
+  ec_p_init (ec, model, dialect, flags, p, a, b);
 
   *r_ctx = ctx;
   return 0;

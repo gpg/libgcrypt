@@ -312,10 +312,12 @@ void _gcry_mpi_point_log (const char *name, mpi_point_t point, mpi_ec_t ctx);
 
 mpi_ec_t _gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
                                       enum ecc_dialects dialect,
+                                      int flags,
                                       gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b);
 gpg_err_code_t _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
                                    enum gcry_mpi_ec_models model,
                                    enum ecc_dialects dialect,
+                                   int flags,
                                    gcry_mpi_t p, gcry_mpi_t a, gcry_mpi_t b);
 void _gcry_mpi_ec_free (mpi_ec_t ctx);
 

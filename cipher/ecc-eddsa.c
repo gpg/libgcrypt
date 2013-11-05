@@ -441,7 +441,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   x = mpi_new (0);
   y = mpi_new (0);
   r = mpi_new (0);
-  ctx = _gcry_mpi_ec_p_internal_new (skey->E.model, skey->E.dialect,
+  ctx = _gcry_mpi_ec_p_internal_new (skey->E.model, skey->E.dialect, 0,
                                      skey->E.p, skey->E.a, skey->E.b);
   b = (ctx->nbits+7)/8;
   if (b != 256/8)
@@ -618,7 +618,7 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
   h = mpi_new (0);
   s = mpi_new (0);
 
-  ctx = _gcry_mpi_ec_p_internal_new (pkey->E.model, pkey->E.dialect,
+  ctx = _gcry_mpi_ec_p_internal_new (pkey->E.model, pkey->E.dialect, 0,
                                      pkey->E.p, pkey->E.a, pkey->E.b);
   b = ctx->nbits/8;
   if (b != 256/8)

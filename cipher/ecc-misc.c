@@ -26,6 +26,7 @@
 
 #include "g10lib.h"
 #include "mpi.h"
+#include "cipher.h"
 #include "context.h"
 #include "ec-context.h"
 #include "ecc-common.h"
@@ -263,67 +264,62 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec)
   if (ec->model == MPI_EC_TWISTEDEDWARDS && !ec->b)
     return NULL;
 
-  switch (ec->dialect)
+  if (ec->dialect == ECC_DIALECT_ED25519
+      && !(ec->flags & PUBKEY_FLAG_ECDSA))
     {
-    case ECC_DIALECT_ED25519:
-      {
-        gcry_mpi_t a;
-        unsigned char *rawmpi = NULL;
-        unsigned int rawmpilen;
-        unsigned char *digest;
-        gcry_buffer_t hvec[2];
-        int b = (ec->nbits+7)/8;
+      gcry_mpi_t a;
+      unsigned char *rawmpi = NULL;
+      unsigned int rawmpilen;
+      unsigned char *digest;
+      gcry_buffer_t hvec[2];
+      int b = (ec->nbits+7)/8;
 
-        gcry_assert (b >= 32);
-        digest = gcry_calloc_secure (2, b);
-        if (!digest)
+      gcry_assert (b >= 32);
+      digest = gcry_calloc_secure (2, b);
+      if (!digest)
+        return NULL;
+      memset (hvec, 0, sizeof hvec);
+
+      rawmpi = _gcry_mpi_get_buffer (ec->d, 0, &rawmpilen, NULL);
+      if (!rawmpi)
+        return NULL;
+      memset (digest, 0, b);
+      hvec[0].data = digest;
+      hvec[0].off = 0;
+      hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
+      hvec[1].data = rawmpi;
+      hvec[1].off = 0;
+      hvec[1].len = rawmpilen;
+      /* FIXME: Put and take the hash algo from the context.  */
+      rc = _gcry_md_hash_buffers (GCRY_MD_SHA512, 0, digest, hvec, 2);
+      gcry_free (rawmpi);
+      if (rc)
+        {
+          gcry_free (digest);
           return NULL;
-        memset (hvec, 0, sizeof hvec);
+        }
 
-        rawmpi = _gcry_mpi_get_buffer (ec->d, 0, &rawmpilen, NULL);
-        if (!rawmpi)
-          return NULL;
-        memset (digest, 0, b);
-        hvec[0].data = digest;
-        hvec[0].off = 0;
-        hvec[0].len = b > rawmpilen? b - rawmpilen : 0;
-        hvec[1].data = rawmpi;
-        hvec[1].off = 0;
-        hvec[1].len = rawmpilen;
-        /* FIXME: Put and take the hash algo from the context.  */
-        rc = _gcry_md_hash_buffers (GCRY_MD_SHA512, 0, digest, hvec, 2);
-        gcry_free (rawmpi);
-        if (rc)
-          {
-            gcry_free (digest);
-            return NULL;
-          }
+      /* Compute the A value.  */
+      reverse_buffer (digest, 32);  /* Only the first half of the hash.  */
+      digest[0] = (digest[0] & 0x7f) | 0x40;
+      digest[31] &= 0xf8;
+      a = mpi_snew (0);
+      _gcry_mpi_set_buffer (a, digest, 32, 0);
+      gcry_free (digest);
 
-        /* Compute the A value.  */
-        reverse_buffer (digest, 32);  /* Only the first half of the hash.  */
-        digest[0] = (digest[0] & 0x7f) | 0x40;
-        digest[31] &= 0xf8;
-        a = mpi_snew (0);
-        _gcry_mpi_set_buffer (a, digest, 32, 0);
-        gcry_free (digest);
-
-        /* And finally the public key.  */
-        if (!Q)
-          Q = gcry_mpi_point_new (0);
-        if (Q)
-          _gcry_mpi_ec_mul_point (Q, a, ec->G, ec);
-        mpi_free (a);
-      }
-      break;
-
-    default:
-      {
-        if (!Q)
-          Q = gcry_mpi_point_new (0);
-        if (Q)
-          _gcry_mpi_ec_mul_point (Q, ec->d, ec->G, ec);
-      }
-      break;
+      /* And finally the public key.  */
+      if (!Q)
+        Q = gcry_mpi_point_new (0);
+      if (Q)
+        _gcry_mpi_ec_mul_point (Q, a, ec->G, ec);
+      mpi_free (a);
+    }
+  else
+    {
+      if (!Q)
+        Q = gcry_mpi_point_new (0);
+      if (Q)
+        _gcry_mpi_ec_mul_point (Q, ec->d, ec->G, ec);
     }
 
   return Q;
