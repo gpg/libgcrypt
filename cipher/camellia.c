@@ -22,15 +22,15 @@
  *  http://info.isl.ntt.co.jp/crypt/eng/camellia/specifications.html
  */
 
+#include <config.h>
 #include <string.h>
 #include <stdlib.h>
 
+#include "types.h"
 #include "bufhelp.h"
 #include "camellia.h"
 
-/* u32 must be 32bit word */
-typedef unsigned int u32;
-typedef unsigned char u8;
+typedef byte u8;
 
 /* key constants */
 
