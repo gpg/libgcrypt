@@ -60,6 +60,7 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
   int i;
   int encoding = PUBKEY_ENC_UNKNOWN;
   int flags = 0;
+  int igninvflag = 0;
 
   for (i=list?gcry_sexp_length (list)-1:0; i > 0; i--)
     {
@@ -80,7 +81,7 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
               encoding = PUBKEY_ENC_RAW;
               flags |= PUBKEY_FLAG_RAW_FLAG; /* Explicitly given.  */
             }
-          else
+          else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
 
@@ -97,7 +98,7 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
               encoding = PUBKEY_ENC_RAW;
               flags |= PUBKEY_FLAG_GOST;
             }
-          else
+          else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
 
@@ -112,7 +113,7 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
               encoding = PUBKEY_ENC_PKCS1;
               flags |= PUBKEY_FLAG_FIXEDLEN;
             }
-          else
+          else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
 
@@ -121,15 +122,20 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
             flags |= PUBKEY_FLAG_RFC6979;
           else if (!memcmp (s, "noparam", 7))
             flags |= PUBKEY_FLAG_NOPARAM;
-          else
+          else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
 
         case 8:
           if (!memcmp (s, "use-x931", 8))
             flags |= PUBKEY_FLAG_USE_X931;
-          else
+          else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
+          break;
+
+        case 10:
+          if (!memcmp (s, "igninvflag", 10))
+            igninvflag = 1;
           break;
 
         case 11:
@@ -137,7 +143,7 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
             flags |= PUBKEY_FLAG_NO_BLINDING;
           else if (!memcmp (s, "use-fips186", 11))
             flags |= PUBKEY_FLAG_USE_FIPS186;
-          else
+          else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
 
@@ -146,12 +152,13 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
             flags |= PUBKEY_FLAG_USE_FIPS186_2;
           else if (!memcmp (s, "transient-key", 13))
             flags |= PUBKEY_FLAG_TRANSIENT_KEY;
-          else
+          else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
 
         default:
-          rc = GPG_ERR_INV_FLAG;
+          if (!igninvflag)
+            rc = GPG_ERR_INV_FLAG;
           break;
         }
     }
