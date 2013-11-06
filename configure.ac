@@ -779,8 +779,8 @@ AC_SUBST(FALLBACK_SOCKLEN_T)
 AC_CACHE_CHECK(for __builtin_bswap32,
        [gcry_cv_have_builtin_bswap32],
        [gcry_cv_have_builtin_bswap32=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[int foo(int x) { return __builtin_bswap32(x); }]])],
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+          [int x = 0; int y = __builtin_bswap32(x); return y;])],
           [gcry_cv_have_builtin_bswap32=yes])])
 if test "$gcry_cv_have_builtin_bswap32" = "yes" ; then
    AC_DEFINE(HAVE_BUILTIN_BSWAP32,1,
@@ -794,8 +794,8 @@ fi
 AC_CACHE_CHECK(for __builtin_bswap64,
        [gcry_cv_have_builtin_bswap64],
        [gcry_cv_have_builtin_bswap64=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[int foo(int x) { return __builtin_bswap64(x); }]])],
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+          [long long x = 0; long long y = __builtin_bswap64(x); return y;])],
           [gcry_cv_have_builtin_bswap64=yes])])
 if test "$gcry_cv_have_builtin_bswap64" = "yes" ; then
    AC_DEFINE(HAVE_BUILTIN_BSWAP64,1,
