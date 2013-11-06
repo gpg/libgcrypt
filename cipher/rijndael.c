@@ -99,7 +99,7 @@
 #endif /* ENABLE_AESNI_SUPPORT */
 
 #ifdef USE_AESNI
-  typedef int m128i_t __attribute__ ((__vector_size__ (16)));
+  typedef struct u128_s { u32 a, b, c, d; } u128_t;
 #endif /*USE_AESNI*/
 
 /* Define an u32 variant for the sake of gcc 4.4's strict aliasing.  */
@@ -223,6 +223,239 @@ static const char *selftest(void);
 
 
 
+#ifdef USE_AESNI
+static void
+aesni_do_setkey (RIJNDAEL_context *ctx, const byte *key)
+{
+  aesni_prepare();
+
+  if (ctx->rounds < 12)
+    {
+      /* 128-bit key */
+#define AESKEYGENASSIST_xmm1_xmm2(imm8) \
+	".byte 0x66, 0x0f, 0x3a, 0xdf, 0xd1, " #imm8 " \n\t"
+#define AESKEY_EXPAND128 \
+	"pshufd $0xff, %%xmm2, %%xmm2\n\t" \
+	"movdqa %%xmm1, %%xmm3\n\t" \
+	"pslldq $4, %%xmm3\n\t" \
+	"pxor   %%xmm3, %%xmm1\n\t" \
+	"pslldq $4, %%xmm3\n\t" \
+	"pxor   %%xmm3, %%xmm1\n\t" \
+	"pslldq $4, %%xmm3\n\t" \
+	"pxor   %%xmm3, %%xmm2\n\t" \
+	"pxor   %%xmm2, %%xmm1\n\t"
+
+      asm volatile ("movdqu (%[key]), %%xmm1\n\t"     /* xmm1 := key   */
+                    "movdqa %%xmm1, (%[ksch])\n\t"     /* ksch[0] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x01)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0x10(%[ksch])\n\t" /* ksch[1] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x02)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0x20(%[ksch])\n\t" /* ksch[2] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x04)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0x30(%[ksch])\n\t" /* ksch[3] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x08)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0x40(%[ksch])\n\t" /* ksch[4] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x10)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0x50(%[ksch])\n\t" /* ksch[5] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x20)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0x60(%[ksch])\n\t" /* ksch[6] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x40)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0x70(%[ksch])\n\t" /* ksch[7] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x80)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0x80(%[ksch])\n\t" /* ksch[8] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x1b)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0x90(%[ksch])\n\t" /* ksch[9] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x36)
+                    AESKEY_EXPAND128
+                    "movdqa %%xmm1, 0xa0(%[ksch])\n\t" /* ksch[10] := xmm1  */
+                    :
+                    : [key] "r" (key), [ksch] "r" (ctx->keyschenc)
+                    : "cc", "memory" );
+#undef AESKEYGENASSIST_xmm1_xmm2
+#undef AESKEY_EXPAND128
+    }
+  else if (ctx->rounds == 12)
+    {
+      /* 192-bit key */
+#define AESKEYGENASSIST_xmm3_xmm2(imm8) \
+	".byte 0x66, 0x0f, 0x3a, 0xdf, 0xd3, " #imm8 " \n\t"
+#define AESKEY_EXPAND192 \
+	"pshufd $0x55, %%xmm2, %%xmm2\n\t" \
+	"movdqu %%xmm1, %%xmm4\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm1\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm1\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm1\n\t" \
+	"pxor %%xmm2, %%xmm1\n\t" \
+	"pshufd $0xff, %%xmm1, %%xmm2\n\t" \
+	"movdqu %%xmm3, %%xmm4\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm3\n\t" \
+	"pxor %%xmm2, %%xmm3\n\t"
+
+      asm volatile ("movdqu (%[key]), %%xmm1\n\t"     /* xmm1 := key[0..15]   */
+                    "movq 16(%[key]), %%xmm3\n\t"     /* xmm3 := key[16..23]  */
+                    "movdqa %%xmm1, (%[ksch])\n\t"    /* ksch[0] := xmm1  */
+                    "movdqa %%xmm3, %%xmm5\n\t"
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x01)
+                    AESKEY_EXPAND192
+                    "shufpd $0, %%xmm1, %%xmm5\n\t"
+                    "movdqa %%xmm5, 0x10(%[ksch])\n\t" /* ksch[1] := xmm5  */
+                    "movdqa %%xmm1, %%xmm6\n\t"
+                    "shufpd $1, %%xmm3, %%xmm6\n\t"
+                    "movdqa %%xmm6, 0x20(%[ksch])\n\t" /* ksch[2] := xmm6  */
+                    AESKEYGENASSIST_xmm3_xmm2(0x02)
+                    AESKEY_EXPAND192
+                    "movdqa %%xmm1, 0x30(%[ksch])\n\t" /* ksch[3] := xmm1  */
+                    "movdqa %%xmm3, %%xmm5\n\t"
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x04)
+                    AESKEY_EXPAND192
+                    "shufpd $0, %%xmm1, %%xmm5\n\t"
+                    "movdqa %%xmm5, 0x40(%[ksch])\n\t" /* ksch[4] := xmm5  */
+                    "movdqa %%xmm1, %%xmm6\n\t"
+                    "shufpd $1, %%xmm3, %%xmm6\n\t"
+                    "movdqa %%xmm6, 0x50(%[ksch])\n\t" /* ksch[5] := xmm6  */
+                    AESKEYGENASSIST_xmm3_xmm2(0x08)
+                    AESKEY_EXPAND192
+                    "movdqa %%xmm1, 0x60(%[ksch])\n\t" /* ksch[6] := xmm1  */
+                    "movdqa %%xmm3, %%xmm5\n\t"
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x10)
+                    AESKEY_EXPAND192
+                    "shufpd $0, %%xmm1, %%xmm5\n\t"
+                    "movdqa %%xmm5, 0x70(%[ksch])\n\t" /* ksch[7] := xmm5  */
+                    "movdqa %%xmm1, %%xmm6\n\t"
+                    "shufpd $1, %%xmm3, %%xmm6\n\t"
+                    "movdqa %%xmm6, 0x80(%[ksch])\n\t" /* ksch[8] := xmm6  */
+                    AESKEYGENASSIST_xmm3_xmm2(0x20)
+                    AESKEY_EXPAND192
+                    "movdqa %%xmm1, 0x90(%[ksch])\n\t" /* ksch[9] := xmm1  */
+                    "movdqa %%xmm3, %%xmm5\n\t"
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x40)
+                    AESKEY_EXPAND192
+                    "shufpd $0, %%xmm1, %%xmm5\n\t"
+                    "movdqa %%xmm5, 0xa0(%[ksch])\n\t" /* ksch[10] := xmm5  */
+                    "movdqa %%xmm1, %%xmm6\n\t"
+                    "shufpd $1, %%xmm3, %%xmm6\n\t"
+                    "movdqa %%xmm6, 0xb0(%[ksch])\n\t" /* ksch[11] := xmm6  */
+                    AESKEYGENASSIST_xmm3_xmm2(0x80)
+                    AESKEY_EXPAND192
+                    "movdqa %%xmm1, 0xc0(%[ksch])\n\t" /* ksch[12] := xmm1  */
+                    :
+                    : [key] "r" (key), [ksch] "r" (ctx->keyschenc)
+                    : "cc", "memory" );
+#undef AESKEYGENASSIST_xmm3_xmm2
+#undef AESKEY_EXPAND192
+    }
+  else if (ctx->rounds > 12)
+    {
+      /* 256-bit key */
+#define AESKEYGENASSIST_xmm1_xmm2(imm8) \
+	".byte 0x66, 0x0f, 0x3a, 0xdf, 0xd1, " #imm8 " \n\t"
+#define AESKEYGENASSIST_xmm3_xmm2(imm8) \
+	".byte 0x66, 0x0f, 0x3a, 0xdf, 0xd3, " #imm8 " \n\t"
+#define AESKEY_EXPAND256_A \
+	"pshufd $0xff, %%xmm2, %%xmm2\n\t" \
+	"movdqa %%xmm1, %%xmm4\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm1\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm1\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm1\n\t" \
+	"pxor %%xmm2, %%xmm1\n\t"
+#define AESKEY_EXPAND256_B \
+	"pshufd $0xaa, %%xmm2, %%xmm2\n\t" \
+	"movdqa %%xmm3, %%xmm4\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm3\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm3\n\t" \
+	"pslldq $4, %%xmm4\n\t" \
+	"pxor %%xmm4, %%xmm3\n\t" \
+	"pxor %%xmm2, %%xmm3\n\t"
+
+      asm volatile ("movdqu (%[key]), %%xmm1\n\t"     /* xmm1 := key[0..15]   */
+                    "movdqu 16(%[key]), %%xmm3\n\t"   /* xmm3 := key[16..31]  */
+                    "movdqa %%xmm1, (%[ksch])\n\t"     /* ksch[0] := xmm1  */
+                    "movdqa %%xmm3, 0x10(%[ksch])\n\t" /* ksch[1] := xmm3  */
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x01)
+                    AESKEY_EXPAND256_A
+                    "movdqa %%xmm1, 0x20(%[ksch])\n\t" /* ksch[2] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x00)
+                    AESKEY_EXPAND256_B
+                    "movdqa %%xmm3, 0x30(%[ksch])\n\t" /* ksch[3] := xmm3  */
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x02)
+                    AESKEY_EXPAND256_A
+                    "movdqa %%xmm1, 0x40(%[ksch])\n\t" /* ksch[4] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x00)
+                    AESKEY_EXPAND256_B
+                    "movdqa %%xmm3, 0x50(%[ksch])\n\t" /* ksch[5] := xmm3  */
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x04)
+                    AESKEY_EXPAND256_A
+                    "movdqa %%xmm1, 0x60(%[ksch])\n\t" /* ksch[6] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x00)
+                    AESKEY_EXPAND256_B
+                    "movdqa %%xmm3, 0x70(%[ksch])\n\t" /* ksch[7] := xmm3  */
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x08)
+                    AESKEY_EXPAND256_A
+                    "movdqa %%xmm1, 0x80(%[ksch])\n\t" /* ksch[8] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x00)
+                    AESKEY_EXPAND256_B
+                    "movdqa %%xmm3, 0x90(%[ksch])\n\t" /* ksch[9] := xmm3  */
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x10)
+                    AESKEY_EXPAND256_A
+                    "movdqa %%xmm1, 0xa0(%[ksch])\n\t" /* ksch[10] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x00)
+                    AESKEY_EXPAND256_B
+                    "movdqa %%xmm3, 0xb0(%[ksch])\n\t" /* ksch[11] := xmm3  */
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x20)
+                    AESKEY_EXPAND256_A
+                    "movdqa %%xmm1, 0xc0(%[ksch])\n\t" /* ksch[12] := xmm1  */
+                    AESKEYGENASSIST_xmm1_xmm2(0x00)
+                    AESKEY_EXPAND256_B
+                    "movdqa %%xmm3, 0xd0(%[ksch])\n\t" /* ksch[13] := xmm3  */
+
+                    AESKEYGENASSIST_xmm3_xmm2(0x40)
+                    AESKEY_EXPAND256_A
+                    "movdqa %%xmm1, 0xe0(%[ksch])\n\t" /* ksch[14] := xmm1  */
+
+                    :
+                    : [key] "r" (key), [ksch] "r" (ctx->keyschenc)
+                    : "cc", "memory" );
+#undef AESKEYGENASSIST_xmm1_xmm2
+#undef AESKEYGENASSIST_xmm3_xmm2
+#undef AESKEY_EXPAND256_A
+#undef AESKEY_EXPAND256_B
+    }
+
+  aesni_cleanup();
+  aesni_cleanup_2_6();
+}
+#endif /*USE_AESNI*/
+
+
+
 /* Perform the key setup.  */
 static gcry_err_code_t
 do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
@@ -232,18 +465,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   int rounds;
   int i,j, r, t, rconpointer = 0;
   int KC;
-  union
-  {
-    PROPERLY_ALIGNED_TYPE dummy;
-    byte k[MAXKC][4];
-  } k;
-#define k k.k
-  union
-  {
-    PROPERLY_ALIGNED_TYPE dummy;
-    byte tk[MAXKC][4];
-  } tk;
-#define tk tk.tk
+  unsigned int hwfeatures;
 
   /* The on-the-fly self tests are only run in non-fips mode. In fips
      mode explicit self-tests are required.  Actually the on-the-fly
@@ -262,6 +484,10 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   if (selftest_failed)
     return GPG_ERR_SELFTEST_FAILED;
 
+#if defined(USE_AESNI) || defined(USE_PADLOCK)
+  hwfeatures = _gcry_get_hw_features ();
+#endif
+
   ctx->decryption_prepared = 0;
 #ifdef USE_PADLOCK
   ctx->use_padlock = 0;
@@ -278,14 +504,14 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
       if (0)
         ;
 #ifdef USE_PADLOCK
-      else if ((_gcry_get_hw_features () & HWF_PADLOCK_AES))
+      else if (hwfeatures & HWF_PADLOCK_AES)
         {
           ctx->use_padlock = 1;
           memcpy (ctx->padlockkey, key, keylen);
         }
 #endif
 #ifdef USE_AESNI
-      else if ((_gcry_get_hw_features () & HWF_INTEL_AESNI))
+      else if (hwfeatures & HWF_INTEL_AESNI)
         {
           ctx->use_aesni = 1;
         }
@@ -301,7 +527,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
           ;
         }
 #ifdef USE_AESNI
-      else if ((_gcry_get_hw_features () & HWF_INTEL_AESNI))
+      else if (hwfeatures & HWF_INTEL_AESNI)
         {
           ctx->use_aesni = 1;
         }
@@ -317,7 +543,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
           ;
         }
 #ifdef USE_AESNI
-      else if ((_gcry_get_hw_features () & HWF_INTEL_AESNI))
+      else if (hwfeatures & HWF_INTEL_AESNI)
         {
           ctx->use_aesni = 1;
         }
@@ -332,70 +558,19 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 
   if (0)
     ;
-#ifdef USE_AESNI_is_disabled_here
-  else if (ctx->use_aesni && ctx->rounds == 10)
-    {
-      /* Note: This code works for AES-128 but it is not much better
-         than using the standard key schedule.  We disable it for
-         now and don't put any effort into implementing this for
-         AES-192 and AES-256.  */
-      asm volatile ("movdqu (%[key]), %%xmm1\n\t"     /* xmm1 := key   */
-                    "movdqa %%xmm1, (%[ksch])\n\t"     /* ksch[0] := xmm1  */
-                    "aeskeygenassist $0x01, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x10(%[ksch])\n\t" /* ksch[1] := xmm1  */
-                    "aeskeygenassist $0x02, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x20(%[ksch])\n\t" /* ksch[2] := xmm1  */
-                    "aeskeygenassist $0x04, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x30(%[ksch])\n\t" /* ksch[3] := xmm1  */
-                    "aeskeygenassist $0x08, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x40(%[ksch])\n\t" /* ksch[4] := xmm1  */
-                    "aeskeygenassist $0x10, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x50(%[ksch])\n\t" /* ksch[5] := xmm1  */
-                    "aeskeygenassist $0x20, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x60(%[ksch])\n\t" /* ksch[6] := xmm1  */
-                    "aeskeygenassist $0x40, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x70(%[ksch])\n\t" /* ksch[7] := xmm1  */
-                    "aeskeygenassist $0x80, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x80(%[ksch])\n\t" /* ksch[8] := xmm1  */
-                    "aeskeygenassist $0x1b, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0x90(%[ksch])\n\t" /* ksch[9] := xmm1  */
-                    "aeskeygenassist $0x36, %%xmm1, %%xmm2\n\t"
-                    "call .Lexpand128_%=\n\t"
-                    "movdqa %%xmm1, 0xa0(%[ksch])\n\t" /* ksch[10] := xmm1  */
-                    "jmp .Lleave%=\n"
-
-                    ".Lexpand128_%=:\n\t"
-                    "pshufd $0xff, %%xmm2, %%xmm2\n\t"
-                    "movdqa %%xmm1, %%xmm3\n\t"
-                    "pslldq $4, %%xmm3\n\t"
-                    "pxor   %%xmm3, %%xmm1\n\t"
-                    "pslldq $4, %%xmm3\n\t"
-                    "pxor   %%xmm3, %%xmm1\n\t"
-                    "pslldq $4, %%xmm3\n\t"
-                    "pxor   %%xmm3, %%xmm2\n\t"
-                    "pxor   %%xmm2, %%xmm1\n\t"
-                    "ret\n"
-
-                    ".Lleave%=:\n\t"
-                    "pxor %%xmm1, %%xmm1\n\t"
-                    "pxor %%xmm2, %%xmm2\n\t"
-                    "pxor %%xmm3, %%xmm3\n"
-                    :
-                    : [key] "r" (key), [ksch] "r" (ctx->keyschenc)
-                    : "cc", "memory" );
-    }
-#endif /*USE_AESNI*/
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    aesni_do_setkey(ctx, key);
+#endif
   else
     {
+      union
+        {
+          PROPERLY_ALIGNED_TYPE dummy;
+          byte data[MAXKC][4];
+        } k, tk;
+#define k k.data
+#define tk tk.data
 #define W (ctx->keyschenc)
       for (i = 0; i < keylen; i++)
         {
@@ -470,11 +645,13 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
             }
         }
 #undef W
+#undef tk
+#undef k
+      wipememory(&tk, sizeof(tk));
+      wipememory(&t, sizeof(t));
     }
 
   return 0;
-#undef tk
-#undef k
 }
 
 
@@ -482,10 +659,7 @@ static gcry_err_code_t
 rijndael_setkey (void *context, const byte *key, const unsigned keylen)
 {
   RIJNDAEL_context *ctx = context;
-
-  int rc = do_setkey (ctx, key, keylen);
-  _gcry_burn_stack ( 100 + 16*sizeof(int));
-  return rc;
+  return do_setkey (ctx, key, keylen);
 }
 
 
@@ -501,22 +675,49 @@ prepare_decryption( RIJNDAEL_context *ctx )
       /* The AES-NI decrypt instructions use the Equivalent Inverse
          Cipher, thus we can't use the the standard decrypt key
          preparation.  */
-        m128i_t *ekey = (m128i_t*)ctx->keyschenc;
-        m128i_t *dkey = (m128i_t*)ctx->keyschdec;
+        u128_t *ekey = (u128_t *)ctx->keyschenc;
+        u128_t *dkey = (u128_t *)ctx->keyschdec;
         int rr;
 
+	aesni_prepare();
+
+#define DO_AESNI_AESIMC() \
+	asm volatile ("movdqa %[ekey], %%xmm1\n\t" \
+                      /*"aesimc %%xmm1, %%xmm1\n\t"*/ \
+                      ".byte 0x66, 0x0f, 0x38, 0xdb, 0xc9\n\t" \
+                      "movdqa %%xmm1, %[dkey]" \
+                      : [dkey] "=m" (dkey[r]) \
+                      : [ekey] "m" (ekey[rr]) \
+                      : "memory")
+
         dkey[0] = ekey[ctx->rounds];
-        for (r=1, rr=ctx->rounds-1; r < ctx->rounds; r++, rr--)
-          {
-            asm volatile
-              ("movdqu %[ekey], %%xmm1\n\t"
-               /*"aesimc %%xmm1, %%xmm1\n\t"*/
-               ".byte 0x66, 0x0f, 0x38, 0xdb, 0xc9\n\t"
-               "movdqu %%xmm1, %[dkey]"
-               : [dkey] "=m" (dkey[r])
-               : [ekey] "m" (ekey[rr]) );
-          }
+        r=1;
+	rr=ctx->rounds-1;
+	DO_AESNI_AESIMC(); r++; rr--; /* round 1 */
+	DO_AESNI_AESIMC(); r++; rr--; /* round 2 */
+	DO_AESNI_AESIMC(); r++; rr--; /* round 3 */
+	DO_AESNI_AESIMC(); r++; rr--; /* round 4 */
+	DO_AESNI_AESIMC(); r++; rr--; /* round 5 */
+	DO_AESNI_AESIMC(); r++; rr--; /* round 6 */
+	DO_AESNI_AESIMC(); r++; rr--; /* round 7 */
+	DO_AESNI_AESIMC(); r++; rr--; /* round 8 */
+	DO_AESNI_AESIMC(); r++; rr--; /* round 9 */
+	if (ctx->rounds > 10)
+	  {
+	    DO_AESNI_AESIMC(); r++; rr--; /* round 10 */
+	    DO_AESNI_AESIMC(); r++; rr--; /* round 11 */
+	    if (ctx->rounds > 12)
+	      {
+	        DO_AESNI_AESIMC(); r++; rr--; /* round 12 */
+	        DO_AESNI_AESIMC(); r++; rr--; /* round 13 */
+	      }
+	  }
+
         dkey[r] = ekey[0];
+
+#undef DO_AESNI_AESIMC
+
+	aesni_cleanup();
     }
   else
 #endif /*USE_AESNI*/
@@ -556,6 +757,7 @@ prepare_decryption( RIJNDAEL_context *ctx )
         }
 #undef W
 #undef w
+      wipememory(&w, sizeof(w));
     }
 }
 
@@ -745,7 +947,7 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
 
 #ifdef USE_AESNI
 /* Encrypt one block using the Intel AES-NI instructions.  A and B may
-   be the same; they need to be properly aligned to 16 bytes.
+   be the same.
 
    Our problem here is that gcc does not allow the "x" constraint for
    SSE registers in asm unless you compile with -msse.  The common
@@ -1809,7 +2011,6 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
   if ( !ctx->decryption_prepared )
     {
       prepare_decryption ( ctx );
-      _gcry_burn_stack (64);
       ctx->decryption_prepared = 1;
     }
 
