@@ -355,7 +355,7 @@ _gcry_aes_amd64_decrypt_block:
 	decround(9);
 
 	jmp .Ldec_tail;
-.size _gcry_aes_amd64_encrypt_block,.-_gcry_aes_amd64_encrypt_block;
+.size _gcry_aes_amd64_decrypt_block,.-_gcry_aes_amd64_decrypt_block;
 
 .data
 .align 16
