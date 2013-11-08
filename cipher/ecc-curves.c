@@ -333,6 +333,36 @@ scanval (const char *string)
 }
 
 
+/* Return the index of the domain_parms table for a curve with NAME.
+   Return -1 if not found.  */
+static int
+find_domain_parms_idx (const char *name)
+{
+  int idx, aliasno;
+
+  /* First check our native curves.  */
+  for (idx = 0; domain_parms[idx].desc; idx++)
+    if (!strcmp (name, domain_parms[idx].desc))
+      return idx;
+
+  /* If not found consult the alias table.  */
+  if (!domain_parms[idx].desc)
+    {
+      for (aliasno = 0; curve_aliases[aliasno].name; aliasno++)
+        if (!strcmp (name, curve_aliases[aliasno].other))
+          break;
+      if (curve_aliases[aliasno].name)
+        {
+          for (idx = 0; domain_parms[idx].desc; idx++)
+            if (!strcmp (curve_aliases[aliasno].name, domain_parms[idx].desc))
+              return idx;
+        }
+    }
+
+  return -1;
+}
+
+
 /* Generate the crypto system setup.  This function takes the NAME of
    a curve or the desired number of bits and stores at R_CURVE the
    parameters of the named curve or those of a suitable curve.  If
@@ -345,48 +375,24 @@ gpg_err_code_t
 _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
                          elliptic_curve_t *curve, unsigned int *r_nbits)
 {
-  int idx, aliasno;
+  int idx;
   const char *resname = NULL; /* Set to a found curve name.  */
 
   if (name)
-    {
-      /* First check our native curves.  */
-      for (idx = 0; domain_parms[idx].desc; idx++)
-        if (!strcmp (name, domain_parms[idx].desc))
-          {
-            resname = domain_parms[idx].desc;
-            break;
-          }
-      /* If not found consult the alias table.  */
-      if (!domain_parms[idx].desc)
-        {
-          for (aliasno = 0; curve_aliases[aliasno].name; aliasno++)
-            if (!strcmp (name, curve_aliases[aliasno].other))
-              break;
-          if (curve_aliases[aliasno].name)
-            {
-              for (idx = 0; domain_parms[idx].desc; idx++)
-                if (!strcmp (curve_aliases[aliasno].name,
-                             domain_parms[idx].desc))
-                  {
-                    resname = domain_parms[idx].desc;
-                    break;
-                  }
-            }
-        }
-    }
+    idx = find_domain_parms_idx (name);
   else
     {
       for (idx = 0; domain_parms[idx].desc; idx++)
         if (nbits == domain_parms[idx].nbits
             && domain_parms[idx].model == MPI_EC_WEIERSTRASS)
-          {
-            resname = domain_parms[idx].desc;
-            break;
-          }
+          break;
+      if (!domain_parms[idx].desc)
+        idx = -1;
     }
-  if (!domain_parms[idx].desc)
+  if (idx < 0)
     return GPG_ERR_UNKNOWN_CURVE;
+
+  resname = domain_parms[idx].desc;
 
   /* In fips mode we only support NIST curves.  Note that it is
      possible to bypass this check by specifying the curve parameters
@@ -440,6 +446,7 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
 const char *
 _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
 {
+  gpg_err_code_t rc;
   const char *result = NULL;
   elliptic_curve_t E;
   gcry_mpi_t mpi_g = NULL;
@@ -467,10 +474,39 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
   /*
    * Extract the curve parameters..
    */
-  if (_gcry_sexp_extract_param (keyparms, NULL, "-pabgn",
-                                &E.p, &E.a, &E.b, &mpi_g, &E.n,
-                                NULL))
+  rc = gpg_err_code (_gcry_sexp_extract_param (keyparms, NULL, "-pabgn",
+                                               &E.p, &E.a, &E.b, &mpi_g, &E.n,
+                                               NULL));
+  if (rc == GPG_ERR_NO_OBJ)
+    {
+      /* This might be the second use case of checking whether a
+         specific curve given by name is supported.  */
+      gcry_sexp_t l1;
+      char *name;
+
+      l1 = gcry_sexp_find_token (keyparms, "curve", 5);
+      if (!l1)
+        goto leave;  /* No curve name parameter.  */
+
+      name = _gcry_sexp_nth_string (l1, 1);
+      gcry_sexp_release (l1);
+      if (!name)
+        goto leave;  /* Name missing or out of core. */
+
+      idx = find_domain_parms_idx (name);
+      gcry_free (name);
+      if (idx >= 0)  /* Curve found.  */
+        {
+          result = domain_parms[idx].desc;
+          if (r_nbits)
+            *r_nbits = domain_parms[idx].nbits;
+        }
+      return result;
+    }
+
+  if (rc)
     goto leave;
+
   if (mpi_g)
     {
       _gcry_mpi_point_init (&E.G);
