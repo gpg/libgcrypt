@@ -380,7 +380,10 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
       for (idx = 0; domain_parms[idx].desc; idx++)
         if (nbits == domain_parms[idx].nbits
             && domain_parms[idx].model == MPI_EC_WEIERSTRASS)
-          break;
+          {
+            resname = domain_parms[idx].desc;
+            break;
+          }
     }
   if (!domain_parms[idx].desc)
     return GPG_ERR_UNKNOWN_CURVE;
@@ -671,7 +674,12 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
             goto leave;
         }
 
-      if (!(flags & PUBKEY_FLAG_NOPARAM))
+      /* Check whether a curve name was given.  */
+      l1 = gcry_sexp_find_token (keyparam, "curve", 5);
+
+      /* If we don't have a curve name or if override parameters have
+         explicitly been requested, parse them.  */
+      if (!l1 || (flags & PUBKEY_FLAG_PARAM))
         {
           errc = mpi_from_keyparam (&p, keyparam, "p");
           if (errc)
@@ -690,15 +698,13 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
             goto leave;
         }
     }
+  else
+    l1 = NULL; /* No curvename.  */
 
   /* Check whether a curve parameter is available and use that to fill
      in missing values.  If no curve parameter is available try an
      optional provided curvename.  If only the curvename has been
      given use that one. */
-  if (keyparam)
-    l1 = gcry_sexp_find_token (keyparam, "curve", 5);
-  else
-    l1 = NULL;
   if (l1 || curvename)
     {
       char *name;

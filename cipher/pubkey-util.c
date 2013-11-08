@@ -113,6 +113,15 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
               encoding = PUBKEY_ENC_PKCS1;
               flags |= PUBKEY_FLAG_FIXEDLEN;
             }
+          else if (!memcmp (s, "param", 5))
+            flags |= PUBKEY_FLAG_PARAM;
+          else if (!igninvflag)
+            rc = GPG_ERR_INV_FLAG;
+          break;
+
+        case 6:
+          if (!memcmp (s, "nocomp", 6))
+            flags |= PUBKEY_FLAG_NOCOMP;
           else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;
@@ -121,7 +130,7 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
           if (!memcmp (s, "rfc6979", 7))
             flags |= PUBKEY_FLAG_RFC6979;
           else if (!memcmp (s, "noparam", 7))
-            flags |= PUBKEY_FLAG_NOPARAM;
+            ; /* Ignore - it is the default.  */
           else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;
           break;

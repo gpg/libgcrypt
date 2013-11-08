@@ -376,11 +376,11 @@ check_ecc_keys (void)
         show ("creating ECC key using curve %s\n", curves[testno]);
       if (!strcmp (curves[testno], "Ed25519"))
         rc = gcry_sexp_build (&keyparm, NULL,
-                              "(genkey(ecc(curve %s)(flags noparam eddsa)))",
+                              "(genkey(ecc(curve %s)(flags eddsa)))",
                               curves[testno]);
       else
         rc = gcry_sexp_build (&keyparm, NULL,
-                              "(genkey(ecc(curve %s)(flags noparam)))",
+                              "(genkey(ecc(curve %s)(flags )))",
                               curves[testno]);
       if (rc)
         die ("error creating S-expression: %s\n", gpg_strerror (rc));
@@ -418,7 +418,7 @@ check_ecc_keys (void)
   if (verbose)
     show ("creating ECC key using curve Ed25519 for ECDSA\n");
   rc = gcry_sexp_build (&keyparm, NULL,
-                        "(genkey(ecc(curve Ed25519)(flags noparam)))");
+                        "(genkey(ecc(curve Ed25519)(flags)))");
   if (rc)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);

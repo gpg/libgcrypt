@@ -509,32 +509,20 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         goto leave;
     }
 
-  if ((flags & PUBKEY_FLAG_NOPARAM) || (flags & PUBKEY_FLAG_EDDSA))
+  if ((flags & PUBKEY_FLAG_PARAM) || (flags & PUBKEY_FLAG_EDDSA))
     {
       rc = gcry_sexp_build
         (&curve_flags, NULL,
-         ((flags & PUBKEY_FLAG_NOPARAM) && (flags & PUBKEY_FLAG_EDDSA))?
-         "(flags noparam eddsa)" :
-         ((flags & PUBKEY_FLAG_NOPARAM))?
-         "(flags noparam)" :
+         ((flags & PUBKEY_FLAG_PARAM) && (flags & PUBKEY_FLAG_EDDSA))?
+         "(flags param eddsa)" :
+         ((flags & PUBKEY_FLAG_PARAM))?
+         "(flags param)" :
          "(flags eddsa)");
       if (rc)
         goto leave;
     }
 
-  if ((flags & PUBKEY_FLAG_NOPARAM) && E.name)
-    rc = gcry_sexp_build (r_skey, NULL,
-                          "(key-data"
-                          " (public-key"
-                          "  (ecc%S%S(q%m)))"
-                          " (private-key"
-                          "  (ecc%S%S(q%m)(d%m)))"
-                          " )",
-                          curve_info, curve_flags,
-                          public,
-                          curve_info, curve_flags,
-                          public, secret);
-  else
+  if ((flags & PUBKEY_FLAG_PARAM) && E.name)
     rc = gcry_sexp_build (r_skey, NULL,
                           "(key-data"
                           " (public-key"
@@ -546,6 +534,18 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                           sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public,
                           curve_info, curve_flags,
                           sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public, secret);
+  else
+    rc = gcry_sexp_build (r_skey, NULL,
+                          "(key-data"
+                          " (public-key"
+                          "  (ecc%S%S(q%m)))"
+                          " (private-key"
+                          "  (ecc%S%S(q%m)(d%m)))"
+                          " )",
+                          curve_info, curve_flags,
+                          public,
+                          curve_info, curve_flags,
+                          public, secret);
   if (rc)
     goto leave;
 
@@ -713,12 +713,12 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  if ((ctx.flags & PUBKEY_FLAG_NOPARAM))
-    rc = _gcry_sexp_extract_param (keyparms, NULL, "/q?+d",
-                                   &mpi_q, &sk.d, NULL);
-  else
+  if ((ctx.flags & PUBKEY_FLAG_PARAM))
     rc = _gcry_sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?/q?+d",
                                    &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
+                                   &mpi_q, &sk.d, NULL);
+  else
+    rc = _gcry_sexp_extract_param (keyparms, NULL, "/q?+d",
                                    &mpi_q, &sk.d, NULL);
   if (rc)
     goto leave;
@@ -878,12 +878,12 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   /*
    * Extract the key.
    */
-  if ((ctx.flags & PUBKEY_FLAG_NOPARAM))
-    rc = _gcry_sexp_extract_param (s_keyparms, NULL, "/q",
-                                   &mpi_q, NULL);
-  else
+  if ((ctx.flags & PUBKEY_FLAG_PARAM))
     rc = _gcry_sexp_extract_param (s_keyparms, NULL, "-p?a?b?g?n?/q",
                                    &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n,
+                                   &mpi_q, NULL);
+  else
+    rc = _gcry_sexp_extract_param (s_keyparms, NULL, "/q",
                                    &mpi_q, NULL);
   if (rc)
     goto leave;

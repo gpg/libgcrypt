@@ -35,10 +35,11 @@
 #define PUBKEY_FLAG_USE_X931       (1 << 6)
 #define PUBKEY_FLAG_USE_FIPS186    (1 << 7)
 #define PUBKEY_FLAG_USE_FIPS186_2  (1 << 8)
-#define PUBKEY_FLAG_NOPARAM        (1 << 9)
+#define PUBKEY_FLAG_PARAM          (1 << 9)
 #define PUBKEY_FLAG_COMP           (1 << 10)
-#define PUBKEY_FLAG_EDDSA          (1 << 11)
-#define PUBKEY_FLAG_GOST           (1 << 12)
+#define PUBKEY_FLAG_NOCOMP         (1 << 11)
+#define PUBKEY_FLAG_EDDSA          (1 << 12)
+#define PUBKEY_FLAG_GOST           (1 << 13)
 
 
 enum pk_operation

@@ -43,6 +43,9 @@ Noteworthy changes in version 1.6.0 (unreleased)
  * The algorithm ids GCRY_PK_ECDSA and GCRY_PK_ECDH are now
    deprecated.  Use GCRY_PK_ECC if you need an algorithm id.
 
+ * Changed gcry_pk_genkey for "ecc" to only include the curve name and
+   not the parameters.  The flag "param" may be used to revert this.
+
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_ac_*               	 REMOVED.
@@ -63,6 +66,7 @@ Noteworthy changes in version 1.6.0 (unreleased)
  GCRYCTL_SET_IV                  REMOVED.
  GCRYCTL_SET_CTR                 REMOVED.
  GCRYCTL_DISABLE_ALGO            CHANGED: Not anymore thread-safe.
+ gcry_pk_genkey                  CHANGED: ECC curve params not returned.
  gcry_md_hash_buffers            NEW.
  gcry_buffer_t                   NEW.
  GCRYCTL_SET_ENFORCED_FIPS_FLAG  NEW.

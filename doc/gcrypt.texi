@@ -2267,15 +2267,11 @@ order to prevent leaking of secret information.  Blinding is only
 implemented by RSA, but it might be implemented by other algorithms in
 the future as well, when necessary.
 
-@item noparam
-@cindex noparam
-For ECC key generation do not return the domain parameters but only
-the name of the curve.  For ECC signing and verification ignore any
-provided domain parameters of the public or private key and use only
-the curve name.  It is more secure to rely on the curve name and thus
-use the curve parameters as known by Libgcrypt.  This option should
-have been the default but for backward compatibility reasons this is
-not possible.  It is best to always use this flag with ECC keys.
+@item param
+@cindex param
+For ECC key generation also return the domain parameters.  For ECC
+signing and verification override default parameters by provided
+domain parameters of the public or private key.
 
 @item transient-key
 @cindex transient-key
@@ -2849,7 +2845,7 @@ is in general not recommended.
 @example
 (genkey
   (ecc
-    (flags noparam transient-key)))
+    (flags transient-key)))
 @end example
 
 @item transient-key
@@ -2894,12 +2890,12 @@ elliptic curve key generation:
   (public-key
     (ecc
       (curve Ed25519)
-      (flags noparam eddsa)
+      (flags eddsa)
       (q @var{q-value})))
   (private-key
     (ecc
       (curve Ed25519)
-      (flags noparam eddsa)
+      (flags eddsa)
       (q @var{q-value})
       (d @var{d-value}))))
 @end example
