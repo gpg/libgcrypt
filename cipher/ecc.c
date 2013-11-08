@@ -483,7 +483,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   if (_gcry_mpi_ec_get_affine (x, y, &sk.E.G, ctx))
     log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "G");
   base = _gcry_ecc_ec2os (x, y, sk.E.p);
-  if (sk.E.dialect == ECC_DIALECT_ED25519)
+  if (sk.E.dialect == ECC_DIALECT_ED25519 && !(flags & PUBKEY_FLAG_NOCOMP))
     {
       unsigned char *encpk;
       unsigned int encpklen;

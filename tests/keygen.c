@@ -416,15 +416,16 @@ check_ecc_keys (void)
     show_sexp ("ECC key:\n", key);
 
   if (verbose)
-    show ("creating ECC key using curve Ed25519 for ECDSA\n");
+    show ("creating ECC key using curve Ed25519 for ECDSA (nocomp)\n");
   rc = gcry_sexp_build (&keyparm, NULL,
-                        "(genkey(ecc(curve Ed25519)(flags)))");
+                        "(genkey(ecc(curve Ed25519)(flags nocomp)))");
   if (rc)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
   if (rc)
-    die ("error generating ECC key using curve Ed25519 for ECDSA: %s\n",
+    die ("error generating ECC key using curve Ed25519 for ECDSA"
+         " (nocomp): %s\n",
          gpg_strerror (rc));
 
   if (verbose > 1)
