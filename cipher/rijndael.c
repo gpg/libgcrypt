@@ -1369,13 +1369,12 @@ do_aesni_ctr (const RIJNDAEL_context *ctx,
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
 #define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
 
-  asm volatile ("movdqa %%xmm5, %%xmm0\n\t"   /* xmm0, xmm2 := CTR (xmm5)  */
-                "movdqa %%xmm0, %%xmm2\n\t"
+  asm volatile ("movdqa %%xmm5, %%xmm0\n\t"     /* xmm0 := CTR (xmm5)  */
                 "pcmpeqd %%xmm1, %%xmm1\n\t"
                 "psrldq $8, %%xmm1\n\t"         /* xmm1 = -1 */
 
-                "pshufb %%xmm6, %%xmm2\n\t"
-                "psubq  %%xmm1, %%xmm2\n\t"     /* xmm2++ (big endian) */
+                "pshufb %%xmm6, %%xmm5\n\t"
+                "psubq  %%xmm1, %%xmm5\n\t"     /* xmm5++ (big endian) */
 
                 /* detect if 64-bit carry handling is needed */
                 "cmpl   $0xffffffff, 8(%[ctr])\n\t"
@@ -1384,12 +1383,12 @@ do_aesni_ctr (const RIJNDAEL_context *ctx,
                 "jne    .Lno_carry%=\n\t"
 
                 "pslldq $8, %%xmm1\n\t"         /* move lower 64-bit to high */
-                "psubq   %%xmm1, %%xmm2\n\t"    /* add carry to upper 64bits */
+                "psubq   %%xmm1, %%xmm5\n\t"    /* add carry to upper 64bits */
 
                 ".Lno_carry%=:\n\t"
 
-                "pshufb %%xmm6, %%xmm2\n\t"
-                "movdqa %%xmm2, (%[ctr])\n\t"   /* Update CTR (mem).       */
+                "pshufb %%xmm6, %%xmm5\n\t"
+                "movdqa %%xmm5, (%[ctr])\n\t"   /* Update CTR (mem).       */
 
                 "pxor (%[key]), %%xmm0\n\t"     /* xmm1 ^= key[0]    */
                 "movdqa 0x10(%[key]), %%xmm1\n\t"
