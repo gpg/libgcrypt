@@ -537,7 +537,7 @@ _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
 static const char*
 selftest_ctr_128 (void)
 {
-  const int nblocks = 32+1;
+  const int nblocks = 32+16+1;
   const int blocksize = CAMELLIA_BLOCK_SIZE;
   const int context_size = sizeof(CAMELLIA_context);
 
@@ -551,7 +551,7 @@ selftest_ctr_128 (void)
 static const char*
 selftest_cbc_128 (void)
 {
-  const int nblocks = 32+2;
+  const int nblocks = 32+16+2;
   const int blocksize = CAMELLIA_BLOCK_SIZE;
   const int context_size = sizeof(CAMELLIA_context);
 
@@ -565,7 +565,7 @@ selftest_cbc_128 (void)
 static const char*
 selftest_cfb_128 (void)
 {
-  const int nblocks = 32+2;
+  const int nblocks = 32+16+2;
   const int blocksize = CAMELLIA_BLOCK_SIZE;
   const int context_size = sizeof(CAMELLIA_context);
 

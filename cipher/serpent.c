@@ -1158,7 +1158,7 @@ _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
 static const char*
 selftest_ctr_128 (void)
 {
-  const int nblocks = 16+1;
+  const int nblocks = 16+8+1;
   const int blocksize = sizeof(serpent_block_t);
   const int context_size = sizeof(serpent_context_t);
 
@@ -1173,7 +1173,7 @@ selftest_ctr_128 (void)
 static const char*
 selftest_cbc_128 (void)
 {
-  const int nblocks = 16+2;
+  const int nblocks = 16+8+2;
   const int blocksize = sizeof(serpent_block_t);
   const int context_size = sizeof(serpent_context_t);
 
@@ -1188,7 +1188,7 @@ selftest_cbc_128 (void)
 static const char*
 selftest_cfb_128 (void)
 {
-  const int nblocks = 16+2;
+  const int nblocks = 16+8+2;
   const int blocksize = sizeof(serpent_block_t);
   const int context_size = sizeof(serpent_context_t);
 

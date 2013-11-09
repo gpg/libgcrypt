@@ -286,7 +286,8 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
 			   const int context_size)
 {
   int i, j, offs, diff;
-  unsigned char *ctx, *plaintext, *plaintext2, *ciphertext, *iv, *iv2, *mem;
+  unsigned char *ctx, *plaintext, *plaintext2, *ciphertext, *ciphertext2,
+                *iv, *iv2, *mem;
   unsigned int ctx_aligned_size, memsize;
 
   static const unsigned char key[16] ATTR_ALIGNED_16 = {
@@ -299,7 +300,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
   ctx_aligned_size = context_size + 15;
   ctx_aligned_size -= ctx_aligned_size & 0xf;
 
-  memsize = ctx_aligned_size + (blocksize * 2) + (blocksize * nblocks * 3) + 16;
+  memsize = ctx_aligned_size + (blocksize * 2) + (blocksize * nblocks * 4) + 16;
 
   mem = gcry_calloc (1, memsize);
   if (!mem)
@@ -312,6 +313,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
   plaintext = iv2 + blocksize;
   plaintext2 = plaintext + nblocks * blocksize;
   ciphertext = plaintext2 + nblocks * blocksize;
+  ciphertext2 = ciphertext + nblocks * blocksize;
 
   /* Initialize ctx */
   setkey_func (ctx, key, sizeof(key));
@@ -357,10 +359,64 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
       return "selftest for CTR failed - see syslog for details";
     }
 
-  /* Test parallelized code paths */
+  /* Test bulk encryption with typical IV. */
+  memset(iv, 0x57, blocksize-4);
+  iv[blocksize-1] = 1;
+  iv[blocksize-2] = 0;
+  iv[blocksize-3] = 0;
+  iv[blocksize-4] = 0;
+  memset(iv2, 0x57, blocksize-4);
+  iv2[blocksize-1] = 1;
+  iv2[blocksize-2] = 0;
+  iv2[blocksize-3] = 0;
+  iv2[blocksize-4] = 0;
+
+  for (i = 0; i < blocksize * nblocks; i++)
+    plaintext2[i] = plaintext[i] = i;
+
+  /* Create CTR ciphertext manually.  */
+  for (i = 0; i < blocksize * nblocks; i+=blocksize)
+    {
+      encrypt_one (ctx, &ciphertext[i], iv);
+      for (j = 0; j < blocksize; j++)
+        ciphertext[i+j] ^= plaintext[i+j];
+      for (j = blocksize; j > 0; j--)
+        {
+          iv[j-1]++;
+          if (iv[j-1])
+            break;
+        }
+    }
+
+  bulk_ctr_enc (ctx, iv2, ciphertext2, plaintext2, nblocks);
+
+  if (memcmp (ciphertext2, ciphertext, blocksize * nblocks))
+    {
+      gcry_free (mem);
+#ifdef HAVE_SYSLOG
+      syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
+              "%s-CTR-%d test failed (plaintext mismatch, bulk)", cipher,
+              blocksize * 8);
+#endif
+      return "selftest for CTR failed - see syslog for details";
+    }
+  if (memcmp(iv2, iv, blocksize))
+    {
+      gcry_free (mem);
+#ifdef HAVE_SYSLOG
+      syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
+              "%s-CTR-%d test failed (IV mismatch, bulk)", cipher,
+              blocksize * 8);
+#endif
+      return "selftest for CTR failed - see syslog for details";
+    }
+
+  /* Test parallelized code paths (check counter overflow handling) */
   for (diff = 0; diff < nblocks; diff++) {
     memset(iv, 0xff, blocksize);
     iv[blocksize-1] -= diff;
+    iv[0] = iv[1] = 0;
+    iv[2] = 0x07;
 
     for (i = 0; i < blocksize * nblocks; i++)
       plaintext[i] = i;
@@ -382,6 +438,8 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
     /* Decrypt using bulk CTR and compare result.  */
     memset(iv2, 0xff, blocksize);
     iv2[blocksize-1] -= diff;
+    iv2[0] = iv2[1] = 0;
+    iv2[2] = 0x07;
 
     bulk_ctr_enc (ctx, iv2, plaintext2, ciphertext, nblocks);
 
@@ -389,7 +447,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
       {
         gcry_free (mem);
 #ifdef HAVE_SYSLOG
-        syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
+       fprintf(stderr, "Libgcrypt warning: "
                 "%s-CTR-%d test failed (plaintext mismatch, diff: %d)", cipher,
 		blocksize * 8, diff);
 #endif
@@ -399,7 +457,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
       {
         gcry_free (mem);
 #ifdef HAVE_SYSLOG
-        syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
+       fprintf(stderr, "Libgcrypt warning: "
                 "%s-CTR-%d test failed (IV mismatch, diff: %d)", cipher,
 		blocksize * 8, diff);
 #endif

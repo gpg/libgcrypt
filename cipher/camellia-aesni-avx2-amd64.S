@@ -937,6 +937,9 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 	 *	%rcx: iv (big endian, 128bit)
 	 */
 
+	movq 8(%rcx), %r11;
+	bswapq %r11;
+
 	vzeroupper;
 
 	movq %rsp, %r10;
@@ -958,7 +961,7 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 	vmovdqa %ymm13, 15 * 32(%rax);
 
 	/* check need for handling 64-bit overflow and carry */
-	cmpq $(0xffffffffffffffff - 32), (%rcx);
+	cmpq $(0xffffffffffffffff - 32), %r11;
 	ja .Lload_ctr_carry;
 
 	/* construct IVs */

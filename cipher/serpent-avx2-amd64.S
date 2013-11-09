@@ -598,6 +598,9 @@ _gcry_serpent_avx2_ctr_enc:
 	 *	%rcx: iv (big endian, 128bit)
 	 */
 
+	movq 8(%rcx), %rax;
+	bswapq %rax;
+
 	vzeroupper;
 
 	vbroadcasti128 .Lbswap128_mask RIP, RTMP3;
@@ -614,25 +617,25 @@ _gcry_serpent_avx2_ctr_enc:
 	vpshufb RTMP3, RTMP0, RA0; /* +1 ; +0 */
 
 	/* check need for handling 64-bit overflow and carry */
-	cmpq $(0xffffffffffffffff - 16), (%rcx);
+	cmpq $(0xffffffffffffffff - 16), %rax;
 	ja .Lhandle_ctr_carry;
 
 	/* construct IVs */
-	vpsubq RTMP2, RTMP0, RA1; /* +3 ; +2 */
-	vpshufb RTMP3, RA1, RA1;
-	vpsubq RTMP2, RA1, RA2;   /* +5 ; +4 */
-	vpshufb RTMP3, RA2, RA2;
-	vpsubq RTMP2, RA2, RA3;   /* +7 ; +6 */
-	vpshufb RTMP3, RA3, RA3;
-	vpsubq RTMP2, RA3, RB0;   /* +9 ; +8 */
-	vpshufb RTMP3, RB0, RB0;
-	vpsubq RTMP2, RB0, RB1;   /* +11 ; +10 */
-	vpshufb RTMP3, RB1, RB1;
-	vpsubq RTMP2, RB1, RB2;   /* +13 ; +12 */
-	vpshufb RTMP3, RB2, RB2;
-	vpsubq RTMP2, RB2, RB3;   /* +15 ; +14 */
-	vpshufb RTMP3, RB3, RB3;
-	vpsubq RTMP2, RB3, RTMP0; /* +16 */
+	vpsubq RTMP2, RTMP0, RTMP0; /* +3 ; +2 */
+	vpshufb RTMP3, RTMP0, RA1;
+	vpsubq RTMP2, RTMP0, RTMP0; /* +5 ; +4 */
+	vpshufb RTMP3, RTMP0, RA2;
+	vpsubq RTMP2, RTMP0, RTMP0; /* +7 ; +6 */
+	vpshufb RTMP3, RTMP0, RA3;
+	vpsubq RTMP2, RTMP0, RTMP0; /* +9 ; +8 */
+	vpshufb RTMP3, RTMP0, RB0;
+	vpsubq RTMP2, RTMP0, RTMP0; /* +11 ; +10 */
+	vpshufb RTMP3, RTMP0, RB1;
+	vpsubq RTMP2, RTMP0, RTMP0; /* +13 ; +12 */
+	vpshufb RTMP3, RTMP0, RB2;
+	vpsubq RTMP2, RTMP0, RTMP0; /* +15 ; +14 */
+	vpshufb RTMP3, RTMP0, RB3;
+	vpsubq RTMP2, RTMP0, RTMP0; /* +16 */
 	vpshufb RTMP3x, RTMP0x, RTMP0x;
 
 	jmp .Lctr_carry_done;
