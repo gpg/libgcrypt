@@ -21,9 +21,7 @@
 #define _GCRY_GOST_H
 
 typedef struct {
-  u32 subst[4][256];
   u32 key[8];
-  int subst_set;
 } GOST28147_context;
 
 /* This is a simple interface that will be used by GOST R 34.11-94 */
