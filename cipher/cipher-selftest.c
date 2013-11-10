@@ -395,7 +395,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
       gcry_free (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
-              "%s-CTR-%d test failed (plaintext mismatch, bulk)", cipher,
+              "%s-CTR-%d test failed (ciphertext mismatch, bulk)", cipher,
               blocksize * 8);
 #endif
       return "selftest for CTR failed - see syslog for details";
@@ -447,7 +447,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
       {
         gcry_free (mem);
 #ifdef HAVE_SYSLOG
-       fprintf(stderr, "Libgcrypt warning: "
+        syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
                 "%s-CTR-%d test failed (plaintext mismatch, diff: %d)", cipher,
 		blocksize * 8, diff);
 #endif
@@ -457,7 +457,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
       {
         gcry_free (mem);
 #ifdef HAVE_SYSLOG
-       fprintf(stderr, "Libgcrypt warning: "
+        syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
                 "%s-CTR-%d test failed (IV mismatch, diff: %d)", cipher,
 		blocksize * 8, diff);
 #endif
