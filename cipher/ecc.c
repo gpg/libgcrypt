@@ -1428,65 +1428,87 @@ ecc_get_nbits (gcry_sexp_t parms)
 
 /* See rsa.c for a description of this function.  */
 static gpg_err_code_t
-compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
+compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
 {
 #define N_COMPONENTS 6
   static const char names[N_COMPONENTS+1] = "pabgnq";
-  gpg_err_code_t ec = 0;
+  gpg_err_code_t rc;
   gcry_sexp_t l1;
   gcry_mpi_t values[N_COMPONENTS];
   int idx;
+  char *curvename = NULL;
+  int flags = 0;
+  enum gcry_mpi_ec_models model = 0;
+  enum ecc_dialects dialect = 0;
 
-  /* Clear the values for easier error cleanup.  */
+  /* Clear the values first.  */
   for (idx=0; idx < N_COMPONENTS; idx++)
     values[idx] = NULL;
 
-  /* Fill values with all provided parameters.  */
-  for (idx=0; idx < N_COMPONENTS; idx++)
+
+  /* Look for flags. */
+  l1 = gcry_sexp_find_token (keyparms, "flags", 0);
+  if (l1)
     {
-      l1 = gcry_sexp_find_token (keyparam, names+idx, 1);
-      if (l1)
-        {
-          values[idx] = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
-	  gcry_sexp_release (l1);
-	  if (!values[idx])
-            {
-              ec = GPG_ERR_INV_OBJ;
-              goto leave;
-            }
-	}
+      rc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
+      if (rc)
+        goto leave;
     }
+
+  /* Extract the parameters.  */
+  if ((flags & PUBKEY_FLAG_PARAM))
+    {
+      if ((flags & PUBKEY_FLAG_EDDSA))
+        rc = _gcry_sexp_extract_param (keyparms, NULL, "p?a?b?g?n?/q",
+                                       &values[0], &values[1], &values[2],
+                                       &values[3], &values[4], &values[5],
+                                       NULL);
+      else
+        rc = _gcry_sexp_extract_param (keyparms, NULL, "p?a?b?g?n?q",
+                                       &values[0], &values[1], &values[2],
+                                       &values[3], &values[4], &values[5],
+                                       NULL);
+    }
+  else
+    {
+      if ((flags & PUBKEY_FLAG_EDDSA))
+        rc = _gcry_sexp_extract_param (keyparms, NULL, "/q",
+                                       &values[5], NULL);
+      else
+        rc = _gcry_sexp_extract_param (keyparms, NULL, "q",
+                                       &values[5], NULL);
+    }
+  if (rc)
+    goto leave;
 
   /* Check whether a curve parameter is available and use that to fill
      in missing values.  */
-  l1 = gcry_sexp_find_token (keyparam, "curve", 5);
+  gcry_sexp_release (l1);
+  l1 = gcry_sexp_find_token (keyparms, "curve", 5);
   if (l1)
     {
-      char *curve;
-      gcry_mpi_t tmpvalues[N_COMPONENTS];
-
-      for (idx = 0; idx < N_COMPONENTS; idx++)
-        tmpvalues[idx] = NULL;
-
-      curve = _gcry_sexp_nth_string (l1, 1);
-      gcry_sexp_release (l1);
-      if (!curve)
+      curvename = gcry_sexp_nth_string (l1, 1);
+      if (curvename)
         {
-          ec = GPG_ERR_INV_OBJ; /* Name missing or out of core. */
-          goto leave;
+          rc = _gcry_ecc_update_curve_param (curvename,
+                                             &model, &dialect,
+                                             &values[0], &values[1], &values[2],
+                                             &values[3], &values[4]);
+          if (rc)
+            return rc;
         }
-      ec = _gcry_ecc_get_param (curve, tmpvalues);
-      gcry_free (curve);
-      if (ec)
-        goto leave;
+    }
 
-      for (idx = 0; idx < N_COMPONENTS; idx++)
-        {
-          if (!values[idx])
-            values[idx] = tmpvalues[idx];
-          else
-            mpi_free (tmpvalues[idx]);
-        }
+  /* Guess required fields if a curve parameter has not been given.
+     FIXME: This is a crude hacks.  We need to fix that.  */
+  if (!curvename)
+    {
+      model = ((flags & PUBKEY_FLAG_EDDSA)
+               ? MPI_EC_TWISTEDEDWARDS
+               : MPI_EC_WEIERSTRASS);
+      dialect = ((flags & PUBKEY_FLAG_EDDSA)
+                 ? ECC_DIALECT_ED25519
+                 : ECC_DIALECT_STANDARD);
     }
 
   /* Check that all parameters are known and normalize all MPIs (that
@@ -1495,37 +1517,70 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
   for (idx = 0; idx < N_COMPONENTS; idx++)
     if (!values[idx])
       {
-        ec = GPG_ERR_NO_OBJ;
+        rc = GPG_ERR_NO_OBJ;
         goto leave;
       }
     else
       _gcry_mpi_normalize (values[idx]);
 
+  /* Uncompress the public key with the exception of EdDSA where
+     compression is the default and we thus compute the keygrip using
+     the compressed version.  Because we don't support any non-eddsa
+     compression, the only thing we need to do is to compress
+     EdDSA.  */
+  if ((flags & PUBKEY_FLAG_EDDSA))
+    {
+      if (dialect == ECC_DIALECT_ED25519)
+        rc = _gcry_ecc_eddsa_ensure_compact (values[5], 256);
+      else
+        rc = GPG_ERR_NOT_IMPLEMENTED;
+      if (rc)
+        goto leave;
+    }
+
   /* Hash them all.  */
   for (idx = 0; idx < N_COMPONENTS; idx++)
     {
       char buf[30];
-      unsigned char *rawmpi;
-      unsigned int rawmpilen;
 
-      rawmpi = _gcry_mpi_get_buffer (values[idx], 0, &rawmpilen, NULL);
-      if (!rawmpi)
+      if (mpi_is_opaque (values[idx]))
         {
-          ec = gpg_err_code_from_syserror ();
-          goto leave;
+          const unsigned char *raw;
+          unsigned int n;
+
+          raw = gcry_mpi_get_opaque (values[idx], &n);
+          n = (n + 7)/8;
+          snprintf (buf, sizeof buf, "(1:%c%u:", names[idx], n);
+          gcry_md_write (md, buf, strlen (buf));
+          gcry_md_write (md, raw, n);
+          gcry_md_write (md, ")", 1);
         }
-      snprintf (buf, sizeof buf, "(1:%c%u:", names[idx], rawmpilen);
-      gcry_md_write (md, buf, strlen (buf));
-      gcry_md_write (md, rawmpi, rawmpilen);
-      gcry_md_write (md, ")", 1);
-      gcry_free (rawmpi);
+      else
+        {
+          unsigned char *rawmpi;
+          unsigned int rawmpilen;
+
+          rawmpi = _gcry_mpi_get_buffer (values[idx], 0, &rawmpilen, NULL);
+          if (!rawmpi)
+            {
+              rc = gpg_err_code_from_syserror ();
+              goto leave;
+            }
+          snprintf (buf, sizeof buf, "(1:%c%u:", names[idx], rawmpilen);
+          gcry_md_write (md, buf, strlen (buf));
+          gcry_md_write (md, rawmpi, rawmpilen);
+          gcry_md_write (md, ")", 1);
+          gcry_free (rawmpi);
+        }
     }
 
  leave:
+  gcry_free (curvename);
+  gcry_sexp_release (l1);
   for (idx = 0; idx < N_COMPONENTS; idx++)
     _gcry_mpi_release (values[idx]);
 
-  return ec;
+  return rc;
 #undef N_COMPONENTS
 }
 

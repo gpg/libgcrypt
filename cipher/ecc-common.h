@@ -70,6 +70,12 @@ gpg_err_code_t _gcry_ecc_fill_in_curve (unsigned int nbits,
                                         const char *name,
                                         elliptic_curve_t *curve,
                                         unsigned int *r_nbits);
+gpg_err_code_t _gcry_ecc_update_curve_param (const char *name,
+                                             enum gcry_mpi_ec_models *model,
+                                             enum ecc_dialects *dialect,
+                                             gcry_mpi_t *p, gcry_mpi_t *a,
+                                             gcry_mpi_t *b, gcry_mpi_t *g,
+                                             gcry_mpi_t *n);
 
 const char *_gcry_ecc_get_curve (gcry_sexp_t keyparms,
                                  int iterator,
@@ -103,6 +109,8 @@ gpg_err_code_t _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ctx,
                                             gcry_mpi_t x, gcry_mpi_t y,
                                             unsigned char **r_buffer,
                                             unsigned int *r_buflen);
+gpg_err_code_t _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value,
+                                               unsigned int nbits);
 gpg_err_code_t _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx,
                                             mpi_point_t result,
                                             unsigned char **r_encpk,

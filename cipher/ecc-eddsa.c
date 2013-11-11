@@ -136,6 +136,54 @@ _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ec,
 }
 
 
+/* Make sure that the opaque MPI VALUE is in compact EdDSA format.
+   This function updates MPI if needed.  */
+gpg_err_code_t
+_gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
+{
+  gpg_err_code_t rc;
+  const unsigned char *buf;
+  unsigned int rawmpilen;
+  gcry_mpi_t x, y;
+  unsigned char *enc;
+  unsigned int enclen;
+
+  if (!mpi_is_opaque (value))
+    return GPG_ERR_INV_OBJ;
+  buf = gcry_mpi_get_opaque (value, &rawmpilen);
+  if (!buf)
+    return GPG_ERR_INV_OBJ;
+  rawmpilen = (rawmpilen + 7)/8;
+
+  /* Check whether the public key has been given in standard
+     uncompressed format.  In this case extract y and compress.  */
+  if (rawmpilen > 1 && buf[0] == 0x04 && (rawmpilen%2))
+    {
+      rc = gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
+                          buf+1, (rawmpilen-1)/2, NULL);
+      if (rc)
+        return rc;
+      rc = gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
+                          buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
+      if (rc)
+        {
+          mpi_free (x);
+          return rc;
+        }
+
+      rc = eddsa_encode_x_y (x, y, nbits/8, &enc, &enclen);
+      mpi_free (x);
+      mpi_free (y);
+      if (rc)
+        return rc;
+
+      gcry_mpi_set_opaque (value, enc, 8*enclen);
+    }
+
+  return 0;
+}
+
+
 /* Recover X from Y and SIGN (which actually is a parity bit).  */
 gpg_err_code_t
 _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)

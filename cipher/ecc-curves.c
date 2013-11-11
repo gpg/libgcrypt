@@ -441,6 +441,56 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
 }
 
 
+/* Give the name of the curve NAME, store the curve parameters into P,
+   A, B, G, and N if they pint to NULL value.  Note that G is returned
+   in standard uncompressed format.  Also update MODEL and DIALECT if
+   they are not NULL. */
+gpg_err_code_t
+_gcry_ecc_update_curve_param (const char *name,
+                              enum gcry_mpi_ec_models *model,
+                              enum ecc_dialects *dialect,
+                              gcry_mpi_t *p, gcry_mpi_t *a, gcry_mpi_t *b,
+                              gcry_mpi_t *g, gcry_mpi_t *n)
+{
+  int idx;
+
+  idx = find_domain_parms_idx (name);
+  if (idx < 0)
+    return GPG_ERR_UNKNOWN_CURVE;
+
+  if (g)
+    {
+      char *buf;
+      size_t len;
+
+      len = 4;
+      len += strlen (domain_parms[idx].g_x+2);
+      len += strlen (domain_parms[idx].g_y+2);
+      len++;
+      buf = gcry_malloc (len);
+      if (!buf)
+        return gpg_err_code_from_syserror ();
+      strcpy (stpcpy (stpcpy (buf, "0x04"), domain_parms[idx].g_x+2),
+              domain_parms[idx].g_y+2);
+      *g = scanval (buf);
+      gcry_free (buf);
+    }
+  if (model)
+    *model = domain_parms[idx].model;
+  if (dialect)
+    *dialect = domain_parms[idx].dialect;
+  if (p)
+    *p = scanval (domain_parms[idx].p);
+  if (a)
+    *a = scanval (domain_parms[idx].a);
+  if (b)
+    *b = scanval (domain_parms[idx].b);
+  if (n)
+    *n = scanval (domain_parms[idx].n);
+  return 0;
+}
+
+
 /* Return the name matching the parameters in PKEY.  This works only
    with curves described by the Weierstrass equation. */
 const char *
