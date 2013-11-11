@@ -217,6 +217,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
       mpi_free (x);
   }
 
+  point_free (&Q);
   /* Now we can test our keys (this should never fail!).  */
   test_keys (sk, nbits - 64);
 

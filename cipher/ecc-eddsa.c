@@ -432,6 +432,7 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   point_set (&sk->Q, &Q);
 
  leave:
+  point_free (&Q);
   gcry_mpi_release (a);
   gcry_mpi_release (x);
   gcry_mpi_release (y);

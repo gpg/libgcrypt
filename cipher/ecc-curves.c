@@ -867,6 +867,7 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
 
       if (b)
         {
+          mpi_free (ec->b);
           ec->b = b;
           b = NULL;
         }
