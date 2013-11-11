@@ -145,7 +145,21 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   point_init (&Q);
 
   /* Generate a secret.  */
-  sk->d = _gcry_dsa_gen_k (E->n, random_level);
+  if (ctx->dialect == ECC_DIALECT_ED25519)
+    {
+      char *rndbuf;
+
+      sk->d = mpi_snew (256);
+      rndbuf = gcry_random_bytes_secure (32, random_level);
+      rndbuf[0] &= 0x7f;  /* Clear bit 255. */
+      rndbuf[0] |= 0x40;  /* Set bit 254.   */
+      rndbuf[31] &= 0xf8; /* Clear bits 2..0 so that d mod 8 == 0  */
+      _gcry_mpi_set_buffer (sk->d, rndbuf, 32, 0);
+      gcry_free (rndbuf);
+    }
+  else
+    sk->d = _gcry_dsa_gen_k (E->n, random_level);
+
 
   /* Compute Q.  */
   _gcry_mpi_ec_mul_point (&Q, sk->d, &E->G, ctx);
