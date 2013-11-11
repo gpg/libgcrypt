@@ -599,7 +599,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
     {
       gcry_mpi_t a;
 
-      a = _gcry_sexp_nth_opaque_mpi (l1, 1);
+      a = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_OPAQUE);
       gcry_sexp_release (l1);
       if (!a)
         return GPG_ERR_INV_OBJ;
@@ -831,7 +831,7 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
           n = NULL;
         }
 
-      /* Now that we now the curve name we can look for the public key
+      /* Now that we know the curve name we can look for the public key
          Q.  point_from_keyparam needs to know the curve parameters so
          that it is able to use the correct decompression.  Parsing
          the private key D could have been done earlier but it is less

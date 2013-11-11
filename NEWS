@@ -106,6 +106,7 @@ Noteworthy changes in version 1.6.0 (unreleased)
  GCRYMPI_CONST_THREE             NEW.
  GCRYMPI_CONST_FOUR              NEW.
  GCRYMPI_CONST_EIGHT             NEW.
+ GCRYMPI_FMT_OPAQUE              NEW.
  GCRYPT_VERSION_NUMBER           NEW.
  GCRY_KDF_SCRYPT                 NEW.
  gcry_pubkey_get_sexp            NEW.

@@ -489,7 +489,8 @@ enum gcry_mpi_format
     GCRYMPI_FMT_PGP = 2,    /* As used by OpenPGP (unsigned only).  */
     GCRYMPI_FMT_SSH = 3,    /* As used by SSH (like STD but with length).  */
     GCRYMPI_FMT_HEX = 4,    /* Hex format. */
-    GCRYMPI_FMT_USG = 5     /* Like STD but unsigned. */
+    GCRYMPI_FMT_USG = 5,    /* Like STD but unsigned. */
+    GCRYMPI_FMT_OPAQUE = 8  /* Opaque format (some functions only).  */
   };
 
 /* Flags used for creating big integers.  */
