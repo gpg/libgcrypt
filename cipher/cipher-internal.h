@@ -136,7 +136,15 @@ struct gcry_cipher_handle
                                  processed.  */
       unsigned int tag:1; /* Set to 1 if tag has been finalized.  */
     } ccm;
+    /* Mode specific storage for CMAC mode. */
+    struct {
+      unsigned int tag:1; /* Set to 1 if tag has been finalized.  */
+
+      /* Subkeys for tag creation, not cleared by gcry_cipher_reset. */
+      unsigned char subkeys[2][MAX_BLOCKSIZE];
+    } cmac;
   } u_mode;
+
 
   /* What follows are two contexts of the cipher in use.  The first
      one needs to be aligned well enough for the cipher operation
@@ -215,7 +223,6 @@ gcry_err_code_t _gcry_cipher_ccm_get_tag
 gcry_err_code_t _gcry_cipher_ccm_check_tag
 /*           */ (gcry_cipher_hd_t c,
                  const unsigned char *intag, size_t taglen);
-
 
 
 #endif /*G10_CIPHER_INTERNAL_H*/

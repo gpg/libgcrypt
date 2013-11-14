@@ -84,6 +84,30 @@ struct pk_encoding_ctx
 
 #include "cipher-proto.h"
 
+/* The internal encryption modes. */
+enum gcry_cipher_internal_modes
+  {
+    GCRY_CIPHER_MODE_INTERNAL = 0x10000,
+    GCRY_CIPHER_MODE_CMAC     = 0x10000 + 1   /* Cipher-based MAC. */
+  };
+
+
+/*-- cipher.c --*/
+gcry_err_code_t _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
+					    int algo, int mode,
+					    unsigned int flags);
+
+/*-- cipher-cmac.c --*/
+gcry_err_code_t _gcry_cipher_cmac_authenticate
+/*           */ (gcry_cipher_hd_t c, const unsigned char *abuf, size_t abuflen);
+gcry_err_code_t _gcry_cipher_cmac_get_tag
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outtag, size_t taglen);
+gcry_err_code_t _gcry_cipher_cmac_check_tag
+/*           */ (gcry_cipher_hd_t c,
+                 const unsigned char *intag, size_t taglen);
+gcry_err_code_t _gcry_cipher_cmac_set_subkeys
+/*           */ (gcry_cipher_hd_t c);
 
 /*-- rmd160.c --*/
 void _gcry_rmd160_hash_buffer (void *outbuf,

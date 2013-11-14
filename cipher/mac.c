@@ -63,6 +63,39 @@ static gcry_mac_spec_t *mac_list[] = {
 #if USE_MD4
   &_gcry_mac_type_spec_hmac_md4,
 #endif
+#if USE_BLOWFISH
+  &_gcry_mac_type_spec_cmac_blowfish,
+#endif
+#if USE_DES
+  &_gcry_mac_type_spec_cmac_tripledes,
+#endif
+#if USE_CAST5
+  &_gcry_mac_type_spec_cmac_cast5,
+#endif
+#if USE_AES
+  &_gcry_mac_type_spec_cmac_aes,
+#endif
+#if USE_TWOFISH
+  &_gcry_mac_type_spec_cmac_twofish,
+#endif
+#if USE_SERPENT
+  &_gcry_mac_type_spec_cmac_serpent,
+#endif
+#if USE_RFC2268
+  &_gcry_mac_type_spec_cmac_rfc2268,
+#endif
+#if USE_SEED
+  &_gcry_mac_type_spec_cmac_seed,
+#endif
+#if USE_CAMELLIA
+  &_gcry_mac_type_spec_cmac_camellia,
+#endif
+#ifdef USE_IDEA
+  &_gcry_mac_type_spec_cmac_idea,
+#endif
+#if USE_GOST28147
+  &_gcry_mac_type_spec_cmac_gost28147,
+#endif
   NULL,
 };
 

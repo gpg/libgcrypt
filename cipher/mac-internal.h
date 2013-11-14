@@ -98,6 +98,11 @@ struct gcry_mac_handle
       gcry_md_hd_t md_ctx;
       int md_algo;
     } hmac;
+    struct {
+      gcry_cipher_hd_t ctx;
+      int cipher_algo;
+      unsigned int blklen;
+    } cmac;
   } u;
 };
 
@@ -137,4 +142,41 @@ extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_md5;
 #endif
 #if USE_MD4
 extern gcry_mac_spec_t _gcry_mac_type_spec_hmac_md4;
+#endif
+
+/*
+ * The CMAC algorithm specifications (mac-cmac.c).
+ */
+#if USE_BLOWFISH
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_blowfish;
+#endif
+#if USE_DES
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_tripledes;
+#endif
+#if USE_CAST5
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_cast5;
+#endif
+#if USE_AES
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_aes;
+#endif
+#if USE_TWOFISH
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_twofish;
+#endif
+#if USE_SERPENT
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_serpent;
+#endif
+#if USE_RFC2268
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_rfc2268;
+#endif
+#if USE_SEED
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_seed;
+#endif
+#if USE_CAMELLIA
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_camellia;
+#endif
+#ifdef USE_IDEA
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_idea;
+#endif
+#if USE_GOST28147
+extern gcry_mac_spec_t _gcry_mac_type_spec_cmac_gost28147;
 #endif

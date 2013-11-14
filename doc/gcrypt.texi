@@ -3479,6 +3479,50 @@ algorithm described in GOST R 34.11-2012.
 This is HMAC message authentication algorithm based on the 512-bit hash
 algorithm described in GOST R 34.11-2012.
 
+@item GCRY_MAC_CMAC_AES
+This is CMAC (Cipher-based MAC) message authentication algorithm based on
+the AES block cipher algorithm.
+
+@item GCRY_MAC_CMAC_3DES
+This is CMAC message authentication algorithm based on the three-key EDE
+Triple-DES block cipher algorithm.
+
+@item GCRY_MAC_CMAC_CAMELLIA
+This is CMAC message authentication algorithm based on the Camellia block cipher
+algorithm.
+
+@item GCRY_MAC_CMAC_CAST5
+This is CMAC message authentication algorithm based on the CAST128-5
+block cipher algorithm.
+
+@item GCRY_MAC_CMAC_BLOWFISH
+This is CMAC message authentication algorithm based on the Blowfish
+block cipher algorithm.
+
+@item GCRY_MAC_CMAC_TWOFISH
+This is CMAC message authentication algorithm based on the Twofish
+block cipher algorithm.
+
+@item GCRY_MAC_CMAC_SERPENT
+This is CMAC message authentication algorithm based on the Serpent
+block cipher algorithm.
+
+@item GCRY_MAC_CMAC_SEED
+This is CMAC message authentication algorithm based on the SEED
+block cipher algorithm.
+
+@item GCRY_MAC_CMAC_RFC2268
+This is CMAC message authentication algorithm based on the Ron's Cipher 2
+block cipher algorithm.
+
+@item GCRY_MAC_CMAC_IDEA
+This is CMAC message authentication algorithm based on the IDEA
+block cipher algorithm.
+
+@item GCRY_MAC_CMAC_GOST28147
+This is CMAC message authentication algorithm based on the GOST 28147-89
+block cipher algorithm.
+
 @end table
 @c end table of MAC algorithms
 
@@ -3518,7 +3562,9 @@ In order to use a handle for performing MAC algorithm operations, a
 @deftypefun gcry_error_t gcry_mac_setkey (gcry_mac_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
 
 Set the MAC key to the value of @var{key} of length @var{keylen} bytes. With
-HMAC algorithms, there is no restriction on the length of the key.
+HMAC algorithms, there is no restriction on the length of the key. With CMAC
+algorithms, the length of the key is restricted to those supported by the
+underlying block cipher.
 @end deftypefun
 
 

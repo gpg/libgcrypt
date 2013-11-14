@@ -40,12 +40,12 @@ libcipher_la_LIBADD = $(GCRYPT_MODULES)
 libcipher_la_SOURCES = \
 cipher.c cipher-internal.h \
 cipher-cbc.c cipher-cfb.c cipher-ofb.c cipher-ctr.c cipher-aeswrap.c \
-cipher-ccm.c \
+cipher-ccm.c cipher-cmac.c \
 cipher-selftest.c cipher-selftest.h \
 pubkey.c pubkey-internal.h pubkey-util.c \
 md.c \
 mac.c mac-internal.h \
-mac-hmac.c \
+mac-hmac.c mac-cmac.c \
 kdf.c kdf-internal.h \
 hmac-tests.c \
 bithelp.h  \
