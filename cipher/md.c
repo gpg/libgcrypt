@@ -1028,6 +1028,8 @@ md_asn_oid (int algorithm, size_t *asnlen, size_t *mdlen)
  *  GCRYCTL_GET_ASNOID:
  *	Return the ASNOID of the algorithm in buffer. if buffer is NULL, only
  *	the required length is returned.
+ *  GCRYCTL_SELFTEST
+ *      Helper for the regression tests - shall not be used by applications.
  *
  * Note:  Because this function is in most cases used to return an
  * integer value, we can make it easier for the caller to just look at
@@ -1074,6 +1076,12 @@ gcry_md_algo_info (int algo, int what, void *buffer, size_t *nbytes)
                 err = GPG_ERR_INV_ARG;
             }
         }
+      break;
+
+    case GCRYCTL_SELFTEST:
+      /* Helper function for the regression tests.  */
+      err = gpg_err_code (_gcry_md_selftest (algo, nbytes? (int)*nbytes : 0,
+                                             NULL));
       break;
 
     default:
@@ -1227,7 +1235,7 @@ _gcry_md_selftest (int algo, int extended, selftest_report_func_t report)
     ec = spec->selftest (algo, extended, report);
   else
     {
-      ec = GPG_ERR_DIGEST_ALGO;
+      ec = spec->selftest? GPG_ERR_DIGEST_ALGO : GPG_ERR_NOT_IMPLEMENTED;
       if (report)
         report ("digest", algo, "module",
                 (spec && !spec->flags.disabled)?

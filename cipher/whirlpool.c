@@ -1296,13 +1296,18 @@ whirlpool_final (void *ctx)
 {
   whirlpool_context_t *context = ctx;
   unsigned int i;
-  u64 t, lsb, msb;
+  u64 t, th, lsb, msb;
   unsigned char *length;
 
   t = context->bctx.nblocks;
+  /* if (sizeof t == sizeof context->bctx.nblocks) */
+  th = context->bctx.nblocks_high;
+  /* else */
+  /*   th = context->bctx.nblocks >> 64; In case we ever use u128 */
+
   /* multiply by 64 to make a byte count */
   lsb = t << 6;
-  msb = t >> 58;
+  msb = (th << 6) | (t >> 58);
   /* add the count */
   t = lsb;
   if ((lsb += context->bctx.count) < t)

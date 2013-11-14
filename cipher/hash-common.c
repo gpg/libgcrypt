@@ -115,7 +115,8 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
       _gcry_burn_stack (stack_burn);
       stack_burn = 0;
       hd->count = 0;
-      hd->nblocks++;
+      if (!++hd->nblocks)
+        hd->nblocks_high++;
     }
   if (!inbuf)
     return;
@@ -133,7 +134,8 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
     {
       stack_burn = hd->bwrite (hd, inbuf);
       hd->count = 0;
-      hd->nblocks++;
+      if (!++hd->nblocks)
+        hd->nblocks_high++;
       inlen -= hd->blocksize;
       inbuf += hd->blocksize;
     }

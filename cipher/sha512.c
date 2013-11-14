@@ -97,6 +97,7 @@ sha512_init (void *context)
   hd->h7 = U64_C(0x5be0cd19137e2179);
 
   ctx->bctx.nblocks = 0;
+  ctx->bctx.nblocks_high = 0;
   ctx->bctx.count = 0;
   ctx->bctx.blocksize = 128;
   ctx->bctx.bwrite = transform;
@@ -122,6 +123,7 @@ sha384_init (void *context)
   hd->h7 = U64_C(0x47b5481dbefa4fa4);
 
   ctx->bctx.nblocks = 0;
+  ctx->bctx.nblocks_high = 0;
   ctx->bctx.count = 0;
   ctx->bctx.blocksize = 128;
   ctx->bctx.bwrite = transform;
@@ -515,15 +517,20 @@ sha512_final (void *context)
 {
   SHA512_CONTEXT *hd = context;
   unsigned int stack_burn_depth;
-  u64 t, msb, lsb;
+  u64 t, th, msb, lsb;
   byte *p;
 
   _gcry_md_block_write (context, NULL, 0); /* flush */ ;
 
   t = hd->bctx.nblocks;
+  /* if (sizeof t == sizeof hd->bctx.nblocks) */
+  th = hd->bctx.nblocks_high;
+  /* else */
+  /*   th = hd->bctx.nblocks >> 64; In case we ever use u128  */
+
   /* multiply by 128 to make a byte count */
   lsb = t << 7;
-  msb = t >> 57;
+  msb = (th << 7) | (t >> 57);
   /* add the count */
   t = lsb;
   if ((lsb += hd->bctx.count) < t)

@@ -79,6 +79,7 @@ md4_init( void *context )
   ctx->D = 0x10325476;
 
   ctx->bctx.nblocks = 0;
+  ctx->bctx.nblocks_high = 0;
   ctx->bctx.count = 0;
   ctx->bctx.blocksize = 64;
   ctx->bctx.bwrite = transform;
@@ -191,16 +192,21 @@ static void
 md4_final( void *context )
 {
   MD4_CONTEXT *hd = context;
-  u32 t, msb, lsb;
+  u32 t, th, msb, lsb;
   byte *p;
   unsigned int burn;
 
   _gcry_md_block_write(hd, NULL, 0); /* flush */;
 
   t = hd->bctx.nblocks;
+  if (sizeof t == sizeof hd->bctx.nblocks)
+    th = hd->bctx.nblocks_high;
+  else
+    th = hd->bctx.nblocks >> 32;
+
   /* multiply by 64 to make a byte count */
   lsb = t << 6;
-  msb = t >> 26;
+  msb = (th << 6) | (t >> 26);
   /* add the count */
   t = lsb;
   if( (lsb += hd->bctx.count) < t )

@@ -45,6 +45,7 @@ typedef struct gcry_md_block_ctx
 {
     byte buf[MD_BLOCK_MAX_BLOCKSIZE];
     MD_NBLOCKS_TYPE nblocks;
+    MD_NBLOCKS_TYPE nblocks_high;
     int count;
     size_t blocksize;
     _gcry_md_block_write_t bwrite;

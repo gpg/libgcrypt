@@ -602,6 +602,7 @@ do_init (void *context, int variant)
   hd->c = 0xf096a5b4c3b2e187LL;
 
   hd->bctx.nblocks = 0;
+  hd->bctx.nblocks_high = 0;
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
   hd->bctx.bwrite = transform;
@@ -735,7 +736,7 @@ static void
 tiger_final( void *context )
 {
   TIGER_CONTEXT *hd = context;
-  u32 t, msb, lsb;
+  u32 t, th, msb, lsb;
   byte *p;
   unsigned int burn;
   byte pad = hd->variant == 2? 0x80 : 0x01;
@@ -743,9 +744,14 @@ tiger_final( void *context )
   _gcry_md_block_write(hd, NULL, 0); /* flush */;
 
   t = hd->bctx.nblocks;
+  if (sizeof t == sizeof hd->bctx.nblocks)
+    th = hd->bctx.nblocks_high;
+  else
+    th = hd->bctx.nblocks >> 32;
+
   /* multiply by 64 to make a byte count */
   lsb = t << 6;
-  msb = t >> 26;
+  msb = (th << 6) | (t >> 26);
   /* add the count */
   t = lsb;
   if( (lsb += hd->bctx.count) < t )
