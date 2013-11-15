@@ -90,13 +90,13 @@
 
 typedef struct
 {
-  int keybitlength;
   KEY_TABLE_TYPE keytable;
+  int keybitlength;
 #ifdef USE_AESNI_AVX
-  int use_aesni_avx;		/* AES-NI/AVX implementation shall be used.  */
+  unsigned int use_aesni_avx:1;	/* AES-NI/AVX implementation shall be used.  */
 #endif /*USE_AESNI_AVX*/
 #ifdef USE_AESNI_AVX2
-  int use_aesni_avx2;		/* AES-NI/AVX2 implementation shall be used.  */
+  unsigned int use_aesni_avx2:1;/* AES-NI/AVX2 implementation shall be used.  */
 #endif /*USE_AESNI_AVX2*/
 } CAMELLIA_context;
 
@@ -118,6 +118,10 @@ extern void _gcry_camellia_aesni_avx_cfb_dec(CAMELLIA_context *ctx,
 					     unsigned char *out,
 					     const unsigned char *in,
 					     unsigned char *iv);
+
+extern void _gcry_camellia_aesni_avx_keygen(CAMELLIA_context *ctx,
+					    const unsigned char *key,
+					    unsigned int keylen);
 #endif
 
 #ifdef USE_AESNI_AVX2
@@ -148,6 +152,9 @@ camellia_setkey(void *c, const byte *key, unsigned keylen)
   CAMELLIA_context *ctx=c;
   static int initialized=0;
   static const char *selftest_failed=NULL;
+#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
+  unsigned int hwf = _gcry_get_hw_features ();
+#endif
 
   if(keylen!=16 && keylen!=24 && keylen!=32)
     return GPG_ERR_INV_KEYLEN;
@@ -163,39 +170,38 @@ camellia_setkey(void *c, const byte *key, unsigned keylen)
   if(selftest_failed)
     return GPG_ERR_SELFTEST_FAILED;
 
-  ctx->keybitlength=keylen*8;
-  Camellia_Ekeygen(ctx->keybitlength,key,ctx->keytable);
-  _gcry_burn_stack
-    ((19+34+34)*sizeof(u32)+2*sizeof(void*) /* camellia_setup256 */
-     +(4+32)*sizeof(u32)+2*sizeof(void*)    /* camellia_setup192 */
-     +0+sizeof(int)+2*sizeof(void*)         /* Camellia_Ekeygen */
-     +3*2*sizeof(void*)                     /* Function calls.  */
-     );
-
 #ifdef USE_AESNI_AVX
-  ctx->use_aesni_avx = 0;
-  if ((_gcry_get_hw_features () & HWF_INTEL_AESNI) &&
-      (_gcry_get_hw_features () & HWF_INTEL_AVX))
-    {
-      ctx->use_aesni_avx = 1;
-    }
+  ctx->use_aesni_avx = (hwf & HWF_INTEL_AESNI) && (hwf & HWF_INTEL_AVX);
+#endif
+#ifdef USE_AESNI_AVX2
+  ctx->use_aesni_avx2 = (hwf & HWF_INTEL_AESNI) && (hwf & HWF_INTEL_AVX2);
 #endif
 
-#ifdef USE_AESNI_AVX2
-  ctx->use_aesni_avx2 = 0;
-  if ((_gcry_get_hw_features () & HWF_INTEL_AESNI) &&
-      (_gcry_get_hw_features () & HWF_INTEL_AVX2))
-    {
-      ctx->use_aesni_avx2 = 1;
-    }
+  ctx->keybitlength=keylen*8;
+
+  if (0)
+    ;
+#ifdef USE_AESNI_AVX
+  else if (ctx->use_aesni_avx)
+    _gcry_camellia_aesni_avx_keygen(ctx, key, keylen);
+  else
 #endif
+    {
+      Camellia_Ekeygen(ctx->keybitlength,key,ctx->keytable);
+      _gcry_burn_stack
+        ((19+34+34)*sizeof(u32)+2*sizeof(void*) /* camellia_setup256 */
+         +(4+32)*sizeof(u32)+2*sizeof(void*)    /* camellia_setup192 */
+         +0+sizeof(int)+2*sizeof(void*)         /* Camellia_Ekeygen */
+         +3*2*sizeof(void*)                     /* Function calls.  */
+         );
+    }
 
   return 0;
 }
 
 #ifdef USE_ARM_ASM
 
-/* Assembly implementations of CAST5. */
+/* Assembly implementations of Camellia. */
 extern void _gcry_camellia_arm_encrypt_block(const KEY_TABLE_TYPE keyTable,
 					       byte *outbuf, const byte *inbuf,
 					       const int keybits);

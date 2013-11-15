@@ -32,8 +32,8 @@
 #define CAMELLIA_TABLE_BYTE_LEN 272
 
 /* struct CAMELLIA_context: */
-#define key_bitlength 0
-#define key_table 4
+#define key_table 0
+#define key_bitlength CAMELLIA_TABLE_BYTE_LEN
 
 /* register macros */
 #define CTX %rdi
@@ -1193,6 +1193,984 @@ _gcry_camellia_aesni_avx_cfb_dec:
 
 	ret;
 .size _gcry_camellia_aesni_avx_cfb_dec,.-_gcry_camellia_aesni_avx_cfb_dec;
+
+/*
+ * IN:
+ *  ab: 64-bit AB state
+ *  cd: 64-bit CD state
+ */
+#define camellia_f(ab, x, t0, t1, t2, t3, t4, sbox2mask, sbox4mask, \
+		   _0f0f0f0fmask, pre_s1lo_mask, pre_s1hi_mask, key) \
+	vmovq key, t0; \
+	vpxor x, x, t3; \
+	\
+	vpxor ab, t0, x; \
+	\
+	/* \
+	 * S-function with AES subbytes \
+	 */ \
+	\
+	/* input rotation for sbox4 (<<< 1) */ \
+	vpand x, sbox4mask, t0; \
+	vpandn x, sbox4mask, x; \
+	vpsllw $1, t0, t1; \
+	vpsrlw $7, t0, t0; \
+	vpor t0, t1, t0; \
+	vpand sbox4mask, t0, t0; \
+	vpor t0, x, x; \
+	\
+	vmovdqa .Lpost_tf_lo_s1 RIP, t0; \
+	vmovdqa .Lpost_tf_hi_s1 RIP, t1; \
+	vmovq .Lsbox3_output_mask RIP, t4; \
+	\
+	/* prefilter sboxes */ \
+	filter_8bit(x, pre_s1lo_mask, pre_s1hi_mask, _0f0f0f0fmask, t2); \
+	\
+	/* AES subbytes + AES shift rows + AES inv shift rows */ \
+	vaesenclast t3, x, x; \
+	vpshufb .Linv_shift_row RIP, x, x; \
+	\
+	/* postfilter sboxes */ \
+	filter_8bit(x, t0, t1, _0f0f0f0fmask, t2); \
+	\
+	/* output rotation for sbox2 (<<< 1) */ \
+	/* output rotation for sbox3 (>>> 1) */ \
+	vpor sbox2mask, t4, t2; \
+	vpand x, sbox2mask, t0; \
+	vpand x, t4, t1; \
+	vpandn x, t2, x; \
+	vpsllw $1, t0, t2; \
+	vpsrlw $7, t0, t0; \
+	vpor t0, t2, t0; \
+	vpand sbox2mask, t0, t0; \
+	vpsllw $7, t1, t2; \
+	vpsrlw $1, t1, t1; \
+	vpor t1, t2, t1; \
+	vpand t4, t1, t1; \
+	vpor x, t0, x; \
+	vpor x, t1, x; \
+	\
+	vpshufb .Lsp11101110mask RIP, x, t4; \
+	vpshufb .Lsp44044404mask RIP, x, t1; \
+	vpshufb .Lsp30333033mask RIP, x, t2; \
+	vpshufb .Lsp02220222mask RIP, x, t0; \
+	vpxor t2, t1, t1; \
+	\
+	vpshufb .Lsp00444404mask RIP, x, t2; \
+	vpxor t0, t1, t1; \
+	vpshufb .Lsp03303033mask RIP, x, t0; \
+	vpxor t2, t4, t4; \
+	vpshufb .Lsp22000222mask RIP, x, t2; \
+	vpxor t0, t1, t1; \
+	vpxor t2, t4, t4; \
+	vpshufb .Lsp10011110mask RIP, x, x; \
+	vpxor t1, x, x; \
+	vpxor t4, x, x;
+
+#define vec_rol128(in, out, nrol, t0) \
+	vpshufd $0x4e, in, out; \
+	vpsllq $(nrol), in, t0; \
+	vpsrlq $(64-(nrol)), out, out; \
+	vpaddd t0, out, out;
+
+#define vec_ror128(in, out, nror, t0) \
+	vpshufd $0x4e, in, out; \
+	vpsrlq $(nror), in, t0; \
+	vpsllq $(64-(nror)), out, out; \
+	vpaddd t0, out, out;
+
+.data
+
+.align 8
+.Lsbox2_output_mask:
+	.byte 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0xff, 0x00;
+.Lsbox3_output_mask:
+	.byte 0x00, 0x00, 0xff, 0x00, 0x00, 0xff, 0x00, 0x00;
+.Lsbox4_input_mask:
+	.byte 0x00, 0xff, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00;
+.Lsp11101110mask:
+	.long 0x000000ff, 0x000000ff;
+.Lsp44044404mask:
+	.long 0x0101ff01, 0x0101ff01;
+.Lsp30333033mask:
+	.long 0x02ff0202, 0x02ff0202;
+.Lsp02220222mask:
+	.long 0xff030303, 0xff030303;
+.Lsp00444404mask:
+	.long 0xffff0404, 0x0404ff04;
+.Lsp03303033mask:
+	.long 0xff0505ff, 0x05ff0505;
+.Lsp22000222mask:
+	.long 0x0606ffff, 0xff060606;
+.Lsp10011110mask:
+	.long 0x07ffff07, 0x070707ff;
+.Lsigma1:
+	.long 0x3BCC908B, 0xA09E667F;
+.Lsigma2:
+	.long 0x4CAA73B2, 0xB67AE858;
+.Lsigma3:
+	.long 0xE94F82BE, 0xC6EF372F;
+.Lsigma4:
+	.long 0xF1D36F1C, 0x54FF53A5;
+.Lsigma5:
+	.long 0xDE682D1D, 0x10E527FA;
+.Lsigma6:
+	.long 0xB3E6C1FD, 0xB05688C2;
+
+.text
+
+.align 8
+.type  __camellia_avx_setup128,@function;
+__camellia_avx_setup128:
+	/* input:
+	 *	%rdi: ctx, CTX; subkey storage at key_table(CTX)
+	 *	%xmm0: key
+	 */
+#define cmll_sub(n, ctx) (key_table+((n)*8))(ctx)
+#define KL128 %xmm0
+#define KA128 %xmm2
+
+	vpshufb .Lbswap128_mask RIP, KL128, KL128;
+
+	vmovq .Lsbox2_output_mask RIP, %xmm11;
+	vmovq .Lsbox4_input_mask RIP, %xmm12;
+	vbroadcastss .L0f0f0f0f RIP, %xmm13;
+	vmovdqa .Lpre_tf_lo_s1 RIP, %xmm14;
+	vmovdqa .Lpre_tf_hi_s1 RIP, %xmm15;
+
+	/*
+	 * Generate KA
+	 */
+	vpsrldq $8, KL128, %xmm2;
+	vmovdqa KL128, %xmm3;
+	vpslldq $8, %xmm3, %xmm3;
+	vpsrldq $8, %xmm3, %xmm3;
+
+	camellia_f(%xmm2, %xmm4, %xmm1,
+		   %xmm5, %xmm6, %xmm7, %xmm8,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma1 RIP);
+	vpxor %xmm4, %xmm3, %xmm3;
+	camellia_f(%xmm3, %xmm2, %xmm1,
+		   %xmm5, %xmm6, %xmm7, %xmm8,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma2 RIP);
+	camellia_f(%xmm2, %xmm3, %xmm1,
+		   %xmm5, %xmm6, %xmm7, %xmm8,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma3 RIP);
+	vpxor %xmm4, %xmm3, %xmm3;
+	camellia_f(%xmm3, %xmm4, %xmm1,
+		   %xmm5, %xmm6, %xmm7, %xmm8,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma4 RIP);
+
+	vpslldq $8, %xmm3, %xmm3;
+	vpxor %xmm4, %xmm2, %xmm2;
+	vpsrldq $8, %xmm3, %xmm3;
+	vpslldq $8, %xmm2, KA128;
+	vpor %xmm3, KA128, KA128;
+
+        /*
+         * Generate subkeys
+         */
+	vmovdqu KA128, cmll_sub(24, CTX);
+	vec_rol128(KL128, %xmm3, 15, %xmm15);
+	vec_rol128(KA128, %xmm4, 15, %xmm15);
+	vec_rol128(KA128, %xmm5, 30, %xmm15);
+	vec_rol128(KL128, %xmm6, 45, %xmm15);
+	vec_rol128(KA128, %xmm7, 45, %xmm15);
+	vec_rol128(KL128, %xmm8, 60, %xmm15);
+	vec_rol128(KA128, %xmm9, 60, %xmm15);
+	vec_ror128(KL128, %xmm10, 128-77, %xmm15);
+
+	/* absorb kw2 to other subkeys */
+	vpslldq $8, KL128, %xmm15;
+	vpsrldq $8, %xmm15, %xmm15;
+	vpxor %xmm15, KA128, KA128;
+	vpxor %xmm15, %xmm3, %xmm3;
+	vpxor %xmm15, %xmm4, %xmm4;
+
+	/* subl(1) ^= subr(1) & ~subr(9); */
+	vpandn %xmm15, %xmm5, %xmm13;
+	vpslldq $12, %xmm13, %xmm13;
+	vpsrldq $8, %xmm13, %xmm13;
+	vpxor %xmm13, %xmm15, %xmm15;
+	/* dw = subl(1) & subl(9), subr(1) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm5, %xmm14;
+	vpslld $1, %xmm14, %xmm11;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm11, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpxor %xmm15, %xmm6, %xmm6;
+	vpxor %xmm15, %xmm8, %xmm8;
+	vpxor %xmm15, %xmm9, %xmm9;
+
+	/* subl(1) ^= subr(1) & ~subr(17); */
+	vpandn %xmm15, %xmm10, %xmm13;
+	vpslldq $12, %xmm13, %xmm13;
+	vpsrldq $8, %xmm13, %xmm13;
+	vpxor %xmm13, %xmm15, %xmm15;
+	/* dw = subl(1) & subl(17), subr(1) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm10, %xmm14;
+	vpslld $1, %xmm14, %xmm11;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm11, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpshufd $0x1b, KL128, KL128;
+	vpshufd $0x1b, KA128, KA128;
+	vpshufd $0x1b, %xmm3, %xmm3;
+	vpshufd $0x1b, %xmm4, %xmm4;
+	vpshufd $0x1b, %xmm5, %xmm5;
+	vpshufd $0x1b, %xmm6, %xmm6;
+	vpshufd $0x1b, %xmm7, %xmm7;
+	vpshufd $0x1b, %xmm8, %xmm8;
+	vpshufd $0x1b, %xmm9, %xmm9;
+	vpshufd $0x1b, %xmm10, %xmm10;
+
+	vmovdqu KL128, cmll_sub(0, CTX);
+	vpshufd $0x1b, KL128, KL128;
+	vmovdqu KA128, cmll_sub(2, CTX);
+	vmovdqu %xmm3, cmll_sub(4, CTX);
+	vmovdqu %xmm4, cmll_sub(6, CTX);
+	vmovdqu %xmm5, cmll_sub(8, CTX);
+	vmovdqu %xmm6, cmll_sub(10, CTX);
+	vpsrldq $8, %xmm8, %xmm8;
+	vmovq %xmm7, cmll_sub(12, CTX);
+	vmovq %xmm8, cmll_sub(13, CTX);
+	vmovdqu %xmm9, cmll_sub(14, CTX);
+	vmovdqu %xmm10, cmll_sub(16, CTX);
+
+	vmovdqu cmll_sub(24, CTX), KA128;
+
+	vec_ror128(KL128, %xmm3, 128 - 94, %xmm7);
+	vec_ror128(KA128, %xmm4, 128 - 94, %xmm7);
+	vec_ror128(KL128, %xmm5, 128 - 111, %xmm7);
+	vec_ror128(KA128, %xmm6, 128 - 111, %xmm7);
+
+	vpxor %xmm15, %xmm3, %xmm3;
+	vpxor %xmm15, %xmm4, %xmm4;
+	vpxor %xmm15, %xmm5, %xmm5;
+	vpslldq $8, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm6, %xmm6;
+
+	/* absorb kw4 to other subkeys */
+	vpslldq $8, %xmm6, %xmm15;
+	vpxor %xmm15, %xmm5, %xmm5;
+	vpxor %xmm15, %xmm4, %xmm4;
+	vpxor %xmm15, %xmm3, %xmm3;
+
+	/* subl(25) ^= subr(25) & ~subr(16); */
+	vpshufd $0x1b, cmll_sub(16, CTX), %xmm10;
+	vpandn %xmm15, %xmm10, %xmm13;
+	vpslldq $4, %xmm13, %xmm13;
+	vpxor %xmm13, %xmm15, %xmm15;
+	/* dw = subl(25) & subl(16), subr(25) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm10, %xmm14;
+	vpslld $1, %xmm14, %xmm11;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm11, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpshufd $0x1b, %xmm3, %xmm3;
+	vpshufd $0x1b, %xmm4, %xmm4;
+	vpshufd $0x1b, %xmm5, %xmm5;
+	vpshufd $0x1b, %xmm6, %xmm6;
+
+	vmovdqu %xmm3, cmll_sub(18, CTX);
+	vmovdqu %xmm4, cmll_sub(20, CTX);
+	vmovdqu %xmm5, cmll_sub(22, CTX);
+	vmovdqu %xmm6, cmll_sub(24, CTX);
+
+	vpshufd $0x1b, cmll_sub(14, CTX), %xmm3;
+	vpshufd $0x1b, cmll_sub(12, CTX), %xmm4;
+	vpshufd $0x1b, cmll_sub(10, CTX), %xmm5;
+	vpshufd $0x1b, cmll_sub(8, CTX), %xmm6;
+
+	vpxor %xmm15, %xmm3, %xmm3;
+	vpxor %xmm15, %xmm4, %xmm4;
+	vpxor %xmm15, %xmm5, %xmm5;
+
+	/* subl(25) ^= subr(25) & ~subr(8); */
+	vpandn %xmm15, %xmm6, %xmm13;
+	vpslldq $4, %xmm13, %xmm13;
+	vpxor %xmm13, %xmm15, %xmm15;
+	/* dw = subl(25) & subl(8), subr(25) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm6, %xmm14;
+	vpslld $1, %xmm14, %xmm11;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm11, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpshufd $0x1b, %xmm3, %xmm3;
+	vpshufd $0x1b, %xmm4, %xmm4;
+	vpshufd $0x1b, %xmm5, %xmm5;
+
+	vmovdqu %xmm3, cmll_sub(14, CTX);
+	vmovdqu %xmm4, cmll_sub(12, CTX);
+	vmovdqu %xmm5, cmll_sub(10, CTX);
+
+	vpshufd $0x1b, cmll_sub(6, CTX), %xmm6;
+	vpshufd $0x1b, cmll_sub(4, CTX), %xmm4;
+	vpshufd $0x1b, cmll_sub(2, CTX), %xmm2;
+	vpshufd $0x1b, cmll_sub(0, CTX), %xmm0;
+
+	vpxor %xmm15, %xmm6, %xmm6;
+	vpxor %xmm15, %xmm4, %xmm4;
+	vpxor %xmm15, %xmm2, %xmm2;
+	vpxor %xmm15, %xmm0, %xmm0;
+
+	vpshufd $0x1b, %xmm6, %xmm6;
+	vpshufd $0x1b, %xmm4, %xmm4;
+	vpshufd $0x1b, %xmm2, %xmm2;
+	vpshufd $0x1b, %xmm0, %xmm0;
+
+	vpsrldq $8, %xmm2, %xmm3;
+	vpsrldq $8, %xmm4, %xmm5;
+	vpsrldq $8, %xmm6, %xmm7;
+
+        /*
+	 * key XOR is end of F-function.
+	 */
+	vpxor %xmm2, %xmm0, %xmm0;
+	vpxor %xmm4, %xmm2, %xmm2;
+
+	vmovq %xmm0, cmll_sub(0, CTX);
+	vmovq %xmm3, cmll_sub(2, CTX);
+	vpxor %xmm5, %xmm3, %xmm3;
+	vpxor %xmm6, %xmm4, %xmm4;
+	vpxor %xmm7, %xmm5, %xmm5;
+	vmovq %xmm2, cmll_sub(3, CTX);
+	vmovq %xmm3, cmll_sub(4, CTX);
+	vmovq %xmm4, cmll_sub(5, CTX);
+	vmovq %xmm5, cmll_sub(6, CTX);
+
+	vmovq cmll_sub(7, CTX), %xmm7;
+	vmovq cmll_sub(8, CTX), %xmm8;
+	vmovq cmll_sub(9, CTX), %xmm9;
+	vmovq cmll_sub(10, CTX), %xmm10;
+	/* tl = subl(10) ^ (subr(10) & ~subr(8)); */
+	vpandn %xmm10, %xmm8, %xmm15;
+	vpsrldq $4, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm10, %xmm0;
+	/* dw = tl & subl(8), tr = subr(10) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm8, %xmm0, %xmm15;
+	vpslld $1, %xmm15, %xmm14;
+	vpsrld $31, %xmm15, %xmm15;
+	vpaddd %xmm14, %xmm15, %xmm15;
+	vpslldq $12, %xmm15, %xmm15;
+	vpsrldq $8, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm0, %xmm0;
+
+	vpxor %xmm0, %xmm6, %xmm6;
+	vmovq %xmm6, cmll_sub(7, CTX);
+
+	vmovq cmll_sub(11, CTX), %xmm11;
+	vmovq cmll_sub(12, CTX), %xmm12;
+	vmovq cmll_sub(13, CTX), %xmm13;
+	vmovq cmll_sub(14, CTX), %xmm14;
+	vmovq cmll_sub(15, CTX), %xmm15;
+	/* tl = subl(7) ^ (subr(7) & ~subr(9)); */
+	vpandn %xmm7, %xmm9, %xmm1;
+	vpsrldq $4, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm7, %xmm0;
+	/* dw = tl & subl(9), tr = subr(7) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm9, %xmm0, %xmm1;
+	vpslld $1, %xmm1, %xmm2;
+	vpsrld $31, %xmm1, %xmm1;
+	vpaddd %xmm2, %xmm1, %xmm1;
+	vpslldq $12, %xmm1, %xmm1;
+	vpsrldq $8, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm0, %xmm0;
+
+	vpxor %xmm11, %xmm0, %xmm0;
+	vpxor %xmm12, %xmm10, %xmm10;
+	vpxor %xmm13, %xmm11, %xmm11;
+	vpxor %xmm14, %xmm12, %xmm12;
+	vpxor %xmm15, %xmm13, %xmm13;
+	vmovq %xmm0, cmll_sub(10, CTX);
+	vmovq %xmm10, cmll_sub(11, CTX);
+	vmovq %xmm11, cmll_sub(12, CTX);
+	vmovq %xmm12, cmll_sub(13, CTX);
+	vmovq %xmm13, cmll_sub(14, CTX);
+
+	vmovq cmll_sub(16, CTX), %xmm6;
+	vmovq cmll_sub(17, CTX), %xmm7;
+	vmovq cmll_sub(18, CTX), %xmm8;
+	vmovq cmll_sub(19, CTX), %xmm9;
+	vmovq cmll_sub(20, CTX), %xmm10;
+	/* tl = subl(18) ^ (subr(18) & ~subr(16)); */
+	vpandn %xmm8, %xmm6, %xmm1;
+	vpsrldq $4, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm8, %xmm0;
+	/* dw = tl & subl(16), tr = subr(18) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm6, %xmm0, %xmm1;
+	vpslld $1, %xmm1, %xmm2;
+	vpsrld $31, %xmm1, %xmm1;
+	vpaddd %xmm2, %xmm1, %xmm1;
+	vpslldq $12, %xmm1, %xmm1;
+	vpsrldq $8, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm0, %xmm0;
+
+	vpxor %xmm14, %xmm0, %xmm0;
+	vmovq %xmm0, cmll_sub(15, CTX);
+
+	/* tl = subl(15) ^ (subr(15) & ~subr(17)); */
+	vpandn %xmm15, %xmm7, %xmm1;
+	vpsrldq $4, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm15, %xmm0;
+	/* dw = tl & subl(17), tr = subr(15) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm7, %xmm0, %xmm1;
+	vpslld $1, %xmm1, %xmm2;
+	vpsrld $31, %xmm1, %xmm1;
+	vpaddd %xmm2, %xmm1, %xmm1;
+	vpslldq $12, %xmm1, %xmm1;
+	vpsrldq $8, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm0, %xmm0;
+
+	vmovq cmll_sub(21, CTX), %xmm1;
+	vmovq cmll_sub(22, CTX), %xmm2;
+	vmovq cmll_sub(23, CTX), %xmm3;
+	vmovq cmll_sub(24, CTX), %xmm4;
+
+	vpxor %xmm9, %xmm0, %xmm0;
+	vpxor %xmm10, %xmm8, %xmm8;
+	vpxor %xmm1, %xmm9, %xmm9;
+	vpxor %xmm2, %xmm10, %xmm10;
+	vpxor %xmm3, %xmm1, %xmm1;
+	vpxor %xmm4, %xmm3, %xmm3;
+
+	vmovq %xmm0, cmll_sub(18, CTX);
+	vmovq %xmm8, cmll_sub(19, CTX);
+	vmovq %xmm9, cmll_sub(20, CTX);
+	vmovq %xmm10, cmll_sub(21, CTX);
+	vmovq %xmm1, cmll_sub(22, CTX);
+	vmovq %xmm2, cmll_sub(23, CTX);
+	vmovq %xmm3, cmll_sub(24, CTX);
+
+	/* kw2 and kw4 are unused now. */
+	movq $0, cmll_sub(1, CTX);
+	movq $0, cmll_sub(25, CTX);
+
+	vzeroall;
+
+	ret;
+.size __camellia_avx_setup128,.-__camellia_avx_setup128;
+
+.align 8
+.type  __camellia_avx_setup256,@function;
+
+__camellia_avx_setup256:
+	/* input:
+	 *	%rdi: ctx, CTX; subkey storage at key_table(CTX)
+	 *	%xmm0 & %xmm1: key
+	 */
+#define KL128 %xmm0
+#define KR128 %xmm1
+#define KA128 %xmm2
+#define KB128 %xmm3
+
+	vpshufb .Lbswap128_mask RIP, KL128, KL128;
+	vpshufb .Lbswap128_mask RIP, KR128, KR128;
+
+	vmovq .Lsbox2_output_mask RIP, %xmm11;
+	vmovq .Lsbox4_input_mask RIP, %xmm12;
+	vbroadcastss .L0f0f0f0f RIP, %xmm13;
+	vmovdqa .Lpre_tf_lo_s1 RIP, %xmm14;
+	vmovdqa .Lpre_tf_hi_s1 RIP, %xmm15;
+
+	/*
+	 * Generate KA
+	 */
+	vpxor KL128, KR128, %xmm3;
+	vpsrldq $8, KR128, %xmm6;
+	vpsrldq $8, %xmm3, %xmm2;
+	vpslldq $8, %xmm3, %xmm3;
+	vpsrldq $8, %xmm3, %xmm3;
+
+	camellia_f(%xmm2, %xmm4, %xmm5,
+		   %xmm7, %xmm8, %xmm9, %xmm10,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma1 RIP);
+	vpxor %xmm4, %xmm3, %xmm3;
+	camellia_f(%xmm3, %xmm2, %xmm5,
+		   %xmm7, %xmm8, %xmm9, %xmm10,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma2 RIP);
+	vpxor %xmm6, %xmm2, %xmm2;
+	camellia_f(%xmm2, %xmm3, %xmm5,
+		   %xmm7, %xmm8, %xmm9, %xmm10,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma3 RIP);
+	vpxor %xmm4, %xmm3, %xmm3;
+	vpxor KR128, %xmm3, %xmm3;
+	camellia_f(%xmm3, %xmm4, %xmm5,
+		   %xmm7, %xmm8, %xmm9, %xmm10,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma4 RIP);
+
+	vpslldq $8, %xmm3, %xmm3;
+	vpxor %xmm4, %xmm2, %xmm2;
+	vpsrldq $8, %xmm3, %xmm3;
+	vpslldq $8, %xmm2, KA128;
+	vpor %xmm3, KA128, KA128;
+
+	/*
+	 * Generate KB
+	 */
+	vpxor KA128, KR128, %xmm3;
+	vpsrldq $8, %xmm3, %xmm4;
+	vpslldq $8, %xmm3, %xmm3;
+	vpsrldq $8, %xmm3, %xmm3;
+
+	camellia_f(%xmm4, %xmm5, %xmm6,
+		   %xmm7, %xmm8, %xmm9, %xmm10,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma5 RIP);
+	vpxor %xmm5, %xmm3, %xmm3;
+
+	camellia_f(%xmm3, %xmm5, %xmm6,
+		   %xmm7, %xmm8, %xmm9, %xmm10,
+		   %xmm11, %xmm12, %xmm13, %xmm14, %xmm15, .Lsigma6 RIP);
+	vpslldq $8, %xmm3, %xmm3;
+	vpxor %xmm5, %xmm4, %xmm4;
+	vpsrldq $8, %xmm3, %xmm3;
+	vpslldq $8, %xmm4, %xmm4;
+	vpor %xmm3, %xmm4, KB128;
+
+        /*
+         * Generate subkeys
+         */
+	vmovdqu KB128, cmll_sub(32, CTX);
+	vec_rol128(KR128, %xmm4, 15, %xmm15);
+	vec_rol128(KA128, %xmm5, 15, %xmm15);
+	vec_rol128(KR128, %xmm6, 30, %xmm15);
+	vec_rol128(KB128, %xmm7, 30, %xmm15);
+	vec_rol128(KL128, %xmm8, 45, %xmm15);
+	vec_rol128(KA128, %xmm9, 45, %xmm15);
+	vec_rol128(KL128, %xmm10, 60, %xmm15);
+	vec_rol128(KR128, %xmm11, 60, %xmm15);
+	vec_rol128(KB128, %xmm12, 60, %xmm15);
+
+	/* absorb kw2 to other subkeys */
+	vpslldq $8, KL128, %xmm15;
+	vpsrldq $8, %xmm15, %xmm15;
+	vpxor %xmm15, KB128, KB128;
+	vpxor %xmm15, %xmm4, %xmm4;
+	vpxor %xmm15, %xmm5, %xmm5;
+
+	/* subl(1) ^= subr(1) & ~subr(9); */
+	vpandn %xmm15, %xmm6, %xmm13;
+	vpslldq $12, %xmm13, %xmm13;
+	vpsrldq $8, %xmm13, %xmm13;
+	vpxor %xmm13, %xmm15, %xmm15;
+	/* dw = subl(1) & subl(9), subr(1) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm6, %xmm14;
+	vpslld $1, %xmm14, %xmm13;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm13, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpxor %xmm15, %xmm7, %xmm7;
+	vpxor %xmm15, %xmm8, %xmm8;
+	vpxor %xmm15, %xmm9, %xmm9;
+
+	vpshufd $0x1b, KL128, KL128;
+	vpshufd $0x1b, KB128, KB128;
+	vpshufd $0x1b, %xmm4, %xmm4;
+	vpshufd $0x1b, %xmm5, %xmm5;
+	vpshufd $0x1b, %xmm6, %xmm6;
+	vpshufd $0x1b, %xmm7, %xmm7;
+	vpshufd $0x1b, %xmm8, %xmm8;
+	vpshufd $0x1b, %xmm9, %xmm9;
+
+	vmovdqu KL128, cmll_sub(0, CTX);
+	vpshufd $0x1b, KL128, KL128;
+	vmovdqu KB128, cmll_sub(2, CTX);
+	vmovdqu %xmm4, cmll_sub(4, CTX);
+	vmovdqu %xmm5, cmll_sub(6, CTX);
+	vmovdqu %xmm6, cmll_sub(8, CTX);
+	vmovdqu %xmm7, cmll_sub(10, CTX);
+	vmovdqu %xmm8, cmll_sub(12, CTX);
+	vmovdqu %xmm9, cmll_sub(14, CTX);
+
+	vmovdqu cmll_sub(32, CTX), KB128;
+
+	/* subl(1) ^= subr(1) & ~subr(17); */
+	vpandn %xmm15, %xmm10, %xmm13;
+	vpslldq $12, %xmm13, %xmm13;
+	vpsrldq $8, %xmm13, %xmm13;
+	vpxor %xmm13, %xmm15, %xmm15;
+	/* dw = subl(1) & subl(17), subr(1) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm10, %xmm14;
+	vpslld $1, %xmm14, %xmm13;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm13, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpxor %xmm15, %xmm11, %xmm11;
+	vpxor %xmm15, %xmm12, %xmm12;
+
+	vec_ror128(KL128, %xmm4, 128-77, %xmm14);
+	vec_ror128(KA128, %xmm5, 128-77, %xmm14);
+	vec_ror128(KR128, %xmm6, 128-94, %xmm14);
+	vec_ror128(KA128, %xmm7, 128-94, %xmm14);
+	vec_ror128(KL128, %xmm8, 128-111, %xmm14);
+	vec_ror128(KB128, %xmm9, 128-111, %xmm14);
+
+	vpxor %xmm15, %xmm4, %xmm4;
+
+	vpshufd $0x1b, %xmm10, %xmm10;
+	vpshufd $0x1b, %xmm11, %xmm11;
+	vpshufd $0x1b, %xmm12, %xmm12;
+	vpshufd $0x1b, %xmm4, %xmm4;
+
+	vmovdqu %xmm10, cmll_sub(16, CTX);
+	vmovdqu %xmm11, cmll_sub(18, CTX);
+	vmovdqu %xmm12, cmll_sub(20, CTX);
+	vmovdqu %xmm4, cmll_sub(22, CTX);
+
+	/* subl(1) ^= subr(1) & ~subr(25); */
+	vpandn %xmm15, %xmm5, %xmm13;
+	vpslldq $12, %xmm13, %xmm13;
+	vpsrldq $8, %xmm13, %xmm13;
+	vpxor %xmm13, %xmm15, %xmm15;
+	/* dw = subl(1) & subl(25), subr(1) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm5, %xmm14;
+	vpslld $1, %xmm14, %xmm13;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm13, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpxor %xmm15, %xmm6, %xmm6;
+	vpxor %xmm15, %xmm7, %xmm7;
+	vpxor %xmm15, %xmm8, %xmm8;
+	vpslldq $8, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm9, %xmm9;
+
+	/* absorb kw4 to other subkeys */
+	vpslldq $8, %xmm9, %xmm15;
+	vpxor %xmm15, %xmm8, %xmm8;
+	vpxor %xmm15, %xmm7, %xmm7;
+	vpxor %xmm15, %xmm6, %xmm6;
+
+	/* subl(33) ^= subr(33) & ~subr(24); */
+	vpandn %xmm15, %xmm5, %xmm14;
+	vpslldq $4, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+	/* dw = subl(33) & subl(24), subr(33) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm5, %xmm14;
+	vpslld $1, %xmm14, %xmm13;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm13, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpshufd $0x1b, %xmm5, %xmm5;
+	vpshufd $0x1b, %xmm6, %xmm6;
+	vpshufd $0x1b, %xmm7, %xmm7;
+	vpshufd $0x1b, %xmm8, %xmm8;
+	vpshufd $0x1b, %xmm9, %xmm9;
+
+	vmovdqu %xmm5, cmll_sub(24, CTX);
+	vmovdqu %xmm6, cmll_sub(26, CTX);
+	vmovdqu %xmm7, cmll_sub(28, CTX);
+	vmovdqu %xmm8, cmll_sub(30, CTX);
+	vmovdqu %xmm9, cmll_sub(32, CTX);
+
+	vpshufd $0x1b, cmll_sub(22, CTX), %xmm0;
+	vpshufd $0x1b, cmll_sub(20, CTX), %xmm1;
+	vpshufd $0x1b, cmll_sub(18, CTX), %xmm2;
+	vpshufd $0x1b, cmll_sub(16, CTX), %xmm3;
+	vpshufd $0x1b, cmll_sub(14, CTX), %xmm4;
+	vpshufd $0x1b, cmll_sub(12, CTX), %xmm5;
+	vpshufd $0x1b, cmll_sub(10, CTX), %xmm6;
+	vpshufd $0x1b, cmll_sub(8, CTX), %xmm7;
+
+	vpxor %xmm15, %xmm0, %xmm0;
+	vpxor %xmm15, %xmm1, %xmm1;
+	vpxor %xmm15, %xmm2, %xmm2;
+
+	/* subl(33) ^= subr(33) & ~subr(24); */
+	vpandn %xmm15, %xmm3, %xmm14;
+	vpslldq $4, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+	/* dw = subl(33) & subl(24), subr(33) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm3, %xmm14;
+	vpslld $1, %xmm14, %xmm13;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm13, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpxor %xmm15, %xmm4, %xmm4;
+	vpxor %xmm15, %xmm5, %xmm5;
+	vpxor %xmm15, %xmm6, %xmm6;
+
+	vpshufd $0x1b, %xmm0, %xmm0;
+	vpshufd $0x1b, %xmm1, %xmm1;
+	vpshufd $0x1b, %xmm2, %xmm2;
+	vpshufd $0x1b, %xmm4, %xmm4;
+	vpshufd $0x1b, %xmm5, %xmm5;
+	vpshufd $0x1b, %xmm6, %xmm6;
+
+	vmovdqu %xmm0, cmll_sub(22, CTX);
+	vmovdqu %xmm1, cmll_sub(20, CTX);
+	vmovdqu %xmm2, cmll_sub(18, CTX);
+	vmovdqu %xmm4, cmll_sub(14, CTX);
+	vmovdqu %xmm5, cmll_sub(12, CTX);
+	vmovdqu %xmm6, cmll_sub(10, CTX);
+
+	vpshufd $0x1b, cmll_sub(6, CTX), %xmm6;
+	vpshufd $0x1b, cmll_sub(4, CTX), %xmm4;
+	vpshufd $0x1b, cmll_sub(2, CTX), %xmm2;
+	vpshufd $0x1b, cmll_sub(0, CTX), %xmm0;
+
+	/* subl(33) ^= subr(33) & ~subr(24); */
+	vpandn %xmm15, %xmm7, %xmm14;
+	vpslldq $4, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+	/* dw = subl(33) & subl(24), subr(33) ^= CAMELLIA_RL1(dw); */
+	vpand %xmm15, %xmm7, %xmm14;
+	vpslld $1, %xmm14, %xmm13;
+	vpsrld $31, %xmm14, %xmm14;
+	vpaddd %xmm13, %xmm14, %xmm14;
+	vpsrldq $12, %xmm14, %xmm14;
+	vpslldq $8, %xmm14, %xmm14;
+	vpxor %xmm14, %xmm15, %xmm15;
+
+	vpxor %xmm15, %xmm6, %xmm6;
+	vpxor %xmm15, %xmm4, %xmm4;
+	vpxor %xmm15, %xmm2, %xmm2;
+	vpxor %xmm15, %xmm0, %xmm0;
+
+	vpshufd $0x1b, %xmm6, %xmm6;
+	vpshufd $0x1b, %xmm4, %xmm4;
+	vpshufd $0x1b, %xmm2, %xmm2;
+	vpshufd $0x1b, %xmm0, %xmm0;
+
+	vpsrldq $8, %xmm2, %xmm3;
+	vpsrldq $8, %xmm4, %xmm5;
+	vpsrldq $8, %xmm6, %xmm7;
+
+        /*
+	 * key XOR is end of F-function.
+	 */
+	vpxor %xmm2, %xmm0, %xmm0;
+	vpxor %xmm4, %xmm2, %xmm2;
+
+	vmovq %xmm0, cmll_sub(0, CTX);
+	vmovq %xmm3, cmll_sub(2, CTX);
+	vpxor %xmm5, %xmm3, %xmm3;
+	vpxor %xmm6, %xmm4, %xmm4;
+	vpxor %xmm7, %xmm5, %xmm5;
+	vmovq %xmm2, cmll_sub(3, CTX);
+	vmovq %xmm3, cmll_sub(4, CTX);
+	vmovq %xmm4, cmll_sub(5, CTX);
+	vmovq %xmm5, cmll_sub(6, CTX);
+
+	vmovq cmll_sub(7, CTX), %xmm7;
+	vmovq cmll_sub(8, CTX), %xmm8;
+	vmovq cmll_sub(9, CTX), %xmm9;
+	vmovq cmll_sub(10, CTX), %xmm10;
+	/* tl = subl(10) ^ (subr(10) & ~subr(8)); */
+	vpandn %xmm10, %xmm8, %xmm15;
+	vpsrldq $4, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm10, %xmm0;
+	/* dw = tl & subl(8), tr = subr(10) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm8, %xmm0, %xmm15;
+	vpslld $1, %xmm15, %xmm14;
+	vpsrld $31, %xmm15, %xmm15;
+	vpaddd %xmm14, %xmm15, %xmm15;
+	vpslldq $12, %xmm15, %xmm15;
+	vpsrldq $8, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm0, %xmm0;
+
+	vpxor %xmm0, %xmm6, %xmm6;
+	vmovq %xmm6, cmll_sub(7, CTX);
+
+	vmovq cmll_sub(11, CTX), %xmm11;
+	vmovq cmll_sub(12, CTX), %xmm12;
+	vmovq cmll_sub(13, CTX), %xmm13;
+	vmovq cmll_sub(14, CTX), %xmm14;
+	vmovq cmll_sub(15, CTX), %xmm15;
+	/* tl = subl(7) ^ (subr(7) & ~subr(9)); */
+	vpandn %xmm7, %xmm9, %xmm1;
+	vpsrldq $4, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm7, %xmm0;
+	/* dw = tl & subl(9), tr = subr(7) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm9, %xmm0, %xmm1;
+	vpslld $1, %xmm1, %xmm2;
+	vpsrld $31, %xmm1, %xmm1;
+	vpaddd %xmm2, %xmm1, %xmm1;
+	vpslldq $12, %xmm1, %xmm1;
+	vpsrldq $8, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm0, %xmm0;
+
+	vpxor %xmm11, %xmm0, %xmm0;
+	vpxor %xmm12, %xmm10, %xmm10;
+	vpxor %xmm13, %xmm11, %xmm11;
+	vpxor %xmm14, %xmm12, %xmm12;
+	vpxor %xmm15, %xmm13, %xmm13;
+	vmovq %xmm0, cmll_sub(10, CTX);
+	vmovq %xmm10, cmll_sub(11, CTX);
+	vmovq %xmm11, cmll_sub(12, CTX);
+	vmovq %xmm12, cmll_sub(13, CTX);
+	vmovq %xmm13, cmll_sub(14, CTX);
+
+	vmovq cmll_sub(16, CTX), %xmm6;
+	vmovq cmll_sub(17, CTX), %xmm7;
+	vmovq cmll_sub(18, CTX), %xmm8;
+	vmovq cmll_sub(19, CTX), %xmm9;
+	vmovq cmll_sub(20, CTX), %xmm10;
+	/* tl = subl(18) ^ (subr(18) & ~subr(16)); */
+	vpandn %xmm8, %xmm6, %xmm1;
+	vpsrldq $4, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm8, %xmm0;
+	/* dw = tl & subl(16), tr = subr(18) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm6, %xmm0, %xmm1;
+	vpslld $1, %xmm1, %xmm2;
+	vpsrld $31, %xmm1, %xmm1;
+	vpaddd %xmm2, %xmm1, %xmm1;
+	vpslldq $12, %xmm1, %xmm1;
+	vpsrldq $8, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm0, %xmm0;
+
+	vpxor %xmm14, %xmm0, %xmm0;
+	vmovq %xmm0, cmll_sub(15, CTX);
+
+	/* tl = subl(15) ^ (subr(15) & ~subr(17)); */
+	vpandn %xmm15, %xmm7, %xmm1;
+	vpsrldq $4, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm15, %xmm0;
+	/* dw = tl & subl(17), tr = subr(15) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm7, %xmm0, %xmm1;
+	vpslld $1, %xmm1, %xmm2;
+	vpsrld $31, %xmm1, %xmm1;
+	vpaddd %xmm2, %xmm1, %xmm1;
+	vpslldq $12, %xmm1, %xmm1;
+	vpsrldq $8, %xmm1, %xmm1;
+	vpxor %xmm1, %xmm0, %xmm0;
+
+	vmovq cmll_sub(21, CTX), %xmm1;
+	vmovq cmll_sub(22, CTX), %xmm2;
+	vmovq cmll_sub(23, CTX), %xmm3;
+	vmovq cmll_sub(24, CTX), %xmm4;
+
+	vpxor %xmm9, %xmm0, %xmm0;
+	vpxor %xmm10, %xmm8, %xmm8;
+	vpxor %xmm1, %xmm9, %xmm9;
+	vpxor %xmm2, %xmm10, %xmm10;
+	vpxor %xmm3, %xmm1, %xmm1;
+
+	vmovq %xmm0, cmll_sub(18, CTX);
+	vmovq %xmm8, cmll_sub(19, CTX);
+	vmovq %xmm9, cmll_sub(20, CTX);
+	vmovq %xmm10, cmll_sub(21, CTX);
+	vmovq %xmm1, cmll_sub(22, CTX);
+
+	vmovq cmll_sub(25, CTX), %xmm5;
+	vmovq cmll_sub(26, CTX), %xmm6;
+	vmovq cmll_sub(27, CTX), %xmm7;
+	vmovq cmll_sub(28, CTX), %xmm8;
+	vmovq cmll_sub(29, CTX), %xmm9;
+	vmovq cmll_sub(30, CTX), %xmm10;
+	vmovq cmll_sub(31, CTX), %xmm11;
+	vmovq cmll_sub(32, CTX), %xmm12;
+
+	/* tl = subl(26) ^ (subr(26) & ~subr(24)); */
+	vpandn %xmm6, %xmm4, %xmm15;
+	vpsrldq $4, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm6, %xmm0;
+	/* dw = tl & subl(26), tr = subr(24) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm4, %xmm0, %xmm15;
+	vpslld $1, %xmm15, %xmm14;
+	vpsrld $31, %xmm15, %xmm15;
+	vpaddd %xmm14, %xmm15, %xmm15;
+	vpslldq $12, %xmm15, %xmm15;
+	vpsrldq $8, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm0, %xmm0;
+
+	vpxor %xmm0, %xmm2, %xmm2;
+	vmovq %xmm2, cmll_sub(23, CTX);
+
+	/* tl = subl(23) ^ (subr(23) &  ~subr(25)); */
+	vpandn %xmm3, %xmm5, %xmm15;
+	vpsrldq $4, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm3, %xmm0;
+	/* dw = tl & subl(26), tr = subr(24) ^ CAMELLIA_RL1(dw); */
+	vpand %xmm5, %xmm0, %xmm15;
+	vpslld $1, %xmm15, %xmm14;
+	vpsrld $31, %xmm15, %xmm15;
+	vpaddd %xmm14, %xmm15, %xmm15;
+	vpslldq $12, %xmm15, %xmm15;
+	vpsrldq $8, %xmm15, %xmm15;
+	vpxor %xmm15, %xmm0, %xmm0;
+
+	vpxor %xmm7, %xmm0, %xmm0;
+	vpxor %xmm8, %xmm6, %xmm6;
+	vpxor %xmm9, %xmm7, %xmm7;
+	vpxor %xmm10, %xmm8, %xmm8;
+	vpxor %xmm11, %xmm9, %xmm9;
+	vpxor %xmm12, %xmm11, %xmm11;
+
+	vmovq %xmm0, cmll_sub(26, CTX);
+	vmovq %xmm6, cmll_sub(27, CTX);
+	vmovq %xmm7, cmll_sub(28, CTX);
+	vmovq %xmm8, cmll_sub(29, CTX);
+	vmovq %xmm9, cmll_sub(30, CTX);
+	vmovq %xmm10, cmll_sub(31, CTX);
+	vmovq %xmm11, cmll_sub(32, CTX);
+
+	/* kw2 and kw4 are unused now. */
+	movq $0, cmll_sub(1, CTX);
+	movq $0, cmll_sub(33, CTX);
+
+	vzeroall;
+
+	ret;
+.size __camellia_avx_setup256,.-__camellia_avx_setup256;
+
+.align 8
+.globl _gcry_camellia_aesni_avx_keygen
+.type  _gcry_camellia_aesni_avx_keygen,@function;
+
+_gcry_camellia_aesni_avx_keygen:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: key
+	 *	%rdx: keylen
+	 */
+
+	vzeroupper;
+
+	vmovdqu (%rsi), %xmm0;
+	cmpl $24, %edx;
+	jb __camellia_avx_setup128;
+	je .Lprepare_key192;
+
+	vmovdqu 16(%rsi), %xmm1;
+	jmp __camellia_avx_setup256;
+
+.Lprepare_key192:
+	vpcmpeqd %xmm2, %xmm2, %xmm2;
+	vmovq 16(%rsi), %xmm1;
+
+	vpxor %xmm1, %xmm2, %xmm2;
+	vpslldq $8, %xmm2, %xmm2;
+	vpor %xmm2, %xmm1, %xmm1;
+
+	jmp __camellia_avx_setup256;
+.size _gcry_camellia_aesni_avx_keygen,.-_gcry_camellia_aesni_avx_keygen;
 
 #endif /*defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX_SUPPORT)*/
 #endif /*__x86_64*/

@@ -32,8 +32,8 @@
 #define CAMELLIA_TABLE_BYTE_LEN 272
 
 /* struct CAMELLIA_context: */
-#define key_bitlength 0
-#define key_table 4
+#define key_table 0
+#define key_bitlength CAMELLIA_TABLE_BYTE_LEN
 
 /* register macros */
 #define CTX %rdi

@@ -28,11 +28,8 @@
 .syntax unified
 .arm
 
-#define CAMELLIA_TABLE_BYTE_LEN 272
-
 /* struct camellia_ctx: */
 #define key_table 0
-#define key_length CAMELLIA_TABLE_BYTE_LEN
 
 /* register macros */
 #define CTX %r0
