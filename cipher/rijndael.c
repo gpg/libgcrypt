@@ -163,13 +163,13 @@ typedef struct
     PROPERLY_ALIGNED_TYPE dummy;
     byte keyschedule[MAXROUNDS+1][4][4];
   } u2;
-  int rounds;               /* Key-length-dependent number of rounds.  */
-  int decryption_prepared;  /* The decryption key schedule is available.  */
+  int rounds;                /* Key-length-dependent number of rounds.  */
+  unsigned int decryption_prepared:1; /* The decryption key schedule is available.  */
 #ifdef USE_PADLOCK
-  int use_padlock;          /* Padlock shall be used.  */
+  unsigned int use_padlock:1;         /* Padlock shall be used.  */
 #endif /*USE_PADLOCK*/
 #ifdef USE_AESNI
-  int use_aesni;            /* AES-NI shall be used.  */
+  unsigned int use_aesni:1;           /* AES-NI shall be used.  */
 #endif /*USE_AESNI*/
 } RIJNDAEL_context ATTR_ALIGNED_16;
 
@@ -465,7 +465,9 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   int rounds;
   int i,j, r, t, rconpointer = 0;
   int KC;
+#if defined(USE_AESNI) || defined(USE_PADLOCK)
   unsigned int hwfeatures;
+#endif
 
   /* The on-the-fly self tests are only run in non-fips mode. In fips
      mode explicit self-tests are required.  Actually the on-the-fly
@@ -959,9 +961,9 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
    back.  If we decide to implement some block modes with parallelized
    AES instructions, it might indeed be better to use plain asm ala
    mpi/.  */
-static void
-do_aesni_enc_aligned (const RIJNDAEL_context *ctx,
-                      unsigned char *b, const unsigned char *a)
+static inline void
+do_aesni_enc (const RIJNDAEL_context *ctx, unsigned char *b,
+              const unsigned char *a)
 {
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
 #define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
@@ -1019,9 +1021,9 @@ do_aesni_enc_aligned (const RIJNDAEL_context *ctx,
 }
 
 
-static void
-do_aesni_dec_aligned (const RIJNDAEL_context *ctx,
-                      unsigned char *b, const unsigned char *a)
+static inline void
+do_aesni_dec (const RIJNDAEL_context *ctx, unsigned char *b,
+              const unsigned char *a)
 {
 #define aesdec_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xde, 0xc1\n\t"
 #define aesdeclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdf, 0xc1\n\t"
@@ -1626,24 +1628,6 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
 #undef aesenclast_xmm1_xmm4
 }
 
-
-static void
-do_aesni (RIJNDAEL_context *ctx, int decrypt_flag,
-          unsigned char *bx, const unsigned char *ax)
-{
-
-  if (decrypt_flag)
-    {
-      if (!ctx->decryption_prepared )
-        {
-          prepare_decryption ( ctx );
-          ctx->decryption_prepared = 1;
-        }
-      do_aesni_dec_aligned (ctx, bx, ax);
-    }
-  else
-    do_aesni_enc_aligned (ctx, bx, ax);
-}
 #endif /*USE_AESNI*/
 
 
@@ -1666,7 +1650,7 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
   else if (ctx->use_aesni)
     {
       aesni_prepare ();
-      do_aesni (ctx, 0, b, a);
+      do_aesni_enc (ctx, b, a);
       aesni_cleanup ();
       burn_stack = 0;
     }
@@ -1693,6 +1677,7 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
+  unsigned int burn_depth = 48 + 2*sizeof(int);
 
   if (0)
     ;
@@ -1722,6 +1707,8 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
           inbuf  += BLOCKSIZE;
         }
       aesni_cleanup ();
+
+      burn_depth = 0; /* No stack usage. */
     }
 #endif /*USE_AESNI*/
   else
@@ -1737,7 +1724,8 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
         }
     }
 
-  _gcry_burn_stack (48 + 2*sizeof(int));
+  if (burn_depth)
+    _gcry_burn_stack (burn_depth);
 }
 
 
@@ -1754,9 +1742,13 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned char *last_iv;
+  unsigned int burn_depth = 48 + 2*sizeof(int);
+#ifdef USE_AESNI
+  int use_aesni = ctx->use_aesni;
+#endif
 
 #ifdef USE_AESNI
-  if (ctx->use_aesni)
+  if (use_aesni)
     aesni_prepare ();
 #endif /*USE_AESNI*/
 
@@ -1767,7 +1759,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
       if (0)
         ;
 #ifdef USE_AESNI
-      else if (ctx->use_aesni)
+      else if (use_aesni)
         {
           /* ~35% speed up on Sandy-Bridge when doing xoring and copying with
              SSE registers.  */
@@ -1781,7 +1773,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
                           [outbuf] "m" (*outbuf)
                         : "memory" );
 
-          do_aesni (ctx, 0, outbuf, outbuf);
+          do_aesni_enc (ctx, outbuf, outbuf);
         }
 #endif /*USE_AESNI*/
       else
@@ -1809,7 +1801,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
       if (0)
         ;
 #ifdef USE_AESNI
-      else if (ctx->use_aesni)
+      else if (use_aesni)
         asm volatile ("movdqu %[last], %%xmm0\n\t"
                       "movdqu %%xmm0, %[iv]\n\t"
                       : /* No output */
@@ -1822,11 +1814,15 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
     }
 
 #ifdef USE_AESNI
-   if (ctx->use_aesni)
-      aesni_cleanup ();
+   if (use_aesni)
+     {
+       aesni_cleanup ();
+       burn_depth = 0; /* No stack usage. */
+     }
 #endif /*USE_AESNI*/
 
-  _gcry_burn_stack (48 + 2*sizeof(int));
+  if (burn_depth)
+    _gcry_burn_stack (burn_depth);
 }
 
 
@@ -1843,6 +1839,7 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
+  unsigned int burn_depth = 48 + 2*sizeof(int);
   int i;
 
   if (0)
@@ -1876,6 +1873,8 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
         }
       aesni_cleanup ();
       aesni_cleanup_2_6 ();
+
+      burn_depth = 0; /* No stack usage. */
     }
 #endif /*USE_AESNI*/
   else
@@ -1900,7 +1899,8 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
         }
     }
 
-  _gcry_burn_stack (48 + 2*sizeof(int));
+  if (burn_depth)
+    _gcry_burn_stack (burn_depth);
 }
 
 
@@ -2007,12 +2007,6 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
 static void
 do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
 {
-  if ( !ctx->decryption_prepared )
-    {
-      prepare_decryption ( ctx );
-      ctx->decryption_prepared = 1;
-    }
-
 #if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
   /* BX and AX are not necessary correctly aligned.  Thus we might
      need to copy them here.  We try to align to a 16 bytes. */
@@ -2041,6 +2035,21 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
 }
 
 
+static inline void
+check_decryption_preparation (RIJNDAEL_context *ctx)
+{
+  if (0)
+    ;
+#ifdef USE_PADLOCK
+  else if (ctx->use_padlock)
+    { /* Padlock does not need decryption subkeys. */ }
+#endif /*USE_PADLOCK*/
+  else if ( !ctx->decryption_prepared )
+    {
+      prepare_decryption ( ctx );
+      ctx->decryption_prepared = 1;
+    }
+}
 
 
 static unsigned int
@@ -2048,6 +2057,8 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
   unsigned int burn_stack;
+
+  check_decryption_preparation (ctx);
 
   if (0)
     ;
@@ -2062,7 +2073,7 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
   else if (ctx->use_aesni)
     {
       aesni_prepare ();
-      do_aesni (ctx, 1, b, a);
+      do_aesni_dec (ctx, b, a);
       aesni_cleanup ();
       burn_stack = 0;
     }
@@ -2089,6 +2100,7 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
+  unsigned int burn_depth = 48 + 2*sizeof(int);
 
   if (0)
     ;
@@ -2161,6 +2173,8 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
         }
       aesni_cleanup ();
       aesni_cleanup_2_6 ();
+
+      burn_depth = 0; /* No stack usage. */
     }
 #endif /*USE_AESNI*/
   else
@@ -2174,7 +2188,8 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
         }
     }
 
-  _gcry_burn_stack (48 + 2*sizeof(int));
+  if (burn_depth)
+    _gcry_burn_stack (burn_depth);
 }
 
 
@@ -2190,7 +2205,9 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned char savebuf[BLOCKSIZE];
+  unsigned int burn_depth = 48 + 2*sizeof(int) + 4*sizeof (char*);
+
+  check_decryption_preparation (ctx);
 
   if (0)
     ;
@@ -2198,12 +2215,6 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
   else if (ctx->use_aesni)
     {
       aesni_prepare ();
-
-      if (!ctx->decryption_prepared )
-        {
-          prepare_decryption ( ctx );
-          ctx->decryption_prepared = 1;
-        }
 
       asm volatile
         ("movdqu %[iv], %%xmm5\n\t"	/* use xmm5 as fast IV storage */
@@ -2259,7 +2270,7 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
              : "memory");
 
           /* uses only xmm0 and xmm1 */
-          do_aesni_dec_aligned (ctx, outbuf, inbuf);
+          do_aesni_dec (ctx, outbuf, inbuf);
 
           asm volatile
             ("movdqu %[outbuf], %%xmm0\n\t"
@@ -2282,29 +2293,38 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 
       aesni_cleanup ();
       aesni_cleanup_2_6 ();
+
+      burn_depth = 0; /* No stack usage. */
     }
 #endif /*USE_AESNI*/
   else
-    for ( ;nblocks; nblocks-- )
-      {
-        /* INBUF is needed later and it may be identical to OUTBUF, so store
-           the intermediate result to SAVEBUF.  */
+    {
+      unsigned char savebuf[BLOCKSIZE];
 
-        if (0)
-          ;
+      for ( ;nblocks; nblocks-- )
+        {
+          /* INBUF is needed later and it may be identical to OUTBUF, so store
+             the intermediate result to SAVEBUF.  */
+
+          if (0)
+            ;
 #ifdef USE_PADLOCK
-        else if (ctx->use_padlock)
-          do_padlock (ctx, 1, savebuf, inbuf);
+          else if (ctx->use_padlock)
+            do_padlock (ctx, 1, savebuf, inbuf);
 #endif /*USE_PADLOCK*/
-        else
-          do_decrypt (ctx, savebuf, inbuf);
+          else
+            do_decrypt (ctx, savebuf, inbuf);
 
-        buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOCKSIZE);
-        inbuf += BLOCKSIZE;
-        outbuf += BLOCKSIZE;
-      }
+          buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOCKSIZE);
+          inbuf += BLOCKSIZE;
+          outbuf += BLOCKSIZE;
+        }
 
-  _gcry_burn_stack (48 + 2*sizeof(int) + BLOCKSIZE + 4*sizeof (char*));
+      wipememory(savebuf, sizeof(savebuf));
+    }
+
+  if (burn_depth)
+    _gcry_burn_stack (burn_depth);
 }
 
 
