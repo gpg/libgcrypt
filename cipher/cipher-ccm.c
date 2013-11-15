@@ -318,8 +318,8 @@ _gcry_cipher_ccm_check_tag (gcry_cipher_hd_t c, const unsigned char *intag,
 
 gcry_err_code_t
 _gcry_cipher_ccm_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
-                          unsigned int outbuflen, const unsigned char *inbuf,
-                          unsigned int inbuflen)
+                          size_t outbuflen, const unsigned char *inbuf,
+                          size_t inbuflen)
 {
   unsigned int burn;
 
@@ -342,8 +342,8 @@ _gcry_cipher_ccm_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
 
 gcry_err_code_t
 _gcry_cipher_ccm_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
-                          unsigned int outbuflen, const unsigned char *inbuf,
-                          unsigned int inbuflen)
+                          size_t outbuflen, const unsigned char *inbuf,
+                          size_t inbuflen)
 {
   gcry_err_code_t err;
   unsigned int burn;

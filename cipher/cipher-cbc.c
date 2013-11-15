@@ -34,15 +34,15 @@
 
 gcry_err_code_t
 _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
-                          unsigned char *outbuf, unsigned int outbuflen,
-                          const unsigned char *inbuf, unsigned int inbuflen)
+                          unsigned char *outbuf, size_t outbuflen,
+                          const unsigned char *inbuf, size_t inbuflen)
 {
-  unsigned int n;
+  size_t n;
   unsigned char *ivp;
   int i;
   size_t blocksize = c->spec->blocksize;
   gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
-  unsigned nblocks = inbuflen / blocksize;
+  size_t nblocks = inbuflen / blocksize;
   unsigned int burn, nburn;
 
   if (outbuflen < ((c->flags & GCRY_CIPHER_CBC_MAC)? blocksize : inbuflen))
@@ -92,7 +92,7 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
     {
       /* We have to be careful here, since outbuf might be equal to
          inbuf.  */
-      int restbytes;
+      size_t restbytes;
       unsigned char b;
 
       if ((inbuflen % blocksize) == 0)
@@ -124,14 +124,14 @@ _gcry_cipher_cbc_encrypt (gcry_cipher_hd_t c,
 
 gcry_err_code_t
 _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
-                          unsigned char *outbuf, unsigned int outbuflen,
-                          const unsigned char *inbuf, unsigned int inbuflen)
+                          unsigned char *outbuf, size_t outbuflen,
+                          const unsigned char *inbuf, size_t inbuflen)
 {
-  unsigned int n;
+  size_t n;
   int i;
   size_t blocksize = c->spec->blocksize;
   gcry_cipher_decrypt_t dec_fn = c->spec->decrypt;
-  unsigned int nblocks = inbuflen / blocksize;
+  size_t nblocks = inbuflen / blocksize;
   unsigned int burn, nburn;
 
   if (outbuflen < inbuflen)
@@ -175,7 +175,7 @@ _gcry_cipher_cbc_decrypt (gcry_cipher_hd_t c,
 
   if ((c->flags & GCRY_CIPHER_CBC_CTS) && inbuflen > blocksize)
     {
-      int restbytes;
+      size_t restbytes;
 
       if ((inbuflen % blocksize) == 0)
         restbytes = blocksize;

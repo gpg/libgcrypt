@@ -290,7 +290,7 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
 void
 _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
                        void *outbuf_arg, const void *inbuf_arg,
-                       unsigned int nblocks)
+                       size_t nblocks)
 {
   CAMELLIA_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -382,7 +382,7 @@ _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
 void
 _gcry_camellia_cbc_dec(void *context, unsigned char *iv,
                        void *outbuf_arg, const void *inbuf_arg,
-                       unsigned int nblocks)
+                       size_t nblocks)
 {
   CAMELLIA_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -465,7 +465,7 @@ _gcry_camellia_cbc_dec(void *context, unsigned char *iv,
 void
 _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
                        void *outbuf_arg, const void *inbuf_arg,
-                       unsigned int nblocks)
+                       size_t nblocks)
 {
   CAMELLIA_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;

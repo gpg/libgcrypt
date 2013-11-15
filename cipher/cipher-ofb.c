@@ -33,8 +33,8 @@
 
 gcry_err_code_t
 _gcry_cipher_ofb_encrypt (gcry_cipher_hd_t c,
-                          unsigned char *outbuf, unsigned int outbuflen,
-                          const unsigned char *inbuf, unsigned int inbuflen)
+                          unsigned char *outbuf, size_t outbuflen,
+                          const unsigned char *inbuf, size_t inbuflen)
 {
   unsigned char *ivp;
   gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;

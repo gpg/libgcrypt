@@ -1672,7 +1672,7 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
 void
 _gcry_aes_cfb_enc (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
-                   unsigned int nblocks)
+                   size_t nblocks)
 {
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -1736,7 +1736,7 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
 void
 _gcry_aes_cbc_enc (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
-                   unsigned int nblocks, int cbc_mac)
+                   size_t nblocks, int cbc_mac)
 {
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -1834,7 +1834,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
 void
 _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
                    void *outbuf_arg, const void *inbuf_arg,
-                   unsigned int nblocks)
+                   size_t nblocks)
 {
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -2095,7 +2095,7 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
 void
 _gcry_aes_cfb_dec (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
-                   unsigned int nblocks)
+                   size_t nblocks)
 {
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -2200,7 +2200,7 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
 void
 _gcry_aes_cbc_dec (void *context, unsigned char *iv,
                    void *outbuf_arg, const void *inbuf_arg,
-                   unsigned int nblocks)
+                   size_t nblocks)
 {
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;

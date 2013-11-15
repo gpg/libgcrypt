@@ -40,7 +40,7 @@ typedef struct {
 
 static void
 do_encrypt_stream( ARCFOUR_context *ctx,
-		   byte *outbuf, const byte *inbuf, unsigned int length )
+		   byte *outbuf, const byte *inbuf, size_t length )
 {
 #ifndef __i386__
   register unsigned int i = ctx->idx_i;
@@ -89,7 +89,7 @@ do_encrypt_stream( ARCFOUR_context *ctx,
 
 static void
 encrypt_stream (void *context,
-                byte *outbuf, const byte *inbuf, unsigned int length)
+                byte *outbuf, const byte *inbuf, size_t length)
 {
   ARCFOUR_context *ctx = (ARCFOUR_context *) context;
   do_encrypt_stream (ctx, outbuf, inbuf, length );

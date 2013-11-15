@@ -97,78 +97,78 @@ void _gcry_sha1_hash_buffers (void *outbuf,
 /*-- rijndael.c --*/
 void _gcry_aes_cfb_enc (void *context, unsigned char *iv,
                         void *outbuf, const void *inbuf,
-                        unsigned int nblocks);
+                        size_t nblocks);
 void _gcry_aes_cfb_dec (void *context, unsigned char *iv,
                         void *outbuf_arg, const void *inbuf_arg,
-                        unsigned int nblocks);
+                        size_t nblocks);
 void _gcry_aes_cbc_enc (void *context, unsigned char *iv,
                         void *outbuf_arg, const void *inbuf_arg,
-                        unsigned int nblocks, int cbc_mac);
+                        size_t nblocks, int cbc_mac);
 void _gcry_aes_cbc_dec (void *context, unsigned char *iv,
                         void *outbuf_arg, const void *inbuf_arg,
-                        unsigned int nblocks);
+                        size_t nblocks);
 void _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
                         void *outbuf_arg, const void *inbuf_arg,
-                        unsigned int nblocks);
+                        size_t nblocks);
 
 /*-- blowfish.c --*/
 void _gcry_blowfish_cfb_dec (void *context, unsigned char *iv,
 			     void *outbuf_arg, const void *inbuf_arg,
-			     unsigned int nblocks);
+			     size_t nblocks);
 
 void _gcry_blowfish_cbc_dec (void *context, unsigned char *iv,
 			     void *outbuf_arg, const void *inbuf_arg,
-			     unsigned int nblocks);
+			     size_t nblocks);
 
 void _gcry_blowfish_ctr_enc (void *context, unsigned char *ctr,
 			     void *outbuf_arg, const void *inbuf_arg,
-			     unsigned int nblocks);
+			     size_t nblocks);
 
 /*-- cast5.c --*/
 void _gcry_cast5_cfb_dec (void *context, unsigned char *iv,
 			  void *outbuf_arg, const void *inbuf_arg,
-			  unsigned int nblocks);
+			  size_t nblocks);
 
 void _gcry_cast5_cbc_dec (void *context, unsigned char *iv,
 			  void *outbuf_arg, const void *inbuf_arg,
-			  unsigned int nblocks);
+			  size_t nblocks);
 
 void _gcry_cast5_ctr_enc (void *context, unsigned char *ctr,
 			  void *outbuf_arg, const void *inbuf_arg,
-			  unsigned int nblocks);
+			  size_t nblocks);
 
 /*-- camellia-glue.c --*/
 void _gcry_camellia_ctr_enc (void *context, unsigned char *ctr,
                              void *outbuf_arg, const void *inbuf_arg,
-                             unsigned int nblocks);
+                             size_t nblocks);
 void _gcry_camellia_cbc_dec (void *context, unsigned char *iv,
                              void *outbuf_arg, const void *inbuf_arg,
-                             unsigned int nblocks);
+                             size_t nblocks);
 void _gcry_camellia_cfb_dec (void *context, unsigned char *iv,
                              void *outbuf_arg, const void *inbuf_arg,
-                             unsigned int nblocks);
+                             size_t nblocks);
 
 /*-- serpent.c --*/
 void _gcry_serpent_ctr_enc (void *context, unsigned char *ctr,
                             void *outbuf_arg, const void *inbuf_arg,
-                            unsigned int nblocks);
+                            size_t nblocks);
 void _gcry_serpent_cbc_dec (void *context, unsigned char *iv,
                             void *outbuf_arg, const void *inbuf_arg,
-                            unsigned int nblocks);
+                            size_t nblocks);
 void _gcry_serpent_cfb_dec (void *context, unsigned char *iv,
                             void *outbuf_arg, const void *inbuf_arg,
-                            unsigned int nblocks);
+                            size_t nblocks);
 
 /*-- twofish.c --*/
 void _gcry_twofish_ctr_enc (void *context, unsigned char *ctr,
                             void *outbuf_arg, const void *inbuf_arg,
-                            unsigned int nblocks);
+                            size_t nblocks);
 void _gcry_twofish_cbc_dec (void *context, unsigned char *iv,
                             void *outbuf_arg, const void *inbuf_arg,
-                            unsigned int nblocks);
+                            size_t nblocks);
 void _gcry_twofish_cfb_dec (void *context, unsigned char *iv,
                             void *outbuf_arg, const void *inbuf_arg,
-                            unsigned int nblocks);
+                            size_t nblocks);
 
 /*-- dsa.c --*/
 void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data);

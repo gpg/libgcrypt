@@ -35,11 +35,11 @@
    blocksize 128.  */
 gcry_err_code_t
 _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
-                              byte *outbuf, unsigned int outbuflen,
-                              const byte *inbuf, unsigned int inbuflen )
+                              byte *outbuf, size_t outbuflen,
+                              const byte *inbuf, size_t inbuflen )
 {
   int j, x;
-  unsigned int n, i;
+  size_t n, i;
   unsigned char *r, *a, *b;
   unsigned char t[8];
   unsigned int burn, nburn;
@@ -117,11 +117,11 @@ _gcry_cipher_aeswrap_encrypt (gcry_cipher_hd_t c,
    blocksize 128.  */
 gcry_err_code_t
 _gcry_cipher_aeswrap_decrypt (gcry_cipher_hd_t c,
-                              byte *outbuf, unsigned int outbuflen,
-                              const byte *inbuf, unsigned int inbuflen)
+                              byte *outbuf, size_t outbuflen,
+                              const byte *inbuf, size_t inbuflen)
 {
   int j, x;
-  unsigned int n, i;
+  size_t n, i;
   unsigned char *r, *a, *b;
   unsigned char t[8];
   unsigned int burn, nburn;

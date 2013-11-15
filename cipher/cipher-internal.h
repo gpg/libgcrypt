@@ -74,19 +74,19 @@ struct gcry_cipher_handle
   struct {
     void (*cfb_enc)(void *context, unsigned char *iv,
                     void *outbuf_arg, const void *inbuf_arg,
-                    unsigned int nblocks);
+                    size_t nblocks);
     void (*cfb_dec)(void *context, unsigned char *iv,
                     void *outbuf_arg, const void *inbuf_arg,
-                    unsigned int nblocks);
+                    size_t nblocks);
     void (*cbc_enc)(void *context, unsigned char *iv,
                     void *outbuf_arg, const void *inbuf_arg,
-                    unsigned int nblocks, int cbc_mac);
+                    size_t nblocks, int cbc_mac);
     void (*cbc_dec)(void *context, unsigned char *iv,
                     void *outbuf_arg, const void *inbuf_arg,
-                    unsigned int nblocks);
+                    size_t nblocks);
     void (*ctr_enc)(void *context, unsigned char *iv,
                     void *outbuf_arg, const void *inbuf_arg,
-                    unsigned int nblocks);
+                    size_t nblocks);
   } bulk;
 
 
@@ -150,57 +150,57 @@ struct gcry_cipher_handle
 /*-- cipher-cbc.c --*/
 gcry_err_code_t _gcry_cipher_cbc_encrypt
 /*           */ (gcry_cipher_hd_t c,
-                 unsigned char *outbuf, unsigned int outbuflen,
-                 const unsigned char *inbuf, unsigned int inbuflen);
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 gcry_err_code_t _gcry_cipher_cbc_decrypt
 /*           */ (gcry_cipher_hd_t c,
-                 unsigned char *outbuf, unsigned int outbuflen,
-                 const unsigned char *inbuf, unsigned int inbuflen);
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 
 /*-- cipher-cfb.c --*/
 gcry_err_code_t _gcry_cipher_cfb_encrypt
 /*           */ (gcry_cipher_hd_t c,
-                 unsigned char *outbuf, unsigned int outbuflen,
-                 const unsigned char *inbuf, unsigned int inbuflen);
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 gcry_err_code_t _gcry_cipher_cfb_decrypt
 /*           */ (gcry_cipher_hd_t c,
-                 unsigned char *outbuf, unsigned int outbuflen,
-                 const unsigned char *inbuf, unsigned int inbuflen);
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 
 
 /*-- cipher-ofb.c --*/
 gcry_err_code_t _gcry_cipher_ofb_encrypt
 /*           */ (gcry_cipher_hd_t c,
-                 unsigned char *outbuf, unsigned int outbuflen,
-                 const unsigned char *inbuf, unsigned int inbuflen);
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 
 /*-- cipher-ctr.c --*/
 gcry_err_code_t _gcry_cipher_ctr_encrypt
 /*           */ (gcry_cipher_hd_t c,
-                 unsigned char *outbuf, unsigned int outbuflen,
-                 const unsigned char *inbuf, unsigned int inbuflen);
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 
 
 /*-- cipher-aeswrap.c --*/
 gcry_err_code_t _gcry_cipher_aeswrap_encrypt
 /*           */   (gcry_cipher_hd_t c,
-                   byte *outbuf, unsigned int outbuflen,
-                   const byte *inbuf, unsigned int inbuflen);
+                   byte *outbuf, size_t outbuflen,
+                   const byte *inbuf, size_t inbuflen);
 gcry_err_code_t _gcry_cipher_aeswrap_decrypt
 /*           */   (gcry_cipher_hd_t c,
-                   byte *outbuf, unsigned int outbuflen,
-                   const byte *inbuf, unsigned int inbuflen);
+                   byte *outbuf, size_t outbuflen,
+                   const byte *inbuf, size_t inbuflen);
 
 
 /*-- cipher-ccm.c --*/
 gcry_err_code_t _gcry_cipher_ccm_encrypt
 /*           */ (gcry_cipher_hd_t c,
-                 unsigned char *outbuf, unsigned int outbuflen,
-                 const unsigned char *inbuf, unsigned int inbuflen);
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 gcry_err_code_t _gcry_cipher_ccm_decrypt
 /*           */ (gcry_cipher_hd_t c,
-                 unsigned char *outbuf, unsigned int outbuflen,
-                 const unsigned char *inbuf, unsigned int inbuflen);
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
 gcry_err_code_t _gcry_cipher_ccm_set_nonce
 /*           */ (gcry_cipher_hd_t c, const unsigned char *nonce,
                  size_t noncelen);

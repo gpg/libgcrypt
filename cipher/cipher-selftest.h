@@ -28,17 +28,17 @@
 typedef void (*gcry_cipher_bulk_cbc_dec_t)(void *context, unsigned char *iv,
 					   void *outbuf_arg,
 					   const void *inbuf_arg,
-					   unsigned int nblocks);
+					   size_t nblocks);
 
 typedef void (*gcry_cipher_bulk_cfb_dec_t)(void *context, unsigned char *iv,
 					   void *outbuf_arg,
 					   const void *inbuf_arg,
-					   unsigned int nblocks);
+					   size_t nblocks);
 
 typedef void (*gcry_cipher_bulk_ctr_enc_t)(void *context, unsigned char *iv,
 					   void *outbuf_arg,
 					   const void *inbuf_arg,
-					   unsigned int nblocks);
+					   size_t nblocks);
 
 /* Helper function for bulk CBC decryption selftest */
 const char *

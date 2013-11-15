@@ -112,7 +112,7 @@ typedef struct SALSA20_context_s
 #define LE_READ_UINT32(p) buf_get_le32(p)
 
 
-static void salsa20_setiv (void *context, const byte *iv, unsigned int ivlen);
+static void salsa20_setiv (void *context, const byte *iv, size_t ivlen);
 static const char *selftest (void);
 
 
@@ -360,13 +360,13 @@ salsa20_setkey (void *context, const byte *key, unsigned int keylen)
 
 
 static void
-salsa20_setiv (void *context, const byte *iv, unsigned int ivlen)
+salsa20_setiv (void *context, const byte *iv, size_t ivlen)
 {
   SALSA20_context_t *ctx = (SALSA20_context_t *)context;
   byte tmp[SALSA20_IV_SIZE];
 
   if (iv && ivlen != SALSA20_IV_SIZE)
-    log_info ("WARNING: salsa20_setiv: bad ivlen=%u\n", ivlen);
+    log_info ("WARNING: salsa20_setiv: bad ivlen=%u\n", (u32)ivlen);
 
   if (!iv || ivlen != SALSA20_IV_SIZE)
     memset (tmp, 0, sizeof(tmp));
@@ -387,14 +387,14 @@ salsa20_setiv (void *context, const byte *iv, unsigned int ivlen)
 static void
 salsa20_do_encrypt_stream (SALSA20_context_t *ctx,
                            byte *outbuf, const byte *inbuf,
-                           unsigned int length, unsigned rounds)
+                           size_t length, unsigned rounds)
 {
   unsigned int nburn, burn = 0;
 
   if (ctx->unused)
     {
       unsigned char *p = (void*)ctx->pad;
-      unsigned int n;
+      size_t n;
 
       gcry_assert (ctx->unused < SALSA20_BLOCK_SIZE);
 
@@ -414,7 +414,7 @@ salsa20_do_encrypt_stream (SALSA20_context_t *ctx,
 #ifdef USE_AMD64
   if (length >= SALSA20_BLOCK_SIZE)
     {
-      unsigned int nblocks = length / SALSA20_BLOCK_SIZE;
+      size_t nblocks = length / SALSA20_BLOCK_SIZE;
       burn = _gcry_salsa20_amd64_encrypt_blocks(ctx->input, inbuf, outbuf,
                                                 nblocks, rounds);
       length -= SALSA20_BLOCK_SIZE * nblocks;
@@ -461,7 +461,7 @@ salsa20_do_encrypt_stream (SALSA20_context_t *ctx,
 
 static void
 salsa20_encrypt_stream (void *context,
-                        byte *outbuf, const byte *inbuf, unsigned int length)
+                        byte *outbuf, const byte *inbuf, size_t length)
 {
   SALSA20_context_t *ctx = (SALSA20_context_t *)context;
 
@@ -472,7 +472,7 @@ salsa20_encrypt_stream (void *context,
 
 static void
 salsa20r12_encrypt_stream (void *context,
-                           byte *outbuf, const byte *inbuf, unsigned int length)
+                           byte *outbuf, const byte *inbuf, size_t length)
 {
   SALSA20_context_t *ctx = (SALSA20_context_t *)context;
 

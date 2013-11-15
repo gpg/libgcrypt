@@ -564,7 +564,7 @@ decrypt_block (void *context, byte *outbuf, const byte *inbuf)
    of size CAST5_BLOCKSIZE. */
 void
 _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
-		    const void *inbuf_arg, unsigned int nblocks)
+		    const void *inbuf_arg, size_t nblocks)
 {
   CAST5_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -635,7 +635,7 @@ _gcry_cast5_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
    intended for the bulk encryption feature of cipher.c. */
 void
 _gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
-		    const void *inbuf_arg, unsigned int nblocks)
+		    const void *inbuf_arg, size_t nblocks)
 {
   CAST5_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -695,7 +695,7 @@ _gcry_cast5_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
    intended for the bulk encryption feature of cipher.c. */
 void
 _gcry_cast5_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
-		    const void *inbuf_arg, unsigned int nblocks)
+		    const void *inbuf_arg, size_t nblocks)
 {
   CAST5_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;

@@ -153,21 +153,20 @@ typedef unsigned int (*gcry_cipher_decrypt_t) (void *c,
 typedef void (*gcry_cipher_stencrypt_t) (void *c,
 					 unsigned char *outbuf,
 					 const unsigned char *inbuf,
-					 unsigned int n);
+					 size_t n);
 
 /* Type for the cipher_stdecrypt function.  */
 typedef void (*gcry_cipher_stdecrypt_t) (void *c,
 					 unsigned char *outbuf,
 					 const unsigned char *inbuf,
-					 unsigned int n);
+					 size_t n);
 
 /* The type used to convey additional information to a cipher.  */
 typedef gpg_err_code_t (*cipher_set_extra_info_t)
      (void *c, int what, const void *buffer, size_t buflen);
 
 /* The type used to set an IV directly in the algorithm module.  */
-typedef void (*cipher_setiv_func_t)(void *c,
-                                    const byte *iv, unsigned int ivlen);
+typedef void (*cipher_setiv_func_t)(void *c, const byte *iv, size_t ivlen);
 
 /* A structure to map OIDs to encryption modes.  */
 typedef struct gcry_cipher_oid_spec

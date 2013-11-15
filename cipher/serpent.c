@@ -827,7 +827,7 @@ serpent_decrypt (void *ctx, byte *buffer_out, const byte *buffer_in)
 void
 _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
                       void *outbuf_arg, const void *inbuf_arg,
-                      unsigned int nblocks)
+                      size_t nblocks)
 {
   serpent_context_t *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -944,8 +944,8 @@ _gcry_serpent_ctr_enc(void *context, unsigned char *ctr,
    intended for the bulk encryption feature of cipher.c. */
 void
 _gcry_serpent_cbc_dec(void *context, unsigned char *iv,
-                       void *outbuf_arg, const void *inbuf_arg,
-                       unsigned int nblocks)
+                      void *outbuf_arg, const void *inbuf_arg,
+                      size_t nblocks)
 {
   serpent_context_t *ctx = context;
   unsigned char *outbuf = outbuf_arg;
@@ -1053,7 +1053,7 @@ _gcry_serpent_cbc_dec(void *context, unsigned char *iv,
 void
 _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
                       void *outbuf_arg, const void *inbuf_arg,
-                      unsigned int nblocks)
+                      size_t nblocks)
 {
   serpent_context_t *ctx = context;
   unsigned char *outbuf = outbuf_arg;

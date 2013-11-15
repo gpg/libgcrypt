@@ -555,7 +555,7 @@ gcry_cipher_close (gcry_cipher_hd_t h)
 /* Set the key to be used for the encryption context C to KEY with
    length KEYLEN.  The length should match the required length. */
 static gcry_error_t
-cipher_setkey (gcry_cipher_hd_t c, byte *key, unsigned int keylen)
+cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 {
   gcry_err_code_t ret;
 
@@ -578,7 +578,7 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, unsigned int keylen)
 /* Set the IV to be used for the encryption context C to IV with
    length IVLEN.  The length should match the required length. */
 static void
-cipher_setiv (gcry_cipher_hd_t c, const byte *iv, unsigned ivlen)
+cipher_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 {
   /* If the cipher has its own IV handler, we use only this one.  This
      is currently used for stream ciphers requiring a nonce.  */
@@ -594,7 +594,7 @@ cipher_setiv (gcry_cipher_hd_t c, const byte *iv, unsigned ivlen)
       if (ivlen != c->spec->blocksize)
         {
           log_info ("WARNING: cipher_setiv: ivlen=%u blklen=%u\n",
-                    ivlen, (unsigned int)c->spec->blocksize);
+                    (unsigned int)ivlen, (unsigned int)c->spec->blocksize);
           fips_signal_error ("IV length does not match blocklength");
         }
       if (ivlen > c->spec->blocksize)
@@ -628,12 +628,12 @@ cipher_reset (gcry_cipher_hd_t c)
 
 static gcry_err_code_t
 do_ecb_crypt (gcry_cipher_hd_t c,
-              unsigned char *outbuf, unsigned int outbuflen,
-              const unsigned char *inbuf, unsigned int inbuflen,
+              unsigned char *outbuf, size_t outbuflen,
+              const unsigned char *inbuf, size_t inbuflen,
               gcry_cipher_encrypt_t crypt_fn)
 {
   unsigned int blocksize = c->spec->blocksize;
-  unsigned int n, nblocks;
+  size_t n, nblocks;
   unsigned int burn, nburn;
 
   if (outbuflen < inbuflen)
@@ -660,16 +660,16 @@ do_ecb_crypt (gcry_cipher_hd_t c,
 
 static gcry_err_code_t
 do_ecb_encrypt (gcry_cipher_hd_t c,
-                unsigned char *outbuf, unsigned int outbuflen,
-                const unsigned char *inbuf, unsigned int inbuflen)
+                unsigned char *outbuf, size_t outbuflen,
+                const unsigned char *inbuf, size_t inbuflen)
 {
   return do_ecb_crypt (c, outbuf, outbuflen, inbuf, inbuflen, c->spec->encrypt);
 }
 
 static gcry_err_code_t
 do_ecb_decrypt (gcry_cipher_hd_t c,
-                unsigned char *outbuf, unsigned int outbuflen,
-                const unsigned char *inbuf, unsigned int inbuflen)
+                unsigned char *outbuf, size_t outbuflen,
+                const unsigned char *inbuf, size_t inbuflen)
 {
   return do_ecb_crypt (c, outbuf, outbuflen, inbuf, inbuflen, c->spec->decrypt);
 }
@@ -681,8 +681,8 @@ do_ecb_decrypt (gcry_cipher_hd_t c,
  * Depending on the mode some constraints apply to INBUFLEN.
  */
 static gcry_err_code_t
-cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
-		const byte *inbuf, unsigned int inbuflen)
+cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
+		const byte *inbuf, size_t inbuflen)
 {
   gcry_err_code_t rc;
 
@@ -781,8 +781,8 @@ gcry_cipher_encrypt (gcry_cipher_hd_t h, void *out, size_t outsize,
  * Depending on the mode some some contraints apply to INBUFLEN.
  */
 static gcry_err_code_t
-cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, unsigned int outbuflen,
-                const byte *inbuf, unsigned int inbuflen)
+cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
+                const byte *inbuf, size_t inbuflen)
 {
   gcry_err_code_t rc;
 

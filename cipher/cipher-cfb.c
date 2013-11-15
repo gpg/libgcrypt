@@ -33,8 +33,8 @@
 
 gcry_err_code_t
 _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
-                          unsigned char *outbuf, unsigned int outbuflen,
-                          const unsigned char *inbuf, unsigned int inbuflen)
+                          unsigned char *outbuf, size_t outbuflen,
+                          const unsigned char *inbuf, size_t inbuflen)
 {
   unsigned char *ivp;
   gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
@@ -73,7 +73,7 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
      also allows to use a bulk encryption function if available.  */
   if (inbuflen >= blocksize_x_2 && c->bulk.cfb_enc)
     {
-      unsigned int nblocks = inbuflen / blocksize;
+      size_t nblocks = inbuflen / blocksize;
       c->bulk.cfb_enc (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks);
       outbuf += nblocks * blocksize;
       inbuf  += nblocks * blocksize;
@@ -130,8 +130,8 @@ _gcry_cipher_cfb_encrypt (gcry_cipher_hd_t c,
 
 gcry_err_code_t
 _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
-                          unsigned char *outbuf, unsigned int outbuflen,
-                          const unsigned char *inbuf, unsigned int inbuflen)
+                          unsigned char *outbuf, size_t outbuflen,
+                          const unsigned char *inbuf, size_t inbuflen)
 {
   unsigned char *ivp;
   gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
@@ -170,7 +170,7 @@ _gcry_cipher_cfb_decrypt (gcry_cipher_hd_t c,
      also allows to use a bulk encryption function if available.  */
   if (inbuflen >= blocksize_x_2 && c->bulk.cfb_dec)
     {
-      unsigned int nblocks = inbuflen / blocksize;
+      size_t nblocks = inbuflen / blocksize;
       c->bulk.cfb_dec (&c->context.c, c->u_iv.iv, outbuf, inbuf, nblocks);
       outbuf += nblocks * blocksize;
       inbuf  += nblocks * blocksize;
