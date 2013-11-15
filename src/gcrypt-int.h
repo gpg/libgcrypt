@@ -37,4 +37,8 @@
 # define GPG_ERR_BROKEN_SECKEY      196
 #endif
 
+#if GPG_ERROR_VERSION_NUMBER < 0x010d00  /* 1.13 */
+# define GPG_ERR_MAC_ALGO           197
+#endif
+
 #endif /*GCRY_GCRYPT_INT_H*/

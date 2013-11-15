@@ -261,5 +261,19 @@ EXPORTS
 
       gcry_mpi_set_opaque_copy  @229
 
+      gcry_mac_algo_info        @230
+      gcry_mac_algo_name        @231
+      gcry_mac_map_name         @232
+      gcry_mac_get_algo_maclen  @233
+      gcry_mac_get_algo_keylen  @234
+      gcry_mac_open             @235
+      gcry_mac_close            @236
+      gcry_mac_setkey           @237
+      gcry_mac_setiv            @238
+      gcry_mac_write            @239
+      gcry_mac_read             @240
+      gcry_mac_verify           @241
+      gcry_mac_ctl              @242
+
 
 ;; end of file with public symbols for Windows.

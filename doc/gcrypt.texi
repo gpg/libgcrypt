@@ -86,13 +86,14 @@ section entitled ``GNU General Public License''.
 * Handler Functions::            Working with handler functions.
 * Symmetric cryptography::       How to use symmetric cryptography.
 * Public Key cryptography::      How to use public key cryptography.
-* Hashing::                      How to use hash and MAC algorithms.
+* Hashing::                      How to use hash algorithms.
+* Message Authentication Codes:: How to use MAC algorithms.
 * Key Derivation::               How to derive keys from strings
 * Random Numbers::               How to work with random numbers.
 * S-expressions::                How to manage S-expressions.
 * MPI library::                  How to work with multi-precision-integers.
 * Prime numbers::                How to use the Prime number related functions.
-* Utilities::                   Utility functions.
+* Utilities::                    Utility functions.
 * Tools::                        Utility tools
 * Architecture::                 How Libgcrypt works internally.
 
@@ -2967,7 +2968,7 @@ function will be extended to cover more algorithms.
 
 Libgcrypt provides an easy and consistent to use interface for hashing.
 Hashing is buffered and several hash algorithms can be updated at once.
-It is possible to compute a MAC using the same routines.  The
+It is possible to compute a HMAC using the same routines.  The
 programming model follows an open/process/close paradigm and is in that
 similar to other building blocks provided by Libgcrypt.
 
@@ -3393,6 +3394,253 @@ file is the raw data as passed to @code{gcry_md_write} or
 debugging is stopped and the file closed.  This is only rarely required
 because @code{gcry_md_close} implicitly stops debugging.
 @end deftypefun
+
+
+
+@c **********************************************************
+@c *******************  MAC Functions  **********************
+@c **********************************************************
+@node Message Authentication Codes
+@chapter Message Authentication Codes
+
+Libgcrypt provides an easy and consistent to use interface for generating
+Message Authentication Codes (MAC). MAC generation is buffered and interface
+similar to the one used with hash algorithms. The programming model follows
+an open/process/close paradigm and is in that similar to other building blocks
+provided by Libgcrypt.
+
+@menu
+* Available MAC algorithms::   List of MAC algorithms supported by the library.
+* Working with MAC algorithms::  List of functions related to MAC algorithms.
+@end menu
+
+@node Available MAC algorithms
+@section Available MAC algorithms
+
+@c begin table of MAC algorithms
+@cindex HMAC-SHA-1
+@cindex HMAC-SHA-224, HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512
+@cindex HMAC-RIPE-MD-160
+@cindex HMAC-MD2, HMAC-MD4, HMAC-MD5
+@cindex HMAC-TIGER1
+@cindex HMAC-Whirlpool
+@cindex HMAC-Stribog-256, HMAC-Stribog-512
+@cindex HMAC-GOSTR-3411-94
+@table @code
+@item GCRY_MAC_NONE
+This is not a real algorithm but used by some functions as an error
+return value.  This constant is guaranteed to have the value @code{0}.
+
+@item GCRY_MAC_HMAC_SHA256
+This is keyed-hash message authentication code (HMAC) message authentication
+algorithm based on the SHA-256 hash algorithm.
+
+@item GCRY_MAC_HMAC_SHA224
+This is HMAC message authentication algorithm based on the SHA-224 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_SHA512
+This is HMAC message authentication algorithm based on the SHA-512 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_SHA384
+This is HMAC message authentication algorithm based on the SHA-384 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_SHA1
+This is HMAC message authentication algorithm based on the SHA-1 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_MD5
+This is HMAC message authentication algorithm based on the MD5 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_MD4
+This is HMAC message authentication algorithm based on the MD4 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_RMD160
+This is HMAC message authentication algorithm based on the RIPE-MD-160 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_WHIRLPOOL
+This is HMAC message authentication algorithm based on the WHIRLPOOL hash
+algorithm.
+
+@item GCRY_MAC_HMAC_GOSTR3411_94
+This is HMAC message authentication algorithm based on the GOST R 34.11-94 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_STRIBOG256
+This is HMAC message authentication algorithm based on the 256-bit hash
+algorithm described in GOST R 34.11-2012.
+
+@item GCRY_MAC_HMAC_STRIBOG512
+This is HMAC message authentication algorithm based on the 512-bit hash
+algorithm described in GOST R 34.11-2012.
+
+@end table
+@c end table of MAC algorithms
+
+@node Working with MAC algorithms
+@section Working with MAC algorithms
+
+To use most of these function it is necessary to create a context;
+this is done using:
+
+@deftypefun gcry_error_t gcry_mac_open (gcry_mac_hd_t *@var{hd}, int @var{algo}, unsigned int @var{flags}, gcry_ctx_t @var{ctx})
+
+Create a MAC object for algorithm @var{algo}. @var{flags} may be given as an
+bitwise OR of constants described below. @var{hd} is guaranteed to either
+receive a valid handle or NULL. @var{ctx} is context object to associate MAC
+object with. @var{ctx} maybe set to NULL.
+
+For a list of supported algorithms, see @xref{Available MAC algorithms}.
+
+The flags allowed for @var{mode} are:
+
+@c begin table of MAC flags
+@table @code
+@item GCRY_MAC_FLAG_SECURE
+Allocate all buffers and the resulting MAC in "secure memory".  Use this if the
+MAC data is highly confidential.
+
+@end table
+@c begin table of MAC flags
+
+@end deftypefun
+@c end function gcry_mac_open
+
+
+In order to use a handle for performing MAC algorithm operations, a
+`key' has to be set first:
+
+@deftypefun gcry_error_t gcry_mac_setkey (gcry_mac_hd_t @var{h}, const void *@var{key}, size_t @var{keylen})
+
+Set the MAC key to the value of @var{key} of length @var{keylen} bytes. With
+HMAC algorithms, there is no restriction on the length of the key.
+@end deftypefun
+
+
+@c Some MAC algorithms need initialization vector to be set, which can be
+@c performed with function:
+@c @c
+@c @deftypefun gcry_error_t gcry_mac_setiv (gcry_mac_hd_t @var{h}, const void *@var{iv}, size_t @var{ivlen})
+@c @c
+@c Set the IV to the value of @var{iv} of length @var{ivlen} bytes.
+@c @end deftypefun
+
+
+After you are done with the MAC calculation, you should release the resources
+by using:
+
+@deftypefun void gcry_mac_close (gcry_mac_hd_t @var{h})
+
+Release all resources of MAC context @var{h}.  @var{h} should not be
+used after a call to this function.  A @code{NULL} passed as @var{h} is
+ignored.  The function also clears all sensitive information associated
+with this handle.
+@end deftypefun
+
+
+Often you have to do several MAC operations using the same algorithm.
+To avoid the overhead of creating and releasing context, a reset function
+is provided:
+
+@deftypefun gcry_error_t gcry_mac_reset (gcry_mac_hd_t @var{h})
+
+Reset the current context to its initial state. This is effectively identical
+to a close followed by an open and setting same key.
+
+Note that gcry_mac_reset is implemented as a macro.
+@end deftypefun
+
+
+Now that we have prepared everything to calculate MAC, it is time to
+see how it is actually done.
+
+@deftypefun gcry_error_t gcry_mac_write (gcry_mac_hd_t @var{h}, const void *@var{buffer}, size_t @var{length})
+
+Pass @var{length} bytes of the data in @var{buffer} to the MAC object
+with handle @var{h} to update the MAC values.
+@end deftypefun
+
+
+The way to read out the calculated MAC is by using the function:
+
+@deftypefun gcry_error_t gcry_mac_read (gcry_mac_hd_t @var{h}, void *@var{buffer}, size_t *@var{length})
+
+@code{gcry_mac_read} returns the MAC after finalizing the calculation.
+Function copies the resulting MAC value to @var{buffer} of the length
+@var{length}. If @var{length} is larger than length of resulting MAC value,
+then length of MAC is returned through @var{length}.
+@end deftypefun
+
+
+To compare existing MAC value with recalculated MAC, one is to use the function:
+
+@deftypefun gcry_error_t gcry_mac_verify (gcry_mac_hd_t @var{h}, void *@var{buffer}, size_t @var{length})
+
+@code{gcry_mac_verify} finalizes MAC calculation and compares result with
+@var{length} bytes of data in @var{buffer}. Error code @code{GPG_ERR_CHECKSUM}
+is returned if the MAC value in the buffer @var{buffer} does not match
+the MAC calculated in object @var{h}.
+@end deftypefun
+
+
+@c ***********************************
+@c ***** MAC info functions **********
+@c ***********************************
+
+MAC algorithms are identified by internal algorithm numbers (see
+@code{gcry_mac_open} for a list).  However, in most applications they are
+used by names, so two functions are available to map between string
+representations and MAC algorithm identifiers.
+
+@deftypefun {const char *} gcry_mac_algo_name (int @var{algo})
+
+Map the MAC algorithm id @var{algo} to a string representation of the
+algorithm name.  For unknown algorithms this function returns the
+string @code{"?"}.  This function should not be used to test for the
+availability of an algorithm.
+@end deftypefun
+
+@deftypefun int gcry_mac_map_name (const char *@var{name})
+
+Map the algorithm with @var{name} to a MAC algorithm identifier.
+Returns 0 if the algorithm name is not known. This function should not
+be used to test for the availability of an algorithm.
+@end deftypefun
+
+
+To test whether an algorithm is actually available for use, the
+following macro should be used:
+
+@deftypefun gcry_error_t gcry_mac_test_algo (int @var{algo})
+
+The macro returns 0 if the MAC algorithm @var{algo} is available for use.
+@end deftypefun
+
+
+If the length of a message digest is not known, it can be retrieved
+using the following function:
+
+@deftypefun {unsigned int} gcry_mac_get_algo_maclen (int @var{algo})
+
+Retrieve the length in bytes of the MAC yielded by algorithm @var{algo}.
+This is often used prior to @code{gcry_mac_read} to allocate sufficient memory
+for the MAC value. On error @code{0} is returned.
+@end deftypefun
+
+
+@deftypefun unsigned int gcry_mac_get_algo_keylen (@var{algo})
+
+This function returns length of the key for MAC algorithm @var{algo}.  If
+the algorithm supports multiple key lengths, the default supported key
+length is returned.  On error @code{0} is returned.  The key length is
+returned as number of octets.
+@end deftypefun
+
 
 
 @c *******************************************************

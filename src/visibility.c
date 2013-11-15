@@ -829,6 +829,112 @@ gcry_cipher_get_algo_blklen (int algo)
 }
 
 gcry_error_t
+gcry_mac_algo_info (int algo, int what, void *buffer, size_t *nbytes)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_mac_algo_info (algo, what, buffer, nbytes);
+}
+
+const char *
+gcry_mac_algo_name (int algorithm)
+{
+  return _gcry_mac_algo_name (algorithm);
+}
+
+int
+gcry_mac_map_name (const char *string)
+{
+  return _gcry_mac_map_name (string);
+}
+
+unsigned int
+gcry_mac_get_algo_maclen (int algo)
+{
+  return _gcry_mac_get_algo_maclen (algo);
+}
+
+unsigned int
+gcry_mac_get_algo_keylen (int algo)
+{
+  return _gcry_mac_get_algo_keylen (algo);
+}
+
+gcry_error_t
+gcry_mac_open (gcry_mac_hd_t *handle, int algo, unsigned int flags,
+	       gcry_ctx_t ctx)
+{
+  if (!fips_is_operational ())
+    {
+      *handle = NULL;
+      return gpg_error (fips_not_operational ());
+    }
+
+  return _gcry_mac_open (handle, algo, flags, ctx);
+}
+
+void
+gcry_mac_close (gcry_mac_hd_t hd)
+{
+  _gcry_mac_close (hd);
+}
+
+gcry_error_t
+gcry_mac_setkey (gcry_mac_hd_t hd, const void *key, size_t keylen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_mac_setkey (hd, key, keylen);
+}
+
+gcry_error_t
+gcry_mac_setiv (gcry_mac_hd_t hd, const void *iv, size_t ivlen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_mac_setiv (hd, iv, ivlen);
+}
+
+gcry_error_t
+gcry_mac_write (gcry_mac_hd_t hd, const void *buf, size_t buflen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_mac_write (hd, buf, buflen);
+}
+
+gcry_error_t
+gcry_mac_read (gcry_mac_hd_t hd, void *outbuf, size_t *outlen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_mac_read (hd, outbuf, outlen);
+}
+
+gcry_error_t
+gcry_mac_verify (gcry_mac_hd_t hd, const void *buf, size_t buflen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_mac_verify (hd, buf, buflen);
+}
+
+gcry_error_t
+gcry_mac_ctl (gcry_mac_hd_t h, int cmd, void *buffer, size_t buflen)
+{
+  if (!fips_is_operational ())
+    return gpg_error (fips_not_operational ());
+
+  return _gcry_mac_ctl (h, cmd, buffer, buflen);
+}
+
+gcry_error_t
 gcry_pk_encrypt (gcry_sexp_t *result, gcry_sexp_t data, gcry_sexp_t pkey)
 {
   if (!fips_is_operational ())

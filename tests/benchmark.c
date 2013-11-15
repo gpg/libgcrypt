@@ -47,6 +47,9 @@ static int cipher_repetitions;
 /* Number of hash repetitions.  */
 static int hash_repetitions;
 
+/* Number of hash repetitions.  */
+static int mac_repetitions;
+
 /* Alignment of the buffers.  */
 static int buffer_alignment;
 
@@ -434,6 +437,126 @@ md_bench ( const char *algoname )
   putchar ('\n');
   fflush (stdout);
 }
+
+
+
+static void
+mac_bench ( const char *algoname )
+{
+  int algo;
+  gcry_mac_hd_t hd;
+  int step, pos, j, i, repcount;
+  char buf_base[1000+15];
+  size_t bufsize = 1000;
+  char *buf;
+  char mac[3][512];
+  char key[512];
+  unsigned int maclen, keylen;
+  size_t macoutlen;
+  gcry_error_t err = GPG_ERR_NO_ERROR;
+
+  if (!algoname)
+    {
+      for (i=1; i < 400; i++)
+        if (in_fips_mode && i == GCRY_MAC_HMAC_MD5)
+          ; /* Don't use MD5 in fips mode.  */
+        else if ( !gcry_mac_test_algo (i) )
+          mac_bench (gcry_mac_algo_name (i));
+      return;
+    }
+
+  buf = buf_base + ((16 - ((size_t)buf_base & 0x0f)) % buffer_alignment);
+
+  algo = gcry_mac_map_name (algoname);
+  if (!algo)
+    {
+      fprintf (stderr, PGM ": invalid hash algorithm `%s'\n", algoname);
+      exit (1);
+    }
+
+  maclen = gcry_mac_get_algo_maclen (algo);
+  if (maclen > sizeof(mac))
+    maclen = sizeof(mac);
+
+  keylen = gcry_mac_get_algo_keylen (algo);
+  if (keylen == 0)
+    keylen = 32;
+  if (keylen > sizeof(key))
+    keylen = sizeof(key);
+  for (i=0; i < keylen; i++)
+    key[i] = (keylen - i) ^ 0x54;
+
+  err = gcry_mac_open (&hd, algo, 0, NULL);
+  if (err)
+    {
+      fprintf (stderr, PGM ": error opening mac algorithm `%s': %s\n", algoname,
+               gpg_strerror (err));
+      exit (1);
+    }
+
+  err = gcry_mac_setkey (hd, key, keylen);
+  if (err)
+    {
+      fprintf (stderr, PGM ": error setting key for mac algorithm `%s': %s\n",
+               algoname, gpg_strerror (err));
+      exit (1);
+    }
+
+  for (i=0; i < bufsize; i++)
+    buf[i] = i;
+
+  printf ("%-20s", gcry_mac_algo_name (algo));
+
+  start_timer ();
+  for (repcount=0; repcount < mac_repetitions; repcount++)
+    for (i=0; i < 1000; i++)
+      gcry_mac_write (hd, buf, bufsize);
+  macoutlen = maclen;
+  gcry_mac_read (hd, mac[0], &macoutlen);
+  stop_timer ();
+  printf (" %s", elapsed_time ());
+  fflush (stdout);
+
+  gcry_mac_reset (hd);
+  start_timer ();
+  for (repcount=0; repcount < mac_repetitions; repcount++)
+    for (i=0; i < 1000; i++)
+      for (step=bufsize/10, pos=0, j=0; j < 10; j++, pos+=step)
+        gcry_mac_write (hd, &buf[pos], step);
+  macoutlen = maclen;
+  gcry_mac_read (hd, mac[1], &macoutlen);
+  stop_timer ();
+  printf (" %s", elapsed_time ());
+  fflush (stdout);
+
+  gcry_mac_reset (hd);
+  start_timer ();
+  for (repcount=0; repcount < mac_repetitions; repcount++)
+    for (i=0; i < 1000; i++)
+      for (step=bufsize/100, pos=0, j=0; j < 100; j++, pos+=step)
+        gcry_mac_write (hd, &buf[pos], step);
+  macoutlen = maclen;
+  gcry_mac_read (hd, mac[2], &macoutlen);
+  stop_timer ();
+  printf (" %s", elapsed_time ());
+  fflush (stdout);
+
+  gcry_mac_close (hd);
+
+  for (i=1; i < 3; i++)
+    {
+      if (memcmp(mac[i-1], mac[i], maclen))
+        {
+          fprintf (stderr, PGM ": mac mismatch with algorithm `%s'\n",
+                   algoname);
+          exit(1);
+        }
+    }
+
+  putchar ('\n');
+  fflush (stdout);
+}
+
 
 
 static void ccm_aead_init(gcry_cipher_hd_t hd, size_t buflen, int authlen)
@@ -1186,7 +1309,7 @@ main( int argc, char **argv )
       else if (!strcmp (*argv, "--help"))
         {
           fputs ("usage: benchmark "
-                 "[md|cipher|random|mpi|rsa|dsa|ecc [algonames]]\n",
+                 "[md|mac|cipher|random|mpi|rsa|dsa|ecc [algonames]]\n",
                  stdout);
           exit (0);
         }
@@ -1253,6 +1376,15 @@ main( int argc, char **argv )
           if (argc)
             {
               hash_repetitions = atoi(*argv);
+              argc--; argv++;
+            }
+        }
+      else if (!strcmp (*argv, "--mac-repetitions"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              mac_repetitions = atoi(*argv);
               argc--; argv++;
             }
         }
@@ -1330,11 +1462,15 @@ main( int argc, char **argv )
     cipher_repetitions = 1;
   if (hash_repetitions < 1)
     hash_repetitions = 1;
+  if (mac_repetitions < 1)
+    mac_repetitions = 1;
 
   if ( !argc )
     {
       gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
       md_bench (NULL);
+      putchar ('\n');
+      mac_bench (NULL);
       putchar ('\n');
       cipher_bench (NULL);
       putchar ('\n');
@@ -1366,6 +1502,14 @@ main( int argc, char **argv )
       else
         for (argc--, argv++; argc; argc--, argv++)
           md_bench ( *argv );
+    }
+  else if ( !strcmp (*argv, "mac"))
+    {
+      if (argc == 1)
+        mac_bench (NULL);
+      else
+        for (argc--, argv++; argc; argc--, argv++)
+          mac_bench ( *argv );
     }
   else if ( !strcmp (*argv, "cipher"))
     {

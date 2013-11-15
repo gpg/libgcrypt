@@ -53,6 +53,11 @@ GCRYPT_1.6 {
     gcry_cipher_setkey; gcry_cipher_setiv; gcry_cipher_setctr;
     gcry_cipher_authenticate; gcry_cipher_gettag; gcry_cipher_checktag;
 
+    gcry_mac_algo_info; gcry_mac_algo_name; gcry_mac_map_name;
+    gcry_mac_get_algo_maclen; gcry_mac_get_algo_keylen;
+    gcry_mac_open; gcry_mac_close; gcry_mac_setkey; gcry_mac_setiv;
+    gcry_mac_write; gcry_mac_read; gcry_mac_verify; gcry_mac_ctl;
+
     gcry_pk_algo_info; gcry_pk_algo_name; gcry_pk_ctl;
     gcry_pk_decrypt; gcry_pk_encrypt; gcry_pk_genkey;
     gcry_pk_get_keygrip; gcry_pk_get_nbits;

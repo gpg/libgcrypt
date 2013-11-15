@@ -493,17 +493,17 @@ bench_print_result (double nsecs_per_byte)
 }
 
 static void
-bench_print_header (const char *algo_name)
+bench_print_header (int algo_width, const char *algo_name)
 {
-  printf (" %-14s | ", algo_name);
+  printf (" %-*s | ", algo_width, algo_name);
   printf ("%14s %15s %13s\n", "nanosecs/byte", "mebibytes/sec",
 	  "cycles/byte");
 }
 
 static void
-bench_print_footer (void)
+bench_print_footer (int algo_width)
 {
-  printf (" %-14s =\n", "");
+  printf (" %-*s =\n", algo_width, "");
 }
 
 
@@ -854,12 +854,12 @@ _cipher_bench (int algo)
 
   algoname = gcry_cipher_algo_name (algo);
 
-  bench_print_header (algoname);
+  bench_print_header (14, algoname);
 
   for (i = 0; cipher_modes[i].mode; i++)
     cipher_bench_one (algo, &cipher_modes[i]);
 
-  bench_print_footer ();
+  bench_print_footer (14);
 }
 
 
@@ -937,6 +937,7 @@ bench_hash_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
 {
   gcry_md_hd_t hd = obj->priv;
 
+  gcry_md_reset (hd);
   gcry_md_write (hd, buf, buflen);
   gcry_md_final (hd);
 }
@@ -993,7 +994,7 @@ hash_bench (char **argv, int argc)
 
   printf ("Hash:\n");
 
-  bench_print_header ("");
+  bench_print_header (14, "");
 
   if (argv && argc)
     {
@@ -1011,7 +1012,161 @@ hash_bench (char **argv, int argc)
 	  _hash_bench (i);
     }
 
-  bench_print_footer ();
+  bench_print_footer (14);
+}
+
+
+/************************************************************ MAC benchmarks. */
+
+struct bench_mac_mode
+{
+  const char *name;
+  struct bench_ops *ops;
+
+  int algo;
+};
+
+
+static int
+bench_mac_init (struct bench_obj *obj)
+{
+  struct bench_mac_mode *mode = obj->priv;
+  gcry_mac_hd_t hd;
+  int err;
+  unsigned int keylen;
+  void *key;
+
+  obj->min_bufsize = BUF_START_SIZE;
+  obj->max_bufsize = BUF_END_SIZE;
+  obj->step_size = BUF_STEP_SIZE;
+  obj->num_measure_repetitions = NUM_MEASUREMENT_REPETITIONS;
+
+  keylen = gcry_mac_get_algo_keylen (mode->algo);
+  if (keylen == 0)
+    keylen = 32;
+  key = malloc (keylen);
+  if (!key)
+    {
+      fprintf (stderr, PGM ": couldn't allocate %d bytes\n", keylen);
+      exit (1);
+    }
+  memset(key, 42, keylen);
+
+  err = gcry_mac_open (&hd, mode->algo, 0, NULL);
+  if (err)
+    {
+      fprintf (stderr, PGM ": error opening mac `%s'\n",
+	       gcry_mac_algo_name (mode->algo));
+      free (key);
+      exit (1);
+    }
+
+  err = gcry_mac_setkey (hd, key, keylen);
+  free (key);
+  if (err)
+    {
+      fprintf (stderr, PGM ": error setting key for mac `%s'\n",
+	       gcry_mac_algo_name (mode->algo));
+      exit (1);
+    }
+
+  obj->priv = hd;
+
+  return 0;
+}
+
+static void
+bench_mac_free (struct bench_obj *obj)
+{
+  gcry_mac_hd_t hd = obj->priv;
+
+  gcry_mac_close (hd);
+}
+
+static void
+bench_mac_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
+{
+  gcry_mac_hd_t hd = obj->priv;
+  size_t bs;
+  char b;
+
+  gcry_mac_reset (hd);
+  gcry_mac_write (hd, buf, buflen);
+  bs = sizeof(b);
+  gcry_mac_read (hd, &b, &bs);
+}
+
+static struct bench_ops mac_ops = {
+  &bench_mac_init,
+  &bench_mac_free,
+  &bench_mac_do_bench
+};
+
+
+static struct bench_mac_mode mac_modes[] = {
+  {"", &mac_ops},
+  {0},
+};
+
+
+static void
+mac_bench_one (int algo, struct bench_mac_mode *pmode)
+{
+  struct bench_mac_mode mode = *pmode;
+  struct bench_obj obj = { 0 };
+  double result;
+
+  mode.algo = algo;
+
+  if (mode.name[0] == '\0')
+    printf (" %-18s | ", gcry_mac_algo_name (algo));
+  else
+    printf (" %18s | ", mode.name);
+  fflush (stdout);
+
+  obj.ops = mode.ops;
+  obj.priv = &mode;
+
+  result = do_slope_benchmark (&obj);
+
+  bench_print_result (result);
+}
+
+static void
+_mac_bench (int algo)
+{
+  int i;
+
+  for (i = 0; mac_modes[i].name; i++)
+    mac_bench_one (algo, &mac_modes[i]);
+}
+
+void
+mac_bench (char **argv, int argc)
+{
+  int i, algo;
+
+  printf ("MAC:\n");
+
+  bench_print_header (18, "");
+
+  if (argv && argc)
+    {
+      for (i = 0; i < argc; i++)
+	{
+	  algo = gcry_mac_map_name (argv[i]);
+	  if (algo)
+	    _mac_bench (algo);
+	}
+    }
+  else
+    {
+      for (i = 1; i < 400; i++)
+	if (!gcry_mac_test_algo (i))
+	  _mac_bench (i);
+    }
+
+  bench_print_footer (18);
 }
 
 
@@ -1021,7 +1176,7 @@ void
 print_help (void)
 {
   static const char *help_lines[] = {
-    "usage: bench-slope [options] [hash|cipher [algonames]]",
+    "usage: bench-slope [options] [hash|mac|cipher [algonames]]",
     "",
     " options:",
     "     --cpu-mhz <mhz>           Set CPU speed for calculating cycles per bytes",
@@ -1147,6 +1302,7 @@ main (int argc, char **argv)
     {
       warm_up_cpu ();
       hash_bench (NULL, 0);
+      mac_bench (NULL, 0);
       cipher_bench (NULL, 0);
     }
   else if (!strcmp (*argv, "hash"))
@@ -1156,6 +1312,14 @@ main (int argc, char **argv)
 
       warm_up_cpu ();
       hash_bench ((argc == 0) ? NULL : argv, argc);
+    }
+  else if (!strcmp (*argv, "mac"))
+    {
+      argc--;
+      argv++;
+
+      warm_up_cpu ();
+      mac_bench ((argc == 0) ? NULL : argv, argc);
     }
   else if (!strcmp (*argv, "cipher"))
     {

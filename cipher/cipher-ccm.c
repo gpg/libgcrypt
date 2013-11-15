@@ -289,13 +289,8 @@ _gcry_cipher_ccm_tag (gcry_cipher_hd_t c, unsigned char *outbuf,
     }
   else
     {
-      int diff, i;
-
-      /* Constant-time compare. */
-      for (i = 0, diff = 0; i < outbuflen; i++)
-        diff -= !!(outbuf[i] - c->u_iv.iv[i]);
-
-      return !diff ? GPG_ERR_NO_ERROR : GPG_ERR_CHECKSUM;
+      return buf_eq_const(outbuf, c->u_iv.iv, outbuflen) ?
+             GPG_ERR_NO_ERROR : GPG_ERR_CHECKSUM;
     }
 }
 
@@ -304,7 +299,7 @@ gcry_err_code_t
 _gcry_cipher_ccm_get_tag (gcry_cipher_hd_t c, unsigned char *outtag,
 			  size_t taglen)
 {
-	return _gcry_cipher_ccm_tag (c, outtag, taglen, 0);
+  return _gcry_cipher_ccm_tag (c, outtag, taglen, 0);
 }
 
 
@@ -312,7 +307,7 @@ gcry_err_code_t
 _gcry_cipher_ccm_check_tag (gcry_cipher_hd_t c, const unsigned char *intag,
 			    size_t taglen)
 {
-	return _gcry_cipher_ccm_tag (c, (unsigned char *)intag, taglen, 1);
+  return _gcry_cipher_ccm_tag (c, (unsigned char *)intag, taglen, 1);
 }
 
 

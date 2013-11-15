@@ -1279,6 +1279,103 @@ void gcry_md_debug (gcry_md_hd_t hd, const char *suffix);
 #define gcry_md_get_asnoid(a,b,n) \
             gcry_md_algo_info((a), GCRYCTL_GET_ASNOID, (b), (n))
 
+
+
+/**********************************************
+ *                                            *
+ *   Message Authentication Code Functions    *
+ *                                            *
+ **********************************************/
+
+/* The data object used to hold a handle to an encryption object.  */
+struct gcry_mac_handle;
+typedef struct gcry_mac_handle *gcry_mac_hd_t;
+
+/* Algorithm IDs for the hash functions we know about. Not all of them
+   are implemented. */
+enum gcry_mac_algos
+  {
+    GCRY_MAC_NONE               = 0,
+
+    GCRY_MAC_HMAC_SHA256        = 101,
+    GCRY_MAC_HMAC_SHA224        = 102,
+    GCRY_MAC_HMAC_SHA512        = 103,
+    GCRY_MAC_HMAC_SHA384        = 104,
+    GCRY_MAC_HMAC_SHA1          = 105,
+    GCRY_MAC_HMAC_MD5           = 106,
+    GCRY_MAC_HMAC_MD4           = 107,
+    GCRY_MAC_HMAC_RMD160        = 108,
+    GCRY_MAC_HMAC_TIGER1        = 109, /* The fixed TIGER variant */
+    GCRY_MAC_HMAC_WHIRLPOOL     = 110,
+    GCRY_MAC_HMAC_GOSTR3411_94  = 111,
+    GCRY_MAC_HMAC_STRIBOG256    = 112,
+    GCRY_MAC_HMAC_STRIBOG512    = 113
+  };
+
+/* Flags used with the open function.  */
+enum gcry_mac_flags
+  {
+    GCRY_MAC_FLAG_SECURE = 1,  /* Allocate all buffers in "secure" memory.  */
+  };
+
+/* Create a MAC handle for algorithm ALGO.  FLAGS may be given as an bitwise OR
+   of the gcry_mac_flags values.  CTX maybe NULL or gcry_ctx_t object to be
+   associated with HANDLE.  */
+gcry_error_t gcry_mac_open (gcry_mac_hd_t *handle, int algo,
+                            unsigned int flags, gcry_ctx_t ctx);
+
+/* Close the MAC handle H and release all resource. */
+void gcry_mac_close (gcry_mac_hd_t h);
+
+/* Perform various operations on the MAC object H. */
+gcry_error_t gcry_mac_ctl (gcry_mac_hd_t h, int cmd, void *buffer,
+                           size_t buflen);
+
+/* Retrieve various information about the MAC algorithm ALGO. */
+gcry_error_t gcry_mac_algo_info (int algo, int what, void *buffer,
+                                 size_t *nbytes);
+
+/* Set KEY of length KEYLEN bytes for the MAC handle HD.  */
+gcry_error_t gcry_mac_setkey (gcry_mac_hd_t hd, const void *key,
+                              size_t keylen);
+
+/* Set initialization vector IV of length IVLEN for the MAC handle HD. */
+gcry_error_t gcry_mac_setiv (gcry_mac_hd_t hd, const void *iv,
+                             size_t ivlen);
+
+/* Pass LENGTH bytes of data in BUFFER to the MAC object HD so that
+   it can update the MAC values.  */
+gcry_error_t gcry_mac_write (gcry_mac_hd_t hd, const void *buffer,
+                             size_t length);
+
+/* Read out the final authentication code from the MAC object HD to BUFFER. */
+gcry_error_t gcry_mac_read (gcry_mac_hd_t hd, void *buffer, size_t *buflen);
+
+/* Verify the final authentication code from the MAC object HD with BUFFER. */
+gcry_error_t gcry_mac_verify (gcry_mac_hd_t hd, const void *buffer,
+                              size_t buflen);
+
+/* Retrieve the length in bytes of the MAC yielded by algorithm ALGO. */
+unsigned int gcry_mac_get_algo_maclen (int algo);
+
+/* Retrieve the default key length in bytes used with algorithm A. */
+unsigned int gcry_mac_get_algo_keylen (int algo);
+
+/* Map the MAC algorithm whose ID is contained in ALGORITHM to a
+   string representation of the algorithm name.  For unknown algorithm
+   IDs this function returns "?".  */
+const char *gcry_mac_algo_name (int algorithm) _GCRY_GCC_ATTR_PURE;
+
+/* Map the algorithm name NAME to an MAC algorithm ID.  Return 0 if
+   the algorithm name is not known. */
+int gcry_mac_map_name (const char *name) _GCRY_GCC_ATTR_PURE;
+
+/* Reset the handle to the state after open/setkey.  */
+#define gcry_mac_reset(h)  gcry_mac_ctl ((h), GCRYCTL_RESET, NULL, 0)
+
+/* Return 0 if the algorithm A is available for use. */
+#define gcry_mac_test_algo(a) \
+            gcry_mac_algo_info( (a), GCRYCTL_TEST_ALGO, NULL, NULL )
 
 
 /******************************

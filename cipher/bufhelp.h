@@ -220,6 +220,23 @@ buf_xor_n_copy(void *_dst_xor, void *_srcdst_cpy, const void *_src, size_t len)
 }
 
 
+/* Constant-time compare of two buffers.  Returns 1 if buffers are equal,
+   and 0 if buffers differ.  */
+static inline int
+buf_eq_const(const void *_a, const void *_b, size_t len)
+{
+  const byte *a = _a;
+  const byte *b = _b;
+  size_t diff, i;
+
+  /* Constant-time compare. */
+  for (i = 0, diff = 0; i < len; i++)
+    diff -= !!(a[i] - b[i]);
+
+  return !diff;
+}
+
+
 #ifndef BUFHELP_FAST_UNALIGNED_ACCESS
 
 /* Functions for loading and storing unaligned u32 values of different
