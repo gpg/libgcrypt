@@ -326,6 +326,9 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
               case GCRY_MD_SHA512:
                 ctx->macpads_Bsize = 128;
                 break;
+              case GCRY_MD_GOSTR3411_94:
+                ctx->macpads_Bsize = 32;
+                break;
               default:
                 ctx->macpads_Bsize = 64;
                 break;
