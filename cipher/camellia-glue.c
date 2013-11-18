@@ -180,7 +180,7 @@ camellia_setkey(void *c, const byte *key, unsigned keylen)
   ctx->keybitlength=keylen*8;
 
   if (0)
-    ;
+    { }
 #ifdef USE_AESNI_AVX
   else if (ctx->use_aesni_avx)
     _gcry_camellia_aesni_avx_keygen(ctx, key, keylen);
