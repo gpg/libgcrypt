@@ -164,7 +164,7 @@ _gcry_cipher_ccm_set_lengths (gcry_cipher_hd_t c, size_t encryptlen,
   /* Authentication field must be 4, 6, 8, 10, 12, 14 or 16. */
   if ((M_ * 2 + 2) != M || M < 4 || M > 16)
     return GPG_ERR_INV_LENGTH;
-  if (!c->u_mode.ccm.nonce || c->u_mode.ccm.tag)
+  if (!c->u_mode.ccm.nonce || c->marks.tag)
     return GPG_ERR_INV_STATE;
   if (c->u_mode.ccm.lengths)
     return GPG_ERR_INV_STATE;
@@ -235,7 +235,7 @@ _gcry_cipher_ccm_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
 
   if (abuflen > 0 && !abuf)
     return GPG_ERR_INV_ARG;
-  if (!c->u_mode.ccm.nonce || !c->u_mode.ccm.lengths || c->u_mode.ccm.tag)
+  if (!c->u_mode.ccm.nonce || !c->u_mode.ccm.lengths || c->marks.tag)
     return GPG_ERR_INV_STATE;
   if (abuflen > c->u_mode.ccm.aadlen)
     return GPG_ERR_INV_LENGTH;
@@ -267,7 +267,7 @@ _gcry_cipher_ccm_tag (gcry_cipher_hd_t c, unsigned char *outbuf,
   if (c->u_mode.ccm.encryptlen > 0)
     return GPG_ERR_UNFINISHED;
 
-  if (!c->u_mode.ccm.tag)
+  if (!c->marks.tag)
     {
       burn = do_cbc_mac (c, NULL, 0, 1); /* Perform final padding.  */
 
@@ -280,6 +280,8 @@ _gcry_cipher_ccm_tag (gcry_cipher_hd_t c, unsigned char *outbuf,
 
       if (burn)
         _gcry_burn_stack (burn + sizeof(void *) * 5);
+
+      c->marks.tag = 1;
     }
 
   if (!check)
@@ -320,7 +322,7 @@ _gcry_cipher_ccm_encrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
-  if (!c->u_mode.ccm.nonce || c->u_mode.ccm.tag || !c->u_mode.ccm.lengths ||
+  if (!c->u_mode.ccm.nonce || c->marks.tag || !c->u_mode.ccm.lengths ||
       c->u_mode.ccm.aadlen > 0)
     return GPG_ERR_INV_STATE;
   if (inbuflen > c->u_mode.ccm.encryptlen)
@@ -345,7 +347,7 @@ _gcry_cipher_ccm_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
 
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
-  if (!c->u_mode.ccm.nonce || c->u_mode.ccm.tag || !c->u_mode.ccm.lengths ||
+  if (!c->u_mode.ccm.nonce || c->marks.tag || !c->u_mode.ccm.lengths ||
       c->u_mode.ccm.aadlen > 0)
     return GPG_ERR_INV_STATE;
   if (inbuflen > c->u_mode.ccm.encryptlen)

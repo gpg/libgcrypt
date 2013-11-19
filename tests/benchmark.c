@@ -620,6 +620,8 @@ cipher_bench ( const char *algoname )
     { GCRY_CIPHER_MODE_CTR, "      CTR", 0 },
     { GCRY_CIPHER_MODE_CCM, "      CCM", 0,
       ccm_aead_init, GCRY_CCM_BLOCK_LEN, 8 },
+    { GCRY_CIPHER_MODE_GCM, "      GCM", 0,
+      NULL, GCRY_GCM_BLOCK_LEN, GCRY_GCM_BLOCK_LEN },
     { GCRY_CIPHER_MODE_STREAM, "", 0 },
     {0}
   };

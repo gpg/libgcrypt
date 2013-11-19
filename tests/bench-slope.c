@@ -787,6 +787,127 @@ static struct bench_ops ccm_authenticate_ops = {
   &bench_ccm_authenticate_do_bench
 };
 
+static void
+bench_gcm_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
+{
+  gcry_cipher_hd_t hd = obj->priv;
+  int err;
+  char tag[16];
+  char nonce[12] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88, };
+
+  gcry_cipher_setiv (hd, nonce, sizeof (nonce));
+
+  err = gcry_cipher_encrypt (hd, buf, buflen, buf, buflen);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_cipher_encrypt failed: %s\n",
+           gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+
+  err = gcry_cipher_gettag (hd, tag, sizeof (tag));
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_cipher_gettag failed: %s\n",
+           gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+}
+
+static void
+bench_gcm_decrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
+{
+  gcry_cipher_hd_t hd = obj->priv;
+  int err;
+  char tag[16] = { 0, };
+  char nonce[12] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88, };
+
+  gcry_cipher_setiv (hd, nonce, sizeof (nonce));
+
+  err = gcry_cipher_decrypt (hd, buf, buflen, buf, buflen);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_cipher_encrypt failed: %s\n",
+           gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+
+  err = gcry_cipher_checktag (hd, tag, sizeof (tag));
+  if (gpg_err_code (err) == GPG_ERR_CHECKSUM)
+    err = gpg_error (GPG_ERR_NO_ERROR);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_cipher_gettag failed: %s\n",
+           gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+}
+
+static void
+bench_gcm_authenticate_do_bench (struct bench_obj *obj, void *buf,
+           size_t buflen)
+{
+  gcry_cipher_hd_t hd = obj->priv;
+  int err;
+  char tag[16] = { 0, };
+  char nonce[12] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88, };
+  char data = 0xff;
+
+  gcry_cipher_setiv (hd, nonce, sizeof (nonce));
+
+  err = gcry_cipher_authenticate (hd, buf, buflen);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_cipher_authenticate failed: %s\n",
+           gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+
+  err = gcry_cipher_encrypt (hd, &data, sizeof (data), &data, sizeof (data));
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_cipher_encrypt failed: %s\n",
+           gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+
+  err = gcry_cipher_gettag (hd, tag, sizeof (tag));
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_cipher_gettag failed: %s\n",
+           gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
+}
+
+static struct bench_ops gcm_encrypt_ops = {
+  &bench_encrypt_init,
+  &bench_encrypt_free,
+  &bench_gcm_encrypt_do_bench
+};
+
+static struct bench_ops gcm_decrypt_ops = {
+  &bench_encrypt_init,
+  &bench_encrypt_free,
+  &bench_gcm_decrypt_do_bench
+};
+
+static struct bench_ops gcm_authenticate_ops = {
+  &bench_encrypt_init,
+  &bench_encrypt_free,
+  &bench_gcm_authenticate_do_bench
+};
+
 
 static struct bench_cipher_mode cipher_modes[] = {
   {GCRY_CIPHER_MODE_ECB, "ECB enc", &encrypt_ops},
@@ -802,6 +923,9 @@ static struct bench_cipher_mode cipher_modes[] = {
   {GCRY_CIPHER_MODE_CCM, "CCM enc", &ccm_encrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM dec", &ccm_decrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM auth", &ccm_authenticate_ops},
+  {GCRY_CIPHER_MODE_GCM, "GCM enc", &gcm_encrypt_ops},
+  {GCRY_CIPHER_MODE_GCM, "GCM dec", &gcm_decrypt_ops},
+  {GCRY_CIPHER_MODE_GCM, "GCM auth", &gcm_authenticate_ops},
   {0},
 };
 
@@ -832,6 +956,10 @@ cipher_bench_one (int algo, struct bench_cipher_mode *pmode)
 
   /* CCM has restrictions for block-size */
   if (mode.mode == GCRY_CIPHER_MODE_CCM && blklen != GCRY_CCM_BLOCK_LEN)
+    return;
+
+  /* CCM has restrictions for block-size */
+  if (mode.mode == GCRY_CIPHER_MODE_GCM && blklen != GCRY_GCM_BLOCK_LEN)
     return;
 
   printf (" %14s | ", mode.name);

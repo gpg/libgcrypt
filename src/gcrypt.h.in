@@ -895,7 +895,8 @@ enum gcry_cipher_modes
     GCRY_CIPHER_MODE_OFB    = 5,  /* Outer feedback. */
     GCRY_CIPHER_MODE_CTR    = 6,  /* Counter. */
     GCRY_CIPHER_MODE_AESWRAP= 7,  /* AES-WRAP algorithm.  */
-    GCRY_CIPHER_MODE_CCM    = 8   /* Counter with CBC-MAC.  */
+    GCRY_CIPHER_MODE_CCM    = 8,  /* Counter with CBC-MAC.  */
+    GCRY_CIPHER_MODE_GCM    = 9   /* Galois Counter Mode. */
   };
 
 /* Flags used with the open function. */
@@ -906,6 +907,9 @@ enum gcry_cipher_flags
     GCRY_CIPHER_CBC_CTS     = 4,  /* Enable CBC cipher text stealing (CTS). */
     GCRY_CIPHER_CBC_MAC     = 8   /* Enable CBC message auth. code (MAC). */
   };
+
+/* GCM works only with blocks of 128 bits */
+#define GCRY_GCM_BLOCK_LEN  (128 / 8)
 
 /* CCM works only with blocks of 128 bits.  */
 #define GCRY_CCM_BLOCK_LEN  (128 / 8)

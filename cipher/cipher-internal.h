@@ -35,6 +35,9 @@
 # define NEED_16BYTE_ALIGNED_CONTEXT 1
 #endif
 
+/* Undef this symbol to trade GCM speed for 256 bytes of memory per context */
+#define GCM_USE_TABLES 1
+
 
 /* A VIA processor with the Padlock engine as well as the Intel AES_NI
    instructions require an alignment of most data on a 16 byte
@@ -96,6 +99,7 @@ struct gcry_cipher_handle
   struct {
     unsigned int key:1; /* Set to 1 if a key has been set.  */
     unsigned int iv:1;  /* Set to 1 if a IV has been set.  */
+    unsigned int tag:1; /* Set to 1 if a tag is finalized. */
   } marks;
 
   /* The initialization vector.  For best performance we make sure
@@ -114,9 +118,19 @@ struct gcry_cipher_handle
     unsigned char ctr[MAX_BLOCKSIZE];
   } u_ctr;
 
+  /* The interim tag for GCM mode.  */
+  union {
+    cipher_context_alignment_t iv_align;
+    unsigned char tag[MAX_BLOCKSIZE];
+  } u_tag;
+
   /* Space to save an IV or CTR for chaining operations.  */
   unsigned char lastiv[MAX_BLOCKSIZE];
   int unused;  /* Number of unused bytes in LASTIV. */
+  unsigned char length[MAX_BLOCKSIZE]; /* bit counters for GCM */
+#ifdef GCM_USE_TABLES
+  unsigned char gcm_table[16 * 16]; /* pre-calculated table for GCM */
+#endif
 
   union {
     /* Mode specific storage for CCM mode. */
@@ -134,7 +148,6 @@ struct gcry_cipher_handle
       unsigned int nonce:1;/* Set to 1 if nonce has been set.  */
       unsigned int lengths:1; /* Set to 1 if CCM length parameters has been
                                  processed.  */
-      unsigned int tag:1; /* Set to 1 if tag has been finalized.  */
     } ccm;
     /* Mode specific storage for CMAC mode. */
     struct {
@@ -224,5 +237,26 @@ gcry_err_code_t _gcry_cipher_ccm_check_tag
 /*           */ (gcry_cipher_hd_t c,
                  const unsigned char *intag, size_t taglen);
 
+/*-- cipher-gcm.c --*/
+gcry_err_code_t _gcry_cipher_gcm_encrypt
+/*           */   (gcry_cipher_hd_t c,
+                   unsigned char *outbuf, unsigned int outbuflen,
+                   const unsigned char *inbuf, unsigned int inbuflen);
+gcry_err_code_t _gcry_cipher_gcm_decrypt
+/*           */   (gcry_cipher_hd_t c,
+                   unsigned char *outbuf, unsigned int outbuflen,
+                   const unsigned char *inbuf, unsigned int inbuflen);
+void _gcry_cipher_gcm_setiv
+/*           */   (gcry_cipher_hd_t c,
+                   const unsigned char *iv, unsigned int ivlen);
+gcry_err_code_t _gcry_cipher_gcm_authenticate
+/*           */   (gcry_cipher_hd_t c,
+                   const unsigned char *aadbuf, unsigned int aadbuflen);
+gcry_err_code_t _gcry_cipher_gcm_get_tag
+/*           */   (gcry_cipher_hd_t c,
+                   unsigned char *outtag, size_t taglen);
+gcry_err_code_t _gcry_cipher_gcm_check_tag
+/*           */   (gcry_cipher_hd_t c,
+                   const unsigned char *intag, size_t taglen);
 
 #endif /*G10_CIPHER_INTERNAL_H*/

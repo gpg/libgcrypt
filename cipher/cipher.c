@@ -407,6 +407,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
       case GCRY_CIPHER_MODE_CTR:
       case GCRY_CIPHER_MODE_AESWRAP:
       case GCRY_CIPHER_MODE_CMAC:
+      case GCRY_CIPHER_MODE_GCM:
 	if (!spec->encrypt || !spec->decrypt)
 	  err = GPG_ERR_INV_CIPHER_MODE;
 	break;
@@ -609,6 +610,13 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 static void
 cipher_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 {
+  /* GCM has its own IV handler */
+  if (c->mode == GCRY_CIPHER_MODE_GCM)
+    {
+      _gcry_cipher_gcm_setiv (c, iv, ivlen);
+      return;
+    }
+
   /* If the cipher has its own IV handler, we use only this one.  This
      is currently used for stream ciphers requiring a nonce.  */
   if (c->spec->setiv)
@@ -767,6 +775,10 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
       rc = GPG_ERR_INV_CIPHER_MODE;
       break;
 
+    case GCRY_CIPHER_MODE_GCM:
+      rc = _gcry_cipher_gcm_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
+      break;
+
     case GCRY_CIPHER_MODE_STREAM:
       c->spec->stencrypt (&c->context.c,
                           outbuf, (byte*)/*arggg*/inbuf, inbuflen);
@@ -869,6 +881,10 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
 
     case GCRY_CIPHER_MODE_CMAC:
       rc = GPG_ERR_INV_CIPHER_MODE;
+      break;
+
+    case GCRY_CIPHER_MODE_GCM:
+      rc = _gcry_cipher_gcm_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
     case GCRY_CIPHER_MODE_STREAM:
@@ -1000,6 +1016,10 @@ _gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf,
       rc = _gcry_cipher_cmac_authenticate (hd, abuf, abuflen);
       break;
 
+    case GCRY_CIPHER_MODE_GCM:
+      rc = _gcry_cipher_gcm_authenticate (hd, abuf, abuflen);
+      break;
+
     default:
       log_error ("gcry_cipher_authenticate: invalid mode %d\n", hd->mode);
       rc = GPG_ERR_INV_CIPHER_MODE;
@@ -1024,6 +1044,10 @@ _gcry_cipher_gettag (gcry_cipher_hd_t hd, void *outtag, size_t taglen)
       rc = _gcry_cipher_cmac_get_tag (hd, outtag, taglen);
       break;
 
+    case GCRY_CIPHER_MODE_GCM:
+      rc = _gcry_cipher_gcm_get_tag (hd, outtag, taglen);
+      break;
+
     default:
       log_error ("gcry_cipher_gettag: invalid mode %d\n", hd->mode);
       rc = GPG_ERR_INV_CIPHER_MODE;
@@ -1046,6 +1070,10 @@ _gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag, size_t taglen)
 
     case GCRY_CIPHER_MODE_CMAC:
       rc = _gcry_cipher_cmac_check_tag (hd, intag, taglen);
+      break;
+
+    case GCRY_CIPHER_MODE_GCM:
+      rc = _gcry_cipher_gcm_check_tag (hd, intag, taglen);
       break;
 
     default:
