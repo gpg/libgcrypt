@@ -559,7 +559,7 @@ static inline void gfmul_pclmul_aggr4(void)
 
 static unsigned int
 ghash (gcry_cipher_hd_t c, byte *result, const byte *buf,
-       unsigned int nblocks)
+       size_t nblocks)
 {
   const unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
   unsigned int burn;
@@ -743,8 +743,14 @@ setupM (gcry_cipher_hd_t c, byte *h)
 
 
 static inline void
-gcm_bytecounter_add (u32 ctr[2], u32 add)
+gcm_bytecounter_add (u32 ctr[2], size_t add)
 {
+  if (sizeof(add) > sizeof(u32))
+    {
+      u32 high_add = ((add >> 31) >> 1) & 0xffffffff;
+      ctr[1] += high_add;
+    }
+
   ctr[0] += add;
   if (ctr[0] >= add)
     return;
@@ -801,11 +807,11 @@ gcm_check_aadlen_or_ivlen (u32 ctr[2])
 
 static void
 do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte * buf,
-             unsigned int buflen)
+             size_t buflen)
 {
   unsigned char tmp[MAX_BLOCKSIZE];
   unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
-  unsigned int nblocks;
+  size_t nblocks;
   unsigned int burn = 0;
 
   nblocks = buflen / blocksize;
@@ -832,8 +838,8 @@ do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte * buf,
 
 gcry_err_code_t
 _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
-                          byte *outbuf, unsigned int outbuflen,
-                          const byte *inbuf, unsigned int inbuflen)
+                          byte *outbuf, size_t outbuflen,
+                          const byte *inbuf, size_t inbuflen)
 {
   static const unsigned char zerobuf[MAX_BLOCKSIZE];
   gcry_err_code_t err;
@@ -872,8 +878,8 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
 
 gcry_err_code_t
 _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
-                          byte *outbuf, unsigned int outbuflen,
-                          const byte *inbuf, unsigned int inbuflen)
+                          byte *outbuf, size_t outbuflen,
+                          const byte *inbuf, size_t inbuflen)
 {
   static const unsigned char zerobuf[MAX_BLOCKSIZE];
 
@@ -904,7 +910,7 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
 
 gcry_err_code_t
 _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
-                               const byte * aadbuf, unsigned int aadbuflen)
+                               const byte * aadbuf, size_t aadbuflen)
 {
   static const unsigned char zerobuf[MAX_BLOCKSIZE];
 
@@ -1015,8 +1021,8 @@ _gcry_cipher_gcm_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 #if 0 && TODO
 void
 _gcry_cipher_gcm_geniv (gcry_cipher_hd_t c,
-                        byte *ivout, unsigned int ivoutlen, const byte *nonce,
-                        unsigned int noncelen)
+                        byte *ivout, size_t ivoutlen, const byte *nonce,
+                        size_t noncelen)
 {
   /* nonce:    user provided part (might be null) */
   /* noncelen: check if proper length (if nonce not null) */
@@ -1047,7 +1053,7 @@ _gcry_cipher_gcm_geniv (gcry_cipher_hd_t c,
 
 static gcry_err_code_t
 _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
-                      byte * outbuf, unsigned int outbuflen, int check)
+                      byte * outbuf, size_t outbuflen, int check)
 {
   if (outbuflen < GCRY_GCM_BLOCK_LEN)
     return GPG_ERR_BUFFER_TOO_SHORT;

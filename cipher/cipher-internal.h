@@ -273,21 +273,22 @@ gcry_err_code_t _gcry_cipher_ccm_check_tag
 /*           */ (gcry_cipher_hd_t c,
                  const unsigned char *intag, size_t taglen);
 
+
 /*-- cipher-gcm.c --*/
 gcry_err_code_t _gcry_cipher_gcm_encrypt
 /*           */   (gcry_cipher_hd_t c,
-                   unsigned char *outbuf, unsigned int outbuflen,
-                   const unsigned char *inbuf, unsigned int inbuflen);
+                   unsigned char *outbuf, size_t outbuflen,
+                   const unsigned char *inbuf, size_t inbuflen);
 gcry_err_code_t _gcry_cipher_gcm_decrypt
 /*           */   (gcry_cipher_hd_t c,
-                   unsigned char *outbuf, unsigned int outbuflen,
-                   const unsigned char *inbuf, unsigned int inbuflen);
+                   unsigned char *outbuf, size_t outbuflen,
+                   const unsigned char *inbuf, size_t inbuflen);
 gcry_err_code_t _gcry_cipher_gcm_setiv
 /*           */   (gcry_cipher_hd_t c,
                    const unsigned char *iv, size_t ivlen);
 gcry_err_code_t _gcry_cipher_gcm_authenticate
 /*           */   (gcry_cipher_hd_t c,
-                   const unsigned char *aadbuf, unsigned int aadbuflen);
+                   const unsigned char *aadbuf, size_t aadbuflen);
 gcry_err_code_t _gcry_cipher_gcm_get_tag
 /*           */   (gcry_cipher_hd_t c,
                    unsigned char *outtag, size_t taglen);
