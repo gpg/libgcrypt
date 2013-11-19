@@ -108,7 +108,7 @@ do_fillM (unsigned char *h, u64 *M)
       }
 }
 
-static inline void
+static inline unsigned int
 do_ghash (unsigned char *result, const unsigned char *buf, const u64 *gcmM)
 {
   u64 V[2];
@@ -158,6 +158,9 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u64 *gcmM)
 
   buf_put_be64 (result + 0, tmp[0]);
   buf_put_be64 (result + 8, tmp[1]);
+
+  return (sizeof(V) + sizeof(T) + sizeof(tmp) +
+          sizeof(int)*2 + sizeof(void*)*5);
 }
 
 #else
@@ -214,7 +217,7 @@ do_fillM (unsigned char *h, u32 *M)
       }
 }
 
-static inline void
+static inline unsigned int
 do_ghash (unsigned char *result, const unsigned char *buf, const u32 *gcmM)
 {
   byte V[16];
@@ -269,6 +272,9 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u32 *gcmM)
   buf_put_be32 (result + 4, tmp[1]);
   buf_put_be32 (result + 8, tmp[2]);
   buf_put_be32 (result + 12, tmp[3]);
+
+  return (sizeof(V) + sizeof(T) + sizeof(tmp) +
+          sizeof(int)*2 + sizeof(void*)*6);
 }
 #endif /* !HAVE_U64_TYPEDEF || SIZEOF_UNSIGNED_LONG != 8 */
 
@@ -291,7 +297,7 @@ bshift (unsigned long *b)
   return c;
 }
 
-static void
+static unsigned int
 do_ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
 {
   unsigned long V[4];
@@ -333,6 +339,8 @@ do_ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
       result[i + 3] = p[0];
     }
 #endif
+
+  return (sizeof(V) + sizeof(T) + sizeof(int)*2 + sizeof(void*)*5);
 }
 
 #define fillM(c, h) do { } while (0)
@@ -549,14 +557,15 @@ static inline void gfmul_pclmul_aggr4(void)
 #endif /*GCM_USE_INTEL_PCLMUL*/
 
 
-static void
+static unsigned int
 ghash (gcry_cipher_hd_t c, byte *result, const byte *buf,
        unsigned int nblocks)
 {
   const unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
+  unsigned int burn;
 
   if (nblocks == 0)
-    return;
+    return 0;
 
   if (0)
     ;
@@ -648,17 +657,20 @@ ghash (gcry_cipher_hd_t c, byte *result, const byte *buf,
                     "pxor %%xmm6, %%xmm6\n\t"
                     "pxor %%xmm7, %%xmm7\n\t"
                     ::: "cc" );
+      burn = 0;
     }
 #endif
   else
     {
       while (nblocks)
         {
-          GHASH (c, result, buf);
+          burn = GHASH (c, result, buf);
           buf += blocksize;
           nblocks--;
         }
     }
+
+  return burn + (burn ? 5*sizeof(void*) : 0);
 }
 
 
@@ -721,6 +733,8 @@ setupM (gcry_cipher_hd_t c, byte *h)
                     "pxor %%xmm8, %%xmm8\n\t"
                     ::: "cc" );
 #endif
+
+      wipememory (tmp, sizeof(tmp));
     }
 #endif
   else
@@ -792,12 +806,13 @@ do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte * buf,
   unsigned char tmp[MAX_BLOCKSIZE];
   unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
   unsigned int nblocks;
+  unsigned int burn = 0;
 
   nblocks = buflen / blocksize;
 
   if (nblocks)
     {
-      ghash (c, hash, buf, nblocks);
+      burn = ghash (c, hash, buf, nblocks);
       buf += blocksize * nblocks;
       buflen -= blocksize * nblocks;
     }
@@ -806,10 +821,12 @@ do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte * buf,
     {
       buf_cpy (tmp, buf, buflen);
       memset (tmp + buflen, 0, blocksize - buflen);
-      ghash (c, hash, tmp, 1);
+      burn = ghash (c, hash, tmp, 1);
+      wipememory (tmp, sizeof(tmp));
     }
 
-  /* TODO: burn stack */
+  if (burn)
+    _gcry_burn_stack (burn);
 }
 
 
