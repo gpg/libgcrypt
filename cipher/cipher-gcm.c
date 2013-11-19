@@ -850,6 +850,9 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
   if (!c->marks.iv)
     _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
 
+  if (c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode)
+    return GPG_ERR_INV_STATE;
+
   gcm_bytecounter_add(c->u_mode.gcm.datalen, inbuflen);
   if (!gcm_check_datalen(c->u_mode.gcm.datalen))
     {
@@ -928,8 +931,8 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
 }
 
 
-gcry_err_code_t
-_gcry_cipher_gcm_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
+static gcry_err_code_t
+_gcry_cipher_gcm_initiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 {
   memset (c->u_mode.gcm.aadlen, 0, sizeof(c->u_mode.gcm.aadlen));
   memset (c->u_mode.gcm.datalen, 0, sizeof(c->u_mode.gcm.datalen));
@@ -992,6 +995,56 @@ _gcry_cipher_gcm_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 }
 
 
+gcry_err_code_t
+_gcry_cipher_gcm_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
+{
+  c->marks.iv = 0;
+  c->marks.tag = 0;
+  c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode = 0;
+
+  if (fips_mode ())
+    {
+      /* Direct invocation of GCM setiv in FIPS mode disables encryption. */
+      c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode = 1;
+    }
+
+  return _gcry_cipher_gcm_initiv (c, iv, ivlen);
+}
+
+
+#if 0 && TODO
+void
+_gcry_cipher_gcm_geniv (gcry_cipher_hd_t c,
+                        byte *ivout, unsigned int ivoutlen, const byte *nonce,
+                        unsigned int noncelen)
+{
+  /* nonce:    user provided part (might be null) */
+  /* noncelen: check if proper length (if nonce not null) */
+  /* ivout:    iv used to initialize gcm, output to user */
+  /* ivoutlen: check correct size */
+  byte iv[IVLEN];
+
+  if (!ivout)
+    return GPG_ERR_INV_ARG;
+  if (ivoutlen != IVLEN)
+    return GPG_ERR_INV_LENGTH;
+  if (nonce != NULL && !is_nonce_ok_len(noncelen))
+    return GPG_ERR_INV_ARG;
+
+  gcm_generate_iv(iv, nonce, noncelen);
+
+  c->marks.iv = 0;
+  c->marks.tag = 0;
+  c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode = 0;
+
+  _gcry_cipher_gcm_initiv (c, iv, IVLEN);
+
+  buf_cpy(ivout, iv, IVLEN);
+  wipememory(iv, sizeof(iv));
+}
+#endif
+
+
 static gcry_err_code_t
 _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
                       byte * outbuf, unsigned int outbuflen, int check)
@@ -1042,6 +1095,10 @@ gcry_err_code_t
 _gcry_cipher_gcm_get_tag (gcry_cipher_hd_t c, unsigned char *outtag,
                           size_t taglen)
 {
+  /* Outputting authentication tag is part of encryption. */
+  if (c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode)
+    return GPG_ERR_INV_STATE;
+
   return _gcry_cipher_gcm_tag (c, outtag, taglen, 0);
 }
 

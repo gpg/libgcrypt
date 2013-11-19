@@ -188,6 +188,7 @@ struct gcry_cipher_handle
 #endif
 
       unsigned int datalen_over_limits:1;
+      unsigned int disallow_encryption_because_of_setiv_in_fips_mode:1;
 #ifdef GCM_USE_INTEL_PCLMUL
       unsigned int use_intel_pclmul:1;
 #endif
