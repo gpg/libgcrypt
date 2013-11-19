@@ -108,8 +108,8 @@ do_fillM (unsigned char *h, u64 *M)
       }
 }
 
-static void
-do_ghash (unsigned char *result, const unsigned char *buf, const u64 * gcmM)
+static inline void
+do_ghash (unsigned char *result, const unsigned char *buf, const u64 *gcmM)
 {
   u64 V[2];
   u64 tmp[2];
@@ -214,8 +214,8 @@ do_fillM (unsigned char *h, u32 *M)
       }
 }
 
-static void
-do_ghash (unsigned char *result, const unsigned char *buf, const u32 * gcmM)
+static inline void
+do_ghash (unsigned char *result, const unsigned char *buf, const u32 *gcmM)
 {
   byte V[16];
   u32 tmp[4];
@@ -347,21 +347,12 @@ do_ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
   "Intel® Carry-Less Multiplication Instruction and its Usage for Computing the
    GCM Mode - Rev 2.01"; Shay Gueron, Michael E. Kounavis.
  */
-static void
-do_ghash_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf)
+static inline void gfmul_pclmul(void)
 {
-  static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
-    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-
-  asm volatile ("movdqu (%[result]), %%xmm1\n\t"
-                "movdqu %[buf], %%xmm2\n\t"
-                "movdqa %[hsub], %%xmm0\n\t"
-                "pxor %%xmm2, %%xmm1\n\t" /* big endian */
-
-                /* be => le */
-                "pshufb %[be_mask], %%xmm1\n\t"
-
-                /* gfmul, xmm0 has operator a and xmm1 has operator b. */
+  /* Input: XMM0 and XMM1, Output: XMM1. Input XMM0 stays unmodified.
+     Input must be converted to little-endian.
+   */
+  asm volatile (/* gfmul, xmm0 has operator a and xmm1 has operator b. */
                 "pshufd $78, %%xmm0, %%xmm2\n\t"
                 "pshufd $78, %%xmm1, %%xmm4\n\t"
                 "pxor %%xmm0, %%xmm2\n\t" /* xmm2 holds a0+a1 */
@@ -386,33 +377,33 @@ do_ghash_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf)
 
                 /* shift the result by one bit position to the left cope for
                    the fact that bits are reversed */
-                "movdqa %%xmm3, %%xmm7\n\t"
-                "movdqa %%xmm6, %%xmm0\n\t"
+                "movdqa %%xmm3, %%xmm4\n\t"
+                "movdqa %%xmm6, %%xmm5\n\t"
                 "pslld $1, %%xmm3\n\t"
                 "pslld $1, %%xmm6\n\t"
-                "psrld $31, %%xmm7\n\t"
-                "psrld $31, %%xmm0\n\t"
-                "movdqa %%xmm7, %%xmm1\n\t"
-                "pslldq $4, %%xmm0\n\t"
-                "pslldq $4, %%xmm7\n\t"
+                "psrld $31, %%xmm4\n\t"
+                "psrld $31, %%xmm5\n\t"
+                "movdqa %%xmm4, %%xmm1\n\t"
+                "pslldq $4, %%xmm5\n\t"
+                "pslldq $4, %%xmm4\n\t"
                 "psrldq $12, %%xmm1\n\t"
-                "por %%xmm7, %%xmm3\n\t"
-                "por %%xmm0, %%xmm6\n\t"
-                "por %%xmm1, %%xmm6\n\t"
+                "por %%xmm4, %%xmm3\n\t"
+                "por %%xmm5, %%xmm6\n\t"
+                "por %%xmm6, %%xmm1\n\t"
 
                 /* first phase of the reduction */
+                "movdqa %%xmm3, %%xmm6\n\t"
                 "movdqa %%xmm3, %%xmm7\n\t"
-                "movdqa %%xmm3, %%xmm0\n\t"
-                "pslld $31, %%xmm7\n\t"  /* packed right shifting << 31 */
-                "movdqa %%xmm3, %%xmm1\n\t"
-                "pslld $30, %%xmm0\n\t"  /* packed right shifting shift << 30 */
-                "pslld $25, %%xmm1\n\t"  /* packed right shifting shift << 25 */
-                "pxor %%xmm0, %%xmm7\n\t" /* xor the shifted versions */
-                "pxor %%xmm1, %%xmm7\n\t"
-                "movdqa %%xmm7, %%xmm0\n\t"
-                "pslldq $12, %%xmm7\n\t"
-                "psrldq $4, %%xmm0\n\t"
-                "pxor %%xmm7, %%xmm3\n\t" /* first phase of the reduction
+                "pslld $31, %%xmm6\n\t"  /* packed right shifting << 31 */
+                "movdqa %%xmm3, %%xmm5\n\t"
+                "pslld $30, %%xmm7\n\t"  /* packed right shifting shift << 30 */
+                "pslld $25, %%xmm5\n\t"  /* packed right shifting shift << 25 */
+                "pxor %%xmm7, %%xmm6\n\t" /* xor the shifted versions */
+                "pxor %%xmm5, %%xmm6\n\t"
+                "movdqa %%xmm6, %%xmm7\n\t"
+                "pslldq $12, %%xmm6\n\t"
+                "psrldq $4, %%xmm7\n\t"
+                "pxor %%xmm6, %%xmm3\n\t" /* first phase of the reduction
                                              complete */
 
                 /* second phase of the reduction */
@@ -424,18 +415,10 @@ do_ghash_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf)
                 "psrld $7, %%xmm5\n\t"    /* packed left shifting >> 7 */
                 "pxor %%xmm4, %%xmm2\n\t" /* xor the shifted versions */
                 "pxor %%xmm5, %%xmm2\n\t"
-                "pxor %%xmm0, %%xmm2\n\t"
+                "pxor %%xmm7, %%xmm2\n\t"
                 "pxor %%xmm2, %%xmm3\n\t"
-                "pxor %%xmm3, %%xmm6\n\t" /* the result is in xmm6 */
-
-                /* le => be */
-                "pshufb %[be_mask], %%xmm6\n\t"
-
-                "movdqu %%xmm6, (%[result])\n\t" /* store the result */
-                :
-                : [result] "r" (result), [buf] "m" (*buf),
-                  [hsub] "m" (*c->u_iv.iv), [be_mask] "m" (*be_mask)
-                : "memory" );
+                "pxor %%xmm3, %%xmm1\n\t" /* the result is in xmm1 */
+                ::: "cc" );
 }
 
 #endif /*GCM_USE_INTEL_PCLMUL*/
@@ -447,19 +430,46 @@ ghash (gcry_cipher_hd_t c, byte *result, const byte *buf,
 {
   const unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
 
+  if (nblocks == 0)
+    return;
+
   if (0)
     ;
 #ifdef GCM_USE_INTEL_PCLMUL
   else if (c->u_mode.gcm.use_intel_pclmul)
     {
-      /* TODO: Loop structure, use bit-reflection and add faster bulk
-               processing (parallel four blocks). */
-      while (nblocks)
+      /* TODO: Add faster bulk processing (parallel four blocks) for x86-64. */
+
+      static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
+        { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+
+      /* Preload hash. */
+      asm volatile ("movdqu %[hash], %%xmm1\n\t"
+                    "pshufb %[be_mask], %%xmm1\n\t" /* be => le */
+                    :
+                    : [hash] "m" (*result), [be_mask] "m" (*be_mask));
+
+      do
         {
-          do_ghash_pclmul (c, result, buf);
+          asm volatile ("movdqu %[buf], %%xmm2\n\t"
+                        "movdqa %[hsub], %%xmm0\n\t"
+                        "pshufb %[be_mask], %%xmm2\n\t" /* be => le */
+                        "pxor %%xmm2, %%xmm1\n\t"
+                        :
+                        : [buf] "m" (*buf), [be_mask] "m" (*be_mask),
+                          [hsub] "m" (*c->u_iv.iv));
+
+          gfmul_pclmul ();
+
           buf += blocksize;
-          nblocks--;
         }
+      while (--nblocks);
+
+      /* Store hash. */
+      asm volatile ("pshufb %[be_mask], %%xmm1\n\t" /* be => le */
+                    "movdqu %%xmm1, %[hash]\n\t"
+                    : [hash] "=m" (*result)
+                    : [be_mask] "m" (*be_mask));
 
       /* Clear used registers. */
       asm volatile( "pxor %%xmm0, %%xmm0\n\t"
