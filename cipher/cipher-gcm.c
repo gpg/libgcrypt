@@ -844,6 +844,8 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
     return GPG_ERR_BUFFER_TOO_SHORT;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
+  if (c->marks.tag)
+    return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
     _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
@@ -878,6 +880,8 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
     return GPG_ERR_BUFFER_TOO_SHORT;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
+  if (c->marks.tag)
+    return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
     _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
@@ -905,6 +909,8 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
     return GPG_ERR_CIPHER_ALGO;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
+  if (c->marks.tag)
+    return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
     _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
@@ -980,6 +986,7 @@ _gcry_cipher_gcm_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 
   c->unused = 0;
   c->marks.iv = 1;
+  c->marks.tag = 0;
 
   return 0;
 }
