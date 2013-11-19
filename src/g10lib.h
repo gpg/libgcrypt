@@ -167,6 +167,7 @@ int _gcry_log_verbosity( int level );
 #define HWF_PADLOCK_SHA  4
 #define HWF_PADLOCK_MMUL 8
 
+#define HWF_INTEL_PCLMUL 128
 #define HWF_INTEL_AESNI  256
 #define HWF_INTEL_RDRAND 512
 #define HWF_INTEL_AVX    1024

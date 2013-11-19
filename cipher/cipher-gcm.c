@@ -1,5 +1,6 @@
 /* cipher-gcm.c  - Generic Galois Counter Mode implementation
  * Copyright (C) 2013 Dmitry Eremin-Solenikov
+ * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -81,7 +82,7 @@ bshift (u64 * b0, u64 * b1)
 }
 
 static void
-fillM (unsigned char *h, u64 * M)
+do_fillM (unsigned char *h, u64 *M)
 {
   int i, j;
 
@@ -179,7 +180,7 @@ bshift (u32 * M, int i)
 }
 
 static void
-fillM (unsigned char *h, u32 * M)
+do_fillM (unsigned char *h, u32 *M)
 {
   int i, j;
 
@@ -269,15 +270,10 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u32 * gcmM)
   buf_put_be32 (result + 8, tmp[2]);
   buf_put_be32 (result + 12, tmp[3]);
 }
-#endif
+#endif /* !HAVE_U64_TYPEDEF || SIZEOF_UNSIGNED_LONG != 8 */
 
-static void
-ghash (unsigned char *result, const unsigned char *buf, const void *gcmM)
-{
-  do_ghash (result, buf, gcmM);
-}
-
-#define GHASH(c, result, buf) ghash (result, buf, c->gcm_table);
+#define fillM(c, h) do_fillM (h, c->u_mode.gcm.gcm_table)
+#define GHASH(c, result, buf) do_ghash (result, buf, c->u_mode.gcm.gcm_table)
 
 #else
 
@@ -296,7 +292,7 @@ bshift (unsigned long *b)
 }
 
 static void
-ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
+do_ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
 {
   unsigned long V[4];
   int i, j;
@@ -339,10 +335,161 @@ ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
 #endif
 }
 
-#define fillM(h, M) do { } while (0)
+#define fillM(c, h) do { } while (0)
+#define GHASH(c, result, buf) do_ghash (c->u_iv.iv, result, buf)
 
-#define GHASH(c, result, buf) ghash (c->u_iv.iv, result, buf);
+#endif /* !GCM_USE_TABLES */
+
+
+#ifdef GCM_USE_INTEL_PCLMUL
+/*
+ Intel PCLMUL ghash based on white paper:
+  "Intel® Carry-Less Multiplication Instruction and its Usage for Computing the
+   GCM Mode - Rev 2.01"; Shay Gueron, Michael E. Kounavis.
+ */
+static void
+do_ghash_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf)
+{
+  static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
+    { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+
+  asm volatile ("movdqu (%[result]), %%xmm1\n\t"
+                "movdqu %[buf], %%xmm2\n\t"
+                "movdqa %[hsub], %%xmm0\n\t"
+                "pxor %%xmm2, %%xmm1\n\t" /* big endian */
+
+                /* be => le */
+                "pshufb %[be_mask], %%xmm1\n\t"
+
+                /* gfmul, xmm0 has operator a and xmm1 has operator b. */
+                "pshufd $78, %%xmm0, %%xmm2\n\t"
+                "pshufd $78, %%xmm1, %%xmm4\n\t"
+                "pxor %%xmm0, %%xmm2\n\t" /* xmm2 holds a0+a1 */
+                "pxor %%xmm1, %%xmm4\n\t" /* xmm4 holds b0+b1 */
+
+                "movdqa %%xmm0, %%xmm3\n\t"
+                "pclmulqdq $0, %%xmm1, %%xmm3\n\t"  /* xmm3 holds a0*b0 */
+                "movdqa %%xmm0, %%xmm6\n\t"
+                "pclmulqdq $17, %%xmm1, %%xmm6\n\t" /* xmm6 holds a1*b1 */
+                "movdqa %%xmm3, %%xmm5\n\t"
+                "pclmulqdq $0, %%xmm2, %%xmm4\n\t"  /* xmm4 holds (a0+a1)*(b0+b1) */
+
+                "pxor %%xmm6, %%xmm5\n\t" /* xmm5 holds a0*b0+a1*b1 */
+                "pxor %%xmm5, %%xmm4\n\t" /* xmm4 holds a0*b0+a1*b1+(a0+a1)*(b0+b1) */
+                "movdqa %%xmm4, %%xmm5\n\t"
+                "psrldq $8, %%xmm4\n\t"
+                "pslldq $8, %%xmm5\n\t"
+                "pxor %%xmm5, %%xmm3\n\t"
+                "pxor %%xmm4, %%xmm6\n\t" /* <xmm6:xmm3> holds the result of the
+                                             carry-less multiplication of xmm0
+                                             by xmm1 */
+
+                /* shift the result by one bit position to the left cope for
+                   the fact that bits are reversed */
+                "movdqa %%xmm3, %%xmm7\n\t"
+                "movdqa %%xmm6, %%xmm0\n\t"
+                "pslld $1, %%xmm3\n\t"
+                "pslld $1, %%xmm6\n\t"
+                "psrld $31, %%xmm7\n\t"
+                "psrld $31, %%xmm0\n\t"
+                "movdqa %%xmm7, %%xmm1\n\t"
+                "pslldq $4, %%xmm0\n\t"
+                "pslldq $4, %%xmm7\n\t"
+                "psrldq $12, %%xmm1\n\t"
+                "por %%xmm7, %%xmm3\n\t"
+                "por %%xmm0, %%xmm6\n\t"
+                "por %%xmm1, %%xmm6\n\t"
+
+                /* first phase of the reduction */
+                "movdqa %%xmm3, %%xmm7\n\t"
+                "movdqa %%xmm3, %%xmm0\n\t"
+                "pslld $31, %%xmm7\n\t"  /* packed right shifting << 31 */
+                "movdqa %%xmm3, %%xmm1\n\t"
+                "pslld $30, %%xmm0\n\t"  /* packed right shifting shift << 30 */
+                "pslld $25, %%xmm1\n\t"  /* packed right shifting shift << 25 */
+                "pxor %%xmm0, %%xmm7\n\t" /* xor the shifted versions */
+                "pxor %%xmm1, %%xmm7\n\t"
+                "movdqa %%xmm7, %%xmm0\n\t"
+                "pslldq $12, %%xmm7\n\t"
+                "psrldq $4, %%xmm0\n\t"
+                "pxor %%xmm7, %%xmm3\n\t" /* first phase of the reduction
+                                             complete */
+
+                /* second phase of the reduction */
+                "movdqa %%xmm3, %%xmm2\n\t"
+                "movdqa %%xmm3, %%xmm4\n\t"
+                "psrld $1, %%xmm2\n\t"    /* packed left shifting >> 1 */
+                "movdqa %%xmm3, %%xmm5\n\t"
+                "psrld $2, %%xmm4\n\t"    /* packed left shifting >> 2 */
+                "psrld $7, %%xmm5\n\t"    /* packed left shifting >> 7 */
+                "pxor %%xmm4, %%xmm2\n\t" /* xor the shifted versions */
+                "pxor %%xmm5, %%xmm2\n\t"
+                "pxor %%xmm0, %%xmm2\n\t"
+                "pxor %%xmm2, %%xmm3\n\t"
+                "pxor %%xmm3, %%xmm6\n\t" /* the result is in xmm6 */
+
+                /* le => be */
+                "pshufb %[be_mask], %%xmm6\n\t"
+
+                "movdqu %%xmm6, (%[result])\n\t" /* store the result */
+                :
+                : [result] "r" (result), [buf] "m" (*buf),
+                  [hsub] "m" (*c->u_iv.iv), [be_mask] "m" (*be_mask)
+                : "memory" );
+}
+
+#endif /*GCM_USE_INTEL_PCLMUL*/
+
+
+static void
+ghash (gcry_cipher_hd_t c, unsigned char *result, const unsigned char *buf)
+{
+  if (0)
+    ;
+#ifdef GCM_USE_INTEL_PCLMUL
+  else if (c->u_mode.gcm.use_intel_pclmul)
+    {
+      /* TODO: Loop structure, use bit-reflection and add faster bulk
+               processing (parallel four blocks). */
+      do_ghash_pclmul (c, result, buf);
+
+      /* Clear used registers. */
+      asm volatile( "pxor %%xmm0, %%xmm0\n\t"
+                    "pxor %%xmm1, %%xmm1\n\t"
+                    "pxor %%xmm2, %%xmm2\n\t"
+                    "pxor %%xmm3, %%xmm3\n\t"
+                    "pxor %%xmm4, %%xmm4\n\t"
+                    "pxor %%xmm5, %%xmm5\n\t"
+                    "pxor %%xmm6, %%xmm6\n\t"
+                    "pxor %%xmm7, %%xmm7\n\t"
+                    ::: "cc" );
+    }
 #endif
+  else
+    GHASH (c, result, buf);
+}
+
+static void
+setupM (gcry_cipher_hd_t c, byte *h)
+{
+  if (0)
+    ;
+#ifdef GCM_USE_INTEL_PCLMUL
+  else if (_gcry_get_hw_features () & HWF_INTEL_PCLMUL)
+    {
+      u64 tmp[2];
+
+      c->u_mode.gcm.use_intel_pclmul = 1;
+
+      /* Swap endianness of hsub. */
+      tmp[0] = buf_get_be64(c->u_iv.iv + 8);
+      tmp[1] = buf_get_be64(c->u_iv.iv + 0);
+      buf_cpy (c->u_iv.iv, tmp, 16);
+    }
+#endif
+  else
+    fillM (c, h);
+}
 
 
 gcry_err_code_t
@@ -389,12 +536,12 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
         {
           buf_xor_2dst (outbuf, tmp, inbuf, n);
           memset (tmp + n, 0, blocksize - n);
-          GHASH (c, c->u_tag.tag, tmp);
+          ghash (c, c->u_mode.gcm.u_tag.tag, tmp);
         }
       else
         {
           buf_xor (outbuf, tmp, inbuf, n);
-          GHASH (c, c->u_tag.tag, outbuf);
+          ghash (c, c->u_mode.gcm.u_tag.tag, outbuf);
         }
 
       inbuflen -= n;
@@ -442,11 +589,11 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
         {
           memcpy (tmp, inbuf, n);
           memset (tmp + n, 0, blocksize - n);
-          GHASH (c, c->u_tag.tag, tmp);
+          ghash (c, c->u_mode.gcm.u_tag.tag, tmp);
         }
       else
         {
-          GHASH (c, c->u_tag.tag, inbuf);
+          ghash (c, c->u_mode.gcm.u_tag.tag, inbuf);
         }
 
       i = blocksize - 1;
@@ -490,7 +637,7 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
 
   while (aadbuflen >= blocksize)
     {
-      GHASH (c, c->u_tag.tag, aadbuf);
+      ghash (c, c->u_mode.gcm.u_tag.tag, aadbuf);
 
       aadbuflen -= blocksize;
       aadbuf += blocksize;
@@ -501,7 +648,7 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
       memcpy (tmp, aadbuf, aadbuflen);
       memset (tmp + aadbuflen, 0, blocksize - aadbuflen);
 
-      GHASH (c, c->u_tag.tag, tmp);
+      ghash (c, c->u_mode.gcm.u_tag.tag, tmp);
     }
 
   return 0;
@@ -512,10 +659,10 @@ _gcry_cipher_gcm_setiv (gcry_cipher_hd_t c,
                         const byte * iv, unsigned int ivlen)
 {
   memset (c->length, 0, 16);
-  memset (c->u_tag.tag, 0, 16);
-  c->spec->encrypt (&c->context.c, c->u_iv.iv, c->u_tag.tag);
+  memset (c->u_mode.gcm.u_tag.tag, 0, 16);
+  c->spec->encrypt (&c->context.c, c->u_iv.iv, c->u_mode.gcm.u_tag.tag);
 
-  fillM (c->u_iv.iv, c->gcm_table);
+  setupM (c, c->u_iv.iv);
 
   if (ivlen != 16 - 4)
     {
@@ -523,12 +670,12 @@ _gcry_cipher_gcm_setiv (gcry_cipher_hd_t c,
       unsigned n;
       memset (c->u_ctr.ctr, 0, 16);
       for (n = ivlen; n >= 16; n -= 16, iv += 16)
-        GHASH (c, c->u_ctr.ctr, iv);
+        ghash (c, c->u_ctr.ctr, iv);
       if (n != 0)
         {
           memcpy (tmp, iv, n);
           memset (tmp + n, 0, 16 - n);
-          GHASH (c, c->u_ctr.ctr, tmp);
+          ghash (c, c->u_ctr.ctr, tmp);
         }
       memset (tmp, 0, 16);
       n = 16;
@@ -537,7 +684,7 @@ _gcry_cipher_gcm_setiv (gcry_cipher_hd_t c,
       n--;
       for (; n > 0; n--, ivlen >>= 8)
         tmp[n - 1] = ivlen & 0xff;
-      GHASH (c, c->u_ctr.ctr, tmp);
+      ghash (c, c->u_ctr.ctr, tmp);
     }
   else
     {
@@ -560,19 +707,19 @@ _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
 
   if (!c->marks.tag)
     {
-      GHASH (c, c->u_tag.tag, c->length);
-      buf_xor (c->u_tag.tag, c->lastiv, c->u_tag.tag, 16);
+      ghash (c, c->u_mode.gcm.u_tag.tag, c->length);
+      buf_xor (c->u_mode.gcm.u_tag.tag, c->lastiv, c->u_mode.gcm.u_tag.tag, 16);
       c->marks.tag = 1;
     }
 
   if (!check)
     {
-      memcpy (outbuf, c->u_tag.tag, outbuflen);
+      memcpy (outbuf, c->u_mode.gcm.u_tag.tag, outbuflen);
       return GPG_ERR_NO_ERROR;
     }
   else
     {
-      return buf_eq_const(outbuf, c->u_tag.tag, outbuflen) ?
+      return buf_eq_const(outbuf, c->u_mode.gcm.u_tag.tag, outbuflen) ?
                GPG_ERR_NO_ERROR : GPG_ERR_CHECKSUM;
     }
 

@@ -39,6 +39,18 @@
 #define GCM_USE_TABLES 1
 
 
+/* GCM_USE_INTEL_PCLMUL inidicates whether to compile GCM with Intel PCLMUL
+   code.  */
+#undef GCM_USE_INTEL_PCLMUL
+#if defined(ENABLE_PCLMUL_SUPPORT) && defined(GCM_USE_TABLES)
+# if ((defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__))
+#  if __GNUC__ >= 4
+#   define GCM_USE_INTEL_PCLMUL 1
+#  endif
+# endif
+#endif /* GCM_USE_INTEL_PCLMUL */
+
+
 /* A VIA processor with the Padlock engine as well as the Intel AES_NI
    instructions require an alignment of most data on a 16 byte
    boundary.  Because we trick out the compiler while allocating the
@@ -118,26 +130,10 @@ struct gcry_cipher_handle
     unsigned char ctr[MAX_BLOCKSIZE];
   } u_ctr;
 
-  /* The interim tag for GCM mode.  */
-  union {
-    cipher_context_alignment_t iv_align;
-    unsigned char tag[MAX_BLOCKSIZE];
-  } u_tag;
-
   /* Space to save an IV or CTR for chaining operations.  */
   unsigned char lastiv[MAX_BLOCKSIZE];
   int unused;  /* Number of unused bytes in LASTIV. */
   unsigned char length[MAX_BLOCKSIZE]; /* bit counters for GCM */
-#ifdef GCM_USE_TABLES
- #if defined(HAVE_U64_TYPEDEF) && \
-     (SIZEOF_UNSIGNED_LONG == 8 || defined(__x86_64__))
-  #define GCM_TABLES_USE_U64 1
-  u64 gcm_table[2 * 16]; /* pre-calculated table for GCM */
- #else
-  #undef GCM_TABLES_USE_U64
-  u32 gcm_table[4 * 16]; /* pre-calculated table for GCM */
- #endif
-#endif
 
   union {
     /* Mode specific storage for CCM mode. */
@@ -156,6 +152,7 @@ struct gcry_cipher_handle
       unsigned int lengths:1; /* Set to 1 if CCM length parameters has been
                                  processed.  */
     } ccm;
+
     /* Mode specific storage for CMAC mode. */
     struct {
       unsigned int tag:1; /* Set to 1 if tag has been finalized.  */
@@ -163,8 +160,32 @@ struct gcry_cipher_handle
       /* Subkeys for tag creation, not cleared by gcry_cipher_reset. */
       unsigned char subkeys[2][MAX_BLOCKSIZE];
     } cmac;
-  } u_mode;
 
+    /* Mode specific storage for GCM mode. */
+    struct {
+      /* The interim tag for GCM mode.  */
+      union {
+        cipher_context_alignment_t iv_align;
+        unsigned char tag[MAX_BLOCKSIZE];
+      } u_tag;
+
+      /* Pre-calculated table for GCM. */
+#ifdef GCM_USE_TABLES
+ #if defined(HAVE_U64_TYPEDEF) && (SIZEOF_UNSIGNED_LONG == 8 \
+                                   || defined(__x86_64__))
+      #define GCM_TABLES_USE_U64 1
+      u64 gcm_table[2 * 16];
+ #else
+      #undef GCM_TABLES_USE_U64
+      u32 gcm_table[4 * 16];
+ #endif
+#endif
+
+#ifdef GCM_USE_INTEL_PCLMUL
+      unsigned int use_intel_pclmul:1;
+#endif
+    } gcm;
+  } u_mode;
 
   /* What follows are two contexts of the cipher in use.  The first
      one needs to be aligned well enough for the cipher operation

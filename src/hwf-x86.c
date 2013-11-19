@@ -201,6 +201,11 @@ detect_x86_gnuc (void)
   /* Get CPU info and Intel feature flags (ECX).  */
   get_cpuid(1, NULL, NULL, &features, NULL);
 
+#ifdef ENABLE_PCLMUL_SUPPORT
+  /* Test bit 1 for PCLMUL.  */
+  if (features & 0x00000002)
+     result |= HWF_INTEL_PCLMUL;
+#endif
 #ifdef ENABLE_AESNI_SUPPORT
   /* Test bit 25 for AES-NI.  */
   if (features & 0x02000000)
