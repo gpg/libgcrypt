@@ -1213,7 +1213,7 @@ _gcry_camellia_aesni_avx_cfb_dec:
 	/* input rotation for sbox4 (<<< 1) */ \
 	vpand x, sbox4mask, t0; \
 	vpandn x, sbox4mask, x; \
-	vpsllw $1, t0, t1; \
+	vpaddw t0, t0, t1; \
 	vpsrlw $7, t0, t0; \
 	vpor t0, t1, t0; \
 	vpand sbox4mask, t0, t0; \
@@ -1238,34 +1238,22 @@ _gcry_camellia_aesni_avx_cfb_dec:
 	vpor sbox2mask, t4, t2; \
 	vpand x, sbox2mask, t0; \
 	vpand x, t4, t1; \
-	vpandn x, t2, x; \
-	vpsllw $1, t0, t2; \
+	vpaddb x, x, t2; \
+	vpshufb .Lsp1110111044044404mask RIP, x, t4; \
+	vpshufb .Lsp0044440410011110mask RIP, x, x; \
 	vpsrlw $7, t0, t0; \
-	vpor t0, t2, t0; \
-	vpand sbox2mask, t0, t0; \
-	vpsllw $7, t1, t2; \
+	vpsllw $7, t1, t3; \
 	vpsrlw $1, t1, t1; \
-	vpor t1, t2, t1; \
-	vpand t4, t1, t1; \
-	vpor x, t0, x; \
-	vpor x, t1, x; \
+	vpor t0, t2, t0; \
+	vpshufb .Lsp0222022222000222mask RIP, t0, t0; \
+	vpor t1, t3, t1; \
+	vpshufb .Lsp3033303303303033mask RIP, t1, t1; \
 	\
-	vpshufb .Lsp11101110mask RIP, x, t4; \
-	vpshufb .Lsp44044404mask RIP, x, t1; \
-	vpshufb .Lsp30333033mask RIP, x, t2; \
-	vpshufb .Lsp02220222mask RIP, x, t0; \
-	vpxor t2, t1, t1; \
-	\
-	vpshufb .Lsp00444404mask RIP, x, t2; \
-	vpxor t0, t1, t1; \
-	vpshufb .Lsp03303033mask RIP, x, t0; \
-	vpxor t2, t4, t4; \
-	vpshufb .Lsp22000222mask RIP, x, t2; \
-	vpxor t0, t1, t1; \
-	vpxor t2, t4, t4; \
-	vpshufb .Lsp10011110mask RIP, x, x; \
-	vpxor t1, x, x; \
-	vpxor t4, x, x;
+	vpxor x, t4, t4; \
+	vpxor t1, t0, t0; \
+	vpxor t4, t0, t0; \
+	vpsrldq $8, t0, x; \
+	vpxor t0, x, x;
 
 #define vec_rol128(in, out, nrol, t0) \
 	vpshufd $0x4e, in, out; \
@@ -1281,29 +1269,25 @@ _gcry_camellia_aesni_avx_cfb_dec:
 
 .data
 
-.align 8
+.align 16
+.Lsp1110111044044404mask:
+	.long 0x000000ff, 0x000000ff;
+	.long 0x0101ff01, 0x0101ff01;
+.Lsp0044440410011110mask:
+	.long 0xffff0404, 0x0404ff04;
+	.long 0x07ffff07, 0x070707ff;
+.Lsp0222022222000222mask:
+	.long 0xff030303, 0xff030303;
+	.long 0x0606ffff, 0xff060606;
+.Lsp3033303303303033mask:
+	.long 0x02ff0202, 0x02ff0202;
+	.long 0xff0505ff, 0x05ff0505;
 .Lsbox2_output_mask:
 	.byte 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0xff, 0x00;
 .Lsbox3_output_mask:
 	.byte 0x00, 0x00, 0xff, 0x00, 0x00, 0xff, 0x00, 0x00;
 .Lsbox4_input_mask:
 	.byte 0x00, 0xff, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00;
-.Lsp11101110mask:
-	.long 0x000000ff, 0x000000ff;
-.Lsp44044404mask:
-	.long 0x0101ff01, 0x0101ff01;
-.Lsp30333033mask:
-	.long 0x02ff0202, 0x02ff0202;
-.Lsp02220222mask:
-	.long 0xff030303, 0xff030303;
-.Lsp00444404mask:
-	.long 0xffff0404, 0x0404ff04;
-.Lsp03303033mask:
-	.long 0xff0505ff, 0x05ff0505;
-.Lsp22000222mask:
-	.long 0x0606ffff, 0xff060606;
-.Lsp10011110mask:
-	.long 0x07ffff07, 0x070707ff;
 .Lsigma1:
 	.long 0x3BCC908B, 0xA09E667F;
 .Lsigma2:
