@@ -179,6 +179,25 @@ struct gcry_cipher_handle
       /* encrypted tag counter */
       unsigned char tagiv[MAX_BLOCKSIZE];
 
+      unsigned int ghash_data_finalized:1;
+      unsigned int ghash_aad_finalized:1;
+
+      unsigned int datalen_over_limits:1;
+      unsigned int disallow_encryption_because_of_setiv_in_fips_mode:1;
+
+      /* --- Following members are not cleared in gcry_cipher_reset --- */
+
+      /* GHASH multiplier from key.  */
+      union {
+        cipher_context_alignment_t iv_align;
+        unsigned char key[MAX_BLOCKSIZE];
+      } u_ghash_key;
+
+#ifdef GCM_USE_INTEL_PCLMUL
+      /* Use Intel PCLMUL instructions for accelerated GHASH. */
+      unsigned int use_intel_pclmul:1;
+#endif
+
       /* Pre-calculated table for GCM. */
 #ifdef GCM_USE_TABLES
  #if defined(HAVE_U64_TYPEDEF) && (SIZEOF_UNSIGNED_LONG == 8 \
@@ -189,15 +208,6 @@ struct gcry_cipher_handle
       #undef GCM_TABLES_USE_U64
       u32 gcm_table[4 * 16];
  #endif
-#endif
-
-      unsigned int ghash_data_finalized:1;
-      unsigned int ghash_aad_finalized:1;
-
-      unsigned int datalen_over_limits:1;
-      unsigned int disallow_encryption_because_of_setiv_in_fips_mode:1;
-#ifdef GCM_USE_INTEL_PCLMUL
-      unsigned int use_intel_pclmul:1;
 #endif
     } gcm;
   } u_mode;
@@ -302,6 +312,8 @@ gcry_err_code_t _gcry_cipher_gcm_get_tag
 gcry_err_code_t _gcry_cipher_gcm_check_tag
 /*           */   (gcry_cipher_hd_t c,
                    const unsigned char *intag, size_t taglen);
+void _gcry_cipher_gcm_setkey
+/*           */   (gcry_cipher_hd_t c);
 
 
 #endif /*G10_CIPHER_INTERNAL_H*/

@@ -344,7 +344,7 @@ do_ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
 }
 
 #define fillM(c, h) do { } while (0)
-#define GHASH(c, result, buf) do_ghash (c->u_iv.iv, result, buf)
+#define GHASH(c, result, buf) do_ghash (c->u_mode.gcm.u_ghash_key.key, result, buf)
 
 #endif /* !GCM_USE_TABLES */
 
@@ -581,7 +581,7 @@ ghash (gcry_cipher_hd_t c, byte *result, const byte *buf,
                     "pshufb %[be_mask], %%xmm1\n\t" /* be => le */
                     :
                     : [hash] "m" (*result), [be_mask] "m" (*be_mask),
-                      [hsub] "m" (*c->u_iv.iv));
+                      [hsub] "m" (*c->u_mode.gcm.u_ghash_key.key));
 
 #ifdef __x86_64__
       if (nblocks >= 4)
@@ -687,9 +687,9 @@ setupM (gcry_cipher_hd_t c, byte *h)
       c->u_mode.gcm.use_intel_pclmul = 1;
 
       /* Swap endianness of hsub. */
-      tmp[0] = buf_get_be64(c->u_iv.iv + 8);
-      tmp[1] = buf_get_be64(c->u_iv.iv + 0);
-      buf_cpy (c->u_iv.iv, tmp, GCRY_GCM_BLOCK_LEN);
+      tmp[0] = buf_get_be64(c->u_mode.gcm.u_ghash_key.key + 8);
+      tmp[1] = buf_get_be64(c->u_mode.gcm.u_ghash_key.key + 0);
+      buf_cpy (c->u_mode.gcm.u_ghash_key.key, tmp, GCRY_GCM_BLOCK_LEN);
 
 #ifdef __x86_64__
       asm volatile ("movdqu %[h_1], %%xmm0\n\t"
@@ -982,6 +982,17 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
 }
 
 
+void
+_gcry_cipher_gcm_setkey (gcry_cipher_hd_t c)
+{
+  memset (c->u_mode.gcm.u_ghash_key.key, 0, GCRY_GCM_BLOCK_LEN);
+
+  c->spec->encrypt (&c->context.c, c->u_mode.gcm.u_ghash_key.key,
+                    c->u_mode.gcm.u_ghash_key.key);
+  setupM (c, c->u_mode.gcm.u_ghash_key.key);
+}
+
+
 static gcry_err_code_t
 _gcry_cipher_gcm_initiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 {
@@ -994,10 +1005,6 @@ _gcry_cipher_gcm_initiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 
   if (ivlen == 0)
     return GPG_ERR_INV_LENGTH;
-
-  c->spec->encrypt (&c->context.c, c->u_iv.iv, c->u_mode.gcm.u_tag.tag);
-
-  setupM (c, c->u_iv.iv);
 
   if (ivlen != GCRY_GCM_BLOCK_LEN - 4)
     {

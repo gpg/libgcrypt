@@ -593,6 +593,11 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
         case GCRY_CIPHER_MODE_CMAC:
           _gcry_cipher_cmac_set_subkeys (c);
           break;
+
+        case GCRY_CIPHER_MODE_GCM:
+          _gcry_cipher_gcm_setkey (c);
+          break;
+
         default:
           break;
         };
@@ -670,9 +675,23 @@ cipher_reset (gcry_cipher_hd_t c)
       c->u_mode.cmac.tag = 0;
       break;
 
-    default:
-      memset (&c->u_mode, 0, sizeof c->u_mode);
+    case GCRY_CIPHER_MODE_GCM:
+      /* Only clear head of u_mode, keep ghash_key and gcm_table. */
+      {
+        byte *u_mode_pos = (void *)&c->u_mode;
+        byte *ghash_key_pos = c->u_mode.gcm.u_ghash_key.key;
+        size_t u_mode_head_length = ghash_key_pos - u_mode_pos;
+
+        memset (&c->u_mode, 0, u_mode_head_length);
+      }
       break;
+
+    case GCRY_CIPHER_MODE_CCM:
+      memset (&c->u_mode.ccm, 0, sizeof c->u_mode.ccm);
+      break;
+
+    default:
+      break; /* u_mode unused by other modes. */
     }
 }
 
