@@ -168,6 +168,10 @@ struct gcry_cipher_handle
         unsigned char tag[MAX_BLOCKSIZE];
       } u_tag;
 
+      /* Space to save partial input lengths for MAC. */
+      unsigned char macbuf[GCRY_CCM_BLOCK_LEN];
+      int mac_unused;  /* Number of unprocessed bytes in MACBUF. */
+
       /* byte counters for GCM */
       u32 aadlen[2];
       u32 datalen[2];
@@ -186,6 +190,9 @@ struct gcry_cipher_handle
       u32 gcm_table[4 * 16];
  #endif
 #endif
+
+      unsigned int ghash_data_finalized:1;
+      unsigned int ghash_aad_finalized:1;
 
       unsigned int datalen_over_limits:1;
       unsigned int disallow_encryption_because_of_setiv_in_fips_mode:1;

@@ -806,30 +806,60 @@ gcm_check_aadlen_or_ivlen (u32 ctr[2])
 
 
 static void
-do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte * buf,
-             size_t buflen)
+do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte *buf,
+             size_t buflen, int do_padding)
 {
-  unsigned char tmp[MAX_BLOCKSIZE];
   unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
-  size_t nblocks;
+  unsigned int unused = c->u_mode.gcm.mac_unused;
+  size_t nblocks, n;
   unsigned int burn = 0;
 
-  nblocks = buflen / blocksize;
+  if (buflen == 0 && (unused == 0 || !do_padding))
+    return;
 
-  if (nblocks)
+  do
     {
-      burn = ghash (c, hash, buf, nblocks);
-      buf += blocksize * nblocks;
-      buflen -= blocksize * nblocks;
-    }
+      if (buflen + unused < blocksize || unused > 0)
+        {
+          n = blocksize - unused;
+          n = n < buflen ? n : buflen;
 
-  if (buflen)
-    {
-      buf_cpy (tmp, buf, buflen);
-      memset (tmp + buflen, 0, blocksize - buflen);
-      burn = ghash (c, hash, tmp, 1);
-      wipememory (tmp, sizeof(tmp));
+          buf_cpy (&c->u_mode.gcm.macbuf[unused], buf, n);
+
+          unused += n;
+          buf += n;
+          buflen -= n;
+        }
+      if (!buflen)
+        {
+          if (!do_padding)
+            break;
+
+          while (unused < blocksize)
+            c->u_mode.gcm.macbuf[unused++] = 0;
+        }
+
+      if (unused > 0)
+        {
+          gcry_assert (unused == blocksize);
+
+          /* Process one block from macbuf.  */
+          burn = ghash (c, hash, c->u_mode.gcm.macbuf, 1);
+          unused = 0;
+        }
+
+      nblocks = buflen / blocksize;
+
+      if (nblocks)
+        {
+          burn = ghash (c, hash, buf, nblocks);
+          buf += blocksize * nblocks;
+          buflen -= blocksize * nblocks;
+        }
     }
+  while (buflen > 0);
+
+  c->u_mode.gcm.mac_unused = unused;
 
   if (burn)
     _gcry_burn_stack (burn);
@@ -850,7 +880,7 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
     return GPG_ERR_BUFFER_TOO_SHORT;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
-  if (c->marks.tag)
+  if (c->marks.tag || c->u_mode.gcm.ghash_data_finalized)
     return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
@@ -858,6 +888,13 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
 
   if (c->u_mode.gcm.disallow_encryption_because_of_setiv_in_fips_mode)
     return GPG_ERR_INV_STATE;
+
+  if (!c->u_mode.gcm.ghash_aad_finalized)
+    {
+      /* Start of encryption marks end of AAD stream. */
+      do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, NULL, 0, 1);
+      c->u_mode.gcm.ghash_aad_finalized = 1;
+    }
 
   gcm_bytecounter_add(c->u_mode.gcm.datalen, inbuflen);
   if (!gcm_check_datalen(c->u_mode.gcm.datalen))
@@ -870,7 +907,7 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
   if (err != 0)
     return err;
 
-  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, outbuf, inbuflen);
+  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, outbuf, inbuflen, 0);
 
   return 0;
 }
@@ -889,11 +926,18 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
     return GPG_ERR_BUFFER_TOO_SHORT;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
-  if (c->marks.tag)
+  if (c->marks.tag || c->u_mode.gcm.ghash_data_finalized)
     return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
     _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
+
+  if (!c->u_mode.gcm.ghash_aad_finalized)
+    {
+      /* Start of decryption marks end of AAD stream. */
+      do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, NULL, 0, 1);
+      c->u_mode.gcm.ghash_aad_finalized = 1;
+    }
 
   gcm_bytecounter_add(c->u_mode.gcm.datalen, inbuflen);
   if (!gcm_check_datalen(c->u_mode.gcm.datalen))
@@ -902,7 +946,7 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
-  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, inbuf, inbuflen);
+  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, inbuf, inbuflen, 0);
 
   return _gcry_cipher_ctr_encrypt(c, outbuf, outbuflen, inbuf, inbuflen);
 }
@@ -918,7 +962,8 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
     return GPG_ERR_CIPHER_ALGO;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
-  if (c->marks.tag)
+  if (c->marks.tag || c->u_mode.gcm.ghash_aad_finalized ||
+      c->u_mode.gcm.ghash_data_finalized)
     return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
@@ -931,7 +976,7 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
       return GPG_ERR_INV_LENGTH;
     }
 
-  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, aadbuf, aadbuflen);
+  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, aadbuf, aadbuflen, 0);
 
   return 0;
 }
@@ -944,6 +989,8 @@ _gcry_cipher_gcm_initiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
   memset (c->u_mode.gcm.datalen, 0, sizeof(c->u_mode.gcm.datalen));
   memset (c->u_mode.gcm.u_tag.tag, 0, GCRY_GCM_BLOCK_LEN);
   c->u_mode.gcm.datalen_over_limits = 0;
+  c->u_mode.gcm.ghash_data_finalized = 0;
+  c->u_mode.gcm.ghash_aad_finalized = 0;
 
   if (ivlen == 0)
     return GPG_ERR_INV_LENGTH;
@@ -966,7 +1013,7 @@ _gcry_cipher_gcm_initiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
           return GPG_ERR_INV_LENGTH;
         }
 
-      do_ghash_buf(c, c->u_ctr.ctr, iv, ivlen);
+      do_ghash_buf(c, c->u_ctr.ctr, iv, ivlen, 1);
 
       /* iv length, 64-bit */
       bitlengths[1][1] = be_bswap32(iv_bytes[0] << 3);
@@ -976,10 +1023,10 @@ _gcry_cipher_gcm_initiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
       bitlengths[0][1] = 0;
       bitlengths[0][0] = 0;
 
-      do_ghash_buf(c, c->u_ctr.ctr, (byte*)bitlengths, GCRY_GCM_BLOCK_LEN);
+      do_ghash_buf(c, c->u_ctr.ctr, (byte*)bitlengths, GCRY_GCM_BLOCK_LEN, 1);
 
-      wipememory(iv_bytes, sizeof iv_bytes);
-      wipememory(bitlengths, sizeof bitlengths);
+      wipememory (iv_bytes, sizeof iv_bytes);
+      wipememory (bitlengths, sizeof bitlengths);
     }
   else
     {
@@ -1073,13 +1120,23 @@ _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
       bitlengths[1][0] = be_bswap32((c->u_mode.gcm.datalen[0] >> 29) |
                                     (c->u_mode.gcm.datalen[1] << 3));
 
+      /* Finalize data-stream. */
+      do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, NULL, 0, 1);
+      c->u_mode.gcm.ghash_aad_finalized = 1;
+      c->u_mode.gcm.ghash_data_finalized = 1;
+
+      /* Add bitlengths to tag. */
       do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, (byte*)bitlengths,
-                   GCRY_GCM_BLOCK_LEN);
+                   GCRY_GCM_BLOCK_LEN, 1);
       buf_xor (c->u_mode.gcm.u_tag.tag, c->u_mode.gcm.tagiv,
                c->u_mode.gcm.u_tag.tag, GCRY_GCM_BLOCK_LEN);
       c->marks.tag = 1;
 
-      wipememory(bitlengths, sizeof bitlengths);
+      wipememory (bitlengths, sizeof (bitlengths));
+      wipememory (c->u_mode.gcm.macbuf, GCRY_GCM_BLOCK_LEN);
+      wipememory (c->u_mode.gcm.tagiv, GCRY_GCM_BLOCK_LEN);
+      wipememory (c->u_mode.gcm.aadlen, sizeof (c->u_mode.gcm.aadlen));
+      wipememory (c->u_mode.gcm.datalen, sizeof (c->u_mode.gcm.datalen));
     }
 
   if (!check)

@@ -1138,7 +1138,7 @@ check_ofb_cipher (void)
 }
 
 static void
-check_gcm_cipher (void)
+_check_gcm_cipher (unsigned int step)
 {
   struct tv
   {
@@ -1275,8 +1275,11 @@ check_gcm_cipher (void)
 
   gcry_cipher_hd_t hde, hdd;
   unsigned char out[MAX_DATA_LEN];
+  unsigned char tag[GCRY_GCM_BLOCK_LEN];
   int i, keylen;
   gcry_error_t err = 0;
+  size_t pos, poslen;
+  int byteNum;
 
   if (verbose)
     fprintf (stderr, "  Starting GCM checks.\n");
@@ -1327,56 +1330,68 @@ check_gcm_cipher (void)
           return;
         }
 
-      err = gcry_cipher_authenticate(hde, tv[i].aad, tv[i].aadlen);
-      if (err)
+      for (pos = 0; pos < tv[i].aadlen; pos += step)
         {
-          fail ("aes-gcm, gcry_cipher_authenticate (%d) failed: %s\n",
-                i, gpg_strerror (err));
-          gcry_cipher_close (hde);
-          gcry_cipher_close (hdd);
-          return;
-        }
-      if (!err)
-        err = gcry_cipher_authenticate(hdd, tv[i].aad, tv[i].aadlen);
-      if (err)
-        {
-          fail ("aes-gcm, de gcry_cipher_authenticate (%d) failed: %s\n",
-                i, gpg_strerror (err));
-          gcry_cipher_close (hde);
-          gcry_cipher_close (hdd);
-          return;
+          poslen = (pos + step < tv[i].aadlen) ? step : tv[i].aadlen - pos;
+
+          err = gcry_cipher_authenticate(hde, tv[i].aad + pos, poslen);
+          if (err)
+            {
+              fail ("aes-gcm, gcry_cipher_authenticate (%d) (%d:%d) failed: "
+                    "%s\n", i, pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+          err = gcry_cipher_authenticate(hdd, tv[i].aad + pos, poslen);
+          if (err)
+            {
+              fail ("aes-gcm, de gcry_cipher_authenticate (%d) (%d:%d) failed: "
+	            "%s\n", i, pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
         }
 
-      err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
-                                 tv[i].plaintext,
-                                 tv[i].inlen);
-      if (err)
+      for (pos = 0; pos < tv[i].inlen; pos += step)
         {
-          fail ("aes-gcm, gcry_cipher_encrypt (%d) failed: %s\n",
-                i, gpg_strerror (err));
-          gcry_cipher_close (hde);
-          gcry_cipher_close (hdd);
-          return;
+          poslen = (pos + step < tv[i].inlen) ? step : tv[i].inlen - pos;
+
+          err = gcry_cipher_encrypt (hde, out + pos, poslen,
+                                     tv[i].plaintext + pos, poslen);
+          if (err)
+            {
+              fail ("aes-gcm, gcry_cipher_encrypt (%d) (%d:%d) failed: %s\n",
+                    i, pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
         }
 
       if (memcmp (tv[i].out, out, tv[i].inlen))
-        fail ("aes-gcm, encrypt mismatch entry %d\n", i);
+        fail ("aes-gcm, encrypt mismatch entry %d (step %d)\n", i, step);
 
-      err = gcry_cipher_decrypt (hdd, out, tv[i].inlen, NULL, 0);
-      if (err)
+      for (pos = 0; pos < tv[i].inlen; pos += step)
         {
-          fail ("aes-gcm, gcry_cipher_decrypt (%d) failed: %s\n",
-                i, gpg_strerror (err));
-          gcry_cipher_close (hde);
-          gcry_cipher_close (hdd);
-          return;
+          poslen = (pos + step < tv[i].inlen) ? step : tv[i].inlen - pos;
+
+          err = gcry_cipher_decrypt (hdd, out + pos, poslen, NULL, 0);
+          if (err)
+            {
+              fail ("aes-gcm, gcry_cipher_decrypt (%d) (%d:%d) failed: %s\n",
+                    i, pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
         }
 
       if (memcmp (tv[i].plaintext, out, tv[i].inlen))
-        fail ("aes-gcm, decrypt mismatch entry %d\n", i);
+        fail ("aes-gcm, decrypt mismatch entry %d (step %d)\n", i, step);
 
-#define TAGLEN 16
-      err = gcry_cipher_gettag (hde, out, TAGLEN); /* FIXME */
+      err = gcry_cipher_gettag (hde, out, GCRY_GCM_BLOCK_LEN);
       if (err)
         {
           fail ("aes-gcm, gcry_cipher_gettag(%d) failed: %s\n",
@@ -1386,11 +1401,11 @@ check_gcm_cipher (void)
           return;
         }
 
-      if (memcmp (tv[i].tag, out, TAGLEN))
+      if (memcmp (tv[i].tag, out, GCRY_GCM_BLOCK_LEN))
         fail ("aes-gcm, encrypt tag mismatch entry %d\n", i);
 
 
-      err = gcry_cipher_checktag (hdd, out, TAGLEN);
+      err = gcry_cipher_checktag (hdd, out, GCRY_GCM_BLOCK_LEN);
       if (err)
         {
           fail ("aes-gcm, gcry_cipher_checktag(%d) failed: %s\n",
@@ -1412,8 +1427,6 @@ check_gcm_cipher (void)
           return;
         }
 
-
-#if 0
       /* gcry_cipher_reset clears the IV */
       err = gcry_cipher_setiv (hde, tv[i].iv, tv[i].ivlen);
       if (!err)
@@ -1427,8 +1440,29 @@ check_gcm_cipher (void)
           return;
         }
 
-      /* this time we encrypt and decrypt one byte at a time */
-      int byteNum;
+      /* this time we authenticate, encrypt and decrypt one byte at a time */
+      for (byteNum = 0; byteNum < tv[i].aadlen; ++byteNum)
+        {
+          err = gcry_cipher_authenticate(hde, tv[i].aad + byteNum, 1);
+          if (err)
+            {
+              fail ("aes-gcm, gcry_cipher_authenticate (%d) (byte-buf) failed: "
+                    "%s\n", i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+          err = gcry_cipher_authenticate(hdd, tv[i].aad + byteNum, 1);
+          if (err)
+            {
+              fail ("aes-gcm, de gcry_cipher_authenticate (%d) (byte-buf) "
+	            "failed: %s\n", i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
       for (byteNum = 0; byteNum < tv[i].inlen; ++byteNum)
         {
           err = gcry_cipher_encrypt (hde, out+byteNum, 1,
@@ -1436,7 +1470,7 @@ check_gcm_cipher (void)
                                      1);
           if (err)
             {
-              fail ("aes-gcm, gcry_cipher_encrypt (%d) failed: %s\n",
+              fail ("aes-gcm, gcry_cipher_encrypt (%d) (byte-buf) failed: %s\n",
                     i,  gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
@@ -1445,14 +1479,27 @@ check_gcm_cipher (void)
         }
 
       if (memcmp (tv[i].out, out, tv[i].inlen))
-        fail ("aes-gcm, encrypt mismatch entry %d\n", i);
+        fail ("aes-gcm, encrypt mismatch entry %d, (byte-buf)\n", i);
+
+      err = gcry_cipher_gettag (hde, tag, GCRY_GCM_BLOCK_LEN);
+      if (err)
+        {
+          fail ("aes-gcm, gcry_cipher_gettag(%d) (byte-buf) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      if (memcmp (tv[i].tag, tag, GCRY_GCM_BLOCK_LEN))
+        fail ("aes-gcm, encrypt tag mismatch entry %d, (byte-buf)\n", i);
 
       for (byteNum = 0; byteNum < tv[i].inlen; ++byteNum)
         {
           err = gcry_cipher_decrypt (hdd, out+byteNum, 1, NULL, 0);
           if (err)
             {
-              fail ("aes-gcm, gcry_cipher_decrypt (%d) failed: %s\n",
+              fail ("aes-gcm, gcry_cipher_decrypt (%d) (byte-buf) failed: %s\n",
                     i, gpg_strerror (err));
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
@@ -1462,13 +1509,36 @@ check_gcm_cipher (void)
 
       if (memcmp (tv[i].plaintext, out, tv[i].inlen))
         fail ("aes-gcm, decrypt mismatch entry %d\n", i);
-#endif
+
+      err = gcry_cipher_checktag (hdd, tag, GCRY_GCM_BLOCK_LEN);
+      if (err)
+        {
+          fail ("aes-gcm, gcry_cipher_checktag(%d) (byte-buf) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
 
       gcry_cipher_close (hde);
       gcry_cipher_close (hdd);
     }
   if (verbose)
     fprintf (stderr, "  Completed GCM checks.\n");
+}
+
+
+static void
+check_gcm_cipher (void)
+{
+  /* Large buffers, no splitting. */
+  _check_gcm_cipher(0xffffffff);
+  /* Split input to one byte buffers. */
+  _check_gcm_cipher(1);
+  /* Split input to 7 byte buffers. */
+  _check_gcm_cipher(7);
+  /* Split input to 16 byte buffers. */
+  _check_gcm_cipher(16);
 }
 
 
