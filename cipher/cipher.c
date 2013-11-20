@@ -600,29 +600,25 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
   else
     c->marks.key = 0;
 
-
   return gcry_error (ret);
 }
 
 
 /* Set the IV to be used for the encryption context C to IV with
    length IVLEN.  The length should match the required length. */
-static void
+static gcry_err_code_t
 cipher_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 {
   /* GCM has its own IV handler */
   if (c->mode == GCRY_CIPHER_MODE_GCM)
-    {
-      _gcry_cipher_gcm_setiv (c, iv, ivlen);
-      return;
-    }
+    return _gcry_cipher_gcm_setiv (c, iv, ivlen);
 
   /* If the cipher has its own IV handler, we use only this one.  This
      is currently used for stream ciphers requiring a nonce.  */
   if (c->spec->setiv)
     {
       c->spec->setiv (&c->context.c, iv, ivlen);
-      return;
+      return 0;
     }
 
   memset (c->u_iv.iv, 0, c->spec->blocksize);
@@ -642,6 +638,8 @@ cipher_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
   else
       c->marks.iv = 0;
   c->unused = 0;
+
+  return 0;
 }
 
 
@@ -973,7 +971,7 @@ _gcry_cipher_setiv (gcry_cipher_hd_t hd, const void *iv, size_t ivlen)
         break;
 
       default:
-        cipher_setiv (hd, iv, ivlen);
+        rc = cipher_setiv (hd, iv, ivlen);
         break;
     }
   return gpg_error (rc);

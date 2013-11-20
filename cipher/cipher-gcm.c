@@ -442,8 +442,11 @@ do_ghash_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf)
 
 
 static void
-ghash (gcry_cipher_hd_t c, unsigned char *result, const unsigned char *buf)
+ghash (gcry_cipher_hd_t c, byte *result, const byte *buf,
+       unsigned int nblocks)
 {
+  const unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
+
   if (0)
     ;
 #ifdef GCM_USE_INTEL_PCLMUL
@@ -451,7 +454,12 @@ ghash (gcry_cipher_hd_t c, unsigned char *result, const unsigned char *buf)
     {
       /* TODO: Loop structure, use bit-reflection and add faster bulk
                processing (parallel four blocks). */
-      do_ghash_pclmul (c, result, buf);
+      while (nblocks)
+        {
+          do_ghash_pclmul (c, result, buf);
+          buf += blocksize;
+          nblocks--;
+        }
 
       /* Clear used registers. */
       asm volatile( "pxor %%xmm0, %%xmm0\n\t"
@@ -466,8 +474,16 @@ ghash (gcry_cipher_hd_t c, unsigned char *result, const unsigned char *buf)
     }
 #endif
   else
-    GHASH (c, result, buf);
+    {
+      while (nblocks)
+        {
+          GHASH (c, result, buf);
+          buf += blocksize;
+          nblocks--;
+        }
+    }
 }
+
 
 static void
 setupM (gcry_cipher_hd_t c, byte *h)
@@ -484,7 +500,7 @@ setupM (gcry_cipher_hd_t c, byte *h)
       /* Swap endianness of hsub. */
       tmp[0] = buf_get_be64(c->u_iv.iv + 8);
       tmp[1] = buf_get_be64(c->u_iv.iv + 0);
-      buf_cpy (c->u_iv.iv, tmp, 16);
+      buf_cpy (c->u_iv.iv, tmp, GCRY_GCM_BLOCK_LEN);
     }
 #endif
   else
@@ -492,224 +508,275 @@ setupM (gcry_cipher_hd_t c, byte *h)
 }
 
 
-gcry_err_code_t
-_gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
-                          byte * outbuf, unsigned int outbuflen,
-                          const byte * inbuf, unsigned int inbuflen)
+static inline void
+gcm_bytecounter_add (u32 ctr[2], u32 add)
 {
-  unsigned int n;
-  int i;
-  unsigned int blocksize = c->spec->blocksize;
-  unsigned char tmp[MAX_BLOCKSIZE];
+  ctr[0] += add;
+  if (ctr[0] >= add)
+    return;
+  ++ctr[1];
+}
 
-  if (blocksize >= 0x20)
-    return GPG_ERR_CIPHER_ALGO;
-  if (blocksize != 0x10)
-    return GPG_ERR_CIPHER_ALGO;
-  if (outbuflen < inbuflen)
-    return GPG_ERR_BUFFER_TOO_SHORT;
 
-  if (!c->marks.iv)
-    {
-      memset (tmp, 0, 16);
-      _gcry_cipher_gcm_setiv (c, tmp, 16);
-    }
+static inline u32
+gcm_add32_be128 (byte *ctr, unsigned int add)
+{
+  /* 'ctr' must be aligned to four bytes. */
+  const unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
+  u32 *pval = (u32 *)(void *)(ctr + blocksize - sizeof(u32));
+  u32 val;
 
-  while (inbuflen)
-    {
-      for (i = blocksize; i > blocksize - 4; i--)
-        {
-          c->u_ctr.ctr[i - 1]++;
-          if (c->u_ctr.ctr[i - 1] != 0)
-            break;
-        }
+  val = be_bswap32(*pval) + add;
+  *pval = be_bswap32(val);
 
-      n = blocksize < inbuflen ? blocksize : inbuflen;
+  return val; /* return result as host-endian value */
+}
 
-      i = blocksize - 1;
-      c->length[i] += n * 8;
-      for (; c->length[i] == 0 && i > blocksize / 2; i--)
-        c->length[i - 1]++;
 
-      c->spec->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
-      if (n < blocksize)
-        {
-          buf_xor_2dst (outbuf, tmp, inbuf, n);
-          memset (tmp + n, 0, blocksize - n);
-          ghash (c, c->u_mode.gcm.u_tag.tag, tmp);
-        }
-      else
-        {
-          buf_xor (outbuf, tmp, inbuf, n);
-          ghash (c, c->u_mode.gcm.u_tag.tag, outbuf);
-        }
+static inline int
+gcm_check_datalen (u32 ctr[2])
+{
+  /* len(plaintext) <= 2^39-256 bits == 2^36-32 bytes == 2^32-2 blocks */
+  if (ctr[1] > 0xfU)
+    return 0;
+  if (ctr[1] < 0xfU)
+    return 1;
 
-      inbuflen -= n;
-      outbuf += n;
-      inbuf += n;
-    }
+  if (ctr[0] <= 0xffffffe0U)
+    return 1;
 
   return 0;
 }
+
+
+static inline int
+gcm_check_aadlen_or_ivlen (u32 ctr[2])
+{
+  /* len(aad/iv) <= 2^64-1 bits ~= 2^61-1 bytes */
+  if (ctr[1] > 0x1fffffffU)
+    return 0;
+  if (ctr[1] < 0x1fffffffU)
+    return 1;
+
+  if (ctr[0] <= 0xffffffffU)
+    return 1;
+
+  return 0;
+}
+
+
+static void
+do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte * buf,
+             unsigned int buflen)
+{
+  unsigned char tmp[MAX_BLOCKSIZE];
+  unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
+  unsigned int nblocks;
+
+  nblocks = buflen / blocksize;
+
+  if (nblocks)
+    {
+      ghash (c, hash, buf, nblocks);
+      buf += blocksize * nblocks;
+      buflen -= blocksize * nblocks;
+    }
+
+  if (buflen)
+    {
+      buf_cpy (tmp, buf, buflen);
+      memset (tmp + buflen, 0, blocksize - buflen);
+      ghash (c, hash, tmp, 1);
+    }
+
+  /* TODO: burn stack */
+}
+
+
+gcry_err_code_t
+_gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
+                          byte *outbuf, unsigned int outbuflen,
+                          const byte *inbuf, unsigned int inbuflen)
+{
+  static const unsigned char zerobuf[MAX_BLOCKSIZE];
+  gcry_err_code_t err;
+
+  if (c->spec->blocksize != GCRY_GCM_BLOCK_LEN)
+    return GPG_ERR_CIPHER_ALGO;
+  if (outbuflen < inbuflen)
+    return GPG_ERR_BUFFER_TOO_SHORT;
+  if (c->u_mode.gcm.datalen_over_limits)
+    return GPG_ERR_INV_LENGTH;
+
+  if (!c->marks.iv)
+    _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
+
+  gcm_bytecounter_add(c->u_mode.gcm.datalen, inbuflen);
+  if (!gcm_check_datalen(c->u_mode.gcm.datalen))
+    {
+      c->u_mode.gcm.datalen_over_limits = 1;
+      return GPG_ERR_INV_LENGTH;
+    }
+
+  err = _gcry_cipher_ctr_encrypt(c, outbuf, outbuflen, inbuf, inbuflen);
+  if (err != 0)
+    return err;
+
+  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, outbuf, inbuflen);
+
+  return 0;
+}
+
 
 gcry_err_code_t
 _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
-                          byte * outbuf, unsigned int outbuflen,
-                          const byte * inbuf, unsigned int inbuflen)
+                          byte *outbuf, unsigned int outbuflen,
+                          const byte *inbuf, unsigned int inbuflen)
 {
-  unsigned int n;
-  int i;
-  unsigned int blocksize = c->spec->blocksize;
-  unsigned char tmp[MAX_BLOCKSIZE];
+  static const unsigned char zerobuf[MAX_BLOCKSIZE];
 
-  if (blocksize >= 0x20)
-    return GPG_ERR_CIPHER_ALGO;
-  if (blocksize != 0x10)
+  if (c->spec->blocksize != GCRY_GCM_BLOCK_LEN)
     return GPG_ERR_CIPHER_ALGO;
   if (outbuflen < inbuflen)
     return GPG_ERR_BUFFER_TOO_SHORT;
+  if (c->u_mode.gcm.datalen_over_limits)
+    return GPG_ERR_INV_LENGTH;
 
   if (!c->marks.iv)
+    _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
+
+  gcm_bytecounter_add(c->u_mode.gcm.datalen, inbuflen);
+  if (!gcm_check_datalen(c->u_mode.gcm.datalen))
     {
-      memset (tmp, 0, 16);
-      _gcry_cipher_gcm_setiv (c, tmp, 16);
+      c->u_mode.gcm.datalen_over_limits = 1;
+      return GPG_ERR_INV_LENGTH;
     }
 
-  while (inbuflen)
-    {
-      for (i = blocksize; i > blocksize - 4; i--)
-        {
-          c->u_ctr.ctr[i - 1]++;
-          if (c->u_ctr.ctr[i - 1] != 0)
-            break;
-        }
+  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, inbuf, inbuflen);
 
-      n = blocksize < inbuflen ? blocksize : inbuflen;
-      if (n < blocksize)
-        {
-          memcpy (tmp, inbuf, n);
-          memset (tmp + n, 0, blocksize - n);
-          ghash (c, c->u_mode.gcm.u_tag.tag, tmp);
-        }
-      else
-        {
-          ghash (c, c->u_mode.gcm.u_tag.tag, inbuf);
-        }
-
-      i = blocksize - 1;
-      c->length[i] += n * 8;
-      for (; c->length[i] == 0 && i > blocksize / 2; i--)
-        c->length[i - 1]++;
-
-      c->spec->encrypt (&c->context.c, tmp, c->u_ctr.ctr);
-
-      buf_xor (outbuf, inbuf, tmp, n);
-
-      inbuflen -= n;
-      outbuf += n;
-      inbuf += n;
-    }
-
-  return 0;
+  return _gcry_cipher_ctr_encrypt(c, outbuf, outbuflen, inbuf, inbuflen);
 }
+
 
 gcry_err_code_t
 _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
                                const byte * aadbuf, unsigned int aadbuflen)
 {
-  unsigned int n;
-  int i;
-  unsigned int blocksize = c->spec->blocksize;
-  unsigned char tmp[MAX_BLOCKSIZE];
+  static const unsigned char zerobuf[MAX_BLOCKSIZE];
+
+  if (c->spec->blocksize != GCRY_GCM_BLOCK_LEN)
+    return GPG_ERR_CIPHER_ALGO;
+  if (c->u_mode.gcm.datalen_over_limits)
+    return GPG_ERR_INV_LENGTH;
 
   if (!c->marks.iv)
+    _gcry_cipher_gcm_setiv (c, zerobuf, GCRY_GCM_BLOCK_LEN);
+
+  gcm_bytecounter_add(c->u_mode.gcm.aadlen, aadbuflen);
+  if (!gcm_check_aadlen_or_ivlen(c->u_mode.gcm.aadlen))
     {
-      memset (tmp, 0, 16);
-      _gcry_cipher_gcm_setiv (c, tmp, 16);
+      c->u_mode.gcm.datalen_over_limits = 1;
+      return GPG_ERR_INV_LENGTH;
     }
 
-  n = aadbuflen;
-  i = blocksize / 2;
-  c->length[i - 1] = (n % 0x20) * 8;
-  n /= 0x20;
-  for (; n && i > 0; i--, n >>= 8)
-    c->length[i - 1] = n & 0xff;
-
-  while (aadbuflen >= blocksize)
-    {
-      ghash (c, c->u_mode.gcm.u_tag.tag, aadbuf);
-
-      aadbuflen -= blocksize;
-      aadbuf += blocksize;
-    }
-
-  if (aadbuflen != 0)
-    {
-      memcpy (tmp, aadbuf, aadbuflen);
-      memset (tmp + aadbuflen, 0, blocksize - aadbuflen);
-
-      ghash (c, c->u_mode.gcm.u_tag.tag, tmp);
-    }
+  do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, aadbuf, aadbuflen);
 
   return 0;
 }
 
-void
-_gcry_cipher_gcm_setiv (gcry_cipher_hd_t c,
-                        const byte * iv, unsigned int ivlen)
+
+gcry_err_code_t
+_gcry_cipher_gcm_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 {
-  memset (c->length, 0, 16);
-  memset (c->u_mode.gcm.u_tag.tag, 0, 16);
+  memset (c->u_mode.gcm.aadlen, 0, sizeof(c->u_mode.gcm.aadlen));
+  memset (c->u_mode.gcm.datalen, 0, sizeof(c->u_mode.gcm.datalen));
+  memset (c->u_mode.gcm.u_tag.tag, 0, GCRY_GCM_BLOCK_LEN);
+  c->u_mode.gcm.datalen_over_limits = 0;
+
+  if (ivlen == 0)
+    return GPG_ERR_INV_LENGTH;
+
   c->spec->encrypt (&c->context.c, c->u_iv.iv, c->u_mode.gcm.u_tag.tag);
 
   setupM (c, c->u_iv.iv);
 
-  if (ivlen != 16 - 4)
+  if (ivlen != GCRY_GCM_BLOCK_LEN - 4)
     {
-      unsigned char tmp[MAX_BLOCKSIZE];
-      unsigned n;
-      memset (c->u_ctr.ctr, 0, 16);
-      for (n = ivlen; n >= 16; n -= 16, iv += 16)
-        ghash (c, c->u_ctr.ctr, iv);
-      if (n != 0)
+      u32 iv_bytes[2] = {0, 0};
+      u32 bitlengths[2][2];
+
+      memset(c->u_ctr.ctr, 0, GCRY_GCM_BLOCK_LEN);
+
+      gcm_bytecounter_add(iv_bytes, ivlen);
+      if (!gcm_check_aadlen_or_ivlen(iv_bytes))
         {
-          memcpy (tmp, iv, n);
-          memset (tmp + n, 0, 16 - n);
-          ghash (c, c->u_ctr.ctr, tmp);
+          c->u_mode.gcm.datalen_over_limits = 1;
+          return GPG_ERR_INV_LENGTH;
         }
-      memset (tmp, 0, 16);
-      n = 16;
-      tmp[n - 1] = (ivlen % 0x20) * 8;
-      ivlen /= 0x20;
-      n--;
-      for (; n > 0; n--, ivlen >>= 8)
-        tmp[n - 1] = ivlen & 0xff;
-      ghash (c, c->u_ctr.ctr, tmp);
+
+      do_ghash_buf(c, c->u_ctr.ctr, iv, ivlen);
+
+      /* iv length, 64-bit */
+      bitlengths[1][1] = be_bswap32(iv_bytes[0] << 3);
+      bitlengths[1][0] = be_bswap32((iv_bytes[0] >> 29) |
+                                    (iv_bytes[1] << 3));
+      /* zeros, 64-bit */
+      bitlengths[0][1] = 0;
+      bitlengths[0][0] = 0;
+
+      do_ghash_buf(c, c->u_ctr.ctr, (byte*)bitlengths, GCRY_GCM_BLOCK_LEN);
+
+      wipememory(iv_bytes, sizeof iv_bytes);
+      wipememory(bitlengths, sizeof bitlengths);
     }
   else
     {
+      /* 96-bit IV is handled differently. */
       memcpy (c->u_ctr.ctr, iv, ivlen);
       c->u_ctr.ctr[12] = c->u_ctr.ctr[13] = c->u_ctr.ctr[14] = 0;
       c->u_ctr.ctr[15] = 1;
     }
 
-  c->spec->encrypt (&c->context.c, c->lastiv, c->u_ctr.ctr);
+  c->spec->encrypt (&c->context.c, c->u_mode.gcm.tagiv, c->u_ctr.ctr);
+
+  gcm_add32_be128 (c->u_ctr.ctr, 1);
+
+  c->unused = 0;
   c->marks.iv = 1;
 
+  return 0;
 }
+
 
 static gcry_err_code_t
 _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
                       byte * outbuf, unsigned int outbuflen, int check)
 {
-  if (outbuflen < 16)
+  if (outbuflen < GCRY_GCM_BLOCK_LEN)
     return GPG_ERR_BUFFER_TOO_SHORT;
+  if (c->u_mode.gcm.datalen_over_limits)
+    return GPG_ERR_INV_LENGTH;
 
   if (!c->marks.tag)
     {
-      ghash (c, c->u_mode.gcm.u_tag.tag, c->length);
-      buf_xor (c->u_mode.gcm.u_tag.tag, c->lastiv, c->u_mode.gcm.u_tag.tag, 16);
+      u32 bitlengths[2][2];
+
+      /* aad length */
+      bitlengths[0][1] = be_bswap32(c->u_mode.gcm.aadlen[0] << 3);
+      bitlengths[0][0] = be_bswap32((c->u_mode.gcm.aadlen[0] >> 29) |
+                                    (c->u_mode.gcm.aadlen[1] << 3));
+      /* data length */
+      bitlengths[1][1] = be_bswap32(c->u_mode.gcm.datalen[0] << 3);
+      bitlengths[1][0] = be_bswap32((c->u_mode.gcm.datalen[0] >> 29) |
+                                    (c->u_mode.gcm.datalen[1] << 3));
+
+      do_ghash_buf(c, c->u_mode.gcm.u_tag.tag, (byte*)bitlengths,
+                   GCRY_GCM_BLOCK_LEN);
+      buf_xor (c->u_mode.gcm.u_tag.tag, c->u_mode.gcm.tagiv,
+               c->u_mode.gcm.u_tag.tag, GCRY_GCM_BLOCK_LEN);
       c->marks.tag = 1;
+
+      wipememory(bitlengths, sizeof bitlengths);
     }
 
   if (!check)
@@ -725,6 +792,7 @@ _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
 
   return 0;
 }
+
 
 gcry_err_code_t
 _gcry_cipher_gcm_get_tag (gcry_cipher_hd_t c, unsigned char *outtag,

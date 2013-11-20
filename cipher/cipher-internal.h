@@ -133,7 +133,6 @@ struct gcry_cipher_handle
   /* Space to save an IV or CTR for chaining operations.  */
   unsigned char lastiv[MAX_BLOCKSIZE];
   int unused;  /* Number of unused bytes in LASTIV. */
-  unsigned char length[MAX_BLOCKSIZE]; /* bit counters for GCM */
 
   union {
     /* Mode specific storage for CCM mode. */
@@ -169,6 +168,13 @@ struct gcry_cipher_handle
         unsigned char tag[MAX_BLOCKSIZE];
       } u_tag;
 
+      /* byte counters for GCM */
+      u32 aadlen[2];
+      u32 datalen[2];
+
+      /* encrypted tag counter */
+      unsigned char tagiv[MAX_BLOCKSIZE];
+
       /* Pre-calculated table for GCM. */
 #ifdef GCM_USE_TABLES
  #if defined(HAVE_U64_TYPEDEF) && (SIZEOF_UNSIGNED_LONG == 8 \
@@ -181,6 +187,7 @@ struct gcry_cipher_handle
  #endif
 #endif
 
+      unsigned int datalen_over_limits:1;
 #ifdef GCM_USE_INTEL_PCLMUL
       unsigned int use_intel_pclmul:1;
 #endif
@@ -274,9 +281,9 @@ gcry_err_code_t _gcry_cipher_gcm_decrypt
 /*           */   (gcry_cipher_hd_t c,
                    unsigned char *outbuf, unsigned int outbuflen,
                    const unsigned char *inbuf, unsigned int inbuflen);
-void _gcry_cipher_gcm_setiv
+gcry_err_code_t _gcry_cipher_gcm_setiv
 /*           */   (gcry_cipher_hd_t c,
-                   const unsigned char *iv, unsigned int ivlen);
+                   const unsigned char *iv, size_t ivlen);
 gcry_err_code_t _gcry_cipher_gcm_authenticate
 /*           */   (gcry_cipher_hd_t c,
                    const unsigned char *aadbuf, unsigned int aadbuflen);
@@ -286,5 +293,6 @@ gcry_err_code_t _gcry_cipher_gcm_get_tag
 gcry_err_code_t _gcry_cipher_gcm_check_tag
 /*           */   (gcry_cipher_hd_t c,
                    const unsigned char *intag, size_t taglen);
+
 
 #endif /*G10_CIPHER_INTERNAL_H*/
