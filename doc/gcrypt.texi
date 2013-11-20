@@ -1642,6 +1642,12 @@ Counter with CBC-MAC mode is an Authenticated Encryption with
 Associated Data (AEAD) block cipher mode, which is specified in
 'NIST Special Publication 800-38C' and RFC 3610.
 
+@item  GCRY_CIPHER_MODE_GCM
+@cindex GCM, Galois/Counter Mode
+Galois/Counter Mode (GCM) is an Authenticated Encryption with
+Associated Data (AEAD) block cipher mode, which is specified in
+'NIST Special Publication 800-38D'.
+
 @end table
 
 @node Working with cipher handles
@@ -1672,9 +1678,9 @@ with some algorithms - in particular, stream mode
 block cipher modes (@code{GCRY_CIPHER_MODE_ECB},
 @code{GCRY_CIPHER_MODE_CBC}, @code{GCRY_CIPHER_MODE_CFB},
 @code{GCRY_CIPHER_MODE_OFB} and @code{GCRY_CIPHER_MODE_CTR}) will work
-with any block cipher algorithm. The @code{GCRY_CIPHER_MODE_CCM} will
-only work with block cipher algorithms which have the block size of
-16 bytes.
+with any block cipher algorithm. @code{GCRY_CIPHER_MODE_CCM} and
+@code{GCRY_CIPHER_MODE_GCM} modes will only work with block cipher algorithms
+which have the block size of 16 bytes.
 
 The third argument @var{flags} can either be passed as @code{0} or as
 the bit-wise OR of the following constants.
