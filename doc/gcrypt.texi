@@ -3529,6 +3529,26 @@ block cipher algorithm.
 This is CMAC message authentication algorithm based on the GOST 28147-89
 block cipher algorithm.
 
+@item GCRY_MAC_GMAC_AES
+This is GMAC (GCM mode based MAC) message authentication algorithm based on
+the AES block cipher algorithm.
+
+@item GCRY_MAC_GMAC_CAMELLIA
+This is GMAC message authentication algorithm based on the Camellia
+block cipher algorithm.
+
+@item GCRY_MAC_GMAC_TWOFISH
+This is GMAC message authentication algorithm based on the Twofish
+block cipher algorithm.
+
+@item GCRY_MAC_GMAC_SERPENT
+This is GMAC message authentication algorithm based on the Serpent
+block cipher algorithm.
+
+@item GCRY_MAC_GMAC_SEED
+This is GMAC message authentication algorithm based on the SEED
+block cipher algorithm.
+
 @end table
 @c end table of MAC algorithms
 
@@ -3574,13 +3594,13 @@ underlying block cipher.
 @end deftypefun
 
 
-@c Some MAC algorithms need initialization vector to be set, which can be
-@c performed with function:
-@c @c
-@c @deftypefun gcry_error_t gcry_mac_setiv (gcry_mac_hd_t @var{h}, const void *@var{iv}, size_t @var{ivlen})
-@c @c
-@c Set the IV to the value of @var{iv} of length @var{ivlen} bytes.
-@c @end deftypefun
+GMAC algorithms need initialization vector to be set, which can be
+performed with function:
+
+@deftypefun gcry_error_t gcry_mac_setiv (gcry_mac_hd_t @var{h}, const void *@var{iv}, size_t @var{ivlen})
+
+Set the IV to the value of @var{iv} of length @var{ivlen} bytes.
+@end deftypefun
 
 
 After you are done with the MAC calculation, you should release the resources

@@ -1325,7 +1325,13 @@ enum gcry_mac_algos
     GCRY_MAC_CMAC_SEED          = 208,
     GCRY_MAC_CMAC_RFC2268       = 209,
     GCRY_MAC_CMAC_IDEA          = 210,
-    GCRY_MAC_CMAC_GOST28147     = 211
+    GCRY_MAC_CMAC_GOST28147     = 211,
+
+    GCRY_MAC_GMAC_AES           = 401,
+    GCRY_MAC_GMAC_CAMELLIA      = 402,
+    GCRY_MAC_GMAC_TWOFISH       = 403,
+    GCRY_MAC_GMAC_SERPENT       = 404,
+    GCRY_MAC_GMAC_SEED          = 405
   };
 
 /* Flags used with the open function.  */

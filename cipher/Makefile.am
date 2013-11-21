@@ -45,7 +45,7 @@ cipher-selftest.c cipher-selftest.h \
 pubkey.c pubkey-internal.h pubkey-util.c \
 md.c \
 mac.c mac-internal.h \
-mac-hmac.c mac-cmac.c \
+mac-hmac.c mac-cmac.c mac-gmac.c \
 kdf.c kdf-internal.h \
 hmac-tests.c \
 bithelp.h  \
