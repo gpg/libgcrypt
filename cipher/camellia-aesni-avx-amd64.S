@@ -958,9 +958,13 @@ _gcry_camellia_aesni_avx_ctr_enc:
 	 *	%rcx: iv (big endian, 128bit)
 	 */
 
+	pushq %rbp;
+	movq %rsp, %rbp;
+
 	vzeroupper;
 
 	subq $(16 * 16), %rsp;
+	andq $~31, %rsp;
 	movq %rsp, %rax;
 
 	vmovdqa .Lbswap128_mask RIP, %xmm14;
@@ -1033,8 +1037,6 @@ _gcry_camellia_aesni_avx_ctr_enc:
 
 	call __camellia_enc_blk16;
 
-	addq $(16 * 16), %rsp;
-
 	vpxor 0 * 16(%rdx), %xmm7, %xmm7;
 	vpxor 1 * 16(%rdx), %xmm6, %xmm6;
 	vpxor 2 * 16(%rdx), %xmm5, %xmm5;
@@ -1058,6 +1060,7 @@ _gcry_camellia_aesni_avx_ctr_enc:
 
 	vzeroall;
 
+	leave;
 	ret;
 .size _gcry_camellia_aesni_avx_ctr_enc,.-_gcry_camellia_aesni_avx_ctr_enc;
 
@@ -1073,6 +1076,9 @@ _gcry_camellia_aesni_avx_cbc_dec:
 	 *	%rcx: iv
 	 */
 
+	pushq %rbp;
+	movq %rsp, %rbp;
+
 	vzeroupper;
 
 	movq %rcx, %r9;
@@ -1087,11 +1093,10 @@ _gcry_camellia_aesni_avx_cbc_dec:
 		     %xmm15, %rdx, (key_table)(CTX, %r8, 8));
 
 	subq $(16 * 16), %rsp;
+	andq $~31, %rsp;
 	movq %rsp, %rax;
 
 	call __camellia_dec_blk16;
-
-	addq $(16 * 16), %rsp;
 
 	/* XOR output with IV */
 	vpxor (%r9), %xmm7, %xmm7;
@@ -1112,6 +1117,7 @@ _gcry_camellia_aesni_avx_cbc_dec:
 	vpxor (14 * 16)(%rdx), %xmm8, %xmm8;
 	movq (15 * 16 + 0)(%rdx), %r10;
 	movq (15 * 16 + 8)(%rdx), %r11;
+
 	write_output(%xmm7, %xmm6, %xmm5, %xmm4, %xmm3, %xmm2, %xmm1, %xmm0,
 		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
 		     %xmm8, %rsi);
@@ -1122,6 +1128,7 @@ _gcry_camellia_aesni_avx_cbc_dec:
 
 	vzeroall;
 
+	leave;
 	ret;
 .size _gcry_camellia_aesni_avx_cbc_dec,.-_gcry_camellia_aesni_avx_cbc_dec;
 
@@ -1137,9 +1144,13 @@ _gcry_camellia_aesni_avx_cfb_dec:
 	 *	%rcx: iv
 	 */
 
+	pushq %rbp;
+	movq %rsp, %rbp;
+
 	vzeroupper;
 
 	subq $(16 * 16), %rsp;
+	andq $~31, %rsp;
 	movq %rsp, %rax;
 
 	/* inpack16_pre: */
@@ -1166,8 +1177,6 @@ _gcry_camellia_aesni_avx_cfb_dec:
 
 	call __camellia_enc_blk16;
 
-	addq $(16 * 16), %rsp;
-
 	vpxor 0 * 16(%rdx), %xmm7, %xmm7;
 	vpxor 1 * 16(%rdx), %xmm6, %xmm6;
 	vpxor 2 * 16(%rdx), %xmm5, %xmm5;
@@ -1191,6 +1200,7 @@ _gcry_camellia_aesni_avx_cfb_dec:
 
 	vzeroall;
 
+	leave;
 	ret;
 .size _gcry_camellia_aesni_avx_cfb_dec,.-_gcry_camellia_aesni_avx_cfb_dec;
 
@@ -1199,7 +1209,7 @@ _gcry_camellia_aesni_avx_cfb_dec:
  *  ab: 64-bit AB state
  *  cd: 64-bit CD state
  */
-#define camellia_f(ab, x, t0, t1, t2, t3, t4, sbox2mask, sbox4mask, \
+#define camellia_f(ab, x, t0, t1, t2, t3, t4, inv_shift_row, sbox4mask, \
 		   _0f0f0f0fmask, pre_s1lo_mask, pre_s1hi_mask, key) \
 	vmovq key, t0; \
 	vpxor x, x, t3; \
@@ -1221,37 +1231,33 @@ _gcry_camellia_aesni_avx_cfb_dec:
 	\
 	vmovdqa .Lpost_tf_lo_s1 RIP, t0; \
 	vmovdqa .Lpost_tf_hi_s1 RIP, t1; \
-	vmovq .Lsbox3_output_mask RIP, t4; \
 	\
 	/* prefilter sboxes */ \
 	filter_8bit(x, pre_s1lo_mask, pre_s1hi_mask, _0f0f0f0fmask, t2); \
 	\
 	/* AES subbytes + AES shift rows + AES inv shift rows */ \
 	vaesenclast t3, x, x; \
-	vpshufb .Linv_shift_row RIP, x, x; \
 	\
 	/* postfilter sboxes */ \
 	filter_8bit(x, t0, t1, _0f0f0f0fmask, t2); \
 	\
 	/* output rotation for sbox2 (<<< 1) */ \
 	/* output rotation for sbox3 (>>> 1) */ \
-	vpor sbox2mask, t4, t2; \
-	vpand x, sbox2mask, t0; \
-	vpand x, t4, t1; \
-	vpaddb x, x, t2; \
-	vpshufb .Lsp1110111044044404mask RIP, x, t4; \
-	vpshufb .Lsp0044440410011110mask RIP, x, x; \
-	vpsrlw $7, t0, t0; \
+	vpshufb inv_shift_row, x, t1; \
+	vpshufb .Lsp0044440444044404mask RIP, x, t4; \
+	vpshufb .Lsp1110111010011110mask RIP, x, x; \
+	vpaddb t1, t1, t2; \
+	vpsrlw $7, t1, t0; \
 	vpsllw $7, t1, t3; \
-	vpsrlw $1, t1, t1; \
 	vpor t0, t2, t0; \
+	vpsrlw $1, t1, t1; \
 	vpshufb .Lsp0222022222000222mask RIP, t0, t0; \
 	vpor t1, t3, t1; \
-	vpshufb .Lsp3033303303303033mask RIP, t1, t1; \
 	\
 	vpxor x, t4, t4; \
-	vpxor t1, t0, t0; \
+	vpshufb .Lsp3033303303303033mask RIP, t1, t1; \
 	vpxor t4, t0, t0; \
+	vpxor t1, t0, t0; \
 	vpsrldq $8, t0, x; \
 	vpxor t0, x, x;
 
@@ -1270,22 +1276,21 @@ _gcry_camellia_aesni_avx_cfb_dec:
 .data
 
 .align 16
-.Lsp1110111044044404mask:
-	.long 0x000000ff, 0x000000ff;
-	.long 0x0101ff01, 0x0101ff01;
-.Lsp0044440410011110mask:
+.Linv_shift_row_and_unpcklbw:
+	.byte 0x00, 0xff, 0x0d, 0xff, 0x0a, 0xff, 0x07, 0xff
+	.byte 0x04, 0xff, 0x01, 0xff, 0x0e, 0xff, 0x0b, 0xff
+.Lsp0044440444044404mask:
 	.long 0xffff0404, 0x0404ff04;
-	.long 0x07ffff07, 0x070707ff;
+	.long 0x0d0dff0d, 0x0d0dff0d;
+.Lsp1110111010011110mask:
+	.long 0x000000ff, 0x000000ff;
+	.long 0x0bffff0b, 0x0b0b0bff;
 .Lsp0222022222000222mask:
-	.long 0xff030303, 0xff030303;
-	.long 0x0606ffff, 0xff060606;
+	.long 0xff060606, 0xff060606;
+	.long 0x0c0cffff, 0xff0c0c0c;
 .Lsp3033303303303033mask:
-	.long 0x02ff0202, 0x02ff0202;
-	.long 0xff0505ff, 0x05ff0505;
-.Lsbox2_output_mask:
-	.byte 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0xff, 0x00;
-.Lsbox3_output_mask:
-	.byte 0x00, 0x00, 0xff, 0x00, 0x00, 0xff, 0x00, 0x00;
+	.long 0x04ff0404, 0x04ff0404;
+	.long 0xff0a0aff, 0x0aff0a0a;
 .Lsbox4_input_mask:
 	.byte 0x00, 0xff, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00;
 .Lsigma1:
@@ -1316,7 +1321,7 @@ __camellia_avx_setup128:
 
 	vpshufb .Lbswap128_mask RIP, KL128, KL128;
 
-	vmovq .Lsbox2_output_mask RIP, %xmm11;
+	vmovdqa .Linv_shift_row_and_unpcklbw RIP, %xmm11;
 	vmovq .Lsbox4_input_mask RIP, %xmm12;
 	vbroadcastss .L0f0f0f0f RIP, %xmm13;
 	vmovdqa .Lpre_tf_lo_s1 RIP, %xmm14;
@@ -1663,7 +1668,7 @@ __camellia_avx_setup256:
 	vpshufb .Lbswap128_mask RIP, KL128, KL128;
 	vpshufb .Lbswap128_mask RIP, KR128, KR128;
 
-	vmovq .Lsbox2_output_mask RIP, %xmm11;
+	vmovdqa .Linv_shift_row_and_unpcklbw RIP, %xmm11;
 	vmovq .Lsbox4_input_mask RIP, %xmm12;
 	vbroadcastss .L0f0f0f0f RIP, %xmm13;
 	vmovdqa .Lpre_tf_lo_s1 RIP, %xmm14;

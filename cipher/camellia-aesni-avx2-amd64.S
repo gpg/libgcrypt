@@ -124,15 +124,15 @@
 	vextracti128 $1, x5, t5##_x; \
 	vaesenclast t4##_x, x0##_x, x0##_x; \
 	vaesenclast t4##_x, t0##_x, t0##_x; \
-	vinserti128 $1, t0##_x, x0, x0; \
 	vaesenclast t4##_x, x7##_x, x7##_x; \
 	vaesenclast t4##_x, t1##_x, t1##_x; \
-	vinserti128 $1, t1##_x, x7, x7; \
 	vaesenclast t4##_x, x3##_x, x3##_x; \
 	vaesenclast t4##_x, t3##_x, t3##_x; \
-	vinserti128 $1, t3##_x, x3, x3; \
 	vaesenclast t4##_x, x6##_x, x6##_x; \
 	vaesenclast t4##_x, t2##_x, t2##_x; \
+	vinserti128 $1, t0##_x, x0, x0; \
+	vinserti128 $1, t1##_x, x7, x7; \
+	vinserti128 $1, t3##_x, x3, x3; \
 	vinserti128 $1, t2##_x, x6, x6; \
 	vextracti128 $1, x1, t3##_x; \
 	vextracti128 $1, x4, t2##_x; \
@@ -140,15 +140,15 @@
 	vbroadcasti128 .Lpost_tf_hi_s1 RIP, t1; \
 	vaesenclast t4##_x, x2##_x, x2##_x; \
 	vaesenclast t4##_x, t6##_x, t6##_x; \
-	vinserti128 $1, t6##_x, x2, x2; \
 	vaesenclast t4##_x, x5##_x, x5##_x; \
 	vaesenclast t4##_x, t5##_x, t5##_x; \
-	vinserti128 $1, t5##_x, x5, x5; \
 	vaesenclast t4##_x, x1##_x, x1##_x; \
 	vaesenclast t4##_x, t3##_x, t3##_x; \
-	vinserti128 $1, t3##_x, x1, x1; \
 	vaesenclast t4##_x, x4##_x, x4##_x; \
 	vaesenclast t4##_x, t2##_x, t2##_x; \
+	vinserti128 $1, t6##_x, x2, x2; \
+	vinserti128 $1, t5##_x, x5, x5; \
+	vinserti128 $1, t3##_x, x1, x1; \
 	vinserti128 $1, t2##_x, x4, x4; \
 	\
 	/* postfilter sboxes 1 and 4 */ \
@@ -249,14 +249,14 @@
 	roundsm32(x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, y4, y5, \
 		  y6, y7, mem_cd, (key_table + (i) * 8)(CTX)); \
 	\
-	vmovdqa x0, 4 * 32(mem_cd); \
-	vmovdqa x1, 5 * 32(mem_cd); \
-	vmovdqa x2, 6 * 32(mem_cd); \
-	vmovdqa x3, 7 * 32(mem_cd); \
-	vmovdqa x4, 0 * 32(mem_cd); \
-	vmovdqa x5, 1 * 32(mem_cd); \
-	vmovdqa x6, 2 * 32(mem_cd); \
-	vmovdqa x7, 3 * 32(mem_cd); \
+	vmovdqu x0, 4 * 32(mem_cd); \
+	vmovdqu x1, 5 * 32(mem_cd); \
+	vmovdqu x2, 6 * 32(mem_cd); \
+	vmovdqu x3, 7 * 32(mem_cd); \
+	vmovdqu x4, 0 * 32(mem_cd); \
+	vmovdqu x5, 1 * 32(mem_cd); \
+	vmovdqu x6, 2 * 32(mem_cd); \
+	vmovdqu x7, 3 * 32(mem_cd); \
 	\
 	roundsm32(x4, x5, x6, x7, x0, x1, x2, x3, y0, y1, y2, y3, y4, y5, \
 		  y6, y7, mem_ab, (key_table + ((i) + (dir)) * 8)(CTX)); \
@@ -267,14 +267,14 @@
 
 #define store_ab_state(x0, x1, x2, x3, x4, x5, x6, x7, mem_ab) \
 	/* Store new AB state */ \
-	vmovdqa x4, 4 * 32(mem_ab); \
-	vmovdqa x5, 5 * 32(mem_ab); \
-	vmovdqa x6, 6 * 32(mem_ab); \
-	vmovdqa x7, 7 * 32(mem_ab); \
-	vmovdqa x0, 0 * 32(mem_ab); \
-	vmovdqa x1, 1 * 32(mem_ab); \
-	vmovdqa x2, 2 * 32(mem_ab); \
-	vmovdqa x3, 3 * 32(mem_ab);
+	vmovdqu x4, 4 * 32(mem_ab); \
+	vmovdqu x5, 5 * 32(mem_ab); \
+	vmovdqu x6, 6 * 32(mem_ab); \
+	vmovdqu x7, 7 * 32(mem_ab); \
+	vmovdqu x0, 0 * 32(mem_ab); \
+	vmovdqu x1, 1 * 32(mem_ab); \
+	vmovdqu x2, 2 * 32(mem_ab); \
+	vmovdqu x3, 3 * 32(mem_ab);
 
 #define enc_rounds32(x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, y4, y5, \
 		      y6, y7, mem_ab, mem_cd, i) \
@@ -356,13 +356,13 @@
 	\
 	vpxor l4, t0, l4; \
 	vpbroadcastd krr, t0; /* only lowest 32-bit used */ \
-	vmovdqa l4, 4 * 32(l); \
+	vmovdqu l4, 4 * 32(l); \
 	vpxor l5, t1, l5; \
-	vmovdqa l5, 5 * 32(l); \
+	vmovdqu l5, 5 * 32(l); \
 	vpxor l6, t2, l6; \
-	vmovdqa l6, 6 * 32(l); \
+	vmovdqu l6, 6 * 32(l); \
 	vpxor l7, t3, l7; \
-	vmovdqa l7, 7 * 32(l); \
+	vmovdqu l7, 7 * 32(l); \
 	\
 	/* \
 	 * t2 = krr; \
@@ -387,11 +387,11 @@
 	vpxor 1 * 32(r), t1, t1; \
 	vpxor 2 * 32(r), t2, t2; \
 	vpxor 3 * 32(r), t3, t3; \
-	vmovdqa t0, 0 * 32(r); \
+	vmovdqu t0, 0 * 32(r); \
 	vpbroadcastd krl, t0; /* only lowest 32-bit used */ \
-	vmovdqa t1, 1 * 32(r); \
-	vmovdqa t2, 2 * 32(r); \
-	vmovdqa t3, 3 * 32(r); \
+	vmovdqu t1, 1 * 32(r); \
+	vmovdqu t2, 2 * 32(r); \
+	vmovdqu t3, 3 * 32(r); \
 	\
 	/* \
 	 * t2 = krl; \
@@ -417,11 +417,11 @@
 	vpxor 5 * 32(r), t1, t1; \
 	vpxor 6 * 32(r), t2, t2; \
 	vpxor 7 * 32(r), t3, t3; \
-	vmovdqa t0, 4 * 32(r); \
+	vmovdqu t0, 4 * 32(r); \
 	vpbroadcastd klr, t0; /* only lowest 32-bit used */ \
-	vmovdqa t1, 5 * 32(r); \
-	vmovdqa t2, 6 * 32(r); \
-	vmovdqa t3, 7 * 32(r); \
+	vmovdqu t1, 5 * 32(r); \
+	vmovdqu t2, 6 * 32(r); \
+	vmovdqu t3, 7 * 32(r); \
 	\
 	/* \
 	 * t0 = klr; \
@@ -443,13 +443,13 @@
 	vpor l7, t3, t3; \
 	\
 	vpxor l0, t0, l0; \
-	vmovdqa l0, 0 * 32(l); \
+	vmovdqu l0, 0 * 32(l); \
 	vpxor l1, t1, l1; \
-	vmovdqa l1, 1 * 32(l); \
+	vmovdqu l1, 1 * 32(l); \
 	vpxor l2, t2, l2; \
-	vmovdqa l2, 2 * 32(l); \
+	vmovdqu l2, 2 * 32(l); \
 	vpxor l3, t3, l3; \
-	vmovdqa l3, 3 * 32(l);
+	vmovdqu l3, 3 * 32(l);
 
 #define transpose_4x4(x0, x1, x2, x3, t1, t2) \
 	vpunpckhdq x1, x0, t2; \
@@ -466,20 +466,20 @@
 
 #define byteslice_16x16b_fast(a0, b0, c0, d0, a1, b1, c1, d1, a2, b2, c2, d2, \
 			      a3, b3, c3, d3, st0, st1) \
-	vmovdqa d2, st0; \
-	vmovdqa d3, st1; \
+	vmovdqu d2, st0; \
+	vmovdqu d3, st1; \
 	transpose_4x4(a0, a1, a2, a3, d2, d3); \
 	transpose_4x4(b0, b1, b2, b3, d2, d3); \
-	vmovdqa st0, d2; \
-	vmovdqa st1, d3; \
+	vmovdqu st0, d2; \
+	vmovdqu st1, d3; \
 	\
-	vmovdqa a0, st0; \
-	vmovdqa a1, st1; \
+	vmovdqu a0, st0; \
+	vmovdqu a1, st1; \
 	transpose_4x4(c0, c1, c2, c3, a0, a1); \
 	transpose_4x4(d0, d1, d2, d3, a0, a1); \
 	\
 	vbroadcasti128 .Lshufb_16x16b RIP, a0; \
-	vmovdqa st1, a1; \
+	vmovdqu st1, a1; \
 	vpshufb a0, a2, a2; \
 	vpshufb a0, a3, a3; \
 	vpshufb a0, b0, b0; \
@@ -495,22 +495,22 @@
 	vpshufb a0, d1, d1; \
 	vpshufb a0, d2, d2; \
 	vpshufb a0, d3, d3; \
-	vmovdqa d3, st1; \
-	vmovdqa st0, d3; \
+	vmovdqu d3, st1; \
+	vmovdqu st0, d3; \
 	vpshufb a0, d3, a0; \
-	vmovdqa d2, st0; \
+	vmovdqu d2, st0; \
 	\
 	transpose_4x4(a0, b0, c0, d0, d2, d3); \
 	transpose_4x4(a1, b1, c1, d1, d2, d3); \
-	vmovdqa st0, d2; \
-	vmovdqa st1, d3; \
+	vmovdqu st0, d2; \
+	vmovdqu st1, d3; \
 	\
-	vmovdqa b0, st0; \
-	vmovdqa b1, st1; \
+	vmovdqu b0, st0; \
+	vmovdqu b1, st1; \
 	transpose_4x4(a2, b2, c2, d2, b0, b1); \
 	transpose_4x4(a3, b3, c3, d3, b0, b1); \
-	vmovdqa st0, b0; \
-	vmovdqa st1, b1; \
+	vmovdqu st0, b0; \
+	vmovdqu st1, b1; \
 	/* does not adjust output bytes inside vectors */
 
 /* load blocks to registers and apply pre-whitening */
@@ -542,22 +542,22 @@
 	byteslice_16x16b_fast(x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, \
 			      y4, y5, y6, y7, (mem_ab), (mem_cd)); \
 	\
-	vmovdqa x0, 0 * 32(mem_ab); \
-	vmovdqa x1, 1 * 32(mem_ab); \
-	vmovdqa x2, 2 * 32(mem_ab); \
-	vmovdqa x3, 3 * 32(mem_ab); \
-	vmovdqa x4, 4 * 32(mem_ab); \
-	vmovdqa x5, 5 * 32(mem_ab); \
-	vmovdqa x6, 6 * 32(mem_ab); \
-	vmovdqa x7, 7 * 32(mem_ab); \
-	vmovdqa y0, 0 * 32(mem_cd); \
-	vmovdqa y1, 1 * 32(mem_cd); \
-	vmovdqa y2, 2 * 32(mem_cd); \
-	vmovdqa y3, 3 * 32(mem_cd); \
-	vmovdqa y4, 4 * 32(mem_cd); \
-	vmovdqa y5, 5 * 32(mem_cd); \
-	vmovdqa y6, 6 * 32(mem_cd); \
-	vmovdqa y7, 7 * 32(mem_cd);
+	vmovdqu x0, 0 * 32(mem_ab); \
+	vmovdqu x1, 1 * 32(mem_ab); \
+	vmovdqu x2, 2 * 32(mem_ab); \
+	vmovdqu x3, 3 * 32(mem_ab); \
+	vmovdqu x4, 4 * 32(mem_ab); \
+	vmovdqu x5, 5 * 32(mem_ab); \
+	vmovdqu x6, 6 * 32(mem_ab); \
+	vmovdqu x7, 7 * 32(mem_ab); \
+	vmovdqu y0, 0 * 32(mem_cd); \
+	vmovdqu y1, 1 * 32(mem_cd); \
+	vmovdqu y2, 2 * 32(mem_cd); \
+	vmovdqu y3, 3 * 32(mem_cd); \
+	vmovdqu y4, 4 * 32(mem_cd); \
+	vmovdqu y5, 5 * 32(mem_cd); \
+	vmovdqu y6, 6 * 32(mem_cd); \
+	vmovdqu y7, 7 * 32(mem_cd);
 
 /* de-byteslice, apply post-whitening and store blocks */
 #define outunpack32(x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, y4, \
@@ -565,7 +565,7 @@
 	byteslice_16x16b_fast(y0, y4, x0, x4, y1, y5, x1, x5, y2, y6, x2, x6, \
 			      y3, y7, x3, x7, stack_tmp0, stack_tmp1); \
 	\
-	vmovdqa x0, stack_tmp0; \
+	vmovdqu x0, stack_tmp0; \
 	\
 	vpbroadcastq key, x0; \
 	vpshufb .Lpack_bswap RIP, x0, x0; \
@@ -800,14 +800,14 @@ __camellia_enc_blk32:
 
 .Lenc_done:
 	/* load CD for output */
-	vmovdqa 0 * 32(%rcx), %ymm8;
-	vmovdqa 1 * 32(%rcx), %ymm9;
-	vmovdqa 2 * 32(%rcx), %ymm10;
-	vmovdqa 3 * 32(%rcx), %ymm11;
-	vmovdqa 4 * 32(%rcx), %ymm12;
-	vmovdqa 5 * 32(%rcx), %ymm13;
-	vmovdqa 6 * 32(%rcx), %ymm14;
-	vmovdqa 7 * 32(%rcx), %ymm15;
+	vmovdqu 0 * 32(%rcx), %ymm8;
+	vmovdqu 1 * 32(%rcx), %ymm9;
+	vmovdqu 2 * 32(%rcx), %ymm10;
+	vmovdqu 3 * 32(%rcx), %ymm11;
+	vmovdqu 4 * 32(%rcx), %ymm12;
+	vmovdqu 5 * 32(%rcx), %ymm13;
+	vmovdqu 6 * 32(%rcx), %ymm14;
+	vmovdqu 7 * 32(%rcx), %ymm15;
 
 	outunpack32(%ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7,
 		    %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
@@ -887,14 +887,14 @@ __camellia_dec_blk32:
 		     %ymm15, %rax, %rcx, 0);
 
 	/* load CD for output */
-	vmovdqa 0 * 32(%rcx), %ymm8;
-	vmovdqa 1 * 32(%rcx), %ymm9;
-	vmovdqa 2 * 32(%rcx), %ymm10;
-	vmovdqa 3 * 32(%rcx), %ymm11;
-	vmovdqa 4 * 32(%rcx), %ymm12;
-	vmovdqa 5 * 32(%rcx), %ymm13;
-	vmovdqa 6 * 32(%rcx), %ymm14;
-	vmovdqa 7 * 32(%rcx), %ymm15;
+	vmovdqu 0 * 32(%rcx), %ymm8;
+	vmovdqu 1 * 32(%rcx), %ymm9;
+	vmovdqu 2 * 32(%rcx), %ymm10;
+	vmovdqu 3 * 32(%rcx), %ymm11;
+	vmovdqu 4 * 32(%rcx), %ymm12;
+	vmovdqu 5 * 32(%rcx), %ymm13;
+	vmovdqu 6 * 32(%rcx), %ymm14;
+	vmovdqu 7 * 32(%rcx), %ymm15;
 
 	outunpack32(%ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7,
 		    %ymm8, %ymm9, %ymm10, %ymm11, %ymm12, %ymm13, %ymm14,
@@ -937,14 +937,16 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 	 *	%rcx: iv (big endian, 128bit)
 	 */
 
+	pushq %rbp;
+	movq %rsp, %rbp;
+
 	movq 8(%rcx), %r11;
 	bswapq %r11;
 
 	vzeroupper;
 
-	movq %rsp, %r10;
 	subq $(16 * 32), %rsp;
-	andq $~31, %rsp;
+	andq $~63, %rsp;
 	movq %rsp, %rax;
 
 	vpcmpeqd %ymm15, %ymm15, %ymm15;
@@ -958,7 +960,7 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 	vbroadcasti128 .Lbswap128_mask RIP, %ymm14;
 	vinserti128 $1, %xmm0, %ymm1, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm13;
-	vmovdqa %ymm13, 15 * 32(%rax);
+	vmovdqu %ymm13, 15 * 32(%rax);
 
 	/* check need for handling 64-bit overflow and carry */
 	cmpq $(0xffffffffffffffff - 32), %r11;
@@ -968,10 +970,10 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 	vpaddq %ymm15, %ymm15, %ymm15; /* ab: -2:0 ; cd: -2:0 */
 	vpsubq %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm13;
-	vmovdqa %ymm13, 14 * 32(%rax);
+	vmovdqu %ymm13, 14 * 32(%rax);
 	vpsubq %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm13;
-	vmovdqa %ymm13, 13 * 32(%rax);
+	vmovdqu %ymm13, 13 * 32(%rax);
 	vpsubq %ymm15, %ymm0, %ymm0;
 	vpshufb %ymm14, %ymm0, %ymm12;
 	vpsubq %ymm15, %ymm0, %ymm0;
@@ -1010,11 +1012,11 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 	inc_le128(%ymm0, %ymm15, %ymm13); /* ab: le1 ; cd: le2 */
 	inc_le128(%ymm0, %ymm15, %ymm13); /* ab: le2 ; cd: le3 */
 	vpshufb %ymm14, %ymm0, %ymm13;
-	vmovdqa %ymm13, 14 * 32(%rax);
+	vmovdqu %ymm13, 14 * 32(%rax);
 	inc_le128(%ymm0, %ymm15, %ymm13);
 	inc_le128(%ymm0, %ymm15, %ymm13);
 	vpshufb %ymm14, %ymm0, %ymm13;
-	vmovdqa %ymm13, 13 * 32(%rax);
+	vmovdqu %ymm13, 13 * 32(%rax);
 	inc_le128(%ymm0, %ymm15, %ymm13);
 	inc_le128(%ymm0, %ymm15, %ymm13);
 	vpshufb %ymm14, %ymm0, %ymm12;
@@ -1083,8 +1085,6 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 
 	call __camellia_enc_blk32;
 
-	movq %r10, %rsp;
-
 	vpxor 0 * 32(%rdx), %ymm7, %ymm7;
 	vpxor 1 * 32(%rdx), %ymm6, %ymm6;
 	vpxor 2 * 32(%rdx), %ymm5, %ymm5;
@@ -1109,6 +1109,7 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 
 	vzeroall;
 
+	leave;
 	ret;
 .size _gcry_camellia_aesni_avx2_ctr_enc,.-_gcry_camellia_aesni_avx2_ctr_enc;
 
@@ -1124,6 +1125,9 @@ _gcry_camellia_aesni_avx2_cbc_dec:
 	 *	%rcx: iv
 	 */
 
+	pushq %rbp;
+	movq %rsp, %rbp;
+
 	vzeroupper;
 
 	movq %rcx, %r9;
@@ -1133,9 +1137,8 @@ _gcry_camellia_aesni_avx2_cbc_dec:
 	movl $24, %eax;
 	cmovel %eax, %r8d; /* max */
 
-	movq %rsp, %r10;
 	subq $(16 * 32), %rsp;
-	andq $~31, %rsp;
+	andq $~63, %rsp;
 	movq %rsp, %rax;
 
 	inpack32_pre(%ymm0, %ymm1, %ymm2, %ymm3, %ymm4, %ymm5, %ymm6, %ymm7,
@@ -1145,11 +1148,11 @@ _gcry_camellia_aesni_avx2_cbc_dec:
 	call __camellia_dec_blk32;
 
 	/* XOR output with IV */
-	vmovdqa %ymm8, (%rax);
+	vmovdqu %ymm8, (%rax);
 	vmovdqu (%r9), %xmm8;
 	vinserti128 $1, (%rdx), %ymm8, %ymm8;
 	vpxor %ymm8, %ymm7, %ymm7;
-	vmovdqa (%rax), %ymm8;
+	vmovdqu (%rax), %ymm8;
 	vpxor (0 * 32 + 16)(%rdx), %ymm6, %ymm6;
 	vpxor (1 * 32 + 16)(%rdx), %ymm5, %ymm5;
 	vpxor (2 * 32 + 16)(%rdx), %ymm4, %ymm4;
@@ -1168,8 +1171,6 @@ _gcry_camellia_aesni_avx2_cbc_dec:
 	movq (15 * 32 + 16 + 0)(%rdx), %rax;
 	movq (15 * 32 + 16 + 8)(%rdx), %rcx;
 
-	movq %r10, %rsp;
-
 	write_output(%ymm7, %ymm6, %ymm5, %ymm4, %ymm3, %ymm2, %ymm1, %ymm0,
 		     %ymm15, %ymm14, %ymm13, %ymm12, %ymm11, %ymm10, %ymm9,
 		     %ymm8, %rsi);
@@ -1180,6 +1181,7 @@ _gcry_camellia_aesni_avx2_cbc_dec:
 
 	vzeroall;
 
+	leave;
 	ret;
 .size _gcry_camellia_aesni_avx2_cbc_dec,.-_gcry_camellia_aesni_avx2_cbc_dec;
 
@@ -1195,11 +1197,13 @@ _gcry_camellia_aesni_avx2_cfb_dec:
 	 *	%rcx: iv
 	 */
 
+	pushq %rbp;
+	movq %rsp, %rbp;
+
 	vzeroupper;
 
-	movq %rsp, %r10;
 	subq $(16 * 32), %rsp;
-	andq $~31, %rsp;
+	andq $~63, %rsp;
 	movq %rsp, %rax;
 
 	/* inpack16_pre: */
@@ -1228,8 +1232,6 @@ _gcry_camellia_aesni_avx2_cfb_dec:
 
 	call __camellia_enc_blk32;
 
-	movq %r10, %rsp;
-
 	vpxor 0 * 32(%rdx), %ymm7, %ymm7;
 	vpxor 1 * 32(%rdx), %ymm6, %ymm6;
 	vpxor 2 * 32(%rdx), %ymm5, %ymm5;
@@ -1253,6 +1255,7 @@ _gcry_camellia_aesni_avx2_cfb_dec:
 
 	vzeroall;
 
+	leave;
 	ret;
 .size _gcry_camellia_aesni_avx2_cfb_dec,.-_gcry_camellia_aesni_avx2_cfb_dec;
 
