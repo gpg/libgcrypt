@@ -101,6 +101,10 @@ Noteworthy changes in version 1.6.0 (unreleased)
  gcry_mpi_ec_curve_point         NEW.
  GCRYMPI_FLAG_IMMUTABLE          NEW.
  GCRYMPI_FLAG_CONST              NEW.
+ GCRYMPI_FLAG_USER1              NEW.
+ GCRYMPI_FLAG_USER2              NEW.
+ GCRYMPI_FLAG_USER3              NEW.
+ GCRYMPI_FLAG_USER4              NEW.
  GCRYMPI_CONST_ONE               NEW.
  GCRYMPI_CONST_TWO               NEW.
  GCRYMPI_CONST_THREE             NEW.

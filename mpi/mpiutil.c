@@ -220,7 +220,11 @@ _gcry_mpi_free( gcry_mpi_t a )
     }
   /* Check that the flags makes sense.  We better allow for bit 1
      (value 2) for backward ABI compatibility.  */
-  if ((a->flags & ~(1|2|4|16)))
+  if ((a->flags & ~(1|2|4|16
+                    |GCRYMPI_FLAG_USER1
+                    |GCRYMPI_FLAG_USER2
+                    |GCRYMPI_FLAG_USER3
+                    |GCRYMPI_FLAG_USER4)))
     log_bug("invalid flag value in mpi_free\n");
   gcry_free(a);
 }
@@ -275,7 +279,8 @@ gcry_mpi_set_opaque( gcry_mpi_t a, void *p, unsigned int nbits )
   a->alloced = 0;
   a->nlimbs = 0;
   a->sign  = nbits;
-  a->flags = 4;
+  a->flags = 4 | (a->flags & (GCRYMPI_FLAG_USER1|GCRYMPI_FLAG_USER2
+                              |GCRYMPI_FLAG_USER3|GCRYMPI_FLAG_USER4));
   if (gcry_is_secure (a->d))
     a->flags |= 1;
   return a;
@@ -603,6 +608,12 @@ gcry_mpi_set_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
     case GCRYMPI_FLAG_SECURE:     mpi_set_secure(a); break;
     case GCRYMPI_FLAG_CONST:      a->flags |= (16|32); break;
     case GCRYMPI_FLAG_IMMUTABLE:  a->flags |= 16; break;
+
+    case GCRYMPI_FLAG_USER1:
+    case GCRYMPI_FLAG_USER2:
+    case GCRYMPI_FLAG_USER3:
+    case GCRYMPI_FLAG_USER4:      a->flags |= flag; break;
+
     case GCRYMPI_FLAG_OPAQUE:
     default: log_bug("invalid flag value\n");
     }
@@ -619,6 +630,14 @@ gcry_mpi_clear_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
       if (!(a->flags & 32))
         a->flags &= ~16;
       break;
+
+    case GCRYMPI_FLAG_USER1:
+    case GCRYMPI_FLAG_USER2:
+    case GCRYMPI_FLAG_USER3:
+    case GCRYMPI_FLAG_USER4:
+      a->flags &= ~flag;
+      break;
+
     case GCRYMPI_FLAG_CONST:
     case GCRYMPI_FLAG_SECURE:
     case GCRYMPI_FLAG_OPAQUE:
@@ -635,6 +654,10 @@ gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag)
     case GCRYMPI_FLAG_OPAQUE:    return !!(a->flags & 4);
     case GCRYMPI_FLAG_IMMUTABLE: return !!(a->flags & 16);
     case GCRYMPI_FLAG_CONST:     return !!(a->flags & 32);
+    case GCRYMPI_FLAG_USER1:
+    case GCRYMPI_FLAG_USER2:
+    case GCRYMPI_FLAG_USER3:
+    case GCRYMPI_FLAG_USER4:     return !!(a->flags & flag);
     default: log_bug("invalid flag value\n");
     }
   /*NOTREACHED*/

@@ -501,7 +501,11 @@ enum gcry_mpi_flag
                                  a way to store some bytes.  This is
                                  useful for encrypted big integers.  */
     GCRYMPI_FLAG_IMMUTABLE = 4, /* Mark the MPI as immutable.  */
-    GCRYMPI_FLAG_CONST     = 8  /* Mark the MPI as a constant.  */
+    GCRYMPI_FLAG_CONST     = 8, /* Mark the MPI as a constant.  */
+    GCRYMPI_FLAG_USER1 = 0x0100,/* User flag 1.  */
+    GCRYMPI_FLAG_USER2 = 0x0200,/* User flag 2.  */
+    GCRYMPI_FLAG_USER3 = 0x0400,/* User flag 3.  */
+    GCRYMPI_FLAG_USER4 = 0x0800,/* User flag 4.  */
   };
 
 

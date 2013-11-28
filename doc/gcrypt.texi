@@ -4822,6 +4822,11 @@ commonly used constants are pre-defined and accessible using the
 macros @code{GCRYMPI_CONST_ONE}, @code{GCRYMPI_CONST_TWO},
 @code{GCRYMPI_CONST_THREE}, @code{GCRYMPI_CONST_FOUR}, and
 @code{GCRYMPI_CONST_EIGHT}.
+@item GCRYMPI_FLAG_USER1
+@itemx GCRYMPI_FLAG_USER2
+@itemx GCRYMPI_FLAG_USER3
+@itemx GCRYMPI_FLAG_USER4
+These flags are reserved for use by the application.
 @end table
 
 @deftypefun void gcry_mpi_set_flag (@w{gcry_mpi_t @var{a}}, @
