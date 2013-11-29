@@ -288,6 +288,16 @@ ec_pow2 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
 }
 
 
+/* Shortcut for
+     ec_powm (B, B, mpi_const (MPI_C_THREE), ctx);
+   for easier optimization.  */
+static void
+ec_pow3 (gcry_mpi_t w, const gcry_mpi_t b, mpi_ec_t ctx)
+{
+  mpi_powm (w, b, mpi_const (MPI_C_THREE), ctx->p);
+}
+
+
 static void
 ec_invm (gcry_mpi_t x, gcry_mpi_t a, mpi_ec_t ctx)
 {
@@ -375,8 +385,7 @@ ec_p_init (mpi_ec_t ctx, enum gcry_mpi_ec_models model,
     ctx->nbits = mpi_get_nbits (p);
   ctx->p = mpi_copy (p);
   ctx->a = mpi_copy (a);
-  if (b && model == MPI_EC_TWISTEDEDWARDS)
-    ctx->b = mpi_copy (b);
+  ctx->b = mpi_copy (b);
 
   ctx->t.p_barrett = use_barrett > 0? _gcry_mpi_barrett_init (ctx->p, 0):NULL;
 
@@ -469,7 +478,7 @@ _gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
 
 
 /* This is a variant of _gcry_mpi_ec_p_internal_new which returns an
-   public contect and does some error checking on the supplied
+   public context and does some error checking on the supplied
    arguments.  On success the new context is stored at R_CTX and 0 is
    returned; on error NULL is stored at R_CTX and an error code is
    returned.
@@ -1221,21 +1230,20 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
     {
     case MPI_EC_WEIERSTRASS:
       {
-        gcry_mpi_t xx = mpi_new (0);
+        gcry_mpi_t xxx = mpi_new (0);
 
-        /* y^2 == x^3 + a·x^2 + b */
+        /* y^2 == x^3 + a·x + b */
         ec_pow2 (y, y, ctx);
 
-        ec_pow2 (xx, x, ctx);
-        ec_mulm (w, ctx->a, xx, ctx);
+        ec_pow3 (xxx, x, ctx);
+        ec_mulm (w, ctx->a, x, ctx);
         ec_addm (w, w, ctx->b, ctx);
-        ec_mulm (xx, xx, x, ctx);
-        ec_addm (w, w, xx, ctx);
+        ec_addm (w, w, xxx, ctx);
 
         if (!mpi_cmp (y, w))
           res = 1;
 
-        gcry_mpi_release (xx);
+        gcry_mpi_release (xxx);
       }
       break;
     case MPI_EC_MONTGOMERY:
