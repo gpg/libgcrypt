@@ -1286,6 +1286,7 @@ main( int argc, char **argv )
   int last_argc = -1;
   int no_blinding = 0;
   int use_random_daemon = 0;
+  int use_secmem = 0;
   int with_progress = 0;
   int debug = 0;
   int pk_count = 100;
@@ -1329,6 +1330,11 @@ main( int argc, char **argv )
       else if (!strcmp (*argv, "--use-random-daemon"))
         {
           use_random_daemon = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--use-secmem"))
+        {
+          use_secmem = 1;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--prefer-standard-rng"))
@@ -1449,7 +1455,7 @@ main( int argc, char **argv )
 
   if (gcry_fips_mode_active ())
     in_fips_mode = 1;
-  else
+  else if (!use_secmem)
     gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
 
   if (use_random_daemon)

@@ -1117,11 +1117,30 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       mpi_set_ui (result->y, 1);
       mpi_set_ui (result->z, 1);
 
-      for (j=nbits-1; j >= 0; j--)
+      if (mpi_is_secure (scalar))
         {
-          _gcry_mpi_ec_dup_point (result, result, ctx);
-          if (mpi_test_bit (scalar, j) == 1)
-            _gcry_mpi_ec_add_points (result, result, point, ctx);
+          /* If SCALAR is in secure memory we assume that it is the
+             secret key we use constant time operation.  */
+          mpi_point_struct tmppnt;
+
+          point_init (&tmppnt);
+          for (j=nbits-1; j >= 0; j--)
+            {
+              _gcry_mpi_ec_dup_point (result, result, ctx);
+              _gcry_mpi_ec_add_points (&tmppnt, result, point, ctx);
+              if (mpi_test_bit (scalar, j))
+                point_set (result, &tmppnt);
+            }
+          point_free (&tmppnt);
+        }
+      else
+        {
+          for (j=nbits-1; j >= 0; j--)
+            {
+              _gcry_mpi_ec_dup_point (result, result, ctx);
+              if (mpi_test_bit (scalar, j))
+                _gcry_mpi_ec_add_points (result, result, point, ctx);
+            }
         }
       return;
     }
