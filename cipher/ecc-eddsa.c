@@ -252,7 +252,7 @@ _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
 
   /* Choose the desired square root according to parity */
   if (mpi_test_bit (x, 0) != !!sign)
-    gcry_mpi_neg (x, x);
+    mpi_sub (x, ec->p, x);
 
   mpi_free (t);
   mpi_free (v3);
@@ -267,7 +267,7 @@ _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
    the usual curve context.  If R_ENCPK is not NULL, the encoded PK is
    stored at that address; this is a new copy to be released by the
    caller.  In contrast to the supplied PK, this is not an MPI and
-   thus guarnateed to be properly padded.  R_ENCPKLEN received the
+   thus guarnateed to be properly padded.  R_ENCPKLEN receives the
    length of that encoded key.  */
 gpg_err_code_t
 _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
