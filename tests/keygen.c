@@ -90,21 +90,21 @@ show (const char *format, ...)
 }
 
 
-static void
-show_note (const char *format, ...)
-{
-  va_list arg_ptr;
+/* static void */
+/* show_note (const char *format, ...) */
+/* { */
+/*   va_list arg_ptr; */
 
-  if (!verbose && getenv ("srcdir"))
-    fputs ("      ", stderr);  /* To align above "PASS: ".  */
-  else
-    fprintf (stderr, "%s: ", PGM);
-  va_start (arg_ptr, format);
-  vfprintf (stderr, format, arg_ptr);
-  if (*format && format[strlen(format)-1] != '\n')
-    putc ('\n', stderr);
-  va_end (arg_ptr);
-}
+/*   if (!verbose && getenv ("srcdir")) */
+/*     fputs ("      ", stderr);  /\* To align above "PASS: ".  *\/ */
+/*   else */
+/*     fprintf (stderr, "%s: ", PGM); */
+/*   va_start (arg_ptr, format); */
+/*   vfprintf (stderr, format, arg_ptr); */
+/*   if (*format && format[strlen(format)-1] != '\n') */
+/*     putc ('\n', stderr); */
+/*   va_end (arg_ptr); */
+/* } */
 
 
 static void
@@ -376,11 +376,11 @@ check_ecc_keys (void)
         show ("creating ECC key using curve %s\n", curves[testno]);
       if (!strcmp (curves[testno], "Ed25519"))
         rc = gcry_sexp_build (&keyparm, NULL,
-                              "(genkey(ecc(curve %s)(flags eddsa)))",
+                              "(genkey(ecc(curve %s)(flags param eddsa)))",
                               curves[testno]);
       else
         rc = gcry_sexp_build (&keyparm, NULL,
-                              "(genkey(ecc(curve %s)(flags )))",
+                              "(genkey(ecc(curve %s)(flags param)))",
                               curves[testno]);
       if (rc)
         die ("error creating S-expression: %s\n", gpg_strerror (rc));
@@ -393,10 +393,7 @@ check_ecc_keys (void)
       if (verbose > 1)
         show_sexp ("ECC key:\n", key);
 
-      if (!strcmp (curves[testno], "Ed25519"))
-        show_note ("note: gcry_pk_testkey does not yet work for Ed25519\n");
-      else
-        check_generated_ecc_key (key);
+      check_generated_ecc_key (key);
 
       gcry_sexp_release (key);
     }
@@ -415,6 +412,8 @@ check_ecc_keys (void)
   if (verbose > 1)
     show_sexp ("ECC key:\n", key);
 
+  check_generated_ecc_key (key);
+
   if (verbose)
     show ("creating ECC key using curve Ed25519 for ECDSA (nocomp)\n");
   rc = gcry_sexp_build (&keyparm, NULL,
@@ -430,6 +429,8 @@ check_ecc_keys (void)
 
   if (verbose > 1)
     show_sexp ("ECC key:\n", key);
+
+  check_generated_ecc_key (key);
 
   gcry_sexp_release (key);
 }

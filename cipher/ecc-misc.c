@@ -253,13 +253,20 @@ reverse_buffer (unsigned char *buffer, unsigned int length)
 /* Compute the public key from the the context EC.  Obviously a
    requirement is that the secret key is available in EC.  On success
    Q is returned; on error NULL.  If Q is NULL a newly allocated point
-   is returned.  */
+   is returned.  If G or D are given they override the values taken
+   from EC. */
 mpi_point_t
-_gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec)
+_gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
+                          mpi_point_t G, gcry_mpi_t d)
 {
   int rc;
 
-  if (!ec->d || !ec->G || !ec->p || !ec->a)
+  if (!G)
+    G = ec->G;
+  if (!d)
+    d = ec->d;
+
+  if (!d || !G || !ec->p || !ec->a)
     return NULL;
   if (ec->model == MPI_EC_TWISTEDEDWARDS && !ec->b)
     return NULL;
@@ -280,7 +287,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec)
         return NULL;
       memset (hvec, 0, sizeof hvec);
 
-      rawmpi = _gcry_mpi_get_buffer (ec->d, 0, &rawmpilen, NULL);
+      rawmpi = _gcry_mpi_get_buffer (d, 0, &rawmpilen, NULL);
       if (!rawmpi)
         return NULL;
       memset (digest, 0, b);
@@ -311,7 +318,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec)
       if (!Q)
         Q = gcry_mpi_point_new (0);
       if (Q)
-        _gcry_mpi_ec_mul_point (Q, a, ec->G, ec);
+        _gcry_mpi_ec_mul_point (Q, a, G, ec);
       mpi_free (a);
     }
   else
@@ -319,7 +326,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec)
       if (!Q)
         Q = gcry_mpi_point_new (0);
       if (Q)
-        _gcry_mpi_ec_mul_point (Q, ec->d, ec->G, ec);
+        _gcry_mpi_ec_mul_point (Q, d, G, ec);
     }
 
   return Q;

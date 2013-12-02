@@ -174,10 +174,10 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       "ffa51868783bf2f966b7fcc0148f709a5d03bb5c9b8899c47aebb6fb71e91386409",
 
-      "0xc6858e06b70404e9cd9e3ecb662395b4429c648139053fb521f828af606b4d3d"
-      "baa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66",
-      "0x11839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e6"
-      "62c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650"
+      "0x00c6858e06b70404e9cd9e3ecb662395b4429c648139053fb521f828af606b4d"
+      "3dbaa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66",
+      "0x011839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e"
+      "662c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650"
     },
 
     { "brainpoolP160r1", 160, 0,
@@ -442,7 +442,7 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
 
 
 /* Give the name of the curve NAME, store the curve parameters into P,
-   A, B, G, and N if they pint to NULL value.  Note that G is returned
+   A, B, G, and N if they point to NULL value.  Note that G is returned
    in standard uncompressed format.  Also update MODEL and DIALECT if
    they are not NULL. */
 gpg_err_code_t
@@ -1030,7 +1030,7 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
     {
       /* If only the private key is given, compute the public key.  */
       if (!ec->Q)
-        ec->Q = _gcry_ecc_compute_public (NULL, ec);
+        ec->Q = _gcry_ecc_compute_public (NULL, ec, NULL, NULL);
 
       if (!ec->Q)
         return NULL;
@@ -1063,7 +1063,7 @@ _gcry_ecc_get_point (const char *name, mpi_ec_t ec)
     {
       /* If only the private key is given, compute the public key.  */
       if (!ec->Q)
-        ec->Q = _gcry_ecc_compute_public (NULL, ec);
+        ec->Q = _gcry_ecc_compute_public (NULL, ec, NULL, NULL);
 
       if (ec->Q)
         return point_copy (ec->Q);

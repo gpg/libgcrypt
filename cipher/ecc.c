@@ -84,8 +84,6 @@ static void *progress_cb_data;
 
 /* Local prototypes. */
 static void test_keys (ECC_secret_key * sk, unsigned int nbits);
-static int check_secret_key (ECC_secret_key * sk);
-static gcry_mpi_t gen_y_2 (gcry_mpi_t x, elliptic_curve_t * base);
 static unsigned int ecc_get_nbits (gcry_sexp_t parms);
 
 
@@ -109,32 +107,6 @@ _gcry_register_pk_ecc_progress (void (*cb) (void *, const char *,
 
 
 
-
-/*
- * Solve the right side of the Weierstrass equation.
- */
-static gcry_mpi_t
-gen_y_2 (gcry_mpi_t x, elliptic_curve_t *base)
-{
-  gcry_mpi_t three, x_3, axb, y;
-
-  three = mpi_alloc_set_ui (3);
-  x_3 = mpi_new (0);
-  axb = mpi_new (0);
-  y   = mpi_new (0);
-
-  mpi_powm (x_3, x, three, base->p);
-  mpi_mulm (axb, base->a, x, base->p);
-  mpi_addm (axb, axb, base->b, base->p);
-  mpi_addm (y, x_3, axb, base->p);
-
-  mpi_free (x_3);
-  mpi_free (axb);
-  mpi_free (three);
-  return y; /* The quadratic value of the coordinate if it exist. */
-}
-
-
 /* Standard version of the key generation.  */
 static gpg_err_code_t
 nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
@@ -181,55 +153,62 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
    * end up with the min(y,p-y) as the y coordinate.  Such a public
    * key allows the most efficient compression: y can simply be
    * dropped because we know that it's a minimum of the two
-   * possibilities without any loss of security.  */
-  {
-    gcry_mpi_t x, y, negative;
-    const unsigned int pbits = mpi_get_nbits (E->p);
+   * possibilities without any loss of security.  Note that we don't
+   * do that for Ed25519 so that we do not violate the special
+   * construction of the secret key.  */
+  if (E->dialect == ECC_DIALECT_ED25519)
+    point_set (&sk->Q, &Q);
+  else
+    {
+      gcry_mpi_t x, y, negative;
+      const unsigned int pbits = mpi_get_nbits (E->p);
 
-    x = mpi_new (pbits);
-    y = mpi_new (pbits);
-    negative = mpi_new (pbits);
+      x = mpi_new (pbits);
+      y = mpi_new (pbits);
+      negative = mpi_new (pbits);
 
-    if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
-      log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
+      if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
+        log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
 
-    if (E->model == MPI_EC_WEIERSTRASS)
-      mpi_sub (negative, E->p, y);      /* negative = p - y */
-    else
-      mpi_sub (negative, E->p, x);      /* negative = p - x */
+      if (E->model == MPI_EC_WEIERSTRASS)
+        mpi_sub (negative, E->p, y);      /* negative = p - y */
+      else
+        mpi_sub (negative, E->p, x);      /* negative = p - x */
 
-    if (mpi_cmp (negative, y) < 0)   /* p - y < p */
-      {
-        /* We need to end up with -Q; this assures that new Q's y is
-           the smallest one */
-        mpi_sub (sk->d, E->n, sk->d);   /* d = order - d */
-        if (E->model == MPI_EC_WEIERSTRASS)
-          gcry_mpi_point_snatch_set (&sk->Q, x, negative, mpi_alloc_set_ui (1));
-        else
-          gcry_mpi_point_snatch_set (&sk->Q, negative, y, mpi_alloc_set_ui (1));
+      if (mpi_cmp (negative, y) < 0)   /* p - y < p */
+        {
+          /* We need to end up with -Q; this assures that new Q's y is
+             the smallest one */
+          mpi_sub (sk->d, E->n, sk->d);   /* d = order - d */
+          if (E->model == MPI_EC_WEIERSTRASS)
+            gcry_mpi_point_snatch_set (&sk->Q, x, negative,
+                                       mpi_alloc_set_ui (1));
+          else
+            gcry_mpi_point_snatch_set (&sk->Q, negative, y,
+                                       mpi_alloc_set_ui (1));
 
-        if (DBG_CIPHER)
-          log_debug ("ecgen converted Q to a compliant point\n");
-      }
-    else /* p - y >= p */
-      {
-        /* No change is needed exactly 50% of the time: just copy. */
-        point_set (&sk->Q, &Q);
-        if (DBG_CIPHER)
-          log_debug ("ecgen didn't need to convert Q to a compliant point\n");
+          if (DBG_CIPHER)
+            log_debug ("ecgen converted Q to a compliant point\n");
+        }
+      else /* p - y >= p */
+        {
+          /* No change is needed exactly 50% of the time: just copy. */
+          point_set (&sk->Q, &Q);
+          if (DBG_CIPHER)
+            log_debug ("ecgen didn't need to convert Q to a compliant point\n");
 
-        mpi_free (negative);
-        if (E->model == MPI_EC_WEIERSTRASS)
-          mpi_free (x);
-        else
-          mpi_free (y);
-      }
+          mpi_free (negative);
+          if (E->model == MPI_EC_WEIERSTRASS)
+            mpi_free (x);
+          else
+            mpi_free (y);
+        }
 
-    if (E->model == MPI_EC_WEIERSTRASS)
-      mpi_free (y);
-    else
-      mpi_free (x);
-  }
+      if (E->model == MPI_EC_WEIERSTRASS)
+        mpi_free (y);
+      else
+        mpi_free (x);
+    }
 
   point_free (&Q);
   /* Now we can test our keys (this should never fail!).  */
@@ -295,30 +274,26 @@ test_keys (ECC_secret_key *sk, unsigned int nbits)
  * between the public value and the secret one.
  */
 static int
-check_secret_key (ECC_secret_key * sk)
+check_secret_key (ECC_secret_key *sk, mpi_ec_t ec, int flags)
 {
   int rc = 1;
   mpi_point_struct Q;
-  gcry_mpi_t y_2, y2;
-  gcry_mpi_t x1, x2;
-  mpi_ec_t ctx = NULL;
+  gcry_mpi_t x1, y1;
+  gcry_mpi_t x2 = NULL;
+  gcry_mpi_t y2 = NULL;
 
   point_init (&Q);
+  x1 = mpi_new (0);
+  y1 = mpi_new (0);
 
-  /* ?primarity test of 'p' */
-  /*  (...) //!! */
   /* G in E(F_p) */
-  y_2 = gen_y_2 (sk->E.G.x, &sk->E);   /*  y^2=x^3+a*x+b */
-  y2 = mpi_alloc (0);
-  x1 = mpi_alloc (0);
-  x2 = mpi_alloc (0);
-  mpi_mulm (y2, sk->E.G.y, sk->E.G.y, sk->E.p);      /*  y^2=y*y */
-  if (mpi_cmp (y_2, y2))
+  if (!_gcry_mpi_ec_curve_point (&sk->E.G, ec))
     {
       if (DBG_CIPHER)
         log_debug ("Bad check: Point 'G' does not belong to curve 'E'!\n");
       goto leave;
     }
+
   /* G != PaI */
   if (!mpi_cmp_ui (sk->E.G.z, 0))
     {
@@ -327,37 +302,46 @@ check_secret_key (ECC_secret_key * sk)
       goto leave;
     }
 
-  ctx = _gcry_mpi_ec_p_internal_new (sk->E.model, sk->E.dialect, 0,
-                                     sk->E.p, sk->E.a, sk->E.b);
-
-  _gcry_mpi_ec_mul_point (&Q, sk->E.n, &sk->E.G, ctx);
-  if (mpi_cmp_ui (Q.z, 0))
+  /* Check order of curve.  */
+  if (sk->E.dialect != ECC_DIALECT_ED25519)
     {
-      if (DBG_CIPHER)
-        log_debug ("check_secret_key: E is not a curve of order n\n");
-      goto leave;
+      _gcry_mpi_ec_mul_point (&Q, sk->E.n, &sk->E.G, ec);
+      if (mpi_cmp_ui (Q.z, 0))
+        {
+          if (DBG_CIPHER)
+            log_debug ("check_secret_key: E is not a curve of order n\n");
+          goto leave;
+        }
     }
-  /* pubkey cannot be PaI */
+
+  /* Pubkey cannot be PaI */
   if (!mpi_cmp_ui (sk->Q.z, 0))
     {
       if (DBG_CIPHER)
         log_debug ("Bad check: Q can not be a Point at Infinity!\n");
       goto leave;
     }
-  /* pubkey = [d]G over E */
-  _gcry_mpi_ec_mul_point (&Q, sk->d, &sk->E.G, ctx);
 
-  if (_gcry_mpi_ec_get_affine (x1, y_2, &Q, ctx))
+  /* pubkey = [d]G over E */
+  if (!_gcry_ecc_compute_public (&Q, ec, &sk->E.G, sk->d))
+    {
+      if (DBG_CIPHER)
+        log_debug ("Bad check: computation of dG failed\n");
+      goto leave;
+    }
+  if (_gcry_mpi_ec_get_affine (x1, y1, &Q, ec))
     {
       if (DBG_CIPHER)
         log_debug ("Bad check: Q can not be a Point at Infinity!\n");
       goto leave;
     }
 
-  /* Fast path for loaded secret keys - Q is already in affine coordinates */
-  if (!mpi_cmp_ui (sk->Q.z, 1))
+  if ((flags & PUBKEY_FLAG_EDDSA))
+    ; /* Fixme: EdDSA is special.  */
+  else if (!mpi_cmp_ui (sk->Q.z, 1))
     {
-      if (mpi_cmp (x1, sk->Q.x) || mpi_cmp (y_2, sk->Q.y))
+      /* Fast path if Q is already in affine coordinates.  */
+      if (mpi_cmp (x1, sk->Q.x) || mpi_cmp (y1, sk->Q.y))
         {
           if (DBG_CIPHER)
             log_debug
@@ -367,14 +351,16 @@ check_secret_key (ECC_secret_key * sk)
     }
   else
     {
-      if (_gcry_mpi_ec_get_affine (x2, y2, &sk->Q, ctx))
+      x2 = mpi_new (0);
+      y2 = mpi_new (0);
+      if (_gcry_mpi_ec_get_affine (x2, y2, &sk->Q, ec))
         {
           if (DBG_CIPHER)
             log_debug ("Bad check: Q can not be a Point at Infinity!\n");
           goto leave;
         }
 
-      if (mpi_cmp (x1, x2) || mpi_cmp (y_2, y2))
+      if (mpi_cmp (x1, x2) || mpi_cmp (y1, y2))
         {
           if (DBG_CIPHER)
             log_debug
@@ -385,11 +371,10 @@ check_secret_key (ECC_secret_key * sk)
   rc = 0; /* Okay.  */
 
  leave:
-  _gcry_mpi_ec_free (ctx);
   mpi_free (x2);
   mpi_free (x1);
+  mpi_free (y1);
   mpi_free (y2);
-  mpi_free (y_2);
   point_free (&Q);
   return rc;
 }
@@ -601,28 +586,35 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
 {
   gcry_err_code_t rc;
   gcry_sexp_t l1 = NULL;
+  int flags = 0;
   char *curvename = NULL;
   gcry_mpi_t mpi_g = NULL;
   gcry_mpi_t mpi_q = NULL;
   ECC_secret_key sk;
+  mpi_ec_t ec = NULL;
 
   memset (&sk, 0, sizeof sk);
 
-  /*
-   * Extract the key.
-   */
-  rc = _gcry_sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?/q?+d",
-                                 &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
-                                 &mpi_q, &sk.d, NULL);
-  if (rc)
-    goto leave;
-  if (mpi_g)
+  /* Look for flags. */
+  l1 = gcry_sexp_find_token (keyparms, "flags", 0);
+  if (l1)
     {
-      point_init (&sk.E.G);
-      rc = _gcry_ecc_os2ec (&sk.E.G, mpi_g);
+      rc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
       if (rc)
         goto leave;
     }
+
+  /* Extract the parameters.  */
+  if ((flags & PUBKEY_FLAG_PARAM))
+    rc = _gcry_sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?/q?+d",
+                                   &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
+                                   &mpi_q, &sk.d, NULL);
+  else
+    rc = _gcry_sexp_extract_param (keyparms, NULL, "/q?+d",
+                                   &mpi_q, &sk.d, NULL);
+  if (rc)
+    goto leave;
+
   /* Add missing parameters using the optional curve parameter.  */
   gcry_sexp_release (l1);
   l1 = gcry_sexp_find_token (keyparms, "curve", 5);
@@ -631,17 +623,32 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
       curvename = gcry_sexp_nth_string (l1, 1);
       if (curvename)
         {
-          rc = _gcry_ecc_fill_in_curve (0, curvename, &sk.E, NULL);
+          rc = _gcry_ecc_update_curve_param (curvename,
+                                             &sk.E.model, &sk.E.dialect,
+                                             &sk.E.p, &sk.E.a, &sk.E.b,
+                                             &mpi_g, &sk.E.n);
           if (rc)
             return rc;
         }
     }
+  if (mpi_g)
+    {
+      point_init (&sk.E.G);
+      rc = _gcry_ecc_os2ec (&sk.E.G, mpi_g);
+      if (rc)
+        goto leave;
+    }
+
   /* Guess required fields if a curve parameter has not been given.
      FIXME: This is a crude hacks.  We need to fix that.  */
   if (!curvename)
     {
-      sk.E.model = MPI_EC_WEIERSTRASS;
-      sk.E.dialect = ECC_DIALECT_STANDARD;
+      sk.E.model = ((flags & PUBKEY_FLAG_EDDSA)
+               ? MPI_EC_TWISTEDEDWARDS
+               : MPI_EC_WEIERSTRASS);
+      sk.E.dialect = ((flags & PUBKEY_FLAG_EDDSA)
+                      ? ECC_DIALECT_ED25519
+                      : ECC_DIALECT_STANDARD);
     }
   if (DBG_CIPHER)
     {
@@ -665,24 +672,31 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
       goto leave;
     }
 
+  ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, 0,
+                                    sk.E.p, sk.E.a, sk.E.b);
+
   if (mpi_q)
     {
       point_init (&sk.Q);
-      rc = _gcry_ecc_os2ec (&sk.Q, mpi_q);
+      if (ec->dialect == ECC_DIALECT_ED25519)
+        rc = _gcry_ecc_eddsa_decodepoint (mpi_q, ec, &sk.Q, NULL, NULL);
+      else
+        rc = _gcry_ecc_os2ec (&sk.Q, mpi_q);
       if (rc)
         goto leave;
     }
   else
     {
-      /* The current test requires Q.  */
+      /* The secret key test requires Q.  */
       rc = GPG_ERR_NO_OBJ;
       goto leave;
     }
 
-  if (check_secret_key (&sk))
+  if (check_secret_key (&sk, ec, flags))
     rc = GPG_ERR_BAD_SECKEY;
 
  leave:
+  _gcry_mpi_ec_free (ec);
   gcry_mpi_release (sk.E.p);
   gcry_mpi_release (sk.E.a);
   gcry_mpi_release (sk.E.b);
@@ -1623,7 +1637,7 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
 
   /* Compute the public point if it is missing.  */
   if (!ec->Q && ec->d)
-    ec->Q = _gcry_ecc_compute_public (NULL, ec);
+    ec->Q = _gcry_ecc_compute_public (NULL, ec, NULL, NULL);
 
   /* Encode G and Q.  */
   mpi_G = _gcry_mpi_ec_ec2os (ec->G, ec);
