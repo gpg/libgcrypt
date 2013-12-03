@@ -268,6 +268,44 @@ extern UDItype __udiv_qrnnd ();
 #endif /* __arm__ */
 
 /***************************************
+ **********  ARM64 / Aarch64  **********
+ ***************************************/
+#if defined(__aarch64__) && W_TYPE_SIZE == 64
+#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+  __asm__ ("adds %1, %4, %5\n"                                          \
+           "adc  %0, %2, %3\n"                                          \
+           : "=r" ((sh)),                                               \
+             "=&r" ((sl))                                               \
+           : "r" ((UDItype)(ah)),                                       \
+             "r" ((UDItype)(bh)),                                       \
+             "r" ((UDItype)(al)),                                       \
+             "r" ((UDItype)(bl)) __CLOBBER_CC)
+#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+  __asm__ ("subs %1, %4, %5\n"                                          \
+           "sbc  %0, %2, %3\n"                                          \
+           : "=r" ((sh)),                                               \
+             "=&r" ((sl))                                               \
+           : "r" ((UDItype)(ah)),                                       \
+             "r" ((UDItype)(bh)),                                       \
+             "r" ((UDItype)(al)),                                       \
+             "r" ((UDItype)(bl)) __CLOBBER_CC)
+#define umul_ppmm(ph, pl, m0, m1) \
+  do {                                                                  \
+    UDItype __m0 = (m0), __m1 = (m1), __ph;                             \
+    (pl) = __m0 * __m1;                                                 \
+    __asm__ ("umulh %0,%1,%2"                                           \
+             : "=r" (__ph)                                              \
+             : "r" (__m0),                                              \
+               "r" (__m1));                                             \
+    (ph) = __ph; \
+  } while (0)
+#define count_leading_zeros(count, x) \
+  __asm__ ("clz %0, %1\n"                                               \
+           : "=r" ((count))                                             \
+           : "r" ((UDItype)(x)))
+#endif /* __aarch64__ */
+
+/***************************************
  **************  CLIPPER  **************
  ***************************************/
 #if defined (__clipper__) && W_TYPE_SIZE == 32

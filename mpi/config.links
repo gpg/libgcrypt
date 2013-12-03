@@ -136,6 +136,11 @@ case "${host}" in
 	mpi_extra_modules="udiv-qrnnd"
         mpi_cpu_arch="alpha"
 	;;
+    aarch64-*-*)
+	echo '/* configured for aarch64 */' >>./mpi/asm-syntax.h
+	path="aarch64"
+	mpi_cpu_arch="aarch64"
+	;;
     arm*-*-*)
 	if test "$gcry_cv_gcc_arm_platform_as_ok" = "yes" ; then
 	  echo '/* configured for arm */' >>./mpi/asm-syntax.h
