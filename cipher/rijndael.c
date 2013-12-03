@@ -504,7 +504,9 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
       KC = 4;
 
       if (0)
-        ;
+        {
+          ;
+        }
 #ifdef USE_PADLOCK
       else if (hwfeatures & HWF_PADLOCK_AES)
         {
@@ -559,7 +561,9 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   /* NB: We don't yet support Padlock hardware key generation.  */
 
   if (0)
-    ;
+    {
+      ;
+    }
 #ifdef USE_AESNI
   else if (ctx->use_aesni)
     aesni_do_setkey(ctx, key);
