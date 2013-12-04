@@ -181,6 +181,7 @@ test_powm (void)
   int b_int = 17;
   int e_int = 3;
   int m_int = 19;
+  gcry_mpi_t mpi_0 = gcry_mpi_set_ui (NULL, 0);
   gcry_mpi_t base = gcry_mpi_set_ui (NULL, b_int);
   gcry_mpi_t exp = gcry_mpi_set_ui (NULL, e_int);
   gcry_mpi_t mod = gcry_mpi_set_ui (NULL, m_int);
@@ -269,10 +270,31 @@ test_powm (void)
   if (gcry_mpi_cmp (res, base))
     die ("test_powm failed at %d\n", __LINE__);
 
+  /* Check for a case: base is negative and expo is even.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_sub (base, mpi_0, base);
+  gcry_mpi_set_ui (exp, e_int * 2);
+  gcry_mpi_set_ui(mod, m_int);
+  gcry_mpi_powm (res, base, exp, mod);
+  /* Result should be positive and it's 7 = (-17)^6 mod 19.  */
+  if (gcry_mpi_cmp_ui (res, 0) < 0 || gcry_mpi_cmp_ui (res, 7))
+    {
+      if (verbose)
+        {
+          fprintf (stderr, "is_neg: %d\n", (gcry_mpi_cmp_ui (res, 0) < 0));
+          fprintf (stderr, "mpi: ");
+          gcry_mpi_dump (res);
+          putc ('\n', stderr);
+        }
+      die ("test_powm failed for negative base at %d\n", __LINE__);
+    }
+
+  gcry_mpi_release (base);
+  gcry_mpi_release (exp);
+  gcry_mpi_release (mod);
+  gcry_mpi_release (res);
+
   /* Fixme: We should add the rest of the cases of course.  */
-
-
-
   return 1;
 }
 

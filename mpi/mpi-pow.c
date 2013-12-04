@@ -177,7 +177,7 @@ gcry_mpi_powm (gcry_mpi_t res,
     }
   MPN_COPY ( rp, bp, bsize );
   rsize = bsize;
-  rsign = bsign;
+  rsign = 0;
 
   /* Main processing.  */
   {
@@ -192,7 +192,7 @@ gcry_mpi_powm (gcry_mpi_t res,
     xp = xp_marker = mpi_alloc_limb_space( 2 * (msize + 1), msec );
 
     memset( &karactx, 0, sizeof karactx );
-    negative_result = (ep[0] & 1) && base->sign;
+    negative_result = (ep[0] & 1) && bsign;
 
     i = esize - 1;
     e = ep[i];
