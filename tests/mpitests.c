@@ -520,6 +520,25 @@ test_powm (void)
   if (gcry_mpi_cmp (res, base))
     die ("test_powm failed at %d\n", __LINE__);
 
+  /* Check for a case: base is negative and expo is even.  */
+  gcry_mpi_set_ui (base, b_int);
+  gcry_mpi_neg (base, base);
+  gcry_mpi_set_ui (exp, e_int * 2);
+  gcry_mpi_set_ui(mod, m_int);
+  gcry_mpi_powm (res, base, exp, mod);
+  /* Result should be positive and it's 7 = (-17)^6 mod 19.  */
+  if (gcry_mpi_is_neg (res) || gcry_mpi_cmp_ui (res, 7))
+    {
+      if (verbose)
+        {
+          fprintf (stderr, "is_neg: %d\n", gcry_mpi_is_neg (res));
+          fprintf (stderr, "mpi: ");
+          gcry_mpi_dump (res);
+          putc ('\n', stderr);
+        }
+      die ("test_powm failed for negative base at %d\n", __LINE__);
+    }
+
   gcry_mpi_release (base);
   gcry_mpi_release (exp);
   gcry_mpi_release (mod);
