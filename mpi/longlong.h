@@ -555,6 +555,69 @@ extern USItype __udiv_qrnnd ();
 #endif
 #endif /* 80x86 */
 
+/***************************************
+ *********** AMD64 / x86-64 ************
+ ***************************************/
+#if defined(__x86_64) && W_TYPE_SIZE == 64
+#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+  __asm__ ("addq %5,%1\n"                                               \
+	   "adcq %3,%0"                                                 \
+	   : "=r" ((sh)),                                               \
+	     "=&r" ((sl))                                               \
+	   : "0" ((UDItype)(ah)),                                       \
+	     "g"  ((UDItype)(bh)),                                      \
+	     "1" ((UDItype)(al)),                                       \
+	     "g"  ((UDItype)(bl))                                       \
+	   __CLOBBER_CC)
+#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+  __asm__ ("subq %5,%1\n"                                               \
+	   "sbbq %3,%0"                                                 \
+	   : "=r" ((sh)),                                               \
+	     "=&r" ((sl))                                               \
+	   : "0" ((UDItype)(ah)),                                       \
+	     "g" ((UDItype)(bh)),                                       \
+	     "1" ((UDItype)(al)),                                       \
+	     "g" ((UDItype)(bl))                                        \
+	   __CLOBBER_CC)
+#define umul_ppmm(w1, w0, u, v) \
+  __asm__ ("mulq %3"                                                    \
+	   : "=a" ((w0)),                                               \
+	     "=d" ((w1))                                                \
+	   : "0" ((UDItype)(u)),                                        \
+	     "rm" ((UDItype)(v))                                        \
+	   __CLOBBER_CC)
+#define udiv_qrnnd(q, r, n1, n0, d) \
+  __asm__ ("divq %4"                                                    \
+	   : "=a" ((q)),                                                \
+	     "=d" ((r))                                                 \
+	   : "0" ((UDItype)(n0)),                                       \
+	     "1" ((UDItype)(n1)),                                       \
+	     "rm" ((UDItype)(d))                                        \
+	   __CLOBBER_CC)
+#define count_leading_zeros(count, x) \
+  do {                                                                  \
+    UDItype __cbtmp;                                                    \
+    __asm__ ("bsrq %1,%0"                                               \
+             : "=r" (__cbtmp) : "rm" ((UDItype)(x))                     \
+             __CLOBBER_CC);                                             \
+    (count) = __cbtmp ^ 63;                                             \
+  } while (0)
+#define count_trailing_zeros(count, x) \
+  do {                                                                  \
+    UDItype __cbtmp;                                                    \
+    __asm__ ("bsfq %1,%0"                                               \
+             : "=r" (__cbtmp) : "rm" ((UDItype)(x))                     \
+             __CLOBBER_CC);                                             \
+    (count) = __cbtmp;                                                  \
+  } while (0)
+#ifndef UMUL_TIME
+#define UMUL_TIME 40
+#endif
+#ifndef UDIV_TIME
+#define UDIV_TIME 40
+#endif
+#endif /* __x86_64 */
+
 
 /***************************************
  **************  I860  *****************
