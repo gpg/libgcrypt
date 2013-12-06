@@ -25,6 +25,7 @@
 #endif
 
 #include "gcrypt.h"
+#include "types.h"
 
 /* These error codes are used but not defined in the required
    libgpg-error 1.11.  Define them here. */
