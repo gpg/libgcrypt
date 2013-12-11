@@ -540,6 +540,10 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       _gcry_use_random_daemon (!! va_arg (arg_ptr, int));
       break;
 
+    case GCRYCTL_CLOSE_RANDOM_DEVICE:
+      _gcry_random_close_fds ();
+      break;
+
       /* This command dumps information pertaining to the
          configuration of libgcrypt to the given stream.  It may be
          used before the initialization has been finished but not

@@ -193,6 +193,19 @@ _gcry_rngsystem_initialize (int full)
 }
 
 
+/* Try to close the FDs of the random gather module.  This is
+   currently only implemented for rndlinux. */
+void
+_gcry_rngsystem_close_fds (void)
+{
+  lock_rng ();
+#if USE_RNDLINUX
+  _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
+#endif
+  unlock_rng ();
+}
+
+
 /* Print some statistics about the RNG.  */
 void
 _gcry_rngsystem_dump_stats (void)

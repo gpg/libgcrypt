@@ -270,6 +270,54 @@ check_nonce_forking (void)
 }
 
 
+/* Check that a closed random device os re-opened if needed. */
+static void
+check_close_random_device (void)
+{
+#ifdef HAVE_W32_SYSTEM
+  if (verbose)
+    inf ("check_close_random_device skipped: not applicable on Windows\n");
+#else /*!HAVE_W32_SYSTEM*/
+  pid_t pid;
+  int i, status;
+  char buf[4];
+
+  if (verbose)
+    inf ("checking that close_random_device works\n");
+
+  gcry_randomize (buf, sizeof buf, GCRY_STRONG_RANDOM);
+  if (verbose)
+    print_hex ("parent random: ", buf, sizeof buf);
+
+  pid = fork ();
+  if (pid == (pid_t)(-1))
+    die ("fork failed: %s\n", strerror (errno));
+  if (!pid)
+    {
+      gcry_control (GCRYCTL_CLOSE_RANDOM_DEVICE, 0);
+
+      /* The next call will re-open the device.  */
+      gcry_randomize (buf, sizeof buf, GCRY_STRONG_RANDOM);
+      if (verbose)
+        {
+          print_hex ("child random : ", buf, sizeof buf);
+          fflush (stdout);
+        }
+      _exit (0);
+    }
+
+  while ( (i=waitpid (pid, &status, 0)) == -1 && errno == EINTR)
+    ;
+  if (i != (pid_t)(-1)
+      && WIFEXITED (status) && !WEXITSTATUS (status))
+    ;
+  else
+    die ("child failed\n");
+
+#endif  /*!HAVE_W32_SYSTEM*/
+}
+
+
 static int
 rng_type (void)
 {
@@ -529,6 +577,7 @@ main (int argc, char **argv)
     {
       check_forking ();
       check_nonce_forking ();
+      check_close_random_device ();
     }
   check_rng_type_switching ();
 

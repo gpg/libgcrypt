@@ -326,7 +326,8 @@ enum gcry_ctl_cmds
     GCRYCTL_GET_CURRENT_RNG_TYPE = 66,
     GCRYCTL_DISABLE_LOCKED_SECMEM = 67,
     GCRYCTL_DISABLE_PRIV_DROP = 68,
-    GCRYCTL_SET_CCM_LENGTHS = 69
+    GCRYCTL_SET_CCM_LENGTHS = 69,
+    GCRYCTL_CLOSE_RANDOM_DEVICE = 70
   };
 
 /* Perform various operations defined by CMD. */

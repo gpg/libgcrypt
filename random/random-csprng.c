@@ -154,7 +154,7 @@ static int allow_seed_file_update;
 static int secure_alloc;
 
 /* This function pointer is set to the actual entropy gathering
-   function during initailization.  After initialization it is
+   function during initialization.  After initialization it is
    guaranteed to point to function.  (On systems without a random
    gatherer module a dummy function is used).*/
 static int (*slow_gather_fnc)(void (*)(const void*, size_t,
@@ -358,6 +358,20 @@ _gcry_rngcsprng_initialize (int full)
     initialize_basics ();
   else
     initialize ();
+}
+
+
+/* Try to close the FDs of the random gather module.  This is
+   currently only implemented for rndlinux. */
+void
+_gcry_rngcsprng_close_fds (void)
+{
+  lock_pool ();
+#if USE_RNDLINUX
+  _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
+  pool_filled = 0; /* Force re-open on next use.  */
+#endif
+  unlock_pool ();
 }
 
 

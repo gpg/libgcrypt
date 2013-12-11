@@ -165,6 +165,27 @@ _gcry_random_initialize (int full)
 }
 
 
+/* If possible close file descriptors used by the RNG. */
+void
+_gcry_random_close_fds (void)
+{
+  /* Note that we can't do that directly because each random system
+     has its own lock functions which need to be used for accessing
+     the entropy gatherer.  */
+
+  if (fips_mode ())
+    _gcry_rngfips_close_fds ();
+  else if (rng_types.standard)
+    _gcry_rngcsprng_close_fds ();
+  else if (rng_types.fips)
+    _gcry_rngfips_close_fds ();
+  else if (rng_types.system)
+    _gcry_rngsystem_close_fds ();
+  else
+    _gcry_rngcsprng_close_fds ();
+}
+
+
 /* Return the current RNG type.  IGNORE_FIPS_MODE is a flag used to
    skip the test for FIPS.  This is useful, so that we are able to
    return the type of the RNG even before we have setup FIPS mode

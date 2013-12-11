@@ -36,7 +36,7 @@
 #include "g10lib.h"
 #include "rand-internal.h"
 
-static int open_device ( const char *name );
+static int open_device (const char *name, int retry);
 
 
 static int
@@ -54,15 +54,30 @@ set_cloexec_flag (int fd)
 
 
 /*
- * Used to open the /dev/random devices (Linux, xBSD, Solaris (if it exists)).
+ * Used to open the /dev/random devices (Linux, xBSD, Solaris (if it
+ * exists)).  If RETRY is true, the function does not terminate with
+ * a fatal error but retries until it is able to reopen the device.
  */
 static int
-open_device ( const char *name )
+open_device (const char *name, int retry)
 {
   int fd;
 
-  fd = open ( name, O_RDONLY );
-  if ( fd == -1 )
+  if (retry)
+    _gcry_random_progress ("open_dev_random", 'X', 1, 0);
+ again:
+  fd = open (name, O_RDONLY);
+  if (fd == -1 && retry)
+    {
+      struct timeval tv;
+
+      tv.tv_sec = 5;
+      tv.tv_usec = 0;
+      _gcry_random_progress ("wait_dev_random", 'X', 0, (int)tv.tv_sec);
+      select (0, NULL, NULL, NULL, &tv);
+      goto again;
+    }
+  if (fd == -1)
     log_fatal ("can't open %s: %s\n", name, strerror(errno) );
 
   if (set_cloexec_flag (fd))
@@ -84,6 +99,10 @@ open_device ( const char *name )
 }
 
 
+/* Note that the caller needs to make sure that this function is only
+   called by one thread at a time.  The function returns 0 on success
+   or true on failure (in which case the caller will signal a fatal
+   error).  */
 int
 _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
                                           enum random_origins),
@@ -92,6 +111,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
 {
   static int fd_urandom = -1;
   static int fd_random = -1;
+  static unsigned char ever_opened;
   int fd;
   int n;
   byte buffer[768];
@@ -101,6 +121,23 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
   int any_need_entropy = 0;
   int delay;
 
+  if (!add)
+    {
+      /* Special mode to close the descriptors.  */
+      if (fd_random != -1)
+        {
+          close (fd_random);
+          fd_random = -1;
+        }
+      if (fd_urandom != -1)
+        {
+          close (fd_urandom);
+          fd_urandom = -1;
+        }
+      return 0;
+    }
+
+
   /* First read from a hardware source.  However let it account only
      for up to 50% of the requested bytes.  */
   n_hw = _gcry_rndhw_poll_slow (add, origin);
@@ -109,17 +146,29 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
   if (length > 1)
     length -= n_hw;
 
-  /* Open the requested device.  */
+  /* Open the requested device.  The first time a device is to be
+     opened we fail with a fatal error if the device does not exists.
+     In case the device has ever been closed, further open requests
+     will however retry indefinitely.  The rationale for this behaviour is
+     that we always require the device to be existent but want a more
+     graceful behaviour if the rarely needed close operation has been
+     used and the device needs to be re-opened later. */
   if (level >= 2)
     {
-      if( fd_random == -1 )
-        fd_random = open_device ( NAME_OF_DEV_RANDOM );
+      if (fd_random == -1)
+        {
+          fd_random = open_device (NAME_OF_DEV_RANDOM, (ever_opened & 1));
+          ever_opened |= 1;
+        }
       fd = fd_random;
     }
   else
     {
-      if( fd_urandom == -1 )
-        fd_urandom = open_device ( NAME_OF_DEV_URANDOM );
+      if (fd_urandom == -1)
+        {
+          fd_urandom = open_device (NAME_OF_DEV_URANDOM, (ever_opened & 2));
+          ever_opened |= 2;
+        }
       fd = fd_urandom;
     }
 
@@ -164,7 +213,7 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
               log_error ("select() error: %s\n", strerror(errno));
               if (!delay)
                 delay = 1; /* Use 1 second if we encounter an error before
-                          we have ever blocked.  */
+                              we have ever blocked.  */
               continue;
             }
         }

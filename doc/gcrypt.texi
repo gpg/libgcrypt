@@ -766,6 +766,14 @@ not an issue when using Linux (rndlinux driver), because this one
 guarantees to read full 16 bytes from /dev/urandom and thus there is no
 way for an attacker without kernel access to control these 16 bytes.
 
+@item GCRYCTL_CLOSE_RANDOM_DEVICE; Arguments: none
+Try to close the random device.  If on Unix system you call fork(),
+the child process does no call exec(), and you do not intend to use
+Libgcrypt in the child, it might be useful to use this control code to
+close the inherited file descriptors of the random device.  If
+Libgcrypt is later used again by the child, the device will be
+re-opened.  On non-Unix systems this control code is ignored.
+
 @item GCRYCTL_SET_VERBOSITY; Arguments: int level
 This command sets the verbosity of the logging.  A level of 0 disables
 all extra logging whereas positive numbers enable more verbose logging.
@@ -1354,6 +1362,10 @@ values for @var{what} are defined:
 @item need_entropy
 Not enough entropy is available.  @var{total} holds the number of
 required bytes.
+
+@item wait_dev_random
+Waiting to re-open a random device.  @var{total} gives the number of
+seconds until the next try.
 
 @item primegen
 Values for @var{printchar}:
