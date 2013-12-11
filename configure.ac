@@ -1077,6 +1077,40 @@ fi
 
 
 #
+# Check whether GCC assembler supports features needed for assembly
+# implementations that use Intel syntax
+#
+AC_CACHE_CHECK([whether GCC assembler is compatible for Intel syntax assembly implementations],
+       [gcry_cv_gcc_platform_as_ok_for_intel_syntax],
+       [gcry_cv_gcc_platform_as_ok_for_intel_syntax=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                ".intel_syntax noprefix\n\t"
+                "pxor xmm1, xmm7;\n\t"
+                /* Intel syntax implementation also use GAS macros, so check
+                 * for them here. */
+                "VAL_A = xmm4\n\t"
+                "VAL_B = xmm2\n\t"
+                ".macro SET_VAL_A p1\n\t"
+                "  VAL_A = \\\\p1 \n\t"
+                ".endm\n\t"
+                ".macro SET_VAL_B p1\n\t"
+                "  VAL_B = \\\\p1 \n\t"
+                ".endm\n\t"
+                "vmovdqa VAL_A, VAL_B;\n\t"
+                "SET_VAL_A eax\n\t"
+                "SET_VAL_B ebp\n\t"
+                "add VAL_A, VAL_B;\n\t"
+                "add VAL_B, 0b10101;\n\t"
+            );]])],
+          [gcry_cv_gcc_platform_as_ok_for_intel_syntax=yes])])
+if test "$gcry_cv_gcc_platform_as_ok_for_intel_syntax" = "yes" ; then
+  AC_DEFINE(HAVE_INTEL_SYNTAX_PLATFORM_AS,1,
+            [Defined if underlying assembler is compatible with Intel syntax assembly implementations])
+fi
+
+
+#
 # Check whether compiler is configured for ARMv6 or newer architecture
 #
 AC_CACHE_CHECK([whether compiler is configured for ARMv6 or newer architecture],
@@ -1676,6 +1710,13 @@ LIST_MEMBER(sha256, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256.lo"
    AC_DEFINE(USE_SHA256, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-ssse3-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(sha512, $enabled_digests)

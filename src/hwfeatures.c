@@ -46,6 +46,7 @@ static struct
     { HWF_PADLOCK_AES, "padlock-aes" },
     { HWF_PADLOCK_SHA, "padlock-sha" },
     { HWF_PADLOCK_MMUL,"padlock-mmul"},
+    { HWF_INTEL_SSSE3, "intel-ssse3" },
     { HWF_INTEL_PCLMUL,"intel-pclmul" },
     { HWF_INTEL_AESNI, "intel-aesni" },
     { HWF_INTEL_RDRAND,"intel-rdrand" },

@@ -46,10 +46,24 @@
 #include "cipher.h"
 #include "hash-common.h"
 
+
+/* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
+#undef USE_SSSE3
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS)
+# define USE_SSSE3 1
+#endif
+
+
 typedef struct {
   gcry_md_block_ctx_t bctx;
   u32  h0,h1,h2,h3,h4,h5,h6,h7;
+#ifdef USE_SSSE3
+  unsigned int use_ssse3:1;
+#endif
 } SHA256_CONTEXT;
+
 
 static unsigned int
 transform (void *c, const unsigned char *data);
@@ -74,6 +88,10 @@ sha256_init (void *context)
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
   hd->bctx.bwrite = transform;
+
+#ifdef USE_SSSE3
+  hd->use_ssse3 = (_gcry_get_hw_features () & HWF_INTEL_SSSE3) != 0;
+#endif
 }
 
 
@@ -96,6 +114,10 @@ sha224_init (void *context)
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
   hd->bctx.bwrite = transform;
+
+#ifdef USE_SSSE3
+  hd->use_ssse3 = (_gcry_get_hw_features () & HWF_INTEL_SSSE3) != 0;
+#endif
 }
 
 
@@ -148,7 +170,7 @@ Sum1 (u32 x)
 
 
 static unsigned int
-transform (void *ctx, const unsigned char *data)
+_transform (void *ctx, const unsigned char *data)
 {
   SHA256_CONTEXT *hd = ctx;
   static const u32 K[64] = {
@@ -252,6 +274,27 @@ transform (void *ctx, const unsigned char *data)
 #undef S0
 #undef S1
 #undef R
+
+
+#ifdef USE_SSSE3
+unsigned int _gcry_sha256_transform_amd64_ssse3(const void *input_data,
+					        u32 state[8], size_t num_blks);
+#endif
+
+
+static unsigned int
+transform (void *ctx, const unsigned char *data)
+{
+  SHA256_CONTEXT *hd = ctx;
+
+#ifdef USE_SSSE3
+  if (hd->use_ssse3)
+    return _gcry_sha256_transform_amd64_ssse3 (data, &hd->h0, 1)
+           + 4 * sizeof(void*);
+#endif
+
+  return _transform (hd, data);
+}
 
 
 /*

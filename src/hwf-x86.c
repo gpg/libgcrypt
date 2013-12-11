@@ -206,6 +206,9 @@ detect_x86_gnuc (void)
   if (features & 0x00000002)
      result |= HWF_INTEL_PCLMUL;
 #endif
+  /* Test bit 9 for SSSE3.  */
+  if (features & 0x00000200)
+     result |= HWF_INTEL_SSSE3;
 #ifdef ENABLE_AESNI_SUPPORT
   /* Test bit 25 for AES-NI.  */
   if (features & 0x02000000)
