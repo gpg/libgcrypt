@@ -39,7 +39,8 @@
 #define AT_HWCAP 16
 #define HWCAP_NEON 4096
 
-static int get_hwcap(unsigned int *hwcap)
+static int
+get_hwcap(unsigned int *hwcap)
 {
   struct { unsigned int a_type; unsigned int a_val; } auxv;
   FILE *f;
@@ -76,7 +77,8 @@ static int get_hwcap(unsigned int *hwcap)
   return err;
 }
 
-static unsigned int detect_arm_at_hwcap(void)
+static unsigned int
+detect_arm_at_hwcap(void)
 {
   unsigned int hwcap;
   unsigned int features = 0;

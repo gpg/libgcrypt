@@ -206,8 +206,10 @@ int _gcry_log_verbosity( int level );
 #define HWF_ARM_NEON     4096
 
 
+gpg_err_code_t _gcry_disable_hw_feature (const char *name);
+void _gcry_detect_hw_features (void);
 unsigned int _gcry_get_hw_features (void);
-void _gcry_detect_hw_features (unsigned int);
+const char *_gcry_enum_hw_features (int idx, unsigned int *r_feature);
 
 
 /*-- mpi/mpiutil.c --*/

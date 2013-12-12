@@ -55,31 +55,6 @@ static int force_fips_mode;
 /* Controlled by global_init().  */
 static int any_init_done;
 
-/* A table to map hardware features to a string.  */
-static struct
-{
-  unsigned int flag;
-  const char *desc;
-} hwflist[] =
-  {
-    { HWF_PADLOCK_RNG, "padlock-rng" },
-    { HWF_PADLOCK_AES, "padlock-aes" },
-    { HWF_PADLOCK_SHA, "padlock-sha" },
-    { HWF_PADLOCK_MMUL,"padlock-mmul"},
-    { HWF_INTEL_PCLMUL,"intel-pclmul" },
-    { HWF_INTEL_AESNI, "intel-aesni" },
-    { HWF_INTEL_RDRAND,"intel-rdrand" },
-    { HWF_INTEL_AVX,   "intel-avx" },
-    { HWF_INTEL_AVX2,  "intel-avx2" },
-    { HWF_ARM_NEON,    "arm-neon" },
-    { 0, NULL}
-  };
-
-/* A bit vector with the hardware features which shall not be used.
-   This variable must be set prior to any initialization.  */
-static unsigned int disabled_hw_features;
-
-
 /* Memory management. */
 
 static gcry_handler_alloc_t alloc_func;
@@ -125,7 +100,7 @@ global_init (void)
 
   /* Before we do any other initialization we need to test available
      hardware features.  */
-  _gcry_detect_hw_features (disabled_hw_features);
+  _gcry_detect_hw_features ();
 
   /* Initialize the modules - this is mainly allocating some memory and
      creating mutexes.  */
@@ -289,8 +264,9 @@ _gcry_check_version (const char *req_version)
 static void
 print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
 {
-  unsigned int hwf;
+  unsigned int hwfeatures, afeature;
   int i;
+  const char *s;
 
   fnc (fp, "version:%s:\n", VERSION);
   fnc (fp, "ciphers:%s:\n", LIBGCRYPT_CIPHERS);
@@ -329,11 +305,11 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
        ":\n");
   fnc (fp, "mpi-asm:%s:\n", _gcry_mpi_get_hw_config ());
   fnc (fp, "threads:%s:\n", ath_get_model (NULL));
-  hwf = _gcry_get_hw_features ();
+  hwfeatures = _gcry_get_hw_features ();
   fnc (fp, "hwflist:");
-  for (i=0; hwflist[i].desc; i++)
-    if ( (hwf & hwflist[i].flag) )
-      fnc (fp, "%s:", hwflist[i].desc);
+  for (i=0; (s = _gcry_enum_hw_features (i, &afeature)); i++)
+    if ((hwfeatures & afeature))
+      fnc (fp, "%s:", s);
   fnc (fp, "\n");
   /* We use y/n instead of 1/0 for the simple reason that Emacsen's
      compile error parser would accidently flag that line when printed
@@ -343,8 +319,6 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
        _gcry_enforced_fips_mode ()? 'y':'n' );
   /* The currently used RNG type.  */
   {
-    const char *s;
-
     i = _gcry_get_rng_type (0);
     switch (i)
       {
@@ -653,16 +627,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
     case GCRYCTL_DISABLE_HWF:
       {
         const char *name = va_arg (arg_ptr, const char *);
-        int i;
-
-        for (i=0; hwflist[i].desc; i++)
-          if (!strcmp (hwflist[i].desc, name))
-            {
-              disabled_hw_features |= hwflist[i].flag;
-              break;
-            }
-        if (!hwflist[i].desc)
-          rc = GPG_ERR_INV_NAME;
+        rc = _gcry_disable_hw_feature (name);
       }
       break;
 

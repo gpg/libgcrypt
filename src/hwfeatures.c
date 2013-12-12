@@ -29,9 +29,49 @@
 #include "hwf-common.h"
 
 
+/* A table to map hardware features to a string.  */
+static struct
+{
+  unsigned int flag;
+  const char *desc;
+} hwflist[] =
+  {
+    { HWF_PADLOCK_RNG, "padlock-rng" },
+    { HWF_PADLOCK_AES, "padlock-aes" },
+    { HWF_PADLOCK_SHA, "padlock-sha" },
+    { HWF_PADLOCK_MMUL,"padlock-mmul"},
+    { HWF_INTEL_PCLMUL,"intel-pclmul" },
+    { HWF_INTEL_AESNI, "intel-aesni" },
+    { HWF_INTEL_RDRAND,"intel-rdrand" },
+    { HWF_INTEL_AVX,   "intel-avx" },
+    { HWF_INTEL_AVX2,  "intel-avx2" },
+    { HWF_ARM_NEON,    "arm-neon" }
+  };
+
+/* A bit vector with the hardware features which shall not be used.
+   This variable must be set prior to any initialization.  */
+static unsigned int disabled_hw_features;
+
 /* A bit vector describing the hardware features currently
    available. */
 static unsigned int hw_features;
+
+
+/* Disable a feature by name.  This function must be called *before*
+   _gcry_detect_hw_features is called.  */
+gpg_err_code_t
+_gcry_disable_hw_feature (const char *name)
+{
+  int i;
+
+  for (i=0; i < DIM (hwflist); i++)
+    if (!strcmp (hwflist[i].desc, name))
+      {
+        disabled_hw_features |= hwflist[i].flag;
+        return 0;
+      }
+  return GPG_ERR_INV_NAME;
+}
 
 
 /* Return a bit vector describing the available hardware features.
@@ -43,11 +83,24 @@ _gcry_get_hw_features (void)
 }
 
 
+/* Enumerate all features.  The caller is expected to start with an
+   IDX of 0 and then increment IDX until NULL is returned.  */
+const char *
+_gcry_enum_hw_features (int idx, unsigned int *r_feature)
+{
+  if (idx < 0 || idx >= DIM (hwflist))
+    return NULL;
+  if (r_feature)
+    *r_feature = hwflist[idx].flag;
+  return hwflist[idx].desc;
+}
+
+
 /* Detect the available hardware features.  This function is called
    once right at startup and we assume that no other threads are
    running.  */
 void
-_gcry_detect_hw_features (unsigned int disabled_features)
+_gcry_detect_hw_features (void)
 {
   hw_features = 0;
 
@@ -65,5 +118,5 @@ _gcry_detect_hw_features (unsigned int disabled_features)
   }
 #endif /* HAVE_CPU_ARCH_ARM */
 
-  hw_features &= ~disabled_features;
+  hw_features &= ~disabled_hw_features;
 }
