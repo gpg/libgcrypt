@@ -1040,7 +1040,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AVX2 instructions],
        [gcry_cv_gcc_inline_asm_avx2=no
         AC_COMPILE_IFELSE([AC_LANG_SOURCE(
           [[void a(void) {
-              __asm__("vpbroadcastb %%xmm7,%%ymm1\n\t":::);
+              __asm__("vpbroadcastb %%xmm7,%%ymm1\n\t":::"cc");
             }]])],
           [gcry_cv_gcc_inline_asm_avx2=yes])])
 if test "$gcry_cv_gcc_inline_asm_avx2" = "yes" ; then
