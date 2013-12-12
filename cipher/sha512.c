@@ -74,6 +74,24 @@
 #endif
 
 
+/* USE_AVX indicates whether to compile with Intel AVX code. */
+#undef USE_AVX
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_AVX) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS)
+# define USE_AVX 1
+#endif
+
+
+/* USE_AVX2 indicates whether to compile with Intel AVX2/rorx code. */
+#undef USE_AVX2
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_AVX2) && defined(HAVE_GCC_INLINE_ASM_BMI2) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS)
+# define USE_AVX2 1
+#endif
+
+
 typedef struct
 {
   u64 h0, h1, h2, h3, h4, h5, h6, h7;
@@ -89,6 +107,12 @@ typedef struct
 #ifdef USE_SSSE3
   unsigned int use_ssse3:1;
 #endif
+#ifdef USE_AVX
+  unsigned int use_avx:1;
+#endif
+#ifdef USE_AVX2
+  unsigned int use_avx2:1;
+#endif
 } SHA512_CONTEXT;
 
 static unsigned int
@@ -99,6 +123,7 @@ sha512_init (void *context)
 {
   SHA512_CONTEXT *ctx = context;
   SHA512_STATE *hd = &ctx->state;
+  unsigned int features = _gcry_get_hw_features ();
 
   hd->h0 = U64_C(0x6a09e667f3bcc908);
   hd->h1 = U64_C(0xbb67ae8584caa73b);
@@ -116,11 +141,19 @@ sha512_init (void *context)
   ctx->bctx.bwrite = transform;
 
 #ifdef USE_ARM_NEON_ASM
-  ctx->use_neon = (_gcry_get_hw_features () & HWF_ARM_NEON) != 0;
+  ctx->use_neon = (features & HWF_ARM_NEON) != 0;
 #endif
 #ifdef USE_SSSE3
-  ctx->use_ssse3 = (_gcry_get_hw_features () & HWF_INTEL_SSSE3) != 0;
+  ctx->use_ssse3 = (features & HWF_INTEL_SSSE3) != 0;
 #endif
+#ifdef USE_AVX
+  ctx->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_CPU);
+#endif
+#ifdef USE_AVX2
+  ctx->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);
+#endif
+
+  (void)features;
 }
 
 static void
@@ -128,6 +161,7 @@ sha384_init (void *context)
 {
   SHA512_CONTEXT *ctx = context;
   SHA512_STATE *hd = &ctx->state;
+  unsigned int features = _gcry_get_hw_features ();
 
   hd->h0 = U64_C(0xcbbb9d5dc1059ed8);
   hd->h1 = U64_C(0x629a292a367cd507);
@@ -145,11 +179,19 @@ sha384_init (void *context)
   ctx->bctx.bwrite = transform;
 
 #ifdef USE_ARM_NEON_ASM
-  ctx->use_neon = (_gcry_get_hw_features () & HWF_ARM_NEON) != 0;
+  ctx->use_neon = (features & HWF_ARM_NEON) != 0;
 #endif
 #ifdef USE_SSSE3
-  ctx->use_ssse3 = (_gcry_get_hw_features () & HWF_INTEL_SSSE3) != 0;
+  ctx->use_ssse3 = (features & HWF_INTEL_SSSE3) != 0;
 #endif
+#ifdef USE_AVX
+  ctx->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_CPU);
+#endif
+#ifdef USE_AVX2
+  ctx->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);
+#endif
+
+  (void)features;
 }
 
 
@@ -507,11 +549,33 @@ unsigned int _gcry_sha512_transform_amd64_ssse3(const void *input_data,
 					        void *state, size_t num_blks);
 #endif
 
+#ifdef USE_AVX
+unsigned int _gcry_sha512_transform_amd64_avx(const void *input_data,
+					      void *state, size_t num_blks);
+#endif
+
+#ifdef USE_AVX2
+unsigned int _gcry_sha512_transform_amd64_avx2(const void *input_data,
+					       void *state, size_t num_blks);
+#endif
+
 
 static unsigned int
 transform (void *context, const unsigned char *data)
 {
   SHA512_CONTEXT *ctx = context;
+
+#ifdef USE_AVX2
+  if (ctx->use_avx2)
+    return _gcry_sha512_transform_amd64_avx2 (data, &ctx->state, 1)
+           + 4 * sizeof(void*);
+#endif
+
+#ifdef USE_AVX
+  if (ctx->use_avx)
+    return _gcry_sha512_transform_amd64_avx (data, &ctx->state, 1)
+           + 4 * sizeof(void*);
+#endif
 
 #ifdef USE_SSSE3
   if (ctx->use_ssse3)

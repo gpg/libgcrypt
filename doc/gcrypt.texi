@@ -624,6 +624,8 @@ are
 @item padlock-aes
 @item padlock-sha
 @item padlock-mmul
+@item intel-cpu
+@item intel-bmi2
 @item intel-ssse3
 @item intel-pclmul
 @item intel-aesni

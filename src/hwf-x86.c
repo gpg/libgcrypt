@@ -189,6 +189,7 @@ detect_x86_gnuc (void)
   else if (!strcmp (vendor_id, "GenuineIntel"))
     {
       /* This is an Intel CPU.  */
+      result |= HWF_INTEL_CPU;
     }
   else if (!strcmp (vendor_id, "AuthenticAMD"))
     {
@@ -231,10 +232,14 @@ detect_x86_gnuc (void)
    * Source: http://www.sandpile.org/x86/cpuid.htm  */
   if (max_cpuid_level >= 7 && (features & 0x00000001))
     {
-#ifdef ENABLE_AVX2_SUPPORT
       /* Get CPUID:7 contains further Intel feature flags. */
       get_cpuid(7, NULL, &features, NULL, NULL);
 
+      /* Test bit 8 for BMI2.  */
+      if (features & 0x00000100)
+          result |= HWF_INTEL_BMI2;
+
+#ifdef ENABLE_AVX2_SUPPORT
       /* Test bit 5 for AVX2.  */
       if (features & 0x00000020)
           result |= HWF_INTEL_AVX2;

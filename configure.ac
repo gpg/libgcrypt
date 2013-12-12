@@ -1050,6 +1050,23 @@ fi
 
 
 #
+# Check whether GCC inline assembler supports BMI2 instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports BMI2 instructions],
+       [gcry_cv_gcc_inline_asm_bmi2],
+       [gcry_cv_gcc_inline_asm_bmi2=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) {
+              __asm__("rorxl \$23, %%eax, %%edx\\n\\t":::"memory");
+            }]])],
+          [gcry_cv_gcc_inline_asm_bmi2=yes])])
+if test "$gcry_cv_gcc_inline_asm_bmi2" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_BMI2,1,
+     [Defined if inline assembler supports BMI2 instructions])
+fi
+
+
+#
 # Check whether GCC assembler supports features needed for our amd64
 # implementations
 #
@@ -1728,6 +1745,8 @@ if test "$found" = "1" ; then
       x86_64-*-*)
          # Build with the assembly implementation
          GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-ssse3-amd64.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-avx-amd64.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-avx2-bmi2-amd64.lo"
       ;;
    esac
 
