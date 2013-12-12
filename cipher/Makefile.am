@@ -79,7 +79,7 @@ seed.c \
 serpent.c serpent-sse2-amd64.S serpent-avx2-amd64.S \
 sha1.c \
 sha256.c sha256-ssse3-amd64.S \
-sha512.c sha512-armv7-neon.S \
+sha512.c sha512-ssse3-amd64.S sha512-armv7-neon.S \
 stribog.c \
 tiger.c \
 whirlpool.c \

@@ -1724,6 +1724,13 @@ if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512.lo"
    AC_DEFINE(USE_SHA512, 1, [Defined if this module should be included])
 
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-ssse3-amd64.lo"
+      ;;
+   esac
+
    if test x"$neonsupport" = xyes ; then
      # Build with the NEON implementation
      GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-armv7-neon.lo"

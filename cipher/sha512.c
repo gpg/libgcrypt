@@ -64,6 +64,16 @@
 # endif
 #endif
 
+
+/* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
+#undef USE_SSSE3
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS)
+# define USE_SSSE3 1
+#endif
+
+
 typedef struct
 {
   u64 h0, h1, h2, h3, h4, h5, h6, h7;
@@ -74,7 +84,10 @@ typedef struct
   gcry_md_block_ctx_t bctx;
   SHA512_STATE state;
 #ifdef USE_ARM_NEON_ASM
-  int use_neon;
+  unsigned int use_neon:1;
+#endif
+#ifdef USE_SSSE3
+  unsigned int use_ssse3:1;
 #endif
 } SHA512_CONTEXT;
 
@@ -105,6 +118,9 @@ sha512_init (void *context)
 #ifdef USE_ARM_NEON_ASM
   ctx->use_neon = (_gcry_get_hw_features () & HWF_ARM_NEON) != 0;
 #endif
+#ifdef USE_SSSE3
+  ctx->use_ssse3 = (_gcry_get_hw_features () & HWF_INTEL_SSSE3) != 0;
+#endif
 }
 
 static void
@@ -130,6 +146,9 @@ sha384_init (void *context)
 
 #ifdef USE_ARM_NEON_ASM
   ctx->use_neon = (_gcry_get_hw_features () & HWF_ARM_NEON) != 0;
+#endif
+#ifdef USE_SSSE3
+  ctx->use_ssse3 = (_gcry_get_hw_features () & HWF_INTEL_SSSE3) != 0;
 #endif
 }
 
@@ -483,16 +502,27 @@ void _gcry_sha512_transform_armv7_neon (SHA512_STATE *hd,
 					const u64 k[]);
 #endif
 
+#ifdef USE_SSSE3
+unsigned int _gcry_sha512_transform_amd64_ssse3(const void *input_data,
+					        void *state, size_t num_blks);
+#endif
+
 
 static unsigned int
 transform (void *context, const unsigned char *data)
 {
   SHA512_CONTEXT *ctx = context;
 
+#ifdef USE_SSSE3
+  if (ctx->use_ssse3)
+    return _gcry_sha512_transform_amd64_ssse3 (data, &ctx->state, 1)
+           + 4 * sizeof(void*);
+#endif
+
 #ifdef USE_ARM_NEON_ASM
   if (ctx->use_neon)
     {
-      _gcry_sha512_transform_armv7_neon(&ctx->state, data, k);
+      _gcry_sha512_transform_armv7_neon (&ctx->state, data, k);
 
       /* _gcry_sha512_transform_armv7_neon does not store sensitive data
        * to stack.  */
