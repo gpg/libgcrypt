@@ -20,14 +20,20 @@
 
 #include <config.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <unistd.h>
+#ifdef HAVE_SYSLOG
+# include <syslog.h>
+#endif /*HAVE_SYSLOG*/
 
 #include "g10lib.h"
 #include "hwf-common.h"
 
+/* The name of a file used to globally disable selected features. */
+#define HWF_DENY_FILE "/etc/gcrypt/hwf.deny"
 
 /* A table to map hardware features to a string.  */
 static struct
@@ -56,7 +62,11 @@ static unsigned int disabled_hw_features;
    available. */
 static unsigned int hw_features;
 
+/* Convenience macros.  */
+#define my_isascii(c) (!((c) & 0x80))
 
+
+
 /* Disable a feature by name.  This function must be called *before*
    _gcry_detect_hw_features is called.  */
 gpg_err_code_t
@@ -96,6 +106,70 @@ _gcry_enum_hw_features (int idx, unsigned int *r_feature)
 }
 
 
+/* Read a file with features which shall not be used.  The file is a
+   simple text file where empty lines and lines with the first non
+   white-space character being '#' are ignored.  */
+static void
+parse_hwf_deny_file (void)
+{
+  const char *fname = HWF_DENY_FILE;
+  FILE *fp;
+  char buffer[256];
+  char *p, *pend;
+  int i, lnr = 0;
+
+  fp = fopen (fname, "r");
+  if (!fp)
+    return;
+
+  for (;;)
+    {
+      if (!fgets (buffer, sizeof buffer, fp))
+        {
+          if (!feof (fp))
+            {
+#ifdef HAVE_SYSLOG
+              syslog (LOG_USER|LOG_WARNING,
+                      "Libgcrypt warning: error reading '%s', line %d",
+                      fname, lnr);
+#endif /*HAVE_SYSLOG*/
+            }
+          fclose (fp);
+          return;
+        }
+      lnr++;
+      for (p=buffer; my_isascii (*p) && isspace (*p); p++)
+        ;
+      pend = strchr (p, '\n');
+      if (pend)
+        *pend = 0;
+      pend = p + (*p? (strlen (p)-1):0);
+      for ( ;pend > p; pend--)
+        if (my_isascii (*pend) && isspace (*pend))
+          *pend = 0;
+      if (!*p || *p == '#')
+        continue;
+
+      for (i=0; i < DIM (hwflist); i++)
+        {
+          if (!strcmp (hwflist[i].desc, p))
+            {
+              disabled_hw_features |= hwflist[i].flag;
+              break;
+            }
+        }
+      if (i == DIM (hwflist))
+        {
+#ifdef HAVE_SYSLOG
+          syslog (LOG_USER|LOG_WARNING,
+                  "Libgcrypt warning: unknown feature in '%s', line %d",
+                  fname, lnr);
+#endif /*HAVE_SYSLOG*/
+        }
+    }
+}
+
+
 /* Detect the available hardware features.  This function is called
    once right at startup and we assume that no other threads are
    running.  */
@@ -106,6 +180,8 @@ _gcry_detect_hw_features (void)
 
   if (fips_mode ())
     return; /* Hardware support is not to be evaluated.  */
+
+  parse_hwf_deny_file ();
 
 #if defined (HAVE_CPU_ARCH_X86)
   {

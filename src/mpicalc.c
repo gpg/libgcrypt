@@ -40,6 +40,7 @@
 
 
 #define MPICALC_VERSION "2.0"
+#define NEED_LIBGCRYPT_VERSION "1.6.0"
 
 #define STACKSIZE  500
 static gcry_mpi_t stack[STACKSIZE];
@@ -309,6 +310,7 @@ main (int argc, char **argv)
 {
   const char *pgm;
   int last_argc = -1;
+  int print_config = 0;
   int i, c;
   int state = 0;
   char strbuf[1000];
@@ -350,9 +352,27 @@ main (int argc, char **argv)
                   "Simple interactive big integer RPN calculator\n"
                   "\n"
                   "Options:\n"
-                  "  --version  print version information\n",
+                  "  --version           print version information\n"
+                  "  --print-config      print the Libgcrypt config\n"
+                  "  --disable-hwf NAME  disable feature NAME\n",
                   pgm, gcry_check_version (NULL));
           exit (0);
+        }
+      else if (!strcmp (*argv, "--print-config"))
+        {
+          argc--; argv++;
+          print_config = 1;
+        }
+      else if (!strcmp (*argv, "--disable-hwf"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              if (gcry_control (GCRYCTL_DISABLE_HWF, *argv, NULL))
+                fprintf (stderr, "%s: unknown hardware feature `%s'"
+                         " - option ignored\n", pgm, *argv);
+              argc--; argv++;
+            }
         }
     }
 
@@ -360,6 +380,20 @@ main (int argc, char **argv)
     {
       fprintf (stderr, "usage: %s [options]  (--help for help)\n", pgm);
       exit (1);
+    }
+
+  if (!gcry_check_version (NEED_LIBGCRYPT_VERSION))
+    {
+      fprintf (stderr, "%s: Libgcrypt is too old (need %s, have %s)\n",
+               pgm, NEED_LIBGCRYPT_VERSION, gcry_check_version (NULL) );
+      exit (1);
+    }
+  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+  if (print_config)
+    {
+      gcry_control (GCRYCTL_PRINT_CONFIG, stdout);
+      exit (0);
     }
 
   for (i = 0; i < STACKSIZE; i++)

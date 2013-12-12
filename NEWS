@@ -46,6 +46,8 @@ Noteworthy changes in version 1.6.0 (unreleased)
  * Changed gcry_pk_genkey for "ecc" to only include the curve name and
    not the parameters.  The flag "param" may be used to revert this.
 
+ * Added a feature to globally disable selected hardware features.
+
  * Interface changes relative to the 1.5.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_ac_*               	 REMOVED.

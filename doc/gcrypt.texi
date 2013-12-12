@@ -210,6 +210,7 @@ of the library are verified.
 * Initializing the library::    How to initialize the library.
 * Multi-Threading::             How Libgcrypt can be used in a MT environment.
 * Enabling FIPS mode::          How to enable the FIPS mode.
+* Hardware features::           How to disable hardware features.
 @end menu
 
 
@@ -609,6 +610,50 @@ switch back to standard mode without terminating the process first.
 If the logging verbosity level of Libgcrypt has been set to at least
 2, the state transitions and the self-tests are logged.
 
+@node Hardware features
+@section How to disable hardware features
+@cindex hardware features
+
+Libgcrypt makes use of certain hardware features.  If the use of a
+feature is not desired it may be either be disabled by a program or
+globally using a configuration file.  The currently supported features
+are
+
+@table @code
+@item padlock-rng
+@item padlock-aes
+@item padlock-sha
+@item padlock-mmul
+@item intel-pclmul
+@item intel-aesni
+@item intel-rdrand
+@item intel-avx
+@item intel-avx2
+@item arm-neon
+@end table
+
+To disable a feature for all processes using Libgcrypt 1.6 or newer,
+create the file @file{/etc/gcrypt/hwf.deny} and put each feature not
+to be used on a single line.  Empty lines, white space, and lines
+prefixed with a hash mark are ignored.  The file should be world
+readable.
+
+To disable a feature specifically for a program that program must tell
+it Libgcrypt before before calling @code{gcry_check_version}.
+Example:@footnote{NB. Libgcrypt uses the RDRAND feature only as one
+source of entropy.  A CPU with a broken RDRAND will thus not
+compromise of the random number generator}
+
+@example
+  gcry_control (GCRYCTL_DISABLE_HWF, "intel-rdrand", NULL);
+@end example
+
+@noindent
+To print the list of active features you may use this command:
+
+@example
+  mpicalc --print-config | grep ^hwflist: | tr : '\n' | tail -n +2
+@end example
 
 
 @c **********************************************************
