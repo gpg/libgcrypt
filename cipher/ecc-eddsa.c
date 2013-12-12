@@ -324,7 +324,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
         }
 
       /* EdDSA compressed point.  */
-      rawmpi = gcry_malloc (rawmpilen? rawmpilen:1);
+      rawmpi = xtrymalloc (rawmpilen? rawmpilen:1);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
       memcpy (rawmpi, buf, rawmpilen);
@@ -359,7 +359,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
         *r_encpklen = rawmpilen;
     }
   else
-    gcry_free (rawmpi);
+    xfree (rawmpi);
 
   rc = _gcry_ecc_eddsa_recover_x (result->x, result->y, sign, ctx);
   mpi_set_ui (result->z, 1);
@@ -396,7 +396,7 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
 
   /* Note that we clear DIGEST so we can use it as input to left pad
      the key with zeroes for hashing.  */
-  digest = gcry_calloc_secure (2, b);
+  digest = xtrycalloc_secure (2, b);
   if (!digest)
     return gpg_err_code_from_syserror ();
 
@@ -405,7 +405,7 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
   rawmpi = _gcry_mpi_get_buffer (d, 0, &rawmpilen, NULL);
   if (!rawmpi)
     {
-      gcry_free (digest);
+      xfree (digest);
       return gpg_err_code_from_syserror ();
     }
 
@@ -416,10 +416,10 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
   hvec[1].off = 0;
   hvec[1].len = rawmpilen;
   rc = _gcry_md_hash_buffers (hashalgo, 0, digest, hvec, 2);
-  gcry_free (rawmpi);
+  xfree (rawmpi);
   if (rc)
     {
-      gcry_free (digest);
+      xfree (digest);
       return rc;
     }
 
@@ -455,7 +455,7 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   y = mpi_new (0);
 
   /* Generate a secret.  */
-  hash_d = gcry_malloc_secure (2*b);
+  hash_d = xtrymalloc_secure (2*b);
   if (!hash_d)
     {
       rc = gpg_error_from_syserror ();
@@ -476,7 +476,7 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   hash_d[0] = (hash_d[0] & 0x7f) | 0x40;
   hash_d[31] &= 0xf8;
   _gcry_mpi_set_buffer (a, hash_d, 32, 0);
-  gcry_free (hash_d); hash_d = NULL;
+  xfree (hash_d); hash_d = NULL;
   /* log_printmpi ("ecgen         a", a); */
 
   /* Compute Q.  */
@@ -501,7 +501,7 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   _gcry_mpi_release (a);
   _gcry_mpi_release (x);
   _gcry_mpi_release (y);
-  gcry_free (hash_d);
+  xfree (hash_d);
   return rc;
 }
 
@@ -657,12 +657,12 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   _gcry_mpi_release (x);
   _gcry_mpi_release (y);
   _gcry_mpi_release (r);
-  gcry_free (digest);
+  xfree (digest);
   _gcry_mpi_ec_free (ctx);
   point_free (&I);
   point_free (&Q);
-  gcry_free (encpk);
-  gcry_free (rawmpi);
+  xfree (encpk);
+  xfree (rawmpi);
   return rc;
 }
 
@@ -772,7 +772,7 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
     if (DBG_CIPHER)
       log_printhex ("     s", sbuf, slen);
     _gcry_mpi_set_buffer (s, sbuf, slen, 0);
-    gcry_free (sbuf);
+    xfree (sbuf);
     if (slen != b)
       {
         rc = GPG_ERR_INV_LENGTH;
@@ -796,8 +796,8 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
   rc = 0;
 
  leave:
-  gcry_free (encpk);
-  gcry_free (tbuf);
+  xfree (encpk);
+  xfree (tbuf);
   _gcry_mpi_ec_free (ctx);
   _gcry_mpi_release (s);
   _gcry_mpi_release (h);

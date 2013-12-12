@@ -281,21 +281,21 @@ _gcry_kdf_scrypt (const unsigned char *passwd, size_t passwdlen,
   if (nbytes < r128)
     return GPG_ERR_ENOMEM;
 
-  B = gcry_malloc (p * r128);
+  B = xtrymalloc (p * r128);
   if (!B)
     {
       ec = gpg_err_code_from_syserror ();
       goto leave;
     }
 
-  tmp1 = gcry_malloc (N * r128);
+  tmp1 = xtrymalloc (N * r128);
   if (!tmp1)
     {
       ec = gpg_err_code_from_syserror ();
       goto leave;
     }
 
-  tmp2 = gcry_malloc (64 + r128);
+  tmp2 = xtrymalloc (64 + r128);
   if (!tmp2)
     {
       ec = gpg_err_code_from_syserror ();
@@ -313,9 +313,9 @@ _gcry_kdf_scrypt (const unsigned char *passwd, size_t passwdlen,
                           1 /* iterations */, dkLen, DK);
 
  leave:
-  gcry_free (tmp2);
-  gcry_free (tmp1);
-  gcry_free (B);
+  xfree (tmp2);
+  xfree (tmp1);
+  xfree (B);
 
   return ec;
 }

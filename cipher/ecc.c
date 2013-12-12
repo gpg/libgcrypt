@@ -127,7 +127,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
       rndbuf[0] |= 0x40;  /* Set bit 254.   */
       rndbuf[31] &= 0xf8; /* Clear bits 2..0 so that d mod 8 == 0  */
       _gcry_mpi_set_buffer (sk->d, rndbuf, 32, 0);
-      gcry_free (rndbuf);
+      xfree (rndbuf);
     }
   else
     sk->d = _gcry_dsa_gen_k (E->n, random_level);
@@ -444,7 +444,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     return GPG_ERR_NO_OBJ; /* No NBITS parameter. */
 
   rc = _gcry_ecc_fill_in_curve (nbits, curve_name, &E, &nbits);
-  gcry_free (curve_name); curve_name = NULL;
+  xfree (curve_name); curve_name = NULL;
   if (rc)
     goto leave;
 
@@ -705,7 +705,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
   _gcry_mpi_release (mpi_q);
   point_free (&sk.Q);
   _gcry_mpi_release (sk.d);
-  gcry_free (curvename);
+  xfree (curvename);
   sexp_release (l1);
   if (DBG_CIPHER)
     log_debug ("ecc_testkey   => %s\n", gpg_strerror (rc));
@@ -844,7 +844,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_mpi_release (sk.d);
   _gcry_mpi_release (sig_r);
   _gcry_mpi_release (sig_s);
-  gcry_free (curvename);
+  xfree (curvename);
   _gcry_mpi_release (data);
   sexp_release (l1);
   _gcry_pk_util_free_encoding_ctx (&ctx);
@@ -1042,7 +1042,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   _gcry_mpi_release (data);
   _gcry_mpi_release (sig_r);
   _gcry_mpi_release (sig_s);
-  gcry_free (curvename);
+  xfree (curvename);
   sexp_release (l1);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
@@ -1225,7 +1225,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_mpi_release (data);
   _gcry_mpi_release (mpi_s);
   _gcry_mpi_release (mpi_e);
-  gcry_free (curvename);
+  xfree (curvename);
   _gcry_mpi_ec_free (ec);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
@@ -1388,7 +1388,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_mpi_release (sk.E.n);
   _gcry_mpi_release (sk.d);
   _gcry_mpi_release (data_e);
-  _gcry_free (curvename);
+  xfree (curvename);
   sexp_release (l1);
   _gcry_mpi_ec_free (ec);
   _gcry_pk_util_free_encoding_ctx (&ctx);
@@ -1435,7 +1435,7 @@ ecc_get_nbits (gcry_sexp_t parms)
 
       if (_gcry_ecc_fill_in_curve (0, curve, NULL, &nbits))
         nbits = 0;
-      gcry_free (curve);
+      xfree (curve);
     }
   else
     {
@@ -1595,12 +1595,12 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
           _gcry_md_write (md, buf, strlen (buf));
           _gcry_md_write (md, rawmpi, rawmpilen);
           _gcry_md_write (md, ")", 1);
-          gcry_free (rawmpi);
+          xfree (rawmpi);
         }
     }
 
  leave:
-  gcry_free (curvename);
+  xfree (curvename);
   sexp_release (l1);
   for (idx = 0; idx < N_COMPONENTS; idx++)
     _gcry_mpi_release (values[idx]);

@@ -207,9 +207,9 @@ mac_open (gcry_mac_hd_t * hd, int algo, int secure, gcry_ctx_t ctx)
     return GPG_ERR_MAC_ALGO;
 
   if (secure)
-    h = gcry_calloc_secure (1, sizeof (*h));
+    h = xtrycalloc_secure (1, sizeof (*h));
   else
-    h = gcry_calloc (1, sizeof (*h));
+    h = xtrycalloc (1, sizeof (*h));
 
   if (!h)
     return gpg_err_code_from_syserror ();
@@ -221,7 +221,7 @@ mac_open (gcry_mac_hd_t * hd, int algo, int secure, gcry_ctx_t ctx)
 
   err = h->spec->ops->open (h);
   if (err)
-    gcry_free (h);
+    xfree (h);
   else
     *hd = h;
 
@@ -247,7 +247,7 @@ mac_close (gcry_mac_hd_t hd)
 
   wipememory (hd, sizeof (*hd));
 
-  gcry_free (hd);
+  xfree (hd);
 }
 
 

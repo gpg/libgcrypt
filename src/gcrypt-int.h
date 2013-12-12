@@ -51,7 +51,12 @@ typedef struct mpi_ec_ctx_s *mpi_ec_t;
 
 /* Underscore prefixed internal versions of the public functions.
    They return gpg_err_code and not gpg_error_t.  Some macros also
-   need an underscore prefixed internal version.  */
+   need an underscore prefixed internal version.
+
+   Note that the memory allocation functions and macros (xmalloc etc.)
+   are not defined here but in g10lib.h because this file here is
+   included by some test programs which define theie own xmalloc
+   macros.  */
 
 gpg_err_code_t _gcry_cipher_open (gcry_cipher_hd_t *handle,
                                   int algo, int mode, unsigned int flags);

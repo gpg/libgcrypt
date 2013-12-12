@@ -62,7 +62,7 @@ _gcry_mpi_barrett_init (gcry_mpi_t m, int copy)
   gcry_mpi_t tmp;
 
   mpi_normalize (m);
-  ctx = gcry_xcalloc (1, sizeof *ctx);
+  ctx = xcalloc (1, sizeof *ctx);
 
   if (copy)
     {
@@ -99,7 +99,7 @@ _gcry_mpi_barrett_free (mpi_barrett_t ctx)
         mpi_free (ctx->r3);
       if (ctx->m_copied)
         mpi_free (ctx->m);
-      gcry_free (ctx);
+      xfree (ctx);
     }
 }
 

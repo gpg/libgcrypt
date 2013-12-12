@@ -89,7 +89,7 @@ _gcry_mpi_mulpowm( gcry_mpi_t res, gcry_mpi_t *basearray, gcry_mpi_t *exparray, 
     gcry_assert (t);
     gcry_assert (k < 10);
 
-    G = gcry_xcalloc( (1<<k) , sizeof *G );
+    G = xcalloc( (1<<k) , sizeof *G );
 #ifdef USE_BARRETT
     barrett_y = init_barrett( m, &barrett_k, &barrett_r1, &barrett_r2 );
 #endif
@@ -130,7 +130,7 @@ _gcry_mpi_mulpowm( gcry_mpi_t res, gcry_mpi_t *basearray, gcry_mpi_t *exparray, 
 #endif
     for(i=0; i < (1<<k); i++ )
 	mpi_free(G[i]);
-    gcry_free(G);
+    xfree(G);
 }
 
 

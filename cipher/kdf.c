@@ -53,7 +53,7 @@ openpgp_s2k (const void *passphrase, size_t passphraselen,
       && (!salt || saltlen != 8))
     return GPG_ERR_INV_VALUE;
 
-  secmode = gcry_is_secure (passphrase) || gcry_is_secure (keybuffer);
+  secmode = _gcry_is_secure (passphrase) || _gcry_is_secure (keybuffer);
 
   ec = _gcry_md_open (&md, hashalgo, secmode? GCRY_MD_FLAG_SECURE : 0);
   if (ec)
@@ -149,7 +149,7 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
   if (!hlen)
     return GPG_ERR_DIGEST_ALGO;
 
-  secmode = gcry_is_secure (passphrase) || gcry_is_secure (keybuffer);
+  secmode = _gcry_is_secure (passphrase) || _gcry_is_secure (keybuffer);
 
   /* We ignore step 1 from pksc5v2.1 which demands a check that dklen
      is not larger that 0xffffffff * hlen.  */
@@ -160,8 +160,8 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
 
   /* Setup buffers and prepare a hash context.  */
   sbuf = (secmode
-          ? gcry_malloc_secure (saltlen + 4 + hlen + hlen)
-          : gcry_malloc (saltlen + 4 + hlen + hlen));
+          ? xtrymalloc_secure (saltlen + 4 + hlen + hlen)
+          : xtrymalloc (saltlen + 4 + hlen + hlen));
   if (!sbuf)
     return gpg_err_code_from_syserror ();
   tbuf = sbuf + saltlen + 4;
@@ -171,7 +171,7 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
                                       | (secmode?GCRY_MD_FLAG_SECURE:0)));
   if (ec)
     {
-      gcry_free (sbuf);
+      xfree (sbuf);
       return ec;
     }
 
@@ -185,7 +185,7 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
           if (ec)
             {
               _gcry_md_close (md);
-              gcry_free (sbuf);
+              xfree (sbuf);
               return ec;
             }
           if (!iter) /* Compute U_1:  */
@@ -216,7 +216,7 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
     }
 
   _gcry_md_close (md);
-  gcry_free (sbuf);
+  xfree (sbuf);
   return 0;
 }
 

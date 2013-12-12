@@ -153,7 +153,7 @@ spec_from_sexp (gcry_sexp_t sexp, int want_private,
       return GPG_ERR_INV_OBJ;      /* Invalid structure of object. */
     }
   spec = spec_from_name (name);
-  gcry_free (name);
+  xfree (name);
   if (!spec)
     {
       sexp_release (list);
@@ -569,7 +569,7 @@ _gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
     }
 
   spec = spec_from_name (name);
-  gcry_free (name);
+  xfree (name);
   name = NULL;
   if (!spec)
     {
@@ -584,7 +584,7 @@ _gcry_pk_genkey (gcry_sexp_t *r_key, gcry_sexp_t s_parms)
 
  leave:
   sexp_release (list);
-  gcry_free (name);
+  xfree (name);
   sexp_release (l2);
 
   return rc;
@@ -702,7 +702,7 @@ _gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
 
   if (!array)
     {
-      array = gcry_malloc (20);
+      array = xtrymalloc (20);
       if (! array)
         goto fail;
     }
@@ -711,7 +711,7 @@ _gcry_pk_get_keygrip (gcry_sexp_t key, unsigned char *array)
   okay = 1;
 
  fail:
-  gcry_free (name);
+  xfree (name);
   sexp_release (l2);
   _gcry_md_close (md);
   sexp_release (list);

@@ -218,7 +218,7 @@ get_hash_algo (const char *s, size_t n)
 	 algorithm names. */
       char *tmpname;
 
-      tmpname = gcry_malloc (n+1);
+      tmpname = xtrymalloc (n+1);
       if (!tmpname)
 	algo = 0;  /* Out of core - silently give up.  */
       else
@@ -226,7 +226,7 @@ get_hash_algo (const char *s, size_t n)
 	  memcpy (tmpname, s, n);
 	  tmpname[n] = 0;
 	  algo = _gcry_md_map_name (tmpname);
-	  gcry_free (tmpname);
+	  xfree (tmpname);
 	}
     }
   return algo;
@@ -381,7 +381,7 @@ _gcry_pk_util_preparse_sigval (gcry_sexp_t s_sig, const char **algo_names,
 	  rc = GPG_ERR_INV_OBJ;
           goto leave;
 	}
-      gcry_free (name);
+      xfree (name);
       name = sexp_nth_string (l2, 0);
       if (!name)
         {
@@ -411,7 +411,7 @@ _gcry_pk_util_preparse_sigval (gcry_sexp_t s_sig, const char **algo_names,
   rc = 0;
 
  leave:
-  gcry_free (name);
+  xfree (name);
   sexp_release (l2);
   sexp_release (l1);
   return rc;
@@ -520,7 +520,7 @@ _gcry_pk_util_preparse_encval (gcry_sexp_t sexp, const char **algo_names,
 		rc = GPG_ERR_NO_OBJ;
 	      else if (n > 0)
 		{
-		  ctx->label = gcry_malloc (n);
+		  ctx->label = xtrymalloc (n);
 		  if (!ctx->label)
 		    rc = gpg_err_code_from_syserror ();
 		  else
@@ -550,7 +550,7 @@ _gcry_pk_util_preparse_encval (gcry_sexp_t sexp, const char **algo_names,
         }
 
       /* Extract sublist identifier.  */
-      gcry_free (name);
+      xfree (name);
       name = sexp_nth_string (l2, 0);
       if (!name)
         {
@@ -576,7 +576,7 @@ _gcry_pk_util_preparse_encval (gcry_sexp_t sexp, const char **algo_names,
   rc = 0;
 
  leave:
-  gcry_free (name);
+  xfree (name);
   sexp_release (l2);
   sexp_release (l1);
   return rc;
@@ -605,7 +605,7 @@ _gcry_pk_util_init_encoding_ctx (struct pk_encoding_ctx *ctx,
 void
 _gcry_pk_util_free_encoding_ctx (struct pk_encoding_ctx *ctx)
 {
-  gcry_free (ctx->label);
+  xfree (ctx->label);
 }
 
 
@@ -721,13 +721,13 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
              "(value)".  This is commonly used by test vectors.  Note
              that S-expression do not allow zero length items. */
           valuelen = 0;
-          value = gcry_malloc (1);
+          value = xtrymalloc (1);
           if (!value)
             rc = gpg_err_code_from_syserror ();
         }
       else if ((valuelen * 8) < valuelen)
         {
-          gcry_free (value);
+          xfree (value);
           rc = GPG_ERR_TOO_LARGE;
         }
       if (rc)
@@ -760,7 +760,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
             rc = GPG_ERR_INV_OBJ;
           else if ((valuelen * 8) < valuelen)
             {
-              gcry_free (value);
+              xfree (value);
               rc = GPG_ERR_TOO_LARGE;
             }
           else
@@ -804,7 +804,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
                 rc = GPG_ERR_NO_OBJ;
               else if (n > 0)
                 {
-                  random_override = gcry_malloc (n);
+                  random_override = xtrymalloc (n);
                   if (!random_override)
                     rc = gpg_err_code_from_syserror ();
                   else
@@ -822,7 +822,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
                                                value, valuelen,
                                                random_override,
                                                random_override_len);
-          gcry_free (random_override);
+          xfree (random_override);
         }
     }
   else if (ctx->encoding == PUBKEY_ENC_PKCS1 && lhash
@@ -891,7 +891,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
 		rc = GPG_ERR_NO_OBJ;
 	      else if (n > 0)
 		{
-		  ctx->label = gcry_malloc (n);
+		  ctx->label = xtrymalloc (n);
 		  if (!ctx->label)
 		    rc = gpg_err_code_from_syserror ();
 		  else
@@ -913,7 +913,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
                 rc = GPG_ERR_NO_OBJ;
               else if (n > 0)
                 {
-                  random_override = gcry_malloc (n);
+                  random_override = xtrymalloc (n);
                   if (!random_override)
                     rc = gpg_err_code_from_syserror ();
                   else
@@ -932,7 +932,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
                                       ctx->label, ctx->labellen,
                                       random_override, random_override_len);
 
-          gcry_free (random_override);
+          xfree (random_override);
 	}
     }
   else if (ctx->encoding == PUBKEY_ENC_PSS && lhash
@@ -983,7 +983,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
                     rc = GPG_ERR_NO_OBJ;
                   else if (n > 0)
                     {
-                      random_override = gcry_malloc (n);
+                      random_override = xtrymalloc (n);
                       if (!random_override)
                         rc = gpg_err_code_from_syserror ();
                       else
@@ -1003,7 +1003,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
                                          value, valuelen, ctx->saltlen,
                                          random_override, random_override_len);
 
-              gcry_free (random_override);
+              xfree (random_override);
 	    }
         }
     }
@@ -1042,7 +1042,7 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
     ctx->flags = parsed_flags;
   else
     {
-      gcry_free (ctx->label);
+      xfree (ctx->label);
       ctx->label = NULL;
     }
 

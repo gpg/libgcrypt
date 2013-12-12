@@ -296,14 +296,14 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
         { /* Change only some of the higher bits (= 2 bytes)*/
           char *r = _gcry_random_bytes_secure (2, random_level);
           memcpy(rndbuf, r, 2 );
-          gcry_free(r);
+          xfree(r);
         }
 
       _gcry_mpi_set_buffer( x, rndbuf, (qbits+7)/8, 0 );
       mpi_clear_highbit( x, qbits+1 );
     }
   while ( !( mpi_cmp_ui( x, 0 )>0 && mpi_cmp( x, h )<0 ) );
-  gcry_free(rndbuf);
+  xfree(rndbuf);
   mpi_free( e );
   mpi_free( h );
 
@@ -518,7 +518,7 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   if (ec)
     {
       *r_counter = 0;
-      gcry_free (*r_seed); *r_seed = NULL;
+      xfree (*r_seed); *r_seed = NULL;
       *r_seedlen = 0;
       _gcry_mpi_release (*r_h); *r_h = NULL;
     }
@@ -846,7 +846,7 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
           rc = sexp_build (&seedinfo, NULL,
                            "(seed-values(counter %d)(seed %b)(h %m))",
                            counter, (int)seedlen, seed, h_value);
-          gcry_free (seed);
+          xfree (seed);
           _gcry_mpi_release (h_value);
         }
     }
@@ -871,7 +871,7 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       /* Allocate space for the format string:
          "(misc-key-info%S(pm1-factors%m))"
          with one "%m" for each factor and construct it.  */
-      format = gcry_malloc (50 + 2*nfactors);
+      format = xtrymalloc (50 + 2*nfactors);
       if (!format)
         rc = gpg_err_code_from_syserror ();
       else
@@ -891,7 +891,7 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
           /* Allocate space for the list of factors plus one for the
              seedinfo s-exp plus an extra NULL entry for safety and
              fill it with the factors.  */
-          arg_list = gcry_calloc (nfactors+1+1, sizeof *arg_list);
+          arg_list = xtrycalloc (nfactors+1+1, sizeof *arg_list);
           if (!arg_list)
             rc = gpg_err_code_from_syserror ();
           else
@@ -907,8 +907,8 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
             }
         }
 
-      gcry_free (arg_list);
-      gcry_free (format);
+      xfree (arg_list);
+      xfree (format);
     }
 
   if (!rc)
@@ -942,7 +942,7 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       gcry_mpi_t *mp;
       for (mp = factors; *mp; mp++)
         mpi_free (*mp);
-      gcry_free (factors);
+      xfree (factors);
     }
   return rc;
 }

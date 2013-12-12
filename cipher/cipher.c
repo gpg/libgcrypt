@@ -445,9 +445,9 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
                      );
 
       if (secure)
-	h = gcry_calloc_secure (1, size);
+	h = xtrycalloc_secure (1, size);
       else
-	h = gcry_calloc (1, size);
+	h = xtrycalloc (1, size);
 
       if (! h)
 	err = gpg_err_code_from_syserror ();
@@ -568,7 +568,7 @@ _gcry_cipher_close (gcry_cipher_hd_t h)
   off = h->handle_offset;
   wipememory (h, h->actual_handle_size);
 
-  gcry_free ((char*)h - off);
+  xfree ((char*)h - off);
 }
 
 

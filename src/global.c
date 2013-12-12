@@ -827,7 +827,7 @@ do_malloc (size_t n, unsigned int flags, void **mem)
 }
 
 void *
-gcry_malloc (size_t n)
+_gcry_malloc (size_t n)
 {
   void *mem = NULL;
 
@@ -837,7 +837,7 @@ gcry_malloc (size_t n)
 }
 
 void *
-gcry_malloc_secure (size_t n)
+_gcry_malloc_secure (size_t n)
 {
   void *mem = NULL;
 
@@ -847,7 +847,7 @@ gcry_malloc_secure (size_t n)
 }
 
 int
-gcry_is_secure (const void *a)
+_gcry_is_secure (const void *a)
 {
   if (get_no_secure_memory ())
     return 0;
@@ -871,17 +871,17 @@ _gcry_check_heap( const void *a )
 }
 
 void *
-gcry_realloc (void *a, size_t n)
+_gcry_realloc (void *a, size_t n)
 {
   void *p;
 
   /* To avoid problems with non-standard realloc implementations and
      our own secmem_realloc, we divert to malloc and free here.  */
   if (!a)
-    return gcry_malloc (n);
+    return _gcry_malloc (n);
   if (!n)
     {
-      gcry_free (a);
+      xfree (a);
       return NULL;
     }
 
@@ -895,7 +895,7 @@ gcry_realloc (void *a, size_t n)
 }
 
 void
-gcry_free (void *p)
+_gcry_free (void *p)
 {
   int save_errno;
 
@@ -916,7 +916,7 @@ gcry_free (void *p)
 }
 
 void *
-gcry_calloc (size_t n, size_t m)
+_gcry_calloc (size_t n, size_t m)
 {
   size_t bytes;
   void *p;
@@ -929,14 +929,14 @@ gcry_calloc (size_t n, size_t m)
       return NULL;
     }
 
-  p = gcry_malloc (bytes);
+  p = _gcry_malloc (bytes);
   if (p)
     memset (p, 0, bytes);
   return p;
 }
 
 void *
-gcry_calloc_secure (size_t n, size_t m)
+_gcry_calloc_secure (size_t n, size_t m)
 {
   size_t bytes;
   void *p;
@@ -949,7 +949,7 @@ gcry_calloc_secure (size_t n, size_t m)
       return NULL;
     }
 
-  p = gcry_malloc_secure (bytes);
+  p = _gcry_malloc_secure (bytes);
   if (p)
     memset (p, 0, bytes);
   return p;
@@ -961,17 +961,17 @@ gcry_calloc_secure (size_t n, size_t m)
    secure memory as well.  In an out-of-memory condition, NULL is
    returned.  */
 char *
-gcry_strdup (const char *string)
+_gcry_strdup (const char *string)
 {
   char *string_cp = NULL;
   size_t string_n = 0;
 
   string_n = strlen (string);
 
-  if (gcry_is_secure (string))
-    string_cp = gcry_malloc_secure (string_n + 1);
+  if (_gcry_is_secure (string))
+    string_cp = _gcry_malloc_secure (string_n + 1);
   else
-    string_cp = gcry_malloc (string_n + 1);
+    string_cp = _gcry_malloc (string_n + 1);
 
   if (string_cp)
     strcpy (string_cp, string);
@@ -981,11 +981,11 @@ gcry_strdup (const char *string)
 
 
 void *
-gcry_xmalloc( size_t n )
+_gcry_xmalloc( size_t n )
 {
   void *p;
 
-  while ( !(p = gcry_malloc( n )) )
+  while ( !(p = _gcry_malloc( n )) )
     {
       if ( fips_mode ()
            || !outofcore_handler
@@ -998,16 +998,16 @@ gcry_xmalloc( size_t n )
 }
 
 void *
-gcry_xrealloc( void *a, size_t n )
+_gcry_xrealloc( void *a, size_t n )
 {
   void *p;
 
-  while ( !(p = gcry_realloc( a, n )) )
+  while ( !(p = _gcry_realloc( a, n )) )
     {
       if ( fips_mode ()
            || !outofcore_handler
            || !outofcore_handler (outofcore_handler_value, n,
-                                   gcry_is_secure(a)? 3:2 ) )
+                                  _gcry_is_secure(a)? 3:2))
         {
           _gcry_fatal_error (gpg_err_code_from_errno (errno), NULL );
 	}
@@ -1016,11 +1016,11 @@ gcry_xrealloc( void *a, size_t n )
 }
 
 void *
-gcry_xmalloc_secure( size_t n )
+_gcry_xmalloc_secure( size_t n )
 {
   void *p;
 
-  while ( !(p = gcry_malloc_secure( n )) )
+  while ( !(p = _gcry_malloc_secure( n )) )
     {
       if ( fips_mode ()
            || !outofcore_handler
@@ -1035,7 +1035,7 @@ gcry_xmalloc_secure( size_t n )
 
 
 void *
-gcry_xcalloc( size_t n, size_t m )
+_gcry_xcalloc( size_t n, size_t m )
 {
   size_t nbytes;
   void *p;
@@ -1047,13 +1047,13 @@ gcry_xcalloc( size_t n, size_t m )
       _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
     }
 
-  p = gcry_xmalloc ( nbytes );
+  p = _gcry_xmalloc ( nbytes );
   memset ( p, 0, nbytes );
   return p;
 }
 
 void *
-gcry_xcalloc_secure( size_t n, size_t m )
+_gcry_xcalloc_secure( size_t n, size_t m )
 {
   size_t nbytes;
   void *p;
@@ -1065,20 +1065,20 @@ gcry_xcalloc_secure( size_t n, size_t m )
       _gcry_fatal_error(gpg_err_code_from_errno (errno), NULL );
     }
 
-  p = gcry_xmalloc_secure ( nbytes );
+  p = _gcry_xmalloc_secure ( nbytes );
   memset ( p, 0, nbytes );
   return p;
 }
 
 char *
-gcry_xstrdup (const char *string)
+_gcry_xstrdup (const char *string)
 {
   char *p;
 
-  while ( !(p = gcry_strdup (string)) )
+  while ( !(p = _gcry_strdup (string)) )
     {
       size_t n = strlen (string);
-      int is_sec = !!gcry_is_secure (string);
+      int is_sec = !!_gcry_is_secure (string);
 
       if (fips_mode ()
           || !outofcore_handler

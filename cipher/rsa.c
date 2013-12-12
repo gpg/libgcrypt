@@ -926,7 +926,7 @@ rsa_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       if (!rc)
         {
           rc = sexp_build (r_ciph, NULL, "(enc-val(rsa(a%b)))", (int)emlen, em);
-          gcry_free (em);
+          xfree (em);
         }
     }
   else
@@ -1076,7 +1076,7 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
  leave:
-  gcry_free (unpad);
+  xfree (unpad);
   _gcry_mpi_release (plain);
   _gcry_mpi_release (sk.n);
   _gcry_mpi_release (sk.e);
@@ -1155,7 +1155,7 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       if (!rc)
         {
           rc = sexp_build (r_sig, NULL, "(sig-val(rsa(s%b)))", (int)emlen, em);
-          gcry_free (em);
+          xfree (em);
         }
     }
   else

@@ -69,7 +69,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   memsize = ctx_aligned_size + (blocksize * 2) + (blocksize * nblocks * 3) + 16;
 
-  mem = gcry_calloc (1, memsize);
+  mem = xtrycalloc (1, memsize);
   if (!mem)
     return "failed to allocate memory";
 
@@ -99,7 +99,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
   bulk_cbc_dec (ctx, iv2, plaintext2, ciphertext, 1);
   if (memcmp (plaintext2, plaintext, blocksize))
     {
-      gcry_free (mem);
+      xfree (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CBC-%d test failed (plaintext mismatch)", cipher,
@@ -110,7 +110,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   if (memcmp (iv2, iv, blocksize))
     {
-      gcry_free (mem);
+      xfree (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CBC-%d test failed (IV mismatch)", cipher, blocksize * 8);
@@ -138,7 +138,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   if (memcmp (plaintext2, plaintext, nblocks * blocksize))
     {
-      gcry_free (mem);
+      xfree (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CBC-%d test failed (plaintext mismatch, parallel path)",
@@ -148,7 +148,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
     }
   if (memcmp (iv2, iv, blocksize))
     {
-      gcry_free (mem);
+      xfree (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CBC-%d test failed (IV mismatch, parallel path)",
@@ -157,7 +157,7 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
       return "selftest for CBC failed - see syslog for details";
     }
 
-  gcry_free (mem);
+  xfree (mem);
   return NULL;
 }
 
@@ -186,7 +186,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   memsize = ctx_aligned_size + (blocksize * 2) + (blocksize * nblocks * 3) + 16;
 
-  mem = gcry_calloc (1, memsize);
+  mem = xtrycalloc (1, memsize);
   if (!mem)
     return "failed to allocate memory";
 
@@ -215,7 +215,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
   bulk_cfb_dec (ctx, iv2, plaintext2, ciphertext, 1);
   if (memcmp(plaintext2, plaintext, blocksize))
     {
-      gcry_free(mem);
+      xfree(mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CFB-%d test failed (plaintext mismatch)", cipher,
@@ -226,7 +226,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   if (memcmp(iv2, iv, blocksize))
     {
-      gcry_free(mem);
+      xfree(mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CFB-%d test failed (IV mismatch)", cipher, blocksize * 8);
@@ -253,7 +253,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   if (memcmp(plaintext2, plaintext, nblocks * blocksize))
     {
-      gcry_free(mem);
+      xfree(mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CFB-%d test failed (plaintext mismatch, parallel path)",
@@ -263,7 +263,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
     }
   if (memcmp(iv2, iv, blocksize))
     {
-      gcry_free(mem);
+      xfree(mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CFB-%d test failed (IV mismatch, parallel path)", cipher,
@@ -272,7 +272,7 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
       return "selftest for CFB failed - see syslog for details";
     }
 
-  gcry_free(mem);
+  xfree(mem);
   return NULL;
 }
 
@@ -302,7 +302,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   memsize = ctx_aligned_size + (blocksize * 2) + (blocksize * nblocks * 4) + 16;
 
-  mem = gcry_calloc (1, memsize);
+  mem = xtrycalloc (1, memsize);
   if (!mem)
     return "failed to allocate memory";
 
@@ -339,7 +339,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   if (memcmp (plaintext2, plaintext, blocksize))
     {
-      gcry_free (mem);
+      xfree (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CTR-%d test failed (plaintext mismatch)", cipher,
@@ -350,7 +350,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   if (memcmp (iv2, iv, blocksize))
     {
-      gcry_free (mem);
+      xfree (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CTR-%d test failed (IV mismatch)", cipher,
@@ -392,7 +392,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
   if (memcmp (ciphertext2, ciphertext, blocksize * nblocks))
     {
-      gcry_free (mem);
+      xfree (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CTR-%d test failed (ciphertext mismatch, bulk)", cipher,
@@ -402,7 +402,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
     }
   if (memcmp(iv2, iv, blocksize))
     {
-      gcry_free (mem);
+      xfree (mem);
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CTR-%d test failed (IV mismatch, bulk)", cipher,
@@ -445,7 +445,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
 
     if (memcmp (plaintext2, plaintext, blocksize * nblocks))
       {
-        gcry_free (mem);
+        xfree (mem);
 #ifdef HAVE_SYSLOG
         syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
                 "%s-CTR-%d test failed (plaintext mismatch, diff: %d)", cipher,
@@ -455,7 +455,7 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
       }
     if (memcmp(iv2, iv, blocksize))
       {
-        gcry_free (mem);
+        xfree (mem);
 #ifdef HAVE_SYSLOG
         syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
                 "%s-CTR-%d test failed (IV mismatch, diff: %d)", cipher,
@@ -465,6 +465,6 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
       }
   }
 
-  gcry_free (mem);
+  xfree (mem);
   return NULL;
 }

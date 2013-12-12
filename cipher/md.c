@@ -298,9 +298,9 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
 
   /* Allocate and set the Context pointer to the private data */
   if (secure)
-    hd = gcry_malloc_secure (n + sizeof (struct gcry_md_context));
+    hd = xtrymalloc_secure (n + sizeof (struct gcry_md_context));
   else
-    hd = gcry_malloc (n + sizeof (struct gcry_md_context));
+    hd = xtrymalloc (n + sizeof (struct gcry_md_context));
 
   if (! hd)
     err = gpg_err_code_from_errno (errno);
@@ -333,7 +333,7 @@ md_open (gcry_md_hd_t *h, int algo, int secure, int hmac)
                 ctx->macpads_Bsize = 64;
                 break;
             }
-          ctx->macpads = gcry_malloc_secure (2*(ctx->macpads_Bsize));
+          ctx->macpads = xtrymalloc_secure (2*(ctx->macpads_Bsize));
 	  if (!ctx->macpads)
 	    {
 	      err = gpg_err_code_from_errno (errno);
@@ -425,9 +425,9 @@ md_enable (gcry_md_hd_t hd, int algorithm)
 
       /* And allocate a new list entry. */
       if (h->secure)
-	entry = gcry_malloc_secure (size);
+	entry = xtrymalloc_secure (size);
       else
-	entry = gcry_malloc (size);
+	entry = xtrymalloc (size);
 
       if (! entry)
 	err = gpg_err_code_from_errno (errno);
@@ -469,9 +469,9 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 
   n = (char *) ahd->ctx - (char *) ahd;
   if (a->secure)
-    bhd = gcry_malloc_secure (n + sizeof (struct gcry_md_context));
+    bhd = xtrymalloc_secure (n + sizeof (struct gcry_md_context));
   else
-    bhd = gcry_malloc (n + sizeof (struct gcry_md_context));
+    bhd = xtrymalloc (n + sizeof (struct gcry_md_context));
 
   if (! bhd)
     err = gpg_err_code_from_errno (errno);
@@ -489,7 +489,7 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
       b->debug = NULL;
       if (a->macpads)
 	{
-	  b->macpads = gcry_malloc_secure (2*(a->macpads_Bsize));
+	  b->macpads = xtrymalloc_secure (2*(a->macpads_Bsize));
 	  if (! b->macpads)
 	    {
 	      err = gpg_err_code_from_errno (errno);
@@ -507,13 +507,13 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
       for (ar = a->list; ar; ar = ar->next)
         {
           if (a->secure)
-            br = gcry_malloc_secure (sizeof *br
-                                     + ar->spec->contextsize
-                                     - sizeof(ar->context));
+            br = xtrymalloc_secure (sizeof *br
+                                    + ar->spec->contextsize
+                                    - sizeof(ar->context));
           else
-            br = gcry_malloc (sizeof *br
-                              + ar->spec->contextsize
-                              - sizeof (ar->context));
+            br = xtrymalloc (sizeof *br
+                             + ar->spec->contextsize
+                             - sizeof (ar->context));
           if (!br)
             {
 	      err = gpg_err_code_from_errno (errno);
@@ -586,17 +586,17 @@ md_close (gcry_md_hd_t a)
     {
       r2 = r->next;
       wipememory (r, r->actual_struct_size);
-      gcry_free (r);
+      xfree (r);
     }
 
   if (a->ctx->macpads)
     {
       wipememory (a->ctx->macpads, 2*(a->ctx->macpads_Bsize));
-      gcry_free(a->ctx->macpads);
+      xfree(a->ctx->macpads);
     }
 
   wipememory (a, a->ctx->actual_handle_size);
-  gcry_free(a);
+  xfree(a);
 }
 
 
@@ -690,7 +690,7 @@ prepare_macpads (gcry_md_hd_t hd, const unsigned char *key, size_t keylen)
 
   if ( keylen > hd->ctx->macpads_Bsize )
     {
-      helpkey = gcry_malloc_secure (md_digest_length (algo));
+      helpkey = xtrymalloc_secure (md_digest_length (algo));
       if (!helpkey)
         return gpg_err_code_from_errno (errno);
       _gcry_md_hash_buffer (algo, helpkey, key, keylen);
@@ -709,7 +709,7 @@ prepare_macpads (gcry_md_hd_t hd, const unsigned char *key, size_t keylen)
       ipad[i] ^= 0x36;
       opad[i] ^= 0x5c;
     }
-  gcry_free (helpkey);
+  xfree (helpkey);
 
   return 0;
 }

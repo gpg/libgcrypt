@@ -322,11 +322,11 @@ initialize(void)
          use this extra space (which is allocated in secure memory) as
          a temporary hash buffer */
       rndpool = (secure_alloc
-                 ? gcry_xcalloc_secure (1, POOLSIZE + BLOCKLEN)
-                 : gcry_xcalloc (1, POOLSIZE + BLOCKLEN));
+                 ? xcalloc_secure (1, POOLSIZE + BLOCKLEN)
+                 : xcalloc (1, POOLSIZE + BLOCKLEN));
       keypool = (secure_alloc
-                 ? gcry_xcalloc_secure (1, POOLSIZE + BLOCKLEN)
-                 : gcry_xcalloc (1, POOLSIZE + BLOCKLEN));
+                 ? xcalloc_secure (1, POOLSIZE + BLOCKLEN)
+                 : xcalloc (1, POOLSIZE + BLOCKLEN));
 
       /* Setup the slow entropy gathering function.  The code requires
          that this function exists. */
@@ -676,7 +676,7 @@ _gcry_rngcsprng_set_seed_file (const char *name)
 {
   if (seed_file_name)
     BUG ();
-  seed_file_name = gcry_xstrdup (name);
+  seed_file_name = xstrdup (name);
 }
 
 
@@ -1312,7 +1312,7 @@ gather_faked (void (*add)(const void*, size_t, enum random_origins),
 #endif
     }
 
-  p = buffer = gcry_xmalloc( length );
+  p = buffer = xmalloc( length );
   n = length;
 #ifdef HAVE_RAND
   while ( n-- )
@@ -1322,6 +1322,6 @@ gather_faked (void (*add)(const void*, size_t, enum random_origins),
     *p++ = ((unsigned)(1 + (int) (256.0*random()/(RAND_MAX+1.0)))-1);
 #endif
   add_randomness ( buffer, length, origin );
-  gcry_free (buffer);
+  xfree (buffer);
   return 0; /* okay */
 }

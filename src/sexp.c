@@ -269,7 +269,7 @@ _gcry_sexp_release( gcry_sexp_t sexp )
 {
   if (sexp)
     {
-      if (gcry_is_secure (sexp))
+      if (_gcry_is_secure (sexp))
         {
           /* Extra paranoid wiping. */
           const byte *p = sexp->d;
@@ -298,7 +298,7 @@ _gcry_sexp_release( gcry_sexp_t sexp )
             }
           wipememory (sexp->d, p - sexp->d);
         }
-      gcry_free ( sexp );
+      xfree ( sexp );
     }
 }
 
@@ -434,7 +434,7 @@ _gcry_sexp_find_token( const gcry_sexp_t list, const char *tok, size_t toklen )
 		}
               n = p - head;
 
-              newlist = gcry_malloc ( sizeof *newlist + n );
+              newlist = xtrymalloc ( sizeof *newlist + n );
               if (!newlist)
                 {
                   /* No way to return an error code, so we can only
@@ -589,7 +589,7 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
     {
       memcpy (&n, p, sizeof n);
       p += sizeof n;
-      newlist = gcry_malloc (sizeof *newlist + n + 1);
+      newlist = xtrymalloc (sizeof *newlist + n + 1);
       if (!newlist)
         return NULL;
       d = newlist->d;
@@ -625,7 +625,7 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
       } while (level);
       n = p + 1 - head;
 
-      newlist = gcry_malloc (sizeof *newlist + n);
+      newlist = xtrymalloc (sizeof *newlist + n);
       if (!newlist)
         return NULL;
       d = newlist->d;
@@ -729,7 +729,7 @@ _gcry_sexp_nth_buffer (const gcry_sexp_t list, int number, size_t *rlength)
   s = do_sexp_nth_data (list, number, &n);
   if (!s || !n)
     return NULL;
-  buf = gcry_malloc (n);
+  buf = xtrymalloc (n);
   if (!buf)
     return NULL;
   memcpy (buf, s, n);
@@ -750,7 +750,7 @@ _gcry_sexp_nth_string (const gcry_sexp_t list, int number)
   s = do_sexp_nth_data (list, number, &n);
   if (!s || n < 1 || (n+1) < 1)
     return NULL;
-  buf = gcry_malloc (n+1);
+  buf = xtrymalloc (n+1);
   if (!buf)
     return NULL;
   memcpy (buf, s, n);
@@ -776,11 +776,11 @@ _gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt)
       if (!p)
         return NULL;
 
-      a = gcry_is_secure (list)? _gcry_mpi_snew (0) : _gcry_mpi_new (0);
+      a = _gcry_is_secure (list)? _gcry_mpi_snew (0) : _gcry_mpi_new (0);
       if (a)
         mpi_set_opaque (a, p, n*8);
       else
-        gcry_free (p);
+        xfree (p);
     }
   else
     {
@@ -872,7 +872,7 @@ _gcry_sexp_cdr(const gcry_sexp_t list)
   } while (level);
   n = p - head;
 
-  newlist = gcry_malloc (sizeof *newlist + n + 2);
+  newlist = xtrymalloc (sizeof *newlist + n + 2);
   if (!newlist)
     return NULL;
   d = newlist->d;
@@ -934,7 +934,7 @@ make_space ( struct make_space_ctx *c, size_t n )
       newsize = c->allocated + 2*(n+sizeof(DATALEN)+1);
       if (newsize <= c->allocated)
         return GPG_ERR_TOO_LARGE;
-      newsexp = gcry_realloc ( c->sexp, sizeof *newsexp + newsize - 1);
+      newsexp = xtryrealloc ( c->sexp, sizeof *newsexp + newsize - 1);
       if (!newsexp)
         return gpg_err_code_from_errno (errno);
       c->allocated = newsize;
@@ -1109,10 +1109,10 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
      the provided one.  However, we add space for one extra datalen so
      that the code which does the ST_CLOSE can use MAKE_SPACE */
   c.allocated = length + sizeof(DATALEN);
-  if (buffer && length && gcry_is_secure (buffer))
-    c.sexp = gcry_malloc_secure (sizeof *c.sexp + c.allocated - 1);
+  if (buffer && length && _gcry_is_secure (buffer))
+    c.sexp = xtrymalloc_secure (sizeof *c.sexp + c.allocated - 1);
   else
-    c.sexp = gcry_malloc (sizeof *c.sexp + c.allocated - 1);
+    c.sexp = xtrymalloc (sizeof *c.sexp + c.allocated - 1);
   if (!c.sexp)
     {
       err = gpg_err_code_from_errno (errno);
@@ -1342,15 +1342,15 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                   if (mp && nm)
                     {
                       MAKE_SPACE (nm);
-                      if (!gcry_is_secure (c.sexp->d)
+                      if (!_gcry_is_secure (c.sexp->d)
                           && mpi_get_flag (m, GCRYMPI_FLAG_SECURE))
                         {
                           /* We have to switch to secure allocation.  */
                           gcry_sexp_t newsexp;
                           byte *newhead;
 
-                          newsexp = gcry_malloc_secure (sizeof *newsexp
-                                                        + c.allocated - 1);
+                          newsexp = xtrymalloc_secure (sizeof *newsexp
+                                                       + c.allocated - 1);
                           if (!newsexp)
                             {
                               err = gpg_err_code_from_errno (errno);
@@ -1359,7 +1359,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                           newhead = newsexp->d;
                           memcpy (newhead, c.sexp->d, (c.pos - c.sexp->d));
                           c.pos = newhead + (c.pos - c.sexp->d);
-                          gcry_free (c.sexp);
+                          xfree (c.sexp);
                           c.sexp = newsexp;
                         }
 
@@ -1375,15 +1375,15 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                     BUG ();
 
                   MAKE_SPACE (nm);
-                  if (!gcry_is_secure (c.sexp->d)
+                  if (!_gcry_is_secure (c.sexp->d)
                       && mpi_get_flag ( m, GCRYMPI_FLAG_SECURE))
                     {
                       /* We have to switch to secure allocation.  */
                       gcry_sexp_t newsexp;
                       byte *newhead;
 
-                      newsexp = gcry_malloc_secure (sizeof *newsexp
-                                                    + c.allocated - 1);
+                      newsexp = xtrymalloc_secure (sizeof *newsexp
+                                                   + c.allocated - 1);
                       if (!newsexp)
                         {
                           err = gpg_err_code_from_errno (errno);
@@ -1392,7 +1392,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
                       newhead = newsexp->d;
                       memcpy (newhead, c.sexp->d, (c.pos - c.sexp->d));
                       c.pos = newhead + (c.pos - c.sexp->d);
-                      gcry_free (c.sexp);
+                      xfree (c.sexp);
                       c.sexp = newsexp;
                     }
 
@@ -1429,15 +1429,15 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 
 	      MAKE_SPACE (alen);
 	      if (alen
-                  && !gcry_is_secure (c.sexp->d)
-		  && gcry_is_secure (astr))
+                  && !_gcry_is_secure (c.sexp->d)
+		  && _gcry_is_secure (astr))
               {
 		  /* We have to switch to secure allocation.  */
 		  gcry_sexp_t newsexp;
 		  byte *newhead;
 
-		  newsexp = gcry_malloc_secure (sizeof *newsexp
-                                                + c.allocated - 1);
+		  newsexp = xtrymalloc_secure (sizeof *newsexp
+                                               + c.allocated - 1);
                   if (!newsexp)
                     {
                       err = gpg_err_code_from_errno (errno);
@@ -1446,7 +1446,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 		  newhead = newsexp->d;
 		  memcpy (newhead, c.sexp->d, (c.pos - c.sexp->d));
 		  c.pos = newhead + (c.pos - c.sexp->d);
-		  gcry_free (c.sexp);
+		  xfree (c.sexp);
 		  c.sexp = newsexp;
 		}
 
@@ -1627,9 +1627,9 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
       if (c.sexp)
         {
           /* Extra paranoid wipe on error. */
-          if (gcry_is_secure (c.sexp))
+          if (_gcry_is_secure (c.sexp))
             wipememory (c.sexp, sizeof (struct gcry_sexp) + c.allocated - 1);
-          gcry_free (c.sexp);
+          xfree (c.sexp);
         }
       /* This might be expected by existing code...  */
       *retsexp = NULL;
@@ -2359,7 +2359,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
         {
           /* We might have allocated a buffer.  */
           gcry_buffer_t *spec = (gcry_buffer_t*)array[idx];
-          gcry_free (spec->data);
+          xfree (spec->data);
           spec->data = NULL;
           spec->size = spec->off = spec->len = 0;
         }

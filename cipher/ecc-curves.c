@@ -468,13 +468,13 @@ _gcry_ecc_update_curve_param (const char *name,
       len += strlen (domain_parms[idx].g_x+2);
       len += strlen (domain_parms[idx].g_y+2);
       len++;
-      buf = gcry_malloc (len);
+      buf = xtrymalloc (len);
       if (!buf)
         return gpg_err_code_from_syserror ();
       strcpy (stpcpy (stpcpy (buf, "0x04"), domain_parms[idx].g_x+2),
               domain_parms[idx].g_y+2);
       *g = scanval (buf);
-      gcry_free (buf);
+      xfree (buf);
     }
   if (model)
     *model = domain_parms[idx].model;
@@ -545,7 +545,7 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
         goto leave;  /* Name missing or out of core. */
 
       idx = find_domain_parms_idx (name);
-      gcry_free (name);
+      xfree (name);
       if (idx >= 0)  /* Curve found.  */
         {
           result = domain_parms[idx].desc;
@@ -674,14 +674,14 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
       gcry_mpi_t y = NULL;
       gcry_mpi_t z = NULL;
 
-      tmpname = gcry_malloc (strlen (name) + 2 + 1);
+      tmpname = xtrymalloc (strlen (name) + 2 + 1);
       if (!tmpname)
         return gpg_err_code_from_syserror ();
       strcpy (stpcpy (tmpname, name), ".x");
       rc = mpi_from_keyparam (&x, keyparam, tmpname);
       if (rc)
         {
-          gcry_free (tmpname);
+          xfree (tmpname);
           return rc;
         }
       strcpy (stpcpy (tmpname, name), ".y");
@@ -689,7 +689,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
       if (rc)
         {
           mpi_free (x);
-          gcry_free (tmpname);
+          xfree (tmpname);
           return rc;
         }
       strcpy (stpcpy (tmpname, name), ".z");
@@ -698,7 +698,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
         {
           mpi_free (y);
           mpi_free (x);
-          gcry_free (tmpname);
+          xfree (tmpname);
           return rc;
         }
       if (!z)
@@ -712,7 +712,7 @@ point_from_keyparam (gcry_mpi_point_t *r_a,
           mpi_free (z);
           point = NULL;
         }
-      gcry_free (tmpname);
+      xfree (tmpname);
     }
 
   if (point)
@@ -810,19 +810,19 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
       else
         name = NULL;
 
-      E = gcry_calloc (1, sizeof *E);
+      E = xtrycalloc (1, sizeof *E);
       if (!E)
         {
           errc = gpg_err_code_from_syserror ();
-          gcry_free (name);
+          xfree (name);
           goto leave;
         }
 
       errc = _gcry_ecc_fill_in_curve (0, name? name : curvename, E, NULL);
-      gcry_free (name);
+      xfree (name);
       if (errc)
         {
-          gcry_free (E);
+          xfree (E);
           goto leave;
         }
 
@@ -857,7 +857,7 @@ _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
           E->n = NULL;
         }
       _gcry_ecc_curve_free (E);
-      gcry_free (E);
+      xfree (E);
     }
 
 

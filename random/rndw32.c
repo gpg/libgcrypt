@@ -469,7 +469,7 @@ registry_poll (void (*add)(const void*, size_t, enum random_origins),
               break;
             }
         }
-      gcry_free (pPerfData);
+      xfree (pPerfData);
     }
 
   /* Although this isn't documented in the Win32 API docs, it's necessary
@@ -759,7 +759,7 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
         }
       gcry_assert (i < 100);
     }
-  gcry_free (buffer);
+  xfree (buffer);
 
   /* We couldn't get enough results from the kernel, fall back to the
      somewhat troublesome registry poll.  */

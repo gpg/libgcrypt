@@ -24,23 +24,6 @@
    use the underscore prefixed version internally.  */
 
 
-#define gcry_free                   _gcry_free
-#define gcry_malloc                 _gcry_malloc
-#define gcry_malloc_secure          _gcry_malloc_secure
-#define gcry_calloc                 _gcry_calloc
-#define gcry_calloc_secure          _gcry_calloc_secure
-#define gcry_realloc                _gcry_realloc
-#define gcry_strdup                 _gcry_strdup
-#define gcry_is_secure              _gcry_is_secure
-#define gcry_xcalloc                _gcry_xcalloc
-#define gcry_xcalloc_secure         _gcry_xcalloc_secure
-#define gcry_xmalloc                _gcry_xmalloc
-#define gcry_xmalloc_secure         _gcry_xmalloc_secure
-#define gcry_xrealloc               _gcry_xrealloc
-#define gcry_xstrdup                _gcry_xstrdup
-
-
-
 /* Include the main header here so that public symbols are mapped to
    the internal underscored ones.  */
 #ifdef _GCRY_INCLUDED_BY_VISIBILITY_C
@@ -67,36 +50,13 @@ gcry_err_code_t gcry_md_get (gcry_md_hd_t hd, int algo,
 
 #ifdef _GCRY_INCLUDED_BY_VISIBILITY_C
 
-/* A macro to flag a function as visible.  Note that we take the
-   definition from the mapped name.  */
+/* A macro to flag a function as visible.  */
 #ifdef GCRY_USE_VISIBILITY
-# define MARK_VISIBLE(name) \
-    extern __typeof__ (_##name) name __attribute__ ((visibility("default")));
 # define MARK_VISIBLEX(name) \
     extern __typeof__ (name) name __attribute__ ((visibility("default")));
 #else
-# define MARK_VISIBLE(name) /* */
 # define MARK_VISIBLEX(name) /* */
 #endif
-
-
-/* First undef all redefined symbols so that we set the attribute on
-   the correct version name.  */
-
-#undef gcry_free
-#undef gcry_malloc
-#undef gcry_malloc_secure
-#undef gcry_calloc
-#undef gcry_calloc_secure
-#undef gcry_realloc
-#undef gcry_strdup
-#undef gcry_is_secure
-#undef gcry_xcalloc
-#undef gcry_xcalloc_secure
-#undef gcry_xmalloc
-#undef gcry_xmalloc_secure
-#undef gcry_xrealloc
-#undef gcry_xstrdup
 
 
 /* Now mark all symbols.  */
@@ -118,20 +78,20 @@ MARK_VISIBLEX (gcry_error_from_errno)
 MARK_VISIBLEX (gcry_strerror)
 MARK_VISIBLEX (gcry_strsource)
 
-MARK_VISIBLE (gcry_free)
-MARK_VISIBLE (gcry_malloc)
-MARK_VISIBLE (gcry_malloc_secure)
-MARK_VISIBLE (gcry_calloc)
-MARK_VISIBLE (gcry_calloc_secure)
-MARK_VISIBLE (gcry_realloc)
-MARK_VISIBLE (gcry_strdup)
-MARK_VISIBLE (gcry_is_secure)
-MARK_VISIBLE (gcry_xcalloc)
-MARK_VISIBLE (gcry_xcalloc_secure)
-MARK_VISIBLE (gcry_xmalloc)
-MARK_VISIBLE (gcry_xmalloc_secure)
-MARK_VISIBLE (gcry_xrealloc)
-MARK_VISIBLE (gcry_xstrdup)
+MARK_VISIBLEX (gcry_malloc)
+MARK_VISIBLEX (gcry_malloc_secure)
+MARK_VISIBLEX (gcry_calloc)
+MARK_VISIBLEX (gcry_calloc_secure)
+MARK_VISIBLEX (gcry_realloc)
+MARK_VISIBLEX (gcry_strdup)
+MARK_VISIBLEX (gcry_is_secure)
+MARK_VISIBLEX (gcry_xcalloc)
+MARK_VISIBLEX (gcry_xcalloc_secure)
+MARK_VISIBLEX (gcry_xmalloc)
+MARK_VISIBLEX (gcry_xmalloc_secure)
+MARK_VISIBLEX (gcry_xrealloc)
+MARK_VISIBLEX (gcry_xstrdup)
+MARK_VISIBLEX (gcry_free)
 
 MARK_VISIBLEX (gcry_md_algo_info)
 MARK_VISIBLEX (gcry_md_algo_name)
@@ -319,8 +279,7 @@ MARK_VISIBLEX (gcry_log_debugsxp)
 MARK_VISIBLEX (_gcry_mpi_get_const)
 
 
-
-#undef MARK_VISIBLE
+#undef MARK_VISIBLEX
 
 #else /*!_GCRY_INCLUDED_BY_VISIBILITY_C*/
 
@@ -328,8 +287,6 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
    we redefine them to catch such errors.  The usual difference
    between a public and an internal version is that the internal
    version use gpg_err_code_t and the public version gpg_error_t.  */
-
-#define gcry_mpi_set_opaque_copy    _gcry_USE_THE_UNDERSCORED_FUNCTION
 
 #define gcry_check_version          _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_control                _gcry_USE_THE_UNDERSCORED_FUNCTION
@@ -347,6 +304,21 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_error_from_errno       _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_strerror               _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_strsource              _gcry_USE_THE_UNDERSCORED_FUNCTION
+
+#define gcry_malloc                 _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_malloc_secure          _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_calloc                 _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_calloc_secure          _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_realloc                _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_strdup                 _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_xcalloc                _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_xcalloc_secure         _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_xmalloc                _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_xmalloc_secure         _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_xrealloc               _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_xstrdup                _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_free                   _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_is_secure              _gcry_USE_THE_UNDERSCORED_FUNCTION
 
 #define gcry_cipher_open            _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_cipher_close           _gcry_USE_THE_UNDERSCORED_FUNCTION
@@ -509,7 +481,6 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_mpi_subm               _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_swap               _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_test_bit           _gcry_USE_THE_UNDERSCORED_FUNCTION
-
 
 #define gcry_mpi_abs                _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_ec_add             _gcry_USE_THE_UNDERSCORED_FUNCTION

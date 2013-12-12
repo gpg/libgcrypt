@@ -202,8 +202,8 @@ do_get_buffer (gcry_mpi_t a, unsigned int fill_le,
   n = *nbytes? *nbytes:1; /* Allocate at least one byte.  */
   if (n < fill_le)
     n = fill_le;
-  p = buffer = (force_secure || mpi_is_secure(a))? gcry_malloc_secure (n)
-						 : gcry_malloc (n);
+  p = buffer = (force_secure || mpi_is_secure(a))? xtrymalloc_secure (n)
+						 : xtrymalloc (n);
   if (!buffer)
     return NULL;
 
@@ -423,7 +423,7 @@ _gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
   const unsigned char *buffer = (const unsigned char*)buffer_arg;
   struct gcry_mpi *a = NULL;
   unsigned int len;
-  int secure = (buffer && gcry_is_secure (buffer));
+  int secure = (buffer && _gcry_is_secure (buffer));
 
   if (format == GCRYMPI_FMT_SSH)
     len = 0;
@@ -630,7 +630,7 @@ _gcry_mpi_print (enum gcry_mpi_format format,
       if (buffer && n > len)
         {
           /* The provided buffer is too short. */
-          gcry_free (tmp);
+          xfree (tmp);
           return GPG_ERR_TOO_SHORT;
 	}
       if (buffer)
@@ -643,7 +643,7 @@ _gcry_mpi_print (enum gcry_mpi_format format,
             *s++ = 0xff;
           memcpy (s, tmp, n-!!extra);
 	}
-      gcry_free(tmp);
+      xfree (tmp);
       *nwritten = n;
       return 0;
     }
@@ -665,7 +665,7 @@ _gcry_mpi_print (enum gcry_mpi_format format,
           if (!tmp)
             return gpg_err_code_from_syserror ();
           memcpy (buffer, tmp, n);
-          gcry_free (tmp);
+          xfree (tmp);
 	}
       *nwritten = n;
       return 0;
@@ -693,7 +693,7 @@ _gcry_mpi_print (enum gcry_mpi_format format,
           if (!tmp)
             return gpg_err_code_from_syserror ();
           memcpy (s+2, tmp, n);
-          gcry_free (tmp);
+          xfree (tmp);
 	}
       *nwritten = n+2;
       return 0;
@@ -726,7 +726,7 @@ _gcry_mpi_print (enum gcry_mpi_format format,
 
       if (buffer && n+4 > len)
         {
-          gcry_free(tmp);
+          xfree(tmp);
           return GPG_ERR_TOO_SHORT;
 	}
 
@@ -744,7 +744,7 @@ _gcry_mpi_print (enum gcry_mpi_format format,
             *s++ = 0xff;
           memcpy (s, tmp, n-!!extra);
 	}
-      gcry_free (tmp);
+      xfree (tmp);
       *nwritten = 4+n;
       return 0;
     }
@@ -763,7 +763,7 @@ _gcry_mpi_print (enum gcry_mpi_format format,
 
       if (buffer && 2*n + extra + negative + 1 > len)
         {
-          gcry_free(tmp);
+          xfree(tmp);
           return GPG_ERR_TOO_SHORT;
 	}
       if (buffer)
@@ -793,7 +793,7 @@ _gcry_mpi_print (enum gcry_mpi_format format,
         {
           *nwritten = 2*n + extra + negative + 1;
 	}
-      gcry_free (tmp);
+      xfree (tmp);
       return 0;
     }
   else
@@ -819,7 +819,7 @@ _gcry_mpi_aprint (enum gcry_mpi_format format,
   if (rc)
     return rc;
 
-  *buffer = mpi_is_secure(a) ? gcry_malloc_secure (n?n:1) : gcry_malloc (n?n:1);
+  *buffer = mpi_is_secure(a) ? xtrymalloc_secure (n?n:1) : xtrymalloc (n?n:1);
   if (!*buffer)
     return gpg_err_code_from_syserror ();
   /* If the returned buffer will have a length of 0, we nevertheless
@@ -829,7 +829,7 @@ _gcry_mpi_aprint (enum gcry_mpi_format format,
   rc = _gcry_mpi_print( format, *buffer, n, &n, a );
   if (rc)
     {
-      gcry_free(*buffer);
+      xfree (*buffer);
       *buffer = NULL;
     }
   else if (nwritten)
@@ -871,7 +871,7 @@ _gcry_mpi_to_octet_string (unsigned char **r_frame, void *space,
     frame = space;
   else
     {
-      frame = mpi_is_secure (value)? gcry_malloc_secure (n) : gcry_malloc (n);
+      frame = mpi_is_secure (value)? xtrymalloc_secure (n) : xtrymalloc (n);
       if (!frame)
         {
           rc = gpg_err_code_from_syserror ();
@@ -884,7 +884,7 @@ _gcry_mpi_to_octet_string (unsigned char **r_frame, void *space,
   rc = _gcry_mpi_print (GCRYMPI_FMT_USG, frame+noff, nframe-noff, NULL, value);
   if (rc)
     {
-      gcry_free (frame);
+      xfree (frame);
       return rc;
     }
 

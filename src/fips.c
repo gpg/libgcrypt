@@ -660,7 +660,7 @@ check_binary_integrity (void)
             "integrity check using `%s' failed: %s",
             fname? fname:"[?]", gpg_strerror (err));
 #endif /*HAVE_SYSLOG*/
-  gcry_free (fname);
+  xfree (fname);
   return !!err;
 #else
   return 0;

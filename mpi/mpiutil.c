@@ -81,7 +81,7 @@ _gcry_mpi_alloc( unsigned nlimbs )
 {
     gcry_mpi_t a;
 
-    a = gcry_xmalloc( sizeof *a );
+    a = xmalloc( sizeof *a );
     a->d = nlimbs? mpi_alloc_limb_space( nlimbs, 0 ) : NULL;
     a->alloced = nlimbs;
     a->nlimbs = 0;
@@ -102,7 +102,7 @@ _gcry_mpi_alloc_secure( unsigned nlimbs )
 {
     gcry_mpi_t a;
 
-    a = gcry_xmalloc( sizeof *a );
+    a = xmalloc( sizeof *a );
     a->d = nlimbs? mpi_alloc_limb_space( nlimbs, 1 ) : NULL;
     a->alloced = nlimbs;
     a->flags = 1;
@@ -120,7 +120,7 @@ _gcry_mpi_alloc_limb_space( unsigned int nlimbs, int secure )
     size_t len;
 
     len = (nlimbs ? nlimbs : 1) * sizeof (mpi_limb_t);
-    p = secure ? gcry_xmalloc_secure (len) : gcry_xmalloc (len);
+    p = secure ? xmalloc_secure (len) : xmalloc (len);
     if (! nlimbs)
       *p = 0;
 
@@ -140,7 +140,7 @@ _gcry_mpi_free_limb_space( mpi_ptr_t a, unsigned int nlimbs)
          implemented in user provided allocation functions. */
       if (len)
         wipememory (a, len);
-      gcry_free(a);
+      xfree(a);
     }
 }
 
@@ -176,7 +176,7 @@ _gcry_mpi_resize (gcry_mpi_t a, unsigned nlimbs)
   /* Actually resize the limb space.  */
   if (a->d)
     {
-      a->d = gcry_xrealloc (a->d, nlimbs * sizeof (mpi_limb_t));
+      a->d = xrealloc (a->d, nlimbs * sizeof (mpi_limb_t));
       for (i=a->alloced; i < nlimbs; i++)
         a->d[i] = 0;
     }
@@ -184,10 +184,10 @@ _gcry_mpi_resize (gcry_mpi_t a, unsigned nlimbs)
     {
       if (a->flags & 1)
 	/* Secure memory is wanted.  */
-	a->d = gcry_xcalloc_secure (nlimbs , sizeof (mpi_limb_t));
+	a->d = xcalloc_secure (nlimbs , sizeof (mpi_limb_t));
       else
 	/* Standard memory.  */
-	a->d = gcry_xcalloc (nlimbs , sizeof (mpi_limb_t));
+	a->d = xcalloc (nlimbs , sizeof (mpi_limb_t));
     }
   a->alloced = nlimbs;
 }
@@ -213,7 +213,7 @@ _gcry_mpi_free( gcry_mpi_t a )
   if ((a->flags & 32))
     return; /* Never release a constant. */
   if ((a->flags & 4))
-    gcry_free( a->d );
+    xfree( a->d );
   else
     {
       _gcry_mpi_free_limb_space(a->d, a->alloced);
@@ -226,7 +226,7 @@ _gcry_mpi_free( gcry_mpi_t a )
                     |GCRYMPI_FLAG_USER3
                     |GCRYMPI_FLAG_USER4)))
     log_bug("invalid flag value in mpi_free\n");
-  gcry_free(a);
+  xfree (a);
 }
 
 
@@ -271,7 +271,7 @@ _gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits)
     }
 
   if( a->flags & 4 )
-    gcry_free( a->d );
+    xfree (a->d);
   else
     _gcry_mpi_free_limb_space (a->d, a->alloced);
 
@@ -281,7 +281,7 @@ _gcry_mpi_set_opaque (gcry_mpi_t a, void *p, unsigned int nbits)
   a->sign  = nbits;
   a->flags = 4 | (a->flags & (GCRYMPI_FLAG_USER1|GCRYMPI_FLAG_USER2
                               |GCRYMPI_FLAG_USER3|GCRYMPI_FLAG_USER4));
-  if (gcry_is_secure (a->d))
+  if (_gcry_is_secure (a->d))
     a->flags |= 1;
   return a;
 }
@@ -294,7 +294,7 @@ _gcry_mpi_set_opaque_copy (gcry_mpi_t a, const void *p, unsigned int nbits)
   unsigned int n;
 
   n = (nbits+7)/8;
-  d = gcry_is_secure (p)? gcry_malloc_secure (n) : gcry_malloc (n);
+  d = _gcry_is_secure (p)? xtrymalloc_secure (n) : xtrymalloc (n);
   if (!d)
     return NULL;
   memcpy (d, p, n);
@@ -324,7 +324,7 @@ _gcry_mpi_get_opaque_copy (gcry_mpi_t a, unsigned int *nbits)
   if (!s && nbits)
     return NULL;
   n = (*nbits+7)/8;
-  d = gcry_is_secure (s)? gcry_malloc_secure (n) : gcry_malloc (n);
+  d = _gcry_is_secure (s)? xtrymalloc_secure (n) : xtrymalloc (n);
   if (d)
     memcpy (d, s, n);
   return d;
@@ -341,8 +341,8 @@ _gcry_mpi_copy (gcry_mpi_t a)
     gcry_mpi_t b;
 
     if( a && (a->flags & 4) ) {
-	void *p = gcry_is_secure(a->d)? gcry_xmalloc_secure( (a->sign+7)/8 )
-				     : gcry_xmalloc( (a->sign+7)/8 );
+	void *p = _gcry_is_secure(a->d)? xmalloc_secure ((a->sign+7)/8)
+                                       : xmalloc ((a->sign+7)/8);
 	memcpy( p, a->d, (a->sign+7)/8 );
 	b = mpi_set_opaque( NULL, p, a->sign );
         b->flags &= ~(16|32); /* Reset the immutable and constant flags.  */
@@ -416,8 +416,8 @@ _gcry_mpi_alloc_like( gcry_mpi_t a )
 
     if( a && (a->flags & 4) ) {
 	int n = (a->sign+7)/8;
-	void *p = gcry_is_secure(a->d)? gcry_malloc_secure( n )
-				     : gcry_malloc( n );
+	void *p = _gcry_is_secure(a->d)? xtrymalloc_secure (n)
+                                       : xtrymalloc (n);
 	memcpy( p, a->d, n );
 	b = mpi_set_opaque( NULL, p, a->sign );
     }
@@ -577,8 +577,8 @@ _gcry_mpi_randomize (gcry_mpi_t w,
     }
   if (level == GCRY_WEAK_RANDOM)
     {
-      p = mpi_is_secure(w) ? gcry_xmalloc_secure (nbytes)
-                           : gcry_xmalloc (nbytes);
+      p = mpi_is_secure(w) ? xmalloc_secure (nbytes)
+                           : xmalloc (nbytes);
       _gcry_create_nonce (p, nbytes);
     }
   else
@@ -587,7 +587,7 @@ _gcry_mpi_randomize (gcry_mpi_t w,
                            : _gcry_random_bytes (nbytes, level);
     }
   _gcry_mpi_set_buffer( w, p, nbytes, 0 );
-  gcry_free (p);
+  xfree (p);
 }
 
 

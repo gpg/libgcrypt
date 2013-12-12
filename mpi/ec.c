@@ -90,7 +90,7 @@ _gcry_mpi_point_new (unsigned int nbits)
 
   (void)nbits;  /* Currently not used.  */
 
-  p = gcry_xmalloc (sizeof *p);
+  p = xmalloc (sizeof *p);
   _gcry_mpi_point_init (p);
   return p;
 }
@@ -103,7 +103,7 @@ _gcry_mpi_point_release (mpi_point_t p)
   if (p)
     {
       _gcry_mpi_point_free_parts (p);
-      gcry_free (p);
+      xfree (p);
     }
 }
 
@@ -164,7 +164,7 @@ _gcry_mpi_point_snatch_get (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
   mpi_snatch (x, point->x);
   mpi_snatch (y, point->y);
   mpi_snatch (z, point->z);
-  gcry_free (point);
+  xfree (point);
 }
 
 
@@ -470,7 +470,7 @@ _gcry_mpi_ec_p_internal_new (enum gcry_mpi_ec_models model,
 {
   mpi_ec_t ctx;
 
-  ctx = gcry_xcalloc (1, sizeof *ctx);
+  ctx = xcalloc (1, sizeof *ctx);
   ec_p_init (ctx, model, dialect, flags, p, a, b);
 
   return ctx;
@@ -515,7 +515,7 @@ _gcry_mpi_ec_free (mpi_ec_t ctx)
   if (ctx)
     {
       ec_deinit (ctx);
-      gcry_free (ctx);
+      xfree (ctx);
     }
 }
 

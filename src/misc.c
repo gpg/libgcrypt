@@ -355,7 +355,7 @@ _gcry_log_printmpi (const char *text, gcry_mpi_t mpi)
             do_printhex (text, sign? "-":"+", "", 1);
           else
             do_printhex (text, sign? "-":"+", rawmpi, rawmpilen);
-          gcry_free (rawmpi);
+          xfree (rawmpi);
         }
     }
 }
@@ -400,7 +400,7 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
       size_t size;
 
       size = sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, NULL, 0);
-      p = buf = gcry_xmalloc (size);
+      p = buf = xmalloc (size);
       sexp_sprint (sexp, GCRYSEXP_FMT_ADVANCED, buf, size);
 
       do
@@ -429,7 +429,7 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
           log_printf ("\n");
         }
       while (*p);
-      gcry_free (buf);
+      xfree (buf);
     }
   else if (text)
     log_printf ("\n");

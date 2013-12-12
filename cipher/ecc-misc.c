@@ -110,7 +110,7 @@ _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
   unsigned char *buf, *ptr;
   gcry_mpi_t result;
 
-  buf = gcry_xmalloc ( 1 + 2*pbytes );
+  buf = xmalloc ( 1 + 2*pbytes );
   *buf = 04; /* Uncompressed point.  */
   ptr = buf+1;
   rc = _gcry_mpi_print (GCRYMPI_FMT_USG, ptr, pbytes, &n, x);
@@ -134,7 +134,7 @@ _gcry_ecc_ec2os (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t p)
   rc = _gcry_mpi_scan (&result, GCRYMPI_FMT_USG, buf, 1+2*pbytes, NULL);
   if (rc)
     log_fatal ("mpi_scan failed: %s\n", gpg_strerror (rc));
-  gcry_free (buf);
+  xfree (buf);
 
   return result;
 }
@@ -185,11 +185,11 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
   else
     {
       n = (mpi_get_nbits (value)+7)/8;
-      buf_memory= gcry_xmalloc (n);
+      buf_memory = xmalloc (n);
       rc = _gcry_mpi_print (GCRYMPI_FMT_USG, buf_memory, n, &n, value);
       if (rc)
         {
-          gcry_free (buf_memory);
+          xfree (buf_memory);
           return rc;
         }
       buf = buf_memory;
@@ -197,28 +197,28 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
 
   if (n < 1)
     {
-      gcry_free (buf_memory);
+      xfree (buf_memory);
       return GPG_ERR_INV_OBJ;
     }
   if (*buf != 4)
     {
-      gcry_free (buf_memory);
+      xfree (buf_memory);
       return GPG_ERR_NOT_IMPLEMENTED; /* No support for point compression.  */
     }
   if ( ((n-1)%2) )
     {
-      gcry_free (buf_memory);
+      xfree (buf_memory);
       return GPG_ERR_INV_OBJ;
     }
   n = (n-1)/2;
   rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_USG, buf+1, n, NULL);
   if (rc)
     {
-      gcry_free (buf_memory);
+      xfree (buf_memory);
       return rc;
     }
   rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_USG, buf+1+n, n, NULL);
-  gcry_free (buf_memory);
+  xfree (buf_memory);
   if (rc)
     {
       mpi_free (x);
@@ -266,7 +266,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
 
       a = mpi_snew (0);
       _gcry_mpi_set_buffer (a, digest, 32, 0);
-      gcry_free (digest);
+      xfree (digest);
 
       /* And finally the public key.  */
       if (!Q)

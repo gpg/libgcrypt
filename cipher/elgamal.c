@@ -216,7 +216,7 @@ gen_k( gcry_mpi_t p, int small_k )
     {
       if( !rndbuf || nbits < 32 )
         {
-          gcry_free(rndbuf);
+          xfree(rndbuf);
           rndbuf = _gcry_random_bytes_secure( nbytes, GCRY_STRONG_RANDOM );
         }
       else
@@ -228,7 +228,7 @@ gen_k( gcry_mpi_t p, int small_k )
              highly inlikely that we will ever reach this code. */
           char *pp = _gcry_random_bytes_secure( 4, GCRY_STRONG_RANDOM );
           memcpy( rndbuf, pp, 4 );
-          gcry_free(pp);
+          xfree(pp);
 	}
       _gcry_mpi_set_buffer( k, rndbuf, nbytes, 0 );
 
@@ -254,7 +254,7 @@ gen_k( gcry_mpi_t p, int small_k )
 	}
     }
  found:
-  gcry_free(rndbuf);
+  xfree (rndbuf);
   if( DBG_CIPHER )
     progress('\n');
   mpi_free(p_1);
@@ -315,7 +315,7 @@ generate ( ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t **ret_factors )
         { /* Change only some of the higher bits */
           if( xbits < 16 ) /* should never happen ... */
             {
-              gcry_free(rndbuf);
+              xfree(rndbuf);
               rndbuf = _gcry_random_bytes_secure ((xbits+7)/8,
                                                   GCRY_VERY_STRONG_RANDOM);
             }
@@ -323,7 +323,7 @@ generate ( ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t **ret_factors )
             {
               char *r = _gcry_random_bytes_secure (2, GCRY_VERY_STRONG_RANDOM);
               memcpy(rndbuf, r, 2 );
-              gcry_free(r);
+              xfree (r);
             }
 	}
       else
@@ -335,7 +335,7 @@ generate ( ELG_secret_key *sk, unsigned int nbits, gcry_mpi_t **ret_factors )
       mpi_clear_highbit( x, xbits+1 );
     }
   while( !( mpi_cmp_ui( x, 0 )>0 && mpi_cmp( x, p_min1 )<0 ) );
-  gcry_free(rndbuf);
+  xfree(rndbuf);
 
   y = mpi_new (nbits);
   mpi_powm( y, g, x, p );
@@ -673,17 +673,17 @@ elg_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 
       for (nfac = 0; factors[nfac]; nfac++)
         ;
-      arg_list = gcry_calloc (nfac+1, sizeof *arg_list);
+      arg_list = xtrycalloc (nfac+1, sizeof *arg_list);
       if (!arg_list)
         {
           rc = gpg_err_code_from_syserror ();
           goto leave;
         }
-      buffer = gcry_malloc (30 + nfac*2 + 2 + 1);
+      buffer = xtrymalloc (30 + nfac*2 + 2 + 1);
       if (!buffer)
         {
           rc = gpg_err_code_from_syserror ();
-          gcry_free (arg_list);
+          xfree (arg_list);
           goto leave;
         }
       p = stpcpy (buffer, "(misc-key-info(pm1-factors");
@@ -694,8 +694,8 @@ elg_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         }
       p = stpcpy (p, "))");
       rc = sexp_build_array (&misc_info, NULL, buffer, arg_list);
-      gcry_free (arg_list);
-      gcry_free (buffer);
+      xfree (arg_list);
+      xfree (buffer);
       if (rc)
         goto leave;
     }
@@ -722,7 +722,7 @@ elg_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       gcry_mpi_t *mp;
       for (mp = factors; *mp; mp++)
         mpi_free (*mp);
-      gcry_free (factors);
+      xfree (factors);
     }
 
   return rc;
@@ -897,7 +897,7 @@ elg_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
 
  leave:
-  gcry_free (unpad);
+  xfree (unpad);
   _gcry_mpi_release (plain);
   _gcry_mpi_release (sk.p);
   _gcry_mpi_release (sk.g);

@@ -53,7 +53,7 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
     {
       if ( !rndbuf || nbits < 32 )
         {
-          gcry_free (rndbuf);
+          xfree (rndbuf);
           rndbuf = _gcry_random_bytes_secure (nbytes, security_level);
 	}
       else
@@ -64,7 +64,7 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
 	     thus we better use this simple method.  */
           char *pp = _gcry_random_bytes_secure (4, security_level);
           memcpy (rndbuf, pp, 4);
-          gcry_free (pp);
+          xfree (pp);
 	}
       _gcry_mpi_set_buffer (k, rndbuf, nbytes, 0);
 
@@ -95,7 +95,7 @@ _gcry_dsa_gen_k (gcry_mpi_t q, int security_level)
         }
       break;	/* okay */
     }
-  gcry_free (rndbuf);
+  xfree (rndbuf);
 
   return k;
 }
@@ -120,7 +120,7 @@ int2octets (unsigned char **r_frame, gcry_mpi_t value, size_t nbytes)
 
   noff = (nframe < nbytes)? nbytes - nframe : 0;
   n = nframe + noff;
-  frame = mpi_is_secure (value)? gcry_malloc_secure (n) : gcry_malloc (n);
+  frame = mpi_is_secure (value)? xtrymalloc_secure (n) : xtrymalloc (n);
   if (!frame)
     return gpg_err_code_from_syserror ();
   if (noff)
@@ -129,7 +129,7 @@ int2octets (unsigned char **r_frame, gcry_mpi_t value, size_t nbytes)
   rc = _gcry_mpi_print (GCRYMPI_FMT_USG, frame+noff, nframe-noff, NULL, value);
   if (rc)
     {
-      gcry_free (frame);
+      xfree (frame);
       return rc;
     }
 
@@ -200,7 +200,7 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
     return GPG_ERR_DIGEST_ALGO;
 
   /* Step b:  V = 0x01 0x01 0x01 ... 0x01 */
-  V = gcry_malloc (hlen);
+  V = xtrymalloc (hlen);
   if (!V)
     {
       rc = gpg_err_code_from_syserror ();
@@ -210,7 +210,7 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
     V[i] = 1;
 
   /* Step c:  K = 0x00 0x00 0x00 ... 0x00 */
-  K = gcry_calloc (1, hlen);
+  K = xtrycalloc (1, hlen);
   if (!K)
     {
       rc = gpg_err_code_from_syserror ();
@@ -265,7 +265,7 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
   memcpy (V, _gcry_md_read (hd, 0), hlen);
 
   /* Step h. */
-  t = gcry_malloc ((qbits+7)/8+hlen);
+  t = xtrymalloc ((qbits+7)/8+hlen);
   if (!t)
     {
       rc = gpg_err_code_from_syserror ();
@@ -346,12 +346,12 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
   /* log_mpidump ("  k", k); */
 
  leave:
-  gcry_free (t);
+  xfree (t);
   _gcry_md_close (hd);
-  gcry_free (h1_buf);
-  gcry_free (x_buf);
-  gcry_free (K);
-  gcry_free (V);
+  xfree (h1_buf);
+  xfree (x_buf);
+  xfree (K);
+  xfree (V);
 
   if (rc)
     mpi_free (k);
