@@ -348,6 +348,13 @@ _gcry_sha512_transform_amd64_ssse3:
 	/* Restore Stack Pointer */
 	add	rsp, frame_size
 
+	pxor	xmm0, xmm0
+	pxor	xmm1, xmm1
+	pxor	xmm2, xmm2
+	pxor	xmm3, xmm3
+	pxor	xmm4, xmm4
+	pxor	xmm5, xmm5
+
 	/* Return stack burn depth */
 	mov	rax, frame_size
 

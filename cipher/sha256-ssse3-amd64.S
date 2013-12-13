@@ -481,6 +481,20 @@ _gcry_sha256_transform_amd64_ssse3:
 	cmp	INP, [rsp + _INP_END]
 	jne	.Loop0
 
+	pxor	xmm0, xmm0
+	pxor	xmm1, xmm1
+	pxor	xmm2, xmm2
+	pxor	xmm3, xmm3
+	pxor	xmm4, xmm4
+	pxor	xmm5, xmm5
+	pxor	xmm6, xmm6
+	pxor	xmm7, xmm7
+	pxor	xmm8, xmm8
+	pxor	xmm9, xmm9
+	pxor	xmm10, xmm10
+	pxor	xmm11, xmm11
+	pxor	xmm12, xmm12
+
 .Ldone_hash:
 	add	rsp, STACK_SIZE
 

@@ -604,6 +604,8 @@ _gcry_sha512_transform_amd64_avx2:
 	cmp rdx, 0
 	je .Lnowork
 
+	vzeroupper
+
 	/* Allocate Stack Space */
 	mov	rax, rsp
 	sub	rsp, frame_size
@@ -716,6 +718,18 @@ _gcry_sha512_transform_amd64_avx2:
 
 	/* Restore Stack Pointer */
 	mov	rsp, [rsp + frame_RSPSAVE]
+
+	vzeroupper
+	pxor	xmm0, xmm0
+	pxor	xmm1, xmm1
+	pxor	xmm2, xmm2
+	pxor	xmm3, xmm3
+	pxor	xmm4, xmm4
+	pxor	xmm5, xmm5
+	pxor	xmm6, xmm6
+	pxor	xmm7, xmm7
+	pxor	xmm8, xmm8
+	pxor	xmm9, xmm9
 
 	mov	rax, frame_size
 .Lnowork:
