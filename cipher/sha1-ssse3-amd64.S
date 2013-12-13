@@ -30,7 +30,6 @@
 #include <config.h>
 
 #if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
-    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
     defined(HAVE_GCC_INLINE_ASM_SSSE3) && defined(USE_SHA1)
 
 #ifdef __PIC__

@@ -46,8 +46,7 @@
 /* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
 #undef USE_SSSE3
 #if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
-    defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
-    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS)
+    defined(HAVE_GCC_INLINE_ASM_SSSE3)
 # define USE_SSSE3 1
 #endif
 
