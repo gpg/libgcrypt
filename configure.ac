@@ -1773,6 +1773,13 @@ GCRYPT_DIGESTS="$GCRYPT_DIGESTS rmd160.lo sha1.lo"
 AC_DEFINE(USE_RMD160, 1, [Defined if this module should be included])
 AC_DEFINE(USE_SHA1, 1,   [Defined if this module should be included])
 
+case "${host}" in
+  x86_64-*-*)
+    # Build with the assembly implementation
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-ssse3-amd64.lo"
+  ;;
+esac
+
 LIST_MEMBER(scrypt, $enabled_kdfs)
 if test "$found" = "1" ; then
    GCRYPT_KDFS="$GCRYPT_KDFS scrypt.lo"

@@ -43,6 +43,15 @@
 #include "hash-common.h"
 
 
+/* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
+#undef USE_SSSE3
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS)
+# define USE_SSSE3 1
+#endif
+
+
 /* A macro to test whether P is properly aligned for an u32 type.
    Note that config.h provides a suitable replacement for uintptr_t if
    it does not exist in stdint.h.  */
@@ -56,6 +65,9 @@ typedef struct
 {
   gcry_md_block_ctx_t bctx;
   u32           h0,h1,h2,h3,h4;
+#ifdef USE_SSSE3
+  unsigned int use_ssse3:1;
+#endif
 } SHA1_CONTEXT;
 
 static unsigned int
@@ -78,6 +90,10 @@ sha1_init (void *context)
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
   hd->bctx.bwrite = transform;
+
+#ifdef USE_SSSE3
+  hd->use_ssse3 = (_gcry_get_hw_features () & HWF_INTEL_SSSE3) != 0;
+#endif
 }
 
 
@@ -107,7 +123,7 @@ sha1_init (void *context)
  * Transform NBLOCKS of each 64 bytes (16 32-bit words) at DATA.
  */
 static unsigned int
-transform (void *ctx, const unsigned char *data)
+_transform (void *ctx, const unsigned char *data)
 {
   SHA1_CONTEXT *hd = ctx;
   const u32 *idata = (const void *)data;
@@ -214,6 +230,27 @@ transform (void *ctx, const unsigned char *data)
       hd->h4 += e;
 
   return /* burn_stack */ 88+4*sizeof(void*);
+}
+
+
+#ifdef USE_SSSE3
+unsigned int
+_gcry_sha1_transform_amd64_ssse3 (void *state, const unsigned char *data);
+#endif
+
+
+static unsigned int
+transform (void *ctx, const unsigned char *data)
+{
+  SHA1_CONTEXT *hd = ctx;
+
+#ifdef USE_SSSE3
+  if (hd->use_ssse3)
+    return _gcry_sha1_transform_amd64_ssse3 (&hd->h0, data)
+           + 4 * sizeof(void*);
+#endif
+
+  return _transform (hd, data);
 }
 
 
