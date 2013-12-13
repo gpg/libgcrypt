@@ -4922,7 +4922,7 @@ may be used:
 
 @deftypefun void gcry_mpi_randomize (@w{gcry_mpi_t @var{w}}, @w{unsigned int @var{nbits}}, @w{enum gcry_random_level @var{level}})
 
-Set the multi-precision-integers @var{w} to a random value of
+Set the multi-precision-integers @var{w} to a random non-negative number of
 @var{nbits}, using random data quality of level @var{level}.  In case
 @var{nbits} is not a multiple of a byte, @var{nbits} is rounded up to
 the next byte boundary.  When using a @var{level} of
