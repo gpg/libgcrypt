@@ -6,8 +6,32 @@ Security related bug reports: <security@gnupg.org>
 License (library): LGPLv2.1+
 License (manual and tools): GPLv2+
 
-Libgcrypt used to be part of GnuPG but has been taken out into its own
-package on 2000-12-21.
+Libgcrypt is free software.  See the files COPYING.LIB and COPYING for
+copying conditions, and LICENSES for notices about a few contributions
+that require these additional notices to be distributed.  License
+copyright years may be listed using range notation, e.g., 2000-2013,
+indicating that every year in the range, inclusive, is a copyrightable
+year that would otherwise be listed individually.
+
+
+List of Copyright holders
+=========================
+
+  Copyright (C) 1989,1991-2012 Free Software Foundation, Inc.
+  Copyright (C) 1994 X Consortium
+  Copyright (C) 1996 L. Peter Deutsch
+  Copyright (C) 1997 Werner Koch
+  Copyright (C) 1998 The Internet Society
+  Copyright (C) 1996-1999 Peter Gutmann, Paul Kendall, and Chris Wedgwood
+  Copyright (C) 1996-2006 Peter Gutmann, Matt Thomlinson and Blake Coverett
+  Copyright (C) 2003 Nikos Mavroyanopoulos
+  Copyright (C) 2006-2007 NTT (Nippon Telegraph and Telephone Corporation)
+  Copyright (C) 2012-2013 g10 Code GmbH
+  Copyright (C) 2012 Simon Josefsson, Niels Möller
+  Copyright (c) 2012 Intel Corporation
+  Copyright (C) 2013 Christian Grothoff
+  Copyright (C) 2013 Jussi Kivilinna
+  Copyright (C) 2013 Dmitry Eremin-Solenikov
 
 
 Authors with a FSF copyright assignment
@@ -145,6 +169,10 @@ Werner Koch <wk@gnupg.org> (g10 Code GmbH)
 
 More credits
 ============
+
+Libgcrypt used to be part of GnuPG but has been taken out into its own
+package on 2000-12-21.
+
 The ATH implementation (src/ath*) has been taken from GPGME and
 relicensed to the LGPL by the copyright holder of GPGME (g10 Code
 GmbH); it is now considered to be a part of Libgcrypt.
@@ -168,7 +196,7 @@ It has a permissive license and is copyrighted by atsec information
 security corporation.  See the file for details.
 
 The file salsa20.c is based on D.J. Bernstein's public domain code and
-taken from Nettle.  Copyright 2007 Simon Josefsson and Niels Möller.
+taken from Nettle.  Copyright 2012 Simon Josefsson and Niels Möller.
 
 
  This file is free software; as a special exception the author gives

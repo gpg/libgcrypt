@@ -2,19 +2,11 @@
 		   ------------------------------------
                              Version 1.6
 
-            !!! THIS IS A DEVELOPMENT VERSION VERSION !!!
+       Copyright (C) 1989,1991-2012 Free Software Foundation, Inc.
 
-    Copyright 2000, 2002, 2003, 2004, 2007, 2008, 2009,
-              2011, 2012 Free Software Foundation, Inc.
-
-    This file is free software; as a special exception the author gives
-    unlimited permission to copy and/or distribute it, with or without
-    modifications, as long as this notice is preserved.
-
-    This file is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY, to the extent permitted by law; without even the
-    implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
+    Libgcrypt is free software.  See the file AUTHORS for full copying
+    notices, and LICENSES for notices about contributions that require
+    these additional notices to be distributed.
 
 
     Overview
