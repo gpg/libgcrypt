@@ -348,17 +348,7 @@ _gcry_sha512_transform_amd64_avx:
 	/* Restore Stack Pointer */
 	add	rsp, frame_size
 
-	vzeroupper
-	pxor	xmm0, xmm0
-	pxor	xmm1, xmm1
-	pxor	xmm2, xmm2
-	pxor	xmm3, xmm3
-	pxor	xmm4, xmm4
-	pxor	xmm5, xmm5
-	pxor	xmm6, xmm6
-	pxor	xmm7, xmm7
-	pxor	xmm8, xmm8
-	pxor	xmm9, xmm9
+	vzeroall
 
 	/* Return stack burn depth */
 	mov	rax, frame_size

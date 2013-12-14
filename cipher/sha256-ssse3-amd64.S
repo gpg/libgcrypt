@@ -504,7 +504,7 @@ _gcry_sha256_transform_amd64_ssse3:
 	pop	rbp
 	pop	rbx
 
-	mov     rax, STACK_SIZE
+	mov     eax, STACK_SIZE + 5*8
 	ret
 
 

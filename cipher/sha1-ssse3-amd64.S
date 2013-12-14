@@ -1,4 +1,4 @@
-/* sha1-ssse3-amd64.c - Intel SSSE3 accelerated SHA-1 transform function
+/* sha1-ssse3-amd64.S - Intel SSSE3 accelerated SHA-1 transform function
  * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * Based on sha1.c:
