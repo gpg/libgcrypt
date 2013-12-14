@@ -5302,6 +5302,7 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
     int unpadded;
     int encrypt_expected_rc;
     int decrypt_expected_rc;
+    int special;
   } datas[] =
     {
       {	GCRY_PK_RSA,
@@ -5385,14 +5386,14 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	"(flags oaep)",
 	1,
 	0,
-	GPG_ERR_ENCODING_PROBLEM },
+	GPG_ERR_ENCODING_PROBLEM, 1 },
       { GCRY_PK_RSA,
         "(data\n (flags oaep)\n"
 	" (value #11223344556677889900AA#))\n",
 	"(flags pkcs1)",
 	1,
 	0,
-	GPG_ERR_ENCODING_PROBLEM },
+	GPG_ERR_ENCODING_PROBLEM, 1 },
       {	0,
         "(data\n (flags pss)\n"
 	" (value #11223344556677889900AA#))\n",
@@ -5424,6 +5425,8 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 
       if (!rc)
 	{
+          int expect_mismatch = 0;
+
 	  /* Insert decoding hint to CIPH. */
 	  if (datas[dataidx].hint)
 	    {
@@ -5460,7 +5463,16 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	      ciph = list;
 	    }
 	  rc = gcry_pk_decrypt (&plain, ciph, skey);
-	  if (gcry_err_code (rc) != datas[dataidx].decrypt_expected_rc)
+          if (!rc && datas[dataidx].special == 1)
+            {
+              /* It may happen that OAEP formatted data which is
+                 decrypted as pkcs#1 data returns a valid pkcs#1
+                 frame.  However, the returned value will not be
+                 identical - thus we expect a mismatch and test further on
+                 whether this mismatch actually happened.  */
+              expect_mismatch = 1;
+            }
+	  else if (gcry_err_code (rc) != datas[dataidx].decrypt_expected_rc)
             {
               if (verbose)
                 {
@@ -5488,8 +5500,19 @@ check_pubkey_crypt (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 		  s1 = gcry_sexp_nth_data (p1, 1, &n1);
 		  s2 = gcry_sexp_nth_data (p2, 1, &n2);
 		  if (n1 != n2 || memcmp (s1, s2, n1))
-		    fail ("gcry_pk_encrypt/gcry_pk_decrypt do not roundtrip\n");
+                    {
+                      if (expect_mismatch)
+                        expect_mismatch = 0;
+                      else
+                        fail ("gcry_pk_encrypt/gcry_pk_decrypt "
+                              "do not roundtrip\n");
+                    }
 		}
+
+              if (expect_mismatch)
+                fail ("gcry_pk_encrypt/gcry_pk_decrypt "
+                      "expected mismatch did not happen\n");
+
 	      gcry_sexp_release (p1);
 	      gcry_sexp_release (p2);
 	    }
@@ -5925,6 +5948,8 @@ main (int argc, char **argv)
   int use_fips = 0;
   int selftest_only = 0;
   int pubkey_only = 0;
+  int loop = 0;
+  unsigned int loopcount = 0;
 
   if (argc)
     { argc--; argv++; }
@@ -5961,13 +5986,21 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--pubkey"))
         {
           pubkey_only = 1;
-          verbose += 2;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--die"))
         {
           die_on_error = 1;
           argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--loop"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              loop = atoi (*argv);
+              argc--; argv++;
+            }
         }
     }
 
@@ -5996,19 +6029,29 @@ main (int argc, char **argv)
   /* No valuable keys are create, so we can speed up our RNG. */
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
 
-  if (pubkey_only)
-    check_pubkey ();
-  else if (!selftest_only)
+  do
     {
-      check_ciphers ();
-      check_cipher_modes ();
-      check_bulk_cipher_modes ();
-      check_digests ();
-      check_hmac ();
-      check_mac ();
-      check_pubkey ();
+      if (pubkey_only)
+        check_pubkey ();
+      else if (!selftest_only)
+        {
+          check_ciphers ();
+          check_cipher_modes ();
+          check_bulk_cipher_modes ();
+          check_digests ();
+          check_hmac ();
+          check_mac ();
+          check_pubkey ();
+        }
+      loopcount++;
+      if (loop)
+        {
+          fprintf (stderr, "Test iteration %u completed.\n", loopcount);
+          if (loop != -1)
+            loop--;
+        }
     }
-
+  while (loop);
 
   if (in_fips_mode && !selftest_only)
     {
