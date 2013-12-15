@@ -1545,6 +1545,7 @@ check_gcm_cipher (void)
 static void
 check_ccm_cipher (void)
 {
+#ifdef HAVE_U64_TYPEDEF
   static const struct tv
   {
     int algo;
@@ -1950,7 +1951,7 @@ check_ccm_cipher (void)
   static const int cut[] = { 0, 1, 8, 10, 16, 19, -1 };
   gcry_cipher_hd_t hde, hdd;
   unsigned char out[MAX_DATA_LEN];
-  size_t ctl_params[3];
+  u64 ctl_params[3];
   int split, aadsplit;
   size_t j, i, keylen, blklen, authlen;
   gcry_error_t err = 0;
@@ -2305,10 +2306,11 @@ check_ccm_cipher (void)
     if (memcmp (buf, tag, taglen) != 0)
       fail ("cipher-ccm-huge, encrypt mismatch entry\n");
   }
-#endif
 
   if (verbose)
     fprintf (stderr, "  Completed CCM checks.\n");
+#endif
+#endif /*HAVE_U64_TYPEDEF*/
 }
 
 

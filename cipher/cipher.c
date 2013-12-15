@@ -394,11 +394,15 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
     switch (mode)
       {
       case GCRY_CIPHER_MODE_CCM:
+#ifdef HAVE_U64_TYPEDEF
 	if (spec->blocksize != GCRY_CCM_BLOCK_LEN)
 	  err = GPG_ERR_INV_CIPHER_MODE;
 	if (!spec->encrypt || !spec->decrypt)
 	  err = GPG_ERR_INV_CIPHER_MODE;
 	break;
+#else
+        err = GPG_ERR_NOT_SUPPORTED;
+#endif
 
       case GCRY_CIPHER_MODE_ECB:
       case GCRY_CIPHER_MODE_CBC:
@@ -686,9 +690,11 @@ cipher_reset (gcry_cipher_hd_t c)
       }
       break;
 
+#ifdef HAVE_U64_TYPEDEF
     case GCRY_CIPHER_MODE_CCM:
       memset (&c->u_mode.ccm, 0, sizeof c->u_mode.ccm);
       break;
+#endif
 
     default:
       break; /* u_mode unused by other modes. */
@@ -1139,8 +1145,9 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
       break;
 
     case GCRYCTL_SET_CCM_LENGTHS:
+#ifdef HAVE_U64_TYPEDEF
       {
-        size_t params[3];
+        u64 params[3];
         size_t encryptedlen;
         size_t aadlen;
         size_t authtaglen;
@@ -1148,7 +1155,7 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
         if (h->mode != GCRY_CIPHER_MODE_CCM)
           return gcry_error (GPG_ERR_INV_CIPHER_MODE);
 
-        if (!buffer || buflen != 3 * sizeof(size_t))
+        if (!buffer || buflen != 3 * sizeof(u64))
           return gcry_error (GPG_ERR_INV_ARG);
 
         /* This command is used to pass additional length parameters needed
@@ -1160,6 +1167,9 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
 
         rc = _gcry_cipher_ccm_set_lengths (h, encryptedlen, aadlen, authtaglen);
       }
+#else
+      rc = GPG_ERR_NOT_SUPPORTED;
+#endif
       break;
 
     case GCRYCTL_DISABLE_ALGO:

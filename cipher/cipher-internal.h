@@ -135,10 +135,11 @@ struct gcry_cipher_handle
   int unused;  /* Number of unused bytes in LASTIV. */
 
   union {
+#ifdef HAVE_U64_TYPEDEF
     /* Mode specific storage for CCM mode. */
     struct {
-      size_t encryptlen;
-      size_t aadlen;
+      u64 encryptlen;
+      u64 aadlen;
       unsigned int authlen;
 
       /* Space to save partial input lengths for MAC. */
@@ -151,6 +152,7 @@ struct gcry_cipher_handle
       unsigned int lengths:1; /* Set to 1 if CCM length parameters has been
                                  processed.  */
     } ccm;
+#endif
 
     /* Mode specific storage for CMAC mode. */
     struct {
@@ -280,9 +282,10 @@ gcry_err_code_t _gcry_cipher_ccm_set_nonce
                  size_t noncelen);
 gcry_err_code_t _gcry_cipher_ccm_authenticate
 /*           */ (gcry_cipher_hd_t c, const unsigned char *abuf, size_t abuflen);
+#ifdef HAVE_U64_TYPEDEF
 gcry_err_code_t _gcry_cipher_ccm_set_lengths
-/*           */ (gcry_cipher_hd_t c, size_t encryptedlen, size_t aadlen,
-                 size_t taglen);
+/*           */ (gcry_cipher_hd_t c, u64 encryptedlen, u64 aadlen, u64 taglen);
+#endif
 gcry_err_code_t _gcry_cipher_ccm_get_tag
 /*           */ (gcry_cipher_hd_t c,
                  unsigned char *outtag, size_t taglen);

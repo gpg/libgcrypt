@@ -562,13 +562,13 @@ mac_bench ( const char *algoname )
 }
 
 
-
+#ifdef HAVE_U64_TYPEDEF
 static void ccm_aead_init(gcry_cipher_hd_t hd, size_t buflen, int authlen)
 {
   const int _L = 4;
   const int noncelen = 15 - _L;
   char nonce[noncelen];
-  size_t params[3];
+  u64 params[3];
   gcry_error_t err = GPG_ERR_NO_ERROR;
 
   memset (nonce, 0x33, noncelen);
@@ -594,6 +594,7 @@ static void ccm_aead_init(gcry_cipher_hd_t hd, size_t buflen, int authlen)
       exit (1);
     }
 }
+#endif
 
 
 static void
@@ -622,8 +623,10 @@ cipher_bench ( const char *algoname )
     { GCRY_CIPHER_MODE_CFB, "      CFB", 0 },
     { GCRY_CIPHER_MODE_OFB, "      OFB", 0 },
     { GCRY_CIPHER_MODE_CTR, "      CTR", 0 },
+#ifdef HAVE_U64_TYPEDEF
     { GCRY_CIPHER_MODE_CCM, "      CCM", 0,
       ccm_aead_init, GCRY_CCM_BLOCK_LEN, 8 },
+#endif
     { GCRY_CIPHER_MODE_GCM, "      GCM", 0,
       NULL, GCRY_GCM_BLOCK_LEN, GCRY_GCM_BLOCK_LEN },
     { GCRY_CIPHER_MODE_STREAM, "", 0 },

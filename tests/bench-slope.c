@@ -740,7 +740,7 @@ static struct bench_ops decrypt_ops = {
 };
 
 
-
+#ifdef HAVE_U64_TYPEDEF
 static void
 bench_ccm_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
 {
@@ -748,7 +748,7 @@ bench_ccm_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
   int err;
   char tag[8];
   char nonce[11] = { 0x80, 0x01, };
-  size_t params[3];
+  u64 params[3];
 
   gcry_cipher_setiv (hd, nonce, sizeof (nonce));
 
@@ -792,7 +792,7 @@ bench_ccm_decrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
   int err;
   char tag[8] = { 0, };
   char nonce[11] = { 0x80, 0x01, };
-  size_t params[3];
+  u64 params[3];
 
   gcry_cipher_setiv (hd, nonce, sizeof (nonce));
 
@@ -839,7 +839,7 @@ bench_ccm_authenticate_do_bench (struct bench_obj *obj, void *buf,
   int err;
   char tag[8] = { 0, };
   char nonce[11] = { 0x80, 0x01, };
-  size_t params[3];
+  u64 params[3];
   char data = 0xff;
 
   gcry_cipher_setiv (hd, nonce, sizeof (nonce));
@@ -903,6 +903,8 @@ static struct bench_ops ccm_authenticate_ops = {
   &bench_encrypt_free,
   &bench_ccm_authenticate_do_bench
 };
+#endif /*HAVE_U64_TYPEDEF*/
+
 
 static void
 bench_gcm_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
@@ -1037,9 +1039,11 @@ static struct bench_cipher_mode cipher_modes[] = {
   {GCRY_CIPHER_MODE_OFB, "OFB dec", &decrypt_ops},
   {GCRY_CIPHER_MODE_CTR, "CTR enc", &encrypt_ops},
   {GCRY_CIPHER_MODE_CTR, "CTR dec", &decrypt_ops},
+#ifdef HAVE_U64_TYPEDEF
   {GCRY_CIPHER_MODE_CCM, "CCM enc", &ccm_encrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM dec", &ccm_decrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM auth", &ccm_authenticate_ops},
+#endif
   {GCRY_CIPHER_MODE_GCM, "GCM enc", &gcm_encrypt_ops},
   {GCRY_CIPHER_MODE_GCM, "GCM dec", &gcm_decrypt_ops},
   {GCRY_CIPHER_MODE_GCM, "GCM auth", &gcm_authenticate_ops},

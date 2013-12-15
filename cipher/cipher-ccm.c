@@ -29,6 +29,9 @@
 #include "bufhelp.h"
 #include "./cipher-internal.h"
 
+/* We need a 64 bit type for this code.  */
+#ifdef HAVE_U64_TYPEDEF
+
 
 #define set_burn(burn, nburn) do { \
   unsigned int __nburn = (nburn); \
@@ -149,14 +152,14 @@ _gcry_cipher_ccm_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
 
 
 gcry_err_code_t
-_gcry_cipher_ccm_set_lengths (gcry_cipher_hd_t c, size_t encryptlen,
-                              size_t aadlen, size_t taglen)
+_gcry_cipher_ccm_set_lengths (gcry_cipher_hd_t c, u64 encryptlen, u64 aadlen,
+                              u64 taglen)
 {
   unsigned int burn = 0;
   unsigned char b0[16];
   size_t noncelen = 15 - (c->u_iv.iv[0] + 1);
-  size_t M = taglen;
-  size_t M_;
+  u64 M = taglen;
+  u64 M_;
   int i;
 
   M_ = (M - 2) / 2;
@@ -203,7 +206,6 @@ _gcry_cipher_ccm_set_lengths (gcry_cipher_hd_t c, size_t encryptlen,
       buf_put_be32(&b0[2], aadlen);
       set_burn (burn, do_cbc_mac (c, b0, 6, 0));
     }
-#ifdef HAVE_U64_TYPEDEF
   else if (aadlen > (unsigned int)0xffffffff)
     {
       b0[0] = 0xff;
@@ -211,7 +213,6 @@ _gcry_cipher_ccm_set_lengths (gcry_cipher_hd_t c, size_t encryptlen,
       buf_put_be64(&b0[2], aadlen);
       set_burn (burn, do_cbc_mac (c, b0, 10, 0));
     }
-#endif
 
   /* Generate S_0 and increase counter.  */
   set_burn (burn, c->spec->encrypt ( &c->context.c, c->u_mode.ccm.s0,
@@ -364,3 +365,78 @@ _gcry_cipher_ccm_decrypt (gcry_cipher_hd_t c, unsigned char *outbuf,
 
   return err;
 }
+
+#else
+
+/*
+ * Provide dummy functions so that we avoid adding too much #ifdefs in
+ * cipher.c.
+ */
+
+gcry_err_code_t
+_gcry_cipher_ccm_encrypt(gcry_cipher_hd_t c, unsigned char *outbuf,
+			 size_t outbuflen, const unsigned char *inbuf,
+			 size_t inbuflen)
+{
+  (void)c;
+  (void)outbuf;
+  (void)outbuflen;
+  (void)inbuf;
+  (void)inbuflen;
+  return GPG_ERR_NOT_SUPPORTED;
+}
+
+gcry_err_code_t
+_gcry_cipher_ccm_decrypt(gcry_cipher_hd_t c, unsigned char *outbuf,
+			 size_t outbuflen, const unsigned char *inbuf,
+			 size_t inbuflen)
+{
+  (void)c;
+  (void)outbuf;
+  (void)outbuflen;
+  (void)inbuf;
+  (void)inbuflen;
+  return GPG_ERR_NOT_SUPPORTED;
+}
+
+gcry_err_code_t
+_gcry_cipher_ccm_set_nonce(gcry_cipher_hd_t c, const unsigned char *nonce,
+			   size_t noncelen)
+{
+  (void)c;
+  (void)nonce;
+  (void)noncelen;
+  return GPG_ERR_NOT_SUPPORTED;
+}
+
+gcry_err_code_t
+_gcry_cipher_ccm_authenticate(gcry_cipher_hd_t c, const unsigned char *abuf,
+			      size_t abuflen)
+{
+  (void)c;
+  (void)abuf;
+  (void)abuflen;
+  return GPG_ERR_NOT_SUPPORTED;
+}
+
+gcry_err_code_t
+_gcry_cipher_ccm_get_tag(gcry_cipher_hd_t c, unsigned char *outtag,
+			 size_t taglen)
+{
+  (void)c;
+  (void)outtag;
+  (void)taglen;
+  return GPG_ERR_NOT_SUPPORTED;
+}
+
+gcry_err_code_t
+_gcry_cipher_ccm_check_tag(gcry_cipher_hd_t c, const unsigned char *intag,
+			   size_t taglen)
+{
+  (void)c;
+  (void)intag;
+  (void)taglen;
+  return GPG_ERR_NOT_SUPPORTED;
+}
+
+#endif /*HAVE_U64_TYPEDEF*/
