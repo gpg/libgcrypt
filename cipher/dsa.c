@@ -583,7 +583,10 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
         mpi_rshift (hash, hash, abits - qbits);
     }
   else
-    hash = input;
+    {
+      mpi_normalize (input);
+      hash = input;
+    }
 
  again:
   /* Create the K value.  */

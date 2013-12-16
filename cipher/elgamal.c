@@ -497,9 +497,12 @@ do_encrypt(gcry_mpi_t a, gcry_mpi_t b, gcry_mpi_t input, ELG_public_key *pkey )
 
 
 static void
-decrypt(gcry_mpi_t output, gcry_mpi_t a, gcry_mpi_t b, ELG_secret_key *skey )
+decrypt (gcry_mpi_t output, gcry_mpi_t a, gcry_mpi_t b, ELG_secret_key *skey )
 {
   gcry_mpi_t t1 = mpi_alloc_secure( mpi_get_nlimbs( skey->p ) );
+
+  mpi_normalize (a);
+  mpi_normalize (b);
 
   /* output = b/(a^x) mod p */
   mpi_powm( t1, a, skey->x, skey->p );

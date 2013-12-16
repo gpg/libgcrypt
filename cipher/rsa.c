@@ -712,6 +712,9 @@ stronger_key_check ( RSA_secret_key *skey )
 static void
 secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
 {
+  /* Remove superfluous leading zeroes from INPUT.  */
+  mpi_normalize (input);
+
   if (!skey->p || !skey->q || !skey->u)
     {
       mpi_powm (output, input, skey->d, skey->n);
@@ -997,6 +1000,13 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         }
     }
 
+  /* Better make sure that there are no superfluous leading zeroes in
+     the input and it has not been "padded" using multiples of N.
+     This mitigates side-channel attacks (CVE-2013-4576).  */
+  mpi_normalize (data);
+  mpi_fdiv_r (data, data, sk.n);
+
+  /* Allocate MPI for the plaintext.  */
   plain = mpi_snew (ctx.nbits);
 
   /* We use blinding by default to mitigate timing attacks which can
