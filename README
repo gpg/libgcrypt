@@ -3,6 +3,8 @@
                              Version 1.6
 
        Copyright (C) 1989,1991-2012 Free Software Foundation, Inc.
+       Copyright (C) 2012-2013 g10 Code GmbH
+       Copyright (C) 2013 Jussi Kivilinna
 
     Libgcrypt is free software.  See the file AUTHORS for full copying
     notices, and LICENSES for notices about contributions that require
@@ -33,7 +35,7 @@
     You should get the latest versions of course.
 
     After building and installing the libgpg-error package, you may
-    continue with Libgcrypt installation As with allmost all GNU
+    continue with Libgcrypt installation as with allmost all GNU
     packages, you just have to do
 
        ./configure
@@ -237,7 +239,8 @@
     actual terms.  The helper programs (e.g. gcryptrnd and getrandom)
     as well as the documentation are distributed under the terms of
     the GNU General Public License (GPL); see the file COPYING for the
-    actual terms.
+    actual terms.  The file LICENSES has notices about contributions
+    that require these additional notices are distributed.
 
     This library used to be available under the GPL - this was changed
     with version 1.1.7 with the rationale that there are now many free
@@ -262,6 +265,14 @@
 
     Commercial grade support for Libgcrypt is available; please see
     http://www.gnupg.org/service.html .
+
+    Commercial grade support for Libgcrypt is available; for a listing
+    of offers see http://www.gnupg.org/service.html .  The driving
+    force behind the development of Libgcrypt is the company of its
+    principal author, Werner Koch.  Maintenance and improvement of
+    Libgcrypt takes up a lot resources.  To allow him to continue his
+    work, he asks to either purchase a support contract, engage them
+    for custom enhancements, or to donate money.  See http://g10code.com .
 
 
   This file is Free Software; as a special exception the authors gives

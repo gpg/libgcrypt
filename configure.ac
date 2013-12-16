@@ -54,15 +54,15 @@ AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-# CAUTION: Due to the ABI change in 1.6 the LT version numbers below have
-# already been set for the next release.  Thus don't update them for
-# the 1.6.0 release.
 LIBGCRYPT_LT_CURRENT=20
 LIBGCRYPT_LT_AGE=0
 LIBGCRYPT_LT_REVISION=0
 
 
 # If the API is changed in an incompatible way: increment the next counter.
+#
+# 1.6: ABI and API change but the change is to most users irrelevant
+#      and thus the API version number has not been incremented.
 LIBGCRYPT_CONFIG_API_VERSION=1
 
 # If you change the required gpg-error version, please remove
