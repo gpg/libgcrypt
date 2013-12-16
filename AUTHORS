@@ -3,6 +3,7 @@ Homepage: http://www.gnu.org/software/libgcrypt/
 Maintainer: Werner Koch <wk@gnupg.org>
 Bug reports: <bug-libgcrypt@gnupg.org>  or http://bugs.gnupg.org
 Security related bug reports: <security@gnupg.org>
+End-of-life: 2016-12-31
 License (library): LGPLv2.1+
 License (manual and tools): GPLv2+
 
