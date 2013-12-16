@@ -524,6 +524,16 @@ if test "$use_m_guard" = yes ; then
     AC_DEFINE(M_GUARD,1,[Define to use the (obsolete) malloc guarding feature])
 fi
 
+# Implementation of the --enable-large-data-tests switch.
+AC_MSG_CHECKING([whether to run large data tests])
+AC_ARG_ENABLE(large-data-tests,
+              AC_HELP_STRING([--enable-large-data-tests],
+                 [Enable the real long ruinning large data tests]),
+	      large_data_tests=$enableval,large_data_tests=no)
+AC_MSG_RESULT($large_data_tests)
+AC_SUBST(RUN_LARGE_DATA_TESTS, $large_data_tests)
+
+
 # Implementation of the --with-capabilities switch.
 # Check whether we want to use Linux capabilities
 AC_MSG_CHECKING([whether use of capabilities is requested])
@@ -1914,6 +1924,7 @@ src/libgcrypt-config
 src/versioninfo.rc
 tests/Makefile
 ])
+AC_CONFIG_FILES([tests/hashtest-256g], [chmod +x tests/hashtest-256g])
 AC_OUTPUT
 
 

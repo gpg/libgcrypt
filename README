@@ -80,6 +80,10 @@
     Here is a list of configure options which are sometimes useful
     for installation.
 
+     --enable-large-data-tests
+                     With this option a "make check" will take really
+                     long due to extra checks for the hash algorithms.
+
      --enable-m-guard
                      Enable the integrated malloc checking code. Please
                      note that this feature does not work on all CPUs
