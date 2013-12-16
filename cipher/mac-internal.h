@@ -19,7 +19,6 @@
 
 /* The data object used to hold a handle to an encryption object.  */
 struct gcry_mac_handle;
-typedef struct gcry_mac_handle *gcry_mac_hd_t;
 
 
 /*
