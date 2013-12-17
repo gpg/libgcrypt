@@ -1787,6 +1787,8 @@ case "${host}" in
   x86_64-*-*)
     # Build with the assembly implementation
     GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-ssse3-amd64.lo"
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-avx-amd64.lo"
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-avx-bmi2-amd64.lo"
   ;;
 esac
 
