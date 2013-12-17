@@ -234,7 +234,8 @@ transform_blk (void *ctx, const unsigned char *data)
 
 #ifdef USE_SSSE3
 unsigned int
-_gcry_sha1_transform_amd64_ssse3 (void *state, const unsigned char *data);
+_gcry_sha1_transform_amd64_ssse3 (void *state, const unsigned char *data,
+                                  size_t nblks);
 #endif
 
 
@@ -246,16 +247,8 @@ transform (void *ctx, const unsigned char *data, size_t nblks)
 
 #ifdef USE_SSSE3
   if (hd->use_ssse3)
-    {
-      do
-        {
-          burn = _gcry_sha1_transform_amd64_ssse3 (&hd->h0, data);
-          data += 64;
-        }
-      while (--nblks);
-
-      return burn + 4 * sizeof(void*);
-    }
+    return _gcry_sha1_transform_amd64_ssse3 (&hd->h0, data, nblks)
+           + 4 * sizeof(void*);
 #endif
 
   do

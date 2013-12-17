@@ -71,6 +71,7 @@
 #define RSTATE %r8
 #define RDATA %r9
 #define ROLDSTACK %r10
+#define RNBLKS %r11
 
 #define a %eax
 #define b %ebx
@@ -211,10 +212,11 @@
 
 
 /*
- * Transform 64 bytes (16 32-bit words) at DATA.
+ * Transform nblks*64 bytes (nblks*16 32-bit words) at DATA.
  *
  * unsigned int
- * _gcry_sha1_transform_amd64_ssse3 (void *ctx, const unsigned char *data)
+ * _gcry_sha1_transform_amd64_ssse3 (void *ctx, const unsigned char *data,
+ *                                   size_t nblks)
  */
 .text
 .globl _gcry_sha1_transform_amd64_ssse3
@@ -223,10 +225,15 @@
 _gcry_sha1_transform_amd64_ssse3:
   /* input:
    *	%rdi: ctx, CTX
-   *	%rsi: data (64 bytes)
-   *	%rdx: ...
+   *	%rsi: data (64*nblks bytes)
+   *	%rdx: nblks
    */
 
+  xorl %eax, %eax;
+  cmpq $0, %rdx;
+  jz .Lret;
+
+  movq %rdx, RNBLKS;
   movq %rdi, RSTATE;
   movq %rsi, RDATA;
   pushq %rbx;
@@ -263,6 +270,10 @@ _gcry_sha1_transform_amd64_ssse3:
   W_PRECALC_00_15_1(13, W5, Wtmp0);
   W_PRECALC_00_15_2(14, W5, Wtmp0);
   W_PRECALC_00_15_3(15, W5, Wtmp0);
+
+.align 8
+.Loop:
+  addq $64, RDATA;
 
   /* Transform 0-15 + Precalc 16-31. */
   R( a, b, c, d, e, F1,  0 ); W_PRECALC_16_31_0(16, W4, W5, W6, W7, W0, Wtmp0, Wtmp1);
@@ -332,6 +343,44 @@ _gcry_sha1_transform_amd64_ssse3:
   R( d, e, a, b, c, F4, 62 ); W_PRECALC_32_79_2(78, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
   R( c, d, e, a, b, F4, 63 ); W_PRECALC_32_79_3(79, W5, W6, W7, W0, W1, W2, W3, W4, Wtmp0);
 
+  decq RNBLKS;
+  jz .Lend;
+
+  /* Transform 64-79 + Precalc 0-15 of next block. */
+  R( b, c, d, e, a, F4, 64 ); W_PRECALC_00_15_0(0, W0, Wtmp0);
+  R( a, b, c, d, e, F4, 65 ); W_PRECALC_00_15_1(1, W0, Wtmp0);
+  R( e, a, b, c, d, F4, 66 ); W_PRECALC_00_15_2(2, W0, Wtmp0);
+  R( d, e, a, b, c, F4, 67 ); W_PRECALC_00_15_3(3, W0, Wtmp0);
+  R( c, d, e, a, b, F4, 68 ); W_PRECALC_00_15_0(4, W7, Wtmp0);
+  R( b, c, d, e, a, F4, 69 ); W_PRECALC_00_15_1(5, W7, Wtmp0);
+  R( a, b, c, d, e, F4, 70 ); W_PRECALC_00_15_2(6, W7, Wtmp0);
+  R( e, a, b, c, d, F4, 71 ); W_PRECALC_00_15_3(7, W7, Wtmp0);
+  R( d, e, a, b, c, F4, 72 ); W_PRECALC_00_15_0(8, W6, Wtmp0);
+  R( c, d, e, a, b, F4, 73 ); W_PRECALC_00_15_1(9, W6, Wtmp0);
+  R( b, c, d, e, a, F4, 74 ); W_PRECALC_00_15_2(10, W6, Wtmp0);
+  R( a, b, c, d, e, F4, 75 ); W_PRECALC_00_15_3(11, W6, Wtmp0);
+  R( e, a, b, c, d, F4, 76 ); W_PRECALC_00_15_0(12, W5, Wtmp0);
+  R( d, e, a, b, c, F4, 77 ); W_PRECALC_00_15_1(13, W5, Wtmp0);
+  R( c, d, e, a, b, F4, 78 );
+  addl state_h0(RSTATE), a;   W_PRECALC_00_15_2(14, W5, Wtmp0);
+  R( b, c, d, e, a, F4, 79 ); W_PRECALC_00_15_3(15, W5, Wtmp0);
+
+  /* Update the chaining variables. */
+  addl state_h3(RSTATE), d;
+  addl state_h2(RSTATE), c;
+  addl state_h1(RSTATE), b;
+  addl state_h4(RSTATE), e;
+
+  movl d, state_h3(RSTATE);
+  movl c, state_h2(RSTATE);
+  movl b, state_h1(RSTATE);
+  movl a, state_h0(RSTATE);
+  movl e, state_h4(RSTATE);
+
+  jmp .Loop;
+
+.align 16
+.Lend:
   /* Transform 64-79 + Clear XMM registers. */
   R( b, c, d, e, a, F4, 64 ); CLEAR_REG(BSWAP_REG);
   R( a, b, c, d, e, F4, 65 ); CLEAR_REG(Wtmp0);
@@ -348,19 +397,19 @@ _gcry_sha1_transform_amd64_ssse3:
   R( e, a, b, c, d, F4, 76 );
   R( d, e, a, b, c, F4, 77 );
   R( c, d, e, a, b, F4, 78 );
+  addl state_h0(RSTATE), a;
   R( b, c, d, e, a, F4, 79 );
 
   /* Update the chaining variables. */
-  addl state_h0(RSTATE), a;
-  addl state_h1(RSTATE), b;
-  addl state_h2(RSTATE), c;
   addl state_h3(RSTATE), d;
+  addl state_h2(RSTATE), c;
+  addl state_h1(RSTATE), b;
   addl state_h4(RSTATE), e;
 
-  movl a, state_h0(RSTATE);
-  movl b, state_h1(RSTATE);
-  movl c, state_h2(RSTATE);
   movl d, state_h3(RSTATE);
+  movl c, state_h2(RSTATE);
+  movl b, state_h1(RSTATE);
+  movl a, state_h0(RSTATE);
   movl e, state_h4(RSTATE);
 
   movq ROLDSTACK, %rsp;
@@ -371,6 +420,7 @@ _gcry_sha1_transform_amd64_ssse3:
   /* burn_stack */
   movl $(16*4 + 2*8 + 31), %eax;
 
+.Lret:
   ret;
 
 #endif
