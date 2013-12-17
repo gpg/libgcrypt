@@ -49,15 +49,14 @@
  * Conversion to GAS assembly and integration to libgcrypt
  *  by Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
- * Note: original implementation was named as SHA256-SSE4. However, only SSSE3
- *       is required.
+ * Note: Based on the SSSE3 implementation.
  */
 
 #ifdef __x86_64
 #include <config.h>
 #if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
     defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
-    defined(HAVE_GCC_INLINE_ASM_SSSE3) && defined(USE_SHA256)
+    defined(HAVE_GCC_INLINE_ASM_AVX) && defined(USE_SHA256)
 
 #ifdef __PIC__
 #  define ADD_RIP +rip
@@ -67,7 +66,12 @@
 
 .intel_syntax noprefix
 
-#define	MOVDQ movdqu /* assume buffers not aligned */
+#define	VMOVDQ vmovdqu /* assume buffers not aligned */
+
+.macro ROR p1 p2
+	/* shld is faster than ror on Intel Sandybridge */
+	shld	\p1, \p1, (32 - \p2)
+.endm
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Define Macros*/
 
@@ -83,8 +87,8 @@
 /* COPY_XMM_AND_BSWAP xmm, [mem], byte_flip_mask
  * Load xmm with mem and byte swap each dword */
 .macro COPY_XMM_AND_BSWAP p1 p2 p3
-	MOVDQ \p1, \p2
-	pshufb \p1, \p3
+	VMOVDQ \p1, \p2
+	vpshufb \p1, \p1, \p3
 .endm
 
 /*;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*/
@@ -168,162 +172,152 @@ a = TMP_
 .macro FOUR_ROUNDS_AND_SCHED
 		/* compute s0 four at a time and s1 two at a time
 		 * compute W[-16] + W[-7] 4 at a time */
-		movdqa	XTMP0, X3
 	mov	y0, e		/* y0 = e */
-	ror	y0, (25-11)	/* y0 = e >> (25-11) */
+	ROR	y0, (25-11)	/* y0 = e >> (25-11) */
 	mov	y1, a		/* y1 = a */
-		palignr	XTMP0, X2, 4	/* XTMP0 = W[-7] */
-	ror	y1, (22-13)	/* y1 = a >> (22-13) */
+		vpalignr	XTMP0, X3, X2, 4	/* XTMP0 = W[-7] */
+	ROR	y1, (22-13)	/* y1 = a >> (22-13) */
 	xor	y0, e		/* y0 = e ^ (e >> (25-11)) */
 	mov	y2, f		/* y2 = f */
-	ror	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
-		movdqa	XTMP1, X1
+	ROR	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
 	xor	y1, a		/* y1 = a ^ (a >> (22-13) */
 	xor	y2, g		/* y2 = f^g */
-		paddd	XTMP0, X0	/* XTMP0 = W[-7] + W[-16] */
+		vpaddd	XTMP0, XTMP0, X0	/* XTMP0 = W[-7] + W[-16] */
 	xor	y0, e		/* y0 = e ^ (e >> (11-6)) ^ (e >> (25-6)) */
 	and	y2, e		/* y2 = (f^g)&e */
-	ror	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
+	ROR	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
 		/* compute s0 */
-		palignr	XTMP1, X0, 4	/* XTMP1 = W[-15] */
+		vpalignr	XTMP1, X1, X0, 4	/* XTMP1 = W[-15] */
 	xor	y1, a		/* y1 = a ^ (a >> (13-2)) ^ (a >> (22-2)) */
-	ror	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
+	ROR	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
 	xor	y2, g		/* y2 = CH = ((f^g)&e)^g */
-		movdqa	XTMP2, XTMP1	/* XTMP2 = W[-15] */
-	ror	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
+	ROR	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
 	add	y2, y0		/* y2 = S1 + CH */
 	add	y2, [rsp + _XFER + 0*4]	/* y2 = k + w + S1 + CH */
-		movdqa	XTMP3, XTMP1	/* XTMP3 = W[-15] */
 	mov	y0, a		/* y0 = a */
 	add	h, y2		/* h = h + S1 + CH + k + w */
 	mov	y2, a		/* y2 = a */
-		pslld	XTMP1, (32-7)
+		vpslld	XTMP2, XTMP1, (32-7)
 	or	y0, c		/* y0 = a|c */
 	add	d, h		/* d = d + h + S1 + CH + k + w */
 	and	y2, c		/* y2 = a&c */
-		psrld	XTMP2, 7
+		vpsrld	XTMP3, XTMP1, 7
 	and	y0, b		/* y0 = (a|c)&b */
 	add	h, y1		/* h = h + S1 + CH + k + w + S0 */
-		por	XTMP1, XTMP2	/* XTMP1 = W[-15] ror 7 */
+		vpor	XTMP3, XTMP3, XTMP2	/* XTMP1 = W[-15] ror 7 */
 	or	y0, y2		/* y0 = MAJ = (a|c)&b)|(a&c) */
 	lea	h, [h + y0]	/* h = h + S1 + CH + k + w + S0 + MAJ */
 
 ROTATE_ARGS
-		movdqa	XTMP2, XTMP3	/* XTMP2 = W[-15] */
 	mov	y0, e		/* y0 = e */
 	mov	y1, a		/* y1 = a */
-		movdqa	XTMP4, XTMP3	/* XTMP4 = W[-15] */
-	ror	y0, (25-11)	/* y0 = e >> (25-11) */
+	ROR	y0, (25-11)	/* y0 = e >> (25-11) */
 	xor	y0, e		/* y0 = e ^ (e >> (25-11)) */
 	mov	y2, f		/* y2 = f */
-	ror	y1, (22-13)	/* y1 = a >> (22-13) */
-		pslld	XTMP3, (32-18)
+	ROR	y1, (22-13)	/* y1 = a >> (22-13) */
+		vpslld	XTMP2, XTMP1, (32-18)
 	xor	y1, a		/* y1 = a ^ (a >> (22-13) */
-	ror	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
+	ROR	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
 	xor	y2, g		/* y2 = f^g */
-		psrld	XTMP2, 18
-	ror	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
+		vpsrld	XTMP4, XTMP1, 18
+	ROR	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
 	xor	y0, e		/* y0 = e ^ (e >> (11-6)) ^ (e >> (25-6)) */
 	and	y2, e		/* y2 = (f^g)&e */
-	ror	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
-		pxor	XTMP1, XTMP3
+	ROR	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
+		vpxor	XTMP4, XTMP4, XTMP3
 	xor	y1, a		/* y1 = a ^ (a >> (13-2)) ^ (a >> (22-2)) */
 	xor	y2, g		/* y2 = CH = ((f^g)&e)^g */
-		psrld	XTMP4, 3	/* XTMP4 = W[-15] >> 3 */
+		vpsrld	XTMP1, XTMP1, 3	/* XTMP4 = W[-15] >> 3 */
 	add	y2, y0		/* y2 = S1 + CH */
 	add	y2, [rsp + _XFER + 1*4]	/* y2 = k + w + S1 + CH */
-	ror	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
-		pxor	XTMP1, XTMP2	/* XTMP1 = W[-15] ror 7 ^ W[-15] ror 18 */
+	ROR	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
+		vpxor	XTMP1, XTMP1, XTMP2	/* XTMP1 = W[-15] ror 7 ^ W[-15] ror 18 */
 	mov	y0, a		/* y0 = a */
 	add	h, y2		/* h = h + S1 + CH + k + w */
 	mov	y2, a		/* y2 = a */
-		pxor	XTMP1, XTMP4	/* XTMP1 = s0 */
+		vpxor	XTMP1, XTMP1, XTMP4	/* XTMP1 = s0 */
 	or	y0, c		/* y0 = a|c */
 	add	d, h		/* d = d + h + S1 + CH + k + w */
 	and	y2, c		/* y2 = a&c */
 		/* compute low s1 */
-		pshufd	XTMP2, X3, 0b11111010	/* XTMP2 = W[-2] {BBAA} */
+		vpshufd	XTMP2, X3, 0b11111010	/* XTMP2 = W[-2] {BBAA} */
 	and	y0, b		/* y0 = (a|c)&b */
 	add	h, y1		/* h = h + S1 + CH + k + w + S0 */
-		paddd	XTMP0, XTMP1	/* XTMP0 = W[-16] + W[-7] + s0 */
+		vpaddd	XTMP0, XTMP0, XTMP1	/* XTMP0 = W[-16] + W[-7] + s0 */
 	or	y0, y2		/* y0 = MAJ = (a|c)&b)|(a&c) */
 	lea	h, [h + y0]	/* h = h + S1 + CH + k + w + S0 + MAJ */
 
 ROTATE_ARGS
-		movdqa	XTMP3, XTMP2	/* XTMP3 = W[-2] {BBAA} */
 	mov	y0, e		/* y0 = e */
 	mov	y1, a		/* y1 = a */
-	ror	y0, (25-11)	/* y0 = e >> (25-11) */
-		movdqa	XTMP4, XTMP2	/* XTMP4 = W[-2] {BBAA} */
+	ROR	y0, (25-11)	/* y0 = e >> (25-11) */
 	xor	y0, e		/* y0 = e ^ (e >> (25-11)) */
-	ror	y1, (22-13)	/* y1 = a >> (22-13) */
+	ROR	y1, (22-13)	/* y1 = a >> (22-13) */
 	mov	y2, f		/* y2 = f */
 	xor	y1, a		/* y1 = a ^ (a >> (22-13) */
-	ror	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
-		psrlq	XTMP2, 17	/* XTMP2 = W[-2] ror 17 {xBxA} */
+	ROR	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
+		vpsrlq	XTMP3, XTMP2, 17	/* XTMP2 = W[-2] ror 17 {xBxA} */
 	xor	y2, g		/* y2 = f^g */
-		psrlq	XTMP3, 19	/* XTMP3 = W[-2] ror 19 {xBxA} */
+		vpsrlq	XTMP4, XTMP2, 19	/* XTMP3 = W[-2] ror 19 {xBxA} */
 	xor	y0, e		/* y0 = e ^ (e >> (11-6)) ^ (e >> (25-6)) */
 	and	y2, e		/* y2 = (f^g)&e */
-		psrld	XTMP4, 10	/* XTMP4 = W[-2] >> 10 {BBAA} */
-	ror	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
+		vpsrld	XTMP2, XTMP2, 10	/* XTMP4 = W[-2] >> 10 {BBAA} */
+	ROR	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
 	xor	y1, a		/* y1 = a ^ (a >> (13-2)) ^ (a >> (22-2)) */
 	xor	y2, g		/* y2 = CH = ((f^g)&e)^g */
-	ror	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
-		pxor	XTMP2, XTMP3
+	ROR	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
+		vpxor	XTMP2, XTMP2, XTMP3
 	add	y2, y0		/* y2 = S1 + CH */
-	ror	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
+	ROR	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
 	add	y2, [rsp + _XFER + 2*4]	/* y2 = k + w + S1 + CH */
-		pxor	XTMP4, XTMP2	/* XTMP4 = s1 {xBxA} */
+		vpxor	XTMP4, XTMP4, XTMP2	/* XTMP4 = s1 {xBxA} */
 	mov	y0, a		/* y0 = a */
 	add	h, y2		/* h = h + S1 + CH + k + w */
 	mov	y2, a		/* y2 = a */
-		pshufb	XTMP4, SHUF_00BA	/* XTMP4 = s1 {00BA} */
+		vpshufb	XTMP4, XTMP4, SHUF_00BA	/* XTMP4 = s1 {00BA} */
 	or	y0, c		/* y0 = a|c */
 	add	d, h		/* d = d + h + S1 + CH + k + w */
 	and	y2, c		/* y2 = a&c */
-		paddd	XTMP0, XTMP4	/* XTMP0 = {..., ..., W[1], W[0]} */
+		vpaddd	XTMP0, XTMP0, XTMP4	/* XTMP0 = {..., ..., W[1], W[0]} */
 	and	y0, b		/* y0 = (a|c)&b */
 	add	h, y1		/* h = h + S1 + CH + k + w + S0 */
 		/* compute high s1 */
-		pshufd	XTMP2, XTMP0, 0b01010000 /* XTMP2 = W[-2] {DDCC} */
+		vpshufd	XTMP2, XTMP0, 0b01010000 /* XTMP2 = W[-2] {DDCC} */
 	or	y0, y2		/* y0 = MAJ = (a|c)&b)|(a&c) */
 	lea	h, [h + y0]	/* h = h + S1 + CH + k + w + S0 + MAJ */
 
 ROTATE_ARGS
-		movdqa	XTMP3, XTMP2	/* XTMP3 = W[-2] {DDCC} */
 	mov	y0, e		/* y0 = e */
-	ror	y0, (25-11)	/* y0 = e >> (25-11) */
+	ROR	y0, (25-11)	/* y0 = e >> (25-11) */
 	mov	y1, a		/* y1 = a */
-		movdqa	X0,    XTMP2	/* X0    = W[-2] {DDCC} */
-	ror	y1, (22-13)	/* y1 = a >> (22-13) */
+	ROR	y1, (22-13)	/* y1 = a >> (22-13) */
 	xor	y0, e		/* y0 = e ^ (e >> (25-11)) */
 	mov	y2, f		/* y2 = f */
-	ror	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
-		psrlq	XTMP2, 17	/* XTMP2 = W[-2] ror 17 {xDxC} */
+	ROR	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
+		vpsrlq	XTMP3, XTMP2, 17	/* XTMP2 = W[-2] ror 17 {xDxC} */
 	xor	y1, a		/* y1 = a ^ (a >> (22-13) */
 	xor	y2, g		/* y2 = f^g */
-		psrlq	XTMP3, 19	/* XTMP3 = W[-2] ror 19 {xDxC} */
+		vpsrlq	X0, XTMP2, 19	/* XTMP3 = W[-2] ror 19 {xDxC} */
 	xor	y0, e		/* y0 = e ^ (e >> (11-6)) ^ (e >> (25-6)) */
 	and	y2, e		/* y2 = (f^g)&e */
-	ror	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
-		psrld	X0,    10	/* X0 = W[-2] >> 10 {DDCC} */
+	ROR	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
+		vpsrld	XTMP2, XTMP2,    10	/* X0 = W[-2] >> 10 {DDCC} */
 	xor	y1, a		/* y1 = a ^ (a >> (13-2)) ^ (a >> (22-2)) */
-	ror	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
+	ROR	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
 	xor	y2, g		/* y2 = CH = ((f^g)&e)^g */
-		pxor	XTMP2, XTMP3
-	ror	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
+		vpxor	XTMP2, XTMP2, XTMP3
+	ROR	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
 	add	y2, y0		/* y2 = S1 + CH */
 	add	y2, [rsp + _XFER + 3*4]	/* y2 = k + w + S1 + CH */
-		pxor	X0, XTMP2	/* X0 = s1 {xDxC} */
+		vpxor	X0, X0, XTMP2	/* X0 = s1 {xDxC} */
 	mov	y0, a		/* y0 = a */
 	add	h, y2		/* h = h + S1 + CH + k + w */
 	mov	y2, a		/* y2 = a */
-		pshufb	X0, SHUF_DC00	/* X0 = s1 {DC00} */
+		vpshufb	X0, X0, SHUF_DC00	/* X0 = s1 {DC00} */
 	or	y0, c		/* y0 = a|c */
 	add	d, h		/* d = d + h + S1 + CH + k + w */
 	and	y2, c		/* y2 = a&c */
-		paddd	X0, XTMP0	/* X0 = {W[3], W[2], W[1], W[0]} */
+		vpaddd	X0, X0, XTMP0	/* X0 = {W[3], W[2], W[1], W[0]} */
 	and	y0, b		/* y0 = (a|c)&b */
 	add	h, y1		/* h = h + S1 + CH + k + w + S0 */
 	or	y0, y2		/* y0 = MAJ = (a|c)&b)|(a&c) */
@@ -336,22 +330,22 @@ rotate_Xs
 /* input is [rsp + _XFER + %1 * 4] */
 .macro DO_ROUND i1
 	mov	y0, e		/* y0 = e */
-	ror	y0, (25-11)	/* y0 = e >> (25-11) */
+	ROR	y0, (25-11)	/* y0 = e >> (25-11) */
 	mov	y1, a		/* y1 = a */
 	xor	y0, e		/* y0 = e ^ (e >> (25-11)) */
-	ror	y1, (22-13)	/* y1 = a >> (22-13) */
+	ROR	y1, (22-13)	/* y1 = a >> (22-13) */
 	mov	y2, f		/* y2 = f */
 	xor	y1, a		/* y1 = a ^ (a >> (22-13) */
-	ror	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
+	ROR	y0, (11-6)	/* y0 = (e >> (11-6)) ^ (e >> (25-6)) */
 	xor	y2, g		/* y2 = f^g */
 	xor	y0, e		/* y0 = e ^ (e >> (11-6)) ^ (e >> (25-6)) */
-	ror	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
+	ROR	y1, (13-2)	/* y1 = (a >> (13-2)) ^ (a >> (22-2)) */
 	and	y2, e		/* y2 = (f^g)&e */
 	xor	y1, a		/* y1 = a ^ (a >> (13-2)) ^ (a >> (22-2)) */
-	ror	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
+	ROR	y0, 6		/* y0 = S1 = (e>>6) & (e>>11) ^ (e>>25) */
 	xor	y2, g		/* y2 = CH = ((f^g)&e)^g */
 	add	y2, y0		/* y2 = S1 + CH */
-	ror	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
+	ROR	y1, 2		/* y1 = S0 = (a>>2) ^ (a>>13) ^ (a>>22) */
 	add	y2, [rsp + _XFER + \i1 * 4]	/* y2 = k + w + S1 + CH */
 	mov	y0, a		/* y0 = a */
 	add	h, y2		/* h = h + S1 + CH + k + w */
@@ -369,16 +363,18 @@ rotate_Xs
 /*
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; void sha256_sse4(void *input_data, UINT32 digest[8], UINT64 num_blks)
+;; void sha256_avx(void *input_data, UINT32 digest[8], UINT64 num_blks)
 ;; arg 1 : pointer to input data
 ;; arg 2 : pointer to digest
 ;; arg 3 : Num blocks
 */
 .text
-.globl _gcry_sha256_transform_amd64_ssse3
-.type  _gcry_sha256_transform_amd64_ssse3,@function;
+.globl _gcry_sha256_transform_amd64_avx
+.type  _gcry_sha256_transform_amd64_avx,@function;
 .align 16
-_gcry_sha256_transform_amd64_ssse3:
+_gcry_sha256_transform_amd64_avx:
+	vzeroupper
+
 	push	rbx
 	push	rbp
 	push	r13
@@ -402,9 +398,9 @@ _gcry_sha256_transform_amd64_ssse3:
 	mov	g,[4*6 + CTX]
 	mov	h,[4*7 + CTX]
 
-	movdqa	BYTE_FLIP_MASK, [.LPSHUFFLE_BYTE_FLIP_MASK ADD_RIP]
-	movdqa	SHUF_00BA, [.L_SHUF_00BA ADD_RIP]
-	movdqa	SHUF_DC00, [.L_SHUF_DC00 ADD_RIP]
+	vmovdqa	BYTE_FLIP_MASK, [.LPSHUFFLE_BYTE_FLIP_MASK ADD_RIP]
+	vmovdqa	SHUF_00BA, [.L_SHUF_00BA ADD_RIP]
+	vmovdqa	SHUF_DC00, [.L_SHUF_DC00 ADD_RIP]
 
 .Loop0:
 	lea	TBL, [.LK256 ADD_RIP]
@@ -421,24 +417,20 @@ _gcry_sha256_transform_amd64_ssse3:
 	mov	SRND, 3
 .align 16
 .Loop1:
-	movdqa	XFER, [TBL + 0*16]
-	paddd	XFER, X0
-	movdqa	[rsp + _XFER], XFER
+	vpaddd	XFER, X0, [TBL + 0*16]
+	vmovdqa	[rsp + _XFER], XFER
 	FOUR_ROUNDS_AND_SCHED
 
-	movdqa	XFER, [TBL + 1*16]
-	paddd	XFER, X0
-	movdqa	[rsp + _XFER], XFER
+	vpaddd	XFER, X0, [TBL + 1*16]
+	vmovdqa	[rsp + _XFER], XFER
 	FOUR_ROUNDS_AND_SCHED
 
-	movdqa	XFER, [TBL + 2*16]
-	paddd	XFER, X0
-	movdqa	[rsp + _XFER], XFER
+	vpaddd	XFER, X0, [TBL + 2*16]
+	vmovdqa	[rsp + _XFER], XFER
 	FOUR_ROUNDS_AND_SCHED
 
-	movdqa	XFER, [TBL + 3*16]
-	paddd	XFER, X0
-	movdqa	[rsp + _XFER], XFER
+	vpaddd	XFER, X0, [TBL + 3*16]
+	vmovdqa	[rsp + _XFER], XFER
 	add	TBL, 4*16
 	FOUR_ROUNDS_AND_SCHED
 
@@ -447,22 +439,22 @@ _gcry_sha256_transform_amd64_ssse3:
 
 	mov	SRND, 2
 .Loop2:
-	paddd	X0, [TBL + 0*16]
-	movdqa	[rsp + _XFER], X0
+	vpaddd	X0, X0, [TBL + 0*16]
+	vmovdqa	[rsp + _XFER], X0
 	DO_ROUND	0
 	DO_ROUND	1
 	DO_ROUND	2
 	DO_ROUND	3
-	paddd	X1, [TBL + 1*16]
-	movdqa	[rsp + _XFER], X1
+	vpaddd	X1, X1, [TBL + 1*16]
+	vmovdqa	[rsp + _XFER], X1
 	add	TBL, 2*16
 	DO_ROUND	0
 	DO_ROUND	1
 	DO_ROUND	2
 	DO_ROUND	3
 
-	movdqa	X0, X2
-	movdqa	X1, X3
+	vmovdqa	X0, X2
+	vmovdqa	X1, X3
 
 	sub	SRND, 1
 	jne	.Loop2
@@ -481,19 +473,7 @@ _gcry_sha256_transform_amd64_ssse3:
 	cmp	INP, [rsp + _INP_END]
 	jne	.Loop0
 
-	pxor	xmm0, xmm0
-	pxor	xmm1, xmm1
-	pxor	xmm2, xmm2
-	pxor	xmm3, xmm3
-	pxor	xmm4, xmm4
-	pxor	xmm5, xmm5
-	pxor	xmm6, xmm6
-	pxor	xmm7, xmm7
-	pxor	xmm8, xmm8
-	pxor	xmm9, xmm9
-	pxor	xmm10, xmm10
-	pxor	xmm11, xmm11
-	pxor	xmm12, xmm12
+	vzeroall
 
 .Ldone_hash:
 	add	rsp, STACK_SIZE

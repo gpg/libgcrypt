@@ -12,6 +12,8 @@ with any binary distributions derived from the GNU C Library.
 * BSD_3Clause
 
   For files:
+  - cipher/sha256-avx-amd64.S
+  - cipher/sha256-avx2-bmi2-amd64.S
   - cipher/sha256-ssse3-amd64.S
   - cipher/sha512-avx-amd64.S
   - cipher/sha512-avx2-bmi2-amd64.S

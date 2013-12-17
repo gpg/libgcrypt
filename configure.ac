@@ -1742,6 +1742,8 @@ if test "$found" = "1" ; then
       x86_64-*-*)
          # Build with the assembly implementation
          GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-ssse3-amd64.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-avx-amd64.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-avx2-bmi2-amd64.lo"
       ;;
    esac
 fi
