@@ -116,7 +116,7 @@ typedef struct
 } SHA512_CONTEXT;
 
 static unsigned int
-transform (void *context, const unsigned char *data);
+transform (void *context, const unsigned char *data, size_t nblks);
 
 static void
 sha512_init (void *context)
@@ -273,7 +273,7 @@ static const u64 k[] =
  * Transform the message W which consists of 16 64-bit-words
  */
 static unsigned int
-__transform (SHA512_STATE *hd, const unsigned char *data)
+transform_blk (SHA512_STATE *hd, const unsigned char *data)
 {
   u64 a, b, c, d, e, f, g, h;
   u64 w[16];
@@ -561,32 +561,38 @@ unsigned int _gcry_sha512_transform_amd64_avx2(const void *input_data,
 
 
 static unsigned int
-transform (void *context, const unsigned char *data)
+transform (void *context, const unsigned char *data, size_t nblks)
 {
   SHA512_CONTEXT *ctx = context;
+  unsigned int burn;
 
 #ifdef USE_AVX2
   if (ctx->use_avx2)
-    return _gcry_sha512_transform_amd64_avx2 (data, &ctx->state, 1)
+    return _gcry_sha512_transform_amd64_avx2 (data, &ctx->state, nblks)
            + 4 * sizeof(void*);
 #endif
 
 #ifdef USE_AVX
   if (ctx->use_avx)
-    return _gcry_sha512_transform_amd64_avx (data, &ctx->state, 1)
+    return _gcry_sha512_transform_amd64_avx (data, &ctx->state, nblks)
            + 4 * sizeof(void*);
 #endif
 
 #ifdef USE_SSSE3
   if (ctx->use_ssse3)
-    return _gcry_sha512_transform_amd64_ssse3 (data, &ctx->state, 1)
+    return _gcry_sha512_transform_amd64_ssse3 (data, &ctx->state, nblks)
            + 4 * sizeof(void*);
 #endif
 
 #ifdef USE_ARM_NEON_ASM
   if (ctx->use_neon)
     {
-      _gcry_sha512_transform_armv7_neon (&ctx->state, data, k);
+      do
+        {
+          _gcry_sha512_transform_armv7_neon (&ctx->state, data, k);
+          data += 128;
+        }
+      while (--nblks);
 
       /* _gcry_sha512_transform_armv7_neon does not store sensitive data
        * to stack.  */
@@ -594,7 +600,14 @@ transform (void *context, const unsigned char *data)
     }
 #endif
 
-  return __transform (&ctx->state, data) + 3 * sizeof(void*);
+  do
+    {
+      burn = transform_blk (&ctx->state, data) + 3 * sizeof(void*);
+      data += 128;
+    }
+  while (--nblks);
+
+  return burn;
 }
 
 
@@ -652,7 +665,7 @@ sha512_final (void *context)
   /* append the 128 bit count */
   buf_put_be64(hd->bctx.buf + 112, msb);
   buf_put_be64(hd->bctx.buf + 120, lsb);
-  stack_burn_depth = transform (hd, hd->bctx.buf);
+  stack_burn_depth = transform (hd, hd->bctx.buf, 1);
   _gcry_burn_stack (stack_burn_depth);
 
   p = hd->bctx.buf;

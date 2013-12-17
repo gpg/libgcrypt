@@ -66,7 +66,7 @@ typedef struct {
 
 
 static unsigned int
-transform (void *c, const unsigned char *data);
+transform (void *c, const unsigned char *data, size_t nblks);
 
 
 static void
@@ -170,7 +170,7 @@ Sum1 (u32 x)
 
 
 static unsigned int
-_transform (void *ctx, const unsigned char *data)
+transform_blk (void *ctx, const unsigned char *data)
 {
   SHA256_CONTEXT *hd = ctx;
   static const u32 K[64] = {
@@ -283,17 +283,25 @@ unsigned int _gcry_sha256_transform_amd64_ssse3(const void *input_data,
 
 
 static unsigned int
-transform (void *ctx, const unsigned char *data)
+transform (void *ctx, const unsigned char *data, size_t nblks)
 {
   SHA256_CONTEXT *hd = ctx;
+  unsigned int burn;
 
 #ifdef USE_SSSE3
   if (hd->use_ssse3)
-    return _gcry_sha256_transform_amd64_ssse3 (data, &hd->h0, 1)
+    return _gcry_sha256_transform_amd64_ssse3 (data, &hd->h0, nblks)
            + 4 * sizeof(void*);
 #endif
 
-  return _transform (hd, data);
+  do
+    {
+      burn = transform_blk (hd, data);
+      data += 64;
+    }
+  while (--nblks);
+
+  return burn;
 }
 
 
@@ -348,7 +356,7 @@ sha256_final(void *context)
   /* append the 64 bit count */
   buf_put_be32(hd->bctx.buf + 56, msb);
   buf_put_be32(hd->bctx.buf + 60, lsb);
-  burn = transform (hd, hd->bctx.buf);
+  burn = transform (hd, hd->bctx.buf, 1);
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;

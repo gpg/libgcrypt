@@ -1194,7 +1194,7 @@ static inline void g (u64 *h, u64 *m, u64 *N)
 
 
 static unsigned int
-transform64 (void *context, const unsigned char *inbuf_arg);
+transform (void *context, const unsigned char *inbuf_arg, size_t datalen);
 
 
 static void
@@ -1205,7 +1205,7 @@ stribog_init_512 (void *context)
   memset (hd, 0, sizeof (*hd));
 
   hd->bctx.blocksize = 64;
-  hd->bctx.bwrite = transform64;
+  hd->bctx.bwrite = transform;
 }
 
 static void
@@ -1217,7 +1217,7 @@ stribog_init_256 (void *context)
 }
 
 static void
-transform (STRIBOG_CONTEXT *hd, const unsigned char *data, unsigned count)
+transform_bits (STRIBOG_CONTEXT *hd, const unsigned char *data, unsigned count)
 {
   u64 M[8];
   u64 l;
@@ -1248,13 +1248,28 @@ transform (STRIBOG_CONTEXT *hd, const unsigned char *data, unsigned count)
 }
 
 static unsigned int
-transform64 (void *context, const unsigned char *inbuf_arg)
+transform_blk (void *context, const unsigned char *inbuf_arg)
 {
   STRIBOG_CONTEXT *hd = context;
 
-  transform (hd, inbuf_arg, 64 * 8);
+  transform_bits (hd, inbuf_arg, 64 * 8);
 
   return /* burn_stack */ 768;
+}
+
+static unsigned int
+transform ( void *c, const unsigned char *data, size_t nblks )
+{
+  unsigned int burn;
+
+  do
+    {
+      burn = transform_blk (c, data);
+      data += 64;
+    }
+  while (--nblks);
+
+  return burn;
 }
 
 /*
@@ -1276,7 +1291,7 @@ stribog_final (void *context)
   hd->bctx.buf[i++] = 1;
   while (i < 64)
     hd->bctx.buf[i++] = 0;
-  transform (hd, hd->bctx.buf, hd->bctx.count * 8);
+  transform_bits (hd, hd->bctx.buf, hd->bctx.count * 8);
 
   g (hd->h, hd->N, Z);
   g (hd->h, hd->Sigma, Z);

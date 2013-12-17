@@ -102,16 +102,18 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
   const unsigned char *inbuf = inbuf_arg;
   gcry_md_block_ctx_t *hd = context;
   unsigned int stack_burn = 0;
+  const unsigned int blocksize = hd->blocksize;
+  size_t inblocks;
 
-  if (sizeof(hd->buf) < hd->blocksize)
+  if (sizeof(hd->buf) < blocksize)
     BUG();
 
   if (hd->buf == NULL || hd->bwrite == NULL)
     return;
 
-  if (hd->count == hd->blocksize)  /* Flush the buffer. */
+  if (hd->count == blocksize)  /* Flush the buffer. */
     {
-      stack_burn = hd->bwrite (hd, hd->buf);
+      stack_burn = hd->bwrite (hd, hd->buf, 1);
       _gcry_burn_stack (stack_burn);
       stack_burn = 0;
       hd->count = 0;
@@ -123,23 +125,24 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
 
   if (hd->count)
     {
-      for (; inlen && hd->count < hd->blocksize; inlen--)
+      for (; inlen && hd->count < blocksize; inlen--)
         hd->buf[hd->count++] = *inbuf++;
       _gcry_md_block_write (hd, NULL, 0);
       if (!inlen)
         return;
     }
 
-  while (inlen >= hd->blocksize)
+  if (inlen >= blocksize)
     {
-      stack_burn = hd->bwrite (hd, inbuf);
+      inblocks = inlen / blocksize;
+      stack_burn = hd->bwrite (hd, inbuf, inblocks);
       hd->count = 0;
-      if (!++hd->nblocks)
-        hd->nblocks_high++;
-      inlen -= hd->blocksize;
-      inbuf += hd->blocksize;
+      hd->nblocks_high += (hd->nblocks + inblocks < inblocks);
+      hd->nblocks += inblocks;
+      inlen -= inblocks * blocksize;
+      inbuf += inblocks * blocksize;
     }
   _gcry_burn_stack (stack_burn);
-  for (; inlen && hd->count < hd->blocksize; inlen--)
+  for (; inlen && hd->count < blocksize; inlen--)
     hd->buf[hd->count++] = *inbuf++;
 }

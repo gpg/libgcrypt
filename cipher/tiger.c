@@ -590,7 +590,7 @@ static u64 sbox4[256] = {
 };
 
 static unsigned int
-transform ( void *ctx, const unsigned char *data );
+transform ( void *ctx, const unsigned char *data, size_t nblks );
 
 static void
 do_init (void *context, int variant)
@@ -695,7 +695,7 @@ key_schedule( u64 *x )
  * Transform the message DATA which consists of 512 bytes (8 words)
  */
 static unsigned int
-transform ( void *ctx, const unsigned char *data )
+transform_blk ( void *ctx, const unsigned char *data )
 {
   TIGER_CONTEXT *hd = ctx;
   u64 a,b,c,aa,bb,cc;
@@ -726,6 +726,22 @@ transform ( void *ctx, const unsigned char *data )
   hd->c = c;
 
   return /*burn_stack*/ 21*8+11*sizeof(void*);
+}
+
+
+static unsigned int
+transform ( void *c, const unsigned char *data, size_t nblks )
+{
+  unsigned int burn;
+
+  do
+    {
+      burn = transform_blk (c, data);
+      data += 64;
+    }
+  while (--nblks);
+
+  return burn;
 }
 
 
@@ -779,7 +795,7 @@ tiger_final( void *context )
   /* append the 64 bit count */
   buf_put_le32(hd->bctx.buf + 56, lsb);
   buf_put_le32(hd->bctx.buf + 60, msb);
-  burn = transform( hd, hd->bctx.buf );
+  burn = transform( hd, hd->bctx.buf, 1 );
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;

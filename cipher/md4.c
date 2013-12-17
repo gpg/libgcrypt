@@ -66,7 +66,7 @@ typedef struct {
 } MD4_CONTEXT;
 
 static unsigned int
-transform ( void *c, const unsigned char *data );
+transform ( void *c, const unsigned char *data, size_t nblks );
 
 static void
 md4_init( void *context )
@@ -94,7 +94,7 @@ md4_init( void *context )
  * transform 64 bytes
  */
 static unsigned int
-transform ( void *c, const unsigned char *data )
+transform_blk ( void *c, const unsigned char *data )
 {
   MD4_CONTEXT *ctx = c;
   u32 in[16];
@@ -181,6 +181,21 @@ transform ( void *c, const unsigned char *data )
 }
 
 
+static unsigned int
+transform ( void *c, const unsigned char *data, size_t nblks )
+{
+  unsigned int burn;
+
+  do
+    {
+      burn = transform_blk (c, data);
+      data += 64;
+    }
+  while (--nblks);
+
+  return burn;
+}
+
 
 /* The routine final terminates the message-digest computation and
  * ends with the desired message digest in mdContext->digest[0...15].
@@ -234,7 +249,7 @@ md4_final( void *context )
   /* append the 64 bit count */
   buf_put_le32(hd->bctx.buf + 56, lsb);
   buf_put_le32(hd->bctx.buf + 60, msb);
-  burn = transform( hd, hd->bctx.buf );
+  burn = transform ( hd, hd->bctx.buf, 1 );
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;

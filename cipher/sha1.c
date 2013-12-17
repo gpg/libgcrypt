@@ -70,7 +70,7 @@ typedef struct
 } SHA1_CONTEXT;
 
 static unsigned int
-transform (void *c, const unsigned char *data);
+transform (void *c, const unsigned char *data, size_t nblks);
 
 
 static void
@@ -122,7 +122,7 @@ sha1_init (void *context)
  * Transform NBLOCKS of each 64 bytes (16 32-bit words) at DATA.
  */
 static unsigned int
-_transform (void *ctx, const unsigned char *data)
+transform_blk (void *ctx, const unsigned char *data)
 {
   SHA1_CONTEXT *hd = ctx;
   const u32 *idata = (const void *)data;
@@ -239,17 +239,33 @@ _gcry_sha1_transform_amd64_ssse3 (void *state, const unsigned char *data);
 
 
 static unsigned int
-transform (void *ctx, const unsigned char *data)
+transform (void *ctx, const unsigned char *data, size_t nblks)
 {
   SHA1_CONTEXT *hd = ctx;
+  unsigned int burn;
 
 #ifdef USE_SSSE3
   if (hd->use_ssse3)
-    return _gcry_sha1_transform_amd64_ssse3 (&hd->h0, data)
-           + 4 * sizeof(void*);
+    {
+      do
+        {
+          burn = _gcry_sha1_transform_amd64_ssse3 (&hd->h0, data);
+          data += 64;
+        }
+      while (--nblks);
+
+      return burn + 4 * sizeof(void*);
+    }
 #endif
 
-  return _transform (hd, data);
+  do
+    {
+      burn = transform_blk (ctx, data);
+      data += 64;
+    }
+  while (--nblks);
+
+  return burn;
 }
 
 
@@ -306,7 +322,7 @@ sha1_final(void *context)
   /* append the 64 bit count */
   buf_put_be32(hd->bctx.buf + 56, msb);
   buf_put_be32(hd->bctx.buf + 60, lsb);
-  burn = transform( hd, hd->bctx.buf );
+  burn = transform( hd, hd->bctx.buf, 1 );
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;

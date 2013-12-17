@@ -141,7 +141,7 @@
  */
 
 static unsigned int
-transform ( void *ctx, const unsigned char *data );
+transform ( void *ctx, const unsigned char *data, size_t nblks );
 
 void
 _gcry_rmd160_init (void *context)
@@ -167,7 +167,7 @@ _gcry_rmd160_init (void *context)
  * Transform the message X which consists of 16 32-bit-words
  */
 static unsigned int
-transform ( void *ctx, const unsigned char *data )
+transform_blk ( void *ctx, const unsigned char *data )
 {
   RMD160_CONTEXT *hd = ctx;
   register u32 a,b,c,d,e;
@@ -386,6 +386,22 @@ transform ( void *ctx, const unsigned char *data )
 }
 
 
+static unsigned int
+transform ( void *c, const unsigned char *data, size_t nblks )
+{
+  unsigned int burn;
+
+  do
+    {
+      burn = transform_blk (c, data);
+      data += 64;
+    }
+  while (--nblks);
+
+  return burn;
+}
+
+
 /****************
  * Apply the rmd160 transform function on the buffer which must have
  * a length 64 bytes. Do not use this function together with the
@@ -397,7 +413,7 @@ _gcry_rmd160_mixblock ( RMD160_CONTEXT *hd, void *blockof64byte )
 {
   char *p = blockof64byte;
 
-  transform ( hd, blockof64byte );
+  transform ( hd, blockof64byte, 64 );
 #define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
   X(0);
   X(1);
@@ -457,7 +473,7 @@ rmd160_final( void *context )
   /* append the 64 bit count */
   buf_put_le32(hd->bctx.buf + 56, lsb);
   buf_put_le32(hd->bctx.buf + 60, msb);
-  burn = transform( hd, hd->bctx.buf );
+  burn = transform ( hd, hd->bctx.buf, 1 );
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;

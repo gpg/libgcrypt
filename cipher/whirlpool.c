@@ -1161,7 +1161,7 @@ static const u64 C7[256] =
 
 
 static unsigned int
-whirlpool_transform (void *ctx, const unsigned char *data);
+whirlpool_transform (void *ctx, const unsigned char *data, size_t nblks);
 
 
 
@@ -1181,7 +1181,7 @@ whirlpool_init (void *ctx)
  * Transform block.
  */
 static unsigned int
-whirlpool_transform (void *ctx, const unsigned char *data)
+whirlpool_transform_blk (void *ctx, const unsigned char *data)
 {
   whirlpool_context_t *context = ctx;
   whirlpool_block_t data_block;
@@ -1278,6 +1278,21 @@ whirlpool_transform (void *ctx, const unsigned char *data)
 
   return /*burn_stack*/ 4 * sizeof(whirlpool_block_t) + 2 * sizeof(int) +
                         4 * sizeof(void*);
+}
+
+static unsigned int
+whirlpool_transform ( void *c, const unsigned char *data, size_t nblks )
+{
+  unsigned int burn;
+
+  do
+    {
+      burn = whirlpool_transform_blk (c, data);
+      data += BLOCK_SIZE;
+    }
+  while (--nblks);
+
+  return burn;
 }
 
 static void

@@ -41,7 +41,7 @@ typedef struct {
 } GOSTR3411_CONTEXT;
 
 static unsigned int
-transform (void *c, const unsigned char *data);
+transform (void *c, const unsigned char *data, size_t nblks);
 
 static void
 gost3411_init (void *context)
@@ -211,7 +211,7 @@ do_hash_step (GOST28147_context *hd, unsigned char *h, unsigned char *m)
 
 
 static unsigned int
-transform (void *ctx, const unsigned char *data)
+transform_blk (void *ctx, const unsigned char *data)
 {
   GOSTR3411_CONTEXT *hd = ctx;
   byte m[32];
@@ -223,6 +223,23 @@ transform (void *ctx, const unsigned char *data)
 
   return /* burn_stack */ burn + 3 * sizeof(void*) + 32 + 2 * sizeof(void*);
 }
+
+
+static unsigned int
+transform ( void *c, const unsigned char *data, size_t nblks )
+{
+  unsigned int burn;
+
+  do
+    {
+      burn = transform_blk (c, data);
+      data += 32;
+    }
+  while (--nblks);
+
+  return burn;
+}
+
 
 /*
    The routine finally terminates the computation and returns the
