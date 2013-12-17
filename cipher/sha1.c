@@ -64,6 +64,15 @@
 # define USE_BMI2 1
 #endif
 
+/* USE_NEON indicates whether to enable ARM NEON assembly code. */
+#undef USE_NEON
+#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
+# if defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
+     defined(HAVE_GCC_INLINE_ASM_NEON)
+#  define USE_NEON 1
+# endif
+#endif
+
 
 /* A macro to test whether P is properly aligned for an u32 type.
    Note that config.h provides a suitable replacement for uintptr_t if
@@ -86,6 +95,9 @@ typedef struct
 #endif
 #ifdef USE_BMI2
   unsigned int use_bmi2:1;
+#endif
+#ifdef USE_NEON
+  unsigned int use_neon:1;
 #endif
 } SHA1_CONTEXT;
 
@@ -122,6 +134,9 @@ sha1_init (void *context)
 #ifdef USE_BMI2
   hd->use_bmi2 = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_BMI2);
 #endif
+#ifdef USE_NEON
+  hd->use_neon = (features & HWF_ARM_NEON) != 0;
+#endif
   (void)features;
 }
 
@@ -147,6 +162,13 @@ sha1_init (void *context)
 				 b = rol( b, 30 );    \
 			       } while(0)
 
+
+
+#ifdef USE_NEON
+unsigned int
+_gcry_sha1_transform_armv7_neon (void *state, const unsigned char *data,
+                                 size_t nblks);
+#endif
 
 /*
  * Transform NBLOCKS of each 64 bytes (16 32-bit words) at DATA.
@@ -302,10 +324,15 @@ transform (void *ctx, const unsigned char *data, size_t nblks)
     return _gcry_sha1_transform_amd64_ssse3 (&hd->h0, data, nblks)
            + 4 * sizeof(void*);
 #endif
+#ifdef USE_NEON
+  if (hd->use_neon)
+    return _gcry_sha1_transform_armv7_neon (&hd->h0, data, nblks)
+           + 4 * sizeof(void*);
+#endif
 
   do
     {
-      burn = transform_blk (ctx, data);
+      burn = transform_blk (hd, data);
       data += 64;
     }
   while (--nblks);
