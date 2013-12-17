@@ -60,6 +60,11 @@
 #define RT6 d14
 #define RT7 d15
 
+#define RT01q q4
+#define RT23q q5
+#define RT45q q6
+#define RT67q q7
+
 #define RW0 d16
 #define RW1 d17
 #define RW2 d18
@@ -89,114 +94,190 @@
 /***********************************************************************
  * ARM assembly implementation of sha512 transform
  ***********************************************************************/
-#define round_0_63(ra, rb, rc, rd, re, rf, rg, rh, rw0, rw14, rw9, rw1) \
+#define rounds2_0_63(ra, rb, rc, rd, re, rf, rg, rh, rw0, rw1, rw01q, rw2, rw23q, rw1415q, rw9, rw10, interleave_op, arg1) \
 	/* t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[t]; */ \
-	vshr.u64 RT1, re, #14; \
+	vshr.u64 RT2, re, #14; \
 	vshl.u64 RT3, re, #64 - 14; \
+	interleave_op(arg1); \
 	vshr.u64 RT4, re, #18; \
 	vshl.u64 RT5, re, #64 - 18; \
-	veor.64 RT1, RT1, RT3; \
 	vld1.64 {RT0}, [RK]!; \
-	veor.64 RT1, RT1, RT4; \
-	vshr.u64 RT3, re, #41; \
-	vshl.u64 RT4, re, #64 - 41; \
-	veor.64 RT1, RT1, RT5; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vshr.u64 RT4, re, #41; \
+	vshl.u64 RT5, re, #64 - 41; \
 	vadd.u64 RT0, RT0, rw0; \
-	veor.64 RT1, RT1, RT3; \
-	vand.64 RT2, re, rf; \
-	veor.64 RT1, RT1, RT4; \
-	vbic.64 RT6, rg, re; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vmov.64 RT7, re; \
+	veor.64 RT1, RT2, RT3; \
+	vbsl.64 RT7, rf, rg; \
 	\
 	vadd.u64 RT1, RT1, rh; \
-	veor.64 RT2, RT2, RT6; \
-	vshr.u64 rh, ra, #28; \
+	vshr.u64 RT2, ra, #28; \
 	vshl.u64 RT3, ra, #64 - 28; \
 	vadd.u64 RT1, RT1, RT0; \
 	vshr.u64 RT4, ra, #34; \
-	veor.64 rh, rh, RT3; \
 	vshl.u64 RT5, ra, #64 - 34; \
-	vadd.u64 RT1, RT1, RT2; \
+	vadd.u64 RT1, RT1, RT7; \
 	\
 	/* h = Sum0 (a) + Maj (a, b, c); */ \
-	veor.64 rh, rh, RT4; \
-	vshr.u64 RT3, ra, #39; \
-	vshl.u64 RT4, ra, #64 - 39; \
-	vorr.64 RT6, ra, rb; \
-	vand.64 RT0, ra, rb; \
-	veor.64 rh, rh, RT5; \
-	vand.64 RT6, RT6, rc; \
-	veor.64 rh, rh, RT3; \
-	vorr.64 RT0, RT0, RT6; \
-	veor.64 rh, rh, RT4; \
-	vshr.u64 RT4, rw14, #19; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vshr.u64 RT4, ra, #39; \
+	vshl.u64 RT5, ra, #64 - 39; \
+	veor.64 RT0, ra, rb; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vbsl.64 RT0, rc, rb; \
+	vadd.u64 rd, rd, RT1; /* d+=t1; */ \
+	veor.64 rh, RT2, RT3; \
+	\
+	/* t1 = g + Sum1 (d) + Ch (d, e, f) + k[t] + w[t]; */ \
+	vshr.u64 RT2, rd, #14; \
+	vshl.u64 RT3, rd, #64 - 14; \
 	vadd.u64 rh, rh, RT0; \
-	vshl.u64 RT2, rw14, #64 - 19; \
+	vshr.u64 RT4, rd, #18; \
+	vshl.u64 RT5, rd, #64 - 18; \
+	vadd.u64 rh, rh, RT1; /* h+=t1; */ \
+	vld1.64 {RT0}, [RK]!; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vshr.u64 RT4, rd, #41; \
+	vshl.u64 RT5, rd, #64 - 41; \
+	vadd.u64 RT0, RT0, rw1; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vmov.64 RT7, rd; \
+	veor.64 RT1, RT2, RT3; \
+	vbsl.64 RT7, re, rf; \
+	\
+	vadd.u64 RT1, RT1, rg; \
+	vshr.u64 RT2, rh, #28; \
+	vshl.u64 RT3, rh, #64 - 28; \
+	vadd.u64 RT1, RT1, RT0; \
+	vshr.u64 RT4, rh, #34; \
+	vshl.u64 RT5, rh, #64 - 34; \
+	vadd.u64 RT1, RT1, RT7; \
+	\
+	/* g = Sum0 (h) + Maj (h, a, b); */ \
+	veor.64 RT23q, RT23q, RT45q; \
+	vshr.u64 RT4, rh, #39; \
+	vshl.u64 RT5, rh, #64 - 39; \
+	veor.64 RT0, rh, ra; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vbsl.64 RT0, rb, ra; \
+	vadd.u64 rc, rc, RT1; /* c+=t1; */ \
+	veor.64 rg, RT2, RT3; \
 	\
 	/* w[0] += S1 (w[14]) + w[9] + S0 (w[1]); */ \
-	vshr.u64 RT3, rw14, #61; \
-	vshl.u64 RT6, rw14, #64 - 61; \
-	veor.64 RT0, RT4, RT2; \
-	vshr.u64 RT2, rw14, 6; \
-	veor.64 RT0, RT0, RT3; \
-	vshr.u64 RT7, rw1, #1; \
-	veor.64 RT0, RT0, RT6; \
-	vshl.u64 RT4, rw1, #64 - 1; \
-	veor.64 RT0, RT0, RT2; \
-	vshr.u64 RT5, rw1, #8; \
-	vadd.u64 rw0, rw0, RT0; \
-	vshl.u64 RT6, rw1, #64 - 8; \
-	veor.64 RT7, RT7, RT4; \
-	vshr.u64 RT4, rw1, 7; \
-	veor.64 RT7, RT7, RT5; \
-	vadd.u64 rw0, rw0, rw9; /* w[0]+=w[9]; */\
-	veor.64 RT7, RT7, RT6; \
-	vadd.u64 rd, rd, RT1; /* d+=t1; */ \
-	veor.64 RT7, RT7, RT4; \
-	vadd.u64 rh, rh, RT1; /* h+=t1; */ \
-	vadd.u64 rw0, rw0, RT7; \
+	/* w[1] += S1 (w[15]) + w[10] + S0 (w[2]); */ \
+	\
+	/**** S0(w[1:2]) */ \
+	\
+	/* w[0:1] += w[9:10] */ \
+	/* RT23q = rw1:rw2 */ \
+	vext.u64 RT23q, rw01q, rw23q, #1; \
+	vadd.u64 rw0, rw9; \
+	vadd.u64 rg, rg, RT0; \
+	vadd.u64 rw1, rw10;\
+	vadd.u64 rg, rg, RT1; /* g+=t1; */ \
+	\
+	vshr.u64 RT45q, RT23q, #1; \
+	vshl.u64 RT67q, RT23q, #64 - 1; \
+	vshr.u64 RT01q, RT23q, #8; \
+	veor.u64 RT45q, RT45q, RT67q; \
+	vshl.u64 RT67q, RT23q, #64 - 8; \
+	veor.u64 RT45q, RT45q, RT01q; \
+	vshr.u64 RT01q, RT23q, #7; \
+	veor.u64 RT45q, RT45q, RT67q; \
+	\
+	/**** S1(w[14:15]) */ \
+	vshr.u64 RT23q, rw1415q, #6; \
+	veor.u64 RT01q, RT01q, RT45q; \
+	vshr.u64 RT45q, rw1415q, #19; \
+	vshl.u64 RT67q, rw1415q, #64 - 19; \
+	veor.u64 RT23q, RT23q, RT45q; \
+	vshr.u64 RT45q, rw1415q, #61; \
+	veor.u64 RT23q, RT23q, RT67q; \
+	vshl.u64 RT67q, rw1415q, #64 - 61; \
+	veor.u64 RT23q, RT23q, RT45q; \
+	vadd.u64 rw01q, RT01q; /* w[0:1] += S(w[1:2]) */ \
+	veor.u64 RT01q, RT23q, RT67q;
+#define vadd_RT01q(rw01q) \
+	/* w[0:1] += S(w[14:15]) */ \
+	vadd.u64 rw01q, RT01q;
 
-#define round_64_79(ra, rb, rc, rd, re, rf, rg, rh, rw0) \
+#define dummy(_) /*_*/
+
+#define rounds2_64_79(ra, rb, rc, rd, re, rf, rg, rh, rw0, rw1, interleave_op1, arg1, interleave_op2, arg2) \
 	/* t1 = h + Sum1 (e) + Ch (e, f, g) + k[t] + w[t]; */ \
-	vld1.64 {RT0}, [RK]!; \
-	vshr.u64 RT1, re, #14; \
+	vshr.u64 RT2, re, #14; \
 	vshl.u64 RT3, re, #64 - 14; \
+	interleave_op1(arg1); \
 	vshr.u64 RT4, re, #18; \
 	vshl.u64 RT5, re, #64 - 18; \
-	veor.64 RT1, RT1, RT3; \
-	vshr.u64 RT7, ra, #28; \
-	veor.64 RT1, RT1, RT4; \
-	vshr.u64 RT3, re, #41; \
-	vshl.u64 RT4, re, #64 - 41; \
-	veor.64 RT1, RT1, RT5; \
+	interleave_op2(arg2); \
+	vld1.64 {RT0}, [RK]!; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vshr.u64 RT4, re, #41; \
+	vshl.u64 RT5, re, #64 - 41; \
 	vadd.u64 RT0, RT0, rw0; \
-	veor.64 RT1, RT1, RT3; \
-	vand.64 RT2, re, rf; \
-	veor.64 RT1, RT1, RT4; \
-	vbic.64 RT6, rg, re; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vmov.64 RT7, re; \
+	veor.64 RT1, RT2, RT3; \
+	vbsl.64 RT7, rf, rg; \
 	\
 	vadd.u64 RT1, RT1, rh; \
-	veor.64 RT2, RT2, RT6; \
+	vshr.u64 RT2, ra, #28; \
+	vshl.u64 RT3, ra, #64 - 28; \
 	vadd.u64 RT1, RT1, RT0; \
 	vshr.u64 RT4, ra, #34; \
 	vshl.u64 RT5, ra, #64 - 34; \
+	vadd.u64 RT1, RT1, RT7; \
 	\
-	/* t7 = Sum0 (a) + Maj (a, b, c); */ \
-	vshl.u64 RT6, ra, #64 - 28; \
-	veor.64 RT7, RT7, RT4; \
-	vshr.u64 RT3, ra, #39; \
-	veor.64 RT7, RT7, RT6; \
-	vshl.u64 RT4, ra, #64 - 39; \
-	vorr.64 RT6, ra, rb; \
-	vand.64 RT0, ra, rb; \
-	veor.64 RT7, RT7, RT5; \
-	vand.64 RT6, RT6, rc; \
-	veor.64 RT7, RT7, RT3; \
-	vorr.64 RT0, RT0, RT6; \
-	veor.64 RT7, RT7, RT4; \
-	vadd.u64 RT1, RT1, RT2; \
-	vadd.u64 RT7, RT7, RT0; \
+	/* h = Sum0 (a) + Maj (a, b, c); */ \
+	veor.64 RT23q, RT23q, RT45q; \
+	vshr.u64 RT4, ra, #39; \
+	vshl.u64 RT5, ra, #64 - 39; \
+	veor.64 RT0, ra, rb; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vbsl.64 RT0, rc, rb; \
 	vadd.u64 rd, rd, RT1; /* d+=t1; */ \
-	vadd.u64 rh, RT7, RT1; /* h=t7+t1; */
+	veor.64 rh, RT2, RT3; \
+	\
+	/* t1 = g + Sum1 (d) + Ch (d, e, f) + k[t] + w[t]; */ \
+	vshr.u64 RT2, rd, #14; \
+	vshl.u64 RT3, rd, #64 - 14; \
+	vadd.u64 rh, rh, RT0; \
+	vshr.u64 RT4, rd, #18; \
+	vshl.u64 RT5, rd, #64 - 18; \
+	vadd.u64 rh, rh, RT1; /* h+=t1; */ \
+	vld1.64 {RT0}, [RK]!; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vshr.u64 RT4, rd, #41; \
+	vshl.u64 RT5, rd, #64 - 41; \
+	vadd.u64 RT0, RT0, rw1; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vmov.64 RT7, rd; \
+	veor.64 RT1, RT2, RT3; \
+	vbsl.64 RT7, re, rf; \
+	\
+	vadd.u64 RT1, RT1, rg; \
+	vshr.u64 RT2, rh, #28; \
+	vshl.u64 RT3, rh, #64 - 28; \
+	vadd.u64 RT1, RT1, RT0; \
+	vshr.u64 RT4, rh, #34; \
+	vshl.u64 RT5, rh, #64 - 34; \
+	vadd.u64 RT1, RT1, RT7; \
+	\
+	/* g = Sum0 (h) + Maj (h, a, b); */ \
+	veor.64 RT23q, RT23q, RT45q; \
+	vshr.u64 RT4, rh, #39; \
+	vshl.u64 RT5, rh, #64 - 39; \
+	veor.64 RT0, rh, ra; \
+	veor.64 RT23q, RT23q, RT45q; \
+	vbsl.64 RT0, rb, ra; \
+	vadd.u64 rc, rc, RT1; /* c+=t1; */ \
+	veor.64 rg, RT2, RT3;
+#define vadd_rg_RT0(rg) \
+	vadd.u64 rg, rg, RT0;
+#define vadd_rg_RT1(rg) \
+	vadd.u64 rg, rg, RT1; /* g+=t1; */
 
 .align 3
 .globl _gcry_sha512_transform_armv7_neon
@@ -207,8 +288,11 @@ _gcry_sha512_transform_armv7_neon:
 	 *	%r0: SHA512_CONTEXT
 	 *	%r1: data
 	 *	%r2: u64 k[] constants
+	 *	%r3: nblks
 	 */
-	mov %r3, #0;
+	push {%lr};
+
+	mov %lr, #0;
 
 	/* Load context to d0-d7 */
 	vld1.64 {RA-RD}, [%r0]!;
@@ -220,7 +304,7 @@ _gcry_sha512_transform_armv7_neon:
 	vld1.64 {RW0-RW3}, [%r1]!;
 	vld1.64 {RW4-RW7}, [%r1]!;
 	vld1.64 {RW8-RW11}, [%r1]!;
-	vld1.64 {RW12-RW15}, [%r1];
+	vld1.64 {RW12-RW15}, [%r1]!;
 #ifdef __ARMEL__
 	/* byteswap */
 	vrev64.8 RW01q, RW01q;
@@ -237,46 +321,95 @@ _gcry_sha512_transform_armv7_neon:
 	vpush {RT0-RT7};
 
 .Loop:
-	add %r3, #16;
-	round_0_63(RA, RB, RC, RD, RE, RF, RG, RH, RW0, RW14, RW9, RW1);
-	cmp %r3, #64;
-	round_0_63(RH, RA, RB, RC, RD, RE, RF, RG, RW1, RW15, RW10, RW2);
-	round_0_63(RG, RH, RA, RB, RC, RD, RE, RF, RW2, RW0, RW11, RW3);
-	round_0_63(RF, RG, RH, RA, RB, RC, RD, RE, RW3, RW1, RW12, RW4);
-	round_0_63(RE, RF, RG, RH, RA, RB, RC, RD, RW4, RW2, RW13, RW5);
-	round_0_63(RD, RE, RF, RG, RH, RA, RB, RC, RW5, RW3, RW14, RW6);
-	round_0_63(RC, RD, RE, RF, RG, RH, RA, RB, RW6, RW4, RW15, RW7);
-	round_0_63(RB, RC, RD, RE, RF, RG, RH, RA, RW7, RW5, RW0, RW8);
-	round_0_63(RA, RB, RC, RD, RE, RF, RG, RH, RW8, RW6, RW1, RW9);
-	round_0_63(RH, RA, RB, RC, RD, RE, RF, RG, RW9, RW7, RW2, RW10);
-	round_0_63(RG, RH, RA, RB, RC, RD, RE, RF, RW10, RW8, RW3, RW11);
-	round_0_63(RF, RG, RH, RA, RB, RC, RD, RE, RW11, RW9, RW4, RW12);
-	round_0_63(RE, RF, RG, RH, RA, RB, RC, RD, RW12, RW10, RW5, RW13);
-	round_0_63(RD, RE, RF, RG, RH, RA, RB, RC, RW13, RW11, RW6, RW14);
-	round_0_63(RC, RD, RE, RF, RG, RH, RA, RB, RW14, RW12, RW7, RW15);
-	round_0_63(RB, RC, RD, RE, RF, RG, RH, RA, RW15, RW13, RW8, RW0);
-	bne .Loop;
+	rounds2_0_63(RA, RB, RC, RD, RE, RF, RG, RH, RW0, RW1, RW01q, RW2, RW23q, RW1415q, RW9, RW10, dummy, _);
+	b .Lenter_rounds;
 
-	round_64_79(RA, RB, RC, RD, RE, RF, RG, RH, RW0);
-	round_64_79(RH, RA, RB, RC, RD, RE, RF, RG, RW1);
-	round_64_79(RG, RH, RA, RB, RC, RD, RE, RF, RW2);
-	round_64_79(RF, RG, RH, RA, RB, RC, RD, RE, RW3);
-	round_64_79(RE, RF, RG, RH, RA, RB, RC, RD, RW4);
-	round_64_79(RD, RE, RF, RG, RH, RA, RB, RC, RW5);
-	round_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW6);
-	round_64_79(RB, RC, RD, RE, RF, RG, RH, RA, RW7);
-	round_64_79(RA, RB, RC, RD, RE, RF, RG, RH, RW8);
-	round_64_79(RH, RA, RB, RC, RD, RE, RF, RG, RW9);
-	round_64_79(RG, RH, RA, RB, RC, RD, RE, RF, RW10);
-	round_64_79(RF, RG, RH, RA, RB, RC, RD, RE, RW11);
-	round_64_79(RE, RF, RG, RH, RA, RB, RC, RD, RW12);
-	round_64_79(RD, RE, RF, RG, RH, RA, RB, RC, RW13);
-	round_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW14);
-	round_64_79(RB, RC, RD, RE, RF, RG, RH, RA, RW15);
+.Loop_rounds:
+	rounds2_0_63(RA, RB, RC, RD, RE, RF, RG, RH, RW0, RW1, RW01q, RW2, RW23q, RW1415q, RW9, RW10, vadd_RT01q, RW1415q);
+.Lenter_rounds:
+	rounds2_0_63(RG, RH, RA, RB, RC, RD, RE, RF, RW2, RW3, RW23q, RW4, RW45q, RW01q, RW11, RW12, vadd_RT01q, RW01q);
+	rounds2_0_63(RE, RF, RG, RH, RA, RB, RC, RD, RW4, RW5, RW45q, RW6, RW67q, RW23q, RW13, RW14, vadd_RT01q, RW23q);
+	rounds2_0_63(RC, RD, RE, RF, RG, RH, RA, RB, RW6, RW7, RW67q, RW8, RW89q, RW45q, RW15, RW0, vadd_RT01q, RW45q);
+	rounds2_0_63(RA, RB, RC, RD, RE, RF, RG, RH, RW8, RW9, RW89q, RW10, RW1011q, RW67q, RW1, RW2, vadd_RT01q, RW67q);
+	rounds2_0_63(RG, RH, RA, RB, RC, RD, RE, RF, RW10, RW11, RW1011q, RW12, RW1213q, RW89q, RW3, RW4, vadd_RT01q, RW89q);
+	add %lr, #16;
+	rounds2_0_63(RE, RF, RG, RH, RA, RB, RC, RD, RW12, RW13, RW1213q, RW14, RW1415q, RW1011q, RW5, RW6, vadd_RT01q, RW1011q);
+	cmp %lr, #64;
+	rounds2_0_63(RC, RD, RE, RF, RG, RH, RA, RB, RW14, RW15, RW1415q, RW0, RW01q, RW1213q, RW7, RW8, vadd_RT01q, RW1213q);
+	bne .Loop_rounds;
+
+	subs %r3, #1;
+
+	rounds2_64_79(RA, RB, RC, RD, RE, RF, RG, RH, RW0, RW1, vadd_RT01q, RW1415q, dummy, _);
+	rounds2_64_79(RG, RH, RA, RB, RC, RD, RE, RF, RW2, RW3, vadd_rg_RT0, RG, vadd_rg_RT1, RG);
+	beq .Lhandle_tail;
+	vld1.64 {RW0-RW3}, [%r1]!;
+	rounds2_64_79(RE, RF, RG, RH, RA, RB, RC, RD, RW4, RW5, vadd_rg_RT0, RE, vadd_rg_RT1, RE);
+	rounds2_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW6, RW7, vadd_rg_RT0, RC, vadd_rg_RT1, RC);
+#ifdef __ARMEL__
+	vrev64.8 RW01q, RW01q;
+	vrev64.8 RW23q, RW23q;
+#endif
+	vld1.64 {RW4-RW7}, [%r1]!;
+	rounds2_64_79(RA, RB, RC, RD, RE, RF, RG, RH, RW8, RW9, vadd_rg_RT0, RA, vadd_rg_RT1, RA);
+	rounds2_64_79(RG, RH, RA, RB, RC, RD, RE, RF, RW10, RW11, vadd_rg_RT0, RG, vadd_rg_RT1, RG);
+#ifdef __ARMEL__
+	vrev64.8 RW45q, RW45q;
+	vrev64.8 RW67q, RW67q;
+#endif
+	vld1.64 {RW8-RW11}, [%r1]!;
+	rounds2_64_79(RE, RF, RG, RH, RA, RB, RC, RD, RW12, RW13, vadd_rg_RT0, RE, vadd_rg_RT1, RE);
+	rounds2_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW14, RW15, vadd_rg_RT0, RC, vadd_rg_RT1, RC);
+#ifdef __ARMEL__
+	vrev64.8 RW67q, RW67q;
+	vrev64.8 RW89q, RW89q;
+#endif
+	vld1.64 {RW12-RW15}, [%r1]!;
+	vadd_rg_RT0(RA);
+	vadd_rg_RT1(RA);
+
+	/* Load context */
+	vld1.64 {RT0-RT3}, [%r0]!;
+	vld1.64 {RT4-RT7}, [%r0];
+	sub %r0, #(4*8);
+
+#ifdef __ARMEL__
+	vrev64.8 RW1213q, RW1213q;
+	vrev64.8 RW1415q, RW1415q;
+#endif
+
+	vadd.u64 RA, RT0;
+	vadd.u64 RB, RT1;
+	vadd.u64 RC, RT2;
+	vadd.u64 RD, RT3;
+	vadd.u64 RE, RT4;
+	vadd.u64 RF, RT5;
+	vadd.u64 RG, RT6;
+	vadd.u64 RH, RT7;
+
+	/* Store the first half of context */
+	vst1.64 {RA-RD}, [%r0]!;
+	sub RK, $(8*80);
+	vst1.64 {RE-RH}, [%r0]; /* Store the last half of context */
+	mov %lr, #0;
+	sub %r0, #(4*8);
+
+	b .Loop;
+.ltorg
+
+.Lhandle_tail:
+	rounds2_64_79(RE, RF, RG, RH, RA, RB, RC, RD, RW4, RW5, vadd_rg_RT0, RE, vadd_rg_RT1, RE);
+	rounds2_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW6, RW7, vadd_rg_RT0, RC, vadd_rg_RT1, RC);
+	rounds2_64_79(RA, RB, RC, RD, RE, RF, RG, RH, RW8, RW9, vadd_rg_RT0, RA, vadd_rg_RT1, RA);
+	rounds2_64_79(RG, RH, RA, RB, RC, RD, RE, RF, RW10, RW11, vadd_rg_RT0, RG, vadd_rg_RT1, RG);
+	rounds2_64_79(RE, RF, RG, RH, RA, RB, RC, RD, RW12, RW13, vadd_rg_RT0, RE, vadd_rg_RT1, RE);
+	rounds2_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW14, RW15, vadd_rg_RT0, RC, vadd_rg_RT1, RC);
 
 	/* Load context to d16-d23 */
 	vld1.64 {RW0-RW3}, [%r0]!;
+	vadd_rg_RT0(RA);
 	vld1.64 {RW4-RW7}, [%r0];
+	vadd_rg_RT1(RA);
 	sub %r0, #(4*8);
 
 	vadd.u64 RA, RW0;
@@ -310,7 +443,7 @@ _gcry_sha512_transform_armv7_neon:
 	veor.u64 %q2, %q2;
 	veor.u64 %q3, %q3;
 
-	bx %lr;
+	pop {%pc};
 .size _gcry_sha512_transform_armv7_neon,.-_gcry_sha512_transform_armv7_neon;
 
 #endif

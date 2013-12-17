@@ -541,7 +541,7 @@ transform_blk (SHA512_STATE *hd, const unsigned char *data)
 #ifdef USE_ARM_NEON_ASM
 void _gcry_sha512_transform_armv7_neon (SHA512_STATE *hd,
 					const unsigned char *data,
-					const u64 k[]);
+					const u64 k[], size_t num_blks);
 #endif
 
 #ifdef USE_SSSE3
@@ -587,12 +587,7 @@ transform (void *context, const unsigned char *data, size_t nblks)
 #ifdef USE_ARM_NEON_ASM
   if (ctx->use_neon)
     {
-      do
-        {
-          _gcry_sha512_transform_armv7_neon (&ctx->state, data, k);
-          data += 128;
-        }
-      while (--nblks);
+      _gcry_sha512_transform_armv7_neon (&ctx->state, data, k, nblks);
 
       /* _gcry_sha512_transform_armv7_neon does not store sensitive data
        * to stack.  */
