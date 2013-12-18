@@ -1,7 +1,7 @@
 /* ARM64 mul_1 -- Multiply a limb vector with a limb and store the result in
  *                a second limb vector.
  *
- *      Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ *      Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *

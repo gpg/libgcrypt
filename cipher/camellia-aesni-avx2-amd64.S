@@ -1,6 +1,6 @@
 /* camellia-avx2-aesni-amd64.S  -  AES-NI/AVX2 implementation of Camellia cipher
  *
- * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *

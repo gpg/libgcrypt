@@ -1,5 +1,5 @@
 /* bufhelp.h  -  Some buffer manipulation helpers
- *	Copyright © 2012 Jussi Kivilinna <jussi.kivilinna@mbnet.fi>
+ * Copyright (C) 2012 Jussi Kivilinna <jussi.kivilinna@mbnet.fi>
  *
  * This file is part of Libgcrypt.
  *

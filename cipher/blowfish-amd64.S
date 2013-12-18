@@ -1,6 +1,6 @@
 /* blowfish-amd64.S  -  AMD64 assembly implementation of Blowfish cipher
  *
- * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *

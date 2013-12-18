@@ -1,6 +1,6 @@
 /* sha512-armv7-neon.S  -  ARM/NEON assembly implementation of SHA-512 transform
  *
- * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *

@@ -1,6 +1,6 @@
 /* serpent-sse2-amd64.S  -  SSE2 implementation of Serpent cipher
  *
- * Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *

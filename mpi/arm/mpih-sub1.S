@@ -1,7 +1,7 @@
 /* ARM sub_n -- Subtract two limb vectors of the same length > 0 and store
  *              sum in a third limb vector.
  *
- *      Copyright © 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ *      Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
