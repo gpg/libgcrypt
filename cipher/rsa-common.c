@@ -319,6 +319,71 @@ _gcry_rsa_pkcs1_encode_for_sig (gcry_mpi_t *r_result, unsigned int nbits,
   return rc;
 }
 
+/* Encode {VALUE,VALUELEN} for an NBITS keys using the pkcs#1 block
+   type 1 padding.  On success the result is stored as a new MPI at
+   R_RESULT.  On error the value at R_RESULT is undefined.
+
+   We encode the value in this way:
+
+     0  1  PAD(n bytes)  0  VALUE(valuelen bytes)
+
+   0   is a marker we unfortunately can't encode because we return an
+       MPI which strips all leading zeroes.
+   1   is the block type.
+   PAD consists of 0xff bytes.
+   0   marks the end of the padding.
+
+   (Note that PGP prior to version 2.3 encoded the message digest as:
+      0   1   MD(16 bytes)   0   PAD(n bytes)   1
+    The MD is always 16 bytes here because it's always MD5.  GnuPG
+    does not not support pre-v2.3 signatures, but I'm including this
+    comment so the information is easily found if needed.)
+*/
+gpg_err_code_t
+_gcry_rsa_pkcs1_encode_raw_for_sig (gcry_mpi_t *r_result, unsigned int nbits,
+                                const unsigned char *value, size_t valuelen)
+{
+  gcry_err_code_t rc = 0;
+  gcry_error_t err;
+  byte *frame = NULL;
+  size_t nframe = (nbits+7) / 8;
+  int i;
+  size_t n;
+
+  if ( !valuelen || valuelen + 4 > nframe)
+    {
+      /* Can't encode an DLEN byte digest MD into an NFRAME byte
+         frame.  */
+      return GPG_ERR_TOO_SHORT;
+    }
+
+  if ( !(frame = xtrymalloc (nframe)) )
+    return gpg_err_code_from_syserror ();
+
+  /* Assemble the pkcs#1 block type 1. */
+  n = 0;
+  frame[n++] = 0;
+  frame[n++] = 1; /* block type */
+  i = nframe - valuelen - 3 ;
+  gcry_assert (i > 1);
+  memset (frame+n, 0xff, i );
+  n += i;
+  frame[n++] = 0;
+  memcpy (frame+n, value, valuelen );
+  n += valuelen;
+  gcry_assert (n == nframe);
+
+  /* Convert it into an MPI. */
+  err = _gcry_mpi_scan (r_result, GCRYMPI_FMT_USG, frame, n, &nframe);
+  if (err)
+    rc = gcry_err_code (err);
+  else if (DBG_CIPHER)
+    log_mpidump ("PKCS#1 block type 1 encoded data", *r_result);
+  xfree (frame);
+
+  return rc;
+}
+
 
 /* Mask generation function for OAEP.  See RFC-3447 B.2.1.  */
 static gcry_err_code_t

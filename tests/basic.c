@@ -5155,6 +5155,10 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	GCRY_PK_RSA,
 	0 },
+      { "(data\n (flags pkcs1-raw)\n"
+	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
+	GCRY_PK_RSA,
+	GPG_ERR_CONFLICT },
       { "(data\n (flags oaep)\n"
 	" (hash sha1 #11223344556677889900AABBCCDDEEFF10203040#))\n",
 	0,
@@ -5187,6 +5191,10 @@ check_pubkey_sign (int n, gcry_sexp_t skey, gcry_sexp_t pkey, int algo)
 	" (value #11223344556677889900AA#))\n",
 	GCRY_PK_RSA,
 	GPG_ERR_CONFLICT },
+      { "(data\n (flags pkcs1-raw)\n"
+	" (value #11223344556677889900AA#))\n",
+	GCRY_PK_RSA,
+	0 },
       { "(data\n (flags raw foo)\n"
 	" (value #11223344556677889900AA#))\n",
 	0,

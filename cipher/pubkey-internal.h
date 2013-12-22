@@ -56,6 +56,10 @@ gpg_err_code_t
 _gcry_rsa_pkcs1_decode_for_enc (unsigned char **r_result, size_t *r_resultlen,
                                 unsigned int nbits, gcry_mpi_t value);
 gpg_err_code_t
+_gcry_rsa_pkcs1_encode_raw_for_sig (gcry_mpi_t *r_result, unsigned int nbits,
+                                const unsigned char *value, size_t valuelen);
+
+gpg_err_code_t
 _gcry_rsa_pkcs1_encode_for_sig (gcry_mpi_t *r_result, unsigned int nbits,
                                 const unsigned char *value, size_t valuelen,
                                 int algo);

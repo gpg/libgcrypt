@@ -142,6 +142,16 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
             rc = GPG_ERR_INV_FLAG;
           break;
 
+	case 9:
+          if (!memcmp (s, "pkcs1-raw", 9) && encoding == PUBKEY_ENC_UNKNOWN)
+            {
+              encoding = PUBKEY_ENC_PKCS1_RAW;
+              flags |= PUBKEY_FLAG_FIXEDLEN;
+            }
+          else if (!igninvflag)
+            rc = GPG_ERR_INV_FLAG;
+          break;
+
         case 10:
           if (!memcmp (s, "igninvflag", 10))
             igninvflag = 1;
@@ -849,6 +859,21 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
                                                  value, valuelen,
                                                  ctx->hash_algo);
         }
+    }
+  else if (ctx->encoding == PUBKEY_ENC_PKCS1_RAW && lvalue
+	   && (ctx->op == PUBKEY_OP_SIGN || ctx->op == PUBKEY_OP_VERIFY))
+    {
+      const void * value;
+      size_t valuelen;
+
+      if (sexp_length (lvalue) != 2)
+        rc = GPG_ERR_INV_OBJ;
+      else if ( !(value=sexp_nth_data (lvalue, 1, &valuelen))
+                || !valuelen )
+        rc = GPG_ERR_INV_OBJ;
+      else
+        rc = _gcry_rsa_pkcs1_encode_raw_for_sig (ret_mpi, ctx->nbits,
+                                                 value, valuelen);
     }
   else if (ctx->encoding == PUBKEY_ENC_OAEP && lvalue
 	   && ctx->op == PUBKEY_OP_ENCRYPT)
