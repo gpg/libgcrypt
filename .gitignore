@@ -69,6 +69,7 @@ tests/basic
 tests/benchmark
 tests/fips186-dsa
 tests/fipsdrv
+tests/gchash
 tests/hmac
 tests/keygen
 tests/keygrip

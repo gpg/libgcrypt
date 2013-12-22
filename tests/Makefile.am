@@ -51,7 +51,8 @@ standard_ldadd = \
         ../compat/libcompat.la
 
 EXTRA_PROGRAMS = testapi pkbench
-noinst_PROGRAMS = $(tests_bin) $(tests_bin_last) fipsdrv rsacvt genhashdata
+noinst_PROGRAMS = $(tests_bin) $(tests_bin_last) fipsdrv rsacvt genhashdata \
+		  gchash
 noinst_HEADERS = t-common.h
 
 EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
