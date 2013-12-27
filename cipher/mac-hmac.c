@@ -35,6 +35,8 @@ map_mac_algo_to_md (int mac_algo)
     {
     default:
       return GCRY_MD_NONE;
+    case GCRY_MAC_HMAC_MD2:
+      return GCRY_MD_MD2;
     case GCRY_MAC_HMAC_MD4:
       return GCRY_MD_MD4;
     case GCRY_MAC_HMAC_MD5:
@@ -267,6 +269,12 @@ gcry_mac_spec_t _gcry_mac_type_spec_hmac_md5 = {
 #if USE_MD4
 gcry_mac_spec_t _gcry_mac_type_spec_hmac_md4 = {
   GCRY_MAC_HMAC_MD4, {0, 0}, "HMAC_MD4",
+  &hmac_ops
+};
+#endif
+#if USE_MD2
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_md2 = {
+  GCRY_MAC_HMAC_MD2, {0, 0}, "HMAC_MD2",
   &hmac_ops
 };
 #endif
