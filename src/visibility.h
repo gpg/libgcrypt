@@ -137,6 +137,7 @@ MARK_VISIBLEX (gcry_cipher_open)
 MARK_VISIBLEX (gcry_mac_algo_info)
 MARK_VISIBLEX (gcry_mac_algo_name)
 MARK_VISIBLEX (gcry_mac_map_name)
+MARK_VISIBLEX (gcry_mac_get_algo)
 MARK_VISIBLEX (gcry_mac_get_algo_maclen)
 MARK_VISIBLEX (gcry_mac_get_algo_keylen)
 MARK_VISIBLEX (gcry_mac_open)
@@ -380,6 +381,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_mac_algo_info          _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mac_algo_name          _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mac_map_name           _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_mac_get_algo           _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mac_get_algo_maclen    _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mac_get_algo_keylen    _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mac_open               _gcry_USE_THE_UNDERSCORED_FUNCTION

@@ -180,6 +180,7 @@ gpg_err_code_t _gcry_mac_write (gcry_mac_hd_t hd, const void *buffer,
 gpg_err_code_t _gcry_mac_read (gcry_mac_hd_t hd, void *buffer, size_t *buflen);
 gpg_err_code_t _gcry_mac_verify (gcry_mac_hd_t hd, const void *buffer,
                                  size_t buflen);
+int _gcry_mac_get_algo (gcry_mac_hd_t hd);
 unsigned int _gcry_mac_get_algo_maclen (int algo);
 unsigned int _gcry_mac_get_algo_keylen (int algo);
 const char *_gcry_mac_algo_name (int algorithm) _GCRY_GCC_ATTR_PURE;

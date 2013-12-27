@@ -4469,6 +4469,12 @@ check_one_mac (int algo, const char *data, int datalen,
       return;
     }
 
+  i = gcry_mac_get_algo (hd);
+  if (i != algo)
+    {
+      fail ("algo %d, gcry_mac_get_algo failed: %d\n", algo, i);
+    }
+
   maclen = gcry_mac_get_algo_maclen (algo);
   if (maclen < 1 || maclen > 500)
     {

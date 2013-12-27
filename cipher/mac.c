@@ -369,6 +369,13 @@ _gcry_mac_verify (gcry_mac_hd_t hd, const void *buf, size_t buflen)
 }
 
 
+int
+_gcry_mac_get_algo (gcry_mac_hd_t hd)
+{
+  return hd->algo;
+}
+
+
 unsigned int
 _gcry_mac_get_algo_maclen (int algo)
 {

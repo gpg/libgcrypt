@@ -855,6 +855,12 @@ gcry_mac_map_name (const char *string)
   return _gcry_mac_map_name (string);
 }
 
+int
+gcry_mac_get_algo (gcry_mac_hd_t hd)
+{
+  return _gcry_mac_get_algo (hd);
+}
+
 unsigned int
 gcry_mac_get_algo_maclen (int algo)
 {

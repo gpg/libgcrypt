@@ -274,6 +274,7 @@ EXPORTS
       gcry_mac_read             @240
       gcry_mac_verify           @241
       gcry_mac_ctl              @242
+      gcry_mac_get_algo         @243
 
 
 ;; end of file with public symbols for Windows.

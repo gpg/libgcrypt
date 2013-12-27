@@ -1382,6 +1382,9 @@ gcry_error_t gcry_mac_read (gcry_mac_hd_t hd, void *buffer, size_t *buflen);
 gcry_error_t gcry_mac_verify (gcry_mac_hd_t hd, const void *buffer,
                               size_t buflen);
 
+/* Retrieve the algorithm used with MAC. */
+int gcry_mac_get_algo (gcry_mac_hd_t hd);
+
 /* Retrieve the length in bytes of the MAC yielded by algorithm ALGO. */
 unsigned int gcry_mac_get_algo_maclen (int algo);
 

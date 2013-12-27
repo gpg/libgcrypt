@@ -3722,6 +3722,16 @@ the MAC calculated in object @var{h}.
 @end deftypefun
 
 
+In some situations it might be hard to remember the algorithm used for
+the MAC calculation. The following function might be used to get that
+information:
+
+@deftypefun {int} gcry_mac_get_algo (gcry_mac_hd_t @var{h})
+
+Retrieve the algorithm used with the handle @var{h}.
+@end deftypefun
+
+
 @c ***********************************
 @c ***** MAC info functions **********
 @c ***********************************
