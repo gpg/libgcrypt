@@ -3767,7 +3767,7 @@ for the MAC value. On error @code{0} is returned.
 @end deftypefun
 
 
-@deftypefun unsigned int gcry_mac_get_algo_keylen (@var{algo})
+@deftypefun {unsigned int} gcry_mac_get_algo_keylen (@var{algo})
 
 This function returns length of the key for MAC algorithm @var{algo}.  If
 the algorithm supports multiple key lengths, the default supported key
