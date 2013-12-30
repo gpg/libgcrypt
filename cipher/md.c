@@ -195,7 +195,7 @@ search_oid (const char *oid, gcry_md_oid_spec_t *oid_spec)
   if (spec && spec->oids)
     {
       for (i = 0; spec->oids[i].oidstring; i++)
-	if (stricmp (oid, spec->oids[i].oidstring))
+	if (!stricmp (oid, spec->oids[i].oidstring))
 	  {
 	    if (oid_spec)
 	      *oid_spec = spec->oids[i];
