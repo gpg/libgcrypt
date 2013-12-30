@@ -1033,7 +1033,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AVX instructions],
        [gcry_cv_gcc_inline_asm_avx=no
         AC_COMPILE_IFELSE([AC_LANG_SOURCE(
           [[void a(void) {
-              __asm__("vaesdeclast (%[mem]),%%xmm0,%%xmm7\n\t"::[mem]"r"(0):);
+              __asm__("xgetbv; vaesdeclast (%[mem]),%%xmm0,%%xmm7\n\t"::[mem]"r"(0):);
             }]])],
           [gcry_cv_gcc_inline_asm_avx=yes])])
 if test "$gcry_cv_gcc_inline_asm_avx" = "yes" ; then
@@ -1050,7 +1050,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports AVX2 instructions],
        [gcry_cv_gcc_inline_asm_avx2=no
         AC_COMPILE_IFELSE([AC_LANG_SOURCE(
           [[void a(void) {
-              __asm__("vpbroadcastb %%xmm7,%%ymm1\n\t":::"cc");
+              __asm__("xgetbv; vpbroadcastb %%xmm7,%%ymm1\n\t":::"cc");
             }]])],
           [gcry_cv_gcc_inline_asm_avx2=yes])])
 if test "$gcry_cv_gcc_inline_asm_avx2" = "yes" ; then

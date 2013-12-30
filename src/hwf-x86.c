@@ -95,6 +95,21 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
   if (edx)
     *edx = regs[3];
 }
+
+static unsigned int
+get_xgetbv(void)
+{
+  unsigned int t_eax;
+
+  asm volatile
+    ("xgetbv\n\t"
+     : "=a" (t_eax)
+     : "c" (0)
+    );
+
+  return t_eax;
+}
+
 #endif /* i386 && GNUC */
 
 
@@ -129,6 +144,21 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
   if (edx)
     *edx = regs[3];
 }
+
+static unsigned int
+get_xgetbv(void)
+{
+  unsigned int t_eax;
+
+  asm volatile
+    ("xgetbv\n\t"
+     : "=a" (t_eax)
+     : "c" (0)
+    );
+
+  return t_eax;
+}
+
 #endif /* x86-64 && GNUC */
 
 
@@ -138,8 +168,11 @@ detect_x86_gnuc (void)
 {
   char vendor_id[12+1];
   unsigned int features;
+  unsigned int os_supports_avx_avx2_registers = 0;
   unsigned int max_cpuid_level;
   unsigned int result = 0;
+
+  (void)os_supports_avx_avx2_registers;
 
   if (!is_cpuid_available())
     return 0;
@@ -215,10 +248,20 @@ detect_x86_gnuc (void)
   if (features & 0x02000000)
      result |= HWF_INTEL_AESNI;
 #endif /*ENABLE_AESNI_SUPPORT*/
+#if defined(ENABLE_AVX_SUPPORT) || defined(ENABLE_AVX2_SUPPORT)
+  /* Test bit 27 for OSXSAVE (required for AVX/AVX2).  */
+  if (features & 0x08000000)
+    {
+      /* Check that OS has enabled both XMM and YMM state support.  */
+      if ((get_xgetbv() & 0x6) == 0x6)
+        os_supports_avx_avx2_registers = 1;
+    }
+#endif
 #ifdef ENABLE_AVX_SUPPORT
   /* Test bit 28 for AVX.  */
   if (features & 0x10000000)
-     result |= HWF_INTEL_AVX;
+    if (os_supports_avx_avx2_registers)
+      result |= HWF_INTEL_AVX;
 #endif /*ENABLE_AVX_SUPPORT*/
 #ifdef ENABLE_DRNG_SUPPORT
   /* Test bit 30 for RDRAND.  */
@@ -242,6 +285,7 @@ detect_x86_gnuc (void)
 #ifdef ENABLE_AVX2_SUPPORT
       /* Test bit 5 for AVX2.  */
       if (features & 0x00000020)
+        if (os_supports_avx_avx2_registers)
           result |= HWF_INTEL_AVX2;
 #endif /*ENABLE_AVX_SUPPORT*/
     }
