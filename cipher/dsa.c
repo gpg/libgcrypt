@@ -115,7 +115,7 @@ static gpg_err_code_t generate (DSA_secret_key *sk,
                                 gcry_mpi_t **ret_factors);
 static gpg_err_code_t sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                             DSA_secret_key *skey, int flags, int hashalgo);
-static int verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
+static gpg_err_code_t verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input,
                    DSA_public_key *pkey);
 static unsigned int dsa_get_nbits (gcry_sexp_t parms);
 
@@ -165,12 +165,12 @@ test_keys (DSA_secret_key *sk, unsigned int qbits)
   sign (sig_a, sig_b, data, sk, 0, 0);
 
   /* Verify the signature using the public key.  */
-  if ( !verify (sig_a, sig_b, data, &pk) )
+  if ( verify (sig_a, sig_b, data, &pk) )
     goto leave; /* Signature does not match.  */
 
   /* Modify the data and check that the signing fails.  */
   mpi_add_ui (data, data, 1);
-  if ( verify (sig_a, sig_b, data, &pk) )
+  if ( !verify (sig_a, sig_b, data, &pk) )
     goto leave; /* Signature matches but should not.  */
 
   result = 0; /* The test succeeded.  */
@@ -573,20 +573,9 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
   qbits = mpi_get_nbits (skey->q);
 
   /* Convert the INPUT into an MPI.  */
-  if (mpi_is_opaque (input))
-    {
-      abuf = mpi_get_opaque (input, &abits);
-      rc = _gcry_mpi_scan (&hash, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
-      if (rc)
-        return rc;
-      if (abits > qbits)
-        mpi_rshift (hash, hash, abits - qbits);
-    }
-  else
-    {
-      mpi_normalize (input);
-      hash = input;
-    }
+  rc = _gcry_dsa_normalize_hash (input, &hash, qbits);
+  if (rc)
+    return rc;
 
  again:
   /* Create the K value.  */
@@ -651,18 +640,25 @@ sign (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_secret_key *skey,
 /*
    Returns true if the signature composed from R and S is valid.
  */
-static int
-verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_public_key *pkey )
+static gpg_err_code_t
+verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t input, DSA_public_key *pkey )
 {
-  int rc;
+  gpg_err_code_t rc = 0;
   gcry_mpi_t w, u1, u2, v;
   gcry_mpi_t base[3];
   gcry_mpi_t ex[3];
+  gcry_mpi_t hash;
+  unsigned int nbits;
 
   if( !(mpi_cmp_ui( r, 0 ) > 0 && mpi_cmp( r, pkey->q ) < 0) )
-    return 0; /* assertion	0 < r < q  failed */
+    return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < r < n  failed.  */
   if( !(mpi_cmp_ui( s, 0 ) > 0 && mpi_cmp( s, pkey->q ) < 0) )
-    return 0; /* assertion	0 < s < q  failed */
+    return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < s < n  failed.  */
+
+  nbits = mpi_get_nbits (pkey->q);
+  rc = _gcry_dsa_normalize_hash (input, &hash, nbits);
+  if (rc)
+    return rc;
 
   w  = mpi_alloc( mpi_get_nlimbs(pkey->q) );
   u1 = mpi_alloc( mpi_get_nlimbs(pkey->q) );
@@ -685,12 +681,25 @@ verify (gcry_mpi_t r, gcry_mpi_t s, gcry_mpi_t hash, DSA_public_key *pkey )
   mpi_mulpowm( v, base, ex, pkey->p );
   mpi_fdiv_r( v, v, pkey->q );
 
-  rc = !mpi_cmp( v, r );
+  if (mpi_cmp( v, r ))
+    {
+      if (DBG_CIPHER)
+        {
+          log_mpidump ("     i", input);
+          log_mpidump ("     h", hash);
+          log_mpidump ("     v", v);
+          log_mpidump ("     r", r);
+          log_mpidump ("     s", s);
+        }
+      rc = GPG_ERR_BAD_SIGNATURE;
+    }
 
   mpi_free(w);
   mpi_free(u1);
   mpi_free(u2);
   mpi_free(v);
+  if (hash != input)
+    mpi_free (hash);
 
   return rc;
 }
@@ -1090,31 +1099,7 @@ dsa_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
     }
 
   /* Verify the signature.  */
-  if (mpi_is_opaque (data))
-    {
-      const void *abuf;
-      unsigned int abits, qbits;
-      gcry_mpi_t a;
-
-      qbits = mpi_get_nbits (pk.q);
-
-      abuf = mpi_get_opaque (data, &abits);
-      rc = _gcry_mpi_scan (&a, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
-      if (!rc)
-        {
-          if (abits > qbits)
-            mpi_rshift (a, a, abits - qbits);
-
-          if (!verify (sig_r, sig_s, a, &pk))
-            rc = GPG_ERR_BAD_SIGNATURE;
-          _gcry_mpi_release (a);
-        }
-    }
-  else
-    {
-      if (!verify (sig_r, sig_s, data, &pk))
-        rc = GPG_ERR_BAD_SIGNATURE;
-    }
+  rc = verify (sig_r, sig_s, data, &pk);
 
  leave:
   _gcry_mpi_release (pk.p);
