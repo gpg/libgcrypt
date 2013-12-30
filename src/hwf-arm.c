@@ -32,6 +32,7 @@
 #endif
 
 #undef HAS_SYS_AT_HWCAP
+#undef HAS_PROC_CPUINFO
 #ifdef __linux__
 
 #define HAS_SYS_AT_HWCAP 1
@@ -94,6 +95,54 @@ detect_arm_at_hwcap(void)
   return features;
 }
 
+#define HAS_PROC_CPUINFO 1
+
+static unsigned int
+detect_arm_proc_cpuinfo(void)
+{
+  char buf[1024]; /* large enough */
+  char *str_features, *str_neon;
+  FILE *f;
+  int readlen, i;
+  static int cpuinfo_initialized = 0;
+  static unsigned int stored_cpuinfo_features;
+
+  if (cpuinfo_initialized)
+    return stored_cpuinfo_features;
+
+  f = fopen("/proc/cpuinfo", "r");
+  if (!f)
+    return 0;
+
+  memset (buf, 0, sizeof(buf));
+  readlen = fread (buf, 1, sizeof(buf), f);
+  fclose (f);
+  if (readlen <= 0 || readlen > sizeof(buf))
+    return 0;
+
+  buf[sizeof(buf) - 1] = '\0';
+
+  cpuinfo_initialized = 1;
+  stored_cpuinfo_features = 0;
+
+  /* Find features line. */
+  str_features = strstr(buf, "Features");
+  if (!str_features)
+    return stored_cpuinfo_features;
+
+  /* Lines to strings. */
+  for (i = 0; i < sizeof(buf); i++)
+    if (buf[i] == '\n')
+      buf[i] = '\0';
+
+  /* Check for NEON. */
+  str_neon = strstr(str_features, " neon");
+  if (str_neon && (str_neon[5] == ' ' || str_neon[5] == '\0'))
+    stored_cpuinfo_features |= HWF_ARM_NEON;
+
+  return stored_cpuinfo_features;
+}
+
 #endif /* __linux__ */
 
 unsigned int
@@ -103,8 +152,10 @@ _gcry_hwf_detect_arm (void)
 
 #if defined (HAS_SYS_AT_HWCAP)
   ret |= detect_arm_at_hwcap ();
-#else
-  ret |= 0;
+#endif
+
+#if defined (HAS_PROC_CPUINFO)
+  ret |= detect_arm_proc_cpuinfo ();
 #endif
 
 #if defined(__ARM_NEON__) && defined(ENABLE_NEON_SUPPORT)
