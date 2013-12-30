@@ -57,18 +57,9 @@ _gcry_ecc_ecdsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   qbits = mpi_get_nbits (skey->E.n);
 
   /* Convert the INPUT into an MPI if needed.  */
-  if (mpi_is_opaque (input))
-    {
-      abuf = mpi_get_opaque (input, &abits);
-      rc = _gcry_mpi_scan (&hash, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
-      if (rc)
-        return rc;
-      if (abits > qbits)
-        mpi_rshift (hash, hash, abits - qbits);
-    }
-  else
-    hash = input;
-
+  rc = _gcry_dsa_normalize_hash (input, &hash, qbits);
+  if (rc)
+    return rc;
 
   k = NULL;
   dr = mpi_alloc (0);
@@ -161,14 +152,20 @@ _gcry_ecc_ecdsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
                         gcry_mpi_t r, gcry_mpi_t s)
 {
   gpg_err_code_t err = 0;
-  gcry_mpi_t h, h1, h2, x;
+  gcry_mpi_t hash, h, h1, h2, x;
   mpi_point_struct Q, Q1, Q2;
   mpi_ec_t ctx;
+  unsigned int nbits;
 
   if( !(mpi_cmp_ui (r, 0) > 0 && mpi_cmp (r, pkey->E.n) < 0) )
     return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < r < n  failed.  */
   if( !(mpi_cmp_ui (s, 0) > 0 && mpi_cmp (s, pkey->E.n) < 0) )
     return GPG_ERR_BAD_SIGNATURE; /* Assertion	0 < s < n  failed.  */
+
+  nbits = mpi_get_nbits (pkey->E.n);
+  err = _gcry_dsa_normalize_hash (input, &hash, nbits);
+  if (err)
+    return err;
 
   h  = mpi_alloc (0);
   h1 = mpi_alloc (0);
@@ -184,7 +181,7 @@ _gcry_ecc_ecdsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
   /* h  = s^(-1) (mod n) */
   mpi_invm (h, s, pkey->E.n);
   /* h1 = hash * s^(-1) (mod n) */
-  mpi_mulm (h1, input, h, pkey->E.n);
+  mpi_mulm (h1, hash, h, pkey->E.n);
   /* Q1 = [ hash * s^(-1) ]G  */
   _gcry_mpi_ec_mul_point (&Q1, h1, &pkey->E.G, ctx);
   /* h2 = r * s^(-1) (mod n) */
@@ -230,5 +227,8 @@ _gcry_ecc_ecdsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
   mpi_free (h2);
   mpi_free (h1);
   mpi_free (h);
+  if (hash != input)
+    mpi_free (hash);
+
   return err;
 }

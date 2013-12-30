@@ -980,14 +980,34 @@ check_ecc_sample_key (void)
     "(data (flags raw)\n"
     " (value #00112233445566778899AABBCCDDEEFF"
     /* */    "000102030405060708090A0B0C0D0E0F#))";
+  static const char hash2_string[] =
+    "(data (flags raw)\n"
+    " (hash sha1 #00112233445566778899AABBCCDDEEFF"
+    /* */    "000102030405060708090A0B0C0D0E0F"
+    /* */    "000102030405060708090A0B0C0D0E0F"
+    /* */    "00112233445566778899AABBCCDDEEFF#))";
+  /* hash2, but longer than curve length, so it will be truncated */
+  static const char hash3_string[] =
+    "(data (flags raw)\n"
+    " (hash sha1 #00112233445566778899AABBCCDDEEFF"
+    /* */    "000102030405060708090A0B0C0D0E0F"
+    /* */    "000102030405060708090A0B0C0D0E0F"
+    /* */    "00112233445566778899AABBCCDDEEFF"
+    /* */    "000102030405060708090A0B0C0D0E0F#))";
 
   gpg_error_t err;
-  gcry_sexp_t key, hash, sig;
+  gcry_sexp_t key, hash, hash2, hash3, sig, sig2;
 
   if (verbose)
     fprintf (stderr, "Checking sample ECC key.\n");
 
   if ((err = gcry_sexp_new (&hash, hash_string, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+
+  if ((err = gcry_sexp_new (&hash2, hash2_string, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+
+  if ((err = gcry_sexp_new (&hash3, hash3_string, 0, 1)))
     die ("line %d: %s", __LINE__, gpg_strerror (err));
 
   if ((err = gcry_sexp_new (&key, ecc_private_key, 0, 1)))
@@ -1001,6 +1021,28 @@ check_ecc_sample_key (void)
     die ("line %d: %s", __LINE__, gpg_strerror (err));
 
   if ((err = gcry_pk_verify (sig, hash, key)))
+    die ("gcry_pk_verify failed: %s", gpg_strerror (err));
+
+  /* Verify hash truncation */
+  gcry_sexp_release (key);
+  if ((err = gcry_sexp_new (&key, ecc_private_key, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+
+  if ((err = gcry_pk_sign (&sig2, hash2, key)))
+    die ("gcry_pk_sign failed: %s", gpg_strerror (err));
+
+  gcry_sexp_release (sig);
+  if ((err = gcry_pk_sign (&sig, hash3, key)))
+    die ("gcry_pk_sign failed: %s", gpg_strerror (err));
+
+  gcry_sexp_release (key);
+  if ((err = gcry_sexp_new (&key, ecc_public_key, 0, 1)))
+    die ("line %d: %s", __LINE__, gpg_strerror (err));
+
+  if ((err = gcry_pk_verify (sig, hash2, key)))
+    die ("gcry_pk_verify failed: %s", gpg_strerror (err));
+
+  if ((err = gcry_pk_verify (sig2, hash3, key)))
     die ("gcry_pk_verify failed: %s", gpg_strerror (err));
 
   /* Now try signing without the Q parameter.  */
@@ -1021,8 +1063,11 @@ check_ecc_sample_key (void)
     die ("gcry_pk_verify signed without Q failed: %s", gpg_strerror (err));
 
   gcry_sexp_release (sig);
+  gcry_sexp_release (sig2);
   gcry_sexp_release (key);
   gcry_sexp_release (hash);
+  gcry_sexp_release (hash2);
+  gcry_sexp_release (hash3);
 }
 
 

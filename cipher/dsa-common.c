@@ -359,3 +359,36 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
     *r_k = k;
   return rc;
 }
+
+/*
+ * Truncate opaque hash value to qbits for DSA.
+ * Non-opaque input is not truncated, in hope that user
+ * knows what is passed. It is not possible to correctly
+ * trucate non-opaque inputs.
+ */
+gpg_err_code_t
+_gcry_dsa_normalize_hash (gcry_mpi_t input,
+                          gcry_mpi_t *out,
+                          unsigned int qbits)
+{
+  gpg_err_code_t rc = 0;
+  const void *abuf;
+  unsigned int abits;
+  gcry_mpi_t hash;
+
+  if (mpi_is_opaque (input))
+    {
+      abuf = mpi_get_opaque (input, &abits);
+      rc = _gcry_mpi_scan (&hash, GCRYMPI_FMT_USG, abuf, (abits+7)/8, NULL);
+      if (rc)
+        return rc;
+      if (abits > qbits)
+        mpi_rshift (hash, hash, abits - qbits);
+    }
+  else
+    hash = input;
+
+  *out = hash;
+
+  return rc;
+}

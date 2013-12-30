@@ -88,6 +88,9 @@ gpg_err_code_t _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
                                         int halgo,
                                         unsigned int extraloops);
 
+gpg_err_code_t _gcry_dsa_normalize_hash (gcry_mpi_t input,
+                                         gcry_mpi_t *out,
+                                         unsigned int qbits);
 
 /*-- ecc.c --*/
 gpg_err_code_t _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode,
