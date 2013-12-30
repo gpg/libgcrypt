@@ -1505,6 +1505,13 @@ LIST_MEMBER(arcfour, $enabled_ciphers)
 if test "$found" = "1"; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS arcfour.lo"
    AC_DEFINE(USE_ARCFOUR, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS arcfour-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(blowfish, $enabled_ciphers)

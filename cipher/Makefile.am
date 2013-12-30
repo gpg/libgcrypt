@@ -56,7 +56,7 @@ dsa-common.c rsa-common.c \
 rmd.h
 
 EXTRA_libcipher_la_SOURCES = \
-arcfour.c \
+arcfour.c arcfour-amd64.S \
 blowfish.c blowfish-amd64.S \
 cast5.c cast5-amd64.S cast5-arm.S \
 crc.c \
