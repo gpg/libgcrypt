@@ -57,7 +57,7 @@ rmd.h
 
 EXTRA_libcipher_la_SOURCES = \
 arcfour.c arcfour-amd64.S \
-blowfish.c blowfish-amd64.S \
+blowfish.c blowfish-amd64.S blowfish-arm.S \
 cast5.c cast5-amd64.S cast5-arm.S \
 crc.c \
 des.c \
@@ -76,7 +76,7 @@ rsa.c \
 salsa20.c salsa20-amd64.S salsa20-armv7-neon.S \
 scrypt.c \
 seed.c \
-serpent.c serpent-sse2-amd64.S serpent-avx2-amd64.S \
+serpent.c serpent-sse2-amd64.S serpent-avx2-amd64.S serpent-armv7-neon.S \
 sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
   sha1-armv7-neon.S \
 sha256.c sha256-ssse3-amd64.S sha256-avx-amd64.S sha256-avx2-bmi2-amd64.S \
