@@ -3321,7 +3321,7 @@ memory, two fast convenience function are available for this task:
 
 @code{gcry_md_hash_buffers} is a shortcut function to calculate a
 message digest from several buffers.  This function does not require a
-context and immediately returns the message digest of of the data
+context and immediately returns the message digest of the data
 described by @var{iov} and @var{iovcnt}.  @var{digest} must be
 allocated by the caller, large enough to hold the message digest
 yielded by the the specified algorithm @var{algo}.  This required size
