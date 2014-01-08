@@ -36,7 +36,7 @@ Noteworthy changes in version 1.6.0 (2013-12-16)
  * Mitigated the Yarom/Falkner flush+reload side-channel attack on RSA
    secret keys.  See <http://eprint.iacr.org/2013/448> [CVE-2013-4242].
 
- * Added support for Deterministic DSA as per RFC-6969.
+ * Added support for Deterministic DSA as per RFC-6979.
 
  * Added support for curve Ed25519.
 

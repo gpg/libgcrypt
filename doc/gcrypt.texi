@@ -951,7 +951,7 @@ The default is @code{GCRY_RNG_TYPE_STANDARD} unless FIPS mode as been
 enabled; in which case @code{GCRY_RNG_TYPE_FIPS} is used and locked
 against further changes.
 
-@item GCRYCTL_GETT_CURRENT_RNG_TYPE; Arguments: int *
+@item GCRYCTL_GET_CURRENT_RNG_TYPE; Arguments: int *
 This command stores the type of the currently used RNG as an integer
 value at the provided address.
 
