@@ -1,4 +1,4 @@
-/* tsexp.c  -  S-expression regression tests
+/* t-sexp.c  -  S-expression regression tests
  *	Copyright (C) 2001, 2002, 2003, 2005 Free Software Foundation, Inc.
  *
  * This file is part of Libgcrypt.
@@ -28,7 +28,7 @@
 #include <assert.h>
 #include "../src/gcrypt-int.h"
 
-#define PGMNAME "tsexp"
+#define PGMNAME "t-sexp"
 
 #ifndef DIM
 # define DIM(v)		     (sizeof(v)/sizeof((v)[0]))

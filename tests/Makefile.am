@@ -19,7 +19,7 @@
 ## Process this file with automake to produce Makefile.in
 
 tests_bin = \
-        version mpitests tsexp t-convert \
+        version mpitests t-sexp t-convert \
 	t-mpi-bit t-mpi-point curves \
 	prime basic keygen pubkey hmac hashtest t-kdf keygrip \
 	fips186-dsa aeswrap pkcs1v2 random dsa-rfc6979 t-ed25519
