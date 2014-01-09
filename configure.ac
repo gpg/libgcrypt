@@ -729,9 +729,11 @@ AC_SUBST(PTH_LIBS)
 #
 # Check whether pthreads is available
 #
-AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
-if test "$have_pthread" = yes; then
-   AC_DEFINE(HAVE_PTHREAD, 1 ,[Define if we have pthread.])
+if test "$have_w32_system" != yes; then
+  AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
+  if test "$have_pthread" = yes; then
+    AC_DEFINE(HAVE_PTHREAD, 1 ,[Define if we have pthread.])
+  fi
 fi
 
 

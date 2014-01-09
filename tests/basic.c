@@ -4063,11 +4063,11 @@ check_digests (void)
           continue;
         }
       if (verbose)
-	fprintf (stderr, "  checking %s [%i] for length %zi\n",
+	fprintf (stderr, "  checking %s [%i] for length %d\n",
 		 gcry_md_algo_name (algos[i].md),
 		 algos[i].md,
                  !strcmp (algos[i].data, "!")?
-                 1000000 : strlen(algos[i].data));
+                 1000000 : (int)strlen(algos[i].data));
 
       check_one_md (algos[i].md, algos[i].data, strlen (algos[i].data),
 		    algos[i].expect);
@@ -4488,10 +4488,10 @@ check_hmac (void)
         }
       if (verbose)
 	fprintf (stderr,
-                 "  checking %s [%i] for %zi byte key and %zi byte data\n",
+                 "  checking %s [%i] for %d byte key and %d byte data\n",
 		 gcry_md_algo_name (algos[i].md),
 		 algos[i].md,
-		 strlen(algos[i].key), strlen(algos[i].data));
+		 (int)strlen(algos[i].key), (int)strlen(algos[i].data));
 
       check_one_hmac (algos[i].md, algos[i].data, strlen (algos[i].data),
 		      algos[i].key, strlen(algos[i].key),
@@ -5091,10 +5091,10 @@ check_mac (void)
         }
       if (verbose)
 	fprintf (stderr,
-                 "  checking %s [%i] for %zi byte key and %zi byte data\n",
+                 "  checking %s [%i] for %d byte key and %d byte data\n",
 		 gcry_mac_algo_name (algos[i].algo),
 		 algos[i].algo,
-		 strlen(algos[i].key), strlen(algos[i].data));
+		 (int)strlen(algos[i].key), (int)strlen(algos[i].data));
 
       check_one_mac (algos[i].algo, algos[i].data, strlen (algos[i].data),
 		     algos[i].key, strlen(algos[i].key), algos[i].iv,
