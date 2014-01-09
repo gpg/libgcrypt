@@ -46,9 +46,9 @@ AM_CPPFLAGS = -I../src -I$(top_srcdir)/src
 AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 AM_LDFLAGS = -no-install
 
-default_ldadd = \
+standard_ldadd = \
 	../src/libgcrypt.la $(DL_LIBS) \
-        ../compat/libcompat.la $(GPG_ERROR_LIBS)
+        ../compat/libcompat.la
 
 EXTRA_PROGRAMS = testapi pkbench
 noinst_PROGRAMS = $(tests_bin) $(tests_bin_last) fipsdrv rsacvt genhashdata
@@ -58,5 +58,6 @@ EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
 	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h \
 	     t-ed25519.inp stopwatch.h hashtest-256g.in
 
-LDADD = $(default_ldadd)
-t_lock_LDADD = $(default_ldadd) $(LIBMULTITHREAD)
+LDADD = $(standard_ldadd) $(GPG_ERROR_LIBS)
+t_lock_LDADD = $(standard_ldadd) $(GPG_ERROR_MT_LIBS)
+t_lock_CFLAGS = $(GPG_ERROR_MT_CFLAGS)
