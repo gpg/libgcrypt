@@ -566,10 +566,6 @@ AC_ARG_ENABLE(padlock-support,
        	         [Disable support for the PadLock Engine of VIA processors]),
 	      padlocksupport=$enableval,padlocksupport=yes)
 AC_MSG_RESULT($padlocksupport)
-if test x"$padlocksupport" = xyes ; then
-  AC_DEFINE(ENABLE_PADLOCK_SUPPORT, 1,
-            [Enable support for the PadLock engine.])
-fi
 
 # Implementation of the --disable-aesni-support switch.
 AC_MSG_CHECKING([whether AESNI support is requested])
@@ -594,10 +590,6 @@ AC_ARG_ENABLE(drng-support,
                  [Disable support for the Intel DRNG (RDRAND instruction)]),
 	      drngsupport=$enableval,drngsupport=yes)
 AC_MSG_RESULT($drngsupport)
-if test x"$drngsupport" = xyes ; then
-  AC_DEFINE(ENABLE_DRNG_SUPPORT, 1,
-            [Enable support for Intel DRNG (RDRAND instruction).])
-fi
 
 # Implementation of the --disable-avx-support switch.
 AC_MSG_CHECKING([whether AVX support is requested])
@@ -991,204 +983,9 @@ fi
 
 
 #
-# Check whether GCC inline assembler supports SSSE3 instructions
-# This is required for the AES-NI instructions.
-#
-AC_CACHE_CHECK([whether GCC inline assembler supports SSSE3 instructions],
-       [gcry_cv_gcc_inline_asm_ssse3],
-       [gcry_cv_gcc_inline_asm_ssse3=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[static unsigned char be_mask[16] __attribute__ ((aligned (16))) =
-              { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-            void a(void) {
-              __asm__("pshufb %[mask], %%xmm2\n\t"::[mask]"m"(*be_mask):);
-            }]])],
-          [gcry_cv_gcc_inline_asm_ssse3=yes])])
-if test "$gcry_cv_gcc_inline_asm_ssse3" = "yes" ; then
-   AC_DEFINE(HAVE_GCC_INLINE_ASM_SSSE3,1,
-     [Defined if inline assembler supports SSSE3 instructions])
-fi
-
-
-#
-# Check whether GCC inline assembler supports PCLMUL instructions.
-#
-AC_CACHE_CHECK([whether GCC inline assembler supports PCLMUL instructions],
-       [gcry_cv_gcc_inline_asm_pclmul],
-       [gcry_cv_gcc_inline_asm_pclmul=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[void a(void) {
-              __asm__("pclmulqdq \$0, %%xmm1, %%xmm3\n\t":::"cc");
-            }]])],
-          [gcry_cv_gcc_inline_asm_pclmul=yes])])
-if test "$gcry_cv_gcc_inline_asm_pclmul" = "yes" ; then
-   AC_DEFINE(HAVE_GCC_INLINE_ASM_PCLMUL,1,
-     [Defined if inline assembler supports PCLMUL instructions])
-fi
-
-
-#
-# Check whether GCC inline assembler supports AVX instructions
-#
-AC_CACHE_CHECK([whether GCC inline assembler supports AVX instructions],
-       [gcry_cv_gcc_inline_asm_avx],
-       [gcry_cv_gcc_inline_asm_avx=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[void a(void) {
-              __asm__("xgetbv; vaesdeclast (%[mem]),%%xmm0,%%xmm7\n\t"::[mem]"r"(0):);
-            }]])],
-          [gcry_cv_gcc_inline_asm_avx=yes])])
-if test "$gcry_cv_gcc_inline_asm_avx" = "yes" ; then
-   AC_DEFINE(HAVE_GCC_INLINE_ASM_AVX,1,
-     [Defined if inline assembler supports AVX instructions])
-fi
-
-
-#
-# Check whether GCC inline assembler supports AVX2 instructions
-#
-AC_CACHE_CHECK([whether GCC inline assembler supports AVX2 instructions],
-       [gcry_cv_gcc_inline_asm_avx2],
-       [gcry_cv_gcc_inline_asm_avx2=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[void a(void) {
-              __asm__("xgetbv; vpbroadcastb %%xmm7,%%ymm1\n\t":::"cc");
-            }]])],
-          [gcry_cv_gcc_inline_asm_avx2=yes])])
-if test "$gcry_cv_gcc_inline_asm_avx2" = "yes" ; then
-   AC_DEFINE(HAVE_GCC_INLINE_ASM_AVX2,1,
-     [Defined if inline assembler supports AVX2 instructions])
-fi
-
-
-#
-# Check whether GCC inline assembler supports BMI2 instructions
-#
-AC_CACHE_CHECK([whether GCC inline assembler supports BMI2 instructions],
-       [gcry_cv_gcc_inline_asm_bmi2],
-       [gcry_cv_gcc_inline_asm_bmi2=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[void a(void) {
-              __asm__("rorxl \$23, %%eax, %%edx\\n\\t":::"memory");
-            }]])],
-          [gcry_cv_gcc_inline_asm_bmi2=yes])])
-if test "$gcry_cv_gcc_inline_asm_bmi2" = "yes" ; then
-   AC_DEFINE(HAVE_GCC_INLINE_ASM_BMI2,1,
-     [Defined if inline assembler supports BMI2 instructions])
-fi
-
-
-#
-# Check whether GCC assembler supports features needed for our amd64
-# implementations
-#
-if test $amd64_as_feature_detection = yes; then
-    AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implementations],
-       [gcry_cv_gcc_amd64_platform_as_ok],
-       [gcry_cv_gcc_amd64_platform_as_ok=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[__asm__(
-                /* Test if '.type' and '.size' are supported.  */
-                /* These work only on ELF targets. */
-		/* TODO: add COFF (mingw64, cygwin64) support to assembly
-                 * implementations.  Mingw64/cygwin64 also require additional
-                 * work because they use different calling convention. */
-		"asmfunc:\n\t"
-                ".size asmfunc,.-asmfunc;\n\t"
-                ".type asmfunc,@function;\n\t"
-            );]])],
-          [gcry_cv_gcc_amd64_platform_as_ok=yes])])
-  if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
-     AC_DEFINE(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS,1,
-              [Defined if underlying assembler is compatible with amd64 assembly implementations])
-  fi
-fi
-
-
-#
-# Check whether GCC assembler supports features needed for assembly
-# implementations that use Intel syntax
-#
-AC_CACHE_CHECK([whether GCC assembler is compatible for Intel syntax assembly implementations],
-       [gcry_cv_gcc_platform_as_ok_for_intel_syntax],
-       [gcry_cv_gcc_platform_as_ok_for_intel_syntax=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[__asm__(
-                ".intel_syntax noprefix\n\t"
-                "pxor xmm1, xmm7;\n\t"
-                /* Intel syntax implementation also use GAS macros, so check
-                 * for them here. */
-                "VAL_A = xmm4\n\t"
-                "VAL_B = xmm2\n\t"
-                ".macro SET_VAL_A p1\n\t"
-                "  VAL_A = \\\\p1 \n\t"
-                ".endm\n\t"
-                ".macro SET_VAL_B p1\n\t"
-                "  VAL_B = \\\\p1 \n\t"
-                ".endm\n\t"
-                "vmovdqa VAL_A, VAL_B;\n\t"
-                "SET_VAL_A eax\n\t"
-                "SET_VAL_B ebp\n\t"
-                "add VAL_A, VAL_B;\n\t"
-                "add VAL_B, 0b10101;\n\t"
-            );]])],
-          [gcry_cv_gcc_platform_as_ok_for_intel_syntax=yes])])
-if test "$gcry_cv_gcc_platform_as_ok_for_intel_syntax" = "yes" ; then
-  AC_DEFINE(HAVE_INTEL_SYNTAX_PLATFORM_AS,1,
-            [Defined if underlying assembler is compatible with Intel syntax assembly implementations])
-fi
-
-
-#
-# Check whether compiler is configured for ARMv6 or newer architecture
-#
-AC_CACHE_CHECK([whether compiler is configured for ARMv6 or newer architecture],
-       [gcry_cv_cc_arm_arch_is_v6],
-       [AC_EGREP_CPP(yes,
-          [#if defined(__arm__) && \
-             ((defined(__ARM_ARCH) && __ARM_ARCH >= 6) \
-             || defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
-             || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
-             || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) \
-             || defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
-             || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
-             || defined(__ARM_ARCH_7EM__))
-            yes
-           #endif
-          ], gcry_cv_cc_arm_arch_is_v6=yes, gcry_cv_cc_arm_arch_is_v6=no)])
-if test "$gcry_cv_cc_arm_arch_is_v6" = "yes" ; then
-   AC_DEFINE(HAVE_ARM_ARCH_V6,1,
-     [Defined if ARM architecture is v6 or newer])
-fi
-
-
-#
-# Check whether GCC inline assembler supports NEON instructions
-#
-AC_CACHE_CHECK([whether GCC inline assembler supports NEON instructions],
-       [gcry_cv_gcc_inline_asm_neon],
-       [gcry_cv_gcc_inline_asm_neon=no
-        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[__asm__(
-                ".syntax unified\n\t"
-                ".thumb\n\t"
-                ".fpu neon\n\t"
-                "vld1.64 {%q0-%q1}, [%r0]!;\n\t"
-                "vrev64.8 %q0, %q3;\n\t"
-                "vadd.u64 %q0, %q1;\n\t"
-                "vadd.s64 %d3, %d2, %d3;\n\t"
-                );
-            ]])],
-          [gcry_cv_gcc_inline_asm_neon=yes])])
-if test "$gcry_cv_gcc_inline_asm_neon" = "yes" ; then
-   AC_DEFINE(HAVE_GCC_INLINE_ASM_NEON,1,
-     [Defined if inline assembler supports NEON instructions])
-fi
-
-
-#
 # Check whether GCC assembler supports features needed for our ARM
-# implementations
+# implementations.  This needs to be done before setting up the
+# assembler stuff.
 #
 AC_CACHE_CHECK([whether GCC assembler is compatible for ARM assembly implementations],
        [gcry_cv_gcc_arm_platform_as_ok],
@@ -1210,6 +1007,308 @@ AC_CACHE_CHECK([whether GCC assembler is compatible for ARM assembly implementat
 if test "$gcry_cv_gcc_arm_platform_as_ok" = "yes" ; then
    AC_DEFINE(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS,1,
      [Defined if underlying assembler is compatible with ARM assembly implementations])
+fi
+
+
+#
+# Check whether underscores in symbols are required.  This needs to be
+# done before setting up the assembler stuff.
+#
+GNUPG_SYS_SYMBOL_UNDERSCORE()
+
+
+#################################
+####                         ####
+#### Setup assembler stuff.  ####
+#### Define mpi_cpu_arch.    ####
+####                         ####
+#################################
+AC_ARG_ENABLE(mpi-path,
+              AC_HELP_STRING([--enable-mpi-path=EXTRA_PATH],
+	      [prepend EXTRA_PATH to list of CPU specific optimizations]),
+	      mpi_extra_path="$enableval",mpi_extra_path="")
+AC_MSG_CHECKING(architecture and mpi assembler functions)
+if test -f $srcdir/mpi/config.links ; then
+    . $srcdir/mpi/config.links
+    AC_CONFIG_LINKS("$mpi_ln_list")
+    ac_cv_mpi_sflags="$mpi_sflags"
+    AC_MSG_RESULT($mpi_cpu_arch)
+else
+    AC_MSG_RESULT(failed)
+    AC_MSG_ERROR([mpi/config.links missing!])
+fi
+MPI_SFLAGS="$ac_cv_mpi_sflags"
+AC_SUBST(MPI_SFLAGS)
+
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_ADD1, test "$mpi_mod_asm_mpih_add1" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_SUB1, test "$mpi_mod_asm_mpih_sub1" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL1, test "$mpi_mod_asm_mpih_mul1" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL2, test "$mpi_mod_asm_mpih_mul2" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL3, test "$mpi_mod_asm_mpih_mul3" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_LSHIFT, test "$mpi_mod_asm_mpih_lshift" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_MPIH_RSHIFT, test "$mpi_mod_asm_mpih_rshift" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_UDIV, test "$mpi_mod_asm_udiv" = yes)
+AM_CONDITIONAL(MPI_MOD_ASM_UDIV_QRNND, test "$mpi_mod_asm_udiv_qrnnd" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_ADD1, test "$mpi_mod_c_mpih_add1" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_SUB1, test "$mpi_mod_c_mpih_sub1" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL1, test "$mpi_mod_c_mpih_mul1" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL2, test "$mpi_mod_c_mpih_mul2" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL3, test "$mpi_mod_c_mpih_mul3" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_LSHIFT, test "$mpi_mod_c_mpih_lshift" = yes)
+AM_CONDITIONAL(MPI_MOD_C_MPIH_RSHIFT, test "$mpi_mod_c_mpih_rshift" = yes)
+AM_CONDITIONAL(MPI_MOD_C_UDIV, test "$mpi_mod_c_udiv" = yes)
+AM_CONDITIONAL(MPI_MOD_C_UDIV_QRNND, test "$mpi_mod_c_udiv_qrnnd" = yes)
+
+# Reset non applicable feature flags.
+if test "$mpi_cpu_arch" != "x86" ; then
+   aesnisupport="n/a"
+   pclmulsupport="n/a"
+   avxsupport="n/a"
+   avx2support="n/a"
+   padlocksupport="n/a"
+   drngsupport="n/a"
+fi
+
+if test "$mpi_cpu_arch" != "arm" ; then
+   neonsupport="n/a"
+fi
+
+
+#############################################
+####                                     ####
+#### Platform specific compiler checks.  ####
+####                                     ####
+#############################################
+
+#
+# Check whether GCC inline assembler supports SSSE3 instructions
+# This is required for the AES-NI instructions.
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports SSSE3 instructions],
+       [gcry_cv_gcc_inline_asm_ssse3],
+       [if test "$mpi_cpu_arch" != "x86" ; then
+          gcry_cv_gcc_inline_asm_ssse3="n/a"
+        else
+          gcry_cv_gcc_inline_asm_ssse3=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[static unsigned char be_mask[16] __attribute__ ((aligned (16))) =
+              { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+            void a(void) {
+              __asm__("pshufb %[mask], %%xmm2\n\t"::[mask]"m"(*be_mask):);
+            }]])],
+          [gcry_cv_gcc_inline_asm_ssse3=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_ssse3" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_SSSE3,1,
+     [Defined if inline assembler supports SSSE3 instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports PCLMUL instructions.
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports PCLMUL instructions],
+       [gcry_cv_gcc_inline_asm_pclmul],
+       [if test "$mpi_cpu_arch" != "x86" ; then
+          gcry_cv_gcc_inline_asm_pclmul="n/a"
+        else
+          gcry_cv_gcc_inline_asm_pclmul=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) {
+              __asm__("pclmulqdq \$0, %%xmm1, %%xmm3\n\t":::"cc");
+            }]])],
+          [gcry_cv_gcc_inline_asm_pclmul=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_pclmul" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_PCLMUL,1,
+     [Defined if inline assembler supports PCLMUL instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports AVX instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AVX instructions],
+       [gcry_cv_gcc_inline_asm_avx],
+       [if test "$mpi_cpu_arch" != "x86" ; then
+          gcry_cv_gcc_inline_asm_avx="n/a"
+        else
+          gcry_cv_gcc_inline_asm_avx=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) {
+              __asm__("xgetbv; vaesdeclast (%[mem]),%%xmm0,%%xmm7\n\t"::[mem]"r"(0):);
+            }]])],
+          [gcry_cv_gcc_inline_asm_avx=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_avx" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AVX,1,
+     [Defined if inline assembler supports AVX instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports AVX2 instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AVX2 instructions],
+       [gcry_cv_gcc_inline_asm_avx2],
+       [if test "$mpi_cpu_arch" != "x86" ; then
+          gcry_cv_gcc_inline_asm_avx2="n/a"
+        else
+          gcry_cv_gcc_inline_asm_avx2=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) {
+              __asm__("xgetbv; vpbroadcastb %%xmm7,%%ymm1\n\t":::"cc");
+            }]])],
+          [gcry_cv_gcc_inline_asm_avx2=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_avx2" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AVX2,1,
+     [Defined if inline assembler supports AVX2 instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports BMI2 instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports BMI2 instructions],
+       [gcry_cv_gcc_inline_asm_bmi2],
+       [if test "$mpi_cpu_arch" != "x86" ; then
+          gcry_cv_gcc_inline_asm_bmi2="n/a"
+        else
+          gcry_cv_gcc_inline_asm_bmi2=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[void a(void) {
+              __asm__("rorxl \$23, %%eax, %%edx\\n\\t":::"memory");
+            }]])],
+          [gcry_cv_gcc_inline_asm_bmi2=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_bmi2" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_BMI2,1,
+     [Defined if inline assembler supports BMI2 instructions])
+fi
+
+
+#
+# Check whether GCC assembler supports features needed for our amd64
+# implementations
+#
+if test $amd64_as_feature_detection = yes; then
+    AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implementations],
+       [gcry_cv_gcc_amd64_platform_as_ok],
+       [if test "$mpi_cpu_arch" != "x86" ; then
+          gcry_cv_gcc_amd64_platform_as_ok="n/a"
+        else
+          gcry_cv_gcc_amd64_platform_as_ok=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                /* Test if '.type' and '.size' are supported.  */
+                /* These work only on ELF targets. */
+		/* TODO: add COFF (mingw64, cygwin64) support to assembly
+                 * implementations.  Mingw64/cygwin64 also require additional
+                 * work because they use different calling convention. */
+		"asmfunc:\n\t"
+                ".size asmfunc,.-asmfunc;\n\t"
+                ".type asmfunc,@function;\n\t"
+            );]])],
+          [gcry_cv_gcc_amd64_platform_as_ok=yes])
+        fi])
+  if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
+     AC_DEFINE(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS,1,
+              [Defined if underlying assembler is compatible with amd64 assembly implementations])
+  fi
+fi
+
+
+#
+# Check whether GCC assembler supports features needed for assembly
+# implementations that use Intel syntax
+#
+AC_CACHE_CHECK([whether GCC assembler is compatible for Intel syntax assembly implementations],
+       [gcry_cv_gcc_platform_as_ok_for_intel_syntax],
+       [if test "$mpi_cpu_arch" != "x86" ; then
+          gcry_cv_gcc_platform_as_ok_for_intel_syntax="n/a"
+        else
+          gcry_cv_gcc_platform_as_ok_for_intel_syntax=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                ".intel_syntax noprefix\n\t"
+                "pxor xmm1, xmm7;\n\t"
+                /* Intel syntax implementation also use GAS macros, so check
+                 * for them here. */
+                "VAL_A = xmm4\n\t"
+                "VAL_B = xmm2\n\t"
+                ".macro SET_VAL_A p1\n\t"
+                "  VAL_A = \\\\p1 \n\t"
+                ".endm\n\t"
+                ".macro SET_VAL_B p1\n\t"
+                "  VAL_B = \\\\p1 \n\t"
+                ".endm\n\t"
+                "vmovdqa VAL_A, VAL_B;\n\t"
+                "SET_VAL_A eax\n\t"
+                "SET_VAL_B ebp\n\t"
+                "add VAL_A, VAL_B;\n\t"
+                "add VAL_B, 0b10101;\n\t"
+            );]])],
+          [gcry_cv_gcc_platform_as_ok_for_intel_syntax=yes])
+        fi])
+if test "$gcry_cv_gcc_platform_as_ok_for_intel_syntax" = "yes" ; then
+  AC_DEFINE(HAVE_INTEL_SYNTAX_PLATFORM_AS,1,
+            [Defined if underlying assembler is compatible with Intel syntax assembly implementations])
+fi
+
+
+#
+# Check whether compiler is configured for ARMv6 or newer architecture
+#
+AC_CACHE_CHECK([whether compiler is configured for ARMv6 or newer architecture],
+       [gcry_cv_cc_arm_arch_is_v6],
+       [if test "$mpi_cpu_arch" != "arm" ; then
+          gcry_cv_cc_arm_arch_is_v6="n/a"
+        else
+          AC_EGREP_CPP(yes,
+          [#if defined(__arm__) && \
+             ((defined(__ARM_ARCH) && __ARM_ARCH >= 6) \
+             || defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
+             || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
+             || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) \
+             || defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
+             || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
+             || defined(__ARM_ARCH_7EM__))
+            yes
+           #endif
+          ], gcry_cv_cc_arm_arch_is_v6=yes, gcry_cv_cc_arm_arch_is_v6=no)
+        fi])
+if test "$gcry_cv_cc_arm_arch_is_v6" = "yes" ; then
+   AC_DEFINE(HAVE_ARM_ARCH_V6,1,
+     [Defined if ARM architecture is v6 or newer])
+fi
+
+
+#
+# Check whether GCC inline assembler supports NEON instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports NEON instructions],
+       [gcry_cv_gcc_inline_asm_neon],
+       [if test "$mpi_cpu_arch" != "arm" ; then
+          gcry_cv_gcc_inline_asm_neon="n/a"
+        else
+          gcry_cv_gcc_inline_asm_neon=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                ".syntax unified\n\t"
+                ".thumb\n\t"
+                ".fpu neon\n\t"
+                "vld1.64 {%q0-%q1}, [%r0]!;\n\t"
+                "vrev64.8 %q0, %q3;\n\t"
+                "vadd.u64 %q0, %q1;\n\t"
+                "vadd.s64 %d3, %d2, %d3;\n\t"
+                );
+            ]])],
+          [gcry_cv_gcc_inline_asm_neon=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_neon" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_NEON,1,
+     [Defined if inline assembler supports NEON instructions])
 fi
 
 
@@ -1328,48 +1427,8 @@ fi
 
 
 #
-# Setup assembler stuff.
+# Other defines
 #
-# Note that config.links also defines mpi_cpu_arch, which is required
-# later on.
-#
-GNUPG_SYS_SYMBOL_UNDERSCORE()
-AC_ARG_ENABLE(mpi-path,
-              AC_HELP_STRING([--enable-mpi-path=EXTRA_PATH],
-	      [prepend EXTRA_PATH to list of CPU specific optimizations]),
-	      mpi_extra_path="$enableval",mpi_extra_path="")
-AC_MSG_CHECKING(for mpi assembler functions)
-if test -f $srcdir/mpi/config.links ; then
-    . $srcdir/mpi/config.links
-    AC_CONFIG_LINKS("$mpi_ln_list")
-    ac_cv_mpi_sflags="$mpi_sflags"
-    AC_MSG_RESULT(done)
-else
-    AC_MSG_RESULT(failed)
-    AC_MSG_ERROR([mpi/config.links missing!])
-fi
-MPI_SFLAGS="$ac_cv_mpi_sflags"
-AC_SUBST(MPI_SFLAGS)
-
-AM_CONDITIONAL(MPI_MOD_ASM_MPIH_ADD1, test "$mpi_mod_asm_mpih_add1" = yes)
-AM_CONDITIONAL(MPI_MOD_ASM_MPIH_SUB1, test "$mpi_mod_asm_mpih_sub1" = yes)
-AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL1, test "$mpi_mod_asm_mpih_mul1" = yes)
-AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL2, test "$mpi_mod_asm_mpih_mul2" = yes)
-AM_CONDITIONAL(MPI_MOD_ASM_MPIH_MUL3, test "$mpi_mod_asm_mpih_mul3" = yes)
-AM_CONDITIONAL(MPI_MOD_ASM_MPIH_LSHIFT, test "$mpi_mod_asm_mpih_lshift" = yes)
-AM_CONDITIONAL(MPI_MOD_ASM_MPIH_RSHIFT, test "$mpi_mod_asm_mpih_rshift" = yes)
-AM_CONDITIONAL(MPI_MOD_ASM_UDIV, test "$mpi_mod_asm_udiv" = yes)
-AM_CONDITIONAL(MPI_MOD_ASM_UDIV_QRNND, test "$mpi_mod_asm_udiv_qrnnd" = yes)
-AM_CONDITIONAL(MPI_MOD_C_MPIH_ADD1, test "$mpi_mod_c_mpih_add1" = yes)
-AM_CONDITIONAL(MPI_MOD_C_MPIH_SUB1, test "$mpi_mod_c_mpih_sub1" = yes)
-AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL1, test "$mpi_mod_c_mpih_mul1" = yes)
-AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL2, test "$mpi_mod_c_mpih_mul2" = yes)
-AM_CONDITIONAL(MPI_MOD_C_MPIH_MUL3, test "$mpi_mod_c_mpih_mul3" = yes)
-AM_CONDITIONAL(MPI_MOD_C_MPIH_LSHIFT, test "$mpi_mod_c_mpih_lshift" = yes)
-AM_CONDITIONAL(MPI_MOD_C_MPIH_RSHIFT, test "$mpi_mod_c_mpih_rshift" = yes)
-AM_CONDITIONAL(MPI_MOD_C_UDIV, test "$mpi_mod_c_udiv" = yes)
-AM_CONDITIONAL(MPI_MOD_C_UDIV_QRNND, test "$mpi_mod_c_udiv_qrnnd" = yes)
-
 if test mym4_isgit = "yes"; then
     AC_DEFINE(IS_DEVELOPMENT_VERSION,1,
               [Defined if this is not a regular release])
@@ -1497,6 +1556,14 @@ fi
 if test x"$neonsupport" = xyes ; then
   AC_DEFINE(ENABLE_NEON_SUPPORT,1,
             [Enable support for ARM NEON instructions.])
+fi
+if test x"$padlocksupport" = xyes ; then
+  AC_DEFINE(ENABLE_PADLOCK_SUPPORT, 1,
+            [Enable support for the PadLock engine.])
+fi
+if test x"$drngsupport" = xyes ; then
+  AC_DEFINE(ENABLE_DRNG_SUPPORT, 1,
+            [Enable support for Intel DRNG (RDRAND instruction).])
 fi
 
 

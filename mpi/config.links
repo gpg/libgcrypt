@@ -21,6 +21,10 @@
 # sourced by ../configure to get the list of files to link
 # this should set $mpi_ln_list.
 # Note: this is called from the above directory.
+#
+# Reguired variables:
+#  $ac_cv_sys_symbol_underscore
+#  $gcry_cv_gcc_arm_platform_as_ok
 
 mpi_sflags=
 mpi_extra_modules=
@@ -39,7 +43,6 @@ mpi_optional_modules=`$AWK '/^#BEGIN_ASM_LIST/,/^#END_ASM_LIST/ {
 echo '/* created by config.links - do not edit */' >./mpi/asm-syntax.h
 echo "/* Host: ${host} */" >>./mpi/asm-syntax.h
 
-if test "$try_asm_modules" = "yes" ; then
 case "${host}" in
     powerpc-apple-darwin*          | \
     i[34567]86*-*-openbsd[12]*     | \
@@ -142,10 +145,10 @@ case "${host}" in
 	mpi_cpu_arch="aarch64"
 	;;
     arm*-*-*)
+	mpi_cpu_arch="arm"
 	if test "$gcry_cv_gcc_arm_platform_as_ok" = "yes" ; then
 	  echo '/* configured for arm */' >>./mpi/asm-syntax.h
 	  path="arm"
-	  mpi_cpu_arch="arm"
 	else
 	  echo '/* No assembler modules configured */' >>./mpi/asm-syntax.h
 	  path=""
@@ -155,16 +158,19 @@ case "${host}" in
 	echo '/* configured for HPPA (pa7000) */' >>./mpi/asm-syntax.h
 	path="hppa1.1 hppa"
 	mpi_extra_modules="udiv-qrnnd"
+	mpi_cpu_arch="hppa"
 	;;
     hppa1.0*-*-*)
 	echo '/* configured for HPPA 1.0 */' >>./mpi/asm-syntax.h
 	path="hppa"
 	mpi_extra_modules="udiv-qrnnd"
+	mpi_cpu_arch="hppa"
 	;;
     hppa*-*-*)	# assume pa7100
 	echo '/* configured for HPPA (pa7100) */' >>./mpi/asm-syntax.h
 	path="pa7100 hppa1.1 hppa"
 	mpi_extra_modules="udiv-qrnnd"
+	mpi_cpu_arch="hppa"
 	;;
     sparc64-*-linux-gnu)
         echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
@@ -300,6 +306,7 @@ case "${host}" in
 	mpi_sflags="-Wa,-mpwr"
 	path="power"
 	mpi_extra_modules="udiv-w-sdiv"
+	mpi_cpu_arch="ppc"
 	;;
     rs6000-*-* | \
     power-*-*  | \
@@ -333,13 +340,23 @@ case "${host}" in
         mpi_cpu_arch="ppc"
 	;;
     *)
-	echo '/* No assembler modules configured */' >>./mpi/asm-syntax.h
+	echo '/* Platform not known */' >>./mpi/asm-syntax.h
 	path=""
 	;;
 esac
-else
-    echo '/* Assembler modules disabled on request */' >>./mpi/asm-syntax.h
+
+# If asm modules are disabled reset the found variables but keep
+# mpi_cpu_arch.
+if test "$try_asm_modules" != "yes" ; then
+    echo '/* Assembler modules disabled on request */' >./mpi/asm-syntax.h
     path=""
+    mpi_sflags=""
+    mpi_extra_modules=""
+fi
+
+# Make sure that mpi_cpu_arch is not the empty string.
+if test x"$mpi_cpu_arch" = x ; then
+    mpi_cpu_arch="unknown"
 fi
 
 
