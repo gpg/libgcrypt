@@ -2798,9 +2798,11 @@ supported parameters are:
 
 @table @code
 @item nbits
-This is always required to specify the length of the key.  The argument
-is a string with a number in C-notation.  The value should be a multiple
-of 8.
+This is always required to specify the length of the key.  The
+argument is a string with a number in C-notation.  The value should be
+a multiple of 8.  Note that the S-expression syntax requires that a
+number is prefixed with its string length; thus the @code{4:} in the
+above example.
 
 @item curve @var{name}
 For ECC a named curve may be used instead of giving the number of
