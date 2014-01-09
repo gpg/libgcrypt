@@ -438,7 +438,7 @@ render_texinfo () {
     sgml2xml -x lower $input > $tmpxml
     [ $verbose = yes ] && echo "running docbook2texi on '$tmpxml' ..." >&2
     docbook2texi $tmpxml | sed 's,--,---,' >$output
-    rm $tmpxml 
+    rm $tmpxml
     [ $verbose = yes ] && echo "texinfo '$output' created" >&2
 
 }

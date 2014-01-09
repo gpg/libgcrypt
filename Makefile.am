@@ -27,11 +27,12 @@ GITLOG_TO_CHANGELOG=gitlog-to-changelog
 
 DIST_SUBDIRS = m4 compat mpi cipher random src doc tests
 SUBDIRS =         compat mpi cipher random src doc tests
-EXTRA_DIST = autogen.sh README.GIT LICENSES      			\
-             ChangeLog-2011 scripts/ChangeLog-2011 doc/ChangeLog-2011 	\
-             m4/ChangeLog-2011 cipher/ChangeLog-2011 src/ChangeLog-2011 \
+
+EXTRA_DIST = autogen.sh README.GIT LICENSES      		           \
+             ChangeLog-2011 build-aux/ChangeLog-2011 doc/ChangeLog-2011    \
+             m4/ChangeLog-2011 cipher/ChangeLog-2011 src/ChangeLog-2011    \
              random/ChangeLog-2011 tests/ChangeLog-2011 mpi/ChangeLog-2011 \
-             scripts/git-log-footer scripts/git-log-fix
+             build-aux/git-log-footer build-aux/git-log-fix
 
 DISTCLEANFILES =
 
@@ -59,9 +60,9 @@ gen-ChangeLog:
 	if test -d $(top_srcdir)/.git; then				\
 	  (cd $(top_srcdir) &&                      			\
 	    $(GITLOG_TO_CHANGELOG) --append-dot --tear-off		\
-	    --amend=scripts/git-log-fix	 				\
+	    --amend=build-aux/git-log-fix	 			\
 	    --since=$(gen_start_date) ) > $(distdir)/cl-t;		\
-          cat $(top_srcdir)/scripts/git-log-footer >> $(distdir)/cl-t;  \
+          cat $(top_srcdir)/build-aux/git-log-footer >> $(distdir)/cl-t;\
 	  rm -f $(distdir)/ChangeLog;					\
 	  mv $(distdir)/cl-t $(distdir)/ChangeLog;			\
 	fi
