@@ -731,7 +731,7 @@ AC_SUBST(PTH_LIBS)
 #
 AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
 if test "$have_pthread" = yes; then
-   AC_DEFINE(HAVE_PTHREAD, ,[Define if we have pthread.])
+   AC_DEFINE(HAVE_PTHREAD, 1 ,[Define if we have pthread.])
 fi
 
 
@@ -1364,7 +1364,7 @@ AC_CHECK_FUNCS(strtoul memmove stricmp atexit raise)
 # Other checks
 AC_CHECK_FUNCS(strerror rand mmap getpagesize sysconf waitpid wait4)
 AC_CHECK_FUNCS(gettimeofday getrusage gethrtime clock_gettime syslog)
-AC_CHECK_FUNCS(fcntl ftruncate)
+AC_CHECK_FUNCS(fcntl ftruncate flockfile)
 
 GNUPG_CHECK_MLOCK
 
