@@ -1,6 +1,18 @@
 Noteworthy changes in version 1.7.0 (unreleased)
 ------------------------------------------------
 
+ * Fix a 1.6.0 introduced regression in looking up an message digest
+   by OID.
+
+ * Support curve sec256k1.
+
+ * Support curves GOST R 34.10-2001 and GOST R 34.10-2012.
+
+ * Interface changes relative to the 1.6.0 release:
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ gcry_mac_get_algo               NEW.
+ GCRY_MAC_HMAC_MD2               NEW.
+
 
 Noteworthy changes in version 1.6.0 (2013-12-16)
 ------------------------------------------------
