@@ -4064,8 +4064,9 @@ no such element, @code{NULL} is returned.
 @deftypefun gcry_sexp_t gcry_sexp_car (@w{const gcry_sexp_t @var{list}})
 
 Create and return a new S-expression from the first element in
-@var{list}; this called the "type" and should always exist and be a
-string. @code{NULL} is returned in case of a problem.
+@var{list}; this is called the "type" and should always exist per
+S-expression specification and in general be a string.  @code{NULL} is
+returned in case of a problem.
 @end deftypefun
 
 @deftypefun gcry_sexp_t gcry_sexp_cdr (@w{const gcry_sexp_t @var{list}})

@@ -978,6 +978,74 @@ check_extract_param (void)
 }
 
 
+/* A test based on bug 1594.  */
+static void
+bug_1594 (void)
+{
+static char thing[] =
+  "(signature"
+  " (public-key"
+  "  (rsa"
+  "   (n #00A53A6B3A50BE571F805BD98ECE1FCE4CE291C3D4D3E971740E1EE6D447F526"
+  "       6AC8973DDC82F0ADD234CC82E0A0A3F48B81ACC8B038DB8ACC3E78DC2ED2642F"
+  "       6BA353FCA60F47C2801DEB477B37FB8B2F5508AA1C6D922780DB142DEA19B812"
+  "       C4E64F1138AD3BD61C58DB2D2591BE0BF36A1AC588AA45763BCDFF581050ABA8"
+  "       CA47BD9723ADD6A308AE28471EDD2B16D03C941D4F2B7E019C43AF8972880633"
+  "       54E97B7E19F1677D84B69A26B184A77B719DD72C48E0EE36107046F786566A9D"
+  "       13BAD724D6D78F24700FC22FC000E1B2A8C1B08ED62008395B0764CD9B55E80D"
+  "       A0A2B61C698DC27EA98E68BB576ACFC2B91B4D7283E7D960948D049D6E3C4CB1"
+  "       F489B460A120A4BB6C04A843FD3A67454136DE61CF68A927871EFFA9141BD372"
+  "       A748593C703E0301F039A9E674C50301BFC385BABE5B154250E7D57B82DB31F1"
+  "       E1AC696F870DCD8FE8DEC75608B988FCA3B484F1FD7755BF452F99597269AF02"
+  "       E8AF87D0F93DB427291659183D077254C835BFB6DDFD87CD0B5E0738682FCD34"
+  "       923F22551F73944E6CBE3ED6879B4414676B5DA0F30ED21DFA12BD2230C3C5D2"
+  "       EA116A3EFEB4AEC21C58E63FAFA549A63190F01859445E9B80F427B80FD4C884"
+  "       2AD41FE760A3E9DEDFB56CEBE8EA783838B2B392CACDDC760CCE212E388AFBC1"
+  "       95DC6D0ED87E9091F82A82CE372738C8DE8ABD76ACD06AC8B80AA0597162DF59"
+  "       67#)"
+  "   (e #010001#))))";
+  gcry_sexp_t sig, pubkey, n, n_val;
+
+  info ("checking fix for bug 1594\n");
+
+  if (gcry_sexp_new (&sig, thing, 0, 1))
+    die ("scanning fixed string failed\n");
+  pubkey = gcry_sexp_find_token (sig, "public-key", 0);
+  gcry_sexp_release (sig);
+  if (!pubkey)
+    {
+      fail ("'public-key' token not found");
+      return;
+    }
+  n = gcry_sexp_find_token (pubkey, "n", 0);
+  if (!n)
+    {
+      fail ("'n' token not found");
+      gcry_sexp_release (pubkey);
+      return;
+    }
+  n_val = gcry_sexp_nth (n, 1);
+  /* Bug 1594 would require the following test:
+   *   if (n_val)
+   *     fail ("extracting 1-th of 'n' list did not fail");
+   * However, we meanwhile modified the S-expression functions to
+   * behave like Scheme to allow the access of any element of a list.
+   */
+  if (!n_val)
+    fail ("extracting 1-th of 'n' list failed");
+  /*gcry_log_debugsxp ("1-th", n_val); => "(#00A5...#)"  */
+  gcry_sexp_release (n_val);
+  n_val = gcry_sexp_nth (n, 2);
+  if (n_val)
+    fail ("extracting 2-th of 'n' list did not fail");
+  n_val = gcry_sexp_nth (n, 0);
+  if (!n_val)
+    fail ("extracting 0-th of 'n' list failed");
+  /*gcry_log_debugsxp ("0-th", n_val); => "(n)"  */
+  if (gcry_sexp_nth (n_val, 1))
+    fail ("extracting 1-th of car of 'n' list did not fail");
+  gcry_sexp_release (n_val);
+}
 
 
 int
@@ -1040,6 +1108,7 @@ main (int argc, char **argv)
   back_and_forth ();
   check_sscan ();
   check_extract_param ();
+  bug_1594 ();
 
   return errorcount? 1:0;
 }
