@@ -107,7 +107,7 @@ static const ecc_domain_parms_t domain_parms[] =
     {
       /* (-x^2 + y^2 = 1 + dx^2y^2) */
       "Ed25519", 256, 0,
-      MPI_EC_TWISTEDEDWARDS, ECC_DIALECT_ED25519,
+      MPI_EC_EDWARDS, ECC_DIALECT_ED25519,
       "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
       "-0x01",
       "-0x2DFC9311D490018C7338BF8688861767FF8FF5B2BEBE27548A14B235ECA6874A",
@@ -115,6 +115,22 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A",
       "0x6666666666666666666666666666666666666666666666666666666666666658"
     },
+#if 0 /* No real specs yet found.  */
+    {
+      /* x^2 + y^2 = 1 + 3617x^2y^2 mod 2^414 - 17 */
+      "Curve3617",
+      "0x3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+      "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEF",
+      MPI_EC_EDWARDS, 0,
+      "0x01",
+      "0x0e21",
+      "0x07FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEB3CC92414CF"
+      "706022B36F1C0338AD63CF181B0E71A5E106AF79",
+      "0x1A334905141443300218C0631C326E5FCD46369F44C03EC7F57FF35498A4AB4D"
+      "6D6BA111301A73FAA8537C64C4FD3812F3CBC595",
+      "0x22"
+    },
+#endif /*0*/
     {
       "NIST P-192", 192, 1,
       MPI_EC_WEIERSTRASS, ECC_DIALECT_STANDARD,
@@ -417,7 +433,7 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
   switch (domain_parms[idx].model)
     {
     case MPI_EC_WEIERSTRASS:
-    case MPI_EC_TWISTEDEDWARDS:
+    case MPI_EC_EDWARDS:
       break;
     case MPI_EC_MONTGOMERY:
       return GPG_ERR_NOT_SUPPORTED;
@@ -1038,7 +1054,7 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
       if (name[1] != '@')
         return _gcry_mpi_ec_ec2os (ec->Q, ec);
 
-      if (!strcmp (name+2, "eddsa") && ec->model == MPI_EC_TWISTEDEDWARDS)
+      if (!strcmp (name+2, "eddsa") && ec->model == MPI_EC_EDWARDS)
         {
           unsigned char *encpk;
           unsigned int encpklen;

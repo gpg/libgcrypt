@@ -643,7 +643,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
   if (!curvename)
     {
       sk.E.model = ((flags & PUBKEY_FLAG_EDDSA)
-               ? MPI_EC_TWISTEDEDWARDS
+               ? MPI_EC_EDWARDS
                : MPI_EC_WEIERSTRASS);
       sk.E.dialect = ((flags & PUBKEY_FLAG_EDDSA)
                       ? ECC_DIALECT_ED25519
@@ -775,7 +775,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (!curvename)
     {
       sk.E.model = ((ctx.flags & PUBKEY_FLAG_EDDSA)
-                    ? MPI_EC_TWISTEDEDWARDS
+                    ? MPI_EC_EDWARDS
                     : MPI_EC_WEIERSTRASS);
       sk.E.dialect = ((ctx.flags & PUBKEY_FLAG_EDDSA)
                       ? ECC_DIALECT_ED25519
@@ -939,7 +939,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   if (!curvename)
     {
       pk.E.model = ((sigflags & PUBKEY_FLAG_EDDSA)
-                    ? MPI_EC_TWISTEDEDWARDS
+                    ? MPI_EC_EDWARDS
                     : MPI_EC_WEIERSTRASS);
       pk.E.dialect = ((sigflags & PUBKEY_FLAG_EDDSA)
                       ? ECC_DIALECT_ED25519
@@ -1529,7 +1529,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
   if (!curvename)
     {
       model = ((flags & PUBKEY_FLAG_EDDSA)
-               ? MPI_EC_TWISTEDEDWARDS
+               ? MPI_EC_EDWARDS
                : MPI_EC_WEIERSTRASS);
       dialect = ((flags & PUBKEY_FLAG_EDDSA)
                  ? ECC_DIALECT_ED25519

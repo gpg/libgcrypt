@@ -239,13 +239,18 @@ void _gcry_mpi_snatch_point (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_t z,
 /* Models describing an elliptic curve.  */
 enum gcry_mpi_ec_models
   {
-
+    /* The Short Weierstrass equation is
+          y^2 = x^3 + ax + b
+     */
     MPI_EC_WEIERSTRASS = 0,
+    /* The Montgomery equation is
+          by^2 = x^3 + ax^2 + x
+     */
     MPI_EC_MONTGOMERY,
-    MPI_EC_TWISTEDEDWARDS
-    /* The equation for Twisted Edwards curves is
+    /* The Twisted Edwards equation is
           ax^2 + y^2 = 1 + bx^2y^2
        Note that we use 'b' instead of the commonly used 'd'.  */
+    MPI_EC_EDWARDS
   };
 
 /* Dialects used with elliptic curves.  It is easier to keep the

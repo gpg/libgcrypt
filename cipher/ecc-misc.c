@@ -79,7 +79,7 @@ _gcry_ecc_model2str (enum gcry_mpi_ec_models model)
     {
     case MPI_EC_WEIERSTRASS:    str = "Weierstrass"; break;
     case MPI_EC_MONTGOMERY:     str = "Montgomery";  break;
-    case MPI_EC_TWISTEDEDWARDS: str = "Twisted Edwards"; break;
+    case MPI_EC_EDWARDS:        str = "Edwards"; break;
     }
   return str;
 }
@@ -252,7 +252,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
 
   if (!d || !G || !ec->p || !ec->a)
     return NULL;
-  if (ec->model == MPI_EC_TWISTEDEDWARDS && !ec->b)
+  if (ec->model == MPI_EC_EDWARDS && !ec->b)
     return NULL;
 
   if (ec->dialect == ECC_DIALECT_ED25519

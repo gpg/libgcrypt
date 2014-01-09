@@ -605,7 +605,7 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
       }
       return -1;
 
-    case MPI_EC_TWISTEDEDWARDS:
+    case MPI_EC_EDWARDS:
       {
         gcry_mpi_t z;
 
@@ -725,7 +725,7 @@ dup_point_montgomery (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 
 /*  RESULT = 2 * POINT  (Twisted Edwards version). */
 static void
-dup_point_twistededwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
+dup_point_edwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 {
 #define X1 (point->x)
 #define Y1 (point->y)
@@ -811,8 +811,8 @@ _gcry_mpi_ec_dup_point (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
     case MPI_EC_MONTGOMERY:
       dup_point_montgomery (result, point, ctx);
       break;
-    case MPI_EC_TWISTEDEDWARDS:
-      dup_point_twistededwards (result, point, ctx);
+    case MPI_EC_EDWARDS:
+      dup_point_edwards (result, point, ctx);
       break;
     }
 }
@@ -977,9 +977,9 @@ add_points_montgomery (mpi_point_t result,
 
 /* RESULT = P1 + P2  (Twisted Edwards version).*/
 static void
-add_points_twistededwards (mpi_point_t result,
-                           mpi_point_t p1, mpi_point_t p2,
-                           mpi_ec_t ctx)
+add_points_edwards (mpi_point_t result,
+                    mpi_point_t p1, mpi_point_t p2,
+                    mpi_ec_t ctx)
 {
 #define X1 (p1->x)
 #define Y1 (p1->y)
@@ -1087,8 +1087,8 @@ _gcry_mpi_ec_add_points (mpi_point_t result,
     case MPI_EC_MONTGOMERY:
       add_points_montgomery (result, p1, p2, ctx);
       break;
-    case MPI_EC_TWISTEDEDWARDS:
-      add_points_twistededwards (result, p1, p2, ctx);
+    case MPI_EC_EDWARDS:
+      add_points_edwards (result, p1, p2, ctx);
       break;
     }
 }
@@ -1106,7 +1106,7 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   unsigned int i, loops;
   mpi_point_struct p1, p2, p1inv;
 
-  if (ctx->model == MPI_EC_TWISTEDEDWARDS)
+  if (ctx->model == MPI_EC_EDWARDS)
     {
       /* Simple left to right binary method.  GECC Algorithm 3.27 */
       unsigned int nbits;
@@ -1269,7 +1269,7 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
       log_fatal ("%s: %s not yet supported\n",
                  "_gcry_mpi_ec_curve_point", "Montgomery");
       break;
-    case MPI_EC_TWISTEDEDWARDS:
+    case MPI_EC_EDWARDS:
       {
         /* a · x^2 + y^2 - 1 - b · x^2 · y^2 == 0 */
         ec_pow2 (x, x, ctx);
