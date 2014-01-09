@@ -1,5 +1,6 @@
 /* ath.c - A Thread-safeness library.
  *  Copyright (C) 2002, 2003, 2004, 2011 Free Software Foundation, Inc.
+ *  Copyright (C) 2014 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -98,8 +99,12 @@ ath_init (void)
 #endif
   else
     {
+#if HAVE_W32_SYSTEM
+      thread_model = ath_model_w32;
+#else /*!HAVE_W32_SYSTEM*/
       /* Assume a single threaded application.  */
       thread_model = ath_model_none;
+#endif /*!HAVE_W32_SYSTEM*/
     }
 
   return err;
@@ -166,6 +171,10 @@ ath_install (struct ath_ops *ath_ops)
     }
   else if (thread_option == ATH_THREAD_OPTION_DEFAULT)
     return 0; /* No thread support requested.  */
+#if HAVE_W32_SYSTEM
+  else
+    return 0; /* It is always enabled.  */
+#endif /*HAVE_W32_SYSTEM*/
 
   return GPG_ERR_NOT_SUPPORTED;
 }
@@ -205,6 +214,24 @@ ath_mutex_init (ath_mutex_t *lock)
       }
       break;
 #endif /*USE_POSIX_THREADS_WEAK*/
+
+#if HAVE_W32_SYSTEM
+    case ath_model_w32:
+      {
+        CRITICAL_SECTION *csec;
+
+        csec = malloc (sizeof *csec);
+        if (!csec)
+          err = errno? errno : ENOMEM;
+        else
+          {
+            InitializeCriticalSection (csec);
+            *lock = (void*)csec;
+            err = 0;
+          }
+      }
+      break;
+#endif /*HAVE_W32_SYSTEM*/
 
     default:
       err = EINVAL;
@@ -253,6 +280,18 @@ ath_mutex_destroy (ath_mutex_t *lock)
       break;
 #endif /*USE_POSIX_THREADS_WEAK*/
 
+#if HAVE_W32_SYSTEM
+    case ath_model_w32:
+      {
+        CRITICAL_SECTION *csec = (CRITICAL_SECTION *)(*lock);
+
+        DeleteCriticalSection (csec);
+        free (csec);
+        err = 0;
+      }
+      break;
+#endif /*HAVE_W32_SYSTEM*/
+
     default:
       err = EINVAL;
       break;
@@ -289,6 +328,17 @@ ath_mutex_lock (ath_mutex_t *lock)
       break;
 #endif /*USE_POSIX_THREADS_WEAK*/
 
+#if HAVE_W32_SYSTEM
+    case ath_model_w32:
+      {
+        CRITICAL_SECTION *csec = (CRITICAL_SECTION *)(*lock);
+
+        EnterCriticalSection (csec);
+        err = 0;
+      }
+      break;
+#endif /*HAVE_W32_SYSTEM*/
+
     default:
       err = EINVAL;
       break;
@@ -323,6 +373,17 @@ ath_mutex_unlock (ath_mutex_t *lock)
       err = pthread_mutex_unlock ((pthread_mutex_t*)(*lock));
       break;
 #endif /*USE_POSIX_THREADS_WEAK*/
+
+#if HAVE_W32_SYSTEM
+    case ath_model_w32:
+      {
+        CRITICAL_SECTION *csec = (CRITICAL_SECTION *)(*lock);
+
+        LeaveCriticalSection (csec);
+        err = 0;
+      }
+      break;
+#endif /*HAVE_W32_SYSTEM*/
 
     default:
       err = EINVAL;

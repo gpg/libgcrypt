@@ -66,6 +66,8 @@ static gcry_handler_no_mem_t outofcore_handler;
 static void *outofcore_handler_value;
 static int no_secure_memory;
 
+/* Prototypes.  */
+static gpg_err_code_t external_lock_test (int cmd);
 
 
 
@@ -616,7 +618,8 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
         _gcry_random_deinit_external_test (ctx);
       }
       break;
-    case 61:  /* RFU */
+    case 61:  /* Run external lock test */
+      rc = external_lock_test (va_arg (arg_ptr, int));
       break;
     case 62:  /* RFU */
       break;
@@ -1116,4 +1119,49 @@ _gcry_set_progress_handler (void (*cb)(void *,const char*,int, int, int),
 #endif
   _gcry_register_primegen_progress (cb, cb_data);
   _gcry_register_random_progress (cb, cb_data);
+}
+
+
+
+/* This is a helper for the regression test suite to test Libgcrypt's locks.
+   It works using a one test lock with CMD controlling what to do:
+
+     30111 - Allocate and init lock
+     30112 - Take lock
+     30113 - Release lock
+     30114 - Destroy lock.
+
+   This function is used by tests/t-lock.c - it is not part of the
+   public API!
+ */
+static gpg_err_code_t
+external_lock_test (int cmd)
+{
+  static ath_mutex_t testlock;
+  gpg_err_code_t rc = 0;
+
+  switch (cmd)
+    {
+    case 30111:  /* Init Lock.  */
+      rc = ath_mutex_init (&testlock);
+      break;
+
+    case 30112:  /* Take Lock.  */
+      rc = ath_mutex_lock (&testlock);
+      break;
+
+    case 30113:  /* Release Lock.  */
+      rc = ath_mutex_unlock (&testlock);
+      break;
+
+    case 30114:  /* Destroy Lock.  */
+      rc = ath_mutex_destroy (&testlock);
+      break;
+
+    default:
+      rc = GPG_ERR_INV_OP;
+      break;
+    }
+
+  return rc;
 }
