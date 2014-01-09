@@ -8,10 +8,13 @@ Noteworthy changes in version 1.7.0 (unreleased)
 
  * Support curves GOST R 34.10-2001 and GOST R 34.10-2012.
 
+ * Add emulation from broken Whirlpool code prior to 1.6.0.
+
  * Interface changes relative to the 1.6.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_mac_get_algo               NEW.
  GCRY_MAC_HMAC_MD2               NEW.
+ GCRY_MD_FLAG_BUGEMU1            NEW.
 
 
 Noteworthy changes in version 1.6.0 (2013-12-16)

@@ -4046,6 +4046,7 @@ check_digests (void)
 #endif
       {	0 }
     };
+  gcry_error_t err;
   int i;
 
   if (verbose)
@@ -4074,6 +4075,58 @@ check_digests (void)
                           algos[i].expect);
     }
 
+  /* Check the Whirlpool bug emulation.  */
+  if (!gcry_md_test_algo (GCRY_MD_WHIRLPOOL) && !in_fips_mode)
+    {
+      static const char expect[] =
+        "\x35\x28\xd6\x4c\x56\x2c\x55\x2e\x3b\x91\x93\x95\x7b\xdd\xcc\x6e"
+        "\x6f\xb7\xbf\x76\x22\x9c\xc6\x23\xda\x3e\x09\x9b\x36\xe8\x6d\x76"
+        "\x2f\x94\x3b\x0c\x63\xa0\xba\xa3\x4d\x66\x71\xe6\x5d\x26\x67\x28"
+        "\x36\x1f\x0e\x1a\x40\xf0\xce\x83\x50\x90\x1f\xfa\x3f\xed\x6f\xfd";
+      gcry_md_hd_t hd;
+      int algo = GCRY_MD_WHIRLPOOL;
+      unsigned char *p;
+      int mdlen;
+
+      err = gcry_md_open (&hd, GCRY_MD_WHIRLPOOL, GCRY_MD_FLAG_BUGEMU1);
+      if (err)
+        {
+          fail ("algo %d, gcry_md_open failed: %s\n", algo, gpg_strerror (err));
+          goto leave;
+        }
+
+      mdlen = gcry_md_get_algo_dlen (algo);
+      if (mdlen < 1 || mdlen > 500)
+        {
+          fail ("algo %d, gcry_md_get_algo_dlen failed: %d\n", algo, mdlen);
+          gcry_md_close (hd);
+          goto leave;
+        }
+
+      /* Hash 62 byes in chunks.  */
+      gcry_md_write (hd, "1234567890", 10);
+      gcry_md_write (hd, "1234567890123456789012345678901234567890123456789012",
+                     52);
+
+      p = gcry_md_read (hd, algo);
+
+      if (memcmp (p, expect, mdlen))
+        {
+          printf ("computed: ");
+          for (i = 0; i < mdlen; i++)
+            printf ("%02x ", p[i] & 0xFF);
+          printf ("\nexpected: ");
+          for (i = 0; i < mdlen; i++)
+            printf ("%02x ", expect[i] & 0xFF);
+          printf ("\n");
+
+          fail ("algo %d, digest mismatch\n", algo);
+        }
+
+      gcry_md_close (hd);
+    }
+
+ leave:
   if (verbose)
     fprintf (stderr, "Completed hash checks.\n");
 }

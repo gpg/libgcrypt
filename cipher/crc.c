@@ -149,9 +149,12 @@ CRC_CONTEXT;
 /* CRC32 */
 
 static void
-crc32_init (void *context)
+crc32_init (void *context, unsigned int flags)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
+
+  (void)flags;
+
   ctx->CRC = 0 ^ 0xffffffffL;
 }
 
@@ -184,9 +187,12 @@ crc32_final (void *context)
 
 /* CRC32 a'la RFC 1510 */
 static void
-crc32rfc1510_init (void *context)
+crc32rfc1510_init (void *context, unsigned int flags)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
+
+  (void)flags;
+
   ctx->CRC = 0;
 }
 
@@ -237,9 +243,12 @@ crc32rfc1510_final (void *context)
 #define CRC24_POLY 0x1864cfbL
 
 static void
-crc24rfc2440_init (void *context)
+crc24rfc2440_init (void *context, unsigned int flags)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
+
+  (void)flags;
+
   ctx->CRC = CRC24_INIT;
 }
 

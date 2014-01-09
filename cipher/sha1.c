@@ -106,10 +106,12 @@ transform (void *c, const unsigned char *data, size_t nblks);
 
 
 static void
-sha1_init (void *context)
+sha1_init (void *context, unsigned int flags)
 {
   SHA1_CONTEXT *hd = context;
   unsigned int features = _gcry_get_hw_features ();
+
+  (void)flags;
 
   hd->h0 = 0x67452301;
   hd->h1 = 0xefcdab89;
@@ -425,7 +427,7 @@ _gcry_sha1_hash_buffer (void *outbuf, const void *buffer, size_t length)
 {
   SHA1_CONTEXT hd;
 
-  sha1_init (&hd);
+  sha1_init (&hd, 0);
   _gcry_md_block_write (&hd, buffer, length);
   sha1_final (&hd);
   memcpy (outbuf, hd.bctx.buf, 20);
@@ -438,7 +440,7 @@ _gcry_sha1_hash_buffers (void *outbuf, const gcry_buffer_t *iov, int iovcnt)
 {
   SHA1_CONTEXT hd;
 
-  sha1_init (&hd);
+  sha1_init (&hd, 0);
   for (;iovcnt > 0; iov++, iovcnt--)
     _gcry_md_block_write (&hd,
                           (const char*)iov[0].data + iov[0].off, iov[0].len);

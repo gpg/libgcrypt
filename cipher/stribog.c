@@ -1198,9 +1198,11 @@ transform (void *context, const unsigned char *inbuf_arg, size_t datalen);
 
 
 static void
-stribog_init_512 (void *context)
+stribog_init_512 (void *context, unsigned int flags)
 {
   STRIBOG_CONTEXT *hd = context;
+
+  (void)flags;
 
   memset (hd, 0, sizeof (*hd));
 
@@ -1209,10 +1211,11 @@ stribog_init_512 (void *context)
 }
 
 static void
-stribog_init_256 (void *context)
+stribog_init_256 (void *context, unsigned int flags)
 {
   STRIBOG_CONTEXT *hd = context;
-  stribog_init_512 (context);
+
+  stribog_init_512 (context, flags);
   memset (hd->h, 1, 64);
 }
 

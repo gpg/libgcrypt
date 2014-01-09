@@ -54,6 +54,11 @@ typedef u64 whirlpool_block_t[BLOCK_SIZE / 8];
 typedef struct {
   gcry_md_block_ctx_t bctx;
   whirlpool_block_t hash_state;
+  int use_bugemu;
+  struct {
+    size_t count;
+    unsigned char length[32];
+  } bugemu;
 } whirlpool_context_t;
 
 
@@ -1166,7 +1171,7 @@ whirlpool_transform (void *ctx, const unsigned char *data, size_t nblks);
 
 
 static void
-whirlpool_init (void *ctx)
+whirlpool_init (void *ctx, unsigned int flags)
 {
   whirlpool_context_t *context = ctx;
 
@@ -1174,7 +1179,15 @@ whirlpool_init (void *ctx)
 
   context->bctx.blocksize = BLOCK_SIZE;
   context->bctx.bwrite = whirlpool_transform;
+  if ((flags & GCRY_MD_FLAG_BUGEMU1))
+    {
+      memset (&context->bugemu, 0, sizeof context->bugemu);
+      context->use_bugemu = 1;
+    }
+  else
+    context->use_bugemu = 0;
 }
+
 
 
 /*
@@ -1295,15 +1308,120 @@ whirlpool_transform ( void *c, const unsigned char *data, size_t nblks )
   return burn;
 }
 
+
+/* Bug compatibility Whirlpool version.  */
+static void
+whirlpool_add_bugemu (whirlpool_context_t *context,
+                      const void *buffer_arg, size_t buffer_n)
+{
+  const unsigned char *buffer = buffer_arg;
+  u64 buffer_size;
+  unsigned int carry;
+  unsigned int i;
+
+  buffer_size = buffer_n;
+
+  if (context->bugemu.count == BLOCK_SIZE)
+    {
+      /* Flush the buffer.  */
+      whirlpool_transform (context, context->bctx.buf, 1);
+      context->bugemu.count = 0;
+    }
+  if (! buffer)
+    return; /* Nothing to add.  */
+
+  if (context->bugemu.count)
+    {
+      while (buffer_n && (context->bugemu.count < BLOCK_SIZE))
+	{
+	  context->bctx.buf[context->bugemu.count++] = *buffer++;
+	  buffer_n--;
+	}
+      whirlpool_add_bugemu (context, NULL, 0);
+      if (!buffer_n)
+        return; /* Done.  This is the bug we emulate.  */
+    }
+
+  while (buffer_n >= BLOCK_SIZE)
+    {
+      whirlpool_transform (context, buffer, 1);
+      context->bugemu.count = 0;
+      buffer_n -= BLOCK_SIZE;
+      buffer += BLOCK_SIZE;
+    }
+  while (buffer_n && (context->bugemu.count < BLOCK_SIZE))
+    {
+      context->bctx.buf[context->bugemu.count++] = *buffer++;
+      buffer_n--;
+    }
+
+  /* Update bit counter.  */
+  carry = 0;
+  buffer_size <<= 3;
+  for (i = 1; i <= 32; i++)
+    {
+      if (! (buffer_size || carry))
+	break;
+
+      carry += context->bugemu.length[32 - i] + (buffer_size & 0xFF);
+      context->bugemu.length[32 - i] = carry;
+      buffer_size >>= 8;
+      carry >>= 8;
+    }
+  gcry_assert (! (buffer_size || carry));
+}
+
+
+/* Bug compatibility Whirlpool version.  */
+static void
+whirlpool_final_bugemu (void *ctx)
+{
+  whirlpool_context_t *context = ctx;
+  unsigned int i;
+
+  /* Flush.  */
+  whirlpool_add_bugemu (context, NULL, 0);
+
+  /* Pad.  */
+  context->bctx.buf[context->bugemu.count++] = 0x80;
+
+  if (context->bugemu.count > 32)
+    {
+      /* An extra block is necessary.  */
+      while (context->bugemu.count < 64)
+	context->bctx.buf[context->bugemu.count++] = 0;
+      whirlpool_add_bugemu (context, NULL, 0);
+    }
+  while (context->bugemu.count < 32)
+    context->bctx.buf[context->bugemu.count++] = 0;
+
+  /* Add length of message.  */
+  memcpy (context->bctx.buf + context->bugemu.count,
+          context->bugemu.length, 32);
+  context->bugemu.count += 32;
+  whirlpool_add_bugemu (context, NULL, 0);
+
+  block_to_buffer (context->bctx.buf, context->hash_state, i);
+}
+
+
 static void
 whirlpool_write (void *ctx, const void *buffer, size_t buffer_n)
 {
   whirlpool_context_t *context = ctx;
-  u64 old_nblocks = context->bctx.nblocks;
 
-  _gcry_md_block_write (context, buffer, buffer_n);
+  if (context->use_bugemu)
+    {
+      whirlpool_add_bugemu (context, buffer, buffer_n);
+    }
+  else
+    {
+      u64 old_nblocks = context->bctx.nblocks;
 
-  gcry_assert (old_nblocks <= context->bctx.nblocks);
+      _gcry_md_block_write (context, buffer, buffer_n);
+
+      gcry_assert (old_nblocks <= context->bctx.nblocks);
+    }
 }
 
 static void
@@ -1313,6 +1431,12 @@ whirlpool_final (void *ctx)
   unsigned int i;
   u64 t, th, lsb, msb;
   unsigned char *length;
+
+  if (context->use_bugemu)
+    {
+      whirlpool_final_bugemu (ctx);
+      return;
+    }
 
   t = context->bctx.nblocks;
   /* if (sizeof t == sizeof context->bctx.nblocks) */

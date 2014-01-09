@@ -92,10 +92,12 @@ transform (void *c, const unsigned char *data, size_t nblks);
 
 
 static void
-sha256_init (void *context)
+sha256_init (void *context, unsigned int flags)
 {
   SHA256_CONTEXT *hd = context;
   unsigned int features = _gcry_get_hw_features ();
+
+  (void)flags;
 
   hd->h0 = 0x6a09e667;
   hd->h1 = 0xbb67ae85;
@@ -128,10 +130,12 @@ sha256_init (void *context)
 
 
 static void
-sha224_init (void *context)
+sha224_init (void *context, unsigned int flags)
 {
   SHA256_CONTEXT *hd = context;
   unsigned int features = _gcry_get_hw_features ();
+
+  (void)flags;
 
   hd->h0 = 0xc1059ed8;
   hd->h1 = 0x367cd507;
