@@ -35,13 +35,12 @@
 #include "g10lib.h"
 #include "random.h"
 #include "rand-internal.h"
-#include "ath.h"
 
 /* This is the lock we use to serialize access to this RNG.  The extra
    integer variable is only used to check the locking state; that is,
    it is not meant to be thread-safe but merely as a failsafe feature
    to assert proper locking.  */
-static ath_mutex_t system_rng_lock;
+GPGRT_LOCK_DEFINE (system_rng_lock);
 static int system_rng_is_locked;
 
 
@@ -58,16 +57,11 @@ static void
 basic_initialization (void)
 {
   static int initialized;
-  int my_errno;
 
   if (initialized)
     return;
   initialized = 1;
 
-  my_errno = ath_mutex_init (&system_rng_lock);
-  if (my_errno)
-    log_fatal ("failed to create the System RNG lock: %s\n",
-               strerror (my_errno));
   system_rng_is_locked = 0;
 
   /* Make sure that we are still using the values we traditionally
@@ -83,12 +77,12 @@ basic_initialization (void)
 static void
 lock_rng (void)
 {
-  int my_errno;
+  gpg_err_code_t rc;
 
-  my_errno = ath_mutex_lock (&system_rng_lock);
-  if (my_errno)
+  rc = gpgrt_lock_lock (&system_rng_lock);
+  if (rc)
     log_fatal ("failed to acquire the System RNG lock: %s\n",
-               strerror (my_errno));
+               gpg_strerror (rc));
   system_rng_is_locked = 1;
 }
 
@@ -97,13 +91,13 @@ lock_rng (void)
 static void
 unlock_rng (void)
 {
-  int my_errno;
+  gpg_err_code_t rc;
 
   system_rng_is_locked = 0;
-  my_errno = ath_mutex_unlock (&system_rng_lock);
-  if (my_errno)
+  rc = gpgrt_lock_unlock (&system_rng_lock);
+  if (rc)
     log_fatal ("failed to release the System RNG lock: %s\n",
-               strerror (my_errno));
+               gpg_strerror (rc));
 }
 
 

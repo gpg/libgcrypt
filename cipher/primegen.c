@@ -29,7 +29,6 @@
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
-#include "ath.h"
 
 static gcry_mpi_t gen_prime (unsigned int nbits, int secret, int randomlevel,
                              int (*extra_check)(void *, gcry_mpi_t),
@@ -141,18 +140,15 @@ struct primepool_s
 };
 struct primepool_s *primepool;
 /* Mutex used to protect access to the primepool.  */
-static ath_mutex_t primepool_lock;
+GPGRT_LOCK_DEFINE (primepool_lock);
 
 
 gcry_err_code_t
 _gcry_primegen_init (void)
 {
-  gcry_err_code_t ec;
-
-  ec = ath_mutex_init (&primepool_lock);
-  if (ec)
-    return gpg_err_code_from_errno (ec);
-  return ec;
+  /* This function was formerly used to initialize the primepool
+     Mutex. This has been replace by a static initialization.  */
+  return 0;
 }
 
 
@@ -446,12 +442,11 @@ prime_generate_internal (int need_q_factor,
               goto leave;
             }
 
-          if (ath_mutex_lock (&primepool_lock))
-            {
-              err = GPG_ERR_INTERNAL;
-              goto leave;
-            }
+          err = gpgrt_lock_lock (&primepool_lock);
+          if (err)
+            goto leave;
           is_locked = 1;
+
           for (i = 0; i < n; i++)
             {
               perms[i] = 1;
@@ -470,11 +465,9 @@ prime_generate_internal (int need_q_factor,
                   pool[i] = get_pool_prime (fbits, poolrandomlevel);
                   if (!pool[i])
                     {
-                      if (ath_mutex_unlock (&primepool_lock))
-                        {
-                          err = GPG_ERR_INTERNAL;
-                          goto leave;
-                        }
+                      err = gpgrt_lock_unlock (&primepool_lock);
+                      if (err)
+                        goto leave;
                       is_locked = 0;
                     }
                 }
@@ -483,23 +476,20 @@ prime_generate_internal (int need_q_factor,
               pool_in_use[i] = i;
               factors[i] = pool[i];
             }
-          if (is_locked && ath_mutex_unlock (&primepool_lock))
-            {
-              err = GPG_ERR_INTERNAL;
-              goto leave;
-            }
+
+          if (is_locked && (err = gpgrt_lock_unlock (&primepool_lock)))
+            goto leave;
           is_locked = 0;
         }
       else
         {
           /* Get next permutation. */
           m_out_of_n ( (char*)perms, n, m);
-          if (ath_mutex_lock (&primepool_lock))
-            {
-              err = GPG_ERR_INTERNAL;
-              goto leave;
-            }
+
+          if ((err = gpgrt_lock_lock (&primepool_lock)))
+            goto leave;
           is_locked = 1;
+
           for (i = j = 0; (i < m) && (j < n); i++)
             if (perms[i])
               {
@@ -509,11 +499,8 @@ prime_generate_internal (int need_q_factor,
                     pool[i] = get_pool_prime (fbits, poolrandomlevel);
                     if (!pool[i])
                       {
-                        if (ath_mutex_unlock (&primepool_lock))
-                          {
-                            err = GPG_ERR_INTERNAL;
-                            goto leave;
-                          }
+                        if ((err = gpgrt_lock_unlock (&primepool_lock)))
+                          goto leave;
                         is_locked = 0;
                       }
                   }
@@ -522,12 +509,11 @@ prime_generate_internal (int need_q_factor,
                 pool_in_use[j] = i;
                 factors[j++] = pool[i];
               }
-          if (is_locked && ath_mutex_unlock (&primepool_lock))
-            {
-              err = GPG_ERR_INTERNAL;
-              goto leave;
-            }
+
+          if (is_locked && (err = gpgrt_lock_unlock (&primepool_lock)))
+            goto leave;
           is_locked = 0;
+
           if (i == n)
             {
               /* Ran out of permutations: Allocate new primes.  */
@@ -686,7 +672,7 @@ prime_generate_internal (int need_q_factor,
  leave:
   if (pool)
     {
-      is_locked = !ath_mutex_lock (&primepool_lock);
+      is_locked = !gpgrt_lock_lock (&primepool_lock);
       for(i = 0; i < m; i++)
         {
           if (pool[i])
@@ -703,8 +689,8 @@ prime_generate_internal (int need_q_factor,
                 mpi_free (pool[i]);
             }
         }
-      if (is_locked && ath_mutex_unlock (&primepool_lock))
-        err = GPG_ERR_INTERNAL;
+      if (is_locked)
+        err = gpgrt_lock_unlock (&primepool_lock);
       is_locked = 0;
       xfree (pool);
     }

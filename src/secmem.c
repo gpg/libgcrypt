@@ -37,7 +37,6 @@
 #endif
 #endif
 
-#include "ath.h"
 #include "g10lib.h"
 #include "secmem.h"
 
@@ -86,11 +85,11 @@ static int no_priv_drop;
 static unsigned int cur_alloced, cur_blocks;
 
 /* Lock protecting accesses to the memory pool.  */
-static ath_mutex_t secmem_lock;
+GPGRT_LOCK_DEFINE (secmem_lock);
 
 /* Convenient macros.  */
-#define SECMEM_LOCK   ath_mutex_lock   (&secmem_lock)
-#define SECMEM_UNLOCK ath_mutex_unlock (&secmem_lock)
+#define SECMEM_LOCK   gpgrt_lock_lock   (&secmem_lock)
+#define SECMEM_UNLOCK gpgrt_lock_unlock (&secmem_lock)
 
 /* The size of the memblock structure; this does not include the
    memory that is available to the user.  */
@@ -536,12 +535,7 @@ _gcry_secmem_init (size_t n)
 gcry_err_code_t
 _gcry_secmem_module_init ()
 {
-  int err;
-
-  err = ath_mutex_init (&secmem_lock);
-  if (err)
-    log_fatal ("could not allocate secmem lock\n");
-
+  /* No anymore needed.  */
   return 0;
 }
 

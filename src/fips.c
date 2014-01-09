@@ -31,7 +31,6 @@
 #endif /*HAVE_SYSLOG*/
 
 #include "g10lib.h"
-#include "ath.h"
 #include "cipher-proto.h"
 #include "hmac256.h"
 
@@ -69,7 +68,7 @@ static int enforced_fips_mode;
 static int inactive_fips_mode;
 
 /* This is the lock we use to protect the FSM.  */
-static ath_mutex_t fsm_lock;
+GPGRT_LOCK_DEFINE (fsm_lock);
 
 /* The current state of the FSM.  The whole state machinery is only
    used while in fips mode. Change this only while holding fsm_lock. */
@@ -181,18 +180,18 @@ _gcry_initialize_fips_mode (int force)
       FILE *fp;
 
       /* Intitialize the lock to protect the FSM.  */
-      err = ath_mutex_init (&fsm_lock);
+      err = gpgrt_lock_init (&fsm_lock);
       if (err)
         {
           /* If that fails we can't do anything but abort the
              process. We need to use log_info so that the FSM won't
              get involved.  */
           log_info ("FATAL: failed to create the FSM lock in libgcrypt: %s\n",
-                     strerror (err));
+                    gpg_strerror (err));
 #ifdef HAVE_SYSLOG
           syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
                   "creating FSM lock failed: %s - abort",
-                  strerror (err));
+                  gpg_strerror (err));
 #endif /*HAVE_SYSLOG*/
           abort ();
         }
@@ -222,15 +221,15 @@ lock_fsm (void)
 {
   gpg_error_t err;
 
-  err = ath_mutex_lock (&fsm_lock);
+  err = gpgrt_lock_lock (&fsm_lock);
   if (err)
     {
       log_info ("FATAL: failed to acquire the FSM lock in libgrypt: %s\n",
-                strerror (err));
+                gpg_strerror (err));
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
               "acquiring FSM lock failed: %s - abort",
-              strerror (err));
+              gpg_strerror (err));
 #endif /*HAVE_SYSLOG*/
       abort ();
     }
@@ -241,15 +240,15 @@ unlock_fsm (void)
 {
   gpg_error_t err;
 
-  err = ath_mutex_unlock (&fsm_lock);
+  err = gpgrt_lock_unlock (&fsm_lock);
   if (err)
     {
       log_info ("FATAL: failed to release the FSM lock in libgrypt: %s\n",
-                strerror (err));
+                gpg_strerror (err));
 #ifdef HAVE_SYSLOG
       syslog (LOG_USER|LOG_ERR, "Libgcrypt error: "
               "releasing FSM lock failed: %s - abort",
-              strerror (err));
+              gpg_strerror (err));
 #endif /*HAVE_SYSLOG*/
       abort ();
     }

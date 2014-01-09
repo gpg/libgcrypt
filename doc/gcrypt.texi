@@ -188,8 +188,8 @@ the same handle, he has to take care of the serialization of such
 functions himself.  If not described otherwise, every function is
 thread-safe.
 
-Libgcrypt depends on the library `libgpg-error', which
-contains common error handling related code for GnuPG components.
+Libgcrypt depends on the library `libgpg-error', which contains some
+common code used by other GnuPG components.
 
 @c **********************************************************
 @c *******************  Preparation  ************************
@@ -343,8 +343,7 @@ after program startup.
 
 The function @code{gcry_check_version} initializes some subsystems used
 by Libgcrypt and must be invoked before any other function in the
-library, with the exception of the @code{GCRYCTL_SET_THREAD_CBS} command
-(called via the @code{gcry_control} function).
+library.
 @xref{Multi-Threading}.
 
 Furthermore, this function returns the version number of the library.
@@ -450,51 +449,16 @@ thread-safe if you adhere to the following requirements:
 
 @itemize @bullet
 @item
-If your application is multi-threaded, you must set the thread support
-callbacks with the @code{GCRYCTL_SET_THREAD_CBS} command
-@strong{before} any other function in the library.
-
-This is easy enough if you are indeed writing an application using
-Libgcrypt.  It is rather problematic if you are writing a library
-instead.  Here are some tips what to do if you are writing a library:
-
-If your library requires a certain thread package, just initialize
-Libgcrypt to use this thread package.  If your library supports multiple
-thread packages, but needs to be configured, you will have to
-implement a way to determine which thread package the application
-wants to use with your library anyway.  Then configure Libgcrypt to use
-this thread package.
-
-If your library is fully reentrant without any special support by a
-thread package, then you are lucky indeed.  Unfortunately, this does
-not relieve you from doing either of the two above, or use a third
-option.  The third option is to let the application initialize Libgcrypt
-for you.  Then you are not using Libgcrypt transparently, though.
-
-As if this was not difficult enough, a conflict may arise if two
-libraries try to initialize Libgcrypt independently of each others, and
-both such libraries are then linked into the same application.  To
-make it a bit simpler for you, this will probably work, but only if
-both libraries have the same requirement for the thread package.  This
-is currently only supported for the non-threaded case, GNU Pth and
-pthread.
-
 If you use pthread and your applications forks and does not directly
 call exec (even calling stdio functions), all kind of problems may
 occur.  Future versions of Libgcrypt will try to cleanup using
 pthread_atfork but even that may lead to problems.  This is a common
 problem with almost all applications using pthread and fork.
 
-Note that future versions of Libgcrypt will drop this flexible thread
-support and instead only support the platforms standard thread
-implementation.
-
 
 @item
 The function @code{gcry_check_version} must be called before any other
-function in the library, except the @code{GCRYCTL_SET_THREAD_CBS}
-command (called via the @code{gcry_control} function), because it
-initializes the thread support subsystem in Libgcrypt.  To
+function in the library.  To
 achieve this in multi-threaded programs, you must synchronize the
 memory with respect to other threads that also want to use
 Libgcrypt.  For this, it is sufficient to call
@@ -513,52 +477,6 @@ Just like the function @code{gpg_strerror}, the function
 @code{gpg_strerror_r} instead.
 
 @end itemize
-
-
-Libgcrypt contains convenient macros, which define the
-necessary thread callbacks for PThread and for GNU Pth:
-
-@table @code
-@item GCRY_THREAD_OPTION_PTH_IMPL
-
-This macro defines the following (static) symbols:
-@code{gcry_pth_init}, @code{gcry_pth_mutex_init},
-@code{gcry_pth_mutex_destroy}, @code{gcry_pth_mutex_lock},
-@code{gcry_pth_mutex_unlock}, @code{gcry_pth_read},
-@code{gcry_pth_write}, @code{gcry_pth_select},
-@code{gcry_pth_waitpid}, @code{gcry_pth_accept},
-@code{gcry_pth_connect}, @code{gcry_threads_pth}.
-
-After including this macro, @code{gcry_control()} shall be used with a
-command of @code{GCRYCTL_SET_THREAD_CBS} in order to register the
-thread callback structure named ``gcry_threads_pth''.  Example:
-
-@smallexample
-  ret = gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pth);
-@end smallexample
-
-
-@item GCRY_THREAD_OPTION_PTHREAD_IMPL
-
-This macro defines the following (static) symbols:
-@code{gcry_pthread_mutex_init}, @code{gcry_pthread_mutex_destroy},
-@code{gcry_pthread_mutex_lock}, @code{gcry_pthread_mutex_unlock},
-@code{gcry_threads_pthread}.
-
-After including this macro, @code{gcry_control()} shall be used with a
-command of @code{GCRYCTL_SET_THREAD_CBS} in order to register the
-thread callback structure named ``gcry_threads_pthread''.  Example:
-
-@smallexample
-  ret = gcry_control (GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-@end smallexample
-
-
-@end table
-
-Note that these macros need to be terminated with a semicolon.  Keep
-in mind that these are convenient macros for C programmers; C++
-programmers might have to wrap these macros in an ``extern C'' body.
 
 
 @node Enabling FIPS mode
@@ -863,8 +781,7 @@ This command returns true if the command@*
 GCRYCTL_INITIALIZATION_FINISHED has already been run.
 
 @item GCRYCTL_SET_THREAD_CBS; Arguments: struct ath_ops *ath_ops
-This command registers a thread-callback structure.
-@xref{Multi-Threading}.
+This command is obsolete since version 1.6.
 
 @item GCRYCTL_FAST_POLL; Arguments: none
 Run a fast random poll.
@@ -2762,7 +2679,7 @@ operations.  @var{cmd} controls what is to be done. The return value is
 Disable the algorithm given as an algorithm id in @var{buffer}.
 @var{buffer} must point to an @code{int} variable with the algorithm
 id and @var{buflen} must have the value @code{sizeof (int)}.  This
-fucntion is not thread safe and should thus be used before any other
+function is not thread safe and should thus be used before any other
 threads are started.
 
 @end table

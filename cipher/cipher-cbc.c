@@ -26,7 +26,6 @@
 
 #include "g10lib.h"
 #include "cipher.h"
-#include "ath.h"
 #include "./cipher-internal.h"
 #include "bufhelp.h"
 

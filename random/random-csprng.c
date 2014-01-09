@@ -60,7 +60,6 @@
 #include "random.h"
 #include "rand-internal.h"
 #include "cipher.h" /* Required for the rmd160_hash_buffer() prototype.  */
-#include "ath.h"
 
 #ifndef RAND_MAX   /* For SunOS. */
 #define RAND_MAX 32767
@@ -181,7 +180,7 @@ static int quick_test;
 static int faked_rng;
 
 /* This is the lock we use to protect all pool operations.  */
-static ath_mutex_t pool_lock;
+GPGRT_LOCK_DEFINE (pool_lock);
 
 /* This is a helper for assert calls.  These calls are used to assert
    that functions are called in a locked state.  It is not meant to be
@@ -259,14 +258,10 @@ static void
 initialize_basics(void)
 {
   static int initialized;
-  int err;
 
   if (!initialized)
     {
       initialized = 1;
-      err = ath_mutex_init (&pool_lock);
-      if (err)
-        log_fatal ("failed to create the pool lock: %s\n", strerror (err) );
 
 #ifdef USE_RANDOM_DAEMON
       _gcry_daemon_initialize_basics ();
@@ -286,9 +281,9 @@ lock_pool (void)
 {
   int err;
 
-  err = ath_mutex_lock (&pool_lock);
+  err = gpgrt_lock_lock (&pool_lock);
   if (err)
-    log_fatal ("failed to acquire the pool lock: %s\n", strerror (err));
+    log_fatal ("failed to acquire the pool lock: %s\n", gpg_strerror (err));
   pool_is_locked = 1;
 }
 
@@ -299,9 +294,9 @@ unlock_pool (void)
   int err;
 
   pool_is_locked = 0;
-  err = ath_mutex_unlock (&pool_lock);
+  err = gpgrt_lock_unlock (&pool_lock);
   if (err)
-    log_fatal ("failed to release the pool lock: %s\n", strerror (err));
+    log_fatal ("failed to release the pool lock: %s\n", gpg_strerror (err));
 }
 
 

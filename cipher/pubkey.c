@@ -28,7 +28,6 @@
 #include "g10lib.h"
 #include "mpi.h"
 #include "cipher.h"
-#include "ath.h"
 #include "context.h"
 #include "pubkey-internal.h"
 

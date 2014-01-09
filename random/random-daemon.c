@@ -28,8 +28,6 @@
    sensitive data.
  */
 
-#error This dameon needs to be fixed due to the ath changes
-
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +40,6 @@
 
 #include "g10lib.h"
 #include "random.h"
-#include "ath.h"
 
 
 
@@ -51,7 +48,7 @@
 #define RANDOM_DAEMON_SOCKET "/var/run/libgcrypt/S.gcryptrnd"
 
 /* The lock serializing access to the daemon.  */
-static ath_mutex_t daemon_lock = ATH_MUTEX_INITIALIZER;
+GPGRT_LOCK_DEFINE (daemon_lock);
 
 /* The socket connected to the daemon.  */
 static int daemon_socket = -1;
@@ -129,16 +126,7 @@ connect_to_socket (const char *socketname, int *sock)
 void
 _gcry_daemon_initialize_basics (void)
 {
-  static int initialized;
-  int err;
-
-  if (!initialized)
-    {
-      initialized = 1;
-      err = ath_mutex_init (&daemon_lock);
-      if (err)
-        log_fatal ("failed to create the daemon lock: %s\n", strerror (err) );
-    }
+  /* Not anymore required.  */
 }
 
 
@@ -213,7 +201,7 @@ call_daemon (const char *socketname,
   if (!req_nbytes)
     return 0;
 
-  ath_mutex_lock (&daemon_lock);
+  gpgrt_lock_lock (&daemon_lock);
 
   /* Open the socket if that has not been done. */
   if (!initialized)
@@ -225,7 +213,7 @@ call_daemon (const char *socketname,
         {
           daemon_socket = -1;
           log_info ("not using random daemon\n");
-          ath_mutex_unlock (&daemon_lock);
+          gpgrt_lock_unlock (&daemon_lock);
           return err;
         }
     }
@@ -233,7 +221,7 @@ call_daemon (const char *socketname,
   /* Check that we have a valid socket descriptor. */
   if ( daemon_socket == -1 )
     {
-      ath_mutex_unlock (&daemon_lock);
+      gpgrt_lock_unlock (&daemon_lock);
       return gcry_error (GPG_ERR_INTERNAL);
     }
 
@@ -325,7 +313,7 @@ call_daemon (const char *socketname,
     }
   while (req_nbytes);
 
-  ath_mutex_unlock (&daemon_lock);
+  gpgrt_lock_unlock (&daemon_lock);
 
   return err;
 }

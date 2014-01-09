@@ -67,7 +67,7 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 
 # If you change the required gpg-error version, please remove
 # unnecessary error code defines in src/gcrypt-int.h.
-NEED_GPG_ERROR_VERSION=1.11
+NEED_GPG_ERROR_VERSION=1.13
 
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
@@ -733,11 +733,6 @@ if test "$have_pthread" = yes; then
    AC_DEFINE(HAVE_PTHREAD, ,[Define if we have pthread.])
 fi
 
-#
-# See which thread system we have
-# FIXME: Thus duplicates the above check.
-#
-gl_LOCK
 
 # Solaris needs -lsocket and -lnsl. Unisys system includes
 # gethostbyname in libsocket but needs libnsl for socket.

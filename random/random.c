@@ -34,7 +34,6 @@
 #include "random.h"
 #include "rand-internal.h"
 #include "cipher.h"         /* For _gcry_sha1_hash_buffer().  */
-#include "ath.h"
 
 
 /* If not NULL a progress function called from certain places and the
@@ -54,7 +53,7 @@ static struct
 
 /* This is the lock we use to protect the buffer used by the nonce
    generation.  */
-static ath_mutex_t nonce_buffer_lock;
+GPGRT_LOCK_DEFINE (nonce_buffer_lock);
 
 
 
@@ -140,18 +139,6 @@ _gcry_set_preferred_rng_type (int type)
 void
 _gcry_random_initialize (int full)
 {
-  static int nonce_initialized;
-  int err;
-
-  if (!nonce_initialized)
-    {
-      nonce_initialized = 1;
-      err = ath_mutex_init (&nonce_buffer_lock);
-      if (err)
-        log_fatal ("failed to create the nonce buffer lock: %s\n",
-                   strerror (err) );
-    }
-
   if (fips_mode ())
     _gcry_rngfips_initialize (full);
   else if (rng_types.standard)
@@ -450,10 +437,10 @@ _gcry_create_nonce (void *buffer, size_t length)
   _gcry_random_initialize (1);
 
   /* Acquire the nonce buffer lock. */
-  err = ath_mutex_lock (&nonce_buffer_lock);
+  err = gpgrt_lock_lock (&nonce_buffer_lock);
   if (err)
     log_fatal ("failed to acquire the nonce buffer lock: %s\n",
-               strerror (err));
+               gpg_strerror (err));
 
   apid = getpid ();
   /* The first time initialize our buffer. */
@@ -501,10 +488,10 @@ _gcry_create_nonce (void *buffer, size_t length)
     }
 
   /* Release the nonce buffer lock. */
-  err = ath_mutex_unlock (&nonce_buffer_lock);
+  err = gpgrt_lock_unlock (&nonce_buffer_lock);
   if (err)
     log_fatal ("failed to release the nonce buffer lock: %s\n",
-               strerror (err));
+               gpg_strerror (err));
 }
 
 
