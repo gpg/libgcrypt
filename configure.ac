@@ -350,6 +350,15 @@ if test "$ac_cv_sizeof_unsigned_short" = "0" \
     AC_MSG_WARN([Hmmm, something is wrong with the sizes - using defaults]);
 fi
 
+# Ensure that we have UINT64_C before we bother to check for uint64_t
+AC_CACHE_CHECK([for UINT64_C],[gnupg_cv_uint64_c_works],
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <inttypes.h>]],
+       [[uint64_t foo=UINT64_C(42);]])],
+     gnupg_cv_uint64_c_works=yes,gnupg_cv_uint64_c_works=no))
+if test "$gnupg_cv_uint64_c_works" = "yes" ; then
+   AC_CHECK_SIZEOF(uint64_t)
+fi
+
 # Do we have any 64-bit data types?
 if test "$ac_cv_sizeof_unsigned_int" != "8" \
    && test "$ac_cv_sizeof_unsigned_long" != "8" \
