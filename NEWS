@@ -1,6 +1,11 @@
 Noteworthy changes in version 1.6.1 (unreleased)
 ------------------------------------------------
 
+ * Fix a 1.6.0 introduced regression in looking up an message digest
+   by OID.
+
+ * Fix build problem on NetBSD.
+
 
 Noteworthy changes in version 1.6.0 (2013-12-16)
 ------------------------------------------------
