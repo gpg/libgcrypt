@@ -602,7 +602,7 @@ check_binary_integrity (void)
         err = gpg_error (GPG_ERR_INTERNAL);
       else
         {
-          fname = gcry_malloc (strlen (info.dli_fname) + 1 + 5 + 1 );
+          fname = xtrymalloc (strlen (info.dli_fname) + 1 + 5 + 1 );
           if (!fname)
             err = gpg_error_from_syserror ();
           else
