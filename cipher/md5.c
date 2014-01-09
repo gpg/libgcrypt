@@ -53,9 +53,11 @@ static unsigned int
 transform ( void *ctx, const unsigned char *data );
 
 static void
-md5_init( void *context )
+md5_init( void *context, unsigned int flags)
 {
   MD5_CONTEXT *ctx = context;
+
+  (void)flags;
 
   ctx->A = 0x67452301;
   ctx->B = 0xefcdab89;

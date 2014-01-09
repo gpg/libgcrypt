@@ -6,6 +6,12 @@ Noteworthy changes in version 1.6.1 (unreleased)
 
  * Fix build problem on NetBSD.
 
+ * Add emulation for broken Whirlpool code prior to 1.6.0.
+
+ * Interface changes relative to the 1.6.0 release:
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ GCRY_MD_FLAG_BUGEMU1            NEW.
+
 
 Noteworthy changes in version 1.6.0 (2013-12-16)
 ------------------------------------------------

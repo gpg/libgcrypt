@@ -119,11 +119,13 @@ static unsigned int
 transform (void *context, const unsigned char *data);
 
 static void
-sha512_init (void *context)
+sha512_init (void *context, unsigned int flags)
 {
   SHA512_CONTEXT *ctx = context;
   SHA512_STATE *hd = &ctx->state;
   unsigned int features = _gcry_get_hw_features ();
+
+  (void)flags;
 
   hd->h0 = U64_C(0x6a09e667f3bcc908);
   hd->h1 = U64_C(0xbb67ae8584caa73b);
@@ -157,11 +159,13 @@ sha512_init (void *context)
 }
 
 static void
-sha384_init (void *context)
+sha384_init (void *context, unsigned int flags)
 {
   SHA512_CONTEXT *ctx = context;
   SHA512_STATE *hd = &ctx->state;
   unsigned int features = _gcry_get_hw_features ();
+
+  (void)flags;
 
   hd->h0 = U64_C(0xcbbb9d5dc1059ed8);
   hd->h1 = U64_C(0x629a292a367cd507);

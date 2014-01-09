@@ -3194,6 +3194,22 @@ The size of the MAC is equal to the message digest of the underlying
 hash algorithm.  If you want CBC message authentication codes based on
 a cipher, see @xref{Working with cipher handles}.
 
+@item GCRY_MD_FLAG_BUGEMU1
+@cindex bug emulation
+Versions of Libgcrypt before 1.6.0 had a bug in the Whirlpool code
+which led to a wrong result for certain input sizes and write
+patterns.  Using this flag emulates that bug.  This may for example be
+useful for applications which use Whirlpool as part of their key
+generation.  It is strongly suggested to use this flag only if really
+needed and if possible to the data should be re-processed using the
+regular Whirlpool algorithm.
+
+Note that this flag works for the entire hash context.  If needed
+arises it may be used to enable bug emulation for other hash
+algorithms.  Thus you should not use this flag for a multi-algorithm
+hash context.
+
+
 @end table
 @c begin table of hash flags
 

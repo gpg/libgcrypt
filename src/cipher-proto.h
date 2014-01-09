@@ -204,7 +204,7 @@ typedef struct gcry_cipher_spec
  */
 
 /* Type for the md_init function.  */
-typedef void (*gcry_md_init_t) (void *c);
+typedef void (*gcry_md_init_t) (void *c, unsigned int flags);
 
 /* Type for the md_write function.  */
 typedef void (*gcry_md_write_t) (void *c, const void *buf, size_t nbytes);

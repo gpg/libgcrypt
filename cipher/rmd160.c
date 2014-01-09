@@ -143,10 +143,12 @@
 static unsigned int
 transform ( void *ctx, const unsigned char *data );
 
-void
-_gcry_rmd160_init (void *context)
+static void
+rmd160_init (void *context, unsigned int flags)
 {
   RMD160_CONTEXT *hd = context;
+
+  (void)flags;
 
   hd->h0 = 0x67452301;
   hd->h1 = 0xEFCDAB89;
@@ -161,6 +163,12 @@ _gcry_rmd160_init (void *context)
   hd->bctx.bwrite = transform;
 }
 
+
+void
+_gcry_rmd160_init (void *context)
+{
+  rmd160_init (context, 0);
+}
 
 
 /****************
@@ -512,6 +520,6 @@ gcry_md_spec_t _gcry_digest_spec_rmd160 =
   {
     GCRY_MD_RMD160, {0, 0},
     "RIPEMD160", asn, DIM (asn), oid_spec_rmd160, 20,
-    _gcry_rmd160_init, _gcry_md_block_write, rmd160_final, rmd160_read,
+    rmd160_init, _gcry_md_block_write, rmd160_final, rmd160_read,
     sizeof (RMD160_CONTEXT)
   };

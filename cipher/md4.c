@@ -69,9 +69,11 @@ static unsigned int
 transform ( void *c, const unsigned char *data );
 
 static void
-md4_init( void *context )
+md4_init (void *context, unsigned int flags)
 {
   MD4_CONTEXT *ctx = context;
+
+  (void)flags;
 
   ctx->A = 0x67452301;
   ctx->B = 0xefcdab89;

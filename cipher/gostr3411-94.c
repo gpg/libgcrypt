@@ -44,9 +44,11 @@ static unsigned int
 transform (void *c, const unsigned char *data);
 
 static void
-gost3411_init (void *context)
+gost3411_init (void *context, unsigned int flags)
 {
   GOSTR3411_CONTEXT *hd = context;
+
+  (void)flags;
 
   memset (&hd->hd, 0, sizeof(hd->hd));
   memset (hd->h, 0, 32);
