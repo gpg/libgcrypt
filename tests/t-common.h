@@ -21,16 +21,39 @@
 
 #include "../src/gcrypt.h"
 
-#ifndef PGM
-# error Macro PGM not defined.
+#ifndef PGMNAME
+# error Macro PGMNAME not defined.
+#endif
+#ifndef _GCRYPT_CONFIG_H_INCLUDED
+# error config.h not included
 #endif
 
+/* A couple of useful macros.  */
+#ifndef DIM
+# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
+#endif
+#define my_isascii(c) (!((c) & 0x80))
+#define digitp(p)     (*(p) >= '0' && *(p) <= '9')
+#define hexdigitp(a)  (digitp (a)                     \
+                       || (*(a) >= 'A' && *(a) <= 'F')  \
+                       || (*(a) >= 'a' && *(a) <= 'f'))
+#define xtoi_1(p)     (*(p) <= '9'? (*(p)- '0'): \
+                       *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
+#define xtoi_2(p)     ((xtoi_1(p) * 16) + xtoi_1((p)+1))
+#define xmalloc(a)    gcry_xmalloc ((a))
+#define xcalloc(a,b)  gcry_xcalloc ((a),(b))
+#define xstrdup(a)    gcry_xstrdup ((a))
+#define xfree(a)      gcry_free ((a))
+#define pass()        do { ; } while (0)
 
+
+/* Standard global variables.  */
 static int verbose;
 static int debug;
 static int errorcount;
 
 
+/* Reporting functions.  */
 static void
 die (const char *format, ...)
 {
@@ -40,7 +63,7 @@ die (const char *format, ...)
 #ifdef HAVE_FLOCKFILE
   flockfile (stderr);
 #endif
-  fprintf (stderr, "%s: ", PGM);
+  fprintf (stderr, "%s: ", PGMNAME);
   va_start (arg_ptr, format) ;
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
@@ -62,7 +85,7 @@ fail (const char *format, ...)
 #ifdef HAVE_FLOCKFILE
   flockfile (stderr);
 #endif
-  fprintf (stderr, "%s: ", PGM);
+  fprintf (stderr, "%s: ", PGMNAME);
   va_start (arg_ptr, format);
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
@@ -78,7 +101,7 @@ fail (const char *format, ...)
 
 
 static void
-show (const char *format, ...)
+info (const char *format, ...)
 {
   va_list arg_ptr;
 
@@ -87,7 +110,7 @@ show (const char *format, ...)
 #ifdef HAVE_FLOCKFILE
   flockfile (stderr);
 #endif
-  fprintf (stderr, "%s: ", PGM);
+  fprintf (stderr, "%s: ", PGMNAME);
   va_start (arg_ptr, format);
   vfprintf (stderr, format, arg_ptr);
   if (*format && format[strlen(format)-1] != '\n')

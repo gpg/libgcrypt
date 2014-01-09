@@ -31,7 +31,7 @@
 # include <pthread.h>
 #endif
 
-#define PGM "t-lock"
+#define PGMNAME "t-lock"
 
 #include "t-common.h"
 
@@ -152,7 +152,7 @@ nonce_thread (void *argarg)
     {
       gcry_create_nonce (nonce, sizeof nonce);
       if (i && !(i%100))
-        show ("thread %d created %d nonces so far", arg->no, i);
+        info ("thread %d created %d nonces so far", arg->no, i);
     }
 
   gcry_free (arg);
@@ -186,7 +186,7 @@ check_nonce_lock (void)
     {
       rc = WaitForSingleObject (threads[i], INFINITE);
       if (rc == WAIT_OBJECT_0)
-        show ("nonce thread %d has terminated", i);
+        info ("nonce thread %d has terminated", i);
       else
         fail ("waiting for nonce thread %d failed: %d",
               i, (int)GetLastError ());
@@ -211,7 +211,7 @@ check_nonce_lock (void)
         fail ("pthread_join failed for nonce thread %d: %s",
               i, strerror (errno));
       else
-        show ("nonce thread %d has terminated", i);
+        info ("nonce thread %d has terminated", i);
     }
 
 #endif /*!_WIN32*/
@@ -345,7 +345,7 @@ run_test (void)
     {
       rc = WaitForSingleObject (athreads[i], INFINITE);
       if (rc == WAIT_OBJECT_0)
-        show ("accountant thread %d has terminated", i);
+        info ("accountant thread %d has terminated", i);
       else
         fail ("waiting for accountant thread %d failed: %d",
               i, (int)GetLastError ());
@@ -355,7 +355,7 @@ run_test (void)
 
   rc = WaitForSingleObject (rthread, INFINITE);
   if (rc == WAIT_OBJECT_0)
-    show ("revision thread has terminated");
+    info ("revision thread has terminated");
   else
     fail ("waiting for revision thread failed: %d", (int)GetLastError ());
   CloseHandle (rthread);
@@ -379,7 +379,7 @@ run_test (void)
         fail ("pthread_join failed for accountant thread %d: %s",
               i, strerror (errno));
       else
-        show ("accountant thread %d has terminated", i);
+        info ("accountant thread %d has terminated", i);
     }
 
   stop_revision_thread = 1;
@@ -387,7 +387,7 @@ run_test (void)
   if (rc)
     fail ("pthread_join failed for the revision thread: %s", strerror (errno));
   else
-    show ("revision thread has terminated");
+    info ("revision thread has terminated");
 
 #endif /*!_WIN32*/
 
@@ -438,6 +438,9 @@ main (int argc, char **argv)
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch");
+  /* We are using non-public interfaces - check the exact version.  */
+  if (strcmp (gcry_check_version (NULL), GCRYPT_VERSION))
+    die ("exact version match failed");
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 

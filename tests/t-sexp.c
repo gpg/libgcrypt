@@ -1,5 +1,6 @@
 /* t-sexp.c  -  S-expression regression tests
- *	Copyright (C) 2001, 2002, 2003, 2005 Free Software Foundation, Inc.
+ * Copyright (C) 2001, 2002, 2003, 2005 Free Software Foundation, Inc.
+ * Copyright (C) 2014 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -14,8 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -29,72 +29,7 @@
 #include "../src/gcrypt-int.h"
 
 #define PGMNAME "t-sexp"
-
-#ifndef DIM
-# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
-#endif
-#define my_isascii(c) (!((c) & 0x80))
-#define digitp(p)     (*(p) >= '0' && *(p) <= '9')
-#define hexdigitp(a)  (digitp (a)                     \
-                       || (*(a) >= 'A' && *(a) <= 'F')  \
-                       || (*(a) >= 'a' && *(a) <= 'f'))
-#define xtoi_1(p)     (*(p) <= '9'? (*(p)- '0'): \
-                       *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
-#define xtoi_2(p)     ((xtoi_1(p) * 16) + xtoi_1((p)+1))
-#define xmalloc(a)    gcry_xmalloc ((a))
-#define xcalloc(a,b)  gcry_xcalloc ((a),(b))
-#define xstrdup(a)    gcry_xstrdup ((a))
-#define xfree(a)      gcry_free ((a))
-#define pass()        do { ; } while (0)
-
-
-static int verbose;
-static int error_count;
-
-static void
-die (const char *format, ...)
-{
-  va_list arg_ptr ;
-
-  fflush (stdout);
-  fprintf (stderr, "%s: ", PGMNAME);
-  va_start( arg_ptr, format ) ;
-  vfprintf (stderr, format, arg_ptr );
-  va_end(arg_ptr);
-  if (*format && format[strlen(format)-1] != '\n')
-    putc ('\n', stderr);
-  exit (1);
-}
-
-static void
-info (const char *format, ...)
-{
-  va_list arg_ptr;
-
-  if (verbose)
-    {
-      va_start( arg_ptr, format ) ;
-      vfprintf (stderr, format, arg_ptr );
-      va_end(arg_ptr);
-      if (*format && format[strlen(format)-1] != '\n')
-        putc ('\n', stderr);
-    }
-}
-
-static void
-fail ( const char *format, ... )
-{
-    va_list arg_ptr ;
-
-    fputs (PGMNAME ": ", stderr);
-    va_start( arg_ptr, format ) ;
-    vfprintf (stderr, format, arg_ptr );
-    va_end(arg_ptr);
-    if (*format && format[strlen(format)-1] != '\n')
-      putc ('\n', stderr);
-    error_count++;
-}
-
+#include "t-common.h"
 
 
 /* Convert STRING consisting of hex characters into its binary
@@ -1043,14 +978,62 @@ check_extract_param (void)
 }
 
 
+
+
 int
 main (int argc, char **argv)
 {
-  if (argc > 1 && !strcmp (argv[1], "--verbose"))
-    verbose = 1;
+  int last_argc = -1;
 
+  if (argc)
+    {
+      argc--; argv++;
+    }
+  while (argc && last_argc != argc )
+    {
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--help"))
+        {
+          puts (
+"usage: " PGMNAME " [options]\n"
+"\n"
+"Options:\n"
+"  --verbose      Show what is going on\n"
+"  --debug        Flyswatter\n"
+);
+          exit (0);
+        }
+      else if (!strcmp (*argv, "--verbose"))
+        {
+          verbose = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--debug"))
+        {
+          verbose = debug = 1;
+          argc--; argv++;
+        }
+      else if (!strncmp (*argv, "--", 2))
+        die ("unknown option '%s'", *argv);
+    }
+
+  if (debug)
+    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
   gcry_control (GCRYCTL_DISABLE_SECMEM_WARN);
   gcry_control (GCRYCTL_INIT_SECMEM, 16384, 0);
+  if (!gcry_check_version (GCRYPT_VERSION))
+    die ("version mismatch");
+  /* #include "../src/gcrypt-int.h" indicates that internal interfaces
+     may be used; thus better do an exact version check. */
+  if (strcmp (gcry_check_version (NULL), GCRYPT_VERSION))
+    die ("exact version match failed");
+  gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
   basic ();
   canon_len ();
@@ -1058,5 +1041,5 @@ main (int argc, char **argv)
   check_sscan ();
   check_extract_param ();
 
-  return error_count? 1:0;
+  return errorcount? 1:0;
 }
