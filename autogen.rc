@@ -1,0 +1,17 @@
+# autogen.sh configuration for Libgcrypt                       -*- sh -*-
+
+case "$myhost" in
+  w32)
+    configure_opts="
+      --with-gpg-error-prefix=@SYSROOT@
+      "
+    ;;
+
+  amd64)
+    configure_opts="
+      --with-gpg-error-prefix=@SYSROOT@
+     "
+    ;;
+esac
+
+final_info="./configure --enable-maintainer-mode && make"
