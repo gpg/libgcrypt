@@ -1,7 +1,7 @@
 /* sexp.c  -  S-Expression handling
  * Copyright (C) 1999, 2000, 2001, 2002, 2003,
  *               2004, 2006, 2007, 2008, 2011  Free Software Foundation, Inc.
- * Copyright (C) 2013 g10 Code GmbH
+ * Copyright (C) 2013, 2014 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -32,7 +32,55 @@
 #define GCRYPT_NO_MPI_MACROS 1
 #include "g10lib.h"
 
-typedef struct gcry_sexp *NODE;
+
+/* Notes on the internal memory layout.
+
+   We store an S-expression as one memory buffer with tags, length and
+   value.  The simplest list would thus be:
+
+   /----------+----------+---------+------+-----------+----------\
+   | open_tag | data_tag | datalen | data | close_tag | stop_tag |
+   \----------+----------+---------+------+-----------+----------/
+
+   Expressed more compact and with an example:
+
+   /----+----+----+---+----+----\
+   | OT | DT | DL | D | CT | ST |  "(foo)"
+   \----+----+----+---+----+----/
+
+   The open tag must always be the first tag of a list as requires by
+   the S-expression specs.  At least data element (data_tag, datalen,
+   data) is required as well.  The close_tag finishes the list and
+   would actually be sufficient.  For fail-safe reasons a final stop
+   tag is always the last byte in a buffer; it has a value of 0 so
+   that string function accidently applied to an S-expression will
+   never access unallocated data.  We do not support display hints and
+   thus don't need to represent them.  A list may have more an
+   arbitrary number of data elements but at least one is required.
+   The length of each data must be greater than 0 and has a current
+   limit to 65535 bytes (by means of the DATALEN type).
+
+   A list with two data elements:
+
+   /----+----+----+---+----+----+---+----+----\
+   | OT | DT | DL | D | DT | DL | D | CT | ST |  "(foo bar)"
+   \----+----+----+---+----+----+---+----+----/
+
+   In the above example both DL fields have a value of 3.
+   A list of a list with one data element:
+
+   /----+----+----+----+---+----+----+----\
+   | OT | OT | DT | DL | D | CT | CT | ST |  "((foo))"
+   \----+----+----+----+---+----+----+----/
+
+   A list with one element followed by another list:
+
+   /----+----+----+---+----+----+----+---+----+----+----\
+   | OT | DT | DL | D | OT | DT | DL | D | CT | CT | ST |  "(foo (bar))"
+   \----+----+----+---+----+----+----+---+----+----+----/
+
+ */
+
 typedef unsigned short DATALEN;
 
 struct gcry_sexp
@@ -42,11 +90,11 @@ struct gcry_sexp
 
 #define ST_STOP  0
 #define ST_DATA  1  /* datalen follows */
-#define ST_HINT  2  /* datalen follows */
+/*#define ST_HINT  2   datalen follows (currently not used) */
 #define ST_OPEN  3
 #define ST_CLOSE 4
 
-/* the atoi macros assume that the buffer has only valid digits */
+/* The atoi macros assume that the buffer has only valid digits.  */
 #define atoi_1(p)   (*(p) - '0' )
 #define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): \
                      *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
@@ -167,9 +215,10 @@ _gcry_sexp_dump (const gcry_sexp_t a)
     }
 }
 
-/****************
- * Pass list through except when it is an empty list - in that case
- * return NULL and release the passed list.
+
+/* Pass list through except when it is an empty list - in that case
+ * return NULL and release the passed list.  This is used to make sure
+ * that no forbidden empty lists are created.
  */
 static gcry_sexp_t
 normalize ( gcry_sexp_t list )
@@ -501,7 +550,7 @@ _gcry_sexp_length (const gcry_sexp_t list)
 
 
 /* Return the internal lengths offset of LIST.  That is the size of
-   the buffer from the first ST_OPEN, which is retruned at R_OFF, to
+   the buffer from the first ST_OPEN, which is returned at R_OFF, to
    the corresponding ST_CLOSE inclusive.  */
 static size_t
 get_internal_buffer (const gcry_sexp_t list, size_t *r_off)
@@ -542,8 +591,8 @@ get_internal_buffer (const gcry_sexp_t list, size_t *r_off)
 
 
 
-/* Extract the CAR of the given list.  May return NULL for bad lists
-   or memory failure.  */
+/* Extract the n-th element of the given LIST.  Returns NULL for
+   no-such-element, a corrupt list, or memory failure.  */
 gcry_sexp_t
 _gcry_sexp_nth (const gcry_sexp_t list, int number)
 {
@@ -587,15 +636,16 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
 
   if (*p == ST_DATA)
     {
-      memcpy (&n, p, sizeof n);
-      p += sizeof n;
-      newlist = xtrymalloc (sizeof *newlist + n + 1);
+      memcpy (&n, p+1, sizeof n);
+      newlist = xtrymalloc (sizeof *newlist + 1 + 1 + sizeof n + n + 1);
       if (!newlist)
         return NULL;
       d = newlist->d;
-      memcpy (d, p, n);
-      d += n;
-      *d++ = ST_STOP;
+      *d++ = ST_OPEN;
+      memcpy (d, p, 1 + sizeof n + n);
+      d += 1 + sizeof n + n;
+      *d++ = ST_CLOSE;
+      *d = ST_STOP;
     }
   else if (*p == ST_OPEN)
     {
@@ -638,6 +688,7 @@ _gcry_sexp_nth (const gcry_sexp_t list, int number)
 
   return normalize (newlist);
 }
+
 
 gcry_sexp_t
 _gcry_sexp_car (const gcry_sexp_t list)
