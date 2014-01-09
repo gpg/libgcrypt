@@ -610,20 +610,26 @@ do_init (void *context, int variant)
 }
 
 static void
-tiger_init (void *context)
+tiger_init (void *context, unsigned int flags)
 {
+  (void)flags;
+
   do_init (context, 0);
 }
 
 static void
-tiger1_init (void *context)
+tiger1_init (void *context, unsigned int flags)
 {
+  (void)flags;
+
   do_init (context, 1);
 }
 
 static void
-tiger2_init (void *context)
+tiger2_init (void *context, unsigned int flags)
 {
+  (void)flags;
+
   do_init (context, 2);
 }
 
