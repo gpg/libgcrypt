@@ -5901,6 +5901,28 @@ check_pubkey (void)
 
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
       "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
+  },
+  { /* secp256k1 test 256 bit.  */
+    GCRY_PK_ECDSA, FLAG_SIGN,
+    {
+      "(private-key\n"
+      " (ecc\n"
+      "  (curve secp256k1)\n"
+      "  (q #0439A36013301597DAEF41FBE593A02CC513D0B55527EC2D"
+      "      F1050E2E8FF49C85C23CBE7DED0E7CE6A594896B8F62888F"
+      "      DBC5C8821305E2EA42BF01E37300116281#)\n"
+      "  (d #E8F32E723DECF4051AEFAC8E2C93C9C5B214313817CDB01A"
+      "      1494B917C8436B35#)))\n",
+
+      "(public-key\n"
+      " (ecc\n"
+      "  (curve secp256k1)\n"
+      "  (q #0439A36013301597DAEF41FBE593A02CC513D0B55527EC2D"
+      "      F1050E2E8FF49C85C23CBE7DED0E7CE6A594896B8F62888F"
+      "      DBC5C8821305E2EA42BF01E37300116281#)))\n"
+
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" }
     }
   };
   int i;
