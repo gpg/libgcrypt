@@ -1079,11 +1079,42 @@ fi
 
 
 #
+# Check whether GCC assembler needs "-Wa,--divide" to correctly handle
+# constant division
+#
+if test $amd64_as_feature_detection = yes; then
+  AC_CACHE_CHECK([whether GCC assembler handles division correctly],
+       [gcry_cv_gcc_as_const_division_ok],
+       [gcry_cv_gcc_as_const_division_ok=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__("xorl \$(123456789/12345678), %ebp;\n\t");]])],
+          [gcry_cv_gcc_as_const_division_ok=yes])])
+  if test "$gcry_cv_gcc_as_const_division_ok" = "no" ; then
+    #
+    # Add '-Wa,--divide' to CPPFLAGS and try check again.
+    #
+    _gcc_cppflags_save="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS -Wa,--divide"
+    AC_CACHE_CHECK([whether GCC assembler handles division correctly with "-Wa,--divide"],
+         [gcry_cv_gcc_as_const_division_with_wadivide_ok],
+         [gcry_cv_gcc_as_const_division_with_wadivide_ok=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+            [[__asm__("xorl \$(123456789/12345678), %ebp;\n\t");]])],
+            [gcry_cv_gcc_as_const_division_with_wadivide_ok=yes])])
+    if test "$gcry_cv_gcc_as_const_division_ok_with_wadivide_ok" = "no" ; then
+      # '-Wa,--divide' did not work, restore old flags.
+      CPPFLAGS="$_gcc_cppflags_save"
+    fi
+  fi
+fi
+
+
+#
 # Check whether GCC assembler supports features needed for our amd64
 # implementations
 #
 if test $amd64_as_feature_detection = yes; then
-    AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implementations],
+  AC_CACHE_CHECK([whether GCC assembler is compatible for amd64 assembly implementations],
        [gcry_cv_gcc_amd64_platform_as_ok],
        [gcry_cv_gcc_amd64_platform_as_ok=no
         AC_COMPILE_IFELSE([AC_LANG_SOURCE(
@@ -1096,6 +1127,11 @@ if test $amd64_as_feature_detection = yes; then
 		"asmfunc:\n\t"
                 ".size asmfunc,.-asmfunc;\n\t"
                 ".type asmfunc,@function;\n\t"
+		/* Test if assembler allows use of '/' for constant division
+		 * (Solaris/x86 issue). If previous constant division check
+		 * and "-Wa,--divide" workaround failed, this causes assembly
+		 * to be disable on this machine. */
+		"xorl \$(123456789/12345678), %ebp;\n\t"
             );]])],
           [gcry_cv_gcc_amd64_platform_as_ok=yes])])
   if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
