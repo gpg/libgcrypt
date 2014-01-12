@@ -1101,7 +1101,7 @@ if test $amd64_as_feature_detection = yes; then
           AC_COMPILE_IFELSE([AC_LANG_SOURCE(
             [[__asm__("xorl \$(123456789/12345678), %ebp;\n\t");]])],
             [gcry_cv_gcc_as_const_division_with_wadivide_ok=yes])])
-    if test "$gcry_cv_gcc_as_const_division_ok_with_wadivide_ok" = "no" ; then
+    if test "$gcry_cv_gcc_as_const_division_with_wadivide_ok" = "no" ; then
       # '-Wa,--divide' did not work, restore old flags.
       CPPFLAGS="$_gcc_cppflags_save"
     fi
