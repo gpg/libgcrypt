@@ -175,19 +175,21 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
       return ec;
     }
 
+  ec = _gcry_md_setkey (md, passphrase, passphraselen);
+  if (ec)
+    {
+      _gcry_md_close (md);
+      xfree (sbuf);
+      return ec;
+    }
+
   /* Step 3 and 4. */
   memcpy (sbuf, salt, saltlen);
   for (lidx = 1; lidx <= l; lidx++)
     {
       for (iter = 0; iter < iterations; iter++)
         {
-          ec = _gcry_md_setkey (md, passphrase, passphraselen);
-          if (ec)
-            {
-              _gcry_md_close (md);
-              xfree (sbuf);
-              return ec;
-            }
+          _gcry_md_reset (md);
           if (!iter) /* Compute U_1:  */
             {
               sbuf[saltlen]     = (lidx >> 24);
