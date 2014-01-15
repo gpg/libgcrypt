@@ -495,7 +495,7 @@ _gcry_mpi_ec_p_new (gcry_ctx_t *r_ctx,
   mpi_ec_t ec;
 
   *r_ctx = NULL;
-  if (!p || !a || !mpi_cmp_ui (a, 0))
+  if (!p || !a)
     return GPG_ERR_EINVAL;
 
   ctx = _gcry_ctx_alloc (CONTEXT_TYPE_EC, sizeof *ec, ec_deinit);
