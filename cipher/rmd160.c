@@ -421,7 +421,7 @@ _gcry_rmd160_mixblock ( RMD160_CONTEXT *hd, void *blockof64byte )
 {
   char *p = blockof64byte;
 
-  transform ( hd, blockof64byte, 64 );
+  transform ( hd, blockof64byte, 1 );
 #define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
   X(0);
   X(1);
