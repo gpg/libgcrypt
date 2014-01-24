@@ -44,6 +44,7 @@ TESTS_ENVIRONMENT = GCRYPT_IN_REGRESSION_TEST=1
 # a built header.
 AM_CPPFLAGS = -I../src -I$(top_srcdir)/src
 AM_CFLAGS = $(GPG_ERROR_CFLAGS)
+AM_LDFLAGS = -no-install
 
 default_ldadd = \
 	../src/libgcrypt.la $(DL_LIBS) \
