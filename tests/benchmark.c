@@ -656,7 +656,7 @@ cipher_bench ( const char *algoname )
     }
   repetitions *= cipher_repetitions;
 
-  raw_buf = gcry_xmalloc (allocated_buflen+15);
+  raw_buf = gcry_xcalloc (allocated_buflen+15, 1);
   buf = (raw_buf
          + ((16 - ((size_t)raw_buf & 0x0f)) % buffer_alignment));
   outbuf = raw_outbuf = gcry_xmalloc (allocated_buflen+15);

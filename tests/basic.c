@@ -2213,6 +2213,8 @@ check_ccm_cipher (void)
 
     if (memcmp (buf, tag, taglen) != 0)
       fail ("cipher-ccm-large, encrypt mismatch entry\n");
+
+    gcry_cipher_close (hde);
   }
 
 #if 0
@@ -2305,6 +2307,8 @@ check_ccm_cipher (void)
 
     if (memcmp (buf, tag, taglen) != 0)
       fail ("cipher-ccm-huge, encrypt mismatch entry\n");
+
+    gcry_cipher_close (hde);
   }
 
   if (verbose)
@@ -3496,7 +3500,7 @@ check_one_cipher (int algo, int mode, int flags)
         return;
 
       /* Pass 2: Key not aligned and data not aligned.  */
-      memmove (plain+1, plain, 1024);
+      memmove (plain+1, plain, 1040);
       if (check_one_cipher_core (algo, mode, flags, key+1, 32, plain+1, 1040,
                                  bufshift, 2+10*bufshift))
         return;

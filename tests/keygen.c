@@ -413,6 +413,7 @@ check_ecc_keys (void)
     show_sexp ("ECC key:\n", key);
 
   check_generated_ecc_key (key);
+  gcry_sexp_release (key);
 
   if (verbose)
     show ("creating ECC key using curve Ed25519 for ECDSA (nocomp)\n");

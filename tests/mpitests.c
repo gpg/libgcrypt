@@ -212,6 +212,7 @@ test_opaque (void)
 
   if (debug)
     gcry_log_debugmpi ("mpi", a);
+  gcry_mpi_release (a);
 
   p = gcry_xstrdup ("This is a test buffer");
   a = gcry_mpi_set_opaque_copy (NULL, p, 21*8+1);
