@@ -1520,7 +1520,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
                                              &values[0], &values[1], &values[2],
                                              &values[3], &values[4]);
           if (rc)
-            return rc;
+            goto leave;
         }
     }
 
