@@ -473,6 +473,7 @@ _gcry_ecc_update_curve_param (const char *name,
         return gpg_err_code_from_syserror ();
       strcpy (stpcpy (stpcpy (buf, "0x04"), domain_parms[idx].g_x+2),
               domain_parms[idx].g_y+2);
+      _gcry_mpi_release (*g);
       *g = scanval (buf);
       xfree (buf);
     }
@@ -481,13 +482,25 @@ _gcry_ecc_update_curve_param (const char *name,
   if (dialect)
     *dialect = domain_parms[idx].dialect;
   if (p)
-    *p = scanval (domain_parms[idx].p);
+    {
+      _gcry_mpi_release (*p);
+      *p = scanval (domain_parms[idx].p);
+    }
   if (a)
-    *a = scanval (domain_parms[idx].a);
+    {
+      _gcry_mpi_release (*a);
+      *a = scanval (domain_parms[idx].a);
+    }
   if (b)
-    *b = scanval (domain_parms[idx].b);
+    {
+      _gcry_mpi_release (*b);
+      *b = scanval (domain_parms[idx].b);
+    }
   if (n)
-    *n = scanval (domain_parms[idx].n);
+    {
+      _gcry_mpi_release (*n);
+      *n = scanval (domain_parms[idx].n);
+    }
   return 0;
 }
 
@@ -567,6 +580,7 @@ _gcry_ecc_get_curve (gcry_sexp_t keyparms, int iterator, unsigned int *r_nbits)
 
   for (idx = 0; domain_parms[idx].desc; idx++)
     {
+      mpi_free (tmp);
       tmp = scanval (domain_parms[idx].p);
       if (!mpi_cmp (tmp, E.p))
         {
