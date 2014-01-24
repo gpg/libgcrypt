@@ -1035,6 +1035,7 @@ check_extract_param (void)
       gcry_log_debugmpi ("     got", mpis[0]);
     }
 
+  gcry_free (ioarray[0].data);
   gcry_mpi_release (mpis[0]);
 
   gcry_sexp_release (sxp);

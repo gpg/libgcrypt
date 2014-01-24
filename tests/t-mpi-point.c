@@ -601,6 +601,7 @@ context_param (void)
       if (err)
         fail ("setting Q for nistp256 failed: %s\n", gpg_strerror (err));
       get_and_cmp_mpi ("q", sample_p256_q, "nistp256(2)", ctx);
+      gcry_mpi_release (q);
 
       /* Get as s-expression.  */
       err = gcry_pubkey_get_sexp (&sexp, 0, ctx);
