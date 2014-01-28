@@ -1023,13 +1023,12 @@ rsa_decrypt (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       ri = mpi_snew (ctx.nbits);
       bldata = mpi_snew (ctx.nbits);
 
-      _gcry_mpi_randomize (r, ctx.nbits, GCRY_WEAK_RANDOM);
-      mpi_mod (r, r, sk.n);
-      if (!mpi_invm (ri, r, sk.n))
+      do
         {
-          rc = GPG_ERR_INTERNAL;
-          goto leave;
+          _gcry_mpi_randomize (r, ctx.nbits, GCRY_WEAK_RANDOM);
+          mpi_mod (r, r, sk.n);
         }
+      while (!mpi_invm (ri, r, sk.n));
 
       /* Do blinding.  We calculate: y = (x * r^e) mod n, where r is
          the random number, e is the public exponent, x is the
