@@ -57,12 +57,13 @@
 
 /* USE_ARM_NEON_ASM indicates whether to enable ARM NEON assembly code. */
 #undef USE_ARM_NEON_ASM
-#if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__)
-# if defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
-     defined(HAVE_GCC_INLINE_ASM_NEON)
+#ifdef ENABLE_NEON_SUPPORT
+# if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__) \
+     && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) \
+     && defined(HAVE_GCC_INLINE_ASM_NEON)
 #  define USE_ARM_NEON_ASM 1
 # endif
-#endif
+#endif /*ENABLE_NEON_SUPPORT*/
 
 
 /* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
