@@ -1,14 +1,25 @@
 Noteworthy changes in version 1.7.0 (unreleased)
 ------------------------------------------------
 
- * Fix a 1.6.0 introduced regression in looking up an message digest
-   by OID.
+ * Added emulation for broken Whirlpool code prior to 1.6.0.
 
- * Support curve sec256k1.
+ * Added support for curve sec256k1.
 
- * Support curves GOST R 34.10-2001 and GOST R 34.10-2012.
+ * Added support for curves GOST R 34.10-2001 and GOST R 34.10-2012.
 
- * Add emulation from broken Whirlpool code prior to 1.6.0.
+ * Improved performance of KDF functions.
+
+ * Improved ECDSA compliance.
+
+ * Moved locking out to libgpg-error.
+
+ * Fixed message digest lookup by OID (regression in 1.6.0).
+
+ * Fixed a build problem on NetBSD.
+
+ * Fixed memory leaks in ECC code.
+
+ * Fixed some asm build problems and feature detection bugs.
 
  * Interface changes relative to the 1.6.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
