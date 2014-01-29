@@ -675,6 +675,11 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 			       | GCRY_SECMEM_FLAG_NO_PRIV_DROP));
       break;
 
+    case GCRYCTL_INACTIVATE_FIPS_FLAG:
+    case GCRYCTL_REACTIVATE_FIPS_FLAG:
+      rc = GPG_ERR_NOT_IMPLEMENTED;
+      break;
+
     default:
       _gcry_set_preferred_rng_type (0);
       rc = GPG_ERR_INV_OP;
