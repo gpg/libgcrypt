@@ -27,7 +27,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <unistd.h>
-#if HAVE_PTHREAD
+#if USE_POSIX_THREADS
 # include <pthread.h>
 #endif
 
@@ -193,7 +193,7 @@ check_nonce_lock (void)
       CloseHandle (threads[i]);
     }
 
-#elif HAVE_PTHREAD
+#elif USE_POSIX_THREADS
   pthread_t threads[N_NONCE_THREADS];
   int rc, i;
 
@@ -360,7 +360,7 @@ run_test (void)
     fail ("waiting for revision thread failed: %d", (int)GetLastError ());
   CloseHandle (rthread);
 
-#else /*!_WIN32*/
+#elif USE_POSIX_THREADS
   pthread_t rthread;
   pthread_t athreads[N_ACCOUNTANTS];
   int rc, i;
@@ -389,7 +389,7 @@ run_test (void)
   else
     show ("revision thread has terminated");
 
-#endif /*!_WIN32*/
+#endif /*USE_POSIX_THREADS*/
 
   external_lock_test_destroy (__LINE__);
 }

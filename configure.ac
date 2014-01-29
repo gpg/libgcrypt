@@ -717,19 +717,27 @@ fi
 AC_SUBST(PTH_CFLAGS)
 AC_SUBST(PTH_LIBS)
 
-#
-# Check whether pthreads is available
-#
-AC_CHECK_LIB(pthread,pthread_create,have_pthread=yes)
-if test "$have_pthread" = yes; then
-   AC_DEFINE(HAVE_PTHREAD, 1 ,[Define if we have pthread.])
-fi
 
 #
 # See which thread system we have
-# FIXME: Thus duplicates the above check.
 #
-gl_LOCK
+# Windows has always thread support; thus we don't bother to test for
+# it as it may lead to false results when cross building.
+if test "$have_w32_system" = yes; then
+  AC_DEFINE([USE_WINDOWS_THREADS], [1])
+  LIBTHREAD=
+  LTLIBTHREAD=
+  LIBMULTITHREAD=
+  LTLIBMULTITHREAD=
+  THREADLIB_CPPFLAGS=""
+  AC_SUBST([LIBTHREAD])
+  AC_SUBST([LTLIBTHREAD])
+  AC_SUBST([LIBMULTITHREAD])
+  AC_SUBST([LTLIBMULTITHREAD])
+else
+  gl_LOCK
+fi
+
 
 # Solaris needs -lsocket and -lnsl. Unisys system includes
 # gethostbyname in libsocket but needs libnsl for socket.
@@ -1347,6 +1355,13 @@ if test "$use_hmac_binary_check" = yes ; then
   LIBGCRYPT_CONFIG_LIBS="${LIBGCRYPT_CONFIG_LIBS} ${DL_LIBS}"
 fi
 AC_SUBST(DL_LIBS)
+
+#
+# Check whether we need to link with a pthreads library.
+#
+if test "x$LIBTHREAD" != x; then
+  LIBGCRYPT_CONFIG_LIBS="${LIBGCRYPT_CONFIG_LIBS} ${LIBTHREAD}"
+fi
 
 
 #

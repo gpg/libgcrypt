@@ -26,12 +26,17 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#if USE_POSIX_THREADS_WEAK
+#if USE_POSIX_THREADS
 # include <pthread.h>
 #endif
 
 #include "ath.h"
 
+#if USE_POSIX_THREADS_WEAK
+# if  !USE_POSIX_THREADS
+#  error USE_POSIX_THREADS_WEAK but no USE_POSIX_THREADS
+# endif
+#endif
 
 
 /* On an ELF system it is easy to use pthreads using weak references.
@@ -101,10 +106,12 @@ ath_init (void)
     {
 #if HAVE_W32_SYSTEM
       thread_model = ath_model_w32;
-#else /*!HAVE_W32_SYSTEM*/
+#elif USE_POSIX_THREADS && !USE_POSIX_THREADS_WEAK
+      thread_model = ath_model_pthreads;
+#else /*!USE_POSIX_THREADS*/
       /* Assume a single threaded application.  */
       thread_model = ath_model_none;
-#endif /*!HAVE_W32_SYSTEM*/
+#endif /*!USE_POSIX_THREADS*/
     }
 
   return err;
@@ -155,15 +162,16 @@ ath_install (struct ath_ops *ath_ops)
      configured one.  */
   if (0)
     ;
-#if USE_POSIX_THREADS_WEAK
-  else if (thread_model == ath_model_pthreads_weak)
+#if USE_POSIX_THREADS
+  else if (thread_model == ath_model_pthreads
+           || thread_model == ath_model_pthreads_weak)
     {
       if (thread_option == ATH_THREAD_OPTION_PTHREAD)
         return 0; /* Okay - compatible.  */
       if (thread_option == ATH_THREAD_OPTION_PTH)
         return 0; /* Okay - compatible.  */
     }
-#endif /*USE_POSIX_THREADS_WEAK*/
+#endif /*USE_POSIX_THREADS*/
   else if (thread_option == ATH_THREAD_OPTION_PTH)
     {
       if (thread_model == ath_model_none)
@@ -195,7 +203,8 @@ ath_mutex_init (ath_mutex_t *lock)
       err = 0;
       break;
 
-#if USE_POSIX_THREADS_WEAK
+#if USE_POSIX_THREADS
+    case ath_model_pthreads:
     case ath_model_pthreads_weak:
       {
         pthread_mutex_t *plck;
@@ -213,7 +222,7 @@ ath_mutex_init (ath_mutex_t *lock)
           }
       }
       break;
-#endif /*USE_POSIX_THREADS_WEAK*/
+#endif /*USE_POSIX_THREADS*/
 
 #if HAVE_W32_SYSTEM
     case ath_model_w32:
@@ -265,7 +274,8 @@ ath_mutex_destroy (ath_mutex_t *lock)
         }
       break;
 
-#if USE_POSIX_THREADS_WEAK
+#if USE_POSIX_THREADS
+    case ath_model_pthreads:
     case ath_model_pthreads_weak:
       {
         pthread_mutex_t *plck = (pthread_mutex_t*) (*lock);
@@ -278,7 +288,7 @@ ath_mutex_destroy (ath_mutex_t *lock)
           }
       }
       break;
-#endif /*USE_POSIX_THREADS_WEAK*/
+#endif /*USE_POSIX_THREADS*/
 
 #if HAVE_W32_SYSTEM
     case ath_model_w32:
@@ -322,11 +332,12 @@ ath_mutex_lock (ath_mutex_t *lock)
         err = EDEADLK;
       break;
 
-#if USE_POSIX_THREADS_WEAK
+#if USE_POSIX_THREADS
+    case ath_model_pthreads:
     case ath_model_pthreads_weak:
       err = pthread_mutex_lock ((pthread_mutex_t*)(*lock));
       break;
-#endif /*USE_POSIX_THREADS_WEAK*/
+#endif /*USE_POSIX_THREADS*/
 
 #if HAVE_W32_SYSTEM
     case ath_model_w32:
@@ -368,11 +379,12 @@ ath_mutex_unlock (ath_mutex_t *lock)
         err = EPERM;
       break;
 
-#if USE_POSIX_THREADS_WEAK
+#if USE_POSIX_THREADS
+    case ath_model_pthreads:
     case ath_model_pthreads_weak:
       err = pthread_mutex_unlock ((pthread_mutex_t*)(*lock));
       break;
-#endif /*USE_POSIX_THREADS_WEAK*/
+#endif /*USE_POSIX_THREADS*/
 
 #if HAVE_W32_SYSTEM
     case ath_model_w32:

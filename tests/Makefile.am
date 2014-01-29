@@ -58,5 +58,5 @@ EXTRA_DIST = README rsa-16k.key cavs_tests.sh cavs_driver.pl \
 	     pkcs1v2-oaep.h pkcs1v2-pss.h pkcs1v2-v15c.h pkcs1v2-v15s.h \
 	     t-ed25519.inp stopwatch.h hashtest-256g.in
 
-LDADD = $(default_ldadd)
+LDADD = $(default_ldadd) $(LIBTHREAD)
 t_lock_LDADD = $(default_ldadd) $(LIBMULTITHREAD)
