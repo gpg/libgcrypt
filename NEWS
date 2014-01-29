@@ -1,16 +1,26 @@
-Noteworthy changes in version 1.6.1 (unreleased)
+Noteworthy changes in version 1.6.1 (2014-01-29)
 ------------------------------------------------
 
- * Fix a 1.6.0 introduced regression in looking up an message digest
-   by OID.
+ * Added emulation for broken Whirlpool code prior to 1.6.0.
 
- * Fix build problem on NetBSD.
+ * Improved performance of KDF functions.
 
- * Add emulation for broken Whirlpool code prior to 1.6.0.
+ * Improved ECDSA compliance.
+
+ * Fixed locking for Windows and non-ELF Pthread systems (regression
+   in 1.6.0)
+
+ * Fixed message digest lookup by OID (regression in 1.6.0).
+
+ * Fixed a build problem on NetBSD.
+
+ * Fixed memory leaks in ECC code.
+
+ * Fixed some asm build problems and feature detection bugs.
 
  * Interface changes relative to the 1.6.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- GCRY_MD_FLAG_BUGEMU1            NEW.
+ GCRY_MD_FLAG_BUGEMU1            NEW (minor API change).
 
 
 Noteworthy changes in version 1.6.0 (2013-12-16)
