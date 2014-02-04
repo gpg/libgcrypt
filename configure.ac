@@ -1307,8 +1307,10 @@ AC_CACHE_CHECK([whether compiler is configured for ARMv6 or newer architecture],
        [if test "$mpi_cpu_arch" != "arm" ; then
           gcry_cv_cc_arm_arch_is_v6="n/a"
         else
-          AC_EGREP_CPP(yes,
-          [#if defined(__arm__) && \
+          gcry_cv_cc_arm_arch_is_v6=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[
+           #if defined(__arm__) && \
              ((defined(__ARM_ARCH) && __ARM_ARCH >= 6) \
              || defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
              || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
@@ -1316,9 +1318,13 @@ AC_CACHE_CHECK([whether compiler is configured for ARMv6 or newer architecture],
              || defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
              || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
              || defined(__ARM_ARCH_7EM__))
-            yes
+             /* empty */
+           #else
+             /* fail compile if not ARMv6. */
+             not_armv6 not_armv6 = (not_armv6)not_armv6;
            #endif
-          ], gcry_cv_cc_arm_arch_is_v6=yes, gcry_cv_cc_arm_arch_is_v6=no)
+          ]])],
+          [gcry_cv_cc_arm_arch_is_v6=yes])
         fi])
 if test "$gcry_cv_cc_arm_arch_is_v6" = "yes" ; then
    AC_DEFINE(HAVE_ARM_ARCH_V6,1,
