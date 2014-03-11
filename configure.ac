@@ -194,7 +194,7 @@ available_pubkey_ciphers="dsa elgamal rsa ecc"
 enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
-available_digests="crc gostr3411-94 md4 md5 rmd160 sha1 sha256"
+available_digests="crc gostr3411-94 md2 md4 md5 rmd160 sha1 sha256"
 available_digests_64="sha512 tiger whirlpool stribog"
 enabled_digests=""
 
@@ -377,6 +377,8 @@ default_ciphers="$available_ciphers"
 default_pubkey_ciphers="$available_pubkey_ciphers"
 default_digests="$available_digests"
 default_kdfs="$available_kdfs"
+# Blacklist MD2 by default
+default_digests=`echo $default_digests | sed -e 's/md2//g'`
 
 # Substitutions to set generated files in a Emacs buffer to read-only.
 AC_SUBST(emacs_local_vars_begin, ['Local Variables:'])
@@ -1843,6 +1845,12 @@ LIST_MEMBER(stribog, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS stribog.lo"
    AC_DEFINE(USE_GOST_R_3411_12, 1, [Defined if this module should be included])
+fi
+
+LIST_MEMBER(md2, $enabled_digests)
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS md2.lo"
+   AC_DEFINE(USE_MD2, 1, [Defined if this module should be included])
 fi
 
 LIST_MEMBER(md4, $enabled_digests)

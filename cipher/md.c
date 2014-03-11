@@ -75,6 +75,9 @@ static gcry_md_spec_t *digest_list[] =
 #if USE_MD4
      &_gcry_digest_spec_md4,
 #endif
+#if USE_MD2
+     &_gcry_digest_spec_md2,
+#endif
     NULL
   };
 
