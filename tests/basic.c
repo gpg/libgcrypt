@@ -34,6 +34,7 @@
 # define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
 #endif
 
+#define PGM "basic"
 
 typedef struct test_spec_pubkey_key
 {
@@ -116,6 +117,82 @@ show_sexp (const char *prefix, gcry_sexp_t a)
   fprintf (stderr, "%.*s", (int)size, buf);
   gcry_free (buf);
 }
+
+
+static void
+show_note (const char *format, ...)
+{
+  va_list arg_ptr;
+
+  if (!verbose && getenv ("srcdir"))
+    fputs ("      ", stderr);  /* To align above "PASS: ".  */
+  else
+    fprintf (stderr, "%s: ", PGM);
+  va_start (arg_ptr, format);
+  vfprintf (stderr, format, arg_ptr);
+  if (*format && format[strlen(format)-1] != '\n')
+    putc ('\n', stderr);
+  va_end (arg_ptr);
+}
+
+
+static void
+show_md_not_available (int algo)
+{
+  static int list[100];
+  static int listlen;
+  int i;
+
+  if (!verbose && algo == GCRY_MD_MD2)
+    return;  /* Do not print the diagnostic for that one.  */
+
+  for (i=0; i < listlen; i++)
+    if (algo == list[i])
+      return; /* Note already printed.  */
+  if (listlen < DIM (list))
+    list[listlen++] = algo;
+  show_note ("hash algorithm %d not available - skipping tests", algo);
+}
+
+
+static void
+show_old_hmac_not_available (int algo)
+{
+  static int list[100];
+  static int listlen;
+  int i;
+
+  if (!verbose && algo == GCRY_MD_MD2)
+    return;  /* Do not print the diagnostic for that one.  */
+
+  for (i=0; i < listlen; i++)
+    if (algo == list[i])
+      return; /* Note already printed.  */
+  if (listlen < DIM (list))
+    list[listlen++] = algo;
+  show_note ("hash algorithm %d for old HMAC API not available "
+             "- skipping tests", algo);
+}
+
+
+static void
+show_mac_not_available (int algo)
+{
+  static int list[100];
+  static int listlen;
+  int i;
+
+  if (!verbose && algo == GCRY_MD_MD2)
+    return;  /* Do not print the diagnostic for that one.  */
+
+  for (i=0; i < listlen; i++)
+    if (algo == list[i])
+      return; /* Note already printed.  */
+  if (listlen < DIM (list))
+    list[listlen++] = algo;
+  show_note ("MAC algorithm %d not available - skipping tests", algo);
+}
+
 
 
 #define MAX_DATA_LEN 100
@@ -4006,7 +4083,6 @@ check_digests (void)
         "\x29\x05\x7F\xD8\x6B\x20\xBF\xD6\x2D\xEC\xA0\xF1\xCC\xEA\x4A\xF5"
         "\x1F\xC1\x54\x90\xED\xDC\x47\xAF\x32\xBB\x2B\x66\xC3\x4F\xF9\xAD"
         "\x8C\x60\x08\xAD\x67\x7F\x77\x12\x69\x53\xB2\x26\xE4\xED\x8B\x01" },
-#ifdef USE_GOST_R_3411_94
       { GCRY_MD_GOSTR3411_94,
 	"This is message, length=32 bytes",
 	"\xB1\xC4\x66\xD3\x75\x19\xB8\x2E\x83\x19\x81\x9F\xF3\x25\x95\xE0"
@@ -4023,8 +4099,6 @@ check_digests (void)
 	"!",
 	"\x5C\x00\xCC\xC2\x73\x4C\xDD\x33\x32\xD3\xD4\x74\x95\x76\xE3\xC1"
 	"\xA7\xDB\xAF\x0E\x7E\xA7\x4E\x9F\xA6\x02\x41\x3C\x90\xA1\x29\xFA" },
-#endif
-#ifdef USE_GOST_R_3411_12
       { GCRY_MD_STRIBOG512,
         "012345678901234567890123456789012345678901234567890123456789012",
         "\x1b\x54\xd0\x1a\x4a\xf5\xb9\xd5\xcc\x3d\x86\xd6\x8d\x28\x54\x62"
@@ -4053,7 +4127,6 @@ check_digests (void)
         "\x20\xc8\xe3\xee\xf0\xe5\xe2\xfb",
         "\x9d\xd2\xfe\x4e\x90\x40\x9e\x5d\xa8\x7f\x53\x97\x6d\x74\x05\xb0"
         "\xc0\xca\xc6\x28\xfc\x66\x9a\x74\x1d\x50\x06\x3c\x55\x7e\x8f\x50" },
-#endif
       {	0 }
     };
   gcry_error_t err;
@@ -4064,6 +4137,11 @@ check_digests (void)
 
   for (i = 0; algos[i].md; i++)
     {
+      if (gcry_md_test_algo (algos[i].md))
+        {
+          show_md_not_available (algos[i].md);
+          continue;
+        }
       if ((gcry_md_test_algo (algos[i].md) || algos[i].md == GCRY_MD_MD5)
           && in_fips_mode)
         {
@@ -4488,6 +4566,11 @@ check_hmac (void)
 
   for (i = 0; algos[i].md; i++)
     {
+      if (gcry_md_test_algo (algos[i].md))
+        {
+          show_old_hmac_not_available (algos[i].md);
+          continue;
+        }
       if ((gcry_md_test_algo (algos[i].md) || algos[i].md == GCRY_MD_MD5)
           && in_fips_mode)
         {
@@ -5091,6 +5174,11 @@ check_mac (void)
 
   for (i = 0; algos[i].algo; i++)
     {
+      if (gcry_mac_test_algo (algos[i].algo))
+        {
+          show_mac_not_available (algos[i].algo);
+          continue;
+        }
       if ((gcry_mac_test_algo (algos[i].algo)
 	   || algos[i].algo == GCRY_MAC_HMAC_MD5) && in_fips_mode)
         {
