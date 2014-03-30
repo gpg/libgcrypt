@@ -173,6 +173,19 @@ void _gcry_camellia_cfb_dec (void *context, unsigned char *iv,
                              void *outbuf_arg, const void *inbuf_arg,
                              size_t nblocks);
 
+/*-- des.c --*/
+void _gcry_3des_ctr_enc (void *context, unsigned char *ctr,
+                         void *outbuf_arg, const void *inbuf_arg,
+                         size_t nblocks);
+
+void _gcry_3des_cbc_dec (void *context, unsigned char *iv,
+                         void *outbuf_arg, const void *inbuf_arg,
+                         size_t nblocks);
+
+void _gcry_3des_cfb_dec (void *context, unsigned char *iv,
+                         void *outbuf_arg, const void *inbuf_arg,
+                         size_t nblocks);
+
 /*-- serpent.c --*/
 void _gcry_serpent_ctr_enc (void *context, unsigned char *ctr,
                             void *outbuf_arg, const void *inbuf_arg,

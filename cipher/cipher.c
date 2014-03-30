@@ -513,6 +513,13 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
               h->bulk.ctr_enc = _gcry_camellia_ctr_enc;
               break;
 #endif /*USE_CAMELLIA*/
+#ifdef USE_DES
+            case GCRY_CIPHER_3DES:
+              h->bulk.cbc_dec =  _gcry_3des_cbc_dec;
+              h->bulk.cfb_dec =  _gcry_3des_cfb_dec;
+              h->bulk.ctr_enc =  _gcry_3des_ctr_enc;
+              break;
+#endif /*USE_DES*/
 #ifdef USE_SERPENT
 	    case GCRY_CIPHER_SERPENT128:
 	    case GCRY_CIPHER_SERPENT192:

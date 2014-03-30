@@ -1671,6 +1671,13 @@ LIST_MEMBER(des, $enabled_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS des.lo"
    AC_DEFINE(USE_DES, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS des-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(aes, $enabled_ciphers)

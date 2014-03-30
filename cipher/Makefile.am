@@ -60,7 +60,7 @@ arcfour.c arcfour-amd64.S \
 blowfish.c blowfish-amd64.S blowfish-arm.S \
 cast5.c cast5-amd64.S cast5-arm.S \
 crc.c \
-des.c \
+des.c des-amd64.S \
 dsa.c \
 elgamal.c \
 ecc.c ecc-curves.c ecc-misc.c ecc-common.h \
