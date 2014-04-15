@@ -1250,7 +1250,8 @@ _gcry_md_selftest (int algo, int extended, selftest_report_func_t report)
     ec = spec->selftest (algo, extended, report);
   else
     {
-      ec = spec->selftest? GPG_ERR_DIGEST_ALGO : GPG_ERR_NOT_IMPLEMENTED;
+      ec = (spec && spec->selftest) ? GPG_ERR_DIGEST_ALGO
+        /* */                       : GPG_ERR_NOT_IMPLEMENTED;
       if (report)
         report ("digest", algo, "module",
                 (spec && !spec->flags.disabled)?

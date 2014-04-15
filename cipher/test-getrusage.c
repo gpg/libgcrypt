@@ -45,10 +45,6 @@ main (int argc, char **argv)
   printf ("ru_nvcsw   = %ld\n", buf.ru_nvcsw    );
   printf ("ru_nivcsw  = %ld\n", buf.ru_nivcsw   );
 
-  fprintf (stderr, "ru_utime   ru_stime   ru_minflt  ru_nccsw  ru_nivcsw\n");
-  fprintf (stderr, "%ld.%06ld  %ld.%06ld  %5ld       %5ld      %5ld\n");
-
-
   return 0;
 }
 
