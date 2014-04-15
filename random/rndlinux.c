@@ -226,21 +226,23 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
 
       do
         {
-          int nbytes = length < sizeof(buffer)? length : sizeof(buffer);
-          n = read(fd, buffer, nbytes );
-          if( n >= 0 && n > nbytes )
+          size_t nbytes;
+
+          nbytes = length < sizeof(buffer)? length : sizeof(buffer);
+          n = read (fd, buffer, nbytes);
+          if (n >= 0 && n > nbytes)
             {
               log_error("bogus read from random device (n=%d)\n", n );
               n = nbytes;
             }
         }
-      while( n == -1 && errno == EINTR );
-      if ( n == -1 )
+      while (n == -1 && errno == EINTR);
+      if  (n == -1)
         log_fatal("read error on random device: %s\n", strerror(errno));
-      (*add)( buffer, n, origin );
+      (*add)(buffer, n, origin);
       length -= n;
     }
-  memset(buffer, 0, sizeof(buffer) );
+  wipememory (buffer, sizeof buffer);
 
   if (any_need_entropy)
     _gcry_random_progress ("need_entropy", 'X', (int)want, (int)want);
