@@ -57,16 +57,14 @@ map_algo (int algo)
 {
  switch (algo)
    {
-   case GCRY_PK_ECDSA:
-   case GCRY_PK_ECDH:
-     return GCRY_PK_ECC;
-   case GCRY_PK_ELG_E:
-     return GCRY_PK_ELG;
-   default:
-     return algo;
+   case GCRY_PK_RSA_E: return GCRY_PK_RSA;
+   case GCRY_PK_RSA_S: return GCRY_PK_RSA;
+   case GCRY_PK_ELG_E: return GCRY_PK_ELG;
+   case GCRY_PK_ECDSA: return GCRY_PK_ECC;
+   case GCRY_PK_ECDH:  return GCRY_PK_ECC;
+   default:            return algo;
    }
 }
-
 
 
 /* Return the spec structure for the public key algorithm ALGO.  For
