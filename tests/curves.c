@@ -29,7 +29,7 @@
 #include "../src/gcrypt-int.h"
 
 /* Number of curves defined in ../cipger/ecc.c */
-#define N_CURVES 21
+#define N_CURVES 22
 
 /* A real world sample public key.  */
 static char const sample_key_1[] =
@@ -62,6 +62,18 @@ static char const sample_key_2[] =
 "  ))";
 static char const sample_key_2_curve[] = "brainpoolP160r1";
 static unsigned int sample_key_2_nbits = 160;
+
+
+/* Another sample public key.  */
+static char const sample_key_3[] =
+"(public-key\n"
+" (ecdh\n"
+"  (curve Curve25519)\n"
+"  (q #040000000000000000000000000000000000000000000000000000000000000000"
+"        0000000000000000000000000000000000000000000000000000000000000000#)\n"
+"  ))";
+static char const sample_key_3_curve[] = "Curve25519";
+static unsigned int sample_key_3_nbits = 256;
 
 
 /* Program option flags.  */
@@ -185,6 +197,30 @@ check_get_params (void)
 }
 
 
+static void
+check_montgomery (void)
+{
+  gpg_error_t err;
+  gcry_sexp_t key;
+  const char *name;
+  unsigned int nbits;
+
+  err = gcry_sexp_new (&key, sample_key_3, 0, 1);
+  if (err)
+    die ("parsing s-expression string failed: %s\n", gpg_strerror (err));
+  name = gcry_pk_get_curve (key, 0, &nbits);
+  if (!name)
+    fail ("curve name not found for sample_key_3\n");
+  else if (strcmp (name, sample_key_3_curve))
+    fail ("expected curve name %s but got %s for sample_key_3\n",
+          sample_key_3_curve, name);
+  else if (nbits != sample_key_3_nbits)
+    fail ("expected curve size %u but got %u for sample_key_3\n",
+          sample_key_3_nbits, nbits);
+
+  gcry_sexp_release (key);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -205,6 +241,7 @@ main (int argc, char **argv)
   list_curves ();
   check_matching ();
   check_get_params ();
+  check_montgomery ();
 
   return error_count ? 1 : 0;
 }
