@@ -132,10 +132,10 @@ static const ecc_domain_parms_t domain_parms[] =
       "Curve25519", 256, 0,
       MPI_EC_MONTGOMERY, ECC_DIALECT_STANDARD,
       "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
-      "0X1DB41",
-      "0x1",
+      "0x01DB41",
+      "0x01",
       "0x1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
-      "0x9",
+      "0x09",
       "0x20AE19A1B8A086B4E01EDD2C7748D14C923D4D7E6D7C61B229E9C5A27ECED3D9"
     },
 #if 0 /* No real specs yet found.  */
@@ -518,9 +518,8 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
     {
     case MPI_EC_WEIERSTRASS:
     case MPI_EC_EDWARDS:
-      break;
     case MPI_EC_MONTGOMERY:
-      return GPG_ERR_NOT_SUPPORTED;
+      break;
     default:
       return GPG_ERR_BUG;
     }

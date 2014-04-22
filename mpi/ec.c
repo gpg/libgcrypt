@@ -600,10 +600,17 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
 
     case MPI_EC_MONTGOMERY:
       {
-        log_fatal ("%s: %s not yet supported\n",
-                   "_gcry_mpi_ec_get_affine", "Montgomery");
+        gcry_mpi_t z1;
+
+        z1 = mpi_new (0);
+        ec_invm (z1, point->z, ctx);  /* z1 = z^(-1) mod p  */
+
+        if (x)
+          ec_mulm (x, point->x, z1, ctx);
+
+        mpi_free (z1);
       }
-      return -1;
+      return 0;
 
     case MPI_EC_EDWARDS:
       {
@@ -1095,7 +1102,7 @@ dup_and_add_montgomery (mpi_point_t prd, mpi_point_t sum,
   ec_subm (p1->z, p1->x, p1->z, ctx);
   ec_pow2 (sum->x, sum->x, ctx);
   ec_pow2 (sum->z, p2->z, ctx);
-  ec_mulm (prd->z, p1->z, ctx->a, ctx);	/* ctx->a: (A-2)/4 */
+  ec_mulm (prd->z, p1->z, ctx->a, ctx); /* ctx->a: (A-2)/4 */
   ec_mulm (sum->z, sum->z, dif_x, ctx);
   ec_addm (prd->z, p1->x, prd->z, ctx);
   ec_mulm (prd->z, prd->z, p1->z, ctx);
@@ -1181,65 +1188,68 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
 
       nbits = mpi_get_nbits (scalar);
       point_init (&p1);
-      mpi_set_ui (p1.x, 1);
-      p2.x  = mpi_copy (scalar);
-      p2.y = mpi_new (0);
-      p2.z = mpi_new (1);
+      point_init (&p2);
       point_init (&p1_);
       point_init (&p2_);
+      mpi_set_ui (p1.x, 1);
+      mpi_free (p2.x);
+      p2.x  = mpi_copy (point->x);
+      mpi_set_ui (p2.z, 1);
 
       for (j=nbits-1; j >= 0; j--)
-	{
-	  mpi_point_t q1, q2;
-	  mpi_point_t sum_n, prd_n;
+        {
+          mpi_point_t q1, q2;
+          mpi_point_t sum_n, prd_n;
 
-	  if (mpi_test_bit (scalar, j))
-	    {
-	      q1 = &p2;
-	      q2 = &p1;
-	      sum_n = &p1_;
-	      prd_n = &p2_;
-	    }
-	  else
-	    {
-	      q1 = &p1;
-	      q2 = &p2;
-	      sum_n = &p2_;
-	      prd_n = &p1_;
-	    }
-	  dup_and_add_montgomery (prd_n, sum_n, q1, q2, point->x, ctx);
+          if (mpi_test_bit (scalar, j))
+            {
+              q1 = &p2;
+              q2 = &p1;
+              sum_n = &p1_;
+              prd_n = &p2_;
+            }
+          else
+            {
+              q1 = &p1;
+              q2 = &p2;
+              sum_n = &p2_;
+              prd_n = &p1_;
+            }
+          dup_and_add_montgomery (prd_n, sum_n, q1, q2, point->x, ctx);
 
-	  if (--j < 0)
-	    break;
+          if (--j < 0)
+            break;
 
-	  if (mpi_test_bit (scalar, j))
-	    {
-	      q1 = &p2_;
-	      q2 = &p1_;
-	      sum_n = &p1;
-	      prd_n = &p2;
-	    }
-	  else
-	    {
-	      q1 = &p1_;
-	      q2 = &p2_;
-	      sum_n = &p2;
-	      prd_n = &p1;
-	    }
+          if (mpi_test_bit (scalar, j))
+            {
+              q1 = &p2_;
+              q2 = &p1_;
+              sum_n = &p1;
+              prd_n = &p2;
+            }
+          else
+            {
+              q1 = &p1_;
+              q2 = &p2_;
+              sum_n = &p2;
+              prd_n = &p1;
+            }
 
-	  dup_and_add_montgomery (prd_n, sum_n, q1, q2, point->x, ctx);
-	}
+          dup_and_add_montgomery (prd_n, sum_n, q1, q2, point->x, ctx);
+        }
 
       if ((nbits & 1))
-	{
-	  ec_invm (result->x, p1_.z, ctx);
-	  ec_mulm (result->x, result->x, p1_.x, ctx);
-	}
+        {
+          mpi_snatch (result->x, p1_.x);
+          mpi_snatch (result->z, p1_.z);
+          p1_.x = p1_.z = NULL;
+        }
       else
-	{
-	  ec_invm (result->x, p1.z, ctx);
-	  ec_mulm (result->x, result->x, p1.x, ctx);
-	}
+        {
+          mpi_snatch (result->x, p1.x);
+          mpi_snatch (result->z, p1.z);
+          p1.x = p1.z = NULL;
+        }
 
       point_free (&p1);
       point_free (&p2);
