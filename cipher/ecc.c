@@ -117,7 +117,25 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   point_init (&Q);
 
   /* Generate a secret.  */
-  if (ctx->dialect == ECC_DIALECT_ED25519)
+  /*
+   * FIXME.  It should be something like this:
+   *
+   *   When the co-factor of the curve is not 1, we guarantee that
+   *   scalar value k is multiple of its co-factor to avoid sub-group
+   *   attack.  Also, we make sure that the most significant bit of k
+   *   is 1.
+   *
+   * It works for now as we only have two curves which have co-factor!=1;
+   * Ed25519 and Curve25519.
+   * Note that we need some a way to get number of bits of the curve to
+   * set MSB of k.  Currently, E.nbits is not precise for this purpuse.
+   * We also need a way to get co-factor of a curve.
+   *
+   * Currently, we distinguish the two curves by ECC_DIALECT_ED25519
+   * and MPI_EC_MONTGOMERY, which works, but is not that correct.
+   */
+  if (ctx->dialect == ECC_DIALECT_ED25519
+      || E->model == MPI_EC_MONTGOMERY)
     {
       char *rndbuf;
 
@@ -156,7 +174,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
    * possibilities without any loss of security.  Note that we don't
    * do that for Ed25519 so that we do not violate the special
    * construction of the secret key.  */
-  if (E->dialect == ECC_DIALECT_ED25519)
+  if (E->dialect == ECC_DIALECT_ED25519 || E->model == MPI_EC_MONTGOMERY)
     point_set (&sk->Q, &Q);
   else
     {
@@ -227,12 +245,8 @@ static void
 test_keys (ECC_secret_key *sk, unsigned int nbits)
 {
   ECC_public_key pk;
-  gcry_mpi_t test = mpi_new (nbits);
+  gcry_mpi_t test;
   mpi_point_struct R_;
-  gcry_mpi_t c = mpi_new (nbits);
-  gcry_mpi_t out = mpi_new (nbits);
-  gcry_mpi_t r = mpi_new (nbits);
-  gcry_mpi_t s = mpi_new (nbits);
 
   if (DBG_CIPHER)
     log_debug ("Testing key.\n");
@@ -243,27 +257,82 @@ test_keys (ECC_secret_key *sk, unsigned int nbits)
   point_init (&pk.Q);
   point_set (&pk.Q, &sk->Q);
 
-  _gcry_mpi_randomize (test, nbits, GCRY_WEAK_RANDOM);
-
-  if (_gcry_ecc_ecdsa_sign (test, sk, r, s, 0, 0) )
-    log_fatal ("ECDSA operation: sign failed\n");
-
-  if (_gcry_ecc_ecdsa_verify (test, &pk, r, s))
+  if (sk->E.model == MPI_EC_MONTGOMERY)
+    /* It's ECDH only. */
+    /* FIXME: see the FIXME comment of nist_generate_key.
+     * Here, we generate ephemeral key, same handling is needed for secret.
+     */
     {
-      log_fatal ("ECDSA operation: sign, verify failed\n");
-    }
+      char *rndbuf;
+      gcry_mpi_t x0, x1;
+      mpi_ec_t ec;
 
-  if (DBG_CIPHER)
-    log_debug ("ECDSA operation: sign, verify ok.\n");
+      test = mpi_new (256);
+      rndbuf = _gcry_random_bytes (32, GCRY_WEAK_RANDOM);
+      rndbuf[0] &= 0x7f;  /* Clear bit 255. */
+      rndbuf[0] |= 0x40;  /* Set bit 254.   */
+      rndbuf[31] &= 0xf8; /* Clear bits 2..0 so that d mod 8 == 0  */
+      _gcry_mpi_set_buffer (test, rndbuf, 32, 0);
+      xfree (rndbuf);
+
+      ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, 0,
+                                        pk.E.p, pk.E.a, pk.E.b);
+      x0 = mpi_new (0);
+      x1 = mpi_new (0);
+
+      /* R_ = kQ  <=>  R_ = kdG  */
+      _gcry_mpi_ec_mul_point (&R_, test, &pk.Q, ec);
+      if (_gcry_mpi_ec_get_affine (x0, NULL, &R_, ec))
+          log_fatal ("ecdh: Failed to get affine coordinates for kQ\n");
+
+      /* R_ = kG */
+      _gcry_mpi_ec_mul_point (&R_, test, &pk.E.G, ec);
+      /* R_ = dkG */
+      _gcry_mpi_ec_mul_point (&R_, sk->d, &R_, ec);
+
+      if (_gcry_mpi_ec_get_affine (x1, NULL, &R_, ec))
+        log_fatal ("ecdh: Failed to get affine coordinates for dkG\n");
+
+      if (mpi_cmp (x0, x1))
+        {
+          log_fatal ("ECDH test failed.\n");
+        }
+
+      mpi_free (x0);
+      mpi_free (x1);
+      _gcry_mpi_ec_free (ec);
+    }
+  else
+    {
+      gcry_mpi_t c = mpi_new (nbits);
+      gcry_mpi_t out = mpi_new (nbits);
+      gcry_mpi_t r = mpi_new (nbits);
+      gcry_mpi_t s = mpi_new (nbits);
+
+      test = mpi_new (nbits);
+      _gcry_mpi_randomize (test, nbits, GCRY_WEAK_RANDOM);
+
+      if (_gcry_ecc_ecdsa_sign (test, sk, r, s, 0, 0) )
+        log_fatal ("ECDSA operation: sign failed\n");
+
+      if (_gcry_ecc_ecdsa_verify (test, &pk, r, s))
+        {
+          log_fatal ("ECDSA operation: sign, verify failed\n");
+        }
+
+      if (DBG_CIPHER)
+        log_debug ("ECDSA operation: sign, verify ok.\n");
+
+      mpi_free (s);
+      mpi_free (r);
+      mpi_free (out);
+      mpi_free (c);
+    }
 
   point_free (&pk.Q);
   _gcry_ecc_curve_free (&pk.E);
 
   point_free (&R_);
-  mpi_free (s);
-  mpi_free (r);
-  mpi_free (out);
-  mpi_free (c);
   mpi_free (test);
 }
 

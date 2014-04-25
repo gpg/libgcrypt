@@ -365,7 +365,7 @@ static void
 check_ecc_keys (void)
 {
   const char *curves[] = { "NIST P-521", "NIST P-384", "NIST P-256",
-                           "Ed25519", NULL };
+                           "Ed25519", "Curve25519", NULL };
   int testno;
   gcry_sexp_t keyparm, key;
   int rc;

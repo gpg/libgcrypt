@@ -205,6 +205,11 @@ check_montgomery (void)
   const char *name;
   unsigned int nbits;
 
+  gcry_ctx_t ctx;
+  gcry_mpi_point_t G, Q;
+  gcry_mpi_t d;
+  gcry_mpi_t x, y, z;
+
   err = gcry_sexp_new (&key, sample_key_3, 0, 1);
   if (err)
     die ("parsing s-expression string failed: %s\n", gpg_strerror (err));
@@ -219,6 +224,56 @@ check_montgomery (void)
           sample_key_3_nbits, nbits);
 
   gcry_sexp_release (key);
+
+  Q = gcry_mpi_point_new (0);
+
+  err = gcry_mpi_ec_new (&ctx, NULL, "Curve25519");
+  if (err)
+    fail ("can't create ec context: %s\n", gpg_strerror (err));
+
+#if 0
+  d = hex2mpi ("40000000000000000000000000000000"
+               "00000000000000000000000000000000");
+  G = gcry_mpi_ec_get_point ("g", ctx, 1);
+  if (!G)
+    fail ("can't get basepoint of the curve: %s\n", gpg_strerror (err));
+#else
+  d = hex2mpi ("7d74fb61db3100e11e4d4ae171daf820688f3bcfa631565272a998b8f4e8c290");
+  {
+    gcry_mpi_t gx;
+    gx = hex2mpi ("3dc16d73d4222d12eb54623c85f3fb5ebdab33c1bd5865780654f1b0ed696ddf");
+
+    G = gcry_mpi_point_new (0);
+    gcry_mpi_point_snatch_set (G, gx, NULL, NULL);
+  }
+#endif
+
+  gcry_mpi_ec_mul (Q, d, G, ctx);
+
+  x = gcry_mpi_new (0);
+  y = gcry_mpi_new (0);
+  z = gcry_mpi_new (0);
+
+  gcry_mpi_point_get (x, y, z, Q);
+
+  print_mpi ("Q.x", x);
+  print_mpi ("Q.y", y);
+  print_mpi ("Q.z", z);
+
+  if (gcry_mpi_ec_get_affine (x, NULL, Q, ctx))
+    fail ("failed to get affine coordinates\n");
+
+  print_mpi ("q.x", x);
+  /* 16B53A046DEEDD81ED6B0D470CE46DD9B5FAC6124F3D22358AA7CD2911FCFABC */
+
+  gcry_mpi_release (z);
+  gcry_mpi_release (y);
+  gcry_mpi_release (x);
+
+  gcry_mpi_point_release (Q);
+  gcry_mpi_release (d);
+  gcry_mpi_point_release (G);
+  gcry_ctx_release (ctx);
 }
 
 int

@@ -600,15 +600,11 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
 
     case MPI_EC_MONTGOMERY:
       {
-        gcry_mpi_t z1;
-
-        z1 = mpi_new (0);
-        ec_invm (z1, point->z, ctx);  /* z1 = z^(-1) mod p  */
-
         if (x)
-          ec_mulm (x, point->x, z1, ctx);
+          mpi_set (x, point->x);
 
-        mpi_free (z1);
+        if (y)
+          mpi_set (y, point->y);
       }
       return 0;
 
@@ -1238,19 +1234,22 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
           dup_and_add_montgomery (prd_n, sum_n, q1, q2, point->x, ctx);
         }
 
+      z1 = mpi_new (0);
+      mpi_clear (result->y);
+      mpi_set_ui (result->z, 1);
       if ((nbits & 1))
         {
-          mpi_snatch (result->x, p1_.x);
-          mpi_snatch (result->z, p1_.z);
-          p1_.x = p1_.z = NULL;
+          ec_invm (z1, p1_.z, ctx);
+          ec_mulm (result->x, p1_.x, z1, ctx);
+          mpi_clear (result->y);
         }
       else
         {
-          mpi_snatch (result->x, p1.x);
-          mpi_snatch (result->z, p1.z);
-          p1.x = p1.z = NULL;
+          ec_invm (z1, p1.z, ctx);
+          ec_mulm (result->x, p1.x, z1, ctx);
         }
 
+      mpi_free (z1);
       point_free (&p1);
       point_free (&p2);
       point_free (&p1_);
