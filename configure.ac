@@ -51,11 +51,12 @@ m4_define([mym4_full_version],[mym4_version[]mym4_betastring])
 AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 
 # LT Version numbers, remember to change them just *before* a release.
+# ====== NOTE: Already bumped to 21/1/0 for the 1.7.0 release. ====
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
-LIBGCRYPT_LT_CURRENT=20
-LIBGCRYPT_LT_AGE=0
+LIBGCRYPT_LT_CURRENT=21
+LIBGCRYPT_LT_AGE=1
 LIBGCRYPT_LT_REVISION=0
 
 
