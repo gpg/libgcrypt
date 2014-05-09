@@ -115,13 +115,15 @@ gcry_mpi_test_bit( gcry_mpi_t a, unsigned int n )
 void
 gcry_mpi_set_bit( gcry_mpi_t a, unsigned int n )
 {
-  unsigned int limbno, bitno;
+  unsigned int i, limbno, bitno;
 
   limbno = n / BITS_PER_MPI_LIMB;
   bitno  = n % BITS_PER_MPI_LIMB;
 
   if ( limbno >= a->nlimbs )
     {
+      for (i=a->nlimbs; i < a->alloced; i++)
+        a->d[i] = 0;
       mpi_resize (a, limbno+1 );
       a->nlimbs = limbno+1;
     }
@@ -134,13 +136,15 @@ gcry_mpi_set_bit( gcry_mpi_t a, unsigned int n )
 void
 gcry_mpi_set_highbit( gcry_mpi_t a, unsigned int n )
 {
-  unsigned int limbno, bitno;
+  unsigned int i, limbno, bitno;
 
   limbno = n / BITS_PER_MPI_LIMB;
   bitno  = n % BITS_PER_MPI_LIMB;
 
   if ( limbno >= a->nlimbs )
     {
+      for (i=a->nlimbs; i < a->alloced; i++)
+        a->d[i] = 0;
       mpi_resize (a, limbno+1 );
       a->nlimbs = limbno+1;
     }
