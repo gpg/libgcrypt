@@ -28,7 +28,7 @@
 #include "mpi-internal.h"
 #include "mod-source-info.h"
 
-/* Constatns allocated right away at strtartup.  */
+/* Constants allocated right away at startup.  */
 static gcry_mpi_t constants[MPI_NUMBER_OF_CONSTANTS];
 
 
