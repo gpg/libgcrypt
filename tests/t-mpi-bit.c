@@ -327,6 +327,58 @@ test_lshift (int pass)
 }
 
 
+/* Bug fixed on 2014-05-09:
+      a = gcry_mpi_new (1523);
+      gcry_mpi_set_bit (a, 1536);
+      didn't initialized all limbs in A.  */
+static void
+set_bit_with_resize (void)
+{
+  gcry_mpi_t a;
+  int i;
+
+  wherestr = "set_bit_with_resize";
+  show ("checking that set_bit initializes all limbs\n");
+
+  a = gcry_mpi_new (1536);
+  gcry_mpi_set_bit (a, 1536);
+
+  if (!gcry_mpi_test_bit (a, 1536))
+    fail ("failed to set a bit\n");
+  for (i=0; i < 1536; i++)
+    {
+      if (gcry_mpi_test_bit (a, i))
+        {
+          fail ("spurious bit detected\n");
+          break;
+        }
+    }
+  if (gcry_mpi_test_bit (a, 1537))
+    fail ("more bits set than expected\n");
+  gcry_mpi_release (a);
+
+  wherestr = "set_highbit_with_resize";
+  show ("checking that set_highbit initializes all limbs\n");
+
+  a = gcry_mpi_new (1536);
+  gcry_mpi_set_highbit (a, 1536);
+
+  if (!gcry_mpi_test_bit (a, 1536))
+    fail ("failed to set a bit\n");
+  for (i=0; i < 1536; i++)
+    {
+      if (gcry_mpi_test_bit (a, i))
+        {
+          fail ("spurious bit detected\n");
+          break;
+        }
+    }
+  if (gcry_mpi_test_bit (a, 1537))
+    fail ("more bits set than expected\n");
+  gcry_mpi_release (a);
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -355,6 +407,8 @@ main (int argc, char **argv)
 
   for (i=0; i < 5; i++)
     test_lshift (i); /* Run several times due to random initializations. */
+
+  set_bit_with_resize ();
 
   show ("All tests completed. Errors: %d\n", error_count);
   return error_count ? 1 : 0;
