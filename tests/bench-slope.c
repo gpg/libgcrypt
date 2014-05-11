@@ -1316,6 +1316,19 @@ bench_mac_init (struct bench_obj *obj)
       exit (1);
     }
 
+  switch (mode->algo)
+    {
+    default:
+      break;
+    case GCRY_MAC_POLY1305_AES:
+    case GCRY_MAC_POLY1305_CAMELLIA:
+    case GCRY_MAC_POLY1305_TWOFISH:
+    case GCRY_MAC_POLY1305_SERPENT:
+    case GCRY_MAC_POLY1305_SEED:
+      gcry_mac_setiv (hd, key, 16);
+      break;
+    }
+
   obj->priv = hd;
 
   return 0;

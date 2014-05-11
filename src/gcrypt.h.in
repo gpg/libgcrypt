@@ -1343,7 +1343,12 @@ enum gcry_mac_algos
     GCRY_MAC_GMAC_SERPENT       = 404,
     GCRY_MAC_GMAC_SEED          = 405,
 
-    GCRY_MAC_POLY1305           = 501
+    GCRY_MAC_POLY1305           = 501,
+    GCRY_MAC_POLY1305_AES       = 502,
+    GCRY_MAC_POLY1305_CAMELLIA  = 503,
+    GCRY_MAC_POLY1305_TWOFISH   = 504,
+    GCRY_MAC_POLY1305_SERPENT   = 505,
+    GCRY_MAC_POLY1305_SEED      = 506
   };
 
 /* Flags used with the open function.  */

@@ -75,14 +75,17 @@ static gcry_mac_spec_t *mac_list[] = {
 #if USE_AES
   &_gcry_mac_type_spec_cmac_aes,
   &_gcry_mac_type_spec_gmac_aes,
+  &_gcry_mac_type_spec_poly1305mac_aes,
 #endif
 #if USE_TWOFISH
   &_gcry_mac_type_spec_cmac_twofish,
   &_gcry_mac_type_spec_gmac_twofish,
+  &_gcry_mac_type_spec_poly1305mac_twofish,
 #endif
 #if USE_SERPENT
   &_gcry_mac_type_spec_cmac_serpent,
   &_gcry_mac_type_spec_gmac_serpent,
+  &_gcry_mac_type_spec_poly1305mac_serpent,
 #endif
 #if USE_RFC2268
   &_gcry_mac_type_spec_cmac_rfc2268,
@@ -90,10 +93,12 @@ static gcry_mac_spec_t *mac_list[] = {
 #if USE_SEED
   &_gcry_mac_type_spec_cmac_seed,
   &_gcry_mac_type_spec_gmac_seed,
+  &_gcry_mac_type_spec_poly1305mac_seed,
 #endif
 #if USE_CAMELLIA
   &_gcry_mac_type_spec_cmac_camellia,
   &_gcry_mac_type_spec_gmac_camellia,
+  &_gcry_mac_type_spec_poly1305mac_camellia,
 #endif
 #ifdef USE_IDEA
   &_gcry_mac_type_spec_cmac_idea,

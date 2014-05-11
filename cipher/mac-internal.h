@@ -217,3 +217,18 @@ extern gcry_mac_spec_t _gcry_mac_type_spec_gmac_camellia;
  * The Poly1305 MAC algorithm specifications (mac-poly1305.c).
  */
 extern gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac;
+#if USE_AES
+extern gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_aes;
+#endif
+#if USE_CAMELLIA
+extern gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_camellia;
+#endif
+#if USE_TWOFISH
+extern gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_twofish;
+#endif
+#if USE_SERPENT
+extern gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_serpent;
+#endif
+#if USE_SEED
+extern gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac_seed;
+#endif
