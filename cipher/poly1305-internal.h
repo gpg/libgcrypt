@@ -44,15 +44,37 @@
 #define POLY1305_REF_ALIGNMENT sizeof(void *)
 
 
+/* POLY1305_USE_SSE2 indicates whether to compile with AMD64 SSE2 code. */
+#undef POLY1305_USE_SSE2
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+# define POLY1305_USE_SSE2 1
+# define POLY1305_SSE2_BLOCKSIZE 32
+# define POLY1305_SSE2_STATESIZE 248
+# define POLY1305_SSE2_ALIGNMENT 16
+#endif
+
+
 /* Largest block-size used in any implementation (optimized implementations
  * might use block-size multiple of 16). */
-#define POLY1305_LARGEST_BLOCKSIZE POLY1305_REF_BLOCKSIZE
+#ifdef POLY1305_USE_SSE2
+# define POLY1305_LARGEST_BLOCKSIZE POLY1305_SSE2_BLOCKSIZE
+#else
+# define POLY1305_LARGEST_BLOCKSIZE POLY1305_REF_BLOCKSIZE
+#endif
 
 /* Largest state-size used in any implementation. */
-#define POLY1305_LARGEST_STATESIZE POLY1305_REF_STATESIZE
+#ifdef POLY1305_USE_SSE2
+# define POLY1305_LARGEST_STATESIZE POLY1305_SSE2_STATESIZE
+#else
+# define POLY1305_LARGEST_STATESIZE POLY1305_REF_STATESIZE
+#endif
 
 /* Minimum alignment for state pointer passed to implementations. */
-#define POLY1305_STATE_ALIGNMENT POLY1305_REF_ALIGNMENT
+#ifdef POLY1305_USE_SSE2
+# define POLY1305_STATE_ALIGNMENT POLY1305_SSE2_ALIGNMENT
+#else
+# define POLY1305_STATE_ALIGNMENT POLY1305_REF_ALIGNMENT
+#endif
 
 
 typedef struct poly1305_key_s

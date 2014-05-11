@@ -38,6 +38,25 @@ static const char *selftest (void);
 
 
 
+#ifdef POLY1305_USE_SSE2
+
+void _gcry_poly1305_amd64_sse2_init_ext(void *state, const poly1305_key_t *key);
+unsigned int _gcry_poly1305_amd64_sse2_finish_ext(void *state, const byte *m,
+						  size_t remaining,
+						  byte mac[16]);
+unsigned int _gcry_poly1305_amd64_sse2_blocks(void *ctx, const byte *m,
+					      size_t bytes);
+
+static const poly1305_ops_t poly1305_amd64_sse2_ops = {
+  POLY1305_SSE2_BLOCKSIZE,
+  _gcry_poly1305_amd64_sse2_init_ext,
+  _gcry_poly1305_amd64_sse2_blocks,
+  _gcry_poly1305_amd64_sse2_finish_ext
+};
+
+#endif
+
+
 #ifdef HAVE_U64_TYPEDEF
 
 /* Reference unoptimized poly1305 implementation using 32 bit * 32 bit = 64 bit
@@ -612,7 +631,11 @@ _gcry_poly1305_init (poly1305_context_t * ctx, const byte * key,
   if (selftest_failed)
     return GPG_ERR_SELFTEST_FAILED;
 
+#ifdef POLY1305_USE_SSE2
+  ctx->ops = &poly1305_amd64_sse2_ops;
+#else
   ctx->ops = &poly1305_default_ops;
+#endif
 
   buf_cpy (keytmp.b, key, POLY1305_KEYLEN);
   poly1305_init (ctx, &keytmp);

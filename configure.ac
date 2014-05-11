@@ -1821,6 +1821,13 @@ if test "$found" = "1" ; then
    esac
 fi
 
+case "${host}" in
+   x86_64-*-*)
+      # Build with the assembly implementation
+      GCRYPT_CIPHERS="$GCRYPT_CIPHERS poly1305-sse2-amd64.lo"
+   ;;
+esac
+
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_PUBKEY_CIPHERS="$GCRYPT_PUBKEY_CIPHERS dsa.lo"
