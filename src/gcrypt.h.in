@@ -880,7 +880,8 @@ enum gcry_cipher_algos
     GCRY_CIPHER_CAMELLIA256 = 312,
     GCRY_CIPHER_SALSA20     = 313,
     GCRY_CIPHER_SALSA20R12  = 314,
-    GCRY_CIPHER_GOST28147   = 315
+    GCRY_CIPHER_GOST28147   = 315,
+    GCRY_CIPHER_CHACHA20    = 316
   };
 
 /* The Rijndael algorithm is basically AES, so provide some macros. */

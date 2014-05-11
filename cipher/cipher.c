@@ -83,6 +83,9 @@ static gcry_cipher_spec_t *cipher_list[] =
 #if USE_GOST28147
      &_gcry_cipher_spec_gost28147,
 #endif
+#if USE_CHACHA20
+     &_gcry_cipher_spec_chacha20,
+#endif
     NULL
   };
 

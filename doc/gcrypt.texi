@@ -1564,6 +1564,10 @@ This is the Salsa20/12 - reduced round version of Salsa20 stream cipher.
 The GOST 28147-89 cipher, defined in the respective GOST standard.
 Translation of this GOST into English is provided in the RFC-5830.
 
+@item GCRY_CIPHER_CHACHA20
+@cindex ChaCha20
+This is the ChaCha20 stream cipher.
+
 @end table
 
 @node Available cipher modes
@@ -1720,9 +1724,9 @@ vector is passed as the buffer @var{K} of length @var{l} bytes and
 copied to internal data structures.  The function checks that the IV
 matches the requirement of the selected algorithm and mode.
 
-This function is also used with the Salsa20 stream cipher to set or
-update the required nonce.  In this case it needs to be called after
-setting the key.
+This function is also used with Salsa20 and ChaCha20 stream ciphers
+to set or update the required nonce.  In this case it needs to be
+called after setting the key.
 
 This function is also used with the AEAD cipher modes to set or
 update the required nonce.
