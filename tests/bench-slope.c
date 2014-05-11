@@ -1405,7 +1405,7 @@ mac_bench (char **argv, int argc)
     }
   else
     {
-      for (i = 1; i < 500; i++)
+      for (i = 1; i < 600; i++)
 	if (!gcry_mac_test_algo (i))
 	  _mac_bench (i);
     }

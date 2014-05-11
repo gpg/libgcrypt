@@ -17,8 +17,16 @@
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
+
+#include "g10lib.h"
+
+
 /* The data object used to hold a handle to an encryption object.  */
 struct gcry_mac_handle;
+
+/* The data object used to hold poly1305-mac context.  */
+struct poly1305mac_context_s;
 
 
 /*
@@ -84,7 +92,6 @@ typedef struct gcry_mac_spec
 } gcry_mac_spec_t;
 
 
-
 /* The handle structure.  */
 struct gcry_mac_handle
 {
@@ -106,6 +113,9 @@ struct gcry_mac_handle
       gcry_cipher_hd_t ctx;
       int cipher_algo;
     } gmac;
+    struct {
+      struct poly1305mac_context_s *ctx;
+    } poly1305mac;
   } u;
 };
 
@@ -202,3 +212,8 @@ extern gcry_mac_spec_t _gcry_mac_type_spec_gmac_seed;
 #if USE_CAMELLIA
 extern gcry_mac_spec_t _gcry_mac_type_spec_gmac_camellia;
 #endif
+
+/*
+ * The Poly1305 MAC algorithm specifications (mac-poly1305.c).
+ */
+extern gcry_mac_spec_t _gcry_mac_type_spec_poly1305mac;

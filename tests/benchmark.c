@@ -461,7 +461,7 @@ mac_bench ( const char *algoname )
 
   if (!algoname)
     {
-      for (i=1; i < 500; i++)
+      for (i=1; i < 600; i++)
         if (in_fips_mode && i == GCRY_MAC_HMAC_MD5)
           ; /* Don't use MD5 in fips mode.  */
         else if ( !gcry_mac_test_algo (i) )
