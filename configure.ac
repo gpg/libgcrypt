@@ -1811,6 +1811,13 @@ LIST_MEMBER(chacha20, $enabled_ciphers)
 if test "$found" = "1" ; then
    GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20.lo"
    AC_DEFINE(USE_CHACHA20, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-ssse3-amd64.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(dsa, $enabled_pubkey_ciphers)
