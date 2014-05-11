@@ -54,23 +54,40 @@
 #endif
 
 
+/* POLY1305_USE_AVX2 indicates whether to compile with AMD64 AVX2 code. */
+#undef POLY1305_USE_AVX2
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    defined(ENABLE_AVX2_SUPPORT)
+# define POLY1305_USE_AVX2 1
+# define POLY1305_AVX2_BLOCKSIZE 64
+# define POLY1305_AVX2_STATESIZE 328
+# define POLY1305_AVX2_ALIGNMENT 32
+#endif
+
+
 /* Largest block-size used in any implementation (optimized implementations
  * might use block-size multiple of 16). */
-#ifdef POLY1305_USE_SSE2
+#ifdef POLY1305_USE_AVX2
+# define POLY1305_LARGEST_BLOCKSIZE POLY1305_AVX2_BLOCKSIZE
+#elif defined(POLY1305_USE_SSE2)
 # define POLY1305_LARGEST_BLOCKSIZE POLY1305_SSE2_BLOCKSIZE
 #else
 # define POLY1305_LARGEST_BLOCKSIZE POLY1305_REF_BLOCKSIZE
 #endif
 
 /* Largest state-size used in any implementation. */
-#ifdef POLY1305_USE_SSE2
+#ifdef POLY1305_USE_AVX2
+# define POLY1305_LARGEST_STATESIZE POLY1305_AVX2_STATESIZE
+#elif defined(POLY1305_USE_SSE2)
 # define POLY1305_LARGEST_STATESIZE POLY1305_SSE2_STATESIZE
 #else
 # define POLY1305_LARGEST_STATESIZE POLY1305_REF_STATESIZE
 #endif
 
 /* Minimum alignment for state pointer passed to implementations. */
-#ifdef POLY1305_USE_SSE2
+#ifdef POLY1305_USE_AVX2
+# define POLY1305_STATE_ALIGNMENT POLY1305_AVX2_ALIGNMENT
+#elif defined(POLY1305_USE_SSE2)
 # define POLY1305_STATE_ALIGNMENT POLY1305_SSE2_ALIGNMENT
 #else
 # define POLY1305_STATE_ALIGNMENT POLY1305_REF_ALIGNMENT

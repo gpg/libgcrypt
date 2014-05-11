@@ -57,6 +57,25 @@ static const poly1305_ops_t poly1305_amd64_sse2_ops = {
 #endif
 
 
+#ifdef POLY1305_USE_AVX2
+
+void _gcry_poly1305_amd64_avx2_init_ext(void *state, const poly1305_key_t *key);
+unsigned int _gcry_poly1305_amd64_avx2_finish_ext(void *state, const byte *m,
+						  size_t remaining,
+						  byte mac[16]);
+unsigned int _gcry_poly1305_amd64_avx2_blocks(void *ctx, const byte *m,
+					      size_t bytes);
+
+static const poly1305_ops_t poly1305_amd64_avx2_ops = {
+  POLY1305_AVX2_BLOCKSIZE,
+  _gcry_poly1305_amd64_avx2_init_ext,
+  _gcry_poly1305_amd64_avx2_blocks,
+  _gcry_poly1305_amd64_avx2_finish_ext
+};
+
+#endif
+
+
 #ifdef HAVE_U64_TYPEDEF
 
 /* Reference unoptimized poly1305 implementation using 32 bit * 32 bit = 64 bit
@@ -616,6 +635,7 @@ _gcry_poly1305_init (poly1305_context_t * ctx, const byte * key,
   static int initialized;
   static const char *selftest_failed;
   poly1305_key_t keytmp;
+  unsigned int features = _gcry_get_hw_features ();
 
   if (!initialized)
     {
@@ -636,6 +656,12 @@ _gcry_poly1305_init (poly1305_context_t * ctx, const byte * key,
 #else
   ctx->ops = &poly1305_default_ops;
 #endif
+
+#ifdef POLY1305_USE_AVX2
+  if (features & HWF_INTEL_AVX2)
+    ctx->ops = &poly1305_amd64_avx2_ops;
+#endif
+  (void)features;
 
   buf_cpy (keytmp.b, key, POLY1305_KEYLEN);
   poly1305_init (ctx, &keytmp);
