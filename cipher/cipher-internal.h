@@ -20,6 +20,9 @@
 #ifndef G10_CIPHER_INTERNAL_H
 #define G10_CIPHER_INTERNAL_H
 
+#include "./poly1305-internal.h"
+
+
 /* The maximum supported size of a block in bytes.  */
 #define MAX_BLOCKSIZE 16
 
@@ -153,6 +156,17 @@ struct gcry_cipher_handle
                                  processed.  */
     } ccm;
 #endif
+
+    /* Mode specific storage for Poly1305 mode. */
+    struct {
+      /* byte counter for AAD and data. */
+      u32 bytecount[2];
+
+      unsigned int aad_finalized:1;
+      unsigned int bytecount_over_limits:1;
+
+      poly1305_context_t ctx;
+    } poly1305;
 
     /* Mode specific storage for CMAC mode. */
     struct {
@@ -318,5 +332,29 @@ gcry_err_code_t _gcry_cipher_gcm_check_tag
 void _gcry_cipher_gcm_setkey
 /*           */   (gcry_cipher_hd_t c);
 
+
+/*-- cipher-poly1305.c --*/
+gcry_err_code_t _gcry_cipher_poly1305_encrypt
+/*           */   (gcry_cipher_hd_t c,
+                   unsigned char *outbuf, size_t outbuflen,
+                   const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_poly1305_decrypt
+/*           */   (gcry_cipher_hd_t c,
+                   unsigned char *outbuf, size_t outbuflen,
+                   const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_poly1305_setiv
+/*           */   (gcry_cipher_hd_t c,
+                   const unsigned char *iv, size_t ivlen);
+gcry_err_code_t _gcry_cipher_poly1305_authenticate
+/*           */   (gcry_cipher_hd_t c,
+                   const unsigned char *aadbuf, size_t aadbuflen);
+gcry_err_code_t _gcry_cipher_poly1305_get_tag
+/*           */   (gcry_cipher_hd_t c,
+                   unsigned char *outtag, size_t taglen);
+gcry_err_code_t _gcry_cipher_poly1305_check_tag
+/*           */   (gcry_cipher_hd_t c,
+                   const unsigned char *intag, size_t taglen);
+void _gcry_cipher_poly1305_setkey
+/*           */   (gcry_cipher_hd_t c);
 
 #endif /*G10_CIPHER_INTERNAL_H*/

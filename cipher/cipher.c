@@ -418,6 +418,15 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 	  err = GPG_ERR_INV_CIPHER_MODE;
 	break;
 
+      case GCRY_CIPHER_MODE_POLY1305:
+	if (!spec->stencrypt || !spec->stdecrypt || !spec->setiv)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	else if (spec->algo != GCRY_CIPHER_SALSA20 &&
+		 spec->algo != GCRY_CIPHER_SALSA20R12 &&
+		 spec->algo != GCRY_CIPHER_CHACHA20)
+	  err = GPG_ERR_INV_CIPHER_MODE;
+	break;
+
       case GCRY_CIPHER_MODE_STREAM:
 	if (!spec->stencrypt || !spec->stdecrypt)
 	  err = GPG_ERR_INV_CIPHER_MODE;
@@ -611,6 +620,10 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
           _gcry_cipher_gcm_setkey (c);
           break;
 
+        case GCRY_CIPHER_MODE_POLY1305:
+          _gcry_cipher_poly1305_setkey (c);
+          break;
+
         default:
           break;
         };
@@ -627,10 +640,6 @@ cipher_setkey (gcry_cipher_hd_t c, byte *key, size_t keylen)
 static gcry_err_code_t
 cipher_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 {
-  /* GCM has its own IV handler */
-  if (c->mode == GCRY_CIPHER_MODE_GCM)
-    return _gcry_cipher_gcm_setiv (c, iv, ivlen);
-
   /* If the cipher has its own IV handler, we use only this one.  This
      is currently used for stream ciphers requiring a nonce.  */
   if (c->spec->setiv)
@@ -697,6 +706,10 @@ cipher_reset (gcry_cipher_hd_t c)
 
         memset (&c->u_mode, 0, u_mode_head_length);
       }
+      break;
+
+    case GCRY_CIPHER_MODE_POLY1305:
+      memset (&c->u_mode.poly1305, 0, sizeof c->u_mode.poly1305);
       break;
 
 #ifdef HAVE_U64_TYPEDEF
@@ -811,6 +824,11 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
       rc = _gcry_cipher_gcm_encrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
+    case GCRY_CIPHER_MODE_POLY1305:
+      rc = _gcry_cipher_poly1305_encrypt (c, outbuf, outbuflen,
+					  inbuf, inbuflen);
+      break;
+
     case GCRY_CIPHER_MODE_STREAM:
       c->spec->stencrypt (&c->context.c,
                           outbuf, (byte*)/*arggg*/inbuf, inbuflen);
@@ -919,6 +937,11 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
       rc = _gcry_cipher_gcm_decrypt (c, outbuf, outbuflen, inbuf, inbuflen);
       break;
 
+    case GCRY_CIPHER_MODE_POLY1305:
+      rc = _gcry_cipher_poly1305_decrypt (c, outbuf, outbuflen,
+					  inbuf, inbuflen);
+      break;
+
     case GCRY_CIPHER_MODE_STREAM:
       c->spec->stdecrypt (&c->context.c,
                           outbuf, (byte*)/*arggg*/inbuf, inbuflen);
@@ -1000,6 +1023,14 @@ _gcry_cipher_setiv (gcry_cipher_hd_t hd, const void *iv, size_t ivlen)
         rc = _gcry_cipher_ccm_set_nonce (hd, iv, ivlen);
         break;
 
+      case GCRY_CIPHER_MODE_GCM:
+        rc =  _gcry_cipher_gcm_setiv (hd, iv, ivlen);
+        break;
+
+      case GCRY_CIPHER_MODE_POLY1305:
+        rc =  _gcry_cipher_poly1305_setiv (hd, iv, ivlen);
+        break;
+
       default:
         rc = cipher_setiv (hd, iv, ivlen);
         break;
@@ -1050,6 +1081,10 @@ _gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf,
       rc = _gcry_cipher_gcm_authenticate (hd, abuf, abuflen);
       break;
 
+    case GCRY_CIPHER_MODE_POLY1305:
+      rc = _gcry_cipher_poly1305_authenticate (hd, abuf, abuflen);
+      break;
+
     default:
       log_error ("gcry_cipher_authenticate: invalid mode %d\n", hd->mode);
       rc = GPG_ERR_INV_CIPHER_MODE;
@@ -1079,6 +1114,10 @@ _gcry_cipher_gettag (gcry_cipher_hd_t hd, void *outtag, size_t taglen)
       rc = _gcry_cipher_gcm_get_tag (hd, outtag, taglen);
       break;
 
+    case GCRY_CIPHER_MODE_POLY1305:
+      rc = _gcry_cipher_poly1305_get_tag (hd, outtag, taglen);
+      break;
+
     default:
       log_error ("gcry_cipher_gettag: invalid mode %d\n", hd->mode);
       rc = GPG_ERR_INV_CIPHER_MODE;
@@ -1106,6 +1145,10 @@ _gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag, size_t taglen)
 
     case GCRY_CIPHER_MODE_GCM:
       rc = _gcry_cipher_gcm_check_tag (hd, intag, taglen);
+      break;
+
+    case GCRY_CIPHER_MODE_POLY1305:
+      rc = _gcry_cipher_poly1305_check_tag (hd, intag, taglen);
       break;
 
     default:

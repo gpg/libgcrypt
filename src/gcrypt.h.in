@@ -895,16 +895,17 @@ enum gcry_cipher_algos
    supported for each algorithm. */
 enum gcry_cipher_modes
   {
-    GCRY_CIPHER_MODE_NONE   = 0,  /* Not yet specified. */
-    GCRY_CIPHER_MODE_ECB    = 1,  /* Electronic codebook. */
-    GCRY_CIPHER_MODE_CFB    = 2,  /* Cipher feedback. */
-    GCRY_CIPHER_MODE_CBC    = 3,  /* Cipher block chaining. */
-    GCRY_CIPHER_MODE_STREAM = 4,  /* Used with stream ciphers. */
-    GCRY_CIPHER_MODE_OFB    = 5,  /* Outer feedback. */
-    GCRY_CIPHER_MODE_CTR    = 6,  /* Counter. */
-    GCRY_CIPHER_MODE_AESWRAP= 7,  /* AES-WRAP algorithm.  */
-    GCRY_CIPHER_MODE_CCM    = 8,  /* Counter with CBC-MAC.  */
-    GCRY_CIPHER_MODE_GCM    = 9   /* Galois Counter Mode. */
+    GCRY_CIPHER_MODE_NONE     = 0,   /* Not yet specified. */
+    GCRY_CIPHER_MODE_ECB      = 1,   /* Electronic codebook. */
+    GCRY_CIPHER_MODE_CFB      = 2,   /* Cipher feedback. */
+    GCRY_CIPHER_MODE_CBC      = 3,   /* Cipher block chaining. */
+    GCRY_CIPHER_MODE_STREAM   = 4,   /* Used with stream ciphers. */
+    GCRY_CIPHER_MODE_OFB      = 5,   /* Outer feedback. */
+    GCRY_CIPHER_MODE_CTR      = 6,   /* Counter. */
+    GCRY_CIPHER_MODE_AESWRAP  = 7,   /* AES-WRAP algorithm.  */
+    GCRY_CIPHER_MODE_CCM      = 8,   /* Counter with CBC-MAC.  */
+    GCRY_CIPHER_MODE_GCM      = 9,   /* Galois Counter Mode. */
+    GCRY_CIPHER_MODE_POLY1305 = 10,  /* Poly1305 based AEAD mode. */
   };
 
 /* Flags used with the open function. */

@@ -1620,6 +1620,320 @@ check_gcm_cipher (void)
 
 
 static void
+_check_poly1305_cipher (unsigned int step)
+{
+  struct tv
+  {
+    int algo;
+    char key[MAX_DATA_LEN];
+    char iv[MAX_DATA_LEN];
+    int ivlen;
+    unsigned char aad[MAX_DATA_LEN];
+    int aadlen;
+    unsigned char plaintext[MAX_DATA_LEN];
+    int inlen;
+    char out[MAX_DATA_LEN];
+    char tag[MAX_DATA_LEN];
+  } tv[] =
+    {
+      /* draft-agl-tls-chacha20poly1305-04 */
+      { GCRY_CIPHER_CHACHA20,
+        "\x42\x90\xbc\xb1\x54\x17\x35\x31\xf3\x14\xaf\x57\xf3\xbe\x3b\x50"
+	"\x06\xda\x37\x1e\xce\x27\x2a\xfa\x1b\x5d\xbd\xd1\x10\x0a\x10\x07",
+        "\xcd\x7c\xf6\x7b\xe3\x9c\x79\x4a", 8,
+        "\x87\xe2\x29\xd4\x50\x08\x45\xa0\x79\xc0", 10,
+        "\x86\xd0\x99\x74\x84\x0b\xde\xd2\xa5\xca", 10,
+        "\xe3\xe4\x46\xf7\xed\xe9\xa1\x9b\x62\xa4",
+        "\x67\x7d\xab\xf4\xe3\xd2\x4b\x87\x6b\xb2\x84\x75\x38\x96\xe1\xd6" },
+      /* draft-nir-cfrg-chacha20-poly1305-03 */
+      { GCRY_CIPHER_CHACHA20,
+	"\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f"
+	"\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f",
+	"\x07\x00\x00\x00\x40\x41\x42\x43\x44\x45\x46\x47", 12,
+	"\x50\x51\x52\x53\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7", 12,
+	"Ladies and Gentlemen of the class of '99: If I could offer you "
+	"only one tip for the future, sunscreen would be it.", 114,
+	"\xd3\x1a\x8d\x34\x64\x8e\x60\xdb\x7b\x86\xaf\xbc\x53\xef\x7e\xc2"
+	"\xa4\xad\xed\x51\x29\x6e\x08\xfe\xa9\xe2\xb5\xa7\x36\xee\x62\xd6"
+	"\x3d\xbe\xa4\x5e\x8c\xa9\x67\x12\x82\xfa\xfb\x69\xda\x92\x72\x8b"
+	"\x1a\x71\xde\x0a\x9e\x06\x0b\x29\x05\xd6\xa5\xb6\x7e\xcd\x3b\x36"
+	"\x92\xdd\xbd\x7f\x2d\x77\x8b\x8c\x98\x03\xae\xe3\x28\x09\x1b\x58"
+	"\xfa\xb3\x24\xe4\xfa\xd6\x75\x94\x55\x85\x80\x8b\x48\x31\xd7\xbc"
+	"\x3f\xf4\xde\xf0\x8e\x4b\x7a\x9d\xe5\x76\xd2\x65\x86\xce\xc6\x4b"
+	"\x61\x16",
+	"\x18\xfb\x11\xa5\x03\x1a\xd1\x3a\x7e\x3b\x03\xd4\x6e\xe3\xa6\xa7" }
+    };
+
+  gcry_cipher_hd_t hde, hdd;
+  unsigned char out[MAX_DATA_LEN];
+  unsigned char tag[16];
+  int i, keylen;
+  gcry_error_t err = 0;
+  size_t pos, poslen;
+  int byteNum;
+
+  if (verbose)
+    fprintf (stderr, "  Starting POLY1305 checks.\n");
+
+  for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
+    {
+      if (verbose)
+        fprintf (stderr, "    checking POLY1305 mode for %s [%i]\n",
+                 gcry_cipher_algo_name (tv[i].algo),
+                 tv[i].algo);
+      err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_POLY1305, 0);
+      if (!err)
+        err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_POLY1305, 0);
+      if (err)
+        {
+          fail ("poly1305, gcry_cipher_open failed: %s\n", gpg_strerror (err));
+          return;
+        }
+
+      keylen = gcry_cipher_get_algo_keylen(tv[i].algo);
+      if (!keylen)
+        {
+          fail ("poly1305, gcry_cipher_get_algo_keylen failed\n");
+          return;
+        }
+
+      err = gcry_cipher_setkey (hde, tv[i].key, keylen);
+      if (!err)
+        err = gcry_cipher_setkey (hdd, tv[i].key, keylen);
+      if (err)
+        {
+          fail ("poly1305, gcry_cipher_setkey failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_setiv (hde, tv[i].iv, tv[i].ivlen);
+      if (!err)
+        err = gcry_cipher_setiv (hdd, tv[i].iv, tv[i].ivlen);
+      if (err)
+        {
+          fail ("poly1305, gcry_cipher_setiv failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      for (pos = 0; pos < tv[i].aadlen; pos += step)
+        {
+          poslen = (pos + step < tv[i].aadlen) ? step : tv[i].aadlen - pos;
+
+          err = gcry_cipher_authenticate(hde, tv[i].aad + pos, poslen);
+          if (err)
+            {
+              fail ("poly1305, gcry_cipher_authenticate (%d) (%d:%d) failed: "
+                    "%s\n", i, pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+          err = gcry_cipher_authenticate(hdd, tv[i].aad + pos, poslen);
+          if (err)
+            {
+              fail ("poly1305, de gcry_cipher_authenticate (%d) (%d:%d) failed: "
+	            "%s\n", i, pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      for (pos = 0; pos < tv[i].inlen; pos += step)
+        {
+          poslen = (pos + step < tv[i].inlen) ? step : tv[i].inlen - pos;
+
+          err = gcry_cipher_encrypt (hde, out + pos, poslen,
+                                     tv[i].plaintext + pos, poslen);
+          if (err)
+            {
+              fail ("poly1305, gcry_cipher_encrypt (%d) (%d:%d) failed: %s\n",
+                    i, pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      if (memcmp (tv[i].out, out, tv[i].inlen))
+        fail ("poly1305, encrypt mismatch entry %d (step %d)\n", i, step);
+
+      for (pos = 0; pos < tv[i].inlen; pos += step)
+        {
+          poslen = (pos + step < tv[i].inlen) ? step : tv[i].inlen - pos;
+
+          err = gcry_cipher_decrypt (hdd, out + pos, poslen, NULL, 0);
+          if (err)
+            {
+              fail ("poly1305, gcry_cipher_decrypt (%d) (%d:%d) failed: %s\n",
+                    i, pos, step, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      if (memcmp (tv[i].plaintext, out, tv[i].inlen))
+        fail ("poly1305, decrypt mismatch entry %d (step %d)\n", i, step);
+
+      err = gcry_cipher_gettag (hde, out, 16);
+      if (err)
+        {
+          fail ("poly1305, gcry_cipher_gettag(%d) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      if (memcmp (tv[i].tag, out, 16))
+        fail ("poly1305, encrypt tag mismatch entry %d\n", i);
+
+
+      err = gcry_cipher_checktag (hdd, out, 16);
+      if (err)
+        {
+          fail ("poly1305, gcry_cipher_checktag(%d) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_reset(hde);
+      if (!err)
+        err = gcry_cipher_reset(hdd);
+      if (err)
+        {
+          fail ("poly1305, gcry_cipher_reset (%d) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      /* gcry_cipher_reset clears the IV */
+      err = gcry_cipher_setiv (hde, tv[i].iv, tv[i].ivlen);
+      if (!err)
+        err = gcry_cipher_setiv (hdd, tv[i].iv, tv[i].ivlen);
+      if (err)
+        {
+          fail ("poly1305, gcry_cipher_setiv failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      /* this time we authenticate, encrypt and decrypt one byte at a time */
+      for (byteNum = 0; byteNum < tv[i].aadlen; ++byteNum)
+        {
+          err = gcry_cipher_authenticate(hde, tv[i].aad + byteNum, 1);
+          if (err)
+            {
+              fail ("poly1305, gcry_cipher_authenticate (%d) (byte-buf) failed: "
+                    "%s\n", i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+          err = gcry_cipher_authenticate(hdd, tv[i].aad + byteNum, 1);
+          if (err)
+            {
+              fail ("poly1305, de gcry_cipher_authenticate (%d) (byte-buf) "
+	            "failed: %s\n", i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      for (byteNum = 0; byteNum < tv[i].inlen; ++byteNum)
+        {
+          err = gcry_cipher_encrypt (hde, out+byteNum, 1,
+                                     (tv[i].plaintext) + byteNum,
+                                     1);
+          if (err)
+            {
+              fail ("poly1305, gcry_cipher_encrypt (%d) (byte-buf) failed: %s\n",
+                    i,  gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      if (memcmp (tv[i].out, out, tv[i].inlen))
+        fail ("poly1305, encrypt mismatch entry %d, (byte-buf)\n", i);
+
+      err = gcry_cipher_gettag (hde, tag, 16);
+      if (err)
+        {
+          fail ("poly1305, gcry_cipher_gettag(%d) (byte-buf) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      if (memcmp (tv[i].tag, tag, 16))
+        fail ("poly1305, encrypt tag mismatch entry %d, (byte-buf)\n", i);
+
+      for (byteNum = 0; byteNum < tv[i].inlen; ++byteNum)
+        {
+          err = gcry_cipher_decrypt (hdd, out+byteNum, 1, NULL, 0);
+          if (err)
+            {
+              fail ("poly1305, gcry_cipher_decrypt (%d) (byte-buf) failed: %s\n",
+                    i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+
+      if (memcmp (tv[i].plaintext, out, tv[i].inlen))
+        fail ("poly1305, decrypt mismatch entry %d\n", i);
+
+      err = gcry_cipher_checktag (hdd, tag, 16);
+      if (err)
+        {
+          fail ("poly1305, gcry_cipher_checktag(%d) (byte-buf) failed: %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+    }
+  if (verbose)
+    fprintf (stderr, "  Completed POLY1305 checks.\n");
+}
+
+
+static void
+check_poly1305_cipher (void)
+{
+  /* Large buffers, no splitting. */
+  _check_poly1305_cipher(0xffffffff);
+  /* Split input to one byte buffers. */
+  _check_poly1305_cipher(1);
+  /* Split input to 7 byte buffers. */
+  _check_poly1305_cipher(7);
+  /* Split input to 16 byte buffers. */
+  _check_poly1305_cipher(16);
+}
+
+
+static void
 check_ccm_cipher (void)
 {
 #ifdef HAVE_U64_TYPEDEF
@@ -4019,6 +4333,10 @@ check_ciphers (void)
 		 gcry_cipher_algo_name (algos2[i]));
 
       check_one_cipher (algos2[i], GCRY_CIPHER_MODE_STREAM, 0);
+      if (algos2[i] == GCRY_CIPHER_CHACHA20 ||
+	  algos2[i] == GCRY_CIPHER_SALSA20 ||
+	  algos2[i] == GCRY_CIPHER_SALSA20R12)
+	check_one_cipher (algos2[i], GCRY_CIPHER_MODE_POLY1305, 0);
     }
   /* we have now run all cipher's selftests */
 
@@ -4042,6 +4360,7 @@ check_cipher_modes(void)
   check_ofb_cipher ();
   check_ccm_cipher ();
   check_gcm_cipher ();
+  check_poly1305_cipher ();
   check_stream_cipher ();
   check_stream_cipher_large_block ();
 
