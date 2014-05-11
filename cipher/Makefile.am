@@ -59,7 +59,7 @@ EXTRA_libcipher_la_SOURCES = \
 arcfour.c arcfour-amd64.S \
 blowfish.c blowfish-amd64.S blowfish-arm.S \
 cast5.c cast5-amd64.S cast5-arm.S \
-chacha20.c chacha20-ssse3-amd64.S \
+chacha20.c chacha20-ssse3-amd64.S chacha20-avx2-amd64.S \
 crc.c \
 des.c des-amd64.S \
 dsa.c \

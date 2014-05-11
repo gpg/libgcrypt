@@ -54,6 +54,13 @@
 # define USE_SSSE3 1
 #endif
 
+/* USE_AVX2 indicates whether to compile with Intel AVX2 code. */
+#undef USE_AVX2
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_AVX2)
+# define USE_AVX2 1
+#endif
+
 
 struct CHACHA20_context_s;
 
@@ -76,6 +83,13 @@ unsigned int _gcry_chacha20_amd64_ssse3_blocks(u32 *state, const byte *in,
                                                byte *out, size_t bytes);
 
 #endif /* USE_SSSE3 */
+
+#ifdef USE_AVX2
+
+unsigned int _gcry_chacha20_amd64_avx2_blocks(u32 *state, const byte *in,
+                                              byte *out, size_t bytes);
+
+#endif /* USE_AVX2 */
 
 
 static void chacha20_setiv (void *context, const byte * iv, size_t ivlen);
@@ -314,6 +328,10 @@ chacha20_do_setkey (CHACHA20_context_t * ctx,
   if (features & HWF_INTEL_SSSE3)
     ctx->blocks = _gcry_chacha20_amd64_ssse3_blocks;
 #endif
+#ifdef USE_AVX2
+  if (features & HWF_INTEL_AVX2)
+    ctx->blocks = _gcry_chacha20_amd64_avx2_blocks;
+#endif
 
   (void)features;
 
@@ -422,7 +440,7 @@ selftest (void)
 {
   CHACHA20_context_t ctx;
   byte scratch[127 + 1];
-  byte buf[256 + 64 + 4];
+  byte buf[512 + 64 + 4];
   int i;
 
   /* From draft-strombergson-chacha-test-vectors */
