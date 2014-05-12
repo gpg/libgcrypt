@@ -594,9 +594,25 @@ _gcry_chacha20_amd64_ssse3_blocks:
 .Lchacha_blocks_ssse3_done:
 	movdqu %xmm11, 48(%rdi)
 	movq %rbp, %rsp
+	pxor %xmm15, %xmm15
+	pxor %xmm7, %xmm7
+	pxor %xmm14, %xmm14
+	pxor %xmm6, %xmm6
+	pxor %xmm13, %xmm13
+	pxor %xmm5, %xmm5
+	pxor %xmm12, %xmm12
+	pxor %xmm4, %xmm4
 	popq %rbp
 	popq %rbx
 	movl $(63 + 512 + 16), %eax
+	pxor %xmm11, %xmm11
+	pxor %xmm3, %xmm3
+	pxor %xmm10, %xmm10
+	pxor %xmm2, %xmm2
+	pxor %xmm9, %xmm9
+	pxor %xmm1, %xmm1
+	pxor %xmm8, %xmm8
+	pxor %xmm0, %xmm0
 	ret
 .size _gcry_chacha20_amd64_ssse3_blocks,.-_gcry_chacha20_amd64_ssse3_blocks;
 
