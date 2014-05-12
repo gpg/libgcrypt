@@ -27,7 +27,7 @@
 #include <config.h>
 
 #if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
-    defined(HAVE_GCC_INLINE_ASM_AVX2) && USE_CHACHA20
+    defined(ENABLE_AVX2_SUPPORT) && USE_CHACHA20
 
 #ifdef __PIC__
 #  define RIP (%rip)
