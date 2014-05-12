@@ -42,6 +42,7 @@
 .type  _gcry_chacha20_amd64_avx2_blocks,@function;
 _gcry_chacha20_amd64_avx2_blocks:
 .Lchacha_blocks_avx2_local:
+	vzeroupper
 	pushq %rbx
 	pushq %rbp
 	pushq %r12
