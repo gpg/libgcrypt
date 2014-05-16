@@ -47,6 +47,12 @@
 #define CHACHA20_MAX_IV_SIZE  12        /* Bytes.  */
 #define CHACHA20_INPUT_LENGTH (CHACHA20_BLOCK_SIZE / 4)
 
+/* USE_SSE2 indicates whether to compile with Intel SSE2 code. */
+#undef USE_SSE2
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+# define USE_SSE2 1
+#endif
+
 /* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
 #undef USE_SSSE3
 #if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
@@ -76,6 +82,13 @@ typedef struct CHACHA20_context_s
   unsigned int unused; /* bytes in the pad.  */
 } CHACHA20_context_t;
 
+
+#ifdef USE_SSE2
+
+unsigned int _gcry_chacha20_amd64_sse2_blocks(u32 *state, const byte *in,
+                                              byte *out, size_t bytes);
+
+#endif /* USE_SSE2 */
 
 #ifdef USE_SSSE3
 
@@ -323,7 +336,12 @@ chacha20_do_setkey (CHACHA20_context_t * ctx,
   if (keylen != CHACHA20_MAX_KEY_SIZE && keylen != CHACHA20_MIN_KEY_SIZE)
     return GPG_ERR_INV_KEYLEN;
 
+#ifdef USE_SSE2
+  ctx->blocks = _gcry_chacha20_amd64_sse2_blocks;
+#else
   ctx->blocks = chacha20_blocks;
+#endif
+
 #ifdef USE_SSSE3
   if (features & HWF_INTEL_SSSE3)
     ctx->blocks = _gcry_chacha20_amd64_ssse3_blocks;

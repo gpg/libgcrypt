@@ -1815,6 +1815,7 @@ if test "$found" = "1" ; then
    case "${host}" in
       x86_64-*-*)
          # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-sse2-amd64.lo"
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-ssse3-amd64.lo"
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-avx2-amd64.lo"
       ;;
