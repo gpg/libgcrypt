@@ -1629,6 +1629,11 @@ Galois/Counter Mode (GCM) is an Authenticated Encryption with
 Associated Data (AEAD) block cipher mode, which is specified in
 'NIST Special Publication 800-38D'.
 
+@item  GCRY_CIPHER_MODE_POLY1305
+@cindex Poly1305 based AEAD mode
+Poly1305 is an Authenticated Encryption with Associated Data (AEAD)
+mode, which can be used with ChaCha20 and Salsa20 stream ciphers.
+
 @end table
 
 @node Working with cipher handles
@@ -1655,12 +1660,13 @@ The cipher mode to use must be specified via @var{mode}.  See
 @xref{Available cipher modes}, for a list of supported cipher modes
 and the according constants.  Note that some modes are incompatible
 with some algorithms - in particular, stream mode
-(@code{GCRY_CIPHER_MODE_STREAM}) only works with stream ciphers. The
-block cipher modes (@code{GCRY_CIPHER_MODE_ECB},
+(@code{GCRY_CIPHER_MODE_STREAM}) only works with stream ciphers.
+Poly1305 AEAD mode (@code{GCRY_CIPHER_MODE_POLY1305}) only works with
+ChaCha and Salsa stream ciphers. The block cipher modes (@code{GCRY_CIPHER_MODE_ECB},
 @code{GCRY_CIPHER_MODE_CBC}, @code{GCRY_CIPHER_MODE_CFB},
 @code{GCRY_CIPHER_MODE_OFB} and @code{GCRY_CIPHER_MODE_CTR}) will work
-with any block cipher algorithm. @code{GCRY_CIPHER_MODE_CCM} and
-@code{GCRY_CIPHER_MODE_GCM} modes will only work with block cipher algorithms
+with any block cipher algorithm. GCM mode (@code{GCRY_CIPHER_MODE_CCM}) and
+CCM mode (@code{GCRY_CIPHER_MODE_GCM}) will only work with block cipher algorithms
 which have the block size of 16 bytes.
 
 The third argument @var{flags} can either be passed as @code{0} or as
@@ -3548,6 +3554,30 @@ block cipher algorithm.
 This is GMAC message authentication algorithm based on the SEED
 block cipher algorithm.
 
+@item GCRY_MAC_POLY1305
+This is plain Poly1305 message authentication algorithm, used with
+one-time key.
+
+@item GCRY_MAC_POLY1305_AES
+This is Poly1305-AES message authentication algorithm, used with
+key and one-time nonce.
+
+@item GCRY_MAC_POLY1305_CAMELLIA
+This is Poly1305-Camellia message authentication algorithm, used with
+key and one-time nonce.
+
+@item GCRY_MAC_POLY1305_TWOFISH
+This is Poly1305-Twofish message authentication algorithm, used with
+key and one-time nonce.
+
+@item GCRY_MAC_POLY1305_SERPENT
+This is Poly1305-Serpent message authentication algorithm, used with
+key and one-time nonce.
+
+@item GCRY_MAC_POLY1305_SEED
+This is Poly1305-SEED message authentication algorithm, used with
+key and one-time nonce.
+
 @end table
 @c end table of MAC algorithms
 
@@ -3593,8 +3623,8 @@ underlying block cipher.
 @end deftypefun
 
 
-GMAC algorithms need initialization vector to be set, which can be
-performed with function:
+GMAC algorithms and Poly1305-with-cipher algorithms need initialization vector to be set,
+which can be performed with function:
 
 @deftypefun gcry_error_t gcry_mac_setiv (gcry_mac_hd_t @var{h}, const void *@var{iv}, size_t @var{ivlen})
 
