@@ -30,6 +30,19 @@
 
 .extern _gcry_cast5_s1to4;
 
+#ifdef __PIC__
+#  define GET_DATA_POINTER(reg, name, rtmp) \
+		ldr reg, 1f; \
+		ldr rtmp, 2f; \
+		b 3f; \
+	1:	.word _GLOBAL_OFFSET_TABLE_-(3f+8); \
+	2:	.word name(GOT); \
+	3:	add reg, pc, reg; \
+		ldr reg, [reg, rtmp];
+#else
+#  define GET_DATA_POINTER(reg, name, rtmp) ldr reg, =name
+#endif
+
 /* structure of crypto context */
 #define Km 0
 #define Kr (Km + (16 * 4))
@@ -260,7 +273,7 @@ _gcry_cast5_arm_encrypt_block:
 	 */
 	push {%r1, %r4-%r11, %ip, %lr};
 
-	ldr Rs1, =_gcry_cast5_s1to4;
+	GET_DATA_POINTER(Rs1, _gcry_cast5_s1to4, Rs2);
 	mov RMASK, #(0xff << 2);
 	add Rs2, Rs1, #(0x100*4);
 	add Rs3, Rs1, #(0x100*4*2);
@@ -306,7 +319,7 @@ _gcry_cast5_arm_decrypt_block:
 	 */
 	push {%r1, %r4-%r11, %ip, %lr};
 
-	ldr Rs1, =_gcry_cast5_s1to4;
+	GET_DATA_POINTER(Rs1, _gcry_cast5_s1to4, Rs2);
 	mov RMASK, #(0xff << 2);
 	add Rs2, Rs1, #(0x100 * 4);
 	add Rs3, Rs1, #(0x100 * 4 * 2);
@@ -500,7 +513,7 @@ _gcry_cast5_arm_enc_blk2:
 	 */
 	push {%lr};
 
-	ldr Rs1, =_gcry_cast5_s1to4;
+	GET_DATA_POINTER(Rs1, _gcry_cast5_s1to4, Rs2);
 	mov RMASK, #(0xff << 2);
 	add Rs2, Rs1, #(0x100 * 4);
 
@@ -631,7 +644,7 @@ _gcry_cast5_arm_dec_blk2:
 	 *	[RR0, RL0], [RR1, RL1]: dst
 	 */
 
-	ldr Rs1, =_gcry_cast5_s1to4;
+	GET_DATA_POINTER(Rs1, _gcry_cast5_s1to4, Rs2);
 	mov RMASK, #(0xff << 2);
 	add Rs2, Rs1, #(0x100 * 4);
 
