@@ -26,11 +26,24 @@
     defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
     defined(HAVE_GCC_INLINE_ASM_NEON) && defined(USE_SHA1)
 
-.text
+.data
 
 .syntax unified
 .fpu neon
 .arm
+
+#ifdef __PIC__
+#  define GET_DATA_POINTER(reg, name, rtmp) \
+		ldr reg, 1f; \
+		ldr rtmp, 2f; \
+		b 3f; \
+	1:	.word _GLOBAL_OFFSET_TABLE_-(3f+8); \
+	2:	.word name(GOT); \
+	3:	add reg, pc, reg; \
+		ldr reg, [reg, rtmp];
+#else
+#  define GET_DATA_POINTER(reg, name, rtmp) ldr reg, =name
+#endif
 
 /* Context structure */
 
@@ -55,6 +68,8 @@ gcry_sha1_armv7_neon_K_VEC:
 .LK3:	.long K3, K3, K3, K3
 .LK4:	.long K4, K4, K4, K4
 
+
+.text
 
 /* Register macros */
 
@@ -314,7 +329,7 @@ _gcry_sha1_transform_armv7_neon:
   vpush {q4-q7};
 
   mov ROLDSTACK, sp;
-  ldr RK, =.LK_VEC;
+  GET_DATA_POINTER(RK, .LK_VEC, _a);
 
   /* Align stack. */
   sub sp, #(16*4);

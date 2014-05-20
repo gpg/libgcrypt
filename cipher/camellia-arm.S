@@ -28,6 +28,19 @@
 .syntax unified
 .arm
 
+#ifdef __PIC__
+#  define GET_DATA_POINTER(reg, name, rtmp) \
+		ldr reg, 1f; \
+		ldr rtmp, 2f; \
+		b 3f; \
+	1:	.word _GLOBAL_OFFSET_TABLE_-(3f+8); \
+	2:	.word name(GOT); \
+	3:	add reg, pc, reg; \
+		ldr reg, [reg, rtmp];
+#else
+#  define GET_DATA_POINTER(reg, name, rtmp) ldr reg, =name
+#endif
+
 /* struct camellia_ctx: */
 #define key_table 0
 
@@ -261,7 +274,7 @@ _gcry_camellia_arm_encrypt_block:
 	 */
 	push {%r1, %r4-%r11, %ip, %lr};
 
-	ldr RTAB1, =.Lcamellia_sp1110;
+	GET_DATA_POINTER(RTAB1, .Lcamellia_sp1110, RTAB3);
 	mov RMASK, #0xff;
 	add RTAB3, RTAB1, #(2 * 4);
 	push {%r3};
@@ -309,7 +322,7 @@ _gcry_camellia_arm_decrypt_block:
 	 */
 	push {%r1, %r4-%r11, %ip, %lr};
 
-	ldr RTAB1, =.Lcamellia_sp1110;
+	GET_DATA_POINTER(RTAB1, .Lcamellia_sp1110, RTAB3);
 	mov RMASK, #0xff;
 	add RTAB3, RTAB1, #(2 * 4);
 	mov RMASK, RMASK, lsl#4 /* byte mask */
