@@ -361,8 +361,8 @@ _gcry_sha512_transform_armv7_neon:
 	rounds2_64_79(RE, RF, RG, RH, RA, RB, RC, RD, RW12, RW13, vadd_rg_RT0, RE, vadd_rg_RT1, RE);
 	rounds2_64_79(RC, RD, RE, RF, RG, RH, RA, RB, RW14, RW15, vadd_rg_RT0, RC, vadd_rg_RT1, RC);
 #ifdef __ARMEL__
-	vrev64.8 RW67q, RW67q;
 	vrev64.8 RW89q, RW89q;
+	vrev64.8 RW1011q, RW1011q;
 #endif
 	vld1.64 {RW12-RW15}, [%r1]!;
 	vadd_rg_RT0(RA);
