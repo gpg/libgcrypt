@@ -4526,6 +4526,16 @@ check_digests (void)
 	"\x90\x01\x50\x98\x3C\xD2\x4F\xB0\xD6\x96\x3F\x7D\x28\xE1\x7F\x72" },
       { GCRY_MD_MD5, "message digest",
 	"\xF9\x6B\x69\x7D\x7C\xB7\x93\x8D\x52\x5A\x2F\x31\xAA\xF1\x61\xD0" },
+      { GCRY_MD_MD5,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\xc4\x1a\x5c\x0b\x44\x5f\xba\x1a\xda\xbc\xc0\x38\x0e\x0c\x9e\x33" },
       { GCRY_MD_SHA1, "abc",
 	"\xA9\x99\x3E\x36\x47\x06\x81\x6A\xBA\x3E"
 	"\x25\x71\x78\x50\xC2\x6C\x9C\xD0\xD8\x9D" },
@@ -4536,6 +4546,17 @@ check_digests (void)
       { GCRY_MD_SHA1, "!" /* kludge for "a"*1000000 */ ,
 	"\x34\xAA\x97\x3C\xD4\xC4\xDA\xA4\xF6\x1E"
 	"\xEB\x2B\xDB\xAD\x27\x31\x65\x34\x01\x6F" },
+      { GCRY_MD_SHA1,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\xf5\xd9\xcb\x66\x91\xb4\x7a\x7c\x60\x35\xe2\x1c\x38\x26\x52\x13"
+	"\x8e\xd5\xe5\xdf" },
       /* From RFC3874 */
       {	GCRY_MD_SHA224, "abc",
 	"\x23\x09\x7d\x22\x34\x05\xd8\x22\x86\x42\xa4\x77\xbd\xa2\x55\xb3"
@@ -4547,6 +4568,17 @@ check_digests (void)
       {	GCRY_MD_SHA224, "!",
 	"\x20\x79\x46\x55\x98\x0c\x91\xd8\xbb\xb4\xc1\xea\x97\x61\x8a\x4b"
 	"\xf0\x3f\x42\x58\x19\x48\xb2\xee\x4e\xe7\xad\x67" },
+      { GCRY_MD_SHA224,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\x80\xf0\x60\x79\xb0\xe9\x65\xab\x8a\x76\xbf\x6e\x88\x64\x75\xe7"
+	"\xfd\xf0\xc2\x4c\xf6\xf2\xa6\x01\xed\x50\x71\x08" },
       {	GCRY_MD_SHA256, "abc",
 	"\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23"
 	"\xb0\x03\x61\xa3\x96\x17\x7a\x9c\xb4\x10\xff\x61\xf2\x00\x15\xad" },
@@ -4557,10 +4589,33 @@ check_digests (void)
       {	GCRY_MD_SHA256, "!",
 	"\xcd\xc7\x6e\x5c\x99\x14\xfb\x92\x81\xa1\xc7\xe2\x84\xd7\x3e\x67"
 	"\xf1\x80\x9a\x48\xa4\x97\x20\x0e\x04\x6d\x39\xcc\xc7\x11\x2c\xd0" },
+      { GCRY_MD_SHA256,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\xb0\x18\x70\x67\xb8\xac\x68\x50\xec\x95\x43\x77\xb5\x44\x5b\x0f"
+	"\x2e\xbd\x40\xc9\xdc\x2a\x2c\x33\x8b\x53\xeb\x3e\x9e\x01\xd7\x02" },
       {	GCRY_MD_SHA384, "abc",
 	"\xcb\x00\x75\x3f\x45\xa3\x5e\x8b\xb5\xa0\x3d\x69\x9a\xc6\x50\x07"
 	"\x27\x2c\x32\xab\x0e\xde\xd1\x63\x1a\x8b\x60\x5a\x43\xff\x5b\xed"
 	"\x80\x86\x07\x2b\xa1\xe7\xcc\x23\x58\xba\xec\xa1\x34\xc8\x25\xa7" },
+      { GCRY_MD_SHA384,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\xe4\x6d\xb4\x28\x33\x77\x99\x49\x94\x0f\xcf\x87\xc2\x2f\x30\xd6"
+	"\x06\x24\x82\x9d\x80\x64\x8a\x07\xa1\x20\x8f\x5f\xf3\x85\xb3\xaa"
+	"\x39\xb8\x61\x00\xfc\x7f\x18\xc6\x82\x23\x4b\x45\xfa\xf1\xbc\x69" },
       {	GCRY_MD_SHA512, "abc",
 	"\xDD\xAF\x35\xA1\x93\x61\x7A\xBA\xCC\x41\x73\x49\xAE\x20\x41\x31"
 	"\x12\xE6\xFA\x4E\x89\xA9\x7E\xA2\x0A\x9E\xEE\xE6\x4B\x55\xD3\x9A"
@@ -4591,8 +4646,29 @@ check_digests (void)
       {	GCRY_MD_RMD160, "message digest",
 	"\x5d\x06\x89\xef\x49\xd2\xfa\xe5\x72\xb8"
 	"\x81\xb1\x23\xa8\x5f\xfa\x21\x59\x5f\x36" },
+      { GCRY_MD_RMD160,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\x06\x6d\x3c\x4e\xc9\xba\x89\x75\x16\x90\x96\x4e\xfd\x43\x07\xde"
+	"\x04\xca\x69\x6b" },
       {	GCRY_MD_CRC32, "", "\x00\x00\x00\x00" },
       {	GCRY_MD_CRC32, "foo", "\x8c\x73\x65\x21" },
+      { GCRY_MD_CRC32,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\x4A\x53\x7D\x67" },
       { GCRY_MD_CRC32_RFC1510, "", "\x00\x00\x00\x00" },
       {	GCRY_MD_CRC32_RFC1510, "foo", "\x73\x32\xbc\x33" },
       {	GCRY_MD_CRC32_RFC1510, "test0123456789", "\xb8\x3e\x88\xd6" },
@@ -4680,6 +4756,17 @@ check_digests (void)
       {	GCRY_MD_TIGER1, "!",
 	"\x6D\xB0\xE2\x72\x9C\xBE\xAD\x93\xD7\x15\xC6\xA7"
         "\xD3\x63\x02\xE9\xB3\xCE\xE0\xD2\xBC\x31\x4B\x41" },
+      { GCRY_MD_TIGER1,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\x60\xee\xdf\x95\x39\xc8\x44\x94\x64\xdc\xdf\x3d\x2e\x1c\xe5\x79"
+	"\x6a\x95\xbd\x30\x68\x8c\x7e\xb8" },
 
       {	GCRY_MD_TIGER2, "",
         "\x44\x41\xBE\x75\xF6\x01\x87\x73\xC2\x06\xC2\x27"
@@ -4741,6 +4828,19 @@ check_digests (void)
         "\x29\x05\x7F\xD8\x6B\x20\xBF\xD6\x2D\xEC\xA0\xF1\xCC\xEA\x4A\xF5"
         "\x1F\xC1\x54\x90\xED\xDC\x47\xAF\x32\xBB\x2B\x66\xC3\x4F\xF9\xAD"
         "\x8C\x60\x08\xAD\x67\x7F\x77\x12\x69\x53\xB2\x26\xE4\xED\x8B\x01" },
+      { GCRY_MD_WHIRLPOOL,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\xcd\x4a\xa4\xaf\xf6\x7f\xec\xce\xbb\x6c\xdf\x91\x96\xe1\xf3\xf6"
+	"\x78\xe2\x8e\x3a\x76\xcf\x06\xc7\xa1\x20\x7b\x81\x32\x60\xf7\x8e"
+	"\x68\x19\x62\x33\x4f\xe5\x0a\x24\xfb\x9e\x74\x03\x74\xe4\x61\x29"
+	"\x6f\xb3\x13\xe6\x7e\xc2\x88\x99\x9e\xfb\xe7\x9d\x11\x30\x89\xd2" },
       { GCRY_MD_GOSTR3411_94,
 	"This is message, length=32 bytes",
 	"\xB1\xC4\x66\xD3\x75\x19\xB8\x2E\x83\x19\x81\x9F\xF3\x25\x95\xE0"
@@ -4757,6 +4857,17 @@ check_digests (void)
 	"!",
 	"\x5C\x00\xCC\xC2\x73\x4C\xDD\x33\x32\xD3\xD4\x74\x95\x76\xE3\xC1"
 	"\xA7\xDB\xAF\x0E\x7E\xA7\x4E\x9F\xA6\x02\x41\x3C\x90\xA1\x29\xFA" },
+      { GCRY_MD_GOSTR3411_94,
+	"Libgcrypt is free software; you can redistribute it and/or modif"
+	"y it under the terms of the GNU Lesser general Public License as"
+	" published by the Free Software Foundation; either version 2.1 o"
+	"f the License, or (at your option) any later version.\nLibgcrypt"
+	" is distributed in the hope that it will be useful, but WITHOUT "
+	"ANY WARRANTY; without even the implied warranty of MERCHANTABILI"
+	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
+	"ral Public License for more details.",
+	"\x00\x0c\x85\xc8\x54\xd2\x9a\x6e\x47\x2e\xff\xa4\xa2\xe7\xd0\x2e"
+	"\x8a\xcc\x14\x53\xb4\x87\xc8\x5c\x95\x9a\x3e\x85\x8c\x7d\x6e\x0c" },
       { GCRY_MD_STRIBOG512,
         "012345678901234567890123456789012345678901234567890123456789012",
         "\x1b\x54\xd0\x1a\x4a\xf5\xb9\xd5\xcc\x3d\x86\xd6\x8d\x28\x54\x62"
