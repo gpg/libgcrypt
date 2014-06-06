@@ -120,8 +120,12 @@ gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
 }
 
 unsigned int _gcry_gost_enc_one (GOST28147_context *c, const byte *key,
-    byte *out, byte *in)
+    byte *out, byte *in, int cryptopro)
 {
+  if (cryptopro)
+    c->sbox = sbox_CryptoPro_3411;
+  else
+    c->sbox = sbox_test_3411;
   gost_setkey (c, key, 32);
   return gost_encrypt_block (c, out, in) + 5 * sizeof(void *);
 }

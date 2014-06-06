@@ -53,6 +53,7 @@ static gcry_md_spec_t *digest_list[] =
 #endif
 #ifdef USE_GOST_R_3411_94
      &_gcry_digest_spec_gost3411_94,
+     &_gcry_digest_spec_gost3411_cp,
 #endif
 #ifdef USE_GOST_R_3411_12
      &_gcry_digest_spec_stribog_256,
@@ -335,6 +336,7 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
                 ctx->macpads_Bsize = 128;
                 break;
               case GCRY_MD_GOSTR3411_94:
+              case GCRY_MD_GOSTR3411_CP:
                 ctx->macpads_Bsize = 32;
                 break;
               default:

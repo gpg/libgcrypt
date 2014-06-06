@@ -1152,7 +1152,8 @@ enum gcry_md_algos
     GCRY_MD_TIGER2        = 307, /* TIGER2 variant.   */
     GCRY_MD_GOSTR3411_94  = 308, /* GOST R 34.11-94.  */
     GCRY_MD_STRIBOG256    = 309, /* GOST R 34.11-2012, 256 bit.  */
-    GCRY_MD_STRIBOG512    = 310  /* GOST R 34.11-2012, 512 bit.  */
+    GCRY_MD_STRIBOG512    = 310, /* GOST R 34.11-2012, 512 bit.  */
+    GCRY_MD_GOSTR3411_CP  = 311  /* GOST R 34.11-94 with CryptoPro-A S-Box.  */
   };
 
 /* Flags used with the open function.  */

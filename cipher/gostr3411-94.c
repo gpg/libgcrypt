@@ -38,6 +38,7 @@ typedef struct {
   byte h[32];
   byte sigma[32];
   u32 len;
+  int cryptopro;
 } GOSTR3411_CONTEXT;
 
 static unsigned int
@@ -58,6 +59,15 @@ gost3411_init (void *context, unsigned int flags)
   hd->bctx.count = 0;
   hd->bctx.blocksize = 32;
   hd->bctx.bwrite = transform;
+  hd->cryptopro = 0;
+}
+
+static void
+gost3411_cp_init (void *context, unsigned int flags)
+{
+  GOSTR3411_CONTEXT *hd = context;
+  gost3411_init (context, flags);
+  hd->cryptopro = 1;
 }
 
 static void
@@ -153,7 +163,7 @@ do_add (unsigned char *s, unsigned char *a)
 }
 
 static unsigned int
-do_hash_step (GOST28147_context *hd, unsigned char *h, unsigned char *m)
+do_hash_step (GOSTR3411_CONTEXT *hd, unsigned char *h, unsigned char *m)
 {
   unsigned char u[32], v[32], s[32];
   unsigned char k[32];
@@ -166,7 +176,7 @@ do_hash_step (GOST28147_context *hd, unsigned char *h, unsigned char *m)
   for (i = 0; i < 4; i++) {
     do_p (k, u, v);
 
-    burn = _gcry_gost_enc_one (hd, k, s + i*8, h + i*8);
+    burn = _gcry_gost_enc_one (&hd->hd, k, s + i*8, h + i*8, hd->cryptopro);
 
     do_a (u);
     if (i == 1)
@@ -220,7 +230,7 @@ transform_blk (void *ctx, const unsigned char *data)
   unsigned int burn;
 
   memcpy (m, data, 32);
-  burn = do_hash_step (&hd->hd, hd->h, m);
+  burn = do_hash_step (hd, hd->h, m);
   do_add (hd->sigma, m);
 
   return /* burn_stack */ burn + 3 * sizeof(void*) + 32 + 2 * sizeof(void*);
@@ -283,8 +293,8 @@ gost3411_final (void *context)
       nblocks /= 256;
     }
 
-  do_hash_step (&hd->hd, hd->h, l);
-  do_hash_step (&hd->hd, hd->h, hd->sigma);
+  do_hash_step (hd, hd->h, l);
+  do_hash_step (hd, hd->h, hd->sigma);
 }
 
 static byte *
@@ -310,7 +320,14 @@ static gcry_md_oid_spec_t oid_spec_gostr3411[] =
 gcry_md_spec_t _gcry_digest_spec_gost3411_94 =
   {
     GCRY_MD_GOSTR3411_94, {0, 0},
-    "GOSTR3411_94", asn, DIM (asn), oid_spec_gostr3411, 32,
+    "GOSTR3411_94", NULL, 0, NULL, 32,
     gost3411_init, _gcry_md_block_write, gost3411_final, gost3411_read,
+    sizeof (GOSTR3411_CONTEXT)
+  };
+gcry_md_spec_t _gcry_digest_spec_gost3411_cp =
+  {
+    GCRY_MD_GOSTR3411_CP, {0, 0},
+    "GOSTR3411_CP", asn, DIM (asn), oid_spec_gostr3411, 32,
+    gost3411_cp_init, _gcry_md_block_write, gost3411_final, gost3411_read,
     sizeof (GOSTR3411_CONTEXT)
   };

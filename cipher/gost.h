@@ -27,6 +27,6 @@ typedef struct {
 
 /* This is a simple interface that will be used by GOST R 34.11-94 */
 extern unsigned int _gcry_gost_enc_one (GOST28147_context *c, const byte *key,
-    byte *out, byte *in);
+    byte *out, byte *in, int cryptopro);
 
 #endif

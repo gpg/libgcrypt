@@ -28,6 +28,7 @@ Noteworthy changes in version 1.7.0 (unreleased)
  GCRY_MD_FLAG_BUGEMU1            NEW.
  GCRYCTL_SET_SBOX                NEW.
  gcry_cipher_set_sbox            NEW macro.
+ GCRY_MD_GOSTR3411_CP            NEW.
 
 
 Noteworthy changes in version 1.6.0 (2013-12-16)
