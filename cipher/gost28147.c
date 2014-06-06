@@ -175,6 +175,44 @@ gost_decrypt_block (void *c, byte *outbuf, const byte *inbuf)
                           4*sizeof(void*) /* gost_val call */;
 }
 
+static gpg_err_code_t
+gost_set_sbox (GOST28147_context *ctx, const char *oid)
+{
+  int i;
+
+  for (i = 0; gost_oid_map[i].oid; i++)
+    {
+      if (!strcmp(gost_oid_map[i].oid, oid))
+        {
+          ctx->sbox = gost_oid_map[i].sbox;
+          return 0;
+        }
+    }
+  return GPG_ERR_VALUE_NOT_FOUND;
+}
+
+static gpg_err_code_t
+gost_set_extra_info (void *c, int what, const void *buffer, size_t buflen)
+{
+  GOST28147_context *ctx = c;
+  gpg_err_code_t ec = 0;
+
+  (void)buffer;
+  (void)buflen;
+
+  switch (what)
+    {
+    case GCRYCTL_SET_SBOX:
+      ec = gost_set_sbox (ctx, buffer);
+      break;
+
+    default:
+      ec = GPG_ERR_INV_OP;
+      break;
+    }
+  return ec;
+}
+
 static gcry_cipher_oid_spec_t oids_gost28147[] =
   {
     /* { "1.2.643.2.2.31.0", GCRY_CIPHER_MODE_CNTGOST }, */
@@ -193,4 +231,5 @@ gcry_cipher_spec_t _gcry_cipher_spec_gost28147 =
     gost_setkey,
     gost_encrypt_block,
     gost_decrypt_block,
+    NULL, NULL, NULL, gost_set_extra_info,
   };
