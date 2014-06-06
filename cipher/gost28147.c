@@ -441,10 +441,20 @@ gost_decrypt_block (void *c, byte *outbuf, const byte *inbuf)
                           4*sizeof(void*) /* gost_val call */;
 }
 
+static gcry_cipher_oid_spec_t oids_gost28147[] =
+  {
+    /* { "1.2.643.2.2.31.0", GCRY_CIPHER_MODE_CNTGOST }, */
+    { "1.2.643.2.2.31.1", GCRY_CIPHER_MODE_CFB },
+    { "1.2.643.2.2.31.2", GCRY_CIPHER_MODE_CFB },
+    { "1.2.643.2.2.31.3", GCRY_CIPHER_MODE_CFB },
+    { "1.2.643.2.2.31.4", GCRY_CIPHER_MODE_CFB },
+    { NULL }
+  };
+
 gcry_cipher_spec_t _gcry_cipher_spec_gost28147 =
   {
     GCRY_CIPHER_GOST28147, {0, 0},
-    "GOST28147", NULL, NULL, 8, 256,
+    "GOST28147", NULL, oids_gost28147, 8, 256,
     sizeof (GOST28147_context),
     gost_setkey,
     gost_encrypt_block,
