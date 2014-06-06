@@ -26,6 +26,8 @@ Noteworthy changes in version 1.7.0 (unreleased)
  gcry_mac_get_algo               NEW.
  GCRY_MAC_HMAC_MD2               NEW.
  GCRY_MD_FLAG_BUGEMU1            NEW.
+ GCRYCTL_SET_SBOX                NEW.
+ gcry_cipher_set_sbox            NEW macro.
 
 
 Noteworthy changes in version 1.6.0 (2013-12-16)

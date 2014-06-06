@@ -1264,6 +1264,13 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
         }
       break;
 
+    case GCRYCTL_SET_SBOX:
+      if (h->spec->set_extra_info)
+        rc = h->spec->set_extra_info
+          (&h->context.c, GCRYCTL_SET_SBOX, buffer, buflen);
+      else
+        rc = GPG_ERR_NOT_SUPPORTED;
+
     default:
       rc = GPG_ERR_INV_OP;
     }

@@ -329,7 +329,8 @@ enum gcry_ctl_cmds
     GCRYCTL_SET_CCM_LENGTHS = 69,
     GCRYCTL_CLOSE_RANDOM_DEVICE = 70,
     GCRYCTL_INACTIVATE_FIPS_FLAG = 71,
-    GCRYCTL_REACTIVATE_FIPS_FLAG = 72
+    GCRYCTL_REACTIVATE_FIPS_FLAG = 72,
+    GCRYCTL_SET_SBOX = 73
   };
 
 /* Perform various operations defined by CMD. */
@@ -1001,6 +1002,9 @@ gcry_error_t gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag,
 /* Enable or disable CTS in future calls to gcry_encrypt(). CBC mode only. */
 #define gcry_cipher_cts(h,on)  gcry_cipher_ctl( (h), GCRYCTL_SET_CBC_CTS, \
                                                                    NULL, on )
+
+#define gcry_cipher_set_sbox(h,oid) gcry_cipher_ctl( (h), GCRYCTL_SET_SBOX, \
+                                                     (oid), 0);
 
 /* Set counter for CTR mode.  (CTR,CTRLEN) must denote a buffer of
    block size length, or (NULL,0) to set the CTR to the all-zero block. */
