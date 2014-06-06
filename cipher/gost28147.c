@@ -33,6 +33,7 @@
 #include "types.h"
 #include "g10lib.h"
 #include "cipher.h"
+#include "bufhelp.h"
 
 #include "gost.h"
 #include "gost-sb.h"
@@ -51,10 +52,7 @@ gost_setkey (void *c, const byte *key, unsigned keylen)
 
   for (i = 0; i < 8; i++)
     {
-      ctx->key[i] = (key[4 * i + 3] << 24) |
-                    (key[4 * i + 2] << 16) |
-                    (key[4 * i + 1] <<  8) |
-                    (key[4 * i + 0] <<  0);
+      ctx->key[i] = buf_get_le32(&key[4*i]);
     }
   return GPG_ERR_NO_ERROR;
 }
@@ -76,14 +74,8 @@ gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
   GOST28147_context *ctx = c;
   u32 n1, n2;
 
-  n1 =  (inbuf[0] << 0) |
-        (inbuf[1] << 8) |
-        (inbuf[2] << 16) |
-        (inbuf[3] << 24);
-  n2 =  (inbuf[4] << 0) |
-        (inbuf[5] << 8) |
-        (inbuf[6] << 16) |
-        (inbuf[7] << 24);
+  n1 = buf_get_le32 (inbuf);
+  n2 = buf_get_le32 (inbuf+4);
 
   n2 ^= gost_val (ctx, n1, 0); n1 ^= gost_val (ctx, n2, 1);
   n2 ^= gost_val (ctx, n1, 2); n1 ^= gost_val (ctx, n2, 3);
@@ -105,14 +97,8 @@ gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
   n2 ^= gost_val (ctx, n1, 3); n1 ^= gost_val (ctx, n2, 2);
   n2 ^= gost_val (ctx, n1, 1); n1 ^= gost_val (ctx, n2, 0);
 
-  outbuf[0 + 0] = (n2 >> (0 * 8)) & 0xff;
-  outbuf[1 + 0] = (n2 >> (1 * 8)) & 0xff;
-  outbuf[2 + 0] = (n2 >> (2 * 8)) & 0xff;
-  outbuf[3 + 0] = (n2 >> (3 * 8)) & 0xff;
-  outbuf[0 + 4] = (n1 >> (0 * 8)) & 0xff;
-  outbuf[1 + 4] = (n1 >> (1 * 8)) & 0xff;
-  outbuf[2 + 4] = (n1 >> (2 * 8)) & 0xff;
-  outbuf[3 + 4] = (n1 >> (3 * 8)) & 0xff;
+  buf_put_le32 (outbuf+0, n2);
+  buf_put_le32 (outbuf+4, n1);
 
   return /* burn_stack */ 4*sizeof(void*) /* func call */ +
                           3*sizeof(void*) /* stack */ +
@@ -136,14 +122,8 @@ gost_decrypt_block (void *c, byte *outbuf, const byte *inbuf)
   GOST28147_context *ctx = c;
   u32 n1, n2;
 
-  n1 =  (inbuf[0] << 0) |
-        (inbuf[1] << 8) |
-        (inbuf[2] << 16) |
-        (inbuf[3] << 24);
-  n2 =  (inbuf[4] << 0) |
-        (inbuf[5] << 8) |
-        (inbuf[6] << 16) |
-        (inbuf[7] << 24);
+  n1 = buf_get_le32 (inbuf);
+  n2 = buf_get_le32 (inbuf+4);
 
   n2 ^= gost_val (ctx, n1, 0); n1 ^= gost_val (ctx, n2, 1);
   n2 ^= gost_val (ctx, n1, 2); n1 ^= gost_val (ctx, n2, 3);
@@ -165,14 +145,8 @@ gost_decrypt_block (void *c, byte *outbuf, const byte *inbuf)
   n2 ^= gost_val (ctx, n1, 3); n1 ^= gost_val (ctx, n2, 2);
   n2 ^= gost_val (ctx, n1, 1); n1 ^= gost_val (ctx, n2, 0);
 
-  outbuf[0 + 0] = (n2 >> (0 * 8)) & 0xff;
-  outbuf[1 + 0] = (n2 >> (1 * 8)) & 0xff;
-  outbuf[2 + 0] = (n2 >> (2 * 8)) & 0xff;
-  outbuf[3 + 0] = (n2 >> (3 * 8)) & 0xff;
-  outbuf[0 + 4] = (n1 >> (0 * 8)) & 0xff;
-  outbuf[1 + 4] = (n1 >> (1 * 8)) & 0xff;
-  outbuf[2 + 4] = (n1 >> (2 * 8)) & 0xff;
-  outbuf[3 + 4] = (n1 >> (3 * 8)) & 0xff;
+  buf_put_le32 (outbuf+0, n2);
+  buf_put_le32 (outbuf+4, n1);
 
   return /* burn_stack */ 4*sizeof(void*) /* func call */ +
                           3*sizeof(void*) /* stack */ +
