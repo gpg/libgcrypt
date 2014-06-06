@@ -25,6 +25,7 @@
 
 #include "g10lib.h"
 #include "bithelp.h"
+#include "bufhelp.h"
 #include "cipher.h"
 #include "hash-common.h"
 
@@ -35,8 +36,11 @@
 typedef struct {
   gcry_md_block_ctx_t bctx;
   GOST28147_context hd;
-  byte h[32];
-  byte sigma[32];
+  union {
+    u32 h[8];
+    byte result[32];
+  };
+  u32 sigma[8];
   u32 len;
   int cryptopro;
 } GOSTR3411_CONTEXT;
@@ -71,102 +75,122 @@ gost3411_cp_init (void *context, unsigned int flags)
 }
 
 static void
-do_p (unsigned char *p, unsigned char *u, unsigned char *v)
+do_p (u32 *p, u32 *u, u32 *v)
 {
-  int i, k;
+  int k;
+  u32 t[8];
+
   for (k = 0; k < 8; k++)
+    t[k] = u[k] ^ v[k];
+
+  for (k = 0; k < 4; k++)
     {
-      for (i = 0; i < 4; i++)
-        {
-          p[i + 4 * k] = u[8 * i + k] ^ v[8 * i + k];
-        }
+          p[k+0] = ((t[0] >> (8*k)) & 0xff) << 0 |
+                   ((t[2] >> (8*k)) & 0xff) << 8 |
+                   ((t[4] >> (8*k)) & 0xff) << 16 |
+                   ((t[6] >> (8*k)) & 0xff) << 24;
+          p[k+4] = ((t[1] >> (8*k)) & 0xff) << 0 |
+                   ((t[3] >> (8*k)) & 0xff) << 8 |
+                   ((t[5] >> (8*k)) & 0xff) << 16 |
+                   ((t[7] >> (8*k)) & 0xff) << 24;
     }
 }
 
 static void
-do_a (unsigned char *u)
+do_a (u32 *u)
 {
-  unsigned char temp[8];
+  u32 t[2];
   int i;
-  memcpy (temp, u, 8);
-  memmove (u, u+8, 24);
-  for (i = 0; i < 8; i++)
-    {
-      u[24 + i] = u[i] ^ temp[i];
-    }
+  memcpy(t, u, 2*4);
+  for (i = 0; i < 6; i++)
+    u[i] = u[i+2];
+  u[6] = u[0] ^ t[0];
+  u[7] = u[1] ^ t[1];
 }
 /* apply do_a twice: 1 2 3 4 -> 3 4 1^2 2^3 */
 static void
-do_a2 (unsigned char *u)
+do_a2 (u32 *u)
 {
-  unsigned char temp[16];
+  u32 t[4];
   int i;
-  memcpy (temp, u, 16);
-  memcpy (u, u + 16, 16);
+  memcpy (t, u, 16);
+  memcpy (u, u + 4, 16);
+  for (i = 0; i < 2; i++)
+    {
+      u[4+i] = t[i] ^ t[i + 2];
+      u[6+i] = u[i] ^ t[i + 2];
+    }
+}
+
+static void
+do_apply_c2 (u32 *u)
+{
+  u[ 0] ^= 0xff00ff00;
+  u[ 1] ^= 0xff00ff00;
+  u[ 2] ^= 0x00ff00ff;
+  u[ 3] ^= 0x00ff00ff;
+  u[ 4] ^= 0x00ffff00;
+  u[ 5] ^= 0xff0000ff;
+  u[ 6] ^= 0x000000ff;
+  u[ 7] ^= 0xff00ffff;
+}
+
+#define do_chi_step12(e) \
+  e[6] ^= ((e[6] >> 16) ^ e[7] ^ (e[7] >> 16) ^ e[4] ^ (e[5] >>16)) & 0xffff;
+
+#define do_chi_step13(e) \
+  e[6] ^= ((e[7] ^ (e[7] >> 16) ^ e[0] ^ (e[4] >> 16) ^ e[6]) & 0xffff) << 16;
+
+#define do_chi_doublestep(e, i) \
+  e[i] ^= (e[i] >> 16) ^ (e[(i+1)%8] << 16) ^ e[(i+1)%8] ^ (e[(i+1)%8] >> 16) ^ (e[(i+2)%8] << 16) ^ e[(i+6)%8] ^ (e[(i+7)%8] >> 16); \
+  e[i] ^= (e[i] << 16);
+
+static void
+do_chi_submix12 (u32 *e, u32 *x)
+{
+  e[6] ^= x[0];
+  e[7] ^= x[1];
+  e[0] ^= x[2];
+  e[1] ^= x[3];
+  e[2] ^= x[4];
+  e[3] ^= x[5];
+  e[4] ^= x[6];
+  e[5] ^= x[7];
+}
+
+static void
+do_chi_submix13 (u32 *e, u32 *x)
+{
+  e[6] ^= (x[0] << 16) | (x[7] >> 16);
+  e[7] ^= (x[1] << 16) | (x[0] >> 16);
+  e[0] ^= (x[2] << 16) | (x[1] >> 16);
+  e[1] ^= (x[3] << 16) | (x[2] >> 16);
+  e[2] ^= (x[4] << 16) | (x[3] >> 16);
+  e[3] ^= (x[5] << 16) | (x[4] >> 16);
+  e[4] ^= (x[6] << 16) | (x[5] >> 16);
+  e[5] ^= (x[7] << 16) | (x[6] >> 16);
+}
+
+static void
+do_add (u32 *s, u32 *a)
+{
+  u32 carry = 0;
+  int i;
+
   for (i = 0; i < 8; i++)
     {
-      u[16 + i] = temp[i] ^ temp[8 + i];
-      u[24 + i] =    u[i] ^ temp[8 + i];
-    }
-}
-
-static void
-do_apply_c2 (unsigned char *u)
-{
-  u[ 1] ^= 0xff;
-  u[ 3] ^= 0xff;
-  u[ 5] ^= 0xff;
-  u[ 7] ^= 0xff;
-
-  u[ 8] ^= 0xff;
-  u[10] ^= 0xff;
-  u[12] ^= 0xff;
-  u[14] ^= 0xff;
-
-  u[17] ^= 0xff;
-  u[18] ^= 0xff;
-  u[20] ^= 0xff;
-  u[23] ^= 0xff;
-
-  u[24] ^= 0xff;
-  u[28] ^= 0xff;
-  u[29] ^= 0xff;
-  u[31] ^= 0xff;
-}
-
-#define do_phi_step(e, i) \
-  e[(0 + 2*i) % 32] ^= e[(2 + 2*i) % 32] ^ e[(4 + 2*i) % 32] ^ e[(6 + 2*i) % 32] ^ e[(24 + 2*i) % 32] ^ e[(30 + 2*i) % 32]; \
-  e[(1 + 2*i) % 32] ^= e[(3 + 2*i) % 32] ^ e[(5 + 2*i) % 32] ^ e[(7 + 2*i) % 32] ^ e[(25 + 2*i) % 32] ^ e[(31 + 2*i) % 32];
-
-static void
-do_phi_submix (unsigned char *e, unsigned char *x, int round)
-{
-  int i;
-  round *= 2;
-  for (i = 0; i < 32; i++)
-    {
-      e[(i + round) % 32] ^= x[i];
-    }
-}
-
-static void
-do_add (unsigned char *s, unsigned char *a)
-{
-  unsigned temp = 0;
-  int i;
-
-  for (i = 0; i < 32; i++)
-    {
-      temp = s[i] + a[i] + (temp >> 8);
-      s[i] = temp & 0xff;
+      u32 op = carry + a[i];
+      s[i] += op;
+      carry = (a[i] > op) || (op > s[i]);
     }
 }
 
 static unsigned int
-do_hash_step (GOSTR3411_CONTEXT *hd, unsigned char *h, unsigned char *m)
+do_hash_step (GOSTR3411_CONTEXT *hd, u32 *h, u32 *m)
 {
-  unsigned char u[32], v[32], s[32];
-  unsigned char k[32];
+  u32 u[8], v[8];
+  u32 s[8];
+  u32 k[8];
   unsigned int burn;
   int i;
 
@@ -176,7 +200,7 @@ do_hash_step (GOSTR3411_CONTEXT *hd, unsigned char *h, unsigned char *m)
   for (i = 0; i < 4; i++) {
     do_p (k, u, v);
 
-    burn = _gcry_gost_enc_one (&hd->hd, k, s + i*8, h + i*8, hd->cryptopro);
+    burn = _gcry_gost_enc_data (&hd->hd, k, &s[2*i], &s[2*i+1], h[2*i], h[2*i+1], hd->cryptopro);
 
     do_a (u);
     if (i == 1)
@@ -186,33 +210,26 @@ do_hash_step (GOSTR3411_CONTEXT *hd, unsigned char *h, unsigned char *m)
 
   for (i = 0; i < 5; i++)
     {
-      do_phi_step (s, 0);
-      do_phi_step (s, 1);
-      do_phi_step (s, 2);
-      do_phi_step (s, 3);
-      do_phi_step (s, 4);
-      do_phi_step (s, 5);
-      do_phi_step (s, 6);
-      do_phi_step (s, 7);
-      do_phi_step (s, 8);
-      do_phi_step (s, 9);
+      do_chi_doublestep (s, 0);
+      do_chi_doublestep (s, 1);
+      do_chi_doublestep (s, 2);
+      do_chi_doublestep (s, 3);
+      do_chi_doublestep (s, 4);
       /* That is in total 12 + 1 + 61 = 74 = 16 * 4 + 10 rounds */
       if (i == 4)
         break;
-      do_phi_step (s, 10);
-      do_phi_step (s, 11);
+      do_chi_doublestep (s, 5);
       if (i == 0)
-        do_phi_submix(s, m, 12);
-      do_phi_step (s, 12);
+        do_chi_submix12(s, m);
+      do_chi_step12 (s);
       if (i == 0)
-        do_phi_submix(s, h, 13);
-      do_phi_step (s, 13);
-      do_phi_step (s, 14);
-      do_phi_step (s, 15);
+        do_chi_submix13(s, h);
+      do_chi_step13 (s);
+      do_chi_doublestep (s, 7);
     }
 
-  memcpy (h, s+20, 12);
-  memcpy (h+12, s, 20);
+  memcpy (h, s+5, 12);
+  memcpy (h+3, s, 20);
 
   return /* burn_stack */ 4 * sizeof(void*) /* func call (ret addr + args) */ +
                           4 * 32 + 2 * sizeof(int) /* stack */ +
@@ -221,15 +238,16 @@ do_hash_step (GOSTR3411_CONTEXT *hd, unsigned char *h, unsigned char *m)
                               16 + sizeof(int) /* do_a2 stack */ );
 }
 
-
 static unsigned int
 transform_blk (void *ctx, const unsigned char *data)
 {
   GOSTR3411_CONTEXT *hd = ctx;
-  byte m[32];
+  u32 m[8];
   unsigned int burn;
+  int i;
 
-  memcpy (m, data, 32);
+  for (i = 0; i < 8; i++)
+    m[i] = buf_get_le32(data + i*4);
   burn = do_hash_step (hd, hd->h, m);
   do_add (hd->sigma, m);
 
@@ -263,9 +281,9 @@ gost3411_final (void *context)
 {
   GOSTR3411_CONTEXT *hd = context;
   size_t padlen = 0;
-  byte l[32];
+  u32 l[8];
   int i;
-  u32 nblocks;
+  MD_NBLOCKS_TYPE nblocks;
 
   if (hd->bctx.count > 0)
     {
@@ -286,15 +304,19 @@ gost3411_final (void *context)
       nblocks --;
       l[0] = 256 - padlen * 8;
     }
+  l[0] |= nblocks << 8;
+  nblocks >>= 24;
 
   for (i = 1; i < 32 && nblocks != 0; i++)
     {
-      l[i] = nblocks % 256;
-      nblocks /= 256;
+      l[i] = nblocks;
+      nblocks >>= 24;
     }
 
   do_hash_step (hd, hd->h, l);
   do_hash_step (hd, hd->h, hd->sigma);
+  for (i = 0; i < 8; i++)
+    hd->h[i] = le_bswap32(hd->h[i]);
 }
 
 static byte *
@@ -302,7 +324,7 @@ gost3411_read (void *context)
 {
   GOSTR3411_CONTEXT *hd = context;
 
-  return hd->h;
+  return hd->result;
 }
 
 static unsigned char asn[6] = /* Object ID is 1.2.643.2.2.3 */

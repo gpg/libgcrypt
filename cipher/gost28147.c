@@ -69,13 +69,9 @@ gost_val (GOST28147_context *ctx, u32 cm1, int subkey)
 }
 
 static unsigned int
-gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
+_gost_encrypt_data (void *c, u32 *o1, u32 *o2, u32 n1, u32 n2)
 {
   GOST28147_context *ctx = c;
-  u32 n1, n2;
-
-  n1 = buf_get_le32 (inbuf);
-  n2 = buf_get_le32 (inbuf+4);
 
   n2 ^= gost_val (ctx, n1, 0); n1 ^= gost_val (ctx, n2, 1);
   n2 ^= gost_val (ctx, n1, 2); n1 ^= gost_val (ctx, n2, 3);
@@ -97,23 +93,41 @@ gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
   n2 ^= gost_val (ctx, n1, 3); n1 ^= gost_val (ctx, n2, 2);
   n2 ^= gost_val (ctx, n1, 1); n1 ^= gost_val (ctx, n2, 0);
 
-  buf_put_le32 (outbuf+0, n2);
-  buf_put_le32 (outbuf+4, n1);
+  *o1 = n2;
+  *o2 = n1;
 
   return /* burn_stack */ 4*sizeof(void*) /* func call */ +
                           3*sizeof(void*) /* stack */ +
                           4*sizeof(void*) /* gost_val call */;
 }
 
-unsigned int _gcry_gost_enc_one (GOST28147_context *c, const byte *key,
-    byte *out, byte *in, int cryptopro)
+static unsigned int
+gost_encrypt_block (void *c, byte *outbuf, const byte *inbuf)
+{
+  GOST28147_context *ctx = c;
+  u32 n1, n2;
+  unsigned int burn;
+
+  n1 = buf_get_le32 (inbuf);
+  n2 = buf_get_le32 (inbuf+4);
+
+  burn = _gost_encrypt_data(ctx, &n1, &n2, n1, n2);
+
+  buf_put_le32 (outbuf+0, n1);
+  buf_put_le32 (outbuf+4, n2);
+
+  return /* burn_stack */ burn + 6*sizeof(void*) /* func call */;
+}
+
+unsigned int _gcry_gost_enc_data (GOST28147_context *c, const u32 *key,
+    u32 *o1, u32 *o2, u32 n1, u32 n2, int cryptopro)
 {
   if (cryptopro)
     c->sbox = sbox_CryptoPro_3411;
   else
     c->sbox = sbox_test_3411;
-  gost_setkey (c, key, 32);
-  return gost_encrypt_block (c, out, in) + 5 * sizeof(void *);
+  memcpy (c->key, key, 8*4);
+  return _gost_encrypt_data (c, o1, o2, n1, n2) + 7 * sizeof(void *);
 }
 
 static unsigned int
