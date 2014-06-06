@@ -294,10 +294,23 @@ gost3411_read (void *context)
 
   return hd->h;
 }
+
+static unsigned char asn[6] = /* Object ID is 1.2.643.2.2.3 */
+  { 0x2a, 0x85, 0x03, 0x02, 0x02, 0x03 };
+
+static gcry_md_oid_spec_t oid_spec_gostr3411[] =
+  {
+    /* iso.member-body.ru.rans.cryptopro.3 (gostR3411-94-with-gostR3410-2001) */
+    { "1.2.643.2.2.3" },
+    /* iso.member-body.ru.rans.cryptopro.9 (gostR3411-94) */
+    { "1.2.643.2.2.9" },
+    {NULL},
+  };
+
 gcry_md_spec_t _gcry_digest_spec_gost3411_94 =
   {
     GCRY_MD_GOSTR3411_94, {0, 0},
-    "GOSTR3411_94", NULL, 0, NULL, 32,
+    "GOSTR3411_94", asn, DIM (asn), oid_spec_gostr3411, 32,
     gost3411_init, _gcry_md_block_write, gost3411_final, gost3411_read,
     sizeof (GOSTR3411_CONTEXT)
   };
