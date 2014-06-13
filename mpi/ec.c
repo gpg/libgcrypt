@@ -1236,17 +1236,33 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
 
       z1 = mpi_new (0);
       mpi_clear (result->y);
-      mpi_set_ui (result->z, 1);
       if ((nbits & 1))
         {
-          ec_invm (z1, p1_.z, ctx);
-          ec_mulm (result->x, p1_.x, z1, ctx);
-          mpi_clear (result->y);
+	  if (p1_.z->nlimbs == 0)
+	    {
+	      mpi_set_ui (result->x, 1);
+	      mpi_set_ui (result->z, 0);
+	    }
+	  else
+	    {
+	      ec_invm (z1, p1_.z, ctx);
+	      ec_mulm (result->x, p1_.x, z1, ctx);
+	      mpi_set_ui (result->z, 1);
+	    }
         }
       else
         {
-          ec_invm (z1, p1.z, ctx);
-          ec_mulm (result->x, p1.x, z1, ctx);
+	  if (p1.z->nlimbs == 0)
+	    {
+	      mpi_set_ui (result->x, 1);
+	      mpi_set_ui (result->z, 0);
+	    }
+	  else
+	    {
+	      ec_invm (z1, p1.z, ctx);
+	      ec_mulm (result->x, p1.x, z1, ctx);
+	      mpi_set_ui (result->z, 1);
+	    }
         }
 
       mpi_free (z1);
@@ -1378,8 +1394,12 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
       }
       break;
     case MPI_EC_MONTGOMERY:
+#if 0
       log_fatal ("%s: %s not yet supported\n",
                  "_gcry_mpi_ec_curve_point", "Montgomery");
+#else
+      res = 1;
+#endif
       break;
     case MPI_EC_EDWARDS:
       {

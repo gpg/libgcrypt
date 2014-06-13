@@ -103,6 +103,42 @@ die (const char *format, ...)
 }
 
 
+static gcry_mpi_t
+hex2mpi (const char *string)
+{
+  gpg_error_t err;
+  gcry_mpi_t val;
+
+  err = gcry_mpi_scan (&val, GCRYMPI_FMT_HEX, string, 0, NULL);
+  if (err)
+    die ("hex2mpi '%s' failed: %s\n", string, gpg_strerror (err));
+  return val;
+}
+
+
+/* Print an MPI S-expression.  */
+static void
+print_mpi (const char *name, gcry_mpi_t a)
+{
+  gcry_error_t err;
+  unsigned char *buf;
+  int writerr = 0;
+
+  err = gcry_mpi_aprint (GCRYMPI_FMT_HEX, &buf, NULL, a);
+  if (err)
+    die ("gcry_mpi_aprint failed: %s\n", gcry_strerror (err));
+
+  printf ("  (%s #%s#)\n", name, buf);
+  if (ferror (stdout))
+    writerr++;
+  if (!writerr && fflush (stdout) == EOF)
+    writerr++;
+  if (writerr)
+    die ("writing output failed\n");
+  gcry_free (buf);
+}
+
+
 static void
 list_curves (void)
 {
