@@ -276,5 +276,6 @@ EXPORTS
       gcry_mac_ctl              @242
       gcry_mac_get_algo         @243
 
+      gcry_mpi_swap_conditional @244
 
 ;; end of file with public symbols for Windows.

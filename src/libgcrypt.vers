@@ -96,7 +96,7 @@ GCRYPT_1.6 {
     gcry_mpi_set_flag; gcry_mpi_set_highbit;
     gcry_mpi_set_opaque; gcry_mpi_set_opaque_copy;
     gcry_mpi_set_ui; gcry_mpi_snew; gcry_mpi_sub; gcry_mpi_sub_ui;
-    gcry_mpi_subm; gcry_mpi_swap; gcry_mpi_test_bit;
+    gcry_mpi_subm; gcry_mpi_swap; gcry_mpi_swap_conditional; gcry_mpi_test_bit;
     gcry_mpi_lshift; gcry_mpi_snatch;
     gcry_mpi_point_new; gcry_mpi_point_release;
     gcry_mpi_point_get; gcry_mpi_point_snatch_get;

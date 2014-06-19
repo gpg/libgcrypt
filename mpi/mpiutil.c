@@ -541,6 +541,43 @@ _gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b)
     tmp = *a; *a = *b; *b = tmp;
 }
 
+void
+_gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
+{
+  size_t i;
+  size_t nlimbs = a->nlimbs;
+  unsigned long mask = -(long)swap;
+
+  if (b->alloced < a->nlimbs)
+    {
+      mpi_resize (b, a->nlimbs);
+      nlimbs = a->nlimbs;
+    }
+  else if (a->alloced < b->nlimbs)
+    {
+      mpi_resize (a, b->nlimbs);
+      nlimbs = b->nlimbs;
+    }
+  else if (b->nlimbs < a->nlimbs)
+    {
+      mpi_resize (b, a->nlimbs);
+      nlimbs = b->nlimbs = a->nlimbs;
+    }
+  else if (a->nlimbs < b->nlimbs)
+    {
+      mpi_resize (a, b->nlimbs);
+      nlimbs = a->nlimbs = b->nlimbs;
+    }
+
+  for (i = 0; i < nlimbs; i++)
+    {
+      unsigned long x = mask & (a->d[i] ^ b->d[i]);
+      a->d[i] = a->d[i] ^ x;
+      b->d[i] = b->d[i] ^ x;
+    }
+}
+
+
 
 gcry_mpi_t
 _gcry_mpi_new (unsigned int nbits)

@@ -125,6 +125,7 @@ gcry_mpi_t  _gcry_mpi_alloc_like( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_set_ui( unsigned long u);
 void _gcry_mpi_m_check( gcry_mpi_t a );
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
+void _gcry_mpi_swap_conditional(gcry_mpi_t a, gcry_mpi_t b, unsigned long sw);
 gcry_mpi_t _gcry_mpi_new (unsigned int nbits);
 gcry_mpi_t _gcry_mpi_snew (unsigned int nbits);
 gcry_mpi_t _gcry_mpi_set_opaque_copy (gcry_mpi_t a,

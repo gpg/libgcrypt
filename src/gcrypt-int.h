@@ -371,6 +371,7 @@ gcry_mpi_t _gcry_mpi_set (gcry_mpi_t w, const gcry_mpi_t u);
 gcry_mpi_t _gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u);
 gcry_err_code_t _gcry_mpi_get_ui (gcry_mpi_t w, ulong *u);
 void _gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b);
+void _gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long sw);
 int _gcry_mpi_is_neg (gcry_mpi_t a);
 void _gcry_mpi_neg (gcry_mpi_t w, gcry_mpi_t u);
 void _gcry_mpi_abs (gcry_mpi_t w);
@@ -475,6 +476,7 @@ int _gcry_mpi_get_flag (gcry_mpi_t a, enum gcry_mpi_flag flag);
 #define mpi_set_ui( w, u)      _gcry_mpi_set_ui( (w), (u) )
 #define mpi_get_ui(a,b)        _gcry_mpi_get_ui( (a), (b) )
 #define mpi_swap(a,b)          _gcry_mpi_swap ((a),(b))
+#define mpi_swap_conditional(a,b,sw)          _gcry_mpi_swap_conditional ((a),(b),(sw))
 #define mpi_abs( w )           _gcry_mpi_abs( (w) )
 #define mpi_neg( w, u)         _gcry_mpi_neg( (w), (u) )
 #define mpi_cmp( u, v )        _gcry_mpi_cmp( (u), (v) )

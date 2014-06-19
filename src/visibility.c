@@ -319,6 +319,12 @@ gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b)
   _gcry_mpi_swap (a, b);
 }
 
+void
+gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long sw)
+{
+  _gcry_mpi_swap_conditional (a, b, sw);
+}
+
 int
 gcry_mpi_is_neg (gcry_mpi_t a)
 {

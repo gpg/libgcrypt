@@ -545,6 +545,9 @@ gcry_mpi_t gcry_mpi_set_ui (gcry_mpi_t w, unsigned long u);
 /* Swap the values of A and B. */
 void gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b);
 
+/* Swap the values of A and B if SW is 1. */
+void gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long sw);
+
 /* Return 1 if A is negative; 0 if zero or positive.  */
 int gcry_mpi_is_neg (gcry_mpi_t a);
 

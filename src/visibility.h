@@ -266,6 +266,7 @@ MARK_VISIBLEX (gcry_mpi_sub)
 MARK_VISIBLEX (gcry_mpi_sub_ui)
 MARK_VISIBLEX (gcry_mpi_subm)
 MARK_VISIBLEX (gcry_mpi_swap)
+MARK_VISIBLEX (gcry_mpi_swap_conditional)
 MARK_VISIBLEX (gcry_mpi_test_bit)
 
 MARK_VISIBLEX (gcry_ctx_release)
@@ -482,6 +483,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_mpi_sub_ui             _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_subm               _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_swap               _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_mpi_swap_conditional   _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_test_bit           _gcry_USE_THE_UNDERSCORED_FUNCTION
 
 #define gcry_mpi_abs                _gcry_USE_THE_UNDERSCORED_FUNCTION
