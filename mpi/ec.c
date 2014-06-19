@@ -1195,31 +1195,21 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
 
       for (j=nbits-1; j >= 0; j--)
         {
-          mpi_point_t q1, q2;
-
 	  sw = mpi_test_bit (scalar, j);
-	  q1 = &p1;
-	  q2 = &p2;
-	  mpi_swap_conditional (q1->x, q2->x, sw);
-	  mpi_swap_conditional (q1->y, q2->y, sw);
-	  mpi_swap_conditional (q1->z, q2->z, sw);
-          dup_and_add_montgomery (&p1_, &p2_, q1, q2, point->x, ctx);
+	  mpi_swap_conditional (p1.x, p2.x, sw);
+	  mpi_swap_conditional (p1.z, p2.z, sw);
+          dup_and_add_montgomery (&p1_, &p2_, &p1, &p2, point->x, ctx);
 	  mpi_swap_conditional (p1_.x, p2_.x, sw);
-	  mpi_swap_conditional (p1_.y, p2_.y, sw);
 	  mpi_swap_conditional (p1_.z, p2_.z, sw);
 
           if (--j < 0)
             break;
 
 	  sw = mpi_test_bit (scalar, j);
-	  q1 = &p1_;
-	  q2 = &p2_;
-	  mpi_swap_conditional (q1->x, q2->x, sw);
-	  mpi_swap_conditional (q1->y, q2->y, sw);
-	  mpi_swap_conditional (q1->z, q2->z, sw);
-          dup_and_add_montgomery (&p1, &p2, q1, q2, point->x, ctx);
+	  mpi_swap_conditional (p1_.x, p2_.x, sw);
+	  mpi_swap_conditional (p1_.z, p2_.z, sw);
+          dup_and_add_montgomery (&p1, &p2, &p1_, &p2_, point->x, ctx);
 	  mpi_swap_conditional (p1.x, p2.x, sw);
-	  mpi_swap_conditional (p1.y, p2.y, sw);
 	  mpi_swap_conditional (p1.z, p2.z, sw);
         }
 
@@ -1227,7 +1217,6 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       mpi_clear (result->y);
       sw = (nbits & 1);
       mpi_swap_conditional (p1.x, p1_.x, sw);
-      mpi_swap_conditional (p1.y, p1_.y, sw);
       mpi_swap_conditional (p1.z, p1_.z, sw);
 
       if (p1.z->nlimbs == 0)
