@@ -1183,6 +1183,13 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       mpi_point_struct p1_, p2_;
       unsigned long sw;
 
+      /* FIXME: it's just for Curve25519 */
+      mpi_clear_bit (scalar, 255);
+      mpi_set_bit (scalar, 254);
+      mpi_clear_bit (scalar, 2);
+      mpi_clear_bit (scalar, 1);
+      mpi_clear_bit (scalar, 0);
+
       nbits = mpi_get_nbits (scalar);
       point_init (&p1);
       point_init (&p2);
@@ -1213,7 +1220,6 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
 	  mpi_swap_conditional (p1.z, p2.z, sw);
         }
 
-      z1 = mpi_new (0);
       mpi_clear (result->y);
       sw = (nbits & 1);
       mpi_swap_conditional (p1.x, p1_.x, sw);
@@ -1226,12 +1232,13 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
 	}
       else
 	{
+	  z1 = mpi_new (0);
 	  ec_invm (z1, p1.z, ctx);
 	  ec_mulm (result->x, p1.x, z1, ctx);
 	  mpi_set_ui (result->z, 1);
+	  mpi_free (z1);
 	}
 
-      mpi_free (z1);
       point_free (&p1);
       point_free (&p2);
       point_free (&p1_);

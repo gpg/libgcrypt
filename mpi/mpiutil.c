@@ -547,6 +547,7 @@ _gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
   size_t i;
   size_t nlimbs = a->nlimbs;
   unsigned long mask = -(long)swap;
+  unsigned long x;
 
   if (b->alloced < a->nlimbs)
     {
@@ -571,10 +572,14 @@ _gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
 
   for (i = 0; i < nlimbs; i++)
     {
-      unsigned long x = mask & (a->d[i] ^ b->d[i]);
+      x = mask & (a->d[i] ^ b->d[i]);
       a->d[i] = a->d[i] ^ x;
       b->d[i] = b->d[i] ^ x;
     }
+
+  x = mask & (a->sign ^ b->sign);
+  a->sign = a->sign ^ x;
+  b->sign = b->sign ^ x;
 }
 
 
