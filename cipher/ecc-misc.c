@@ -202,13 +202,8 @@ _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value)
     }
   if (*buf != 4)
     {
-      /* x-coordinate only */
-      mpi_set (result->x, value);
-      mpi_clear (result->y);
-      mpi_set_ui (result->z, 1);
-
       xfree (buf_memory);
-      return 0;
+      return GPG_ERR_NOT_IMPLEMENTED; /* No support for point compression.  */
     }
   if ( ((n-1)%2) )
     {
