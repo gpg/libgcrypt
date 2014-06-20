@@ -544,35 +544,13 @@ _gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b)
 void
 _gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
 {
-#if 1
-  if (swap)
-    _gcry_mpi_swap (a, b);
-#else
   size_t i;
-  size_t nlimbs = a->nlimbs;
-  unsigned long mask = -(long)swap;
+  size_t nlimbs = a->alloced;
+  unsigned long mask = 0UL - !!swap;
   unsigned long x;
 
-  if (b->alloced < a->nlimbs)
-    {
-      mpi_resize (b, a->nlimbs);
-      nlimbs = a->nlimbs;
-    }
-  else if (a->alloced < b->nlimbs)
-    {
-      mpi_resize (a, b->nlimbs);
-      nlimbs = b->nlimbs;
-    }
-  else if (b->nlimbs < a->nlimbs)
-    {
-      mpi_resize (b, a->nlimbs);
-      nlimbs = b->nlimbs = a->nlimbs;
-    }
-  else if (a->nlimbs < b->nlimbs)
-    {
-      mpi_resize (a, b->nlimbs);
-      nlimbs = a->nlimbs = b->nlimbs;
-    }
+  if (a->alloced != b->alloced)
+    log_bug ("mpi_swap_conditional: different sizes\n");
 
   for (i = 0; i < nlimbs; i++)
     {
@@ -581,10 +559,13 @@ _gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
       b->d[i] = b->d[i] ^ x;
     }
 
+  x = mask & (a->nlimbs ^ b->nlimbs);
+  a->nlimbs = a->nlimbs ^ x;
+  b->nlimbs = b->nlimbs ^ x;
+
   x = mask & (a->sign ^ b->sign);
   a->sign = a->sign ^ x;
   b->sign = b->sign ^ x;
-#endif
 }
 
 
