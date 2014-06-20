@@ -544,6 +544,10 @@ _gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b)
 void
 _gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
 {
+#if 1
+  if (swap)
+    _gcry_mpi_swap (a, b);
+#else
   size_t i;
   size_t nlimbs = a->nlimbs;
   unsigned long mask = -(long)swap;
@@ -580,6 +584,7 @@ _gcry_mpi_swap_conditional (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
   x = mask & (a->sign ^ b->sign);
   a->sign = a->sign ^ x;
   b->sign = b->sign ^ x;
+#endif
 }
 
 

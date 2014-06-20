@@ -371,7 +371,7 @@ check_secret_key (ECC_secret_key *sk, mpi_ec_t ec, int flags)
     }
 
   /* Check order of curve.  */
-  if (sk->E.dialect != ECC_DIALECT_ED25519)
+  if (sk->E.dialect != ECC_DIALECT_ED25519 && sk->E.model != MPI_EC_MONTGOMERY)
     {
       _gcry_mpi_ec_mul_point (&Q, sk->E.n, &sk->E.G, ec);
       if (mpi_cmp_ui (Q.z, 0))
