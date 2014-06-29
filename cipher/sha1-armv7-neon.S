@@ -1,5 +1,5 @@
 /* sha1-armv7-neon.S - ARM/NEON accelerated SHA-1 transform function
- * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2014 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * Based on sha1.c:
  *  Copyright (C) 1998, 2001, 2002, 2003, 2008 Free Software Foundation, Inc.
@@ -26,11 +26,11 @@
     defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
     defined(HAVE_GCC_INLINE_ASM_NEON) && defined(USE_SHA1)
 
-.data
-
 .syntax unified
 .fpu neon
 .arm
+
+.text
 
 #ifdef __PIC__
 #  define GET_DATA_POINTER(reg, name, rtmp) \
@@ -69,16 +69,13 @@ gcry_sha1_armv7_neon_K_VEC:
 .LK4:	.long K4, K4, K4, K4
 
 
-.text
-
 /* Register macros */
 
 #define RSTATE r0
 #define RDATA r1
 #define RNBLKS r2
 #define ROLDSTACK r3
-#define RK lr
-#define RWK r12
+#define RWK lr
 
 #define _a r4
 #define _b r5
@@ -89,6 +86,7 @@ gcry_sha1_armv7_neon_K_VEC:
 #define RT0 r9
 #define RT1 r10
 #define RT2 r11
+#define RT3 r12
 
 #define W0 q0
 #define W1 q1
@@ -104,7 +102,10 @@ gcry_sha1_armv7_neon_K_VEC:
 #define tmp2 q10
 #define tmp3 q11
 
-#define curK q12
+#define qK1 q12
+#define qK2 q13
+#define qK3 q14
+#define qK4 q15
 
 
 /* Round function macros. */
@@ -112,43 +113,43 @@ gcry_sha1_armv7_neon_K_VEC:
 #define WK_offs(i) (((i) & 15) * 4)
 
 #define _R_F1(a,b,c,d,e,i,pre1,pre2,pre3,i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28) \
-	and RT0, c, b; \
+	ldr RT3, [sp, WK_offs(i)]; \
 		pre1(i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28); \
+	bic RT0, d, b; \
 	add e, e, a, ror #(32 - 5); \
-	ldr RT2, [sp, WK_offs(i)]; \
-	bic RT1, d, b; \
-	add e, RT2; \
+	and RT1, c, b; \
 		pre2(i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28); \
+	add RT0, RT0, RT3; \
+	add e, e, RT1; \
 	ror b, #(32 - 30); \
-	eor RT0, RT1; \
 		pre3(i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28); \
-	add e, RT0;
+	add e, e, RT0;
 
 #define _R_F2(a,b,c,d,e,i,pre1,pre2,pre3,i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28) \
-	eor RT0, c, b; \
+	ldr RT3, [sp, WK_offs(i)]; \
 		pre1(i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28); \
+	eor RT0, d, b; \
 	add e, e, a, ror #(32 - 5); \
-	ldr RT2, [sp, WK_offs(i)]; \
-	eor RT0, d; \
+	eor RT0, RT0, c; \
 		pre2(i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28); \
-	add e, RT2; \
+	add e, e, RT3; \
 	ror b, #(32 - 30); \
 		pre3(i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28); \
-	add e, RT0; \
+	add e, e, RT0; \
 
 #define _R_F3(a,b,c,d,e,i,pre1,pre2,pre3,i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28) \
-	eor RT0, c, b; \
+	ldr RT3, [sp, WK_offs(i)]; \
 		pre1(i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28); \
+	eor RT0, b, c; \
+	and RT1, b, c; \
 	add e, e, a, ror #(32 - 5); \
-	ldr RT2, [sp, WK_offs(i)]; \
-	and RT1, c, b; \
-	and RT0, d; \
-	add e, RT2; \
 		pre2(i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28); \
+	and RT0, RT0, d; \
+	add RT1, RT1, RT3; \
+	add e, e, RT0; \
 	ror b, #(32 - 30); \
-	add e, RT1; \
 		pre3(i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28); \
-	add e, RT0;
+	add e, e, RT1;
 
 #define _R_F4(a,b,c,d,e,i,pre1,pre2,pre3,i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28) \
 	_R_F2(a,b,c,d,e,i,pre1,pre2,pre3,i16,W,W_m04,W_m08,W_m12,W_m16,W_m20,W_m24,W_m28)
@@ -183,10 +184,10 @@ gcry_sha1_armv7_neon_K_VEC:
 	vst1.32   {tmp2, tmp3}, [RWK];				\
 
 #define WPRECALC_00_15_0(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
-	add       RWK, sp, #(WK_offs(0));			\
+	vld1.32   {tmp0, tmp1}, [RDATA]!;			\
 
 #define WPRECALC_00_15_1(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
-	vld1.32   {tmp0, tmp1}, [RDATA]!;			\
+	add       RWK, sp, #(WK_offs(0));			\
 
 #define WPRECALC_00_15_2(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	vrev32.8  W0, tmp0;		/* big => little */	\
@@ -225,25 +226,25 @@ gcry_sha1_armv7_neon_K_VEC:
 /********* Precalc macros for rounds 16-31 ************************************/
 
 #define WPRECALC_16_31_0(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
-	add       RWK, sp, #(WK_offs(i));	\
-
-#define WPRECALC_16_31_1(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	veor      tmp0, tmp0;			\
 	vext.8    W, W_m16, W_m12, #8;		\
 
-#define WPRECALC_16_31_2(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
+#define WPRECALC_16_31_1(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
+	add       RWK, sp, #(WK_offs(i));	\
 	vext.8    tmp0, W_m04, tmp0, #4;	\
+
+#define WPRECALC_16_31_2(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
+	veor      tmp0, tmp0, W_m16;		\
 	veor.32   W, W, W_m08;			\
 
 #define WPRECALC_16_31_3(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
-	veor      tmp0, tmp0, W_m16;		\
 	veor      tmp1, tmp1;			\
-
-#define WPRECALC_16_31_4(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	veor      W, W, tmp0;			\
 
-#define WPRECALC_16_31_5(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
+#define WPRECALC_16_31_4(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	vshl.u32  tmp0, W, #1;			\
+
+#define WPRECALC_16_31_5(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	vext.8    tmp1, tmp1, W, #(16-12);	\
 	vshr.u32  W, W, #31;			\
 
@@ -270,28 +271,28 @@ gcry_sha1_armv7_neon_K_VEC:
 /********* Precalc macros for rounds 32-79 ************************************/
 
 #define WPRECALC_32_79_0(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
-	add RWK, sp, #(WK_offs(i&~3)); \
-
-#define WPRECALC_32_79_1(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	veor W, W_m28; \
 
-#define WPRECALC_32_79_2(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
+#define WPRECALC_32_79_1(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	vext.8 tmp0, W_m08, W_m04, #8; \
 
-#define WPRECALC_32_79_3(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
+#define WPRECALC_32_79_2(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	veor W, W_m16; \
 
-#define WPRECALC_32_79_4(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
+#define WPRECALC_32_79_3(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	veor W, tmp0; \
 
+#define WPRECALC_32_79_4(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
+	add RWK, sp, #(WK_offs(i&~3)); \
+
 #define WPRECALC_32_79_5(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
-	vshr.u32 tmp0, W, #30; \
+	vshl.u32 tmp1, W, #2; \
 
 #define WPRECALC_32_79_6(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
-	vshl.u32 W, W, #2; \
+	vshr.u32 tmp0, W, #30; \
 
 #define WPRECALC_32_79_7(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
-	vorr W, tmp0, W; \
+	vorr W, tmp0, tmp1; \
 
 #define WPRECALC_32_79_8(i, W, W_m04, W_m08, W_m12, W_m16, W_m20, W_m24, W_m28) \
 	vadd.u32 tmp0, W, curK; \
@@ -326,20 +327,26 @@ _gcry_sha1_transform_armv7_neon:
   beq .Ldo_nothing;
 
   push {r4-r12, lr};
+
+  GET_DATA_POINTER(RT3, .LK_VEC, _a);
   vpush {q4-q7};
 
   mov ROLDSTACK, sp;
-  GET_DATA_POINTER(RK, .LK_VEC, _a);
 
   /* Align stack. */
   sub sp, #(16*4);
   and sp, #(~(16-1));
 
+  vld1.32 {qK1-qK2}, [RT3]!; /* Load K1,K2 */
+
   /* Get the values of the chaining variables. */
   ldm RSTATE, {_a-_e};
 
+  vld1.32 {qK3-qK4}, [RT3]; /* Load K3,K4 */
+
+#undef curK
+#define curK qK1
   /* Precalc 0-15. */
-  vld1.32 {curK}, [RK]!; /* Load K1. */
   W_PRECALC_00_15();
 
   b .Loop;
@@ -352,7 +359,8 @@ _gcry_sha1_transform_armv7_neon:
   _R( _d, _e, _a, _b, _c, F1,  2, WPRECALC_16_31_6, WPRECALC_16_31_7, WPRECALC_16_31_8, 16, W4, W5, W6, W7, W0, _, _, _ );
   _R( _c, _d, _e, _a, _b, F1,  3, WPRECALC_16_31_9, WPRECALC_16_31_10,WPRECALC_16_31_11,16, W4, W5, W6, W7, W0, _, _, _ );
 
-  vld1.32 {curK}, [RK]!; /* Load K2. */
+#undef curK
+#define curK qK2
   _R( _b, _c, _d, _e, _a, F1,  4, WPRECALC_16_31_0, WPRECALC_16_31_1, WPRECALC_16_31_2, 20, W3, W4, W5, W6, W7, _, _, _ );
   _R( _a, _b, _c, _d, _e, F1,  5, WPRECALC_16_31_3, WPRECALC_16_31_4, WPRECALC_16_31_5, 20, W3, W4, W5, W6, W7, _, _, _ );
   _R( _e, _a, _b, _c, _d, F1,  6, WPRECALC_16_31_6, WPRECALC_16_31_7, WPRECALC_16_31_8, 20, W3, W4, W5, W6, W7, _, _, _ );
@@ -371,72 +379,75 @@ _gcry_sha1_transform_armv7_neon:
   /* Transform 16-63 + Precalc 32-79. */
   _R( _e, _a, _b, _c, _d, F1, 16, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 32, W0, W1, W2, W3, W4, W5, W6, W7);
   _R( _d, _e, _a, _b, _c, F1, 17, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 32, W0, W1, W2, W3, W4, W5, W6, W7);
-  _R( _c, _d, _e, _a, _b, F1, 18, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            32, W0, W1, W2, W3, W4, W5, W6, W7);
+  _R( _c, _d, _e, _a, _b, F1, 18, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 32, W0, W1, W2, W3, W4, W5, W6, W7);
   _R( _b, _c, _d, _e, _a, F1, 19, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 32, W0, W1, W2, W3, W4, W5, W6, W7);
 
   _R( _a, _b, _c, _d, _e, F2, 20, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 36, W7, W0, W1, W2, W3, W4, W5, W6);
   _R( _e, _a, _b, _c, _d, F2, 21, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 36, W7, W0, W1, W2, W3, W4, W5, W6);
-  _R( _d, _e, _a, _b, _c, F2, 22, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            36, W7, W0, W1, W2, W3, W4, W5, W6);
+  _R( _d, _e, _a, _b, _c, F2, 22, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 36, W7, W0, W1, W2, W3, W4, W5, W6);
   _R( _c, _d, _e, _a, _b, F2, 23, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 36, W7, W0, W1, W2, W3, W4, W5, W6);
 
-  vld1.32 {curK}, [RK]!; /* Load K3. */
+#undef curK
+#define curK qK3
   _R( _b, _c, _d, _e, _a, F2, 24, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 40, W6, W7, W0, W1, W2, W3, W4, W5);
   _R( _a, _b, _c, _d, _e, F2, 25, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 40, W6, W7, W0, W1, W2, W3, W4, W5);
-  _R( _e, _a, _b, _c, _d, F2, 26, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            40, W6, W7, W0, W1, W2, W3, W4, W5);
+  _R( _e, _a, _b, _c, _d, F2, 26, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 40, W6, W7, W0, W1, W2, W3, W4, W5);
   _R( _d, _e, _a, _b, _c, F2, 27, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 40, W6, W7, W0, W1, W2, W3, W4, W5);
 
   _R( _c, _d, _e, _a, _b, F2, 28, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 44, W5, W6, W7, W0, W1, W2, W3, W4);
   _R( _b, _c, _d, _e, _a, F2, 29, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 44, W5, W6, W7, W0, W1, W2, W3, W4);
-  _R( _a, _b, _c, _d, _e, F2, 30, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            44, W5, W6, W7, W0, W1, W2, W3, W4);
+  _R( _a, _b, _c, _d, _e, F2, 30, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 44, W5, W6, W7, W0, W1, W2, W3, W4);
   _R( _e, _a, _b, _c, _d, F2, 31, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 44, W5, W6, W7, W0, W1, W2, W3, W4);
 
   _R( _d, _e, _a, _b, _c, F2, 32, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 48, W4, W5, W6, W7, W0, W1, W2, W3);
   _R( _c, _d, _e, _a, _b, F2, 33, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 48, W4, W5, W6, W7, W0, W1, W2, W3);
-  _R( _b, _c, _d, _e, _a, F2, 34, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            48, W4, W5, W6, W7, W0, W1, W2, W3);
+  _R( _b, _c, _d, _e, _a, F2, 34, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 48, W4, W5, W6, W7, W0, W1, W2, W3);
   _R( _a, _b, _c, _d, _e, F2, 35, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 48, W4, W5, W6, W7, W0, W1, W2, W3);
 
   _R( _e, _a, _b, _c, _d, F2, 36, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 52, W3, W4, W5, W6, W7, W0, W1, W2);
   _R( _d, _e, _a, _b, _c, F2, 37, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 52, W3, W4, W5, W6, W7, W0, W1, W2);
-  _R( _c, _d, _e, _a, _b, F2, 38, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            52, W3, W4, W5, W6, W7, W0, W1, W2);
+  _R( _c, _d, _e, _a, _b, F2, 38, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 52, W3, W4, W5, W6, W7, W0, W1, W2);
   _R( _b, _c, _d, _e, _a, F2, 39, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 52, W3, W4, W5, W6, W7, W0, W1, W2);
 
   _R( _a, _b, _c, _d, _e, F3, 40, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 56, W2, W3, W4, W5, W6, W7, W0, W1);
   _R( _e, _a, _b, _c, _d, F3, 41, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 56, W2, W3, W4, W5, W6, W7, W0, W1);
-  _R( _d, _e, _a, _b, _c, F3, 42, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            56, W2, W3, W4, W5, W6, W7, W0, W1);
+  _R( _d, _e, _a, _b, _c, F3, 42, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 56, W2, W3, W4, W5, W6, W7, W0, W1);
   _R( _c, _d, _e, _a, _b, F3, 43, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 56, W2, W3, W4, W5, W6, W7, W0, W1);
 
-  vld1.32 {curK}, [RK]!; /* Load K4. */
+#undef curK
+#define curK qK4
   _R( _b, _c, _d, _e, _a, F3, 44, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 60, W1, W2, W3, W4, W5, W6, W7, W0);
   _R( _a, _b, _c, _d, _e, F3, 45, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 60, W1, W2, W3, W4, W5, W6, W7, W0);
-  _R( _e, _a, _b, _c, _d, F3, 46, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            60, W1, W2, W3, W4, W5, W6, W7, W0);
+  _R( _e, _a, _b, _c, _d, F3, 46, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 60, W1, W2, W3, W4, W5, W6, W7, W0);
   _R( _d, _e, _a, _b, _c, F3, 47, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 60, W1, W2, W3, W4, W5, W6, W7, W0);
 
   _R( _c, _d, _e, _a, _b, F3, 48, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 64, W0, W1, W2, W3, W4, W5, W6, W7);
   _R( _b, _c, _d, _e, _a, F3, 49, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 64, W0, W1, W2, W3, W4, W5, W6, W7);
-  _R( _a, _b, _c, _d, _e, F3, 50, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            64, W0, W1, W2, W3, W4, W5, W6, W7);
+  _R( _a, _b, _c, _d, _e, F3, 50, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 64, W0, W1, W2, W3, W4, W5, W6, W7);
   _R( _e, _a, _b, _c, _d, F3, 51, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 64, W0, W1, W2, W3, W4, W5, W6, W7);
 
   _R( _d, _e, _a, _b, _c, F3, 52, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 68, W7, W0, W1, W2, W3, W4, W5, W6);
   _R( _c, _d, _e, _a, _b, F3, 53, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 68, W7, W0, W1, W2, W3, W4, W5, W6);
-  _R( _b, _c, _d, _e, _a, F3, 54, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            68, W7, W0, W1, W2, W3, W4, W5, W6);
+  _R( _b, _c, _d, _e, _a, F3, 54, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 68, W7, W0, W1, W2, W3, W4, W5, W6);
   _R( _a, _b, _c, _d, _e, F3, 55, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 68, W7, W0, W1, W2, W3, W4, W5, W6);
 
   _R( _e, _a, _b, _c, _d, F3, 56, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 72, W6, W7, W0, W1, W2, W3, W4, W5);
   _R( _d, _e, _a, _b, _c, F3, 57, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 72, W6, W7, W0, W1, W2, W3, W4, W5);
-  _R( _c, _d, _e, _a, _b, F3, 58, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            72, W6, W7, W0, W1, W2, W3, W4, W5);
+  _R( _c, _d, _e, _a, _b, F3, 58, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 72, W6, W7, W0, W1, W2, W3, W4, W5);
   _R( _b, _c, _d, _e, _a, F3, 59, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 72, W6, W7, W0, W1, W2, W3, W4, W5);
 
-  sub RK, #64;
+  subs RNBLKS, #1;
+
   _R( _a, _b, _c, _d, _e, F4, 60, WPRECALC_32_79_0, WPRECALC_32_79_1, WPRECALC_32_79_2, 76, W5, W6, W7, W0, W1, W2, W3, W4);
   _R( _e, _a, _b, _c, _d, F4, 61, WPRECALC_32_79_3, WPRECALC_32_79_4, WPRECALC_32_79_5, 76, W5, W6, W7, W0, W1, W2, W3, W4);
-  _R( _d, _e, _a, _b, _c, F4, 62, WPRECALC_32_79_6, WPRECALC_32_79_7, dummy,            76, W5, W6, W7, W0, W1, W2, W3, W4);
+  _R( _d, _e, _a, _b, _c, F4, 62, WPRECALC_32_79_6, dummy,            WPRECALC_32_79_7, 76, W5, W6, W7, W0, W1, W2, W3, W4);
   _R( _c, _d, _e, _a, _b, F4, 63, WPRECALC_32_79_8, dummy,            WPRECALC_32_79_9, 76, W5, W6, W7, W0, W1, W2, W3, W4);
 
-  subs RNBLKS, #1;
   beq .Lend;
 
   /* Transform 64-79 + Precalc 0-15 of next block. */
-  vld1.32 {curK}, [RK]!; /* Load K1. */
+#undef curK
+#define curK qK1
   _R( _b, _c, _d, _e, _a, F4, 64, WPRECALC_00_15_0, dummy, dummy, _, _, _, _, _, _, _, _, _ );
   _R( _a, _b, _c, _d, _e, F4, 65, WPRECALC_00_15_1, dummy, dummy, _, _, _, _, _, _, _, _, _ );
   _R( _e, _a, _b, _c, _d, F4, 66, WPRECALC_00_15_2, dummy, dummy, _, _, _, _, _, _, _, _, _ );
@@ -458,14 +469,13 @@ _gcry_sha1_transform_armv7_neon:
   _R( _b, _c, _d, _e, _a, F4, 79, WPRECALC_00_15_11, dummy, WPRECALC_00_15_12, _, _, _, _, _, _, _, _, _ );
 
   /* Update the chaining variables. */
-  ldm RSTATE, {RT0-RT2};
+  ldm RSTATE, {RT0-RT3};
   add _a, RT0;
-  ldr RT0, [RSTATE, #state_h3];
+  ldr RT0, [RSTATE, #state_h4];
   add _b, RT1;
-  ldr RT1, [RSTATE, #state_h4];
   add _c, RT2;
-  add _d, RT0;
-  add _e, RT1;
+  add _d, RT3;
+  add _e, RT0;
   stm RSTATE, {_a-_e};
 
   b .Loop;
@@ -493,15 +503,14 @@ _gcry_sha1_transform_armv7_neon:
   mov sp, ROLDSTACK;
 
   /* Update the chaining variables. */
-  ldm RSTATE, {RT0-RT2};
+  ldm RSTATE, {RT0-RT3};
   add _a, RT0;
-  ldr RT0, [RSTATE, #state_h3];
+  ldr RT0, [RSTATE, #state_h4];
   add _b, RT1;
-  ldr RT1, [RSTATE, #state_h4];
   add _c, RT2;
-  add _d, RT0;
+  add _d, RT3;
   vpop {q4-q7};
-  add _e, RT1;
+  add _e, RT0;
   stm RSTATE, {_a-_e};
 
   /* burn_stack */
