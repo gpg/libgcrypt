@@ -280,6 +280,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
       if (!Q)
         Q = mpi_point_new (0);
       if (Q)
+	// FIXME
         _gcry_mpi_ec_mul_point (Q, d, G, ec);
     }
 

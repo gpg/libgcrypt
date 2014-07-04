@@ -1160,6 +1160,7 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
                                             &encpk, &encpklen))
             return mpi_set_opaque (NULL, encpk, encpklen*8);
         }
+      // FIXME Montgomery
     }
 
   return NULL;

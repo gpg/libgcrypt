@@ -1,3 +1,5 @@
+build-aux/test-driver
+test-driver
 *.lo
 *.o
 .deps/

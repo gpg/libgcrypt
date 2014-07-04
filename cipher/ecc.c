@@ -134,8 +134,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
    * Currently, we distinguish the two curves by ECC_DIALECT_ED25519
    * and MPI_EC_MONTGOMERY, which works, but is not that correct.
    */
-  if (ctx->dialect == ECC_DIALECT_ED25519
-      || E->model == MPI_EC_MONTGOMERY)
+  if (ctx->dialect == ECC_DIALECT_ED25519 || E->model == MPI_EC_MONTGOMERY)
     {
       char *rndbuf;
 
@@ -152,6 +151,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
 
 
   /* Compute Q.  */
+  // FIXME
   _gcry_mpi_ec_mul_point (&Q, sk->d, &E->G, ctx);
 
   /* Copy the stuff to the key structures. */
@@ -569,6 +569,8 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
       public = _gcry_ecc_ec2os (x, y, sk.E.p);
     }
+  // FIXME Montgomery
+
   secret = sk.d; sk.d = NULL;
   if (E.name)
     {
@@ -1261,6 +1263,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     point_init (&R);
 
     /* R = kQ  <=>  R = kdG  */
+    // FIXME
     _gcry_mpi_ec_mul_point (&R, data, &pk.Q, ec);
 
     if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
@@ -1268,6 +1271,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     mpi_s = _gcry_ecc_ec2os (x, y, pk.E.p);
 
     /* R = kG */
+    // FIXME
     _gcry_mpi_ec_mul_point (&R, data, &pk.E.G, ec);
 
     if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
@@ -1419,6 +1423,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
                                     sk.E.p, sk.E.a, sk.E.b);
 
   /* R = dkG */
+  // FIXME
   _gcry_mpi_ec_mul_point (&R, sk.d, &kG, ec);
 
   /* The following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so:  */
@@ -1733,6 +1738,8 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
     {
       mpi_Q = _gcry_mpi_ec_ec2os (ec->Q, ec);
     }
+  // FIXME Montgomery
+
   if (!mpi_Q)
     {
       rc = GPG_ERR_BROKEN_PUBKEY;
