@@ -542,6 +542,34 @@ _gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b)
 }
 
 
+void
+_gcry_mpi_swap_cond (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
+{
+  size_t i;
+  size_t nlimbs = a->alloced;
+  unsigned long mask = 0UL - !!swap;
+  unsigned long x;
+
+  if (a->alloced != b->alloced)
+    log_bug ("mpi_swap_cond: different sizes\n");
+
+  for (i = 0; i < nlimbs; i++)
+    {
+      x = mask & (a->d[i] ^ b->d[i]);
+      a->d[i] = a->d[i] ^ x;
+      b->d[i] = b->d[i] ^ x;
+    }
+
+  x = mask & (a->nlimbs ^ b->nlimbs);
+  a->nlimbs = a->nlimbs ^ x;
+  b->nlimbs = b->nlimbs ^ x;
+
+  x = mask & (a->sign ^ b->sign);
+  a->sign = a->sign ^ x;
+  b->sign = b->sign ^ x;
+}
+
+
 gcry_mpi_t
 _gcry_mpi_new (unsigned int nbits)
 {

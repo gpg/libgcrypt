@@ -119,12 +119,14 @@ void _gcry_mpi_immutable_failed (void);
 #define mpi_alloc_set_ui(a)   _gcry_mpi_alloc_set_ui ((a))
 #define mpi_m_check(a)        _gcry_mpi_m_check ((a))
 #define mpi_const(n)          _gcry_mpi_const ((n))
+#define mpi_swap_cond(a,b,sw)  _gcry_mpi_swap_cond ((a),(b),(sw))
 
 void _gcry_mpi_clear( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_like( gcry_mpi_t a );
 gcry_mpi_t  _gcry_mpi_alloc_set_ui( unsigned long u);
 void _gcry_mpi_m_check( gcry_mpi_t a );
 void _gcry_mpi_swap( gcry_mpi_t a, gcry_mpi_t b);
+void _gcry_mpi_swap_cond (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap);
 gcry_mpi_t _gcry_mpi_new (unsigned int nbits);
 gcry_mpi_t _gcry_mpi_snew (unsigned int nbits);
 gcry_mpi_t _gcry_mpi_set_opaque_copy (gcry_mpi_t a,
