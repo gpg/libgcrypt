@@ -32,7 +32,7 @@
 #include "stopwatch.h"
 
 #define PGM "t-ed25519"
-#define N_TESTS 1025
+#define N_TESTS 1026
 
 #define my_isascii(c) (!((c) & 0x80))
 #define digitp(p)   (*(p) >= '0' && *(p) <= '9')

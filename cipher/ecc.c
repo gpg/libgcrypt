@@ -35,14 +35,11 @@
   verification algorithms.  The arithmetic functions have entirely
   been rewritten and moved to mpi/ec.c.
 
-  ECDH encrypt and decrypt code written by Andrey Jivsov,
+  ECDH encrypt and decrypt code written by Andrey Jivsov.
 */
 
 
 /* TODO:
-
-  - If we support point compression we need to uncompress before
-    computing the keygrip
 
   - In mpi/ec.c we use mpi_powm for x^2 mod p: Either implement a
     special case in mpi_powm or check whether mpi_mulm is faster.
@@ -487,7 +484,9 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       unsigned char *encpk;
       unsigned int encpklen;
 
-      rc = _gcry_ecc_eddsa_encodepoint (&sk.Q, ctx, x, y, &encpk, &encpklen);
+      rc = _gcry_ecc_eddsa_encodepoint (&sk.Q, ctx, x, y,
+                                        !!(flags & PUBKEY_FLAG_COMP),
+                                        &encpk, &encpklen);
       if (rc)
         return rc;
       public = mpi_new (0);
@@ -1653,7 +1652,7 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
       unsigned char *encpk;
       unsigned int encpklen;
 
-      rc = _gcry_ecc_eddsa_encodepoint (ec->Q, ec, NULL, NULL,
+      rc = _gcry_ecc_eddsa_encodepoint (ec->Q, ec, NULL, NULL, 0,
                                         &encpk, &encpklen);
       if (rc)
         goto leave;

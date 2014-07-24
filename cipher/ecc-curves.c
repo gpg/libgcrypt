@@ -1044,7 +1044,7 @@ _gcry_ecc_get_mpi (const char *name, mpi_ec_t ec, int copy)
           unsigned char *encpk;
           unsigned int encpklen;
 
-          if (!_gcry_ecc_eddsa_encodepoint (ec->Q, ec, NULL, NULL,
+          if (!_gcry_ecc_eddsa_encodepoint (ec->Q, ec, NULL, NULL, 0,
                                             &encpk, &encpklen))
             return mpi_set_opaque (NULL, encpk, encpklen*8);
         }

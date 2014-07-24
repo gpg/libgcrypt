@@ -107,6 +107,7 @@ gpg_err_code_t _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign,
                                           mpi_ec_t ec);
 gpg_err_code_t _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ctx,
                                             gcry_mpi_t x, gcry_mpi_t y,
+                                            int with_prefix,
                                             unsigned char **r_buffer,
                                             unsigned int *r_buflen);
 gpg_err_code_t _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value,

@@ -2235,7 +2235,9 @@ The private key @math{d}
 All point values are encoded in standard format; Libgcrypt does in
 general only support uncompressed points, thus the first byte needs to
 be @code{0x04}.  However ``EdDSA'' describes its own compression
-scheme which is used by default.
+scheme which is used by default; the non-standard first byte
+@code{0x40} may optionally be used to explicit flag the use of the
+algorithm’s native compression method.
 
 The public key is similar with "private-key" replaced by "public-key"
 and no @var{d-mpi}.
@@ -2305,9 +2307,11 @@ are known:
 If supported by the algorithm and curve the @code{comp} flag requests
 that points are returned in compact (compressed) representation.  The
 @code{nocomp} flag requests that points are returned with full
-coordinates.  The default depends on the the algorithm and curve.
-The compact representation requires a small overhead before a point
-can be used but halves the size of a to be conveyed public key.
+coordinates.  The default depends on the the algorithm and curve.  The
+compact representation requires a small overhead before a point can be
+used but halves the size of a to be conveyed public key.  If
+@code{comp} is used with the ``EdDSA'' algorithm the key generation
+prefix the public key with a @code{0x40} byte.
 
 @item pkcs1
 @cindex PKCS1
