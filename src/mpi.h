@@ -158,6 +158,9 @@ void  _gcry_log_mpidump( const char *text, gcry_mpi_t a );
 u32   _gcry_mpi_get_keyid( gcry_mpi_t a, u32 *keyid );
 byte *_gcry_mpi_get_buffer (gcry_mpi_t a, unsigned int fill_le,
                             unsigned int *r_nbytes, int *sign);
+byte *_gcry_mpi_get_buffer_extra (gcry_mpi_t a, unsigned int fill_le,
+                                  int extraalloc,
+                                  unsigned int *r_nbytes, int *sign);
 byte *_gcry_mpi_get_secure_buffer (gcry_mpi_t a, unsigned int fill_le,
                                    unsigned *r_nbytes, int *sign);
 void  _gcry_mpi_set_buffer ( gcry_mpi_t a, const void *buffer,
