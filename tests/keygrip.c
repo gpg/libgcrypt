@@ -175,6 +175,17 @@ static struct
       "\x9D\xB6\xC6\x4A\x38\x83\x0F\x49\x60\x70"
       "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47"
     },
+    { /* Ed25519+EdDSA (with compression prefix) */
+      GCRY_PK_ECC,
+      "(public-key"
+      " (ecc"
+      " (curve Ed25519)(flags eddsa)"
+      " (q #40"
+      "     773E72848C1FD5F9652B29E2E7AF79571A04990E96F2016BF4E0EC1890C2B7DB#)"
+      " ))",
+      "\x9D\xB6\xC6\x4A\x38\x83\x0F\x49\x60\x70"
+      "\x17\x89\x47\x55\x20\xBE\x8C\x82\x1F\x47"
+    },
     { /* Ed25519+EdDSA  (same but uncompressed)*/
       GCRY_PK_ECC,
       "(public-key"

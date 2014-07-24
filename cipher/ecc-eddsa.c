@@ -1,5 +1,5 @@
 /* ecc-eddsa.c  -  Elliptic Curve EdDSA signatures
- * Copyright (C) 2013 g10 Code GmbH
+ * Copyright (C) 2013, 2014 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -83,35 +83,42 @@ eddsa_encodempi (gcry_mpi_t mpi, unsigned int minlen,
 
 
 /* Encode (X,Y) using the EdDSA scheme.  MINLEN is the required length
-   in bytes for the result.  On success 0 is returned and a malloced
-   buffer with the encoded point is stored at R_BUFFER; the length of
-   this buffer is stored at R_BUFLEN.  */
+   in bytes for the result.  If WITH_PREFIX is set the returned buffer
+   is prefixed with a 0x40 byte.  On success 0 is returned and a
+   malloced buffer with the encoded point is stored at R_BUFFER; the
+   length of this buffer is stored at R_BUFLEN.  */
 static gpg_err_code_t
 eddsa_encode_x_y (gcry_mpi_t x, gcry_mpi_t y, unsigned int minlen,
+                  int with_prefix,
                   unsigned char **r_buffer, unsigned int *r_buflen)
 {
   unsigned char *rawmpi;
   unsigned int rawmpilen;
+  int off = with_prefix? 1:0;
 
-  rawmpi = _gcry_mpi_get_buffer (y, minlen, &rawmpilen, NULL);
+  rawmpi = _gcry_mpi_get_buffer_extra (y, minlen, off?-1:0, &rawmpilen, NULL);
   if (!rawmpi)
     return gpg_err_code_from_syserror ();
   if (mpi_test_bit (x, 0) && rawmpilen)
-    rawmpi[rawmpilen - 1] |= 0x80;  /* Set sign bit.  */
+    rawmpi[off + rawmpilen - 1] |= 0x80;  /* Set sign bit.  */
+  if (off)
+    rawmpi[0] = 0x40;
 
   *r_buffer = rawmpi;
-  *r_buflen = rawmpilen;
+  *r_buflen = rawmpilen + off;
   return 0;
 }
 
 /* Encode POINT using the EdDSA scheme.  X and Y are either scratch
    variables supplied by the caller or NULL.  CTX is the usual
-   context.  On success 0 is returned and a malloced buffer with the
-   encoded point is stored at R_BUFFER; the length of this buffer is
-   stored at R_BUFLEN.  */
+   context.  If WITH_PREFIX is set the returned buffer is prefixed
+   with a 0x40 byte.  On success 0 is returned and a malloced buffer
+   with the encoded point is stored at R_BUFFER; the length of this
+   buffer is stored at R_BUFLEN.  */
 gpg_err_code_t
 _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ec,
                              gcry_mpi_t x_in, gcry_mpi_t y_in,
+                             int with_prefix,
                              unsigned char **r_buffer, unsigned int *r_buflen)
 {
   gpg_err_code_t rc;
@@ -126,7 +133,7 @@ _gcry_ecc_eddsa_encodepoint (mpi_point_t point, mpi_ec_t ec,
       rc = GPG_ERR_INTERNAL;
     }
   else
-    rc = eddsa_encode_x_y (x, y, ec->nbits/8, r_buffer, r_buflen);
+    rc = eddsa_encode_x_y (x, y, ec->nbits/8, with_prefix, r_buffer, r_buflen);
 
   if (!x_in)
     mpi_free (x);
@@ -155,29 +162,40 @@ _gcry_ecc_eddsa_ensure_compact (gcry_mpi_t value, unsigned int nbits)
     return GPG_ERR_INV_OBJ;
   rawmpilen = (rawmpilen + 7)/8;
 
-  /* Check whether the public key has been given in standard
-     uncompressed format.  In this case extract y and compress.  */
-  if (rawmpilen > 1 && buf[0] == 0x04 && (rawmpilen%2))
+  if (rawmpilen > 1 && (rawmpilen%2))
     {
-      rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
-                           buf+1, (rawmpilen-1)/2, NULL);
-      if (rc)
-        return rc;
-      rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
-                           buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
-      if (rc)
+      if (buf[0] == 0x04)
         {
+          /* Buffer is in SEC1 uncompressed format.  Extract y and
+             compress.  */
+          rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
+                               buf+1, (rawmpilen-1)/2, NULL);
+          if (rc)
+            return rc;
+          rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
+                               buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
+          if (rc)
+            {
+              mpi_free (x);
+              return rc;
+            }
+
+          rc = eddsa_encode_x_y (x, y, nbits/8, 0, &enc, &enclen);
           mpi_free (x);
-          return rc;
+          mpi_free (y);
+          if (rc)
+            return rc;
+
+          mpi_set_opaque (value, enc, 8*enclen);
         }
-
-      rc = eddsa_encode_x_y (x, y, nbits/8, &enc, &enclen);
-      mpi_free (x);
-      mpi_free (y);
-      if (rc)
-        return rc;
-
-      mpi_set_opaque (value, enc, 8*enclen);
+      else if (buf[0] == 0x40)
+        {
+          /* Buffer is compressed but with our SEC1 alike compression
+             indicator.  Remove that byte.  FIXME: We should write and
+             use a function to manipulate an opaque MPI in place. */
+          if (!_gcry_mpi_set_opaque_copy (value, buf + 1, (rawmpilen - 1)*8))
+            return gpg_err_code_from_syserror ();
+        }
     }
 
   return 0;
@@ -267,7 +285,7 @@ _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
    the usual curve context.  If R_ENCPK is not NULL, the encoded PK is
    stored at that address; this is a new copy to be released by the
    caller.  In contrast to the supplied PK, this is not an MPI and
-   thus guarnateed to be properly padded.  R_ENCPKLEN receives the
+   thus guaranteed to be properly padded.  R_ENCPKLEN receives the
    length of that encoded key.  */
 gpg_err_code_t
 _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
@@ -287,40 +305,54 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
         return GPG_ERR_INV_OBJ;
       rawmpilen = (rawmpilen + 7)/8;
 
-      /* First check whether the public key has been given in standard
-         uncompressed format.  No need to recover x in this case.
-         Detection is easy: The size of the buffer will be odd and the
-         first byte be 0x04.  */
-      if (rawmpilen > 1 && buf[0] == 0x04 && (rawmpilen%2))
+      /* Handle compression prefixes.  The size of the buffer will be
+         odd in this case.  */
+      if (rawmpilen > 1 && (rawmpilen%2))
         {
-          gcry_mpi_t x, y;
-
-          rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
-                               buf+1, (rawmpilen-1)/2, NULL);
-          if (rc)
-            return rc;
-          rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
-                               buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2, NULL);
-          if (rc)
+          /* First check whether the public key has been given in
+             standard uncompressed format (SEC1).  No need to recover
+             x in this case.  */
+          if (buf[0] == 0x04)
             {
-              mpi_free (x);
-              return rc;
-            }
+              gcry_mpi_t x, y;
 
-          if (r_encpk)
-            {
-              rc = eddsa_encode_x_y (x, y, ctx->nbits/8, r_encpk, r_encpklen);
+              rc = _gcry_mpi_scan (&x, GCRYMPI_FMT_STD,
+                                   buf+1, (rawmpilen-1)/2, NULL);
+              if (rc)
+                return rc;
+              rc = _gcry_mpi_scan (&y, GCRYMPI_FMT_STD,
+                                   buf+1+(rawmpilen-1)/2, (rawmpilen-1)/2,NULL);
               if (rc)
                 {
                   mpi_free (x);
-                  mpi_free (y);
                   return rc;
                 }
+
+              if (r_encpk)
+                {
+                  rc = eddsa_encode_x_y (x, y, ctx->nbits/8, 0,
+                                         r_encpk, r_encpklen);
+                  if (rc)
+                    {
+                      mpi_free (x);
+                      mpi_free (y);
+                      return rc;
+                    }
+                }
+              mpi_snatch (result->x, x);
+              mpi_snatch (result->y, y);
+              mpi_set_ui (result->z, 1);
+              return 0;
             }
-          mpi_snatch (result->x, x);
-          mpi_snatch (result->y, y);
-          mpi_set_ui (result->z, 1);
-          return 0;
+
+          /* Check whether the public key has been prefixed with a 0x40
+             byte to explicitly indicate compressed format using a SEC1
+             alike prefix byte.  This is a Libgcrypt extension.  */
+          if (buf[0] == 0x40)
+            {
+              rawmpilen--;
+              buf++;
+            }
         }
 
       /* EdDSA compressed point.  */
@@ -334,7 +366,7 @@ _gcry_ecc_eddsa_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result,
     {
       /* Note: Without using an opaque MPI it is not reliable possible
          to find out whether the public key has been given in
-         uncompressed format.  Thus we expect EdDSA format here.  */
+         uncompressed format.  Thus we expect native EdDSA format.  */
       rawmpi = _gcry_mpi_get_buffer (pk, ctx->nbits/8, &rawmpilen, NULL);
       if (!rawmpi)
         return gpg_err_code_from_syserror ();
@@ -582,7 +614,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   else
     {
       _gcry_mpi_ec_mul_point (&Q, a, &skey->E.G, ctx);
-      rc = _gcry_ecc_eddsa_encodepoint (&Q, ctx, x, y, &encpk, &encpklen);
+      rc = _gcry_ecc_eddsa_encodepoint (&Q, ctx, x, y, 0, &encpk, &encpklen);
       if (rc)
         goto leave;
       if (DBG_CIPHER)
@@ -612,7 +644,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
     log_printpnt ("   r", &I, ctx);
 
   /* Convert R into affine coordinates and apply encoding.  */
-  rc = _gcry_ecc_eddsa_encodepoint (&I, ctx, x, y, &rawmpi, &rawmpilen);
+  rc = _gcry_ecc_eddsa_encodepoint (&I, ctx, x, y, 0, &rawmpi, &rawmpilen);
   if (rc)
     goto leave;
   if (DBG_CIPHER)
@@ -784,7 +816,7 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
   _gcry_mpi_ec_mul_point (&Ib, h, &Q, ctx);
   _gcry_mpi_neg (Ib.x, Ib.x);
   _gcry_mpi_ec_add_points (&Ia, &Ia, &Ib, ctx);
-  rc = _gcry_ecc_eddsa_encodepoint (&Ia, ctx, s, h, &tbuf, &tlen);
+  rc = _gcry_ecc_eddsa_encodepoint (&Ia, ctx, s, h, 0, &tbuf, &tlen);
   if (rc)
     goto leave;
   if (tlen != rlen || memcmp (tbuf, rbuf, tlen))
