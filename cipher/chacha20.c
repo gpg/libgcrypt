@@ -121,6 +121,8 @@ static const char *selftest (void);
 #define QOUT(ai, bi, ci, di) \
   DO_OUT(ai); DO_OUT(bi); DO_OUT(ci); DO_OUT(di)
 
+
+#ifndef USE_SSE2
 static unsigned int
 chacha20_blocks (u32 *state, const byte *src, byte *dst, size_t bytes)
 {
@@ -240,6 +242,7 @@ chacha20_blocks (u32 *state, const byte *src, byte *dst, size_t bytes)
   /* burn_stack */
   return (2 * CHACHA20_INPUT_LENGTH * sizeof(u32) + 6 * sizeof(void *));
 }
+#endif /*!USE_SSE2*/
 
 #undef QROUND
 #undef QOUT
