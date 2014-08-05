@@ -102,7 +102,7 @@ extern "C" {
 
 #define _GCRY_GCC_ATTR_PRINTF(f,a)  __attribute__ ((format (printf,f,a)))
 
-#if _GCRT_GCC_VERSION >= 40000
+#if _GCRY_GCC_VERSION >= 40000
 #define _GCRY_GCC_ATTR_SENTINEL(a) __attribute__ ((sentinel(a)))
 #endif
 
