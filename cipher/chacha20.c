@@ -67,6 +67,16 @@
 # define USE_AVX2 1
 #endif
 
+/* USE_NEON indicates whether to enable ARM NEON assembly code. */
+#undef USE_NEON
+#ifdef ENABLE_NEON_SUPPORT
+# if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__) \
+     && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) \
+     && defined(HAVE_GCC_INLINE_ASM_NEON)
+#  define USE_NEON 1
+# endif
+#endif /*ENABLE_NEON_SUPPORT*/
+
 
 struct CHACHA20_context_s;
 
@@ -103,6 +113,13 @@ unsigned int _gcry_chacha20_amd64_avx2_blocks(u32 *state, const byte *in,
                                               byte *out, size_t bytes);
 
 #endif /* USE_AVX2 */
+
+#ifdef USE_NEON
+
+unsigned int _gcry_chacha20_armv7_neon_blocks(u32 *state, const byte *in,
+                                              byte *out, size_t bytes);
+
+#endif /* USE_NEON */
 
 
 static void chacha20_setiv (void *context, const byte * iv, size_t ivlen);
@@ -353,6 +370,10 @@ chacha20_do_setkey (CHACHA20_context_t * ctx,
   if (features & HWF_INTEL_AVX2)
     ctx->blocks = _gcry_chacha20_amd64_avx2_blocks;
 #endif
+#ifdef USE_NEON
+  if (features & HWF_ARM_NEON)
+    ctx->blocks = _gcry_chacha20_armv7_neon_blocks;
+#endif
 
   (void)features;
 
@@ -540,6 +561,19 @@ selftest (void)
   for (i = 0; i < sizeof buf; i++)
     if (buf[i] != (byte) i)
       return "ChaCha20 encryption test 2 failed.";
+
+  chacha20_setkey (&ctx, key_1, sizeof key_1);
+  chacha20_setiv (&ctx, nonce_1, sizeof nonce_1);
+  /* encrypt */
+  for (i = 0; i < sizeof buf; i++)
+    chacha20_encrypt_stream (&ctx, &buf[i], &buf[i], 1);
+  /* decrypt */
+  chacha20_setkey (&ctx, key_1, sizeof key_1);
+  chacha20_setiv (&ctx, nonce_1, sizeof nonce_1);
+  chacha20_encrypt_stream (&ctx, buf, buf, sizeof buf);
+  for (i = 0; i < sizeof buf; i++)
+    if (buf[i] != (byte) i)
+      return "ChaCha20 encryption test 3 failed.";
 
   return NULL;
 }

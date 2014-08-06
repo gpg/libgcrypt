@@ -1822,6 +1822,11 @@ if test "$found" = "1" ; then
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-avx2-amd64.lo"
       ;;
    esac
+
+   if test x"$neonsupport" = xyes ; then
+     # Build with the NEON implementation
+     GCRYPT_CIPHERS="$GCRYPT_CIPHERS chacha20-armv7-neon.lo"
+   fi
 fi
 
 case "${host}" in
