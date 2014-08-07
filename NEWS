@@ -1,7 +1,19 @@
-Noteworthy changes in version 1.5.4 (unreleased)
+Noteworthy changes in version 1.5.4 (2014-08-07) [C19/A8/R3]
 ------------------------------------------------
 
-Noteworthy changes in version 1.5.3 (2013-07-25)
+ * Declare 2016-12-31 as end-of-life for 1.5.
+
+ Backported from 1.6:
+
+ * Improved performance of RSA, DSA, and Elgamal by using a new
+   exponentiation algorithm.
+
+ * Fixed a subtle bug in mpi_set_bit which could set spurious bits.
+
+ * Fixed a bug in an internal division function.
+
+
+Noteworthy changes in version 1.5.3 (2013-07-25) [C19/A8/R2]
 ------------------------------------------------
 
  * Mitigate the Yarom/Falkner flush+reload side-channel attack on
