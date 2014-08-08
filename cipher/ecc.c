@@ -142,6 +142,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   point_init (&sk->E.G);
   point_set (&sk->E.G, &E->G);
   sk->E.n = mpi_copy (E->n);
+  sk->E.h = mpi_copy (E->h);
   point_init (&sk->Q);
 
   /* We want the Q=(x,y) be a "compliant key" in terms of the
@@ -456,6 +457,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       log_printmpi ("ecgen curve   a", E.a);
       log_printmpi ("ecgen curve   b", E.b);
       log_printmpi ("ecgen curve   n", E.n);
+      log_printmpi ("ecgen curve   h", E.h);
       log_printpnt ("ecgen curve G", &E.G, NULL);
     }
 
@@ -524,14 +526,14 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     rc = sexp_build (r_skey, NULL,
                      "(key-data"
                      " (public-key"
-                     "  (ecc%S%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))"
+                     "  (ecc%S%S(p%m)(a%m)(b%m)(g%m)(n%m)(h%m)(q%m)))"
                      " (private-key"
-                     "  (ecc%S%S(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))"
+                     "  (ecc%S%S(p%m)(a%m)(b%m)(g%m)(n%m)(h%m)(q%m)(d%m)))"
                      " )",
                      curve_info, curve_flags,
-                     sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public,
+                     sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, sk.E.h, public,
                      curve_info, curve_flags,
-                     sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, public, secret);
+                     sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, sk.E.h, public, secret);
   else
     rc = sexp_build (r_skey, NULL,
                      "(key-data"
@@ -554,6 +556,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       log_printmpi ("ecgen result  b", sk.E.b);
       log_printmpi ("ecgen result  G", base);
       log_printmpi ("ecgen result  n", sk.E.n);
+      log_printmpi ("ecgen result  h", sk.E.h);
       log_printmpi ("ecgen result  Q", public);
       log_printmpi ("ecgen result  d", secret);
       if ((flags & PUBKEY_FLAG_EDDSA))
@@ -604,9 +607,9 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
 
   /* Extract the parameters.  */
   if ((flags & PUBKEY_FLAG_PARAM))
-    rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?/q?+d",
+    rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?/q?+d",
                              &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
-                             &mpi_q, &sk.d, NULL);
+                             &sk.E.h, &mpi_q, &sk.d, NULL);
   else
     rc = sexp_extract_param (keyparms, NULL, "/q?+d",
                              &mpi_q, &sk.d, NULL);
@@ -624,7 +627,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
           rc = _gcry_ecc_update_curve_param (curvename,
                                              &sk.E.model, &sk.E.dialect,
                                              &sk.E.p, &sk.E.a, &sk.E.b,
-                                             &mpi_g, &sk.E.n);
+                                             &mpi_g, &sk.E.n, &sk.E.h);
           if (rc)
             return rc;
         }
@@ -660,11 +663,12 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
       log_printmpi ("ecc_testkey   b", sk.E.b);
       log_printpnt ("ecc_testkey g",   &sk.E.G, NULL);
       log_printmpi ("ecc_testkey   n", sk.E.n);
+      log_printmpi ("ecc_testkey   h", sk.E.h);
       log_printmpi ("ecc_testkey   q", mpi_q);
       if (!fips_mode ())
         log_printmpi ("ecc_testkey   d", sk.d);
     }
-  if (!sk.E.p || !sk.E.a || !sk.E.b || !sk.E.G.x || !sk.E.n || !sk.d)
+  if (!sk.E.p || !sk.E.a || !sk.E.b || !sk.E.G.x || !sk.E.n || !sk.E.h || !sk.d)
     {
       rc = GPG_ERR_NO_OBJ;
       goto leave;
@@ -701,6 +705,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
   _gcry_mpi_release (mpi_g);
   point_free (&sk.E.G);
   _gcry_mpi_release (sk.E.n);
+  _gcry_mpi_release (sk.E.h);
   _gcry_mpi_release (mpi_q);
   point_free (&sk.Q);
   _gcry_mpi_release (sk.d);
@@ -741,9 +746,9 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
    * Extract the key.
    */
   if ((ctx.flags & PUBKEY_FLAG_PARAM))
-    rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?/q?+d",
+    rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?/q?+d",
                              &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
-                             &mpi_q, &sk.d, NULL);
+                             &sk.E.h, &mpi_q, &sk.d, NULL);
   else
     rc = sexp_extract_param (keyparms, NULL, "/q?+d",
                              &mpi_q, &sk.d, NULL);
@@ -793,11 +798,12 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       log_printmpi ("ecc_sign      b", sk.E.b);
       log_printpnt ("ecc_sign    g",   &sk.E.G, NULL);
       log_printmpi ("ecc_sign      n", sk.E.n);
+      log_printmpi ("ecc_sign      h", sk.E.h);
       log_printmpi ("ecc_sign      q", mpi_q);
       if (!fips_mode ())
         log_printmpi ("ecc_sign      d", sk.d);
     }
-  if (!sk.E.p || !sk.E.a || !sk.E.b || !sk.E.G.x || !sk.E.n || !sk.d)
+  if (!sk.E.p || !sk.E.a || !sk.E.b || !sk.E.G.x || !sk.E.n || !sk.E.h || !sk.d)
     {
       rc = GPG_ERR_NO_OBJ;
       goto leave;
@@ -838,6 +844,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_mpi_release (mpi_g);
   point_free (&sk.E.G);
   _gcry_mpi_release (sk.E.n);
+  _gcry_mpi_release (sk.E.h);
   _gcry_mpi_release (mpi_q);
   point_free (&sk.Q);
   _gcry_mpi_release (sk.d);
@@ -905,9 +912,9 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
    * Extract the key.
    */
   if ((ctx.flags & PUBKEY_FLAG_PARAM))
-    rc = sexp_extract_param (s_keyparms, NULL, "-p?a?b?g?n?/q",
+    rc = sexp_extract_param (s_keyparms, NULL, "-p?a?b?g?n?h?/q",
                              &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n,
-                             &mpi_q, NULL);
+                             &pk.E.n, &mpi_q, NULL);
   else
     rc = sexp_extract_param (s_keyparms, NULL, "/q",
                              &mpi_q, NULL);
@@ -958,9 +965,10 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
       log_printmpi ("ecc_verify    b", pk.E.b);
       log_printpnt ("ecc_verify  g",   &pk.E.G, NULL);
       log_printmpi ("ecc_verify    n", pk.E.n);
+      log_printmpi ("ecc_verify    h", pk.E.h);
       log_printmpi ("ecc_verify    q", mpi_q);
     }
-  if (!pk.E.p || !pk.E.a || !pk.E.b || !pk.E.G.x || !pk.E.n || !mpi_q)
+  if (!pk.E.p || !pk.E.a || !pk.E.b || !pk.E.G.x || !pk.E.n || !pk.E.h || !mpi_q)
     {
       rc = GPG_ERR_NO_OBJ;
       goto leave;
@@ -1036,6 +1044,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   _gcry_mpi_release (mpi_g);
   point_free (&pk.E.G);
   _gcry_mpi_release (pk.E.n);
+  _gcry_mpi_release (pk.E.h);
   _gcry_mpi_release (mpi_q);
   point_free (&pk.Q);
   _gcry_mpi_release (data);
@@ -1115,8 +1124,8 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?+q",
-                           &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n,
+  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?+q",
+                           &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n, &pk.E.h,
                            &mpi_q, NULL);
   if (rc)
     goto leave;
@@ -1159,9 +1168,10 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       log_printmpi ("ecc_encrypt    b", pk.E.b);
       log_printpnt ("ecc_encrypt  g",   &pk.E.G, NULL);
       log_printmpi ("ecc_encrypt    n", pk.E.n);
+      log_printmpi ("ecc_encrypt    h", pk.E.h);
       log_printmpi ("ecc_encrypt    q", mpi_q);
     }
-  if (!pk.E.p || !pk.E.a || !pk.E.b || !pk.E.G.x || !pk.E.n || !mpi_q)
+  if (!pk.E.p || !pk.E.a || !pk.E.b || !pk.E.G.x || !pk.E.n || !pk.E.h || !mpi_q)
     {
       rc = GPG_ERR_NO_OBJ;
       goto leave;
@@ -1219,6 +1229,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_mpi_release (mpi_g);
   point_free (&pk.E.G);
   _gcry_mpi_release (pk.E.n);
+  _gcry_mpi_release (pk.E.h);
   _gcry_mpi_release (mpi_q);
   point_free (&pk.Q);
   _gcry_mpi_release (data);
@@ -1282,9 +1293,9 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?+d",
+  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?+d",
                            &sk.E.p, &sk.E.a, &sk.E.b, &mpi_g, &sk.E.n,
-                           &sk.d, NULL);
+                           &sk.E.h, &sk.d, NULL);
   if (rc)
     goto leave;
   if (mpi_g)
@@ -1325,10 +1336,11 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       log_printmpi ("ecc_decrypt    b", sk.E.b);
       log_printpnt ("ecc_decrypt  g",   &sk.E.G, NULL);
       log_printmpi ("ecc_decrypt    n", sk.E.n);
+      log_printmpi ("ecc_decrypt    h", sk.E.h);
       if (!fips_mode ())
         log_printmpi ("ecc_decrypt    d", sk.d);
     }
-  if (!sk.E.p || !sk.E.a || !sk.E.b || !sk.E.G.x || !sk.E.n || !sk.d)
+  if (!sk.E.p || !sk.E.a || !sk.E.b || !sk.E.G.x || !sk.E.n || !sk.E.h || !sk.d)
     {
       rc = GPG_ERR_NO_OBJ;
       goto leave;
@@ -1385,6 +1397,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_mpi_release (mpi_g);
   point_free (&sk.E.G);
   _gcry_mpi_release (sk.E.n);
+  _gcry_mpi_release (sk.E.h);
   _gcry_mpi_release (sk.d);
   _gcry_mpi_release (data_e);
   xfree (curvename);
@@ -1454,8 +1467,8 @@ ecc_get_nbits (gcry_sexp_t parms)
 static gpg_err_code_t
 compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
 {
-#define N_COMPONENTS 6
-  static const char names[N_COMPONENTS+1] = "pabgnq";
+#define N_COMPONENTS 7
+  static const char names[N_COMPONENTS] = "pabgnhq";
   gpg_err_code_t rc;
   gcry_sexp_t l1;
   gcry_mpi_t values[N_COMPONENTS];
@@ -1483,24 +1496,24 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
   if ((flags & PUBKEY_FLAG_PARAM))
     {
       if ((flags & PUBKEY_FLAG_EDDSA))
-        rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?/q",
+        rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?h?/q",
                                  &values[0], &values[1], &values[2],
                                  &values[3], &values[4], &values[5],
-                                 NULL);
+                                 &values[6], NULL);
       else
-        rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?q",
+        rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?h?q",
                                  &values[0], &values[1], &values[2],
                                  &values[3], &values[4], &values[5],
-                                 NULL);
+                                 &values[6], NULL);
     }
   else
     {
       if ((flags & PUBKEY_FLAG_EDDSA))
         rc = sexp_extract_param (keyparms, NULL, "/q",
-                                 &values[5], NULL);
+                                 &values[6], NULL);
       else
         rc = sexp_extract_param (keyparms, NULL, "q",
-                                 &values[5], NULL);
+                                 &values[6], NULL);
     }
   if (rc)
     goto leave;
@@ -1517,7 +1530,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
           rc = _gcry_ecc_update_curve_param (curvename,
                                              &model, &dialect,
                                              &values[0], &values[1], &values[2],
-                                             &values[3], &values[4]);
+                                             &values[3], &values[4], &values[5]);
           if (rc)
             goto leave;
         }
@@ -1555,7 +1568,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
   if ((flags & PUBKEY_FLAG_EDDSA))
     {
       if (dialect == ECC_DIALECT_ED25519)
-        rc = _gcry_ecc_eddsa_ensure_compact (values[5], 256);
+        rc = _gcry_ecc_eddsa_ensure_compact (values[6], 256);
       else
         rc = GPG_ERR_NOT_IMPLEMENTED;
       if (rc)
@@ -1566,6 +1579,9 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
   for (idx = 0; idx < N_COMPONENTS; idx++)
     {
       char buf[30];
+
+      if (idx == 5)
+	continue;		/* Skip cofactor. */
 
       if (mpi_is_opaque (values[idx]))
         {
@@ -1624,7 +1640,7 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
   gcry_mpi_t mpi_G = NULL;
   gcry_mpi_t mpi_Q = NULL;
 
-  if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n)
+  if (!ec->p || !ec->a || !ec->b || !ec->G || !ec->n || !ec->h)
     return GPG_ERR_BAD_CRYPT_CTX;
 
   if (mode == GCRY_PK_GET_SECKEY && !ec->d)
@@ -1676,15 +1692,15 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
     {
       /* Let's return a private key. */
       rc = sexp_build (r_sexp, NULL,
-                       "(private-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)(d%m)))",
-                       ec->p, ec->a, ec->b, mpi_G, ec->n, mpi_Q, ec->d);
+                       "(private-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(h%m)(q%m)(d%m)))",
+                       ec->p, ec->a, ec->b, mpi_G, ec->n, ec->h, mpi_Q, ec->d);
     }
   else if (ec->Q)
     {
       /* Let's return a public key.  */
       rc = sexp_build (r_sexp, NULL,
-                       "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(q%m)))",
-                       ec->p, ec->a, ec->b, mpi_G, ec->n, mpi_Q);
+                       "(public-key(ecc(p%m)(a%m)(b%m)(g%m)(n%m)(h%m)(q%m)))",
+                       ec->p, ec->a, ec->b, mpi_G, ec->n, ec->h, mpi_Q);
     }
   else
     rc = GPG_ERR_BAD_CRYPT_CTX;
@@ -1744,7 +1760,7 @@ gcry_pk_spec_t _gcry_pubkey_spec_ecc =
     GCRY_PK_ECC, { 0, 0 },
     (GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR),
     "ECC", ecc_names,
-    "pabgnq", "pabgnqd", "sw", "rs", "pabgnq",
+    "pabgnhq", "pabgnhqd", "sw", "rs", "pabgnhq",
     ecc_generate,
     ecc_check_secret_key,
     ecc_encrypt_raw,

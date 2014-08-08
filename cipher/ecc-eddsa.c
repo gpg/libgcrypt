@@ -525,6 +525,7 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   point_init (&sk->E.G);
   point_set (&sk->E.G, &E->G);
   sk->E.n = mpi_copy (E->n);
+  sk->E.h = mpi_copy (E->h);
   point_init (&sk->Q);
   point_set (&sk->Q, &Q);
 

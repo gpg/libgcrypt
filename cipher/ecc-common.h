@@ -32,6 +32,7 @@ typedef struct
                            or d as used by Twisted Edwards curves.  */
   mpi_point_struct G;   /* Base point (generator).  */
   gcry_mpi_t n;         /* Order of G.  */
+  gcry_mpi_t h;         /* Cofactor.  */
   const char *name;     /* Name of the curve or NULL.  */
 } elliptic_curve_t;
 
@@ -75,7 +76,7 @@ gpg_err_code_t _gcry_ecc_update_curve_param (const char *name,
                                              enum ecc_dialects *dialect,
                                              gcry_mpi_t *p, gcry_mpi_t *a,
                                              gcry_mpi_t *b, gcry_mpi_t *g,
-                                             gcry_mpi_t *n);
+                                             gcry_mpi_t *n, gcry_mpi_t *h);
 
 const char *_gcry_ecc_get_curve (gcry_sexp_t keyparms,
                                  int iterator,

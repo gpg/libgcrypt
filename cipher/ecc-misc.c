@@ -43,6 +43,7 @@ _gcry_ecc_curve_free (elliptic_curve_t *E)
   mpi_free (E->b);  E->b = NULL;
   _gcry_mpi_point_free_parts (&E->G);
   mpi_free (E->n);  E->n = NULL;
+  mpi_free (E->h);  E->h = NULL;
 }
 
 
@@ -63,6 +64,7 @@ _gcry_ecc_curve_copy (elliptic_curve_t E)
   _gcry_mpi_point_init (&R.G);
   point_set (&R.G, &E.G);
   R.n = mpi_copy (E.n);
+  R.h = mpi_copy (E.h);
 
   return R;
 }
