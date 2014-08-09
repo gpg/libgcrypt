@@ -250,6 +250,142 @@ static const char sample_public_dsa_key_3072[] =
 "))\n";
 
 
+static const char sample_public_elg_key_1024[] =
+"(public-key"
+"  (elg"
+"   (p #00F7CC7C08AF096B620C545C9353B1140D698FF8BE2D97A3515C17C7F8DABCDB8FB6"
+       "64A46416C90C530C18DF5ABB6C1DDE3AE2FA9DDC9CE40DF644CDE2E759F6DE43F31A"
+       "EEEBC136A460B3E4B0A8F99326A335145B19F4C81B13804894B7D2A30F78A8A7D7F4"
+       "52B83836FDB0DE90BE327FB5E5318757BEF5FE0FC3A5461CBEA0D3#)"
+"   (g #06#)"
+"   (y #36B38FB63E3340A0DD8A0468E9FAA512A32DA010BF7110201D0A3DF1B8FEA0E16F3C"
+       "80374584E554804B96EAA8C270FE531F75D0DBD81BA65640EDB1F76D46C27D2925B7"
+       "3EC3B295CDAEEF242904A84D74FB2879425F82D4C5B59BB49A992F85D574168DED85"
+       "D227600BBEF7AF0B8F0DEB785528370E4C4B3E4D65C536122A5A#)"
+"   ))";
+static const char sample_private_elg_key_1024[] =
+"(private-key"
+"  (elg"
+"   (p #00F7CC7C08AF096B620C545C9353B1140D698FF8BE2D97A3515C17C7F8DABCDB8FB6"
+       "64A46416C90C530C18DF5ABB6C1DDE3AE2FA9DDC9CE40DF644CDE2E759F6DE43F31A"
+       "EEEBC136A460B3E4B0A8F99326A335145B19F4C81B13804894B7D2A30F78A8A7D7F4"
+       "52B83836FDB0DE90BE327FB5E5318757BEF5FE0FC3A5461CBEA0D3#)"
+"   (g #06#)"
+"   (y #36B38FB63E3340A0DD8A0468E9FAA512A32DA010BF7110201D0A3DF1B8FEA0E16F3C"
+       "80374584E554804B96EAA8C270FE531F75D0DBD81BA65640EDB1F76D46C27D2925B7"
+       "3EC3B295CDAEEF242904A84D74FB2879425F82D4C5B59BB49A992F85D574168DED85"
+       "D227600BBEF7AF0B8F0DEB785528370E4C4B3E4D65C536122A5A#)"
+"   (x #03656C6186FCD27D4A4B1F5010DC0D2AE7833B501E423FCD51DE5EB6D80DACFE#)"
+"   ))";
+
+
+static const char sample_public_elg_key_2048[] =
+"(public-key"
+"  (elg"
+"   (p #00BE5A2BB4E562D7B644E3D01321CB818DBA27295C339FC2C47EAE9823225EE1E7B6"
+       "38C5DE300E931080E09CC89A18C9D180C16559FEF0D89D6A09534BB86489CCCEE30D"
+       "C18E007A8726BB99F2B2D90D2694597757B120CD2435C0098AD1B74C20004C25BA97"
+       "73EAA4FBEC594EE17F8B25867EEB0F9F857C751116ADED68ADA2A1E9F9F4F40D18F0"
+       "EC1221CA6A746FC5F4CDA2B8B5D0AB83834564ACF6FDBB1AB01D4BFBD1E2C0108FF5"
+       "5FB3190C6D6DA4D95EA683EFA44935CFBC0BF5C6118ACC3768AEA9A98D06024841B8"
+       "D07C234289D22A5E3948F199C397AA991C59A55BEA0C01E91902E039116946FEA135"
+       "768011AF6B622C5AF366EF0196FC4EAEAA8127#)"
+"   (g #07#)"
+"   (y #5AFF87BC23D8B97AA62897A5C1CDFFA86C59F39EDBD6012B6F333CE23D872009B8C8"
+       "D1E220E18CFCADFE0AA16346BA2EA132472FFEC746D11C6E758896052313BB501210"
+       "2389C683A25A3464E9B35A192BAE0A3BB99C973126F7560D968C4A754901DC967354"
+       "D61A90ACD56D90DCC4337AFB71FAE3FD18C60EB0D6DD173877DF5DB5199C4931FE4E"
+       "5046F814422580E1162798406FC6554781142DBB7922D4B5B37A111F23761636090F"
+       "6212681E133365191CF15753AE737F17943ED4B7506DE0A85C3B6D63227F9D65ADF8"
+       "2C3DF0676C8F43B5B1C07D9AD4E6D0C812401D7DA7B9484DBA8CD3B73B19A95EB237"
+       "D493E092AEA2371AA904009C8960B0969D12#)"
+"   ))";
+static const char sample_private_elg_key_2048[] =
+"(private-key"
+"  (elg"
+"   (p #00BE5A2BB4E562D7B644E3D01321CB818DBA27295C339FC2C47EAE9823225EE1E7B6"
+       "38C5DE300E931080E09CC89A18C9D180C16559FEF0D89D6A09534BB86489CCCEE30D"
+       "C18E007A8726BB99F2B2D90D2694597757B120CD2435C0098AD1B74C20004C25BA97"
+       "73EAA4FBEC594EE17F8B25867EEB0F9F857C751116ADED68ADA2A1E9F9F4F40D18F0"
+       "EC1221CA6A746FC5F4CDA2B8B5D0AB83834564ACF6FDBB1AB01D4BFBD1E2C0108FF5"
+       "5FB3190C6D6DA4D95EA683EFA44935CFBC0BF5C6118ACC3768AEA9A98D06024841B8"
+       "D07C234289D22A5E3948F199C397AA991C59A55BEA0C01E91902E039116946FEA135"
+       "768011AF6B622C5AF366EF0196FC4EAEAA8127#)"
+"   (g #07#)"
+"   (y #5AFF87BC23D8B97AA62897A5C1CDFFA86C59F39EDBD6012B6F333CE23D872009B8C8"
+       "D1E220E18CFCADFE0AA16346BA2EA132472FFEC746D11C6E758896052313BB501210"
+       "2389C683A25A3464E9B35A192BAE0A3BB99C973126F7560D968C4A754901DC967354"
+       "D61A90ACD56D90DCC4337AFB71FAE3FD18C60EB0D6DD173877DF5DB5199C4931FE4E"
+       "5046F814422580E1162798406FC6554781142DBB7922D4B5B37A111F23761636090F"
+       "6212681E133365191CF15753AE737F17943ED4B7506DE0A85C3B6D63227F9D65ADF8"
+       "2C3DF0676C8F43B5B1C07D9AD4E6D0C812401D7DA7B9484DBA8CD3B73B19A95EB237"
+       "D493E092AEA2371AA904009C8960B0969D12#)"
+"   (x #0628C3903972C55BDC1BC4223075616D3F3BA57D55532DDB40CB14CF72070E0D28BF"
+       "D0402B9088D25ED8FC#)"
+"  ))";
+
+static const char sample_public_elg_key_3072[] =
+"(public-key"
+"  (elg"
+"   (p #008EAA3497AFE3706E1A57FFA52E68C64C500731B58EBAFEB51C4A20AB15BA57FA72"
+       "BA1510A4703D5AA6F05DB67E4A776F92AD08800577DC686D00B793167A5D79C997E0"
+       "5B9A9E5974B4B68B4D71ED8EC37F2F45235D901997D72915643F058E712AA18275A2"
+       "C6F9F7C2B9B7CD1E814D215F12A840800B546AEF2A2E6C077CDD1A322738FFD36DB2"
+       "FA5420B5848EED870BC1A6CF55040AE8D2A5945F11AE2BCBE107B41A59EFDBD3B05C"
+       "F4C876C02C9AEAE22CD4C86806A415302936E4C1E5AA59DBBCCD2F83C20941A29888"
+       "A70ADB94D3B8A6489C46BF2C5219CD9FD2341EA21D4E68A4ECC468FD09D215FE96D4"
+       "7AEA12FD22B2456D2CC13672FC7E9772A365C68668157C51E46966B6A1831C429BA0"
+       "D513519713C49C13C5FC7C14BE0A117627B204C4478D0A93C6B57929E448C9B65BF2"
+       "390E04BC5940320C0262FC1A221E7C796493432239A6F12BC62C5CF32E8ADBC1730C"
+       "84C6E6E6BD95AF62835941F3F344AF46BFE5A8F629D5FA699FE37EF8B8C6A2484E42"
+       "D226206FDF7D1FB93A5457#)"
+"   (g #0B#)"
+"   (y #18E734FF645AE169079AEAFC78772371089AD3088627ECF77034AFBDF33ADF594AAF"
+       "3288F6979E0DB59CE3D2F0FEE031DFF187F1E4549D3C79668794CB19C14481ECDE2D"
+       "D50861AB674F87A011D50D35F28E424D0D2353850899C2CDD0CC8FDBFC5A0CA395F0"
+       "E605D46CBDD140DBEF426EBD638C9ADD83C195C45CE84ED2D2B21B87800C783A4F79"
+       "12226FEFBDA01C66B254534A51765AF09687275AA80C5DFBA143A6262E47C547D7E2"
+       "289413F8C5C56AED3FA7E5DF5526958E2294FE318AF590C0E720029C202563E6E686"
+       "9EC810F39A859262FB6047C1D418CAA9047A00BDB127B44B69CF6BC8E6B3709B4C23"
+       "79783C5F8457EFE23EDA6FF00D1DDCC29268FC4A6C18577BE2B7004089CBB824027A"
+       "A53C86B51DB054CC83B4F50C8923E2E9431F0A77D741237226CC68591083A2E40171"
+       "5C7B74100BB74003E2264F8B44A0B0BC5404C44218ABE65C04AA573877506CE4F48C"
+       "9E3F8AD1CD8DD9F285DD015C2FC5DEBCFA5779AD87F0BBC62E9EC6246021AB450DB9"
+       "4DDDEFAFD2C7C66E235D#)"
+"   ))";
+static const char sample_private_elg_key_3072[] =
+"(private-key"
+"  (elg"
+"   (p #008EAA3497AFE3706E1A57FFA52E68C64C500731B58EBAFEB51C4A20AB15BA57FA72"
+       "BA1510A4703D5AA6F05DB67E4A776F92AD08800577DC686D00B793167A5D79C997E0"
+       "5B9A9E5974B4B68B4D71ED8EC37F2F45235D901997D72915643F058E712AA18275A2"
+       "C6F9F7C2B9B7CD1E814D215F12A840800B546AEF2A2E6C077CDD1A322738FFD36DB2"
+       "FA5420B5848EED870BC1A6CF55040AE8D2A5945F11AE2BCBE107B41A59EFDBD3B05C"
+       "F4C876C02C9AEAE22CD4C86806A415302936E4C1E5AA59DBBCCD2F83C20941A29888"
+       "A70ADB94D3B8A6489C46BF2C5219CD9FD2341EA21D4E68A4ECC468FD09D215FE96D4"
+       "7AEA12FD22B2456D2CC13672FC7E9772A365C68668157C51E46966B6A1831C429BA0"
+       "D513519713C49C13C5FC7C14BE0A117627B204C4478D0A93C6B57929E448C9B65BF2"
+       "390E04BC5940320C0262FC1A221E7C796493432239A6F12BC62C5CF32E8ADBC1730C"
+       "84C6E6E6BD95AF62835941F3F344AF46BFE5A8F629D5FA699FE37EF8B8C6A2484E42"
+       "D226206FDF7D1FB93A5457#)"
+"   (g #0B#)"
+"   (y #18E734FF645AE169079AEAFC78772371089AD3088627ECF77034AFBDF33ADF594AAF"
+       "3288F6979E0DB59CE3D2F0FEE031DFF187F1E4549D3C79668794CB19C14481ECDE2D"
+       "D50861AB674F87A011D50D35F28E424D0D2353850899C2CDD0CC8FDBFC5A0CA395F0"
+       "E605D46CBDD140DBEF426EBD638C9ADD83C195C45CE84ED2D2B21B87800C783A4F79"
+       "12226FEFBDA01C66B254534A51765AF09687275AA80C5DFBA143A6262E47C547D7E2"
+       "289413F8C5C56AED3FA7E5DF5526958E2294FE318AF590C0E720029C202563E6E686"
+       "9EC810F39A859262FB6047C1D418CAA9047A00BDB127B44B69CF6BC8E6B3709B4C23"
+       "79783C5F8457EFE23EDA6FF00D1DDCC29268FC4A6C18577BE2B7004089CBB824027A"
+       "A53C86B51DB054CC83B4F50C8923E2E9431F0A77D741237226CC68591083A2E40171"
+       "5C7B74100BB74003E2264F8B44A0B0BC5404C44218ABE65C04AA573877506CE4F48C"
+       "9E3F8AD1CD8DD9F285DD015C2FC5DEBCFA5779AD87F0BBC62E9EC6246021AB450DB9"
+       "4DDDEFAFD2C7C66E235D#)"
+"   (x #03A73F0389E470AAC831B039F8AA0C4EBD3A47DD083E32EEA08E4911236CD597C272"
+       "9823D47A51C8535DA52FE6DAB3E8D1C20D#)"
+"  ))";
+
+
 #define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
 #define DIMof(type,member)   DIM(((type *)0)->member)
 #define BUG() do {fprintf ( stderr, "Ooops at %s:%d\n", __FILE__ , __LINE__ );\
@@ -877,7 +1013,7 @@ rsa_bench (int iterations, int print_header, int no_blinding)
   int testno;
 
   if (print_header)
-    printf ("Algorithm         generate %4d*sign %4d*verify\n"
+    printf ("Algorithm         generate %4d*priv %4d*public\n"
             "------------------------------------------------\n",
             iterations, iterations );
   for (testno=0; testno < DIM (p_sizes); testno++)
@@ -989,6 +1125,115 @@ rsa_bench (int iterations, int print_header, int no_blinding)
 }
 
 
+static void
+elg_bench (int iterations, int print_header)
+{
+  gpg_error_t err;
+  gcry_sexp_t pub_key[3], sec_key[3];
+  int p_sizes[3] = { 1024, 2048, 3072 };
+  gcry_sexp_t data = NULL;
+  gcry_sexp_t enc = NULL;
+  gcry_sexp_t plain = NULL;
+  int i, j;
+
+  err = gcry_sexp_sscan (pub_key+0, NULL, sample_public_elg_key_1024,
+                         strlen (sample_public_elg_key_1024));
+  if (!err)
+    err = gcry_sexp_sscan (sec_key+0, NULL, sample_private_elg_key_1024,
+                           strlen (sample_private_elg_key_1024));
+  if (!err)
+    err = gcry_sexp_sscan (pub_key+1, NULL, sample_public_elg_key_2048,
+                           strlen (sample_public_elg_key_2048));
+  if (!err)
+    err = gcry_sexp_sscan (sec_key+1, NULL, sample_private_elg_key_2048,
+                           strlen (sample_private_elg_key_2048));
+  if (!err)
+    err = gcry_sexp_sscan (pub_key+2, NULL, sample_public_elg_key_3072,
+                           strlen (sample_public_elg_key_3072));
+  if (!err)
+    err = gcry_sexp_sscan (sec_key+2, NULL, sample_private_elg_key_3072,
+                           strlen (sample_private_elg_key_3072));
+  if (err)
+    {
+      fprintf (stderr, PGM ": converting sample keys failed: %s\n",
+               gcry_strerror (err));
+      exit (1);
+    }
+
+  if (print_header)
+    printf ("Algorithm         generate %4d*priv %4d*public\n"
+            "------------------------------------------------\n",
+            iterations, iterations );
+  for (i=0; i < DIM (p_sizes); i++)
+    {
+      char timerbuf1[100];
+
+      {
+        gcry_mpi_t x = gcry_mpi_new (p_sizes[i]);
+        gcry_mpi_randomize (x, p_sizes[i] - 16, GCRY_WEAK_RANDOM);
+        err = gcry_sexp_build (&data, NULL, "(data (flags raw) (value %m))", x);
+        gcry_mpi_release (x);
+      }
+      if (err)
+        {
+          fprintf (stderr, PGM ": converting data failed: %s\n",
+                   gcry_strerror (err));
+          exit (1);
+        }
+
+      printf ("ELG %d bit             -", p_sizes[i]);
+      fflush (stdout);
+
+      start_timer ();
+      for (j=0; j < iterations; j++)
+        {
+          gcry_sexp_release (enc);
+          err = gcry_pk_encrypt (&enc, data, pub_key[i]);
+          if (err)
+            {
+              putchar ('\n');
+              fprintf (stderr, PGM ": encrypt failed: %s\n",
+                       gpg_strerror (err));
+              exit (1);
+            }
+        }
+      stop_timer ();
+      snprintf (timerbuf1, sizeof timerbuf1, "   %s", elapsed_time ());
+      fflush (stdout);
+
+      start_timer ();
+      for (j=0; j < iterations; j++)
+        {
+          gcry_sexp_release (plain);
+          err = gcry_pk_decrypt (&plain, enc, sec_key[i]);
+          if (err)
+            {
+              putchar ('\n');
+              fprintf (stderr, PGM ": decrypt failed: %s\n",
+                       gpg_strerror (err));
+              exit (1);
+            }
+        }
+      stop_timer ();
+
+      printf ("   %s  %s\n", elapsed_time (), timerbuf1);
+      fflush (stdout);
+
+      gcry_sexp_release (plain);
+      plain = NULL;
+      gcry_sexp_release (enc);
+      enc = NULL;
+      gcry_sexp_release (data);
+      data = NULL;
+    }
+
+  for (i=0; i < DIM (p_sizes); i++)
+    {
+      gcry_sexp_release (sec_key[i]);
+      gcry_sexp_release (pub_key[i]);
+    }
+}
+
 
 static void
 dsa_bench (int iterations, int print_header)
@@ -1026,7 +1271,7 @@ dsa_bench (int iterations, int print_header)
     }
 
   if (print_header)
-    printf ("Algorithm         generate %4d*sign %4d*verify\n"
+    printf ("Algorithm         generate %4d*priv %4d*public\n"
             "------------------------------------------------\n",
             iterations, iterations );
   for (i=0; i < DIM (q_sizes); i++)
@@ -1104,7 +1349,7 @@ ecc_bench (int iterations, int print_header)
   int testno;
 
   if (print_header)
-    printf ("Algorithm         generate %4d*sign %4d*verify\n"
+    printf ("Algorithm         generate %4d*priv %4d*public\n"
             "------------------------------------------------\n",
             iterations, iterations );
   for (testno=0; testno < DIM (p_sizes); testno++)
@@ -1511,6 +1756,7 @@ main( int argc, char **argv )
       cipher_bench (NULL);
       putchar ('\n');
       rsa_bench (pk_count, 1, no_blinding);
+      elg_bench (pk_count, 0);
       dsa_bench (pk_count, 0);
       ecc_bench (pk_count, 0);
       putchar ('\n');
@@ -1559,10 +1805,23 @@ main( int argc, char **argv )
     {
         mpi_bench ();
     }
+  else if ( !strcmp (*argv, "pubkey"))
+    {
+        gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        rsa_bench (pk_count, 1, no_blinding);
+        elg_bench (pk_count, 0);
+        dsa_bench (pk_count, 0);
+        ecc_bench (pk_count, 0);
+    }
   else if ( !strcmp (*argv, "rsa"))
     {
         gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
         rsa_bench (pk_count, 1, no_blinding);
+    }
+  else if ( !strcmp (*argv, "elg"))
+    {
+        gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        elg_bench (pk_count, 1);
     }
   else if ( !strcmp (*argv, "dsa"))
     {
