@@ -601,10 +601,17 @@ _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, mpi_point_t point,
 
     case MPI_EC_MONTGOMERY:
       {
-        log_fatal ("%s: %s not yet supported\n",
-                   "_gcry_mpi_ec_get_affine", "Montgomery");
+        if (x)
+          mpi_set (x, point->x);
+
+        if (y)
+          {
+            log_fatal ("%s: Getting Y-coordinate on %s is not supported\n",
+                       "_gcry_mpi_ec_get_affine", "Montgomery");
+            return -1;
+          }
       }
-      return -1;
+      return 0;
 
     case MPI_EC_EDWARDS:
       {
@@ -1074,6 +1081,35 @@ add_points_edwards (mpi_point_t result,
 }
 
 
+/* Compute a step of Montgomery Ladder (only use X and Z in the point).
+   Inputs:  P1, P2, and x-coordinate of DIF = P1 - P1.
+   Outputs: PRD = 2 * P1 and  SUM = P1 + P2. */
+static void
+montgomery_ladder (mpi_point_t prd, mpi_point_t sum,
+                   mpi_point_t p1, mpi_point_t p2, gcry_mpi_t dif_x,
+                   mpi_ec_t ctx)
+{
+  ec_addm (sum->x, p2->x, p2->z, ctx);
+  ec_subm (p2->z, p2->x, p2->z, ctx);
+  ec_addm (prd->x, p1->x, p1->z, ctx);
+  ec_subm (p1->z, p1->x, p1->z, ctx);
+  ec_mulm (p2->x, p1->z, sum->x, ctx);
+  ec_mulm (p2->z, prd->x, p2->z, ctx);
+  ec_pow2 (p1->x, prd->x, ctx);
+  ec_pow2 (p1->z, p1->z, ctx);
+  ec_addm (sum->x, p2->x, p2->z, ctx);
+  ec_subm (p2->z, p2->x, p2->z, ctx);
+  ec_mulm (prd->x, p1->x, p1->z, ctx);
+  ec_subm (p1->z, p1->x, p1->z, ctx);
+  ec_pow2 (sum->x, sum->x, ctx);
+  ec_pow2 (sum->z, p2->z, ctx);
+  ec_mulm (prd->z, p1->z, ctx->a, ctx); /* CTX->A: (a-2)/4 */
+  ec_mulm (sum->z, sum->z, dif_x, ctx);
+  ec_addm (prd->z, p1->x, prd->z, ctx);
+  ec_mulm (prd->z, prd->z, p1->z, ctx);
+}
+
+
 /* RESULT = P1 + P2 */
 void
 _gcry_mpi_ec_add_points (mpi_point_t result,
@@ -1143,6 +1179,72 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
                 _gcry_mpi_ec_add_points (result, result, point, ctx);
             }
         }
+      return;
+    }
+  else if (ctx->model == MPI_EC_MONTGOMERY)
+    {
+      unsigned int nbits;
+      int j;
+      mpi_point_struct p1_, p2_;
+      unsigned long sw;
+
+      /* Compute scalar point multiplication with Montgomery Ladder.
+         Note that we don't use Y-coordinate in the points at all.
+         RESULT->Y will be filled by zero.  */
+
+      nbits = mpi_get_nbits (scalar);
+      point_init (&p1);
+      point_init (&p2);
+      point_init (&p1_);
+      point_init (&p2_);
+      mpi_set_ui (p1.x, 1);
+      mpi_free (p2.x);
+      p2.x  = mpi_copy (point->x);
+      mpi_set_ui (p2.z, 1);
+
+      for (j=nbits-1; j >= 0; j--)
+        {
+          sw = mpi_test_bit (scalar, j);
+          mpi_swap_cond (p1.x, p2.x, sw);
+          mpi_swap_cond (p1.z, p2.z, sw);
+          montgomery_ladder (&p1_, &p2_, &p1, &p2, point->x, ctx);
+          mpi_swap_cond (p1_.x, p2_.x, sw);
+          mpi_swap_cond (p1_.z, p2_.z, sw);
+
+          if (--j < 0)
+            break;
+
+          sw = mpi_test_bit (scalar, j);
+          mpi_swap_cond (p1_.x, p2_.x, sw);
+          mpi_swap_cond (p1_.z, p2_.z, sw);
+          montgomery_ladder (&p1, &p2, &p1_, &p2_, point->x, ctx);
+          mpi_swap_cond (p1.x, p2.x, sw);
+          mpi_swap_cond (p1.z, p2.z, sw);
+        }
+
+      z1 = mpi_new (0);
+      mpi_clear (result->y);
+      sw = (nbits & 1);
+      mpi_swap_cond (p1.x, p1_.x, sw);
+      mpi_swap_cond (p1.z, p1_.z, sw);
+
+      if (p1.z->nlimbs == 0)
+        {
+          mpi_set_ui (result->x, 1);
+          mpi_set_ui (result->z, 0);
+        }
+      else
+        {
+          ec_invm (z1, p1.z, ctx);
+          ec_mulm (result->x, p1.x, z1, ctx);
+          mpi_set_ui (result->z, 1);
+        }
+
+      mpi_free (z1);
+      point_free (&p1);
+      point_free (&p2);
+      point_free (&p1_);
+      point_free (&p2_);
       return;
     }
 
@@ -1243,14 +1345,14 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
   y = mpi_new (0);
   w = mpi_new (0);
 
-  if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
-    return 0;
-
   switch (ctx->model)
     {
     case MPI_EC_WEIERSTRASS:
       {
         gcry_mpi_t xxx = mpi_new (0);
+
+        if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
+          return 0;
 
         /* y^2 == x^3 + a·x + b */
         ec_pow2 (y, y, ctx);
@@ -1267,11 +1369,40 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
       }
       break;
     case MPI_EC_MONTGOMERY:
-      log_fatal ("%s: %s not yet supported\n",
-                 "_gcry_mpi_ec_curve_point", "Montgomery");
+      {
+#define xx y
+        /* With Montgomery curve, only X-coordinate is valid.  */
+        if (_gcry_mpi_ec_get_affine (x, NULL, point, ctx))
+          return 0;
+
+        /* The equation is: b * y^2 == x^3 + a · x^2 + x */
+        /* We check if right hand is quadratic residue or not by
+           Euler's criterion.  */
+        /* CTX->A has (a-2)/4 and CTX->B has b^-1 */
+        ec_mulm (w, ctx->a, mpi_const (MPI_C_FOUR), ctx);
+        ec_addm (w, w, mpi_const (MPI_C_TWO), ctx);
+        ec_mulm (w, w, x, ctx);
+        ec_pow2 (xx, x, ctx);
+        ec_addm (w, w, xx, ctx);
+        ec_addm (w, w, mpi_const (MPI_C_ONE), ctx);
+        ec_mulm (w, w, x, ctx);
+        ec_mulm (w, w, ctx->b, ctx);
+#undef xx
+        /* Compute Euler's criterion: w^(p-1)/2 */
+#define p_minus1 y
+        ec_subm (p_minus1, ctx->p, mpi_const (MPI_C_ONE), ctx);
+        mpi_rshift (p_minus1, p_minus1, 1);
+        ec_powm (w, w, p_minus1, ctx);
+
+        res = mpi_cmp_ui (w, 1);
+#undef p_minus1
+      }
       break;
     case MPI_EC_EDWARDS:
       {
+        if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
+          return 0;
+
         /* a · x^2 + y^2 - 1 - b · x^2 · y^2 == 0 */
         ec_pow2 (x, x, ctx);
         ec_pow2 (y, y, ctx);
