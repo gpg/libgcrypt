@@ -10,7 +10,7 @@ Noteworthy changes in version 1.5.4 (2014-08-07) [C19/A8/R3]
  Backported from 1.6:
 
  * Improved performance of RSA, DSA, and Elgamal by using a new
-   exponentiation algorithm.
+   exponentiation algorithm.  [CVE-2014-5270]
 
  * Fixed a subtle bug in mpi_set_bit which could set spurious bits.
 
