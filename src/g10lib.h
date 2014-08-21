@@ -236,9 +236,12 @@ gcry_mpi_t _gcry_generate_public_prime (unsigned int nbits,
                                  gcry_random_level_t random_level,
                                  int (*extra_check)(void*, gcry_mpi_t),
                                  void *extra_check_arg);
-gcry_mpi_t _gcry_generate_elg_prime (int mode,
-                                     unsigned int pbits, unsigned int qbits,
-                                     gcry_mpi_t g, gcry_mpi_t **factors);
+gcry_err_code_t _gcry_generate_elg_prime (int mode,
+                                          unsigned int pbits,
+                                          unsigned int qbits,
+                                          gcry_mpi_t g,
+                                          gcry_mpi_t *r_prime,
+                                          gcry_mpi_t **factors);
 gcry_mpi_t _gcry_derive_x931_prime (const gcry_mpi_t xp,
                                     const gcry_mpi_t xp1, const gcry_mpi_t xp2,
                                     const gcry_mpi_t e,

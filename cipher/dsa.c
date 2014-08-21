@@ -196,6 +196,7 @@ static gpg_err_code_t
 generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
           int transient_key, dsa_domain_t *domain, gcry_mpi_t **ret_factors )
 {
+  gpg_err_code_t rc;
   gcry_mpi_t p;    /* the prime */
   gcry_mpi_t q;    /* the 160 bit prime factor */
   gcry_mpi_t g;    /* the generator */
@@ -247,7 +248,10 @@ generate (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   else
     {
       /* Generate new domain parameters.  */
-      p = _gcry_generate_elg_prime (1, nbits, qbits, NULL, ret_factors);
+      rc = _gcry_generate_elg_prime (1, nbits, qbits, NULL, &p, ret_factors);
+      if (rc)
+        return rc;
+
       /* Get q out of factors.  */
       q = mpi_copy ((*ret_factors)[0]);
       gcry_assert (mpi_get_nbits (q) == qbits);

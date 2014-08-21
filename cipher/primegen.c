@@ -740,19 +740,22 @@ prime_generate_internal (int need_q_factor,
 
 
 /* Generate a prime used for discrete logarithm algorithms; i.e. this
-   prime will be public and no strong random is required.  */
-gcry_mpi_t
+   prime will be public and no strong random is required.  On success
+   R_PRIME receives a new MPI with the prime.  On error R_PRIME is set
+   to NULL and an error code is returned.  If RET_FACTORS is not NULL
+   it is set to an allocated array of factors on success or to NULL on
+   error.  */
+gcry_err_code_t
 _gcry_generate_elg_prime (int mode, unsigned pbits, unsigned qbits,
-			  gcry_mpi_t g, gcry_mpi_t **ret_factors)
+			  gcry_mpi_t g,
+                          gcry_mpi_t *r_prime, gcry_mpi_t **ret_factors)
 {
-  gcry_mpi_t prime = NULL;
-
-  if (prime_generate_internal ((mode == 1), &prime, pbits, qbits, g,
-                               ret_factors, GCRY_WEAK_RANDOM, 0, 0,
-                               NULL, NULL))
-    prime = NULL; /* (Should be NULL in the error case anyway.)  */
-
-  return prime;
+  *r_prime = NULL;
+  if (ret_factors)
+    *ret_factors = NULL;
+  return prime_generate_internal ((mode == 1), r_prime, pbits, qbits, g,
+                                  ret_factors, GCRY_WEAK_RANDOM, 0, 0,
+                                  NULL, NULL);
 }
 
 
