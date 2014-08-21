@@ -1119,6 +1119,13 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
   int arg_counter = 0;
   int level = 0;
 
+  if (!retsexp)
+    return GPG_ERR_INV_ARG;
+  *retsexp = NULL;
+
+  if (!buffer)
+    return GPG_ERR_INV_ARG;
+
   if (!erroff)
     erroff = &dummy_erroff;
 
@@ -1160,7 +1167,7 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
      the provided one.  However, we add space for one extra datalen so
      that the code which does the ST_CLOSE can use MAKE_SPACE */
   c.allocated = length + sizeof(DATALEN);
-  if (buffer && length && _gcry_is_secure (buffer))
+  if (length && _gcry_is_secure (buffer))
     c.sexp = xtrymalloc_secure (sizeof *c.sexp + c.allocated - 1);
   else
     c.sexp = xtrymalloc (sizeof *c.sexp + c.allocated - 1);
@@ -1682,8 +1689,6 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
             wipememory (c.sexp, sizeof (struct gcry_sexp) + c.allocated - 1);
           xfree (c.sexp);
         }
-      /* This might be expected by existing code...  */
-      *retsexp = NULL;
     }
   else
     *retsexp = normalize (c.sexp);
