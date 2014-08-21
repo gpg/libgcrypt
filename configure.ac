@@ -440,7 +440,7 @@ AC_MSG_RESULT([$enabled_digests])
 
 # Implementation of the --enable-kdfs switch.
 AC_ARG_ENABLE(kdfs,
-      AC_HELP_STRING([--enable-kfds=kdfs],
+      AC_HELP_STRING([--enable-kdfs=kdfs],
 		     [select the KDFs to include]),
       [enabled_kdfs=`echo $enableval | tr ',:' '  ' | tr '[A-Z]' '[a-z]'`],
       [enabled_kdfs=""])
