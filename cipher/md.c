@@ -1177,7 +1177,7 @@ _gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
 	GcryDigestEntry *r;
 	int algo;
 
-	if ( !buffer || (nbytes && (*nbytes != sizeof (int))))
+	if ( !buffer || !nbytes || *nbytes != sizeof (int))
 	  rc = GPG_ERR_INV_ARG;
 	else
 	  {
