@@ -1,8 +1,23 @@
-Noteworthy changes in version 1.6.2 (unreleased)
+Noteworthy changes in version 1.6.2 (2014-08-21) [C20/A0/R2]
 ------------------------------------------------
 
+ * Map deprecated RSA algo number to the RSA algo number for better
+   backward compatibility.
 
-Noteworthy changes in version 1.6.1 (2014-01-29)
+ * Support a 0x40 compression prefix for EdDSA.
+
+ * Improve ARM hardware feature detection and building.
+
+ * Fix powerpc-apple-darwin detection
+
+ * Fix building for the x32 ABI platform.
+
+ * Support building using the latest mingw-w64 toolchain.
+
+ * Fix some possible NULL deref bugs.
+
+
+Noteworthy changes in version 1.6.1 (2014-01-29) [C20/A0/R1]
 ------------------------------------------------
 
  * Added emulation for broken Whirlpool code prior to 1.6.0.
@@ -27,7 +42,7 @@ Noteworthy changes in version 1.6.1 (2014-01-29)
  GCRY_MD_FLAG_BUGEMU1            NEW (minor API change).
 
 
-Noteworthy changes in version 1.6.0 (2013-12-16)
+Noteworthy changes in version 1.6.0 (2013-12-16) [C20/A0/R0]
 ------------------------------------------------
 
  * Removed the long deprecated gcry_ac interface.  Thus Libgcrypt is
