@@ -1,5 +1,6 @@
 /* longlong.h -- definitions for mixed size 32/64 bit arithmetic.
-   Note: I added some stuff for use with gnupg
+   Note: This is the Libgcrypt version
+
 
 Copyright (C) 1991, 1992, 1993, 1994, 1996, 1998,
               2000, 2001, 2002, 2003, 2004, 2011 Free Software Foundation, Inc.
@@ -41,7 +42,7 @@ MA 02111-1307, USA. */
 /* This is used to make sure no undesirable sharing between different libraries
    that use this file takes place.  */
 #ifndef __MPN
-#define __MPN(x) __##x
+# define __MPN(x) __##x
 #endif
 
 /* Define auxiliary asm macros.
@@ -102,19 +103,22 @@ MA 02111-1307, USA. */
 /* We sometimes need to clobber "cc" with gcc2, but that would not be
    understood by gcc1.	Use cpp to avoid major code duplication.  */
 #if __GNUC__ < 2
-#define __CLOBBER_CC
-#define __AND_CLOBBER_CC
+# define __CLOBBER_CC
+# define __AND_CLOBBER_CC
 #else /* __GNUC__ >= 2 */
-#define __CLOBBER_CC : "cc"
-#define __AND_CLOBBER_CC , "cc"
+# define __CLOBBER_CC : "cc"
+# define __AND_CLOBBER_CC , "cc"
 #endif /* __GNUC__ < 2 */
 
+/***************************************
+ ****  Begin CPU Specific Versions  ****
+ ***************************************/
 
 /***************************************
  **************  A29K  *****************
  ***************************************/
 #if (defined (__a29k__) || defined (_AM29K)) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("add %1,%4,%5\n"   \
            "addc %0,%2,%3"                                              \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -123,7 +127,7 @@ MA 02111-1307, USA. */
 	     "rI" ((USItype)(bh)),                                      \
 	     "%r" ((USItype)(al)),                                      \
 	     "rI" ((USItype)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("sub %1,%4,%5\n"                                             \
 	   "subc %0,%2,%3"                                              \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -132,7 +136,7 @@ MA 02111-1307, USA. */
 	     "rI" ((USItype)(bh)),                                      \
 	     "r" ((USItype)(al)),                                       \
 	     "rI" ((USItype)(bl)))
-#define umul_ppmm(xh, xl, m0, m1) \
+# define umul_ppmm(xh, xl, m0, m1) \
   do {									\
     USItype __m0 = (m0), __m1 = (m1);					\
     __asm__ ("multiplu %0,%1,%2"                                        \
@@ -144,23 +148,23 @@ MA 02111-1307, USA. */
 	     : "r" (__m0),                                              \
 	       "r" (__m1));                                             \
   } while (0)
-#define udiv_qrnnd(q, r, n1, n0, d) \
+# define udiv_qrnnd(q, r, n1, n0, d) \
   __asm__ ("dividu %0,%3,%4"                                            \
 	   : "=r" ((USItype)(q)),                                       \
 	     "=q" ((USItype)(r))                                        \
 	   : "1" ((USItype)(n1)),                                       \
 	     "r" ((USItype)(n0)),                                       \
 	     "r" ((USItype)(d)))
-#define count_leading_zeros(count, x) \
+# define count_leading_zeros(count, x) \
     __asm__ ("clz %0,%1"                                                \
 	     : "=r" ((USItype)(count))                                  \
 	     : "r" ((USItype)(x)))
-#define COUNT_LEADING_ZEROS_0 32
+# define COUNT_LEADING_ZEROS_0 32
 #endif /* __a29k__ */
 
 
 #if defined (__alpha) && W_TYPE_SIZE == 64
-#define umul_ppmm(ph, pl, m0, m1) \
+# define umul_ppmm(ph, pl, m0, m1) \
   do {									\
     UDItype __m0 = (m0), __m1 = (m1);					\
     __asm__ ("umulh %r1,%2,%0"                                          \
@@ -169,16 +173,16 @@ MA 02111-1307, USA. */
 	       "rI" (__m1));                                            \
     (pl) = __m0 * __m1; 						\
   } while (0)
-#define UMUL_TIME 46
-#ifndef LONGLONG_STANDALONE
-#define udiv_qrnnd(q, r, n1, n0, d) \
+# define UMUL_TIME 46
+# ifndef LONGLONG_STANDALONE
+#  define udiv_qrnnd(q, r, n1, n0, d) \
   do { UDItype __r;							\
     (q) = __udiv_qrnnd (&__r, (n1), (n0), (d)); 			\
     (r) = __r;								\
   } while (0)
 extern UDItype __udiv_qrnnd ();
-#define UDIV_TIME 220
-#endif /* LONGLONG_STANDALONE */
+#  define UDIV_TIME 220
+# endif /* !LONGLONG_STANDALONE */
 #endif /* __alpha */
 
 /***************************************
@@ -187,30 +191,31 @@ extern UDItype __udiv_qrnnd ();
 #if defined (__arm__) && W_TYPE_SIZE == 32 && \
     (!defined (__thumb__) || defined (__thumb2__))
 /* The __ARM_ARCH define is provided by gcc 4.8.  Construct it otherwise.  */
-#ifndef __ARM_ARCH
-# ifdef __ARM_ARCH_2__
-#  define __ARM_ARCH 2
-# elif defined (__ARM_ARCH_3__) || defined (__ARM_ARCH_3M__)
-#  define __ARM_ARCH 3
-# elif defined (__ARM_ARCH_4__) || defined (__ARM_ARCH_4T__)
-#  define __ARM_ARCH 4
-# elif defined (__ARM_ARCH_5__) || defined (__ARM_ARCH_5E__) \
-       || defined(__ARM_ARCH_5T__) || defined(__ARM_ARCH_5TE__) \
-       || defined(__ARM_ARCH_5TEJ__)
-#  define __ARM_ARCH 5
-# elif defined (__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
-       || defined (__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
-       || defined (__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__)
-#  define __ARM_ARCH 6
-# elif defined (__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
-       || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
-       || defined(__ARM_ARCH_7EM__)
-#  define __ARM_ARCH 7
-# else
+# ifndef __ARM_ARCH
+#  ifdef __ARM_ARCH_2__
+#   define __ARM_ARCH 2
+#  elif defined (__ARM_ARCH_3__) || defined (__ARM_ARCH_3M__)
+#   define __ARM_ARCH 3
+#  elif defined (__ARM_ARCH_4__) || defined (__ARM_ARCH_4T__)
+#   define __ARM_ARCH 4
+#  elif defined (__ARM_ARCH_5__) || defined (__ARM_ARCH_5E__) \
+        || defined(__ARM_ARCH_5T__) || defined(__ARM_ARCH_5TE__) \
+        || defined(__ARM_ARCH_5TEJ__)
+#   define __ARM_ARCH 5
+#  elif defined (__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) \
+        || defined (__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__) \
+        || defined (__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__)
+#   define __ARM_ARCH 6
+#  elif defined (__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) \
+        || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) \
+        || defined(__ARM_ARCH_7EM__)
+#   define __ARM_ARCH 7
+#  else
    /* could not detect? */
-# endif
-#endif
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+#  endif
+# endif /* !__ARM_ARCH */
+
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("adds %1, %4, %5\n"                                          \
 	   "adc  %0, %2, %3"                                            \
 	   : "=r" ((sh)),                                               \
@@ -219,7 +224,7 @@ extern UDItype __udiv_qrnnd ();
 	     "rI" ((USItype)(bh)),                                      \
 	     "%r" ((USItype)(al)),                                      \
 	     "rI" ((USItype)(bl)) __CLOBBER_CC)
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subs %1, %4, %5\n"                                          \
 	   "sbc  %0, %2, %3"                                            \
 	   : "=r" ((sh)),                                               \
@@ -228,8 +233,8 @@ extern UDItype __udiv_qrnnd ();
 	     "rI" ((USItype)(bh)),                                      \
 	     "r" ((USItype)(al)),                                       \
 	     "rI" ((USItype)(bl)) __CLOBBER_CC)
-#if (defined __ARM_ARCH && __ARM_ARCH <= 3)
-#define umul_ppmm(xh, xl, a, b) \
+# if (defined __ARM_ARCH && __ARM_ARCH <= 3)
+#  define umul_ppmm(xh, xl, a, b) \
   __asm__ ("@ Inlined umul_ppmm\n"                                      \
 	"mov	%|r0, %2, lsr #16		@ AAAA\n"               \
 	"mov	%|r2, %3, lsr #16		@ BBBB\n"               \
@@ -248,30 +253,30 @@ extern UDItype __udiv_qrnnd ();
 	   : "r" ((USItype)(a)),                                        \
 	     "r" ((USItype)(b))                                         \
 	   : "r0", "r1", "r2" __AND_CLOBBER_CC)
-#else /* __ARM_ARCH >= 4 */
-#define umul_ppmm(xh, xl, a, b)                                         \
+# else /* __ARM_ARCH >= 4 */
+#  define umul_ppmm(xh, xl, a, b)                                         \
   __asm__ ("@ Inlined umul_ppmm\n"                                      \
 	   "umull %1, %0, %2, %3"                                       \
 		   : "=&r" ((xh)),                                      \
 		     "=r" ((xl))                                        \
 		   : "r" ((USItype)(a)),                                \
 		     "r" ((USItype)(b)))
-#endif /* __ARM_ARCH >= 4 */
-#define UMUL_TIME 20
-#define UDIV_TIME 100
-#if (defined __ARM_ARCH && __ARM_ARCH >= 5)
-#define count_leading_zeros(count, x) \
+# endif /* __ARM_ARCH >= 4 */
+# define UMUL_TIME 20
+# define UDIV_TIME 100
+# if (defined __ARM_ARCH && __ARM_ARCH >= 5)
+#  define count_leading_zeros(count, x) \
   __asm__ ("clz %0, %1"                                                 \
 		   : "=r" ((count))                                     \
 		   : "r" ((USItype)(x)))
-#endif /* __ARM_ARCH >= 5 */
+# endif /* __ARM_ARCH >= 5 */
 #endif /* __arm__ */
 
 /***************************************
  **********  ARM64 / Aarch64  **********
  ***************************************/
 #if defined(__aarch64__) && W_TYPE_SIZE == 64
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("adds %1, %4, %5\n"                                          \
            "adc  %0, %2, %3\n"                                          \
            : "=r" ((sh)),                                               \
@@ -280,7 +285,7 @@ extern UDItype __udiv_qrnnd ();
              "r" ((UDItype)(bh)),                                       \
              "r" ((UDItype)(al)),                                       \
              "r" ((UDItype)(bl)) __CLOBBER_CC)
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subs %1, %4, %5\n"                                          \
            "sbc  %0, %2, %3\n"                                          \
            : "=r" ((sh)),                                               \
@@ -289,7 +294,7 @@ extern UDItype __udiv_qrnnd ();
              "r" ((UDItype)(bh)),                                       \
              "r" ((UDItype)(al)),                                       \
              "r" ((UDItype)(bl)) __CLOBBER_CC)
-#define umul_ppmm(ph, pl, m0, m1) \
+# define umul_ppmm(ph, pl, m0, m1) \
   do {                                                                  \
     UDItype __m0 = (m0), __m1 = (m1), __ph;                             \
     (pl) = __m0 * __m1;                                                 \
@@ -299,7 +304,7 @@ extern UDItype __udiv_qrnnd ();
                "r" (__m1));                                             \
     (ph) = __ph; \
   } while (0)
-#define count_leading_zeros(count, x) \
+# define count_leading_zeros(count, x) \
   __asm__ ("clz %0, %1\n"                                               \
            : "=r" ((count))                                             \
            : "r" ((UDItype)(x)))
@@ -309,7 +314,7 @@ extern UDItype __udiv_qrnnd ();
  **************  CLIPPER  **************
  ***************************************/
 #if defined (__clipper__) && W_TYPE_SIZE == 32
-#define umul_ppmm(w1, w0, u, v) \
+# define umul_ppmm(w1, w0, u, v) \
   ({union {UDItype __ll;						\
 	   struct {USItype __l, __h;} __i;				\
 	  } __xx;							\
@@ -318,7 +323,7 @@ extern UDItype __udiv_qrnnd ();
 	   : "%0" ((USItype)(u)),                                       \
 	     "r" ((USItype)(v)));                                       \
   (w1) = __xx.__i.__h; (w0) = __xx.__i.__l;})
-#define smul_ppmm(w1, w0, u, v) \
+# define smul_ppmm(w1, w0, u, v) \
   ({union {DItype __ll; 						\
 	   struct {SItype __l, __h;} __i;				\
 	  } __xx;							\
@@ -327,7 +332,7 @@ extern UDItype __udiv_qrnnd ();
 	   : "%0" ((SItype)(u)),                                        \
 	     "r" ((SItype)(v)));                                        \
   (w1) = __xx.__i.__h; (w0) = __xx.__i.__l;})
-#define __umulsidi3(u, v) \
+# define __umulsidi3(u, v) \
   ({UDItype __w;							\
     __asm__ ("mulwux %2,%0"                                             \
 	     : "=r" (__w)                                               \
@@ -341,7 +346,7 @@ extern UDItype __udiv_qrnnd ();
  **************  GMICRO  ***************
  ***************************************/
 #if defined (__gmicro__) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("add.w %5,%1\n"                                              \
 	   "addx %3,%0"                                                 \
 	   : "=g" ((USItype)(sh)),                                      \
@@ -350,7 +355,7 @@ extern UDItype __udiv_qrnnd ();
 	     "g" ((USItype)(bh)),                                       \
 	     "%1" ((USItype)(al)),                                      \
 	     "g" ((USItype)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("sub.w %5,%1\n"                                              \
 	   "subx %3,%0"                                                 \
 	   : "=g" ((USItype)(sh)),                                      \
@@ -359,20 +364,20 @@ extern UDItype __udiv_qrnnd ();
 	     "g" ((USItype)(bh)),                                       \
 	     "1" ((USItype)(al)),                                       \
 	     "g" ((USItype)(bl)))
-#define umul_ppmm(ph, pl, m0, m1) \
+# define umul_ppmm(ph, pl, m0, m1) \
   __asm__ ("mulx %3,%0,%1"                                              \
 	   : "=g" ((USItype)(ph)),                                      \
 	     "=r" ((USItype)(pl))                                       \
 	   : "%0" ((USItype)(m0)),                                      \
 	     "g" ((USItype)(m1)))
-#define udiv_qrnnd(q, r, nh, nl, d) \
+# define udiv_qrnnd(q, r, nh, nl, d) \
   __asm__ ("divx %4,%0,%1"                                              \
 	   : "=g" ((USItype)(q)),                                       \
 	     "=r" ((USItype)(r))                                        \
 	   : "1" ((USItype)(nh)),                                       \
 	     "0" ((USItype)(nl)),                                       \
 	     "g" ((USItype)(d)))
-#define count_leading_zeros(count, x) \
+# define count_leading_zeros(count, x) \
   __asm__ ("bsch/1 %1,%0"                                               \
 	   : "=g" (count)                                               \
 	   : "g" ((USItype)(x)),                                        \
@@ -384,7 +389,7 @@ extern UDItype __udiv_qrnnd ();
  **************  HPPA  *****************
  ***************************************/
 #if defined (__hppa) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("	add %4,%5,%1\n"                                             \
  	   "	addc %2,%3,%0"                                              \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -393,7 +398,7 @@ extern UDItype __udiv_qrnnd ();
 	     "rM" ((USItype)(bh)),                                      \
 	     "%rM" ((USItype)(al)),                                     \
 	     "rM" ((USItype)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("	sub %4,%5,%1\n"                                             \
 	   "	subb %2,%3,%0"                                              \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -402,8 +407,8 @@ extern UDItype __udiv_qrnnd ();
 	     "rM" ((USItype)(bh)),                                      \
 	     "rM" ((USItype)(al)),                                      \
 	     "rM" ((USItype)(bl)))
-#if defined (_PA_RISC1_1)
-#define umul_ppmm(wh, wl, u, v) \
+# if defined (_PA_RISC1_1)
+#  define umul_ppmm(wh, wl, u, v) \
   do {									\
     union {UDItype __ll;						\
 	   struct {USItype __h, __l;} __i;				\
@@ -415,21 +420,21 @@ extern UDItype __udiv_qrnnd ();
     (wh) = __xx.__i.__h;						\
     (wl) = __xx.__i.__l;						\
   } while (0)
-#define UMUL_TIME 8
-#define UDIV_TIME 60
-#else
-#define UMUL_TIME 40
-#define UDIV_TIME 80
-#endif
-#ifndef LONGLONG_STANDALONE
-#define udiv_qrnnd(q, r, n1, n0, d) \
+#  define UMUL_TIME 8
+#  define UDIV_TIME 60
+# else
+#  define UMUL_TIME 40
+#  define UDIV_TIME 80
+# endif
+# ifndef LONGLONG_STANDALONE
+#  define udiv_qrnnd(q, r, n1, n0, d) \
   do { USItype __r;							\
     (q) = __udiv_qrnnd (&__r, (n1), (n0), (d)); 			\
     (r) = __r;								\
   } while (0)
 extern USItype __udiv_qrnnd ();
-#endif /* LONGLONG_STANDALONE */
-#define count_leading_zeros(count, x) \
+# endif /* !LONGLONG_STANDALONE */
+# define count_leading_zeros(count, x) \
   do {								       \
     USItype __tmp;						       \
     __asm__ (				                               \
@@ -457,7 +462,7 @@ extern USItype __udiv_qrnnd ();
  **************  I370  *****************
  ***************************************/
 #if (defined (__i370__) || defined (__mvs__)) && W_TYPE_SIZE == 32
-#define umul_ppmm(xh, xl, m0, m1) \
+# define umul_ppmm(xh, xl, m0, m1) \
   do {									\
     union {UDItype __ll;						\
 	   struct {USItype __h, __l;} __i;				\
@@ -472,7 +477,7 @@ extern USItype __udiv_qrnnd ();
     (xh) += ((((SItype) __m0 >> 31) & __m1)				\
 	     + (((SItype) __m1 >> 31) & __m0)); 			\
   } while (0)
-#define smul_ppmm(xh, xl, m0, m1) \
+# define smul_ppmm(xh, xl, m0, m1) \
   do {									\
     union {DItype __ll; 						\
 	   struct {USItype __h, __l;} __i;				\
@@ -484,7 +489,7 @@ extern USItype __udiv_qrnnd ();
 	       "r" (m1));                                               \
     (xh) = __xx.__i.__h; (xl) = __xx.__i.__l;				\
   } while (0)
-#define sdiv_qrnnd(q, r, n1, n0, d) \
+# define sdiv_qrnnd(q, r, n1, n0, d) \
   do {									\
     union {DItype __ll; 						\
 	   struct {USItype __h, __l;} __i;				\
@@ -502,7 +507,7 @@ extern USItype __udiv_qrnnd ();
  **************  I386  *****************
  ***************************************/
 #if (defined (__i386__) || defined (__i486__)) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("addl %5,%1\n"                                               \
 	   "adcl %3,%0"                                                 \
 	   : "=r" ((sh)),                                               \
@@ -512,7 +517,7 @@ extern USItype __udiv_qrnnd ();
 	     "%1" ((USItype)(al)),                                      \
 	     "g" ((USItype)(bl))                                        \
 	   __CLOBBER_CC)
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subl %5,%1\n"                                               \
 	   "sbbl %3,%0"                                                 \
 	   : "=r" ((sh)),                                               \
@@ -522,14 +527,14 @@ extern USItype __udiv_qrnnd ();
 	     "1" ((USItype)(al)),                                       \
 	     "g" ((USItype)(bl))                                        \
 	   __CLOBBER_CC)
-#define umul_ppmm(w1, w0, u, v) \
+# define umul_ppmm(w1, w0, u, v) \
   __asm__ ("mull %3"                                                    \
 	   : "=a" ((w0)),                                               \
 	     "=d" ((w1))                                                \
 	   : "%0" ((USItype)(u)),                                       \
 	     "rm" ((USItype)(v))                                        \
 	   __CLOBBER_CC)
-#define udiv_qrnnd(q, r, n1, n0, d) \
+# define udiv_qrnnd(q, r, n1, n0, d) \
   __asm__ ("divl %4"                                                    \
 	   : "=a" ((q)),                                                \
 	     "=d" ((r))                                                 \
@@ -537,7 +542,7 @@ extern USItype __udiv_qrnnd ();
 	     "1" ((USItype)(n1)),                                       \
 	     "rm" ((USItype)(d))                                        \
 	   __CLOBBER_CC)
-#define count_leading_zeros(count, x) \
+# define count_leading_zeros(count, x) \
   do {									\
     USItype __cbtmp;							\
     __asm__ ("bsrl %1,%0"                                               \
@@ -545,21 +550,21 @@ extern USItype __udiv_qrnnd ();
 	     __CLOBBER_CC);						\
     (count) = __cbtmp ^ 31;						\
   } while (0)
-#define count_trailing_zeros(count, x) \
+# define count_trailing_zeros(count, x) \
   __asm__ ("bsfl %1,%0" : "=r" (count) : "rm" ((USItype)(x)) __CLOBBER_CC)
-#ifndef UMUL_TIME
-#define UMUL_TIME 40
-#endif
-#ifndef UDIV_TIME
-#define UDIV_TIME 40
-#endif
+# ifndef UMUL_TIME
+#  define UMUL_TIME 40
+# endif
+# ifndef UDIV_TIME
+#  define UDIV_TIME 40
+# endif
 #endif /* 80x86 */
 
 /***************************************
  *********** AMD64 / x86-64 ************
  ***************************************/
 #if defined(__x86_64) && W_TYPE_SIZE == 64
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("addq %5,%1\n"                                               \
 	   "adcq %3,%0"                                                 \
 	   : "=r" ((sh)),                                               \
@@ -569,7 +574,7 @@ extern USItype __udiv_qrnnd ();
 	     "1" ((UDItype)(al)),                                       \
 	     "g"  ((UDItype)(bl))                                       \
 	   __CLOBBER_CC)
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subq %5,%1\n"                                               \
 	   "sbbq %3,%0"                                                 \
 	   : "=r" ((sh)),                                               \
@@ -579,14 +584,14 @@ extern USItype __udiv_qrnnd ();
 	     "1" ((UDItype)(al)),                                       \
 	     "g" ((UDItype)(bl))                                        \
 	   __CLOBBER_CC)
-#define umul_ppmm(w1, w0, u, v) \
+# define umul_ppmm(w1, w0, u, v) \
   __asm__ ("mulq %3"                                                    \
 	   : "=a" ((w0)),                                               \
 	     "=d" ((w1))                                                \
 	   : "0" ((UDItype)(u)),                                        \
 	     "rm" ((UDItype)(v))                                        \
 	   __CLOBBER_CC)
-#define udiv_qrnnd(q, r, n1, n0, d) \
+# define udiv_qrnnd(q, r, n1, n0, d) \
   __asm__ ("divq %4"                                                    \
 	   : "=a" ((q)),                                                \
 	     "=d" ((r))                                                 \
@@ -594,7 +599,7 @@ extern USItype __udiv_qrnnd ();
 	     "1" ((UDItype)(n1)),                                       \
 	     "rm" ((UDItype)(d))                                        \
 	   __CLOBBER_CC)
-#define count_leading_zeros(count, x) \
+# define count_leading_zeros(count, x) \
   do {                                                                  \
     UDItype __cbtmp;                                                    \
     __asm__ ("bsrq %1,%0"                                               \
@@ -602,7 +607,7 @@ extern USItype __udiv_qrnnd ();
              __CLOBBER_CC);                                             \
     (count) = __cbtmp ^ 63;                                             \
   } while (0)
-#define count_trailing_zeros(count, x) \
+# define count_trailing_zeros(count, x) \
   do {                                                                  \
     UDItype __cbtmp;                                                    \
     __asm__ ("bsfq %1,%0"                                               \
@@ -610,12 +615,12 @@ extern USItype __udiv_qrnnd ();
              __CLOBBER_CC);                                             \
     (count) = __cbtmp;                                                  \
   } while (0)
-#ifndef UMUL_TIME
-#define UMUL_TIME 40
-#endif
-#ifndef UDIV_TIME
-#define UDIV_TIME 40
-#endif
+# ifndef UMUL_TIME
+#  define UMUL_TIME 40
+# endif
+# ifndef UDIV_TIME
+#  define UDIV_TIME 40
+# endif
 #endif /* __x86_64 */
 
 
@@ -623,7 +628,7 @@ extern USItype __udiv_qrnnd ();
  **************  I860  *****************
  ***************************************/
 #if defined (__i860__) && W_TYPE_SIZE == 32
-#define rshift_rhlc(r,h,l,c) \
+# define rshift_rhlc(r,h,l,c) \
   __asm__ ("shr %3,r0,r0\n"  \
            "shrd %1,%2,%0"   \
 	   "=r" (r) : "r" (h), "r" (l), "rn" (c))
@@ -633,7 +638,7 @@ extern USItype __udiv_qrnnd ();
  **************  I960  *****************
  ***************************************/
 #if defined (__i960__) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("cmpo 1,0\n"      \
            "addc %5,%4,%1\n" \
            "addc %3,%2,%0"   \
@@ -643,7 +648,7 @@ extern USItype __udiv_qrnnd ();
 	     "dI" ((USItype)(bh)),                                      \
 	     "%dI" ((USItype)(al)),                                     \
 	     "dI" ((USItype)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("cmpo 0,0\n"      \
            "subc %5,%4,%1\n" \
            "subc %3,%2,%0"   \
@@ -653,7 +658,7 @@ extern USItype __udiv_qrnnd ();
 	     "dI" ((USItype)(bh)),                                      \
 	     "dI" ((USItype)(al)),                                      \
 	     "dI" ((USItype)(bl)))
-#define umul_ppmm(w1, w0, u, v) \
+# define umul_ppmm(w1, w0, u, v) \
   ({union {UDItype __ll;						\
 	   struct {USItype __l, __h;} __i;				\
 	  } __xx;							\
@@ -662,14 +667,14 @@ extern USItype __udiv_qrnnd ();
 	   : "%dI" ((USItype)(u)),                                      \
 	     "dI" ((USItype)(v)));                                      \
   (w1) = __xx.__i.__h; (w0) = __xx.__i.__l;})
-#define __umulsidi3(u, v) \
+# define __umulsidi3(u, v) \
   ({UDItype __w;							\
     __asm__ ("emul      %2,%1,%0"                                       \
 	     : "=d" (__w)                                               \
 	     : "%dI" ((USItype)(u)),                                    \
 	       "dI" ((USItype)(v)));                                    \
     __w; })
-#define udiv_qrnnd(q, r, nh, nl, d) \
+# define udiv_qrnnd(q, r, nh, nl, d) \
   do {									\
     union {UDItype __ll;						\
 	   struct {USItype __l, __h;} __i;				\
@@ -681,7 +686,7 @@ extern USItype __udiv_qrnnd ();
 	     "dI" ((USItype)(d)));                                      \
     (r) = __rq.__i.__l; (q) = __rq.__i.__h;				\
   } while (0)
-#define count_leading_zeros(count, x) \
+# define count_leading_zeros(count, x) \
   do {									\
     USItype __cbtmp;							\
     __asm__ ("scanbit %1,%0"                                            \
@@ -689,9 +694,9 @@ extern USItype __udiv_qrnnd ();
 	     : "r" ((USItype)(x)));                                     \
     (count) = __cbtmp ^ 31;						\
   } while (0)
-#define COUNT_LEADING_ZEROS_0 (-32) /* sic */
-#if defined (__i960mx)		/* what is the proper symbol to test??? */
-#define rshift_rhlc(r,h,l,c) \
+# define COUNT_LEADING_ZEROS_0 (-32) /* sic */
+# if defined (__i960mx)  /* what is the proper symbol to test??? */
+#  define rshift_rhlc(r,h,l,c) \
   do {									\
     union {UDItype __ll;						\
 	   struct {USItype __l, __h;} __i;				\
@@ -700,15 +705,16 @@ extern USItype __udiv_qrnnd ();
     __asm__ ("shre %2,%1,%0"                                            \
 	     : "=d" (r) : "dI" (__nn.__ll), "dI" (c));                  \
   }
-#endif /* i960mx */
+# endif /* i960mx */
 #endif /* i960 */
 
 
 /***************************************
  **************  68000	****************
  ***************************************/
-#if (defined (__mc68000__) || defined (__mc68020__) || defined (__NeXT__) || defined(mc68020)) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+#if (defined (__mc68000__) || defined (__mc68020__)                     \
+     || defined (__NeXT__) || defined(mc68020)) && W_TYPE_SIZE == 32
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("add%.l %5,%1\n"                                             \
 	   "addx%.l %3,%0"                                              \
 	   : "=d" ((USItype)(sh)),                                      \
@@ -717,7 +723,7 @@ extern USItype __udiv_qrnnd ();
 	     "d" ((USItype)(bh)),                                       \
 	     "%1" ((USItype)(al)),                                      \
 	     "g" ((USItype)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("sub%.l %5,%1\n"                                             \
 	   "subx%.l %3,%0"                                              \
 	   : "=d" ((USItype)(sh)),                                      \
@@ -726,36 +732,36 @@ extern USItype __udiv_qrnnd ();
 	     "d" ((USItype)(bh)),                                       \
 	     "1" ((USItype)(al)),                                       \
 	     "g" ((USItype)(bl)))
-#if (defined (__mc68020__) || defined (__NeXT__) || defined(mc68020))
-#define umul_ppmm(w1, w0, u, v) \
+# if (defined (__mc68020__) || defined (__NeXT__) || defined(mc68020))
+#  define umul_ppmm(w1, w0, u, v) \
   __asm__ ("mulu%.l %3,%1:%0"                                           \
 	   : "=d" ((USItype)(w0)),                                      \
 	     "=d" ((USItype)(w1))                                       \
 	   : "%0" ((USItype)(u)),                                       \
 	     "dmi" ((USItype)(v)))
-#define UMUL_TIME 45
-#define udiv_qrnnd(q, r, n1, n0, d) \
+#  define UMUL_TIME 45
+#  define udiv_qrnnd(q, r, n1, n0, d) \
   __asm__ ("divu%.l %4,%1:%0"                                           \
 	   : "=d" ((USItype)(q)),                                       \
 	     "=d" ((USItype)(r))                                        \
 	   : "0" ((USItype)(n0)),                                       \
 	     "1" ((USItype)(n1)),                                       \
 	     "dmi" ((USItype)(d)))
-#define UDIV_TIME 90
-#define sdiv_qrnnd(q, r, n1, n0, d) \
+#  define UDIV_TIME 90
+#  define sdiv_qrnnd(q, r, n1, n0, d) \
   __asm__ ("divs%.l %4,%1:%0"                                           \
 	   : "=d" ((USItype)(q)),                                       \
 	     "=d" ((USItype)(r))                                        \
 	   : "0" ((USItype)(n0)),                                       \
 	     "1" ((USItype)(n1)),                                       \
 	     "dmi" ((USItype)(d)))
-#define count_leading_zeros(count, x) \
+#  define count_leading_zeros(count, x) \
   __asm__ ("bfffo %1{%b2:%b2},%0"                                       \
 	   : "=d" ((USItype)(count))                                    \
 	   : "od" ((USItype)(x)), "n" (0))
-#define COUNT_LEADING_ZEROS_0 32
-#else /* not mc68020 */
-#define umul_ppmm(xh, xl, a, b) \
+#  define COUNT_LEADING_ZEROS_0 32
+# else /* not mc68020 */
+#  define umul_ppmm(xh, xl, a, b) \
   do { USItype __umul_tmp1, __umul_tmp2;			  \
 	__asm__ ("| Inlined umul_ppmm                         \n" \
  "        move%.l %5,%3                                       \n" \
@@ -783,9 +789,9 @@ extern USItype __udiv_qrnnd ();
 		"=d" (__umul_tmp1), "=&d" (__umul_tmp2)           \
 	      : "%2" ((USItype)(a)), "d" ((USItype)(b)));         \
   } while (0)
-#define UMUL_TIME 100
-#define UDIV_TIME 400
-#endif /* not mc68020 */
+#  define UMUL_TIME 100
+#  define UDIV_TIME 400
+# endif /* not mc68020 */
 #endif /* mc68000 */
 
 
@@ -793,7 +799,7 @@ extern USItype __udiv_qrnnd ();
  **************  88000	****************
  ***************************************/
 #if defined (__m88000__) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("addu.co %1,%r4,%r5\n"                                       \
 	   "addu.ci %0,%r2,%r3"                                         \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -802,7 +808,7 @@ extern USItype __udiv_qrnnd ();
 	     "rJ" ((USItype)(bh)),                                      \
 	     "%rJ" ((USItype)(al)),                                     \
 	     "rJ" ((USItype)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subu.co %1,%r4,%r5\n"                                       \
 	   "subu.ci %0,%r2,%r3"                                         \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -811,7 +817,7 @@ extern USItype __udiv_qrnnd ();
 	     "rJ" ((USItype)(bh)),                                      \
 	     "rJ" ((USItype)(al)),                                      \
 	     "rJ" ((USItype)(bl)))
-#define count_leading_zeros(count, x) \
+# define count_leading_zeros(count, x) \
   do {									\
     USItype __cbtmp;							\
     __asm__ ("ff1 %0,%1"                                                \
@@ -819,9 +825,9 @@ extern USItype __udiv_qrnnd ();
 	     : "r" ((USItype)(x)));                                     \
     (count) = __cbtmp ^ 31;						\
   } while (0)
-#define COUNT_LEADING_ZEROS_0 63 /* sic */
-#if defined (__m88110__)
-#define umul_ppmm(wh, wl, u, v) \
+# define COUNT_LEADING_ZEROS_0 63 /* sic */
+# if defined (__m88110__)
+#  define umul_ppmm(wh, wl, u, v) \
   do {									\
     union {UDItype __ll;						\
 	   struct {USItype __h, __l;} __i;				\
@@ -830,7 +836,7 @@ extern USItype __udiv_qrnnd ();
     (wh) = __x.__i.__h; 						\
     (wl) = __x.__i.__l; 						\
   } while (0)
-#define udiv_qrnnd(q, r, n1, n0, d) \
+#  define udiv_qrnnd(q, r, n1, n0, d) \
   ({union {UDItype __ll;						\
 	   struct {USItype __h, __l;} __i;				\
 	  } __x, __q;							\
@@ -838,36 +844,36 @@ extern USItype __udiv_qrnnd ();
   __asm__ ("divu.d %0,%1,%2"                                            \
 	   : "=r" (__q.__ll) : "r" (__x.__ll), "r" (d));                \
   (r) = (n0) - __q.__l * (d); (q) = __q.__l; })
-#define UMUL_TIME 5
-#define UDIV_TIME 25
-#else
-#define UMUL_TIME 17
-#define UDIV_TIME 150
-#endif /* __m88110__ */
+#  define UMUL_TIME 5
+#  define UDIV_TIME 25
+# else
+#  define UMUL_TIME 17
+#  define UDIV_TIME 150
+# endif /* __m88110__ */
 #endif /* __m88000__ */
 
 /***************************************
  **************  MIPS  *****************
  ***************************************/
 #if defined (__mips__) && W_TYPE_SIZE == 32
-#if defined (__clang__) || (__GNUC__ >= 5) || (__GNUC__ == 4 && \
+# if defined (__clang__) || (__GNUC__ >= 5) || (__GNUC__ == 4 && \
                                                __GNUC_MINOR__ >= 4)
-#define umul_ppmm(w1, w0, u, v) \
+#  define umul_ppmm(w1, w0, u, v) \
   do {                                                                  \
     UDItype _r;                                                         \
     _r = (UDItype) u * v;                                               \
     (w1) = _r >> 32;                                                    \
     (w0) = (USItype) _r;                                                \
   } while (0)
-#elif __GNUC__ > 2 || __GNUC_MINOR__ >= 7
-#define umul_ppmm(w1, w0, u, v) \
+# elif __GNUC__ > 2 || __GNUC_MINOR__ >= 7
+#  define umul_ppmm(w1, w0, u, v) \
   __asm__ ("multu %2,%3"                                                \
 	   : "=l" ((USItype)(w0)),                                      \
 	     "=h" ((USItype)(w1))                                       \
 	   : "d" ((USItype)(u)),                                        \
 	     "d" ((USItype)(v)))
-#else
-#define umul_ppmm(w1, w0, u, v) \
+# else
+#  define umul_ppmm(w1, w0, u, v) \
   __asm__ ("multu %2,%3 \n" \
 	   "mflo %0 \n"     \
 	   "mfhi %1"                                                        \
@@ -875,33 +881,33 @@ extern USItype __udiv_qrnnd ();
 	     "=d" ((USItype)(w1))                                       \
 	   : "d" ((USItype)(u)),                                        \
 	     "d" ((USItype)(v)))
-#endif
-#define UMUL_TIME 10
-#define UDIV_TIME 100
+# endif
+# define UMUL_TIME 10
+# define UDIV_TIME 100
 #endif /* __mips__ */
 
 /***************************************
  **************  MIPS/64  **************
  ***************************************/
 #if (defined (__mips) && __mips >= 3) && W_TYPE_SIZE == 64
-#if (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4)
+# if (__GNUC__ >= 5) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4)
 typedef unsigned int UTItype __attribute__ ((mode (TI)));
-#define umul_ppmm(w1, w0, u, v) \
+#  define umul_ppmm(w1, w0, u, v) \
   do {                                                                 \
     UTItype _r;                                                        \
     _r = (UTItype) u * v;                                              \
     (w1) = _r >> 64;                                                   \
     (w0) = (UDItype) _r;                                               \
   } while (0)
-#elif __GNUC__ > 2 || __GNUC_MINOR__ >= 7
-#define umul_ppmm(w1, w0, u, v) \
+# elif __GNUC__ > 2 || __GNUC_MINOR__ >= 7
+#  define umul_ppmm(w1, w0, u, v) \
   __asm__ ("dmultu %2,%3"                                               \
 	   : "=l" ((UDItype)(w0)),                                      \
 	     "=h" ((UDItype)(w1))                                       \
 	   : "d" ((UDItype)(u)),                                        \
 	     "d" ((UDItype)(v)))
-#else
-#define umul_ppmm(w1, w0, u, v) \
+# else
+#  define umul_ppmm(w1, w0, u, v) \
   __asm__ ("dmultu %2,%3 \n"    \
 	   "mflo %0 \n"         \
 	   "mfhi %1"                                                        \
@@ -909,9 +915,9 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	     "=d" ((UDItype)(w1))                                       \
 	   : "d" ((UDItype)(u)),                                        \
 	     "d" ((UDItype)(v)))
-#endif
-#define UMUL_TIME 20
-#define UDIV_TIME 140
+# endif
+# define UMUL_TIME 20
+# define UDIV_TIME 140
 #endif /* __mips__ */
 
 
@@ -919,7 +925,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
  **************  32000	****************
  ***************************************/
 #if defined (__ns32000__) && W_TYPE_SIZE == 32
-#define umul_ppmm(w1, w0, u, v) \
+# define umul_ppmm(w1, w0, u, v) \
   ({union {UDItype __ll;						\
 	   struct {USItype __l, __h;} __i;				\
 	  } __xx;							\
@@ -928,14 +934,14 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	   : "%0" ((USItype)(u)),                                       \
 	     "g" ((USItype)(v)));                                       \
   (w1) = __xx.__i.__h; (w0) = __xx.__i.__l;})
-#define __umulsidi3(u, v) \
+# define __umulsidi3(u, v) \
   ({UDItype __w;							\
     __asm__ ("meid %2,%0"                                               \
 	     : "=g" (__w)                                               \
 	     : "%0" ((USItype)(u)),                                     \
 	       "g" ((USItype)(v)));                                     \
     __w; })
-#define udiv_qrnnd(q, r, n1, n0, d) \
+# define udiv_qrnnd(q, r, n1, n0, d) \
   ({union {UDItype __ll;						\
 	   struct {USItype __l, __h;} __i;				\
 	  } __xx;							\
@@ -945,7 +951,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	   : "0" (__xx.__ll),                                           \
 	     "g" ((USItype)(d)));                                       \
   (r) = __xx.__i.__l; (q) = __xx.__i.__h; })
-#define count_trailing_zeros(count,x) \
+# define count_trailing_zeros(count,x) \
   do {
     __asm__ ("ffsd      %2,%0"                                          \
 	     : "=r" ((USItype) (count))                                 \
@@ -959,7 +965,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
  **************  PPC  ******************
  ***************************************/
 #if (defined (_ARCH_PPC) || defined (_IBMR2)) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   do {									\
     if (__builtin_constant_p (bh) && (bh) == 0) 			\
       __asm__ ("{a%I4|add%I4c} %1,%3,%4\n\t{aze|addze} %0,%2"           \
@@ -984,7 +990,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	       "%r" ((USItype)(al)),                                    \
 	       "rI" ((USItype)(bl)));                                   \
   } while (0)
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   do {									\
     if (__builtin_constant_p (ah) && (ah) == 0) 			\
       __asm__ ("{sf%I3|subf%I3c} %1,%4,%3\n\t{sfze|subfze} %0,%2"       \
@@ -1023,13 +1029,13 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 		 "rI" ((USItype)(al)),                                  \
 		 "r" ((USItype)(bl)));                                  \
   } while (0)
-#define count_leading_zeros(count, x) \
+# define count_leading_zeros(count, x) \
   __asm__ ("{cntlz|cntlzw} %0,%1"                                       \
 	   : "=r" ((count))                                             \
 	   : "r" ((USItype)(x)))
-#define COUNT_LEADING_ZEROS_0 32
-#if defined (_ARCH_PPC)
-#define umul_ppmm(ph, pl, m0, m1) \
+# define COUNT_LEADING_ZEROS_0 32
+# if defined (_ARCH_PPC)
+#  define umul_ppmm(ph, pl, m0, m1) \
   do {									\
     USItype __m0 = (m0), __m1 = (m1);					\
     __asm__ ("mulhwu %0,%1,%2"                                          \
@@ -1038,8 +1044,8 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	       "r" (__m1));                                             \
     (pl) = __m0 * __m1; 						\
   } while (0)
-#define UMUL_TIME 15
-#define smul_ppmm(ph, pl, m0, m1) \
+#  define UMUL_TIME 15
+#  define smul_ppmm(ph, pl, m0, m1) \
   do {									\
     SItype __m0 = (m0), __m1 = (m1);					\
     __asm__ ("mulhw %0,%1,%2"                                           \
@@ -1048,10 +1054,10 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	       "r" (__m1));                                             \
     (pl) = __m0 * __m1; 						\
   } while (0)
-#define SMUL_TIME 14
-#define UDIV_TIME 120
-#else
-#define umul_ppmm(xh, xl, m0, m1) \
+#  define SMUL_TIME 14
+#  define UDIV_TIME 120
+# else
+#  define umul_ppmm(xh, xl, m0, m1) \
   do {									\
     USItype __m0 = (m0), __m1 = (m1);					\
     __asm__ ("mul %0,%2,%3"                                             \
@@ -1062,20 +1068,20 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
     (xh) += ((((SItype) __m0 >> 31) & __m1)				\
 	     + (((SItype) __m1 >> 31) & __m0)); 			\
   } while (0)
-#define UMUL_TIME 8
-#define smul_ppmm(xh, xl, m0, m1) \
+#  define UMUL_TIME 8
+#  define smul_ppmm(xh, xl, m0, m1) \
   __asm__ ("mul %0,%2,%3"                                               \
 	   : "=r" ((SItype)(xh)),                                       \
 	     "=q" ((SItype)(xl))                                        \
 	   : "r" (m0),                                                  \
 	     "r" (m1))
-#define SMUL_TIME 4
-#define sdiv_qrnnd(q, r, nh, nl, d) \
+#  define SMUL_TIME 4
+#  define sdiv_qrnnd(q, r, nh, nl, d) \
   __asm__ ("div %0,%2,%4"                                               \
 	   : "=r" ((SItype)(q)), "=q" ((SItype)(r))                     \
 	   : "r" ((SItype)(nh)), "1" ((SItype)(nl)), "r" ((SItype)(d)))
-#define UDIV_TIME 100
-#endif
+#  define UDIV_TIME 100
+# endif
 #endif /* Power architecture variants.	*/
 
 /* Powerpc 64 bit support taken from gmp-4.1.2. */
@@ -1140,7 +1146,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
  **************  PYR  ******************
  ***************************************/
 #if defined (__pyr__) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("addw        %5,%1 \n" \
 	   "addwc	%3,%0"                                          \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -1149,7 +1155,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	     "g" ((USItype)(bh)),                                       \
 	     "%1" ((USItype)(al)),                                      \
 	     "g" ((USItype)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subw        %5,%1 \n" \
 	   "subwb	%3,%0"                                          \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -1159,7 +1165,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	     "1" ((USItype)(al)),                                       \
 	     "g" ((USItype)(bl)))
 /* This insn works on Pyramids with AP, XP, or MI CPUs, but not with SP.  */
-#define umul_ppmm(w1, w0, u, v) \
+# define umul_ppmm(w1, w0, u, v) \
   ({union {UDItype __ll;						\
 	   struct {USItype __h, __l;} __i;				\
 	  } __xx;							\
@@ -1176,7 +1182,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
  **************  RT/ROMP  **************
  ***************************************/
 #if defined (__ibm032__) /* RT/ROMP */	&& W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("a %1,%5 \n" \
 	   "ae %0,%3"                                                   \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -1185,7 +1191,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	     "r" ((USItype)(bh)),                                       \
 	     "%1" ((USItype)(al)),                                      \
 	     "r" ((USItype)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("s %1,%5\n" \
 	   "se %0,%3"                                                   \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -1194,7 +1200,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	     "r" ((USItype)(bh)),                                       \
 	     "1" ((USItype)(al)),                                       \
 	     "r" ((USItype)(bl)))
-#define umul_ppmm(ph, pl, m0, m1) \
+# define umul_ppmm(ph, pl, m0, m1) \
   do {									\
     USItype __m0 = (m0), __m1 = (m1);					\
     __asm__ (								\
@@ -1226,9 +1232,9 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
     (ph) += ((((SItype) __m0 >> 31) & __m1)				\
 	     + (((SItype) __m1 >> 31) & __m0)); 			\
   } while (0)
-#define UMUL_TIME 20
-#define UDIV_TIME 200
-#define count_leading_zeros(count, x) \
+# define UMUL_TIME 20
+# define UDIV_TIME 200
+# define count_leading_zeros(count, x) \
   do {									\
     if ((x) >= 0x10000) 						\
       __asm__ ("clz     %0,%1"                                          \
@@ -1250,7 +1256,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
  ***************************************/
 #if (defined (__sh2__) || defined(__sh3__) || defined(__SH4__) ) \
     && W_TYPE_SIZE == 32
-#define umul_ppmm(w1, w0, u, v) \
+# define umul_ppmm(w1, w0, u, v) \
   __asm__ (								\
         "dmulu.l %2,%3\n"  \
 	"sts	macl,%1\n" \
@@ -1260,14 +1266,14 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	   : "r" ((USItype)(u)),                                        \
 	     "r" ((USItype)(v))                                         \
 	   : "macl", "mach")
-#define UMUL_TIME 5
+# define UMUL_TIME 5
 #endif
 
 /***************************************
  **************  SPARC	****************
  ***************************************/
 #if defined (__sparc__) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("addcc %r4,%5,%1\n" \
 	   "addx %r2,%3,%0"                                             \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -1277,7 +1283,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	     "%rJ" ((USItype)(al)),                                     \
 	     "rI" ((USItype)(bl))                                       \
 	   __CLOBBER_CC)
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subcc %r4,%5,%1\n" \
 	   "subx %r2,%3,%0"                                             \
 	   : "=r" ((USItype)(sh)),                                      \
@@ -1287,20 +1293,20 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	     "rJ" ((USItype)(al)),                                      \
 	     "rI" ((USItype)(bl))                                       \
 	   __CLOBBER_CC)
-#if defined (__sparc_v8__)
+# if defined (__sparc_v8__)
 /* Don't match immediate range because, 1) it is not often useful,
    2) the 'I' flag thinks of the range as a 13 bit signed interval,
    while we want to match a 13 bit interval, sign extended to 32 bits,
    but INTERPRETED AS UNSIGNED.  */
-#define umul_ppmm(w1, w0, u, v) \
+#  define umul_ppmm(w1, w0, u, v) \
   __asm__ ("umul %2,%3,%1;rd %%y,%0"                                    \
 	   : "=r" ((USItype)(w1)),                                      \
 	     "=r" ((USItype)(w0))                                       \
 	   : "r" ((USItype)(u)),                                        \
 	     "r" ((USItype)(v)))
-#define UMUL_TIME 5
-#ifndef SUPERSPARC	/* SuperSPARC's udiv only handles 53 bit dividends */
-#define udiv_qrnnd(q, r, n1, n0, d) \
+#  define UMUL_TIME 5
+#  ifndef SUPERSPARC	/* SuperSPARC's udiv only handles 53 bit dividends */
+#   define udiv_qrnnd(q, r, n1, n0, d) \
   do {									\
     USItype __q;							\
     __asm__ ("mov %1,%%y;nop;nop;nop;udiv %2,%3,%0"                     \
@@ -1311,20 +1317,20 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
     (r) = (n0) - __q * (d);						\
     (q) = __q;								\
   } while (0)
-#define UDIV_TIME 25
-#endif /* SUPERSPARC */
-#else /* ! __sparc_v8__ */
-#if defined (__sparclite__)
+#   define UDIV_TIME 25
+#  endif /*!SUPERSPARC */
+# else /* ! __sparc_v8__ */
+#  if defined (__sparclite__)
 /* This has hardware multiply but not divide.  It also has two additional
    instructions scan (ffs from high bit) and divscc.  */
-#define umul_ppmm(w1, w0, u, v) \
+#   define umul_ppmm(w1, w0, u, v) \
   __asm__ ("umul %2,%3,%1;rd %%y,%0"                                    \
 	   : "=r" ((USItype)(w1)),                                      \
 	     "=r" ((USItype)(w0))                                       \
 	   : "r" ((USItype)(u)),                                        \
 	     "r" ((USItype)(v)))
-#define UMUL_TIME 5
-#define udiv_qrnnd(q, r, n1, n0, d) \
+#   define UMUL_TIME 5
+#   define udiv_qrnnd(q, r, n1, n0, d) \
   __asm__ ("! Inlined udiv_qrnnd                                     \n" \
  "        wr	%%g0,%2,%%y	! Not a delayed write for sparclite  \n" \
  "        tst	%%g0                                                 \n" \
@@ -1370,19 +1376,19 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	     "r" ((USItype)(n0)),                                       \
 	     "rI" ((USItype)(d))                                        \
 	   : "%g1" __AND_CLOBBER_CC)
-#define UDIV_TIME 37
-#define count_leading_zeros(count, x) \
+#   define UDIV_TIME 37
+#   define count_leading_zeros(count, x) \
   __asm__ ("scan %1,0,%0"                                               \
 	   : "=r" ((USItype)(x))                                        \
 	   : "r" ((USItype)(count)))
 /* Early sparclites return 63 for an argument of 0, but they warn that future
    implementations might change this.  Therefore, leave COUNT_LEADING_ZEROS_0
    undefined.  */
-#endif /* __sparclite__ */
-#endif /* __sparc_v8__ */
+#  endif /* !__sparclite__ */
+# endif /* !__sparc_v8__ */
 /* Default to sparc v7 versions of umul_ppmm and udiv_qrnnd.  */
-#ifndef umul_ppmm
-#define umul_ppmm(w1, w0, u, v) \
+# ifndef umul_ppmm
+#  define umul_ppmm(w1, w0, u, v) \
   __asm__ ("! Inlined umul_ppmm                                        \n" \
  "        wr	%%g0,%2,%%y	! SPARC has 0-3 delay insn after a wr  \n" \
  "        sra	%3,31,%%g2	! Don't move this insn                 \n" \
@@ -1428,19 +1434,19 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	   : "%rI" ((USItype)(u)),                                      \
 	     "r" ((USItype)(v))                                         \
 	   : "%g1", "%g2" __AND_CLOBBER_CC)
-#define UMUL_TIME 39		/* 39 instructions */
-#endif
-#ifndef udiv_qrnnd
-#ifndef LONGLONG_STANDALONE
-#define udiv_qrnnd(q, r, n1, n0, d) \
+#  define UMUL_TIME 39		/* 39 instructions */
+# endif /* umul_ppmm */
+# ifndef udiv_qrnnd
+#  ifndef LONGLONG_STANDALONE
+#   define udiv_qrnnd(q, r, n1, n0, d) \
   do { USItype __r;							\
     (q) = __udiv_qrnnd (&__r, (n1), (n0), (d)); 			\
     (r) = __r;								\
   } while (0)
 extern USItype __udiv_qrnnd ();
-#define UDIV_TIME 140
-#endif /* LONGLONG_STANDALONE */
-#endif /* udiv_qrnnd */
+#   define UDIV_TIME 140
+#  endif /* LONGLONG_STANDALONE */
+# endif /* udiv_qrnnd */
 #endif /* __sparc__ */
 
 
@@ -1448,7 +1454,7 @@ extern USItype __udiv_qrnnd ();
  **************  VAX  ******************
  ***************************************/
 #if defined (__vax__) && W_TYPE_SIZE == 32
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("addl2 %5,%1\n" \
 	   "adwc %3,%0"                                                 \
 	   : "=g" ((USItype)(sh)),                                      \
@@ -1457,7 +1463,7 @@ extern USItype __udiv_qrnnd ();
 	     "g" ((USItype)(bh)),                                       \
 	     "%1" ((USItype)(al)),                                      \
 	     "g" ((USItype)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("subl2 %5,%1\n" \
 	   "sbwc %3,%0"                                                 \
 	   : "=g" ((USItype)(sh)),                                      \
@@ -1466,7 +1472,7 @@ extern USItype __udiv_qrnnd ();
 	     "g" ((USItype)(bh)),                                       \
 	     "1" ((USItype)(al)),                                       \
 	     "g" ((USItype)(bl)))
-#define umul_ppmm(xh, xl, m0, m1) \
+# define umul_ppmm(xh, xl, m0, m1) \
   do {									\
     union {UDItype __ll;						\
 	   struct {USItype __l, __h;} __i;				\
@@ -1480,7 +1486,7 @@ extern USItype __udiv_qrnnd ();
     (xh) += ((((SItype) __m0 >> 31) & __m1)				\
 	     + (((SItype) __m1 >> 31) & __m0)); 			\
   } while (0)
-#define sdiv_qrnnd(q, r, n1, n0, d) \
+# define sdiv_qrnnd(q, r, n1, n0, d) \
   do {									\
     union {DItype __ll; 						\
 	   struct {SItype __l, __h;} __i;				\
@@ -1497,7 +1503,7 @@ extern USItype __udiv_qrnnd ();
  **************  Z8000	****************
  ***************************************/
 #if defined (__z8000__) && W_TYPE_SIZE == 16
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+# define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   __asm__ ("add %H1,%H5\n\tadc  %H0,%H3"                                \
 	   : "=r" ((unsigned int)(sh)),                                 \
 	     "=&r" ((unsigned int)(sl))                                 \
@@ -1505,7 +1511,7 @@ extern USItype __udiv_qrnnd ();
 	     "r" ((unsigned int)(bh)),                                  \
 	     "%1" ((unsigned int)(al)),                                 \
 	     "rQR" ((unsigned int)(bl)))
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+# define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   __asm__ ("sub %H1,%H5\n\tsbc  %H0,%H3"                                \
 	   : "=r" ((unsigned int)(sh)),                                 \
 	     "=&r" ((unsigned int)(sl))                                 \
@@ -1513,7 +1519,7 @@ extern USItype __udiv_qrnnd ();
 	     "r" ((unsigned int)(bh)),                                  \
 	     "1" ((unsigned int)(al)),                                  \
 	     "rQR" ((unsigned int)(bl)))
-#define umul_ppmm(xh, xl, m0, m1) \
+# define umul_ppmm(xh, xl, m0, m1) \
   do {									\
     union {long int __ll;						\
 	   struct {unsigned int __h, __l;} __i; 			\
@@ -1530,6 +1536,11 @@ extern USItype __udiv_qrnnd ();
   } while (0)
 #endif /* __z8000__ */
 
+
+/***************************************
+ *****  End CPU Specific Versions  *****
+ ***************************************/
+
 #endif /* __GNUC__ */
 #endif /* !__riscos__ */
 
@@ -1538,7 +1549,7 @@ extern USItype __udiv_qrnnd ();
  ***********  Generic Versions	********
  ***************************************/
 #if !defined (umul_ppmm) && defined (__umulsidi3)
-#define umul_ppmm(ph, pl, m0, m1) \
+#  define umul_ppmm(ph, pl, m0, m1) \
   {									\
     UDWtype __ll = __umulsidi3 (m0, m1);				\
     ph = (UWtype) (__ll >> W_TYPE_SIZE);				\
@@ -1547,7 +1558,7 @@ extern USItype __udiv_qrnnd ();
 #endif
 
 #if !defined (__umulsidi3)
-#define __umulsidi3(u, v) \
+#  define __umulsidi3(u, v) \
   ({UWtype __hi, __lo;							\
     umul_ppmm (__hi, __lo, u, v);					\
     ((UDWtype) __hi << W_TYPE_SIZE) | __lo; })
@@ -1556,7 +1567,7 @@ extern USItype __udiv_qrnnd ();
 /* If this machine has no inline assembler, use C macros.  */
 
 #if !defined (add_ssaaaa)
-#define add_ssaaaa(sh, sl, ah, al, bh, bl) \
+#  define add_ssaaaa(sh, sl, ah, al, bh, bl) \
   do {									\
     UWtype __x; 							\
     __x = (al) + (bl);							\
@@ -1566,7 +1577,7 @@ extern USItype __udiv_qrnnd ();
 #endif
 
 #if !defined (sub_ddmmss)
-#define sub_ddmmss(sh, sl, ah, al, bh, bl) \
+#  define sub_ddmmss(sh, sl, ah, al, bh, bl) \
   do {									\
     UWtype __x; 							\
     __x = (al) - (bl);							\
@@ -1576,7 +1587,7 @@ extern USItype __udiv_qrnnd ();
 #endif
 
 #if !defined (umul_ppmm)
-#define umul_ppmm(w1, w0, u, v) 					\
+#  define umul_ppmm(w1, w0, u, v) 					\
   do {									\
     UWtype __x0, __x1, __x2, __x3;					\
     UHWtype __ul, __vl, __uh, __vh;					\
@@ -1603,7 +1614,7 @@ extern USItype __udiv_qrnnd ();
 #endif
 
 #if !defined (umul_ppmm)
-#define smul_ppmm(w1, w0, u, v) 					\
+#  define smul_ppmm(w1, w0, u, v) 					\
   do {									\
     UWtype __w1;							\
     UWtype __m0 = (u), __m1 = (v);					\
@@ -1653,7 +1664,7 @@ extern USItype __udiv_qrnnd ();
 /* If the processor has no udiv_qrnnd but sdiv_qrnnd, go through
    __udiv_w_sdiv (defined in libgcc or elsewhere).  */
 #if !defined (udiv_qrnnd) && defined (sdiv_qrnnd)
-#define udiv_qrnnd(q, r, nh, nl, d) \
+#  define udiv_qrnnd(q, r, nh, nl, d) \
   do {									\
     UWtype __r; 							\
     (q) = __MPN(udiv_w_sdiv) (&__r, nh, nl, d); 			\
@@ -1663,18 +1674,18 @@ extern USItype __udiv_qrnnd ();
 
 /* If udiv_qrnnd was not defined for this processor, use __udiv_qrnnd_c.  */
 #if !defined (udiv_qrnnd)
-#define UDIV_NEEDS_NORMALIZATION 1
-#define udiv_qrnnd __udiv_qrnnd_c
+#  define UDIV_NEEDS_NORMALIZATION 1
+#  define udiv_qrnnd __udiv_qrnnd_c
 #endif
 
 #if !defined (count_leading_zeros)
 extern
-#ifdef __STDC__
+#  ifdef __STDC__
 const
-#endif
+#  endif
 unsigned char _gcry_clz_tab[];
-#define MPI_INTERNAL_NEED_CLZ_TAB 1
-#define count_leading_zeros(count, x) \
+#  define MPI_INTERNAL_NEED_CLZ_TAB 1
+#  define count_leading_zeros(count, x) \
   do {									\
     UWtype __xr = (x);							\
     UWtype __a; 							\
@@ -1695,21 +1706,25 @@ unsigned char _gcry_clz_tab[];
     (count) = W_TYPE_SIZE - (_gcry_clz_tab[__xr >> __a] + __a);		\
   } while (0)
 /* This version gives a well-defined value for zero. */
-#define COUNT_LEADING_ZEROS_0 W_TYPE_SIZE
-#endif
+#  define COUNT_LEADING_ZEROS_0 W_TYPE_SIZE
+#endif /* !count_leading_zeros */
 
 #if !defined (count_trailing_zeros)
 /* Define count_trailing_zeros using count_leading_zeros.  The latter might be
    defined in asm, but if it is not, the C version above is good enough.  */
-#define count_trailing_zeros(count, x) \
+#  define count_trailing_zeros(count, x) \
   do {									\
     UWtype __ctz_x = (x);						\
     UWtype __ctz_c;							\
     count_leading_zeros (__ctz_c, __ctz_x & -__ctz_x);			\
     (count) = W_TYPE_SIZE - 1 - __ctz_c;				\
   } while (0)
-#endif
+#endif /* !count_trailing_zeros */
 
 #ifndef UDIV_NEEDS_NORMALIZATION
-#define UDIV_NEEDS_NORMALIZATION 0
+#  define UDIV_NEEDS_NORMALIZATION 0
 #endif
+
+/***************************************
+ ******  longlong.h ends here  *********
+ ***************************************/
