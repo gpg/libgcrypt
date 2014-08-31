@@ -1943,6 +1943,13 @@ LIST_MEMBER(whirlpool, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS whirlpool.lo"
    AC_DEFINE(USE_WHIRLPOOL, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS whirlpool-sse2-amd64.lo"
+      ;;
+   esac
 fi
 
 # rmd160 and sha1 should be included always.

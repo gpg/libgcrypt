@@ -40,6 +40,14 @@
 #include "bufhelp.h"
 #include "hash-common.h"
 
+/* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
+#undef USE_AMD64_ASM
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+# define USE_AMD64_ASM 1
+#endif
+
+
+
 /* Size of a whirlpool block (in bytes).  */
 #define BLOCK_SIZE 64
 
@@ -89,8 +97,15 @@ typedef struct {
 
 
 
+
+struct whirlpool_tables_s {
+  u64 RC[R];
+  u64 C[8][256];
+};
+
+static const struct whirlpool_tables_s tab =
+{
 /* Round constants.  */
-static const u64 rc[R] =
   {
     U64_C (0x1823c6e887b8014f),
     U64_C (0x36a6d2f5796f9152),
@@ -102,13 +117,9 @@ static const u64 rc[R] =
     U64_C (0xe427418ba77d95d8),
     U64_C (0xfbee7c66dd17479e),
     U64_C (0xca2dbf07ad5a8333),
-  };
-
-
-
+  },
 /* Main lookup boxes.  */
-static const u64 C0[256] =
-  {
+  { {
     U64_C (0x18186018c07830d8), U64_C (0x23238c2305af4626),
     U64_C (0xc6c63fc67ef991b8), U64_C (0xe8e887e8136fcdfb),
     U64_C (0x878726874ca113cb), U64_C (0xb8b8dab8a9626d11),
@@ -237,10 +248,7 @@ static const u64 C0[256] =
     U64_C (0x98985a98b4c22d2c), U64_C (0xa4a4aaa4490e55ed),
     U64_C (0x2828a0285d885075), U64_C (0x5c5c6d5cda31b886),
     U64_C (0xf8f8c7f8933fed6b), U64_C (0x8686228644a411c2),
-  };
-
-static const u64 C1[256] =
-  {
+  }, {
     U64_C (0xd818186018c07830), U64_C (0x2623238c2305af46),
     U64_C (0xb8c6c63fc67ef991), U64_C (0xfbe8e887e8136fcd),
     U64_C (0xcb878726874ca113), U64_C (0x11b8b8dab8a9626d),
@@ -369,10 +377,7 @@ static const u64 C1[256] =
     U64_C (0x2c98985a98b4c22d), U64_C (0xeda4a4aaa4490e55),
     U64_C (0x752828a0285d8850), U64_C (0x865c5c6d5cda31b8),
     U64_C (0x6bf8f8c7f8933fed), U64_C (0xc28686228644a411),
-  };
-
-static const u64 C2[256] =
-  {
+  }, {
     U64_C (0x30d818186018c078), U64_C (0x462623238c2305af),
     U64_C (0x91b8c6c63fc67ef9), U64_C (0xcdfbe8e887e8136f),
     U64_C (0x13cb878726874ca1), U64_C (0x6d11b8b8dab8a962),
@@ -501,10 +506,7 @@ static const u64 C2[256] =
     U64_C (0x2d2c98985a98b4c2), U64_C (0x55eda4a4aaa4490e),
     U64_C (0x50752828a0285d88), U64_C (0xb8865c5c6d5cda31),
     U64_C (0xed6bf8f8c7f8933f), U64_C (0x11c28686228644a4),
-  };
-
-static const u64 C3[256] =
-  {
+  }, {
     U64_C (0x7830d818186018c0), U64_C (0xaf462623238c2305),
     U64_C (0xf991b8c6c63fc67e), U64_C (0x6fcdfbe8e887e813),
     U64_C (0xa113cb878726874c), U64_C (0x626d11b8b8dab8a9),
@@ -633,10 +635,7 @@ static const u64 C3[256] =
     U64_C (0xc22d2c98985a98b4), U64_C (0x0e55eda4a4aaa449),
     U64_C (0x8850752828a0285d), U64_C (0x31b8865c5c6d5cda),
     U64_C (0x3fed6bf8f8c7f893), U64_C (0xa411c28686228644),
-  };
-
-static const u64 C4[256] =
-  {
+  }, {
     U64_C (0xc07830d818186018), U64_C (0x05af462623238c23),
     U64_C (0x7ef991b8c6c63fc6), U64_C (0x136fcdfbe8e887e8),
     U64_C (0x4ca113cb87872687), U64_C (0xa9626d11b8b8dab8),
@@ -765,10 +764,7 @@ static const u64 C4[256] =
     U64_C (0xb4c22d2c98985a98), U64_C (0x490e55eda4a4aaa4),
     U64_C (0x5d8850752828a028), U64_C (0xda31b8865c5c6d5c),
     U64_C (0x933fed6bf8f8c7f8), U64_C (0x44a411c286862286),
-  };
-
-static const u64 C5[256] =
-  {
+  }, {
     U64_C (0x18c07830d8181860), U64_C (0x2305af462623238c),
     U64_C (0xc67ef991b8c6c63f), U64_C (0xe8136fcdfbe8e887),
     U64_C (0x874ca113cb878726), U64_C (0xb8a9626d11b8b8da),
@@ -897,10 +893,7 @@ static const u64 C5[256] =
     U64_C (0x98b4c22d2c98985a), U64_C (0xa4490e55eda4a4aa),
     U64_C (0x285d8850752828a0), U64_C (0x5cda31b8865c5c6d),
     U64_C (0xf8933fed6bf8f8c7), U64_C (0x8644a411c2868622),
-  };
-
-static const u64 C6[256] =
-  {
+  }, {
     U64_C (0x6018c07830d81818), U64_C (0x8c2305af46262323),
     U64_C (0x3fc67ef991b8c6c6), U64_C (0x87e8136fcdfbe8e8),
     U64_C (0x26874ca113cb8787), U64_C (0xdab8a9626d11b8b8),
@@ -1029,10 +1022,7 @@ static const u64 C6[256] =
     U64_C (0x5a98b4c22d2c9898), U64_C (0xaaa4490e55eda4a4),
     U64_C (0xa0285d8850752828), U64_C (0x6d5cda31b8865c5c),
     U64_C (0xc7f8933fed6bf8f8), U64_C (0x228644a411c28686),
-  };
-
-static const u64 C7[256] =
-  {
+  }, {
     U64_C (0x186018c07830d818), U64_C (0x238c2305af462623),
     U64_C (0xc63fc67ef991b8c6), U64_C (0xe887e8136fcdfbe8),
     U64_C (0x8726874ca113cb87), U64_C (0xb8dab8a9626d11b8),
@@ -1161,7 +1151,18 @@ static const u64 C7[256] =
     U64_C (0x985a98b4c22d2c98), U64_C (0xa4aaa4490e55eda4),
     U64_C (0x28a0285d88507528), U64_C (0x5c6d5cda31b8865c),
     U64_C (0xf8c7f8933fed6bf8), U64_C (0x86228644a411c286),
-  };
+  } }
+};
+#define C tab.C
+#define C0 C[0]
+#define C1 C[1]
+#define C2 C[2]
+#define C3 C[3]
+#define C4 C[4]
+#define C5 C[5]
+#define C6 C[6]
+#define C7 C[7]
+#define rc tab.RC
 
 
 
@@ -1189,6 +1190,22 @@ whirlpool_init (void *ctx, unsigned int flags)
 }
 
 
+#ifdef USE_AMD64_ASM
+
+extern unsigned int
+_gcry_whirlpool_transform_amd64(u64 *state, const unsigned char *data,
+	size_t nblks, const struct whirlpool_tables_s *tables);
+
+static unsigned int
+whirlpool_transform (void *ctx, const unsigned char *data, size_t nblks)
+{
+  whirlpool_context_t *context = ctx;
+
+  return _gcry_whirlpool_transform_amd64(
+		context->hash_state, data, nblks, &tab);
+}
+
+#else /* USE_AMD64_ASM */
 
 /*
  * Transform block.
@@ -1307,6 +1324,8 @@ whirlpool_transform ( void *c, const unsigned char *data, size_t nblks )
 
   return burn;
 }
+
+#endif /* !USE_AMD64_ASM */
 
 
 /* Bug compatibility Whirlpool version.  */

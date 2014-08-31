@@ -87,7 +87,7 @@ sha512.c sha512-ssse3-amd64.S sha512-avx-amd64.S sha512-avx2-bmi2-amd64.S \
   sha512-armv7-neon.S \
 stribog.c \
 tiger.c \
-whirlpool.c \
+whirlpool.c whirlpool-sse2-amd64.S \
 twofish.c twofish-amd64.S twofish-arm.S \
 rfc2268.c \
 camellia.c camellia.h camellia-glue.c camellia-aesni-avx-amd64.S \
