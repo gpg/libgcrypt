@@ -96,6 +96,7 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
     *edx = regs[3];
 }
 
+#if defined(ENABLE_AVX_SUPPORT) || defined(ENABLE_AVX2_SUPPORT)
 static unsigned int
 get_xgetbv(void)
 {
@@ -109,6 +110,7 @@ get_xgetbv(void)
 
   return t_eax;
 }
+#endif /* ENABLE_AVX_SUPPORT || ENABLE_AVX2_SUPPORT */
 
 #endif /* i386 && GNUC */
 
@@ -145,6 +147,7 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
     *edx = regs[3];
 }
 
+#if defined(ENABLE_AVX_SUPPORT) || defined(ENABLE_AVX2_SUPPORT)
 static unsigned int
 get_xgetbv(void)
 {
@@ -158,6 +161,7 @@ get_xgetbv(void)
 
   return t_eax;
 }
+#endif /* ENABLE_AVX_SUPPORT || ENABLE_AVX2_SUPPORT */
 
 #endif /* x86-64 && GNUC */
 
