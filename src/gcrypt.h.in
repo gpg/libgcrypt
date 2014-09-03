@@ -330,7 +330,8 @@ enum gcry_ctl_cmds
     GCRYCTL_CLOSE_RANDOM_DEVICE = 70,
     GCRYCTL_INACTIVATE_FIPS_FLAG = 71,
     GCRYCTL_REACTIVATE_FIPS_FLAG = 72,
-    GCRYCTL_SET_SBOX = 73
+    GCRYCTL_SET_SBOX = 73,
+    GCRYCTL_DRBG_REINIT = 74
   };
 
 /* Perform various operations defined by CMD. */
