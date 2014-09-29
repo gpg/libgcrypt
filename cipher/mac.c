@@ -330,7 +330,8 @@ _gcry_mac_open (gcry_mac_hd_t * h, int algo, unsigned int flags,
 void
 _gcry_mac_close (gcry_mac_hd_t hd)
 {
-  mac_close (hd);
+  if (hd)
+    mac_close (hd);
 }
 
 
