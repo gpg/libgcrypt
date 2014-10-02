@@ -1797,7 +1797,7 @@ all the data.
 can either work in place or with two buffers.  It uses the cipher
 context already setup and described by the handle @var{h}.  There are 2
 ways to use the function: If @var{in} is passed as @code{NULL} and
-@var{inlen} is @code{0}, in-place encryption of the data in @var{out} or
+@var{inlen} is @code{0}, in-place encryption of the data in @var{out} of
 length @var{outsize} takes place.  With @var{in} being not @code{NULL},
 @var{inlen} bytes are encrypted to the buffer @var{out} which must have
 at least a size of @var{inlen}.  @var{outsize} must be set to the

@@ -2123,9 +2123,17 @@ GCRY_MSG_SHOW([Try using Intel AVX2:     ],[$avx2support])
 GCRY_MSG_SHOW([Try using ARM NEON:       ],[$neonsupport])
 GCRY_MSG_SHOW([],[])
 
+if test "x${gpg_config_script_warn}" != x; then
+cat <<G10EOF
+        Mismatches between the target platform and the to
+        be used libraries have been been detected for:
+         ${gpg_config_script_warn}
+        Please check above for warning messages.
+
+G10EOF
+fi
 if test "$print_egd_notice" = "yes"; then
 cat <<G10EOF
-
    The performance of the Unix random gatherer module (rndunix) is not
    very good and it does not keep the entropy pool over multiple
    invocations of Libgcrypt base applications.  The suggested way to
@@ -2145,7 +2153,6 @@ fi
 
 if test "$gcry_cv_gcc_attribute_aligned" != "yes" ; then
 cat <<G10EOF
-
    Please not that your compiler does not support the GCC style
    aligned attribute. Using this software may evoke bus errors.
 
@@ -2157,4 +2164,5 @@ if test -n "$gpl"; then
   echo "  $gpl"
   echo "included.  These parts are licensed under the GPL and thus the"
   echo "use of this library has to comply with the conditions of the GPL."
+  echo ""
 fi
