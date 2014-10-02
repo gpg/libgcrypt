@@ -267,9 +267,9 @@ example shows how it can be used at the command line:
 gcc -c foo.c `libgcrypt-config --cflags`
 @end example
 
-Adding the output of @samp{libgcrypt-config --cflags} to the compilers
-command line will ensure that the compiler can find the Libgcrypt header
-file.
+Adding the output of @samp{libgcrypt-config --cflags} to the
+compiler’s command line will ensure that the compiler can find the
+Libgcrypt header file.
 
 A similar problem occurs when linking the program with the library.
 Again, the compiler has to find the library files.  For this to work,
@@ -314,7 +314,20 @@ found, execute @var{action-if-found}, otherwise do
 Additionally, the function defines @code{LIBGCRYPT_CFLAGS} to the
 flags needed for compilation of the program to find the
 @file{gcrypt.h} header file, and @code{LIBGCRYPT_LIBS} to the linker
-flags needed to link the program to the Libgcrypt library.
+flags needed to link the program to the Libgcrypt library.  If the
+used helper script does not match the target type you are building for
+a warning is printed and the string @code{libgcrypt} is appended to the
+variable @code{gpg_config_script_warn}.
+
+This macro searches for @command{libgcrypt-config} along the PATH.  If
+you are cross-compiling, it is useful to set the environment variable
+@code{SYSROOT} to the top directory of your target.  The macro will
+then first look for the helper program in the @file{bin} directory
+below that top directory.  An absolute directory name must be used for
+@code{SYSROOT}.  Finally, if the configure command line option
+@code{--libgcrypt-prefix} is used, only its value is used for the top
+directory below which the helper script is expected.
+
 @end defmac
 
 You can use the defined Autoconf variables like this in your

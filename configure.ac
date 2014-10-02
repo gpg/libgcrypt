@@ -83,6 +83,8 @@ AC_CANONICAL_HOST
 AM_MAINTAINER_MODE
 AM_SILENT_RULES
 
+AC_ARG_VAR(SYSROOT,[locate config scripts also below that directory])
+
 AH_TOP([
 #ifndef _GCRYPT_CONFIG_H_INCLUDED
 #define _GCRYPT_CONFIG_H_INCLUDED
