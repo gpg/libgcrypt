@@ -218,6 +218,7 @@ MARK_VISIBLEX (gcry_mpi_copy)
 MARK_VISIBLEX (gcry_mpi_div)
 MARK_VISIBLEX (gcry_mpi_dump)
 MARK_VISIBLEX (gcry_mpi_ec_add)
+MARK_VISIBLEX (gcry_mpi_ec_sub)
 MARK_VISIBLEX (gcry_mpi_ec_curve_point)
 MARK_VISIBLEX (gcry_mpi_ec_dup)
 MARK_VISIBLEX (gcry_mpi_ec_get_affine)
@@ -486,6 +487,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 
 #define gcry_mpi_abs                _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_ec_add             _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_mpi_ec_sub             _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_ec_curve_point     _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_ec_dup             _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_mpi_ec_get_affine      _gcry_USE_THE_UNDERSCORED_FUNCTION

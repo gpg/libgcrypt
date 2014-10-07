@@ -567,6 +567,14 @@ gcry_mpi_ec_add (gcry_mpi_point_t w,
 }
 
 void
+gcry_mpi_ec_sub (gcry_mpi_point_t w,
+                 gcry_mpi_point_t u, gcry_mpi_point_t v, gcry_ctx_t ctx)
+{
+  _gcry_mpi_ec_sub_points (w, u, v,
+                           _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC));
+}
+
+void
 gcry_mpi_ec_mul (gcry_mpi_point_t w, gcry_mpi_t n, gcry_mpi_point_t u,
                  gcry_ctx_t ctx)
 {

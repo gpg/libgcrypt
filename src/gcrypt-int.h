@@ -430,6 +430,8 @@ int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_point_t point,
 void _gcry_mpi_ec_dup (gcry_mpi_point_t w, gcry_mpi_point_t u, gcry_ctx_t ctx);
 void _gcry_mpi_ec_add (gcry_mpi_point_t w,
                        gcry_mpi_point_t u, gcry_mpi_point_t v, mpi_ec_t ctx);
+void _gcry_mpi_ec_sub (gcry_mpi_point_t w,
+                       gcry_mpi_point_t u, gcry_mpi_point_t v, mpi_ec_t ctx);
 void _gcry_mpi_ec_mul (gcry_mpi_point_t w, gcry_mpi_t n, gcry_mpi_point_t u,
                        mpi_ec_t ctx);
 int _gcry_mpi_ec_curve_point (gcry_mpi_point_t w, mpi_ec_t ctx);

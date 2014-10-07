@@ -29,6 +29,7 @@ Noteworthy changes in version 1.7.0 (unreleased)
  GCRYCTL_SET_SBOX                NEW.
  gcry_cipher_set_sbox            NEW macro.
  GCRY_MD_GOSTR3411_CP            NEW.
+ gcry_mpi_ec_sub                 NEW.
 
 
 Noteworthy changes in version 1.6.0 (2013-12-16)

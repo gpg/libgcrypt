@@ -1131,6 +1131,71 @@ _gcry_mpi_ec_add_points (mpi_point_t result,
 }
 
 
+/* RESULT = P1 - P2  (Weierstrass version).*/
+static void
+sub_points_weierstrass (mpi_point_t result,
+                        mpi_point_t p1, mpi_point_t p2,
+                        mpi_ec_t ctx)
+{
+  (void)result;
+  (void)p1;
+  (void)p2;
+  (void)ctx;
+  log_fatal ("%s: %s not yet supported\n",
+             "_gcry_mpi_ec_sub_points", "Weierstrass");
+}
+
+
+/* RESULT = P1 - P2  (Montgomery version).*/
+static void
+sub_points_montgomery (mpi_point_t result,
+                       mpi_point_t p1, mpi_point_t p2,
+                       mpi_ec_t ctx)
+{
+  (void)result;
+  (void)p1;
+  (void)p2;
+  (void)ctx;
+  log_fatal ("%s: %s not yet supported\n",
+             "_gcry_mpi_ec_sub_points", "Montgomery");
+}
+
+
+/* RESULT = P1 - P2  (Twisted Edwards version).*/
+static void
+sub_points_edwards (mpi_point_t result,
+                    mpi_point_t p1, mpi_point_t p2,
+                    mpi_ec_t ctx)
+{
+  mpi_point_t p2i = _gcry_mpi_point_new (0);
+  point_set (p2i, p2);
+  _gcry_mpi_neg (p2i->x, p2i->x);
+  add_points_edwards (result, p1, p2i, ctx);
+  _gcry_mpi_point_release (p2i);
+}
+
+
+/* RESULT = P1 - P2 */
+void
+_gcry_mpi_ec_sub_points (mpi_point_t result,
+                         mpi_point_t p1, mpi_point_t p2,
+                         mpi_ec_t ctx)
+{
+  switch (ctx->model)
+    {
+    case MPI_EC_WEIERSTRASS:
+      sub_points_weierstrass (result, p1, p2, ctx);
+      break;
+    case MPI_EC_MONTGOMERY:
+      sub_points_montgomery (result, p1, p2, ctx);
+      break;
+    case MPI_EC_EDWARDS:
+      sub_points_edwards (result, p1, p2, ctx);
+      break;
+    }
+}
+
+
 /* Scalar point multiplication - the main function for ECC.  If takes
    an integer SCALAR and a POINT as well as the usual context CTX.
    RESULT will be set to the resulting point. */
