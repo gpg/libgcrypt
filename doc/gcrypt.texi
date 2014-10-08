@@ -325,7 +325,7 @@ you are cross-compiling, it is useful to set the environment variable
 then first look for the helper program in the @file{bin} directory
 below that top directory.  An absolute directory name must be used for
 @code{SYSROOT}.  Finally, if the configure command line option
-@code{--libgcrypt-prefix} is used, only its value is used for the top
+@code{--with-libgcrypt-prefix} is used, only its value is used for the top
 directory below which the helper script is expected.
 
 @end defmac
