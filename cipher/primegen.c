@@ -882,7 +882,7 @@ check_prime( gcry_mpi_t prime, gcry_mpi_t val_2, int rm_rounds,
   for (i=0; (x = small_prime_numbers[i]); i++ )
     {
       if ( mpi_divisible_ui( prime, x ) )
-        return 0;
+        return !mpi_cmp_ui (prime, x);
     }
 
   /* A quick Fermat test. */
@@ -1183,19 +1183,20 @@ _gcry_prime_generate (gcry_mpi_t *prime, unsigned int prime_bits,
 gcry_err_code_t
 _gcry_prime_check (gcry_mpi_t x, unsigned int flags)
 {
-  gcry_err_code_t rc = 0;
-  gcry_mpi_t val_2 = mpi_alloc_set_ui (2); /* Used by the Fermat test. */
-
   (void)flags;
+
+  switch (mpi_cmp_ui (x, 2))
+    {
+    case 0:  return 0;                /* 2 is a prime */
+    case -1: return GPG_ERR_NO_PRIME; /* Only numbers > 1 are primes.  */
+    }
 
   /* We use 64 rounds because the prime we are going to test is not
      guaranteed to be a random one. */
-  if (! check_prime (x, val_2, 64, NULL, NULL))
-    rc = GPG_ERR_NO_PRIME;
+  if (check_prime (x, mpi_const (MPI_C_TWO), 64, NULL, NULL))
+    return 0;
 
-  mpi_free (val_2);
-
-  return rc;
+  return GPG_ERR_NO_PRIME;
 }
 
 /* Find a generator for PRIME where the factorization of (prime-1) is

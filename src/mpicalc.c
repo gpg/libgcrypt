@@ -254,6 +254,23 @@ do_nbits (void)
 }
 
 
+static void
+do_primecheck (void)
+{
+  gpg_error_t err;
+
+  if (stackidx < 1)
+    {
+      fputs ("stack underflow\n", stderr);
+      return;
+    }
+  err = gcry_prime_check (stack[stackidx - 1], 0);
+  mpi_set_ui (stack[stackidx - 1], !err);
+  if (err && gpg_err_code (err) != GPG_ERR_NO_PRIME)
+    fprintf (stderr, "checking prime failed: %s\n", gpg_strerror (err));
+}
+
+
 static int
 my_getc (void)
 {
@@ -295,6 +312,7 @@ print_help (void)
          "d   dup item      [-1] := [0]               {+1}\n"
          "r   reverse       [0] := [1], [1] := [0]    {0}\n"
          "b   # of bits     [0] := nbits([0])         {0}\n"
+         "P   prime check   [0] := is_prime([0])?1:0  {0}\n"
          "c   clear stack\n"
          "p   print top item\n"
          "f   print the stack\n"
@@ -313,7 +331,7 @@ main (int argc, char **argv)
   int print_config = 0;
   int i, c;
   int state = 0;
-  char strbuf[1000];
+  char strbuf[4096];
   int stridx = 0;
 
   if (argc)
@@ -507,6 +525,9 @@ main (int argc, char **argv)
 		  break;
                 case 'b':
                   do_nbits ();
+                  break;
+                case 'P':
+                  do_primecheck ();
                   break;
 		case 'c':
 		  for (i = 0; i < stackidx; i++)
