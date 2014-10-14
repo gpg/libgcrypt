@@ -62,6 +62,12 @@ static int in_fips_mode;
 /* Whether we are running as part of the regression test suite.  */
 static int in_regression_test;
 
+/* Whether --progress is in use.  */
+static int with_progress;
+
+/* Runtime flag to switch to a different progress output.  */
+static int single_char_progress;
+
 
 static const char sample_private_dsa_key_1024[] =
 "(private-key\n"
@@ -429,9 +435,17 @@ progress_cb (void *cb_data, const char *what, int printchar,
 {
   (void)cb_data;
 
-  fprintf (stderr, PGM ": progress (%s %c %d %d)\n",
-           what, printchar, current, total);
-  fflush (stderr);
+  if (single_char_progress)
+    {
+      fputc (printchar, stdout);
+      fflush (stderr);
+    }
+  else
+    {
+      fprintf (stderr, PGM ": progress (%s %c %d %d)\n",
+               what, printchar, current, total);
+      fflush (stderr);
+    }
 }
 
 
@@ -1544,6 +1558,51 @@ mpi_bench (void)
 }
 
 
+static void
+prime_bench (void)
+{
+  gpg_error_t err;
+  int i;
+  gcry_mpi_t prime;
+  int old_prog = single_char_progress;
+
+  single_char_progress = 1;
+  if (!with_progress)
+    printf ("%-10s", "prime");
+  fflush (stdout);
+  start_timer ();
+  for (i=0; i < 10; i++)
+    {
+      if (with_progress)
+        fputs ("primegen ", stdout);
+      err = gcry_prime_generate (&prime,
+                                 1024, 0,
+                                 NULL,
+                                 NULL, NULL,
+                                 GCRY_WEAK_RANDOM,
+                                 GCRY_PRIME_FLAG_SECRET);
+      if (with_progress)
+        {
+          fputc ('\n', stdout);
+          fflush (stdout);
+        }
+      if (err)
+        {
+          fprintf (stderr, PGM ": error creating prime: %s\n",
+                   gpg_strerror (err));
+          exit (1);
+        }
+      gcry_mpi_release (prime);
+    }
+  stop_timer ();
+  if (with_progress)
+    printf ("%-10s", "prime");
+  printf (" %s\n", elapsed_time ()); fflush (stdout);
+
+  single_char_progress = old_prog;
+}
+
+
 int
 main( int argc, char **argv )
 {
@@ -1551,7 +1610,6 @@ main( int argc, char **argv )
   int no_blinding = 0;
   int use_random_daemon = 0;
   int use_secmem = 0;
-  int with_progress = 0;
   int debug = 0;
   int pk_count = 100;
 
@@ -1582,7 +1640,7 @@ main( int argc, char **argv )
       else if (!strcmp (*argv, "--help"))
         {
           fputs ("usage: benchmark "
-                 "[md|mac|cipher|random|mpi|rsa|dsa|ecc [algonames]]\n",
+                 "[md|mac|cipher|random|mpi|rsa|dsa|ecc|prime [algonames]]\n",
                  stdout);
           exit (0);
         }
@@ -1832,6 +1890,11 @@ main( int argc, char **argv )
     {
         gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
         ecc_bench (pk_count, 1);
+    }
+  else if ( !strcmp (*argv, "prime"))
+    {
+        gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
+        prime_bench ();
     }
   else
     {
