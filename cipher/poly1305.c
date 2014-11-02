@@ -76,6 +76,25 @@ static const poly1305_ops_t poly1305_amd64_avx2_ops = {
 #endif
 
 
+#ifdef POLY1305_USE_NEON
+
+void _gcry_poly1305_armv7_neon_init_ext(void *state, const poly1305_key_t *key);
+unsigned int _gcry_poly1305_armv7_neon_finish_ext(void *state, const byte *m,
+						  size_t remaining,
+						  byte mac[16]);
+unsigned int _gcry_poly1305_armv7_neon_blocks(void *ctx, const byte *m,
+					      size_t bytes);
+
+static const poly1305_ops_t poly1305_armv7_neon_ops = {
+  POLY1305_NEON_BLOCKSIZE,
+  _gcry_poly1305_armv7_neon_init_ext,
+  _gcry_poly1305_armv7_neon_blocks,
+  _gcry_poly1305_armv7_neon_finish_ext
+};
+
+#endif
+
+
 #ifdef HAVE_U64_TYPEDEF
 
 /* Reference unoptimized poly1305 implementation using 32 bit * 32 bit = 64 bit
@@ -660,6 +679,10 @@ _gcry_poly1305_init (poly1305_context_t * ctx, const byte * key,
 #ifdef POLY1305_USE_AVX2
   if (features & HWF_INTEL_AVX2)
     ctx->ops = &poly1305_amd64_avx2_ops;
+#endif
+#ifdef POLY1305_USE_NEON
+  if (features & HWF_ARM_NEON)
+    ctx->ops = &poly1305_armv7_neon_ops;
 #endif
   (void)features;
 

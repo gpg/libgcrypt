@@ -65,10 +65,24 @@
 #endif
 
 
+/* POLY1305_USE_NEON indicates whether to enable ARM NEON assembly code. */
+#undef POLY1305_USE_NEON
+#if defined(ENABLE_NEON_SUPPORT) && defined(HAVE_ARM_ARCH_V6) && \
+    defined(__ARMEL__) && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_NEON)
+# define POLY1305_USE_NEON 1
+# define POLY1305_NEON_BLOCKSIZE 32
+# define POLY1305_NEON_STATESIZE 128
+# define POLY1305_NEON_ALIGNMENT 16
+#endif
+
+
 /* Largest block-size used in any implementation (optimized implementations
  * might use block-size multiple of 16). */
 #ifdef POLY1305_USE_AVX2
 # define POLY1305_LARGEST_BLOCKSIZE POLY1305_AVX2_BLOCKSIZE
+#elif defined(POLY1305_USE_NEON)
+# define POLY1305_LARGEST_BLOCKSIZE POLY1305_NEON_BLOCKSIZE
 #elif defined(POLY1305_USE_SSE2)
 # define POLY1305_LARGEST_BLOCKSIZE POLY1305_SSE2_BLOCKSIZE
 #else
@@ -78,6 +92,8 @@
 /* Largest state-size used in any implementation. */
 #ifdef POLY1305_USE_AVX2
 # define POLY1305_LARGEST_STATESIZE POLY1305_AVX2_STATESIZE
+#elif defined(POLY1305_USE_NEON)
+# define POLY1305_LARGEST_STATESIZE POLY1305_NEON_STATESIZE
 #elif defined(POLY1305_USE_SSE2)
 # define POLY1305_LARGEST_STATESIZE POLY1305_SSE2_STATESIZE
 #else
@@ -87,6 +103,8 @@
 /* Minimum alignment for state pointer passed to implementations. */
 #ifdef POLY1305_USE_AVX2
 # define POLY1305_STATE_ALIGNMENT POLY1305_AVX2_ALIGNMENT
+#elif defined(POLY1305_USE_NEON)
+# define POLY1305_STATE_ALIGNMENT POLY1305_NEON_ALIGNMENT
 #elif defined(POLY1305_USE_SSE2)
 # define POLY1305_STATE_ALIGNMENT POLY1305_SSE2_ALIGNMENT
 #else
