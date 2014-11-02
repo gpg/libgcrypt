@@ -98,17 +98,32 @@ detect_arm_at_hwcap(void)
 #define HAS_PROC_CPUINFO 1
 
 static unsigned int
-detect_arm_proc_cpuinfo(void)
+detect_arm_proc_cpuinfo(unsigned int *broken_hwfs)
 {
   char buf[1024]; /* large enough */
   char *str_features, *str_neon;
+  int cpu_implementer, cpu_arch, cpu_variant, cpu_part, cpu_revision;
   FILE *f;
   int readlen, i;
   static int cpuinfo_initialized = 0;
   static unsigned int stored_cpuinfo_features;
+  static unsigned int stored_broken_hwfs;
+  struct {
+    const char *name;
+    int *value;
+  } cpu_entries[5] = {
+    { "CPU implementer", &cpu_implementer },
+    { "CPU architecture", &cpu_arch },
+    { "CPU variant", &cpu_variant },
+    { "CPU part", &cpu_part },
+    { "CPU revision", &cpu_revision },
+  };
 
   if (cpuinfo_initialized)
-    return stored_cpuinfo_features;
+    {
+      *broken_hwfs |= stored_broken_hwfs;
+      return stored_cpuinfo_features;
+    }
 
   f = fopen("/proc/cpuinfo", "r");
   if (!f)
@@ -124,11 +139,31 @@ detect_arm_proc_cpuinfo(void)
 
   cpuinfo_initialized = 1;
   stored_cpuinfo_features = 0;
+  stored_broken_hwfs = 0;
 
   /* Find features line. */
   str_features = strstr(buf, "Features");
   if (!str_features)
     return stored_cpuinfo_features;
+
+  /* Find CPU version information. */
+  for (i = 0; i < DIM(cpu_entries); i++)
+    {
+      char *str;
+
+      *cpu_entries[i].value = -1;
+
+      str = strstr(buf, cpu_entries[i].name);
+      if (!str)
+        continue;
+
+      str = strstr(str, ": ");
+      if (!str)
+        continue;
+
+      str += 2;
+      *cpu_entries[i].value = strtoul(str, NULL, 0);
+    }
 
   /* Lines to strings. */
   for (i = 0; i < sizeof(buf); i++)
@@ -140,6 +175,19 @@ detect_arm_proc_cpuinfo(void)
   if (str_neon && (str_neon[5] == ' ' || str_neon[5] == '\0'))
     stored_cpuinfo_features |= HWF_ARM_NEON;
 
+  /* Check for CPUs with broken NEON implementation. See
+   * https://code.google.com/p/chromium/issues/detail?id=341598
+   */
+  if (cpu_implementer == 0x51
+      && cpu_arch == 7
+      && cpu_variant == 1
+      && cpu_part == 0x4d
+      && cpu_revision == 0)
+    {
+      stored_broken_hwfs = HWF_ARM_NEON;
+    }
+
+  *broken_hwfs |= stored_broken_hwfs;
   return stored_cpuinfo_features;
 }
 
@@ -149,18 +197,21 @@ unsigned int
 _gcry_hwf_detect_arm (void)
 {
   unsigned int ret = 0;
+  unsigned int broken_hwfs = 0;
 
 #if defined (HAS_SYS_AT_HWCAP)
   ret |= detect_arm_at_hwcap ();
 #endif
 
 #if defined (HAS_PROC_CPUINFO)
-  ret |= detect_arm_proc_cpuinfo ();
+  ret |= detect_arm_proc_cpuinfo (&broken_hwfs);
 #endif
 
 #if defined(__ARM_NEON__) && defined(ENABLE_NEON_SUPPORT)
   ret |= HWF_ARM_NEON;
 #endif
+
+  ret &= ~broken_hwfs;
 
   return ret;
 }
