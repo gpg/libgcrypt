@@ -1251,7 +1251,9 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       unsigned int nbits;
       int j;
       mpi_point_struct p1_, p2_;
+      mpi_point_t q1, q2, prd, sum;
       unsigned long sw;
+      size_t nlimbs;
 
       /* Compute scalar point multiplication with Montgomery Ladder.
          Note that we don't use Y-coordinate in the points at all.
@@ -1267,27 +1269,35 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       p2.x  = mpi_copy (point->x);
       mpi_set_ui (p2.z, 1);
 
+      nlimbs = 2*(nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB+1;
+      mpi_resize (p1.x, nlimbs);
+      mpi_resize (p1.z, nlimbs);
+      mpi_resize (p2.x, nlimbs);
+      mpi_resize (p2.z, nlimbs);
+      mpi_resize (p1_.x, nlimbs);
+      mpi_resize (p1_.z, nlimbs);
+      mpi_resize (p2_.x, nlimbs);
+      mpi_resize (p2_.z, nlimbs);
+
+      q1 = &p1;
+      q2 = &p2;
+      prd = &p1_;
+      sum = &p2_;
+
       for (j=nbits-1; j >= 0; j--)
         {
-          sw = mpi_test_bit (scalar, j);
-          mpi_swap_cond (p1.x, p2.x, sw);
-          mpi_swap_cond (p1.z, p2.z, sw);
-          montgomery_ladder (&p1_, &p2_, &p1, &p2, point->x, ctx);
-          mpi_swap_cond (p1_.x, p2_.x, sw);
-          mpi_swap_cond (p1_.z, p2_.z, sw);
-
-          if (--j < 0)
-            break;
+          mpi_point_t t;
 
           sw = mpi_test_bit (scalar, j);
-          mpi_swap_cond (p1_.x, p2_.x, sw);
-          mpi_swap_cond (p1_.z, p2_.z, sw);
-          montgomery_ladder (&p1, &p2, &p1_, &p2_, point->x, ctx);
-          mpi_swap_cond (p1.x, p2.x, sw);
-          mpi_swap_cond (p1.z, p2.z, sw);
+          mpi_swap_cond (q1->x, q2->x, sw);
+          mpi_swap_cond (q1->z, q2->z, sw);
+          montgomery_ladder (prd, sum, q1, q2, point->x, ctx);
+          mpi_swap_cond (prd->x, sum->x, sw);
+          mpi_swap_cond (prd->z, sum->z, sw);
+          t = q1;  q1 = prd;  prd = t;
+          t = q2;  q2 = sum;  sum = t;
         }
 
-      z1 = mpi_new (0);
       mpi_clear (result->y);
       sw = (nbits & 1);
       mpi_swap_cond (p1.x, p1_.x, sw);
@@ -1300,12 +1310,13 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
         }
       else
         {
+          z1 = mpi_new (0);
           ec_invm (z1, p1.z, ctx);
           ec_mulm (result->x, p1.x, z1, ctx);
           mpi_set_ui (result->z, 1);
+          mpi_free (z1);
         }
 
-      mpi_free (z1);
       point_free (&p1);
       point_free (&p2);
       point_free (&p1_);

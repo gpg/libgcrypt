@@ -530,9 +530,8 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
     {
     case MPI_EC_WEIERSTRASS:
     case MPI_EC_EDWARDS:
-      break;
     case MPI_EC_MONTGOMERY:
-      return GPG_ERR_NOT_SUPPORTED;
+      break;
     default:
       return GPG_ERR_BUG;
     }

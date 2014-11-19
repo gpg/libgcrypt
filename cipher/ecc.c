@@ -81,6 +81,7 @@ static void *progress_cb_data;
 
 /* Local prototypes. */
 static void test_keys (ECC_secret_key * sk, unsigned int nbits);
+static void test_ecdh_only_keys (ECC_secret_key * sk, unsigned int nbits);
 static unsigned int ecc_get_nbits (gcry_sexp_t parms);
 
 
@@ -209,7 +210,10 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
 
   point_free (&Q);
   /* Now we can test our keys (this should never fail!).  */
-  test_keys (sk, nbits - 64);
+  if (sk->E.model != MPI_EC_MONTGOMERY)
+    test_keys (sk, nbits - 64);
+  else
+    test_ecdh_only_keys (sk, nbits - 64);
 
   return 0;
 }
@@ -266,6 +270,80 @@ test_keys (ECC_secret_key *sk, unsigned int nbits)
 }
 
 
+static void
+test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits)
+{
+  ECC_public_key pk;
+  gcry_mpi_t test;
+  mpi_point_struct R_;
+  gcry_mpi_t x0, x1;
+  mpi_ec_t ec;
+
+  if (DBG_CIPHER)
+    log_debug ("Testing key.\n");
+
+  point_init (&R_);
+
+  pk.E = _gcry_ecc_curve_copy (sk->E);
+  point_init (&pk.Q);
+  point_set (&pk.Q, &sk->Q);
+
+  if (sk->E.dialect == ECC_DIALECT_ED25519)
+    {
+      char *rndbuf;
+
+      test = mpi_new (256);
+      rndbuf = _gcry_random_bytes (32, GCRY_WEAK_RANDOM);
+      rndbuf[0] &= 0x7f;  /* Clear bit 255. */
+      rndbuf[0] |= 0x40;  /* Set bit 254.   */
+      rndbuf[31] &= 0xf8; /* Clear bits 2..0 so that d mod 8 == 0  */
+      _gcry_mpi_set_buffer (test, rndbuf, 32, 0);
+      xfree (rndbuf);
+    }
+  else
+    {
+      test = mpi_new (nbits);
+      _gcry_mpi_randomize (test, nbits, GCRY_WEAK_RANDOM);
+    }
+
+  ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, 0,
+                                    pk.E.p, pk.E.a, pk.E.b);
+  x0 = mpi_new (0);
+  x1 = mpi_new (0);
+
+  /* R_ = hkQ  <=>  R_ = hkdG  */
+  _gcry_mpi_ec_mul_point (&R_, test, &pk.Q, ec);
+  if (sk->E.dialect != ECC_DIALECT_ED25519)
+    _gcry_mpi_ec_mul_point (&R_, ec->h, &R_, ec);
+  if (_gcry_mpi_ec_get_affine (x0, NULL, &R_, ec))
+    log_fatal ("ecdh: Failed to get affine coordinates for hkQ\n");
+
+  _gcry_mpi_ec_mul_point (&R_, test, &pk.E.G, ec);
+  _gcry_mpi_ec_mul_point (&R_, sk->d, &R_, ec);
+  /* R_ = hdkG */
+  if (sk->E.dialect != ECC_DIALECT_ED25519)
+    _gcry_mpi_ec_mul_point (&R_, ec->h, &R_, ec);
+
+  if (_gcry_mpi_ec_get_affine (x1, NULL, &R_, ec))
+    log_fatal ("ecdh: Failed to get affine coordinates for hdkG\n");
+
+  if (mpi_cmp (x0, x1))
+    {
+      log_fatal ("ECDH test failed.\n");
+    }
+
+  mpi_free (x0);
+  mpi_free (x1);
+  _gcry_mpi_ec_free (ec);
+
+  point_free (&pk.Q);
+  _gcry_ecc_curve_free (&pk.E);
+
+  point_free (&R_);
+  mpi_free (test);
+}
+
+
 /*
  * To check the validity of the value, recalculate the correspondence
  * between the public value and the secret one.
@@ -281,7 +359,10 @@ check_secret_key (ECC_secret_key *sk, mpi_ec_t ec, int flags)
 
   point_init (&Q);
   x1 = mpi_new (0);
-  y1 = mpi_new (0);
+  if (ec->model == MPI_EC_MONTGOMERY)
+    y1 = NULL;
+  else
+    y1 = mpi_new (0);
 
   /* G in E(F_p) */
   if (!_gcry_mpi_ec_curve_point (&sk->E.G, ec))
@@ -338,7 +419,7 @@ check_secret_key (ECC_secret_key *sk, mpi_ec_t ec, int flags)
   else if (!mpi_cmp_ui (sk->Q.z, 1))
     {
       /* Fast path if Q is already in affine coordinates.  */
-      if (mpi_cmp (x1, sk->Q.x) || mpi_cmp (y1, sk->Q.y))
+      if (mpi_cmp (x1, sk->Q.x) || (!y1 && mpi_cmp (y1, sk->Q.y)))
         {
           if (DBG_CIPHER)
             log_debug
@@ -1581,7 +1662,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
       char buf[30];
 
       if (idx == 5)
-	continue;		/* Skip cofactor. */
+        continue;               /* Skip cofactor. */
 
       if (mpi_is_opaque (values[idx]))
         {
