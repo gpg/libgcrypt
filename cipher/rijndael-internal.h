@@ -74,9 +74,14 @@
 # endif
 #endif /* ENABLE_AESNI_SUPPORT */
 
+struct RIJNDAEL_context_s;
+
+typedef unsigned int (*rijndael_cryptfn_t)(const struct RIJNDAEL_context_s *ctx,
+                                           unsigned char *bx,
+                                           const unsigned char *ax);
 
 /* Our context object.  */
-typedef struct
+typedef struct RIJNDAEL_context_s
 {
   /* The first fields are the keyschedule arrays.  This is so that
      they are aligned on a 16 byte boundary if using gcc.  This
@@ -100,7 +105,7 @@ typedef struct
     PROPERLY_ALIGNED_TYPE dummy;
     byte keyschedule[MAXROUNDS+1][4][4];
   } u2;
-  int rounds;                /* Key-length-dependent number of rounds.  */
+  int rounds;                         /* Key-length-dependent number of rounds.  */
   unsigned int decryption_prepared:1; /* The decryption key schedule is available.  */
 #ifdef USE_PADLOCK
   unsigned int use_padlock:1;         /* Padlock shall be used.  */
@@ -108,6 +113,8 @@ typedef struct
 #ifdef USE_AESNI
   unsigned int use_aesni:1;           /* AES-NI shall be used.  */
 #endif /*USE_AESNI*/
+  rijndael_cryptfn_t encrypt_fn;
+  rijndael_cryptfn_t decrypt_fn;
 } RIJNDAEL_context ATTR_ALIGNED_16;
 
 /* Macros defining alias for the keyschedules.  */

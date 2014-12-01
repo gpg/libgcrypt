@@ -60,15 +60,15 @@ typedef u32           u32_a_t;
 
 #ifdef USE_AMD64_ASM
 /* AMD64 assembly implementations of AES */
-extern void _gcry_aes_amd64_encrypt_block(const void *keysched_enc,
-					  unsigned char *out,
-					  const unsigned char *in,
-					  int rounds);
+extern unsigned int _gcry_aes_amd64_encrypt_block(const void *keysched_enc,
+                                                  unsigned char *out,
+                                                  const unsigned char *in,
+                                                  int rounds);
 
-extern void _gcry_aes_amd64_decrypt_block(const void *keysched_dec,
-					  unsigned char *out,
-					  const unsigned char *in,
-					  int rounds);
+extern unsigned int _gcry_aes_amd64_decrypt_block(const void *keysched_dec,
+                                                  unsigned char *out,
+                                                  const unsigned char *in,
+                                                  int rounds);
 #endif /*USE_AMD64_ASM*/
 
 #ifdef USE_AESNI
@@ -76,10 +76,12 @@ extern void _gcry_aes_amd64_decrypt_block(const void *keysched_dec,
 extern void _gcry_aes_aesni_do_setkey(RIJNDAEL_context *ctx, const byte *key);
 extern void _gcry_aes_aesni_prepare_decryption(RIJNDAEL_context *ctx);
 
-extern void _gcry_aes_aesni_encrypt (RIJNDAEL_context *ctx, unsigned char *dst,
-                                     const unsigned char *src);
-extern void _gcry_aes_aesni_decrypt (RIJNDAEL_context *ctx, unsigned char *dst,
-                                     const unsigned char *src);
+extern unsigned int _gcry_aes_aesni_encrypt (const RIJNDAEL_context *ctx,
+                                             unsigned char *dst,
+                                             const unsigned char *src);
+extern unsigned int _gcry_aes_aesni_decrypt (const RIJNDAEL_context *ctx,
+                                             unsigned char *dst,
+                                             const unsigned char *src);
 extern void _gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx,
                                      unsigned char *outbuf,
                                      const unsigned char *inbuf,
@@ -103,18 +105,32 @@ extern void _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx,
                                      unsigned char *iv, size_t nblocks);
 #endif
 
+#ifdef USE_PADLOCK
+static unsigned int do_padlock_encrypt (const RIJNDAEL_context *ctx,
+                                        unsigned char *bx,
+                                        const unsigned char *ax);
+static unsigned int do_padlock_decrypt (const RIJNDAEL_context *ctx,
+                                        unsigned char *bx,
+                                        const unsigned char *ax);
+#endif
+
 #ifdef USE_ARM_ASM
 /* ARM assembly implementations of AES */
-extern void _gcry_aes_arm_encrypt_block(const void *keysched_enc,
-					  unsigned char *out,
-					  const unsigned char *in,
-					  int rounds);
+extern unsigned int _gcry_aes_arm_encrypt_block(const void *keysched_enc,
+                                                unsigned char *out,
+                                                const unsigned char *in,
+                                                int rounds);
 
-extern void _gcry_aes_arm_decrypt_block(const void *keysched_dec,
-					  unsigned char *out,
-					  const unsigned char *in,
-					  int rounds);
+extern unsigned int _gcry_aes_arm_decrypt_block(const void *keysched_dec,
+                                                unsigned char *out,
+                                                const unsigned char *in,
+                                                int rounds);
 #endif /*USE_ARM_ASM*/
+
+static unsigned int do_encrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
+                                const unsigned char *ax);
+static unsigned int do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
+                                const unsigned char *ax);
 
 
 
@@ -159,6 +175,26 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   if (selftest_failed)
     return GPG_ERR_SELFTEST_FAILED;
 
+  if( keylen == 128/8 )
+    {
+      rounds = 10;
+      KC = 4;
+    }
+  else if ( keylen == 192/8 )
+    {
+      rounds = 12;
+      KC = 6;
+    }
+  else if ( keylen == 256/8 )
+    {
+      rounds = 14;
+      KC = 8;
+    }
+  else
+    return GPG_ERR_INV_KEYLEN;
+
+  ctx->rounds = rounds;
+
 #if defined(USE_AESNI) || defined(USE_PADLOCK)
   hwfeatures = _gcry_get_hw_features ();
 #endif
@@ -171,65 +207,32 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   ctx->use_aesni = 0;
 #endif
 
-  if( keylen == 128/8 )
+  if (0)
     {
-      rounds = 10;
-      KC = 4;
-
-      if (0)
-        {
-          ;
-        }
+      ;
+    }
 #ifdef USE_AESNI
-      else if (hwfeatures & HWF_INTEL_AESNI)
-        {
-          ctx->use_aesni = 1;
-        }
+  else if (hwfeatures & HWF_INTEL_AESNI)
+    {
+      ctx->encrypt_fn = _gcry_aes_aesni_encrypt;
+      ctx->decrypt_fn = _gcry_aes_aesni_decrypt;
+      ctx->use_aesni = 1;
+    }
 #endif
 #ifdef USE_PADLOCK
-      else if (hwfeatures & HWF_PADLOCK_AES)
-        {
-          ctx->use_padlock = 1;
-          memcpy (ctx->padlockkey, key, keylen);
-        }
-#endif
-    }
-  else if ( keylen == 192/8 )
+  else if (hwfeatures & HWF_PADLOCK_AES && keylen == 128/8)
     {
-      rounds = 12;
-      KC = 6;
-
-      if (0)
-        {
-          ;
-        }
-#ifdef USE_AESNI
-      else if (hwfeatures & HWF_INTEL_AESNI)
-        {
-          ctx->use_aesni = 1;
-        }
-#endif
+      ctx->encrypt_fn = do_padlock_encrypt;
+      ctx->decrypt_fn = do_padlock_decrypt;
+      ctx->use_padlock = 1;
+      memcpy (ctx->padlockkey, key, keylen);
     }
-  else if ( keylen == 256/8 )
-    {
-      rounds = 14;
-      KC = 8;
-
-      if (0)
-        {
-          ;
-        }
-#ifdef USE_AESNI
-      else if (hwfeatures & HWF_INTEL_AESNI)
-        {
-          ctx->use_aesni = 1;
-        }
 #endif
-    }
   else
-    return GPG_ERR_INV_KEYLEN;
-
-  ctx->rounds = rounds;
+    {
+      ctx->encrypt_fn = do_encrypt;
+      ctx->decrypt_fn = do_decrypt;
+    }
 
   /* NB: We don't yet support Padlock hardware key generation.  */
 
@@ -404,17 +407,13 @@ prepare_decryption( RIJNDAEL_context *ctx )
 }
 
 
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
 /* Encrypt one block.  A and B need to be aligned on a 4 byte
    boundary.  A and B may be the same. */
 static void
 do_encrypt_aligned (const RIJNDAEL_context *ctx,
                     unsigned char *b, const unsigned char *a)
 {
-#ifdef USE_AMD64_ASM
-  _gcry_aes_amd64_encrypt_block(ctx->keyschenc, b, a, ctx->rounds);
-#elif defined(USE_ARM_ASM)
-  _gcry_aes_arm_encrypt_block(ctx->keyschenc, b, a, ctx->rounds);
-#else
 #define rk (ctx->keyschenc)
   int rounds = ctx->rounds;
   int r;
@@ -496,15 +495,19 @@ do_encrypt_aligned (const RIJNDAEL_context *ctx,
   *((u32_a_t*)(b+ 8)) ^= *((u32_a_t*)rk[rounds][2]);
   *((u32_a_t*)(b+12)) ^= *((u32_a_t*)rk[rounds][3]);
 #undef rk
-#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 }
+#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 
 
-static void
+static unsigned int
 do_encrypt (const RIJNDAEL_context *ctx,
             unsigned char *bx, const unsigned char *ax)
 {
-#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
+#ifdef USE_AMD64_ASM
+  return _gcry_aes_amd64_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds);
+#elif defined(USE_ARM_ASM)
+  return _gcry_aes_arm_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds);
+#else
   /* BX and AX are not necessary correctly aligned.  Thus we might
      need to copy them here.  We try to align to a 16 bytes.  */
   if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
@@ -514,30 +517,27 @@ do_encrypt (const RIJNDAEL_context *ctx,
         u32  dummy[4];
         byte a[16] ATTR_ALIGNED_16;
       } a;
-      union
-      {
-        u32  dummy[4];
-        byte b[16] ATTR_ALIGNED_16;
-      } b;
 
       buf_cpy (a.a, ax, 16);
-      do_encrypt_aligned (ctx, b.b, a.a);
-      buf_cpy (bx, b.b, 16);
+      do_encrypt_aligned (ctx, a.a, a.a);
+      buf_cpy (bx, a.a, 16);
     }
   else
-#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
     {
       do_encrypt_aligned (ctx, bx, ax);
     }
+
+  return (56 + 2*sizeof(int));
+#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 }
 
 
 /* Encrypt or decrypt one block using the padlock engine.  A and B may
    be the same. */
 #ifdef USE_PADLOCK
-static void
-do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
-            unsigned char *bx, const unsigned char *ax)
+static unsigned int
+do_padlock (const RIJNDAEL_context *ctx, unsigned char *bx,
+            const unsigned char *ax, int decrypt_flag)
 {
   /* BX and AX are not necessary correctly aligned.  Thus we need to
      copy them here. */
@@ -583,6 +583,21 @@ do_padlock (const RIJNDAEL_context *ctx, int decrypt_flag,
 
   memcpy (bx, b, 16);
 
+  return (48 + 15 /* possible padding for alignment */);
+}
+
+static unsigned int
+do_padlock_encrypt (const RIJNDAEL_context *ctx,
+                    unsigned char *bx, const unsigned char *ax)
+{
+  return do_padlock(ctx, bx, ax, 0);
+}
+
+static unsigned int
+do_padlock_decrypt (const RIJNDAEL_context *ctx,
+                    unsigned char *bx, const unsigned char *ax)
+{
+  return do_padlock(ctx, bx, ax, 1);
 }
 #endif /*USE_PADLOCK*/
 
@@ -591,31 +606,8 @@ static unsigned int
 rijndael_encrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
-  unsigned int burn_stack;
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    {
-      _gcry_aes_aesni_encrypt (ctx, b, a);
-      burn_stack = 0;
-    }
-#endif /*USE_AESNI*/
-#ifdef USE_PADLOCK
-  else if (ctx->use_padlock)
-    {
-      do_padlock (ctx, 0, b, a);
-      burn_stack = (48 + 15 /* possible padding for alignment */);
-    }
-#endif /*USE_PADLOCK*/
-  else
-    {
-      do_encrypt (ctx, b, a);
-      burn_stack = (56 + 2*sizeof(int));
-    }
-
-  return burn_stack;
+  return ctx->encrypt_fn (ctx, b, a);
 }
 
 
@@ -631,7 +623,7 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned int burn_depth = 48 + 2*sizeof(int);
+  unsigned int burn_depth = 0;
 
   if (0)
     ;
@@ -642,27 +634,14 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
-#ifdef USE_PADLOCK
-  else if (ctx->use_padlock)
-    {
-      /* Fixme: Let Padlock do the CFBing.  */
-      for ( ;nblocks; nblocks-- )
-        {
-          /* Encrypt the IV. */
-          do_padlock (ctx, 0, iv, iv);
-          /* XOR the input with the IV and store input into IV.  */
-          buf_xor_2dst(outbuf, iv, inbuf, BLOCKSIZE);
-          outbuf += BLOCKSIZE;
-          inbuf  += BLOCKSIZE;
-        }
-    }
-#endif /*USE_PADLOCK*/
   else
     {
+      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+
       for ( ;nblocks; nblocks-- )
         {
           /* Encrypt the IV. */
-          do_encrypt_aligned (ctx, iv, iv);
+          burn_depth = encrypt_fn (ctx, iv, iv);
           /* XOR the input with the IV and store input into IV.  */
           buf_xor_2dst(outbuf, iv, inbuf, BLOCKSIZE);
           outbuf += BLOCKSIZE;
@@ -671,7 +650,7 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
     }
 
   if (burn_depth)
-    _gcry_burn_stack (burn_depth);
+    _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
 }
 
 
@@ -688,7 +667,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned char *last_iv;
-  unsigned int burn_depth = 48 + 2*sizeof(int);
+  unsigned int burn_depth = 0;
 
   if (0)
     ;
@@ -701,20 +680,15 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
 #endif /*USE_AESNI*/
   else
     {
+      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+
       last_iv = iv;
 
       for ( ;nblocks; nblocks-- )
         {
           buf_xor(outbuf, inbuf, last_iv, BLOCKSIZE);
 
-          if (0)
-            ;
-#ifdef USE_PADLOCK
-          else if (ctx->use_padlock)
-            do_padlock (ctx, 0, outbuf, outbuf);
-#endif /*USE_PADLOCK*/
-          else
-            do_encrypt (ctx, outbuf, outbuf );
+          burn_depth = encrypt_fn (ctx, outbuf, outbuf);
 
           last_iv = outbuf;
           inbuf += BLOCKSIZE;
@@ -727,7 +701,7 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
     }
 
   if (burn_depth)
-    _gcry_burn_stack (burn_depth);
+    _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
 }
 
 
@@ -744,7 +718,7 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned int burn_depth = 48 + 2*sizeof(int);
+  unsigned int burn_depth = 0;
   int i;
 
   if (0)
@@ -758,12 +732,13 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
 #endif /*USE_AESNI*/
   else
     {
-      union { unsigned char x1[16]; u32 x32[4]; } tmp;
+      union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } tmp;
+      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
 
       for ( ;nblocks; nblocks-- )
         {
           /* Encrypt the counter. */
-          do_encrypt_aligned (ctx, tmp.x1, ctr);
+          burn_depth = encrypt_fn (ctx, tmp.x1, ctr);
           /* XOR the input with the encrypted counter and store in output.  */
           buf_xor(outbuf, tmp.x1, inbuf, BLOCKSIZE);
           outbuf += BLOCKSIZE;
@@ -776,26 +751,24 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
                 break;
             }
         }
+
+      wipememory(&tmp, sizeof(tmp));
     }
 
   if (burn_depth)
-    _gcry_burn_stack (burn_depth);
+    _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
 }
 
 
 
+#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
 /* Decrypt one block.  A and B need to be aligned on a 4 byte boundary
    and the decryption must have been prepared.  A and B may be the
    same. */
 static void
-do_decrypt_aligned (RIJNDAEL_context *ctx,
+do_decrypt_aligned (const RIJNDAEL_context *ctx,
                     unsigned char *b, const unsigned char *a)
 {
-#ifdef USE_AMD64_ASM
-  _gcry_aes_amd64_decrypt_block(ctx->keyschdec, b, a, ctx->rounds);
-#elif defined(USE_ARM_ASM)
-  _gcry_aes_arm_decrypt_block(ctx->keyschdec, b, a, ctx->rounds);
-#else
 #define rk  (ctx->keyschdec)
   int rounds = ctx->rounds;
   int r;
@@ -878,15 +851,20 @@ do_decrypt_aligned (RIJNDAEL_context *ctx,
   *((u32_a_t*)(b+ 8)) ^= *((u32_a_t*)rk[0][2]);
   *((u32_a_t*)(b+12)) ^= *((u32_a_t*)rk[0][3]);
 #undef rk
-#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 }
+#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 
 
 /* Decrypt one block.  AX and BX may be the same. */
-static void
-do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
+static unsigned int
+do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
+            const unsigned char *ax)
 {
-#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
+#ifdef USE_AMD64_ASM
+  return _gcry_aes_amd64_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds);
+#elif defined(USE_ARM_ASM)
+  return _gcry_aes_arm_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds);
+#else
   /* BX and AX are not necessary correctly aligned.  Thus we might
      need to copy them here.  We try to align to a 16 bytes. */
   if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
@@ -896,21 +874,18 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
         u32  dummy[4];
         byte a[16] ATTR_ALIGNED_16;
       } a;
-      union
-      {
-        u32  dummy[4];
-        byte b[16] ATTR_ALIGNED_16;
-      } b;
 
       buf_cpy (a.a, ax, 16);
-      do_decrypt_aligned (ctx, b.b, a.a);
-      buf_cpy (bx, b.b, 16);
+      do_decrypt_aligned (ctx, a.a, a.a);
+      buf_cpy (bx, a.a, 16);
     }
   else
-#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
     {
       do_decrypt_aligned (ctx, bx, ax);
     }
+
+  return (56+2*sizeof(int));
+#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 }
 
 
@@ -929,33 +904,10 @@ static unsigned int
 rijndael_decrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
-  unsigned int burn_stack;
 
   check_decryption_preparation (ctx);
 
-  if (0)
-    ;
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    {
-      _gcry_aes_aesni_decrypt (ctx, b, a);
-      burn_stack = 0;
-    }
-#endif /*USE_AESNI*/
-#ifdef USE_PADLOCK
-  else if (ctx->use_padlock)
-    {
-      do_padlock (ctx, 1, b, a);
-      burn_stack = (48 + 2*sizeof(int) /* FIXME */);
-    }
-#endif /*USE_PADLOCK*/
-  else
-    {
-      do_decrypt (ctx, b, a);
-      burn_stack = (56+2*sizeof(int));
-    }
-
-  return burn_stack;
+  return ctx->decrypt_fn (ctx, b, a);
 }
 
 
@@ -971,7 +923,7 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned int burn_depth = 48 + 2*sizeof(int);
+  unsigned int burn_depth = 0;
 
   if (0)
     ;
@@ -982,24 +934,13 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
-#ifdef USE_PADLOCK
-  else if (ctx->use_padlock)
-    {
-      /* Fixme:  Let Padlock do the CFBing.  */
-      for ( ;nblocks; nblocks-- )
-        {
-          do_padlock (ctx, 0, iv, iv);
-          buf_xor_n_copy(outbuf, iv, inbuf, BLOCKSIZE);
-          outbuf += BLOCKSIZE;
-          inbuf  += BLOCKSIZE;
-        }
-    }
-#endif /*USE_PADLOCK*/
   else
     {
+      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+
       for ( ;nblocks; nblocks-- )
         {
-          do_encrypt_aligned (ctx, iv, iv);
+          burn_depth = encrypt_fn (ctx, iv, iv);
           buf_xor_n_copy(outbuf, iv, inbuf, BLOCKSIZE);
           outbuf += BLOCKSIZE;
           inbuf  += BLOCKSIZE;
@@ -1007,7 +948,7 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
     }
 
   if (burn_depth)
-    _gcry_burn_stack (burn_depth);
+    _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
 }
 
 
@@ -1023,7 +964,7 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
   RIJNDAEL_context *ctx = context;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
-  unsigned int burn_depth = 48 + 2*sizeof(int) + 4*sizeof (char*);
+  unsigned int burn_depth = 0;
 
   check_decryption_preparation (ctx);
 
@@ -1038,21 +979,15 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 #endif /*USE_AESNI*/
   else
     {
-      unsigned char savebuf[BLOCKSIZE];
+      unsigned char savebuf[BLOCKSIZE] ATTR_ALIGNED_16;
+      rijndael_cryptfn_t decrypt_fn = ctx->decrypt_fn;
 
       for ( ;nblocks; nblocks-- )
         {
           /* INBUF is needed later and it may be identical to OUTBUF, so store
              the intermediate result to SAVEBUF.  */
 
-          if (0)
-            ;
-#ifdef USE_PADLOCK
-          else if (ctx->use_padlock)
-            do_padlock (ctx, 1, savebuf, inbuf);
-#endif /*USE_PADLOCK*/
-          else
-            do_decrypt (ctx, savebuf, inbuf);
+          burn_depth = decrypt_fn (ctx, savebuf, inbuf);
 
           buf_xor_n_copy_2(outbuf, savebuf, iv, inbuf, BLOCKSIZE);
           inbuf += BLOCKSIZE;
@@ -1063,7 +998,7 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
     }
 
   if (burn_depth)
-    _gcry_burn_stack (burn_depth);
+    _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
 }
 
 

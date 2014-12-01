@@ -1021,13 +1021,14 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
 }
 
 
-void
-_gcry_aes_aesni_encrypt (RIJNDAEL_context *ctx, unsigned char *dst,
+unsigned int
+_gcry_aes_aesni_encrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                          const unsigned char *src)
 {
   aesni_prepare ();
   do_aesni_enc (ctx, dst, src);
   aesni_cleanup ();
+  return 0;
 }
 
 
@@ -1128,13 +1129,14 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
 }
 
 
-void
-_gcry_aes_aesni_decrypt (RIJNDAEL_context *ctx, unsigned char *dst,
+unsigned int
+_gcry_aes_aesni_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                          const unsigned char *src)
 {
   aesni_prepare ();
   do_aesni_dec (ctx, dst, src);
   aesni_cleanup ();
+  return 0;
 }
 
 

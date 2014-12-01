@@ -212,6 +212,7 @@ _gcry_aes_amd64_encrypt_block:
 	movq (2 * 8)(%rsp), %rbp;
 	addq $(5 * 8), %rsp;
 
+        movl $(6 * 8), %eax;
 	ret;
 
 .align 4
@@ -334,6 +335,7 @@ _gcry_aes_amd64_decrypt_block:
 	movq (2 * 8)(%rsp), %rbp;
 	addq $(5 * 8), %rsp;
 
+        movl $(6 * 8), %eax;
 	ret;
 
 .align 4

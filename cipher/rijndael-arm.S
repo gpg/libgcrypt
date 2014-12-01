@@ -314,6 +314,8 @@ _gcry_aes_arm_encrypt_block:
 	/* write output block */
 	stm	RT0, {RA, RB, RC, RD};
 2:
+
+	mov     r0, #(10 * 4);
 	pop {%r4-%r11, %ip, %pc};
 
 .ltorg
@@ -565,6 +567,7 @@ _gcry_aes_arm_decrypt_block:
 	/* write output block */
 	stm	RT0, {RA, RB, RC, RD};
 2:
+	mov     r0, #(10 * 4);
 	pop {%r4-%r11, %ip, %pc};
 
 .ltorg
