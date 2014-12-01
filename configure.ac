@@ -1698,6 +1698,13 @@ if test "$found" = "1" ; then
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-arm.lo"
       ;;
    esac
+
+   case "$mpi_cpu_arch" in
+     x86)
+         # Build with the AES-NI implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-aesni.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(twofish, $enabled_ciphers)
