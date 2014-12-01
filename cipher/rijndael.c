@@ -180,17 +180,17 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
         {
           ;
         }
+#ifdef USE_AESNI
+      else if (hwfeatures & HWF_INTEL_AESNI)
+        {
+          ctx->use_aesni = 1;
+        }
+#endif
 #ifdef USE_PADLOCK
       else if (hwfeatures & HWF_PADLOCK_AES)
         {
           ctx->use_padlock = 1;
           memcpy (ctx->padlockkey, key, keylen);
-        }
-#endif
-#ifdef USE_AESNI
-      else if (hwfeatures & HWF_INTEL_AESNI)
-        {
-          ctx->use_aesni = 1;
         }
 #endif
     }
@@ -348,13 +348,21 @@ prepare_decryption( RIJNDAEL_context *ctx )
 {
   int r;
 
+  if (0)
+    ;
 #ifdef USE_AESNI
-  if (ctx->use_aesni)
+  else if (ctx->use_aesni)
     {
       _gcry_aes_aesni_prepare_decryption (ctx);
     }
-  else
 #endif /*USE_AESNI*/
+#ifdef USE_PADLOCK
+  else if (ctx->use_padlock)
+    {
+      /* Padlock does not need decryption subkeys. */
+    }
+#endif /*USE_PADLOCK*/
+  else
     {
       union
       {
@@ -587,13 +595,6 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
 
   if (0)
     ;
-#ifdef USE_PADLOCK
-  else if (ctx->use_padlock)
-    {
-      do_padlock (ctx, 0, b, a);
-      burn_stack = (48 + 15 /* possible padding for alignment */);
-    }
-#endif /*USE_PADLOCK*/
 #ifdef USE_AESNI
   else if (ctx->use_aesni)
     {
@@ -601,6 +602,13 @@ rijndael_encrypt (void *context, byte *b, const byte *a)
       burn_stack = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_PADLOCK
+  else if (ctx->use_padlock)
+    {
+      do_padlock (ctx, 0, b, a);
+      burn_stack = (48 + 15 /* possible padding for alignment */);
+    }
+#endif /*USE_PADLOCK*/
   else
     {
       do_encrypt (ctx, b, a);
@@ -627,6 +635,13 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
 
   if (0)
     ;
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    {
+      _gcry_aes_aesni_cfb_enc (ctx, outbuf, inbuf, iv, nblocks);
+      burn_depth = 0;
+    }
+#endif /*USE_AESNI*/
 #ifdef USE_PADLOCK
   else if (ctx->use_padlock)
     {
@@ -642,13 +657,6 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
         }
     }
 #endif /*USE_PADLOCK*/
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    {
-      _gcry_aes_aesni_cfb_enc (ctx, outbuf, inbuf, iv, nblocks);
-      burn_depth = 0;
-    }
-#endif /*USE_AESNI*/
   else
     {
       for ( ;nblocks; nblocks-- )
@@ -909,13 +917,7 @@ do_decrypt (RIJNDAEL_context *ctx, byte *bx, const byte *ax)
 static inline void
 check_decryption_preparation (RIJNDAEL_context *ctx)
 {
-  if (0)
-    ;
-#ifdef USE_PADLOCK
-  else if (ctx->use_padlock)
-    { /* Padlock does not need decryption subkeys. */ }
-#endif /*USE_PADLOCK*/
-  else if ( !ctx->decryption_prepared )
+  if ( !ctx->decryption_prepared )
     {
       prepare_decryption ( ctx );
       ctx->decryption_prepared = 1;
@@ -933,13 +935,6 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
 
   if (0)
     ;
-#ifdef USE_PADLOCK
-  else if (ctx->use_padlock)
-    {
-      do_padlock (ctx, 1, b, a);
-      burn_stack = (48 + 2*sizeof(int) /* FIXME */);
-    }
-#endif /*USE_PADLOCK*/
 #ifdef USE_AESNI
   else if (ctx->use_aesni)
     {
@@ -947,6 +942,13 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
       burn_stack = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_PADLOCK
+  else if (ctx->use_padlock)
+    {
+      do_padlock (ctx, 1, b, a);
+      burn_stack = (48 + 2*sizeof(int) /* FIXME */);
+    }
+#endif /*USE_PADLOCK*/
   else
     {
       do_decrypt (ctx, b, a);
@@ -973,6 +975,13 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
 
   if (0)
     ;
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    {
+      _gcry_aes_aesni_cfb_dec (ctx, outbuf, inbuf, iv, nblocks);
+      burn_depth = 0;
+    }
+#endif /*USE_AESNI*/
 #ifdef USE_PADLOCK
   else if (ctx->use_padlock)
     {
@@ -986,13 +995,6 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
         }
     }
 #endif /*USE_PADLOCK*/
-#ifdef USE_AESNI
-  else if (ctx->use_aesni)
-    {
-      _gcry_aes_aesni_cfb_dec (ctx, outbuf, inbuf, iv, nblocks);
-      burn_depth = 0;
-    }
-#endif /*USE_AESNI*/
   else
     {
       for ( ;nblocks; nblocks-- )
