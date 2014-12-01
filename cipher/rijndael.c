@@ -106,12 +106,12 @@ extern void _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx,
 #endif
 
 #ifdef USE_PADLOCK
-static unsigned int do_padlock_encrypt (const RIJNDAEL_context *ctx,
-                                        unsigned char *bx,
-                                        const unsigned char *ax);
-static unsigned int do_padlock_decrypt (const RIJNDAEL_context *ctx,
-                                        unsigned char *bx,
-                                        const unsigned char *ax);
+extern unsigned int _gcry_aes_padlock_encrypt (const RIJNDAEL_context *ctx,
+                                               unsigned char *bx,
+                                               const unsigned char *ax);
+extern unsigned int _gcry_aes_padlock_decrypt (const RIJNDAEL_context *ctx,
+                                               unsigned char *bx,
+                                               const unsigned char *ax);
 #endif
 
 #ifdef USE_ARM_ASM
@@ -222,8 +222,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 #ifdef USE_PADLOCK
   else if (hwfeatures & HWF_PADLOCK_AES && keylen == 128/8)
     {
-      ctx->encrypt_fn = do_padlock_encrypt;
-      ctx->decrypt_fn = do_padlock_decrypt;
+      ctx->encrypt_fn = _gcry_aes_padlock_encrypt;
+      ctx->decrypt_fn = _gcry_aes_padlock_decrypt;
       ctx->use_padlock = 1;
       memcpy (ctx->padlockkey, key, keylen);
     }
@@ -530,76 +530,6 @@ do_encrypt (const RIJNDAEL_context *ctx,
   return (56 + 2*sizeof(int));
 #endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
 }
-
-
-/* Encrypt or decrypt one block using the padlock engine.  A and B may
-   be the same. */
-#ifdef USE_PADLOCK
-static unsigned int
-do_padlock (const RIJNDAEL_context *ctx, unsigned char *bx,
-            const unsigned char *ax, int decrypt_flag)
-{
-  /* BX and AX are not necessary correctly aligned.  Thus we need to
-     copy them here. */
-  unsigned char a[16] __attribute__ ((aligned (16)));
-  unsigned char b[16] __attribute__ ((aligned (16)));
-  unsigned int cword[4] __attribute__ ((aligned (16)));
-  int blocks;
-
-  /* The control word fields are:
-      127:12   11:10 9     8     7     6     5     4     3:0
-      RESERVED KSIZE CRYPT INTER KEYGN CIPHR ALIGN DGEST ROUND  */
-  cword[0] = (ctx->rounds & 15);  /* (The mask is just a safeguard.)  */
-  cword[1] = 0;
-  cword[2] = 0;
-  cword[3] = 0;
-  if (decrypt_flag)
-    cword[0] |= 0x00000200;
-
-  memcpy (a, ax, 16);
-
-  blocks = 1; /* Init counter for just one block.  */
-#ifdef __x86_64__
-  asm volatile
-    ("pushfq\n\t"          /* Force key reload.  */
-     "popfq\n\t"
-     ".byte 0xf3, 0x0f, 0xa7, 0xc8\n\t" /* REP XCRYPT ECB. */
-     : /* No output */
-     : "S" (a), "D" (b), "d" (cword), "b" (ctx->padlockkey), "c" (blocks)
-     : "cc", "memory"
-     );
-#else
-  asm volatile
-    ("pushfl\n\t"          /* Force key reload.  */
-     "popfl\n\t"
-     "xchg %3, %%ebx\n\t"  /* Load key.  */
-     ".byte 0xf3, 0x0f, 0xa7, 0xc8\n\t" /* REP XCRYPT ECB. */
-     "xchg %3, %%ebx\n"    /* Restore GOT register.  */
-     : /* No output */
-     : "S" (a), "D" (b), "d" (cword), "r" (ctx->padlockkey), "c" (blocks)
-     : "cc", "memory"
-     );
-#endif
-
-  memcpy (bx, b, 16);
-
-  return (48 + 15 /* possible padding for alignment */);
-}
-
-static unsigned int
-do_padlock_encrypt (const RIJNDAEL_context *ctx,
-                    unsigned char *bx, const unsigned char *ax)
-{
-  return do_padlock(ctx, bx, ax, 0);
-}
-
-static unsigned int
-do_padlock_decrypt (const RIJNDAEL_context *ctx,
-                    unsigned char *bx, const unsigned char *ax)
-{
-  return do_padlock(ctx, bx, ax, 1);
-}
-#endif /*USE_PADLOCK*/
 
 
 static unsigned int

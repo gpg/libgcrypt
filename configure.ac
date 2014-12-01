@@ -1703,6 +1703,9 @@ if test "$found" = "1" ; then
      x86)
          # Build with the AES-NI implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-aesni.lo"
+
+         # Build with the Padlock implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-padlock.lo"
       ;;
    esac
 fi
