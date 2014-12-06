@@ -42,7 +42,7 @@
 #define GCM_USE_TABLES 1
 
 
-/* GCM_USE_INTEL_PCLMUL inidicates whether to compile GCM with Intel PCLMUL
+/* GCM_USE_INTEL_PCLMUL indicates whether to compile GCM with Intel PCLMUL
    code.  */
 #undef GCM_USE_INTEL_PCLMUL
 #if defined(ENABLE_PCLMUL_SUPPORT) && defined(GCM_USE_TABLES)
@@ -52,6 +52,10 @@
 #  endif
 # endif
 #endif /* GCM_USE_INTEL_PCLMUL */
+
+
+typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
+                                    const byte *buf, size_t nblocks);
 
 
 /* A VIA processor with the Padlock engine as well as the Intel AES_NI
@@ -188,6 +192,7 @@ struct gcry_cipher_handle
       unsigned char macbuf[GCRY_CCM_BLOCK_LEN];
       int mac_unused;  /* Number of unprocessed bytes in MACBUF. */
 
+
       /* byte counters for GCM */
       u32 aadlen[2];
       u32 datalen[2];
@@ -209,10 +214,8 @@ struct gcry_cipher_handle
         unsigned char key[MAX_BLOCKSIZE];
       } u_ghash_key;
 
-#ifdef GCM_USE_INTEL_PCLMUL
-      /* Use Intel PCLMUL instructions for accelerated GHASH. */
-      unsigned int use_intel_pclmul:1;
-#endif
+      /* GHASH implementation in use. */
+      ghash_fn_t ghash_fn;
 
       /* Pre-calculated table for GCM. */
 #ifdef GCM_USE_TABLES
