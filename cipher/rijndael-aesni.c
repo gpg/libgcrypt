@@ -340,33 +340,14 @@ _gcry_aes_aesni_prepare_decryption (RIJNDAEL_context *ctx)
 }
 
 
-/* Encrypt one block using the Intel AES-NI instructions.  A and B may
-   be the same.
-
-   Our problem here is that gcc does not allow the "x" constraint for
-   SSE registers in asm unless you compile with -msse.  The common
-   wisdom is to use a separate file for SSE instructions and build it
-   separately.  This would require a lot of extra build system stuff,
-   similar to what we do in mpi/ for the asm stuff.  What we do
-   instead is to use standard registers and a bit more of plain asm
-   which copies the data and key stuff to the SSE registers and later
-   back.  If we decide to implement some block modes with parallelized
-   AES instructions, it might indeed be better to use plain asm ala
-   mpi/.  */
+/* Encrypt one block using the Intel AES-NI instructions.  Block is input
+ * and output through SSE register xmm0. */
 static inline void
-do_aesni_enc (const RIJNDAEL_context *ctx, unsigned char *b,
-              const unsigned char *a)
+do_aesni_enc (const RIJNDAEL_context *ctx)
 {
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
 #define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
-  /* Note: For now we relax the alignment requirement for A and B: It
-     does not make much difference because in many case we would need
-     to memcpy them to an extra buffer; using the movdqu is much faster
-     that memcpy and movdqa.  For CFB we know that the IV is properly
-     aligned but that is a special case.  We should better implement
-     CFB direct in asm.  */
-  asm volatile ("movdqu %[src], %%xmm0\n\t"     /* xmm0 := *a     */
-                "movdqa (%[key]), %%xmm1\n\t"    /* xmm1 := key[0] */
+  asm volatile ("movdqa (%[key]), %%xmm1\n\t"    /* xmm1 := key[0] */
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0] */
                 "movdqa 0x10(%[key]), %%xmm1\n\t"
                 aesenc_xmm1_xmm0
@@ -402,10 +383,9 @@ do_aesni_enc (const RIJNDAEL_context *ctx, unsigned char *b,
 
                 ".Lenclast%=:\n\t"
                 aesenclast_xmm1_xmm0
-                "movdqu %%xmm0, %[dst]\n"
-                : [dst] "=m" (*b)
-                : [src] "m" (*a),
-                  [key] "r" (ctx->keyschenc),
+                "\n"
+                :
+                : [key] "r" (ctx->keyschenc),
                   [rounds] "r" (ctx->rounds)
                 : "cc", "memory");
 #undef aesenc_xmm1_xmm0
@@ -413,14 +393,14 @@ do_aesni_enc (const RIJNDAEL_context *ctx, unsigned char *b,
 }
 
 
+/* Decrypt one block using the Intel AES-NI instructions.  Block is input
+ * and output through SSE register xmm0. */
 static inline void
-do_aesni_dec (const RIJNDAEL_context *ctx, unsigned char *b,
-              const unsigned char *a)
+do_aesni_dec (const RIJNDAEL_context *ctx)
 {
 #define aesdec_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xde, 0xc1\n\t"
 #define aesdeclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdf, 0xc1\n\t"
-  asm volatile ("movdqu %[src], %%xmm0\n\t"     /* xmm0 := *a     */
-                "movdqa (%[key]), %%xmm1\n\t"
+  asm volatile ("movdqa (%[key]), %%xmm1\n\t"
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0] */
                 "movdqa 0x10(%[key]), %%xmm1\n\t"
                 aesdec_xmm1_xmm0
@@ -456,10 +436,9 @@ do_aesni_dec (const RIJNDAEL_context *ctx, unsigned char *b,
 
                 ".Ldeclast%=:\n\t"
                 aesdeclast_xmm1_xmm0
-                "movdqu %%xmm0, %[dst]\n"
-                : [dst] "=m" (*b)
-                : [src] "m" (*a),
-                  [key] "r" (ctx->keyschdec),
+                "\n"
+                :
+                : [key] "r" (ctx->keyschdec),
                   [rounds] "r" (ctx->rounds)
                 : "cc", "memory");
 #undef aesdec_xmm1_xmm0
@@ -684,74 +663,6 @@ do_aesni_dec_vec4 (const RIJNDAEL_context *ctx)
 #undef aesdeclast_xmm0_xmm4
 }
 
-
-/* Perform a CFB encryption or decryption round using the
-   initialization vector IV and the input block A.  Write the result
-   to the output block B and update IV.  IV needs to be 16 byte
-   aligned.  */
-static inline void
-do_aesni_cfb (const RIJNDAEL_context *ctx, int decrypt_flag,
-              unsigned char *iv, unsigned char *b, const unsigned char *a)
-{
-#define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
-#define aesenclast_xmm1_xmm0  ".byte 0x66, 0x0f, 0x38, 0xdd, 0xc1\n\t"
-  asm volatile ("movdqa %[iv], %%xmm0\n\t"      /* xmm0 := IV     */
-                "movdqa (%[key]), %%xmm1\n\t"    /* xmm1 := key[0] */
-                "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0] */
-                "movdqa 0x10(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0x20(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0x30(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0x40(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0x50(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0x60(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0x70(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0x80(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0x90(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0xa0(%[key]), %%xmm1\n\t"
-                "cmpl $10, %[rounds]\n\t"
-                "jz .Lenclast%=\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0xb0(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0xc0(%[key]), %%xmm1\n\t"
-                "cmpl $12, %[rounds]\n\t"
-                "jz .Lenclast%=\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0xd0(%[key]), %%xmm1\n\t"
-                aesenc_xmm1_xmm0
-                "movdqa 0xe0(%[key]), %%xmm1\n"
-
-                ".Lenclast%=:\n\t"
-                aesenclast_xmm1_xmm0
-                "movdqu %[src], %%xmm1\n\t"      /* Save input.  */
-                "pxor %%xmm1, %%xmm0\n\t"        /* xmm0 = input ^ IV  */
-
-                "cmpl $1, %[decrypt]\n\t"
-                "jz .Ldecrypt_%=\n\t"
-                "movdqa %%xmm0, %[iv]\n\t"       /* [encrypt] Store IV.  */
-                "jmp .Lleave_%=\n"
-                ".Ldecrypt_%=:\n\t"
-                "movdqa %%xmm1, %[iv]\n"         /* [decrypt] Store IV.  */
-                ".Lleave_%=:\n\t"
-                "movdqu %%xmm0, %[dst]\n"        /* Store output.   */
-                : [iv] "+m" (*iv), [dst] "=m" (*b)
-                : [src] "m" (*a),
-                  [key] "r" (ctx->keyschenc),
-                  [rounds] "g" (ctx->rounds),
-                  [decrypt] "m" (decrypt_flag)
-                : "cc", "memory");
-#undef aesenc_xmm1_xmm0
-#undef aesenclast_xmm1_xmm0
-}
 
 /* Perform a CTR encryption round using the counter CTR and the input
    block A.  Write the result to the output block B and update CTR.
@@ -1026,7 +937,15 @@ _gcry_aes_aesni_encrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                          const unsigned char *src)
 {
   aesni_prepare ();
-  do_aesni_enc (ctx, dst, src);
+  asm volatile ("movdqu %[src], %%xmm0\n\t"
+                :
+                : [src] "m" (*src)
+                : "memory" );
+  do_aesni_enc (ctx);
+  asm volatile ("movdqu %%xmm0, %[dst]\n\t"
+                : [dst] "=m" (*dst)
+                :
+                : "memory" );
   aesni_cleanup ();
   return 0;
 }
@@ -1038,12 +957,32 @@ _gcry_aes_aesni_cfb_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
                          size_t nblocks)
 {
   aesni_prepare ();
+
+  asm volatile ("movdqu %[iv], %%xmm0\n\t"
+                : /* No output */
+                : [iv] "m" (*iv)
+                : "memory" );
+
   for ( ;nblocks; nblocks-- )
     {
-      do_aesni_cfb (ctx, 0, iv, outbuf, inbuf);
+      do_aesni_enc (ctx);
+
+      asm volatile ("movdqu %[inbuf], %%xmm1\n\t"
+                    "pxor %%xmm1, %%xmm0\n\t"
+                    "movdqu %%xmm0, %[outbuf]\n\t"
+                    : [outbuf] "=m" (*outbuf)
+                    : [inbuf] "m" (*inbuf)
+                    : "memory" );
+
       outbuf += BLOCKSIZE;
       inbuf  += BLOCKSIZE;
     }
+
+  asm volatile ("movdqu %%xmm0, %[iv]\n\t"
+                : [iv] "=m" (*iv)
+                :
+                : "memory" );
+
   aesni_cleanup ();
 }
 
@@ -1053,45 +992,41 @@ _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
                          const unsigned char *inbuf, unsigned char *iv,
                          size_t nblocks, int cbc_mac)
 {
-  unsigned char *last_iv;
-
   aesni_prepare ();
 
-  last_iv = iv;
+  asm volatile ("movdqu %[iv], %%xmm5\n\t"
+                : /* No output */
+                : [iv] "m" (*iv)
+                : "memory" );
 
   for ( ;nblocks; nblocks-- )
     {
-      /* ~35% speed up on Sandy-Bridge when doing xoring and copying with
-          SSE registers.  */
-      asm volatile ("movdqu %[iv], %%xmm0\n\t"
-                    "movdqu %[inbuf], %%xmm1\n\t"
-                    "pxor %%xmm0, %%xmm1\n\t"
-                    "movdqu %%xmm1, %[outbuf]\n\t"
+      asm volatile ("movdqu %[inbuf], %%xmm0\n\t"
+                    "pxor %%xmm5, %%xmm0\n\t"
                     : /* No output */
-                    : [iv] "m" (*last_iv),
-                      [inbuf] "m" (*inbuf),
-                      [outbuf] "m" (*outbuf)
+                    : [inbuf] "m" (*inbuf)
                     : "memory" );
 
-      do_aesni_enc (ctx, outbuf, outbuf);
+      do_aesni_enc (ctx);
 
-      last_iv = outbuf;
+      asm volatile ("movdqa %%xmm0, %%xmm5\n\t"
+                    "movdqu %%xmm0, %[outbuf]\n\t"
+                    : [outbuf] "=m" (*outbuf)
+                    :
+                    : "memory" );
+
       inbuf += BLOCKSIZE;
       if (!cbc_mac)
         outbuf += BLOCKSIZE;
     }
 
-  if (last_iv != iv)
-    {
-      asm volatile ("movdqu %[last], %%xmm0\n\t"
-                    "movdqu %%xmm0, %[iv]\n\t"
-                    : /* No output */
-                    : [last] "m" (*last_iv),
-                      [iv] "m" (*iv)
-                    : "memory" );
-    }
+  asm volatile ("movdqu %%xmm5, %[iv]\n\t"
+                : [iv] "=m" (*iv)
+                :
+                : "memory" );
 
   aesni_cleanup ();
+  aesni_cleanup_2_6 ();
 }
 
 
@@ -1134,7 +1069,15 @@ _gcry_aes_aesni_decrypt (const RIJNDAEL_context *ctx, unsigned char *dst,
                          const unsigned char *src)
 {
   aesni_prepare ();
-  do_aesni_dec (ctx, dst, src);
+  asm volatile ("movdqu %[src], %%xmm0\n\t"
+                :
+                : [src] "m" (*src)
+                : "memory" );
+  do_aesni_dec (ctx);
+  asm volatile ("movdqu %%xmm0, %[dst]\n\t"
+                : [dst] "=m" (*dst)
+                :
+                : "memory" );
   aesni_cleanup ();
   return 0;
 }
@@ -1147,19 +1090,23 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
 {
   aesni_prepare ();
 
+  asm volatile ("movdqu %[iv], %%xmm6\n\t"
+                : /* No output */
+                : [iv] "m" (*iv)
+                : "memory" );
+
   /* CFB decryption can be parallelized */
   for ( ;nblocks >= 4; nblocks -= 4)
     {
       asm volatile
-        ("movdqu (%[iv]),        %%xmm1\n\t" /* load input blocks */
+        ("movdqu %%xmm6,         %%xmm1\n\t" /* load input blocks */
          "movdqu 0*16(%[inbuf]), %%xmm2\n\t"
          "movdqu 1*16(%[inbuf]), %%xmm3\n\t"
          "movdqu 2*16(%[inbuf]), %%xmm4\n\t"
 
-         "movdqu 3*16(%[inbuf]), %%xmm0\n\t" /* update IV */
-         "movdqu %%xmm0,         (%[iv])\n\t"
+         "movdqu 3*16(%[inbuf]), %%xmm6\n\t" /* update IV */
          : /* No output */
-         : [inbuf] "r" (inbuf), [iv] "r" (iv)
+         : [inbuf] "r" (inbuf)
          : "memory");
 
       do_aesni_enc_vec4 (ctx);
@@ -1190,12 +1137,29 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
       inbuf  += 4*BLOCKSIZE;
     }
 
+  asm volatile ("movdqu %%xmm6, %%xmm0\n\t" ::: "cc");
+
   for ( ;nblocks; nblocks-- )
     {
-      do_aesni_cfb (ctx, 1, iv, outbuf, inbuf);
+      do_aesni_enc (ctx);
+
+      asm volatile ("movdqa %%xmm0, %%xmm6\n\t"
+                    "movdqu %[inbuf], %%xmm0\n\t"
+                    "pxor %%xmm0, %%xmm6\n\t"
+                    "movdqu %%xmm6, %[outbuf]\n\t"
+                    : [outbuf] "=m" (*outbuf)
+                    : [inbuf] "m" (*inbuf)
+                    : "memory" );
+
       outbuf += BLOCKSIZE;
       inbuf  += BLOCKSIZE;
     }
+
+  asm volatile ("movdqu %%xmm0, %[iv]\n\t"
+                : [iv] "=m" (*iv)
+                :
+                : "memory" );
+
   aesni_cleanup ();
   aesni_cleanup_2_6 ();
 }
@@ -1256,21 +1220,21 @@ _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
   for ( ;nblocks; nblocks-- )
     {
       asm volatile
-        ("movdqu %[inbuf], %%xmm2\n\t"	/* use xmm2 as savebuf */
+        ("movdqu %[inbuf], %%xmm0\n\t"
+         "movdqa %%xmm0, %%xmm2\n\t"    /* use xmm2 as savebuf */
          : /* No output */
          : [inbuf] "m" (*inbuf)
          : "memory");
 
       /* uses only xmm0 and xmm1 */
-      do_aesni_dec (ctx, outbuf, inbuf);
+      do_aesni_dec (ctx);
 
       asm volatile
-        ("movdqu %[outbuf], %%xmm0\n\t"
-         "pxor %%xmm5, %%xmm0\n\t"	/* xor IV with output */
+        ("pxor %%xmm5, %%xmm0\n\t"	/* xor IV with output */
          "movdqu %%xmm0, %[outbuf]\n\t"
          "movdqu %%xmm2, %%xmm5\n\t"	/* store savebuf as new IV */
-         : /* No output */
-         : [outbuf] "m" (*outbuf)
+         : [outbuf] "=m" (*outbuf)
+         :
          : "memory");
 
       outbuf += BLOCKSIZE;
