@@ -75,7 +75,7 @@ VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([dist-bzip2])
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_LIBOBJ_DIR([compat])
@@ -2087,6 +2087,16 @@ case "$mpi_cpu_arch" in
         ;;
 esac
 AC_SUBST([GCRYPT_HWF_MODULES])
+
+
+#
+# Option to disable building of doc file
+#
+build_doc=yes
+AC_ARG_ENABLE([doc], AC_HELP_STRING([--disable-doc],
+                                    [do not build the documentation]),
+                     build_doc=$enableval, build_doc=yes)
+AM_CONDITIONAL([BUILD_DOC], [test "x$build_doc" != xno])
 
 
 #

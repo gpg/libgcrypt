@@ -18,15 +18,21 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
 
 ACLOCAL_AMFLAGS = -I m4
-AUTOMAKE_OPTIONS = dist-bzip2
-DISTCHECK_CONFIGURE_FLAGS = --disable-random-daemon \
+DISTCHECK_CONFIGURE_FLAGS = --disable-random-daemon --enable-doc \
   --enable-ciphers=arcfour:blowfish:cast5:des:aes:twofish:serpent:rfc2268:seed:camellia
 
 # (A suitable gitlog-to-changelog script can be found in GnuPG master.)
 GITLOG_TO_CHANGELOG=gitlog-to-changelog
 
+if BUILD_DOC
+doc = doc
+else
+doc =
+endif
+
+
 DIST_SUBDIRS = m4 compat mpi cipher random src doc tests
-SUBDIRS =         compat mpi cipher random src doc tests
+SUBDIRS =         compat mpi cipher random src $(doc) tests
 
 EXTRA_DIST = autogen.sh autogen.rc README.GIT LICENSES      	           \
              ChangeLog-2011 build-aux/ChangeLog-2011 doc/ChangeLog-2011    \
