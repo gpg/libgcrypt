@@ -3414,7 +3414,7 @@ hashed can be written to files on request.
 @deftypefun void gcry_md_debug (gcry_md_hd_t @var{h}, const char *@var{suffix})
 
 Enable debugging for the digest object with handle @var{h}.  This
-creates create files named @file{dbgmd-<n>.<string>} while doing the
+creates files named @file{dbgmd-<n>.<string>} while doing the
 actual hashing.  @var{suffix} is the string part in the filename.  The
 number is a counter incremented for each new hashing.  The data in the
 file is the raw data as passed to @code{gcry_md_write} or
