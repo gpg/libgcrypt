@@ -45,6 +45,7 @@
 #define CHACHA20_BLOCK_SIZE   64        /* Bytes.  */
 #define CHACHA20_MIN_IV_SIZE   8        /* Bytes.  */
 #define CHACHA20_MAX_IV_SIZE  12        /* Bytes.  */
+#define CHACHA20_CTR_SIZE     16        /* Bytes.  */
 #define CHACHA20_INPUT_LENGTH (CHACHA20_BLOCK_SIZE / 4)
 
 /* USE_SSE2 indicates whether to compile with Intel SSE2 code. */
@@ -312,22 +313,30 @@ chacha20_keysetup (CHACHA20_context_t * ctx, const byte * key,
 static void
 chacha20_ivsetup (CHACHA20_context_t * ctx, const byte * iv, size_t ivlen)
 {
-  ctx->input[12] = 0;
-
-  if (ivlen == CHACHA20_MAX_IV_SIZE)
+  if (ivlen == CHACHA20_CTR_SIZE)
     {
+      ctx->input[12] = buf_get_le32 (iv + 0);
+      ctx->input[13] = buf_get_le32 (iv + 4);
+      ctx->input[14] = buf_get_le32 (iv + 8);
+      ctx->input[15] = buf_get_le32 (iv + 12);
+    }
+  else if (ivlen == CHACHA20_MAX_IV_SIZE)
+    {
+      ctx->input[12] = 0;
       ctx->input[13] = buf_get_le32 (iv + 0);
       ctx->input[14] = buf_get_le32 (iv + 4);
       ctx->input[15] = buf_get_le32 (iv + 8);
     }
   else if (ivlen == CHACHA20_MIN_IV_SIZE)
     {
+      ctx->input[12] = 0;
       ctx->input[13] = 0;
       ctx->input[14] = buf_get_le32 (iv + 0);
       ctx->input[15] = buf_get_le32 (iv + 4);
     }
   else
     {
+      ctx->input[12] = 0;
       ctx->input[13] = 0;
       ctx->input[14] = 0;
       ctx->input[15] = 0;
@@ -402,10 +411,12 @@ chacha20_setiv (void *context, const byte * iv, size_t ivlen)
   CHACHA20_context_t *ctx = (CHACHA20_context_t *) context;
 
   /* draft-nir-cfrg-chacha20-poly1305-02 defines 96-bit and 64-bit nonce. */
-  if (iv && ivlen != CHACHA20_MAX_IV_SIZE && ivlen != CHACHA20_MIN_IV_SIZE)
+  if (iv && ivlen != CHACHA20_MAX_IV_SIZE && ivlen != CHACHA20_MIN_IV_SIZE
+      && ivlen != CHACHA20_CTR_SIZE)
     log_info ("WARNING: chacha20_setiv: bad ivlen=%u\n", (u32) ivlen);
 
-  if (iv && (ivlen == CHACHA20_MAX_IV_SIZE || ivlen == CHACHA20_MIN_IV_SIZE))
+  if (iv && (ivlen == CHACHA20_MAX_IV_SIZE || ivlen == CHACHA20_MIN_IV_SIZE
+             || ivlen == CHACHA20_CTR_SIZE))
     chacha20_ivsetup (ctx, iv, ivlen);
   else
     chacha20_ivsetup (ctx, NULL, 0);
