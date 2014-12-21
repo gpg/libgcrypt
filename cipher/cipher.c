@@ -421,9 +421,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
       case GCRY_CIPHER_MODE_POLY1305:
 	if (!spec->stencrypt || !spec->stdecrypt || !spec->setiv)
 	  err = GPG_ERR_INV_CIPHER_MODE;
-	else if (spec->algo != GCRY_CIPHER_SALSA20 &&
-		 spec->algo != GCRY_CIPHER_SALSA20R12 &&
-		 spec->algo != GCRY_CIPHER_CHACHA20)
+	else if (spec->algo != GCRY_CIPHER_CHACHA20)
 	  err = GPG_ERR_INV_CIPHER_MODE;
 	break;
 

@@ -53,12 +53,14 @@ poly1305_bytecounter_add (u32 ctr[2], size_t add)
 
 
 static void
-poly1305_fill_bytecount (gcry_cipher_hd_t c)
+poly1305_fill_bytecounts (gcry_cipher_hd_t c)
 {
-  u32 lenbuf[2];
+  u32 lenbuf[4];
 
-  lenbuf[0] = le_bswap32(c->u_mode.poly1305.bytecount[0]);
-  lenbuf[1] = le_bswap32(c->u_mode.poly1305.bytecount[1]);
+  lenbuf[0] = le_bswap32(c->u_mode.poly1305.aadcount[0]);
+  lenbuf[1] = le_bswap32(c->u_mode.poly1305.aadcount[1]);
+  lenbuf[2] = le_bswap32(c->u_mode.poly1305.datacount[0]);
+  lenbuf[3] = le_bswap32(c->u_mode.poly1305.datacount[1]);
   _gcry_poly1305_update (&c->u_mode.poly1305.ctx, (byte*)lenbuf,
 			 sizeof(lenbuf));
 
@@ -67,15 +69,33 @@ poly1305_fill_bytecount (gcry_cipher_hd_t c)
 
 
 static void
+poly1305_do_padding (gcry_cipher_hd_t c, u32 ctr[2])
+{
+  static const byte zero_padding_buf[15] = {};
+  u32 padding_count;
+
+  /* Padding to 16 byte boundary. */
+  if (ctr[0] % 16 > 0)
+    {
+      padding_count = 16 - ctr[0] % 16;
+
+      _gcry_poly1305_update (&c->u_mode.poly1305.ctx, zero_padding_buf,
+			     padding_count);
+    }
+}
+
+
+static void
 poly1305_aad_finish (gcry_cipher_hd_t c)
 {
-  /* Start of encryption marks end of AAD stream. */
-  poly1305_fill_bytecount(c);
+  /* After AAD, feed padding bytes so we get 16 byte alignment. */
+  poly1305_do_padding (c, c->u_mode.poly1305.aadcount);
 
+  /* Start of encryption marks end of AAD stream. */
   c->u_mode.poly1305.aad_finalized = 1;
 
-  c->u_mode.poly1305.bytecount[0] = 0;
-  c->u_mode.poly1305.bytecount[1] = 0;
+  c->u_mode.poly1305.datacount[0] = 0;
+  c->u_mode.poly1305.datacount[1] = 0;
 }
 
 
@@ -102,7 +122,7 @@ _gcry_cipher_poly1305_authenticate (gcry_cipher_hd_t c,
   if (!c->marks.iv)
     poly1305_set_zeroiv(c);
 
-  if (poly1305_bytecounter_add(c->u_mode.poly1305.bytecount, aadbuflen))
+  if (poly1305_bytecounter_add(c->u_mode.poly1305.aadcount, aadbuflen))
     {
       c->u_mode.poly1305.bytecount_over_limits = 1;
       return GPG_ERR_INV_LENGTH;
@@ -138,7 +158,7 @@ _gcry_cipher_poly1305_encrypt (gcry_cipher_hd_t c,
   if (!c->u_mode.poly1305.aad_finalized)
     poly1305_aad_finish(c);
 
-  if (poly1305_bytecounter_add(c->u_mode.poly1305.bytecount, inbuflen))
+  if (poly1305_bytecounter_add(c->u_mode.poly1305.datacount, inbuflen))
     {
       c->u_mode.poly1305.bytecount_over_limits = 1;
       return GPG_ERR_INV_LENGTH;
@@ -176,7 +196,7 @@ _gcry_cipher_poly1305_decrypt (gcry_cipher_hd_t c,
   if (!c->u_mode.poly1305.aad_finalized)
     poly1305_aad_finish(c);
 
-  if (poly1305_bytecounter_add(c->u_mode.poly1305.bytecount, inbuflen))
+  if (poly1305_bytecounter_add(c->u_mode.poly1305.datacount, inbuflen))
     {
       c->u_mode.poly1305.bytecount_over_limits = 1;
       return GPG_ERR_INV_LENGTH;
@@ -212,8 +232,11 @@ _gcry_cipher_poly1305_tag (gcry_cipher_hd_t c,
 
   if (!c->marks.tag)
     {
-      /* Write data-length to poly1305. */
-      poly1305_fill_bytecount(c);
+      /* After data, feed padding bytes so we get 16 byte alignment. */
+      poly1305_do_padding (c, c->u_mode.poly1305.datacount);
+
+      /* Write byte counts to poly1305. */
+      poly1305_fill_bytecounts(c);
 
       _gcry_poly1305_finish(&c->u_mode.poly1305.ctx, c->u_iv.iv);
 
@@ -247,8 +270,11 @@ _gcry_cipher_poly1305_check_tag (gcry_cipher_hd_t c, const unsigned char *intag,
 void
 _gcry_cipher_poly1305_setkey (gcry_cipher_hd_t c)
 {
-  c->u_mode.poly1305.bytecount[0] = 0;
-  c->u_mode.poly1305.bytecount[1] = 0;
+  c->u_mode.poly1305.aadcount[0] = 0;
+  c->u_mode.poly1305.aadcount[1] = 0;
+
+  c->u_mode.poly1305.datacount[0] = 0;
+  c->u_mode.poly1305.datacount[1] = 0;
 
   c->u_mode.poly1305.bytecount_over_limits = 0;
   c->u_mode.poly1305.aad_finalized = 0;
@@ -260,16 +286,20 @@ _gcry_cipher_poly1305_setkey (gcry_cipher_hd_t c)
 gcry_err_code_t
 _gcry_cipher_poly1305_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
 {
-  byte tmpbuf[64]; /* size of ChaCha20/Salsa20 block */
+  byte tmpbuf[64]; /* size of ChaCha20 block */
   gcry_err_code_t err;
 
-  if (!iv && ivlen > 0)
+  /* IV must be 96-bits */
+  if (!iv && ivlen != (96 / 8))
     return GPG_ERR_INV_ARG;
 
   memset(&c->u_mode.poly1305.ctx, 0, sizeof(c->u_mode.poly1305.ctx));
 
-  c->u_mode.poly1305.bytecount[0] = 0;
-  c->u_mode.poly1305.bytecount[1] = 0;
+  c->u_mode.poly1305.aadcount[0] = 0;
+  c->u_mode.poly1305.aadcount[1] = 0;
+
+  c->u_mode.poly1305.datacount[0] = 0;
+  c->u_mode.poly1305.datacount[1] = 0;
 
   c->u_mode.poly1305.bytecount_over_limits = 0;
   c->u_mode.poly1305.aad_finalized = 0;
@@ -279,7 +309,7 @@ _gcry_cipher_poly1305_setiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
   /* Set up IV for stream cipher. */
   c->spec->setiv (&c->context.c, iv, ivlen);
 
-  /* Get the first block from ChaCha20/Salsa20. */
+  /* Get the first block from ChaCha20. */
   memset(tmpbuf, 0, sizeof(tmpbuf));
   c->spec->stencrypt(&c->context.c, tmpbuf, tmpbuf, sizeof(tmpbuf));
 

@@ -163,8 +163,11 @@ struct gcry_cipher_handle
 
     /* Mode specific storage for Poly1305 mode. */
     struct {
-      /* byte counter for AAD and data. */
-      u32 bytecount[2];
+      /* byte counter for AAD. */
+      u32 aadcount[2];
+
+      /* byte counter for data. */
+      u32 datacount[2];
 
       unsigned int aad_finalized:1;
       unsigned int bytecount_over_limits:1;

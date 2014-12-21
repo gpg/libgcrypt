@@ -1147,10 +1147,8 @@ cipher_bench_one (int algo, struct bench_cipher_mode *pmode)
       mode.name = mode.ops == &encrypt_ops ? "STREAM enc" : "STREAM dec";
     }
 
-  /* Poly1305 has restrictions for cipher algorithm */
-  if (mode.mode == GCRY_CIPHER_MODE_POLY1305 &&
-      (algo != GCRY_CIPHER_SALSA20 && algo != GCRY_CIPHER_SALSA20R12 &&
-       algo != GCRY_CIPHER_CHACHA20))
+  /* Poly1305 has restriction for cipher algorithm */
+  if (mode.mode == GCRY_CIPHER_MODE_POLY1305 && algo != GCRY_CIPHER_CHACHA20)
     return;
 
   /* CCM has restrictions for block-size */
