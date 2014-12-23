@@ -864,7 +864,7 @@ _gcry_rngcsprng_update_seed_file (void)
 
 
   /* Copy the entropy pool to a scratch pool and mix both of them. */
-  for (i=0,dp=(unsigned long*)keypool, sp=(unsigned long*)rndpool;
+  for (i=0,dp=(unsigned long*)(void*)keypool, sp=(unsigned long*)(void*)rndpool;
        i < POOLWORDS; i++, dp++, sp++ )
     {
       *dp = *sp + ADD_VALUE;
@@ -1020,7 +1020,7 @@ read_pool (byte *buffer, size_t length, int level)
     }
 
   /* Create a new pool. */
-  for(i=0,dp=(unsigned long*)keypool, sp=(unsigned long*)rndpool;
+  for(i=0,dp=(unsigned long*)(void*)keypool, sp=(unsigned long*)(void*)rndpool;
       i < POOLWORDS; i++, dp++, sp++ )
     *dp = *sp + ADD_VALUE;
 
