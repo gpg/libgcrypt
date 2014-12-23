@@ -95,6 +95,7 @@ typedef struct RIJNDAEL_context_s
   {
     PROPERLY_ALIGNED_TYPE dummy;
     byte keyschedule[MAXROUNDS+1][4][4];
+    u32 keyschedule32[MAXROUNDS+1][4];
 #ifdef USE_PADLOCK
     /* The key as passed to the padlock engine.  It is only used if
        the padlock engine is used (USE_PADLOCK, below).  */
@@ -105,6 +106,7 @@ typedef struct RIJNDAEL_context_s
   {
     PROPERLY_ALIGNED_TYPE dummy;
     byte keyschedule[MAXROUNDS+1][4][4];
+    u32 keyschedule32[MAXROUNDS+1][4];
   } u2;
   int rounds;                         /* Key-length-dependent number of rounds.  */
   unsigned int decryption_prepared:1; /* The decryption key schedule is available.  */
@@ -121,8 +123,10 @@ typedef struct RIJNDAEL_context_s
 } RIJNDAEL_context ATTR_ALIGNED_16;
 
 /* Macros defining alias for the keyschedules.  */
-#define keyschenc  u1.keyschedule
-#define keyschdec  u2.keyschedule
-#define padlockkey u1.padlock_key
+#define keyschenc   u1.keyschedule
+#define keyschenc32 u1.keyschedule32
+#define keyschdec   u2.keyschedule
+#define keyschdec32 u2.keyschedule32
+#define padlockkey  u1.padlock_key
 
 #endif /* G10_RIJNDAEL_INTERNAL_H */

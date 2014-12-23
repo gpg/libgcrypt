@@ -50,14 +50,6 @@
 #include "rijndael-internal.h"
 
 
-/* Define an u32 variant for the sake of gcc 4.4's strict aliasing.  */
-#if __GNUC__ > 4 || ( __GNUC__ == 4 && __GNUC_MINOR__ >= 4 )
-typedef u32           __attribute__ ((__may_alias__)) u32_a_t;
-#else
-typedef u32           u32_a_t;
-#endif
-
-
 #ifdef USE_AMD64_ASM
 /* AMD64 assembly implementations of AES */
 extern unsigned int _gcry_aes_amd64_encrypt_block(const void *keysched_enc,
@@ -293,10 +285,14 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
         {
           PROPERLY_ALIGNED_TYPE dummy;
           byte data[MAXKC][4];
+          u32 data32[MAXKC];
         } tkk[2];
-#define k tkk[0].data
-#define tk tkk[1].data
-#define W (ctx->keyschenc)
+#define k      tkk[0].data
+#define k_u32  tkk[0].data32
+#define tk     tkk[1].data
+#define tk_u32 tkk[1].data32
+#define W      (ctx->keyschenc)
+#define W_u32  (ctx->keyschenc32)
 
       prefetch_enc();
 
@@ -307,7 +303,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 
       for (j = KC-1; j >= 0; j--)
         {
-          *((u32_a_t*)tk[j]) = *((u32_a_t*)k[j]);
+          tk_u32[j] = k_u32[j];
         }
       r = 0;
       t = 0;
@@ -316,7 +312,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
         {
           for (; (j < KC) && (t < 4); j++, t++)
             {
-              *((u32_a_t*)W[r][t]) = le_bswap32(*((u32_a_t*)tk[j]));
+              W_u32[r][t] = le_bswap32(tk_u32[j]);
             }
           if (t == 4)
             {
@@ -339,14 +335,14 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
             {
               for (j = 1; j < KC; j++)
                 {
-                  *((u32_a_t*)tk[j]) ^= *((u32_a_t*)tk[j-1]);
+                  tk_u32[j] ^= tk_u32[j-1];
                 }
             }
           else
             {
               for (j = 1; j < KC/2; j++)
                 {
-                  *((u32_a_t*)tk[j]) ^= *((u32_a_t*)tk[j-1]);
+                  tk_u32[j] ^= tk_u32[j-1];
                 }
               tk[KC/2][0] ^= sbox[tk[KC/2 - 1][0] * 4];
               tk[KC/2][1] ^= sbox[tk[KC/2 - 1][1] * 4];
@@ -354,7 +350,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
               tk[KC/2][3] ^= sbox[tk[KC/2 - 1][3] * 4];
               for (j = KC/2 + 1; j < KC; j++)
                 {
-                  *((u32_a_t*)tk[j]) ^= *((u32_a_t*)tk[j-1]);
+                  tk_u32[j] ^= tk_u32[j-1];
                 }
             }
 
@@ -363,7 +359,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
             {
               for (; (j < KC) && (t < 4); j++, t++)
                 {
-                  *((u32_a_t*)W[r][t]) = le_bswap32(*((u32_a_t*)tk[j]));
+                  W_u32[r][t] = le_bswap32(tk_u32[j]);
                 }
               if (t == 4)
                 {
@@ -375,6 +371,9 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 #undef W
 #undef tk
 #undef k
+#undef W_u32
+#undef tk_u32
+#undef k_u32
       wipememory(&tkk, sizeof(tkk));
     }
 
@@ -417,15 +416,15 @@ prepare_decryption( RIJNDAEL_context *ctx )
       prefetch_enc();
       prefetch_dec();
 
-      *((u32_a_t*)ctx->keyschdec[0][0]) = *((u32_a_t*)ctx->keyschenc[0][0]);
-      *((u32_a_t*)ctx->keyschdec[0][1]) = *((u32_a_t*)ctx->keyschenc[0][1]);
-      *((u32_a_t*)ctx->keyschdec[0][2]) = *((u32_a_t*)ctx->keyschenc[0][2]);
-      *((u32_a_t*)ctx->keyschdec[0][3]) = *((u32_a_t*)ctx->keyschenc[0][3]);
+      ctx->keyschdec32[0][0] = ctx->keyschenc32[0][0];
+      ctx->keyschdec32[0][1] = ctx->keyschenc32[0][1];
+      ctx->keyschdec32[0][2] = ctx->keyschenc32[0][2];
+      ctx->keyschdec32[0][3] = ctx->keyschenc32[0][3];
 
       for (r = 1; r < ctx->rounds; r++)
         {
-          u32_a_t *wi = (u32_a_t*)((ctx->keyschenc)[r]);
-          u32_a_t *wo = (u32_a_t*)((ctx->keyschdec)[r]);
+          u32 *wi = ctx->keyschenc32[r];
+          u32 *wo = ctx->keyschdec32[r];
           u32 wt;
 
           wt = wi[0];
@@ -453,10 +452,10 @@ prepare_decryption( RIJNDAEL_context *ctx )
                  ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
         }
 
-      *((u32_a_t*)ctx->keyschdec[r][0]) = *((u32_a_t*)ctx->keyschenc[r][0]);
-      *((u32_a_t*)ctx->keyschdec[r][1]) = *((u32_a_t*)ctx->keyschenc[r][1]);
-      *((u32_a_t*)ctx->keyschdec[r][2]) = *((u32_a_t*)ctx->keyschenc[r][2]);
-      *((u32_a_t*)ctx->keyschdec[r][3]) = *((u32_a_t*)ctx->keyschenc[r][3]);
+      ctx->keyschdec32[r][0] = ctx->keyschenc32[r][0];
+      ctx->keyschdec32[r][1] = ctx->keyschenc32[r][1];
+      ctx->keyschdec32[r][2] = ctx->keyschenc32[r][2];
+      ctx->keyschdec32[r][3] = ctx->keyschenc32[r][3];
     }
 }
 
@@ -467,7 +466,7 @@ static unsigned int
 do_encrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
                const unsigned char *a)
 {
-#define rk (ctx->keyschenc)
+#define rk (ctx->keyschenc32)
   const byte *sbox = ((const byte *)encT) + 1;
   int rounds = ctx->rounds;
   int r;
@@ -479,34 +478,34 @@ do_encrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
   sb[2] = buf_get_le32(a + 8);
   sb[3] = buf_get_le32(a + 12);
 
-  sa[0] = sb[0] ^ *((u32_a_t*)rk[0][0]);
-  sa[1] = sb[1] ^ *((u32_a_t*)rk[0][1]);
-  sa[2] = sb[2] ^ *((u32_a_t*)rk[0][2]);
-  sa[3] = sb[3] ^ *((u32_a_t*)rk[0][3]);
+  sa[0] = sb[0] ^ rk[0][0];
+  sa[1] = sb[1] ^ rk[0][1];
+  sa[2] = sb[2] ^ rk[0][2];
+  sa[3] = sb[3] ^ rk[0][3];
 
   sb[0] = rol(encT[(byte)(sa[0] >> (0 * 8))], (0 * 8));
   sb[3] = rol(encT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
   sb[2] = rol(encT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
   sb[1] = rol(encT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
-  sa[0] = *((u32_a_t*)rk[1][0]) ^ sb[0];
+  sa[0] = rk[1][0] ^ sb[0];
 
   sb[1] ^= rol(encT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
   sa[0] ^= rol(encT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
   sb[3] ^= rol(encT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
   sb[2] ^= rol(encT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
-  sa[1] = *((u32_a_t*)rk[1][1]) ^ sb[1];
+  sa[1] = rk[1][1] ^ sb[1];
 
   sb[2] ^= rol(encT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
   sa[1] ^= rol(encT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
   sa[0] ^= rol(encT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
   sb[3] ^= rol(encT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
-  sa[2] = *((u32_a_t*)rk[1][2]) ^ sb[2];
+  sa[2] = rk[1][2] ^ sb[2];
 
   sb[3] ^= rol(encT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
   sa[2] ^= rol(encT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
   sa[1] ^= rol(encT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
   sa[0] ^= rol(encT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
-  sa[3] = *((u32_a_t*)rk[1][3]) ^ sb[3];
+  sa[3] = rk[1][3] ^ sb[3];
 
   for (r = 2; r < rounds; r++)
     {
@@ -514,25 +513,25 @@ do_encrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
       sb[3] = rol(encT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
       sb[2] = rol(encT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
       sb[1] = rol(encT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
-      sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
+      sa[0] = rk[r][0] ^ sb[0];
 
       sb[1] ^= rol(encT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
       sa[0] ^= rol(encT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
       sb[3] ^= rol(encT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
       sb[2] ^= rol(encT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
-      sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+      sa[1] = rk[r][1] ^ sb[1];
 
       sb[2] ^= rol(encT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
       sa[1] ^= rol(encT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
       sa[0] ^= rol(encT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
       sb[3] ^= rol(encT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
-      sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+      sa[2] = rk[r][2] ^ sb[2];
 
       sb[3] ^= rol(encT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
       sa[2] ^= rol(encT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
       sa[1] ^= rol(encT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
       sa[0] ^= rol(encT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
-      sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
+      sa[3] = rk[r][3] ^ sb[3];
 
       r++;
 
@@ -540,25 +539,25 @@ do_encrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
       sb[3] = rol(encT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
       sb[2] = rol(encT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
       sb[1] = rol(encT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
-      sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
+      sa[0] = rk[r][0] ^ sb[0];
 
       sb[1] ^= rol(encT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
       sa[0] ^= rol(encT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
       sb[3] ^= rol(encT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
       sb[2] ^= rol(encT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
-      sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+      sa[1] = rk[r][1] ^ sb[1];
 
       sb[2] ^= rol(encT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
       sa[1] ^= rol(encT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
       sa[0] ^= rol(encT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
       sb[3] ^= rol(encT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
-      sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+      sa[2] = rk[r][2] ^ sb[2];
 
       sb[3] ^= rol(encT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
       sa[2] ^= rol(encT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
       sa[1] ^= rol(encT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
       sa[0] ^= rol(encT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
-      sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
+      sa[3] = rk[r][3] ^ sb[3];
     }
 
   /* Last round is special. */
@@ -567,25 +566,25 @@ do_encrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
   sb[3] = (sbox[(byte)(sa[0] >> (1 * 8)) * 4]) << (1 * 8);
   sb[2] = (sbox[(byte)(sa[0] >> (2 * 8)) * 4]) << (2 * 8);
   sb[1] = (sbox[(byte)(sa[0] >> (3 * 8)) * 4]) << (3 * 8);
-  sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
+  sa[0] = rk[r][0] ^ sb[0];
 
   sb[1] ^= (sbox[(byte)(sa[1] >> (0 * 8)) * 4]) << (0 * 8);
   sa[0] ^= (sbox[(byte)(sa[1] >> (1 * 8)) * 4]) << (1 * 8);
   sb[3] ^= (sbox[(byte)(sa[1] >> (2 * 8)) * 4]) << (2 * 8);
   sb[2] ^= (sbox[(byte)(sa[1] >> (3 * 8)) * 4]) << (3 * 8);
-  sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+  sa[1] = rk[r][1] ^ sb[1];
 
   sb[2] ^= (sbox[(byte)(sa[2] >> (0 * 8)) * 4]) << (0 * 8);
   sa[1] ^= (sbox[(byte)(sa[2] >> (1 * 8)) * 4]) << (1 * 8);
   sa[0] ^= (sbox[(byte)(sa[2] >> (2 * 8)) * 4]) << (2 * 8);
   sb[3] ^= (sbox[(byte)(sa[2] >> (3 * 8)) * 4]) << (3 * 8);
-  sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+  sa[2] = rk[r][2] ^ sb[2];
 
   sb[3] ^= (sbox[(byte)(sa[3] >> (0 * 8)) * 4]) << (0 * 8);
   sa[2] ^= (sbox[(byte)(sa[3] >> (1 * 8)) * 4]) << (1 * 8);
   sa[1] ^= (sbox[(byte)(sa[3] >> (2 * 8)) * 4]) << (2 * 8);
   sa[0] ^= (sbox[(byte)(sa[3] >> (3 * 8)) * 4]) << (3 * 8);
-  sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
+  sa[3] = rk[r][3] ^ sb[3];
 
   buf_put_le32(b + 0, sa[0]);
   buf_put_le32(b + 4, sa[1]);
@@ -790,7 +789,7 @@ static unsigned int
 do_decrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
                const unsigned char *a)
 {
-#define rk  (ctx->keyschdec)
+#define rk (ctx->keyschdec32)
   int rounds = ctx->rounds;
   int r;
   u32 sa[4];
@@ -801,10 +800,10 @@ do_decrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
   sb[2] = buf_get_le32(a + 8);
   sb[3] = buf_get_le32(a + 12);
 
-  sa[0] = sb[0] ^ *((u32_a_t*)rk[rounds][0]);
-  sa[1] = sb[1] ^ *((u32_a_t*)rk[rounds][1]);
-  sa[2] = sb[2] ^ *((u32_a_t*)rk[rounds][2]);
-  sa[3] = sb[3] ^ *((u32_a_t*)rk[rounds][3]);
+  sa[0] = sb[0] ^ rk[rounds][0];
+  sa[1] = sb[1] ^ rk[rounds][1];
+  sa[2] = sb[2] ^ rk[rounds][2];
+  sa[3] = sb[3] ^ rk[rounds][3];
 
   for (r = rounds - 1; r > 1; r--)
     {
@@ -812,25 +811,25 @@ do_decrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
       sb[1] = rol(decT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
       sb[2] = rol(decT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
       sb[3] = rol(decT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
-      sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
+      sa[0] = rk[r][0] ^ sb[0];
 
       sb[1] ^= rol(decT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
       sb[2] ^= rol(decT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
       sb[3] ^= rol(decT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
       sa[0] ^= rol(decT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
-      sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+      sa[1] = rk[r][1] ^ sb[1];
 
       sb[2] ^= rol(decT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
       sb[3] ^= rol(decT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
       sa[0] ^= rol(decT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
       sa[1] ^= rol(decT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
-      sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+      sa[2] = rk[r][2] ^ sb[2];
 
       sb[3] ^= rol(decT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
       sa[0] ^= rol(decT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
       sa[1] ^= rol(decT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
       sa[2] ^= rol(decT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
-      sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
+      sa[3] = rk[r][3] ^ sb[3];
 
       r--;
 
@@ -838,75 +837,75 @@ do_decrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
       sb[1] = rol(decT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
       sb[2] = rol(decT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
       sb[3] = rol(decT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
-      sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
+      sa[0] = rk[r][0] ^ sb[0];
 
       sb[1] ^= rol(decT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
       sb[2] ^= rol(decT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
       sb[3] ^= rol(decT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
       sa[0] ^= rol(decT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
-      sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+      sa[1] = rk[r][1] ^ sb[1];
 
       sb[2] ^= rol(decT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
       sb[3] ^= rol(decT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
       sa[0] ^= rol(decT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
       sa[1] ^= rol(decT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
-      sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+      sa[2] = rk[r][2] ^ sb[2];
 
       sb[3] ^= rol(decT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
       sa[0] ^= rol(decT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
       sa[1] ^= rol(decT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
       sa[2] ^= rol(decT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
-      sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
+      sa[3] = rk[r][3] ^ sb[3];
     }
 
   sb[0] = rol(decT[(byte)(sa[0] >> (0 * 8))], (0 * 8));
   sb[1] = rol(decT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
   sb[2] = rol(decT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
   sb[3] = rol(decT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
-  sa[0] = *((u32_a_t*)rk[1][0]) ^ sb[0];
+  sa[0] = rk[1][0] ^ sb[0];
 
   sb[1] ^= rol(decT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
   sb[2] ^= rol(decT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
   sb[3] ^= rol(decT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
   sa[0] ^= rol(decT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
-  sa[1] = *((u32_a_t*)rk[1][1]) ^ sb[1];
+  sa[1] = rk[1][1] ^ sb[1];
 
   sb[2] ^= rol(decT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
   sb[3] ^= rol(decT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
   sa[0] ^= rol(decT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
   sa[1] ^= rol(decT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
-  sa[2] = *((u32_a_t*)rk[1][2]) ^ sb[2];
+  sa[2] = rk[1][2] ^ sb[2];
 
   sb[3] ^= rol(decT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
   sa[0] ^= rol(decT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
   sa[1] ^= rol(decT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
   sa[2] ^= rol(decT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
-  sa[3] = *((u32_a_t*)rk[1][3]) ^ sb[3];
+  sa[3] = rk[1][3] ^ sb[3];
 
   /* Last round is special. */
   sb[0] = inv_sbox[(byte)(sa[0] >> (0 * 8))] << (0 * 8);
   sb[1] = inv_sbox[(byte)(sa[0] >> (1 * 8))] << (1 * 8);
   sb[2] = inv_sbox[(byte)(sa[0] >> (2 * 8))] << (2 * 8);
   sb[3] = inv_sbox[(byte)(sa[0] >> (3 * 8))] << (3 * 8);
-  sa[0] = sb[0] ^ *((u32_a_t*)rk[0][0]);
+  sa[0] = sb[0] ^ rk[0][0];
 
   sb[1] ^= inv_sbox[(byte)(sa[1] >> (0 * 8))] << (0 * 8);
   sb[2] ^= inv_sbox[(byte)(sa[1] >> (1 * 8))] << (1 * 8);
   sb[3] ^= inv_sbox[(byte)(sa[1] >> (2 * 8))] << (2 * 8);
   sa[0] ^= inv_sbox[(byte)(sa[1] >> (3 * 8))] << (3 * 8);
-  sa[1] = sb[1] ^ *((u32_a_t*)rk[0][1]);
+  sa[1] = sb[1] ^ rk[0][1];
 
   sb[2] ^= inv_sbox[(byte)(sa[2] >> (0 * 8))] << (0 * 8);
   sb[3] ^= inv_sbox[(byte)(sa[2] >> (1 * 8))] << (1 * 8);
   sa[0] ^= inv_sbox[(byte)(sa[2] >> (2 * 8))] << (2 * 8);
   sa[1] ^= inv_sbox[(byte)(sa[2] >> (3 * 8))] << (3 * 8);
-  sa[2] = sb[2] ^ *((u32_a_t*)rk[0][2]);
+  sa[2] = sb[2] ^ rk[0][2];
 
   sb[3] ^= inv_sbox[(byte)(sa[3] >> (0 * 8))] << (0 * 8);
   sa[0] ^= inv_sbox[(byte)(sa[3] >> (1 * 8))] << (1 * 8);
   sa[1] ^= inv_sbox[(byte)(sa[3] >> (2 * 8))] << (2 * 8);
   sa[2] ^= inv_sbox[(byte)(sa[3] >> (3 * 8))] << (3 * 8);
-  sa[3] = sb[3] ^ *((u32_a_t*)rk[0][3]);
+  sa[3] = sb[3] ^ rk[0][3];
 
   buf_put_le32(b + 0, sa[0]);
   buf_put_le32(b + 4, sa[1]);
