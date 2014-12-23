@@ -142,7 +142,7 @@ _scryptBlockMix (u32 r, unsigned char *B, unsigned char *tmp2)
       buf_xor(X, X, &B[i * 64], 64);
 
       /* X = Salsa (T) */
-      _salsa20_core ((u32*)X, (u32*)X, 8);
+      _salsa20_core ((u32*)(void*)X, (u32*)(void*)X, 8);
 
       /* Y[i] = X */
       memcpy (&Y[i * 64], X, 64);
