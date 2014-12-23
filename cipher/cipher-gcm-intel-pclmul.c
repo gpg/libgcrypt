@@ -239,7 +239,7 @@ static inline void gfmul_pclmul_aggr4(void)
 
 
 void
-_gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c, byte *h)
+_gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
 {
   u64 tmp[2];
 

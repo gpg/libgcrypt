@@ -31,7 +31,7 @@
 
 
 #ifdef GCM_USE_INTEL_PCLMUL
-extern void _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c, byte *h);
+extern void _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c);
 
 extern unsigned int _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result,
                                               const byte *buf, size_t nblocks);
@@ -286,7 +286,8 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u32 *gcmM)
 }
 #endif /* !HAVE_U64_TYPEDEF || SIZEOF_UNSIGNED_LONG != 8 */
 
-#define fillM(c, h) do_fillM (h, c->u_mode.gcm.gcm_table)
+#define fillM(c) \
+  do_fillM (c->u_mode.gcm.u_ghash_key.key, c->u_mode.gcm.gcm_table)
 #define GHASH(c, result, buf) do_ghash (result, buf, c->u_mode.gcm.gcm_table)
 
 #else
@@ -351,7 +352,7 @@ do_ghash (unsigned char *hsub, unsigned char *result, const unsigned char *buf)
   return (sizeof(V) + sizeof(T) + sizeof(int)*2 + sizeof(void*)*5);
 }
 
-#define fillM(c, h) do { } while (0)
+#define fillM(c) do { } while (0)
 #define GHASH(c, result, buf) do_ghash (c->u_mode.gcm.u_ghash_key.key, result, buf)
 
 #endif /* !GCM_USE_TABLES */
@@ -376,7 +377,7 @@ ghash_internal (gcry_cipher_hd_t c, byte *result, const byte *buf,
 
 
 static void
-setupM (gcry_cipher_hd_t c, byte *h)
+setupM (gcry_cipher_hd_t c)
 {
   if (0)
     ;
@@ -384,13 +385,13 @@ setupM (gcry_cipher_hd_t c, byte *h)
   else if (_gcry_get_hw_features () & HWF_INTEL_PCLMUL)
     {
       c->u_mode.gcm.ghash_fn = _gcry_ghash_intel_pclmul;
-      _gcry_ghash_setup_intel_pclmul(c, h);
+      _gcry_ghash_setup_intel_pclmul (c);
     }
 #endif
   else
     {
       c->u_mode.gcm.ghash_fn = ghash_internal;
-      fillM (c, h);
+      fillM (c);
     }
 }
 
@@ -643,7 +644,7 @@ _gcry_cipher_gcm_setkey (gcry_cipher_hd_t c)
 
   c->spec->encrypt (&c->context.c, c->u_mode.gcm.u_ghash_key.key,
                     c->u_mode.gcm.u_ghash_key.key);
-  setupM (c, c->u_mode.gcm.u_ghash_key.key);
+  setupM (c);
 }
 
 
