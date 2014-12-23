@@ -98,7 +98,7 @@ GPGRT_LOCK_DEFINE (secmem_lock);
 
 /* Convert an address into the according memory block structure.  */
 #define ADDR_TO_BLOCK(addr) \
-  (memblock_t *) ((char *) addr - BLOCK_HEAD_SIZE)
+  (memblock_t *) (void *) ((char *) addr - BLOCK_HEAD_SIZE)
 
 /* Check whether P points into the pool.  */
 static int
@@ -137,7 +137,7 @@ mb_get_next (memblock_t *mb)
 {
   memblock_t *mb_next;
 
-  mb_next = (memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE + mb->size);
+  mb_next = (memblock_t *) (void *) ((char *) mb + BLOCK_HEAD_SIZE + mb->size);
 
   if (! ptr_into_pool_p (mb_next))
     mb_next = NULL;
@@ -205,7 +205,8 @@ mb_get_new (memblock_t *block, size_t size)
 	  {
 	    /* Split block.  */
 
-	    mb_split = (memblock_t *) (((char *) mb) + BLOCK_HEAD_SIZE + size);
+	    mb_split = (memblock_t *) (void *) (((char *) mb) + BLOCK_HEAD_SIZE
+						+ size);
 	    mb_split->size = mb->size - size - BLOCK_HEAD_SIZE;
 	    mb_split->flags = 0;
 
@@ -606,7 +607,7 @@ _gcry_secmem_free_internal (void *a)
   /* This does not make much sense: probably this memory is held in the
    * cache. We do it anyway: */
 #define MB_WIPE_OUT(byte) \
-  wipememory2 ((memblock_t *) ((char *) mb + BLOCK_HEAD_SIZE), (byte), size);
+  wipememory2 (((char *) mb + BLOCK_HEAD_SIZE), (byte), size);
 
   MB_WIPE_OUT (0xff);
   MB_WIPE_OUT (0xaa);
@@ -641,7 +642,8 @@ _gcry_secmem_realloc (void *p, size_t newsize)
 
   SECMEM_LOCK;
 
-  mb = (memblock_t *) ((char *) p - ((size_t) &((memblock_t *) 0)->aligned.c));
+  mb = (memblock_t *) (void *) ((char *) p
+				- ((size_t) &((memblock_t *) 0)->aligned.c));
   size = mb->size;
   if (newsize < size)
     {
