@@ -79,6 +79,7 @@ struct RIJNDAEL_context_s;
 typedef unsigned int (*rijndael_cryptfn_t)(const struct RIJNDAEL_context_s *ctx,
                                            unsigned char *bx,
                                            const unsigned char *ax);
+typedef void (*rijndael_prefetchfn_t)(void);
 
 /* Our context object.  */
 typedef struct RIJNDAEL_context_s
@@ -115,6 +116,8 @@ typedef struct RIJNDAEL_context_s
 #endif /*USE_AESNI*/
   rijndael_cryptfn_t encrypt_fn;
   rijndael_cryptfn_t decrypt_fn;
+  rijndael_prefetchfn_t prefetch_enc_fn;
+  rijndael_prefetchfn_t prefetch_dec_fn;
 } RIJNDAEL_context ATTR_ALIGNED_16;
 
 /* Macros defining alias for the keyschedules.  */

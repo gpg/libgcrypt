@@ -63,12 +63,14 @@ typedef u32           u32_a_t;
 extern unsigned int _gcry_aes_amd64_encrypt_block(const void *keysched_enc,
                                                   unsigned char *out,
                                                   const unsigned char *in,
-                                                  int rounds);
+                                                  int rounds,
+                                                  const void *encT);
 
 extern unsigned int _gcry_aes_amd64_decrypt_block(const void *keysched_dec,
                                                   unsigned char *out,
                                                   const unsigned char *in,
-                                                  int rounds);
+                                                  int rounds,
+                                                  const void *decT);
 #endif /*USE_AMD64_ASM*/
 
 #ifdef USE_AESNI
@@ -119,12 +121,14 @@ extern unsigned int _gcry_aes_padlock_decrypt (const RIJNDAEL_context *ctx,
 extern unsigned int _gcry_aes_arm_encrypt_block(const void *keysched_enc,
                                                 unsigned char *out,
                                                 const unsigned char *in,
-                                                int rounds);
+                                                int rounds,
+                                                const void *encT);
 
 extern unsigned int _gcry_aes_arm_decrypt_block(const void *keysched_dec,
                                                 unsigned char *out,
                                                 const unsigned char *in,
-                                                int rounds);
+                                                int rounds,
+                                                const void *decT);
 #endif /*USE_ARM_ASM*/
 
 static unsigned int do_encrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
@@ -142,6 +146,38 @@ static unsigned int do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
 
 /* Function prototypes.  */
 static const char *selftest(void);
+
+
+
+/* Prefetching for encryption/decryption tables. */
+static void prefetch_table(const volatile byte *tab, size_t len)
+{
+  size_t i;
+
+  for (i = 0; i < len; i += 8 * 32)
+    {
+      (void)tab[i + 0 * 32];
+      (void)tab[i + 1 * 32];
+      (void)tab[i + 2 * 32];
+      (void)tab[i + 3 * 32];
+      (void)tab[i + 4 * 32];
+      (void)tab[i + 5 * 32];
+      (void)tab[i + 6 * 32];
+      (void)tab[i + 7 * 32];
+    }
+
+  (void)tab[len - 1];
+}
+
+static void prefetch_enc(void)
+{
+  prefetch_table((const void *)encT, sizeof(encT));
+}
+
+static void prefetch_dec(void)
+{
+  prefetch_table((const void *)&dec_tables, sizeof(dec_tables));
+}
 
 
 
@@ -216,6 +252,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     {
       ctx->encrypt_fn = _gcry_aes_aesni_encrypt;
       ctx->decrypt_fn = _gcry_aes_aesni_decrypt;
+      ctx->prefetch_enc_fn = NULL;
+      ctx->prefetch_dec_fn = NULL;
       ctx->use_aesni = 1;
     }
 #endif
@@ -224,6 +262,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     {
       ctx->encrypt_fn = _gcry_aes_padlock_encrypt;
       ctx->decrypt_fn = _gcry_aes_padlock_decrypt;
+      ctx->prefetch_enc_fn = NULL;
+      ctx->prefetch_dec_fn = NULL;
       ctx->use_padlock = 1;
       memcpy (ctx->padlockkey, key, keylen);
     }
@@ -232,6 +272,8 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
     {
       ctx->encrypt_fn = do_encrypt;
       ctx->decrypt_fn = do_decrypt;
+      ctx->prefetch_enc_fn = prefetch_enc;
+      ctx->prefetch_dec_fn = prefetch_dec;
     }
 
   /* NB: We don't yet support Padlock hardware key generation.  */
@@ -246,14 +288,18 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 #endif
   else
     {
+      const byte *sbox = ((const byte *)encT) + 1;
       union
         {
           PROPERLY_ALIGNED_TYPE dummy;
           byte data[MAXKC][4];
-        } k, tk;
-#define k k.data
-#define tk tk.data
+        } tkk[2];
+#define k tkk[0].data
+#define tk tkk[1].data
 #define W (ctx->keyschenc)
+
+      prefetch_enc();
+
       for (i = 0; i < keylen; i++)
         {
           k[i >> 2][i & 3] = key[i];
@@ -270,7 +316,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
         {
           for (; (j < KC) && (t < 4); j++, t++)
             {
-              *((u32_a_t*)W[r][t]) = *((u32_a_t*)tk[j]);
+              *((u32_a_t*)W[r][t]) = le_bswap32(*((u32_a_t*)tk[j]));
             }
           if (t == 4)
             {
@@ -283,10 +329,10 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
         {
           /* While not enough round key material calculated calculate
              new values.  */
-          tk[0][0] ^= S[tk[KC-1][1]];
-          tk[0][1] ^= S[tk[KC-1][2]];
-          tk[0][2] ^= S[tk[KC-1][3]];
-          tk[0][3] ^= S[tk[KC-1][0]];
+          tk[0][0] ^= sbox[tk[KC-1][1] * 4];
+          tk[0][1] ^= sbox[tk[KC-1][2] * 4];
+          tk[0][2] ^= sbox[tk[KC-1][3] * 4];
+          tk[0][3] ^= sbox[tk[KC-1][0] * 4];
           tk[0][0] ^= rcon[rconpointer++];
 
           if (KC != 8)
@@ -302,10 +348,10 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
                 {
                   *((u32_a_t*)tk[j]) ^= *((u32_a_t*)tk[j-1]);
                 }
-              tk[KC/2][0] ^= S[tk[KC/2 - 1][0]];
-              tk[KC/2][1] ^= S[tk[KC/2 - 1][1]];
-              tk[KC/2][2] ^= S[tk[KC/2 - 1][2]];
-              tk[KC/2][3] ^= S[tk[KC/2 - 1][3]];
+              tk[KC/2][0] ^= sbox[tk[KC/2 - 1][0] * 4];
+              tk[KC/2][1] ^= sbox[tk[KC/2 - 1][1] * 4];
+              tk[KC/2][2] ^= sbox[tk[KC/2 - 1][2] * 4];
+              tk[KC/2][3] ^= sbox[tk[KC/2 - 1][3] * 4];
               for (j = KC/2 + 1; j < KC; j++)
                 {
                   *((u32_a_t*)tk[j]) ^= *((u32_a_t*)tk[j-1]);
@@ -317,7 +363,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
             {
               for (; (j < KC) && (t < 4); j++, t++)
                 {
-                  *((u32_a_t*)W[r][t]) = *((u32_a_t*)tk[j]);
+                  *((u32_a_t*)W[r][t]) = le_bswap32(*((u32_a_t*)tk[j]));
                 }
               if (t == 4)
                 {
@@ -329,8 +375,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 #undef W
 #undef tk
 #undef k
-      wipememory(&tk, sizeof(tk));
-      wipememory(&t, sizeof(t));
+      wipememory(&tkk, sizeof(tkk));
     }
 
   return 0;
@@ -367,136 +412,190 @@ prepare_decryption( RIJNDAEL_context *ctx )
 #endif /*USE_PADLOCK*/
   else
     {
-      union
-      {
-        PROPERLY_ALIGNED_TYPE dummy;
-        byte *w;
-      } w;
-#define w w.w
+      const byte *sbox = ((const byte *)encT) + 1;
 
-      for (r=0; r < MAXROUNDS+1; r++ )
-        {
-          *((u32_a_t*)ctx->keyschdec[r][0]) = *((u32_a_t*)ctx->keyschenc[r][0]);
-          *((u32_a_t*)ctx->keyschdec[r][1]) = *((u32_a_t*)ctx->keyschenc[r][1]);
-          *((u32_a_t*)ctx->keyschdec[r][2]) = *((u32_a_t*)ctx->keyschenc[r][2]);
-          *((u32_a_t*)ctx->keyschdec[r][3]) = *((u32_a_t*)ctx->keyschenc[r][3]);
-        }
-#define W (ctx->keyschdec)
+      prefetch_enc();
+      prefetch_dec();
+
+      *((u32_a_t*)ctx->keyschdec[0][0]) = *((u32_a_t*)ctx->keyschenc[0][0]);
+      *((u32_a_t*)ctx->keyschdec[0][1]) = *((u32_a_t*)ctx->keyschenc[0][1]);
+      *((u32_a_t*)ctx->keyschdec[0][2]) = *((u32_a_t*)ctx->keyschenc[0][2]);
+      *((u32_a_t*)ctx->keyschdec[0][3]) = *((u32_a_t*)ctx->keyschenc[0][3]);
+
       for (r = 1; r < ctx->rounds; r++)
         {
-          w = W[r][0];
-          *((u32_a_t*)w) = *((u32_a_t*)U1[w[0]]) ^ *((u32_a_t*)U2[w[1]])
-            ^ *((u32_a_t*)U3[w[2]]) ^ *((u32_a_t*)U4[w[3]]);
+          u32_a_t *wi = (u32_a_t*)((ctx->keyschenc)[r]);
+          u32_a_t *wo = (u32_a_t*)((ctx->keyschdec)[r]);
+          u32 wt;
 
-          w = W[r][1];
-          *((u32_a_t*)w) = *((u32_a_t*)U1[w[0]]) ^ *((u32_a_t*)U2[w[1]])
-            ^ *((u32_a_t*)U3[w[2]]) ^ *((u32_a_t*)U4[w[3]]);
+          wt = wi[0];
+          wo[0] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
+                 ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
+                 ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
+                 ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
 
-          w = W[r][2];
-          *((u32_a_t*)w) = *((u32_a_t*)U1[w[0]]) ^ *((u32_a_t*)U2[w[1]])
-        ^ *((u32_a_t*)U3[w[2]]) ^ *((u32_a_t*)U4[w[3]]);
+          wt = wi[1];
+          wo[1] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
+                 ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
+                 ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
+                 ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
 
-          w = W[r][3];
-          *((u32_a_t*)w) = *((u32_a_t*)U1[w[0]]) ^ *((u32_a_t*)U2[w[1]])
-            ^ *((u32_a_t*)U3[w[2]]) ^ *((u32_a_t*)U4[w[3]]);
+          wt = wi[2];
+          wo[2] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
+                 ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
+                 ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
+                 ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
+
+          wt = wi[3];
+          wo[3] = rol(decT[sbox[(byte)(wt >> 0) * 4]], 8 * 0)
+                 ^ rol(decT[sbox[(byte)(wt >> 8) * 4]], 8 * 1)
+                 ^ rol(decT[sbox[(byte)(wt >> 16) * 4]], 8 * 2)
+                 ^ rol(decT[sbox[(byte)(wt >> 24) * 4]], 8 * 3);
         }
-#undef W
-#undef w
-      wipememory(&w, sizeof(w));
+
+      *((u32_a_t*)ctx->keyschdec[r][0]) = *((u32_a_t*)ctx->keyschenc[r][0]);
+      *((u32_a_t*)ctx->keyschdec[r][1]) = *((u32_a_t*)ctx->keyschenc[r][1]);
+      *((u32_a_t*)ctx->keyschdec[r][2]) = *((u32_a_t*)ctx->keyschenc[r][2]);
+      *((u32_a_t*)ctx->keyschdec[r][3]) = *((u32_a_t*)ctx->keyschenc[r][3]);
     }
 }
 
 
-#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
-/* Encrypt one block.  A and B need to be aligned on a 4 byte
-   boundary.  A and B may be the same. */
-static void
-do_encrypt_aligned (const RIJNDAEL_context *ctx,
-                    unsigned char *b, const unsigned char *a)
+#if !defined(USE_ARM_ASM) && !defined(USE_AMD64_ASM)
+/* Encrypt one block. A and B may be the same. */
+static unsigned int
+do_encrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
+               const unsigned char *a)
 {
 #define rk (ctx->keyschenc)
+  const byte *sbox = ((const byte *)encT) + 1;
   int rounds = ctx->rounds;
   int r;
-  union
-  {
-    u32  tempu32[4];  /* Force correct alignment. */
-    byte temp[4][4];
-  } u;
+  u32 sa[4];
+  u32 sb[4];
 
-  *((u32_a_t*)u.temp[0]) = *((u32_a_t*)(a   )) ^ *((u32_a_t*)rk[0][0]);
-  *((u32_a_t*)u.temp[1]) = *((u32_a_t*)(a+ 4)) ^ *((u32_a_t*)rk[0][1]);
-  *((u32_a_t*)u.temp[2]) = *((u32_a_t*)(a+ 8)) ^ *((u32_a_t*)rk[0][2]);
-  *((u32_a_t*)u.temp[3]) = *((u32_a_t*)(a+12)) ^ *((u32_a_t*)rk[0][3]);
-  *((u32_a_t*)(b    ))   = (*((u32_a_t*)T1[u.temp[0][0]])
-                        ^ *((u32_a_t*)T2[u.temp[1][1]])
-                        ^ *((u32_a_t*)T3[u.temp[2][2]])
-                        ^ *((u32_a_t*)T4[u.temp[3][3]]));
-  *((u32_a_t*)(b + 4))   = (*((u32_a_t*)T1[u.temp[1][0]])
-                        ^ *((u32_a_t*)T2[u.temp[2][1]])
-                        ^ *((u32_a_t*)T3[u.temp[3][2]])
-                        ^ *((u32_a_t*)T4[u.temp[0][3]]));
-  *((u32_a_t*)(b + 8))   = (*((u32_a_t*)T1[u.temp[2][0]])
-                        ^ *((u32_a_t*)T2[u.temp[3][1]])
-                        ^ *((u32_a_t*)T3[u.temp[0][2]])
-                        ^ *((u32_a_t*)T4[u.temp[1][3]]));
-  *((u32_a_t*)(b +12))   = (*((u32_a_t*)T1[u.temp[3][0]])
-                        ^ *((u32_a_t*)T2[u.temp[0][1]])
-                        ^ *((u32_a_t*)T3[u.temp[1][2]])
-                        ^ *((u32_a_t*)T4[u.temp[2][3]]));
+  sb[0] = buf_get_le32(a + 0);
+  sb[1] = buf_get_le32(a + 4);
+  sb[2] = buf_get_le32(a + 8);
+  sb[3] = buf_get_le32(a + 12);
 
-  for (r = 1; r < rounds-1; r++)
+  sa[0] = sb[0] ^ *((u32_a_t*)rk[0][0]);
+  sa[1] = sb[1] ^ *((u32_a_t*)rk[0][1]);
+  sa[2] = sb[2] ^ *((u32_a_t*)rk[0][2]);
+  sa[3] = sb[3] ^ *((u32_a_t*)rk[0][3]);
+
+  sb[0] = rol(encT[(byte)(sa[0] >> (0 * 8))], (0 * 8));
+  sb[3] = rol(encT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
+  sb[2] = rol(encT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
+  sb[1] = rol(encT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
+  sa[0] = *((u32_a_t*)rk[1][0]) ^ sb[0];
+
+  sb[1] ^= rol(encT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
+  sa[0] ^= rol(encT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
+  sb[3] ^= rol(encT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
+  sb[2] ^= rol(encT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
+  sa[1] = *((u32_a_t*)rk[1][1]) ^ sb[1];
+
+  sb[2] ^= rol(encT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
+  sa[1] ^= rol(encT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
+  sa[0] ^= rol(encT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
+  sb[3] ^= rol(encT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
+  sa[2] = *((u32_a_t*)rk[1][2]) ^ sb[2];
+
+  sb[3] ^= rol(encT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
+  sa[2] ^= rol(encT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
+  sa[1] ^= rol(encT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
+  sa[0] ^= rol(encT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
+  sa[3] = *((u32_a_t*)rk[1][3]) ^ sb[3];
+
+  for (r = 2; r < rounds; r++)
     {
-      *((u32_a_t*)u.temp[0]) = *((u32_a_t*)(b   )) ^ *((u32_a_t*)rk[r][0]);
-      *((u32_a_t*)u.temp[1]) = *((u32_a_t*)(b+ 4)) ^ *((u32_a_t*)rk[r][1]);
-      *((u32_a_t*)u.temp[2]) = *((u32_a_t*)(b+ 8)) ^ *((u32_a_t*)rk[r][2]);
-      *((u32_a_t*)u.temp[3]) = *((u32_a_t*)(b+12)) ^ *((u32_a_t*)rk[r][3]);
+      sb[0] = rol(encT[(byte)(sa[0] >> (0 * 8))], (0 * 8));
+      sb[3] = rol(encT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
+      sb[2] = rol(encT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
+      sb[1] = rol(encT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
+      sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
 
-      *((u32_a_t*)(b    ))   = (*((u32_a_t*)T1[u.temp[0][0]])
-                            ^ *((u32_a_t*)T2[u.temp[1][1]])
-                            ^ *((u32_a_t*)T3[u.temp[2][2]])
-                            ^ *((u32_a_t*)T4[u.temp[3][3]]));
-      *((u32_a_t*)(b + 4))   = (*((u32_a_t*)T1[u.temp[1][0]])
-                            ^ *((u32_a_t*)T2[u.temp[2][1]])
-                            ^ *((u32_a_t*)T3[u.temp[3][2]])
-                            ^ *((u32_a_t*)T4[u.temp[0][3]]));
-      *((u32_a_t*)(b + 8))   = (*((u32_a_t*)T1[u.temp[2][0]])
-                            ^ *((u32_a_t*)T2[u.temp[3][1]])
-                            ^ *((u32_a_t*)T3[u.temp[0][2]])
-                            ^ *((u32_a_t*)T4[u.temp[1][3]]));
-      *((u32_a_t*)(b +12))   = (*((u32_a_t*)T1[u.temp[3][0]])
-                            ^ *((u32_a_t*)T2[u.temp[0][1]])
-                            ^ *((u32_a_t*)T3[u.temp[1][2]])
-                            ^ *((u32_a_t*)T4[u.temp[2][3]]));
+      sb[1] ^= rol(encT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
+      sa[0] ^= rol(encT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
+      sb[3] ^= rol(encT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
+      sb[2] ^= rol(encT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
+      sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+
+      sb[2] ^= rol(encT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
+      sa[1] ^= rol(encT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
+      sa[0] ^= rol(encT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
+      sb[3] ^= rol(encT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
+      sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+
+      sb[3] ^= rol(encT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
+      sa[2] ^= rol(encT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
+      sa[1] ^= rol(encT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
+      sa[0] ^= rol(encT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
+      sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
+
+      r++;
+
+      sb[0] = rol(encT[(byte)(sa[0] >> (0 * 8))], (0 * 8));
+      sb[3] = rol(encT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
+      sb[2] = rol(encT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
+      sb[1] = rol(encT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
+      sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
+
+      sb[1] ^= rol(encT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
+      sa[0] ^= rol(encT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
+      sb[3] ^= rol(encT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
+      sb[2] ^= rol(encT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
+      sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+
+      sb[2] ^= rol(encT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
+      sa[1] ^= rol(encT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
+      sa[0] ^= rol(encT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
+      sb[3] ^= rol(encT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
+      sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+
+      sb[3] ^= rol(encT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
+      sa[2] ^= rol(encT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
+      sa[1] ^= rol(encT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
+      sa[0] ^= rol(encT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
+      sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
     }
 
   /* Last round is special. */
-  *((u32_a_t*)u.temp[0]) = *((u32_a_t*)(b   )) ^ *((u32_a_t*)rk[rounds-1][0]);
-  *((u32_a_t*)u.temp[1]) = *((u32_a_t*)(b+ 4)) ^ *((u32_a_t*)rk[rounds-1][1]);
-  *((u32_a_t*)u.temp[2]) = *((u32_a_t*)(b+ 8)) ^ *((u32_a_t*)rk[rounds-1][2]);
-  *((u32_a_t*)u.temp[3]) = *((u32_a_t*)(b+12)) ^ *((u32_a_t*)rk[rounds-1][3]);
-  b[ 0] = T1[u.temp[0][0]][1];
-  b[ 1] = T1[u.temp[1][1]][1];
-  b[ 2] = T1[u.temp[2][2]][1];
-  b[ 3] = T1[u.temp[3][3]][1];
-  b[ 4] = T1[u.temp[1][0]][1];
-  b[ 5] = T1[u.temp[2][1]][1];
-  b[ 6] = T1[u.temp[3][2]][1];
-  b[ 7] = T1[u.temp[0][3]][1];
-  b[ 8] = T1[u.temp[2][0]][1];
-  b[ 9] = T1[u.temp[3][1]][1];
-  b[10] = T1[u.temp[0][2]][1];
-  b[11] = T1[u.temp[1][3]][1];
-  b[12] = T1[u.temp[3][0]][1];
-  b[13] = T1[u.temp[0][1]][1];
-  b[14] = T1[u.temp[1][2]][1];
-  b[15] = T1[u.temp[2][3]][1];
-  *((u32_a_t*)(b   )) ^= *((u32_a_t*)rk[rounds][0]);
-  *((u32_a_t*)(b+ 4)) ^= *((u32_a_t*)rk[rounds][1]);
-  *((u32_a_t*)(b+ 8)) ^= *((u32_a_t*)rk[rounds][2]);
-  *((u32_a_t*)(b+12)) ^= *((u32_a_t*)rk[rounds][3]);
+
+  sb[0] = (sbox[(byte)(sa[0] >> (0 * 8)) * 4]) << (0 * 8);
+  sb[3] = (sbox[(byte)(sa[0] >> (1 * 8)) * 4]) << (1 * 8);
+  sb[2] = (sbox[(byte)(sa[0] >> (2 * 8)) * 4]) << (2 * 8);
+  sb[1] = (sbox[(byte)(sa[0] >> (3 * 8)) * 4]) << (3 * 8);
+  sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
+
+  sb[1] ^= (sbox[(byte)(sa[1] >> (0 * 8)) * 4]) << (0 * 8);
+  sa[0] ^= (sbox[(byte)(sa[1] >> (1 * 8)) * 4]) << (1 * 8);
+  sb[3] ^= (sbox[(byte)(sa[1] >> (2 * 8)) * 4]) << (2 * 8);
+  sb[2] ^= (sbox[(byte)(sa[1] >> (3 * 8)) * 4]) << (3 * 8);
+  sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+
+  sb[2] ^= (sbox[(byte)(sa[2] >> (0 * 8)) * 4]) << (0 * 8);
+  sa[1] ^= (sbox[(byte)(sa[2] >> (1 * 8)) * 4]) << (1 * 8);
+  sa[0] ^= (sbox[(byte)(sa[2] >> (2 * 8)) * 4]) << (2 * 8);
+  sb[3] ^= (sbox[(byte)(sa[2] >> (3 * 8)) * 4]) << (3 * 8);
+  sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+
+  sb[3] ^= (sbox[(byte)(sa[3] >> (0 * 8)) * 4]) << (0 * 8);
+  sa[2] ^= (sbox[(byte)(sa[3] >> (1 * 8)) * 4]) << (1 * 8);
+  sa[1] ^= (sbox[(byte)(sa[3] >> (2 * 8)) * 4]) << (2 * 8);
+  sa[0] ^= (sbox[(byte)(sa[3] >> (3 * 8)) * 4]) << (3 * 8);
+  sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
+
+  buf_put_le32(b + 0, sa[0]);
+  buf_put_le32(b + 4, sa[1]);
+  buf_put_le32(b + 8, sa[2]);
+  buf_put_le32(b + 12, sa[3]);
 #undef rk
+
+  return (56 + 2*sizeof(int));
 }
-#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
+#endif /*!USE_ARM_ASM && !USE_AMD64_ASM*/
 
 
 static unsigned int
@@ -504,31 +603,13 @@ do_encrypt (const RIJNDAEL_context *ctx,
             unsigned char *bx, const unsigned char *ax)
 {
 #ifdef USE_AMD64_ASM
-  return _gcry_aes_amd64_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds);
+  return _gcry_aes_amd64_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds,
+				       encT);
 #elif defined(USE_ARM_ASM)
-  return _gcry_aes_arm_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds);
+  return _gcry_aes_arm_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds, encT);
 #else
-  /* BX and AX are not necessary correctly aligned.  Thus we might
-     need to copy them here.  We try to align to a 16 bytes.  */
-  if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
-    {
-      union
-      {
-        u32  dummy[4];
-        byte a[16] ATTR_ALIGNED_16;
-      } a;
-
-      buf_cpy (a.a, ax, 16);
-      do_encrypt_aligned (ctx, a.a, a.a);
-      buf_cpy (bx, a.a, 16);
-    }
-  else
-    {
-      do_encrypt_aligned (ctx, bx, ax);
-    }
-
-  return (56 + 2*sizeof(int));
-#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
+  return do_encrypt_fn (ctx, bx, ax);
+#endif /* !USE_ARM_ASM && !USE_AMD64_ASM*/
 }
 
 
@@ -536,6 +617,9 @@ static unsigned int
 rijndael_encrypt (void *context, byte *b, const byte *a)
 {
   RIJNDAEL_context *ctx = context;
+
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
 
   return ctx->encrypt_fn (ctx, b, a);
 }
@@ -554,6 +638,9 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn_depth = 0;
+
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
 
   if (0)
     ;
@@ -598,6 +685,9 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
   const unsigned char *inbuf = inbuf_arg;
   unsigned char *last_iv;
   unsigned int burn_depth = 0;
+
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
 
   if (0)
     ;
@@ -651,6 +741,9 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
   unsigned int burn_depth = 0;
   int i;
 
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
+
   if (0)
     ;
 #ifdef USE_AESNI
@@ -691,98 +784,139 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
 
 
 
-#if !defined(USE_AMD64_ASM) && !defined(USE_ARM_ASM)
-/* Decrypt one block.  A and B need to be aligned on a 4 byte boundary
-   and the decryption must have been prepared.  A and B may be the
-   same. */
-static void
-do_decrypt_aligned (const RIJNDAEL_context *ctx,
-                    unsigned char *b, const unsigned char *a)
+#if !defined(USE_ARM_ASM) && !defined(USE_AMD64_ASM)
+/* Decrypt one block.  A and B may be the same. */
+static unsigned int
+do_decrypt_fn (const RIJNDAEL_context *ctx, unsigned char *b,
+               const unsigned char *a)
 {
 #define rk  (ctx->keyschdec)
   int rounds = ctx->rounds;
   int r;
-  union
-  {
-    u32  tempu32[4];  /* Force correct alignment. */
-    byte temp[4][4];
-  } u;
+  u32 sa[4];
+  u32 sb[4];
 
+  sb[0] = buf_get_le32(a + 0);
+  sb[1] = buf_get_le32(a + 4);
+  sb[2] = buf_get_le32(a + 8);
+  sb[3] = buf_get_le32(a + 12);
 
-  *((u32_a_t*)u.temp[0]) = *((u32_a_t*)(a   )) ^ *((u32_a_t*)rk[rounds][0]);
-  *((u32_a_t*)u.temp[1]) = *((u32_a_t*)(a+ 4)) ^ *((u32_a_t*)rk[rounds][1]);
-  *((u32_a_t*)u.temp[2]) = *((u32_a_t*)(a+ 8)) ^ *((u32_a_t*)rk[rounds][2]);
-  *((u32_a_t*)u.temp[3]) = *((u32_a_t*)(a+12)) ^ *((u32_a_t*)rk[rounds][3]);
+  sa[0] = sb[0] ^ *((u32_a_t*)rk[rounds][0]);
+  sa[1] = sb[1] ^ *((u32_a_t*)rk[rounds][1]);
+  sa[2] = sb[2] ^ *((u32_a_t*)rk[rounds][2]);
+  sa[3] = sb[3] ^ *((u32_a_t*)rk[rounds][3]);
 
-  *((u32_a_t*)(b   ))    = (*((u32_a_t*)T5[u.temp[0][0]])
-                        ^ *((u32_a_t*)T6[u.temp[3][1]])
-                        ^ *((u32_a_t*)T7[u.temp[2][2]])
-                        ^ *((u32_a_t*)T8[u.temp[1][3]]));
-  *((u32_a_t*)(b+ 4))    = (*((u32_a_t*)T5[u.temp[1][0]])
-                        ^ *((u32_a_t*)T6[u.temp[0][1]])
-                        ^ *((u32_a_t*)T7[u.temp[3][2]])
-                        ^ *((u32_a_t*)T8[u.temp[2][3]]));
-  *((u32_a_t*)(b+ 8))    = (*((u32_a_t*)T5[u.temp[2][0]])
-                        ^ *((u32_a_t*)T6[u.temp[1][1]])
-                        ^ *((u32_a_t*)T7[u.temp[0][2]])
-                        ^ *((u32_a_t*)T8[u.temp[3][3]]));
-  *((u32_a_t*)(b+12))    = (*((u32_a_t*)T5[u.temp[3][0]])
-                        ^ *((u32_a_t*)T6[u.temp[2][1]])
-                        ^ *((u32_a_t*)T7[u.temp[1][2]])
-                        ^ *((u32_a_t*)T8[u.temp[0][3]]));
-
-  for (r = rounds-1; r > 1; r--)
+  for (r = rounds - 1; r > 1; r--)
     {
-      *((u32_a_t*)u.temp[0]) = *((u32_a_t*)(b   )) ^ *((u32_a_t*)rk[r][0]);
-      *((u32_a_t*)u.temp[1]) = *((u32_a_t*)(b+ 4)) ^ *((u32_a_t*)rk[r][1]);
-      *((u32_a_t*)u.temp[2]) = *((u32_a_t*)(b+ 8)) ^ *((u32_a_t*)rk[r][2]);
-      *((u32_a_t*)u.temp[3]) = *((u32_a_t*)(b+12)) ^ *((u32_a_t*)rk[r][3]);
-      *((u32_a_t*)(b   ))    = (*((u32_a_t*)T5[u.temp[0][0]])
-                            ^ *((u32_a_t*)T6[u.temp[3][1]])
-                            ^ *((u32_a_t*)T7[u.temp[2][2]])
-                            ^ *((u32_a_t*)T8[u.temp[1][3]]));
-      *((u32_a_t*)(b+ 4))    = (*((u32_a_t*)T5[u.temp[1][0]])
-                            ^ *((u32_a_t*)T6[u.temp[0][1]])
-                            ^ *((u32_a_t*)T7[u.temp[3][2]])
-                            ^ *((u32_a_t*)T8[u.temp[2][3]]));
-      *((u32_a_t*)(b+ 8))    = (*((u32_a_t*)T5[u.temp[2][0]])
-                            ^ *((u32_a_t*)T6[u.temp[1][1]])
-                            ^ *((u32_a_t*)T7[u.temp[0][2]])
-                            ^ *((u32_a_t*)T8[u.temp[3][3]]));
-      *((u32_a_t*)(b+12))    = (*((u32_a_t*)T5[u.temp[3][0]])
-                            ^ *((u32_a_t*)T6[u.temp[2][1]])
-                            ^ *((u32_a_t*)T7[u.temp[1][2]])
-                            ^ *((u32_a_t*)T8[u.temp[0][3]]));
+      sb[0] = rol(decT[(byte)(sa[0] >> (0 * 8))], (0 * 8));
+      sb[1] = rol(decT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
+      sb[2] = rol(decT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
+      sb[3] = rol(decT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
+      sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
+
+      sb[1] ^= rol(decT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
+      sb[2] ^= rol(decT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
+      sb[3] ^= rol(decT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
+      sa[0] ^= rol(decT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
+      sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+
+      sb[2] ^= rol(decT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
+      sb[3] ^= rol(decT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
+      sa[0] ^= rol(decT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
+      sa[1] ^= rol(decT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
+      sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+
+      sb[3] ^= rol(decT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
+      sa[0] ^= rol(decT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
+      sa[1] ^= rol(decT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
+      sa[2] ^= rol(decT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
+      sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
+
+      r--;
+
+      sb[0] = rol(decT[(byte)(sa[0] >> (0 * 8))], (0 * 8));
+      sb[1] = rol(decT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
+      sb[2] = rol(decT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
+      sb[3] = rol(decT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
+      sa[0] = *((u32_a_t*)rk[r][0]) ^ sb[0];
+
+      sb[1] ^= rol(decT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
+      sb[2] ^= rol(decT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
+      sb[3] ^= rol(decT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
+      sa[0] ^= rol(decT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
+      sa[1] = *((u32_a_t*)rk[r][1]) ^ sb[1];
+
+      sb[2] ^= rol(decT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
+      sb[3] ^= rol(decT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
+      sa[0] ^= rol(decT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
+      sa[1] ^= rol(decT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
+      sa[2] = *((u32_a_t*)rk[r][2]) ^ sb[2];
+
+      sb[3] ^= rol(decT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
+      sa[0] ^= rol(decT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
+      sa[1] ^= rol(decT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
+      sa[2] ^= rol(decT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
+      sa[3] = *((u32_a_t*)rk[r][3]) ^ sb[3];
     }
 
+  sb[0] = rol(decT[(byte)(sa[0] >> (0 * 8))], (0 * 8));
+  sb[1] = rol(decT[(byte)(sa[0] >> (1 * 8))], (1 * 8));
+  sb[2] = rol(decT[(byte)(sa[0] >> (2 * 8))], (2 * 8));
+  sb[3] = rol(decT[(byte)(sa[0] >> (3 * 8))], (3 * 8));
+  sa[0] = *((u32_a_t*)rk[1][0]) ^ sb[0];
+
+  sb[1] ^= rol(decT[(byte)(sa[1] >> (0 * 8))], (0 * 8));
+  sb[2] ^= rol(decT[(byte)(sa[1] >> (1 * 8))], (1 * 8));
+  sb[3] ^= rol(decT[(byte)(sa[1] >> (2 * 8))], (2 * 8));
+  sa[0] ^= rol(decT[(byte)(sa[1] >> (3 * 8))], (3 * 8));
+  sa[1] = *((u32_a_t*)rk[1][1]) ^ sb[1];
+
+  sb[2] ^= rol(decT[(byte)(sa[2] >> (0 * 8))], (0 * 8));
+  sb[3] ^= rol(decT[(byte)(sa[2] >> (1 * 8))], (1 * 8));
+  sa[0] ^= rol(decT[(byte)(sa[2] >> (2 * 8))], (2 * 8));
+  sa[1] ^= rol(decT[(byte)(sa[2] >> (3 * 8))], (3 * 8));
+  sa[2] = *((u32_a_t*)rk[1][2]) ^ sb[2];
+
+  sb[3] ^= rol(decT[(byte)(sa[3] >> (0 * 8))], (0 * 8));
+  sa[0] ^= rol(decT[(byte)(sa[3] >> (1 * 8))], (1 * 8));
+  sa[1] ^= rol(decT[(byte)(sa[3] >> (2 * 8))], (2 * 8));
+  sa[2] ^= rol(decT[(byte)(sa[3] >> (3 * 8))], (3 * 8));
+  sa[3] = *((u32_a_t*)rk[1][3]) ^ sb[3];
+
   /* Last round is special. */
-  *((u32_a_t*)u.temp[0]) = *((u32_a_t*)(b   )) ^ *((u32_a_t*)rk[1][0]);
-  *((u32_a_t*)u.temp[1]) = *((u32_a_t*)(b+ 4)) ^ *((u32_a_t*)rk[1][1]);
-  *((u32_a_t*)u.temp[2]) = *((u32_a_t*)(b+ 8)) ^ *((u32_a_t*)rk[1][2]);
-  *((u32_a_t*)u.temp[3]) = *((u32_a_t*)(b+12)) ^ *((u32_a_t*)rk[1][3]);
-  b[ 0] = S5[u.temp[0][0]];
-  b[ 1] = S5[u.temp[3][1]];
-  b[ 2] = S5[u.temp[2][2]];
-  b[ 3] = S5[u.temp[1][3]];
-  b[ 4] = S5[u.temp[1][0]];
-  b[ 5] = S5[u.temp[0][1]];
-  b[ 6] = S5[u.temp[3][2]];
-  b[ 7] = S5[u.temp[2][3]];
-  b[ 8] = S5[u.temp[2][0]];
-  b[ 9] = S5[u.temp[1][1]];
-  b[10] = S5[u.temp[0][2]];
-  b[11] = S5[u.temp[3][3]];
-  b[12] = S5[u.temp[3][0]];
-  b[13] = S5[u.temp[2][1]];
-  b[14] = S5[u.temp[1][2]];
-  b[15] = S5[u.temp[0][3]];
-  *((u32_a_t*)(b   )) ^= *((u32_a_t*)rk[0][0]);
-  *((u32_a_t*)(b+ 4)) ^= *((u32_a_t*)rk[0][1]);
-  *((u32_a_t*)(b+ 8)) ^= *((u32_a_t*)rk[0][2]);
-  *((u32_a_t*)(b+12)) ^= *((u32_a_t*)rk[0][3]);
+  sb[0] = inv_sbox[(byte)(sa[0] >> (0 * 8))] << (0 * 8);
+  sb[1] = inv_sbox[(byte)(sa[0] >> (1 * 8))] << (1 * 8);
+  sb[2] = inv_sbox[(byte)(sa[0] >> (2 * 8))] << (2 * 8);
+  sb[3] = inv_sbox[(byte)(sa[0] >> (3 * 8))] << (3 * 8);
+  sa[0] = sb[0] ^ *((u32_a_t*)rk[0][0]);
+
+  sb[1] ^= inv_sbox[(byte)(sa[1] >> (0 * 8))] << (0 * 8);
+  sb[2] ^= inv_sbox[(byte)(sa[1] >> (1 * 8))] << (1 * 8);
+  sb[3] ^= inv_sbox[(byte)(sa[1] >> (2 * 8))] << (2 * 8);
+  sa[0] ^= inv_sbox[(byte)(sa[1] >> (3 * 8))] << (3 * 8);
+  sa[1] = sb[1] ^ *((u32_a_t*)rk[0][1]);
+
+  sb[2] ^= inv_sbox[(byte)(sa[2] >> (0 * 8))] << (0 * 8);
+  sb[3] ^= inv_sbox[(byte)(sa[2] >> (1 * 8))] << (1 * 8);
+  sa[0] ^= inv_sbox[(byte)(sa[2] >> (2 * 8))] << (2 * 8);
+  sa[1] ^= inv_sbox[(byte)(sa[2] >> (3 * 8))] << (3 * 8);
+  sa[2] = sb[2] ^ *((u32_a_t*)rk[0][2]);
+
+  sb[3] ^= inv_sbox[(byte)(sa[3] >> (0 * 8))] << (0 * 8);
+  sa[0] ^= inv_sbox[(byte)(sa[3] >> (1 * 8))] << (1 * 8);
+  sa[1] ^= inv_sbox[(byte)(sa[3] >> (2 * 8))] << (2 * 8);
+  sa[2] ^= inv_sbox[(byte)(sa[3] >> (3 * 8))] << (3 * 8);
+  sa[3] = sb[3] ^ *((u32_a_t*)rk[0][3]);
+
+  buf_put_le32(b + 0, sa[0]);
+  buf_put_le32(b + 4, sa[1]);
+  buf_put_le32(b + 8, sa[2]);
+  buf_put_le32(b + 12, sa[3]);
 #undef rk
+
+  return (56+2*sizeof(int));
 }
-#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
+#endif /*!USE_ARM_ASM && !USE_AMD64_ASM*/
 
 
 /* Decrypt one block.  AX and BX may be the same. */
@@ -791,31 +925,14 @@ do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
             const unsigned char *ax)
 {
 #ifdef USE_AMD64_ASM
-  return _gcry_aes_amd64_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds);
+  return _gcry_aes_amd64_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds,
+				       &dec_tables);
 #elif defined(USE_ARM_ASM)
-  return _gcry_aes_arm_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds);
+  return _gcry_aes_arm_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds,
+				     &dec_tables);
 #else
-  /* BX and AX are not necessary correctly aligned.  Thus we might
-     need to copy them here.  We try to align to a 16 bytes. */
-  if (((size_t)ax & 0x0f) || ((size_t)bx & 0x0f))
-    {
-      union
-      {
-        u32  dummy[4];
-        byte a[16] ATTR_ALIGNED_16;
-      } a;
-
-      buf_cpy (a.a, ax, 16);
-      do_decrypt_aligned (ctx, a.a, a.a);
-      buf_cpy (bx, a.a, 16);
-    }
-  else
-    {
-      do_decrypt_aligned (ctx, bx, ax);
-    }
-
-  return (56+2*sizeof(int));
-#endif /*!USE_AMD64_ASM && !USE_ARM_ASM*/
+  return do_decrypt_fn (ctx, bx, ax);
+#endif /*!USE_ARM_ASM && !USE_AMD64_ASM*/
 }
 
 
@@ -837,6 +954,9 @@ rijndael_decrypt (void *context, byte *b, const byte *a)
 
   check_decryption_preparation (ctx);
 
+  if (ctx->prefetch_dec_fn)
+    ctx->prefetch_dec_fn();
+
   return ctx->decrypt_fn (ctx, b, a);
 }
 
@@ -854,6 +974,9 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned int burn_depth = 0;
+
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
 
   if (0)
     ;
@@ -898,6 +1021,9 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 
   check_decryption_preparation (ctx);
 
+  if (ctx->prefetch_dec_fn)
+    ctx->prefetch_dec_fn();
+
   if (0)
     ;
 #ifdef USE_AESNI
@@ -930,7 +1056,6 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
   if (burn_depth)
     _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
 }
-
 
 
 
