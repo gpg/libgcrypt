@@ -805,8 +805,8 @@ tiger_final( void *context )
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
-#define X(a) do { *(u64*)p = be_bswap64(hd->a); p += 8; } while(0)
-#define Y(a) do { *(u64*)p = le_bswap64(hd->a); p += 8; } while(0)
+#define X(a) do { buf_put_be64(p, hd->a); p += 8; } while(0)
+#define Y(a) do { buf_put_le64(p, hd->a); p += 8; } while(0)
   if (hd->variant == 0)
     {
       X(a);

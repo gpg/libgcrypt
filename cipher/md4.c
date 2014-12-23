@@ -255,7 +255,7 @@ md4_final( void *context )
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
-#define X(a) do { *(u32*)p = le_bswap32((*hd).a) ; p += 4; } while(0)
+#define X(a) do { buf_put_le32(p, hd->a); p += 4; } while(0)
   X(A);
   X(B);
   X(C);

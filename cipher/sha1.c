@@ -401,7 +401,7 @@ sha1_final(void *context)
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
-#define X(a) do { *(u32*)p = be_bswap32(hd->h##a) ; p += 4; } while(0)
+#define X(a) do { buf_put_be32(p, hd->h##a); p += 4; } while(0)
   X(0);
   X(1);
   X(2);

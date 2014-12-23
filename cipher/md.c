@@ -315,7 +315,7 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 
   if (! err)
     {
-      hd->ctx = ctx = (struct gcry_md_context *) ((char *) hd + n);
+      hd->ctx = ctx = (void *) ((char *) hd + n);
       /* Setup the globally visible data (bctl in the diagram).*/
       hd->bufsize = n - sizeof (struct gcry_md_handle) + 1;
       hd->bufpos = 0;
@@ -488,7 +488,7 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
 
   if (! err)
     {
-      bhd->ctx = b = (struct gcry_md_context *) ((char *) bhd + n);
+      bhd->ctx = b = (void *) ((char *) bhd + n);
       /* No need to copy the buffer due to the write above. */
       gcry_assert (ahd->bufsize == (n - sizeof (struct gcry_md_handle) + 1));
       bhd->bufsize = ahd->bufsize;

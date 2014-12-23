@@ -411,7 +411,7 @@ _gcry_rmd160_mixblock ( RMD160_CONTEXT *hd, void *blockof64byte )
   char *p = blockof64byte;
 
   transform ( hd, blockof64byte, 1 );
-#define X(a) do { *(u32*)p = hd->h##a ; p += 4; } while(0)
+#define X(a) do { buf_put_le32(p, hd->h##a); p += 4; } while(0)
   X(0);
   X(1);
   X(2);
@@ -474,7 +474,7 @@ rmd160_final( void *context )
   _gcry_burn_stack (burn);
 
   p = hd->bctx.buf;
-#define X(a) do { *(u32*)p = le_bswap32(hd->h##a) ; p += 4; } while(0)
+#define X(a) do { buf_put_le32(p, hd->h##a); p += 4; } while(0)
   X(0);
   X(1);
   X(2);

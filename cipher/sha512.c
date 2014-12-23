@@ -669,7 +669,7 @@ sha512_final (void *context)
   _gcry_burn_stack (stack_burn_depth);
 
   p = hd->bctx.buf;
-#define X(a) do { *(u64*)p = be_bswap64(hd->state.h##a) ; p += 8; } while (0)
+#define X(a) do { buf_put_be64(p, hd->state.h##a); p += 8; } while (0)
   X (0);
   X (1);
   X (2);
