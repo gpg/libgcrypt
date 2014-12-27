@@ -43,6 +43,12 @@
 # define USE_AMD64_ASM 1
 #endif
 
+/* USE_SSSE3 indicates whether to use SSSE3 code. */
+#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_SSSE3)
+#  define USE_SSSE3 1
+#endif
+
 /* USE_ARM_ASM indicates whether to use ARM assembly code. */
 #undef USE_ARM_ASM
 #if defined(__ARMEL__)
@@ -116,6 +122,9 @@ typedef struct RIJNDAEL_context_s
 #ifdef USE_AESNI
   unsigned int use_aesni:1;           /* AES-NI shall be used.  */
 #endif /*USE_AESNI*/
+#ifdef USE_SSSE3
+  unsigned int use_ssse3:1;           /* SSSE3 shall be used.  */
+#endif /*USE_SSSE3*/
   rijndael_cryptfn_t encrypt_fn;
   rijndael_cryptfn_t decrypt_fn;
   rijndael_prefetchfn_t prefetch_enc_fn;

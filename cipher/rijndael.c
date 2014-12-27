@@ -99,6 +99,40 @@ extern void _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx,
                                      unsigned char *iv, size_t nblocks);
 #endif
 
+#ifdef USE_SSSE3
+/* SSSE3 (AMD64) vector permutation implementation of AES */
+extern void _gcry_aes_ssse3_do_setkey(RIJNDAEL_context *ctx, const byte *key);
+extern void _gcry_aes_ssse3_prepare_decryption(RIJNDAEL_context *ctx);
+
+extern unsigned int _gcry_aes_ssse3_encrypt (const RIJNDAEL_context *ctx,
+                                             unsigned char *dst,
+                                             const unsigned char *src);
+extern unsigned int _gcry_aes_ssse3_decrypt (const RIJNDAEL_context *ctx,
+                                             unsigned char *dst,
+                                             const unsigned char *src);
+extern void _gcry_aes_ssse3_cfb_enc (RIJNDAEL_context *ctx,
+                                     unsigned char *outbuf,
+                                     const unsigned char *inbuf,
+                                     unsigned char *iv, size_t nblocks);
+extern void _gcry_aes_ssse3_cbc_enc (RIJNDAEL_context *ctx,
+                                     unsigned char *outbuf,
+                                     const unsigned char *inbuf,
+                                     unsigned char *iv, size_t nblocks,
+                                     int cbc_mac);
+extern void _gcry_aes_ssse3_ctr_enc (RIJNDAEL_context *ctx,
+                                     unsigned char *outbuf,
+                                     const unsigned char *inbuf,
+                                     unsigned char *ctr, size_t nblocks);
+extern void _gcry_aes_ssse3_cfb_dec (RIJNDAEL_context *ctx,
+                                     unsigned char *outbuf,
+                                     const unsigned char *inbuf,
+                                     unsigned char *iv, size_t nblocks);
+extern void _gcry_aes_ssse3_cbc_dec (RIJNDAEL_context *ctx,
+                                     unsigned char *outbuf,
+                                     const unsigned char *inbuf,
+                                     unsigned char *iv, size_t nblocks);
+#endif
+
 #ifdef USE_PADLOCK
 extern unsigned int _gcry_aes_padlock_encrypt (const RIJNDAEL_context *ctx,
                                                unsigned char *bx,
@@ -182,7 +216,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   int rounds;
   int i,j, r, t, rconpointer = 0;
   int KC;
-#if defined(USE_AESNI) || defined(USE_PADLOCK)
+#if defined(USE_AESNI) || defined(USE_PADLOCK) || defined(USE_SSSE3)
   unsigned int hwfeatures;
 #endif
 
@@ -223,7 +257,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 
   ctx->rounds = rounds;
 
-#if defined(USE_AESNI) || defined(USE_PADLOCK)
+#if defined(USE_AESNI) || defined(USE_PADLOCK) || defined(USE_SSSE3)
   hwfeatures = _gcry_get_hw_features ();
 #endif
 
@@ -233,6 +267,9 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 #endif
 #ifdef USE_AESNI
   ctx->use_aesni = 0;
+#endif
+#ifdef USE_SSSE3
+  ctx->use_ssse3 = 0;
 #endif
 
   if (0)
@@ -260,6 +297,16 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
       memcpy (ctx->padlockkey, key, keylen);
     }
 #endif
+#ifdef USE_SSSE3
+  else if (hwfeatures & HWF_INTEL_SSSE3)
+    {
+      ctx->encrypt_fn = _gcry_aes_ssse3_encrypt;
+      ctx->decrypt_fn = _gcry_aes_ssse3_decrypt;
+      ctx->prefetch_enc_fn = NULL;
+      ctx->prefetch_dec_fn = NULL;
+      ctx->use_ssse3 = 1;
+    }
+#endif
   else
     {
       ctx->encrypt_fn = do_encrypt;
@@ -277,6 +324,10 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
 #ifdef USE_AESNI
   else if (ctx->use_aesni)
     _gcry_aes_aesni_do_setkey (ctx, key);
+#endif
+#ifdef USE_AESNI
+  else if (ctx->use_ssse3)
+    _gcry_aes_ssse3_do_setkey (ctx, key);
 #endif
   else
     {
@@ -403,6 +454,12 @@ prepare_decryption( RIJNDAEL_context *ctx )
       _gcry_aes_aesni_prepare_decryption (ctx);
     }
 #endif /*USE_AESNI*/
+#ifdef USE_SSSE3
+  else if (ctx->use_ssse3)
+    {
+      _gcry_aes_ssse3_prepare_decryption (ctx);
+    }
+#endif /*USE_SSSE3*/
 #ifdef USE_PADLOCK
   else if (ctx->use_padlock)
     {
@@ -650,6 +707,13 @@ _gcry_aes_cfb_enc (void *context, unsigned char *iv,
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_SSSE3
+  else if (ctx->use_ssse3)
+    {
+      _gcry_aes_ssse3_cfb_enc (ctx, outbuf, inbuf, iv, nblocks);
+      burn_depth = 0;
+    }
+#endif /*USE_SSSE3*/
   else
     {
       rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
@@ -697,6 +761,13 @@ _gcry_aes_cbc_enc (void *context, unsigned char *iv,
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_SSSE3
+  else if (ctx->use_ssse3)
+    {
+      _gcry_aes_ssse3_cbc_enc (ctx, outbuf, inbuf, iv, nblocks, cbc_mac);
+      burn_depth = 0;
+    }
+#endif /*USE_SSSE3*/
   else
     {
       rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
@@ -752,6 +823,13 @@ _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_SSSE3
+  else if (ctx->use_ssse3)
+    {
+      _gcry_aes_ssse3_ctr_enc (ctx, outbuf, inbuf, ctr, nblocks);
+      burn_depth = 0;
+    }
+#endif /*USE_SSSE3*/
   else
     {
       union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } tmp;
@@ -986,6 +1064,13 @@ _gcry_aes_cfb_dec (void *context, unsigned char *iv,
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_SSSE3
+  else if (ctx->use_ssse3)
+    {
+      _gcry_aes_ssse3_cfb_dec (ctx, outbuf, inbuf, iv, nblocks);
+      burn_depth = 0;
+    }
+#endif /*USE_SSSE3*/
   else
     {
       rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
@@ -1032,6 +1117,13 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_SSSE3
+  else if (ctx->use_ssse3)
+    {
+      _gcry_aes_ssse3_cbc_dec (ctx, outbuf, inbuf, iv, nblocks);
+      burn_depth = 0;
+    }
+#endif /*USE_SSSE3*/
   else
     {
       unsigned char savebuf[BLOCKSIZE] ATTR_ALIGNED_16;
