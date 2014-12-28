@@ -3233,7 +3233,11 @@ by just one character.  Both methods can be used on the same hash context.
 
 Pass @var{length} bytes of the data in @var{buffer} to the digest object
 with handle @var{h} to update the digest values. This
-function should be used for large blocks of data.
+function should be used for large blocks of data.  If this function is
+used after the context has been finalized, it will keep on pushing
+the data through the algorithm specific transform function and change
+the context; however the results are not meaningful and this feature
+is only available to mitigate timing attacks.
 @end deftypefun
 
 @deftypefun void gcry_md_putc (gcry_md_hd_t @var{h}, int @var{c})
@@ -3253,7 +3257,9 @@ message digest or some padding.
 Finalize the message digest calculation.  This is not really needed
 because @code{gcry_md_read} does this implicitly.  After this has been
 done no further updates (by means of @code{gcry_md_write} or
-@code{gcry_md_putc} are allowed.  Only the first call to this function
+@code{gcry_md_putc} should be done; However, to mitigate timing
+attacks it is sometimes useful to keep on updating the context after
+having stored away the actual digest.  Only the first call to this function
 has an effect. It is implemented as a macro.
 @end deftypefun
 
@@ -3266,8 +3272,9 @@ function:
 calculation.  This function may be used as often as required but it will
 always return the same value for one handle.  The returned message digest
 is allocated within the message context and therefore valid until the
-handle is released or reseted (using @code{gcry_md_close} or
-@code{gcry_md_reset}.  @var{algo} may be given as 0 to return the only
+handle is released or reset-ed (using @code{gcry_md_close} or
+@code{gcry_md_reset} or it has been updated as a mitigation measure
+against timing attacks.  @var{algo} may be given as 0 to return the only
 enabled message digest or it may specify one of the enabled algorithms.
 The function does return @code{NULL} if the requested algorithm has not
 been enabled.
@@ -3680,9 +3687,12 @@ see how it is actually done.
 @deftypefun gcry_error_t gcry_mac_write (gcry_mac_hd_t @var{h}, const void *@var{buffer}, size_t @var{length})
 
 Pass @var{length} bytes of the data in @var{buffer} to the MAC object
-with handle @var{h} to update the MAC values.
+with handle @var{h} to update the MAC values.  If this function is
+used after the context has been finalized, it will keep on pushing the
+data through the algorithm specific transform function and thereby
+change the context; however the results are not meaningful and this
+feature is only available to mitigate timing attacks.
 @end deftypefun
-
 
 The way to read out the calculated MAC is by using the function:
 
@@ -3693,7 +3703,6 @@ Function copies the resulting MAC value to @var{buffer} of the length
 @var{length}. If @var{length} is larger than length of resulting MAC value,
 then length of MAC is returned through @var{length}.
 @end deftypefun
-
 
 To compare existing MAC value with recalculated MAC, one is to use the function:
 

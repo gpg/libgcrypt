@@ -642,6 +642,9 @@ md_write (gcry_md_hd_t a, const void *inbuf, size_t inlen)
 }
 
 
+/* Note that this function may be used after finalize and read to keep
+   on writing to the transform function so to mitigate timing
+   attacks.  */
 void
 _gcry_md_write (gcry_md_hd_t hd, const void *inbuf, size_t inlen)
 {

@@ -95,7 +95,10 @@ _gcry_hash_selftest_check_one (int algo,
 
 /* Common function to write a chunk of data to the transform function
    of a hash algorithm.  Note that the use of the term "block" does
-   not imply a fixed size block.  */
+   not imply a fixed size block.  Note that we explicitly allow to use
+   this function after the context has been finalized; the result does
+   not have any meaning but writing after finalize is sometimes
+   helpful to mitigate timing attacks. */
 void
 _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
 {
