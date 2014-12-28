@@ -1080,7 +1080,7 @@ static const u64 stribog_table[8][256] =
     U64_C(0x72d14d3493b2e388), U64_C(0xd6a30f258c153427) },
 };
 
-static const u64 C16[13][16] =
+static const u64 C16[12][8] =
 {
   { U64_C(0xdd806559f2a64507), U64_C(0x05767436cc744d23),
     U64_C(0xa2422a08a460d315), U64_C(0x4b7ce09192676901),
