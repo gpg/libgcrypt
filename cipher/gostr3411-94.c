@@ -307,7 +307,7 @@ gost3411_final (void *context)
   l[0] |= nblocks << 8;
   nblocks >>= 24;
 
-  for (i = 1; i < 32 && nblocks != 0; i++)
+  for (i = 1; i < 8 && nblocks != 0; i++)
     {
       l[i] = nblocks;
       nblocks >>= 24;
