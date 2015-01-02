@@ -403,15 +403,16 @@ transform ( void *c, const unsigned char *data, size_t nblks )
  * Apply the rmd160 transform function on the buffer which must have
  * a length 64 bytes. Do not use this function together with the
  * other functions, use rmd160_init to initialize internal variables.
- * Returns: 16 bytes in buffer with the mixed contentes of buffer.
+ * Buffer must be 32-bit aligned.
+ * Returns: 20 bytes in buffer with the mixed contents of buffer.
  */
 void
 _gcry_rmd160_mixblock ( RMD160_CONTEXT *hd, void *blockof64byte )
 {
-  char *p = blockof64byte;
+  u32 *p = blockof64byte;
 
   transform ( hd, blockof64byte, 1 );
-#define X(a) do { buf_put_le32(p, hd->h##a); p += 4; } while(0)
+#define X(a) do { p[a] = hd->h##a; } while(0)
   X(0);
   X(1);
   X(2);
