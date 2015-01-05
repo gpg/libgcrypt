@@ -15,6 +15,23 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+ * The code is based on the public domain library libvpaes version 0.5
+ * available at http://crypto.stanford.edu/vpaes/ and which carries
+ * this notice:
+ *
+ *     libvpaes: constant-time SSSE3 AES encryption and decryption.
+ *     version 0.5
+ *
+ *     By Mike Hamburg, Stanford University, 2009.  Public domain.
+ *     I wrote essentially all of this code.  I did not write the test
+ *     vectors; they are the NIST known answer tests.  I hereby release all
+ *     the code and documentation here that I wrote into the public domain.
+ *
+ *     This is an implementation of AES following my paper,
+ *       "Accelerating AES with Vector Permute Instructions"
+ *       CHES 2009; http://shiftleft.org/papers/vector_aes/
  */
 
 #include <config.h>
@@ -36,7 +53,7 @@
 /* Two macros to be called prior and after the use of SSSE3
   instructions.  There should be no external function calls between
   the use of these macros.  There purpose is to make sure that the
-  SSE regsiters are cleared and won't reveal any information about
+  SSE registers are cleared and won't reveal any information about
   the key or the data.  */
 #define vpaes_ssse3_prepare_enc(const_ptr) \
     asm volatile ("lea	.Laes_consts(%%rip), %q0 \n\t" \
