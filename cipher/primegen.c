@@ -622,47 +622,44 @@ prime_generate_internal (int need_q_factor,
         }
     }
 
-  if (g)
+  if (g && need_q_factor)
+    err = GPG_ERR_NOT_IMPLEMENTED;
+  else if (g)
     {
       /* Create a generator (start with 3).  */
       gcry_mpi_t tmp = mpi_alloc (mpi_get_nlimbs (prime));
       gcry_mpi_t b = mpi_alloc (mpi_get_nlimbs (prime));
       gcry_mpi_t pmin1 = mpi_alloc (mpi_get_nlimbs (prime));
 
-      if (need_q_factor)
-        err = GPG_ERR_NOT_IMPLEMENTED;
-      else
+      factors[n] = q;
+      factors[n + 1] = mpi_alloc_set_ui (2);
+      mpi_sub_ui (pmin1, prime, 1);
+      mpi_set_ui (g, 2);
+      do
         {
-          factors[n] = q;
-          factors[n + 1] = mpi_alloc_set_ui (2);
-          mpi_sub_ui (pmin1, prime, 1);
-          mpi_set_ui (g, 2);
-          do
+          mpi_add_ui (g, g, 1);
+          if (DBG_CIPHER)
+            log_printmpi ("checking g", g);
+          else
+            progress('^');
+          for (i = 0; i < n + 2; i++)
             {
-              mpi_add_ui (g, g, 1);
-              if (DBG_CIPHER)
-                log_printmpi ("checking g", g);
-              else
-                progress('^');
-              for (i = 0; i < n + 2; i++)
-                {
-                  mpi_fdiv_q (tmp, pmin1, factors[i]);
-                  /* No mpi_pow(), but it is okay to use this with mod
-                     prime.  */
-                  mpi_powm (b, g, tmp, prime);
-                  if (! mpi_cmp_ui (b, 1))
-                    break;
-                }
-              if (DBG_CIPHER)
-                progress('\n');
+              mpi_fdiv_q (tmp, pmin1, factors[i]);
+              /* No mpi_pow(), but it is okay to use this with mod
+                 prime.  */
+              mpi_powm (b, g, tmp, prime);
+              if (! mpi_cmp_ui (b, 1))
+                break;
             }
-          while (i < n + 2);
-
-          mpi_free (factors[n+1]);
-          mpi_free (tmp);
-          mpi_free (b);
-          mpi_free (pmin1);
+          if (DBG_CIPHER)
+            progress('\n');
         }
+      while (i < n + 2);
+
+      mpi_free (factors[n+1]);
+      mpi_free (tmp);
+      mpi_free (b);
+      mpi_free (pmin1);
     }
 
   if (! DBG_CIPHER)
@@ -1194,21 +1191,24 @@ _gcry_prime_group_generator (gcry_mpi_t *r_g,
                              gcry_mpi_t prime, gcry_mpi_t *factors,
                              gcry_mpi_t start_g)
 {
-  gcry_mpi_t tmp   = mpi_new (0);
-  gcry_mpi_t b     = mpi_new (0);
-  gcry_mpi_t pmin1 = mpi_new (0);
-  gcry_mpi_t g = start_g? mpi_copy (start_g) : mpi_set_ui (NULL, 3);
-  int first = 1;
-  int i, n;
+  gcry_mpi_t tmp, b, pmin1, g;
+  int first, i, n;
 
-  if (!factors || !r_g || !prime)
+  if (!r_g)
     return GPG_ERR_INV_ARG;
   *r_g = NULL;
+  if (!factors || !prime)
+    return GPG_ERR_INV_ARG;
 
   for (n=0; factors[n]; n++)
     ;
   if (n < 2)
     return GPG_ERR_INV_ARG;
+
+  tmp   = mpi_new (0);
+  b     = mpi_new (0);
+  pmin1 = mpi_new (0);
+  g     = start_g? mpi_copy (start_g) : mpi_set_ui (NULL, 3);
 
   /* Extra sanity check - usually disabled. */
 /*   mpi_set (tmp, factors[0]); */
@@ -1219,6 +1219,7 @@ _gcry_prime_group_generator (gcry_mpi_t *r_g,
 /*     return gpg_error (GPG_ERR_INV_ARG); */
 
   mpi_sub_ui (pmin1, prime, 1);
+  first = 1;
   do
     {
       if (first)
