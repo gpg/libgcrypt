@@ -144,6 +144,9 @@
 #ifndef STDOUT_FILENO
 #define STDOUT_FILENO 1
 #endif
+#ifndef STDERR_FILENO
+#define STDERR_FILENO 2
+#endif
 
 #define GATHER_BUFSIZE		49152	/* Usually about 25K are filled */
 
@@ -766,13 +769,27 @@ start_gatherer( int pipefd )
 
     fclose(stderr);		/* Arrghh!!  It's Stuart code!! */
 
+    /* Mary goes to Berkeley: NetBSD emits warnings if the standard
+       descriptors are not open when running setuid program.  Thus we
+       connect them to the bitbucket if they are not already open.  */
+    {
+      struct stat statbuf;
+
+      if (fstat (STDIN_FILENO, &statbuf) == -1 && errno == EBADF)
+        open ("/dev/null",O_RDONLY);
+      if (fstat (STDOUT_FILENO, &statbuf) == -1 && errno == EBADF)
+        open ("/dev/null",O_WRONLY);
+      if (fstat (STDERR_FILENO, &statbuf) == -1 && errno == EBADF)
+        open ("/dev/null",O_WRONLY);
+    }
+
     for(;;) {
 	GATHER_MSG msg;
 	size_t nbytes;
 	const char *p;
 
 	msg.usefulness = slow_poll( dbgfp, dbgall, &nbytes );
-	p = gather_buffer;
+	p = (const char*)gather_buffer;
 	while( nbytes ) {
 	    msg.ndata = nbytes > sizeof(msg.data)? sizeof(msg.data) : nbytes;
 	    memcpy( msg.data, p, msg.ndata );

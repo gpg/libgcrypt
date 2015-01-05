@@ -2053,11 +2053,10 @@ cat <<G10EOF
                  Entropy Gathering Daemon (EGD)
 
    which provides a entropy source for the whole system.  It is written
-   in Perl and available at the GnuPG FTP servers.  To enable EGD you
-   should rerun configure with the option "--enable-static-rnd=egd".
-   For more information consult the GnuPG webpages:
+   in Perl and available at the GnuPG FTP servers.  For more information
+   consult the GnuPG site:
 
-             http://www.gnupg.org/download.html#egd
+          https://gnupg.org/related_software/swlist.html#egd
 
 G10EOF
 fi
