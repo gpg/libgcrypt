@@ -21,7 +21,7 @@
 # (Process this file with autoconf to produce a configure script.)
 AC_REVISION($Revision$)
 AC_PREREQ(2.60)
-min_automake_version="1.10"
+min_automake_version="1.14"
 
 # To build a release you need to create a tag with the version number
 # (git tag -s libgcrypt-n.m.k) and run "./autogen.sh --force".  Please
@@ -75,7 +75,7 @@ VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])
-AM_INIT_AUTOMAKE([dist-bzip2])
+AM_INIT_AUTOMAKE([serial-tests dist-bzip2])
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_LIBOBJ_DIR([compat])
