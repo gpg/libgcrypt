@@ -20,7 +20,7 @@
 
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = Manifest libgcrypt-config.in libgcrypt.m4 libgcrypt.vers \
+EXTRA_DIST = libgcrypt-config.in libgcrypt.m4 libgcrypt.vers \
              gcrypt.h.in libgcrypt.def
 
 bin_SCRIPTS = libgcrypt-config

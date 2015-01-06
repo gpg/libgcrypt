@@ -19,8 +19,6 @@
 
 # Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = Manifest
-
 # Need to include ../src in addition to top_srcdir because gcrypt.h is
 # a built header.
 AM_CPPFLAGS = -I../src -I$(top_srcdir)/src

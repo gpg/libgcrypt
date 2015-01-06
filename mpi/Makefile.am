@@ -29,7 +29,7 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 AM_ASFLAGS = $(MPI_SFLAGS)
 AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
-EXTRA_DIST = Manifest config.links
+EXTRA_DIST = config.links
 DISTCLEANFILES = mpi-asm-defs.h \
                  mpih-add1-asm.S mpih-mul1-asm.S mpih-mul2-asm.S mpih-mul3-asm.S  \
 		 mpih-lshift-asm.S mpih-rshift-asm.S mpih-sub1-asm.S asm-syntax.h \
