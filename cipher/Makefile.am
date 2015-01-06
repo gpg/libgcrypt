@@ -26,6 +26,8 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
+DISTCLEANFILES = gost-sb.h
+
 
 noinst_LTLIBRARIES = libcipher.la
 
