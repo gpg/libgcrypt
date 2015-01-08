@@ -1647,6 +1647,11 @@ Associated Data (AEAD) block cipher mode, which is specified in
 Poly1305 is an Authenticated Encryption with Associated Data (AEAD)
 mode, which can be used with ChaCha20 and Salsa20 stream ciphers.
 
+@item  GCRY_CIPHER_MODE_OCB
+@cindex OCB, OCB3
+OCB is an Authenticated Encryption with Associated Data (AEAD) block
+cipher mode, which is specified in RFC-7253.
+
 @end table
 
 @node Working with cipher handles
@@ -1675,12 +1680,14 @@ and the according constants.  Note that some modes are incompatible
 with some algorithms - in particular, stream mode
 (@code{GCRY_CIPHER_MODE_STREAM}) only works with stream ciphers.
 Poly1305 AEAD mode (@code{GCRY_CIPHER_MODE_POLY1305}) only works with
-ChaCha and Salsa stream ciphers. The block cipher modes (@code{GCRY_CIPHER_MODE_ECB},
-@code{GCRY_CIPHER_MODE_CBC}, @code{GCRY_CIPHER_MODE_CFB},
-@code{GCRY_CIPHER_MODE_OFB} and @code{GCRY_CIPHER_MODE_CTR}) will work
-with any block cipher algorithm. GCM mode (@code{GCRY_CIPHER_MODE_CCM}) and
-CCM mode (@code{GCRY_CIPHER_MODE_GCM}) will only work with block cipher algorithms
-which have the block size of 16 bytes.
+ChaCha and Salsa stream ciphers. The block cipher modes
+(@code{GCRY_CIPHER_MODE_ECB}, @code{GCRY_CIPHER_MODE_CBC},
+@code{GCRY_CIPHER_MODE_CFB}, @code{GCRY_CIPHER_MODE_OFB} and
+@code{GCRY_CIPHER_MODE_CTR}) will work with any block cipher
+algorithm.  GCM mode (@code{GCRY_CIPHER_MODE_CCM}), CCM mode
+(@code{GCRY_CIPHER_MODE_GCM}), and OCB mode
+(@code{GCRY_CIPHER_MODE_OCB}) will only work with block cipher
+algorithms which have the block size of 16 bytes.
 
 The third argument @var{flags} can either be passed as @code{0} or as
 the bit-wise OR of the following constants.
