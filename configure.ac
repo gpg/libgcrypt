@@ -827,6 +827,21 @@ fi
 
 
 #
+# Check for __builtin_ctz intrinsic.
+#
+AC_CACHE_CHECK(for __builtin_ctz,
+       [gcry_cv_have_builtin_ctz],
+       [gcry_cv_have_builtin_ctz=no
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+          [unsigned int x = 0; int y = __builtin_ctz(x); return y;])],
+          [gcry_cv_have_builtin_ctz=yes])])
+if test "$gcry_cv_have_builtin_ctz" = "yes" ; then
+   AC_DEFINE(HAVE_BUILTIN_CTZ, 1,
+             [Defined if compiler has '__builtin_ctz' intrinsic])
+fi
+
+
+#
 # Check for VLA support (variable length arrays).
 #
 AC_CACHE_CHECK(whether the variable length arrays are supported,

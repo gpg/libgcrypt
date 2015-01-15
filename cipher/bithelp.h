@@ -77,4 +77,49 @@ _gcry_bswap64(u64 x)
 # endif
 #endif
 
+
+/* Count trailing zero bits in an unsigend int.  We return an int
+   because that is what gcc's builtin does.  Returns the number of
+   bits in X if X is 0. */
+static inline int
+_gcry_ctz (unsigned int x)
+{
+#if defined (HAVE_BUILTIN_CTZ)
+  return x? __builtin_ctz (x) : 8 * sizeof (x);
+#else
+  /* See
+   * http://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightModLookup
+   */
+  static const unsigned char mod37[] =
+    {
+      sizeof (unsigned int)*8,
+          0,  1, 26,  2, 23, 27,  0,  3, 16, 24, 30, 28, 11,  0, 13,
+      4,  7, 17,  0, 25, 22, 31, 15, 29, 10, 12,  6,  0, 21, 14,  9,
+      5, 20,  8, 19, 18
+    };
+  return (int)mod37[(-x & x) % 37];
+#endif
+}
+
+
+/* Count trailing zero bits in an u64.  We return an int because that
+   is what gcc's builtin does.  Returns the number of bits in X if X
+   is 0.  */
+#ifdef HAVE_U64_TYPEDEF
+static inline int
+_gcry_ctz64(u64 x)
+{
+#if defined (HAVE_BUILTIN_CTZ) && SIZEOF_UNSIGNED_INT >= 8
+#warning hello
+  return x? __builtin_ctz (x) : 8 * sizeof (x);
+#else
+  if ((x & 0xffffffff))
+    return _gcry_ctz (x);
+  else
+    return 32 + _gcry_ctz (x >> 32);
+#endif
+}
+#endif /*HAVE_U64_TYPEDEF*/
+
+
 #endif /*G10_BITHELP_H*/
