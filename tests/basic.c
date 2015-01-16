@@ -61,6 +61,22 @@ static int error_count;
 static int in_fips_mode;
 static int die_on_error;
 
+#define MAX_DATA_LEN 128
+
+#define digitp(p)   (*(p) >= '0' && *(p) <= '9')
+#define hexdigitp(a) (digitp (a)                     \
+                      || (*(a) >= 'A' && *(a) <= 'F')  \
+                      || (*(a) >= 'a' && *(a) <= 'f'))
+#define xtoi_1(p)   (*(p) <= '9'? (*(p)- '0'): \
+                     *(p) <= 'F'? (*(p)-'A'+10):(*(p)-'a'+10))
+#define xtoi_2(p)   ((xtoi_1(p) * 16) + xtoi_1((p)+1))
+#define xmalloc(a)    gcry_xmalloc ((a))
+#define xcalloc(a,b)  gcry_xcalloc ((a),(b))
+#define xstrdup(a)    gcry_xstrdup ((a))
+#define xfree(a)      gcry_free ((a))
+
+
+
 static void
 fail (const char *format, ...)
 {
@@ -73,6 +89,7 @@ fail (const char *format, ...)
   if (die_on_error)
     exit (1);
 }
+
 
 static void
 mismatch (const void *expected, size_t expectedlen,
@@ -99,6 +116,30 @@ die (const char *format, ...)
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
   exit (1);
+}
+
+
+/* Convert STRING consisting of hex characters into its binary
+   representation and return it as an allocated buffer. The valid
+   length of the buffer is returned at R_LENGTH.  The string is
+   delimited by end of string.  The function terminates on error.  */
+static void *
+hex2buffer (const char *string, size_t *r_length)
+{
+  const char *s;
+  unsigned char *buffer;
+  size_t length;
+
+  buffer = xmalloc (strlen(string)/2+1);
+  length = 0;
+  for (s=string; *s; s +=2 )
+    {
+      if (!hexdigitp (s) || !hexdigitp (s+1))
+        die ("invalid hex digits in \"%s\"\n", string);
+      ((unsigned char*)buffer)[length++] = xtoi_2 (s);
+    }
+  *r_length = length;
+  return buffer;
 }
 
 
@@ -194,8 +235,6 @@ show_mac_not_available (int algo)
 }
 
 
-
-#define MAX_DATA_LEN 128
 
 void
 progress_handler (void *cb_data, const char *what, int printchar,
@@ -2742,6 +2781,355 @@ check_ccm_cipher (void)
 
 
 static void
+check_ocb_cipher (void)
+{
+  /* Note that we use hex strings and not binary strings in TV.  That
+     makes it easier to maintain the test vectors.  */
+  static const struct
+  {
+    int algo;
+    int taglen;         /* 16, 12, or 8 bytes  */
+    const char *key;    /* NULL means "000102030405060708090A0B0C0D0E0F" */
+    const char *nonce;
+    const char *aad;
+    const char *plain;
+    const char *ciph;
+  } tv[] = {
+    /* The RFC-7253 test vectos*/
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221100",
+      "",
+      "",
+      "785407BFFFC8AD9EDCC5520AC9111EE6"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221101",
+      "0001020304050607",
+      "0001020304050607",
+      "6820B3657B6F615A5725BDA0D3B4EB3A257C9AF1F8F03009"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221102",
+      "0001020304050607",
+      "",
+      "81017F8203F081277152FADE694A0A00"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221103",
+      "",
+      "0001020304050607",
+      "45DD69F8F5AAE72414054CD1F35D82760B2CD00D2F99BFA9"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221104",
+      "000102030405060708090A0B0C0D0E0F",
+      "000102030405060708090A0B0C0D0E0F",
+      "571D535B60B277188BE5147170A9A22C3AD7A4FF3835B8C5"
+      "701C1CCEC8FC3358"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221105",
+      "000102030405060708090A0B0C0D0E0F",
+      "",
+      "8CF761B6902EF764462AD86498CA6B97"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221106",
+      "",
+      "000102030405060708090A0B0C0D0E0F",
+      "5CE88EC2E0692706A915C00AEB8B2396F40E1C743F52436B"
+      "DF06D8FA1ECA343D"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221107",
+      "000102030405060708090A0B0C0D0E0F1011121314151617",
+      "000102030405060708090A0B0C0D0E0F1011121314151617",
+      "1CA2207308C87C010756104D8840CE1952F09673A448A122"
+      "C92C62241051F57356D7F3C90BB0E07F"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221108",
+      "000102030405060708090A0B0C0D0E0F1011121314151617",
+      "",
+      "6DC225A071FC1B9F7C69F93B0F1E10DE"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA99887766554433221109",
+      "",
+      "000102030405060708090A0B0C0D0E0F1011121314151617",
+      "221BD0DE7FA6FE993ECCD769460A0AF2D6CDED0C395B1C3C"
+      "E725F32494B9F914D85C0B1EB38357FF"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA9988776655443322110A",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F",
+      "BD6F6C496201C69296C11EFD138A467ABD3C707924B964DE"
+      "AFFC40319AF5A48540FBBA186C5553C68AD9F592A79A4240"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA9988776655443322110B",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F",
+      "",
+      "FE80690BEE8A485D11F32965BC9D2A32"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA9988776655443322110C",
+      "",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F",
+      "2942BFC773BDA23CABC6ACFD9BFD5835BD300F0973792EF4"
+      "6040C53F1432BCDFB5E1DDE3BC18A5F840B52E653444D5DF"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA9988776655443322110D",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F2021222324252627",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F2021222324252627",
+      "D5CA91748410C1751FF8A2F618255B68A0A12E093FF45460"
+      "6E59F9C1D0DDC54B65E8628E568BAD7AED07BA06A4A69483"
+      "A7035490C5769E60"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA9988776655443322110E",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F2021222324252627",
+      "",
+      "C5CD9D1850C141E358649994EE701B68"
+    },
+    { GCRY_CIPHER_AES, 16, NULL,
+      "BBAA9988776655443322110F",
+      "",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F2021222324252627",
+      "4412923493C57D5DE0D700F753CCE0D1D2D95060122E9F15"
+      "A5DDBFC5787E50B5CC55EE507BCB084E479AD363AC366B95"
+      "A98CA5F3000B1479"
+    },
+    { GCRY_CIPHER_AES, 12, "0F0E0D0C0B0A09080706050403020100",
+      "BBAA9988776655443322110D",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F2021222324252627",
+      "000102030405060708090A0B0C0D0E0F1011121314151617"
+      "18191A1B1C1D1E1F2021222324252627",
+      "1792A4E31E0755FB03E31B22116E6C2DDF9EFD6E33D536F1"
+      "A0124B0A55BAE884ED93481529C76B6AD0C515F4D1CDD4FD"
+      "AC4F02AA"
+    }
+  };
+  gpg_error_t err = 0;
+  gcry_cipher_hd_t hde, hdd;
+  unsigned char out[MAX_DATA_LEN];
+  unsigned char tag[16];
+  int tidx;
+
+  if (verbose)
+    fprintf (stderr, "  Starting OCB checks.\n");
+
+  for (tidx = 0; tidx < DIM (tv); tidx++)
+    {
+      char *key, *nonce, *aad, *ciph, *plain;
+      size_t keylen, noncelen, aadlen, ciphlen, plainlen;
+      int taglen;
+
+      if (verbose)
+        fprintf (stderr, "    checking OCB mode for %s [%i] (tv %d)\n",
+                 gcry_cipher_algo_name (tv[tidx].algo), tv[tidx].algo, tidx);
+
+      /* Convert to hex strings to binary.  */
+      key   = hex2buffer (tv[tidx].key? tv[tidx].key
+                          /*        */: "000102030405060708090A0B0C0D0E0F",
+                          &keylen);
+      nonce = hex2buffer (tv[tidx].nonce, &noncelen);
+      aad   = hex2buffer (tv[tidx].aad, &aadlen);
+      plain = hex2buffer (tv[tidx].plain, &plainlen);
+      ciph  = hex2buffer (tv[tidx].ciph, &ciphlen);
+
+      /* Check that our test vectors are sane.  */
+      assert (plainlen <= sizeof out);
+      assert (tv[tidx].taglen <= ciphlen);
+      assert (tv[tidx].taglen <= sizeof tag);
+
+      err = gcry_cipher_open (&hde, tv[tidx].algo, GCRY_CIPHER_MODE_OCB, 0);
+      if (!err)
+        err = gcry_cipher_open (&hdd, tv[tidx].algo, GCRY_CIPHER_MODE_OCB, 0);
+      if (err)
+        {
+          fail ("cipher-ocb, gcry_cipher_open failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          return;
+        }
+
+      /* Set the taglen.  For the first handle we do this only for a
+         non-default taglen.  For the second handle we check that we
+         can also set to the default taglen.  */
+      taglen = tv[tidx].taglen;
+      if (taglen != 16)
+        {
+          err = gcry_cipher_ctl (hde, GCRYCTL_SET_TAGLEN,
+                                 &taglen, sizeof taglen);
+          if (err)
+            {
+              fail ("cipher-ocb, gcryctl_set_taglen failed (tv %d): %s\n",
+                    tidx, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+        }
+      err = gcry_cipher_ctl (hdd, GCRYCTL_SET_TAGLEN,
+                             &taglen, sizeof taglen);
+      if (err)
+        {
+          fail ("cipher-ocb, gcryctl_set_taglen failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_setkey (hde, key, keylen);
+      if (!err)
+        err = gcry_cipher_setkey (hdd, key, keylen);
+      if (err)
+        {
+          fail ("cipher-ocb, gcry_cipher_setkey failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_setiv (hde, nonce, noncelen);
+      if (!err)
+        err = gcry_cipher_setiv (hdd, nonce, noncelen);
+      if (err)
+        {
+          fail ("cipher-ocb, gcry_cipher_setiv failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_authenticate (hde, aad, aadlen);
+      if (err)
+        {
+          fail ("cipher-ocb, gcry_cipher_authenticate failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_final (hde);
+      if (!err)
+        err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN, plain, plainlen);
+      if (err)
+        {
+          fail ("cipher-ocb, gcry_cipher_encrypt failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      /* Check that the encrypt output matches the expected cipher
+         text without the tag (i.e. at the length of plaintext).  */
+      if (memcmp (ciph, out, plainlen))
+        {
+          mismatch (ciph, plainlen, out, plainlen);
+          fail ("cipher-ocb, encrypt data mismatch (tv %d)\n", tidx);
+        }
+
+      /* Check that the tag matches TAGLEN bytes from the end of the
+         expected ciphertext.  */
+      err = gcry_cipher_gettag (hde, tag, tv[tidx].taglen);
+      if (err)
+        {
+          fail ("cipher_ocb, gcry_cipher_gettag failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+        }
+      if (memcmp (ciph + ciphlen - tv[tidx].taglen, tag, tv[tidx].taglen))
+        {
+          mismatch (ciph + ciphlen - tv[tidx].taglen, tv[tidx].taglen,
+                    tag, tv[tidx].taglen);
+          fail ("cipher-ocb, encrypt tag mismatch (tv %d)\n", tidx);
+        }
+
+
+      err = gcry_cipher_authenticate (hdd, aad, aadlen);
+      if (err)
+        {
+          fail ("cipher-ocb, gcry_cipher_authenticate failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      /* Now for the decryption.  */
+      err = gcry_cipher_final (hdd);
+      if (!err)
+        err = gcry_cipher_decrypt (hdd, out, plainlen, NULL, 0);
+      if (err)
+        {
+          fail ("cipher-ocb, gcry_cipher_decrypt (tv %d) failed: %s\n",
+                tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      /* We still have TAG from the encryption.  */
+      err = gcry_cipher_checktag (hdd, tag, tv[tidx].taglen);
+      if (err)
+        {
+          fail ("cipher-ocb, gcry_cipher_checktag failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+        }
+
+      /* Check that the decrypt output matches the original plaintext.  */
+      if (memcmp (plain, out, plainlen))
+        {
+          mismatch (plain, plainlen, out, plainlen);
+          fail ("cipher-ocb, decrypt data mismatch (tv %d)\n", tidx);
+        }
+
+      /* Check that gettag also works for decryption.  */
+      err = gcry_cipher_gettag (hdd, tag, tv[tidx].taglen);
+      if (err)
+        {
+          fail ("cipher_ocb, decrypt gettag failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+        }
+      if (memcmp (ciph + ciphlen - tv[tidx].taglen, tag, tv[tidx].taglen))
+        {
+          mismatch (ciph + ciphlen - tv[tidx].taglen, tv[tidx].taglen,
+                    tag, tv[tidx].taglen);
+          fail ("cipher-ocb, decrypt tag mismatch (tv %d)\n", tidx);
+        }
+
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+
+      xfree (nonce);
+      xfree (aad);
+      xfree (ciph);
+      xfree (plain);
+      xfree (key);
+    }
+
+  if (verbose)
+    fprintf (stderr, "  Completed OCB checks.\n");
+}
+
+
+static void
 check_stream_cipher (void)
 {
   static const struct tv
@@ -4391,6 +4779,7 @@ check_cipher_modes(void)
   check_ccm_cipher ();
   check_gcm_cipher ();
   check_poly1305_cipher ();
+  check_ocb_cipher ();
   check_stream_cipher ();
   check_stream_cipher_large_block ();
 
@@ -7143,6 +7532,7 @@ main (int argc, char **argv)
   int use_fips = 0;
   int selftest_only = 0;
   int pubkey_only = 0;
+  int cipher_modes_only = 0;
   int loop = 0;
   unsigned int loopcount = 0;
 
@@ -7181,6 +7571,11 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--pubkey"))
         {
           pubkey_only = 1;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--cipher-modes"))
+        {
+          cipher_modes_only = 1;
           argc--; argv++;
         }
       else if (!strcmp (*argv, "--die"))
@@ -7228,6 +7623,8 @@ main (int argc, char **argv)
     {
       if (pubkey_only)
         check_pubkey ();
+      else if (cipher_modes_only)
+        check_ciphers ();
       else if (!selftest_only)
         {
           check_ciphers ();

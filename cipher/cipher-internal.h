@@ -26,6 +26,25 @@
 /* The maximum supported size of a block in bytes.  */
 #define MAX_BLOCKSIZE 16
 
+/* The length for an OCB block.  Although OCB supports any block
+   length it does not make sense to use a 64 bit blocklen (and cipher)
+   because this reduces the security margin to an unacceptable state.
+   Thus we require a cipher with 128 bit blocklength.  */
+#define OCB_BLOCK_LEN  (128/8)
+
+/* The size of the pre-computed L table for OCB.  This takes the same
+   size as the table used for GCM and thus we don't save anything by
+   not using such a table.  */
+#define OCB_L_TABLE_SIZE 16
+
+
+/* Check the above constants.  */
+#if OCB_BLOCK_LEN > MAX_BLOCKSIZE
+# error OCB_BLOCKLEN > MAX_BLOCKSIZE
+#endif
+
+
+
 /* Magic values for the context structure.  */
 #define CTX_MAGIC_NORMAL 0x24091964
 #define CTX_MAGIC_SECURE 0x46919042
@@ -119,19 +138,22 @@ struct gcry_cipher_handle
     unsigned int key:1; /* Set to 1 if a key has been set.  */
     unsigned int iv:1;  /* Set to 1 if a IV has been set.  */
     unsigned int tag:1; /* Set to 1 if a tag is finalized. */
+    unsigned int finalize:1; /* Next encrypt/decrypt has the final data.  */
   } marks;
 
   /* The initialization vector.  For best performance we make sure
      that it is properly aligned.  In particular some implementations
      of bulk operations expect an 16 byte aligned IV.  IV is also used
-     to store CBC-MAC in CCM mode; counter IV is stored in U_CTR.  */
+     to store CBC-MAC in CCM mode; counter IV is stored in U_CTR.  For
+     OCB mode it is used for the offset value.  */
   union {
     cipher_context_alignment_t iv_align;
     unsigned char iv[MAX_BLOCKSIZE];
   } u_iv;
 
   /* The counter for CTR mode.  This field is also used by AESWRAP and
-     thus we can't use the U_IV union.  */
+     thus we can't use the U_IV union.  For OCB mode it is used for
+     the checksum.  */
   union {
     cipher_context_alignment_t iv_align;
     unsigned char ctr[MAX_BLOCKSIZE];
@@ -232,6 +254,40 @@ struct gcry_cipher_handle
  #endif
 #endif
     } gcm;
+
+    /* Mode specific storage for OCB mode. */
+    struct {
+      /* Helper variables and pre-computed table of L values.  */
+      unsigned char L_star[OCB_BLOCK_LEN];
+      unsigned char L_dollar[OCB_BLOCK_LEN];
+      unsigned char L[OCB_BLOCK_LEN][OCB_L_TABLE_SIZE];
+
+      /* The tag is valid if marks.tag has been set.  */
+      unsigned char tag[OCB_BLOCK_LEN];
+
+      /* A buffer to hold the offset for the AAD processing.  */
+      unsigned char aad_offset[OCB_BLOCK_LEN];
+
+      /* A buffer to hold the current sum of AAD processing.  We can't
+         use tag here because tag may already hold the preprocessed
+         checksum of the data.  */
+      unsigned char aad_sum[OCB_BLOCK_LEN];
+
+      /* Number of data/aad blocks processed so far.  */
+      u64 data_nblocks;
+      u64 aad_nblocks;
+
+      /* Length of the tag.  Fixed for now but may eventually be
+         specified using a set of gcry_cipher_flags.  */
+      unsigned char taglen;
+
+      /* Flags indicating that the final data/aad block has been
+         processed.  */
+      unsigned int data_finalized:1;
+      unsigned int aad_finalized:1;
+
+    } ocb;
+
   } u_mode;
 
   /* What follows are two contexts of the cipher in use.  The first
@@ -362,5 +418,28 @@ gcry_err_code_t _gcry_cipher_poly1305_check_tag
                    const unsigned char *intag, size_t taglen);
 void _gcry_cipher_poly1305_setkey
 /*           */   (gcry_cipher_hd_t c);
+
+
+/*-- cipher-ocb.c --*/
+gcry_err_code_t _gcry_cipher_ocb_encrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_ocb_decrypt
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outbuf, size_t outbuflen,
+                 const unsigned char *inbuf, size_t inbuflen);
+gcry_err_code_t _gcry_cipher_ocb_set_nonce
+/*           */ (gcry_cipher_hd_t c, const unsigned char *nonce,
+                 size_t noncelen);
+gcry_err_code_t _gcry_cipher_ocb_authenticate
+/*           */ (gcry_cipher_hd_t c, const unsigned char *abuf, size_t abuflen);
+gcry_err_code_t _gcry_cipher_ocb_get_tag
+/*           */ (gcry_cipher_hd_t c,
+                 unsigned char *outtag, size_t taglen);
+gcry_err_code_t _gcry_cipher_ocb_check_tag
+/*           */ (gcry_cipher_hd_t c,
+                 const unsigned char *intag, size_t taglen);
+
 
 #endif /*G10_CIPHER_INTERNAL_H*/

@@ -779,6 +779,7 @@ cipher_bench ( const char *algoname )
     void (* const aead_init)(gcry_cipher_hd_t hd, size_t buflen, int authlen);
     int req_blocksize;
     int authlen;
+    int noncelen;
   } modes[] = {
     { GCRY_CIPHER_MODE_ECB, "   ECB/Stream", 1 },
     { GCRY_CIPHER_MODE_CBC, "      CBC", 1 },
@@ -791,6 +792,8 @@ cipher_bench ( const char *algoname )
 #endif
     { GCRY_CIPHER_MODE_GCM, "      GCM", 0,
       NULL, GCRY_GCM_BLOCK_LEN, GCRY_GCM_BLOCK_LEN },
+    { GCRY_CIPHER_MODE_OCB, "      OCB", 1,
+      NULL, 16, 16, 15 },
     { GCRY_CIPHER_MODE_STREAM, "", 0 },
     {0}
   };
@@ -929,9 +932,30 @@ cipher_bench ( const char *algoname )
                   exit (1);
                 }
             }
+
+          if (modes[modeidx].noncelen)
+            {
+              char nonce[100];
+              size_t noncelen;
+
+              noncelen = modes[modeidx].noncelen;
+              if (noncelen > sizeof nonce)
+                noncelen = sizeof nonce;
+              memset (nonce, 42, noncelen);
+              err = gcry_cipher_setiv (hd, nonce, noncelen);
+              if (err)
+                {
+                  fprintf (stderr, "gcry_cipher_setiv failed: %s\n",
+                           gpg_strerror (err));
+                  gcry_cipher_close (hd);
+                  exit (1);
+                }
+            }
+
           if (modes[modeidx].aead_init)
             {
               (*modes[modeidx].aead_init) (hd, buflen, modes[modeidx].authlen);
+              gcry_cipher_final (hd);
               err = gcry_cipher_encrypt (hd, outbuf, buflen, buf, buflen);
               if (err)
                 break;
@@ -987,18 +1011,42 @@ cipher_bench ( const char *algoname )
                   exit (1);
                 }
             }
+
+          if (modes[modeidx].noncelen)
+            {
+              char nonce[100];
+              size_t noncelen;
+
+              noncelen = modes[modeidx].noncelen;
+              if (noncelen > sizeof nonce)
+                noncelen = sizeof nonce;
+              memset (nonce, 42, noncelen);
+              err = gcry_cipher_setiv (hd, nonce, noncelen);
+              if (err)
+                {
+                  fprintf (stderr, "gcry_cipher_setiv failed: %s\n",
+                           gpg_strerror (err));
+                  gcry_cipher_close (hd);
+                  exit (1);
+                }
+            }
+
           if (modes[modeidx].aead_init)
             {
               (*modes[modeidx].aead_init) (hd, buflen, modes[modeidx].authlen);
+              gcry_cipher_final (hd);
               err = gcry_cipher_decrypt (hd, outbuf, buflen, buf, buflen);
               if (err)
                 break;
               err = gcry_cipher_checktag (hd, outbuf, modes[modeidx].authlen);
               if (gpg_err_code (err) == GPG_ERR_CHECKSUM)
-                err = gpg_error (GPG_ERR_NO_ERROR);
+                err = 0;
             }
           else
-            err = gcry_cipher_decrypt (hd, outbuf, buflen, buf, buflen);
+            {
+              gcry_cipher_final (hd);
+              err = gcry_cipher_decrypt (hd, outbuf, buflen, buf, buflen);
+            }
         }
       stop_timer ();
       printf (" %s", elapsed_time ());

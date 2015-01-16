@@ -120,6 +120,40 @@ do_bytes:
 }
 
 
+/* Optimized function for in-place buffer xoring. */
+static inline void
+buf_xor_1(void *_dst, const void *_src, size_t len)
+{
+  byte *dst = _dst;
+  const byte *src = _src;
+  uintptr_t *ldst;
+  const uintptr_t *lsrc;
+#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
+  const unsigned int longmask = sizeof(uintptr_t) - 1;
+
+  /* Skip fast processing if buffers are unaligned.  */
+  if (((uintptr_t)dst | (uintptr_t)src) & longmask)
+    goto do_bytes;
+#endif
+
+  ldst = (uintptr_t *)(void *)dst;
+  lsrc = (const uintptr_t *)(const void *)src;
+
+  for (; len >= sizeof(uintptr_t); len -= sizeof(uintptr_t))
+    *ldst++ ^= *lsrc++;
+
+  dst = (byte *)ldst;
+  src = (const byte *)lsrc;
+
+#ifndef BUFHELP_FAST_UNALIGNED_ACCESS
+do_bytes:
+#endif
+  /* Handle tail.  */
+  for (; len; len--)
+    *dst++ ^= *src;
+}
+
+
 /* Optimized function for buffer xoring with two destination buffers.  Used
    mainly by CFB mode encryption.  */
 static inline void

@@ -1650,7 +1650,14 @@ mode, which can be used with ChaCha20 and Salsa20 stream ciphers.
 @item  GCRY_CIPHER_MODE_OCB
 @cindex OCB, OCB3
 OCB is an Authenticated Encryption with Associated Data (AEAD) block
-cipher mode, which is specified in RFC-7253.
+cipher mode, which is specified in RFC-7253.  Supported tag lengths
+are 128, 96, and 64 bit with the default being 128 bit.  To switch to
+a different tag length @code{gcry_cipher_ctl} using the command
+@code{GCRYCTL_SET_TAGLEN} and the address of an @code{int} variable
+set to 12 (for 96 bit) or 8 (for 64 bit) provided for the
+@code{buffer} argument and @code{sizeof(int)} for @code{buflen}.
+
+Note that the use of @code{gcry_cipher_final} is required.
 
 @end table
 
@@ -1750,12 +1757,9 @@ vector is passed as the buffer @var{K} of length @var{l} bytes and
 copied to internal data structures.  The function checks that the IV
 matches the requirement of the selected algorithm and mode.
 
-This function is also used with Salsa20 and ChaCha20 stream ciphers
-to set or update the required nonce.  In this case it needs to be
-called after setting the key.
-
-This function is also used with the AEAD cipher modes to set or
-update the required nonce.
+This function is also used by AEAD modes and with Salsa20 and ChaCha20
+stream ciphers to set or update the required nonce.  In these cases it
+needs to be called after setting the key.
 
 @end deftypefun
 
@@ -1827,6 +1831,9 @@ is sufficient space. Note that overlapping buffers are not allowed.
 Depending on the selected algorithms and encryption mode, the length of
 the buffers must be a multiple of the block size.
 
+Some encryption modes require that @code{gcry_cipher_final} is used
+before the final data chunk is passed to this function.
+
 The function returns @code{0} on success or an error code.
 @end deftypefun
 
@@ -1847,11 +1854,27 @@ is sufficient space.  Note that overlapping buffers are not allowed.
 Depending on the selected algorithms and encryption mode, the length of
 the buffers must be a multiple of the block size.
 
+Some encryption modes require that @code{gcry_cipher_final} is used
+before the final data chunk is passed to this function.
+
 The function returns @code{0} on success or an error code.
 @end deftypefun
 
 
-OpenPGP (as defined in RFC-2440) requires a special sync operation in
+The OCB mode features integrated padding and must thus be told about
+the end of the input data. This is done with:
+
+@deftypefun gcry_error_t gcry_cipher_final (gcry_cipher_hd_t @var{h})
+
+Set a flag in the context to tell the encrypt and decrypt functions
+that their next call will provide the last chunk of data.  Only the
+first call to this function has an effect and only for modes which
+support it.  Checking the error in in general not necessary.  This is
+implemented as a macro.
+@end deftypefun
+
+
+OpenPGP (as defined in RFC-4880) requires a special sync operation in
 some places.  The following function is used for this:
 
 @deftypefun gcry_error_t gcry_cipher_sync (gcry_cipher_hd_t @var{h})

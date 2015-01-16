@@ -916,6 +916,7 @@ bench_aead_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen,
 
   gcry_cipher_setiv (hd, nonce, noncelen);
 
+  gcry_cipher_final (hd);
   err = gcry_cipher_encrypt (hd, buf, buflen, buf, buflen);
   if (err)
     {
@@ -945,6 +946,7 @@ bench_aead_decrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen,
 
   gcry_cipher_setiv (hd, nonce, noncelen);
 
+  gcry_cipher_final (hd);
   err = gcry_cipher_decrypt (hd, buf, buflen, buf, buflen);
   if (err)
     {
@@ -976,7 +978,14 @@ bench_aead_authenticate_do_bench (struct bench_obj *obj, void *buf,
   char tag[16] = { 0, };
   char data = 0xff;
 
-  gcry_cipher_setiv (hd, nonce, noncelen);
+  err = gcry_cipher_setiv (hd, nonce, noncelen);
+  if (err)
+    {
+      fprintf (stderr, PGM ": gcry_cipher_setiv failed: %s\n",
+           gpg_strerror (err));
+      gcry_cipher_close (hd);
+      exit (1);
+    }
 
   err = gcry_cipher_authenticate (hd, buf, buflen);
   if (err)
@@ -987,6 +996,7 @@ bench_aead_authenticate_do_bench (struct bench_obj *obj, void *buf,
       exit (1);
     }
 
+  gcry_cipher_final (hd);
   err = gcry_cipher_encrypt (hd, &data, sizeof (data), &data, sizeof (data));
   if (err)
     {
@@ -1012,7 +1022,7 @@ bench_gcm_encrypt_do_bench (struct bench_obj *obj, void *buf,
 			    size_t buflen)
 {
   char nonce[12] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
-                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88, };
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88 };
   bench_aead_encrypt_do_bench (obj, buf, buflen, nonce, sizeof(nonce));
 }
 
@@ -1021,7 +1031,7 @@ bench_gcm_decrypt_do_bench (struct bench_obj *obj, void *buf,
 			    size_t buflen)
 {
   char nonce[12] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
-                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88, };
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88 };
   bench_aead_decrypt_do_bench (obj, buf, buflen, nonce, sizeof(nonce));
 }
 
@@ -1030,7 +1040,7 @@ bench_gcm_authenticate_do_bench (struct bench_obj *obj, void *buf,
 				 size_t buflen)
 {
   char nonce[12] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
-                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88, };
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88 };
   bench_aead_authenticate_do_bench (obj, buf, buflen, nonce, sizeof(nonce));
 }
 
@@ -1050,6 +1060,55 @@ static struct bench_ops gcm_authenticate_ops = {
   &bench_encrypt_init,
   &bench_encrypt_free,
   &bench_gcm_authenticate_do_bench
+};
+
+
+static void
+bench_ocb_encrypt_do_bench (struct bench_obj *obj, void *buf,
+			    size_t buflen)
+{
+  char nonce[15] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88,
+                     0x00, 0x00, 0x01 };
+  bench_aead_encrypt_do_bench (obj, buf, buflen, nonce, sizeof(nonce));
+}
+
+static void
+bench_ocb_decrypt_do_bench (struct bench_obj *obj, void *buf,
+			    size_t buflen)
+{
+  char nonce[15] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88,
+                     0x00, 0x00, 0x01 };
+  bench_aead_decrypt_do_bench (obj, buf, buflen, nonce, sizeof(nonce));
+}
+
+static void
+bench_ocb_authenticate_do_bench (struct bench_obj *obj, void *buf,
+				 size_t buflen)
+{
+  char nonce[15] = { 0xca, 0xfe, 0xba, 0xbe, 0xfa, 0xce,
+                     0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88,
+                     0x00, 0x00, 0x01 };
+  bench_aead_authenticate_do_bench (obj, buf, buflen, nonce, sizeof(nonce));
+}
+
+static struct bench_ops ocb_encrypt_ops = {
+  &bench_encrypt_init,
+  &bench_encrypt_free,
+  &bench_ocb_encrypt_do_bench
+};
+
+static struct bench_ops ocb_decrypt_ops = {
+  &bench_encrypt_init,
+  &bench_encrypt_free,
+  &bench_ocb_decrypt_do_bench
+};
+
+static struct bench_ops ocb_authenticate_ops = {
+  &bench_encrypt_init,
+  &bench_encrypt_free,
+  &bench_ocb_authenticate_do_bench
 };
 
 
@@ -1115,6 +1174,9 @@ static struct bench_cipher_mode cipher_modes[] = {
   {GCRY_CIPHER_MODE_GCM, "GCM enc", &gcm_encrypt_ops},
   {GCRY_CIPHER_MODE_GCM, "GCM dec", &gcm_decrypt_ops},
   {GCRY_CIPHER_MODE_GCM, "GCM auth", &gcm_authenticate_ops},
+  {GCRY_CIPHER_MODE_OCB, "OCB enc",  &ocb_encrypt_ops},
+  {GCRY_CIPHER_MODE_OCB, "OCB dec",  &ocb_decrypt_ops},
+  {GCRY_CIPHER_MODE_OCB, "OCB auth", &ocb_authenticate_ops},
   {GCRY_CIPHER_MODE_POLY1305, "POLY1305 enc", &poly1305_encrypt_ops},
   {GCRY_CIPHER_MODE_POLY1305, "POLY1305 dec", &poly1305_decrypt_ops},
   {GCRY_CIPHER_MODE_POLY1305, "POLY1305 auth", &poly1305_authenticate_ops},
@@ -1155,8 +1217,12 @@ cipher_bench_one (int algo, struct bench_cipher_mode *pmode)
   if (mode.mode == GCRY_CIPHER_MODE_CCM && blklen != GCRY_CCM_BLOCK_LEN)
     return;
 
-  /* CCM has restrictions for block-size */
+  /* GCM has restrictions for block-size */
   if (mode.mode == GCRY_CIPHER_MODE_GCM && blklen != GCRY_GCM_BLOCK_LEN)
+    return;
+
+  /* Our OCB implementaion has restrictions for block-size.  */
+  if (mode.mode == GCRY_CIPHER_MODE_OCB && blklen != 16)
     return;
 
   bench_print_mode (14, mode.name);
@@ -1197,17 +1263,17 @@ cipher_bench (char **argv, int argc)
   if (argv && argc)
     {
       for (i = 0; i < argc; i++)
-	{
-	  algo = gcry_cipher_map_name (argv[i]);
-	  if (algo)
-	    _cipher_bench (algo);
-	}
+        {
+          algo = gcry_cipher_map_name (argv[i]);
+          if (algo)
+            _cipher_bench (algo);
+        }
     }
   else
     {
       for (i = 1; i < 400; i++)
-	if (!gcry_cipher_test_algo (i))
-	  _cipher_bench (i);
+        if (!gcry_cipher_test_algo (i))
+          _cipher_bench (i);
     }
 }
 
