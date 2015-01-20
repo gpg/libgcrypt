@@ -325,7 +325,7 @@ do_setkey (RIJNDAEL_context *ctx, const byte *key, const unsigned keylen)
   else if (ctx->use_aesni)
     _gcry_aes_aesni_do_setkey (ctx, key);
 #endif
-#ifdef USE_AESNI
+#ifdef USE_SSSE3
   else if (ctx->use_ssse3)
     _gcry_aes_ssse3_do_setkey (ctx, key);
 #endif
