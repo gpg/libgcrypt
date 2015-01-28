@@ -26,8 +26,10 @@ AM_CFLAGS = $(GPG_ERROR_CFLAGS)
 
 AM_CCASFLAGS = $(NOEXECSTACK_FLAGS)
 
-DISTCLEANFILES = gost-sb.h
+EXTRA_DIST = gost-s-box.c
 
+CLEANFILES = gost-s-box
+DISTCLEANFILES = gost-sb.h
 
 noinst_LTLIBRARIES = libcipher.la
 
@@ -96,10 +98,13 @@ rfc2268.c \
 camellia.c camellia.h camellia-glue.c camellia-aesni-avx-amd64.S \
   camellia-aesni-avx2-amd64.S camellia-arm.S
 
-noinst_PROGRAMS = gost-s-box
 gost28147.lo: gost-sb.h
 gost-sb.h: gost-s-box
-	$(builddir)/gost-s-box $@
+	./gost-s-box $@
+
+gost-s-box: gost-s-box.c
+	$(CC_FOR_BUILD) -o $@ $(srcdir)/gost-s-box.c
+
 
 if ENABLE_O_FLAG_MUNGING
 o_flag_munging = sed -e 's/-O\([2-9s][2-9s]*\)/-O1/' -e 's/-Ofast/-O1/g'
