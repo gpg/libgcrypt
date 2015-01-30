@@ -82,6 +82,7 @@ SUFFIXES = .rc .lo
 gcrypt_res = versioninfo.lo
 no_undefined = -no-undefined
 export_symbols = -export-symbols $(srcdir)/libgcrypt.def
+extra_ltoptions = -XCClinker -static-libgcc
 
 install-def-file:
 	-$(INSTALL) -d $(DESTDIR)$(libdir)
@@ -98,6 +99,7 @@ gcrypt_res =
 gcrypt_res_ldflag =
 no_undefined =
 export_symbols =
+extra_ltoptions =
 install-def-file:
 uninstall-def-file:
 
@@ -106,7 +108,7 @@ gcrypt_deps =
 endif !HAVE_W32_SYSTEM
 
 
-libgcrypt_la_LDFLAGS = $(no_undefined) $(export_symbols) \
+libgcrypt_la_LDFLAGS = $(no_undefined) $(export_symbols) $(extra_ltoptions) \
 	$(libgcrypt_version_script_cmd) -version-info \
 	@LIBGCRYPT_LT_CURRENT@:@LIBGCRYPT_LT_REVISION@:@LIBGCRYPT_LT_AGE@
 libgcrypt_la_DEPENDENCIES = \
