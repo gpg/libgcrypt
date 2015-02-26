@@ -422,6 +422,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
   mpi_size_t W;
   mpi_ptr_t base_u;
   mpi_size_t base_u_size;
+  mpi_size_t max_u_size;
 
   esize = expo->nlimbs;
   msize = mod->nlimbs;
@@ -540,7 +541,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
 
   /* Main processing.  */
   {
-    mpi_size_t i, j;
+    mpi_size_t i, j, k;
     mpi_ptr_t xp;
     mpi_size_t xsize;
     int c;
@@ -559,7 +560,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
     if (W > 1)                  /* X := BASE^2 */
       mul_mod (xp, &xsize, bp, bsize, bp, bsize, mp, msize, &karactx);
     base_u = precomp[0] = mpi_alloc_limb_space (bsize, esec);
-    base_u_size = precomp_size[0] = bsize;
+    base_u_size = max_u_size = precomp_size[0] = bsize;
     MPN_COPY (precomp[0], bp, bsize);
     for (i = 1; i < (1 << (W - 1)); i++)
       {                         /* PRECOMP[i] = BASE^(2 * i + 1) */
@@ -571,8 +572,13 @@ _gcry_mpi_powm (gcry_mpi_t res,
                    mp, msize, &karactx);
         base_u = precomp[i] = mpi_alloc_limb_space (rsize, esec);
         base_u_size = precomp_size[i] = rsize;
+        if (max_u_size < base_u_size)
+          max_u_size = base_u_size;
         MPN_COPY (precomp[i], rp, rsize);
       }
+
+    base_u = mpi_alloc_limb_space (max_u_size, esec);
+    MPN_ZERO (base_u, max_u_size);
 
     i = esize - 1;
 
@@ -659,8 +665,24 @@ _gcry_mpi_powm (gcry_mpi_t res,
               rsize = xsize;
             }
 
-	  base_u = precomp[e0];
-	  base_u_size = precomp_size[e0];
+          /*
+           *  base_u <= precomp[e0]
+           *  base_u_size <= precomp_size[e0]
+           */
+          base_u_size = 0;
+          for (k = 0; k < (1<< (W - 1)); k++)
+            {
+              struct gcry_mpi w, u;
+              w.alloced = w.nlimbs = precomp_size[k];
+              u.alloced = u.nlimbs = precomp_size[k];
+              w.sign = u.sign = 0;
+              w.flags = u.flags = 0;
+              w.d = base_u;
+              u.d = precomp[k];
+
+              mpi_set_cond (&w, &u, k == e0);
+              base_u_size |= (precomp_size[k] & ((mpi_size_t)0 - (k == e0)) );
+            }
 
           mul_mod (xp, &xsize, rp, rsize, base_u, base_u_size,
                    mp, msize, &karactx);
@@ -687,8 +709,24 @@ _gcry_mpi_powm (gcry_mpi_t res,
 
     if (e != 0)
       {
-	base_u = precomp[(e>>1)];
-	base_u_size = precomp_size[(e>>1)];
+        /*
+         * base_u <= precomp[(e>>1)]
+         * base_u_size <= precomp_size[(e>>1)]
+         */
+        base_u_size = 0;
+        for (k = 0; k < (1<< (W - 1)); k++)
+          {
+            struct gcry_mpi w, u;
+            w.alloced = w.nlimbs = precomp_size[k];
+            u.alloced = u.nlimbs = precomp_size[k];
+            w.sign = u.sign = 0;
+            w.flags = u.flags = 0;
+            w.d = base_u;
+            u.d = precomp[k];
+
+            mpi_set_cond (&w, &u, k == (e>>1));
+            base_u_size |= (precomp_size[k] & ((mpi_size_t)0 - (k == (e>>1))) );
+          }
 
         mul_mod (xp, &xsize, rp, rsize, base_u, base_u_size,
                  mp, msize, &karactx);
@@ -739,6 +777,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
     _gcry_mpih_release_karatsuba_ctx (&karactx );
     for (i = 0; i < (1 << (W - 1)); i++)
       _gcry_mpi_free_limb_space( precomp[i], esec ? precomp_size[i] : 0 );
+    _gcry_mpi_free_limb_space (base_u, esec ? max_u_size : 0);
   }
 
   /* Fixup for negative results.  */
