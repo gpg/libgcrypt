@@ -1,5 +1,5 @@
 Library: Libgcrypt
-Homepage: http://www.gnu.org/software/libgcrypt/
+Homepage: https://www.gnu.org/software/libgcrypt/
 Maintainer: Werner Koch <wk@gnupg.org>
 Bug reports: http://bugs.gnupg.org
 Security related bug reports: <security@gnupg.org>
@@ -17,7 +17,7 @@ year that would otherwise be listed individually.
 List of Copyright holders
 =========================
 
-  Copyright (C) 1989,1991-2012 Free Software Foundation, Inc.
+  Copyright (C) 1989,1991-2015 Free Software Foundation, Inc.
   Copyright (C) 1994 X Consortium
   Copyright (C) 1996 L. Peter Deutsch
   Copyright (C) 1997 Werner Koch
@@ -26,11 +26,11 @@ List of Copyright holders
   Copyright (C) 1996-2006 Peter Gutmann, Matt Thomlinson and Blake Coverett
   Copyright (C) 2003 Nikos Mavroyanopoulos
   Copyright (C) 2006-2007 NTT (Nippon Telegraph and Telephone Corporation)
-  Copyright (C) 2012-2014 g10 Code GmbH
+  Copyright (C) 2012-2015 g10 Code GmbH
   Copyright (C) 2012 Simon Josefsson, Niels Möller
   Copyright (c) 2012 Intel Corporation
   Copyright (C) 2013 Christian Grothoff
-  Copyright (C) 2013-2014 Jussi Kivilinna
+  Copyright (C) 2013-2015 Jussi Kivilinna
   Copyright (C) 2013-2014 Dmitry Eremin-Solenikov
 
 

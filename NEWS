@@ -1,5 +1,14 @@
-Noteworthy changes in version 1.6.3 (unreleased) [C20/A0/R3]
+Noteworthy changes in version 1.6.3 (2015-02-27) [C20/A0/R3]
 ------------------------------------------------
+
+ * Use ciphertext blinding for Elgamal decryption [CVE-2014-3591].
+   See http://www.cs.tau.ac.il/~tromer/radioexp/ for details.
+
+ * Fixed data-dependent timing variations in modular exponentiation
+   [related to CVE-2015-0837, Last-Level Cache Side-Channel Attacks
+   are Practical].
+
+ * Improved asm support for older toolchains.
 
 
 Noteworthy changes in version 1.6.2 (2014-08-21) [C20/A0/R2]

@@ -30,9 +30,9 @@ _gcry_compat_identification (void)
   static const char blurb[] =
     "\n\n"
     "This is Libgcrypt " PACKAGE_VERSION " - The GNU Crypto Library\n"
-    "Copyright (C) 2000-2012 Free Software Foundation, Inc.\n"
-    "Copyright (C) 2012-2014 g10 Code GmbH\n"
-    "Copyright (C) 2013-2014 Jussi Kivilinna\n"
+    "Copyright (C) 2000-2015 Free Software Foundation, Inc.\n"
+    "Copyright (C) 2012-2015 g10 Code GmbH\n"
+    "Copyright (C) 2013-2015 Jussi Kivilinna\n"
     "(See the source code for a complete list)\n"
     "\n"
     "(" BUILD_REVISION " " BUILD_TIMESTAMP ")\n"
