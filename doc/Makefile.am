@@ -92,7 +92,7 @@ online: gcrypt.html gcrypt.pdf gcrypt.info
 	cp libgcrypt-modules.png gcrypt.html/; \
 	cp fips-fsm.png gcrypt.html/; \
         user=werner ; dashdevel="" ; \
-        if echo "@PACKAGE_VERSION@" | grep -- "-svn" >/dev/null; then \
+        if echo "@PACKAGE_VERSION@" | grep "beta" >/dev/null; then \
 	  dashdevel="-devel" ; \
 	  cp gcrypt.pdf gcrypt.html/; \
 	  cp gcrypt.info gcrypt.html/; \
@@ -101,5 +101,5 @@ online: gcrypt.html gcrypt.pdf gcrypt.info
                $${user}@trithemius.gnupg.org:webspace/manuals/ ; \
         fi ; \
 	cd gcrypt.html ; \
-        rsync -vr --exclude='.svn' .  \
+        rsync -vr --exclude='.git' .  \
 	  $${user}@trithemius.gnupg.org:webspace/manuals/gcrypt$${dashdevel}/
