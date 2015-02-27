@@ -1045,6 +1045,8 @@ static char thing[] =
   if (gcry_sexp_nth (n_val, 1))
     fail ("extracting 1-th of car of 'n' list did not fail");
   gcry_sexp_release (n_val);
+  gcry_sexp_release (n);
+  gcry_sexp_release (pubkey);
 }
 
 
