@@ -299,6 +299,21 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
 }
 
 
+/* Checksumming for encrypt and decrypt.  */
+static void ocb_checksum(unsigned char *chksum, const unsigned char *plainbuf,
+                         size_t nblks)
+{
+  while (nblks > 0)
+    {
+      /* Checksum_i = Checksum_{i-1} xor P_i  */
+      buf_xor_1(chksum, plainbuf, OCB_BLOCK_LEN);
+
+      plainbuf += OCB_BLOCK_LEN;
+      nblks--;
+    }
+}
+
+
 /* Common code for encrypt and decrypt.  */
 static gcry_err_code_t
 ocb_crypt (gcry_cipher_hd_t c, int encrypt,
@@ -308,6 +323,7 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
   unsigned char l_tmp[OCB_BLOCK_LEN];
   unsigned int burn = 0;
   unsigned int nburn;
+  size_t nblks = inbuflen / OCB_BLOCK_LEN;
 
   /* Check that a nonce and thus a key has been set and that we are
      not yet in end of data state. */
@@ -323,6 +339,12 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
     ; /* Allow arbitarty length. */
   else if ((inbuflen % OCB_BLOCK_LEN))
     return GPG_ERR_INV_LENGTH;  /* We support only full blocks for now.  */
+
+  if (encrypt)
+    {
+      /* Checksum_i = Checksum_{i-1} xor P_i  */
+      ocb_checksum (c->u_ctr.ctr, inbuf, nblks);
+    }
 
   /* Encrypt all full blocks.  */
   while (inbuflen >= OCB_BLOCK_LEN)
@@ -341,14 +363,17 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
       burn = nburn > burn ? nburn : burn;
       buf_xor_1 (outbuf, c->u_iv.iv, OCB_BLOCK_LEN);
 
-      /* Checksum_i = Checksum_{i-1} xor P_i  */
-      buf_xor_1 (c->u_ctr.ctr, encrypt? inbuf : outbuf, OCB_BLOCK_LEN);
-
       inbuf += OCB_BLOCK_LEN;
       inbuflen -= OCB_BLOCK_LEN;
       outbuf += OCB_BLOCK_LEN;
       outbuflen =- OCB_BLOCK_LEN;
     }
+
+  if (!encrypt)
+    {
+      /* Checksum_i = Checksum_{i-1} xor P_i  */
+      ocb_checksum (c->u_ctr.ctr, outbuf - nblks * OCB_BLOCK_LEN, nblks);
+     }
 
   /* Encrypt final partial block.  Note that we expect INBUFLEN to be
      shorter than OCB_BLOCK_LEN (see above).  */

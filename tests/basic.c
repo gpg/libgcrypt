@@ -2781,7 +2781,7 @@ check_ccm_cipher (void)
 
 
 static void
-check_ocb_cipher (void)
+do_check_ocb_cipher (int inplace)
 {
   /* Note that we use hex strings and not binary strings in TV.  That
      makes it easier to maintain the test vectors.  */
@@ -3028,7 +3028,18 @@ check_ocb_cipher (void)
 
       err = gcry_cipher_final (hde);
       if (!err)
-        err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN, plain, plainlen);
+        {
+          if (inplace)
+            {
+              memcpy(out, plain, plainlen);
+              err = gcry_cipher_encrypt (hde, out, plainlen, NULL, 0);
+            }
+          else
+            {
+              err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+                                         plain, plainlen);
+            }
+        }
       if (err)
         {
           fail ("cipher-ocb, gcry_cipher_encrypt failed (tv %d): %s\n",
@@ -3075,7 +3086,19 @@ check_ocb_cipher (void)
       /* Now for the decryption.  */
       err = gcry_cipher_final (hdd);
       if (!err)
-        err = gcry_cipher_decrypt (hdd, out, plainlen, NULL, 0);
+        {
+          if (inplace)
+            {
+              err = gcry_cipher_decrypt (hdd, out, plainlen, NULL, 0);
+            }
+          else
+            {
+              unsigned char tmp[MAX_DATA_LEN];
+
+              memcpy(tmp, out, plainlen);
+              err = gcry_cipher_decrypt (hdd, out, plainlen, tmp, plainlen);
+            }
+        }
       if (err)
         {
           fail ("cipher-ocb, gcry_cipher_decrypt (tv %d) failed: %s\n",
@@ -3126,6 +3149,18 @@ check_ocb_cipher (void)
 
   if (verbose)
     fprintf (stderr, "  Completed OCB checks.\n");
+}
+
+
+static void
+check_ocb_cipher (void)
+{
+  /* Check OCB cipher with separate destination and source buffers for
+   * encryption/decryption. */
+  do_check_ocb_cipher(0);
+
+  /* Check OCB cipher with inplace encrypt/decrypt. */
+  do_check_ocb_cipher(1);
 }
 
 
