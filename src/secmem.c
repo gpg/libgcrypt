@@ -105,14 +105,13 @@ static int
 ptr_into_pool_p (const void *p)
 {
   /* We need to convert pointers to addresses.  This is required by
-     C-99 6.5.8 to avoid undefined behaviour.  Using size_t is at
-     least only implementation defined.  See also
+     C-99 6.5.8 to avoid undefined behaviour.  See also
      http://lists.gnupg.org/pipermail/gcrypt-devel/2007-February/001102.html
   */
-  size_t p_addr = (size_t)p;
-  size_t pool_addr = (size_t)pool;
+  uintptr_t p_addr    = (uintptr_t)p;
+  uintptr_t pool_addr = (uintptr_t)pool;
 
-  return p_addr >= pool_addr && p_addr <  pool_addr+pool_size;
+  return p_addr >= pool_addr && p_addr <  pool_addr + pool_size;
 }
 
 /* Update the stats.  */
