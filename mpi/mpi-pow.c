@@ -507,7 +507,8 @@ _gcry_mpi_powm (gcry_mpi_t res,
     }
 
 
-  /* Make BASE, EXPO and MOD not overlap with RES.  */
+  /* Make BASE, EXPO not overlap with RES.  We don't need to check MOD
+     because that has already been copied to the MP var.  */
   if ( rp == bp )
     {
       /* RES and BASE are identical.  Allocate temp. space for BASE.  */
@@ -522,14 +523,6 @@ _gcry_mpi_powm (gcry_mpi_t res,
       ep_nlimbs = esec? esize:0;
       ep = ep_marker = mpi_alloc_limb_space( esize, esec );
       MPN_COPY(ep, rp, esize);
-    }
-  if ( rp == mp )
-    {
-      /* RES and MOD are identical.  Allocate temporary space for MOD.*/
-      gcry_assert (!mp_marker);
-      mp_nlimbs = msec?msize:0;
-      mp = mp_marker = mpi_alloc_limb_space( msize, msec );
-      MPN_COPY(mp, rp, msize);
     }
 
   /* Copy base to the result.  */
