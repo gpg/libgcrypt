@@ -111,7 +111,7 @@ _gcry_md_block_write (void *context, const void *inbuf_arg, size_t inlen)
   if (sizeof(hd->buf) < blocksize)
     BUG();
 
-  if (hd->buf == NULL || hd->bwrite == NULL)
+  if (!hd->bwrite)
     return;
 
   if (hd->count == blocksize)  /* Flush the buffer. */
