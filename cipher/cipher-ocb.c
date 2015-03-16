@@ -300,8 +300,9 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
 
 
 /* Checksumming for encrypt and decrypt.  */
-static void ocb_checksum(unsigned char *chksum, const unsigned char *plainbuf,
-                         size_t nblks)
+static void
+ocb_checksum (unsigned char *chksum, const unsigned char *plainbuf,
+              size_t nblks)
 {
   while (nblks > 0)
     {
