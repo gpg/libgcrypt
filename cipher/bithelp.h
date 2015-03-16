@@ -4,7 +4,7 @@
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser general Public License as
+ * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
  * the License, or (at your option) any later version.
  *
@@ -14,11 +14,10 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef G10_BITHELP_H
-#define G10_BITHELP_H
+#ifndef GCRYPT_BITHELP_H
+#define GCRYPT_BITHELP_H
 
 #include "types.h"
 
@@ -122,4 +121,4 @@ _gcry_ctz64(u64 x)
 #endif /*HAVE_U64_TYPEDEF*/
 
 
-#endif /*G10_BITHELP_H*/
+#endif /*GCRYPT_BITHELP_H*/

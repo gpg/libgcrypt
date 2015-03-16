@@ -21,6 +21,9 @@
 #ifndef GCRYPT_TYPES_H
 #define GCRYPT_TYPES_H
 
+#ifndef _GCRYPT_CONFIG_H_INCLUDED
+# error config.h must be included before types.h
+#endif
 
 /* The AC_CHECK_SIZEOF() in configure fails for some machines.
  * we provide some fallback values here */
@@ -39,6 +42,16 @@
 
 
 #include <sys/types.h>
+
+/* Provide uintptr_t */
+#ifdef HAVE_STDINT_H
+# include <stdint.h> /* uintptr_t */
+#elif defined(HAVE_INTTYPES_H)
+# include <inttypes.h>
+#else
+/* In this case, uintptr_t is provided by config.h. */
+#endif
+
 
 
 #ifndef HAVE_BYTE_TYPEDEF

@@ -4,7 +4,7 @@
  * This file is part of Libgcrypt.
  *
  * Libgcrypt is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser general Public License as
+ * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation; either version 2.1 of
  * the License, or (at your option) any later version.
  *
@@ -14,21 +14,11 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef G10_BUFHELP_H
-#define G10_BUFHELP_H
+#ifndef GCRYPT_BUFHELP_H
+#define GCRYPT_BUFHELP_H
 
-#include <config.h>
-
-#ifdef HAVE_STDINT_H
-# include <stdint.h> /* uintptr_t */
-#elif defined(HAVE_INTTYPES_H)
-# include <inttypes.h>
-#else
-/* In this case, uintptr_t is provided by config.h. */
-#endif
 
 #include "bithelp.h"
 
@@ -409,4 +399,4 @@ static inline void buf_put_le64(void *_buf, u64 val)
 
 #endif /*BUFHELP_FAST_UNALIGNED_ACCESS*/
 
-#endif /*G10_BITHELP_H*/
+#endif /*GCRYPT_BUFHELP_H*/
