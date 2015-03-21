@@ -323,16 +323,26 @@ void __gcry_burn_stack (unsigned int bytes);
 #endif
 
 /* Following architectures can handle unaligned accesses fast.  */
-#if defined(__i386__) || defined(__x86_64__) || \
-    defined(__powerpc__) || defined(__powerpc64__) || \
-    (defined(__arm__) && defined(__ARM_FEATURE_UNALIGNED)) || \
-    defined(__aarch64__)
+#if defined(HAVE_GCC_ATTRIBUTE_PACKED) && \
+    defined(HAVE_GCC_ATTRIBUTE_ALIGNED) && \
+    (defined(__i386__) || defined(__x86_64__) || \
+     defined(__powerpc__) || defined(__powerpc64__) || \
+     (defined(__arm__) && defined(__ARM_FEATURE_UNALIGNED)) || \
+     defined(__aarch64__))
 #define fast_wipememory2_unaligned_head(_ptr,_set,_len) /*do nothing*/
+typedef struct fast_wipememory_s
+{
+  FASTWIPE_T a;
+} __attribute__((packed, aligned(1))) fast_wipememory_t;
 #else
 #define fast_wipememory2_unaligned_head(_vptr,_vset,_vlen) do { \
               while((size_t)(_vptr)&(sizeof(FASTWIPE_T)-1) && _vlen) \
                 { *_vptr=(_vset); _vptr++; _vlen--; } \
                   } while(0)
+typedef struct fast_wipememory_s
+{
+  FASTWIPE_T a;
+} fast_wipememory_t;
 #endif
 
 /* fast_wipememory2 may leave tail bytes unhandled, in which case tail bytes
@@ -344,8 +354,9 @@ void __gcry_burn_stack (unsigned int bytes);
                 break; \
               _vset_long *= FASTWIPE_MULT; \
               do { \
-                volatile FASTWIPE_T *_vptr_long = (volatile void *)_vptr; \
-                *_vptr_long = _vset_long; \
+                volatile fast_wipememory_t *_vptr_long = \
+                  (volatile void *)_vptr; \
+                _vptr_long->a = _vset_long; \
                 _vlen -= sizeof(FASTWIPE_T); \
                 _vptr += sizeof(FASTWIPE_T); \
               } while (_vlen >= sizeof(FASTWIPE_T)); \
