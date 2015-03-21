@@ -958,6 +958,24 @@ fi
 
 
 #
+# Check whether the compiler supports the GCC style packed attribute
+#
+AC_CACHE_CHECK([whether the GCC style packed attribute is supported],
+       [gcry_cv_gcc_attribute_packed],
+       [gcry_cv_gcc_attribute_packed=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[struct foo_s { char a; long b; } __attribute__ ((packed));
+            enum bar {
+              FOO = 1 / (sizeof(struct foo_s) == (sizeof(char) + sizeof(long))),
+            };]])],
+          [gcry_cv_gcc_attribute_packed=yes])])
+if test "$gcry_cv_gcc_attribute_packed" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ATTRIBUTE_PACKED,1,
+     [Defined if a GCC style "__attribute__ ((packed))" is supported])
+fi
+
+
+#
 # Check whether the compiler supports 'asm' or '__asm__' keyword for
 # assembler blocks.
 #
