@@ -442,6 +442,7 @@ do_slope_benchmark (struct bench_obj *obj)
 	       &overhead);
 
   free (measurement_raw);
+  free (measurements);
   free (real_buffer);
   obj->ops->finalize (obj);
 
@@ -1450,11 +1451,11 @@ bench_mac_init (struct bench_obj *obj)
     }
 
   err = gcry_mac_setkey (hd, key, keylen);
-  free (key);
   if (err)
     {
       fprintf (stderr, PGM ": error setting key for mac `%s'\n",
 	       gcry_mac_algo_name (mode->algo));
+      free (key);
       exit (1);
     }
 
@@ -1473,6 +1474,7 @@ bench_mac_init (struct bench_obj *obj)
 
   obj->priv = hd;
 
+  free (key);
   return 0;
 }
 
