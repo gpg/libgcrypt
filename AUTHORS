@@ -1,7 +1,9 @@
 Library: Libgcrypt
 Homepage: http://www.gnu.org/software/libgcrypt/
+Download: ftp://ftp.gnupg.org/gcrypt/libgcrypt/
+Repository: git://git.gnupg.org/libgcrypt.git
 Maintainer: Werner Koch <wk@gnupg.org>
-Bug reports: http://bugs.gnupg.org
+Bug reports: https://bugs.gnupg.org
 Security related bug reports: <security@gnupg.org>
 License (library): LGPLv2.1+
 License (manual and tools): GPLv2+
