@@ -28,6 +28,8 @@
 #include <assert.h>
 
 #include "../src/gcrypt-int.h"
+#include "stopwatch.h"
+
 
 #ifndef DIM
 # define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
@@ -58,6 +60,58 @@ die (const char *format, ...)
   vfprintf (stderr, format, arg_ptr);
   va_end (arg_ptr);
   exit (1);
+}
+
+
+static void
+dummy_consumer (volatile char *buffer, size_t buflen)
+{
+  (void)buffer;
+  (void)buflen;
+}
+
+
+static void
+bench_s2k (unsigned long s2kcount)
+{
+  gpg_error_t err;
+  const char passphrase[] = "123456789abcdef0";
+  char keybuf[128/8];
+  unsigned int repetitions = 10;
+  unsigned int count;
+  const char *elapsed;
+  int pass = 0;
+
+ again:
+  start_timer ();
+  for (count = 0; count < repetitions; count++)
+    {
+      err = gcry_kdf_derive (passphrase, strlen (passphrase),
+                             GCRY_KDF_ITERSALTED_S2K,
+                             GCRY_MD_SHA1, "saltsalt", 8, s2kcount,
+                             sizeof keybuf, keybuf);
+      if (err)
+        die ("gcry_kdf_derive failed: %s\n", gpg_strerror (err));
+      dummy_consumer (keybuf, sizeof keybuf);
+    }
+  stop_timer ();
+
+  elapsed = elapsed_time (repetitions);
+  if (!pass++)
+    {
+      if (!atoi (elapsed))
+        {
+          repetitions = 10000;
+          goto again;
+        }
+      else if (atoi (elapsed) < 10)
+        {
+          repetitions = 100;
+          goto again;
+        }
+    }
+
+  printf ("%s\n", elapsed);
 }
 
 
@@ -1122,10 +1176,58 @@ check_scrypt (void)
 int
 main (int argc, char **argv)
 {
-  if (argc > 1 && !strcmp (argv[1], "--verbose"))
-    verbose = 1;
-  else if (argc > 1 && !strcmp (argv[1], "--debug"))
-    verbose = debug = 1;
+  int last_argc = -1;
+  unsigned long s2kcount = 0;
+
+  if (argc)
+    { argc--; argv++; }
+
+  while (argc && last_argc != argc )
+    {
+      last_argc = argc;
+      if (!strcmp (*argv, "--"))
+        {
+          argc--; argv++;
+          break;
+        }
+      else if (!strcmp (*argv, "--help"))
+        {
+          fputs ("usage: t-kdf [options]"
+                 "Options:\n"
+                 " --verbose    print timinigs etc.\n"
+                 " --debug      flyswatter\n"
+                 " --s2k        print the time needed for S2K\n",
+                 stdout);
+          exit (0);
+        }
+      else if (!strcmp (*argv, "--verbose"))
+        {
+          verbose++;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--debug"))
+        {
+          verbose += 2;
+          debug++;
+          argc--; argv++;
+        }
+      else if (!strcmp (*argv, "--s2k"))
+        {
+          s2kcount = 1;
+          argc--; argv++;
+        }
+      else if (!strncmp (*argv, "--", 2))
+        die ("unknown option '%s'\n", *argv);
+    }
+
+  if (s2kcount)
+    {
+      if (argc != 1)
+        die ("usage: t-kdf --s2k S2KCOUNT\n", stderr );
+      s2kcount = strtoul (*argv, NULL, 10);
+      if (!s2kcount)
+        die ("t-kdf: S2KCOUNT must be positive\n", stderr );
+    }
 
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
@@ -1135,9 +1237,14 @@ main (int argc, char **argv)
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u, 0);
 
-  check_openpgp ();
-  check_pbkdf2 ();
-  check_scrypt ();
+  if (s2kcount)
+    bench_s2k (s2kcount);
+  else
+    {
+      check_openpgp ();
+      check_pbkdf2 ();
+      check_scrypt ();
+    }
 
   return error_count ? 1 : 0;
 }
