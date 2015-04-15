@@ -463,7 +463,7 @@ random_bench (int very_strong)
       for (i=0; i < 100; i++)
         gcry_randomize (buf, sizeof buf, GCRY_STRONG_RANDOM);
       stop_timer ();
-      printf (" %s", elapsed_time ());
+      printf (" %s", elapsed_time (1));
     }
 
   start_timer ();
@@ -471,7 +471,7 @@ random_bench (int very_strong)
     gcry_randomize (buf, 8,
                     very_strong? GCRY_VERY_STRONG_RANDOM:GCRY_STRONG_RANDOM);
   stop_timer ();
-  printf (" %s", elapsed_time ());
+  printf (" %s", elapsed_time (1));
 
   putchar ('\n');
   if (verbose)
@@ -531,7 +531,7 @@ md_bench ( const char *algoname )
       gcry_md_write (hd, buf, bufsize);
   gcry_md_final (hd);
   stop_timer ();
-  printf (" %s", elapsed_time ());
+  printf (" %s", elapsed_time (1));
   fflush (stdout);
 
   gcry_md_reset (hd);
@@ -541,7 +541,7 @@ md_bench ( const char *algoname )
       gcry_md_write (hd, buf, bufsize/10);
   gcry_md_final (hd);
   stop_timer ();
-  printf (" %s", elapsed_time ());
+  printf (" %s", elapsed_time (1));
   fflush (stdout);
 
   gcry_md_reset (hd);
@@ -551,7 +551,7 @@ md_bench ( const char *algoname )
       gcry_md_write (hd, buf, 1);
   gcry_md_final (hd);
   stop_timer ();
-  printf (" %s", elapsed_time ());
+  printf (" %s", elapsed_time (1));
   fflush (stdout);
 
   start_timer ();
@@ -561,7 +561,7 @@ md_bench ( const char *algoname )
         gcry_md_putc (hd, buf[j]);
   gcry_md_final (hd);
   stop_timer ();
-  printf (" %s", elapsed_time ());
+  printf (" %s", elapsed_time (1));
   fflush (stdout);
 
   gcry_md_close (hd);
@@ -585,7 +585,7 @@ md_bench ( const char *algoname )
     for (i=0; i < 100; i++)
       gcry_md_hash_buffer (algo, digest, largebuf, 10000);
   stop_timer ();
-  printf (" %s", elapsed_time ());
+  printf (" %s", elapsed_time (1));
   free (largebuf_base);
 
   putchar ('\n');
@@ -680,7 +680,7 @@ mac_bench ( const char *algoname )
   macoutlen = maclen;
   gcry_mac_read (hd, mac[0], &macoutlen);
   stop_timer ();
-  printf (" %s", elapsed_time ());
+  printf (" %s", elapsed_time (1));
   fflush (stdout);
 
   gcry_mac_reset (hd);
@@ -692,7 +692,7 @@ mac_bench ( const char *algoname )
   macoutlen = maclen;
   gcry_mac_read (hd, mac[1], &macoutlen);
   stop_timer ();
-  printf (" %s", elapsed_time ());
+  printf (" %s", elapsed_time (1));
   fflush (stdout);
 
   gcry_mac_reset (hd);
@@ -704,7 +704,7 @@ mac_bench ( const char *algoname )
   macoutlen = maclen;
   gcry_mac_read (hd, mac[2], &macoutlen);
   stop_timer ();
-  printf (" %s", elapsed_time ());
+  printf (" %s", elapsed_time (1));
   fflush (stdout);
 
   gcry_mac_close (hd);
@@ -968,7 +968,7 @@ cipher_bench ( const char *algoname )
         }
       stop_timer ();
 
-      printf (" %s", elapsed_time ());
+      printf (" %s", elapsed_time (1));
       fflush (stdout);
       gcry_cipher_close (hd);
       if (err)
@@ -1049,7 +1049,7 @@ cipher_bench ( const char *algoname )
             }
         }
       stop_timer ();
-      printf (" %s", elapsed_time ());
+      printf (" %s", elapsed_time (1));
       fflush (stdout);
       gcry_cipher_close (hd);
       if (err)
@@ -1113,7 +1113,7 @@ rsa_bench (int iterations, int print_header, int no_blinding)
       gcry_sexp_release (key_spec);
 
       stop_timer ();
-      printf ("   %s", elapsed_time ());
+      printf ("   %s", elapsed_time (1));
       fflush (stdout);
 
       x = gcry_mpi_new (p_sizes[testno]);
@@ -1133,7 +1133,7 @@ rsa_bench (int iterations, int print_header, int no_blinding)
             die ("signing failed (%d): %s\n", count, gpg_strerror (err));
         }
       stop_timer ();
-      printf ("   %s", elapsed_time ());
+      printf ("   %s", elapsed_time (1));
       fflush (stdout);
 
       start_timer ();
@@ -1150,7 +1150,7 @@ rsa_bench (int iterations, int print_header, int no_blinding)
             }
         }
       stop_timer ();
-      printf ("     %s", elapsed_time ());
+      printf ("     %s", elapsed_time (1));
 
       if (no_blinding)
         {
@@ -1172,7 +1172,7 @@ rsa_bench (int iterations, int print_header, int no_blinding)
                 die ("signing failed (%d): %s\n", count, gpg_strerror (err));
             }
           stop_timer ();
-          printf ("   %s", elapsed_time ());
+          printf ("   %s", elapsed_time (1));
           fflush (stdout);
         }
 
@@ -1260,7 +1260,7 @@ elg_bench (int iterations, int print_header)
             }
         }
       stop_timer ();
-      snprintf (timerbuf1, sizeof timerbuf1, "   %s", elapsed_time ());
+      snprintf (timerbuf1, sizeof timerbuf1, "   %s", elapsed_time (1));
       fflush (stdout);
 
       start_timer ();
@@ -1278,7 +1278,7 @@ elg_bench (int iterations, int print_header)
         }
       stop_timer ();
 
-      printf ("   %s  %s\n", elapsed_time (), timerbuf1);
+      printf ("   %s  %s\n", elapsed_time (1), timerbuf1);
       fflush (stdout);
 
       gcry_sexp_release (plain);
@@ -1368,7 +1368,7 @@ dsa_bench (int iterations, int print_header)
             }
         }
       stop_timer ();
-      printf ("   %s", elapsed_time ());
+      printf ("   %s", elapsed_time (1));
       fflush (stdout);
 
       start_timer ();
@@ -1384,7 +1384,7 @@ dsa_bench (int iterations, int print_header)
             }
         }
       stop_timer ();
-      printf ("     %s\n", elapsed_time ());
+      printf ("     %s\n", elapsed_time (1));
       fflush (stdout);
 
       gcry_sexp_release (sig);
@@ -1478,7 +1478,7 @@ ecc_bench (int iterations, int print_header)
       gcry_sexp_release (key_spec);
 
       stop_timer ();
-      printf ("     %s", elapsed_time ());
+      printf ("     %s", elapsed_time (1));
       fflush (stdout);
 
       x = gcry_mpi_new (p_size);
@@ -1513,7 +1513,7 @@ ecc_bench (int iterations, int print_header)
             }
         }
       stop_timer ();
-      printf ("   %s", elapsed_time ());
+      printf ("   %s", elapsed_time (1));
       fflush (stdout);
 
       start_timer ();
@@ -1530,7 +1530,7 @@ ecc_bench (int iterations, int print_header)
             }
         }
       stop_timer ();
-      printf ("     %s\n", elapsed_time ());
+      printf ("     %s\n", elapsed_time (1));
       fflush (stdout);
 
       gcry_sexp_release (sig);
@@ -1563,7 +1563,7 @@ do_powm ( const char *n_str, const char *e_str, const char *m_str)
   for (i=0; i < 1000; i++)
     gcry_mpi_powm (cip, msg, e, n);
   stop_timer ();
-  printf (" %s", elapsed_time ()); fflush (stdout);
+  printf (" %s", elapsed_time (1)); fflush (stdout);
 /*    { */
 /*      char *buf; */
 
@@ -1645,7 +1645,7 @@ prime_bench (void)
   stop_timer ();
   if (with_progress)
     printf ("%-10s", "prime");
-  printf (" %s\n", elapsed_time ()); fflush (stdout);
+  printf (" %s\n", elapsed_time (1)); fflush (stdout);
 
   single_char_progress = old_prog;
 }

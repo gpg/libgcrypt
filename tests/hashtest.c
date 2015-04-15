@@ -484,6 +484,6 @@ main (int argc, char **argv)
 
   if (verbose)
     show ("All tests completed in %s.  Errors: %d\n",
-          elapsed_time (), error_count);
+          elapsed_time (1), error_count);
   return !!error_count;
 }

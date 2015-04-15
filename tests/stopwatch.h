@@ -81,7 +81,7 @@ stop_timer (void)
 }
 
 static const char *
-elapsed_time (void)
+elapsed_time (unsigned int divisor)
 {
   static char buf[50];
 #if _WIN32
@@ -95,11 +95,19 @@ elapsed_time (void)
         + stopped_at.kernel_time.dwLowDateTime);
   t2 += (((unsigned long long)stopped_at.user_time.dwHighDateTime << 32)
         + stopped_at.user_time.dwLowDateTime);
-  t = (t2 - t1)/10000;
-  snprintf (buf, sizeof buf, "%5.0fms", (double)t );
+  t = ((t2 - t1)/divisor)/10000;
+  if (divisor != 1)
+    snprintf (buf, sizeof buf, "%5.1fms", (double)t );
+  else
+    snprintf (buf, sizeof buf, "%5.0fms", (double)t );
 #else
-  snprintf (buf, sizeof buf, "%5.0fms",
-            (((double) (stopped_at - started_at))/CLOCKS_PER_SEC)*10000000);
+  if (divisor != 1)
+    snprintf (buf, sizeof buf, "%5.1fms",
+              ((((double) (stopped_at - started_at)/(double)divisor)
+                /CLOCKS_PER_SEC)*10000000));
+  else
+    snprintf (buf, sizeof buf, "%5.0fms",
+              (((double) (stopped_at - started_at)/CLOCKS_PER_SEC)*10000000));
 #endif
   return buf;
 }
