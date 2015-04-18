@@ -3153,6 +3153,172 @@ do_check_ocb_cipher (int inplace)
 
 
 static void
+check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
+{
+  static const unsigned char key[32] =
+        "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
+        "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F";
+  static const unsigned char nonce[12] =
+        "\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F\x00\x01\x02\x03";
+  const size_t buflen = 1024 * 1024 * 2 + 32;
+  unsigned char *inbuf;
+  unsigned char *outbuf;
+  gpg_error_t err = 0;
+  gcry_cipher_hd_t hde, hdd;
+  unsigned char tag[16];
+  int i;
+
+  inbuf = xmalloc(buflen);
+  if (!inbuf)
+    {
+      fail ("out-of-memory\n");
+      return;
+    }
+  outbuf = xmalloc(buflen);
+  if (!outbuf)
+    {
+      fail ("out-of-memory\n");
+      xfree(inbuf);
+      return;
+    }
+
+  for (i = 0; i < buflen; i++)
+    inbuf[i] = 'a';
+
+  err = gcry_cipher_open (&hde, algo, GCRY_CIPHER_MODE_OCB, 0);
+  if (!err)
+    err = gcry_cipher_open (&hdd, algo, GCRY_CIPHER_MODE_OCB, 0);
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_open failed (large, algo %d): %s\n",
+            algo, gpg_strerror (err));
+      goto out_free;
+    }
+
+  err = gcry_cipher_setkey (hde, key, keylen);
+  if (!err)
+    err = gcry_cipher_setkey (hdd, key, keylen);
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_setkey failed (large, algo %d): %s\n",
+            algo, gpg_strerror (err));
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+      goto out_free;
+    }
+
+  err = gcry_cipher_setiv (hde, nonce, 12);
+  if (!err)
+    err = gcry_cipher_setiv (hdd, nonce, 12);
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_setiv failed (large, algo %d): %s\n",
+            algo, gpg_strerror (err));
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+      goto out_free;
+    }
+
+  err = gcry_cipher_authenticate (hde, inbuf, buflen);
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_authenticate failed (large, algo %d): %s\n",
+            algo, gpg_strerror (err));
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+      goto out_free;
+    }
+
+  err = gcry_cipher_final (hde);
+  if (!err)
+    {
+      err = gcry_cipher_encrypt (hde, outbuf, buflen, inbuf, buflen);
+    }
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_encrypt failed (large, algo %d): %s\n",
+            algo, gpg_strerror (err));
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+      goto out_free;
+    }
+
+  /* Check that the tag matches. */
+  err = gcry_cipher_gettag (hde, tag, 16);
+  if (err)
+    {
+      fail ("cipher_ocb, gcry_cipher_gettag failed (large, algo %d): %s\n",
+            algo, gpg_strerror (err));
+    }
+  if (memcmp (tagexpect, tag, 16))
+    {
+      mismatch (tagexpect, 16, tag, 16);
+      fail ("cipher-ocb, encrypt tag mismatch (large, algo %d)\n", algo);
+    }
+
+  err = gcry_cipher_authenticate (hdd, inbuf, buflen);
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_authenticate failed (large, algo %d): %s\n",
+            algo, gpg_strerror (err));
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+      goto out_free;
+    }
+
+  /* Now for the decryption.  */
+  err = gcry_cipher_final (hdd);
+  if (!err)
+    {
+      err = gcry_cipher_decrypt (hdd, outbuf, buflen, NULL, 0);
+    }
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_decrypt (large, algo %d) failed: %s\n",
+            algo, gpg_strerror (err));
+      gcry_cipher_close (hde);
+      gcry_cipher_close (hdd);
+      goto out_free;
+    }
+
+  /* We still have TAG from the encryption.  */
+  err = gcry_cipher_checktag (hdd, tag, 16);
+  if (err)
+    {
+      fail ("cipher-ocb, gcry_cipher_checktag failed (large, algo %d): %s\n",
+            algo, gpg_strerror (err));
+    }
+
+  /* Check that the decrypt output matches the original plaintext.  */
+  if (memcmp (inbuf, outbuf, buflen))
+    {
+      /*mismatch (inbuf, buflen, outbuf, buflen);*/
+      fail ("cipher-ocb, decrypt data mismatch (large, algo %d)\n", algo);
+    }
+
+  /* Check that gettag also works for decryption.  */
+  err = gcry_cipher_gettag (hdd, tag, 16);
+  if (err)
+    {
+      fail ("cipher_ocb, decrypt gettag failed (large, algo %d): %s\n",
+            algo, gpg_strerror (err));
+    }
+  if (memcmp (tagexpect, tag, 16))
+    {
+      mismatch (tagexpect, 16, tag, 16);
+      fail ("cipher-ocb, decrypt tag mismatch (large, algo %d)\n", algo);
+    }
+
+  gcry_cipher_close (hde);
+  gcry_cipher_close (hdd);
+
+out_free:
+  xfree(outbuf);
+  xfree(inbuf);
+}
+
+
+static void
 check_ocb_cipher (void)
 {
   /* Check OCB cipher with separate destination and source buffers for
@@ -3161,6 +3327,14 @@ check_ocb_cipher (void)
 
   /* Check OCB cipher with inplace encrypt/decrypt. */
   do_check_ocb_cipher(1);
+
+  /* Check large buffer encryption/decryption. */
+  check_ocb_cipher_largebuf(GCRY_CIPHER_AES, 16,
+                            "\xf5\xf3\x12\x7d\x58\x2d\x96\xe8"
+                            "\x33\xfd\x7a\x4f\x42\x60\x5d\x20");
+  check_ocb_cipher_largebuf(GCRY_CIPHER_AES256, 32,
+                            "\xfa\x26\xa5\xbf\xf6\x7d\x3a\x8d"
+                            "\xfe\x96\x67\xc9\xc8\x41\x03\x51");
 }
 
 

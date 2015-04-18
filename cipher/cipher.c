@@ -510,6 +510,8 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
               h->bulk.cbc_enc = _gcry_aes_cbc_enc;
               h->bulk.cbc_dec = _gcry_aes_cbc_dec;
               h->bulk.ctr_enc = _gcry_aes_ctr_enc;
+              h->bulk.ocb_crypt = _gcry_aes_ocb_crypt;
+              h->bulk.ocb_auth  = _gcry_aes_ocb_auth;
               break;
 #endif /*USE_AES*/
 #ifdef USE_BLOWFISH

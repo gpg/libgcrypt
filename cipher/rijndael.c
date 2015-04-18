@@ -48,6 +48,7 @@
 #include "bufhelp.h"
 #include "cipher-selftest.h"
 #include "rijndael-internal.h"
+#include "./cipher-internal.h"
 
 
 #ifdef USE_AMD64_ASM
@@ -97,6 +98,11 @@ extern void _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx,
                                      unsigned char *outbuf,
                                      const unsigned char *inbuf,
                                      unsigned char *iv, size_t nblocks);
+extern void _gcry_aes_aesni_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+                                       const void *inbuf_arg, size_t nblocks,
+                                       int encrypt);
+extern void _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+                                      size_t nblocks);
 #endif
 
 #ifdef USE_SSSE3
@@ -1142,6 +1148,161 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
         }
 
       wipememory(savebuf, sizeof(savebuf));
+    }
+
+  if (burn_depth)
+    _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
+}
+
+
+
+/* Bulk encryption/decryption of complete blocks in OCB mode. */
+void
+_gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+                     const void *inbuf_arg, size_t nblocks, int encrypt)
+{
+  RIJNDAEL_context *ctx = (void *)&c->context.c;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned int burn_depth = 0;
+
+  if (encrypt)
+    {
+      if (ctx->prefetch_enc_fn)
+        ctx->prefetch_enc_fn();
+    }
+  else
+    {
+      check_decryption_preparation (ctx);
+
+      if (ctx->prefetch_dec_fn)
+        ctx->prefetch_dec_fn();
+    }
+
+  if (0)
+    ;
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    {
+      _gcry_aes_aesni_ocb_crypt (c, outbuf, inbuf, nblocks, encrypt);
+      burn_depth = 0;
+    }
+#endif /*USE_AESNI*/
+  else if (encrypt)
+    {
+      union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
+      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+
+      for ( ;nblocks; nblocks-- )
+        {
+          u64 i = ++c->u_mode.ocb.data_nblocks;
+          unsigned int ntz = _gcry_ctz64 (i);
+          const unsigned char *l;
+
+          if (ntz < OCB_L_TABLE_SIZE)
+              l = c->u_mode.ocb.L[ntz];
+          else
+              l = _gcry_cipher_ocb_get_l (c, l_tmp.x1, i);
+
+          /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+          buf_xor_1 (c->u_iv.iv, l, BLOCKSIZE);
+          buf_cpy (l_tmp.x1, inbuf, BLOCKSIZE);
+          /* Checksum_i = Checksum_{i-1} xor P_i  */
+          buf_xor_1 (c->u_ctr.ctr, l_tmp.x1, BLOCKSIZE);
+          /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+          buf_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
+          burn_depth = encrypt_fn (ctx, l_tmp.x1, l_tmp.x1);
+          buf_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
+          buf_cpy (outbuf, l_tmp.x1, BLOCKSIZE);
+
+          inbuf += BLOCKSIZE;
+          outbuf += BLOCKSIZE;
+        }
+    }
+  else
+    {
+      union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
+      rijndael_cryptfn_t decrypt_fn = ctx->decrypt_fn;
+
+      for ( ;nblocks; nblocks-- )
+        {
+          u64 i = ++c->u_mode.ocb.data_nblocks;
+          unsigned int ntz = _gcry_ctz64 (i);
+          const unsigned char *l;
+
+          if (ntz < OCB_L_TABLE_SIZE)
+              l = c->u_mode.ocb.L[ntz];
+          else
+              l = _gcry_cipher_ocb_get_l (c, l_tmp.x1, i);
+
+          /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+          buf_xor_1 (c->u_iv.iv, l, BLOCKSIZE);
+          buf_cpy (l_tmp.x1, inbuf, BLOCKSIZE);
+          /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+          buf_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
+          burn_depth = decrypt_fn (ctx, l_tmp.x1, l_tmp.x1);
+          buf_xor_1 (l_tmp.x1, c->u_iv.iv, BLOCKSIZE);
+          /* Checksum_i = Checksum_{i-1} xor P_i  */
+          buf_xor_1 (c->u_ctr.ctr, l_tmp.x1, BLOCKSIZE);
+          buf_cpy (outbuf, l_tmp.x1, BLOCKSIZE);
+
+          inbuf += BLOCKSIZE;
+          outbuf += BLOCKSIZE;
+        }
+    }
+
+  if (burn_depth)
+    _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
+}
+
+
+/* Bulk authentication of complete blocks in OCB mode. */
+void
+_gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
+{
+  RIJNDAEL_context *ctx = (void *)&c->context.c;
+  const unsigned char *abuf = abuf_arg;
+  unsigned int burn_depth = 0;
+
+  if (ctx->prefetch_enc_fn)
+    ctx->prefetch_enc_fn();
+
+  if (0)
+    ;
+#ifdef USE_AESNI
+  else if (ctx->use_aesni)
+    {
+      _gcry_aes_aesni_ocb_auth (c, abuf, nblocks);
+      burn_depth = 0;
+    }
+#endif /*USE_AESNI*/
+  else
+    {
+      union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
+      rijndael_cryptfn_t encrypt_fn = ctx->encrypt_fn;
+
+      for ( ;nblocks; nblocks-- )
+        {
+          u64 i = ++c->u_mode.ocb.aad_nblocks;
+          unsigned int ntz = _gcry_ctz64 (i);
+          const unsigned char *l;
+
+          if (ntz < OCB_L_TABLE_SIZE)
+              l = c->u_mode.ocb.L[ntz];
+          else
+              l = _gcry_cipher_ocb_get_l (c, l_tmp.x1, i);
+
+          /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+          buf_xor_1 (c->u_mode.ocb.aad_offset, l, BLOCKSIZE);
+          /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+          buf_xor (l_tmp.x1, c->u_mode.ocb.aad_offset, abuf, BLOCKSIZE);
+          burn_depth = encrypt_fn (ctx, l_tmp.x1, l_tmp.x1);
+          buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp.x1, BLOCKSIZE);
+
+          abuf += BLOCKSIZE;
+        }
+
+      wipememory(&l_tmp, sizeof(l_tmp));
     }
 
   if (burn_depth)

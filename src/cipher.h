@@ -135,6 +135,10 @@ void _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 void _gcry_aes_ctr_enc (void *context, unsigned char *ctr,
                         void *outbuf_arg, const void *inbuf_arg,
                         size_t nblocks);
+void _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+                         const void *inbuf_arg, size_t nblocks, int encrypt);
+void _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+                         size_t nblocks);
 
 /*-- blowfish.c --*/
 void _gcry_blowfish_cfb_dec (void *context, unsigned char *iv,

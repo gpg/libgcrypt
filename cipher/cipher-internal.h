@@ -128,6 +128,9 @@ struct gcry_cipher_handle
     void (*ctr_enc)(void *context, unsigned char *iv,
                     void *outbuf_arg, const void *inbuf_arg,
                     size_t nblocks);
+    void (*ocb_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
+                      const void *inbuf_arg, size_t nblocks, int encrypt);
+    void (*ocb_auth)(gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks);
   } bulk;
 
 
@@ -440,6 +443,8 @@ gcry_err_code_t _gcry_cipher_ocb_get_tag
 gcry_err_code_t _gcry_cipher_ocb_check_tag
 /*           */ (gcry_cipher_hd_t c,
                  const unsigned char *intag, size_t taglen);
+const unsigned char *_gcry_cipher_ocb_get_l
+/*           */ (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 n);
 
 
 #endif /*G10_CIPHER_INTERNAL_H*/

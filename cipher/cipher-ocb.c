@@ -115,8 +115,8 @@ bit_copy (unsigned char *d, const unsigned char *s,
    every 65536-th block.  L_TMP is a helper buffer of size
    OCB_BLOCK_LEN which is used to hold the computation if not taken
    from the table.  */
-static const unsigned char *
-get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 n)
+const unsigned char *
+_gcry_cipher_ocb_get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 n)
 {
   int ntz = _gcry_ctz64 (n);
 
@@ -257,6 +257,15 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
   if (!abuflen)
     return 0;
 
+  /* Use a bulk method if available.  */
+  if (abuflen >= OCB_BLOCK_LEN && c->bulk.ocb_auth)
+    {
+      size_t nblks = abuflen / OCB_BLOCK_LEN;
+      c->bulk.ocb_auth (c, abuf, nblks);
+      abuf += nblks * OCB_BLOCK_LEN;
+      abuflen -= nblks * OCB_BLOCK_LEN;
+    }
+
   /* Hash all full blocks.  */
   while (abuflen >= OCB_BLOCK_LEN)
     {
@@ -264,7 +273,8 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       buf_xor_1 (c->u_mode.ocb.aad_offset,
-                 get_l (c, l_tmp, c->u_mode.ocb.aad_nblocks), OCB_BLOCK_LEN);
+                 _gcry_cipher_ocb_get_l (c, l_tmp, c->u_mode.ocb.aad_nblocks),
+                 OCB_BLOCK_LEN);
       /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
       buf_xor (l_tmp, c->u_mode.ocb.aad_offset, abuf, OCB_BLOCK_LEN);
       c->spec->encrypt (&c->context.c, l_tmp, l_tmp);
@@ -341,40 +351,56 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
   else if ((inbuflen % OCB_BLOCK_LEN))
     return GPG_ERR_INV_LENGTH;  /* We support only full blocks for now.  */
 
-  if (encrypt)
+  /* Use a bulk method if available.  */
+  if (nblks && c->bulk.ocb_crypt)
     {
-      /* Checksum_i = Checksum_{i-1} xor P_i  */
-      ocb_checksum (c->u_ctr.ctr, inbuf, nblks);
+      c->bulk.ocb_crypt (c, outbuf, inbuf, nblks, encrypt);
+      inbuf  += nblks * OCB_BLOCK_LEN;
+      outbuf += nblks * OCB_BLOCK_LEN;
+      inbuflen -= nblks * OCB_BLOCK_LEN;
+      outbuflen -= nblks * OCB_BLOCK_LEN;
+      nblks = 0;
     }
 
-  /* Encrypt all full blocks.  */
-  while (inbuflen >= OCB_BLOCK_LEN)
+  if (nblks)
     {
-      c->u_mode.ocb.data_nblocks++;
+      gcry_cipher_encrypt_t crypt_fn =
+          encrypt ? c->spec->encrypt : c->spec->decrypt;
 
-      /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-      buf_xor_1 (c->u_iv.iv,
-                 get_l (c, l_tmp, c->u_mode.ocb.data_nblocks), OCB_BLOCK_LEN);
-      /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-      buf_xor (outbuf, c->u_iv.iv, inbuf, OCB_BLOCK_LEN);
       if (encrypt)
-        nburn = c->spec->encrypt (&c->context.c, outbuf, outbuf);
-      else
-        nburn = c->spec->decrypt (&c->context.c, outbuf, outbuf);
-      burn = nburn > burn ? nburn : burn;
-      buf_xor_1 (outbuf, c->u_iv.iv, OCB_BLOCK_LEN);
+        {
+          /* Checksum_i = Checksum_{i-1} xor P_i  */
+          ocb_checksum (c->u_ctr.ctr, inbuf, nblks);
+        }
 
-      inbuf += OCB_BLOCK_LEN;
-      inbuflen -= OCB_BLOCK_LEN;
-      outbuf += OCB_BLOCK_LEN;
-      outbuflen =- OCB_BLOCK_LEN;
+      /* Encrypt all full blocks.  */
+      while (inbuflen >= OCB_BLOCK_LEN)
+        {
+          c->u_mode.ocb.data_nblocks++;
+
+          /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+          buf_xor_1 (c->u_iv.iv,
+                     _gcry_cipher_ocb_get_l (c, l_tmp,
+                                             c->u_mode.ocb.data_nblocks),
+                     OCB_BLOCK_LEN);
+          /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+          buf_xor (outbuf, c->u_iv.iv, inbuf, OCB_BLOCK_LEN);
+          nburn = crypt_fn (&c->context.c, outbuf, outbuf);
+          burn = nburn > burn ? nburn : burn;
+          buf_xor_1 (outbuf, c->u_iv.iv, OCB_BLOCK_LEN);
+
+          inbuf += OCB_BLOCK_LEN;
+          inbuflen -= OCB_BLOCK_LEN;
+          outbuf += OCB_BLOCK_LEN;
+          outbuflen =- OCB_BLOCK_LEN;
+        }
+
+      if (!encrypt)
+        {
+          /* Checksum_i = Checksum_{i-1} xor P_i  */
+          ocb_checksum (c->u_ctr.ctr, outbuf - nblks * OCB_BLOCK_LEN, nblks);
+        }
     }
-
-  if (!encrypt)
-    {
-      /* Checksum_i = Checksum_{i-1} xor P_i  */
-      ocb_checksum (c->u_ctr.ctr, outbuf - nblks * OCB_BLOCK_LEN, nblks);
-     }
 
   /* Encrypt final partial block.  Note that we expect INBUFLEN to be
      shorter than OCB_BLOCK_LEN (see above).  */
