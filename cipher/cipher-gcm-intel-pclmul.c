@@ -32,6 +32,13 @@
 
 #ifdef GCM_USE_INTEL_PCLMUL
 
+
+#if _GCRY_GCC_VERSION >= 40400 /* 4.4 */
+/* Prevent compiler from issuing SSE instructions between asm blocks. */
+#  pragma GCC target("no-sse")
+#endif
+
+
 /*
  Intel PCLMUL ghash based on white paper:
   "Intel® Carry-Less Multiplication Instruction and its Usage for Computing the

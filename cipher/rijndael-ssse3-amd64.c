@@ -50,6 +50,12 @@
 #ifdef USE_SSSE3
 
 
+#if _GCRY_GCC_VERSION >= 40400 /* 4.4 */
+/* Prevent compiler from issuing SSE instructions between asm blocks. */
+#  pragma GCC target("no-sse")
+#endif
+
+
 /* Two macros to be called prior and after the use of SSSE3
   instructions.  There should be no external function calls between
   the use of these macros.  There purpose is to make sure that the

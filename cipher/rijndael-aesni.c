@@ -35,6 +35,12 @@
 #ifdef USE_AESNI
 
 
+#if _GCRY_GCC_VERSION >= 40400 /* 4.4 */
+/* Prevent compiler from issuing SSE instructions between asm blocks. */
+#  pragma GCC target("no-sse")
+#endif
+
+
 typedef struct u128_s { u32 a, b, c, d; } u128_t;
 
 
