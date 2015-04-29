@@ -1148,7 +1148,7 @@ md_stop_debug( gcry_md_hd_t md )
 
 #ifdef HAVE_U64_TYPEDEF
   {  /* a kludge to pull in the __muldi3 for Solaris */
-    volatile u32 a = (u32)(ulong)md;
+    volatile u32 a = (u32)(uintptr_t)md;
     volatile u64 b = 42;
     volatile u64 c;
     c = a * b;

@@ -481,11 +481,11 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
           size_t off = 0;
 
 #ifdef NEED_16BYTE_ALIGNED_CONTEXT
-          if ( ((unsigned long)h & 0x0f) )
+          if ( ((uintptr_t)h & 0x0f) )
             {
               /* The malloced block is not aligned on a 16 byte
                  boundary.  Correct for this.  */
-              off = 16 - ((unsigned long)h & 0x0f);
+              off = 16 - ((uintptr_t)h & 0x0f);
               h = (void*)((char*)h + off);
             }
 #endif /*NEED_16BYTE_ALIGNED_CONTEXT*/
