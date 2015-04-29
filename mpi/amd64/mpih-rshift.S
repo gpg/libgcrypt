@@ -42,6 +42,7 @@
 .text
 	.globl C_SYMBOL_NAME(_gcry_mpih_rshift)
 C_SYMBOL_NAME(_gcry_mpih_rshift:)
+	FUNC_ENTRY()
 	movq	(%rsi), %mm7
 	movd	%ecx, %mm1
 	movl	$64, %eax
@@ -77,4 +78,5 @@ C_SYMBOL_NAME(_gcry_mpih_rshift:)
 .Lende:	psrlq	%mm1, %mm2
 	movq	%mm2, -8(%rdi)
 	emms
+	FUNC_EXIT()
 	ret

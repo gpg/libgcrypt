@@ -42,7 +42,7 @@
 	TEXT
 	GLOBL	C_SYMBOL_NAME(_gcry_mpih_submul_1)
 C_SYMBOL_NAME(_gcry_mpih_submul_1:)
-
+	FUNC_ENTRY()
 	movq	%rdx, %r11
 	leaq	(%rsi,%r11,8), %rsi
 	leaq	(%rdi,%r11,8), %rdi
@@ -63,4 +63,5 @@ C_SYMBOL_NAME(_gcry_mpih_submul_1:)
 	jne	.Loop
 
 	movq	%r8, %rax
+	FUNC_EXIT()
 	ret

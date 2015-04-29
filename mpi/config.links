@@ -129,17 +129,22 @@ case "${host}" in
     x86_64-apple-darwin*)
 	echo '#define BSD_SYNTAX' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
+	cat  $srcdir/mpi/amd64/func_abi.h   >>./mpi/asm-syntax.h
 	path="amd64"
         mpi_cpu_arch="x86"
 	;;
     x86_64-*mingw32*)
-	echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
-	path=""
-	mpi_cpu_arch="x86"
+	echo '#define USE_MS_ABI' >>./mpi/asm-syntax.h
+	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
+	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
+	cat  $srcdir/mpi/amd64/func_abi.h   >>./mpi/asm-syntax.h
+	path="amd64"
+        mpi_cpu_arch="x86"
         ;;
     x86_64-*-*)
 	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
+	cat  $srcdir/mpi/amd64/func_abi.h   >>./mpi/asm-syntax.h
 	path="amd64"
         mpi_cpu_arch="x86"
 	;;
@@ -314,7 +319,7 @@ case "${host}" in
 	echo '#define ELF_SYNTAX'               >>./mpi/asm-syntax.h
 	cat   $srcdir/mpi/powerpc32/syntax.h	>>./mpi/asm-syntax.h
 	path="powerpc32"
-       mpi_cpu_arch="ppc"
+	mpi_cpu_arch="ppc"
 	;;
 
     rs6000-*-aix[456789]*    | \

@@ -42,6 +42,7 @@
 .text
 	.globl C_SYMBOL_NAME(_gcry_mpih_sub_n)
 C_SYMBOL_NAME(_gcry_mpih_sub_n:)
+	FUNC_ENTRY()
 	leaq	(%rsi,%rcx,8), %rsi
 	leaq	(%rdi,%rcx,8), %rdi
 	leaq	(%rdx,%rcx,8), %rdx
@@ -58,4 +59,5 @@ C_SYMBOL_NAME(_gcry_mpih_sub_n:)
 
 	movq	%rcx, %rax		/* zero %rax */
 	adcq	%rax, %rax
+	FUNC_EXIT()
 	ret
