@@ -75,7 +75,9 @@
 #ifdef ENABLE_AESNI_SUPPORT
 # if ((defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__))
 #  if __GNUC__ >= 4
-#   define USE_AESNI 1
+#   ifndef __WIN64__
+#    define USE_AESNI 1
+#   endif
 #  endif
 # endif
 #endif /* ENABLE_AESNI_SUPPORT */
