@@ -67,9 +67,7 @@
 #if defined(ENABLE_PCLMUL_SUPPORT) && defined(GCM_USE_TABLES)
 # if ((defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__))
 #  if __GNUC__ >= 4
-#   ifndef __WIN64__
-#    define GCM_USE_INTEL_PCLMUL 1
-#   endif
+#   define GCM_USE_INTEL_PCLMUL 1
 #  endif
 # endif
 #endif /* GCM_USE_INTEL_PCLMUL */

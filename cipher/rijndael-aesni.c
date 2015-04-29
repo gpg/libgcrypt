@@ -49,24 +49,54 @@ typedef struct u128_s { u32 a, b, c, d; } u128_t;
    the use of these macros.  There purpose is to make sure that the
    SSE regsiters are cleared and won't reveal any information about
    the key or the data.  */
-#define aesni_prepare() do { } while (0)
-#define aesni_cleanup()                                                \
-  do { asm volatile ("pxor %%xmm0, %%xmm0\n\t"                         \
-                     "pxor %%xmm1, %%xmm1\n" :: );                     \
-  } while (0)
-#define aesni_cleanup_2_6()                                            \
-  do { asm volatile ("pxor %%xmm2, %%xmm2\n\t"                         \
-                     "pxor %%xmm3, %%xmm3\n"                           \
-                     "pxor %%xmm4, %%xmm4\n"                           \
-                     "pxor %%xmm5, %%xmm5\n"                           \
-                     "pxor %%xmm6, %%xmm6\n":: );                      \
-  } while (0)
-
+#ifdef __WIN64__
+/* XMM6-XMM15 are callee-saved registers on WIN64. */
+# define aesni_prepare_2_6_variable char win64tmp[16]
+# define aesni_prepare() do { } while (0)
+# define aesni_prepare_2_6()                                            \
+   do { asm volatile ("movdqu %%xmm6, %0\n\t"                           \
+                      : "=m" (*win64tmp)                                \
+                      :                                                 \
+                      : "memory");                                      \
+   } while (0)
+# define aesni_cleanup()                                                \
+   do { asm volatile ("pxor %%xmm0, %%xmm0\n\t"                         \
+                      "pxor %%xmm1, %%xmm1\n" :: );                     \
+   } while (0)
+# define aesni_cleanup_2_6()                                            \
+   do { asm volatile ("movdqu %0,   %%xmm6\n\t"                         \
+                      "pxor %%xmm2, %%xmm2\n"                           \
+                      "pxor %%xmm3, %%xmm3\n"                           \
+                      "pxor %%xmm4, %%xmm4\n"                           \
+                      "pxor %%xmm5, %%xmm5\n"                           \
+                      :                                                 \
+                      : "m" (*win64tmp)                                 \
+                      : "memory");                                      \
+   } while (0)
+#else
+# define aesni_prepare_2_6_variable
+# define aesni_prepare() do { } while (0)
+# define aesni_prepare_2_6() do { } while (0)
+# define aesni_cleanup()                                                \
+   do { asm volatile ("pxor %%xmm0, %%xmm0\n\t"                         \
+                      "pxor %%xmm1, %%xmm1\n" :: );                     \
+   } while (0)
+# define aesni_cleanup_2_6()                                            \
+   do { asm volatile ("pxor %%xmm2, %%xmm2\n\t"                         \
+                      "pxor %%xmm3, %%xmm3\n"                           \
+                      "pxor %%xmm4, %%xmm4\n"                           \
+                      "pxor %%xmm5, %%xmm5\n"                           \
+                      "pxor %%xmm6, %%xmm6\n":: );                      \
+   } while (0)
+#endif
 
 void
 _gcry_aes_aesni_do_setkey (RIJNDAEL_context *ctx, const byte *key)
 {
+  aesni_prepare_2_6_variable;
+
   aesni_prepare();
+  aesni_prepare_2_6();
 
   if (ctx->rounds < 12)
     {
@@ -999,7 +1029,10 @@ _gcry_aes_aesni_cbc_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
                          const unsigned char *inbuf, unsigned char *iv,
                          size_t nblocks, int cbc_mac)
 {
+  aesni_prepare_2_6_variable;
+
   aesni_prepare ();
+  aesni_prepare_2_6();
 
   asm volatile ("movdqu %[iv], %%xmm5\n\t"
                 : /* No output */
@@ -1044,8 +1077,10 @@ _gcry_aes_aesni_ctr_enc (RIJNDAEL_context *ctx, unsigned char *outbuf,
 {
   static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
     { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+  aesni_prepare_2_6_variable;
 
   aesni_prepare ();
+  aesni_prepare_2_6();
 
   asm volatile ("movdqa %[mask], %%xmm6\n\t" /* Preload mask */
                 "movdqa %[ctr], %%xmm5\n\t"  /* Preload CTR */
@@ -1095,7 +1130,10 @@ _gcry_aes_aesni_cfb_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
                          const unsigned char *inbuf, unsigned char *iv,
                          size_t nblocks)
 {
+  aesni_prepare_2_6_variable;
+
   aesni_prepare ();
+  aesni_prepare_2_6();
 
   asm volatile ("movdqu %[iv], %%xmm6\n\t"
                 : /* No output */
@@ -1177,7 +1215,10 @@ _gcry_aes_aesni_cbc_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
 			 const unsigned char *inbuf, unsigned char *iv,
 			 size_t nblocks)
 {
+  aesni_prepare_2_6_variable;
+
   aesni_prepare ();
+  aesni_prepare_2_6();
 
   asm volatile
     ("movdqu %[iv], %%xmm5\n\t"	/* use xmm5 as fast IV storage */
@@ -1331,8 +1372,10 @@ aesni_ocb_enc (gcry_cipher_hd_t c, void *outbuf_arg,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   u64 n = c->u_mode.ocb.data_nblocks;
+  aesni_prepare_2_6_variable;
 
   aesni_prepare ();
+  aesni_prepare_2_6 ();
 
   /* Preload Offset and Checksum */
   asm volatile ("movdqu %[iv], %%xmm5\n\t"
@@ -1473,8 +1516,10 @@ aesni_ocb_dec (gcry_cipher_hd_t c, void *outbuf_arg,
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   u64 n = c->u_mode.ocb.data_nblocks;
+  aesni_prepare_2_6_variable;
 
   aesni_prepare ();
+  aesni_prepare_2_6 ();
 
   /* Preload Offset and Checksum */
   asm volatile ("movdqu %[iv], %%xmm5\n\t"
@@ -1625,8 +1670,10 @@ _gcry_aes_aesni_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   RIJNDAEL_context *ctx = (void *)&c->context.c;
   const unsigned char *abuf = abuf_arg;
   u64 n = c->u_mode.ocb.aad_nblocks;
+  aesni_prepare_2_6_variable;
 
   aesni_prepare ();
+  aesni_prepare_2_6 ();
 
   /* Preload Offset and Sum */
   asm volatile ("movdqu %[iv], %%xmm5\n\t"

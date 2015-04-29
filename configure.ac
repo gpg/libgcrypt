@@ -1127,6 +1127,93 @@ fi
 ####                                     ####
 #############################################
 
+
+# Following tests depend on warnings to cause compile to fail, so set -Werror
+# temporarily.
+_gcc_cflags_save=$CFLAGS
+CFLAGS="$CFLAGS -Werror"
+
+
+#
+# Check whether compiler supports 'ms_abi' function attribute.
+#
+AC_CACHE_CHECK([whether compiler supports 'ms_abi' function attribute],
+       [gcry_cv_gcc_attribute_ms_abi],
+       [gcry_cv_gcc_attribute_ms_abi=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[int __attribute__ ((ms_abi)) proto(int);]])],
+          [gcry_cv_gcc_attribute_ms_abi=yes])])
+if test "$gcry_cv_gcc_attribute_ms_abi" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ATTRIBUTE_MS_ABI,1,
+     [Defined if compiler supports "__attribute__ ((ms_abi))" function attribute])
+fi
+
+
+#
+# Check whether compiler supports 'sysv_abi' function attribute.
+#
+AC_CACHE_CHECK([whether compiler supports 'sysv_abi' function attribute],
+       [gcry_cv_gcc_attribute_sysv_abi],
+       [gcry_cv_gcc_attribute_sysv_abi=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[int __attribute__ ((sysv_abi)) proto(int);]])],
+          [gcry_cv_gcc_attribute_sysv_abi=yes])])
+if test "$gcry_cv_gcc_attribute_sysv_abi" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_ATTRIBUTE_SYSV_ABI,1,
+     [Defined if compiler supports "__attribute__ ((sysv_abi))" function attribute])
+fi
+
+
+#
+# Check whether default calling convention is 'ms_abi'.
+#
+if test "$gcry_cv_gcc_attribute_ms_abi" = "yes" ; then
+   AC_CACHE_CHECK([whether default calling convention is 'ms_abi'],
+          [gcry_cv_gcc_default_abi_is_ms_abi],
+          [gcry_cv_gcc_default_abi_is_ms_abi=no
+           AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+             [[void *test(void) {
+                 void *(*def_func)(void) = test;
+                 void *__attribute__((ms_abi))(*msabi_func)(void);
+                 /* warning on SysV abi targets, passes on Windows based targets */
+                 msabi_func = def_func;
+                 return msabi_func;
+             }]])],
+             [gcry_cv_gcc_default_abi_is_ms_abi=yes])])
+   if test "$gcry_cv_gcc_default_abi_is_ms_abi" = "yes" ; then
+      AC_DEFINE(HAVE_GCC_DEFAULT_ABI_IS_MS_ABI,1,
+        [Defined if default calling convention is 'ms_abi'])
+   fi
+fi
+
+
+#
+# Check whether default calling convention is 'sysv_abi'.
+#
+if test "$gcry_cv_gcc_attribute_sysv_abi" = "yes" ; then
+   AC_CACHE_CHECK([whether default calling convention is 'sysv_abi'],
+          [gcry_cv_gcc_default_abi_is_sysv_abi],
+          [gcry_cv_gcc_default_abi_is_sysv_abi=no
+           AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+             [[void *test(void) {
+                 void *(*def_func)(void) = test;
+                 void *__attribute__((sysv_abi))(*sysvabi_func)(void);
+                 /* warning on MS ABI targets, passes on SysV ABI targets */
+                 sysvabi_func = def_func;
+                 return sysvabi_func;
+             }]])],
+             [gcry_cv_gcc_default_abi_is_sysv_abi=yes])])
+   if test "$gcry_cv_gcc_default_abi_is_sysv_abi" = "yes" ; then
+      AC_DEFINE(HAVE_GCC_DEFAULT_ABI_IS_SYSV_ABI,1,
+        [Defined if default calling convention is 'sysv_abi'])
+   fi
+fi
+
+
+# Restore flags.
+CFLAGS=$_gcc_cflags_save;
+
+
 #
 # Check whether GCC inline assembler supports SSSE3 instructions
 # This is required for the AES-NI instructions.
@@ -1281,9 +1368,6 @@ if test $amd64_as_feature_detection = yes; then
           [[__asm__(
                 /* Test if '.type' and '.size' are supported.  */
                 /* These work only on ELF targets. */
-		/* TODO: add COFF (mingw64, cygwin64) support to assembly
-                 * implementations.  Mingw64/cygwin64 also require additional
-                 * work because they use different calling convention. */
 		"asmfunc:\n\t"
                 ".size asmfunc,.-asmfunc;\n\t"
                 ".type asmfunc,@function;\n\t"
@@ -1298,6 +1382,24 @@ if test $amd64_as_feature_detection = yes; then
   if test "$gcry_cv_gcc_amd64_platform_as_ok" = "yes" ; then
      AC_DEFINE(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS,1,
               [Defined if underlying assembler is compatible with amd64 assembly implementations])
+  fi
+  if test "$gcry_cv_gcc_amd64_platform_as_ok" = "no" &&
+     test "$gcry_cv_gcc_attribute_sysv_abi" = "yes" &&
+     test "$gcry_cv_gcc_default_abi_is_ms_abi" = "yes"; then
+    AC_CACHE_CHECK([whether GCC assembler is compatible for WIN64 assembly implementations],
+      [gcry_cv_gcc_win64_platform_as_ok],
+      [gcry_cv_gcc_win64_platform_as_ok=no
+      AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+        [[__asm__(
+              ".globl asmfunc\n\t"
+              "asmfunc:\n\t"
+              "xorq \$(1234), %rbp;\n\t"
+          );]])],
+        [gcry_cv_gcc_win64_platform_as_ok=yes])])
+    if test "$gcry_cv_gcc_win64_platform_as_ok" = "yes" ; then
+      AC_DEFINE(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS,1,
+                [Defined if underlying assembler is compatible with WIN64 assembly implementations])
+    fi
   fi
 fi
 

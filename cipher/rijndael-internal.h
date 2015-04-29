@@ -44,8 +44,9 @@
 #endif
 
 /* USE_SSSE3 indicates whether to use SSSE3 code. */
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
-    defined(HAVE_GCC_INLINE_ASM_SSSE3)
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 #  define USE_SSSE3 1
 #endif
 
@@ -75,9 +76,7 @@
 #ifdef ENABLE_AESNI_SUPPORT
 # if ((defined (__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__))
 #  if __GNUC__ >= 4
-#   ifndef __WIN64__
-#    define USE_AESNI 1
-#   endif
+#   define USE_AESNI 1
 #  endif
 # endif
 #endif /* ENABLE_AESNI_SUPPORT */

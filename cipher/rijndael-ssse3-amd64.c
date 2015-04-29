@@ -61,7 +61,60 @@
   the use of these macros.  There purpose is to make sure that the
   SSE registers are cleared and won't reveal any information about
   the key or the data.  */
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+/* XMM6-XMM15 are callee-saved registers on WIN64. */
+# define vpaes_ssse3_prepare() \
+    char win64tmp[16 * 10]; \
+    asm volatile ("movdqu %%xmm6,  0*16(%0)\n\t" \
+                  "movdqu %%xmm7,  1*16(%0)\n\t" \
+                  "movdqu %%xmm8,  2*16(%0)\n\t" \
+                  "movdqu %%xmm9,  3*16(%0)\n\t" \
+                  "movdqu %%xmm10, 4*16(%0)\n\t" \
+                  "movdqu %%xmm11, 5*16(%0)\n\t" \
+                  "movdqu %%xmm12, 6*16(%0)\n\t" \
+                  "movdqu %%xmm13, 7*16(%0)\n\t" \
+                  "movdqu %%xmm14, 8*16(%0)\n\t" \
+                  "movdqu %%xmm15, 9*16(%0)\n\t" \
+                  : \
+                  : "r" (win64tmp) \
+                  : "memory" )
+# define vpaes_ssse3_cleanup() \
+    asm volatile ("pxor	%%xmm0,  %%xmm0 \n\t" \
+                  "pxor	%%xmm1,  %%xmm1 \n\t" \
+                  "pxor	%%xmm2,  %%xmm2 \n\t" \
+                  "pxor	%%xmm3,  %%xmm3 \n\t" \
+                  "pxor	%%xmm4,  %%xmm4 \n\t" \
+                  "pxor	%%xmm5,  %%xmm5 \n\t" \
+                  "movdqu 0*16(%0), %%xmm6 \n\t" \
+                  "movdqu 1*16(%0), %%xmm7 \n\t" \
+                  "movdqu 2*16(%0), %%xmm8 \n\t" \
+                  "movdqu 3*16(%0), %%xmm9 \n\t" \
+                  "movdqu 4*16(%0), %%xmm10 \n\t" \
+                  "movdqu 5*16(%0), %%xmm11 \n\t" \
+                  "movdqu 6*16(%0), %%xmm12 \n\t" \
+                  "movdqu 7*16(%0), %%xmm13 \n\t" \
+                  "movdqu 8*16(%0), %%xmm14 \n\t" \
+                  "movdqu 9*16(%0), %%xmm15 \n\t" \
+                  : \
+                  : "r" (win64tmp) \
+                  : "memory" )
+#else
+# define vpaes_ssse3_prepare() /*_*/
+# define vpaes_ssse3_cleanup() \
+    asm volatile ("pxor	%%xmm0,  %%xmm0 \n\t" \
+                  "pxor	%%xmm1,  %%xmm1 \n\t" \
+                  "pxor	%%xmm2,  %%xmm2 \n\t" \
+                  "pxor	%%xmm3,  %%xmm3 \n\t" \
+                  "pxor	%%xmm4,  %%xmm4 \n\t" \
+                  "pxor	%%xmm5,  %%xmm5 \n\t" \
+                  "pxor	%%xmm6,  %%xmm6 \n\t" \
+                  "pxor	%%xmm7,  %%xmm7 \n\t" \
+                  "pxor	%%xmm8,  %%xmm8 \n\t" \
+                  ::: "memory" )
+#endif
+
 #define vpaes_ssse3_prepare_enc(const_ptr) \
+    vpaes_ssse3_prepare(); \
     asm volatile ("lea	.Laes_consts(%%rip), %q0 \n\t" \
                   "movdqa	          (%q0), %%xmm9  # 0F \n\t" \
                   "movdqa	.Lk_inv   (%q0), %%xmm10 # inv \n\t" \
@@ -75,6 +128,7 @@
                   : "memory" )
 
 #define vpaes_ssse3_prepare_dec(const_ptr) \
+    vpaes_ssse3_prepare(); \
     asm volatile ("lea	.Laes_consts(%%rip), %q0 \n\t" \
                   "movdqa	          (%q0), %%xmm9  # 0F \n\t" \
                   "movdqa	.Lk_inv   (%q0), %%xmm10 # inv \n\t" \
@@ -88,23 +142,14 @@
                   : \
                   : "memory" )
 
-#define vpaes_ssse3_cleanup() \
-    asm volatile ("pxor	%%xmm0,  %%xmm0 \n\t" \
-                  "pxor	%%xmm1,  %%xmm1 \n\t" \
-                  "pxor	%%xmm2,  %%xmm2 \n\t" \
-                  "pxor	%%xmm3,  %%xmm3 \n\t" \
-                  "pxor	%%xmm4,  %%xmm4 \n\t" \
-                  "pxor	%%xmm5,  %%xmm5 \n\t" \
-                  "pxor	%%xmm6,  %%xmm6 \n\t" \
-                  "pxor	%%xmm7,  %%xmm7 \n\t" \
-                  "pxor	%%xmm8,  %%xmm8 \n\t" \
-                  ::: "memory" )
 
 
 void
 _gcry_aes_ssse3_do_setkey (RIJNDAEL_context *ctx, const byte *key)
 {
   unsigned int keybits = (ctx->rounds - 10) * 32 + 128;
+
+  vpaes_ssse3_prepare();
 
   asm volatile ("leaq %q[key], %%rdi"			"\n\t"
                 "movl %[bits], %%esi"			"\n\t"
@@ -121,6 +166,8 @@ _gcry_aes_ssse3_do_setkey (RIJNDAEL_context *ctx, const byte *key)
                 : "r8", "r9", "r10", "r11", "rax", "rcx", "rdx", "rdi", "rsi",
                   "cc", "memory");
 
+  vpaes_ssse3_cleanup();
+
   /* Save key for setting up decryption. */
   memcpy(&ctx->keyschdec32[0][0], key, keybits / 8);
 }
@@ -131,6 +178,8 @@ void
 _gcry_aes_ssse3_prepare_decryption (RIJNDAEL_context *ctx)
 {
   unsigned int keybits = (ctx->rounds - 10) * 32 + 128;
+
+  vpaes_ssse3_prepare();
 
   asm volatile ("leaq %q[key], %%rdi"			"\n\t"
                 "movl %[bits], %%esi"			"\n\t"
@@ -146,6 +195,8 @@ _gcry_aes_ssse3_prepare_decryption (RIJNDAEL_context *ctx)
                   [rotoffs] "g" ((keybits == 192) ? 0 : 32)
                 : "r8", "r9", "r10", "r11", "rax", "rcx", "rdx", "rdi", "rsi",
                   "cc", "memory");
+
+  vpaes_ssse3_cleanup();
 }
 
 
@@ -465,6 +516,11 @@ _gcry_aes_ssse3_cbc_dec (RIJNDAEL_context *ctx, unsigned char *outbuf,
 }
 
 
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+# define X(...)
+#else
+# define X(...) __VA_ARGS__
+#endif
 
 asm (
   "\n\t" "##"
@@ -494,7 +550,7 @@ asm (
   "\n\t" "##"
   "\n\t" "##"
   "\n\t" ".align 16"
-  "\n\t" ".type _aes_encrypt_core,@function"
+X("\n\t" ".type _aes_encrypt_core,@function")
   "\n\t" "_aes_encrypt_core:"
   "\n\t" "	leaq	.Lk_mc_backward(%rcx), %rdi"
   "\n\t" "	mov	$16,	%rsi"
@@ -570,7 +626,7 @@ asm (
   "\n\t" "	pxor	%xmm4,	%xmm0	# 0 = A"
   "\n\t" "	pshufb	.Lk_sr(%rsi,%rcx), %xmm0"
   "\n\t" "	ret"
-  "\n\t" ".size _aes_encrypt_core,.-_aes_encrypt_core"
+X("\n\t" ".size _aes_encrypt_core,.-_aes_encrypt_core")
 
   "\n\t" "##"
   "\n\t" "##  Decryption core"
@@ -578,7 +634,7 @@ asm (
   "\n\t" "##  Same API as encryption core."
   "\n\t" "##"
   "\n\t" ".align 16"
-  "\n\t" ".type _aes_decrypt_core,@function"
+X("\n\t" ".type _aes_decrypt_core,@function")
   "\n\t" "_aes_decrypt_core:"
   "\n\t" "	movl	%eax,	%esi"
   "\n\t" "	shll	$4,	%esi"
@@ -670,7 +726,7 @@ asm (
   "\n\t" "	pxor	%xmm4,	%xmm0	# 0 = A"
   "\n\t" "	pshufb	.Lk_sr(%rsi,%rcx), %xmm0"
   "\n\t" "	ret"
-  "\n\t" ".size _aes_decrypt_core,.-_aes_decrypt_core"
+X("\n\t" ".size _aes_decrypt_core,.-_aes_decrypt_core")
 
   "\n\t" "########################################################"
   "\n\t" "##                                                    ##"
@@ -679,7 +735,7 @@ asm (
   "\n\t" "########################################################"
 
   "\n\t" ".align 16"
-  "\n\t" ".type _aes_schedule_core,@function"
+X("\n\t" ".type _aes_schedule_core,@function")
   "\n\t" "_aes_schedule_core:"
   "\n\t" "	# rdi = key"
   "\n\t" "	# rsi = size in bits"
@@ -1039,7 +1095,7 @@ asm (
   "\n\t" "	pxor	%xmm7,  %xmm7"
   "\n\t" "	pxor	%xmm8,  %xmm8"
   "\n\t" "	ret"
-  "\n\t" ".size _aes_schedule_core,.-_aes_schedule_core"
+X("\n\t" ".size _aes_schedule_core,.-_aes_schedule_core")
 
   "\n\t" "########################################################"
   "\n\t" "##                                                    ##"
@@ -1048,7 +1104,7 @@ asm (
   "\n\t" "########################################################"
 
   "\n\t" ".align 16"
-  "\n\t" ".type _aes_consts,@object"
+X("\n\t" ".type _aes_consts,@object")
   "\n\t" ".Laes_consts:"
   "\n\t" "_aes_consts:"
   "\n\t" "	# s0F"
@@ -1226,7 +1282,7 @@ asm (
   "\n\t" "	.quad	0xC7AA6DB9D4943E2D"
   "\n\t" "	.quad	0x12D7560F93441D00"
   "\n\t" "	.quad	0xCA4B8159D8C58E9C"
-  "\n\t" ".size _aes_consts,.-_aes_consts"
+X("\n\t" ".size _aes_consts,.-_aes_consts")
 );
 
 #endif /* USE_SSSE3 */

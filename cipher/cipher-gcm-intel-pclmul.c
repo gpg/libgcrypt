@@ -249,6 +249,17 @@ void
 _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
 {
   u64 tmp[2];
+#if defined(__x86_64__) && defined(__WIN64__)
+  char win64tmp[3 * 16];
+
+  /* XMM6-XMM8 need to be restored after use. */
+  asm volatile ("movdqu %%xmm6, 0*16(%0)\n\t"
+                "movdqu %%xmm7, 1*16(%0)\n\t"
+                "movdqu %%xmm8, 2*16(%0)\n\t"
+                :
+                : "r" (win64tmp)
+                : "memory");
+#endif
 
   /* Swap endianness of hsub. */
   tmp[0] = buf_get_be64(c->u_mode.gcm.u_ghash_key.key + 8);
@@ -285,6 +296,21 @@ _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
                 : [h_234] "r" (c->u_mode.gcm.gcm_table)
                 : "memory");
 
+#ifdef __WIN64__
+  /* Clear/restore used registers. */
+  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
+                "pxor %%xmm1, %%xmm1\n\t"
+                "pxor %%xmm2, %%xmm2\n\t"
+                "pxor %%xmm3, %%xmm3\n\t"
+                "pxor %%xmm4, %%xmm4\n\t"
+                "pxor %%xmm5, %%xmm5\n\t"
+                "movdqu 0*16(%0), %%xmm6\n\t"
+                "movdqu 1*16(%0), %%xmm7\n\t"
+                "movdqu 2*16(%0), %%xmm8\n\t"
+                :
+                : "r" (win64tmp)
+                : "memory");
+#else
   /* Clear used registers. */
   asm volatile( "pxor %%xmm0, %%xmm0\n\t"
                 "pxor %%xmm1, %%xmm1\n\t"
@@ -296,6 +322,7 @@ _gcry_ghash_setup_intel_pclmul (gcry_cipher_hd_t c)
                 "pxor %%xmm7, %%xmm7\n\t"
                 "pxor %%xmm8, %%xmm8\n\t"
                 ::: "cc" );
+#endif
 #endif
 
   wipememory (tmp, sizeof(tmp));
@@ -309,9 +336,29 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
   static const unsigned char be_mask[16] __attribute__ ((aligned (16))) =
     { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
   const unsigned int blocksize = GCRY_GCM_BLOCK_LEN;
+#ifdef __WIN64__
+  char win64tmp[10 * 16];
+#endif
 
   if (nblocks == 0)
     return 0;
+
+#ifdef __WIN64__
+  /* XMM8-XMM15 need to be restored after use. */
+  asm volatile ("movdqu %%xmm6,  0*16(%0)\n\t"
+                "movdqu %%xmm7,  1*16(%0)\n\t"
+                "movdqu %%xmm8,  2*16(%0)\n\t"
+                "movdqu %%xmm9,  3*16(%0)\n\t"
+                "movdqu %%xmm10, 4*16(%0)\n\t"
+                "movdqu %%xmm11, 5*16(%0)\n\t"
+                "movdqu %%xmm12, 6*16(%0)\n\t"
+                "movdqu %%xmm13, 7*16(%0)\n\t"
+                "movdqu %%xmm14, 8*16(%0)\n\t"
+                "movdqu %%xmm15, 9*16(%0)\n\t"
+                :
+                : "r" (win64tmp)
+                : "memory" );
+#endif
 
   /* Preload hash and H1. */
   asm volatile ("movdqu %[hash], %%xmm1\n\t"
@@ -353,6 +400,7 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
         }
       while (nblocks >= 4);
 
+#ifndef __WIN64__
       /* Clear used x86-64/XMM registers. */
       asm volatile( "pxor %%xmm8, %%xmm8\n\t"
                     "pxor %%xmm9, %%xmm9\n\t"
@@ -363,6 +411,7 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
                     "pxor %%xmm14, %%xmm14\n\t"
                     "pxor %%xmm15, %%xmm15\n\t"
                     ::: "cc" );
+#endif
     }
 #endif
 
@@ -385,6 +434,28 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
                 : [hash] "=m" (*result)
                 : [be_mask] "m" (*be_mask));
 
+#ifdef __WIN64__
+  /* Clear/restore used registers. */
+  asm volatile( "pxor %%xmm0, %%xmm0\n\t"
+                "pxor %%xmm1, %%xmm1\n\t"
+                "pxor %%xmm2, %%xmm2\n\t"
+                "pxor %%xmm3, %%xmm3\n\t"
+                "pxor %%xmm4, %%xmm4\n\t"
+                "pxor %%xmm5, %%xmm5\n\t"
+                "movdqu 0*16(%0), %%xmm6\n\t"
+                "movdqu 1*16(%0), %%xmm7\n\t"
+                "movdqu 2*16(%0), %%xmm8\n\t"
+                "movdqu 3*16(%0), %%xmm9\n\t"
+                "movdqu 4*16(%0), %%xmm10\n\t"
+                "movdqu 5*16(%0), %%xmm11\n\t"
+                "movdqu 6*16(%0), %%xmm12\n\t"
+                "movdqu 7*16(%0), %%xmm13\n\t"
+                "movdqu 8*16(%0), %%xmm14\n\t"
+                "movdqu 9*16(%0), %%xmm15\n\t"
+                :
+                : "r" (win64tmp)
+                : "memory" );
+#else
   /* Clear used registers. */
   asm volatile( "pxor %%xmm0, %%xmm0\n\t"
                 "pxor %%xmm1, %%xmm1\n\t"
@@ -395,6 +466,7 @@ _gcry_ghash_intel_pclmul (gcry_cipher_hd_t c, byte *result, const byte *buf,
                 "pxor %%xmm6, %%xmm6\n\t"
                 "pxor %%xmm7, %%xmm7\n\t"
                 ::: "cc" );
+#endif
 
   return 0;
 }
