@@ -826,39 +826,47 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
      cursor position for last message, 1 ms time for last message,
      handle of window with clipboard open, handle of process heap,
      handle of procs window station, types of events in input queue,
-     and milliseconds since Windows was started.  */
+     and milliseconds since Windows was started. On 64-bit platform
+     some of these return values are pointers and thus 64-bit wide.
+     We discard the upper 32-bit of those values.  */
 
   {
     byte buffer[20*sizeof(ulong)], *bufptr;
 
     bufptr = buffer;
-#define ADD(f)  do { ulong along = (ulong)(f);                  \
-                     memcpy (bufptr, &along, sizeof (along) );  \
-                     bufptr += sizeof (along);                  \
-                   } while (0)
+#define ADDINT(f)  do { ulong along = (ulong)(f);                  \
+                        memcpy (bufptr, &along, sizeof (along) );  \
+                        bufptr += sizeof (along);                  \
+                      } while (0)
+#define ADDPTR(f)  do { void *aptr = (f);                          \
+                        ADDINT((SIZE_T)aptr);                      \
+                      } while (0)
 
-    ADD ( GetActiveWindow ());
-    ADD ( GetCapture ());
-    ADD ( GetClipboardOwner ());
-    ADD ( GetClipboardViewer ());
-    ADD ( GetCurrentProcess ());
-    ADD ( GetCurrentProcessId ());
-    ADD ( GetCurrentThread ());
-    ADD ( GetCurrentThreadId ());
-    ADD ( GetDesktopWindow ());
-    ADD ( GetFocus ());
-    ADD ( GetInputState ());
-    ADD ( GetMessagePos ());
-    ADD ( GetMessageTime ());
-    ADD ( GetOpenClipboardWindow ());
-    ADD ( GetProcessHeap ());
-    ADD ( GetProcessWindowStation ());
-    ADD ( GetQueueStatus (QS_ALLEVENTS));
-    ADD ( GetTickCount ());
+    ADDPTR ( GetActiveWindow ());
+    ADDPTR ( GetCapture ());
+    ADDPTR ( GetClipboardOwner ());
+    ADDPTR ( GetClipboardViewer ());
+    ADDPTR ( GetCurrentProcess ());
+    ADDINT ( GetCurrentProcessId ());
+    ADDPTR ( GetCurrentThread ());
+    ADDINT ( GetCurrentThreadId ());
+    ADDPTR ( GetDesktopWindow ());
+    ADDPTR ( GetFocus ());
+    ADDINT ( GetInputState ());
+    ADDINT ( GetMessagePos ());
+    ADDINT ( GetMessageTime ());
+    ADDPTR ( GetOpenClipboardWindow ());
+    ADDPTR ( GetProcessHeap ());
+    ADDPTR ( GetProcessWindowStation ());
+    /* Following function in some cases stops returning events, and cannot
+       be used as an entropy source.  */
+    /*ADDINT ( GetQueueStatus (QS_ALLEVENTS));*/
+    ADDINT ( GetTickCount ());
 
     gcry_assert ( bufptr-buffer < sizeof (buffer) );
     (*add) ( buffer, bufptr-buffer, origin );
-#undef ADD
+#undef ADDINT
+#undef ADDPTR
   }
 
   /* Get multiword system information: Current caret position, current
@@ -888,7 +896,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
   {
     HANDLE handle;
     FILETIME creationTime, exitTime, kernelTime, userTime;
-    DWORD minimumWorkingSetSize, maximumWorkingSetSize;
+    SIZE_T minimumWorkingSetSize, maximumWorkingSetSize;
 
     handle = GetCurrentThread ();
     GetThreadTimes (handle, &creationTime, &exitTime,
@@ -910,10 +918,9 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
        process.  */
     GetProcessWorkingSetSize (handle, &minimumWorkingSetSize,
                               &maximumWorkingSetSize);
-    (*add) ( &minimumWorkingSetSize,
-             sizeof (minimumWorkingSetSize), origin );
-    (*add) ( &maximumWorkingSetSize,
-             sizeof (maximumWorkingSetSize), origin );
+    /* On 64-bit system, discard the high 32-bits. */
+    (*add) ( &minimumWorkingSetSize, sizeof (int), origin );
+    (*add) ( &maximumWorkingSetSize, sizeof (int), origin );
   }
 
 
@@ -961,7 +968,20 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
 
      To make things unambiguous, we detect a CPU new enough to call RDTSC
      directly by checking for CPUID capabilities, and fall back to QPC if
-     this isn't present.  */
+     this isn't present.
+
+     On AMD64, TSC is always available and intrinsic is provided for accessing
+     it.  */
+#ifdef __WIN64__
+    {
+      unsigned __int64 aint64;
+
+      /* Note: cryptlib does not discard upper 32 bits of TSC on WIN64, but does
+       * on WIN32.  Is this correct?  */
+      aint64 = __rdtsc();
+      (*add) (&aint64, sizeof(aint64), origin);
+    }
+#else
 #ifdef __GNUC__
 /*   FIXME: We would need to implement the CPU feature tests first.  */
 /*   if (cpu_has_feature_rdtsc) */
@@ -990,6 +1010,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
           (*add) (&aword, sizeof (aword), origin );
         }
     }
+#endif /*__WIN64__*/
 
 
 }
