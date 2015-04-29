@@ -132,6 +132,11 @@ case "${host}" in
 	path="amd64"
         mpi_cpu_arch="x86"
 	;;
+    x86_64-*mingw32*)
+	echo '/* No working assembler modules available */' >>./mpi/asm-syntax.h
+	path=""
+	mpi_cpu_arch="x86"
+        ;;
     x86_64-*-*)
 	echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
 	cat  $srcdir/mpi/i386/syntax.h	    >>./mpi/asm-syntax.h
