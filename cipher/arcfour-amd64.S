@@ -85,8 +85,8 @@ _gcry_arcfour_amd64:
 
 .Lfinished:
 	dec	%rcx				# x--
-	movb	%dl,		(4*256)(%rbp)	# key->y = y
-	movb	%cl,		(4*256+4)(%rbp)	# key->x = x
+	movb	%cl,		(4*256)(%rbp)	# key->y = y
+	movb	%dl,		(4*256+4)(%rbp)	# key->x = x
 	pop	%rbx
 	pop	%rbp
 	ret
