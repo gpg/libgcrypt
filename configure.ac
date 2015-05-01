@@ -964,7 +964,9 @@ AC_CACHE_CHECK([whether the GCC style packed attribute is supported],
        [gcry_cv_gcc_attribute_packed],
        [gcry_cv_gcc_attribute_packed=no
         AC_COMPILE_IFELSE([AC_LANG_SOURCE(
-          [[struct foo_s { char a; long b; } __attribute__ ((packed));
+          [[struct foolong_s { long b; } __attribute__ ((packed));
+            struct foo_s { char a; struct foolong_s b; }
+              __attribute__ ((packed));
             enum bar {
               FOO = 1 / (sizeof(struct foo_s) == (sizeof(char) + sizeof(long))),
             };]])],
