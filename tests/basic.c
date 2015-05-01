@@ -5231,11 +5231,29 @@ check_one_md (int algo, const char *data, int len, const char *expect)
   if (*data == '!' && !data[1])
     {				/* hash one million times a "a" */
       char aaa[1000];
+      size_t left = 1000 * 1000;
+      size_t startlen = 1;
+      size_t piecelen = startlen;
+
+      memset (aaa, 'a', 1000);
 
       /* Write in odd size chunks so that we test the buffering.  */
-      memset (aaa, 'a', 1000);
-      for (i = 0; i < 1000; i++)
-        gcry_md_write (hd, aaa, 1000);
+      while (left > 0)
+        {
+          if (piecelen > sizeof(aaa))
+            piecelen = sizeof(aaa);
+          if (piecelen > left)
+            piecelen = left;
+
+          gcry_md_write (hd, aaa, piecelen);
+
+          left -= piecelen;
+
+          if (piecelen == sizeof(aaa))
+            piecelen = ++startlen;
+          else
+            piecelen = piecelen * 2 - ((piecelen != startlen) ? startlen : 0);
+        }
     }
   else
     gcry_md_write (hd, data, len);
