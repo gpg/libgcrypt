@@ -931,6 +931,9 @@ enum gcry_cipher_flags
 /* CCM works only with blocks of 128 bits.  */
 #define GCRY_CCM_BLOCK_LEN  (128 / 8)
 
+/* OCB works only with blocks of 128 bits.  */
+#define GCRY_OCB_BLOCK_LEN  (128 / 8)
+
 /* Create a handle for algorithm ALGO to be used in MODE.  FLAGS may
    be given as an bitwise OR of the gcry_cipher_flags values. */
 gcry_error_t gcry_cipher_open (gcry_cipher_hd_t *handle,

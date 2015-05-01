@@ -4676,7 +4676,8 @@ check_bulk_cipher_modes (void)
 }
 
 
-static unsigned int get_algo_mode_blklen(int algo, int mode)
+static unsigned int
+get_algo_mode_blklen (int algo, int mode)
 {
   unsigned int blklen = gcry_cipher_get_algo_blklen(algo);
 
@@ -4695,6 +4696,48 @@ static unsigned int get_algo_mode_blklen(int algo, int mode)
   return blklen;
 }
 
+
+static int
+check_one_cipher_core_reset (gcry_cipher_hd_t hd, int algo, int mode, int pass,
+                             int nplain)
+{
+  static const unsigned char iv[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+  u64 ctl_params[3];
+  int err;
+
+  gcry_cipher_reset (hd);
+
+  if (mode == GCRY_CIPHER_MODE_OCB || mode == GCRY_CIPHER_MODE_CCM)
+    {
+      err = gcry_cipher_setiv (hd, iv, sizeof(iv));
+      if (err)
+        {
+          fail ("pass %d, algo %d, mode %d, gcry_cipher_setiv failed: %s\n",
+                pass, algo, mode, gpg_strerror (err));
+          gcry_cipher_close (hd);
+          return -1;
+        }
+    }
+
+  if (mode == GCRY_CIPHER_MODE_CCM)
+    {
+      ctl_params[0] = nplain; /* encryptedlen */
+      ctl_params[1] = 0; /* aadlen */
+      ctl_params[2] = 16; /* authtaglen */
+      err = gcry_cipher_ctl (hd, GCRYCTL_SET_CCM_LENGTHS, ctl_params,
+                            sizeof(ctl_params));
+      if (err)
+        {
+          fail ("pass %d, algo %d, mode %d, gcry_cipher_ctl "
+                "GCRYCTL_SET_CCM_LENGTHS failed: %s\n",
+                pass, algo, mode, gpg_strerror (err));
+          gcry_cipher_close (hd);
+          return -1;
+        }
+    }
+
+  return 0;
+}
 
 /* The core of the cipher check.  In addition to the parameters passed
    to check_one_cipher it also receives the KEY and the plain data.
@@ -4782,6 +4825,9 @@ check_one_cipher_core (int algo, int mode, int flags,
       return -1;
     }
 
+  if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
+    return -1;
+
   err = gcry_cipher_encrypt (hd, out, nplain, plain, nplain);
   if (err)
     {
@@ -4793,7 +4839,8 @@ check_one_cipher_core (int algo, int mode, int flags,
 
   memcpy (enc_result, out, nplain);
 
-  gcry_cipher_reset (hd);
+  if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
+    return -1;
 
   err = gcry_cipher_decrypt (hd, in, nplain, out, nplain);
   if (err)
@@ -4809,7 +4856,8 @@ check_one_cipher_core (int algo, int mode, int flags,
           pass, algo, mode);
 
   /* Again, using in-place encryption.  */
-  gcry_cipher_reset (hd);
+  if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
+    return -1;
 
   memcpy (out, plain, nplain);
   err = gcry_cipher_encrypt (hd, out, nplain, NULL, 0);
@@ -4826,7 +4874,8 @@ check_one_cipher_core (int algo, int mode, int flags,
     fail ("pass %d, algo %d, mode %d, in-place, encrypt mismatch\n",
           pass, algo, mode);
 
-  gcry_cipher_reset (hd);
+  if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
+    return -1;
 
   err = gcry_cipher_decrypt (hd, out, nplain, NULL, 0);
   if (err)
@@ -4843,7 +4892,8 @@ check_one_cipher_core (int algo, int mode, int flags,
           pass, algo, mode);
 
   /* Again, splitting encryption in multiple operations. */
-  gcry_cipher_reset (hd);
+  if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
+    return -1;
 
   piecelen = blklen;
   pos = 0;
@@ -4871,7 +4921,8 @@ check_one_cipher_core (int algo, int mode, int flags,
     fail ("pass %d, algo %d, mode %d, split-buffer, encrypt mismatch\n",
           pass, algo, mode);
 
-  gcry_cipher_reset (hd);
+  if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
+    return -1;
 
   piecelen = blklen;
   pos = 0;
@@ -4900,7 +4951,8 @@ check_one_cipher_core (int algo, int mode, int flags,
 
   /* Again, using in-place encryption and splitting encryption in multiple
    * operations. */
-  gcry_cipher_reset (hd);
+  if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
+    return -1;
 
   piecelen = blklen;
   pos = 0;
@@ -4928,7 +4980,8 @@ check_one_cipher_core (int algo, int mode, int flags,
     fail ("pass %d, algo %d, mode %d, in-place split-buffer, encrypt mismatch\n",
           pass, algo, mode);
 
-  gcry_cipher_reset (hd);
+  if (check_one_cipher_core_reset (hd, algo, mode, pass, nplain) < 0)
+    return -1;
 
   piecelen = blklen;
   pos = 0;
@@ -5096,8 +5149,12 @@ check_ciphers (void)
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CBC, 0);
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CBC, GCRY_CIPHER_CBC_CTS);
       check_one_cipher (algos[i], GCRY_CIPHER_MODE_CTR, 0);
+      if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_CCM_BLOCK_LEN)
+        check_one_cipher (algos[i], GCRY_CIPHER_MODE_CCM, 0);
       if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_GCM_BLOCK_LEN)
         check_one_cipher (algos[i], GCRY_CIPHER_MODE_GCM, 0);
+      if (gcry_cipher_get_algo_blklen (algos[i]) == GCRY_OCB_BLOCK_LEN)
+        check_one_cipher (algos[i], GCRY_CIPHER_MODE_OCB, 0);
     }
 
   for (i = 0; algos2[i]; i++)
