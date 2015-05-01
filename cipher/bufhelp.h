@@ -162,7 +162,7 @@ do_bytes:
 #endif
   /* Handle tail.  */
   for (; len; len--)
-    *dst++ ^= *src;
+    *dst++ ^= *src++;
 }
 
 
