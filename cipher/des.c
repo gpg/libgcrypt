@@ -146,8 +146,10 @@
  * depending on whether characters are signed or not.
  */
 static int
-working_memcmp( const char *a, const char *b, size_t n )
+working_memcmp( const void *_a, const void *_b, size_t n )
 {
+    const char *a = _a;
+    const char *b = _b;
     for( ; n; n--, a++, b++ )
 	if( *a != *b )
 	    return (int)(*(byte*)a) - (int)(*(byte*)b);
