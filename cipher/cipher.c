@@ -744,6 +744,8 @@ cipher_reset (gcry_cipher_hd_t c)
 
     case GCRY_CIPHER_MODE_OCB:
       memset (&c->u_mode.ocb, 0, sizeof c->u_mode.ocb);
+      /* Setup default taglen.  */
+      c->u_mode.ocb.taglen = 16;
       break;
 
     default:
