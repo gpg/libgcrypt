@@ -665,8 +665,25 @@ do_encrypt (const RIJNDAEL_context *ctx,
             unsigned char *bx, const unsigned char *ax)
 {
 #ifdef USE_AMD64_ASM
+# ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
   return _gcry_aes_amd64_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds,
 				       encT);
+# else
+  /* Call SystemV ABI function without storing non-volatile XMM registers,
+   * as target function does not use vector instruction sets. */
+  uintptr_t ret;
+  asm ("movq %[encT], %%r8\n\t"
+       "callq *%[ret]\n\t"
+       : [ret] "=a" (ret)
+       : "0" (_gcry_aes_amd64_encrypt_block),
+         "D" (ctx->keyschenc),
+         "S" (bx),
+         "d" (ax),
+         "c" (ctx->rounds),
+         [encT] "r" (encT)
+       : "cc", "memory", "r8", "r9", "r10", "r11");
+  return ret;
+# endif /* HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS */
 #elif defined(USE_ARM_ASM)
   return _gcry_aes_arm_encrypt_block(ctx->keyschenc, bx, ax, ctx->rounds, encT);
 #else
@@ -1008,8 +1025,25 @@ do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
             const unsigned char *ax)
 {
 #ifdef USE_AMD64_ASM
+# ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
   return _gcry_aes_amd64_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds,
 				       &dec_tables);
+# else
+  /* Call SystemV ABI function without storing non-volatile XMM registers,
+   * as target function does not use vector instruction sets. */
+  uintptr_t ret;
+  asm ("movq %[dectabs], %%r8\n\t"
+       "callq *%[ret]\n\t"
+       : [ret] "=a" (ret)
+       : "0" (_gcry_aes_amd64_decrypt_block),
+         "D" (ctx->keyschdec),
+         "S" (bx),
+         "d" (ax),
+         "c" (ctx->rounds),
+         [dectabs] "r" (&dec_tables)
+       : "cc", "memory", "r8", "r9", "r10", "r11");
+  return ret;
+# endif /* HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS */
 #elif defined(USE_ARM_ASM)
   return _gcry_aes_arm_decrypt_block(ctx->keyschdec, bx, ax, ctx->rounds,
 				     &dec_tables);

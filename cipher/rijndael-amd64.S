@@ -20,12 +20,19 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && defined(USE_AES)
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_AES)
 
 #ifdef __PIC__
 #  define RIP (%rip)
 #else
 #  define RIP
+#endif
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
 #endif
 
 .text
@@ -205,7 +212,7 @@
 
 .align 8
 .globl _gcry_aes_amd64_encrypt_block
-.type   _gcry_aes_amd64_encrypt_block,@function;
+ELF(.type   _gcry_aes_amd64_encrypt_block,@function;)
 
 _gcry_aes_amd64_encrypt_block:
 	/* input:
@@ -279,7 +286,7 @@ _gcry_aes_amd64_encrypt_block:
 	lastencround(11);
 
 	jmp .Lenc_done;
-.size _gcry_aes_amd64_encrypt_block,.-_gcry_aes_amd64_encrypt_block;
+ELF(.size _gcry_aes_amd64_encrypt_block,.-_gcry_aes_amd64_encrypt_block;)
 
 #define do_decround(next_r) \
 	do16bit_shr(16, mov, RA, Dsize, D0, RNA, D0, RNB, RT0, RT1); \
@@ -365,7 +372,7 @@ _gcry_aes_amd64_encrypt_block:
 
 .align 8
 .globl _gcry_aes_amd64_decrypt_block
-.type   _gcry_aes_amd64_decrypt_block,@function;
+ELF(.type   _gcry_aes_amd64_decrypt_block,@function;)
 
 _gcry_aes_amd64_decrypt_block:
 	/* input:
@@ -440,7 +447,7 @@ _gcry_aes_amd64_decrypt_block:
 	decround(9);
 
 	jmp .Ldec_tail;
-.size _gcry_aes_amd64_decrypt_block,.-_gcry_aes_amd64_decrypt_block;
+ELF(.size _gcry_aes_amd64_decrypt_block,.-_gcry_aes_amd64_decrypt_block;)
 
 #endif /*USE_AES*/
 #endif /*__x86_64*/
