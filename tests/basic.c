@@ -5524,6 +5524,7 @@ check_digests (void)
 	"TY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser Gene"
 	"ral Public License for more details.",
 	"\x4A\x53\x7D\x67" },
+      { GCRY_MD_CRC32, "123456789", "\xcb\xf4\x39\x26" },
       { GCRY_MD_CRC32_RFC1510, "", "\x00\x00\x00\x00" },
       {	GCRY_MD_CRC32_RFC1510, "foo", "\x73\x32\xbc\x33" },
       {	GCRY_MD_CRC32_RFC1510, "test0123456789", "\xb8\x3e\x88\xd6" },
@@ -5539,8 +5540,10 @@ check_digests (void)
       {	GCRY_MD_CRC32_RFC1510, "\x80\x00\x00\x00", "\xed\x59\xb6\x3b" },
       {	GCRY_MD_CRC32_RFC1510, "\x00\x00\x00\x01", "\x77\x07\x30\x96" },
 #endif
+      { GCRY_MD_CRC32_RFC1510, "123456789", "\x2d\xfd\x2d\x88" },
       {	GCRY_MD_CRC24_RFC2440, "", "\xb7\x04\xce" },
       {	GCRY_MD_CRC24_RFC2440, "foo", "\x4f\xc2\x55" },
+      { GCRY_MD_CRC24_RFC2440, "123456789", "\x21\xcf\x02" },
 
       {	GCRY_MD_TIGER, "",
 	"\x24\xF0\x13\x0C\x63\xAC\x93\x32\x16\x16\x6E\x76"
