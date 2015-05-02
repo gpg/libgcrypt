@@ -29,13 +29,21 @@
 #ifdef __x86_64__
 #include <config.h>
 
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(HAVE_GCC_INLINE_ASM_SSSE3) && defined(USE_SHA1)
 
 #ifdef __PIC__
 #  define RIP (%rip)
 #else
 #  define RIP
+#endif
+
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
 #endif
 
 
@@ -220,7 +228,7 @@
  */
 .text
 .globl _gcry_sha1_transform_amd64_ssse3
-.type _gcry_sha1_transform_amd64_ssse3,@function
+ELF(.type _gcry_sha1_transform_amd64_ssse3,@function)
 .align 16
 _gcry_sha1_transform_amd64_ssse3:
   /* input:
