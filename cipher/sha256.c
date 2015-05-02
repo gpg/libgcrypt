@@ -49,25 +49,29 @@
 
 /* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
 #undef USE_SSSE3
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
-    defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
-    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS)
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_SSSE3 1
 #endif
 
 /* USE_AVX indicates whether to compile with Intel AVX code. */
 #undef USE_AVX
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
-    defined(HAVE_GCC_INLINE_ASM_AVX) && \
-    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS)
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_AVX) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_AVX 1
 #endif
 
 /* USE_AVX2 indicates whether to compile with Intel AVX2/BMI2 code. */
 #undef USE_AVX2
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
-    defined(HAVE_GCC_INLINE_ASM_AVX2) && defined(HAVE_GCC_INLINE_ASM_BMI2) && \
-    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS)
+#if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_AVX2) && \
+    defined(HAVE_GCC_INLINE_ASM_BMI2) && \
+    defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_AVX2 1
 #endif
 
@@ -322,19 +326,37 @@ transform_blk (void *ctx, const unsigned char *data)
 #undef R
 
 
+/* Assembly implementations use SystemV ABI, ABI conversion and additional
+ * stack to store XMM6-XMM15 needed on Win64. */
+#undef ASM_FUNC_ABI
+#undef ASM_EXTRA_STACK
+#if defined(USE_SSSE3) || defined(USE_AVX) || defined(USE_AVX2)
+# ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+#  define ASM_FUNC_ABI __attribute__((sysv_abi))
+#  define ASM_EXTRA_STACK (10 * 16)
+# else
+#  define ASM_FUNC_ABI
+#  define ASM_EXTRA_STACK 0
+# endif
+#endif
+
+
 #ifdef USE_SSSE3
 unsigned int _gcry_sha256_transform_amd64_ssse3(const void *input_data,
-					        u32 state[8], size_t num_blks);
+                                                u32 state[8],
+                                                size_t num_blks) ASM_FUNC_ABI;
 #endif
 
 #ifdef USE_AVX
 unsigned int _gcry_sha256_transform_amd64_avx(const void *input_data,
-					      u32 state[8], size_t num_blks);
+                                              u32 state[8],
+                                              size_t num_blks) ASM_FUNC_ABI;
 #endif
 
 #ifdef USE_AVX2
 unsigned int _gcry_sha256_transform_amd64_avx2(const void *input_data,
-					       u32 state[8], size_t num_blks);
+                                               u32 state[8],
+                                               size_t num_blks) ASM_FUNC_ABI;
 #endif
 
 
@@ -347,19 +369,19 @@ transform (void *ctx, const unsigned char *data, size_t nblks)
 #ifdef USE_AVX2
   if (hd->use_avx2)
     return _gcry_sha256_transform_amd64_avx2 (data, &hd->h0, nblks)
-           + 4 * sizeof(void*);
+           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
 #endif
 
 #ifdef USE_AVX
   if (hd->use_avx)
     return _gcry_sha256_transform_amd64_avx (data, &hd->h0, nblks)
-           + 4 * sizeof(void*);
+           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
 #endif
 
 #ifdef USE_SSSE3
   if (hd->use_ssse3)
     return _gcry_sha256_transform_amd64_ssse3 (data, &hd->h0, nblks)
-           + 4 * sizeof(void*);
+           + 4 * sizeof(void*) + ASM_EXTRA_STACK;
 #endif
 
   do
@@ -368,6 +390,14 @@ transform (void *ctx, const unsigned char *data, size_t nblks)
       data += 64;
     }
   while (--nblks);
+
+#ifdef ASM_EXTRA_STACK
+  /* 'transform_blk' is typically inlined and XMM6-XMM15 are stored at
+   *  the prologue of this function. Therefore need to add ASM_EXTRA_STACK to
+   *  here too.
+   */
+  burn += ASM_EXTRA_STACK;
+#endif
 
   return burn;
 }
