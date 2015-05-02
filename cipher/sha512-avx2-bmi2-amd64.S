@@ -43,7 +43,8 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(HAVE_INTEL_SYNTAX_PLATFORM_AS) && \
     defined(HAVE_GCC_INLINE_ASM_AVX2) && defined(HAVE_GCC_INLINE_ASM_BMI2) && \
     defined(USE_SHA512)
@@ -52,6 +53,12 @@
 #  define ADD_RIP +rip
 #else
 #  define ADD_RIP
+#endif
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
 #endif
 
 .intel_syntax noprefix
@@ -596,7 +603,7 @@ rotate_Ys
 ; L is the message length in SHA512 blocks
 */
 .globl _gcry_sha512_transform_amd64_avx2
-.type _gcry_sha512_transform_amd64_avx2,@function;
+ELF(.type _gcry_sha512_transform_amd64_avx2,@function;)
 .align 16
 _gcry_sha512_transform_amd64_avx2:
 	xor eax, eax
