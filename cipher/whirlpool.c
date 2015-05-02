@@ -42,7 +42,8 @@
 
 /* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
 #undef USE_AMD64_ASM
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_AMD64_ASM 1
 #endif
 
@@ -1192,9 +1193,17 @@ whirlpool_init (void *ctx, unsigned int flags)
 
 #ifdef USE_AMD64_ASM
 
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+# define ASM_FUNC_ABI __attribute__((sysv_abi))
+# define ASM_EXTRA_STACK (10 * 16)
+#else
+# define ASM_FUNC_ABI
+# define ASM_EXTRA_STACK 0
+#endif
+
 extern unsigned int
 _gcry_whirlpool_transform_amd64(u64 *state, const unsigned char *data,
-	size_t nblks, const struct whirlpool_tables_s *tables);
+    size_t nblks, const struct whirlpool_tables_s *tables) ASM_FUNC_ABI;
 
 static unsigned int
 whirlpool_transform (void *ctx, const unsigned char *data, size_t nblks)
@@ -1202,7 +1211,7 @@ whirlpool_transform (void *ctx, const unsigned char *data, size_t nblks)
   whirlpool_context_t *context = ctx;
 
   return _gcry_whirlpool_transform_amd64(
-		context->hash_state, data, nblks, &tab);
+		context->hash_state, data, nblks, &tab) + ASM_EXTRA_STACK;
 }
 
 #else /* USE_AMD64_ASM */

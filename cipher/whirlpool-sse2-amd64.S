@@ -20,12 +20,19 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && defined(USE_WHIRLPOOL)
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_WHIRLPOOL)
 
 #ifdef __PIC__
 #  define RIP %rip
 #else
 #  define RIP
+#endif
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
 #endif
 
 .text
@@ -157,7 +164,7 @@
 
 .align 8
 .globl _gcry_whirlpool_transform_amd64
-.type  _gcry_whirlpool_transform_amd64,@function;
+ELF(.type  _gcry_whirlpool_transform_amd64,@function;)
 
 _gcry_whirlpool_transform_amd64:
 	/* input:
@@ -329,7 +336,7 @@ _gcry_whirlpool_transform_amd64:
 .Lskip:
 	movl $(STACK_MAX + 8), %eax;
 	ret;
-.size _gcry_whirlpool_transform_amd64,.-_gcry_whirlpool_transform_amd64;
+ELF(.size _gcry_whirlpool_transform_amd64,.-_gcry_whirlpool_transform_amd64;)
 
 #endif
 #endif
