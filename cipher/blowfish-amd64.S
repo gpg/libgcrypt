@@ -20,7 +20,15 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(USE_BLOWFISH) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(USE_BLOWFISH) && \
+    (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
+#endif
 
 .text
 
@@ -120,7 +128,7 @@
 	movq RX0, 		(RIO);
 
 .align 8
-.type   __blowfish_enc_blk1,@function;
+ELF(.type   __blowfish_enc_blk1,@function;)
 
 __blowfish_enc_blk1:
 	/* input:
@@ -145,11 +153,11 @@ __blowfish_enc_blk1:
 	movq %r11, %rbp;
 
 	ret;
-.size __blowfish_enc_blk1,.-__blowfish_enc_blk1;
+ELF(.size __blowfish_enc_blk1,.-__blowfish_enc_blk1;)
 
 .align 8
 .globl  _gcry_blowfish_amd64_do_encrypt
-.type   _gcry_blowfish_amd64_do_encrypt,@function;
+ELF(.type   _gcry_blowfish_amd64_do_encrypt,@function;)
 
 _gcry_blowfish_amd64_do_encrypt:
 	/* input:
@@ -171,11 +179,11 @@ _gcry_blowfish_amd64_do_encrypt:
 	movl RX0d, (RX2);
 
 	ret;
-.size _gcry_blowfish_amd64_do_encrypt,.-_gcry_blowfish_amd64_do_encrypt;
+ELF(.size _gcry_blowfish_amd64_do_encrypt,.-_gcry_blowfish_amd64_do_encrypt;)
 
 .align 8
 .globl  _gcry_blowfish_amd64_encrypt_block
-.type   _gcry_blowfish_amd64_encrypt_block,@function;
+ELF(.type   _gcry_blowfish_amd64_encrypt_block,@function;)
 
 _gcry_blowfish_amd64_encrypt_block:
 	/* input:
@@ -195,11 +203,11 @@ _gcry_blowfish_amd64_encrypt_block:
 	write_block();
 
 	ret;
-.size _gcry_blowfish_amd64_encrypt_block,.-_gcry_blowfish_amd64_encrypt_block;
+ELF(.size _gcry_blowfish_amd64_encrypt_block,.-_gcry_blowfish_amd64_encrypt_block;)
 
 .align 8
 .globl  _gcry_blowfish_amd64_decrypt_block
-.type   _gcry_blowfish_amd64_decrypt_block,@function;
+ELF(.type   _gcry_blowfish_amd64_decrypt_block,@function;)
 
 _gcry_blowfish_amd64_decrypt_block:
 	/* input:
@@ -231,7 +239,7 @@ _gcry_blowfish_amd64_decrypt_block:
 	movq %r11, %rbp;
 
 	ret;
-.size _gcry_blowfish_amd64_decrypt_block,.-_gcry_blowfish_amd64_decrypt_block;
+ELF(.size _gcry_blowfish_amd64_decrypt_block,.-_gcry_blowfish_amd64_decrypt_block;)
 
 /**********************************************************************
   4-way blowfish, four blocks parallel
@@ -319,7 +327,7 @@ _gcry_blowfish_amd64_decrypt_block:
 	bswapq 			RX3;
 
 .align 8
-.type   __blowfish_enc_blk4,@function;
+ELF(.type   __blowfish_enc_blk4,@function;)
 
 __blowfish_enc_blk4:
 	/* input:
@@ -343,10 +351,10 @@ __blowfish_enc_blk4:
 	outbswap_block4();
 
 	ret;
-.size __blowfish_enc_blk4,.-__blowfish_enc_blk4;
+ELF(.size __blowfish_enc_blk4,.-__blowfish_enc_blk4;)
 
 .align 8
-.type   __blowfish_dec_blk4,@function;
+ELF(.type   __blowfish_dec_blk4,@function;)
 
 __blowfish_dec_blk4:
 	/* input:
@@ -372,11 +380,11 @@ __blowfish_dec_blk4:
 	outbswap_block4();
 
 	ret;
-.size __blowfish_dec_blk4,.-__blowfish_dec_blk4;
+ELF(.size __blowfish_dec_blk4,.-__blowfish_dec_blk4;)
 
 .align 8
 .globl  _gcry_blowfish_amd64_ctr_enc
-.type   _gcry_blowfish_amd64_ctr_enc,@function;
+ELF(.type   _gcry_blowfish_amd64_ctr_enc,@function;)
 _gcry_blowfish_amd64_ctr_enc:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -429,11 +437,11 @@ _gcry_blowfish_amd64_ctr_enc:
 	popq %rbp;
 
 	ret;
-.size _gcry_blowfish_amd64_ctr_enc,.-_gcry_blowfish_amd64_ctr_enc;
+ELF(.size _gcry_blowfish_amd64_ctr_enc,.-_gcry_blowfish_amd64_ctr_enc;)
 
 .align 8
 .globl  _gcry_blowfish_amd64_cbc_dec
-.type   _gcry_blowfish_amd64_cbc_dec,@function;
+ELF(.type   _gcry_blowfish_amd64_cbc_dec,@function;)
 _gcry_blowfish_amd64_cbc_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -477,11 +485,11 @@ _gcry_blowfish_amd64_cbc_dec:
 	popq %rbp;
 
 	ret;
-.size _gcry_blowfish_amd64_cbc_dec,.-_gcry_blowfish_amd64_cbc_dec;
+ELF(.size _gcry_blowfish_amd64_cbc_dec,.-_gcry_blowfish_amd64_cbc_dec;)
 
 .align 8
 .globl  _gcry_blowfish_amd64_cfb_dec
-.type   _gcry_blowfish_amd64_cfb_dec,@function;
+ELF(.type   _gcry_blowfish_amd64_cfb_dec,@function;)
 _gcry_blowfish_amd64_cfb_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -527,7 +535,7 @@ _gcry_blowfish_amd64_cfb_dec:
 	popq %rbx;
 	popq %rbp;
 	ret;
-.size _gcry_blowfish_amd64_cfb_dec,.-_gcry_blowfish_amd64_cfb_dec;
+ELF(.size _gcry_blowfish_amd64_cfb_dec,.-_gcry_blowfish_amd64_cfb_dec;)
 
 #endif /*defined(USE_BLOWFISH)*/
 #endif /*__x86_64*/

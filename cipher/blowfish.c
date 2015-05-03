@@ -45,7 +45,8 @@
 
 /* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
 #undef USE_AMD64_ASM
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     (BLOWFISH_ROUNDS == 16)
 # define USE_AMD64_ASM 1
 #endif
@@ -280,22 +281,87 @@ extern void _gcry_blowfish_amd64_cbc_dec(BLOWFISH_context *ctx, byte *out,
 extern void _gcry_blowfish_amd64_cfb_dec(BLOWFISH_context *ctx, byte *out,
 					 const byte *in, byte *iv);
 
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+static inline void
+call_sysv_fn (const void *fn, const void *arg1, const void *arg2,
+              const void *arg3, const void *arg4)
+{
+  /* Call SystemV ABI function without storing non-volatile XMM registers,
+   * as target function does not use vector instruction sets. */
+  asm volatile ("callq *%0\n\t"
+                : "+a" (fn),
+                  "+D" (arg1),
+                  "+S" (arg2),
+                  "+d" (arg3),
+                  "+c" (arg4)
+                :
+                : "cc", "memory", "r8", "r9", "r10", "r11");
+}
+#endif
+
 static void
 do_encrypt ( BLOWFISH_context *bc, u32 *ret_xl, u32 *ret_xr )
 {
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn (_gcry_blowfish_amd64_do_encrypt, bc, ret_xl, ret_xr, NULL);
+#else
   _gcry_blowfish_amd64_do_encrypt (bc, ret_xl, ret_xr);
+#endif
 }
 
 static void
 do_encrypt_block (BLOWFISH_context *context, byte *outbuf, const byte *inbuf)
 {
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn (_gcry_blowfish_amd64_encrypt_block, context, outbuf, inbuf,
+                NULL);
+#else
   _gcry_blowfish_amd64_encrypt_block (context, outbuf, inbuf);
+#endif
 }
 
 static void
 do_decrypt_block (BLOWFISH_context *context, byte *outbuf, const byte *inbuf)
 {
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn (_gcry_blowfish_amd64_decrypt_block, context, outbuf, inbuf,
+                NULL);
+#else
   _gcry_blowfish_amd64_decrypt_block (context, outbuf, inbuf);
+#endif
+}
+
+static inline void
+blowfish_amd64_ctr_enc(BLOWFISH_context *ctx, byte *out, const byte *in,
+                       byte *ctr)
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn (_gcry_blowfish_amd64_ctr_enc, ctx, out, in, ctr);
+#else
+  _gcry_blowfish_amd64_ctr_enc(ctx, out, in, ctr);
+#endif
+}
+
+static inline void
+blowfish_amd64_cbc_dec(BLOWFISH_context *ctx, byte *out, const byte *in,
+                       byte *iv)
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn (_gcry_blowfish_amd64_cbc_dec, ctx, out, in, iv);
+#else
+  _gcry_blowfish_amd64_cbc_dec(ctx, out, in, iv);
+#endif
+}
+
+static inline void
+blowfish_amd64_cfb_dec(BLOWFISH_context *ctx, byte *out, const byte *in,
+                       byte *iv)
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn (_gcry_blowfish_amd64_cfb_dec, ctx, out, in, iv);
+#else
+  _gcry_blowfish_amd64_cfb_dec(ctx, out, in, iv);
+#endif
 }
 
 static unsigned int
@@ -605,7 +671,7 @@ _gcry_blowfish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
     /* Process data in 4 block chunks. */
     while (nblocks >= 4)
       {
-        _gcry_blowfish_amd64_ctr_enc(ctx, outbuf, inbuf, ctr);
+        blowfish_amd64_ctr_enc(ctx, outbuf, inbuf, ctr);
 
         nblocks -= 4;
         outbuf += 4 * BLOWFISH_BLOCKSIZE;
@@ -674,7 +740,7 @@ _gcry_blowfish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
     /* Process data in 4 block chunks. */
     while (nblocks >= 4)
       {
-        _gcry_blowfish_amd64_cbc_dec(ctx, outbuf, inbuf, iv);
+        blowfish_amd64_cbc_dec(ctx, outbuf, inbuf, iv);
 
         nblocks -= 4;
         outbuf += 4 * BLOWFISH_BLOCKSIZE;
@@ -734,7 +800,7 @@ _gcry_blowfish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
     /* Process data in 4 block chunks. */
     while (nblocks >= 4)
       {
-        _gcry_blowfish_amd64_cfb_dec(ctx, outbuf, inbuf, iv);
+        blowfish_amd64_cfb_dec(ctx, outbuf, inbuf, iv);
 
         nblocks -= 4;
         outbuf += 4 * BLOWFISH_BLOCKSIZE;
