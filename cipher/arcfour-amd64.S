@@ -15,12 +15,19 @@
 
 #ifdef __x86_64__
 #include <config.h>
-#if defined(USE_ARCFOUR) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(USE_ARCFOUR) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
+#endif
 
 .text
 .align 16
 .globl _gcry_arcfour_amd64
-.type _gcry_arcfour_amd64,@function
+ELF(.type _gcry_arcfour_amd64,@function)
 _gcry_arcfour_amd64:
 	push	%rbp
 	push	%rbx
@@ -91,7 +98,7 @@ _gcry_arcfour_amd64:
 	pop	%rbp
 	ret
 .L__gcry_arcfour_amd64_end:
-.size _gcry_arcfour_amd64,.L__gcry_arcfour_amd64_end-_gcry_arcfour_amd64
+ELF(.size _gcry_arcfour_amd64,.L__gcry_arcfour_amd64_end-_gcry_arcfour_amd64)
 
 #endif
 #endif
