@@ -671,17 +671,19 @@ do_encrypt (const RIJNDAEL_context *ctx,
 # else
   /* Call SystemV ABI function without storing non-volatile XMM registers,
    * as target function does not use vector instruction sets. */
+  const void *key = ctx->keyschenc;
+  uintptr_t rounds = ctx->rounds;
   uintptr_t ret;
-  asm ("movq %[encT], %%r8\n\t"
-       "callq *%[ret]\n\t"
-       : [ret] "=a" (ret)
-       : "0" (_gcry_aes_amd64_encrypt_block),
-         "D" (ctx->keyschenc),
-         "S" (bx),
-         "d" (ax),
-         "c" (ctx->rounds),
-         [encT] "r" (encT)
-       : "cc", "memory", "r8", "r9", "r10", "r11");
+  asm volatile ("movq %[encT], %%r8\n\t"
+                "callq *%[ret]\n\t"
+                : [ret] "=a" (ret),
+                  "+D" (key),
+                  "+S" (bx),
+                  "+d" (ax),
+                  "+c" (rounds)
+                : "0" (_gcry_aes_amd64_encrypt_block),
+                  [encT] "g" (encT)
+                : "cc", "memory", "r8", "r9", "r10", "r11");
   return ret;
 # endif /* HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS */
 #elif defined(USE_ARM_ASM)
@@ -1031,17 +1033,19 @@ do_decrypt (const RIJNDAEL_context *ctx, unsigned char *bx,
 # else
   /* Call SystemV ABI function without storing non-volatile XMM registers,
    * as target function does not use vector instruction sets. */
+  const void *key = ctx->keyschdec;
+  uintptr_t rounds = ctx->rounds;
   uintptr_t ret;
-  asm ("movq %[dectabs], %%r8\n\t"
-       "callq *%[ret]\n\t"
-       : [ret] "=a" (ret)
-       : "0" (_gcry_aes_amd64_decrypt_block),
-         "D" (ctx->keyschdec),
-         "S" (bx),
-         "d" (ax),
-         "c" (ctx->rounds),
-         [dectabs] "r" (&dec_tables)
-       : "cc", "memory", "r8", "r9", "r10", "r11");
+  asm volatile ("movq %[dectabs], %%r8\n\t"
+                "callq *%[ret]\n\t"
+                : [ret] "=a" (ret),
+                  "+D" (key),
+                  "+S" (bx),
+                  "+d" (ax),
+                  "+c" (rounds)
+                : "0" (_gcry_aes_amd64_decrypt_block),
+                  [dectabs] "g" (&dec_tables)
+                : "cc", "memory", "r8", "r9", "r10", "r11");
   return ret;
 # endif /* HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS */
 #elif defined(USE_ARM_ASM)
