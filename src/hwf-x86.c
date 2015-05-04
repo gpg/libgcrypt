@@ -100,11 +100,11 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
 static unsigned int
 get_xgetbv(void)
 {
-  unsigned int t_eax;
+  unsigned int t_eax, t_edx;
 
   asm volatile
     ("xgetbv\n\t"
-     : "=a" (t_eax)
+     : "=a" (t_eax), "=d" (t_edx)
      : "c" (0)
     );
 
@@ -151,11 +151,11 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
 static unsigned int
 get_xgetbv(void)
 {
-  unsigned int t_eax;
+  unsigned int t_eax, t_edx;
 
   asm volatile
     ("xgetbv\n\t"
-     : "=a" (t_eax)
+     : "=a" (t_eax), "=d" (t_edx)
      : "c" (0)
     );
 
