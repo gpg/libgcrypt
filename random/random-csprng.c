@@ -978,8 +978,8 @@ read_pool (byte *buffer, size_t length, int level)
 
       pool_balance = 0;
       needed = length - pool_balance;
-      if (needed < POOLSIZE/2)
-        needed = POOLSIZE/2;
+      if (needed < 16)  /* At least 128 bits.  */
+        needed = 16;
       else if( needed > POOLSIZE )
         BUG ();
       read_random_source (RANDOM_ORIGIN_EXTRAPOLL, needed,
