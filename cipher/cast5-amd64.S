@@ -20,14 +20,19 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && defined(USE_CAST5)
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_CAST5)
 
-#ifdef __PIC__
-#  define RIP %rip
-#  define GET_EXTERN_POINTER(name, reg) movq name@GOTPCREL(%rip), reg
-#else
-#  define RIP
+#if defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS) || !defined(__PIC__)
 #  define GET_EXTERN_POINTER(name, reg) leaq name, reg
+#else
+#  define GET_EXTERN_POINTER(name, reg) movq name@GOTPCREL(%rip), reg
+#endif
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
 #endif
 
 .text
@@ -180,7 +185,7 @@
 
 .align 8
 .globl _gcry_cast5_amd64_encrypt_block
-.type   _gcry_cast5_amd64_encrypt_block,@function;
+ELF(.type   _gcry_cast5_amd64_encrypt_block,@function;)
 
 _gcry_cast5_amd64_encrypt_block:
 	/* input:
@@ -216,11 +221,11 @@ _gcry_cast5_amd64_encrypt_block:
 	popq %rbx;
 	popq %rbp;
 	ret;
-.size _gcry_cast5_amd64_encrypt_block,.-_gcry_cast5_amd64_encrypt_block;
+ELF(.size _gcry_cast5_amd64_encrypt_block,.-_gcry_cast5_amd64_encrypt_block;)
 
 .align 8
 .globl _gcry_cast5_amd64_decrypt_block
-.type   _gcry_cast5_amd64_decrypt_block,@function;
+ELF(.type   _gcry_cast5_amd64_decrypt_block,@function;)
 
 _gcry_cast5_amd64_decrypt_block:
 	/* input:
@@ -256,7 +261,7 @@ _gcry_cast5_amd64_decrypt_block:
 	popq %rbx;
 	popq %rbp;
 	ret;
-.size _gcry_cast5_amd64_decrypt_block,.-_gcry_cast5_amd64_decrypt_block;
+ELF(.size _gcry_cast5_amd64_decrypt_block,.-_gcry_cast5_amd64_decrypt_block;)
 
 /**********************************************************************
   4-way cast5, four blocks parallel
@@ -359,7 +364,7 @@ _gcry_cast5_amd64_decrypt_block:
 	rorq $32,		d;
 
 .align 8
-.type   __cast5_enc_blk4,@function;
+ELF(.type   __cast5_enc_blk4,@function;)
 
 __cast5_enc_blk4:
 	/* input:
@@ -384,10 +389,10 @@ __cast5_enc_blk4:
 
 	outbswap_block4(RLR0, RLR1, RLR2, RLR3);
 	ret;
-.size __cast5_enc_blk4,.-__cast5_enc_blk4;
+ELF(.size __cast5_enc_blk4,.-__cast5_enc_blk4;)
 
 .align 8
-.type   __cast5_dec_blk4,@function;
+ELF(.type   __cast5_dec_blk4,@function;)
 
 __cast5_dec_blk4:
 	/* input:
@@ -414,11 +419,11 @@ __cast5_dec_blk4:
 
 	outbswap_block4(RLR0, RLR1, RLR2, RLR3);
 	ret;
-.size __cast5_dec_blk4,.-__cast5_dec_blk4;
+ELF(.size __cast5_dec_blk4,.-__cast5_dec_blk4;)
 
 .align 8
 .globl _gcry_cast5_amd64_ctr_enc
-.type   _gcry_cast5_amd64_ctr_enc,@function;
+ELF(.type   _gcry_cast5_amd64_ctr_enc,@function;)
 _gcry_cast5_amd64_ctr_enc:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -472,11 +477,11 @@ _gcry_cast5_amd64_ctr_enc:
 	popq %rbx;
 	popq %rbp;
 	ret
-.size _gcry_cast5_amd64_ctr_enc,.-_gcry_cast5_amd64_ctr_enc;
+ELF(.size _gcry_cast5_amd64_ctr_enc,.-_gcry_cast5_amd64_ctr_enc;)
 
 .align 8
 .globl _gcry_cast5_amd64_cbc_dec
-.type   _gcry_cast5_amd64_cbc_dec,@function;
+ELF(.type   _gcry_cast5_amd64_cbc_dec,@function;)
 _gcry_cast5_amd64_cbc_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -526,11 +531,11 @@ _gcry_cast5_amd64_cbc_dec:
 	popq %rbp;
 	ret;
 
-.size _gcry_cast5_amd64_cbc_dec,.-_gcry_cast5_amd64_cbc_dec;
+ELF(.size _gcry_cast5_amd64_cbc_dec,.-_gcry_cast5_amd64_cbc_dec;)
 
 .align 8
 .globl _gcry_cast5_amd64_cfb_dec
-.type   _gcry_cast5_amd64_cfb_dec,@function;
+ELF(.type   _gcry_cast5_amd64_cfb_dec,@function;)
 _gcry_cast5_amd64_cfb_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -581,7 +586,7 @@ _gcry_cast5_amd64_cfb_dec:
 	popq %rbp;
 	ret;
 
-.size _gcry_cast5_amd64_cfb_dec,.-_gcry_cast5_amd64_cfb_dec;
+ELF(.size _gcry_cast5_amd64_cfb_dec,.-_gcry_cast5_amd64_cfb_dec;)
 
 #endif /*defined(USE_CAST5)*/
 #endif /*__x86_64*/
