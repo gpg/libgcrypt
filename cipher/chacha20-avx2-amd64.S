@@ -26,7 +26,8 @@
 #ifdef __x86_64__
 #include <config.h>
 
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(ENABLE_AVX2_SUPPORT) && USE_CHACHA20
 
 #ifdef __PIC__
@@ -35,11 +36,17 @@
 #  define RIP
 #endif
 
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
+#endif
+
 .text
 
 .align 8
 .globl _gcry_chacha20_amd64_avx2_blocks
-.type  _gcry_chacha20_amd64_avx2_blocks,@function;
+ELF(.type  _gcry_chacha20_amd64_avx2_blocks,@function;)
 _gcry_chacha20_amd64_avx2_blocks:
 .Lchacha_blocks_avx2_local:
 	vzeroupper
@@ -938,7 +945,7 @@ _gcry_chacha20_amd64_avx2_blocks:
 	vzeroall
 	movl $(63 + 512), %eax
 	ret
-.size _gcry_chacha20_amd64_avx2_blocks,.-_gcry_chacha20_amd64_avx2_blocks;
+ELF(.size _gcry_chacha20_amd64_avx2_blocks,.-_gcry_chacha20_amd64_avx2_blocks;)
 
 .data
 .align 16

@@ -50,20 +50,23 @@
 
 /* USE_SSE2 indicates whether to compile with Intel SSE2 code. */
 #undef USE_SSE2
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_SSE2 1
 #endif
 
 /* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
 #undef USE_SSSE3
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(HAVE_GCC_INLINE_ASM_SSSE3)
 # define USE_SSSE3 1
 #endif
 
 /* USE_AVX2 indicates whether to compile with Intel AVX2 code. */
 #undef USE_AVX2
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(ENABLE_AVX2_SUPPORT)
 # define USE_AVX2 1
 #endif
@@ -82,8 +85,23 @@
 struct CHACHA20_context_s;
 
 
+/* Assembly implementations use SystemV ABI, ABI conversion and additional
+ * stack to store XMM6-XMM15 needed on Win64. */
+#undef ASM_FUNC_ABI
+#undef ASM_EXTRA_STACK
+#if (defined(USE_SSE2) || defined(USE_SSSE3) || defined(USE_AVX2)) && \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)
+# define ASM_FUNC_ABI __attribute__((sysv_abi))
+# define ASM_EXTRA_STACK (10 * 16)
+#else
+# define ASM_FUNC_ABI
+# define ASM_EXTRA_STACK 0
+#endif
+
+
 typedef unsigned int (* chacha20_blocks_t)(u32 *state, const byte *src,
-                                           byte *dst, size_t bytes);
+                                           byte *dst,
+                                           size_t bytes) ASM_FUNC_ABI;
 
 typedef struct CHACHA20_context_s
 {
@@ -97,28 +115,32 @@ typedef struct CHACHA20_context_s
 #ifdef USE_SSE2
 
 unsigned int _gcry_chacha20_amd64_sse2_blocks(u32 *state, const byte *in,
-                                              byte *out, size_t bytes);
+                                              byte *out,
+                                              size_t bytes) ASM_FUNC_ABI;
 
 #endif /* USE_SSE2 */
 
 #ifdef USE_SSSE3
 
 unsigned int _gcry_chacha20_amd64_ssse3_blocks(u32 *state, const byte *in,
-                                               byte *out, size_t bytes);
+                                               byte *out,
+                                               size_t bytes) ASM_FUNC_ABI;
 
 #endif /* USE_SSSE3 */
 
 #ifdef USE_AVX2
 
 unsigned int _gcry_chacha20_amd64_avx2_blocks(u32 *state, const byte *in,
-                                              byte *out, size_t bytes);
+                                              byte *out,
+                                              size_t bytes) ASM_FUNC_ABI;
 
 #endif /* USE_AVX2 */
 
 #ifdef USE_NEON
 
 unsigned int _gcry_chacha20_armv7_neon_blocks(u32 *state, const byte *in,
-                                              byte *out, size_t bytes);
+                                              byte *out,
+                                              size_t bytes) ASM_FUNC_ABI;
 
 #endif /* USE_NEON */
 
@@ -141,7 +163,7 @@ static const char *selftest (void);
 
 
 #ifndef USE_SSE2
-static unsigned int
+ASM_FUNC_ABI static unsigned int
 chacha20_blocks (u32 *state, const byte *src, byte *dst, size_t bytes)
 {
   u32 pad[CHACHA20_INPUT_LENGTH];
@@ -269,7 +291,8 @@ chacha20_blocks (u32 *state, const byte *src, byte *dst, size_t bytes)
 static unsigned int
 chacha20_core(u32 *dst, struct CHACHA20_context_s *ctx)
 {
-  return ctx->blocks(ctx->input, NULL, (byte *)dst, CHACHA20_BLOCK_SIZE);
+  return ctx->blocks(ctx->input, NULL, (byte *)dst, CHACHA20_BLOCK_SIZE)
+         + ASM_EXTRA_STACK;
 }
 
 

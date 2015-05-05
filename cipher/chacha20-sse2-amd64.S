@@ -26,13 +26,20 @@
 #ifdef __x86_64__
 #include <config.h>
 
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && USE_CHACHA20
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && USE_CHACHA20
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
+#endif
 
 .text
 
 .align 8
 .globl _gcry_chacha20_amd64_sse2_blocks
-.type  _gcry_chacha20_amd64_sse2_blocks,@function;
+ELF(.type  _gcry_chacha20_amd64_sse2_blocks,@function;)
 _gcry_chacha20_amd64_sse2_blocks:
 .Lchacha_blocks_sse2_local:
 	pushq %rbx
@@ -646,7 +653,7 @@ _gcry_chacha20_amd64_sse2_blocks:
 	pxor %xmm8, %xmm8
 	pxor %xmm0, %xmm0
 	ret
-.size _gcry_chacha20_amd64_sse2_blocks,.-_gcry_chacha20_amd64_sse2_blocks;
+ELF(.size _gcry_chacha20_amd64_sse2_blocks,.-_gcry_chacha20_amd64_sse2_blocks;)
 
 #endif /*defined(USE_CHACHA20)*/
 #endif /*__x86_64*/
