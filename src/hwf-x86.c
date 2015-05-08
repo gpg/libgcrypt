@@ -81,7 +81,7 @@ get_cpuid(unsigned int in, unsigned int *eax, unsigned int *ebx,
      "cpuid\n\t"
      "movl %%ebx, %1\n\t"
      "popl %%ebx\n\t"            /* Restore GOT register. */
-     : "=a" (regs[0]), "=r" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
+     : "=a" (regs[0]), "=D" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
      : "0" (in), "1" (0), "2" (0), "3" (0)
      : "cc"
      );
