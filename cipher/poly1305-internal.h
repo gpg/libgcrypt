@@ -44,24 +44,30 @@
 #define POLY1305_REF_ALIGNMENT sizeof(void *)
 
 
+#undef POLY1305_SYSV_FUNC_ABI
+
 /* POLY1305_USE_SSE2 indicates whether to compile with AMD64 SSE2 code. */
 #undef POLY1305_USE_SSE2
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define POLY1305_USE_SSE2 1
 # define POLY1305_SSE2_BLOCKSIZE 32
 # define POLY1305_SSE2_STATESIZE 248
 # define POLY1305_SSE2_ALIGNMENT 16
+# define POLY1305_SYSV_FUNC_ABI 1
 #endif
 
 
 /* POLY1305_USE_AVX2 indicates whether to compile with AMD64 AVX2 code. */
 #undef POLY1305_USE_AVX2
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(ENABLE_AVX2_SUPPORT)
 # define POLY1305_USE_AVX2 1
 # define POLY1305_AVX2_BLOCKSIZE 64
 # define POLY1305_AVX2_STATESIZE 328
 # define POLY1305_AVX2_ALIGNMENT 32
+# define POLY1305_SYSV_FUNC_ABI 1
 #endif
 
 
@@ -112,6 +118,17 @@
 #endif
 
 
+/* Assembly implementations use SystemV ABI, ABI conversion and additional
+ * stack to store XMM6-XMM15 needed on Win64. */
+#undef OPS_FUNC_ABI
+#if defined(POLY1305_SYSV_FUNC_ABI) && \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)
+# define OPS_FUNC_ABI __attribute__((sysv_abi))
+#else
+# define OPS_FUNC_ABI
+#endif
+
+
 typedef struct poly1305_key_s
 {
   byte b[POLY1305_KEYLEN];
@@ -121,10 +138,10 @@ typedef struct poly1305_key_s
 typedef struct poly1305_ops_s
 {
   size_t block_size;
-  void (*init_ext) (void *ctx, const poly1305_key_t * key);
-  unsigned int (*blocks) (void *ctx, const byte * m, size_t bytes);
+  void (*init_ext) (void *ctx, const poly1305_key_t * key) OPS_FUNC_ABI;
+  unsigned int (*blocks) (void *ctx, const byte * m, size_t bytes) OPS_FUNC_ABI;
   unsigned int (*finish_ext) (void *ctx, const byte * m, size_t remaining,
-			      byte mac[POLY1305_TAGLEN]);
+			      byte mac[POLY1305_TAGLEN]) OPS_FUNC_ABI;
 } poly1305_ops_t;
 
 

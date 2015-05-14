@@ -40,12 +40,13 @@ static const char *selftest (void);
 
 #ifdef POLY1305_USE_SSE2
 
-void _gcry_poly1305_amd64_sse2_init_ext(void *state, const poly1305_key_t *key);
+void _gcry_poly1305_amd64_sse2_init_ext(void *state, const poly1305_key_t *key)
+                                       OPS_FUNC_ABI;
 unsigned int _gcry_poly1305_amd64_sse2_finish_ext(void *state, const byte *m,
 						  size_t remaining,
-						  byte mac[16]);
+						  byte mac[16]) OPS_FUNC_ABI;
 unsigned int _gcry_poly1305_amd64_sse2_blocks(void *ctx, const byte *m,
-					      size_t bytes);
+					      size_t bytes) OPS_FUNC_ABI;
 
 static const poly1305_ops_t poly1305_amd64_sse2_ops = {
   POLY1305_SSE2_BLOCKSIZE,
@@ -59,12 +60,13 @@ static const poly1305_ops_t poly1305_amd64_sse2_ops = {
 
 #ifdef POLY1305_USE_AVX2
 
-void _gcry_poly1305_amd64_avx2_init_ext(void *state, const poly1305_key_t *key);
+void _gcry_poly1305_amd64_avx2_init_ext(void *state, const poly1305_key_t *key)
+                                       OPS_FUNC_ABI;
 unsigned int _gcry_poly1305_amd64_avx2_finish_ext(void *state, const byte *m,
 						  size_t remaining,
-						  byte mac[16]);
+						  byte mac[16]) OPS_FUNC_ABI;
 unsigned int _gcry_poly1305_amd64_avx2_blocks(void *ctx, const byte *m,
-					      size_t bytes);
+					      size_t bytes) OPS_FUNC_ABI;
 
 static const poly1305_ops_t poly1305_amd64_avx2_ops = {
   POLY1305_AVX2_BLOCKSIZE,
@@ -78,12 +80,13 @@ static const poly1305_ops_t poly1305_amd64_avx2_ops = {
 
 #ifdef POLY1305_USE_NEON
 
-void _gcry_poly1305_armv7_neon_init_ext(void *state, const poly1305_key_t *key);
+void _gcry_poly1305_armv7_neon_init_ext(void *state, const poly1305_key_t *key)
+                                       OPS_FUNC_ABI;
 unsigned int _gcry_poly1305_armv7_neon_finish_ext(void *state, const byte *m,
 						  size_t remaining,
-						  byte mac[16]);
+						  byte mac[16]) OPS_FUNC_ABI;
 unsigned int _gcry_poly1305_armv7_neon_blocks(void *ctx, const byte *m,
-					      size_t bytes);
+					      size_t bytes) OPS_FUNC_ABI;
 
 static const poly1305_ops_t poly1305_armv7_neon_ops = {
   POLY1305_NEON_BLOCKSIZE,
@@ -110,7 +113,7 @@ typedef struct poly1305_state_ref32_s
 } poly1305_state_ref32_t;
 
 
-static void
+static OPS_FUNC_ABI void
 poly1305_init_ext_ref32 (void *state, const poly1305_key_t * key)
 {
   poly1305_state_ref32_t *st = (poly1305_state_ref32_t *) state;
@@ -142,7 +145,7 @@ poly1305_init_ext_ref32 (void *state, const poly1305_key_t * key)
 }
 
 
-static unsigned int
+static OPS_FUNC_ABI unsigned int
 poly1305_blocks_ref32 (void *state, const byte * m, size_t bytes)
 {
   poly1305_state_ref32_t *st = (poly1305_state_ref32_t *) state;
@@ -230,7 +233,7 @@ poly1305_blocks_ref32 (void *state, const byte * m, size_t bytes)
 }
 
 
-static unsigned int
+static OPS_FUNC_ABI unsigned int
 poly1305_finish_ext_ref32 (void *state, const byte * m,
 			   size_t remaining, byte mac[POLY1305_TAGLEN])
 {
@@ -370,7 +373,7 @@ typedef struct poly1305_state_ref8_t
 } poly1305_state_ref8_t;
 
 
-static void
+static OPS_FUNC_ABI void
 poly1305_init_ext_ref8 (void *state, const poly1305_key_t * key)
 {
   poly1305_state_ref8_t *st = (poly1305_state_ref8_t *) state;
@@ -471,7 +474,7 @@ poly1305_freeze_ref8 (byte h[17])
 }
 
 
-static unsigned int
+static OPS_FUNC_ABI unsigned int
 poly1305_blocks_ref8 (void *state, const byte * m, size_t bytes)
 {
   poly1305_state_ref8_t *st = (poly1305_state_ref8_t *) state;
@@ -519,7 +522,7 @@ poly1305_blocks_ref8 (void *state, const byte * m, size_t bytes)
 }
 
 
-static unsigned int
+static OPS_FUNC_ABI unsigned int
 poly1305_finish_ext_ref8 (void *state, const byte * m, size_t remaining,
 			  byte mac[POLY1305_TAGLEN])
 {

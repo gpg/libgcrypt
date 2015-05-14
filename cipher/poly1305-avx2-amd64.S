@@ -25,15 +25,23 @@
 
 #include <config.h>
 
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(ENABLE_AVX2_SUPPORT)
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
+#endif
+
 
 .text
 
 
 .align 8
 .globl _gcry_poly1305_amd64_avx2_init_ext
-.type  _gcry_poly1305_amd64_avx2_init_ext,@function;
+ELF(.type  _gcry_poly1305_amd64_avx2_init_ext,@function;)
 _gcry_poly1305_amd64_avx2_init_ext:
 .Lpoly1305_init_ext_avx2_local:
 	xor %edx, %edx
@@ -391,12 +399,12 @@ _gcry_poly1305_amd64_avx2_init_ext:
 	popq %r13
 	popq %r12
 	ret
-.size _gcry_poly1305_amd64_avx2_init_ext,.-_gcry_poly1305_amd64_avx2_init_ext;
+ELF(.size _gcry_poly1305_amd64_avx2_init_ext,.-_gcry_poly1305_amd64_avx2_init_ext;)
 
 
 .align 8
 .globl _gcry_poly1305_amd64_avx2_blocks
-.type  _gcry_poly1305_amd64_avx2_blocks,@function;
+ELF(.type  _gcry_poly1305_amd64_avx2_blocks,@function;)
 _gcry_poly1305_amd64_avx2_blocks:
 .Lpoly1305_blocks_avx2_local:
 	vzeroupper
@@ -717,12 +725,12 @@ _gcry_poly1305_amd64_avx2_blocks:
 	leave
 	addq $8, %rax
 	ret
-.size _gcry_poly1305_amd64_avx2_blocks,.-_gcry_poly1305_amd64_avx2_blocks;
+ELF(.size _gcry_poly1305_amd64_avx2_blocks,.-_gcry_poly1305_amd64_avx2_blocks;)
 
 
 .align 8
 .globl _gcry_poly1305_amd64_avx2_finish_ext
-.type  _gcry_poly1305_amd64_avx2_finish_ext,@function;
+ELF(.type  _gcry_poly1305_amd64_avx2_finish_ext,@function;)
 _gcry_poly1305_amd64_avx2_finish_ext:
 .Lpoly1305_finish_ext_avx2_local:
 	vzeroupper
@@ -949,6 +957,6 @@ _gcry_poly1305_amd64_avx2_finish_ext:
 	popq %rbp
 	addq $(8*5), %rax
 ret
-.size _gcry_poly1305_amd64_avx2_finish_ext,.-_gcry_poly1305_amd64_avx2_finish_ext;
+ELF(.size _gcry_poly1305_amd64_avx2_finish_ext,.-_gcry_poly1305_amd64_avx2_finish_ext;)
 
 #endif
