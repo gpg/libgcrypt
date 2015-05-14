@@ -20,12 +20,19 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(USE_DES) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(USE_DES) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 
 #ifdef __PIC__
 #  define RIP (%rip)
 #else
 #  define RIP
+#endif
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
 #endif
 
 .text
@@ -185,7 +192,7 @@
 
 .align 8
 .globl _gcry_3des_amd64_crypt_block
-.type  _gcry_3des_amd64_crypt_block,@function;
+ELF(.type  _gcry_3des_amd64_crypt_block,@function;)
 
 _gcry_3des_amd64_crypt_block:
 	/* input:
@@ -271,7 +278,7 @@ _gcry_3des_amd64_crypt_block:
 	popq %rbp;
 
 	ret;
-.size _gcry_3des_amd64_crypt_block,.-_gcry_3des_amd64_crypt_block;
+ELF(.size _gcry_3des_amd64_crypt_block,.-_gcry_3des_amd64_crypt_block;)
 
 /***********************************************************************
  * 3-way 3DES
@@ -458,7 +465,7 @@ _gcry_3des_amd64_crypt_block:
 	movl   right##d, 4(io);
 
 .align 8
-.type  _gcry_3des_amd64_crypt_blk3,@function;
+ELF(.type  _gcry_3des_amd64_crypt_blk3,@function;)
 _gcry_3des_amd64_crypt_blk3:
 	/* input:
 	 *  %rdi: round keys, CTX
@@ -528,11 +535,11 @@ _gcry_3des_amd64_crypt_blk3:
 	final_permutation3(RR, RL);
 
 	ret;
-.size _gcry_3des_amd64_crypt_blk3,.-_gcry_3des_amd64_crypt_blk3;
+ELF(.size _gcry_3des_amd64_crypt_blk3,.-_gcry_3des_amd64_crypt_blk3;)
 
 .align 8
 .globl  _gcry_3des_amd64_cbc_dec
-.type   _gcry_3des_amd64_cbc_dec,@function;
+ELF(.type   _gcry_3des_amd64_cbc_dec,@function;)
 _gcry_3des_amd64_cbc_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -604,11 +611,11 @@ _gcry_3des_amd64_cbc_dec:
 	popq %rbp;
 
 	ret;
-.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;
+ELF(.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;)
 
 .align 8
 .globl  _gcry_3des_amd64_ctr_enc
-.type   _gcry_3des_amd64_ctr_enc,@function;
+ELF(.type   _gcry_3des_amd64_ctr_enc,@function;)
 _gcry_3des_amd64_ctr_enc:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -682,11 +689,11 @@ _gcry_3des_amd64_ctr_enc:
 	popq %rbp;
 
 	ret;
-.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;
+ELF(.size _gcry_3des_amd64_cbc_dec,.-_gcry_3des_amd64_cbc_dec;)
 
 .align 8
 .globl  _gcry_3des_amd64_cfb_dec
-.type   _gcry_3des_amd64_cfb_dec,@function;
+ELF(.type   _gcry_3des_amd64_cfb_dec,@function;)
 _gcry_3des_amd64_cfb_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -757,7 +764,7 @@ _gcry_3des_amd64_cfb_dec:
 	popq %rbx;
 	popq %rbp;
 	ret;
-.size _gcry_3des_amd64_cfb_dec,.-_gcry_3des_amd64_cfb_dec;
+ELF(.size _gcry_3des_amd64_cfb_dec,.-_gcry_3des_amd64_cfb_dec;)
 
 .data
 .align 16
