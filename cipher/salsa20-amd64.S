@@ -25,13 +25,20 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && defined(USE_SALSA20)
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_SALSA20)
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
+#endif
 
 .text
 
 .align 8
 .globl _gcry_salsa20_amd64_keysetup
-.type  _gcry_salsa20_amd64_keysetup,@function;
+ELF(.type  _gcry_salsa20_amd64_keysetup,@function;)
 _gcry_salsa20_amd64_keysetup:
 	movl   0(%rsi),%r8d
 	movl   4(%rsi),%r9d
@@ -83,7 +90,7 @@ _gcry_salsa20_amd64_keysetup:
 
 .align 8
 .globl _gcry_salsa20_amd64_ivsetup
-.type  _gcry_salsa20_amd64_ivsetup,@function;
+ELF(.type  _gcry_salsa20_amd64_ivsetup,@function;)
 _gcry_salsa20_amd64_ivsetup:
 	movl   0(%rsi),%r8d
 	movl   4(%rsi),%esi
@@ -97,7 +104,7 @@ _gcry_salsa20_amd64_ivsetup:
 
 .align 8
 .globl _gcry_salsa20_amd64_encrypt_blocks
-.type  _gcry_salsa20_amd64_encrypt_blocks,@function;
+ELF(.type  _gcry_salsa20_amd64_encrypt_blocks,@function;)
 _gcry_salsa20_amd64_encrypt_blocks:
 	/*
 	 * Modifications to original implementation:
@@ -918,7 +925,7 @@ _gcry_salsa20_amd64_encrypt_blocks:
 	add  $64,%rdi
 	add  $64,%rsi
 	jmp .L_bytes_are_64_128_or_192
-.size _gcry_salsa20_amd64_encrypt_blocks,.-_gcry_salsa20_amd64_encrypt_blocks;
+ELF(.size _gcry_salsa20_amd64_encrypt_blocks,.-_gcry_salsa20_amd64_encrypt_blocks;)
 
 #endif /*defined(USE_SALSA20)*/
 #endif /*__x86_64*/

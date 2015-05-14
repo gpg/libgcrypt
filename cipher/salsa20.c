@@ -43,7 +43,8 @@
 
 /* USE_AMD64 indicates whether to compile with AMD64 code. */
 #undef USE_AMD64
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_AMD64 1
 #endif
 
@@ -118,12 +119,25 @@ static const char *selftest (void);
 
 
 #ifdef USE_AMD64
+
+/* Assembly implementations use SystemV ABI, ABI conversion and additional
+ * stack to store XMM6-XMM15 needed on Win64. */
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+# define ASM_FUNC_ABI __attribute__((sysv_abi))
+# define ASM_EXTRA_STACK (10 * 16)
+#else
+# define ASM_FUNC_ABI
+# define ASM_EXTRA_STACK 0
+#endif
+
 /* AMD64 assembly implementations of Salsa20. */
-void _gcry_salsa20_amd64_keysetup(u32 *ctxinput, const void *key, int keybits);
-void _gcry_salsa20_amd64_ivsetup(u32 *ctxinput, const void *iv);
+void _gcry_salsa20_amd64_keysetup(u32 *ctxinput, const void *key, int keybits)
+                                 ASM_FUNC_ABI;
+void _gcry_salsa20_amd64_ivsetup(u32 *ctxinput, const void *iv)
+                                ASM_FUNC_ABI;
 unsigned int
 _gcry_salsa20_amd64_encrypt_blocks(u32 *ctxinput, const void *src, void *dst,
-                                   size_t len, int rounds);
+                                   size_t len, int rounds) ASM_FUNC_ABI;
 
 static void
 salsa20_keysetup(SALSA20_context_t *ctx, const byte *key, int keylen)
@@ -141,7 +155,8 @@ static unsigned int
 salsa20_core (u32 *dst, SALSA20_context_t *ctx, unsigned int rounds)
 {
   memset(dst, 0, SALSA20_BLOCK_SIZE);
-  return _gcry_salsa20_amd64_encrypt_blocks(ctx->input, dst, dst, 1, rounds);
+  return _gcry_salsa20_amd64_encrypt_blocks(ctx->input, dst, dst, 1, rounds)
+         + ASM_EXTRA_STACK;
 }
 
 #else /* USE_AMD64 */
@@ -418,6 +433,7 @@ salsa20_do_encrypt_stream (SALSA20_context_t *ctx,
       size_t nblocks = length / SALSA20_BLOCK_SIZE;
       burn = _gcry_salsa20_amd64_encrypt_blocks(ctx->input, inbuf, outbuf,
                                                 nblocks, rounds);
+      burn += ASM_EXTRA_STACK;
       length -= SALSA20_BLOCK_SIZE * nblocks;
       outbuf += SALSA20_BLOCK_SIZE * nblocks;
       inbuf  += SALSA20_BLOCK_SIZE * nblocks;
