@@ -75,7 +75,8 @@
 /* USE_AESNI inidicates whether to compile with Intel AES-NI/AVX code. */
 #undef USE_AESNI_AVX
 #if defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX_SUPPORT)
-# if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+# if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 #  define USE_AESNI_AVX 1
 # endif
 #endif
@@ -83,7 +84,8 @@
 /* USE_AESNI_AVX2 inidicates whether to compile with Intel AES-NI/AVX2 code. */
 #undef USE_AESNI_AVX2
 #if defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX2_SUPPORT)
-# if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+# if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 #  define USE_AESNI_AVX2 1
 # endif
 #endif
@@ -100,6 +102,20 @@ typedef struct
 #endif /*USE_AESNI_AVX2*/
 } CAMELLIA_context;
 
+/* Assembly implementations use SystemV ABI, ABI conversion and additional
+ * stack to store XMM6-XMM15 needed on Win64. */
+#undef ASM_FUNC_ABI
+#undef ASM_EXTRA_STACK
+#if defined(USE_AESNI_AVX) || defined(USE_AESNI_AVX2)
+# ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+#  define ASM_FUNC_ABI __attribute__((sysv_abi))
+#  define ASM_EXTRA_STACK (10 * 16)
+# else
+#  define ASM_FUNC_ABI
+#  define ASM_EXTRA_STACK 0
+# endif
+#endif
+
 #ifdef USE_AESNI_AVX
 /* Assembler implementations of Camellia using AES-NI and AVX.  Process data
    in 16 block same time.
@@ -107,21 +123,21 @@ typedef struct
 extern void _gcry_camellia_aesni_avx_ctr_enc(CAMELLIA_context *ctx,
 					     unsigned char *out,
 					     const unsigned char *in,
-					     unsigned char *ctr);
+					     unsigned char *ctr) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx_cbc_dec(CAMELLIA_context *ctx,
 					     unsigned char *out,
 					     const unsigned char *in,
-					     unsigned char *iv);
+					     unsigned char *iv) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx_cfb_dec(CAMELLIA_context *ctx,
 					     unsigned char *out,
 					     const unsigned char *in,
-					     unsigned char *iv);
+					     unsigned char *iv) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx_keygen(CAMELLIA_context *ctx,
 					    const unsigned char *key,
-					    unsigned int keylen);
+					    unsigned int keylen) ASM_FUNC_ABI;
 #endif
 
 #ifdef USE_AESNI_AVX2
@@ -131,17 +147,17 @@ extern void _gcry_camellia_aesni_avx_keygen(CAMELLIA_context *ctx,
 extern void _gcry_camellia_aesni_avx2_ctr_enc(CAMELLIA_context *ctx,
 					      unsigned char *out,
 					      const unsigned char *in,
-					      unsigned char *ctr);
+					      unsigned char *ctr) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx2_cbc_dec(CAMELLIA_context *ctx,
 					      unsigned char *out,
 					      const unsigned char *in,
-					      unsigned char *iv);
+					      unsigned char *iv) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx2_cfb_dec(CAMELLIA_context *ctx,
 					      unsigned char *out,
 					      const unsigned char *in,
-					      unsigned char *iv);
+					      unsigned char *iv) ASM_FUNC_ABI;
 #endif
 
 static const char *selftest(void);
@@ -318,7 +334,7 @@ _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
       if (did_use_aesni_avx2)
         {
           int avx2_burn_stack_depth = 32 * CAMELLIA_BLOCK_SIZE + 16 +
-                                        2 * sizeof(void *);
+                                        2 * sizeof(void *) + ASM_EXTRA_STACK;
 
           if (burn_stack_depth < avx2_burn_stack_depth)
             burn_stack_depth = avx2_burn_stack_depth;
@@ -347,8 +363,11 @@ _gcry_camellia_ctr_enc(void *context, unsigned char *ctr,
 
       if (did_use_aesni_avx)
         {
-          if (burn_stack_depth < 16 * CAMELLIA_BLOCK_SIZE + 2 * sizeof(void *))
-            burn_stack_depth = 16 * CAMELLIA_BLOCK_SIZE + 2 * sizeof(void *);
+          int avx_burn_stack_depth = 16 * CAMELLIA_BLOCK_SIZE +
+                                       2 * sizeof(void *) + ASM_EXTRA_STACK;
+
+          if (burn_stack_depth < avx_burn_stack_depth)
+            burn_stack_depth = avx_burn_stack_depth;
         }
 
       /* Use generic code to handle smaller chunks... */
@@ -409,7 +428,7 @@ _gcry_camellia_cbc_dec(void *context, unsigned char *iv,
       if (did_use_aesni_avx2)
         {
           int avx2_burn_stack_depth = 32 * CAMELLIA_BLOCK_SIZE + 16 +
-                                        2 * sizeof(void *);
+                                        2 * sizeof(void *) + ASM_EXTRA_STACK;;
 
           if (burn_stack_depth < avx2_burn_stack_depth)
             burn_stack_depth = avx2_burn_stack_depth;
@@ -437,8 +456,11 @@ _gcry_camellia_cbc_dec(void *context, unsigned char *iv,
 
       if (did_use_aesni_avx)
         {
-          if (burn_stack_depth < 16 * CAMELLIA_BLOCK_SIZE + 2 * sizeof(void *))
-            burn_stack_depth = 16 * CAMELLIA_BLOCK_SIZE + 2 * sizeof(void *);
+          int avx_burn_stack_depth = 16 * CAMELLIA_BLOCK_SIZE +
+                                       2 * sizeof(void *) + ASM_EXTRA_STACK;
+
+          if (burn_stack_depth < avx_burn_stack_depth)
+            burn_stack_depth = avx_burn_stack_depth;
         }
 
       /* Use generic code to handle smaller chunks... */
@@ -491,7 +513,7 @@ _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
       if (did_use_aesni_avx2)
         {
           int avx2_burn_stack_depth = 32 * CAMELLIA_BLOCK_SIZE + 16 +
-                                        2 * sizeof(void *);
+                                        2 * sizeof(void *) + ASM_EXTRA_STACK;
 
           if (burn_stack_depth < avx2_burn_stack_depth)
             burn_stack_depth = avx2_burn_stack_depth;
@@ -519,8 +541,11 @@ _gcry_camellia_cfb_dec(void *context, unsigned char *iv,
 
       if (did_use_aesni_avx)
         {
-          if (burn_stack_depth < 16 * CAMELLIA_BLOCK_SIZE + 2 * sizeof(void *))
-            burn_stack_depth = 16 * CAMELLIA_BLOCK_SIZE + 2 * sizeof(void *);
+          int avx_burn_stack_depth = 16 * CAMELLIA_BLOCK_SIZE +
+                                       2 * sizeof(void *) + ASM_EXTRA_STACK;
+
+          if (burn_stack_depth < avx_burn_stack_depth)
+            burn_stack_depth = avx_burn_stack_depth;
         }
 
       /* Use generic code to handle smaller chunks... */

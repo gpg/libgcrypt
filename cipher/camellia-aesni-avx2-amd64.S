@@ -20,13 +20,20 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && \
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+     defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
     defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX2_SUPPORT)
 
 #ifdef __PIC__
 #  define RIP (%rip)
 #else
 #  define RIP
+#endif
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
 #endif
 
 #define CAMELLIA_TABLE_BYTE_LEN 272
@@ -748,7 +755,7 @@
 .text
 
 .align 8
-.type   __camellia_enc_blk32,@function;
+ELF(.type   __camellia_enc_blk32,@function;)
 
 __camellia_enc_blk32:
 	/* input:
@@ -832,10 +839,10 @@ __camellia_enc_blk32:
 		     %ymm15, %rax, %rcx, 24);
 
 	jmp .Lenc_done;
-.size __camellia_enc_blk32,.-__camellia_enc_blk32;
+ELF(.size __camellia_enc_blk32,.-__camellia_enc_blk32;)
 
 .align 8
-.type   __camellia_dec_blk32,@function;
+ELF(.type   __camellia_dec_blk32,@function;)
 
 __camellia_dec_blk32:
 	/* input:
@@ -917,7 +924,7 @@ __camellia_dec_blk32:
 	      ((key_table + (24) * 8) + 4)(CTX));
 
 	jmp .Ldec_max24;
-.size __camellia_dec_blk32,.-__camellia_dec_blk32;
+ELF(.size __camellia_dec_blk32,.-__camellia_dec_blk32;)
 
 #define inc_le128(x, minus_one, tmp) \
 	vpcmpeqq minus_one, x, tmp; \
@@ -927,7 +934,7 @@ __camellia_dec_blk32:
 
 .align 8
 .globl _gcry_camellia_aesni_avx2_ctr_enc
-.type   _gcry_camellia_aesni_avx2_ctr_enc,@function;
+ELF(.type   _gcry_camellia_aesni_avx2_ctr_enc,@function;)
 
 _gcry_camellia_aesni_avx2_ctr_enc:
 	/* input:
@@ -1111,11 +1118,11 @@ _gcry_camellia_aesni_avx2_ctr_enc:
 
 	leave;
 	ret;
-.size _gcry_camellia_aesni_avx2_ctr_enc,.-_gcry_camellia_aesni_avx2_ctr_enc;
+ELF(.size _gcry_camellia_aesni_avx2_ctr_enc,.-_gcry_camellia_aesni_avx2_ctr_enc;)
 
 .align 8
 .globl _gcry_camellia_aesni_avx2_cbc_dec
-.type   _gcry_camellia_aesni_avx2_cbc_dec,@function;
+ELF(.type   _gcry_camellia_aesni_avx2_cbc_dec,@function;)
 
 _gcry_camellia_aesni_avx2_cbc_dec:
 	/* input:
@@ -1183,11 +1190,11 @@ _gcry_camellia_aesni_avx2_cbc_dec:
 
 	leave;
 	ret;
-.size _gcry_camellia_aesni_avx2_cbc_dec,.-_gcry_camellia_aesni_avx2_cbc_dec;
+ELF(.size _gcry_camellia_aesni_avx2_cbc_dec,.-_gcry_camellia_aesni_avx2_cbc_dec;)
 
 .align 8
 .globl _gcry_camellia_aesni_avx2_cfb_dec
-.type   _gcry_camellia_aesni_avx2_cfb_dec,@function;
+ELF(.type   _gcry_camellia_aesni_avx2_cfb_dec,@function;)
 
 _gcry_camellia_aesni_avx2_cfb_dec:
 	/* input:
@@ -1257,7 +1264,7 @@ _gcry_camellia_aesni_avx2_cfb_dec:
 
 	leave;
 	ret;
-.size _gcry_camellia_aesni_avx2_cfb_dec,.-_gcry_camellia_aesni_avx2_cfb_dec;
+ELF(.size _gcry_camellia_aesni_avx2_cfb_dec,.-_gcry_camellia_aesni_avx2_cfb_dec;)
 
 #endif /*defined(ENABLE_AESNI_SUPPORT) && defined(ENABLE_AVX2_SUPPORT)*/
 #endif /*__x86_64*/
