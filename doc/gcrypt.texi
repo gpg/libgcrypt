@@ -1643,9 +1643,10 @@ Associated Data (AEAD) block cipher mode, which is specified in
 'NIST Special Publication 800-38D'.
 
 @item  GCRY_CIPHER_MODE_POLY1305
-@cindex Poly1305 based AEAD mode
-Poly1305 is an Authenticated Encryption with Associated Data (AEAD)
-mode, which can be used with ChaCha20 and Salsa20 stream ciphers.
+@cindex Poly1305 based AEAD mode with ChaCha20
+This mode implements the Poly1305 Authenticated Encryption with Associated
+Data (AEAD) mode according to RFC-7539. This mode can be used with ChaCha20
+stream cipher.
 
 @item  GCRY_CIPHER_MODE_OCB
 @cindex OCB, OCB3
@@ -1687,7 +1688,7 @@ and the according constants.  Note that some modes are incompatible
 with some algorithms - in particular, stream mode
 (@code{GCRY_CIPHER_MODE_STREAM}) only works with stream ciphers.
 Poly1305 AEAD mode (@code{GCRY_CIPHER_MODE_POLY1305}) only works with
-ChaCha and Salsa stream ciphers. The block cipher modes
+ChaCha20 stream cipher. The block cipher modes
 (@code{GCRY_CIPHER_MODE_ECB}, @code{GCRY_CIPHER_MODE_CBC},
 @code{GCRY_CIPHER_MODE_CFB}, @code{GCRY_CIPHER_MODE_OFB} and
 @code{GCRY_CIPHER_MODE_CTR}) will work with any block cipher
