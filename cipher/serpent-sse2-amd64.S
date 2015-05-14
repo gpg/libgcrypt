@@ -20,7 +20,14 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && defined(USE_SERPENT)
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_SERPENT)
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
+#endif
 
 #ifdef __PIC__
 #  define RIP (%rip)
@@ -427,7 +434,7 @@
 .text
 
 .align 8
-.type   __serpent_enc_blk8,@function;
+ELF(.type   __serpent_enc_blk8,@function;)
 __serpent_enc_blk8:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -512,10 +519,10 @@ __serpent_enc_blk8:
 	transpose_4x4(RB4, RB1, RB2, RB0, RB3, RTMP0, RTMP1);
 
 	ret;
-.size __serpent_enc_blk8,.-__serpent_enc_blk8;
+ELF(.size __serpent_enc_blk8,.-__serpent_enc_blk8;)
 
 .align 8
-.type   __serpent_dec_blk8,@function;
+ELF(.type   __serpent_dec_blk8,@function;)
 __serpent_dec_blk8:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -602,11 +609,11 @@ __serpent_dec_blk8:
 	transpose_4x4(RB0, RB1, RB2, RB3, RB4, RTMP0, RTMP1);
 
 	ret;
-.size __serpent_dec_blk8,.-__serpent_dec_blk8;
+ELF(.size __serpent_dec_blk8,.-__serpent_dec_blk8;)
 
 .align 8
 .globl _gcry_serpent_sse2_ctr_enc
-.type   _gcry_serpent_sse2_ctr_enc,@function;
+ELF(.type   _gcry_serpent_sse2_ctr_enc,@function;)
 _gcry_serpent_sse2_ctr_enc:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -732,11 +739,11 @@ _gcry_serpent_sse2_ctr_enc:
 	pxor RNOT, RNOT;
 
 	ret
-.size _gcry_serpent_sse2_ctr_enc,.-_gcry_serpent_sse2_ctr_enc;
+ELF(.size _gcry_serpent_sse2_ctr_enc,.-_gcry_serpent_sse2_ctr_enc;)
 
 .align 8
 .globl _gcry_serpent_sse2_cbc_dec
-.type   _gcry_serpent_sse2_cbc_dec,@function;
+ELF(.type   _gcry_serpent_sse2_cbc_dec,@function;)
 _gcry_serpent_sse2_cbc_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -793,11 +800,11 @@ _gcry_serpent_sse2_cbc_dec:
 	pxor RNOT, RNOT;
 
 	ret
-.size _gcry_serpent_sse2_cbc_dec,.-_gcry_serpent_sse2_cbc_dec;
+ELF(.size _gcry_serpent_sse2_cbc_dec,.-_gcry_serpent_sse2_cbc_dec;)
 
 .align 8
 .globl _gcry_serpent_sse2_cfb_dec
-.type   _gcry_serpent_sse2_cfb_dec,@function;
+ELF(.type   _gcry_serpent_sse2_cfb_dec,@function;)
 _gcry_serpent_sse2_cfb_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -857,7 +864,7 @@ _gcry_serpent_sse2_cfb_dec:
 	pxor RNOT, RNOT;
 
 	ret
-.size _gcry_serpent_sse2_cfb_dec,.-_gcry_serpent_sse2_cfb_dec;
+ELF(.size _gcry_serpent_sse2_cfb_dec,.-_gcry_serpent_sse2_cfb_dec;)
 
 #endif /*defined(USE_SERPENT)*/
 #endif /*__x86_64*/

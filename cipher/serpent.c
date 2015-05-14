@@ -34,13 +34,15 @@
 
 /* USE_SSE2 indicates whether to compile with AMD64 SSE2 code. */
 #undef USE_SSE2
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_SSE2 1
 #endif
 
 /* USE_AVX2 indicates whether to compile with AMD64 AVX2 code. */
 #undef USE_AVX2
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # if defined(ENABLE_AVX2_SUPPORT)
 #  define USE_AVX2 1
 # endif
@@ -86,6 +88,18 @@ typedef struct serpent_context
 } serpent_context_t;
 
 
+/* Assembly implementations use SystemV ABI, ABI conversion and additional
+ * stack to store XMM6-XMM15 needed on Win64. */
+#undef ASM_FUNC_ABI
+#if defined(USE_SSE2) || defined(USE_AVX2)
+# ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+#  define ASM_FUNC_ABI __attribute__((sysv_abi))
+# else
+#  define ASM_FUNC_ABI
+# endif
+#endif
+
+
 #ifdef USE_SSE2
 /* Assembler implementations of Serpent using SSE2.  Process 8 block in
    parallel.
@@ -93,17 +107,17 @@ typedef struct serpent_context
 extern void _gcry_serpent_sse2_ctr_enc(serpent_context_t *ctx,
 				       unsigned char *out,
 				       const unsigned char *in,
-				       unsigned char *ctr);
+				       unsigned char *ctr) ASM_FUNC_ABI;
 
 extern void _gcry_serpent_sse2_cbc_dec(serpent_context_t *ctx,
 				       unsigned char *out,
 				       const unsigned char *in,
-				       unsigned char *iv);
+				       unsigned char *iv) ASM_FUNC_ABI;
 
 extern void _gcry_serpent_sse2_cfb_dec(serpent_context_t *ctx,
 				       unsigned char *out,
 				       const unsigned char *in,
-				       unsigned char *iv);
+				       unsigned char *iv) ASM_FUNC_ABI;
 #endif
 
 #ifdef USE_AVX2
@@ -113,17 +127,17 @@ extern void _gcry_serpent_sse2_cfb_dec(serpent_context_t *ctx,
 extern void _gcry_serpent_avx2_ctr_enc(serpent_context_t *ctx,
 				       unsigned char *out,
 				       const unsigned char *in,
-				       unsigned char *ctr);
+				       unsigned char *ctr) ASM_FUNC_ABI;
 
 extern void _gcry_serpent_avx2_cbc_dec(serpent_context_t *ctx,
 				       unsigned char *out,
 				       const unsigned char *in,
-				       unsigned char *iv);
+				       unsigned char *iv) ASM_FUNC_ABI;
 
 extern void _gcry_serpent_avx2_cfb_dec(serpent_context_t *ctx,
 				       unsigned char *out,
 				       const unsigned char *in,
-				       unsigned char *iv);
+				       unsigned char *iv) ASM_FUNC_ABI;
 #endif
 
 #ifdef USE_NEON
