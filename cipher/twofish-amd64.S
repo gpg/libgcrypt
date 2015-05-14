@@ -20,7 +20,14 @@
 
 #ifdef __x86_64
 #include <config.h>
-#if defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) && defined(USE_TWOFISH)
+#if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && defined(USE_TWOFISH)
+
+#ifdef HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS
+# define ELF(...) __VA_ARGS__
+#else
+# define ELF(...) /*_*/
+#endif
 
 #ifdef __PIC__
 #  define RIP %rip
@@ -166,7 +173,7 @@
 
 .align 8
 .globl _gcry_twofish_amd64_encrypt_block
-.type   _gcry_twofish_amd64_encrypt_block,@function;
+ELF(.type   _gcry_twofish_amd64_encrypt_block,@function;)
 
 _gcry_twofish_amd64_encrypt_block:
 	/* input:
@@ -205,11 +212,11 @@ _gcry_twofish_amd64_encrypt_block:
 	addq $(3 * 8), %rsp;
 
 	ret;
-.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;
+ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;)
 
 .align 8
 .globl _gcry_twofish_amd64_decrypt_block
-.type   _gcry_twofish_amd64_decrypt_block,@function;
+ELF(.type   _gcry_twofish_amd64_decrypt_block,@function;)
 
 _gcry_twofish_amd64_decrypt_block:
 	/* input:
@@ -248,7 +255,7 @@ _gcry_twofish_amd64_decrypt_block:
 	addq $(3 * 8), %rsp;
 
 	ret;
-.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;
+ELF(.size _gcry_twofish_amd64_encrypt_block,.-_gcry_twofish_amd64_encrypt_block;)
 
 #undef CTX
 
@@ -462,7 +469,7 @@ _gcry_twofish_amd64_decrypt_block:
 	outunpack3(RAB, 2);
 
 .align 8
-.type __twofish_enc_blk3,@function;
+ELF(.type __twofish_enc_blk3,@function;)
 
 __twofish_enc_blk3:
 	/* input:
@@ -485,10 +492,10 @@ __twofish_enc_blk3:
 	outunpack_enc3();
 
 	ret;
-.size __twofish_enc_blk3,.-__twofish_enc_blk3;
+ELF(.size __twofish_enc_blk3,.-__twofish_enc_blk3;)
 
 .align 8
-.type  __twofish_dec_blk3,@function;
+ELF(.type  __twofish_dec_blk3,@function;)
 
 __twofish_dec_blk3:
 	/* input:
@@ -511,11 +518,11 @@ __twofish_dec_blk3:
 	outunpack_dec3();
 
 	ret;
-.size __twofish_dec_blk3,.-__twofish_dec_blk3;
+ELF(.size __twofish_dec_blk3,.-__twofish_dec_blk3;)
 
 .align 8
 .globl _gcry_twofish_amd64_ctr_enc
-.type   _gcry_twofish_amd64_ctr_enc,@function;
+ELF(.type   _gcry_twofish_amd64_ctr_enc,@function;)
 _gcry_twofish_amd64_ctr_enc:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -593,11 +600,11 @@ _gcry_twofish_amd64_ctr_enc:
 	addq $(8 * 8), %rsp;
 
 	ret;
-.size _gcry_twofish_amd64_ctr_enc,.-_gcry_twofish_amd64_ctr_enc;
+ELF(.size _gcry_twofish_amd64_ctr_enc,.-_gcry_twofish_amd64_ctr_enc;)
 
 .align 8
 .globl _gcry_twofish_amd64_cbc_dec
-.type   _gcry_twofish_amd64_cbc_dec,@function;
+ELF(.type   _gcry_twofish_amd64_cbc_dec,@function;)
 _gcry_twofish_amd64_cbc_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -659,11 +666,11 @@ _gcry_twofish_amd64_cbc_dec:
 	addq $(9 * 8), %rsp;
 
 	ret;
-.size _gcry_twofish_amd64_cbc_dec,.-_gcry_twofish_amd64_cbc_dec;
+ELF(.size _gcry_twofish_amd64_cbc_dec,.-_gcry_twofish_amd64_cbc_dec;)
 
 .align 8
 .globl _gcry_twofish_amd64_cfb_dec
-.type   _gcry_twofish_amd64_cfb_dec,@function;
+ELF(.type   _gcry_twofish_amd64_cfb_dec,@function;)
 _gcry_twofish_amd64_cfb_dec:
 	/* input:
 	 *	%rdi: ctx, CTX
@@ -725,7 +732,7 @@ _gcry_twofish_amd64_cfb_dec:
 	addq $(8 * 8), %rsp;
 
 	ret;
-.size _gcry_twofish_amd64_cfb_dec,.-_gcry_twofish_amd64_cfb_dec;
+ELF(.size _gcry_twofish_amd64_cfb_dec,.-_gcry_twofish_amd64_cfb_dec;)
 
 #endif /*USE_TWOFISH*/
 #endif /*__x86_64*/

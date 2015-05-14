@@ -53,7 +53,8 @@
 
 /* USE_AMD64_ASM indicates whether to use AMD64 assembly code. */
 #undef USE_AMD64_ASM
-#if defined(__x86_64__) && defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS)
+#if defined(__x86_64__) && (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
+    defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS))
 # define USE_AMD64_ASM 1
 #endif
 
@@ -754,6 +755,77 @@ extern void _gcry_twofish_amd64_cbc_dec(const TWOFISH_context *c, byte *out,
 extern void _gcry_twofish_amd64_cfb_dec(const TWOFISH_context *c, byte *out,
 					const byte *in, byte *iv);
 
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+static inline void
+call_sysv_fn (const void *fn, const void *arg1, const void *arg2,
+              const void *arg3, const void *arg4)
+{
+  /* Call SystemV ABI function without storing non-volatile XMM registers,
+   * as target function does not use vector instruction sets. */
+  asm volatile ("callq *%0\n\t"
+                : "+a" (fn),
+                  "+D" (arg1),
+                  "+S" (arg2),
+                  "+d" (arg3),
+                  "+c" (arg4)
+                :
+                : "cc", "memory", "r8", "r9", "r10", "r11");
+}
+#endif
+
+static inline void
+twofish_amd64_encrypt_block(const TWOFISH_context *c, byte *out, const byte *in)
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn(_gcry_twofish_amd64_encrypt_block, c, out, in, NULL);
+#else
+  _gcry_twofish_amd64_encrypt_block(c, out, in);
+#endif
+}
+
+static inline void
+twofish_amd64_decrypt_block(const TWOFISH_context *c, byte *out, const byte *in)
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn(_gcry_twofish_amd64_decrypt_block, c, out, in, NULL);
+#else
+  _gcry_twofish_amd64_decrypt_block(c, out, in);
+#endif
+}
+
+static inline void
+twofish_amd64_ctr_enc(const TWOFISH_context *c, byte *out, const byte *in,
+                      byte *ctr)
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn(_gcry_twofish_amd64_ctr_enc, c, out, in, ctr);
+#else
+  _gcry_twofish_amd64_ctr_enc(c, out, in, ctr);
+#endif
+}
+
+static inline void
+twofish_amd64_cbc_dec(const TWOFISH_context *c, byte *out, const byte *in,
+                      byte *iv)
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn(_gcry_twofish_amd64_cbc_dec, c, out, in, iv);
+#else
+  _gcry_twofish_amd64_cbc_dec(c, out, in, iv);
+#endif
+}
+
+static inline void
+twofish_amd64_cfb_dec(const TWOFISH_context *c, byte *out, const byte *in,
+                      byte *iv)
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn(_gcry_twofish_amd64_cfb_dec, c, out, in, iv);
+#else
+  _gcry_twofish_amd64_cfb_dec(c, out, in, iv);
+#endif
+}
+
 #elif defined(USE_ARM_ASM)
 
 /* Assembly implementations of Twofish. */
@@ -833,7 +905,7 @@ static unsigned int
 twofish_encrypt (void *context, byte *out, const byte *in)
 {
   TWOFISH_context *ctx = context;
-  _gcry_twofish_amd64_encrypt_block(ctx, out, in);
+  twofish_amd64_encrypt_block(ctx, out, in);
   return /*burn_stack*/ (4*sizeof (void*));
 }
 
@@ -900,7 +972,7 @@ static unsigned int
 twofish_decrypt (void *context, byte *out, const byte *in)
 {
   TWOFISH_context *ctx = context;
-  _gcry_twofish_amd64_decrypt_block(ctx, out, in);
+  twofish_amd64_decrypt_block(ctx, out, in);
   return /*burn_stack*/ (4*sizeof (void*));
 }
 
@@ -980,7 +1052,7 @@ _gcry_twofish_ctr_enc(void *context, unsigned char *ctr, void *outbuf_arg,
     /* Process data in 3 block chunks. */
     while (nblocks >= 3)
       {
-        _gcry_twofish_amd64_ctr_enc(ctx, outbuf, inbuf, ctr);
+        twofish_amd64_ctr_enc(ctx, outbuf, inbuf, ctr);
 
         nblocks -= 3;
         outbuf += 3 * TWOFISH_BLOCKSIZE;
@@ -1038,7 +1110,7 @@ _gcry_twofish_cbc_dec(void *context, unsigned char *iv, void *outbuf_arg,
     /* Process data in 3 block chunks. */
     while (nblocks >= 3)
       {
-        _gcry_twofish_amd64_cbc_dec(ctx, outbuf, inbuf, iv);
+        twofish_amd64_cbc_dec(ctx, outbuf, inbuf, iv);
 
         nblocks -= 3;
         outbuf += 3 * TWOFISH_BLOCKSIZE;
@@ -1087,7 +1159,7 @@ _gcry_twofish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
     /* Process data in 3 block chunks. */
     while (nblocks >= 3)
       {
-        _gcry_twofish_amd64_cfb_dec(ctx, outbuf, inbuf, iv);
+        twofish_amd64_cfb_dec(ctx, outbuf, inbuf, iv);
 
         nblocks -= 3;
         outbuf += 3 * TWOFISH_BLOCKSIZE;
