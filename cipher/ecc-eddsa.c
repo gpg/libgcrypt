@@ -465,15 +465,28 @@ _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
 }
 
 
-/* Ed25519 version of the key generation.  */
+/**
+ * _gcry_ecc_eddsa_genkey - EdDSA version of the key generation.
+ *
+ * @sk:  A struct to receive the secret key.
+ * @E:   Parameters of the curve.
+ * @ctx: Elliptic curve computation context.
+ * @flags: Flags controlling aspects of the creation.
+ *
+ * Return: An error code.
+ *
+ * The only @flags bit used by this function is %PUBKEY_FLAG_TRANSIENT
+ * to use a faster RNG.
+ */
 gpg_err_code_t
 _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
-                        gcry_random_level_t random_level)
+                        int flags)
 {
   gpg_err_code_t rc;
   int b = 256/8;             /* The only size we currently support.  */
   gcry_mpi_t a, x, y;
   mpi_point_struct Q;
+  gcry_random_level_t random_level;
   char *dbuf;
   size_t dlen;
   gcry_buffer_t hvec[1];
@@ -481,6 +494,11 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
 
   point_init (&Q);
   memset (hvec, 0, sizeof hvec);
+
+  if ((flags & PUBKEY_FLAG_TRANSIENT_KEY))
+    random_level = GCRY_STRONG_RANDOM;
+  else
+    random_level = GCRY_VERY_STRONG_RANDOM;
 
   a = mpi_snew (0);
   x = mpi_new (0);

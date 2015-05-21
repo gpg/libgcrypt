@@ -1,7 +1,7 @@
 /* pubkey-util.c - Supporting functions for all pubkey modules.
  * Copyright (C) 1998, 1999, 2000, 2002, 2003, 2005,
  *               2007, 2008, 2011 Free Software Foundation, Inc.
- * Copyright (C) 2013  g10 Code GmbH
+ * Copyright (C) 2013, 2015 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -155,6 +155,10 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
         case 10:
           if (!memcmp (s, "igninvflag", 10))
             igninvflag = 1;
+          else if (!memcmp (s, "no-keytest", 10))
+            flags |= PUBKEY_FLAG_NO_KEYTEST;
+          else if (!igninvflag)
+            rc = GPG_ERR_INV_FLAG;
           break;
 
         case 11:

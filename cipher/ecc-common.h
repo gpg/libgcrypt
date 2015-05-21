@@ -123,7 +123,7 @@ gpg_err_code_t _gcry_ecc_eddsa_compute_h_d (unsigned char **r_digest,
 gpg_err_code_t _gcry_ecc_eddsa_genkey (ECC_secret_key *sk,
                                        elliptic_curve_t *E,
                                        mpi_ec_t ctx,
-                                       gcry_random_level_t random_level);
+                                       int flags);
 gpg_err_code_t _gcry_ecc_eddsa_sign (gcry_mpi_t input,
                                      ECC_secret_key *sk,
                                      gcry_mpi_t r_r, gcry_mpi_t s,

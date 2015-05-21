@@ -1,5 +1,6 @@
 /* keygen.c  -  key generation regression tests
  * Copyright (C) 2003, 2005, 2012 Free Software Foundation, Inc.
+ * Copyright (C) 2013, 2015 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -14,8 +15,7 @@
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * License along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -432,7 +432,43 @@ check_ecc_keys (void)
     show_sexp ("ECC key:\n", key);
 
   check_generated_ecc_key (key);
+  gcry_sexp_release (key);
 
+
+  if (verbose)
+    show ("creating ECC key using curve Ed25519 for ECDSA (transient-key)\n");
+  rc = gcry_sexp_build (&keyparm, NULL,
+                        "(genkey(ecc(curve Ed25519)(flags transient-key)))");
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating ECC key using curve Ed25519 for ECDSA"
+         " (transient-key): %s\n",
+         gpg_strerror (rc));
+  if (verbose > 1)
+    show_sexp ("ECC key:\n", key);
+  check_generated_ecc_key (key);
+  gcry_sexp_release (key);
+
+  if (verbose)
+    show ("creating ECC key using curve Ed25519 for ECDSA "
+          "(transient-key no-keytest)\n");
+  rc = gcry_sexp_build (&keyparm, NULL,
+                        "(genkey(ecc(curve Ed25519)"
+                        "(flags transient-key no-keytest)))");
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating ECC key using curve Ed25519 for ECDSA"
+         " (transient-key no-keytest): %s\n",
+         gpg_strerror (rc));
+  if (verbose > 1)
+    show_sexp ("ECC key:\n", key);
+  check_generated_ecc_key (key);
   gcry_sexp_release (key);
 }
 

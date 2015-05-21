@@ -23,6 +23,10 @@ Noteworthy changes in version 1.7.0 (unreleased)
 
  * Added OCB mode.
 
+ * New flag "no-keytest" for ECC key generation.  Due to a bug in the
+   parser that flag will also be accepted but ignored by older version
+   of Libgcrypt.
+
  * Interface changes relative to the 1.6.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_mac_get_algo               NEW.

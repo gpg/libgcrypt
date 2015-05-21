@@ -40,6 +40,7 @@
 #define PUBKEY_FLAG_NOCOMP         (1 << 11)
 #define PUBKEY_FLAG_EDDSA          (1 << 12)
 #define PUBKEY_FLAG_GOST           (1 << 13)
+#define PUBKEY_FLAG_NO_KEYTEST     (1 << 14)
 
 
 enum pk_operation
