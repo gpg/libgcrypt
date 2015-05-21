@@ -1,6 +1,6 @@
 /* ecc.c  -  Elliptic Curve Cryptography
  * Copyright (C) 2007, 2008, 2010, 2011 Free Software Foundation, Inc.
- * Copyright (C) 2013 g10 Code GmbH
+ * Copyright (C) 2013, 2015 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -105,12 +105,11 @@ _gcry_register_pk_ecc_progress (void (*cb) (void *, const char *,
 
 
 /**
- * nist_generate_key - Standard version of the key generation.
- *
+ * nist_generate_key - Standard version of the ECC key generation.
  * @sk:  A struct to receive the secret key.
  * @E:   Parameters of the curve.
  * @ctx: Elliptic curve computation context.
- * @random_level: The quality of the random.
+ * @flags: Flags controlling aspects of the creation.
  * @nbits: Only for testing
  * @r_x: On success this receives an allocated MPI with the affine
  *       x-coordinate of the poblic key.  On error NULL is stored.
@@ -118,18 +117,28 @@ _gcry_register_pk_ecc_progress (void (*cb) (void *, const char *,
  *
  * Return: An error code.
  *
+ * The @flags bits used by this function are %PUBKEY_FLAG_TRANSIENT to
+ * use a faster RNG, and %PUBKEY_FLAG_NO_KEYTEST to skip the assertion
+ * that the key works as expected.
+ *
  * FIXME: Check whether N is needed.
  */
 static gpg_err_code_t
 nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
-                   gcry_random_level_t random_level, unsigned int nbits,
+                   int flags, unsigned int nbits,
                    gcry_mpi_t *r_x, gcry_mpi_t *r_y)
 {
   mpi_point_struct Q;
+  gcry_random_level_t random_level;
   gcry_mpi_t x, y;
   const unsigned int pbits = mpi_get_nbits (E->p);
 
   point_init (&Q);
+
+  if ((flags & PUBKEY_FLAG_TRANSIENT_KEY))
+    random_level = GCRY_STRONG_RANDOM;
+  else
+    random_level = GCRY_VERY_STRONG_RANDOM;
 
   /* Generate a secret.  */
   if (ctx->dialect == ECC_DIALECT_ED25519)
@@ -224,7 +233,10 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
 
   point_free (&Q);
   /* Now we can test our keys (this should never fail!).  */
-  test_keys (sk, nbits - 64);
+  if ((flags & PUBKEY_FLAG_NO_KEYTEST))
+    ; /* User requested to skip the test.  */
+  else
+    test_keys (sk, nbits - 64);
 
   return 0;
 }
@@ -410,7 +422,6 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   gcry_mpi_t Qy = NULL;
   char *curve_name = NULL;
   gcry_sexp_t l1;
-  gcry_random_level_t random_level;
   mpi_ec_t ctx = NULL;
   gcry_sexp_t curve_info = NULL;
   gcry_sexp_t curve_flags = NULL;
@@ -477,17 +488,12 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       log_printpnt ("ecgen curve G", &E.G, NULL);
     }
 
-  if ((flags & PUBKEY_FLAG_TRANSIENT_KEY))
-    random_level = GCRY_STRONG_RANDOM;
-  else
-    random_level = GCRY_VERY_STRONG_RANDOM;
-
   ctx = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, 0, E.p, E.a, E.b);
 
   if ((flags & PUBKEY_FLAG_EDDSA))
-    rc = _gcry_ecc_eddsa_genkey (&sk, &E, ctx, random_level);
+    rc = _gcry_ecc_eddsa_genkey (&sk, &E, ctx, flags);
   else
-    rc = nist_generate_key (&sk, &E, ctx, random_level, nbits, &Qx, &Qy);
+    rc = nist_generate_key (&sk, &E, ctx, flags, nbits, &Qx, &Qy);
   if (rc)
     goto leave;
 

@@ -2356,6 +2356,13 @@ random number generator.  This flag may be used for keys which are
 only used for a short time or per-message and do not require full
 cryptographic strength.
 
+@item no-keytest
+@cindex no-keytest
+This flag skips internal failsafe tests to assert that a generated key
+is properly working.  It currently has an effect only for standard ECC
+key generation.  It is mostly useful along with transient-key to
+achieve fastest ECC key generation.
+
 @item use-x931
 @cindex X9.31
 Force the use of the ANSI X9.31 key generation algorithm instead of

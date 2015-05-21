@@ -1,6 +1,10 @@
 Noteworthy changes in version 1.6.4 (unreleased) [C20/A0/R3]
 ------------------------------------------------
 
+ * New flag "no-keytest" for ECC key generation.  Due to a bug in the
+   parser that flag will also be accepted but ignored by older version
+   of Libgcrypt.
+
 
 Noteworthy changes in version 1.6.3 (2015-02-27) [C20/A0/R3]
 ------------------------------------------------
