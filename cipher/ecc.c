@@ -105,12 +105,30 @@ _gcry_register_pk_ecc_progress (void (*cb) (void *, const char *,
 
 
 
-/* Standard version of the key generation.  */
+/**
+ * nist_generate_key - Standard version of the key generation.
+ *
+ * @sk:  A struct to receive the secret key.
+ * @E:   Parameters of the curve.
+ * @ctx: Elliptic curve computation context.
+ * @random_level: The quality of the random.
+ * @nbits: Only for testing
+ * @r_x: On success this receives an allocated MPI with the affine
+ *       x-coordinate of the poblic key.  On error NULL is stored.
+ * @r_y: Ditto for the y-coordinate.
+ *
+ * Return: An error code.
+ *
+ * FIXME: Check whether N is needed.
+ */
 static gpg_err_code_t
 nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
-                   gcry_random_level_t random_level, unsigned int nbits)
+                   gcry_random_level_t random_level, unsigned int nbits,
+                   gcry_mpi_t *r_x, gcry_mpi_t *r_y)
 {
   mpi_point_struct Q;
+  gcry_mpi_t x, y;
+  const unsigned int pbits = mpi_get_nbits (E->p);
 
   point_init (&Q);
 
@@ -146,6 +164,11 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   sk->E.h = mpi_copy (E->h);
   point_init (&sk->Q);
 
+  x = mpi_new (pbits);
+  y = mpi_new (pbits);
+  if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
+    log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
+
   /* We want the Q=(x,y) be a "compliant key" in terms of the
    * http://tools.ietf.org/html/draft-jivsov-ecc-compact, which simply
    * means that we choose either Q=(x,y) or -Q=(x,p-y) such that we
@@ -159,15 +182,9 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
     point_set (&sk->Q, &Q);
   else
     {
-      gcry_mpi_t x, y, negative;
-      const unsigned int pbits = mpi_get_nbits (E->p);
+      gcry_mpi_t negative;
 
-      x = mpi_new (pbits);
-      y = mpi_new (pbits);
       negative = mpi_new (pbits);
-
-      if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
-        log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
 
       if (E->model == MPI_EC_WEIERSTRASS)
         mpi_sub (negative, E->p, y);      /* negative = p - y */
@@ -178,12 +195,18 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
         {
           /* We need to end up with -Q; this assures that new Q's y is
              the smallest one */
-          mpi_sub (sk->d, E->n, sk->d);   /* d = order - d */
           if (E->model == MPI_EC_WEIERSTRASS)
-            mpi_point_snatch_set (&sk->Q, x, negative,
-                                       mpi_alloc_set_ui (1));
+            {
+              mpi_free (y);
+              y = negative;
+            }
           else
-            mpi_point_snatch_set (&sk->Q, negative, y, mpi_alloc_set_ui (1));
+            {
+              mpi_free (x);
+              x = negative;
+            }
+          mpi_sub (sk->d, E->n, sk->d);   /* d = order - d */
+          mpi_point_set (&sk->Q, x, y, mpi_const (MPI_C_ONE));
 
           if (DBG_CIPHER)
             log_debug ("ecgen converted Q to a compliant point\n");
@@ -191,22 +214,15 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
       else /* p - y >= p */
         {
           /* No change is needed exactly 50% of the time: just copy. */
+          mpi_free (negative);
           point_set (&sk->Q, &Q);
           if (DBG_CIPHER)
             log_debug ("ecgen didn't need to convert Q to a compliant point\n");
-
-          mpi_free (negative);
-          if (E->model == MPI_EC_WEIERSTRASS)
-            mpi_free (x);
-          else
-            mpi_free (y);
         }
-
-      if (E->model == MPI_EC_WEIERSTRASS)
-        mpi_free (y);
-      else
-        mpi_free (x);
     }
+
+  *r_x = x;
+  *r_y = y;
 
   point_free (&Q);
   /* Now we can test our keys (this should never fail!).  */
@@ -470,8 +486,10 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   unsigned int nbits;
   elliptic_curve_t E;
   ECC_secret_key sk;
-  gcry_mpi_t x = NULL;
-  gcry_mpi_t y = NULL;
+  gcry_mpi_t Gx = NULL;
+  gcry_mpi_t Gy = NULL;
+  gcry_mpi_t Qx = NULL;
+  gcry_mpi_t Qy = NULL;
   char *curve_name = NULL;
   gcry_sexp_t l1;
   gcry_random_level_t random_level;
@@ -548,26 +566,27 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     random_level = GCRY_VERY_STRONG_RANDOM;
 
   ctx = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, 0, E.p, E.a, E.b);
-  x = mpi_new (0);
-  y = mpi_new (0);
 
   if ((flags & PUBKEY_FLAG_EDDSA))
     rc = _gcry_ecc_eddsa_genkey (&sk, &E, ctx, random_level);
   else
-    rc = nist_generate_key (&sk, &E, ctx, random_level, nbits);
+    rc = nist_generate_key (&sk, &E, ctx, random_level, nbits, &Qx, &Qy);
   if (rc)
     goto leave;
 
   /* Copy data to the result.  */
-  if (_gcry_mpi_ec_get_affine (x, y, &sk.E.G, ctx))
+  Gx = mpi_new (0);
+  Gy = mpi_new (0);
+  if (_gcry_mpi_ec_get_affine (Gx, Gy, &sk.E.G, ctx))
     log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "G");
-  base = _gcry_ecc_ec2os (x, y, sk.E.p);
+  base = _gcry_ecc_ec2os (Gx, Gy, sk.E.p);
   if (sk.E.dialect == ECC_DIALECT_ED25519 && !(flags & PUBKEY_FLAG_NOCOMP))
     {
       unsigned char *encpk;
       unsigned int encpklen;
 
-      rc = _gcry_ecc_eddsa_encodepoint (&sk.Q, ctx, x, y,
+      /* (Gx and Gy are used as scratch variables)  */
+      rc = _gcry_ecc_eddsa_encodepoint (&sk.Q, ctx, Gx, Gy,
                                         !!(flags & PUBKEY_FLAG_COMP),
                                         &encpk, &encpklen);
       if (rc)
@@ -578,9 +597,16 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     }
   else
     {
-      if (_gcry_mpi_ec_get_affine (x, y, &sk.Q, ctx))
-        log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
-      public = _gcry_ecc_ec2os (x, y, sk.E.p);
+      if (!Qx)
+        {
+          /* This is the case for a key from _gcry_ecc_eddsa_generate
+             with no compression.  */
+          Qx = mpi_new (0);
+          Qy = mpi_new (0);
+          if (_gcry_mpi_ec_get_affine (Qx, Qy, &sk.Q, ctx))
+            log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
+        }
+      public = _gcry_ecc_ec2os (Qx, Qy, sk.E.p);
     }
   secret = sk.d; sk.d = NULL;
   if (E.name)
@@ -614,7 +640,8 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                      curve_info, curve_flags,
                      sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, sk.E.h, public,
                      curve_info, curve_flags,
-                     sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, sk.E.h, public, secret);
+                     sk.E.p, sk.E.a, sk.E.b, base, sk.E.n, sk.E.h, public,
+                                                                   secret);
   else
     rc = sexp_build (r_skey, NULL,
                      "(key-data"
@@ -654,8 +681,10 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     mpi_free (sk.d);
   }
   _gcry_ecc_curve_free (&E);
-  mpi_free (x);
-  mpi_free (y);
+  mpi_free (Gx);
+  mpi_free (Gy);
+  mpi_free (Qx);
+  mpi_free (Qy);
   _gcry_mpi_ec_free (ctx);
   sexp_release (curve_flags);
   sexp_release (curve_info);
