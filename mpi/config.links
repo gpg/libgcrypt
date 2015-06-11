@@ -50,11 +50,12 @@ case "${host}" in
        path=""
        mpi_cpu_arch="x86"
        ;;
-    i[3467]86*-*-openbsd*      | \
-    i[3467]86*-*-freebsd*-elf  | \
-    i[3467]86*-*-freebsd[3-9]* | \
-    i[3467]86*-*-freebsdelf*   | \
-    i[3467]86*-*-netbsd*       | \
+    i[3467]86*-*-openbsd*         | \
+    i[3467]86*-*-freebsd*-elf     | \
+    i[3467]86*-*-freebsd[3-9]*    | \
+    i[3467]86*-*-freebsd[12][0-9]*| \
+    i[3467]86*-*-freebsdelf*      | \
+    i[3467]86*-*-netbsd*          | \
     i[3467]86*-*-k*bsd*)
        echo '#define ELF_SYNTAX' >>./mpi/asm-syntax.h
        cat  $srcdir/mpi/i386/syntax.h	   >>./mpi/asm-syntax.h
@@ -64,6 +65,7 @@ case "${host}" in
     i586*-*-openbsd*         | \
     i586*-*-freebsd*-elf     | \
     i586*-*-freebsd[3-9]*    | \
+    i586*-*-freebsd[12][0-9]*| \
     i586*-*-freebsdelf*      | \
     i586*-*-netbsd*	     | \
     i586*-*-k*bsd*	     | \
