@@ -137,6 +137,11 @@ extern void _gcry_aes_ssse3_cbc_dec (RIJNDAEL_context *ctx,
                                      unsigned char *outbuf,
                                      const unsigned char *inbuf,
                                      unsigned char *iv, size_t nblocks);
+extern void _gcry_aes_ssse3_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+                                       const void *inbuf_arg, size_t nblocks,
+                                       int encrypt);
+extern void _gcry_aes_ssse3_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+                                      size_t nblocks);
 #endif
 
 #ifdef USE_PADLOCK
@@ -1226,6 +1231,13 @@ _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_SSSE3
+  else if (ctx->use_ssse3)
+    {
+      _gcry_aes_ssse3_ocb_crypt (c, outbuf, inbuf, nblocks, encrypt);
+      burn_depth = 0;
+    }
+#endif /*USE_SSSE3*/
   else if (encrypt)
     {
       union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
@@ -1314,6 +1326,13 @@ _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
       burn_depth = 0;
     }
 #endif /*USE_AESNI*/
+#ifdef USE_SSSE3
+  else if (ctx->use_ssse3)
+    {
+      _gcry_aes_ssse3_ocb_auth (c, abuf, nblocks);
+      burn_depth = 0;
+    }
+#endif /*USE_SSSE3*/
   else
     {
       union { unsigned char x1[16] ATTR_ALIGNED_16; u32 x32[4]; } l_tmp;
