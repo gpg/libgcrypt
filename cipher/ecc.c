@@ -551,7 +551,6 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
     return GPG_ERR_NO_OBJ; /* No NBITS parameter. */
 
   rc = _gcry_ecc_fill_in_curve (nbits, curve_name, &E, &nbits);
-  xfree (curve_name); curve_name = NULL;
   if (rc)
     goto leave;
 
@@ -595,10 +594,9 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                                         !!(flags & PUBKEY_FLAG_COMP),
                                         &encpk, &encpklen);
       if (rc)
-        return rc;
+        goto leave;
       public = mpi_new (0);
       mpi_set_opaque (public, encpk, encpklen*8);
-      encpk = NULL;
     }
   else
     {
@@ -691,6 +689,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   mpi_free (Qx);
   mpi_free (Qy);
   _gcry_mpi_ec_free (ctx);
+  xfree (curve_name);
   sexp_release (curve_flags);
   sexp_release (curve_info);
   return rc;
@@ -744,7 +743,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
                                              &sk.E.p, &sk.E.a, &sk.E.b,
                                              &mpi_g, &sk.E.n, &sk.E.h);
           if (rc)
-            return rc;
+            goto leave;
         }
     }
   if (mpi_g)
@@ -877,7 +876,6 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         goto leave;
     }
   /* Add missing parameters using the optional curve parameter.  */
-  sexp_release (l1);
   l1 = sexp_find_token (keyparms, "curve", 5);
   if (l1)
     {
@@ -886,7 +884,7 @@ ecc_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         {
           rc = _gcry_ecc_fill_in_curve (0, curvename, &sk.E, NULL);
           if (rc)
-            return rc;
+            goto leave;
         }
     }
   /* Guess required fields if a curve parameter has not been given.
@@ -1043,7 +1041,6 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
         goto leave;
     }
   /* Add missing parameters using the optional curve parameter.  */
-  sexp_release (l1);
   l1 = sexp_find_token (s_keyparms, "curve", 5);
   if (l1)
     {
@@ -1052,7 +1049,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
         {
           rc = _gcry_ecc_fill_in_curve (0, curvename, &pk.E, NULL);
           if (rc)
-            return rc;
+            goto leave;
         }
     }
   /* Guess required fields if a curve parameter has not been given.
@@ -1252,7 +1249,6 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         goto leave;
     }
   /* Add missing parameters using the optional curve parameter.  */
-  sexp_release (l1);
   l1 = sexp_find_token (keyparms, "curve", 5);
   if (l1)
     {
@@ -1261,7 +1257,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         {
           rc = _gcry_ecc_fill_in_curve (0, curvename, &pk.E, NULL);
           if (rc)
-            return rc;
+            goto leave;
         }
     }
   /* Guess required fields if a curve parameter has not been given.  */
@@ -1421,7 +1417,6 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         goto leave;
     }
   /* Add missing parameters using the optional curve parameter.  */
-  sexp_release (l1);
   l1 = sexp_find_token (keyparms, "curve", 5);
   if (l1)
     {
@@ -1430,7 +1425,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         {
           rc = _gcry_ecc_fill_in_curve (0, curvename, &sk.E, NULL);
           if (rc)
-            return rc;
+            goto leave;
         }
     }
   /* Guess required fields if a curve parameter has not been given.  */
@@ -1467,10 +1462,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
    */
   rc = _gcry_ecc_os2ec (&kG, data_e);
   if (rc)
-    {
-      point_free (&kG);
-      return rc;
-    }
+    goto leave;
 
   ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, 0,
                                     sk.E.p, sk.E.a, sk.E.b);
