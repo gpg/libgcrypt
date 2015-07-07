@@ -561,6 +561,8 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
               h->bulk.cbc_dec = _gcry_twofish_cbc_dec;
               h->bulk.cfb_dec = _gcry_twofish_cfb_dec;
               h->bulk.ctr_enc = _gcry_twofish_ctr_enc;
+              h->bulk.ocb_crypt = _gcry_twofish_ocb_crypt;
+              h->bulk.ocb_auth  = _gcry_twofish_ocb_auth;
               break;
 #endif /*USE_TWOFISH*/
 

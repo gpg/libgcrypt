@@ -45,6 +45,7 @@
 #include "g10lib.h"
 #include "cipher.h"
 #include "bufhelp.h"
+#include "cipher-internal.h"
 #include "cipher-selftest.h"
 
 
@@ -755,6 +756,18 @@ extern void _gcry_twofish_amd64_cbc_dec(const TWOFISH_context *c, byte *out,
 extern void _gcry_twofish_amd64_cfb_dec(const TWOFISH_context *c, byte *out,
 					const byte *in, byte *iv);
 
+extern void _gcry_twofish_amd64_ocb_enc(const TWOFISH_context *ctx, byte *out,
+					const byte *in, byte *offset,
+					byte *checksum, const void *Ls[3]);
+
+extern void _gcry_twofish_amd64_ocb_dec(const TWOFISH_context *ctx, byte *out,
+					const byte *in, byte *offset,
+					byte *checksum, const void *Ls[3]);
+
+extern void _gcry_twofish_amd64_ocb_auth(const TWOFISH_context *ctx,
+					 const byte *abuf, byte *offset,
+					 byte *checksum, const void *Ls[3]);
+
 #ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
 static inline void
 call_sysv_fn (const void *fn, const void *arg1, const void *arg2,
@@ -770,6 +783,43 @@ call_sysv_fn (const void *fn, const void *arg1, const void *arg2,
                   "+c" (arg4)
                 :
                 : "cc", "memory", "r8", "r9", "r10", "r11");
+}
+
+static inline void
+call_sysv_fn5 (const void *fn, const void *arg1, const void *arg2,
+               const void *arg3, const void *arg4, const void *arg5)
+{
+  /* Call SystemV ABI function without storing non-volatile XMM registers,
+   * as target function does not use vector instruction sets. */
+  asm volatile ("movq %[arg5], %%r8\n\t"
+		"callq *%0\n\t"
+		: "+a" (fn),
+		  "+D" (arg1),
+		  "+S" (arg2),
+		  "+d" (arg3),
+		  "+c" (arg4)
+		: [arg5] "g" (arg5)
+		: "cc", "memory", "r8", "r9", "r10", "r11");
+}
+
+static inline void
+call_sysv_fn6 (const void *fn, const void *arg1, const void *arg2,
+               const void *arg3, const void *arg4, const void *arg5,
+	       const void *arg6)
+{
+  /* Call SystemV ABI function without storing non-volatile XMM registers,
+   * as target function does not use vector instruction sets. */
+  asm volatile ("movq %[arg5], %%r8\n\t"
+		"movq %[arg6], %%r9\n\t"
+		"callq *%0\n\t"
+		: "+a" (fn),
+		  "+D" (arg1),
+		  "+S" (arg2),
+		  "+d" (arg3),
+		  "+c" (arg4)
+		: [arg5] "g" (arg5),
+		  [arg6] "g" (arg6)
+		: "cc", "memory", "r8", "r9", "r10", "r11");
 }
 #endif
 
@@ -823,6 +873,39 @@ twofish_amd64_cfb_dec(const TWOFISH_context *c, byte *out, const byte *in,
   call_sysv_fn(_gcry_twofish_amd64_cfb_dec, c, out, in, iv);
 #else
   _gcry_twofish_amd64_cfb_dec(c, out, in, iv);
+#endif
+}
+
+static inline void
+twofish_amd64_ocb_enc(const TWOFISH_context *ctx, byte *out, const byte *in,
+		      byte *offset, byte *checksum, const void *Ls[3])
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn6(_gcry_twofish_amd64_ocb_enc, ctx, out, in, offset, checksum, Ls);
+#else
+  _gcry_twofish_amd64_ocb_enc(ctx, out, in, offset, checksum, Ls);
+#endif
+}
+
+static inline void
+twofish_amd64_ocb_dec(const TWOFISH_context *ctx, byte *out, const byte *in,
+		      byte *offset, byte *checksum, const void *Ls[3])
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn6(_gcry_twofish_amd64_ocb_dec, ctx, out, in, offset, checksum, Ls);
+#else
+  _gcry_twofish_amd64_ocb_dec(ctx, out, in, offset, checksum, Ls);
+#endif
+}
+
+static inline void
+twofish_amd64_ocb_auth(const TWOFISH_context *ctx, const byte *abuf,
+		       byte *offset, byte *checksum, const void *Ls[3])
+{
+#ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
+  call_sysv_fn5(_gcry_twofish_amd64_ocb_auth, ctx, abuf, offset, checksum, Ls);
+#else
+  _gcry_twofish_amd64_ocb_auth(ctx, abuf, offset, checksum, Ls);
 #endif
 }
 
@@ -1186,6 +1269,182 @@ _gcry_twofish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
     }
 
   _gcry_burn_stack(burn_stack_depth);
+}
+
+static inline const unsigned char *
+get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 i)
+{
+  unsigned int ntz = _gcry_ctz64 (i);
+
+  if (ntz < OCB_L_TABLE_SIZE)
+      return c->u_mode.ocb.L[ntz];
+  else
+      return _gcry_cipher_ocb_get_l (c, l_tmp, i);
+}
+
+/* Bulk encryption/decryption of complete blocks in OCB mode. */
+void
+_gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+			const void *inbuf_arg, size_t nblocks, int encrypt)
+{
+  TWOFISH_context *ctx = (void *)&c->context.c;
+  unsigned char *outbuf = outbuf_arg;
+  const unsigned char *inbuf = inbuf_arg;
+  unsigned char l_tmp[TWOFISH_BLOCKSIZE];
+  const unsigned char *l;
+  unsigned int burn, burn_stack_depth = 0;
+  u64 blkn = c->u_mode.ocb.data_nblocks;
+
+#ifdef USE_AMD64_ASM
+  {
+    const void *Ls[3];
+
+    /* Process data in 3 block chunks. */
+    while (nblocks >= 3)
+      {
+	/* l_tmp will be used only every 65536-th block. */
+	Ls[0] = get_l(c, l_tmp, blkn + 1);
+	Ls[1] = get_l(c, l_tmp, blkn + 2);
+	Ls[2] = get_l(c, l_tmp, blkn + 3);
+	blkn += 3;
+
+	if (encrypt)
+	  twofish_amd64_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv, c->u_ctr.ctr,
+				Ls);
+	else
+	  twofish_amd64_ocb_dec(ctx, outbuf, inbuf, c->u_iv.iv, c->u_ctr.ctr,
+				Ls);
+
+	nblocks -= 3;
+	outbuf += 3 * TWOFISH_BLOCKSIZE;
+	inbuf  += 3 * TWOFISH_BLOCKSIZE;
+
+	burn = 8 * sizeof(void*);
+	if (burn > burn_stack_depth)
+	  burn_stack_depth = burn;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+  }
+#endif
+
+  if (encrypt)
+    {
+      for (; nblocks; nblocks--)
+	{
+	  l = get_l(c, l_tmp, ++blkn);
+
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  buf_xor_1 (c->u_iv.iv, l, TWOFISH_BLOCKSIZE);
+	  buf_cpy (l_tmp, inbuf, TWOFISH_BLOCKSIZE);
+	  /* Checksum_i = Checksum_{i-1} xor P_i  */
+	  buf_xor_1 (c->u_ctr.ctr, l_tmp, TWOFISH_BLOCKSIZE);
+	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+	  buf_xor_1 (l_tmp, c->u_iv.iv, TWOFISH_BLOCKSIZE);
+	  burn = twofish_encrypt(ctx, l_tmp, l_tmp);
+	  if (burn > burn_stack_depth)
+	    burn_stack_depth = burn;
+	  buf_xor_1 (l_tmp, c->u_iv.iv, TWOFISH_BLOCKSIZE);
+	  buf_cpy (outbuf, l_tmp, TWOFISH_BLOCKSIZE);
+
+	  inbuf += TWOFISH_BLOCKSIZE;
+	  outbuf += TWOFISH_BLOCKSIZE;
+	}
+    }
+  else
+    {
+      for (; nblocks; nblocks--)
+	{
+	  l = get_l(c, l_tmp, ++blkn);
+
+	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	  buf_xor_1 (c->u_iv.iv, l, TWOFISH_BLOCKSIZE);
+	  buf_cpy (l_tmp, inbuf, TWOFISH_BLOCKSIZE);
+	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+	  buf_xor_1 (l_tmp, c->u_iv.iv, TWOFISH_BLOCKSIZE);
+	  burn = twofish_decrypt(ctx, l_tmp, l_tmp);
+	  if (burn > burn_stack_depth)
+	    burn_stack_depth = burn;
+	  buf_xor_1 (l_tmp, c->u_iv.iv, TWOFISH_BLOCKSIZE);
+	  /* Checksum_i = Checksum_{i-1} xor P_i  */
+	  buf_xor_1 (c->u_ctr.ctr, l_tmp, TWOFISH_BLOCKSIZE);
+	  buf_cpy (outbuf, l_tmp, TWOFISH_BLOCKSIZE);
+
+	  inbuf += TWOFISH_BLOCKSIZE;
+	  outbuf += TWOFISH_BLOCKSIZE;
+	}
+    }
+
+  c->u_mode.ocb.data_nblocks = blkn;
+
+  wipememory(&l_tmp, sizeof(l_tmp));
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth + 4 * sizeof(void *));
+}
+
+/* Bulk authentication of complete blocks in OCB mode. */
+void
+_gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+			size_t nblocks)
+{
+  TWOFISH_context *ctx = (void *)&c->context.c;
+  const unsigned char *abuf = abuf_arg;
+  unsigned char l_tmp[TWOFISH_BLOCKSIZE];
+  const unsigned char *l;
+  unsigned int burn, burn_stack_depth = 0;
+  u64 blkn = c->u_mode.ocb.aad_nblocks;
+
+#ifdef USE_AMD64_ASM
+  {
+    const void *Ls[3];
+
+    /* Process data in 3 block chunks. */
+    while (nblocks >= 3)
+      {
+	/* l_tmp will be used only every 65536-th block. */
+	Ls[0] = get_l(c, l_tmp, blkn + 1);
+	Ls[1] = get_l(c, l_tmp, blkn + 2);
+	Ls[2] = get_l(c, l_tmp, blkn + 3);
+	blkn += 3;
+
+	twofish_amd64_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
+			      c->u_mode.ocb.aad_sum, Ls);
+
+	nblocks -= 3;
+	abuf += 3 * TWOFISH_BLOCKSIZE;
+
+	burn = 8 * sizeof(void*);
+	if (burn > burn_stack_depth)
+	  burn_stack_depth = burn;
+      }
+
+    /* Use generic code to handle smaller chunks... */
+  }
+#endif
+
+  for (; nblocks; nblocks--)
+    {
+      l = get_l(c, l_tmp, ++blkn);
+
+      /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+      buf_xor_1 (c->u_mode.ocb.aad_offset, l, TWOFISH_BLOCKSIZE);
+      /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+      buf_xor (l_tmp, c->u_mode.ocb.aad_offset, abuf, TWOFISH_BLOCKSIZE);
+      burn = twofish_encrypt(ctx, l_tmp, l_tmp);
+      if (burn > burn_stack_depth)
+	burn_stack_depth = burn;
+      buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, TWOFISH_BLOCKSIZE);
+
+      abuf += TWOFISH_BLOCKSIZE;
+    }
+
+  c->u_mode.ocb.aad_nblocks = blkn;
+
+  wipememory(&l_tmp, sizeof(l_tmp));
+
+  if (burn_stack_depth)
+    _gcry_burn_stack (burn_stack_depth + 4 * sizeof(void *));
 }
 
 

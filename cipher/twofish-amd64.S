@@ -1,6 +1,6 @@
 /* twofish-amd64.S  -  AMD64 assembly implementation of Twofish cipher
  *
- * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2015 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -733,6 +733,314 @@ _gcry_twofish_amd64_cfb_dec:
 
 	ret;
 ELF(.size _gcry_twofish_amd64_cfb_dec,.-_gcry_twofish_amd64_cfb_dec;)
+
+.align 8
+.globl _gcry_twofish_amd64_ocb_enc
+ELF(.type   _gcry_twofish_amd64_ocb_enc,@function;)
+_gcry_twofish_amd64_ocb_enc:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (3 blocks)
+	 *	%rdx: src (3 blocks)
+	 *	%rcx: offset
+	 *	%r8 : checksum
+	 *	%r9 : L pointers (void *L[3])
+	 */
+	subq $(8 * 8), %rsp;
+	movq %rbp, (0 * 8)(%rsp);
+	movq %rbx, (1 * 8)(%rsp);
+	movq %r12, (2 * 8)(%rsp);
+	movq %r13, (3 * 8)(%rsp);
+	movq %r14, (4 * 8)(%rsp);
+	movq %r15, (5 * 8)(%rsp);
+
+	movq %rsi, (6 * 8)(%rsp);
+	movq %rdx, RX0;
+	movq %rcx, RX1;
+	movq %r8, RX2;
+	movq %r9, RY0;
+	movq %rsi, RY1;
+
+	/* Load offset */
+	movq (0 * 8)(RX1), RT0;
+	movq (1 * 8)(RX1), RT1;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	movq (RY0), RY2;
+	xorq (0 * 8)(RY2), RT0;
+	xorq (1 * 8)(RY2), RT1;
+	movq (0 * 8)(RX0), RAB0;
+	movq (1 * 8)(RX0), RCD0;
+	/* Store Offset_i */
+	movq RT0, (0 * 8)(RY1);
+	movq RT1, (1 * 8)(RY1);
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+	xor RAB0, (0 * 8)(RX2);
+	xor RCD0, (1 * 8)(RX2);
+	/* PX_i = P_i xor Offset_i */
+	xorq RT0, RAB0;
+	xorq RT1, RCD0;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	movq 8(RY0), RY2;
+	xorq (0 * 8)(RY2), RT0;
+	xorq (1 * 8)(RY2), RT1;
+	movq (2 * 8)(RX0), RAB1;
+	movq (3 * 8)(RX0), RCD1;
+	/* Store Offset_i */
+	movq RT0, (2 * 8)(RY1);
+	movq RT1, (3 * 8)(RY1);
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+	xor RAB1, (0 * 8)(RX2);
+	xor RCD1, (1 * 8)(RX2);
+	/* PX_i = P_i xor Offset_i */
+	xorq RT0, RAB1;
+	xorq RT1, RCD1;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	movq 16(RY0), RY2;
+	xorq (0 * 8)(RY2), RT0;
+	xorq (1 * 8)(RY2), RT1;
+	movq (4 * 8)(RX0), RAB2;
+	movq (5 * 8)(RX0), RCD2;
+	/* Store Offset_i */
+	movq RT0, (4 * 8)(RY1);
+	movq RT1, (5 * 8)(RY1);
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+	xor RAB2, (0 * 8)(RX2);
+	xor RCD2, (1 * 8)(RX2);
+	/* PX_i = P_i xor Offset_i */
+	xorq RT0, RAB2;
+	xorq RT1, RCD2;
+
+	/* Store offset */
+	movq RT0, (0 * 8)(RX1);
+	movq RT1, (1 * 8)(RX1);
+
+	/* CX_i = ENCIPHER(K, PX_i)  */
+	call __twofish_enc_blk3;
+
+	movq (6 * 8)(%rsp), RX1; /*dst*/
+
+	/* C_i = CX_i xor Offset_i  */
+	xorq RCD0, (0 * 8)(RX1);
+	xorq RAB0, (1 * 8)(RX1);
+	xorq RCD1, (2 * 8)(RX1);
+	xorq RAB1, (3 * 8)(RX1);
+	xorq RCD2, (4 * 8)(RX1);
+	xorq RAB2, (5 * 8)(RX1);
+
+	movq (0 * 8)(%rsp), %rbp;
+	movq (1 * 8)(%rsp), %rbx;
+	movq (2 * 8)(%rsp), %r12;
+	movq (3 * 8)(%rsp), %r13;
+	movq (4 * 8)(%rsp), %r14;
+	movq (5 * 8)(%rsp), %r15;
+	addq $(8 * 8), %rsp;
+
+	ret;
+ELF(.size _gcry_twofish_amd64_ocb_enc,.-_gcry_twofish_amd64_ocb_enc;)
+
+.align 8
+.globl _gcry_twofish_amd64_ocb_dec
+ELF(.type   _gcry_twofish_amd64_ocb_dec,@function;)
+_gcry_twofish_amd64_ocb_dec:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (3 blocks)
+	 *	%rdx: src (3 blocks)
+	 *	%rcx: offset
+	 *	%r8 : checksum
+	 *	%r9 : L pointers (void *L[3])
+	 */
+	subq $(8 * 8), %rsp;
+	movq %rbp, (0 * 8)(%rsp);
+	movq %rbx, (1 * 8)(%rsp);
+	movq %r12, (2 * 8)(%rsp);
+	movq %r13, (3 * 8)(%rsp);
+	movq %r14, (4 * 8)(%rsp);
+	movq %r15, (5 * 8)(%rsp);
+
+	movq %rsi, (6 * 8)(%rsp);
+	movq %r8,  (7 * 8)(%rsp);
+	movq %rdx, RX0;
+	movq %rcx, RX1;
+	movq %r9, RY0;
+	movq %rsi, RY1;
+
+	/* Load offset */
+	movq (0 * 8)(RX1), RT0;
+	movq (1 * 8)(RX1), RT1;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	movq (RY0), RY2;
+	xorq (0 * 8)(RY2), RT0;
+	xorq (1 * 8)(RY2), RT1;
+	movq (0 * 8)(RX0), RAB0;
+	movq (1 * 8)(RX0), RCD0;
+	/* Store Offset_i */
+	movq RT0, (0 * 8)(RY1);
+	movq RT1, (1 * 8)(RY1);
+	/* CX_i = C_i xor Offset_i */
+	xorq RT0, RAB0;
+	xorq RT1, RCD0;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	movq 8(RY0), RY2;
+	xorq (0 * 8)(RY2), RT0;
+	xorq (1 * 8)(RY2), RT1;
+	movq (2 * 8)(RX0), RAB1;
+	movq (3 * 8)(RX0), RCD1;
+	/* Store Offset_i */
+	movq RT0, (2 * 8)(RY1);
+	movq RT1, (3 * 8)(RY1);
+	/* PX_i = P_i xor Offset_i */
+	xorq RT0, RAB1;
+	xorq RT1, RCD1;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	movq 16(RY0), RY2;
+	xorq (0 * 8)(RY2), RT0;
+	xorq (1 * 8)(RY2), RT1;
+	movq (4 * 8)(RX0), RAB2;
+	movq (5 * 8)(RX0), RCD2;
+	/* Store Offset_i */
+	movq RT0, (4 * 8)(RY1);
+	movq RT1, (5 * 8)(RY1);
+	/* PX_i = P_i xor Offset_i */
+	xorq RT0, RAB2;
+	xorq RT1, RCD2;
+
+	/* Store offset */
+	movq RT0, (0 * 8)(RX1);
+	movq RT1, (1 * 8)(RX1);
+
+	/* PX_i = DECIPHER(K, CX_i)  */
+	call __twofish_dec_blk3;
+
+	movq (7 * 8)(%rsp), RX2; /*checksum*/
+	movq (6 * 8)(%rsp), RX1; /*dst*/
+
+	/* Load checksum */
+	movq (0 * 8)(RX2), RT0;
+	movq (1 * 8)(RX2), RT1;
+
+	/* P_i = PX_i xor Offset_i  */
+	xorq RCD0, (0 * 8)(RX1);
+	xorq RAB0, (1 * 8)(RX1);
+	xorq RCD1, (2 * 8)(RX1);
+	xorq RAB1, (3 * 8)(RX1);
+	xorq RCD2, (4 * 8)(RX1);
+	xorq RAB2, (5 * 8)(RX1);
+
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+	xorq (0 * 8)(RX1), RT0;
+	xorq (1 * 8)(RX1), RT1;
+	xorq (2 * 8)(RX1), RT0;
+	xorq (3 * 8)(RX1), RT1;
+	xorq (4 * 8)(RX1), RT0;
+	xorq (5 * 8)(RX1), RT1;
+
+	/* Store checksum */
+	movq RT0, (0 * 8)(RX2);
+	movq RT1, (1 * 8)(RX2);
+
+	movq (0 * 8)(%rsp), %rbp;
+	movq (1 * 8)(%rsp), %rbx;
+	movq (2 * 8)(%rsp), %r12;
+	movq (3 * 8)(%rsp), %r13;
+	movq (4 * 8)(%rsp), %r14;
+	movq (5 * 8)(%rsp), %r15;
+	addq $(8 * 8), %rsp;
+
+	ret;
+ELF(.size _gcry_twofish_amd64_ocb_dec,.-_gcry_twofish_amd64_ocb_dec;)
+
+.align 8
+.globl _gcry_twofish_amd64_ocb_auth
+ELF(.type   _gcry_twofish_amd64_ocb_auth,@function;)
+_gcry_twofish_amd64_ocb_auth:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: abuf (3 blocks)
+	 *	%rdx: offset
+	 *	%rcx: checksum
+	 *	%r8 : L pointers (void *L[3])
+	 */
+	subq $(8 * 8), %rsp;
+	movq %rbp, (0 * 8)(%rsp);
+	movq %rbx, (1 * 8)(%rsp);
+	movq %r12, (2 * 8)(%rsp);
+	movq %r13, (3 * 8)(%rsp);
+	movq %r14, (4 * 8)(%rsp);
+	movq %r15, (5 * 8)(%rsp);
+
+	movq %rcx, (6 * 8)(%rsp);
+	movq %rsi, RX0;
+	movq %rdx, RX1;
+	movq %r8, RY0;
+
+	/* Load offset */
+	movq (0 * 8)(RX1), RT0;
+	movq (1 * 8)(RX1), RT1;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	movq (RY0), RY2;
+	xorq (0 * 8)(RY2), RT0;
+	xorq (1 * 8)(RY2), RT1;
+	movq (0 * 8)(RX0), RAB0;
+	movq (1 * 8)(RX0), RCD0;
+	/* PX_i = P_i xor Offset_i */
+	xorq RT0, RAB0;
+	xorq RT1, RCD0;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	movq 8(RY0), RY2;
+	xorq (0 * 8)(RY2), RT0;
+	xorq (1 * 8)(RY2), RT1;
+	movq (2 * 8)(RX0), RAB1;
+	movq (3 * 8)(RX0), RCD1;
+	/* PX_i = P_i xor Offset_i */
+	xorq RT0, RAB1;
+	xorq RT1, RCD1;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	movq 16(RY0), RY2;
+	xorq (0 * 8)(RY2), RT0;
+	xorq (1 * 8)(RY2), RT1;
+	movq (4 * 8)(RX0), RAB2;
+	movq (5 * 8)(RX0), RCD2;
+	/* PX_i = P_i xor Offset_i */
+	xorq RT0, RAB2;
+	xorq RT1, RCD2;
+
+	/* Store offset */
+	movq RT0, (0 * 8)(RX1);
+	movq RT1, (1 * 8)(RX1);
+
+	/* C_i = ENCIPHER(K, PX_i)  */
+	call __twofish_enc_blk3;
+
+	movq (6 * 8)(%rsp), RX1; /*checksum*/
+
+	/* Checksum_i = C_i xor Checksum_i  */
+	xorq RCD0, RCD1;
+	xorq RAB0, RAB1;
+	xorq RCD1, RCD2;
+	xorq RAB1, RAB2;
+	xorq RCD2, (0 * 8)(RX1);
+	xorq RAB2, (1 * 8)(RX1);
+
+	movq (0 * 8)(%rsp), %rbp;
+	movq (1 * 8)(%rsp), %rbx;
+	movq (2 * 8)(%rsp), %r12;
+	movq (3 * 8)(%rsp), %r13;
+	movq (4 * 8)(%rsp), %r14;
+	movq (5 * 8)(%rsp), %r15;
+	addq $(8 * 8), %rsp;
+
+	ret;
+ELF(.size _gcry_twofish_amd64_ocb_auth,.-_gcry_twofish_amd64_ocb_auth;)
 
 #endif /*USE_TWOFISH*/
 #endif /*__x86_64*/

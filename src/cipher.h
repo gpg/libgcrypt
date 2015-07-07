@@ -217,6 +217,11 @@ void _gcry_twofish_cbc_dec (void *context, unsigned char *iv,
 void _gcry_twofish_cfb_dec (void *context, unsigned char *iv,
                             void *outbuf_arg, const void *inbuf_arg,
                             size_t nblocks);
+void _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+			      const void *inbuf_arg, size_t nblocks,
+			      int encrypt);
+void _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+			     size_t nblocks);
 
 /*-- dsa.c --*/
 void _gcry_register_pk_dsa_progress (gcry_handler_progress_t cbc, void *cb_data);
