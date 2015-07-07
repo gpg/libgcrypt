@@ -1,6 +1,6 @@
 /* camellia-avx-aesni-amd64.S  -  AES-NI/AVX implementation of Camellia cipher
  *
- * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2015 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -1210,6 +1210,428 @@ _gcry_camellia_aesni_avx_cfb_dec:
 	leave;
 	ret;
 ELF(.size _gcry_camellia_aesni_avx_cfb_dec,.-_gcry_camellia_aesni_avx_cfb_dec;)
+
+.align 8
+.globl _gcry_camellia_aesni_avx_ocb_enc
+ELF(.type   _gcry_camellia_aesni_avx_ocb_enc,@function;)
+
+_gcry_camellia_aesni_avx_ocb_enc:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (16 blocks)
+	 *	%rdx: src (16 blocks)
+	 *	%rcx: offset
+	 *	%r8 : checksum
+	 *	%r9 : L pointers (void *L[16])
+	 */
+
+	pushq %rbp;
+	movq %rsp, %rbp;
+
+	vzeroupper;
+
+	subq $(16 * 16 + 4 * 8), %rsp;
+	andq $~31, %rsp;
+	movq %rsp, %rax;
+
+	movq %r10, (16 * 16 + 0 * 8)(%rax);
+	movq %r11, (16 * 16 + 1 * 8)(%rax);
+	movq %r12, (16 * 16 + 2 * 8)(%rax);
+	movq %r13, (16 * 16 + 3 * 8)(%rax);
+
+	vmovdqu (%rcx), %xmm14;
+	vmovdqu (%r8), %xmm15;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+	/* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+
+#define OCB_INPUT(n, lreg, xreg) \
+	  vmovdqu (n * 16)(%rdx), xreg; \
+	  vpxor (lreg), %xmm14, %xmm14; \
+	  vpxor xreg, %xmm15, %xmm15; \
+	  vpxor xreg, %xmm14, xreg; \
+	  vmovdqu %xmm14, (n * 16)(%rsi);
+	movq (0 * 8)(%r9), %r10;
+	movq (1 * 8)(%r9), %r11;
+	movq (2 * 8)(%r9), %r12;
+	movq (3 * 8)(%r9), %r13;
+	OCB_INPUT(0, %r10, %xmm0);
+	vmovdqu %xmm0, (15 * 16)(%rax);
+	OCB_INPUT(1, %r11, %xmm0);
+	vmovdqu %xmm0, (14 * 16)(%rax);
+	OCB_INPUT(2, %r12, %xmm13);
+	OCB_INPUT(3, %r13, %xmm12);
+	movq (4 * 8)(%r9), %r10;
+	movq (5 * 8)(%r9), %r11;
+	movq (6 * 8)(%r9), %r12;
+	movq (7 * 8)(%r9), %r13;
+	OCB_INPUT(4, %r10, %xmm11);
+	OCB_INPUT(5, %r11, %xmm10);
+	OCB_INPUT(6, %r12, %xmm9);
+	OCB_INPUT(7, %r13, %xmm8);
+	movq (8 * 8)(%r9), %r10;
+	movq (9 * 8)(%r9), %r11;
+	movq (10 * 8)(%r9), %r12;
+	movq (11 * 8)(%r9), %r13;
+	OCB_INPUT(8, %r10, %xmm7);
+	OCB_INPUT(9, %r11, %xmm6);
+	OCB_INPUT(10, %r12, %xmm5);
+	OCB_INPUT(11, %r13, %xmm4);
+	movq (12 * 8)(%r9), %r10;
+	movq (13 * 8)(%r9), %r11;
+	movq (14 * 8)(%r9), %r12;
+	movq (15 * 8)(%r9), %r13;
+	OCB_INPUT(12, %r10, %xmm3);
+	OCB_INPUT(13, %r11, %xmm2);
+	OCB_INPUT(14, %r12, %xmm1);
+	OCB_INPUT(15, %r13, %xmm0);
+#undef OCB_INPUT
+
+	vmovdqu %xmm14, (%rcx);
+	vmovdqu %xmm15, (%r8);
+
+	/* inpack16_pre: */
+	vmovq (key_table)(CTX), %xmm15;
+	vpshufb .Lpack_bswap RIP, %xmm15, %xmm15;
+	vpxor %xmm0, %xmm15, %xmm0;
+	vpxor %xmm1, %xmm15, %xmm1;
+	vpxor %xmm2, %xmm15, %xmm2;
+	vpxor %xmm3, %xmm15, %xmm3;
+	vpxor %xmm4, %xmm15, %xmm4;
+	vpxor %xmm5, %xmm15, %xmm5;
+	vpxor %xmm6, %xmm15, %xmm6;
+	vpxor %xmm7, %xmm15, %xmm7;
+	vpxor %xmm8, %xmm15, %xmm8;
+	vpxor %xmm9, %xmm15, %xmm9;
+	vpxor %xmm10, %xmm15, %xmm10;
+	vpxor %xmm11, %xmm15, %xmm11;
+	vpxor %xmm12, %xmm15, %xmm12;
+	vpxor %xmm13, %xmm15, %xmm13;
+	vpxor 14 * 16(%rax), %xmm15, %xmm14;
+	vpxor 15 * 16(%rax), %xmm15, %xmm15;
+
+	call __camellia_enc_blk16;
+
+	vpxor 0 * 16(%rsi), %xmm7, %xmm7;
+	vpxor 1 * 16(%rsi), %xmm6, %xmm6;
+	vpxor 2 * 16(%rsi), %xmm5, %xmm5;
+	vpxor 3 * 16(%rsi), %xmm4, %xmm4;
+	vpxor 4 * 16(%rsi), %xmm3, %xmm3;
+	vpxor 5 * 16(%rsi), %xmm2, %xmm2;
+	vpxor 6 * 16(%rsi), %xmm1, %xmm1;
+	vpxor 7 * 16(%rsi), %xmm0, %xmm0;
+	vpxor 8 * 16(%rsi), %xmm15, %xmm15;
+	vpxor 9 * 16(%rsi), %xmm14, %xmm14;
+	vpxor 10 * 16(%rsi), %xmm13, %xmm13;
+	vpxor 11 * 16(%rsi), %xmm12, %xmm12;
+	vpxor 12 * 16(%rsi), %xmm11, %xmm11;
+	vpxor 13 * 16(%rsi), %xmm10, %xmm10;
+	vpxor 14 * 16(%rsi), %xmm9, %xmm9;
+	vpxor 15 * 16(%rsi), %xmm8, %xmm8;
+
+	write_output(%xmm7, %xmm6, %xmm5, %xmm4, %xmm3, %xmm2, %xmm1, %xmm0,
+		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
+		     %xmm8, %rsi);
+
+	vzeroall;
+
+	movq (16 * 16 + 0 * 8)(%rax), %r10;
+	movq (16 * 16 + 1 * 8)(%rax), %r11;
+	movq (16 * 16 + 2 * 8)(%rax), %r12;
+	movq (16 * 16 + 3 * 8)(%rax), %r13;
+
+	leave;
+	ret;
+ELF(.size _gcry_camellia_aesni_avx_ocb_enc,.-_gcry_camellia_aesni_avx_ocb_enc;)
+
+.align 8
+.globl _gcry_camellia_aesni_avx_ocb_dec
+ELF(.type   _gcry_camellia_aesni_avx_ocb_dec,@function;)
+
+_gcry_camellia_aesni_avx_ocb_dec:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (16 blocks)
+	 *	%rdx: src (16 blocks)
+	 *	%rcx: offset
+	 *	%r8 : checksum
+	 *	%r9 : L pointers (void *L[16])
+	 */
+
+	pushq %rbp;
+	movq %rsp, %rbp;
+
+	vzeroupper;
+
+	subq $(16 * 16 + 4 * 8), %rsp;
+	andq $~31, %rsp;
+	movq %rsp, %rax;
+
+	movq %r10, (16 * 16 + 0 * 8)(%rax);
+	movq %r11, (16 * 16 + 1 * 8)(%rax);
+	movq %r12, (16 * 16 + 2 * 8)(%rax);
+	movq %r13, (16 * 16 + 3 * 8)(%rax);
+
+	vmovdqu (%rcx), %xmm15;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	/* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
+
+#define OCB_INPUT(n, lreg, xreg) \
+	  vmovdqu (n * 16)(%rdx), xreg; \
+	  vpxor (lreg), %xmm15, %xmm15; \
+	  vpxor xreg, %xmm15, xreg; \
+	  vmovdqu %xmm15, (n * 16)(%rsi);
+	movq (0 * 8)(%r9), %r10;
+	movq (1 * 8)(%r9), %r11;
+	movq (2 * 8)(%r9), %r12;
+	movq (3 * 8)(%r9), %r13;
+	OCB_INPUT(0, %r10, %xmm0);
+	vmovdqu %xmm0, (15 * 16)(%rax);
+	OCB_INPUT(1, %r11, %xmm14);
+	OCB_INPUT(2, %r12, %xmm13);
+	OCB_INPUT(3, %r13, %xmm12);
+	movq (4 * 8)(%r9), %r10;
+	movq (5 * 8)(%r9), %r11;
+	movq (6 * 8)(%r9), %r12;
+	movq (7 * 8)(%r9), %r13;
+	OCB_INPUT(4, %r10, %xmm11);
+	OCB_INPUT(5, %r11, %xmm10);
+	OCB_INPUT(6, %r12, %xmm9);
+	OCB_INPUT(7, %r13, %xmm8);
+	movq (8 * 8)(%r9), %r10;
+	movq (9 * 8)(%r9), %r11;
+	movq (10 * 8)(%r9), %r12;
+	movq (11 * 8)(%r9), %r13;
+	OCB_INPUT(8, %r10, %xmm7);
+	OCB_INPUT(9, %r11, %xmm6);
+	OCB_INPUT(10, %r12, %xmm5);
+	OCB_INPUT(11, %r13, %xmm4);
+	movq (12 * 8)(%r9), %r10;
+	movq (13 * 8)(%r9), %r11;
+	movq (14 * 8)(%r9), %r12;
+	movq (15 * 8)(%r9), %r13;
+	OCB_INPUT(12, %r10, %xmm3);
+	OCB_INPUT(13, %r11, %xmm2);
+	OCB_INPUT(14, %r12, %xmm1);
+	OCB_INPUT(15, %r13, %xmm0);
+#undef OCB_INPUT
+
+	vmovdqu %xmm15, (%rcx);
+
+	movq %r8, %r10;
+
+	cmpl $128, key_bitlength(CTX);
+	movl $32, %r8d;
+	movl $24, %r9d;
+	cmovel %r9d, %r8d; /* max */
+
+	/* inpack16_pre: */
+	vmovq (key_table)(CTX, %r8, 8), %xmm15;
+	vpshufb .Lpack_bswap RIP, %xmm15, %xmm15;
+	vpxor %xmm0, %xmm15, %xmm0;
+	vpxor %xmm1, %xmm15, %xmm1;
+	vpxor %xmm2, %xmm15, %xmm2;
+	vpxor %xmm3, %xmm15, %xmm3;
+	vpxor %xmm4, %xmm15, %xmm4;
+	vpxor %xmm5, %xmm15, %xmm5;
+	vpxor %xmm6, %xmm15, %xmm6;
+	vpxor %xmm7, %xmm15, %xmm7;
+	vpxor %xmm8, %xmm15, %xmm8;
+	vpxor %xmm9, %xmm15, %xmm9;
+	vpxor %xmm10, %xmm15, %xmm10;
+	vpxor %xmm11, %xmm15, %xmm11;
+	vpxor %xmm12, %xmm15, %xmm12;
+	vpxor %xmm13, %xmm15, %xmm13;
+	vpxor %xmm14, %xmm15, %xmm14;
+	vpxor 15 * 16(%rax), %xmm15, %xmm15;
+
+	call __camellia_dec_blk16;
+
+	vpxor 0 * 16(%rsi), %xmm7, %xmm7;
+	vpxor 1 * 16(%rsi), %xmm6, %xmm6;
+	vpxor 2 * 16(%rsi), %xmm5, %xmm5;
+	vpxor 3 * 16(%rsi), %xmm4, %xmm4;
+	vpxor 4 * 16(%rsi), %xmm3, %xmm3;
+	vpxor 5 * 16(%rsi), %xmm2, %xmm2;
+	vpxor 6 * 16(%rsi), %xmm1, %xmm1;
+	vpxor 7 * 16(%rsi), %xmm0, %xmm0;
+	vmovdqu %xmm7, (7 * 16)(%rax);
+	vpxor 8 * 16(%rsi), %xmm15, %xmm15;
+	vpxor 9 * 16(%rsi), %xmm14, %xmm14;
+	vpxor 10 * 16(%rsi), %xmm13, %xmm13;
+	vpxor 11 * 16(%rsi), %xmm12, %xmm12;
+	vpxor 12 * 16(%rsi), %xmm11, %xmm11;
+	vpxor 13 * 16(%rsi), %xmm10, %xmm10;
+	vpxor 14 * 16(%rsi), %xmm9, %xmm9;
+	vpxor 15 * 16(%rsi), %xmm8, %xmm8;
+
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+
+	vpxor (%r10), %xmm7, %xmm7;
+	vpxor %xmm6, %xmm7, %xmm7;
+	vpxor %xmm5, %xmm7, %xmm7;
+	vpxor %xmm4, %xmm7, %xmm7;
+	vpxor %xmm3, %xmm7, %xmm7;
+	vpxor %xmm2, %xmm7, %xmm7;
+	vpxor %xmm1, %xmm7, %xmm7;
+	vpxor %xmm0, %xmm7, %xmm7;
+	vpxor %xmm15, %xmm7, %xmm7;
+	vpxor %xmm14, %xmm7, %xmm7;
+	vpxor %xmm13, %xmm7, %xmm7;
+	vpxor %xmm12, %xmm7, %xmm7;
+	vpxor %xmm11, %xmm7, %xmm7;
+	vpxor %xmm10, %xmm7, %xmm7;
+	vpxor %xmm9, %xmm7, %xmm7;
+	vpxor %xmm8, %xmm7, %xmm7;
+	vmovdqu %xmm7, (%r10);
+	vmovdqu (7 * 16)(%rax), %xmm7;
+
+	write_output(%xmm7, %xmm6, %xmm5, %xmm4, %xmm3, %xmm2, %xmm1, %xmm0,
+		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
+		     %xmm8, %rsi);
+
+	vzeroall;
+
+	movq (16 * 16 + 0 * 8)(%rax), %r10;
+	movq (16 * 16 + 1 * 8)(%rax), %r11;
+	movq (16 * 16 + 2 * 8)(%rax), %r12;
+	movq (16 * 16 + 3 * 8)(%rax), %r13;
+
+	leave;
+	ret;
+ELF(.size _gcry_camellia_aesni_avx_ocb_dec,.-_gcry_camellia_aesni_avx_ocb_dec;)
+
+.align 8
+.globl _gcry_camellia_aesni_avx_ocb_auth
+ELF(.type   _gcry_camellia_aesni_avx_ocb_auth,@function;)
+
+_gcry_camellia_aesni_avx_ocb_auth:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: abuf (16 blocks)
+	 *	%rdx: offset
+	 *	%rcx: checksum
+	 *	%r8 : L pointers (void *L[16])
+	 */
+
+	pushq %rbp;
+	movq %rsp, %rbp;
+
+	vzeroupper;
+
+	subq $(16 * 16 + 4 * 8), %rsp;
+	andq $~31, %rsp;
+	movq %rsp, %rax;
+
+	movq %r10, (16 * 16 + 0 * 8)(%rax);
+	movq %r11, (16 * 16 + 1 * 8)(%rax);
+	movq %r12, (16 * 16 + 2 * 8)(%rax);
+	movq %r13, (16 * 16 + 3 * 8)(%rax);
+
+	vmovdqu (%rdx), %xmm15;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	/* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+
+#define OCB_INPUT(n, lreg, xreg) \
+	  vmovdqu (n * 16)(%rsi), xreg; \
+	  vpxor (lreg), %xmm15, %xmm15; \
+	  vpxor xreg, %xmm15, xreg;
+
+	movq (0 * 8)(%r8), %r10;
+	movq (1 * 8)(%r8), %r11;
+	movq (2 * 8)(%r8), %r12;
+	movq (3 * 8)(%r8), %r13;
+	OCB_INPUT(0, %r10, %xmm0);
+	vmovdqu %xmm0, (15 * 16)(%rax);
+	OCB_INPUT(1, %r11, %xmm14);
+	OCB_INPUT(2, %r12, %xmm13);
+	OCB_INPUT(3, %r13, %xmm12);
+	movq (4 * 8)(%r8), %r10;
+	movq (5 * 8)(%r8), %r11;
+	movq (6 * 8)(%r8), %r12;
+	movq (7 * 8)(%r8), %r13;
+	OCB_INPUT(4, %r10, %xmm11);
+	OCB_INPUT(5, %r11, %xmm10);
+	OCB_INPUT(6, %r12, %xmm9);
+	OCB_INPUT(7, %r13, %xmm8);
+	movq (8 * 8)(%r8), %r10;
+	movq (9 * 8)(%r8), %r11;
+	movq (10 * 8)(%r8), %r12;
+	movq (11 * 8)(%r8), %r13;
+	OCB_INPUT(8, %r10, %xmm7);
+	OCB_INPUT(9, %r11, %xmm6);
+	OCB_INPUT(10, %r12, %xmm5);
+	OCB_INPUT(11, %r13, %xmm4);
+	movq (12 * 8)(%r8), %r10;
+	movq (13 * 8)(%r8), %r11;
+	movq (14 * 8)(%r8), %r12;
+	movq (15 * 8)(%r8), %r13;
+	OCB_INPUT(12, %r10, %xmm3);
+	OCB_INPUT(13, %r11, %xmm2);
+	OCB_INPUT(14, %r12, %xmm1);
+	OCB_INPUT(15, %r13, %xmm0);
+#undef OCB_INPUT
+
+	vmovdqu %xmm15, (%rdx);
+
+	movq %rcx, %r10;
+
+	/* inpack16_pre: */
+	vmovq (key_table)(CTX), %xmm15;
+	vpshufb .Lpack_bswap RIP, %xmm15, %xmm15;
+	vpxor %xmm0, %xmm15, %xmm0;
+	vpxor %xmm1, %xmm15, %xmm1;
+	vpxor %xmm2, %xmm15, %xmm2;
+	vpxor %xmm3, %xmm15, %xmm3;
+	vpxor %xmm4, %xmm15, %xmm4;
+	vpxor %xmm5, %xmm15, %xmm5;
+	vpxor %xmm6, %xmm15, %xmm6;
+	vpxor %xmm7, %xmm15, %xmm7;
+	vpxor %xmm8, %xmm15, %xmm8;
+	vpxor %xmm9, %xmm15, %xmm9;
+	vpxor %xmm10, %xmm15, %xmm10;
+	vpxor %xmm11, %xmm15, %xmm11;
+	vpxor %xmm12, %xmm15, %xmm12;
+	vpxor %xmm13, %xmm15, %xmm13;
+	vpxor %xmm14, %xmm15, %xmm14;
+	vpxor 15 * 16(%rax), %xmm15, %xmm15;
+
+	call __camellia_enc_blk16;
+
+	vpxor %xmm7, %xmm6, %xmm6;
+	vpxor %xmm5, %xmm4, %xmm4;
+	vpxor %xmm3, %xmm2, %xmm2;
+	vpxor %xmm1, %xmm0, %xmm0;
+	vpxor %xmm15, %xmm14, %xmm14;
+	vpxor %xmm13, %xmm12, %xmm12;
+	vpxor %xmm11, %xmm10, %xmm10;
+	vpxor %xmm9, %xmm8, %xmm8;
+
+	vpxor %xmm6, %xmm4, %xmm4;
+	vpxor %xmm2, %xmm0, %xmm0;
+	vpxor %xmm14, %xmm12, %xmm12;
+	vpxor %xmm10, %xmm8, %xmm8;
+
+	vpxor %xmm4, %xmm0, %xmm0;
+	vpxor %xmm12, %xmm8, %xmm8;
+
+	vpxor %xmm0, %xmm8, %xmm0;
+	vpxor (%r10), %xmm0, %xmm0;
+	vmovdqu %xmm0, (%r10);
+
+	vzeroall;
+
+	movq (16 * 16 + 0 * 8)(%rax), %r10;
+	movq (16 * 16 + 1 * 8)(%rax), %r11;
+	movq (16 * 16 + 2 * 8)(%rax), %r12;
+	movq (16 * 16 + 3 * 8)(%rax), %r13;
+
+	leave;
+	ret;
+ELF(.size _gcry_camellia_aesni_avx_ocb_auth,.-_gcry_camellia_aesni_avx_ocb_auth;)
 
 /*
  * IN:

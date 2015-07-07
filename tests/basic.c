@@ -3335,6 +3335,15 @@ check_ocb_cipher (void)
   check_ocb_cipher_largebuf(GCRY_CIPHER_AES256, 32,
                             "\xfa\x26\xa5\xbf\xf6\x7d\x3a\x8d"
                             "\xfe\x96\x67\xc9\xc8\x41\x03\x51");
+  check_ocb_cipher_largebuf(GCRY_CIPHER_CAMELLIA128, 16,
+                            "\x28\x23\x38\x45\x2b\xfd\x42\x45"
+			    "\x43\x64\x7e\x67\x7f\xf4\x8b\xcd");
+  check_ocb_cipher_largebuf(GCRY_CIPHER_CAMELLIA192, 24,
+                            "\xee\xca\xe5\x39\x27\x2d\x33\xe7"
+			    "\x79\x74\xb0\x1d\x37\x12\xd5\x6c");
+  check_ocb_cipher_largebuf(GCRY_CIPHER_CAMELLIA256, 32,
+                            "\x39\x39\xd0\x2d\x05\x68\x74\xee"
+			    "\x18\x6b\xea\x3d\x0b\xd3\x58\xae");
 }
 
 

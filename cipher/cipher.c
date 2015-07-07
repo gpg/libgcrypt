@@ -535,6 +535,8 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
               h->bulk.cbc_dec = _gcry_camellia_cbc_dec;
               h->bulk.cfb_dec = _gcry_camellia_cfb_dec;
               h->bulk.ctr_enc = _gcry_camellia_ctr_enc;
+              h->bulk.ocb_crypt = _gcry_camellia_ocb_crypt;
+              h->bulk.ocb_auth  = _gcry_camellia_ocb_auth;
               break;
 #endif /*USE_CAMELLIA*/
 #ifdef USE_DES

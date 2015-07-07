@@ -177,6 +177,11 @@ void _gcry_camellia_cbc_dec (void *context, unsigned char *iv,
 void _gcry_camellia_cfb_dec (void *context, unsigned char *iv,
                              void *outbuf_arg, const void *inbuf_arg,
                              size_t nblocks);
+void _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
+			       const void *inbuf_arg, size_t nblocks,
+			       int encrypt);
+void _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
+			      size_t nblocks);
 
 /*-- des.c --*/
 void _gcry_3des_ctr_enc (void *context, unsigned char *ctr,
