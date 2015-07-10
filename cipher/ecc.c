@@ -1041,6 +1041,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
         goto leave;
     }
   /* Add missing parameters using the optional curve parameter.  */
+  sexp_release (l1);
   l1 = sexp_find_token (s_keyparms, "curve", 5);
   if (l1)
     {
@@ -1417,6 +1418,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         goto leave;
     }
   /* Add missing parameters using the optional curve parameter.  */
+  sexp_release (l1);
   l1 = sexp_find_token (keyparms, "curve", 5);
   if (l1)
     {
