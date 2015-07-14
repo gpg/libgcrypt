@@ -2405,7 +2405,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
           _gcry_mpi_release (*array[idx]);
           *array[idx] = NULL;
         }
-      else if (!arrayisdesc[idx] == 1)
+      else if (arrayisdesc[idx] == 1)
         {
           /* Caller provided buffer.  */
           gcry_buffer_t *spec = (gcry_buffer_t*)array[idx];
