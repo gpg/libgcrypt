@@ -738,7 +738,7 @@ secret (gcry_mpi_t output, gcry_mpi_t input, RSA_secret_key *skey )
       if ( mpi_has_sign ( h ) )
         mpi_add ( h, h, skey->q );
       mpi_mulm( h, skey->u, h, skey->q );
-      /* m = m2 + h * p */
+      /* m = m1 + h * p */
       mpi_mul ( h, h, skey->p );
       mpi_add ( output, m1, h );
 
