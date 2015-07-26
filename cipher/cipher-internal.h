@@ -128,9 +128,10 @@ struct gcry_cipher_handle
     void (*ctr_enc)(void *context, unsigned char *iv,
                     void *outbuf_arg, const void *inbuf_arg,
                     size_t nblocks);
-    void (*ocb_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
-                      const void *inbuf_arg, size_t nblocks, int encrypt);
-    void (*ocb_auth)(gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks);
+    size_t (*ocb_crypt)(gcry_cipher_hd_t c, void *outbuf_arg,
+			const void *inbuf_arg, size_t nblocks, int encrypt);
+    size_t (*ocb_auth)(gcry_cipher_hd_t c, const void *abuf_arg,
+		       size_t nblocks);
   } bulk;
 
 

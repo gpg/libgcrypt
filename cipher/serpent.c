@@ -1226,6 +1226,7 @@ _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
   _gcry_burn_stack(burn_stack_depth);
 }
 
+#if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
 static inline const unsigned char *
 get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 i)
 {
@@ -1236,19 +1237,26 @@ get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 i)
   else
       return _gcry_cipher_ocb_get_l (c, l_tmp, i);
 }
+#endif
 
 /* Bulk encryption/decryption of complete blocks in OCB mode. */
-void
+size_t
 _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 			const void *inbuf_arg, size_t nblocks, int encrypt)
 {
+#if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
   serpent_context_t *ctx = (void *)&c->context.c;
   unsigned char *outbuf = outbuf_arg;
   const unsigned char *inbuf = inbuf_arg;
   unsigned char l_tmp[sizeof(serpent_block_t)];
-  const unsigned char *l;
   int burn_stack_depth = 2 * sizeof (serpent_block_t);
   u64 blkn = c->u_mode.ocb.data_nblocks;
+#else
+  (void)c;
+  (void)outbuf_arg;
+  (void)inbuf_arg;
+  (void)encrypt;
+#endif
 
 #ifdef USE_AVX2
   if (ctx->use_avx2)
@@ -1381,68 +1389,33 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     }
 #endif
 
-  if (encrypt)
-    {
-      for (; nblocks; nblocks--)
-	{
-	  l = get_l(c, l_tmp, ++blkn);
-
-	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-	  buf_xor_1 (c->u_iv.iv, l, sizeof(serpent_block_t));
-	  buf_cpy (l_tmp, inbuf, sizeof(serpent_block_t));
-	  /* Checksum_i = Checksum_{i-1} xor P_i  */
-	  buf_xor_1 (c->u_ctr.ctr, l_tmp, sizeof(serpent_block_t));
-	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-	  buf_xor_1 (l_tmp, c->u_iv.iv, sizeof(serpent_block_t));
-	  serpent_encrypt_internal(ctx, l_tmp, l_tmp);
-	  buf_xor_1 (l_tmp, c->u_iv.iv, sizeof(serpent_block_t));
-	  buf_cpy (outbuf, l_tmp, sizeof(serpent_block_t));
-
-	  inbuf += sizeof(serpent_block_t);
-	  outbuf += sizeof(serpent_block_t);
-	}
-    }
-  else
-    {
-      for (; nblocks; nblocks--)
-	{
-	  l = get_l(c, l_tmp, ++blkn);
-
-	  /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-	  buf_xor_1 (c->u_iv.iv, l, sizeof(serpent_block_t));
-	  buf_cpy (l_tmp, inbuf, sizeof(serpent_block_t));
-	  /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
-	  buf_xor_1 (l_tmp, c->u_iv.iv, sizeof(serpent_block_t));
-	  serpent_decrypt_internal(ctx, l_tmp, l_tmp);
-	  buf_xor_1 (l_tmp, c->u_iv.iv, sizeof(serpent_block_t));
-	  /* Checksum_i = Checksum_{i-1} xor P_i  */
-	  buf_xor_1 (c->u_ctr.ctr, l_tmp, sizeof(serpent_block_t));
-	  buf_cpy (outbuf, l_tmp, sizeof(serpent_block_t));
-
-	  inbuf += sizeof(serpent_block_t);
-	  outbuf += sizeof(serpent_block_t);
-	}
-    }
-
+#if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
   c->u_mode.ocb.data_nblocks = blkn;
 
   wipememory(&l_tmp, sizeof(l_tmp));
 
   if (burn_stack_depth)
     _gcry_burn_stack (burn_stack_depth + 4 * sizeof(void *));
+#endif
+
+  return nblocks;
 }
 
 /* Bulk authentication of complete blocks in OCB mode. */
-void
+size_t
 _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 			size_t nblocks)
 {
+#if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
   serpent_context_t *ctx = (void *)&c->context.c;
   const unsigned char *abuf = abuf_arg;
   unsigned char l_tmp[sizeof(serpent_block_t)];
-  const unsigned char *l;
   int burn_stack_depth = 2 * sizeof(serpent_block_t);
   u64 blkn = c->u_mode.ocb.aad_nblocks;
+#else
+  (void)c;
+  (void)abuf_arg;
+#endif
 
 #ifdef USE_AVX2
   if (ctx->use_avx2)
@@ -1560,26 +1533,16 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     }
 #endif
 
-  for (; nblocks; nblocks--)
-    {
-      l = get_l(c, l_tmp, ++blkn);
-
-      /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
-      buf_xor_1 (c->u_mode.ocb.aad_offset, l, sizeof(serpent_block_t));
-      /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
-      buf_xor (l_tmp, c->u_mode.ocb.aad_offset, abuf, sizeof(serpent_block_t));
-      serpent_encrypt_internal(ctx, l_tmp, l_tmp);
-      buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, sizeof(serpent_block_t));
-
-      abuf += sizeof(serpent_block_t);
-    }
-
+#if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
   c->u_mode.ocb.aad_nblocks = blkn;
 
   wipememory(&l_tmp, sizeof(l_tmp));
 
   if (burn_stack_depth)
     _gcry_burn_stack (burn_stack_depth + 4 * sizeof(void *));
+#endif
+
+  return nblocks;
 }
 
 

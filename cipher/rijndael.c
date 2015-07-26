@@ -1200,7 +1200,7 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 
 
 /* Bulk encryption/decryption of complete blocks in OCB mode. */
-void
+size_t
 _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
                      const void *inbuf_arg, size_t nblocks, int encrypt)
 {
@@ -1303,11 +1303,13 @@ _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 
   if (burn_depth)
     _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
+
+  return 0;
 }
 
 
 /* Bulk authentication of complete blocks in OCB mode. */
-void
+size_t
 _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
 {
   RIJNDAEL_context *ctx = (void *)&c->context.c;
@@ -1364,6 +1366,8 @@ _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
 
   if (burn_depth)
     _gcry_burn_stack (burn_depth + 4 * sizeof(void *));
+
+  return 0;
 }
 
 

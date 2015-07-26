@@ -260,10 +260,17 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
   /* Use a bulk method if available.  */
   if (abuflen >= OCB_BLOCK_LEN && c->bulk.ocb_auth)
     {
-      size_t nblks = abuflen / OCB_BLOCK_LEN;
-      c->bulk.ocb_auth (c, abuf, nblks);
-      abuf += nblks * OCB_BLOCK_LEN;
-      abuflen -= nblks * OCB_BLOCK_LEN;
+      size_t nblks;
+      size_t nleft;
+      size_t ndone;
+
+      nblks = abuflen / OCB_BLOCK_LEN;
+      nleft = c->bulk.ocb_auth (c, abuf, nblks);
+      ndone = nblks - nleft;
+
+      abuf += ndone * OCB_BLOCK_LEN;
+      abuflen -= ndone * OCB_BLOCK_LEN;
+      nblks = nleft;
     }
 
   /* Hash all full blocks.  */
@@ -354,12 +361,17 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
   /* Use a bulk method if available.  */
   if (nblks && c->bulk.ocb_crypt)
     {
-      c->bulk.ocb_crypt (c, outbuf, inbuf, nblks, encrypt);
-      inbuf  += nblks * OCB_BLOCK_LEN;
-      outbuf += nblks * OCB_BLOCK_LEN;
-      inbuflen -= nblks * OCB_BLOCK_LEN;
-      outbuflen -= nblks * OCB_BLOCK_LEN;
-      nblks = 0;
+      size_t nleft;
+      size_t ndone;
+
+      nleft = c->bulk.ocb_crypt (c, outbuf, inbuf, nblks, encrypt);
+      ndone = nblks - nleft;
+
+      inbuf += ndone * OCB_BLOCK_LEN;
+      outbuf += ndone * OCB_BLOCK_LEN;
+      inbuflen -= ndone * OCB_BLOCK_LEN;
+      outbuflen -= ndone * OCB_BLOCK_LEN;
+      nblks = nleft;
     }
 
   if (nblks)
