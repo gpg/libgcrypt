@@ -260,6 +260,9 @@ poly1305mac_read (gcry_mac_hd_t h, unsigned char *outbuf, size_t *outlen)
       mac_ctx->marks.tag = 1;
     }
 
+  if (*outlen == 0)
+    return 0;
+
   if (*outlen <= POLY1305_TAGLEN)
     buf_cpy (outbuf, mac_ctx->tag, *outlen);
   else

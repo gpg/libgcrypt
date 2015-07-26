@@ -474,7 +474,7 @@ do_ghash_buf(gcry_cipher_hd_t c, byte *hash, const byte *buf,
 
   do
     {
-      if (buflen + unused < blocksize || unused > 0)
+      if (buflen > 0 && (buflen + unused < blocksize || unused > 0))
         {
           n = blocksize - unused;
           n = n < buflen ? n : buflen;
