@@ -1,6 +1,6 @@
 /* serpent-sse2-amd64.S  -  SSE2 implementation of Serpent cipher
  *
- * Copyright (C) 2013 Jussi Kivilinna <jussi.kivilinna@iki.fi>
+ * Copyright (C) 2013-2015 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.
  *
@@ -865,6 +865,311 @@ _gcry_serpent_sse2_cfb_dec:
 
 	ret
 ELF(.size _gcry_serpent_sse2_cfb_dec,.-_gcry_serpent_sse2_cfb_dec;)
+
+.align 8
+.globl _gcry_serpent_sse2_ocb_enc
+ELF(.type _gcry_serpent_sse2_ocb_enc,@function;)
+
+_gcry_serpent_sse2_ocb_enc:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (8 blocks)
+	 *	%rdx: src (8 blocks)
+	 *	%rcx: offset
+	 *	%r8 : checksum
+	 *	%r9 : L pointers (void *L[8])
+	 */
+
+	subq $(4 * 8), %rsp;
+
+	movq %r10, (0 * 8)(%rsp);
+	movq %r11, (1 * 8)(%rsp);
+	movq %r12, (2 * 8)(%rsp);
+	movq %r13, (3 * 8)(%rsp);
+
+	movdqu (%rcx), RTMP0;
+	movdqu (%r8), RTMP1;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+	/* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+
+#define OCB_INPUT(n, lreg, xreg) \
+	  movdqu (n * 16)(%rdx), xreg; \
+	  movdqu (lreg), RNOT; \
+	  pxor RNOT, RTMP0; \
+	  pxor xreg, RTMP1; \
+	  pxor RTMP0, xreg; \
+	  movdqu RTMP0, (n * 16)(%rsi);
+	movq (0 * 8)(%r9), %r10;
+	movq (1 * 8)(%r9), %r11;
+	movq (2 * 8)(%r9), %r12;
+	movq (3 * 8)(%r9), %r13;
+	OCB_INPUT(0, %r10, RA0);
+	OCB_INPUT(1, %r11, RA1);
+	OCB_INPUT(2, %r12, RA2);
+	OCB_INPUT(3, %r13, RA3);
+	movq (4 * 8)(%r9), %r10;
+	movq (5 * 8)(%r9), %r11;
+	movq (6 * 8)(%r9), %r12;
+	movq (7 * 8)(%r9), %r13;
+	OCB_INPUT(4, %r10, RB0);
+	OCB_INPUT(5, %r11, RB1);
+	OCB_INPUT(6, %r12, RB2);
+	OCB_INPUT(7, %r13, RB3);
+#undef OCB_INPUT
+
+	movdqu RTMP0, (%rcx);
+	movdqu RTMP1, (%r8);
+
+	movq (0 * 8)(%rsp), %r10;
+	movq (1 * 8)(%rsp), %r11;
+	movq (2 * 8)(%rsp), %r12;
+	movq (3 * 8)(%rsp), %r13;
+
+	call __serpent_enc_blk8;
+
+	addq $(4 * 8), %rsp;
+
+	pxor_u((0 * 16)(%rsi), RA4, RTMP0);
+	pxor_u((1 * 16)(%rsi), RA1, RTMP0);
+	pxor_u((2 * 16)(%rsi), RA2, RTMP0);
+	pxor_u((3 * 16)(%rsi), RA0, RTMP0);
+	pxor_u((4 * 16)(%rsi), RB4, RTMP0);
+	pxor_u((5 * 16)(%rsi), RB1, RTMP0);
+	pxor_u((6 * 16)(%rsi), RB2, RTMP0);
+	pxor_u((7 * 16)(%rsi), RB0, RTMP0);
+
+	movdqu RA4, (0 * 16)(%rsi);
+	movdqu RA1, (1 * 16)(%rsi);
+	movdqu RA2, (2 * 16)(%rsi);
+	movdqu RA0, (3 * 16)(%rsi);
+	movdqu RB4, (4 * 16)(%rsi);
+	movdqu RB1, (5 * 16)(%rsi);
+	movdqu RB2, (6 * 16)(%rsi);
+	movdqu RB0, (7 * 16)(%rsi);
+
+	/* clear the used registers */
+	pxor RA0, RA0;
+	pxor RA1, RA1;
+	pxor RA2, RA2;
+	pxor RA3, RA3;
+	pxor RA4, RA4;
+	pxor RB0, RB0;
+	pxor RB1, RB1;
+	pxor RB2, RB2;
+	pxor RB3, RB3;
+	pxor RB4, RB4;
+	pxor RTMP0, RTMP0;
+	pxor RTMP1, RTMP1;
+	pxor RTMP2, RTMP2;
+	pxor RNOT, RNOT;
+
+	ret;
+ELF(.size _gcry_serpent_sse2_ocb_enc,.-_gcry_serpent_sse2_ocb_enc;)
+
+.align 8
+.globl _gcry_serpent_sse2_ocb_dec
+ELF(.type _gcry_serpent_sse2_ocb_dec,@function;)
+
+_gcry_serpent_sse2_ocb_dec:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: dst (8 blocks)
+	 *	%rdx: src (8 blocks)
+	 *	%rcx: offset
+	 *	%r8 : checksum
+	 *	%r9 : L pointers (void *L[8])
+	 */
+
+	subq $(4 * 8), %rsp;
+
+	movq %r10, (0 * 8)(%rsp);
+	movq %r11, (1 * 8)(%rsp);
+	movq %r12, (2 * 8)(%rsp);
+	movq %r13, (3 * 8)(%rsp);
+
+	movdqu (%rcx), RTMP0;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	/* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
+
+#define OCB_INPUT(n, lreg, xreg) \
+	  movdqu (n * 16)(%rdx), xreg; \
+	  movdqu (lreg), RNOT; \
+	  pxor RNOT, RTMP0; \
+	  pxor RTMP0, xreg; \
+	  movdqu RTMP0, (n * 16)(%rsi);
+	movq (0 * 8)(%r9), %r10;
+	movq (1 * 8)(%r9), %r11;
+	movq (2 * 8)(%r9), %r12;
+	movq (3 * 8)(%r9), %r13;
+	OCB_INPUT(0, %r10, RA0);
+	OCB_INPUT(1, %r11, RA1);
+	OCB_INPUT(2, %r12, RA2);
+	OCB_INPUT(3, %r13, RA3);
+	movq (4 * 8)(%r9), %r10;
+	movq (5 * 8)(%r9), %r11;
+	movq (6 * 8)(%r9), %r12;
+	movq (7 * 8)(%r9), %r13;
+	OCB_INPUT(4, %r10, RB0);
+	OCB_INPUT(5, %r11, RB1);
+	OCB_INPUT(6, %r12, RB2);
+	OCB_INPUT(7, %r13, RB3);
+#undef OCB_INPUT
+
+	movdqu RTMP0, (%rcx);
+
+	movq (0 * 8)(%rsp), %r10;
+	movq (1 * 8)(%rsp), %r11;
+	movq (2 * 8)(%rsp), %r12;
+	movq (3 * 8)(%rsp), %r13;
+
+	call __serpent_dec_blk8;
+
+	addq $(4 * 8), %rsp;
+
+	movdqu (%r8), RTMP0;
+
+	pxor_u((0 * 16)(%rsi), RA0, RTMP1);
+	pxor_u((1 * 16)(%rsi), RA1, RTMP1);
+	pxor_u((2 * 16)(%rsi), RA2, RTMP1);
+	pxor_u((3 * 16)(%rsi), RA3, RTMP1);
+	pxor_u((4 * 16)(%rsi), RB0, RTMP1);
+	pxor_u((5 * 16)(%rsi), RB1, RTMP1);
+	pxor_u((6 * 16)(%rsi), RB2, RTMP1);
+	pxor_u((7 * 16)(%rsi), RB3, RTMP1);
+
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+
+	movdqu RA0, (0 * 16)(%rsi);
+	pxor RA0, RTMP0;
+	movdqu RA1, (1 * 16)(%rsi);
+	pxor RA1, RTMP0;
+	movdqu RA2, (2 * 16)(%rsi);
+	pxor RA2, RTMP0;
+	movdqu RA3, (3 * 16)(%rsi);
+	pxor RA3, RTMP0;
+	movdqu RB0, (4 * 16)(%rsi);
+	pxor RB0, RTMP0;
+	movdqu RB1, (5 * 16)(%rsi);
+	pxor RB1, RTMP0;
+	movdqu RB2, (6 * 16)(%rsi);
+	pxor RB2, RTMP0;
+	movdqu RB3, (7 * 16)(%rsi);
+	pxor RB3, RTMP0;
+
+	movdqu RTMP0, (%r8);
+
+	/* clear the used registers */
+	pxor RA0, RA0;
+	pxor RA1, RA1;
+	pxor RA2, RA2;
+	pxor RA3, RA3;
+	pxor RA4, RA4;
+	pxor RB0, RB0;
+	pxor RB1, RB1;
+	pxor RB2, RB2;
+	pxor RB3, RB3;
+	pxor RB4, RB4;
+	pxor RTMP0, RTMP0;
+	pxor RTMP1, RTMP1;
+	pxor RTMP2, RTMP2;
+	pxor RNOT, RNOT;
+
+	ret;
+ELF(.size _gcry_serpent_sse2_ocb_dec,.-_gcry_serpent_sse2_ocb_dec;)
+
+.align 8
+.globl _gcry_serpent_sse2_ocb_auth
+ELF(.type _gcry_serpent_sse2_ocb_auth,@function;)
+
+_gcry_serpent_sse2_ocb_auth:
+	/* input:
+	 *	%rdi: ctx, CTX
+	 *	%rsi: abuf (8 blocks)
+	 *	%rdx: offset
+	 *	%rcx: checksum
+	 *	%r8 : L pointers (void *L[8])
+	 */
+
+	subq $(4 * 8), %rsp;
+
+	movq %r10, (0 * 8)(%rsp);
+	movq %r11, (1 * 8)(%rsp);
+	movq %r12, (2 * 8)(%rsp);
+	movq %r13, (3 * 8)(%rsp);
+
+	movdqu (%rdx), RTMP0;
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	/* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+
+#define OCB_INPUT(n, lreg, xreg) \
+	  movdqu (n * 16)(%rsi), xreg; \
+	  movdqu (lreg), RNOT; \
+	  pxor RNOT, RTMP0; \
+	  pxor RTMP0, xreg;
+	movq (0 * 8)(%r8), %r10;
+	movq (1 * 8)(%r8), %r11;
+	movq (2 * 8)(%r8), %r12;
+	movq (3 * 8)(%r8), %r13;
+	OCB_INPUT(0, %r10, RA0);
+	OCB_INPUT(1, %r11, RA1);
+	OCB_INPUT(2, %r12, RA2);
+	OCB_INPUT(3, %r13, RA3);
+	movq (4 * 8)(%r8), %r10;
+	movq (5 * 8)(%r8), %r11;
+	movq (6 * 8)(%r8), %r12;
+	movq (7 * 8)(%r8), %r13;
+	OCB_INPUT(4, %r10, RB0);
+	OCB_INPUT(5, %r11, RB1);
+	OCB_INPUT(6, %r12, RB2);
+	OCB_INPUT(7, %r13, RB3);
+#undef OCB_INPUT
+
+	movdqu RTMP0, (%rdx);
+
+	movq (0 * 8)(%rsp), %r10;
+	movq (1 * 8)(%rsp), %r11;
+	movq (2 * 8)(%rsp), %r12;
+	movq (3 * 8)(%rsp), %r13;
+
+	call __serpent_enc_blk8;
+
+	addq $(4 * 8), %rsp;
+
+	movdqu (%rcx), RTMP0;
+	pxor RB4, RA4;
+	pxor RB1, RA1;
+	pxor RB2, RA2;
+	pxor RB0, RA0;
+
+	pxor RTMP0, RA2;
+	pxor RA4, RA1;
+	pxor RA2, RA0;
+
+	pxor RA1, RA0;
+	movdqu RA0, (%rcx);
+
+	/* clear the used registers */
+	pxor RA0, RA0;
+	pxor RA1, RA1;
+	pxor RA2, RA2;
+	pxor RA3, RA3;
+	pxor RA4, RA4;
+	pxor RB0, RB0;
+	pxor RB1, RB1;
+	pxor RB2, RB2;
+	pxor RB3, RB3;
+	pxor RB4, RB4;
+	pxor RTMP0, RTMP0;
+	pxor RTMP1, RTMP1;
+	pxor RTMP2, RTMP2;
+	pxor RNOT, RNOT;
+
+	ret;
+ELF(.size _gcry_serpent_sse2_ocb_auth,.-_gcry_serpent_sse2_ocb_auth;)
 
 #endif /*defined(USE_SERPENT)*/
 #endif /*__x86_64*/

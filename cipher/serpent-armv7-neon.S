@@ -866,4 +866,259 @@ _gcry_serpent_neon_cbc_dec:
 	pop {pc};
 .size _gcry_serpent_neon_cbc_dec,.-_gcry_serpent_neon_cbc_dec;
 
+.align 3
+.globl _gcry_serpent_neon_ocb_enc
+.type _gcry_serpent_neon_ocb_enc,%function;
+_gcry_serpent_neon_ocb_enc:
+	/* input:
+	 *	r0  : ctx, CTX
+	 *	r1  : dst (8 blocks)
+	 *	r2  : src (8 blocks)
+	 *	r3  : offset
+	 *	sp+0: checksum
+	 *	sp+4: L pointers (void *L[8])
+	 */
+
+	push {r4-r11, ip, lr};
+	add ip, sp, #(10*4);
+
+	vpush {RA4-RB2};
+
+	ldm ip, {r4, lr};
+
+	vld1.8 {RT0}, [r3];
+	vld1.8 {RT1}, [r4];
+
+	/* Load L pointers */
+	ldm lr!, {r5, r6, r7, r8};
+	ldm lr, {r9, r10, r11, ip};
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+	/* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
+
+	vld1.8 {RA0, RA1}, [r2]!;
+	vld1.8 {RA2, RA3}, [r2]!;
+	vld1.8 {RB0, RB1}, [r2]!;
+	vld1.8 {RB2, RB3}, [r2];
+
+#define OCB_INPUT(lreg, vreg) \
+	  vld1.8 {RT3}, [lreg]; \
+	  veor RT0, RT3; \
+	  veor RT1, vreg; \
+	  veor vreg, RT0; \
+	  vst1.8 {RT0}, [r1]!;
+
+	OCB_INPUT(r5, RA0);
+	OCB_INPUT(r6, RA1);
+	OCB_INPUT(r7, RA2);
+	OCB_INPUT(r8, RA3);
+	OCB_INPUT(r9, RB0);
+	OCB_INPUT(r10, RB1);
+	OCB_INPUT(r11, RB2);
+	OCB_INPUT(ip, RB3);
+#undef OCB_INPUT
+
+	sub r1, r1, #(8*16);
+	vst1.8 {RT0}, [r3];
+	vst1.8 {RT1}, [r4];
+	mov r2, r1;
+
+	bl __serpent_enc_blk8;
+
+	vld1.8 {RT0, RT1}, [r1]!;
+	veor RT0, RA4, RT0;
+	veor RT1, RA1, RT1;
+	vld1.8 {RT2, RT3}, [r1]!;
+	vst1.8 {RT0, RT1}, [r2]!;
+	veor RT2, RA2, RT2;
+	veor RT3, RA0, RT3;
+	vld1.8 {RT0, RT1}, [r1]!;
+	vst1.8 {RT2, RT3}, [r2]!;
+	veor RT0, RB4, RT0;
+	veor RT1, RB1, RT1;
+	vld1.8 {RT2, RT3}, [r1]!;
+	vst1.8 {RT0, RT1}, [r2]!;
+	veor RT2, RB2, RT2;
+	veor RT3, RB0, RT3;
+	vst1.8 {RT2, RT3}, [r2]!;
+
+	vpop {RA4-RB2};
+
+	/* clear the used registers */
+	veor RA3, RA3;
+	veor RB3, RB3;
+
+	pop {r4-r11, ip, pc};
+.size _gcry_serpent_neon_ocb_enc,.-_gcry_serpent_neon_ocb_enc;
+
+.align 3
+.globl _gcry_serpent_neon_ocb_dec
+.type _gcry_serpent_neon_ocb_dec,%function;
+_gcry_serpent_neon_ocb_dec:
+	/* input:
+	 *	r0  : ctx, CTX
+	 *	r1  : dst (8 blocks)
+	 *	r2  : src (8 blocks)
+	 *	r3  : offset
+	 *	sp+0: checksum
+	 *	sp+4: L pointers (void *L[8])
+	 */
+
+	push {r4-r11, ip, lr};
+	add ip, sp, #(10*4);
+
+	vpush {RA4-RB2};
+
+	ldm ip, {r4, lr};
+
+	vld1.8 {RT0}, [r3];
+
+	/* Load L pointers */
+	ldm lr!, {r5, r6, r7, r8};
+	ldm lr, {r9, r10, r11, ip};
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	/* P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)  */
+
+	vld1.8 {RA0, RA1}, [r2]!;
+	vld1.8 {RA2, RA3}, [r2]!;
+	vld1.8 {RB0, RB1}, [r2]!;
+	vld1.8 {RB2, RB3}, [r2];
+
+#define OCB_INPUT(lreg, vreg) \
+	  vld1.8 {RT3}, [lreg]; \
+	  veor RT0, RT3; \
+	  veor vreg, RT0; \
+	  vst1.8 {RT0}, [r1]!;
+
+	OCB_INPUT(r5, RA0);
+	OCB_INPUT(r6, RA1);
+	OCB_INPUT(r7, RA2);
+	OCB_INPUT(r8, RA3);
+	OCB_INPUT(r9, RB0);
+	OCB_INPUT(r10, RB1);
+	OCB_INPUT(r11, RB2);
+	OCB_INPUT(ip, RB3);
+#undef OCB_INPUT
+
+	sub r1, r1, #(8*16);
+	vst1.8 {RT0}, [r3];
+	mov r2, r1;
+
+	bl __serpent_dec_blk8;
+
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+	vld1.8 {RA4}, [r4];
+
+	vld1.8 {RT0, RT1}, [r1]!;
+	veor RA0, RA0, RT0;
+	veor RA1, RA1, RT1;
+	vld1.8 {RT2, RT3}, [r1]!;
+	veor RA4, RA4, RA0;
+	vst1.8 {RA0, RA1}, [r2]!;
+	veor RA4, RA4, RA1;
+	veor RA2, RA2, RT2;
+	veor RA3, RA3, RT3;
+	vld1.8 {RT0, RT1}, [r1]!;
+	veor RA4, RA4, RA2;
+	vst1.8 {RA2, RA3}, [r2]!;
+	veor RA4, RA4, RA3;
+	veor RB0, RB0, RT0;
+	veor RB1, RB1, RT1;
+	vld1.8 {RT2, RT3}, [r1]!;
+	veor RA4, RA4, RB0;
+	vst1.8 {RB0, RB1}, [r2]!;
+	veor RA4, RA4, RB1;
+	veor RB2, RB2, RT2;
+	veor RB3, RB3, RT3;
+	veor RA4, RA4, RB2;
+	vst1.8 {RB2, RB3}, [r2]!;
+
+	veor RA4, RA4, RB3;
+	vst1.8 {RA4}, [r4];
+
+	vpop {RA4-RB2};
+
+	/* clear the used registers */
+	veor RB4, RB4;
+
+	pop {r4-r11, ip, pc};
+.size _gcry_serpent_neon_ocb_dec,.-_gcry_serpent_neon_ocb_dec;
+
+.align 3
+.globl _gcry_serpent_neon_ocb_auth
+.type _gcry_serpent_neon_ocb_auth,%function;
+_gcry_serpent_neon_ocb_auth:
+	/* input:
+	 *	r0  : ctx, CTX
+	 *	r1  : abuf (8 blocks)
+	 *	r2  : offset
+	 *	r3  : checksum
+	 *	sp+0: L pointers (void *L[8])
+	 */
+
+	push {r5-r11, ip, lr};
+	ldr lr, [sp, #(9*4)];
+
+	vpush {RA4-RB2};
+
+	vld1.8 {RT0}, [r2];
+
+	/* Load L pointers */
+	ldm lr!, {r5, r6, r7, r8};
+	ldm lr, {r9, r10, r11, ip};
+
+	/* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+	/* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+
+	vld1.8 {RA0, RA1}, [r1]!;
+	vld1.8 {RA2, RA3}, [r1]!;
+	vld1.8 {RB0, RB1}, [r1]!;
+	vld1.8 {RB2, RB3}, [r1];
+
+#define OCB_INPUT(lreg, vreg) \
+	  vld1.8 {RT3}, [lreg]; \
+	  veor RT0, RT3; \
+	  veor vreg, RT0;
+
+	OCB_INPUT(r5, RA0);
+	OCB_INPUT(r6, RA1);
+	OCB_INPUT(r7, RA2);
+	OCB_INPUT(r8, RA3);
+	OCB_INPUT(r9, RB0);
+	OCB_INPUT(r10, RB1);
+	OCB_INPUT(r11, RB2);
+	OCB_INPUT(ip, RB3);
+#undef OCB_INPUT
+
+	vst1.8 {RT0}, [r2];
+
+	bl __serpent_enc_blk8;
+
+	/* Checksum_i = Checksum_{i-1} xor P_i  */
+	vld1.8 {RT0}, [r3];
+
+	veor RA4, RB4;
+	veor RA1, RB1;
+	veor RA2, RB2;
+	veor RA0, RB0;
+
+	veor RA2, RT0;
+	veor RA1, RA4;
+	veor RA0, RA2;
+
+	veor RA0, RA1;
+
+	vst1.8 {RA0}, [r3];
+
+	vpop {RA4-RB2};
+
+	/* clear the used registers */
+	veor RA3, RA3;
+	veor RB3, RB3;
+
+	pop {r5-r11, ip, pc};
+.size _gcry_serpent_neon_ocb_auth,.-_gcry_serpent_neon_ocb_auth;
+
 #endif
