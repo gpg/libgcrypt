@@ -580,7 +580,7 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   mpi_ec_t ctx = NULL;
   int b;
   unsigned int tmp;
-  unsigned char *digest;
+  unsigned char *digest = NULL;
   gcry_buffer_t hvec[3];
   const void *mbuf;
   size_t mlen;
@@ -607,8 +607,10 @@ _gcry_ecc_eddsa_sign (gcry_mpi_t input, ECC_secret_key *skey,
   ctx = _gcry_mpi_ec_p_internal_new (skey->E.model, skey->E.dialect, 0,
                                      skey->E.p, skey->E.a, skey->E.b);
   b = (ctx->nbits+7)/8;
-  if (b != 256/8)
-    return GPG_ERR_INTERNAL; /* We only support 256 bit. */
+  if (b != 256/8) {
+    rc = GPG_ERR_INTERNAL; /* We only support 256 bit. */
+    goto leave;
+  }
 
   rc = _gcry_ecc_eddsa_compute_h_d (&digest, skey->d, ctx);
   if (rc)
