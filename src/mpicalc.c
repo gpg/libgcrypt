@@ -200,12 +200,14 @@ do_powm (void)
 static void
 do_inv (void)
 {
-  gcry_mpi_t a = mpi_new (0);
+  gcry_mpi_t a;
+
   if (stackidx < 2)
     {
       fputs ("stack underflow\n", stderr);
       return;
     }
+  a = mpi_new (0);
   mpi_invm (a, stack[stackidx - 2], stack[stackidx - 1]);
   mpi_set (stack[stackidx - 2], a);
   mpi_release (a);
@@ -215,12 +217,14 @@ do_inv (void)
 static void
 do_gcd (void)
 {
-  gcry_mpi_t a = mpi_new (0);
+  gcry_mpi_t a;
+
   if (stackidx < 2)
     {
       fputs ("stack underflow\n", stderr);
       return;
     }
+  a = mpi_new (0);
   mpi_gcd (a, stack[stackidx - 2], stack[stackidx - 1]);
   mpi_set (stack[stackidx - 2], a);
   mpi_release (a);
