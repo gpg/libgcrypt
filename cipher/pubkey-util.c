@@ -107,6 +107,7 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
             {
               encoding = PUBKEY_ENC_RAW;
               flags |= PUBKEY_FLAG_EDDSA;
+              flags |= PUBKEY_FLAG_DJB_TWEAK;
             }
           else if (!memcmp (s, "pkcs1", 5) && encoding == PUBKEY_ENC_UNKNOWN)
             {
@@ -142,11 +143,16 @@ _gcry_pk_util_parse_flaglist (gcry_sexp_t list,
             rc = GPG_ERR_INV_FLAG;
           break;
 
-	case 9:
+        case 9:
           if (!memcmp (s, "pkcs1-raw", 9) && encoding == PUBKEY_ENC_UNKNOWN)
             {
               encoding = PUBKEY_ENC_PKCS1_RAW;
               flags |= PUBKEY_FLAG_FIXEDLEN;
+            }
+          else if (!memcmp (s, "djb-tweak", 9))
+            {
+              encoding = PUBKEY_ENC_RAW;
+              flags |= PUBKEY_FLAG_DJB_TWEAK;
             }
           else if (!igninvflag)
             rc = GPG_ERR_INV_FLAG;

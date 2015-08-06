@@ -287,3 +287,51 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
 
   return Q;
 }
+
+
+gpg_err_code_t
+_gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
+{
+  unsigned char *rawmpi;
+  unsigned int rawmpilen;
+
+  if (mpi_is_opaque (pk))
+    {
+      const unsigned char *buf;
+      unsigned char *p;
+
+      buf = mpi_get_opaque (pk, &rawmpilen);
+      if (!buf)
+        return GPG_ERR_INV_OBJ;
+      rawmpilen = (rawmpilen + 7)/8;
+
+      if (rawmpilen > 1 && (rawmpilen%2) && buf[0] == 0x40)
+        {
+          rawmpilen--;
+          buf++;
+        }
+
+      rawmpi = xtrymalloc (rawmpilen? rawmpilen:1);
+      if (!rawmpi)
+        return gpg_err_code_from_syserror ();
+
+      p = rawmpi + rawmpilen;
+      while (p > rawmpi)
+        *--p = *buf++;
+    }
+  else
+    {
+      /* Note: Without using an opaque MPI it is not reliable possible
+         to find out whether the public key has been given in
+         uncompressed format.  Thus we expect native EdDSA format.  */
+      rawmpi = _gcry_mpi_get_buffer (pk, ctx->nbits/8, &rawmpilen, NULL);
+      if (!rawmpi)
+        return gpg_err_code_from_syserror ();
+    }
+
+  _gcry_mpi_set_buffer (result->x, rawmpi, rawmpilen, 0);
+  xfree (rawmpi);
+  mpi_set_ui (result->z, 1);
+
+  return 0;
+}

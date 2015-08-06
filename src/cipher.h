@@ -41,6 +41,7 @@
 #define PUBKEY_FLAG_EDDSA          (1 << 12)
 #define PUBKEY_FLAG_GOST           (1 << 13)
 #define PUBKEY_FLAG_NO_KEYTEST     (1 << 14)
+#define PUBKEY_FLAG_DJB_TWEAK      (1 << 15)
 
 
 enum pk_operation

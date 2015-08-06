@@ -40,7 +40,7 @@ static const struct
   const char *other; /* Other name. */
 } curve_aliases[] =
   {
-  /*{ "Curve25519", "1.3.6.1.4.1.3029.1.5.1" },*/
+    { "Curve25519", "1.3.6.1.4.1.3029.1.5.1" },
     { "Ed25519",    "1.3.6.1.4.1.11591.15.1" },
 
     { "NIST P-192", "1.2.840.10045.3.1.1" }, /* X9.62 OID  */
@@ -107,7 +107,8 @@ typedef struct
 
   const char *p;              /* The prime defining the field.  */
   const char *a, *b;          /* The coefficients.  For Twisted Edwards
-                                 Curves b is used for d.  */
+                                 Curves b is used for d.  For Montgomery
+                                 Curves a has (A-2)/4.  */
   const char *n;              /* The order of the base point.  */
   const char *g_x, *g_y;      /* Base point.  */
   const char *h;              /* Cofactor.  */
@@ -127,6 +128,18 @@ static const ecc_domain_parms_t domain_parms[] =
       "0x1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
       "0x216936D3CD6E53FEC0A4E231FDD6DC5C692CC7609525A7B2C9562D608F25D51A",
       "0x6666666666666666666666666666666666666666666666666666666666666658",
+      "0x08"
+    },
+    {
+      /* (y^2 = x^3 + 486662*x^2 + x) */
+      "Curve25519", 256, 0,
+      MPI_EC_MONTGOMERY, ECC_DIALECT_STANDARD,
+      "0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFED",
+      "0x01DB41",
+      "0x01",
+      "0x1000000000000000000000000000000014DEF9DEA2F79CD65812631A5CF5D3ED",
+      "0x0000000000000000000000000000000000000000000000000000000000000009",
+      "0x20AE19A1B8A086B4E01EDD2C7748D14C923D4D7E6D7C61B229E9C5A27ECED3D9",
       "0x08"
     },
 #if 0 /* No real specs yet found.  */

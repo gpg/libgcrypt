@@ -81,7 +81,7 @@ static void *progress_cb_data;
 
 /* Local prototypes. */
 static void test_keys (ECC_secret_key * sk, unsigned int nbits);
-static void test_ecdh_only_keys (ECC_secret_key * sk, unsigned int nbits);
+static void test_ecdh_only_keys (ECC_secret_key * sk, unsigned int nbits, int flags);
 static unsigned int ecc_get_nbits (gcry_sexp_t parms);
 
 
@@ -142,7 +142,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
     random_level = GCRY_VERY_STRONG_RANDOM;
 
   /* Generate a secret.  */
-  if (ctx->dialect == ECC_DIALECT_ED25519)
+  if (ctx->dialect == ECC_DIALECT_ED25519 || (flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       char *rndbuf;
 
@@ -174,7 +174,10 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   point_init (&sk->Q);
 
   x = mpi_new (pbits);
-  y = mpi_new (pbits);
+  if (r_y == NULL)
+    y = NULL;
+  else
+    y = mpi_new (pbits);
   if (_gcry_mpi_ec_get_affine (x, y, &Q, ctx))
     log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "Q");
 
@@ -187,7 +190,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
    * possibilities without any loss of security.  Note that we don't
    * do that for Ed25519 so that we do not violate the special
    * construction of the secret key.  */
-  if (E->dialect == ECC_DIALECT_ED25519)
+  if (r_y == NULL || E->dialect == ECC_DIALECT_ED25519)
     point_set (&sk->Q, &Q);
   else
     {
@@ -231,7 +234,8 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
     }
 
   *r_x = x;
-  *r_y = y;
+  if (r_y)
+    *r_y = y;
 
   point_free (&Q);
   /* Now we can test our keys (this should never fail!).  */
@@ -240,7 +244,7 @@ nist_generate_key (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   else if (sk->E.model != MPI_EC_MONTGOMERY)
     test_keys (sk, nbits - 64);
   else
-    test_ecdh_only_keys (sk, nbits - 64);
+    test_ecdh_only_keys (sk, nbits - 64, flags);
 
   return 0;
 }
@@ -298,7 +302,7 @@ test_keys (ECC_secret_key *sk, unsigned int nbits)
 
 
 static void
-test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits)
+test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits, int flags)
 {
   ECC_public_key pk;
   gcry_mpi_t test;
@@ -307,7 +311,7 @@ test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits)
   mpi_ec_t ec;
 
   if (DBG_CIPHER)
-    log_debug ("Testing key.\n");
+    log_debug ("Testing ECDH only key.\n");
 
   point_init (&R_);
 
@@ -315,7 +319,7 @@ test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits)
   point_init (&pk.Q);
   point_set (&pk.Q, &sk->Q);
 
-  if (sk->E.dialect == ECC_DIALECT_ED25519)
+  if ((flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       char *rndbuf;
 
@@ -340,7 +344,7 @@ test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits)
 
   /* R_ = hkQ  <=>  R_ = hkdG  */
   _gcry_mpi_ec_mul_point (&R_, test, &pk.Q, ec);
-  if (sk->E.dialect != ECC_DIALECT_ED25519)
+  if (!(flags & PUBKEY_FLAG_DJB_TWEAK))
     _gcry_mpi_ec_mul_point (&R_, ec->h, &R_, ec);
   if (_gcry_mpi_ec_get_affine (x0, NULL, &R_, ec))
     log_fatal ("ecdh: Failed to get affine coordinates for hkQ\n");
@@ -348,7 +352,7 @@ test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits)
   _gcry_mpi_ec_mul_point (&R_, test, &pk.E.G, ec);
   _gcry_mpi_ec_mul_point (&R_, sk->d, &R_, ec);
   /* R_ = hdkG */
-  if (sk->E.dialect != ECC_DIALECT_ED25519)
+  if (!(flags & PUBKEY_FLAG_DJB_TWEAK))
     _gcry_mpi_ec_mul_point (&R_, ec->h, &R_, ec);
 
   if (_gcry_mpi_ec_get_affine (x1, NULL, &R_, ec))
@@ -408,7 +412,7 @@ check_secret_key (ECC_secret_key *sk, mpi_ec_t ec, int flags)
     }
 
   /* Check order of curve.  */
-  if (sk->E.dialect != ECC_DIALECT_ED25519)
+  if (sk->E.dialect != ECC_DIALECT_ED25519 && !(flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       _gcry_mpi_ec_mul_point (&Q, sk->E.n, &sk->E.G, ec);
       if (mpi_cmp_ui (Q.z, 0))
@@ -571,7 +575,9 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 
   ctx = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, 0, E.p, E.a, E.b);
 
-  if ((flags & PUBKEY_FLAG_EDDSA))
+  if (E.model == MPI_EC_MONTGOMERY)
+    rc = nist_generate_key (&sk, &E, ctx, flags, nbits, &Qx, NULL);
+  else if ((flags & PUBKEY_FLAG_EDDSA))
     rc = _gcry_ecc_eddsa_genkey (&sk, &E, ctx, flags);
   else
     rc = nist_generate_key (&sk, &E, ctx, flags, nbits, &Qx, &Qy);
@@ -581,18 +587,38 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
   /* Copy data to the result.  */
   Gx = mpi_new (0);
   Gy = mpi_new (0);
-  if (_gcry_mpi_ec_get_affine (Gx, Gy, &sk.E.G, ctx))
-    log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "G");
-  base = _gcry_ecc_ec2os (Gx, Gy, sk.E.p);
-  if (sk.E.dialect == ECC_DIALECT_ED25519 && !(flags & PUBKEY_FLAG_NOCOMP))
+  if (E.model != MPI_EC_MONTGOMERY)
+    {
+      if (_gcry_mpi_ec_get_affine (Gx, Gy, &sk.E.G, ctx))
+        log_fatal ("ecgen: Failed to get affine coordinates for %s\n", "G");
+      base = _gcry_ecc_ec2os (Gx, Gy, sk.E.p);
+    }
+  if ((sk.E.dialect == ECC_DIALECT_ED25519 || E.model == MPI_EC_MONTGOMERY)
+      && !(flags & PUBKEY_FLAG_NOCOMP))
     {
       unsigned char *encpk;
       unsigned int encpklen;
 
-      /* (Gx and Gy are used as scratch variables)  */
-      rc = _gcry_ecc_eddsa_encodepoint (&sk.Q, ctx, Gx, Gy,
-                                        !!(flags & PUBKEY_FLAG_COMP),
-                                        &encpk, &encpklen);
+      if (E.model != MPI_EC_MONTGOMERY)
+        /* (Gx and Gy are used as scratch variables)  */
+        rc = _gcry_ecc_eddsa_encodepoint (&sk.Q, ctx, Gx, Gy,
+                                          !!(flags & PUBKEY_FLAG_COMP),
+                                          &encpk, &encpklen);
+      else
+        {
+          int off = !!(flags & PUBKEY_FLAG_COMP);
+
+          encpk = _gcry_mpi_get_buffer_extra (Qx, ctx->nbits/8, off?-1:0,
+                                              &encpklen, NULL);
+          if (encpk == NULL)
+            rc = gpg_err_code_from_syserror ();
+          else
+            {
+              if (off)
+                encpk[0] = 0x40;
+              encpklen += off;
+            }
+        }
       if (rc)
         goto leave;
       public = mpi_new (0);
@@ -619,15 +645,18 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
         goto leave;
     }
 
-  if ((flags & PUBKEY_FLAG_PARAM) || (flags & PUBKEY_FLAG_EDDSA))
+  if ((flags & PUBKEY_FLAG_PARAM) || (flags & PUBKEY_FLAG_EDDSA)
+      || (flags & PUBKEY_FLAG_DJB_TWEAK))
     {
       rc = sexp_build
         (&curve_flags, NULL,
          ((flags & PUBKEY_FLAG_PARAM) && (flags & PUBKEY_FLAG_EDDSA))?
          "(flags param eddsa)" :
+         ((flags & PUBKEY_FLAG_PARAM) && (flags & PUBKEY_FLAG_EDDSA))?
+         "(flags param djb-tweak)" :
          ((flags & PUBKEY_FLAG_PARAM))?
-         "(flags param)" :
-         "(flags eddsa)");
+         "(flags param)" : ((flags & PUBKEY_FLAG_EDDSA))?
+         "(flags eddsa)" : "(flags djb-tweak)" );
       if (rc)
         goto leave;
     }
@@ -1214,10 +1243,22 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_mpi_t data = NULL;
   ECC_public_key pk;
   mpi_ec_t ec = NULL;
+  int flags;
 
   memset (&pk, 0, sizeof pk);
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT,
                                    ecc_get_nbits (keyparms));
+
+  /* Look for flags. */
+  l1 = sexp_find_token (keyparms, "flags", 0);
+  if (l1)
+    {
+      rc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
+      if (rc)
+        goto leave;
+    }
+  sexp_release (l1);
+  l1 = NULL;
 
   /*
    * Extract the data.
@@ -1237,7 +1278,9 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   /*
    * Extract the key.
    */
-  rc = sexp_extract_param (keyparms, NULL, "-p?a?b?g?n?h?+q",
+  rc = sexp_extract_param (keyparms, NULL,
+                           (flags & PUBKEY_FLAG_DJB_TWEAK)?
+                           "-p?a?b?g?n?h?/q" : "-p?a?b?g?n?h?+q",
                            &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n, &pk.E.h,
                            &mpi_q, NULL);
   if (rc)
@@ -1289,26 +1332,34 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       goto leave;
     }
 
+  /* Compute the encrypted value.  */
+  ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, 0,
+                                    pk.E.p, pk.E.a, pk.E.b);
+
   /* Convert the public key.  */
   if (mpi_q)
     {
       point_init (&pk.Q);
-      rc = _gcry_ecc_os2ec (&pk.Q, mpi_q);
+      if (ec->model == MPI_EC_MONTGOMERY)
+        rc = _gcry_ecc_mont_decodepoint (mpi_q, ec, &pk.Q);
+      else
+        rc = _gcry_ecc_os2ec (&pk.Q, mpi_q);
       if (rc)
         goto leave;
     }
-
-  /* Compute the encrypted value.  */
-  ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, 0,
-                                    pk.E.p, pk.E.a, pk.E.b);
 
   /* The following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so */
   {
     mpi_point_struct R;  /* Result that we return.  */
     gcry_mpi_t x, y;
+    unsigned char *rawmpi;
+    unsigned int rawmpilen;
 
     x = mpi_new (0);
-    y = mpi_new (0);
+    if (ec->model == MPI_EC_MONTGOMERY)
+      y = NULL;
+    else
+      y = mpi_new (0);
 
     point_init (&R);
 
@@ -1317,14 +1368,39 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
     if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
       log_fatal ("ecdh: Failed to get affine coordinates for kdG\n");
-    mpi_s = _gcry_ecc_ec2os (x, y, pk.E.p);
+    if (y)
+      mpi_s = _gcry_ecc_ec2os (x, y, pk.E.p);
+    else
+      {
+        rawmpi = _gcry_mpi_get_buffer (x, ec->nbits/8, &rawmpilen, NULL);
+        if (!rawmpi)
+          rc = gpg_err_code_from_syserror ();
+        else
+          {
+            mpi_s = mpi_new (0);
+            mpi_set_opaque (mpi_s, rawmpi, rawmpilen*8);
+          }
+      }
 
     /* R = kG */
     _gcry_mpi_ec_mul_point (&R, data, &pk.E.G, ec);
 
     if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
       log_fatal ("ecdh: Failed to get affine coordinates for kG\n");
-    mpi_e = _gcry_ecc_ec2os (x, y, pk.E.p);
+    if (y)
+      mpi_e = _gcry_ecc_ec2os (x, y, pk.E.p);
+    else
+      {
+        rawmpi = _gcry_mpi_get_buffer (x, ec->nbits/8, &rawmpilen, NULL);
+        if (!rawmpi)
+          rc = gpg_err_code_from_syserror ();
+        else
+          {
+            mpi_e = mpi_new (0);
+            mpi_set_opaque (mpi_e, rawmpi, rawmpilen*8);
+          }
+      }
+
 
     mpi_free (x);
     mpi_free (y);
@@ -1332,7 +1408,8 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     point_free (&R);
   }
 
-  rc = sexp_build (r_ciph, NULL, "(enc-val(ecdh(s%m)(e%m)))", mpi_s, mpi_e);
+  if (!rc)
+    rc = sexp_build (r_ciph, NULL, "(enc-val(ecdh(s%m)(e%m)))", mpi_s, mpi_e);
 
  leave:
   _gcry_mpi_release (pk.E.p);
@@ -1348,6 +1425,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   _gcry_mpi_release (mpi_s);
   _gcry_mpi_release (mpi_e);
   xfree (curvename);
+  sexp_release (l1);
   _gcry_mpi_ec_free (ec);
   _gcry_pk_util_free_encoding_ctx (&ctx);
   if (DBG_CIPHER)
@@ -1377,6 +1455,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   mpi_point_struct kG;
   mpi_point_struct R;
   gcry_mpi_t r = NULL;
+  int flags = 0;
 
   memset (&sk, 0, sizeof sk);
   point_init (&kG);
@@ -1384,6 +1463,17 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_DECRYPT,
                                    ecc_get_nbits (keyparms));
+
+  /* Look for flags. */
+  l1 = sexp_find_token (keyparms, "flags", 0);
+  if (l1)
+    {
+      rc = _gcry_pk_util_parse_flaglist (l1, &flags, NULL);
+      if (rc)
+        goto leave;
+    }
+  sexp_release (l1);
+  l1 = NULL;
 
   /*
    * Extract the data.
@@ -1459,15 +1549,18 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
 
+  ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, 0,
+                                    sk.E.p, sk.E.a, sk.E.b);
+
   /*
    * Compute the plaintext.
    */
-  rc = _gcry_ecc_os2ec (&kG, data_e);
+  if (ec->model == MPI_EC_MONTGOMERY)
+    rc = _gcry_ecc_mont_decodepoint (data_e, ec, &kG);
+  else
+    rc = _gcry_ecc_os2ec (&kG, data_e);
   if (rc)
     goto leave;
-
-  ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, 0,
-                                    sk.E.p, sk.E.a, sk.E.b);
 
   /* R = dkG */
   _gcry_mpi_ec_mul_point (&R, sk.d, &kG, ec);
@@ -1477,12 +1570,30 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     gcry_mpi_t x, y;
 
     x = mpi_new (0);
-    y = mpi_new (0);
+    if (ec->model == MPI_EC_MONTGOMERY)
+      y = NULL;
+    else
+      y = mpi_new (0);
 
     if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
       log_fatal ("ecdh: Failed to get affine coordinates\n");
 
-    r = _gcry_ecc_ec2os (x, y, sk.E.p);
+    if (y)
+      r = _gcry_ecc_ec2os (x, y, sk.E.p);
+    else
+      {
+        unsigned char *rawmpi;
+        unsigned int rawmpilen;
+
+        rawmpi = _gcry_mpi_get_buffer (x, ec->nbits/8, &rawmpilen, NULL);
+        if (!rawmpi)
+          rc = gpg_err_code_from_syserror ();
+        else
+          {
+            r = mpi_new (0);
+            mpi_set_opaque (r, rawmpi, rawmpilen*8);
+          }
+      }
     if (!r)
       rc = gpg_err_code_from_syserror ();
     else
@@ -1604,7 +1715,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
   /* Extract the parameters.  */
   if ((flags & PUBKEY_FLAG_PARAM))
     {
-      if ((flags & PUBKEY_FLAG_EDDSA))
+      if ((flags & PUBKEY_FLAG_DJB_TWEAK))
         rc = sexp_extract_param (keyparms, NULL, "p?a?b?g?n?h?/q",
                                  &values[0], &values[1], &values[2],
                                  &values[3], &values[4], &values[5],
@@ -1617,7 +1728,7 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
     }
   else
     {
-      if ((flags & PUBKEY_FLAG_EDDSA))
+      if ((flags & PUBKEY_FLAG_DJB_TWEAK))
         rc = sexp_extract_param (keyparms, NULL, "/q",
                                  &values[6], NULL);
       else
@@ -1674,12 +1785,9 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparms)
      the compressed version.  Because we don't support any non-eddsa
      compression, the only thing we need to do is to compress
      EdDSA.  */
-  if ((flags & PUBKEY_FLAG_EDDSA))
+  if ((flags & PUBKEY_FLAG_DJB_TWEAK))
     {
-      if (dialect == ECC_DIALECT_ED25519)
-        rc = _gcry_ecc_eddsa_ensure_compact (values[6], 256);
-      else
-        rc = GPG_ERR_NOT_IMPLEMENTED;
+      rc = _gcry_ecc_eddsa_ensure_compact (values[6], 256);
       if (rc)
         goto leave;
     }

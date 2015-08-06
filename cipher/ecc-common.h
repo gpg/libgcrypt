@@ -94,6 +94,9 @@ gcry_err_code_t _gcry_ecc_os2ec (mpi_point_t result, gcry_mpi_t value);
 mpi_point_t  _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
                                        mpi_point_t G, gcry_mpi_t d);
 
+gpg_err_code_t _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx,
+                                           mpi_point_t result);
+
 /*-- ecc.c --*/
 
 /*-- ecc-ecdsa.c --*/
