@@ -51,6 +51,12 @@ static gcry_md_spec_t *digest_list[] =
      &_gcry_digest_spec_sha512,
      &_gcry_digest_spec_sha384,
 #endif
+#if USE_SHA3
+     &_gcry_digest_spec_sha3_224,
+     &_gcry_digest_spec_sha3_256,
+     &_gcry_digest_spec_sha3_384,
+     &_gcry_digest_spec_sha3_512,
+#endif
 #ifdef USE_GOST_R_3411_94
      &_gcry_digest_spec_gost3411_94,
      &_gcry_digest_spec_gost3411_cp,
@@ -333,6 +339,8 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
             {
               case GCRY_MD_SHA384:
               case GCRY_MD_SHA512:
+              case GCRY_MD_SHA3_384:
+              case GCRY_MD_SHA3_512:
                 ctx->macpads_Bsize = 128;
                 break;
               case GCRY_MD_GOSTR3411_94:

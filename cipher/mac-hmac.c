@@ -51,6 +51,14 @@ map_mac_algo_to_md (int mac_algo)
       return GCRY_MD_SHA384;
     case GCRY_MAC_HMAC_SHA512:
       return GCRY_MD_SHA512;
+    case GCRY_MAC_HMAC_SHA3_224:
+      return GCRY_MD_SHA3_224;
+    case GCRY_MAC_HMAC_SHA3_256:
+      return GCRY_MD_SHA3_256;
+    case GCRY_MAC_HMAC_SHA3_384:
+      return GCRY_MD_SHA3_384;
+    case GCRY_MAC_HMAC_SHA3_512:
+      return GCRY_MD_SHA512;
     case GCRY_MAC_HMAC_RMD160:
       return GCRY_MD_RMD160;
     case GCRY_MAC_HMAC_TIGER1:

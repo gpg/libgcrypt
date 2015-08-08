@@ -518,6 +518,10 @@ run_hmac_selftests (int extended)
       GCRY_MD_SHA256,
       GCRY_MD_SHA384,
       GCRY_MD_SHA512,
+      GCRY_MD_SHA3_224,
+      GCRY_MD_SHA3_256,
+      GCRY_MD_SHA3_384,
+      GCRY_MD_SHA3_512,
       0
     };
   int idx;

@@ -198,7 +198,7 @@ enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
 available_digests="crc gostr3411-94 md2 md4 md5 rmd160 sha1 sha256"
-available_digests_64="sha512 tiger whirlpool stribog"
+available_digests_64="sha512 sha3 tiger whirlpool stribog"
 enabled_digests=""
 
 # Definitions for kdfs (optional ones)
@@ -2091,6 +2091,24 @@ if test "$found" = "1" ; then
    if test x"$neonsupport" = xyes ; then
      # Build with the NEON implementation
      GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-armv7-neon.lo"
+   fi
+fi
+
+LIST_MEMBER(sha3, $enabled_digests)
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS keccak.lo"
+   AC_DEFINE(USE_SHA3, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      x86_64-*-*)
+         # Build with the assembly implementation
+         :
+      ;;
+   esac
+
+   if test x"$neonsupport" = xyes ; then
+     # Build with the NEON implementation
+     :
    fi
 fi
 

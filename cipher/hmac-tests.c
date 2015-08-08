@@ -701,6 +701,17 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
     case GCRY_MD_SHA512:
       ec = selftests_sha512 (extended, report);
       break;
+
+    case GCRY_MD_SHA3_224:
+    case GCRY_MD_SHA3_256:
+    case GCRY_MD_SHA3_384:
+    case GCRY_MD_SHA3_512:
+      ec = 0;  /* FIXME: Add selftests.  */
+#ifdef __GNUC__
+# warning Please add the self text functions
+#endif
+      break;
+
     default:
       ec = GPG_ERR_DIGEST_ALGO;
       break;

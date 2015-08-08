@@ -217,6 +217,10 @@ get_hash_algo (const char *s, size_t n)
     { "md4",    GCRY_MD_MD4 },
     { "tiger",  GCRY_MD_TIGER },
     { "haval",  GCRY_MD_HAVAL },
+    { "sha3-224", GCRY_MD_SHA3_224 },
+    { "sha3-256", GCRY_MD_SHA3_256 },
+    { "sha3-384", GCRY_MD_SHA3_384 },
+    { "sha3-512", GCRY_MD_SHA3_512 },
     { NULL, 0 }
   };
   int algo;
