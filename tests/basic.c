@@ -5383,6 +5383,7 @@ check_digests (void)
     int md;
     const char *data;
     const char *expect;
+    int datalen;
   } algos[] =
     {
       { GCRY_MD_MD2, "",
@@ -5876,6 +5877,10 @@ check_digests (void)
         "\x20\xc8\xe3\xee\xf0\xe5\xe2\xfb",
         "\x9d\xd2\xfe\x4e\x90\x40\x9e\x5d\xa8\x7f\x53\x97\x6d\x74\x05\xb0"
         "\xc0\xca\xc6\x28\xfc\x66\x9a\x74\x1d\x50\x06\x3c\x55\x7e\x8f\x50" },
+#include "./sha3-224.h"
+#include "./sha3-256.h"
+#include "./sha3-384.h"
+#include "./sha3-512.h"
       {	0 }
     };
   gcry_error_t err;
@@ -5906,9 +5911,13 @@ check_digests (void)
                  !strcmp (algos[i].data, "!")?
                  1000000 : (int)strlen(algos[i].data));
 
-      check_one_md (algos[i].md, algos[i].data, strlen (algos[i].data),
+      check_one_md (algos[i].md, algos[i].data,
+		    algos[i].datalen > 0 ? algos[i].datalen
+					 : strlen (algos[i].data),
 		    algos[i].expect);
-      check_one_md_multi (algos[i].md, algos[i].data, strlen (algos[i].data),
+      check_one_md_multi (algos[i].md, algos[i].data,
+			  algos[i].datalen > 0 ? algos[i].datalen
+					       : strlen (algos[i].data),
                           algos[i].expect);
     }
 
