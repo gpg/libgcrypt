@@ -337,10 +337,20 @@ md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
 	{
 	  switch (algo)
             {
+              case GCRY_MD_SHA3_224:
+                ctx->macpads_Bsize = 1152 / 8;
+                break;
+              case GCRY_MD_SHA3_256:
+                ctx->macpads_Bsize = 1088 / 8;
+                break;
+              case GCRY_MD_SHA3_384:
+                ctx->macpads_Bsize = 832 / 8;
+                break;
+              case GCRY_MD_SHA3_512:
+                ctx->macpads_Bsize = 576 / 8;
+                break;
               case GCRY_MD_SHA384:
               case GCRY_MD_SHA512:
-              case GCRY_MD_SHA3_384:
-              case GCRY_MD_SHA3_512:
                 ctx->macpads_Bsize = 128;
                 break;
               case GCRY_MD_GOSTR3411_94:

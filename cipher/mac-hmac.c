@@ -58,7 +58,7 @@ map_mac_algo_to_md (int mac_algo)
     case GCRY_MAC_HMAC_SHA3_384:
       return GCRY_MD_SHA3_384;
     case GCRY_MAC_HMAC_SHA3_512:
-      return GCRY_MD_SHA512;
+      return GCRY_MD_SHA3_512;
     case GCRY_MAC_HMAC_RMD160:
       return GCRY_MD_RMD160;
     case GCRY_MAC_HMAC_TIGER1:
@@ -180,6 +180,14 @@ hmac_get_keylen (int algo)
   /* Return blocksize for default key length. */
   switch (algo)
     {
+    case GCRY_MD_SHA3_224:
+      return 1152 / 8;
+    case GCRY_MD_SHA3_256:
+      return 1088 / 8;
+    case GCRY_MD_SHA3_384:
+      return 832 / 8;
+    case GCRY_MD_SHA3_512:
+      return 576 / 8;
     case GCRY_MAC_HMAC_SHA384:
     case GCRY_MAC_HMAC_SHA512:
       return 128;
@@ -230,6 +238,27 @@ gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha512 = {
 
 gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha384 = {
   GCRY_MAC_HMAC_SHA384, {0, 1}, "HMAC_SHA384",
+  &hmac_ops
+};
+#endif
+#if USE_SHA3
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_224 = {
+  GCRY_MAC_HMAC_SHA3_224, {0, 1}, "HMAC_SHA3_224",
+  &hmac_ops
+};
+
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_256 = {
+  GCRY_MAC_HMAC_SHA3_256, {0, 1}, "HMAC_SHA3_256",
+  &hmac_ops
+};
+
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_384 = {
+  GCRY_MAC_HMAC_SHA3_384, {0, 1}, "HMAC_SHA3_384",
+  &hmac_ops
+};
+
+gcry_mac_spec_t _gcry_mac_type_spec_hmac_sha3_512 = {
+  GCRY_MAC_HMAC_SHA3_512, {0, 1}, "HMAC_SHA3_512",
   &hmac_ops
 };
 #endif

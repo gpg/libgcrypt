@@ -33,9 +33,15 @@ typedef unsigned int (*_gcry_md_block_write_t) (void *c,
 						const unsigned char *blks,
 						size_t nblks);
 
-#if defined(HAVE_U64_TYPEDEF) && (defined(USE_SHA512) || defined(USE_WHIRLPOOL))
-/* SHA-512 needs u64 and larger buffer. Whirlpool needs u64. */
-# define MD_BLOCK_MAX_BLOCKSIZE 128
+#if defined(HAVE_U64_TYPEDEF) && (defined(USE_SHA512) || defined(USE_SHA3) || \
+				  defined(USE_WHIRLPOOL))
+/* SHA-512, SHA-3 and Whirlpool needs u64. SHA-512 and SHA3 need larger
+ * buffer. */
+# ifdef USE_SHA3
+#  define MD_BLOCK_MAX_BLOCKSIZE (1152 / 8)
+# else
+#  define MD_BLOCK_MAX_BLOCKSIZE 128
+# endif
 # define MD_NBLOCKS_TYPE u64
 #else
 # define MD_BLOCK_MAX_BLOCKSIZE 64

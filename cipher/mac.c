@@ -41,6 +41,12 @@ static gcry_mac_spec_t *mac_list[] = {
   &_gcry_mac_type_spec_hmac_sha512,
   &_gcry_mac_type_spec_hmac_sha384,
 #endif
+#if USE_SHA3
+  &_gcry_mac_type_spec_hmac_sha3_224,
+  &_gcry_mac_type_spec_hmac_sha3_256,
+  &_gcry_mac_type_spec_hmac_sha3_384,
+  &_gcry_mac_type_spec_hmac_sha3_512,
+#endif
 #ifdef USE_GOST_R_3411_94
   &_gcry_mac_type_spec_hmac_gost3411_94,
 #endif
