@@ -280,7 +280,7 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
 
       /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
       buf_xor_1 (c->u_mode.ocb.aad_offset,
-                 _gcry_cipher_ocb_get_l (c, l_tmp, c->u_mode.ocb.aad_nblocks),
+                 ocb_get_l (c, l_tmp, c->u_mode.ocb.aad_nblocks),
                  OCB_BLOCK_LEN);
       /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
       buf_xor (l_tmp, c->u_mode.ocb.aad_offset, abuf, OCB_BLOCK_LEN);
@@ -392,8 +392,7 @@ ocb_crypt (gcry_cipher_hd_t c, int encrypt,
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
           buf_xor_1 (c->u_iv.iv,
-                     _gcry_cipher_ocb_get_l (c, l_tmp,
-                                             c->u_mode.ocb.data_nblocks),
+                     ocb_get_l (c, l_tmp, c->u_mode.ocb.data_nblocks),
                      OCB_BLOCK_LEN);
           /* C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)  */
           buf_xor (outbuf, c->u_iv.iv, inbuf, OCB_BLOCK_LEN);

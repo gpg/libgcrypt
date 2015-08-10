@@ -535,7 +535,11 @@ get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 i, unsigned char *iv,
   const unsigned char *l;
   unsigned int ntz;
 
-  if (i & 0xffffffffU)
+  if (i & 1)
+    return c->u_mode.ocb.L[0];
+  else if (i & 2)
+    return c->u_mode.ocb.L[1];
+  else if (i & 0xffffffffU)
     {
       asm ("rep;bsf %k[low], %k[ntz]\n\t"
            : [ntz] "=r" (ntz)

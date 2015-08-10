@@ -1246,13 +1246,7 @@ _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       for ( ;nblocks; nblocks-- )
         {
           u64 i = ++c->u_mode.ocb.data_nblocks;
-          unsigned int ntz = _gcry_ctz64 (i);
-          const unsigned char *l;
-
-          if (ntz < OCB_L_TABLE_SIZE)
-              l = c->u_mode.ocb.L[ntz];
-          else
-              l = _gcry_cipher_ocb_get_l (c, l_tmp.x1, i);
+          const unsigned char *l = ocb_get_l(c, l_tmp.x1, i);
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
           buf_xor_1 (c->u_iv.iv, l, BLOCKSIZE);
@@ -1277,13 +1271,7 @@ _gcry_aes_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       for ( ;nblocks; nblocks-- )
         {
           u64 i = ++c->u_mode.ocb.data_nblocks;
-          unsigned int ntz = _gcry_ctz64 (i);
-          const unsigned char *l;
-
-          if (ntz < OCB_L_TABLE_SIZE)
-              l = c->u_mode.ocb.L[ntz];
-          else
-              l = _gcry_cipher_ocb_get_l (c, l_tmp.x1, i);
+          const unsigned char *l = ocb_get_l(c, l_tmp.x1, i);
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
           buf_xor_1 (c->u_iv.iv, l, BLOCKSIZE);
@@ -1343,13 +1331,7 @@ _gcry_aes_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg, size_t nblocks)
       for ( ;nblocks; nblocks-- )
         {
           u64 i = ++c->u_mode.ocb.aad_nblocks;
-          unsigned int ntz = _gcry_ctz64 (i);
-          const unsigned char *l;
-
-          if (ntz < OCB_L_TABLE_SIZE)
-              l = c->u_mode.ocb.L[ntz];
-          else
-              l = _gcry_cipher_ocb_get_l (c, l_tmp.x1, i);
+          const unsigned char *l = ocb_get_l(c, l_tmp.x1, i);
 
           /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
           buf_xor_1 (c->u_mode.ocb.aad_offset, l, BLOCKSIZE);

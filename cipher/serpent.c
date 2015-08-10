@@ -1226,19 +1226,6 @@ _gcry_serpent_cfb_dec(void *context, unsigned char *iv,
   _gcry_burn_stack(burn_stack_depth);
 }
 
-#if defined(USE_AVX2) || defined(USE_SSE2) || defined(USE_NEON)
-static inline const unsigned char *
-get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 i)
-{
-  unsigned int ntz = _gcry_ctz64 (i);
-
-  if (ntz < OCB_L_TABLE_SIZE)
-      return c->u_mode.ocb.L[ntz];
-  else
-      return _gcry_cipher_ocb_get_l (c, l_tmp, i);
-}
-#endif
-
 /* Bulk encryption/decryption of complete blocks in OCB mode. */
 size_t
 _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
@@ -1265,17 +1252,41 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       const void *Ls[16];
       int i;
 
+      if (blkn % 16 == 0)
+	{
+	  for (i = 0; i < 16; i += 8)
+	    {
+	      Ls[i + 0] = c->u_mode.ocb.L[0];
+	      Ls[i + 1] = c->u_mode.ocb.L[1];
+	      Ls[i + 2] = c->u_mode.ocb.L[0];
+	      Ls[i + 3] = c->u_mode.ocb.L[2];
+	      Ls[i + 4] = c->u_mode.ocb.L[0];
+	      Ls[i + 5] = c->u_mode.ocb.L[1];
+	      Ls[i + 6] = c->u_mode.ocb.L[0];
+	    }
+
+	  Ls[7] = c->u_mode.ocb.L[3];
+	}
+
       /* Process data in 16 block chunks. */
       while (nblocks >= 16)
 	{
 	  /* l_tmp will be used only every 65536-th block. */
-	  for (i = 0; i < 16; i += 4)
+	  if (blkn % 16 == 0)
 	    {
-	      Ls[i + 0] = get_l(c, l_tmp, blkn + 1);
-	      Ls[i + 1] = get_l(c, l_tmp, blkn + 2);
-	      Ls[i + 2] = get_l(c, l_tmp, blkn + 3);
-	      Ls[i + 3] = get_l(c, l_tmp, blkn + 4);
-	      blkn += 4;
+	      blkn += 16;
+	      Ls[15] = ocb_get_l(c, l_tmp, blkn);
+	    }
+	  else
+	    {
+	      for (i = 0; i < 16; i += 4)
+		{
+		  Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
+		  Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
+		  Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
+		  Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
+		  blkn += 4;
+		}
 	    }
 
 	  if (encrypt)
@@ -1308,17 +1319,36 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     const void *Ls[8];
     int i;
 
+    if (blkn % 8 == 0)
+      {
+	Ls[0] = c->u_mode.ocb.L[0];
+	Ls[1] = c->u_mode.ocb.L[1];
+	Ls[2] = c->u_mode.ocb.L[0];
+	Ls[3] = c->u_mode.ocb.L[2];
+	Ls[4] = c->u_mode.ocb.L[0];
+	Ls[5] = c->u_mode.ocb.L[1];
+	Ls[6] = c->u_mode.ocb.L[0];
+      }
+
     /* Process data in 8 block chunks. */
     while (nblocks >= 8)
       {
 	/* l_tmp will be used only every 65536-th block. */
-	for (i = 0; i < 8; i += 4)
+	if (blkn % 8 == 0)
 	  {
-	    Ls[i + 0] = get_l(c, l_tmp, blkn + 1);
-	    Ls[i + 1] = get_l(c, l_tmp, blkn + 2);
-	    Ls[i + 2] = get_l(c, l_tmp, blkn + 3);
-	    Ls[i + 3] = get_l(c, l_tmp, blkn + 4);
-	    blkn += 4;
+	    blkn += 8;
+	    Ls[7] = ocb_get_l(c, l_tmp, blkn);
+	  }
+	else
+	  {
+	    for (i = 0; i < 8; i += 4)
+	      {
+		Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
+		Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
+		Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
+		Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
+		blkn += 4;
+	      }
 	  }
 
 	if (encrypt)
@@ -1352,17 +1382,36 @@ _gcry_serpent_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
       const void *Ls[8];
       int i;
 
+      if (blkn % 8 == 0)
+	{
+	  Ls[0] = c->u_mode.ocb.L[0];
+	  Ls[1] = c->u_mode.ocb.L[1];
+	  Ls[2] = c->u_mode.ocb.L[0];
+	  Ls[3] = c->u_mode.ocb.L[2];
+	  Ls[4] = c->u_mode.ocb.L[0];
+	  Ls[5] = c->u_mode.ocb.L[1];
+	  Ls[6] = c->u_mode.ocb.L[0];
+	}
+
       /* Process data in 8 block chunks. */
       while (nblocks >= 8)
 	{
 	  /* l_tmp will be used only every 65536-th block. */
-	  for (i = 0; i < 8; i += 4)
+	  if (blkn % 8 == 0)
 	    {
-	      Ls[i + 0] = get_l(c, l_tmp, blkn + 1);
-	      Ls[i + 1] = get_l(c, l_tmp, blkn + 2);
-	      Ls[i + 2] = get_l(c, l_tmp, blkn + 3);
-	      Ls[i + 3] = get_l(c, l_tmp, blkn + 4);
-	      blkn += 4;
+	      blkn += 8;
+	      Ls[7] = ocb_get_l(c, l_tmp, blkn);
+	    }
+	  else
+	    {
+	      for (i = 0; i < 8; i += 4)
+		{
+		  Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
+		  Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
+		  Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
+		  Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
+		  blkn += 4;
+		}
 	    }
 
 	  if (encrypt)
@@ -1424,17 +1473,41 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
       const void *Ls[16];
       int i;
 
+      if (blkn % 16 == 0)
+	{
+	  for (i = 0; i < 16; i += 8)
+	    {
+	      Ls[i + 0] = c->u_mode.ocb.L[0];
+	      Ls[i + 1] = c->u_mode.ocb.L[1];
+	      Ls[i + 2] = c->u_mode.ocb.L[0];
+	      Ls[i + 3] = c->u_mode.ocb.L[2];
+	      Ls[i + 4] = c->u_mode.ocb.L[0];
+	      Ls[i + 5] = c->u_mode.ocb.L[1];
+	      Ls[i + 6] = c->u_mode.ocb.L[0];
+	    }
+
+	  Ls[7] = c->u_mode.ocb.L[3];
+	}
+
       /* Process data in 16 block chunks. */
       while (nblocks >= 16)
 	{
 	  /* l_tmp will be used only every 65536-th block. */
-	  for (i = 0; i < 16; i += 4)
+	  if (blkn % 16 == 0)
 	    {
-	      Ls[i + 0] = get_l(c, l_tmp, blkn + 1);
-	      Ls[i + 1] = get_l(c, l_tmp, blkn + 2);
-	      Ls[i + 2] = get_l(c, l_tmp, blkn + 3);
-	      Ls[i + 3] = get_l(c, l_tmp, blkn + 4);
-	      blkn += 4;
+	      blkn += 16;
+	      Ls[15] = ocb_get_l(c, l_tmp, blkn);
+	    }
+	  else
+	    {
+	      for (i = 0; i < 16; i += 4)
+		{
+		  Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
+		  Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
+		  Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
+		  Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
+		  blkn += 4;
+		}
 	    }
 
 	  _gcry_serpent_avx2_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
@@ -1462,17 +1535,36 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     const void *Ls[8];
     int i;
 
+    if (blkn % 8 == 0)
+      {
+	Ls[0] = c->u_mode.ocb.L[0];
+	Ls[1] = c->u_mode.ocb.L[1];
+	Ls[2] = c->u_mode.ocb.L[0];
+	Ls[3] = c->u_mode.ocb.L[2];
+	Ls[4] = c->u_mode.ocb.L[0];
+	Ls[5] = c->u_mode.ocb.L[1];
+	Ls[6] = c->u_mode.ocb.L[0];
+      }
+
     /* Process data in 8 block chunks. */
     while (nblocks >= 8)
       {
 	/* l_tmp will be used only every 65536-th block. */
-	for (i = 0; i < 8; i += 4)
+	if (blkn % 8 == 0)
 	  {
-	    Ls[i + 0] = get_l(c, l_tmp, blkn + 1);
-	    Ls[i + 1] = get_l(c, l_tmp, blkn + 2);
-	    Ls[i + 2] = get_l(c, l_tmp, blkn + 3);
-	    Ls[i + 3] = get_l(c, l_tmp, blkn + 4);
-	    blkn += 4;
+	    blkn += 8;
+	    Ls[7] = ocb_get_l(c, l_tmp, blkn);
+	  }
+	else
+	  {
+	    for (i = 0; i < 8; i += 4)
+	      {
+		Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
+		Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
+		Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
+		Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
+		blkn += 4;
+	      }
 	  }
 
 	_gcry_serpent_sse2_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
@@ -1501,17 +1593,36 @@ _gcry_serpent_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
       const void *Ls[8];
       int i;
 
+      if (blkn % 8 == 0)
+	{
+	  Ls[0] = c->u_mode.ocb.L[0];
+	  Ls[1] = c->u_mode.ocb.L[1];
+	  Ls[2] = c->u_mode.ocb.L[0];
+	  Ls[3] = c->u_mode.ocb.L[2];
+	  Ls[4] = c->u_mode.ocb.L[0];
+	  Ls[5] = c->u_mode.ocb.L[1];
+	  Ls[6] = c->u_mode.ocb.L[0];
+	}
+
       /* Process data in 8 block chunks. */
       while (nblocks >= 8)
 	{
 	  /* l_tmp will be used only every 65536-th block. */
-	  for (i = 0; i < 8; i += 4)
+	  if (blkn % 8 == 0)
 	    {
-	      Ls[i + 0] = get_l(c, l_tmp, blkn + 1);
-	      Ls[i + 1] = get_l(c, l_tmp, blkn + 2);
-	      Ls[i + 2] = get_l(c, l_tmp, blkn + 3);
-	      Ls[i + 3] = get_l(c, l_tmp, blkn + 4);
-	      blkn += 4;
+	      blkn += 8;
+	      Ls[7] = ocb_get_l(c, l_tmp, blkn);
+	    }
+	  else
+	    {
+	      for (i = 0; i < 8; i += 4)
+		{
+		  Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
+		  Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
+		  Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
+		  Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
+		  blkn += 4;
+		}
 	    }
 
 	  _gcry_serpent_neon_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,

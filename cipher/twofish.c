@@ -1247,19 +1247,6 @@ _gcry_twofish_cfb_dec(void *context, unsigned char *iv, void *outbuf_arg,
   _gcry_burn_stack(burn_stack_depth);
 }
 
-#ifdef USE_AMD64_ASM
-static inline const unsigned char *
-get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 i)
-{
-  unsigned int ntz = _gcry_ctz64 (i);
-
-  if (ntz < OCB_L_TABLE_SIZE)
-      return c->u_mode.ocb.L[ntz];
-  else
-      return _gcry_cipher_ocb_get_l (c, l_tmp, i);
-}
-#endif
-
 /* Bulk encryption/decryption of complete blocks in OCB mode. */
 size_t
 _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
@@ -1280,9 +1267,9 @@ _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     while (nblocks >= 3)
       {
 	/* l_tmp will be used only every 65536-th block. */
-	Ls[0] = get_l(c, l_tmp, blkn + 1);
-	Ls[1] = get_l(c, l_tmp, blkn + 2);
-	Ls[2] = get_l(c, l_tmp, blkn + 3);
+	Ls[0] = ocb_get_l(c, l_tmp, blkn + 1);
+	Ls[1] = ocb_get_l(c, l_tmp, blkn + 2);
+	Ls[2] = ocb_get_l(c, l_tmp, blkn + 3);
 	blkn += 3;
 
 	if (encrypt)
@@ -1339,9 +1326,9 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     while (nblocks >= 3)
       {
 	/* l_tmp will be used only every 65536-th block. */
-	Ls[0] = get_l(c, l_tmp, blkn + 1);
-	Ls[1] = get_l(c, l_tmp, blkn + 2);
-	Ls[2] = get_l(c, l_tmp, blkn + 3);
+	Ls[0] = ocb_get_l(c, l_tmp, blkn + 1);
+	Ls[1] = ocb_get_l(c, l_tmp, blkn + 2);
+	Ls[2] = ocb_get_l(c, l_tmp, blkn + 3);
 	blkn += 3;
 
 	twofish_amd64_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,

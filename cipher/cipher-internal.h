@@ -448,4 +448,24 @@ const unsigned char *_gcry_cipher_ocb_get_l
 /*           */ (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 n);
 
 
+/* Inline version of _gcry_cipher_ocb_get_l, with hard-coded fast paths for
+   most common cases.  */
+static inline const unsigned char *
+ocb_get_l (gcry_cipher_hd_t c, unsigned char *l_tmp, u64 n)
+{
+  if (n & 1)
+    return c->u_mode.ocb.L[0];
+  else if (n & 2)
+    return c->u_mode.ocb.L[1];
+  else
+    {
+      unsigned int ntz = _gcry_ctz64 (n);
+
+      if (ntz < OCB_L_TABLE_SIZE)
+	return c->u_mode.ocb.L[ntz];
+      else
+	return _gcry_cipher_ocb_get_l (c, l_tmp, n);
+    }
+}
+
 #endif /*G10_CIPHER_INTERNAL_H*/
