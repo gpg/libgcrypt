@@ -450,7 +450,7 @@ check_secret_key (ECC_secret_key *sk, mpi_ec_t ec, int flags)
   else if (!mpi_cmp_ui (sk->Q.z, 1))
     {
       /* Fast path if Q is already in affine coordinates.  */
-      if (mpi_cmp (x1, sk->Q.x) || (!y1 && mpi_cmp (y1, sk->Q.y)))
+      if (mpi_cmp (x1, sk->Q.x) || (y1 && mpi_cmp (y1, sk->Q.y)))
         {
           if (DBG_CIPHER)
             log_debug
@@ -825,6 +825,8 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
       point_init (&sk.Q);
       if (ec->dialect == ECC_DIALECT_ED25519)
         rc = _gcry_ecc_eddsa_decodepoint (mpi_q, ec, &sk.Q, NULL, NULL);
+      else if (ec->model == MPI_EC_MONTGOMERY)
+        rc = _gcry_ecc_mont_decodepoint (mpi_q, ec, &sk.Q);
       else
         rc = _gcry_ecc_os2ec (&sk.Q, mpi_q);
       if (rc)

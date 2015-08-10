@@ -108,7 +108,7 @@ typedef struct
   const char *p;              /* The prime defining the field.  */
   const char *a, *b;          /* The coefficients.  For Twisted Edwards
                                  Curves b is used for d.  For Montgomery
-                                 Curves a has (A-2)/4.  */
+                                 Curves (a,b) has ((A-2)/4,B^-1).  */
   const char *n;              /* The order of the base point.  */
   const char *g_x, *g_y;      /* Base point.  */
   const char *h;              /* Cofactor.  */

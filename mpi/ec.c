@@ -1470,7 +1470,7 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
         mpi_rshift (p_minus1, p_minus1, 1);
         ec_powm (w, w, p_minus1, ctx);
 
-        res = mpi_cmp_ui (w, 1);
+        res = !mpi_cmp_ui (w, 1);
 #undef p_minus1
       }
       break;
