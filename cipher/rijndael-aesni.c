@@ -787,6 +787,13 @@ static void
 do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 unsigned char *ctr, unsigned char *b, const unsigned char *a)
 {
+  static const byte bige_addb_const[4][16] __attribute__ ((aligned (16))) =
+    {
+      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2 },
+      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3 },
+      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4 }
+    };
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
 #define aesenc_xmm1_xmm2      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xd1\n\t"
 #define aesenc_xmm1_xmm3      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xd9\n\t"
@@ -807,7 +814,25 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
       xmm6  endian swapping mask
    */
 
-  asm volatile ("movdqa %%xmm5, %%xmm0\n\t"     /* xmm0, xmm2 := CTR (xmm5) */
+  asm volatile (/* detect if 8-bit carry handling is needed */
+                "cmpb   $0xfb, 15(%[ctr])\n\t"
+                "ja     .Ladd32bit%=\n\t"
+
+                "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0 := CTR (xmm5) */
+                "movdqa %[addb_1], %%xmm2\n\t"  /* xmm2 := be(1) */
+                "movdqa %[addb_2], %%xmm3\n\t"  /* xmm3 := be(2) */
+                "movdqa %[addb_3], %%xmm4\n\t"  /* xmm4 := be(3) */
+                "movdqa %[addb_4], %%xmm5\n\t"  /* xmm5 := be(4) */
+                "paddb  %%xmm0, %%xmm2\n\t"     /* xmm2 := be(1) + CTR (xmm0) */
+                "paddb  %%xmm0, %%xmm3\n\t"     /* xmm3 := be(2) + CTR (xmm0) */
+                "paddb  %%xmm0, %%xmm4\n\t"     /* xmm4 := be(3) + CTR (xmm0) */
+                "paddb  %%xmm0, %%xmm5\n\t"     /* xmm5 := be(4) + CTR (xmm0) */
+                "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0] */
+                "movl   %[rounds], %%esi\n\t"
+                "jmp    .Lstore_ctr%=\n\t"
+
+                ".Ladd32bit%=:\n\t"
+                "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0, xmm2 := CTR (xmm5) */
                 "movdqa %%xmm0, %%xmm2\n\t"
                 "pcmpeqd %%xmm1, %%xmm1\n\t"
                 "psrldq $8, %%xmm1\n\t"         /* xmm1 = -1 */
@@ -852,6 +877,8 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 "pshufb %%xmm6, %%xmm3\n\t"     /* xmm3 := be(xmm3) */
                 "pshufb %%xmm6, %%xmm4\n\t"     /* xmm4 := be(xmm4) */
                 "pshufb %%xmm6, %%xmm5\n\t"     /* xmm5 := be(xmm5) */
+
+                ".Lstore_ctr%=:\n\t"
                 "movdqa %%xmm5, (%[ctr])\n\t"   /* Update CTR (mem).  */
 
                 "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
@@ -956,7 +983,11 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                   [src] "r" (a),
                   [dst] "r" (b),
                   [key] "r" (ctx->keyschenc),
-                  [rounds] "g" (ctx->rounds)
+                  [rounds] "g" (ctx->rounds),
+                  [addb_1] "m" (bige_addb_const[0][0]),
+                  [addb_2] "m" (bige_addb_const[1][0]),
+                  [addb_3] "m" (bige_addb_const[2][0]),
+                  [addb_4] "m" (bige_addb_const[3][0])
                 : "%esi", "cc", "memory");
 #undef aesenc_xmm1_xmm0
 #undef aesenc_xmm1_xmm2
