@@ -3153,7 +3153,8 @@ do_check_ocb_cipher (int inplace)
 
 
 static void
-check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
+check_ocb_cipher_largebuf_split (int algo, int keylen, const char *tagexpect,
+				 unsigned int splitpos)
 {
   static const unsigned char key[32] =
         "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
@@ -3219,7 +3220,14 @@ check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
       goto out_free;
     }
 
-  err = gcry_cipher_authenticate (hde, inbuf, buflen);
+  if (splitpos)
+    {
+      err = gcry_cipher_authenticate (hde, inbuf, splitpos);
+    }
+  if (!err)
+    {
+      err = gcry_cipher_authenticate (hde, inbuf + splitpos, buflen - splitpos);
+    }
   if (err)
     {
       fail ("cipher-ocb, gcry_cipher_authenticate failed (large, algo %d): %s\n",
@@ -3229,10 +3237,18 @@ check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
       goto out_free;
     }
 
-  err = gcry_cipher_final (hde);
+  if (splitpos)
+    {
+      err = gcry_cipher_encrypt (hde, outbuf, splitpos, inbuf, splitpos);
+    }
   if (!err)
     {
-      err = gcry_cipher_encrypt (hde, outbuf, buflen, inbuf, buflen);
+      err = gcry_cipher_final (hde);
+      if (!err)
+	{
+	  err = gcry_cipher_encrypt (hde, outbuf + splitpos, buflen - splitpos,
+				    inbuf + splitpos, buflen - splitpos);
+	}
     }
   if (err)
     {
@@ -3267,10 +3283,18 @@ check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
     }
 
   /* Now for the decryption.  */
-  err = gcry_cipher_final (hdd);
+  if (splitpos)
+    {
+      err = gcry_cipher_decrypt (hdd, outbuf, splitpos, NULL, 0);
+    }
   if (!err)
     {
-      err = gcry_cipher_decrypt (hdd, outbuf, buflen, NULL, 0);
+      err = gcry_cipher_final (hdd);
+      if (!err)
+	{
+	  err = gcry_cipher_decrypt (hdd, outbuf + splitpos, buflen - splitpos,
+				     NULL, 0);
+	}
     }
   if (err)
     {
@@ -3315,6 +3339,18 @@ check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
 out_free:
   xfree(outbuf);
   xfree(inbuf);
+}
+
+
+static void
+check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
+{
+  unsigned int split;
+
+  for (split = 0; split < 32 * 16; split = split * 2 + 16)
+    {
+      check_ocb_cipher_largebuf_split(algo, keylen, tagexpect, split);
+    }
 }
 
 

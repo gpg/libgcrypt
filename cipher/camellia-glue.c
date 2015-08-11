@@ -631,58 +631,47 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     {
       int did_use_aesni_avx2 = 0;
       const void *Ls[32];
+      unsigned int n = 32 - (blkn % 32);
+      const void **l;
       int i;
 
-      if (blkn % 32 == 0)
+      if (nblocks >= 32)
 	{
 	  for (i = 0; i < 32; i += 8)
 	    {
-	      Ls[i + 0] = c->u_mode.ocb.L[0];
-	      Ls[i + 1] = c->u_mode.ocb.L[1];
-	      Ls[i + 2] = c->u_mode.ocb.L[0];
-	      Ls[i + 3] = c->u_mode.ocb.L[2];
-	      Ls[i + 4] = c->u_mode.ocb.L[0];
-	      Ls[i + 5] = c->u_mode.ocb.L[1];
-	      Ls[i + 6] = c->u_mode.ocb.L[0];
+	      Ls[(i + 0 + n) % 32] = c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 32] = c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 32] = c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 32] = c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 32] = c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 32] = c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 32] = c->u_mode.ocb.L[0];
 	    }
 
-	  Ls[7] = c->u_mode.ocb.L[3];
-	  Ls[15] = c->u_mode.ocb.L[4];
-	  Ls[23] = c->u_mode.ocb.L[3];
-	}
+	  Ls[(7 + n) % 32] = c->u_mode.ocb.L[3];
+	  Ls[(15 + n) % 32] = c->u_mode.ocb.L[4];
+	  Ls[(23 + n) % 32] = c->u_mode.ocb.L[3];
+	  l = &Ls[(31 + n) % 32];
 
-      /* Process data in 32 block chunks. */
-      while (nblocks >= 32)
-	{
-	  /* l_tmp will be used only every 65536-th block. */
-	  if (blkn % 32 == 0)
+	  /* Process data in 32 block chunks. */
+	  while (nblocks >= 32)
 	    {
+	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 32;
-	      Ls[31] = ocb_get_l(c, l_tmp, blkn);
-	    }
-	  else
-	    {
-	      for (i = 0; i < 32; i += 4)
-		{
-		  Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
-		  Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
-		  Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
-		  Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
-		  blkn += 4;
-		}
-	    }
+	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 32);
 
-	  if (encrypt)
-	    _gcry_camellia_aesni_avx2_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
-					      c->u_ctr.ctr, Ls);
-	  else
-	    _gcry_camellia_aesni_avx2_ocb_dec(ctx, outbuf, inbuf, c->u_iv.iv,
-					      c->u_ctr.ctr, Ls);
+	      if (encrypt)
+		_gcry_camellia_aesni_avx2_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
+						  c->u_ctr.ctr, Ls);
+	      else
+		_gcry_camellia_aesni_avx2_ocb_dec(ctx, outbuf, inbuf, c->u_iv.iv,
+						  c->u_ctr.ctr, Ls);
 
-	  nblocks -= 32;
-	  outbuf += 32 * CAMELLIA_BLOCK_SIZE;
-	  inbuf  += 32 * CAMELLIA_BLOCK_SIZE;
-	  did_use_aesni_avx2 = 1;
+	      nblocks -= 32;
+	      outbuf += 32 * CAMELLIA_BLOCK_SIZE;
+	      inbuf  += 32 * CAMELLIA_BLOCK_SIZE;
+	      did_use_aesni_avx2 = 1;
+	    }
 	}
 
       if (did_use_aesni_avx2)
@@ -703,56 +692,45 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
     {
       int did_use_aesni_avx = 0;
       const void *Ls[16];
+      unsigned int n = 16 - (blkn % 16);
+      const void **l;
       int i;
 
-      if (blkn % 16 == 0)
+      if (nblocks >= 16)
 	{
 	  for (i = 0; i < 16; i += 8)
 	    {
-	      Ls[i + 0] = c->u_mode.ocb.L[0];
-	      Ls[i + 1] = c->u_mode.ocb.L[1];
-	      Ls[i + 2] = c->u_mode.ocb.L[0];
-	      Ls[i + 3] = c->u_mode.ocb.L[2];
-	      Ls[i + 4] = c->u_mode.ocb.L[0];
-	      Ls[i + 5] = c->u_mode.ocb.L[1];
-	      Ls[i + 6] = c->u_mode.ocb.L[0];
+	      Ls[(i + 0 + n) % 16] = c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 16] = c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 16] = c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 16] = c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 16] = c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 16] = c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 16] = c->u_mode.ocb.L[0];
 	    }
 
-	  Ls[7] = c->u_mode.ocb.L[3];
-	}
+	  Ls[(7 + n) % 16] = c->u_mode.ocb.L[3];
+	  l = &Ls[(15 + n) % 16];
 
-      /* Process data in 16 block chunks. */
-      while (nblocks >= 16)
-	{
-	  /* l_tmp will be used only every 65536-th block. */
-	  if (blkn % 16 == 0)
+	  /* Process data in 16 block chunks. */
+	  while (nblocks >= 16)
 	    {
+	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 16;
-	      Ls[15] = ocb_get_l(c, l_tmp, blkn);
-	    }
-	  else
-	    {
-	      for (i = 0; i < 16; i += 4)
-		{
-		  Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
-		  Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
-		  Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
-		  Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
-		  blkn += 4;
-		}
-	    }
+	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 16);
 
-	  if (encrypt)
-	    _gcry_camellia_aesni_avx_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
-					    c->u_ctr.ctr, Ls);
-	  else
-	    _gcry_camellia_aesni_avx_ocb_dec(ctx, outbuf, inbuf, c->u_iv.iv,
-					    c->u_ctr.ctr, Ls);
+	      if (encrypt)
+		_gcry_camellia_aesni_avx_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
+						c->u_ctr.ctr, Ls);
+	      else
+		_gcry_camellia_aesni_avx_ocb_dec(ctx, outbuf, inbuf, c->u_iv.iv,
+						c->u_ctr.ctr, Ls);
 
-	  nblocks -= 16;
-	  outbuf += 16 * CAMELLIA_BLOCK_SIZE;
-	  inbuf  += 16 * CAMELLIA_BLOCK_SIZE;
-	  did_use_aesni_avx = 1;
+	      nblocks -= 16;
+	      outbuf += 16 * CAMELLIA_BLOCK_SIZE;
+	      inbuf  += 16 * CAMELLIA_BLOCK_SIZE;
+	      did_use_aesni_avx = 1;
+	    }
 	}
 
       if (did_use_aesni_avx)
@@ -803,53 +781,43 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     {
       int did_use_aesni_avx2 = 0;
       const void *Ls[32];
+      unsigned int n = 32 - (blkn % 32);
+      const void **l;
       int i;
 
-      if (blkn % 32 == 0)
+      if (nblocks >= 32)
 	{
 	  for (i = 0; i < 32; i += 8)
 	    {
-	      Ls[i + 0] = c->u_mode.ocb.L[0];
-	      Ls[i + 1] = c->u_mode.ocb.L[1];
-	      Ls[i + 2] = c->u_mode.ocb.L[0];
-	      Ls[i + 3] = c->u_mode.ocb.L[2];
-	      Ls[i + 4] = c->u_mode.ocb.L[0];
-	      Ls[i + 5] = c->u_mode.ocb.L[1];
-	      Ls[i + 6] = c->u_mode.ocb.L[0];
+	      Ls[(i + 0 + n) % 32] = c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 32] = c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 32] = c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 32] = c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 32] = c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 32] = c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 32] = c->u_mode.ocb.L[0];
 	    }
 
-	  Ls[7] = c->u_mode.ocb.L[3];
-	  Ls[15] = c->u_mode.ocb.L[4];
-	  Ls[23] = c->u_mode.ocb.L[3];
-	}
+	  Ls[(7 + n) % 32] = c->u_mode.ocb.L[3];
+	  Ls[(15 + n) % 32] = c->u_mode.ocb.L[4];
+	  Ls[(23 + n) % 32] = c->u_mode.ocb.L[3];
+	  l = &Ls[(31 + n) % 32];
 
-      /* Process data in 32 block chunks. */
-      while (nblocks >= 32)
-	{
-	  /* l_tmp will be used only every 65536-th block. */
-	  if (blkn % 32 == 0)
+	  /* Process data in 32 block chunks. */
+	  while (nblocks >= 32)
 	    {
+	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 32;
-	      Ls[31] = ocb_get_l(c, l_tmp, blkn);
-	    }
-	  else
-	    {
-	      for (i = 0; i < 32; i += 4)
-		{
-		  Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
-		  Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
-		  Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
-		  Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
-		  blkn += 4;
-		}
-	    }
+	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 32);
 
-	  _gcry_camellia_aesni_avx2_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
-					    c->u_mode.ocb.aad_sum, Ls);
+	      _gcry_camellia_aesni_avx2_ocb_auth(ctx, abuf,
+						 c->u_mode.ocb.aad_offset,
+						 c->u_mode.ocb.aad_sum, Ls);
 
-	  nblocks -= 32;
-	  abuf += 32 * CAMELLIA_BLOCK_SIZE;
-	  did_use_aesni_avx2 = 1;
+	      nblocks -= 32;
+	      abuf += 32 * CAMELLIA_BLOCK_SIZE;
+	      did_use_aesni_avx2 = 1;
+	    }
 	}
 
       if (did_use_aesni_avx2)
@@ -870,51 +838,41 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
     {
       int did_use_aesni_avx = 0;
       const void *Ls[16];
+      unsigned int n = 16 - (blkn % 16);
+      const void **l;
       int i;
 
-      if (blkn % 16 == 0)
+      if (nblocks >= 16)
 	{
 	  for (i = 0; i < 16; i += 8)
 	    {
-	      Ls[i + 0] = c->u_mode.ocb.L[0];
-	      Ls[i + 1] = c->u_mode.ocb.L[1];
-	      Ls[i + 2] = c->u_mode.ocb.L[0];
-	      Ls[i + 3] = c->u_mode.ocb.L[2];
-	      Ls[i + 4] = c->u_mode.ocb.L[0];
-	      Ls[i + 5] = c->u_mode.ocb.L[1];
-	      Ls[i + 6] = c->u_mode.ocb.L[0];
+	      Ls[(i + 0 + n) % 16] = c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 16] = c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 16] = c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 16] = c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 16] = c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 16] = c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 16] = c->u_mode.ocb.L[0];
 	    }
 
-	  Ls[7] = c->u_mode.ocb.L[3];
-	}
+	  Ls[(7 + n) % 16] = c->u_mode.ocb.L[3];
+	  l = &Ls[(15 + n) % 16];
 
-      /* Process data in 16 block chunks. */
-      while (nblocks >= 16)
-	{
-	  /* l_tmp will be used only every 65536-th block. */
-	  if (blkn % 16 == 0)
+	  /* Process data in 16 block chunks. */
+	  while (nblocks >= 16)
 	    {
+	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 16;
-	      Ls[15] = ocb_get_l(c, l_tmp, blkn);
-	    }
-	  else
-	    {
-	      for (i = 0; i < 16; i += 4)
-		{
-		  Ls[i + 0] = ocb_get_l(c, l_tmp, blkn + 1);
-		  Ls[i + 1] = ocb_get_l(c, l_tmp, blkn + 2);
-		  Ls[i + 2] = ocb_get_l(c, l_tmp, blkn + 3);
-		  Ls[i + 3] = ocb_get_l(c, l_tmp, blkn + 4);
-		  blkn += 4;
-		}
-	    }
+	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 16);
 
-	  _gcry_camellia_aesni_avx_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
-					    c->u_mode.ocb.aad_sum, Ls);
+	      _gcry_camellia_aesni_avx_ocb_auth(ctx, abuf,
+						c->u_mode.ocb.aad_offset,
+						c->u_mode.ocb.aad_sum, Ls);
 
-	  nblocks -= 16;
-	  abuf += 16 * CAMELLIA_BLOCK_SIZE;
-	  did_use_aesni_avx = 1;
+	      nblocks -= 16;
+	      abuf += 16 * CAMELLIA_BLOCK_SIZE;
+	      did_use_aesni_avx = 1;
+	    }
 	}
 
       if (did_use_aesni_avx)
