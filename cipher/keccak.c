@@ -100,8 +100,8 @@ static unsigned int keccak_f1600_state_permute(KECCAK_STATE *hd)
 	D[0] = C[4] ^ rol64(C[1], 1);
 	D[1] = C[0] ^ rol64(C[2], 1);
 	D[2] = C[1] ^ rol64(C[3], 1);
-	D[4] = C[2] ^ rol64(C[4], 1);
-	D[5] = C[3] ^ rol64(C[0], 1);
+	D[3] = C[2] ^ rol64(C[4], 1);
+	D[4] = C[3] ^ rol64(C[0], 1);
 
 	/* Add the θ effect to the whole column */
 	hd->state[0][0] ^= D[0];
@@ -125,18 +125,18 @@ static unsigned int keccak_f1600_state_permute(KECCAK_STATE *hd)
 	hd->state[4][2] ^= D[2];
 
 	/* Add the θ effect to the whole column */
-	hd->state[0][3] ^= D[4];
-	hd->state[1][3] ^= D[4];
-	hd->state[2][3] ^= D[4];
-	hd->state[3][3] ^= D[4];
-	hd->state[4][3] ^= D[4];
+	hd->state[0][3] ^= D[3];
+	hd->state[1][3] ^= D[3];
+	hd->state[2][3] ^= D[3];
+	hd->state[3][3] ^= D[3];
+	hd->state[4][3] ^= D[3];
 
 	/* Add the θ effect to the whole column */
-	hd->state[0][4] ^= D[5];
-	hd->state[1][4] ^= D[5];
-	hd->state[2][4] ^= D[5];
-	hd->state[3][4] ^= D[5];
-	hd->state[4][4] ^= D[5];
+	hd->state[0][4] ^= D[4];
+	hd->state[1][4] ^= D[4];
+	hd->state[2][4] ^= D[4];
+	hd->state[3][4] ^= D[4];
+	hd->state[4][4] ^= D[4];
       }
 
       {
