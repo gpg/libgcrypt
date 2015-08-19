@@ -1144,7 +1144,7 @@ gcry_error_t gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp,
  ************************************/
 
 /* Algorithm IDs for the hash functions we know about. Not all of them
-   are implemnted. */
+   are implemented. */
 enum gcry_md_algos
   {
     GCRY_MD_NONE    = 0,
@@ -1158,10 +1158,6 @@ enum gcry_md_algos
     GCRY_MD_SHA384  = 9,
     GCRY_MD_SHA512  = 10,
     GCRY_MD_SHA224  = 11,
-    GCRY_MD_SHA3_224= 12,
-    GCRY_MD_SHA3_256= 13,
-    GCRY_MD_SHA3_384= 14,
-    GCRY_MD_SHA3_512= 15,
 
     GCRY_MD_MD4           = 301,
     GCRY_MD_CRC32         = 302,
@@ -1173,7 +1169,11 @@ enum gcry_md_algos
     GCRY_MD_GOSTR3411_94  = 308, /* GOST R 34.11-94.  */
     GCRY_MD_STRIBOG256    = 309, /* GOST R 34.11-2012, 256 bit.  */
     GCRY_MD_STRIBOG512    = 310, /* GOST R 34.11-2012, 512 bit.  */
-    GCRY_MD_GOSTR3411_CP  = 311  /* GOST R 34.11-94 with CryptoPro-A S-Box.  */
+    GCRY_MD_GOSTR3411_CP  = 311,  /* GOST R 34.11-94 with CryptoPro-A S-Box.  */
+    GCRY_MD_SHA3_224      = 312,
+    GCRY_MD_SHA3_256      = 313,
+    GCRY_MD_SHA3_384      = 314,
+    GCRY_MD_SHA3_512      = 315
   };
 
 /* Flags used with the open function.  */
