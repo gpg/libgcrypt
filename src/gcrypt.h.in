@@ -1053,8 +1053,9 @@ enum gcry_pk_algos
     GCRY_PK_DSA   = 17,     /* Digital Signature Algorithm.  */
     GCRY_PK_ECC   = 18,     /* Generic ECC.  */
     GCRY_PK_ELG   = 20,     /* Elgamal       */
-    GCRY_PK_ECDSA = 301,    /* (deprecated: use 18).  */
-    GCRY_PK_ECDH  = 302     /* (deprecated: use 18).  */
+    GCRY_PK_ECDSA = 301,    /* (only for external use).  */
+    GCRY_PK_ECDH  = 302,    /* (only for external use).  */
+    GCRY_PK_EDDSA = 303     /* (only for external use).  */
   };
 
 /* Flags describing usage capabilities of a PK algorithm. */

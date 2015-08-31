@@ -39,6 +39,7 @@ Noteworthy changes in version 1.7.0 (unreleased)
  GCRY_CIPHER_MODE_OCB            NEW.
  GCRYCTL_SET_TAGLEN              NEW.
  gcry_cipher_final               NEW macro.
+ GCRY_PK_EDDSA                   NEW constant.
 
 
 Noteworthy changes in version 1.6.0 (2013-12-16)
