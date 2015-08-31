@@ -1112,7 +1112,9 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   struct pk_encoding_ctx ctx;
   gcry_mpi_t data = NULL;
   RSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL, NULL};
+  RSA_public_key pk;
   gcry_mpi_t sig = NULL;
+  gcry_mpi_t result = NULL;
 
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_SIGN,
                                    rsa_get_nbits (keyparms));
@@ -1148,11 +1150,25 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         }
     }
 
-  /* Do RSA computation and build the result.  */
+  /* Do RSA computation.  */
   sig = mpi_new (0);
   secret (sig, data, &sk);
   if (DBG_CIPHER)
     log_printmpi ("rsa_sign    res", sig);
+
+  /* Check that the created signature is good.  This detects a failure
+     of the CRT algorithm  (Lenstra's attack on RSA's use of the CRT).  */
+  result = mpi_new (0);
+  pk.n = sk.n;
+  pk.e = sk.e;
+  public (result, sig, &pk);
+  if (mpi_cmp (result, data))
+    {
+      rc = GPG_ERR_BAD_SIGNATURE;
+      goto leave;
+    }
+
+  /* Convert the result.  */
   if ((ctx.flags & PUBKEY_FLAG_FIXEDLEN))
     {
       /* We need to make sure to return the correct length to avoid
@@ -1172,6 +1188,7 @@ rsa_sign (gcry_sexp_t *r_sig, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
 
  leave:
+  _gcry_mpi_release (result);
   _gcry_mpi_release (sig);
   _gcry_mpi_release (sk.n);
   _gcry_mpi_release (sk.e);
