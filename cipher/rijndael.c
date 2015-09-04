@@ -2338,7 +2338,8 @@ _gcry_aes_cbc_dec (void *context, unsigned char *iv,
 static const char*
 selftest_basic_128 (void)
 {
-  RIJNDAEL_context ctx;
+  RIJNDAEL_context *ctx;
+  unsigned char *ctxmem;
   unsigned char scratch[16];
 
   /* The test vectors are from the AES supplied ones; more or less
@@ -2381,11 +2382,21 @@ selftest_basic_128 (void)
     };
 #endif
 
-  rijndael_setkey (&ctx, key_128, sizeof (key_128));
-  rijndael_encrypt (&ctx, scratch, plaintext_128);
+  /* Because gcc/ld can only align the CTX struct on 8 bytes on the
+     stack, we need to allocate that context on the heap.  */
+  ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
+  if (!ctx)
+    return "failed to allocate memory";
+
+  rijndael_setkey (ctx, key_128, sizeof (key_128));
+  rijndael_encrypt (ctx, scratch, plaintext_128);
   if (memcmp (scratch, ciphertext_128, sizeof (ciphertext_128)))
-     return "AES-128 test encryption failed.";
-  rijndael_decrypt (&ctx, scratch, scratch);
+    {
+      xfree (ctxmem);
+      return "AES-128 test encryption failed.";
+    }
+  rijndael_decrypt (ctx, scratch, scratch);
+  xfree (ctxmem);
   if (memcmp (scratch, plaintext_128, sizeof (plaintext_128)))
     return "AES-128 test decryption failed.";
 
@@ -2396,7 +2407,8 @@ selftest_basic_128 (void)
 static const char*
 selftest_basic_192 (void)
 {
-  RIJNDAEL_context ctx;
+  RIJNDAEL_context *ctx;
+  unsigned char *ctxmem;
   unsigned char scratch[16];
 
   static unsigned char plaintext_192[16] =
@@ -2416,11 +2428,18 @@ selftest_basic_192 (void)
       0x12,0x13,0x1A,0xC7,0xC5,0x47,0x88,0xAA
     };
 
-  rijndael_setkey (&ctx, key_192, sizeof(key_192));
-  rijndael_encrypt (&ctx, scratch, plaintext_192);
+  ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
+  if (!ctx)
+    return "failed to allocate memory";
+  rijndael_setkey (ctx, key_192, sizeof(key_192));
+  rijndael_encrypt (ctx, scratch, plaintext_192);
   if (memcmp (scratch, ciphertext_192, sizeof (ciphertext_192)))
-    return "AES-192 test encryption failed.";
-  rijndael_decrypt (&ctx, scratch, scratch);
+    {
+      xfree (ctxmem);
+      return "AES-192 test encryption failed.";
+    }
+  rijndael_decrypt (ctx, scratch, scratch);
+  xfree (ctxmem);
   if (memcmp (scratch, plaintext_192, sizeof (plaintext_192)))
     return "AES-192 test decryption failed.";
 
@@ -2432,7 +2451,8 @@ selftest_basic_192 (void)
 static const char*
 selftest_basic_256 (void)
 {
-  RIJNDAEL_context ctx;
+  RIJNDAEL_context *ctx;
+  unsigned char *ctxmem;
   unsigned char scratch[16];
 
   static unsigned char plaintext_256[16] =
@@ -2453,11 +2473,18 @@ selftest_basic_256 (void)
       0x9A,0xCF,0x72,0x80,0x86,0x04,0x0A,0xE3
     };
 
-  rijndael_setkey (&ctx, key_256, sizeof(key_256));
-  rijndael_encrypt (&ctx, scratch, plaintext_256);
+  ctx = _gcry_cipher_selftest_alloc_ctx (sizeof *ctx, &ctxmem);
+  if (!ctx)
+    return "failed to allocate memory";
+  rijndael_setkey (ctx, key_256, sizeof(key_256));
+  rijndael_encrypt (ctx, scratch, plaintext_256);
   if (memcmp (scratch, ciphertext_256, sizeof (ciphertext_256)))
-    return "AES-256 test encryption failed.";
-  rijndael_decrypt (&ctx, scratch, scratch);
+    {
+      xfree (ctxmem);
+      return "AES-256 test encryption failed.";
+    }
+  rijndael_decrypt (ctx, scratch, scratch);
+  xfree (ctxmem);
   if (memcmp (scratch, plaintext_256, sizeof (plaintext_256)))
     return "AES-256 test decryption failed.";
 
