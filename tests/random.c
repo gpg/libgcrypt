@@ -87,7 +87,7 @@ progress_cb (void *cb_data, const char *what, int printchar,
 }
 
 
-
+#ifndef HAVE_W32_SYSTEM
 static int
 writen (int fd, const void *buf, size_t nbytes)
 {
@@ -110,7 +110,10 @@ writen (int fd, const void *buf, size_t nbytes)
 
   return 0;
 }
+#endif /*!HAVE_W32_SYSTEM*/
 
+
+#ifndef HAVE_W32_SYSTEM
 static int
 readn (int fd, void *buf, size_t buflen, size_t *ret_nread)
 {
@@ -136,7 +139,7 @@ readn (int fd, void *buf, size_t buflen, size_t *ret_nread)
     *ret_nread = buflen - nleft;
   return 0;
 }
-
+#endif /*!HAVE_W32_SYSTEM*/
 
 
 /* Check that forking won't return the same random. */

@@ -513,7 +513,7 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
 
           status = RegQueryValueEx (hKey, "ProductType", 0, NULL,
                                     szValue, &dwSize);
-          if (status == ERROR_SUCCESS && stricmp (szValue, "WinNT"))
+          if (status == ERROR_SUCCESS && stricmp ((char*)szValue, "WinNT"))
             {
               /* Note: There are (at least) three cases for ProductType:
                  WinNT = NT Workstation, ServerNT = NT Server, LanmanNT =

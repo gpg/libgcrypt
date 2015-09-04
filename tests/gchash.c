@@ -109,7 +109,7 @@ main (int argc, char **argv)
       h  = gcry_md_read(hd, 0);
 
       for (i = 0; i < gcry_md_get_algo_dlen (algo); i++)
-        printf("%02hhx", h[i]);
+        printf("%02x", h[i]);
       printf("  %s\n", *argv);
 
       gcry_md_reset(hd);
