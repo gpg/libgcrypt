@@ -2358,14 +2358,14 @@ main (int argc, char **argv)
             {
               if (!(++count % 1000))
                 fprintf (stderr, PGM ": %lu random bytes so far\n",
-                         (unsigned long int)count * sizeof buffer);
+                         (unsigned long int)(count * sizeof buffer));
             }
         }
       while (loop_mode);
 
       if (progress)
         fprintf (stderr, PGM ": %lu random bytes\n",
-                         (unsigned long int)count * sizeof buffer);
+                 (unsigned long int)(count * sizeof buffer));
 
       deinit_external_rng_test (context);
     }

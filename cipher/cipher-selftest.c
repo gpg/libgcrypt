@@ -127,6 +127,8 @@ _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey_func,
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CBC-%d test failed (plaintext mismatch)", cipher,
 	      blocksize * 8);
+#else
+      (void)cipher; /* Not used.  */
 #endif
       return "selftest for CBC failed - see syslog for details";
     }
@@ -243,6 +245,8 @@ _gcry_selftest_helper_cfb (const char *cipher, gcry_cipher_setkey_t setkey_func,
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CFB-%d test failed (plaintext mismatch)", cipher,
 	      blocksize * 8);
+#else
+      (void)cipher; /* Not used.  */
 #endif
       return "selftest for CFB failed - see syslog for details";
     }
@@ -367,6 +371,8 @@ _gcry_selftest_helper_ctr (const char *cipher, gcry_cipher_setkey_t setkey_func,
       syslog (LOG_USER|LOG_WARNING, "Libgcrypt warning: "
               "%s-CTR-%d test failed (plaintext mismatch)", cipher,
 	      blocksize * 8);
+#else
+      (void)cipher; /* Not used.  */
 #endif
       return "selftest for CTR failed - see syslog for details";
     }

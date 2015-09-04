@@ -370,8 +370,6 @@ lock_pool (void *p, size_t n)
 static void
 init_pool (size_t n)
 {
-  size_t pgsize;
-  long int pgsize_val;
   memblock_t *mb;
 
   pool_size = n;
@@ -379,48 +377,54 @@ init_pool (size_t n)
   if (disable_secmem)
     log_bug ("secure memory is disabled");
 
-#if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
-  pgsize_val = sysconf (_SC_PAGESIZE);
-#elif defined(HAVE_GETPAGESIZE)
-  pgsize_val = getpagesize ();
-#else
-  pgsize_val = -1;
-#endif
-  pgsize = (pgsize_val != -1 && pgsize_val > 0)? pgsize_val:DEFAULT_PAGE_SIZE;
-
 
 #if HAVE_MMAP
-  pool_size = (pool_size + pgsize - 1) & ~(pgsize - 1);
-#ifdef MAP_ANONYMOUS
-  pool = mmap (0, pool_size, PROT_READ | PROT_WRITE,
-	       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-#else /* map /dev/zero instead */
   {
-    int fd;
+    size_t pgsize;
+    long int pgsize_val;
 
-    fd = open ("/dev/zero", O_RDWR);
-    if (fd == -1)
-      {
-	log_error ("can't open /dev/zero: %s\n", strerror (errno));
-	pool = (void *) -1;
-      }
+# if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+    pgsize_val = sysconf (_SC_PAGESIZE);
+# elif defined(HAVE_GETPAGESIZE)
+    pgsize_val = getpagesize ();
+# else
+    pgsize_val = -1;
+# endif
+    pgsize = (pgsize_val != -1 && pgsize_val > 0)? pgsize_val:DEFAULT_PAGE_SIZE;
+
+    pool_size = (pool_size + pgsize - 1) & ~(pgsize - 1);
+# ifdef MAP_ANONYMOUS
+    pool = mmap (0, pool_size, PROT_READ | PROT_WRITE,
+                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+# else /* map /dev/zero instead */
+    {
+      int fd;
+
+      fd = open ("/dev/zero", O_RDWR);
+      if (fd == -1)
+        {
+          log_error ("can't open /dev/zero: %s\n", strerror (errno));
+          pool = (void *) -1;
+        }
+      else
+        {
+          pool = mmap (0, pool_size,
+                       (PROT_READ | PROT_WRITE), MAP_PRIVATE, fd, 0);
+          close (fd);
+        }
+    }
+# endif
+    if (pool == (void *) -1)
+      log_info ("can't mmap pool of %u bytes: %s - using malloc\n",
+                (unsigned) pool_size, strerror (errno));
     else
       {
-	pool = mmap (0, pool_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-        close (fd);
+        pool_is_mmapped = 1;
+        pool_okay = 1;
       }
   }
-#endif
-  if (pool == (void *) -1)
-    log_info ("can't mmap pool of %u bytes: %s - using malloc\n",
-	      (unsigned) pool_size, strerror (errno));
-  else
-    {
-      pool_is_mmapped = 1;
-      pool_okay = 1;
-    }
+#endif /*HAVE_MMAP*/
 
-#endif
   if (!pool_okay)
     {
       pool = malloc (pool_size);
