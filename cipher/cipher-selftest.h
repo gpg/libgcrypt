@@ -40,6 +40,11 @@ typedef void (*gcry_cipher_bulk_ctr_enc_t)(void *context, unsigned char *iv,
 					   const void *inbuf_arg,
 					   size_t nblocks);
 
+/* Helper function to allocate an aligned context for selftests.  */
+void *_gcry_cipher_selftest_alloc_ctx (const int context_size,
+                                       unsigned char **r_mem);
+
+
 /* Helper function for bulk CBC decryption selftest */
 const char *
 _gcry_selftest_helper_cbc (const char *cipher, gcry_cipher_setkey_t setkey,

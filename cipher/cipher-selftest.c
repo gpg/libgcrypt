@@ -44,6 +44,29 @@
 #endif
 
 
+/* Return an allocated buffers of size CONTEXT_SIZE with an alignment
+   of 16.  The caller must free that buffer using the address returned
+   at R_MEM.  Returns NULL and sets ERRNO on failure.  */
+void *
+_gcry_cipher_selftest_alloc_ctx (const int context_size, unsigned char **r_mem)
+{
+  int offs;
+  unsigned int ctx_aligned_size, memsize;
+
+  ctx_aligned_size = context_size + 15;
+  ctx_aligned_size -= ctx_aligned_size & 0xf;
+
+  memsize = ctx_aligned_size + 16;
+
+  *r_mem = xtrycalloc (1, memsize);
+  if (!*r_mem)
+    return NULL;
+
+  offs = (16 - ((uintptr_t)*r_mem & 15)) & 15;
+  return (void*)(*r_mem + offs);
+}
+
+
 /* Run the self-tests for <block cipher>-CBC-<block size>, tests bulk CBC
    decryption.  Returns NULL on success. */
 const char *
