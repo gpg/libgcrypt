@@ -246,15 +246,21 @@ lock_pool (void *p, size_t n)
   {
     cap_t cap;
 
-    cap = cap_from_text ("cap_ipc_lock+ep");
-    cap_set_proc (cap);
-    cap_free (cap);
+    if (!no_priv_drop)
+      {
+        cap = cap_from_text ("cap_ipc_lock+ep");
+        cap_set_proc (cap);
+        cap_free (cap);
+      }
     err = no_mlock? 0 : mlock (p, n);
     if (err && errno)
       err = errno;
-    cap = cap_from_text ("cap_ipc_lock+p");
-    cap_set_proc (cap);
-    cap_free(cap);
+    if (!no_priv_drop)
+      {
+        cap = cap_from_text ("cap_ipc_lock+p");
+        cap_set_proc (cap);
+        cap_free(cap);
+      }
   }
 
   if (err)
@@ -482,13 +488,14 @@ secmem_init (size_t n)
     {
 #ifdef USE_CAPABILITIES
       /* drop all capabilities */
-      {
-        cap_t cap;
+      if (!no_priv_drop)
+        {
+          cap_t cap;
 
-        cap = cap_from_text ("all-eip");
-        cap_set_proc (cap);
-        cap_free (cap);
-      }
+          cap = cap_from_text ("all-eip");
+          cap_set_proc (cap);
+          cap_free (cap);
+        }
 
 #elif !defined(HAVE_DOSISH_SYSTEM)
       uid_t uid;
