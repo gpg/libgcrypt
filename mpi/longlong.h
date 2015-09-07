@@ -1293,7 +1293,7 @@ typedef unsigned int UTItype __attribute__ ((mode (TI)));
 	     "rJ" ((USItype)(al)),                                      \
 	     "rI" ((USItype)(bl))                                       \
 	   __CLOBBER_CC)
-# if defined (__sparc_v8__)
+# if defined (__sparc_v8__) || defined(__sparcv8)
 /* Don't match immediate range because, 1) it is not often useful,
    2) the 'I' flag thinks of the range as a 13 bit signed interval,
    while we want to match a 13 bit interval, sign extended to 32 bits,
