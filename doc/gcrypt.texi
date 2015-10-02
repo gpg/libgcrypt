@@ -381,7 +381,7 @@ memory is not a problem, you should initialize Libgcrypt this way:
 
 @example
   /* Version check should be the very first call because it
-     makes sure that important subsystems are intialized. */
+     makes sure that important subsystems are initialized. */
   if (!gcry_check_version (GCRYPT_VERSION))
     @{
       fputs ("libgcrypt version mismatch\n", stderr);
