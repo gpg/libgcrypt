@@ -329,10 +329,10 @@ void *_gcry_sexp_nth_buffer (const gcry_sexp_t list, int number,
                              size_t *rlength);
 char *_gcry_sexp_nth_string (gcry_sexp_t list, int number);
 gcry_mpi_t _gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt);
-gpg_err_code_t _gcry_sexp_extract_param (gcry_sexp_t sexp,
-                                         const char *path,
-                                         const char *list,
-                                         ...) _GCRY_GCC_ATTR_SENTINEL(0);
+gpg_error_t _gcry_sexp_extract_param (gcry_sexp_t sexp,
+                                      const char *path,
+                                      const char *list,
+                                      ...) _GCRY_GCC_ATTR_SENTINEL(0);
 
 #define sexp_new(a, b, c, d)         _gcry_sexp_new ((a), (b), (c), (d))
 #define sexp_create(a, b, c, d, e)   _gcry_sexp_create ((a), (b), (c), (d), (e))

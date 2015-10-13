@@ -968,12 +968,14 @@ dsa_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
 static gcry_err_code_t
 dsa_check_secret_key (gcry_sexp_t keyparms)
 {
+  gcry_error_t err;
   gcry_err_code_t rc;
   DSA_secret_key sk = {NULL, NULL, NULL, NULL, NULL};
 
-  rc = _gcry_sexp_extract_param (keyparms, NULL, "pqgyx",
-                                 &sk.p, &sk.q, &sk.g, &sk.y, &sk.x,
-                                 NULL);
+  err = _gcry_sexp_extract_param (keyparms, NULL, "pqgyx",
+                                  &sk.p, &sk.q, &sk.g, &sk.y, &sk.x,
+                                  NULL);
+  rc = gpg_err_code (err);
   if (rc)
     goto leave;
 
