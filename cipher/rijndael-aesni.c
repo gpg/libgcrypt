@@ -961,8 +961,17 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 aesenclast_xmm1_xmm2
                 aesenclast_xmm1_xmm3
                 aesenclast_xmm1_xmm4
+                :
+                : [ctr] "r" (ctr),
+                  [key] "r" (ctx->keyschenc),
+                  [rounds] "g" (ctx->rounds),
+                  [addb_1] "m" (bige_addb_const[0][0]),
+                  [addb_2] "m" (bige_addb_const[1][0]),
+                  [addb_3] "m" (bige_addb_const[2][0]),
+                  [addb_4] "m" (bige_addb_const[3][0])
+                : "%esi", "cc", "memory");
 
-                "movdqu (%[src]), %%xmm1\n\t"    /* Get block 1.      */
+  asm volatile ("movdqu (%[src]), %%xmm1\n\t"    /* Get block 1.      */
                 "pxor %%xmm1, %%xmm0\n\t"        /* EncCTR-1 ^= input */
                 "movdqu %%xmm0, (%[dst])\n\t"    /* Store block 1     */
 
@@ -977,18 +986,10 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 "movdqu 48(%[src]), %%xmm1\n\t"  /* Get block 4.      */
                 "pxor %%xmm1, %%xmm4\n\t"        /* EncCTR-4 ^= input */
                 "movdqu %%xmm4, 48(%[dst])"      /* Store block 4.   */
-
                 :
-                : [ctr] "r" (ctr),
-                  [src] "r" (a),
-                  [dst] "r" (b),
-                  [key] "r" (ctx->keyschenc),
-                  [rounds] "g" (ctx->rounds),
-                  [addb_1] "m" (bige_addb_const[0][0]),
-                  [addb_2] "m" (bige_addb_const[1][0]),
-                  [addb_3] "m" (bige_addb_const[2][0]),
-                  [addb_4] "m" (bige_addb_const[3][0])
-                : "%esi", "cc", "memory");
+                : [src] "r" (a),
+                  [dst] "r" (b)
+                : "memory");
 #undef aesenc_xmm1_xmm0
 #undef aesenc_xmm1_xmm2
 #undef aesenc_xmm1_xmm3
