@@ -292,7 +292,7 @@ gcry_mpi_copy (const gcry_mpi_t a)
 void
 gcry_mpi_snatch (gcry_mpi_t w, const gcry_mpi_t u)
 {
-  return _gcry_mpi_snatch (w, u);
+  _gcry_mpi_snatch (w, u);
 }
 
 gcry_mpi_t

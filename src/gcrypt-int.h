@@ -328,10 +328,10 @@ void *_gcry_sexp_nth_buffer (const gcry_sexp_t list, int number,
                              size_t *rlength);
 char *_gcry_sexp_nth_string (gcry_sexp_t list, int number);
 gcry_mpi_t _gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt);
-gpg_err_code_t _gcry_sexp_extract_param (gcry_sexp_t sexp,
-                                         const char *path,
-                                         const char *list,
-                                         ...) _GCRY_GCC_ATTR_SENTINEL(0);
+gpg_error_t _gcry_sexp_extract_param (gcry_sexp_t sexp,
+                                      const char *path,
+                                      const char *list,
+                                      ...) _GCRY_GCC_ATTR_SENTINEL(0);
 
 #define sexp_new(a, b, c, d)         _gcry_sexp_new ((a), (b), (c), (d))
 #define sexp_create(a, b, c, d, e)   _gcry_sexp_create ((a), (b), (c), (d), (e))
@@ -415,15 +415,9 @@ gcry_mpi_point_t _gcry_mpi_point_set (gcry_mpi_point_t point,
 gcry_mpi_point_t _gcry_mpi_point_snatch_set (gcry_mpi_point_t point,
                                             gcry_mpi_t x, gcry_mpi_t y,
                                             gcry_mpi_t z);
-gpg_error_t _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,
-                             gcry_sexp_t keyparam, const char *curvename);
 gcry_mpi_t _gcry_mpi_ec_get_mpi (const char *name, gcry_ctx_t ctx, int copy);
 gcry_mpi_point_t _gcry_mpi_ec_get_point (const char *name,
                                         gcry_ctx_t ctx, int copy);
-gpg_error_t _gcry_mpi_ec_set_mpi (const char *name, gcry_mpi_t newvalue,
-                                 gcry_ctx_t ctx);
-gpg_error_t _gcry_mpi_ec_set_point (const char *name, gcry_mpi_point_t newvalue,
-                                   gcry_ctx_t ctx);
 int _gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_point_t point,
                              mpi_ec_t ctx);
 void _gcry_mpi_ec_dup (gcry_mpi_point_t w, gcry_mpi_point_t u, gcry_ctx_t ctx);
