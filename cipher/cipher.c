@@ -542,7 +542,7 @@ _gcry_cipher_open_internal (gcry_cipher_hd_t *handle,
 
   *handle = err ? NULL : h;
 
-  return gcry_error (err);
+  return err;
 }
 
 
@@ -1153,10 +1153,10 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
         size_t authtaglen;
 
         if (h->mode != GCRY_CIPHER_MODE_CCM)
-          return gcry_error (GPG_ERR_INV_CIPHER_MODE);
+          return GPG_ERR_INV_CIPHER_MODE;
 
         if (!buffer || buflen != 3 * sizeof(u64))
-          return gcry_error (GPG_ERR_INV_ARG);
+          return GPG_ERR_INV_ARG;
 
         /* This command is used to pass additional length parameters needed
            by CCM mode to initialize CBC-MAC.  */
@@ -1176,7 +1176,7 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
       /* This command expects NULL for H and BUFFER to point to an
          integer with the algo number.  */
       if( h || !buffer || buflen != sizeof(int) )
-	return gcry_error (GPG_ERR_CIPHER_ALGO);
+	return GPG_ERR_CIPHER_ALGO;
       disable_cipher_algo( *(int*)buffer );
       break;
 

@@ -499,7 +499,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       _gcry_set_preferred_rng_type (0);
       rc = _gcry_rndegd_set_socket_name (va_arg (arg_ptr, const char *));
 #else
-      rc = gpg_error (GPG_ERR_NOT_SUPPORTED);
+      rc = GPG_ERR_NOT_SUPPORTED;
 #endif
       break;
 
