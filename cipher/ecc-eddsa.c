@@ -508,7 +508,7 @@ _gcry_ecc_eddsa_genkey (ECC_secret_key *sk, elliptic_curve_t *E, mpi_ec_t ctx,
   hash_d = xtrymalloc_secure (2*b);
   if (!hash_d)
     {
-      rc = gpg_error_from_syserror ();
+      rc = gpg_err_code_from_syserror ();
       goto leave;
     }
   dlen = b;

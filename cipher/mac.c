@@ -241,7 +241,7 @@ mac_open (gcry_mac_hd_t * hd, int algo, int secure, gcry_ctx_t ctx)
 }
 
 
-static gcry_error_t
+static gcry_err_code_t
 mac_reset (gcry_mac_hd_t hd)
 {
   if (hd->spec->ops->reset)
@@ -263,7 +263,7 @@ mac_close (gcry_mac_hd_t hd)
 }
 
 
-static gcry_error_t
+static gcry_err_code_t
 mac_setkey (gcry_mac_hd_t hd, const void *key, size_t keylen)
 {
   if (!hd->spec->ops->setkey)
@@ -275,7 +275,7 @@ mac_setkey (gcry_mac_hd_t hd, const void *key, size_t keylen)
 }
 
 
-static gcry_error_t
+static gcry_err_code_t
 mac_setiv (gcry_mac_hd_t hd, const void *iv, size_t ivlen)
 {
   if (!hd->spec->ops->setiv)
@@ -287,7 +287,7 @@ mac_setiv (gcry_mac_hd_t hd, const void *iv, size_t ivlen)
 }
 
 
-static gcry_error_t
+static gcry_err_code_t
 mac_write (gcry_mac_hd_t hd, const void *inbuf, size_t inlen)
 {
   if (!hd->spec->ops->write)
@@ -299,7 +299,7 @@ mac_write (gcry_mac_hd_t hd, const void *inbuf, size_t inlen)
 }
 
 
-static gcry_error_t
+static gcry_err_code_t
 mac_read (gcry_mac_hd_t hd, void *outbuf, size_t * outlen)
 {
   if (!outbuf || !outlen || *outlen == 0 || !hd->spec->ops->read)
@@ -309,7 +309,7 @@ mac_read (gcry_mac_hd_t hd, void *outbuf, size_t * outlen)
 }
 
 
-static gcry_error_t
+static gcry_err_code_t
 mac_verify (gcry_mac_hd_t hd, const void *buf, size_t buflen)
 {
   if (!buf || buflen == 0 || !hd->spec->ops->verify)

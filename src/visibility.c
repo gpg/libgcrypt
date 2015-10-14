@@ -57,7 +57,7 @@ gcry_err_make_from_errno (gcry_err_source_t source, int err)
   return _gcry_err_make_from_errno (source, err);
 }
 
-gcry_err_code_t
+gcry_error_t
 gcry_error_from_errno (int err)
 {
   return _gcry_error_from_errno (err);

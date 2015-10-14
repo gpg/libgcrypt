@@ -2423,7 +2423,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
   return rc;
 }
 
-gpg_error_t
+gpg_err_code_t
 _gcry_sexp_extract_param (gcry_sexp_t sexp, const char *path,
                           const char *list, ...)
 {
@@ -2433,5 +2433,5 @@ _gcry_sexp_extract_param (gcry_sexp_t sexp, const char *path,
   va_start (arg_ptr, list);
   rc = _gcry_sexp_vextract_param (sexp, path, list, arg_ptr);
   va_end (arg_ptr);
-  return gpg_error (rc);
+  return rc;
 }

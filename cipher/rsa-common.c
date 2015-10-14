@@ -393,7 +393,7 @@ mgf1 (unsigned char *output, size_t outlen, unsigned char *seed, size_t seedlen,
   size_t dlen, nbytes, n;
   int idx;
   gcry_md_hd_t hd;
-  gcry_error_t err;
+  gcry_err_code_t err;
 
   err = _gcry_md_open (&hd, algo, 0);
   if (err)
