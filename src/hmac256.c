@@ -426,10 +426,8 @@ _gcry_hmac256_finalize (hmac256_context_t hd, size_t *r_dlen)
 
       tmphd = _gcry_hmac256_new (NULL, 0);
       if (!tmphd)
-        {
-          free (hd);
-          return NULL;
-        }
+	return NULL;
+
       _gcry_hmac256_update (tmphd, hd->opad, 64);
       _gcry_hmac256_update (tmphd, hd->buf, 32);
       finalize (tmphd);
