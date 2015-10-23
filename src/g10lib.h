@@ -197,16 +197,17 @@ int _gcry_log_verbosity( int level );
 #define HWF_PADLOCK_SHA  4
 #define HWF_PADLOCK_MMUL 8
 
-#define HWF_INTEL_CPU    16
-#define HWF_INTEL_BMI2   32
-#define HWF_INTEL_SSSE3  64
-#define HWF_INTEL_PCLMUL 128
-#define HWF_INTEL_AESNI  256
-#define HWF_INTEL_RDRAND 512
-#define HWF_INTEL_AVX    1024
-#define HWF_INTEL_AVX2   2048
+#define HWF_INTEL_CPU       16
+#define HWF_INTEL_FAST_SHLD 32
+#define HWF_INTEL_BMI2      64
+#define HWF_INTEL_SSSE3     128
+#define HWF_INTEL_PCLMUL    256
+#define HWF_INTEL_AESNI     512
+#define HWF_INTEL_RDRAND    1024
+#define HWF_INTEL_AVX       2048
+#define HWF_INTEL_AVX2      4096
 
-#define HWF_ARM_NEON     4096
+#define HWF_ARM_NEON        8192
 
 
 gpg_err_code_t _gcry_disable_hw_feature (const char *name);

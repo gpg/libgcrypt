@@ -154,7 +154,7 @@ sha512_init (void *context, unsigned int flags)
   ctx->use_ssse3 = (features & HWF_INTEL_SSSE3) != 0;
 #endif
 #ifdef USE_AVX
-  ctx->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_CPU);
+  ctx->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD);
 #endif
 #ifdef USE_AVX2
   ctx->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);
@@ -194,7 +194,7 @@ sha384_init (void *context, unsigned int flags)
   ctx->use_ssse3 = (features & HWF_INTEL_SSSE3) != 0;
 #endif
 #ifdef USE_AVX
-  ctx->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_CPU);
+  ctx->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD);
 #endif
 #ifdef USE_AVX2
   ctx->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);

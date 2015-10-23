@@ -136,7 +136,7 @@ sha1_init (void *context, unsigned int flags)
 #ifdef USE_AVX
   /* AVX implementation uses SHLD which is known to be slow on non-Intel CPUs.
    * Therefore use this implementation on Intel CPUs only. */
-  hd->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_CPU);
+  hd->use_avx = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_FAST_SHLD);
 #endif
 #ifdef USE_BMI2
   hd->use_bmi2 = (features & HWF_INTEL_AVX) && (features & HWF_INTEL_BMI2);
