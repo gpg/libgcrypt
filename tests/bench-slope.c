@@ -1571,13 +1571,176 @@ mac_bench (char **argv, int argc)
 }
 
 
+/************************************************************ KDF benchmarks. */
+
+struct bench_kdf_mode
+{
+  struct bench_ops *ops;
+
+  int algo;
+  int subalgo;
+};
+
+
+static int
+bench_kdf_init (struct bench_obj *obj)
+{
+  struct bench_kdf_mode *mode = obj->priv;
+
+  if (mode->algo == GCRY_KDF_PBKDF2)
+    {
+      obj->min_bufsize = 2;
+      obj->max_bufsize = 2 * 32;
+      obj->step_size = 2;
+    }
+
+  obj->num_measure_repetitions = num_measurement_repetitions;
+
+  return 0;
+}
+
+static void
+bench_kdf_free (struct bench_obj *obj)
+{
+  (void)obj;
+}
+
+static void
+bench_kdf_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
+{
+  struct bench_kdf_mode *mode = obj->priv;
+  char keybuf[16];
+
+  (void)buf;
+
+  if (mode->algo == GCRY_KDF_PBKDF2)
+    {
+      gcry_kdf_derive("qwerty", 6, mode->algo, mode->subalgo, "01234567", 8,
+		      buflen, sizeof(keybuf), keybuf);
+    }
+}
+
+static struct bench_ops kdf_ops = {
+  &bench_kdf_init,
+  &bench_kdf_free,
+  &bench_kdf_do_bench
+};
+
+
+static void
+kdf_bench_one (int algo, int subalgo)
+{
+  struct bench_kdf_mode mode = { &kdf_ops };
+  struct bench_obj obj = { 0 };
+  double nsecs_per_iteration;
+  double cycles_per_iteration;
+  char algo_name[32];
+  char nsecpiter_buf[16];
+  char cpiter_buf[16];
+
+  mode.algo = algo;
+  mode.subalgo = subalgo;
+
+  switch (subalgo)
+    {
+    case GCRY_MD_CRC32:
+    case GCRY_MD_CRC32_RFC1510:
+    case GCRY_MD_CRC24_RFC2440:
+    case GCRY_MD_MD4:
+      /* Skip CRC32s. */
+      return;
+    }
+
+  *algo_name = 0;
+
+  if (algo == GCRY_KDF_PBKDF2)
+    {
+      snprintf (algo_name, sizeof(algo_name), "PBKDF2-HMAC-%s",
+		gcry_md_algo_name (subalgo));
+    }
+
+  bench_print_algo (-24, algo_name);
+
+  obj.ops = mode.ops;
+  obj.priv = &mode;
+
+  nsecs_per_iteration = do_slope_benchmark (&obj);
+
+  strcpy(cpiter_buf, csv_mode ? "" : "-");
+
+  double_to_str (nsecpiter_buf, sizeof (nsecpiter_buf), nsecs_per_iteration);
+
+  /* If user didn't provide CPU speed, we cannot show cycles/iter results.  */
+  if (cpu_ghz > 0.0)
+    {
+      cycles_per_iteration = nsecs_per_iteration * cpu_ghz;
+      double_to_str (cpiter_buf, sizeof (cpiter_buf), cycles_per_iteration);
+    }
+
+  if (csv_mode)
+    {
+      printf ("%s,%s,%s,,,,,,,,,%s,ns/iter,%s,c/iter\n",
+	      current_section_name,
+	      current_algo_name ? current_algo_name : "",
+	      current_mode_name ? current_mode_name : "",
+	      nsecpiter_buf,
+	      cpiter_buf);
+    }
+  else
+    {
+      printf ("%14s %13s\n", nsecpiter_buf, cpiter_buf);
+    }
+}
+
+void
+kdf_bench (char **argv, int argc)
+{
+  char algo_name[32];
+  int i, j;
+
+  bench_print_section ("kdf", "KDF");
+
+  if (!csv_mode)
+    {
+      printf (" %-*s | ", 24, "");
+      printf ("%14s %13s\n", "nanosecs/iter", "cycles/iter");
+    }
+
+  if (argv && argc)
+    {
+      for (i = 0; i < argc; i++)
+	{
+	  for (j = 1; j < 400; j++)
+	    {
+	      if (gcry_md_test_algo (j))
+		continue;
+
+	      snprintf (algo_name, sizeof(algo_name), "PBKDF2-HMAC-%s",
+			gcry_md_algo_name (j));
+
+	      if (!strcmp(argv[i], algo_name))
+		kdf_bench_one (GCRY_KDF_PBKDF2, j);
+	    }
+	}
+    }
+  else
+    {
+      for (i = 1; i < 400; i++)
+	if (!gcry_md_test_algo (i))
+	  kdf_bench_one (GCRY_KDF_PBKDF2, i);
+    }
+
+  bench_print_footer (24);
+}
+
+
 /************************************************************** Main program. */
 
 void
 print_help (void)
 {
   static const char *help_lines[] = {
-    "usage: bench-slope [options] [hash|mac|cipher [algonames]]",
+    "usage: bench-slope [options] [hash|mac|cipher|kdf [algonames]]",
     "",
     " options:",
     "   --cpu-mhz <mhz>           Set CPU speed for calculating cycles",
@@ -1744,6 +1907,7 @@ main (int argc, char **argv)
       hash_bench (NULL, 0);
       mac_bench (NULL, 0);
       cipher_bench (NULL, 0);
+      kdf_bench (NULL, 0);
     }
   else if (!strcmp (*argv, "hash"))
     {
@@ -1768,6 +1932,14 @@ main (int argc, char **argv)
 
       warm_up_cpu ();
       cipher_bench ((argc == 0) ? NULL : argv, argc);
+    }
+  else if (!strcmp (*argv, "kdf"))
+    {
+      argc--;
+      argv++;
+
+      warm_up_cpu ();
+      kdf_bench ((argc == 0) ? NULL : argv, argc);
     }
   else
     {
