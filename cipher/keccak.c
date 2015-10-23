@@ -27,11 +27,45 @@
 #include "hash-common.h"
 
 
-/* The code is based on public-domain/CC0 "Keccak-readable-and-compact.c"
- * implementation by the Keccak, Keyak and Ketje Teams, namely, Guido Bertoni,
- * Joan Daemen, Michaël Peeters, Gilles Van Assche and Ronny Van Keer. From:
- *   https://github.com/gvanas/KeccakCodePackage
- */
+
+/* USE_64BIT indicates whether to use 64-bit generic implementation.
+ * USE_32BIT indicates whether to use 32-bit generic implementation. */
+#undef USE_64BIT
+#if defined(__x86_64__) || SIZEOF_UNSIGNED_LONG == 8
+# define USE_64BIT 1
+#else
+# define USE_32BIT 1
+#endif
+
+
+/* USE_64BIT_BMI2 indicates whether to compile with 64-bit Intel BMI2 code. */
+#undef USE_64BIT_BMI2
+#if defined(USE_64BIT) && defined(HAVE_GCC_INLINE_ASM_BMI2)
+# define USE_64BIT_BMI2 1
+#endif
+
+
+/* USE_64BIT_SHLD indicates whether to compile with 64-bit Intel SHLD code. */
+#undef USE_64BIT_SHLD
+#if defined(USE_64BIT) && defined (__GNUC__) && defined(__x86_64__)
+# define USE_64BIT_SHLD 1
+#endif
+
+
+/* USE_32BIT_BMI2 indicates whether to compile with 32-bit Intel BMI2 code. */
+#undef USE_32BIT_BMI2
+#if defined(USE_32BIT) && defined(HAVE_GCC_INLINE_ASM_BMI2)
+# define USE_32BIT_BMI2 1
+#endif
+
+
+#ifdef USE_64BIT
+# define NEED_COMMON64 1
+#endif
+
+#ifdef USE_32BIT
+# define NEED_COMMON32BI 1
+#endif
 
 
 #define SHA3_DELIMITED_SUFFIX 0x06
@@ -40,218 +74,526 @@
 
 typedef struct
 {
-  u64 state[5][5];
+  union {
+#ifdef NEED_COMMON64
+    u64 state64[25];
+#endif
+#ifdef NEED_COMMON32BI
+    u32 state32bi[50];
+#endif
+  } u;
 } KECCAK_STATE;
 
 
 typedef struct
 {
-  gcry_md_block_ctx_t bctx;
+  unsigned int (*permute)(KECCAK_STATE *hd);
+  unsigned int (*absorb)(KECCAK_STATE *hd, int pos, const byte *lanes,
+			 unsigned int nlanes, int blocklanes);
+  unsigned int (*extract_inplace) (KECCAK_STATE *hd, unsigned int outlen);
+} keccak_ops_t;
+
+
+typedef struct KECCAK_CONTEXT_S
+{
   KECCAK_STATE state;
   unsigned int outlen;
+  unsigned int blocksize;
+  unsigned int count;
+  const keccak_ops_t *ops;
 } KECCAK_CONTEXT;
 
 
-static inline u64
-rol64 (u64 x, unsigned int n)
+
+#ifdef NEED_COMMON64
+
+static const u64 round_consts_64bit[24] =
 {
-  return ((x << n) | (x >> (64 - n)));
-}
-
-/* Function that computes the Keccak-f[1600] permutation on the given state. */
-static unsigned int keccak_f1600_state_permute(KECCAK_STATE *hd)
-{
-  static const u64 round_consts[24] =
-  {
-    U64_C(0x0000000000000001), U64_C(0x0000000000008082),
-    U64_C(0x800000000000808A), U64_C(0x8000000080008000),
-    U64_C(0x000000000000808B), U64_C(0x0000000080000001),
-    U64_C(0x8000000080008081), U64_C(0x8000000000008009),
-    U64_C(0x000000000000008A), U64_C(0x0000000000000088),
-    U64_C(0x0000000080008009), U64_C(0x000000008000000A),
-    U64_C(0x000000008000808B), U64_C(0x800000000000008B),
-    U64_C(0x8000000000008089), U64_C(0x8000000000008003),
-    U64_C(0x8000000000008002), U64_C(0x8000000000000080),
-    U64_C(0x000000000000800A), U64_C(0x800000008000000A),
-    U64_C(0x8000000080008081), U64_C(0x8000000000008080),
-    U64_C(0x0000000080000001), U64_C(0x8000000080008008)
-  };
-  unsigned int round;
-
-  for (round = 0; round < 24; round++)
-    {
-      {
-	/* θ step (see [Keccak Reference, Section 2.3.2]) === */
-	u64 C[5], D[5];
-
-	/* Compute the parity of the columns */
-	C[0] = hd->state[0][0] ^ hd->state[1][0] ^ hd->state[2][0]
-	      ^ hd->state[3][0] ^ hd->state[4][0];
-	C[1] = hd->state[0][1] ^ hd->state[1][1] ^ hd->state[2][1]
-	      ^ hd->state[3][1] ^ hd->state[4][1];
-	C[2] = hd->state[0][2] ^ hd->state[1][2] ^ hd->state[2][2]
-	      ^ hd->state[3][2] ^ hd->state[4][2];
-	C[3] = hd->state[0][3] ^ hd->state[1][3] ^ hd->state[2][3]
-	      ^ hd->state[3][3] ^ hd->state[4][3];
-	C[4] = hd->state[0][4] ^ hd->state[1][4] ^ hd->state[2][4]
-	      ^ hd->state[3][4] ^ hd->state[4][4];
-
-	/* Compute the θ effect for a given column */
-	D[0] = C[4] ^ rol64(C[1], 1);
-	D[1] = C[0] ^ rol64(C[2], 1);
-	D[2] = C[1] ^ rol64(C[3], 1);
-	D[3] = C[2] ^ rol64(C[4], 1);
-	D[4] = C[3] ^ rol64(C[0], 1);
-
-	/* Add the θ effect to the whole column */
-	hd->state[0][0] ^= D[0];
-	hd->state[1][0] ^= D[0];
-	hd->state[2][0] ^= D[0];
-	hd->state[3][0] ^= D[0];
-	hd->state[4][0] ^= D[0];
-
-	/* Add the θ effect to the whole column */
-	hd->state[0][1] ^= D[1];
-	hd->state[1][1] ^= D[1];
-	hd->state[2][1] ^= D[1];
-	hd->state[3][1] ^= D[1];
-	hd->state[4][1] ^= D[1];
-
-	/* Add the θ effect to the whole column */
-	hd->state[0][2] ^= D[2];
-	hd->state[1][2] ^= D[2];
-	hd->state[2][2] ^= D[2];
-	hd->state[3][2] ^= D[2];
-	hd->state[4][2] ^= D[2];
-
-	/* Add the θ effect to the whole column */
-	hd->state[0][3] ^= D[3];
-	hd->state[1][3] ^= D[3];
-	hd->state[2][3] ^= D[3];
-	hd->state[3][3] ^= D[3];
-	hd->state[4][3] ^= D[3];
-
-	/* Add the θ effect to the whole column */
-	hd->state[0][4] ^= D[4];
-	hd->state[1][4] ^= D[4];
-	hd->state[2][4] ^= D[4];
-	hd->state[3][4] ^= D[4];
-	hd->state[4][4] ^= D[4];
-      }
-
-      {
-	/* ρ and π steps (see [Keccak Reference, Sections 2.3.3 and 2.3.4]) */
-	u64 current, temp;
-
-#define do_swap_n_rol(x, y, r) \
-  temp = hd->state[y][x]; \
-  hd->state[y][x] = rol64(current, r); \
-  current = temp;
-
-	/* Start at coordinates (1 0) */
-	current = hd->state[0][1];
-
-	/* Iterate over ((0 1)(2 3))^t * (1 0) for 0 ≤ t ≤ 23 */
-	do_swap_n_rol(0, 2, 1);
-	do_swap_n_rol(2, 1, 3);
-	do_swap_n_rol(1, 2, 6);
-	do_swap_n_rol(2, 3, 10);
-	do_swap_n_rol(3, 3, 15);
-	do_swap_n_rol(3, 0, 21);
-	do_swap_n_rol(0, 1, 28);
-	do_swap_n_rol(1, 3, 36);
-	do_swap_n_rol(3, 1, 45);
-	do_swap_n_rol(1, 4, 55);
-	do_swap_n_rol(4, 4, 2);
-	do_swap_n_rol(4, 0, 14);
-	do_swap_n_rol(0, 3, 27);
-	do_swap_n_rol(3, 4, 41);
-	do_swap_n_rol(4, 3, 56);
-	do_swap_n_rol(3, 2, 8);
-	do_swap_n_rol(2, 2, 25);
-	do_swap_n_rol(2, 0, 43);
-	do_swap_n_rol(0, 4, 62);
-	do_swap_n_rol(4, 2, 18);
-	do_swap_n_rol(2, 4, 39);
-	do_swap_n_rol(4, 1, 61);
-	do_swap_n_rol(1, 1, 20);
-	do_swap_n_rol(1, 0, 44);
-
-#undef do_swap_n_rol
-      }
-
-      {
-	/* χ step (see [Keccak Reference, Section 2.3.1]) */
-	u64 temp[5];
-
-#define do_x_step_for_plane(y) \
-  /* Take a copy of the plane */ \
-  temp[0] = hd->state[y][0]; \
-  temp[1] = hd->state[y][1]; \
-  temp[2] = hd->state[y][2]; \
-  temp[3] = hd->state[y][3]; \
-  temp[4] = hd->state[y][4]; \
-  \
-  /* Compute χ on the plane */ \
-  hd->state[y][0] = temp[0] ^ ((~temp[1]) & temp[2]); \
-  hd->state[y][1] = temp[1] ^ ((~temp[2]) & temp[3]); \
-  hd->state[y][2] = temp[2] ^ ((~temp[3]) & temp[4]); \
-  hd->state[y][3] = temp[3] ^ ((~temp[4]) & temp[0]); \
-  hd->state[y][4] = temp[4] ^ ((~temp[0]) & temp[1]);
-
-	do_x_step_for_plane(0);
-	do_x_step_for_plane(1);
-	do_x_step_for_plane(2);
-	do_x_step_for_plane(3);
-	do_x_step_for_plane(4);
-
-#undef do_x_step_for_plane
-      }
-
-      {
-	/* ι step (see [Keccak Reference, Section 2.3.5]) */
-
-	hd->state[0][0] ^= round_consts[round];
-      }
-    }
-
-  return sizeof(void *) * 4 + sizeof(u64) * 10;
-}
-
+  U64_C(0x0000000000000001), U64_C(0x0000000000008082),
+  U64_C(0x800000000000808A), U64_C(0x8000000080008000),
+  U64_C(0x000000000000808B), U64_C(0x0000000080000001),
+  U64_C(0x8000000080008081), U64_C(0x8000000000008009),
+  U64_C(0x000000000000008A), U64_C(0x0000000000000088),
+  U64_C(0x0000000080008009), U64_C(0x000000008000000A),
+  U64_C(0x000000008000808B), U64_C(0x800000000000008B),
+  U64_C(0x8000000000008089), U64_C(0x8000000000008003),
+  U64_C(0x8000000000008002), U64_C(0x8000000000000080),
+  U64_C(0x000000000000800A), U64_C(0x800000008000000A),
+  U64_C(0x8000000080008081), U64_C(0x8000000000008080),
+  U64_C(0x0000000080000001), U64_C(0x8000000080008008)
+};
 
 static unsigned int
-transform_blk (void *context, const unsigned char *data)
+keccak_extract_inplace64(KECCAK_STATE *hd, unsigned int outlen)
 {
-  KECCAK_CONTEXT *ctx = context;
-  KECCAK_STATE *hd = &ctx->state;
-  u64 *state = (u64 *)hd->state;
-  const size_t bsize = ctx->bctx.blocksize;
   unsigned int i;
 
-  /* Absorb input block. */
-  for (i = 0; i < bsize / 8; i++)
-    state[i] ^= buf_get_le64(data + i * 8);
+  for (i = 0; i < outlen / 8 + !!(outlen % 8); i++)
+    {
+      hd->u.state64[i] = le_bswap64(hd->u.state64[i]);
+    }
 
-  return keccak_f1600_state_permute(hd) + 4 * sizeof(void *);
+  return 0;
 }
 
+#endif /* NEED_COMMON64 */
+
+
+#ifdef NEED_COMMON32BI
+
+static const u32 round_consts_32bit[2 * 24] =
+{
+  0x00000001UL, 0x00000000UL, 0x00000000UL, 0x00000089UL,
+  0x00000000UL, 0x8000008bUL, 0x00000000UL, 0x80008080UL,
+  0x00000001UL, 0x0000008bUL, 0x00000001UL, 0x00008000UL,
+  0x00000001UL, 0x80008088UL, 0x00000001UL, 0x80000082UL,
+  0x00000000UL, 0x0000000bUL, 0x00000000UL, 0x0000000aUL,
+  0x00000001UL, 0x00008082UL, 0x00000000UL, 0x00008003UL,
+  0x00000001UL, 0x0000808bUL, 0x00000001UL, 0x8000000bUL,
+  0x00000001UL, 0x8000008aUL, 0x00000001UL, 0x80000081UL,
+  0x00000000UL, 0x80000081UL, 0x00000000UL, 0x80000008UL,
+  0x00000000UL, 0x00000083UL, 0x00000000UL, 0x80008003UL,
+  0x00000001UL, 0x80008088UL, 0x00000000UL, 0x80000088UL,
+  0x00000001UL, 0x00008000UL, 0x00000000UL, 0x80008082UL
+};
 
 static unsigned int
-transform (void *context, const unsigned char *data, size_t nblks)
+keccak_extract_inplace32bi(KECCAK_STATE *hd, unsigned int outlen)
 {
-  KECCAK_CONTEXT *ctx = context;
-  const size_t bsize = ctx->bctx.blocksize;
-  unsigned int burn;
+  unsigned int i;
+  u32 x0;
+  u32 x1;
+  u32 t;
 
-  /* Absorb full blocks. */
-  do
+  for (i = 0; i < outlen / 8 + !!(outlen % 8); i++)
     {
-      burn = transform_blk (context, data);
-      data += bsize;
+      x0 = hd->u.state32bi[i * 2 + 0];
+      x1 = hd->u.state32bi[i * 2 + 1];
+
+      t = (x0 & 0x0000FFFFUL) + (x1 << 16);
+      x1 = (x0 >> 16) + (x1 & 0xFFFF0000UL);
+      x0 = t;
+      t = (x0 ^ (x0 >> 8)) & 0x0000FF00UL; x0 = x0 ^ t ^ (t << 8);
+      t = (x0 ^ (x0 >> 4)) & 0x00F000F0UL; x0 = x0 ^ t ^ (t << 4);
+      t = (x0 ^ (x0 >> 2)) & 0x0C0C0C0CUL; x0 = x0 ^ t ^ (t << 2);
+      t = (x0 ^ (x0 >> 1)) & 0x22222222UL; x0 = x0 ^ t ^ (t << 1);
+      t = (x1 ^ (x1 >> 8)) & 0x0000FF00UL; x1 = x1 ^ t ^ (t << 8);
+      t = (x1 ^ (x1 >> 4)) & 0x00F000F0UL; x1 = x1 ^ t ^ (t << 4);
+      t = (x1 ^ (x1 >> 2)) & 0x0C0C0C0CUL; x1 = x1 ^ t ^ (t << 2);
+      t = (x1 ^ (x1 >> 1)) & 0x22222222UL; x1 = x1 ^ t ^ (t << 1);
+
+      hd->u.state32bi[i * 2 + 0] = le_bswap32(x0);
+      hd->u.state32bi[i * 2 + 1] = le_bswap32(x1);
     }
-  while (--nblks);
+
+  return 0;
+}
+
+static inline void
+keccak_absorb_lane32bi(u32 *lane, u32 x0, u32 x1)
+{
+  u32 t;
+
+  t = (x0 ^ (x0 >> 1)) & 0x22222222UL; x0 = x0 ^ t ^ (t << 1);
+  t = (x0 ^ (x0 >> 2)) & 0x0C0C0C0CUL; x0 = x0 ^ t ^ (t << 2);
+  t = (x0 ^ (x0 >> 4)) & 0x00F000F0UL; x0 = x0 ^ t ^ (t << 4);
+  t = (x0 ^ (x0 >> 8)) & 0x0000FF00UL; x0 = x0 ^ t ^ (t << 8);
+  t = (x1 ^ (x1 >> 1)) & 0x22222222UL; x1 = x1 ^ t ^ (t << 1);
+  t = (x1 ^ (x1 >> 2)) & 0x0C0C0C0CUL; x1 = x1 ^ t ^ (t << 2);
+  t = (x1 ^ (x1 >> 4)) & 0x00F000F0UL; x1 = x1 ^ t ^ (t << 4);
+  t = (x1 ^ (x1 >> 8)) & 0x0000FF00UL; x1 = x1 ^ t ^ (t << 8);
+  lane[0] ^= (x0 & 0x0000FFFFUL) + (x1 << 16);
+  lane[1] ^= (x0 >> 16) + (x1 & 0xFFFF0000UL);
+}
+
+#endif /* NEED_COMMON32BI */
+
+
+/* Construct generic 64-bit implementation. */
+#ifdef USE_64BIT
+
+# define ANDN64(x, y) (~(x) & (y))
+# define ROL64(x, n) (((x) << ((unsigned int)n & 63)) | \
+		      ((x) >> ((64 - (unsigned int)(n)) & 63)))
+
+# define KECCAK_F1600_PERMUTE_FUNC_NAME keccak_f1600_state_permute64
+# include "keccak_permute_64.h"
+
+# undef ANDN64
+# undef ROL64
+# undef KECCAK_F1600_PERMUTE_FUNC_NAME
+
+static unsigned int
+keccak_absorb_lanes64(KECCAK_STATE *hd, int pos, const byte *lanes,
+		      unsigned int nlanes, int blocklanes)
+{
+  unsigned int burn = 0;
+
+  while (nlanes)
+    {
+      hd->u.state64[pos] ^= buf_get_le64(lanes);
+      lanes += 8;
+      nlanes--;
+
+      if (++pos == blocklanes)
+	{
+	  burn = keccak_f1600_state_permute64(hd);
+	  pos = 0;
+	}
+    }
 
   return burn;
+}
+
+static const keccak_ops_t keccak_generic64_ops =
+{
+  .permute = keccak_f1600_state_permute64,
+  .absorb = keccak_absorb_lanes64,
+  .extract_inplace = keccak_extract_inplace64,
+};
+
+#endif /* USE_64BIT */
+
+
+/* Construct 64-bit Intel SHLD implementation. */
+#ifdef USE_64BIT_SHLD
+
+# define ANDN64(x, y) (~(x) & (y))
+# define ROL64(x, n) ({ \
+			u64 tmp = (x); \
+			asm ("shldq %1, %0, %0" \
+			     : "+r" (tmp) \
+			     : "J" ((n) & 63) \
+			     : "cc"); \
+			tmp; })
+
+# define KECCAK_F1600_PERMUTE_FUNC_NAME keccak_f1600_state_permute64_shld
+# include "keccak_permute_64.h"
+
+# undef ANDN64
+# undef ROL64
+# undef KECCAK_F1600_PERMUTE_FUNC_NAME
+
+static unsigned int
+keccak_absorb_lanes64_shld(KECCAK_STATE *hd, int pos, const byte *lanes,
+			   unsigned int nlanes, int blocklanes)
+{
+  unsigned int burn = 0;
+
+  while (nlanes)
+    {
+      hd->u.state64[pos] ^= buf_get_le64(lanes);
+      lanes += 8;
+      nlanes--;
+
+      if (++pos == blocklanes)
+	{
+	  burn = keccak_f1600_state_permute64_shld(hd);
+	  pos = 0;
+	}
+    }
+
+  return burn;
+}
+
+static const keccak_ops_t keccak_shld_64_ops =
+{
+  .permute = keccak_f1600_state_permute64_shld,
+  .absorb = keccak_absorb_lanes64_shld,
+  .extract_inplace = keccak_extract_inplace64,
+};
+
+#endif /* USE_64BIT_SHLD */
+
+
+/* Construct 64-bit Intel BMI2 implementation. */
+#ifdef USE_64BIT_BMI2
+
+# define ANDN64(x, y) ({ \
+			u64 tmp; \
+			asm ("andnq %2, %1, %0" \
+			     : "=r" (tmp) \
+			     : "r0" (x), "rm" (y)); \
+			tmp; })
+
+# define ROL64(x, n) ({ \
+			u64 tmp; \
+			asm ("rorxq %2, %1, %0" \
+			     : "=r" (tmp) \
+			     : "rm0" (x), "J" (64 - ((n) & 63))); \
+			tmp; })
+
+# define KECCAK_F1600_PERMUTE_FUNC_NAME keccak_f1600_state_permute64_bmi2
+# include "keccak_permute_64.h"
+
+# undef ANDN64
+# undef ROL64
+# undef KECCAK_F1600_PERMUTE_FUNC_NAME
+
+static unsigned int
+keccak_absorb_lanes64_bmi2(KECCAK_STATE *hd, int pos, const byte *lanes,
+			   unsigned int nlanes, int blocklanes)
+{
+  unsigned int burn = 0;
+
+  while (nlanes)
+    {
+      hd->u.state64[pos] ^= buf_get_le64(lanes);
+      lanes += 8;
+      nlanes--;
+
+      if (++pos == blocklanes)
+	{
+	  burn = keccak_f1600_state_permute64_bmi2(hd);
+	  pos = 0;
+	}
+    }
+
+  return burn;
+}
+
+static const keccak_ops_t keccak_bmi2_64_ops =
+{
+  .permute = keccak_f1600_state_permute64_bmi2,
+  .absorb = keccak_absorb_lanes64_bmi2,
+  .extract_inplace = keccak_extract_inplace64,
+};
+
+#endif /* USE_64BIT_BMI2 */
+
+
+/* Construct generic 32-bit implementation. */
+#ifdef USE_32BIT
+
+# define ANDN32(x, y) (~(x) & (y))
+# define ROL32(x, n) (((x) << ((unsigned int)n & 31)) | \
+		      ((x) >> ((32 - (unsigned int)(n)) & 31)))
+
+# define KECCAK_F1600_PERMUTE_FUNC_NAME keccak_f1600_state_permute32bi
+# include "keccak_permute_32.h"
+
+# undef ANDN32
+# undef ROL32
+# undef KECCAK_F1600_PERMUTE_FUNC_NAME
+
+static unsigned int
+keccak_absorb_lanes32bi(KECCAK_STATE *hd, int pos, const byte *lanes,
+		        unsigned int nlanes, int blocklanes)
+{
+  unsigned int burn = 0;
+
+  while (nlanes)
+    {
+      keccak_absorb_lane32bi(&hd->u.state32bi[pos * 2],
+			     buf_get_le32(lanes + 0),
+			     buf_get_le32(lanes + 4));
+      lanes += 8;
+      nlanes--;
+
+      if (++pos == blocklanes)
+	{
+	  burn = keccak_f1600_state_permute32bi(hd);
+	  pos = 0;
+	}
+    }
+
+  return burn;
+}
+
+static const keccak_ops_t keccak_generic32bi_ops =
+{
+  .permute = keccak_f1600_state_permute32bi,
+  .absorb = keccak_absorb_lanes32bi,
+  .extract_inplace = keccak_extract_inplace32bi,
+};
+
+#endif /* USE_32BIT */
+
+
+/* Construct 32-bit Intel BMI2 implementation. */
+#ifdef USE_32BIT_BMI2
+
+# define ANDN32(x, y) ({ \
+			u32 tmp; \
+			asm ("andnl %2, %1, %0" \
+			     : "=r" (tmp) \
+			     : "r0" (x), "rm" (y)); \
+			tmp; })
+
+# define ROL32(x, n) ({ \
+			u32 tmp; \
+			asm ("rorxl %2, %1, %0" \
+			     : "=r" (tmp) \
+			     : "rm0" (x), "J" (32 - ((n) & 31))); \
+			tmp; })
+
+# define KECCAK_F1600_PERMUTE_FUNC_NAME keccak_f1600_state_permute32bi_bmi2
+# include "keccak_permute_32.h"
+
+# undef ANDN32
+# undef ROL32
+# undef KECCAK_F1600_PERMUTE_FUNC_NAME
+
+static inline u32 pext(u32 x, u32 mask)
+{
+  u32 tmp;
+  asm ("pextl %2, %1, %0" : "=r" (tmp) : "r0" (x), "rm" (mask));
+  return tmp;
+}
+
+static inline u32 pdep(u32 x, u32 mask)
+{
+  u32 tmp;
+  asm ("pdepl %2, %1, %0" : "=r" (tmp) : "r0" (x), "rm" (mask));
+  return tmp;
+}
+
+static inline void
+keccak_absorb_lane32bi_bmi2(u32 *lane, u32 x0, u32 x1)
+{
+  x0 = pdep(pext(x0, 0x55555555), 0x0000ffff) | (pext(x0, 0xaaaaaaaa) << 16);
+  x1 = pdep(pext(x1, 0x55555555), 0x0000ffff) | (pext(x1, 0xaaaaaaaa) << 16);
+
+  lane[0] ^= (x0 & 0x0000FFFFUL) + (x1 << 16);
+  lane[1] ^= (x0 >> 16) + (x1 & 0xFFFF0000UL);
+}
+
+static unsigned int
+keccak_absorb_lanes32bi_bmi2(KECCAK_STATE *hd, int pos, const byte *lanes,
+		             unsigned int nlanes, int blocklanes)
+{
+  unsigned int burn = 0;
+
+  while (nlanes)
+    {
+      keccak_absorb_lane32bi_bmi2(&hd->u.state32bi[pos * 2],
+			          buf_get_le32(lanes + 0),
+			          buf_get_le32(lanes + 4));
+      lanes += 8;
+      nlanes--;
+
+      if (++pos == blocklanes)
+	{
+	  burn = keccak_f1600_state_permute32bi_bmi2(hd);
+	  pos = 0;
+	}
+    }
+
+  return burn;
+}
+
+static unsigned int
+keccak_extract_inplace32bi_bmi2(KECCAK_STATE *hd, unsigned int outlen)
+{
+  unsigned int i;
+  u32 x0;
+  u32 x1;
+  u32 t;
+
+  for (i = 0; i < outlen / 8 + !!(outlen % 8); i++)
+    {
+      x0 = hd->u.state32bi[i * 2 + 0];
+      x1 = hd->u.state32bi[i * 2 + 1];
+
+      t = (x0 & 0x0000FFFFUL) + (x1 << 16);
+      x1 = (x0 >> 16) + (x1 & 0xFFFF0000UL);
+      x0 = t;
+
+      x0 = pdep(pext(x0, 0xffff0001), 0xaaaaaaab) | pdep(x0 >> 1, 0x55555554);
+      x1 = pdep(pext(x1, 0xffff0001), 0xaaaaaaab) | pdep(x1 >> 1, 0x55555554);
+
+      hd->u.state32bi[i * 2 + 0] = le_bswap32(x0);
+      hd->u.state32bi[i * 2 + 1] = le_bswap32(x1);
+    }
+
+  return 0;
+}
+
+static const keccak_ops_t keccak_bmi2_32bi_ops =
+{
+  .permute = keccak_f1600_state_permute32bi_bmi2,
+  .absorb = keccak_absorb_lanes32bi_bmi2,
+  .extract_inplace = keccak_extract_inplace32bi_bmi2,
+};
+
+#endif /* USE_32BIT */
+
+
+static void
+keccak_write (void *context, const void *inbuf_arg, size_t inlen)
+{
+  KECCAK_CONTEXT *ctx = context;
+  const size_t bsize = ctx->blocksize;
+  const size_t blocklanes = bsize / 8;
+  const byte *inbuf = inbuf_arg;
+  unsigned int nburn, burn = 0;
+  unsigned int count, i;
+  unsigned int pos, nlanes;
+
+  count = ctx->count;
+
+  if (inlen && (count % 8))
+    {
+      byte lane[8] = { 0, };
+
+      /* Complete absorbing partial input lane. */
+
+      pos = count / 8;
+
+      for (i = count % 8; inlen && i < 8; i++)
+	{
+	  lane[i] = *inbuf++;
+	  inlen--;
+	  count++;
+	}
+
+      if (count == bsize)
+	count = 0;
+
+      nburn = ctx->ops->absorb(&ctx->state, pos, lane, 1,
+			       (count % 8) ? -1 : blocklanes);
+      burn = nburn > burn ? nburn : burn;
+    }
+
+  /* Absorb full input lanes. */
+
+  pos = count / 8;
+  nlanes = inlen / 8;
+  if (nlanes > 0)
+    {
+      nburn = ctx->ops->absorb(&ctx->state, pos, inbuf, nlanes, blocklanes);
+      burn = nburn > burn ? nburn : burn;
+      inlen -= nlanes * 8;
+      inbuf += nlanes * 8;
+      count += nlanes * 8;
+      count = count % bsize;
+    }
+
+  if (inlen)
+    {
+      byte lane[8] = { 0, };
+
+      /* Absorb remaining partial input lane. */
+
+      pos = count / 8;
+
+      for (i = count % 8; inlen && i < 8; i++)
+	{
+	  lane[i] = *inbuf++;
+	  inlen--;
+	  count++;
+	}
+
+      nburn = ctx->ops->absorb(&ctx->state, pos, lane, 1, -1);
+      burn = nburn > burn ? nburn : burn;
+
+      gcry_assert(count < bsize);
+    }
+
+  ctx->count = count;
+
+  if (burn)
+    _gcry_burn_stack (burn);
 }
 
 
@@ -267,29 +609,48 @@ keccak_init (int algo, void *context, unsigned int flags)
 
   memset (hd, 0, sizeof *hd);
 
-  ctx->bctx.nblocks = 0;
-  ctx->bctx.nblocks_high = 0;
-  ctx->bctx.count = 0;
-  ctx->bctx.bwrite = transform;
+  ctx->count = 0;
+
+  /* Select generic implementation. */
+#ifdef USE_64BIT
+  ctx->ops = &keccak_generic64_ops;
+#elif defined USE_32BIT
+  ctx->ops = &keccak_generic32bi_ops;
+#endif
+
+  /* Select optimized implementation based in hw features. */
+  if (0) {}
+#ifdef USE_64BIT_BMI2
+  else if (features & HWF_INTEL_BMI2)
+    ctx->ops = &keccak_bmi2_64_ops;
+#endif
+#ifdef USE_32BIT_BMI2
+  else if (features & HWF_INTEL_BMI2)
+    ctx->ops = &keccak_bmi2_32bi_ops;
+#endif
+#ifdef USE_64BIT_SHLD
+  else if (features & HWF_INTEL_FAST_SHLD)
+    ctx->ops = &keccak_shld_64_ops;
+#endif
 
   /* Set input block size, in Keccak terms this is called 'rate'. */
 
   switch (algo)
     {
     case GCRY_MD_SHA3_224:
-      ctx->bctx.blocksize = 1152 / 8;
+      ctx->blocksize = 1152 / 8;
       ctx->outlen = 224 / 8;
       break;
     case GCRY_MD_SHA3_256:
-      ctx->bctx.blocksize = 1088 / 8;
+      ctx->blocksize = 1088 / 8;
       ctx->outlen = 256 / 8;
       break;
     case GCRY_MD_SHA3_384:
-      ctx->bctx.blocksize = 832 / 8;
+      ctx->blocksize = 832 / 8;
       ctx->outlen = 384 / 8;
       break;
     case GCRY_MD_SHA3_512:
-      ctx->bctx.blocksize = 576 / 8;
+      ctx->blocksize = 576 / 8;
       ctx->outlen = 512 / 8;
       break;
     default:
@@ -334,59 +695,37 @@ keccak_final (void *context)
 {
   KECCAK_CONTEXT *ctx = context;
   KECCAK_STATE *hd = &ctx->state;
-  const size_t bsize = ctx->bctx.blocksize;
+  const size_t bsize = ctx->blocksize;
   const byte suffix = SHA3_DELIMITED_SUFFIX;
-  u64 *state = (u64 *)hd->state;
-  unsigned int stack_burn_depth;
+  unsigned int nburn, burn = 0;
   unsigned int lastbytes;
-  unsigned int i;
-  byte *buf;
+  byte lane[8];
 
-  _gcry_md_block_write (context, NULL, 0); /* flush */
-
-  buf = ctx->bctx.buf;
-  lastbytes = ctx->bctx.count;
-
-  /* Absorb remaining bytes. */
-  for (i = 0; i < lastbytes / 8; i++)
-    {
-      state[i] ^= buf_get_le64(buf);
-      buf += 8;
-    }
-
-  for (i = 0; i < lastbytes % 8; i++)
-    {
-      state[lastbytes / 8] ^= (u64)*buf << (i * 8);
-      buf++;
-    }
+  lastbytes = ctx->count;
 
   /* Do the padding and switch to the squeezing phase */
 
   /* Absorb the last few bits and add the first bit of padding (which
      coincides with the delimiter in delimited suffix) */
-  state[lastbytes / 8] ^= (u64)suffix << ((lastbytes % 8) * 8);
+  buf_put_le64(lane, (u64)suffix << ((lastbytes % 8) * 8));
+  nburn = ctx->ops->absorb(&ctx->state, lastbytes / 8, lane, 1, -1);
+  burn = nburn > burn ? nburn : burn;
 
   /* Add the second bit of padding. */
-  state[(bsize - 1) / 8] ^= (u64)0x80 << (((bsize - 1) % 8) * 8);
+  buf_put_le64(lane, (u64)0x80 << (((bsize - 1) % 8) * 8));
+  nburn = ctx->ops->absorb(&ctx->state, (bsize - 1) / 8, lane, 1, -1);
+  burn = nburn > burn ? nburn : burn;
 
   /* Switch to the squeezing phase. */
-  stack_burn_depth = keccak_f1600_state_permute(hd);
+  nburn = ctx->ops->permute(hd);
+  burn = nburn > burn ? nburn : burn;
 
   /* Squeeze out all the output blocks */
   if (ctx->outlen < bsize)
     {
       /* Output SHA3 digest. */
-      buf = ctx->bctx.buf;
-      for (i = 0; i < ctx->outlen / 8; i++)
-	{
-	  buf_put_le64(buf, state[i]);
-	  buf += 8;
-	}
-      for (i = 0; i < ctx->outlen % 8; i++)
-	{
-	  *buf = state[ctx->outlen / 8] >> (i * 8);
-	  buf++;
-	}
+      nburn = ctx->ops->extract_inplace(hd, ctx->outlen);
+      burn = nburn > burn ? nburn : burn;
     }
   else
     {
@@ -394,15 +733,18 @@ keccak_final (void *context)
       BUG();
     }
 
-  _gcry_burn_stack (stack_burn_depth);
+  wipememory(lane, sizeof(lane));
+  if (burn)
+    _gcry_burn_stack (burn);
 }
 
 
 static byte *
 keccak_read (void *context)
 {
-  KECCAK_CONTEXT *hd = (KECCAK_CONTEXT *) context;
-  return hd->bctx.buf;
+  KECCAK_CONTEXT *ctx = (KECCAK_CONTEXT *) context;
+  KECCAK_STATE *hd = &ctx->state;
+  return (byte *)&hd->u;
 }
 
 
@@ -585,7 +927,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_224 =
   {
     GCRY_MD_SHA3_224, {0, 1},
     "SHA3-224", sha3_224_asn, DIM (sha3_224_asn), oid_spec_sha3_224, 28,
-    sha3_224_init, _gcry_md_block_write, keccak_final, keccak_read,
+    sha3_224_init, keccak_write, keccak_final, keccak_read,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
@@ -593,7 +935,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_256 =
   {
     GCRY_MD_SHA3_256, {0, 1},
     "SHA3-256", sha3_256_asn, DIM (sha3_256_asn), oid_spec_sha3_256, 32,
-    sha3_256_init, _gcry_md_block_write, keccak_final, keccak_read,
+    sha3_256_init, keccak_write, keccak_final, keccak_read,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
@@ -601,7 +943,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_384 =
   {
     GCRY_MD_SHA3_384, {0, 1},
     "SHA3-384", sha3_384_asn, DIM (sha3_384_asn), oid_spec_sha3_384, 48,
-    sha3_384_init, _gcry_md_block_write, keccak_final, keccak_read,
+    sha3_384_init, keccak_write, keccak_final, keccak_read,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };
@@ -609,7 +951,7 @@ gcry_md_spec_t _gcry_digest_spec_sha3_512 =
   {
     GCRY_MD_SHA3_512, {0, 1},
     "SHA3-512", sha3_512_asn, DIM (sha3_512_asn), oid_spec_sha3_512, 64,
-    sha3_512_init, _gcry_md_block_write, keccak_final, keccak_read,
+    sha3_512_init, keccak_write, keccak_final, keccak_read,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };

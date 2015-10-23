@@ -90,7 +90,7 @@ sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
 sha256.c sha256-ssse3-amd64.S sha256-avx-amd64.S sha256-avx2-bmi2-amd64.S \
 sha512.c sha512-ssse3-amd64.S sha512-avx-amd64.S sha512-avx2-bmi2-amd64.S \
   sha512-armv7-neon.S \
-keccak.c \
+keccak.c keccak_permute_32.h keccak_permute_64.h \
 stribog.c \
 tiger.c \
 whirlpool.c whirlpool-sse2-amd64.S \
