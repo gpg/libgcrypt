@@ -141,20 +141,20 @@ extern void _gcry_camellia_aesni_avx_ocb_enc(CAMELLIA_context *ctx,
 					     const unsigned char *in,
 					     unsigned char *offset,
 					     unsigned char *checksum,
-					     const void *Ls[16]) ASM_FUNC_ABI;
+					     const u64 Ls[16]) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx_ocb_dec(CAMELLIA_context *ctx,
 					     unsigned char *out,
 					     const unsigned char *in,
 					     unsigned char *offset,
 					     unsigned char *checksum,
-					     const void *Ls[16]) ASM_FUNC_ABI;
+					     const u64 Ls[16]) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx_ocb_auth(CAMELLIA_context *ctx,
 					     const unsigned char *abuf,
 					     unsigned char *offset,
 					     unsigned char *checksum,
-					     const void *Ls[16]) ASM_FUNC_ABI;
+					     const u64 Ls[16]) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx_keygen(CAMELLIA_context *ctx,
 					    const unsigned char *key,
@@ -185,20 +185,20 @@ extern void _gcry_camellia_aesni_avx2_ocb_enc(CAMELLIA_context *ctx,
 					      const unsigned char *in,
 					      unsigned char *offset,
 					      unsigned char *checksum,
-					      const void *Ls[32]) ASM_FUNC_ABI;
+					      const u64 Ls[32]) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx2_ocb_dec(CAMELLIA_context *ctx,
 					      unsigned char *out,
 					      const unsigned char *in,
 					      unsigned char *offset,
 					      unsigned char *checksum,
-					      const void *Ls[32]) ASM_FUNC_ABI;
+					      const u64 Ls[32]) ASM_FUNC_ABI;
 
 extern void _gcry_camellia_aesni_avx2_ocb_auth(CAMELLIA_context *ctx,
 					       const unsigned char *abuf,
 					       unsigned char *offset,
 					       unsigned char *checksum,
-					       const void *Ls[32]) ASM_FUNC_ABI;
+					       const u64 Ls[32]) ASM_FUNC_ABI;
 #endif
 
 static const char *selftest(void);
@@ -630,27 +630,29 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   if (ctx->use_aesni_avx2)
     {
       int did_use_aesni_avx2 = 0;
-      const void *Ls[32];
+      u64 Ls[32];
       unsigned int n = 32 - (blkn % 32);
-      const void **l;
+      u64 *l;
       int i;
 
       if (nblocks >= 32)
 	{
 	  for (i = 0; i < 32; i += 8)
 	    {
-	      Ls[(i + 0 + n) % 32] = c->u_mode.ocb.L[0];
-	      Ls[(i + 1 + n) % 32] = c->u_mode.ocb.L[1];
-	      Ls[(i + 2 + n) % 32] = c->u_mode.ocb.L[0];
-	      Ls[(i + 3 + n) % 32] = c->u_mode.ocb.L[2];
-	      Ls[(i + 4 + n) % 32] = c->u_mode.ocb.L[0];
-	      Ls[(i + 5 + n) % 32] = c->u_mode.ocb.L[1];
-	      Ls[(i + 6 + n) % 32] = c->u_mode.ocb.L[0];
+	      /* Use u64 to store pointers for x32 support (assembly function
+	       * assumes 64-bit pointers). */
+	      Ls[(i + 0 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
 	    }
 
-	  Ls[(7 + n) % 32] = c->u_mode.ocb.L[3];
-	  Ls[(15 + n) % 32] = c->u_mode.ocb.L[4];
-	  Ls[(23 + n) % 32] = c->u_mode.ocb.L[3];
+	  Ls[(7 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
+	  Ls[(15 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[4];
+	  Ls[(23 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
 	  l = &Ls[(31 + n) % 32];
 
 	  /* Process data in 32 block chunks. */
@@ -658,7 +660,7 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	    {
 	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 32;
-	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 32);
+	      *l = (uintptr_t)(void *)ocb_get_l(c, l_tmp, blkn - blkn % 32);
 
 	      if (encrypt)
 		_gcry_camellia_aesni_avx2_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
@@ -691,25 +693,27 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   if (ctx->use_aesni_avx)
     {
       int did_use_aesni_avx = 0;
-      const void *Ls[16];
+      u64 Ls[16];
       unsigned int n = 16 - (blkn % 16);
-      const void **l;
+      u64 *l;
       int i;
 
       if (nblocks >= 16)
 	{
 	  for (i = 0; i < 16; i += 8)
 	    {
-	      Ls[(i + 0 + n) % 16] = c->u_mode.ocb.L[0];
-	      Ls[(i + 1 + n) % 16] = c->u_mode.ocb.L[1];
-	      Ls[(i + 2 + n) % 16] = c->u_mode.ocb.L[0];
-	      Ls[(i + 3 + n) % 16] = c->u_mode.ocb.L[2];
-	      Ls[(i + 4 + n) % 16] = c->u_mode.ocb.L[0];
-	      Ls[(i + 5 + n) % 16] = c->u_mode.ocb.L[1];
-	      Ls[(i + 6 + n) % 16] = c->u_mode.ocb.L[0];
+	      /* Use u64 to store pointers for x32 support (assembly function
+	       * assumes 64-bit pointers). */
+	      Ls[(i + 0 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
 	    }
 
-	  Ls[(7 + n) % 16] = c->u_mode.ocb.L[3];
+	  Ls[(7 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
 	  l = &Ls[(15 + n) % 16];
 
 	  /* Process data in 16 block chunks. */
@@ -717,7 +721,7 @@ _gcry_camellia_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
 	    {
 	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 16;
-	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 16);
+	      *l = (uintptr_t)(void *)ocb_get_l(c, l_tmp, blkn - blkn % 16);
 
 	      if (encrypt)
 		_gcry_camellia_aesni_avx_ocb_enc(ctx, outbuf, inbuf, c->u_iv.iv,
@@ -780,27 +784,29 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   if (ctx->use_aesni_avx2)
     {
       int did_use_aesni_avx2 = 0;
-      const void *Ls[32];
+      u64 Ls[32];
       unsigned int n = 32 - (blkn % 32);
-      const void **l;
+      u64 *l;
       int i;
 
       if (nblocks >= 32)
 	{
 	  for (i = 0; i < 32; i += 8)
 	    {
-	      Ls[(i + 0 + n) % 32] = c->u_mode.ocb.L[0];
-	      Ls[(i + 1 + n) % 32] = c->u_mode.ocb.L[1];
-	      Ls[(i + 2 + n) % 32] = c->u_mode.ocb.L[0];
-	      Ls[(i + 3 + n) % 32] = c->u_mode.ocb.L[2];
-	      Ls[(i + 4 + n) % 32] = c->u_mode.ocb.L[0];
-	      Ls[(i + 5 + n) % 32] = c->u_mode.ocb.L[1];
-	      Ls[(i + 6 + n) % 32] = c->u_mode.ocb.L[0];
+	      /* Use u64 to store pointers for x32 support (assembly function
+	       * assumes 64-bit pointers). */
+	      Ls[(i + 0 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
 	    }
 
-	  Ls[(7 + n) % 32] = c->u_mode.ocb.L[3];
-	  Ls[(15 + n) % 32] = c->u_mode.ocb.L[4];
-	  Ls[(23 + n) % 32] = c->u_mode.ocb.L[3];
+	  Ls[(7 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
+	  Ls[(15 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[4];
+	  Ls[(23 + n) % 32] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
 	  l = &Ls[(31 + n) % 32];
 
 	  /* Process data in 32 block chunks. */
@@ -808,7 +814,7 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	    {
 	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 32;
-	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 32);
+	      *l = (uintptr_t)(void *)ocb_get_l(c, l_tmp, blkn - blkn % 32);
 
 	      _gcry_camellia_aesni_avx2_ocb_auth(ctx, abuf,
 						 c->u_mode.ocb.aad_offset,
@@ -837,25 +843,27 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   if (ctx->use_aesni_avx)
     {
       int did_use_aesni_avx = 0;
-      const void *Ls[16];
+      u64 Ls[16];
       unsigned int n = 16 - (blkn % 16);
-      const void **l;
+      u64 *l;
       int i;
 
       if (nblocks >= 16)
 	{
 	  for (i = 0; i < 16; i += 8)
 	    {
-	      Ls[(i + 0 + n) % 16] = c->u_mode.ocb.L[0];
-	      Ls[(i + 1 + n) % 16] = c->u_mode.ocb.L[1];
-	      Ls[(i + 2 + n) % 16] = c->u_mode.ocb.L[0];
-	      Ls[(i + 3 + n) % 16] = c->u_mode.ocb.L[2];
-	      Ls[(i + 4 + n) % 16] = c->u_mode.ocb.L[0];
-	      Ls[(i + 5 + n) % 16] = c->u_mode.ocb.L[1];
-	      Ls[(i + 6 + n) % 16] = c->u_mode.ocb.L[0];
+	      /* Use u64 to store pointers for x32 support (assembly function
+	       * assumes 64-bit pointers). */
+	      Ls[(i + 0 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 1 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 2 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 3 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[2];
+	      Ls[(i + 4 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
+	      Ls[(i + 5 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[1];
+	      Ls[(i + 6 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[0];
 	    }
 
-	  Ls[(7 + n) % 16] = c->u_mode.ocb.L[3];
+	  Ls[(7 + n) % 16] = (uintptr_t)(void *)c->u_mode.ocb.L[3];
 	  l = &Ls[(15 + n) % 16];
 
 	  /* Process data in 16 block chunks. */
@@ -863,7 +871,7 @@ _gcry_camellia_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
 	    {
 	      /* l_tmp will be used only every 65536-th block. */
 	      blkn += 16;
-	      *l = ocb_get_l(c, l_tmp, blkn - blkn % 16);
+	      *l = (uintptr_t)(void *)ocb_get_l(c, l_tmp, blkn - blkn % 16);
 
 	      _gcry_camellia_aesni_avx_ocb_auth(ctx, abuf,
 						c->u_mode.ocb.aad_offset,

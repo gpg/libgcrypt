@@ -734,15 +734,15 @@ extern void _gcry_twofish_amd64_cfb_dec(const TWOFISH_context *c, byte *out,
 
 extern void _gcry_twofish_amd64_ocb_enc(const TWOFISH_context *ctx, byte *out,
 					const byte *in, byte *offset,
-					byte *checksum, const void *Ls[3]);
+					byte *checksum, const u64 Ls[3]);
 
 extern void _gcry_twofish_amd64_ocb_dec(const TWOFISH_context *ctx, byte *out,
 					const byte *in, byte *offset,
-					byte *checksum, const void *Ls[3]);
+					byte *checksum, const u64 Ls[3]);
 
 extern void _gcry_twofish_amd64_ocb_auth(const TWOFISH_context *ctx,
 					 const byte *abuf, byte *offset,
-					 byte *checksum, const void *Ls[3]);
+					 byte *checksum, const u64 Ls[3]);
 
 #ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
 static inline void
@@ -854,7 +854,7 @@ twofish_amd64_cfb_dec(const TWOFISH_context *c, byte *out, const byte *in,
 
 static inline void
 twofish_amd64_ocb_enc(const TWOFISH_context *ctx, byte *out, const byte *in,
-		      byte *offset, byte *checksum, const void *Ls[3])
+		      byte *offset, byte *checksum, const u64 Ls[3])
 {
 #ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
   call_sysv_fn6(_gcry_twofish_amd64_ocb_enc, ctx, out, in, offset, checksum, Ls);
@@ -865,7 +865,7 @@ twofish_amd64_ocb_enc(const TWOFISH_context *ctx, byte *out, const byte *in,
 
 static inline void
 twofish_amd64_ocb_dec(const TWOFISH_context *ctx, byte *out, const byte *in,
-		      byte *offset, byte *checksum, const void *Ls[3])
+		      byte *offset, byte *checksum, const u64 Ls[3])
 {
 #ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
   call_sysv_fn6(_gcry_twofish_amd64_ocb_dec, ctx, out, in, offset, checksum, Ls);
@@ -876,7 +876,7 @@ twofish_amd64_ocb_dec(const TWOFISH_context *ctx, byte *out, const byte *in,
 
 static inline void
 twofish_amd64_ocb_auth(const TWOFISH_context *ctx, const byte *abuf,
-		       byte *offset, byte *checksum, const void *Ls[3])
+		       byte *offset, byte *checksum, const u64 Ls[3])
 {
 #ifdef HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS
   call_sysv_fn5(_gcry_twofish_amd64_ocb_auth, ctx, abuf, offset, checksum, Ls);
@@ -1261,15 +1261,17 @@ _gcry_twofish_ocb_crypt (gcry_cipher_hd_t c, void *outbuf_arg,
   u64 blkn = c->u_mode.ocb.data_nblocks;
 
   {
-    const void *Ls[3];
+    /* Use u64 to store pointers for x32 support (assembly function
+      * assumes 64-bit pointers). */
+    u64 Ls[3];
 
     /* Process data in 3 block chunks. */
     while (nblocks >= 3)
       {
 	/* l_tmp will be used only every 65536-th block. */
-	Ls[0] = ocb_get_l(c, l_tmp, blkn + 1);
-	Ls[1] = ocb_get_l(c, l_tmp, blkn + 2);
-	Ls[2] = ocb_get_l(c, l_tmp, blkn + 3);
+	Ls[0] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 1);
+	Ls[1] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 2);
+	Ls[2] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 3);
 	blkn += 3;
 
 	if (encrypt)
@@ -1320,15 +1322,17 @@ _gcry_twofish_ocb_auth (gcry_cipher_hd_t c, const void *abuf_arg,
   u64 blkn = c->u_mode.ocb.aad_nblocks;
 
   {
-    const void *Ls[3];
+    /* Use u64 to store pointers for x32 support (assembly function
+      * assumes 64-bit pointers). */
+    u64 Ls[3];
 
     /* Process data in 3 block chunks. */
     while (nblocks >= 3)
       {
 	/* l_tmp will be used only every 65536-th block. */
-	Ls[0] = ocb_get_l(c, l_tmp, blkn + 1);
-	Ls[1] = ocb_get_l(c, l_tmp, blkn + 2);
-	Ls[2] = ocb_get_l(c, l_tmp, blkn + 3);
+	Ls[0] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 1);
+	Ls[1] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 2);
+	Ls[2] = (uintptr_t)(const void *)ocb_get_l(c, l_tmp, blkn + 3);
 	blkn += 3;
 
 	twofish_amd64_ocb_auth(ctx, abuf, c->u_mode.ocb.aad_offset,
