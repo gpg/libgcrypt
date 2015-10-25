@@ -3037,7 +3037,7 @@ are also supported.
 @c begin table of hash algorithms
 @cindex SHA-1
 @cindex SHA-224, SHA-256, SHA-384, SHA-512
-@cindex SHA3-224, SHA3-256, SHA3-384, SHA3-512
+@cindex SHA3-224, SHA3-256, SHA3-384, SHA3-512, SHAKE128, SHAKE256
 @cindex RIPE-MD-160
 @cindex MD2, MD4, MD5
 @cindex TIGER, TIGER1, TIGER2
@@ -3124,6 +3124,16 @@ See FIPS 202 for the specification.
 
 @item GCRY_MD_SHA3_512
 This is the SHA3-384 algorithm which yields a message digest of 64 bytes.
+See FIPS 202 for the specification.
+
+@item GCRY_MD_SHAKE128
+This is the SHAKE128 extendable-output function (XOF) algorithm with 128 bit
+security strength.
+See FIPS 202 for the specification.
+
+@item GCRY_MD_SHAKE256
+This is the SHAKE256 extendable-output function (XOF) algorithm with 256 bit
+security strength.
 See FIPS 202 for the specification.
 
 @item GCRY_MD_CRC32

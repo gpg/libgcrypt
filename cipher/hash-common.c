@@ -49,8 +49,12 @@ _gcry_hash_selftest_check_one (int algo,
   gcry_error_t err = 0;
   gcry_md_hd_t hd;
   unsigned char *digest;
+  char aaa[1000];
+  int xof = 0;
 
-  if (_gcry_md_get_algo_dlen (algo) != expectlen)
+  if (_gcry_md_get_algo_dlen (algo) == 0)
+    xof = 1;
+  else if (_gcry_md_get_algo_dlen (algo) != expectlen)
     return "digest size does not match expected size";
 
   err = _gcry_md_open (&hd, algo, 0);
@@ -65,7 +69,6 @@ _gcry_hash_selftest_check_one (int algo,
 
     case 1: /* Hash one million times an "a". */
       {
-        char aaa[1000];
         int i;
 
         /* Write in odd size chunks so that we test the buffering.  */
@@ -81,10 +84,23 @@ _gcry_hash_selftest_check_one (int algo,
 
   if (!result)
     {
-      digest = _gcry_md_read (hd, algo);
+      if (!xof)
+	{
+	  digest = _gcry_md_read (hd, algo);
 
-      if ( memcmp (digest, expect, expectlen) )
-        result = "digest mismatch";
+	  if ( memcmp (digest, expect, expectlen) )
+	    result = "digest mismatch";
+	}
+      else
+	{
+	  gcry_assert(expectlen <= sizeof(aaa));
+
+	  err = _gcry_md_extract (hd, algo, aaa, expectlen);
+	  if (err)
+	    result = "error extracting output from XOF";
+	  else if ( memcmp (aaa, expect, expectlen) )
+	    result = "digest mismatch";
+	}
     }
 
   _gcry_md_close (hd);

@@ -90,7 +90,8 @@ typedef struct
   unsigned int (*permute)(KECCAK_STATE *hd);
   unsigned int (*absorb)(KECCAK_STATE *hd, int pos, const byte *lanes,
 			 unsigned int nlanes, int blocklanes);
-  unsigned int (*extract_inplace) (KECCAK_STATE *hd, unsigned int outlen);
+  unsigned int (*extract) (KECCAK_STATE *hd, unsigned int pos, byte *outbuf,
+			   unsigned int outlen);
 } keccak_ops_t;
 
 
@@ -100,6 +101,7 @@ typedef struct KECCAK_CONTEXT_S
   unsigned int outlen;
   unsigned int blocksize;
   unsigned int count;
+  unsigned int suffix;
   const keccak_ops_t *ops;
 } KECCAK_CONTEXT;
 
@@ -124,13 +126,18 @@ static const u64 round_consts_64bit[24] =
 };
 
 static unsigned int
-keccak_extract_inplace64(KECCAK_STATE *hd, unsigned int outlen)
+keccak_extract64(KECCAK_STATE *hd, unsigned int pos, byte *outbuf,
+		 unsigned int outlen)
 {
   unsigned int i;
 
-  for (i = 0; i < outlen / 8 + !!(outlen % 8); i++)
+  /* NOTE: when pos == 0, hd and outbuf may point to same memory (SHA-3). */
+
+  for (i = pos; i < pos + outlen / 8 + !!(outlen % 8); i++)
     {
-      hd->u.state64[i] = le_bswap64(hd->u.state64[i]);
+      u64 tmp = hd->u.state64[i];
+      buf_put_le64(outbuf, tmp);
+      outbuf += 8;
     }
 
   return 0;
@@ -158,14 +165,17 @@ static const u32 round_consts_32bit[2 * 24] =
 };
 
 static unsigned int
-keccak_extract_inplace32bi(KECCAK_STATE *hd, unsigned int outlen)
+keccak_extract32bi(KECCAK_STATE *hd, unsigned int pos, byte *outbuf,
+		   unsigned int outlen)
 {
   unsigned int i;
   u32 x0;
   u32 x1;
   u32 t;
 
-  for (i = 0; i < outlen / 8 + !!(outlen % 8); i++)
+  /* NOTE: when pos == 0, hd and outbuf may point to same memory (SHA-3). */
+
+  for (i = pos; i < pos + outlen / 8 + !!(outlen % 8); i++)
     {
       x0 = hd->u.state32bi[i * 2 + 0];
       x1 = hd->u.state32bi[i * 2 + 1];
@@ -182,8 +192,9 @@ keccak_extract_inplace32bi(KECCAK_STATE *hd, unsigned int outlen)
       t = (x1 ^ (x1 >> 2)) & 0x0C0C0C0CUL; x1 = x1 ^ t ^ (t << 2);
       t = (x1 ^ (x1 >> 1)) & 0x22222222UL; x1 = x1 ^ t ^ (t << 1);
 
-      hd->u.state32bi[i * 2 + 0] = le_bswap32(x0);
-      hd->u.state32bi[i * 2 + 1] = le_bswap32(x1);
+      buf_put_le32(&outbuf[0], x0);
+      buf_put_le32(&outbuf[4], x1);
+      outbuf += 8;
     }
 
   return 0;
@@ -249,7 +260,7 @@ static const keccak_ops_t keccak_generic64_ops =
 {
   .permute = keccak_f1600_state_permute64,
   .absorb = keccak_absorb_lanes64,
-  .extract_inplace = keccak_extract_inplace64,
+  .extract = keccak_extract64,
 };
 
 #endif /* USE_64BIT */
@@ -300,7 +311,7 @@ static const keccak_ops_t keccak_shld_64_ops =
 {
   .permute = keccak_f1600_state_permute64_shld,
   .absorb = keccak_absorb_lanes64_shld,
-  .extract_inplace = keccak_extract_inplace64,
+  .extract = keccak_extract64,
 };
 
 #endif /* USE_64BIT_SHLD */
@@ -356,7 +367,7 @@ static const keccak_ops_t keccak_bmi2_64_ops =
 {
   .permute = keccak_f1600_state_permute64_bmi2,
   .absorb = keccak_absorb_lanes64_bmi2,
-  .extract_inplace = keccak_extract_inplace64,
+  .extract = keccak_extract64,
 };
 
 #endif /* USE_64BIT_BMI2 */
@@ -404,7 +415,7 @@ static const keccak_ops_t keccak_generic32bi_ops =
 {
   .permute = keccak_f1600_state_permute32bi,
   .absorb = keccak_absorb_lanes32bi,
-  .extract_inplace = keccak_extract_inplace32bi,
+  .extract = keccak_extract32bi,
 };
 
 #endif /* USE_32BIT */
@@ -483,14 +494,17 @@ keccak_absorb_lanes32bi_bmi2(KECCAK_STATE *hd, int pos, const byte *lanes,
 }
 
 static unsigned int
-keccak_extract_inplace32bi_bmi2(KECCAK_STATE *hd, unsigned int outlen)
+keccak_extract32bi_bmi2(KECCAK_STATE *hd, unsigned int pos, byte *outbuf,
+			unsigned int outlen)
 {
   unsigned int i;
   u32 x0;
   u32 x1;
   u32 t;
 
-  for (i = 0; i < outlen / 8 + !!(outlen % 8); i++)
+  /* NOTE: when pos == 0, hd and outbuf may point to same memory (SHA-3). */
+
+  for (i = pos; i < pos + outlen / 8 + !!(outlen % 8); i++)
     {
       x0 = hd->u.state32bi[i * 2 + 0];
       x1 = hd->u.state32bi[i * 2 + 1];
@@ -502,8 +516,9 @@ keccak_extract_inplace32bi_bmi2(KECCAK_STATE *hd, unsigned int outlen)
       x0 = pdep(pext(x0, 0xffff0001), 0xaaaaaaab) | pdep(x0 >> 1, 0x55555554);
       x1 = pdep(pext(x1, 0xffff0001), 0xaaaaaaab) | pdep(x1 >> 1, 0x55555554);
 
-      hd->u.state32bi[i * 2 + 0] = le_bswap32(x0);
-      hd->u.state32bi[i * 2 + 1] = le_bswap32(x1);
+      buf_put_le32(&outbuf[0], x0);
+      buf_put_le32(&outbuf[4], x1);
+      outbuf += 8;
     }
 
   return 0;
@@ -513,7 +528,7 @@ static const keccak_ops_t keccak_bmi2_32bi_ops =
 {
   .permute = keccak_f1600_state_permute32bi_bmi2,
   .absorb = keccak_absorb_lanes32bi_bmi2,
-  .extract_inplace = keccak_extract_inplace32bi_bmi2,
+  .extract = keccak_extract32bi_bmi2,
 };
 
 #endif /* USE_32BIT */
@@ -638,20 +653,34 @@ keccak_init (int algo, void *context, unsigned int flags)
   switch (algo)
     {
     case GCRY_MD_SHA3_224:
+      ctx->suffix = SHA3_DELIMITED_SUFFIX;
       ctx->blocksize = 1152 / 8;
       ctx->outlen = 224 / 8;
       break;
     case GCRY_MD_SHA3_256:
+      ctx->suffix = SHA3_DELIMITED_SUFFIX;
       ctx->blocksize = 1088 / 8;
       ctx->outlen = 256 / 8;
       break;
     case GCRY_MD_SHA3_384:
+      ctx->suffix = SHA3_DELIMITED_SUFFIX;
       ctx->blocksize = 832 / 8;
       ctx->outlen = 384 / 8;
       break;
     case GCRY_MD_SHA3_512:
+      ctx->suffix = SHA3_DELIMITED_SUFFIX;
       ctx->blocksize = 576 / 8;
       ctx->outlen = 512 / 8;
+      break;
+    case GCRY_MD_SHAKE128:
+      ctx->suffix = SHAKE_DELIMITED_SUFFIX;
+      ctx->blocksize = 1344 / 8;
+      ctx->outlen = 0;
+      break;
+    case GCRY_MD_SHAKE256:
+      ctx->suffix = SHAKE_DELIMITED_SUFFIX;
+      ctx->blocksize = 1088 / 8;
+      ctx->outlen = 0;
       break;
     default:
       BUG();
@@ -682,6 +711,17 @@ sha3_512_init (void *context, unsigned int flags)
   keccak_init (GCRY_MD_SHA3_512, context, flags);
 }
 
+static void
+shake128_init (void *context, unsigned int flags)
+{
+  keccak_init (GCRY_MD_SHAKE128, context, flags);
+}
+
+static void
+shake256_init (void *context, unsigned int flags)
+{
+  keccak_init (GCRY_MD_SHAKE256, context, flags);
+}
 
 /* The routine final terminates the computation and
  * returns the digest.
@@ -696,7 +736,7 @@ keccak_final (void *context)
   KECCAK_CONTEXT *ctx = context;
   KECCAK_STATE *hd = &ctx->state;
   const size_t bsize = ctx->blocksize;
-  const byte suffix = SHA3_DELIMITED_SUFFIX;
+  const byte suffix = ctx->suffix;
   unsigned int nburn, burn = 0;
   unsigned int lastbytes;
   byte lane[8];
@@ -716,21 +756,21 @@ keccak_final (void *context)
   nburn = ctx->ops->absorb(&ctx->state, (bsize - 1) / 8, lane, 1, -1);
   burn = nburn > burn ? nburn : burn;
 
-  /* Switch to the squeezing phase. */
-  nburn = ctx->ops->permute(hd);
-  burn = nburn > burn ? nburn : burn;
-
-  /* Squeeze out all the output blocks */
-  if (ctx->outlen < bsize)
+  if (suffix == SHA3_DELIMITED_SUFFIX)
     {
-      /* Output SHA3 digest. */
-      nburn = ctx->ops->extract_inplace(hd, ctx->outlen);
+      /* Switch to the squeezing phase. */
+      nburn = ctx->ops->permute(hd);
+      burn = nburn > burn ? nburn : burn;
+
+      /* Squeeze out the SHA3 digest. */
+      nburn = ctx->ops->extract(hd, 0, (void *)hd, ctx->outlen);
       burn = nburn > burn ? nburn : burn;
     }
   else
     {
-      /* Output SHAKE digest. */
-      BUG();
+      /* Output for SHAKE can now be read with md_extract(). */
+
+      ctx->count = 0;
     }
 
   wipememory(lane, sizeof(lane));
@@ -745,6 +785,124 @@ keccak_read (void *context)
   KECCAK_CONTEXT *ctx = (KECCAK_CONTEXT *) context;
   KECCAK_STATE *hd = &ctx->state;
   return (byte *)&hd->u;
+}
+
+
+static void
+keccak_extract (void *context, void *out, size_t outlen)
+{
+  KECCAK_CONTEXT *ctx = context;
+  KECCAK_STATE *hd = &ctx->state;
+  const size_t bsize = ctx->blocksize;
+  unsigned int nburn, burn = 0;
+  byte *outbuf = out;
+  unsigned int nlanes;
+  unsigned int nleft;
+  unsigned int count;
+  unsigned int i;
+  byte lane[8];
+
+  count = ctx->count;
+
+  while (count && outlen && (outlen < 8 || count % 8))
+    {
+      /* Extract partial lane. */
+      nburn = ctx->ops->extract(hd, count / 8, lane, 8);
+      burn = nburn > burn ? nburn : burn;
+
+      for (i = count % 8; outlen && i < 8; i++)
+	{
+	  *outbuf++ = lane[i];
+	  outlen--;
+	  count++;
+	}
+
+      gcry_assert(count <= bsize);
+
+      if (count == bsize)
+	count = 0;
+    }
+
+  if (outlen >= 8 && count)
+    {
+      /* Extract tail of partial block. */
+      nlanes = outlen / 8;
+      nleft = (bsize - count) / 8;
+      nlanes = nlanes < nleft ? nlanes : nleft;
+
+      nburn = ctx->ops->extract(hd, count / 8, outbuf, nlanes * 8);
+      burn = nburn > burn ? nburn : burn;
+      outlen -= nlanes * 8;
+      outbuf += nlanes * 8;
+      count += nlanes * 8;
+
+      gcry_assert(count <= bsize);
+
+      if (count == bsize)
+	count = 0;
+    }
+
+  while (outlen >= bsize)
+    {
+      gcry_assert(count == 0);
+
+      /* Squeeze more. */
+      nburn = ctx->ops->permute(hd);
+      burn = nburn > burn ? nburn : burn;
+
+      /* Extract full block. */
+      nburn = ctx->ops->extract(hd, 0, outbuf, bsize);
+      burn = nburn > burn ? nburn : burn;
+
+      outlen -= bsize;
+      outbuf += bsize;
+    }
+
+  if (outlen)
+    {
+      gcry_assert(outlen < bsize);
+
+      if (count == 0)
+	{
+	  /* Squeeze more. */
+	  nburn = ctx->ops->permute(hd);
+	  burn = nburn > burn ? nburn : burn;
+	}
+
+      if (outlen >= 8)
+	{
+	  /* Extract head of partial block. */
+	  nlanes = outlen / 8;
+	  nburn = ctx->ops->extract(hd, count / 8, outbuf, nlanes * 8);
+	  burn = nburn > burn ? nburn : burn;
+	  outlen -= nlanes * 8;
+	  outbuf += nlanes * 8;
+	  count += nlanes * 8;
+
+	  gcry_assert(count < bsize);
+	}
+
+      if (outlen)
+	{
+	  /* Extract head of partial lane. */
+	  nburn = ctx->ops->extract(hd, count / 8, lane, 8);
+	  burn = nburn > burn ? nburn : burn;
+
+	  for (i = count % 8; outlen && i < 8; i++)
+	    {
+	      *outbuf++ = lane[i];
+	      outlen--;
+	      count++;
+	    }
+
+	  gcry_assert(count < bsize);
+	}
+    }
+
+  ctx->count = count;
+
+  if (burn)
+    _gcry_burn_stack (burn);
 }
 
 
@@ -829,6 +987,32 @@ selftests_keccak (int algo, int extended, selftest_report_func_t report)
 	"\xa8\xaa\x18\xac\xe8\x28\x2a\x0e\x0d\xb5\x96\xc9\x0b\x0a\x7b\x87";
       hash_len = 64;
       break;
+
+    case GCRY_MD_SHAKE128:
+      short_hash =
+	"\x58\x81\x09\x2d\xd8\x18\xbf\x5c\xf8\xa3\xdd\xb7\x93\xfb\xcb\xa7"
+	"\x40\x97\xd5\xc5\x26\xa6\xd3\x5f\x97\xb8\x33\x51\x94\x0f\x2c\xc8";
+      long_hash =
+	"\x7b\x6d\xf6\xff\x18\x11\x73\xb6\xd7\x89\x8d\x7f\xf6\x3f\xb0\x7b"
+	"\x7c\x23\x7d\xaf\x47\x1a\x5a\xe5\x60\x2a\xdb\xcc\xef\x9c\xcf\x4b";
+      one_million_a_hash =
+	"\x9d\x22\x2c\x79\xc4\xff\x9d\x09\x2c\xf6\xca\x86\x14\x3a\xa4\x11"
+	"\xe3\x69\x97\x38\x08\xef\x97\x09\x32\x55\x82\x6c\x55\x72\xef\x58";
+      hash_len = 32;
+      break;
+
+    case GCRY_MD_SHAKE256:
+      short_hash =
+	"\x48\x33\x66\x60\x13\x60\xa8\x77\x1c\x68\x63\x08\x0c\xc4\x11\x4d"
+	"\x8d\xb4\x45\x30\xf8\xf1\xe1\xee\x4f\x94\xea\x37\xe7\x8b\x57\x39";
+      long_hash =
+	"\x98\xbe\x04\x51\x6c\x04\xcc\x73\x59\x3f\xef\x3e\xd0\x35\x2e\xa9"
+	"\xf6\x44\x39\x42\xd6\x95\x0e\x29\xa3\x72\xa6\x81\xc3\xde\xaf\x45";
+      one_million_a_hash =
+	"\x35\x78\xa7\xa4\xca\x91\x37\x56\x9c\xdf\x76\xed\x61\x7d\x31\xbb"
+	"\x99\x4f\xca\x9c\x1b\xbf\x8b\x18\x40\x13\xde\x82\x34\xdf\xd1\x3a";
+      hash_len = 32;
+      break;
   }
 
   what = "short string";
@@ -876,6 +1060,8 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
     case GCRY_MD_SHA3_256:
     case GCRY_MD_SHA3_384:
     case GCRY_MD_SHA3_512:
+    case GCRY_MD_SHAKE128:
+    case GCRY_MD_SHAKE256:
       ec = selftests_keccak (algo, extended, report);
       break;
     default:
@@ -921,7 +1107,22 @@ static gcry_md_oid_spec_t oid_spec_sha3_512[] =
     { "?" },
     { NULL }
   };
-
+static byte shake128_asn[] = { 0x30 };
+static gcry_md_oid_spec_t oid_spec_shake128[] =
+  {
+    { "2.16.840.1.101.3.4.2.11" },
+    /* PKCS#1 shake128WithRSAEncryption */
+    { "?" },
+    { NULL }
+  };
+static byte shake256_asn[] = { 0x30 };
+static gcry_md_oid_spec_t oid_spec_shake256[] =
+  {
+    { "2.16.840.1.101.3.4.2.12" },
+    /* PKCS#1 shake256WithRSAEncryption */
+    { "?" },
+    { NULL }
+  };
 
 gcry_md_spec_t _gcry_digest_spec_sha3_224 =
   {
@@ -952,6 +1153,22 @@ gcry_md_spec_t _gcry_digest_spec_sha3_512 =
     GCRY_MD_SHA3_512, {0, 1},
     "SHA3-512", sha3_512_asn, DIM (sha3_512_asn), oid_spec_sha3_512, 64,
     sha3_512_init, keccak_write, keccak_final, keccak_read, NULL,
+    sizeof (KECCAK_CONTEXT),
+    run_selftests
+  };
+gcry_md_spec_t _gcry_digest_spec_shake128 =
+  {
+    GCRY_MD_SHAKE128, {0, 1},
+    "SHAKE128", shake128_asn, DIM (shake128_asn), oid_spec_shake128, 0,
+    shake128_init, keccak_write, keccak_final, NULL, keccak_extract,
+    sizeof (KECCAK_CONTEXT),
+    run_selftests
+  };
+gcry_md_spec_t _gcry_digest_spec_shake256 =
+  {
+    GCRY_MD_SHAKE256, {0, 1},
+    "SHAKE256", shake256_asn, DIM (shake256_asn), oid_spec_shake256, 0,
+    shake256_init, keccak_write, keccak_final, NULL, keccak_extract,
     sizeof (KECCAK_CONTEXT),
     run_selftests
   };

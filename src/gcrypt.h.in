@@ -1174,7 +1174,9 @@ enum gcry_md_algos
     GCRY_MD_SHA3_224      = 312,
     GCRY_MD_SHA3_256      = 313,
     GCRY_MD_SHA3_384      = 314,
-    GCRY_MD_SHA3_512      = 315
+    GCRY_MD_SHA3_512      = 315,
+    GCRY_MD_SHAKE128      = 316,
+    GCRY_MD_SHAKE256      = 317
   };
 
 /* Flags used with the open function.  */

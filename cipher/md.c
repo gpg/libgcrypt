@@ -56,6 +56,8 @@ static gcry_md_spec_t *digest_list[] =
      &_gcry_digest_spec_sha3_256,
      &_gcry_digest_spec_sha3_384,
      &_gcry_digest_spec_sha3_512,
+     &_gcry_digest_spec_shake128,
+     &_gcry_digest_spec_shake256,
 #endif
 #ifdef USE_GOST_R_3411_94
      &_gcry_digest_spec_gost3411_94,

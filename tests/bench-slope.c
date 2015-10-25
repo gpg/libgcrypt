@@ -1651,6 +1651,12 @@ kdf_bench_one (int algo, int subalgo)
       return;
     }
 
+  if (gcry_md_get_algo_dlen (subalgo) == 0)
+    {
+      /* Skip XOFs */
+      return;
+    }
+
   *algo_name = 0;
 
   if (algo == GCRY_KDF_PBKDF2)
