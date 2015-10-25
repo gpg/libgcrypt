@@ -556,6 +556,7 @@ are
 @item padlock-sha
 @item padlock-mmul
 @item intel-cpu
+@item intel-fast-shld
 @item intel-bmi2
 @item intel-ssse3
 @item intel-pclmul
@@ -5610,9 +5611,9 @@ that system and is the only gathering module available for that OS.
 
 @item rndhw
 Extra module to collect additional entropy by utilizing a hardware
-random number generator.  As of now the only supported hardware RNG is
-the Padlock engine of VIA (Centaur) CPUs.  It is not available in FIPS
-mode.
+random number generator.  As of now the supported hardware RNG is
+the Padlock engine of VIA (Centaur) CPUs and x86 CPUs with the RDRAND
+instruction.  It is not available in FIPS mode.
 
 @end table
 
