@@ -671,6 +671,9 @@ prepare_macpads (gcry_md_hd_t a, const unsigned char *key, size_t keylen)
   if (!a->ctx->list)
     return GPG_ERR_DIGEST_ALGO; /* Might happen if no algo is enabled.  */
 
+  if (!a->ctx->flags.hmac)
+    return GPG_ERR_DIGEST_ALGO; /* Tried setkey for non-HMAC md. */
+
   for (r = a->ctx->list; r; r = r->next)
     {
       const unsigned char *k;
