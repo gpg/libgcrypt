@@ -215,6 +215,9 @@ typedef void (*gcry_md_final_t) (void *c);
 /* Type for the md_read function.  */
 typedef unsigned char *(*gcry_md_read_t) (void *c);
 
+/* Type for the md_extract function.  */
+typedef void (*gcry_md_extract_t) (void *c, void *outbuf, size_t nbytes);
+
 typedef struct gcry_md_oid_spec
 {
   const char *oidstring;
@@ -237,6 +240,7 @@ typedef struct gcry_md_spec
   gcry_md_write_t write;
   gcry_md_final_t final;
   gcry_md_read_t read;
+  gcry_md_extract_t extract;
   size_t contextsize; /* allocate this amount of context */
   selftest_func_t selftest;
 } gcry_md_spec_t;

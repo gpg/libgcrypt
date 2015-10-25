@@ -526,6 +526,6 @@ gcry_md_spec_t _gcry_digest_spec_rmd160 =
   {
     GCRY_MD_RMD160, {0, 0},
     "RIPEMD160", asn, DIM (asn), oid_spec_rmd160, 20,
-    rmd160_init, _gcry_md_block_write, rmd160_final, rmd160_read,
+    rmd160_init, _gcry_md_block_write, rmd160_final, rmd160_read, NULL,
     sizeof (RMD160_CONTEXT)
   };

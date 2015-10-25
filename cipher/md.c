@@ -408,6 +408,12 @@ md_enable (gcry_md_hd_t hd, int algorithm)
         }
     }
 
+  if (!err && h->flags.hmac && spec->read == NULL)
+    {
+      /* Expandable output function cannot act as part of HMAC. */
+      err = GPG_ERR_DIGEST_ALGO;
+    }
+
   if (!err)
     {
       size_t size = (sizeof (*entry)
@@ -638,10 +644,15 @@ md_final (gcry_md_hd_t a)
 
   for (r = a->ctx->list; r; r = r->next)
     {
-      byte *p = r->spec->read (&r->context.c);
+      byte *p;
       size_t dlen = r->spec->mdlen;
       byte *hash;
       gcry_err_code_t err;
+
+      if (r->spec->read == NULL)
+        continue;
+
+      p = r->spec->read (&r->context.c);
 
       if (a->ctx->flags.secure)
         hash = xtrymalloc_secure (dlen);
@@ -821,6 +832,8 @@ md_read( gcry_md_hd_t a, int algo )
         {
           if (r->next)
             log_debug ("more than one algorithm in md_read(0)\n");
+          if (r->spec->read == NULL)
+            return NULL;
           return r->spec->read (&r->context.c);
         }
     }
@@ -828,7 +841,11 @@ md_read( gcry_md_hd_t a, int algo )
     {
       for (r = a->ctx->list; r; r = r->next)
 	if (r->spec->algo == algo)
-	  return r->spec->read (&r->context.c);
+	  {
+	    if (r->spec->read == NULL)
+	      return NULL;
+	    return r->spec->read (&r->context.c);
+	  }
     }
   BUG();
   return NULL;
@@ -847,6 +864,52 @@ _gcry_md_read (gcry_md_hd_t hd, int algo)
      non-operational state.  */
   _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
   return md_read (hd, algo);
+}
+
+
+/****************
+ * If ALGO is null get the digest for the used algo (which should be
+ * only one)
+ */
+static gcry_err_code_t
+md_extract(gcry_md_hd_t a, int algo, void *out, size_t outlen)
+{
+  GcryDigestEntry *r = a->ctx->list;
+
+  if (!algo)
+    {
+      /* Return the first algorithm */
+      if (r && r->spec->extract)
+	{
+	  if (r->next)
+	    log_debug ("more than one algorithm in md_extract(0)\n");
+	  r->spec->extract (&r->context.c, out, outlen);
+	  return 0;
+	}
+    }
+  else
+    {
+      for (r = a->ctx->list; r; r = r->next)
+	if (r->spec->algo == algo && r->spec->extract)
+	  {
+	    r->spec->extract (&r->context.c, out, outlen);
+	    return 0;
+	  }
+    }
+
+  return GPG_ERR_DIGEST_ALGO;
+}
+
+
+/*
+ * Expand the output from XOF class digest, this function implictly finalizes
+ * the hash.
+ */
+gcry_err_code_t
+_gcry_md_extract (gcry_md_hd_t hd, int algo, void *out, size_t outlen)
+{
+  _gcry_md_ctl (hd, GCRYCTL_FINALIZE, NULL, 0);
+  return md_extract (hd, algo, out, outlen);
 }
 
 

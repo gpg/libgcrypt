@@ -1326,6 +1326,7 @@ gcry_md_spec_t _gcry_digest_spec_stribog_256 =
     GCRY_MD_STRIBOG256, {0, 0},
     "STRIBOG256", NULL, 0, NULL, 32,
     stribog_init_256, _gcry_md_block_write, stribog_final, stribog_read_256,
+    NULL,
     sizeof (STRIBOG_CONTEXT)
   };
 
@@ -1334,5 +1335,6 @@ gcry_md_spec_t _gcry_digest_spec_stribog_512 =
     GCRY_MD_STRIBOG512, {0, 0},
     "STRIBOG512", NULL, 0, NULL, 64,
     stribog_init_512, _gcry_md_block_write, stribog_final, stribog_read_512,
+    NULL,
     sizeof (STRIBOG_CONTEXT)
   };

@@ -3036,6 +3036,7 @@ are also supported.
 @c begin table of hash algorithms
 @cindex SHA-1
 @cindex SHA-224, SHA-256, SHA-384, SHA-512
+@cindex SHA3-224, SHA3-256, SHA3-384, SHA3-512
 @cindex RIPE-MD-160
 @cindex MD2, MD4, MD5
 @cindex TIGER, TIGER1, TIGER2
@@ -3108,6 +3109,22 @@ See FIPS 180-2 for the specification.
 This is the SHA-384 algorithm which yields a message digest of 64 bytes.
 See FIPS 180-2 for the specification.
 
+@item GCRY_MD_SHA3_224
+This is the SHA3-224 algorithm which yields a message digest of 28 bytes.
+See FIPS 202 for the specification.
+
+@item GCRY_MD_SHA3_256
+This is the SHA3-256 algorithm which yields a message digest of 32 bytes.
+See FIPS 202 for the specification.
+
+@item GCRY_MD_SHA3_384
+This is the SHA3-384 algorithm which yields a message digest of 48 bytes.
+See FIPS 202 for the specification.
+
+@item GCRY_MD_SHA3_512
+This is the SHA3-384 algorithm which yields a message digest of 64 bytes.
+See FIPS 202 for the specification.
+
 @item GCRY_MD_CRC32
 This is the ISO 3309 and ITU-T V.42 cyclic redundancy check.  It yields
 an output of 4 bytes.  Note that this is not a hash algorithm in the
@@ -3170,11 +3187,12 @@ this is the hashed data is highly confidential.
 @item GCRY_MD_FLAG_HMAC
 @cindex HMAC
 Turn the algorithm into a HMAC message authentication algorithm.  This
-only works if just one algorithm is enabled for the handle.  Note that
-the function @code{gcry_md_setkey} must be used to set the MAC key.
-The size of the MAC is equal to the message digest of the underlying
-hash algorithm.  If you want CBC message authentication codes based on
-a cipher, see @xref{Working with cipher handles}.
+only works if just one algorithm is enabled for the handle and that
+algorithm is not an extendable-output function.  Note that the function
+@code{gcry_md_setkey} must be used to set the MAC key.  The size of the
+MAC is equal to the message digest of the underlying hash algorithm.
+If you want CBC message authentication codes based on a cipher,
+see @xref{Working with cipher handles}.
 
 @item GCRY_MD_FLAG_BUGEMU1
 @cindex bug emulation
@@ -3293,9 +3311,9 @@ message digest or some padding.
 @deftypefun void gcry_md_final (gcry_md_hd_t @var{h})
 
 Finalize the message digest calculation.  This is not really needed
-because @code{gcry_md_read} does this implicitly.  After this has been
-done no further updates (by means of @code{gcry_md_write} or
-@code{gcry_md_putc} should be done; However, to mitigate timing
+because @code{gcry_md_read} and @code{gcry_md_extract} do this implicitly.
+After this has been done no further updates (by means of @code{gcry_md_write}
+or @code{gcry_md_putc} should be done; However, to mitigate timing
 attacks it is sometimes useful to keep on updating the context after
 having stored away the actual digest.  Only the first call to this function
 has an effect. It is implemented as a macro.
@@ -3315,6 +3333,22 @@ handle is released or reset-ed (using @code{gcry_md_close} or
 against timing attacks.  @var{algo} may be given as 0 to return the only
 enabled message digest or it may specify one of the enabled algorithms.
 The function does return @code{NULL} if the requested algorithm has not
+been enabled.
+@end deftypefun
+
+The way to read output of extendable-output function is by using the
+function:
+
+@deftypefun gpg_err_code_t gcry_md_extract (gcry_md_hd_t @var{h}, @
+  int @var{algo}, void *@var{buffer}, size_t @var{length})
+
+@code{gcry_mac_read} returns output from extendable-output function.
+This function may be used as often as required to generate more output
+byte stream from the algorithm.  Function extracts the new output bytes
+to @var{buffer} of the length @var{length}.  Buffer will be fully
+populated with new output.  @var{algo} may be given as 0 to return the only
+enabled message digest or it may specify one of the enabled algorithms.
+The function does return non-zero value if the requested algorithm has not
 been enabled.
 @end deftypefun
 
@@ -3493,6 +3527,7 @@ provided by Libgcrypt.
 @c begin table of MAC algorithms
 @cindex HMAC-SHA-1
 @cindex HMAC-SHA-224, HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512
+@cindex HMAC-SHA3-224, HMAC-SHA3-256, HMAC-SHA3-384, HMAC-SHA3-512
 @cindex HMAC-RIPE-MD-160
 @cindex HMAC-MD2, HMAC-MD4, HMAC-MD5
 @cindex HMAC-TIGER1
@@ -3518,6 +3553,22 @@ algorithm.
 
 @item GCRY_MAC_HMAC_SHA384
 This is HMAC message authentication algorithm based on the SHA-384 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_SHA3_256
+This is HMAC message authentication algorithm based on the SHA3-384 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_SHA3_224
+This is HMAC message authentication algorithm based on the SHA3-224 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_SHA3_512
+This is HMAC message authentication algorithm based on the SHA3-512 hash
+algorithm.
+
+@item GCRY_MAC_HMAC_SHA3_384
+This is HMAC message authentication algorithm based on the SHA3-384 hash
 algorithm.
 
 @item GCRY_MAC_HMAC_SHA1

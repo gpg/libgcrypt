@@ -1165,6 +1165,12 @@ gcry_md_read (gcry_md_hd_t hd, int algo)
   return _gcry_md_read (hd, algo);
 }
 
+gcry_err_code_t
+gcry_md_extract (gcry_md_hd_t hd, int algo, void *buffer, size_t length)
+{
+  return _gcry_md_extract(hd, algo, buffer, length);
+}
+
 void
 gcry_md_hash_buffer (int algo, void *digest,
                      const void *buffer, size_t length)

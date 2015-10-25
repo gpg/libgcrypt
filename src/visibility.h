@@ -110,6 +110,7 @@ MARK_VISIBLEX (gcry_md_is_secure)
 MARK_VISIBLEX (gcry_md_map_name)
 MARK_VISIBLEX (gcry_md_open)
 MARK_VISIBLEX (gcry_md_read)
+MARK_VISIBLEX (gcry_md_extract)
 MARK_VISIBLEX (gcry_md_reset)
 MARK_VISIBLEX (gcry_md_setkey)
 MARK_VISIBLEX (gcry_md_write)
@@ -374,6 +375,7 @@ MARK_VISIBLEX (_gcry_mpi_get_const)
 #define gcry_md_map_name            _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_open                _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_read                _gcry_USE_THE_UNDERSCORED_FUNCTION
+#define gcry_md_extract             _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_reset               _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_setkey              _gcry_USE_THE_UNDERSCORED_FUNCTION
 #define gcry_md_write               _gcry_USE_THE_UNDERSCORED_FUNCTION

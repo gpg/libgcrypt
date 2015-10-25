@@ -278,5 +278,6 @@ EXPORTS
 
       gcry_mpi_ec_sub           @244
 
+      gcry_md_extract           @245
 
 ;; end of file with public symbols for Windows.
