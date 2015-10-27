@@ -1640,7 +1640,7 @@ _gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
   gpg_err_code_t ec;
   unsigned char seed_help_buffer[256/8];  /* Used to hold a generated SEED. */
   unsigned char *seed_plus;     /* Malloced buffer to hold SEED+x.  */
-  unsigned char digest[256/8];  /* Helper buffer for SHA-1 digest.  */
+  unsigned char digest[256/8];  /* Helper buffer for SHA-2 digest.  */
   gcry_mpi_t val_2 = NULL;      /* Helper for the prime test.  */
   gcry_mpi_t tmpval = NULL;     /* Helper variable.  */
   int hashalgo;                 /* The id of the Approved Hash Function.  */
@@ -1659,9 +1659,7 @@ _gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
 
   /* Step 1:  Check the requested prime lengths.  */
   /* Note that due to the size of our buffers QBITS is limited to 256.  */
-  if (pbits == 1024 && qbits == 160)
-    hashalgo = GCRY_MD_SHA1;
-  else if (pbits == 2048 && qbits == 224)
+  if (pbits == 2048 && qbits == 224)
     hashalgo = GCRY_MD_SHA224;
   else if (pbits == 2048 && qbits == 256)
     hashalgo = GCRY_MD_SHA256;
@@ -1730,7 +1728,7 @@ _gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
         }
       _gcry_mpi_release (prime_q); prime_q = NULL;
       ec = _gcry_mpi_scan (&prime_q, GCRYMPI_FMT_USG,
-                           value_u, sizeof value_u, NULL);
+                           value_u, qbits/8, NULL);
       if (ec)
         goto leave;
       mpi_set_highbit (prime_q, qbits-1 );
@@ -1775,11 +1773,11 @@ _gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
               if (seed_plus[i])
                 break;
             }
-          _gcry_md_hash_buffer (GCRY_MD_SHA1, digest, seed_plus, seedlen);
+          _gcry_md_hash_buffer (hashalgo, digest, seed_plus, seedlen);
 
           _gcry_mpi_release (tmpval); tmpval = NULL;
           ec = _gcry_mpi_scan (&tmpval, GCRYMPI_FMT_USG,
-                               digest, sizeof digest, NULL);
+                               digest, qbits/8, NULL);
           if (ec)
             goto leave;
           if (value_j == value_n)
@@ -1815,11 +1813,13 @@ _gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
     }
 
   /* Step 12:  Save p, q, counter and seed.  */
+/*
   log_debug ("fips186-3 pbits p=%u q=%u counter=%d\n",
              mpi_get_nbits (prime_p), mpi_get_nbits (prime_q), counter);
   log_printhex ("fips186-3 seed", seed, seedlen);
   log_printmpi ("fips186-3    p", prime_p);
   log_printmpi ("fips186-3    q", prime_q);
+*/
   if (r_q)
     {
       *r_q = prime_q;

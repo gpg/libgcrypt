@@ -67,7 +67,7 @@ static const char *dsa_names[] =
 
 
 /* A sample 1024 bit DSA key used for the selftests.  */
-static const char sample_secret_key[] =
+static const char sample_secret_key_1024[] =
 "(private-key"
 " (dsa"
 "  (p #00AD7C0025BA1A15F775F3F2D673718391D00456978D347B33D7B49E7F32EDAB"
@@ -85,7 +85,7 @@ static const char sample_secret_key[] =
 "      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB#)"
 "  (x #11D54E4ADBD3034160F2CED4B7CD292A4EBF3EC0#)))";
 /* A sample 1024 bit DSA key used for the selftests (public only).  */
-static const char sample_public_key[] =
+static const char sample_public_key_1024[] =
 "(public-key"
 " (dsa"
 "  (p #00AD7C0025BA1A15F775F3F2D673718391D00456978D347B33D7B49E7F32EDAB"
@@ -102,6 +102,23 @@ static const char sample_public_key[] =
 "      6E45831AB811EEE848EBB24D9F5F2883B6E5DDC4C659DEF944DCFD80BF4D0A20"
 "      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB#)))";
 
+/* 2048 DSA key from RFC 6979 A.2.2 */
+static const char sample_public_key_2048[] =
+"(public-key"
+" (dsa"
+"  (p #9DB6FB5951B66BB6FE1E140F1D2CE5502374161FD6538DF1648218642F0B5C48C8F7A41AADFA187324B87674FA1822B00F1ECF8136943D7C55757264E5A1A44FFE012E9936E00C1D3E9310B01C7D179805D3058B2A9F4BB6F9716BFE6117C6B5B3CC4D9BE341104AD4A80AD6C94E005F4B993E14F091EB51743BF33050C38DE235567E1B34C3D6A5C0CEAA1A0F368213C3D19843D0B4B09DCB9FC72D39C8DE41F1BF14D4BB4563CA28371621CAD3324B6A2D392145BEBFAC748805236F5CA2FE92B871CD8F9C36D3292B5509CA8CAA77A2ADFC7BFD77DDA6F71125A7456FEA153E433256A2261C6A06ED3693797E7995FAD5AABBCFBE3EDA2741E375404AE25B#)"
+"  (q #F2C3119374CE76C9356990B465374A17F23F9ED35089BD969F61C6DDE9998C1F#)"
+"  (g #5C7FF6B06F8F143FE8288433493E4769C4D988ACE5BE25A0E24809670716C613D7B0CEE6932F8FAA7C44D2CB24523DA53FBE4F6EC3595892D1AA58C4328A06C46A15662E7EAA703A1DECF8BBB2D05DBE2EB956C142A338661D10461C0D135472085057F3494309FFA73C611F78B32ADBB5740C361C9F35BE90997DB2014E2EF5AA61782F52ABEB8BD6432C4DD097BC5423B285DAFB60DC364E8161F4A2A35ACA3A10B1C4D203CC76A470A33AFDCBDD92959859ABD8B56E1725252D78EAC66E71BA9AE3F1DD2487199874393CD4D832186800654760E1E34C09E4D155179F9EC0DC4473F996BDCE6EED1CABED8B6F116F7AD9CF505DF0F998E34AB27514B0FFE7#)"
+"  (y #667098C654426C78D7F8201EAC6C203EF030D43605032C2F1FA937E5237DBD949F34A0A2564FE126DC8B715C5141802CE0979C8246463C40E6B6BDAA2513FA611728716C2E4FD53BC95B89E69949D96512E873B9C8F8DFD499CC312882561ADECB31F658E934C0C197F2C4D96B05CBAD67381E7B768891E4DA3843D24D94CDFB5126E9B8BF21E8358EE0E0A30EF13FD6A664C0DCE3731F7FB49A4845A4FD8254687972A2D382599C9BAC4E0ED7998193078913032558134976410B89D2C171D123AC35FD977219597AA7D15C1A9A428E59194F75C721EBCBCFAE44696A499AFA74E04299F132026601638CB87AB79190D4A0986315DA8EEC6561C938996BEADF#)))";
+
+static const char sample_secret_key_2048[] =
+"(private-key"
+" (dsa"
+"  (p #9DB6FB5951B66BB6FE1E140F1D2CE5502374161FD6538DF1648218642F0B5C48C8F7A41AADFA187324B87674FA1822B00F1ECF8136943D7C55757264E5A1A44FFE012E9936E00C1D3E9310B01C7D179805D3058B2A9F4BB6F9716BFE6117C6B5B3CC4D9BE341104AD4A80AD6C94E005F4B993E14F091EB51743BF33050C38DE235567E1B34C3D6A5C0CEAA1A0F368213C3D19843D0B4B09DCB9FC72D39C8DE41F1BF14D4BB4563CA28371621CAD3324B6A2D392145BEBFAC748805236F5CA2FE92B871CD8F9C36D3292B5509CA8CAA77A2ADFC7BFD77DDA6F71125A7456FEA153E433256A2261C6A06ED3693797E7995FAD5AABBCFBE3EDA2741E375404AE25B#)"
+"  (q #F2C3119374CE76C9356990B465374A17F23F9ED35089BD969F61C6DDE9998C1F#)"
+"  (g #5C7FF6B06F8F143FE8288433493E4769C4D988ACE5BE25A0E24809670716C613D7B0CEE6932F8FAA7C44D2CB24523DA53FBE4F6EC3595892D1AA58C4328A06C46A15662E7EAA703A1DECF8BBB2D05DBE2EB956C142A338661D10461C0D135472085057F3494309FFA73C611F78B32ADBB5740C361C9F35BE90997DB2014E2EF5AA61782F52ABEB8BD6432C4DD097BC5423B285DAFB60DC364E8161F4A2A35ACA3A10B1C4D203CC76A470A33AFDCBDD92959859ABD8B56E1725252D78EAC66E71BA9AE3F1DD2487199874393CD4D832186800654760E1E34C09E4D155179F9EC0DC4473F996BDCE6EED1CABED8B6F116F7AD9CF505DF0F998E34AB27514B0FFE7#)"
+"  (y #667098C654426C78D7F8201EAC6C203EF030D43605032C2F1FA937E5237DBD949F34A0A2564FE126DC8B715C5141802CE0979C8246463C40E6B6BDAA2513FA611728716C2E4FD53BC95B89E69949D96512E873B9C8F8DFD499CC312882561ADECB31F658E934C0C197F2C4D96B05CBAD67381E7B768891E4DA3843D24D94CDFB5126E9B8BF21E8358EE0E0A30EF13FD6A664C0DCE3731F7FB49A4845A4FD8254687972A2D382599C9BAC4E0ED7998193078913032558134976410B89D2C171D123AC35FD977219597AA7D15C1A9A428E59194F75C721EBCBCFAE44696A499AFA74E04299F132026601638CB87AB79190D4A0986315DA8EEC6561C938996BEADF#)"
+"  (x #69C7548C21D0DFEA6B9A51C9EAD4E27C33D3B3F180316E5BCAB92C933F0E4DBC#)))";
 
 
 
@@ -373,6 +390,8 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   gcry_mpi_t value_x = NULL; /* The secret exponent. */
   gcry_mpi_t value_h = NULL; /* Helper.  */
   gcry_mpi_t value_e = NULL; /* Helper.  */
+  gcry_mpi_t value_c = NULL; /* helper for x */
+  gcry_mpi_t value_qm2 = NULL; /* q - 2 */
 
   /* Preset return values.  */
   *r_counter = 0;
@@ -393,9 +412,7 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
 
   /* Check that QBITS and NBITS match the standard.  Note that FIPS
      186-3 uses N for QBITS and L for NBITS.  */
-  if (nbits == 1024 && qbits == 160)
-    ;
-  else if (nbits == 2048 && qbits == 224)
+  if (nbits == 2048 && qbits == 224)
     ;
   else if (nbits == 2048 && qbits == 256)
     ;
@@ -428,21 +445,18 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
                                                     &initial_seed.seedlen);
         }
 
-      /* Fixme: Enable 186-3 after it has been approved and after fixing
-         the generation function.  */
-      /*   if (use_fips186_2) */
-      (void)use_fips186_2;
-      ec = _gcry_generate_fips186_2_prime (nbits, qbits,
+      if (use_fips186_2)
+        ec = _gcry_generate_fips186_2_prime (nbits, qbits,
                                            initial_seed.seed,
                                            initial_seed.seedlen,
                                            &prime_q, &prime_p,
                                            r_counter,
                                            r_seed, r_seedlen);
-      /*   else */
-      /*     ec = _gcry_generate_fips186_3_prime (nbits, qbits, NULL, 0, */
-      /*                                          &prime_q, &prime_p, */
-      /*                                          r_counter, */
-      /*                                          r_seed, r_seedlen, NULL); */
+      else
+        ec = _gcry_generate_fips186_3_prime (nbits, qbits, NULL, 0,
+                                           &prime_q, &prime_p,
+                                           r_counter,
+                                           r_seed, r_seedlen, NULL);
       sexp_release (initial_seed.sexp);
       if (ec)
         goto leave;
@@ -463,17 +477,24 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
       while (!mpi_cmp_ui (value_g, 1));  /* Continue until g != 1.  */
     }
 
-
-  /* Select a random number x with:  0 < x < q  */
+  value_c = mpi_snew (qbits);
   value_x = mpi_snew (qbits);
+  value_qm2 = mpi_snew (qbits);
+  mpi_sub_ui (value_qm2, prime_q, 2);
+
+  /* FIPS 186-4 B.1.2 steps 4-6 */
   do
     {
       if( DBG_CIPHER )
         progress('.');
-      _gcry_mpi_randomize (value_x, qbits, GCRY_VERY_STRONG_RANDOM);
-      mpi_clear_highbit (value_x, qbits+1);
+      _gcry_mpi_randomize (value_c, qbits, GCRY_VERY_STRONG_RANDOM);
+      mpi_clear_highbit (value_c, qbits+1);
     }
-  while (!(mpi_cmp_ui (value_x, 0) > 0 && mpi_cmp (value_x, prime_q) < 0));
+  while (!(mpi_cmp_ui (value_c, 0) > 0 && mpi_cmp (value_c, value_qm2) < 0));
+  /* while (mpi_cmp (value_c, value_qm2) > 0); */
+
+  /* x = c + 1 */
+  mpi_add_ui(value_x, value_c, 1);
 
   /* y = g^x mod p */
   value_y = mpi_alloc_like (prime_p);
@@ -506,6 +527,8 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
   _gcry_mpi_release (value_x);
   _gcry_mpi_release (value_h);
   _gcry_mpi_release (value_e);
+  _gcry_mpi_release (value_c);
+  _gcry_mpi_release (value_qm2);
 
   /* As a last step test this keys (this should never fail of course). */
   if (!ec && test_keys (sk, qbits) )
@@ -1158,25 +1181,42 @@ dsa_get_nbits (gcry_sexp_t parms)
  */
 
 static const char *
-selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
+selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
 {
+  /* Sample data from RFC 6979 section A.2.2, hash is of message "sample" */
   static const char sample_data[] =
-    "(data (flags raw)"
-    " (value #a0b1c2d3e4f500102030405060708090a1b2c3d4#))";
+    "(data (flags rfc6979)"
+    " (hash sha256 #af2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e9891562113d8a62add1bf#))";
   static const char sample_data_bad[] =
-    "(data (flags raw)"
-    " (value #a0b1c2d3e4f510102030405060708090a1b2c3d4#))";
+    "(data (flags rfc6979)"
+    " (hash sha256 #bf2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e9891562113d8a62add1bf#))";
+  static const char signature_r[] =
+    "eace8bdbbe353c432a795d9ec556c6d021f7a03f42c36e9bc87e4ac7932cc809";
+  static const char signature_s[] =
+    "7081e175455f9247b812b74583e9e94f9ea79bd640dc962533b0680793a38d53";
 
   const char *errtxt = NULL;
   gcry_error_t err;
   gcry_sexp_t data = NULL;
   gcry_sexp_t data_bad = NULL;
   gcry_sexp_t sig = NULL;
+  gcry_sexp_t l1 = NULL;
+  gcry_sexp_t l2 = NULL;
+  gcry_mpi_t r = NULL;
+  gcry_mpi_t s = NULL;
+  gcry_mpi_t calculated_r = NULL;
+  gcry_mpi_t calculated_s = NULL;
+  int cmp;
 
   err = sexp_sscan (&data, NULL, sample_data, strlen (sample_data));
   if (!err)
     err = sexp_sscan (&data_bad, NULL,
                       sample_data_bad, strlen (sample_data_bad));
+  if (!err)
+    err = _gcry_mpi_scan (&r, GCRYMPI_FMT_HEX, signature_r, 0, NULL);
+  if (!err)
+    err = _gcry_mpi_scan (&s, GCRYMPI_FMT_HEX, signature_s, 0, NULL);
+
   if (err)
     {
       errtxt = "converting data failed";
@@ -1189,6 +1229,45 @@ selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
       errtxt = "signing failed";
       goto leave;
     }
+
+  /* check against known signature */
+  errtxt = "signature validity failed";
+  l1 = _gcry_sexp_find_token (sig, "sig-val", 0);
+  if (!l1)
+    goto leave;
+  l2 = _gcry_sexp_find_token (l1, "dsa", 0);
+  if (!l2)
+    goto leave;
+
+  sexp_release (l1);
+  l1 = l2;
+
+  l2 = _gcry_sexp_find_token (l1, "r", 0);
+  if (!l2)
+    goto leave;
+  calculated_r = _gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+  if (!calculated_r)
+    goto leave;
+
+  l2 = _gcry_sexp_find_token (l1, "s", 0);
+  if (!l2)
+    goto leave;
+  calculated_s = _gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+  if (!calculated_s)
+    goto leave;
+
+  errtxt = "known sig check failed";
+
+  cmp = _gcry_mpi_cmp (r, calculated_r);
+  if (cmp)
+    goto leave;
+  cmp = _gcry_mpi_cmp (s, calculated_s);
+  if (cmp)
+    goto leave;
+
+  errtxt = NULL;
+
+
   err = _gcry_pk_verify (sig, data, pkey);
   if (err)
     {
@@ -1212,7 +1291,7 @@ selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
 
 
 static gpg_err_code_t
-selftests_dsa (selftest_report_func_t report)
+selftests_dsa_2048 (selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
@@ -1222,10 +1301,10 @@ selftests_dsa (selftest_report_func_t report)
 
   /* Convert the S-expressions into the internal representation.  */
   what = "convert";
-  err = sexp_sscan (&skey, NULL, sample_secret_key, strlen (sample_secret_key));
+  err = sexp_sscan (&skey, NULL, sample_secret_key_2048, strlen (sample_secret_key_2048));
   if (!err)
     err = sexp_sscan (&pkey, NULL,
-                      sample_public_key, strlen (sample_public_key));
+                      sample_public_key_2048, strlen (sample_public_key_2048));
   if (err)
     {
       errtxt = _gcry_strerror (err);
@@ -1241,7 +1320,7 @@ selftests_dsa (selftest_report_func_t report)
     }
 
   what = "sign";
-  errtxt = selftest_sign_1024 (pkey, skey);
+  errtxt = selftest_sign (pkey, skey);
   if (errtxt)
     goto failed;
 
@@ -1269,7 +1348,7 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
   switch (algo)
     {
     case GCRY_PK_DSA:
-      ec = selftests_dsa (report);
+      ec = selftests_dsa_2048 (report);
       break;
     default:
       ec = GPG_ERR_PUBKEY_ALGO;
@@ -1278,7 +1357,6 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
     }
   return ec;
 }
-
 
 
 
