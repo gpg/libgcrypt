@@ -160,7 +160,7 @@ static const ecc_domain_parms_t domain_parms[] =
     },
 #endif /*0*/
     {
-      "NIST P-192", 192, 1,
+      "NIST P-192", 192, 0,
       MPI_EC_WEIERSTRASS, ECC_DIALECT_STANDARD,
       "0xfffffffffffffffffffffffffffffffeffffffffffffffff",
       "0xfffffffffffffffffffffffffffffffefffffffffffffffc",

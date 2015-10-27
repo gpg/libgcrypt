@@ -73,6 +73,25 @@ static const char *ecc_names[] =
   };
 
 
+/* Sample NIST P-256 key from RFC 6979 A.2.5 */
+static const char sample_public_key_secp256[] =
+  "(public-key"
+  " (ecc"
+  "  (curve secp256r1)"
+  "  (q #04"
+  /**/  "60FED4BA255A9D31C961EB74C6356D68C049B8923B61FA6CE669622E60F29FB6"
+  /**/  "7903FE1008B8BC99A41AE9E95628BC64F2F1B20C2D7E9F5177A3C294D4462299#)))";
+
+static const char sample_secret_key_secp256[] =
+  "(private-key"
+  " (ecc"
+  "  (curve secp256r1)"
+  "  (d #C9AFA9D845BA75166B5C215767B1D6934E50C3DB36E89B127B8A622B120F6721#)"
+  "  (q #04"
+  /**/  "60FED4BA255A9D31C961EB74C6356D68C049B8923B61FA6CE669622E60F29FB6"
+  /**/  "7903FE1008B8BC99A41AE9E95628BC64F2F1B20C2D7E9F5177A3C294D4462299#)))";
+
+
 /* Registered progress function and its callback value. */
 static void (*progress_cb) (void *, const char*, int, int, int);
 static void *progress_cb_data;
@@ -1956,23 +1975,165 @@ _gcry_pk_ecc_get_sexp (gcry_sexp_t *r_sexp, int mode, mpi_ec_t ec)
      Self-test section.
  */
 
+static const char *
+selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
+{
+  /* Sample data from RFC 6979 section A.2.5, hash is of message "sample" */
+  static const char sample_data[] =
+    "(data (flags rfc6979)"
+    " (hash sha256 #af2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e98915"
+    /**/           "62113d8a62add1bf#))";
+  static const char sample_data_bad[] =
+    "(data (flags rfc6979)"
+    " (hash sha256 #bf2bdbe1aa9b6ec1e2ade1d694f41fc71a831d0268e98915"
+    /**/           "62113d8a62add1bf#))";
+  static const char signature_r[] =
+    "efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716";
+  static const char signature_s[] =
+    "f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8";
+
+  const char *errtxt = NULL;
+  gcry_error_t err;
+  gcry_sexp_t data = NULL;
+  gcry_sexp_t data_bad = NULL;
+  gcry_sexp_t sig = NULL;
+  gcry_sexp_t l1 = NULL;
+  gcry_sexp_t l2 = NULL;
+  gcry_mpi_t r = NULL;
+  gcry_mpi_t s = NULL;
+  gcry_mpi_t calculated_r = NULL;
+  gcry_mpi_t calculated_s = NULL;
+  int cmp;
+
+  err = sexp_sscan (&data, NULL, sample_data, strlen (sample_data));
+  if (!err)
+    err = sexp_sscan (&data_bad, NULL,
+                      sample_data_bad, strlen (sample_data_bad));
+  if (!err)
+    err = _gcry_mpi_scan (&r, GCRYMPI_FMT_HEX, signature_r, 0, NULL);
+  if (!err)
+    err = _gcry_mpi_scan (&s, GCRYMPI_FMT_HEX, signature_s, 0, NULL);
+
+  if (err)
+    {
+      errtxt = "converting data failed";
+      goto leave;
+    }
+
+  err = _gcry_pk_sign (&sig, data, skey);
+  if (err)
+    {
+      errtxt = "signing failed";
+      goto leave;
+    }
+
+  /* check against known signature */
+  errtxt = "signature validity failed";
+  l1 = _gcry_sexp_find_token (sig, "sig-val", 0);
+  if (!l1)
+    goto leave;
+  l2 = _gcry_sexp_find_token (l1, "ecdsa", 0);
+  if (!l2)
+    goto leave;
+
+  sexp_release (l1);
+  l1 = l2;
+
+  l2 = _gcry_sexp_find_token (l1, "r", 0);
+  if (!l2)
+    goto leave;
+  calculated_r = _gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+  if (!calculated_r)
+    goto leave;
+
+  l2 = _gcry_sexp_find_token (l1, "s", 0);
+  if (!l2)
+    goto leave;
+  calculated_s = _gcry_sexp_nth_mpi (l2, 1, GCRYMPI_FMT_USG);
+  if (!calculated_s)
+    goto leave;
+
+  errtxt = "known sig check failed";
+
+  cmp = _gcry_mpi_cmp (r, calculated_r);
+  if (cmp)
+    goto leave;
+  cmp = _gcry_mpi_cmp (s, calculated_s);
+  if (cmp)
+    goto leave;
+
+  errtxt = NULL;
+
+  /* verify generated signature */
+  err = _gcry_pk_verify (sig, data, pkey);
+  if (err)
+    {
+      errtxt = "verify failed";
+      goto leave;
+    }
+  err = _gcry_pk_verify (sig, data_bad, pkey);
+  if (gcry_err_code (err) != GPG_ERR_BAD_SIGNATURE)
+    {
+      errtxt = "bad signature not detected";
+      goto leave;
+    }
+
+
+ leave:
+  sexp_release (sig);
+  sexp_release (data_bad);
+  sexp_release (data);
+  sexp_release (l1);
+  sexp_release (l2);
+  mpi_release (r);
+  mpi_release (s);
+  mpi_release (calculated_r);
+  mpi_release (calculated_s);
+  return errtxt;
+}
+
 
 static gpg_err_code_t
 selftests_ecdsa (selftest_report_func_t report)
 {
   const char *what;
   const char *errtxt;
+  gcry_error_t err;
+  gcry_sexp_t skey = NULL;
+  gcry_sexp_t pkey = NULL;
 
-  what = "low-level";
-  errtxt = NULL; /*selftest ();*/
+  what = "convert";
+  err = sexp_sscan (&skey, NULL, sample_secret_key_secp256,
+                    strlen (sample_secret_key_secp256));
+  if (!err)
+    err = sexp_sscan (&pkey, NULL, sample_public_key_secp256,
+                      strlen (sample_public_key_secp256));
+  if (err)
+    {
+      errtxt = _gcry_strerror (err);
+      goto failed;
+    }
+
+  what = "key consistency";
+  err = ecc_check_secret_key(skey);
+  if (err)
+    {
+      errtxt = _gcry_strerror (err);
+      goto failed;
+    }
+
+  what = "sign";
+  errtxt = selftest_sign (pkey, skey);
   if (errtxt)
     goto failed;
 
-  /* FIXME:  need more tests.  */
-
+  sexp_release(pkey);
+  sexp_release(skey);
   return 0; /* Succeeded. */
 
  failed:
+  sexp_release(pkey);
+  sexp_release(skey);
   if (report)
     report ("pubkey", GCRY_PK_ECC, what, errtxt);
   return GPG_ERR_SELFTEST_FAILED;
@@ -1996,7 +2157,7 @@ run_selftests (int algo, int extended, selftest_report_func_t report)
 
 gcry_pk_spec_t _gcry_pubkey_spec_ecc =
   {
-    GCRY_PK_ECC, { 0, 0 },
+    GCRY_PK_ECC, { 0, 1 },
     (GCRY_PK_USAGE_SIGN | GCRY_PK_USAGE_ENCR),
     "ECC", ecc_names,
     "pabgnhq", "pabgnhqd", "sw", "rs", "pabgnhq",

@@ -549,7 +549,7 @@ run_pubkey_selftests (int extended)
     {
       GCRY_PK_RSA,
       GCRY_PK_DSA,
-      /* GCRY_PK_ECC is not enabled in fips mode.  */
+      GCRY_PK_ECC,
       0
     };
   int idx;
