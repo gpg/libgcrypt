@@ -138,7 +138,7 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
   unsigned long iter;  /* Current iteration number.  */
   unsigned int i;
 
-  /* NWe allow for a saltlen of 0 here to support scrypt.  It is not
+  /* We allow for a saltlen of 0 here to support scrypt.  It is not
      clear whether rfc2898 allows for this this, thus we do a test on
      saltlen > 0 only in gcry_kdf_derive.  */
   if (!salt || !iterations || !dklen)
@@ -150,8 +150,13 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
 
   secmode = _gcry_is_secure (passphrase) || _gcry_is_secure (keybuffer);
 
-  /* We ignore step 1 from pksc5v2.1 which demands a check that dklen
-     is not larger that 0xffffffff * hlen.  */
+  /* Step 1 */
+  /* If dkLen > (2^32 - 1) * hLen, output "derived key too long" and stop.
+     We use a stronger inequality. */
+
+  if (dklen > 4294967295U)
+    return GPG_ERR_INV_VALUE;
+
 
   /* Step 2 */
   l = ((dklen - 1)/ hlen) + 1;
