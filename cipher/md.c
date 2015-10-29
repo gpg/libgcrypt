@@ -1296,6 +1296,17 @@ _gcry_md_info (gcry_md_hd_t h, int cmd, void *buffer, size_t *nbytes)
 gcry_err_code_t
 _gcry_md_init (void)
 {
+  if (fips_mode())
+    {
+      /* disable algorithms that are disallowed in fips */
+      int idx;
+      gcry_md_spec_t *spec;
+
+      for (idx = 0; (spec = digest_list[idx]); idx++)
+        if (!spec->flags.fips)
+          spec->flags.disabled = 1;
+    }
+
   return 0;
 }
 

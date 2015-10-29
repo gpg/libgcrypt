@@ -1514,6 +1514,17 @@ _gcry_cipher_get_algo_blklen (int algo)
 gcry_err_code_t
 _gcry_cipher_init (void)
 {
+  if (fips_mode())
+    {
+      /* disable algorithms that are disallowed in fips */
+      int idx;
+      gcry_cipher_spec_t *spec;
+
+      for (idx = 0; (spec = cipher_list[idx]); idx++)
+        if (!spec->flags.fips)
+          spec->flags.disabled = 1;
+    }
+
   return 0;
 }
 

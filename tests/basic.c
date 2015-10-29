@@ -698,6 +698,14 @@ check_ctr_cipher (void)
       if (!tv[i].algo)
         continue;
 
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     tv[i].algo);
+          continue;
+        }
+
       err = gcry_cipher_open (&hde, tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
       if (!err)
 	err = gcry_cipher_open (&hdd, tv[i].algo, GCRY_CIPHER_MODE_CTR, 0);
@@ -929,6 +937,14 @@ check_cfb_cipher (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     tv[i].algo);
+          continue;
+        }
+
       if (verbose)
         fprintf (stderr, "    checking CFB mode for %s [%i]\n",
 		 gcry_cipher_algo_name (tv[i].algo),
@@ -1100,6 +1116,14 @@ check_ofb_cipher (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     tv[i].algo);
+          continue;
+        }
+
       if (verbose)
         fprintf (stderr, "    checking OFB mode for %s [%i]\n",
 		 gcry_cipher_algo_name (tv[i].algo),
@@ -1402,6 +1426,14 @@ _check_gcm_cipher (unsigned int step)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     tv[i].algo);
+          continue;
+        }
+
       if (verbose)
         fprintf (stderr, "    checking GCM mode for %s [%i]\n",
                  gcry_cipher_algo_name (tv[i].algo),
@@ -2423,6 +2455,14 @@ check_ccm_cipher (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     tv[i].algo);
+          continue;
+        }
+
       if (verbose)
         fprintf (stderr, "    checking CCM mode for %s [%i]\n",
                  gcry_cipher_algo_name (tv[i].algo),
@@ -3924,6 +3964,13 @@ check_stream_cipher (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     tv[i].algo);
+          continue;
+        }
       if (verbose)
         fprintf (stderr, "    checking stream mode for %s [%i] (%s)\n",
 		 gcry_cipher_algo_name (tv[i].algo), tv[i].algo, tv[i].name);
@@ -4368,6 +4415,14 @@ check_stream_cipher_large_block (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
+      if (gcry_cipher_test_algo (tv[i].algo) && in_fips_mode)
+        {
+          if (verbose)
+            fprintf (stderr, "  algorithm %d not available in fips mode\n",
+		     tv[i].algo);
+          continue;
+        }
+
       if (verbose)
         fprintf (stderr, "    checking large block stream for %s [%i] (%s)\n",
 		 gcry_cipher_algo_name (tv[i].algo), tv[i].algo, tv[i].name);
@@ -5219,11 +5274,11 @@ check_ciphers (void)
 
   for (i = 0; algos2[i]; i++)
     {
-      if (gcry_cipher_test_algo (algos[i]) && in_fips_mode)
+      if (gcry_cipher_test_algo (algos2[i]) && in_fips_mode)
         {
           if (verbose)
             fprintf (stderr, "  algorithm %d not available in fips mode\n",
-		     algos[i]);
+		     algos2[i]);
           continue;
         }
       if (verbose)
@@ -6399,8 +6454,7 @@ check_digests (void)
           show_md_not_available (algos[i].md);
           continue;
         }
-      if ((gcry_md_test_algo (algos[i].md) || algos[i].md == GCRY_MD_MD5)
-          && in_fips_mode)
+      if (gcry_md_test_algo (algos[i].md) && in_fips_mode)
         {
           if (verbose)
             fprintf (stderr, "  algorithm %d not available in fips mode\n",
@@ -6832,8 +6886,7 @@ check_hmac (void)
           show_old_hmac_not_available (algos[i].md);
           continue;
         }
-      if ((gcry_md_test_algo (algos[i].md) || algos[i].md == GCRY_MD_MD5)
-          && in_fips_mode)
+      if (gcry_md_test_algo (algos[i].md) && in_fips_mode)
         {
           if (verbose)
             fprintf (stderr, "  algorithm %d not available in fips mode\n",
@@ -7809,8 +7862,7 @@ check_mac (void)
           show_mac_not_available (algos[i].algo);
           continue;
         }
-      if ((gcry_mac_test_algo (algos[i].algo)
-	   || algos[i].algo == GCRY_MAC_HMAC_MD5) && in_fips_mode)
+      if (gcry_mac_test_algo (algos[i].algo) && in_fips_mode)
         {
           if (verbose)
             fprintf (stderr, "  algorithm %d not available in fips mode\n",

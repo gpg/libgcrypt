@@ -926,6 +926,17 @@ _gcry_pubkey_get_sexp (gcry_sexp_t *r_sexp, int mode, gcry_ctx_t ctx)
 gcry_err_code_t
 _gcry_pk_init (void)
 {
+  if (fips_mode())
+    {
+      /* disable algorithms that are disallowed in fips */
+      int idx;
+      gcry_pk_spec_t *spec;
+
+      for (idx = 0; (spec = pubkey_list[idx]); idx++)
+        if (!spec->flags.fips)
+          spec->flags.disabled = 1;
+    }
+
   return 0;
 }
 

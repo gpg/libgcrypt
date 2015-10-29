@@ -381,6 +381,7 @@ typedef struct fast_wipememory_s
 
 gcry_err_code_t _gcry_cipher_init (void);
 gcry_err_code_t _gcry_md_init (void);
+gcry_err_code_t _gcry_mac_init (void);
 gcry_err_code_t _gcry_pk_init (void);
 gcry_err_code_t _gcry_secmem_module_init (void);
 gcry_err_code_t _gcry_mpi_init (void);

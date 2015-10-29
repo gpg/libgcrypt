@@ -105,6 +105,9 @@ global_init (void)
   err = _gcry_md_init ();
   if (err)
     goto fail;
+  err = _gcry_mac_init ();
+  if (err)
+    goto fail;
   err = _gcry_pk_init ();
   if (err)
     goto fail;
