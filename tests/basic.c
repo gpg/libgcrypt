@@ -8442,7 +8442,7 @@ get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   if (verbose)
     fprintf (stderr, "  generating RSA key:");
   rc = gcry_sexp_new (&key_spec,
-		      in_fips_mode ? "(genkey (rsa (nbits 4:1024)))"
+		      in_fips_mode ? "(genkey (rsa (nbits 4:2048)))"
                       : "(genkey (rsa (nbits 4:1024)(transient-key)))",
                       0, 1);
   if (rc)

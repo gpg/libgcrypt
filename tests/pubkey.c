@@ -165,6 +165,33 @@ show_sexp (const char *prefix, gcry_sexp_t a)
   gcry_free (buf);
 }
 
+/* from ../cipher/pubkey-util.c */
+gpg_err_code_t
+_gcry_pk_util_get_nbits (gcry_sexp_t list, unsigned int *r_nbits)
+{
+  char buf[50];
+  const char *s;
+  size_t n;
+
+  *r_nbits = 0;
+
+  list = gcry_sexp_find_token (list, "nbits", 0);
+  if (!list)
+    return 0; /* No NBITS found.  */
+
+  s = gcry_sexp_nth_data (list, 1, &n);
+  if (!s || n >= DIM (buf) - 1 )
+    {
+      /* NBITS given without a cdr.  */
+      gcry_sexp_release (list);
+      return GPG_ERR_INV_OBJ;
+    }
+  memcpy (buf, s, n);
+  buf[n] = 0;
+  *r_nbits = (unsigned int)strtoul (buf, NULL, 0);
+  gcry_sexp_release (list);
+  return 0;
+}
 
 /* Convert STRING consisting of hex characters into its binary
    representation and return it as an allocated buffer. The valid
@@ -906,8 +933,8 @@ check_x931_derived_key (int what)
     }
   };
   gpg_error_t err;
-  gcry_sexp_t key_spec, key, pub_key, sec_key;
-  gcry_mpi_t d_expected, d_have;
+  gcry_sexp_t key_spec = NULL, key = NULL, pub_key = NULL, sec_key = NULL;
+  gcry_mpi_t d_expected = NULL, d_have = NULL;
 
   if (what < 0 && what >= sizeof testtable)
     die ("invalid WHAT value\n");
@@ -916,10 +943,25 @@ check_x931_derived_key (int what)
   if (err)
     die ("error creating S-expression [%d]: %s\n", what, gpg_strerror (err));
 
+  {
+    unsigned nbits;
+    err = _gcry_pk_util_get_nbits(key_spec, &nbits);
+    if (err)
+      die ("nbits not found\n");
+    if (gcry_fips_mode_active() && nbits < 2048)
+      {
+        info("RSA key test with %d bits skipped in fips mode\n", nbits);
+        goto leave;
+      }
+  }
+
   err = gcry_pk_genkey (&key, key_spec);
   gcry_sexp_release (key_spec);
   if (err)
-    die ("error generating RSA key [%d]: %s\n", what, gpg_strerror (err));
+    {
+      fail ("error generating RSA key [%d]: %s\n", what, gpg_strerror (err));
+      goto leave;
+    }
 
   pub_key = gcry_sexp_find_token (key, "public-key", 0);
   if (!pub_key)
@@ -945,6 +987,7 @@ check_x931_derived_key (int what)
       show_sexp (NULL, sec_key);
       die ("parameter d does match expected value [%d]\n", what);
     }
+leave:
   gcry_mpi_release (d_expected);
   gcry_mpi_release (d_have);
 

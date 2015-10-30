@@ -40,6 +40,7 @@
 static int verbose;
 static int debug;
 static int error_count;
+static int in_fips_mode;
 
 
 static void
@@ -196,6 +197,20 @@ check_rsa_keys (void)
   int rc;
 
   if (verbose)
+    show ("creating 2048 bit RSA key\n");
+  rc = gcry_sexp_new (&keyparm,
+                      "(genkey\n"
+                      " (rsa\n"
+                      "  (nbits 4:2048)\n"
+                      " ))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating RSA key: %s\n", gpg_strerror (rc));
+
+  if (verbose)
     show ("creating 1024 bit RSA key\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
@@ -206,11 +221,17 @@ check_rsa_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
-    die ("error generating RSA key: %s\n", gpg_strerror (rc));
-  if (verbose > 1)
-    show_sexp ("1024 bit RSA key:\n", key);
-  check_generated_rsa_key (key, 65537);
+  if (rc && !in_fips_mode)
+    fail ("error generating RSA key: %s\n", gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    fail ("generating 1024 bit RSA key must not work!");
+
+  if (!rc)
+    {
+      if (verbose > 1)
+        show_sexp ("1024 bit RSA key:\n", key);
+      check_generated_rsa_key (key, 65537);
+    }
   gcry_sexp_release (key);
 
 
@@ -226,10 +247,13 @@ check_rsa_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
-    die ("error generating RSA key: %s\n", gpg_strerror (rc));
+  if (rc && !in_fips_mode)
+    fail ("error generating RSA key: %s\n", gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    fail ("generating 512 bit RSA key must not work!");
 
-  check_generated_rsa_key (key, 257);
+  if (!rc)
+    check_generated_rsa_key (key, 257);
   gcry_sexp_release (key);
 
   if (verbose)
@@ -244,10 +268,13 @@ check_rsa_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
-    die ("error generating RSA key: %s\n", gpg_strerror (rc));
+  if (rc && !in_fips_mode)
+    fail ("error generating RSA key: %s\n", gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    fail ("generating 512 bit RSA key must not work!");
 
-  check_generated_rsa_key (key, 0); /* We don't expect a constant exponent. */
+  if (!rc)
+    check_generated_rsa_key (key, 0); /* We don't expect a constant exponent. */
   gcry_sexp_release (key);
 }
 
@@ -299,8 +326,10 @@ check_dsa_keys (void)
         die ("error creating S-expression: %s\n", gpg_strerror (rc));
       rc = gcry_pk_genkey (&key, keyparm);
       gcry_sexp_release (keyparm);
-      if (rc)
+      if (rc && !in_fips_mode)
         die ("error generating DSA key: %s\n", gpg_strerror (rc));
+      else if (!rc && in_fips_mode)
+        die ("generating 512 bit DSA key must not work!");
       if (!i && verbose > 1)
         show_sexp ("1024 bit DSA key:\n", key);
       gcry_sexp_release (key);
@@ -318,8 +347,10 @@ check_dsa_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
+  if (rc && !in_fips_mode)
     die ("error generating DSA key: %s\n", gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    die ("generating 1536 bit DSA key must not work!");
   if (verbose > 1)
     show_sexp ("1536 bit DSA key:\n", key);
   gcry_sexp_release (key);
@@ -596,6 +627,9 @@ main (int argc, char **argv)
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
   if (with_progress)
     gcry_set_progress_handler (progress_cb, NULL);
+
+  if ( gcry_fips_mode_active () )
+    in_fips_mode = 1;
 
   if (!argc)
     {

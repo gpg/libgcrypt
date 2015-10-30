@@ -1085,15 +1085,22 @@ rsa_bench (int iterations, int print_header, int no_blinding)
       gcry_sexp_t data;
       gcry_sexp_t sig = NULL;
       int count;
+      unsigned nbits = p_sizes[testno];
 
-      printf ("RSA %3d bit    ", p_sizes[testno]);
+      printf ("RSA %3d bit    ", nbits);
       fflush (stdout);
+
+      if (in_fips_mode && !(nbits == 2048 || nbits == 3072))
+        {
+          puts ("[skipped in fips mode]");
+          continue;
+        }
 
       err = gcry_sexp_build (&key_spec, NULL,
                              gcry_fips_mode_active ()
                              ? "(genkey (RSA (nbits %d)))"
                              : "(genkey (RSA (nbits %d)(transient-key)))",
-                             p_sizes[testno]);
+                             nbits);
       if (err)
         die ("creating S-expression failed: %s\n", gcry_strerror (err));
 
@@ -1101,7 +1108,7 @@ rsa_bench (int iterations, int print_header, int no_blinding)
       err = gcry_pk_genkey (&key_pair, key_spec);
       if (err)
         die ("creating %d bit RSA key failed: %s\n",
-             p_sizes[testno], gcry_strerror (err));
+             nbits, gcry_strerror (err));
 
       pub_key = gcry_sexp_find_token (key_pair, "public-key", 0);
       if (! pub_key)
@@ -1116,8 +1123,8 @@ rsa_bench (int iterations, int print_header, int no_blinding)
       printf ("   %s", elapsed_time (1));
       fflush (stdout);
 
-      x = gcry_mpi_new (p_sizes[testno]);
-      gcry_mpi_randomize (x, p_sizes[testno]-8, GCRY_WEAK_RANDOM);
+      x = gcry_mpi_new (nbits);
+      gcry_mpi_randomize (x, nbits-8, GCRY_WEAK_RANDOM);
       err = gcry_sexp_build (&data, NULL,
                              "(data (flags raw) (value %m))", x);
       gcry_mpi_release (x);
@@ -1155,8 +1162,8 @@ rsa_bench (int iterations, int print_header, int no_blinding)
       if (no_blinding)
         {
           fflush (stdout);
-          x = gcry_mpi_new (p_sizes[testno]);
-          gcry_mpi_randomize (x, p_sizes[testno]-8, GCRY_WEAK_RANDOM);
+          x = gcry_mpi_new (nbits);
+          gcry_mpi_randomize (x, nbits-8, GCRY_WEAK_RANDOM);
           err = gcry_sexp_build (&data, NULL,
                                  "(data (flags no-blinding) (value %m))", x);
           gcry_mpi_release (x);
