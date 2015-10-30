@@ -1340,6 +1340,69 @@ run_rsa_derive (const void *data, size_t datalen)
 }
 
 
+/* Generate RSA key using the S-expression in (DATA,DATALEN).  This
+   S-expression is used directly as input to gcry_pk_genkey.  The
+   result is printed to stdout with one parameter per line in hex
+   format and in this order: e, p, q, n, d.  */
+static void
+run_rsa_keygen (const void *data, size_t datalen, int test)
+{
+  gpg_error_t err;
+  gcry_sexp_t s_keyspec, s_key, s_top, l1;
+  gcry_mpi_t mpi;
+  const char *parmlist;
+  int idx;
+
+  if (!datalen)
+    err = gpg_error (GPG_ERR_NO_DATA);
+  else
+    err = gcry_sexp_new (&s_keyspec, data, datalen, 1);
+  if (err)
+    die ("gcry_sexp_new failed for RSA key generation: %s\n",
+         gpg_strerror (err));
+
+  err = gcry_pk_genkey (&s_key, s_keyspec);
+
+  gcry_sexp_release (s_keyspec);
+
+  if (test) {
+	if (err)
+		printf("F\n");
+	else {
+		gcry_sexp_release (s_key);
+		printf("P\n");
+	}
+	return;
+  }
+
+  if (err)
+    die ("gcry_pk_genkey failed for RSA: %s\n", gpg_strerror (err));
+
+  parmlist = "epqnd";
+
+  /* Parse and print the parameters.  */
+  l1 = gcry_sexp_find_token (s_key, "private-key", 0);
+  s_top = gcry_sexp_find_token (l1, "rsa", 0);
+  gcry_sexp_release (l1);
+  if (!s_top)
+    die ("private-key part not found in result\n");
+
+  for (idx=0; parmlist[idx]; idx++)
+    {
+      l1 = gcry_sexp_find_token (s_top, parmlist+idx, 1);
+      mpi = gcry_sexp_nth_mpi (l1, 1, GCRYMPI_FMT_USG);
+      gcry_sexp_release (l1);
+      if (!mpi)
+        die ("parameter %c missing in private-key\n", parmlist[idx]);
+      print_mpi_line (mpi, 1);
+      gcry_mpi_release (mpi);
+    }
+
+  gcry_sexp_release (s_top);
+  gcry_sexp_release (s_key);
+}
+
+
 
 static size_t
 compute_tag_length (size_t n)
@@ -2421,6 +2484,8 @@ main (int argc, char **argv)
       && !mct_server
       && strcmp (mode_string, "random")
       && strcmp (mode_string, "rsa-gen")
+      && strcmp (mode_string, "rsa-keygen")
+      && strcmp (mode_string, "rsa-keygen-kat")
       && strcmp (mode_string, "dsa-gen")
       && strcmp (mode_string, "ecdsa-gen-key") )
     {
@@ -2610,6 +2675,20 @@ main (int argc, char **argv)
       if (!data)
         die ("no data available (do not use --chunk)\n");
       run_rsa_derive (data, datalen);
+    }
+  else if (!strcmp (mode_string, "rsa-keygen"))
+    {
+      data = read_file (input, 0, &datalen);
+      if (!data)
+        die ("no data available (do not use --chunk)\n");
+      run_rsa_keygen (data, datalen, 0);
+    }
+  else if (!strcmp (mode_string, "rsa-keygen-kat"))
+    {
+      data = read_file (input, 0, &datalen);
+      if (!data)
+        die ("no data available (do not use --chunk)\n");
+      run_rsa_keygen (data, datalen, 1);
     }
   else if (!strcmp (mode_string, "rsa-gen"))
     {
