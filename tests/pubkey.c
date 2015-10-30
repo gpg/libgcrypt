@@ -354,7 +354,7 @@ get_keys_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   int rc;
 
   rc = gcry_sexp_new (&key_spec,
-		      "(genkey (rsa (nbits 4:1024)))", 0, 1);
+		      "(genkey (rsa (nbits 4:2048)))", 0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));
   rc = gcry_pk_genkey (&key, key_spec);
@@ -386,7 +386,7 @@ get_keys_x931_new (gcry_sexp_t *pkey, gcry_sexp_t *skey)
   int rc;
 
   rc = gcry_sexp_new (&key_spec,
-		      "(genkey (rsa (nbits 4:1024)(use-x931)))", 0, 1);
+		      "(genkey (rsa (nbits 4:2048)(use-x931)))", 0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));
   rc = gcry_pk_genkey (&key, key_spec);

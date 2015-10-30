@@ -62,36 +62,53 @@ static const char *rsa_names[] =
   };
 
 
-/* A sample 1024 bit RSA key used for the selftests.  */
+/* A sample 2048 bit RSA key used for the selftests.  */
 static const char sample_secret_key[] =
-"(private-key"
-" (rsa"
-"  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
-"      2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
-"      ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
-"      891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea251#)"
-"  (e #010001#)"
-"  (d #046129f2489d71579be0a75fe029bd6cdb574ebf57ea8a5b0fda942cab943b11"
-"      7d7bb95e5d28875e0f9fc5fcc06a72f6d502464dabded78ef6b716177b83d5bd"
-"      c543dc5d3fed932e59f5897e92e6f58a0f33424106a3b6fa2cbf877510e4ac21"
-"      c3ee47851e97d12996222ac3566d4ccb0b83d164074abf7de655fc2446da1781#)"
-"  (p #00e861b700e17e8afe6837e7512e35b6ca11d0ae47d8b85161c67baf64377213"
-"      fe52d772f2035b3ca830af41d8a4120e1c1c70d12cc22f00d28d31dd48a8d424f1#)"
-"  (q #00f7a7ca5367c661f8e62df34f0d05c10c88e5492348dd7bddc942c9a8f369f9"
-"      35a07785d2db805215ed786e4285df1658eed3ce84f469b81b50d358407b4ad361#)"
-"  (u #304559a9ead56d2309d203811a641bb1a09626bc8eb36fffa23c968ec5bd891e"
-"      ebbafc73ae666e01ba7c8990bae06cc2bbe10b75e69fcacb353a6473079d8e9b#)))";
-/* A sample 1024 bit RSA key used for the selftests (public only).  */
+" (private-key"
+"  (rsa"
+"  (n #009F56231A3D82E3E7D613D59D53E9AB921BEF9F08A782AED0B6E46ADBC853EC"
+"      7C71C422435A3CD8FA0DB9EFD55CD3295BADC4E8E2E2B94E15AE82866AB8ADE8"
+"      7E469FAE76DC3577DE87F1F419C4EB41123DFAF8D16922D5EDBAD6E9076D5A1C"
+"      958106F0AE5E2E9193C6B49124C64C2A241C4075D4AF16299EB87A6585BAE917"
+"      DEF27FCDD165764D069BC18D16527B29DAAB549F7BBED4A7C6A842D203ED6613"
+"      6E2411744E432CD26D940132F25874483DCAEECDFD95744819CBCF1EA810681C"
+"      42907EBCB1C7EAFBE75C87EC32C5413EA10476545D3FC7B2ADB1B66B7F200918"
+"      664B0E5261C2895AA28B0DE321E921B3F877172CCCAB81F43EF98002916156F6CB#)"
+"   (e #010001#)"
+"   (d #07EF82500C403899934FE993AC5A36F14FF2DF38CF1EF315F205EE4C83EDAA19"
+"       8890FC23DE9AA933CAFB37B6A8A8DBA675411958337287310D3FF2F1DDC0CB93"
+"       7E70F57F75F833C021852B631D2B9A520E4431A03C5C3FCB5742DCD841D9FB12"
+"       771AA1620DCEC3F1583426066ED9DC3F7028C5B59202C88FDF20396E2FA0EC4F"
+"       5A22D9008F3043673931BC14A5046D6327398327900867E39CC61B2D1AFE2F48"
+"       EC8E1E3861C68D257D7425F4E6F99ABD77D61F10CA100EFC14389071831B33DD"
+"       69CC8EABEF860D1DC2AAA84ABEAE5DFC91BC124DAF0F4C8EF5BBEA436751DE84"
+"       3A8063E827A024466F44C28614F93B0732A100D4A0D86D532FE1E22C7725E401#)"
+"   (p #00C29D438F115825779631CD665A5739367F3E128ADC29766483A46CA80897E0"
+"       79B32881860B8F9A6A04C2614A904F6F2578DAE13EA67CD60AE3D0AA00A1FF9B"
+"       441485E44B2DC3D0B60260FBFE073B5AC72FAF67964DE15C8212C389D20DB9CF"
+"       54AF6AEF5C4196EAA56495DD30CF709F499D5AB30CA35E086C2A1589D6283F1783#)"
+"   (q #00D1984135231CB243FE959C0CBEF551EDD986AD7BEDF71EDF447BE3DA27AF46"
+"       79C974A6FA69E4D52FE796650623DE70622862713932AA2FD9F2EC856EAEAA77"
+"       88B4EA6084DC81C902F014829B18EA8B2666EC41586818E0589E18876065F97E"
+"       8D22CE2DA53A05951EC132DCEF41E70A9C35F4ACC268FFAC2ADF54FA1DA110B919#)"
+"   (u #67CF0FD7635205DD80FA814EE9E9C267C17376BF3209FB5D1BC42890D2822A04"
+"       479DAF4D5B6ED69D0F8D1AF94164D07F8CD52ECEFE880641FA0F41DDAB1785E4"
+"       A37A32F997A516480B4CD4F6482B9466A1765093ED95023CA32D5EDC1E34CEE9"
+"       AF595BC51FE43C4BF810FA225AF697FB473B83815966188A4312C048B885E3F7#)))";
+
+/* A sample 2048 bit RSA key used for the selftests (public only).  */
 static const char sample_public_key[] =
-"(public-key"
-" (rsa"
-"  (n #00e0ce96f90b6c9e02f3922beada93fe50a875eac6bcc18bb9a9cf2e84965caa"
-"      2d1ff95a7f542465c6c0c19d276e4526ce048868a7a914fd343cc3a87dd74291"
-"      ffc565506d5bbb25cbac6a0e2dd1f8bcaab0d4a29c2f37c950f363484bf269f7"
-"      891440464baf79827e03a36e70b814938eebdc63e964247be75dc58b014b7ea251#)"
-"  (e #010001#)))";
-
-
+" (public-key"
+"  (rsa"
+"   (n #009F56231A3D82E3E7D613D59D53E9AB921BEF9F08A782AED0B6E46ADBC853EC"
+"       7C71C422435A3CD8FA0DB9EFD55CD3295BADC4E8E2E2B94E15AE82866AB8ADE8"
+"       7E469FAE76DC3577DE87F1F419C4EB41123DFAF8D16922D5EDBAD6E9076D5A1C"
+"       958106F0AE5E2E9193C6B49124C64C2A241C4075D4AF16299EB87A6585BAE917"
+"       DEF27FCDD165764D069BC18D16527B29DAAB549F7BBED4A7C6A842D203ED6613"
+"       6E2411744E432CD26D940132F25874483DCAEECDFD95744819CBCF1EA810681C"
+"       42907EBCB1C7EAFBE75C87EC32C5413EA10476545D3FC7B2ADB1B66B7F200918"
+"       664B0E5261C2895AA28B0DE321E921B3F877172CCCAB81F43EF98002916156F6CB#)"
+"   (e #010001#)))";
 
 
 static int test_keys (RSA_secret_key *sk, unsigned nbits);
@@ -1349,20 +1366,34 @@ compute_keygrip (gcry_md_hd_t md, gcry_sexp_t keyparam)
  */
 
 static const char *
-selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
+selftest_sign_2048 (gcry_sexp_t pkey, gcry_sexp_t skey)
 {
   static const char sample_data[] =
     "(data (flags pkcs1)"
-    " (hash sha1 #11223344556677889900aabbccddeeff10203040#))";
+    " (hash sha256 #11223344556677889900aabbccddeeff"
+    /**/           "102030405060708090a0b0c0d0f01121#))";
   static const char sample_data_bad[] =
     "(data (flags pkcs1)"
-    " (hash sha1 #11223344556677889900aabbccddeeff80203040#))";
+    " (hash sha256 #11223344556677889900aabbccddeeff"
+    /**/           "802030405060708090a0b0c0d0f01121#))";
 
   const char *errtxt = NULL;
   gcry_error_t err;
   gcry_sexp_t data = NULL;
   gcry_sexp_t data_bad = NULL;
   gcry_sexp_t sig = NULL;
+  /* raw signature data reference */
+  const char ref_data[] =
+    "6252a19a11e1d5155ed9376036277193d644fa239397fff03e9b92d6f86415d6"
+    "d30da9273775f290e580d038295ff8ff89522becccfa6ae870bf76b76df402a8"
+    "54f69347e3db3de8e1e7d4dada281ec556810c7a8ecd0b5f51f9b1c0e7aa7557"
+    "61aa2b8ba5f811304acc6af0eca41fe49baf33bf34eddaf44e21e036ac7f0b68"
+    "03cdef1c60021fb7b5b97ebacdd88ab755ce29af568dbc5728cc6e6eff42618d"
+    "62a0386ca8beed46402bdeeef29b6a3feded906bace411a06a39192bf516ae10"
+    "67e4320fa8ea113968525f4574d022a3ceeaafdc41079efe1f22cc94bf59d8d3"
+    "328085da9674857db56de5978a62394aab48aa3b72e23a1b16260cfd9daafe65";
+  gcry_mpi_t ref_mpi = NULL;
+  gcry_mpi_t sig_mpi = NULL;
 
   err = sexp_sscan (&data, NULL, sample_data, strlen (sample_data));
   if (!err)
@@ -1380,6 +1411,27 @@ selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
       errtxt = "signing failed";
       goto leave;
     }
+
+  err = _gcry_mpi_scan(&ref_mpi, GCRYMPI_FMT_HEX, ref_data, 0, NULL);
+  if (err)
+    {
+      errtxt = "converting ref_data to mpi failed";
+      goto leave;
+    }
+
+  err = _gcry_sexp_extract_param(sig, "sig-val!rsa", "s", &sig_mpi, NULL);
+  if (err)
+    {
+      errtxt = "extracting signature data failed";
+      goto leave;
+    }
+
+  if (mpi_cmp (sig_mpi, ref_mpi))
+    {
+      errtxt = "signature does not match reference data";
+      goto leave;
+    }
+
   err = _gcry_pk_verify (sig, data, pkey);
   if (err)
     {
@@ -1398,6 +1450,8 @@ selftest_sign_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
   sexp_release (sig);
   sexp_release (data_bad);
   sexp_release (data);
+  _gcry_mpi_release (ref_mpi);
+  _gcry_mpi_release (sig_mpi);
   return errtxt;
 }
 
@@ -1436,25 +1490,33 @@ extract_a_from_sexp (gcry_sexp_t encr_data)
 
 
 static const char *
-selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
+selftest_encr_2048 (gcry_sexp_t pkey, gcry_sexp_t skey)
 {
   const char *errtxt = NULL;
   gcry_error_t err;
-  const unsigned int nbits = 1000; /* Encrypt 1000 random bits.  */
-  gcry_mpi_t plaintext = NULL;
+  static const char plaintext[] =
+    "Jim quickly realized that the beautiful gowns are expensive.";
   gcry_sexp_t plain = NULL;
   gcry_sexp_t encr  = NULL;
   gcry_mpi_t  ciphertext = NULL;
   gcry_sexp_t decr  = NULL;
-  gcry_mpi_t  decr_plaintext = NULL;
+  char *decr_plaintext = NULL;
   gcry_sexp_t tmplist = NULL;
-
-  /* Create plaintext.  The plaintext is actually a big integer number.  */
-  plaintext = mpi_new (nbits);
-  _gcry_mpi_randomize (plaintext, nbits, GCRY_WEAK_RANDOM);
+  /* expected result of encrypting the plaintext with sample_secret_key */
+  static const char ref_data[] =
+    "18022e2593a402a737caaa93b4c7e750e20ca265452980e1d6b7710fbd3e"
+    "7dce72be5c2110fb47691cb38f42170ee3b4a37f2498d4a51567d762585e"
+    "4cb81d04fbc7df4144f8e5eac2d4b8688521b64011f11d7ad53f4c874004"
+    "819856f2e2a6f83d1c9c4e73ac26089789c14482b0b8d44139133c88c4a5"
+    "2dba9dd6d6ffc622666b7d129168333d999706af30a2d7d272db7734e5ed"
+    "fb8c64ea3018af3ad20f4a013a5060cb0f5e72753967bebe294280a6ed0d"
+    "dbd3c4f11d0a8696e9d32a0dc03deb0b5e49b2cbd1503392642d4e1211f3"
+    "e8e2ee38abaa3671ccd57fcde8ca76e85fd2cb77c35706a970a213a27352"
+    "cec92a9604d543ddb5fc478ff50e0622";
+  gcry_mpi_t ref_mpi = NULL;
 
   /* Put the plaintext into an S-expression.  */
-  err = sexp_build (&plain, NULL, "(data (flags raw) (value %m))", plaintext);
+  err = sexp_build (&plain, NULL, "(data (flags raw) (value %s))", plaintext);
   if (err)
     {
       errtxt = "converting data failed";
@@ -1466,6 +1528,13 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
   if (err)
     {
       errtxt = "encrypt failed";
+      goto leave;
+    }
+
+  err = _gcry_mpi_scan(&ref_mpi, GCRYMPI_FMT_HEX, ref_data, 0, NULL);
+  if (err)
+    {
+      errtxt = "converting encrydata to mpi failed";
       goto leave;
     }
 
@@ -1481,9 +1550,9 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
   /* Check that the ciphertext does no match the plaintext.  */
   /* _gcry_log_printmpi ("plaintext", plaintext); */
   /* _gcry_log_printmpi ("ciphertxt", ciphertext); */
-  if (!mpi_cmp (plaintext, ciphertext))
+  if (mpi_cmp (ref_mpi, ciphertext))
     {
-      errtxt = "ciphertext matches plaintext";
+      errtxt = "ciphertext doesn't match reference data";
       goto leave;
     }
 
@@ -1503,9 +1572,9 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
      take care of it anyway.  */
   tmplist = sexp_find_token (decr, "value", 0);
   if (tmplist)
-    decr_plaintext = sexp_nth_mpi (tmplist, 1, GCRYMPI_FMT_USG);
+    decr_plaintext = sexp_nth_string (tmplist, 1);
   else
-    decr_plaintext = sexp_nth_mpi (decr, 0, GCRYMPI_FMT_USG);
+    decr_plaintext = sexp_nth_string (decr, 0);
   if (!decr_plaintext)
     {
       errtxt = "decrypt returned no plaintext";
@@ -1513,7 +1582,7 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
     }
 
   /* Check that the decrypted plaintext matches the original  plaintext.  */
-  if (mpi_cmp (plaintext, decr_plaintext))
+  if (strcmp (plaintext, decr_plaintext))
     {
       errtxt = "mismatch";
       goto leave;
@@ -1521,12 +1590,12 @@ selftest_encr_1024 (gcry_sexp_t pkey, gcry_sexp_t skey)
 
  leave:
   sexp_release (tmplist);
-  _gcry_mpi_release (decr_plaintext);
+  xfree (decr_plaintext);
   sexp_release (decr);
   _gcry_mpi_release (ciphertext);
+  _gcry_mpi_release (ref_mpi);
   sexp_release (encr);
   sexp_release (plain);
-  _gcry_mpi_release (plaintext);
   return errtxt;
 }
 
@@ -1561,12 +1630,12 @@ selftests_rsa (selftest_report_func_t report)
     }
 
   what = "sign";
-  errtxt = selftest_sign_1024 (pkey, skey);
+  errtxt = selftest_sign_2048 (pkey, skey);
   if (errtxt)
     goto failed;
 
   what = "encrypt";
-  errtxt = selftest_encr_1024 (pkey, skey);
+  errtxt = selftest_encr_2048 (pkey, skey);
   if (errtxt)
     goto failed;
 
