@@ -1583,7 +1583,7 @@ run_rsa_gen (int keysize, int pubexp)
    encoded KEYFILE and the hash algorithm HASHALGO.  */
 static void
 run_rsa_sign (const void *data, size_t datalen,
-              int hashalgo, int pkcs1, const char *keyfile)
+              int hashalgo, int pkcs1, int pss, const char *keyfile)
 
 {
   gpg_error_t err;
@@ -1604,6 +1604,20 @@ run_rsa_sign (const void *data, size_t datalen,
       gcry_md_hash_buffer (hashalgo, hash, data, datalen);
       err = gcry_sexp_build (&s_data, NULL,
                              "(data (flags pkcs1)(hash %s %b))",
+                             gcry_md_algo_name (hashalgo),
+                             (int)hashsize, hash);
+    }
+  else if (pss)
+    {
+      unsigned char hash[64];
+      unsigned int hashsize;
+
+      hashsize = gcry_md_get_algo_dlen (hashalgo);
+      if (!hashsize || hashsize > sizeof hash)
+        die ("digest too long for buffer or unknown hash algorithm\n");
+      gcry_md_hash_buffer (hashalgo, hash, data, datalen);
+      err = gcry_sexp_build (&s_data, NULL,
+                             "(data (flags pss)(salt-length #00#)(hash %s %b))",
                              gcry_md_algo_name (hashalgo),
                              (int)hashsize, hash);
     }
@@ -1674,7 +1688,7 @@ run_rsa_sign (const void *data, size_t datalen,
    binary signature in SIGFILE.  */
 static void
 run_rsa_verify (const void *data, size_t datalen, int hashalgo, int pkcs1,
-                const char *keyfile, const char *sigfile)
+                int pss, const char *keyfile, const char *sigfile)
 
 {
   gpg_error_t err;
@@ -1691,6 +1705,20 @@ run_rsa_verify (const void *data, size_t datalen, int hashalgo, int pkcs1,
       gcry_md_hash_buffer (hashalgo, hash, data, datalen);
       err = gcry_sexp_build (&s_data, NULL,
                              "(data (flags pkcs1)(hash %s %b))",
+                             gcry_md_algo_name (hashalgo),
+                             (int)hashsize, hash);
+    }
+  else if (pss)
+    {
+      unsigned char hash[64];
+      unsigned int hashsize;
+
+      hashsize = gcry_md_get_algo_dlen (hashalgo);
+      if (!hashsize || hashsize > sizeof hash)
+        die ("digest too long for buffer or unknown hash algorithm\n");
+      gcry_md_hash_buffer (hashalgo, hash, data, datalen);
+      err = gcry_sexp_build (&s_data, NULL,
+                             "(data (flags pss)(salt-length #00#)(hash %s %b))",
                              gcry_md_algo_name (hashalgo),
                              (int)hashsize, hash);
     }
@@ -2285,6 +2313,7 @@ usage (int show_help)
      "  --signature NAME Take signature from file NAME\n"
      "  --chunk N        Read in chunks of N bytes (implies --binary)\n"
      "  --pkcs1          Use PKCS#1 encoding\n"
+     "  --pss            Use PSS encoding with a zero length salt\n"
      "  --mct-server     Run a monte carlo test server\n"
      "  --loop           Enable random loop mode\n"
      "  --progress       Print pogress indicators\n"
@@ -2302,6 +2331,7 @@ main (int argc, char **argv)
   int no_fips = 0;
   int progress = 0;
   int use_pkcs1 = 0;
+  int use_pss = 0;
   const char *mode_string;
   const char *curve_string = NULL;
   const char *key_string = NULL;
@@ -2432,6 +2462,11 @@ main (int argc, char **argv)
           use_pkcs1 = 1;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--pss"))
+        {
+          use_pss = 1;
+          argc--; argv++;
+        }
       else if (!strcmp (*argv, "--mct-server"))
         {
           mct_server = 1;
@@ -2446,7 +2481,11 @@ main (int argc, char **argv)
 
   if (!argc || argc > 2)
     usage (0);
+
   mode_string = *argv;
+
+  if (use_pkcs1 && use_pss)
+    die ("Only one of --pkcs or --pss may be given\n");
 
   if (!strcmp (mode_string, "rsa-derive"))
     binary_input = 1;
@@ -2718,7 +2757,7 @@ main (int argc, char **argv)
       if (!data)
         die ("no data available (do not use --chunk)\n");
 
-      run_rsa_sign (data, datalen, algo, use_pkcs1, key_string);
+      run_rsa_sign (data, datalen, algo, use_pkcs1, use_pss, key_string);
 
     }
   else if (!strcmp (mode_string, "rsa-verify"))
@@ -2741,7 +2780,7 @@ main (int argc, char **argv)
       if (access (signature_string, R_OK))
         die ("option --signature needs to specify an existing file\n");
 
-      run_rsa_verify (data, datalen, algo, use_pkcs1, key_string,
+      run_rsa_verify (data, datalen, algo, use_pkcs1, use_pss, key_string,
                       signature_string);
 
     }
