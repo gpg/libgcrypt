@@ -665,7 +665,7 @@ _gcry_pk_util_free_encoding_ctx (struct pk_encoding_ctx *ctx)
 
    LABEL is specific to OAEP.
 
-   SALT-LENGTH is for PSS.
+   SALT-LENGTH is for PSS it is limited to 16384 bytes.
 
    RANDOM-OVERRIDE is used to replace random nonces for regression
    testing.  */
@@ -1068,6 +1068,31 @@ _gcry_pk_util_data_to_mpi (gcry_sexp_t input, gcry_mpi_t *ret_mpi,
             rc = GPG_ERR_DIGEST_ALGO;
 	  else
 	    {
+	      gcry_sexp_t list;
+	      /* Get SALT-LENGTH. */
+	      list = sexp_find_token (ldata, "salt-length", 0);
+	      if (list)
+		{
+                  unsigned long ul;
+
+		  s = sexp_nth_data (list, 1, &n);
+		  if (!s)
+		    {
+		      rc = GPG_ERR_NO_OBJ;
+                      sexp_release (list);
+		      goto leave;
+		    }
+		  ul = strtoul (s, NULL, 10);
+                  if (ul > 16384)
+                    {
+                      rc = GPG_ERR_TOO_LARGE;
+                      sexp_release (list);
+                      goto leave;
+                    }
+                  ctx->saltlen = ul;
+		  sexp_release (list);
+		}
+
 	      *ret_mpi = sexp_nth_mpi (lhash, 2, GCRYMPI_FMT_USG);
 	      if (!*ret_mpi)
 		rc = GPG_ERR_INV_OBJ;
