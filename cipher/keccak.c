@@ -223,38 +223,105 @@ keccak_absorb_lane32bi(u32 *lane, u32 x0, u32 x1)
 /* Construct generic 64-bit implementation. */
 #ifdef USE_64BIT
 
+#if __GNUC__ >= 4 && defined(__x86_64__)
+
+static inline void absorb_lanes64_8(u64 *dst, const byte *in)
+{
+  asm ("movdqu 0*16(%[dst]), %%xmm0\n\t"
+       "movdqu 0*16(%[in]), %%xmm4\n\t"
+       "movdqu 1*16(%[dst]), %%xmm1\n\t"
+       "movdqu 1*16(%[in]), %%xmm5\n\t"
+       "movdqu 2*16(%[dst]), %%xmm2\n\t"
+       "movdqu 3*16(%[dst]), %%xmm3\n\t"
+       "pxor %%xmm4, %%xmm0\n\t"
+       "pxor %%xmm5, %%xmm1\n\t"
+       "movdqu 2*16(%[in]), %%xmm4\n\t"
+       "movdqu 3*16(%[in]), %%xmm5\n\t"
+       "movdqu %%xmm0, 0*16(%[dst])\n\t"
+       "pxor %%xmm4, %%xmm2\n\t"
+       "movdqu %%xmm1, 1*16(%[dst])\n\t"
+       "pxor %%xmm5, %%xmm3\n\t"
+       "movdqu %%xmm2, 2*16(%[dst])\n\t"
+       "movdqu %%xmm3, 3*16(%[dst])\n\t"
+       :
+       : [dst] "r" (dst), [in] "r" (in)
+       : "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "memory");
+}
+
+static inline void absorb_lanes64_4(u64 *dst, const byte *in)
+{
+  asm ("movdqu 0*16(%[dst]), %%xmm0\n\t"
+       "movdqu 0*16(%[in]), %%xmm4\n\t"
+       "movdqu 1*16(%[dst]), %%xmm1\n\t"
+       "movdqu 1*16(%[in]), %%xmm5\n\t"
+       "pxor %%xmm4, %%xmm0\n\t"
+       "pxor %%xmm5, %%xmm1\n\t"
+       "movdqu %%xmm0, 0*16(%[dst])\n\t"
+       "movdqu %%xmm1, 1*16(%[dst])\n\t"
+       :
+       : [dst] "r" (dst), [in] "r" (in)
+       : "xmm0", "xmm1", "xmm4", "xmm5", "memory");
+}
+
+static inline void absorb_lanes64_2(u64 *dst, const byte *in)
+{
+  asm ("movdqu 0*16(%[dst]), %%xmm0\n\t"
+       "movdqu 0*16(%[in]), %%xmm4\n\t"
+       "pxor %%xmm4, %%xmm0\n\t"
+       "movdqu %%xmm0, 0*16(%[dst])\n\t"
+       :
+       : [dst] "r" (dst), [in] "r" (in)
+       : "xmm0", "xmm4", "memory");
+}
+
+#else /* __x86_64__ */
+
+static inline void absorb_lanes64_8(u64 *dst, const byte *in)
+{
+  dst[0] ^= buf_get_le64(in + 8 * 0);
+  dst[1] ^= buf_get_le64(in + 8 * 1);
+  dst[2] ^= buf_get_le64(in + 8 * 2);
+  dst[3] ^= buf_get_le64(in + 8 * 3);
+  dst[4] ^= buf_get_le64(in + 8 * 4);
+  dst[5] ^= buf_get_le64(in + 8 * 5);
+  dst[6] ^= buf_get_le64(in + 8 * 6);
+  dst[7] ^= buf_get_le64(in + 8 * 7);
+}
+
+static inline void absorb_lanes64_4(u64 *dst, const byte *in)
+{
+  dst[0] ^= buf_get_le64(in + 8 * 0);
+  dst[1] ^= buf_get_le64(in + 8 * 1);
+  dst[2] ^= buf_get_le64(in + 8 * 2);
+  dst[3] ^= buf_get_le64(in + 8 * 3);
+}
+
+static inline void absorb_lanes64_2(u64 *dst, const byte *in)
+{
+  dst[0] ^= buf_get_le64(in + 8 * 0);
+  dst[1] ^= buf_get_le64(in + 8 * 1);
+}
+
+#endif /* !__x86_64__ */
+
+static inline void absorb_lanes64_1(u64 *dst, const byte *in)
+{
+  dst[0] ^= buf_get_le64(in + 8 * 0);
+}
+
+
 # define ANDN64(x, y) (~(x) & (y))
 # define ROL64(x, n) (((x) << ((unsigned int)n & 63)) | \
 		      ((x) >> ((64 - (unsigned int)(n)) & 63)))
 
 # define KECCAK_F1600_PERMUTE_FUNC_NAME keccak_f1600_state_permute64
+# define KECCAK_F1600_ABSORB_FUNC_NAME keccak_absorb_lanes64
 # include "keccak_permute_64.h"
 
 # undef ANDN64
 # undef ROL64
 # undef KECCAK_F1600_PERMUTE_FUNC_NAME
-
-static unsigned int
-keccak_absorb_lanes64(KECCAK_STATE *hd, int pos, const byte *lanes,
-		      unsigned int nlanes, int blocklanes)
-{
-  unsigned int burn = 0;
-
-  while (nlanes)
-    {
-      hd->u.state64[pos] ^= buf_get_le64(lanes);
-      lanes += 8;
-      nlanes--;
-
-      if (++pos == blocklanes)
-	{
-	  burn = keccak_f1600_state_permute64(hd);
-	  pos = 0;
-	}
-    }
-
-  return burn;
-}
+# undef KECCAK_F1600_ABSORB_FUNC_NAME
 
 static const keccak_ops_t keccak_generic64_ops =
 {
@@ -279,33 +346,13 @@ static const keccak_ops_t keccak_generic64_ops =
 			tmp; })
 
 # define KECCAK_F1600_PERMUTE_FUNC_NAME keccak_f1600_state_permute64_shld
+# define KECCAK_F1600_ABSORB_FUNC_NAME keccak_absorb_lanes64_shld
 # include "keccak_permute_64.h"
 
 # undef ANDN64
 # undef ROL64
 # undef KECCAK_F1600_PERMUTE_FUNC_NAME
-
-static unsigned int
-keccak_absorb_lanes64_shld(KECCAK_STATE *hd, int pos, const byte *lanes,
-			   unsigned int nlanes, int blocklanes)
-{
-  unsigned int burn = 0;
-
-  while (nlanes)
-    {
-      hd->u.state64[pos] ^= buf_get_le64(lanes);
-      lanes += 8;
-      nlanes--;
-
-      if (++pos == blocklanes)
-	{
-	  burn = keccak_f1600_state_permute64_shld(hd);
-	  pos = 0;
-	}
-    }
-
-  return burn;
-}
+# undef KECCAK_F1600_ABSORB_FUNC_NAME
 
 static const keccak_ops_t keccak_shld_64_ops =
 {
@@ -335,33 +382,13 @@ static const keccak_ops_t keccak_shld_64_ops =
 			tmp; })
 
 # define KECCAK_F1600_PERMUTE_FUNC_NAME keccak_f1600_state_permute64_bmi2
+# define KECCAK_F1600_ABSORB_FUNC_NAME keccak_absorb_lanes64_bmi2
 # include "keccak_permute_64.h"
 
 # undef ANDN64
 # undef ROL64
 # undef KECCAK_F1600_PERMUTE_FUNC_NAME
-
-static unsigned int
-keccak_absorb_lanes64_bmi2(KECCAK_STATE *hd, int pos, const byte *lanes,
-			   unsigned int nlanes, int blocklanes)
-{
-  unsigned int burn = 0;
-
-  while (nlanes)
-    {
-      hd->u.state64[pos] ^= buf_get_le64(lanes);
-      lanes += 8;
-      nlanes--;
-
-      if (++pos == blocklanes)
-	{
-	  burn = keccak_f1600_state_permute64_bmi2(hd);
-	  pos = 0;
-	}
-    }
-
-  return burn;
-}
+# undef KECCAK_F1600_ABSORB_FUNC_NAME
 
 static const keccak_ops_t keccak_bmi2_64_ops =
 {
