@@ -5851,16 +5851,12 @@ check_digests (void)
       {	GCRY_MD_CRC32_RFC1510, "test0123456789", "\xb8\x3e\x88\xd6" },
       {	GCRY_MD_CRC32_RFC1510, "MASSACHVSETTS INSTITVTE OF TECHNOLOGY",
 	"\xe3\x41\x80\xf7" },
-#if 0
-      {	GCRY_MD_CRC32_RFC1510, "\x80\x00", "\x3b\x83\x98\x4b" },
-      {	GCRY_MD_CRC32_RFC1510, "\x00\x08", "\x0e\xdb\x88\x32" },
-      {	GCRY_MD_CRC32_RFC1510, "\x00\x80", "\xed\xb8\x83\x20" },
-#endif
+      {	GCRY_MD_CRC32_RFC1510, "\x80\x00", "\x3b\x83\x98\x4b", 2 },
+      {	GCRY_MD_CRC32_RFC1510, "\x00\x08", "\x0e\xdb\x88\x32", 2 },
+      {	GCRY_MD_CRC32_RFC1510, "\x00\x80", "\xed\xb8\x83\x20", 2 },
       {	GCRY_MD_CRC32_RFC1510, "\x80", "\xed\xb8\x83\x20" },
-#if 0
-      {	GCRY_MD_CRC32_RFC1510, "\x80\x00\x00\x00", "\xed\x59\xb6\x3b" },
-      {	GCRY_MD_CRC32_RFC1510, "\x00\x00\x00\x01", "\x77\x07\x30\x96" },
-#endif
+      {	GCRY_MD_CRC32_RFC1510, "\x80\x00\x00\x00", "\xed\x59\xb6\x3b", 4 },
+      {	GCRY_MD_CRC32_RFC1510, "\x00\x00\x00\x01", "\x77\x07\x30\x96", 4 },
       { GCRY_MD_CRC32_RFC1510, "123456789", "\x2d\xfd\x2d\x88" },
       {	GCRY_MD_CRC24_RFC2440, "", "\xb7\x04\xce" },
       {	GCRY_MD_CRC24_RFC2440, "foo", "\x4f\xc2\x55" },
