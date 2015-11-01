@@ -59,7 +59,19 @@
 #endif
 
 
-#ifdef USE_64BIT
+/* USE_64BIT_ARM_NEON indicates whether to enable 64-bit ARM/NEON assembly
+ * code. */
+#undef USE_64BIT_ARM_NEON
+#ifdef ENABLE_NEON_SUPPORT
+# if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__) \
+     && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) \
+     && defined(HAVE_GCC_INLINE_ASM_NEON)
+#  define USE_64BIT_ARM_NEON 1
+# endif
+#endif /*ENABLE_NEON_SUPPORT*/
+
+
+#if defined(USE_64BIT) || defined(USE_64BIT_ARM_NEON)
 # define NEED_COMMON64 1
 #endif
 
@@ -109,7 +121,7 @@ typedef struct KECCAK_CONTEXT_S
 
 #ifdef NEED_COMMON64
 
-static const u64 round_consts_64bit[24] =
+const u64 _gcry_keccak_round_consts_64bit[24 + 1] =
 {
   U64_C(0x0000000000000001), U64_C(0x0000000000008082),
   U64_C(0x800000000000808A), U64_C(0x8000000080008000),
@@ -122,7 +134,8 @@ static const u64 round_consts_64bit[24] =
   U64_C(0x8000000000008002), U64_C(0x8000000000000080),
   U64_C(0x000000000000800A), U64_C(0x800000008000000A),
   U64_C(0x8000000080008081), U64_C(0x8000000000008080),
-  U64_C(0x0000000080000001), U64_C(0x8000000080008008)
+  U64_C(0x0000000080000001), U64_C(0x8000000080008008),
+  U64_C(0xFFFFFFFFFFFFFFFF)
 };
 
 static unsigned int
@@ -400,6 +413,54 @@ static const keccak_ops_t keccak_bmi2_64_ops =
 #endif /* USE_64BIT_BMI2 */
 
 
+/* 64-bit ARMv7/NEON implementation. */
+#ifdef USE_64BIT_ARM_NEON
+
+unsigned int _gcry_keccak_permute_armv7_neon(u64 *state);
+unsigned int _gcry_keccak_absorb_lanes64_armv7_neon(u64 *state, int pos,
+						    const byte *lanes,
+						    unsigned int nlanes,
+						    int blocklanes);
+
+static unsigned int keccak_permute64_armv7_neon(KECCAK_STATE *hd)
+{
+  return _gcry_keccak_permute_armv7_neon(hd->u.state64);
+}
+
+static unsigned int
+keccak_absorb_lanes64_armv7_neon(KECCAK_STATE *hd, int pos, const byte *lanes,
+				 unsigned int nlanes, int blocklanes)
+{
+  if (blocklanes < 0)
+    {
+      /* blocklanes == -1, permutationless absorb from keccak_final. */
+
+      while (nlanes)
+	{
+	  hd->u.state64[pos] ^= buf_get_le64(lanes);
+	  lanes += 8;
+	  nlanes--;
+	}
+
+      return 0;
+    }
+  else
+    {
+      return _gcry_keccak_absorb_lanes64_armv7_neon(hd->u.state64, pos, lanes,
+						    nlanes, blocklanes);
+    }
+}
+
+static const keccak_ops_t keccak_armv7_neon_64_ops =
+{
+  .permute = keccak_permute64_armv7_neon,
+  .absorb = keccak_absorb_lanes64_armv7_neon,
+  .extract = keccak_extract64,
+};
+
+#endif /* USE_64BIT_ARM_NEON */
+
+
 /* Construct generic 32-bit implementation. */
 #ifdef USE_32BIT
 
@@ -662,6 +723,10 @@ keccak_init (int algo, void *context, unsigned int flags)
 
   /* Select optimized implementation based in hw features. */
   if (0) {}
+#ifdef USE_64BIT_ARM_NEON
+  else if (features & HWF_ARM_NEON)
+    ctx->ops = &keccak_armv7_neon_64_ops;
+#endif
 #ifdef USE_64BIT_BMI2
   else if (features & HWF_INTEL_BMI2)
     ctx->ops = &keccak_bmi2_64_ops;

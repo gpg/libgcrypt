@@ -2108,7 +2108,7 @@ if test "$found" = "1" ; then
 
    if test x"$neonsupport" = xyes ; then
      # Build with the NEON implementation
-     :
+     GCRYPT_DIGESTS="$GCRYPT_DIGESTS keccak-armv7-neon.lo"
    fi
 fi
 

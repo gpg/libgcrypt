@@ -25,7 +25,7 @@
 static unsigned int
 KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
 {
-  const u64 *round_consts = round_consts_64bit;
+  const u64 *round_consts = _gcry_keccak_round_consts_64bit;
   u64 Aba, Abe, Abi, Abo, Abu;
   u64 Aga, Age, Agi, Ago, Agu;
   u64 Aka, Ake, Aki, Ako, Aku;
