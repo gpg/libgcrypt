@@ -92,7 +92,7 @@ typedef const char *(*pk_get_curve_t)(gcry_sexp_t keyparms, int iterator,
 typedef gcry_sexp_t (*pk_get_curve_param_t)(const char *name);
 
 
-/* Module specification structure for public key algoritms.  */
+/* Module specification structure for public key algorithms.  */
 typedef struct gcry_pk_spec
 {
   int algo;

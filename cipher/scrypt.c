@@ -246,7 +246,7 @@ _gcry_kdf_scrypt (const unsigned char *passwd, size_t passwdlen,
                   unsigned long iterations,
                   size_t dkLen, unsigned char *DK)
 {
-  u64 N = subalgo;    /* CPU/memory cost paramter.  */
+  u64 N = subalgo;    /* CPU/memory cost parameter.  */
   u32 r;              /* Block size.  */
   u32 p = iterations; /* Parallelization parameter.  */
 

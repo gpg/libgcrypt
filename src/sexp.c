@@ -53,7 +53,7 @@
    data) is required as well.  The close_tag finishes the list and
    would actually be sufficient.  For fail-safe reasons a final stop
    tag is always the last byte in a buffer; it has a value of 0 so
-   that string function accidently applied to an S-expression will
+   that string function accidentally applied to an S-expression will
    never access unallocated data.  We do not support display hints and
    thus don't need to represent them.  A list may have more an
    arbitrary number of data elements but at least one is required.

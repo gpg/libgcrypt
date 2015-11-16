@@ -955,7 +955,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
      However, the kernel appears to synchronise the TSCs across CPUs at
      boot time (it resets the TSC as part of its system init), so this
      shouldn't really be a problem.  Under WinCE it's completely platform-
-     dependant, if there's no hardware performance counter available, it
+     dependent, if there's no hardware performance counter available, it
      uses the 1ms system timer.
 
      Another feature of the TSC (although it doesn't really affect us here)

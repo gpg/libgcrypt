@@ -319,7 +319,7 @@ _gcry_dsa_gen_rfc6979_k (gcry_mpi_t *r_k,
 
   /* The caller may have requested that we introduce some extra loops.
      This is for example useful if the caller wants another value for
-     K because the last returned one yielded an R of 0.  Becuase this
+     K because the last returned one yielded an R of 0.  Because this
      is very unlikely we implement it in a straightforward way.  */
   if (extraloops)
     {

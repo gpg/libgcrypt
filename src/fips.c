@@ -102,7 +102,7 @@ _gcry_initialize_fips_mode (int force)
   static int done;
   gpg_error_t err;
 
-  /* Make sure we are not accidently called twice.  */
+  /* Make sure we are not accidentally called twice.  */
   if (done)
     {
       if ( fips_mode () )
@@ -377,7 +377,7 @@ _gcry_fips_is_operational (void)
              (GCRYCTL_INITIALIZATION_FINISHED) where the latter will
              run the selftests.  The drawback of these on-demand
              self-tests are a small chance that self-tests are
-             performed by severeal threads; that is no problem because
+             performed by several threads; that is no problem because
              our FSM make sure that we won't oversee any error. */
           unlock_fsm ();
           _gcry_fips_run_selftests (0);

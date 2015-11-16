@@ -1234,7 +1234,7 @@ do_fast_random_poll (void)
 # endif /*!RUSAGE_SELF*/
 #endif /*HAVE_GETRUSAGE*/
 
-  /* Time and clock are availabe on all systems - so we better do it
+  /* Time and clock are available on all systems - so we better do it
      just in case one of the above functions didn't work.  */
   {
     time_t x = time(NULL);
@@ -1275,12 +1275,12 @@ _gcry_rngcsprng_fast_poll (void)
 
 
 static void
-read_random_source (enum random_origins orgin, size_t length, int level )
+read_random_source (enum random_origins origin, size_t length, int level)
 {
   if ( !slow_gather_fnc )
     log_fatal ("Slow entropy gathering module not yet initialized\n");
 
-  if ( slow_gather_fnc (add_randomness, orgin, length, level) < 0)
+  if (slow_gather_fnc (add_randomness, origin, length, level) < 0)
     log_fatal ("No way to gather entropy for the RNG\n");
 }
 

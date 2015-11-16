@@ -49,7 +49,7 @@
  * encrypt or decrypt data in 64bit blocks in Electronic Codebook Mode.
  *
  * (In the examples below the slashes at the beginning and ending of comments
- * are omited.)
+ * are omitted.)
  *
  * DES Example
  * -----------
@@ -68,7 +68,7 @@
  *     * Encrypt the plaintext *
  *     des_ecb_encrypt(context, plaintext, ciphertext);
  *
- *     * To recover the orginal plaintext from ciphertext use: *
+ *     * To recover the original plaintext from ciphertext use: *
  *     des_ecb_decrypt(context, ciphertext, recoverd);
  *
  *

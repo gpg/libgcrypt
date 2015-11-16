@@ -426,7 +426,7 @@ test_mul (void)
 
 
 /* What we test here is that we don't overwrite our args and that
-   using thne same mpi for several args works.  */
+   using the same mpi for several args works.  */
 static int
 test_powm (void)
 {

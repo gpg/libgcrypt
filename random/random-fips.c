@@ -104,7 +104,7 @@ static size_t entropy_collect_buffer_size;     /* Allocated length.  */
 /* This random context type is used to track properties of one random
    generator. Thee context are usually allocated in secure memory so
    that the seed value is well protected.  There are a couble of guard
-   fields to help detecting applications accidently overwriting parts
+   fields to help detecting applications accidentally overwriting parts
    of the memory. */
 struct rng_context
 {
@@ -315,7 +315,7 @@ x931_get_dt (unsigned char *buffer, size_t length, rng_context_t rng_ctx)
     if (gettimeofday (&tv, NULL))
       log_fatal ("gettimeofday() failed: %s\n", strerror (errno));
 
-    /* The microseconds part is always less than 1 millon (0x0f4240).
+    /* The microseconds part is always less than 1 million (0x0f4240).
        Thus we don't care about the MSB and in addition shift it to
        the left by 4 bits.  */
     usec = tv.tv_usec;

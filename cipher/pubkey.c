@@ -114,7 +114,7 @@ spec_from_name (const char *name)
  * set the function will only succeed if a private key has been given.
  * On success the spec is stored at R_SPEC.  On error NULL is stored
  * at R_SPEC and an error code returned.  If R_PARMS is not NULL and
- * the fucntion returns success, the parameter list below
+ * the function returns success, the parameter list below
  * "private-key" or "public-key" is stored there and the caller must
  * call gcry_sexp_release on it.
  */
@@ -945,7 +945,7 @@ _gcry_pk_selftest (int algo, int extended, selftest_report_func_t report)
   else
     {
       ec = GPG_ERR_PUBKEY_ALGO;
-      /* Fixme: We need to change the report fucntion to allow passing
+      /* Fixme: We need to change the report function to allow passing
          of an encryption mode (e.g. pkcs1, ecdsa, or ecdh).  */
       if (report)
         report ("pubkey", algo, "module",

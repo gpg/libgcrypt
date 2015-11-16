@@ -307,7 +307,7 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
       c->spec->encrypt (&c->context.c, l_tmp, l_tmp);
       buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
 
-      /* Mark AAD as finalized to avoid accidently calling this
+      /* Mark AAD as finalized to avoid accidentally calling this
          function again after a non-full block has been processed.  */
       c->u_mode.ocb.aad_finalized = 1;
     }

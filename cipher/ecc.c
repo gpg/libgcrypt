@@ -30,7 +30,7 @@
       Ramiro Moreno Chiral
       Mikael Mylnikov (mmr)
   For use in Libgcrypt the code has been heavily modified and cleaned
-  up. In fact there is not much left of the orginally code except for
+  up. In fact there is not much left of the originally code except for
   some variable names and the text book implementaion of the sign and
   verification algorithms.  The arithmetic functions have entirely
   been rewritten and moved to mpi/ec.c.

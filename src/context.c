@@ -47,7 +47,7 @@ struct gcry_context
 
 /* Allocate a fresh generic context of contect TYPE and allocate
    LENGTH extra bytes for private use of the type handler. DEINIT is a
-   fucntion used called to deinitialize the private part; it may be
+   function used called to deinitialize the private part; it may be
    NULL if de-initialization is not required.  Returns NULL and sets
    ERRNO if memory allocation failed.  */
 gcry_ctx_t

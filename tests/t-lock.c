@@ -229,7 +229,7 @@ init_accounts (void)
 }
 
 
-/* Check that the sum of all accounts matches the intial sum.  */
+/* Check that the sum of all accounts matches the initial sum.  */
 static void
 check_accounts (void)
 {
@@ -261,7 +261,7 @@ get_rand (int high)
 }
 
 
-/* Pick a random account.  Note that this fucntion is not
+/* Pick a random account.  Note that this function is not
    thread-safe. */
 static int
 pick_account (void)

@@ -305,7 +305,7 @@ print_config ( int (*fnc)(FILE *fp, const char *format, ...), FILE *fp)
       fnc (fp, "%s:", s);
   fnc (fp, "\n");
   /* We use y/n instead of 1/0 for the simple reason that Emacsen's
-     compile error parser would accidently flag that line when printed
+     compile error parser would accidentally flag that line when printed
      during "make check" as an error.  */
   fnc (fp, "fips-mode:%c:%c:\n",
        fips_mode ()? 'y':'n',
@@ -867,7 +867,7 @@ _gcry_free (void *p)
     return;
 
   /* In case ERRNO is set we better save it so that the free machinery
-     may not accidently change ERRNO.  We restore it only if it was
+     may not accidentally change ERRNO.  We restore it only if it was
      already set to comply with the usual C semantic for ERRNO.  */
   save_errno = errno;
   if (free_func)

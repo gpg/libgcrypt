@@ -46,7 +46,7 @@ octet_string_from_mpi (unsigned char **r_frame, void *space,
 
 
 /* Encode {VALUE,VALUELEN} for an NBITS keys using the pkcs#1 block
-   type 2 padding.  On sucess the result is stored as a new MPI at
+   type 2 padding.  On success the result is stored as a new MPI at
    R_RESULT.  On error the value at R_RESULT is undefined.
 
    If {RANDOM_OVERRIDE, RANDOM_OVERRIDE_LEN} is given it is used as
@@ -675,7 +675,7 @@ _gcry_rsa_oaep_decode (unsigned char **r_result, size_t *r_resultlen,
     }
   db = seed + hlen;
 
-  /* To avoid choosen ciphertext attacks from now on we make sure to
+  /* To avoid chosen ciphertext attacks from now on we make sure to
      run all code even in the error case; this avoids possible timing
      attacks as described by Manger.  */
 
