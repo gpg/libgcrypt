@@ -26,6 +26,7 @@ static unsigned int
 KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
 {
   const u64 *round_consts = _gcry_keccak_round_consts_64bit;
+  const u64 *round_consts_end = _gcry_keccak_round_consts_64bit + 24;
   u64 Aba, Abe, Abi, Abo, Abu;
   u64 Aga, Age, Agi, Ago, Agu;
   u64 Aka, Ake, Aki, Ako, Aku;
@@ -39,7 +40,6 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
   u64 Ema, Eme, Emi, Emo, Emu;
   u64 Esa, Ese, Esi, Eso, Esu;
   u64 *state = hd->u.state64;
-  unsigned int round;
 
   Aba = state[0];
   Abe = state[1];
@@ -67,7 +67,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
   Aso = state[23];
   Asu = state[24];
 
-  for (round = 0; round < 24; round += 2)
+  do
     {
       /* prepareTheta */
       BCa = Aba ^ Aga ^ Aka ^ Ama ^ Asa;
@@ -94,7 +94,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
       Asu ^= Du;
       BCu = ROL64(Asu, 14);
       Eba = BCa ^ ANDN64(BCe, BCi);
-      Eba ^= (u64)round_consts[round];
+      Eba ^= *(round_consts++);
       Ebe = BCe ^ ANDN64(BCi, BCo);
       Ebi = BCi ^ ANDN64(BCo, BCu);
       Ebo = BCo ^ ANDN64(BCu, BCa);
@@ -189,7 +189,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
       Esu ^= Du;
       BCu = ROL64(Esu, 14);
       Aba = BCa ^ ANDN64(BCe, BCi);
-      Aba ^= (u64)round_consts[round + 1];
+      Aba ^= *(round_consts++);
       Abe = BCe ^ ANDN64(BCi, BCo);
       Abi = BCi ^ ANDN64(BCo, BCu);
       Abo = BCo ^ ANDN64(BCu, BCa);
@@ -259,6 +259,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
       Aso = BCo ^ ANDN64(BCu, BCa);
       Asu = BCu ^ ANDN64(BCa, BCe);
     }
+  while (round_consts < round_consts_end);
 
   state[0] = Aba;
   state[1] = Abe;
@@ -303,12 +304,11 @@ KECCAK_F1600_ABSORB_FUNC_NAME(KECCAK_STATE *hd, int pos, const byte *lanes,
 	  /* SHAKE128 */
 	  while (pos == 0 && nlanes >= 21)
 	    {
-	      absorb_lanes64_8(&hd->u.state64[0], lanes + 8 * 0);
-	      absorb_lanes64_4(&hd->u.state64[8], lanes + 8 * 8);
-	      absorb_lanes64_8(&hd->u.state64[12], lanes + 8 * 12);
-	      absorb_lanes64_1(&hd->u.state64[20], lanes + 8 * 20);
-	      lanes += 8 * 21;
 	      nlanes -= 21;
+	      absorb_lanes64_8(&hd->u.state64[0], lanes); lanes += 8 * 8;
+	      absorb_lanes64_8(&hd->u.state64[8], lanes); lanes += 8 * 8;
+	      absorb_lanes64_4(&hd->u.state64[16], lanes); lanes += 8 * 4;
+	      absorb_lanes64_1(&hd->u.state64[20], lanes); lanes += 8 * 1;
 
 	      burn = KECCAK_F1600_PERMUTE_FUNC_NAME(hd);
 	    }
@@ -318,11 +318,10 @@ KECCAK_F1600_ABSORB_FUNC_NAME(KECCAK_STATE *hd, int pos, const byte *lanes,
 	  /* SHA3-224 */
 	  while (pos == 0 && nlanes >= 18)
 	    {
-	      absorb_lanes64_8(&hd->u.state64[0], lanes + 8 * 0);
-	      absorb_lanes64_2(&hd->u.state64[8], lanes + 8 * 8);
-	      absorb_lanes64_8(&hd->u.state64[10], lanes + 8 * 10);
-	      lanes += 8 * 18;
 	      nlanes -= 18;
+	      absorb_lanes64_8(&hd->u.state64[0], lanes); lanes += 8 * 8;
+	      absorb_lanes64_8(&hd->u.state64[8], lanes); lanes += 8 * 8;
+	      absorb_lanes64_2(&hd->u.state64[16], lanes); lanes += 8 * 2;
 
 	      burn = KECCAK_F1600_PERMUTE_FUNC_NAME(hd);
 	    }
@@ -332,11 +331,10 @@ KECCAK_F1600_ABSORB_FUNC_NAME(KECCAK_STATE *hd, int pos, const byte *lanes,
 	  /* SHA3-256 & SHAKE256 */
 	  while (pos == 0 && nlanes >= 17)
 	    {
-	      absorb_lanes64_8(&hd->u.state64[0], lanes + 8 * 0);
-	      absorb_lanes64_8(&hd->u.state64[8], lanes + 8 * 8);
-	      absorb_lanes64_1(&hd->u.state64[16], lanes + 8 * 16);
-	      lanes += 8 * 17;
 	      nlanes -= 17;
+	      absorb_lanes64_8(&hd->u.state64[0], lanes); lanes += 8 * 8;
+	      absorb_lanes64_8(&hd->u.state64[8], lanes); lanes += 8 * 8;
+	      absorb_lanes64_1(&hd->u.state64[16], lanes); lanes += 8 * 1;
 
 	      burn = KECCAK_F1600_PERMUTE_FUNC_NAME(hd);
 	    }
@@ -346,11 +344,10 @@ KECCAK_F1600_ABSORB_FUNC_NAME(KECCAK_STATE *hd, int pos, const byte *lanes,
 	  /* SHA3-384 */
 	  while (pos == 0 && nlanes >= 13)
 	    {
-	      absorb_lanes64_8(&hd->u.state64[0], lanes + 8 * 0);
-	      absorb_lanes64_4(&hd->u.state64[8], lanes + 8 * 8);
-	      absorb_lanes64_1(&hd->u.state64[12], lanes + 8 * 12);
-	      lanes += 8 * 13;
 	      nlanes -= 13;
+	      absorb_lanes64_8(&hd->u.state64[0], lanes); lanes += 8 * 8;
+	      absorb_lanes64_4(&hd->u.state64[8], lanes); lanes += 8 * 4;
+	      absorb_lanes64_1(&hd->u.state64[12], lanes); lanes += 8 * 1;
 
 	      burn = KECCAK_F1600_PERMUTE_FUNC_NAME(hd);
 	    }
@@ -360,10 +357,9 @@ KECCAK_F1600_ABSORB_FUNC_NAME(KECCAK_STATE *hd, int pos, const byte *lanes,
 	  /* SHA3-512 */
 	  while (pos == 0 && nlanes >= 9)
 	    {
-	      absorb_lanes64_8(&hd->u.state64[0], lanes + 8 * 0);
-	      absorb_lanes64_1(&hd->u.state64[8], lanes + 8 * 8);
-	      lanes += 8 * 9;
 	      nlanes -= 9;
+	      absorb_lanes64_8(&hd->u.state64[0], lanes); lanes += 8 * 8;
+	      absorb_lanes64_1(&hd->u.state64[8], lanes); lanes += 8 * 1;
 
 	      burn = KECCAK_F1600_PERMUTE_FUNC_NAME(hd);
 	    }

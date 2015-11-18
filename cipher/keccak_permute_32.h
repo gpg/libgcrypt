@@ -27,6 +27,7 @@ static unsigned int
 KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
 {
   const u32 *round_consts = round_consts_32bit;
+  const u32 *round_consts_end = round_consts_32bit + 2 * 24;
   u32 Aba0, Abe0, Abi0, Abo0, Abu0;
   u32 Aba1, Abe1, Abi1, Abo1, Abu1;
   u32 Aga0, Age0, Agi0, Ago0, Agu0;
@@ -52,7 +53,6 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
   u32 Esa0, Ese0, Esi0, Eso0, Esu0;
   u32 Esa1, Ese1, Esi1, Eso1, Esu1;
   u32 *state = hd->u.state32bi;
-  unsigned int round;
 
   Aba0 = state[0];
   Aba1 = state[1];
@@ -105,7 +105,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
   Asu0 = state[48];
   Asu1 = state[49];
 
-  for (round = 0; round < 24; round += 2)
+  do
     {
       /* prepareTheta */
       BCa0 = Aba0 ^ Aga0 ^ Aka0 ^ Ama0 ^ Asa0;
@@ -142,7 +142,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
       Asu0 ^= Du0;
       BCu0 = ROL32(Asu0, 7);
       Eba0 = BCa0 ^ ANDN32(BCe0, BCi0);
-      Eba0 ^= round_consts[round * 2 + 0];
+      Eba0 ^= *(round_consts++);
       Ebe0 = BCe0 ^ ANDN32(BCi0, BCo0);
       Ebi0 = BCi0 ^ ANDN32(BCo0, BCu0);
       Ebo0 = BCo0 ^ ANDN32(BCu0, BCa0);
@@ -159,7 +159,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
       Asu1 ^= Du1;
       BCu1 = ROL32(Asu1, 7);
       Eba1 = BCa1 ^ ANDN32(BCe1, BCi1);
-      Eba1 ^= round_consts[round * 2 + 1];
+      Eba1 ^= *(round_consts++);
       Ebe1 = BCe1 ^ ANDN32(BCi1, BCo1);
       Ebi1 = BCi1 ^ ANDN32(BCo1, BCu1);
       Ebo1 = BCo1 ^ ANDN32(BCu1, BCa1);
@@ -328,7 +328,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
       Esu0 ^= Du0;
       BCu0 = ROL32(Esu0, 7);
       Aba0 = BCa0 ^ ANDN32(BCe0, BCi0);
-      Aba0 ^= round_consts[round * 2 + 2];
+      Aba0 ^= *(round_consts++);
       Abe0 = BCe0 ^ ANDN32(BCi0, BCo0);
       Abi0 = BCi0 ^ ANDN32(BCo0, BCu0);
       Abo0 = BCo0 ^ ANDN32(BCu0, BCa0);
@@ -345,7 +345,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
       Esu1 ^= Du1;
       BCu1 = ROL32(Esu1, 7);
       Aba1 = BCa1 ^ ANDN32(BCe1, BCi1);
-      Aba1 ^= round_consts[round * 2 + 3];
+      Aba1 ^= *(round_consts++);
       Abe1 = BCe1 ^ ANDN32(BCi1, BCo1);
       Abi1 = BCi1 ^ ANDN32(BCo1, BCu1);
       Abo1 = BCo1 ^ ANDN32(BCu1, BCa1);
@@ -479,6 +479,7 @@ KECCAK_F1600_PERMUTE_FUNC_NAME(KECCAK_STATE *hd)
       Aso1 = BCo1 ^ ANDN32(BCu1, BCa1);
       Asu1 = BCu1 ^ ANDN32(BCa1, BCe1);
     }
+  while (round_consts < round_consts_end);
 
   state[0] = Aba0;
   state[1] = Aba1;
