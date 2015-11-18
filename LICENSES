@@ -54,56 +54,6 @@ with any binary distributions derived from the GNU C Library.
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #+end_quote
 
-* Simple permissive licenses
-
-  For files:
-  - cipher/crc.c
-
-#+begin_quote
-  Copyright (c) 1996 L. Peter Deutsch
-
-  Permission is granted to copy and distribute this document for
-  any purpose and without charge, including translations into
-  other languages and incorporation into compilations, provided
-  that the copyright notice and this notice are preserved, and
-  that any substantive changes or deletions from the original are
-  clearly marked.
-#+end_quote
-
-* IETF permissive licenses
-
-  For files:
-  - cipher/crc.c
-
-#+begin_quote
-  Copyright (C) The Internet Society (1998).  All Rights Reserved.
-
-  This document and translations of it may be copied and furnished
-  to others, and derivative works that comment on or otherwise
-  explain it or assist in its implementation may be prepared,
-  copied, published and distributed, in whole or in part, without
-  restriction of any kind, provided that the above copyright notice
-  and this paragraph are included on all such copies and derivative
-  works.  However, this document itself may not be modified in any
-  way, such as by removing the copyright notice or references to
-  the Internet Society or other Internet organizations, except as
-  needed for the purpose of developing Internet standards in which
-  case the procedures for copyrights defined in the Internet
-  Standards process must be followed, or as required to translate
-  it into languages other than English.
-
-  The limited permissions granted above are perpetual and will not be
-  revoked by the Internet Society or its successors or assigns.
-
-  This document and the information contained herein is provided on
-  an "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET
-  ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE
-  OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY
-  IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR
-  PURPOSE.
-#+end_quote
-
 * X License
 
   For files:
