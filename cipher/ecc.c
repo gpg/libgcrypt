@@ -1382,6 +1382,12 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, 0,
                                     sk.E.p, sk.E.a, sk.E.b);
 
+  if (!_gcry_mpi_ec_curve_point (&kG, ec))
+    {
+      point_free (&kG);
+      return GPG_ERR_INV_DATA;
+    }
+
   /* R = dkG */
   _gcry_mpi_ec_mul_point (&R, sk.d, &kG, ec);
 
