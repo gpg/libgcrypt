@@ -1570,6 +1570,12 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (DBG_CIPHER)
     log_printpnt ("ecc_decrypt    kG", &kG, NULL);
 
+  if (!_gcry_mpi_ec_curve_point (&kG, ec))
+    {
+      point_free (&kG);
+      return GPG_ERR_INV_DATA;
+    }
+
   /* R = dkG */
   _gcry_mpi_ec_mul_point (&R, sk.d, &kG, ec);
 
