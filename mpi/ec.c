@@ -1254,12 +1254,13 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
           mpi_point_struct tmppnt;
 
           point_init (&tmppnt);
+          point_resize (result, ctx);
+          point_resize (&tmppnt, ctx);
           for (j=nbits-1; j >= 0; j--)
             {
               _gcry_mpi_ec_dup_point (result, result, ctx);
               _gcry_mpi_ec_add_points (&tmppnt, result, point, ctx);
-              if (mpi_test_bit (scalar, j))
-                point_set (result, &tmppnt);
+              point_swap_cond (result, &tmppnt, mpi_test_bit (scalar, j), ctx);
             }
           point_free (&tmppnt);
         }
