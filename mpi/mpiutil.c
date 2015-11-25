@@ -483,12 +483,17 @@ _gcry_mpi_set (gcry_mpi_t w, gcry_mpi_t u)
   return w;
 }
 
+/****************
+ * Set the value of W by the one of U, when SET is 1.
+ * Leave the value when SET is 0.
+ * This implementation should be constant-time regardless of SET.
+ */
 gcry_mpi_t
 _gcry_mpi_set_cond (gcry_mpi_t w, const gcry_mpi_t u, unsigned long set)
 {
   mpi_size_t i;
   mpi_size_t nlimbs = u->alloced;
-  mpi_limb_t mask = ((mpi_limb_t)0) - !!set;
+  mpi_limb_t mask = ((mpi_limb_t)0) - set;
   mpi_limb_t x;
 
   if (w->alloced != u->alloced)
@@ -568,12 +573,17 @@ _gcry_mpi_swap (gcry_mpi_t a, gcry_mpi_t b)
 }
 
 
+/****************
+ * Swap the value of A and B, when SWAP is 1.
+ * Leave the value when SWAP is 0.
+ * This implementation should be constant-time regardless of SWAP.
+ */
 void
 _gcry_mpi_swap_cond (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
 {
   mpi_size_t i;
   mpi_size_t nlimbs = a->alloced;
-  mpi_limb_t mask = ((mpi_limb_t)0) - !!swap;
+  mpi_limb_t mask = ((mpi_limb_t)0) - swap;
   mpi_limb_t x;
 
   if (a->alloced != b->alloced)
