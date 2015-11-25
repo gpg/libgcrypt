@@ -582,11 +582,15 @@ void
 _gcry_mpi_swap_cond (gcry_mpi_t a, gcry_mpi_t b, unsigned long swap)
 {
   mpi_size_t i;
-  mpi_size_t nlimbs = a->alloced;
+  mpi_size_t nlimbs;
   mpi_limb_t mask = ((mpi_limb_t)0) - swap;
   mpi_limb_t x;
 
-  if (a->alloced != b->alloced)
+  if (a->alloced > b->alloced)
+    nlimbs = b->alloced;
+  else
+    nlimbs = a->alloced;
+  if (a->nlimbs > nlimbs || b->nlimbs > nlimbs)
     log_bug ("mpi_swap_cond: different sizes\n");
 
   for (i = 0; i < nlimbs; i++)
