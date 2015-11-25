@@ -1236,16 +1236,27 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   unsigned int i, loops;
   mpi_point_struct p1, p2, p1inv;
 
-  if (ctx->model == MPI_EC_EDWARDS)
+  if (ctx->model == MPI_EC_EDWARDS
+      || (ctx->model == MPI_EC_WEIERSTRASS
+          && mpi_is_secure (scalar)))
     {
       /* Simple left to right binary method.  GECC Algorithm 3.27 */
       unsigned int nbits;
       int j;
 
       nbits = mpi_get_nbits (scalar);
-      mpi_set_ui (result->x, 0);
-      mpi_set_ui (result->y, 1);
-      mpi_set_ui (result->z, 1);
+      if (ctx->model == MPI_EC_WEIERSTRASS)
+        {
+          mpi_set_ui (result->x, 1);
+          mpi_set_ui (result->y, 1);
+          mpi_set_ui (result->z, 0);
+        }
+      else
+        {
+          mpi_set_ui (result->x, 0);
+          mpi_set_ui (result->y, 1);
+          mpi_set_ui (result->z, 1);
+        }
 
       if (mpi_is_secure (scalar))
         {
