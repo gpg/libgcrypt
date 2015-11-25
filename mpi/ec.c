@@ -139,6 +139,34 @@ point_set (mpi_point_t d, mpi_point_t s)
 }
 
 
+static void
+point_resize (mpi_point_t p, mpi_ec_t ctx)
+{
+  /*
+   * For now, we allocate enough limbs for our EC computation of ec_*.
+   * Once we will improve ec_* to be constant size (and constant
+   * time), NLIMBS can be ctx->p->nlimbs.
+   */
+  size_t nlimbs = 2*ctx->p->nlimbs+1;
+
+  mpi_resize (p->x, nlimbs);
+  if (ctx->model != MPI_EC_MONTGOMERY)
+    mpi_resize (p->y, nlimbs);
+  mpi_resize (p->z, nlimbs);
+}
+
+
+static void
+point_swap_cond (mpi_point_t d, mpi_point_t s, unsigned long swap,
+                 mpi_ec_t ctx)
+{
+  mpi_swap_cond (d->x, s->x, swap);
+  if (ctx->model != MPI_EC_MONTGOMERY)
+    mpi_swap_cond (d->y, s->y, swap);
+  mpi_swap_cond (d->z, s->z, swap);
+}
+
+
 /* Set the projective coordinates from POINT into X, Y, and Z.  If a
    coordinate is not required, X, Y, or Z may be passed as NULL.  */
 void
@@ -1253,7 +1281,6 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       mpi_point_struct p1_, p2_;
       mpi_point_t q1, q2, prd, sum;
       unsigned long sw;
-      size_t nlimbs;
 
       /* Compute scalar point multiplication with Montgomery Ladder.
          Note that we don't use Y-coordinate in the points at all.
@@ -1269,15 +1296,10 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       p2.x  = mpi_copy (point->x);
       mpi_set_ui (p2.z, 1);
 
-      nlimbs = 2*(nbits+BITS_PER_MPI_LIMB-1)/BITS_PER_MPI_LIMB+1;
-      mpi_resize (p1.x, nlimbs);
-      mpi_resize (p1.z, nlimbs);
-      mpi_resize (p2.x, nlimbs);
-      mpi_resize (p2.z, nlimbs);
-      mpi_resize (p1_.x, nlimbs);
-      mpi_resize (p1_.z, nlimbs);
-      mpi_resize (p2_.x, nlimbs);
-      mpi_resize (p2_.z, nlimbs);
+      point_resize (&p1, ctx);
+      point_resize (&p2, ctx);
+      point_resize (&p1_, ctx);
+      point_resize (&p2_, ctx);
 
       q1 = &p1;
       q2 = &p2;
@@ -1289,19 +1311,16 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
           mpi_point_t t;
 
           sw = mpi_test_bit (scalar, j);
-          mpi_swap_cond (q1->x, q2->x, sw);
-          mpi_swap_cond (q1->z, q2->z, sw);
+          point_swap_cond (q1, q2, sw, ctx);
           montgomery_ladder (prd, sum, q1, q2, point->x, ctx);
-          mpi_swap_cond (prd->x, sum->x, sw);
-          mpi_swap_cond (prd->z, sum->z, sw);
+          point_swap_cond (prd, sum, sw, ctx);
           t = q1;  q1 = prd;  prd = t;
           t = q2;  q2 = sum;  sum = t;
         }
 
       mpi_clear (result->y);
       sw = (nbits & 1);
-      mpi_swap_cond (p1.x, p1_.x, sw);
-      mpi_swap_cond (p1.z, p1_.z, sw);
+      point_swap_cond (&p1, &p1_, sw, ctx);
 
       if (p1.z->nlimbs == 0)
         {
