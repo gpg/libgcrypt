@@ -1415,6 +1415,10 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
   point_init (&p2);
   point_init (&p1inv);
 
+  /* Invert point: y = p - y mod p  */
+  point_set (&p1inv, &p1);
+  ec_subm (p1inv.y, ctx->p, p1inv.y, ctx);
+
   for (i=loops-2; i > 0; i--)
     {
       _gcry_mpi_ec_dup_point (result, result, ctx);
@@ -1426,9 +1430,6 @@ _gcry_mpi_ec_mul_point (mpi_point_t result,
       if (mpi_test_bit (h, i) == 0 && mpi_test_bit (k, i) == 1)
         {
           point_set (&p2, result);
-          /* Invert point: y = p - y mod p  */
-          point_set (&p1inv, &p1);
-          ec_subm (p1inv.y, ctx->p, p1inv.y, ctx);
           _gcry_mpi_ec_add_points (result, &p2, &p1inv, ctx);
         }
     }
