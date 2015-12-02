@@ -173,12 +173,6 @@ static void (*fast_gather_fnc)(void (*)(const void*, size_t,
    used by regular applications.  */
 static int quick_test;
 
-/* On systems without entropy gathering modules, this flag is set to
-   indicate that the random generator is not working properly.  A
-   warning message is issued as well.  This is useful only for
-   debugging and during development.  */
-static int faked_rng;
-
 /* This is the lock we use to protect all pool operations.  */
 GPGRT_LOCK_DEFINE (pool_lock);
 
@@ -241,8 +235,6 @@ static void (*getfnc_fast_random_poll (void))(void (*)(const void*, size_t,
                                               enum random_origins);
 static void read_random_source (enum random_origins origin,
                                 size_t length, int level);
-static int gather_faked (void (*add)(const void*, size_t, enum random_origins),
-                         enum random_origins, size_t length, int level );
 
 
 
@@ -326,11 +318,6 @@ initialize(void)
       /* Setup the slow entropy gathering function.  The code requires
          that this function exists. */
       slow_gather_fnc = getfnc_gather_random ();
-      if (!slow_gather_fnc)
-        {
-          faked_rng = 1;
-          slow_gather_fnc = gather_faked;
-	}
 
       /* Setup the fast entropy gathering function.  */
       fast_gather_fnc = getfnc_fast_random_poll ();
@@ -453,7 +440,7 @@ _gcry_rngcsprng_is_faked (void)
   /* We need to initialize due to the runtime determination of
      available entropy gather modules.  */
   initialize();
-  return (faked_rng || quick_test);
+  return quick_test;
 }
 
 
@@ -1151,9 +1138,9 @@ getfnc_gather_random (void))(void (*)(const void*, size_t,
   return fnc;
 #endif
 
-  log_info (_("no entropy gathering module detected\n"));
+  log_fatal (_("no entropy gathering module detected\n"));
 
-  return NULL;
+  return NULL; /*NOTREACHED*/
 }
 
 /* Runtime determination of the fast entropy gathering function.
@@ -1282,41 +1269,4 @@ read_random_source (enum random_origins origin, size_t length, int level)
 
   if (slow_gather_fnc (add_randomness, origin, length, level) < 0)
     log_fatal ("No way to gather entropy for the RNG\n");
-}
-
-
-static int
-gather_faked (void (*add)(const void*, size_t, enum random_origins),
-              enum random_origins origin, size_t length, int level )
-{
-  static int initialized=0;
-  size_t n;
-  char *buffer, *p;
-
-  (void)add;
-  (void)level;
-
-  if ( !initialized )
-    {
-      log_info(_("WARNING: using insecure random number generator!!\n"));
-      initialized=1;
-#ifdef HAVE_RAND
-      srand( time(NULL)*getpid());
-#else
-      srandom( time(NULL)*getpid());
-#endif
-    }
-
-  p = buffer = xmalloc( length );
-  n = length;
-#ifdef HAVE_RAND
-  while ( n-- )
-    *p++ = ((unsigned)(1 + (int) (256.0*rand()/(RAND_MAX+1.0)))-1);
-#else
-  while ( n-- )
-    *p++ = ((unsigned)(1 + (int) (256.0*random()/(RAND_MAX+1.0)))-1);
-#endif
-  add_randomness ( buffer, length, origin );
-  xfree (buffer);
-  return 0; /* okay */
 }
