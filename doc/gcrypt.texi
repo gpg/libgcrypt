@@ -4180,7 +4180,7 @@ logging stream.
 @noindent
 Often canonical encoding is used in the external representation.  The
 following function can be used to check for valid encoding and to learn
-the length of the S-expression"
+the length of the S-expression.
 
 @deftypefun size_t gcry_sexp_canon_len (@w{const unsigned char *@var{buffer}}, @w{size_t @var{length}}, @w{size_t *@var{erroff}}, @w{int *@var{errcode}})
 
