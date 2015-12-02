@@ -1151,9 +1151,9 @@ getfnc_gather_random (void))(void (*)(const void*, size_t,
   return fnc;
 #endif
 
-  log_fatal (_("no entropy gathering module detected\n"));
+  log_info (_("no entropy gathering module detected\n"));
 
-  return NULL; /*NOTREACHED*/
+  return NULL;
 }
 
 /* Runtime determination of the fast entropy gathering function.
