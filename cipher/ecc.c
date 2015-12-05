@@ -606,17 +606,14 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
                                           &encpk, &encpklen);
       else
         {
-          int off = !!(flags & PUBKEY_FLAG_COMP);
-
-          encpk = _gcry_mpi_get_buffer_extra (Qx, ctx->nbits/8, off?-1:0,
+          encpk = _gcry_mpi_get_buffer_extra (Qx, ctx->nbits/8, -1,
                                               &encpklen, NULL);
           if (encpk == NULL)
             rc = gpg_err_code_from_syserror ();
           else
             {
-              if (off)
-                encpk[0] = 0x40;
-              encpklen += off;
+              encpk[0] = 0x40;
+              encpklen++;
             }
         }
       if (rc)
@@ -1374,11 +1371,13 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_s = _gcry_ecc_ec2os (x, y, pk.E.p);
     else
       {
-        rawmpi = _gcry_mpi_get_buffer (x, ec->nbits/8, &rawmpilen, NULL);
+        rawmpi = _gcry_mpi_get_buffer_extra (x, ec->nbits/8, -1,
+                                             &rawmpilen, NULL);
         if (!rawmpi)
           rc = gpg_err_code_from_syserror ();
         else
           {
+            rawmpi[0] = 0x40;
             mpi_s = mpi_new (0);
             mpi_set_opaque (mpi_s, rawmpi, rawmpilen*8);
           }
@@ -1393,11 +1392,13 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       mpi_e = _gcry_ecc_ec2os (x, y, pk.E.p);
     else
       {
-        rawmpi = _gcry_mpi_get_buffer (x, ec->nbits/8, &rawmpilen, NULL);
+        rawmpi = _gcry_mpi_get_buffer_extra (x, ec->nbits/8, -1,
+                                             &rawmpilen, NULL);
         if (!rawmpi)
           rc = gpg_err_code_from_syserror ();
         else
           {
+            rawmpi[0] = 0x40;
             mpi_e = mpi_new (0);
             mpi_set_opaque (mpi_e, rawmpi, rawmpilen*8);
           }
@@ -1587,11 +1588,13 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         unsigned char *rawmpi;
         unsigned int rawmpilen;
 
-        rawmpi = _gcry_mpi_get_buffer (x, ec->nbits/8, &rawmpilen, NULL);
+        rawmpi = _gcry_mpi_get_buffer_extra (x, ec->nbits/8, -1,
+                                             &rawmpilen, NULL);
         if (!rawmpi)
           rc = gpg_err_code_from_syserror ();
         else
           {
+            rawmpi[0] = 0x40;
             r = mpi_new (0);
             mpi_set_opaque (r, rawmpi, rawmpilen*8);
           }

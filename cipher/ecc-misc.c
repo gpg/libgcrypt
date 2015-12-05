@@ -292,6 +292,7 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
 gpg_err_code_t
 _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
 {
+  unsigned char *a;
   unsigned char *rawmpi;
   unsigned int rawmpilen;
 
@@ -311,8 +312,8 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
           buf++;
         }
 
-      rawmpi = xtrymalloc (rawmpilen? rawmpilen:1);
-      if (!rawmpi)
+      a = rawmpi = xtrymalloc (rawmpilen? rawmpilen:1);
+      if (!a)
         return gpg_err_code_from_syserror ();
 
       p = rawmpi + rawmpilen;
@@ -321,16 +322,47 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
     }
   else
     {
-      /* Note: Without using an opaque MPI it is not reliable possible
-         to find out whether the public key has been given in
-         uncompressed format.  Thus we expect native EdDSA format.  */
-      rawmpi = _gcry_mpi_get_buffer (pk, ctx->nbits/8, &rawmpilen, NULL);
-      if (!rawmpi)
+      a = rawmpi = _gcry_mpi_get_buffer (pk, ctx->nbits/8, &rawmpilen, NULL);
+      if (!a)
         return gpg_err_code_from_syserror ();
+      /*
+       * It is not reliable to assume that 0x40 means the prefix.
+       *
+       * For newer implementation, it is reliable since we always put
+       * 0x40 for x-only coordinate.
+       *
+       * For data with older implementation (non-released development
+       * version), it is possibe to have the 0x40 as a part of data.
+       * Besides, when data was parsed as MPI, we might have 0x00
+       * prefix.
+       *
+       * So, we need to check if it's really the prefix or not.
+       * Only when it's the prefix, we remove it.
+       */
+      if (ctx->nbits/8 == rawmpilen - 1)
+        rawmpi++;
+      else if (rawmpilen < ctx->nbits/8)
+        {/*
+          * It is possible for data created by older implementation
+          * to have shorter length when it was parsed as MPI.
+          */
+          unsigned int new_rawmpilen = ctx->nbits/8;
+
+          rawmpi = xtrymalloc (new_rawmpilen);
+          if (!rawmpi)
+            {
+              gpg_err_code_t err = gpg_err_code_from_syserror ();
+              xfree (a);
+              return err;
+            }
+
+          memset (rawmpi, 0, new_rawmpilen - rawmpilen);
+          memcpy (rawmpi + new_rawmpilen - rawmpilen, a, rawmpilen);
+        }
     }
 
   _gcry_mpi_set_buffer (result->x, rawmpi, rawmpilen, 0);
-  xfree (rawmpi);
+  xfree (a);
   mpi_set_ui (result->z, 1);
 
   return 0;
