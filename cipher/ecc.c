@@ -1591,7 +1591,10 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
         rawmpi = _gcry_mpi_get_buffer_extra (x, ec->nbits/8, -1,
                                              &rawmpilen, NULL);
         if (!rawmpi)
-          rc = gpg_err_code_from_syserror ();
+          {
+            rc = gpg_err_code_from_syserror ();
+            goto leave;
+          }
         else
           {
             rawmpi[0] = 0x40;
