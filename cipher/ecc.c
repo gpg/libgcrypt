@@ -1242,7 +1242,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   gcry_mpi_t data = NULL;
   ECC_public_key pk;
   mpi_ec_t ec = NULL;
-  int flags;
+  int flags = 0;
 
   memset (&pk, 0, sizeof pk);
   _gcry_pk_util_init_encoding_ctx (&ctx, PUBKEY_OP_ENCRYPT,
