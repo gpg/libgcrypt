@@ -139,10 +139,18 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
 
 
   /* First read from a hardware source.  However let it account only
-     for up to 50% of the requested bytes.  */
+     for up to 50% (or 25% for RDRAND) of the requested bytes.  */
   n_hw = _gcry_rndhw_poll_slow (add, origin);
-  if (n_hw > length/2)
-    n_hw = length/2;
+  if ((_gcry_get_hw_features () & HWF_INTEL_RDRAND))
+    {
+      if (n_hw > length/4)
+        n_hw = length/4;
+    }
+  else
+    {
+      if (n_hw > length/2)
+        n_hw = length/2;
+    }
   if (length > 1)
     length -= n_hw;
 
