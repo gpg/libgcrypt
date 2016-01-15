@@ -62,7 +62,7 @@ my_make_filename (const char *first_part, const char *second_part)
       && (home = getenv("HOME")) && *home )
     n += strlen(home);
 
-  name = gcry_xmalloc(n);
+  name = _gcry_xmalloc(n);
   p = (home
        ? stpcpy (stpcpy (name, home), first_part+1 )
        : stpcpy (name, first_part) );
@@ -161,7 +161,7 @@ _gcry_rndegd_connect_socket (int nofail)
 #endif
   if (user_socket_name)
     {
-      name = gcry_strdup (user_socket_name);
+      name = _gcry_strdup (user_socket_name);
       if (!name)
         {
           if (!nofail)
