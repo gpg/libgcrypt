@@ -86,6 +86,9 @@
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
 #include <string.h>
 
 /* OS-specific includes */
@@ -726,12 +729,18 @@ start_gatherer( int pipefd )
     {	int nmax, n1, n2, i;
 #ifdef _SC_OPEN_MAX
 	if( (nmax=sysconf( _SC_OPEN_MAX )) < 0 ) {
-#ifdef _POSIX_OPEN_MAX
+# ifdef _POSIX_OPEN_MAX
 	    nmax = _POSIX_OPEN_MAX;
-#else
+# else
 	    nmax = 20; /* assume a reasonable value */
-#endif
+# endif
 	}
+        /* AIX returns INT32_MAX instead of a proper value.  We assume that
+         * this is always an error and use a reasonable value.  */
+# ifdef INT32_MAX
+        if (nmax == INT32_MAX)
+          nmax = 20;
+# endif
 #else /*!_SC_OPEN_MAX*/
 	nmax = 20; /* assume a reasonable value */
 #endif /*!_SC_OPEN_MAX*/
