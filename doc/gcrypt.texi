@@ -4805,7 +4805,7 @@ newly allocated point object.
 @end deftypefun
 
 @anchor{gcry_mpi_ec_new}
-@deftypefun gpg_error_t gcry_mpi_ec_p_new (@w{gpg_ctx_t *@var{r_ctx}}, @
+@deftypefun gpg_error_t gcry_mpi_ec_new (@w{gcry_ctx_t *@var{r_ctx}}, @
  @w{gcry_sexp_t @var{keyparam}}, @w{const char *@var{curvename}})
 
 Allocate a new context for elliptic curve operations.  If
