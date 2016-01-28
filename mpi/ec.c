@@ -589,6 +589,27 @@ _gcry_mpi_ec_set_point (const char *name, gcry_mpi_point_t newvalue,
 }
 
 
+/* Given an encoded point in the MPI VALUE and a context EC, decode
+ * the point according to the context and store it in RESULT.  On
+ * error an error code is return but RESULT might have been changed.
+ * If no context is given the function tries to decode VALUE by
+ * assuming a 0x04 prefixed uncompressed encoding.  */
+gpg_err_code_t
+_gcry_mpi_ec_decode_point (mpi_point_t result, gcry_mpi_t value, mpi_ec_t ec)
+{
+  gcry_err_code_t rc;
+
+  if (ec && ec->dialect == ECC_DIALECT_ED25519)
+    rc = _gcry_ecc_eddsa_decodepoint (value, ec, result, NULL, NULL);
+  else if (ec && ec->model == MPI_EC_MONTGOMERY)
+    rc = _gcry_ecc_mont_decodepoint (value, ec, result);
+  else
+    rc = _gcry_ecc_os2ec (result, value);
+
+  return rc;
+}
+
+
 /* Compute the affine coordinates from the projective coordinates in
    POINT.  Set them into X and Y.  If one coordinate is not required,
    X or Y may be passed as NULL.  CTX is the usual context. Returns: 0

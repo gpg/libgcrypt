@@ -36,6 +36,7 @@ Noteworthy changes in version 1.7.0 (unreleased)
  gcry_cipher_set_sbox            NEW macro.
  GCRY_MD_GOSTR3411_CP            NEW.
  gcry_mpi_ec_sub                 NEW.
+ gcry_mpi_ec_decode_point        NEW.
  GCRY_CIPHER_MODE_OCB            NEW.
  GCRYCTL_SET_TAGLEN              NEW.
  gcry_cipher_final               NEW macro.

@@ -307,6 +307,8 @@ gpg_err_code_t _gcry_mpi_ec_set_mpi (const char *name, gcry_mpi_t newvalue,
 gpg_err_code_t _gcry_mpi_ec_set_point (const char *name,
                                        gcry_mpi_point_t newvalue,
                                        gcry_ctx_t ctx);
+gpg_err_code_t _gcry_mpi_ec_decode_point (mpi_point_t result,
+                                          gcry_mpi_t value, mpi_ec_t ec);
 
 /*-- ecc-curves.c --*/
 gpg_err_code_t _gcry_mpi_ec_new (gcry_ctx_t *r_ctx,

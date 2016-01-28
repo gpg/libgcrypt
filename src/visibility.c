@@ -544,6 +544,15 @@ gcry_mpi_ec_set_point (const char *name, gcry_mpi_point_t newvalue,
   return gpg_error (_gcry_mpi_ec_set_point (name, newvalue, ctx));
 }
 
+gpg_error_t
+gcry_mpi_ec_decode_point (gcry_mpi_point_t result, gcry_mpi_t value,
+                          gcry_ctx_t ctx)
+{
+  return gpg_error (_gcry_mpi_ec_decode_point
+                    (result, value,
+                     ctx? _gcry_ctx_get_pointer (ctx, CONTEXT_TYPE_EC) : NULL));
+}
+
 int
 gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_point_t point,
                         gcry_ctx_t ctx)

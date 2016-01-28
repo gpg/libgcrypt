@@ -280,4 +280,6 @@ EXPORTS
 
       gcry_md_extract           @245
 
+      gcry_mpi_ec_decode_point  @246
+
 ;; end of file with public symbols for Windows.

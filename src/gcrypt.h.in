@@ -694,6 +694,10 @@ gpg_error_t gcry_mpi_ec_set_mpi (const char *name, gcry_mpi_t newvalue,
 gpg_error_t gcry_mpi_ec_set_point (const char *name, gcry_mpi_point_t newvalue,
                                    gcry_ctx_t ctx);
 
+/* Decode and store VALUE into RESULT.  */
+gpg_error_t gcry_mpi_ec_decode_point (gcry_mpi_point_t result,
+                                      gcry_mpi_t value, gcry_ctx_t ctx);
+
 /* Store the affine coordinates of POINT into X and Y.  */
 int gcry_mpi_ec_get_affine (gcry_mpi_t x, gcry_mpi_t y, gcry_mpi_point_t point,
                             gcry_ctx_t ctx);

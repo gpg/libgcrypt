@@ -4882,6 +4882,19 @@ Valid names are the point parameters of an elliptic curve
 (@pxref{ecc_keyparam}).
 @end deftypefun
 
+@deftypefun gpg_err_code_t gcry_mpi_ec_decode_point ( @
+ @w{mpi_point_t @var{result}}, @w{gcry_mpi_t @var{value}}, @
+ @w{gcry_ctx_t @var{ctx}})
+
+Decode the point given as an MPI in @var{value} and store at
+@var{result}.  To decide which encoding is used the function takes a
+context @var{ctx} which can be created with @code{gcry_mpi_ec_new}.
+If @code{NULL} is given for the context the function assumes a 0x04
+prefixed uncompressed encoding.  On error an error code is returned
+and @var{result} might be changed.
+@end deftypefun
+
+
 @deftypefun int gcry_mpi_ec_get_affine ( @
  @w{gcry_mpi_t @var{x}}, @w{gcry_mpi_t @var{y}}, @
  @w{gcry_mpi_point_t @var{point}}, @w{gcry_ctx_t @var{ctx}})
