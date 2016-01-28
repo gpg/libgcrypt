@@ -23,6 +23,18 @@ Noteworthy changes in version 1.7.0 (unreleased)
 
  * Added OCB mode.
 
+ * Added support for the SHA3-224, SHA3-256, SHA3-384 and SHA3-512
+   hash algorithms.
+
+ * Added support for the SHAKE128 and SHAKE256 extendable-output
+   function algorithms.
+
+ * Added support for the ChaCha20 stream cipher.
+
+ * Added support for the Poly1305 message authentication algorithm and
+   ChaCha20-Poly1305 Authenticated Encryption with Associated Data
+   mode.
+
  * New flag "no-keytest" for ECC key generation.  Due to a bug in the
    parser that flag will also be accepted but ignored by older version
    of Libgcrypt.
@@ -30,6 +42,7 @@ Noteworthy changes in version 1.7.0 (unreleased)
  * Interface changes relative to the 1.6.0 release:
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  gcry_mac_get_algo               NEW.
+ gcry_md_extract                 NEW.
  GCRY_MAC_HMAC_MD2               NEW.
  GCRY_MD_FLAG_BUGEMU1            NEW.
  GCRYCTL_SET_SBOX                NEW.
