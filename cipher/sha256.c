@@ -174,50 +174,34 @@ sha224_init (void *context, unsigned int flags)
 /*
   Transform the message X which consists of 16 32-bit-words. See FIPS
   180-2 for details.  */
-#define S0(x) (ror ((x), 7) ^ ror ((x), 18) ^ ((x) >> 3))       /* (4.6) */
-#define S1(x) (ror ((x), 17) ^ ror ((x), 19) ^ ((x) >> 10))     /* (4.7) */
 #define R(a,b,c,d,e,f,g,h,k,w) do                                 \
           {                                                       \
             t1 = (h) + Sum1((e)) + Cho((e),(f),(g)) + (k) + (w);  \
             t2 = Sum0((a)) + Maj((a),(b),(c));                    \
-            h = g;                                                \
-            g = f;                                                \
-            f = e;                                                \
-            e = d + t1;                                           \
-            d = c;                                                \
-            c = b;                                                \
-            b = a;                                                \
-            a = t1 + t2;                                          \
+            d += t1;                                              \
+            h  = t1 + t2;                                         \
           } while (0)
 
 /* (4.2) same as SHA-1's F1.  */
-static inline u32
-Cho (u32 x, u32 y, u32 z)
-{
-  return (z ^ (x & (y ^ z)));
-}
+#define Cho(x, y, z)  (z ^ (x & (y ^ z)))
 
 /* (4.3) same as SHA-1's F3 */
-static inline u32
-Maj (u32 x, u32 y, u32 z)
-{
-  return ((x & y) | (z & (x|y)));
-}
+#define Maj(x, y, z)  ((x & y) + (z & (x ^ y)))
 
 /* (4.4) */
-static inline u32
-Sum0 (u32 x)
-{
-  return (ror (x, 2) ^ ror (x, 13) ^ ror (x, 22));
-}
+#define Sum0(x)       (ror (x, 2) ^ ror (x, 13) ^ ror (x, 22))
 
 /* (4.5) */
-static inline u32
-Sum1 (u32 x)
-{
-  return (ror (x, 6) ^ ror (x, 11) ^ ror (x, 25));
-}
+#define Sum1(x)       (ror (x, 6) ^ ror (x, 11) ^ ror (x, 25))
 
+/* Message expansion */
+#define S0(x) (ror ((x), 7) ^ ror ((x), 18) ^ ((x) >> 3))       /* (4.6) */
+#define S1(x) (ror ((x), 17) ^ ror ((x), 19) ^ ((x) >> 10))     /* (4.7) */
+#define I(i) ( w[i] = buf_get_be32(data + i * 4) )
+#define W(i) ( w[i&0x0f] =    S1(w[(i-2) &0x0f]) \
+                            +    w[(i-7) &0x0f]  \
+                            + S0(w[(i-15)&0x0f]) \
+                            +    w[(i-16)&0x0f] )
 
 static unsigned int
 transform_blk (void *ctx, const unsigned char *data)
@@ -243,8 +227,7 @@ transform_blk (void *ctx, const unsigned char *data)
   };
 
   u32 a,b,c,d,e,f,g,h,t1,t2;
-  u32 w[64];
-  int i;
+  u32 w[16];
 
   a = hd->h0;
   b = hd->h1;
@@ -255,60 +238,73 @@ transform_blk (void *ctx, const unsigned char *data)
   g = hd->h6;
   h = hd->h7;
 
-  for (i=0; i < 16; i++)
-    w[i] = buf_get_be32(data + i * 4);
-  for (; i < 64; i++)
-    w[i] = S1(w[i-2]) + w[i-7] + S0(w[i-15]) + w[i-16];
+  R(a, b, c, d, e, f, g, h, K[0], I(0));
+  R(h, a, b, c, d, e, f, g, K[1], I(1));
+  R(g, h, a, b, c, d, e, f, K[2], I(2));
+  R(f, g, h, a, b, c, d, e, K[3], I(3));
+  R(e, f, g, h, a, b, c, d, K[4], I(4));
+  R(d, e, f, g, h, a, b, c, K[5], I(5));
+  R(c, d, e, f, g, h, a, b, K[6], I(6));
+  R(b, c, d, e, f, g, h, a, K[7], I(7));
+  R(a, b, c, d, e, f, g, h, K[8], I(8));
+  R(h, a, b, c, d, e, f, g, K[9], I(9));
+  R(g, h, a, b, c, d, e, f, K[10], I(10));
+  R(f, g, h, a, b, c, d, e, K[11], I(11));
+  R(e, f, g, h, a, b, c, d, K[12], I(12));
+  R(d, e, f, g, h, a, b, c, K[13], I(13));
+  R(c, d, e, f, g, h, a, b, K[14], I(14));
+  R(b, c, d, e, f, g, h, a, K[15], I(15));
 
-  for (i=0; i < 64;)
-    {
-#if 0
-      R(a,b,c,d,e,f,g,h,K[i],w[i]);
-      i++;
-#else
-      t1 = h + Sum1 (e) + Cho (e, f, g) + K[i] + w[i];
-      t2 = Sum0 (a) + Maj (a, b, c);
-      d += t1;
-      h  = t1 + t2;
+  R(a, b, c, d, e, f, g, h, K[16], W(16));
+  R(h, a, b, c, d, e, f, g, K[17], W(17));
+  R(g, h, a, b, c, d, e, f, K[18], W(18));
+  R(f, g, h, a, b, c, d, e, K[19], W(19));
+  R(e, f, g, h, a, b, c, d, K[20], W(20));
+  R(d, e, f, g, h, a, b, c, K[21], W(21));
+  R(c, d, e, f, g, h, a, b, K[22], W(22));
+  R(b, c, d, e, f, g, h, a, K[23], W(23));
+  R(a, b, c, d, e, f, g, h, K[24], W(24));
+  R(h, a, b, c, d, e, f, g, K[25], W(25));
+  R(g, h, a, b, c, d, e, f, K[26], W(26));
+  R(f, g, h, a, b, c, d, e, K[27], W(27));
+  R(e, f, g, h, a, b, c, d, K[28], W(28));
+  R(d, e, f, g, h, a, b, c, K[29], W(29));
+  R(c, d, e, f, g, h, a, b, K[30], W(30));
+  R(b, c, d, e, f, g, h, a, K[31], W(31));
 
-      t1 = g + Sum1 (d) + Cho (d, e, f) + K[i+1] + w[i+1];
-      t2 = Sum0 (h) + Maj (h, a, b);
-      c += t1;
-      g  = t1 + t2;
+  R(a, b, c, d, e, f, g, h, K[32], W(32));
+  R(h, a, b, c, d, e, f, g, K[33], W(33));
+  R(g, h, a, b, c, d, e, f, K[34], W(34));
+  R(f, g, h, a, b, c, d, e, K[35], W(35));
+  R(e, f, g, h, a, b, c, d, K[36], W(36));
+  R(d, e, f, g, h, a, b, c, K[37], W(37));
+  R(c, d, e, f, g, h, a, b, K[38], W(38));
+  R(b, c, d, e, f, g, h, a, K[39], W(39));
+  R(a, b, c, d, e, f, g, h, K[40], W(40));
+  R(h, a, b, c, d, e, f, g, K[41], W(41));
+  R(g, h, a, b, c, d, e, f, K[42], W(42));
+  R(f, g, h, a, b, c, d, e, K[43], W(43));
+  R(e, f, g, h, a, b, c, d, K[44], W(44));
+  R(d, e, f, g, h, a, b, c, K[45], W(45));
+  R(c, d, e, f, g, h, a, b, K[46], W(46));
+  R(b, c, d, e, f, g, h, a, K[47], W(47));
 
-      t1 = f + Sum1 (c) + Cho (c, d, e) + K[i+2] + w[i+2];
-      t2 = Sum0 (g) + Maj (g, h, a);
-      b += t1;
-      f  = t1 + t2;
-
-      t1 = e + Sum1 (b) + Cho (b, c, d) + K[i+3] + w[i+3];
-      t2 = Sum0 (f) + Maj (f, g, h);
-      a += t1;
-      e  = t1 + t2;
-
-      t1 = d + Sum1 (a) + Cho (a, b, c) + K[i+4] + w[i+4];
-      t2 = Sum0 (e) + Maj (e, f, g);
-      h += t1;
-      d  = t1 + t2;
-
-      t1 = c + Sum1 (h) + Cho (h, a, b) + K[i+5] + w[i+5];
-      t2 = Sum0 (d) + Maj (d, e, f);
-      g += t1;
-      c  = t1 + t2;
-
-      t1 = b + Sum1 (g) + Cho (g, h, a) + K[i+6] + w[i+6];
-      t2 = Sum0 (c) + Maj (c, d, e);
-      f += t1;
-      b  = t1 + t2;
-
-      t1 = a + Sum1 (f) + Cho (f, g, h) + K[i+7] + w[i+7];
-      t2 = Sum0 (b) + Maj (b, c, d);
-      e += t1;
-      a  = t1 + t2;
-
-      i += 8;
-#endif
-    }
+  R(a, b, c, d, e, f, g, h, K[48], W(48));
+  R(h, a, b, c, d, e, f, g, K[49], W(49));
+  R(g, h, a, b, c, d, e, f, K[50], W(50));
+  R(f, g, h, a, b, c, d, e, K[51], W(51));
+  R(e, f, g, h, a, b, c, d, K[52], W(52));
+  R(d, e, f, g, h, a, b, c, K[53], W(53));
+  R(c, d, e, f, g, h, a, b, K[54], W(54));
+  R(b, c, d, e, f, g, h, a, K[55], W(55));
+  R(a, b, c, d, e, f, g, h, K[56], W(56));
+  R(h, a, b, c, d, e, f, g, K[57], W(57));
+  R(g, h, a, b, c, d, e, f, K[58], W(58));
+  R(f, g, h, a, b, c, d, e, K[59], W(59));
+  R(e, f, g, h, a, b, c, d, K[60], W(60));
+  R(d, e, f, g, h, a, b, c, K[61], W(61));
+  R(c, d, e, f, g, h, a, b, K[62], W(62));
+  R(b, c, d, e, f, g, h, a, K[63], W(63));
 
   hd->h0 += a;
   hd->h1 += b;
@@ -319,7 +315,7 @@ transform_blk (void *ctx, const unsigned char *data)
   hd->h6 += g;
   hd->h7 += h;
 
-  return /*burn_stack*/ 74*4+32;
+  return /*burn_stack*/ 26*4+32;
 }
 #undef S0
 #undef S1
