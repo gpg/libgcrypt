@@ -48,8 +48,25 @@ Noteworthy changes in version 1.7.0 (unreleased)
  GCRYCTL_SET_SBOX                NEW.
  gcry_cipher_set_sbox            NEW macro.
  GCRY_MD_GOSTR3411_CP            NEW.
+ GCRY_MD_SHA3_224                NEW.
+ GCRY_MD_SHA3_256                NEW.
+ GCRY_MD_SHA3_384                NEW.
+ GCRY_MD_SHA3_512                NEW.
+ GCRY_MD_SHAKE128                NEW.
+ GCRY_MD_SHAKE256                NEW.
+ GCRY_MAC_HMAC_SHA3_224          NEW.
+ GCRY_MAC_HMAC_SHA3_256          NEW.
+ GCRY_MAC_HMAC_SHA3_384          NEW.
+ GCRY_MAC_HMAC_SHA3_512          NEW.
+ GCRY_MAC_POLY1305               NEW.
+ GCRY_MAC_POLY1305_AES           NEW.
+ GCRY_MAC_POLY1305_CAMELLIA      NEW.
+ GCRY_MAC_POLY1305_TWOFISH       NEW.
+ GCRY_MAC_POLY1305_SERPENT       NEW.
+ GCRY_MAC_POLY1305_SEED          NEW.
  gcry_mpi_ec_sub                 NEW.
  gcry_mpi_ec_decode_point        NEW.
+ GCRY_CIPHER_MODE_POLY1305       NEW.
  GCRY_CIPHER_MODE_OCB            NEW.
  GCRYCTL_SET_TAGLEN              NEW.
  gcry_cipher_final               NEW macro.
