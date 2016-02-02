@@ -292,7 +292,6 @@ _gcry_ecc_compute_public (mpi_point_t Q, mpi_ec_t ec,
 gpg_err_code_t
 _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
 {
-  unsigned char *a;
   unsigned char *rawmpi;
   unsigned int rawmpilen;
 
@@ -312,8 +311,8 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
           buf++;
         }
 
-      a = rawmpi = xtrymalloc (rawmpilen? rawmpilen:1);
-      if (!a)
+      rawmpi = xtrymalloc (rawmpilen? rawmpilen:1);
+      if (!rawmpi)
         return gpg_err_code_from_syserror ();
 
       p = rawmpi + rawmpilen;
@@ -324,8 +323,8 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
     {
       unsigned int nbytes = (ctx->nbits+7)/8;
 
-      a = rawmpi = _gcry_mpi_get_buffer (pk, nbytes, &rawmpilen, NULL);
-      if (!a)
+      rawmpi = _gcry_mpi_get_buffer (pk, nbytes, &rawmpilen, NULL);
+      if (!rawmpi)
         return gpg_err_code_from_syserror ();
       /*
        * It is not reliable to assume that 0x40 means the prefix.
@@ -341,30 +340,29 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
        * So, we need to check if it's really the prefix or not.
        * Only when it's the prefix, we remove it.
        */
-      if (rawmpilen > nbytes)
-        /* Prefix 0x40 or 0x00, which comes at the end (reverse)  */
-        rawmpilen = nbytes;
-      else if (rawmpilen < nbytes)
+      if (pk->nlimbs * BYTES_PER_MPI_LIMB < nbytes)
         {/*
           * It is possible for data created by older implementation
           * to have shorter length when it was parsed as MPI.
           */
-          rawmpi = xtrymalloc (nbytes);
-          if (!rawmpi)
-            {
-              gpg_err_code_t err = gpg_err_code_from_syserror ();
-              xfree (a);
-              return err;
-            }
+          unsigned int len = pk->nlimbs * BYTES_PER_MPI_LIMB;
 
-          memset (rawmpi, 0, nbytes - rawmpilen);
-          memcpy (rawmpi + nbytes - rawmpilen, a, rawmpilen);
+          memmove (rawmpi + nbytes - len, rawmpi, len);
+          memset (rawmpi, 0, nbytes - len);
         }
+
+      /*
+       * When we have the prefix (0x40 or 0x00), it comes at the end,
+       * since it is taken by _gcry_mpi_get_buffer with little endian.
+       * Just setting RAWMPILEN to NBYTES is enough in this case.
+       * Othewise, RAWMPILEN is NBYTES already.
+       */
+      rawmpilen = nbytes;
     }
 
   rawmpi[0] &= (1 << (ctx->nbits % 8)) - 1;
   _gcry_mpi_set_buffer (result->x, rawmpi, rawmpilen, 0);
-  xfree (a);
+  xfree (rawmpi);
   mpi_set_ui (result->z, 1);
 
   return 0;
