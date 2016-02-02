@@ -322,7 +322,9 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
     }
   else
     {
-      a = rawmpi = _gcry_mpi_get_buffer (pk, ctx->nbits/8, &rawmpilen, NULL);
+      unsigned int nbytes = (ctx->nbits+7)/8;
+
+      a = rawmpi = _gcry_mpi_get_buffer (pk, nbytes, &rawmpilen, NULL);
       if (!a)
         return gpg_err_code_from_syserror ();
       /*
@@ -339,16 +341,17 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
        * So, we need to check if it's really the prefix or not.
        * Only when it's the prefix, we remove it.
        */
-      if (ctx->nbits/8 == rawmpilen - 1)
-        rawmpi++;
-      else if (rawmpilen < ctx->nbits/8)
+      if (rawmpilen > nbytes)
+        {/* Prefix 0x40 or 0x00 */
+          rawmpi++;
+          rawmpilen = nbytes;
+        }
+      else if (rawmpilen < nbytes)
         {/*
           * It is possible for data created by older implementation
           * to have shorter length when it was parsed as MPI.
           */
-          unsigned int new_rawmpilen = ctx->nbits/8;
-
-          rawmpi = xtrymalloc (new_rawmpilen);
+          rawmpi = xtrymalloc (nbytes);
           if (!rawmpi)
             {
               gpg_err_code_t err = gpg_err_code_from_syserror ();
@@ -356,8 +359,8 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
               return err;
             }
 
-          memset (rawmpi, 0, new_rawmpilen - rawmpilen);
-          memcpy (rawmpi + new_rawmpilen - rawmpilen, a, rawmpilen);
+          memset (rawmpi, 0, nbytes - rawmpilen);
+          memcpy (rawmpi + nbytes - rawmpilen, a, rawmpilen);
         }
     }
 
