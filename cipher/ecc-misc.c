@@ -342,10 +342,8 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
        * Only when it's the prefix, we remove it.
        */
       if (rawmpilen > nbytes)
-        {/* Prefix 0x40 or 0x00 */
-          rawmpi++;
-          rawmpilen = nbytes;
-        }
+        /* Prefix 0x40 or 0x00, which comes at the end (reverse)  */
+        rawmpilen = nbytes;
       else if (rawmpilen < nbytes)
         {/*
           * It is possible for data created by older implementation
@@ -364,6 +362,7 @@ _gcry_ecc_mont_decodepoint (gcry_mpi_t pk, mpi_ec_t ctx, mpi_point_t result)
         }
     }
 
+  rawmpi[0] &= (1 << (ctx->nbits % 8)) - 1;
   _gcry_mpi_set_buffer (result->x, rawmpi, rawmpilen, 0);
   xfree (a);
   mpi_set_ui (result->z, 1);
