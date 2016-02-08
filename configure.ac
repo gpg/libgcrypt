@@ -2086,6 +2086,10 @@ if test "$found" = "1" ; then
          GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-avx-amd64.lo"
          GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-avx2-bmi2-amd64.lo"
       ;;
+      arm*-*-*)
+         # Build with the assembly implementation
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-arm.lo"
+      ;;
    esac
 
    if test x"$neonsupport" = xyes ; then

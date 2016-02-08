@@ -66,6 +66,13 @@
 #endif /*ENABLE_NEON_SUPPORT*/
 
 
+/* USE_ARM_ASM indicates whether to enable ARM assembly code. */
+#undef USE_ARM_ASM
+#if defined(__ARMEL__) && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS)
+# define USE_ARM_ASM 1
+#endif
+
+
 /* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
 #undef USE_SSSE3
 #if defined(__x86_64__) && defined(HAVE_GCC_INLINE_ASM_SSSE3) && \
@@ -204,36 +211,6 @@ sha384_init (void *context, unsigned int flags)
 }
 
 
-static inline u64
-ROTR (u64 x, u64 n)
-{
-  return ((x >> n) | (x << (64 - n)));
-}
-
-static inline u64
-Ch (u64 x, u64 y, u64 z)
-{
-  return ((x & y) ^ ( ~x & z));
-}
-
-static inline u64
-Maj (u64 x, u64 y, u64 z)
-{
-  return ((x & y) ^ (x & z) ^ (y & z));
-}
-
-static inline u64
-Sum0 (u64 x)
-{
-  return (ROTR (x, 28) ^ ROTR (x, 34) ^ ROTR (x, 39));
-}
-
-static inline u64
-Sum1 (u64 x)
-{
-  return (ROTR (x, 14) ^ ROTR (x, 18) ^ ROTR (x, 41));
-}
-
 static const u64 k[] =
   {
     U64_C(0x428a2f98d728ae22), U64_C(0x7137449123ef65cd),
@@ -278,6 +255,38 @@ static const u64 k[] =
     U64_C(0x5fcb6fab3ad6faec), U64_C(0x6c44198c4a475817)
   };
 
+#ifndef USE_ARM_ASM
+
+static inline u64
+ROTR (u64 x, u64 n)
+{
+  return ((x >> n) | (x << (64 - n)));
+}
+
+static inline u64
+Ch (u64 x, u64 y, u64 z)
+{
+  return ((x & y) ^ ( ~x & z));
+}
+
+static inline u64
+Maj (u64 x, u64 y, u64 z)
+{
+  return ((x & y) ^ (x & z) ^ (y & z));
+}
+
+static inline u64
+Sum0 (u64 x)
+{
+  return (ROTR (x, 28) ^ ROTR (x, 34) ^ ROTR (x, 39));
+}
+
+static inline u64
+Sum1 (u64 x)
+{
+  return (ROTR (x, 14) ^ ROTR (x, 18) ^ ROTR (x, 41));
+}
+
 /****************
  * Transform the message W which consists of 16 64-bit-words
  */
@@ -303,7 +312,6 @@ transform_blk (SHA512_STATE *hd, const unsigned char *data)
 
 #define S0(x) (ROTR((x),1) ^ ROTR((x),8) ^ ((x)>>7))
 #define S1(x) (ROTR((x),19) ^ ROTR((x),61) ^ ((x)>>6))
-
 
   for (t = 0; t < 80 - 16; )
     {
@@ -545,7 +553,7 @@ transform_blk (SHA512_STATE *hd, const unsigned char *data)
   return /* burn_stack */ (8 + 16) * sizeof(u64) + sizeof(u32) +
                           3 * sizeof(void*);
 }
-
+#endif /*!USE_ARM_ASM*/
 
 /* AMD64 assembly implementations use SystemV ABI, ABI conversion and additional
  * stack to store XMM6-XMM15 needed on Win64. */
@@ -566,6 +574,12 @@ transform_blk (SHA512_STATE *hd, const unsigned char *data)
 void _gcry_sha512_transform_armv7_neon (SHA512_STATE *hd,
 					const unsigned char *data,
 					const u64 k[], size_t num_blks);
+#endif
+
+#ifdef USE_ARM_ASM
+unsigned int _gcry_sha512_transform_arm (SHA512_STATE *hd,
+					 const unsigned char *data,
+					 const u64 k[], size_t num_blks);
 #endif
 
 #ifdef USE_SSSE3
@@ -622,6 +636,9 @@ transform (void *context, const unsigned char *data, size_t nblks)
     }
 #endif
 
+#ifdef USE_ARM_ASM
+  burn = _gcry_sha512_transform_arm (&ctx->state, data, k, nblks);
+#else
   do
     {
       burn = transform_blk (&ctx->state, data) + 3 * sizeof(void*);
@@ -635,6 +652,7 @@ transform (void *context, const unsigned char *data, size_t nblks)
    *  here too.
    */
   burn += ASM_EXTRA_STACK;
+#endif
 #endif
 
   return burn;
