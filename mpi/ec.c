@@ -1255,7 +1255,7 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
   w = mpi_new (0);
 
   if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
-    return 0;
+    goto leave;
 
   switch (ctx->model)
     {
@@ -1304,6 +1304,7 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
       break;
     }
 
+ leave:
   _gcry_mpi_release (w);
   _gcry_mpi_release (x);
   _gcry_mpi_release (y);
