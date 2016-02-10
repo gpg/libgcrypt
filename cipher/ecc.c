@@ -1535,11 +1535,18 @@ ecc_decrypt_raw (int algo, gcry_mpi_t *result, gcry_mpi_t *data,
 
   ctx = _gcry_mpi_ec_init (sk.E.p, sk.E.a);
 
+  if (!_gcry_mpi_ec_curve_point (&kG, sk.E.b, ctx))
+    {
+      point_free (&kG);
+      point_free (&sk.E.G);
+      point_free (&sk.Q);
+      _gcry_mpi_ec_free (ctx);
+      return GPG_ERR_INV_DATA;
+    }
+
   /* R = dkG */
   point_init (&R);
   _gcry_mpi_ec_mul_point (&R, sk.d, &kG, ctx);
-
-  point_free (&kG);
 
   /* The following is false: assert( mpi_cmp_ui( R.x, 1 )==0 );, so:  */
   {

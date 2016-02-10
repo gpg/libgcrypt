@@ -257,7 +257,7 @@ void _gcry_mpi_ec_add_points (mpi_point_t *result,
 void _gcry_mpi_ec_mul_point (mpi_point_t *result,
                              gcry_mpi_t scalar, mpi_point_t *point,
                              mpi_ec_t ctx);
-
+int _gcry_mpi_ec_curve_point (mpi_point_t *point, gcry_mpi_t b, mpi_ec_t ctx);
 
 
 #endif /*G10_MPI_H*/
