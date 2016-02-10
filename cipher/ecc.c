@@ -1572,8 +1572,8 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
 
   if (!_gcry_mpi_ec_curve_point (&kG, ec))
     {
-      point_free (&kG);
-      return GPG_ERR_INV_DATA;
+      rc = GPG_ERR_INV_DATA;
+      goto leave;
     }
 
   /* R = dkG */

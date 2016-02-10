@@ -1478,10 +1478,12 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
     {
     case MPI_EC_WEIERSTRASS:
       {
-        gcry_mpi_t xxx = mpi_new (0);
+        gcry_mpi_t xxx;
 
         if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
-          return 0;
+          goto leave;
+
+        xxx = mpi_new (0);
 
         /* y^2 == x^3 + a·x + b */
         ec_pow2 (y, y, ctx);
@@ -1502,7 +1504,7 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
 #define xx y
         /* With Montgomery curve, only X-coordinate is valid.  */
         if (_gcry_mpi_ec_get_affine (x, NULL, point, ctx))
-          return 0;
+          goto leave;
 
         /* The equation is: b * y^2 == x^3 + a · x^2 + x */
         /* We check if right hand is quadratic residue or not by
@@ -1530,7 +1532,7 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
     case MPI_EC_EDWARDS:
       {
         if (_gcry_mpi_ec_get_affine (x, y, point, ctx))
-          return 0;
+          goto leave;
 
         /* a · x^2 + y^2 - 1 - b · x^2 · y^2 == 0 */
         ec_pow2 (x, x, ctx);
@@ -1553,6 +1555,7 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
       break;
     }
 
+ leave:
   _gcry_mpi_release (w);
   _gcry_mpi_release (x);
   _gcry_mpi_release (y);
