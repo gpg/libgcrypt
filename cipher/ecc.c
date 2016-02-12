@@ -1570,7 +1570,9 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (DBG_CIPHER)
     log_printpnt ("ecc_decrypt    kG", &kG, NULL);
 
-  if (!_gcry_mpi_ec_curve_point (&kG, ec))
+  if (!(curvename && !strcmp (curvename, "Curve25519"))
+      /* For Curve25519, by its definition, validation should not be done.  */
+      && !_gcry_mpi_ec_curve_point (&kG, ec))
     {
       rc = GPG_ERR_INV_DATA;
       goto leave;
