@@ -27,7 +27,6 @@
 #if defined(HAVE_GCC_ATTRIBUTE_PACKED) && \
     defined(HAVE_GCC_ATTRIBUTE_ALIGNED) && \
     (defined(__i386__) || defined(__x86_64__) || \
-     defined(__powerpc__) || defined(__powerpc64__) || \
      (defined(__arm__) && defined(__ARM_FEATURE_UNALIGNED)) || \
      defined(__aarch64__))
 /* These architectures are able of unaligned memory accesses and can
