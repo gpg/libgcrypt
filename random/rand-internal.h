@@ -88,6 +88,15 @@ gcry_err_code_t _gcry_rngfips_run_external_test (void *context,
                                                  char *buffer, size_t buflen);
 void _gcry_rngfips_deinit_external_test (void *context);
 
+/*-- drbg.c --*/
+void _gcry_drbg_init(int full);
+void _gcry_drbg_close_fds(void);
+void _gcry_drbg_dump_stats(void);
+int _gcry_drbg_is_faked (void);
+gcry_error_t _gcry_drbg_add_bytes (const void *buf, size_t buflen, int quality);
+void _gcry_drbg_randomize (void *buffer, size_t length,
+			   enum gcry_random_level level);
+gcry_error_t _gcry_drbg_selftest (selftest_report_func_t report);
 
 /*-- random-system.c --*/
 void _gcry_rngsystem_initialize (int full);

@@ -576,38 +576,22 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 # pragma GCC diagnostic ignored "-Wswitch"
 #endif
     case 58:  /* Init external random test.  */
-      {
-        void **rctx        = va_arg (arg_ptr, void **);
-        unsigned int flags = va_arg (arg_ptr, unsigned int);
-        const void *key    = va_arg (arg_ptr, const void *);
-        size_t keylen      = va_arg (arg_ptr, size_t);
-        const void *seed   = va_arg (arg_ptr, const void *);
-        size_t seedlen     = va_arg (arg_ptr, size_t);
-        const void *dt     = va_arg (arg_ptr, const void *);
-        size_t dtlen       = va_arg (arg_ptr, size_t);
-        if (!fips_is_operational ())
-          rc = fips_not_operational ();
-        else
-          rc = _gcry_random_init_external_test (rctx, flags, key, keylen,
-                                                seed, seedlen, dt, dtlen);
-      }
+      rc = GPG_ERR_NOT_SUPPORTED;
       break;
-    case 59:  /* Run external random test.  */
+    case 59:  /* Run external DRBG test.  */
       {
-        void *ctx     = va_arg (arg_ptr, void *);
-        void *buffer  = va_arg (arg_ptr, void *);
-        size_t buflen = va_arg (arg_ptr, size_t);
-        if (!fips_is_operational ())
-          rc = fips_not_operational ();
+        struct gcry_drbg_test_vector *test =
+	  va_arg (arg_ptr, struct gcry_drbg_test_vector *);
+        unsigned char *buf = va_arg (arg_ptr, unsigned char *);
+
+        if (buf)
+          rc = gcry_drbg_cavs_test (test, buf);
         else
-          rc = _gcry_random_run_external_test (ctx, buffer, buflen);
+          rc = gcry_drbg_healthcheck_one (test);
       }
       break;
     case 60:  /* Deinit external random test.  */
-      {
-        void *ctx = va_arg (arg_ptr, void *);
-        _gcry_random_deinit_external_test (ctx);
-      }
+      rc = GPG_ERR_NOT_SUPPORTED;
       break;
     case 61:  /* Run external lock test */
       rc = external_lock_test (va_arg (arg_ptr, int));
@@ -669,6 +653,15 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
     case GCRYCTL_INACTIVATE_FIPS_FLAG:
     case GCRYCTL_REACTIVATE_FIPS_FLAG:
       rc = GPG_ERR_NOT_IMPLEMENTED;
+      break;
+
+    case GCRYCTL_DRBG_REINIT:
+      {
+        u32 flags = va_arg (arg_ptr, u32);
+        struct gcry_drbg_string *pers = va_arg (arg_ptr,
+						struct gcry_drbg_string *);
+        rc = _gcry_drbg_reinit(flags, pers);
+      }
       break;
 
     default:

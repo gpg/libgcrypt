@@ -54,7 +54,33 @@ gcry_err_code_t _gcry_random_run_external_test (void *context,
                                                 char *buffer, size_t buflen);
 void            _gcry_random_deinit_external_test (void *context);
 
+/*-- drbg.c --*/
+gpg_err_code_t _gcry_drbg_reinit (u32 flags, struct gcry_drbg_string *pers);
+/* private interfaces for testing of DRBG */
+struct gcry_drbg_test_vector
+{
+  u32 flags;
+  unsigned char *entropy;
+  size_t entropylen;
+  unsigned char *entpra;
+  unsigned char *entprb;
+  size_t entprlen;
+  unsigned char *addtla;
+  unsigned char *addtlb;
+  size_t addtllen;
+  unsigned char *pers;
+  size_t perslen;
+  unsigned char *expected;
+  size_t expectedlen;
+  unsigned char *entropyreseed;
+  size_t entropyreseed_len;
+  unsigned char *addtl_reseed;
+  size_t addtl_reseed_len;
+};
 
+gpg_err_code_t gcry_drbg_cavs_test (struct gcry_drbg_test_vector *test,
+				    unsigned char *buf);
+gpg_err_code_t gcry_drbg_healthcheck_one (struct gcry_drbg_test_vector *test);
 /*-- rndegd.c --*/
 gpg_error_t _gcry_rndegd_set_socket_name (const char *name);
 

@@ -35,6 +35,7 @@ random.c random.h \
 rand-internal.h \
 random-csprng.c \
 random-fips.c \
+drbg.c \
 random-system.c \
 rndhw.c
 

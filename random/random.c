@@ -140,11 +140,11 @@ void
 _gcry_random_initialize (int full)
 {
   if (fips_mode ())
-    _gcry_rngfips_initialize (full);
+    _gcry_drbg_init(full);
   else if (rng_types.standard)
     _gcry_rngcsprng_initialize (full);
   else if (rng_types.fips)
-    _gcry_rngfips_initialize (full);
+    _gcry_drbg_init(full);
   else if (rng_types.system)
     _gcry_rngsystem_initialize (full);
   else
@@ -161,11 +161,11 @@ _gcry_random_close_fds (void)
      the entropy gatherer.  */
 
   if (fips_mode ())
-    _gcry_rngfips_close_fds ();
+    _gcry_drbg_close_fds ();
   else if (rng_types.standard)
     _gcry_rngcsprng_close_fds ();
   else if (rng_types.fips)
-    _gcry_rngfips_close_fds ();
+    _gcry_drbg_close_fds ();
   else if (rng_types.system)
     _gcry_rngsystem_close_fds ();
   else
@@ -199,7 +199,7 @@ void
 _gcry_random_dump_stats (void)
 {
   if (fips_mode ())
-    _gcry_rngfips_dump_stats ();
+    _gcry_drbg_dump_stats ();
   else
     _gcry_rngcsprng_dump_stats ();
 }
@@ -258,7 +258,7 @@ int
 _gcry_random_is_faked (void)
 {
   if (fips_mode ())
-    return _gcry_rngfips_is_faked ();
+    return _gcry_drbg_is_faked ();
   else
     return _gcry_rngcsprng_is_faked ();
 }
@@ -288,11 +288,11 @@ static void
 do_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {
   if (fips_mode ())
-    _gcry_rngfips_randomize (buffer, length, level);
+    _gcry_drbg_randomize (buffer, length, level);
   else if (rng_types.standard)
     _gcry_rngcsprng_randomize (buffer, length, level);
   else if (rng_types.fips)
-    _gcry_rngfips_randomize (buffer, length, level);
+    _gcry_drbg_randomize (buffer, length, level);
   else if (rng_types.system)
     _gcry_rngsystem_randomize (buffer, length, level);
   else /* default */
@@ -424,7 +424,7 @@ _gcry_create_nonce (void *buffer, size_t length)
      nonce generator which is seeded by the RNG actual in use.  */
   if (fips_mode ())
     {
-      _gcry_rngfips_create_nonce (buffer, length);
+      _gcry_drbg_randomize (buffer, length, GCRY_WEAK_RANDOM);
       return;
     }
 
@@ -501,46 +501,7 @@ gpg_error_t
 _gcry_random_selftest (selftest_report_func_t report)
 {
   if (fips_mode ())
-    return _gcry_rngfips_selftest (report);
+    return _gcry_drbg_selftest (report);
   else
     return 0; /* No selftests yet.  */
-}
-
-
-/* Create a new test context for an external RNG test driver.  On
-   success the test context is stored at R_CONTEXT; on failure NULL is
-   stored at R_CONTEXT and an error code is returned.  */
-gcry_err_code_t
-_gcry_random_init_external_test (void **r_context,
-                                 unsigned int flags,
-                                 const void *key, size_t keylen,
-                                 const void *seed, size_t seedlen,
-                                 const void *dt, size_t dtlen)
-{
-  (void)flags;
-  if (fips_mode ())
-    return _gcry_rngfips_init_external_test (r_context, flags, key, keylen,
-                                             seed, seedlen,
-                                             dt, dtlen);
-  else
-    return GPG_ERR_NOT_SUPPORTED;
-}
-
-/* Get BUFLEN bytes from the RNG using the test CONTEXT and store them
-   at BUFFER.  Return 0 on success or an error code.  */
-gcry_err_code_t
-_gcry_random_run_external_test (void *context, char *buffer, size_t buflen)
-{
-  if (fips_mode ())
-    return _gcry_rngfips_run_external_test (context, buffer, buflen);
-  else
-    return GPG_ERR_NOT_SUPPORTED;
-}
-
-/* Release the test CONTEXT.  */
-void
-_gcry_random_deinit_external_test (void *context)
-{
-  if (fips_mode ())
-    _gcry_rngfips_deinit_external_test (context);
 }
