@@ -34,7 +34,6 @@ librandom_la_SOURCES = \
 random.c random.h \
 rand-internal.h \
 random-csprng.c \
-random-fips.c \
 random-drbg.c \
 random-system.c \
 rndhw.c

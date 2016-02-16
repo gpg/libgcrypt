@@ -63,31 +63,6 @@ void _gcry_rngcsprng_set_seed_file (const char *name);
 void _gcry_rngcsprng_update_seed_file (void);
 void _gcry_rngcsprng_fast_poll (void);
 
-/*-- random-fips.c --*/
-void _gcry_rngfips_initialize (int full);
-void _gcry_rngfips_close_fds (void);
-void _gcry_rngfips_dump_stats (void);
-int  _gcry_rngfips_is_faked (void);
-gcry_error_t _gcry_rngfips_add_bytes (const void *buf, size_t buflen,
-                                        int quality);
-void _gcry_rngfips_randomize (void *buffer, size_t length,
-                                enum gcry_random_level level);
-void _gcry_rngfips_create_nonce (void *buffer, size_t length);
-
-gcry_error_t _gcry_rngfips_selftest (selftest_report_func_t report);
-
-gcry_err_code_t _gcry_rngfips_init_external_test (void **r_context,
-                                                  unsigned int flags,
-                                                  const void *key,
-                                                  size_t keylen,
-                                                  const void *seed,
-                                                  size_t seedlen,
-                                                  const void *dt,
-                                                  size_t dtlen);
-gcry_err_code_t _gcry_rngfips_run_external_test (void *context,
-                                                 char *buffer, size_t buflen);
-void _gcry_rngfips_deinit_external_test (void *context);
-
 /*-- random-drbg.c --*/
 void _gcry_rngdrbg_inititialize (int full);
 void _gcry_rngdrbg_close_fds (void);
