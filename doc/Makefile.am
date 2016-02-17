@@ -83,7 +83,7 @@ $(myman_pages) : yat2m-stamp
 # Make sure that gcrypt.texi is touched if any other source file has
 # been modified.  This is required so that the version.texi magic
 # updates the release date.
-gnupg.texi : $(gcrypt_TEXINFOS)
+gcrypt.texi : $(gcrypt_TEXINFOS)
 	touch $(srcdir)/gcrypt.texi
 
 online: gcrypt.html gcrypt.pdf gcrypt.info
