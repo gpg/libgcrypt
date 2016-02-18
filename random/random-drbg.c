@@ -1,4 +1,6 @@
-/*
+/* random-drbg.c - Deterministic Random Bits Generator
+ * Copyright 2014 Stephan Mueller <smueller@chronox.de>
+ *
  * DRBG: Deterministic Random Bits Generator
  *       Based on NIST Recommended DRBG from NIST SP800-90A with the following
  *       properties:
@@ -6,8 +8,6 @@
  * 		* Hash DRBG with DF with SHA-1, SHA-256, SHA-384, SHA-512 cores
  * 		* HMAC DRBG with DF with SHA-1, SHA-256, SHA-384, SHA-512 cores
  * 		* with and without prediction resistance
- *
- * Copyright Stephan Mueller <smueller@chronox.de>, 2014
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,7 @@
  * the DRBG is re-initialized:
  *
  *  - const char *flagstr
-
+ *
  *      This variable specifies the DRBG type to be used for the next
  *	initialization.  If set to NULL, the previous DRBG type is
  *	used for the initialization.  If not NULL a space separated
@@ -113,10 +113,10 @@
  *
  * Usage with personalization string during initialization
  * -------------------------------------------------------
- * struct gcry_drbg_string pers;
+ * drbg_string_t pers;
  * char personalization[11] = "some-string";
  *
- * gcry_drbg_string_fill(&pers, personalization, strlen(personalization));
+ * drbg_string_fill(&pers, personalization, strlen(personalization));
  * // The reset completely re-initializes the DRBG with the provided
  * // personalization string without changing the DRBG type
  * ret = gcry_control(GCRYCTL_DRBG_REINIT, 0, &pers);
@@ -125,10 +125,10 @@
  *
  * Usage with additional information string during random number request
  * ---------------------------------------------------------------------
- * struct gcry_drbg_string addtl;
+ * drbg_string_t addtl;
  * char addtl_string[11] = "some-string";
  *
- * gcry_drbg_string_fill(&addtl, addtl_string, strlen(addtl_string));
+ * drbg_string_fill(&addtl, addtl_string, strlen(addtl_string));
  * // The following call is a wrapper to gcry_randomize() and returns
  * // the same error codes.
  * gcry_randomize_drbg(outbuf, OUTLEN, GCRY_STRONG_RANDOM, &addtl);
@@ -177,71 +177,66 @@
  */
 
 /* Internal state control flags (B) */
-#define GCRY_DRBG_PREDICTION_RESIST	((u_int32_t)1<<28)
+#define DRBG_PREDICTION_RESIST	((u_int32_t)1<<28)
 
 /* CTR type modifiers (A.1)*/
-#define GCRY_DRBG_CTRAES		((u_int32_t)1<<0)
-#define GCRY_DRBG_CTRSERPENT		((u_int32_t)1<<1)
-#define GCRY_DRBG_CTRTWOFISH		((u_int32_t)1<<2)
-#define GCRY_DRBG_CTR_MASK	(GCRY_DRBG_CTRAES | GCRY_DRBG_CTRSERPENT | GCRY_DRBG_CTRTWOFISH)
+#define DRBG_CTRAES		((u_int32_t)1<<0)
+#define DRBG_CTRSERPENT		((u_int32_t)1<<1)
+#define DRBG_CTRTWOFISH		((u_int32_t)1<<2)
+#define DRBG_CTR_MASK	        (DRBG_CTRAES | DRBG_CTRSERPENT \
+                                 | DRBG_CTRTWOFISH)
 
 /* HASH type modifiers (A.2)*/
-#define GCRY_DRBG_HASHSHA1		((u_int32_t)1<<4)
-#define GCRY_DRBG_HASHSHA224		((u_int32_t)1<<5)
-#define GCRY_DRBG_HASHSHA256		((u_int32_t)1<<6)
-#define GCRY_DRBG_HASHSHA384		((u_int32_t)1<<7)
-#define GCRY_DRBG_HASHSHA512		((u_int32_t)1<<8)
-#define GCRY_DRBG_HASH_MASK		(GCRY_DRBG_HASHSHA1 | GCRY_DRBG_HASHSHA224 | \
-				 GCRY_DRBG_HASHSHA256 | GCRY_DRBG_HASHSHA384 | \
-				 GCRY_DRBG_HASHSHA512)
+#define DRBG_HASHSHA1		((u_int32_t)1<<4)
+#define DRBG_HASHSHA224		((u_int32_t)1<<5)
+#define DRBG_HASHSHA256		((u_int32_t)1<<6)
+#define DRBG_HASHSHA384		((u_int32_t)1<<7)
+#define DRBG_HASHSHA512		((u_int32_t)1<<8)
+#define DRBG_HASH_MASK		(DRBG_HASHSHA1 | DRBG_HASHSHA224 \
+				 | DRBG_HASHSHA256 | DRBG_HASHSHA384 \
+				 | DRBG_HASHSHA512)
 /* type modifiers (A.3)*/
-#define GCRY_DRBG_HMAC		((u_int32_t)1<<12)
-#define GCRY_DRBG_SYM128		((u_int32_t)1<<13)
-#define GCRY_DRBG_SYM192		((u_int32_t)1<<14)
-#define GCRY_DRBG_SYM256		((u_int32_t)1<<15)
-#define GCRY_DRBG_TYPE_MASK		(GCRY_DRBG_HMAC | GCRY_DRBG_SYM128 | GCRY_DRBG_SYM192 | \
-				 GCRY_DRBG_SYM256)
-#define GCRY_DRBG_CIPHER_MASK (GCRY_DRBG_CTR_MASK | GCRY_DRBG_HASH_MASK | GCRY_DRBG_TYPE_MASK)
+#define DRBG_HMAC		((u_int32_t)1<<12)
+#define DRBG_SYM128		((u_int32_t)1<<13)
+#define DRBG_SYM192		((u_int32_t)1<<14)
+#define DRBG_SYM256		((u_int32_t)1<<15)
+#define DRBG_TYPE_MASK		(DRBG_HMAC | DRBG_SYM128 | DRBG_SYM192 \
+				 | DRBG_SYM256)
+#define DRBG_CIPHER_MASK        (DRBG_CTR_MASK | DRBG_HASH_MASK \
+                                 | DRBG_TYPE_MASK)
 
-#define GCRY_DRBG_PR_CTRAES128   (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_CTRAES | GCRY_DRBG_SYM128)
-#define GCRY_DRBG_PR_CTRAES192   (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_CTRAES | GCRY_DRBG_SYM192)
-#define GCRY_DRBG_PR_CTRAES256   (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_CTRAES | GCRY_DRBG_SYM256)
-#define GCRY_DRBG_NOPR_CTRAES128 (GCRY_DRBG_CTRAES | GCRY_DRBG_SYM128)
-#define GCRY_DRBG_NOPR_CTRAES192 (GCRY_DRBG_CTRAES | GCRY_DRBG_SYM192)
-#define GCRY_DRBG_NOPR_CTRAES256 (GCRY_DRBG_CTRAES | GCRY_DRBG_SYM256)
-#define GCRY_DRBG_PR_HASHSHA1    (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_HASHSHA1)
-#define GCRY_DRBG_PR_HASHSHA256  (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_HASHSHA256)
-#define GCRY_DRBG_PR_HASHSHA384  (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_HASHSHA384)
-#define GCRY_DRBG_PR_HASHSHA512  (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_HASHSHA512)
-#define GCRY_DRBG_NOPR_HASHSHA1  (GCRY_DRBG_HASHSHA1)
-#define GCRY_DRBG_NOPR_HASHSHA256 (GCRY_DRBG_HASHSHA256)
-#define GCRY_DRBG_NOPR_HASHSHA384 (GCRY_DRBG_HASHSHA384)
-#define GCRY_DRBG_NOPR_HASHSHA512 (GCRY_DRBG_HASHSHA512)
-#define GCRY_DRBG_PR_HMACSHA1    (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_HASHSHA1 | GCRY_DRBG_HMAC)
-#define GCRY_DRBG_PR_HMACSHA256  (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_HASHSHA256 | GCRY_DRBG_HMAC)
-#define GCRY_DRBG_PR_HMACSHA384  (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_HASHSHA384 | GCRY_DRBG_HMAC)
-#define GCRY_DRBG_PR_HMACSHA512  (GCRY_DRBG_PREDICTION_RESIST | GCRY_DRBG_HASHSHA512 | GCRY_DRBG_HMAC)
-#define GCRY_DRBG_NOPR_HMACSHA1  (GCRY_DRBG_HASHSHA1 | GCRY_DRBG_HMAC)
-#define GCRY_DRBG_NOPR_HMACSHA256 (GCRY_DRBG_HASHSHA256 | GCRY_DRBG_HMAC)
-#define GCRY_DRBG_NOPR_HMACSHA384 (GCRY_DRBG_HASHSHA384 | GCRY_DRBG_HMAC)
-#define GCRY_DRBG_NOPR_HMACSHA512 (GCRY_DRBG_HASHSHA512 | GCRY_DRBG_HMAC)
+#define DRBG_PR_CTRAES128   (DRBG_PREDICTION_RESIST | DRBG_CTRAES | DRBG_SYM128)
+#define DRBG_PR_CTRAES192   (DRBG_PREDICTION_RESIST | DRBG_CTRAES | DRBG_SYM192)
+#define DRBG_PR_CTRAES256   (DRBG_PREDICTION_RESIST | DRBG_CTRAES | DRBG_SYM256)
+#define DRBG_NOPR_CTRAES128 (DRBG_CTRAES | DRBG_SYM128)
+#define DRBG_NOPR_CTRAES192 (DRBG_CTRAES | DRBG_SYM192)
+#define DRBG_NOPR_CTRAES256 (DRBG_CTRAES | DRBG_SYM256)
+#define DRBG_PR_HASHSHA1     (DRBG_PREDICTION_RESIST | DRBG_HASHSHA1)
+#define DRBG_PR_HASHSHA256   (DRBG_PREDICTION_RESIST | DRBG_HASHSHA256)
+#define DRBG_PR_HASHSHA384   (DRBG_PREDICTION_RESIST | DRBG_HASHSHA384)
+#define DRBG_PR_HASHSHA512   (DRBG_PREDICTION_RESIST | DRBG_HASHSHA512)
+#define DRBG_NOPR_HASHSHA1   (DRBG_HASHSHA1)
+#define DRBG_NOPR_HASHSHA256 (DRBG_HASHSHA256)
+#define DRBG_NOPR_HASHSHA384 (DRBG_HASHSHA384)
+#define DRBG_NOPR_HASHSHA512 (DRBG_HASHSHA512)
+#define DRBG_PR_HMACSHA1     (DRBG_PREDICTION_RESIST | DRBG_HASHSHA1 \
+                              | DRBG_HMAC)
+#define DRBG_PR_HMACSHA256   (DRBG_PREDICTION_RESIST | DRBG_HASHSHA256 \
+                              | DRBG_HMAC)
+#define DRBG_PR_HMACSHA384   (DRBG_PREDICTION_RESIST | DRBG_HASHSHA384 \
+                              | DRBG_HMAC)
+#define DRBG_PR_HMACSHA512   (DRBG_PREDICTION_RESIST | DRBG_HASHSHA512 \
+                              | DRBG_HMAC)
+#define DRBG_NOPR_HMACSHA1   (DRBG_HASHSHA1 | DRBG_HMAC)
+#define DRBG_NOPR_HMACSHA256 (DRBG_HASHSHA256 | DRBG_HMAC)
+#define DRBG_NOPR_HMACSHA384 (DRBG_HASHSHA384 | DRBG_HMAC)
+#define DRBG_NOPR_HMACSHA512 (DRBG_HASHSHA512 | DRBG_HMAC)
 
 
 
 /******************************************************************
  * Common data structures
  ******************************************************************/
-
-/* DRBG input data structure for DRBG generate with additional information
- * string */
-struct gcry_drbg_gen
-{
-  unsigned char *outbuf;	/* output buffer for random numbers */
-  unsigned int outlen;	/* size of output buffer */
-  struct gcry_drbg_string *addtl;	/* input buffer for
-					 * additional information string */
-};
-
 
 /*
  * SP800-90A requires the concatenation of different data. To avoid copying
@@ -251,18 +246,33 @@ struct gcry_drbg_gen
  * of individual buffers. The order of memory block referenced in that
  * linked list determines the order of concatenation.
  */
-struct gcry_drbg_string
+struct drbg_string_s
 {
   const unsigned char *buf;
   size_t len;
-  struct gcry_drbg_string *next;
+  struct drbg_string_s *next;
 };
+typedef struct drbg_string_s drbg_string_t;
 
 
-/* (Declared below) */
-struct gcry_drbg_state;
+/* DRBG input data structure for DRBG generate with additional
+ * information string.  */
+struct drbg_gen_s
+{
+  unsigned char *outbuf;	/* output buffer for random numbers */
+  unsigned int outlen;	        /* size of output buffer */
+  drbg_string_t *addtl;	        /* input buffer for
+				 * additional information string */
+};
+typedef struct drbg_gen_s drbg_gen_t;
 
-struct gcry_drbg_core
+
+/* Forward declaration of the state object pointer.  */
+struct drbg_state_s;
+typedef struct drbg_state_s *drbg_state_t;
+
+
+struct drbg_core_s
 {
   u32 flags;			/* flags for the cipher */
   ushort statelen;		/* maximum state length */
@@ -270,24 +280,25 @@ struct gcry_drbg_core
   int backend_cipher;		/* libgcrypt backend cipher */
 };
 
-struct gcry_drbg_state_ops
+struct drbg_state_ops_s
 {
-  gpg_err_code_t (*update) (struct gcry_drbg_state * drbg,
-			    struct gcry_drbg_string * seed, int reseed);
-  gpg_err_code_t (*generate) (struct gcry_drbg_state * drbg,
+  gpg_err_code_t (*update) (drbg_state_t drbg,
+			    drbg_string_t *seed, int reseed);
+  gpg_err_code_t (*generate) (drbg_state_t drbg,
 			      unsigned char *buf, unsigned int buflen,
-			      struct gcry_drbg_string * addtl);
+			      drbg_string_t *addtl);
 };
 
-/* DRBG test data */
-struct gcry_drbg_test_data
+struct drbg_test_data_s
 {
-  struct gcry_drbg_string *testentropy;	/* TEST PARAMETER: test entropy */
-  int fail_seed_source:1;	/* if set, the seed function will return an error */
+  drbg_string_t *testentropy;	/* TEST PARAMETER: test entropy */
+  int fail_seed_source:1;	/* If set, the seed function will
+                                 * return an error. */
 };
 
 
-struct gcry_drbg_state
+/* This state object keeps the state of an DRBG instance.  */
+struct drbg_state_s
 {
   unsigned char *V;		/* internal state 10.1.1.1 1a) */
   unsigned char *C;		/* hash: static value 10.1.1.1 1b)
@@ -303,12 +314,12 @@ struct gcry_drbg_state
    * The volatile modifier is required so that the compiler does not
    * optimize it away in case the getpid function is badly attributed. */
   pid_t seed_init_pid;
-  const struct gcry_drbg_state_ops *d_ops;
-  const struct gcry_drbg_core *core;
-  struct gcry_drbg_test_data *test_data;
+  const struct drbg_state_ops_s *d_ops;
+  const struct drbg_core_s *core;
+  struct drbg_test_data_s *test_data;
 };
 
-enum gcry_drbg_prefixes
+enum drbg_prefixes
 {
   DRBG_PREFIX0 = 0x00,
   DRBG_PREFIX1,
@@ -319,34 +330,46 @@ enum gcry_drbg_prefixes
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 /***************************************************************
+ * Global variables
+ ***************************************************************/
+
+/* Global state variable holding the current instance of the DRBG -- the
+ * default DRBG type is defined in _gcry_rngdrbg_inititialize.  */
+static drbg_state_t drbg_state;
+
+/* This is the lock variable we use to serialize access to this RNG. */
+GPGRT_LOCK_DEFINE(drbg_lock_var);
+
+
+/***************************************************************
  * Backend cipher definitions available to DRBG
  ***************************************************************/
 
-static const struct gcry_drbg_core gcry_drbg_cores[] = {
+static const struct drbg_core_s drbg_cores[] = {
   /* Hash DRBGs */
-  {GCRY_DRBG_HASHSHA1, 55, 20, GCRY_MD_SHA1},
-  {GCRY_DRBG_HASHSHA256, 55, 32, GCRY_MD_SHA256},
-  {GCRY_DRBG_HASHSHA384, 111, 48, GCRY_MD_SHA384},
-  {GCRY_DRBG_HASHSHA512, 111, 64, GCRY_MD_SHA512},
+  {DRBG_HASHSHA1, 55, 20, GCRY_MD_SHA1},
+  {DRBG_HASHSHA256, 55, 32, GCRY_MD_SHA256},
+  {DRBG_HASHSHA384, 111, 48, GCRY_MD_SHA384},
+  {DRBG_HASHSHA512, 111, 64, GCRY_MD_SHA512},
   /* HMAC DRBGs */
-  {GCRY_DRBG_HASHSHA1 | GCRY_DRBG_HMAC, 20, 20, GCRY_MD_SHA1},
-  {GCRY_DRBG_HASHSHA256 | GCRY_DRBG_HMAC, 32, 32, GCRY_MD_SHA256},
-  {GCRY_DRBG_HASHSHA384 | GCRY_DRBG_HMAC, 48, 48, GCRY_MD_SHA384},
-  {GCRY_DRBG_HASHSHA512 | GCRY_DRBG_HMAC, 64, 64, GCRY_MD_SHA512},
+  {DRBG_HASHSHA1   | DRBG_HMAC, 20, 20, GCRY_MD_SHA1},
+  {DRBG_HASHSHA256 | DRBG_HMAC, 32, 32, GCRY_MD_SHA256},
+  {DRBG_HASHSHA384 | DRBG_HMAC, 48, 48, GCRY_MD_SHA384},
+  {DRBG_HASHSHA512 | DRBG_HMAC, 64, 64, GCRY_MD_SHA512},
   /* block ciphers */
-  {GCRY_DRBG_CTRAES | GCRY_DRBG_SYM128, 32, 16, GCRY_CIPHER_AES128},
-  {GCRY_DRBG_CTRAES | GCRY_DRBG_SYM192, 40, 16, GCRY_CIPHER_AES192},
-  {GCRY_DRBG_CTRAES | GCRY_DRBG_SYM256, 48, 16, GCRY_CIPHER_AES256},
+  {DRBG_CTRAES | DRBG_SYM128, 32, 16, GCRY_CIPHER_AES128},
+  {DRBG_CTRAES | DRBG_SYM192, 40, 16, GCRY_CIPHER_AES192},
+  {DRBG_CTRAES | DRBG_SYM256, 48, 16, GCRY_CIPHER_AES256}
 };
 
-static gpg_err_code_t gcry_drbg_sym (struct gcry_drbg_state *drbg,
-				     const unsigned char *key,
-				     unsigned char *outval,
-				     const struct gcry_drbg_string *buf);
-static gpg_err_code_t gcry_drbg_hmac (struct gcry_drbg_state *drbg,
-				      const unsigned char *key,
-				      unsigned char *outval,
-				      const struct gcry_drbg_string *buf);
+static gpg_err_code_t drbg_sym (drbg_state_t drbg,
+                                const unsigned char *key,
+                                unsigned char *outval,
+                                const drbg_string_t *buf);
+static gpg_err_code_t drbg_hmac (drbg_state_t drbg,
+                                 const unsigned char *key,
+                                 unsigned char *outval,
+                                 const drbg_string_t *buf);
 
 /******************************************************************
  ******************************************************************
@@ -377,17 +400,17 @@ parse_flag_string (const char *string, u32 *r_flags)
     const char *name;
     u32 flag;
   } table[] = {
-    { "aes",     GCRY_DRBG_CTRAES            },
-    { "serpent", GCRY_DRBG_CTRSERPENT        },
-    { "twofish", GCRY_DRBG_CTRTWOFISH        },
-    { "sha1",    GCRY_DRBG_HASHSHA1          },
-    { "sha256",  GCRY_DRBG_HASHSHA256        },
-    { "sha512",  GCRY_DRBG_HASHSHA512        },
-    { "hmac",    GCRY_DRBG_HMAC              },
-    { "sym128",  GCRY_DRBG_SYM128            },
-    { "sym192",  GCRY_DRBG_SYM192            },
-    { "sym256",  GCRY_DRBG_SYM256            },
-    { "pr",      GCRY_DRBG_PREDICTION_RESIST }
+    { "aes",     DRBG_CTRAES            },
+    { "serpent", DRBG_CTRSERPENT        },
+    { "twofish", DRBG_CTRTWOFISH        },
+    { "sha1",    DRBG_HASHSHA1          },
+    { "sha256",  DRBG_HASHSHA256        },
+    { "sha512",  DRBG_HASHSHA512        },
+    { "hmac",    DRBG_HMAC              },
+    { "sym128",  DRBG_SYM128            },
+    { "sym192",  DRBG_SYM192            },
+    { "sym256",  DRBG_SYM256            },
+    { "pr",      DRBG_PREDICTION_RESIST }
   };
 
   *r_flags = 0;
@@ -421,7 +444,7 @@ parse_flag_string (const char *string, u32 *r_flags)
 }
 
 static inline void
-gcry_drbg_string_fill (struct gcry_drbg_string *string,
+drbg_string_fill (drbg_string_t *string,
                        const unsigned char *buf, size_t len)
 {
   string->buf = buf;
@@ -430,7 +453,7 @@ gcry_drbg_string_fill (struct gcry_drbg_string *string,
 }
 
 static inline ushort
-gcry_drbg_statelen (struct gcry_drbg_state *drbg)
+drbg_statelen (drbg_state_t drbg)
 {
   if (drbg && drbg->core)
     return drbg->core->statelen;
@@ -438,7 +461,7 @@ gcry_drbg_statelen (struct gcry_drbg_state *drbg)
 }
 
 static inline ushort
-gcry_drbg_blocklen (struct gcry_drbg_state *drbg)
+drbg_blocklen (drbg_state_t drbg)
 {
   if (drbg && drbg->core)
     return drbg->core->blocklen_bytes;
@@ -446,7 +469,7 @@ gcry_drbg_blocklen (struct gcry_drbg_state *drbg)
 }
 
 static inline ushort
-gcry_drbg_keylen (struct gcry_drbg_state *drbg)
+drbg_keylen (drbg_state_t drbg)
 {
   if (drbg && drbg->core)
     return (drbg->core->statelen - drbg->core->blocklen_bytes);
@@ -454,14 +477,14 @@ gcry_drbg_keylen (struct gcry_drbg_state *drbg)
 }
 
 static inline size_t
-gcry_drbg_max_request_bytes (void)
+drbg_max_request_bytes (void)
 {
   /* SP800-90A requires the limit 2**19 bits, but we return bytes */
   return (1 << 16);
 }
 
 static inline size_t
-gcry_drbg_max_addtl (void)
+drbg_max_addtl (void)
 {
   /* SP800-90A requires 2**35 bytes additional info str / pers str */
 #ifdef __LP64__
@@ -470,14 +493,14 @@ gcry_drbg_max_addtl (void)
   /*
    * SP800-90A allows smaller maximum numbers to be returned -- we
    * return SIZE_MAX - 1 to allow the verification of the enforcement
-   * of this value in gcry_drbg_healthcheck_sanity.
+   * of this value in drbg_healthcheck_sanity.
    */
   return (SIZE_MAX - 1);
 #endif
 }
 
 static inline size_t
-gcry_drbg_max_requests (void)
+drbg_max_requests (void)
 {
   /* SP800-90A requires 2**48 maximum requests before reseeding */
 #ifdef __LP64__
@@ -496,14 +519,14 @@ gcry_drbg_max_requests (void)
  * 	   programming errors
  */
 static inline unsigned short
-gcry_drbg_sec_strength (u32 flags)
+drbg_sec_strength (u32 flags)
 {
-  if ((flags & GCRY_DRBG_HASHSHA1) || (flags & GCRY_DRBG_SYM128))
+  if ((flags & DRBG_HASHSHA1) || (flags & DRBG_SYM128))
     return 16;
-  else if (flags & GCRY_DRBG_SYM192)
+  else if (flags & DRBG_SYM192)
     return 24;
-  else if ((flags & GCRY_DRBG_SYM256) || (flags & GCRY_DRBG_HASHSHA256) ||
-	   (flags & GCRY_DRBG_HASHSHA384) || (flags & GCRY_DRBG_HASHSHA512))
+  else if ((flags & DRBG_SYM256) || (flags & DRBG_HASHSHA256) ||
+	   (flags & DRBG_HASHSHA384) || (flags & DRBG_HASHSHA512))
     return 32;
   else
     return 32;
@@ -518,8 +541,9 @@ gcry_drbg_sec_strength (u32 flags)
  *      buffer size is at least 32 bit
  */
 static inline void
-gcry_drbg_cpu_to_be32 (u32 val, unsigned char *buf)
+drbg_cpu_to_be32 (u32 val, unsigned char *buf)
 {
+  /* FIXME: This may raise a bus error.  */
   struct s
   {
     u32 conv;
@@ -530,8 +554,8 @@ gcry_drbg_cpu_to_be32 (u32 val, unsigned char *buf)
 }
 
 static void
-gcry_drbg_add_buf (unsigned char *dst, size_t dstlen,
-		   unsigned char *add, size_t addlen)
+drbg_add_buf (unsigned char *dst, size_t dstlen,
+              unsigned char *add, size_t addlen)
 {
   /* implied: dstlen > addlen */
   unsigned char *dstptr, *addptr;
@@ -566,15 +590,16 @@ gcry_drbg_add_buf (unsigned char *dst, size_t dstlen,
  *   data pointer.  Thus we need to use a global variable for
  *   communication.  However, the then required locking is anyway a good
  *   idea because it does not make sense to have several readers of (say
- *   /dev/random).  It is easier to serve them one after the other.  */
+ *   /dev/random).  It is easier to serve them one after the other.
+ */
 static unsigned char *read_cb_buffer;	/* The buffer.  */
-static size_t read_cb_size;	/* Size of the buffer.  */
-static size_t read_cb_len;	/* Used length.  */
+static size_t read_cb_size;	        /* Size of the buffer.  */
+static size_t read_cb_len;	        /* Used length.  */
 
 /* Callback for generating seed from kernel device. */
 static void
-gcry_drbg_read_cb (const void *buffer, size_t length,
-		   enum random_origins origin)
+drbg_read_cb (const void *buffer, size_t length,
+              enum random_origins origin)
 {
   const unsigned char *p = buffer;
 
@@ -588,7 +613,7 @@ gcry_drbg_read_cb (const void *buffer, size_t length,
 }
 
 static inline int
-gcry_drbg_get_entropy (struct gcry_drbg_state *drbg, unsigned char *buffer,
+drbg_get_entropy (drbg_state_t drbg, unsigned char *buffer,
 		       size_t len)
 {
   int rc = 0;
@@ -601,7 +626,7 @@ gcry_drbg_get_entropy (struct gcry_drbg_state *drbg, unsigned char *buffer,
   read_cb_size = len;
   read_cb_len = 0;
 #if USE_RNDLINUX
-  rc = _gcry_rndlinux_gather_random (gcry_drbg_read_cb, 0, len,
+  rc = _gcry_rndlinux_gather_random (drbg_read_cb, 0, len,
 				     GCRY_VERY_STRONG_RANDOM);
 #elif USE_RNDUNIX
   rc = _gcry_rndunix_gather_random (read_cb, 0, length,
@@ -625,27 +650,27 @@ gcry_drbg_get_entropy (struct gcry_drbg_state *drbg, unsigned char *buffer,
 
 /* BCC function for CTR DRBG as defined in 10.4.3 */
 static gpg_err_code_t
-gcry_drbg_ctr_bcc (struct gcry_drbg_state *drbg,
-		   unsigned char *out, const unsigned char *key,
-		   struct gcry_drbg_string *in)
+drbg_ctr_bcc (drbg_state_t drbg,
+              unsigned char *out, const unsigned char *key,
+              drbg_string_t *in)
 {
   gpg_err_code_t ret = GPG_ERR_GENERAL;
-  struct gcry_drbg_string *curr = in;
+  drbg_string_t *curr = in;
   size_t inpos = curr->len;
   const unsigned char *pos = curr->buf;
-  struct gcry_drbg_string data;
+  drbg_string_t data;
 
-  gcry_drbg_string_fill (&data, out, gcry_drbg_blocklen (drbg));
+  drbg_string_fill (&data, out, drbg_blocklen (drbg));
 
   /* 10.4.3 step 1 */
-  memset (out, 0, gcry_drbg_blocklen (drbg));
+  memset (out, 0, drbg_blocklen (drbg));
 
   /* 10.4.3 step 2 / 4 */
   while (inpos)
     {
       short cnt = 0;
       /* 10.4.3 step 4.1 */
-      for (cnt = 0; cnt < gcry_drbg_blocklen (drbg); cnt++)
+      for (cnt = 0; cnt < drbg_blocklen (drbg); cnt++)
 	{
 	  out[cnt] ^= *pos;
 	  pos++;
@@ -672,7 +697,7 @@ gcry_drbg_ctr_bcc (struct gcry_drbg_state *drbg,
 	    }
 	}
       /* 10.4.3 step 4.2 */
-      ret = gcry_drbg_sym (drbg, key, out, &data);
+      ret = drbg_sym (drbg, key, out, &data);
       if (ret)
 	return ret;
       /* 10.4.3 step 2 */
@@ -682,13 +707,13 @@ gcry_drbg_ctr_bcc (struct gcry_drbg_state *drbg,
 
 
 /*
- * scratchpad usage: gcry_drbg_ctr_update is interlinked with gcry_drbg_ctr_df
- * (and gcry_drbg_ctr_bcc, but this function does not need any temporary buffers),
+ * scratchpad usage: drbg_ctr_update is interlinked with drbg_ctr_df
+ * (and drbg_ctr_bcc, but this function does not need any temporary buffers),
  * the scratchpad is used as follows:
- * gcry_drbg_ctr_update:
+ * drbg_ctr_update:
  *	temp
  *		start: drbg->scratchpad
- *		length: gcry_drbg_statelen(drbg) + gcry_drbg_blocklen(drbg)
+ *		length: drbg_statelen(drbg) + drbg_blocklen(drbg)
  *			note: the cipher writing into this variable works
  *			blocklen-wise. Now, when the statelen is not a multiple
  *			of blocklen, the generateion loop below "spills over"
@@ -696,44 +721,44 @@ gcry_drbg_ctr_bcc (struct gcry_drbg_state *drbg,
  *			memory.
  *	df_data
  *		start: drbg->scratchpad +
- *				gcry_drbg_statelen(drbg) +
- *				gcry_drbg_blocklen(drbg)
- *		length: gcry_drbg_statelen(drbg)
+ *				drbg_statelen(drbg) +
+ *				drbg_blocklen(drbg)
+ *		length: drbg_statelen(drbg)
  *
- * gcry_drbg_ctr_df:
+ * drbg_ctr_df:
  *	pad
- *		start: df_data + gcry_drbg_statelen(drbg)
- *		length: gcry_drbg_blocklen(drbg)
+ *		start: df_data + drbg_statelen(drbg)
+ *		length: drbg_blocklen(drbg)
  *	iv
- *		start: pad + gcry_drbg_blocklen(drbg)
- *		length: gcry_drbg_blocklen(drbg)
+ *		start: pad + drbg_blocklen(drbg)
+ *		length: drbg_blocklen(drbg)
  *	temp
- *		start: iv + gcry_drbg_blocklen(drbg)
- *		length: gcry_drbg_satelen(drbg) + gcry_drbg_blocklen(drbg)
+ *		start: iv + drbg_blocklen(drbg)
+ *		length: drbg_satelen(drbg) + drbg_blocklen(drbg)
  *			note: temp is the buffer that the BCC function operates
- *			on. BCC operates blockwise. gcry_drbg_statelen(drbg)
+ *			on. BCC operates blockwise. drbg_statelen(drbg)
  *			is sufficient when the DRBG state length is a multiple
  *			of the block size. For AES192 (and maybe other ciphers)
  *			this is not correct and the length for temp is
  *			insufficient (yes, that also means for such ciphers,
  *			the final output of all BCC rounds are truncated).
- *			Therefore, add gcry_drbg_blocklen(drbg) to cover all
+ *			Therefore, add drbg_blocklen(drbg) to cover all
  *			possibilities.
  */
 
 /* Derivation Function for CTR DRBG as defined in 10.4.2 */
 static gpg_err_code_t
-gcry_drbg_ctr_df (struct gcry_drbg_state *drbg, unsigned char *df_data,
-		  size_t bytes_to_return, struct gcry_drbg_string *addtl)
+drbg_ctr_df (drbg_state_t drbg, unsigned char *df_data,
+             size_t bytes_to_return, drbg_string_t *addtl)
 {
   gpg_err_code_t ret = GPG_ERR_GENERAL;
   unsigned char L_N[8];
   /* S3 is input */
-  struct gcry_drbg_string S1, S2, S4, cipherin;
-  struct gcry_drbg_string *tempstr = addtl;
-  unsigned char *pad = df_data + gcry_drbg_statelen (drbg);
-  unsigned char *iv = pad + gcry_drbg_blocklen (drbg);
-  unsigned char *temp = iv + gcry_drbg_blocklen (drbg);
+  drbg_string_t S1, S2, S4, cipherin;
+  drbg_string_t *tempstr = addtl;
+  unsigned char *pad = df_data + drbg_statelen (drbg);
+  unsigned char *iv = pad + drbg_blocklen (drbg);
+  unsigned char *temp = iv + drbg_blocklen (drbg);
   size_t padlen = 0;
   unsigned int templen = 0;
   /* 10.4.2 step 7 */
@@ -746,9 +771,9 @@ gcry_drbg_ctr_df (struct gcry_drbg_state *drbg, unsigned char *df_data,
   size_t generated_len = 0;
   size_t inputlen = 0;
 
-  memset (pad, 0, gcry_drbg_blocklen (drbg));
-  memset (iv, 0, gcry_drbg_blocklen (drbg));
-  memset (temp, 0, gcry_drbg_statelen (drbg));
+  memset (pad, 0, drbg_blocklen (drbg));
+  memset (iv, 0, drbg_blocklen (drbg));
+  memset (temp, 0, drbg_statelen (drbg));
 
   /* 10.4.2 step 1 is implicit as we work byte-wise */
 
@@ -759,25 +784,25 @@ gcry_drbg_ctr_df (struct gcry_drbg_state *drbg, unsigned char *df_data,
   /* 10.4.2 step 2 -- calculate the entire length of all input data */
   for (; NULL != tempstr; tempstr = tempstr->next)
     inputlen += tempstr->len;
-  gcry_drbg_cpu_to_be32 (inputlen, &L_N[0]);
+  drbg_cpu_to_be32 (inputlen, &L_N[0]);
 
   /* 10.4.2 step 3 */
-  gcry_drbg_cpu_to_be32 (bytes_to_return, &L_N[4]);
+  drbg_cpu_to_be32 (bytes_to_return, &L_N[4]);
 
   /* 10.4.2 step 5: length is size of L_N, input_string, one byte, padding */
-  padlen = (inputlen + sizeof (L_N) + 1) % (gcry_drbg_blocklen (drbg));
+  padlen = (inputlen + sizeof (L_N) + 1) % (drbg_blocklen (drbg));
   /* wrap the padlen appropriately */
   if (padlen)
-    padlen = gcry_drbg_blocklen (drbg) - padlen;
+    padlen = drbg_blocklen (drbg) - padlen;
   /* pad / padlen contains the 0x80 byte and the following zero bytes, so
    * add one for byte for 0x80 */
   padlen++;
   pad[0] = 0x80;
 
   /* 10.4.2 step 4 -- first fill the linked list and then order it */
-  gcry_drbg_string_fill (&S1, iv, gcry_drbg_blocklen (drbg));
-  gcry_drbg_string_fill (&S2, L_N, sizeof (L_N));
-  gcry_drbg_string_fill (&S4, pad, padlen);
+  drbg_string_fill (&S1, iv, drbg_blocklen (drbg));
+  drbg_string_fill (&S2, L_N, sizeof (L_N));
+  drbg_string_fill (&S4, pad, padlen);
   S1.next = &S2;
   S2.next = addtl;
 
@@ -790,25 +815,25 @@ gcry_drbg_ctr_df (struct gcry_drbg_state *drbg, unsigned char *df_data,
   tempstr->next = &S4;
 
   /* 10.4.2 step 9 */
-  while (templen < (gcry_drbg_keylen (drbg) + (gcry_drbg_blocklen (drbg))))
+  while (templen < (drbg_keylen (drbg) + (drbg_blocklen (drbg))))
     {
       /* 10.4.2 step 9.1 - the padding is implicit as the buffer
        * holds zeros after allocation -- even the increment of i
        * is irrelevant as the increment remains within length of i */
-      gcry_drbg_cpu_to_be32 (i, iv);
+      drbg_cpu_to_be32 (i, iv);
       /* 10.4.2 step 9.2 -- BCC and concatenation with temp */
-      ret = gcry_drbg_ctr_bcc (drbg, temp + templen, K, &S1);
+      ret = drbg_ctr_bcc (drbg, temp + templen, K, &S1);
       if (ret)
 	goto out;
       /* 10.4.2 step 9.3 */
       i++;
-      templen += gcry_drbg_blocklen (drbg);
+      templen += drbg_blocklen (drbg);
     }
 
   /* 10.4.2 step 11 */
   /* implicit key len with seedlen - blocklen according to table 3 */
-  X = temp + (gcry_drbg_keylen (drbg));
-  gcry_drbg_string_fill (&cipherin, X, gcry_drbg_blocklen (drbg));
+  X = temp + (drbg_keylen (drbg));
+  drbg_string_fill (&cipherin, X, drbg_blocklen (drbg));
 
   /* 10.4.2 step 12: overwriting of outval */
 
@@ -818,14 +843,14 @@ gcry_drbg_ctr_df (struct gcry_drbg_state *drbg, unsigned char *df_data,
       short blocklen = 0;
       /* 10.4.2 step 13.1 */
       /* the truncation of the key length is implicit as the key
-       * is only gcry_drbg_blocklen in size -- check for the implementation
+       * is only drbg_blocklen in size -- check for the implementation
        * of the cipher function callback */
-      ret = gcry_drbg_sym (drbg, temp, X, &cipherin);
+      ret = drbg_sym (drbg, temp, X, &cipherin);
       if (ret)
 	goto out;
-      blocklen = (gcry_drbg_blocklen (drbg) <
+      blocklen = (drbg_blocklen (drbg) <
 		  (bytes_to_return - generated_len)) ?
-	gcry_drbg_blocklen (drbg) : (bytes_to_return - generated_len);
+	drbg_blocklen (drbg) : (bytes_to_return - generated_len);
       /* 10.4.2 step 13.2 and 14 */
       memcpy (df_data + generated_len, X, blocklen);
       generated_len += blocklen;
@@ -833,45 +858,44 @@ gcry_drbg_ctr_df (struct gcry_drbg_state *drbg, unsigned char *df_data,
 
   ret = 0;
 
-out:
-  memset (iv, 0, gcry_drbg_blocklen (drbg));
-  memset (temp, 0, gcry_drbg_statelen (drbg));
-  memset (pad, 0, gcry_drbg_blocklen (drbg));
+ out:
+  memset (iv, 0, drbg_blocklen (drbg));
+  memset (temp, 0, drbg_statelen (drbg));
+  memset (pad, 0, drbg_blocklen (drbg));
   return ret;
 }
 
 /*
- * update function of CTR DRBG as defined in 10.2.1.2
+ * Update function of CTR DRBG as defined in 10.2.1.2
  *
  * The reseed variable has an enhanced meaning compared to the update
  * functions of the other DRBGs as follows:
  * 0 => initial seed from initialization
- * 1 => reseed via gcry_drbg_seed
- * 2 => first invocation from gcry_drbg_ctr_update when addtl is present. In
+ * 1 => reseed via drbg_seed
+ * 2 => first invocation from drbg_ctr_update when addtl is present. In
  *      this case, the df_data scratchpad is not deleted so that it is
  *      available for another calls to prevent calling the DF function
  *      again.
- * 3 => second invocation from gcry_drbg_ctr_update. When the update function
+ * 3 => second invocation from drbg_ctr_update. When the update function
  *      was called with addtl, the df_data memory already contains the
  *      DFed addtl information and we do not need to call DF again.
  */
 static gpg_err_code_t
-gcry_drbg_ctr_update (struct gcry_drbg_state *drbg,
-		      struct gcry_drbg_string *addtl, int reseed)
+drbg_ctr_update (drbg_state_t drbg, drbg_string_t *addtl, int reseed)
 {
   gpg_err_code_t ret = GPG_ERR_GENERAL;
   /* 10.2.1.2 step 1 */
   unsigned char *temp = drbg->scratchpad;
   unsigned char *df_data = drbg->scratchpad +
-    gcry_drbg_statelen (drbg) + gcry_drbg_blocklen (drbg);
+    drbg_statelen (drbg) + drbg_blocklen (drbg);
   unsigned char *temp_p, *df_data_p;	/* pointer to iterate over buffers */
   unsigned int len = 0;
-  struct gcry_drbg_string cipherin;
+  drbg_string_t cipherin;
   unsigned char prefix = DRBG_PREFIX1;
 
-  memset (temp, 0, gcry_drbg_statelen (drbg) + gcry_drbg_blocklen (drbg));
+  memset (temp, 0, drbg_statelen (drbg) + drbg_blocklen (drbg));
   if (3 > reseed)
-    memset (df_data, 0, gcry_drbg_statelen (drbg));
+    memset (df_data, 0, drbg_statelen (drbg));
 
   /* 10.2.1.3.2 step 2 and 10.2.1.4.2 step 2 */
   /* TODO use reseed variable to avoid re-doing DF operation */
@@ -879,31 +903,31 @@ gcry_drbg_ctr_update (struct gcry_drbg_state *drbg,
   if (addtl && 0 < addtl->len)
     {
       ret =
-	gcry_drbg_ctr_df (drbg, df_data, gcry_drbg_statelen (drbg), addtl);
+	drbg_ctr_df (drbg, df_data, drbg_statelen (drbg), addtl);
       if (ret)
 	goto out;
     }
 
-  gcry_drbg_string_fill (&cipherin, drbg->V, gcry_drbg_blocklen (drbg));
+  drbg_string_fill (&cipherin, drbg->V, drbg_blocklen (drbg));
   /* 10.2.1.3.2 step 2 and 3 -- are already covered as we memset(0)
    * all memory during initialization */
-  while (len < (gcry_drbg_statelen (drbg)))
+  while (len < (drbg_statelen (drbg)))
     {
       /* 10.2.1.2 step 2.1 */
-      gcry_drbg_add_buf (drbg->V, gcry_drbg_blocklen (drbg), &prefix, 1);
+      drbg_add_buf (drbg->V, drbg_blocklen (drbg), &prefix, 1);
       /* 10.2.1.2 step 2.2 */
       /* using target of temp + len: 10.2.1.2 step 2.3 and 3 */
-      ret = gcry_drbg_sym (drbg, drbg->C, temp + len, &cipherin);
+      ret = drbg_sym (drbg, drbg->C, temp + len, &cipherin);
       if (ret)
 	goto out;
       /* 10.2.1.2 step 2.3 and 3 */
-      len += gcry_drbg_blocklen (drbg);
+      len += drbg_blocklen (drbg);
     }
 
   /* 10.2.1.2 step 4 */
   temp_p = temp;
   df_data_p = df_data;
-  for (len = 0; len < gcry_drbg_statelen (drbg); len++)
+  for (len = 0; len < drbg_statelen (drbg); len++)
     {
       *temp_p ^= *df_data_p;
       df_data_p++;
@@ -911,77 +935,77 @@ gcry_drbg_ctr_update (struct gcry_drbg_state *drbg,
     }
 
   /* 10.2.1.2 step 5 */
-  memcpy (drbg->C, temp, gcry_drbg_keylen (drbg));
+  memcpy (drbg->C, temp, drbg_keylen (drbg));
   /* 10.2.1.2 step 6 */
-  memcpy (drbg->V, temp + gcry_drbg_keylen (drbg), gcry_drbg_blocklen (drbg));
+  memcpy (drbg->V, temp + drbg_keylen (drbg), drbg_blocklen (drbg));
   ret = 0;
 
-out:
-  memset (temp, 0, gcry_drbg_statelen (drbg) + gcry_drbg_blocklen (drbg));
+ out:
+  memset (temp, 0, drbg_statelen (drbg) + drbg_blocklen (drbg));
   if (2 != reseed)
-    memset (df_data, 0, gcry_drbg_statelen (drbg));
+    memset (df_data, 0, drbg_statelen (drbg));
   return ret;
 }
 
 /*
- * scratchpad use: gcry_drbg_ctr_update is called independently from
- * gcry_drbg_ctr_extract_bytes. Therefore, the scratchpad is reused
+ * scratchpad use: drbg_ctr_update is called independently from
+ * drbg_ctr_extract_bytes. Therefore, the scratchpad is reused
  */
 /* Generate function of CTR DRBG as defined in 10.2.1.5.2 */
 static gpg_err_code_t
-gcry_drbg_ctr_generate (struct gcry_drbg_state *drbg,
-			unsigned char *buf, unsigned int buflen,
-			struct gcry_drbg_string *addtl)
+drbg_ctr_generate (drbg_state_t drbg,
+                   unsigned char *buf, unsigned int buflen,
+                   drbg_string_t *addtl)
 {
   gpg_err_code_t ret = 0;
   unsigned int len = 0;
-  struct gcry_drbg_string data;
+  drbg_string_t data;
   unsigned char prefix = DRBG_PREFIX1;
 
-  memset (drbg->scratchpad, 0, gcry_drbg_blocklen (drbg));
+  memset (drbg->scratchpad, 0, drbg_blocklen (drbg));
 
   /* 10.2.1.5.2 step 2 */
   if (addtl && 0 < addtl->len)
     {
       addtl->next = NULL;
-      ret = gcry_drbg_ctr_update (drbg, addtl, 2);
+      ret = drbg_ctr_update (drbg, addtl, 2);
       if (ret)
 	return ret;
     }
 
   /* 10.2.1.5.2 step 4.1 */
-  gcry_drbg_add_buf (drbg->V, gcry_drbg_blocklen (drbg), &prefix, 1);
-  gcry_drbg_string_fill (&data, drbg->V, gcry_drbg_blocklen (drbg));
+  drbg_add_buf (drbg->V, drbg_blocklen (drbg), &prefix, 1);
+  drbg_string_fill (&data, drbg->V, drbg_blocklen (drbg));
   while (len < buflen)
     {
       unsigned int outlen = 0;
       /* 10.2.1.5.2 step 4.2 */
-      ret = gcry_drbg_sym (drbg, drbg->C, drbg->scratchpad, &data);
+      ret = drbg_sym (drbg, drbg->C, drbg->scratchpad, &data);
       if (ret)
 	goto out;
-      outlen = (gcry_drbg_blocklen (drbg) < (buflen - len)) ?
-	gcry_drbg_blocklen (drbg) : (buflen - len);
+      outlen = (drbg_blocklen (drbg) < (buflen - len)) ?
+	drbg_blocklen (drbg) : (buflen - len);
       /* 10.2.1.5.2 step 4.3 */
       memcpy (buf + len, drbg->scratchpad, outlen);
       len += outlen;
       /* 10.2.1.5.2 step 6 */
       if (len < buflen)
-	gcry_drbg_add_buf (drbg->V, gcry_drbg_blocklen (drbg), &prefix, 1);
+	drbg_add_buf (drbg->V, drbg_blocklen (drbg), &prefix, 1);
     }
 
   /* 10.2.1.5.2 step 6 */
   if (addtl)
     addtl->next = NULL;
-  ret = gcry_drbg_ctr_update (drbg, addtl, 3);
+  ret = drbg_ctr_update (drbg, addtl, 3);
 
-out:
-  memset (drbg->scratchpad, 0, gcry_drbg_blocklen (drbg));
+ out:
+  memset (drbg->scratchpad, 0, drbg_blocklen (drbg));
   return ret;
 }
 
-static struct gcry_drbg_state_ops gcry_drbg_ctr_ops = {
-  gcry_drbg_ctr_update,
-  gcry_drbg_ctr_generate,
+static struct drbg_state_ops_s drbg_ctr_ops = {
+  drbg_ctr_update,
+  drbg_ctr_generate
 };
 
 /******************************************************************
@@ -989,28 +1013,29 @@ static struct gcry_drbg_state_ops gcry_drbg_ctr_ops = {
  ******************************************************************/
 
 static gpg_err_code_t
-gcry_drbg_hmac_update (struct gcry_drbg_state *drbg,
-		       struct gcry_drbg_string *seed, int reseed)
+drbg_hmac_update (drbg_state_t drbg, drbg_string_t *seed, int reseed)
 {
   gpg_err_code_t ret = GPG_ERR_GENERAL;
   int i = 0;
-  struct gcry_drbg_string seed1, seed2, cipherin;
+  drbg_string_t seed1, seed2, cipherin;
 
   if (!reseed)
-    /* 10.1.2.3 step 2 already implicitly covered with
-     * the initial memset(0) of drbg->C */
-    memset (drbg->V, 1, gcry_drbg_statelen (drbg));
+    {
+      /* 10.1.2.3 step 2 already implicitly covered with
+       * the initial memset(0) of drbg->C */
+      memset (drbg->V, 1, drbg_statelen (drbg));
+    }
 
   /* build linked list which implements the concatenation and fill
    * first part*/
-  gcry_drbg_string_fill (&seed1, drbg->V, gcry_drbg_statelen (drbg));
+  drbg_string_fill (&seed1, drbg->V, drbg_statelen (drbg));
   /* buffer will be filled in for loop below with one byte */
-  gcry_drbg_string_fill (&seed2, NULL, 1);
+  drbg_string_fill (&seed2, NULL, 1);
   seed1.next = &seed2;
   /* seed may be NULL */
   seed2.next = seed;
 
-  gcry_drbg_string_fill (&cipherin, drbg->V, gcry_drbg_statelen (drbg));
+  drbg_string_fill (&cipherin, drbg->V, drbg_statelen (drbg));
   /* we execute two rounds of V/K massaging */
   for (i = 2; 0 < i; i--)
     {
@@ -1020,12 +1045,12 @@ gcry_drbg_hmac_update (struct gcry_drbg_state *drbg,
 	prefix = DRBG_PREFIX1;
       /* 10.1.2.2 step 1 and 4 -- concatenation and HMAC for key */
       seed2.buf = &prefix;
-      ret = gcry_drbg_hmac (drbg, drbg->C, drbg->C, &seed1);
+      ret = drbg_hmac (drbg, drbg->C, drbg->C, &seed1);
       if (ret)
 	return ret;
 
       /* 10.1.2.2 step 2 and 5 -- HMAC for V */
-      ret = gcry_drbg_hmac (drbg, drbg->C, drbg->V, &cipherin);
+      ret = drbg_hmac (drbg, drbg->C, drbg->V, &cipherin);
       if (ret)
 	return ret;
 
@@ -1038,33 +1063,32 @@ gcry_drbg_hmac_update (struct gcry_drbg_state *drbg,
 
 /* generate function of HMAC DRBG as defined in 10.1.2.5 */
 static gpg_err_code_t
-gcry_drbg_hmac_generate (struct gcry_drbg_state *drbg,
-			 unsigned char *buf,
-			 unsigned int buflen, struct gcry_drbg_string *addtl)
+drbg_hmac_generate (drbg_state_t drbg, unsigned char *buf, unsigned int buflen,
+                    drbg_string_t *addtl)
 {
   gpg_err_code_t ret = 0;
   unsigned int len = 0;
-  struct gcry_drbg_string data;
+  drbg_string_t data;
 
   /* 10.1.2.5 step 2 */
   if (addtl && 0 < addtl->len)
     {
       addtl->next = NULL;
-      ret = gcry_drbg_hmac_update (drbg, addtl, 1);
+      ret = drbg_hmac_update (drbg, addtl, 1);
       if (ret)
 	return ret;
     }
 
-  gcry_drbg_string_fill (&data, drbg->V, gcry_drbg_statelen (drbg));
+  drbg_string_fill (&data, drbg->V, drbg_statelen (drbg));
   while (len < buflen)
     {
       unsigned int outlen = 0;
       /* 10.1.2.5 step 4.1 */
-      ret = gcry_drbg_hmac (drbg, drbg->C, drbg->V, &data);
+      ret = drbg_hmac (drbg, drbg->C, drbg->V, &data);
       if (ret)
 	return ret;
-      outlen = (gcry_drbg_blocklen (drbg) < (buflen - len)) ?
-	gcry_drbg_blocklen (drbg) : (buflen - len);
+      outlen = (drbg_blocklen (drbg) < (buflen - len)) ?
+	drbg_blocklen (drbg) : (buflen - len);
 
       /* 10.1.2.5 step 4.2 */
       memcpy (buf + len, drbg->V, outlen);
@@ -1074,14 +1098,14 @@ gcry_drbg_hmac_generate (struct gcry_drbg_state *drbg,
   /* 10.1.2.5 step 6 */
   if (addtl)
     addtl->next = NULL;
-  ret = gcry_drbg_hmac_update (drbg, addtl, 1);
+  ret = drbg_hmac_update (drbg, addtl, 1);
 
   return ret;
 }
 
-static struct gcry_drbg_state_ops gcry_drbg_hmac_ops = {
-  gcry_drbg_hmac_update,
-  gcry_drbg_hmac_generate,
+static struct drbg_state_ops_s drbg_hmac_ops = {
+  drbg_hmac_update,
+  drbg_hmac_generate
 };
 
 /******************************************************************
@@ -1089,35 +1113,35 @@ static struct gcry_drbg_state_ops gcry_drbg_hmac_ops = {
  ******************************************************************/
 
 /*
- * scratchpad usage: as gcry_drbg_hash_update and gcry_drbg_hash_df are used
+ * scratchpad usage: as drbg_hash_update and drbg_hash_df are used
  * interlinked, the scratchpad is used as follows:
- * gcry_drbg_hash_update
+ * drbg_hash_update
  *	start: drbg->scratchpad
- *	length: gcry_drbg_statelen(drbg)
- * gcry_drbg_hash_df:
- *	start: drbg->scratchpad + gcry_drbg_statelen(drbg)
- *	length: gcry_drbg_blocklen(drbg)
+ *	length: drbg_statelen(drbg)
+ * drbg_hash_df:
+ *	start: drbg->scratchpad + drbg_statelen(drbg)
+ *	length: drbg_blocklen(drbg)
  */
 /* Derivation Function for Hash DRBG as defined in 10.4.1 */
 static gpg_err_code_t
-gcry_drbg_hash_df (struct gcry_drbg_state *drbg,
-		   unsigned char *outval, size_t outlen,
-		   struct gcry_drbg_string *entropy)
+drbg_hash_df (drbg_state_t drbg,
+              unsigned char *outval, size_t outlen,
+              drbg_string_t *entropy)
 {
   gpg_err_code_t ret = 0;
   size_t len = 0;
   unsigned char input[5];
-  unsigned char *tmp = drbg->scratchpad + gcry_drbg_statelen (drbg);
-  struct gcry_drbg_string data1;
+  unsigned char *tmp = drbg->scratchpad + drbg_statelen (drbg);
+  drbg_string_t data1;
 
-  memset (tmp, 0, gcry_drbg_blocklen (drbg));
+  memset (tmp, 0, drbg_blocklen (drbg));
 
   /* 10.4.1 step 3 */
   input[0] = 1;
-  gcry_drbg_cpu_to_be32 ((outlen * 8), &input[1]);
+  drbg_cpu_to_be32 ((outlen * 8), &input[1]);
 
   /* 10.4.1 step 4.1 -- concatenation of data for input into hash */
-  gcry_drbg_string_fill (&data1, input, 5);
+  drbg_string_fill (&data1, input, 5);
   data1.next = entropy;
 
   /* 10.4.1 step 4 */
@@ -1125,33 +1149,32 @@ gcry_drbg_hash_df (struct gcry_drbg_state *drbg,
     {
       short blocklen = 0;
       /* 10.4.1 step 4.1 */
-      ret = gcry_drbg_hmac (drbg, NULL, tmp, &data1);
+      ret = drbg_hmac (drbg, NULL, tmp, &data1);
       if (ret)
 	goto out;
       /* 10.4.1 step 4.2 */
       input[0]++;
-      blocklen = (gcry_drbg_blocklen (drbg) < (outlen - len)) ?
-	gcry_drbg_blocklen (drbg) : (outlen - len);
+      blocklen = (drbg_blocklen (drbg) < (outlen - len)) ?
+	drbg_blocklen (drbg) : (outlen - len);
       memcpy (outval + len, tmp, blocklen);
       len += blocklen;
     }
 
-out:
-  memset (tmp, 0, gcry_drbg_blocklen (drbg));
+ out:
+  memset (tmp, 0, drbg_blocklen (drbg));
   return ret;
 }
 
 /* update function for Hash DRBG as defined in 10.1.1.2 / 10.1.1.3 */
 static gpg_err_code_t
-gcry_drbg_hash_update (struct gcry_drbg_state *drbg,
-		       struct gcry_drbg_string *seed, int reseed)
+drbg_hash_update (drbg_state_t drbg, drbg_string_t *seed, int reseed)
 {
   gpg_err_code_t ret = 0;
-  struct gcry_drbg_string data1, data2;
+  drbg_string_t data1, data2;
   unsigned char *V = drbg->scratchpad;
   unsigned char prefix = DRBG_PREFIX1;
 
-  memset (drbg->scratchpad, 0, gcry_drbg_statelen (drbg));
+  memset (drbg->scratchpad, 0, drbg_statelen (drbg));
   if (!seed)
     return GPG_ERR_INV_ARG;
 
@@ -1161,71 +1184,70 @@ gcry_drbg_hash_update (struct gcry_drbg_state *drbg,
        * 1 byte, V and seed (which is concatenated entropy/addtl
        * input)
        */
-      memcpy (V, drbg->V, gcry_drbg_statelen (drbg));
-      gcry_drbg_string_fill (&data1, &prefix, 1);
-      gcry_drbg_string_fill (&data2, V, gcry_drbg_statelen (drbg));
+      memcpy (V, drbg->V, drbg_statelen (drbg));
+      drbg_string_fill (&data1, &prefix, 1);
+      drbg_string_fill (&data2, V, drbg_statelen (drbg));
       data1.next = &data2;
       data2.next = seed;
     }
   else
     {
-      gcry_drbg_string_fill (&data1, seed->buf, seed->len);
+      drbg_string_fill (&data1, seed->buf, seed->len);
       data1.next = seed->next;
     }
 
   /* 10.1.1.2 / 10.1.1.3 step 2 and 3 */
-  ret = gcry_drbg_hash_df (drbg, drbg->V, gcry_drbg_statelen (drbg), &data1);
+  ret = drbg_hash_df (drbg, drbg->V, drbg_statelen (drbg), &data1);
   if (ret)
     goto out;
 
   /* 10.1.1.2 / 10.1.1.3 step 4 -- concatenation  */
   prefix = DRBG_PREFIX0;
-  gcry_drbg_string_fill (&data1, &prefix, 1);
-  gcry_drbg_string_fill (&data2, drbg->V, gcry_drbg_statelen (drbg));
+  drbg_string_fill (&data1, &prefix, 1);
+  drbg_string_fill (&data2, drbg->V, drbg_statelen (drbg));
   data1.next = &data2;
   /* 10.1.1.2 / 10.1.1.3 step 4 -- df operation */
-  ret = gcry_drbg_hash_df (drbg, drbg->C, gcry_drbg_statelen (drbg), &data1);
+  ret = drbg_hash_df (drbg, drbg->C, drbg_statelen (drbg), &data1);
 
-out:
-  memset (drbg->scratchpad, 0, gcry_drbg_statelen (drbg));
+ out:
+  memset (drbg->scratchpad, 0, drbg_statelen (drbg));
   return ret;
 }
 
-/* processing of additional information string for Hash DRBG */
+/* Processing of additional information string for Hash DRBG.  */
 static gpg_err_code_t
-gcry_drbg_hash_process_addtl (struct gcry_drbg_state *drbg,
-			      struct gcry_drbg_string *addtl)
+drbg_hash_process_addtl (drbg_state_t drbg, drbg_string_t *addtl)
 {
   gpg_err_code_t ret = 0;
-  struct gcry_drbg_string data1, data2;
-  struct gcry_drbg_string *data3;
+  drbg_string_t data1, data2;
+  drbg_string_t *data3;
   unsigned char prefix = DRBG_PREFIX2;
 
   /* this is value w as per documentation */
-  memset (drbg->scratchpad, 0, gcry_drbg_blocklen (drbg));
+  memset (drbg->scratchpad, 0, drbg_blocklen (drbg));
 
   /* 10.1.1.4 step 2 */
   if (!addtl || 0 == addtl->len)
     return 0;
 
   /* 10.1.1.4 step 2a -- concatenation */
-  gcry_drbg_string_fill (&data1, &prefix, 1);
-  gcry_drbg_string_fill (&data2, drbg->V, gcry_drbg_statelen (drbg));
+  drbg_string_fill (&data1, &prefix, 1);
+  drbg_string_fill (&data2, drbg->V, drbg_statelen (drbg));
   data3 = addtl;
   data1.next = &data2;
   data2.next = data3;
   data3->next = NULL;
   /* 10.1.1.4 step 2a -- cipher invocation */
-  ret = gcry_drbg_hmac (drbg, NULL, drbg->scratchpad, &data1);
+  ret = drbg_hmac (drbg, NULL, drbg->scratchpad, &data1);
   if (ret)
     goto out;
 
   /* 10.1.1.4 step 2b */
-  gcry_drbg_add_buf (drbg->V, gcry_drbg_statelen (drbg),
-		     drbg->scratchpad, gcry_drbg_blocklen (drbg));
+  drbg_add_buf (drbg->V, drbg_statelen (drbg),
+		     drbg->scratchpad, drbg_blocklen (drbg));
 
-out:
-  memset (drbg->scratchpad, 0, gcry_drbg_blocklen (drbg));
+ out:
+  memset (drbg->scratchpad, 0, drbg_blocklen (drbg));
   return ret;
 }
 
@@ -1233,56 +1255,56 @@ out:
  * Hashgen defined in 10.1.1.4
  */
 static gpg_err_code_t
-gcry_drbg_hash_hashgen (struct gcry_drbg_state *drbg,
-			unsigned char *buf, unsigned int buflen)
+drbg_hash_hashgen (drbg_state_t drbg,
+                   unsigned char *buf, unsigned int buflen)
 {
   gpg_err_code_t ret = 0;
   unsigned int len = 0;
   unsigned char *src = drbg->scratchpad;
-  unsigned char *dst = drbg->scratchpad + gcry_drbg_statelen (drbg);
-  struct gcry_drbg_string data;
+  unsigned char *dst = drbg->scratchpad + drbg_statelen (drbg);
+  drbg_string_t data;
   unsigned char prefix = DRBG_PREFIX1;
 
   /* use the scratchpad as a lookaside buffer */
-  memset (src, 0, gcry_drbg_statelen (drbg));
-  memset (dst, 0, gcry_drbg_blocklen (drbg));
+  memset (src, 0, drbg_statelen (drbg));
+  memset (dst, 0, drbg_blocklen (drbg));
 
   /* 10.1.1.4 step hashgen 2 */
-  memcpy (src, drbg->V, gcry_drbg_statelen (drbg));
+  memcpy (src, drbg->V, drbg_statelen (drbg));
 
-  gcry_drbg_string_fill (&data, src, gcry_drbg_statelen (drbg));
+  drbg_string_fill (&data, src, drbg_statelen (drbg));
   while (len < buflen)
     {
       unsigned int outlen = 0;
       /* 10.1.1.4 step hashgen 4.1 */
-      ret = gcry_drbg_hmac (drbg, NULL, dst, &data);
+      ret = drbg_hmac (drbg, NULL, dst, &data);
       if (ret)
 	goto out;
-      outlen = (gcry_drbg_blocklen (drbg) < (buflen - len)) ?
-	gcry_drbg_blocklen (drbg) : (buflen - len);
+      outlen = (drbg_blocklen (drbg) < (buflen - len)) ?
+	drbg_blocklen (drbg) : (buflen - len);
       /* 10.1.1.4 step hashgen 4.2 */
       memcpy (buf + len, dst, outlen);
       len += outlen;
       /* 10.1.1.4 hashgen step 4.3 */
       if (len < buflen)
-	gcry_drbg_add_buf (src, gcry_drbg_statelen (drbg), &prefix, 1);
+	drbg_add_buf (src, drbg_statelen (drbg), &prefix, 1);
     }
 
-out:
+ out:
   memset (drbg->scratchpad, 0,
-	  (gcry_drbg_statelen (drbg) + gcry_drbg_blocklen (drbg)));
+	  (drbg_statelen (drbg) + drbg_blocklen (drbg)));
   return ret;
 }
 
-/* generate function for Hash DRBG as defined in  10.1.1.4 */
+/* Generate function for Hash DRBG as defined in 10.1.1.4  */
 static gpg_err_code_t
-gcry_drbg_hash_generate (struct gcry_drbg_state *drbg,
+drbg_hash_generate (drbg_state_t drbg,
 			 unsigned char *buf, unsigned int buflen,
-			 struct gcry_drbg_string *addtl)
+			 drbg_string_t *addtl)
 {
   gpg_err_code_t ret = 0;
   unsigned char prefix = DRBG_PREFIX3;
-  struct gcry_drbg_string data1, data2;
+  drbg_string_t data1, data2;
   union
   {
     unsigned char req[8];
@@ -1290,40 +1312,40 @@ gcry_drbg_hash_generate (struct gcry_drbg_state *drbg,
   } u;
 
   /*
-   * scratchpad usage: gcry_drbg_hash_process_addtl uses the scratchpad, but
+   * scratchpad usage: drbg_hash_process_addtl uses the scratchpad, but
    * fully completes before returning. Thus, we can reuse the scratchpad
    */
   /* 10.1.1.4 step 2 */
-  ret = gcry_drbg_hash_process_addtl (drbg, addtl);
+  ret = drbg_hash_process_addtl (drbg, addtl);
   if (ret)
     return ret;
   /* 10.1.1.4 step 3 -- invocation of the Hashgen function defined in
    * 10.1.1.4 */
-  ret = gcry_drbg_hash_hashgen (drbg, buf, buflen);
+  ret = drbg_hash_hashgen (drbg, buf, buflen);
   if (ret)
     return ret;
 
   /* this is the value H as documented in 10.1.1.4 */
-  memset (drbg->scratchpad, 0, gcry_drbg_blocklen (drbg));
+  memset (drbg->scratchpad, 0, drbg_blocklen (drbg));
   /* 10.1.1.4 step 4 */
-  gcry_drbg_string_fill (&data1, &prefix, 1);
-  gcry_drbg_string_fill (&data2, drbg->V, gcry_drbg_statelen (drbg));
+  drbg_string_fill (&data1, &prefix, 1);
+  drbg_string_fill (&data2, drbg->V, drbg_statelen (drbg));
   data1.next = &data2;
-  ret = gcry_drbg_hmac (drbg, NULL, drbg->scratchpad, &data1);
+  ret = drbg_hmac (drbg, NULL, drbg->scratchpad, &data1);
   if (ret)
     goto out;
 
   /* 10.1.1.4 step 5 */
-  gcry_drbg_add_buf (drbg->V, gcry_drbg_statelen (drbg),
-		     drbg->scratchpad, gcry_drbg_blocklen (drbg));
-  gcry_drbg_add_buf (drbg->V, gcry_drbg_statelen (drbg), drbg->C,
-		     gcry_drbg_statelen (drbg));
+  drbg_add_buf (drbg->V, drbg_statelen (drbg),
+		     drbg->scratchpad, drbg_blocklen (drbg));
+  drbg_add_buf (drbg->V, drbg_statelen (drbg), drbg->C,
+		     drbg_statelen (drbg));
   u.req_int = be_bswap64 (drbg->reseed_ctr);
-  gcry_drbg_add_buf (drbg->V, gcry_drbg_statelen (drbg), u.req,
+  drbg_add_buf (drbg->V, drbg_statelen (drbg), u.req,
 		     sizeof (u.req));
 
-out:
-  memset (drbg->scratchpad, 0, gcry_drbg_blocklen (drbg));
+ out:
+  memset (drbg->scratchpad, 0, drbg_blocklen (drbg));
   return ret;
 }
 
@@ -1331,9 +1353,9 @@ out:
  * scratchpad usage: as update and generate are used isolated, both
  * can use the scratchpad
  */
-static struct gcry_drbg_state_ops gcry_drbg_hash_ops = {
-  gcry_drbg_hash_update,
-  gcry_drbg_hash_generate,
+static struct drbg_state_ops_s drbg_hash_ops = {
+  drbg_hash_update,
+  drbg_hash_generate
 };
 
 /******************************************************************
@@ -1352,23 +1374,22 @@ static struct gcry_drbg_state_ops gcry_drbg_hash_ops = {
  *	error value otherwise
  */
 static gpg_err_code_t
-gcry_drbg_seed (struct gcry_drbg_state *drbg, struct gcry_drbg_string *pers,
-		int reseed)
+drbg_seed (drbg_state_t drbg, drbg_string_t *pers, int reseed)
 {
   gpg_err_code_t ret = 0;
   unsigned char *entropy = NULL;
   size_t entropylen = 0;
-  struct gcry_drbg_string data1;
+  drbg_string_t data1;
 
   /* 9.1 / 9.2 / 9.3.1 step 3 */
-  if (pers && pers->len > (gcry_drbg_max_addtl ()))
+  if (pers && pers->len > (drbg_max_addtl ()))
     {
       dbg (("DRBG: personalization string too long %lu\n", pers->len));
       return GPG_ERR_INV_ARG;
     }
   if (drbg->test_data && drbg->test_data->testentropy)
     {
-      gcry_drbg_string_fill (&data1, drbg->test_data->testentropy->buf,
+      drbg_string_fill (&data1, drbg->test_data->testentropy->buf,
 			     drbg->test_data->testentropy->len);
       dbg (("DRBG: using test entropy\n"));
     }
@@ -1380,7 +1401,7 @@ gcry_drbg_seed (struct gcry_drbg_state *drbg, struct gcry_drbg_string *pers,
        * strength of the DRBG in size. Thus, entropy * nonce is 3/2
        * of the strength. The consideration of a nonce is only
        * applicable during initial seeding. */
-      entropylen = gcry_drbg_sec_strength (drbg->core->flags);
+      entropylen = drbg_sec_strength (drbg->core->flags);
       if (!entropylen)
 	return GPG_ERR_GENERAL;
       if (0 == reseed)
@@ -1391,10 +1412,10 @@ gcry_drbg_seed (struct gcry_drbg_state *drbg, struct gcry_drbg_string *pers,
       entropy = xcalloc_secure (1, entropylen);
       if (!entropy)
 	return GPG_ERR_ENOMEM;
-      ret = gcry_drbg_get_entropy (drbg, entropy, entropylen);
+      ret = drbg_get_entropy (drbg, entropy, entropylen);
       if (ret)
 	goto out;
-      gcry_drbg_string_fill (&data1, entropy, entropylen);
+      drbg_string_fill (&data1, entropy, entropylen);
     }
 
   /* concatenation of entropy with personalization str / addtl input)
@@ -1414,35 +1435,36 @@ gcry_drbg_seed (struct gcry_drbg_state *drbg, struct gcry_drbg_string *pers,
   /* 10.1.1.2 / 10.1.1.3 step 5 */
   drbg->reseed_ctr = 1;
 
-out:
+ out:
   xfree (entropy);
   return ret;
 }
 
+
 /*************************************************************************
- * exported interfaces
+ * Exported interfaces.
  *************************************************************************/
 
 /*
  * DRBG generate function as required by SP800-90A - this function
  * generates random numbers
  *
- * @drbg DRBG state handle
- * @buf Buffer where to store the random numbers -- the buffer must already
- *      be pre-allocated by caller
+ * @drbg   DRBG state handle
+ * @buf    Buffer where to store the random numbers -- the buffer must already
+ *         be pre-allocated by caller
  * @buflen Length of output buffer - this value defines the number of random
  *	   bytes pulled from DRBG
- * @addtl Additional input that is mixed into state, may be NULL -- note
- *	  the entropy is pulled by the DRBG internally unconditionally
- *	  as defined in SP800-90A. The additional input is mixed into
- *	  the state in addition to the pulled entropy.
+ * @addtl  Additional input that is mixed into state, may be NULL -- note
+ *	   the entropy is pulled by the DRBG internally unconditionally
+ *	   as defined in SP800-90A. The additional input is mixed into
+ *	   the state in addition to the pulled entropy.
  *
- * return: generated number of bytes
+ * return: Generated number of bytes.
  */
 static gpg_err_code_t
-gcry_drbg_generate (struct gcry_drbg_state *drbg,
-		    unsigned char *buf, unsigned int buflen,
-		    struct gcry_drbg_string *addtl)
+drbg_generate (drbg_state_t drbg,
+               unsigned char *buf, unsigned int buflen,
+               drbg_string_t *addtl)
 {
   gpg_err_code_t ret = GPG_ERR_INV_ARG;
 
@@ -1458,14 +1480,14 @@ gcry_drbg_generate (struct gcry_drbg_state *drbg,
     }
 
   /* 9.3.1 step 2 */
-  if (buflen > (gcry_drbg_max_request_bytes ()))
+  if (buflen > (drbg_max_request_bytes ()))
     {
       dbg (("DRBG: requested random numbers too large %u\n", buflen));
       return ret;
     }
   /* 9.3.1 step 3 is implicit with the chosen DRBG */
   /* 9.3.1 step 4 */
-  if (addtl && addtl->len > (gcry_drbg_max_addtl ()))
+  if (addtl && addtl->len > (drbg_max_addtl ()))
     {
       dbg (("DRBG: additional information string too long %lu\n",
 	    addtl->len));
@@ -1474,14 +1496,14 @@ gcry_drbg_generate (struct gcry_drbg_state *drbg,
   /* 9.3.1 step 5 is implicit with the chosen DRBG */
   /* 9.3.1 step 6 and 9 supplemented by 9.3.2 step c -- the spec is a
    * bit convoluted here, we make it simpler */
-  if ((gcry_drbg_max_requests ()) < drbg->reseed_ctr)
+  if ((drbg_max_requests ()) < drbg->reseed_ctr)
     drbg->seeded = 0;
 
   if (drbg->pr || !drbg->seeded)
     {
       dbg (("DRBG: reseeding before generation (prediction resistance: %s, state %s)\n", drbg->pr ? "true" : "false", drbg->seeded ? "seeded" : "unseeded"));
       /* 9.3.1 steps 7.1 through 7.3 */
-      ret = gcry_drbg_seed (drbg, addtl, 1);
+      ret = drbg_seed (drbg, addtl, 1);
       if (ret)
 	return ret;
       /* 9.3.1 step 7.4 */
@@ -1516,7 +1538,7 @@ gcry_drbg_generate (struct gcry_drbg_state *drbg,
   if (drbg->reseed_ctr && !(drbg->reseed_ctr % 4096))
     {
       dbg (("DRBG: start to perform self test\n"));
-      ret = gcry_drbg_healthcheck ();
+      ret = drbg_healthcheck ();
       if (ret)
 	{
 	  log_fatal (("DRBG: self test failed\n"));
@@ -1533,17 +1555,17 @@ gcry_drbg_generate (struct gcry_drbg_state *drbg,
 }
 
 /*
- * Wrapper around gcry_drbg_generate which can pull arbitrary long strings
+ * Wrapper around drbg_generate which can pull arbitrary long strings
  * from the DRBG without hitting the maximum request limitation.
  *
- * Parameters: see gcry_drbg_generate
- * Return codes: see gcry_drbg_generate -- if one gcry_drbg_generate request fails,
- *		 the entire gcry_drbg_generate_long request fails
+ * Parameters: see drbg_generate
+ * Return codes: see drbg_generate -- if one drbg_generate request fails,
+ *		 the entire drbg_generate_long request fails
  */
 static gpg_err_code_t
-gcry_drbg_generate_long (struct gcry_drbg_state *drbg,
-			 unsigned char *buf, unsigned int buflen,
-			 struct gcry_drbg_string *addtl)
+drbg_generate_long (drbg_state_t drbg,
+                    unsigned char *buf, unsigned int buflen,
+                    drbg_string_t *addtl)
 {
   gpg_err_code_t ret = 0;
   unsigned int slice = 0;
@@ -1552,9 +1574,9 @@ gcry_drbg_generate_long (struct gcry_drbg_state *drbg,
   do
     {
       unsigned int chunk = 0;
-      slice = ((buflen - len) / gcry_drbg_max_request_bytes ());
-      chunk = slice ? gcry_drbg_max_request_bytes () : (buflen - len);
-      ret = gcry_drbg_generate (drbg, buf_p, chunk, addtl);
+      slice = ((buflen - len) / drbg_max_request_bytes ());
+      chunk = slice ? drbg_max_request_bytes () : (buflen - len);
+      ret = drbg_generate (drbg, buf_p, chunk, addtl);
       if (ret)
 	return ret;
       buf_p += chunk;
@@ -1574,7 +1596,7 @@ gcry_drbg_generate_long (struct gcry_drbg_state *drbg,
  * 	0 on success
  */
 static gpg_err_code_t
-gcry_drbg_uninstantiate (struct gcry_drbg_state *drbg)
+drbg_uninstantiate (drbg_state_t drbg)
 {
   if (!drbg)
     return GPG_ERR_INV_ARG;
@@ -1614,8 +1636,8 @@ gcry_drbg_uninstantiate (struct gcry_drbg_state *drbg)
  *	error value otherwise
  */
 static gpg_err_code_t
-gcry_drbg_instantiate (struct gcry_drbg_state *drbg,
-		       struct gcry_drbg_string *pers, int coreref, int pr)
+drbg_instantiate (drbg_state_t drbg,
+                  drbg_string_t *pers, int coreref, int pr)
 {
   gpg_err_code_t ret = GPG_ERR_ENOMEM;
   unsigned int sb_size = 0;
@@ -1625,44 +1647,44 @@ gcry_drbg_instantiate (struct gcry_drbg_state *drbg,
 
   dbg (("DRBG: Initializing DRBG core %d with prediction resistance %s\n",
 	coreref, pr ? "enabled" : "disabled"));
-  drbg->core = &gcry_drbg_cores[coreref];
+  drbg->core = &drbg_cores[coreref];
   drbg->pr = pr;
   drbg->seeded = 0;
-  if (drbg->core->flags & GCRY_DRBG_HMAC)
-    drbg->d_ops = &gcry_drbg_hmac_ops;
-  else if (drbg->core->flags & GCRY_DRBG_HASH_MASK)
-    drbg->d_ops = &gcry_drbg_hash_ops;
-  else if (drbg->core->flags & GCRY_DRBG_CTR_MASK)
-    drbg->d_ops = &gcry_drbg_ctr_ops;
+  if (drbg->core->flags & DRBG_HMAC)
+    drbg->d_ops = &drbg_hmac_ops;
+  else if (drbg->core->flags & DRBG_HASH_MASK)
+    drbg->d_ops = &drbg_hash_ops;
+  else if (drbg->core->flags & DRBG_CTR_MASK)
+    drbg->d_ops = &drbg_ctr_ops;
   else
     return GPG_ERR_GENERAL;
   /* 9.1 step 1 is implicit with the selected DRBG type -- see
-   * gcry_drbg_sec_strength() */
+   * drbg_sec_strength() */
 
   /* 9.1 step 2 is implicit as caller can select prediction resistance
    * and the flag is copied into drbg->flags --
    * all DRBG types support prediction resistance */
 
-  /* 9.1 step 4 is implicit in  gcry_drbg_sec_strength */
+  /* 9.1 step 4 is implicit in  drbg_sec_strength */
 
   /* no allocation of drbg as this is done by the kernel crypto API */
-  drbg->V = xcalloc_secure (1, gcry_drbg_statelen (drbg));
+  drbg->V = xcalloc_secure (1, drbg_statelen (drbg));
   if (!drbg->V)
     goto err;
-  drbg->C = xcalloc_secure (1, gcry_drbg_statelen (drbg));
+  drbg->C = xcalloc_secure (1, drbg_statelen (drbg));
   if (!drbg->C)
     goto err;
   /* scratchpad is only generated for CTR and Hash */
-  if (drbg->core->flags & GCRY_DRBG_HMAC)
+  if (drbg->core->flags & DRBG_HMAC)
     sb_size = 0;
-  else if (drbg->core->flags & GCRY_DRBG_CTR_MASK)
-    sb_size = gcry_drbg_statelen (drbg) + gcry_drbg_blocklen (drbg) +	/* temp */
-      gcry_drbg_statelen (drbg) +	/* df_data */
-      gcry_drbg_blocklen (drbg) +	/* pad */
-      gcry_drbg_blocklen (drbg) +	/* iv */
-      gcry_drbg_statelen (drbg) + gcry_drbg_blocklen (drbg);	/* temp */
+  else if (drbg->core->flags & DRBG_CTR_MASK)
+    sb_size = drbg_statelen (drbg) + drbg_blocklen (drbg) +	/* temp */
+      drbg_statelen (drbg) +	/* df_data */
+      drbg_blocklen (drbg) +	/* pad */
+      drbg_blocklen (drbg) +	/* iv */
+      drbg_statelen (drbg) + drbg_blocklen (drbg);	/* temp */
   else
-    sb_size = gcry_drbg_statelen (drbg) + gcry_drbg_blocklen (drbg);
+    sb_size = drbg_statelen (drbg) + drbg_blocklen (drbg);
 
   if (0 < sb_size)
     {
@@ -1673,7 +1695,7 @@ gcry_drbg_instantiate (struct gcry_drbg_state *drbg,
   dbg (("DRBG: state allocated with scratchpad size %u bytes\n", sb_size));
 
   /* 9.1 step 6 through 11 */
-  ret = gcry_drbg_seed (drbg, pers, 0);
+  ret = drbg_seed (drbg, pers, 0);
   if (ret)
     goto err;
 
@@ -1681,8 +1703,8 @@ gcry_drbg_instantiate (struct gcry_drbg_state *drbg,
 	coreref, pr ? "with" : "without"));
   return 0;
 
-err:
-  gcry_drbg_uninstantiate (drbg);
+ err:
+  drbg_uninstantiate (drbg);
   return ret;
 }
 
@@ -1700,51 +1722,41 @@ err:
  * 	error value otherwise
  */
 static gpg_err_code_t
-gcry_drbg_reseed (struct gcry_drbg_state *drbg,
-		  struct gcry_drbg_string *addtl)
+drbg_reseed (drbg_state_t drbg,drbg_string_t *addtl)
 {
   gpg_err_code_t ret = 0;
-  ret = gcry_drbg_seed (drbg, addtl, 1);
+  ret = drbg_seed (drbg, addtl, 1);
   return ret;
 }
 
+
+
 /******************************************************************
- ******************************************************************
- ******************************************************************
- * libgcrypt integration code
- ******************************************************************
- ******************************************************************
+ * Libgcrypt integration code.
  ******************************************************************/
 
-/***************************************************************
- * libgcrypt backend functions to the RNG API code
- ***************************************************************/
-
-/* Global state variable holding the current instance of the DRBG -- the
- * default DRBG type is defined in _gcry_rngdrbg_inititialize.  */
-static struct gcry_drbg_state *gcry_drbg = NULL;
-
-/* This is the lock we use to serialize access to this RNG. */
-GPGRT_LOCK_DEFINE(drbg_lock);
+/***************************************************
+ * Libgcrypt backend functions to the RNG API code.
+ ***************************************************/
 
 static inline void
-gcry_drbg_lock (void)
+drbg_lock (void)
 {
-  gpg_err_code_t my_errno;
+  gpg_err_code_t ec;
 
-  my_errno = gpgrt_lock_lock (&drbg_lock);
-  if (my_errno)
-    log_fatal ("failed to acquire the RNG lock: %s\n", strerror (my_errno));
+  ec = gpgrt_lock_lock (&drbg_lock_var);
+  if (ec)
+    log_fatal ("failed to acquire the RNG lock: %s\n", gpg_strerror (ec));
 }
 
 static inline void
-gcry_drbg_unlock (void)
+drbg_unlock (void)
 {
-  gpg_err_code_t my_errno;
+  gpg_err_code_t ec;
 
-  my_errno = gpgrt_lock_unlock (&drbg_lock);
-  if (my_errno)
-    log_fatal ("failed to release the RNG lock: %s\n", strerror (my_errno));
+  ec = gpgrt_lock_unlock (&drbg_lock_var);
+  if (ec)
+    log_fatal ("failed to release the RNG lock: %s\n", gpg_strerror (ec));
 }
 
 /* Basic initialization is required to initialize mutexes and
@@ -1769,13 +1781,13 @@ basic_initialization (void)
 
 /* Check whether given flags are known to point to an applicable DRBG */
 static gpg_err_code_t
-gcry_drbg_algo_available (u32 flags, int *coreref)
+drbg_algo_available (u32 flags, int *coreref)
 {
   int i = 0;
-  for (i = 0; ARRAY_SIZE (gcry_drbg_cores) > i; i++)
+  for (i = 0; ARRAY_SIZE (drbg_cores) > i; i++)
     {
-      if ((gcry_drbg_cores[i].flags & GCRY_DRBG_CIPHER_MASK) ==
-	  (flags & GCRY_DRBG_CIPHER_MASK))
+      if ((drbg_cores[i].flags & DRBG_CIPHER_MASK) ==
+	  (flags & DRBG_CIPHER_MASK))
 	{
 	  *coreref = i;
 	  return 0;
@@ -1785,7 +1797,7 @@ gcry_drbg_algo_available (u32 flags, int *coreref)
 }
 
 static gpg_err_code_t
-_gcry_drbg_init_internal (u32 flags, struct gcry_drbg_string *pers)
+_drbg_init_internal (u32 flags, drbg_string_t *pers)
 {
   gpg_err_code_t ret = 0;
   static u32 oldflags = 0;
@@ -1796,32 +1808,32 @@ _gcry_drbg_init_internal (u32 flags, struct gcry_drbg_string *pers)
    * initialization, otherwise use the current flags and remember them
    * for the next invocation
    */
-  if (0 == flags)
+  if (!flags)
     flags = oldflags;
   else
     oldflags = flags;
 
-  ret = gcry_drbg_algo_available (flags, &coreref);
+  ret = drbg_algo_available (flags, &coreref);
   if (ret)
     return ret;
 
-  if (NULL != gcry_drbg)
+  if (drbg_state)
     {
-      gcry_drbg_uninstantiate (gcry_drbg);
+      drbg_uninstantiate (drbg_state);
     }
   else
     {
-      gcry_drbg = xcalloc_secure (1, sizeof (struct gcry_drbg_state));
-      if (!gcry_drbg)
-	return GPG_ERR_ENOMEM;
+      drbg_state = xtrycalloc_secure (1, sizeof *drbg_state);
+      if (!drbg_state)
+	return gpg_err_code_from_syserror ();
     }
-  if (flags & GCRY_DRBG_PREDICTION_RESIST)
+  if (flags & DRBG_PREDICTION_RESIST)
     pr = 1;
-  ret = gcry_drbg_instantiate (gcry_drbg, pers, coreref, pr);
+  ret = drbg_instantiate (drbg_state, pers, coreref, pr);
   if (ret)
     fips_signal_error ("DRBG cannot be initialized");
   else
-    gcry_drbg->seed_init_pid = getpid ();
+    drbg_state->seed_init_pid = getpid ();
   return ret;
 }
 
@@ -1834,14 +1846,14 @@ void
 _gcry_rngdrbg_inititialize (int full)
 {
   /* default DRBG */
-  u32 flags = GCRY_DRBG_NOPR_HMACSHA256;
+  u32 flags = DRBG_NOPR_HMACSHA256;
   basic_initialization ();
   if (!full)
       return;
-  gcry_drbg_lock ();
-  if (NULL == gcry_drbg)
-    _gcry_drbg_init_internal (flags, NULL);
-  gcry_drbg_unlock ();
+  drbg_lock ();
+  if (!drbg_state)
+    _drbg_init_internal (flags, NULL);
+  drbg_unlock ();
 }
 
 /*
@@ -1876,19 +1888,19 @@ _gcry_rngdrbg_reinit (const char *flagstr, gcry_buffer_t *pers, int npers)
   if (!ret)
     {
       dbg (("DRBG: reinitialize internal DRBG state with flags %u\n", flags));
-      gcry_drbg_lock ();
+      drbg_lock ();
       if (pers)
         {
-          struct gcry_drbg_string persbuf;
+          drbg_string_t persbuf;
 
-          gcry_drbg_string_fill
+          drbg_string_fill
             (&persbuf, (const unsigned char *)pers[0].data + pers[0].off,
              pers[0].len);
-          ret = _gcry_drbg_init_internal (flags, &persbuf);
+          ret = _drbg_init_internal (flags, &persbuf);
         }
       else
-        ret = _gcry_drbg_init_internal (flags, NULL);
-      gcry_drbg_unlock ();
+        ret = _drbg_init_internal (flags, NULL);
+      drbg_unlock ();
     }
   return ret;
 }
@@ -1899,9 +1911,9 @@ void
 _gcry_rngdrbg_close_fds (void)
 {
 #if USE_RNDLINUX
-  gcry_drbg_lock ();
+  drbg_lock ();
   _gcry_rndlinux_gather_random (NULL, 0, 0, 0);
-  gcry_drbg_unlock ();
+  drbg_unlock ();
 #endif
 }
 
@@ -1928,15 +1940,15 @@ gcry_error_t
 _gcry_rngdrbg_add_bytes (const void *buf, size_t buflen, int quality)
 {
   gpg_err_code_t ret = 0;
-  struct gcry_drbg_string seed;
+  drbg_string_t seed;
   (void) quality;
   _gcry_rngdrbg_inititialize (1); /* Auto-initialize if needed */
-  if (NULL == gcry_drbg)
+  if (!drbg_state)
     return GPG_ERR_GENERAL;
-  gcry_drbg_string_fill (&seed, (unsigned char *) buf, buflen);
-  gcry_drbg_lock ();
-  ret = gcry_drbg_reseed (gcry_drbg, &seed);
-  gcry_drbg_unlock ();
+  drbg_string_fill (&seed, (unsigned char *) buf, buflen);
+  drbg_lock ();
+  ret = drbg_reseed (drbg_state, &seed);
+  drbg_unlock ();
   return ret;
 }
 
@@ -1949,8 +1961,8 @@ _gcry_rngdrbg_randomize (void *buffer, size_t length,
 {
   (void) level;
   _gcry_rngdrbg_inititialize (1); /* Auto-initialize if needed */
-  gcry_drbg_lock ();
-  if (NULL == gcry_drbg)
+  drbg_lock ();
+  if (!drbg_state)
     {
       fips_signal_error ("DRBG is not initialized");
       goto bailout;
@@ -1958,41 +1970,41 @@ _gcry_rngdrbg_randomize (void *buffer, size_t length,
 
   /* As reseeding changes the entire state of the DRBG, including any
    * key, either a re-init or a reseed is sufficient for a fork */
-  if (gcry_drbg->seed_init_pid != getpid ())
+  if (drbg_state->seed_init_pid != getpid ())
     {
       /* We are in a child of us. Perform a reseeding. */
-      if (gcry_drbg_reseed (gcry_drbg, NULL))
+      if (drbg_reseed (drbg_state, NULL))
 	{
 	  fips_signal_error ("reseeding upon fork failed");
 	  log_fatal ("severe error getting random\n");
 	  goto bailout;
 	}
     }
-  /* potential integer overflow is covered by gcry_drbg_generate which
+  /* potential integer overflow is covered by drbg_generate which
    * ensures that length cannot overflow an unsigned int */
   if (0 < length)
     {
       if (!buffer)
 	goto bailout;
-      if (gcry_drbg_generate_long
-	  (gcry_drbg, buffer, (unsigned int) length, NULL))
+      if (drbg_generate_long (drbg_state, buffer, (unsigned int) length, NULL))
 	log_fatal ("No random numbers generated\n");
     }
   else
     {
-      struct gcry_drbg_gen *data = (struct gcry_drbg_gen *) buffer;
+      drbg_gen_t *data = (drbg_gen_t *)buffer;
       /* catch NULL pointer */
       if (!data || !data->outbuf)
 	{
 	  fips_signal_error ("No output buffer provided");
 	  goto bailout;
 	}
-      if (gcry_drbg_generate_long (gcry_drbg, data->outbuf, data->outlen,
-				   data->addtl))
+      if (drbg_generate_long (drbg_state, data->outbuf, data->outlen,
+                              data->addtl))
 	log_fatal ("No random numbers generated\n");
     }
-bailout:
-  gcry_drbg_unlock ();
+
+ bailout:
+  drbg_unlock ();
   return;
 
 }
@@ -2005,9 +2017,9 @@ bailout:
  * Test vectors from
  * http://csrc.nist.gov/groups/STM/cavp/documents/drbg/drbgtestvectors.zip
  */
-struct gcry_drbg_test_vector gcry_drbg_test_pr[] = {
+struct gcry_drbg_test_vector drbg_test_pr[] = {
   {
-   .flags = (GCRY_DRBG_PR_HASHSHA256),
+   .flags = (DRBG_PR_HASHSHA256),
    .entropy = (unsigned char *)
    "\x5d\xf2\x14\xbc\xf6\xb5\x4e\x0b\xf0\x0d\x6f\x2d"
    "\xe2\x01\x66\x7b\xd0\xa4\x73\xa4\x21\xdd\xb0\xc0"
@@ -2049,7 +2061,7 @@ struct gcry_drbg_test_vector gcry_drbg_test_pr[] = {
    .perslen = 0,
    },
   {
-   .flags = (GCRY_DRBG_PR_HMACSHA256),
+   .flags = (DRBG_PR_HMACSHA256),
    .entropy = (unsigned char *)
    "\x13\x54\x96\xfc\x1b\x7d\x28\xf3\x18\xc9\xa7\x89"
    "\xb6\xb3\xc8\x72\xac\x00\xd4\x59\x36\x25\x05\xaf"
@@ -2088,7 +2100,7 @@ struct gcry_drbg_test_vector gcry_drbg_test_pr[] = {
    .perslen = 32,
    },
   {
-   .flags = (GCRY_DRBG_PR_CTRAES128),
+   .flags = (DRBG_PR_CTRAES128),
    .entropy = (unsigned char *)
    "\x92\x89\x8f\x31\xfa\x1c\xff\x6d\x18\x2f\x26\x06"
    "\x43\xdf\xf8\x18\xc2\xa4\xd9\x72\xc3\xb9\xb6\x97",
@@ -2122,9 +2134,9 @@ struct gcry_drbg_test_vector gcry_drbg_test_pr[] = {
    },
 };
 
-struct gcry_drbg_test_vector gcry_drbg_test_nopr[] = {
+struct gcry_drbg_test_vector drbg_test_nopr[] = {
   {
-   .flags = GCRY_DRBG_NOPR_HASHSHA256,
+   .flags = DRBG_NOPR_HASHSHA256,
    .entropy = (unsigned char *)
    "\x73\xd3\xfb\xa3\x94\x5f\x2b\x5f\xb9\x8f\xf6\x9c"
    "\x8a\x93\x17\xae\x19\xc3\x4c\xc3\xd6\xca\xa3\x2d"
@@ -2157,7 +2169,7 @@ struct gcry_drbg_test_vector gcry_drbg_test_nopr[] = {
    .perslen = 0,
    },
   {
-   .flags = GCRY_DRBG_NOPR_HMACSHA256,
+   .flags = DRBG_NOPR_HMACSHA256,
    .entropy = (unsigned char *)
    "\x8d\xf0\x13\xb4\xd1\x03\x52\x30\x73\x91\x7d\xdf"
    "\x6a\x86\x97\x93\x05\x9e\x99\x43\xfc\x86\x54\x54"
@@ -2187,7 +2199,7 @@ struct gcry_drbg_test_vector gcry_drbg_test_nopr[] = {
    .perslen = 32,
    },
   {
-   .flags = GCRY_DRBG_NOPR_CTRAES128,
+   .flags = DRBG_NOPR_CTRAES128,
    .entropy = (unsigned char *)
    "\xc0\x70\x1f\x92\x50\x75\x8f\xcd\xf2\xbe\x73\x98"
    "\x80\xdb\x66\xeb\x14\x68\xb4\xa5\x87\x9c\x2d\xa6",
@@ -2213,7 +2225,7 @@ struct gcry_drbg_test_vector gcry_drbg_test_nopr[] = {
    .perslen = 16,
    },
   {
-   .flags = GCRY_DRBG_NOPR_HASHSHA1,
+   .flags = DRBG_NOPR_HASHSHA1,
    .entropy = (unsigned char *)
    "\x16\x10\xb8\x28\xcc\xd2\x7d\xe0\x8c\xee\xa0\x32"
    "\xa2\x0e\x92\x08\x49\x2c\xf1\x70\x92\x42\xf6\xb5",
@@ -2240,7 +2252,7 @@ struct gcry_drbg_test_vector gcry_drbg_test_nopr[] = {
    .addtl_reseed_len = 0,
    },
   {
-   .flags = GCRY_DRBG_NOPR_HASHSHA1,
+   .flags = DRBG_NOPR_HASHSHA1,
    .entropy = (unsigned char *)
    "\xd9\xba\xb5\xce\xdc\xa9\x6f\x61\x78\xd6\x45\x09"
    "\xa0\xdf\xdc\x5e\xda\xd8\x98\x94\x14\x45\x0e\x01",
@@ -2290,62 +2302,62 @@ gpg_err_code_t
 gcry_rngdrbg_cavs_test (struct gcry_drbg_test_vector *test, unsigned char *buf)
 {
   gpg_err_code_t ret = 0;
-  struct gcry_drbg_state *drbg = NULL;
-  struct gcry_drbg_test_data test_data;
-  struct gcry_drbg_string addtl, pers, testentropy;
+  drbg_state_t drbg = NULL;
+  struct drbg_test_data_s test_data;
+  drbg_string_t addtl, pers, testentropy;
   int coreref = 0;
   int pr = 0;
 
-  ret = gcry_drbg_algo_available (test->flags, &coreref);
+  ret = drbg_algo_available (test->flags, &coreref);
   if (ret)
     goto outbuf;
 
-  drbg = xcalloc_secure (1, sizeof (struct gcry_drbg_state));
+  drbg = xtrycalloc_secure (1, sizeof *drbg);
   if (!drbg)
     {
-      ret = GPG_ERR_ENOMEM;
+      ret = gpg_err_code_from_syserror ();
       goto outbuf;
     }
 
-  if (test->flags & GCRY_DRBG_PREDICTION_RESIST)
+  if (test->flags & DRBG_PREDICTION_RESIST)
     pr = 1;
 
   test_data.testentropy = &testentropy;
-  gcry_drbg_string_fill (&testentropy, test->entropy, test->entropylen);
+  drbg_string_fill (&testentropy, test->entropy, test->entropylen);
   drbg->test_data = &test_data;
-  gcry_drbg_string_fill (&pers, test->pers, test->perslen);
-  ret = gcry_drbg_instantiate (drbg, &pers, coreref, pr);
+  drbg_string_fill (&pers, test->pers, test->perslen);
+  ret = drbg_instantiate (drbg, &pers, coreref, pr);
   if (ret)
     goto outbuf;
 
   if (test->entropyreseed)
     {
-      gcry_drbg_string_fill (&testentropy, test->entropyreseed,
+      drbg_string_fill (&testentropy, test->entropyreseed,
 			     test->entropyreseed_len);
-      gcry_drbg_string_fill (&addtl, test->addtl_reseed,
+      drbg_string_fill (&addtl, test->addtl_reseed,
 			     test->addtl_reseed_len);
-      if (gcry_drbg_reseed (drbg, &addtl))
+      if (drbg_reseed (drbg, &addtl))
 	goto outbuf;
     }
 
-  gcry_drbg_string_fill (&addtl, test->addtla, test->addtllen);
+  drbg_string_fill (&addtl, test->addtla, test->addtllen);
   if (test->entpra)
     {
-      gcry_drbg_string_fill (&testentropy, test->entpra, test->entprlen);
+      drbg_string_fill (&testentropy, test->entpra, test->entprlen);
       drbg->test_data = &test_data;
     }
-  gcry_drbg_generate_long (drbg, buf, test->expectedlen, &addtl);
+  drbg_generate_long (drbg, buf, test->expectedlen, &addtl);
 
-  gcry_drbg_string_fill (&addtl, test->addtlb, test->addtllen);
+  drbg_string_fill (&addtl, test->addtlb, test->addtllen);
   if (test->entprb)
     {
-      gcry_drbg_string_fill (&testentropy, test->entprb, test->entprlen);
+      drbg_string_fill (&testentropy, test->entprb, test->entprlen);
       drbg->test_data = &test_data;
     }
-  gcry_drbg_generate_long (drbg, buf, test->expectedlen, &addtl);
-  gcry_drbg_uninstantiate (drbg);
+  drbg_generate_long (drbg, buf, test->expectedlen, &addtl);
+  drbg_uninstantiate (drbg);
 
-outbuf:
+ outbuf:
   xfree (drbg);
   return ret;
 }
@@ -2377,17 +2389,17 @@ gcry_rngdrbg_healthcheck_one (struct gcry_drbg_test_vector * test)
  * of the error handling.
  *
  * Note, testing the reseed counter is not done as an automatic reseeding
- * is performed in gcry_drbg_generate when the reseed counter is too large.
+ * is performed in drbg_generate when the reseed counter is too large.
  */
 static gpg_err_code_t
-gcry_drbg_healthcheck_sanity (struct gcry_drbg_test_vector *test)
+drbg_healthcheck_sanity (struct gcry_drbg_test_vector *test)
 {
   unsigned int len = 0;
-  struct gcry_drbg_state *drbg = NULL;
+  drbg_state_t drbg = NULL;
   gpg_err_code_t ret = GPG_ERR_GENERAL;
   gpg_err_code_t tmpret = GPG_ERR_GENERAL;
-  struct gcry_drbg_test_data test_data;
-  struct gcry_drbg_string addtl, testentropy;
+  struct drbg_test_data_s test_data;
+  drbg_string_t addtl, testentropy;
   int coreref = 0;
   unsigned char *buf = NULL;
   size_t max_addtllen, max_request_bytes;
@@ -2399,54 +2411,57 @@ gcry_drbg_healthcheck_sanity (struct gcry_drbg_test_vector *test)
   buf = xcalloc_secure (1, test->expectedlen);
   if (!buf)
     return GPG_ERR_ENOMEM;
-  tmpret = gcry_drbg_algo_available (test->flags, &coreref);
+  tmpret = drbg_algo_available (test->flags, &coreref);
   if (tmpret)
     goto outbuf;
-  drbg = xcalloc_secure (1, sizeof (struct gcry_drbg_state));
+  drbg = xtrycalloc_secure (1, sizeof *drbg);
   if (!drbg)
-    goto outbuf;
+    {
+      ret = gpg_err_code_from_syserror ();
+      goto outbuf;
+    }
 
   /* if the following tests fail, it is likely that there is a buffer
    * overflow and we get a SIGSEV */
-  ret = gcry_drbg_instantiate (drbg, NULL, coreref, 1);
+  ret = drbg_instantiate (drbg, NULL, coreref, 1);
   if (ret)
     goto outbuf;
-  max_addtllen = gcry_drbg_max_addtl ();
-  max_request_bytes = gcry_drbg_max_request_bytes ();
+  max_addtllen = drbg_max_addtl ();
+  max_request_bytes = drbg_max_request_bytes ();
   /* overflow addtllen with additonal info string */
-  gcry_drbg_string_fill (&addtl, test->addtla, (max_addtllen + 1));
-  len = gcry_drbg_generate (drbg, buf, test->expectedlen, &addtl);
+  drbg_string_fill (&addtl, test->addtla, (max_addtllen + 1));
+  len = drbg_generate (drbg, buf, test->expectedlen, &addtl);
   if (len)
     goto outdrbg;
 
   /* overflow max_bits */
-  len = gcry_drbg_generate (drbg, buf, (max_request_bytes + 1), NULL);
+  len = drbg_generate (drbg, buf, (max_request_bytes + 1), NULL);
   if (len)
     goto outdrbg;
-  gcry_drbg_uninstantiate (drbg);
+  drbg_uninstantiate (drbg);
 
   /* test failing entropy source as defined in 11.3.2 */
   test_data.testentropy = NULL;
   test_data.fail_seed_source = 1;
   drbg->test_data = &test_data;
-  tmpret = gcry_drbg_instantiate (drbg, NULL, coreref, 0);
+  tmpret = drbg_instantiate (drbg, NULL, coreref, 0);
   if (!tmpret)
     goto outdrbg;
   test_data.fail_seed_source = 0;
 
   test_data.testentropy = &testentropy;
-  gcry_drbg_string_fill (&testentropy, test->entropy, test->entropylen);
+  drbg_string_fill (&testentropy, test->entropy, test->entropylen);
   /* overflow max addtllen with personalization string */
-  tmpret = gcry_drbg_instantiate (drbg, &addtl, coreref, 0);
+  tmpret = drbg_instantiate (drbg, &addtl, coreref, 0);
   if (!tmpret)
     goto outdrbg;
 
   dbg (("DRBG: Sanity tests for failure code paths successfully completed\n"));
   ret = 0;
 
-outdrbg:
-  gcry_drbg_uninstantiate (drbg);
-outbuf:
+ outdrbg:
+  drbg_uninstantiate (drbg);
+ outbuf:
   xfree (buf);
   xfree (drbg);
   return ret;
@@ -2460,18 +2475,18 @@ outbuf:
  * 	>0 on error (return code indicate the number of failures)
  */
 static int
-gcry_drbg_healthcheck (void)
+drbg_healthcheck (void)
 {
   int ret = 0;
-  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[0]);
-  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[1]);
-  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[2]);
-  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[3]);
-  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[4]);
-  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_pr[0]);
-  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_pr[1]);
-  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_pr[2]);
-  ret += gcry_drbg_healthcheck_sanity (&gcry_drbg_test_nopr[0]);
+  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[0]);
+  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[1]);
+  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[2]);
+  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[3]);
+  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[4]);
+  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_pr[0]);
+  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_pr[1]);
+  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_pr[2]);
+  ret += drbg_healthcheck_sanity (&drbg_test_nopr[0]);
   return ret;
 }
 
@@ -2481,10 +2496,10 @@ _gcry_rngdrbg_selftest (selftest_report_func_t report)
 {
   gcry_err_code_t ec;
   const char *errtxt = NULL;
-  gcry_drbg_lock ();
-  if (0 != gcry_drbg_healthcheck ())
+  drbg_lock ();
+  if (0 != drbg_healthcheck ())
     errtxt = "RNG output does not match known value";
-  gcry_drbg_unlock ();
+  drbg_unlock ();
   if (report && errtxt)
     report ("random", 0, "KAT", errtxt);
   ec = errtxt ? GPG_ERR_SELFTEST_FAILED : 0;
@@ -2496,8 +2511,8 @@ _gcry_rngdrbg_selftest (selftest_report_func_t report)
  ***************************************************************/
 
 static gpg_err_code_t
-gcry_drbg_hmac (struct gcry_drbg_state *drbg, const unsigned char *key,
-		unsigned char *outval, const struct gcry_drbg_string *buf)
+drbg_hmac (drbg_state_t drbg, const unsigned char *key,
+		unsigned char *outval, const drbg_string_t *buf)
 {
   gpg_error_t err;
   gcry_md_hd_t hd;
@@ -2508,7 +2523,7 @@ gcry_drbg_hmac (struct gcry_drbg_state *drbg, const unsigned char *key,
 	_gcry_md_open (&hd, drbg->core->backend_cipher, GCRY_MD_FLAG_HMAC);
       if (err)
 	return err;
-      err = _gcry_md_setkey (hd, key, gcry_drbg_statelen (drbg));
+      err = _gcry_md_setkey (hd, key, drbg_statelen (drbg));
       if (err)
 	return err;
     }
@@ -2522,33 +2537,32 @@ gcry_drbg_hmac (struct gcry_drbg_state *drbg, const unsigned char *key,
     _gcry_md_write (hd, buf->buf, buf->len);
   _gcry_md_final (hd);
   memcpy (outval, _gcry_md_read (hd, drbg->core->backend_cipher),
-	  gcry_drbg_blocklen (drbg));
+	  drbg_blocklen (drbg));
   _gcry_md_close (hd);
   return 0;
 }
 
 static gpg_err_code_t
-gcry_drbg_sym (struct gcry_drbg_state *drbg, const unsigned char *key,
-	       unsigned char *outval, const struct gcry_drbg_string *buf)
+drbg_sym (drbg_state_t drbg, const unsigned char *key,
+          unsigned char *outval, const drbg_string_t *buf)
 {
   gpg_error_t err;
   gcry_cipher_hd_t hd;
 
-  err =
-    _gcry_cipher_open (&hd, drbg->core->backend_cipher, GCRY_CIPHER_MODE_ECB,
-		       0);
+  err = _gcry_cipher_open (&hd, drbg->core->backend_cipher,
+                           GCRY_CIPHER_MODE_ECB, 0);
   if (err)
     return err;
-  if (gcry_drbg_blocklen (drbg) !=
+  if (drbg_blocklen (drbg) !=
       _gcry_cipher_get_algo_blklen (drbg->core->backend_cipher))
     return -GPG_ERR_NO_ERROR;
-  if (gcry_drbg_blocklen (drbg) < buf->len)
+  if (drbg_blocklen (drbg) < buf->len)
     return -GPG_ERR_NO_ERROR;
-  err = _gcry_cipher_setkey (hd, key, gcry_drbg_keylen (drbg));
+  err = _gcry_cipher_setkey (hd, key, drbg_keylen (drbg));
   if (err)
     return err;
   /* in is only component */
-  _gcry_cipher_encrypt (hd, outval, gcry_drbg_blocklen (drbg), buf->buf,
+  _gcry_cipher_encrypt (hd, outval, drbg_blocklen (drbg), buf->buf,
 			buf->len);
   _gcry_cipher_close (hd);
   return 0;
