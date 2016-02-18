@@ -55,7 +55,8 @@ gcry_err_code_t _gcry_random_run_external_test (void *context,
 void            _gcry_random_deinit_external_test (void *context);
 
 /*-- drbg.c --*/
-gpg_err_code_t _gcry_drbg_reinit (u32 flags, struct gcry_drbg_string *pers);
+gpg_err_code_t _gcry_drbg_reinit (const char *flagstr,
+                                  gcry_buffer_t *pers, int npers);
 /* private interfaces for testing of DRBG */
 struct gcry_drbg_test_vector
 {

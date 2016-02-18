@@ -48,20 +48,53 @@
  * state of the DRBG is zeroized (with two exceptions listed in
  * GCRYCTL_DRBG_SET_ENTROPY).
  *
- * The control request takes the following values which influences how the DRBG
- * is re-initialized:
- *   * u32 flags: This variable specifies the DRBG type to be used for the
- *		    next initialization. If set to 0, the previous DRBG type is
- * 		    used for the initialization. The DRBG type is an OR of the
- * 		    mandatory flags of the requested DRBG strength and DRBG
- * 		    cipher type. Optionally, the prediction resistance flag
- * 		    can be ORed into the flags variable. For example:
- * 		    - CTR-DRBG with AES-128 without prediction resistance:
- * 			DRBG_CTRAES128
- * 		    - HMAC-DRBG with SHA-512 with prediction resistance:
- * 			DRBG_HMACSHA512 | DRBG_PREDICTION_RESIST
- *   * struct gcry_drbg_string *pers: personalization string to be used for
- *			   	 initialization.
+ * The control request takes the following values which influences how
+ * the DRBG is re-initialized:
+ *
+ *  - const char *flagstr
+
+ *      This variable specifies the DRBG type to be used for the next
+ *	initialization.  If set to NULL, the previous DRBG type is
+ *	used for the initialization.  If not NULL a space separated
+ *	list of tokens with associated flag values is expected which
+ *	are ORed to form the mandatory flags of the requested DRBG
+ *	strength and cipher type.  Optionally, the prediction
+ *	resistance flag can be ORed into the flags variable.
+ *
+ *      | String token | Flag value             |
+ *      |--------------+------------------------|
+ *      | aes          | DRBG_CTRAES            |
+ *      | serpent      | DRBG_CTRSERPENT        |
+ *      | twofish      | DRBG_CTRTWOFISH        |
+ *      | sha1         | DRBG_HASHSHA1          |
+ *      | sha256       | DRBG_HASHSHA256        |
+ *      | sha512       | DRBG_HASHSHA512        |
+ *      | hmac         | DRBG_HMAC              |
+ *      | sym128       | DRBG_SYM128            |
+ *      | sym192       | DRBG_SYM192            |
+ *      | sym256       | DRBG_SYM256            |
+ *      | pr           | DRBG_PREDICTION_RESIST |
+ *
+ *    For example:
+ *
+ * 	- CTR-DRBG with AES-128 without prediction resistance:
+ * 	    "aes sym128"
+ * 	- HMAC-DRBG with SHA-512 with prediction resistance:
+ * 	    "hmac sha512 pr"
+ *
+ *  - gcry_buffer_t *pers
+ *
+ *      NULL terminated array with personalization strings to be used
+ *	for initialization.
+ *
+ *  - int npers
+ *
+ *     Size of PERS.
+ *
+ *  - void *guard
+ *
+ *      A value of NULL must be passed for this.
+ *
  * The variable of flags is independent from the pers/perslen variables. If
  * flags is set to 0 and perslen is set to 0, the current DRBG type is
  * completely reset without using a personalization string.
@@ -70,8 +103,8 @@
  * ==========
  * The SP 800-90A DRBG allows the user to specify a personalization string
  * for initialization as well as an additional information string for each
- * random number request. The following code fragments show how a caller
- * uses the kernel crypto API to use the full functionality of the DRBG.
+ * random number request.  The following code fragments show how a caller
+ * uses the API to use the full functionality of the DRBG.
  *
  * Usage without any additional data
  * ---------------------------------
@@ -199,6 +232,34 @@
  * Common data structures
  ******************************************************************/
 
+/* DRBG input data structure for DRBG generate with additional information
+ * string */
+struct gcry_drbg_gen
+{
+  unsigned char *outbuf;	/* output buffer for random numbers */
+  unsigned int outlen;	/* size of output buffer */
+  struct gcry_drbg_string *addtl;	/* input buffer for
+					 * additional information string */
+};
+
+
+/*
+ * SP800-90A requires the concatenation of different data. To avoid copying
+ * buffers around or allocate additional memory, the following data structure
+ * is used to point to the original memory with its size. In addition, it
+ * is used to build a linked list. The linked list defines the concatenation
+ * of individual buffers. The order of memory block referenced in that
+ * linked list determines the order of concatenation.
+ */
+struct gcry_drbg_string
+{
+  const unsigned char *buf;
+  size_t len;
+  struct gcry_drbg_string *next;
+};
+
+
+/* (Declared below) */
 struct gcry_drbg_state;
 
 struct gcry_drbg_core
@@ -304,6 +365,69 @@ static gpg_err_code_t gcry_drbg_hmac (struct gcry_drbg_state *drbg,
 #else
 #define dbg(x)
 #endif
+
+/*
+ * Parse a string of flags and store the flag values at R_FLAGS.
+ * Return 0 on success.
+ */
+static gpg_err_code_t
+parse_flag_string (const char *string, u32 *r_flags)
+{
+  struct {
+    const char *name;
+    u32 flag;
+  } table[] = {
+    { "aes",     GCRY_DRBG_CTRAES            },
+    { "serpent", GCRY_DRBG_CTRSERPENT        },
+    { "twofish", GCRY_DRBG_CTRTWOFISH        },
+    { "sha1",    GCRY_DRBG_HASHSHA1          },
+    { "sha256",  GCRY_DRBG_HASHSHA256        },
+    { "sha512",  GCRY_DRBG_HASHSHA512        },
+    { "hmac",    GCRY_DRBG_HMAC              },
+    { "sym128",  GCRY_DRBG_SYM128            },
+    { "sym192",  GCRY_DRBG_SYM192            },
+    { "sym256",  GCRY_DRBG_SYM256            },
+    { "pr",      GCRY_DRBG_PREDICTION_RESIST }
+  };
+
+  *r_flags = 0;
+  if (string)
+    {
+      char **tl;
+      const char *s;
+      int i, j;
+
+      tl = _gcry_strtokenize (string, NULL);
+      if (!tl)
+        return gpg_err_code_from_syserror ();
+      for (i=0; (s=tl[i]); i++)
+        {
+          for (j=0; j < DIM (table); j++)
+            if (!strcmp (s, table[j].name))
+              {
+                *r_flags |= table[j].flag;
+                break;
+              }
+          if (!(j < DIM (table)))
+            {
+              xfree (tl);
+              return GPG_ERR_INV_FLAG;
+            }
+        }
+      xfree (tl);
+    }
+
+  return 0;
+}
+
+static inline void
+gcry_drbg_string_fill (struct gcry_drbg_string *string,
+                       const unsigned char *buf, size_t len)
+{
+  string->buf = buf;
+  string->len = len;
+  string->next = NULL;
+}
 
 static inline ushort
 gcry_drbg_statelen (struct gcry_drbg_state *drbg)
@@ -1732,18 +1856,40 @@ _gcry_drbg_init (int full)
  * Re-initialization will be performed in any case regardless whether flags
  * or personalization string are set.
  *
- * If flags == 0, do not change current DRBG
- * If personalization string is NULL or its length is 0, re-initialize without
- * personalization string
+ * If flags is NULL, do not change current DRBG.  If PERS is NULL and
+ * NPERS is 0, re-initialize without personalization string.  If PERS
+ * is not NULL NPERS must be one and PERS and the first ietm from the
+ * bufer is take as personalization string.
  */
 gpg_err_code_t
-_gcry_drbg_reinit (u32 flags, struct gcry_drbg_string *pers)
+_gcry_drbg_reinit (const char *flagstr, gcry_buffer_t *pers, int npers)
 {
-  gpg_err_code_t ret = GPG_ERR_GENERAL;
-  dbg (("DRBG: reinitialize internal DRBG state with flags %u\n", flags));
-  gcry_drbg_lock ();
-  ret = _gcry_drbg_init_internal (flags, pers);
-  gcry_drbg_unlock ();
+  gpg_err_code_t ret;
+  unsigned int flags;
+
+  /* If PERS is not given we expect NPERS to be zero; if given we
+     expect a one-item array.  */
+  if ((!pers && npers) || (pers && npers != 1))
+    return GPG_ERR_INV_ARG;
+
+  ret = parse_flag_string (flagstr, &flags);
+  if (!ret)
+    {
+      dbg (("DRBG: reinitialize internal DRBG state with flags %u\n", flags));
+      gcry_drbg_lock ();
+      if (pers)
+        {
+          struct gcry_drbg_string persbuf;
+
+          gcry_drbg_string_fill
+            (&persbuf, (const unsigned char *)pers[0].data + pers[0].off,
+             pers[0].len);
+          ret = _gcry_drbg_init_internal (flags, &persbuf);
+        }
+      else
+        ret = _gcry_drbg_init_internal (flags, NULL);
+      gcry_drbg_unlock ();
+    }
   return ret;
 }
 

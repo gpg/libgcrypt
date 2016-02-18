@@ -657,10 +657,13 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 
     case GCRYCTL_DRBG_REINIT:
       {
-        u32 flags = va_arg (arg_ptr, u32);
-        struct gcry_drbg_string *pers = va_arg (arg_ptr,
-						struct gcry_drbg_string *);
-        rc = _gcry_drbg_reinit(flags, pers);
+        const char *flagstr = va_arg (arg_ptr, const char *);
+        gcry_buffer_t *pers = va_arg (arg_ptr, gcry_buffer_t *);
+        int npers = va_arg (arg_ptr, int);
+        if (va_arg (arg_ptr, void *) || npers < 0)
+          rc = GPG_ERR_INV_ARG;
+        else
+          rc = _gcry_drbg_reinit (flagstr, pers, npers);
       }
       break;
 
