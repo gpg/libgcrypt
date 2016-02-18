@@ -1,5 +1,10 @@
-Noteworthy changes in version 1.5.5 (unreleased) [C19/A8/R_]
+Noteworthy changes in version 1.5.5 (2016-02-18) [C19/A8/R4]
 ------------------------------------------------
+
+ * Mitigate chosen cipher text attacks on ECDH with Weierstrass
+   curves.  [CVE-2015-7511]
+
+ * Use ciphertext blinding for Elgamal decryption.  [CVE-2014-3591]
 
 
 Noteworthy changes in version 1.5.4 (2014-08-07) [C19/A8/R3]

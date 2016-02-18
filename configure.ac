@@ -59,7 +59,7 @@ AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 #
 LIBGCRYPT_LT_CURRENT=19
 LIBGCRYPT_LT_AGE=8
-LIBGCRYPT_LT_REVISION=3
+LIBGCRYPT_LT_REVISION=4
 
 
 # If the API is changed in an incompatible way: increment the next counter.
@@ -71,7 +71,7 @@ PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION
 
 AC_CONFIG_SRCDIR([src/libgcrypt.vers])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([serial-tests dist-bzip2])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_LIBOBJ_DIR([compat])
