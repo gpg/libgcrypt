@@ -436,6 +436,79 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
 }
 
 
+/*
+ * Tokenize STRING using the set of delimiters in DELIM.  Leading
+ * white spaces are removed from all tokens.  The caller must xfree
+ * the result.
+ *
+ * Returns: A malloced and NULL delimited array with the tokens.  On
+ *          memory error NULL is returned and ERRNO is set.
+ */
+char **
+_gcry_strtokenize (const char *string, const char *delim)
+{
+  const char *s;
+  size_t fields;
+  size_t bytes, n;
+  char *buffer;
+  char *p, *px, *pend;
+  char **result;
+  char const ws[] = " \t\v\f\r\n";
+
+  if (!delim)
+    delim = ws;
+
+  /* Count the number of fields.  */
+  for (fields = 1, s = strpbrk (string, delim); s; s = strpbrk (s + 1, delim))
+    fields++;
+  fields++; /* Add one for the terminating NULL.  */
+
+  /* Allocate an array for all fields, a terminating NULL, and space
+     for a copy of the string.  */
+  bytes = fields * sizeof *result;
+  if (bytes / sizeof *result != fields)
+    {
+      gpg_err_set_errno (ENOMEM);
+      return NULL;
+    }
+  n = strlen (string) + 1;
+  bytes += n;
+  if (bytes < n)
+    {
+      gpg_err_set_errno (ENOMEM);
+      return NULL;
+    }
+  result = xtrymalloc (bytes);
+  if (!result)
+    return NULL;
+  buffer = (char*)(result + fields);
+
+  /* Copy and parse the string.  */
+  strcpy (buffer, string);
+  for (n = 0, p = buffer; (pend = strpbrk (p, delim)); p = pend + 1)
+    {
+      *pend = 0;
+      while (strchr (ws, *(byte*)p))
+        p++;
+      for (px = pend - 1; px >= p && strchr (ws, *(byte*)px); px--)
+        *px = 0;
+      result[n++] = p;
+    }
+  while (*p && strchr (ws, *(byte*)p))
+    p++;
+  for (px = p + strlen (p) - 1; px >= p && strchr (ws, *(byte*)px); px--)
+    *px = 0;
+  /* Traling spaces may result in an empty field.  We do not want to
+     store that.  */
+  result[n++] = *p? p : NULL;
+  result[n] = NULL;
+
+  gcry_assert ((char*)(result + n + 1) == buffer);
+
+  return result;
+}
+
+
 void
 __gcry_burn_stack (unsigned int bytes)
 {

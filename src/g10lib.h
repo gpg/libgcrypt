@@ -189,6 +189,9 @@ int _gcry_log_verbosity( int level );
 /* Compatibility macro.  */
 #define log_mpidump _gcry_log_printmpi
 
+/* Tokeninze STRING and return a malloced array.  */
+char **_gcry_strtokenize (const char *string, const char *delim);
+
 
 /*-- src/hwfeatures.c --*/
 /* (Do not change these values unless synced with the asm code.)  */
