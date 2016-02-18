@@ -1720,8 +1720,8 @@ gcry_drbg_reseed (struct gcry_drbg_state *drbg,
  * libgcrypt backend functions to the RNG API code
  ***************************************************************/
 
-/* global state variable holding the current instance of the DRBG -- the
- * default DRBG type is defined in _gcry_gcry_drbg_init */
+/* Global state variable holding the current instance of the DRBG -- the
+ * default DRBG type is defined in _gcry_rngdrbg_inititialize.  */
 static struct gcry_drbg_state *gcry_drbg = NULL;
 
 /* This is the lock we use to serialize access to this RNG. */
@@ -1831,7 +1831,7 @@ _gcry_drbg_init_internal (u32 flags, struct gcry_drbg_string *pers)
  * Initialize one DRBG invoked by the libgcrypt API
  */
 void
-_gcry_drbg_init (int full)
+_gcry_rngdrbg_inititialize (int full)
 {
   /* default DRBG */
   u32 flags = GCRY_DRBG_NOPR_HMACSHA256;
@@ -1862,7 +1862,7 @@ _gcry_drbg_init (int full)
  * bufer is take as personalization string.
  */
 gpg_err_code_t
-_gcry_drbg_reinit (const char *flagstr, gcry_buffer_t *pers, int npers)
+_gcry_rngdrbg_reinit (const char *flagstr, gcry_buffer_t *pers, int npers)
 {
   gpg_err_code_t ret;
   unsigned int flags;
@@ -1896,7 +1896,7 @@ _gcry_drbg_reinit (const char *flagstr, gcry_buffer_t *pers, int npers)
 /* Try to close the FDs of the random gather module.  This is
  * currently only implemented for rndlinux. */
 void
-_gcry_drbg_close_fds (void)
+_gcry_rngdrbg_close_fds (void)
 {
 #if USE_RNDLINUX
   gcry_drbg_lock ();
@@ -1907,7 +1907,7 @@ _gcry_drbg_close_fds (void)
 
 /* Print some statistics about the RNG.  */
 void
-_gcry_drbg_dump_stats (void)
+_gcry_rngdrbg_dump_stats (void)
 {
   /* Not yet implemented.  */
   /* Maybe dumping of reseed counter? */
@@ -1916,7 +1916,7 @@ _gcry_drbg_dump_stats (void)
 /* This function returns true if no real RNG is available or the
  * quality of the RNG has been degraded for test purposes.  */
 int
-_gcry_drbg_is_faked (void)
+_gcry_rngdrbg_is_faked (void)
 {
   return 0;			/* Faked random is not allowed.  */
 }
@@ -1925,12 +1925,12 @@ _gcry_drbg_is_faked (void)
  * should be in the range of 0..100 to indicate the goodness of the
  * entropy added, or -1 for goodness not known. */
 gcry_error_t
-_gcry_drbg_add_bytes (const void *buf, size_t buflen, int quality)
+_gcry_rngdrbg_add_bytes (const void *buf, size_t buflen, int quality)
 {
   gpg_err_code_t ret = 0;
   struct gcry_drbg_string seed;
   (void) quality;
-  _gcry_drbg_init(1); /* Auto-initialize if needed */
+  _gcry_rngdrbg_inititialize (1); /* Auto-initialize if needed */
   if (NULL == gcry_drbg)
     return GPG_ERR_GENERAL;
   gcry_drbg_string_fill (&seed, (unsigned char *) buf, buflen);
@@ -1944,11 +1944,11 @@ _gcry_drbg_add_bytes (const void *buf, size_t buflen, int quality)
  * nonces
  */
 void
-_gcry_drbg_randomize (void *buffer, size_t length,
+_gcry_rngdrbg_randomize (void *buffer, size_t length,
 		      enum gcry_random_level level)
 {
   (void) level;
-  _gcry_drbg_init(1); /* Auto-initialize if needed */
+  _gcry_rngdrbg_inititialize (1); /* Auto-initialize if needed */
   gcry_drbg_lock ();
   if (NULL == gcry_drbg)
     {
@@ -2287,7 +2287,7 @@ struct gcry_drbg_test_vector gcry_drbg_test_nopr[] = {
  * call for the CAVS test tool.
  */
 gpg_err_code_t
-gcry_drbg_cavs_test (struct gcry_drbg_test_vector *test, unsigned char *buf)
+gcry_rngdrbg_cavs_test (struct gcry_drbg_test_vector *test, unsigned char *buf)
 {
   gpg_err_code_t ret = 0;
   struct gcry_drbg_state *drbg = NULL;
@@ -2358,14 +2358,14 @@ outbuf:
  * call for the CAVS test tool.
  */
 gpg_err_code_t
-gcry_drbg_healthcheck_one (struct gcry_drbg_test_vector * test)
+gcry_rngdrbg_healthcheck_one (struct gcry_drbg_test_vector * test)
 {
   gpg_err_code_t ret = GPG_ERR_ENOMEM;
   unsigned char *buf = xcalloc_secure (1, test->expectedlen);
   if (!buf)
     return GPG_ERR_ENOMEM;
 
-  ret = gcry_drbg_cavs_test (test, buf);
+  ret = gcry_rngdrbg_cavs_test (test, buf);
   ret = memcmp (test->expected, buf, test->expectedlen);
 
   xfree (buf);
@@ -2463,21 +2463,21 @@ static int
 gcry_drbg_healthcheck (void)
 {
   int ret = 0;
-  ret += gcry_drbg_healthcheck_one (&gcry_drbg_test_nopr[0]);
-  ret += gcry_drbg_healthcheck_one (&gcry_drbg_test_nopr[1]);
-  ret += gcry_drbg_healthcheck_one (&gcry_drbg_test_nopr[2]);
-  ret += gcry_drbg_healthcheck_one (&gcry_drbg_test_nopr[3]);
-  ret += gcry_drbg_healthcheck_one (&gcry_drbg_test_nopr[4]);
-  ret += gcry_drbg_healthcheck_one (&gcry_drbg_test_pr[0]);
-  ret += gcry_drbg_healthcheck_one (&gcry_drbg_test_pr[1]);
-  ret += gcry_drbg_healthcheck_one (&gcry_drbg_test_pr[2]);
+  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[0]);
+  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[1]);
+  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[2]);
+  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[3]);
+  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_nopr[4]);
+  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_pr[0]);
+  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_pr[1]);
+  ret += gcry_rngdrbg_healthcheck_one (&gcry_drbg_test_pr[2]);
   ret += gcry_drbg_healthcheck_sanity (&gcry_drbg_test_nopr[0]);
   return ret;
 }
 
 /* Run the self-tests.  */
 gcry_error_t
-_gcry_drbg_selftest (selftest_report_func_t report)
+_gcry_rngdrbg_selftest (selftest_report_func_t report)
 {
   gcry_err_code_t ec;
   const char *errtxt = NULL;

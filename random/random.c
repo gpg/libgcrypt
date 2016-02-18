@@ -140,11 +140,11 @@ void
 _gcry_random_initialize (int full)
 {
   if (fips_mode ())
-    _gcry_drbg_init(full);
+    _gcry_rngdrbg_inititialize (full);
   else if (rng_types.standard)
     _gcry_rngcsprng_initialize (full);
   else if (rng_types.fips)
-    _gcry_drbg_init(full);
+    _gcry_rngdrbg_inititialize (full);
   else if (rng_types.system)
     _gcry_rngsystem_initialize (full);
   else
@@ -161,11 +161,11 @@ _gcry_random_close_fds (void)
      the entropy gatherer.  */
 
   if (fips_mode ())
-    _gcry_drbg_close_fds ();
+    _gcry_rngdrbg_close_fds ();
   else if (rng_types.standard)
     _gcry_rngcsprng_close_fds ();
   else if (rng_types.fips)
-    _gcry_drbg_close_fds ();
+    _gcry_rngdrbg_close_fds ();
   else if (rng_types.system)
     _gcry_rngsystem_close_fds ();
   else
@@ -199,7 +199,7 @@ void
 _gcry_random_dump_stats (void)
 {
   if (fips_mode ())
-    _gcry_drbg_dump_stats ();
+    _gcry_rngdrbg_dump_stats ();
   else
     _gcry_rngcsprng_dump_stats ();
 }
@@ -258,7 +258,7 @@ int
 _gcry_random_is_faked (void)
 {
   if (fips_mode ())
-    return _gcry_drbg_is_faked ();
+    return _gcry_rngdrbg_is_faked ();
   else
     return _gcry_rngcsprng_is_faked ();
 }
@@ -288,11 +288,11 @@ static void
 do_randomize (void *buffer, size_t length, enum gcry_random_level level)
 {
   if (fips_mode ())
-    _gcry_drbg_randomize (buffer, length, level);
+    _gcry_rngdrbg_randomize (buffer, length, level);
   else if (rng_types.standard)
     _gcry_rngcsprng_randomize (buffer, length, level);
   else if (rng_types.fips)
-    _gcry_drbg_randomize (buffer, length, level);
+    _gcry_rngdrbg_randomize (buffer, length, level);
   else if (rng_types.system)
     _gcry_rngsystem_randomize (buffer, length, level);
   else /* default */
@@ -424,7 +424,7 @@ _gcry_create_nonce (void *buffer, size_t length)
      nonce generator which is seeded by the RNG actual in use.  */
   if (fips_mode ())
     {
-      _gcry_drbg_randomize (buffer, length, GCRY_WEAK_RANDOM);
+      _gcry_rngdrbg_randomize (buffer, length, GCRY_WEAK_RANDOM);
       return;
     }
 
@@ -501,7 +501,7 @@ gpg_error_t
 _gcry_random_selftest (selftest_report_func_t report)
 {
   if (fips_mode ())
-    return _gcry_drbg_selftest (report);
+    return _gcry_rngdrbg_selftest (report);
   else
     return 0; /* No selftests yet.  */
 }

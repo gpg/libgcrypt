@@ -585,9 +585,9 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
         unsigned char *buf = va_arg (arg_ptr, unsigned char *);
 
         if (buf)
-          rc = gcry_drbg_cavs_test (test, buf);
+          rc = gcry_rngdrbg_cavs_test (test, buf);
         else
-          rc = gcry_drbg_healthcheck_one (test);
+          rc = gcry_rngdrbg_healthcheck_one (test);
       }
       break;
     case 60:  /* Deinit external random test.  */
@@ -663,7 +663,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
         if (va_arg (arg_ptr, void *) || npers < 0)
           rc = GPG_ERR_INV_ARG;
         else
-          rc = _gcry_drbg_reinit (flagstr, pers, npers);
+          rc = _gcry_rngdrbg_reinit (flagstr, pers, npers);
       }
       break;
 
