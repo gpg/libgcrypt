@@ -233,6 +233,10 @@
 #define DRBG_NOPR_HMACSHA512 (DRBG_HASHSHA512 | DRBG_HMAC)
 
 
+/* The default DRGB type.  */
+#define DRBG_DEFAULT_TYPE    DRBG_NOPR_HMACSHA256
+
+
 
 /******************************************************************
  * Common data structures
@@ -333,8 +337,7 @@ enum drbg_prefixes
  * Global variables
  ***************************************************************/
 
-/* Global state variable holding the current instance of the DRBG -- the
- * default DRBG type is defined in _gcry_rngdrbg_inititialize.  */
+/* Global state variable holding the current instance of the DRBG.  */
 static drbg_state_t drbg_state;
 
 /* This is the lock variable we use to serialize access to this RNG. */
@@ -1799,16 +1802,20 @@ drbg_algo_available (u32 flags, int *coreref)
 static gpg_err_code_t
 _drbg_init_internal (u32 flags, drbg_string_t *pers)
 {
+  static u32 oldflags;
   gpg_err_code_t ret = 0;
-  static u32 oldflags = 0;
   int coreref = 0;
   int pr = 0;
 
   /* If a caller provides 0 as flags, use the flags of the previous
    * initialization, otherwise use the current flags and remember them
-   * for the next invocation
+   * for the next invocation.  If no flag is given and no global state
+   * is set this is the first initialization and we set the default
+   * type.
    */
-  if (!flags)
+  if (!flags && !drbg_state)
+    flags = oldflags = DRBG_DEFAULT_TYPE;
+  else if (!flags)
     flags = oldflags;
   else
     oldflags = flags;
@@ -1845,14 +1852,12 @@ _drbg_init_internal (u32 flags, drbg_string_t *pers)
 void
 _gcry_rngdrbg_inititialize (int full)
 {
-  /* default DRBG */
-  u32 flags = DRBG_NOPR_HMACSHA256;
   basic_initialization ();
   if (!full)
       return;
   drbg_lock ();
   if (!drbg_state)
-    _drbg_init_internal (flags, NULL);
+    _drbg_init_internal (0, NULL);
   drbg_unlock ();
 }
 
