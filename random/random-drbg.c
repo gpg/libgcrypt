@@ -2338,7 +2338,7 @@ struct gcry_drbg_test_vector drbg_test_nopr[] = {
  * call for the CAVS test tool.
  */
 gpg_err_code_t
-gcry_rngdrbg_cavs_test (struct gcry_drbg_test_vector *test, unsigned char *buf)
+_gcry_rngdrbg_cavs_test (struct gcry_drbg_test_vector *test, unsigned char *buf)
 {
   gpg_err_code_t ret = 0;
   drbg_state_t drbg = NULL;
@@ -2414,14 +2414,15 @@ gcry_rngdrbg_cavs_test (struct gcry_drbg_test_vector *test, unsigned char *buf)
  * call for the CAVS test tool.
  */
 gpg_err_code_t
-gcry_rngdrbg_healthcheck_one (struct gcry_drbg_test_vector * test)
+_gcry_rngdrbg_healthcheck_one (struct gcry_drbg_test_vector * test)
 {
   gpg_err_code_t ret = GPG_ERR_ENOMEM;
   unsigned char *buf = xcalloc_secure (1, test->expectedlen);
   if (!buf)
     return GPG_ERR_ENOMEM;
 
-  ret = gcry_rngdrbg_cavs_test (test, buf);
+  ret = _gcry_rngdrbg_cavs_test (test, buf);
+  /* FIXME: The next line is wrong.   */
   ret = memcmp (test->expected, buf, test->expectedlen);
 
   xfree (buf);
@@ -2528,14 +2529,14 @@ static int
 drbg_healthcheck (void)
 {
   int ret = 0;
-  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[0]);
-  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[1]);
-  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[2]);
-  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[3]);
-  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[4]);
-  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_pr[0]);
-  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_pr[1]);
-  ret += gcry_rngdrbg_healthcheck_one (&drbg_test_pr[2]);
+  ret += _gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[0]);
+  ret += _gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[1]);
+  ret += _gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[2]);
+  ret += _gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[3]);
+  ret += _gcry_rngdrbg_healthcheck_one (&drbg_test_nopr[4]);
+  ret += _gcry_rngdrbg_healthcheck_one (&drbg_test_pr[0]);
+  ret += _gcry_rngdrbg_healthcheck_one (&drbg_test_pr[1]);
+  ret += _gcry_rngdrbg_healthcheck_one (&drbg_test_pr[2]);
   ret += drbg_healthcheck_sanity (&drbg_test_nopr[0]);
   return ret;
 }

@@ -21,6 +21,7 @@
 #define G10_RANDOM_H
 
 #include "types.h"
+#include "../src/gcrypt-testapi.h"  /* struct gcry_drbg_test_vector */
 
 /*-- random.c --*/
 void _gcry_register_random_progress (void (*cb)(void *,const char*,int,int,int),
@@ -57,31 +58,9 @@ void            _gcry_random_deinit_external_test (void *context);
 /*-- random-drbg.c --*/
 gpg_err_code_t _gcry_rngdrbg_reinit (const char *flagstr,
                                      gcry_buffer_t *pers, int npers);
-/* private interfaces for testing of DRBG */
-struct gcry_drbg_test_vector
-{
-  const char *flagstr;
-  unsigned char *entropy;
-  size_t entropylen;
-  unsigned char *entpra;
-  unsigned char *entprb;
-  size_t entprlen;
-  unsigned char *addtla;
-  unsigned char *addtlb;
-  size_t addtllen;
-  unsigned char *pers;
-  size_t perslen;
-  unsigned char *expected;
-  size_t expectedlen;
-  unsigned char *entropyreseed;
-  size_t entropyreseed_len;
-  unsigned char *addtl_reseed;
-  size_t addtl_reseed_len;
-};
-
-gpg_err_code_t gcry_rngdrbg_cavs_test (struct gcry_drbg_test_vector *t,
-                                       unsigned char *buf);
-gpg_err_code_t gcry_rngdrbg_healthcheck_one (struct gcry_drbg_test_vector *t);
+gpg_err_code_t _gcry_rngdrbg_cavs_test (struct gcry_drbg_test_vector *t,
+                                        unsigned char *buf);
+gpg_err_code_t _gcry_rngdrbg_healthcheck_one (struct gcry_drbg_test_vector *t);
 
 /*-- rndegd.c --*/
 gpg_error_t _gcry_rndegd_set_socket_name (const char *name);

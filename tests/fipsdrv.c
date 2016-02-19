@@ -41,7 +41,7 @@
 # define PACKAGE_BUGREPORT "devnull@example.org"
 # define PACKAGE_VERSION "[build on " __DATE__ " " __TIME__ "]"
 #endif
-
+#include "../src/gcrypt-testapi.h"
 
 #define PGM "fipsdrv"
 
@@ -56,12 +56,6 @@
 #define DIM(v)               (sizeof(v)/sizeof((v)[0]))
 #define DIMof(type,member)   DIM(((type *)0)->member)
 
-
-#define PRIV_CTL_INIT_EXTRNG_TEST   58
-#define PRIV_CTL_RUN_EXTRNG_TEST    59
-#define PRIV_CTL_DEINIT_EXTRNG_TEST 60
-#define PRIV_CTL_DISABLE_WEAK_KEY   61
-#define PRIV_CTL_GET_INPUT_VECTOR   62
 
 
 /* Verbose mode flag.  */
@@ -1069,7 +1063,7 @@ run_encrypt_decrypt (int encrypt_mode,
   blocklen = gcry_cipher_get_algo_blklen (cipher_algo);
   assert (blocklen);
 
-  gcry_cipher_ctl (hd, PRIV_CTL_DISABLE_WEAK_KEY, NULL, 0);
+  gcry_cipher_ctl (hd, PRIV_CIPHERCTL_DISABLE_WEAK_KEY, NULL, 0);
 
   err = gcry_cipher_setkey (hd, key_buffer, key_buflen);
   if (err)
@@ -1124,7 +1118,7 @@ get_current_iv (gcry_cipher_hd_t hd, void *buffer, size_t buflen)
 {
   unsigned char tmp[17];
 
-  if (gcry_cipher_ctl (hd, PRIV_CTL_GET_INPUT_VECTOR, tmp, sizeof tmp))
+  if (gcry_cipher_ctl (hd, PRIV_CIPHERCTL_GET_INPUT_VECTOR, tmp, sizeof tmp))
     die ("error getting current input vector\n");
   if (buflen > *tmp)
     die ("buffer too short to store the current input vector\n");
@@ -1159,7 +1153,7 @@ run_cipher_mct_loop (int encrypt_mode, int cipher_algo, int cipher_mode,
     die ("invalid block length %d\n", blocklen);
 
 
-  gcry_cipher_ctl (hd, PRIV_CTL_DISABLE_WEAK_KEY, NULL, 0);
+  gcry_cipher_ctl (hd, PRIV_CIPHERCTL_DISABLE_WEAK_KEY, NULL, 0);
 
   err = gcry_cipher_setkey (hd, key_buffer, key_buflen);
   if (err)

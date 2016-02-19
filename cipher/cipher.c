@@ -26,6 +26,7 @@
 #include <errno.h>
 
 #include "g10lib.h"
+#include "../src/gcrypt-testapi.h"
 #include "cipher.h"
 #include "./cipher-internal.h"
 
@@ -1321,7 +1322,7 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
       disable_cipher_algo( *(int*)buffer );
       break;
 
-    case 61:  /* Disable weak key detection (private).  */
+    case PRIV_CIPHERCTL_DISABLE_WEAK_KEY:  /* (private)  */
       if (h->spec->set_extra_info)
         rc = h->spec->set_extra_info
           (&h->context.c, CIPHER_INFO_NO_WEAK_KEY, NULL, 0);
@@ -1329,7 +1330,7 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
         rc = GPG_ERR_NOT_SUPPORTED;
       break;
 
-    case 62: /* Return current input vector (private).  */
+    case PRIV_CIPHERCTL_GET_INPUT_VECTOR: /* (private)  */
       /* This is the input block as used in CFB and OFB mode which has
          initially been set as IV.  The returned format is:
            1 byte  Actual length of the block in bytes.

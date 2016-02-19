@@ -35,6 +35,7 @@
 #endif /*HAVE_SYSLOG*/
 
 #include "g10lib.h"
+#include "gcrypt-testapi.h"
 #include "cipher.h"
 #include "stdmem.h" /* our own memory allocator */
 #include "secmem.h" /* our own secmem allocator */
@@ -575,25 +576,25 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wswitch"
 #endif
-    case 58:  /* Init external random test.  */
+    case PRIV_CTL_INIT_EXTRNG_TEST:  /* Init external random test.  */
       rc = GPG_ERR_NOT_SUPPORTED;
       break;
-    case 59:  /* Run external DRBG test.  */
+    case PRIV_CTL_RUN_EXTRNG_TEST:  /* Run external DRBG test.  */
       {
         struct gcry_drbg_test_vector *test =
 	  va_arg (arg_ptr, struct gcry_drbg_test_vector *);
         unsigned char *buf = va_arg (arg_ptr, unsigned char *);
 
         if (buf)
-          rc = gcry_rngdrbg_cavs_test (test, buf);
+          rc = _gcry_rngdrbg_cavs_test (test, buf);
         else
-          rc = gcry_rngdrbg_healthcheck_one (test);
+          rc = _gcry_rngdrbg_healthcheck_one (test);
       }
       break;
-    case 60:  /* Deinit external random test.  */
+    case PRIV_CTL_DEINIT_EXTRNG_TEST:  /* Deinit external random test.  */
       rc = GPG_ERR_NOT_SUPPORTED;
       break;
-    case 61:  /* Run external lock test */
+    case PRIV_CTL_EXTERNAL_LOCK_TEST:  /* Run external lock test */
       rc = external_lock_test (va_arg (arg_ptr, int));
       break;
     case 62:  /* RFU */

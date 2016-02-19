@@ -34,6 +34,7 @@
 #define PGMNAME "t-lock"
 
 #include "t-common.h"
+#include "../src/gcrypt-testapi.h"
 
 /* Mingw requires us to include windows.h after winsock2.h which is
    included by gcrypt.h.  */
@@ -48,12 +49,6 @@
 # define THREAD_RET_TYPE  void *
 # define THREAD_RET_VALUE NULL
 #endif
-
-#define PRIV_CTL_EXTERNAL_LOCK_TEST   61
-#define EXTERNAL_LOCK_TEST_INIT       30111
-#define EXTERNAL_LOCK_TEST_LOCK       30112
-#define EXTERNAL_LOCK_TEST_UNLOCK     30113
-#define EXTERNAL_LOCK_TEST_DESTROY    30114
 
 
 /* Number of threads to run.  */
