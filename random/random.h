@@ -60,7 +60,7 @@ gpg_err_code_t _gcry_rngdrbg_reinit (const char *flagstr,
 /* private interfaces for testing of DRBG */
 struct gcry_drbg_test_vector
 {
-  u32 flags;
+  const char *flagstr;
   unsigned char *entropy;
   size_t entropylen;
   unsigned char *entpra;
