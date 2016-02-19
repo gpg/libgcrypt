@@ -663,6 +663,8 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
         int npers = va_arg (arg_ptr, int);
         if (va_arg (arg_ptr, void *) || npers < 0)
           rc = GPG_ERR_INV_ARG;
+        else if (_gcry_get_rng_type (!any_init_done) != GCRY_RNG_TYPE_FIPS)
+          rc = GPG_ERR_NOT_SUPPORTED;
         else
           rc = _gcry_rngdrbg_reinit (flagstr, pers, npers);
       }

@@ -34,6 +34,10 @@
 
 #define PGM "random"
 
+#ifndef DIM
+# define DIM(v)		     (sizeof(v)/sizeof((v)[0]))
+#endif
+
 
 static int verbose;
 static int debug;
@@ -430,6 +434,86 @@ check_early_rng_type_switching (void)
 }
 
 
+static void
+check_drbg_reinit (void)
+{
+  static struct { const char *flags; } tv[] = {
+    { NULL },
+    { "" },
+    { "sha1" },
+    { "sha1 pr" },
+    { "sha256" },
+    { "sha256 pr" },
+    { "sha512" },
+    { "sha512 pr" },
+    { "hmac sha1" },
+    { "hmac sha1 pr" },
+    { "hmac sha256" },
+    { "hmac sha256 pr" },
+    { "hmac sha512" },
+    { "hmac sha512 pr" },
+    { "aes sym128" },
+    { "aes sym128 pr" },
+    { "aes sym192" },
+    { "aes sym192 pr" },
+    { "aes sym256" },
+    { "aes sym256 pr" }
+  };
+  int tidx;
+  gpg_error_t err;
+  char pers_string[] = "I'm a doctor, not an engineer.";
+  gcry_buffer_t pers[1];
+
+  if (verbose)
+    inf ("checking DRBG_REINIT\n");
+
+  memset (pers, 0, sizeof pers);
+  pers[0].data = pers_string;
+  pers[0].len = strlen (pers_string);
+
+  err = gcry_control (GCRYCTL_DRBG_REINIT, "", NULL, 0, &err);
+  if (gpg_err_code (err) != GPG_ERR_INV_ARG)
+    die ("gcry_control(DRBG_REINIT) guard value did not work\n");
+
+  err = gcry_control (GCRYCTL_DRBG_REINIT, "", NULL, -1, NULL);
+  if (gpg_err_code (err) != GPG_ERR_INV_ARG)
+    die ("gcry_control(DRBG_REINIT) npers negative detection failed\n");
+
+  if (rng_type () != GCRY_RNG_TYPE_FIPS)
+    {
+      err = gcry_control (GCRYCTL_DRBG_REINIT, "", NULL, 0, NULL);
+      if (gpg_err_code (err) != GPG_ERR_NOT_SUPPORTED)
+        die ("DRBG_REINIT worked despite that DRBG is not active\n");
+      return;
+    }
+
+  err = gcry_control (GCRYCTL_DRBG_REINIT, "", NULL, 1, NULL);
+  if (gpg_err_code (err) != GPG_ERR_INV_ARG)
+    die ("_gcry_rngdrbg_reinit failed to detact: (!pers && npers)\n");
+  err = gcry_control (GCRYCTL_DRBG_REINIT, "", pers, 2, NULL);
+  if (gpg_err_code (err) != GPG_ERR_INV_ARG)
+    die ("_gcry_rngdrbg_reinit failed to detect: (pers && npers != 1)\n");
+
+  err = gcry_control (GCRYCTL_DRBG_REINIT, "aes sym128 bad pr ", pers, 1, NULL);
+  if (gpg_err_code (err) != GPG_ERR_INV_FLAG)
+    die ("_gcry_rngdrbg_reinit failed to detect a bad flag\n");
+
+  for (tidx=0; tidx < DIM(tv); tidx++)
+    {
+      err = gcry_control (GCRYCTL_DRBG_REINIT, tv[tidx].flags, NULL, 0, NULL);
+      if (err)
+        die ("_gcry_rngdrbg_reinit failed for \"%s\" w/o pers: %s\n",
+
+             tv[tidx].flags, gpg_strerror (err));
+      err = gcry_control (GCRYCTL_DRBG_REINIT, tv[tidx].flags, pers, 1, NULL);
+      if (err)
+        die ("_gcry_rngdrbg_reinit failed for \"%s\" with pers: %s\n",
+             tv[tidx].flags, gpg_strerror (err));
+      /* fixme: We should extract some random after each test.  */
+    }
+}
+
+
 /* Because we want to check initialization behaviour, we need to
    fork/exec this program with several command line arguments.  We use
    system, so that these tests work also on Windows.  */
@@ -582,6 +666,7 @@ main (int argc, char **argv)
       check_nonce_forking ();
       check_close_random_device ();
     }
+  check_drbg_reinit ();
   check_rng_type_switching ();
 
   if (!in_recursion)
