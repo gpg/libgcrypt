@@ -146,8 +146,6 @@
  * gcry_randomize(outbuf, OUTLEN, GCRY_STRONG_RANDOM);
  */
 
-#include <sys/types.h>
-#include <asm/types.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -177,29 +175,29 @@
  */
 
 /* Internal state control flags (B) */
-#define DRBG_PREDICTION_RESIST	((u_int32_t)1<<28)
+#define DRBG_PREDICTION_RESIST	((u32)1<<28)
 
 /* CTR type modifiers (A.1)*/
-#define DRBG_CTRAES		((u_int32_t)1<<0)
-#define DRBG_CTRSERPENT		((u_int32_t)1<<1)
-#define DRBG_CTRTWOFISH		((u_int32_t)1<<2)
+#define DRBG_CTRAES		((u32)1<<0)
+#define DRBG_CTRSERPENT		((u32)1<<1)
+#define DRBG_CTRTWOFISH		((u32)1<<2)
 #define DRBG_CTR_MASK	        (DRBG_CTRAES | DRBG_CTRSERPENT \
                                  | DRBG_CTRTWOFISH)
 
 /* HASH type modifiers (A.2)*/
-#define DRBG_HASHSHA1		((u_int32_t)1<<4)
-#define DRBG_HASHSHA224		((u_int32_t)1<<5)
-#define DRBG_HASHSHA256		((u_int32_t)1<<6)
-#define DRBG_HASHSHA384		((u_int32_t)1<<7)
-#define DRBG_HASHSHA512		((u_int32_t)1<<8)
+#define DRBG_HASHSHA1		((u32)1<<4)
+#define DRBG_HASHSHA224		((u32)1<<5)
+#define DRBG_HASHSHA256		((u32)1<<6)
+#define DRBG_HASHSHA384		((u32)1<<7)
+#define DRBG_HASHSHA512		((u32)1<<8)
 #define DRBG_HASH_MASK		(DRBG_HASHSHA1 | DRBG_HASHSHA224 \
 				 | DRBG_HASHSHA256 | DRBG_HASHSHA384 \
 				 | DRBG_HASHSHA512)
 /* type modifiers (A.3)*/
-#define DRBG_HMAC		((u_int32_t)1<<12)
-#define DRBG_SYM128		((u_int32_t)1<<13)
-#define DRBG_SYM192		((u_int32_t)1<<14)
-#define DRBG_SYM256		((u_int32_t)1<<15)
+#define DRBG_HMAC		((u32)1<<12)
+#define DRBG_SYM128		((u32)1<<13)
+#define DRBG_SYM192		((u32)1<<14)
+#define DRBG_SYM256		((u32)1<<15)
 #define DRBG_TYPE_MASK		(DRBG_HMAC | DRBG_SYM128 | DRBG_SYM192 \
 				 | DRBG_SYM256)
 #define DRBG_CIPHER_MASK        (DRBG_CTR_MASK | DRBG_HASH_MASK \
@@ -632,12 +630,12 @@ drbg_get_entropy (drbg_state_t drbg, unsigned char *buffer,
   rc = _gcry_rndlinux_gather_random (drbg_read_cb, 0, len,
 				     GCRY_VERY_STRONG_RANDOM);
 #elif USE_RNDUNIX
-  rc = _gcry_rndunix_gather_random (read_cb, 0, length,
+  rc = _gcry_rndunix_gather_random (drbg_read_cb, 0, len,
 				    GCRY_VERY_STRONG_RANDOM);
 #elif USE_RNDW32
   do
     {
-      rc = _gcry_rndw32_gather_random (read_cb, 0, length,
+      rc = _gcry_rndw32_gather_random (drbg_read_cb, 0, len,
 				       GCRY_VERY_STRONG_RANDOM);
     }
   while (rc >= 0 && read_cb_len < read_cb_size);
