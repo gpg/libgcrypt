@@ -666,7 +666,10 @@ main (int argc, char **argv)
       check_nonce_forking ();
       check_close_random_device ();
     }
-  check_drbg_reinit ();
+  /* For now we do not run the drgb_reinit check from "make check" due
+     to its high requirement for entropy.  */
+  if (!getenv ("GCRYPT_IN_REGRESSION_TEST"))
+    check_drbg_reinit ();
   check_rng_type_switching ();
 
   if (!in_recursion)
