@@ -26,7 +26,7 @@ EXTRA_DIST = libgcrypt-config.in libgcrypt.m4 libgcrypt.vers \
 bin_SCRIPTS = libgcrypt-config
 m4datadir = $(datadir)/aclocal
 m4data_DATA = libgcrypt.m4
-include_HEADERS = gcrypt.h
+nodist_include_HEADERS = gcrypt.h
 
 lib_LTLIBRARIES = libgcrypt.la
 bin_PROGRAMS = dumpsexp hmac256 mpicalc
