@@ -83,6 +83,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
 
   rp = res->d;
   ep = expo->d;
+  MPN_NORMALIZE(ep, esize);
 
   if (!msize)
     _gcry_divide_by_zero();
@@ -429,6 +430,9 @@ _gcry_mpi_powm (gcry_mpi_t res,
   size = 2 * msize;
   msign = mod->sign;
 
+  ep = expo->d;
+  MPN_NORMALIZE(ep, esize);
+
   if (esize * BITS_PER_MPI_LIMB > 512)
     W = 5;
   else if (esize * BITS_PER_MPI_LIMB > 256)
@@ -445,7 +449,6 @@ _gcry_mpi_powm (gcry_mpi_t res,
   bsec = mpi_is_secure(base);
 
   rp = res->d;
-  ep = expo->d;
 
   if (!msize)
     _gcry_divide_by_zero();
