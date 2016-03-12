@@ -277,6 +277,9 @@ detect_x86_gnuc (void)
   /* Test bit 9 for SSSE3.  */
   if (features & 0x00000200)
      result |= HWF_INTEL_SSSE3;
+  /* Test bit 19 for SSE4.1.  */
+  if (features & 0x00080000)
+     result |= HWF_INTEL_SSE4_1;
 #ifdef ENABLE_AESNI_SUPPORT
   /* Test bit 25 for AES-NI.  */
   if (features & 0x02000000)

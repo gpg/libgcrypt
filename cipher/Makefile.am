@@ -66,6 +66,7 @@ cast5.c cast5-amd64.S cast5-arm.S \
 chacha20.c chacha20-sse2-amd64.S chacha20-ssse3-amd64.S chacha20-avx2-amd64.S \
   chacha20-armv7-neon.S \
 crc.c \
+  crc-intel-pclmul.c \
 des.c des-amd64.S \
 dsa.c \
 elgamal.c \

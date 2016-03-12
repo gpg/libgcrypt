@@ -31,12 +31,35 @@
 #include "bufhelp.h"
 
 
+/* USE_INTEL_PCLMUL indicates whether to compile CRC with Intel PCLMUL
+ * code.  */
+#undef USE_INTEL_PCLMUL
+#ifdef ENABLE_PCLMUL_SUPPORT
+# if ((defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__))
+#  if __GNUC__ >= 4
+#   define USE_INTEL_PCLMUL 1
+#  endif
+# endif
+#endif /* USE_INTEL_PCLMUL */
+
+
 typedef struct
 {
   u32 CRC;
+#ifdef USE_INTEL_PCLMUL
+  unsigned int use_pclmul:1;           /* Intel PCLMUL shall be used.  */
+#endif
   byte buf[4];
 }
 CRC_CONTEXT;
+
+
+#ifdef USE_INTEL_PCLMUL
+/*-- crc-intel-pclmul.c --*/
+void _gcry_crc32_intel_pclmul (u32 *pcrc, const byte *inbuf, size_t inlen);
+void _gcry_crc24rfc2440_intel_pclmul (u32 *pcrc, const byte *inbuf,
+				      size_t inlen);
+#endif
 
 
 /*
@@ -338,6 +361,11 @@ static void
 crc32_init (void *context, unsigned int flags)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
+#ifdef USE_INTEL_PCLMUL
+  u32 hwf = _gcry_get_hw_features ();
+
+  ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
+#endif
 
   (void)flags;
 
@@ -350,6 +378,14 @@ crc32_write (void *context, const void *inbuf_arg, size_t inlen)
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   const byte *inbuf = inbuf_arg;
   u32 crc;
+
+#ifdef USE_INTEL_PCLMUL
+  if (ctx->use_pclmul)
+    {
+      _gcry_crc32_intel_pclmul(&ctx->CRC, inbuf, inlen);
+      return;
+    }
+#endif
 
   if (!inbuf || !inlen)
     return;
@@ -403,6 +439,11 @@ static void
 crc32rfc1510_init (void *context, unsigned int flags)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
+#ifdef USE_INTEL_PCLMUL
+  u32 hwf = _gcry_get_hw_features ();
+
+  ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
+#endif
 
   (void)flags;
 
@@ -694,7 +735,8 @@ static const u32 crc24_table[1024] =
 static inline
 u32 crc24_init (void)
 {
-  return 0xce04b7;
+  /* Transformed to 32-bit CRC by multiplied by x⁸ and then byte swapped. */
+  return 0xce04b7; /* _gcry_bswap(0xb704ce << 8) */
 }
 
 static inline
@@ -713,7 +755,7 @@ u32 crc24_next4 (u32 crc, u32 data)
   crc = crc24_table[(crc & 0xff) + 0x300] ^
         crc24_table[((crc >> 8) & 0xff) + 0x200] ^
         crc24_table[((crc >> 16) & 0xff) + 0x100] ^
-        crc24_table[(crc >> 24) & 0xff];
+        crc24_table[(data >> 24) & 0xff];
   return crc;
 }
 
@@ -727,6 +769,11 @@ static void
 crc24rfc2440_init (void *context, unsigned int flags)
 {
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
+#ifdef USE_INTEL_PCLMUL
+  u32 hwf = _gcry_get_hw_features ();
+
+  ctx->use_pclmul = (hwf & HWF_INTEL_SSE4_1) && (hwf & HWF_INTEL_PCLMUL);
+#endif
 
   (void)flags;
 
@@ -739,6 +786,14 @@ crc24rfc2440_write (void *context, const void *inbuf_arg, size_t inlen)
   const unsigned char *inbuf = inbuf_arg;
   CRC_CONTEXT *ctx = (CRC_CONTEXT *) context;
   u32 crc;
+
+#ifdef USE_INTEL_PCLMUL
+  if (ctx->use_pclmul)
+    {
+      _gcry_crc24rfc2440_intel_pclmul(&ctx->CRC, inbuf, inlen);
+      return;
+    }
+#endif
 
   if (!inbuf || !inlen)
     return;

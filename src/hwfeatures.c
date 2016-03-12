@@ -50,6 +50,7 @@ static struct
     { HWF_INTEL_FAST_SHLD, "intel-fast-shld" },
     { HWF_INTEL_BMI2,      "intel-bmi2" },
     { HWF_INTEL_SSSE3,     "intel-ssse3" },
+    { HWF_INTEL_SSE4_1,    "intel-sse4.1" },
     { HWF_INTEL_PCLMUL,    "intel-pclmul" },
     { HWF_INTEL_AESNI,     "intel-aesni" },
     { HWF_INTEL_RDRAND,    "intel-rdrand" },

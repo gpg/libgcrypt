@@ -2023,6 +2023,13 @@ LIST_MEMBER(crc, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc.lo"
    AC_DEFINE(USE_CRC, 1, [Defined if this module should be included])
+
+   case "${host}" in
+      i?86-*-* | x86_64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS crc-intel-pclmul.lo"
+      ;;
+   esac
 fi
 
 LIST_MEMBER(gostr3411-94, $enabled_digests)
