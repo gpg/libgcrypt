@@ -2183,8 +2183,8 @@ _gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
  * a parameter name, enclose the name in single quotes.
  *
  * Unless in gcry_buffer_t mode for each parameter name a pointer to
- * an MPI variable is expected and finally a NULL is expected.
- * Example:
+ * an MPI variable is expected that must be set to NULL prior to
+ * invoking this function, and finally a NULL is expected.  Example:
  *
  *   _gcry_sexp_extract_param (key, NULL, "n/x+ed",
  *                             &mpi_n, &mpi_x, &mpi_e, NULL)
@@ -2208,8 +2208,11 @@ _gcry_sexp_canon_len (const unsigned char *buffer, size_t length,
  * mark separated tokens are used to via gcry_sexp_find_token to find
  * a start point inside SEXP.
  *
- * The function returns NULL on success.  On error an error code is
- * returned and the passed MPIs are either unchanged or set to NULL.
+ * The function returns 0 on success.  On error an error code is
+ * returned, all passed MPIs that might have been allocated up to this
+ * point are deallocated and set to NULL, and all passed buffers are
+ * either truncated if the caller supplied the buffer, or deallocated
+ * if the function allocated the buffer.
  */
 gpg_err_code_t
 _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,

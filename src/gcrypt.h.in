@@ -473,8 +473,51 @@ char *gcry_sexp_nth_string (gcry_sexp_t list, int number);
    value can't be converted to an MPI, `NULL' is returned.  */
 gcry_mpi_t gcry_sexp_nth_mpi (gcry_sexp_t list, int number, int mpifmt);
 
-/* Convenience function to extract parameters from an S-expression
- * using a list of single letter parameters.  */
+/* Extract MPIs from an s-expression using a list of parameters.  The
+ * names of these parameters are given by the string LIST.  Some
+ * special characters may be given to control the conversion:
+ *
+ *    + :: Switch to unsigned integer format (default).
+ *    - :: Switch to standard signed format.
+ *    / :: Switch to opaque format.
+ *    & :: Switch to buffer descriptor mode - see below.
+ *    ? :: The previous parameter is optional.
+ *
+ * In general parameter names are single letters.  To use a string for
+ * a parameter name, enclose the name in single quotes.
+ *
+ * Unless in gcry_buffer_t mode for each parameter name a pointer to
+ * an MPI variable is expected that must be set to NULL prior to
+ * invoking this function, and finally a NULL is expected.  Example:
+ *
+ *   _gcry_sexp_extract_param (key, NULL, "n/x+ed",
+ *                             &mpi_n, &mpi_x, &mpi_e, NULL)
+ *
+ * This stores the parameter "N" from KEY as an unsigned MPI into
+ * MPI_N, the parameter "X" as an opaque MPI into MPI_X, and the
+ * parameter "E" again as an unsigned MPI into MPI_E.
+ *
+ * If in buffer descriptor mode a pointer to gcry_buffer_t descriptor
+ * is expected instead of a pointer to an MPI.  The caller may use two
+ * different operation modes: If the DATA field of the provided buffer
+ * descriptor is NULL, the function allocates a new buffer and stores
+ * it at DATA; the other fields are set accordingly with OFF being 0.
+ * If DATA is not NULL, the function assumes that DATA, SIZE, and OFF
+ * describe a buffer where to but the data; on return the LEN field
+ * receives the number of bytes copied to that buffer; if the buffer
+ * is too small, the function immediately returns with an error code
+ * (and LEN set to 0).
+ *
+ * PATH is an optional string used to locate a token.  The exclamation
+ * mark separated tokens are used to via gcry_sexp_find_token to find
+ * a start point inside SEXP.
+ *
+ * The function returns 0 on success.  On error an error code is
+ * returned, all passed MPIs that might have been allocated up to this
+ * point are deallocated and set to NULL, and all passed buffers are
+ * either truncated if the caller supplied the buffer, or deallocated
+ * if the function allocated the buffer.
+ */
 gpg_error_t gcry_sexp_extract_param (gcry_sexp_t sexp,
                                      const char *path,
                                      const char *list,

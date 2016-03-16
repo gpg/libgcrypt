@@ -4336,8 +4336,10 @@ In general parameter names are single letters.  To use a string for a
 parameter name, enclose the name in single quotes.
 
 Unless in buffer descriptor mode for each parameter name a pointer to
-an @code{gcry_mpi_t} variable is expected finally followed by a @code{NULL}.
-For example
+an @code{gcry_mpi_t} variable is expected that must be set to
+@code{NULL} prior to invoking this function, and finally a @code{NULL}
+is expected.  For example
+
 @example
   _gcry_sexp_extract_param (key, NULL, "n/x+e d-'foo'",
                             &mpi_n, &mpi_x, &mpi_e, &mpi_foo, NULL)
@@ -4366,8 +4368,11 @@ number of bytes copied to that buffer; in case the buffer is too
 small, the function immediately returns with an error code (and
 @var{len} is set to 0).
 
-The function returns NULL on success.  On error an error code is
-returned and the passed MPIs are either unchanged or set to NULL.
+The function returns 0 on success.  On error an error code is
+returned, all passed MPIs that might have been allocated up to this
+point are deallocated and set to @code{NULL}, and all passed buffers
+are either truncated if the caller supplied the buffer, or deallocated
+if the function allocated the buffer.
 @end deftypefun
 
 
