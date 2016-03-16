@@ -1657,6 +1657,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
  * for example:
  *
  *   (ecc
+ *     (curve <name>)
  *     (p <mpi>)
  *     (a <mpi>)
  *     (b <mpi>)
@@ -1664,8 +1665,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
  *     (n <mpi>)
  *     (q <mpi>))
  *
- * More parameters may be given currently P is needed.  FIXME: We
- * need allow for a "curve" parameter.
+ * More parameters may be given. Either P or CURVE is needed.
  */
 static unsigned int
 ecc_get_nbits (gcry_sexp_t parms)
