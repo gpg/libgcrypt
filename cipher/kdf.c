@@ -125,7 +125,7 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
   gpg_err_code_t ec;
   gcry_md_hd_t md;
   int secmode;
-  unsigned int dklen = keysize;
+  unsigned long dklen = keysize;
   char *dk = keybuffer;
   unsigned int hlen;   /* Output length of the digest function.  */
   unsigned int l;      /* Rounded up number of blocks.  */
@@ -151,11 +151,14 @@ _gcry_kdf_pkdf2 (const void *passphrase, size_t passphraselen,
   secmode = _gcry_is_secure (passphrase) || _gcry_is_secure (keybuffer);
 
   /* Step 1 */
-  /* If dkLen > (2^32 - 1) * hLen, output "derived key too long" and stop.
-     We use a stronger inequality. */
+  /* If dkLen > (2^32 - 1) * hLen, output "derived key too long" and
+   * stop.  We use a stronger inequality but only if our type can hold
+   * a larger value.  */
 
-  if (dklen > 4294967295U)
+#if SIZEOF_UNSIGNED_LONG > 4
+  if (dklen > 0xffffffffU)
     return GPG_ERR_INV_VALUE;
+#endif
 
 
   /* Step 2 */
