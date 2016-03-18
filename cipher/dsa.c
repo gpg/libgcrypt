@@ -66,7 +66,9 @@ static const char *dsa_names[] =
   };
 
 
-/* A sample 1024 bit DSA key used for the selftests.  */
+/* A sample 1024 bit DSA key used for the selftests.  Not anymore
+ * used, kept only for reference.  */
+#if 0
 static const char sample_secret_key_1024[] =
 "(private-key"
 " (dsa"
@@ -101,6 +103,7 @@ static const char sample_public_key_1024[] =
 "      A1816A724C34F87330FC9E187C5D66897A04535CC2AC9164A7150ABFA8179827"
 "      6E45831AB811EEE848EBB24D9F5F2883B6E5DDC4C659DEF944DCFD80BF4D0A20"
 "      42CAA7DC289F0C5A9D155F02D3D551DB741A81695B74D4C8F477F9C7838EB0FB#)))";
+#endif /*0*/
 
 /* 2048 DSA key from RFC 6979 A.2.2 */
 static const char sample_public_key_2048[] =
@@ -412,7 +415,9 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
 
   /* Check that QBITS and NBITS match the standard.  Note that FIPS
      186-3 uses N for QBITS and L for NBITS.  */
-  if (nbits == 2048 && qbits == 224)
+  if (nbits == 1024 && qbits == 160 && use_fips186_2)
+    ; /* Allowed in FIPS 186-2 mode.  */
+  else if (nbits == 2048 && qbits == 224)
     ;
   else if (nbits == 2048 && qbits == 256)
     ;
@@ -442,27 +447,28 @@ generate_fips186 (DSA_secret_key *sk, unsigned int nbits, unsigned int qbits,
           initial_seed.sexp = sexp_find_token (deriveparms, "seed", 0);
           if (initial_seed.sexp)
             initial_seed.seed = sexp_nth_data (initial_seed.sexp, 1,
-                                                    &initial_seed.seedlen);
+                                               &initial_seed.seedlen);
         }
 
       if (use_fips186_2)
         ec = _gcry_generate_fips186_2_prime (nbits, qbits,
-                                           initial_seed.seed,
-                                           initial_seed.seedlen,
-                                           &prime_q, &prime_p,
-                                           r_counter,
-                                           r_seed, r_seedlen);
+                                             initial_seed.seed,
+                                             initial_seed.seedlen,
+                                             &prime_q, &prime_p,
+                                             r_counter,
+                                             r_seed, r_seedlen);
       else
         ec = _gcry_generate_fips186_3_prime (nbits, qbits, NULL, 0,
-                                           &prime_q, &prime_p,
-                                           r_counter,
-                                           r_seed, r_seedlen, NULL);
+                                             &prime_q, &prime_p,
+                                             r_counter,
+                                             r_seed, r_seedlen, NULL);
       sexp_release (initial_seed.sexp);
       if (ec)
         goto leave;
 
       /* Find a generator g (h and e are helpers).
-         e = (p-1)/q */
+       *    e = (p-1)/q
+       */
       value_e = mpi_alloc_like (prime_p);
       mpi_sub_ui (value_e, prime_p, 1);
       mpi_fdiv_q (value_e, value_e, prime_q );

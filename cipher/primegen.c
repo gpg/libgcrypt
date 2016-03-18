@@ -1612,23 +1612,21 @@ _gcry_generate_fips186_2_prime (unsigned int pbits, unsigned int qbits,
 
 
 
-/* WARNING: The code below has not yet been tested!  However, it is
-   not yet used.  We need to wait for FIPS 186-3 final and for test
-   vectors.
-
-   Generate the two prime used for DSA using the algorithm specified
-   in FIPS 186-3, A.1.1.2.  PBITS is the desired length of the prime P
-   and a QBITS the length of the prime Q.  If SEED is not supplied and
-   SEEDLEN is 0 the function generates an appropriate SEED.  On
-   success the generated primes are stored at R_Q and R_P, the counter
-   value is stored at R_COUNTER and the seed actually used for
-   generation is stored at R_SEED and R_SEEDVALUE.  The hash algorithm
-   used is stored at R_HASHALGO.
-
-   Note that this function is very similar to the fips186_2 code.  Due
-   to the minor differences, other buffer sizes and for documentarion,
-   we use a separate function.
-*/
+/* WARNING: The code below has not yet been tested!
+ *
+ * Generate the two prime used for DSA using the algorithm specified
+ * in FIPS 186-3, A.1.1.2.  PBITS is the desired length of the prime P
+ * and a QBITS the length of the prime Q.  If SEED is not supplied and
+ * SEEDLEN is 0 the function generates an appropriate SEED.  On
+ * success the generated primes are stored at R_Q and R_P, the counter
+ * value is stored at R_COUNTER and the seed actually used for
+ * generation is stored at R_SEED and R_SEEDVALUE.  The hash algorithm
+ * used is stored at R_HASHALGO.
+ *
+ * Note that this function is very similar to the fips186_2 code.  Due
+ * to the minor differences, other buffer sizes and for documentarion,
+ * we use a separate function.
+ */
 gpg_err_code_t
 _gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
                                 const void *seed, size_t seedlen,
@@ -1813,13 +1811,12 @@ _gcry_generate_fips186_3_prime (unsigned int pbits, unsigned int qbits,
     }
 
   /* Step 12:  Save p, q, counter and seed.  */
-/*
-  log_debug ("fips186-3 pbits p=%u q=%u counter=%d\n",
-             mpi_get_nbits (prime_p), mpi_get_nbits (prime_q), counter);
-  log_printhex ("fips186-3 seed", seed, seedlen);
-  log_printmpi ("fips186-3    p", prime_p);
-  log_printmpi ("fips186-3    q", prime_q);
-*/
+  /* log_debug ("fips186-3 pbits p=%u q=%u counter=%d\n", */
+  /*            mpi_get_nbits (prime_p), mpi_get_nbits (prime_q), counter); */
+  /* log_printhex ("fips186-3 seed", seed, seedlen); */
+  /* log_printmpi ("fips186-3    p", prime_p); */
+  /* log_printmpi ("fips186-3    q", prime_q); */
+
   if (r_q)
     {
       *r_q = prime_q;

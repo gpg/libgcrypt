@@ -434,6 +434,14 @@ check_dsa_gen_186_2 (void)
 }
 
 
+static void
+check_dsa_gen_186_3 (void)
+{
+  /* FIXME: Needs to be implemented.  */
+  if (verbose)
+    info ("generating FIPS 186-3 test keys - skipped\n");
+}
+
 
 int
 main (int argc, char **argv)
@@ -449,7 +457,7 @@ main (int argc, char **argv)
     }
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
-  if (!gcry_check_version ("1.4.4"))
+  if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
@@ -459,6 +467,7 @@ main (int argc, char **argv)
 
 
   check_dsa_gen_186_2 ();
+  check_dsa_gen_186_3 ();
 
 
   return error_count ? 1 : 0;
