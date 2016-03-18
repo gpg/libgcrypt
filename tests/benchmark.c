@@ -1434,6 +1434,12 @@ ecc_bench (int iterations, int print_header)
 
       is_ed25519 = !strcmp (p_sizes[testno], "Ed25519");
       is_gost = !strncmp (p_sizes[testno], "gost", 4);
+
+      /* Only P-{224,256,384,521} are allowed in fips mode */
+      if (gcry_fips_mode_active()
+          && (is_ed25519 || is_gost || !strcmp (p_sizes[testno], "192")))
+         continue;
+
       if (is_ed25519)
         {
           p_size = 256;

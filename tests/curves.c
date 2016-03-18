@@ -171,6 +171,9 @@ check_get_params (void)
 
   gcry_sexp_release (param);
 
+  /* Brainpool curves are not supported in fips mode */
+  if (gcry_fips_mode_active())
+    return;
 
   param = gcry_pk_get_param (GCRY_PK_ECDSA, sample_key_2_curve);
   if (!param)

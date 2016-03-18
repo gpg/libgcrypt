@@ -540,6 +540,17 @@ context_param (void)
   show ("checking standard curves\n");
   for (idx=0; test_curve[idx].desc; idx++)
     {
+      /* P-192 and Ed25519 are not supported in fips mode */
+      if (gcry_fips_mode_active())
+        {
+          if (!strcmp(test_curve[idx].desc, "NIST P-192")
+              || !strcmp(test_curve[idx].desc, "Ed25519"))
+            {
+	      show("skipping %s in fips mode\n", test_curve[idx].desc );
+              continue;
+            }
+        }
+
       gcry_ctx_release (ctx);
       err = gcry_mpi_ec_new (&ctx, NULL, test_curve[idx].desc);
       if (err)
@@ -635,6 +646,10 @@ context_param (void)
       gcry_sexp_release (sexp);
     }
 
+  /* Skipping Ed25519 if in FIPS mode (it isn't supported) */
+  if (gcry_fips_mode_active())
+    goto cleanup;
+
   show ("checking sample public key (Ed25519)\n");
   q = hex2mpi (sample_ed25519_q);
   gcry_sexp_release (keyparam);
@@ -722,6 +737,7 @@ context_param (void)
 
     }
 
+ cleanup:
   gcry_ctx_release (ctx);
   gcry_sexp_release (keyparam);
 }
@@ -1101,8 +1117,14 @@ main (int argc, char **argv)
   context_alloc ();
   context_param ();
   basic_ec_math ();
-  basic_ec_math_simplified ();
-  twistededwards_math ();
+
+  /* The tests are for P-192 and ed25519 which are not supported in
+     FIPS mode.  */
+  if (!gcry_fips_mode_active())
+    {
+      basic_ec_math_simplified ();
+      twistededwards_math ();
+    }
 
   show ("All tests completed. Errors: %d\n", error_count);
   return error_count ? 1 : 0;

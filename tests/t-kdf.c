@@ -888,6 +888,10 @@ check_openpgp (void)
     {
       if (tv[tvidx].disabled)
         continue;
+      /* MD5 isn't supported in fips mode */
+      if (gcry_fips_mode_active()
+          && tv[tvidx].hashalgo == GCRY_MD_MD5)
+        continue;
       if (verbose)
         fprintf (stderr, "checking S2K test vector %d\n", tvidx);
       assert (tv[tvidx].dklen <= sizeof outbuf);

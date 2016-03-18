@@ -483,8 +483,8 @@ get_dsa_key_new (gcry_sexp_t *pkey, gcry_sexp_t *skey, int transient_key)
 
   rc = gcry_sexp_new (&key_spec,
                       transient_key
-                      ? "(genkey (dsa (nbits 4:1024)(transient-key)))"
-                      : "(genkey (dsa (nbits 4:1024)))",
+                      ? "(genkey (dsa (nbits 4:2048)(transient-key)))"
+                      : "(genkey (dsa (nbits 4:2048)))",
                       0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gcry_strerror (rc));
@@ -1243,7 +1243,8 @@ main (int argc, char **argv)
     check_x931_derived_key (i);
 
   check_ecc_sample_key ();
-  check_ed25519ecdsa_sample_key ();
+  if (!gcry_fips_mode_active ())
+    check_ed25519ecdsa_sample_key ();
 
   return !!error_count;
 }

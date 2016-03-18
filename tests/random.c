@@ -647,7 +647,11 @@ main (int argc, char **argv)
 #endif
 
   if (early_rng)
-    check_early_rng_type_switching ();
+    {
+      /* Don't switch RNG in fips mode. */
+      if (!gcry_fips_mode_active())
+        check_early_rng_type_switching ();
+    }
 
   gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
   if (!gcry_check_version (GCRYPT_VERSION))
@@ -670,7 +674,10 @@ main (int argc, char **argv)
      to its high requirement for entropy.  */
   if (!getenv ("GCRYPT_IN_REGRESSION_TEST"))
     check_drbg_reinit ();
-  check_rng_type_switching ();
+
+  /* Don't switch RNG in fips mode.  */
+  if (!gcry_fips_mode_active())
+    check_rng_type_switching ();
 
   if (!in_recursion)
     run_all_rng_tests (program);

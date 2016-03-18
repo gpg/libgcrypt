@@ -548,6 +548,10 @@ main (int argc, char **argv)
   gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0);
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 
+  /* Ed25519 isn't supported in fips mode */
+  if (gcry_fips_mode_active())
+    return 77;
+
   start_timer ();
   check_ed25519 (fname);
   stop_timer ();

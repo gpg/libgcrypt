@@ -329,7 +329,7 @@ check_dsa_keys (void)
       if (rc && !in_fips_mode)
         die ("error generating DSA key: %s\n", gpg_strerror (rc));
       else if (!rc && in_fips_mode)
-        die ("generating 512 bit DSA key must not work!");
+        die ("generating 1024 bit DSA key must not work!");
       if (!i && verbose > 1)
         show_sexp ("1024 bit DSA key:\n", key);
       gcry_sexp_release (key);
@@ -353,6 +353,60 @@ check_dsa_keys (void)
     die ("generating 1536 bit DSA key must not work!");
   if (verbose > 1)
     show_sexp ("1536 bit DSA key:\n", key);
+  gcry_sexp_release (key);
+
+  if (verbose)
+    show ("creating 3072 bit DSA key\n");
+  rc = gcry_sexp_new (&keyparm,
+                      "(genkey\n"
+                      " (dsa\n"
+                      "  (nbits 4:3072)\n"
+                      "  (qbits 3:256)\n"
+                      " ))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating DSA key: %s\n", gpg_strerror (rc));
+  if (verbose > 1)
+    show_sexp ("3072 bit DSA key:\n", key);
+  gcry_sexp_release (key);
+
+  if (verbose)
+    show ("creating 2048/256 bit DSA key\n");
+  rc = gcry_sexp_new (&keyparm,
+                      "(genkey\n"
+                      " (dsa\n"
+                      "  (nbits 4:2048)\n"
+                      "  (qbits 3:256)\n"
+                      " ))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating DSA key: %s\n", gpg_strerror (rc));
+  if (verbose > 1)
+    show_sexp ("2048 bit DSA key:\n", key);
+  gcry_sexp_release (key);
+
+  if (verbose)
+    show ("creating 2048/224 bit DSA key\n");
+  rc = gcry_sexp_new (&keyparm,
+                      "(genkey\n"
+                      " (dsa\n"
+                      "  (nbits 4:2048)\n"
+                      "  (qbits 3:224)\n"
+                      " ))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating DSA key: %s\n", gpg_strerror (rc));
+  if (verbose > 1)
+    show_sexp ("2048 bit DSA key:\n", key);
   gcry_sexp_release (key);
 }
 
@@ -406,9 +460,14 @@ check_ecc_keys (void)
       if (verbose)
         show ("creating ECC key using curve %s\n", curves[testno]);
       if (!strcmp (curves[testno], "Ed25519"))
-        rc = gcry_sexp_build (&keyparm, NULL,
-                              "(genkey(ecc(curve %s)(flags param eddsa)))",
-                              curves[testno]);
+        {
+          /* Ed25519 isn't allowed in fips mode */
+          if (in_fips_mode)
+            continue;
+          rc = gcry_sexp_build (&keyparm, NULL,
+                                "(genkey(ecc(curve %s)(flags param eddsa)))",
+                                curves[testno]);
+        }
       else
         rc = gcry_sexp_build (&keyparm, NULL,
                               "(genkey(ecc(curve %s)(flags param)))",
@@ -456,6 +515,40 @@ check_ecc_keys (void)
   gcry_sexp_release (keyparm);
   if (rc)
     die ("error generating ECC key using curve Ed25519 for ECDSA"
+         " (nocomp): %s\n",
+         gpg_strerror (rc));
+
+  if (verbose)
+    show ("creating ECC key using curve NIST P-384 for ECDSA\n");
+
+  /* Must be specified as nistp384 (one word), because ecc_generate
+   * uses _gcry_sexp_nth_string which takes the first word of the name
+   * and thus libgcrypt can't find it later in its curves table.  */
+  rc = gcry_sexp_build (&keyparm, NULL, "(genkey(ecc(curve nistp384)))");
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating ECC key using curve NIST P-384 for ECDSA: %s\n",
+         gpg_strerror (rc));
+
+  if (verbose > 1)
+    show_sexp ("ECC key:\n", key);
+
+  check_generated_ecc_key (key);
+  gcry_sexp_release (key);
+
+  if (verbose)
+    show ("creating ECC key using curve NIST P-384 for ECDSA (nocomp)\n");
+  rc = gcry_sexp_build (&keyparm, NULL,
+                        "(genkey(ecc(curve nistp384)(flags nocomp)))");
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc)
+    die ("error generating ECC key using curve NIST P-384 for ECDSA"
          " (nocomp): %s\n",
          gpg_strerror (rc));
 
