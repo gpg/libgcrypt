@@ -31,9 +31,6 @@
 #include "bithelp.h"
 #include "bufhelp.h"
 
-/* We really need a 64 bit type for this code.  */
-#ifdef HAVE_U64_TYPEDEF
-
 typedef struct
 {
   gcry_md_block_ctx_t bctx;
@@ -853,5 +850,3 @@ gcry_md_spec_t _gcry_digest_spec_tiger2 =
     tiger2_init, _gcry_md_block_write, tiger_final, tiger_read, NULL,
     sizeof (TIGER_CONTEXT)
   };
-
-#endif /* HAVE_U64_TYPEDEF */

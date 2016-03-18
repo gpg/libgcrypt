@@ -123,6 +123,8 @@
    typedef uint64_t u64;
 #  define U64_C(c) (UINT64_C(c))
 #  define HAVE_U64_TYPEDEF
+# else
+#  error No way to declare a 64 bit integer type
 # endif
 #endif
 
@@ -132,9 +134,7 @@ typedef union
   short b;
   char c[1];
   long d;
-#ifdef HAVE_U64_TYPEDEF
   u64 e;
-#endif
   float f;
   double g;
 } PROPERLY_ALIGNED_TYPE;

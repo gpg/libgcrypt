@@ -1,7 +1,7 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
 #               2007, 2008, 2009, 2011 Free Software Foundation, Inc.
-# Copyright (C) 2012, 2013  g10 Code GmbH
+# Copyright (C) 2012, 2013, 2014, 2015  g10 Code GmbH
 #
 # This file is part of Libgcrypt.
 #
@@ -198,12 +198,11 @@ enabled_pubkey_ciphers=""
 
 # Definitions for message digests.
 available_digests="crc gostr3411-94 md2 md4 md5 rmd160 sha1 sha256"
-available_digests_64="sha512 sha3 tiger whirlpool stribog"
+available_digests="$available_digests sha512 sha3 tiger whirlpool stribog"
 enabled_digests=""
 
 # Definitions for kdfs (optional ones)
-available_kdfs="s2k pkdf2"
-available_kdfs_64="scrypt"
+available_kdfs="s2k pkdf2 scrypt"
 enabled_kdfs=""
 
 # Definitions for random modules.
@@ -368,12 +367,13 @@ if test "$ac_cv_sizeof_unsigned_int" != "8" \
    && test "$ac_cv_sizeof_unsigned_long" != "8" \
    && test "$ac_cv_sizeof_unsigned_long_long" != "8" \
    && test "$ac_cv_sizeof_uint64_t" != "8"; then
-    AC_MSG_WARN([No 64-bit types.  Disabling TIGER/192, SCRYPT, SHA-384, \
- SHA-512 and GOST R 34.11-12])
-else
-  available_digests="$available_digests $available_digests_64"
-  available_kdfs="$available_kdfs $available_kdfs_64"
+    AC_MSG_ERROR([[
+***
+*** No 64-bit integer type available.
+*** It is not possible to build Libgcrypt on this platform.
+***]])
 fi
+
 
 # If not specified otherwise, all available algorithms will be
 # included.

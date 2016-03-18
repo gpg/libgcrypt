@@ -318,7 +318,7 @@ static inline void buf_put_le32(void *_buf, u32 val)
   out[0] = val;
 }
 
-#ifdef HAVE_U64_TYPEDEF
+
 /* Functions for loading and storing unaligned u64 values of different
    endianness.  */
 static inline u64 buf_get_be64(const void *_buf)
@@ -364,7 +364,6 @@ static inline void buf_put_le64(void *_buf, u64 val)
   out[1] = val >> 8;
   out[0] = val;
 }
-#endif /*HAVE_U64_TYPEDEF*/
 
 #else /*BUFHELP_FAST_UNALIGNED_ACCESS*/
 
@@ -397,7 +396,6 @@ static inline void buf_put_le32(void *_buf, u32 val)
   out->a = le_bswap32(val);
 }
 
-#ifdef HAVE_U64_TYPEDEF
 
 typedef struct bufhelp_u64_s
 {
@@ -427,7 +425,7 @@ static inline void buf_put_le64(void *_buf, u64 val)
   bufhelp_u64_t *out = _buf;
   out->a = le_bswap64(val);
 }
-#endif /*HAVE_U64_TYPEDEF*/
+
 
 #endif /*BUFHELP_FAST_UNALIGNED_ACCESS*/
 

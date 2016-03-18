@@ -2039,7 +2039,6 @@ check_poly1305_cipher (void)
 static void
 check_ccm_cipher (void)
 {
-#ifdef HAVE_U64_TYPEDEF
   static const struct tv
   {
     int algo;
@@ -2816,7 +2815,6 @@ check_ccm_cipher (void)
   if (verbose)
     fprintf (stderr, "  Completed CCM checks.\n");
 #endif
-#endif /*HAVE_U64_TYPEDEF*/
 }
 
 

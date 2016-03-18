@@ -318,13 +318,8 @@ void __gcry_burn_stack (unsigned int bytes);
                   } while(0)
 #define wipememory(_ptr,_len) wipememory2(_ptr,0,_len)
 
-#ifdef HAVE_U64_TYPEDEF
-  #define FASTWIPE_T u64
-  #define FASTWIPE_MULT (U64_C(0x0101010101010101))
-#else
-  #define FASTWIPE_T u32
-  #define FASTWIPE_MULT (0x01010101U)
-#endif
+#define FASTWIPE_T u64
+#define FASTWIPE_MULT (U64_C(0x0101010101010101))
 
 /* Following architectures can handle unaligned accesses fast.  */
 #if defined(HAVE_GCC_ATTRIBUTE_PACKED) && \

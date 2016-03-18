@@ -171,7 +171,7 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u64 *gcmM)
           sizeof(int)*2 + sizeof(void*)*5);
 }
 
-#else
+#else /*!GCM_TABLES_USE_U64*/
 
 static void
 bshift (u32 * M, int i)
@@ -284,7 +284,7 @@ do_ghash (unsigned char *result, const unsigned char *buf, const u32 *gcmM)
   return (sizeof(V) + sizeof(T) + sizeof(tmp) +
           sizeof(int)*2 + sizeof(void*)*6);
 }
-#endif /* !HAVE_U64_TYPEDEF || SIZEOF_UNSIGNED_LONG != 8 */
+#endif /*!GCM_TABLES_USE_U64*/
 
 #define fillM(c) \
   do_fillM (c->u_mode.gcm.u_ghash_key.key, c->u_mode.gcm.gcm_table)

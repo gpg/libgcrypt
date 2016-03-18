@@ -47,33 +47,27 @@ _gcry_bswap32(u32 x)
 }
 #endif
 
-#ifdef HAVE_U64_TYPEDEF
-# ifdef HAVE_BUILTIN_BSWAP64
-#  define _gcry_bswap64 __builtin_bswap64
-# else
+#ifdef HAVE_BUILTIN_BSWAP64
+# define _gcry_bswap64 __builtin_bswap64
+#else
 static inline u64
 _gcry_bswap64(u64 x)
 {
 	return ((u64)_gcry_bswap32(x) << 32) | (_gcry_bswap32(x >> 32));
 }
-# endif
 #endif
 
 /* Endian dependent byte swap operations.  */
 #ifdef WORDS_BIGENDIAN
 # define le_bswap32(x) _gcry_bswap32(x)
 # define be_bswap32(x) ((u32)(x))
-# ifdef HAVE_U64_TYPEDEF
-#  define le_bswap64(x) _gcry_bswap64(x)
-#  define be_bswap64(x) ((u64)(x))
-# endif
+# define le_bswap64(x) _gcry_bswap64(x)
+# define be_bswap64(x) ((u64)(x))
 #else
 # define le_bswap32(x) ((u32)(x))
 # define be_bswap32(x) _gcry_bswap32(x)
-# ifdef HAVE_U64_TYPEDEF
-#  define le_bswap64(x) ((u64)(x))
-#  define be_bswap64(x) _gcry_bswap64(x)
-# endif
+# define le_bswap64(x) ((u64)(x))
+# define be_bswap64(x) _gcry_bswap64(x)
 #endif
 
 
@@ -104,7 +98,6 @@ _gcry_ctz (unsigned int x)
 /* Count trailing zero bits in an u64.  We return an int because that
    is what gcc's builtin does.  Returns the number of bits in X if X
    is 0.  */
-#ifdef HAVE_U64_TYPEDEF
 static inline int
 _gcry_ctz64(u64 x)
 {
@@ -118,7 +111,6 @@ _gcry_ctz64(u64 x)
     return 32 + _gcry_ctz (x >> 32);
 #endif
 }
-#endif /*HAVE_U64_TYPEDEF*/
 
 
 #endif /*GCRYPT_BITHELP_H*/

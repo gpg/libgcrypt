@@ -50,8 +50,6 @@
 #include "bufhelp.h"
 
 /* We really need a 64 bit type for this code.  */
-#ifdef HAVE_U64_TYPEDEF
-
 #define SALSA20_INPUT_LENGTH 16
 
 #define ROTL32(n,x) (((x)<<(n)) | ((x)>>(32-(n))))
@@ -322,6 +320,3 @@ _gcry_kdf_scrypt (const unsigned char *passwd, size_t passwdlen,
 
   return ec;
 }
-
-
-#endif /* HAVE_U64_TYPEDEF */

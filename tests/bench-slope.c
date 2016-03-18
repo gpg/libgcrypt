@@ -741,7 +741,6 @@ static struct bench_ops decrypt_ops = {
 };
 
 
-#ifdef HAVE_U64_TYPEDEF
 static void
 bench_ccm_encrypt_do_bench (struct bench_obj *obj, void *buf, size_t buflen)
 {
@@ -904,7 +903,6 @@ static struct bench_ops ccm_authenticate_ops = {
   &bench_encrypt_free,
   &bench_ccm_authenticate_do_bench
 };
-#endif /*HAVE_U64_TYPEDEF*/
 
 
 static void
@@ -1167,11 +1165,9 @@ static struct bench_cipher_mode cipher_modes[] = {
   {GCRY_CIPHER_MODE_OFB, "OFB dec", &decrypt_ops},
   {GCRY_CIPHER_MODE_CTR, "CTR enc", &encrypt_ops},
   {GCRY_CIPHER_MODE_CTR, "CTR dec", &decrypt_ops},
-#ifdef HAVE_U64_TYPEDEF
   {GCRY_CIPHER_MODE_CCM, "CCM enc", &ccm_encrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM dec", &ccm_decrypt_ops},
   {GCRY_CIPHER_MODE_CCM, "CCM auth", &ccm_authenticate_ops},
-#endif
   {GCRY_CIPHER_MODE_GCM, "GCM enc", &gcm_encrypt_ops},
   {GCRY_CIPHER_MODE_GCM, "GCM dec", &gcm_decrypt_ops},
   {GCRY_CIPHER_MODE_GCM, "GCM auth", &gcm_authenticate_ops},

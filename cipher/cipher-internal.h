@@ -168,7 +168,6 @@ struct gcry_cipher_handle
   int unused;  /* Number of unused bytes in LASTIV. */
 
   union {
-#ifdef HAVE_U64_TYPEDEF
     /* Mode specific storage for CCM mode. */
     struct {
       u64 encryptlen;
@@ -185,7 +184,6 @@ struct gcry_cipher_handle
       unsigned int lengths:1; /* Set to 1 if CCM length parameters has been
                                  processed.  */
     } ccm;
-#endif
 
     /* Mode specific storage for Poly1305 mode. */
     struct {
@@ -248,8 +246,7 @@ struct gcry_cipher_handle
 
       /* Pre-calculated table for GCM. */
 #ifdef GCM_USE_TABLES
- #if defined(HAVE_U64_TYPEDEF) && (SIZEOF_UNSIGNED_LONG == 8 \
-                                   || defined(__x86_64__))
+ #if (SIZEOF_UNSIGNED_LONG == 8 || defined(__x86_64__))
       #define GCM_TABLES_USE_U64 1
       u64 gcm_table[2 * 16];
  #else
@@ -362,10 +359,8 @@ gcry_err_code_t _gcry_cipher_ccm_set_nonce
                  size_t noncelen);
 gcry_err_code_t _gcry_cipher_ccm_authenticate
 /*           */ (gcry_cipher_hd_t c, const unsigned char *abuf, size_t abuflen);
-#ifdef HAVE_U64_TYPEDEF
 gcry_err_code_t _gcry_cipher_ccm_set_lengths
 /*           */ (gcry_cipher_hd_t c, u64 encryptedlen, u64 aadlen, u64 taglen);
-#endif
 gcry_err_code_t _gcry_cipher_ccm_get_tag
 /*           */ (gcry_cipher_hd_t c,
                  unsigned char *outtag, size_t taglen);

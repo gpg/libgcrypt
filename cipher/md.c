@@ -1228,7 +1228,6 @@ md_stop_debug( gcry_md_hd_t md )
       md->ctx->debug = NULL;
     }
 
-#ifdef HAVE_U64_TYPEDEF
   {  /* a kludge to pull in the __muldi3 for Solaris */
     volatile u32 a = (u32)(uintptr_t)md;
     volatile u64 b = 42;
@@ -1236,7 +1235,6 @@ md_stop_debug( gcry_md_hd_t md )
     c = a * b;
     (void)c;
   }
-#endif
 }
 
 
