@@ -1487,7 +1487,7 @@ AC_CACHE_CHECK([whether GCC inline assembler supports NEON instructions],
           AC_COMPILE_IFELSE([AC_LANG_SOURCE(
           [[__asm__(
                 ".syntax unified\n\t"
-                ".thumb\n\t"
+                ".arm\n\t"
                 ".fpu neon\n\t"
                 "vld1.64 {%q0-%q1}, [%r0]!;\n\t"
                 "vrev64.8 %q0, %q3;\n\t"
