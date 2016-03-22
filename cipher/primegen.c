@@ -1182,6 +1182,27 @@ _gcry_prime_check (gcry_mpi_t x, unsigned int flags)
   return GPG_ERR_NO_PRIME;
 }
 
+
+/* Check whether the number X is prime according to FIPS 186-4 table C.2.  */
+gcry_err_code_t
+_gcry_fips186_4_prime_check (gcry_mpi_t x, unsigned int bits)
+{
+  gcry_err_code_t ec = GPG_ERR_NO_ERROR;
+
+  switch (mpi_cmp_ui (x, 2))
+    {
+    case 0:  return ec;               /* 2 is a prime */
+    case -1: return GPG_ERR_NO_PRIME; /* Only numbers > 1 are primes.  */
+    }
+
+  /* We use 5 or 4 rounds as specified in table C.2 */
+  if (! check_prime (x, mpi_const (MPI_C_TWO), bits > 1024 ? 4 : 5, NULL, NULL))
+    ec = GPG_ERR_NO_PRIME;
+
+  return ec;
+}
+
+
 /* Find a generator for PRIME where the factorization of (prime-1) is
    in the NULL terminated array FACTORS. Return the generator as a
    newly allocated MPI in R_G.  If START_G is not NULL, use this as s

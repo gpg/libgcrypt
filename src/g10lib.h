@@ -263,6 +263,9 @@ gpg_err_code_t _gcry_generate_fips186_3_prime
                   int *r_counter,
                   void **r_seed, size_t *r_seedlen, int *r_hashalgo);
 
+gpg_err_code_t _gcry_fips186_4_prime_check (const gcry_mpi_t x,
+                                            unsigned int bits);
+
 
 /* Replacements of missing functions (missing-string.c).  */
 #ifndef HAVE_STPCPY

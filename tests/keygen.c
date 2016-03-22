@@ -236,6 +236,28 @@ check_rsa_keys (void)
 
 
   if (verbose)
+    show ("creating 1024 bit RSA key with e=65539\n");
+  rc = gcry_sexp_new (&keyparm,
+                      "(genkey\n"
+                      " (rsa\n"
+                      "  (nbits 4:1024)\n"
+                      "  (rsa-use-e 5:65539)\n"
+                      " ))", 0, 1);
+  if (rc)
+    die ("error creating S-expression: %s\n", gpg_strerror (rc));
+  rc = gcry_pk_genkey (&key, keyparm);
+  gcry_sexp_release (keyparm);
+  if (rc && !in_fips_mode)
+    fail ("error generating RSA key: %s\n", gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    fail ("generating RSA key must not work!");
+
+  if (!rc)
+    check_generated_rsa_key (key, 65539);
+  gcry_sexp_release (key);
+
+
+  if (verbose)
     show ("creating 512 bit RSA key with e=257\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
