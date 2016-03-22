@@ -234,23 +234,20 @@ check_rsa_keys (void)
     }
   gcry_sexp_release (key);
 
-
   if (verbose)
-    show ("creating 1024 bit RSA key with e=65539\n");
+    show ("creating 2048 bit RSA key with e=65539\n");
   rc = gcry_sexp_new (&keyparm,
                       "(genkey\n"
                       " (rsa\n"
-                      "  (nbits 4:1024)\n"
+                      "  (nbits 4:2048)\n"
                       "  (rsa-use-e 5:65539)\n"
                       " ))", 0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc && !in_fips_mode)
+  if (rc)
     fail ("error generating RSA key: %s\n", gpg_strerror (rc));
-  else if (!rc && in_fips_mode)
-    fail ("generating RSA key must not work!");
 
   if (!rc)
     check_generated_rsa_key (key, 65539);
@@ -274,6 +271,10 @@ check_rsa_keys (void)
   else if (!rc && in_fips_mode)
     fail ("generating 512 bit RSA key must not work!");
 
+  if (verbose && rc && in_fips_mode)
+    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+          gpg_strerror (rc));
+
   if (!rc)
     check_generated_rsa_key (key, 257);
   gcry_sexp_release (key);
@@ -294,6 +295,11 @@ check_rsa_keys (void)
     fail ("error generating RSA key: %s\n", gpg_strerror (rc));
   else if (!rc && in_fips_mode)
     fail ("generating 512 bit RSA key must not work!");
+
+  if (verbose && rc && in_fips_mode)
+    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+          gpg_strerror (rc));
+
 
   if (!rc)
     check_generated_rsa_key (key, 0); /* We don't expect a constant exponent. */
@@ -517,14 +523,23 @@ check_ecc_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
+  if (rc && !in_fips_mode)
     die ("error generating ECC key using curve Ed25519 for ECDSA: %s\n",
          gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    fail ("generating Ed25519 key must not work!");
 
-  if (verbose > 1)
-    show_sexp ("ECC key:\n", key);
+  if (verbose && rc && in_fips_mode)
+    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+          gpg_strerror (rc));
 
-  check_generated_ecc_key (key);
+  if (!rc)
+    {
+      if (verbose > 1)
+        show_sexp ("ECC key:\n", key);
+
+      check_generated_ecc_key (key);
+    }
   gcry_sexp_release (key);
 
   if (verbose)
@@ -535,10 +550,16 @@ check_ecc_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
+  if (rc && !in_fips_mode)
     die ("error generating ECC key using curve Ed25519 for ECDSA"
          " (nocomp): %s\n",
          gpg_strerror (rc));
+  else if (!rc && in_fips_mode)
+    fail ("generating Ed25519 key must not work in FIPS mode!");
+
+  if (verbose && rc && in_fips_mode)
+    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+          gpg_strerror (rc));
 
   if (verbose)
     show ("creating ECC key using curve NIST P-384 for ECDSA\n");
@@ -589,13 +610,23 @@ check_ecc_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
+  if (rc && !in_fips_mode)
     die ("error generating ECC key using curve Ed25519 for ECDSA"
          " (transient-key): %s\n",
          gpg_strerror (rc));
-  if (verbose > 1)
-    show_sexp ("ECC key:\n", key);
-  check_generated_ecc_key (key);
+  else if (!rc && in_fips_mode)
+    fail ("generating Ed25519 key must not work in FIPS mode!");
+
+  if (verbose && rc && in_fips_mode)
+    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+          gpg_strerror (rc));
+
+  if (!rc)
+    {
+      if (verbose > 1)
+        show_sexp ("ECC key:\n", key);
+      check_generated_ecc_key (key);
+    }
   gcry_sexp_release (key);
 
   if (verbose)
@@ -608,13 +639,23 @@ check_ecc_keys (void)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
-  if (rc)
+  if (rc && !in_fips_mode)
     die ("error generating ECC key using curve Ed25519 for ECDSA"
          " (transient-key no-keytest): %s\n",
          gpg_strerror (rc));
-  if (verbose > 1)
-    show_sexp ("ECC key:\n", key);
-  check_generated_ecc_key (key);
+  else if (!rc && in_fips_mode)
+    fail ("generating Ed25519 key must not work in FIPS mode!");
+
+  if (verbose && rc && in_fips_mode)
+    show ("... correctly rejected key creation in FIPS mode (%s)\n",
+          gpg_strerror (rc));
+
+  if (!rc)
+    {
+      if (verbose > 1)
+        show_sexp ("ECC key:\n", key);
+      check_generated_ecc_key (key);
+    }
   gcry_sexp_release (key);
 }
 
@@ -682,6 +723,7 @@ usage (int mode)
          "Options:\n"
          "  --verbose       be verbose\n"
          "  --debug         flyswatter\n"
+         "  --fips          run in FIPS mode\n"
          "  --progress      print progress indicators\n",
          mode? stderr : stdout);
   if (mode)
@@ -692,6 +734,7 @@ int
 main (int argc, char **argv)
 {
   int last_argc = -1;
+  int opt_fips = 0;
   int with_progress = 0;
 
   if (argc)
@@ -721,6 +764,11 @@ main (int argc, char **argv)
           debug++;
           argc--; argv++;
         }
+      else if (!strcmp (*argv, "--fips"))
+        {
+          argc--; argv++;
+          opt_fips = 1;
+        }
       else if (!strcmp (*argv, "--progress"))
         {
           argc--; argv++;
@@ -732,9 +780,16 @@ main (int argc, char **argv)
         break;
     }
 
+  gcry_control (GCRYCTL_SET_VERBOSITY, (int)verbose);
+  if (opt_fips)
+    gcry_control (GCRYCTL_FORCE_FIPS_MODE, 0);
+
   if (!gcry_check_version (GCRYPT_VERSION))
     die ("version mismatch\n");
-  gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+
+  if (!opt_fips)
+    gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
+
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   if (debug)
     gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
@@ -745,6 +800,9 @@ main (int argc, char **argv)
 
   if ( gcry_fips_mode_active () )
     in_fips_mode = 1;
+
+  if (opt_fips && !in_fips_mode)
+    die ("failed to switch into FIPS mode\n");
 
   if (!argc)
     {
