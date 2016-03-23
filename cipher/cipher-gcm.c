@@ -535,7 +535,9 @@ _gcry_cipher_gcm_encrypt (gcry_cipher_hd_t c,
     return GPG_ERR_BUFFER_TOO_SHORT;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
-  if (c->marks.tag || c->u_mode.gcm.ghash_data_finalized)
+  if (c->marks.tag
+      || c->u_mode.gcm.ghash_data_finalized
+      || !c->u_mode.gcm.ghash_fn)
     return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
@@ -581,7 +583,9 @@ _gcry_cipher_gcm_decrypt (gcry_cipher_hd_t c,
     return GPG_ERR_BUFFER_TOO_SHORT;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
-  if (c->marks.tag || c->u_mode.gcm.ghash_data_finalized)
+  if (c->marks.tag
+      || c->u_mode.gcm.ghash_data_finalized
+      || !c->u_mode.gcm.ghash_fn)
     return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
@@ -617,8 +621,10 @@ _gcry_cipher_gcm_authenticate (gcry_cipher_hd_t c,
     return GPG_ERR_CIPHER_ALGO;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
-  if (c->marks.tag || c->u_mode.gcm.ghash_aad_finalized ||
-      c->u_mode.gcm.ghash_data_finalized)
+  if (c->marks.tag
+      || c->u_mode.gcm.ghash_aad_finalized
+      || c->u_mode.gcm.ghash_data_finalized
+      || !c->u_mode.gcm.ghash_fn)
     return GPG_ERR_INV_STATE;
 
   if (!c->marks.iv)
@@ -665,6 +671,9 @@ _gcry_cipher_gcm_initiv (gcry_cipher_hd_t c, const byte *iv, size_t ivlen)
     {
       u32 iv_bytes[2] = {0, 0};
       u32 bitlengths[2][2];
+
+      if (!c->u_mode.gcm.ghash_fn)
+        return GPG_ERR_INV_STATE;
 
       memset(c->u_ctr.ctr, 0, GCRY_GCM_BLOCK_LEN);
 
@@ -772,6 +781,9 @@ _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
   if (!c->marks.tag)
     {
       u32 bitlengths[2][2];
+
+      if (!c->u_mode.gcm.ghash_fn)
+        return GPG_ERR_INV_STATE;
 
       /* aad length */
       bitlengths[0][1] = be_bswap32(c->u_mode.gcm.aadlen[0] << 3);
