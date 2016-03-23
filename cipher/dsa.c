@@ -1255,6 +1255,7 @@ selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
   if (!calculated_r)
     goto leave;
 
+  sexp_release (l2);
   l2 = _gcry_sexp_find_token (l1, "s", 0);
   if (!l2)
     goto leave;
@@ -1289,6 +1290,12 @@ selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
 
 
  leave:
+  _gcry_mpi_release (calculated_s);
+  _gcry_mpi_release (calculated_r);
+  _gcry_mpi_release (s);
+  _gcry_mpi_release (r);
+  sexp_release (l2);
+  sexp_release (l1);
   sexp_release (sig);
   sexp_release (data_bad);
   sexp_release (data);

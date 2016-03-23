@@ -219,6 +219,8 @@ check_rsa_keys (void)
                       " ))", 0, 1);
   if (rc)
     die ("error creating S-expression: %s\n", gpg_strerror (rc));
+
+  gcry_sexp_release (key);
   rc = gcry_pk_genkey (&key, keyparm);
   gcry_sexp_release (keyparm);
   if (rc && !in_fips_mode)
@@ -560,6 +562,7 @@ check_ecc_keys (void)
   if (verbose && rc && in_fips_mode)
     show ("... correctly rejected key creation in FIPS mode (%s)\n",
           gpg_strerror (rc));
+  gcry_sexp_release (key);
 
   if (verbose)
     show ("creating ECC key using curve NIST P-384 for ECDSA\n");

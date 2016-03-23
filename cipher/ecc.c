@@ -2046,6 +2046,7 @@ selftest_sign (gcry_sexp_t pkey, gcry_sexp_t skey)
   if (!calculated_r)
     goto leave;
 
+  sexp_release (l2);
   l2 = _gcry_sexp_find_token (l1, "s", 0);
   if (!l2)
     goto leave;
