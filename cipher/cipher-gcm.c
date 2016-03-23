@@ -803,13 +803,18 @@ _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
 
   if (!check)
     {
+      /* NB: We already checked that OUTBUF is large enough to hold
+         the result.  */
       memcpy (outbuf, c->u_mode.gcm.u_tag.tag, GCRY_GCM_BLOCK_LEN);
-      return GPG_ERR_NO_ERROR;
     }
   else
     {
-      return buf_eq_const(outbuf, c->u_mode.gcm.u_tag.tag, GCRY_GCM_BLOCK_LEN) ?
-               GPG_ERR_NO_ERROR : GPG_ERR_CHECKSUM;
+      /* OUTBUFLEN gives the length of the user supplied tag in OUTBUF
+       * and thus we need to compare its length first.  */
+      if (outbuflen != GCRY_GCM_BLOCK_LEN
+          || !buf_eq_const (outbuf, c->u_mode.gcm.u_tag.tag,
+                            GCRY_GCM_BLOCK_LEN))
+        return GPG_ERR_CHECKSUM;
     }
 
   return 0;
