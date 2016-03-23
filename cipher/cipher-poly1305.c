@@ -215,7 +215,7 @@ _gcry_cipher_poly1305_tag (gcry_cipher_hd_t c,
 {
   gcry_err_code_t err;
 
-  if (outbuflen < GCRY_GCM_BLOCK_LEN)
+  if (outbuflen < POLY1305_TAGLEN)
     return GPG_ERR_BUFFER_TOO_SHORT;
   if (c->u_mode.poly1305.bytecount_over_limits)
     return GPG_ERR_INV_LENGTH;
@@ -244,10 +244,10 @@ _gcry_cipher_poly1305_tag (gcry_cipher_hd_t c,
     }
 
   if (check)
-    return buf_eq_const(outbuf, c->u_iv.iv, outbuflen) ?
+    return buf_eq_const(outbuf, c->u_iv.iv, POLY1305_TAGLEN) ?
            GPG_ERR_NO_ERROR : GPG_ERR_CHECKSUM;
 
-  memcpy (outbuf, c->u_iv.iv, outbuflen);
+  memcpy (outbuf, c->u_iv.iv, POLY1305_TAGLEN);
   return GPG_ERR_NO_ERROR;
 }
 
