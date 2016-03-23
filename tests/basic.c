@@ -690,6 +690,7 @@ check_ctr_cipher (void)
   unsigned char out[MAX_DATA_LEN];
   int i, j, keylen, blklen;
   gcry_error_t err = 0;
+  size_t taglen2;
 
   if (verbose)
     fprintf (stderr, "  Starting CTR cipher checks.\n");
@@ -752,6 +753,17 @@ check_ctr_cipher (void)
 	  gcry_cipher_close (hdd);
 	  return;
 	}
+
+
+      err = gcry_cipher_info (hde, GCRYCTL_GET_TAGLEN, NULL, &taglen2);
+      if (gpg_err_code (err) != GPG_ERR_INV_CIPHER_MODE)
+        {
+          fail ("aes-ctr, gcryctl_get_taglen failed to fail (tv %d): %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
 
       if (verbose)
 	fprintf (stderr, "    checking CTR mode for %s [%i]\n",
@@ -1418,7 +1430,7 @@ _check_gcm_cipher (unsigned int step)
   unsigned char tag[GCRY_GCM_BLOCK_LEN];
   int i, keylen;
   gcry_error_t err = 0;
-  size_t pos, poslen;
+  size_t pos, poslen, taglen2;
   int byteNum;
 
   if (verbose)
@@ -1473,6 +1485,25 @@ _check_gcm_cipher (unsigned int step)
         {
           fail ("aes-gcm, gcry_cipher_setiv failed: %s\n",
                 gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_info (hde, GCRYCTL_GET_TAGLEN, NULL, &taglen2);
+      if (err)
+        {
+          fail ("cipher-gcm, gcryctl_get_taglen failed (tv %d): %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+      if (taglen2 != GCRY_GCM_BLOCK_LEN)
+        {
+          fail ("cipher-gcm, gcryctl_get_taglen returned bad length"
+                " (tv %d): got=%zu want=%d\n",
+                i, taglen2, GCRY_GCM_BLOCK_LEN);
           gcry_cipher_close (hde);
           gcry_cipher_close (hdd);
           return;
@@ -1772,7 +1803,7 @@ _check_poly1305_cipher (unsigned int step)
   unsigned char tag[16];
   int i, keylen;
   gcry_error_t err = 0;
-  size_t pos, poslen;
+  size_t pos, poslen, taglen2;
   int byteNum;
 
   if (verbose)
@@ -1819,6 +1850,25 @@ _check_poly1305_cipher (unsigned int step)
         {
           fail ("poly1305, gcry_cipher_setiv failed: %s\n",
                 gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_info (hde, GCRYCTL_GET_TAGLEN, NULL, &taglen2);
+      if (err)
+        {
+          fail ("cipher-poly1305, gcryctl_get_taglen failed (tv %d): %s\n",
+                i, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+      if (taglen2 != 16)
+        {
+          fail ("cipher-poly1305, gcryctl_get_taglen returned bad length"
+                " (tv %d): got=%zu want=%d\n",
+                i, taglen2, 16);
           gcry_cipher_close (hde);
           gcry_cipher_close (hdd);
           return;
@@ -2446,7 +2496,7 @@ check_ccm_cipher (void)
   unsigned char out[MAX_DATA_LEN];
   u64 ctl_params[3];
   int split, aadsplit;
-  size_t j, i, keylen, blklen, authlen;
+  size_t j, i, keylen, blklen, authlen, taglen2;
   gcry_error_t err = 0;
 
   if (verbose)
@@ -2534,6 +2584,25 @@ check_ccm_cipher (void)
             {
               fail ("cipher-ccm, gcry_cipher_ctl GCRYCTL_SET_CCM_LENGTHS "
                     "failed: %s\n", gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+
+          err = gcry_cipher_info (hde, GCRYCTL_GET_TAGLEN, NULL, &taglen2);
+          if (err)
+            {
+              fail ("cipher-ccm, gcryctl_get_taglen failed (tv %d): %s\n",
+                    i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              gcry_cipher_close (hdd);
+              return;
+            }
+          if (taglen2 != authlen)
+            {
+              fail ("cipher-ccm, gcryctl_get_taglen returned bad length"
+                    " (tv %d): got=%zu want=%zu\n",
+                    i, taglen2, authlen);
               gcry_cipher_close (hde);
               gcry_cipher_close (hdd);
               return;
@@ -2973,6 +3042,7 @@ do_check_ocb_cipher (int inplace)
       char *key, *nonce, *aad, *ciph, *plain;
       size_t keylen, noncelen, aadlen, ciphlen, plainlen;
       int taglen;
+      size_t taglen2;
 
       if (verbose)
         fprintf (stderr, "    checking OCB mode for %s [%i] (tv %d)\n",
@@ -3025,6 +3095,25 @@ do_check_ocb_cipher (int inplace)
         {
           fail ("cipher-ocb, gcryctl_set_taglen failed (tv %d): %s\n",
                 tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_info (hde, GCRYCTL_GET_TAGLEN, NULL, &taglen2);
+      if (err)
+        {
+          fail ("cipher-ocb, gcryctl_get_taglen failed (tv %d): %s\n",
+                tidx, gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+      if (taglen2 != tv[tidx].taglen)
+        {
+          fail ("cipher-ocb, gcryctl_get_taglen returned bad length (tv %d): "
+                "got=%zu want=%d\n",
+                tidx, taglen2, tv[tidx].taglen);
           gcry_cipher_close (hde);
           gcry_cipher_close (hdd);
           return;

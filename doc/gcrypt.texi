@@ -1900,12 +1900,24 @@ handle @var{h}.  Please see the comments in the source code
 (@code{src/global.c}) for details.
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_cipher_info (gcry_cipher_hd_t @var{h}, int @var{what}, void *@var{buffer}, size_t *@var{nbytes})
+@deftypefun gcry_error_t gcry_cipher_info (gcry_cipher_hd_t @var{h}, @
+              int @var{what}, void *@var{buffer}, size_t *@var{nbytes})
 
 @code{gcry_cipher_info} is used to retrieve various
 information about a cipher context or the cipher module in general.
 
-Currently no information is available.
+@c begin constants for gcry_cipher_info
+@table @code
+
+@item GCRYCTL_GET_TAGLEN:
+Return the length of the tag for an AE algorithm mode.  An error is
+returned for modes which do not support a tag.  @var{buffer} must be
+given as NULL.  On success the result is stored @var{nbytes}.  The
+taglen is returned in bytes.
+
+@end table
+@c end constants for gcry_cipher_info
+
 @end deftypefun
 
 @node General cipher functions

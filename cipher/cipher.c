@@ -1361,24 +1361,55 @@ _gcry_cipher_ctl (gcry_cipher_hd_t h, int cmd, void *buffer, size_t buflen)
 
 
 /* Return information about the cipher handle H.  CMD is the kind of
-   information requested.  BUFFER and NBYTES are reserved for now.
-
-   There are no values for CMD yet defined.
-
-   The function always returns GPG_ERR_INV_OP.
-
+ * information requested.
+ *
+ * CMD may be one of:
+ *
+ *  GCRYCTL_GET_TAGLEN:
+ *      Return the length of the tag for an AE algorithm mode.  An
+ *      error is returned for modes which do not support a tag.
+ *      BUFFER must be given as NULL.  On success the result is stored
+ *      at NBYTES.  The taglen is returned in bytes.
+ *
+ * The function returns 0 on success or an error code.
  */
 gcry_err_code_t
 _gcry_cipher_info (gcry_cipher_hd_t h, int cmd, void *buffer, size_t *nbytes)
 {
   gcry_err_code_t rc = 0;
 
-  (void)h;
-  (void)buffer;
-  (void)nbytes;
-
   switch (cmd)
     {
+    case GCRYCTL_GET_TAGLEN:
+      if (!h || buffer || !nbytes)
+	rc = GPG_ERR_INV_ARG;
+      else
+	{
+          switch (h->mode)
+            {
+            case GCRY_CIPHER_MODE_OCB:
+              *nbytes = h->u_mode.ocb.taglen;
+              break;
+
+            case GCRY_CIPHER_MODE_CCM:
+              *nbytes = h->u_mode.ccm.authlen;
+              break;
+
+            case GCRY_CIPHER_MODE_GCM:
+              *nbytes = GCRY_GCM_BLOCK_LEN;
+              break;
+
+            case GCRY_CIPHER_MODE_POLY1305:
+              *nbytes = POLY1305_TAGLEN;
+              break;
+
+            default:
+              rc = GPG_ERR_INV_CIPHER_MODE;
+              break;
+            }
+        }
+      break;
+
     default:
       rc = GPG_ERR_INV_OP;
     }

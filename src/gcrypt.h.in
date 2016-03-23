@@ -332,7 +332,8 @@ enum gcry_ctl_cmds
     GCRYCTL_REACTIVATE_FIPS_FLAG = 72,
     GCRYCTL_SET_SBOX = 73,
     GCRYCTL_DRBG_REINIT = 74,
-    GCRYCTL_SET_TAGLEN = 75
+    GCRYCTL_SET_TAGLEN = 75,
+    GCRYCTL_GET_TAGLEN = 76
   };
 
 /* Perform various operations defined by CMD. */
@@ -986,7 +987,7 @@ enum gcry_cipher_flags
 gcry_error_t gcry_cipher_open (gcry_cipher_hd_t *handle,
                               int algo, int mode, unsigned int flags);
 
-/* Close the cioher handle H and release all resource. */
+/* Close the cipher handle H and release all resource. */
 void gcry_cipher_close (gcry_cipher_hd_t h);
 
 /* Perform various operations on the cipher object H. */
