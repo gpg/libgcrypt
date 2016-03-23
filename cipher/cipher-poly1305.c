@@ -243,12 +243,20 @@ _gcry_cipher_poly1305_tag (gcry_cipher_hd_t c,
       c->marks.tag = 1;
     }
 
-  if (check)
-    return buf_eq_const(outbuf, c->u_iv.iv, POLY1305_TAGLEN) ?
-           GPG_ERR_NO_ERROR : GPG_ERR_CHECKSUM;
+  if (!check)
+    {
+      memcpy (outbuf, c->u_iv.iv, POLY1305_TAGLEN);
+    }
+  else
+    {
+      /* OUTBUFLEN gives the length of the user supplied tag in OUTBUF
+       * and thus we need to compare its length first.  */
+      if (outbuflen != POLY1305_TAGLEN
+          || !buf_eq_const (outbuf, c->u_iv.iv, POLY1305_TAGLEN))
+        return GPG_ERR_CHECKSUM;
+    }
 
-  memcpy (outbuf, c->u_iv.iv, POLY1305_TAGLEN);
-  return GPG_ERR_NO_ERROR;
+  return 0;
 }
 
 
