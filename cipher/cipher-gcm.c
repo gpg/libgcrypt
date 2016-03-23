@@ -1148,12 +1148,12 @@ _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
 
   if (!check)
     {
-      memcpy (outbuf, c->u_mode.gcm.u_tag.tag, outbuflen);
+      memcpy (outbuf, c->u_mode.gcm.u_tag.tag, GCRY_GCM_BLOCK_LEN);
       return GPG_ERR_NO_ERROR;
     }
   else
     {
-      return buf_eq_const(outbuf, c->u_mode.gcm.u_tag.tag, outbuflen) ?
+      return buf_eq_const(outbuf, c->u_mode.gcm.u_tag.tag, GCRY_GCM_BLOCK_LEN) ?
                GPG_ERR_NO_ERROR : GPG_ERR_CHECKSUM;
     }
 
