@@ -769,12 +769,32 @@ _gcry_cipher_gcm_geniv (gcry_cipher_hd_t c,
 #endif
 
 
+static int
+is_tag_length_valid(size_t taglen)
+{
+  switch (taglen)
+    {
+    /* Allowed tag lengths from NIST SP 800-38D.  */
+    case 128 / 8: /* GCRY_GCM_BLOCK_LEN */
+    case 120 / 8:
+    case 112 / 8:
+    case 104 / 8:
+    case 96 / 8:
+    case 64 / 8:
+    case 32 / 8:
+      return 1;
+
+    default:
+      return 0;
+    }
+}
+
 static gcry_err_code_t
 _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
                       byte * outbuf, size_t outbuflen, int check)
 {
-  if (outbuflen < GCRY_GCM_BLOCK_LEN)
-    return GPG_ERR_BUFFER_TOO_SHORT;
+  if (!(is_tag_length_valid (outbuflen) || outbuflen >= GCRY_GCM_BLOCK_LEN))
+    return GPG_ERR_INV_LENGTH;
   if (c->u_mode.gcm.datalen_over_limits)
     return GPG_ERR_INV_LENGTH;
 
@@ -815,17 +835,19 @@ _gcry_cipher_gcm_tag (gcry_cipher_hd_t c,
 
   if (!check)
     {
+      if (outbuflen > GCRY_GCM_BLOCK_LEN)
+        outbuflen = GCRY_GCM_BLOCK_LEN;
+
       /* NB: We already checked that OUTBUF is large enough to hold
-         the result.  */
-      memcpy (outbuf, c->u_mode.gcm.u_tag.tag, GCRY_GCM_BLOCK_LEN);
+       * the result or has valid truncated length.  */
+      memcpy (outbuf, c->u_mode.gcm.u_tag.tag, outbuflen);
     }
   else
     {
       /* OUTBUFLEN gives the length of the user supplied tag in OUTBUF
        * and thus we need to compare its length first.  */
-      if (outbuflen != GCRY_GCM_BLOCK_LEN
-          || !buf_eq_const (outbuf, c->u_mode.gcm.u_tag.tag,
-                            GCRY_GCM_BLOCK_LEN))
+      if (!is_tag_length_valid (outbuflen)
+          || !buf_eq_const (outbuf, c->u_mode.gcm.u_tag.tag, outbuflen))
         return GPG_ERR_CHECKSUM;
     }
 

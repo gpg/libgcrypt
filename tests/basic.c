@@ -1304,6 +1304,8 @@ _check_gcm_cipher (unsigned int step)
     int inlen;
     char out[MAX_DATA_LEN];
     char tag[MAX_DATA_LEN];
+    int taglen;
+    int should_fail;
   } tv[] =
     {
       /* http://csrc.nist.gov/groups/ST/toolkit/BCM/documents/proposedmodes/gcm/gcm-revised-spec.pdf */
@@ -1315,6 +1317,78 @@ _check_gcm_cipher (unsigned int step)
         0,
         "",
         "\x58\xe2\xfc\xce\xfa\x7e\x30\x61\x36\x7f\x1d\x57\xa4\xe7\x45\x5a" },
+      { GCRY_CIPHER_AES,
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x58\xe2\xfc\xce\xfa\x7e\x30\x61\x36\x7f\x1d\x57\xa4\xe7\x45",
+        15 },
+      { GCRY_CIPHER_AES,
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x58\xe2\xfc\xce\xfa\x7e\x30\x61\x36\x7f\x1d\x57\xa4\xe7",
+        14 },
+      { GCRY_CIPHER_AES,
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x58\xe2\xfc\xce\xfa\x7e\x30\x61\x36\x7f\x1d\x57\xa4",
+        13 },
+      { GCRY_CIPHER_AES,
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x58\xe2\xfc\xce\xfa\x7e\x30\x61\x36\x7f\x1d\x57",
+        12 },
+      { GCRY_CIPHER_AES,
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x58\xe2\xfc\xce\xfa\x7e\x30\x61\x36\x7f\x1d",
+        11, 1 },
+      { GCRY_CIPHER_AES,
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x58\xe2\xfc\xce\xfa\x7e\x30\x61",
+        8 },
+      { GCRY_CIPHER_AES,
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x58\xe2\xfc\xce",
+        4 },
+      { GCRY_CIPHER_AES,
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+        "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
+        "", 0,
+        "",
+        0,
+        "",
+        "\x58",
+        1, 1 },
       { GCRY_CIPHER_AES,
         "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
         "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 12,
@@ -1570,9 +1644,14 @@ _check_gcm_cipher (unsigned int step)
       if (memcmp (tv[i].plaintext, out, tv[i].inlen))
         fail ("aes-gcm, decrypt mismatch entry %d (step %d)\n", i, step);
 
-      err = gcry_cipher_gettag (hde, out, GCRY_GCM_BLOCK_LEN);
+      taglen2 = tv[i].taglen ? tv[i].taglen : GCRY_GCM_BLOCK_LEN;
+
+      err = gcry_cipher_gettag (hde, out, taglen2);
       if (err)
         {
+          if (tv[i].should_fail)
+            goto next_tv;
+
           fail ("aes-gcm, gcry_cipher_gettag(%d) failed: %s\n",
                 i, gpg_strerror (err));
           gcry_cipher_close (hde);
@@ -1580,11 +1659,10 @@ _check_gcm_cipher (unsigned int step)
           return;
         }
 
-      if (memcmp (tv[i].tag, out, GCRY_GCM_BLOCK_LEN))
+      if (memcmp (tv[i].tag, out, taglen2))
         fail ("aes-gcm, encrypt tag mismatch entry %d\n", i);
 
-
-      err = gcry_cipher_checktag (hdd, out, GCRY_GCM_BLOCK_LEN);
+      err = gcry_cipher_checktag (hdd, out, taglen2);
       if (err)
         {
           fail ("aes-gcm, gcry_cipher_checktag(%d) failed: %s\n",
@@ -1660,17 +1738,25 @@ _check_gcm_cipher (unsigned int step)
       if (memcmp (tv[i].out, out, tv[i].inlen))
         fail ("aes-gcm, encrypt mismatch entry %d, (byte-buf)\n", i);
 
-      err = gcry_cipher_gettag (hde, tag, GCRY_GCM_BLOCK_LEN);
+      /* Test output to larger than 16-byte buffer. */
+      taglen2 = tv[i].taglen ? tv[i].taglen : GCRY_GCM_BLOCK_LEN + 1;
+
+      err = gcry_cipher_gettag (hde, tag, taglen2);
       if (err)
         {
-          fail ("aes-gcm, gcry_cipher_gettag(%d) (byte-buf) failed: %s\n",
-                i, gpg_strerror (err));
+          if (tv[i].should_fail)
+            goto next_tv;
+
+          fail ("aes-gcm, gcry_cipher_gettag(%d, %d) (byte-buf) failed: %s\n",
+                i, taglen2, gpg_strerror (err));
           gcry_cipher_close (hde);
           gcry_cipher_close (hdd);
           return;
         }
 
-      if (memcmp (tv[i].tag, tag, GCRY_GCM_BLOCK_LEN))
+      taglen2 = tv[i].taglen ? tv[i].taglen : GCRY_GCM_BLOCK_LEN;
+
+      if (memcmp (tv[i].tag, tag, taglen2))
         fail ("aes-gcm, encrypt tag mismatch entry %d, (byte-buf)\n", i);
 
       for (byteNum = 0; byteNum < tv[i].inlen; ++byteNum)
@@ -1689,7 +1775,7 @@ _check_gcm_cipher (unsigned int step)
       if (memcmp (tv[i].plaintext, out, tv[i].inlen))
         fail ("aes-gcm, decrypt mismatch entry %d\n", i);
 
-      err = gcry_cipher_checktag (hdd, tag, GCRY_GCM_BLOCK_LEN);
+      err = gcry_cipher_checktag (hdd, tag, taglen2);
       if (err)
         {
           fail ("aes-gcm, gcry_cipher_checktag(%d) (byte-buf) failed: %s\n",
@@ -1699,6 +1785,34 @@ _check_gcm_cipher (unsigned int step)
           return;
         }
 
+      err = gcry_cipher_checktag (hdd, tag, 1);
+      if (!err)
+        {
+          fail ("aes-gcm, gcry_cipher_checktag(%d) did not fail for invalid "
+	        " tag length of '%d'\n", i, 1);
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+      err = gcry_cipher_checktag (hdd, tag, 17);
+      if (!err)
+        {
+          fail ("aes-gcm, gcry_cipher_checktag(%d) did not fail for invalid "
+	        " tag length of '%d'\n", i, 17);
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      if (tv[i].should_fail)
+        {
+          fail ("aes-gcm, negative test succeeded %d\n", i);
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+next_tv:
       gcry_cipher_close (hde);
       gcry_cipher_close (hdd);
     }
