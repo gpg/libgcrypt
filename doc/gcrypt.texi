@@ -1794,15 +1794,23 @@ authenticated data (AAD) for AEAD cipher modes.
 
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_cipher_gettag (gcry_cipher_hd_t @var{h}, void *@var{tag}, size_t @var{taglen})
+@deftypefun {gcry_error_t} gcry_cipher_gettag @
+            (@w{gcry_cipher_hd_t @var{h}}, @
+            @w{void *@var{tag}}, @w{size_t @var{taglen}})
 
 This function is used to read the authentication tag after encryption.
 The function finalizes and outputs the authentication tag to the buffer
 @var{tag} of length @var{taglen} bytes.
 
+Depending on the used mode certain restrictions for @var{taglen} are
+enforced:  For GCM @var{taglen} must be at least 16 or one of the
+allowed truncated lengths (4, 8, 12, 13, 14, or 15).
+
 @end deftypefun
 
-@deftypefun gcry_error_t gcry_cipher_checktag (gcry_cipher_hd_t @var{h}, const void *@var{tag}, size_t @var{taglen})
+@deftypefun {gcry_error_t} gcry_cipher_checktag @
+            (@w{gcry_cipher_hd_t @var{h}}, @
+            @w{const void *@var{tag}}, @w{size_t @var{taglen}})
 
 Check the authentication tag after decryption. The authentication
 tag is passed as the buffer @var{tag} of length @var{taglen} bytes
@@ -1810,6 +1818,10 @@ and compared to internal authentication tag computed during
 decryption.  Error code @code{GPG_ERR_CHECKSUM} is returned if
 the authentication tag in the buffer @var{tag} does not match
 the authentication tag calculated during decryption.
+
+Depending on the used mode certain restrictions for @var{taglen} are
+enforced: For GCM @var{taglen} must either be 16 or one of the allowed
+truncated lengths (4, 8, 12, 13, 14, or 15).
 
 @end deftypefun
 

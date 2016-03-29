@@ -1812,7 +1812,7 @@ _check_gcm_cipher (unsigned int step)
           return;
         }
 
-next_tv:
+    next_tv:
       gcry_cipher_close (hde);
       gcry_cipher_close (hdd);
     }
