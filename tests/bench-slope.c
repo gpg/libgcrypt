@@ -520,8 +520,6 @@ bench_print_result_std (double nsecs_per_byte)
   char mbpsec_buf[16];
   char cpbyte_buf[16];
 
-  strcpy (cpbyte_buf, "-");
-
   double_to_str (nsecpbyte_buf, sizeof (nsecpbyte_buf), nsecs_per_byte);
 
   /* If user didn't provide CPU speed, we cannot show cycles/byte results.  */
@@ -530,16 +528,15 @@ bench_print_result_std (double nsecs_per_byte)
       cycles_per_byte = nsecs_per_byte * cpu_ghz;
       double_to_str (cpbyte_buf, sizeof (cpbyte_buf), cycles_per_byte);
     }
+  else
+    strcpy (cpbyte_buf, "-");
 
   mbytes_per_sec =
     (1000.0 * 1000.0 * 1000.0) / (nsecs_per_byte * 1024 * 1024);
   double_to_str (mbpsec_buf, sizeof (mbpsec_buf), mbytes_per_sec);
 
-  strncat (nsecpbyte_buf, " ns/B", sizeof (nsecpbyte_buf) - 1);
-  strncat (mbpsec_buf, " MiB/s", sizeof (mbpsec_buf) - 1);
-  strncat (cpbyte_buf, " c/B", sizeof (cpbyte_buf) - 1);
-
-  printf ("%14s %15s %13s\n", nsecpbyte_buf, mbpsec_buf, cpbyte_buf);
+  printf ("%9s ns/B %9s MiB/s %9s c/B\n",
+          nsecpbyte_buf, mbpsec_buf, cpbyte_buf);
 }
 
 static void
