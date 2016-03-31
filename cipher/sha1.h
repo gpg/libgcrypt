@@ -33,4 +33,7 @@ typedef struct
 } SHA1_CONTEXT;
 
 
+void _gcry_sha1_mixblock_init (SHA1_CONTEXT *hd);
+unsigned int _gcry_sha1_mixblock (SHA1_CONTEXT *hd, void *blockof64byte);
+
 #endif /*GCRY_SHA1_H*/

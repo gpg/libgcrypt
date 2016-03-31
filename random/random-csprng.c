@@ -56,10 +56,10 @@
 #include <process.h>
 #endif
 #include "g10lib.h"
-#include "../cipher/rmd.h"
 #include "random.h"
 #include "rand-internal.h"
-#include "cipher.h" /* Required for the rmd160_hash_buffer() prototype.  */
+#include "cipher.h"         /* _gcry_sha1_hash_buffer  */
+#include "../cipher/sha1.h" /* _gcry_sha1_mixblock     */
 
 #ifndef RAND_MAX   /* For SunOS. */
 #define RAND_MAX 32767
@@ -83,7 +83,7 @@
 
 /* Contstants pertaining to the hash pool. */
 #define BLOCKLEN  64   /* Hash this amount of bytes... */
-#define DIGESTLEN 20   /* ... into a digest of this length (rmd160). */
+#define DIGESTLEN 20   /* ... into a digest of this length (sha-1). */
 /* POOLBLOCKS is the number of digests which make up the pool.  */
 #define POOLBLOCKS 30
 /* POOLSIZE must be a multiple of the digest length to make the AND
@@ -593,20 +593,21 @@ mix_pool(unsigned char *pool)
   unsigned char *hashbuf = pool + POOLSIZE;
   unsigned char *p, *pend;
   int i, n;
-  RMD160_CONTEXT md;
+  SHA1_CONTEXT md;
+  unsigned int nburn;
 
 #if DIGESTLEN != 20
-#error must have a digest length of 20 for ripe-md-160
+#error must have a digest length of 20 for SHA-1
 #endif
 
   gcry_assert (pool_is_locked);
-  _gcry_rmd160_init( &md );
+  _gcry_sha1_mixblock_init (&md);
 
   /* Loop over the pool.  */
   pend = pool + POOLSIZE;
   memcpy(hashbuf, pend - DIGESTLEN, DIGESTLEN );
   memcpy(hashbuf+DIGESTLEN, pool, BLOCKLEN-DIGESTLEN);
-  _gcry_rmd160_mixblock( &md, hashbuf);
+  nburn = _gcry_sha1_mixblock (&md, hashbuf);
   memcpy(pool, hashbuf, 20 );
 
   if (failsafe_digest_valid && pool == rndpool)
@@ -635,21 +636,21 @@ mix_pool(unsigned char *pool)
 	    }
 	}
 
-      _gcry_rmd160_mixblock ( &md, hashbuf);
+      _gcry_sha1_mixblock (&md, hashbuf);
       memcpy(p, hashbuf, 20 );
     }
 
-    /* Our hash implementation does only leave small parts (64 bytes)
-       of the pool on the stack, so it is okay not to require secure
-       memory here.  Before we use this pool, it will be copied to the
-       help buffer anyway. */
-    if ( pool == rndpool)
-      {
-        _gcry_rmd160_hash_buffer (failsafe_digest, pool, POOLSIZE);
-        failsafe_digest_valid = 1;
-      }
+  /* Our hash implementation does only leave small parts (64 bytes)
+     of the pool on the stack, so it is okay not to require secure
+     memory here.  Before we use this pool, it will be copied to the
+     help buffer anyway. */
+  if ( pool == rndpool)
+    {
+      _gcry_sha1_hash_buffer (failsafe_digest, pool, POOLSIZE);
+      failsafe_digest_valid = 1;
+    }
 
-    _gcry_burn_stack (384); /* for the rmd160_mixblock(), rmd160_hash_buffer */
+  _gcry_burn_stack (nburn);
 }
 
 

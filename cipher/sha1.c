@@ -130,6 +130,17 @@ sha1_init (void *context, unsigned int flags)
   (void)features;
 }
 
+/*
+ * Initialize the context HD. This is used to prepare the use of
+ * _gcry_sha1_mixblock.  WARNING: This is a special purpose function
+ * for exclusive use by random-csprng.c.
+ */
+void
+_gcry_sha1_mixblock_init (SHA1_CONTEXT *hd)
+{
+  sha1_init (hd, 0);
+}
+
 
 /* Round function macros. */
 #define K1  0x5A827999L
@@ -351,6 +362,33 @@ transform (void *ctx, const unsigned char *data, size_t nblks)
 #endif
 
   return burn;
+}
+
+
+/*
+ * Apply the SHA-1 transform function on the buffer BLOCKOF64BYTE
+ * which must have a length 64 bytes.  BLOCKOF64BYTE must be 32-bit
+ * aligned.  Updates the 20 bytes in BLOCKOF64BYTE with its mixed
+ * content.  Returns the number of bytes which should be burned on the
+ * stack.  You need to use _gcry_sha1_mixblock_init to initialize the
+ * context.
+ * WARNING: This is a special purpose function for exclusive use by
+ * random-csprng.c.
+ */
+unsigned int
+_gcry_sha1_mixblock (SHA1_CONTEXT *hd, void *blockof64byte)
+{
+  u32 *p = blockof64byte;
+  unsigned int nburn;
+
+  nburn = transform (hd, blockof64byte, 1);
+  p[0] = hd->h0;
+  p[1] = hd->h1;
+  p[2] = hd->h2;
+  p[3] = hd->h3;
+  p[4] = hd->h4;
+
+  return nburn;
 }
 
 

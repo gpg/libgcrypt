@@ -5685,7 +5685,7 @@ Practically Strong Random Numbers".@footnote{Also described in chapter
 6 of his book "Cryptographic Security Architecture", New York, 2004,
 ISBN 0-387-95387-6.}
 
-A pool of 600 bytes is used and mixed using the core RIPE-MD160 hash
+A pool of 600 bytes is used and mixed using the core SHA-1 hash
 transform function.  Several extra features are used to make the
 robust against a wide variety of attacks and to protect against
 failures of subsystems.  The state of the generator may be saved to a
