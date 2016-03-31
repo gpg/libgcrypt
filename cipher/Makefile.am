@@ -57,7 +57,7 @@ bufhelp.h  \
 primegen.c  \
 hash-common.c hash-common.h \
 dsa-common.c rsa-common.c \
-rmd.h
+sha1.h rmd.h
 
 EXTRA_libcipher_la_SOURCES = \
 arcfour.c arcfour-amd64.S \

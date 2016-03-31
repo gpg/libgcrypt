@@ -40,7 +40,7 @@
 #include "bithelp.h"
 #include "bufhelp.h"
 #include "cipher.h"
-#include "hash-common.h"
+#include "sha1.h"
 
 
 /* USE_SSSE3 indicates whether to compile with Intel SSSE3 code. */
@@ -88,23 +88,6 @@
 /* # define U32_ALIGNED_P(p) (!(((uintptr_t)p) % sizeof (u32))) */
 /* #endif */
 
-typedef struct
-{
-  gcry_md_block_ctx_t bctx;
-  u32           h0,h1,h2,h3,h4;
-#ifdef USE_SSSE3
-  unsigned int use_ssse3:1;
-#endif
-#ifdef USE_AVX
-  unsigned int use_avx:1;
-#endif
-#ifdef USE_BMI2
-  unsigned int use_bmi2:1;
-#endif
-#ifdef USE_NEON
-  unsigned int use_neon:1;
-#endif
-} SHA1_CONTEXT;
 
 static unsigned int
 transform (void *c, const unsigned char *data, size_t nblks);
