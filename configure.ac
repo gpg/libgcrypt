@@ -2066,6 +2066,12 @@ if test "$found" = "1" ; then
    AC_DEFINE(USE_MD5, 1, [Defined if this module should be included])
 fi
 
+LIST_MEMBER(rmd160, $enabled_digests)
+if test "$found" = "1" ; then
+   GCRYPT_DIGESTS="$GCRYPT_DIGESTS rmd160.lo"
+   AC_DEFINE(USE_RMD160, 1, [Defined if this module should be included])
+fi
+
 LIST_MEMBER(sha256, $enabled_digests)
 if test "$found" = "1" ; then
    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256.lo"
@@ -2142,9 +2148,9 @@ if test "$found" = "1" ; then
    esac
 fi
 
-# rmd160 and sha1 should be included always.
-GCRYPT_DIGESTS="$GCRYPT_DIGESTS rmd160.lo sha1.lo"
-AC_DEFINE(USE_RMD160, 1, [Defined if this module should be included])
+# SHA-1 needs to be included always for example because it is used by
+# random-csprng.c.
+GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1.lo"
 AC_DEFINE(USE_SHA1, 1,   [Defined if this module should be included])
 
 case "${host}" in

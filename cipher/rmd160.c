@@ -24,7 +24,7 @@
 #include <string.h>
 
 #include "g10lib.h"
-#include "rmd.h"
+#include "hash-common.h"
 #include "cipher.h" /* Only used for the rmd160_hash_buffer() prototype. */
 
 #include "bithelp.h"
@@ -140,6 +140,13 @@
  * 1 million times "a"   52783243c1697bdbe16d37f97f68f08325dc1528
  */
 
+typedef struct
+{
+  gcry_md_block_ctx_t bctx;
+  u32  h0,h1,h2,h3,h4;
+} RMD160_CONTEXT;
+
+
 static unsigned int
 transform ( void *ctx, const unsigned char *data, size_t nblks );
 
@@ -161,13 +168,6 @@ rmd160_init (void *context, unsigned int flags)
   hd->bctx.count = 0;
   hd->bctx.blocksize = 64;
   hd->bctx.bwrite = transform;
-}
-
-
-void
-_gcry_rmd160_init (void *context)
-{
-  rmd160_init (context, 0);
 }
 
 
@@ -399,32 +399,9 @@ transform ( void *c, const unsigned char *data, size_t nblks )
 }
 
 
-/****************
- * Apply the rmd160 transform function on the buffer which must have
- * a length 64 bytes. Do not use this function together with the
- * other functions, use rmd160_init to initialize internal variables.
- * Buffer must be 32-bit aligned.
- * Returns: 20 bytes in buffer with the mixed contents of buffer.
+/*
+ * The routine terminates the computation
  */
-void
-_gcry_rmd160_mixblock ( RMD160_CONTEXT *hd, void *blockof64byte )
-{
-  u32 *p = blockof64byte;
-
-  transform ( hd, blockof64byte, 1 );
-#define X(a) do { p[a] = hd->h##a; } while(0)
-  X(0);
-  X(1);
-  X(2);
-  X(3);
-  X(4);
-#undef X
-}
-
-
-/* The routine terminates the computation
- */
-
 static void
 rmd160_final( void *context )
 {
@@ -503,7 +480,7 @@ _gcry_rmd160_hash_buffer (void *outbuf, const void *buffer, size_t length )
 {
   RMD160_CONTEXT hd;
 
-  _gcry_rmd160_init ( &hd );
+  rmd160_init (&hd, 0);
   _gcry_md_block_write ( &hd, buffer, length );
   rmd160_final ( &hd );
   memcpy ( outbuf, hd.bctx.buf, 20 );
