@@ -237,6 +237,42 @@ test_opaque (void)
 
 
 static void
+test_maxsize (void)
+{
+  gpg_error_t err;
+  gcry_mpi_t a;
+  char buffer[2+2048]; /* For PGP: 2 length bytes and 16384 bits.  */
+
+  memset (buffer, 0x55, sizeof buffer);
+
+  /* We use a short buffer but a give a too large length to simulate a
+   * programming error.  In case this test fails (i.e. die() is
+   * called) the scan function may have access data outside of BUFFER
+   * which may result in a segv but we ignore that to avoid actually
+   * allocating such a long buffer.  */
+  err = gcry_mpi_scan (&a, GCRYMPI_FMT_USG, buffer, 16*1024*1024 +1, NULL);
+  if (gpg_err_code (err) != GPG_ERR_INV_OBJ)
+    die ("gcry_mpi_scan does not detect its generic input limit\n");
+
+  /* Now test the PGP limit.  The scan code check the two length bytes
+   * from the buffer and thus it is sufficient to fake them.  */
+  buffer[0] = (16385 >> 8);
+  buffer[1] = (16385 & 0xff);
+  err = gcry_mpi_scan (&a, GCRYMPI_FMT_PGP, buffer, sizeof buffer, NULL);
+  if (gpg_err_code (err) != GPG_ERR_INV_OBJ)
+    die ("gcry_mpi_scan does not detect the PGP input limit\n");
+
+  buffer[0] = (16384 >> 8);
+  buffer[1] = (16384 & 0xff);
+
+  err = gcry_mpi_scan (&a, GCRYMPI_FMT_PGP, buffer, sizeof buffer, NULL);
+  if (err)
+    die ("gcry_mpi_scan did not parse a large PGP: %s\n", gpg_strerror (err));
+  gcry_mpi_release (a);
+}
+
+
+static void
 test_cmp (void)
 {
   gpg_error_t rc;
@@ -569,6 +605,7 @@ main (int argc, char* argv[])
 
   test_const_and_immutable ();
   test_opaque ();
+  test_maxsize ();
   test_cmp ();
   test_add ();
   test_sub ();

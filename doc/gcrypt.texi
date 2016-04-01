@@ -4526,7 +4526,8 @@ representation of an MPI and the internal one of Libgcrypt.
 Convert the external representation of an integer stored in @var{buffer}
 with a length of @var{buflen} into a newly created MPI returned which
 will be stored at the address of @var{r_mpi}.  For certain formats the
-length argument is not required and should be passed as @code{0}.  After a
+length argument is not required and should be passed as @code{0}. A
+@var{buflen} larger than 16 MiByte will be rejected.  After a
 successful operation the variable @var{nscanned} receives the number of
 bytes actually scanned unless @var{nscanned} was given as
 @code{NULL}. @var{format} describes the format of the MPI as stored in
@@ -4540,6 +4541,7 @@ bytes actually scanned unless @var{nscanned} was given as
 @item GCRYMPI_FMT_PGP
 As used by OpenPGP (only defined as unsigned). This is basically
 @code{GCRYMPI_FMT_STD} with a 2 byte big endian length header.
+A length header indicating a length of more than 16384 is not allowed.
 
 @item GCRYMPI_FMT_SSH
 As used in the Secure Shell protocol.  This is @code{GCRYMPI_FMT_STD}

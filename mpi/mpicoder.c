@@ -27,7 +27,20 @@
 #include "mpi-internal.h"
 #include "g10lib.h"
 
+/* The maximum length we support in the functions converting an
+ * external representation to an MPI.  This limit is used to catch
+ * programming errors and to avoid DoS due to insane long allocations.
+ * The 16 MiB limit is actually ridiculous large but some of those PQC
+ * algorithms use quite large keys and they might end up using MPIs
+ * for that.  */
+#define MAX_EXTERN_SCAN_BYTES (16*1024*1024)
+
+/* The maximum length (in bits) we support for OpenPGP MPIs.  Note
+ * that OpenPGP's MPI format uses only two bytes and thus would be
+ * limited to 64k anyway.  Note that this limit matches that used by
+ * GnuPG.  */
 #define MAX_EXTERN_MPI_BITS 16384
+
 
 /* Helper used to scan PGP style MPIs.  Returns NULL on failure. */
 static gcry_mpi_t
@@ -104,7 +117,13 @@ mpi_fromstr (gcry_mpi_t val, const char *str)
   if ( *str == '0' && str[1] == 'x' )
     str += 2;
 
-  nbits = 4 * strlen (str);
+  nbits = strlen (str);
+  if (nbits > MAX_EXTERN_SCAN_BYTES)
+    {
+      mpi_clear (val);
+      return 1;  /* Error.  */
+    }
+  nbits *= 4;
   if ((nbits % 8))
     prepend_zero = 1;
 
@@ -438,9 +457,9 @@ twocompl (unsigned char *p, unsigned int n)
 
 
 /* Convert the external representation of an integer stored in BUFFER
-   with a length of BUFLEN into a newly create MPI returned in
-   RET_MPI.  If NBYTES is not NULL, it will receive the number of
-   bytes actually scanned after a successful operation.  */
+ * with a length of BUFLEN into a newly create MPI returned in
+ * RET_MPI.  If NSCANNED is not NULL, it will receive the number of
+ * bytes actually scanned after a successful operation.  */
 gcry_err_code_t
 _gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
                 const void *buffer_arg, size_t buflen, size_t *nscanned)
@@ -449,6 +468,13 @@ _gcry_mpi_scan (struct gcry_mpi **ret_mpi, enum gcry_mpi_format format,
   struct gcry_mpi *a = NULL;
   unsigned int len;
   int secure = (buffer && _gcry_is_secure (buffer));
+
+  if (buflen > MAX_EXTERN_SCAN_BYTES)
+    {
+      if (nscanned)
+        *nscanned = 0;
+      return GPG_ERR_INV_OBJ;
+    }
 
   if (format == GCRYMPI_FMT_SSH)
     len = 0;
