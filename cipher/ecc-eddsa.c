@@ -251,7 +251,7 @@ _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
   mpi_mulm (t, x, x, ec->p);
   mpi_mulm (t, t, v, ec->p);
   /* -t == u ? x = x * sqrt(-1) */
-  mpi_neg (t, t);
+  mpi_sub (t, ec->p, t);
   if (!mpi_cmp (t, u))
     {
       static gcry_mpi_t m1;  /* Fixme: this is not thread-safe.  */
@@ -263,7 +263,7 @@ _gcry_ecc_eddsa_recover_x (gcry_mpi_t x, gcry_mpi_t y, int sign, mpi_ec_t ec)
       mpi_mulm (t, x, x, ec->p);
       mpi_mulm (t, t, v, ec->p);
       /* -t == u ? x = x * sqrt(-1) */
-      mpi_neg (t, t);
+      mpi_sub (t, ec->p, t);
       if (!mpi_cmp (t, u))
         rc = GPG_ERR_INV_OBJ;
     }
@@ -835,7 +835,7 @@ _gcry_ecc_eddsa_verify (gcry_mpi_t input, ECC_public_key *pkey,
 
   _gcry_mpi_ec_mul_point (&Ia, s, &pkey->E.G, ctx);
   _gcry_mpi_ec_mul_point (&Ib, h, &Q, ctx);
-  _gcry_mpi_neg (Ib.x, Ib.x);
+  _gcry_mpi_sub (Ib.x, ctx->p, Ib.x);
   _gcry_mpi_ec_add_points (&Ia, &Ia, &Ib, ctx);
   rc = _gcry_ecc_eddsa_encodepoint (&Ia, ctx, s, h, 0, &tbuf, &tlen);
   if (rc)

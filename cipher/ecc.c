@@ -783,10 +783,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
       curvename = sexp_nth_string (l1, 1);
       if (curvename)
         {
-          rc = _gcry_ecc_update_curve_param (curvename,
-                                             &sk.E.model, &sk.E.dialect,
-                                             &sk.E.p, &sk.E.a, &sk.E.b,
-                                             &mpi_g, &sk.E.n, &sk.E.h);
+          rc = _gcry_ecc_fill_in_curve (0, curvename, &sk.E, NULL);
           if (rc)
             goto leave;
         }

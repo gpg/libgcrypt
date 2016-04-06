@@ -560,9 +560,17 @@ _gcry_ecc_fill_in_curve (unsigned int nbits, const char *name,
       if (!curve->p)
         curve->p = scanval (domain_parms[idx].p);
       if (!curve->a)
-        curve->a = scanval (domain_parms[idx].a);
+        {
+          curve->a = scanval (domain_parms[idx].a);
+          if (curve->a->sign)
+            mpi_add (curve->a, curve->p, curve->a);
+        }
       if (!curve->b)
-        curve->b = scanval (domain_parms[idx].b);
+        {
+          curve->b = scanval (domain_parms[idx].b);
+          if (curve->b->sign)
+            mpi_add (curve->b, curve->p, curve->b);
+        }
       if (!curve->n)
         curve->n = scanval (domain_parms[idx].n);
       if (!curve->h)

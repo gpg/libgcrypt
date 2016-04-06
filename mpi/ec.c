@@ -275,8 +275,9 @@ ec_addm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ctx)
 static void
 ec_subm (gcry_mpi_t w, gcry_mpi_t u, gcry_mpi_t v, mpi_ec_t ec)
 {
-  (void)ec;
   mpi_sub (w, u, v);
+  while (w->sign)
+    mpi_add (w, w, ec->p);
   /*ec_mod (w, ec);*/
 }
 
@@ -811,10 +812,7 @@ dup_point_edwards (mpi_point_t result, mpi_point_t point, mpi_ec_t ctx)
 
   /* E = aC */
   if (ctx->dialect == ECC_DIALECT_ED25519)
-    {
-      mpi_set (E, C);
-      _gcry_mpi_neg (E, E);
-    }
+    mpi_sub (E, ctx->p, C);
   else
     ec_mulm (E, ctx->a, C, ctx);
 
@@ -1092,11 +1090,7 @@ add_points_edwards (mpi_point_t result,
   /* Y_3 = A · G · (D - aC) */
   if (ctx->dialect == ECC_DIALECT_ED25519)
     {
-      /* Using ec_addm (Y3, D, C, ctx) is possible but a litte bit
-         slower because a subm does currently skip the mod step.  */
-      mpi_set (Y3, C);
-      _gcry_mpi_neg (Y3, Y3);
-      ec_subm (Y3, D, Y3, ctx);
+      ec_addm (Y3, D, C, ctx);
     }
   else
     {
@@ -1218,7 +1212,7 @@ sub_points_edwards (mpi_point_t result,
 {
   mpi_point_t p2i = _gcry_mpi_point_new (0);
   point_set (p2i, p2);
-  _gcry_mpi_neg (p2i->x, p2i->x);
+  mpi_sub (p2i->x, ctx->p, p2i->x);
   add_points_edwards (result, p1, p2i, ctx);
   _gcry_mpi_point_release (p2i);
 }
@@ -1538,10 +1532,7 @@ _gcry_mpi_ec_curve_point (gcry_mpi_point_t point, mpi_ec_t ctx)
         ec_pow2 (x, x, ctx);
         ec_pow2 (y, y, ctx);
         if (ctx->dialect == ECC_DIALECT_ED25519)
-          {
-            mpi_set (w, x);
-            _gcry_mpi_neg (w, w);
-          }
+          mpi_sub (w, ctx->p, x);
         else
           ec_mulm (w, ctx->a, x, ctx);
         ec_addm (w, w, y, ctx);
