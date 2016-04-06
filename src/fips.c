@@ -637,11 +637,15 @@ check_binary_integrity (void)
                   int n;
 
                   /* The HMAC files consists of lowercase hex digits
-                     only with an optional trailing linefeed.  Fail if
-                     there is any garbage.  */
+                     with an optional trailing linefeed or optional
+                     with two trailing spaces.  The latter format
+                     allows the use of the usual sha1sum format.  Fail
+                     if there is any garbage.  */
                   err = gpg_error (GPG_ERR_SELFTEST_FAILED);
                   n = fread (buffer, 1, sizeof buffer, fp);
-                  if (n == 64 || (n == 65 && buffer[64] == '\n'))
+                  if (n == 64
+                      || (n == 65 && buffer[64] == '\n')
+                      || (n == 66 && buffer[64] == ' ' && buffer[65] == ' '))
                     {
                       buffer[64] = 0;
                       for (n=0, s= buffer;
