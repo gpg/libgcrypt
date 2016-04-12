@@ -3596,6 +3596,236 @@ check_ocb_cipher_largebuf (int algo, int keylen, const char *tagexpect)
 
 
 static void
+check_ocb_cipher_splitaad (void)
+{
+  const char t_nonce[] = ("BBAA9988776655443322110D");
+  const char t_plain[] = ("000102030405060708090A0B0C0D0E0F1011121314151617"
+                          "18191A1B1C1D1E1F2021222324252627");
+  const char t_ciph[]  = ("D5CA91748410C1751FF8A2F618255B68A0A12E093FF45460"
+                          "6E59F9C1D0DDC54B65E8628E568BAD7AED07BA06A4A69483"
+                          "A7035490C5769E60");
+  struct {
+    const char *aad0;
+    const char *aad1;
+    const char *aad2;
+    const char *aad3;
+  } tv[] = {
+    {
+      "000102030405060708090A0B0C0D0E0F"
+      "101112131415161718191A1B1C1D1E1F2021222324252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "101112131415161718191A1B1C1D1E1F",
+      "2021222324252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "1011121314151617",
+      "18191A1B1C1D1E1F",
+      "2021222324252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "101112131415161718191A1B1C1D1E1F",
+      "20",
+      "21222324252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "101112131415161718191A1B1C1D1E1F",
+      "2021",
+      "222324252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "101112131415161718191A1B1C1D1E1F",
+      "202122",
+      "2324252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "101112131415161718191A1B1C1D1E1F",
+      "20212223",
+      "24252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "101112131415161718191A1B1C1D1E1F",
+      "2021222324",
+      "252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "101112131415161718191A1B1C1D1E1F",
+      "202122232425",
+      "2627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "101112131415161718191A1B1C1D1E1F",
+      "20212223242526"
+      "27"
+    },
+    {
+      "000102030405060708090A0B0C0D0E0F",
+      "1011121314151617",
+      "18191A1B1C1D1E1F2021222324252627"
+    },
+    {
+      "00",
+      "0102030405060708090A0B0C0D0E0F",
+      "1011121314151617",
+      "18191A1B1C1D1E1F2021222324252627"
+    },
+    {
+      "0001",
+      "02030405060708090A0B0C0D0E0F",
+      "1011121314151617",
+      "18191A1B1C1D1E1F2021222324252627"
+    },
+    {
+      "000102030405060708090A0B0C0D",
+      "0E0F",
+      "1011121314151617",
+      "18191A1B1C1D1E1F2021222324252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E",
+      "0F",
+      "1011121314151617",
+      "18191A1B1C1D1E1F2021222324252627"
+    },
+    {
+      "000102030405060708090A0B0C0D0E",
+      "0F101112131415161718191A1B1C1D1E1F20212223242526",
+      "27"
+    }
+  };
+
+  gpg_error_t err = 0;
+  gcry_cipher_hd_t hde;
+  unsigned char out[MAX_DATA_LEN];
+  unsigned char tag[16];
+  int tidx;
+  char *key, *nonce, *ciph, *plain;
+  size_t keylen, noncelen, ciphlen, plainlen;
+  int i;
+
+  /* Convert to hex strings to binary.  */
+  key   = hex2buffer ("000102030405060708090A0B0C0D0E0F", &keylen);
+  nonce = hex2buffer (t_nonce, &noncelen);
+  plain = hex2buffer (t_plain, &plainlen);
+  ciph  = hex2buffer (t_ciph, &ciphlen);
+
+  /* Check that our test vectors are sane.  */
+  assert (plainlen <= sizeof out);
+  assert (16 <= ciphlen);
+  assert (16 <= sizeof tag);
+
+  for (tidx = 0; tidx < DIM (tv); tidx++)
+    {
+      char *aad[4];
+      size_t aadlen[4];
+
+      if (verbose)
+        fprintf (stderr, "    checking OCB aad split (tv %d)\n", tidx);
+
+      aad[0] = tv[tidx].aad0? hex2buffer (tv[tidx].aad0, aadlen+0) : NULL;
+      aad[1] = tv[tidx].aad1? hex2buffer (tv[tidx].aad1, aadlen+1) : NULL;
+      aad[2] = tv[tidx].aad2? hex2buffer (tv[tidx].aad2, aadlen+2) : NULL;
+      aad[3] = tv[tidx].aad3? hex2buffer (tv[tidx].aad3, aadlen+3) : NULL;
+
+      err = gcry_cipher_open (&hde, GCRY_CIPHER_AES, GCRY_CIPHER_MODE_OCB, 0);
+      if (err)
+        {
+          fail ("cipher-ocb-splitadd, gcry_cipher_open failed: %s\n",
+                gpg_strerror (err));
+          return;
+        }
+
+      err = gcry_cipher_setkey (hde, key, keylen);
+      if (err)
+        {
+          fail ("cipher-ocb-splitaad, gcry_cipher_setkey failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          return;
+        }
+
+      err = gcry_cipher_setiv (hde, nonce, noncelen);
+      if (err)
+        {
+          fail ("cipher-ocb-splitaad, gcry_cipher_setiv failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          return;
+        }
+
+      for (i=0; i < DIM (aad); i++)
+        {
+          if (!aad[i])
+            continue;
+          err = gcry_cipher_authenticate (hde, aad[i], aadlen[i]);
+          if (err)
+            {
+              fail ("cipher-ocb-splitaad,"
+                    " gcry_cipher_authenticate failed (tv=%d,i=%d): %s\n",
+                    tidx, i, gpg_strerror (err));
+              gcry_cipher_close (hde);
+              return;
+            }
+        }
+
+      err = gcry_cipher_final (hde);
+      if (!err)
+        err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN, plain, plainlen);
+      if (err)
+        {
+          fail ("cipher-ocb-splitaad, gcry_cipher_encrypt failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          return;
+        }
+
+      /* Check that the encrypt output matches the expected cipher
+         text without the tag (i.e. at the length of plaintext).  */
+      if (memcmp (ciph, out, plainlen))
+        {
+          mismatch (ciph, plainlen, out, plainlen);
+          fail ("cipher-ocb-splitaad, encrypt data mismatch\n");
+        }
+
+      /* Check that the tag matches TAGLEN bytes from the end of the
+         expected ciphertext.  */
+      err = gcry_cipher_gettag (hde, tag, 16);
+      if (err)
+        {
+          fail ("cipher-ocb-splitaad, gcry_cipher_gettag failed: %s\n",
+                gpg_strerror (err));
+        }
+      if (memcmp (ciph + ciphlen - 16, tag, 16))
+        {
+          mismatch (ciph + ciphlen - 16, 16, tag, 16);
+          fail ("cipher-ocb-splitaad, encrypt tag mismatch\n");
+        }
+
+
+      gcry_cipher_close (hde);
+      xfree (aad[0]);
+      xfree (aad[1]);
+      xfree (aad[2]);
+      xfree (aad[3]);
+    }
+
+  xfree (nonce);
+  xfree (ciph);
+  xfree (plain);
+  xfree (key);
+}
+
+
+static void
 check_ocb_cipher (void)
 {
   /* Check OCB cipher with separate destination and source buffers for
@@ -3636,6 +3866,9 @@ check_ocb_cipher (void)
   check_ocb_cipher_largebuf(GCRY_CIPHER_SERPENT256, 32,
 			    "\xe7\x8b\xe6\xd4\x2f\x7a\x36\x4c"
 			    "\xba\xee\x20\xe2\x68\xf4\xcb\xcc");
+
+  /* Check that the AAD data is correctly buffered.  */
+  check_ocb_cipher_splitaad ();
 }
 
 
@@ -9128,7 +9361,10 @@ main (int argc, char **argv)
       if (pubkey_only)
         check_pubkey ();
       else if (cipher_modes_only)
-        check_ciphers ();
+        {
+          check_ciphers ();
+          check_cipher_modes ();
+        }
       else if (!selftest_only)
         {
           check_ciphers ();

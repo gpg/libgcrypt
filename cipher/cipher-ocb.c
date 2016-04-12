@@ -1,5 +1,5 @@
 /* cipher-ocb.c -  OCB cipher mode
- * Copyright (C) 2015 g10 Code GmbH
+ * Copyright (C) 2015, 2016 g10 Code GmbH
  *
  * This file is part of Libgcrypt.
  *
@@ -211,6 +211,7 @@ _gcry_cipher_ocb_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
   c->marks.finalize = 0;
   c->u_mode.ocb.data_nblocks = 0;
   c->u_mode.ocb.aad_nblocks = 0;
+  c->u_mode.ocb.aad_nleftover = 0;
   c->u_mode.ocb.data_finalized = 0;
   c->u_mode.ocb.aad_finalized = 0;
 
@@ -235,10 +236,7 @@ _gcry_cipher_ocb_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
 
 /* Process additional authentication data.  This implementation allows
    to add additional authentication data at any time before the final
-   gcry_cipher_gettag.  The size of the data provided in
-   (ABUF,ABUFLEN) must be a multiple of the blocksize.  If a
-   non-multiple of the blocksize is used no further data may be passed
-   to this function.  */
+   gcry_cipher_gettag.  */
 gcry_err_code_t
 _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
                                size_t abuflen)
@@ -254,6 +252,32 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
   /* Check correct usage and arguments.  */
   if (c->spec->blocksize != OCB_BLOCK_LEN)
     return GPG_ERR_CIPHER_ALGO;
+
+  /* Process remaining data from the last call first.  */
+  if (c->u_mode.ocb.aad_nleftover)
+    {
+      for (; abuflen && c->u_mode.ocb.aad_nleftover < OCB_BLOCK_LEN;
+           abuf++, abuflen--)
+        c->u_mode.ocb.aad_leftover[c->u_mode.ocb.aad_nleftover++] = *abuf;
+
+      if (c->u_mode.ocb.aad_nleftover == OCB_BLOCK_LEN)
+        {
+          c->u_mode.ocb.aad_nblocks++;
+
+          /* Offset_i = Offset_{i-1} xor L_{ntz(i)} */
+          buf_xor_1 (c->u_mode.ocb.aad_offset,
+                     ocb_get_l (c, l_tmp, c->u_mode.ocb.aad_nblocks),
+                     OCB_BLOCK_LEN);
+          /* Sum_i = Sum_{i-1} xor ENCIPHER(K, A_i xor Offset_i)  */
+          buf_xor (l_tmp, c->u_mode.ocb.aad_offset,
+                   c->u_mode.ocb.aad_leftover, OCB_BLOCK_LEN);
+          c->spec->encrypt (&c->context.c, l_tmp, l_tmp);
+          buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
+
+          c->u_mode.ocb.aad_nleftover = 0;
+        }
+    }
+
   if (!abuflen)
     return 0;
 
@@ -291,29 +315,54 @@ _gcry_cipher_ocb_authenticate (gcry_cipher_hd_t c, const unsigned char *abuf,
       abuflen -= OCB_BLOCK_LEN;
     }
 
-  /* Hash final partial block.  Note that we expect ABUFLEN to be
-     shorter than OCB_BLOCK_LEN.  */
-  if (abuflen)
+  /* Store away the remaining data.  */
+  for (; abuflen && c->u_mode.ocb.aad_nleftover < OCB_BLOCK_LEN;
+       abuf++, abuflen--)
+    c->u_mode.ocb.aad_leftover[c->u_mode.ocb.aad_nleftover++] = *abuf;
+  gcry_assert (!abuflen);
+
+  return 0;
+}
+
+
+/* Hash final partial AAD block.  */
+static void
+ocb_aad_finalize (gcry_cipher_hd_t c)
+{
+  unsigned char l_tmp[OCB_BLOCK_LEN];
+
+  /* Check that a nonce and thus a key has been set and that we have
+     not yet computed the tag.  We also skip this if the aad has been
+     finalized.  */
+  if (!c->marks.iv || c->marks.tag || c->u_mode.ocb.aad_finalized)
+    return;
+  if (c->spec->blocksize != OCB_BLOCK_LEN)
+    return;  /* Ooops.  */
+
+  /* Hash final partial block if any.  */
+  if (c->u_mode.ocb.aad_nleftover)
     {
       /* Offset_* = Offset_m xor L_*  */
       buf_xor_1 (c->u_mode.ocb.aad_offset,
                  c->u_mode.ocb.L_star, OCB_BLOCK_LEN);
       /* CipherInput = (A_* || 1 || zeros(127-bitlen(A_*))) xor Offset_*  */
-      buf_cpy (l_tmp, abuf, abuflen);
-      memset (l_tmp + abuflen, 0, OCB_BLOCK_LEN - abuflen);
-      l_tmp[abuflen] = 0x80;
+      buf_cpy (l_tmp, c->u_mode.ocb.aad_leftover, c->u_mode.ocb.aad_nleftover);
+      memset (l_tmp + c->u_mode.ocb.aad_nleftover, 0,
+              OCB_BLOCK_LEN - c->u_mode.ocb.aad_nleftover);
+      l_tmp[c->u_mode.ocb.aad_nleftover] = 0x80;
       buf_xor_1 (l_tmp, c->u_mode.ocb.aad_offset, OCB_BLOCK_LEN);
       /* Sum = Sum_m xor ENCIPHER(K, CipherInput)  */
       c->spec->encrypt (&c->context.c, l_tmp, l_tmp);
       buf_xor_1 (c->u_mode.ocb.aad_sum, l_tmp, OCB_BLOCK_LEN);
 
-      /* Mark AAD as finalized to avoid accidentally calling this
-         function again after a non-full block has been processed.  */
-      c->u_mode.ocb.aad_finalized = 1;
+      c->u_mode.ocb.aad_nleftover = 0;
     }
 
-  return 0;
+  /* Mark AAD as finalized so that gcry_cipher_ocb_authenticate can
+   * return an erro when called again.  */
+  c->u_mode.ocb.aad_finalized = 1;
 }
+
 
 
 /* Checksumming for encrypt and decrypt.  */
@@ -507,6 +556,7 @@ compute_tag_if_needed (gcry_cipher_hd_t c)
 {
   if (!c->marks.tag)
     {
+      ocb_aad_finalize (c);
       buf_xor_1 (c->u_mode.ocb.tag, c->u_mode.ocb.aad_sum, OCB_BLOCK_LEN);
       c->marks.tag = 1;
     }

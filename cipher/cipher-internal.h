@@ -274,9 +274,15 @@ struct gcry_cipher_handle
          checksum of the data.  */
       unsigned char aad_sum[OCB_BLOCK_LEN];
 
+      /* A buffer to store AAD data not yet processed.  */
+      unsigned char aad_leftover[OCB_BLOCK_LEN];
+
       /* Number of data/aad blocks processed so far.  */
       u64 data_nblocks;
       u64 aad_nblocks;
+
+      /* Number of valid bytes in AAD_LEFTOVER.  */
+      unsigned char aad_nleftover;
 
       /* Length of the tag.  Fixed for now but may eventually be
          specified using a set of gcry_cipher_flags.  */

@@ -1883,7 +1883,7 @@ the end of the input data. This is done with:
 Set a flag in the context to tell the encrypt and decrypt functions
 that their next call will provide the last chunk of data.  Only the
 first call to this function has an effect and only for modes which
-support it.  Checking the error in in general not necessary.  This is
+support it.  Checking the error is in general not necessary.  This is
 implemented as a macro.
 @end deftypefun
 
