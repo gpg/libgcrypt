@@ -356,7 +356,7 @@ test_ecdh_only_keys (ECC_secret_key *sk, unsigned int nbits, int flags)
       _gcry_mpi_randomize (test, nbits, GCRY_WEAK_RANDOM);
     }
 
-  ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, 0,
+  ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, flags,
                                     pk.E.p, pk.E.a, pk.E.b);
   x0 = mpi_new (0);
   x1 = mpi_new (0);
@@ -592,7 +592,7 @@ ecc_generate (const gcry_sexp_t genparms, gcry_sexp_t *r_skey)
       log_printpnt ("ecgen curve G", &E.G, NULL);
     }
 
-  ctx = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, 0, E.p, E.a, E.b);
+  ctx = _gcry_mpi_ec_p_internal_new (E.model, E.dialect, flags, E.p, E.a, E.b);
 
   if (E.model == MPI_EC_MONTGOMERY)
     rc = nist_generate_key (&sk, &E, ctx, flags, nbits, &Qx, NULL);
@@ -830,7 +830,7 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
       goto leave;
     }
 
-  ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, 0,
+  ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, flags,
                                     sk.E.p, sk.E.a, sk.E.b);
 
   if (mpi_q)
@@ -1349,7 +1349,7 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
   /* Compute the encrypted value.  */
-  ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, 0,
+  ec = _gcry_mpi_ec_p_internal_new (pk.E.model, pk.E.dialect, flags,
                                     pk.E.p, pk.E.a, pk.E.b);
 
   /* Convert the public key.  */
@@ -1570,7 +1570,7 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     }
 
 
-  ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, 0,
+  ec = _gcry_mpi_ec_p_internal_new (sk.E.model, sk.E.dialect, flags,
                                     sk.E.p, sk.E.a, sk.E.b);
 
   /*
