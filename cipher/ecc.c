@@ -1282,14 +1282,11 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   rc = _gcry_pk_util_data_to_mpi (s_data, &data, &ctx);
   if (rc)
     goto leave;
-  if (DBG_CIPHER)
-    log_mpidump ("ecc_encrypt data", data);
   if (mpi_is_opaque (data))
     {
       rc = GPG_ERR_INV_DATA;
       goto leave;
     }
-
 
   /*
    * Extract the key.
@@ -1326,6 +1323,21 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
       pk.E.model = MPI_EC_WEIERSTRASS;
       pk.E.dialect = ECC_DIALECT_STANDARD;
     }
+
+  /*
+   * Tweak the scalar bits by cofactor and number of bits of the field.
+   * It assumes the cofactor is a power of 2.
+   */
+  if ((flags & PUBKEY_FLAG_DJB_TWEAK))
+    {
+      int i;
+
+      for (i = 0; i < mpi_get_nbits (pk.E.h) - 1; i++)
+        mpi_clear_bit (data, i);
+      mpi_set_highbit (data, mpi_get_nbits (pk.E.p) - 1);
+    }
+  if (DBG_CIPHER)
+    log_mpidump ("ecc_encrypt data", data);
 
   if (DBG_CIPHER)
     {
@@ -1607,7 +1619,13 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     else
       y = mpi_new (0);
 
-    if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
+    /*
+     * Here, x is 0.  In the X25519 computation on Curve25519, X0
+     * function maps infinity to zero.  So, when PUBKEY_FLAG_DJB_TWEAK
+     * is enabled, we can just skip the check to get the result of 0.
+     */
+    if (_gcry_mpi_ec_get_affine (x, y, &R, ec)
+        && !(flags & PUBKEY_FLAG_DJB_TWEAK))
       log_fatal ("ecdh: Failed to get affine coordinates\n");
 
     if (y)

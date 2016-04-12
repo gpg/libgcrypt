@@ -192,8 +192,8 @@ test_cv (int testno, const char *k_str, const char *u_str,
   gpg_error_t err;
   void *buffer = NULL;
   size_t buflen;
-  unsigned char *p;
-  gcry_sexp_t s_sk = NULL;
+  gcry_sexp_t s_pk = NULL;
+  gcry_mpi_t mpi_k = NULL;
   gcry_sexp_t s_data = NULL;
   gcry_sexp_t s_result = NULL;
   gcry_sexp_t s_tmp = NULL;
@@ -210,29 +210,22 @@ test_cv (int testno, const char *k_str, const char *u_str,
       goto leave;
     }
 
-  /*
-   * Do what decodeScalar25519 does.
-   */
-  p = (unsigned char *)buffer;
-  p[0] &= 248;
-  p[31] &= 127;
-  p[31] |= 64;
   reverse_buffer (buffer, buflen);
+  if ((err = gcry_mpi_scan (&mpi_k, GCRYMPI_FMT_USG, buffer, buflen, NULL)))
+    {
+      fail ("error converting MPI for test %d: %s", testno, gpg_strerror (err));
+      goto leave;
+    }
 
-  if ((err = gcry_sexp_build (&s_sk, NULL,
-                              "(private-key"
-                              " (ecc"
-                              "  (curve \"Curve25519\")"
-                              "  (flags djb-tweak)"
-                              "  (d %b)))", (int)buflen, buffer)))
+  if ((err = gcry_sexp_build (&s_data, NULL, "%m", mpi_k)))
     {
       fail ("error building s-exp for test %d, %s: %s",
-            testno, "sk", gpg_strerror (err));
+            testno, "data", gpg_strerror (err));
       goto leave;
     }
 
   xfree (buffer);
-  if (!(buffer = hex2buffer (u_str, &buflen)))
+  if (!(buffer = hex2buffer (u_str, &buflen)) || buflen != 32)
     {
       fail ("error building s-exp for test %d, %s: %s",
             testno, "u", "invalid hex string");
@@ -247,26 +240,28 @@ test_cv (int testno, const char *k_str, const char *u_str,
    * We could add the prefix 0x40, but libgcrypt also supports
    * format with no prefix.  So, it is OK not to put the prefix.
    */
-  if ((err = gcry_sexp_build (&s_data, NULL,
-                              "(enc-val"
-                              " (ecdh"
-                              "  (e %b)))", (int)buflen, buffer)))
+  if ((err = gcry_sexp_build (&s_pk, NULL,
+                              "(public-key"
+                              " (ecc"
+                              "  (curve \"Curve25519\")"
+                              "  (flags djb-tweak)"
+                              "  (q%b)))", (int)buflen, buffer)))
     {
       fail ("error building s-exp for test %d, %s: %s",
-            testno, "data", gpg_strerror (err));
+            testno, "pk", gpg_strerror (err));
       goto leave;
     }
 
   xfree (buffer);
   buffer = NULL;
 
-  if ((err = gcry_pk_decrypt (&s_result, s_data, s_sk)))
-    fail ("gcry_pk_decrypt failed for test %d: %s", testno,
+  if ((err = gcry_pk_encrypt (&s_result, s_data, s_pk)))
+    fail ("gcry_pk_encrypt failed for test %d: %s", testno,
           gpg_strerror (err));
 
-  s_tmp = gcry_sexp_find_token (s_result, "value", 0);
+  s_tmp = gcry_sexp_find_token (s_result, "s", 0);
   if (!s_tmp || !(res = gcry_sexp_nth_buffer (s_tmp, 1, &res_len)))
-    fail ("gcry_pk_decrypt failed for test %d: %s", testno, "missing value");
+    fail ("gcry_pk_encrypt failed for test %d: %s", testno, "missing value");
   else
     {
       char *r, *r0;
@@ -275,16 +270,16 @@ test_cv (int testno, const char *k_str, const char *u_str,
       /* To skip the prefix 0x40, for-loop start with i=1 */
       r0 = r = xmalloc (2*(res_len)+1);
       if (!r0)
-	{
-	  fail ("memory allocation", testno);
-	  goto leave;
-	}
+        {
+          fail ("memory allocation", testno);
+          goto leave;
+        }
 
       for (i=1; i < res_len; i++, r += 2)
         snprintf (r, 3, "%02x", res[i]);
       if (strcmp (result_str, r0))
         {
-          fail ("gcry_pk_decrypt failed for test %d: %s",
+          fail ("gcry_pk_encrypt failed for test %d: %s",
                 testno, "wrong value returned");
           show ("  expected: '%s'", result_str);
           show ("       got: '%s'", r0);
@@ -294,10 +289,11 @@ test_cv (int testno, const char *k_str, const char *u_str,
 
  leave:
   xfree (res);
+  gcry_mpi_release (mpi_k);
   gcry_sexp_release (s_tmp);
   gcry_sexp_release (s_result);
   gcry_sexp_release (s_data);
-  gcry_sexp_release (s_sk);
+  gcry_sexp_release (s_pk);
   xfree (buffer);
 }
 
@@ -370,7 +366,7 @@ test_it (int testno, const char *k_str, int iter, const char *result_str)
       gcry_mpi_ec_get_affine (mpi_k, NULL, Q, ctx);
 
       if (debug)
-	print_mpi ("k", mpi_k);
+        print_mpi ("k", mpi_k);
     }
 
   {
@@ -383,8 +379,8 @@ test_it (int testno, const char *k_str, int iter, const char *result_str)
     r0 = r = xmalloc (65);
     if (!r0)
       {
-	fail ("memory allocation", testno);
-	goto leave;
+        fail ("memory allocation", testno);
+        goto leave;
       }
 
     for (i=0; i < 32; i++, r += 2)
@@ -395,7 +391,7 @@ test_it (int testno, const char *k_str, int iter, const char *result_str)
         fail ("curv25519 failed for test %d: %s",
               testno, "wrong value returned");
         show ("  expected: '%s'", result_str);
-	show ("       got: '%s'", r0);
+        show ("       got: '%s'", r0);
       }
     xfree (r0);
   }
