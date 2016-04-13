@@ -32,7 +32,7 @@
 #include "stopwatch.h"
 
 #define PGM "t-cv25519"
-#define N_TESTS 6
+#define N_TESTS 18
 
 #define my_isascii(c) (!((c) & 0x80))
 #define digitp(p)   (*(p) >= '0' && *(p) <= '9')
@@ -497,6 +497,80 @@ check_cv25519 (void)
            "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
            /* Their shared secret, K */
            "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742");
+  ntests++;
+
+  /* Seven tests which results 0. */
+  test_cv (7,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "0000000000000000000000000000000000000000000000000000000000000000",
+           "0000000000000000000000000000000000000000000000000000000000000000");
+  ntests++;
+
+  test_cv (8,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "0100000000000000000000000000000000000000000000000000000000000000",
+           "0000000000000000000000000000000000000000000000000000000000000000");
+  ntests++;
+
+  test_cv (9,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "e0eb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b800",
+           "0000000000000000000000000000000000000000000000000000000000000000");
+  ntests++;
+
+  test_cv (10,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "5f9c95bca3508c24b1d0b1559c83ef5b04445cc4581c8e86d8224eddd09f1157",
+           "0000000000000000000000000000000000000000000000000000000000000000");
+  ntests++;
+
+  test_cv (11,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+           "0000000000000000000000000000000000000000000000000000000000000000");
+  ntests++;
+
+  test_cv (12,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+           "0000000000000000000000000000000000000000000000000000000000000000");
+  ntests++;
+
+  test_cv (13,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+           "0000000000000000000000000000000000000000000000000000000000000000");
+  ntests++;
+
+  /* Five tests which resulted 0 if decodeUCoordinate didn't change MSB. */
+  test_cv (14,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "cdeb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b880",
+           "7ce548bc4919008436244d2da7a9906528fe3a6d278047654bd32d8acde9707b");
+  ntests++;
+
+  test_cv (15,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "4c9c95bca3508c24b1d0b1559c83ef5b04445cc4581c8e86d8224eddd09f11d7",
+           "e17902e989a034acdf7248260e2c94cdaf2fe1e72aaac7024a128058b6189939");
+  ntests++;
+
+  test_cv (16,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "d9ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+           "ea6e6ddf0685c31e152d5818441ac9ac8db1a01f3d6cb5041b07443a901e7145");
+  ntests++;
+
+  test_cv (17,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "daffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+           "845ddce7b3a9b3ee01a2f1fd4282ad293310f7a232cbc5459fb35d94bccc9d05");
+  ntests++;
+
+  test_cv (18,
+           "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
+           "dbffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+           "6989e2cb1cea159acf121b0af6bf77493189c9bd32c2dac71669b540f9488247");
   ntests++;
 
   if (ntests != N_TESTS)

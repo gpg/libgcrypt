@@ -1395,7 +1395,23 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     _gcry_mpi_ec_mul_point (&R, data, &pk.Q, ec);
 
     if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
-      log_fatal ("ecdh: Failed to get affine coordinates for kdG\n");
+      {
+        /*
+         * Here, X is 0.  In the X25519 computation on Curve25519, X0
+         * function maps infinity to zero.  So, when PUBKEY_FLAG_DJB_TWEAK
+         * is enabled, return the result of 0 not raising an error.
+         *
+         * This is a corner case.  It never occurs with properly
+         * generated public keys, but it might happen with blindly
+         * imported public key which might not follow the key
+         * generation procedure.
+         */
+        if (!(flags & PUBKEY_FLAG_DJB_TWEAK))
+          { /* It's not for X25519, then, the input data was simply wrong.  */
+            rc = GPG_ERR_INV_DATA;
+            goto leave;
+          }
+      }
     if (y)
       mpi_s = _gcry_ecc_ec2os (x, y, pk.E.p);
     else
@@ -1416,7 +1432,10 @@ ecc_encrypt_raw (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     _gcry_mpi_ec_mul_point (&R, data, &pk.E.G, ec);
 
     if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
-      log_fatal ("ecdh: Failed to get affine coordinates for kG\n");
+      {
+        rc = GPG_ERR_INV_DATA;
+        goto leave;
+      }
     if (y)
       mpi_e = _gcry_ecc_ec2os (x, y, pk.E.p);
     else
@@ -1598,8 +1617,8 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
   if (DBG_CIPHER)
     log_printpnt ("ecc_decrypt    kG", &kG, NULL);
 
-  if (!(curvename && !strcmp (curvename, "Curve25519"))
-      /* For Curve25519, by its definition, validation should not be done.  */
+  if (!(flags & PUBKEY_FLAG_DJB_TWEAK)
+      /* For X25519, by its definition, validation should not be done.  */
       && !_gcry_mpi_ec_curve_point (&kG, ec))
     {
       rc = GPG_ERR_INV_DATA;
@@ -1619,14 +1638,32 @@ ecc_decrypt_raw (gcry_sexp_t *r_plain, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     else
       y = mpi_new (0);
 
-    /*
-     * Here, x is 0.  In the X25519 computation on Curve25519, X0
-     * function maps infinity to zero.  So, when PUBKEY_FLAG_DJB_TWEAK
-     * is enabled, we can just skip the check to get the result of 0.
-     */
-    if (_gcry_mpi_ec_get_affine (x, y, &R, ec)
-        && !(flags & PUBKEY_FLAG_DJB_TWEAK))
-      log_fatal ("ecdh: Failed to get affine coordinates\n");
+    if (_gcry_mpi_ec_get_affine (x, y, &R, ec))
+      {
+        rc = GPG_ERR_INV_DATA;
+        goto leave;
+        /*
+         * Note for X25519.
+         *
+         * By the definition of X25519, this is the case where X25519
+         * returns 0, mapping infinity to zero.  However, we
+         * deliberately let it return an error.
+         *
+         * For X25519 ECDH, comming here means that it might be
+         * decrypted by anyone with the shared secret of 0 (the result
+         * of this function could be always 0 by other scalar values,
+         * other than the private key of SK.D).
+         *
+         * So, it looks like an encrypted message but it can be
+         * decrypted by anyone, or at least something wrong
+         * happens.  Recipient should not proceed as if it were
+         * properly encrypted message.
+         *
+         * This handling is needed for our major usage of GnuPG,
+         * where it does the One-Pass Diffie-Hellman method,
+         * C(1, 1, ECC CDH), with an ephemeral key.
+         */
+      }
 
     if (y)
       r = _gcry_ecc_ec2os (x, y, sk.E.p);
