@@ -1598,9 +1598,12 @@ set, this mode may be used to bypass the actual encryption.
 Electronic Codebook mode.
 
 @item GCRY_CIPHER_MODE_CFB
+@item GCRY_CIPHER_MODE_CFB8
 @cindex CFB, Cipher Feedback mode
-Cipher Feedback mode.  The shift size equals the block size of the
-cipher (e.g. for AES it is CFB-128).
+Cipher Feedback mode.  For GCRY_CIPHER_MODE_CFB the shift size equals
+the block size of the cipher (e.g. for AES it is CFB-128).  For
+GCRY_CIPHER_MODE_CFB8 the shift size is 8 bit but that variant is not
+yet available.
 
 @item  GCRY_CIPHER_MODE_CBC
 @cindex CBC, Cipher Block Chaining mode

@@ -68,6 +68,7 @@ Noteworthy changes in version 1.7.0 (unreleased)
  gcry_mpi_ec_decode_point        NEW.
  GCRY_CIPHER_MODE_POLY1305       NEW.
  GCRY_CIPHER_MODE_OCB            NEW.
+ GCRY_CIPHER_MODE_CFB8           NEW constant.
  GCRYCTL_SET_TAGLEN              NEW.
  GCRYCTL_GET_TAGLEN              NEW.
  gcry_cipher_final               NEW macro.

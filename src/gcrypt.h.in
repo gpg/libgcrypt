@@ -961,7 +961,8 @@ enum gcry_cipher_modes
     GCRY_CIPHER_MODE_CCM      = 8,   /* Counter with CBC-MAC.  */
     GCRY_CIPHER_MODE_GCM      = 9,   /* Galois Counter Mode. */
     GCRY_CIPHER_MODE_POLY1305 = 10,  /* Poly1305 based AEAD mode. */
-    GCRY_CIPHER_MODE_OCB      = 11   /* OCB3 mode.  */
+    GCRY_CIPHER_MODE_OCB      = 11,  /* OCB3 mode.  */
+    GCRY_CIPHER_MODE_CFB8     = 12   /* Cipher feedback (8 bit mode). */
   };
 
 /* Flags used with the open function. */
