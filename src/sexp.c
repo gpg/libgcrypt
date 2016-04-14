@@ -1592,6 +1592,13 @@ do_vsexp_sscan (gcry_sexp_t *retsexp, size_t *erroff,
 	      err = GPG_ERR_SEXP_UNMATCHED_DH;
               goto leave;
 	    }
+
+	  if (level == 0)
+	    {
+	      *erroff = p - buffer;
+	      err = GPG_ERR_SEXP_UNMATCHED_PAREN;
+	      goto leave;
+	    }
 	  MAKE_SPACE (0);
 	  *c.pos++ = ST_CLOSE;
 	  level--;
