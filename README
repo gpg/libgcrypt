@@ -2,11 +2,9 @@
 		   ------------------------------------
                              Version 1.7
 
-     ====  THIS IS A DEVELOPMENT VERSION - NOT FOR REAL USE ====
-
-       Copyright (C) 1989,1991-2012 Free Software Foundation, Inc.
-       Copyright (C) 2012-2013 g10 Code GmbH
-       Copyright (C) 2013 Jussi Kivilinna
+       Copyright (C) 1989,1991-2016 Free Software Foundation, Inc.
+       Copyright (C) 2012-2016 g10 Code GmbH
+       Copyright (C) 2013-2016 Jussi Kivilinna
 
     Libgcrypt is free software.  See the file AUTHORS for full copying
     notices, and LICENSES for notices about contributions that require
@@ -76,7 +74,7 @@
     You may want to join the developer's mailing list
     gcrypt-devel@gnupg.org by sending mail with a subject of
     "subscribe" to gcrypt-devel-request@gnupg.org.  An archive of this
-    list is available at http://lists.gnupg.org .
+    list is available at https://lists.gnupg.org .
 
 
     Configure options
@@ -238,26 +236,14 @@
 
     The library is distributed under the terms of the GNU Lesser
     General Public License (LGPL); see the file COPYING.LIB for the
-    actual terms.  The helper programs (e.g. gcryptrnd and getrandom)
-    as well as the documentation are distributed under the terms of
-    the GNU General Public License (GPL); see the file COPYING for the
-    actual terms.  The file LICENSES has notices about contributions
-    that require these additional notices are distributed.
+    actual terms.
 
-    This library used to be available under the GPL - this was changed
-    with version 1.1.7 with the rationale that there are now many free
-    crypto libraries available and many of them come with capabilities
-    similar to Libcrypt.  We decided that to foster the use of
-    cryptography in Free Software an LGPLed library would make more
-    sense because it avoids problems due to license incompatibilities
-    between some Free Software licenses and the GPL.
+    The helper programs as well as the documentation are distributed
+    under the terms of the GNU General Public License (GPL); see the
+    file COPYING for the actual terms.
 
-    Please note that in many cases it is better for a library to be
-    licensed under the GPL, so that it provides an advantage for free
-    software projects.  The Lesser GPL is so named because it does
-    less to protect the freedom of the users of the code that it
-    covers.  See http://www.gnu.org/philosophy/why-not-lgpl.html for
-    more explanation.
+    The file LICENSES has notices about contributions that require
+    that these additional notices are distributed.
 
 
     Contact
@@ -265,16 +251,14 @@
 
     See the file AUTHORS.
 
-    Commercial grade support for Libgcrypt is available; please see
-    http://www.gnupg.org/service.html .
-
     Commercial grade support for Libgcrypt is available; for a listing
-    of offers see http://www.gnupg.org/service.html .  The driving
-    force behind the development of Libgcrypt is the company of its
-    principal author, Werner Koch.  Maintenance and improvement of
-    Libgcrypt takes up a lot resources.  To allow him to continue his
-    work, he asks to either purchase a support contract, engage them
-    for custom enhancements, or to donate money.  See http://g10code.com .
+    of offers see https://www.gnupg.org/service.html .
+
+    Maintenance and development of Libgcrypt is mostly financed by
+    donations.  We currently employ 3 full-time developers, one
+    part-timer, and one contractor.  They all work on GnuPG and
+    closely related software like Libgcrypt.  Please visit
+    https://gnupg.org/donate/ to see out how you can help.
 
 
   This file is Free Software; as a special exception the authors gives

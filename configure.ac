@@ -1,7 +1,7 @@
 # Configure.ac script for Libgcrypt
 # Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2006,
 #               2007, 2008, 2009, 2011 Free Software Foundation, Inc.
-# Copyright (C) 2012, 2013, 2014, 2015  g10 Code GmbH
+# Copyright (C) 2012, 2013, 2014, 2015, 2016  g10 Code GmbH
 #
 # This file is part of Libgcrypt.
 #
@@ -51,7 +51,6 @@ m4_define([mym4_full_version],[mym4_version[]mym4_betastring])
 AC_INIT([libgcrypt],[mym4_full_version],[http://bugs.gnupg.org])
 
 # LT Version numbers, remember to change them just *before* a release.
-# ====== NOTE: Already bumped to 21/1/0 for the 1.7.0 release. ====
 #   (Interfaces removed:    CURRENT++, AGE=0, REVISION=0)
 #   (Interfaces added:      CURRENT++, AGE++, REVISION=0)
 #   (No interfaces changed:                   REVISION++)
