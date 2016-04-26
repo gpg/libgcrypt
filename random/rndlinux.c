@@ -32,6 +32,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#if defined(__linux__) && defined(HAVE_SYSCALL)
+# include <sys/syscall.h>
+#endif
+
 #include "types.h"
 #include "g10lib.h"
 #include "rand-internal.h"
@@ -231,6 +235,50 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
               continue;
             }
         }
+
+      /* If we have a modern Linux kernel and we want to read from the
+       * the non-blocking /dev/urandom, we first try to use the new
+       * getrandom syscall.  That call guarantees that the kernel's
+       * RNG has been properly seeded before returning any data.  This
+       * is different from /dev/urandom which may, due to its
+       * non-blocking semantics, return data even if the kernel has
+       * not been properly seeded.  Unfortunately we need to use a
+       * syscall and not a new device and thus we are not able to use
+       * select(2) to have a timeout. */
+#if defined(__linux__) && defined(HAVE_SYSCALL) && defined(__NR_getrandom)
+      if (fd == fd_urandom)
+        {
+          long ret;
+          size_t nbytes;
+
+          do
+            {
+              nbytes = length < sizeof(buffer)? length : sizeof(buffer);
+              if (nbytes > 256)
+                nbytes = 256;
+              ret = syscall (__NR_getrandom,
+                             (void*)buffer, (size_t)nbytes, (unsigned int)0);
+            }
+          while (ret == -1 && errno == EINTR);
+          if (ret == -1 && errno == ENOSYS)
+            ; /* The syscall is not supported - fallback to /dev/urandom.  */
+          else
+            { /* The syscall is supported.  Some sanity checks.  */
+              if (ret == -1)
+                log_fatal ("unexpected error from getrandom: %s\n",
+                           strerror (errno));
+              else if (ret != nbytes)
+                log_fatal ("getrandom returned only"
+                           " %ld of %zu requested bytes\n", ret, nbytes);
+
+              log_debug ("getrandom returned %zu requested bytes\n", nbytes);
+              (*add)(buffer, nbytes, origin);
+              length -= nbytes;
+              continue; /* until LENGTH is zero.  */
+            }
+          log_debug ("syscall(getrandom) not supported; errno = %d\n", errno);
+        }
+#endif
 
       do
         {
