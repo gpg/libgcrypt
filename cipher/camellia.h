@@ -37,6 +37,11 @@
 #   define USE_ARM_ASM 1
 #  endif
 # endif
+# if defined(__AARCH64EL__)
+#  ifdef HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS
+#   define USE_ARM_ASM 1
+#  endif
+# endif
 #endif
 #ifdef CAMELLIA_EXT_SYM_PREFIX
 #define CAMELLIA_PREFIX1(x,y) x ## y
@@ -80,7 +85,7 @@ void Camellia_DecryptBlock(const int keyBitLength,
 			   const unsigned char *cipherText,
 			   const KEY_TABLE_TYPE keyTable,
 			   unsigned char *plaintext);
-#endif /*!USE_ARMV6_ASM*/
+#endif /*!USE_ARM_ASM*/
 
 
 #ifdef  __cplusplus

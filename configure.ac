@@ -2123,6 +2123,10 @@ if test "$found" = "1" ; then
          # Build with the assembly implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-arm.lo"
       ;;
+      aarch64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS camellia-aarch64.lo"
+      ;;
    esac
 
    if test x"$avxsupport" = xyes ; then

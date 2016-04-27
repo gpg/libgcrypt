@@ -285,12 +285,19 @@ static void Camellia_DecryptBlock(const int keyBitLength,
 				     keyBitLength);
 }
 
+#ifdef __aarch64__
+#  define CAMELLIA_encrypt_stack_burn_size (0)
+#  define CAMELLIA_decrypt_stack_burn_size (0)
+#else
+#  define CAMELLIA_encrypt_stack_burn_size (15*4)
+#  define CAMELLIA_decrypt_stack_burn_size (15*4)
+#endif
+
 static unsigned int
 camellia_encrypt(void *c, byte *outbuf, const byte *inbuf)
 {
   CAMELLIA_context *ctx = c;
   Camellia_EncryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
-#define CAMELLIA_encrypt_stack_burn_size (15*4)
   return /*burn_stack*/ (CAMELLIA_encrypt_stack_burn_size);
 }
 
@@ -299,7 +306,6 @@ camellia_decrypt(void *c, byte *outbuf, const byte *inbuf)
 {
   CAMELLIA_context *ctx=c;
   Camellia_DecryptBlock(ctx->keybitlength,inbuf,ctx->keytable,outbuf);
-#define CAMELLIA_decrypt_stack_burn_size (15*4)
   return /*burn_stack*/ (CAMELLIA_decrypt_stack_burn_size);
 }
 
