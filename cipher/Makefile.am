@@ -99,7 +99,7 @@ keccak.c keccak_permute_32.h keccak_permute_64.h keccak-armv7-neon.S \
 stribog.c \
 tiger.c \
 whirlpool.c whirlpool-sse2-amd64.S \
-twofish.c twofish-amd64.S twofish-arm.S \
+twofish.c twofish-amd64.S twofish-arm.S twofish-aarch64.S \
 rfc2268.c \
 camellia.c camellia.h camellia-glue.c camellia-aesni-avx-amd64.S \
   camellia-aesni-avx2-amd64.S camellia-arm.S camellia-aarch64.S

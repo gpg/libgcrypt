@@ -66,6 +66,11 @@
 #  define USE_ARM_ASM 1
 # endif
 #endif
+# if defined(__AARCH64EL__)
+#  ifdef HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS
+#   define USE_ARM_ASM 1
+#  endif
+# endif
 
 
 /* Prototype for the self-test function. */
