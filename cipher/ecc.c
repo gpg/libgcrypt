@@ -1071,7 +1071,7 @@ ecc_verify (gcry_sexp_t s_sig, gcry_sexp_t s_data, gcry_sexp_t s_keyparms)
   if ((ctx.flags & PUBKEY_FLAG_PARAM))
     rc = sexp_extract_param (s_keyparms, NULL, "-p?a?b?g?n?h?/q",
                              &pk.E.p, &pk.E.a, &pk.E.b, &mpi_g, &pk.E.n,
-                             &pk.E.n, &mpi_q, NULL);
+                             &pk.E.h, &mpi_q, NULL);
   else
     rc = sexp_extract_param (s_keyparms, NULL, "/q",
                              &mpi_q, NULL);
