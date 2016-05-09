@@ -30,7 +30,8 @@
 #include "bufhelp.h"
 
 
-#if defined(ENABLE_PCLMUL_SUPPORT) && __GNUC__ >= 4 && \
+#if defined(ENABLE_PCLMUL_SUPPORT) && defined(ENABLE_SSE41_SUPPORT) && \
+    __GNUC__ >= 4 &&                                                   \
     ((defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__))
 
 

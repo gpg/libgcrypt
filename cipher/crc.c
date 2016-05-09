@@ -31,10 +31,10 @@
 #include "bufhelp.h"
 
 
-/* USE_INTEL_PCLMUL indicates whether to compile CRC with Intel PCLMUL
+/* USE_INTEL_PCLMUL indicates whether to compile CRC with Intel PCLMUL/SSE4.1
  * code.  */
 #undef USE_INTEL_PCLMUL
-#ifdef ENABLE_PCLMUL_SUPPORT
+#if defined(ENABLE_PCLMUL_SUPPORT) && defined(ENABLE_SSE41_SUPPORT)
 # if ((defined(__i386__) && SIZEOF_UNSIGNED_LONG == 4) || defined(__x86_64__))
 #  if __GNUC__ >= 4
 #   define USE_INTEL_PCLMUL 1
