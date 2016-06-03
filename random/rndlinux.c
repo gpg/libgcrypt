@@ -271,7 +271,6 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
                 log_fatal ("getrandom returned only"
                            " %ld of %zu requested bytes\n", ret, nbytes);
 
-              log_debug ("getrandom returned %zu requested bytes\n", nbytes);
               (*add)(buffer, nbytes, origin);
               length -= nbytes;
               continue; /* until LENGTH is zero.  */
