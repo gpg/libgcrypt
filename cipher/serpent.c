@@ -1734,18 +1734,54 @@ serpent_test (void)
 }
 
 
+static gcry_cipher_oid_spec_t serpent128_oids[] =
+  {
+    {"1.3.6.1.4.1.11591.13.2.1", GCRY_CIPHER_MODE_ECB },
+    {"1.3.6.1.4.1.11591.13.2.2", GCRY_CIPHER_MODE_CBC },
+    {"1.3.6.1.4.1.11591.13.2.3", GCRY_CIPHER_MODE_OFB },
+    {"1.3.6.1.4.1.11591.13.2.4", GCRY_CIPHER_MODE_CFB },
+    { NULL }
+  };
 
-/* "SERPENT" is an alias for "SERPENT128".  */
-static const char *cipher_spec_serpent128_aliases[] =
+static gcry_cipher_oid_spec_t serpent192_oids[] =
+  {
+    {"1.3.6.1.4.1.11591.13.2.21", GCRY_CIPHER_MODE_ECB },
+    {"1.3.6.1.4.1.11591.13.2.22", GCRY_CIPHER_MODE_CBC },
+    {"1.3.6.1.4.1.11591.13.2.23", GCRY_CIPHER_MODE_OFB },
+    {"1.3.6.1.4.1.11591.13.2.24", GCRY_CIPHER_MODE_CFB },
+    { NULL }
+  };
+
+static gcry_cipher_oid_spec_t serpent256_oids[] =
+  {
+    {"1.3.6.1.4.1.11591.13.2.41", GCRY_CIPHER_MODE_ECB },
+    {"1.3.6.1.4.1.11591.13.2.42", GCRY_CIPHER_MODE_CBC },
+    {"1.3.6.1.4.1.11591.13.2.43", GCRY_CIPHER_MODE_OFB },
+    {"1.3.6.1.4.1.11591.13.2.44", GCRY_CIPHER_MODE_CFB },
+    { NULL }
+  };
+
+static const char *serpent128_aliases[] =
   {
     "SERPENT",
+    "SERPENT-128",
+    NULL
+  };
+static const char *serpent192_aliases[] =
+  {
+    "SERPENT-192",
+    NULL
+  };
+static const char *serpent256_aliases[] =
+  {
+    "SERPENT-256",
     NULL
   };
 
 gcry_cipher_spec_t _gcry_cipher_spec_serpent128 =
   {
     GCRY_CIPHER_SERPENT128, {0, 0},
-    "SERPENT128", cipher_spec_serpent128_aliases, NULL, 16, 128,
+    "SERPENT128", serpent128_aliases, serpent128_oids, 16, 128,
     sizeof (serpent_context_t),
     serpent_setkey, serpent_encrypt, serpent_decrypt
   };
@@ -1753,7 +1789,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_serpent128 =
 gcry_cipher_spec_t _gcry_cipher_spec_serpent192 =
   {
     GCRY_CIPHER_SERPENT192, {0, 0},
-    "SERPENT192", NULL, NULL, 16, 192,
+    "SERPENT192", serpent192_aliases, serpent192_oids, 16, 192,
     sizeof (serpent_context_t),
     serpent_setkey, serpent_encrypt, serpent_decrypt
   };
@@ -1761,7 +1797,7 @@ gcry_cipher_spec_t _gcry_cipher_spec_serpent192 =
 gcry_cipher_spec_t _gcry_cipher_spec_serpent256 =
   {
     GCRY_CIPHER_SERPENT256, {0, 0},
-    "SERPENT256", NULL, NULL, 16, 256,
+    "SERPENT256", serpent256_aliases, serpent256_oids, 16, 256,
     sizeof (serpent_context_t),
     serpent_setkey, serpent_encrypt, serpent_decrypt
   };
