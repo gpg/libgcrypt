@@ -419,7 +419,7 @@ registry_poll (void (*add)(const void*, size_t, enum random_origins),
      this can consume tens of MB of memory and huge amounts of CPU time
      while it gathers its data, and even running once can still consume
      about 1/2MB of memory */
-  if (getenv ("GNUPG_RNDW32_NOPERF"))
+  if (getenv ("GCRYPT_RNDW32_NOPERF"))
     {
       static int shown;
 

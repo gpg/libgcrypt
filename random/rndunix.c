@@ -714,7 +714,7 @@ start_gatherer( int pipefd )
     int dbgall;
 
     {
-	const char *s = getenv("GNUPG_RNDUNIX_DBG");
+	const char *s = getenv("GCRYPT_RNDUNIX_DBG");
 	if( s ) {
 	    dbgfp = (*s=='-' && !s[1])? stdout : fopen(s, "a");
 	    if( !dbgfp )
@@ -723,7 +723,7 @@ start_gatherer( int pipefd )
 	    else
 		fprintf(dbgfp,"\nSTART RNDUNIX DEBUG pid=%d\n", (int)getpid());
 	}
-	dbgall = !!getenv("GNUPG_RNDUNIX_DBGALL");
+	dbgall = !!getenv("GCRYPT_RNDUNIX_DBGALL");
     }
     /* close all files but the ones we need */
     {	int nmax, n1, n2, i;
