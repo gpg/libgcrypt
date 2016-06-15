@@ -1,5 +1,23 @@
-Noteworthy changes in version 1.7.1 (unreleased)  [C21/A1/R_]
+Noteworthy changes in version 1.7.1 (2016-06-15)  [C21/A1/R1]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix ecc_verify for cofactor support.
+
+   - Fix portability bug when using gcc with Solaris 9 SPARC.
+
+   - Build fix for OpenBSD/amd64
+
+   - Add OIDs to the Serpent ciphers.
+
+ * Internal changes:
+
+   - Use getrandom system call on Linux if available.
+
+   - Blinding is now also used for RSA signature creation.
+
+   - Changed names of debug envvars
 
 
 Noteworthy changes in version 1.7.0 (2016-04-15)  [C21/A1/R0]
