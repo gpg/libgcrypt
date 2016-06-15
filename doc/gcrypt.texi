@@ -14,7 +14,7 @@ which is GNU's library of cryptographic building blocks.
 
 @noindent
 Copyright @copyright{} 2000, 2002, 2003, 2004, 2006, 2007, 2008, 2009, 2011, 2012 Free Software Foundation, Inc. @*
-Copyright @copyright{} 2012, 2013 g10 Code GmbH
+Copyright @copyright{} 2012, 2013, 2016 g10 Code GmbH
 
 @quotation
 Permission is granted to copy, distribute and/or modify this document
@@ -94,7 +94,8 @@ section entitled ``GNU General Public License''.
 * MPI library::                  How to work with multi-precision-integers.
 * Prime numbers::                How to use the Prime number related functions.
 * Utilities::                    Utility functions.
-* Tools::                        Utility tools
+* Tools::                        Utility tools.
+* Configuration::                Configuration files and evironment variables.
 * Architecture::                 How Libgcrypt works internally.
 
 Appendices
@@ -497,6 +498,7 @@ Just like the function @code{gpg_strerror}, the function
 @cindex FIPS mode
 @cindex FIPS 140
 
+@anchor{enabling fips mode}
 Libgcrypt may be used in a FIPS 140-2 mode.  Note, that this does not
 necessary mean that Libcgrypt is an appoved FIPS 140-2 module.  Check the
 NIST database at @url{http://csrc.nist.gov/groups/STM/cmvp/} to see what
@@ -545,6 +547,7 @@ If the logging verbosity level of Libgcrypt has been set to at least
 @section How to disable hardware features
 @cindex hardware features
 
+@anchor{hardware features}
 Libgcrypt makes use of certain hardware features.  If the use of a
 feature is not desired it may be either be disabled by a program or
 globally using a configuration file.  The currently supported features
@@ -5304,6 +5307,82 @@ Print version of the program and exit.
 @command{sha256sum}(1)
 @end ifset
 @manpause
+
+@c **********************************************************
+@c ****************  Environment Variables  *****************
+@c **********************************************************
+@node Configuration
+@chapter Configuration files and evironment variables
+
+This chapter describes which files and environment variables can be
+used to change the behaviour of Libgcrypt.
+
+@noindent
+The environment variables considered by Libgcrypt are:
+
+@table @code
+
+@item GCRYPT_BARRETT
+@cindex GCRYPT_BARRETT
+By setting this variable to any value a different algorithm for
+modular reduction is used for ECC.
+
+@item GCRYPT_RNDUNIX_DBG
+@item GCRYPT_RNDUNIX_DBGALL
+@cindex GCRYPT_RNDUNIX_DBG
+@cindex GCRYPT_RNDUNIX_DBGALL
+These two environment variables are used to enable debug output for
+the rndunix entropy gatherer, which is used on systems lacking a
+/dev/random device.  The value of @code{GCRYPT_RNDUNIX_DBG} is a file
+name or @code{-} for stdout.  Debug output is the written to this
+file.  By setting @code{GCRYPT_RNDUNIX_DBGALL} to any value the debug
+output will be more verbose.
+
+@item GCRYPT_RNDW32_NOPERF
+@cindex GCRYPT_RNDW32_NOPERF
+Setting this environment variable on Windows to any value disables
+the use of performance data (@code{HKEY_PERFORMANCE_DATA}) as source
+for entropy.  On some older Windows systems this could help to speed
+up the creation of random numbers but also decreases the amount of
+data used to init the random number generator.
+
+@item HOME
+@cindex HOME
+This is used to locate the socket to connect to the EGD random
+daemon.  The EGD can be used on system without a /dev/random to speed
+up the random number generator.  It is not needed on the majority of
+today's operating systems and support for EGD requires the use of a
+configure option at build time.
+
+@end table
+
+@noindent
+The files which Libgcrypt uses to retrieve system information and the
+files which can be created by the user to modify Libgcrypt's behavior
+are:
+
+@table @file
+
+@item /etc/gcrypt/hwf.deny
+@cindex /etc/gcrypt/hwf.deny
+This file can be used to disable the use of hardware based
+optimizations, @pxref{hardware features}.
+
+@item /etc/gcrypt/fips_enabled
+@itemx /proc/sys/crypto/fips_enabled
+@cindex /etc/gcrypt/fips_enabled
+@cindex fips_enabled
+On Linux these files are used to enable FIPS mode, @pxref{enabling fips mode}.
+
+@item /proc/cpuinfo
+@itemx /proc/self/auxv
+@cindex /proc/cpuinfo
+@cindex /proc/self/auxv
+On Linux running on the ARM architecture, these files are used to read
+hardware capabilities of the CPU.
+
+@end table
+
 
 @c **********************************************************
 @c *****************  Architecure Overview  *****************
