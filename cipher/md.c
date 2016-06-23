@@ -847,7 +847,7 @@ md_read( gcry_md_hd_t a, int algo )
 	    return r->spec->read (&r->context.c);
 	  }
     }
-  BUG();
+  _gcry_fatal_error (GPG_ERR_DIGEST_ALGO, "request algo not in md context");
   return NULL;
 }
 
