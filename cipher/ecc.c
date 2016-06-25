@@ -790,7 +790,8 @@ ecc_check_secret_key (gcry_sexp_t keyparms)
     }
   if (mpi_g)
     {
-      point_init (&sk.E.G);
+      if (!sk.E.G.x)
+        point_init (&sk.E.G);
       rc = _gcry_ecc_os2ec (&sk.E.G, mpi_g);
       if (rc)
         goto leave;
