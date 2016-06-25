@@ -115,6 +115,15 @@ static const char sample_public_key_1[] =
 static int verbose;
 static int error_count;
 
+
+/* If we have a decent libgpg-error we can use some gcc attributes.  */
+#ifdef GPGRT_ATTR_NORETURN
+static void die (const char *format, ...) GPGRT_ATTR_NR_PRINTF(1,2);
+static void fail (const char *format, ...) GPGRT_ATTR_PRINTF(1,2);
+static void info (const char *format, ...) GPGRT_ATTR_PRINTF(1,2);
+#endif /*GPGRT_ATTR_NORETURN*/
+
+
 static void
 die (const char *format, ...)
 {
