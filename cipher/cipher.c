@@ -175,8 +175,10 @@ search_oid (const char *oid, gcry_cipher_oid_spec_t *oid_spec)
   gcry_cipher_spec_t *spec;
   int i;
 
-  if (oid && ((! strncmp (oid, "oid.", 4))
-	      || (! strncmp (oid, "OID.", 4))))
+  if (!oid)
+    return NULL;
+
+  if (!strncmp (oid, "oid.", 4) || !strncmp (oid, "OID.", 4))
     oid += 4;
 
   spec = spec_from_oid (oid);

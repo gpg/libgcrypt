@@ -291,7 +291,7 @@ do_printhex (const char *text, const char *text2,
           log_debug ("%*s  ", (int)strlen(text), "");
         }
     }
-  if (length)
+  if (length && buffer)
     {
       const unsigned char *p = buffer;
       for (; length--; p++)

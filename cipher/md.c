@@ -198,8 +198,10 @@ search_oid (const char *oid, gcry_md_oid_spec_t *oid_spec)
   gcry_md_spec_t *spec;
   int i;
 
-  if (oid && ((! strncmp (oid, "oid.", 4))
-	      || (! strncmp (oid, "OID.", 4))))
+  if (!oid)
+    return NULL;
+
+  if (!strncmp (oid, "oid.", 4) || !strncmp (oid, "OID.", 4))
     oid += 4;
 
   spec = spec_from_oid (oid);
@@ -471,51 +473,48 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
   else
     bhd = xtrymalloc (n + sizeof (struct gcry_md_context));
 
-  if (! bhd)
-    err = gpg_err_code_from_errno (errno);
-
-  if (! err)
+  if (!bhd)
     {
-      bhd->ctx = b = (void *) ((char *) bhd + n);
-      /* No need to copy the buffer due to the write above. */
-      gcry_assert (ahd->bufsize == (n - sizeof (struct gcry_md_handle) + 1));
-      bhd->bufsize = ahd->bufsize;
-      bhd->bufpos = 0;
-      gcry_assert (! ahd->bufpos);
-      memcpy (b, a, sizeof *a);
-      b->list = NULL;
-      b->debug = NULL;
+      err = gpg_err_code_from_syserror ();
+      goto leave;
     }
+
+  bhd->ctx = b = (void *) ((char *) bhd + n);
+  /* No need to copy the buffer due to the write above. */
+  gcry_assert (ahd->bufsize == (n - sizeof (struct gcry_md_handle) + 1));
+  bhd->bufsize = ahd->bufsize;
+  bhd->bufpos = 0;
+  gcry_assert (! ahd->bufpos);
+  memcpy (b, a, sizeof *a);
+  b->list = NULL;
+  b->debug = NULL;
 
   /* Copy the complete list of algorithms.  The copied list is
      reversed, but that doesn't matter. */
-  if (!err)
+  for (ar = a->list; ar; ar = ar->next)
     {
-      for (ar = a->list; ar; ar = ar->next)
+      if (a->flags.secure)
+        br = xtrymalloc_secure (ar->actual_struct_size);
+      else
+        br = xtrymalloc (ar->actual_struct_size);
+      if (!br)
         {
-          if (a->flags.secure)
-            br = xtrymalloc_secure (ar->actual_struct_size);
-          else
-            br = xtrymalloc (ar->actual_struct_size);
-          if (!br)
-            {
-	      err = gpg_err_code_from_errno (errno);
-              md_close (bhd);
-              break;
-            }
-
-          memcpy (br, ar, ar->actual_struct_size);
-          br->next = b->list;
-          b->list = br;
+          err = gpg_err_code_from_syserror ();
+          md_close (bhd);
+          goto leave;
         }
+
+      memcpy (br, ar, ar->actual_struct_size);
+      br->next = b->list;
+      b->list = br;
     }
 
-  if (a->debug && !err)
+  if (a->debug)
     md_start_debug (bhd, "unknown");
 
-  if (!err)
-    *b_hd = bhd;
+  *b_hd = bhd;
 
+ leave:
   return err;
 }
 

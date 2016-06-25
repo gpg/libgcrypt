@@ -1247,7 +1247,7 @@ rsa_encrypt (gcry_sexp_t *r_ciph, gcry_sexp_t s_data, gcry_sexp_t keyparms)
     goto leave;
   if (DBG_CIPHER)
     log_mpidump ("rsa_encrypt data", data);
-  if (mpi_is_opaque (data))
+  if (!data || mpi_is_opaque (data))
     {
       rc = GPG_ERR_INV_DATA;
       goto leave;
