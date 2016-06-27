@@ -831,9 +831,8 @@ md_read( gcry_md_hd_t a, int algo )
         {
           if (r->next)
             log_debug ("more than one algorithm in md_read(0)\n");
-          if (r->spec->read == NULL)
-            return NULL;
-          return r->spec->read (&r->context.c);
+          if (r->spec->read)
+            return r->spec->read (&r->context.c);
         }
     }
   else
@@ -841,12 +840,17 @@ md_read( gcry_md_hd_t a, int algo )
       for (r = a->ctx->list; r; r = r->next)
 	if (r->spec->algo == algo)
 	  {
-	    if (r->spec->read == NULL)
-	      return NULL;
-	    return r->spec->read (&r->context.c);
+	    if (r->spec->read)
+              return r->spec->read (&r->context.c);
+            break;
 	  }
     }
-  _gcry_fatal_error (GPG_ERR_DIGEST_ALGO, "request algo not in md context");
+
+  if (r && !r->spec->read)
+    _gcry_fatal_error (GPG_ERR_DIGEST_ALGO,
+                       "requested algo has no fixed digest length");
+  else
+    _gcry_fatal_error (GPG_ERR_DIGEST_ALGO, "requested algo not in md context");
   return NULL;
 }
 
@@ -1010,6 +1014,7 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
 	 normal functions. */
       gcry_md_hd_t h;
       gpg_err_code_t rc;
+      int dlen;
 
       if (algo == GCRY_MD_MD5 && fips_mode ())
         {
@@ -1021,6 +1026,12 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
               _gcry_fips_noreturn ();
             }
         }
+
+      /* Detect SHAKE128 like algorithms which we can't use because
+       * our API does not allow for a variable length digest.  */
+      dlen = md_digest_length (algo);
+      if (!dlen)
+        return GPG_ERR_DIGEST_ALGO;
 
       rc = md_open (&h, algo, (hmac? GCRY_MD_FLAG_HMAC:0));
       if (rc)
@@ -1041,7 +1052,7 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
       for (;iovcnt; iov++, iovcnt--)
         md_write (h, (const char*)iov[0].data + iov[0].off, iov[0].len);
       md_final (h);
-      memcpy (digest, md_read (h, algo), md_digest_length (algo));
+      memcpy (digest, md_read (h, algo), dlen);
       md_close (h);
     }
 
