@@ -818,6 +818,12 @@ cipher_encrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
 {
   gcry_err_code_t rc;
 
+  if (c->mode != GCRY_CIPHER_MODE_NONE && !c->marks.key)
+    {
+      log_error ("cipher_encrypt: key not set\n");
+      return GPG_ERR_MISSING_KEY;
+    }
+
   switch (c->mode)
     {
     case GCRY_CIPHER_MODE_ECB:
@@ -934,6 +940,12 @@ cipher_decrypt (gcry_cipher_hd_t c, byte *outbuf, size_t outbuflen,
                 const byte *inbuf, size_t inbuflen)
 {
   gcry_err_code_t rc;
+
+  if (c->mode != GCRY_CIPHER_MODE_NONE && !c->marks.key)
+    {
+      log_error ("cipher_decrypt: key not set\n");
+      return GPG_ERR_MISSING_KEY;
+    }
 
   switch (c->mode)
     {
