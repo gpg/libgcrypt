@@ -31,8 +31,7 @@
 
 #if (defined(HAVE_COMPATIBLE_GCC_AMD64_PLATFORM_AS) || \
      defined(HAVE_COMPATIBLE_GCC_WIN64_PLATFORM_AS)) && \
-    defined(HAVE_GCC_INLINE_ASM_BMI2) && \
-    defined(HAVE_GCC_INLINE_ASM_AVX2) && defined(USE_SHA1)
+    defined(HAVE_GCC_INLINE_ASM_AVX) && defined(USE_SHA1)
 
 #ifdef __PIC__
 #  define RIP (%rip)
