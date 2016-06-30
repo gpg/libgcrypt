@@ -33,6 +33,19 @@
 .fpu neon
 .arm
 
+#ifdef __PIC__
+#  define GET_DATA_POINTER(reg, name, rtmp) \
+		ldr reg, 1f; \
+		ldr rtmp, 2f; \
+		b 3f; \
+	1:	.word _GLOBAL_OFFSET_TABLE_-(3f+8); \
+	2:	.word name(GOT); \
+	3:	add reg, pc, reg; \
+		ldr reg, [reg, rtmp];
+#else
+#  define GET_DATA_POINTER(reg, name, rtmp) ldr reg, =name
+#endif
+
 .text
 
 .p2align 2
@@ -52,7 +65,7 @@ _gcry_poly1305_armv7_neon_init_ext:
 	and r2, r2, r2
 	moveq r14, #-1
 	ldmia r1!, {r2-r5}
-	ldr r7, =.Lpoly1305_init_constants_neon
+	GET_DATA_POINTER(r7,.Lpoly1305_init_constants_neon,r8)
 	mov r6, r2
 	mov r8, r2, lsr #26
 	mov r9, r3, lsr #20
