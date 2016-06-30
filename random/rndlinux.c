@@ -275,7 +275,6 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
               length -= nbytes;
               continue; /* until LENGTH is zero.  */
             }
-          log_debug ("syscall(getrandom) not supported; errno = %d\n", errno);
         }
 #endif
 
