@@ -175,7 +175,7 @@ show_sexp (const char *prefix, gcry_sexp_t a)
 }
 
 /* from ../cipher/pubkey-util.c */
-gpg_err_code_t
+static gpg_err_code_t
 _gcry_pk_util_get_nbits (gcry_sexp_t list, unsigned int *r_nbits)
 {
   char buf[50];
