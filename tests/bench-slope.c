@@ -42,6 +42,7 @@
 
 static int verbose;
 static int csv_mode;
+static int unaligned_mode;
 static int num_measurement_repetitions;
 
 /* CPU Ghz value provided by user, allows constructing cycles/byte and other
@@ -411,12 +412,14 @@ do_slope_benchmark (struct bench_obj *obj)
       obj->max_bufsize < 1 || obj->min_bufsize > obj->max_bufsize)
     goto err_free;
 
-  real_buffer = malloc (obj->max_bufsize + 128);
+  real_buffer = malloc (obj->max_bufsize + 128 + unaligned_mode);
   if (!real_buffer)
     goto err_free;
   /* Get aligned buffer */
   buffer = real_buffer;
   buffer += 128 - ((real_buffer - (unsigned char *) 0) & (128 - 1));
+  if (unaligned_mode)
+    buffer += unaligned_mode; /* Make buffer unaligned */
 
   for (i = 0; i < obj->max_bufsize; i++)
     buffer[i] = 0x55 ^ (-i);
@@ -1748,6 +1751,7 @@ print_help (void)
     "                             for benchmarking.",
     "   --repetitions <n>         Use N repetitions (default "
                                      STR2(NUM_MEASUREMENT_REPETITIONS) ")",
+    "   --unaligned               Use unaligned input buffers.",
     "   --csv                     Use CSV output format",
     NULL
   };
@@ -1829,6 +1833,12 @@ main (int argc, char **argv)
       else if (!strcmp (*argv, "--csv"))
 	{
 	  csv_mode = 1;
+	  argc--;
+	  argv++;
+	}
+      else if (!strcmp (*argv, "--unaligned"))
+	{
+	  unaligned_mode = 1;
 	  argc--;
 	  argv++;
 	}
