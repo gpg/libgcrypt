@@ -33,6 +33,40 @@
 .fpu neon
 .arm
 
+#define UNALIGNED_STMIA8(ptr, l0, l1, l2, l3, l4, l5, l6, l7) \
+        tst ptr, #3; \
+        beq 1f; \
+        vpush {d0-d3}; \
+        vmov s0, l0; \
+        vmov s1, l1; \
+        vmov s2, l2; \
+        vmov s3, l3; \
+        vmov s4, l4; \
+        vmov s5, l5; \
+        vmov s6, l6; \
+        vmov s7, l7; \
+        vst1.32 {d0-d3}, [ptr]; \
+        add ptr, #32; \
+        vpop {d0-d3}; \
+        b 2f; \
+     1: stmia ptr!, {l0-l7}; \
+     2: ;
+
+#define UNALIGNED_LDMIA4(ptr, l0, l1, l2, l3) \
+        tst ptr, #3; \
+        /*beq 1f;*/ \
+        vpush {d0-d1}; \
+        vld1.32 {d0-d1}, [ptr]; \
+        add ptr, #16; \
+        vmov l0, s0; \
+        vmov l1, s1; \
+        vmov l2, s2; \
+        vmov l3, s3; \
+        vpop {d0-d1}; \
+        b 2f; \
+     1: ldmia ptr!, {l0-l3}; \
+     2: ;
+
 .text
 
 .globl _gcry_chacha20_armv7_neon_blocks
@@ -352,7 +386,8 @@ _gcry_chacha20_armv7_neon_blocks:
 	add r7, r7, r11
 	vadd.i32 q11, q11, q14
 	beq .Lchacha_blocks_neon_nomessage11
-	ldmia r12!, {r8-r11}
+	UNALIGNED_LDMIA4(r12, r8, r9, r10, r11)
+	tst r12, r12
 	eor r0, r0, r8
 	eor r1, r1, r9
 	eor r2, r2, r10
@@ -367,7 +402,8 @@ _gcry_chacha20_armv7_neon_blocks:
 	add r12, r12, #16
 	eor r7, r7, r11
 .Lchacha_blocks_neon_nomessage11:
-	stmia r14!, {r0-r7}
+	UNALIGNED_STMIA8(r14, r0, r1, r2, r3, r4, r5, r6, r7)
+	tst r12, r12
 	ldm sp, {r0-r7}
 	ldr r8, [sp, #(64 +32)]
 	ldr r9, [sp, #(64 +36)]
@@ -391,7 +427,8 @@ _gcry_chacha20_armv7_neon_blocks:
 	tst r12, r12
 	str r9, [sp, #(64 +52)]
 	beq .Lchacha_blocks_neon_nomessage12
-	ldmia r12!, {r8-r11}
+	UNALIGNED_LDMIA4(r12, r8, r9, r10, r11)
+	tst r12, r12
 	eor r0, r0, r8
 	eor r1, r1, r9
 	eor r2, r2, r10
@@ -406,7 +443,8 @@ _gcry_chacha20_armv7_neon_blocks:
 	add r12, r12, #16
 	eor r7, r7, r11
 .Lchacha_blocks_neon_nomessage12:
-	stmia r14!, {r0-r7}
+	UNALIGNED_STMIA8(r14, r0, r1, r2, r3, r4, r5, r6, r7)
+	tst r12, r12
 	beq .Lchacha_blocks_neon_nomessage13
 	vld1.32 {q12,q13}, [r12]!
 	vld1.32 {q14,q15}, [r12]!
@@ -613,7 +651,8 @@ _gcry_chacha20_armv7_neon_blocks:
 	tst r12, r12
 	add r7, r7, r11
 	beq .Lchacha_blocks_neon_nomessage21
-	ldmia r12!, {r8-r11}
+	UNALIGNED_LDMIA4(r12, r8, r9, r10, r11)
+	tst r12, r12
 	eor r0, r0, r8
 	eor r1, r1, r9
 	eor r2, r2, r10
@@ -628,7 +667,7 @@ _gcry_chacha20_armv7_neon_blocks:
 	add r12, r12, #16
 	eor r7, r7, r11
 .Lchacha_blocks_neon_nomessage21:
-	stmia r14!, {r0-r7}
+	UNALIGNED_STMIA8(r14, r0, r1, r2, r3, r4, r5, r6, r7)
 	ldm sp, {r0-r7}
 	ldr r8, [sp, #(64 +32)]
 	ldr r9, [sp, #(64 +36)]
@@ -652,7 +691,8 @@ _gcry_chacha20_armv7_neon_blocks:
 	tst r12, r12
 	str r9, [sp, #(64 +52)]
 	beq .Lchacha_blocks_neon_nomessage22
-	ldmia r12!, {r8-r11}
+	UNALIGNED_LDMIA4(r12, r8, r9, r10, r11)
+	tst r12, r12
 	eor r0, r0, r8
 	eor r1, r1, r9
 	eor r2, r2, r10
@@ -667,7 +707,7 @@ _gcry_chacha20_armv7_neon_blocks:
 	add r12, r12, #16
 	eor r7, r7, r11
 .Lchacha_blocks_neon_nomessage22:
-	stmia r14!, {r0-r7}
+	UNALIGNED_STMIA8(r14, r0, r1, r2, r3, r4, r5, r6, r7)
 	str r12, [sp, #48]
 	str r14, [sp, #40]
 	ldr r3, [sp, #52]
