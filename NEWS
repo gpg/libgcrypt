@@ -1,4 +1,4 @@
-Noteworthy changes in version 1.7.2 (unreleased)  [C21/A1/R_]
+Noteworthy changes in version 1.7.2 (2016-07-14)  [C21/A1/R2]
 ------------------------------------------------
 
  * Bug fixes:
@@ -9,11 +9,11 @@ Noteworthy changes in version 1.7.2 (unreleased)  [C21/A1/R_]
 
    - Remove debug message about unsupported getrandom syscall.
 
-   - Fix build problems related to AVX use
+   - Fix build problems related to AVX use.
 
    - Fix bus errors on ARM for Poly1305, ChaCha20, AES, and SHA-512.
 
- * Internal chnages:
+ * Internal changes:
 
    - Improved fatal error message for wrong use of gcry_md_read.
 
