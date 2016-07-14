@@ -72,6 +72,16 @@
 # endif
 #endif /* GCM_USE_INTEL_PCLMUL */
 
+/* GCM_USE_ARM_PMULL indicates whether to compile GCM with ARMv8 PMULL code. */
+#undef GCM_USE_ARM_PMULL
+#if defined(ENABLE_ARM_CRYPTO_SUPPORT) && defined(GCM_USE_TABLES)
+# if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__) \
+     && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) \
+     && defined(HAVE_GCC_INLINE_ASM_AARCH32_CRYPTO)
+#  define GCM_USE_ARM_PMULL 1
+# endif
+#endif /* GCM_USE_ARM_PMULL */
+
 
 typedef unsigned int (*ghash_fn_t) (gcry_cipher_hd_t c, byte *result,
                                     const byte *buf, size_t nblocks);
