@@ -1,6 +1,24 @@
 Noteworthy changes in version 1.7.2 (unreleased)  [C21/A1/R_]
 ------------------------------------------------
 
+ * Bug fixes:
+
+   - Fix setting of the ECC cofactor if parameters are specified.
+
+   - Fix memory leak in the ECC code.
+
+   - Remove debug message about unsupported getrandom syscall.
+
+   - Fix build problems related to AVX use
+
+   - Fix bus errors on ARM for Poly1305, ChaCha20, AES, and SHA-512.
+
+ * Internal chnages:
+
+   - Improved fatal error message for wrong use of gcry_md_read.
+
+   - Disallow symmetric encryption/decryption if key is not set.
+
 
 Noteworthy changes in version 1.7.1 (2016-06-15)  [C21/A1/R1]
 ------------------------------------------------
