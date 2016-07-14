@@ -56,7 +56,11 @@ static struct
     { HWF_INTEL_RDRAND,    "intel-rdrand" },
     { HWF_INTEL_AVX,       "intel-avx" },
     { HWF_INTEL_AVX2,      "intel-avx2" },
-    { HWF_ARM_NEON,        "arm-neon" }
+    { HWF_ARM_NEON,        "arm-neon" },
+    { HWF_ARM_AES,         "arm-aes" },
+    { HWF_ARM_SHA1,        "arm-sha1" },
+    { HWF_ARM_SHA2,        "arm-sha2" },
+    { HWF_ARM_PMULL,       "arm-pmull" }
   };
 
 /* A bit vector with the hardware features which shall not be used.

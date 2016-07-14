@@ -211,6 +211,10 @@ char **_gcry_strtokenize (const char *string, const char *delim);
 #define HWF_INTEL_AVX2      (1 << 13)
 
 #define HWF_ARM_NEON        (1 << 14)
+#define HWF_ARM_AES         (1 << 15)
+#define HWF_ARM_SHA1        (1 << 16)
+#define HWF_ARM_SHA2        (1 << 17)
+#define HWF_ARM_PMULL       (1 << 18)
 
 
 gpg_err_code_t _gcry_disable_hw_feature (const char *name);

@@ -637,6 +637,14 @@ AC_ARG_ENABLE(neon-support,
 	      neonsupport=$enableval,neonsupport=yes)
 AC_MSG_RESULT($neonsupport)
 
+# Implementation of the --disable-arm-crypto-support switch.
+AC_MSG_CHECKING([whether ARMv8 Crypto Extension support is requested])
+AC_ARG_ENABLE(arm-crypto-support,
+              AC_HELP_STRING([--disable-arm-crypto-support],
+                 [Disable support for the ARMv8 Crypto Extension instructions]),
+	      armcryptosupport=$enableval,armcryptosupport=yes)
+AC_MSG_RESULT($armcryptosupport)
+
 # Implementation of the --disable-O-flag-munging switch.
 AC_MSG_CHECKING([whether a -O flag munging is requested])
 AC_ARG_ENABLE([O-flag-munging],
@@ -1125,7 +1133,10 @@ if test "$mpi_cpu_arch" != "x86" ; then
 fi
 
 if test "$mpi_cpu_arch" != "arm" ; then
-   neonsupport="n/a"
+   if test "$mpi_cpu_arch" != "aarch64" ; then
+     neonsupport="n/a"
+     armcryptosupport="n/a"
+   fi
 fi
 
 
@@ -1532,6 +1543,116 @@ if test "$gcry_cv_gcc_inline_asm_neon" = "yes" ; then
 fi
 
 
+#
+# Check whether GCC inline assembler supports AArch32 Crypto Extension instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AArch32 Crypto Extension instructions],
+       [gcry_cv_gcc_inline_asm_aarch32_crypto],
+       [if test "$mpi_cpu_arch" != "arm" ; then
+          gcry_cv_gcc_inline_asm_aarch32_crypto="n/a"
+        else
+          gcry_cv_gcc_inline_asm_aarch32_crypto=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                ".syntax unified\n\t"
+                ".arm\n\t"
+                ".fpu crypto-neon-fp-armv8\n\t"
+
+                "sha1h.32 q0, q0;\n\t"
+                "sha1c.32 q0, q0, q0;\n\t"
+                "sha1p.32 q0, q0, q0;\n\t"
+                "sha1su0.32 q0, q0, q0;\n\t"
+                "sha1su1.32 q0, q0;\n\t"
+
+                "sha256h.32 q0, q0, q0;\n\t"
+                "sha256h2.32 q0, q0, q0;\n\t"
+                "sha1p.32 q0, q0, q0;\n\t"
+                "sha256su0.32 q0, q0;\n\t"
+                "sha256su1.32 q0, q0, q15;\n\t"
+
+                "aese.8 q0, q0;\n\t"
+                "aesd.8 q0, q0;\n\t"
+                "aesmc.8 q0, q0;\n\t"
+                "aesimc.8 q0, q0;\n\t"
+
+                "vmull.p64 q0, d0, d0;\n\t"
+                );
+            ]])],
+          [gcry_cv_gcc_inline_asm_aarch32_crypto=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_aarch32_crypto" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AARCH32_CRYPTO,1,
+     [Defined if inline assembler supports AArch32 Crypto Extension instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports AArch64 NEON instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 NEON instructions],
+       [gcry_cv_gcc_inline_asm_aarch64_neon],
+       [if test "$mpi_cpu_arch" != "aarch64" ; then
+          gcry_cv_gcc_inline_asm_aarch64_neon="n/a"
+        else
+          gcry_cv_gcc_inline_asm_aarch64_neon=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                ".arch armv8-a\n\t"
+                "mov w0, \#42;\n\t"
+                "dup v0.8b, w0;\n\t"
+                "ld4 {v0.8b,v1.8b,v2.8b,v3.8b},[x0],\#32;\n\t"
+                );
+            ]])],
+          [gcry_cv_gcc_inline_asm_aarch64_neon=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_aarch64_neon" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AARCH64_NEON,1,
+     [Defined if inline assembler supports AArch64 NEON instructions])
+fi
+
+
+#
+# Check whether GCC inline assembler supports AArch64 Crypto Extension instructions
+#
+AC_CACHE_CHECK([whether GCC inline assembler supports AArch64 Crypto Extension instructions],
+       [gcry_cv_gcc_inline_asm_aarch64_crypto],
+       [if test "$mpi_cpu_arch" != "aarch64" ; then
+          gcry_cv_gcc_inline_asm_aarch64_crypto="n/a"
+        else
+          gcry_cv_gcc_inline_asm_aarch64_crypto=no
+          AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                ".arch armv8-a+crypto\n\t"
+
+                "sha1h s0, s0;\n\t"
+                "sha1c q0, s0, v0.4s;\n\t"
+                "sha1p q0, s0, v0.4s;\n\t"
+                "sha1su0 v0.4s, v0.4s, v0.4s;\n\t"
+                "sha1su1 v0.4s, v0.4s;\n\t"
+
+                "sha256h q0, q0, v0.4s;\n\t"
+                "sha256h2 q0, q0, v0.4s;\n\t"
+                "sha1p q0, s0, v0.4s;\n\t"
+                "sha256su0 v0.4s, v0.4s;\n\t"
+                "sha256su1 v0.4s, v0.4s, v31.4s;\n\t"
+
+                "aese v0.16b, v0.16b;\n\t"
+                "aesd v0.16b, v0.16b;\n\t"
+                "aesmc v0.16b, v0.16b;\n\t"
+                "aesimc v0.16b, v0.16b;\n\t"
+
+                "pmull v0.1q, v0.1d, v31.1d;\n\t"
+                "pmull2 v0.1q, v0.2d, v31.2d;\n\t"
+                );
+            ]])],
+          [gcry_cv_gcc_inline_asm_aarch64_crypto=yes])
+        fi])
+if test "$gcry_cv_gcc_inline_asm_aarch64_crypto" = "yes" ; then
+   AC_DEFINE(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO,1,
+     [Defined if inline assembler supports AArch64 Crypto Extension instructions])
+fi
+
+
 #######################################
 #### Checks for library functions. ####
 #######################################
@@ -1758,7 +1879,16 @@ if test x"$avx2support" = xyes ; then
 fi
 if test x"$neonsupport" = xyes ; then
   if test "$gcry_cv_gcc_inline_asm_neon" != "yes" ; then
-    neonsupport="no (unsupported by compiler)"
+    if test "$gcry_cv_gcc_inline_asm_aarch64_neon" != "yes" ; then
+      neonsupport="no (unsupported by compiler)"
+    fi
+  fi
+fi
+if test x"$armcryptosupport" = xyes ; then
+  if test "$gcry_cv_gcc_inline_asm_aarch32_crypto" != "yes" ; then
+    if test "$gcry_cv_gcc_inline_asm_aarch64_crypto" != "yes" ; then
+      neonsupport="no (unsupported by compiler)"
+    fi
   fi
 fi
 
@@ -1785,6 +1915,10 @@ fi
 if test x"$neonsupport" = xyes ; then
   AC_DEFINE(ENABLE_NEON_SUPPORT,1,
             [Enable support for ARM NEON instructions.])
+fi
+if test x"$armcryptosupport" = xyes ; then
+  AC_DEFINE(ENABLE_ARM_CRYPTO_SUPPORT,1,
+            [Enable support for ARMv8 Crypto Extension instructions.])
 fi
 if test x"$padlocksupport" = xyes ; then
   AC_DEFINE(ENABLE_PADLOCK_SUPPORT, 1,
@@ -2299,6 +2433,10 @@ case "$mpi_cpu_arch" in
         AC_DEFINE(HAVE_CPU_ARCH_ARM, 1,   [Defined for ARM platforms])
         GCRYPT_HWF_MODULES="hwf-arm.lo"
         ;;
+     aarch64)
+        AC_DEFINE(HAVE_CPU_ARCH_ARM, 1,   [Defined for ARM AArch64 platforms])
+        GCRYPT_HWF_MODULES="hwf-arm.lo"
+        ;;
 esac
 AC_SUBST([GCRYPT_HWF_MODULES])
 
@@ -2384,6 +2522,7 @@ GCRY_MSG_SHOW([Try using DRNG (RDRAND):  ],[$drngsupport])
 GCRY_MSG_SHOW([Try using Intel AVX:      ],[$avxsupport])
 GCRY_MSG_SHOW([Try using Intel AVX2:     ],[$avx2support])
 GCRY_MSG_SHOW([Try using ARM NEON:       ],[$neonsupport])
+GCRY_MSG_SHOW([Try using ARMv8 crypto:   ],[$armcryptosupport])
 GCRY_MSG_SHOW([],[])
 
 if test "x${gpg_config_script_warn}" != x; then
