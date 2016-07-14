@@ -76,8 +76,18 @@
      && defined(HAVE_GCC_INLINE_ASM_NEON)
 #  define USE_NEON 1
 # endif
-#endif /*ENABLE_NEON_SUPPORT*/
+#endif
 
+/* USE_ARM_CE indicates whether to enable ARMv8 Crypto Extension assembly
+ * code. */
+#undef USE_ARM_CE
+#ifdef ENABLE_ARM_CRYPTO_SUPPORT
+# if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__) \
+     && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) \
+     && defined(HAVE_GCC_INLINE_ASM_AARCH32_CRYPTO)
+#  define USE_ARM_CE 1
+# endif
+#endif
 
 /* A macro to test whether P is properly aligned for an u32 type.
    Note that config.h provides a suitable replacement for uintptr_t if
@@ -127,6 +137,9 @@ sha1_init (void *context, unsigned int flags)
 #ifdef USE_NEON
   hd->use_neon = (features & HWF_ARM_NEON) != 0;
 #endif
+#ifdef USE_ARM_CE
+  hd->use_arm_ce = (features & HWF_ARM_SHA1) != 0;
+#endif
   (void)features;
 }
 
@@ -164,11 +177,16 @@ _gcry_sha1_mixblock_init (SHA1_CONTEXT *hd)
 			       } while(0)
 
 
-
 #ifdef USE_NEON
 unsigned int
 _gcry_sha1_transform_armv7_neon (void *state, const unsigned char *data,
                                  size_t nblks);
+#endif
+
+#ifdef USE_ARM_CE
+unsigned int
+_gcry_sha1_transform_armv8_ce (void *state, const unsigned char *data,
+                               size_t nblks);
 #endif
 
 /*
@@ -339,6 +357,10 @@ transform (void *ctx, const unsigned char *data, size_t nblks)
   if (hd->use_ssse3)
     return _gcry_sha1_transform_amd64_ssse3 (&hd->h0, data, nblks)
            + 4 * sizeof(void*) + ASM_EXTRA_STACK;
+#endif
+#ifdef USE_ARM_CE
+  if (hd->use_arm_ce)
+    return _gcry_sha1_transform_armv8_ce (&hd->h0, data, nblks);
 #endif
 #ifdef USE_NEON
   if (hd->use_neon)

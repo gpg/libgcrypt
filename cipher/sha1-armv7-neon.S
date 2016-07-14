@@ -521,5 +521,6 @@ _gcry_sha1_transform_armv7_neon:
 .Ldo_nothing:
   mov r0, #0;
   bx lr
+.size _gcry_sha1_transform_armv7_neon,.-_gcry_sha1_transform_armv7_neon;
 
 #endif
