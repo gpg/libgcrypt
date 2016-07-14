@@ -75,6 +75,17 @@
 # define USE_AVX2 1
 #endif
 
+/* USE_ARM_CE indicates whether to enable ARMv8 Crypto Extension assembly
+ * code. */
+#undef USE_ARM_CE
+#ifdef ENABLE_ARM_CRYPTO_SUPPORT
+# if defined(HAVE_ARM_ARCH_V6) && defined(__ARMEL__) \
+     && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) \
+     && defined(HAVE_GCC_INLINE_ASM_AARCH32_CRYPTO)
+#  define USE_ARM_CE 1
+# endif
+#endif
+
 
 typedef struct {
   gcry_md_block_ctx_t bctx;
@@ -87,6 +98,9 @@ typedef struct {
 #endif
 #ifdef USE_AVX2
   unsigned int use_avx2:1;
+#endif
+#ifdef USE_ARM_CE
+  unsigned int use_arm_ce:1;
 #endif
 } SHA256_CONTEXT;
 
@@ -129,6 +143,9 @@ sha256_init (void *context, unsigned int flags)
 #ifdef USE_AVX2
   hd->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);
 #endif
+#ifdef USE_ARM_CE
+  hd->use_arm_ce = (features & HWF_ARM_SHA2) != 0;
+#endif
   (void)features;
 }
 
@@ -166,6 +183,9 @@ sha224_init (void *context, unsigned int flags)
 #endif
 #ifdef USE_AVX2
   hd->use_avx2 = (features & HWF_INTEL_AVX2) && (features & HWF_INTEL_BMI2);
+#endif
+#ifdef USE_ARM_CE
+  hd->use_arm_ce = (features & HWF_ARM_SHA2) != 0;
 #endif
   (void)features;
 }
@@ -355,6 +375,11 @@ unsigned int _gcry_sha256_transform_amd64_avx2(const void *input_data,
                                                size_t num_blks) ASM_FUNC_ABI;
 #endif
 
+#ifdef USE_ARM_CE
+unsigned int _gcry_sha256_transform_armv8_ce(u32 state[8],
+                                             const void *input_data,
+                                             size_t num_blks);
+#endif
 
 static unsigned int
 transform (void *ctx, const unsigned char *data, size_t nblks)
@@ -378,6 +403,11 @@ transform (void *ctx, const unsigned char *data, size_t nblks)
   if (hd->use_ssse3)
     return _gcry_sha256_transform_amd64_ssse3 (data, &hd->h0, nblks)
            + 4 * sizeof(void*) + ASM_EXTRA_STACK;
+#endif
+
+#ifdef USE_ARM_CE
+  if (hd->use_arm_ce)
+    return _gcry_sha256_transform_armv8_ce (&hd->h0, data, nblks);
 #endif
 
   do
