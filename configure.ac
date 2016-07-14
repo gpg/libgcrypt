@@ -2009,6 +2009,10 @@ if test "$found" = "1" ; then
       arm*-*-*)
          # Build with the assembly implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-arm.lo"
+
+         # Build with the ARMv8/AArch32 CE implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv8-ce.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv8-aarch32-ce.lo"
       ;;
    esac
 
