@@ -198,8 +198,10 @@ search_oid (const char *oid, gcry_md_oid_spec_t *oid_spec)
   gcry_md_spec_t *spec;
   int i;
 
-  if (oid && ((! strncmp (oid, "oid.", 4))
-	      || (! strncmp (oid, "OID.", 4))))
+  if (!oid)
+    return NULL;
+
+  if (!strncmp (oid, "oid.", 4) || !strncmp (oid, "OID.", 4))
     oid += 4;
 
   spec = spec_from_oid (oid);
@@ -471,51 +473,48 @@ md_copy (gcry_md_hd_t ahd, gcry_md_hd_t *b_hd)
   else
     bhd = xtrymalloc (n + sizeof (struct gcry_md_context));
 
-  if (! bhd)
-    err = gpg_err_code_from_errno (errno);
-
-  if (! err)
+  if (!bhd)
     {
-      bhd->ctx = b = (void *) ((char *) bhd + n);
-      /* No need to copy the buffer due to the write above. */
-      gcry_assert (ahd->bufsize == (n - sizeof (struct gcry_md_handle) + 1));
-      bhd->bufsize = ahd->bufsize;
-      bhd->bufpos = 0;
-      gcry_assert (! ahd->bufpos);
-      memcpy (b, a, sizeof *a);
-      b->list = NULL;
-      b->debug = NULL;
+      err = gpg_err_code_from_syserror ();
+      goto leave;
     }
+
+  bhd->ctx = b = (void *) ((char *) bhd + n);
+  /* No need to copy the buffer due to the write above. */
+  gcry_assert (ahd->bufsize == (n - sizeof (struct gcry_md_handle) + 1));
+  bhd->bufsize = ahd->bufsize;
+  bhd->bufpos = 0;
+  gcry_assert (! ahd->bufpos);
+  memcpy (b, a, sizeof *a);
+  b->list = NULL;
+  b->debug = NULL;
 
   /* Copy the complete list of algorithms.  The copied list is
      reversed, but that doesn't matter. */
-  if (!err)
+  for (ar = a->list; ar; ar = ar->next)
     {
-      for (ar = a->list; ar; ar = ar->next)
+      if (a->flags.secure)
+        br = xtrymalloc_secure (ar->actual_struct_size);
+      else
+        br = xtrymalloc (ar->actual_struct_size);
+      if (!br)
         {
-          if (a->flags.secure)
-            br = xtrymalloc_secure (ar->actual_struct_size);
-          else
-            br = xtrymalloc (ar->actual_struct_size);
-          if (!br)
-            {
-	      err = gpg_err_code_from_errno (errno);
-              md_close (bhd);
-              break;
-            }
-
-          memcpy (br, ar, ar->actual_struct_size);
-          br->next = b->list;
-          b->list = br;
+          err = gpg_err_code_from_syserror ();
+          md_close (bhd);
+          goto leave;
         }
+
+      memcpy (br, ar, ar->actual_struct_size);
+      br->next = b->list;
+      b->list = br;
     }
 
-  if (a->debug && !err)
+  if (a->debug)
     md_start_debug (bhd, "unknown");
 
-  if (!err)
-    *b_hd = bhd;
+  *b_hd = bhd;
 
+ leave:
   return err;
 }
 
@@ -832,9 +831,8 @@ md_read( gcry_md_hd_t a, int algo )
         {
           if (r->next)
             log_debug ("more than one algorithm in md_read(0)\n");
-          if (r->spec->read == NULL)
-            return NULL;
-          return r->spec->read (&r->context.c);
+          if (r->spec->read)
+            return r->spec->read (&r->context.c);
         }
     }
   else
@@ -842,12 +840,17 @@ md_read( gcry_md_hd_t a, int algo )
       for (r = a->ctx->list; r; r = r->next)
 	if (r->spec->algo == algo)
 	  {
-	    if (r->spec->read == NULL)
-	      return NULL;
-	    return r->spec->read (&r->context.c);
+	    if (r->spec->read)
+              return r->spec->read (&r->context.c);
+            break;
 	  }
     }
-  BUG();
+
+  if (r && !r->spec->read)
+    _gcry_fatal_error (GPG_ERR_DIGEST_ALGO,
+                       "requested algo has no fixed digest length");
+  else
+    _gcry_fatal_error (GPG_ERR_DIGEST_ALGO, "requested algo not in md context");
   return NULL;
 }
 
@@ -1011,6 +1014,7 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
 	 normal functions. */
       gcry_md_hd_t h;
       gpg_err_code_t rc;
+      int dlen;
 
       if (algo == GCRY_MD_MD5 && fips_mode ())
         {
@@ -1022,6 +1026,12 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
               _gcry_fips_noreturn ();
             }
         }
+
+      /* Detect SHAKE128 like algorithms which we can't use because
+       * our API does not allow for a variable length digest.  */
+      dlen = md_digest_length (algo);
+      if (!dlen)
+        return GPG_ERR_DIGEST_ALGO;
 
       rc = md_open (&h, algo, (hmac? GCRY_MD_FLAG_HMAC:0));
       if (rc)
@@ -1042,7 +1052,7 @@ _gcry_md_hash_buffers (int algo, unsigned int flags, void *digest,
       for (;iovcnt; iov++, iovcnt--)
         md_write (h, (const char*)iov[0].data + iov[0].off, iov[0].len);
       md_final (h);
-      memcpy (digest, md_read (h, algo), md_digest_length (algo));
+      memcpy (digest, md_read (h, algo), dlen);
       md_close (h);
     }
 

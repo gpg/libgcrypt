@@ -1,5 +1,5 @@
 /* yat2m.c - Yet Another Texi 2 Man converter
- *	Copyright (C) 2005, 2013 g10 Code GmbH
+ *	Copyright (C) 2005, 2013, 2015, 2016 g10 Code GmbH
  *      Copyright (C) 2006, 2008, 2011 Free Software Foundation, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -13,7 +13,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * along with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -104,6 +104,29 @@
 #include <time.h>
 
 
+#if __GNUC__
+# define MY_GCC_VERSION (__GNUC__ * 10000 \
+                         + __GNUC_MINOR__ * 100         \
+                         + __GNUC_PATCHLEVEL__)
+#else
+# define MY_GCC_VERSION 0
+#endif
+
+#if MY_GCC_VERSION >= 20500
+# define ATTR_PRINTF(f, a) __attribute__ ((format(printf,f,a)))
+# define ATTR_NR_PRINTF(f, a) __attribute__ ((noreturn, format(printf,f,a)))
+#else
+# define ATTR_PRINTF(f, a)
+# define ATTR_NR_PRINTF(f, a)
+#endif
+#if MY_GCC_VERSION >= 30200
+# define ATTR_MALLOC  __attribute__ ((__malloc__))
+#else
+# define ATTR_MALLOC
+#endif
+
+
+
 #define PGM "yat2m"
 #define VERSION "1.0"
 
@@ -120,6 +143,7 @@ static int quiet;
 static int debug;
 static const char *opt_source;
 static const char *opt_release;
+static const char *opt_date;
 static const char *opt_select;
 static const char *opt_include;
 static int opt_store;
@@ -213,7 +237,15 @@ static const char * const standard_sections[] =
 static void proc_texi_buffer (FILE *fp, const char *line, size_t len,
                               int *table_level, int *eol_action);
 
+static void die (const char *format, ...) ATTR_NR_PRINTF(1,2);
+static void err (const char *format, ...) ATTR_PRINTF(1,2);
+static void inf (const char *format, ...) ATTR_PRINTF(1,2);
+static void *xmalloc (size_t n) ATTR_MALLOC;
+static void *xcalloc (size_t n, size_t m) ATTR_MALLOC;
 
+
+
+/*-- Functions --*/
 
 /* Print diagnostic message and exit with failure. */
 static void
@@ -323,8 +355,12 @@ isodatestring (void)
 {
   static char buffer[11+5];
   struct tm *tp;
-  time_t atime = time (NULL);
+  time_t atime;
 
+  if (opt_date && *opt_date)
+    atime = strtoul (opt_date, NULL, 10);
+  else
+    atime = time (NULL);
   if (atime < 0)
     strcpy (buffer, "????" "-??" "-??");
   else
@@ -553,7 +589,7 @@ get_section_buffer (const char *name)
   for (i=0; i < thepage.n_sections; i++)
     if (!thepage.sections[i].name)
       break;
-  if (i < thepage.n_sections)
+  if (thepage.n_sections && i < thepage.n_sections)
     sect = thepage.sections + i;
   else
     {
@@ -679,6 +715,7 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
   } cmdtbl[] = {
     { "command", 0, "\\fB", "\\fR" },
     { "code",    0, "\\fB", "\\fR" },
+    { "url",     0, "\\fB", "\\fR" },
     { "sc",      0, "\\fB", "\\fR" },
     { "var",     0, "\\fI", "\\fR" },
     { "samp",    0, "\\(aq", "\\(aq"  },
@@ -699,6 +736,7 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
     { "emph",    0, "\\fI", "\\fR" },
     { "w",       1 },
     { "c",       5 },
+    { "efindex", 1 },
     { "opindex", 1 },
     { "cpindex", 1 },
     { "cindex",  1 },
@@ -846,7 +884,7 @@ proc_texi_cmd (FILE *fp, const char *command, const char *rest, size_t len,
         }
       else
         inf ("texinfo command '%s' not supported (%.*s)", command,
-             ((s = memchr (rest, '\n', len)), (s? (s-rest) : len)), rest);
+             (int)((s = memchr (rest, '\n', len)), (s? (s-rest) : len)), rest);
     }
 
   if (*rest == '{')
@@ -958,7 +996,7 @@ proc_texi_buffer (FILE *fp, const char *line, size_t len,
       assert (n <= len);
       s += n; len -= n;
       s--; len++;
-      in_cmd = 0;
+      /* in_cmd = 0; -- doc only */
     }
 }
 
@@ -1367,7 +1405,7 @@ parse_file (const char *fname, FILE *fp, char **section_name, int in_pause)
                 }
 
               if (!incfp)
-                err ("can't open include file '%s':%s",
+                err ("can't open include file '%s': %s",
                      incname, strerror (errno));
               else
                 {
@@ -1466,13 +1504,14 @@ main (int argc, char **argv)
                 "Extract man pages from a Texinfo source.\n\n"
                 "  --source NAME    use NAME as source field\n"
                 "  --release STRING use STRING as the release field\n"
+                "  --date EPOCH     use EPOCH as publication date\n"
                 "  --store          write output using @manpage name\n"
                 "  --select NAME    only output pages with @manpage NAME\n"
                 "  --verbose        enable extra informational output\n"
                 "  --debug          enable additional debug output\n"
                 "  --help           display this help and exit\n"
                 "  -I DIR           also search in include DIR\n"
-                "  -D gpgone        the only useable define\n\n"
+                "  -D gpgone        the only usable define\n\n"
                 "With no FILE, or when FILE is -, read standard input.\n\n"
                 "Report bugs to <bugs@g10code.com>.");
           exit (0);
@@ -1516,6 +1555,15 @@ main (int argc, char **argv)
           if (argc)
             {
               opt_release = *argv;
+              argc--; argv++;
+            }
+        }
+      else if (!strcmp (*argv, "--date"))
+        {
+          argc--; argv++;
+          if (argc)
+            {
+              opt_date = *argv;
               argc--; argv++;
             }
         }

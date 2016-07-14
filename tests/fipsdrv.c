@@ -134,6 +134,11 @@ struct tag_info
 };
 
 
+/* If we have a decent libgpg-error we can use some gcc attributes.  */
+#ifdef GPGRT_ATTR_NORETURN
+static void die (const char *format, ...) GPGRT_ATTR_NR_PRINTF(1,2);
+#endif /*GPGRT_ATTR_NORETURN*/
+
 
 /* Print a error message and exit the process with an error code.  */
 static void
@@ -1150,7 +1155,7 @@ run_cipher_mct_loop (int encrypt_mode, int cipher_algo, int cipher_mode,
 
   blocklen = gcry_cipher_get_algo_blklen (cipher_algo);
   if (!blocklen || blocklen > sizeof output)
-    die ("invalid block length %d\n", blocklen);
+    die ("invalid block length %d\n", (int)blocklen);
 
 
   gcry_cipher_ctl (hd, PRIV_CIPHERCTL_DISABLE_WEAK_KEY, NULL, 0);
@@ -2570,7 +2575,8 @@ main (int argc, char **argv)
                   die ("no version info in input\n");
                 }
               if (atoi (key_buffer) != 1)
-                die ("unsupported input version %s\n", key_buffer);
+                die ("unsupported input version %s\n",
+                     (const char*)key_buffer);
               gcry_free (key_buffer);
               if (!(key_buffer = read_textline (input)))
                 die ("no iteration count in input\n");
@@ -2644,11 +2650,11 @@ main (int argc, char **argv)
       unsigned char buffer[16];
       size_t count = 0;
 
-      if (hex2bin (key_string, key, 16) < 0 )
+      if (!key_string || hex2bin (key_string, key, 16) < 0 )
         die ("value for --key are not 32 hex digits\n");
-      if (hex2bin (iv_string, seed, 16) < 0 )
+      if (!iv_string || hex2bin (iv_string, seed, 16) < 0 )
         die ("value for --iv are not 32 hex digits\n");
-      if (hex2bin (dt_string, dt, 16) < 0 )
+      if (!dt_string || hex2bin (dt_string, dt, 16) < 0 )
         die ("value for --dt are not 32 hex digits\n");
 
       /* The flag value 1 disables the dup check, so that the RNG

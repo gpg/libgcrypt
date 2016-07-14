@@ -572,21 +572,24 @@ md_bench ( const char *algoname )
   if (gcry_md_get_algo_dlen (algo) > sizeof digest)
     die ("digest buffer too short\n");
 
-  largebuf_base = malloc (10000+15);
-  if (!largebuf_base)
-    die ("out of core\n");
-  largebuf = (largebuf_base
-              + ((16 - ((size_t)largebuf_base & 0x0f)) % buffer_alignment));
+  if (gcry_md_get_algo_dlen (algo))
+    {
+      largebuf_base = malloc (10000+15);
+      if (!largebuf_base)
+        die ("out of core\n");
+      largebuf = (largebuf_base
+                  + ((16 - ((size_t)largebuf_base & 0x0f)) % buffer_alignment));
 
-  for (i=0; i < 10000; i++)
-    largebuf[i] = i;
-  start_timer ();
-  for (repcount=0; repcount < hash_repetitions; repcount++)
-    for (i=0; i < 100; i++)
-      gcry_md_hash_buffer (algo, digest, largebuf, 10000);
-  stop_timer ();
-  printf (" %s", elapsed_time (1));
-  free (largebuf_base);
+      for (i=0; i < 10000; i++)
+        largebuf[i] = i;
+      start_timer ();
+      for (repcount=0; repcount < hash_repetitions; repcount++)
+        for (i=0; i < 100; i++)
+          gcry_md_hash_buffer (algo, digest, largebuf, 10000);
+      stop_timer ();
+      printf (" %s", elapsed_time (1));
+      free (largebuf_base);
+    }
 
   putchar ('\n');
   fflush (stdout);

@@ -81,7 +81,7 @@ hex2mpiopa (const char *string)
     die ("hex2mpiopa '%s' failed: parser error\n", string);
   val = gcry_mpi_set_opaque (NULL, buffer, buflen*8);
   if (!buffer)
-    die ("hex2mpiopa '%s' failed: set_opaque error%s\n", string);
+    die ("hex2mpiopa '%s' failed: set_opaque error\n", string);
   return val;
 }
 
@@ -510,7 +510,7 @@ back_and_forth_one (int testno, const char *buffer, size_t length)
     }
   if (compare_to_canon (se1, canon, canonlen))
     {
-      fail ("baf %d: converting to advanced failed.\n",
+      fail ("baf %d: converting to advanced failed: %s\n",
             testno, gpg_strerror (rc));
       return;
     }

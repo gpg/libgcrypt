@@ -403,13 +403,15 @@ onecompl (gcry_mpi_t a)
   mpi_ptr_t ap;
   mpi_size_t n;
   unsigned int i;
-  unsigned int nbits = mpi_get_nbits (a);
+  unsigned int nbits;
 
-  if (mpi_is_immutable (a))
+  if (!a || mpi_is_immutable (a))
     {
       mpi_immutable_failed ();
       return;
     }
+
+  nbits = mpi_get_nbits (a);
 
   mpi_normalize (a);
   ap = a->d;

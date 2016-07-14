@@ -110,6 +110,7 @@ gcry_err_code_t
 _gcry_cipher_ccm_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
                             size_t noncelen)
 {
+  unsigned int marks_key;
   size_t L = 15 - noncelen;
   size_t L_;
 
@@ -122,12 +123,14 @@ _gcry_cipher_ccm_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
     return GPG_ERR_INV_LENGTH;
 
   /* Reset state */
+  marks_key = c->marks.key;
   memset (&c->u_mode, 0, sizeof(c->u_mode));
   memset (&c->marks, 0, sizeof(c->marks));
   memset (&c->u_iv, 0, sizeof(c->u_iv));
   memset (&c->u_ctr, 0, sizeof(c->u_ctr));
   memset (c->lastiv, 0, sizeof(c->lastiv));
   c->unused = 0;
+  c->marks.key = marks_key;
 
   /* Setup CTR */
   c->u_ctr.ctr[0] = L_;

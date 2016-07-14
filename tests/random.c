@@ -43,6 +43,13 @@ static int verbose;
 static int debug;
 static int with_progress;
 
+/* If we have a decent libgpg-error we can use some gcc attributes.  */
+#ifdef GPGRT_ATTR_NORETURN
+static void die (const char *format, ...) GPGRT_ATTR_NR_PRINTF(1,2);
+static void inf (const char *format, ...) GPGRT_ATTR_PRINTF(1,2);
+#endif /*GPGRT_ATTR_NORETURN*/
+
+
 static void
 die (const char *format, ...)
 {

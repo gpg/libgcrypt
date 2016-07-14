@@ -323,7 +323,7 @@ _gcry_sha512_transform_arm:
 	stm RWhi, {RT1lo,RT1hi,RT2lo,RT2hi,RT3lo,RT3hi,RT4lo,RT4hi}
 
 	/* Load input to w[16] */
-#ifndef __ARM_FEATURE_UNALIGNED
+
 	/* test if data is unaligned */
 	tst %r1, #3;
 	beq 1f;
@@ -341,7 +341,6 @@ _gcry_sha512_transform_arm:
 
 	read_be64_unaligned_4(%r1, 12 * 8, RT1lo, RT1hi, RT2lo, RT2hi, RT3lo, RT3hi, RT4lo, RT4hi, RWlo);
 	b 2f;
-#endif
 1:
 	/* aligned load */
 	add RWhi, %sp, #(w(0));

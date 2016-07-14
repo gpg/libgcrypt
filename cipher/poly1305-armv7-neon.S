@@ -33,6 +33,45 @@
 .fpu neon
 .arm
 
+#ifdef __PIC__
+#  define GET_DATA_POINTER(reg, name, rtmp) \
+		ldr reg, 1f; \
+		ldr rtmp, 2f; \
+		b 3f; \
+	1:	.word _GLOBAL_OFFSET_TABLE_-(3f+8); \
+	2:	.word name(GOT); \
+	3:	add reg, pc, reg; \
+		ldr reg, [reg, rtmp];
+#else
+#  define GET_DATA_POINTER(reg, name, rtmp) ldr reg, =name
+#endif
+
+#define UNALIGNED_LDMIA2(ptr, l0, l1) \
+        tst ptr, #3; \
+        beq 1f; \
+        vpush {d0}; \
+        vld1.32 {d0}, [ptr]!; \
+        vmov l0, s0; \
+        vmov l1, s1; \
+        vpop {d0}; \
+        b 2f; \
+     1: ldmia ptr!, {l0-l1}; \
+     2: ;
+
+#define UNALIGNED_LDMIA4(ptr, l0, l1, l2, l3) \
+        tst ptr, #3; \
+        beq 1f; \
+        vpush {d0-d1}; \
+        vld1.32 {d0-d1}, [ptr]!; \
+        vmov l0, s0; \
+        vmov l1, s1; \
+        vmov l2, s2; \
+        vmov l3, s3; \
+        vpop {d0-d1}; \
+        b 2f; \
+     1: ldmia ptr!, {l0-l3}; \
+     2: ;
+
 .text
 
 .p2align 2
@@ -51,8 +90,8 @@ _gcry_poly1305_armv7_neon_init_ext:
 	mov r14, r2
 	and r2, r2, r2
 	moveq r14, #-1
-	ldmia r1!, {r2-r5}
-	ldr r7, =.Lpoly1305_init_constants_neon
+	UNALIGNED_LDMIA4(r1, r2, r3, r4, r5)
+	GET_DATA_POINTER(r7,.Lpoly1305_init_constants_neon,r8)
 	mov r6, r2
 	mov r8, r2, lsr #26
 	mov r9, r3, lsr #20
@@ -162,7 +201,7 @@ _gcry_poly1305_armv7_neon_init_ext:
 	eor r6, r6, r6
 	stmia r0!, {r2-r6}
 	stmia r0!, {r2-r6}
-	ldmia r1!, {r2-r5}
+	UNALIGNED_LDMIA4(r1, r2, r3, r4, r5)
 	stmia r0, {r2-r6}
 	add sp, sp, #32
 	ldmfd sp!, {r4-r11, lr}
@@ -273,7 +312,7 @@ _gcry_poly1305_armv7_neon_blocks:
 	vmov d14, d12
 	vmul.i32 q6, q5, d0[0]
 .Lpoly1305_blocks_neon_mainloop:
-	ldmia r0!, {r2-r5}
+	UNALIGNED_LDMIA4(r0, r2, r3, r4, r5)
 	vmull.u32 q0, d25, d12[0]
 	mov r7, r2, lsr #26
 	vmlal.u32 q0, d24, d12[1]
@@ -289,7 +328,7 @@ _gcry_poly1305_armv7_neon_blocks:
 	orr r4, r8, r4, lsl #12
 	orr r5, r9, r5, lsl #18
 	vmlal.u32 q1, d24, d13[0]
-	ldmia r0!, {r7-r10}
+	UNALIGNED_LDMIA4(r0, r7, r8, r9, r10)
 	vmlal.u32 q1, d23, d13[1]
 	mov r1, r7, lsr #26
 	vmlal.u32 q1, d22, d14[0]
@@ -331,7 +370,7 @@ _gcry_poly1305_armv7_neon_blocks:
 	vmlal.u32 q4, d21, d11[1]
 	vld1.64 {d21-d24}, [r14, :256]!
 	vld1.64 {d25}, [r14, :64]
-	ldmia r0!, {r2-r5}
+	UNALIGNED_LDMIA4(r0, r2, r3, r4, r5)
 	vmlal.u32 q0, d25, d26
 	mov r7, r2, lsr #26
 	vmlal.u32 q0, d24, d27
@@ -347,7 +386,7 @@ _gcry_poly1305_armv7_neon_blocks:
 	orr r4, r8, r4, lsl #12
 	orr r5, r9, r5, lsl #18
 	vmlal.u32 q1, d24, d28
-	ldmia r0!, {r7-r10}
+	UNALIGNED_LDMIA4(r0, r7, r8, r9, r10)
 	vmlal.u32 q1, d23, d29
 	mov r1, r7, lsr #26
 	vmlal.u32 q1, d22, d20
@@ -630,7 +669,7 @@ _gcry_poly1305_armv7_neon_finish_ext:
 .Lpoly1305_finish_ext_neon_skip16:
 	tst r7, #8
 	beq .Lpoly1305_finish_ext_neon_skip8
-	ldmia r1!, {r10-r11}
+	UNALIGNED_LDMIA2(r1, r10, r11)
 	stmia r9!, {r10-r11}
 .Lpoly1305_finish_ext_neon_skip8:
 	tst r7, #4
