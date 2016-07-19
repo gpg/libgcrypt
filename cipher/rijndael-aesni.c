@@ -794,6 +794,7 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3 },
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4 }
     };
+  const void *bige_addb = bige_addb_const;
 #define aesenc_xmm1_xmm0      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xc1\n\t"
 #define aesenc_xmm1_xmm2      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xd1\n\t"
 #define aesenc_xmm1_xmm3      ".byte 0x66, 0x0f, 0x38, 0xdc, 0xd9\n\t"
@@ -819,16 +820,15 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 "ja     .Ladd32bit%=\n\t"
 
                 "movdqa %%xmm5, %%xmm0\n\t"     /* xmm0 := CTR (xmm5) */
-                "movdqa %[addb_1], %%xmm2\n\t"  /* xmm2 := be(1) */
-                "movdqa %[addb_2], %%xmm3\n\t"  /* xmm3 := be(2) */
-                "movdqa %[addb_3], %%xmm4\n\t"  /* xmm4 := be(3) */
-                "movdqa %[addb_4], %%xmm5\n\t"  /* xmm5 := be(4) */
+                "movdqa 0*16(%[addb]), %%xmm2\n\t"  /* xmm2 := be(1) */
+                "movdqa 1*16(%[addb]), %%xmm3\n\t"  /* xmm3 := be(2) */
+                "movdqa 2*16(%[addb]), %%xmm4\n\t"  /* xmm4 := be(3) */
+                "movdqa 3*16(%[addb]), %%xmm5\n\t"  /* xmm5 := be(4) */
                 "paddb  %%xmm0, %%xmm2\n\t"     /* xmm2 := be(1) + CTR (xmm0) */
                 "paddb  %%xmm0, %%xmm3\n\t"     /* xmm3 := be(2) + CTR (xmm0) */
                 "paddb  %%xmm0, %%xmm4\n\t"     /* xmm4 := be(3) + CTR (xmm0) */
                 "paddb  %%xmm0, %%xmm5\n\t"     /* xmm5 := be(4) + CTR (xmm0) */
                 "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0] */
-                "movl   %[rounds], %%esi\n\t"
                 "jmp    .Lstore_ctr%=\n\t"
 
                 ".Ladd32bit%=:\n\t"
@@ -871,7 +871,6 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
 
                 ".Lno_carry%=:\n\t"
                 "movdqa (%[key]), %%xmm1\n\t"   /* xmm1 := key[0]    */
-                "movl %[rounds], %%esi\n\t"
 
                 "pshufb %%xmm6, %%xmm2\n\t"     /* xmm2 := be(xmm2) */
                 "pshufb %%xmm6, %%xmm3\n\t"     /* xmm3 := be(xmm3) */
@@ -880,8 +879,13 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
 
                 ".Lstore_ctr%=:\n\t"
                 "movdqa %%xmm5, (%[ctr])\n\t"   /* Update CTR (mem).  */
+                :
+                : [ctr] "r" (ctr),
+                  [key] "r" (ctx->keyschenc),
+                  [addb] "r" (bige_addb)
+                : "%esi", "cc", "memory");
 
-                "pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
+  asm volatile ("pxor   %%xmm1, %%xmm0\n\t"     /* xmm0 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm2\n\t"     /* xmm2 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm3\n\t"     /* xmm3 ^= key[0]    */
                 "pxor   %%xmm1, %%xmm4\n\t"     /* xmm4 ^= key[0]    */
@@ -931,7 +935,7 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
                 "movdqa 0xa0(%[key]), %%xmm1\n\t"
-                "cmpl $10, %%esi\n\t"
+                "cmpl $10, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
@@ -943,7 +947,7 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 aesenc_xmm1_xmm3
                 aesenc_xmm1_xmm4
                 "movdqa 0xc0(%[key]), %%xmm1\n\t"
-                "cmpl $12, %%esi\n\t"
+                "cmpl $12, %[rounds]\n\t"
                 "jz .Lenclast%=\n\t"
                 aesenc_xmm1_xmm0
                 aesenc_xmm1_xmm2
@@ -962,14 +966,9 @@ do_aesni_ctr_4 (const RIJNDAEL_context *ctx,
                 aesenclast_xmm1_xmm3
                 aesenclast_xmm1_xmm4
                 :
-                : [ctr] "r" (ctr),
-                  [key] "r" (ctx->keyschenc),
-                  [rounds] "g" (ctx->rounds),
-                  [addb_1] "m" (bige_addb_const[0][0]),
-                  [addb_2] "m" (bige_addb_const[1][0]),
-                  [addb_3] "m" (bige_addb_const[2][0]),
-                  [addb_4] "m" (bige_addb_const[3][0])
-                : "%esi", "cc", "memory");
+                : [key] "r" (ctx->keyschenc),
+                  [rounds] "r" (ctx->rounds)
+                : "cc", "memory");
 
   asm volatile ("movdqu (%[src]), %%xmm1\n\t"    /* Get block 1.      */
                 "pxor %%xmm1, %%xmm0\n\t"        /* EncCTR-1 ^= input */
