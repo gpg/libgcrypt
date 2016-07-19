@@ -747,22 +747,28 @@ crc32_less_than_16 (u32 *pcrc, const byte *inbuf, size_t inlen,
       asm volatile ("movd %[crc], %%xmm0\n\t"
 		    "movd %[in], %%xmm1\n\t"
 		    "movdqa %[my_p], %%xmm5\n\t"
-		    "pxor %%xmm1, %%xmm0\n\t"
+		    :
+		    : [in] "m" (*inbuf),
+		      [crc] "m" (*pcrc),
+		      [my_p] "m" (consts->my_p[0])
+		    : "cc" );
+
+      asm volatile ("pxor %%xmm1, %%xmm0\n\t"
 		    "pshufb %[bswap], %%xmm0\n\t" /* [xx][00][00][00] */
 
 		    "pclmulqdq $0x01, %%xmm5, %%xmm0\n\t" /* [00][xx][xx][00] */
 		    "pclmulqdq $0x11, %%xmm5, %%xmm0\n\t" /* [00][00][xx][xx] */
+		    :
+		    : [bswap] "m" (*crc32_bswap_shuf)
+		    : "cc" );
 
-		    /* store CRC in input endian */
+      asm volatile (/* store CRC in input endian */
 		    "movd %%xmm0, %%eax\n\t"
 		    "bswapl %%eax\n\t"
 		    "movl %%eax, %[out]\n\t"
 		    : [out] "=m" (*pcrc)
-		    : [in] "m" (*inbuf),
-		      [crc] "m" (*pcrc),
-		      [my_p] "m" (consts->my_p[0]),
-		      [bswap] "m" (*crc32_bswap_shuf)
-		    : "eax" );
+		    :
+		    : "eax", "cc" );
     }
   else
     {
