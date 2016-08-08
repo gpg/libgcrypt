@@ -566,41 +566,49 @@ _gcry_rngcsprng_randomize (void *buffer, size_t length,
 
 
 /*
-   Mix the pool:
-
-   |........blocks*20byte........|20byte|..44byte..|
-   <..44byte..>           <20byte>
-        |                    |
-        |                    +------+
-        +---------------------------|----------+
-                                    v          v
-   |........blocks*20byte........|20byte|..44byte..|
-                                 <.....64bytes.....>
-                                         |
-      +----------------------------------+
-     Hash
-      v
-   |.............................|20byte|..44byte..|
-   <20byte><20byte><..44byte..>
-      |                |
-      |                +---------------------+
-      +-----------------------------+        |
-                                    v        v
-   |.............................|20byte|..44byte..|
-                                 <.....64byte......>
-                                        |
-              +-------------------------+
-             Hash
-              v
-   |.............................|20byte|..44byte..|
-   <20byte><20byte><..44byte..>
-
-   and so on until we did this for all blocks.
-
-   To better protect against implementation errors in this code, we
-   xor a digest of the entire pool into the pool before mixing.
-
-   Note: this function must only be called with a locked pool.
+ * Mix the 600 byte pool.  Note that the 64 byte scratch area directly
+ * follows the pool.  The numbers in the diagram give the number of
+ * bytes.
+ *         <................600...............>   <.64.>
+ * pool   |------------------------------------| |------|
+ *         <..44..>                        <20>
+ *            |                             |
+ *            |                             +-----+
+ *            +-----------------------------------|--+
+ *                                                v  v
+ *                                               |------|
+ *                                                <hash>
+ *                                                  |
+ *          +---------------------------------------+
+ *          v
+ *         <20>
+ * pool'  |------------------------------------|
+ *         <20><20><..44..>
+ *          |         |
+ *          |         +------------------------------+
+ *          +-------------------------------------+  |
+ *                                                v  v
+ *                                               |------|
+ *                                                <hash>
+ *                                                  |
+ *              +-----------------------------------+
+ *              v
+ *             <20>
+ * pool'' |------------------------------------|
+ *         <20><20><20><..44..>
+ *              |         |
+ *              |         +--------------------------+
+ *              +---------------------------------+  |
+ *                                                v  v
+ *                                               |------|
+ *                                                <hash>
+ *
+ * and so on until we did this for all 30 blocks.
+ *
+ * To better protect against implementation errors in this code, we
+ * xor a digest of the entire pool into the pool before mixing.
+ *
+ * Note: this function must only be called with a locked pool.
  */
 static void
 mix_pool(unsigned char *pool)
@@ -622,14 +630,14 @@ mix_pool(unsigned char *pool)
 
   /* Loop over the pool.  */
   pend = pool + POOLSIZE;
-  memcpy(hashbuf, pend - DIGESTLEN, DIGESTLEN );
-  memcpy(hashbuf+DIGESTLEN, pool, BLOCKLEN-DIGESTLEN);
-  _gcry_rmd160_mixblock( &md, hashbuf);
-  memcpy(pool, hashbuf, 20 );
+  memcpy (hashbuf, pend - DIGESTLEN, DIGESTLEN );
+  memcpy (hashbuf+DIGESTLEN, pool, BLOCKLEN-DIGESTLEN);
+  _gcry_rmd160_mixblock (&md, hashbuf);
+  memcpy (pool, hashbuf, DIGESTLEN);
 
   if (failsafe_digest_valid && pool == rndpool)
     {
-      for (i=0; i < 20; i++)
+      for (i=0; i < DIGESTLEN; i++)
         pool[i] ^= failsafe_digest[i];
     }
 
@@ -653,8 +661,8 @@ mix_pool(unsigned char *pool)
 	    }
 	}
 
-      _gcry_rmd160_mixblock ( &md, hashbuf);
-      memcpy(p, hashbuf, 20 );
+      _gcry_rmd160_mixblock (&md, hashbuf);
+      memcpy(p, hashbuf, DIGESTLEN);
     }
 
     /* Our hash implementation does only leave small parts (64 bytes)
