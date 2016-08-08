@@ -553,23 +553,22 @@ _gcry_rngcsprng_randomize (void *buffer, size_t length,
  * bytes.
  *         <................600...............>   <.64.>
  * pool   |------------------------------------| |------|
- *         <..44..>                        <20>
- *            |                             |
- *            |                             +-----+
- *            +-----------------------------------|--+
- *                                                v  v
+ *         <20><.24.>                      <20>
+ *          |     |                         +-----+
+ *          +-----|-------------------------------|-+
+ *                +-------------------------------|-|-+
+ *                                                v v v
  *                                               |------|
  *                                                <hash>
- *                                                  |
  *          +---------------------------------------+
  *          v
  *         <20>
  * pool'  |------------------------------------|
- *         <20><20><..44..>
- *          |         |
- *          |         +------------------------------+
- *          +-------------------------------------+  |
- *                                                v  v
+ *         <20><20><.24.>
+ *          +---|-----|---------------------------+
+ *              +-----|---------------------------|-+
+ *                    +---------------------------|-|-+
+ *                                                v v v
  *                                               |------|
  *                                                <hash>
  *                                                  |
@@ -577,13 +576,11 @@ _gcry_rngcsprng_randomize (void *buffer, size_t length,
  *              v
  *             <20>
  * pool'' |------------------------------------|
- *         <20><20><20><..44..>
- *              |         |
- *              |         +--------------------------+
- *              +---------------------------------+  |
- *                                                v  v
- *                                               |------|
- *                                                <hash>
+ *         <20><20><20><.24.>
+ *              +---|-----|-----------------------+
+ *                  +-----|-----------------------|-+
+ *                        +-----------------------|-|-+
+ *                                                v v v
  *
  * and so on until we did this for all 30 blocks.
  *
@@ -611,9 +608,9 @@ mix_pool(unsigned char *pool)
   gcry_assert (pool_is_locked);
   _gcry_sha1_mixblock_init (&md);
 
-  /* Loop over the pool.  */
+  /* pool_0 -> pool'.  */
   pend = pool + POOLSIZE;
-  memcpy (hashbuf, pend - DIGESTLEN, DIGESTLEN );
+  memcpy (hashbuf, pend - DIGESTLEN, DIGESTLEN);
   memcpy (hashbuf+DIGESTLEN, pool, BLOCKLEN-DIGESTLEN);
   nburn = _gcry_sha1_mixblock (&md, hashbuf);
   memcpy (pool, hashbuf, DIGESTLEN);
@@ -624,19 +621,17 @@ mix_pool(unsigned char *pool)
         pool[i] ^= failsafe_digest[i];
     }
 
+  /* Loop for the remaining iterations.  */
   p = pool;
   for (n=1; n < POOLBLOCKS; n++)
     {
-      memcpy (hashbuf, p, DIGESTLEN);
-
-      p += DIGESTLEN;
-      if (p+DIGESTLEN+BLOCKLEN < pend)
-        memcpy (hashbuf+DIGESTLEN, p+DIGESTLEN, BLOCKLEN-DIGESTLEN);
+      if (p + BLOCKLEN < pend)
+        memcpy (hashbuf, p, BLOCKLEN);
       else
         {
-          unsigned char *pp = p + DIGESTLEN;
+          unsigned char *pp = p;
 
-          for (i=DIGESTLEN; i < BLOCKLEN; i++ )
+          for (i=0; i < BLOCKLEN; i++ )
             {
               if ( pp >= pend )
                 pp = pool;
@@ -645,7 +640,8 @@ mix_pool(unsigned char *pool)
 	}
 
       _gcry_sha1_mixblock (&md, hashbuf);
-      memcpy(p, hashbuf, DIGESTLEN);
+      p += DIGESTLEN;
+      memcpy (p, hashbuf, DIGESTLEN);
     }
 
   /* Our hash implementation does only leave small parts (64 bytes)
