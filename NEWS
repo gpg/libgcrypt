@@ -1,5 +1,18 @@
-Noteworthy changes in version 1.7.3 (unreleased)  [C21/A1/R_]
+Noteworthy changes in version 1.7.3 (2016-08-17)  [C21/A1/R3]
 ------------------------------------------------
+
+ * Bug fixes:
+
+   - Fix critical security bug in the RNG [CVE-2016-6313].  An
+     attacker who obtains 580 bytes from the standard RNG can
+     trivially predict the next 20 bytes of output.  Problem
+     detected by Felix Dörre and Vladimir Klebanov, KIT.
+
+   - Fix building of some asm modules with older compilers and CPUs.
+
+ * Performance:
+
+   - ARMv8/AArch32 improvements for AES, GCM, SHA-256, and SHA-1.
 
 
 Noteworthy changes in version 1.7.2 (2016-07-14)  [C21/A1/R2]
