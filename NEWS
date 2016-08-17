@@ -1,5 +1,10 @@
-Noteworthy changes in version 1.6.6 (unreleased) [C20/A0/R_]
+Noteworthy changes in version 1.6.6 (2016-08-17) [C20/A0/R6]
 ------------------------------------------------
+
+ * Fix critical security bug in the RNG [CVE-2016-6313].  An attacker
+   who obtains 580 bytes from the standard RNG can trivially predict
+   the next 20 bytes of output.  Problem detected by Felix Dörre and
+   Vladimir Klebanov, KIT.
 
 
 Noteworthy changes in version 1.6.5 (2016-02-09) [C20/A0/R5]
