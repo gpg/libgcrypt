@@ -79,6 +79,10 @@
      && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) \
      && defined(HAVE_GCC_INLINE_ASM_AARCH32_CRYPTO)
 #  define GCM_USE_ARM_PMULL 1
+# elif defined(__AARCH64EL__) && \
+    defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) && \
+    defined(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO)
+#  define GCM_USE_ARM_PMULL 1
 # endif
 #endif /* GCM_USE_ARM_PMULL */
 
