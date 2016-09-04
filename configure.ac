@@ -1073,6 +1073,32 @@ fi
 
 
 #
+# Check whether GCC assembler supports features needed for our ARMv8/Aarch64
+# implementations.  This needs to be done before setting up the
+# assembler stuff.
+#
+AC_CACHE_CHECK([whether GCC assembler is compatible for ARMv8/Aarch64 assembly implementations],
+       [gcry_cv_gcc_aarch64_platform_as_ok],
+       [gcry_cv_gcc_aarch64_platform_as_ok=no
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+          [[__asm__(
+                "asmfunc:\n\t"
+                "eor x0, x0, x30, ror #12;\n\t"
+                "add x0, x0, x30, asr #12;\n\t"
+                "eor v0.16b, v0.16b, v31.16b;\n\t"
+
+                /* Test if '.type' and '.size' are supported.  */
+                ".size asmfunc,.-asmfunc;\n\t"
+                ".type asmfunc,@function;\n\t"
+            );]])],
+          [gcry_cv_gcc_aarch64_platform_as_ok=yes])])
+if test "$gcry_cv_gcc_aarch64_platform_as_ok" = "yes" ; then
+   AC_DEFINE(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS,1,
+     [Defined if underlying assembler is compatible with ARMv8/Aarch64 assembly implementations])
+fi
+
+
+#
 # Check whether underscores in symbols are required.  This needs to be
 # done before setting up the assembler stuff.
 #
@@ -2013,6 +2039,10 @@ if test "$found" = "1" ; then
          # Build with the ARMv8/AArch32 CE implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv8-ce.lo"
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv8-aarch32-ce.lo"
+      ;;
+      aarch64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-aarch64.lo"
       ;;
    esac
 
