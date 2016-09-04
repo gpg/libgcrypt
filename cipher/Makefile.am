@@ -81,7 +81,7 @@ md5.c \
 poly1305-sse2-amd64.S poly1305-avx2-amd64.S poly1305-armv7-neon.S \
 rijndael.c rijndael-internal.h rijndael-tables.h rijndael-aesni.c \
   rijndael-padlock.c rijndael-amd64.S rijndael-arm.S rijndael-ssse3-amd64.c \
-  rijndael-armv8-ce.c rijndael-armv8-aarch32-ce.S \
+  rijndael-armv8-ce.c rijndael-armv8-aarch32-ce.S rijndael-armv8-aarch64-ce.S \
   rijndael-aarch64.S \
 rmd160.c \
 rsa.c \

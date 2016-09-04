@@ -1,4 +1,4 @@
-/* ARMv8 CE accelerated AES
+/* rijndael-armv8-aarch32-ce.S - ARMv8/CE accelerated AES
  * Copyright (C) 2016 Jussi Kivilinna <jussi.kivilinna@iki.fi>
  *
  * This file is part of Libgcrypt.

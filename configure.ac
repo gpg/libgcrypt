@@ -2043,6 +2043,10 @@ if test "$found" = "1" ; then
       aarch64-*-*)
          # Build with the assembly implementation
          GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-aarch64.lo"
+
+         # Build with the ARMv8/AArch64 CE implementation
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv8-ce.lo"
+         GCRYPT_CIPHERS="$GCRYPT_CIPHERS rijndael-armv8-aarch64-ce.lo"
       ;;
    esac
 
