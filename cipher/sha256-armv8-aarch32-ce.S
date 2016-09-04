@@ -93,6 +93,19 @@ gcry_sha256_aarch32_ce_K:
 
 #define _(...) /*_*/
 
+#define do_loadk(nk0, nk1) vld1.32 {nk0-nk1},[lr]!;
+#define do_add(a, b) vadd.u32 a, a, b;
+#define do_sha256su0(w0, w1) sha256su0.32 w0, w1;
+#define do_sha256su1(w0, w2, w3) sha256su1.32 w0, w2, w3;
+
+#define do_rounds(k, nk0, nk1, w0, w1, w2, w3, loadk_fn, add_fn, su0_fn, su1_fn) \
+        loadk_fn(   nk0, nk1     ); \
+        su0_fn(     w0, w1       ); \
+        vmov        qABCD1, qABCD0; \
+        sha256h.32  qABCD0, qEFGH, k; \
+        sha256h2.32 qEFGH, qABCD1, k; \
+        add_fn(     nk0, w2      ); \
+        su1_fn(     w0, w2, w3   );
 
 
 /* Other functional macros */
@@ -125,20 +138,6 @@ _gcry_sha256_transform_armv8_ce:
   mov lr, r4
 
   vld1.32 {qH0123-qH4567}, [r0]  /* load state */
-
-#define do_loadk(nk0, nk1) vld1.32 {nk0-nk1},[lr]!;
-#define do_add(a, b) vadd.u32 a, a, b;
-#define do_sha256su0(w0, w1) sha256su0.32 w0, w1;
-#define do_sha256su1(w0, w2, w3) sha256su1.32 w0, w2, w3;
-
-#define do_rounds(k, nk0, nk1, w0, w1, w2, w3, loadk_fn, add_fn, su0_fn, su1_fn) \
-        loadk_fn(   nk0, nk1     ); \
-        su0_fn(     w0, w1       ); \
-        vmov        qABCD1, qABCD0; \
-        sha256h.32  qABCD0, qEFGH, k; \
-        sha256h2.32 qEFGH, qABCD1, k; \
-        add_fn(     nk0, w2      ); \
-        su1_fn(     w0, w2, w3   ); \
 
   vld1.8 {qW0-qW1}, [r1]!
   do_loadk(qK0, qK1)

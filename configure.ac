@@ -2292,7 +2292,11 @@ if test "$found" = "1" ; then
       ;;
       arm*-*-*)
          # Build with the assembly implementation
-         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-arm.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-armv8-aarch32-ce.lo"
+      ;;
+      aarch64-*-*)
+         # Build with the assembly implementation
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-armv8-aarch64-ce.lo"
       ;;
    esac
 fi
@@ -2311,7 +2315,7 @@ if test "$found" = "1" ; then
       ;;
       arm*-*-*)
          # Build with the assembly implementation
-         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha256-armv8-aarch32-ce.lo"
+         GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha512-arm.lo"
       ;;
    esac
 
