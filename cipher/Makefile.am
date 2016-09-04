@@ -90,7 +90,7 @@ scrypt.c \
 seed.c \
 serpent.c serpent-sse2-amd64.S serpent-avx2-amd64.S serpent-armv7-neon.S \
 sha1.c sha1-ssse3-amd64.S sha1-avx-amd64.S sha1-avx-bmi2-amd64.S \
-  sha1-armv7-neon.S sha1-armv8-aarch32-ce.S \
+  sha1-armv7-neon.S sha1-armv8-aarch32-ce.S sha1-armv8-aarch64-ce.S \
 sha256.c sha256-ssse3-amd64.S sha256-avx-amd64.S sha256-avx2-bmi2-amd64.S \
   sha256-armv8-aarch32-ce.S \
 sha512.c sha512-ssse3-amd64.S sha512-avx-amd64.S sha512-avx2-bmi2-amd64.S \

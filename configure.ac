@@ -2375,6 +2375,10 @@ case "${host}" in
     GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-armv7-neon.lo"
     GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-armv8-aarch32-ce.lo"
   ;;
+  aarch64-*-*)
+    # Build with the assembly implementation
+    GCRYPT_DIGESTS="$GCRYPT_DIGESTS sha1-armv8-aarch64-ce.lo"
+  ;;
 esac
 
 LIST_MEMBER(scrypt, $enabled_kdfs)

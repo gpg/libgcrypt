@@ -86,6 +86,10 @@
      && defined(HAVE_COMPATIBLE_GCC_ARM_PLATFORM_AS) \
      && defined(HAVE_GCC_INLINE_ASM_AARCH32_CRYPTO)
 #  define USE_ARM_CE 1
+# elif defined(__AARCH64EL__) \
+       && defined(HAVE_COMPATIBLE_GCC_AARCH64_PLATFORM_AS) \
+       && defined(HAVE_GCC_INLINE_ASM_AARCH64_CRYPTO)
+#  define USE_ARM_CE 1
 # endif
 #endif
 
