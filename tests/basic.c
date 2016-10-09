@@ -6902,7 +6902,7 @@ check_digests (void)
 	fprintf (stderr, "  checking %s [%i] for length %d\n",
 		 gcry_md_algo_name (algos[i].md),
 		 algos[i].md,
-                 !strcmp (algos[i].data, "!")?
+                 (!strcmp (algos[i].data, "!") || !strcmp (algos[i].data, "?"))?
                  1000000 : (int)strlen(algos[i].data));
 
       check_one_md (algos[i].md, algos[i].data,
@@ -7359,6 +7359,15 @@ check_one_mac (int algo, const char *data, int datalen,
   int i;
   gcry_error_t err = 0;
 
+  if (test_buffering)
+    {
+      if ((*data == '!' && !data[1]) ||
+          (*data == '?' && !data[1]))
+        {
+          return; /* Skip. */
+        }
+    }
+
   err = gcry_mac_open (&hd, algo, 0, NULL);
   if (err)
     {
@@ -7416,7 +7425,60 @@ check_one_mac (int algo, const char *data, int datalen,
     }
   else
     {
-      err = gcry_mac_write (hd, data, datalen);
+      if ((*data == '!' && !data[1]) || /* hash one million times a "a" */
+          (*data == '?' && !data[1]))   /* hash million byte data-set with byte pattern 0x00,0x01,0x02,... */
+        {
+          char aaa[1000];
+          size_t left = 1000 * 1000;
+          size_t startlen = 1;
+          size_t piecelen = startlen;
+
+          if (*data == '!')
+            memset (aaa, 'a', 1000);
+
+          /* Write in chuck with all sizes 1 to 1000 (500500 bytes)  */
+          for (i = 1; i <= 1000 && left > 0; i++)
+            {
+              piecelen = i;
+              if (piecelen > sizeof(aaa))
+                piecelen = sizeof(aaa);
+              if (piecelen > left)
+                piecelen = left;
+
+              if (*data == '?')
+                fillbuf_count(aaa, piecelen, 1000 * 1000 - left);
+
+              gcry_mac_write (hd, aaa, piecelen);
+
+              left -= piecelen;
+            }
+
+          /* Write in odd size chunks so that we test the buffering.  */
+          while (left > 0)
+            {
+              if (piecelen > sizeof(aaa))
+                piecelen = sizeof(aaa);
+              if (piecelen > left)
+                piecelen = left;
+
+              if (*data == '?')
+                fillbuf_count(aaa, piecelen, 1000 * 1000 - left);
+
+              gcry_mac_write (hd, aaa, piecelen);
+
+              left -= piecelen;
+
+              if (piecelen == sizeof(aaa))
+                piecelen = ++startlen;
+              else
+                piecelen = piecelen * 2 - ((piecelen != startlen) ? startlen : 0);
+            }
+        }
+      else
+        {
+          err = gcry_mac_write (hd, data, datalen);
+        }
+
       if (err)
         fail("algo %d, mac gcry_mac_write failed: %s\n", algo, gpg_strerror (err));
       if (err)
@@ -7426,8 +7488,6 @@ check_one_mac (int algo, const char *data, int datalen,
   err = gcry_mac_verify (hd, expect, maclen);
   if (err)
     fail("algo %d, mac gcry_mac_verify failed: %s\n", algo, gpg_strerror (err));
-  if (err)
-    goto out;
 
   macoutlen = maclen;
   err = gcry_mac_read (hd, p, &macoutlen);
@@ -7511,6 +7571,8 @@ check_mac (void)
         "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
         "\xaa\xaa\xaa\xaa\xaa",
         "\x6f\x63\x0f\xad\x67\xcd\xa0\xee\x1f\xb1\xf5\x62\xdb\x3a\xa5\x3e", },
+      { GCRY_MAC_HMAC_MD5, "?", "????????????????",
+        "\x7e\x28\xf8\x8e\xf4\x6c\x48\x30\xa2\x0c\xe3\xe1\x42\xd4\xb5\x6b" },
       { GCRY_MAC_HMAC_SHA256, "what do ya want for nothing?", "Jefe",
         "\x5b\xdc\xc1\x46\xbf\x60\x75\x4e\x6a\x04\x24\x26\x08\x95\x75\xc7\x5a"
         "\x00\x3f\x08\x9d\x27\x39\x83\x9d\xec\x58\xb9\x64\xec\x38\x43" },
@@ -7564,6 +7626,9 @@ check_mac (void)
         "\xaa\xaa\xaa",
         "\x9b\x09\xff\xa7\x1b\x94\x2f\xcb\x27\x63\x5f\xbc\xd5\xb0\xe9\x44"
         "\xbf\xdc\x63\x64\x4f\x07\x13\x93\x8a\x7f\x51\x53\x5c\x3a\x35\xe2" },
+      { GCRY_MAC_HMAC_SHA256, "?", "????????????????",
+        "\x1c\x0e\x57\xad\x4a\x02\xd2\x30\xce\x7e\xf8\x08\x23\x25\x71\x5e"
+        "\x16\x9b\x30\xca\xc3\xf4\x99\xc5\x1d\x4c\x25\x32\xa9\xf2\x15\x28" },
       { GCRY_MAC_HMAC_SHA224, "what do ya want for nothing?", "Jefe",
         "\xa3\x0e\x01\x09\x8b\xc6\xdb\xbf\x45\x69\x0f\x3a\x7e\x9e\x6d\x0f"
         "\x8b\xbe\xa2\xa3\x9e\x61\x48\x00\x8f\xd0\x5e\x44" },
@@ -7617,6 +7682,9 @@ check_mac (void)
         "\xaa\xaa\xaa",
         "\x3a\x85\x41\x66\xac\x5d\x9f\x02\x3f\x54\xd5\x17\xd0\xb3\x9d\xbd"
         "\x94\x67\x70\xdb\x9c\x2b\x95\xc9\xf6\xf5\x65\xd1" },
+      { GCRY_MAC_HMAC_SHA224, "?", "????????????????",
+        "\xc1\x88\xaf\xcf\xce\x51\xa2\x14\x3d\xc1\xaf\x93\xcc\x2b\xe9\x4d"
+        "\x39\x55\x90\x4c\x46\x70\xfc\xc2\x04\xcf\xab\xfa" },
       { GCRY_MAC_HMAC_SHA384, "what do ya want for nothing?", "Jefe",
         "\xaf\x45\xd2\xe3\x76\x48\x40\x31\x61\x7f\x78\xd2\xb5\x8a\x6b\x1b"
         "\x9c\x7e\xf4\x64\xf5\xa0\x1b\x47\xe4\x2e\xc3\x73\x63\x22\x44\x5e"
@@ -7676,6 +7744,10 @@ check_mac (void)
         "\x66\x17\x17\x8e\x94\x1f\x02\x0d\x35\x1e\x2f\x25\x4e\x8f\xd3\x2c"
         "\x60\x24\x20\xfe\xb0\xb8\xfb\x9a\xdc\xce\xbb\x82\x46\x1e\x99\xc5"
         "\xa6\x78\xcc\x31\xe7\x99\x17\x6d\x38\x60\xe6\x11\x0c\x46\x52\x3e" },
+      { GCRY_MAC_HMAC_SHA384, "?", "????????????????",
+        "\xe7\x96\x29\xa3\x40\x5f\x1e\x6e\x92\xa5\xdb\xa5\xc6\xe9\x60\xa8"
+        "\xf5\xd1\x6d\xcb\x10\xec\x30\x2f\x6b\x9c\x37\xe0\xea\xf1\x53\x28"
+        "\x08\x01\x9b\xe3\x4a\x43\xc6\xc2\x2b\x0c\xd9\x43\x64\x35\x25\x78" },
       { GCRY_MAC_HMAC_SHA512, "what do ya want for nothing?", "Jefe",
         "\x16\x4b\x7a\x7b\xfc\xf8\x19\xe2\xe3\x95\xfb\xe7\x3b\x56\xe0\xa3"
         "\x87\xbd\x64\x22\x2e\x83\x1f\xd6\x10\x27\x0c\xd7\xea\x25\x05\x54"
@@ -7741,6 +7813,11 @@ check_mac (void)
         "\xde\xbd\x71\xf8\x86\x72\x89\x86\x5d\xf5\xa3\x2d\x20\xcd\xc9\x44"
         "\xb6\x02\x2c\xac\x3c\x49\x82\xb1\x0d\x5e\xeb\x55\xc3\xe4\xde\x15"
         "\x13\x46\x76\xfb\x6d\xe0\x44\x60\x65\xc9\x74\x40\xfa\x8c\x6a\x58" },
+      { GCRY_MAC_HMAC_SHA512, "?", "????????????????",
+        "\xd4\x43\x61\xfa\x3d\x3d\x57\xd6\xac\xc3\x9f\x1c\x3d\xd9\x26\x84"
+        "\x1f\xfc\x4d\xf2\xbf\x78\x87\x72\x5e\x6c\x3e\x00\x6d\x39\x5f\xfa"
+        "\xd7\x3a\xf7\x83\xb7\xb5\x61\xbd\xfb\x33\xe0\x03\x97\xa7\x72\x79"
+        "\x66\x66\xbf\xbd\x44\xfa\x04\x01\x1b\xc1\x48\x1d\x9e\xde\x5b\x8e" },
       /* HMAC-SHA3 test vectors from
        * http://wolfgang-ehrhardt.de/hmac-sha3-testvectors.html */
       { GCRY_MAC_HMAC_SHA3_224,
@@ -7904,6 +7981,21 @@ check_mac (void)
 	"\x1f\x3e\x6c\xf0\x48\x60\xc6\xbb\xd7\xfa\x48\x86\x74\x78\x2b\x46"
 	"\x59\xfd\xbd\xf3\xfd\x87\x78\x52\x88\x5c\xfe\x6e\x22\x18\x5f\xe7"
 	"\xb2\xee\x95\x20\x43\x62\x9b\xc9\xd5\xf3\x29\x8a\x41\xd0\x2c\x66" },
+      { GCRY_MAC_HMAC_SHA3_224, "?", "????????????????",
+        "\x80\x2b\x3c\x84\xfe\x3e\x01\x22\x14\xf8\xba\x74\x79\xfd\xb5\x02"
+	"\xea\x0c\x06\xa4\x7e\x01\xe3\x2c\xc7\x24\x89\xc3" },
+      { GCRY_MAC_HMAC_SHA3_256, "?", "????????????????",
+        "\x6c\x7c\x96\x5b\x19\xba\xcd\x61\x69\x8a\x2c\x7a\x2b\x96\xa1\xc3"
+	"\x33\xa0\x3c\x5d\x54\x87\x37\x60\xc8\x2f\xa2\xa6\x12\x38\x8d\x1b" },
+      { GCRY_MAC_HMAC_SHA3_384, "?", "????????????????",
+        "\xc0\x20\xd0\x9b\xa7\xb9\xd5\xb8\xa6\xa4\xba\x20\x55\xd9\x0b\x35"
+	"\x8b\xe0\xb7\xec\x1e\x9f\xe6\xb9\xbd\xd5\xe9\x9b\xfc\x0a\x11\x3a"
+	"\x15\x41\xed\xfd\xef\x30\x8d\x03\xb8\xca\x3a\xa8\xc7\x2d\x89\x32" },
+      { GCRY_MAC_HMAC_SHA3_512, "?", "????????????????",
+        "\xb4\xef\x24\xd2\x07\xa7\x01\xb3\xe1\x81\x11\x22\x93\x83\x64\xe0"
+	"\x5e\xad\x03\xb7\x43\x4f\x87\xa1\x14\x8e\x17\x8f\x2a\x97\x7d\xe8"
+	"\xbd\xb0\x37\x3b\x67\xb9\x97\x36\xa5\x82\x9b\xdc\x0d\xe4\x5a\x8c"
+	"\x5e\xda\xb5\xca\xea\xa9\xb4\x6e\xba\xca\x25\xc8\xbf\xa1\x0e\xb0" },
       /* CMAC AES and DES test vectors from
          http://web.archive.org/web/20130930212819/http://csrc.nist.gov/publica\
          tions/nistpubs/800-38B/Updated_CMAC_Examples.pdf */
@@ -7978,6 +8070,8 @@ check_mac (void)
         "\x60\x3d\xeb\x10\x15\xca\x71\xbe\x2b\x73\xae\xf0\x85\x7d\x77\x81"
         "\x1f\x35\x2c\x07\x3b\x61\x08\xd7\x2d\x98\x10\xa3\x09\x14\xdf\xf4",
         "\xe1\x99\x21\x90\x54\x9f\x6e\xd5\x69\x6a\x2c\x05\x6c\x31\x54\x10" },
+      { GCRY_MAC_CMAC_AES, "?", "????????????????????????????????",
+        "\x9f\x72\x73\x68\xb0\x49\x2e\xb1\x35\xa0\x1d\xf9\xa8\x0a\xf6\xee" },
       { GCRY_MAC_CMAC_3DES,
         "",
         "\x8a\xa8\x3b\xf8\xcb\xda\x10\x62\x0b\xc1\xbf\x19\xfb\xb6\xcd\x58"
@@ -8022,6 +8116,8 @@ check_mac (void)
         "\x4c\xf1\x51\x34\xa2\x85\x0d\xd5\x8a\x3d\x10\xba\x80\x57\x0d\x38"
         "\x4c\xf1\x51\x34\xa2\x85\x0d\xd5",
         "\x31\xb1\xe4\x31\xda\xbc\x4e\xb8" },
+      { GCRY_MAC_CMAC_3DES, "?", "????????????????????????",
+        "\xc1\x38\x13\xb2\x31\x8f\x3a\xdf" },
       /* CMAC Camellia test vectors from
          http://tools.ietf.org/html/draft-kato-ipsec-camellia-cmac96and128-05 */
       { GCRY_MAC_CMAC_CAMELLIA,
@@ -8045,6 +8141,8 @@ check_mac (void)
         "\xf6\x9f\x24\x45\xdf\x4f\x9b\x17\xad\x2b\x41\x7b\xe6\x6c\x37\x10",
         "\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c",
         "\xc2\x69\x9a\x6e\xba\x55\xce\x9d\x93\x9a\x8a\x4e\x19\x46\x6e\xe9" },
+      { GCRY_MAC_CMAC_CAMELLIA, "?", "????????????????????????????????",
+        "\xba\x8a\x5a\x8d\xa7\x54\x26\x83\x3e\xb1\x20\xb5\x45\xd0\x9f\x4e" },
       /* http://csrc.nist.gov/groups/STM/cavp/documents/mac/gcmtestvectors.zip */
       { GCRY_MAC_GMAC_AES,
         "",
@@ -8081,6 +8179,8 @@ check_mac (void)
         "\xc9\xfc\xa7\x29\xab\x60\xad\xa0",
         "\x20\x4b\xdb\x1b\xd6\x21\x54\xbf\x08\x92\x2a\xaa\x54\xee\xd7\x05",
         "\x05\xad\x13\xa5\xe2\xc2\xab\x66\x7e\x1a\x6f\xbc" },
+      { GCRY_MAC_GMAC_AES, "?", "????????????????????????????????",
+        "\x84\x37\xc3\x42\xae\xf5\xd0\x40\xd3\x73\x90\xa9\x36\xed\x8a\x12" },
       /* from NaCl */
       { GCRY_MAC_POLY1305,
         "\x8e\x99\x3b\x9f\x48\x68\x12\x73\xc2\x96\x50\xba\x32\xfc\x76\xce"
@@ -8250,6 +8350,8 @@ check_mac (void)
         "\x12\x97\x6a\x08\xc4\x42\x6d\x0c\xe8\xa8\x24\x07\xc4\xf4\x82\x07"
         "\x80\xf8\xc2\x0a\xa7\x12\x02\xd1\xe2\x91\x79\xcb\xcb\x55\x5a\x57",
         "\x51\x54\xad\x0d\x2c\xb2\x6e\x01\x27\x4f\xc5\x11\x48\x49\x1f\x1b" },
+      { GCRY_MAC_POLY1305, "?", "????????????????????????????????",
+        "\xc3\x88\xce\x8a\x52\xd6\xe7\x21\x86\xfa\xaa\x5d\x2d\x16\xf9\xa3" },
       /* from http://cr.yp.to/mac/poly1305-20050329.pdf */
       { GCRY_MAC_POLY1305_AES,
         "\xf3\xf6",
@@ -8283,6 +8385,10 @@ check_mac (void)
         "\x51\x54\xad\x0d\x2c\xb2\x6e\x01\x27\x4f\xc5\x11\x48\x49\x1f\x1b",
 	"\x9a\xe8\x31\xe7\x43\x97\x8d\x3a\x23\x52\x7c\x71\x28\x14\x9e\x3a",
         0, 32 },
+      { GCRY_MAC_POLY1305_AES, "?", "????????????????????????????????",
+        "\x9d\xeb\xb0\xcd\x24\x90\xd3\x9b\x47\x78\x37\x0a\x81\xf2\x83\x2a",
+        "\x61\xee\x09\x21\x8d\x29\xb0\xaa\xed\x7e\x15\x4a\x2c\x55\x09\xcc",
+        0, 32 },
       { 0 },
     };
   int i;
@@ -8310,8 +8416,9 @@ check_mac (void)
 	fprintf (stderr,
                  "  checking %s [%i] for %d byte key and %d byte data\n",
 		 gcry_mac_algo_name (algos[i].algo),
-		 algos[i].algo,
-		 (int)strlen(algos[i].key), (int)strlen(algos[i].data));
+		 algos[i].algo, (int)strlen(algos[i].key),
+                 (!strcmp(algos[i].data, "!") || !strcmp(algos[i].data, "?"))
+                   ? 1000000 : (int)strlen(algos[i].data));
 
       klen = algos[i].klen ? algos[i].klen : strlen(algos[i].key);
       dlen = algos[i].dlen ? algos[i].dlen : strlen (algos[i].data);
