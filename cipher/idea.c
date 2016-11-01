@@ -152,7 +152,7 @@ invert_key( u16 *ek, u16 dk[IDEA_KEYLEN] )
     *--p = t2;
     *--p = t1;
     memcpy(dk, temp, sizeof(temp) );
-    memset(temp, 0, sizeof(temp) );  /* burn temp */
+    wipememory(temp, sizeof(temp));
 }
 
 
