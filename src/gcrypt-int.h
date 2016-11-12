@@ -28,19 +28,8 @@
 #include "types.h"
 
 /* These error codes are used but not defined in the required
-   libgpg-error 1.11.  Define them here. */
-#if GPG_ERROR_VERSION_NUMBER < 0x010c00  /* 1.12 */
-# define GPG_ERR_NO_CRYPT_CTX	    191
-# define GPG_ERR_WRONG_CRYPT_CTX    192
-# define GPG_ERR_BAD_CRYPT_CTX	    193
-# define GPG_ERR_CRYPT_CTX_CONFLICT 194
-# define GPG_ERR_BROKEN_PUBKEY      195
-# define GPG_ERR_BROKEN_SECKEY      196
-#endif
+ * libgpg-error N.MM.  Define them here.  [None right now.] */
 
-#if GPG_ERROR_VERSION_NUMBER < 0x010d00  /* 1.13 */
-# define GPG_ERR_MAC_ALGO           197
-#endif
 
 
 /* Context used with elliptic curve functions.  */

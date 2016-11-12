@@ -220,7 +220,10 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
           FD_SET(fd, &rfds);
           tv.tv_sec = delay;
           tv.tv_usec = delay? 0 : 100000;
-          if ( !(rc=select(fd+1, &rfds, NULL, NULL, &tv)) )
+          _gcry_pre_syscall ();
+          rc = select (fd+1, &rfds, NULL, NULL, &tv);
+          _gcry_post_syscall ();
+          if (!rc)
             {
               any_need_entropy = 1;
               delay = 3; /* Use 3 seconds henceforth.  */
@@ -256,8 +259,10 @@ _gcry_rndlinux_gather_random (void (*add)(const void*, size_t,
               nbytes = length < sizeof(buffer)? length : sizeof(buffer);
               if (nbytes > 256)
                 nbytes = 256;
+              _gcry_pre_syscall ();
               ret = syscall (__NR_getrandom,
                              (void*)buffer, (size_t)nbytes, (unsigned int)0);
+              _gcry_post_syscall ();
             }
           while (ret == -1 && errno == EINTR);
           if (ret == -1 && errno == ENOSYS)

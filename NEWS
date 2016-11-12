@@ -1,6 +1,24 @@
-Noteworthy changes in version 1.7.4 (unreleased)  [C21/A1/R_]
+Noteworthy changes in version 1.8.0 (unreleased)  [C21/A1/R_]
 ------------------------------------------------
 
+ * New interfaces:
+
+   - GCRYCTL_REINIT_SYSCALL_CLAMP allows to init nPth after Libgcrypt.
+
+ * Internal changes:
+
+   - Libgpg-error 1.25 is now required.  This avoids stalling of nPth
+     threads due to contention on internal Libgcrypt locks (e.g. the
+     random pool lock).
+
+   - The system call clamp of libgpg-error is now used to wrap the
+     blocking read of /dev/random.  This allows other nPth threads to
+     run while Libgcrypt is gathering entropy.
+
+
+ * Interface changes relative to the 1.6.0 release:
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   GCRYCTL_REINIT_SYSCALL_CLAMP    NEW macro.
 
 Noteworthy changes in version 1.7.3 (2016-08-17)  [C21/A1/R3]
 ------------------------------------------------

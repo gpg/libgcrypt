@@ -29,8 +29,8 @@ min_automake_version="1.14"
 # commit and push so that the git magic is able to work.  See below
 # for the LT versions.
 m4_define(mym4_version_major, [1])
-m4_define(mym4_version_minor, [7])
-m4_define(mym4_version_micro, [4])
+m4_define(mym4_version_minor, [8])
+m4_define(mym4_version_micro, [0])
 
 # Below is m4 magic to extract and compute the revision number, the
 # decimalized short revision number, a beta version string, and a flag
@@ -67,7 +67,7 @@ LIBGCRYPT_CONFIG_API_VERSION=1
 
 # If you change the required gpg-error version, please remove
 # unnecessary error code defines in src/gcrypt-int.h.
-NEED_GPG_ERROR_VERSION=1.13
+NEED_GPG_ERROR_VERSION=1.25
 
 PACKAGE=$PACKAGE_NAME
 VERSION=$PACKAGE_VERSION

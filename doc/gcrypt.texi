@@ -905,6 +905,21 @@ detection code might be run if the feature has been disabled.  This
 command must be used at initialization time; i.e. before calling
 @code{gcry_check_version}.
 
+@item GCRYCTL_REINIT_SYSCALL_CLAMP; Arguments: none
+
+Libgcrypt wraps blocking system calls with two functions calls
+(``system call clamp'') to give user land threading libraries a hook
+for re-scheduling.  This works by reading the system call clamp from
+Libgpg-error at initialization time.  However sometimes Libgcrypt
+needs to be initialized before the user land threading systems and at
+that point the system call clamp has not been registered with
+Libgpg-error and in turn Libgcrypt would not use them.  The control
+code can be used to tell Libgcrypt that a system call clamp has now
+been registered with Libgpg-error and advised it to read the clamp
+again.  Obviously this control code may only be used before a second
+thread is started in a process.
+
+
 @end table
 
 @end deftypefun
