@@ -3874,6 +3874,170 @@ check_ocb_cipher (void)
   check_ocb_cipher_splitaad ();
 }
 
+static void
+check_gost28147_cipher (void)
+{
+#if USE_GOST28147
+  static const struct {
+    char key[MAX_DATA_LEN];
+    const char *oid;
+    unsigned char plaintext[MAX_DATA_LEN];
+    int inlen;
+    char out[MAX_DATA_LEN];
+  } tv[] =
+  {
+    {
+      "\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x80"
+      "\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xd0",
+      "1.2.643.7.1.2.5.1.1",
+      "\x01\x02\x03\x04\x05\x06\x07\x08",
+      8,
+      "\xce\x5a\x5e\xd7\xe0\x57\x7a\x5f",
+    }, {
+      "\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x80"
+      "\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xd0",
+      "1.2.643.2.2.31.0",
+      "\x01\x02\x03\x04\x05\x06\x07\x08",
+      8,
+      "\x98\x56\xcf\x8b\xfc\xc2\x82\xf4",
+    }, {
+      "\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x80"
+      "\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xd0",
+      "1.2.643.2.2.31.1",
+      "\x01\x02\x03\x04\x05\x06\x07\x08",
+      8,
+      "\x66\x81\x84\xae\xdc\x48\xc9\x17",
+    }, {
+      "\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x80"
+      "\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xd0",
+      "1.2.643.2.2.31.2",
+      "\x01\x02\x03\x04\x05\x06\x07\x08",
+      8,
+      "\xdb\xee\x81\x14\x7b\x74\xb0\xf2",
+    }, {
+      "\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x80"
+      "\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xd0",
+      "1.2.643.2.2.31.3",
+      "\x01\x02\x03\x04\x05\x06\x07\x08",
+      8,
+      "\x31\xa3\x85\x9d\x0a\xee\xb8\x0e",
+    }, {
+      "\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x80"
+      "\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xd0",
+      "1.2.643.2.2.31.4",
+      "\x01\x02\x03\x04\x05\x06\x07\x08",
+      8,
+      "\xb1\x32\x3e\x0b\x21\x73\xcb\xd1",
+    }, {
+      "\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x80"
+      "\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xd0",
+      "1.2.643.2.2.30.0",
+      "\x01\x02\x03\x04\x05\x06\x07\x08",
+      8,
+      "\xce\xd5\x2a\x7f\xf7\xf2\x60\xd5",
+    }, {
+      "\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x80"
+      "\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xd0",
+      "1.2.643.2.2.30.1",
+      "\x01\x02\x03\x04\x05\x06\x07\x08",
+      8,
+      "\xe4\x21\x75\xe1\x69\x22\xd0\xa8",
+    }
+  };
+
+  gcry_cipher_hd_t hde, hdd;
+  unsigned char out[MAX_DATA_LEN];
+  int i, keylen;
+  gcry_error_t err = 0;
+
+  if (verbose)
+    fprintf (stderr, "  Starting GOST28147 cipher checks.\n");
+  keylen = gcry_cipher_get_algo_keylen(GCRY_CIPHER_GOST28147);
+  if (!keylen)
+    {
+      fail ("gost28147, gcry_cipher_get_algo_keylen failed\n");
+      return;
+    }
+
+  for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
+    {
+      err = gcry_cipher_open (&hde, GCRY_CIPHER_GOST28147,
+                              GCRY_CIPHER_MODE_ECB, 0);
+      if (!err)
+        err = gcry_cipher_open (&hdd, GCRY_CIPHER_GOST28147,
+                                GCRY_CIPHER_MODE_ECB, 0);
+      if (err)
+        {
+          fail ("gost28147, gcry_cipher_open failed: %s\n", gpg_strerror (err));
+          return;
+        }
+
+      err = gcry_cipher_setkey (hde, tv[i].key, keylen);
+      if (!err)
+        err = gcry_cipher_setkey (hdd, tv[i].key, keylen);
+      if (err)
+        {
+          fail ("gost28147, gcry_cipher_setkey failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+      err = gcry_cipher_set_sbox (hde, tv[i].oid);
+      if (!err)
+        err = gcry_cipher_set_sbox (hdd, tv[i].oid);
+      if (err)
+        {
+          fail ("gost28147, gcry_cipher_set_sbox failed: %s\n",
+                gpg_strerror (err));
+          gcry_cipher_close (hde);
+          gcry_cipher_close (hdd);
+          return;
+        }
+
+        err = gcry_cipher_encrypt (hde, out, MAX_DATA_LEN,
+                                   tv[i].plaintext,
+                                   tv[i].inlen == -1 ?
+                                   strlen ((char*)tv[i].plaintext) :
+                                   tv[i].inlen);
+        if (err)
+          {
+            fail ("gost28147, gcry_cipher_encrypt (%d) failed: %s\n",
+                  i, gpg_strerror (err));
+            gcry_cipher_close (hde);
+            gcry_cipher_close (hdd);
+            return;
+          }
+
+        if (memcmp (tv[i].out, out, tv[i].inlen))
+          {
+            fail ("gost28147, encrypt mismatch entry %d\n", i);
+            mismatch (tv[i].out, tv[i].inlen,
+                      out, tv[i].inlen);
+          }
+
+        err = gcry_cipher_decrypt (hdd, out, tv[i].inlen, NULL, 0);
+        if (err)
+          {
+            fail ("gost28147, gcry_cipher_decrypt (%d) failed: %s\n",
+                  i, gpg_strerror (err));
+            gcry_cipher_close (hde);
+            gcry_cipher_close (hdd);
+            return;
+          }
+
+        if (memcmp (tv[i].plaintext, out, tv[i].inlen))
+          {
+            fail ("gost28147, decrypt mismatch entry %d\n", i);
+            mismatch (tv[i].plaintext, tv[i].inlen,
+                      out, tv[i].inlen);
+          }
+    }
+
+#endif
+}
+
 
 static void
 check_stream_cipher (void)
@@ -5750,6 +5914,7 @@ check_cipher_modes(void)
   check_gcm_cipher ();
   check_poly1305_cipher ();
   check_ocb_cipher ();
+  check_gost28147_cipher ();
   check_stream_cipher ();
   check_stream_cipher_large_block ();
 
