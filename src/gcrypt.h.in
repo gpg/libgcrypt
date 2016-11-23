@@ -1061,7 +1061,7 @@ gcry_error_t gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag,
                                                                    NULL, on )
 
 #define gcry_cipher_set_sbox(h,oid) gcry_cipher_ctl( (h), GCRYCTL_SET_SBOX, \
-                                                     (oid), 0);
+                                                     (void *) oid, 0);
 
 /* Indicate to the encrypt and decrypt functions that the next call
    provides the final data.  Only used with some modes.  */
