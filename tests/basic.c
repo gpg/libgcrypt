@@ -4033,6 +4033,9 @@ check_gost28147_cipher (void)
             mismatch (tv[i].plaintext, tv[i].inlen,
                       out, tv[i].inlen);
           }
+
+        gcry_cipher_close (hde);
+        gcry_cipher_close (hdd);
     }
 
 #endif
