@@ -899,8 +899,6 @@ drbg_ctr_update (drbg_state_t drbg, drbg_string_t *addtl, int reseed)
     memset (df_data, 0, drbg_statelen (drbg));
 
   /* 10.2.1.3.2 step 2 and 10.2.1.4.2 step 2 */
-  /* TODO use reseed variable to avoid re-doing DF operation */
-  (void) reseed;
   if (addtl && 0 < addtl->len)
     {
       ret =
