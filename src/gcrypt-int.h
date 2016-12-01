@@ -77,6 +77,8 @@ gpg_err_code_t _gcry_cipher_checktag (gcry_cipher_hd_t hd, const void *intag,
                                       size_t taglen);
 gpg_err_code_t _gcry_cipher_setctr (gcry_cipher_hd_t hd,
                                     const void *ctr, size_t ctrlen);
+gpg_err_code_t _gcry_cipher_getctr (gcry_cipher_hd_t hd,
+                                    void *ctr, size_t ctrlen);
 size_t _gcry_cipher_get_algo_keylen (int algo);
 size_t _gcry_cipher_get_algo_blklen (int algo);
 

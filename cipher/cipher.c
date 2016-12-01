@@ -1117,6 +1117,16 @@ _gcry_cipher_setctr (gcry_cipher_hd_t hd, const void *ctr, size_t ctrlen)
   return 0;
 }
 
+gpg_err_code_t
+_gcry_cipher_getctr (gcry_cipher_hd_t hd, void *ctr, size_t ctrlen)
+{
+  if (ctr && ctrlen == hd->spec->blocksize)
+    memcpy (ctr, hd->u_ctr.ctr, hd->spec->blocksize);
+  else
+    return GPG_ERR_INV_ARG;
+
+  return 0;
+}
 
 gcry_err_code_t
 _gcry_cipher_authenticate (gcry_cipher_hd_t hd, const void *abuf,
