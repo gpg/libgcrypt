@@ -406,7 +406,7 @@ _gcry_log_printsxp (const char *text, gcry_sexp_t sexp)
       do
         {
           if (any && !with_lf)
-            log_debug ("%*s  ", (int)strlen(text), "");
+            log_debug ("%*s  ", text?(int)strlen(text):0, "");
           else
             any = 1;
           pend = strchr (p, '\n');
