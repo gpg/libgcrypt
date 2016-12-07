@@ -23,8 +23,8 @@
 
 void _gcry_secmem_init (size_t npool);
 void _gcry_secmem_term (void);
-void *_gcry_secmem_malloc (size_t size) _GCRY_GCC_ATTR_MALLOC;
-void *_gcry_secmem_realloc (void *a, size_t newsize);
+void *_gcry_secmem_malloc (size_t size, int xhint) _GCRY_GCC_ATTR_MALLOC;
+void *_gcry_secmem_realloc (void *a, size_t newsize, int xhint);
 void _gcry_secmem_free (void *a);
 void _gcry_secmem_dump_stats (void);
 void _gcry_secmem_set_flags (unsigned flags);
