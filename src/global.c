@@ -380,7 +380,7 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
       break;
 
     case GCRYCTL_DUMP_SECMEM_STATS:
-      _gcry_secmem_dump_stats ();
+      _gcry_secmem_dump_stats (0);
       break;
 
     case GCRYCTL_DROP_PRIVS:
@@ -613,7 +613,8 @@ _gcry_vcontrol (enum gcry_ctl_cmds cmd, va_list arg_ptr)
     case PRIV_CTL_EXTERNAL_LOCK_TEST:  /* Run external lock test */
       rc = external_lock_test (va_arg (arg_ptr, int));
       break;
-    case 62:  /* RFU */
+    case PRIV_CTL_DUMP_SECMEM_STATS:
+      _gcry_secmem_dump_stats (1);
       break;
 #if _GCRY_GCC_VERSION >= 40600
 # pragma GCC diagnostic pop

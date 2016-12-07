@@ -751,33 +751,35 @@ _gcry_secmem_term ()
 }
 
 
+/* Print stats of the secmem allocator.  With EXTENDED passwed as true
+ * a detiled listing is returned (used for testing).  */
 void
-_gcry_secmem_dump_stats ()
+_gcry_secmem_dump_stats (int extended)
 {
   pooldesc_t *pool;
-
-#if 1
-  SECMEM_LOCK;
-
-  pool = &mainpool;
-  if (pool->okay)
-    log_info ("secmem usage: %u/%lu bytes in %u blocks\n",
-	      cur_alloced, (unsigned long)pool->size, cur_blocks);
-  SECMEM_UNLOCK;
-#else
   memblock_t *mb;
   int i;
 
   SECMEM_LOCK;
 
   pool = &mainpool;
-  for (i = 0, mb = (memblock_t *) pool->mem;
-       ptr_into_pool_p (pool, mb);
-       mb = mb_get_next (pool, mb), i++)
-    log_info ("SECMEM: [%s] block: %i; size: %i\n",
-	      (mb->flags & MB_FLAG_ACTIVE) ? "used" : "free",
-	      i,
-	      mb->size);
+  if (!extended)
+    {
+      if (pool->okay)
+        log_info ("secmem usage: %u/%lu bytes in %u blocks\n",
+                  cur_alloced, (unsigned long)pool->size, cur_blocks);
+    }
+  else
+    {
+      for (i = 0, mb = (memblock_t *) pool->mem;
+           ptr_into_pool_p (pool, mb);
+           mb = mb_get_next (pool, mb), i++)
+        log_info ("SECMEM: pool %p %s block %i size %i\n",
+                  pool,
+                  (mb->flags & MB_FLAG_ACTIVE) ? "used" : "free",
+                  i,
+                  mb->size);
+      }
+
   SECMEM_UNLOCK;
-#endif
 }
