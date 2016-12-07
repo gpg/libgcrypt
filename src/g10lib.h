@@ -392,6 +392,7 @@ gcry_err_code_t _gcry_mpi_init (void);
 
 /* Memory management.  */
 #define GCRY_ALLOC_FLAG_SECURE (1 << 0)
+#define GCRY_ALLOC_FLAG_XHINT  (1 << 1)  /* Called from xmalloc.  */
 
 
 /*-- sexp.c --*/

@@ -608,8 +608,11 @@ _gcry_secmem_malloc_internal (size_t size)
   return mb ? &mb->aligned.c : NULL;
 }
 
+
+/* Allocate a block from the secmem of SIZE.  With XHINT set assume
+ * that the caller is a xmalloc style function.  */
 void *
-_gcry_secmem_malloc (size_t size)
+_gcry_secmem_malloc (size_t size, int xhint)
 {
   void *p;
 
@@ -694,9 +697,10 @@ _gcry_secmem_realloc_internal (void *p, size_t newsize)
 }
 
 
-/* Realloc memory.  */
+/* Realloc memory.  With XHINT set assume that the caller is a xmalloc
+ * style function.  */
 void *
-_gcry_secmem_realloc (void *p, size_t newsize)
+_gcry_secmem_realloc (void *p, size_t newsize, int xhint)
 {
   void *a;
 

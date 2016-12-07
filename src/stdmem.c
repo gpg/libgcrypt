@@ -117,10 +117,11 @@ _gcry_private_malloc (size_t n)
 
 /*
  * Allocate memory of size N from the secure memory pool.  Return NULL
- * if we are out of memory.
+ * if we are out of memory.  XHINT tells the allocator that the caller
+ * used an xmalloc style call.
  */
 void *
-_gcry_private_malloc_secure (size_t n)
+_gcry_private_malloc_secure (size_t n, int xhint)
 {
   if (!n)
     {
@@ -133,7 +134,7 @@ _gcry_private_malloc_secure (size_t n)
     {
       char *p;
 
-      if ( !(p = _gcry_secmem_malloc (n +EXTRA_ALIGN+ 5)) )
+      if (!(p = _gcry_secmem_malloc (n + EXTRA_ALIGN + 5, xhint)))
         return NULL;
       ((byte*)p)[EXTRA_ALIGN+0] = n;
       ((byte*)p)[EXTRA_ALIGN+1] = n >> 8 ;
@@ -144,17 +145,18 @@ _gcry_private_malloc_secure (size_t n)
     }
   else
     {
-      return _gcry_secmem_malloc( n );
+      return _gcry_secmem_malloc (n, xhint);
     }
 }
 
 
 /*
- * Realloc and clear the old space
- * Return NULL if there is not enough memory.
+ * Realloc and clear the old space.  XHINT tells the allocator that
+ * the caller used an xmalloc style call.  Returns NULL if there is
+ * not enough memory.
  */
 void *
-_gcry_private_realloc ( void *a, size_t n )
+_gcry_private_realloc (void *a, size_t n, int xhint)
 {
   if (use_m_guard)
     {
@@ -172,7 +174,7 @@ _gcry_private_realloc ( void *a, size_t n )
       if( len >= n ) /* We don't shrink for now. */
         return a;
       if (p[-1] == MAGIC_SEC_BYTE)
-        b = _gcry_private_malloc_secure(n);
+        b = _gcry_private_malloc_secure (n, xhint);
       else
         b = _gcry_private_malloc(n);
       if (!b)
@@ -184,7 +186,7 @@ _gcry_private_realloc ( void *a, size_t n )
     }
   else if ( _gcry_private_is_secure(a) )
     {
-      return _gcry_secmem_realloc( a, n );
+      return _gcry_secmem_realloc (a, n, xhint);
     }
   else
     {

@@ -787,7 +787,7 @@ do_malloc (size_t n, unsigned int flags, void **mem)
       if (alloc_secure_func)
 	m = (*alloc_secure_func) (n);
       else
-	m = _gcry_private_malloc_secure (n);
+	m = _gcry_private_malloc_secure (n, !!(flags & GCRY_ALLOC_FLAG_XHINT));
     }
   else
     {
@@ -821,14 +821,21 @@ _gcry_malloc (size_t n)
   return mem;
 }
 
-void *
-_gcry_malloc_secure (size_t n)
+static void *
+_gcry_malloc_secure_core (size_t n, int xhint)
 {
   void *mem = NULL;
 
-  do_malloc (n, GCRY_ALLOC_FLAG_SECURE, &mem);
+  do_malloc (n, (GCRY_ALLOC_FLAG_SECURE | (xhint? GCRY_ALLOC_FLAG_XHINT:0)),
+             &mem);
 
   return mem;
+}
+
+void *
+_gcry_malloc_secure (size_t n)
+{
+  return _gcry_malloc_secure_core (n, 0);
 }
 
 int
@@ -855,8 +862,8 @@ _gcry_check_heap( const void *a )
 #endif
 }
 
-void *
-_gcry_realloc (void *a, size_t n)
+static void *
+_gcry_realloc_core (void *a, size_t n, int xhint)
 {
   void *p;
 
@@ -873,11 +880,19 @@ _gcry_realloc (void *a, size_t n)
   if (realloc_func)
     p = realloc_func (a, n);
   else
-    p =  _gcry_private_realloc (a, n);
+    p =  _gcry_private_realloc (a, n, xhint);
   if (!p && !errno)
     gpg_err_set_errno (ENOMEM);
   return p;
 }
+
+
+void *
+_gcry_realloc (void *a, size_t n)
+{
+  return _gcry_realloc_core (a, n, 0);
+}
+
 
 void
 _gcry_free (void *p)
@@ -941,12 +956,8 @@ _gcry_calloc_secure (size_t n, size_t m)
 }
 
 
-/* Create and return a copy of the null-terminated string STRING.  If
-   it is contained in secure memory, the copy will be contained in
-   secure memory as well.  In an out-of-memory condition, NULL is
-   returned.  */
-char *
-_gcry_strdup (const char *string)
+static char *
+_gcry_strdup_core (const char *string, int xhint)
 {
   char *string_cp = NULL;
   size_t string_n = 0;
@@ -954,7 +965,7 @@ _gcry_strdup (const char *string)
   string_n = strlen (string);
 
   if (_gcry_is_secure (string))
-    string_cp = _gcry_malloc_secure (string_n + 1);
+    string_cp = _gcry_malloc_secure_core (string_n + 1, xhint);
   else
     string_cp = _gcry_malloc (string_n + 1);
 
@@ -964,6 +975,15 @@ _gcry_strdup (const char *string)
   return string_cp;
 }
 
+/* Create and return a copy of the null-terminated string STRING.  If
+ * it is contained in secure memory, the copy will be contained in
+ * secure memory as well.  In an out-of-memory condition, NULL is
+ * returned.  */
+char *
+_gcry_strdup (const char *string)
+{
+  return _gcry_strdup_core (string, 0);
+}
 
 void *
 _gcry_xmalloc( size_t n )
@@ -987,7 +1007,7 @@ _gcry_xrealloc( void *a, size_t n )
 {
   void *p;
 
-  while ( !(p = _gcry_realloc( a, n )) )
+  while (!(p = _gcry_realloc_core (a, n, 1)))
     {
       if ( fips_mode ()
            || !outofcore_handler
@@ -1005,7 +1025,7 @@ _gcry_xmalloc_secure( size_t n )
 {
   void *p;
 
-  while ( !(p = _gcry_malloc_secure( n )) )
+  while (!(p = _gcry_malloc_secure_core (n, 1)))
     {
       if ( fips_mode ()
            || !outofcore_handler
@@ -1060,7 +1080,7 @@ _gcry_xstrdup (const char *string)
 {
   char *p;
 
-  while ( !(p = _gcry_strdup (string)) )
+  while ( !(p = _gcry_strdup_core (string, 1)) )
     {
       size_t n = strlen (string);
       int is_sec = !!_gcry_is_secure (string);
