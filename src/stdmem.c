@@ -230,15 +230,13 @@ _gcry_private_free (void *a)
   if (use_m_guard )
     {
       _gcry_private_check_heap(p);
-      if ( _gcry_private_is_secure(a) )
-        _gcry_secmem_free(p-EXTRA_ALIGN-4);
-      else
+      if (! _gcry_secmem_free (p - EXTRA_ALIGN - 4))
         {
-          free(p-EXTRA_ALIGN-4);
+          free (p - EXTRA_ALIGN - 4);
 	}
     }
-  else if ( _gcry_private_is_secure(a) )
-    _gcry_secmem_free(p);
-  else
-    free(p);
+  else if (!_gcry_secmem_free (p))
+    {
+      free(p);
+    }
 }
